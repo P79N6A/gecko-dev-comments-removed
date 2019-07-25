@@ -384,7 +384,7 @@ str_resolve(JSContext *cx, JSObject *obj, jsid id, uintN flags,
     return JS_TRUE;
 }
 
-Class js_StringClass = {
+Class js::StringClass = {
     js_String_str,
     JSCLASS_HAS_RESERVED_SLOTS(StringObject::RESERVED_SLOTS) |
     JSCLASS_NEW_RESOLVE | JSCLASS_HAS_CACHED_PROTO(JSProto_String),
@@ -413,9 +413,9 @@ ThisToStringForStringProto(JSContext *cx, Value *vp)
 
     if (vp[1].isObject()) {
         JSObject *obj = &vp[1].toObject();
-        if (obj->getClass() == &js_StringClass &&
+        if (obj->isString() &&
             ClassMethodIsNative(cx, obj,
-                                &js_StringClass,
+                                &StringClass,
                                 ATOM_TO_JSID(cx->runtime->atomState.toStringAtom),
                                 js_str_toString))
         {
@@ -3191,12 +3191,12 @@ js_InitStringClass(JSContext *cx, JSObject *obj)
 
     GlobalObject *global = obj->asGlobal();
 
-    JSObject *proto = global->createBlankPrototype(cx, &js_StringClass);
+    JSObject *proto = global->createBlankPrototype(cx, &StringClass);
     if (!proto || !proto->asString()->init(cx, cx->runtime->emptyString))
         return NULL;
 
     
-    JSFunction *ctor = global->createConstructor(cx, js_String, &js_StringClass,
+    JSFunction *ctor = global->createConstructor(cx, js_String, &StringClass,
                                                  CLASS_ATOM(cx, String), 1);
     if (!ctor)
         return NULL;

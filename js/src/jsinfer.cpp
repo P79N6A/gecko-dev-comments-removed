@@ -4385,7 +4385,7 @@ CheckNewScriptProperties(JSContext *cx, TypeObject *type, JSScript *script)
         return;
 
     
-    JSObject *baseobj = NewBuiltinClassInstance(cx, &js_ObjectClass, gc::FINALIZE_OBJECT16);
+    JSObject *baseobj = NewBuiltinClassInstance(cx, &ObjectClass, gc::FINALIZE_OBJECT16);
     if (!baseobj) {
         if (type->newScript)
             type->clearNewScript(cx);

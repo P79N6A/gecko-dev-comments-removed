@@ -368,12 +368,12 @@ class ReferenceFinder {
             JSObject *object = static_cast<JSObject *>(cell);
 
             
-            JSClass *clasp = JS_GET_CLASS(context, object);
-            if (clasp == Jsvalify(&js_BlockClass) ||
-                clasp == Jsvalify(&js_CallClass) ||
-                clasp == Jsvalify(&js_WithClass) ||
-                clasp == Jsvalify(&js_DeclEnvClass))
+            if (object->isBlock() ||
+                object->isCall() ||
+                object->isWith() ||
+                object->isDeclEnv()) {
                 return JSVAL_VOID;
+            }
 
             
             if (JS_ObjectIsFunction(context, object) && IsInternalFunctionObject(object))

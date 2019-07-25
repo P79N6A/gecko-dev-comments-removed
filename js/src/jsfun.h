@@ -255,22 +255,6 @@ struct JSFunction : public JSObject_Slots2
     JS_FN(name, fastcall, nargs, flags)
 #endif
 
-extern JS_PUBLIC_DATA(js::Class) js_CallClass;
-extern JS_PUBLIC_DATA(js::Class) js_FunctionClass;
-extern JS_FRIEND_DATA(js::Class) js_DeclEnvClass;
-
-inline bool
-JSObject::isCall() const
-{
-    return getClass() == &js_CallClass;
-}
-
-inline bool
-JSObject::isFunction() const
-{
-    return getClass() == &js_FunctionClass;
-}
-
 inline JSFunction *
 JSObject::getFunctionPrivate() const
 {
