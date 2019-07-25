@@ -800,19 +800,17 @@ nsresult nsHTMLEditor::RemoveStyleInside(nsIDOMNode *aNode,
   }
 
   
-  if (
-    (!aChildrenOnly &&
-      (
-        
-        (aProperty && NodeIsType(aNode, aProperty)) ||
-        
-        (aProperty == nsEditProperty::href && nsHTMLEditUtils::IsLink(aNode)) ||
-        
-        (aProperty == nsEditProperty::name && nsHTMLEditUtils::IsNamedAnchor(aNode))
-      )
-    ) ||
-    
-    (!aProperty && NodeIsProperty(aNode))
+  if (!aChildrenOnly &&
+    (
+      
+      (aProperty && NodeIsType(aNode, aProperty)) ||
+      
+      (aProperty == nsEditProperty::href && nsHTMLEditUtils::IsLink(aNode)) ||
+      
+      (aProperty == nsEditProperty::name && nsHTMLEditUtils::IsNamedAnchor(aNode)) ||
+      
+      (!aProperty && NodeIsProperty(aNode))
+    )
   ) {
     
     
