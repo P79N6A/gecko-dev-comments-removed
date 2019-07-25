@@ -72,7 +72,7 @@ var PlacesUIUtils = {
 
 
   createFixedURI: function PUIU_createFixedURI(aSpec) {
-    return URIFixup.createFixupURI(aSpec, 0);
+    return URIFixup.createFixupURI(aSpec, Ci.nsIURIFixup.FIXUP_FLAG_NONE);
   },
 
   
@@ -128,7 +128,7 @@ var PlacesUIUtils = {
 
   _getBookmarkItemCopyTransaction:
   function PUIU__getBookmarkItemCopyTransaction(aData, aContainer, aIndex,
-                                              aExcludeAnnotations) {
+                                                aExcludeAnnotations) {
     var itemURL = PlacesUtils._uri(aData.uri);
     var itemTitle = aData.title;
     var keyword = aData.keyword || null;
@@ -278,7 +278,7 @@ var PlacesUIUtils = {
 
 
   makeTransaction: function PUIU_makeTransaction(data, type, container,
-                                               index, copy) {
+                                                 index, copy) {
     switch (data.type) {
       case PlacesUtils.TYPE_X_MOZ_PLACE_CONTAINER:
         if (copy)
@@ -289,7 +289,7 @@ var PlacesUIUtils = {
       case PlacesUtils.TYPE_X_MOZ_PLACE:
         if (data.id == -1) 
           return this._getURIItemCopyTransaction(data, container, index);
-  
+
         if (copy)
           return this._getBookmarkItemCopyTransaction(data, container, index);
         
@@ -361,14 +361,14 @@ var PlacesUIUtils = {
 
 
   showAddBookmarkUI: function PUIU_showAddBookmarkUI(aURI,
-                                                   aTitle,
-                                                   aDescription,
-                                                   aDefaultInsertionPoint,
-                                                   aShowPicker,
-                                                   aLoadInSidebar,
-                                                   aKeyword,
-                                                   aPostData,
-                                                   aCharSet) {
+                                                     aTitle,
+                                                     aDescription,
+                                                     aDefaultInsertionPoint,
+                                                     aShowPicker,
+                                                     aLoadInSidebar,
+                                                     aKeyword,
+                                                     aPostData,
+                                                     aCharSet) {
     var info = {
       action: "add",
       type: "bookmark"
@@ -417,9 +417,9 @@ var PlacesUIUtils = {
 
   showMinimalAddBookmarkUI:
   function PUIU_showMinimalAddBookmarkUI(aURI, aTitle, aDescription,
-                                       aDefaultInsertionPoint, aShowPicker,
-                                       aLoadInSidebar, aKeyword, aPostData,
-                                       aCharSet) {
+                                         aDefaultInsertionPoint, aShowPicker,
+                                         aLoadInSidebar, aKeyword, aPostData,
+                                         aCharSet) {
     var info = {
       action: "add",
       type: "bookmark",
@@ -485,11 +485,11 @@ var PlacesUIUtils = {
 
 
   showAddLivemarkUI: function PUIU_showAddLivemarkURI(aFeedURI,
-                                                    aSiteURI,
-                                                    aTitle,
-                                                    aDescription,
-                                                    aDefaultInsertionPoint,
-                                                    aShowPicker) {
+                                                      aSiteURI,
+                                                      aTitle,
+                                                      aDescription,
+                                                      aDefaultInsertionPoint,
+                                                      aShowPicker) {
     var info = {
       action: "add",
       type: "livemark"
@@ -525,8 +525,8 @@ var PlacesUIUtils = {
 
   showMinimalAddLivemarkUI:
   function PUIU_showMinimalAddLivemarkURI(aFeedURI, aSiteURI, aTitle,
-                                        aDescription, aDefaultInsertionPoint,
-                                        aShowPicker) {
+                                          aDescription, aDefaultInsertionPoint,
+                                          aShowPicker) {
     var info = {
       action: "add",
       type: "livemark",
@@ -733,6 +733,8 @@ var PlacesUIUtils = {
 
 
 
+
+
   checkURLSecurity: function PUIU_checkURLSecurity(aURINode, aWindow) {
     if (PlacesUtils.nodeIsBookmark(aURINode))
       return true;
@@ -890,7 +892,7 @@ var PlacesUIUtils = {
   openNodeWithEvent: function PUIU_openNodeWithEvent(aNode, aEvent) {
     this.openNodeIn(aNode, this._getCurrentActiveWin().whereToOpenLink(aEvent));
   },
-  
+
   
 
 
@@ -932,7 +934,7 @@ var PlacesUIUtils = {
 
 
 
-  guessUrlSchemeForUI: function PUU_guessUrlSchemeForUI(aUrlString) {
+  guessUrlSchemeForUI: function PUIU_guessUrlSchemeForUI(aUrlString) {
     return aUrlString.substr(0, aUrlString.indexOf(":"));
   },
 
@@ -961,7 +963,7 @@ var PlacesUIUtils = {
     return title || this.getString("noTitle");
   },
 
-  get leftPaneQueries() {    
+  get leftPaneQueries() {
     
     this.leftPaneFolderId;
     return this.leftPaneQueries;
@@ -1239,7 +1241,7 @@ var PlacesUIUtils = {
           queryName = name;
       }
     }
-    return queryName; 
+    return queryName;
   }
 };
 

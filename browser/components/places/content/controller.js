@@ -178,7 +178,7 @@ PlacesController.prototype = {
       if (this._view.selType != "single") {
         let rootNode = this._view.result.root;
         if (rootNode.containerOpen && rootNode.childCount > 0)
-            return true;
+          return true;
       }
       return false;
     case "placesCmd_open":
@@ -308,7 +308,7 @@ PlacesController.prototype = {
 
   onEvent: function PC_onEvent(eventName) { },
 
-  
+
   
 
 
@@ -373,7 +373,7 @@ PlacesController.prototype = {
     var root = this._view.result.root;
     for (var i = 0; i < nodes.length; ++i) {
       if (nodes[i] == root)
-        return true;      
+        return true;
     }
 
     return false;
@@ -456,7 +456,7 @@ PlacesController.prototype = {
     if (nodes.length == 0)
       nodes.push(root); 
 
-    for (var i=0; i < nodes.length; i++) {
+    for (var i = 0; i < nodes.length; i++) {
       var nodeData = {};
       var node = nodes[i];
       var nodeType = node.type;
@@ -514,16 +514,16 @@ PlacesController.prototype = {
 
       
       if (uri) {
-        var names = PlacesUtils.annotations.getPageAnnotationNames(uri);
-        for (var j = 0; j < names.length; ++j)
+        let names = PlacesUtils.annotations.getPageAnnotationNames(uri);
+        for (let j = 0; j < names.length; ++j)
           nodeData[names[j]] = true;
       }
 
       
       if (node.itemId != -1) {
-        names = PlacesUtils.annotations
-                           .getItemAnnotationNames(node.itemId);
-        for (j = 0; j < names.length; ++j)
+        let names = PlacesUtils.annotations
+                               .getItemAnnotationNames(node.itemId);
+        for (let j = 0; j < names.length; ++j)
           nodeData[names[j]] = true;
       }
       metadata.push(nodeData);
@@ -551,8 +551,8 @@ PlacesController.prototype = {
     var forceHideAttr = aMenuItem.getAttribute("forcehideselection");
     if (forceHideAttr) {
       var forceHideRules = forceHideAttr.split("|");
-      for (var i = 0; i < aMetaData.length; ++i) {
-        for (var j=0; j < forceHideRules.length; ++j) {
+      for (let i = 0; i < aMetaData.length; ++i) {
+        for (let j = 0; j < forceHideRules.length; ++j) {
           if (forceHideRules[j] in aMetaData[i])
             return false;
         }
@@ -691,7 +691,7 @@ PlacesController.prototype = {
   
 
 
-  showBookmarkPropertiesForSelection: 
+  showBookmarkPropertiesForSelection:
   function PC_showBookmarkPropertiesForSelection() {
     var node = this._view.selectedNode;
     if (!node)
@@ -717,7 +717,7 @@ PlacesController.prototype = {
 
 
   _assertURINotString: function PC__assertURINotString(value) {
-    NS_ASSERT((typeof(value) == "object") && !(value instanceof String), 
+    NS_ASSERT((typeof(value) == "object") && !(value instanceof String),
            "This method should be passed a URI as a nsIURI object, not as a string.");
   },
 
@@ -759,16 +759,15 @@ PlacesController.prototype = {
 
         var messageKey = "tabs.openWarningMultipleBranded";
         var openKey = "tabs.openButtonMultiple";
-        var strings = document.getElementById("placeBundle");
         const BRANDING_BUNDLE_URI = "chrome://branding/locale/brand.properties";
         var brandShortName = Cc["@mozilla.org/intl/stringbundle;1"].
                              getService(Ci.nsIStringBundleService).
                              createBundle(BRANDING_BUNDLE_URI).
                              GetStringFromName("brandShortName");
-       
+
         var buttonPressed = promptService.confirmEx(window,
           PlacesUIUtils.getString("tabs.openWarningTitle"),
-          PlacesUIUtils.getFormattedString(messageKey, 
+          PlacesUIUtils.getFormattedString(messageKey,
             [numTabsToOpen, brandShortName]),
           (promptService.BUTTON_TITLE_IS_STRING * promptService.BUTTON_POS_0)
           + (promptService.BUTTON_TITLE_CANCEL * promptService.BUTTON_POS_1),
@@ -906,7 +905,7 @@ PlacesController.prototype = {
       }
       return false;
     }
-  
+
       for (var j = 0; j < pastFolders.length; ++j) {
         if (isContainedBy(node, pastFolders[j]))
           return true;
@@ -1090,7 +1089,7 @@ PlacesController.prototype = {
 
     var root = this._view.result.root;
 
-    if (PlacesUtils.nodeIsFolder(root)) 
+    if (PlacesUtils.nodeIsFolder(root))
       this._removeRowsFromBookmarks(aTxnName);
     else if (PlacesUtils.nodeIsQuery(root)) {
       var queryType = PlacesUtils.asQuery(root).queryOptions.queryType;
@@ -1166,8 +1165,8 @@ PlacesController.prototype = {
     try {
       let nodes = this._view.selectedNodes;
 
-      let xferable =  Cc["@mozilla.org/widget/transferable;1"].
-                      createInstance(Ci.nsITransferable);
+      let xferable = Cc["@mozilla.org/widget/transferable;1"].
+                     createInstance(Ci.nsITransferable);
       let foundFolder = false, foundLink = false;
       let copiedFolders = [];
       let placeString, mozURLString, htmlString, unicodeString;
@@ -1179,11 +1178,11 @@ PlacesController.prototype = {
           continue;
         if (PlacesUtils.nodeIsFolder(node))
           copiedFolders.push(node);
-        
+
         function generateChunk(type, overrideURI) {
           let suffix = i < (nodes.length - 1) ? PlacesUtils.endl : "";
           let uri = overrideURI;
-        
+
           if (PlacesUtils.nodeIsLivemarkContainer(node))
             uri = PlacesUtils.livemarks.getFeedURI(node.itemId).spec
 
@@ -1194,8 +1193,8 @@ PlacesController.prototype = {
           htmlString += (PlacesUtils.wrapNode(node, PlacesUtils.TYPE_HTML,
                                                  uri) + suffix);
 
-          var placeSuffix = i < (nodes.length - 1) ? "," : "";
-          var resolveShortcuts = !PlacesControllerDragHelper.canMoveNode(node);
+          let placeSuffix = i < (nodes.length - 1) ? "," : "";
+          let resolveShortcuts = !PlacesControllerDragHelper.canMoveNode(node);
           return PlacesUtils.wrapNode(node, type, overrideURI, resolveShortcuts) + placeSuffix;
         }
 
@@ -1255,10 +1254,9 @@ PlacesController.prototype = {
 
 
     function makeXferable(types) {
-      var xferable = 
-          Cc["@mozilla.org/widget/transferable;1"].
-          createInstance(Ci.nsITransferable);
-      for (var i = 0; i < types.length; ++i) 
+      var xferable = Cc["@mozilla.org/widget/transferable;1"].
+                     createInstance(Ci.nsITransferable);
+      for (var i = 0; i < types.length; ++i)
         xferable.addDataFlavor(types[i]);
       return xferable;
     }
@@ -1291,7 +1289,7 @@ PlacesController.prototype = {
           if (ip.isTag) {
             var uri = PlacesUtils._uri(items[i].uri);
             txn = PlacesUIUtils.ptm.tagURI(uri, [ip.itemId]);
-          } 
+          }
           else {
             
             
@@ -1318,7 +1316,7 @@ PlacesController.prototype = {
     
     
     var transactions = getTransactions([PlacesUtils.TYPE_X_MOZ_PLACE,
-                                        PlacesUtils.TYPE_X_MOZ_URL, 
+                                        PlacesUtils.TYPE_X_MOZ_URL,
                                         PlacesUtils.TYPE_UNICODE]);
     var txn = PlacesUIUtils.ptm.aggregateTransactions("Paste", transactions);
     PlacesUIUtils.ptm.doTransaction(txn);
@@ -1416,7 +1414,8 @@ let PlacesControllerDragHelper = {
       let dragged;
       try {
         dragged = PlacesUtils.unwrapNodes(data, flavor)[0];
-      } catch (e) {
+      }
+      catch (e) {
         return false;
       }
 
@@ -1442,7 +1441,7 @@ let PlacesControllerDragHelper = {
     return true;
   },
 
-  
+
   
 
 
