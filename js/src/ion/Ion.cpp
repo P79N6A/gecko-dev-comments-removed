@@ -883,7 +883,8 @@ EnterIon(JSContext *cx, StackFrame *fp, CallTarget target, void *jitcode, bool o
 
     
     fp->setReturnValue(result);
-    fp->markFunctionEpilogueDone();
+    if (fp->isFunctionFrame())
+        fp->updateEpilogueFlags();
 
     return !result.isMagic();
 }
