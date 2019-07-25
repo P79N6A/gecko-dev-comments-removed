@@ -259,6 +259,12 @@ JSVAL_TO_PRIVATE(jsval v)
     return JSVAL_TO_PRIVATE_IMPL(l);
 }
 
+static JS_ALWAYS_INLINE JSBool
+JSVAL_MAY_BE_PRIVATE(jsval v)
+{
+    return JSVAL_IS_DOUBLE(v);
+}
+
 
 #define JSVAL_LOCK(cx,v)        (JSVAL_IS_GCTHING(v)                          \
                                  ? JS_LockGCThing(cx, JSVAL_TO_GCTHING(v))    \
@@ -750,8 +756,6 @@ JS_StringToVersion(const char *string);
                                                    (see JS_GetGlobalObject),
                                                    leaving that up to the
                                                    embedding. */
-
-#define JSOPTION_METHODJIT      JS_BIT(14)      /* Whole-method JIT. */
 
 extern JS_PUBLIC_API(uint32)
 JS_GetOptions(JSContext *cx);
@@ -1563,8 +1567,10 @@ struct JSExtendedClass {
 
 
 
+
+
 #define JSCLASS_GLOBAL_FLAGS \
-    (JSCLASS_IS_GLOBAL | JSCLASS_HAS_RESERVED_SLOTS(JSProto_LIMIT * 2))
+    (JSCLASS_IS_GLOBAL | JSCLASS_HAS_RESERVED_SLOTS(JSProto_LIMIT))
 
 
 #define JSCLASS_CACHED_PROTO_SHIFT      (JSCLASS_HIGH_FLAGS_SHIFT + 8)

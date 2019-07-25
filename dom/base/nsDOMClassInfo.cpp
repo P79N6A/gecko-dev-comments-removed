@@ -9032,6 +9032,8 @@ nsHTMLDocumentSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
 
         
         
+        
+        JS_ASSERT(false && "Relying on dirty private = int details");
         if (helper &&
             !::JS_SetPrivate(cx, helper,
                              JSVAL_TO_PRIVATE(INT_TO_JSVAL(flags)))) {
