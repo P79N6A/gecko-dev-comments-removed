@@ -165,19 +165,17 @@ public:
                      const nsAString& browserDumpID);
 #endif
 
-  nsPluginInstanceTag *FindInstanceTag(nsIPluginInstance *instance);
-  nsPluginInstanceTag *FindInstanceTag(const char *mimetype);
-  nsPluginInstanceTag *FindStoppedInstanceTag(const char * url);
-  nsPluginInstanceTag *FindOldestStoppedInstanceTag();
-  PRUint32 StoppedInstanceTagCount();
+  nsNPAPIPluginInstance *FindInstance(const char *mimetype);
+  nsNPAPIPluginInstance *FindStoppedInstance(const char * url);
+  nsNPAPIPluginInstance *FindOldestStoppedInstance();
+  PRUint32 StoppedInstanceCount();
 
-  void StopRunningInstances(nsISupportsArray* aReloadDocs, nsPluginTag* aPluginTag);
+  nsTArray< nsRefPtr<nsNPAPIPluginInstance> > *InstanceArray();
 
-  nsTArray< nsAutoPtr<nsPluginInstanceTag> > *InstanceTagArray();
+  void DestroyRunningInstances(nsISupportsArray* aReloadDocs, nsPluginTag* aPluginTag);
 
   
-  nsPluginTag*
-  FindTagForLibrary(PRLibrary* aLibrary);
+  nsPluginTag* FindTagForLibrary(PRLibrary* aLibrary);
 
 private:
   nsresult
@@ -205,16 +203,10 @@ private:
   FindPluginEnabledForExtension(const char* aExtension, const char* &aMimeType);
 
   
-  nsPluginTag*
-  FindTagForPlugin(nsIPlugin* aPlugin);
+  nsPluginTag* TagForPlugin(nsNPAPIPlugin* aPlugin);
 
   nsresult
   FindStoppedPluginForURL(nsIURI* aURL, nsIPluginInstanceOwner *aOwner);
-
-  nsresult
-  AddInstanceToActiveList(nsCOMPtr<nsIPlugin> aPlugin,
-                          nsIPluginInstance* aInstance,
-                          nsIURI* aURL);
 
   nsresult
   FindPlugins(PRBool aCreatePluginList, PRBool * aPluginsChanged);
@@ -272,7 +264,9 @@ private:
   
   PRPackedBool mPluginsDisabled;
 
-  nsTArray< nsAutoPtr<nsPluginInstanceTag> > mInstanceTags;
+  
+  
+  nsTArray< nsRefPtr<nsNPAPIPluginInstance> > mInstances;
 
   nsTArray<PRLibrary*> mUnusedLibraries;
 

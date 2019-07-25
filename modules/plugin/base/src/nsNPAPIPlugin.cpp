@@ -84,6 +84,8 @@
 
 #ifdef XP_MACOSX
 #include <Carbon/Carbon.h>
+#include <ApplicationServices/ApplicationServices.h>
+#include <OpenGL/OpenGL.h>
 #endif
 
 
@@ -112,6 +114,10 @@ using mozilla::PluginPRLibrary;
 #ifdef MOZ_IPC
 #include "mozilla/plugins/PluginModuleParent.h"
 using mozilla::plugins::PluginModuleParent;
+#endif
+
+#ifdef MOZ_X11
+#include "mozilla/X11Util.h"
 #endif
 
 using namespace mozilla::plugins::parent;
@@ -193,7 +199,7 @@ void NS_NotifyPluginCall(PRIntervalTime startTime)
 {
   PRIntervalTime endTime = PR_IntervalNow() - startTime;
   nsCOMPtr<nsIObserverService> notifyUIService =
-    do_GetService("@mozilla.org/observer-service;1");
+    mozilla::services::GetObserverService();
   if (!notifyUIService)
     return;
 
@@ -278,6 +284,30 @@ static PRInt32 OSXVersion()
   }
   return gOSXVersion;
 }
+
+
+
+#define CGLRendererIDMatchingMask 0x00FE7F00
+#define CGLRendererIntel900ID 0x00024000
+static PRBool GMA9XXGraphics()
+{
+  bool hasIntelGMA9XX = PR_FALSE;
+  CGLRendererInfoObj renderer = 0;
+  GLint rendererCount = 0;
+  if (::CGLQueryRendererInfo(0xffffffff, &renderer, &rendererCount) == kCGLNoError) {
+    for (GLint c = 0; c < rendererCount; c++) {
+      GLint rendProp = 0;
+      if (::CGLDescribeRenderer(renderer, c, kCGLRPRendererID, &rendProp) == kCGLNoError) {
+        if ((rendProp & CGLRendererIDMatchingMask) == CGLRendererIntel900ID) {
+          hasIntelGMA9XX = PR_TRUE;
+          break;
+        }
+      }
+    }
+    ::CGLDestroyRendererInfo(renderer);
+  }
+  return hasIntelGMA9XX;
+}
 #endif
 
 inline PRBool
@@ -294,6 +324,7 @@ RunPluginOOP(const char* aFilePath, const nsPluginTag *aPluginTag)
   }
   
   
+  
   if (aPluginTag && 
       aPluginTag->mFileName.EqualsIgnoreCase("flash player.plugin")) {
     
@@ -307,6 +338,11 @@ RunPluginOOP(const char* aFilePath, const nsPluginTag *aPluginTag)
       if (versionPrefix.EqualsASCII("10.0")) {
         return PR_FALSE;
       }
+    }
+    
+    
+    if (GMA9XXGraphics()) {
+      return PR_FALSE;
     }
   }
 #endif
@@ -443,7 +479,19 @@ nsNPAPIPlugin::CreatePlugin(const char* aFilePath, PRLibrary* aLibrary,
   return NS_OK;
 }
 
-NS_METHOD
+PluginLibrary*
+nsNPAPIPlugin::GetLibrary()
+{
+  return mLibrary;
+}
+
+NPPluginFuncs*
+nsNPAPIPlugin::PluginFuncs()
+{
+  return &mPluginFuncs;
+}
+
+NS_IMETHODIMP
 nsNPAPIPlugin::CreatePluginInstance(nsIPluginInstance **aResult)
 {
   if (!aResult)
@@ -451,8 +499,7 @@ nsNPAPIPlugin::CreatePluginInstance(nsIPluginInstance **aResult)
 
   *aResult = NULL;
 
-  nsRefPtr<nsNPAPIPluginInstance> inst =
-    new nsNPAPIPluginInstance(&mPluginFuncs, mLibrary);
+  nsRefPtr<nsNPAPIPluginInstance> inst = new nsNPAPIPluginInstance(this);
   if (!inst)
     return NS_ERROR_OUT_OF_MEMORY;
 
@@ -882,7 +929,7 @@ _geturl(NPP npp, const char* relativeURL, const char* target)
     nsNPAPIPluginInstance *inst = (nsNPAPIPluginInstance *) npp->ndata;
 
     
-    const char *name;
+    const char *name = nsnull;
     nsRefPtr<nsPluginHost> host = dont_AddRef(nsPluginHost::GetInst());
     host->GetPluginName(inst, &name);
 
@@ -1773,7 +1820,7 @@ _releasevariantvalue(NPVariant* variant)
           }
         }
 #else
-        PR_Free((void *)s->UTF8Characters);
+        NS_Free((void *)s->UTF8Characters);
 #endif
       }
       break;
@@ -1853,11 +1900,7 @@ _getvalue(NPP npp, NPNVariable variable, void *result)
         inst->GetValueFromPlugin(NPPVpluginNeedsXEmbed, &needXEmbed);
       }
       if (windowless || needXEmbed) {
-#ifdef MOZ_WIDGET_GTK2
-        (*(Display **)result) = GDK_DISPLAY();
-#else
-        (*(Display **)result) = QX11Info::display();
-#endif
+        (*(Display **)result) = mozilla::DefaultXDisplay();
         return NPERR_NO_ERROR;
       }
     }
@@ -1948,6 +1991,11 @@ _getvalue(NPP npp, NPNVariable variable, void *result)
   case NPNVSupportsXEmbedBool: {
 #ifdef MOZ_WIDGET_GTK2
     *(NPBool*)result = PR_TRUE;
+#elif defined(MOZ_WIDGET_QT)
+    
+    
+    fprintf(stderr, "Fake support for XEmbed plugins in Qt port\n");
+    *(NPBool*)result = PR_TRUE;
 #else
     *(NPBool*)result = PR_FALSE;
 #endif
@@ -2025,6 +2073,12 @@ _getvalue(NPP npp, NPNVariable variable, void *result)
   }
 
    case NPNVsupportsCoreAnimationBool: {
+     *(NPBool*)result = PR_TRUE;
+
+     return NPERR_NO_ERROR;
+   }
+
+   case NPNVsupportsInvalidatingCoreAnimationBool: {
      *(NPBool*)result = PR_TRUE;
 
      return NPERR_NO_ERROR;
@@ -2371,20 +2425,13 @@ _getvalueforurl(NPP instance, NPNURLVariable variable, const char *url,
         return NPERR_GENERIC_ERROR;
       }
 
-      nsXPIDLCString cookieStr;
-      nsresult cookieReturn = cookieService->GetCookieString(uri, nsnull,
-                                                             getter_Copies(cookieStr));
-      if (NS_FAILED(cookieReturn) || !cookieStr) {
+      if (NS_FAILED(cookieService->GetCookieString(uri, nsnull, value)) ||
+          !*value) {
         return NPERR_GENERIC_ERROR;
       }
 
-      *value = PL_strndup(cookieStr, cookieStr.Length());
-
-      if (*value) {
-        *len = cookieStr.Length();
-
-        return NPERR_NO_ERROR;
-      }
+      *len = PL_strlen(*value);
+      return NPERR_NO_ERROR;
     }
 
     break;

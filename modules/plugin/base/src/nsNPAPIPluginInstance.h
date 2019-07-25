@@ -46,6 +46,7 @@
 #include "nsPIDOMWindow.h"
 #include "nsITimer.h"
 #include "nsIPluginTagInfo.h"
+#include "nsIURI.h"
 
 #include "mozilla/TimeStamp.h"
 #include "mozilla/PluginLibrary.h"
@@ -72,10 +73,12 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIPLUGININSTANCE
 
+  nsNPAPIPlugin* GetPlugin();
+
   nsresult GetNPP(NPP * aNPP);
 
-  
-  nsresult GetCallbacks(const NPPluginFuncs ** aCallbacks);
+  void SetURI(nsIURI* uri);
+  nsIURI* GetURI();
 
   NPError SetWindowless(PRBool aWindowless);
 
@@ -95,10 +98,12 @@ public:
                            PRBool aCallNotify,
                            const char * aURL);
 
-  nsNPAPIPluginInstance(NPPluginFuncs* callbacks, PluginLibrary* aLibrary);
+  nsNPAPIPluginInstance(nsNPAPIPlugin* plugin);
+  virtual ~nsNPAPIPluginInstance();
 
   
-  virtual ~nsNPAPIPluginInstance();
+  
+  void Destroy();
 
   
   bool IsRunning() {
@@ -145,11 +150,6 @@ protected:
 
   
   
-  
-  NPPluginFuncs* mCallbacks;
-
-  
-  
   NPP_t mNPP;
 
 #ifdef XP_MACOSX
@@ -174,9 +174,10 @@ protected:
 public:
   
   PRPackedBool mInPluginInitCall;
-  PluginLibrary* mLibrary;
 
 private:
+  nsNPAPIPlugin* mPlugin;
+
   
   nsTArray<nsNPAPIPluginStreamListener*> mPStreamListeners;
   
@@ -199,6 +200,8 @@ private:
   
   
   mozilla::TimeStamp mStopTime;
+
+  nsCOMPtr<nsIURI> mURI;
 };
 
 #endif 
