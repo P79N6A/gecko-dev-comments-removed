@@ -1401,7 +1401,8 @@ HTMLTableAccessible::IsProbablyLayoutTable()
   
   
   PRUint32 childCount = ChildCount();
-  nscolor rowColor, prevRowColor;
+  nscolor rowColor = 0;
+  nscolor prevRowColor;
   for (PRUint32 childIdx = 0; childIdx < childCount; childIdx++) {
     Accessible* child = GetChildAt(childIdx);
     if (child->Role() == roles::ROW) {
