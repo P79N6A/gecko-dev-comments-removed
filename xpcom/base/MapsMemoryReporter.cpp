@@ -152,6 +152,13 @@ public:
   CollectReports(nsIMemoryMultiReporterCallback *aCallback,
                  nsISupports *aClosure);
 
+  NS_IMETHOD
+  GetExplicitNonHeap(PRInt64 *aAmount) {
+    
+    *aAmount = 0;
+    return NS_OK;
+  }
+
 private:
   
   
@@ -223,7 +230,7 @@ MapsReporter::CollectReports(nsIMemoryMultiReporterCallback *aCallback,
   NS_ASSERTION(categoriesSeen.mSeenVsize, "Didn't create a resident node?");
   if (!categoriesSeen.mSeenSwap) {
     aCallback->Callback(NS_LITERAL_CSTRING(""),
-                        NS_LITERAL_CSTRING("map/swap"),
+                        NS_LITERAL_CSTRING("map/swap/total"),
                         nsIMemoryReporter::KIND_NONHEAP,
                         nsIMemoryReporter::UNITS_BYTES,
                         0,

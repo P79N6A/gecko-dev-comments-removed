@@ -1789,6 +1789,12 @@ typedef void (*IterateCellCallback)(JSContext *cx, void *data, void *thing,
 
 
 
+extern JS_FRIEND_API(void)
+IterateCompartments(JSContext *cx, void *data,
+                    IterateCompartmentCallback compartmentCallback);
+
+
+
 
 
 extern JS_FRIEND_API(void)

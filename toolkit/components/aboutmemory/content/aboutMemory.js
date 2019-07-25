@@ -236,6 +236,9 @@ Reporter.prototype = {
   },
 
   treeNameMatches: function(aTreeName) {
+    
+    
+    aTreeName += "/";
     return this._path.slice(0, aTreeName.length) === aTreeName;
   }
 };
