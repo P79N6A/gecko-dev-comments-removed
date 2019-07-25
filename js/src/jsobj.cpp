@@ -3924,7 +3924,7 @@ JSObject::freeSlot(JSContext *cx, uint32 slot)
 
 
 
-        if (slot + 1 < limit) {
+        if (JSSLOT_FREE(clasp) <= slot && slot + 1 < limit) {
             JS_ASSERT_IF(last != SHAPE_INVALID_SLOT, last < slotSpan());
             vref.setPrivateUint32(last);
             last = slot;
