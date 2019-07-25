@@ -112,7 +112,12 @@ var shell = {
     
     
     
-    Services.audioManager.masterVolume = 0.5;
+    
+    try {
+      Services.audioManager.masterVolume = 0.5;
+    } catch(e) {
+      dump('Error setting master volume: ' + e + '\n');
+    }
 
     let domains = "";
     try {
