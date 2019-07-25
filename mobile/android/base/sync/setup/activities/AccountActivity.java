@@ -98,19 +98,19 @@ public class AccountActivity extends AccountAuthenticatorActivity {
   }
 
   @Override
-  public void onStart() {
-    super.onStart();
-    
-    usernameInput.setText("");
-    passwordInput.setText("");
-    synckeyInput.setText("");
-    passwordInput.setText("");
+  public void onResume() {
+    super.onResume();
+    clearCredentials();
   }
 
   public void cancelClickHandler(View target) {
     finish();
   }
 
+  private void clearCredentials() {
+    
+    passwordInput.setText("");
+  }
   
 
 
