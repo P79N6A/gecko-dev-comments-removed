@@ -114,6 +114,12 @@ function getHomePage() {
   return url;
 }
 
+function showPanelWhenReady(aWindow, aPage) {
+  aWindow.addEventListener("UIReadyDelayed", function(aEvent) {
+    aWindow.BrowserUI.showPanel(aPage);
+  }, false);
+}
+
 
 function BrowserCLH() { }
 
@@ -155,6 +161,9 @@ BrowserCLH.prototype = {
       }
       return;
     }
+
+    
+    let alertFlag = aCmdLine.handleFlagWithParam("alert", false);
 
     
     let uris = [];
@@ -206,8 +215,6 @@ BrowserCLH.prototype = {
 
     
     
-    if (uris.length == 0)
-      return;
 
     
     while (!win.browserDOMWindow)
@@ -216,6 +223,22 @@ BrowserCLH.prototype = {
     
     for (let i = 0; i < uris.length; i++)
       win.browserDOMWindow.openURI(uris[i], null, Ci.nsIBrowserDOMWindow.OPEN_NEWTAB, Ci.nsIBrowserDOMWindow.OPEN_EXTERNAL);
+
+    
+    if (alertFlag) {
+      if (alertFlag == "update-app") {
+        
+        Services.prefs.setBoolPref("app.update.skipNotification", true);
+
+        var updateService = Cc["@mozilla.org/updates/update-service;1"].getService(Ci.nsIApplicationUpdateService);
+        var updateTimerCallback = updateService.QueryInterface(Ci.nsITimerCallback);
+        updateTimerCallback.notify(null);
+      } else if (alertFlag.length >= 9 && alertFlag.substr(0, 9) == "download:") {
+        showPanelWhenReady(win, "downloads-container");
+      } else if (alertFlag == "addons") {
+        showPanelWhenReady(win, "addons-container");
+      }
+    }
   },
 
   
