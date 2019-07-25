@@ -103,6 +103,18 @@ int
 read_product_info_block(char *path, 
                         struct ProductInformationBlock *infoBlock);
 
+
+
+
+
+
+
+
+
+
+int
+strip_signature_block(const char *src, const char * dest);
+
 #ifdef __cplusplus
 }
 #endif

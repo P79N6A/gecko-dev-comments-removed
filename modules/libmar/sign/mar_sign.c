@@ -181,6 +181,33 @@ WriteAndUpdateSignature(FILE *fpDest, void *buffer,
 
 
 
+void
+AdjustIndexContentOffsets(char *indexBuf, PRUint32 indexLength, PRUint32 offsetAmount) 
+{
+  PRUint32 *offsetToContent;
+  char *indexBufLoc = indexBuf;
+
+  
+  while (indexBufLoc != (indexBuf + indexLength)) {
+    
+    offsetToContent = (PRUint32 *)indexBufLoc; 
+    *offsetToContent = ntohl(*offsetToContent);
+    *offsetToContent += offsetAmount;
+    *offsetToContent = htonl(*offsetToContent);
+    
+    indexBufLoc += 3 * sizeof(PRUint32);
+    indexBufLoc += strlen(indexBufLoc) + 1;
+  }
+}
+
+
+
+
+
+
+
+
+
 
 
 
@@ -218,6 +245,274 @@ ReadWriteAndUpdateSignature(FILE *fpSrc, FILE *fpDest, void *buffer,
 
 
 int
+ReadAndWrite(FILE *fpSrc, FILE *fpDest, void *buffer, 
+             PRUint32 size, const char *err) 
+{
+  if (!size) { 
+    return 0;
+  }
+
+  if (fread(buffer, size, 1, fpSrc) != 1) {
+    fprintf(stderr, "ERROR: Could not read %s\n", err);
+    return -1;
+  }
+
+  if (fwrite(buffer, size, 1, fpDest) != 1) {
+    fprintf(stderr, "ERROR: Could not write %s\n", err);
+    return -2;
+  }
+
+  return 0;
+}
+
+
+
+
+
+
+
+
+
+
+int
+strip_signature_block(const char *src, const char * dest)
+{
+  PRUint32 offsetToIndex, dstOffsetToIndex, indexLength, 
+    numSignatures = 0, leftOver;
+  PRInt32 stripAmount = 0;
+  PRInt64 oldPos, sizeOfEntireMAR = 0, realSizeOfSrcMAR, numBytesToCopy,
+    numChunks, i;
+  FILE *fpSrc = NULL, *fpDest = NULL;
+  int rv = -1, hasSignatureBlock;
+  char buf[BLOCKSIZE];
+  char *indexBuf = NULL, *indexBufLoc;
+
+  if (!src || !dest) {
+    fprintf(stderr, "ERROR: Invalid parameter passed in.\n");
+    return -1;
+  }
+
+  fpSrc = fopen(src, "rb");
+  if (!fpSrc) {
+    fprintf(stderr, "ERROR: could not open source file: %s\n", dest);
+    goto failure;
+  }
+
+  fpDest = fopen(dest, "wb");
+  if (!fpDest) {
+    fprintf(stderr, "ERROR: could not create target file: %s\n", dest);
+    goto failure;
+  }
+
+  
+  if (get_mar_file_info(src, &hasSignatureBlock, NULL, NULL, NULL, NULL)) {
+    fprintf(stderr, "ERROR: could not determine if MAR is old or new.\n");
+    goto failure;
+  }
+
+  
+  if (ReadAndWrite(fpSrc, fpDest, buf, MAR_ID_SIZE, "MAR ID")) {
+    goto failure;
+  }
+
+  
+  if (fread(&offsetToIndex, sizeof(offsetToIndex), 1, fpSrc) != 1) {
+    fprintf(stderr, "ERROR: Could not read offset\n");
+    goto failure;
+  }
+  offsetToIndex = ntohl(offsetToIndex);
+
+  
+  oldPos = ftello(fpSrc);
+  if (fseeko(fpSrc, 0, SEEK_END)) {
+    fprintf(stderr, "ERROR: Could not seek to end of file.\n");
+    goto failure;
+  }
+  realSizeOfSrcMAR = ftello(fpSrc);
+  if (fseeko(fpSrc, oldPos, SEEK_SET)) {
+    fprintf(stderr, "ERROR: Could not seek back to current location.\n");
+    goto failure;
+  }
+
+  if (hasSignatureBlock) {
+    
+    if (fread(&sizeOfEntireMAR, 
+              sizeof(sizeOfEntireMAR), 1, fpSrc) != 1) {
+      fprintf(stderr, "ERROR: Could read mar size\n");
+      goto failure;
+    }
+    sizeOfEntireMAR = NETWORK_TO_HOST64(sizeOfEntireMAR);
+    if (sizeOfEntireMAR != realSizeOfSrcMAR) {
+      fprintf(stderr, "ERROR: Source MAR is not of the right size\n");
+      goto failure;
+    }
+  
+    
+    if (fread(&numSignatures, sizeof(numSignatures), 1, fpSrc) != 1) {
+      fprintf(stderr, "ERROR: Could read num signatures\n");
+      goto failure;
+    }
+    numSignatures = ntohl(numSignatures);
+
+    for (i = 0; i < numSignatures; i++) {
+      PRUint32 signatureLen;
+
+      
+      if (fseeko(fpSrc, sizeof(PRUint32), SEEK_CUR)) {
+        fprintf(stderr, "ERROR: Could not skip past signature algorithm ID\n");
+      }
+
+      
+      if (fread(&signatureLen, sizeof(PRUint32), 1, fpSrc) != 1) {
+        fprintf(stderr, "ERROR: Could not read signatures length.\n");
+        return CryptoX_Error;
+      }
+      signatureLen = ntohl(signatureLen);
+
+      
+      if (fseeko(fpSrc, signatureLen, SEEK_CUR)) {
+        fprintf(stderr, "ERROR: Could not skip past signature algorithm ID\n");
+      }
+
+      stripAmount += sizeof(PRUint32) + sizeof(PRUint32) + signatureLen; 
+    }
+
+  } else {
+    sizeOfEntireMAR = realSizeOfSrcMAR;
+    numSignatures = 0;
+  }
+
+  if (((PRInt64)offsetToIndex) > sizeOfEntireMAR) {
+    fprintf(stderr, "ERROR: Offset to index is larger than the file size.\n");
+    goto failure;
+  }
+
+  dstOffsetToIndex = offsetToIndex;
+  if (!hasSignatureBlock) {
+    dstOffsetToIndex += sizeof(sizeOfEntireMAR) + sizeof(numSignatures);
+  }
+  dstOffsetToIndex -= stripAmount;
+
+  
+  dstOffsetToIndex = htonl(dstOffsetToIndex);
+  if (fwrite(&dstOffsetToIndex, sizeof(dstOffsetToIndex), 1, fpDest) != 1) {
+    fprintf(stderr, "ERROR: Could not write offset to index\n");
+    goto failure;
+  }
+  dstOffsetToIndex = ntohl(dstOffsetToIndex);
+
+  
+  if (!hasSignatureBlock) {
+    sizeOfEntireMAR += sizeof(sizeOfEntireMAR) + sizeof(numSignatures);
+  }
+  sizeOfEntireMAR -= stripAmount;
+
+  
+  sizeOfEntireMAR = HOST_TO_NETWORK64(sizeOfEntireMAR);
+  if (fwrite(&sizeOfEntireMAR, sizeof(sizeOfEntireMAR), 1, fpDest) != 1) {
+    fprintf(stderr, "ERROR: Could not write size of MAR\n");
+    goto failure;
+  }
+  sizeOfEntireMAR = NETWORK_TO_HOST64(sizeOfEntireMAR);
+
+  
+  numSignatures = 0;
+  if (fwrite(&numSignatures, sizeof(numSignatures), 1, fpDest) != 1) {
+    fprintf(stderr, "ERROR: Could not write out num signatures\n");
+    goto failure;
+  }
+
+  
+
+
+  if (ftello(fpSrc) > ((PRInt64)offsetToIndex)) {
+    fprintf(stderr, "ERROR: Index offset is too small.\n");
+    goto failure;
+  }
+  numBytesToCopy = ((PRInt64)offsetToIndex) - ftello(fpSrc);
+  numChunks = numBytesToCopy / BLOCKSIZE;
+  leftOver = numBytesToCopy % BLOCKSIZE;
+
+  
+  for (i = 0; i < numChunks; ++i) {
+    if (ReadAndWrite(fpSrc, fpDest, buf, BLOCKSIZE, "content block")) {
+      goto failure;
+    }
+  }
+
+  
+  if (ReadAndWrite(fpSrc, fpDest, buf, 
+                   leftOver, "left over content block")) {
+    goto failure;
+  }
+
+  
+  if (ReadAndWrite(fpSrc, fpDest, &indexLength, 
+                   sizeof(indexLength), "index length")) {
+    goto failure;
+  }
+  indexLength = ntohl(indexLength);
+
+  
+  indexBuf = malloc(indexLength);
+  indexBufLoc = indexBuf;
+  if (fread(indexBuf, indexLength, 1, fpSrc) != 1) {
+    fprintf(stderr, "ERROR: Could not read index\n");
+    goto failure;
+  }
+
+  
+  if (hasSignatureBlock) {
+    AdjustIndexContentOffsets(indexBuf, indexLength, -stripAmount);
+  } else {
+    AdjustIndexContentOffsets(indexBuf, indexLength, 
+                              sizeof(sizeOfEntireMAR) + 
+                              sizeof(numSignatures) - 
+                              stripAmount);
+  }
+
+  if (fwrite(indexBuf, indexLength, 1, fpDest) != 1) {
+    fprintf(stderr, "ERROR: Could not write index\n");
+    goto failure;
+  }
+
+  rv = 0;
+failure: 
+  if (fpSrc) {
+    fclose(fpSrc);
+  }
+
+  if (fpDest) {
+    fclose(fpDest);
+  }
+
+  if (rv) {
+    remove(dest);
+  }
+
+  if (indexBuf) { 
+    free(indexBuf);
+  }
+
+  if (rv) {
+    remove(dest);
+  }
+  return rv;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+int
 mar_repackage_and_sign(const char *NSSConfigDir, 
                        const char *certName, 
                        const char *src, 
@@ -225,7 +520,7 @@ mar_repackage_and_sign(const char *NSSConfigDir,
 {
   PRUint32 offsetToIndex, dstOffsetToIndex, indexLength, 
     numSignatures = 0, signatureLength, leftOver,
-    signatureAlgorithmID, *offsetToContent, signatureSectionLength;
+    signatureAlgorithmID, signatureSectionLength;
   PRInt64 oldPos, sizeOfEntireMAR = 0, realSizeOfSrcMAR, 
     signaturePlaceholderOffset, numBytesToCopy, 
     numChunks, i;
@@ -441,19 +736,17 @@ mar_repackage_and_sign(const char *NSSConfigDir,
     fprintf(stderr, "ERROR: Could not read index\n");
     goto failure;
   }
-  while (indexBufLoc != (indexBuf + indexLength)) {
-    
-    offsetToContent = (PRUint32 *)indexBufLoc; 
-    *offsetToContent = ntohl(*offsetToContent);
-    if (!hasSignatureBlock) {
-      *offsetToContent += sizeof(sizeOfEntireMAR) + sizeof(numSignatures);
-    }
-    *offsetToContent += signatureSectionLength;
-    *offsetToContent = htonl(*offsetToContent);
-    
-    indexBufLoc += 3 * sizeof(PRUint32);
-    indexBufLoc += strlen(indexBufLoc) + 1;
+
+  
+  if (hasSignatureBlock) {
+    AdjustIndexContentOffsets(indexBuf, indexLength, signatureSectionLength);
+  } else {
+    AdjustIndexContentOffsets(indexBuf, indexLength, 
+                              sizeof(sizeOfEntireMAR) + 
+                              sizeof(numSignatures) + 
+                              signatureSectionLength);
   }
+
   if (WriteAndUpdateSignature(fpDest, indexBuf, 
                               indexLength, ctx, "index")) {
     goto failure;
