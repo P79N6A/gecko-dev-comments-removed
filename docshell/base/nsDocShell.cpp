@@ -11601,6 +11601,17 @@ nsDocShell::OnLinkClickSync(nsIContent *aContent,
   nsCOMPtr<nsIDocument> refererDoc = aContent->GetOwnerDoc();
   NS_ENSURE_TRUE(refererDoc, NS_ERROR_UNEXPECTED);
 
+  
+  
+  
+  nsPIDOMWindow* refererInner = refererDoc->GetInnerWindow();
+  NS_ENSURE_TRUE(refererInner, NS_ERROR_UNEXPECTED);
+  nsCOMPtr<nsPIDOMWindow> outerWindow = do_QueryInterface(mScriptGlobal);
+  if (!outerWindow || outerWindow->GetCurrentInnerWindow() != refererInner) {
+      
+      return NS_OK;
+  }
+
   nsCOMPtr<nsIURI> referer = refererDoc->GetDocumentURI();
 
   
