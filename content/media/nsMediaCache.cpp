@@ -51,6 +51,7 @@
 #include "prlog.h"
 #include "nsIPrivateBrowsingService.h"
 #include "mozilla/Preferences.h"
+#include "FileBlockCache.h"
 
 using namespace mozilla;
 
@@ -136,7 +137,7 @@ public:
 
   nsMediaCache() : mNextResourceID(1),
     mReentrantMonitor("nsMediaCache.mReentrantMonitor"),
-    mFD(nsnull), mFDCurrentPos(0), mUpdateQueued(false)
+    mUpdateQueued(false)
 #ifdef DEBUG
     , mInUpdate(false)
 #endif
@@ -147,9 +148,8 @@ public:
     NS_ASSERTION(mStreams.IsEmpty(), "Stream(s) still open!");
     Truncate();
     NS_ASSERTION(mIndex.Length() == 0, "Blocks leaked?");
-    if (mFD) {
-      PR_Close(mFD);
-    }
+    mFileCache->Close();
+    mFileCache = nsnull;
     MOZ_COUNT_DTOR(nsMediaCache);
   }
 
@@ -175,8 +175,6 @@ public:
                          PRInt32* aBytes);
   
   nsresult ReadCacheFileAllBytes(PRInt64 aOffset, void* aData, PRInt32 aLength);
-  
-  nsresult WriteCacheFile(PRInt64 aOffset, const void* aData, PRInt32 aLength);
 
   PRInt64 AllocateResourceID()
   {
@@ -361,10 +359,7 @@ protected:
   
   nsTArray<Block> mIndex;
   
-  
-  PRFileDesc*     mFD;
-  
-  PRInt64         mFDCurrentPos;
+  nsRefPtr<FileBlockCache> mFileCache;
   
   BlockList       mFreeBlocks;
   
@@ -550,7 +545,7 @@ nsresult
 nsMediaCache::Init()
 {
   NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
-  NS_ASSERTION(!mFD, "Cache file already open?");
+  NS_ASSERTION(!mFileCache, "Cache file already open?");
 
   
   
@@ -593,8 +588,13 @@ nsMediaCache::Init()
   rv = tmpFile->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0700);
   NS_ENSURE_SUCCESS(rv,rv);
 
+  PRFileDesc* fileDesc = nsnull;
   rv = tmpFile->OpenNSPRFileDesc(PR_RDWR | nsILocalFile::DELETE_ON_CLOSE,
-                                 PR_IRWXU, &mFD);
+                                 PR_IRWXU, &fileDesc);
+  NS_ENSURE_SUCCESS(rv,rv);
+
+  mFileCache = new FileBlockCache();
+  rv = mFileCache->Open(fileDesc);
   NS_ENSURE_SUCCESS(rv,rv);
 
 #ifdef PR_LOGGING
@@ -631,9 +631,9 @@ nsMediaCache::FlushInternal()
   
   Truncate();
   NS_ASSERTION(mIndex.Length() == 0, "Blocks leaked?");
-  if (mFD) {
-    PR_Close(mFD);
-    mFD = nsnull;
+  if (mFileCache) {
+    mFileCache->Close();
+    mFileCache = nsnull;
   }
   Init();
 }
@@ -679,21 +679,10 @@ nsMediaCache::ReadCacheFile(PRInt64 aOffset, void* aData, PRInt32 aLength,
 {
   mReentrantMonitor.AssertCurrentThreadIn();
 
-  if (!mFD)
+  if (!mFileCache)
     return NS_ERROR_FAILURE;
 
-  if (mFDCurrentPos != aOffset) {
-    PROffset64 offset = PR_Seek64(mFD, aOffset, PR_SEEK_SET);
-    if (offset != aOffset)
-      return NS_ERROR_FAILURE;
-    mFDCurrentPos = aOffset;
-  }
-  PRInt32 amount = PR_Read(mFD, aData, aLength);
-  if (amount <= 0)
-    return NS_ERROR_FAILURE;
-  mFDCurrentPos += amount;
-  *aBytes = amount;
-  return NS_OK;
+  return mFileCache->Read(aOffset, reinterpret_cast<PRUint8*>(aData), aLength, aBytes);
 }
 
 nsresult
@@ -716,35 +705,6 @@ nsMediaCache::ReadCacheFileAllBytes(PRInt64 aOffset, void* aData, PRInt32 aLengt
     data += bytes;
     offset += bytes;
   }
-  return NS_OK;
-}
-
-nsresult
-nsMediaCache::WriteCacheFile(PRInt64 aOffset, const void* aData, PRInt32 aLength)
-{
-  mReentrantMonitor.AssertCurrentThreadIn();
-
-  if (!mFD)
-    return NS_ERROR_FAILURE;
-
-  if (mFDCurrentPos != aOffset) {
-    PROffset64 offset = PR_Seek64(mFD, aOffset, PR_SEEK_SET);
-    if (offset != aOffset)
-      return NS_ERROR_FAILURE;
-    mFDCurrentPos = aOffset;
-  }
-
-  const char* data = static_cast<const char*>(aData);
-  PRInt32 length = aLength;
-  while (length > 0) {
-    PRInt32 amount = PR_Write(mFD, data, length);
-    if (amount <= 0)
-      return NS_ERROR_FAILURE;
-    mFDCurrentPos += amount;
-    length -= amount;
-    data += amount;
-  }
-
   return NS_OK;
 }
 
@@ -1164,27 +1124,18 @@ nsMediaCache::Update()
           PredictNextUse(now, destinationBlockIndex) > latestPredictedUseForOverflow) {
         
         
-        char buf[BLOCK_SIZE];
-        nsresult rv = ReadCacheFileAllBytes(blockIndex*BLOCK_SIZE, buf, sizeof(buf));
+
+        nsresult rv = mFileCache->MoveBlock(blockIndex, destinationBlockIndex);
+
         if (NS_SUCCEEDED(rv)) {
-          rv = WriteCacheFile(destinationBlockIndex*BLOCK_SIZE, buf, BLOCK_SIZE);
-          if (NS_SUCCEEDED(rv)) {
-            
-            LOG(PR_LOG_DEBUG, ("Swapping blocks %d and %d (trimming cache)",
-                blockIndex, destinationBlockIndex));
-            
-            
-            SwapBlocks(blockIndex, destinationBlockIndex);
-          } else {
-            
-            
-            LOG(PR_LOG_DEBUG, ("Released block %d (trimming cache)",
-                destinationBlockIndex));
-            FreeBlock(destinationBlockIndex);
-          }
           
-          LOG(PR_LOG_DEBUG, ("Released block %d (trimming cache)",
-              blockIndex));
+          LOG(PR_LOG_DEBUG, ("Swapping blocks %d and %d (trimming cache)",
+              blockIndex, destinationBlockIndex));
+          
+          
+          SwapBlocks(blockIndex, destinationBlockIndex);
+          
+          LOG(PR_LOG_DEBUG, ("Released block %d (trimming cache)", blockIndex));
           FreeBlock(blockIndex);
         }
       } else {
@@ -1563,7 +1514,7 @@ nsMediaCache::AllocateAndWriteBlock(nsMediaCacheStream* aStream, const void* aDa
       }
     }
 
-    nsresult rv = WriteCacheFile(blockIndex*BLOCK_SIZE, aData, BLOCK_SIZE);
+    nsresult rv = mFileCache->WriteBlock(blockIndex, reinterpret_cast<const PRUint8*>(aData));
     if (NS_FAILED(rv)) {
       LOG(PR_LOG_DEBUG, ("Released block %d from stream %p block %d(%lld)",
           blockIndex, aStream, streamBlockIndex, (long long)streamBlockIndex*BLOCK_SIZE));
