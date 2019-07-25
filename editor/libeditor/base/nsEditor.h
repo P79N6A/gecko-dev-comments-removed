@@ -568,6 +568,9 @@ public:
   bool IsEditable(nsIDOMNode *aNode);
   bool IsEditable(nsIContent *aNode);
 
+  
+
+
   virtual bool IsTextInDirtyFrameVisible(nsIContent *aNode);
 
   

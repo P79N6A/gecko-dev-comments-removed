@@ -388,7 +388,14 @@ public:
   
   nsresult CollapseSelectionToDeepestNonTableFirstChild(nsISelection *aSelection, nsIDOMNode *aNode);
 
+  
+
+
   virtual bool IsTextInDirtyFrameVisible(nsIContent *aNode);
+
+  
+
+
 
   nsresult IsVisTextNode(nsIContent* aNode,
                          bool* outIsEmptyNode,
