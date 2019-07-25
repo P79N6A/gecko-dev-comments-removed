@@ -240,6 +240,11 @@ class FrameState
     
 
 
+    inline RegisterID allocReg(uint32 mask);
+
+    
+
+
     void takeReg(RegisterID reg);
 
     
@@ -309,12 +314,16 @@ class FrameState
     inline RegisterID alloc();
     inline RegisterID alloc(FrameEntry *fe, RematInfo::RematType type, bool weak);
     inline void forgetReg(RegisterID reg);
-    RegisterID evictSomething();
+    RegisterID evictSomething(uint32 mask);
     void evictReg(RegisterID reg);
     inline FrameEntry *rawPush();
     inline FrameEntry *addToTracker(uint32 index);
     inline void syncType(const FrameEntry *fe, Assembler &masm) const;
     inline void syncData(const FrameEntry *fe, Assembler &masm) const;
+
+    RegisterID evictSomething() {
+        return evictSomething(Registers::AvailRegs);
+    }
 
     uint32 indexOf(int32 depth) {
         return uint32((sp + depth) - base);
