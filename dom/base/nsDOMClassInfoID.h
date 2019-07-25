@@ -42,12 +42,13 @@ enum nsDOMClassInfoID {
 
 
 
+
+
 #undef DOMCI_CASTABLE_INTERFACE
 #define DOMCI_CASTABLE_INTERFACES(_extra)                                     \
 DOMCI_CASTABLE_INTERFACE(nsINode, nsINode, 0, _extra)                         \
 DOMCI_CASTABLE_INTERFACE(nsIContent, nsIContent, 1, _extra)                   \
 DOMCI_CASTABLE_INTERFACE(nsIDocument, nsIDocument, 2, _extra)                 \
-DOMCI_CASTABLE_INTERFACE(nsINodeList, nsINodeList, 3, _extra)                 \
 DOMCI_CASTABLE_INTERFACE(nsICSSDeclaration, nsICSSDeclaration, 4, _extra)     \
 DOMCI_CASTABLE_INTERFACE(nsDocument, nsIDocument, 5, _extra)                  \
 DOMCI_CASTABLE_INTERFACE(nsGenericHTMLElement, nsGenericHTMLElement, 6,       \
@@ -55,8 +56,6 @@ DOMCI_CASTABLE_INTERFACE(nsGenericHTMLElement, nsGenericHTMLElement, 6,       \
 DOMCI_CASTABLE_INTERFACE(nsHTMLDocument, nsIDocument, 7, _extra)              \
 DOMCI_CASTABLE_INTERFACE(nsStyledElement, nsStyledElement, 8, _extra)         \
 DOMCI_CASTABLE_INTERFACE(nsSVGStylableElement, nsIContent, 9, _extra)         \
-DOMCI_CASTABLE_INTERFACE(nsIDOMWebGLRenderingContext,                         \
-                         nsIDOMWebGLRenderingContext, 10, _extra)             \
 DOMCI_CASTABLE_INTERFACE(nsIWebGLUniformLocation,                             \
                          nsIWebGLUniformLocation, 11, _extra)                 \
 DOMCI_CASTABLE_INTERFACE(nsIDOMImageData, nsIDOMImageData, 12, _extra)        \
