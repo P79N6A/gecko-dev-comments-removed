@@ -28,10 +28,9 @@ function testMouseEvents() {
   
   
   
-
-
-
-
+  AsyncTests.waitFor("Test:Click", {}, function(json) {
+    is(json.result, false, "Form Assistant should stay closed");
+  });
 
   AsyncTests.waitFor("Test:Open", { value: "*[tabindex='0']" }, function(json) {
     ok(FormHelperUI._open, "Form Assistant should be open");
