@@ -126,11 +126,6 @@ public:
   
 
 
-  virtual ShadowLayerManager* AsShadowManager()
-  {
-    return this;
-  }
-
   void BeginTransaction();
 
   void BeginTransactionWithTarget(gfxContext* aTarget);
