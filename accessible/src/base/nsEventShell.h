@@ -45,6 +45,8 @@
 
 #include "nsAutoPtr.h"
 
+#include "nsRefreshDriver.h"
+
 class nsIPersistentProperties;
 
 
@@ -90,7 +92,8 @@ private:
 
 
 
-class nsAccEventQueue : public nsISupports
+class nsAccEventQueue : public nsISupports,
+                        public nsARefreshObserver
 {
 public:
   nsAccEventQueue(nsDocAccessible *aDocument);
@@ -120,9 +123,7 @@ private:
 
 
 
-  void Flush();
-
-  NS_DECL_RUNNABLEMETHOD(nsAccEventQueue, Flush)
+  virtual void WillRefresh(mozilla::TimeStamp aTime);
 
   
 
@@ -159,7 +160,8 @@ private:
   
 
 
-  PRBool mProcessingStarted;
+
+  PRBool mObservingRefresh;
 
   
 
@@ -168,11 +170,6 @@ private:
 
   
 
-
-
-  PRInt32 mFlushingEventsCount;
-
-  
 
 
   nsTArray<nsRefPtr<nsAccEvent> > mEvents;
