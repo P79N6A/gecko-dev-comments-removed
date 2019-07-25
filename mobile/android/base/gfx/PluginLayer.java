@@ -163,8 +163,8 @@ public class PluginLayer extends TileLayer
             
             
             
-            boolean fullPagePlugin = (mLayoutParams.width >= (context.screenSize.width * 0.90f) ||
-                                      mLayoutParams.height >= (context.screenSize.height * 0.90f));
+            boolean fullPagePlugin = (mLayoutParams.width >= (context.viewport.width() * 0.90f) ||
+                                      mLayoutParams.height >= (context.viewport.height() * 0.90f));
 
             if (!fullPagePlugin && mLastViewport != null && mSurfaceView != null && !mShowPlaceholder && sUsePlaceholder) {
                 
