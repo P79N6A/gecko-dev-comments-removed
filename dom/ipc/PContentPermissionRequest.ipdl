@@ -43,7 +43,7 @@ using IPC::URI;
 namespace mozilla {
 namespace dom {
 
-protocol PGeolocationRequest
+protocol PContentPermissionRequest
 {
   manager PBrowser;
 

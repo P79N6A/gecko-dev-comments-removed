@@ -45,14 +45,14 @@
 #include "nsString.h"
 #include "nsIDOMElement.h"
 
-#include "mozilla/dom/PGeolocationRequestParent.h"
+#include "mozilla/dom/PContentPermissionRequestParent.h"
 
 class nsGeolocationRequestProxy;
 
 namespace mozilla {
 namespace dom {
 
-class GeolocationRequestParent : public PGeolocationRequestParent
+class GeolocationRequestParent : public PContentPermissionRequestParent
 {
  public:
   GeolocationRequestParent(nsIDOMElement *element, const IPC::URI& principal);

@@ -1115,13 +1115,14 @@ nsGeolocation::RegisterRequestWithPrompt(nsGeolocationRequest* request)
     
     TabChild* child = GetTabChildFrom(window->GetDocShell());
     
-    child->SendPGeolocationRequestConstructor(request, IPC::URI(mURI));
-    
     
     
     request->AddRef();
 
-    unused << request->Sendprompt();
+    nsCString type = NS_LITERAL_CSTRING("geolocation");
+    child->SendPContentPermissionRequestConstructor(request, type, IPC::URI(mURI));
+    
+    request->Sendprompt();
     return;
   }
 #endif
