@@ -345,7 +345,6 @@ private:
         return PR_SUCCESS;
     }
 
-public:
     
 
 
@@ -356,8 +355,6 @@ public:
         delete sDeadlockDetector;
         sDeadlockDetector = 0;
     }
-
-private:
 
 #  ifdef MOZILLA_INTERNAL_API
     
