@@ -301,8 +301,12 @@ AutoCompleteCache.prototype = {
     } else if (prev) {
       
       
+      
+      
       let prevSearch = prev.searchString;
-      if (prev.matchCount == this.searchEngines.length && (query.indexOf(prevSearch) == 0)) {
+      if (prev.matchCount == this.searchEngines.length &&
+          prevSearch !== "www." &&
+          (query.indexOf(prevSearch) == 0)) {
         done(new cacheResult(query, []), RESULT_NEW);
         usedCache = true;
       }
