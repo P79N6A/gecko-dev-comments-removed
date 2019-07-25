@@ -93,6 +93,8 @@ class nsJAR : public nsIZipReader
 {
   
   friend class nsJARInputStream;
+  
+  friend class nsZipReaderCache;
 
   public:
 
@@ -130,6 +132,7 @@ class nsJAR : public nsIZipReader
   protected:
     
     nsCOMPtr<nsIFile>        mZipFile;        
+    nsCString                mOuterZipEntry;  
     nsZipArchive             mZip;            
     nsObjectHashtable        mManifestData;   
     PRBool                   mParsedManifest; 
