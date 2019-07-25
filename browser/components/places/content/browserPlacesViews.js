@@ -495,7 +495,15 @@ PlacesViewBase.prototype = {
     if (elt.localName == "menupopup")
       elt = elt.parentNode;
 
-    elt.label = aNewTitle || PlacesUIUtils.getBestTitle(aPlacesNode);
+    if (!aNewTitle && elt.localName != "toolbarbutton") {
+      
+      
+      
+      elt.label = PlacesUIUtils.getBestTitle(aPlacesNode);
+    }
+    else {
+      elt.label = aNewTitle;
+    }
   },
 
   nodeRemoved:
