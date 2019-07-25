@@ -57,6 +57,15 @@ nsHtml5OwningUTF16Buffer::~nsHtml5OwningUTF16Buffer()
 {
   MOZ_COUNT_DTOR(nsHtml5OwningUTF16Buffer);
   DeleteBuffer();
+
+  
+  nsRefPtr<nsHtml5OwningUTF16Buffer> tail;
+  tail.swap(next);
+  while (tail && tail->mRefCnt == 1) {
+    nsRefPtr<nsHtml5OwningUTF16Buffer> tmp;
+    tmp.swap(tail->next);
+    tail.swap(tmp);
+  }
 }
 
 
