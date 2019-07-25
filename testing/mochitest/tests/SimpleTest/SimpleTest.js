@@ -15,24 +15,35 @@
 
 
 var SimpleTest = { };
-
 var parentRunner = null;
-if (parent) {
-    parentRunner = parent.TestRunner;
-    if (!parentRunner && parent.wrappedJSObject) {
-        parentRunner = parent.wrappedJSObject.TestRunner;
+var isPrimaryTestWindow = !!parent.TestRunner;
+
+
+
+
+
+
+
+
+(function() {
+    function ancestor(w) {
+        return w.parent != w ? w.parent : w.opener;
     }
 
-    
-    if (window.SpecialPowers == undefined && parent.SpecialPowers !== undefined) {
-        window.SpecialPowers = parent.SpecialPowers;
+    var w = ancestor(window);
+    while (w && (!parentRunner || !window.SpecialPowers)) {
+        if (!parentRunner) {
+            parentRunner = w.TestRunner;
+            if (!parentRunner && w.wrappedJSObject) {
+                parentRunner = w.wrappedJSObject.TestRunner;
+            }
+        }
+        if (!window.SpecialPowers) {
+            window.SpecialPowers = w.SpecialPowers;
+        }
+        w = ancestor(w);
     }
-}
-
-
-if (window.SpecialPowers == undefined && window.opener && window.opener.SpecialPowers !== undefined) {
-    window.SpecialPowers = window.opener.SpecialPowers;
-}
+})();
 
 
 if (typeof(repr) == 'undefined') {
@@ -704,11 +715,21 @@ SimpleTest.expectUncaughtException = function () {
 };
 
 
-addLoadEvent(function() {
-    if (SimpleTest._stopOnLoad) {
-        SimpleTest.finish();
-    }
-});
+
+
+
+
+SimpleTest.ignoreAllUncaughtExceptions = function () {
+    SimpleTest._ignoringAllUncaughtExceptions = true;
+};
+
+if (isPrimaryTestWindow) {
+    addLoadEvent(function() {
+        if (SimpleTest._stopOnLoad) {
+            SimpleTest.finish();
+        }
+    });
+}
 
 
 
@@ -930,13 +951,12 @@ window.onerror = function simpletestOnerror(errorMsg, url, lineNumber) {
     
     var message = "An error occurred: " + errorMsg + " at " + url + ":" + lineNumber;
     var href = SpecialPowers.getPrivilegedProps(window, 'location.href');
-    var isPlainMochitest = href.substring(0,7) != "chrome:";
     var isExpected = !!SimpleTest._expectingUncaughtException;
-    if (isPlainMochitest) {
+    if (!SimpleTest._ignoringAllUncaughtExceptions) {
         SimpleTest.ok(isExpected, funcIdentifier, message);
         SimpleTest._expectingUncaughtException = false;
     } else {
-        SimpleTest.info(funcIdentifier + " " + message);
+        SimpleTest.todo(false, funcIdentifier, message);
     }
     
 
