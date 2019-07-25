@@ -578,8 +578,9 @@ SyncEngine.prototype = {
   
   _uploadOutgoing: function SyncEngine__uploadOutgoing() {
     let outnum = [i for (i in this._tracker.changedIDs)].length;
-    this._log.debug("Preparing " + outnum + " outgoing records");
     if (outnum) {
+      this._log.debug("Preparing " + outnum + " outgoing records");
+
       
       let up = new Collection(this.engineURL);
       let count = 0;
