@@ -97,6 +97,12 @@ nsContextMenu.prototype = {
     this.initItems();
   },
 
+  hiding: function CM_hiding() {
+    InlineSpellCheckerUI.clearSuggestionsFromMenu();
+    InlineSpellCheckerUI.clearDictionaryListFromMenu();
+    InlineSpellCheckerUI.uninit();
+  },
+
   initItems: function CM_initItems() {
     this.initPageMenuSeparator();
     this.initOpenItems();
@@ -487,16 +493,6 @@ nsContextMenu.prototype = {
     this.bgImageURL        = "";
     this.onEditableArea    = false;
     this.isDesignMode      = false;
-
-    
-    
-    
-    
-    
-    InlineSpellCheckerUI.clearSuggestionsFromMenu();
-    InlineSpellCheckerUI.clearDictionaryListFromMenu();
-
-    InlineSpellCheckerUI.uninit();
 
     
     this.target = aNode;

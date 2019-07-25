@@ -69,6 +69,7 @@ InlineSpellChecker.prototype = {
     this.mDictionaryMenu = null;
     this.mDictionaryNames = [];
     this.mDictionaryItems = [];
+    this.mWordNode = null;
   },
 
   
