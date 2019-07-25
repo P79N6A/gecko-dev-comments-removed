@@ -7,6 +7,8 @@
 const TEST_ID = "0181";
 const MAR_IN_USE_WIN_FILE = "data/partial_in_use_win.mar";
 
+const TEST_HELPER_TIMEOUT = 1000;
+
 
 var TEST_FILES = [
 {
@@ -84,7 +86,7 @@ function run_test() {
 
   
   
-  do_timeout(100, testUpdate);
+  do_timeout(TEST_HELPER_TIMEOUT, testUpdate);
 }
 
 function end_test() {

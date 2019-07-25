@@ -6,6 +6,8 @@
 
 const TEST_ID = "0160";
 
+const TEST_HELPER_TIMEOUT = 1000;
+
 
 const TEST_FILES = [
 {
@@ -70,7 +72,7 @@ function run_test() {
 
   
   
-  do_timeout(100, testUpdate);
+  do_timeout(TEST_HELPER_TIMEOUT, testUpdate);
 }
 
 function end_test() {
