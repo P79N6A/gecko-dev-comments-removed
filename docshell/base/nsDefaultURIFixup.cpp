@@ -465,8 +465,6 @@ PRBool nsDefaultURIFixup::MakeAlternateURI(nsIURI *aURI)
     }
 
 
-    nsresult rv;
-
     
     
 
