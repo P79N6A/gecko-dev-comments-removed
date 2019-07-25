@@ -114,6 +114,19 @@ DeveloperToolbar.prototype.toggle = function DT_toggle()
 
 
 
+DeveloperToolbar.prototype.focus = function DT_focus()
+{
+  if (this.visible) {
+    this._input.focus();
+  } else {
+    this.show(true);
+  }
+};
+
+
+
+
+
 
 
 DeveloperToolbar.introShownThisSession = false;
