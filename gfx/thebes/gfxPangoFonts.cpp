@@ -159,7 +159,6 @@ FindFunctionSymbol(const char *name)
     return result;
 }
 
-static cairo_user_data_key_t sFontEntryKey;
 
 
 
@@ -167,17 +166,63 @@ static cairo_user_data_key_t sFontEntryKey;
 
 
 
-
-
-
-
-class gfxSystemFcFontEntry : public gfxFontEntry {
+class gfxFcFontEntry : public gfxFontEntry {
 public:
-    gfxSystemFcFontEntry(cairo_font_face_t *aFontFace, const nsAString& aName)
-        : gfxFontEntry(aName), mFontFace(aFontFace)
+    
+    
+    
+    
+    
+    
+    const nsTArray< nsCountedRef<FcPattern> >& GetPatterns()
+    {
+        return mPatterns;
+    }
+
+    static gfxFcFontEntry *LookupFontEntry(cairo_font_face_t *aFace)
+    {
+        return static_cast<gfxFcFontEntry*>
+            (cairo_font_face_get_user_data(aFace, &sFontEntryKey));
+    }
+
+protected:
+    gfxFcFontEntry(const nsAString& aName)
+        : gfxFontEntry(aName) { }
+
+    
+    
+    nsAutoTArray<nsCountedRef<FcPattern>,1> mPatterns;
+
+    static cairo_user_data_key_t sFontEntryKey;
+};
+
+cairo_user_data_key_t gfxFcFontEntry::sFontEntryKey;
+
+
+
+
+
+
+
+
+
+
+
+class gfxSystemFcFontEntry : public gfxFcFontEntry {
+public:
+    
+    
+    gfxSystemFcFontEntry(cairo_font_face_t *aFontFace,
+                         FcPattern *aFontPattern,
+                         const nsAString& aName)
+        : gfxFcFontEntry(aName), mFontFace(aFontFace)
     {
         cairo_font_face_reference(mFontFace);
         cairo_font_face_set_user_data(mFontFace, &sFontEntryKey, this, NULL);
+        mPatterns.AppendElement();
+        
+        
+        mPatterns[0] = aFontPattern;
     }
 
     ~gfxSystemFcFontEntry()
@@ -226,17 +271,11 @@ private:
 
 
 
-class gfxFcFontEntry : public gfxFontEntry {
-public:
-    const nsTArray< nsCountedRef<FcPattern> >& GetPatterns()
-    {
-        return mPatterns;
-    }
-
+class gfxUserFcFontEntry : public gfxFcFontEntry {
 protected:
-    gfxFcFontEntry(const gfxProxyFontEntry &aProxyEntry)
+    gfxUserFcFontEntry(const gfxProxyFontEntry &aProxyEntry)
         
-        : gfxFontEntry(aProxyEntry.mFamily->Name())
+        : gfxFcFontEntry(aProxyEntry.mFamily->Name())
     {
         mItalic = aProxyEntry.mItalic;
         mWeight = aProxyEntry.mWeight;
@@ -250,12 +289,10 @@ protected:
     
     
     void AdjustPatternToCSS(FcPattern *aPattern);
-
-    nsAutoTArray<nsCountedRef<FcPattern>,1> mPatterns;
 };
 
 void
-gfxFcFontEntry::AdjustPatternToCSS(FcPattern *aPattern)
+gfxUserFcFontEntry::AdjustPatternToCSS(FcPattern *aPattern)
 {
     int fontWeight = -1;
     FcPatternGetInteger(aPattern, FC_WEIGHT, 0, &fontWeight);
@@ -311,11 +348,11 @@ gfxFcFontEntry::AdjustPatternToCSS(FcPattern *aPattern)
 
 
 
-class gfxLocalFcFontEntry : public gfxFcFontEntry {
+class gfxLocalFcFontEntry : public gfxUserFcFontEntry {
 public:
     gfxLocalFcFontEntry(const gfxProxyFontEntry &aProxyEntry,
                         const nsTArray< nsCountedRef<FcPattern> >& aPatterns)
-        : gfxFcFontEntry(aProxyEntry)
+        : gfxUserFcFontEntry(aProxyEntry)
     {
         if (!mPatterns.SetCapacity(aPatterns.Length()))
             return; 
@@ -343,12 +380,12 @@ public:
 
 
 
-class gfxDownloadedFcFontEntry : public gfxFcFontEntry {
+class gfxDownloadedFcFontEntry : public gfxUserFcFontEntry {
 public:
     
     gfxDownloadedFcFontEntry(const gfxProxyFontEntry &aProxyEntry,
                              const PRUint8 *aData, FT_Face aFace)
-        : gfxFcFontEntry(aProxyEntry), mFontData(aData), mFace(aFace)
+        : gfxUserFcFontEntry(aProxyEntry), mFontData(aData), mFace(aFace)
     {
         NS_PRECONDITION(aFace != NULL, "aFace is NULL!");
         InitPattern();
@@ -357,12 +394,15 @@ public:
     virtual ~gfxDownloadedFcFontEntry();
 
     
+    PRBool SetCairoFace(cairo_font_face_t *aFace);
+
+    
     
     
     PangoCoverage *GetPangoCoverage();
 
 protected:
-    virtual void InitPattern();
+    void InitPattern();
 
     
     
@@ -515,6 +555,25 @@ gfxDownloadedFcFontEntry::InitPattern()
     mPatterns[0].own(pattern);
 }
 
+static void ReleaseDownloadedFontEntry(void *data)
+{
+    gfxDownloadedFcFontEntry *downloadedFontEntry =
+        static_cast<gfxDownloadedFcFontEntry*>(data);
+    NS_RELEASE(downloadedFontEntry);
+}
+
+PRBool gfxDownloadedFcFontEntry::SetCairoFace(cairo_font_face_t *aFace)
+{
+    if (CAIRO_STATUS_SUCCESS !=
+        cairo_font_face_set_user_data(aFace, &sFontEntryKey, this,
+                                      ReleaseDownloadedFontEntry))
+        return PR_FALSE;
+
+    
+    NS_ADDREF(this);
+    return PR_TRUE;
+}
+
 static PangoCoverage *NewPangoCoverage(FcPattern *aFont)
 {
     
@@ -597,14 +656,11 @@ public:
 
 private:
     static already_AddRefed<gfxFcFont> GetOrMakeFont(FcPattern *aPattern);
-    gfxFcFont(cairo_scaled_font_t *aCairoFont, FcPattern *aFontPattern,
-              gfxFontEntry *aFontEntry, const gfxFontStyle *aFontStyle);
+    gfxFcFont(cairo_scaled_font_t *aCairoFont, gfxFcFontEntry *aFontEntry,
+              const gfxFontStyle *aFontStyle);
 
     void MakePangoFont();
 
-    
-    
-    nsCountedRef<FcPattern> mFontPattern;
     PangoFont *mPangoFont;
 
     
@@ -1065,13 +1121,13 @@ FindFontPatterns(gfxUserFontSet *mUserFontSet,
     style.style = aStyle;
     style.weight = aWeight;
 
-    gfxFcFontEntry *fontEntry = static_cast<gfxFcFontEntry*>
+    gfxUserFcFontEntry *fontEntry = static_cast<gfxUserFcFontEntry*>
         (mUserFontSet->FindFontEntry(utf16Family, style, needsBold));
 
     
     if (!fontEntry && aStyle != FONT_STYLE_NORMAL) {
         style.style = FONT_STYLE_NORMAL;
-        fontEntry = static_cast<gfxFcFontEntry*>
+        fontEntry = static_cast<gfxUserFcFontEntry*>
             (mUserFontSet->FindFontEntry(utf16Family, style, needsBold));
     }
 
@@ -1906,11 +1962,9 @@ gfxPangoFontGroup::FindFontForChar(PRUint32 aCh, PRUint32 aPrevCh,
 cairo_user_data_key_t gfxFcFont::sGfxFontKey;
 
 gfxFcFont::gfxFcFont(cairo_scaled_font_t *aCairoFont,
-                     FcPattern *aFontPattern,
-                     gfxFontEntry *aFontEntry,
+                     gfxFcFontEntry *aFontEntry,
                      const gfxFontStyle *aFontStyle)
     : gfxFT2FontBase(aCairoFont, aFontEntry, aFontStyle),
-      mFontPattern(aFontPattern),
       mPangoFont()
 {
     cairo_scaled_font_set_user_data(mScaledFont, &sGfxFontKey, this, NULL);
@@ -1935,7 +1989,9 @@ void
 gfxFcFont::MakePangoFont()
 {
     
-    nsAutoRef<PangoFont> pangoFont(gfxPangoFcFont::NewFont(this, mFontPattern));
+    gfxFcFontEntry *fe = static_cast<gfxFcFontEntry*>(mFontEntry.get());
+    nsAutoRef<PangoFont> pangoFont
+        (gfxPangoFcFont::NewFont(this, fe->GetPatterns()[0]));
     mPangoFont = pangoFont;
     g_object_add_toggle_ref(G_OBJECT(mPangoFont), PangoFontToggleNotify, this);
     
@@ -2111,13 +2167,6 @@ GetPixelSize(FcPattern *aPattern)
     return 0.0;
 }
 
-static void ReleaseDownloadedFontEntry(void *data)
-{
-    gfxDownloadedFcFontEntry *downloadedFontEntry =
-        static_cast<gfxDownloadedFcFontEntry*>(data);
-    NS_RELEASE(downloadedFontEntry);
-}
-
 
 
 
@@ -2141,24 +2190,23 @@ gfxFcFont::GetOrMakeFont(FcPattern *aRequestedPattern, FcPattern *aFontPattern)
         cairo_ft_font_face_create_for_pattern(renderPattern);
 
     
-    nsRefPtr<gfxFontEntry> fe = static_cast<gfxFontEntry*>
-        (cairo_font_face_get_user_data(face, &sFontEntryKey));
+    nsRefPtr<gfxFcFontEntry> fe = gfxFcFontEntry::LookupFontEntry(face);
     if (!fe) {
-        fe = GetDownloadedFontEntry(aFontPattern);
-        if (fe && cairo_font_face_status(face) == CAIRO_STATUS_SUCCESS) {
+        gfxDownloadedFcFontEntry *downloadedFontEntry =
+            GetDownloadedFontEntry(aFontPattern);
+        if (downloadedFontEntry) {
             
-            if (CAIRO_STATUS_SUCCESS ==
-                cairo_font_face_set_user_data(face, &sFontEntryKey, fe,
-                                              ReleaseDownloadedFontEntry)) {
+            fe = downloadedFontEntry;
+            if (cairo_font_face_status(face) == CAIRO_STATUS_SUCCESS) {
                 
                 
-                NS_ADDREF(fe);
-            } else {
                 
-                cairo_font_face_destroy(face);
-                face = cairo_ft_font_face_create_for_pattern(aRequestedPattern);
-                fe = static_cast<gfxFontEntry*>
-                    (cairo_font_face_get_user_data(face, &sFontEntryKey));
+                if (!downloadedFontEntry->SetCairoFace(face)) {
+                    
+                    cairo_font_face_destroy(face);
+                    face = cairo_ft_font_face_create_for_pattern(aRequestedPattern);
+                    fe = gfxFcFontEntry::LookupFontEntry(face);
+                }
             }
         }
         if (!fe) {
@@ -2181,7 +2229,7 @@ gfxFcFont::GetOrMakeFont(FcPattern *aRequestedPattern, FcPattern *aFontPattern)
                 }
             }
 
-            fe = new gfxSystemFcFontEntry(face, name);
+            fe = new gfxSystemFcFontEntry(face, aFontPattern, name);
         }
     }
 
@@ -2216,7 +2264,7 @@ gfxFcFont::GetOrMakeFont(FcPattern *aRequestedPattern, FcPattern *aFontPattern)
         
         
         
-        font = new gfxFcFont(cairoFont, aFontPattern, fe, &fontStyle);
+        font = new gfxFcFont(cairoFont, fe, &fontStyle);
     }
 
     cairo_scaled_font_destroy(cairoFont);
