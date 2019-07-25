@@ -81,6 +81,69 @@ typedef HashSet<JSScript *,
                 SystemAllocPolicy> TracedScriptSet;
 
 
+struct TracerState
+{
+    JSContext*     cx;                  
+    double*        stackBase;           
+    double*        sp;                  
+    double*        eos;                 
+    FrameInfo**    callstackBase;       
+    void*          sor;                 
+    FrameInfo**    rp;                  
+    void*          eor;                 
+    VMSideExit*    lastTreeExitGuard;   
+    VMSideExit*    lastTreeCallGuard;   
+                                        
+    void*          rpAtLastTreeCall;    
+    VMSideExit*    outermostTreeExitGuard; 
+    TreeFragment*  outermostTree;       
+    uintN*         inlineCallCountp;    
+    VMSideExit**   innermostNestedGuardp;
+    VMSideExit*    innermost;
+    uint64         startTime;
+    TracerState*   prev;
+
+    
+    
+    
+    uint32         builtinStatus;
+
+    
+    double*        deepBailSp;
+
+    
+    uintN          nativeVpLen;
+    js::Value*     nativeVp;
+
+    TracerState(JSContext *cx, TraceMonitor *tm, TreeFragment *ti,
+                uintN &inlineCallCountp, VMSideExit** innermostNestedGuardp);
+    ~TracerState();
+};
+
+
+
+
+
+
+
+struct TraceNativeStorage
+{
+    double stack_global_buf[MAX_NATIVE_STACK_SLOTS + GLOBAL_SLOTS_BUFFER_SIZE];
+    FrameInfo *callstack_buf[MAX_CALL_STACK_ENTRIES];
+
+    double *stack() { return stack_global_buf; }
+    double *global() { return stack_global_buf + MAX_NATIVE_STACK_SLOTS; }
+    FrameInfo **callstack() { return callstack_buf; }
+};
+
+
+struct GlobalState {
+    JSObject*               globalObj;
+    uint32                  globalShape;
+    SlotList*               globalSlots;
+};
+
+
 
 
 
@@ -97,6 +160,14 @@ struct TraceMonitor {
 
 
     JSContext               *tracecx;
+
+    
+
+
+
+
+    js::TracerState     *tracerState;
+    js::VMSideExit      *bailExit;
 
     
     unsigned                iterationCounter;
@@ -202,6 +273,9 @@ struct TraceMonitor {
 
     
     void sweep(JSContext *cx);
+
+    
+    void mark(JSTracer *trc);
 
     bool outOfMemory() const;
 };
