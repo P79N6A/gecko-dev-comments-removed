@@ -69,3 +69,15 @@
   -moz-user-select: none;  
 }
 
+h2.tree {
+  cursor: pointer;
+  background: #ddd;
+  padding-left: .1em;
+}
+
+pre.tree {
+}
+
+pre.collapsed {
+  display: none;
+}
