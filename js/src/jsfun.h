@@ -110,7 +110,7 @@ struct JSFunction : public JSObject_Slots2
 
     uint16          flags;        
     union U {
-        struct {
+        struct Native {
             js::Native  native;   
             js::Class   *clasp;   
 

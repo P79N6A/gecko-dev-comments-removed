@@ -137,7 +137,7 @@ class InlineFrameAssembler {
 
 
             RegisterID newfp = tempRegs.takeAnyReg().reg();
-            masm.loadPtr(FrameAddress(offsetof(VMFrame, regs.sp)), newfp);
+            masm.loadPtr(FrameAddress(VMFrame::offsetOfRegsSp()), newfp);
 
             Address flagsAddr(newfp, StackFrame::offsetOfFlags());
             masm.store32(Imm32(flags), flagsAddr);
