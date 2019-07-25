@@ -963,6 +963,16 @@ nsPermissionManager::GetPermissionHashKey(const nsACString& aHost,
   do {
     nsRefPtr<PermissionKey> key = new PermissionKey(Substring(aHost, offset), aAppId, aIsInBrowserElement);
     entry = mPermissionTable.GetEntry(key);
+
+    if (!entry) {
+      
+      
+      
+      
+      key = new PermissionKey(Substring(aHost, offset), nsIScriptSecurityManager::NO_APP_ID, false);
+      entry = mPermissionTable.GetEntry(key);
+    }
+
     if (entry) {
       PermissionEntry permEntry = entry->GetPermission(aType);
 
