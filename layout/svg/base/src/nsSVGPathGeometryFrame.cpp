@@ -221,10 +221,22 @@ nsSVGPathGeometryFrame::UpdateBounds()
     return;
   }
 
-  gfxRect extent = GetBBoxContribution(gfxMatrix(),
-    nsSVGUtils::eBBoxIncludeFill | nsSVGUtils::eBBoxIgnoreFillIfNone |
-    nsSVGUtils::eBBoxIncludeStroke | nsSVGUtils::eBBoxIgnoreStrokeIfNone |
-    nsSVGUtils::eBBoxIncludeMarkers);
+  PRUint32 flags = nsSVGUtils::eBBoxIncludeFill |
+                   nsSVGUtils::eBBoxIncludeStroke |
+                   nsSVGUtils::eBBoxIncludeMarkers;
+  PRUint32 pointerEvents = GetStyleVisibility()->mPointerEvents;
+  if (pointerEvents == NS_STYLE_POINTER_EVENTS_AUTO ||
+      pointerEvents == NS_STYLE_POINTER_EVENTS_VISIBLEPAINTED ||
+      pointerEvents == NS_STYLE_POINTER_EVENTS_PAINTED ||
+      pointerEvents == NS_STYLE_POINTER_EVENTS_NONE) {
+    
+    
+    
+    
+    flags |= nsSVGUtils::eBBoxIgnoreStrokeIfNone |
+             nsSVGUtils::eBBoxIgnoreFillIfNone;
+  }
+  gfxRect extent = GetBBoxContribution(gfxMatrix(), flags);
   mRect = nsLayoutUtils::RoundGfxRectToAppRect(extent,
             PresContext()->AppUnitsPerCSSPixel());
 
