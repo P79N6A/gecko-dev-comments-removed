@@ -873,8 +873,7 @@ XPC_WN_OuterObject(JSContext *cx, JSObject *obj)
 js::Class XPC_WN_NoHelper_JSClass = {
     "XPCWrappedNative_NoHelper",    
     WRAPPER_SLOTS |
-    JSCLASS_PRIVATE_IS_NSISUPPORTS |
-    JSCLASS_MARK_IS_TRACE, 
+    JSCLASS_PRIVATE_IS_NSISUPPORTS, 
 
     
     JS_VALUEIFY(js::PropertyOp, XPC_WN_OnlyIWrite_AddPropertyStub),       
@@ -894,7 +893,7 @@ js::Class XPC_WN_NoHelper_JSClass = {
     nsnull,                         
     nsnull,                         
     nsnull,                         
-    JS_CLASS_TRACE(XPC_WN_Shared_Trace), 
+    XPC_WN_Shared_Trace,            
 
     
     {
@@ -1465,8 +1464,7 @@ XPCNativeScriptableShared::PopulateJSClass(JSBool isGlobal)
 
     mJSClass.base.flags = WRAPPER_SLOTS |
                           JSCLASS_PRIVATE_IS_NSISUPPORTS |
-                          JSCLASS_NEW_RESOLVE |
-                          JSCLASS_MARK_IS_TRACE;
+                          JSCLASS_NEW_RESOLVE;
 
     if(isGlobal)
         mJSClass.base.flags |= JSCLASS_GLOBAL_FLAGS;
@@ -1564,9 +1562,9 @@ XPCNativeScriptableShared::PopulateJSClass(JSBool isGlobal)
         mJSClass.base.hasInstance = js::Valueify(XPC_WN_Helper_HasInstance);
 
     if(mFlags.WantTrace())
-        mJSClass.base.mark = JS_CLASS_TRACE(XPC_WN_Helper_Trace);
+        mJSClass.base.trace = XPC_WN_Helper_Trace;
     else
-        mJSClass.base.mark = JS_CLASS_TRACE(XPC_WN_Shared_Trace);
+        mJSClass.base.trace = XPC_WN_Shared_Trace;
 
     if(mFlags.WantOuterObject())
         mJSClass.base.ext.outerObject = XPC_WN_OuterObject;
@@ -1768,7 +1766,7 @@ XPC_WN_ModsAllowed_Proto_Resolve(JSContext *cx, JSObject *obj, jsid id)
 
 js::Class XPC_WN_ModsAllowed_WithCall_Proto_JSClass = {
     "XPC_WN_ModsAllowed_WithCall_Proto_JSClass", 
-    WRAPPER_SLOTS | JSCLASS_MARK_IS_TRACE, 
+    WRAPPER_SLOTS, 
 
     
     js::PropertyStub,               
@@ -1787,7 +1785,7 @@ js::Class XPC_WN_ModsAllowed_WithCall_Proto_JSClass = {
     nsnull,                         
     nsnull,                         
     nsnull,                         
-    JS_CLASS_TRACE(XPC_WN_Shared_Proto_Trace), 
+    XPC_WN_Shared_Proto_Trace,      
 
     JS_NULL_CLASS_EXT,
     XPC_WN_WithCall_ObjectOps
@@ -1795,7 +1793,7 @@ js::Class XPC_WN_ModsAllowed_WithCall_Proto_JSClass = {
 
 js::Class XPC_WN_ModsAllowed_NoCall_Proto_JSClass = {
     "XPC_WN_ModsAllowed_NoCall_Proto_JSClass", 
-    WRAPPER_SLOTS | JSCLASS_MARK_IS_TRACE, 
+    WRAPPER_SLOTS,                  
 
     
     js::PropertyStub,               
@@ -1814,7 +1812,7 @@ js::Class XPC_WN_ModsAllowed_NoCall_Proto_JSClass = {
     nsnull,                         
     nsnull,                         
     nsnull,                         
-    JS_CLASS_TRACE(XPC_WN_Shared_Proto_Trace), 
+    XPC_WN_Shared_Proto_Trace,      
 
     JS_NULL_CLASS_EXT,
     XPC_WN_NoCall_ObjectOps
@@ -1885,7 +1883,7 @@ XPC_WN_NoMods_Proto_Resolve(JSContext *cx, JSObject *obj, jsid id)
 
 js::Class XPC_WN_NoMods_WithCall_Proto_JSClass = {
     "XPC_WN_NoMods_WithCall_Proto_JSClass",      
-    WRAPPER_SLOTS | JSCLASS_MARK_IS_TRACE, 
+    WRAPPER_SLOTS,                  
 
     
     JS_VALUEIFY(js::PropertyOp, XPC_WN_OnlyIWrite_Proto_AddPropertyStub),       
@@ -1904,7 +1902,7 @@ js::Class XPC_WN_NoMods_WithCall_Proto_JSClass = {
     nsnull,                         
     nsnull,                         
     nsnull,                         
-    JS_CLASS_TRACE(XPC_WN_Shared_Proto_Trace), 
+    XPC_WN_Shared_Proto_Trace,      
 
     JS_NULL_CLASS_EXT,
     XPC_WN_WithCall_ObjectOps
@@ -1912,7 +1910,7 @@ js::Class XPC_WN_NoMods_WithCall_Proto_JSClass = {
 
 js::Class XPC_WN_NoMods_NoCall_Proto_JSClass = {
     "XPC_WN_NoMods_NoCall_Proto_JSClass",               
-    WRAPPER_SLOTS | JSCLASS_MARK_IS_TRACE,              
+    WRAPPER_SLOTS,                                      
 
     
     JS_VALUEIFY(js::PropertyOp, XPC_WN_OnlyIWrite_Proto_AddPropertyStub),       
@@ -1931,7 +1929,7 @@ js::Class XPC_WN_NoMods_NoCall_Proto_JSClass = {
     nsnull,                         
     nsnull,                         
     nsnull,                         
-    JS_CLASS_TRACE(XPC_WN_Shared_Proto_Trace), 
+    XPC_WN_Shared_Proto_Trace,      
 
     JS_NULL_CLASS_EXT,
     XPC_WN_NoCall_ObjectOps
@@ -1997,7 +1995,7 @@ XPC_WN_TearOff_Finalize(JSContext *cx, JSObject *obj)
 
 js::Class XPC_WN_Tearoff_JSClass = {
     "WrappedNative_TearOff",                        
-    WRAPPER_SLOTS | JSCLASS_MARK_IS_TRACE,          
+    WRAPPER_SLOTS,                                  
 
     JS_VALUEIFY(js::PropertyOp, XPC_WN_OnlyIWrite_AddPropertyStub),       
     JS_VALUEIFY(js::PropertyOp, XPC_WN_CannotModifyPropertyStub),         

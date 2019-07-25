@@ -224,7 +224,7 @@ JS_FRIEND_DATA(Class) js_NamespaceClass = {
     "Namespace",
     JSCLASS_CONSTRUCT_PROTOTYPE |
     JSCLASS_HAS_RESERVED_SLOTS(JSObject::NAMESPACE_CLASS_RESERVED_SLOTS) |
-    JSCLASS_MARK_IS_TRACE | JSCLASS_HAS_CACHED_PROTO(JSProto_Namespace),
+    JSCLASS_HAS_CACHED_PROTO(JSProto_Namespace),
     PropertyStub,         
     PropertyStub,         
     PropertyStub,         
@@ -335,7 +335,7 @@ JS_FRIEND_DATA(Class) js_QNameClass = {
     "QName",
     JSCLASS_CONSTRUCT_PROTOTYPE |
     JSCLASS_HAS_RESERVED_SLOTS(JSObject::QNAME_CLASS_RESERVED_SLOTS) |
-    JSCLASS_MARK_IS_TRACE | JSCLASS_HAS_CACHED_PROTO(JSProto_QName),
+    JSCLASS_HAS_CACHED_PROTO(JSProto_QName),
     PropertyStub,         
     PropertyStub,         
     PropertyStub,         
@@ -370,7 +370,7 @@ JS_FRIEND_DATA(Class) js_AttributeNameClass = {
     js_AttributeName_str,
     JSCLASS_CONSTRUCT_PROTOTYPE |
     JSCLASS_HAS_RESERVED_SLOTS(JSObject::QNAME_CLASS_RESERVED_SLOTS) |
-    JSCLASS_MARK_IS_TRACE | JSCLASS_IS_ANONYMOUS,
+    JSCLASS_IS_ANONYMOUS,
     PropertyStub,         
     PropertyStub,         
     PropertyStub,         
@@ -385,7 +385,7 @@ JS_FRIEND_DATA(Class) js_AnyNameClass = {
     js_AnyName_str,
     JSCLASS_CONSTRUCT_PROTOTYPE |
     JSCLASS_HAS_RESERVED_SLOTS(JSObject::QNAME_CLASS_RESERVED_SLOTS) |
-    JSCLASS_MARK_IS_TRACE | JSCLASS_IS_ANONYMOUS,
+    JSCLASS_IS_ANONYMOUS,
     PropertyStub,         
     PropertyStub,         
     PropertyStub,         
@@ -5115,7 +5115,7 @@ out:
 
 JS_FRIEND_DATA(Class) js_XMLClass = {
     js_XML_str,
-    JSCLASS_HAS_PRIVATE | JSCLASS_MARK_IS_TRACE |
+    JSCLASS_HAS_PRIVATE |
     JSCLASS_HAS_CACHED_PROTO(JSProto_XML),
     PropertyStub,         
     PropertyStub,         
@@ -5131,7 +5131,7 @@ JS_FRIEND_DATA(Class) js_XMLClass = {
     NULL,                 
     NULL,                 
     xml_hasInstance,
-    JS_CLASS_TRACE(xml_trace),
+    xml_trace,
     JS_NULL_CLASS_EXT,
     {
         xml_lookupProperty,
@@ -7566,7 +7566,7 @@ xmlfilter_finalize(JSContext *cx, JSObject *obj)
 
 Class js_XMLFilterClass = {
     "XMLFilter",
-    JSCLASS_HAS_PRIVATE | JSCLASS_IS_ANONYMOUS | JSCLASS_MARK_IS_TRACE,
+    JSCLASS_HAS_PRIVATE | JSCLASS_IS_ANONYMOUS,
     PropertyStub,         
     PropertyStub,         
     PropertyStub,         
@@ -7581,7 +7581,7 @@ Class js_XMLFilterClass = {
     NULL,                 
     NULL,                 
     NULL,                 
-    JS_CLASS_TRACE(xmlfilter_trace)
+    xmlfilter_trace
 };
 
 JSBool

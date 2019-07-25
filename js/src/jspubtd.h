@@ -344,19 +344,6 @@ typedef JSBool
 
 
 
-typedef uint32
-(* JSMarkOp)(JSContext *cx, JSObject *obj, void *arg);
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -371,18 +358,6 @@ typedef uint32
 
 typedef void
 (* JSTraceOp)(JSTracer *trc, JSObject *obj);
-
-#if defined __GNUC__ && __GNUC__ >= 4 && !defined __cplusplus
-# define JS_CLASS_TRACE(method)                                               \
-    (__builtin_types_compatible_p(JSTraceOp, __typeof(&(method)))             \
-     ? (JSMarkOp)(method)                                                     \
-     : js_WrongTypeForClassTracer)
-
-extern JSMarkOp js_WrongTypeForClassTracer;
-
-#else
-# define JS_CLASS_TRACE(method) ((JSMarkOp)(method))
-#endif
 
 
 
