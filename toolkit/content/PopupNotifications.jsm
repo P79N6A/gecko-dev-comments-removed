@@ -344,13 +344,16 @@ PopupNotifications.prototype = {
   _update: function PopupNotifications_update(anchor) {
     let anchorElement, notificationsToShow = [];
     if (this._currentNotifications.length > 0) {
-      if (this.iconBox)
-        this.iconBox.hidden = false;
-
       
       
       
       anchorElement = anchor || this._currentNotifications[0].anchorElement;
+
+      if (this.iconBox) {
+        this.iconBox.hidden = false;
+        this.iconBox.setAttribute("anchorid", anchorElement.id);
+      }
+
       notificationsToShow = this._currentNotifications.filter(function (n) {
         return n.anchorElement == anchorElement;
       });
