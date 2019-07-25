@@ -317,6 +317,7 @@ nsBidiPresUtils::Resolve(nsBlockFrame* aBlockFrame)
   mLogicalFrames.Clear();
   mContentToFrameIndex.Clear();
   mBuffer.SetLength(0);
+  mEmbeddingStack.Clear();
   
   nsPresContext *presContext = aBlockFrame->PresContext();
 
@@ -374,22 +375,23 @@ nsBidiPresUtils::Resolve(nsBlockFrame* aBlockFrame)
     if (ch != 0) {
       mLogicalFrames.AppendElement(NS_BIDI_CONTROL_FRAME);
       mBuffer.Append(ch);
+      mEmbeddingStack.AppendElement(ch);
     }
   }
   mPrevContent = nsnull;
   for (nsBlockFrame* block = aBlockFrame; block;
        block = static_cast<nsBlockFrame*>(block->GetNextContinuation())) {
     block->RemoveStateBits(NS_BLOCK_NEEDS_BIDI_RESOLUTION);
-    InitLogicalArray(block->GetFirstChild(nsnull));
+    TraverseFrames(aBlockFrame, block->GetFirstChild(nsnull));
   }
 
   if (ch != 0) {
     mLogicalFrames.AppendElement(NS_BIDI_CONTROL_FRAME);
     mBuffer.Append(kPDF);
+    mEmbeddingStack.TruncateLength(mEmbeddingStack.Length() - 1);
   }
 
   
-  mBuffer.ReplaceChar("\t\r\n", kSpace);
   ResolveParagraph(aBlockFrame);
   return mSuccess;
 }
@@ -404,6 +406,9 @@ nsBidiPresUtils::ResolveParagraph(nsBlockFrame* aBlockFrame)
     mSuccess = NS_OK;
     return;
   }
+  
+  mBuffer.ReplaceChar("\t\r\n", kSpace);
+
   PRInt32 runCount;
   PRUint8 embeddingLevel = mParaLevel;
 
@@ -594,7 +599,7 @@ nsBidiPresUtils::ResolveParagraph(nsBlockFrame* aBlockFrame)
       
       
       
-      if (runLength <= 0 && !frame->GetNextInFlow()) {
+      if (numRun + 1 < runCount && runLength <= 0 && !frame->GetNextInFlow()) {
         nsIFrame* child = frame;
         nsIFrame* parent = frame->GetParent();
         
@@ -643,13 +648,24 @@ PRBool IsBidiLeaf(nsIFrame* aFrame) {
 }
 
 void
-nsBidiPresUtils::InitLogicalArray(nsIFrame*    aCurrentFrame)
+nsBidiPresUtils::TraverseFrames(nsBlockFrame* aBlockFrame,
+                                nsIFrame*     aCurrentFrame)
 {
   if (!aCurrentFrame)
     return;
 
-  for (nsIFrame* childFrame = aCurrentFrame; childFrame;
-       childFrame = childFrame->GetNextSibling()) {
+  nsIFrame* childFrame = aCurrentFrame;
+  do {
+    
+
+
+
+
+
+
+
+    nsIFrame* nextSibling = childFrame->GetNextSibling();
+    PRBool isLastFrame = !childFrame->GetNextContinuation();
 
     
     
@@ -693,6 +709,7 @@ nsBidiPresUtils::InitLogicalArray(nsIFrame*    aCurrentFrame)
       if (ch != 0 && !frame->GetPrevContinuation()) {
         mLogicalFrames.AppendElement(NS_BIDI_CONTROL_FRAME);
         mBuffer.Append(ch);
+        mEmbeddingStack.AppendElement(ch);
       }
     }
 
@@ -718,24 +735,64 @@ nsBidiPresUtils::InitLogicalArray(nsIFrame*    aCurrentFrame)
       } else if (nsGkAtoms::brFrame == frameType) {
         
         mBuffer.Append(kLineSeparator);
+        ResolveParagraphWithinBlock(aBlockFrame);
       } else { 
         
         
         
         mBuffer.Append(kObjectSubstitute);
+        if (!frame->GetStyleContext()->GetStyleDisplay()->IsInlineOutside()) {
+          
+          ResolveParagraphWithinBlock(aBlockFrame);
+        }
       }
     }
     else {
+      
       nsIFrame* kid = frame->GetFirstChild(nsnull);
-      InitLogicalArray(kid);
+      TraverseFrames(aBlockFrame, kid);
     }
 
     
-    if (ch != 0 && !frame->GetNextContinuation()) {
+    if (ch != 0 && isLastFrame) {
       
       
       mLogicalFrames.AppendElement(NS_BIDI_CONTROL_FRAME);
       mBuffer.Append(kPDF);
+      mEmbeddingStack.TruncateLength(mEmbeddingStack.Length() - 1);
+    }
+    childFrame = nextSibling;
+  } while (childFrame);
+}
+
+void
+nsBidiPresUtils::ResolveParagraphWithinBlock(nsBlockFrame* aBlockFrame)
+{
+  nsIPresShell* shell;
+  nsStyleContext* styleContext;
+
+  if (mEmbeddingStack.Length() > 0) {
+    shell = aBlockFrame->PresContext()->PresShell();
+    styleContext = aBlockFrame->GetStyleContext();
+
+    
+    for (PRUint32 i = 0; i < mEmbeddingStack.Length(); ++i) {
+      mBuffer.Append(kPDF);
+      mLogicalFrames.AppendElement(NS_BIDI_CONTROL_FRAME);
+    }
+  }
+
+  ResolveParagraph(aBlockFrame);
+
+  
+  
+  mLogicalFrames.Clear();
+  mContentToFrameIndex.Clear();
+  mBuffer.SetLength(0);
+  if (mEmbeddingStack.Length() > 0) {
+    for (PRUint32 i = 0; i < mEmbeddingStack.Length(); ++i) {
+      mBuffer.Append(mEmbeddingStack[i]);
+      mLogicalFrames.AppendElement(NS_BIDI_CONTROL_FRAME);
     }
   } 
 }
