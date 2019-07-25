@@ -119,19 +119,18 @@ var SidebarUtils = {
     
     
     
-    
     if (row.value != -1) {
-      var cell = tree.view.nodeForTreeIndex(row.value);
-      if (PlacesUtils.nodeIsURI(cell))
-        window.top.XULBrowserWindow.setOverLink(cell.uri, null);
+      var node = tree.view.nodeForTreeIndex(row.value);
+      if (PlacesUtils.nodeIsURI(node))
+        this.setMouseoverURL(node.uri);
       else
-        this.clearURLFromStatusBar();
+        this.setMouseoverURL("");
     }
     else
-      this.clearURLFromStatusBar();
+      this.setMouseoverURL("");
   },
 
-  clearURLFromStatusBar: function SU_clearURLFromStatusBar() {
-    window.top.XULBrowserWindow.setOverLink("", null);
+  setMouseoverURL: function SU_setMouseoverURL(aURL) {
+    window.top.XULBrowserWindow.setOverLink(aURL, null);
   }
 };
