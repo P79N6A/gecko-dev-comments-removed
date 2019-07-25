@@ -613,6 +613,8 @@ CssLogic.prototype = {
 
 
 
+
+
   hasMatchedSelectors: function CL_hasMatchedSelectors(aCallback)
   {
     let domRules;
@@ -628,11 +630,22 @@ CssLogic.prototype = {
         continue;
       }
 
+      
+      
       if (domRules.Count() && (!aCallback || aCallback(domRules))) {
         matched = true;
-        break;
       }
 
+      
+      
+      if (element.style.length > 0 &&
+          (!aCallback || aCallback({style: element.style}))) {
+        matched = true;
+      }
+
+      if (matched) {
+        break;
+      }
     } while ((element = element.parentNode) &&
         element.nodeType === Ci.nsIDOMNode.ELEMENT_NODE);
 
@@ -1499,6 +1512,11 @@ CssPropertyInfo.prototype = {
   {
     if (this._hasMatchedSelectors === null) {
       this._hasMatchedSelectors = this._cssLogic.hasMatchedSelectors(function(aDomRules) {
+        if (!aDomRules.Count) {
+          
+          return !!aDomRules.style.getPropertyValue(this.property);
+        }
+
         for (let i = 0; i < aDomRules.Count(); i++) {
           let domRule = aDomRules.GetElementAt(i);
 
