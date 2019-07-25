@@ -854,16 +854,19 @@ window.Items = {
   
   
   
-  getSafeWindowBounds: function() {
+  getSafeWindowBounds: function( dontCountNewTabGroup ) {
     
     var gutter = Items.defaultGutter;
-    var pageBounds = Items.getPageBounds();
     var newTabGroupBounds = Groups.getBoundsForNewTabGroup();
     
     
     
     var topGutter = 5;
-    return new Rect( gutter, topGutter, pageBounds.width - 2 * gutter, newTabGroupBounds.top -  gutter - topGutter );
+    if (dontCountNewTabGroup)
+			return new Rect( gutter, topGutter, window.innerWidth - 2 * gutter, window.innerHeight - gutter - topGutter );
+		else
+			return new Rect( gutter, topGutter, window.innerWidth - 2 * gutter, newTabGroupBounds.top -  gutter - topGutter );
+
   },
   
   
