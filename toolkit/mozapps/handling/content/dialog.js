@@ -147,17 +147,13 @@ var dialog = {
       else if (app instanceof Ci.nsIWebHandlerApp) {
         let uri = ios.newURI(app.uriTemplate, null, null);
         if (/^https?/.test(uri.scheme)) {
-          let iconURI;
-          try {
-            iconURI = Cc["@mozilla.org/browser/favicon-service;1"].
-                      getService(Ci.nsIFaviconService).
-                      getFaviconForPage(ios.newURI(uri.prePath, null, null)).
-                      spec;
-          }
-          catch (e) {
-            iconURI = uri.prePath + "/favicon.ico";
-          }
-          elm.setAttribute("image", iconURI);
+          
+          
+          
+          
+          
+          
+          elm.setAttribute("image", uri.prePath + "/favicon.ico");
         }
         elm.setAttribute("description", uri.prePath);
       }
