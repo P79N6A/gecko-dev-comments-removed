@@ -1262,25 +1262,6 @@ nsScriptSecurityManager::CheckLoadURIFromScript(JSContext *cx, nsIURI *aURI)
     return NS_ERROR_DOM_BAD_URI;
 }
 
-NS_IMETHODIMP
-nsScriptSecurityManager::CheckLoadURI(nsIURI *aSourceURI, nsIURI *aTargetURI,
-                                      PRUint32 aFlags)
-{
-    
-    NS_PRECONDITION(aSourceURI, "CheckLoadURI called with null source URI");
-    NS_ENSURE_ARG_POINTER(aSourceURI);
-
-    
-    
-    
-    
-    nsCOMPtr<nsIPrincipal> sourcePrincipal;
-    nsresult rv = CreateCodebasePrincipal(aSourceURI,
-                                          getter_AddRefs(sourcePrincipal));
-    NS_ENSURE_SUCCESS(rv, rv);
-    return CheckLoadURIWithPrincipal(sourcePrincipal, aTargetURI, aFlags);
-}
-
 
 
 
