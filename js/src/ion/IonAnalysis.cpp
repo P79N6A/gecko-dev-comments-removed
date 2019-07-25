@@ -88,7 +88,7 @@ class TypeAnalyzer
     TypeAnalyzer(MIRGraph &graph);
 
     bool analyze();
-    void inspectOperands(MInstruction *ins);
+    bool inspectOperands(MInstruction *ins);
     bool propagateUsedTypes(MInstruction *ins);
 };
 
@@ -115,15 +115,27 @@ TypeAnalyzer::popFromWorklist()
     return ins;
 }
 
-void
+bool
 TypeAnalyzer::inspectOperands(MInstruction *ins)
 {
+    
+    
+    
+    if (ins->adjustForInputs()) {
+        for (MUseIterator uses(ins); uses.more(); uses.next()) {
+            if (!addToWorklist(uses->ins()))
+                return false;
+        }
+    }
+
     for (size_t i = 0; i < ins->numOperands(); i++) {
         MIRType required = ins->requiredInputType(i);
         if (required >= MIRType_Value)
             continue;
         ins->getInput(i)->useAsType(required);
     }
+
+    return true;
 }
 
 bool
@@ -179,7 +191,8 @@ TypeAnalyzer::analyze()
         } else {
             
             
-            inspectOperands(ins);
+            if (!inspectOperands(ins))
+                return false;
         }
     }
 
