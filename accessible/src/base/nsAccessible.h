@@ -327,10 +327,24 @@ public:
 
   PRInt32 GetIndexOfEmbeddedChild(nsAccessible* aChild);
 
-  PRUint32 GetCachedChildCount() const { return mChildren.Length(); }
-  nsAccessible* GetCachedChildAt(PRUint32 aIndex) const { return mChildren.ElementAt(aIndex); }
+  
+
+
+
+
+  PRUint32 ContentChildCount() const { return mChildren.Length(); }
+  nsAccessible* ContentChildAt(PRUint32 aIndex) const
+    { return mChildren.ElementAt(aIndex); }
+
+  
+
+
   inline bool AreChildrenCached() const
     { return !IsChildrenFlag(eChildrenUninitialized); }
+
+  
+
+
   bool IsBoundToParent() const { return !!mParent; }
 
   
