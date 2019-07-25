@@ -870,10 +870,10 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     
     
     
-    void pushABIArg(const MoveOperand &from);
-    void pushABIArg(const Register &reg);
-    void pushABIArg(const FloatRegister &reg);
-    void pushABIArg(const ValueOperand &regs);
+    void passABIArg(const MoveOperand &from);
+    void passABIArg(const Register &reg);
+    void passABIArg(const FloatRegister &reg);
+    void passABIArg(const ValueOperand &regs);
 
     
     void callWithABI(void *fun, Result result = GENERAL);

@@ -265,7 +265,7 @@ generateBailoutTail(MacroAssembler &masm)
     
     masm.bind(&reflow);
     masm.setupAlignedABICall(1);
-    masm.pushABIArg(r0);
+    masm.passABIArg(r0);
     masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, ReflowTypeInfo));
 
     masm.ma_cmp(r0, Imm32(0));
@@ -278,7 +278,7 @@ generateBailoutTail(MacroAssembler &masm)
     
     masm.ma_mov(sp, r0);
     masm.setupAlignedABICall(1);
-    masm.pushABIArg(r0);
+    masm.passABIArg(r0);
     masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, ThunkToInterpreter));
 
     
@@ -325,8 +325,8 @@ IonCompartment::generateInvalidator(JSContext *cx)
     masm.reserveStack(sizeOfRetval);
     masm.mov(sp, r1);
     masm.setupAlignedABICall(2);
-    masm.pushABIArg(r0);
-    masm.pushABIArg(r1);
+    masm.passABIArg(r0);
+    masm.passABIArg(r1);
     masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, InvalidationBailout));
 
     masm.ma_ldr(Address(sp, 0), r1);
@@ -486,7 +486,7 @@ GenerateBailoutThunk(MacroAssembler &masm, uint32 frameClass)
     
 
     
-    masm.pushABIArg(r0);
+    masm.passABIArg(r0);
 
     
     masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, Bailout));
@@ -606,7 +606,7 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
     
     Register cxreg = r0;
     masm.loadJSContext(cx->runtime, cxreg);
-    masm.pushABIArg(cxreg);
+    masm.passABIArg(cxreg);
 
     size_t argDisp = 0;
     size_t argc = 1;
@@ -617,22 +617,22 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
             MoveOperand from;
             switch (f.argProperties(explicitArg)) {
               case VMFunction::WordByValue:
-                masm.pushABIArg(MoveOperand(argsBase, argDisp));
+                masm.passABIArg(MoveOperand(argsBase, argDisp));
                 argDisp += sizeof(void *);
                 break;
               case VMFunction::DoubleByValue:
                 JS_NOT_REACHED("VMCalls with double value arguments is not supported.");
-                masm.pushABIArg(MoveOperand(argsBase, argDisp));
+                masm.passABIArg(MoveOperand(argsBase, argDisp));
                 argDisp += sizeof(void *);
-                masm.pushABIArg(MoveOperand(argsBase, argDisp));
+                masm.passABIArg(MoveOperand(argsBase, argDisp));
                 argDisp += sizeof(void *);
                 break;
               case VMFunction::WordByRef:
-                masm.pushABIArg(MoveOperand(argsBase, argDisp, MoveOperand::EFFECTIVE));
+                masm.passABIArg(MoveOperand(argsBase, argDisp, MoveOperand::EFFECTIVE));
                 argDisp += sizeof(void *);
                 break;
               case VMFunction::DoubleByRef:
-                masm.pushABIArg(MoveOperand(argsBase, argDisp, MoveOperand::EFFECTIVE));
+                masm.passABIArg(MoveOperand(argsBase, argDisp, MoveOperand::EFFECTIVE));
                 argDisp += 2 * sizeof(void *);
                 break;
             }
@@ -641,7 +641,7 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
 
     
     if (outReg != InvalidReg)
-        masm.pushABIArg(outReg);
+        masm.passABIArg(outReg);
     JS_ASSERT(f.argc() == argc);
 
     masm.callWithABI(f.wrapped);
@@ -696,8 +696,8 @@ IonCompartment::generatePreBarrier(JSContext *cx)
     masm.movePtr(ImmWord(cx->compartment), r0);
 
     masm.setupUnalignedABICall(2, r2);
-    masm.setABIArg(0, r0);
-    masm.setABIArg(1, r1);
+    masm.passABIArg(r0);
+    masm.passABIArg(r1);
     masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, MarkFromIon));
 
     masm.PopRegsInMask(save);
