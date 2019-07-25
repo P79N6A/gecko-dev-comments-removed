@@ -2245,7 +2245,7 @@ nsNativeThemeWin::GetWidgetTransparency(nsIFrame* aFrame, PRUint8 aWidgetType)
   
   if (!theme) {
     
-    if (aWidgetType == NS_THEME_MENUPOPUP) {
+    if (aWidgetType == NS_THEME_MENUPOPUP || aWidgetType == NS_THEME_TOOLTIP) {
       return eOpaque;
     }
     return eUnknownTransparency;
