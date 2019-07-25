@@ -206,6 +206,12 @@ nsMathMLmpaddedFrame::ParseAttribute(nsString&   aString,
       return true;
     } else {
       
+      
+      if (!floatValue) {
+        aCSSValue.SetFloatValue(floatValue, eCSSUnit_Number);
+        aPseudoUnit = NS_MATHML_PSEUDO_UNIT_ITSELF;
+        return true;
+      }
     }
   }
   else if (unit.EqualsLiteral("width"))  aPseudoUnit = NS_MATHML_PSEUDO_UNIT_WIDTH;
@@ -224,7 +230,6 @@ nsMathMLmpaddedFrame::ParseAttribute(nsString&   aString,
       return true;
     }
 
-    
     
     
     
