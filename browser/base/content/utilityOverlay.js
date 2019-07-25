@@ -369,12 +369,12 @@ function gatherTextUnder ( root )
       depth++;
     } else {
       
+      while ( depth > 0 && !node.nextSibling ) {
+        node = node.parentNode;
+        depth--;
+      }
       if ( node.nextSibling ) {
         node = node.nextSibling;
-      } else {
-        
-        node = node.parentNode.nextSibling;
-        depth--;
       }
     }
   }
