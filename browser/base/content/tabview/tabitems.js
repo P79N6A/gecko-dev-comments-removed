@@ -49,7 +49,6 @@
 
 
 function TabItem(tab) {
-
   Utils.assert(tab, "tab");
 
   this.tab = tab;
@@ -506,6 +505,10 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   zoomIn: function TabItem_zoomIn(isNewBlankTab) {
+    
+    if (this.parent && this.parent.hidden)
+      return;
+
     var self = this;
     var $tabEl = iQ(this.container);
     var childHitResult = { shouldZoom: true };

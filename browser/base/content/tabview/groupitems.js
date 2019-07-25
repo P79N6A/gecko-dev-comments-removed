@@ -77,6 +77,7 @@ function GroupItem(listOfEls, options) {
   this.expanded = null;
   this.locked = (options.locked ? Utils.copy(options.locked) : {});
   this.topChild = null;
+  this.hidden = false;
 
   this.keepProportional = false;
 
@@ -268,6 +269,9 @@ function GroupItem(listOfEls, options) {
 
   if (this.locked.close)
     $close.hide();
+
+  
+  this.$undoContainer = null;
 
   
   this._init($container[0]);
@@ -541,9 +545,16 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     GroupItems.unregister(this);
     this._sendToSubscribers("close");
     this.removeTrenches();
-    iQ(this.container).fadeOut(function() {
-      iQ(this).remove();
-      Items.unsquish();
+
+    iQ(this.container).animate({
+      opacity: 0,
+      "-moz-transform": "scale(.3)",
+    }, {
+      duration: 170,
+      complete: function() {
+        iQ(this).remove();
+        Items.unsquish();
+      }
     });
 
     Storage.deleteGroupItem(gWindow, this.id);
@@ -553,17 +564,137 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   closeAll: function GroupItem_closeAll() {
-    var self = this;
-    if (this._children.length) {
-      var toClose = this._children.concat();
+    if (this._children.length > 0) {
+      this._children.forEach(function(child) {
+        iQ(child.container).hide();
+      });
+
+      iQ(this.container).animate({
+         opacity: 0,
+         "-moz-transform": "scale(.3)",
+      }, {
+        duration: 170,
+        complete: function() {
+          iQ(this).hide();
+        }
+      });
+
+      this._createUndoButton();
+    } else {
+      if (!this.locked.close)
+        this.close();
+    }
+  },
+
+  
+  
+  
+  _createUndoButton: function() {
+    let self = this;
+    this.$undoContainer = iQ("<div/>")
+      .addClass("undo")
+      .attr("type", "button")
+      .text("Undo Close Group")
+      .appendTo("body");
+    let undoClose = iQ("<span/>")
+      .addClass("close")
+      .appendTo(this.$undoContainer);
+
+    this.$undoContainer.css({
+      left: this.bounds.left + this.bounds.width/2 - iQ(self.$undoContainer).width()/2,
+      top:  this.bounds.top + this.bounds.height/2 - iQ(self.$undoContainer).height()/2,
+      "-moz-transform": "scale(.1)",
+      opacity: 0
+    });
+    this.hidden = true;
+
+    setTimeout(function() {
+      self.$undoContainer.animate({
+        "-moz-transform": "scale(1)",
+        "opacity": 1
+      }, {
+        easing: "tabviewBounce",
+        duration: 170,
+        complete: function() {
+          self._sendToSubscribers("groupHidden", { groupItemId: self.id });
+        }
+      });
+    }, 50);
+
+    let remove = function() {
+      
+      let toClose = self._children.concat();
       toClose.forEach(function(child) {
         child.removeSubscriber(self, "close");
         child.close();
       });
-    }
+ 
+      
+      self.removeAll();
+      GroupItems.unregister(self);
+      self._sendToSubscribers("close");
+      self.removeTrenches();
 
-    if (!this.locked.close)
-      this.close();
+      iQ(self.container).remove();
+      self.$undoContainer.remove();
+      self.$undoContainer = null;
+      Items.unsquish();
+
+      Storage.deleteGroupItem(gWindow, self.id);
+    };
+
+    this.$undoContainer.click(function(e) {
+      
+      if (e.target.nodeName != self.$undoContainer[0].nodeName)
+        return;
+
+      self.$undoContainer.fadeOut(function() {
+        iQ(this).remove();
+        self.hidden = false;
+        self.$undoContainer = null;
+
+        iQ(self.container).show().animate({
+          "-moz-transform": "scale(1)",
+          "opacity": 1
+        }, {
+          duration: 170,
+          complete: function() {
+            self._children.forEach(function(child) {
+              iQ(child.container).show();
+            });
+          }
+        });
+
+        self._sendToSubscribers("groupShown", { groupItemId: self.id });
+      });
+    });
+
+    undoClose.click(function() {
+      self.$undoContainer.fadeOut(remove);
+    });
+
+    
+    const WAIT = 15000;
+    const FADE = 300;
+
+    let fadeaway = function() {
+      if (self.$undoContainer)
+        self.$undoContainer.animate({
+          color: "transparent",
+          opacity: 0
+        }, {
+          duration: FADE,
+          complete: remove
+        });
+    };
+
+    let timeoutId = setTimeout(fadeaway, WAIT);
+    
+    
+    this.$undoContainer.mouseover(function() clearTimeout(timeoutId));
+    this.$undoContainer.mouseout(function() {
+      timeoutId = setTimeout(fadeaway, WAIT);
+    });
   },
 
   
@@ -1601,7 +1732,6 @@ let GroupItems = {
   
   
   setActiveGroupItem: function GroupItems_setActiveGroupItem(groupItem) {
-
     if (this._activeGroupItem)
       iQ(this._activeGroupItem.container).removeClass('activeGroupItem');
 
@@ -1696,10 +1826,12 @@ let GroupItems = {
     if (!activeGroupItem) {
       if (groupItems.length > 0) {
         groupItems.some(function(groupItem) {
-          var child = groupItem.getChild(0);
-          if (child) {
-            tabItem = child;
-            return true;
+          if (!groupItem.hidden) {
+            var child = groupItem.getChild(0);
+            if (child) {
+              tabItem = child;
+              return true;
+            }
           }
           return false;
         });
@@ -1707,7 +1839,7 @@ let GroupItems = {
     } else {
       var currentIndex;
       groupItems.some(function(groupItem, index) {
-        if (groupItem == activeGroupItem) {
+        if (!groupItem.hidden && groupItem == activeGroupItem) {
           currentIndex = index;
           return true;
         }
@@ -1715,10 +1847,12 @@ let GroupItems = {
       });
       var firstGroupItems = groupItems.slice(currentIndex + 1);
       firstGroupItems.some(function(groupItem) {
-        var child = groupItem.getChild(0);
-        if (child) {
-          tabItem = child;
-          return true;
+        if (!groupItem.hidden) {
+          var child = groupItem.getChild(0);
+          if (child) {
+            tabItem = child;
+            return true;
+          }
         }
         return false;
       });
@@ -1730,10 +1864,12 @@ let GroupItems = {
       if (!tabItem) {
         var secondGroupItems = groupItems.slice(0, currentIndex);
         secondGroupItems.some(function(groupItem) {
-          var child = groupItem.getChild(0);
-          if (child) {
-            tabItem = child;
-            return true;
+          if (!groupItem.hidden) {
+            var child = groupItem.getChild(0);
+            if (child) {
+              tabItem = child;
+              return true;
+            }
           }
           return false;
         });
@@ -1816,6 +1952,26 @@ let GroupItems = {
       if (groupItem.getTitle() == newTabGroupTitle && groupItem.locked.title) {
         groupItem.removeAll();
         groupItem.close();
+      }
+    });
+  },
+
+  
+  
+  
+  removeHiddenGroups: function GroupItems_removeHiddenGroups() {
+    iQ(".undo").remove();
+    
+    
+    this.groupItems.forEach(function(groupItem) {
+      if (groupItem.hidden) {
+        let toClose = groupItem._children.concat();
+        toClose.forEach(function(child) {
+          child.removeSubscriber(groupItem, "close");
+          child.close();
+        });
+
+        Storage.deleteGroupItem(gWindow, groupItem.id);
       }
     });
   }
