@@ -2228,9 +2228,9 @@ SessionStoreService.prototype = {
           delete aData.formdata;
         }
       }
+
       
-      
-      if ((aContent.document.designMode || "") == "on") {
+      if ((aContent.document.designMode || "") == "on" && aContent.document.body) {
         if (aData.innerHTML === undefined && !aFullData) {
           
           let _this = this;
@@ -3412,7 +3412,8 @@ SessionStoreService.prototype = {
       if (aData.innerHTML) {
         aWindow.setTimeout(function() {
           if (aContent.document.designMode == "on" &&
-              hasExpectedURL(aContent.document, aData.url)) {
+              hasExpectedURL(aContent.document, aData.url) &&
+              aContent.document.body) {
             aContent.document.body.innerHTML = aData.innerHTML;
           }
         }, 0);
