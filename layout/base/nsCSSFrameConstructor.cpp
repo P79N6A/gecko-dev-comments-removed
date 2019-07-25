@@ -10802,6 +10802,11 @@ nsCSSFrameConstructor::CreateIBSiblings(nsFrameConstructorState& aState,
   nsIFrame* parentFrame = aInitialInline->GetParent();
 
   
+  
+  
+  
+  
+  
   nsRefPtr<nsStyleContext> blockSC =
     mPresShell->StyleSet()->
       ResolveAnonymousBoxStyle(aIsPositioned ?
