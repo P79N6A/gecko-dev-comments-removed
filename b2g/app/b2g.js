@@ -246,6 +246,7 @@ pref("ui.dragThresholdY", 25);
 
 pref("layers.acceleration.disabled", false);
 pref("layers.offmainthreadcomposition.enabled", false);
+pref("layers.async-video.enabled", true);
 
 
 pref("notification.feature.enabled", true);
