@@ -269,6 +269,18 @@ struct TypeCompartment;
 
 } 
 
+namespace JSC {
+
+class ExecutableAllocator;
+
+} 
+
+namespace WTF {
+
+class BumpPointerAllocator;
+
+} 
+
 } 
 
 #else
