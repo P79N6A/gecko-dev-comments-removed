@@ -278,7 +278,7 @@ public class GeckoAppShell
         
         
         
-        System.loadLibrary("mozutils");
+        System.loadLibrary("mozglue");
         GeckoApp geckoApp = GeckoApp.mAppContext;
         String homeDir;
         if (Build.VERSION.SDK_INT < 8 ||
