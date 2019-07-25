@@ -767,15 +767,17 @@ class nsCOMPtr MOZ_FINAL
           return temp;
         }
 
+      template <typename I>
       void
-      forget( T** rhs NS_OUTPARAM )
+      forget( I** rhs NS_OUTPARAM )
+          
           
           
           
         {
           NS_ASSERTION(rhs, "Null pointer passed to forget!");
-          *rhs = 0;
-          swap(*rhs);
+          *rhs = get();
+          mRawPtr = 0;
         }
 
       T*
