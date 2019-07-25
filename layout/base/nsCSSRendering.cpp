@@ -471,14 +471,14 @@ RectToGfxRect(const nsRect& rect, nscoord twipsPerPixel)
 
 
 
-static void
-ComputePixelRadii(const nscoord *aTwipsRadii,
-                  nscoord twipsPerPixel,
-                  gfxCornerSizes *oBorderRadii)
+ void
+nsCSSRendering::ComputePixelRadii(const nscoord *aAppUnitsRadii,
+                                  nscoord aAppUnitsPerPixel,
+                                  gfxCornerSizes *oBorderRadii)
 {
   gfxFloat radii[8];
   NS_FOR_CSS_HALF_CORNERS(corner)
-    radii[corner] = gfxFloat(aTwipsRadii[corner]) / twipsPerPixel;
+    radii[corner] = gfxFloat(aAppUnitsRadii[corner]) / aAppUnitsPerPixel;
 
   (*oBorderRadii)[C_TL] = gfxSize(radii[NS_CORNER_TOP_LEFT_X],
                                   radii[NS_CORNER_TOP_LEFT_Y]);

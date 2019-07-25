@@ -73,6 +73,10 @@ struct nsCSSRendering {
                                   const nsRect& aFrameArea,
                                   const nsRect& aDirtyRect);
 
+  static void ComputePixelRadii(const nscoord *aAppUnitsRadii,
+                                nscoord aAppUnitsPerPixel,
+                                gfxCornerSizes *oBorderRadii);
+
   
 
 
