@@ -23,18 +23,15 @@
 
 
 
+#ifndef RegexParser_h
+#define RegexParser_h
 
-
-
-
-#ifndef YarrParser_h
-#define YarrParser_h
-
-#include "Yarr.h"
+#include <limits.h>
+#include <wtf/ASCIICType.h>
+#include "yarr/jswtfbridge.h"
+#include "yarr/yarr/RegexCommon.h"
 
 namespace JSC { namespace Yarr {
-
-#define REGEXP_ERROR_PREFIX "Invalid regular expression: "
 
 enum BuiltInCharacterClassID {
     DigitClassID,
@@ -48,7 +45,7 @@ template<class Delegate>
 class Parser {
 private:
     template<class FriendDelegate>
-    friend ErrorCode parse(FriendDelegate& delegate, const UString& pattern, unsigned backReferenceLimit);
+    friend int parse(FriendDelegate& delegate, const UString& pattern, unsigned backReferenceLimit);
 
     
 
@@ -64,8 +61,10 @@ private:
         CharacterClassParserDelegate(Delegate& delegate, ErrorCode& err)
             : m_delegate(delegate)
             , m_err(err)
-            , m_state(Empty)
-            , m_character(0)
+            , m_state(empty)
+#if __GNUC__ >= 4 && __GNUC_MINOR__ >= 5 
+            , m_character(0xFFFF)
+#endif
         {
         }
 
@@ -88,52 +87,46 @@ private:
 
 
 
-        void atomPatternCharacter(UChar ch, bool hyphenIsRange = false)
+        void atomPatternCharacterUnescaped(UChar ch)
         {
             switch (m_state) {
-            case AfterCharacterClass:
-                
-                
-                
-                
-                
-                
-                
-                if (hyphenIsRange && ch == '-') {
-                    m_delegate.atomCharacterClassAtom('-');
-                    m_state = AfterCharacterClassHyphen;
-                    return;
-                }
-                
-
-            case Empty:
+            case empty:
                 m_character = ch;
-                m_state = CachedCharacter;
-                return;
+                m_state = cachedCharacter;
+                break;
 
-            case CachedCharacter:
-                if (hyphenIsRange && ch == '-')
-                    m_state = CachedCharacterHyphen;
+            case cachedCharacter:
+                if (ch == '-')
+                    m_state = cachedCharacterHyphen;
                 else {
                     m_delegate.atomCharacterClassAtom(m_character);
                     m_character = ch;
                 }
-                return;
+                break;
 
-            case CachedCharacterHyphen:
-                if (ch < m_character) {
+            case cachedCharacterHyphen:
+                if (ch >= m_character)
+                    m_delegate.atomCharacterClassRange(m_character, ch);
+                else
                     m_err = CharacterClassOutOfOrder;
-                    return;
-                }
-                m_delegate.atomCharacterClassRange(m_character, ch);
-                m_state = Empty;
-                return;
-
-            case AfterCharacterClassHyphen:
-                m_delegate.atomCharacterClassAtom(ch);
-                m_state = Empty;
-                return;
+                m_state = empty;
             }
+        }
+
+        
+
+
+
+
+
+        void atomPatternCharacter(UChar ch)
+        {
+            
+            
+            if((ch == '-') && (m_state == cachedCharacter))
+                flush();
+
+            atomPatternCharacterUnescaped(ch);
         }
 
         
@@ -143,28 +136,17 @@ private:
 
         void atomBuiltInCharacterClass(BuiltInCharacterClassID classID, bool invert)
         {
-            switch (m_state) {
-            case CachedCharacter:
-                
-                m_delegate.atomCharacterClassAtom(m_character);
-
-            case Empty:
-            case AfterCharacterClass:
-                m_state = AfterCharacterClass;
-                m_delegate.atomCharacterClassBuiltIn(classID, invert);
-                return;
-
-            case CachedCharacterHyphen:
+            if (m_state == cachedCharacterHyphen) {
                 
                 
-                m_err = CharacterClassInvalidRange;
-                return;
-
-            case AfterCharacterClassHyphen:
-                m_delegate.atomCharacterClassBuiltIn(classID, invert);
-                m_state = Empty;
+                
+                
+                m_err = CharacterClassRangeSingleChar;
+                m_state = empty;
                 return;
             }
+            flush();
+            m_delegate.atomCharacterClassBuiltIn(classID, invert);
         }
 
         
@@ -174,29 +156,31 @@ private:
 
         void end()
         {
-            if (m_state == CachedCharacter)
-                m_delegate.atomCharacterClassAtom(m_character);
-            else if (m_state == CachedCharacterHyphen) {
-                m_delegate.atomCharacterClassAtom(m_character);
-                m_delegate.atomCharacterClassAtom('-');
-            }
+            flush();
             m_delegate.atomCharacterClassEnd();
         }
 
         
         
-        void assertionWordBoundary(bool) { ASSERT_NOT_REACHED(); }
-        void atomBackReference(unsigned) { ASSERT_NOT_REACHED(); }
+        void assertionWordBoundary(bool) { JS_NOT_REACHED("parseEscape() should never call this"); }
+        void atomBackReference(unsigned) { JS_NOT_REACHED("parseEscape() should never call this"); }
 
     private:
+        void flush()
+        {
+            if (m_state != empty) 
+                m_delegate.atomCharacterClassAtom(m_character);
+            if (m_state == cachedCharacterHyphen)
+                m_delegate.atomCharacterClassAtom('-');
+            m_state = empty;
+        }
+    
         Delegate& m_delegate;
         ErrorCode& m_err;
         enum CharacterClassConstructionState {
-            Empty,
-            CachedCharacter,
-            CachedCharacterHyphen,
-            AfterCharacterClass,
-            AfterCharacterClassHyphen
+            empty,
+            cachedCharacter,
+            cachedCharacterHyphen
         } m_state;
         UChar m_character;
     };
@@ -205,7 +189,7 @@ private:
         : m_delegate(delegate)
         , m_backReferenceLimit(backReferenceLimit)
         , m_err(NoError)
-        , m_data(pattern.chars())
+        , m_data(const_cast<UString &>(pattern).chars())
         , m_size(pattern.length())
         , m_index(0)
         , m_parenthesesNestingDepth(0)
@@ -235,8 +219,8 @@ private:
     template<bool inCharacterClass, class EscapeDelegate>
     bool parseEscape(EscapeDelegate& delegate)
     {
-        ASSERT(!m_err);
-        ASSERT(peek() == '\\');
+        JS_ASSERT(!m_err);
+        JS_ASSERT(peek() == '\\');
         consume();
 
         if (atEndOfPattern()) {
@@ -308,7 +292,7 @@ private:
 
                 unsigned backReference;
                 if (!consumeNumber(backReference))
-                    break;
+                    return false;
                 if (backReference <= m_backReferenceLimit) {
                     delegate.atomBackReference(backReference);
                     break;
@@ -424,8 +408,8 @@ private:
 
     void parseCharacterClass()
     {
-        ASSERT(!m_err);
-        ASSERT(peek() == '[');
+        JS_ASSERT(!m_err);
+        JS_ASSERT(peek() == '[');
         consume();
 
         CharacterClassParserDelegate characterClassConstructor(m_delegate, m_err);
@@ -444,7 +428,7 @@ private:
                 break;
 
             default:
-                characterClassConstructor.atomPatternCharacter(consume(), true);
+                characterClassConstructor.atomPatternCharacterUnescaped(consume());
             }
 
             if (m_err)
@@ -461,8 +445,8 @@ private:
 
     void parseParenthesesBegin()
     {
-        ASSERT(!m_err);
-        ASSERT(peek() == '(');
+        JS_ASSERT(!m_err);
+        JS_ASSERT(peek() == '(');
         consume();
 
         if (tryConsume('?')) {
@@ -500,8 +484,8 @@ private:
 
     void parseParenthesesEnd()
     {
-        ASSERT(!m_err);
-        ASSERT(peek() == ')');
+        JS_ASSERT(!m_err);
+        JS_ASSERT(peek() == ')');
         consume();
 
         if (m_parenthesesNestingDepth > 0)
@@ -519,8 +503,8 @@ private:
 
     void parseQuantifier(bool lastTokenWasAnAtom, unsigned min, unsigned max)
     {
-        ASSERT(!m_err);
-        ASSERT(min <= max);
+        JS_ASSERT(!m_err);
+        JS_ASSERT(min <= max);
 
         if (lastTokenWasAnAtom)
             m_delegate.quantifyAtom(min, max, !tryConsume('?'));
@@ -588,13 +572,13 @@ private:
 
             case '*':
                 consume();
-                parseQuantifier(lastTokenWasAnAtom, 0, quantifyInfinite);
+                parseQuantifier(lastTokenWasAnAtom, 0, UINT_MAX);
                 lastTokenWasAnAtom = false;
                 break;
 
             case '+':
                 consume();
-                parseQuantifier(lastTokenWasAnAtom, 1, quantifyInfinite);
+                parseQuantifier(lastTokenWasAnAtom, 1, UINT_MAX);
                 lastTokenWasAnAtom = false;
                 break;
 
@@ -619,7 +603,7 @@ private:
                             if (!consumeNumber(max))
                                 break;
                         } else {
-                            max = quantifyInfinite;
+                            max = UINT_MAX;
                         }
                     }
 
@@ -655,15 +639,23 @@ private:
 
 
 
-    ErrorCode parse()
+
+    int parse()
     {
+        m_delegate.regexBegin();
+
         if (m_size > MAX_PATTERN_SIZE)
             m_err = PatternTooLarge;
         else
             parseTokens();
-        ASSERT(atEndOfPattern() || m_err);
+        JS_ASSERT(atEndOfPattern() || m_err);
 
-        return m_err;
+        if (m_err)
+            m_delegate.regexError();
+        else
+            m_delegate.regexEnd();
+
+        return static_cast<int>(m_err);
     }
 
 
@@ -683,13 +675,13 @@ private:
 
     bool atEndOfPattern()
     {
-        ASSERT(m_index <= m_size);
+        JS_ASSERT(m_index <= m_size);
         return m_index == m_size;
     }
 
     int peek()
     {
-        ASSERT(m_index < m_size);
+        JS_ASSERT(m_index < m_size);
         return m_data[m_index];
     }
 
@@ -700,19 +692,19 @@ private:
 
     unsigned peekDigit()
     {
-        ASSERT(peekIsDigit());
+        JS_ASSERT(peekIsDigit());
         return peek() - '0';
     }
 
     int consume()
     {
-        ASSERT(m_index < m_size);
+        JS_ASSERT(m_index < m_size);
         return m_data[m_index++];
     }
 
     unsigned consumeDigit()
     {
-        ASSERT(peekIsDigit());
+        JS_ASSERT(peekIsDigit());
         return consume() - '0';
     }
 
@@ -733,7 +725,7 @@ private:
 
     unsigned consumeOctal()
     {
-        ASSERT(WTF::isASCIIOctalDigit(peek()));
+        JS_ASSERT(WTF::isASCIIOctalDigit(peek()));
 
         unsigned n = consumeDigit();
         while (n < 32 && !atEndOfPattern() && WTF::isASCIIOctalDigit(peek()))
@@ -835,8 +827,16 @@ private:
 
 
 
+
+
+
+
+
+
+
+
 template<class Delegate>
-ErrorCode parse(Delegate& delegate, const UString& pattern, unsigned backReferenceLimit = quantifyInfinite)
+int parse(Delegate& delegate, const UString& pattern, unsigned backReferenceLimit = UINT_MAX)
 {
     return Parser<Delegate>(delegate, pattern, backReferenceLimit).parse();
 }
