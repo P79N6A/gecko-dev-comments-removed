@@ -313,17 +313,17 @@ static const JSC::MacroAssembler::RegisterID JSReturnReg_Data = JSC::ARMRegister
         return MacroAssembler::call(reg);
     }
 
-    void restoreReturnAddress()
-    {
-#ifndef JS_CPU_ARM
-        
-        push(Address(JSFrameReg, offsetof(JSStackFrame, ncode)));
-#else
+#if defined(JS_CPU_ARM)
+    void ret() {
         
 
-        load32(Address(JSFrameReg, offsetof(JSStackFrame, ncode)), JSC::ARMRegisters::lr);
-#endif
+
+
+
+        MacroAssembler::pop(JSC::ARMRegisters::pc);
     }
+    
+#endif
 
     void finalize(uint8 *ncode) {
         JSC::JITCode jc(ncode, size());
