@@ -63,6 +63,7 @@ namespace gc {
 
 enum ConservativeGCTest {
     CGCT_VALID,
+    CGCT_VALIDWITHOFFSET, 
     CGCT_LOWBITSET, 
     CGCT_NOTARENA,  
     CGCT_NOTCHUNK,  
@@ -127,6 +128,10 @@ extern void
 UpdateCompartmentStats(JSCompartment *comp, unsigned thingKind, uint32 nlivearenas,
                        uint32 nkilledArenas, uint32 nthings);
 #endif 
+
+#if defined JS_DUMP_CONSERVATIVE_GC_ROOTS
+void *GetAlignedThing(void *thing, int thingKind);
+#endif
 
 } 
 
