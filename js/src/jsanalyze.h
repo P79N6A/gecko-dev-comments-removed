@@ -149,12 +149,6 @@ class Bytecode
     uint32 stackDepth;
 
   private:
-    
-
-
-
-    uint32 defineCount;
-    uint32 *defineArray;
 
     union {
         
@@ -204,22 +198,6 @@ class Bytecode
 
     
     types::TypeBarrier *typeBarriers;
-
-    
-
-    bool mergeDefines(JSContext *cx, ScriptAnalysis *script, bool initial,
-                      uint32 newDepth, uint32 *newArray, uint32 newCount);
-
-    
-    bool isDefined(uint32 slot)
-    {
-        JS_ASSERT(analyzed);
-        for (unsigned i = 0; i < defineCount; i++) {
-            if (defineArray[i] == slot)
-                return true;
-        }
-        return false;
-    }
 };
 
 static inline unsigned
@@ -909,12 +887,6 @@ class ScriptAnalysis
     uint32 numReturnSites_;
 
     
-    uint32 *definedLocals;
-
-    static const uint32 LOCAL_USE_BEFORE_DEF = uint32(-1);
-    static const uint32 LOCAL_CONDITIONALLY_DEFINED = uint32(-2);
-
-    
 
     LifetimeVariable *lifetimes;
 
@@ -1147,21 +1119,6 @@ class ScriptAnalysis
 
     
 
-    bool localHasUseBeforeDef(uint32 local) {
-        JS_ASSERT(!failed());
-        return slotEscapes(LocalSlot(script, local)) ||
-            definedLocals[local] == LOCAL_USE_BEFORE_DEF;
-    }
-
-    
-    bool localDefined(uint32 local, uint32 offset) {
-        return localHasUseBeforeDef(local) || (definedLocals[local] <= offset) ||
-            getCode(offset).isDefined(local);
-    }
-    bool localDefined(uint32 local, jsbytecode *pc) {
-        return localDefined(local, pc - script->code);
-    }
-
     
 
 
@@ -1221,8 +1178,7 @@ class ScriptAnalysis
     
     inline bool addJump(JSContext *cx, unsigned offset,
                         unsigned *currentOffset, unsigned *forwardJump,
-                        unsigned stackDepth, uint32 *defineArray, unsigned defineCount);
-    inline void setLocal(uint32 local, uint32 offset);
+                        unsigned stackDepth);
     void checkAliasedName(JSContext *cx, jsbytecode *pc);
 
     
