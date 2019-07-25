@@ -42,7 +42,6 @@
 #include "nsCOMPtr.h"
 #include "nsICSSLoaderObserver.h"
 #include "nsIStyleRuleProcessor.h"
-#include "nsCOMArray.h"
 
 class nsIContent;
 class nsIAtom;
@@ -51,7 +50,7 @@ class nsIScriptContext;
 class nsSupportsHashtable;
 class nsXBLResourceLoader;
 class nsXBLPrototypeBinding;
-class nsICSSStyleSheet;
+class nsCSSStyleSheet;
 
 
 
@@ -69,7 +68,8 @@ public:
 
 
   nsXBLResourceLoader* mLoader; 
-  nsCOMArray<nsICSSStyleSheet> mStyleSheetList; 
+  typedef nsTArray<nsRefPtr<nsCSSStyleSheet> > sheet_array_type;
+  sheet_array_type mStyleSheetList; 
 
   
   nsCOMPtr<nsIStyleRuleProcessor> mRuleProcessor;

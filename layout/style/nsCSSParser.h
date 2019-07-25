@@ -47,7 +47,7 @@
 
 class nsICSSRule;
 class nsICSSStyleRule;
-class nsICSSStyleSheet;
+class nsCSSStyleSheet;
 class nsIPrincipal;
 class nsIURI;
 class nsIUnicharInputStream;
@@ -66,7 +66,7 @@ namespace css {
 class NS_STACK_CLASS nsCSSParser {
 public:
   nsCSSParser(mozilla::css::Loader* aLoader = nsnull,
-              nsICSSStyleSheet* aSheet = nsnull);
+              nsCSSStyleSheet* aSheet = nsnull);
   ~nsCSSParser();
 
   static void Shutdown();
@@ -85,7 +85,7 @@ public:
   
   
   
-  nsresult SetStyleSheet(nsICSSStyleSheet* aSheet);
+  nsresult SetStyleSheet(nsCSSStyleSheet* aSheet);
 
   
   nsresult SetQuirkMode(PRBool aQuirkMode);

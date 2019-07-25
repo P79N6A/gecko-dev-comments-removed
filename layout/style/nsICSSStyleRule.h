@@ -57,7 +57,7 @@
 
 class nsIAtom;
 class nsCSSDeclaration;
-class nsICSSStyleSheet;
+class nsCSSStyleSheet;
 struct nsCSSSelectorList;
 
 struct nsAtomList {
@@ -193,7 +193,7 @@ public:
   
   PRInt32 CalcWeight() const;
 
-  void ToString(nsAString& aString, nsICSSStyleSheet* aSheet,
+  void ToString(nsAString& aString, nsCSSStyleSheet* aSheet,
                 PRBool aAppend = PR_FALSE) const;
 
 private:
@@ -201,9 +201,9 @@ private:
   nsCSSSelector* Clone(PRBool aDeepNext, PRBool aDeepNegations) const;
 
   void AppendToStringWithoutCombinators(nsAString& aString,
-                                        nsICSSStyleSheet* aSheet) const;
+                                        nsCSSStyleSheet* aSheet) const;
   void AppendToStringWithoutCombinatorsOrNegations(nsAString& aString,
-                                                   nsICSSStyleSheet* aSheet,
+                                                   nsCSSStyleSheet* aSheet,
                                                    PRBool aIsNegated)
                                                         const;
   
@@ -271,7 +271,7 @@ struct nsCSSSelectorList {
   
 
 
-  void ToString(nsAString& aResult, nsICSSStyleSheet* aSheet);
+  void ToString(nsAString& aResult, nsCSSStyleSheet* aSheet);
 
   
 
@@ -291,8 +291,8 @@ private:
 
 
 #define NS_ICSS_STYLE_RULE_IID \
-{ 0xe665007e, 0x5d4a, 0x433a, \
-  { 0x90, 0x56, 0x43, 0x10, 0x70, 0x1c, 0x08, 0xb9 } }
+{ 0x1aae9e9d, 0x21c3, 0x4993, \
+  { 0x90, 0xb1, 0x66, 0xaa, 0x68, 0x09, 0xf5, 0x97 } }
 
 class nsICSSStyleRule : public nsICSSRule {
 public:
@@ -327,7 +327,7 @@ public:
   
   virtual nsresult GetCssText(nsAString& aCssText) = 0;
   virtual nsresult SetCssText(const nsAString& aCssText) = 0;
-  virtual nsresult GetParentStyleSheet(nsICSSStyleSheet** aSheet) = 0;
+  virtual nsresult GetParentStyleSheet(nsCSSStyleSheet** aSheet) = 0;
   virtual nsresult GetParentRule(nsICSSGroupRule** aParentRule) = 0;
   virtual nsresult GetSelectorText(nsAString& aSelectorText) = 0;
   virtual nsresult SetSelectorText(const nsAString& aSelectorText) = 0;

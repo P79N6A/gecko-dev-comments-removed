@@ -77,7 +77,7 @@
 #include "nsMimeTypes.h"
 #include "nsIAtom.h"
 #include "nsIDOM3Node.h"
-#include "nsICSSStyleSheet.h"
+#include "nsCSSStyleSheet.h"
 #include "nsIStyleSheetLinkingElement.h"
 #include "nsICSSLoaderObserver.h"
 #include "nsCSSParser.h"
@@ -144,7 +144,7 @@ public:
   SheetLoadData(Loader* aLoader,
                 const nsSubstring& aTitle,
                 nsIURI* aURI,
-                nsICSSStyleSheet* aSheet,
+                nsCSSStyleSheet* aSheet,
                 nsIStyleSheetLinkingElement* aOwningElement,
                 PRBool aIsAlternate,
                 nsICSSLoaderObserver* aObserver,
@@ -153,7 +153,7 @@ public:
   
   SheetLoadData(Loader* aLoader,
                 nsIURI* aURI,
-                nsICSSStyleSheet* aSheet,
+                nsCSSStyleSheet* aSheet,
                 SheetLoadData* aParentData,
                 nsICSSLoaderObserver* aObserver,
                 nsIPrincipal* aLoaderPrincipal);
@@ -161,7 +161,7 @@ public:
   
   SheetLoadData(Loader* aLoader,
                 nsIURI* aURI,
-                nsICSSStyleSheet* aSheet,
+                nsCSSStyleSheet* aSheet,
                 PRBool aSyncLoad,
                 PRBool aAllowUnsafeRules,
                 PRBool aUseSystemPrincipal,
@@ -193,7 +193,7 @@ public:
   PRUint32                   mLineNumber;
 
   
-  nsCOMPtr<nsICSSStyleSheet> mSheet;
+  nsRefPtr<nsCSSStyleSheet>  mSheet;
 
   
   SheetLoadData*             mNext;  
@@ -313,7 +313,7 @@ NS_IMPL_ISUPPORTS2(SheetLoadData, nsIUnicharStreamLoaderObserver, nsIRunnable)
 SheetLoadData::SheetLoadData(Loader* aLoader,
                              const nsSubstring& aTitle,
                              nsIURI* aURI,
-                             nsICSSStyleSheet* aSheet,
+                             nsCSSStyleSheet* aSheet,
                              nsIStyleSheetLinkingElement* aOwningElement,
                              PRBool aIsAlternate,
                              nsICSSLoaderObserver* aObserver,
@@ -344,7 +344,7 @@ SheetLoadData::SheetLoadData(Loader* aLoader,
 
 SheetLoadData::SheetLoadData(Loader* aLoader,
                              nsIURI* aURI,
-                             nsICSSStyleSheet* aSheet,
+                             nsCSSStyleSheet* aSheet,
                              SheetLoadData* aParentData,
                              nsICSSLoaderObserver* aObserver,
                              nsIPrincipal* aLoaderPrincipal)
@@ -384,7 +384,7 @@ SheetLoadData::SheetLoadData(Loader* aLoader,
 
 SheetLoadData::SheetLoadData(Loader* aLoader,
                              nsIURI* aURI,
-                             nsICSSStyleSheet* aSheet,
+                             nsCSSStyleSheet* aSheet,
                              PRBool aSyncLoad,
                              PRBool aAllowUnsafeRules,
                              PRBool aUseSystemPrincipal,
@@ -1064,7 +1064,7 @@ Loader::CreateSheet(nsIURI* aURI,
                     nsIPrincipal* aLoaderPrincipal,
                     PRBool aSyncLoad,
                     StyleSheetState& aSheetState,
-                    nsICSSStyleSheet** aSheet)
+                    nsCSSStyleSheet** aSheet)
 {
   LOG(("css::Loader::CreateSheet"));
   NS_PRECONDITION(aSheet, "Null out param!");
@@ -1080,7 +1080,7 @@ Loader::CreateSheet(nsIURI* aURI,
   
   if (aURI) {
     aSheetState = eSheetComplete;
-    nsCOMPtr<nsICSSStyleSheet> sheet;
+    nsRefPtr<nsCSSStyleSheet> sheet;
 
     
 #ifdef MOZ_XUL
@@ -1213,7 +1213,7 @@ Loader::CreateSheet(nsIURI* aURI,
 
 
 nsresult
-Loader::PrepareSheet(nsICSSStyleSheet* aSheet,
+Loader::PrepareSheet(nsCSSStyleSheet* aSheet,
                      const nsSubstring& aTitle,
                      const nsSubstring& aMediaString,
                      nsMediaList* aMediaList,
@@ -1266,7 +1266,7 @@ Loader::PrepareSheet(nsICSSStyleSheet* aSheet,
 
 
 nsresult
-Loader::InsertSheetInDoc(nsICSSStyleSheet* aSheet,
+Loader::InsertSheetInDoc(nsCSSStyleSheet* aSheet,
                          nsIContent* aLinkingContent,
                          nsIDocument* aDocument)
 {
@@ -1346,8 +1346,8 @@ Loader::InsertSheetInDoc(nsICSSStyleSheet* aSheet,
 
 
 nsresult
-Loader::InsertChildSheet(nsICSSStyleSheet* aSheet,
-                         nsICSSStyleSheet* aParentSheet,
+Loader::InsertChildSheet(nsCSSStyleSheet* aSheet,
+                         nsCSSStyleSheet* aParentSheet,
                          nsICSSImportRule* aParentRule)
 {
   LOG(("css::Loader::InsertChildSheet"));
@@ -1844,7 +1844,7 @@ Loader::LoadInlineStyle(nsIContent* aElement,
   
   
   StyleSheetState state;
-  nsCOMPtr<nsICSSStyleSheet> sheet;
+  nsRefPtr<nsCSSStyleSheet> sheet;
   nsresult rv = CreateSheet(nsnull, aElement, nsnull, PR_FALSE, state,
                             getter_AddRefs(sheet));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1923,7 +1923,7 @@ Loader::LoadStyleLink(nsIContent* aElement,
   LOG(("  Passed load check"));
   
   StyleSheetState state;
-  nsCOMPtr<nsICSSStyleSheet> sheet;
+  nsRefPtr<nsCSSStyleSheet> sheet;
   rv = CreateSheet(aURL, aElement, principal, PR_FALSE, state,
                    getter_AddRefs(sheet));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1983,7 +1983,7 @@ Loader::LoadStyleLink(nsIContent* aElement,
 }
 
 nsresult
-Loader::LoadChildSheet(nsICSSStyleSheet* aParentSheet,
+Loader::LoadChildSheet(nsCSSStyleSheet* aParentSheet,
                        nsIURI* aURL, 
                        nsMediaList* aMedia,
                        nsICSSImportRule* aParentRule)
@@ -2006,7 +2006,7 @@ Loader::LoadChildSheet(nsICSSStyleSheet* aParentSheet,
   nsCOMPtr<nsIDocument> owningDoc;
   nsresult rv = aParentSheet->GetOwningDocument(*getter_AddRefs(owningDoc));
   if (NS_SUCCEEDED(rv) && owningDoc) {
-    nsCOMPtr<nsIDOMStyleSheet> nextParentSheet(do_QueryInterface(aParentSheet));
+    nsCOMPtr<nsIDOMStyleSheet> nextParentSheet(aParentSheet);
     NS_ENSURE_TRUE(nextParentSheet, NS_ERROR_FAILURE); 
 
     nsCOMPtr<nsIDOMStyleSheet> topSheet;
@@ -2056,12 +2056,12 @@ Loader::LoadChildSheet(nsICSSStyleSheet* aParentSheet,
     LOG(("  No parent load; must be CSSOM"));
     
     
-    observer = do_QueryInterface(aParentSheet);
+    observer = aParentSheet;
   }
 
   
   
-  nsCOMPtr<nsICSSStyleSheet> sheet;
+  nsRefPtr<nsCSSStyleSheet> sheet;
   StyleSheetState state;
   rv = CreateSheet(aURL, nsnull, principal,
                    parentData ? parentData->mSyncLoad : PR_FALSE,
@@ -2109,7 +2109,7 @@ Loader::LoadChildSheet(nsICSSStyleSheet* aParentSheet,
 nsresult
 Loader::LoadSheetSync(nsIURI* aURL, PRBool aAllowUnsafeRules,
                       PRBool aUseSystemPrincipal,
-                      nsICSSStyleSheet** aSheet)
+                      nsCSSStyleSheet** aSheet)
 {
   LOG(("css::Loader::LoadSheetSync"));
   return InternalLoadNonDocumentSheet(aURL, aAllowUnsafeRules,
@@ -2122,7 +2122,7 @@ Loader::LoadSheet(nsIURI* aURL,
                   nsIPrincipal* aOriginPrincipal,
                   const nsCString& aCharset,
                   nsICSSLoaderObserver* aObserver,
-                  nsICSSStyleSheet** aSheet)
+                  nsCSSStyleSheet** aSheet)
 {
   LOG(("css::Loader::LoadSheet(aURL, aObserver, aSheet) api call"));
   NS_PRECONDITION(aSheet, "aSheet is null");
@@ -2149,7 +2149,7 @@ Loader::InternalLoadNonDocumentSheet(nsIURI* aURL,
                                      PRBool aUseSystemPrincipal,
                                      nsIPrincipal* aOriginPrincipal,
                                      const nsCString& aCharset,
-                                     nsICSSStyleSheet** aSheet,
+                                     nsCSSStyleSheet** aSheet,
                                      nsICSSLoaderObserver* aObserver)
 {
   NS_PRECONDITION(aURL, "Must have a URI to load");
@@ -2175,7 +2175,7 @@ Loader::InternalLoadNonDocumentSheet(nsIURI* aURL,
   }
 
   StyleSheetState state;
-  nsCOMPtr<nsICSSStyleSheet> sheet;
+  nsRefPtr<nsCSSStyleSheet> sheet;
   PRBool syncLoad = (aObserver == nsnull);
   
   rv = CreateSheet(aURL, nsnull, aOriginPrincipal, syncLoad, state,
@@ -2223,7 +2223,7 @@ Loader::InternalLoadNonDocumentSheet(nsIURI* aURL,
 
 nsresult
 Loader::PostLoadEvent(nsIURI* aURI,
-                      nsICSSStyleSheet* aSheet,
+                      nsCSSStyleSheet* aSheet,
                       nsICSSLoaderObserver* aObserver,
                       PRBool aWasAlternate)
 {

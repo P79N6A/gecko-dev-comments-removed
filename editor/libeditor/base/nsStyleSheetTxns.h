@@ -41,7 +41,6 @@
 #include "EditTxn.h"
 #include "nsCOMPtr.h"
 #include "nsIEditor.h"
-#include "nsICSSStyleSheet.h"
 
 class AddStyleSheetTxn : public EditTxn
 {
@@ -51,7 +50,7 @@ public:
 
 
   NS_IMETHOD Init(nsIEditor         *aEditor,
-                  nsICSSStyleSheet  *aSheet);
+                  nsCSSStyleSheet   *aSheet);
 
   AddStyleSheetTxn();
 
@@ -62,9 +61,9 @@ public:
 
 protected:
 
-  nsIEditor*  mEditor;									
-  nsCOMPtr<nsICSSStyleSheet>	mSheet;		
-  
+  nsIEditor*  mEditor;                  
+  nsRefPtr<nsCSSStyleSheet>  mSheet;    
+
 };
 
 
@@ -76,8 +75,8 @@ public:
 
 
   NS_IMETHOD Init(nsIEditor         *aEditor,
-                  nsICSSStyleSheet  *aSheet);
-	
+                  nsCSSStyleSheet   *aSheet);
+
   RemoveStyleSheetTxn();
 
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(RemoveStyleSheetTxn, EditTxn)
@@ -87,9 +86,9 @@ public:
 
 protected:
 
-  nsIEditor*  mEditor;									
-  nsCOMPtr<nsICSSStyleSheet>	mSheet;		
-  
+  nsIEditor*  mEditor;                  
+  nsRefPtr<nsCSSStyleSheet>  mSheet;    
+
 };
 
 

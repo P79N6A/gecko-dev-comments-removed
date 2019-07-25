@@ -44,7 +44,6 @@
 #define nsXULPrototypeCache_h__
 
 #include "nsCOMPtr.h"
-#include "nsICSSStyleSheet.h"
 #include "nsIObserver.h"
 #include "nsIXBLDocumentInfo.h"
 #include "nsIXULPrototypeCache.h"
@@ -55,6 +54,7 @@
 #include "nsXULPrototypeDocument.h"
 
 class nsIFastLoadService;
+class nsCSSStyleSheet;
 
 struct CacheScriptEntry
 {
@@ -125,7 +125,7 @@ public:
 
 
 
-    nsICSSStyleSheet* GetStyleSheet(nsIURI* aURI) {
+    nsCSSStyleSheet* GetStyleSheet(nsIURI* aURI) {
         return mStyleSheetTable.GetWeak(aURI);
     }
 
@@ -133,7 +133,7 @@ public:
 
 
 
-    nsresult PutStyleSheet(nsICSSStyleSheet* aStyleSheet);
+    nsresult PutStyleSheet(nsCSSStyleSheet* aStyleSheet);
 
 
     static nsXULPrototypeCache* GetInstance();
@@ -157,7 +157,7 @@ protected:
     void FlushSkinFiles();
 
     nsRefPtrHashtable<nsURIHashKey,nsXULPrototypeDocument>  mPrototypeTable; 
-    nsInterfaceHashtable<nsURIHashKey,nsICSSStyleSheet>    mStyleSheetTable;
+    nsRefPtrHashtable<nsURIHashKey,nsCSSStyleSheet>        mStyleSheetTable;
     nsDataHashtable<nsURIHashKey,CacheScriptEntry>         mScriptTable;
     nsInterfaceHashtable<nsURIHashKey,nsIXBLDocumentInfo>  mXBLDocTable;
 

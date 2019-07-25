@@ -75,7 +75,7 @@
 
 #include "nsIAtom.h"
 #include "nsICommandLine.h"
-#include "nsICSSStyleSheet.h"
+#include "nsCSSStyleSheet.h"
 #include "nsIConsoleService.h"
 #include "nsIDirectoryService.h"
 #include "nsIDocument.h"
@@ -965,7 +965,7 @@ nsresult nsChromeRegistry::RefreshWindow(nsIDOMWindowInternal* aWindow)
 
       if (IsChromeURI(uri)) {
         
-        nsCOMPtr<nsICSSStyleSheet> newSheet;
+        nsRefPtr<nsCSSStyleSheet> newSheet;
         rv = document->LoadChromeSheetSync(uri, PR_TRUE,
                                            getter_AddRefs(newSheet));
         if (NS_FAILED(rv)) return rv;
@@ -1004,12 +1004,12 @@ nsresult nsChromeRegistry::RefreshWindow(nsIDOMWindowInternal* aWindow)
   
   
   for (i = 0; i < count; i++) {
-    nsCOMPtr<nsICSSStyleSheet> sheet = do_QueryInterface(oldSheets[i]);
+    nsRefPtr<nsCSSStyleSheet> sheet = do_QueryObject(oldSheets[i]);
     nsIURI* uri = sheet ? sheet->GetOriginalURI() : nsnull;
 
     if (uri && IsChromeURI(uri)) {
       
-      nsCOMPtr<nsICSSStyleSheet> newSheet;
+      nsRefPtr<nsCSSStyleSheet> newSheet;
       
       
       document->LoadChromeSheetSync(uri, PR_FALSE, getter_AddRefs(newSheet));

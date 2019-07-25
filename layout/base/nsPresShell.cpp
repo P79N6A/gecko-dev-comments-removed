@@ -63,7 +63,7 @@
 #include "nsIDOMXULDocument.h"
 #include "nsStubDocumentObserver.h"
 #include "nsStyleSet.h"
-#include "nsICSSStyleSheet.h" 
+#include "nsCSSStyleSheet.h" 
 #include "nsIDOMCSSStyleSheet.h"  
 #include "nsINameSpaceManager.h"  
 #include "nsIServiceManager.h"
@@ -1036,8 +1036,8 @@ protected:
     }
   }
 
-  nsCOMPtr<nsICSSStyleSheet> mPrefStyleSheet; 
-                                              
+  nsRefPtr<nsCSSStyleSheet> mPrefStyleSheet; 
+                                             
 #ifdef DEBUG
   PRUint32                  mUpdateCount;
 #endif

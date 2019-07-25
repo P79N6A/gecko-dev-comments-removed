@@ -39,7 +39,7 @@
 
 #include "nsCSSRule.h"
 #include "nsCRT.h"
-#include "nsICSSStyleSheet.h"
+#include "nsCSSStyleSheet.h"
 
 nsCSSRule::nsCSSRule(void)
   : mRefCnt(0),
@@ -72,7 +72,7 @@ nsCSSRule::GetStyleSheet(nsIStyleSheet*& aSheet) const
 }
 
 NS_IMETHODIMP
-nsCSSRule::SetStyleSheet(nsICSSStyleSheet* aSheet)
+nsCSSRule::SetStyleSheet(nsCSSStyleSheet* aSheet)
 {
   
   

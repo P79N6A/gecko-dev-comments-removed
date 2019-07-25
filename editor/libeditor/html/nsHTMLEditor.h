@@ -70,6 +70,7 @@
 
 #include "nsPoint.h"
 #include "nsTArray.h"
+#include "nsAutoPtr.h"
 
 class nsIDOMKeyEvent;
 class nsITransferable;
@@ -369,7 +370,7 @@ public:
   NS_IMETHOD SelectAll();
 
   
-  NS_IMETHOD StyleSheetLoaded(nsICSSStyleSheet*aSheet, PRBool aWasAlternate,
+  NS_IMETHOD StyleSheetLoaded(nsCSSStyleSheet*aSheet, PRBool aWasAlternate,
                               nsresult aStatus);
 
   
@@ -417,12 +418,12 @@ public:
 
   
   NS_IMETHOD GetStyleSheetForURL(const nsAString &aURL,
-                               nsICSSStyleSheet **_retval);
-  NS_IMETHOD GetURLForStyleSheet(nsICSSStyleSheet *aStyleSheet, nsAString &aURL);
+                                 nsCSSStyleSheet **_retval);
+  NS_IMETHOD GetURLForStyleSheet(nsCSSStyleSheet *aStyleSheet, nsAString &aURL);
 
   
   nsresult AddNewStyleSheetToList(const nsAString &aURL,
-                                  nsICSSStyleSheet *aStyleSheet);
+                                  nsCSSStyleSheet *aStyleSheet);
 
   nsresult RemoveStyleSheetFromList(const nsAString &aURL);
                        
@@ -752,7 +753,7 @@ protected:
 
   
   nsTArray<nsString> mStyleSheetURLs;
-  nsCOMArray<nsICSSStyleSheet> mStyleSheets;
+  nsTArray<nsRefPtr<nsCSSStyleSheet> > mStyleSheets;
   
   
   nsTArray<PropItem*> mDefaultStyles;

@@ -176,7 +176,7 @@ public:
     NS_IMETHOD GetContentType(nsAString& aContentType);
 
     
-    NS_IMETHOD StyleSheetLoaded(nsICSSStyleSheet* aSheet,
+    NS_IMETHOD StyleSheetLoaded(nsCSSStyleSheet* aSheet,
                                 PRBool aWasAlternate,
                                 nsresult aStatus);
 
@@ -304,7 +304,7 @@ protected:
 
 
 
-    nsCOMArray<nsICSSStyleSheet> mOverlaySheets;
+    nsTArray<nsRefPtr<nsCSSStyleSheet> > mOverlaySheets;
 
     nsCOMPtr<nsIDOMXULCommandDispatcher>     mCommandDispatcher; 
 
