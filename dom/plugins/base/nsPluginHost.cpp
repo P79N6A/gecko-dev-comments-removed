@@ -50,7 +50,6 @@
 #include "nsNPAPIPlugin.h"
 #include "nsNPAPIPluginStreamListener.h"
 #include "nsNPAPIPluginInstance.h"
-#include "nsIPluginStreamListener.h"
 #include "nsIHTTPHeaderListener.h"
 #include "nsIHttpHeaderVisitor.h"
 #include "nsIObserverService.h"
@@ -589,7 +588,7 @@ nsresult nsPluginHost::GetPrompt(nsIPluginInstanceOwner *aOwner, nsIPrompt **aPr
 nsresult nsPluginHost::GetURL(nsISupports* pluginInst,
                               const char* url,
                               const char* target,
-                              nsIPluginStreamListener* streamListener,
+                              nsNPAPIPluginStreamListener* streamListener,
                               const char* altHost,
                               const char* referrer,
                               bool forceJSEnabled)
@@ -602,7 +601,7 @@ nsresult nsPluginHost::GetURL(nsISupports* pluginInst,
 nsresult nsPluginHost::GetURLWithHeaders(nsNPAPIPluginInstance* pluginInst,
                                          const char* url,
                                          const char* target,
-                                         nsIPluginStreamListener* streamListener,
+                                         nsNPAPIPluginStreamListener* streamListener,
                                          const char* altHost,
                                          const char* referrer,
                                          bool forceJSEnabled,
@@ -646,7 +645,7 @@ nsresult nsPluginHost::PostURL(nsISupports* pluginInst,
                                     const char* postData,
                                     bool isFile,
                                     const char* target,
-                                    nsIPluginStreamListener* streamListener,
+                                    nsNPAPIPluginStreamListener* streamListener,
                                     const char* altHost,
                                     const char* referrer,
                                     bool forceJSEnabled,
@@ -2937,7 +2936,7 @@ nsPluginHost::EnsurePrivateDirServiceProvider()
 
 nsresult nsPluginHost::NewPluginURLStream(const nsString& aURL,
                                           nsNPAPIPluginInstance *aInstance,
-                                          nsIPluginStreamListener* aListener,
+                                          nsNPAPIPluginStreamListener* aListener,
                                           nsIInputStream *aPostStream,
                                           const char *aHeadersData,
                                           PRUint32 aHeadersDataLen)

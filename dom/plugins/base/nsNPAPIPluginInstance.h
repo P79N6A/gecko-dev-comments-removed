@@ -62,7 +62,6 @@ struct JSObject;
 class nsPluginStreamListenerPeer; 
 class nsNPAPIPluginStreamListener; 
 class nsIPluginInstanceOwner;
-class nsIPluginStreamListener;
 class nsIOutputStream;
 
 #if defined(OS_WIN)
@@ -175,7 +174,7 @@ public:
 #endif
 
   nsresult NewStreamListener(const char* aURL, void* notifyData,
-                             nsIPluginStreamListener** listener);
+                             nsNPAPIPluginStreamListener** listener);
 
   nsNPAPIPluginInstance();
   virtual ~nsNPAPIPluginInstance();

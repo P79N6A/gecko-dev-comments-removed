@@ -110,7 +110,7 @@ public:
   
   nsresult Initialize(nsIURI *aURL,
                       nsNPAPIPluginInstance *aInstance,
-                      nsIPluginStreamListener *aListener);
+                      nsNPAPIPluginStreamListener *aListener);
   
   nsresult InitializeEmbedded(nsIURI *aURL,
                               nsNPAPIPluginInstance* aInstance,
