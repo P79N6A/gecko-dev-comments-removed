@@ -48,6 +48,7 @@ import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Point;
 import android.graphics.PointF;
@@ -62,6 +63,8 @@ import android.view.ViewConfiguration;
 import java.lang.Math;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 
@@ -113,6 +116,8 @@ public class LayerController {
     private Timer allowDefaultTimer =  null;
     private boolean inTouchSession = false;
     private PointF initialTouchLocation = null;
+
+    private static Pattern sColorPattern;
 
     public LayerController(Context context) {
         mContext = context;
@@ -495,5 +500,29 @@ public class LayerController {
         mCheckerboardColor = newColor;
         mView.requestRender();
     }
+
+    
+    public void setCheckerboardColor(String newColor) {
+        setCheckerboardColor(parseColorFromGecko(newColor));
+    }
+
+    
+    
+    private static int parseColorFromGecko(String string) {
+        if (sColorPattern == null) {
+            sColorPattern = Pattern.compile("rgb\\((\\d+),\\s*(\\d+),\\s*(\\d+)\\)");
+        }
+
+        Matcher matcher = sColorPattern.matcher(string);
+        if (!matcher.matches()) {
+            return Color.WHITE;
+        }
+
+        int r = Integer.parseInt(matcher.group(1));
+        int g = Integer.parseInt(matcher.group(2));
+        int b = Integer.parseInt(matcher.group(3));
+        return Color.rgb(r, g, b);
+    } 
+
 }
 

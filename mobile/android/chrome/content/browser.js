@@ -844,19 +844,6 @@ var BrowserApp = {
   getDrawMetadata: function getDrawMetadata() {
     let viewport = this.selectedTab.viewport;
 
-    
-    
-    try {
-      let browser = this.selectedBrowser;
-      if (browser) {
-        let { contentDocument, contentWindow } = browser;
-        let computedStyle = contentWindow.getComputedStyle(contentDocument.body);
-        viewport.backgroundColor = computedStyle.backgroundColor;
-      }
-    } catch (e) {
-      
-    }
-
     return JSON.stringify(viewport);
   },
 
@@ -1756,13 +1743,28 @@ Tab.prototype = {
         if (target.defaultView != this.browser.contentWindow)
           return;
 
+        
+        
+        var backgroundColor = null;
+        try {
+          let browser = this.selectedBrowser;
+          if (browser) {
+            let { contentDocument, contentWindow } = browser;
+            let computedStyle = contentWindow.getComputedStyle(contentDocument.body);
+            backgroundColor = computedStyle.backgroundColor;
+          }
+        } catch (e) {
+          
+        }
+
         sendMessageToJava({
           gecko: {
             type: "DOMContentLoaded",
             tabID: this.id,
             windowID: 0,
             uri: this.browser.currentURI.spec,
-            title: this.browser.contentTitle
+            title: this.browser.contentTitle,
+            bgColor: backgroundColor
           }
         });
 
