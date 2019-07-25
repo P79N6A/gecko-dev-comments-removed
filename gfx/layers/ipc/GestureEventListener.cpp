@@ -63,7 +63,6 @@ nsEventStatus GestureEventListener::HandleInputEvent(const InputData& aEvent)
     size_t length = mTouches.Length();
     if (length == 1) {
       mTapStartTime = event.mTime;
-      mTouchStartPosition = event.mTouches[0].mScreenPoint;
       if (mState == GESTURE_NONE) {
         mState = GESTURE_WAITING_SINGLE_TAP;
       }
@@ -76,13 +75,8 @@ nsEventStatus GestureEventListener::HandleInputEvent(const InputData& aEvent)
   }
   case MultiTouchInput::MULTITOUCH_MOVE: {
     
-    nsIntPoint touch = (nsIntPoint&)event.mTouches[0].mScreenPoint;
-    if (mTouches.Length() == 1 &&
-        NS_hypot(mTouchStartPosition.x - touch.x, mTouchStartPosition.y - touch.y) >
-          mAsyncPanZoomController->GetDPI() * AsyncPanZoomController::TOUCH_START_TOLERANCE)
-    {
-      HandleTapCancel(event);
-    }
+    
+    HandleTapCancel(event);
 
     bool foundAlreadyExistingTouch = false;
     for (size_t i = 0; i < mTouches.Length(); i++) {
@@ -264,11 +258,6 @@ void GestureEventListener::TimeoutDoubleTap()
 
 AsyncPanZoomController* GestureEventListener::GetAsyncPanZoomController() {
   return mAsyncPanZoomController;
-}
-
-void GestureEventListener::CancelGesture() {
-  mTouches.Clear();
-  mState = GESTURE_NONE;
 }
 
 }

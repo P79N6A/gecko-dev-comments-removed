@@ -57,14 +57,6 @@ public:
     USE_GESTURE_DETECTOR
   };
 
-  
-
-
-
-
-
-  static const float TOUCH_START_TOLERANCE;
-
   AsyncPanZoomController(GeckoContentController* aController,
                          GestureBehavior aGestures = DEFAULT_GESTURES);
   ~AsyncPanZoomController();
@@ -106,33 +98,6 @@ public:
 
 
   void UpdateViewportSize(int aWidth, int aHeight);
-
-  
-
-
-
-
-
-
-
-  void NotifyDOMTouchListenerAdded();
-
-  
-
-
-
-
-
-
-
-  void CancelDefaultPanZoom();
-
-  
-
-
-
-
-  void ZoomToRect(const gfxRect& aRect);
 
   
   
@@ -186,12 +151,6 @@ public:
 
 
   void SetDPI(int aDPI);
-
-  
-
-
-
-  int GetDPI();
 
 protected:
   
@@ -297,8 +256,6 @@ protected:
 
 
 
-
-
   void CancelAnimation();
 
   
@@ -312,7 +269,7 @@ protected:
   
 
 
-  const gfx::Point GetVelocityVector();
+  const nsPoint GetVelocityVector();
 
   
 
@@ -355,17 +312,6 @@ protected:
 
 
 
-  bool EnlargeDisplayPortAlongAxis(float aViewport, float aVelocity,
-                                   float* aDisplayPortOffset, float* aDisplayPortLength);
-
-  
-
-
-
-
-
-
-
   void RequestContentRepaint();
 
   
@@ -389,7 +335,6 @@ private:
     TOUCHING,       
     PANNING,        
     PINCHING,       
-    ANIMATING_ZOOM  
   };
 
   enum ContentPainterStatus {
@@ -411,13 +356,6 @@ private:
    CONTENT_PAINTING_AND_PAINT_PENDING
   };
 
-  
-
-
-
-
-  void SetState(PanZoomState aState);
-
   nsRefPtr<CompositorParent> mCompositorParent;
   nsRefPtr<GeckoContentController> mGeckoContentController;
   nsRefPtr<GestureEventListener> mGestureEventListener;
@@ -425,33 +363,17 @@ private:
   
   
   FrameMetrics mFrameMetrics;
-
   
   
   FrameMetrics mLastContentPaintMetrics;
-
   
   
   
   FrameMetrics mLastPaintRequestMetrics;
 
-  
-  
-  
-  
-  FrameMetrics mStartZoomToMetrics;
-  
-  
-  
-  FrameMetrics mEndZoomToMetrics;
-
   AxisX mX;
   AxisY mY;
 
-  
-  
-  
-  
   Monitor mMonitor;
 
   
@@ -462,16 +384,8 @@ private:
 
   
   
-  TimeStamp mAnimationStartTime;
-
-  
-  
   nsIntPoint mLastZoomFocus;
-
-  
-  
   PanZoomState mState;
-
   int mDPI;
 
   
@@ -479,14 +393,6 @@ private:
   
   
   ContentPainterStatus mContentPainterStatus;
-
-  
-  
-  bool mMayHaveTouchListeners;
-
-  
-  
-  bool mDisableNextTouchBatch;
 
   friend class Axis;
 };

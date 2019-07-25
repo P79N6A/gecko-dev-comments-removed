@@ -1,4 +1,7 @@
-  
+
+
+
+
 
 
 #ifndef mozilla_layers_GestureEventListener_h
@@ -43,13 +46,6 @@ public:
 
 
   nsEventStatus HandleInputEvent(const InputData& aEvent);
-
-  
-
-
-
-
-  void CancelGesture();
 
   
 
@@ -167,13 +163,6 @@ protected:
 
 
   CancelableTask *mDoubleTapTimeoutTask;
-
-  
-
-
-
-
-  nsIntPoint mTouchStartPosition;
 };
 
 }

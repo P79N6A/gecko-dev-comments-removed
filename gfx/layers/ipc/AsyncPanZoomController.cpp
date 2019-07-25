@@ -6,25 +6,18 @@
 
 #include "CompositorParent.h"
 #include "mozilla/gfx/2D.h"
-#include "mozilla/ClearOnShutdown.h"
 #include "mozilla/Constants.h"
 #include "mozilla/Util.h"
 #include "mozilla/XPCOM.h"
 #include "mozilla/Monitor.h"
-#include "mozilla/StaticPtr.h"
 #include "AsyncPanZoomController.h"
 #include "GestureEventListener.h"
 #include "nsIThreadManager.h"
 #include "nsThreadUtils.h"
 #include "Layers.h"
-#include "AnimationCommon.h"
-
-using namespace mozilla::css;
 
 namespace mozilla {
 namespace layers {
-
-const float AsyncPanZoomController::TOUCH_START_TOLERANCE = 1.0f/16.0f;
 
 static const float EPSILON = 0.0001;
 
@@ -51,26 +44,6 @@ static const float MIN_SKATE_SPEED = 0.5f;
 
 static const float AXIS_LOCK_ANGLE = M_PI / 6.0;
 
-
-
-
-static const TimeDuration ZOOM_TO_DURATION = TimeDuration::FromSeconds(0.25);
-
-
-
-
-StaticAutoPtr<ComputedTimingFunction> gComputedTimingFunction;
-
-
-
-
-static const double MAX_ZOOM = 8.0;
-
-
-
-
-static const double MIN_ZOOM = 0.125;
-
 AsyncPanZoomController::AsyncPanZoomController(GeckoContentController* aGeckoContentController,
                                                GestureBehavior aGestures)
   :  mGeckoContentController(aGeckoContentController),
@@ -80,22 +53,13 @@ AsyncPanZoomController::AsyncPanZoomController(GeckoContentController* aGeckoCon
      mLastSampleTime(TimeStamp::Now()),
      mState(NOTHING),
      mDPI(72),
-     mContentPainterStatus(CONTENT_IDLE),
-     mMayHaveTouchListeners(false),
-     mDisableNextTouchBatch(false)
+     mContentPainterStatus(CONTENT_IDLE)
 {
   if (aGestures == USE_GESTURE_DETECTOR) {
     mGestureEventListener = new GestureEventListener(this);
   }
 
   SetDPI(mDPI);
-
-  if (!gComputedTimingFunction) {
-    gComputedTimingFunction = new ComputedTimingFunction();
-    gComputedTimingFunction->Init(
-      nsTimingFunction(NS_STYLE_TRANSITION_TIMING_FUNCTION_EASE));
-    ClearOnShutdown(&gComputedTimingFunction);
-  }
 }
 
 AsyncPanZoomController::~AsyncPanZoomController() {
@@ -182,7 +146,7 @@ AsyncPanZoomController::HandleInputEvent(const nsInputEvent& aEvent,
 nsEventStatus AsyncPanZoomController::HandleInputEvent(const InputData& aEvent) {
   nsEventStatus rv = nsEventStatus_eIgnore;
 
-  if (mGestureEventListener && !mDisableNextTouchBatch) {
+  if (mGestureEventListener) {
     nsEventStatus rv = mGestureEventListener->HandleInputEvent(aEvent);
     if (rv == nsEventStatus_eConsumeNoDefault)
       return rv;
@@ -236,22 +200,13 @@ nsEventStatus AsyncPanZoomController::OnTouchStart(const MultiTouchInput& aEvent
   PRInt32 xPos = point.x, yPos = point.y;
 
   switch (mState) {
-    case ANIMATING_ZOOM:
-      
-      
-      RequestContentRepaint();
-      ScheduleComposite();
-      
     case FLING:
-      {
-        MonitorAutoLock monitor(mMonitor);
-        CancelAnimation();
-      }
+      CancelAnimation();
       
     case NOTHING:
       mX.StartTouch(xPos);
       mY.StartTouch(yPos);
-      SetState(TOUCHING);
+      mState = TOUCHING;
       break;
     case TOUCHING:
     case PANNING:
@@ -267,28 +222,20 @@ nsEventStatus AsyncPanZoomController::OnTouchStart(const MultiTouchInput& aEvent
 }
 
 nsEventStatus AsyncPanZoomController::OnTouchMove(const MultiTouchInput& aEvent) {
-  if (mDisableNextTouchBatch) {
-    return nsEventStatus_eIgnore;
-  }
-
   switch (mState) {
     case FLING:
     case NOTHING:
-    case ANIMATING_ZOOM:
       
       
       return nsEventStatus_eIgnore;
 
     case TOUCHING: {
-      float panThreshold = TOUCH_START_TOLERANCE * mDPI;
+      float panThreshold = 1.0f/2.0f * mDPI;
       UpdateWithTouchAtDevicePoint(aEvent);
-
       if (PanDistance() < panThreshold) {
         return nsEventStatus_eIgnore;
       }
-
       StartPanning(aEvent);
-
       return nsEventStatus_eConsumeNoDefault;
     }
 
@@ -306,24 +253,18 @@ nsEventStatus AsyncPanZoomController::OnTouchMove(const MultiTouchInput& aEvent)
 }
 
 nsEventStatus AsyncPanZoomController::OnTouchEnd(const MultiTouchInput& aEvent) {
-  if (mDisableNextTouchBatch) {
-    mDisableNextTouchBatch = false;
-    return nsEventStatus_eIgnore;
-  }
-
   switch (mState) {
   case FLING:
     
     NS_WARNING("Received impossible touch end in OnTouchEnd.");
     
-  case ANIMATING_ZOOM:
   case NOTHING:
     
     
     return nsEventStatus_eIgnore;
 
   case TOUCHING:
-    SetState(NOTHING);
+    mState = NOTHING;
     return nsEventStatus_eIgnore;
 
   case PANNING:
@@ -332,10 +273,10 @@ nsEventStatus AsyncPanZoomController::OnTouchEnd(const MultiTouchInput& aEvent) 
       ScheduleComposite();
       RequestContentRepaint();
     }
-    SetState(FLING);
+    mState = FLING;
     return nsEventStatus_eConsumeNoDefault;
   case PINCHING:
-    SetState(NOTHING);
+    mState = NOTHING;
     
     NS_WARNING("Gesture listener should have handled pinching in OnTouchEnd.");
     return nsEventStatus_eIgnore;
@@ -345,12 +286,12 @@ nsEventStatus AsyncPanZoomController::OnTouchEnd(const MultiTouchInput& aEvent) 
 }
 
 nsEventStatus AsyncPanZoomController::OnTouchCancel(const MultiTouchInput& aEvent) {
-  SetState(NOTHING);
+  mState = NOTHING;
   return nsEventStatus_eConsumeNoDefault;
 }
 
 nsEventStatus AsyncPanZoomController::OnScaleBegin(const PinchGestureInput& aEvent) {
-  SetState(PINCHING);
+  mState = PINCHING;
   mLastZoomFocus = aEvent.mFocusPoint;
 
   return nsEventStatus_eConsumeNoDefault;
@@ -388,14 +329,14 @@ nsEventStatus AsyncPanZoomController::OnScale(const PinchGestureInput& aEvent) {
     PRInt32 neededDisplacementX = 0, neededDisplacementY = 0;
 
     
-    bool doScale = (scale < MAX_ZOOM && spanRatio > 1.0f) || (scale > MIN_ZOOM && spanRatio < 1.0f);
+    bool doScale = (scale < 8.0f && spanRatio > 1.0f) || (scale > 0.125f && spanRatio < 1.0f);
 
     
     
-    if (scale * spanRatio > MAX_ZOOM) {
-      spanRatio = scale / MAX_ZOOM;
-    } else if (scale * spanRatio < MIN_ZOOM) {
-      spanRatio = scale / MIN_ZOOM;
+    if (scale * spanRatio > 8.0f) {
+      spanRatio = scale / 8.0f;
+    } else if (scale * spanRatio < 0.125f) {
+      spanRatio = scale / 0.125f;
     }
 
     if (doScale) {
@@ -452,7 +393,7 @@ nsEventStatus AsyncPanZoomController::OnScale(const PinchGestureInput& aEvent) {
 }
 
 nsEventStatus AsyncPanZoomController::OnScaleEnd(const PinchGestureInput& aEvent) {
-  SetState(PANNING);
+  mState = PANNING;
   mX.StartTouch(aEvent.mFocusPoint.x);
   mY.StartTouch(aEvent.mFocusPoint.y);
   {
@@ -480,15 +421,7 @@ nsEventStatus AsyncPanZoomController::OnSingleTapConfirmed(const TapGestureInput
 }
 
 nsEventStatus AsyncPanZoomController::OnDoubleTap(const TapGestureInput& aEvent) {
-  if (mGeckoContentController) {
-    MonitorAutoLock monitor(mMonitor);
-
-    gfx::Point point = WidgetSpaceToCompensatedViewportSpace(
-      gfx::Point(aEvent.mPoint.x, aEvent.mPoint.y),
-      mFrameMetrics.mResolution.width);
-    mGeckoContentController->HandleDoubleTap(nsIntPoint(NS_lround(point.x), NS_lround(point.y)));
-    return nsEventStatus_eConsumeNoDefault;
-  }
+  
   return nsEventStatus_eIgnore;
 }
 
@@ -498,12 +431,14 @@ nsEventStatus AsyncPanZoomController::OnCancelTap(const TapGestureInput& aEvent)
 }
 
 float AsyncPanZoomController::PanDistance() {
-  MonitorAutoLock monitor(mMonitor);
-  return NS_hypot(mX.PanDistance(), mY.PanDistance());
+  return NS_hypot(mX.PanDistance(), mY.PanDistance()) * mFrameMetrics.mResolution.width;
 }
 
-const gfx::Point AsyncPanZoomController::GetVelocityVector() {
-  return gfx::Point(mX.GetVelocity(), mY.GetVelocity());
+const nsPoint AsyncPanZoomController::GetVelocityVector() {
+  return nsPoint(
+    mX.GetVelocity(),
+    mY.GetVelocity()
+  );
 }
 
 void AsyncPanZoomController::StartPanning(const MultiTouchInput& aEvent) {
@@ -517,7 +452,7 @@ void AsyncPanZoomController::StartPanning(const MultiTouchInput& aEvent) {
 
   mX.StartTouch(touch.mScreenPoint.x);
   mY.StartTouch(touch.mScreenPoint.y);
-  SetState(PANNING);
+  mState = PANNING;
 
   if (angle < AXIS_LOCK_ANGLE || angle > (M_PI - AXIS_LOCK_ANGLE)) {
     mY.LockPanning();
@@ -624,7 +559,7 @@ void AsyncPanZoomController::SetPageRect(const gfx::Rect& aCSSPageRect) {
   float scale = mFrameMetrics.mResolution.width;
 
   
-  pageSize.ScaleRoundOut(1 / scale);
+  pageSize.ScaleRoundOut(scale);
 
   
   
@@ -638,8 +573,7 @@ void AsyncPanZoomController::ScaleWithFocus(float aScale, const nsIntPoint& aFoc
   FrameMetrics metrics(mFrameMetrics);
 
   
-  float scaleFactor = aScale / metrics.mResolution.width,
-        oldScale = metrics.mResolution.width;
+  float scaleFactor = aScale / metrics.mResolution.width;
 
   metrics.mResolution.width = metrics.mResolution.height = aScale;
 
@@ -649,29 +583,12 @@ void AsyncPanZoomController::ScaleWithFocus(float aScale, const nsIntPoint& aFoc
 
   nsIntPoint scrollOffset = metrics.mViewportScrollOffset;
 
-  scrollOffset.x += NS_lround(float(aFocus.x) * (scaleFactor - 1.0f) / oldScale);
-  scrollOffset.y += NS_lround(float(aFocus.y) * (scaleFactor - 1.0f) / oldScale);
+  scrollOffset.x += aFocus.x * (scaleFactor - 1.0f);
+  scrollOffset.y += aFocus.y * (scaleFactor - 1.0f);
 
   metrics.mViewportScrollOffset = scrollOffset;
 
   mFrameMetrics = metrics;
-}
-
-bool AsyncPanZoomController::EnlargeDisplayPortAlongAxis(float aViewport,
-                                                         float aVelocity,
-                                                         float* aDisplayPortOffset,
-                                                         float* aDisplayPortLength)
-{
-  const float MIN_SKATE_SIZE_MULTIPLIER = 2.0f;
-  const float MAX_SKATE_SIZE_MULTIPLIER = 4.0f;
-
-  if (fabsf(aVelocity) > MIN_SKATE_SPEED) {
-    *aDisplayPortLength = aViewport * clamped(fabsf(aVelocity),
-      MIN_SKATE_SIZE_MULTIPLIER, MAX_SKATE_SIZE_MULTIPLIER);
-    *aDisplayPortOffset = aVelocity > 0 ? 0 : aViewport - *aDisplayPortLength;
-    return true;
-  }
-  return false;
 }
 
 const nsIntRect AsyncPanZoomController::CalculatePendingDisplayPort() {
@@ -680,7 +597,7 @@ const nsIntRect AsyncPanZoomController::CalculatePendingDisplayPort() {
   viewport.ScaleRoundIn(1 / scale);
 
   nsIntPoint scrollOffset = mFrameMetrics.mViewportScrollOffset;
-  gfx::Point velocity = GetVelocityVector();
+  nsPoint velocity = GetVelocityVector();
 
   
   
@@ -707,6 +624,7 @@ const nsIntRect AsyncPanZoomController::CalculatePendingDisplayPort() {
   
   
   const float STATIONARY_SIZE_MULTIPLIER = 2.0f;
+  const float SKATE_SIZE_MULTIPLIER = 3.0f;
   gfx::Rect displayPort(0, 0,
                         viewport.width * STATIONARY_SIZE_MULTIPLIER,
                         viewport.height * STATIONARY_SIZE_MULTIPLIER);
@@ -714,18 +632,20 @@ const nsIntRect AsyncPanZoomController::CalculatePendingDisplayPort() {
   
   
   
-  bool enlargedX = EnlargeDisplayPortAlongAxis(
-    viewport.width, velocity.x, &displayPort.x, &displayPort.width);
-  bool enlargedY = EnlargeDisplayPortAlongAxis(
-    viewport.height, velocity.y, &displayPort.y, &displayPort.height);
-
-  if (!enlargedX && !enlargedY) {
+  
+  
+  
+  if (fabsf(velocity.x) > MIN_SKATE_SPEED && fabsf(velocity.y) < MIN_SKATE_SPEED) {
+    displayPort.height = viewport.height;
+    displayPort.width = viewport.width * SKATE_SIZE_MULTIPLIER;
+    displayPort.x = velocity.x > 0 ? 0 : viewport.width - displayPort.width;
+  } else if (fabsf(velocity.x) < MIN_SKATE_SPEED && fabsf(velocity.y) > MIN_SKATE_SPEED) {
+    displayPort.width = viewport.width;
+    displayPort.height = viewport.height * SKATE_SIZE_MULTIPLIER;
+    displayPort.y = velocity.y > 0 ? 0 : viewport.height - displayPort.height;
+  } else {
     displayPort.x = -displayPort.width / 4;
     displayPort.y = -displayPort.height / 4;
-  } else if (!enlargedX) {
-    displayPort.width = viewport.width;
-  } else if (!enlargedY) {
-    displayPort.height = viewport.height;
   }
 
   gfx::Rect shiftedDisplayPort = displayPort;
@@ -741,10 +661,6 @@ const nsIntRect AsyncPanZoomController::CalculatePendingDisplayPort() {
 
 void AsyncPanZoomController::SetDPI(int aDPI) {
   mDPI = aDPI;
-}
-
-int AsyncPanZoomController::GetDPI() {
-  return mDPI;
 }
 
 void AsyncPanZoomController::ScheduleComposite() {
@@ -800,43 +716,9 @@ bool AsyncPanZoomController::SampleContentTransformForFrame(const TimeStamp& aSa
   {
     MonitorAutoLock mon(mMonitor);
 
-    switch (mState)
-    {
-    case FLING:
-      
-      
-      requestAnimationFrame |= DoFling(aSampleTime - mLastSampleTime);
-      break;
-    case ANIMATING_ZOOM: {
-      double animPosition = (aSampleTime - mAnimationStartTime) / ZOOM_TO_DURATION;
-      if (animPosition > 1.0) {
-        animPosition = 1.0;
-      }
-      double sampledPosition = gComputedTimingFunction->GetValue(animPosition);
-
-      mFrameMetrics.mResolution.width = mFrameMetrics.mResolution.height =
-        mEndZoomToMetrics.mResolution.width * sampledPosition +
-          mStartZoomToMetrics.mResolution.width * (1 - sampledPosition);
-
-      mFrameMetrics.mViewportScrollOffset = nsIntPoint(
-        mEndZoomToMetrics.mViewportScrollOffset.x * sampledPosition +
-          mStartZoomToMetrics.mViewportScrollOffset.x * (1 - sampledPosition),
-        mEndZoomToMetrics.mViewportScrollOffset.y * sampledPosition +
-          mStartZoomToMetrics.mViewportScrollOffset.y * (1 - sampledPosition)
-      );
-
-      requestAnimationFrame = true;
-
-      if (aSampleTime - mAnimationStartTime >= ZOOM_TO_DURATION) {
-        mState = NOTHING;
-        RequestContentRepaint();
-      }
-
-      break;
-    }
-    default:
-      break;
-    }
+    
+    
+    requestAnimationFrame = requestAnimationFrame || DoFling(aSampleTime - mLastSampleTime);
 
     
     
@@ -902,11 +784,7 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aViewportFr
     
     
     RequestContentRepaint();
-
-    
-    
-    mMayHaveTouchListeners = false;
-  } else if (!mFrameMetrics.mCSSContentRect.IsEqualEdges(aViewportFrame.mCSSContentRect)) {
+  } else if (!mFrameMetrics.mContentRect.IsEqualEdges(aViewportFrame.mContentRect)) {
     mFrameMetrics.mCSSContentRect = aViewportFrame.mCSSContentRect;
     SetPageRect(mFrameMetrics.mCSSContentRect);
   }
@@ -922,96 +800,6 @@ void AsyncPanZoomController::UpdateViewportSize(int aWidth, int aHeight) {
   FrameMetrics metrics = GetFrameMetrics();
   metrics.mViewport = nsIntRect(0, 0, aWidth, aHeight);
   mFrameMetrics = metrics;
-}
-
-void AsyncPanZoomController::NotifyDOMTouchListenerAdded() {
-  mMayHaveTouchListeners = true;
-}
-
-void AsyncPanZoomController::CancelDefaultPanZoom() {
-  mDisableNextTouchBatch = true;
-  if (mGestureEventListener) {
-    mGestureEventListener->CancelGesture();
-  }
-}
-
-void AsyncPanZoomController::ZoomToRect(const gfxRect& aRect) {
-  gfx::Rect zoomToRect(gfx::Rect(aRect.x, aRect.y, aRect.width, aRect.height));
-  gfx::Rect cssPageRect = mFrameMetrics.mCSSContentRect;
-
-  SetState(ANIMATING_ZOOM);
-
-  {
-    MonitorAutoLock mon(mMonitor);
-
-    nsIntRect viewport = mFrameMetrics.mViewport;
-
-    
-    
-    if (zoomToRect.IsEmpty()) {
-      nsIntRect cssViewport = viewport;
-      cssViewport.ScaleRoundIn(1 / mFrameMetrics.mResolution.width);
-      cssViewport.MoveBy(mFrameMetrics.mViewportScrollOffset);
-
-      float y = mFrameMetrics.mViewportScrollOffset.y;
-      float newHeight = cssViewport.height * cssPageRect.width / cssViewport.width;
-      float dh = cssViewport.height - newHeight;
-
-      zoomToRect = gfx::Rect(0.0f,
-                             y + dh/2,
-                             cssPageRect.width,
-                             y + dh/2 + newHeight);
-    } else {
-      float targetRatio = float(viewport.width) / float(viewport.height);
-      float rectRatio = zoomToRect.width / zoomToRect.height;
-
-      if (fabsf(targetRatio - rectRatio) < EPSILON) {
-        
-      } else if (targetRatio < rectRatio) {
-        
-        float newHeight = zoomToRect.height / targetRatio;
-        zoomToRect.y -= (newHeight - zoomToRect.height) / 2;
-        zoomToRect.height = newHeight;
-      } else { 
-        
-        float newWidth = targetRatio * zoomToRect.width;
-        zoomToRect.x -= (newWidth - zoomToRect.width) / 2;
-        zoomToRect.width = newWidth;
-      }
-
-      zoomToRect = zoomToRect.Intersect(cssPageRect);
-    }
-
-    mEndZoomToMetrics.mResolution.width = mEndZoomToMetrics.mResolution.height =
-      NS_MIN(viewport.width / zoomToRect.width, viewport.height / zoomToRect.height);
-
-    mEndZoomToMetrics.mResolution.width = mEndZoomToMetrics.mResolution.height =
-      clamped(mEndZoomToMetrics.mResolution.width, MIN_ZOOM, MAX_ZOOM);
-
-    
-    zoomToRect.width = viewport.width / mEndZoomToMetrics.mResolution.width;
-    zoomToRect.height = viewport.height / mEndZoomToMetrics.mResolution.height;
-
-    
-    zoomToRect = zoomToRect.Intersect(cssPageRect);
-
-    
-    mEndZoomToMetrics.mResolution.width = mEndZoomToMetrics.mResolution.height =
-      NS_MAX(viewport.width / zoomToRect.width, viewport.height / zoomToRect.height);
-
-    mStartZoomToMetrics = mFrameMetrics;
-    mEndZoomToMetrics.mViewportScrollOffset =
-      nsIntPoint(NS_lround(zoomToRect.x), NS_lround(zoomToRect.y));
-
-    mAnimationStartTime = TimeStamp::Now();
-
-    ScheduleComposite();
-  }
-}
-
-void AsyncPanZoomController::SetState(PanZoomState aState) {
-  MonitorAutoLock monitor(mMonitor);
-  mState = aState;
 }
 
 }
