@@ -518,10 +518,12 @@ nsWindow::Create(nsIWidget *aParent,
              aAppShell, aToolkit, aInitData);
 
   HWND parent;
-  if (nsnull != aParent) { 
-    parent = ((aParent) ? (HWND)aParent->GetNativeData(NS_NATIVE_WINDOW) : nsnull);
+  if (aParent) { 
+    parent = aParent ? (HWND)aParent->GetNativeData(NS_NATIVE_WINDOW) : NULL;
+    mParent = aParent;
   } else { 
     parent = (HWND)aNativeParent;
+    mParent = aNativeParent ? GetNSWindowPtr((HWND)aNativeParent) : nsnull;
   }
 
   if (nsnull != aInitData) {
@@ -978,6 +980,8 @@ BOOL nsWindow::SetNSWindowPtr(HWND aWnd, nsWindow * ptr)
 
 NS_IMETHODIMP nsWindow::SetParent(nsIWidget *aNewParent)
 {
+  mParent = aNewParent;
+
   if (aNewParent) {
     nsCOMPtr<nsIWidget> kungFuDeathGrip(this);
 
@@ -2715,6 +2719,8 @@ nsIntPoint nsWindow::WidgetToScreenOffset()
 #if !defined(WINCE) 
 NS_METHOD nsWindow::EnableDragDrop(PRBool aEnable)
 {
+  NS_ASSERTION(mWnd, "nsWindow::EnableDragDrop() called after Destroy()");
+
   nsresult rv = NS_ERROR_FAILURE;
   if (aEnable) {
     if (nsnull == mNativeDragTarget) {
@@ -2734,7 +2740,7 @@ NS_METHOD nsWindow::EnableDragDrop(PRBool aEnable)
       if (S_OK == ::CoLockObjectExternal((LPUNKNOWN)mNativeDragTarget, FALSE, TRUE)) {
         rv = NS_OK;
       }
-      mNativeDragTarget->mDragCancelled = PR_TRUE;
+      mNativeDragTarget->DragCancel();
       NS_RELEASE(mNativeDragTarget);
     }
   }
@@ -6194,6 +6200,7 @@ void nsWindow::OnDestroy()
   
   
   
+  mParent = nsnull;
 
   
   EnableDragDrop(PR_FALSE);
