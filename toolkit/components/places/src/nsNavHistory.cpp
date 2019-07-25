@@ -496,6 +496,12 @@ nsNavHistory::Init()
   
   
   
+  
+  (void)GetNewSessionID();
+
+  
+  
+  
   nsRefPtr<PlacesEvent> completeEvent =
     new PlacesEvent(TOPIC_PLACES_INIT_COMPLETE);
   rv = NS_DispatchToMainThread(completeEvent);
