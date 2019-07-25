@@ -2686,65 +2686,22 @@ nsXPCComponents_Utils::LookupMethod(const JS::Value& object,
 
 
 NS_IMETHODIMP
-nsXPCComponents_Utils::ReportError()
+nsXPCComponents_Utils::ReportError(const JS::Value &error, JSContext *cx)
 {
     
-    nsresult rv;
 
     nsCOMPtr<nsIConsoleService> console(do_GetService(NS_CONSOLESERVICE_CONTRACTID));
 
     nsCOMPtr<nsIScriptError2> scripterr(do_CreateInstance(NS_SCRIPTERROR_CONTRACTID));
 
-    nsCOMPtr<nsIXPConnect> xpc(do_GetService(nsIXPConnect::GetCID()));
-    if (!scripterr || !console || !xpc)
-        return NS_OK;
-
-    
-    nsAXPCNativeCallContext *cc = nsnull;
-    xpc->GetCurrentNativeCallContext(&cc);
-    if (!cc)
-        return NS_OK;
-
-
-#undef CHECK_FOR_INDIRECT_CALL
-#ifdef CHECK_FOR_INDIRECT_CALL
-    
-    
-    nsCOMPtr<nsISupports> callee;
-    cc->GetCallee(getter_AddRefs(callee));
-    if (!callee || callee.get() !=
-        static_cast<const nsISupports*>
-                   (static_cast<const nsIXPCComponents_Utils*>(this))) {
-        NS_ERROR("reportError() must only be called from JS!");
-        return NS_ERROR_FAILURE;
-    }
-#endif
-
-    
-    JSContext* cx;
-    rv = cc->GetJSContext(&cx);
-    if (NS_FAILED(rv) || !cx)
+    if (!scripterr || !console)
         return NS_OK;
 
     JSAutoRequest ar(cx);
 
-    
-    PRUint32 argc;
-    rv = cc->GetArgc(&argc);
-    if (NS_FAILED(rv))
-        return NS_OK;
-
-    if (argc < 1)
-        return NS_ERROR_XPC_NOT_ENOUGH_ARGS;
-
-    jsval* argv;
-    rv = cc->GetArgvPtr(&argv);
-    if (NS_FAILED(rv) || !argv)
-        return NS_OK;
-
     const PRUint64 innerWindowID = nsJSUtils::GetCurrentlyRunningCodeInnerWindowID(cx);
 
-    JSErrorReport* err = JS_ErrorFromException(cx, argv[0]);
+    JSErrorReport *err = JS_ErrorFromException(cx, error);
     if (err) {
         
         nsAutoString fileUni;
@@ -2752,17 +2709,11 @@ nsXPCComponents_Utils::ReportError()
 
         PRUint32 column = err->uctokenptr - err->uclinebuf;
 
-        rv = scripterr->InitWithWindowID(reinterpret_cast<const PRUnichar*>
-                                                         (err->ucmessage),
-                                         fileUni.get(),
-                                         reinterpret_cast<const PRUnichar*>
-                                                         (err->uclinebuf),
-                                         err->lineno,
-                                         column,
-                                         err->flags,
-                                         "XPConnect JavaScript", innerWindowID);
-        if (NS_FAILED(rv))
-            return NS_OK;
+        nsresult rv = scripterr->InitWithWindowID(
+                static_cast<const PRUnichar*>(err->ucmessage), fileUni.get(),
+                static_cast<const PRUnichar*>(err->uclinebuf), err->lineno,
+                column, err->flags, "XPConnect JavaScript", innerWindowID);
+        NS_ENSURE_SUCCESS(rv, NS_OK);
 
         nsCOMPtr<nsIScriptError> logError = do_QueryInterface(scripterr);
         console->LogMessage(logError);
@@ -2770,38 +2721,35 @@ nsXPCComponents_Utils::ReportError()
     }
 
     
-    JSString* msgstr = JS_ValueToString(cx, argv[0]);
-    if (msgstr) {
-        
-        argv[0] = STRING_TO_JSVAL(msgstr);
-
-        nsCOMPtr<nsIStackFrame> frame;
-        nsXPConnect* xpc = nsXPConnect::GetXPConnect();
-        if (xpc)
-            xpc->GetCurrentJSStack(getter_AddRefs(frame));
-
-        nsXPIDLCString fileName;
-        PRInt32 lineNo = 0;
-        if (frame) {
-            frame->GetFilename(getter_Copies(fileName));
-            frame->GetLineNumber(&lineNo);
-        }
-
-        const jschar *msgchars = JS_GetStringCharsZ(cx, msgstr);
-        if (!msgchars)
-            return NS_OK;
-
-        rv = scripterr->InitWithWindowID(reinterpret_cast<const PRUnichar *>(msgchars),
-                                         NS_ConvertUTF8toUTF16(fileName).get(),
-                                         nsnull,
-                                         lineNo, 0, 0,
-                                         "XPConnect JavaScript", innerWindowID);
-        if (NS_SUCCEEDED(rv)) {
-            nsCOMPtr<nsIScriptError> logError = do_QueryInterface(scripterr);
-            console->LogMessage(logError);
-        }
+    JSString *msgstr = JS_ValueToString(cx, error);
+    if (!msgstr) {
+        return NS_OK;
     }
 
+    nsCOMPtr<nsIStackFrame> frame;
+    nsXPConnect *xpc = nsXPConnect::GetXPConnect();
+    if (xpc)
+        xpc->GetCurrentJSStack(getter_AddRefs(frame));
+
+    nsXPIDLCString fileName;
+    PRInt32 lineNo = 0;
+    if (frame) {
+        frame->GetFilename(getter_Copies(fileName));
+        frame->GetLineNumber(&lineNo);
+    }
+
+    const jschar *msgchars = JS_GetStringCharsZ(cx, msgstr);
+    if (!msgchars)
+        return NS_OK;
+
+    nsresult rv = scripterr->InitWithWindowID(
+            reinterpret_cast<const PRUnichar *>(msgchars),
+            NS_ConvertUTF8toUTF16(fileName).get(),
+            nsnull, lineNo, 0, 0, "XPConnect JavaScript", innerWindowID);
+    NS_ENSURE_SUCCESS(rv, NS_OK);
+
+    nsCOMPtr<nsIScriptError> logError = do_QueryInterface(scripterr);
+    console->LogMessage(logError);
     return NS_OK;
 }
 
@@ -4281,17 +4229,16 @@ nsXPCComponents::LookupMethod(const JS::Value& object,
 }
 
 
-NS_IMETHODIMP nsXPCComponents::ReportError()
+NS_IMETHODIMP nsXPCComponents::ReportError(const JS::Value &error, JSContext *cx)
 {
-    nsresult rv;
-    nsCOMPtr<nsIXPCComponents_Utils> utils;
-
     NS_WARNING("Components.reportError deprecated, use Components.utils.reportError");
-    rv = GetUtils(getter_AddRefs(utils));
+
+    nsCOMPtr<nsIXPCComponents_Utils> utils;
+    nsresult rv = GetUtils(getter_AddRefs(utils));
     if (NS_FAILED(rv))
         return rv;
 
-    return utils->ReportError();
+    return utils->ReportError(error, cx);
 }
 
 
