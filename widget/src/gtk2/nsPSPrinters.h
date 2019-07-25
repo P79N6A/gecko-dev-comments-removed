@@ -47,12 +47,7 @@ class nsCUPSShim;
 
 class nsPSPrinterList {
     public:
-        
-
-
-
-
-        nsresult Init();
+        nsPSPrinterList();
 
         
 
