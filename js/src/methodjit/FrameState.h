@@ -316,8 +316,8 @@ class FrameState
 
 
 
-    RegisterID copyConstantIntoReg(FrameEntry *fe);
-    RegisterID copyConstantIntoReg(Assembler &masm, FrameEntry *fe);
+    RegisterID copyInt32ConstantIntoReg(FrameEntry *fe);
+    RegisterID copyInt32ConstantIntoReg(Assembler &masm, FrameEntry *fe);
 
     
 
