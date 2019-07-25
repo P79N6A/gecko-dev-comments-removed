@@ -44,10 +44,7 @@
 #include "nsXULAppAPI.h"
 #include "nsAppRunner.h"
 #include "nsILocalFile.h"
-#include "nsISimpleEnumerator.h"
-#include "nsIDirectoryEnumerator.h"
 #include "nsCOMPtr.h"
-#include "nsCOMArray.h"
 #include "nsString.h"
 #include "nsPrintfCString.h"
 #include "prproces.h"
@@ -178,48 +175,6 @@ GetXULRunnerStubPath(const char* argv0, nsILocalFile* *aResult)
   return NS_OK;
 }
 #endif 
-
-static int
-ScanDirComparator(nsIFile *a, nsIFile *b, void *unused)
-{
-  
-  nsCAutoString a_name, b_name;
-  a->GetNativeLeafName(a_name);
-  b->GetNativeLeafName(b_name);
-  return Compare(a_name, b_name);
-}
-
-static nsresult
-ScanDir(nsIFile *dir, nsCOMArray<nsIFile> *result)
-{
-  nsresult rv;
-
-  nsCOMPtr<nsISimpleEnumerator> simpEnum;
-  rv = dir->GetDirectoryEntries(getter_AddRefs(simpEnum));
-  if (NS_FAILED(rv))
-    return rv;
-
-  nsCOMPtr<nsIDirectoryEnumerator> dirEnum = do_QueryInterface(simpEnum, &rv);
-  if (NS_FAILED(rv))
-    return rv;
-
-  nsCOMPtr<nsIFile> file;
-  for (;;) {
-    rv = dirEnum->GetNextFile(getter_AddRefs(file));
-    if (NS_FAILED(rv))
-      return rv;
-
-    
-    if (!file)
-      break;
-
-    if (!result->AppendObject(file))
-      return NS_ERROR_OUT_OF_MEMORY;
-  }
-
-  result->Sort(ScanDirComparator, nsnull);
-  return NS_OK;
-}
 
 static PRBool
 GetFile(nsIFile *dir, const nsCSubstring &name, nsCOMPtr<nsILocalFile> &result)
@@ -568,34 +523,26 @@ ProcessUpdates(nsIFile *greDir, nsIFile *appDir, nsIFile *updRootDir,
   if (NS_FAILED(rv))
     return rv;
 
+  rv = updatesDir->AppendNative(NS_LITERAL_CSTRING("0"));
+  if (NS_FAILED(rv))
+    return rv;
+
   PRBool exists;
   rv = updatesDir->Exists(&exists);
   if (NS_FAILED(rv) || !exists)
     return rv;
 
-  nsCOMArray<nsIFile> dirEntries;
-  rv = ScanDir(updatesDir, &dirEntries);
-  if (NS_FAILED(rv))
-    return rv;
-  if (dirEntries.Count() == 0)
-    return NS_OK;
-
-  
-  for (int i = 0; i < dirEntries.Count(); ++i) {
-    nsCOMPtr<nsILocalFile> statusFile;
-    if (GetStatusFile(dirEntries[i], statusFile) && IsPending(statusFile)) {
-      nsCOMPtr<nsILocalFile> versionFile;
-      
-      
-      
-      if (!GetVersionFile(dirEntries[i], versionFile) ||
-          IsOlderVersion(versionFile, appVersion)) {
-        dirEntries[i]->Remove(PR_TRUE);
-        continue;
-      }
-
-      ApplyUpdate(greDir, dirEntries[i], statusFile, appDir, argc, argv);
-      break;
+  nsCOMPtr<nsILocalFile> statusFile;
+  if (GetStatusFile(updatesDir, statusFile) && IsPending(statusFile)) {
+    nsCOMPtr<nsILocalFile> versionFile;
+    
+    
+    
+    if (!GetVersionFile(updatesDir, versionFile) ||
+        IsOlderVersion(versionFile, appVersion)) {
+      updatesDir->Remove(PR_TRUE);
+    } else {
+      ApplyUpdate(greDir, updatesDir, statusFile, appDir, argc, argv);
     }
   }
 
