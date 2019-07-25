@@ -184,7 +184,7 @@ public:
     if (!aMarker) {
       return; 
     }
-    if (mMarkerPointer == mozilla::ArrayLength(mMarkers)) {
+    if (size_t(mMarkerPointer) == mozilla::ArrayLength(mMarkers)) {
       return; 
     }
     mMarkers[mMarkerPointer] = aMarker;
@@ -213,7 +213,7 @@ public:
 
   void push(const char *aName)
   {
-    if (mStackPointer >= mozilla::ArrayLength(mStack)) {
+    if (size_t(mStackPointer) >= mozilla::ArrayLength(mStack)) {
       mDroppedStackEntries++;
       return;
     }
