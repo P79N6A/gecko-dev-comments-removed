@@ -74,8 +74,6 @@ nsDisplayListBuilder::nsDisplayListBuilder(nsIFrame* aReferenceFrame,
       mCurrentTableItem(nsnull),
       mBuildCaret(aBuildCaret),
       mEventDelivery(aIsForEvents),
-      mIgnoreSuppression(PR_FALSE),
-      mHadToIgnoreSuppression(PR_FALSE),
       mIsAtRootOfPseudoStackingContext(PR_FALSE),
       mSelectedFramesOnly(PR_FALSE),
       mAccurateVisibleRegions(PR_FALSE),
@@ -88,12 +86,17 @@ nsDisplayListBuilder::nsDisplayListBuilder(nsIFrame* aReferenceFrame,
 
   nsPresContext* pc = aReferenceFrame->PresContext();
   nsIPresShell *shell = pc->PresShell();
+  mIsBackgroundOnly = shell->IsPaintingSuppressed();
   if (pc->IsRenderingOnlySelection()) {
     nsCOMPtr<nsISelectionController> selcon(do_QueryInterface(shell));
     if (selcon) {
       selcon->GetSelection(nsISelectionController::SELECTION_NORMAL,
                            getter_AddRefs(mBoundingSelection));
     }
+  }
+
+  if (mIsBackgroundOnly) {
+    mBuildCaret = PR_FALSE;
   }
 
   PR_STATIC_ASSERT(nsDisplayItem::TYPE_MAX < (1 << nsDisplayItem::TYPE_BITS));
@@ -197,18 +200,7 @@ nsDisplayListBuilder::EnterPresShell(nsIFrame* aReferenceFrame,
     state->mPresShell->IncrementPaintCount();
   }
 
-  PRBool buildCaret = mBuildCaret;
-  if (mIgnoreSuppression || !state->mPresShell->IsPaintingSuppressed()) {
-    if (state->mPresShell->IsPaintingSuppressed()) {
-      mHadToIgnoreSuppression = PR_TRUE;
-    }
-    state->mIsBackgroundOnly = PR_FALSE;
-  } else {
-    state->mIsBackgroundOnly = PR_TRUE;
-    buildCaret = PR_FALSE;
-  }
-
-  if (!buildCaret)
+  if (!mBuildCaret)
     return;
 
   nsRefPtr<nsCaret> caret = state->mPresShell->GetCaret();
@@ -297,9 +289,10 @@ nsDisplayList::GetBounds(nsDisplayListBuilder* aBuilder) const {
 PRBool
 nsDisplayList::ComputeVisibilityForRoot(nsDisplayListBuilder* aBuilder,
                                         nsRegion* aVisibleRegion) {
-  nsRegion r;
-  r.And(*aVisibleRegion, GetBounds(aBuilder));
-  return ComputeVisibilityForSublist(aBuilder, aVisibleRegion, r.GetBounds());
+  NS_ASSERTION(aBuilder->ReferenceFrame()->GetOverflowRect().Contains(aVisibleRegion->GetBounds()),
+               "aVisibleRegion out of bounds");
+  return ComputeVisibilityForSublist(aBuilder, aVisibleRegion,
+                                     aVisibleRegion->GetBounds());
 }
 
 PRBool
@@ -1009,7 +1002,10 @@ nsDisplayBoxShadowOuter::ComputeVisibility(nsDisplayListBuilder* aBuilder,
   
   
   nscoord twipsRadii[8];
-  PRBool hasBorderRadii = mFrame->GetBorderRadii(twipsRadii);
+  PRBool hasBorderRadii =
+     nsCSSRendering::GetBorderRadiusTwips(mFrame->GetStyleBorder()->mBorderRadius,
+                                          frameRect.width,
+                                          twipsRadii);
   if (!hasBorderRadii)
     return PR_FALSE;
 
@@ -1287,18 +1283,18 @@ nsDisplayOwnLayer::BuildLayer(nsDisplayListBuilder* aBuilder,
 }
 
 nsDisplayClip::nsDisplayClip(nsDisplayListBuilder* aBuilder,
-                             nsIFrame* aFrame, nsDisplayItem* aItem,
-                             const nsRect& aRect)
+                             nsIFrame* aFrame, nsIFrame* aClippingFrame,
+                             nsDisplayItem* aItem, const nsRect& aRect)
    : nsDisplayWrapList(aBuilder, aFrame, aItem),
-     mClip(aRect) {
+     mClippingFrame(aClippingFrame), mClip(aRect) {
   MOZ_COUNT_CTOR(nsDisplayClip);
 }
 
 nsDisplayClip::nsDisplayClip(nsDisplayListBuilder* aBuilder,
-                             nsIFrame* aFrame, nsDisplayList* aList,
-                             const nsRect& aRect)
+                             nsIFrame* aFrame, nsIFrame* aClippingFrame,
+                             nsDisplayList* aList, const nsRect& aRect)
    : nsDisplayWrapList(aBuilder, aFrame, aList),
-     mClip(aRect) {
+     mClippingFrame(aClippingFrame), mClip(aRect) {
   MOZ_COUNT_CTOR(nsDisplayClip);
 }
 
@@ -1340,7 +1336,7 @@ PRBool nsDisplayClip::TryMerge(nsDisplayListBuilder* aBuilder,
   if (aItem->GetType() != TYPE_CLIP)
     return PR_FALSE;
   nsDisplayClip* other = static_cast<nsDisplayClip*>(aItem);
-  if (other->mClip != mClip)
+  if (other->mClip != mClip || other->mClippingFrame != mClippingFrame)
     return PR_FALSE;
   mList.AppendToBottom(&other->mList);
   return PR_TRUE;
@@ -1349,80 +1345,7 @@ PRBool nsDisplayClip::TryMerge(nsDisplayListBuilder* aBuilder,
 nsDisplayWrapList* nsDisplayClip::WrapWithClone(nsDisplayListBuilder* aBuilder,
                                                 nsDisplayItem* aItem) {
   return new (aBuilder)
-    nsDisplayClip(aBuilder, aItem->GetUnderlyingFrame(), aItem, mClip);
-}
-
-nsDisplayClipRoundedRect::nsDisplayClipRoundedRect(
-                             nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
-                             nsDisplayItem* aItem,
-                             const nsRect& aRect, nscoord aRadii[8])
-    : nsDisplayClip(aBuilder, aFrame, aItem, aRect)
-{
-  MOZ_COUNT_CTOR(nsDisplayClipRoundedRect);
-  memcpy(mRadii, aRadii, sizeof(mRadii));
-}
-
-nsDisplayClipRoundedRect::nsDisplayClipRoundedRect(
-                             nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
-                             nsDisplayList* aList,
-                             const nsRect& aRect, nscoord aRadii[8])
-    : nsDisplayClip(aBuilder, aFrame, aList, aRect)
-{
-  MOZ_COUNT_CTOR(nsDisplayClipRoundedRect);
-  memcpy(mRadii, aRadii, sizeof(mRadii));
-}
-
-#ifdef NS_BUILD_REFCNT_LOGGING
-nsDisplayClipRoundedRect::~nsDisplayClipRoundedRect()
-{
-  MOZ_COUNT_DTOR(nsDisplayClipRoundedRect);
-}
-#endif
-
-PRBool nsDisplayClipRoundedRect::IsOpaque(nsDisplayListBuilder* aBuilder)
-{
-  return PR_FALSE;
-}
-
-void
-nsDisplayClipRoundedRect::HitTest(nsDisplayListBuilder* aBuilder,
-                                  const nsRect& aRect, HitTestState* aState,
-                                  nsTArray<nsIFrame*> *aOutFrames)
-{
-  
-  mList.HitTest(aBuilder, aRect, aState, aOutFrames);
-}
-
-nsDisplayWrapList*
-nsDisplayClipRoundedRect::WrapWithClone(nsDisplayListBuilder* aBuilder,
-                                        nsDisplayItem* aItem) {
-  return new (aBuilder)
-    nsDisplayClipRoundedRect(aBuilder, aItem->GetUnderlyingFrame(), aItem,
-                             mClip, mRadii);
-}
-
-PRBool nsDisplayClipRoundedRect::ComputeVisibility(
-                                    nsDisplayListBuilder* aBuilder,
-                                    nsRegion* aVisibleRegion)
-{
-  nsRegion clipped;
-  clipped.And(*aVisibleRegion, mClip);
-
-  return nsDisplayWrapList::ComputeVisibility(aBuilder, &clipped);
-  
-  
-}
-
-PRBool nsDisplayClipRoundedRect::TryMerge(nsDisplayListBuilder* aBuilder, nsDisplayItem* aItem)
-{
-  if (aItem->GetType() != TYPE_CLIP_ROUNDED_RECT)
-    return PR_FALSE;
-  nsDisplayClipRoundedRect* other =
-    static_cast<nsDisplayClipRoundedRect*>(aItem);
-  if (mClip != other->mClip || mRadii != other->mRadii)
-    return PR_FALSE;
-  mList.AppendToBottom(&other->mList);
-  return PR_TRUE;
+    nsDisplayClip(aBuilder, aItem->GetUnderlyingFrame(), mClippingFrame, aItem, mClip);
 }
 
 nsDisplayZoom::nsDisplayZoom(nsDisplayListBuilder* aBuilder,
@@ -1586,19 +1509,16 @@ gfxPoint GetDeltaToMozTransformOrigin(const nsIFrame* aFrame,
     
 
 
-    const nsStyleCoord &coord = display->mTransformOrigin[index];
-    if (coord.GetUnit() == eStyleUnit_Calc) {
-      const nsStyleCoord::Calc *calc = coord.GetCalcValue();
+    if (display->mTransformOrigin[index].GetUnit() == eStyleUnit_Percent)
       *coords[index] = NSAppUnitsToFloatPixels(*dimensions[index], aFactor) *
-                         calc->mPercent +
-                       NSAppUnitsToFloatPixels(calc->mLength, aFactor);
-    } else if (coord.GetUnit() == eStyleUnit_Percent) {
-      *coords[index] = NSAppUnitsToFloatPixels(*dimensions[index], aFactor) *
-        coord.GetPercentValue();
-    } else {
-      NS_ABORT_IF_FALSE(coord.GetUnit() == eStyleUnit_Coord, "unexpected unit");
-      *coords[index] = NSAppUnitsToFloatPixels(coord.GetCoordValue(), aFactor);
-    }
+        display->mTransformOrigin[index].GetPercentValue();
+    
+    
+    else
+      *coords[index] =
+        NSAppUnitsToFloatPixels(display->
+                                mTransformOrigin[index].GetCoordValue(),
+                                aFactor);
   }
   
   
@@ -1682,10 +1602,8 @@ PRBool nsDisplayTransform::ComputeVisibility(nsDisplayListBuilder *aBuilder,
 
   nsRegion untransformedVisible =
     UntransformRect(mVisibleRect, mFrame, ToReferenceFrame());
-  
-  
-  
-  mStoredList.RecomputeVisibility(aBuilder, &untransformedVisible);
+
+  mStoredList.ComputeVisibility(aBuilder, &untransformedVisible);
   return PR_TRUE;
 }
 
@@ -1943,9 +1861,7 @@ PRBool nsDisplaySVGEffects::ComputeVisibility(nsDisplayListBuilder* aBuilder,
   
   
   nsRegion childrenVisible(dirtyRect);
-  nsRect r;
-  r.IntersectRect(dirtyRect, mList.GetBounds(aBuilder));
-  mList.ComputeVisibilityForSublist(aBuilder, &childrenVisible, r);
+  nsDisplayWrapList::ComputeVisibility(aBuilder, &childrenVisible);
   return PR_TRUE;
 }
 

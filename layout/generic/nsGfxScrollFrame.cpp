@@ -1253,7 +1253,7 @@ class ScrollFrameActivityTracker : public nsExpirationTracker<nsGfxScrollFrameIn
 public:
   
   
-  enum { TIMEOUT_MS = 1000 };
+  enum { TIMEOUT_MS = 25 };
   ScrollFrameActivityTracker()
     : nsExpirationTracker<nsGfxScrollFrameInner,4>(TIMEOUT_MS) {}
   ~ScrollFrameActivityTracker() {
@@ -1263,7 +1263,7 @@ public:
   virtual void NotifyExpired(nsGfxScrollFrameInner *aObject) {
     RemoveObject(aObject);
     aObject->mScrollingActive = PR_FALSE;
-    aObject->mOuter->InvalidateFrameSubtree();
+    aObject->mOuter->InvalidateOverflowRect();
   }
 };
 
@@ -1580,7 +1580,8 @@ PRBool nsGfxScrollFrameInner::IsAlwaysActive() const
   
   
   
-  return mIsRoot && mOuter->PresContext()->IsRootContentDocument();
+  return mIsRoot &&
+    !nsContentUtils::IsChildOfSameType(mOuter->GetContent()->GetCurrentDoc());
 }
 
 PRBool nsGfxScrollFrameInner::IsScrollingActive() const
@@ -1696,7 +1697,7 @@ nsGfxScrollFrameInner::ScrollToImpl(nsPoint aPt)
   
   ScrollVisual(curPosDevPx - ptDevPx);
 
-  presContext->PresShell()->SynthesizeMouseMove(PR_TRUE);
+  presContext->PresShell()->GetViewManager()->SynthesizeMouseMove(PR_TRUE);
   UpdateScrollbarPosition();
   PostScrollEvent();
 
@@ -1753,7 +1754,7 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   PRBool createLayersForScrollbars = mIsRoot &&
-    mOuter->PresContext()->IsRootContentDocument();
+      !nsContentUtils::IsChildOfSameType(mOuter->GetContent()->GetCurrentDoc());
   for (nsIFrame* kid = mOuter->GetFirstChild(nsnull); kid; kid = kid->GetNextSibling()) {
     if (kid != mScrolledFrame) {
       if (kid == mScrollCornerBox && hasResizer) {
@@ -1787,17 +1788,12 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   rv = mOuter->BuildDisplayListForChild(aBuilder, mScrolledFrame, dirtyRect, set);
   NS_ENSURE_SUCCESS(rv, rv);
   nsRect clip = mScrollPort + aBuilder->ToReferenceFrame(mOuter);
-  nscoord radii[8];
-  
-  
-  mOuter->GetPaddingBoxBorderRadii(radii);
   
   
   
   
   
-  rv = mOuter->OverflowClip(aBuilder, set, aLists, clip, radii,
-                            PR_TRUE, mIsRoot);
+  rv = mOuter->OverflowClip(aBuilder, set, aLists, clip, PR_TRUE, mIsRoot);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -2972,7 +2968,7 @@ static void LayoutAndInvalidate(nsBoxLayoutState& aState,
     if (aScrollbarIsBeingHidden) {
       aBox->GetParent()->Invalidate(aBox->GetOverflowRect() + aBox->GetPosition());
     } else {
-      aBox->InvalidateFrameSubtree();
+      aBox->InvalidateOverflowRect();
     }
   }
   nsBoxFrame::LayoutChildAt(aState, aBox, aRect);
@@ -2980,7 +2976,7 @@ static void LayoutAndInvalidate(nsBoxLayoutState& aState,
     if (aScrollbarIsBeingHidden) {
       aBox->GetParent()->Invalidate(aBox->GetOverflowRect() + aBox->GetPosition());
     } else {
-      aBox->InvalidateFrameSubtree();
+      aBox->InvalidateOverflowRect();
     }
   }
 }
@@ -3143,69 +3139,6 @@ nsGfxScrollFrameInner::SetCoordAttribute(nsIContent* aContent, nsIAtom* aAtom,
     return;
 
   aContent->SetAttr(kNameSpaceID_None, aAtom, newValue, PR_TRUE);
-}
-
-static void
-ReduceRadii(nscoord aXBorder, nscoord aYBorder,
-            nscoord& aXRadius, nscoord& aYRadius)
-{
-  
-  
-  if (aXRadius <= aXBorder || aYRadius <= aYBorder)
-    return;
-
-  
-  double ratio = NS_MAX(double(aXBorder) / aXRadius,
-                        double(aYBorder) / aYRadius);
-  aXRadius *= ratio;
-  aYRadius *= ratio;
-}
-
-
-
-
-
-
-
-
-
-PRBool
-nsGfxScrollFrameInner::GetBorderRadii(nscoord aRadii[8]) const
-{
-  if (!mOuter->nsContainerFrame::GetBorderRadii(aRadii))
-    return PR_FALSE;
-
-  
-  
-  
-  nsMargin sb = GetActualScrollbarSizes();
-  nsMargin border = mOuter->GetUsedBorder();
-
-  if (sb.left > 0 || sb.top > 0) {
-    ReduceRadii(border.left, border.top,
-                aRadii[NS_CORNER_TOP_LEFT_X],
-                aRadii[NS_CORNER_TOP_LEFT_Y]);
-  }
-
-  if (sb.top > 0 || sb.right > 0) {
-    ReduceRadii(border.right, border.top,
-                aRadii[NS_CORNER_TOP_RIGHT_X],
-                aRadii[NS_CORNER_TOP_RIGHT_Y]);
-  }
-
-  if (sb.right > 0 || sb.bottom > 0) {
-    ReduceRadii(border.right, border.bottom,
-                aRadii[NS_CORNER_BOTTOM_RIGHT_X],
-                aRadii[NS_CORNER_BOTTOM_RIGHT_Y]);
-  }
-
-  if (sb.bottom > 0 || sb.left > 0) {
-    ReduceRadii(border.left, border.bottom,
-                aRadii[NS_CORNER_BOTTOM_LEFT_X],
-                aRadii[NS_CORNER_BOTTOM_LEFT_Y]);
-  }
-
-  return PR_TRUE;
 }
 
 nsRect
