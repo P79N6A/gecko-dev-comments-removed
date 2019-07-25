@@ -13,6 +13,7 @@
 #include <windows.h>
 
 class nsWindow;
+class nsGUIEvent;
 
 namespace mozilla {
 namespace widget {
@@ -37,6 +38,12 @@ private:
 
   static MouseScrollHandler* sInstance;
 
+  
+
+
+
+
+  static bool DispatchEvent(nsWindow* aWindow, nsGUIEvent& aEvent);
 public:
   class SystemSettings {
   public:
@@ -113,6 +120,91 @@ public:
 
 private:
   UserPrefs mUserPrefs;
+
+public:
+
+  class Device {
+  public:
+    class Elantech {
+    public:
+      
+
+
+
+      static PRInt32 GetDriverMajorVersion();
+
+      
+
+
+
+      static bool IsHelperWindow(HWND aWnd);
+
+      
+
+
+
+      static bool HandleKeyMessage(nsWindow* aWindow,
+                                   UINT aMsg,
+                                   WPARAM aWParam);
+
+      static void UpdateZoomUntil();
+      static bool IsZooming();
+
+      static void Init();
+
+      static bool IsPinchHackNeeded() { return sUsePinchHack; }
+
+
+    private:
+      
+      static bool sUseSwipeHack;
+      
+      static bool sUsePinchHack;
+      static DWORD sZoomUntil;
+    }; 
+
+    class TrackPoint {
+    public:
+      
+
+
+
+      static bool IsDriverInstalled();
+    }; 
+
+    class UltraNav {
+    public:
+      
+
+
+
+
+      static bool IsObsoleteDriverInstalled();
+    }; 
+
+    static void Init();
+
+    static bool IsFakeScrollableWindowNeeded()
+    {
+      return sFakeScrollableWindowNeeded;
+    }
+
+  private:
+    
+
+
+
+
+
+
+
+
+
+    static bool GetWorkaroundPref(const char* aPrefName,
+                                  bool aValueIfAutomatic);
+
+    static bool sFakeScrollableWindowNeeded;
+  }; 
 };
 
 } 

@@ -272,13 +272,7 @@ BYTE            nsWindow::sLastMouseButton        = 0;
 int             nsWindow::sTrimOnMinimize         = 2;
 
 
-bool            nsWindow::sDefaultTrackPointHack  = false;
-
 const char*     nsWindow::sDefaultMainWindowClass = kClassNameGeneral;
-
-bool            nsWindow::sUseElantechSwipeHack  = false;
-
-bool            nsWindow::sUseElantechPinchHack  = false;
 
 
 bool            nsWindow::sAllowD3D9              = false;
@@ -404,7 +398,6 @@ nsWindow::nsWindow() : nsBaseWidget()
   mOldExStyle           = 0;
   mPainting             = 0;
   mLastKeyboardLayout   = 0;
-  mAssumeWheelIsZoomUntil = 0;
   mBlurSuppressLevel    = 0;
   mLastPaintEndTime     = TimeStamp::Now();
 #ifdef MOZ_XUL
@@ -435,7 +428,6 @@ nsWindow::nsWindow() : nsBaseWidget()
       sIsOleInitialized = TRUE;
     }
     NS_ASSERTION(sIsOleInitialized, "***** OLE is not initialized!\n");
-    InitInputWorkaroundPrefDefaults();
     MouseScrollHandler::Initialize();
     
     nsUXThemeData::InitTitlebarInfo();
@@ -601,7 +593,7 @@ nsWindow::Create(nsIWidget *aParent,
 
   if (mWindowType != eWindowType_plugin &&
       mWindowType != eWindowType_invisible &&
-      UseTrackPointHack()) {
+      MouseScrollHandler::Device::IsFakeScrollableWindowNeeded()) {
     
     
     
@@ -4488,24 +4480,6 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
                                 LRESULT *aRetValue)
 {
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  if (mAssumeWheelIsZoomUntil) {
-    LONG msgTime = ::GetMessageTime();
-    if ((mAssumeWheelIsZoomUntil >= 0x3fffffffu && DWORD(msgTime) < 0x40000000u) ||
-        (mAssumeWheelIsZoomUntil < DWORD(msgTime))) {
-      mAssumeWheelIsZoomUntil = 0;
-    }
-  }
-
-  
   if (mWindowHook.Notify(mWnd, msg, wParam, lParam, aRetValue))
     return true;
 
@@ -6389,12 +6363,9 @@ nsWindow::OnMouseWheelInternal(UINT aMessage, WPARAM aWParam, LPARAM aLParam,
   
   
   
-  bool isControl;
-  if (mAssumeWheelIsZoomUntil &&
-      static_cast<DWORD>(::GetMessageTime()) < mAssumeWheelIsZoomUntil) {
-    isControl = true;
-  } else {
-    isControl = modKeyState.mIsControlDown;
+  if (!modKeyState.mIsControlDown) {
+    modKeyState.mIsControlDown =
+      MouseScrollHandler::Device::Elantech::IsZooming();
   }
 
   
@@ -6404,7 +6375,7 @@ nsWindow::OnMouseWheelInternal(UINT aMessage, WPARAM aWParam, LPARAM aLParam,
   
   InitEvent(scrollEvent);
   scrollEvent.isShift     = modKeyState.mIsShiftDown;
-  scrollEvent.isControl   = isControl;
+  scrollEvent.isControl   = modKeyState.mIsControlDown;
   scrollEvent.isMeta      = false;
   scrollEvent.isAlt       = modKeyState.mIsAltDown;
 
@@ -6578,37 +6549,6 @@ bool nsWindow::IsRedirectedKeyDownMessage(const MSG &aMsg)
             WinUtils::GetScanCode(aMsg.lParam));
 }
 
-void
-nsWindow::PerformElantechSwipeGestureHack(UINT& aVirtualKeyCode,
-                                          nsModifierKeyState& aModKeyState)
-{
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  if ((aVirtualKeyCode == VK_NEXT || aVirtualKeyCode == VK_PRIOR) &&
-      (IS_VK_DOWN(0xFF) || IS_VK_DOWN(0xCC))) {
-    aModKeyState.mIsAltDown = true;
-    aVirtualKeyCode = aVirtualKeyCode == VK_NEXT ? VK_RIGHT : VK_LEFT;
-  }
-}
-
 
 
 
@@ -6625,10 +6565,6 @@ LRESULT nsWindow::OnKeyDown(const MSG &aMsg,
   UINT virtualKeyCode =
     aMsg.wParam != VK_PROCESSKEY ? aMsg.wParam : ::ImmGetVirtualKey(mWnd);
   gKbdLayout.OnKeyDown(virtualKeyCode);
-
-  if (sUseElantechSwipeHack) {
-    PerformElantechSwipeGestureHack(virtualKeyCode, aModKeyState);
-  }
 
   
   
@@ -6970,34 +6906,6 @@ LRESULT nsWindow::OnKeyUp(const MSG &aMsg,
                           bool *aEventDispatched)
 {
   UINT virtualKeyCode = aMsg.wParam;
-
-  if (sUseElantechSwipeHack) {
-    PerformElantechSwipeGestureHack(virtualKeyCode, aModKeyState);
-  }
-
-  if (sUseElantechPinchHack) {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    if (virtualKeyCode == VK_CONTROL && aMsg.time == 10) {
-      
-      
-      
-      mAssumeWheelIsZoomUntil = ::GetTickCount() & 0x7FFFFFFF;
-    }
-  }
 
   PR_LOG(gWindowsLog, PR_LOG_ALWAYS,
          ("nsWindow::OnKeyUp VK=%d\n", virtualKeyCode));
@@ -7409,37 +7317,6 @@ bool nsWindow::OnHotKey(WPARAM wParam, LPARAM lParam)
 
 
 
-static bool IsElantechHelperWindow(HWND aHWND)
-{
-  const PRUnichar* filenameSuffix = L"\\etdctrl.exe";
-  const int filenameSuffixLength = 12;
-
-  DWORD pid;
-  ::GetWindowThreadProcessId(aHWND, &pid);
-
-  bool result = false;
-
-  HANDLE hProcess = ::OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, pid);
-  if (hProcess) {
-    PRUnichar path[256] = {L'\0'};
-    if (GetProcessImageFileName(hProcess, path, ArrayLength(path))) {
-      int pathLength = lstrlenW(path);
-      if (pathLength >= filenameSuffixLength) {
-        if (lstrcmpiW(path + pathLength - filenameSuffixLength, filenameSuffix) == 0) {
-          result = true;
-        }
-      }
-    }
-    ::CloseHandle(hProcess);
-  }
-
-  return result;
-}
-
-
-
-
-
 
 
 void
@@ -7484,7 +7361,8 @@ nsWindow::OnMouseWheel(UINT aMsg, WPARAM aWParam, LPARAM aLParam,
     return;
   }
 
-  if (sUseElantechPinchHack && IsElantechHelperWindow(underCursorWnd)) {
+  if (MouseScrollHandler::Device::Elantech::IsPinchHackNeeded() &&
+      MouseScrollHandler::Device::Elantech::IsHelperWindow(underCursorWnd)) {
     
     
     
@@ -8623,123 +8501,6 @@ void nsWindow::GetMainWindowClass(nsAString& aClass)
   if (NS_FAILED(rv) || aClass.IsEmpty()) {
     aClass.AssignASCII(sDefaultMainWindowClass);
   }
-}
-
-
-
-
-
-
-
-
-
-
-
-bool nsWindow::GetInputWorkaroundPref(const char* aPrefName,
-                                        bool aValueIfAutomatic)
-{
-  if (!aPrefName) {
-    return aValueIfAutomatic;
-  }
-
-  PRInt32 lHackValue = 0;
-  if (NS_SUCCEEDED(Preferences::GetInt(aPrefName, &lHackValue))) {
-    switch (lHackValue) {
-      case 0: 
-        return false;
-      case 1: 
-        return true;
-      default: 
-        break;
-    }
-  }
-  return aValueIfAutomatic;
-}
-
-bool nsWindow::UseTrackPointHack()
-{
-  return GetInputWorkaroundPref("ui.trackpoint_hack.enabled",
-                                sDefaultTrackPointHack);
-}
-
-static bool
-IsObsoleteSynapticsDriver()
-{
-  PRUnichar buf[40];
-  bool foundKey = WinUtils::GetRegistryKey(HKEY_LOCAL_MACHINE,
-                                           L"Software\\Synaptics\\SynTP\\Install",
-                                           L"DriverVersion",
-                                           buf,
-                                           sizeof buf);
-  if (!foundKey)
-    return false;
-
-  int majorVersion = wcstol(buf, NULL, 10);
-  int minorVersion = 0;
-  PRUnichar* p = wcschr(buf, L'.');
-  if (p) {
-    minorVersion = wcstol(p + 1, NULL, 10);
-  }
-  return majorVersion < 15 || majorVersion == 15 && minorVersion == 0;
-}
-
-static PRInt32
-GetElantechDriverMajorVersion()
-{
-  PRUnichar buf[40];
-  
-  bool foundKey = WinUtils::GetRegistryKey(HKEY_CURRENT_USER,
-                                           L"Software\\Elantech\\MainOption",
-                                           L"DriverVersion",
-                                           buf,
-                                           sizeof buf);
-  if (!foundKey)
-    foundKey = WinUtils::GetRegistryKey(HKEY_CURRENT_USER,
-                                        L"Software\\Elantech",
-                                        L"DriverVersion",
-                                        buf,
-                                        sizeof buf);
-
-  if (!foundKey)
-    return false;
-
-  
-  
-  for (PRUnichar* p = buf; *p; p++) {
-    if (*p >= L'0' && *p <= L'9' && (p == buf || *(p - 1) == L' ')) {
-      return wcstol(p, NULL, 10);
-    }
-  }
-
-  return 0;
-}
-
-void nsWindow::InitInputWorkaroundPrefDefaults()
-{
-  PRUint32 elantechDriverVersion = GetElantechDriverMajorVersion();
-
-  if (WinUtils::HasRegistryKey(HKEY_CURRENT_USER,
-                               L"Software\\Lenovo\\TrackPoint")) {
-    sDefaultTrackPointHack = true;
-  } else if (WinUtils::HasRegistryKey(HKEY_CURRENT_USER,
-                                      L"Software\\Lenovo\\UltraNav")) {
-    sDefaultTrackPointHack = true;
-  } else if (WinUtils::HasRegistryKey(HKEY_CURRENT_USER,
-                                      L"Software\\Alps\\Apoint\\TrackPoint")) {
-    sDefaultTrackPointHack = true;
-  } else if ((WinUtils::HasRegistryKey(HKEY_CURRENT_USER,
-                L"Software\\Synaptics\\SynTPEnh\\UltraNavUSB") ||
-              WinUtils::HasRegistryKey(HKEY_CURRENT_USER,
-                L"Software\\Synaptics\\SynTPEnh\\UltraNavPS2")) &&
-              IsObsoleteSynapticsDriver()) {
-    sDefaultTrackPointHack = true;
-  }
-
-  bool useElantechGestureHacks =
-    GetInputWorkaroundPref("ui.elantech_gesture_hacks.enabled",
-                           elantechDriverVersion != 0);
-  sUseElantechSwipeHack = useElantechGestureHacks && elantechDriverVersion <= 7;
-  sUseElantechPinchHack = useElantechGestureHacks && elantechDriverVersion <= 8;
 }
 
 LPARAM nsWindow::lParamToScreen(LPARAM lParam)
