@@ -785,7 +785,7 @@ nsHttpHandler::InitUserAgentComponents()
             
             
 
-            buf += " i686 (x86_64)";
+            buf += " i686 on x86_64";
         } else {
             buf += ' ';
 
