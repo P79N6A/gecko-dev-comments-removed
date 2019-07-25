@@ -352,11 +352,6 @@ let Content = {
           } else if (ot == errorDoc.getElementById("getMeOutOfHereButton")) {
             sendAsyncMessage("Browser:CertException", { url: errorDoc.location.href, action: "leave" });
           }
-        } else if (/^about:neterror\?e=netOffline/.test(errorDoc.documentURI)) {
-          if (ot == errorDoc.getElementById("errorTryAgain")) {
-            
-            Util.forceOnline();
-          }
         } else if (/^about:blocked/.test(errorDoc.documentURI)) {
           
           
