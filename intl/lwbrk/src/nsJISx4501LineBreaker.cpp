@@ -786,7 +786,7 @@ nsJISx4051LineBreaker::WordMove(const PRUnichar* aText, PRUint32 aLen,
   }
 
   PRInt32 ret;
-  nsAutoTArray<PRPackedBool, 2000> breakState;
+  nsAutoTArray<PRUint8, 2000> breakState;
   if (!textNeedsJISx4051 || !breakState.AppendElements(end - begin)) {
     
     
@@ -833,7 +833,7 @@ nsJISx4051LineBreaker::Prev(const PRUnichar* aText, PRUint32 aLen,
 
 void
 nsJISx4051LineBreaker::GetJISx4051Breaks(const PRUnichar* aChars, PRUint32 aLength,
-                                         PRPackedBool* aBreakBefore)
+                                         PRUint8* aBreakBefore)
 {
   PRUint32 cur;
   PRInt8 lastClass = CLASS_NONE;
@@ -890,7 +890,7 @@ nsJISx4051LineBreaker::GetJISx4051Breaks(const PRUnichar* aChars, PRUint32 aLeng
 
 void
 nsJISx4051LineBreaker::GetJISx4051Breaks(const PRUint8* aChars, PRUint32 aLength,
-                                         PRPackedBool* aBreakBefore)
+                                         PRUint8* aBreakBefore)
 {
   PRUint32 cur;
   PRInt8 lastClass = CLASS_NONE;
