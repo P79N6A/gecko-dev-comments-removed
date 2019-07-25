@@ -771,8 +771,6 @@ var Browser = {
       return;
     }
 
-    TapHighlightHelper.hide();
-
     if (this._selectedTab) {
       this._selectedTab.pageScrollOffset = this.getScrollboxPosition(this.pageScrollboxScroller);
 
@@ -1346,8 +1344,6 @@ Browser.WebProgress.prototype = {
 
         let locationHasChanged = (location != tab.browser.lastLocation);
         if (locationHasChanged) {
-          TapHighlightHelper.hide();
-
           Browser.getNotificationBox(tab.browser).removeTransientNotifications();
           tab.resetZoomLevel();
           tab.hostChanged = true;
@@ -1595,20 +1591,15 @@ const ContentTouchHandler = {
           document.dispatchEvent(event);
         }
         break;
-
-      case "Browser:Highlight": {
-        let rects = aMessage.json.rects.map(function(r) new Rect(r.left, r.top, r.width, r.height));
-        TapHighlightHelper.show(rects);
-        break;
-      }
     }
   },
 
   
   _clearPendingMessages: function _clearPendingMessages() {
     this._messageId++;
-    TapHighlightHelper.hide(0);
     this._contextMenu = null;
+    let browser = getBrowser();
+    browser.messageManager.sendAsyncMessage("Browser:MouseCancel", {});
   },
 
   
@@ -1650,12 +1641,12 @@ const ContentTouchHandler = {
   },
 
   tapUp: function tapUp(aX, aY) {
-    TapHighlightHelper.hide(200);
     this._contextMenu = null;
+    let browser = getBrowser();
+    browser.messageManager.sendAsyncMessage("Browser:MouseCancel", {});
   },
 
   tapSingle: function tapSingle(aX, aY, aModifiers) {
-    TapHighlightHelper.hide(200);
     this._contextMenu = null;
 
     
@@ -2456,12 +2447,6 @@ Tab.prototype = {
     return this._notification.inputHandler;
   },
 
-  get overlay() {
-    if (!this._notification)
-      return null;
-    return this._notification.overlay;
-  },
-
   
   updateViewportMetadata: function updateViewportMetadata(aMetadata) {
     if (aMetadata && aMetadata.autoScale) {
@@ -2833,82 +2818,5 @@ var ViewableAreaObserver = {
         Elements.browsers.dispatchEvent(event);
       }, 0);
     }
-  }
-};
-
-var TapHighlightHelper = {
-  get _overlay() {
-    if (Browser.selectedTab)
-      return Browser.selectedTab.overlay;
-    return null;
-  },
-
-  show: function show(aRects) {
-    let overlay = this._overlay;
-    if (!overlay)
-      return;
-
-    let browser = getBrowser();
-    let scroll = browser.getPosition();
-
-    let canvasArea = aRects.reduce(function(a, b) {
-      return a.expandToContain(b);
-    }, new Rect(0, 0, 0, 0)).map(function(val) val * browser.scale)
-                            .translate(-scroll.x, -scroll.y);
-
-    overlay.setAttribute("width", canvasArea.width);
-    overlay.setAttribute("height", canvasArea.height);
-
-    let ctx = overlay.getContext("2d");
-    ctx.save();
-    ctx.translate(-canvasArea.left, -canvasArea.top);
-    ctx.scale(browser.scale, browser.scale);
-
-    overlay.setAttribute("left", canvasArea.left);
-    overlay.setAttribute("top", canvasArea.top);
-    ctx.clearRect(0, 0, canvasArea.width, canvasArea.height);
-    ctx.fillStyle = "rgba(0, 145, 255, .5)";
-    for (let i = aRects.length - 1; i >= 0; i--) {
-      let rect = aRects[i];
-      ctx.fillRect(rect.left - scroll.x / browser.scale, rect.top - scroll.y / browser.scale, rect.width, rect.height);
-    }
-    ctx.restore();
-    overlay.style.display = "block";
-
-    mozRequestAnimationFrame(this);
-  },
-
-  
-
-
-
-  hide: function hide(aGuaranteeShowMsecs) {
-    if (!this._overlay || this._overlay.style.display == "none")
-      return;
-
-    this._guaranteeShow = Math.max(0, aGuaranteeShowMsecs);
-    if (this._guaranteeShow) {
-      
-      if (this._shownAt)
-        setTimeout(this._hide.bind(this), Math.max(0, this._guaranteeShow - (mozAnimationStartTime - this._shownAt)));
-    } else {
-      this._hide();
-    }
-  },
-
-  
-  _hide: function _hide() {
-    this._shownAt = 0;
-    this._guaranteeShow = 0;
-    this._overlay.style.display = "none";
-  },
-
-  onBeforePaint: function handleEvent(aTimeStamp) {
-    this._shownAt = aTimeStamp;
-
-    
-    
-    if (this._guaranteeShow)
-      this.hide(this._guaranteeShow);
   }
 };
