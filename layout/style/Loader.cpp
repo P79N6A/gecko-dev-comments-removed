@@ -81,6 +81,7 @@
 #include "nsThreadUtils.h"
 #include "nsGkAtoms.h"
 #include "nsDocShellCID.h"
+#include "nsIThreadInternal.h"
 
 #ifdef MOZ_XUL
 #include "nsXULPrototypeCache.h"
@@ -132,7 +133,8 @@ namespace css {
 
 
 class SheetLoadData : public nsIRunnable,
-                      public nsIUnicharStreamLoaderObserver
+                      public nsIUnicharStreamLoaderObserver,
+                      public nsIThreadObserver
 {
 public:
   virtual ~SheetLoadData(void);
@@ -167,8 +169,11 @@ public:
 
   already_AddRefed<nsIURI> GetReferrerURI();
 
+  void ScheduleLoadEventIfNeeded(nsresult aStatus);
+
   NS_DECL_ISUPPORTS
   NS_DECL_NSIRUNNABLE
+  NS_DECL_NSITHREADOBSERVER
   NS_DECL_NSIUNICHARSTREAMLOADEROBSERVER
 
   
@@ -259,6 +264,15 @@ public:
   
   
   nsCString                             mCharsetHint;
+
+  
+  
+  
+  
+  nsresult                              mStatus;
+
+private:
+  void FireLoadEvent(nsIThreadInternal* aThread);
 };
 
 #ifdef MOZ_LOGGING
@@ -310,7 +324,8 @@ static const char* const gStateStrings[] = {
 
 
 
-NS_IMPL_ISUPPORTS2(SheetLoadData, nsIUnicharStreamLoaderObserver, nsIRunnable)
+NS_IMPL_ISUPPORTS3(SheetLoadData, nsIUnicharStreamLoaderObserver, nsIRunnable,
+                   nsIThreadObserver)
 
 SheetLoadData::SheetLoadData(Loader* aLoader,
                              const nsSubstring& aTitle,
@@ -435,6 +450,78 @@ SheetLoadData::Run()
 {
   mLoader->HandleLoadEvent(this);
   return NS_OK;
+}
+
+NS_IMETHODIMP
+SheetLoadData::OnDispatchedEvent(nsIThreadInternal* aThread)
+{
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+SheetLoadData::OnProcessNextEvent(nsIThreadInternal* aThread,
+                                  PRBool aMayWait,
+                                  PRUint32 aRecursionDepth)
+{
+  
+  
+  FireLoadEvent(aThread);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+SheetLoadData::AfterProcessNextEvent(nsIThreadInternal* aThread,
+                                     PRUint32 aRecursionDepth)
+{
+  
+  
+  FireLoadEvent(aThread);
+  return NS_OK;
+}
+
+void
+SheetLoadData::FireLoadEvent(nsIThreadInternal* aThread)
+{
+  
+  
+  
+  nsRefPtr<SheetLoadData> kungFuDeathGrip(this);
+  aThread->RemoveObserver(this);
+
+  
+  nsCOMPtr<nsINode> node = do_QueryInterface(mOwningElement);
+  NS_ASSERTION(node, "How did that happen???");
+
+  nsContentUtils::DispatchTrustedEvent(node->GetOwnerDoc(),
+                                       node,
+                                       NS_SUCCEEDED(mStatus) ?
+                                         NS_LITERAL_STRING("load") :
+                                         NS_LITERAL_STRING("error"),
+                                       PR_FALSE, PR_FALSE);
+
+  
+  if (mLoader->mDocument) {
+    mLoader->mDocument->UnblockOnload(PR_TRUE);
+  }  
+}
+
+void
+SheetLoadData::ScheduleLoadEventIfNeeded(nsresult aStatus)
+{
+  if (!mOwningElement) {
+    return;
+  }
+
+  mStatus = aStatus;
+
+  nsCOMPtr<nsIThread> thread = do_GetMainThread();
+  nsCOMPtr<nsIThreadInternal> internalThread = do_QueryInterface(thread);
+  if (NS_SUCCEEDED(internalThread->AddObserver(this))) {
+    
+    if (mLoader->mDocument) {
+      mLoader->mDocument->BlockOnload();
+    }
+  }
 }
 
 
@@ -1661,6 +1748,7 @@ Loader::DoSheetComplete(SheetLoadData* aLoadData, nsresult aStatus,
                       "should not get marked modified during parsing");
     if (!data->mSheetAlreadyComplete) {
       data->mSheet->SetComplete();
+      data->ScheduleLoadEventIfNeeded(aStatus);
     }
     if (data->mMustNotify && (data->mObserver || !mObservers.IsEmpty())) {
       
@@ -1689,6 +1777,9 @@ Loader::DoSheetComplete(SheetLoadData* aLoadData, nsresult aStatus,
     data = data->mNext;
   }
 
+  
+  
+  
   
   if (NS_SUCCEEDED(aStatus) && aLoadData->mURI) {
 #ifdef MOZ_XUL
@@ -2161,6 +2252,12 @@ Loader::PostLoadEvent(nsIURI* aURI,
     
     evt->mMustNotify = PR_TRUE;
     evt->mSheetAlreadyComplete = PR_TRUE;
+
+    
+    
+    
+    
+    evt->ScheduleLoadEventIfNeeded(NS_OK);
   }
 
   return rv;
