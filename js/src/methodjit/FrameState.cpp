@@ -651,20 +651,25 @@ FrameState::syncForBranch(jsbytecode *target, Uses uses)
         if (!freeRegs.hasReg(reg))
             relocateReg(reg, alloc, uses);
 
+        
+
+
+
+
+
+
+
         if (reg.isReg()) {
-            JS_ASSERT_IF(fe->isType(JSVAL_TYPE_DOUBLE), fe->isConstant());
+            if (fe->isType(JSVAL_TYPE_DOUBLE)) {
+                syncFe(fe);
+                forgetAllRegs(fe);
+                fe->resetSynced();
+            }
 
             RegisterID nreg = reg.reg();
             if (fe->data.inMemory()) {
                 masm.loadPayload(addressOf(fe), nreg);
             } else if (fe->isConstant()) {
-                if (fe->isType(JSVAL_TYPE_DOUBLE)) {
-                    
-
-
-
-                    syncFe(fe);
-                }
                 masm.loadValuePayload(fe->getValue(), nreg);
             } else {
                 JS_ASSERT(fe->data.inRegister() && fe->data.reg() != nreg);
