@@ -1,9 +1,9 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=4 sw=4 et tw=99 ft=cpp:
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
+
 
 #ifndef dombindings_h
 #define dombindings_h
@@ -78,19 +78,8 @@ class NoBase {
 public:
     static JSObject *getPrototype(JSContext *cx, XPCWrappedNativeScope *scope,
                                   JSObject *receiver);
-    static bool shouldCacheProtoShape(JSContext *cx, JSObject *proto, bool *shouldCache)
-    {
-        *shouldCache = true;
-        return true;
-    }
     static bool resolveNativeName(JSContext *cx, JSObject *proxy, jsid id, JSPropertyDescriptor *desc)
     {
-        return true;
-    }
-    static bool nativeGet(JSContext *cx, JSObject *proxy, JSObject *proto, jsid id, bool *found,
-                          JS::Value *vp)
-    {
-        *found = false;
         return true;
     }
     static nsISupports* nativeToSupports(nsISupports* aNative)
@@ -144,9 +133,6 @@ private:
 
     static JSObject *ensureExpandoObject(JSContext *cx, JSObject *obj);
 
-    static js::Shape *getProtoShape(JSObject *obj);
-    static void setProtoShape(JSObject *obj, js::Shape *shape);
-
     static JSBool length_getter(JSContext *cx, JSHandleObject obj, JSHandleId id, JSMutableHandleValue vp);
 
     static inline bool getItemAt(ListType *list, uint32_t i, IndexGetterType &item);
@@ -193,7 +179,7 @@ public:
     bool keys(JSContext *cx, JSObject *proxy, JS::AutoIdVector &props);
     bool iterate(JSContext *cx, JSObject *proxy, unsigned flags, JS::Value *vp);
 
-    /* Spidermonkey extensions. */
+    
     bool hasInstance(JSContext *cx, JSObject *proxy, const JS::Value *vp, bool *bp);
     JSString *obj_toString(JSContext *cx, JSObject *proxy);
     void finalize(JSFreeOp *fop, JSObject *proxy);
@@ -213,12 +199,8 @@ public:
 
     static JSObject *getPrototype(JSContext *cx, XPCWrappedNativeScope *scope,
                                   JSObject *receiver);
-    static inline bool protoIsClean(JSContext *cx, JSObject *proto, bool *isClean);
-    static bool shouldCacheProtoShape(JSContext *cx, JSObject *proto, bool *shouldCache);
     static bool resolveNativeName(JSContext *cx, JSObject *proxy, jsid id,
                                   JSPropertyDescriptor *desc);
-    static bool nativeGet(JSContext *cx, JSObject *proxy, JSObject *proto, jsid id, bool *found,
-                          JS::Value *vp);
     static ListType *getNative(JSObject *proxy);
     static nsISupports* nativeToSupports(ListType* aNative)
     {
@@ -241,4 +223,4 @@ struct nsISupportsResult
 
 #include "dombindings_gen.h"
 
-#endif /* dombindings_h */
+#endif 
