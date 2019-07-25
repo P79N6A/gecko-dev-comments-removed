@@ -74,8 +74,6 @@ public:
   NS_SCRIPTABLE NS_IMETHOD RequestDecode(void);
   NS_SCRIPTABLE NS_IMETHOD LockImage(void);
   NS_SCRIPTABLE NS_IMETHOD UnlockImage(void);
-  NS_SCRIPTABLE NS_IMETHOD GetAnimationMode(PRUint16 *aAnimationMode);
-  NS_SCRIPTABLE NS_IMETHOD SetAnimationMode(PRUint16 aAnimationMode);
   NS_SCRIPTABLE NS_IMETHOD ResetAnimation(void);
   
 
@@ -100,6 +98,7 @@ public:
 protected:
   virtual nsresult StartAnimation();
   virtual nsresult StopAnimation();
+  virtual PRBool   ShouldAnimate();
 
 private:
   nsWeakPtr                          mObserver;   
@@ -117,8 +116,6 @@ private:
                                           
                                           
                                           
-
-  PRUint16       mAnimationMode;          
 
   PRPackedBool   mIsInitialized:1;        
   PRPackedBool   mIsFullyLoaded:1;        

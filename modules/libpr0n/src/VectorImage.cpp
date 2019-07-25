@@ -210,7 +210,6 @@ VectorImage::VectorImage(imgStatusTracker* aStatusTracker) :
   Image(aStatusTracker), 
   mRestrictedRegion(0, 0, 0, 0),
   mLastRenderedSize(0, 0),
-  mAnimationMode(kNormalAnimMode),
   mIsInitialized(PR_FALSE),
   mIsFullyLoaded(PR_FALSE),
   mHaveAnimations(PR_FALSE),
@@ -275,14 +274,9 @@ VectorImage::StartAnimation()
   if (mError)
     return NS_ERROR_FAILURE;
 
-  if (mAnimationMode == kDontAnimMode ||
-      !mIsFullyLoaded || !mHaveAnimations) {
-    
-    return NS_OK;
-  }
+  NS_ABORT_IF_FALSE(ShouldAnimate(), "Should not animate!");
 
   mSVGDocumentWrapper->StartAnimation();
-
   return NS_OK;
 }
 
@@ -292,13 +286,17 @@ VectorImage::StopAnimation()
   if (mError)
     return NS_ERROR_FAILURE;
 
-  if (!mIsFullyLoaded || !mHaveAnimations) {
-    return NS_OK;
-  }
+  NS_ABORT_IF_FALSE(mIsFullyLoaded && mHaveAnimations,
+                    "Should not have been animating!");
 
   mSVGDocumentWrapper->StopAnimation();
-
   return NS_OK;
+}
+
+PRBool
+VectorImage::ShouldAnimate()
+{
+  return Image::ShouldAnimate() && mIsFullyLoaded && mHaveAnimations;
 }
 
 
@@ -589,46 +587,6 @@ NS_IMETHODIMP
 VectorImage::UnlockImage()
 {
   
-  return NS_OK;
-}
-
-
-
-NS_IMETHODIMP
-VectorImage::GetAnimationMode(PRUint16* aAnimationMode)
-{
-  if (mError)
-    return NS_ERROR_FAILURE;
-
-  NS_ENSURE_ARG_POINTER(aAnimationMode);
-  
-  *aAnimationMode = mAnimationMode;
-  return NS_OK;
-}
-
-
-
-NS_IMETHODIMP
-VectorImage::SetAnimationMode(PRUint16 aAnimationMode)
-{
-  
-  
-  if (mError)
-    return NS_ERROR_FAILURE;
-
-  NS_ASSERTION(aAnimationMode == kNormalAnimMode ||
-               aAnimationMode == kDontAnimMode ||
-               aAnimationMode == kLoopOnceAnimMode,
-               "An unrecognized Animation Mode is being set!");
-
-  mAnimationMode = aAnimationMode;
-
-  if (mAnimationMode == kDontAnimMode) {
-    StopAnimation();
-  } else { 
-    StartAnimation();
-  }
-
   return NS_OK;
 }
 
