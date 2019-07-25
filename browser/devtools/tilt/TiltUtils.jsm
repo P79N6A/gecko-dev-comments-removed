@@ -555,18 +555,6 @@ TiltUtils.getWindowId = function TU_getWindowId(aWindow)
 
 
 
-TiltUtils.getDocumentZoom = function TU_getDocumentZoom(aChromeWindow) {
-  return aChromeWindow.gBrowser.selectedBrowser.markupDocumentViewer.fullZoom;
-};
-
-
-
-
-
-
-
-
-
 TiltUtils.setDocumentZoom = function TU_setDocumentZoom(aChromeWindow, aZoom) {
   aChromeWindow.gBrowser.selectedBrowser.markupDocumentViewer.fullZoom = aZoom;
 };
