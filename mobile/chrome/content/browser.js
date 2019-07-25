@@ -2807,8 +2807,9 @@ Tab.prototype = {
 
     
     
-    if (viewportH * this.clampZoomLevel(this.getPageZoomLevel()) < screenH)
-      viewportH = Math.max(viewportH, screenH * (browser.contentDocumentWidth / screenW));
+    let pageZoomLevel = this.getPageZoomLevel(screenW);
+    let minScale = this.clampZoomLevel(pageZoomLevel, pageZoomLevel);
+    viewportH = Math.max(viewportH, screenH / minScale);
 
     if (browser.contentWindowWidth != viewportW || browser.contentWindowHeight != viewportH)
       browser.setWindowSize(viewportW, viewportH);
@@ -2940,11 +2941,23 @@ Tab.prototype = {
     }
   },
 
-  clampZoomLevel: function clampZoomLevel(aScale) {
+  
+
+
+
+
+
+  clampZoomLevel: function clampZoomLevel(aScale, aPageZoomLevel) {
+    let md = this.metadata;
+    if (!this.allowZoom) {
+      return (md && md.defaultZoom)
+        ? md.defaultZoom
+        : (aPageZoomLevel || this.getPageZoomLevel());
+    }
+
     let browser = this._browser;
     let bounded = Util.clamp(aScale, ZoomManager.MIN, ZoomManager.MAX);
 
-    let md = this.metadata;
     if (md && md.minZoom)
       bounded = Math.max(bounded, md.minZoom);
     if (md && md.maxZoom)
@@ -3023,12 +3036,18 @@ Tab.prototype = {
     return this.clampZoomLevel(pageZoom);
   },
 
-  getPageZoomLevel: function getPageZoomLevel() {
+  
+
+
+
+
+  getPageZoomLevel: function getPageZoomLevel(aScreenWidth) {
     let browserW = this._browser.contentDocumentWidth;
     if (browserW == 0)
       return 1.0;
 
-    return this._browser.getBoundingClientRect().width / browserW;
+    let screenW = aScreenWidth || this._browser.getBoundingClientRect().width;
+    return screenW / browserW;
   },
 
   get allowZoom() {
