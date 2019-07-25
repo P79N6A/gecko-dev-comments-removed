@@ -96,6 +96,7 @@ window.TabItem.prototype = $.extend(new Item(), {
     this.bounds.copy(rect);
     
     
+    
     if(immediately || (!this._hasBeenDrawn) ) {
       $container.css(css);
     } else {
