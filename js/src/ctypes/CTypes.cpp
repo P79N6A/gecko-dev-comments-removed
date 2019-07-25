@@ -2181,15 +2181,24 @@ BuildTypeName(JSContext* cx, JSObject* typeObj)
       FunctionInfo* fninfo = FunctionType::GetFunctionInfo(typeObj);
 
       
+      
+      
+      
+      
       ABICode abi = GetABICode(fninfo->mABI);
       if (abi == ABI_STDCALL)
-        PrependString(result, "__stdcall ");
+        PrependString(result, "__stdcall");
       else if (abi == ABI_WINAPI)
-        PrependString(result, "WINAPI ");
+        PrependString(result, "WINAPI");
 
       
-      PrependString(result, "(");
-      AppendString(result, ")");
+      
+      
+      
+      if (prevGrouping == TYPE_pointer) {
+        PrependString(result, "(");
+        AppendString(result, ")");
+      }
 
       
       AppendString(result, "(");
@@ -2216,6 +2225,13 @@ BuildTypeName(JSContext* cx, JSObject* typeObj)
     }
     break;
   }
+
+  
+  
+  if (('a' <= result[0] && result[0] <= 'z') ||
+      ('A' <= result[0] && result[0] <= 'Z') ||
+      (result[0] == '_'))
+    PrependString(result, " ");
 
   
   JSString* baseName = CType::GetName(cx, typeObj);
