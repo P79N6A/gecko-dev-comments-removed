@@ -36,6 +36,7 @@
 
 
 
+
 "use strict";
 
 const Cu = Components.utils;
@@ -1126,6 +1127,15 @@ DebuggerView.Scripts = {
       }
     }
   },
+
+   
+
+
+
+   get selected() {
+    return this._scripts.selectedItem ?
+           this._scripts.selectedItem.value : null;
+   },
 
   
 

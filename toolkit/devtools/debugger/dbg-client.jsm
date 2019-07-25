@@ -38,6 +38,7 @@
 
 
 
+
 "use strict";
 const Ci = Components.interfaces;
 const Cc = Components.classes;
@@ -644,7 +645,8 @@ ThreadClient.prototype = {
               }
               return;
             }
-            let bpClient = new BreakpointClient(this._client, aResponse.actor);
+            let bpClient = new BreakpointClient(this._client, aResponse.actor,
+                                                aLocation);
             if (aCallback) {
               aCallback(aOnResponse(aResponse, bpClient));
             } else {
@@ -952,9 +954,13 @@ GripClient.prototype = {
 
 
 
-function BreakpointClient(aClient, aActor) {
+
+
+
+function BreakpointClient(aClient, aActor, aLocation) {
   this._client = aClient;
   this._actor = aActor;
+  this.location = aLocation;
 }
 
 BreakpointClient.prototype = {

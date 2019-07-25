@@ -38,6 +38,7 @@
 
 
 
+
 "use strict";
 
 const Cc = Components.classes;
@@ -60,9 +61,37 @@ function DebuggerPane(aTab) {
   this._tab = aTab;
   this._close = this.close.bind(this);
   this._debugTab = this.debugTab.bind(this);
+  this.breakpoints = {};
 }
 
 DebuggerPane.prototype = {
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _skipEditorBreakpointChange: false,
+
+  
+
+
+
+
+
+
+
+  breakpoints: null,
+
   
 
 
@@ -87,11 +116,15 @@ DebuggerPane.prototype = {
       self.frame.removeEventListener("DOMContentLoaded", initPane, true);
       
       self.frame.contentWindow.editor = self.editor = new SourceEditor();
+      self.frame.contentWindow.updateEditorBreakpoints =
+        self._updateEditorBreakpoints.bind(self);
 
       let config = {
         mode: SourceEditor.MODES.JAVASCRIPT,
         showLineNumbers: true,
-        readOnly: true
+        readOnly: true,
+        showAnnotationRuler: true,
+        showOverviewRuler: true,
       };
 
       let editorPlaceholder = self.frame.contentDocument.getElementById("editor");
@@ -107,6 +140,8 @@ DebuggerPane.prototype = {
 
 
   _onEditorLoad: function DP__onEditorLoad() {
+    this.editor.addEventListener(SourceEditor.EVENTS.BREAKPOINT_CHANGE,
+                                 this._onEditorBreakpointChange.bind(this));
     
     this.connect();
   },
@@ -114,7 +149,208 @@ DebuggerPane.prototype = {
   
 
 
+
+
+
+
+
+
+  _onEditorBreakpointChange: function DP__onEditorBreakpointChange(aEvent) {
+    if (this._skipEditorBreakpointChange) {
+      return;
+    }
+
+    aEvent.added.forEach(this._onEditorBreakpointAdd, this);
+    aEvent.removed.forEach(this._onEditorBreakpointRemove, this);
+  },
+
+  
+
+
+
+
+
+
+  _selectedScript: function DP__selectedScript() {
+    return this.debuggerWindow ?
+           this.debuggerWindow.DebuggerView.Scripts.selected : null;
+  },
+
+  
+
+
+
+
+
+
+  _onEditorBreakpointAdd: function DP__onEditorBreakpointAdd(aBreakpoint) {
+    let location = {
+      url: this._selectedScript(),
+      line: aBreakpoint.line + 1,
+    };
+
+    if (location.url) {
+      let callback = function (aClient, aError) {
+        if (aError) {
+          this._skipEditorBreakpointChange = true;
+          let result = this.editor.removeBreakpoint(aBreakpoint.line);
+          this._skipEditorBreakpointChange = false;
+        }
+      }.bind(this);
+      this.addBreakpoint(location, callback, true);
+    }
+  },
+
+  
+
+
+
+
+
+
+  _onEditorBreakpointRemove: function DP__onEditorBreakpointRemove(aBreakpoint) {
+    let url = this._selectedScript();
+    let line = aBreakpoint.line + 1;
+    if (!url) {
+      return;
+    }
+
+    let breakpoint = this.getBreakpoint(url, line);
+    if (breakpoint) {
+      this.removeBreakpoint(breakpoint, null, true);
+    }
+  },
+
+  
+
+
+
+
+
+
+  _updateEditorBreakpoints: function DP__updateEditorBreakpoints()
+  {
+    let url = this._selectedScript();
+    if (!url) {
+      return;
+    }
+
+    this._skipEditorBreakpointChange = true;
+    for each (let breakpoint in this.breakpoints) {
+      if (breakpoint.location.url == url) {
+        this.editor.addBreakpoint(breakpoint.location.line - 1);
+      }
+    }
+    this._skipEditorBreakpointChange = false;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  addBreakpoint:
+  function DP_addBreakpoint(aLocation, aCallback, aNoEditorUpdate) {
+    let breakpoint = this.getBreakpoint(aLocation.url, aLocation.line);
+    if (breakpoint) {
+      aCallback && aCallback(breakpoint);
+      return;
+    }
+
+    this.activeThread.setBreakpoint(aLocation, function(aResponse, aBpClient) {
+      if (!aResponse.error) {
+        this.breakpoints[aBpClient.actor] = aBpClient;
+
+        if (!aNoEditorUpdate) {
+          let url = this._selectedScript();
+          if (url == aLocation.url) {
+            this._skipEditorBreakpointChange = true;
+            this.editor.addBreakpoint(aLocation.line - 1);
+            this._skipEditorBreakpointChange = false;
+          }
+        }
+      }
+
+      aCallback && aCallback(aBpClient, aResponse.error);
+    }.bind(this));
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  removeBreakpoint:
+  function DP_removeBreakpoint(aBreakpoint, aCallback, aNoEditorUpdate) {
+    if (!(aBreakpoint.actor in this.breakpoints)) {
+      aCallback && aCallback(aBreakpoint.location);
+      return;
+    }
+
+    aBreakpoint.remove(function() {
+      delete this.breakpoints[aBreakpoint.actor];
+
+      if (!aNoEditorUpdate) {
+        let url = this._selectedScript();
+        if (url == aBreakpoint.location.url) {
+          this._skipEditorBreakpointChange = true;
+          this.editor.removeBreakpoint(aBreakpoint.location.line - 1);
+          this._skipEditorBreakpointChange = false;
+        }
+      }
+
+      aCallback && aCallback(aBreakpoint.location);
+    }.bind(this));
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  getBreakpoint: function DP_getBreakpoint(aUrl, aLine) {
+    for each (let breakpoint in this.breakpoints) {
+      if (breakpoint.location.url == aUrl && breakpoint.location.line == aLine) {
+        return breakpoint;
+      }
+    }
+    return null;
+  },
+
+  
+
+
   close: function DP_close() {
+    for each (let breakpoint in this.breakpoints) {
+      this.removeBreakpoint(breakpoint);
+    }
+
     if (this._tab) {
       this._tab._scriptDebugger = null;
       this._tab = null;
@@ -192,7 +428,7 @@ DebuggerPane.prototype = {
   },
 
   get debuggerWindow() {
-    return this.frame.contentWindow;
+    return this.frame ? this.frame.contentWindow : null;
   },
 
   get debuggerClient() {
@@ -340,6 +576,7 @@ DebuggerUI.prototype = {
     script.text = aSourceText;
     script.contentType = aContentType;
     elt.setUserData("sourceScript", script, null);
+    dbg._updateEditorBreakpoints();
   }
 };
 
