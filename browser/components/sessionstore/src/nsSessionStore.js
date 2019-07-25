@@ -116,7 +116,7 @@ const CAPABILITIES = [
 
 
 const INTERNAL_KEYS = ["_tabStillLoading", "_hosts", "_formDataSaved",
-                       "_shouldRestore"];
+                       "_shouldRestore", "_host", "_scheme"];
 
 
 const TAB_EVENTS = ["TabOpen", "TabClose", "TabSelect", "TabShow", "TabHide",
@@ -1770,7 +1770,15 @@ SessionStoreService.prototype = {
   _serializeHistoryEntry:
     function sss_serializeHistoryEntry(aEntry, aFullData, aIsPinned) {
     var entry = { url: aEntry.URI.spec };
-    
+
+    try {
+      entry._host = aEntry.URI.host;
+      entry._scheme = aEntry.URI.scheme;
+    }
+    catch (ex) {
+      
+    }
+
     if (aEntry.title && aEntry.title != entry.url) {
       entry.title = aEntry.title;
     }
@@ -2178,21 +2186,20 @@ SessionStoreService.prototype = {
 
   _extractHostsForCookies:
     function sss__extractHostsForCookies(aEntry, aHosts, aCheckPrivacy, aIsPinned) {
-    let match;
 
-    if ((match = /^https?:\/\/(?:[^@\/\s]+@)?([\w.-]+)/.exec(aEntry.url)) != null) {
-      if (!aHosts[match[1]] &&
-          (!aCheckPrivacy ||
-           this._checkPrivacyLevel(this._getURIFromString(aEntry.url).schemeIs("https"),
-                                   aIsPinned))) {
-        
-        
-        aHosts[match[1]] = aIsPinned;
-      }
+    
+    
+    if (/https?/.test(aEntry._scheme) && !aHosts[aEntry._host] &&
+        (!aCheckPrivacy ||
+         this._checkPrivacyLevel(aEntry._scheme == "https", aIsPinned))) {
+      
+      
+      aHosts[aEntry._host] = aIsPinned;
     }
-    else if ((match = /^file:\/\/([^\/]*)/.exec(aEntry.url)) != null) {
-      aHosts[match[1]] = true;
+    else if (aEntry._scheme == "file") {
+      aHosts[aEntry._host] = true;
     }
+
     if (aEntry.children) {
       aEntry.children.forEach(function(entry) {
         this._extractHostsForCookies(entry, aHosts, aCheckPrivacy, aIsPinned);
