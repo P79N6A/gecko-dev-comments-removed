@@ -301,11 +301,7 @@ findbar .findbar-closebutton {
 }
 
 
-
 .prefbox {
-  padding: 0.25mm 1.1mm;
-  border-bottom: 0.05mm solid rgb(207,207,207);
-  min-height: 7.2mm; 
   -moz-box-align: start;
   -moz-box-orient: vertical;
 }
