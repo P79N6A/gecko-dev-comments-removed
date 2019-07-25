@@ -47,37 +47,16 @@
 
 namespace mozilla {
 namespace layers {
+
+class CompositorParent;
+class LayerManager;
+
 namespace compositor {
 
 
 
 
-extern int sShadowNativeContext;
-
-class ShadowNativeContextUserData : public LayerUserData
-{
-public:
-  ShadowNativeContextUserData(void *aNativeContext)
-    : mNativeContext(aNativeContext)
-  {
-    MOZ_COUNT_CTOR(ShadowNativeContextUserData);
-  }
-  ~ShadowNativeContextUserData()
-  {
-    MOZ_COUNT_DTOR(ShadowNativeContextUserData);
-  }
-
-  
-  
-  
-  
-  void* GetNativeContext() {
-    return mNativeContext;
-  }
-private:
-  void *mNativeContext;
-};
-
+LayerManager* GetLayerManager(CompositorParent* aParent);
 
 }
 }
