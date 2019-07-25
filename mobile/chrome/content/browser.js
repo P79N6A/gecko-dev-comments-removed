@@ -108,19 +108,22 @@ var Browser = {
     Cc["@mozilla.org/login-manager;1"].getService(Ci.nsILoginManager);
 
     
-    var whereURI = null;
-    try {
-      
-      whereURI = this.prefs.getCharPref("browser.startup.homepage");
-    }
-    catch (e) {
-    }
-
     
     if (window.arguments && window.arguments[0]) {
+      var whereURI = null;
+
       try {
+        
         var cmdLine = window.arguments[0].QueryInterface(Ci.nsICommandLine);
+
+        try {
+          
+          whereURI = this.prefs.getCharPref("browser.startup.homepage");
+        } catch (e) {}
+
+        
         if (cmdLine.length == 1) {
+          
           var uri = cmdLine.getArgument(0);
           if (uri != "" && uri[0] != '-') {
             whereURI = cmdLine.resolveURI(uri);
@@ -128,14 +131,20 @@ var Browser = {
               whereURI = whereURI.spec;
           }
         }
-      }
-      catch (e) {
-      }
-    }
 
-    if (whereURI) {
-      var self = this;
-      setTimeout(function() { self.content.browser.loadURI(whereURI, null, null, false); }, 10);
+        
+        uriFlag = cmdLine.handleFlagWithParam("url", false);
+        if (uriFlag) {
+          whereURI = cmdLine.resolveURI(uriFlag);
+          if (whereURI)
+            whereURI = whereURI.spec;
+        }
+      } catch (e) {}
+
+      if (whereURI) {
+        var self = this;
+        setTimeout(function() { self.content.browser.loadURI(whereURI, null, null, false); }, 10);
+      }
     }
   },
 
@@ -164,7 +173,7 @@ var Browser = {
             callback: function(){request.cancel()},
           }];
 
-        var message = bundle_browser.getFormattedString("geolocation.requestMessage", [request.requestingURI.spec]);      
+        var message = bundle_browser.getFormattedString("geolocation.requestMessage", [request.requestingURI.spec]);
         notificationBox.appendNotification(message,
                                            "geolocation",
                                            null, 
