@@ -587,8 +587,19 @@ nsSliderFrame::HandleEvent(nsPresContext* aPresContext,
 
   
 
-  if (aEvent->message == NS_MOUSE_EXIT_SYNTH && mChange)
-     HandleRelease(aPresContext, aEvent, aEventStatus);
+  if (aEvent->message == NS_MOUSE_EXIT_SYNTH && mChange) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    HandleRelease(aPresContext, aEvent, aEventStatus);
+    nsIPresShell::SetCapturingContent(nsnull, 0);
+  }
 
   return nsFrame::HandleEvent(aPresContext, aEvent, aEventStatus);
 }
