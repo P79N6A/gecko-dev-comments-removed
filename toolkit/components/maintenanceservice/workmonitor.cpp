@@ -88,6 +88,19 @@ IsStatusApplying(LPCWSTR updateDirPath, BOOL &isApplying)
 
 
 
+static bool
+IsUpdateBeingStaged(int argc, LPWSTR *argv)
+{
+  
+  return argc == 4 && !wcscmp(argv[3], L"-1");
+}
+
+
+
+
+
+
+
 
 static BOOL
 GetInstallationDir(int argcTmp, LPWSTR *argvTmp, WCHAR aResultDir[MAX_PATH])
@@ -101,8 +114,7 @@ GetInstallationDir(int argcTmp, LPWSTR *argvTmp, WCHAR aResultDir[MAX_PATH])
   if (backSlash && (backSlash[1] == L'\0')) {
     *backSlash = L'\0';
   }
-  
-  bool backgroundUpdate = (argcTmp == 4 && !wcscmp(argvTmp[3], L"-1"));
+  bool backgroundUpdate = IsUpdateBeingStaged(argcTmp, argvTmp);
   bool replaceRequest = (argcTmp >= 4 && wcsstr(argvTmp[3], L"/replace"));
   if (backgroundUpdate || replaceRequest) {
     return PathRemoveFileSpecW(aResultDir);
@@ -239,7 +251,7 @@ StartUpdateProcess(int argc,
     if (updateWasSuccessful && argc > 2) {
       LPCWSTR installationDir = argv[2];
       LPCWSTR updateInfoDir = argv[1];
-      bool backgroundUpdate = (argc == 4 && !wcscmp(argv[3], L"-1"));
+      bool backgroundUpdate = IsUpdateBeingStaged(argc, argv);
 
       
       
@@ -414,8 +426,11 @@ ProcessSoftwareUpdateCommand(DWORD argc, LPWSTR *argv)
       LogFlush();
 
       
-      
-      StartServiceUpdate(installDir);
+      if (!IsUpdateBeingStaged(argc, argv)) {
+        
+        
+        StartServiceUpdate(installDir);
+      }
     } else {
       result = FALSE;
       LOG(("Error running update process. Updating update.status"
