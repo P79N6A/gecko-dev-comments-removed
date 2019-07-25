@@ -614,7 +614,7 @@ let Utils = {
     thisObj = thisObj || {};
 
     
-    if (thisObj[name] instanceof Ci.nsITimer) {
+    if (name in thisObj && thisObj[name] instanceof Ci.nsITimer) {
       thisObj[name].delay = wait;
       return;
     }
