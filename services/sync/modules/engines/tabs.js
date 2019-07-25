@@ -35,6 +35,7 @@
 
 
 
+
 const EXPORTED_SYMBOLS = ['TabEngine'];
 
 const Cc = Components.classes;
@@ -69,6 +70,14 @@ TabEngine.prototype = {
   _trackerObj: TabTracker,
   _recordObj: TabSetRecord,
 
+  getChangedIDs: function getChangedIDs() {
+    
+    let changedIDs = {};
+    if (this._tracker.modified)
+      changedIDs[Clients.localID] = 0;
+    return changedIDs;
+  },
+
   
   getAllClients: function TabEngine_getAllClients() {
     return this._store._remoteClients;
@@ -81,6 +90,7 @@ TabEngine.prototype = {
   _resetClient: function TabEngine__resetClient() {
     SyncEngine.prototype._resetClient.call(this);
     this._store.wipe();
+    this._tracker.modified = true;
   },
 
   
@@ -237,6 +247,14 @@ TabTracker.prototype = {
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver]),
 
+  loadChangedIDs: function loadChangedIDs() {
+    
+  },
+
+  clearChangedIDs: function clearChangedIDs() {
+    this.modified = false;
+  },
+
   _topics: ["pageshow", "TabOpen", "TabClose", "TabSelect"],
   _registerListenersForWindow: function registerListenersFW(window) {
     this._log.trace("Registering tab listeners in window");
@@ -292,7 +310,7 @@ TabTracker.prototype = {
         break;
       case "private-browsing":
         if (aData == "enter" && !PBPrefs.get("autostart"))
-          this.clearChangedIDs();
+          this.modified = false;
     }
   },
 
@@ -303,7 +321,7 @@ TabTracker.prototype = {
     }
 
     this._log.trace("onTab event: " + event.type);
-    this.addChangedID(Clients.localID);
+    this.modified = true;
 
     
     let chance = .1;
