@@ -94,6 +94,8 @@ HttpChannelParent::RecvAsyncOpen(const IPC::URI&            aURI,
                                  const PRUint32&            loadFlags,
                                  const RequestHeaderTuples& requestHeaders,
                                  const nsHttpAtom&          requestMethod,
+                                 const nsCString&           uploadStreamData,
+                                 const PRInt32&             uploadStreamInfo,
                                  const PRUint16&            priority,
                                  const PRUint8&             redirectionLimit,
                                  const PRBool&              allowPipelining,
@@ -139,6 +141,19 @@ HttpChannelParent::RecvAsyncOpen(const IPC::URI&            aURI,
   httpChan->SetNotificationCallbacks(this);
 
   httpChan->SetRequestMethod(nsDependentCString(requestMethod.get()));
+
+  if (uploadStreamInfo != eUploadStream_null) {
+    nsCOMPtr<nsIInputStream> stream;
+    rv = NS_NewPostDataStream(getter_AddRefs(stream), false, uploadStreamData, 0);
+    if (!NS_SUCCEEDED(rv)) {
+      return false;   
+    }
+    httpChan->InternalSetUploadStream(stream);
+    
+    
+    httpChan->SetUploadStreamHasHeaders((PRBool) uploadStreamInfo);
+  }
+
   if (priority != nsISupportsPriority::PRIORITY_NORMAL)
     httpChan->SetPriority(priority);
   httpChan->SetRedirectionLimit(redirectionLimit);

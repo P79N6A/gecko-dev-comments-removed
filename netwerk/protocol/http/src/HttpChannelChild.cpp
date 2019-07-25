@@ -88,8 +88,6 @@ NS_INTERFACE_MAP_BEGIN(HttpChannelChild)
   NS_INTERFACE_MAP_ENTRY(nsIHttpChannel)
   NS_INTERFACE_MAP_ENTRY(nsIHttpChannelInternal)
   NS_INTERFACE_MAP_ENTRY(nsICachingChannel)
-  NS_INTERFACE_MAP_ENTRY(nsIUploadChannel)
-  NS_INTERFACE_MAP_ENTRY(nsIUploadChannel2)
   NS_INTERFACE_MAP_ENTRY(nsIEncodedChannel)
   NS_INTERFACE_MAP_ENTRY(nsIResumableChannel)
   NS_INTERFACE_MAP_ENTRY(nsISupportsPriority)
@@ -282,6 +280,34 @@ HttpChannelChild::AsyncOpen(nsIStreamListener *listener, nsISupports *aContext)
     return rv;
 
   
+  nsCAutoString uploadStreamData;
+  PRInt32 uploadStreamInfo;
+
+  if (mUploadStream) {
+    
+    
+    
+    
+    PRUint32 bytes;
+    mUploadStream->Available(&bytes);
+    if (bytes > 0) {
+      rv = NS_ReadInputStreamToString(mUploadStream, uploadStreamData, bytes);
+      if (!NS_SUCCEEDED(rv))
+        return rv;
+    }
+
+    uploadStreamInfo = mUploadStreamHasHeaders ? 
+      eUploadStream_hasHeaders : eUploadStream_hasNoHeaders;
+  } else {
+    uploadStreamInfo = eUploadStream_null;
+  }
+
+  
+
+  
+  
+  
+  
 
   
   gHttpHandler->OnModifyRequest(this);
@@ -317,8 +343,9 @@ HttpChannelChild::AsyncOpen(nsIStreamListener *listener, nsISupports *aContext)
   gNeckoChild->SendPHttpChannelConstructor(this);
 
   SendAsyncOpen(IPC::URI(mURI), IPC::URI(mOriginalURI), IPC::URI(mDocumentURI),
-                IPC::URI(mReferrer), mLoadFlags, mRequestHeaders,
-                mRequestHead.Method(), mPriority, mRedirectionLimit,
+                IPC::URI(mReferrer), mLoadFlags, mRequestHeaders, 
+                mRequestHead.Method(), uploadStreamData, 
+                uploadStreamInfo, mPriority, mRedirectionLimit, 
                 mAllowPipelining, mForceAllowThirdPartyCookie);
 
   
@@ -452,41 +479,6 @@ HttpChannelChild::IsFromCache(PRBool *value)
   
   *value = false;
   return NS_OK;
-}
-
-
-
-
-
-NS_IMETHODIMP
-HttpChannelChild::SetUploadStream(nsIInputStream *aStream, 
-                                  const nsACString& aContentType, 
-                                  PRInt32 aContentLength)
-{
-  DROP_DEAD();
-}
-
-NS_IMETHODIMP
-HttpChannelChild::GetUploadStream(nsIInputStream **stream)
-{
-  
-  NS_ENSURE_ARG_POINTER(stream);
-  *stream = 0;
-  return NS_OK;
-}
-
-
-
-
-
-NS_IMETHODIMP
-HttpChannelChild::ExplicitSetUploadStream(nsIInputStream *aStream, 
-                                          const nsACString& aContentType, 
-                                          PRInt64 aContentLength, 
-                                          const nsACString& aMethod, 
-                                          PRBool aStreamHasHeaders)
-{
-  DROP_DEAD();
 }
 
 
