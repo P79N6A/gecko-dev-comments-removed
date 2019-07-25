@@ -77,6 +77,13 @@ public class GLController {
     }
 
     
+    public synchronized void resumeCompositorIfValid() {
+        if (mSurfaceValid) {
+            mView.getListener().compositionResumeRequested(mWidth, mHeight);
+        }
+    }
+
+    
     
     public synchronized void waitForValidSurface() {
         while (!mSurfaceValid) {

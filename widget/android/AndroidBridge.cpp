@@ -1108,11 +1108,28 @@ AndroidBridge::SetSurfaceView(jobject obj)
 }
 
 void
-AndroidBridge::SetLayerClient(jobject obj)
+AndroidBridge::SetLayerClient(JNIEnv* env, jobject jobj)
 {
+    
+    
+    
+    
+    bool resetting = (mLayerClient != NULL);
+
+    if (resetting) {
+        
+        env->DeleteGlobalRef(mLayerClient->wrappedObject());
+        delete mLayerClient;
+        mLayerClient = NULL;
+    }
+
     AndroidGeckoLayerClient *client = new AndroidGeckoLayerClient();
-    client->Init(obj);
+    client->Init(env->NewGlobalRef(jobj));
     mLayerClient = client;
+
+    if (resetting) {
+        RegisterCompositor(env, true);
+    }
 }
 
 void
@@ -1183,10 +1200,11 @@ AndroidBridge::CallEglCreateWindowSurface(void *dpy, void *config, AndroidGeckoS
 static AndroidGLController sController;
 
 void
-AndroidBridge::RegisterCompositor()
+AndroidBridge::RegisterCompositor(JNIEnv *env, bool resetting)
 {
     ALOG_BRIDGE("AndroidBridge::RegisterCompositor");
-    JNIEnv *env = GetJNIForCompositorThread();
+    if (!env)
+        env = GetJNIForCompositorThread();
     if (!env)
         return;
 
@@ -1198,8 +1216,12 @@ AndroidBridge::RegisterCompositor()
     if (jniFrame.CheckForException())
         return;
 
-    sController.Acquire(env, glController);
-    sController.SetGLVersion(2);
+    if (resetting) {
+        sController.Reacquire(env, glController);
+    } else {
+        sController.Acquire(env, glController);
+        sController.SetGLVersion(2);
+    }
 }
 
 EGLSurface
