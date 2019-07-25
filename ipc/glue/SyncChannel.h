@@ -81,9 +81,13 @@ public:
     
     virtual bool Send(Message* msg, Message* reply);
 
+    
+    
     void SetReplyTimeoutMs(int32 aTimeoutMs) {
         AssertWorkerThread();
-        mTimeoutMs = (aTimeoutMs <= 0) ? kNoTimeout : aTimeoutMs;
+        mTimeoutMs = (aTimeoutMs <= 0) ? kNoTimeout :
+          
+          (int32)ceil((double)aTimeoutMs/2.0);
     }
 
     static bool IsPumpingMessages() {
@@ -185,6 +189,12 @@ protected:
 
     static bool sIsPumpingMessages;
 
+    
+    
+    
+    
+    bool WaitResponse(bool aWaitTimedOut);
+    bool mInTimeoutSecondHalf;
     int32 mTimeoutMs;
 
 #ifdef OS_WIN

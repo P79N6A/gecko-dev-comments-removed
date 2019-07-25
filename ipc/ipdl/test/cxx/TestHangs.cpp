@@ -97,7 +97,7 @@ TestHangsParent::AnswerStackFrame()
     else {
         
         
-        SetReplyTimeoutMs(1);
+        SetReplyTimeoutMs(2);
 
         if (CallHang())
             fail("should have timed out!");

@@ -62,6 +62,7 @@ SyncChannel::SyncChannel(SyncListener* aListener)
   , mProcessingSyncMessage(false)
   , mNextSeqno(0)
   , mTimeoutMs(kNoTimeout)
+  , mInTimeoutSecondHalf(false)
 #ifdef OS_WIN
   , mTopFrame(NULL)
 #endif
@@ -283,6 +284,23 @@ SyncChannel::ShouldContinueFromTimeout()
     return cont;
 }
 
+bool
+SyncChannel::WaitResponse(bool aWaitTimedOut)
+{
+  if (aWaitTimedOut) {
+    if (mInTimeoutSecondHalf) {
+      
+      return false;
+    }
+    
+    mInTimeoutSecondHalf = true;
+  } else {
+    mInTimeoutSecondHalf = false;
+  }
+  return true;
+}
+
+
 
 
 
@@ -301,7 +319,7 @@ SyncChannel::WaitForNotify()
 
     
     
-    return !IsTimeoutExpired(waitStart, timeout);
+    return WaitResponse(IsTimeoutExpired(waitStart, timeout));
 }
 
 void
