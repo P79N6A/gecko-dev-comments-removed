@@ -3475,8 +3475,13 @@ nsTextFrame::ClearFrameOffsetCache()
   
   if (GetStateBits() & TEXT_IN_OFFSET_CACHE) {
     nsIFrame* primaryFrame = mContent->GetPrimaryFrame();
-    NS_ASSERTION(primaryFrame, "We should have a primary frame");
-    primaryFrame->Properties().Delete(OffsetToFrameProperty());
+    if (primaryFrame) {
+      
+      
+      
+      
+      primaryFrame->Properties().Delete(OffsetToFrameProperty());
+    }
     RemoveStateBits(TEXT_IN_OFFSET_CACHE);
   }
 }
