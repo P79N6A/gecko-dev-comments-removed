@@ -703,12 +703,10 @@ extern JS_FRIEND_DATA(js::Class) js_ScriptClass;
 extern JSObject *
 js_InitScriptClass(JSContext *cx, JSObject *obj);
 
+namespace js {
 
-
-
-
-extern JSBool
-js_InitRuntimeScriptState(JSRuntime *rt);
+extern bool
+InitRuntimeScriptState(JSRuntime *rt);
 
 
 
@@ -717,7 +715,9 @@ js_InitRuntimeScriptState(JSRuntime *rt);
 
 
 extern void
-js_FreeRuntimeScriptState(JSRuntime *rt);
+FreeRuntimeScriptState(JSRuntime *rt);
+
+} 
 
 extern void
 js_MarkScriptFilename(const char *filename);

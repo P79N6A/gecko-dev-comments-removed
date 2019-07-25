@@ -149,12 +149,15 @@ extern jsdouble js_NaN;
 extern jsdouble js_PositiveInfinity;
 extern jsdouble js_NegativeInfinity;
 
+namespace js {
 
-extern JSBool
-js_InitRuntimeNumberState(JSContext *cx);
+extern bool
+InitRuntimeNumberState(JSRuntime *rt);
 
 extern void
-js_FinishRuntimeNumberState(JSContext *cx);
+FinishRuntimeNumberState(JSRuntime *rt);
+
+} 
 
 
 extern js::Class js_NumberClass;
@@ -471,7 +474,7 @@ js_DoubleToECMAInt32(jsdouble d)
     
     
     
-    
+
     
     
     
