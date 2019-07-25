@@ -78,6 +78,9 @@ Readability.prototype = {
 
   _postProcessContent: function(articleContent) {
     this._fixImageFloats(articleContent);
+
+    
+    this._fixRelativeUris(articleContent);
   },
 
   
@@ -97,6 +100,48 @@ Readability.prototype = {
 
       if (image.offsetWidth > imageWidthThreshold)
         image.className += " blockImage";
+    }
+  },
+
+  
+
+
+
+
+
+  _fixRelativeUris: function(articleContent) {
+    let baseUri = this._uri;
+    let ioService = Cc["@mozilla.org/network/io-service;1"]
+        .getService(Components.interfaces.nsIIOService);
+
+    
+    let links = articleContent.getElementsByTagName('a');
+    for (let i = links.length - 1; i >= 0; i--) {
+      links[i].href = this._newURIErrorWrapper(links[i].href, baseUri, ioService);
+    }
+
+    
+    let images = articleContent.getElementsByTagName('img');
+    for (let i = images.length - 1; i >= 0; i--) {
+      images[i].src = this._newURIErrorWrapper(images[i].src, baseUri, ioService);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+  _newURIErrorWrapper: function(aSpec, aBaseURI, ioService) {
+    try {
+      return ioService.newURI(aSpec, null, aBaseURI).spec;
+    } catch (err) {
+      dump("_newURIErrorWrapper: " + err.message);
+      return "";
     }
   },
 
