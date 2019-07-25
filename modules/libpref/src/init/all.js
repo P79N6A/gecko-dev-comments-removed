@@ -1456,11 +1456,16 @@ pref("dom.max_script_run_time", 10);
 pref("dom.ipc.plugins.timeoutSecs", 45);
 
 
+
+pref("dom.ipc.plugins.parentTimeoutSecs", 15);
+
+
 pref("dom.ipc.plugins.processLaunchTimeoutSecs", 45);
 #else
 
 pref("dom.ipc.plugins.timeoutSecs", 0);
 pref("dom.ipc.plugins.processLaunchTimeoutSecs", 0);
+pref("dom.ipc.plugins.parentTimeoutSecs", 0);
 #endif
 
 
@@ -1477,6 +1482,8 @@ pref("dom.ipc.plugins.enabled.602plugin.so", false);
 #endif
 #endif
 #endif
+
+pref("dom.ipc.processCount", 1);
 
 pref("svg.smil.enabled", true);
 

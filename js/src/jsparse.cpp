@@ -310,7 +310,7 @@ Parser::newFunctionBox(JSObject *obj, JSParseNode *fn, JSTreeContext *tc)
 bool
 JSFunctionBox::joinable() const
 {
-    return FUN_NULL_CLOSURE(function()) &&
+    return function()->isNullClosure() &&
            !(tcflags & (TCF_FUN_USES_ARGUMENTS | TCF_FUN_USES_OWN_NAME));
 }
 
@@ -984,7 +984,7 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
 
 
 
-            JSObjectBox *funbox = parser.newObjectBox(FUN_OBJECT(callerFrame->fun()));
+            JSObjectBox *funbox = parser.newObjectBox(callerFrame->fun());
             if (!funbox)
                 goto out;
             funbox->emitLink = cg.objectList.lastbox;
@@ -1975,8 +1975,8 @@ Parser::newFunction(JSTreeContext *tc, JSAtom *atom, FunctionSyntaxKind kind)
                        JSFUN_INTERPRETED | (kind == Expression ? JSFUN_LAMBDA : 0),
                        parent, atom);
     if (fun && !tc->compileAndGo()) {
-        FUN_OBJECT(fun)->clearParent();
-        FUN_OBJECT(fun)->clearType();
+        fun->clearParent();
+        fun->clearType();
     }
     return fun;
 }
@@ -2458,12 +2458,12 @@ Parser::setFunctionKinds(JSFunctionBox *funbox, uint32 *tcflags)
 
         JSFunction *fun = funbox->function();
 
-        JS_ASSERT(FUN_KIND(fun) == JSFUN_INTERPRETED);
+        JS_ASSERT(fun->kind() == JSFUN_INTERPRETED);
 
         if (funbox->tcflags & TCF_FUN_HEAVYWEIGHT) {
             
         } else if (funbox->inAnyDynamicScope()) {
-            JS_ASSERT(!FUN_NULL_CLOSURE(fun));
+            JS_ASSERT(!fun->isNullClosure());
         } else if (pn->pn_type != TOK_UPVARS) {
             
 
@@ -2481,7 +2481,7 @@ Parser::setFunctionKinds(JSFunctionBox *funbox, uint32 *tcflags)
 
 
 
-            FUN_SET_KIND(fun, JSFUN_NULL_CLOSURE);
+            fun->setKind(JSFUN_NULL_CLOSURE);
         } else {
             AtomDefnMapPtr upvars = pn->pn_names;
             JS_ASSERT(!upvars->empty());
@@ -2509,7 +2509,7 @@ Parser::setFunctionKinds(JSFunctionBox *funbox, uint32 *tcflags)
                 }
 
                 if (r.empty())
-                    FUN_SET_KIND(fun, JSFUN_NULL_CLOSURE);
+                    fun->setKind(JSFUN_NULL_CLOSURE);
             } else {
                 uintN nupvars = 0, nflattened = 0;
 
@@ -2547,13 +2547,13 @@ Parser::setFunctionKinds(JSFunctionBox *funbox, uint32 *tcflags)
                 }
 
                 if (nupvars == 0) {
-                    FUN_SET_KIND(fun, JSFUN_NULL_CLOSURE);
+                    fun->setKind(JSFUN_NULL_CLOSURE);
                 } else if (nflattened == nupvars) {
                     
 
 
 
-                    FUN_SET_KIND(fun, JSFUN_FLAT_CLOSURE);
+                    fun->setKind(JSFUN_FLAT_CLOSURE);
                     switch (PN_OP(fn)) {
                       case JSOP_DEFFUN:
                         fn->pn_op = JSOP_DEFFUN_FC;
@@ -2572,7 +2572,7 @@ Parser::setFunctionKinds(JSFunctionBox *funbox, uint32 *tcflags)
             }
         }
 
-        if (FUN_KIND(fun) == JSFUN_INTERPRETED && pn->pn_type == TOK_UPVARS) {
+        if (fun->kind() == JSFUN_INTERPRETED && pn->pn_type == TOK_UPVARS) {
             
 
 
@@ -2660,7 +2660,7 @@ EnterFunction(JSParseNode *fn, JSTreeContext *funtc, JSAtom *funAtom = NULL,
         return NULL;
 
     
-    JSFunctionBox *funbox = tc->parser->newFunctionBox(FUN_OBJECT(fun), fn, tc);
+    JSFunctionBox *funbox = tc->parser->newFunctionBox(fun, fn, tc);
     if (!funbox)
         return NULL;
 

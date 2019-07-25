@@ -268,6 +268,13 @@ CallArgsFromSp(uintN argc, Value *sp)
 
 
 
+
+
+
+
+
+
+
 class CallArgsList : public CallArgs
 {
     friend class StackSegment;
@@ -1848,7 +1855,8 @@ class FrameRegsIter
     }
 
   public:
-    FrameRegsIter(JSContext *cx) : iter_(cx) { settle(); }
+    FrameRegsIter(JSContext *cx, StackIter::SavedOption opt = StackIter::STOP_AT_SAVED)
+        : iter_(cx, opt) { settle(); }
 
     bool done() const { return iter_.done(); }
     FrameRegsIter &operator++() { ++iter_; settle(); return *this; }

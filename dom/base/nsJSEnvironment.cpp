@@ -2971,25 +2971,6 @@ static JSFunctionSpec JProfFunctions[] = {
 
 #endif 
 
-#ifdef MOZ_CALLGRIND
-static JSFunctionSpec CallgrindFunctions[] = {
-    {"startCallgrind",             js_StartCallgrind,          0, 0},
-    {"stopCallgrind",              js_StopCallgrind,           0, 0},
-    {"dumpCallgrind",              js_DumpCallgrind,           1, 0},
-    {nsnull,                       nsnull,                     0, 0}
-};
-#endif
-
-#ifdef MOZ_VTUNE
-static JSFunctionSpec VtuneFunctions[] = {
-    {"startVtune",                 js_StartVtune,              1, 0},
-    {"stopVtune",                  js_StopVtune,               0, 0},
-    {"pauseVtune",                 js_PauseVtune,              0, 0},
-    {"resumeVtune",                js_ResumeVtune,             0, 0},
-    {nsnull,                       nsnull,                     0, 0}
-};
-#endif
-
 #ifdef MOZ_TRACEVIS
 static JSFunctionSpec EthogramFunctions[] = {
     {"initEthogram",               js_InitEthogram,            0, 0},
@@ -3023,16 +3004,6 @@ nsJSContext::InitClasses(void *aGlobalObj)
 #ifdef MOZ_JPROF
   
   ::JS_DefineFunctions(mContext, globalObj, JProfFunctions);
-#endif
-
-#ifdef MOZ_CALLGRIND
-  
-  ::JS_DefineFunctions(mContext, globalObj, CallgrindFunctions);
-#endif
-
-#ifdef MOZ_VTUNE
-  
-  ::JS_DefineFunctions(mContext, globalObj, VtuneFunctions);
 #endif
 
 #ifdef MOZ_TRACEVIS

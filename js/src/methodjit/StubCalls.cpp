@@ -767,9 +767,9 @@ stubs::DefFun(VMFrame &f, JSFunction *fun)
 
 
 
-    JSObject *obj = FUN_OBJECT(fun);
+    JSObject *obj = fun;
 
-    if (FUN_NULL_CLOSURE(fun)) {
+    if (fun->isNullClosure()) {
         
 
 
@@ -1424,10 +1424,10 @@ stubs::DefLocalFun(VMFrame &f, JSFunction *fun)
 
 
     JS_ASSERT(fun->isInterpreted());
-    JS_ASSERT(!FUN_FLAT_CLOSURE(fun));
-    JSObject *obj = FUN_OBJECT(fun);
+    JS_ASSERT(!fun->isFlatClosure());
+    JSObject *obj = fun;
 
-    if (FUN_NULL_CLOSURE(fun)) {
+    if (fun->isNullClosure()) {
         obj = CloneFunctionObject(f.cx, fun, &f.fp()->scopeChain(), true);
         if (!obj)
             THROWV(NULL);
@@ -1480,9 +1480,9 @@ stubs::RegExp(VMFrame &f, JSObject *regex)
 JSObject * JS_FASTCALL
 stubs::LambdaForInit(VMFrame &f, JSFunction *fun)
 {
-    JSObject *obj = FUN_OBJECT(fun);
+    JSObject *obj = fun;
     jsbytecode *nextpc = (jsbytecode *) f.scratch;
-    if (FUN_NULL_CLOSURE(fun) && obj->getParent() == &f.fp()->scopeChain()) {
+    if (fun->isNullClosure() && obj->getParent() == &f.fp()->scopeChain()) {
         fun->setMethodAtom(f.script()->getAtom(GET_SLOTNO(nextpc)));
         return obj;
     }
@@ -1492,9 +1492,9 @@ stubs::LambdaForInit(VMFrame &f, JSFunction *fun)
 JSObject * JS_FASTCALL
 stubs::LambdaForSet(VMFrame &f, JSFunction *fun)
 {
-    JSObject *obj = FUN_OBJECT(fun);
+    JSObject *obj = fun;
     jsbytecode *nextpc = (jsbytecode *) f.scratch;
-    if (FUN_NULL_CLOSURE(fun) && obj->getParent() == &f.fp()->scopeChain()) {
+    if (fun->isNullClosure() && obj->getParent() == &f.fp()->scopeChain()) {
         const Value &lref = f.regs.sp[-1];
         if (lref.isObject() && lref.toObject().canHaveMethodBarrier()) {
             fun->setMethodAtom(f.script()->getAtom(GET_SLOTNO(nextpc)));
@@ -1507,9 +1507,9 @@ stubs::LambdaForSet(VMFrame &f, JSFunction *fun)
 JSObject * JS_FASTCALL
 stubs::LambdaJoinableForCall(VMFrame &f, JSFunction *fun)
 {
-    JSObject *obj = FUN_OBJECT(fun);
+    JSObject *obj = fun;
     jsbytecode *nextpc = (jsbytecode *) f.scratch;
-    if (FUN_NULL_CLOSURE(fun) && obj->getParent() == &f.fp()->scopeChain()) {
+    if (fun->isNullClosure() && obj->getParent() == &f.fp()->scopeChain()) {
         
 
 
@@ -1545,9 +1545,9 @@ stubs::LambdaJoinableForCall(VMFrame &f, JSFunction *fun)
 JSObject * JS_FASTCALL
 stubs::LambdaJoinableForNull(VMFrame &f, JSFunction *fun)
 {
-    JSObject *obj = FUN_OBJECT(fun);
+    JSObject *obj = fun;
     jsbytecode *nextpc = (jsbytecode *) f.scratch;
-    if (FUN_NULL_CLOSURE(fun) && obj->getParent() == &f.fp()->scopeChain()) {
+    if (fun->isNullClosure() && obj->getParent() == &f.fp()->scopeChain()) {
         jsbytecode *pc2 = nextpc + JSOP_NULL_LENGTH;
         JSOp op2 = JSOp(*pc2);
 
@@ -1560,10 +1560,10 @@ stubs::LambdaJoinableForNull(VMFrame &f, JSFunction *fun)
 JSObject * JS_FASTCALL
 stubs::Lambda(VMFrame &f, JSFunction *fun)
 {
-    JSObject *obj = FUN_OBJECT(fun);
+    JSObject *obj = fun;
 
     JSObject *parent;
-    if (FUN_NULL_CLOSURE(fun)) {
+    if (fun->isNullClosure()) {
         parent = &f.fp()->scopeChain();
     } else {
         parent = GetScopeChainFast(f.cx, f.fp(), JSOP_LAMBDA, JSOP_LAMBDA_LENGTH);
