@@ -345,7 +345,7 @@ AddAnimationsAndTransitionsToLayer(Layer* aLayer, nsDisplayListBuilder* aBuilder
 
   
   
-  if (!nsDisplayTransform::ShouldPrerenderTransformedContent(aBuilder, frame)) {
+  if (!aItem->CanUseAsyncAnimations(aBuilder)) {
     if (nsLayoutUtils::IsAnimationLoggingEnabled()) {
       printf_stderr("Performance warning: Async animation disabled because the frame for element '%s'",
                     nsAtomCString(aContent->Tag()).get());
