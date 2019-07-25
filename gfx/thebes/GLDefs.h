@@ -40,7 +40,8 @@
 
 #define LOCALGL_H_
 
-#if !defined(__gl_h_)
+#if !defined(__gltypes_h_) && !defined(__gl_h_)
+#define __gltypes_h_
 #define __gl_h_
 
 #include <stddef.h>
