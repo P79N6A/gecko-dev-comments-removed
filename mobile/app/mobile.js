@@ -229,6 +229,10 @@ pref("browser.search.suggest.enabled", true);
 pref("browser.xul.error_pages.enabled", true);
 
 
+pref("browser.urlbar.default.behavior", 0);
+pref("browser.urlbar.default.behavior.emptyRestriction", 0);
+
+
 
 pref("browser.urlbar.clickSelectsAll", true);
 pref("browser.urlbar.doubleClickSelectsAll", true);
