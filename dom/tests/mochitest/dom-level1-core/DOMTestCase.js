@@ -161,12 +161,23 @@ function assertEquals(descr, expected, actual) {
         is(2, obj.nodeType, descr);
         var specd = obj.specified;
     }
+
+
+
+
+
+
   }
 
   function assertSame(descr, expected, actual) {
     if(expected != actual) {
         is(expected.nodeType, actual.nodeType, descr);
         is(expected.nodeValue, actual.nodeValue, descr);
+    }
+    else {
+      
+      todo_isnot(expected, actual, "[DOMTestCase.assertSame()] Fake default check." +
+                                   " (Type=" + actual.nodeType + ", Value=" + actual.nodeValue + ")");
     }
   }
 
