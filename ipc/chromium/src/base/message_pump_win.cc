@@ -97,6 +97,10 @@ void MessagePumpForUI::ScheduleWork() {
 
   
   PostMessage(message_hwnd_, kMsgHaveWork, reinterpret_cast<WPARAM>(this), 0);
+
+  
+  
+  PostMessage(message_hwnd_, WM_NULL, NULL, 0);
 }
 
 void MessagePumpForUI::ScheduleDelayedWork(const Time& delayed_work_time) {
