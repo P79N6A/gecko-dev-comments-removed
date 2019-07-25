@@ -328,6 +328,11 @@ public:
 
   static nsBlockFrame* GetNearestAncestorBlock(nsIFrame* aCandidate);
   
+  struct FrameLines {
+    nsLineList mLines;
+    nsFrameList mFrames;
+  };
+
 protected:
   nsBlockFrame(nsStyleContext* aContext)
     : nsContainerFrame(aContext)
@@ -355,7 +360,8 @@ protected:
   void TryAllLines(nsLineList::iterator* aIterator,
                    nsLineList::iterator* aStartIterator,
                    nsLineList::iterator* aEndIterator,
-                   bool* aInOverflowLines);
+                   bool*        aInOverflowLines,
+                   FrameLines** aOverflowLines);
 
   void SetFlags(nsFrameState aFlags) {
     mState &= ~NS_BLOCK_FLAGS_MASK;
@@ -646,7 +652,13 @@ protected:
                           nsLineBox*           aLine,
                           nsBlockFrame*        aFromContainer,
                           bool                 aFromOverflowLine,
+                          nsFrameList&         aFromFrameList,
                           nsLineList::iterator aFromLine);
+
+  
+
+
+
 
   void PushLines(nsBlockReflowState& aState,
                  nsLineList::iterator aLineBefore);
@@ -684,10 +696,14 @@ protected:
   virtual nsILineIterator* GetLineIterator();
 
 public:
-  nsLineList* GetOverflowLines() const;
+  bool HasOverflowLines() const {
+    return 0 != (GetStateBits() & NS_BLOCK_HAS_OVERFLOW_LINES);
+  }
+  FrameLines* GetOverflowLines() const;
 protected:
-  nsLineList* RemoveOverflowLines();
-  nsresult SetOverflowLines(nsLineList* aOverflowLines);
+  FrameLines* RemoveOverflowLines();
+  void SetOverflowLines(FrameLines* aOverflowLines);
+  void DestroyOverflowLines();
 
   
   
@@ -798,7 +814,11 @@ private:
 class nsBlockInFlowLineIterator {
 public:
   typedef nsBlockFrame::line_iterator line_iterator;
-  nsBlockInFlowLineIterator(nsBlockFrame* aFrame, line_iterator aLine, bool aInOverflow);
+  
+
+
+
+  nsBlockInFlowLineIterator(nsBlockFrame* aFrame, line_iterator aLine);
   
 
 
@@ -845,6 +865,10 @@ public:
   bool Prev();
 
 private:
+  friend class nsBlockFrame;
+  
+  nsBlockInFlowLineIterator(nsBlockFrame* aFrame, line_iterator aLine, bool aInOverflow);
+
   nsBlockFrame* mFrame;
   line_iterator mLine;
   nsLineList*   mInOverflowLines;
