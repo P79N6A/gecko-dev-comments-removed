@@ -4844,6 +4844,20 @@ DecompileCode(JSPrinter *jp, JSScript *script, jsbytecode *pc, uintN len,
     AutoScriptUntrapper untrapper(cx, script, &pc);
 
     
+    if (script->strictModeCode && !jp->strict) {
+        if (jp->fun && (jp->fun->flags & JSFUN_EXPR_CLOSURE)) {
+            
+
+
+
+            js_printf(jp, "\t/* use strict */ \n");
+        } else {
+            js_printf(jp, "\t\"use strict\";\n");
+        }
+        jp->strict = true;
+    }
+
+    
     mark = JS_ARENA_MARK(&cx->tempPool);
     ok = InitSprintStack(cx, &ss, jp, depth);
     if (!ok)
@@ -5039,24 +5053,10 @@ js_DecompileFunction(JSPrinter *jp)
 #endif
         if (!ok)
             return JS_FALSE;
-        if (fun->flags & JSFUN_EXPR_CLOSURE) {
-            js_printf(jp, ") ");
-            if (fun->u.i.script->strictModeCode && !jp->strict) {
-                
-
-
-
-                js_printf(jp, "\t/* use strict */ \n");
-                jp->strict = true;
-            }
-            
-        } else {
-            js_printf(jp, ") {\n");
+        js_printf(jp, ") ");
+        if (!(fun->flags & JSFUN_EXPR_CLOSURE)) {
+            js_printf(jp, "{\n");
             jp->indent += 4;
-            if (fun->u.i.script->strictModeCode && !jp->strict) {
-                js_printf(jp, "\t'use strict';\n");
-                jp->strict = true;
-            }
         }
 
         len = script->code + script->length - pc;
