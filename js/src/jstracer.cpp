@@ -11389,9 +11389,14 @@ roundReturningInt(jsdouble x, int32 *out)
     return JSDOUBLE_IS_INT32(r, out);
 }
 
-JS_DEFINE_CALLINFO_2(static, BOOL, ceilReturningInt, DOUBLE, INT32PTR, 1, ACCSET_NONE)
-JS_DEFINE_CALLINFO_2(static, BOOL, floorReturningInt, DOUBLE, INT32PTR, 1, ACCSET_NONE)
-JS_DEFINE_CALLINFO_2(static, BOOL, roundReturningInt, DOUBLE, INT32PTR, 1, ACCSET_NONE)
+
+
+
+
+
+JS_DEFINE_CALLINFO_2(static, BOOL, ceilReturningInt, DOUBLE, INT32PTR, 0, ACCSET_STORE_ANY)
+JS_DEFINE_CALLINFO_2(static, BOOL, floorReturningInt, DOUBLE, INT32PTR, 0, ACCSET_STORE_ANY)
+JS_DEFINE_CALLINFO_2(static, BOOL, roundReturningInt, DOUBLE, INT32PTR, 0, ACCSET_STORE_ANY)
 
 JS_REQUIRES_STACK RecordingStatus
 TraceRecorder::callFloatReturningInt(uintN argc, const nanojit::CallInfo *ci)
