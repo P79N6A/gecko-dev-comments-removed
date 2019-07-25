@@ -2256,6 +2256,13 @@ BindNameToSlot(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
     }
 
     if (dn->pn_dflags & PND_GVAR) {
+        
+
+
+
+        if (cg->hasDefFun())
+            return JS_TRUE;
+
         switch (op) {
           case JSOP_NAME:     op = JSOP_GETGLOBAL; break;
           case JSOP_SETNAME:  op = JSOP_SETGLOBAL; break;
