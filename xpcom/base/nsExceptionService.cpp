@@ -104,7 +104,7 @@ nsExceptionManager::nsExceptionManager(nsExceptionService *svc) :
 {
   
 #ifdef NS_DEBUG
-  PR_ATOMIC_INCREMENT(&totalInstances);
+  PR_AtomicIncrement(&totalInstances);
 #endif
 }
 
@@ -112,7 +112,7 @@ nsExceptionManager::~nsExceptionManager()
 {
   
 #ifdef NS_DEBUG
-  PR_ATOMIC_DECREMENT(&totalInstances);
+  PR_AtomicDecrement(&totalInstances);
 #endif 
 }
 
@@ -160,7 +160,7 @@ nsExceptionService::nsExceptionService()
   : mProviders(4, PR_TRUE) 
 {
 #ifdef NS_DEBUG
-  if (PR_ATOMIC_INCREMENT(&totalInstances)!=1) {
+  if (PR_AtomicIncrement(&totalInstances)!=1) {
     NS_ERROR("The nsExceptionService is a singleton!");
   }
 #endif
@@ -186,7 +186,7 @@ nsExceptionService::~nsExceptionService()
   Shutdown();
   
 #ifdef NS_DEBUG
-  PR_ATOMIC_DECREMENT(&totalInstances);
+  PR_AtomicDecrement(&totalInstances);
 #endif
 }
 
