@@ -1896,7 +1896,7 @@ IonBuilder::resumeAt(MInstruction *ins, jsbytecode *pc)
 }
 
 static inline bool
-TestSingletonProperty(JSContext *cx, JSObject *obj, jsid id, bool *result)
+TestSingletonProperty(JSContext *cx, JSObject *obj, jsid id, bool *isKnownConstant)
 {
     
     
@@ -1908,7 +1908,7 @@ TestSingletonProperty(JSContext *cx, JSObject *obj, jsid id, bool *result)
     
     
     
-    *result = false;
+    *isKnownConstant = false;
 
     JSObject *pobj = obj;
     while (pobj) {
@@ -1936,7 +1936,7 @@ TestSingletonProperty(JSContext *cx, JSObject *obj, jsid id, bool *result)
         return true;
     }
 
-    *result = true;
+    *isKnownConstant = true;
     return true;
 }
 
@@ -2017,10 +2017,10 @@ IonBuilder::jsop_getgname(JSAtom *atom)
         if (!barrier) {
             if (singleton) {
                 
-                bool result;
-                if (!TestSingletonProperty(cx, globalObj, id, &result))
+                bool isKnownConstant;
+                if (!TestSingletonProperty(cx, globalObj, id, &isKnownConstant))
                     return false;
-                if (result)
+                if (isKnownConstant)
                     return pushConstant(ObjectValue(*singleton));
             }
             if (knownType == JSVAL_TYPE_UNDEFINED)

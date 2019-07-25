@@ -1010,9 +1010,9 @@ class MUnbox : public MUnaryInstruction
 {
   public:
     enum Mode {
-        Fallible,
-        Infallible,
-        TypeBarrier
+        Fallible,       
+        Infallible,     
+        TypeBarrier     
     };
 
   private:
@@ -1041,6 +1041,7 @@ class MUnbox : public MUnaryInstruction
         return getOperand(0);
     }
     BailoutKind bailoutKind() const {
+        
         JS_ASSERT(fallible());
         return mode() == Fallible
                ? Bailout_Normal
