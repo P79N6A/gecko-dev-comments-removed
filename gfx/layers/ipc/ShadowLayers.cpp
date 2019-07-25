@@ -45,9 +45,7 @@
 
 #include "mozilla/layers/PLayerChild.h"
 #include "mozilla/layers/PLayersChild.h"
-#include "mozilla/layers/PLayersParent.h"
 #include "ShadowLayers.h"
-#include "ShadowLayerChild.h"
 
 namespace mozilla {
 namespace layers {
@@ -283,9 +281,8 @@ ShadowLayerForwarder::EndTransaction(nsTArray<EditReply>* aReplies)
   }
 
   nsAutoTArray<Edit, 10> cset;
-  NS_ABORT_IF_FALSE(mTxn->mCset.size() > 0, "should have bailed by now");
   cset.SetCapacity(mTxn->mCset.size());
-  cset.AppendElements(&mTxn->mCset.front(), mTxn->mCset.size());
+  cset.AppendElements(mTxn->mCset.data(), mTxn->mCset.size());
 
   if (!mShadowManager->SendUpdate(cset, aReplies)) {
     MOZ_LAYERS_LOG(("[LayersForwarder] WARNING: sending transaction failed!"));
@@ -294,45 +291,6 @@ ShadowLayerForwarder::EndTransaction(nsTArray<EditReply>* aReplies)
 
   MOZ_LAYERS_LOG(("[LayersForwarder] ... done"));
   return PR_TRUE;
-}
-
-PRBool
-ShadowLayerForwarder::AllocDoubleBuffer(const gfxIntSize& aSize,
-                                        gfxASurface::gfxImageFormat aFormat,
-                                        gfxSharedImageSurface** aFrontBuffer,
-                                        gfxSharedImageSurface** aBackBuffer)
-{
-  NS_ABORT_IF_FALSE(HasShadowManager(), "no manager to forward to");
-
-  nsRefPtr<gfxSharedImageSurface> front = new gfxSharedImageSurface();
-  nsRefPtr<gfxSharedImageSurface> back = new gfxSharedImageSurface();
-  if (!front->Init(mShadowManager, aSize, aFormat) ||
-      !back->Init(mShadowManager, aSize, aFormat))
-    return PR_FALSE;
-
-  *aFrontBuffer = NULL;       *aBackBuffer = NULL;
-  front.swap(*aFrontBuffer);  back.swap(*aBackBuffer);
-  return PR_TRUE;
-}
-
-void
-ShadowLayerForwarder::DestroySharedSurface(gfxSharedImageSurface* aSurface)
-{
-  mShadowManager->DeallocShmem(aSurface->GetShmem());
-}
-
-PLayerChild*
-ShadowLayerForwarder::ConstructShadowFor(ShadowableLayer* aLayer)
-{
-  NS_ABORT_IF_FALSE(HasShadowManager(), "no manager to forward to");
-  return mShadowManager->SendPLayerConstructor(new ShadowLayerChild(aLayer));
-}
-
-
-void
-ShadowLayerManager::DestroySharedSurface(gfxSharedImageSurface* aSurface)
-{
-  mForwarder->DeallocShmem(aSurface->GetShmem());
 }
 
 } 
