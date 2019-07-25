@@ -5819,8 +5819,19 @@ NS_IMETHODIMP nsPluginInstanceOwner::CreateWidget(void)
           mFlash10Quirks = StringBeginsWith(description, flash10Head);
 #endif
         } else if (mWidget) {
-          mWidget->Resize(mPluginWindow->width, mPluginWindow->height,
-                          PR_FALSE);
+          nsIWidget* parent = mWidget->GetParent();
+          NS_ASSERTION(parent, "Plugin windows must not be toplevel");
+          
+          
+          
+          
+          nsAutoTArray<nsIWidget::Configuration,1> configuration;
+          if (configuration.AppendElement()) {
+            configuration[0].mChild = mWidget;
+            configuration[0].mBounds =
+              nsIntRect(0, 0, mPluginWindow->width, mPluginWindow->height);
+            parent->ConfigureChildren(configuration);
+          }
 
           
           
