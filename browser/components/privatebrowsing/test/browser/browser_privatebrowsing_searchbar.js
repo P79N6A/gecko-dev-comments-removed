@@ -41,14 +41,22 @@
 function test() {
   
   waitForExplicitFinish();
-  gPrefService.setBoolPref("browser.privatebrowsing.keep_current_session", true);
   let pb = Cc["@mozilla.org/privatebrowsing;1"].
            getService(Ci.nsIPrivateBrowsingService);
 
   
   const kTestSearchString = "privatebrowsing";
   let searchBar = BrowserSearch.searchBar;
+  searchBar.value = kTestSearchString + "foo";
   searchBar.value = kTestSearchString;
+
+  gPrefService.setBoolPref("browser.privatebrowsing.keep_current_session", true);
+
+  registerCleanupFunction(function () {
+    searchBar.textbox.reset();
+
+    gPrefService.clearUserPref("browser.privatebrowsing.keep_current_session");
+  });
 
   
   pb.privateBrowsingEnabled = true;
@@ -85,8 +93,6 @@ function test() {
     gBrowser.removeTab(gBrowser.selectedTab);
     pb.privateBrowsingEnabled = false;
 
-    
-    gPrefService.clearUserPref("browser.privatebrowsing.keep_current_session");
     finish();
   }, true);
 }
