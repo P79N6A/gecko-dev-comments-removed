@@ -23,14 +23,24 @@
 
 
 
-
 #include "ExecutableAllocator.h"
 
 #if ENABLE_ASSEMBLER && WTF_OS_WINDOWS
 
 #include "jswin.h"
+#include "prmjtime.h"
+
+extern void random_setSeed(int64_t *, int64_t);
+extern uint64_t random_next(int64_t *, int);
 
 namespace JSC {
+
+int64_t ExecutableAllocator::rngSeed;
+
+void ExecutableAllocator::initSeed()
+{
+    random_setSeed(&rngSeed, (PRMJ_Now() / 1000) ^ int64_t(this));
+}
 
 size_t ExecutableAllocator::determinePageSize()
 {
@@ -39,16 +49,72 @@ size_t ExecutableAllocator::determinePageSize()
     return system_info.dwPageSize;
 }
 
+void *ExecutableAllocator::computeRandomAllocationAddress()
+{
+    
+
+
+
+
+
+
+
+
+
+
+    static const uintN chunkBits = 16;
+#if WTF_CPU_X86_64
+    static const uintptr_t base = 0x0000000080000000;
+    static const uintptr_t mask = 0x000003ffffff0000;
+#elif WTF_CPU_X86
+    static const uintptr_t base = 0x04000000;
+    static const uintptr_t mask = 0x3fff0000;
+#else
+# error "Unsupported architecture"
+#endif
+    uint64_t rand = random_next(&rngSeed, 32) << chunkBits;
+    return (void *) (base | rand & mask);
+}
+
+static bool
+RandomizeIsBrokenImpl()
+{
+    OSVERSIONINFO osvi;
+    ZeroMemory(&osvi, sizeof(OSVERSIONINFO));
+    osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
+
+    GetVersionEx(&osvi);
+
+    
+    
+    
+    return osvi.dwMajorVersion <= 5;
+}
+
+static bool
+RandomizeIsBroken()
+{
+    static int result = RandomizeIsBrokenImpl();
+    return !!result;
+}
+
 ExecutablePool::Allocation ExecutableAllocator::systemAlloc(size_t n)
 {
-    void *allocation = VirtualAlloc(0, n, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+    void *allocation = NULL;
+    if (allocBehavior == AllocationCanRandomize && !RandomizeIsBroken()) {
+        void *randomAddress = computeRandomAllocationAddress();
+        allocation = VirtualAlloc(randomAddress, n, MEM_COMMIT | MEM_RESERVE,
+                                  PAGE_EXECUTE_READWRITE);
+    }
+    if (!allocation)
+        allocation = VirtualAlloc(0, n, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
     ExecutablePool::Allocation alloc = { reinterpret_cast<char*>(allocation), n };
     return alloc;
 }
 
 void ExecutableAllocator::systemRelease(const ExecutablePool::Allocation& alloc)
-{ 
-    VirtualFree(alloc.pages, 0, MEM_RELEASE); 
+{
+    VirtualFree(alloc.pages, 0, MEM_RELEASE);
 }
 
 #if ENABLE_ASSEMBLER_WX_EXCLUSIVE

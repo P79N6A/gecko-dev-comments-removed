@@ -243,11 +243,6 @@ PrefCallback(const char* aPrefName, void* aClosure)
       newOptions |= JSOPTION_TYPE_INFERENCE;
     }
 
-    
-    if (!Preferences::GetBool(gPrefsToWatch[PREF_jit_hardening])) {
-      newOptions |= JSOPTION_SOFTEN;
-    }
-
     RuntimeService::SetDefaultJSContextOptions(newOptions);
     rts->UpdateAllWorkerJSContextOptions();
   }
