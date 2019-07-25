@@ -71,12 +71,17 @@ function autocompletePopupHidden()
   jsterm.setInputValue("");
 
   
+  
+  
   let propPanel = jsterm.openPropertyPanel("Test", content.document);
-  let docProps = 0;
-  for (let prop in content.document) {
-    docProps++;
-  }
-  is (propPanel.treeView.rowCount, docProps, "all document properties shown in propertyPanel");
+  let propPanelProps = [];
+  for (let idx = 0; idx < propPanel.treeView.rowCount; ++idx)
+    propPanelProps.push(propPanel.treeView.getCellText(idx, null).split(':')[0]);
+  
+  
+  
+  for (let prop in Object.getPrototypeOf(content.document))
+    ok(propPanelProps.indexOf(prop) != -1, "Property |" + prop + "| should be reflected in propertyPanel");
 
   let treeRows = propPanel.treeView._rows;
   is (treeRows[30].display, "body: Object",  "found document.body");
