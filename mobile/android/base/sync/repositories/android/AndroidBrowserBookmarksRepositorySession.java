@@ -173,9 +173,6 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
 
 
 
-
-
-
   public static boolean forbiddenGUID(String recordGUID) {
     return recordGUID == null ||
            "places".equals(recordGUID) ||

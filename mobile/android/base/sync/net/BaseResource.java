@@ -170,7 +170,6 @@ public class BaseResource implements Resource {
   
 
 
-
   public static ClientConnectionManager enablePlainHTTPConnectionManager() {
     synchronized (connManagerMonitor) {
       ThreadSafeClientConnManager cm = new ThreadSafeClientConnManager();

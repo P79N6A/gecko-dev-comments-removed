@@ -74,6 +74,7 @@ public class Utils {
 
 
 
+
   public static byte[] generateRandomBytes(int length) {
     byte[] bytes = new byte[length];
     sharedSecureRandom.nextBytes(bytes);
@@ -81,6 +82,7 @@ public class Utils {
   }
 
   
+
 
 
 
@@ -99,8 +101,6 @@ public class Utils {
   }
 
   
-
-
 
 
   public static String byte2hex(byte[] b) {
@@ -124,11 +124,6 @@ public class Utils {
 
     return hs;
   }
-
-  
-
-
-
 
   public static byte[] concatAll(byte[] first, byte[]... rest) {
     int totalLength = first.length;
@@ -163,19 +158,11 @@ public class Utils {
     return Base64.decodeBase64(base64.getBytes("UTF-8"));
   }
 
-  
-
-
   public static byte[] decodeFriendlyBase32(String base32) {
     Base32 converter = new Base32();
     final String translated = base32.replace('8', 'l').replace('9', 'o');
     return converter.decode(translated.toUpperCase());
   }
-
-  
-
-
-
 
   public static byte[] hex2Byte(String str) {
     if (str.length() % 2 == 1) {
@@ -248,10 +235,6 @@ public class Utils {
   
 
 
-
-
-
-
   private static boolean same(Object a, Object b) {
     if (a == b) {
       return true;
@@ -263,10 +246,6 @@ public class Utils {
   }
 
   
-
-
-
-
 
 
 

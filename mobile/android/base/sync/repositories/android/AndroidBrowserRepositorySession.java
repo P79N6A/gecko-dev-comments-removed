@@ -105,13 +105,9 @@ public abstract class AndroidBrowserRepositorySession extends StoreTrackingRepos
 
 
 
-
-
   protected abstract Record retrieveDuringStore(Cursor cur) throws NoGuidForIdException, NullCursorException, ParentNotFoundException;
 
   
-
-
 
 
 
@@ -552,8 +548,6 @@ public abstract class AndroidBrowserRepositorySession extends StoreTrackingRepos
   }
 
   
-
-
 
 
 

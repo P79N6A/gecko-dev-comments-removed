@@ -101,11 +101,6 @@ public class CollectionKeys {
 
 
 
-
-
-
-
-
   private static KeyBundle arrayToKeyBundle(JSONArray array) throws UnsupportedEncodingException {
     String encKeyStr  = (String) array.get(0);
     String hmacKeyStr = (String) array.get(1);
@@ -165,14 +160,6 @@ public class CollectionKeys {
   }
 
   
-
-
-
-
-
-
-
-
 
 
 

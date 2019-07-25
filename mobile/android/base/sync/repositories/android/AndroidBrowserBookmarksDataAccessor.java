@@ -101,10 +101,6 @@ public class AndroidBrowserBookmarksDataAccessor extends AndroidBrowserRepositor
   
 
 
-
-
-
-
   public int bumpModified(long id, long modified) {
     Logger.debug(LOG_TAG, "Bumping modified for " + id + " to " + modified);
     String where = BrowserContract.Bookmarks._ID + " = ?";

@@ -92,8 +92,6 @@ public class SyncStorageRecordRequest extends SyncStorageRequest {
 
 
 
-
-
   protected StringEntity jsonEntity(JSONObject body) throws UnsupportedEncodingException {
     StringEntity e = new StringEntity(body.toJSONString(), "UTF-8");
     e.setContentType("application/json");

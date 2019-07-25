@@ -210,9 +210,6 @@ public abstract class RepositorySession {
 
 
 
-
-
-
   protected RepositorySessionBundle getBundle(RepositorySessionBundle optional) {
     Logger.debug(LOG_TAG, "RepositorySession.getBundle(optional).");
     
@@ -223,8 +220,6 @@ public abstract class RepositorySession {
   }
 
   
-
-
 
 
 
@@ -265,9 +260,6 @@ public abstract class RepositorySession {
   }
 
   
-
-
-
 
 
 
@@ -383,8 +375,6 @@ public abstract class RepositorySession {
   }
 
   
-
-
 
 
 

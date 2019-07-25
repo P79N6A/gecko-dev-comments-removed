@@ -194,9 +194,6 @@ public class SyncConfiguration implements CredentialsSource {
 
 
 
-
-
-
   public SyncConfiguration(String prefsPath, PrefsSource prefsSource) {
     this.prefsPath   = prefsPath;
     this.prefsSource = prefsSource;
@@ -209,7 +206,6 @@ public class SyncConfiguration implements CredentialsSource {
   }
 
   
-
 
 
 
