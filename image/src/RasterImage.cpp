@@ -2697,6 +2697,18 @@ RasterImage::UnlockImage()
 }
 
 
+
+NS_IMETHODIMP
+RasterImage::RequestDiscard()
+{
+  if (CanDiscard()) {
+    ForceDiscard();
+  }
+
+  return NS_OK;
+}
+
+
 nsresult
 RasterImage::DecodeSomeData(PRUint32 aMaxBytes)
 {
