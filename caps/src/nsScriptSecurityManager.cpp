@@ -60,7 +60,6 @@
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/StandardInteger.h"
 #include "mozilla/ClearOnShutdown.h"
-#include "nsIAppsService.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -1864,7 +1863,8 @@ nsScriptSecurityManager::DoGetCertificatePrincipal(const nsACString& aCertFinger
         return NS_ERROR_OUT_OF_MEMORY;
 
     nsresult rv = certificate->Init(aCertFingerprint, aSubjectName,
-                                    aPrettyName, aCertificate, aURI);
+                                    aPrettyName, aCertificate, aURI,
+                                    UNKNOWN_APP_ID, false);
     NS_ENSURE_SUCCESS(rv, rv);
 
     
@@ -1925,7 +1925,8 @@ nsScriptSecurityManager::DoGetCertificatePrincipal(const nsACString& aCertFinger
                                                      subjectName, aPrettyName,
                                                      granted, denied,
                                                      aCertificate,
-                                                     true, false);
+                                                     true, false,
+                                                     UNKNOWN_APP_ID, false);
                 if (NS_FAILED(rv))
                     return rv;
                 
@@ -1964,7 +1965,8 @@ nsScriptSecurityManager::CreateCodebasePrincipal(nsIURI* aURI, nsIPrincipal **re
         return NS_ERROR_OUT_OF_MEMORY;
 
     nsresult rv = codebase->Init(EmptyCString(), EmptyCString(),
-                                 EmptyCString(), nsnull, aURI);
+                                 EmptyCString(), nsnull, aURI,
+                                 nsIScriptSecurityManager::NO_APP_ID, false);
     if (NS_FAILED(rv))
         return rv;
 
@@ -2025,7 +2027,9 @@ nsScriptSecurityManager::GetCodebasePrincipal(nsIURI *aURI,
                                                   subjectName, EmptyCString(),
                                                   granted, denied,
                                                   nsnull, false,
-                                                  isTrusted);
+                                                  isTrusted,
+                                                  nsIScriptSecurityManager::NO_APP_ID,
+                                                  false);
                 if (NS_FAILED(rv))
                     return rv;
                 
@@ -3494,7 +3498,8 @@ nsScriptSecurityManager::InitPrincipals(PRUint32 aPrefCount, const char** aPrefN
         rv = newPrincipal->InitFromPersistent(aPrefNames[c], id, subjectName,
                                               EmptyCString(),
                                               grantedList, deniedList, nsnull, 
-                                              isCert, isTrusted);
+                                              isCert, isTrusted, UNKNOWN_APP_ID,
+                                              false);
         if (NS_SUCCEEDED(rv))
             mPrincipals.Put(newPrincipal, newPrincipal);
     }
@@ -3552,30 +3557,27 @@ nsScriptSecurityManager::InitPrefs()
     return NS_OK;
 }
 
-NS_IMETHODIMP
-nsScriptSecurityManager::GetExtendedOrigin(nsIURI* aURI,
-                                           PRUint32 aAppId,
-                                           bool aInMozBrowser,
-                                           nsACString& aExtendedOrigin)
+namespace mozilla {
+
+void
+GetExtendedOrigin(nsIURI* aURI, PRUint32 aAppId, bool aInMozBrowser,
+                  nsACString& aExtendedOrigin)
 {
   MOZ_ASSERT(aURI);
+  MOZ_ASSERT(aAppId != nsIScriptSecurityManager::UNKNOWN_APP_ID);
 
-  if (aAppId == UNKNOWN_APP_ID) {
-    aExtendedOrigin.Truncate();
-    return NS_OK;
-  }
-
-  
-  if (aAppId == nsIScriptSecurityManager::NO_APP_ID && !aInMozBrowser) {
-    nsCAutoString origin;
-    nsPrincipal::GetOriginForURI(aURI, getter_Copies(origin));
-
-    aExtendedOrigin.Assign(origin);
-    return NS_OK;
+  if (aAppId == nsIScriptSecurityManager::UNKNOWN_APP_ID) {
+    aAppId = nsIScriptSecurityManager::NO_APP_ID;
   }
 
   nsCAutoString origin;
   nsPrincipal::GetOriginForURI(aURI, getter_Copies(origin));
+
+  
+  if (aAppId == nsIScriptSecurityManager::NO_APP_ID && !aInMozBrowser) {
+    aExtendedOrigin.Assign(origin);
+    return;
+  }
 
   
   aExtendedOrigin.Assign(origin + NS_LITERAL_CSTRING("@"));
@@ -3583,6 +3585,20 @@ nsScriptSecurityManager::GetExtendedOrigin(nsIURI* aURI,
   aExtendedOrigin.Append(aInMozBrowser ? NS_LITERAL_CSTRING("t")
                                        : NS_LITERAL_CSTRING("f"));
 
+  return;
+}
+
+} 
+
+NS_IMETHODIMP
+nsScriptSecurityManager::GetExtendedOrigin(nsIURI* aURI,
+                                           PRUint32 aAppId,
+                                           bool aInMozBrowser,
+                                           nsACString& aExtendedOrigin)
+{
+  MOZ_ASSERT(aAppId != nsIScriptSecurityManager::UNKNOWN_APP_ID);
+
+  mozilla::GetExtendedOrigin(aURI, aAppId, aInMozBrowser, aExtendedOrigin);
   return NS_OK;
 }
 
