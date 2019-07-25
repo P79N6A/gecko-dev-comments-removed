@@ -74,11 +74,11 @@ let AllTabs = {
 
   register: function register(eventName, callback) {
     
-    let listeners = eventListeners[eventName];
+    let listeners = eventListeners[events[eventName]];
     if (listeners)
       listeners.push(callback);
     else
-      eventListeners[eventName] = [callback];
+      eventListeners[events[eventName]] = [callback];
   },
 
   
@@ -93,7 +93,7 @@ let AllTabs = {
 
   unregister: function unregister(eventName, callback) {
     
-    let listeners = eventListeners[eventName];
+    let listeners = eventListeners[events[eventName]];
     if (!listeners)
       return;
 
@@ -114,31 +114,50 @@ __defineGetter__("browserWindows", function browserWindows() {
   return browserWindows;
 });
 
-let events = ["attrModified", "close", "move", "open", "select", "pinned", "unpinned"];
+let events = {
+  attrModified: "TabAttrModified",
+  close:        "TabClose",
+  move:         "TabMove",
+  open:         "TabOpen",
+  select:       "TabSelect",
+  pinned:       "TabPinned",
+  unpinned:     "TabUnpinned"
+};
 let eventListeners = {};
 
 function registerBrowserWindow(browserWindow) {
-  events.forEach(function(eventName) {
-    let tabEvent = "Tab" + eventName[0].toUpperCase() + eventName.slice(1);
-    browserWindow.addEventListener(tabEvent, function(event) {
-      
-      let listeners = eventListeners[eventName];
-      if (!listeners)
-        return;
+  for each (let event in events)
+    browserWindow.addEventListener(event, tabEventListener, true);
 
-      let tab = event.target;
+  browserWindow.addEventListener("unload", unregisterBrowserWindow, false);
+}
 
-      
-      listeners.slice().forEach(function(callback) {
-        try {
-          callback(tab, event);
-        }
-        
-        catch(ex) {
-          Cu.reportError(ex);
-        }
-      });
-    }, true);
+function unregisterBrowserWindow(unloadEvent) {
+  let browserWindow = unloadEvent.currentTarget;
+
+  for each (let event in events)
+    browserWindow.removeEventListener(event, tabEventListener, true);
+
+  browserWindow.removeEventListener("unload", unregisterBrowserWindow, false);
+}
+
+function tabEventListener(event) {
+  
+  let listeners = eventListeners[event.type];
+  if (!listeners)
+    return;
+
+  let tab = event.target;
+
+  
+  listeners.slice().forEach(function (callback) {
+    try {
+      callback(tab, event);
+    }
+    
+    catch (ex) {
+      Cu.reportError(ex);
+    }
   });
 }
 
