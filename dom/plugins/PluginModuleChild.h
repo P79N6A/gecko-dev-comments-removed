@@ -238,9 +238,6 @@ public:
         
         
         QUIRK_FLASH_MASK_CLEARTYPE_SETTINGS             = 1 << 6,
-        
-        
-        QUIRK_FLASH_HOOK_MOUSE_CAPTURE                  = 1 << 7,
     };
 
     int GetQuirks() { return mQuirks; }
