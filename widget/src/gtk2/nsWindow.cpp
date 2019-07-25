@@ -3868,16 +3868,6 @@ nsWindow::Create(nsIWidget        *aParent,
 
     
     mBounds = aRect;
-    if (mWindowType != eWindowType_child &&
-        mWindowType != eWindowType_plugin) {
-        
-        
-        
-        
-        
-        
-        mNeedsResize = PR_TRUE;
-    }
 
     
     GtkWidget      *parentMozContainer = nsnull;
@@ -3912,6 +3902,14 @@ nsWindow::Create(nsIWidget        *aParent,
     case eWindowType_toplevel:
     case eWindowType_invisible: {
         mIsTopLevel = PR_TRUE;
+
+        
+        
+        
+        
+        
+        
+        mNeedsResize = PR_TRUE;
 
         nsXPIDLString brandName;
         GetBrandName(brandName);
@@ -3949,6 +3947,11 @@ nsWindow::Create(nsIWidget        *aParent,
             }
         }
         else if (mWindowType == eWindowType_popup) {
+            
+            
+            
+            mNeedsMove = PR_TRUE;
+
             
             
             if (!aInitData->mNoAutoHide) {
