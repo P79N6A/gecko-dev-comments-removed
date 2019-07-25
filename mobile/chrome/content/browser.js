@@ -320,7 +320,7 @@ Tab.prototype = {
 var BrowserEventHandler = {
   init: function init() {
     this.motionBuffer = [];
-    this._updateLastPosition(0, 0);
+    this._updateLastPosition(0, 0, 0, 0);
 
     window.addEventListener("click", this, true);
     window.addEventListener("mousedown", this, true);
@@ -403,54 +403,123 @@ var BrowserEventHandler = {
         this.startX = aEvent.clientX;
         this.startY = aEvent.clientY;
         this.blockClick = false;
+        this.firstMovement = true;
+        this.firstXMovement = 0;
+        this.firstYMovement = 0;
   
-        this._updateLastPosition(aEvent.clientX, aEvent.clientY);
-  
-        
-        
-        
-        this.panning = true;
+        this._updateLastPosition(aEvent.clientX, aEvent.clientY, 0, 0);
+        this.panElement = this._findScrollableElement(aEvent.originalTarget,
+                                                      true);
 
+        
+        
+        
+        if (this.panElement)
+          this.panning = true;
+
+        
+        
         aEvent.stopPropagation();
         aEvent.preventDefault();
         break;
 
       case "mousemove":
+        if (!this.panning)
+          break;
+
         let dx = aEvent.clientX - this.lastX;
         let dy = aEvent.clientY - this.lastY;
-  
-        BrowserApp.selectedBrowser.contentWindow.wrappedJSObject.scrollBy(-dx, -dy);
-        this._updateLastPosition(aEvent.clientX, aEvent.clientY);
-  
+
+        
+        
+        
+        
+        
+        if (this.firstXMovement == 0) {
+          this.firstXMovement = dx;
+        }
+        if (this.firstYMovement == 0) {
+          this.firstYMovement = dy;
+        }
+        if (this.firstMovement &&
+            this.firstXMovement != 0 &&
+            this.firstYMovement != 0) {
+          this.firstMovement = false;
+          let originalElement = this.panElement;
+
+          
+          
+          while (this.panElement &&
+                 !this._elementCanScroll(this.panElement,
+                                         -this.firstXMovement,
+                                         -this.firstYMovement)) {
+            this.panElement =
+              this._findScrollableElement(this.panElement, false);
+          }
+
+          
+          
+          if (!this.panElement)
+            this.panElement = originalElement;
+        }
+
+        this._scrollElementBy(this.panElement, -dx, -dy);
+
+        
+        
+        
+        this._updateLastPosition(aEvent.clientX, aEvent.clientY, dx, dy);
+
         aEvent.stopPropagation();
         aEvent.preventDefault();
         break;
 
       case "mouseup":
+        if (!this.panning)
+          break;
+
         this.panning = false;
         let isDrag = (Math.abs(aEvent.clientX - this.startX) > 10 ||
                       Math.abs(aEvent.clientY - this.startY) > 10);
 
-        if (isDrag)
+        if (isDrag) {
           this.blockClick = true;
+          aEvent.stopPropagation();
+          aEvent.preventDefault();
+        }
 
-        if (isDrag && Math.abs(this.motionBuffer[0].time -
-                               this.motionBuffer[4].time) < 1000) {
+        if (isDrag &&
+            (this.motionBuffer[4].time - this.motionBuffer[0].time) < 1000) {
           
 
           
           this.panX = 0;
           this.panY = 0;
+          let nEvents = 0;
           for (let i = 1; i < 5; i++) {
               let timeDelta = this.motionBuffer[i].time -
                 this.motionBuffer[i - 1].time;
-              this.panX += (this.motionBuffer[i].x -
-                            this.motionBuffer[i - 1].x) / timeDelta;
-              this.panY += (this.motionBuffer[i].y -
-                            this.motionBuffer[i - 1].y) / timeDelta;
+              if (timeDelta <= 0)
+                continue;
+
+              this.panX += this.motionBuffer[i].dx / timeDelta;
+              this.panY += this.motionBuffer[i].dy / timeDelta;
+              nEvents ++;
           }
-          this.panX /= 4;
-          this.panY /= 4;
+          this.panX /= nEvents;
+          this.panY /= nEvents;
+
+          
+          if (this.panX == 0 && this.panY == 0)
+            break;
+
+          
+          if (!this.panElement || !this._elementCanScroll(
+                 this.panElement, -this.panX, -this.panY))
+            break;
+
+          
+          this._scrollElementBy(this.panElement, -this.panX, -this.panY);
 
           
           this.panDeceleration = 0.999;
@@ -458,15 +527,11 @@ var BrowserEventHandler = {
           this.panAccumulatedDeltaY = 0;
           this.panLastTime = window.mozAnimationStartTime;
 
-          
-          
-          BrowserApp.selectedBrowser.contentWindow.wrappedJSObject.
-            scrollBy(this.panX, this.panY);
-
           let self = this;
+          let panElement = this.panElement;
           let callback = {
             onBeforePaint: function kineticPanCallback(timeStamp) {
-              if (self.panning)
+              if (self.panning || self.panElement != panElement)
                 return;
 
               let timeDelta = timeStamp - self.panLastTime;
@@ -499,8 +564,7 @@ var BrowserEventHandler = {
                   self.panAccumulatedDeltaY -= ady;
               }
 
-              BrowserApp.selectedBrowser.contentWindow.wrappedJSObject.
-                scrollBy(-dx, -dy);
+              self._scrollElementBy(panElement, -dx, -dy);
 
               
               
@@ -513,18 +577,14 @@ var BrowserEventHandler = {
 
           
           
-          if (Math.abs(this.panX) < 0.3)
+          if (Math.abs(this.panX) < Math.abs(this.panY) / 5)
             this.panX = 0;
-          if (Math.abs(this.panY) < 0.3)
+          else if (Math.abs(this.panY) < Math.abs(this.panX) / 5)
             this.panY = 0;
 
           
-          if (Math.abs(this.panX) > 0 || Math.abs(this.panY) > 0)
-            window.mozRequestAnimationFrame(callback);
+          window.mozRequestAnimationFrame(callback);
         }
-
-        aEvent.stopPropagation();
-        aEvent.preventDefault();
         break;
 
       case "MozMagnifyGestureStart":
@@ -546,7 +606,7 @@ var BrowserEventHandler = {
     }
   },
 
-  _updateLastPosition: function(x, y) {
+  _updateLastPosition: function(x, y, dx, dy) {
     this.lastX = x;
     this.lastY = y;
     this.lastTime = Date.now();
@@ -555,12 +615,77 @@ var BrowserEventHandler = {
       if (this.panning) {
         this.motionBuffer[i] = this.motionBuffer[i + 1];
       } else {
-        this.motionBuffer[i] =
-          { x: this.lastX, y: this.lastY, time: this.lastTime };
+        this.motionBuffer[i] = { dx: 0, dy: 0, time: this.lastTime };
       }
     }
 
     this.motionBuffer[4] =
-      { x: this.lastX, y: this.lastY, time: this.lastTime };
+      { dx: dx, dy: dy, time: this.lastTime };
+  },
+
+  _findScrollableElement: function(elem, checkElem) {
+    
+    let scrollable = false;
+    while (elem) {
+      
+
+
+
+
+      if (checkElem) {
+        if (((elem.scrollHeight > elem.clientHeight) ||
+             (elem.scrollWidth > elem.clientWidth)) &&
+            (elem.style.overflow == 'auto' ||
+             elem.style.overflow == 'scroll' ||
+             elem.localName == 'textarea' ||
+             elem.localName == 'html' ||
+             elem.localName == 'body')) {
+          scrollable = true;
+          break;
+        }
+      } else {
+        checkElem = true;
+      }
+
+      
+      if (!elem.parentNode && elem.documentElement &&
+          elem.documentElement.ownerDocument)
+        elem = elem.documentElement.ownerDocument.defaultView.frameElement;
+      else
+        elem = elem.parentNode;
+    }
+
+    if (!scrollable)
+      return null;
+
+    return elem;
+  },
+
+  _scrollElementBy: function(elem, x, y) {
+    elem.scrollTop = elem.scrollTop + y;
+    elem.scrollLeft = elem.scrollLeft + x;
+  },
+
+  _elementCanScroll: function(elem, x, y) {
+    let scrollX = true;
+    let scrollY = true;
+
+    if (x < 0) {
+      if (elem.scrollLeft <= 0) {
+        scrollX = false;
+      }
+    } else if (elem.scrollLeft >= (elem.scrollWidth - elem.clientWidth)) {
+      scrollX = false;
+    }
+
+    if (y < 0) {
+      if (elem.scrollTop <= 0) {
+        scrollY = false;
+      }
+    } else if (elem.scrollTop >= (elem.scrollHeight - elem.clientHeight)) {
+      scrollY = false;
+    }
+
+    return scrollX || scrollY;
   }
 };
