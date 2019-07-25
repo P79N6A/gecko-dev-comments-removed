@@ -6751,6 +6751,34 @@ ResolvePrototype(nsIXPConnect *aXPConnect, nsGlobalWindow *aWin, JSContext *cx,
   return NS_OK;
 }
 
+static bool
+ConstructorEnabled(const nsGlobalNameStruct *aStruct, nsGlobalWindow *aWin)
+{
+  MOZ_ASSERT(aStruct->mType == nsGlobalNameStruct::eTypeClassConstructor ||
+             aStruct->mType == nsGlobalNameStruct::eTypeExternalClassInfo);
+
+  
+  if (aStruct->mChromeOnly &&
+      !nsContentUtils::IsSystemPrincipal(aWin->GetPrincipal())) {
+    return false;
+  }
+
+  
+  if (aStruct->mDOMClassInfoID == eDOMClassInfo_WebSocket_id) {
+    if (!nsWebSocket::PrefEnabled()) {
+      return false;
+    }
+  }
+
+  
+  if (aStruct->mDOMClassInfoID == eDOMClassInfo_EventSource_id) {
+    if (!nsEventSource::PrefEnabled()) {
+      return false;
+    }
+  }
+
+  return true;
+}
 
 
 nsresult
@@ -6785,19 +6813,30 @@ nsWindowSH::GlobalResolve(nsGlobalWindow *aWin, JSContext *cx,
     }
   }
 
-  if (name_struct->mType == nsGlobalNameStruct::eTypeInterface) {
-    
-    
-
+  if (name_struct->mType == nsGlobalNameStruct::eTypeNewDOMBinding ||
+      name_struct->mType == nsGlobalNameStruct::eTypeInterface ||
+      name_struct->mType == nsGlobalNameStruct::eTypeClassProto ||
+      name_struct->mType == nsGlobalNameStruct::eTypeClassConstructor) {
     
     mozilla::dom::binding::DefineInterface define =
       name_struct->mDefineDOMInterface;
-    if (define && mozilla::dom::binding::DefineConstructor(cx, obj, define, &rv)) {
-      *did_resolve = NS_SUCCEEDED(rv);
+    if (define) {
+      if (name_struct->mType == nsGlobalNameStruct::eTypeClassConstructor &&
+          !ConstructorEnabled(name_struct, aWin)) {
+        return NS_OK;
+      }
 
-      return rv;
+      if (mozilla::dom::binding::DefineConstructor(cx, obj, define, &rv)) {
+        *did_resolve = NS_SUCCEEDED(rv);
+
+        return rv;
+      }
     }
+  }
 
+  if (name_struct->mType == nsGlobalNameStruct::eTypeInterface) {
+    
+    
     nsRefPtr<nsDOMConstructor> constructor;
     rv = nsDOMConstructor::Create(class_name,
                                   nsnull,
@@ -6832,35 +6871,8 @@ nsWindowSH::GlobalResolve(nsGlobalWindow *aWin, JSContext *cx,
 
   if (name_struct->mType == nsGlobalNameStruct::eTypeClassConstructor ||
       name_struct->mType == nsGlobalNameStruct::eTypeExternalClassInfo) {
-    
-    if (name_struct->mChromeOnly &&
-        !nsContentUtils::IsSystemPrincipal(aWin->GetPrincipal())) {
+    if (!ConstructorEnabled(name_struct, aWin)) {
       return NS_OK;
-    }
-
-    
-    if (name_struct->mDOMClassInfoID == eDOMClassInfo_WebSocket_id) {
-      if (!nsWebSocket::PrefEnabled()) {
-        return NS_OK;
-      }
-    }
-
-    
-    if (name_struct->mDOMClassInfoID == eDOMClassInfo_EventSource_id) {
-      if (!nsEventSource::PrefEnabled()) {
-        return NS_OK;
-      }
-    }
-
-    
-    if (name_struct->mType == nsGlobalNameStruct::eTypeClassConstructor) {
-      mozilla::dom::binding::DefineInterface define =
-        name_struct->mDefineDOMInterface;
-      if (define && mozilla::dom::binding::DefineConstructor(cx, obj, define, &rv)) {
-        *did_resolve = NS_SUCCEEDED(rv);
-
-        return rv;
-      }
     }
 
     
@@ -6894,16 +6906,6 @@ nsWindowSH::GlobalResolve(nsGlobalWindow *aWin, JSContext *cx,
   if (name_struct->mType == nsGlobalNameStruct::eTypeClassProto) {
     
     
-
-    
-    mozilla::dom::binding::DefineInterface define =
-      name_struct->mDefineDOMInterface;
-    if (define && mozilla::dom::binding::DefineConstructor(cx, obj, define, &rv)) {
-      *did_resolve = NS_SUCCEEDED(rv);
-
-      return rv;
-    }
-
     return ResolvePrototype(sXPConnect, aWin, cx, obj, class_name, nsnull,
                             name_struct, nameSpaceManager, nsnull, true,
                             did_resolve);
