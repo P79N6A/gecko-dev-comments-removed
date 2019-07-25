@@ -1188,7 +1188,9 @@ KeymapWrapper::InitKeypressEvent(nsKeyEvent& aKeyEvent,
 
     
     
-    if (!aKeyEvent.IsControl() && !aKeyEvent.IsAlt() && !aKeyEvent.IsMeta()) {
+    
+    if (!aKeyEvent.IsControl() && !aKeyEvent.IsAlt() &&
+        !aKeyEvent.IsMeta() && !aKeyEvent.IsOS()) {
         PR_LOG(gKeymapWrapperLog, PR_LOG_ALWAYS,
             ("KeymapWrapper(%p): InitKeypressEvent, "
              "keyCode=0x%02X, charCode=0x%08X",

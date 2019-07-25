@@ -172,11 +172,13 @@ protected:
   static const PRInt32 cAlt;
   static const PRInt32 cControl;
   static const PRInt32 cMeta;
+  static const PRInt32 cOS;
 
   static const PRInt32 cShiftMask;
   static const PRInt32 cAltMask;
   static const PRInt32 cControlMask;
   static const PRInt32 cMetaMask;
+  static const PRInt32 cOSMask;
 
   static const PRInt32 cAllModifiers;
 
@@ -193,8 +195,6 @@ protected:
   
   
   PRUint8 mPhase;            
-  PRUint8 mKeyMask;          
-                             
   PRUint8 mType;             
                              
                              
@@ -203,6 +203,9 @@ protected:
                              
                              
 
+  PRInt32 mKeyMask;          
+                             
+ 
   
   PRInt32 mDetail;           
                              
