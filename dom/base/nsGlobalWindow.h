@@ -148,6 +148,7 @@ class nsRunnable;
 class nsDOMOfflineResourceList;
 class nsGeolocation;
 class nsDesktopNotificationCenter;
+class nsDOMMozURLProperty;
 
 #ifdef MOZ_DISABLE_DOMCRYPTO
 class nsIDOMCrypto;
@@ -281,10 +282,13 @@ class nsGlobalWindow : public nsPIDOMWindow,
                        public nsIDOMStorageWindow,
                        public nsSupportsWeakReference,
                        public nsIInterfaceRequestor,
+                       public nsIDOMWindow_2_0_BRANCH,
                        public nsWrapperCache,
                        public PRCListStr
 {
 public:
+  friend class nsDOMMozURLProperty;
+
   typedef mozilla::TimeStamp TimeStamp;
   typedef mozilla::TimeDuration TimeDuration;
 
@@ -340,6 +344,9 @@ public:
 
   
   NS_DECL_NSIDOMNSEVENTTARGET
+  
+  
+  NS_DECL_NSIDOMWINDOW_2_0_BRANCH
 
   
   virtual NS_HIDDEN_(nsPIDOMWindow*) GetPrivateRoot();
@@ -946,6 +953,8 @@ protected:
   
   TimeStamp                     mLastDialogQuitTime;
   PRPackedBool                  mDialogDisabled;
+
+  nsRefPtr<nsDOMMozURLProperty> mURLProperty;
 
   friend class nsDOMScriptableHelper;
   friend class nsDOMWindowUtils;
