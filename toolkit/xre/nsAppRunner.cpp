@@ -69,7 +69,6 @@
 
 #ifdef XP_MACOSX
 #include "nsVersionComparator.h"
-#include "MacQuirks.h"
 #include "MacLaunchHelper.h"
 #include "MacApplicationDelegate.h"
 #include "MacAutoreleasePool.h"
@@ -2594,10 +2593,6 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
     NS_BREAK();
 #endif
 
-#ifdef XP_MACOSX
-  TriggerQuirks();
-#endif
-
   
   
   
@@ -3135,25 +3130,6 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
     
     if (NS_FAILED(rv))
       updRoot = dirProvider.GetAppDir();
-
-    
-    
-    if (EnvHasValue("MOZ_PROCESS_UPDATES")) {
-      
-      
-      
-      const char *logFile = nsnull;
-      if (ARG_FOUND == CheckArg("dump-args", false, &logFile)) {
-        FILE* logFP = fopen(logFile, "wb");
-        if (logFP) {
-          for (i = 1; i < gRestartArgc; ++i) {
-            fprintf(logFP, "%s\n", gRestartArgv[i]);
-          }
-          fclose(logFP);
-        }
-      }
-      return 0;
-    }
 
     
     
