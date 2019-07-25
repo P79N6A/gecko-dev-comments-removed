@@ -818,7 +818,7 @@ Assembler::asm_call(LIns* ins)
 
 
 
-    } else {
+    } else if (!ins->isop(LIR_callv)) {
         prepareResultReg(ins, rmask(retRegs[0]));
         
         
@@ -837,7 +837,7 @@ Assembler::asm_call(LIns* ins)
 
     
     
-    NanoAssert(ARM_VFP || ins->isop(LIR_calli));
+    NanoAssert(ARM_VFP || ins->isop(LIR_callv) || ins->isop(LIR_calli));
 
     
     

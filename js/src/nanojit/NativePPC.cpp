@@ -695,12 +695,13 @@ namespace nanojit
     }
 
     void Assembler::asm_call(LIns *ins) {
-        Register retReg = ( ins->isop(LIR_calld) ? F1 : retRegs[0] );
-        deprecated_prepResultReg(ins, rmask(retReg));
+        if (!ins->isop(LIR_callv)) {
+            Register retReg = ( ins->isop(LIR_calld) ? F1 : retRegs[0] );
+            deprecated_prepResultReg(ins, rmask(retReg));
+        }
 
         
         
-
         evictScratchRegsExcept(0);
 
         const CallInfo* call = ins->callInfo();
