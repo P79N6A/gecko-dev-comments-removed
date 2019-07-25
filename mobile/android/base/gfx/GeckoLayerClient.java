@@ -126,9 +126,8 @@ public class GeckoLayerClient implements GeckoEventListener,
     }
 
     
-    public Rect beginDrawing(int width, int height, int tileWidth, int tileHeight,
-                             String metadata) {
-        Log.e(LOGTAG, "### beginDrawing " + width + " " + height + " " + tileWidth + " " + tileHeight);
+    public Rect beginDrawing(int width, int height, String metadata) {
+        Log.e(LOGTAG, "### beginDrawing " + width + " " + height);
 
         
         
@@ -281,9 +280,8 @@ public class GeckoLayerClient implements GeckoEventListener,
         }
 
         IntSize bufferSize = getBufferSize();
-        GeckoEvent event = GeckoEvent.createSizeChangedEvent(mWindowSize.width, mWindowSize.height, 
-                                                             mScreenSize.width, mScreenSize.height, 
-                                                             0, 0);                                 
+        GeckoEvent event = GeckoEvent.createSizeChangedEvent(mWindowSize.width, mWindowSize.height,  
+                                                             mScreenSize.width, mScreenSize.height); 
         GeckoAppShell.sendEventToGecko(event);
     }
 
