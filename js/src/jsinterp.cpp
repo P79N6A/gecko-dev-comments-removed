@@ -718,6 +718,9 @@ InvokeSessionGuard::start(JSContext *cx, const Value &calleev, const Value &this
     savedCallee_ = args_.calleev() = calleev;
     savedThis_ = args_.thisv() = thisv;
 
+    
+    MakeRangeGCSafe(args_.argv(), args_.argc());
+
     do {
         
         if (!calleev.isObject())

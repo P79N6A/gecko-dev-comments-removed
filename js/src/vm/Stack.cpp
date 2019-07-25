@@ -911,6 +911,16 @@ StackIter::startOnSegment(StackSegment *seg)
     settleOnNewSegment();
 }
 
+static void JS_NEVER_INLINE
+CrashIfInvalidSlot(StackFrame *fp, Value *vp)
+{
+    if (vp < fp->slots() || vp >= fp->slots() + fp->script()->nslots) {
+        JS_ASSERT(false && "About to dereference invalid slot");
+        *(int *)0xbad = 0;  
+        JS_Assert("About to dereference invalid slot", __FILE__, __LINE__);
+    }
+}
+
 void
 StackIter::settleOnNewState()
 {
@@ -964,6 +974,12 @@ StackIter::settleOnNewState()
             }
 
             
+            if (containsCall && !calls_->active() && calls_->argv() == fp_->actualArgs()) {
+                popFrame();
+                continue;
+            }
+
+            
 
 
 
@@ -997,6 +1013,7 @@ StackIter::settleOnNewState()
 #endif
                 Value *vp = sp_ - (2 + argc);
 
+                CrashIfInvalidSlot(fp_, vp);
                 if (IsNativeFunction(*vp)) {
                     state_ = IMPLICIT_NATIVE;
                     args_ = CallArgsFromVp(argc, vp);
@@ -1009,6 +1026,7 @@ StackIter::settleOnNewState()
                 Value *sp = fp_->base() + spoff;
                 Value *vp = sp - (2 + argc);
 
+                CrashIfInvalidSlot(fp_, vp);
                 if (IsNativeFunction(*vp)) {
                     if (sp_ != sp) {
                         JS_ASSERT(argc == 2);
