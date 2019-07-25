@@ -184,11 +184,12 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, JSObject *scope, JSObject *obj
     if (!wn->GetClassInfo())
         return DoubleWrap(cx, obj, flags);
 
+    JSAutoEnterCompartment ac;
+    if (!ac.enter(cx, obj))
+        return nsnull;
+    XPCCallContext ccx(JS_CALLER, cx, obj);
+
     {
-        JSAutoEnterCompartment ac;
-        if (!ac.enter(cx, obj))
-            return nsnull;
-        XPCCallContext ccx(JS_CALLER, cx, obj);
         if (NATIVE_HAS_FLAG(&ccx, WantPreCreate)) {
             
             
@@ -213,14 +214,10 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, JSObject *scope, JSObject *obj
 
     
     
-    
-    JSAutoEnterCompartment ac;
-    if (!ac.enter(cx, scope))
-        return nsnull;
+    nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
 
     
     
-    nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
     jsval v;
     nsresult rv =
         nsXPConnect::FastGetXPConnect()->WrapNativeToJSVal(cx, scope, wn->Native(), nsnull,
