@@ -123,9 +123,12 @@ namespace JSC {
     class ExecutablePool;
 }
 namespace js {
-    namespace mjit {
-        struct PICInfo;
-    }
+namespace mjit {
+namespace ic {
+    struct PICInfo;
+    struct MICInfo;
+}
+}
 }
 #endif
 
@@ -176,9 +179,10 @@ struct JSScript {
     void            **nmap;     
     JSC::ExecutablePool *execPool;  
     unsigned        npics;      
-    js::mjit::PICInfo *pics;      
+    js::mjit::ic::PICInfo *pics; 
+    js::mjit::ic::MICInfo *mics; 
 # ifdef DEBUG
-    size_t          jitLength;  
+    uint32          jitLength;  
 
     inline bool isValidJitCode(void *jcode) {
         return (char*)jcode >= (char*)ncode &&
