@@ -376,8 +376,7 @@ void nsViewManager::ProcessPendingUpdatesForView(nsView* aView,
   
   if (aFlushDirtyRegion) {
     nsIWidget *widget = aView->GetWidget();
-    if (widget && widget->NeedsPaint()) {
-      widget->SetNeedsPaint(false);
+    if (widget) {
 #ifdef DEBUG_INVALIDATIONS
       printf("---- PAINT START ----PresShell(%p), nsView(%p), nsIWidget(%p)\n", mPresShell, aView, widget);
 #endif
