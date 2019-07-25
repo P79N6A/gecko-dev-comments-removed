@@ -2039,7 +2039,32 @@ PR_IMPLEMENT(PRAddrInfo *) PR_GetAddrInfoByName(const char  *hostname,
 
 
         memset(&hints, 0, sizeof(hints));
-        hints.ai_flags = (flags & PR_AI_NOCANONNAME) ? 0: AI_CANONNAME;
+        if (flags & PR_AI_NOCANONNAME)
+            hints.ai_flags |= AI_CANONNAME;
+#ifdef AI_ADDRCONFIG
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        if ((flags & PR_AI_ADDRCONFIG) &&
+            strcmp(hostname, "localhost") != 0 &&
+            strcmp(hostname, "localhost.localdomain") != 0 &&
+            strcmp(hostname, "localhost6") != 0 &&
+            strcmp(hostname, "localhost6.localdomain6") != 0) {
+            hints.ai_flags |= AI_ADDRCONFIG;
+        }
+#endif
         hints.ai_family = (af == PR_AF_INET) ? AF_INET : AF_UNSPEC;
 
         
