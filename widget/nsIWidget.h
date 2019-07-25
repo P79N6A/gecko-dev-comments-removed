@@ -22,7 +22,7 @@
 #include "nsWidgetInitData.h"
 #include "nsTArray.h"
 #include "nsXULAppAPI.h"
-#include "LayersBackend.h"
+#include "LayersTypes.h"
 
 
 class   nsFontMetrics;

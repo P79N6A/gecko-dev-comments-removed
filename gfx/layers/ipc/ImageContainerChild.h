@@ -13,6 +13,7 @@ namespace mozilla {
 namespace layers {
 
 class ImageBridgeCopyAndSendTask;
+class ImageContainer;
 
 
 

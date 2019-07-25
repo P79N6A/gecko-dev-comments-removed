@@ -76,10 +76,6 @@ public:
 
 
 
-  enum BufferMode {
-    BUFFER_NONE,
-    BUFFER_BUFFERED
-  };
   virtual void SetDefaultTarget(gfxContext* aContext, BufferMode aDoubleBuffering,
                                 ScreenRotation aRotation);
   gfxContext* GetDefaultTarget() { return mDefaultTarget; }
