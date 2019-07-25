@@ -973,6 +973,10 @@ extern JS_REQUIRES_STACK bool
 InvokeConstructorWithGivenThis(JSContext *cx, JSObject *thisobj, const Value &fval,
                                uintN argc, Value *argv, Value *rval);
 
+extern bool
+ExternalInvokeConstructor(JSContext *cx, const Value &fval, uintN argc, Value *argv,
+                          Value *rval);
+
 
 
 
