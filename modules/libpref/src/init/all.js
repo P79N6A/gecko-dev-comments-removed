@@ -92,6 +92,11 @@ pref("offline-apps.quota.warn",         4000);
 #endif
 
 
+pref("dom.indexedDB.enabled", true);
+
+pref("dom.indexedDB.warningQuota", 50);
+
+
 
 pref("browser.sessionhistory.max_total_viewers", -1);
 
@@ -3226,6 +3231,7 @@ pref("browser.history.maxStateObjectSize", 655360);
 
 
 pref("xpinstall.whitelist.required", true);
+pref("extensions.alwaysUnpack", false);
 
 pref("network.buffer.cache.count", 24);
 pref("network.buffer.cache.size",  32768);
