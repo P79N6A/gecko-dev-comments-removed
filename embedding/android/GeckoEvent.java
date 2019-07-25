@@ -127,6 +127,7 @@ public class GeckoEvent {
     public boolean mCanBeMetered;
 
     public int mNativeWindow;
+    public int mTabId;
 
     public GeckoEvent() {
         mType = NATIVE_POKE;
@@ -252,9 +253,10 @@ public class GeckoEvent {
         }
     }
 
-    public GeckoEvent(Location l) {
+    public GeckoEvent(Location l, Address a) {
         mType = LOCATION_EVENT;
         mLocation = l;
+        mAddress  = a;
     }
 
     public GeckoEvent(int imeAction, int offset, int count) {
