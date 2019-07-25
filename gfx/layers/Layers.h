@@ -1161,6 +1161,14 @@ public:
 
 
   virtual void RemoveChild(Layer* aChild) = 0;
+  
+
+
+
+
+
+
+  virtual void RepositionChild(Layer* aChild, Layer* aAfter) = 0;
 
   
 
@@ -1450,6 +1458,9 @@ private:
   { MOZ_NOT_REACHED("no"); }
 
   virtual void RemoveChild(Layer* aChild)
+  { MOZ_NOT_REACHED("no"); }
+
+  virtual void RepositionChild(Layer* aChild, Layer* aAfter)
   { MOZ_NOT_REACHED("no"); }
 
   using ContainerLayer::SetFrameMetrics;
