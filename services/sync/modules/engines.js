@@ -210,7 +210,6 @@ SyncEngine.prototype = {
   
   _createRecord: function SyncEngine__createRecord(id) {
     let record = this._store.createRecord(id);
-    record.id = id; 
     record.encryption = this.cryptoMetaURL;
     return record;
   },
