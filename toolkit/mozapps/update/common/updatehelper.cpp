@@ -38,6 +38,7 @@
 #include <windows.h>
 #include <stdio.h>
 #include "shlobj.h"
+#include "updatehelper.h"
 
 
 #include <shlwapi.h>
@@ -230,7 +231,7 @@ StartServiceUpdate(int argc, LPWSTR *argv)
   }
 
   
-  SC_HANDLE svc = OpenServiceW(manager, L"MozillaMaintenance", 
+  SC_HANDLE svc = OpenServiceW(manager, SVC_NAME, 
                                SERVICE_ALL_ACCESS);
   if (!svc) {
     CloseServiceHandle(manager);
@@ -261,6 +262,10 @@ StartServiceUpdate(int argc, LPWSTR *argv)
                                                 CREATE_UNICODE_ENVIRONMENT, 
                                                 NULL, argv[2], &si, &pi);
   if (svcUpdateProcessStarted) {
+    
+    
+    
+    WaitForSingleObject(pi.hProcess, INFINITE);
     CloseHandle(pi.hProcess);
     CloseHandle(pi.hThread);
   }
@@ -288,7 +293,7 @@ StartServiceCommand(int argc, LPCWSTR* argv)
 
   
   SC_HANDLE service = OpenServiceW(serviceManager, 
-                                   L"MozillaMaintenance", 
+                                   SVC_NAME, 
                                    SERVICE_QUERY_STATUS | SERVICE_START);
   if (!service) {
     CloseServiceHandle(serviceManager);
@@ -422,4 +427,59 @@ WriteStatusFailure(LPCWSTR updateDirPath, int errorCode)
                       toWrite, &wrote, NULL); 
   CloseHandle(statusFile);
   return ok && wrote == toWrite;
+}
+
+
+
+
+
+
+
+
+
+
+
+BOOL
+WaitForServiceStop(LPCWSTR serviceName, DWORD maxWaitSeconds) 
+{
+  
+  SC_HANDLE serviceManager = OpenSCManager(NULL, NULL, 
+                                           SC_MANAGER_CONNECT | 
+                                           SC_MANAGER_ENUMERATE_SERVICE);
+  if (!serviceManager)  {
+    return FALSE;
+  }
+
+  
+  SC_HANDLE service = OpenServiceW(serviceManager, 
+                                   serviceName, 
+                                   SERVICE_QUERY_STATUS);
+  if (!service) {
+    CloseServiceHandle(serviceManager);
+    return FALSE;
+  }
+
+  BOOL gotStop = FALSE;
+  DWORD currentWaitMS = 0;
+  while (currentWaitMS < maxWaitSeconds * 1000) {
+    
+    SERVICE_STATUS_PROCESS ssp;
+    DWORD bytesNeeded;
+    if (!QueryServiceStatusEx(service, SC_STATUS_PROCESS_INFO, (LPBYTE)&ssp,
+                              sizeof(SERVICE_STATUS_PROCESS), &bytesNeeded)) {
+      break;
+    }
+
+    
+    if (ssp.dwCurrentState == SERVICE_STOPPED) {
+      gotStop = TRUE;
+      break;
+    }
+    currentWaitMS += 50;
+    Sleep(50);
+  }
+
+  CloseServiceHandle(service);
+  CloseServiceHandle(serviceManager);
+  return gotStop;
 }

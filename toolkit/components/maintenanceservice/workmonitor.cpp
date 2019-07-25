@@ -317,6 +317,8 @@ ProessSoftwareUpdateCommand(DWORD argc, LPWSTR *argv)
       LOG(("updater.exe was launched and run successfully!\n"));
       LogFlush();
 
+      
+      
       StartServiceUpdate(argc, argv);
     } else {
       result = FALSE;
@@ -367,15 +369,8 @@ ProessSoftwareUpdateCommand(DWORD argc, LPWSTR *argv)
 BOOL
 ExecuteServiceCommand(int argc, LPWSTR *argv) 
 {
-  
-  
-  
-  nsAutoHandle serviceRunningEvent(CreateEventW(NULL, TRUE, 
-                                                FALSE, SERVICE_EVENT_NAME));
-
   if (argc < 3) {
     LOG(("Not enough command line arguments to execute a service command\n"));
-    SetEvent(serviceRunningEvent);
     StopService();
     return FALSE;
   }
@@ -395,6 +390,9 @@ ExecuteServiceCommand(int argc, LPWSTR *argv)
   BOOL result = FALSE;
   if (!lstrcmpi(argv[2], L"software-update")) {
     result = ProessSoftwareUpdateCommand(argc - 3, argv + 3);
+    
+    
+    
     LOG(("Service command %ls complete.\n", argv[2]));
   } else {
     LOG(("Service command not recognized: %ls.\n", argv[2]));
@@ -403,7 +401,6 @@ ExecuteServiceCommand(int argc, LPWSTR *argv)
 
   LOG(("service command %ls complete with result: %ls.\n", 
        argv[1], (result ? L"Success" : L"Failure")));
-  SetEvent(serviceRunningEvent);
   StopService();
   return TRUE;
 }

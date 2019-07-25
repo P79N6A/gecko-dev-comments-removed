@@ -1772,22 +1772,6 @@ int NS_main(int argc, NS_tchar **argv)
         }
       }
 
-      HANDLE serviceInUseEvent = NULL;
-      if (useService) {
-        
-        
-        
-        serviceInUseEvent = CreateEventW(NULL, TRUE, 
-                                         FALSE, SERVICE_EVENT_NAME);
-
-        
-        
-        if (!serviceInUseEvent) {
-          useService = false;
-          lastFallbackError = FALLBACKKEY_EVENT_ERROR;
-        }
-      }
-
       
       
       
@@ -1802,13 +1786,14 @@ int NS_main(int argc, NS_tchar **argv)
         useService = LaunchServiceSoftwareUpdateCommand(argc, (LPCWSTR *)argv);
 
         
-        
         if (useService) {
-          WaitForSingleObject(serviceInUseEvent, INFINITE);
-        } else {
-          lastFallbackError = FALLBACKKEY_LAUNCH_ERROR;
+          if (!WaitForServiceStop(SVC_NAME, 600)) {
+            
+            
+            lastFallbackError = FALLBACKKEY_SERVICE_NO_STOP_ERROR;
+            useService = false;
+          }
         }
-        CloseHandle(serviceInUseEvent);
       }
 
       
