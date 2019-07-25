@@ -557,7 +557,6 @@ protected:
   nscoord                       mLastAnchorScrollPositionY;
   nsRefPtr<nsCaret>             mCaret;
   nsRefPtr<nsCaret>             mOriginalCaret;
-  nsCOMPtr<nsIDragService>      mDragService;
   
 #ifdef DEBUG
   

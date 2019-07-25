@@ -866,9 +866,6 @@ PresShell::Init(nsIDocument* aDocument,
     }
   }
 
-  
-  mDragService = do_GetService("@mozilla.org/widget/dragservice;1");
-
 #ifdef MOZ_REFLOW_PERF
     if (mReflowCountMgr) {
       bool paintFrameCounts =
