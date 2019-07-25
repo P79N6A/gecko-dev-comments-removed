@@ -266,7 +266,7 @@ var Browser = {
       ViewableAreaObserver.update();
 
       
-      let restorePosition = Browser.controlsPosition;
+      let restorePosition = Browser.controlsPosition || { hideSidebars: true };
       if (restorePosition.hideSidebars) {
         restorePosition.hideSidebars = false;
         Browser.hideSidebars();
@@ -378,6 +378,11 @@ var Browser = {
     let event = document.createEvent("Events");
     event.initEvent("UIReady", true, false);
     window.dispatchEvent(event);
+
+    
+    
+    if (window.opener)
+      resizeHandler({ target: window });
   },
 
   _alertShown: function _alertShown() {
