@@ -64,16 +64,16 @@ using namespace mozilla;
 
 #define MAX_UNICODE 0x10FFFF
 
-struct nsKeyConverter {
-    int vkCode; 
-    int keysym; 
+struct KeyPair {
+    PRUint32 DOMKeyCode;
+    guint GDKKeyval;
 };
 
 
 
 
 
-struct nsKeyConverter nsKeycodes[] = {
+static const KeyPair kKeyPairs[] = {
     { NS_VK_CANCEL,     GDK_Cancel },
     { NS_VK_BACK,       GDK_BackSpace },
     { NS_VK_TAB,        GDK_Tab },
@@ -192,89 +192,11 @@ struct nsKeyConverter nsKeycodes[] = {
 };
 
 
-struct nsKeyConverter nsSunKeycodes[] = {
+static const KeyPair kSunKeyPairs[] = {
     {NS_VK_F11, 0x1005ff10 }, 
     {NS_VK_F12, 0x1005ff11 }  
 };
 
-int
-GdkKeyCodeToDOMKeyCode(int aKeysym)
-{
-    unsigned int i;
-
-    
-    
-    
-
-    
-    
-    if (aKeysym >= GDK_a && aKeysym <= GDK_z)
-        return aKeysym - GDK_a + NS_VK_A;
-    if (aKeysym >= GDK_A && aKeysym <= GDK_Z)
-        return aKeysym - GDK_A + NS_VK_A;
-
-    
-    if (aKeysym >= GDK_0 && aKeysym <= GDK_9)
-        return aKeysym - GDK_0 + NS_VK_0;
-
-    
-    if (aKeysym >= GDK_KP_0 && aKeysym <= GDK_KP_9)
-        return aKeysym - GDK_KP_0 + NS_VK_NUMPAD0;
-
-    
-    for (i = 0; i < ArrayLength(nsSunKeycodes); i++) {
-        if (nsSunKeycodes[i].keysym == aKeysym)
-            return(nsSunKeycodes[i].vkCode);
-    }
-
-    
-    for (i = 0; i < ArrayLength(nsKeycodes); i++) {
-        if (nsKeycodes[i].keysym == aKeysym)
-            return(nsKeycodes[i].vkCode);
-    }
-
-    
-    if (aKeysym >= GDK_F1 && aKeysym <= GDK_F24)
-        return aKeysym - GDK_F1 + NS_VK_F1;
-
-    return((int)0);
-}
-
-int
-DOMKeyCodeToGdkKeyCode(int aKeysym)
-{
-    unsigned int i;
-
-    
-    
-    
-
-    if (aKeysym >= NS_VK_A && aKeysym <= NS_VK_Z)
-      
-      return aKeysym;
-
-    
-    if (aKeysym >= NS_VK_0 && aKeysym <= NS_VK_9)
-      
-      return aKeysym - GDK_0 + NS_VK_0;
-
-    
-    if (aKeysym >= NS_VK_NUMPAD0 && aKeysym <= NS_VK_NUMPAD9)
-      return aKeysym - NS_VK_NUMPAD0 + GDK_KP_0;
-
-    
-    for (i = 0; i < ArrayLength(nsKeycodes); ++i) {
-      if (nsKeycodes[i].vkCode == aKeysym) {
-        return nsKeycodes[i].keysym;
-      }
-    }
-
-    
-    if (aKeysym >= NS_VK_F1 && aKeysym <= NS_VK_F9)
-      return aKeysym - NS_VK_F1 + GDK_F1;
-
-    return 0;
-}
 
 
 PRUint32 nsConvertCharCodeToUnicode(GdkEventKey* aEvent)
@@ -708,6 +630,92 @@ KeymapWrapper::InitInputEvent(nsInputEvent& aInputEvent,
          keymapWrapper, aModifierState,
          GetBoolName(aInputEvent.isShift), GetBoolName(aInputEvent.isControl),
          GetBoolName(aInputEvent.isAlt), GetBoolName(aInputEvent.isMeta)));
+}
+
+ PRUint32
+KeymapWrapper::ComputeDOMKeyCode(guint aGDKKeyval)
+{
+    
+    
+    
+
+    
+    
+    if (aGDKKeyval >= GDK_a && aGDKKeyval <= GDK_z) {
+        return aGDKKeyval - GDK_a + NS_VK_A;
+    }
+    if (aGDKKeyval >= GDK_A && aGDKKeyval <= GDK_Z) {
+        return aGDKKeyval - GDK_A + NS_VK_A;
+    }
+
+    
+    if (aGDKKeyval >= GDK_0 && aGDKKeyval <= GDK_9) {
+        return aGDKKeyval - GDK_0 + NS_VK_0;
+    }
+
+    
+    if (aGDKKeyval >= GDK_KP_0 && aGDKKeyval <= GDK_KP_9) {
+        return aGDKKeyval - GDK_KP_0 + NS_VK_NUMPAD0;
+    }
+
+    
+    for (PRUint32 i = 0; i < ArrayLength(kSunKeyPairs); i++) {
+        if (kSunKeyPairs[i].GDKKeyval == aGDKKeyval) {
+            return kSunKeyPairs[i].DOMKeyCode;
+        }
+    }
+
+    
+    for (PRUint32 i = 0; i < ArrayLength(kKeyPairs); i++) {
+        if (kKeyPairs[i].GDKKeyval == aGDKKeyval) {
+            return kKeyPairs[i].DOMKeyCode;
+        }
+    }
+
+    
+    if (aGDKKeyval >= GDK_F1 && aGDKKeyval <= GDK_F24) {
+        return aGDKKeyval - GDK_F1 + NS_VK_F1;
+    }
+
+    return 0;
+}
+
+ guint
+KeymapWrapper::GuessGDKKeyval(PRUint32 aDOMKeyCode)
+{
+    
+    
+    
+
+    if (aDOMKeyCode >= NS_VK_A && aDOMKeyCode <= NS_VK_Z) {
+        
+        return aDOMKeyCode;
+    }
+
+    
+    if (aDOMKeyCode >= NS_VK_0 && aDOMKeyCode <= NS_VK_9) {
+        
+        return aDOMKeyCode - NS_VK_0 + GDK_0;
+    }
+
+    
+    if (aDOMKeyCode >= NS_VK_NUMPAD0 && aDOMKeyCode <= NS_VK_NUMPAD9) {
+        return aDOMKeyCode - NS_VK_NUMPAD0 + GDK_KP_0;
+    }
+
+    
+    for (PRUint32 i = 0; i < ArrayLength(kKeyPairs); ++i) {
+        if (kKeyPairs[i].DOMKeyCode == aDOMKeyCode) {
+            return kKeyPairs[i].GDKKeyval;
+        }
+    }
+
+    
+    if (aDOMKeyCode >= NS_VK_F1 && aDOMKeyCode <= NS_VK_F9) {
+        return aDOMKeyCode - NS_VK_F1 + GDK_F1;
+    }
+
+    return 0;
 }
 
 } 

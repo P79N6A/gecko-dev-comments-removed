@@ -469,7 +469,7 @@ nsWindow::CommonCreate(nsIWidget *aParent, bool aListenForResizes)
 void
 nsWindow::InitKeyEvent(nsKeyEvent &aEvent, GdkEventKey *aGdkEvent)
 {
-    aEvent.keyCode   = GdkKeyCodeToDOMKeyCode(aGdkEvent->keyval);
+    aEvent.keyCode   = KeymapWrapper::ComputeDOMKeyCode(aGdkEvent->keyval);
     
     
     

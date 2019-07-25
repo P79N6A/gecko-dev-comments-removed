@@ -44,8 +44,6 @@
 
 #include <gdk/gdk.h>
 
-int      GdkKeyCodeToDOMKeyCode     (int aKeysym);
-int      DOMKeyCodeToGdkKeyCode     (int aKeysym);
 PRUint32 nsConvertCharCodeToUnicode (GdkEventKey* aEvent);
 
 namespace mozilla {
@@ -65,6 +63,18 @@ namespace widget {
 class KeymapWrapper
 {
 public:
+    
+
+
+    static PRUint32 ComputeDOMKeyCode(guint aGDKKeyval);
+
+    
+
+
+
+
+    static guint GuessGDKKeyval(PRUint32 aDOMKeyCode);
+
     
 
 
