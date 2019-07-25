@@ -297,7 +297,7 @@ enum TokenStreamFlags
 #define t_atom2         u.p.atom2
 #define t_dval          u.dval
 
-const size_t LINE_LIMIT = 256;  
+const size_t LINE_LIMIT = 1024; 
 
 
 class TokenStream
