@@ -532,7 +532,11 @@ var gUpdates = {
         
         
         
-        if (!addon.appDisabled && !addon.userDisabled &&
+        
+        
+        
+        if (addon.type != "plugin" &&
+            !addon.appDisabled && !addon.userDisabled &&
             addon.scope != AddonManager.SCOPE_APPLICATION &&
             !addon.isCompatibleWith(self.update.appVersion,
                                     self.update.platformVersion))
