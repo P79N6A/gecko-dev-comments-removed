@@ -88,6 +88,9 @@ struct CX_AND_XPCRT_Data
     XPCJSRuntime* rt;
 };
 
+static void * const UNMARK_ONLY = nsnull;
+static void * const UNMARK_AND_SWEEP = (void *)1;
+
 static JSDHashOperator
 NativeInterfaceSweeper(JSDHashTable *table, JSDHashEntryHdr *hdr,
                        uint32_t number, void *arg)
@@ -97,6 +100,9 @@ NativeInterfaceSweeper(JSDHashTable *table, JSDHashEntryHdr *hdr,
         iface->Unmark();
         return JS_DHASH_NEXT;
     }
+
+    if (arg == UNMARK_ONLY)
+        return JS_DHASH_NEXT;
 
 #ifdef XPC_REPORT_NATIVE_INTERFACE_AND_SET_FLUSHING
     fputs("- Destroying XPCNativeInterface for ", stdout);
@@ -133,6 +139,9 @@ NativeSetSweeper(JSDHashTable *table, JSDHashEntryHdr *hdr,
         return JS_DHASH_NEXT;
     }
 
+    if (arg == UNMARK_ONLY)
+        return JS_DHASH_NEXT;
+
 #ifdef XPC_REPORT_NATIVE_INTERFACE_AND_SET_FLUSHING
     printf("- Destroying XPCNativeSet for:\n");
     PRUint16 count = set->GetInterfaceCount();
@@ -163,6 +172,9 @@ JSClassSweeper(JSDHashTable *table, JSDHashEntryHdr *hdr,
         shared->Unmark();
         return JS_DHASH_NEXT;
     }
+
+    if (arg == UNMARK_ONLY)
+        return JS_DHASH_NEXT;
 
 #ifdef XPC_REPORT_JSCLASS_FLUSHING
     printf("- Destroying XPCNativeScriptableShared for: %s @ %x\n",
@@ -637,7 +649,7 @@ XPCJSRuntime::GCCallback(JSRuntime *rt, JSGCStatus status)
 }
 
  void
-XPCJSRuntime::FinalizeCallback(JSFreeOp *fop, JSFinalizeStatus status)
+XPCJSRuntime::FinalizeCallback(JSFreeOp *fop, JSFinalizeStatus status, JSBool isCompartmentGC)
 {
     XPCJSRuntime* self = nsXPConnect::GetRuntimeInstance();
     if (!self)
@@ -755,23 +767,36 @@ XPCJSRuntime::FinalizeCallback(JSFreeOp *fop, JSFinalizeStatus status)
             }
 
             
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            void *sweepArg = isCompartmentGC ? UNMARK_ONLY : UNMARK_AND_SWEEP;
 
             
             
             
             if (!self->GetXPConnect()->IsShuttingDown()) {
                 self->mNativeScriptableSharedMap->
-                    Enumerate(JSClassSweeper, nsnull);
+                    Enumerate(JSClassSweeper, sweepArg);
             }
 
-            self->mClassInfo2NativeSetMap->
-                Enumerate(NativeUnMarkedSetRemover, nsnull);
+            if (!isCompartmentGC) {
+                self->mClassInfo2NativeSetMap->
+                    Enumerate(NativeUnMarkedSetRemover, nsnull);
+            }
 
             self->mNativeSetMap->
-                Enumerate(NativeSetSweeper, nsnull);
+                Enumerate(NativeSetSweeper, sweepArg);
 
             self->mIID2NativeInterfaceMap->
-                Enumerate(NativeInterfaceSweeper, nsnull);
+                Enumerate(NativeInterfaceSweeper, sweepArg);
 
 #ifdef DEBUG
             XPCWrappedNativeScope::ASSERT_NoInterfaceSetsAreMarked();
