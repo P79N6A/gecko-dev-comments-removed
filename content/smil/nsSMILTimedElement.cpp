@@ -217,6 +217,10 @@ const PRUint8 nsSMILTimedElement::sMaxNumInstanceTimes = 100;
 
 
 
+const PRUint16 nsSMILTimedElement::sMaxUpdateIntervalRecursionDepth = 20;
+
+
+
 
 nsSMILTimedElement::nsSMILTimedElement()
 :
@@ -231,7 +235,8 @@ nsSMILTimedElement::nsSMILTimedElement()
   mElementState(STATE_STARTUP),
   mSeekState(SEEK_NOT_SEEKING),
   mDeferIntervalUpdates(PR_FALSE),
-  mDoDeferredUpdate(PR_FALSE)
+  mDoDeferredUpdate(PR_FALSE),
+  mUpdateIntervalRecursionDepth(0)
 {
   mSimpleDur.SetIndefinite();
   mMin.SetMillis(0L);
@@ -1896,6 +1901,19 @@ nsSMILTimedElement::UpdateCurrentInterval(PRBool aForceChangeNotice)
     return;
 
   
+  
+  
+  
+  
+  if (++mUpdateIntervalRecursionDepth > sMaxUpdateIntervalRecursionDepth) {
+    NS_ABORT_IF_FALSE(PR_FALSE,
+        "Update current interval recursion depth exceeded threshold");
+    return;
+  }
+  
+  
+
+  
   const nsSMILInstanceTime* beginTime = mElementState == STATE_ACTIVE
                                       ? mCurrentInterval->Begin()
                                       : nsnull;
@@ -1953,6 +1971,8 @@ nsSMILTimedElement::UpdateCurrentInterval(PRBool aForceChangeNotice)
       ResetCurrentInterval();
     }
   }
+
+  --mUpdateIntervalRecursionDepth;
 }
 
 void

@@ -626,6 +626,10 @@ protected:
   PRPackedBool mDoDeferredUpdate; 
                                   
                                   
+
+  
+  PRUint16              mUpdateIntervalRecursionDepth;
+  static const PRUint16 sMaxUpdateIntervalRecursionDepth;
 };
 
 #endif 
