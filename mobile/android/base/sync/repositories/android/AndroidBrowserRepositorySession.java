@@ -456,7 +456,16 @@ public abstract class AndroidBrowserRepositorySession extends StoreTrackingRepos
           }
 
           
-          Logger.debug(LOG_TAG, "Replacing existing " + existingRecord.guid + " with record " + toStore.guid);
+
+          
+          
+          
+          
+          
+          
+          Logger.debug(LOG_TAG, "Replacing existing " + existingRecord.guid +
+                       (toStore.deleted ? " with deleted record " : " with record ") +
+                       toStore.guid);
           Record replaced = replace(toStore, existingRecord);
 
           
