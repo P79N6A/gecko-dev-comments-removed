@@ -1466,32 +1466,12 @@ struct JSArgumentFormatMap {
 };
 #endif
 
-
-
-
-
-
-
-typedef struct JSResolvingKey {
-    JSObject            *obj;
-    jsid                id;
-} JSResolvingKey;
-
-typedef struct JSResolvingEntry {
-    JSDHashEntryHdr     hdr;
-    JSResolvingKey      key;
-    uint32              flags;
-} JSResolvingEntry;
-
-#define JSRESFLAG_LOOKUP        0x1     /* resolving id from lookup */
-#define JSRESFLAG_WATCH         0x2     /* resolving id from watch */
-#define JSRESOLVE_INFER         0xffff  /* infer bits from current bytecode */
-
 extern const JSDebugHooks js_NullDebugHooks;  
 
 namespace js {
 
 class AutoGCRooter;
+struct AutoResolving;
 
 static inline bool
 OptionsHasXML(uint32 options)
@@ -1641,13 +1621,7 @@ struct JSContext
     
     JSLocaleCallbacks   *localeCallbacks;
 
-    
-
-
-
-
-
-    JSDHashTable        *resolvingTable;
+    js::AutoResolving   *resolvingList;
 
     
 
@@ -2180,6 +2154,42 @@ FrameAtomBase(JSContext *cx, JSStackFrame *fp)
 }
 
 namespace js {
+
+struct AutoResolving {
+  public:
+    enum Kind {
+        LOOKUP,
+        WATCH
+    };
+
+    AutoResolving(JSContext *cx, JSObject *obj, jsid id, Kind kind = LOOKUP
+                  JS_GUARD_OBJECT_NOTIFIER_PARAM)
+      : context(cx), object(obj), id(id), kind(kind), link(cx->resolvingList)
+    {
+        JS_GUARD_OBJECT_NOTIFIER_INIT;
+        JS_ASSERT(obj);
+        cx->resolvingList = this;
+    }
+
+    ~AutoResolving() {
+        JS_ASSERT(context->resolvingList == this);
+        context->resolvingList = link;
+    }
+
+    bool alreadyStarted() const {
+        return link && alreadyStartedSlow();
+    }
+
+  private:
+    bool alreadyStartedSlow() const;
+
+    JSContext           *const context;
+    JSObject            *const object;
+    jsid                const id;
+    Kind                const kind;
+    AutoResolving       *const link;
+    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
+};
 
 class AutoGCRooter {
   public:
@@ -2976,17 +2986,6 @@ js_ContextIterator(JSRuntime *rt, JSBool unlocked, JSContext **iterp);
 
 extern JS_FRIEND_API(JSContext *)
 js_NextActiveContext(JSRuntime *, JSContext *);
-
-
-
-
-extern JSBool
-js_StartResolving(JSContext *cx, JSResolvingKey *key, uint32 flag,
-                  JSResolvingEntry **entryp);
-
-extern void
-js_StopResolving(JSContext *cx, JSResolvingKey *key, uint32 flag,
-                 JSResolvingEntry *entry, uint32 generation);
 
 
 
