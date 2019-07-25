@@ -2573,6 +2573,14 @@ nsCSSRuleProcessor::HasAttributeDependentStyle(AttributeRuleProcessorData* aData
       {
         data.change = nsRestyleHint(data.change | eRestyle_Subtree);
       }
+
+    
+    
+    
+    
+    if (aData->mAttribute == nsGkAtoms::lang) {
+      data.change = nsRestyleHint(data.change | eRestyle_Subtree);
+    }
   }
 
   RuleCascadeData* cascade = GetRuleCascade(aData->mPresContext);
