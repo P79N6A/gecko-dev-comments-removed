@@ -50,6 +50,10 @@ class nsAccessible;
 class nsIAccessibleTraversalRule;
 
 
+#define NS_ERROR_NOT_IN_TREE \
+NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_GENERAL, 0x26)
+
+
 
 
 class nsAccessiblePivot: public nsIAccessiblePivot
