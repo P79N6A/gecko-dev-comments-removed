@@ -879,10 +879,10 @@ JSBool
 js_InitGC(JSRuntime *rt, uint32 maxbytes)
 {
     InitGCArenaLists(rt);
-    
+
     if (!rt->gcRootsHash.init(256))
         return false;
-    
+
     if (!rt->gcLocksHash.init(256))
         return false;
 
@@ -1134,6 +1134,20 @@ ConservativeGCStackMarker::markWord(jsuword w)
     CONSERVATIVE_METER(stats.unique++);
 
     
+
+
+
+
+
+
+
+
+
+    JS_STATIC_ASSERT(JSVAL_INT == 1);
+    JS_STATIC_ASSERT(JSVAL_DOUBLE == 2);
+    JS_STATIC_ASSERT(JSVAL_STRING == 4);
+    JS_STATIC_ASSERT(JSVAL_SPECIAL == 6);
+
     if (w & 1)
         RETURN(oddaddress);
 
@@ -1141,7 +1155,6 @@ ConservativeGCStackMarker::markWord(jsuword w)
     jsuword tag = w & JSVAL_TAGMASK;
     jsuword p = w & ~(JSVAL_TAGMASK);
 
-    
     if (tag == JSVAL_SPECIAL)
         RETURN(wrongtag);
 
@@ -1176,25 +1189,44 @@ ConservativeGCStackMarker::markWord(jsuword w)
     JSGCArenaInfo *ainfo = a->getInfo();
 
     JSGCThing *thing;
+    uint32 traceKind;
     if (!ainfo->list) { 
         if (tag && tag != JSVAL_DOUBLE)
             RETURN(wrongtag);
         JS_STATIC_ASSERT(JSVAL_TAGMASK == 7 && (sizeof(double) - 1) == 7);
         thing = (JSGCThing *) p;
+        traceKind = JSTRACE_DOUBLE;
     } else {
         if (tag == JSVAL_DOUBLE)
             RETURN(wrongtag);
+        traceKind = GetFinalizableArenaTraceKind(ainfo);
+#if JS_BYTES_PER_WORD == 8
+        if (tag == JSVAL_STRING && traceKind != JSVAL_STRING)
+            RETURN(wrongtag);
+#endif
+
         jsuword start = a->toPageStart();
         jsuword offset = p - start;
         size_t thingSize = ainfo->list->thingSize;
-        p = (start + offset - (offset % thingSize));
-        thing = (JSGCThing *) p;
+        offset -= offset % thingSize;
+
+        
+
+
+
+
+        if (offset + thingSize > GC_ARENA_SIZE) {
+            JS_ASSERT(thingSize & (thingSize - 1));
+            RETURN(notarena);
+        }
+        thing = (JSGCThing *) (start + offset);
 
         
         JSGCThing *cursor = ainfo->freeList;
         while (cursor) {
             JS_ASSERT((((jsuword) cursor) & GC_ARENA_MASK) % thingSize == 0);
             JS_ASSERT(!IsMarkedGCThing(cursor));
+
             
             if (thing < cursor)
                 break;
@@ -1222,7 +1254,6 @@ ConservativeGCStackMarker::markWord(jsuword w)
         CONSERVATIVE_METER(stats.unmarked++);
     }
 
-    uint32 traceKind = GetArenaTraceKind(ainfo);
 #ifdef JS_DUMP_CONSERVATIVE_GC_ROOTS
     if (IS_GC_MARKING_TRACER(trc) && dumpFileName) {
         ConservativeRoot root = {thing, traceKind};
@@ -1268,7 +1299,7 @@ ConservativeGCStackMarker::markRoots()
         JSThreadData *td = i.threadData();
         ConservativeGCThreadData *ctd = &td->conservativeGC;
         if (ctd->isEnabled()) {
-            jsuword *stackMin, *stackEnd;            
+            jsuword *stackMin, *stackEnd;
 #if JS_STACK_GROWTH_DIRECTION > 0
             stackMin = td->nativeStackBase;
             stackEnd = ctd->nativeStackTop;
@@ -1522,7 +1553,7 @@ js_FinishGC(JSRuntime *rt)
 #endif
     FinishGCArenaLists(rt);
 
-#ifdef DEBUG 
+#ifdef DEBUG
     if (!rt->gcRootsHash.empty())
         CheckLeakedRoots(rt);
 #endif
@@ -2097,7 +2128,7 @@ JSBool
 js_LockGCThingRT(JSRuntime *rt, void *thing)
 {
     GCLocks *locks;
-    
+
     if (!thing)
         return true;
     locks = &rt->gcLocksHash;
@@ -3107,7 +3138,7 @@ struct GCTimer {
 
                 if (!gcFile) {
                     gcFile = fopen("gcTimer.dat", "w");
-        
+
                     fprintf(gcFile, "     AppTime,  Total,   Mark,  Sweep,");
                     fprintf(gcFile, " FinObj, FinStr, FinDbl,");
                     fprintf(gcFile, " Destroy,  newChunks, destoyChunks\n");
@@ -3123,7 +3154,7 @@ struct GCTimer {
                         (double)(sweepStringEnd - sweepObjectEnd) / 1e6,
                         (double)(sweepDoubleEnd - sweepStringEnd) / 1e6,
                         (double)(sweepDestroyEnd - sweepDoubleEnd) / 1e6);
-                fprintf(gcFile, "%10d, %10d \n", newChunkCount, 
+                fprintf(gcFile, "%10d, %10d \n", newChunkCount,
                         destroyChunkCount);
                 fflush(gcFile);
 
