@@ -152,7 +152,7 @@ protected:
 private:
 
   void FlushPendingInvalidates();
-  void ProcessPendingUpdatesForView(nsView *aView, bool aDoInvalidate);
+  void ProcessPendingUpdatesForView(nsView *aView);
   void FlushDirtyRegionToWidget(nsView* aView);
   
 
@@ -164,8 +164,6 @@ private:
   void UpdateWidgetArea(nsView *aWidgetView, const nsRegion &aDamagedRegion);
 
   void UpdateViews(nsView *aView);
-
-  void TriggerRefresh();
 
   
   void Refresh(nsView *aView, nsIWidget *aWidget, const nsIntRegion& aRegion);
@@ -211,7 +209,7 @@ public:
 
   
   
-  void PostPendingUpdate() { RootViewManager()->mHasPendingUpdates = true; }
+  void PostPendingUpdate();
 
   PRUint32 AppUnitsPerDevPixel() const
   {

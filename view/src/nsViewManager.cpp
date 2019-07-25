@@ -341,9 +341,6 @@ void nsViewManager::Refresh(nsView *aView, nsIWidget *aWidget,
   NS_ASSERTION(aView == nsView::GetViewFor(aWidget), "view widget mismatch");
   NS_ASSERTION(aView->GetViewManager() == this, "wrong view manager");
 
-  if (! IsRefreshEnabled())
-    return;
-
   
   nsRegion damageRegion = aRegion.ToAppUnits(AppUnitsPerDevPixel());
   
@@ -398,8 +395,7 @@ void nsViewManager::RenderViews(nsView *aView, nsIWidget *aWidget,
   }
 }
 
-void nsViewManager::ProcessPendingUpdatesForView(nsView* aView,
-                                                 bool aDoInvalidate)
+void nsViewManager::ProcessPendingUpdatesForView(nsView* aView)
 {
   NS_ASSERTION(IsRootVM(), "Updates will be missed");
 
@@ -415,15 +411,12 @@ void nsViewManager::ProcessPendingUpdatesForView(nsView* aView,
   
   for (nsView* childView = aView->GetFirstChild(); childView;
        childView = childView->GetNextSibling()) {
-    ProcessPendingUpdatesForView(childView, aDoInvalidate);
+    ProcessPendingUpdatesForView(childView);
   }
 
-  if (aDoInvalidate) {
-    
-    
-    NS_ASSERTION(IsRefreshEnabled(), "Cannot process pending updates with refresh disabled");
-    FlushDirtyRegionToWidget(aView);
-  }
+  
+  
+  FlushDirtyRegionToWidget(aView);
 }
 
 void nsViewManager::FlushDirtyRegionToWidget(nsView* aView)
@@ -461,6 +454,16 @@ AddDirtyRegion(nsView *aView, const nsRegion &aDamagedRegion)
   dirtyRegion->SimplifyOutward(8);
 }
 
+void
+nsViewManager::PostPendingUpdate()
+{
+  nsViewManager* rootVM = RootViewManager();
+  rootVM->mHasPendingUpdates = true;
+  if (rootVM->mPresShell) {
+    rootVM->mPresShell->ScheduleViewManagerFlush();
+  }
+}
+
 
 
 
@@ -479,15 +482,6 @@ nsViewManager::UpdateWidgetArea(nsView *aWidgetView,
     aWidgetView, aWidgetView->IsAttachedToTopLevel(),
     widget, dbgBounds.x, dbgBounds.y, dbgBounds.width, dbgBounds.height);
 #endif
-
-  if (!IsRefreshEnabled()) {
-    
-    
-    AddDirtyRegion(aWidgetView, aDamagedRegion);
-    nsViewManager* rootVM = RootViewManager();
-    rootVM->mHasPendingUpdates = true;
-    return;
-  }
 
   
   nsRegion intersection;
@@ -555,8 +549,6 @@ nsViewManager::UpdateWidgetArea(nsView *aWidgetView,
   leftOver.Sub(intersection, children);
 
   if (!leftOver.IsEmpty()) {
-    NS_ASSERTION(IsRefreshEnabled(), "Can only get here with refresh enabled, I hope");
-
     const nsRect* r;
     for (nsRegionRectIterator iter(leftOver); (r = iter.Next());) {
       nsIntRect bounds = ViewToWidget(aWidgetView, *r);
@@ -614,7 +606,13 @@ NS_IMETHODIMP nsViewManager::UpdateViewNoSuppression(nsIView *aView,
   PRInt32 rootAPD = displayRootVM->AppUnitsPerDevPixel();
   PRInt32 APD = AppUnitsPerDevPixel();
   damagedRect = damagedRect.ConvertAppUnitsRoundOut(APD, rootAPD);
-  displayRootVM->UpdateWidgetArea(displayRoot, nsRegion(damagedRect));
+
+  
+  
+  AddDirtyRegion(displayRoot, nsRegion(damagedRect));
+
+  
+  PostPendingUpdate();
 
   return NS_OK;
 }
@@ -770,100 +768,65 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent,
         
 
         
-        if (IsRefreshEnabled()) {
-          nsRefPtr<nsViewManager> rootVM = RootViewManager();
+        NS_ASSERTION(IsRefreshEnabled(),
+            "shouldn't be receiving paint events while refresh is disabled!");
+        nsRefPtr<nsViewManager> rootVM = RootViewManager();
 
+        
+        
+        bool didResize = false;
+        for (nsViewManager *vm = this; vm;
+             vm = vm->mRootView->GetParent()
+                    ? vm->mRootView->GetParent()->GetViewManager()
+                    : nsnull) {
+          if (vm->mDelayedResize != nsSize(NSCOORD_NONE, NSCOORD_NONE) &&
+              vm->mRootView->IsEffectivelyVisible() &&
+              mPresShell && mPresShell->IsVisible()) {
+            vm->FlushDelayedResize(true);
+
+            
+            vm->UpdateView(vm->mRootView);
+            didResize = true;
+
+            
+            
+            
+            *aStatus = nsEventStatus_eIgnore;
+          }
+        }
+
+        if (!didResize) {
           
           
-          bool didResize = false;
-          for (nsViewManager *vm = this; vm;
-               vm = vm->mRootView->GetParent()
-                      ? vm->mRootView->GetParent()->GetViewManager()
-                      : nsnull) {
-            if (vm->mDelayedResize != nsSize(NSCOORD_NONE, NSCOORD_NONE) &&
-                vm->mRootView->IsEffectivelyVisible() &&
-                mPresShell && mPresShell->IsVisible()) {
-              vm->FlushDelayedResize(true);
+
+          nsCOMPtr<nsIWidget> widget;
+          rootVM->GetRootWidget(getter_AddRefs(widget));
+          bool transparentWindow = false;
+          if (widget)
+              transparentWindow = widget->GetTransparencyMode() == eTransparencyTransparent;
+
+          nsView* view = static_cast<nsView*>(aView);
+          if (!transparentWindow) {
+            if (mPresShell) {
+              
+              UpdateViewBatch batch(this);
+              rootVM->CallWillPaintOnObservers(event->willSendDidPaint);
+              batch.EndUpdateViewBatch();
 
               
-              vm->UpdateView(vm->mRootView);
-              didResize = true;
-
               
-              
-              
-              *aStatus = nsEventStatus_eIgnore;
+              view = nsView::GetViewFor(aEvent->widget);
             }
           }
-
-          if (!didResize) {
-            
-
-            
-            
-
-            nsCOMPtr<nsIWidget> widget;
-            rootVM->GetRootWidget(getter_AddRefs(widget));
-            bool transparentWindow = false;
-            if (widget)
-                transparentWindow = widget->GetTransparencyMode() == eTransparencyTransparent;
-
-            nsView* view = static_cast<nsView*>(aView);
-            if (!transparentWindow) {
-              if (mPresShell) {
-                
-                UpdateViewBatch batch(this);
-                rootVM->CallWillPaintOnObservers(event->willSendDidPaint);
-                batch.EndUpdateViewBatch();
-
-                
-                
-                view = nsView::GetViewFor(aEvent->widget);
-              }
-            }
-            
-            
-            if (rootVM->mHasPendingUpdates) {
-              rootVM->ProcessPendingUpdatesForView(mRootView, false);
-            }
-            
-            if (view && aEvent->message == NS_PAINT) {
-              Refresh(view, event->widget, event->region);
-            }
+          
+          
+          if (rootVM->mHasPendingUpdates) {
+            rootVM->ProcessPendingUpdatesForView(mRootView);
           }
-        } else if (aEvent->message == NS_PAINT) {
           
-          
-          
-          nsRegion rgn = event->region.ToAppUnits(AppUnitsPerDevPixel());
-          rgn.MoveBy(-aView->ViewToWidgetOffset());
-          RenderViews(static_cast<nsView*>(aView), event->widget, rgn,
-                      event->region, true, event->willSendDidPaint);
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-
-          UpdateView(aView, rgn.GetBounds());
+          if (view && aEvent->message == NS_PAINT) {
+            Refresh(view, event->widget, event->region);
+          }
         }
 
         break;
@@ -1333,21 +1296,6 @@ NS_IMETHODIMP nsViewManager::GetDeviceContext(nsDeviceContext *&aContext)
   return NS_OK;
 }
 
-void nsViewManager::TriggerRefresh()
-{
-  if (!IsRootVM()) {
-    RootViewManager()->TriggerRefresh();
-    return;
-  }
-  
-  if (mUpdateBatchCnt > 0)
-    return;
-
-  if (mHasPendingUpdates) {
-    FlushPendingInvalidates();
-  }
-}
-
 nsIViewManager* nsViewManager::BeginUpdateViewBatch(void)
 {
   if (!IsRootVM()) {
@@ -1372,10 +1320,6 @@ NS_IMETHODIMP nsViewManager::EndUpdateViewBatch()
       mUpdateBatchCnt = 0;
       return NS_ERROR_FAILURE;
     }
-
-  if (mUpdateBatchCnt == 0) {
-    TriggerRefresh();
-  }
 
   return NS_OK;
 }
@@ -1423,17 +1367,13 @@ nsViewManager::IsPainting(bool& aIsPainting)
 void
 nsViewManager::ProcessPendingUpdates()
 {
-  
-}
-
-void
-nsViewManager::FlushPendingInvalidates()
-{
-  NS_ASSERTION(IsRootVM(), "Must be root VM for this to be called!");
-  NS_ASSERTION(mUpdateBatchCnt == 0, "Must not be in an update batch!");
+  if (!IsRootVM()) {
+    RootViewManager()->ProcessPendingUpdates();
+    return;
+  }
 
   if (mHasPendingUpdates) {
-    ProcessPendingUpdatesForView(mRootView, true);
+    ProcessPendingUpdatesForView(mRootView);
     mHasPendingUpdates = false;
   }
 }
