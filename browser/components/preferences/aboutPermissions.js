@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 let Ci = Components.interfaces;
 let Cc = Components.classes;
 let Cu = Components.utils;
@@ -59,28 +92,28 @@ Site.prototype = {
 
 
   getFavicon: function Site_getFavicon(aCallback) {
-    function invokeCallback(aFaviconURI) {
+    let callbackExecuted = false;
+    function faviconDataCallback(aURI, aDataLen, aData, aMimeType) {
+      
+      
+      if (callbackExecuted) {
+        return;
+      }
       try {
         
         
-        aCallback(gFaviconService.getFaviconLinkForIcon(aFaviconURI).spec);
+        aCallback(gFaviconService.getFaviconLinkForIcon(aURI).spec);
+        callbackExecuted = true;
       } catch (e) {
         Cu.reportError("AboutPermissions: " + e);
       }
     }
 
     
-    gFaviconService.getFaviconURLForPage(this.httpsURI, function (aURI) {
-      if (aURI) {
-        invokeCallback(aURI);
-      } else {
-        gFaviconService.getFaviconURLForPage(this.httpURI, function (aURI) {
-          if (aURI) {
-            invokeCallback(aURI);
-          }
-        });
-      }
-    }.bind(this));
+    
+    
+    gFaviconService.getFaviconURLForPage(this.httpsURI, faviconDataCallback);
+    gFaviconService.getFaviconURLForPage(this.httpURI, faviconDataCallback);
   },
 
   
@@ -211,8 +244,10 @@ Site.prototype = {
 
 
   get logins() {
-    let httpLogins = Services.logins.findLogins({}, this.httpURI.prePath, "", "");
-    let httpsLogins = Services.logins.findLogins({}, this.httpsURI.prePath, "", "");
+    
+    
+    let httpLogins = Services.logins.findLogins({}, this.httpURI.prePath, "", null);
+    let httpsLogins = Services.logins.findLogins({}, this.httpsURI.prePath, "", null);
     return httpLogins.concat(httpsLogins);
   },
 
@@ -320,28 +355,6 @@ let PermissionDefaults = {
   set popup(aValue) {
     let value = (aValue == this.DENY);
     Services.prefs.setBoolPref("dom.disable_open_during_load", value);
-  },
-
-  get plugins() {
-    if (Services.prefs.getBoolPref("plugins.click_to_play")) {
-      return this.UNKNOWN;
-    }
-    return this.ALLOW;
-  },
-  set plugins(aValue) {
-    let value = (aValue != this.ALLOW);
-    Services.prefs.setBoolPref("plugins.click_to_play", value);
-  },
-  
-  get fullscreen() {
-    if (!Services.prefs.getBoolPref("full-screen-api.enabled")) {
-      return this.DENY;
-    }
-    return this.UNKNOWN;
-  },
-  set fullscreen(aValue) {
-    let value = (aValue != this.DENY);
-    Services.prefs.setBoolPref("full-screen-api.enabled", value);
   }
 }
 
@@ -357,12 +370,6 @@ let AboutPermissions = {
   
 
 
-  LIST_BUILD_CHUNK: 5, 
-  LIST_BUILD_DELAY: 100, 
-
-  
-
-
   _sites: {},
 
   sitesList: null,
@@ -371,27 +378,16 @@ let AboutPermissions = {
   
 
 
-  _initPlacesDone: false,
-  _initServicesDone: false,
+
+
+
+
+  _supportedPermissions: ["password", "cookie", "geo", "indexedDB", "popup"],
 
   
 
 
-
-
-
-
-  _supportedPermissions: ["password", "cookie", "geo", "indexedDB", "popup", "plugins", "fullscreen"],
-
-  
-
-
-  _noGlobalAllow: ["geo", "indexedDB", "fullscreen"],
-
-  
-
-
-  _noGlobalDeny: ["plugins"],
+  _noGlobalAllow: ["geo", "indexedDB"],
 
   _stringBundle: Services.strings.
                  createBundle("chrome://browser/locale/preferences/aboutPermissions.properties"),
@@ -403,9 +399,7 @@ let AboutPermissions = {
     this.sitesList = document.getElementById("sites-list");
 
     this.getSitesFromPlaces();
-
-    this.enumerateServicesGenerator = this.getEnumerateServicesGenerator();
-    setTimeout(this.enumerateServicesDriver.bind(this), this.LIST_BUILD_DELAY);
+    this.enumerateServices();
 
     
     Services.prefs.addObserver("signon.rememberSignons", this, false);
@@ -413,8 +407,6 @@ let AboutPermissions = {
     Services.prefs.addObserver("geo.enabled", this, false);
     Services.prefs.addObserver("dom.indexedDB.enabled", this, false);
     Services.prefs.addObserver("dom.disable_open_during_load", this, false);
-    Services.prefs.addObserver("plugins.click_to_play", this, false);
-    Services.prefs.addObserver("full-screen-api.enabled", this, false);
 
     Services.obs.addObserver(this, "perm-changed", false);
     Services.obs.addObserver(this, "passwordmgr-storage-changed", false);
@@ -422,7 +414,6 @@ let AboutPermissions = {
     Services.obs.addObserver(this, "browser:purge-domain-data", false);
     
     this._observersInitialized = true;
-    Services.obs.notifyObservers(null, "browser-permissions-preinit", null);
   },
 
   
@@ -435,8 +426,6 @@ let AboutPermissions = {
       Services.prefs.removeObserver("geo.enabled", this, false);
       Services.prefs.removeObserver("dom.indexedDB.enabled", this, false);
       Services.prefs.removeObserver("dom.disable_open_during_load", this, false);
-      Services.prefs.removeObserver("plugins.click_to_play", this, false);
-      Services.prefs.removeObserver("full-screen-api.enabled", this, false);
 
       Services.obs.removeObserver(this, "perm-changed", false);
       Services.obs.removeObserver(this, "passwordmgr-storage-changed", false);
@@ -514,10 +503,7 @@ let AboutPermissions = {
       },
       handleCompletion: function(aReason) {
         
-        AboutPermissions._initPlacesDone = true;
-        if (AboutPermissions._initServicesDone) {
-          Services.obs.notifyObservers(null, "browser-permissions-initialized", null);
-        }
+        Services.obs.notifyObservers(null, "browser-permissions-initialized", null);
       }
     });
   },
@@ -525,32 +511,12 @@ let AboutPermissions = {
   
 
 
-  enumerateServicesDriver: function() {
-    if (this.enumerateServicesGenerator.next()) {
-      
-      let delay = Math.min(this.sitesList.itemCount * 5, this.LIST_BUILD_DELAY);
-      setTimeout(this.enumerateServicesDriver.bind(this), delay);
-    } else {
-      this.enumerateServicesGenerator.close();
-      this._initServicesDone = true;
-      if (this._initPlacesDone) {
-        Services.obs.notifyObservers(null, "browser-permissions-initialized", null);
-      }
-    }
-  },
 
-  
-
-
-
-  getEnumerateServicesGenerator: function() {
-    let itemCnt = 1;
+  enumerateServices: function() {
+    this.startSitesListBatch();
 
     let logins = Services.logins.getAllLogins();
     logins.forEach(function(aLogin) {
-      if (itemCnt % this.LIST_BUILD_CHUNK == 0) {
-        yield true;
-      }
       try {
         
         let uri = NetUtil.newURI(aLogin.hostname);
@@ -558,14 +524,10 @@ let AboutPermissions = {
       } catch (e) {
         
       }
-      itemCnt++;
     }, this);
 
     let disabledHosts = Services.logins.getAllDisabledHosts();
     disabledHosts.forEach(function(aHostname) {
-      if (itemCnt % this.LIST_BUILD_CHUNK == 0) {
-        yield true;
-      }
       try {
         
         let uri = NetUtil.newURI(aHostname);
@@ -573,24 +535,19 @@ let AboutPermissions = {
       } catch (e) {
         
       }
-      itemCnt++;
     }, this);
 
     let (enumerator = Services.perms.enumerator) {
       while (enumerator.hasMoreElements()) {
-        if (itemCnt % this.LIST_BUILD_CHUNK == 0) {
-          yield true;
-        }
         let permission = enumerator.getNext().QueryInterface(Ci.nsIPermission);
         
         if (this._supportedPermissions.indexOf(permission.type) != -1) {
           this.addHost(permission.host);
         }
-        itemCnt++;
       }
     }
 
-    yield false;
+    this.endSitesListBatch();
   },
 
   
@@ -623,10 +580,6 @@ let AboutPermissions = {
       item.setAttribute("favicon", aURL);
     });
     aSite.listitem = item;
-
-    
-    let filterValue = document.getElementById("sites-filter").value.toLowerCase();
-    item.collapsed = aSite.host.toLowerCase().indexOf(filterValue) == -1;
 
     (this._listFragment || this.sitesList).appendChild(item);
   },
@@ -689,7 +642,7 @@ let AboutPermissions = {
         this.sitesList.removeChild(site.listitem);
         delete this._sites[site.host];
       }
-    }
+    }    
   },
 
   
@@ -750,23 +703,13 @@ let AboutPermissions = {
     let allowItem = document.getElementById(aType + "-" + PermissionDefaults.ALLOW);
     allowItem.hidden = !this._selectedSite &&
                        this._noGlobalAllow.indexOf(aType) != -1;
-    let denyItem = document.getElementById(aType + "-" + PermissionDefaults.DENY);
-    denyItem.hidden = !this._selectedSite &&
-                      this._noGlobalDeny.indexOf(aType) != -1;
 
     let permissionMenulist = document.getElementById(aType + "-menulist");
-    let permissionValue;
+    let permissionValue;    
     if (!this._selectedSite) {
       
       permissionValue = PermissionDefaults[aType];
-      if (aType == "plugins")
-        document.getElementById("plugins-pref-item").hidden = false;
     } else {
-      if (aType == "plugins") {
-        document.getElementById("plugins-pref-item").hidden =
-          !Services.prefs.getBoolPref("plugins.click_to_play");
-        return;
-      }
       let result = {};
       permissionValue = this._selectedSite.getPermission(aType, result) ?
                         result.value : PermissionDefaults[aType];

@@ -3,12 +3,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/PrivateBrowsingUtils.jsm");
 
 function LoginManager() {
     this.init();
@@ -72,6 +104,31 @@ LoginManager.prototype = {
         return this.__storage;
     },
 
+
+    
+    
+    __privateBrowsingService : undefined,
+    get _privateBrowsingService() {
+        if (this.__privateBrowsingService == undefined) {
+            if ("@mozilla.org/privatebrowsing;1" in Cc)
+                this.__privateBrowsingService = Cc["@mozilla.org/privatebrowsing;1"].
+                                                getService(Ci.nsIPrivateBrowsingService);
+            else
+                this.__privateBrowsingService = null;
+        }
+        return this.__privateBrowsingService;
+    },
+
+
+    
+    get _inPrivateBrowsing() {
+        var pbSvc = this._privateBrowsingService;
+        if (pbSvc)
+            return pbSvc.privateBrowsingEnabled;
+        else
+            return false;
+    },
+
     _prefBranch  : null, 
     _nsLoginInfo : null, 
 
@@ -98,6 +155,7 @@ LoginManager.prototype = {
 
         
         this._prefBranch = Services.prefs.getBranch("signon.");
+        this._prefBranch.QueryInterface(Ci.nsIPrefBranch2);
         this._prefBranch.addObserver("", this._observer, false);
 
         
@@ -230,18 +288,10 @@ LoginManager.prototype = {
             
             if (!(domDoc instanceof Ci.nsIDOMHTMLDocument))
                 return;
-            if (this._pwmgr._debug) {
-                let requestName = "(null)";
-                if (aRequest) {
-                    try {
-                        requestName = aRequest.name;
-                    } catch (ex if ex.result == Components.results.NS_ERROR_NOT_IMPLEMENTED) {
-                        
-                    }
-                }
-                this._pwmgr.log("onStateChange accepted: req = " + requestName +
-                                ", flags = 0x" + aStateFlags.toString(16));
-            }
+
+            this._pwmgr.log("onStateChange accepted: req = " +
+                            (aRequest ?  aRequest.name : "(null)") +
+                            ", flags = 0x" + aStateFlags.toString(16));
 
             
             if (aStateFlags & Ci.nsIWebProgressListener.STATE_RESTORING) {
@@ -771,26 +821,21 @@ LoginManager.prototype = {
             return prompterSvc;
         }
 
-        var doc = form.ownerDocument;
-        var win = doc.defaultView;
-
-        if (PrivateBrowsingUtils.isWindowPrivate(win)) {
+        if (this._inPrivateBrowsing) {
             
             
             this.log("(form submission ignored in private browsing mode)");
             return;
         }
 
+        var doc = form.ownerDocument;
+        var win = doc.defaultView;
+
         
         if (!this._remember)
             return;
 
-        var hostname = this._getPasswordOrigin(doc.documentURI);
-        if (!hostname) {
-            this.log("(form submission ignored -- invalid hostname)");
-            return;
-        }
-
+        var hostname      = this._getPasswordOrigin(doc.documentURI);
         var formSubmitURL = this._getActionOrigin(form)
         if (!this.getLoginSavingEnabled(hostname)) {
             this.log("(form submission ignored -- saving is " +
@@ -1011,27 +1056,12 @@ LoginManager.prototype = {
         this.log("fillDocument processing " + forms.length +
                  " forms on " + doc.documentURI);
 
-        var autofillForm = !PrivateBrowsingUtils.isWindowPrivate(doc.defaultView) &&
+        var autofillForm = !this._inPrivateBrowsing &&
                            this._prefBranch.getBoolPref("autofillForms");
         var previousActionOrigin = null;
         var foundLogins = null;
 
-        
-        
-        const MAX_FORMS = 40; 
-        var skip_from = -1, skip_to = -1;
-        if (forms.length > MAX_FORMS) {
-            this.log("fillDocument limiting number of forms filled to " + MAX_FORMS);
-            let chunk_size = MAX_FORMS / 2;
-            skip_from = chunk_size;
-            skip_to   = forms.length - chunk_size;
-        }
-
         for (var i = 0; i < forms.length; i++) {
-            
-            if (i == skip_from)
-              i = skip_to;
-
             var form = forms[i];
 
             

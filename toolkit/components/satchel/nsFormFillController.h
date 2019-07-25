@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __nsFormFillController__
 #define __nsFormFillController__
 
@@ -21,13 +55,7 @@
 #include "nsILoginManager.h"
 #include "nsIMutationObserver.h"
 
-
-#ifdef KeyPress
-#undef KeyPress
-#endif
-
 class nsFormHistory;
-class nsINode;
 
 class nsFormFillController : public nsIFormFillController,
                              public nsIAutoCompleteInput,
@@ -61,25 +89,22 @@ protected:
   void StopControllingInput();
 
   void RevalidateDataList();
-  bool RowMatch(nsFormHistory *aHistory, uint32_t aIndex, const nsAString &aInputName, const nsAString &aInputValue);
+  PRBool RowMatch(nsFormHistory *aHistory, PRUint32 aIndex, const nsAString &aInputName, const nsAString &aInputValue);
 
   inline nsIDocShell *GetDocShellForInput(nsIDOMHTMLInputElement *aInput);
   inline nsIDOMWindow *GetWindowForDocShell(nsIDocShell *aDocShell);
-  inline int32_t GetIndexOfDocShell(nsIDocShell *aDocShell);
+  inline PRInt32 GetIndexOfDocShell(nsIDocShell *aDocShell);
 
-  void MaybeRemoveMutationObserver(nsINode* aNode);
-
-  static PLDHashOperator RemoveForDocumentEnumerator(const nsINode* aKey,
-                                                     bool& aEntry,
-                                                     void* aUserData);
-  bool IsEventTrusted(nsIDOMEvent *aEvent);
+  static PLDHashOperator RemoveForDOMDocumentEnumerator(nsISupports* aKey,
+                                                        PRInt32& aEntry,
+                                                        void* aUserData);
+  PRBool IsEventTrusted(nsIDOMEvent *aEvent);
+  PRBool IsInputAutoCompleteOff();
   
 
   nsCOMPtr<nsIAutoCompleteController> mController;
   nsCOMPtr<nsILoginManager> mLoginManager;
-  nsIDOMHTMLInputElement* mFocusedInput;
-  nsINode* mFocusedInputNode;
-  nsINode* mListNode;
+  nsCOMPtr<nsIDOMHTMLInputElement> mFocusedInput;
   nsCOMPtr<nsIAutoCompletePopup> mFocusedPopup;
 
   nsCOMPtr<nsISupportsArray> mDocShells;
@@ -90,16 +115,16 @@ protected:
   nsCOMPtr<nsIAutoCompleteObserver> mLastListener;
   nsString mLastSearchString;
 
-  nsDataHashtable<nsPtrHashKey<const nsINode>, bool> mPwmgrInputs;
+  nsDataHashtable<nsISupportsHashKey,PRInt32> mPwmgrInputs;
 
-  uint32_t mTimeout;
-  uint32_t mMinResultsForPopup;
-  uint32_t mMaxRows;
-  bool mDisableAutoComplete;
-  bool mCompleteDefaultIndex;
-  bool mCompleteSelectedIndex;
-  bool mForceComplete;
-  bool mSuppressOnInput;
+  PRUint32 mTimeout;
+  PRUint32 mMinResultsForPopup;
+  PRUint32 mMaxRows;
+  PRPackedBool mDisableAutoComplete;
+  PRPackedBool mCompleteDefaultIndex;
+  PRPackedBool mCompleteSelectedIndex;
+  PRPackedBool mForceComplete;
+  PRPackedBool mSuppressOnInput;
 };
 
 #endif 
