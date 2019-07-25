@@ -53,7 +53,7 @@ nsWindowMemoryReporter::Init()
   NS_RegisterMemoryMultiReporter(new nsWindowMemoryReporter());
 }
 
-static bool
+static void
 AppendWindowURI(nsGlobalWindow *aWindow, nsACString& aStr)
 {
   nsCOMPtr<nsIDocument> doc = do_QueryInterface(aWindow->GetExtantDocument());
@@ -71,21 +71,19 @@ AppendWindowURI(nsGlobalWindow *aWindow, nsACString& aStr)
     }
   }
 
-  if (!uri) {
-    return false;
+  if (uri) {
+    nsCString spec;
+    uri->GetSpec(spec);
+
+    
+    
+    
+    spec.ReplaceChar('/', '\\');
+
+    aStr += spec;
+  } else {
+    aStr += NS_LITERAL_CSTRING("[system]");
   }
-
-  nsCString spec;
-  uri->GetSpec(spec);
-
-  
-  
-  
-  spec.ReplaceChar('/', '\\');
-
-  aStr += spec;
-
-  return true;
 }
 
 NS_MEMORY_REPORTER_MALLOC_SIZEOF_FUN(DOMStyleMallocSizeOf, "windows")
@@ -134,69 +132,38 @@ CollectWindowReports(nsGlobalWindow *aWindow,
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  
 
   nsCAutoString windowPath("explicit/window-objects/");
 
-  nsIDocShell *docShell = aWindow->GetDocShell();
-
   nsGlobalWindow *top = aWindow->GetTop();
-  nsWindowSizes windowSizes(DOMStyleMallocSizeOf);
-  aWindow->SizeOfIncludingThis(&windowSizes);
-
-  if (docShell && aWindow->IsFrozen()) {
-    windowPath += NS_LITERAL_CSTRING("cached/");
-  } else if (docShell) {
-    windowPath += NS_LITERAL_CSTRING("active/");
+  windowPath += NS_LITERAL_CSTRING("top(");
+  if (top) {
+    AppendWindowURI(top, windowPath);
+    windowPath += NS_LITERAL_CSTRING(", id=");
+    windowPath.AppendInt(top->WindowID());
   } else {
-    windowPath += NS_LITERAL_CSTRING("other/");
+    windowPath += NS_LITERAL_CSTRING("none");
+  }
+  windowPath += NS_LITERAL_CSTRING(")/");
+
+  nsIDocShell *docShell = aWindow->GetDocShell();
+  if (docShell) {
+    MOZ_ASSERT(top, "'cached' or 'active' window lacks a top window");
+    windowPath += aWindow->IsFrozen() ? NS_LITERAL_CSTRING("cached/")
+                                      : NS_LITERAL_CSTRING("active/");
+  } else {
+    MOZ_ASSERT(!top, "'other' window has a top window");
   }
 
-  if (aWindow->IsInnerWindow()) {
-    windowPath += NS_LITERAL_CSTRING("top=");
+  windowPath += NS_LITERAL_CSTRING("window(");
+  AppendWindowURI(aWindow, windowPath);
+  windowPath += NS_LITERAL_CSTRING(")");
 
-    if (top) {
-      windowPath.AppendInt(top->WindowID());
-
-      nsGlobalWindow *topInner = top->GetCurrentInnerWindowInternal();
-      if (topInner) {
-        windowPath += NS_LITERAL_CSTRING(" (inner=");
-        windowPath.AppendInt(topInner->WindowID());
-        windowPath += NS_LITERAL_CSTRING(")");
-      }
-    } else {
-      windowPath += NS_LITERAL_CSTRING("none");
-    }
-
-    windowPath += NS_LITERAL_CSTRING("/inner-window(id=");
-    windowPath.AppendInt(aWindow->WindowID());
-    windowPath += NS_LITERAL_CSTRING(", uri=");
-
-    if (!AppendWindowURI(aWindow, windowPath)) {
-      windowPath += NS_LITERAL_CSTRING("[system]");
-    }
-
-    windowPath += NS_LITERAL_CSTRING(")");
-  } else {
-    
-    
-    
-
-    windowPath += NS_LITERAL_CSTRING("outer-windows");
-  }
-
-#define REPORT(_path1, _path2, _amount, _desc)                                \
+#define REPORT(_pathTail, _amount, _desc)                                     \
   do {                                                                        \
     if (_amount > 0) {                                                        \
-        nsCAutoString path(_path1);                                           \
-        path += _path2;                                                       \
+        nsCAutoString path(windowPath);                                       \
+        path += _pathTail;                                                    \
         nsresult rv;                                                          \
         rv = aCb->Callback(EmptyCString(), path, nsIMemoryReporter::KIND_HEAP,\
                       nsIMemoryReporter::UNITS_BYTES, _amount,                \
@@ -205,24 +172,27 @@ CollectWindowReports(nsGlobalWindow *aWindow,
     }                                                                         \
   } while (0)
 
-  REPORT(windowPath, "/dom", windowSizes.mDOM,
+  nsWindowSizes windowSizes(DOMStyleMallocSizeOf);
+  aWindow->SizeOfIncludingThis(&windowSizes);
+
+  REPORT("/dom", windowSizes.mDOM,
          "Memory used by a window and the DOM within it.");
   aWindowTotalSizes->mDOM += windowSizes.mDOM;
 
-  REPORT(windowPath, "/style-sheets", windowSizes.mStyleSheets,
+  REPORT("/style-sheets", windowSizes.mStyleSheets,
          "Memory used by style sheets within a window.");
   aWindowTotalSizes->mStyleSheets += windowSizes.mStyleSheets;
 
-  REPORT(windowPath, "/layout/arenas", windowSizes.mLayoutArenas,
+  REPORT("/layout/arenas", windowSizes.mLayoutArenas,
          "Memory used by layout PresShell, PresContext, and other related "
          "areas within a window.");
   aWindowTotalSizes->mLayoutArenas += windowSizes.mLayoutArenas;
 
-  REPORT(windowPath, "/layout/style-sets", windowSizes.mLayoutStyleSets,
+  REPORT("/layout/style-sets", windowSizes.mLayoutStyleSets,
          "Memory used by style sets within a window.");
   aWindowTotalSizes->mLayoutStyleSets += windowSizes.mLayoutStyleSets;
 
-  REPORT(windowPath, "/layout/text-runs", windowSizes.mLayoutTextRuns,
+  REPORT("/layout/text-runs", windowSizes.mLayoutTextRuns,
          "Memory used for text-runs (glyph layout) in the PresShell's frame "
          "tree, within a window.");
   aWindowTotalSizes->mLayoutTextRuns += windowSizes.mLayoutTextRuns;
