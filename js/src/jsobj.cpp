@@ -4674,6 +4674,27 @@ JSObject::growSlots(JSContext *cx, uint32 oldCount, uint32 newCount)
     size_t oldSize = Probes::objectResizeActive() ? slotsAndStructSize() : 0;
     size_t newSize = oldSize + (newCount - oldCount) * sizeof(Value);
 
+    
+
+
+
+
+
+    if (!hasLazyType() && !oldCount && type()->newScript) {
+        gc::AllocKind kind = type()->newScript->allocKind;
+        unsigned newScriptSlots = gc::GetGCKindSlots(kind);
+        if (newScriptSlots == numFixedSlots() && gc::TryIncrementAllocKind(&kind)) {
+            JSObject *obj = NewReshapedObject(cx, type(), getParent(), kind,
+                                              type()->newScript->shape);
+            if (!obj)
+                return false;
+
+            type()->newScript->allocKind = kind;
+            type()->newScript->shape = obj->lastProperty();
+            type()->markStateChange(cx);
+        }
+    }
+
     if (!oldCount) {
         slots = (Value *) cx->malloc_(newCount * sizeof(Value));
         if (!slots)
