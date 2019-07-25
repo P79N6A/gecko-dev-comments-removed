@@ -52,31 +52,11 @@
 
 
 
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-
-
-let histsvc = Cc["@mozilla.org/browser/nav-history-service;1"].
-              getService(Ci.nsINavHistoryService);
-let bhist = histsvc.QueryInterface(Ci.nsIBrowserHistory);
-let bsvc = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
-           getService(Ci.nsINavBookmarksService);
-let tsvc = Cc["@mozilla.org/browser/tagging-service;1"].
-           getService(Ci.nsITaggingService);
-let obs = Cc["@mozilla.org/observer-service;1"].
-          getService(Ci.nsIObserverService);
-let prefs = Cc["@mozilla.org/preferences-service;1"].
-            getService(Ci.nsIPrefBranch);
-
-
-const PLACES_AUTOCOMPLETE_FEEDBACK_UPDATED_TOPIC = "places-autocomplete-feedback-updated";
-
 function AutoCompleteInput(aSearches) {
   this.searches = aSearches;
 }
 AutoCompleteInput.prototype = {
   constructor: AutoCompleteInput,
-
-  searches: null,
 
   minResultsForPopup: 0,
   timeout: 10,
@@ -85,42 +65,23 @@ AutoCompleteInput.prototype = {
   disableAutoComplete: false,
   completeDefaultIndex: false,
 
-  get searchCount() {
-    return this.searches.length;
-  },
+  get searchCount() this.searches.length,
 
-  getSearchAt: function(aIndex) {
-    return this.searches[aIndex];
-  },
+  getSearchAt: function (aIndex) this.searches[aIndex],
 
   onSearchComplete: function() {},
 
   popupOpen: false,
 
   popup: {
-    setSelectedIndex: function(aIndex) {},
-    invalidate: function() {},
-
-    
-    QueryInterface: function(iid) {
-      if (iid.equals(Ci.nsISupports) ||
-          iid.equals(Ci.nsIAutoCompletePopup))
-        return this;
-
-      throw Components.results.NS_ERROR_NO_INTERFACE;
-    }
+    setSelectedIndex: function (aIndex) {},
+    invalidate: function () {},
+    QueryInterface: XPCOMUtils.generateQI([Ci.nsIAutoCompletePopup])
   },
 
-  onSearchBegin: function() {},
+  onSearchBegin: function () {},
 
-  
-  QueryInterface: function(iid) {
-    if (iid.equals(Ci.nsISupports) ||
-        iid.equals(Ci.nsIAutoCompleteInput))
-      return this;
-
-    throw Components.results.NS_ERROR_NO_INTERFACE;
-  }
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIAutoCompleteInput])
 }
 
 
@@ -128,8 +89,8 @@ AutoCompleteInput.prototype = {
 
 function ensure_results(expected, searchTerm)
 {
-  let controller = Components.classes["@mozilla.org/autocomplete/controller;1"].
-                   getService(Components.interfaces.nsIAutoCompleteController);
+  let controller = Cc["@mozilla.org/autocomplete/controller;1"].
+                   getService(Ci.nsIAutoCompleteController);
 
   
   
@@ -159,16 +120,19 @@ function ensure_results(expected, searchTerm)
 function setCountRank(aURI, aCount, aRank, aSearch, aBookmark)
 {
   
-  for (let i = 0; i < aCount; i++)
-    histsvc.addVisit(aURI, d1, null, histsvc.TRANSITION_TYPED, false, 0);
+  for (let i = 0; i < aCount; i++) {
+    PlacesUtils.history.addVisit(aURI, d1, null,
+                                 PlacesUtils.history.TRANSITION_TYPED,
+                                 false, 0);
+  }
 
   
   let thing = {
     QueryInterface: XPCOMUtils.generateQI([Ci.nsIAutoCompleteInput,
                                            Ci.nsIAutoCompletePopup,
                                            Ci.nsIAutoCompleteController]),
-    get popup() { return thing; },
-    get controller() { return thing; },
+    get popup() thing,
+    get controller() thing,
     popupOpen: true,
     selectedIndex: 0,
     getValueAt: function() aURI.spec,
@@ -177,17 +141,19 @@ function setCountRank(aURI, aCount, aRank, aSearch, aBookmark)
 
   
   for (let i = 0; i < aRank; i++) {
-    obs.notifyObservers(thing, "autocomplete-will-enter-text", null);
+    Services.obs.notifyObservers(thing, "autocomplete-will-enter-text", null);
   }
 
   
   if (aBookmark) {
-    bsvc.insertBookmark(bsvc.unfiledBookmarksFolder, aURI, bsvc.DEFAULT_INDEX,
-                        "test_book");
+    PlacesUtils.bookmarks.insertBookmark(PlacesUtils.unfiledBookmarksFolderId,
+                                         aURI,
+                                         PlacesUtils.bookmarks.DEFAULT_INDEX,
+                                         "test_book");
 
     
     if (aBookmark == "tag")
-      tsvc.tagURI(aURI, "test_tag");
+      PlacesUtils.tagging.tagURI(aURI, "test_tag");
   }
 }
 
@@ -196,8 +162,10 @@ function setCountRank(aURI, aCount, aRank, aSearch, aBookmark)
 
 function doAdaptiveDecay()
 {
-  for (let i = 0; i < 10; i++)
-    obs.notifyObservers(null, "idle-daily", null);
+  for (let i = 0; i < 10; i++) {
+    PlacesUtils.history.QueryInterface(Ci.nsIObserver)
+                       .observe(null, "idle-daily", null);
+  }
 }
 
 let uri1 = uri("http://site.tld/1");
@@ -219,13 +187,12 @@ let observer = {
   runCount: -1,
   observe: function(aSubject, aTopic, aData)
   {
-    if (PLACES_AUTOCOMPLETE_FEEDBACK_UPDATED_TOPIC == aTopic &&
-        !(--this.runCount)) {
-      ensure_results(this.results, this.search);
-    }
+    if (--this.runCount > 0)
+      return;
+    ensure_results(this.results, this.search);
   }
 };
-obs.addObserver(observer, PLACES_AUTOCOMPLETE_FEEDBACK_UPDATED_TOPIC, false);
+Services.obs.addObserver(observer, PlacesUtils.TOPIC_FEEDBACK_UPDATED, false);
 
 
 
@@ -382,8 +349,8 @@ let tests = [
   
   function() {
     print("Test 12 same count, diff rank, same term; no search; history only");
-    prefs.setIntPref("browser.urlbar.matchBehavior",
-                     Ci.mozIPlacesAutoComplete.BEHAVIOR_HISTORY);
+    Services.prefs.setIntPref("browser.urlbar.matchBehavior",
+                              Ci.mozIPlacesAutoComplete.BEHAVIOR_HISTORY);
     observer.results = [
       makeResult(uri1),
       makeResult(uri2),
@@ -395,8 +362,8 @@ let tests = [
   },
   function() {
     print("Test 13 same count, diff rank, same term; no search; history only with tag");
-    prefs.setIntPref("browser.urlbar.matchBehavior",
-                     Ci.mozIPlacesAutoComplete.BEHAVIOR_HISTORY);
+    Services.prefs.setIntPref("browser.urlbar.matchBehavior",
+                              Ci.mozIPlacesAutoComplete.BEHAVIOR_HISTORY);
     observer.results = [
       makeResult(uri1),
       makeResult(uri2),
@@ -419,15 +386,15 @@ function run_test() {
 function next_test() {
   if (tests.length) {
     
-    bsvc.removeFolderChildren(bsvc.unfiledBookmarksFolder);
-    bsvc.removeFolderChildren(bsvc.tagsFolder);
+    PlacesUtils.bookmarks.removeFolderChildren(PlacesUtils.unfiledBookmarksFolderId);
+    PlacesUtils.bookmarks.removeFolderChildren(PlacesUtils.tagsFolderId);
     observer.runCount = -1;
 
     let test = tests.shift();
     waitForClearHistory(test);
   }
   else {
-    obs.removeObserver(observer, PLACES_AUTOCOMPLETE_FEEDBACK_UPDATED_TOPIC);
+    Services.obs.removeObserver(observer, PlacesUtils.TOPIC_FEEDBACK_UPDATED);
     do_test_finished();
   }
 }
