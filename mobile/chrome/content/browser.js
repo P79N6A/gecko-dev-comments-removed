@@ -3046,7 +3046,6 @@ PluginObserver.prototype = {
   },
 
   
-  
   getCriticalRect: function getCriticalRect() {
     let bv = this._bv;
     if (!bv.isRendering())
@@ -3057,23 +3056,30 @@ PluginObserver.prototype = {
     let vs = bv._browserViewportState;
     let vr = bv.getVisibleRect();
     let crit = BrowserView.Util.visibleRectToCriticalRect(vr, vs);
+    crit = Browser.browserViewToClientRect(crit);
 
     if (BrowserUI.isToolbarLocked()) {
-      let urlbar = document.getElementById("toolbar-moveable-container");
-      let height = urlbar.getBoundingClientRect().height;
-      crit.top += height;
+      let urlbar = document.getElementById("toolbar-container");
+      let urlbarRect = urlbar.getBoundingClientRect();
+      
+      
+      
+      crit.top = Math.max(urlbarRect.height, crit.top);
     }
     return crit;
   },
 
   
+
+
+
   updateEmbedRegions: function updateEmbedRegions(objects, crit) {
     let bv = this._bv;
     let oprivate, r, dest, clip;
     for (let i = objects.length - 1; i >= 0; i--) {
       r = bv.browserToViewportRect(Browser.getBoundingContentRect(objects[i]));
       dest = Browser.browserViewToClientRect(r);
-      clip = Browser.browserViewToClientRect(r.intersect(crit)).translate(-dest.left, -dest.top);
+      clip = dest.intersect(crit).translate(-dest.left, -dest.top);
       oprivate = objects[i].QueryInterface(nsIObjectLoadingContent);
       oprivate.setAbsoluteScreenPosition(Browser.contentScrollbox, dest, clip);
     }
