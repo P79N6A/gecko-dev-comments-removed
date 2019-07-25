@@ -119,10 +119,6 @@ struct JSStackFrame
 #endif
 
     void                *ncode;         
-#if defined(JS_CPU_X86) || defined(JS_CPU_ARM)
-    
-    void                *align_[3];
-#endif
 
     
 
@@ -168,8 +164,6 @@ struct JSStackFrame
     
     void            *hookData;      
     JSVersion       callerVersion;  
-
-    void            *padding;
 
     void putActivationObjects(JSContext *cx) {
         
