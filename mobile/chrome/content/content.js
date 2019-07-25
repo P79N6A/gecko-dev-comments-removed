@@ -283,6 +283,7 @@ let Content = {
     addEventListener("DOMContentLoaded", this, false);
     addEventListener("pagehide", this, false);
     addEventListener("keypress", this, false, false);
+    addEventListener("PluginClickToPlay", this, false, true);
 
     
     
@@ -393,6 +394,10 @@ let Content = {
       case "pagehide":
         if (aEvent.target == content.document)
           this._resetFontSize();          
+        break;
+
+      case "PluginClickToPlay":
+        sendAsyncMessage("Browser:PluginClickToPlay", { });
         break;
     }
   },

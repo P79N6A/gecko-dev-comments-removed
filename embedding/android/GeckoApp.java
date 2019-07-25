@@ -151,17 +151,14 @@ abstract public class GeckoApp
     public ArrayList<PackageInfo> mPackageInfoCache = new ArrayList<PackageInfo>();
 
     String[] getPluginDirectories() {
-
         ArrayList<String> directories = new ArrayList<String>();
         PackageManager pm = this.mAppContext.getPackageManager();
         List<ResolveInfo> plugins = pm.queryIntentServices(new Intent(PLUGIN_ACTION),
                 PackageManager.GET_SERVICES | PackageManager.GET_META_DATA);
 
         synchronized(mPackageInfoCache) {
-
             
             mPackageInfoCache.clear();
-
 
             for (ResolveInfo info : plugins) {
 
@@ -173,7 +170,6 @@ abstract public class GeckoApp
                 }
 
                 Log.w(LOGTAG, "Loading plugin: " + serviceInfo.packageName);
-
 
                 
                 PackageInfo pkgInfo;
