@@ -322,10 +322,6 @@ enum StmtType {
 
 
 
-#define SIF_SCOPE        0x0001     /* statement has its own lexical scope */
-#define SIF_BODY_BLOCK   0x0002     /* STMT_BLOCK type is a function body */
-#define SIF_FOR_BLOCK    0x0004     /* for (let ...) induced block scope */
-
 
 
 
@@ -333,18 +329,33 @@ enum StmtType {
 
 struct StmtInfoBase {
     uint16_t        type;           
-    uint16_t        flags;          
+
+    
+
+
+
+    bool isBlockScope:1;
+
+    
+    bool isFunctionBodyBlock:1;
+
+    
+    bool isForLetBlock:1;
+
     RootedAtom      label;          
     Rooted<StaticBlockObject *> blockObj; 
 
-    StmtInfoBase(JSContext *cx) : label(cx), blockObj(cx) {}
+    StmtInfoBase(JSContext *cx)
+        : isBlockScope(false), isFunctionBodyBlock(false), isForLetBlock(false), label(cx),
+          blockObj(cx)
+    {}
 
     bool maybeScope() const {
         return STMT_BLOCK <= type && type <= STMT_SUBROUTINE && type != STMT_WITH;
     }
 
     bool linksScope() const {
-        return (STMT_WITH <= type && type <= STMT_CATCH) || (flags & SIF_SCOPE);
+        return (STMT_WITH <= type && type <= STMT_CATCH) || isBlockScope;
     }
 
     bool isLoop() const {
