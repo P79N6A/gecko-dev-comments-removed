@@ -129,6 +129,25 @@ private:
 
 
 
+class nsByteRange {
+public:
+  nsByteRange() : mStart(0), mEnd(0) {}
+
+  nsByteRange(PRInt64 aStart, PRInt64 aEnd)
+    : mStart(aStart), mEnd(aEnd)
+  {
+    NS_ASSERTION(mStart < mEnd, "Range should end after start!");
+  }
+
+  PRBool IsNull() const {
+    return mStart == 0 && mEnd == 0;
+  }
+
+  PRInt64 mStart, mEnd;
+};
+
+
+
 
 
 
@@ -275,6 +294,13 @@ public:
 
   virtual nsresult Open(nsIStreamListener** aStreamListener) = 0;
 
+  
+
+
+
+
+  virtual nsresult GetCachedRanges(nsTArray<nsByteRange>& aRanges) = 0;
+
 protected:
   nsMediaStream(nsMediaDecoder* aDecoder, nsIChannel* aChannel, nsIURI* aURI) :
     mDecoder(aDecoder),
@@ -394,6 +420,8 @@ public:
     nsMediaChannelStream* mStream;
   };
   friend class Listener;
+
+  nsresult GetCachedRanges(nsTArray<nsByteRange>& aRanges);
 
 protected:
   

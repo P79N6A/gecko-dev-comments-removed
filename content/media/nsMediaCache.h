@@ -44,6 +44,8 @@
 #include "nsIPrincipal.h"
 #include "nsCOMPtr.h"
 
+class nsByteRange;
+
 
 
 
@@ -310,6 +312,11 @@ public:
   
   
   PRInt64 GetNextCachedData(PRInt64 aOffset);
+  
+  
+  
+  
+  nsresult GetCachedRanges(nsTArray<nsByteRange>& aRanges);
 
   
   

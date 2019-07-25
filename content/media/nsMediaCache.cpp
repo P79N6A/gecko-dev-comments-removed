@@ -2293,3 +2293,26 @@ nsMediaCacheStream::InitAsClone(nsMediaCacheStream* aOriginal)
 
   return NS_OK;
 }
+
+nsresult nsMediaCacheStream::GetCachedRanges(nsTArray<nsByteRange>& aRanges)
+{
+  
+  
+  nsAutoMonitor mon(gMediaCache->Monitor());
+
+  
+  
+  NS_ASSERTION(mPinCount > 0, "Must be pinned");
+
+  PRInt64 startOffset = GetNextCachedData(0);
+  while (startOffset >= 0) {
+    PRInt64 endOffset = GetCachedDataEnd(startOffset);
+    NS_ASSERTION(startOffset < endOffset, "Buffered range must end after its start");
+    
+    aRanges.AppendElement(nsByteRange(startOffset, endOffset));
+    startOffset = GetNextCachedData(endOffset);
+    NS_ASSERTION(startOffset == -1 || startOffset > endOffset,
+      "Must have advanced to start of next range, or hit end of stream");
+  }
+  return NS_OK;
+}
