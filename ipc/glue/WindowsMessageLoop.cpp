@@ -727,18 +727,8 @@ RPCChannel::WaitForNotify()
   
   
   if (RPCChannel::IsSpinLoopActive()) {
-    if (SpinInternalEventLoop()) {
-      return true;
-    }
-
-    
-    
-    
-    
-    
-    if (IsMessagePending()) {
-      return true;
-    }
+    SpinInternalEventLoop();
+    return true; 
   }
 
   if (++gEventLoopDepth == 1) {
@@ -806,23 +796,8 @@ RPCChannel::WaitForNotify()
         
         
         RPCChannel::EnterModalLoop();
-        if (SpinInternalEventLoop())
-          return true;
-
-        
-        
-        if (IsMessagePending())
-          return true;
-
-        
-        
-        
-        windowHook = SetWindowsHookEx(WH_CALLWNDPROC, CallWindowProcedureHook,
-                                      NULL, gUIThreadId);
-        NS_ASSERTION(windowHook, "Failed to set proc hook on the rebound!");
-
-        SyncChannel::SetIsPumpingMessages(true);
-        continue;
+        SpinInternalEventLoop();
+        return true; 
       }
 
       if (PeekMessageW(&msg, (HWND)-1, gEventLoopMessage, gEventLoopMessage,
