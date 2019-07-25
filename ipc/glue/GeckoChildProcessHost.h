@@ -23,6 +23,7 @@ class GeckoChildProcessHost : public ChildProcessHost
 {
 protected:
   typedef mozilla::Monitor Monitor;
+  typedef std::vector<std::string> StringVector;
 
 public:
   typedef base::ProcessHandle ProcessHandle;
@@ -36,11 +37,33 @@ public:
 
   static uint32 GetSupportedArchitecturesForProcessType(GeckoProcessType type);
 
-  bool SyncLaunch(std::vector<std::string> aExtraOpts=std::vector<std::string>(),
+  
+  
+  
+  bool AsyncLaunch(StringVector aExtraOpts=StringVector());
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  bool LaunchAndWaitForProcessHandle(StringVector aExtraOpts=StringVector());
+
+  
+  
+  
+  bool SyncLaunch(StringVector aExtraOpts=StringVector(),
                   int32 timeoutMs=0,
                   base::ProcessArchitecture arch=base::GetCurrentProcessArchitecture());
-  bool AsyncLaunch(std::vector<std::string> aExtraOpts=std::vector<std::string>());
-  bool PerformAsyncLaunch(std::vector<std::string> aExtraOpts=std::vector<std::string>(),
+
+  bool PerformAsyncLaunch(StringVector aExtraOpts=StringVector(),
                           base::ProcessArchitecture arch=base::GetCurrentProcessArchitecture());
 
   virtual void OnChannelConnected(int32 peer_pid);
@@ -95,6 +118,8 @@ protected:
   } mProcessState;
 
   static PRInt32 mChildCounter;
+
+  void PrepareLaunch();
 
 #ifdef XP_WIN
   void InitWindowsGroupID();

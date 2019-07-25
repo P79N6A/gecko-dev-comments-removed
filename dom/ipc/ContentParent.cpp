@@ -491,11 +491,7 @@ ContentParent::ContentParent(const nsAString& aAppManifestURL)
     if (useOffMainThreadCompositing) {
         
         
-        
-        
-        
-        
-        mSubprocess->SyncLaunch();
+        mSubprocess->LaunchAndWaitForProcessHandle();
     } else {
         mSubprocess->AsyncLaunch();
     }
