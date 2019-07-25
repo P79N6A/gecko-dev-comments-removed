@@ -73,6 +73,16 @@ var UIManager = {
   
   
   
+  _reorderTabItemsOnShow : [],
+
+  
+  
+  
+  _reorderTabsOnHide : [],
+
+  
+  
+  
   _currentTab : gBrowser.selectedTab,
 
   
@@ -234,8 +244,20 @@ var UIManager = {
           self._stopZoomPreparation = true;
 
         self.showTabCandy();
-      } else
-        self.hideTabCandy();
+        
+        
+        
+        Groups.groups.forEach(function(group) {
+          self._reorderTabsOnHide.push(group);
+        });
+      } else {
+         self.hideTabCandy();
+        
+        
+        Groups.groups.forEach(function(group) {
+          self._reorderTabItemsOnShow.push(group);
+        });
+      }
 
       
       Components.utils.import("resource://gre/modules/Services.jsm");
@@ -312,6 +334,11 @@ var UIManager = {
     var currentTab = this._currentTab;
     var item = null;
 
+    this._reorderTabItemsOnShow.forEach(function(group) {
+      group.reorderTabItemsBasedOnTabOrder();
+    });
+    this._reorderTabItemsOnShow = [];
+
     gTabViewDeck.selectedIndex = 1;
     gTabViewFrame.contentWindow.focus();
 
@@ -351,6 +378,11 @@ var UIManager = {
   
   
   hideTabCandy: function() {
+    this._reorderTabsOnHide.forEach(function(group) {
+      group.reorderTabsBasedOnTabItemOrder();
+    });
+    this._reorderTabsOnHide = [];
+
     gTabViewDeck.selectedIndex = 0;
     gBrowser.contentWindow.focus();
 
@@ -418,11 +450,14 @@ var UIManager = {
     });
 
     Tabs.onMove(function() {
-      Utils.timeout(function() { 
+      if (!self._isTabCandyVisible()) {
         var activeGroup = Groups.getActiveGroup();
-        if ( activeGroup )
-          activeGroup.reorderBasedOnTabOrder();
-      }, 1);
+        if (activeGroup) {
+          var index = self._reorderTabItemsOnShow.indexOf(activeGroup);
+          if (index == -1)
+            self._reorderTabItemsOnShow.push(activeGroup);
+        }
+      }
     });
 
     Tabs.onFocus(function() {
@@ -502,6 +537,20 @@ var UIManager = {
           oldItem.setZoomPrep(true);
       }
     }, 1);
+  },
+
+  
+  
+  
+  
+  
+  
+  setReorderTabsOnHide: function(group) {
+    if (this._isTabCandyVisible()) {
+      var index = this._reorderTabsOnHide.indexOf(group);
+      if (index == -1)
+        this._reorderTabsOnHide.push(group);
+    }
   },
 
   
@@ -896,15 +945,6 @@ var UIManager = {
         });
         tab.hidden = hidden && !tab.pinned;
       });
-
-      
-      
-      
-      if (!options.dontReorg) {
-        visibleTabs.forEach(function(visibleTab) {
-          gBrowser.moveTabTo(visibleTab, tabBarTabs.length - 1);
-        });
-      }
     } catch(e) {
       Utils.log(e);
     }
