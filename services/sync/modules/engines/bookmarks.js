@@ -1129,6 +1129,10 @@ BookmarksTracker.prototype = {
     if (isAnno && annos.indexOf(property) == -1)
       return;
 
+    
+    if (property == "favicon")
+      return;
+
     this._log.trace("onItemChanged: " + itemId +
                     (", " + property + (isAnno? " (anno)" : "")) +
                     (value? (" = \"" + value + "\"") : ""));
