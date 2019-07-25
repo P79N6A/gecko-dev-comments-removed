@@ -4030,7 +4030,14 @@ bool IsAllowedAsChild(nsIContent* aNewChild, nsINode* aParent,
                   "Nodes that are not documents, document fragments or "
                   "elements can't be parents!");
 
-  if (aParent && nsContentUtils::ContentIsDescendantOf(aParent, aNewChild)) {
+  
+  
+  
+  
+  if (aParent &&
+      (aNewChild == aParent ||
+       (aNewChild->GetFirstChild() &&
+        nsContentUtils::ContentIsDescendantOf(aParent, aNewChild)))) {
     return false;
   }
 
