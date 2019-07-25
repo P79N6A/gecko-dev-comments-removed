@@ -190,7 +190,7 @@ let Util = {
   
   
   forceOnline: function forceOnline() {
-#ifdef MOZ_PLATFORM_HILDON
+#ifdef MOZ_PLATFORM_MAEMO
     gIOService.offline = false;
 #endif
   }
