@@ -447,6 +447,13 @@ WrapFunction(JSContext *cx, JSObject *wrapperObj, JSObject *funobj, jsval *v,
 
 
 
+
+void
+CheckWindow(XPCWrappedNative *wn);
+
+
+
+
 JSBool
 RewrapObject(JSContext *cx, JSObject *scope, JSObject *obj, WrapperType hint,
              jsval *vp);
