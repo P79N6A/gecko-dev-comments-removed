@@ -528,9 +528,7 @@ static const char kDOMStringBundleURL[] =
 #define NODE_SCRIPTABLE_FLAGS                                                 \
  ((DOM_DEFAULT_SCRIPTABLE_FLAGS |                                             \
    nsIXPCScriptable::USE_STUB_EQUALITY_HOOK |                                 \
-   nsIXPCScriptable::WANT_GETPROPERTY |                                       \
-   nsIXPCScriptable::WANT_ADDPROPERTY |                                       \
-   nsIXPCScriptable::WANT_SETPROPERTY) &                                      \
+   nsIXPCScriptable::WANT_ADDPROPERTY) &                                      \
   ~nsIXPCScriptable::USE_JSSTUB_FOR_ADDPROPERTY)
 
 
@@ -554,8 +552,6 @@ static const char kDOMStringBundleURL[] =
 #define DOCUMENT_SCRIPTABLE_FLAGS                                             \
   (NODE_SCRIPTABLE_FLAGS |                                                    \
    nsIXPCScriptable::WANT_POSTCREATE |                                        \
-   nsIXPCScriptable::WANT_ADDPROPERTY |                                       \
-   nsIXPCScriptable::WANT_GETPROPERTY |                                       \
    nsIXPCScriptable::WANT_ENUMERATE)
 
 #define ARRAY_SCRIPTABLE_FLAGS                                                \
@@ -765,7 +761,8 @@ static nsDOMClassInfoData sClassInfoData[] = {
 
   
   NS_DEFINE_CLASSINFO_DATA(HTMLDocument, nsHTMLDocumentSH,
-                           DOCUMENT_SCRIPTABLE_FLAGS)
+                           DOCUMENT_SCRIPTABLE_FLAGS |
+                           nsIXPCScriptable::WANT_GETPROPERTY)
   NS_DEFINE_CLASSINFO_DATA(HTMLOptionsCollection,
                            nsHTMLOptionsCollectionSH,
                            ARRAY_SCRIPTABLE_FLAGS |
@@ -869,6 +866,7 @@ static nsDOMClassInfoData sClassInfoData[] = {
                            ELEMENT_SCRIPTABLE_FLAGS)
   NS_DEFINE_CLASSINFO_DATA(HTMLSelectElement, nsHTMLSelectElementSH,
                            ELEMENT_SCRIPTABLE_FLAGS |
+                           nsIXPCScriptable::WANT_SETPROPERTY |
                            nsIXPCScriptable::WANT_GETPROPERTY)
   NS_DEFINE_CLASSINFO_DATA(HTMLSpanElement, nsElementSH,
                            ELEMENT_SCRIPTABLE_FLAGS)
@@ -6385,10 +6383,9 @@ LocationSetterGuts(JSContext *cx, JSObject *obj, jsval *vp)
     XPCWrappedNative::GetWrappedNativeOfJSObject(cx, obj);
 
   
-  NS_ENSURE_TRUE(wrapper, NS_ERROR_XPC_BAD_OP_ON_WN_PROTO);
-  NS_ENSURE_TRUE(wrapper->IsValid(), NS_ERROR_XPC_HAS_BEEN_SHUTDOWN);
+  NS_ENSURE_TRUE(!wrapper || wrapper->IsValid(), NS_ERROR_XPC_HAS_BEEN_SHUTDOWN);
 
-  nsCOMPtr<Interface> xpcomObj = do_QueryWrappedNative(wrapper);
+  nsCOMPtr<Interface> xpcomObj = do_QueryWrappedNative(wrapper, obj);
   NS_ENSURE_TRUE(xpcomObj, NS_ERROR_UNEXPECTED);
 
   nsCOMPtr<nsIDOMLocation> location;
@@ -7129,6 +7126,79 @@ nsNavigatorSH::PreCreate(nsISupports *nativeObj, JSContext *cx,
 
 
 
+template<nsresult (*func)(JSContext *cx, JSObject *obj, jsval *vp)>
+static JSBool
+GetterShim(JSContext *cx, JSObject *obj, jsid , jsval *vp)
+{
+  nsresult rv = (*func)(cx, obj, vp);
+  if (NS_FAILED(rv)) {
+    if (!::JS_IsExceptionPending(cx)) {
+      nsDOMClassInfo::ThrowJSException(cx, rv);
+    }
+    return JS_FALSE;
+  }
+
+  return JS_TRUE;  
+}
+
+
+nsresult
+BaseURIObjectGetter(JSContext *cx, JSObject *obj, jsval *vp)
+{
+  
+  XPCWrappedNative *wrapper =
+    XPCWrappedNative::GetWrappedNativeOfJSObject(cx, obj);
+
+  
+  NS_ENSURE_TRUE(!wrapper || wrapper->IsValid(), NS_ERROR_XPC_HAS_BEEN_SHUTDOWN);
+
+  nsCOMPtr<nsINode> node = do_QueryWrappedNative(wrapper, obj);
+  NS_ENSURE_TRUE(node, NS_ERROR_UNEXPECTED);
+
+  nsCOMPtr<nsIURI> uri = node->GetBaseURI();
+  return WrapNative(cx, JS_GetGlobalForScopeChain(cx), uri,
+                    &NS_GET_IID(nsIURI), PR_TRUE, vp);
+}
+
+
+nsresult
+NodePrincipalGetter(JSContext *cx, JSObject *obj, jsval *vp)
+{
+  
+  XPCWrappedNative *wrapper =
+    XPCWrappedNative::GetWrappedNativeOfJSObject(cx, obj);
+
+  
+  NS_ENSURE_TRUE(!wrapper || wrapper->IsValid(), NS_ERROR_XPC_HAS_BEEN_SHUTDOWN);
+
+  nsCOMPtr<nsINode> node = do_QueryWrappedNative(wrapper, obj);
+  NS_ENSURE_TRUE(node, NS_ERROR_UNEXPECTED);
+
+  return WrapNative(cx, JS_GetGlobalForScopeChain(cx), node->NodePrincipal(),
+                    &NS_GET_IID(nsIPrincipal), PR_TRUE, vp);
+}
+
+NS_IMETHODIMP
+nsNodeSH::PostCreatePrototype(JSContext * cx, JSObject * proto)
+{
+  
+  nsresult rv = nsDOMGenericSH::PostCreatePrototype(cx, proto);
+
+  if (xpc::AccessCheck::isChrome(proto->compartment())) {
+    
+    JS_DefinePropertyById(cx, proto, sNodePrincipal_id,
+                          JSVAL_VOID, GetterShim<NodePrincipalGetter>,
+                          nsnull,
+                          JSPROP_READONLY | JSPROP_SHARED);
+    JS_DefinePropertyById(cx, proto, sBaseURIObject_id,
+                          JSVAL_VOID, GetterShim<BaseURIObjectGetter>,
+                          nsnull,
+                          JSPROP_READONLY | JSPROP_SHARED);
+  }
+
+  return rv;
+}
+
 PRBool
 nsNodeSH::IsCapabilityEnabled(const char* aCapability)
 {
@@ -7136,26 +7206,6 @@ nsNodeSH::IsCapabilityEnabled(const char* aCapability)
   return sSecMan &&
     NS_SUCCEEDED(sSecMan->IsCapabilityEnabled(aCapability, &enabled)) &&
     enabled;
-}
-
-nsresult
-nsNodeSH::DefineVoidProp(JSContext* cx, JSObject* obj, jsid id,
-                         JSObject** objp)
-{
-  NS_ASSERTION(JSID_IS_STRING(id), "id must be a string");
-
-  
-  
-  
-  JSBool ok = ::JS_DefinePropertyById(cx, obj, id, JSVAL_VOID,
-                                      nsnull, nsnull, JSPROP_SHARED);
-
-  if (!ok) {
-    return NS_ERROR_FAILURE;
-  }
-
-  *objp = obj;
-  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -7305,11 +7355,6 @@ nsNodeSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
                      JSObject *obj, jsid id, PRUint32 flags,
                      JSObject **objp, PRBool *_retval)
 {
-  if ((id == sBaseURIObject_id || id == sNodePrincipal_id) &&
-      IsPrivilegedScript()) {
-    return DefineVoidProp(cx, obj, id, objp);
-  }
-
   if (id == sOnload_id || id == sOnerror_id) {
     
     
@@ -7322,63 +7367,6 @@ nsNodeSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
 
   return nsDOMGenericSH::NewResolve(wrapper, cx, obj, id, flags, objp,
                                     _retval);
-}
-
-NS_IMETHODIMP
-nsNodeSH::GetProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
-                      JSObject *obj, jsid id, jsval *vp, PRBool *_retval)
-{
-  if (id == sBaseURIObject_id && IsPrivilegedScript()) {
-    
-    nsCOMPtr<nsIURI> uri;
-    nsCOMPtr<nsIContent> content = do_QueryWrappedNative(wrapper, obj);
-    if (content) {
-      uri = content->GetBaseURI();
-      NS_ENSURE_TRUE(uri, NS_ERROR_OUT_OF_MEMORY);
-    } else {
-      nsCOMPtr<nsIDocument> doc = do_QueryWrappedNative(wrapper, obj);
-      NS_ENSURE_TRUE(doc, NS_ERROR_UNEXPECTED);
-
-      uri = doc->GetBaseURI();
-      NS_ENSURE_TRUE(uri, NS_ERROR_NOT_AVAILABLE);
-    }
-
-    nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
-    nsresult rv = WrapNative(cx, JS_GetGlobalForScopeChain(cx), uri,
-                             &NS_GET_IID(nsIURI), PR_TRUE, vp,
-                             getter_AddRefs(holder));
-    return NS_FAILED(rv) ? rv : NS_SUCCESS_I_DID_SOMETHING;
-  }
-
-  if (id == sNodePrincipal_id && IsPrivilegedScript()) {
-    nsCOMPtr<nsINode> node = do_QueryWrappedNative(wrapper, obj);
-    NS_ENSURE_TRUE(node, NS_ERROR_UNEXPECTED);
-
-    nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
-    nsresult rv = WrapNative(cx, JS_GetGlobalForScopeChain(cx),
-                             node->NodePrincipal(), &NS_GET_IID(nsIPrincipal),
-                             PR_TRUE, vp, getter_AddRefs(holder));
-    return NS_FAILED(rv) ? rv : NS_SUCCESS_I_DID_SOMETHING;
-  }    
-
-  
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsNodeSH::SetProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
-                      JSObject *obj, jsid id, jsval *vp, PRBool *_retval)
-{
-  if ((id == sBaseURIObject_id || id == sNodePrincipal_id) &&
-      IsPrivilegedScript()) {
-    
-    
-    
-    
-    return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
-  }
-
-  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -8247,6 +8235,41 @@ nsDOMStringMapSH::JSIDToProp(const jsid& aId, nsAString& aResult)
   return true;
 }
 
+
+nsresult
+DocumentURIObjectGetter(JSContext *cx, JSObject *obj, jsval *vp)
+{
+  
+  XPCWrappedNative *wrapper =
+    XPCWrappedNative::GetWrappedNativeOfJSObject(cx, obj);
+
+  
+  NS_ENSURE_TRUE(!wrapper || wrapper->IsValid(), NS_ERROR_XPC_HAS_BEEN_SHUTDOWN);
+
+  nsCOMPtr<nsIDocument> doc = do_QueryWrappedNative(wrapper, obj);
+  NS_ENSURE_TRUE(doc, NS_ERROR_UNEXPECTED);
+
+  return WrapNative(cx, JS_GetGlobalForScopeChain(cx), doc->GetDocumentURI(),
+                    &NS_GET_IID(nsIURI), PR_TRUE, vp);
+}
+
+NS_IMETHODIMP
+nsDocumentSH::PostCreatePrototype(JSContext * cx, JSObject * proto)
+{
+  
+  nsresult rv = nsNodeSH::PostCreatePrototype(cx, proto);
+
+  if (xpc::AccessCheck::isChrome(proto->compartment())) {
+    
+    JS_DefinePropertyById(cx, proto, sDocumentURIObject_id,
+                          JSVAL_VOID, GetterShim<DocumentURIObjectGetter>,
+                          nsnull,
+                          JSPROP_READONLY | JSPROP_SHARED);
+  }
+
+  return rv;
+}
+
 NS_IMETHODIMP
 nsDocumentSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
                          JSObject *obj, jsid id, PRUint32 flags,
@@ -8273,8 +8296,6 @@ nsDocumentSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
                     getter_AddRefs(holder));
     NS_ENSURE_SUCCESS(rv, rv);
 
-    JSAutoRequest ar(cx);
-
     JSBool ok = ::JS_DefinePropertyById(cx, obj, id, v, nsnull,
                                         LocationSetter<nsIDOMDocument>,
                                         JSPROP_PERMANENT | JSPROP_ENUMERATE);
@@ -8288,48 +8309,7 @@ nsDocumentSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
     return NS_OK;
   }
 
-  if (id == sDocumentURIObject_id && IsPrivilegedScript()) {
-    return DefineVoidProp(cx, obj, id, objp);
-  } 
-
   return nsNodeSH::NewResolve(wrapper, cx, obj, id, flags, objp, _retval);
-}
-
-NS_IMETHODIMP
-nsDocumentSH::GetProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
-                          JSObject *obj, jsid id, jsval *vp, PRBool *_retval)
-{
-  if (id == sDocumentURIObject_id && IsPrivilegedScript()) {
-    nsCOMPtr<nsIDocument> doc = do_QueryWrappedNative(wrapper);
-    NS_ENSURE_TRUE(doc, NS_ERROR_UNEXPECTED);
-
-    nsIURI* uri = doc->GetDocumentURI();
-    NS_ENSURE_TRUE(uri, NS_ERROR_NOT_AVAILABLE);
-
-    nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
-    nsresult rv = WrapNative(cx, JS_GetGlobalForScopeChain(cx), uri,
-                             &NS_GET_IID(nsIURI), PR_TRUE, vp,
-                             getter_AddRefs(holder));
-
-    return NS_FAILED(rv) ? rv : NS_SUCCESS_I_DID_SOMETHING;
-  }
-
-  return nsNodeSH::GetProperty(wrapper, cx, obj, id, vp, _retval);
-}
-
-NS_IMETHODIMP
-nsDocumentSH::SetProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
-                          JSObject *obj, jsid id, jsval *vp, PRBool *_retval)
-{
-  if (id == sDocumentURIObject_id && IsPrivilegedScript()) {
-    
-    
-    
-    
-    return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
-  }
-  
-  return nsNodeSH::SetProperty(wrapper, cx, obj, id, vp, _retval);
 }
 
 NS_IMETHODIMP
@@ -8997,7 +8977,7 @@ nsHTMLDocumentSH::GetProperty(nsIXPConnectWrappedNative *wrapper,
     }
   }
 
-  return nsDocumentSH::GetProperty(wrapper, cx, obj, id, vp, _retval);
+  return NS_OK;
 }
 
 
@@ -9096,7 +9076,7 @@ nsHTMLFormElementSH::GetProperty(nsIXPConnectWrappedNative *wrapper,
     }
   }
 
-  return nsElementSH::GetProperty(wrapper, cx, obj, id, vp, _retval);;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -9230,7 +9210,7 @@ nsHTMLSelectElementSH::GetProperty(nsIXPConnectWrappedNative *wrapper,
     }
   }
 
-  return nsElementSH::GetProperty(wrapper, cx, obj, id, vp, _retval);;
+  return NS_OK;
 }
 
 
@@ -9281,7 +9261,7 @@ nsHTMLSelectElementSH::SetProperty(nsIXPConnectWrappedNative *wrapper,
     return NS_FAILED(rv) ? rv : NS_SUCCESS_I_DID_SOMETHING;
   }
 
-  return nsElementSH::SetProperty(wrapper, cx, obj, id, vp, _retval);
+  return NS_OK;
 }
 
 
@@ -9554,7 +9534,7 @@ nsHTMLPluginObjElementSH::GetProperty(nsIXPConnectWrappedNative *wrapper,
     return *_retval ? NS_SUCCESS_I_DID_SOMETHING : NS_ERROR_FAILURE;
   }
 
-  return nsElementSH::GetProperty(wrapper, cx, obj, id, vp, _retval);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -9583,7 +9563,7 @@ nsHTMLPluginObjElementSH::SetProperty(nsIXPConnectWrappedNative *wrapper,
     return *_retval ? NS_SUCCESS_I_DID_SOMETHING : NS_ERROR_FAILURE;
   }
 
-  return nsElementSH::SetProperty(wrapper, cx, obj, id, vp, _retval);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
