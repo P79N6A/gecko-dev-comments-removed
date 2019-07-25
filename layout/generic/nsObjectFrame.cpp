@@ -6258,13 +6258,15 @@ NS_IMETHODIMP nsPluginInstanceOwner::CreateWidget(void)
           
           
           
+          
+          
           nsAutoTArray<nsIWidget::Configuration,1> configuration;
-          if (configuration.AppendElement()) {
-            configuration[0].mChild = mWidget;
-            configuration[0].mBounds =
-              nsIntRect(0, 0, mPluginWindow->width, mPluginWindow->height);
-            parent->ConfigureChildren(configuration);
+          mObjectFrame->GetEmptyClipConfiguration(&configuration);
+          if (configuration.Length() > 0) {
+            configuration[0].mBounds.width = mPluginWindow->width;
+            configuration[0].mBounds.height = mPluginWindow->height;
           }
+          parent->ConfigureChildren(configuration);
 
           
           
