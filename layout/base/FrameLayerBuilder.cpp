@@ -648,6 +648,13 @@ ContainerState::CreateOrRecycleThebesLayer(nsIFrame* aActiveScrolledRoot)
 static PRUint32
 AppUnitsPerDevPixel(nsDisplayItem* aItem)
 {
+  
+  
+  
+  
+  if (aItem->GetType() == nsDisplayItem::TYPE_ZOOM) {
+    return static_cast<nsDisplayZoom*>(aItem)->GetParentAppUnitsPerDevPixel();
+  }
   return aItem->GetUnderlyingFrame()->PresContext()->AppUnitsPerDevPixel();
 }
 
