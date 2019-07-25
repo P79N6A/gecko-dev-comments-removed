@@ -86,10 +86,6 @@
 #include "imgIRequest.h"
 #include "nsDOMDataTransfer.h"
 
-
-#define kHTMLContext   "text/_moz_htmlcontext"
-#define kHTMLInfo      "text/_moz_htmlinfo"
-
 class NS_STACK_CLASS DragDataProducer
 {
 public:

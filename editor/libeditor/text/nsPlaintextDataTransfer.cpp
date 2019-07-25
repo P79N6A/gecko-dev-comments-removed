@@ -72,10 +72,6 @@
 #include "nsEventDispatcher.h"
 #include "nsContentUtils.h"
 
-
-#define kHTMLContext   "text/_moz_htmlcontext"
-#define kHTMLInfo      "text/_moz_htmlinfo"
-
 using namespace mozilla;
 
 NS_IMETHODIMP nsPlaintextEditor::PrepareTransferable(nsITransferable **transferable)
