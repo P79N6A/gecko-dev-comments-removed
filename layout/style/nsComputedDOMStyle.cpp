@@ -3413,8 +3413,10 @@ nsComputedDOMStyle::GetLineHeightCoord(nscoord& aCoord)
     }
   }
 
+  
+  
   aCoord = nsHTMLReflowState::CalcLineHeight(mStyleContextHolder,
-                                             blockHeight);
+                                             blockHeight, 1.0f);
 
   
   
