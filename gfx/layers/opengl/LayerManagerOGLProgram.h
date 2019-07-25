@@ -300,19 +300,17 @@ protected:
       }
       fprintf (stderr, "=== Log:\n%s\n", nsPromiseFlatCString(log).get());
       fprintf (stderr, "============\n");
+    }
 
-      
-      
-      mGL->fDeleteShader(vertexShader);
-      mGL->fDeleteShader(fragmentShader);
+    
+    
+    mGL->fDeleteShader(vertexShader);
+    mGL->fDeleteShader(fragmentShader);
 
-      if (!success) {
-        mGL->fDeleteProgram(mProgram);
-
-        mProgram = 0;
-
-        return false;
-      }
+    if (!success) {
+      mGL->fDeleteProgram(mProgram);
+      mProgram = 0;
+      return false;
     }
 
     

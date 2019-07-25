@@ -60,6 +60,8 @@ public:
   
   Layer* GetLayer();
 
+  void Destroy();
+
   LayerOGL* GetFirstChildOGL();
 
   PRBool IsEmpty();

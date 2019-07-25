@@ -83,6 +83,8 @@ public:
 
   void CleanupResources();
 
+  void Destroy();
+
   
 
 
@@ -138,6 +140,16 @@ public:
   
 
 
+
+  
+
+
+  void ForgetImageContainer(ImageContainer* aContainer);
+  void RememberImageContainer(ImageContainer* aContainer);
+
+  
+
+
   void MakeCurrent();
 
   ColorTextureLayerProgram *GetRGBALayerProgram() {
@@ -181,6 +193,16 @@ public:
 
   void* GetThebesLayerCallbackData() const
   { return mThebesLayerCallbackData; }
+
+  
+  
+  
+  
+  GLContext *glForResources() const {
+    if (mGLContext->GetSharedContext())
+      return mGLContext->GetSharedContext();
+    return mGLContext;
+  }
 
   
 
@@ -281,6 +303,11 @@ private:
 
   nsRefPtr<GLContext> mGLContext;
 
+  
+  
+  
+  nsTArray<ImageContainer*> mImageContainers;
+
   enum ProgramType {
     RGBALayerProgramType,
     BGRALayerProgramType,
@@ -364,12 +391,19 @@ class LayerOGL
 {
 public:
   LayerOGL(LayerManagerOGL *aManager)
-    : mOGLManager(aManager)
+    : mOGLManager(aManager), mDestroyed(PR_FALSE)
   { }
+
+  virtual ~LayerOGL() { }
 
   virtual LayerOGL *GetFirstChildOGL() {
     return nsnull;
   }
+
+  
+
+
+  virtual void Destroy() = 0;
 
   virtual Layer* GetLayer() = 0;
 
@@ -381,6 +415,7 @@ public:
   GLContext *gl() const { return mOGLManager->gl(); }
 protected:
   LayerManagerOGL *mOGLManager;
+  PRPackedBool mDestroyed;
 };
 
 } 
