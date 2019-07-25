@@ -202,8 +202,8 @@ js_GetArgsObject(JSContext *cx, JSStackFrame *fp)
 
 
 
-    JS_ASSERT(fp->fun);
-    JS_ASSERT_IF(fp->fun->flags & JSFUN_HEAVYWEIGHT,
+    JS_ASSERT(fp->hasFunction());
+    JS_ASSERT_IF(fp->getFunction()->flags & JSFUN_HEAVYWEIGHT,
                  fp->varobj(cx->containingSegment(fp)));
 
     
@@ -779,7 +779,7 @@ JSObject *
 js_GetCallObject(JSContext *cx, JSStackFrame *fp)
 {
     
-    JS_ASSERT(fp->fun);
+    JS_ASSERT(fp->hasFunction());
     if (fp->hasCallObj())
         return fp->getCallObj();
 
@@ -798,7 +798,8 @@ js_GetCallObject(JSContext *cx, JSStackFrame *fp)
 
 
 
-    JSAtom *lambdaName = (fp->fun->flags & JSFUN_LAMBDA) ? fp->fun->atom : NULL;
+    JSAtom *lambdaName =
+        (fp->getFunction()->flags & JSFUN_LAMBDA) ? fp->getFunction()->atom : NULL;
     if (lambdaName) {
         JSObject *envobj = NewDeclEnvObject(cx, fp);
         if (!envobj)
@@ -816,13 +817,13 @@ js_GetCallObject(JSContext *cx, JSStackFrame *fp)
         }
     }
 
-    JSObject *callobj = NewCallObject(cx, fp->fun, fp->getScopeChain());
+    JSObject *callobj = NewCallObject(cx, fp->getFunction(), fp->getScopeChain());
     if (!callobj)
         return NULL;
 
     callobj->setPrivate(fp);
     JS_ASSERT(fp->argv);
-    JS_ASSERT(fp->fun == GET_FUNCTION_PRIVATE(cx, fp->callee()));
+    JS_ASSERT(fp->getFunction() == GET_FUNCTION_PRIVATE(cx, fp->callee()));
     callobj->setSlot(JSSLOT_CALLEE, fp->calleeValue());
     fp->setCallObj(callobj);
 
@@ -880,7 +881,7 @@ js_PutCallObject(JSContext *cx, JSStackFrame *fp)
         js_PutArgsObject(cx, fp);
     }
 
-    JSFunction *fun = fp->fun;
+    JSFunction *fun = fp->getFunction();
     JS_ASSERT(fun == js_GetCallObjectFunction(callobj));
     uintN n = fun->countArgsAndVars();
 
@@ -1272,10 +1273,12 @@ JS_PUBLIC_DATA(Class) js_CallClass = {
 bool
 JSStackFrame::getValidCalleeObject(JSContext *cx, Value *vp)
 {
-    if (!fun) {
+    if (!hasFunction()) {
         *vp = argv ? argv[-2] : UndefinedValue();
         return true;
     }
+
+    JSFunction *fun = getFunction();
 
     
 
@@ -1299,11 +1302,11 @@ JSStackFrame::getValidCalleeObject(JSContext *cx, Value *vp)
 
 
 
-    if (thisv.isObject()) {
+    if (getThisValue().isObject()) {
         JS_ASSERT(GET_FUNCTION_PRIVATE(cx, funobj) == fun);
 
         if (fun == funobj && fun->methodAtom()) {
-            JSObject *thisp = &thisv.toObject();
+            JSObject *thisp = &getThisValue().toObject();
             JS_ASSERT(thisp->canHaveMethodBarrier());
 
             JSScope *scope = thisp->scope();
@@ -1415,7 +1418,7 @@ fun_getProperty(JSContext *cx, JSObject *obj, jsid id, Value *vp)
     
     JSStackFrame *fp;
     for (fp = js_GetTopStackFrame(cx);
-         fp && (fp->fun != fun || (fp->flags & JSFRAME_SPECIAL));
+         fp && (fp->maybeFunction() != fun || (fp->flags & JSFRAME_SPECIAL));
          fp = fp->down) {
         continue;
     }
@@ -1462,7 +1465,7 @@ fun_getProperty(JSContext *cx, JSObject *obj, jsid id, Value *vp)
 
       default:
         
-        if (fp && fp->fun && (uintN)slot < fp->fun->nargs)
+        if (fp && fp->hasFunction() && (uintN)slot < fp->getFunction()->nargs)
             *vp = fp->argv[slot];
         break;
     }
@@ -2217,7 +2220,8 @@ Function(JSContext *cx, JSObject *obj, uintN argc, Value *argv, Value *rval)
 
 
     fp = js_GetTopStackFrame(cx);
-    JS_ASSERT(!fp->script && fp->fun && fp->fun->u.n.native == Function);
+    JS_ASSERT(!fp->hasScript() && fp->hasFunction() &&
+              fp->getFunction()->u.n.native == Function);
     caller = js_GetScriptedCaller(cx, fp);
     if (caller) {
         principals = JS_EvalFramePrincipals(cx, fp, caller);
@@ -2551,8 +2555,8 @@ js_NewFlatClosure(JSContext *cx, JSFunction *fun)
 JSObject *
 js_NewDebuggableFlatClosure(JSContext *cx, JSFunction *fun)
 {
-    JS_ASSERT(cx->fp->fun->flags & JSFUN_HEAVYWEIGHT);
-    JS_ASSERT(!cx->fp->fun->optimizedClosure());
+    JS_ASSERT(cx->fp->getFunction()->flags & JSFUN_HEAVYWEIGHT);
+    JS_ASSERT(!cx->fp->getFunction()->optimizedClosure());
     JS_ASSERT(FUN_FLAT_CLOSURE(fun));
 
     return WrapEscapingClosure(cx, cx->fp, fun);
@@ -2672,7 +2676,7 @@ js_ReportIsNotFunction(JSContext *cx, const Value *vp, uintN flags)
         ++i;
 
     if (!i.done()) {
-        uintN depth = js_ReconstructStackDepth(cx, i.fp()->script, i.pc());
+        uintN depth = js_ReconstructStackDepth(cx, i.fp()->getScript(), i.pc());
         Value *simsp = i.fp()->base() + depth;
         JS_ASSERT(simsp <= i.sp());
         if (i.fp()->base() <= vp && vp < simsp)
