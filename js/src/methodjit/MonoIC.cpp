@@ -846,7 +846,8 @@ class CallCompiler : public BaseCompiler
 
     void *update()
     {
-        JITScript *jit = f.jit();
+        JSStackFrame *fp = f.fp();
+        JITScript *jit = fp->jit();
         uint32 recompilations = jit->recompilations;
 
         stubs::UncachedCallResult ucr;
@@ -857,8 +858,9 @@ class CallCompiler : public BaseCompiler
 
         
         
-        if (!ucr.codeAddr && f.jit()->recompilations != recompilations)
-            return NULL;
+        
+        if (fp->jit()->recompilations != recompilations)
+            return ucr.codeAddr;
 
         
         
