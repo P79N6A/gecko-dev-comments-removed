@@ -44,7 +44,7 @@ const dm = Cc["@mozilla.org/download-manager;1"].getService(nsIDownloadManager);
 
 
 
-const resultFileName = "test\u00e3\u041b\u3056" + Math.floor(Date.now()) + ".doc";
+const resultFileName = "test\u00e3\u041b\u3056" + Date.now() + ".doc";
 
 
 const POLL_REGISTRY_TIMEOUT = 200;
