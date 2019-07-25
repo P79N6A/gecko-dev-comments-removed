@@ -630,7 +630,17 @@ DrawTargetSkia::CopySurface(SourceSurface *aSurface,
   SkIRect source = IntRectToSkIRect(aSourceRect);
   mCanvas->clipRect(dest, SkRegion::kReplace_Op);
   SkPaint paint;
-  paint.setXfermodeMode(GfxOpToSkiaOp(OP_SOURCE));
+
+  if (mBitmap.config() == SkBitmap::kRGB_565_Config &&
+      mCanvas->getDevice()->config() == SkBitmap::kRGB_565_Config) {
+    
+    
+    
+    paint.setXfermodeMode(SkXfermode::kSrcOver_Mode);
+  } else {
+    paint.setXfermodeMode(SkXfermode::kSrc_Mode);
+  }
+
   mCanvas->drawBitmapRect(bitmap, &source, dest, &paint);
   mCanvas->restore();
 }
