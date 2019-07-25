@@ -421,9 +421,11 @@ struct JSScript {
     uint32          length;     
 
   private:
-    uint16          version;    
+    size_t          useCount_;  
 
-    size_t          callCount_; 
+
+
+    uint16          version;    
 
   public:
     uint16          nfixed;     
@@ -633,9 +635,10 @@ struct JSScript {
         return constructing ? jitCtor : jitNormal;
     }
 
-    size_t callCount() const  { return callCount_; }
-    size_t incCallCount() { return ++callCount_; }
-    size_t *addressOfCallCount() { return &callCount_; }
+    size_t useCount() const  { return useCount_; }
+    size_t incUseCount() { return ++useCount_; }
+    size_t *addressOfUseCount() { return &useCount_; }
+    void resetUseCount() { useCount_ = 0; }
 
     JITScriptStatus getJITStatus(bool constructing) {
         void *addr = constructing ? jitArityCheckCtor : jitArityCheckNormal;
