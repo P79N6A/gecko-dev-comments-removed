@@ -55,7 +55,7 @@ function testHUDGetters() {
 
   hudId = HUDService.displaysIndex()[0];
 
-  var HUD = HUDService.hudWeakReferences[hudId].get();
+  var HUD = HUDService.hudReferences[hudId];
   var jsterm = HUD.jsterm;
   var klass = jsterm.inputNode.getAttribute("class");
   ok(klass == "jsterm-input-node", "We have the input node.");
