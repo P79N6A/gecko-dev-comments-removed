@@ -90,7 +90,7 @@ pref("ui.scrollbarsCanOverlapContent", 1);
 
 
 pref("browser.cache.disk.enable", true);
-pref("browser.cache.disk.capacity", 10240); 
+pref("browser.cache.disk.capacity", 20480); 
 pref("browser.cache.disk.smart_size.enabled", false);
 pref("browser.cache.disk.smart_size.first_run", false);
 
