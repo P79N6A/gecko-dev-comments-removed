@@ -888,6 +888,10 @@ var FormHelperUI = {
       let self = this;
       window.addEventListener("AnimatedZoomEnd", function() {
         window.removeEventListener("AnimatedZoomEnd", arguments.callee, true);
+          
+          if (self._currentElement != aElement)
+            return;
+
           self._updateSuggestionsFor(aElement);
       }, true);
       return;
@@ -1082,9 +1086,14 @@ var FormHelperUI = {
     
     
     if (AnimatedZoom.isZooming()) {
+      let currentElement = this._currentElement;
       let self = this;
       window.addEventListener("AnimatedZoomEnd", function() {
         window.removeEventListener("AnimatedZoomEnd", arguments.callee, true);
+          
+          if (self._currentElement != currentElement)
+            return;
+
           self._ensureCaretVisible(aCaretRect);
       }, true);
       return;
