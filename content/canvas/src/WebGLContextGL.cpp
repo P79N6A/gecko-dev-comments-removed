@@ -3481,13 +3481,50 @@ WebGLContext::DOMElementToImageSurface(nsIDOMElement *imageOrCanvas,
         nsLayoutUtils::SurfaceFromElement(imageOrCanvas, flags);
     if (!res.mSurface)
         return NS_ERROR_FAILURE;
-
-    CanvasUtils::DoDrawImageSecurityCheck(HTMLCanvasElement(), res.mPrincipal, res.mIsWriteOnly);
-
     if (res.mSurface->GetType() != gfxASurface::SurfaceTypeImage) {
         
         return NS_ERROR_FAILURE;
     }
+
+    
+    
+    
+    
+    
+    
+    
+    
+
+    
+    
+    
+    if (res.mPrincipal) {
+        PRBool subsumes;
+        nsresult rv = HTMLCanvasElement()->NodePrincipal()->Subsumes(res.mPrincipal, &subsumes);
+        if (NS_FAILED(rv) || !subsumes) {
+            LogMessageIfVerbose("It is forbidden to load a WebGL texture from a cross-domain element. "
+                                "See https://developer.mozilla.org/en/WebGL/Cross-Domain_Textures");
+            return NS_ERROR_DOM_SECURITY_ERR;
+        }
+    }
+
+    
+    
+    nsCOMPtr<nsIContent> maybeDOMCanvas = do_QueryInterface(imageOrCanvas);
+    if (maybeDOMCanvas && maybeDOMCanvas->IsHTML(nsGkAtoms::canvas)) {
+        nsHTMLCanvasElement *canvas = static_cast<nsHTMLCanvasElement*>(maybeDOMCanvas.get());
+        if (canvas->IsWriteOnly()) {
+            LogMessageIfVerbose("The canvas used as source for texImage2D here is tainted (write-only). It is forbidden "
+                                "to load a WebGL texture from a tainted canvas. A Canvas becomes tainted for example "
+                                "when a cross-domain image is drawn on it. "
+                                "See https://developer.mozilla.org/en/WebGL/Cross-Domain_Textures");
+            return NS_ERROR_DOM_SECURITY_ERR;
+        }
+    }
+
+    
+    
+    
 
     surf = static_cast<gfxImageSurface*>(res.mSurface.get());
 
