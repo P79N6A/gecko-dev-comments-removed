@@ -179,6 +179,12 @@
 
 
 
+
+
+
+
+
+
 #ifndef Long
 #define Long long
 #endif
@@ -453,6 +459,11 @@ extern int strtod_diglim;
 
 #ifndef IEEE_Arith
 #define ROUND_BIASED
+#else
+#ifdef ROUND_BIASED_without_Round_Up
+#undef  ROUND_BIASED
+#define ROUND_BIASED
+#endif
 #endif
 
 #ifdef RND_PRODQUOT
@@ -2576,6 +2587,8 @@ strtod
 			for(; c == '0'; c = *++s)
 				nz++;
 			if (c > '0' && c <= '9') {
+				bc.dp0 = s0 - s;
+				bc.dp1 = bc.dp0 + bc.dplen;
 				s0 = s;
 				nf += nz;
 				nz = 0;
@@ -2703,6 +2716,7 @@ strtod
 			) {
 		if (!e)
 			goto ret;
+#ifndef ROUND_BIASED_without_Round_Up
 		if (e > 0) {
 			if (e <= Ten_pmax) {
 #ifdef VAX
@@ -2763,6 +2777,7 @@ strtod
 			goto ret;
 			}
 #endif
+#endif 
 		}
 	e1 += nd - k;
 
@@ -3678,6 +3693,9 @@ dtoa
 	U d2, eps, u;
 	double ds;
 	char *s, *s0;
+#ifdef IEEE_Arith
+	U eps1;
+#endif
 #ifdef SET_INEXACT
 	int inexact, oldinexact;
 #endif
@@ -3941,14 +3959,26 @@ dtoa
 
 
 			dval(&eps) = 0.5/tens[ilim-1] - dval(&eps);
+#ifdef IEEE_Arith
+			if (k0 < 0 && j1 >= 307) {
+				eps1.d = 1.01e256; 
+				word0(&eps1) -= Exp_msk1 * (Bias+P-1);
+				dval(&eps1) *= tens[j1 & 0xf];
+				for(i = 0, j = (j1-256) >> 4; j; j >>= 1, i++)
+					if (j & 1)
+						dval(&eps1) *= bigtens[i];
+				if (eps.d < eps1.d)
+					eps.d = eps1.d;
+				}
+#endif
 			for(i = 0;;) {
 				L = dval(&u);
 				dval(&u) -= L;
 				*s++ = '0' + (int)L;
-				if (dval(&u) < dval(&eps))
-					goto ret1;
 				if (1. - dval(&u) < dval(&eps))
 					goto bump_up;
+				if (dval(&u) < dval(&eps))
+					goto ret1;
 				if (++i >= ilim)
 					break;
 				dval(&eps) *= 10.;
@@ -4022,7 +4052,12 @@ dtoa
 				  }
 #endif
 				dval(&u) += dval(&u);
-				if (dval(&u) > ds || (dval(&u) == ds && L & 1)) {
+#ifdef ROUND_BIASED
+				if (dval(&u) >= ds)
+#else
+				if (dval(&u) > ds || (dval(&u) == ds && L & 1))
+#endif
+					{
  bump_up:
 					while(*--s == '9')
 						if (s == s0) {
@@ -4106,15 +4141,6 @@ dtoa
 
 
 
-#ifdef Pack_32
-	if ((i = ((s5 ? 32 - hi0bits(S->x[S->wds-1]) : 1) + s2) & 0x1f))
-		i = 32 - i;
-#define iInc 28
-#else
-	if (i = ((s5 ? 32 - hi0bits(S->x[S->wds-1]) : 1) + s2) & 0xf)
-		i = 16 - i;
-#define iInc 12
-#endif
 	i = dshift(S, s2);
 	b2 += i;
 	m2 += i;
@@ -4207,7 +4233,11 @@ dtoa
 				if (j1 > 0) {
 					b = lshift(b, 1);
 					j1 = cmp(b, S);
+#ifdef ROUND_BIASED
+					if (j1 >= 0 
+#else
 					if ((j1 > 0 || (j1 == 0 && dig & 1))
+#endif
 					&& dig++ == '9')
 						goto round_9_up;
 					}
@@ -4267,7 +4297,12 @@ dtoa
 #endif
 	b = lshift(b, 1);
 	j = cmp(b, S);
-	if (j > 0 || (j == 0 && dig & 1)) {
+#ifdef ROUND_BIASED
+	if (j >= 0)
+#else
+	if (j > 0 || (j == 0 && dig & 1))
+#endif
+		{
  roundoff:
 		while(*--s == '9')
 			if (s == s0) {

@@ -110,6 +110,30 @@ extern PRInt32 _PR_ia64_AtomicSet(PRInt32 *val, PRInt32 newval);
 #define _PR_HAVE_INET_NTOP
 #else
 #define _PR_INET6_PROBE
+
+
+#ifndef AF_INET6
+#define AF_INET6       22
+#define AI_CANONNAME   2
+#define AI_NUMERICHOST 4
+#define AI_NUMERICSERV 8
+#define AI_V4MAPPED    0x00000010
+#define AI_ADDRCONFIG  0x00000040
+#define AI_ALL         0x00000020
+#define AI_DEFAULT     (AI_V4MAPPED|AI_ADDRCONFIG)
+#define NI_NUMERICHOST 2
+struct addrinfo {
+    int        ai_flags;    
+    int        ai_family;   
+    int        ai_socktype; 
+    int        ai_protocol; 
+    socklen_t  ai_addrlen;  
+    char            *ai_canonname;    
+    struct sockaddr *ai_addr;     
+    struct addrinfo *ai_next;     
+};
+#endif    
+
 #define _PR_HAVE_MD_SOCKADDR_IN6
 
 struct _md_in6_addr {
