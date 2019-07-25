@@ -330,12 +330,6 @@ public:
   
 
 
-  static already_AddRefed<nsITreeColumn>
-    GetLastSensibleColumn(nsITreeBoxObject *aTree);
-
-  
-
-
   static PRUint32 GetSensibleColumnCount(nsITreeBoxObject *aTree);
 
   
