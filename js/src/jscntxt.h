@@ -197,6 +197,25 @@ struct ThreadData {
     static const size_t TEMP_LIFO_ALLOC_PRIMARY_CHUNK_SIZE = 1 << 12;
     LifoAlloc           tempLifoAlloc;
 
+  private:
+    js::RegExpPrivateCache       *repCache;
+
+    js::RegExpPrivateCache *createRegExpPrivateCache(JSRuntime *rt);
+
+  public:
+    js::RegExpPrivateCache *getRegExpPrivateCache() { return repCache; }
+
+    
+    js::RegExpPrivateCache *getOrCreateRegExpPrivateCache(JSRuntime *rt) {
+        if (repCache)
+            return repCache;
+
+        return createRegExpPrivateCache(rt);
+    }
+
+    
+    void purgeRegExpPrivateCache(JSRuntime *rt);
+
     
 
 
@@ -438,8 +457,6 @@ struct JSRuntime
     size_t              gcMaxBytes;
     size_t              gcMaxMallocBytes;
     uint32              gcEmptyArenaPoolLifespan;
-    
-    volatile uint32     gcNumFreeArenas;
     uint32              gcNumber;
     js::GCMarker        *gcMarkingTracer;
     bool                gcChunkAllocationSinceLastGC;
@@ -1216,6 +1233,8 @@ struct JSContext
     js::GCHelperThread *gcBackgroundFree;
 #endif
 
+    js::ThreadData *threadData() { return JS_THREAD_DATA(this); }
+
     inline void* malloc_(size_t bytes) {
         return runtime->malloc_(bytes, this);
     }
@@ -1891,6 +1910,9 @@ js_FinishThreads(JSRuntime *rt);
 
 extern void
 js_PurgeThreads(JSContext *cx);
+
+extern void
+js_PurgeThreads_PostGlobalSweep(JSContext *cx);
 
 namespace js {
 
