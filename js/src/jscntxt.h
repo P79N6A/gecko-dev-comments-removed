@@ -291,7 +291,7 @@ struct JSThread {
 #define JS_THREAD_DATA(cx)      (&(cx)->thread()->data)
 
 extern JSThread *
-js_CurrentThread(JSRuntime *rt);
+js_CurrentThreadAndLockGC(JSRuntime *rt);
 
 
 
@@ -299,7 +299,7 @@ js_CurrentThread(JSRuntime *rt);
 
 
 extern JSBool
-js_InitContextThread(JSContext *cx);
+js_InitContextThreadAndLockGC(JSContext *cx);
 
 
 
