@@ -209,6 +209,8 @@ public:
 
 
     virtual TypeObject * persistentObject() { return NULL; }
+
+    virtual size_t allocatedSize() { return 0; }
 };
 
 
@@ -313,6 +315,7 @@ class TypeSet
     void print(JSContext *cx);
 
     inline void destroy(JSContext *cx);
+    size_t dynamicSize();
 
     
     inline bool hasType(jstype type);
@@ -487,6 +490,8 @@ class TypeIntermediate
 
     
     virtual bool hasDynamicResult(uint32 offset, jstype type) { return false; }
+
+    virtual size_t allocatedSize() = 0;
 };
 
 
