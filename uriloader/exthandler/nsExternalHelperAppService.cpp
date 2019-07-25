@@ -416,6 +416,8 @@ static PRBool GetFilenameAndExtensionFromChannel(nsIChannel* aChannel,
 
 
 
+
+
 static nsresult GetDownloadDirectory(nsIFile **_directory)
 {
   nsCOMPtr<nsIFile> dir;
@@ -462,6 +464,10 @@ static nsresult GetDownloadDirectory(nsIFile **_directory)
     NS_ENSURE_SUCCESS(rv, rv);
   }
 #elif defined(ANDROID)
+  
+  
+
+  
   char* sdcard = getenv("EXTERNAL_STORAGE");
   nsresult rv;
   if (sdcard) {
@@ -469,14 +475,18 @@ static nsresult GetDownloadDirectory(nsIFile **_directory)
     rv = NS_NewNativeLocalFile(nsDependentCString(sdcard),
                                PR_TRUE, getter_AddRefs(ldir));
     NS_ENSURE_SUCCESS(rv, rv);
+    rv = ldir->Append(NS_LITERAL_STRING("downloads"));
+    NS_ENSURE_SUCCESS(rv, rv);
     dir = ldir;
-    
   }
   else {
-    rv = NS_GetSpecialDirectory(NS_OS_TEMP_DIR, getter_AddRefs(dir));
-    NS_ENSURE_SUCCESS(rv, rv);
+    return NS_ERROR_FAILURE;
   }
-  
+#elif defined(MAEMO)
+  nsresult rv = dirService->Get(NS_UNIX_XDG_DOCUMENTS_DIR,
+                       NS_GET_IID(nsILocalFile),
+                       getter_AddRefs(downloadDir));
+  NS_ENSURE_SUCCESS(rv, rv);
 #else
   
   nsresult rv = NS_GetSpecialDirectory(NS_OS_TEMP_DIR, getter_AddRefs(dir));
