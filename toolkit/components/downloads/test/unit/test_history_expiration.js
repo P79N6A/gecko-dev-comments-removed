@@ -92,8 +92,9 @@ function run_test()
                 getService(Ci.nsINavHistoryService);
   
   
-  let yesterday = Date.now() - 24 * 60 * 60 * 1000;
-  histsvc.addVisit(theURI, yesterday * 1000, null,
+  
+  let expirableTime = Date.now() - 8 * 24 * 60 * 60 * 1000;
+  histsvc.addVisit(theURI, expirableTime * 1000, null,
                    histsvc.TRANSITION_DOWNLOAD, false, 0);
 
   

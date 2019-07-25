@@ -128,14 +128,27 @@ using namespace mozilla::places;
 #define PREF_FRECENCY_UNVISITED_BOOKMARK_BONUS  "frecency.unvisitedBookmarkBonus"
 #define PREF_FRECENCY_UNVISITED_TYPED_BONUS     "frecency.unvisitedTypedBonus"
 
-#define PREF_CACHE_TO_MEMORY_PERCENTAGE         "database.cache_to_memory_percentage"
-
 #define PREF_FORCE_DATABASE_REPLACEMENT         "database.replaceOnStartup"
 
 
 
 
-#define DATABASE_DEFAULT_CACHE_TO_MEMORY_PERCENTAGE 6
+#define DATABASE_CACHE_TO_MEMORY_PERC 2
+
+
+#define DATABASE_CACHE_MIN_BYTES (PRUint64)5242880 // 5MiB
+
+
+
+
+
+
+#define DATABASE_TO_DISK_PERC 2
+
+
+#define DATABASE_MAX_SIZE (PRInt64)167772160 // 160MiB
+
+#define PREF_OPTIMAL_DATABASE_SIZE "history.expiration.transient_optimal_database_size"
 
 
 
@@ -681,16 +694,19 @@ nsNavHistory::SetJournalMode(enum JournalMode aJournalMode)
 nsresult
 nsNavHistory::InitDB()
 {
+  
+  
+  
+
   {
     
     
     nsCOMPtr<mozIStorageStatement> statement;
-    nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING("PRAGMA page_size"),
-                                  getter_AddRefs(statement));
+    nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+      "PRAGMA page_size"
+    ), getter_AddRefs(statement));
     NS_ENSURE_SUCCESS(rv, rv);
-
-    PRBool hasResult;
-    mozStorageStatementScoper scoper(statement);
+    PRBool hasResult = PR_FALSE;
     rv = statement->ExecuteStep(&hasResult);
     NS_ENSURE_TRUE(NS_SUCCEEDED(rv) && hasResult, NS_ERROR_FAILURE);
     rv = statement->GetInt32(0, &mDBPageSize);
@@ -705,27 +721,65 @@ nsNavHistory::InitDB()
 
   
   
-  
-  PRInt32 cachePercentage;
-  if (NS_FAILED(mPrefBranch->GetIntPref(PREF_CACHE_TO_MEMORY_PERCENTAGE,
-                                        &cachePercentage)))
-    cachePercentage = DATABASE_DEFAULT_CACHE_TO_MEMORY_PERCENTAGE;
-  
-  if (cachePercentage > 50)
-    cachePercentage = 50;
-  if (cachePercentage < 0)
-    cachePercentage = 0;
-
-  static PRUint64 physMem = PR_GetPhysicalMemorySize();
-  if (physMem == 0)
-    physMem = MEMSIZE_FALLBACK_BYTES;
-
-  PRUint64 cacheSize = physMem * cachePercentage / 100;
 
   
-  PRUint64 cachePages = cacheSize / mDBPageSize;
+  PRUint64 memSizeBytes = PR_GetPhysicalMemorySize();
+  if (memSizeBytes == 0) {
+    memSizeBytes = MEMSIZE_FALLBACK_BYTES;
+  }
+
+  PRUint64 cacheSize = memSizeBytes * DATABASE_CACHE_TO_MEMORY_PERC / 100;
+
+  
+  
+  
+  PRInt64 optimalDatabaseSize = NS_MIN(static_cast<PRInt64>(cacheSize) * 2,
+                                       DATABASE_MAX_SIZE);
+
+  
+  PRInt64 diskAvailableBytes = 0;
+  nsCOMPtr<nsILocalFile> localDB = do_QueryInterface(mDBFile);
+  if (localDB &&
+      NS_SUCCEEDED(localDB->GetDiskSpaceAvailable(&diskAvailableBytes)) &&
+      diskAvailableBytes > 0) {
+    optimalDatabaseSize = NS_MIN(optimalDatabaseSize,
+                                 diskAvailableBytes * DATABASE_TO_DISK_PERC / 100);
+  }
+
+  
+  if (optimalDatabaseSize < PR_INT32_MAX) {
+    (void)mPrefBranch->SetIntPref(PREF_OPTIMAL_DATABASE_SIZE,
+                                  static_cast<PRInt32>(optimalDatabaseSize));
+  }
+
+  
+  
+  PRUint64 databaseSizeBytes = 0;
+  {
+    nsCOMPtr<mozIStorageStatement> statement;
+    nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+      "PRAGMA page_count"
+    ), getter_AddRefs(statement));
+    NS_ENSURE_SUCCESS(rv, rv);
+    PRBool hasResult = PR_FALSE;
+    rv = statement->ExecuteStep(&hasResult);
+    NS_ENSURE_TRUE(NS_SUCCEEDED(rv) && hasResult, NS_ERROR_FAILURE);
+    PRInt32 pageCount = 0;
+    rv = statement->GetInt32(0, &pageCount);
+    NS_ENSURE_SUCCESS(rv, rv);
+    databaseSizeBytes = pageCount * mDBPageSize;
+  }
+
+  
+  cacheSize = NS_MIN(cacheSize, databaseSizeBytes / 2);
+  
+  cacheSize = NS_MAX(cacheSize, DATABASE_CACHE_MIN_BYTES);
+
+  
+  
+  
   nsCAutoString cacheSizePragma("PRAGMA cache_size = ");
-  cacheSizePragma.AppendInt(cachePages);
+  cacheSizePragma.AppendInt(cacheSize / mDBPageSize);
   rv = mDBConn->ExecuteSimpleSQL(cacheSizePragma);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -4130,9 +4184,10 @@ nsNavHistory::PreparePlacesForVisitsDelete(const nsCString& aPlaceIdsQueryString
   
   
   
+  
   nsresult rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
       "UPDATE moz_places "
-      "SET frecency = -MAX(visit_count, 1) "
+      "SET frecency = -(visit_count + 1) "
       "WHERE id IN ( "
         "SELECT h.id " 
         "FROM moz_places h "
@@ -4563,8 +4618,9 @@ nsNavHistory::RemoveAllPages()
   
   
   
+  
   nsresult rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-    "UPDATE moz_places SET frecency = -MAX(visit_count, 1) "
+    "UPDATE moz_places SET frecency = -(visit_count + 1) "
     "WHERE id IN(SELECT b.fk FROM moz_bookmarks b WHERE b.fk NOTNULL)"));
   NS_ENSURE_SUCCESS(rv, rv);
 

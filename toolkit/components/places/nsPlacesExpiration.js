@@ -111,14 +111,8 @@ const PREF_INTERVAL_SECONDS_NOTSET = 3 * 60;
 
 
 
-
-const PREF_DATABASE_CACHE_PER_MEMORY_PERCENTAGE =
-  "places.history.cache_per_memory_percentage";
-const PREF_DATABASE_CACHE_PER_MEMORY_PERCENTAGE_NOTSET = 6;
-
-
-
-const MIN_URIS = 1000;
+const PREF_OPTIMAL_DATABASE_SIZE = "transient_optimal_database_size";
+const PREF_OPTIMAL_DATABASE_SIZE_NOTSET = 167772160; 
 
 
 
@@ -144,11 +138,7 @@ const EXPIRE_AGGRESSIVITY_MULTIPLIER = 3;
 
 
 
-
-
-
-const URIENTRY_AVG_SIZE_MIN = 2000;
-const URIENTRY_AVG_SIZE_MAX = 3000;
+const URIENTRY_AVG_SIZE = 1600;
 
 
 
@@ -210,6 +200,8 @@ const EXPIRATION_QUERIES = {
 
   
   
+  
+  
   QUERY_FIND_VISITS_TO_EXPIRE: {
     sql: "INSERT INTO expiration_notify "
        +   "(v_id, url, guid, visit_date, expected_results) "
@@ -217,6 +209,7 @@ const EXPIRATION_QUERIES = {
        + "FROM moz_historyvisits v "
        + "JOIN moz_places h ON h.id = v.place_id "
        + "WHERE (SELECT COUNT(*) FROM moz_places) > :max_uris "
+       + "AND visit_date < strftime('%s','now','localtime','start of day','-7 days','utc') * 1000000 "
        + "ORDER BY v.visit_date ASC "
        + "LIMIT :limit_visits",
     actions: ACTION.TIMED_OVERLIMIT | ACTION.SHUTDOWN | ACTION.IDLE |
@@ -235,6 +228,10 @@ const EXPIRATION_QUERIES = {
   
   
   
+  
+  
+  
+  
   QUERY_FIND_URIS_TO_EXPIRE: {
     sql: "INSERT INTO expiration_notify "
        +   "(p_id, url, guid, visit_date, expected_results) "
@@ -244,7 +241,7 @@ const EXPIRATION_QUERIES = {
        + "LEFT JOIN moz_bookmarks b ON h.id = b.fk "
        + "WHERE v.id IS NULL "
        +   "AND b.id IS NULL "
-       +   "AND h.ROWID <> IFNULL(:null_skips_last, (SELECT MAX(ROWID) FROM moz_places)) "
+       +   "AND frecency <> -1 "
        + "LIMIT :limit_uris",
     actions: ACTION.TIMED | ACTION.TIMED_OVERLIMIT | ACTION.SHUTDOWN |
              ACTION.IDLE | ACTION.DEBUG
@@ -734,6 +731,7 @@ nsPlacesExpiration.prototype = {
   _expireOnIdle: false,
   set expireOnIdle(aExpireOnIdle) {
     
+    
     if (!this._isIdleObserver && !this._shuttingDown) {
       this._idle.addIdleObserver(this, IDLE_TIMEOUT_SECONDS);
       this._isIdleObserver = true;
@@ -766,36 +764,13 @@ nsPlacesExpiration.prototype = {
     if (this._urisLimit < 0) {
       
       
-      const MEMSIZE_FALLBACK_BYTES = 268435456; 
-
       
       
-      let memsize = this._sys.getProperty("memsize"); 
-      if (memsize <= 0)
-        memsize = MEMSIZE_FALLBACK_BYTES;
-
-      let cpucount = this._sys.getProperty("cpucount"); 
-      const AVG_SIZE_PER_URIENTRY = cpucount > 1 ? URIENTRY_AVG_SIZE_MIN
-                                                 : URIENTRY_AVG_SIZE_MAX;
-      
-      
-      let cache_percentage = PREF_DATABASE_CACHE_PER_MEMORY_PERCENTAGE_NOTSET;
+      let optimalDatabaseSize = PREF_OPTIMAL_DATABASE_SIZE_NOTSET;
       try {
-        let prefs = Cc["@mozilla.org/preferences-service;1"].
-                    getService(Ci.nsIPrefBranch);
-        cache_percentage =
-          prefs.getIntPref(PREF_DATABASE_CACHE_PER_MEMORY_PERCENTAGE);
-        if (cache_percentage < 0) {
-          cache_percentage = 0;
-        }
-        else if (cache_percentage > 50) {
-          cache_percentage = 50;
-        }
-      }
-      catch(e) {}
-      let cachesize = memsize * cache_percentage / 100;
-      this._urisLimit = Math.max(MIN_URIS,
-                                 parseInt(cachesize / AVG_SIZE_PER_URIENTRY));
+        optimalDatabaseSize = this._prefBranch.getIntPref(PREF_OPTIMAL_DATABASE_SIZE);
+      } catch (ex) {}
+      this._urisLimit = Math.ceil(optimalDatabaseSize / URIENTRY_AVG_SIZE);
     }
     
     this._prefBranch.setIntPref(PREF_READONLY_CALCULATED_MAX_URIS,
@@ -827,6 +802,11 @@ nsPlacesExpiration.prototype = {
     
     if (this._inBatchMode)
       return;
+    
+    if (this._shuttingDown &&
+        aAction != ACTION.SHUTDOWN && aAction != ACTION.CLEAN_SHUTDOWN) {
+      return;
+    }
 
     let boundStatements = [];
     for (let queryType in EXPIRATION_QUERIES) {
@@ -901,18 +881,6 @@ nsPlacesExpiration.prototype = {
           aLimit == LIMIT.DEBUG && baseLimit == -1 ? 0 : baseLimit;
         break;
       case "QUERY_FIND_URIS_TO_EXPIRE":
-        
-        
-        
-        
-        
-        if (aAction != ACTION.TIMED && aAction != ACTION.TIMED_OVERLIMIT &&
-            aAction != ACTION.IDLE) {
-          params.null_skips_last = -1;
-        }
-        else {
-          params.null_skips_last = null;
-        }
         params.limit_uris = baseLimit;
         break;
       case "QUERY_SILENT_EXPIRE_ORPHAN_URIS":
