@@ -254,12 +254,6 @@ public:
   nsresult ScheduleStateMachine(PRInt64 aUsecs);
 
   
-  
-  
-  
-  nsresult StartDecodeThread();
-
-  
   void TimeoutExpired();
 
   
@@ -360,7 +354,6 @@ protected:
 
   
   
-  
   void StopDecodeThread();
 
   
@@ -369,9 +362,7 @@ protected:
 
   
   
-  
-  
-  nsresult ScheduleDecodeThread();
+  nsresult StartDecodeThread();
 
   
   
@@ -634,10 +625,6 @@ protected:
 
   
   bool mRealTime;
-
-  
-  
-  bool mRequestedNewDecodeThread;
   
   PRUint32 mBufferingWait;
   PRInt64  mLowDataThresholdUsecs;

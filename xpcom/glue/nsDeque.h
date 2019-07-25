@@ -157,14 +157,6 @@ class NS_COM_GLUE nsDeque {
 
 
 
-
-  void* RemoveObjectAt(int aIndex);
-
-  
-
-
-
-
   nsDeque& Empty();
 
   
