@@ -106,6 +106,7 @@ public class GeckoAppShell
     public static native void removeObserver(String observerKey);
     public static native void loadLibs(String apkName, boolean shouldExtract);
     public static native void onChangeNetworkLinkStatus(String status);
+    public static native void reportJavaCrash(String stack);
 
     
     private static class LooperThread extends Thread {
