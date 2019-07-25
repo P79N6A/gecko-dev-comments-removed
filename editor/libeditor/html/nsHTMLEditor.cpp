@@ -1291,6 +1291,9 @@ nsHTMLEditor::RebuildDocumentFromSource(const nsAString& aSourceString)
   aSourceString.EndReading(endhead);
   bool foundhead = CaseInsensitiveFindInReadable(NS_LITERAL_STRING("<head"),
                                                    beginhead, endhead);
+  
+  if (foundbody && beginhead.get() > beginbody.get())
+    foundhead = false;
 
   nsReadingIterator<PRUnichar> beginclosehead;
   nsReadingIterator<PRUnichar> endclosehead;
@@ -1300,6 +1303,12 @@ nsHTMLEditor::RebuildDocumentFromSource(const nsAString& aSourceString)
   
   bool foundclosehead = CaseInsensitiveFindInReadable(
            NS_LITERAL_STRING("</head>"), beginclosehead, endclosehead);
+  
+  if (foundhead && beginhead.get() > beginclosehead.get())
+    foundclosehead = false;
+  
+  if (foundbody && beginclosehead.get() > beginbody.get())
+    foundclosehead = false;
   
   
   nsAutoEditBatch beginBatching(this);
