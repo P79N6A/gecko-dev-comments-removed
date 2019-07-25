@@ -45,6 +45,7 @@
 #include "maintenanceservice.h"
 #include "servicebase.h"
 #include "workmonitor.h"
+#include "uachelper.h"
 
 SERVICE_STATUS gSvcStatus = { 0 }; 
 SERVICE_STATUS_HANDLE gSvcStatusHandle = NULL; 
@@ -245,6 +246,10 @@ SvcMain(DWORD dwArgc, LPWSTR *lpszArgv)
     BackupOldLogs(updatePath, LOGS_TO_KEEP);
     LogInit(updatePath, L"maintenanceservice.log");
   }
+
+  
+  
+  UACHelper::DisablePrivileges(NULL);
 
   
   gSvcStatusHandle = RegisterServiceCtrlHandlerW(SVC_NAME, SvcCtrlHandler);

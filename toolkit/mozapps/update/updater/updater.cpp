@@ -1591,6 +1591,10 @@ int NS_main(int argc, NS_tchar **argv)
   gSourcePath = argv[1];
 
 #ifdef XP_WIN
+  
+  
+  UACHelper::DisablePrivileges(NULL);
+
   bool useService = false;
   
   
