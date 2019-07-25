@@ -138,6 +138,10 @@ private:
 
   
   RequestHeaderTuples *mHeadersToSyncToChild;
+
+  bool mSentRedirect1Begin : 1;
+  bool mSentRedirect1BeginFailed : 1;
+  bool mReceivedRedirect2Verify : 1;
 };
 
 } 
