@@ -196,8 +196,31 @@ public:
   void SyncWidthOrHeight(nsIAtom* aName, nsSVGElement *aTarget) const;
 
   
+
+  
+
+
+
+
+
+
+
+
+
+  bool HasViewBox() const {
+    return mViewBox.IsExplicitlySet();
+  }
+
+  
+
+
+
+
+
+
+  bool ShouldSynthesizeViewBox() const;
+
   gfxMatrix GetViewBoxTransform() const;
-  bool      HasValidViewbox() const { return mViewBox.IsValid(); }
 
   
   
@@ -226,12 +249,6 @@ private:
   void SetImageOverridePreserveAspectRatio(const SVGPreserveAspectRatio& aPAR);
   void ClearImageOverridePreserveAspectRatio();
   const SVGPreserveAspectRatio* GetImageOverridePreserveAspectRatio() const;
-
-  
-  
-  
-  
-  bool ShouldSynthesizeViewBox() const;
 
 protected:
   

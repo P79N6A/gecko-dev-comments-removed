@@ -72,7 +72,16 @@ public:
   void Init();
 
   
-  bool IsValid() const
+
+
+
+
+
+
+
+
+
+  bool IsExplicitlySet() const
     { return (mHasBaseVal || mAnimVal); }
 
   const nsSVGViewBoxRect& GetBaseValue() const

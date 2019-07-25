@@ -976,7 +976,7 @@ nsSVGSVGElement::GetViewBoxTransform() const
   }
 
   nsSVGViewBoxRect viewBox;
-  if (mViewBox.IsValid()) {
+  if (HasViewBox()) {
     viewBox = mViewBox.GetAnimValue();
   } else {
     viewBox.x = viewBox.y = 0.0f;
@@ -1127,7 +1127,7 @@ nsSVGSVGElement::GetLength(PRUint8 aCtxType)
 {
   float h, w;
 
-  if (mViewBox.IsValid()) {
+  if (HasViewBox()) {
     const nsSVGViewBoxRect& viewbox = mViewBox.GetAnimValue();
     w = viewbox.width;
     h = viewbox.height;
@@ -1248,7 +1248,7 @@ nsSVGSVGElement::GetPreserveAspectRatio()
 bool
 nsSVGSVGElement::ShouldSynthesizeViewBox() const
 {
-  NS_ABORT_IF_FALSE(!HasValidViewbox(),
+  NS_ABORT_IF_FALSE(!HasViewBox(),
                     "Should only be called if we lack a viewBox");
 
   nsIDocument* doc = GetCurrentDoc();
@@ -1280,7 +1280,7 @@ nsSVGSVGElement::
                     "should only override preserveAspectRatio in images");
 #endif
 
-  if (!HasValidViewbox() && ShouldSynthesizeViewBox()) {
+  if (!HasViewBox() && ShouldSynthesizeViewBox()) {
     
     
     
@@ -1288,7 +1288,7 @@ nsSVGSVGElement::
   }
   mIsPaintingSVGImageElement = true;
 
-  if (!mViewBox.IsValid()) {
+  if (!HasViewBox()) {
     return; 
   }
 
@@ -1320,7 +1320,7 @@ nsSVGSVGElement::ClearImageOverridePreserveAspectRatio()
 #endif
 
   mIsPaintingSVGImageElement = false;
-  if (!HasValidViewbox() && ShouldSynthesizeViewBox()) {
+  if (!HasViewBox() && ShouldSynthesizeViewBox()) {
     
     
     
