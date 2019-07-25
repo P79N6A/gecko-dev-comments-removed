@@ -215,18 +215,10 @@ public class Utils {
     return sha1Base32(account.toLowerCase(Locale.US));
   }
 
-  
-
-
-
-
-
-
-
-
-  public static String getPrefsPath(String username, String serverURL)
-    throws NoSuchAlgorithmException, UnsupportedEncodingException {
-    return "sync.prefs." + sha1Base32(serverURL + ":" + usernameFromAccount(username));
+  public static SharedPreferences getSharedPreferences(final Context context, final String product, final String username, final String serverURL, final String profile, final long version)
+      throws NoSuchAlgorithmException, UnsupportedEncodingException {
+    String prefsPath = getPrefsPath(product, username, serverURL, profile, version);
+    return context.getSharedPreferences(prefsPath, SHARED_PREFERENCES_MODE);
   }
 
   
@@ -239,10 +231,18 @@ public class Utils {
 
 
 
-  public static SharedPreferences getSharedPreferences(Context context, String username, String serverURL) throws NoSuchAlgorithmException, UnsupportedEncodingException {
-    String prefsPath = getPrefsPath(username, serverURL);
-    Logger.debug(LOG_TAG, "Shared preferences: " + prefsPath);
-    return context.getSharedPreferences(prefsPath, SHARED_PREFERENCES_MODE);
+
+
+  public static String getPrefsPath(final String product, final String username, final String serverURL, final String profile, final long version)
+      throws NoSuchAlgorithmException, UnsupportedEncodingException {
+    final String encodedAccount = sha1Base32(serverURL + ":" + usernameFromAccount(username));
+
+    if (version <= 0) {
+      return "sync.prefs." + encodedAccount;
+    } else {
+      final String sanitizedProduct = product.replace('.', '!').replace(' ', '!');
+      return "sync.prefs." + sanitizedProduct + "." + encodedAccount + "." + profile + "." + version;
+    }
   }
 
   public static void addToIndexBucketMap(TreeMap<Long, ArrayList<String>> map, long index, String value) {

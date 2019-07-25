@@ -49,6 +49,87 @@ public class SyncAuthenticatorService extends Service {
     return sAccountAuthenticator;
   }
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  public static Bundle getPlainAuthToken(final Context context, final Account account)
+      throws NetworkErrorException {
+    
+    
+    final AccountManager am = AccountManager.get(context);
+    final String password = am.getPassword(account);
+    if (password == null) {
+      Logger.warn(LOG_TAG, "Returning null bundle for getPlainAuthToken since Account password is null.");
+      return null;
+    }
+
+    final Bundle result = new Bundle();
+
+    
+    result.putString(AccountManager.KEY_ACCOUNT_TYPE, GlobalConstants.ACCOUNTTYPE_SYNC);
+
+    
+    String serverURL = am.getUserData(account, Constants.OPTION_SERVER);
+    result.putString(Constants.OPTION_SERVER, serverURL);
+
+    
+    result.putString(AccountManager.KEY_ACCOUNT_NAME, account.name);
+
+    
+    try {
+      String username = Utils.usernameFromAccount(account.name);
+      Logger.pii(LOG_TAG, "Account " + account.name + " hashes to " + username + ".");
+      Logger.debug(LOG_TAG, "Setting username. Null? " + (username == null));
+      result.putString(Constants.OPTION_USERNAME, username);
+    } catch (NoSuchAlgorithmException e) {
+      
+    } catch (UnsupportedEncodingException e) {
+      
+    }
+
+    
+    final String syncKey = am.getUserData(account, Constants.OPTION_SYNCKEY);
+    Logger.debug(LOG_TAG, "Setting sync key. Null? " + (syncKey == null));
+    result.putString(Constants.OPTION_SYNCKEY, syncKey);
+
+    
+    result.putString(AccountManager.KEY_AUTHTOKEN, password);
+    return result;
+  }
+
   private static class SyncAccountAuthenticator extends AbstractAccountAuthenticator {
     private Context mContext;
     public SyncAccountAuthenticator(Context context) {
@@ -93,53 +174,14 @@ public class SyncAuthenticatorService extends Service {
         Account account, String authTokenType, Bundle options)
         throws NetworkErrorException {
       Logger.debug(LOG_TAG, "getAuthToken()");
-      if (!authTokenType.equals(Constants.AUTHTOKEN_TYPE_PLAIN)) {
-        final Bundle result = new Bundle();
-        result.putString(AccountManager.KEY_ERROR_MESSAGE,
-            "invalid authTokenType");
-        return result;
+
+      if (Constants.AUTHTOKEN_TYPE_PLAIN.equals(authTokenType)) {
+        return getPlainAuthToken(mContext, account);
       }
 
-      
-      
-      final AccountManager am = AccountManager.get(mContext);
-      final String password = am.getPassword(account);
-      if (password != null) {
-        final Bundle result = new Bundle();
-
-        
-        result.putString(AccountManager.KEY_ACCOUNT_TYPE, GlobalConstants.ACCOUNTTYPE_SYNC);
-
-        
-        String serverURL = am.getUserData(account, Constants.OPTION_SERVER);
-        result.putString(Constants.OPTION_SERVER, serverURL);
-
-        
-        result.putString(AccountManager.KEY_ACCOUNT_NAME, account.name);
-
-        
-        try {
-          String username = Utils.usernameFromAccount(account.name);
-          Logger.pii(LOG_TAG, "Account " + account.name + " hashes to " + username + ".");
-          Logger.debug(LOG_TAG, "Setting username. Null? " + (username == null));
-          result.putString(Constants.OPTION_USERNAME, username);
-        } catch (NoSuchAlgorithmException e) {
-          
-        } catch (UnsupportedEncodingException e) {
-          
-        }
-
-        
-        final String syncKey = am.getUserData(account, Constants.OPTION_SYNCKEY);
-        Logger.debug(LOG_TAG, "Setting sync key. Null? " + (syncKey == null));
-        result.putString(Constants.OPTION_SYNCKEY, syncKey);
-
-        
-        result.putString(AccountManager.KEY_AUTHTOKEN, password);
-        return result;
-      }
-      Logger.warn(LOG_TAG, "Returning null bundle for getAuthToken.");
-      return null;
+      final Bundle result = new Bundle();
+      result.putString(AccountManager.KEY_ERROR_MESSAGE, "invalid authTokenType");
+      return result;
     }
 
     @Override
