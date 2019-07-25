@@ -77,6 +77,7 @@
 #include "DictionaryHelpers.h"
 #include "mozilla/Attributes.h"
 #include "nsIPermissionManager.h"
+#include "nsMimeTypes.h"
 
 #include "nsWrapperCacheInlines.h"
 #include "nsStreamListenerWrapper.h"
@@ -3089,7 +3090,13 @@ nsXMLHttpRequest::Send(nsIVariant* aVariant, const Nullable<RequestBody>& aBody)
   
   
   
-  mChannel->SetContentType(NS_LITERAL_CSTRING("application/xml"));
+  
+  nsCAutoString contentType;
+  if (NS_FAILED(mChannel->GetContentType(contentType)) ||
+      contentType.IsEmpty() ||
+      contentType.Equals(UNKNOWN_CONTENT_TYPE)) {
+    mChannel->SetContentType(NS_LITERAL_CSTRING("application/xml"));
+  }
 
   
   mRequestSentTime = PR_Now();
