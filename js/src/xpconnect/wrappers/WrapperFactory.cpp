@@ -184,26 +184,31 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, JSObject *scope, JSObject *obj
     if (!wn->GetClassInfo())
         return DoubleWrap(cx, obj, flags);
 
-    XPCCallContext ccx(JS_CALLER, cx, obj);
-    if (NATIVE_HAS_FLAG(&ccx, WantPreCreate)) {
-        
-        
-        JSObject *originalScope = scope;
-        nsresult rv = wn->GetScriptableInfo()->GetCallback()->
-            PreCreate(wn->Native(), cx, scope, &scope);
-        NS_ENSURE_SUCCESS(rv, DoubleWrap(cx, obj, flags));
+    {
+        JSAutoEnterCompartment ac;
+        if (!ac.enter(cx, obj))
+            return nsnull;
+        XPCCallContext ccx(JS_CALLER, cx, obj);
+        if (NATIVE_HAS_FLAG(&ccx, WantPreCreate)) {
+            
+            
+            JSObject *originalScope = scope;
+            nsresult rv = wn->GetScriptableInfo()->GetCallback()->
+                PreCreate(wn->Native(), cx, scope, &scope);
+            NS_ENSURE_SUCCESS(rv, DoubleWrap(cx, obj, flags));
 
-        
-        
-        
-        
-        if (originalScope->compartment() != scope->getCompartment())
-            return DoubleWrap(cx, obj, flags);
+            
+            
+            
+            
+            if (originalScope->compartment() != scope->getCompartment())
+                return DoubleWrap(cx, obj, flags);
 
-        
-        
-        
-        
+            
+            
+            
+            
+        }
     }
 
     
