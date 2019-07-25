@@ -102,6 +102,7 @@ public:
   NS_IMETHOD SetDocumentCharset(nsACString& aCharset);
   virtual nsISupports *GetTarget();
   virtual bool IsScriptExecuting();
+  virtual void ContinueInterruptedParsingAsync();
 
   
   NS_IMETHOD OnDocumentCreated(nsIDocument *aResultDocument);
@@ -115,6 +116,9 @@ public:
                           bool &aIsAlternate);
 
 protected:
+
+  void ContinueInterruptedParsingIfEnabled();
+
   
   
   

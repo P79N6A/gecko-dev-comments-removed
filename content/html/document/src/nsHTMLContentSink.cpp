@@ -1699,8 +1699,6 @@ HTMLContentSink::DidBuildModel(bool aTerminated)
 
   ScrollToRef();
 
-  mDocument->ScriptLoader()->RemoveObserver(this);
-
   
   
 

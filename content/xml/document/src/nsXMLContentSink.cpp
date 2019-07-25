@@ -327,7 +327,6 @@ nsXMLContentSink::DidBuildModel(bool aTerminated)
   }
   else {
     
-    mDocument->ScriptLoader()->RemoveObserver(this);
 
     
     MaybePrettyPrint();
@@ -418,8 +417,6 @@ nsXMLContentSink::OnTransformDone(nsresult aResult,
       htmlDoc->SetDocWriteDisabled(false);
     }
   }
-
-  originalDocument->ScriptLoader()->RemoveObserver(this);
 
   
   
@@ -597,14 +594,11 @@ nsXMLContentSink::CloseElement(nsIContent* aContent)
     }
 
     
-    
-    bool block = sele->AttemptToExecute();
+    StopDeflecting();
 
     
     
-    if (block) {
-      mScriptElements.AppendObject(sele);
-    }
+    bool block = sele->AttemptToExecute();
 
     
     
@@ -1681,3 +1675,21 @@ nsXMLContentSink::IsMonolithicContainer(nsINodeInfo* aNodeInfo)
           (aNodeInfo->NameAtom() == nsGkAtoms::math))
           );
 }
+
+void
+nsXMLContentSink::ContinueInterruptedParsingIfEnabled()
+{
+  if (mParser && mParser->IsParserEnabled()) {
+    mParser->ContinueInterruptedParsing();
+  }
+}
+
+void
+nsXMLContentSink::ContinueInterruptedParsingAsync()
+{
+  nsCOMPtr<nsIRunnable> ev = NS_NewRunnableMethod(this,
+    &nsXMLContentSink::ContinueInterruptedParsingIfEnabled);
+
+  NS_DispatchToCurrentThread(ev);
+}
+

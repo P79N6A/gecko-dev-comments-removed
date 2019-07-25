@@ -151,6 +151,11 @@ class nsHtml5Parser : public nsIParser,
     
 
 
+    NS_IMETHOD_(void) ContinueInterruptedParsingAsync();
+
+    
+
+
     NS_IMETHOD_(bool) IsParserEnabled();
 
     

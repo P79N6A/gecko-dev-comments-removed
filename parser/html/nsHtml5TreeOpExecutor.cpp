@@ -159,7 +159,6 @@ nsHtml5TreeOpExecutor::DidBuildModel(bool aTerminated)
   }
 
   ScrollToRef();
-  mDocument->ScriptLoader()->RemoveObserver(this);
   mDocument->RemoveObserver(this);
   if (!mParser) {
     
@@ -559,6 +558,7 @@ nsHtml5TreeOpExecutor::RunFlushLoop()
       RunScript(scriptElement);
       
       
+      StopDeflecting();
       if (nsContentSink::DidProcessATokenImpl() == 
           NS_ERROR_HTMLPARSER_INTERRUPTED) {
         #ifdef DEBUG_NS_HTML5_TREE_OP_EXECUTOR_FLUSH
@@ -756,7 +756,6 @@ nsHtml5TreeOpExecutor::RunScript(nsIContent* aScriptElement)
   
   
   if (block) {
-    mScriptElements.AppendObject(sele);
     if (mParser) {
       mParser->BlockParser();
     }
