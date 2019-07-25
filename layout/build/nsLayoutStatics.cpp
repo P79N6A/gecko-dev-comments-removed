@@ -122,6 +122,7 @@
 #include "nsRefreshDriver.h"
 
 #include "nsHyphenationManager.h"
+#include "nsDOMMemoryReporter.h"
 
 extern void NS_ShutdownChainItemPool();
 
@@ -265,12 +266,22 @@ nsLayoutStatics::Initialize()
 
   NS_SealStaticAtomTable();
 
+
+
+
+#ifdef DOM_MEMORY_REPORTER
+  nsDOMMemoryReporter::Init();
+#endif
+
   return NS_OK;
 }
 
 void
 nsLayoutStatics::Shutdown()
 {
+  
+  
+
   nsFrameScriptExecutor::Shutdown();
   nsFocusManager::Shutdown();
 #ifdef MOZ_XUL
