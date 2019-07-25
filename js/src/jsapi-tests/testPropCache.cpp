@@ -17,8 +17,7 @@ static JSClass CounterClass = {
     "Counter",  
     0,  
     CounterAdd, JS_PropertyStub, JS_PropertyStub, JS_StrictPropertyStub,
-    JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub, JS_FinalizeStub,
-    JSCLASS_NO_OPTIONAL_MEMBERS
+    JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub
 };
 
 BEGIN_TEST(testPropCache_bug505798)
