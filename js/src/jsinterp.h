@@ -197,8 +197,8 @@ struct JSStackFrame
     inline void resetInvokeCallFrame();
 
     
-    inline void initCallFrameCallerHalf(JSContext *cx, uint32 nactual, uint32 flags);
-    inline void initCallFrameEarlyPrologue(JSFunction *fun, void *ncode);
+    inline void initCallFrameCallerHalf(JSContext *cx, uint32 flags, void *ncode);
+    inline void initCallFrameEarlyPrologue(JSFunction *fun, uint32 nactual);
     inline void initCallFrameLatePrologue();
 
     
@@ -971,6 +971,20 @@ InvokeConstructor(JSContext *cx, const CallArgs &args);
 extern JS_REQUIRES_STACK bool
 InvokeConstructorWithGivenThis(JSContext *cx, JSObject *thisobj, const Value &fval,
                                uintN argc, Value *argv, Value *rval);
+
+extern bool
+ExternalInvokeConstructor(JSContext *cx, const Value &fval, uintN argc, Value *argv,
+                          Value *rval);
+
+
+
+
+
+
+
+
+extern JS_REQUIRES_STACK bool
+DirectEval(JSContext *cx, JSFunction *evalfun, uint32 argc, Value *vp);
 
 
 

@@ -122,14 +122,29 @@ class Assembler : public ValueAssembler
     Label startLabel;
     Vector<CallPatch, 64, SystemAllocPolicy> callPatches;
 
-  public:
-#if (defined(JS_NO_FASTCALL) && defined(JS_CPU_X86)) || defined(_WIN64)
+    
+    uint32      saveCount;
+    RegisterID  savedRegs[TotalRegisters];
+
+    
+    Registers::CallConvention callConvention;
+
     
     
-    Label callLabel;
+    uint32      stackAdjust;
+
+    
+#ifdef DEBUG
+    bool        callIsAligned;
 #endif
+
+  public:
     Assembler()
-      : callPatches(SystemAllocPolicy())
+      : callPatches(SystemAllocPolicy()),
+        saveCount(0)
+#ifdef DEBUG
+        , callIsAligned(false)
+#endif
     {
         startLabel = label();
     }
@@ -236,6 +251,15 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc   = JSC::ARMRegiste
         fallthrough.linkTo(label(), this);
     }
 
+    
+    void ensureInMemoryDouble(Address address)
+    {
+        Jump notInteger = testInt32(Assembler::NotEqual, address);
+        convertInt32ToDouble(payloadOf(address), FPRegisters::ConversionTemp);
+        storeDouble(FPRegisters::ConversionTemp, address);
+        notInteger.linkTo(label(), this);
+    }
+
     void negateDouble(FPRegisterID fpreg)
     {
 #if defined JS_CPU_X86 || defined JS_CPU_X64
@@ -248,9 +272,7 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc   = JSC::ARMRegiste
     }
 
     
-
-
-    void * getCallTarget(void *fun) {
+    void *getCallTarget(void *fun) {
 #ifdef JS_CPU_ARM
         
 
@@ -282,11 +304,168 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc   = JSC::ARMRegiste
         return pfun;
     }
 
+    
+    void saveRegs(uint32 volatileMask) {
+        
+        JS_ASSERT(saveCount == 0);
+        
+        JS_ASSERT(!callIsAligned);
 
-#define STUB_CALL_TYPE(type)                                    \
-    Call stubCall(type stub, jsbytecode *pc, uint32 fd) {       \
-        return stubCall(JS_FUNC_TO_DATA_PTR(void *, stub),      \
-                        pc, fd);                                \
+        Registers set(volatileMask);
+        while (!set.empty()) {
+            JS_ASSERT(saveCount < TotalRegisters);
+
+            RegisterID reg = set.takeAnyReg();
+            savedRegs[saveCount++] = reg;
+            push(reg);
+        }
+    }
+
+    static const uint32 StackAlignment = 16;
+
+    static inline uint32 alignForCall(uint32 stackBytes) {
+#if defined(JS_CPU_X86) || defined(JS_CPU_X64)
+        
+        
+        return (StackAlignment - (stackBytes % StackAlignment)) % StackAlignment;
+#else
+        return 0;
+#endif
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+#ifdef _WIN64
+    static const uint32 ReturnStackAdjustment = 32;
+#elif defined(JS_CPU_X86) && defined(JS_NO_FASTCALL)
+    static const uint32 ReturnStackAdjustment = 16;
+#else
+    static const uint32 ReturnStackAdjustment = 0;
+#endif
+
+    void throwInJIT() {
+        if (ReturnStackAdjustment)
+            subPtr(Imm32(ReturnStackAdjustment), stackPointerRegister);
+        move(ImmPtr(JS_FUNC_TO_DATA_PTR(void *, JaegerThrowpoline)), Registers::ReturnReg);
+        jump(Registers::ReturnReg);
+    }
+
+    
+#ifdef _WIN64
+    static const uint32 ShadowStackSpace = 32;
+#else
+    static const uint32 ShadowStackSpace = 0;
+#endif
+
+    
+    
+    
+    
+    void setupABICall(Registers::CallConvention convention, uint32 generalArgs) {
+        JS_ASSERT(!callIsAligned);
+
+        uint32 numArgRegs = Registers::numArgRegs(convention);
+        uint32 pushCount = (generalArgs > numArgRegs)
+                           ? generalArgs - numArgRegs
+                           : 0;
+
+        
+        stackAdjust = (pushCount + saveCount) * sizeof(void *);
+        stackAdjust += alignForCall(stackAdjust);
+
+#ifdef _WIN64
+        
+        
+        stackAdjust += ShadowStackSpace;
+#endif
+
+        if (stackAdjust)
+            subPtr(Imm32(stackAdjust), stackPointerRegister);
+
+        callConvention = convention;
+#ifdef DEBUG
+        callIsAligned = true;
+#endif
+    }
+
+    
+    
+    
+    Address addressOfArg(uint32 i) {
+        uint32 numArgRegs = Registers::numArgRegs(callConvention);
+        JS_ASSERT(i >= numArgRegs);
+
+        
+        
+        int32 spOffset = ((i - numArgRegs) * sizeof(void *)) + ShadowStackSpace;
+        return Address(stackPointerRegister, spOffset);
+    }
+
+    
+    void storeArg(uint32 i, RegisterID reg) {
+        JS_ASSERT(callIsAligned);
+        RegisterID to;
+        if (Registers::regForArg(callConvention, i, &to)) {
+            if (reg != to)
+                move(reg, to);
+        } else {
+            storePtr(reg, addressOfArg(i));
+        }
+    }
+
+    void storeArg(uint32 i, Imm32 imm) {
+        JS_ASSERT(callIsAligned);
+        RegisterID to;
+        if (Registers::regForArg(callConvention, i, &to))
+            move(imm, to);
+        else
+            store32(imm, addressOfArg(i));
+    }
+
+    
+    
+    
+    
+    
+    Call callWithABI(void *fun) {
+        JS_ASSERT(callIsAligned);
+
+        Call cl = call();
+        callPatches.append(CallPatch(cl, fun));
+
+        if (stackAdjust)
+            addPtr(Imm32(stackAdjust), stackPointerRegister);
+
+#ifdef DEBUG
+        callIsAligned = false;
+#endif
+        return cl;
+    }
+
+    
+    void restoreRegs() {
+        
+        while (saveCount)
+            pop(savedRegs[--saveCount]);
+    }
+
+    
+    unsigned callReturnOffset(Call call) {
+        return getLinkerCallReturnOffset(call);
+    }
+
+
+#define STUB_CALL_TYPE(type)                                                \
+    Call callWithVMFrame(type stub, jsbytecode *pc, uint32 fd) {            \
+        return fallibleVMCall(JS_FUNC_TO_DATA_PTR(void *, stub), pc, fd);   \
     }
 
     STUB_CALL_TYPE(JSObjStub);
@@ -296,76 +475,66 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc   = JSC::ARMRegiste
 
 #undef STUB_CALL_TYPE
 
-    Call stubCall(void *ptr, jsbytecode *pc, uint32 frameDepth) {
-        JS_STATIC_ASSERT(ClobberInCall != Registers::ArgReg1);
+    void setupInfallibleVMFrame(int32 frameDepth) {
+        
+        
+        if (frameDepth >= 0) {
+            
+            
+            addPtr(Imm32(sizeof(JSStackFrame) + frameDepth * sizeof(jsval)),
+                   JSFrameReg,
+                   ClobberInCall);
+            storePtr(ClobberInCall, FrameAddress(offsetof(VMFrame, regs.sp)));
+        }
 
-        void *pfun = getCallTarget(ptr);
+        
+        
+        
+        move(MacroAssembler::stackPointerRegister, Registers::ArgReg0);
+    }
+
+    void setupFallibleVMFrame(jsbytecode *pc, int32 frameDepth) {
+        setupInfallibleVMFrame(frameDepth);
+
+        
+        storePtr(JSFrameReg, FrameAddress(offsetof(VMFrame, regs.fp)));
 
         
         storePtr(ImmPtr(pc),
                  FrameAddress(offsetof(VMFrame, regs) + offsetof(JSFrameRegs, pc)));
-
-        
-        fixScriptStack(frameDepth);
-
-        
-        setupVMFrame();
-
-        return wrapCall(pfun);
     }
 
-    Call wrapCall(void *pfun) {
-#if defined(JS_NO_FASTCALL) && defined(JS_CPU_X86)
-        push(Registers::ArgReg1);
-        push(Registers::ArgReg0);
-#elif defined(_WIN64)
-        subPtr(JSC::MacroAssembler::Imm32(32),
-               JSC::MacroAssembler::stackPointerRegister);
-#endif
-        Call cl = call(pfun);
-#if defined(JS_NO_FASTCALL) && defined(JS_CPU_X86)
-        callLabel = label();
-        addPtr(JSC::MacroAssembler::Imm32(8),
-               JSC::MacroAssembler::stackPointerRegister);
-#elif defined(_WIN64)
-        callLabel = label();
-        addPtr(JSC::MacroAssembler::Imm32(32),
-               JSC::MacroAssembler::stackPointerRegister);
-#endif
-        return cl;
+    
+    
+    
+    Call infallibleVMCall(void *ptr, int32 frameDepth) {
+        setupInfallibleVMFrame(frameDepth);
+        return wrapVMCall(ptr);
     }
 
-    void fixScriptStack(uint32 frameDepth) {
-        
-        addPtr(Imm32(sizeof(JSStackFrame) + frameDepth * sizeof(jsval)),
-               JSFrameReg,
-               ClobberInCall);
+    
+    
+    
+    Call fallibleVMCall(void *ptr, jsbytecode *pc, int32 frameDepth) {
+        setupFallibleVMFrame(pc, frameDepth);
+        return wrapVMCall(ptr);
+    }
+
+    Call wrapVMCall(void *ptr) {
+        JS_ASSERT(!saveCount);
+        JS_ASSERT(!callIsAligned);
 
         
-        storePtr(ClobberInCall,
-                 FrameAddress(offsetof(VMFrame, regs.sp)));
+        setupABICall(Registers::FastCall, 2);
 
         
-        storePtr(JSFrameReg, FrameAddress(offsetof(VMFrame, regs.fp)));
-    }
-
-    void setupVMFrame() {
-        move(MacroAssembler::stackPointerRegister, Registers::ArgReg0);
-    }
-
-    Call call() {
-        return JSC::MacroAssembler::call();
-    }
-
-    Call call(void *fun) {
-        Call cl = JSC::MacroAssembler::call();
         
-        callPatches.append(CallPatch(cl, fun));
-        return cl;
-    }
+        
+        
+        storeArg(0, Registers::ArgReg0);
+        storeArg(1, Registers::ArgReg1);
 
-    Call call(RegisterID reg) {
-        return MacroAssembler::call(reg);
+        return callWithABI(getCallTarget(ptr));
     }
 
     void finalize(JSC::LinkBuffer &linker) {

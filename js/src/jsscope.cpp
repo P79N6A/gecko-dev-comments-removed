@@ -63,6 +63,7 @@
 #include "jsstr.h"
 #include "jstracer.h"
 
+#include "jsdbgapiinlines.h"
 #include "jsobjinlines.h"
 #include "jsscopeinlines.h"
 
@@ -614,19 +615,6 @@ NormalizeGetterAndSetter(JSContext *cx, JSObject *obj,
         }
     }
 
-    
-
-
-
-
-    if (!JS_CLIST_IS_EMPTY(&cx->runtime->watchPointList) &&
-        js_FindWatchPoint(cx->runtime, obj, id)) {
-        setter = js_WrapWatchedSetter(cx, id, attrs, setter);
-        if (!setter) {
-            METER(wrapWatchFails);
-            return false;
-        }
-    }
     return true;
 }
 
@@ -731,7 +719,18 @@ JSObject::addProperty(JSContext *cx, jsid id,
     
     Shape **spp = nativeSearch(id, true);
     JS_ASSERT(!SHAPE_FETCH(spp));
-    return addPropertyInternal(cx, id, getter, setter, slot, attrs, flags, shortid, spp);
+    const Shape *shape = addPropertyInternal(cx, id, getter, setter, slot, attrs, 
+                                             flags, shortid, spp);
+    if (!shape)
+        return NULL;
+
+    
+    if (!js_UpdateWatchpointsForShape(cx, this, shape)) {
+        METER(wrapWatchFails);
+        return NULL;
+    }
+
+    return shape;
 }
 
 const Shape *
@@ -850,7 +849,13 @@ JSObject::putProperty(JSContext *cx, jsid id,
             return NULL;
         }
 
-        return addPropertyInternal(cx, id, getter, setter, slot, attrs, flags, shortid, spp);
+        const Shape *new_shape =
+            addPropertyInternal(cx, id, getter, setter, slot, attrs, flags, shortid, spp);
+        if (!js_UpdateWatchpointsForShape(cx, this, new_shape)) {
+            METER(wrapWatchFails);
+            return NULL;
+        }
+        return new_shape;
     }
 
     
@@ -882,12 +887,15 @@ JSObject::putProperty(JSContext *cx, jsid id,
 
     if (shape != lastProp && !inDictionaryMode()) {
         if (!toDictionaryMode(cx))
-            return false;
+            return NULL;
         spp = nativeSearch(shape->id);
         shape = SHAPE_FETCH(spp);
     }
 
     
+
+
+
 
 
 
@@ -903,28 +911,14 @@ JSObject::putProperty(JSContext *cx, jsid id,
                 return NULL;
         }
 
-        
-
-
-
-        shape->shape = js_GenerateShape(cx, false);
-
-        
-
-
-
         shape->slot = slot;
+        if (slot != SHAPE_INVALID_SLOT && slot >= shape->slotSpan) {
+            shape->slotSpan = slot + 1;
 
-        if (shape != lastProp) {
-            if (PropertyTable *table = lastProp->table) {
-                shape->table = table;
-                lastProp->table = NULL;
+            for (Shape *temp = lastProp; temp != shape; temp = temp->parent) {
+                if (temp->slotSpan <= slot)
+                    temp->slotSpan = slot + 1;
             }
-            shape->removeFromDictionary(this);
-            shape->insertIntoDictionary(&lastProp);
-        } else {
-            if (slot != SHAPE_INVALID_SLOT && slot >= shape->slotSpan)
-                shape->slotSpan = slot + 1;
         }
 
         shape->rawGetter = getter;
@@ -938,8 +932,17 @@ JSObject::putProperty(JSContext *cx, jsid id,
 
 
 
+
         updateFlags(shape);
-        updateShape(cx);
+
+        
+
+
+
+
+
+        lastProp->shape = js_GenerateShape(cx, false);
+        clearOwnShape();
     } else {
         
 
@@ -964,13 +967,11 @@ JSObject::putProperty(JSContext *cx, jsid id,
         }
 
         shape = newShape;
-    }
 
-    JS_ASSERT(shape == lastProp);
-
-    if (!shape->table) {
-        
-        shape->maybeHash(cx);
+        if (!shape->table) {
+            
+            shape->maybeHash(cx);
+        }
     }
 
     
@@ -991,6 +992,12 @@ JSObject::putProperty(JSContext *cx, jsid id,
 
     CHECK_SHAPE_CONSISTENCY(this);
     METER(puts);
+
+    if (!js_UpdateWatchpointsForShape(cx, this, shape)) {
+        METER(wrapWatchFails);
+        return NULL;
+    }
+
     return shape;
 }
 
@@ -1046,6 +1053,11 @@ JSObject::changeProperty(JSContext *cx, const Shape *shape, uintN attrs, uintN m
 
             updateFlags(newShape);
             updateShape(cx);
+
+            if (!js_UpdateWatchpointsForShape(cx, this, newShape)) {
+                METER(wrapWatchFails);
+                return NULL;
+            }
         }
     } else if (shape == lastProp) {
         newShape = getChildProperty(cx, shape->parent, child);
@@ -1358,8 +1370,7 @@ PrintPropertyGetterOrSetter(JSTracer *trc, char *buf, size_t bufsize)
     name = trc->debugPrintIndex ? js_setter_str : js_getter_str;
 
     if (JSID_IS_ATOM(id)) {
-        n = js_PutEscapedString(buf, bufsize - 1,
-                                JSID_TO_STRING(id), 0);
+        n = PutEscapedString(buf, bufsize - 1, JSID_TO_STRING(id), 0);
         if (n < bufsize - 1)
             JS_snprintf(buf + n, bufsize - n, " %s", name);
     } else if (JSID_IS_INT(shape->id)) {
@@ -1382,7 +1393,7 @@ PrintPropertyMethod(JSTracer *trc, char *buf, size_t bufsize)
     JS_ASSERT(!JSID_IS_VOID(id));
 
     JS_ASSERT(JSID_IS_ATOM(id));
-    n = js_PutEscapedString(buf, bufsize - 1, JSID_TO_STRING(id), 0);
+    n = PutEscapedString(buf, bufsize - 1, JSID_TO_STRING(id), 0);
     if (n < bufsize - 1)
         JS_snprintf(buf + n, bufsize - n, " method");
 }

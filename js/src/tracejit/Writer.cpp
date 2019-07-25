@@ -404,7 +404,8 @@ void ValidateWriter::checkAccSet(LOpcode op, LIns *base, int32_t disp, AccSet ac
       case ACCSET_OBJ_PRIVATE:
         
         
-        ok = (op == LIR_ldi || op == LIR_ldp) &&
+        ok = (op == LIR_ldi || op == LIR_ldp ||
+              op == LIR_sti || op == LIR_stp) &&
              disp == offsetof(JSObject, privateData) &&
              couldBeObjectOrString(base);
         break;
@@ -449,8 +450,12 @@ void ValidateWriter::checkAccSet(LOpcode op, LIns *base, int32_t disp, AccSet ac
         
         
         
-        ok = base->isop(LIR_addp) &&
-             match(base->oprnd1(), LIR_ldp, ACCSET_TARRAY, TypedArray::dataOffset());
+        
+        
+        
+        ok = match(base, LIR_ldp, ACCSET_TARRAY, LOAD_CONST, TypedArray::dataOffset()) ||
+             (base->isop(LIR_addp) &&
+              match(base->oprnd1(), LIR_ldp, ACCSET_TARRAY, LOAD_CONST, TypedArray::dataOffset()));
         break;
 
       case ACCSET_ITER:

@@ -46,11 +46,16 @@ using namespace js::mjit;
 
 JS_STATIC_ASSERT(sizeof(FrameEntry) % 8 == 0);
 
-FrameState::FrameState(JSContext *cx, JSScript *script, Assembler &masm)
-  : cx(cx), script(script), masm(masm), entries(NULL),
+FrameState::FrameState(JSContext *cx, JSScript *script, JSFunction *fun, Assembler &masm)
+  : cx(cx), script(script), fun(fun),
+    nargs(fun ? fun->nargs : 0),
+    masm(masm), entries(NULL),
 #if defined JS_NUNBOX32
-    reifier(cx, *this),
+    reifier(cx, *thisFromCtor()),
 #endif
+    closedVars(NULL),
+    closedArgs(NULL),
+    usesArguments(script->usesArguments),
     inTryBlock(false)
 {
 }
@@ -61,45 +66,57 @@ FrameState::~FrameState()
 }
 
 bool
-FrameState::init(uint32 nargs)
+FrameState::init()
 {
-    this->nargs = nargs;
-
-    uint32 nslots = script->nslots + nargs;
-    if (!nslots) {
+    
+    uint32 nentries = feLimit();
+    if (!nentries) {
         sp = spBase = locals = args = NULL;
         return true;
     }
 
     eval = script->usesEval || cx->compartment->debugMode;
 
-    size_t totalBytes = sizeof(FrameEntry) * nslots +               
-                        sizeof(FrameEntry *) * nslots +             
-                        (eval ? 0 : sizeof(JSPackedBool) * nslots); 
+    size_t totalBytes = sizeof(FrameEntry) * nentries +                     
+                        sizeof(FrameEntry *) * nentries +                   
+                        (eval
+                         ? 0
+                         : sizeof(JSPackedBool) * script->nslots) +         
+                        (eval || usesArguments
+                         ? 0
+                         : sizeof(JSPackedBool) * nargs);                   
 
     uint8 *cursor = (uint8 *)cx->calloc(totalBytes);
     if (!cursor)
         return false;
 
 #if defined JS_NUNBOX32
-    if (!reifier.init(nslots))
+    if (!reifier.init(nentries))
         return false;
 #endif
 
     entries = (FrameEntry *)cursor;
-    cursor += sizeof(FrameEntry) * nslots;
+    cursor += sizeof(FrameEntry) * nentries;
 
-    args = entries;
+    callee_ = entries;
+    this_ = entries + 1;
+    args = entries + 2;
     locals = args + nargs;
     spBase = locals + script->nfixed;
     sp = spBase;
 
     tracker.entries = (FrameEntry **)cursor;
-    cursor += sizeof(FrameEntry *) * nslots;
+    cursor += sizeof(FrameEntry *) * nentries;
 
-    if (!eval && nslots) {
-        closedVars = (JSPackedBool *)cursor;
-        cursor += sizeof(JSPackedBool) * nslots;
+    if (!eval) {
+        if (script->nslots) {
+            closedVars = (JSPackedBool *)cursor;
+            cursor += sizeof(JSPackedBool) * script->nslots;
+        }
+        if (!usesArguments && nargs) {
+            closedArgs = (JSPackedBool *)cursor;
+            cursor += sizeof(JSPackedBool) * nargs;
+        }
     }
 
     JS_ASSERT(reinterpret_cast<uint8 *>(entries) + totalBytes == cursor);
@@ -215,7 +232,7 @@ FrameState::evictSomeFPReg()
 void
 FrameState::syncAndForgetEverything()
 {
-    syncAndKill(Registers(Registers::AvailRegs), Uses(frameDepth()));
+    syncAndKill(Registers(Registers::AvailRegs), Uses(frameSlots()));
     forgetEverything();
 }
 
@@ -376,6 +393,12 @@ FrameState::storeTo(FrameEntry *fe, Address address, bool popped)
             fe->type.setRegister(reg);
     }
 #endif
+}
+
+void
+FrameState::loadThisForReturn(RegisterID typeReg, RegisterID dataReg, RegisterID tempReg)
+{
+    return loadForReturn(getThis(), typeReg, dataReg, tempReg);
 }
 
 void FrameState::loadForReturn(FrameEntry *fe, RegisterID typeReg, RegisterID dataReg, RegisterID tempReg)
@@ -796,7 +819,7 @@ FrameState::merge(Assembler &masm, Changes changes) const
     for (unsigned i = 0; i < changes.nchanges; i++) {
         FrameEntry *fe = sp - 1 - i;
         if (fe->isType(JSVAL_TYPE_DOUBLE))
-            ensureInMemoryDouble(fe, masm);
+            masm.ensureInMemoryDouble(addressOf(fe));
     }
 
     for (unsigned i = 0; i < FPRegisters::TotalFPRegisters; i++) {
@@ -1085,16 +1108,6 @@ FrameState::pushDouble(Address address)
 }
 
 void
-FrameState::ensureInMemoryDouble(FrameEntry *fe, Assembler &masm) const
-{
-    Address address = addressOf(fe);
-    Jump notInteger = masm.testInt32(Assembler::NotEqual, address);
-    masm.convertInt32ToDouble(masm.payloadOf(address), FPRegisters::ConversionTemp);
-    masm.storeDouble(FPRegisters::ConversionTemp, address);
-    notInteger.linkTo(masm.label(), &masm);
-}
-
-void
 FrameState::ensureDouble(FrameEntry *fe)
 {
     if (fe->isConstant()) {
@@ -1104,32 +1117,44 @@ FrameState::ensureDouble(FrameEntry *fe)
         return;
     }
 
-    if (fe->isCopy()) {
+    if (fe->isType(JSVAL_TYPE_DOUBLE))
+        return;
+
+    FrameEntry *backing = fe;
+    if (fe->isCopy())
+        backing = fe->copyOf();
+
+    if (backing->isType(JSVAL_TYPE_DOUBLE)) {
         
-        JS_ASSERT(fe->copyOf()->isType(JSVAL_TYPE_DOUBLE));
         fe->type.setConstant();
         fe->knownType = JSVAL_TYPE_DOUBLE;
         return;
     }
 
-    if (fe->isType(JSVAL_TYPE_DOUBLE))
-        return;
+    if (fe != backing) {
+        
+        fe->clear();
+    }
 
-    if (fe->isType(JSVAL_TYPE_INT32)) {
-        RegisterID data = tempRegForData(fe);
+    if (backing->isType(JSVAL_TYPE_INT32)) {
+        RegisterID data = tempRegForData(backing);
         FPRegisterID fpreg = allocFPReg();
         masm.convertInt32ToDouble(data, fpreg);
 
         forgetAllRegs(fe);
         setFPRegister(fe, fpreg);
+        fe->data.unsync();
+        fe->type.unsync();
         return;
     }
 
-    if (fe->data.inMemory()) {
+    if (backing->data.inMemory()) {
         FPRegisterID fpreg = allocFPReg();
-        masm.moveInt32OrDouble(addressOf(fe), fpreg);
+        masm.moveInt32OrDouble(addressOf(backing), fpreg);
 
         setFPRegister(fe, fpreg);
+        fe->data.unsync();
+        fe->type.unsync();
         return;
     }
 
@@ -1332,25 +1357,40 @@ FrameState::uncopy(FrameEntry *original)
 }
 
 void
+FrameState::finishStore(FrameEntry *fe, bool closed)
+{
+    
+    
+    
+    syncFe(fe);
+    if (closed) {
+        if (!fe->isCopy())
+            forgetEntry(fe);
+        fe->resetSynced();
+    }
+}
+
+void
 FrameState::storeLocal(uint32 n, bool popGuaranteed, JSValueType type)
 {
     FrameEntry *local = getLocal(n);
-
     storeTop(local, popGuaranteed, type);
 
-    bool closed = eval || isClosedVar(n);
+    bool closed = isClosedVar(n);
     if (!closed && !inTryBlock)
         return;
 
-    
-    syncFe(local);
+    finishStore(local, closed);
+}
 
-    if (closed) {
-        
-        if (!local->isCopy())
-            forgetEntry(local);
-        local->resetSynced();
-    }
+void
+FrameState::storeArg(uint32 n, bool popGuaranteed, JSValueType type)
+{
+    
+    
+    FrameEntry *arg = getArg(n);
+    storeTop(arg, popGuaranteed, type);
+    finishStore(arg, isClosedArg(n));
 }
 
 void
@@ -1386,10 +1426,8 @@ FrameState::storeTop(FrameEntry *target, bool popGuaranteed, JSValueType type)
         target->setConstant(Jsvalify(top->getValue()));
 
         
-        if (indexOfFe(target) < localIndex(script->nfixed) &&
-            type != JSVAL_TYPE_UNKNOWN && type != JSVAL_TYPE_DOUBLE) {
+        if (target < spBase && type != JSVAL_TYPE_UNKNOWN && type != JSVAL_TYPE_DOUBLE)
             target->type.sync();
-        }
         return;
     }
 

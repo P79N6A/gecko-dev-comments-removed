@@ -2241,20 +2241,6 @@ js_fun_call(JSContext *cx, uintN argc, Value *vp)
     return ok;
 }
 
-struct STATIC_SKIP_INFERENCE CopyNonHoleArgs
-{
-    CopyNonHoleArgs(JSObject *aobj, Value *dst) : aobj(aobj), dst(dst) {}
-    JSObject *aobj;
-    Value *dst;
-    void operator()(uintN argi, Value *src) {
-        if (aobj->getArgsElement(argi).isMagic(JS_ARGS_HOLE))
-            dst->setUndefined();
-        else
-            *dst = *src;
-        ++dst;
-    }
-};
-
 
 JSBool
 js_fun_apply(JSContext *cx, uintN argc, Value *vp)
@@ -2282,6 +2268,8 @@ js_fun_apply(JSContext *cx, uintN argc, Value *vp)
         return js_fun_call(cx, (argc > 0) ? 1 : 0, vp);
 
     
+
+    
     if (!vp[3].isObject()) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_BAD_APPLY_ARGS, js_apply_str);
         return false;
@@ -2293,23 +2281,8 @@ js_fun_apply(JSContext *cx, uintN argc, Value *vp)
 
     JSObject *aobj = &vp[3].toObject();
     jsuint length;
-    if (aobj->isArray()) {
-        length = aobj->getArrayLength();
-    } else if (aobj->isArguments() && !aobj->isArgsLengthOverridden()) {
-        length = aobj->getArgsInitialLength();
-    } else {
-        Value &lenval = vp[0];
-        if (!aobj->getProperty(cx, ATOM_TO_JSID(cx->runtime->atomState.lengthAtom), &lenval))
-            return false;
-
-        if (lenval.isInt32()) {
-            length = jsuint(lenval.toInt32()); 
-        } else {
-            JS_STATIC_ASSERT(sizeof(jsuint) == sizeof(uint32_t));
-            if (!ValueToECMAUint32(cx, lenval, (uint32_t *)&length))
-                return false;
-        }
-    }
+    if (!js_GetLengthProperty(cx, aobj, &length))
+        return false;
 
     LeaveTrace(cx);
 
@@ -2325,32 +2298,8 @@ js_fun_apply(JSContext *cx, uintN argc, Value *vp)
     args.thisv() = vp[2];
 
     
-    if (aobj && aobj->isArguments() && !aobj->isArgsLengthOverridden()) {
-        
-
-
-
-
-
-        JSStackFrame *fp = (JSStackFrame *) aobj->getPrivate();
-        Value *argv = args.argv();
-        if (fp) {
-            JS_ASSERT(fp->numActualArgs() <= JS_ARGS_LENGTH_MAX);
-            fp->forEachCanonicalActualArg(CopyNonHoleArgs(aobj, argv));
-        } else {
-            for (uintN i = 0; i < n; i++) {
-                argv[i] = aobj->getArgsElement(i);
-                if (argv[i].isMagic(JS_ARGS_HOLE))
-                    argv[i].setUndefined();
-            }
-        }
-    } else {
-        Value *argv = args.argv();
-        for (uintN i = 0; i < n; i++) {
-            if (!aobj->getProperty(cx, INT_TO_JSID(jsint(i)), &argv[i]))
-                return JS_FALSE;
-        }
-    }
+    if (!GetElements(cx, aobj, n, args.argv()))
+        return false;
 
     
     if (!Invoke(cx, args, 0))
@@ -2999,7 +2948,7 @@ js_NewDebuggableFlatClosure(JSContext *cx, JSFunction *fun)
 }
 
 JSFunction *
-js_DefineFunction(JSContext *cx, JSObject *obj, JSAtom *atom, Native native,
+js_DefineFunction(JSContext *cx, JSObject *obj, jsid id, Native native,
                   uintN nargs, uintN attrs,
                   JSTypeHandler handler, const char *fullName)
 {
@@ -3021,17 +2970,64 @@ js_DefineFunction(JSContext *cx, JSObject *obj, JSAtom *atom, Native native,
     } else {
         gsop = NULL;
     }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    bool wasDelegate = obj->isDelegate();
+
     fun = js_NewFunction(cx, NULL, native, nargs,
                          attrs & (JSFUN_FLAGS_MASK | JSFUN_TRCINFO),
-                         obj, atom, handler, fullName);
+                         obj,
+                         JSID_IS_ATOM(id) ? JSID_TO_ATOM(id) : NULL,
+                         handler, fullName);
     if (!fun)
         return NULL;
-    if (!obj->defineProperty(cx, ATOM_TO_JSID(atom), ObjectValue(*fun),
-                             gsop, gsop, attrs & ~JSFUN_FLAGS_MASK)) {
-        return NULL;
-    }
 
-    cx->addTypePropertyId(obj->getTypeObject(), ATOM_TO_JSID(atom), ObjectValue(*fun));
+    if (!wasDelegate && obj->isDelegate())
+        obj->clearDelegate();
+
+    if (!obj->defineProperty(cx, id, ObjectValue(*fun), gsop, gsop, attrs & ~JSFUN_FLAGS_MASK))
+        return NULL;
+
+    cx->addTypePropertyId(obj->getTypeObject(), id, ObjectValue(*fun));
     return fun;
 }
 

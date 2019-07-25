@@ -702,12 +702,6 @@ class StackSpace
     friend class AllFramesIter;
     StackSegment *getCurrentSegment() const { return currentSegment; }
 
-    
-
-
-
-    inline bool ensureSpace(JSContext *maybecx, Value *from, ptrdiff_t nvals) const;
-
 #ifdef XP_WIN
     
     JS_FRIEND_API(bool) bumpCommit(Value *from, ptrdiff_t nvals) const;
@@ -752,9 +746,6 @@ class StackSpace
 
 
     inline bool ensureEnoughSpaceToEnterTrace();
-
-    
-    inline bool bumpCommitEnd(Value *from, uintN nslots);
 
     
     static const ptrdiff_t MAX_TRACE_SPACE_VALS =
@@ -834,6 +825,12 @@ class StackSpace
 
 
     bool bumpCommitAndLimit(JSStackFrame *base, Value *from, uintN nvals, Value **limit) const;
+
+    
+
+
+
+    inline bool ensureSpace(JSContext *maybecx, Value *from, ptrdiff_t nvals) const;
 };
 
 JS_STATIC_ASSERT(StackSpace::CAPACITY_VALS % StackSpace::COMMIT_VALS == 0);
@@ -1810,7 +1807,6 @@ OptionsSameVersionFlags(uint32 self, uint32 other)
 namespace VersionFlags {
 static const uint32 MASK =        0x0FFF; 
 static const uint32 HAS_XML =     0x1000; 
-static const uint32 ANONFUNFIX =  0x2000; 
 }
 
 static inline JSVersion
@@ -1832,12 +1828,6 @@ VersionShouldParseXML(JSVersion version)
     return VersionHasXML(version) || VersionNumber(version) >= JSVERSION_1_6;
 }
 
-static inline bool
-VersionHasAnonFunFix(JSVersion version)
-{
-    return !!(version & VersionFlags::ANONFUNFIX);
-}
-
 static inline void
 VersionSetXML(JSVersion *version, bool enable)
 {
@@ -1845,15 +1835,6 @@ VersionSetXML(JSVersion *version, bool enable)
         *version = JSVersion(uint32(*version) | VersionFlags::HAS_XML);
     else
         *version = JSVersion(uint32(*version) & ~VersionFlags::HAS_XML);
-}
-
-static inline void
-VersionSetAnonFunFix(JSVersion *version, bool enable)
-{
-    if (enable)
-        *version = JSVersion(uint32(*version) | VersionFlags::ANONFUNFIX);
-    else
-        *version = JSVersion(uint32(*version) & ~VersionFlags::ANONFUNFIX);
 }
 
 static inline JSVersion
@@ -2196,7 +2177,7 @@ struct JSContext
 
     void doFunctionCallback(const JSFunction *fun,
                             const JSScript *scr,
-                            JSBool entering) const
+                            int entering) const
     {
         if (functionCallback)
             functionCallback(fun, scr, this, entering);

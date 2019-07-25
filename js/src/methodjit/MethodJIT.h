@@ -63,6 +63,10 @@ struct VMFrame
             void *ptr2;
             void *ptr3;
         } x;
+        struct {
+            uint32 lazyArgsObj;
+            uint32 dynamicArgc;
+        } call;
     } u;
 
     VMFrame      *previous;
@@ -70,7 +74,7 @@ struct VMFrame
     JSFrameRegs  regs;
     JSContext    *cx;
     Value        *stackLimit;
-    JSStackFrame *entryFp;
+    JSStackFrame *entryfp;
 
 #if defined(JS_CPU_X86)
     void *savedEBX;
@@ -204,6 +208,34 @@ class JaegerCompartment {
 #endif
 };
 
+
+
+
+
+
+
+
+class CompilerAllocPolicy : public ContextAllocPolicy
+{
+    bool *oomFlag;
+
+    void *checkAlloc(void *p) {
+        if (!p)
+            *oomFlag = true;
+        return p;
+    }
+
+  public:
+    CompilerAllocPolicy(JSContext *cx, bool *oomFlag)
+    : ContextAllocPolicy(cx), oomFlag(oomFlag) {}
+    CompilerAllocPolicy(JSContext *cx, Compiler &compiler);
+
+    void *malloc(size_t bytes) { return checkAlloc(ContextAllocPolicy::malloc(bytes)); }
+    void *realloc(void *p, size_t bytes) {
+        return checkAlloc(ContextAllocPolicy::realloc(p, bytes));
+    }
+};
+
 namespace ic {
 # if defined JS_POLYIC
     struct PICInfo;
@@ -289,6 +321,8 @@ struct JITScript {
     void            *fastEntry;         
     void            *arityCheckEntry;   
 
+    ~JITScript();
+
     bool isValidCode(void *ptr) {
         char *jitcode = (char *)code.m_code.executableAddress();
         char *jcheck = (char *)ptr;
@@ -298,7 +332,6 @@ struct JITScript {
     void sweepCallICs();
     void purgeMICs();
     void purgePICs();
-    void release();
 };
 
 
@@ -347,6 +380,22 @@ struct CallSite
     uint32 codeOffset;
     uint32 pcOffset;
     uint32 id;
+
+    
+    
+    
+    
+    static const uint32 MAGIC_TRAP_ID = 0xFEDCBABC;
+
+    void initialize(uint32 codeOffset, uint32 pcOffset, uint32 id) {
+        this->codeOffset = codeOffset;
+        this->pcOffset = pcOffset;
+        this->id = id;
+    }
+
+    bool isTrap() const {
+        return id == MAGIC_TRAP_ID;
+    }
 };
 
 

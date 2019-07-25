@@ -156,6 +156,17 @@ js_HasLengthProperty(JSContext *cx, JSObject *obj, jsuint *lengthp);
 extern JSBool JS_FASTCALL
 js_IndexToId(JSContext *cx, jsuint index, jsid *idp);
 
+namespace js {
+
+
+
+
+
+extern bool
+GetElements(JSContext *cx, JSObject *aobj, jsuint length, js::Value *vp);
+
+}
+
 
 
 
@@ -273,6 +284,6 @@ JS_FRIEND_API(JSBool)
 js_IsDensePrimitiveArray(JSObject *obj);
 
 extern JSBool JS_FASTCALL
-js_Array_dense_setelem_uninitialized(JSContext *cx, JSObject *obj, jsint i);
+js_EnsureDenseArrayCapacity(JSContext *cx, JSObject *obj, jsint i);
 
 #endif 
