@@ -66,6 +66,7 @@
 #include "nsWidgetsCID.h"
 #include "nsViewsCID.h"
 #include "nsGkAtoms.h"
+#include "nsIScrollableView.h"
 #include "nsStyleCoord.h"
 #include "nsStyleContext.h"
 #include "nsStyleConsts.h"
@@ -101,8 +102,6 @@
 #include "nsIAccessibilityService.h"
 #endif
 #include "nsIServiceManager.h"
-
-class AsyncFrameInit;
 
 static NS_DEFINE_CID(kCChildCID, NS_CHILD_CID);
 
@@ -175,21 +174,20 @@ public:
   virtual PRBool SupportsVisibilityHidden() { return PR_FALSE; }
 
 #ifdef ACCESSIBILITY
-  virtual already_AddRefed<nsAccessible> CreateAccessible();
+  NS_IMETHOD GetAccessible(nsIAccessible** aAccessible);
 #endif
 
   
   NS_IMETHOD GetDocShell(nsIDocShell **aDocShell);
   NS_IMETHOD BeginSwapDocShells(nsIFrame* aOther);
   virtual void EndSwapDocShells(nsIFrame* aOther);
+  virtual nsIFrame* GetFrame() { return this; }
 
   
   virtual PRBool ReflowFinished();
   virtual void ReflowCallbackCanceled();
 
 protected:
-  friend class AsyncFrameInit;
-
   
   nsIntSize GetMarginAttributes();
 
@@ -221,48 +219,34 @@ protected:
   nsIView* mInnerView;
   PRPackedBool mIsInline;
   PRPackedBool mPostedReflowCallback;
-  PRPackedBool mDidCreateDoc;
-  PRPackedBool mCallingShow;
+  bool mDidCreateDoc;
 };
 
 nsSubDocumentFrame::nsSubDocumentFrame(nsStyleContext* aContext)
   : nsLeafFrame(aContext)
   , mIsInline(PR_FALSE)
   , mPostedReflowCallback(PR_FALSE)
-  , mDidCreateDoc(PR_FALSE)
-  , mCallingShow(PR_FALSE)
+  , mDidCreateDoc(false)
 {
 }
 
 #ifdef ACCESSIBILITY
-already_AddRefed<nsAccessible>
-nsSubDocumentFrame::CreateAccessible()
+NS_IMETHODIMP nsSubDocumentFrame::GetAccessible(nsIAccessible** aAccessible)
 {
   nsCOMPtr<nsIAccessibilityService> accService = do_GetService("@mozilla.org/accessibilityService;1");
-  return accService ?
-    accService->CreateOuterDocAccessible(mContent, PresContext()->PresShell()) :
-    nsnull;
+
+  if (accService) {
+    nsCOMPtr<nsIDOMNode> node = do_QueryInterface(mContent);
+    return accService->CreateOuterDocAccessible(node, aAccessible);
+  }
+
+  return NS_ERROR_FAILURE;
 }
 #endif
 
 NS_QUERYFRAME_HEAD(nsSubDocumentFrame)
   NS_QUERYFRAME_ENTRY(nsIFrameFrame)
 NS_QUERYFRAME_TAIL_INHERITING(nsLeafFrame)
-
-class AsyncFrameInit : public nsRunnable
-{
-public:
-  AsyncFrameInit(nsIFrame* aFrame) : mFrame(aFrame) {}
-  NS_IMETHOD Run()
-  {
-    if (mFrame.IsAlive()) {
-      static_cast<nsSubDocumentFrame*>(mFrame.GetFrame())->ShowViewer();
-    }
-    return NS_OK;
-  }
-private:
-  nsWeakFrame mFrame;
-};
 
 NS_IMETHODIMP
 nsSubDocumentFrame::Init(nsIContent*     aContent,
@@ -303,7 +287,7 @@ nsSubDocumentFrame::Init(nsIContent*     aContent,
   
   aContent->SetPrimaryFrame(this);
 
-  nsContentUtils::AddScriptRunner(new AsyncFrameInit(this));
+  ShowViewer();
   return NS_OK;
 }
 
@@ -326,31 +310,19 @@ inline PRInt32 ConvertOverflow(PRUint8 aOverflow)
 void
 nsSubDocumentFrame::ShowViewer()
 {
-  if (mCallingShow) {
-    return;
-  }
-
   if (!PresContext()->IsDynamic()) {
     
     
     (void) CreateViewAndWidget(eContentTypeContent);
   } else {
-    nsRefPtr<nsFrameLoader> frameloader = FrameLoader();
+    nsFrameLoader* frameloader = FrameLoader();
     if (frameloader) {
       nsIntSize margin = GetMarginAttributes();
       const nsStyleDisplay* disp = GetStyleDisplay();
-      nsWeakFrame weakThis(this);
-      mCallingShow = PR_TRUE;
-      PRBool didCreateDoc =
-        frameloader->Show(margin.width, margin.height,
-                          ConvertOverflow(disp->mOverflowX),
-                          ConvertOverflow(disp->mOverflowY),
-                          this);
-      if (!weakThis.IsAlive()) {
-        return;
-      }
-      mCallingShow = PR_FALSE;
-      mDidCreateDoc = didCreateDoc;
+      mDidCreateDoc = frameloader->Show(margin.width, margin.height,
+                                        ConvertOverflow(disp->mOverflowX),
+                                        ConvertOverflow(disp->mOverflowY),
+                                        this);
     }
   }
 }
@@ -390,28 +362,19 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     presShell = f->PresContext()->PresShell();
   } else {
     
-    
-    
-    nsIView* nextView = subdocView->GetNextSibling();
-    if (nextView) {
-      f = static_cast<nsIFrame*>(nextView->GetClientData());
-    }
-    if (f) {
-      subdocView = nextView;
-      presShell = f->PresContext()->PresShell();
-    } else {
-      
-      if (!mFrameLoader)
-        return NS_OK;
-      nsCOMPtr<nsIDocShell> docShell;
-      mFrameLoader->GetDocShell(getter_AddRefs(docShell));
-      if (!docShell)
-        return NS_OK;
-      docShell->GetPresShell(getter_AddRefs(presShell));
-      if (!presShell)
-        return NS_OK;
-    }
+    if (!mFrameLoader)
+      return NS_OK;
+    nsCOMPtr<nsIDocShell> docShell;
+    mFrameLoader->GetDocShell(getter_AddRefs(docShell));
+    if (!docShell)
+      return NS_OK;
+    docShell->GetPresShell(getter_AddRefs(presShell));
+    if (!presShell)
+      return NS_OK;
   }
+
+  PRBool suppressed = PR_TRUE;
+  presShell->IsPaintingSuppressed(&suppressed);
 
   nsDisplayList childItems;
 
@@ -665,52 +628,16 @@ nsSubDocumentFrame::Reflow(nsPresContext*           aPresContext,
 PRBool
 nsSubDocumentFrame::ReflowFinished()
 {
-  nsCOMPtr<nsIDocShell> docShell;
-  GetDocShell(getter_AddRefs(docShell));
-
-  nsCOMPtr<nsIBaseWindow> baseWindow(do_QueryInterface(docShell));
-
-  
-  if (baseWindow) {
-    PRInt32 x = 0;
-    PRInt32 y = 0;
-
+  if (mFrameLoader) {
     nsWeakFrame weakFrame(this);
-    
-    nsPresContext* presContext = PresContext();
-    baseWindow->GetPositionAndSize(&x, &y, nsnull, nsnull);
 
-    if (!weakFrame.IsAlive()) {
+    mFrameLoader->UpdatePositionAndSize(this);
+
+    if (weakFrame.IsAlive()) {
       
-      return PR_FALSE;
+      mPostedReflowCallback = PR_FALSE;
     }
-
-    
-    
-    mPostedReflowCallback = PR_FALSE;
-  
-    nsSize innerSize(GetSize());
-    if (IsInline()) {
-      nsMargin usedBorderPadding = GetUsedBorderAndPadding();
-
-      
-      
-      
-      innerSize.width  -= usedBorderPadding.LeftRight();
-      innerSize.width = NS_MAX(innerSize.width, 0);
-      
-      innerSize.height -= usedBorderPadding.TopBottom();
-      innerSize.height = NS_MAX(innerSize.height, 0);
-    }  
-
-    PRInt32 cx = presContext->AppUnitsToDevPixels(innerSize.width);
-    PRInt32 cy = presContext->AppUnitsToDevPixels(innerSize.height);
-    baseWindow->SetPositionAndSize(x, y, cx, cy, PR_FALSE);
-  } else {
-    
-    mPostedReflowCallback = PR_FALSE;
   }
-
   return PR_FALSE;
 }
 
@@ -836,7 +763,7 @@ nsSubDocumentFrame::DestroyFrom(nsIFrame* aDestructRoot)
 void
 nsSubDocumentFrame::HideViewer()
 {
-  if (mFrameLoader && (mDidCreateDoc || mCallingShow))
+  if (mFrameLoader && mDidCreateDoc)
     mFrameLoader->Hide();
 }
 
@@ -893,8 +820,8 @@ nsSubDocumentFrame::BeginSwapDocShells(nsIFrame* aOther)
   }
 
   nsSubDocumentFrame* other = static_cast<nsSubDocumentFrame*>(aOther);
-  if (!mFrameLoader || !mDidCreateDoc || mCallingShow ||
-      !other->mFrameLoader || !other->mDidCreateDoc) {
+  if (!mFrameLoader || !mDidCreateDoc || !other->mFrameLoader ||
+      !other->mDidCreateDoc) {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
@@ -909,25 +836,20 @@ void
 nsSubDocumentFrame::EndSwapDocShells(nsIFrame* aOther)
 {
   nsSubDocumentFrame* other = static_cast<nsSubDocumentFrame*>(aOther);
-  nsWeakFrame weakThis(this);
-  nsWeakFrame weakOther(aOther);
   ShowViewer();
   other->ShowViewer();
 
   
   
+  PresContext()->PresShell()->
+    FrameNeedsReflow(this, nsIPresShell::eTreeChange, NS_FRAME_IS_DIRTY);
+  other->PresContext()->PresShell()->
+    FrameNeedsReflow(other, nsIPresShell::eTreeChange, NS_FRAME_IS_DIRTY);
+
   
   
-  if (weakThis.IsAlive()) {
-    PresContext()->PresShell()->
-      FrameNeedsReflow(this, nsIPresShell::eTreeChange, NS_FRAME_IS_DIRTY);
-    InvalidateOverflowRect();
-  }
-  if (weakOther.IsAlive()) {
-    other->PresContext()->PresShell()->
-      FrameNeedsReflow(other, nsIPresShell::eTreeChange, NS_FRAME_IS_DIRTY);
-    other->InvalidateOverflowRect();
-  }
+  InvalidateOverflowRect();
+  other->InvalidateOverflowRect();
 }
 
 nsIView*
