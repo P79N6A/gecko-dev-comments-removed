@@ -65,6 +65,7 @@ var MigrationWizard = {
       this._source = window.arguments[0];
       this._migrator = window.arguments[1].QueryInterface(kIMig);
       this._autoMigrate = window.arguments[2].QueryInterface(kIPStartup);
+      this._skipImportSourcePage = window.arguments[3];
 
       if (this._autoMigrate) {
         
@@ -150,6 +151,12 @@ var MigrationWizard = {
 
       document.getElementById("importBookmarks").hidden = true;
       document.getElementById("importAll").hidden = true;
+    }
+
+    
+    if (this._migrator && this._skipImportSourcePage) {
+      this._wiz.advance();
+      this._wiz.canRewind = false;
     }
   },
   
