@@ -85,6 +85,32 @@ function test_boolean_histogram()
   do_check_eq(s.counts[0], 2);
 }
 
+function test_flag_histogram()
+{
+  var h = Telemetry.newHistogram("test::flag histogram", 130, 4, 5, Telemetry.HISTOGRAM_FLAG);
+  var r = h.snapshot().ranges;
+  
+  do_check_eq(uneval(r), uneval([0, 1, 2]))
+  
+  var c = h.snapshot().counts;
+  var s = h.snapshot().sum;
+  do_check_eq(uneval(c), uneval([1, 0, 0]));
+  do_check_eq(s, 1);
+  
+  h.add(2);
+  var c2 = h.snapshot().counts;
+  var s2 = h.snapshot().sum;
+  do_check_eq(uneval(c2), uneval([0, 1, 0]));
+  do_check_eq(s, 1);
+  
+  h.add(3);
+  var c3 = h.snapshot().counts;
+  var s3 = h.snapshot().sum;
+  do_check_eq(uneval(c3), uneval([0, 1, 0]));
+  do_check_eq(s3, 1);
+  do_check_eq(h.snapshot().histogram_type, Telemetry.FLAG_HISTOGRAM);
+}
+
 function test_getHistogramById() {
   try {
     Telemetry.getHistogramById("nonexistent");
@@ -149,9 +175,18 @@ function test_addons() {
 		 register(extra_addon, name1, 0, 1, 2, Telemetry.HISTOGRAM_BOOLEAN));
 
   
+  var flag_addon = "testing-flag-addon";
+  var flag_histogram = "flag-histogram";
+  expect_success(function() 
+                 register(flag_addon, flag_histogram, 0, 1, 2, Telemetry.HISTOGRAM_FLAG))
+  expect_success(function()
+		 register(flag_addon, name2, 2, 4, 4, Telemetry.HISTOGRAM_LINEAR));
+
+  
   snapshots = Telemetry.addonHistogramSnapshots;
   do_check_true(addon_id in snapshots)
   do_check_true(extra_addon in snapshots);
+  do_check_true(flag_addon in snapshots);
 
   
   do_check_true(name1 in snapshots[addon_id]);
@@ -167,6 +202,10 @@ function test_addons() {
 
   
   do_check_false(name1 in snapshots[extra_addon]);
+
+  
+  do_check_true(flag_histogram in snapshots[flag_addon]);
+  do_check_false(name2 in snapshots[flag_addon]);
 
   
   Telemetry.unregisterAddonHistograms(addon_id);
