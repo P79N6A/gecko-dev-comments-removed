@@ -1394,7 +1394,8 @@ js_NewScriptObject(JSContext *cx, JSScript *script)
 
 
 
-    obj->clearType();
+    if (!obj->clearType(cx))
+        return NULL;
 
     return obj;
 }

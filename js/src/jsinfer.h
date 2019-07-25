@@ -873,9 +873,6 @@ struct TypeObject : gc::Cell
 };
 
 
-extern TypeObject emptyTypeObject;
-
-
 
 
 

@@ -511,6 +511,29 @@ struct JS_FRIEND_API(JSCompartment) {
 
 
 
+    struct NewTypeObjectEntry {
+        typedef JSObject *Lookup;
+
+        static inline js::HashNumber hash(JSObject *base);
+        static inline bool match(js::types::TypeObject *key, JSObject *lookup);
+    };
+
+    typedef js::HashSet<js::types::TypeObject *, NewTypeObjectEntry, js::SystemAllocPolicy> NewTypeObjectSet;
+
+    NewTypeObjectSet             newTypeObjects;
+
+    void sweepNewTypeObjectTable(JSContext *cx);
+
+    js::types::TypeObject        *emptyTypeObject;
+
+    
+    inline js::types::TypeObject *getEmptyType(JSContext *cx);
+
+    
+
+
+
+
 
 
 

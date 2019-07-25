@@ -3510,10 +3510,15 @@ js_NewBlockObject(JSContext *cx)
     if (!blockObj)
         return NULL;
 
+    types::TypeObject *type = cx->compartment->getEmptyType(cx);
+    if (!type)
+        return NULL;
+
     EmptyShape *emptyBlockShape = EmptyShape::getEmptyBlockShape(cx);
     if (!emptyBlockShape)
         return NULL;
-    blockObj->init(cx, &emptyTypeObject, NULL, NULL, false);
+
+    blockObj->init(cx, type, NULL, NULL, false);
     blockObj->setMap(emptyBlockShape);
 
     return blockObj;
@@ -3882,10 +3887,6 @@ JSObject::TradeGuts(JSContext *cx, JSObject *a, JSObject *b, TradeGutsReserved &
     JS_ASSERT(!a->isArrayBuffer() && !b->isArrayBuffer());
 
     
-    TypeObject *newTypeA = a->newType;
-    TypeObject *newTypeB = b->newType;
-
-    
     const size_t size = a->structSize();
     if (size == b->structSize()) {
         
@@ -3945,9 +3946,6 @@ JSObject::TradeGuts(JSContext *cx, JSObject *a, JSObject *b, TradeGutsReserved &
         reserved.newaslots = NULL;
         reserved.newbslots = NULL;
     }
-
-    a->newType = newTypeA;
-    b->newType = newTypeB;
 }
 
 
@@ -4739,7 +4737,7 @@ SetProto(JSContext *cx, JSObject *obj, JSObject *proto, bool checkForCycles)
 
     TypeObject *type = proto
         ? proto->getNewType(cx, NULL,  true)
-        : &emptyTypeObject;
+        : cx->compartment->getEmptyType(cx);
     if (!type)
         return false;
 

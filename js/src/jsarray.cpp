@@ -1333,7 +1333,6 @@ JSObject::makeDenseArraySlow(JSContext *cx)
 
     
     initializedLength = 0;
-    JS_ASSERT(newType == NULL);
 
     
 
@@ -2681,7 +2680,7 @@ TryReuseArrayType(JSObject *obj, JSObject *nobj)
 
 
     JS_ASSERT(nobj->isDenseArray());
-    JS_ASSERT(nobj->type() == nobj->getProto()->newType);
+    JS_ASSERT(nobj->getProto()->hasNewType(nobj->type()));
 
     if (obj->isArray() && !obj->hasSingletonType() && obj->getProto() == nobj->getProto())
         nobj->setType(obj->type());

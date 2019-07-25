@@ -71,7 +71,7 @@ Type::ObjectType(JSObject *obj)
 Type::ObjectType(TypeObject *obj)
 {
     if (obj->singleton)
-        return Type((jsuword) obj->singleton.get() | 1);
+        return Type((jsuword) obj->singleton | 1);
     return Type((jsuword) obj);
 }
 
@@ -459,18 +459,6 @@ UseNewTypeAtEntry(JSContext *cx, StackFrame *fp)
 
 
 
-inline
-TypeScript::TypeScript(JSFunction *fun)
-  : function(fun),
-    global((js::GlobalObject *) GLOBAL_MISSING_SCOPE)
-{
-}
-
-inline
-TypeScript::~TypeScript()
-{
-}
-
  inline unsigned
 TypeScript::NumTypeSets(JSScript *script)
 {
@@ -701,9 +689,9 @@ void
 TypeScript::trace(JSTracer *trc)
 {
     if (function)
-        gc::MarkObject(trc, function, "script_fun");
+        gc::MarkObject(trc, *function, "script_fun");
     if (hasScope() && global)
-        gc::MarkObject(trc, global, "script_global");
+        gc::MarkObject(trc, *global, "script_global");
 
     
 }
@@ -728,8 +716,8 @@ TypeCompartment::addPending(JSContext *cx, TypeConstraint *constraint, TypeSet *
               InferSpewColor(constraint), constraint, InferSpewColorReset(),
               TypeString(type));
 
-    if ((pendingCount == pendingCapacity) && !growPendingArray(cx))
-        return;
+    if (pendingCount == pendingCapacity)
+        growPendingArray(cx);
 
     PendingWork &pending = pendingArray[pendingCount++];
     pending.constraint = constraint;
@@ -974,9 +962,8 @@ TypeSet::addType(JSContext *cx, Type type)
         return;
 
     if (type.isUnknown()) {
-        flags |= TYPE_FLAG_BASE_MASK;
+        flags = TYPE_FLAG_UNKNOWN | (flags & ~baseFlags());
         clearObjects();
-        JS_ASSERT(unknown());
     } else if (type.isPrimitive()) {
         TypeFlags flag = PrimitiveTypeFlag(type.primitive());
         if (flags & flag)
@@ -1264,56 +1251,6 @@ TypeObject::getGlobal()
     return NULL;
 }
 
-inline void
-TypeObject::writeBarrierPre(TypeObject *type)
-{
-#ifdef JSGC_INCREMENTAL
-    if (!type || type == &js::types::emptyTypeObject)
-        return;
-
-    JSCompartment *comp = type->compartment();
-    if (comp->needsBarrier())
-        MarkTypeObjectUnbarriered(comp->barrierTracer(), type, "write barrier");
-#endif
-}
-
-inline void
-TypeObject::writeBarrierPost(TypeObject *type, void *addr)
-{
-}
-
-inline void
-TypeNewScript::writeBarrierPre(TypeNewScript *newScript)
-{
-#ifdef JSGC_INCREMENTAL
-    if (!newScript)
-        return;
-
-    JSCompartment *comp = newScript->fun->compartment();
-    if (comp->needsBarrier()) {
-        MarkObjectUnbarriered(comp->barrierTracer(), newScript->fun, "write barrier");
-        MarkShapeUnbarriered(comp->barrierTracer(), newScript->shape, "write barrier");
-    }
-#endif
-}
-
-inline void
-TypeNewScript::writeBarrierPost(TypeNewScript *newScript, void *addr)
-{
-}
-
-inline
-Property::Property(jsid id)
-  : id(id)
-{
-}
-
-inline
-Property::Property(const Property &o)
-  : id(o.id.get()), types(o.types)
-{
-}
-
 } } 
 
 inline bool
@@ -1344,8 +1281,7 @@ JSScript::ensureRanInference(JSContext *cx)
         js::types::AutoEnterTypeInference enter(cx);
         analysis()->analyzeTypes(cx);
     }
-    return !analysis()->OOM() &&
-        !cx->compartment->types.pendingNukeTypes;
+    return !analysis()->OOM();
 }
 
 inline bool
@@ -1374,6 +1310,14 @@ js::analyze::ScriptAnalysis::addPushedType(JSContext *cx, uint32 offset, uint32 
 {
     js::types::TypeSet *pushed = pushedTypes(offset, which);
     pushed->addType(cx, type);
+}
+
+inline js::types::TypeObject *
+JSCompartment::getEmptyType(JSContext *cx)
+{
+    if (!emptyTypeObject)
+        emptyTypeObject = types.newTypeObject(cx, NULL, JSProto_Object, NULL, true);
+    return emptyTypeObject;
 }
 
 #endif 
