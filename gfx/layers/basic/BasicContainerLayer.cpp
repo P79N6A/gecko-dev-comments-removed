@@ -122,6 +122,9 @@ class BasicShadowContainerLayer : public ShadowContainerLayer, public BasicImplD
   friend void ContainerInsertAfter(Layer* aChild, Layer* aAfter, Container* aContainer);
   template<class Container>
   friend void ContainerRemoveChild(Layer* aChild, Container* aContainer);
+  template<class Container>
+  friend void ContainerComputeEffectiveTransforms(const gfx3DMatrix& aTransformToSurface,
+                                                  Container* aContainer);
 
 public:
   BasicShadowContainerLayer(BasicShadowLayerManager* aLayerManager) :
@@ -145,36 +148,7 @@ public:
 
   virtual void ComputeEffectiveTransforms(const gfx3DMatrix& aTransformToSurface)
   {
-    
-    
-    
-    gfxMatrix residual;
-    gfx3DMatrix idealTransform = GetLocalTransform()*aTransformToSurface;
-    idealTransform.ProjectTo2D();
-
-    if (!idealTransform.CanDraw2D()) {
-      mEffectiveTransform = idealTransform;
-      ComputeEffectiveTransformsForChildren(gfx3DMatrix());
-      ComputeEffectiveTransformForMaskLayer(gfx3DMatrix());
-      mUseIntermediateSurface = true;
-      return;
-    }
-
-    mEffectiveTransform = SnapTransform(idealTransform, gfxRect(0, 0, 0, 0), &residual);
-    
-    
-    ComputeEffectiveTransformsForChildren(idealTransform);
-
-    ComputeEffectiveTransformForMaskLayer(aTransformToSurface);
-
-    
-
-
-
-
-
-    mUseIntermediateSurface = GetMaskLayer() ||
-                              (GetEffectiveOpacity() != 1.0 && HasMultipleChildren());
+    ContainerComputeEffectiveTransforms(aTransformToSurface, this);
   }
 };
 
