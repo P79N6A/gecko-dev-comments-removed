@@ -55,6 +55,7 @@
 #include "jsatom.h"
 #include "jscntxt.h"
 #include "jsdbgapi.h"
+#include "jsfun.h"      
 #include "jslock.h"
 #include "jsnum.h"
 #include "jsobj.h"
@@ -62,7 +63,7 @@
 #include "jsstr.h"
 #include "jstracer.h"
 
-#include "jsatominlines.h"
+#include "jsdbgapiinlines.h"
 #include "jsobjinlines.h"
 #include "jsscopeinlines.h"
 
@@ -132,6 +133,8 @@ JSObject::ensureClassReservedSlotsForEmptyObject(JSContext *cx)
     return true;
 }
 
+#define PROPERTY_TABLE_NBYTES(n) ((n) * sizeof(Shape *))
+
 bool
 PropertyTable::init(JSRuntime *rt, Shape *lastProp)
 {
@@ -150,7 +153,7 @@ PropertyTable::init(JSRuntime *rt, Shape *lastProp)
 
 
 
-    entries = (Shape **) rt->calloc_(sizeOfEntries(JS_BIT(sizeLog2)));
+    entries = (Shape **) rt->calloc_(JS_BIT(sizeLog2) * sizeof(Shape *));
     if (!entries)
         return false;
 
@@ -186,10 +189,24 @@ Shape::hashify(JSRuntime *rt)
     return true;
 }
 
+JS_STATIC_ASSERT(sizeof(JSHashNumber) == 4);
+JS_STATIC_ASSERT(sizeof(jsid) == JS_BYTES_PER_WORD);
+
+#if JS_BYTES_PER_WORD == 4
+# define HASH_ID(id) ((JSHashNumber)(JSID_BITS(id)))
+#elif JS_BYTES_PER_WORD == 8
+# define HASH_ID(id) ((JSHashNumber)(JSID_BITS(id)) ^ (JSHashNumber)((JSID_BITS(id)) >> 32))
+#else
+# error "Unsupported configuration"
+#endif
 
 
 
 
+
+
+
+#define HASH0(id)               (HASH_ID(id) * JS_GOLDEN_RATIO)
 #define HASH1(hash0,shift)      ((hash0) >> (shift))
 #define HASH2(hash0,log2,shift) ((((hash0) << (log2)) >> (shift)) | 1)
 
@@ -205,7 +222,7 @@ PropertyTable::search(jsid id, bool adding)
     JS_ASSERT(!JSID_IS_VOID(id));
 
     
-    hash0 = HashId(id);
+    hash0 = HASH0(id);
     hash1 = HASH1(hash0, hashShift);
     spp = entries + hash1;
 
@@ -274,30 +291,35 @@ PropertyTable::search(jsid id, bool adding)
 bool
 PropertyTable::change(int log2Delta, JSContext *cx)
 {
+    int oldlog2, newlog2;
+    uint32 oldsize, newsize, nbytes;
+    Shape **newTable, **oldTable, **spp, **oldspp, *shape;
+
     JS_ASSERT(entries);
 
     
 
 
-    int oldlog2 = JS_DHASH_BITS - hashShift;
-    int newlog2 = oldlog2 + log2Delta;
-    uint32 oldsize = JS_BIT(oldlog2);
-    uint32 newsize = JS_BIT(newlog2);
-    Shape **newTable = (Shape **) cx->calloc_(sizeOfEntries(newsize));
+    oldlog2 = JS_DHASH_BITS - hashShift;
+    newlog2 = oldlog2 + log2Delta;
+    oldsize = JS_BIT(oldlog2);
+    newsize = JS_BIT(newlog2);
+    nbytes = PROPERTY_TABLE_NBYTES(newsize);
+    newTable = (Shape **) cx->calloc_(nbytes);
     if (!newTable)
         return false;
 
     
     hashShift = JS_DHASH_BITS - newlog2;
     removedCount = 0;
-    Shape **oldTable = entries;
+    oldTable = entries;
     entries = newTable;
 
     
-    for (Shape **oldspp = oldTable; oldsize != 0; oldspp++) {
-        Shape *shape = SHAPE_FETCH(oldspp);
+    for (oldspp = oldTable; oldsize != 0; oldspp++) {
+        shape = SHAPE_FETCH(oldspp);
         if (shape) {
-            Shape **spp = search(shape->propid, true);
+            spp = search(shape->propid, true);
             JS_ASSERT(SHAPE_IS_FREE(*spp));
             *spp = shape;
         }
@@ -405,17 +427,21 @@ JSObject::getChildProperty(JSContext *cx, Shape *parent, Shape &child)
 
 
 
-    if (child.attrs & JSPROP_SHARED) {
-        child.slot = SHAPE_INVALID_SLOT;
-    } else {
-        
+
+
+    if (!child.isAlias()) {
+        if (child.attrs & JSPROP_SHARED) {
+            child.slot = SHAPE_INVALID_SLOT;
+        } else {
+            
 
 
 
 
 
-        if (child.slot == SHAPE_INVALID_SLOT && !allocSlot(cx, &child.slot))
-            return NULL;
+            if (child.slot == SHAPE_INVALID_SLOT && !allocSlot(cx, &child.slot))
+                return NULL;
+        }
     }
 
     Shape *shape;
@@ -528,7 +554,7 @@ NormalizeGetterAndSetter(JSContext *cx, JSObject *obj,
     if (flags & Shape::METHOD) {
         
         JS_ASSERT(getter);
-        JS_ASSERT(!setter);
+        JS_ASSERT(!setter || setter == js_watch_set);
         JS_ASSERT(!(attrs & (JSPROP_GETTER | JSPROP_SETTER)));
     } else {
         if (getter == PropertyStub) {
@@ -569,7 +595,7 @@ JSObject::checkShapeConsistency()
         if (shape->hasTable()) {
             PropertyTable *table = shape->getTable();
             for (uint32 fslot = table->freelist; fslot != SHAPE_INVALID_SLOT;
-                 fslot = getSlot(fslot).toPrivateUint32()) {
+                 fslot = getSlotRef(fslot).toPrivateUint32()) {
                 JS_ASSERT(fslot < shape->slotSpan);
             }
 
@@ -637,7 +663,13 @@ JSObject::addProperty(JSContext *cx, jsid id,
     
     Shape **spp = nativeSearch(id, true);
     JS_ASSERT(!SHAPE_FETCH(spp));
-    return addPropertyInternal(cx, id, getter, setter, slot, attrs, flags, shortid, spp);
+    const Shape *shape = addPropertyInternal(cx, id, getter, setter, slot, attrs, 
+                                             flags, shortid, spp);
+    if (!shape)
+        return NULL;
+
+    
+    return js_UpdateWatchpointsForShape(cx, this, shape);
 }
 
 const Shape *
@@ -754,7 +786,11 @@ JSObject::putProperty(JSContext *cx, jsid id,
             return NULL;
         }
 
-        return addPropertyInternal(cx, id, getter, setter, slot, attrs, flags, shortid, spp);
+        const Shape *newShape =
+            addPropertyInternal(cx, id, getter, setter, slot, attrs, flags, shortid, spp);
+        if (!newShape)
+            return NULL;
+        return js_UpdateWatchpointsForShape(cx, this, newShape);
     }
 
     
@@ -768,7 +804,7 @@ JSObject::putProperty(JSContext *cx, jsid id,
 
 
 
-    bool hadSlot = shape->hasSlot();
+    bool hadSlot = !shape->isAlias() && shape->hasSlot();
     uint32 oldSlot = shape->slot;
     if (!(attrs & JSPROP_SHARED) && slot == SHAPE_INVALID_SLOT && hadSlot)
         slot = oldSlot;
@@ -806,7 +842,7 @@ JSObject::putProperty(JSContext *cx, jsid id,
 
     if (inDictionaryMode()) {
         
-        if (slot == SHAPE_INVALID_SLOT && !(attrs & JSPROP_SHARED)) {
+        if (slot == SHAPE_INVALID_SLOT && !(attrs & JSPROP_SHARED) && !(flags & Shape::ALIAS)) {
             if (!allocSlot(cx, &slot))
                 return NULL;
         }
@@ -878,13 +914,13 @@ JSObject::putProperty(JSContext *cx, jsid id,
         if (oldSlot < shape->slotSpan)
             freeSlot(cx, oldSlot);
         else
-            setSlot(oldSlot, UndefinedValue());
+            getSlotRef(oldSlot).setUndefined();
         JS_ATOMIC_INCREMENT(&cx->runtime->propertyRemovals);
     }
 
     CHECK_SHAPE_CONSISTENCY(this);
 
-    return shape;
+    return js_UpdateWatchpointsForShape(cx, this, shape);
 }
 
 const Shape *
@@ -903,6 +939,10 @@ JSObject::changeProperty(JSContext *cx, const Shape *shape, uintN attrs, uintN m
 
     
     JS_ASSERT_IF(getter != shape->rawGetter, !shape->isMethod());
+
+    types::MarkTypePropertyConfigured(cx, getType(), shape->propid);
+    if (attrs & (JSPROP_GETTER | JSPROP_SETTER))
+        types::AddTypePropertyId(cx, getType(), shape->propid, types::TYPE_UNKNOWN);
 
     if (getter == PropertyStub)
         getter = NULL;
@@ -924,7 +964,7 @@ JSObject::changeProperty(JSContext *cx, const Shape *shape, uintN attrs, uintN m
     if (inDictionaryMode()) {
         
         uint32 slot = shape->slot;
-        if (slot == SHAPE_INVALID_SLOT && !(attrs & JSPROP_SHARED)) {
+        if (slot == SHAPE_INVALID_SLOT && !(attrs & JSPROP_SHARED) && !(flags & Shape::ALIAS)) {
             if (!allocSlot(cx, &slot))
                 return NULL;
         }
@@ -950,6 +990,10 @@ JSObject::changeProperty(JSContext *cx, const Shape *shape, uintN attrs, uintN m
         lastProp->shapeid = js_GenerateShape(cx);
         clearOwnShape();
 
+        shape = js_UpdateWatchpointsForShape(cx, this, shape);
+        if (!shape)
+            return NULL;
+        JS_ASSERT(shape == mutableShape);
         newShape = mutableShape;
     } else if (shape == lastProp) {
         Shape child(shape->propid, getter, setter, shape->slot, attrs, shape->flags,
@@ -992,7 +1036,7 @@ JSObject::removeProperty(JSContext *cx, jsid id)
 
     
     bool addedToFreelist = false;
-    bool hadSlot = shape->hasSlot();
+    bool hadSlot = !shape->isAlias() && shape->hasSlot();
     if (hadSlot) {
         addedToFreelist = freeSlot(cx, shape->slot);
         JS_ATOMIC_INCREMENT(&cx->runtime->propertyRemovals);
@@ -1070,7 +1114,7 @@ JSObject::removeProperty(JSContext *cx, jsid id)
 
 
                     if (hadSlot && !addedToFreelist && JSSLOT_FREE(clasp) <= shape->slot) {
-                        setSlot(shape->slot, PrivateUint32Value(table->freelist));
+                        getSlotRef(shape->slot).setPrivateUint32(table->freelist);
                         table->freelist = shape->slot;
                     }
                 }
@@ -1088,18 +1132,6 @@ JSObject::removeProperty(JSContext *cx, jsid id)
 
         JS_ASSERT(shape == lastProp);
         removeLastProperty();
-
-        
-
-
-
-
-        size_t fixed = numFixedSlots();
-        if (shape->slot == fixed) {
-            JS_ASSERT_IF(!lastProp->isEmptyShape() && lastProp->hasSlot(),
-                         lastProp->slot == fixed - 1);
-            revertToFixedSlots(cx);
-        }
     }
     updateShape(cx);
 
@@ -1141,20 +1173,24 @@ JSObject::clear(JSContext *cx)
 
 
 
-
-    if (hasSlotsArray() && JSSLOT_FREE(getClass()) <= numFixedSlots())
-        revertToFixedSlots(cx);
-
-    
-
-
-
     clearOwnShape();
     setMap(shape);
 
     LeaveTraceIfGlobalObject(cx, this);
     JS_ATOMIC_INCREMENT(&cx->runtime->propertyRemovals);
     CHECK_SHAPE_CONSISTENCY(this);
+}
+
+void
+JSObject::rollbackProperties(JSContext *cx, uint32 slotSpan)
+{
+    
+    JS_ASSERT(!inDictionaryMode() && !hasSlotsArray() && slotSpan <= this->slotSpan());
+    while (this->slotSpan() != slotSpan) {
+        JS_ASSERT(lastProp->hasSlot() && getSlot(lastProp->slot).isUndefined());
+        removeLastProperty();
+    }
+    updateShape(cx);
 }
 
 void
@@ -1195,7 +1231,7 @@ JSObject::methodShapeChange(JSContext *cx, const Shape &shape)
         JS_ASSERT(shape.methodObject() == prev.toObject());
         JS_ASSERT(canHaveMethodBarrier());
         JS_ASSERT(hasMethodBarrier());
-        JS_ASSERT(!shape.rawSetter);
+        JS_ASSERT(!shape.rawSetter || shape.rawSetter == js_watch_set);
 #endif
 
         

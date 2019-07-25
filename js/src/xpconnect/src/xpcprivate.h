@@ -103,7 +103,6 @@
 
 #include "nsThreadUtils.h"
 #include "nsIJSContextStack.h"
-#include "nsIJSEngineTelemetryStats.h"
 #include "nsDeque.h"
 
 #include "nsIConsoleService.h"
@@ -462,8 +461,7 @@ class nsXPConnect : public nsIXPConnect,
                     public nsCycleCollectionJSRuntime,
                     public nsCycleCollectionParticipant,
                     public nsIJSRuntimeService,
-                    public nsIThreadJSContextStack,
-                    public nsIJSEngineTelemetryStats
+                    public nsIThreadJSContextStack
 {
 public:
     
@@ -473,7 +471,6 @@ public:
     NS_DECL_NSIJSRUNTIMESERVICE
     NS_DECL_NSIJSCONTEXTSTACK
     NS_DECL_NSITHREADJSCONTEXTSTACK
-    NS_DECL_NSIJSENGINETELEMETRYSTATS
 
     
 public:
@@ -657,7 +654,6 @@ public:
 
     JSRuntime*     GetJSRuntime() const {return mJSRuntime;}
     nsXPConnect*   GetXPConnect() const {return mXPConnect;}
-    JSContext*     GetJSCycleCollectionContext();
 
     JSObject2WrappedJSMap*     GetWrappedJSMap()        const
         {return mWrappedJSMap;}
@@ -789,7 +785,7 @@ public:
     void AddGCCallback(JSGCCallback cb);
     void RemoveGCCallback(JSGCCallback cb);
 
-    static void ActivityCallback(void *arg, JSBool active);
+    static void ActivityCallback(void *arg, PRBool active);
 
 private:
     XPCJSRuntime(); 
@@ -804,9 +800,8 @@ private:
     jsid mStrIDs[IDX_TOTAL_COUNT];
     jsval mStrJSVals[IDX_TOTAL_COUNT];
 
-    nsXPConnect*             mXPConnect;
-    JSRuntime*               mJSRuntime;
-    JSContext*               mJSCycleCollectionContext;
+    nsXPConnect* mXPConnect;
+    JSRuntime*  mJSRuntime;
     JSObject2WrappedJSMap*   mWrappedJSMap;
     IID2WrappedJSClassMap*   mWrappedJSClassMap;
     IID2NativeInterfaceMap*  mIID2NativeInterfaceMap;
@@ -1039,6 +1034,7 @@ public:
     inline XPCPerThreadData*            GetThreadData() const ;
     inline XPCContext*                  GetXPCContext() const ;
     inline JSContext*                   GetJSContext() const ;
+    inline JSContext*                   GetSafeJSContext() const ;
     inline JSBool                       GetContextPopRequired() const ;
     inline XPCContext::LangType         GetCallerLanguage() const ;
     inline XPCContext::LangType         GetPrevCallerLanguage() const ;
@@ -3556,6 +3552,9 @@ public:
 private:
     nsAutoTArray<XPCJSContextInfo, 16> mStack;
     JSContext*  mSafeJSContext;
+
+    
+    
     JSContext*  mOwnSafeJSContext;
 };
 
@@ -3826,6 +3825,30 @@ private:
 
 
 
+class nsXPCComponents_Interfaces :
+            public nsIScriptableInterfaces,
+            public nsIXPCScriptable,
+            public nsIClassInfo,
+            public nsISecurityCheckedComponent
+{
+public:
+    
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSISCRIPTABLEINTERFACES
+    NS_DECL_NSIXPCSCRIPTABLE
+    NS_DECL_NSICLASSINFO
+    NS_DECL_NSISECURITYCHECKEDCOMPONENT
+
+public:
+    nsXPCComponents_Interfaces();
+    virtual ~nsXPCComponents_Interfaces();
+
+private:
+    nsCOMPtr<nsIInterfaceInfoManager> mManager;
+};
+
+
+
 
 extern JSObject*
 xpc_NewIDObject(JSContext *cx, JSObject* jsobj, const nsID& aID);
@@ -3885,9 +3908,7 @@ private:
     PRUint32 mColumnNumber;
     PRUint32 mFlags;
     nsCString mCategory;
-    PRUint64 mOuterWindowID;
-    PRUint64 mInnerWindowID;
-    PRUint64 mTimeStamp;
+    PRUint64 mWindowID;
 };
 
 
@@ -4317,7 +4338,7 @@ xpc_GetJSPrivate(JSObject *obj)
 
 nsresult
 xpc_CreateSandboxObject(JSContext * cx, jsval * vp, nsISupports *prinOrSop,
-                        JSObject *proto, bool preferXray, const nsACString &sandboxName);
+                        JSObject *proto, bool preferXray);
 
 
 
@@ -4348,9 +4369,11 @@ GetRTStringByIndex(JSContext *cx, uintN index);
 
 
 
+
+
 inline JSObject*
 xpc_NewSystemInheritingJSObject(JSContext *cx, JSClass *clasp, JSObject *proto,
-                                JSObject *parent);
+                                bool uniqueType, JSObject *parent);
 
 inline JSBool
 xpc_SameScope(XPCWrappedNativeScope *objectscope,
@@ -4372,7 +4395,6 @@ struct CompartmentPrivate
           waiverWrapperMap(nsnull),
           expandoMap(nsnull)
     {
-        MOZ_COUNT_CTOR(xpc::CompartmentPrivate);
     }
 
     CompartmentPrivate(nsISupports *ptr, bool wantXrays, bool cycleCollectionEnabled)
@@ -4383,7 +4405,6 @@ struct CompartmentPrivate
           waiverWrapperMap(nsnull),
           expandoMap(nsnull)
     {
-        MOZ_COUNT_CTOR(xpc::CompartmentPrivate);
     }
 
     ~CompartmentPrivate();
@@ -4396,7 +4417,6 @@ struct CompartmentPrivate
     JSObject2JSObjectMap *waiverWrapperMap;
     
     nsDataHashtable<nsPtrHashKey<XPCWrappedNative>, JSObject *> *expandoMap;
-    nsCString location;
 
     bool RegisterExpandoObject(XPCWrappedNative *wn, JSObject *expando) {
         if (!expandoMap) {

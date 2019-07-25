@@ -54,6 +54,7 @@
 #include "jsgc.h"
 #include "jsgcchunk.h"
 #include "jshashtable.h"
+#include "jsinfer.h"
 #include "jsinterp.h"
 #include "jsobj.h"
 #include "jspropertycache.h"
@@ -138,7 +139,7 @@ struct GSNCache {
 
     void purge();
 };
-
+ 
 inline GSNCache *
 GetGSNCache(JSContext *cx);
 
@@ -212,7 +213,7 @@ struct ThreadData {
     ~ThreadData();
 
     bool init();
-
+    
     void mark(JSTracer *trc) {
         stackSpace.mark(trc);
     }
@@ -226,12 +227,6 @@ struct ThreadData {
 
     
     void triggerOperationCallback(JSRuntime *rt);
-
-    
-
-
-
-    InterpreterFrames *interpreterFrames;
 };
 
 } 
@@ -269,7 +264,7 @@ struct JSThread {
         suspendCount(0)
 # ifdef DEBUG
       , checkRequestDepth(0)
-# endif
+# endif        
     {
         JS_INIT_CLIST(&contextList);
     }
@@ -381,31 +376,8 @@ struct JSRuntime {
     uint32              protoHazardShape;
 
     
-
-    
-
-
-
-
     js::GCChunkSet      gcChunkSet;
-
-    
-
-
-
-
-
-
-    js::gc::Chunk       *gcSystemAvailableChunkListHead;
-    js::gc::Chunk       *gcUserAvailableChunkListHead;
-
-    
-
-
-
-
-    js::gc::Chunk       *gcEmptyChunkListHead;
-    size_t              gcEmptyChunkCount;
+    js::GCChunkSet      gcSystemChunkSet;
 
     js::RootedValueMap  gcRootsHash;
     js::GCLocks         gcLocksHash;
@@ -415,6 +387,7 @@ struct JSRuntime {
     size_t              gcLastBytes;
     size_t              gcMaxBytes;
     size_t              gcMaxMallocBytes;
+    size_t              gcChunksWaitingToExpire;
     uint32              gcEmptyArenaPoolLifespan;
     uint32              gcNumber;
     js::GCMarker        *gcMarkingTracer;
@@ -439,12 +412,6 @@ struct JSRuntime {
 
     
     JSCompartment       *gcCurrentCompartment;
-
-    
-
-
-
-    JSCompartment       *gcCheckCompartment;
 
     
 
@@ -526,7 +493,7 @@ struct JSRuntime {
     js::Value           negativeInfinityValue;
     js::Value           positiveInfinityValue;
 
-    JSAtom              *emptyString;
+    JSFlatString        *emptyString;
 
     
     JSCList             contextList;
@@ -535,7 +502,12 @@ struct JSRuntime {
     JSDebugHooks        globalDebugHooks;
 
     
-    bool                debugMode;
+
+
+    JSBool              debugMode;
+
+    
+    JSBool              hadOutOfMemory;
 
 #ifdef JS_TRACER
     
@@ -546,10 +518,8 @@ struct JSRuntime {
 #endif
 
     
-
-
-
-    JSCList             debuggerList;
+    JSCList             trapList;
+    JSCList             watchPointList;
 
     
     void                *data;
@@ -579,9 +549,10 @@ struct JSRuntime {
 
 
 
+    PRLock              *debuggerLock;
+
     JSThread::Map       threads;
 #endif 
-
     uint32              debuggerMutations;
 
     
@@ -629,12 +600,6 @@ struct JSRuntime {
 
 #define JS_THREAD_DATA(cx)      (&(cx)->runtime->threadData)
 #endif
-
-  private:
-    JSPrincipals        *trustedPrincipals_;
-  public:
-    void setTrustedPrincipals(JSPrincipals *p) { trustedPrincipals_ = p; }
-    JSPrincipals *trustedPrincipals() const { return trustedPrincipals_; }
 
     
 
@@ -971,6 +936,8 @@ struct JSContext
     
     JSCompartment       *compartment;
 
+    inline void setCompartment(JSCompartment *compartment);
+
     
     js::ContextStack    stack;
 
@@ -1150,6 +1117,9 @@ struct JSContext
 
 
     JSCList             threadLinks;        
+
+#define CX_FROM_THREAD_LINKS(tl) \
+    ((JSContext *)((char *)(tl) - offsetof(JSContext, threadLinks)))
 #endif
 
     
@@ -1190,6 +1160,10 @@ struct JSContext
 
     inline js::mjit::JaegerCompartment *jaegerCompartment();
 #endif
+
+    bool                 inferenceEnabled;
+
+    bool typeInferenceEnabled() { return inferenceEnabled; }
 
     
     void updateJITEnabled();
@@ -1320,24 +1294,6 @@ struct JSContext
 
 
     bool stackIterAssertionEnabled;
-#endif
-
-    
-
-
-
-    bool runningWithTrustedPrincipals() const;
-
-    static inline JSContext *fromLinkField(JSCList *link) {
-        JS_ASSERT(link);
-        return reinterpret_cast<JSContext *>(uintptr_t(link) - offsetof(JSContext, link));
-    }
-
-#ifdef JS_THREADSAFE
-    static inline JSContext *fromThreadLinks(JSCList *link) {
-        JS_ASSERT(link);
-        return reinterpret_cast<JSContext *>(uintptr_t(link) - offsetof(JSContext, threadLinks));
-    }
 #endif
 
   private:
@@ -1483,7 +1439,8 @@ class AutoGCRooter {
         IDVECTOR =    -15, 
         BINDINGS =    -16, 
         SHAPEVECTOR = -17, 
-        OBJVECTOR =   -18  
+        TYPE =        -18, 
+        VALARRAY =    -19  
     };
 
     private:
@@ -2153,36 +2110,6 @@ class ThreadDataIter
 
 #endif  
 
-
-
-
-
-class ThreadContextRange {
-    JSCList *begin;
-    JSCList *end;
-
-public:
-    explicit ThreadContextRange(JSContext *cx) {
-#ifdef JS_THREADSAFE
-        end = &cx->thread()->contextList;
-#else
-        end = &cx->runtime->contextList;
-#endif
-        begin = end->next;
-    }
-
-    bool empty() const { return begin == end; }
-    void popFront() { JS_ASSERT(!empty()); begin = begin->next; }
-
-    JSContext *front() const {
-#ifdef JS_THREADSAFE
-        return JSContext::fromThreadLinks(begin);
-#else
-        return JSContext::fromLinkField(begin);
-#endif
-    }
-};
-
 } 
 
 
@@ -2194,6 +2121,13 @@ js_NewContext(JSRuntime *rt, size_t stackChunkSize);
 
 extern void
 js_DestroyContext(JSContext *cx, JSDestroyContextMode mode);
+
+static JS_INLINE JSContext *
+js_ContextFromLinkField(JSCList *link)
+{
+    JS_ASSERT(link);
+    return reinterpret_cast<JSContext *>(uintptr_t(link) - offsetof(JSContext, link));
+}
 
 
 
@@ -2343,14 +2277,16 @@ TriggerAllOperationCallbacks(JSRuntime *rt);
 
 } 
 
+
+
+
+
+
 extern js::StackFrame *
 js_GetScriptedCaller(JSContext *cx, js::StackFrame *fp);
 
 extern jsbytecode*
 js_GetCurrentBytecodePC(JSContext* cx);
-
-extern JSScript *
-js_GetCurrentScript(JSContext* cx);
 
 extern bool
 js_CurrentPCIsInImacro(JSContext *cx);
@@ -2363,6 +2299,12 @@ LeaveTrace(JSContext *cx);
 extern bool
 CanLeaveTrace(JSContext *cx);
 
+#ifdef JS_METHODJIT
+namespace mjit {
+    void ExpandInlineFrames(JSContext *cx, bool all);
+}
+#endif
+
 } 
 
 
@@ -2371,10 +2313,19 @@ CanLeaveTrace(JSContext *cx);
 
 
 
+
+
+
 static JS_FORCES_STACK JS_INLINE js::StackFrame *
-js_GetTopStackFrame(JSContext *cx)
+js_GetTopStackFrame(JSContext *cx, js::FrameExpandKind expand)
 {
     js::LeaveTrace(cx);
+
+#ifdef JS_METHODJIT
+    if (expand != js::FRAME_EXPAND_NONE)
+        js::mjit::ExpandInlineFrames(cx, expand == js::FRAME_EXPAND_ALL);
+#endif
+
     return cx->maybefp();
 }
 
@@ -2488,19 +2439,6 @@ class AutoValueVector : public AutoVectorRooter<Value>
     JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
-class AutoObjectVector : public AutoVectorRooter<JSObject *>
-{
-  public:
-    explicit AutoObjectVector(JSContext *cx
-                              JS_GUARD_OBJECT_NOTIFIER_PARAM)
-        : AutoVectorRooter<JSObject *>(cx, OBJVECTOR)
-    {
-        JS_GUARD_OBJECT_NOTIFIER_INIT;
-    }
-
-    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
-};
-
 class AutoIdVector : public AutoVectorRooter<jsid>
 {
   public:
@@ -2523,6 +2461,25 @@ class AutoShapeVector : public AutoVectorRooter<const Shape *>
     {
         JS_GUARD_OBJECT_NOTIFIER_INIT;
     }
+
+    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
+};
+
+class AutoValueArray : public AutoGCRooter
+{
+    js::Value *start_;
+    unsigned length_;
+
+  public:
+    AutoValueArray(JSContext *cx, js::Value *start, unsigned length
+                   JS_GUARD_OBJECT_NOTIFIER_PARAM)
+        : AutoGCRooter(cx, VALARRAY), start_(start), length_(length)
+    {
+        JS_GUARD_OBJECT_NOTIFIER_INIT;
+    }
+
+    Value *start() const { return start_; }
+    unsigned length() const { return length_; }
 
     JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };

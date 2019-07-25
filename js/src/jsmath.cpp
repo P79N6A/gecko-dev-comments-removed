@@ -1,45 +1,45 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- *
- * ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla Communicator client code, released
- * March 31, 1998.
- *
- * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 1998
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either of the GNU General Public License Version 2 or later (the "GPL"),
- * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
 
-/*
- * JS math package.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <stdlib.h>
 #include "jstypes.h"
 #include "jsstdint.h"
@@ -54,6 +54,9 @@
 #include "jsnum.h"
 #include "jslibmath.h"
 #include "jscompartment.h"
+
+#include "jsinferinlines.h"
+#include "jsobjinlines.h"
 
 using namespace js;
 
@@ -97,7 +100,7 @@ static JSConstDoubleSpec math_constants[] = {
 MathCache::MathCache() {
     memset(table, 0, sizeof(table));
 
-    /* See comments in lookup(). */
+    
     JS_ASSERT(JSDOUBLE_IS_NEGZERO(-0.0));
     JS_ASSERT(!JSDOUBLE_IS_NEGZERO(+0.0));
     JS_ASSERT(hash(-0.0) != hash(+0.0));
@@ -106,10 +109,10 @@ MathCache::MathCache() {
 Class js_MathClass = {
     js_Math_str,
     JSCLASS_HAS_CACHED_PROTO(JSProto_Math),
-    PropertyStub,         /* addProperty */
-    PropertyStub,         /* delProperty */
-    PropertyStub,         /* getProperty */
-    StrictPropertyStub,   /* setProperty */
+    PropertyStub,         
+    PropertyStub,         
+    PropertyStub,         
+    StrictPropertyStub,   
     EnumerateStub,
     ResolveStub,
     ConvertStub
@@ -124,7 +127,7 @@ js_math_abs(JSContext *cx, uintN argc, Value *vp)
         vp->setDouble(js_NaN);
         return JS_TRUE;
     }
-    if (!ToNumber(cx, vp[2], &x))
+    if (!ValueToNumber(cx, vp[2], &x))
         return JS_FALSE;
     z = fabs(x);
     vp->setNumber(z);
@@ -140,7 +143,7 @@ math_acos(JSContext *cx, uintN argc, Value *vp)
         vp->setDouble(js_NaN);
         return JS_TRUE;
     }
-    if (!ToNumber(cx, vp[2], &x))
+    if (!ValueToNumber(cx, vp[2], &x))
         return JS_FALSE;
 #if defined(SOLARIS) && defined(__GNUC__)
     if (x < -1 || 1 < x) {
@@ -165,7 +168,7 @@ math_asin(JSContext *cx, uintN argc, Value *vp)
         vp->setDouble(js_NaN);
         return JS_TRUE;
     }
-    if (!ToNumber(cx, vp[2], &x))
+    if (!ValueToNumber(cx, vp[2], &x))
         return JS_FALSE;
 #if defined(SOLARIS) && defined(__GNUC__)
     if (x < -1 || 1 < x) {
@@ -190,7 +193,7 @@ math_atan(JSContext *cx, uintN argc, Value *vp)
         vp->setDouble(js_NaN);
         return JS_TRUE;
     }
-    if (!ToNumber(cx, vp[2], &x))
+    if (!ValueToNumber(cx, vp[2], &x))
         return JS_FALSE;
     MathCache *mathCache = GetMathCache(cx);
     if (!mathCache)
@@ -204,13 +207,13 @@ static inline jsdouble JS_FASTCALL
 math_atan2_kernel(jsdouble x, jsdouble y)
 {
 #if defined(_MSC_VER)
-    /*
-     * MSVC's atan2 does not yield the result demanded by ECMA when both x
-     * and y are infinite.
-     * - The result is a multiple of pi/4.
-     * - The sign of x determines the sign of the result.
-     * - The sign of y determines the multiplicator, 1 or 3.
-     */
+    
+
+
+
+
+
+
     if (JSDOUBLE_IS_INFINITE(x) && JSDOUBLE_IS_INFINITE(y)) {
         jsdouble z = js_copysign(M_PI / 4, x);
         if (y < 0)
@@ -239,7 +242,9 @@ math_atan2(JSContext *cx, uintN argc, Value *vp)
         vp->setDouble(js_NaN);
         return JS_TRUE;
     }
-    if (!ToNumber(cx, vp[2], &x) || !ToNumber(cx, vp[3], &y))
+    if (!ValueToNumber(cx, vp[2], &x))
+        return JS_FALSE;
+    if (!ValueToNumber(cx, vp[3], &y))
         return JS_FALSE;
     z = math_atan2_kernel(x, y);
     vp->setDouble(z);
@@ -265,7 +270,7 @@ js_math_ceil(JSContext *cx, uintN argc, Value *vp)
         vp->setDouble(js_NaN);
         return JS_TRUE;
     }
-    if (!ToNumber(cx, vp[2], &x))
+    if (!ValueToNumber(cx, vp[2], &x))
         return JS_FALSE;
     z = js_math_ceil_impl(x);
     vp->setNumber(z);
@@ -281,7 +286,7 @@ math_cos(JSContext *cx, uintN argc, Value *vp)
         vp->setDouble(js_NaN);
         return JS_TRUE;
     }
-    if (!ToNumber(cx, vp[2], &x))
+    if (!ValueToNumber(cx, vp[2], &x))
         return JS_FALSE;
     MathCache *mathCache = GetMathCache(cx);
     if (!mathCache)
@@ -314,7 +319,7 @@ math_exp(JSContext *cx, uintN argc, Value *vp)
         vp->setDouble(js_NaN);
         return JS_TRUE;
     }
-    if (!ToNumber(cx, vp[2], &x))
+    if (!ValueToNumber(cx, vp[2], &x))
         return JS_FALSE;
     MathCache *mathCache = GetMathCache(cx);
     if (!mathCache)
@@ -339,7 +344,7 @@ js_math_floor(JSContext *cx, uintN argc, Value *vp)
         vp->setDouble(js_NaN);
         return JS_TRUE;
     }
-    if (!ToNumber(cx, vp[2], &x))
+    if (!ValueToNumber(cx, vp[2], &x))
         return JS_FALSE;
     z = js_math_floor_impl(x);
     vp->setNumber(z);
@@ -355,7 +360,7 @@ math_log(JSContext *cx, uintN argc, Value *vp)
         vp->setDouble(js_NaN);
         return JS_TRUE;
     }
-    if (!ToNumber(cx, vp[2], &x))
+    if (!ValueToNumber(cx, vp[2], &x))
         return JS_FALSE;
 #if defined(SOLARIS) && defined(__GNUC__)
     if (x < 0) {
@@ -384,7 +389,7 @@ js_math_max(JSContext *cx, uintN argc, Value *vp)
     }
     argv = vp + 2;
     for (i = 0; i < argc; i++) {
-        if (!ToNumber(cx, argv[i], &x))
+        if (!ValueToNumber(cx, argv[i], &x))
             return JS_FALSE;
         if (JSDOUBLE_IS_NaN(x)) {
             vp->setDouble(js_NaN);
@@ -414,7 +419,7 @@ js_math_min(JSContext *cx, uintN argc, Value *vp)
     }
     argv = vp + 2;
     for (i = 0; i < argc; i++) {
-        if (!ToNumber(cx, argv[i], &x))
+        if (!ValueToNumber(cx, argv[i], &x))
             return JS_FALSE;
         if (JSDOUBLE_IS_NaN(x)) {
             vp->setDouble(js_NaN);
@@ -442,14 +447,14 @@ powi(jsdouble x, jsint y)
         n >>= 1;
         if (n == 0) {
             if (y < 0) {
-                // Unfortunately, we have to be careful when p has reached
-                // infinity in the computation, because sometimes the higher
-                // internal precision in the pow() implementation would have
-                // given us a finite p. This happens very rarely.
+                
+                
+                
+                
                 
                 jsdouble result = 1.0 / p;
                 return (result == 0 && JSDOUBLE_IS_INFINITE(p))
-                       ? pow(x, static_cast<jsdouble>(y))  // Avoid pow(double, int).
+                       ? pow(x, static_cast<jsdouble>(y))  
                        : result;
             }
 
@@ -459,8 +464,8 @@ powi(jsdouble x, jsint y)
     }
 }
 
-static JSBool
-math_pow(JSContext *cx, uintN argc, Value *vp)
+JSBool
+js_math_pow(JSContext *cx, uintN argc, Value *vp)
 {
     jsdouble x, y, z;
 
@@ -468,12 +473,14 @@ math_pow(JSContext *cx, uintN argc, Value *vp)
         vp->setDouble(js_NaN);
         return JS_TRUE;
     }
-    if (!ToNumber(cx, vp[2], &x) || !ToNumber(cx, vp[3], &y))
+    if (!ValueToNumber(cx, vp[2], &x))
         return JS_FALSE;
-    /*
-     * Special case for square roots. Note that pow(x, 0.5) != sqrt(x)
-     * when x = -0.0, so we have to guard for this.
-     */
+    if (!ValueToNumber(cx, vp[3], &y))
+        return JS_FALSE;
+    
+
+
+
     if (JSDOUBLE_IS_FINITE(x) && x != 0.0) {
         if (y == 0.5) {
             vp->setNumber(sqrt(x));
@@ -484,15 +491,15 @@ math_pow(JSContext *cx, uintN argc, Value *vp)
             return JS_TRUE;
         }
     }
-    /*
-     * Because C99 and ECMA specify different behavior for pow(),
-     * we need to wrap the libm call to make it ECMA compliant.
-     */
+    
+
+
+
     if (!JSDOUBLE_IS_FINITE(y) && (x == 1.0 || x == -1.0)) {
         vp->setDouble(js_NaN);
         return JS_TRUE;
     }
-    /* pow(x, +-0) is always 1, even for x = NaN. */
+    
     if (y == 0) {
         vp->setInt32(1);
         return JS_TRUE;
@@ -512,9 +519,9 @@ static const int64 RNG_ADDEND = 0xBLL;
 static const int64 RNG_MASK = (1LL << 48) - 1;
 static const jsdouble RNG_DSCALE = jsdouble(1LL << 53);
 
-/*
- * Math.random() support, lifted from java.util.Random.java.
- */
+
+
+
 static inline void
 random_setSeed(JSContext *cx, int64 seed)
 {
@@ -524,12 +531,12 @@ random_setSeed(JSContext *cx, int64 seed)
 void
 js_InitRandom(JSContext *cx)
 {
-    /*
-     * Set the seed from current time. Since we have a RNG per context and we often bring
-     * up several contexts at the same time, we xor in some additional values, namely
-     * the context and its successor. We don't just use the context because it might be
-     * possible to reverse engineer the context pointer if one guesses the time right.
-     */
+    
+
+
+
+
+
     random_setSeed(cx,
                    (PRMJ_Now() / 1000) ^
                    int64(cx) ^
@@ -561,7 +568,7 @@ math_random(JSContext *cx, uintN argc, Value *vp)
 }
 
 #if defined _WIN32 && _MSC_VER < 1400
-/* Try to work around apparent _copysign bustage in VC7.x. */
+
 double
 js_copysign(double x, double y)
 {
@@ -590,7 +597,7 @@ js_math_round(JSContext *cx, uintN argc, Value *vp)
         vp->setDouble(js_NaN);
         return JS_TRUE;
     }
-    if (!ToNumber(cx, vp[2], &x))
+    if (!ValueToNumber(cx, vp[2], &x))
         return JS_FALSE;
     z = js_copysign(floor(x + 0.5), x);
     vp->setNumber(z);
@@ -606,7 +613,7 @@ math_sin(JSContext *cx, uintN argc, Value *vp)
         vp->setDouble(js_NaN);
         return JS_TRUE;
     }
-    if (!ToNumber(cx, vp[2], &x))
+    if (!ValueToNumber(cx, vp[2], &x))
         return JS_FALSE;
     MathCache *mathCache = GetMathCache(cx);
     if (!mathCache)
@@ -616,8 +623,8 @@ math_sin(JSContext *cx, uintN argc, Value *vp)
     return JS_TRUE;
 }
 
-static JSBool
-math_sqrt(JSContext *cx, uintN argc, Value *vp)
+JSBool
+js_math_sqrt(JSContext *cx, uintN argc, Value *vp)
 {
     jsdouble x, z;
 
@@ -625,7 +632,7 @@ math_sqrt(JSContext *cx, uintN argc, Value *vp)
         vp->setDouble(js_NaN);
         return JS_TRUE;
     }
-    if (!ToNumber(cx, vp[2], &x))
+    if (!ValueToNumber(cx, vp[2], &x))
         return JS_FALSE;
     MathCache *mathCache = GetMathCache(cx);
     if (!mathCache)
@@ -644,7 +651,7 @@ math_tan(JSContext *cx, uintN argc, Value *vp)
         vp->setDouble(js_NaN);
         return JS_TRUE;
     }
-    if (!ToNumber(cx, vp[2], &x))
+    if (!ValueToNumber(cx, vp[2], &x))
         return JS_FALSE;
     MathCache *mathCache = GetMathCache(cx);
     if (!mathCache)
@@ -676,7 +683,7 @@ MATH_BUILTIN_1(js_math_abs, fabs)
 MATH_BUILTIN_1(math_atan, atan)
 MATH_BUILTIN_1(math_sin, sin)
 MATH_BUILTIN_1(math_cos, cos)
-MATH_BUILTIN_1(math_sqrt, sqrt)
+MATH_BUILTIN_1(js_math_sqrt, sqrt)
 MATH_BUILTIN_1(math_tan, tan)
 
 static jsdouble FASTCALL
@@ -727,7 +734,7 @@ math_max_tn(jsdouble d, jsdouble p)
         return js_NaN;
 
     if (p == 0 && p == d) {
-        // Max prefers 0.0 to -0.0.
+        
         if (js_copysign(1.0, d) == -1)
             return p;
         return d;
@@ -742,7 +749,7 @@ math_min_tn(jsdouble d, jsdouble p)
         return js_NaN;
 
     if (p == 0 && p == d) {
-        // Min prefers -0.0 to 0.0.
+        
         if (js_copysign (1.0, p) == -1)
             return p;
         return d;
@@ -753,10 +760,10 @@ math_min_tn(jsdouble d, jsdouble p)
 static jsdouble FASTCALL
 math_pow_tn(jsdouble d, jsdouble p)
 {
-    /*
-     * Special case for square roots. Note that pow(x, 0.5) != sqrt(x)
-     * when x = -0.0, so we have to guard for this.
-     */
+    
+
+
+
     if (JSDOUBLE_IS_FINITE(d) && d != 0.0) {
         if (p == 0.5)
             return sqrt(d);
@@ -813,7 +820,7 @@ JS_DEFINE_TRCINFO_1(js_math_max,
     (2, (static, DOUBLE, math_max_tn, DOUBLE, DOUBLE,   1, nanojit::ACCSET_NONE)))
 JS_DEFINE_TRCINFO_1(js_math_min,
     (2, (static, DOUBLE, math_min_tn, DOUBLE, DOUBLE,   1, nanojit::ACCSET_NONE)))
-JS_DEFINE_TRCINFO_1(math_pow,
+JS_DEFINE_TRCINFO_1(js_math_pow,
     (2, (static, DOUBLE, math_pow_tn, DOUBLE, DOUBLE,   1, nanojit::ACCSET_NONE)))
 JS_DEFINE_TRCINFO_1(math_random,
     (1, (static, DOUBLE, math_random_tn, CONTEXT,       0, nanojit::ACCSET_STORE_ANY)))
@@ -822,7 +829,7 @@ JS_DEFINE_TRCINFO_1(js_math_round,
 JS_DEFINE_TRCINFO_1(js_math_ceil,
     (1, (static, DOUBLE, math_ceil_tn, DOUBLE,          1, nanojit::ACCSET_NONE)))
 
-#endif /* JS_TRACER */
+#endif 
 
 static JSFunctionSpec math_static_methods[] = {
 #if JS_HAS_TOSOURCE
@@ -840,11 +847,11 @@ static JSFunctionSpec math_static_methods[] = {
     JS_TN("log",            math_log,             1, 0, &math_log_trcinfo),
     JS_TN("max",            js_math_max,          2, 0, &js_math_max_trcinfo),
     JS_TN("min",            js_math_min,          2, 0, &js_math_min_trcinfo),
-    JS_TN("pow",            math_pow,             2, 0, &math_pow_trcinfo),
+    JS_TN("pow",            js_math_pow,          2, 0, &js_math_pow_trcinfo),
     JS_TN("random",         math_random,          0, 0, &math_random_trcinfo),
     JS_TN("round",          js_math_round,        1, 0, &js_math_round_trcinfo),
     JS_TN("sin",            math_sin,             1, 0, &math_sin_trcinfo),
-    JS_TN("sqrt",           math_sqrt,            1, 0, &math_sqrt_trcinfo),
+    JS_TN("sqrt",           js_math_sqrt,         1, 0, &js_math_sqrt_trcinfo),
     JS_TN("tan",            math_tan,             1, 0, &math_tan_trcinfo),
     JS_FS_END
 };
@@ -862,11 +869,17 @@ js_IsMathFunction(JSNative native)
 JSObject *
 js_InitMathClass(JSContext *cx, JSObject *obj)
 {
-    JSObject *Math;
-
-    Math = JS_NewObject(cx, Jsvalify(&js_MathClass), NULL, obj);
+    JSObject *Math = NewNonFunction<WithProto::Class>(cx, &js_MathClass, NULL, obj);
     if (!Math)
         return NULL;
+
+    types::TypeObject *type = cx->compartment->types.newTypeObject(cx, NULL, js_Math_str, "",
+                                                                   JSProto_Object,
+                                                                   Math->getProto());
+    if (!type || !Math->setTypeAndUniqueShape(cx, type))
+        return NULL;
+    type->singleton = Math;
+
     if (!JS_DefineProperty(cx, obj, js_Math_str, OBJECT_TO_JSVAL(Math),
                            JS_PropertyStub, JS_StrictPropertyStub, 0)) {
         return NULL;

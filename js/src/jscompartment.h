@@ -40,13 +40,12 @@
 #ifndef jscompartment_h___
 #define jscompartment_h___
 
-#include "jsclist.h"
 #include "jscntxt.h"
-#include "jsfun.h"
 #include "jsgc.h"
-#include "jsgcstats.h"
 #include "jsobj.h"
-#include "vm/GlobalObject.h"
+#include "jsfun.h"
+#include "jsgcstats.h"
+#include "jsclist.h"
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -287,16 +286,12 @@ struct TraceMonitor {
     JS_FRIEND_API(void) getCodeAllocStats(size_t &total, size_t &frag_size, size_t &free_size) const;
     JS_FRIEND_API(size_t) getVMAllocatorsMainSize() const;
     JS_FRIEND_API(size_t) getVMAllocatorsReserveSize() const;
-    JS_FRIEND_API(size_t) getTraceMonitorSize() const;
 };
 
 namespace mjit {
 class JaegerCompartment;
 }
 }
-
-
-extern JSClass js_dummy_class;
 
 
 #ifndef JS_EVAL_CACHE_SHIFT
@@ -368,30 +363,12 @@ class DtoaCache {
 
 };
 
-struct ScriptFilenameEntry
-{
-    bool marked;
-    char filename[1];
-};
-
-struct ScriptFilenameHasher
-{
-    typedef const char *Lookup;
-    static HashNumber hash(const char *l) { return JS_HashString(l); }
-    static bool match(const ScriptFilenameEntry *e, const char *l) {
-        return strcmp(e->filename, l) == 0;
-    }
-};
-
-typedef HashSet<ScriptFilenameEntry *,
-                ScriptFilenameHasher,
-                SystemAllocPolicy> ScriptFilenameTable;
-
 } 
 
 struct JS_FRIEND_API(JSCompartment) {
     JSRuntime                    *rt;
     JSPrincipals                 *principals;
+    js::gc::Chunk                *chunk;
 
     js::gc::ArenaList            arenas[js::gc::FINALIZE_LIMIT];
     js::gc::FreeLists            freeLists;
@@ -401,7 +378,33 @@ struct JS_FRIEND_API(JSCompartment) {
     size_t                       gcLastBytes;
 
     bool                         hold;
-    bool                         isSystemCompartment;
+    bool                         systemGCChunks;
+
+    
+
+
+
+
+    JSArenaPool                  pool;
+    bool                         activeAnalysis;
+    bool                         activeInference;
+
+    
+    js::types::TypeCompartment   types;
+
+    bool condenseTypes(JSContext *cx);
+
+    
+    struct TypeInferenceMemoryStats
+    {
+        int64 scriptMain;
+        int64 scriptSets;
+        int64 objectMain;
+        int64 objectSets;
+        int64 poolMain;
+    };
+
+    void getTypeInferenceMemoryStats(TypeInferenceMemoryStats *stats);
 
 #ifdef JS_TRACER
   private:
@@ -418,7 +421,6 @@ struct JS_FRIEND_API(JSCompartment) {
 
     void                         *data;
     bool                         active;  
-    bool                         hasDebugModeCodeToDrop;
     js::WrapperMap               crossCompartmentWrappers;
 
 #ifdef JS_METHODJIT
@@ -489,25 +491,18 @@ struct JS_FRIEND_API(JSCompartment) {
     const js::Shape              *initialRegExpShape;
     const js::Shape              *initialStringShape;
 
-  private:
-    enum { DebugFromC = 1, DebugFromJS = 2 };
-
-    uintN                        debugModeBits;  
-
-  public:
-    JSCList                      scripts;        
+    bool                         debugMode;  
+    JSCList                      scripts;    
 
     js::NativeIterCache          nativeIterCache;
 
     typedef js::Maybe<js::ToSourceCache> LazyToSourceCache;
     LazyToSourceCache            toSourceCache;
 
-    js::ScriptFilenameTable      scriptFilenameTable;
-
     JSCompartment(JSRuntime *rt);
     ~JSCompartment();
 
-    bool init();
+    bool init(JSContext *cx);
 
     
     void markCrossCompartmentWrappers(JSTracer *trc);
@@ -521,6 +516,7 @@ struct JS_FRIEND_API(JSCompartment) {
     bool wrap(JSContext *cx, js::PropertyDescriptor *desc);
     bool wrap(JSContext *cx, js::AutoIdVector &props);
 
+    void markTypes(JSTracer *trc);
     void sweep(JSContext *cx, uint32 releaseInterval);
     void purge(JSContext *cx);
     void finishArenaLists();
@@ -546,18 +542,7 @@ struct JS_FRIEND_API(JSCompartment) {
 
     BackEdgeMap                  backEdgeTable;
 
-    
-
-
-
-    js::GlobalObjectSet              debuggees;
-
-  public:
-    js::BreakpointSiteMap            breakpointSites;
-
-  private:
     JSCompartment *thisForCtor() { return this; }
-
   public:
     js::MathCache *getMathCache(JSContext *cx) {
         return mathCache ? mathCache : allocMathCache(cx);
@@ -578,46 +563,6 @@ struct JS_FRIEND_API(JSCompartment) {
 
     size_t backEdgeCount(jsbytecode *pc) const;
     size_t incBackEdgeCount(jsbytecode *pc);
-
-    
-
-
-
-
-
-
-    bool debugMode() const { return !!debugModeBits; }
-
-    
-
-
-
-
-    bool hasScriptsOnStack(JSContext *cx);
-
-  private:
-    
-    void updateForDebugMode(JSContext *cx);
-
-  public:
-    js::GlobalObjectSet &getDebuggees() { return debuggees; }
-    bool addDebuggee(JSContext *cx, js::GlobalObject *global);
-    void removeDebuggee(JSContext *cx, js::GlobalObject *global,
-                        js::GlobalObjectSet::Enum *debuggeesEnum = NULL);
-    bool setDebugModeFromC(JSContext *cx, bool b);
-
-    js::BreakpointSite *getBreakpointSite(jsbytecode *pc);
-    js::BreakpointSite *getOrCreateBreakpointSite(JSContext *cx, JSScript *script, jsbytecode *pc,
-                                                  JSObject *scriptObject);
-    void clearBreakpointsIn(JSContext *cx, js::Debugger *dbg, JSScript *script, JSObject *handler);
-    void clearTraps(JSContext *cx, JSScript *script);
-    bool markTrapClosuresIteratively(JSTracer *trc);
-
-  private:
-    void sweepBreakpoints(JSContext *cx);
-
-  public:
-    js::WatchpointMap *watchpointMap;
 };
 
 #define JS_SCRIPTS_TO_GC(cx)    ((cx)->compartment->scriptsToGC)
@@ -699,6 +644,13 @@ GetMathCache(JSContext *cx)
 }
 }
 
+inline void
+JSContext::setCompartment(JSCompartment *compartment)
+{
+    this->compartment = compartment;
+    this->inferenceEnabled = compartment ? compartment->types.inferenceEnabled : false;
+}
+
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
@@ -710,15 +662,19 @@ class PreserveCompartment {
     JSContext *cx;
   private:
     JSCompartment *oldCompartment;
+    bool oldInferenceEnabled;
     JS_DECL_USE_GUARD_OBJECT_NOTIFIER
   public:
      PreserveCompartment(JSContext *cx JS_GUARD_OBJECT_NOTIFIER_PARAM) : cx(cx) {
         JS_GUARD_OBJECT_NOTIFIER_INIT;
         oldCompartment = cx->compartment;
+        oldInferenceEnabled = cx->inferenceEnabled;
     }
 
     ~PreserveCompartment() {
+        
         cx->compartment = oldCompartment;
+        cx->inferenceEnabled = oldInferenceEnabled;
     }
 };
 
@@ -729,14 +685,14 @@ class SwitchToCompartment : public PreserveCompartment {
         : PreserveCompartment(cx)
     {
         JS_GUARD_OBJECT_NOTIFIER_INIT;
-        cx->compartment = newCompartment;
+        cx->setCompartment(newCompartment);
     }
 
     SwitchToCompartment(JSContext *cx, JSObject *target JS_GUARD_OBJECT_NOTIFIER_PARAM)
         : PreserveCompartment(cx)
     {
         JS_GUARD_OBJECT_NOTIFIER_INIT;
-        cx->compartment = target->getCompartment();
+        cx->setCompartment(target->getCompartment());
     }
 
     JS_DECL_USE_GUARD_OBJECT_NOTIFIER

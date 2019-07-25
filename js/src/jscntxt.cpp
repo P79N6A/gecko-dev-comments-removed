@@ -111,8 +111,7 @@ ThreadData::ThreadData()
     waiveGCQuota(false),
     dtoaState(NULL),
     nativeStackBase(GetNativeStackBase()),
-    pendingProxyOperation(NULL),
-    interpreterFrames(NULL)
+    pendingProxyOperation(NULL)
 {
 }
 
@@ -149,20 +148,6 @@ ThreadData::triggerOperationCallback(JSRuntime *rt)
 }
 
 } 
-
-JSScript *
-js_GetCurrentScript(JSContext *cx)
-{
-#ifdef JS_TRACER
-    VOUCH_DOES_NOT_REQUIRE_STACK();
-    if (JS_ON_TRACE(cx)) {
-        VMSideExit *bailExit = JS_TRACE_MONITOR_ON_TRACE(cx)->bailExit;
-        return bailExit ? bailExit->script : NULL;
-    }
-#endif
-    return cx->hasfp() ? cx->fp()->maybeScript() : NULL;
-}
-
 
 #ifdef JS_THREADSAFE
 
@@ -509,11 +494,24 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode)
 #endif
 
             
+
+
+
+            {
+                AutoLockGC lock(rt);
+                JSCompartment **compartment = rt->compartments.begin();
+                JSCompartment **end = rt->compartments.end();
+                while (compartment < end) {
+                    (*compartment)->types.print(cx, *compartment);
+                    compartment++;
+                }
+            }
+
+            
             js_FinishCommonAtoms(cx);
 
             
-            for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); c++)
-                (*c)->clearTraps(cx, NULL);
+            JS_ClearAllTraps(cx);
             JS_ClearAllWatchPoints(cx);
         }
 
@@ -571,7 +569,7 @@ js_ContextIterator(JSRuntime *rt, JSBool unlocked, JSContext **iterp)
     Maybe<AutoLockGC> lockIf;
     if (unlocked)
         lockIf.construct(rt);
-    cx = JSContext::fromLinkField(cx ? cx->link.next : rt->contextList.next);
+    cx = js_ContextFromLinkField(cx ? cx->link.next : rt->contextList.next);
     if (&cx->link == &rt->contextList)
         cx = NULL;
     *iterp = cx;
@@ -680,6 +678,8 @@ js_ReportOutOfMemory(JSContext *cx)
         return;
 #endif
 
+    cx->runtime->hadOutOfMemory = true;
+
     JSErrorReport report;
     JSErrorReporter onError = cx->errorReporter;
 
@@ -744,8 +744,8 @@ checkReportFlags(JSContext *cx, uintN *flags)
 
 
 
-        StackFrame *fp = js_GetScriptedCaller(cx, NULL);
-        if (fp && fp->script()->strictModeCode)
+        JSScript *script = cx->stack.currentScript();
+        if (script && script->strictModeCode)
             *flags &= ~JSREPORT_WARNING;
         else if (cx->hasStrictOption())
             *flags |= JSREPORT_WARNING;
@@ -1084,7 +1084,7 @@ js_ReportMissingArg(JSContext *cx, const Value &v, uintN arg)
     JS_snprintf(argbuf, sizeof argbuf, "%u", arg);
     bytes = NULL;
     if (IsFunctionObject(v)) {
-        atom = v.toObject().getFunctionPrivate()->atom;
+        atom = GET_FUNCTION_PRIVATE(cx, &v.toObject())->atom;
         bytes = DecompileValueGenerator(cx, JSDVG_SEARCH_STACK,
                                         v, atom);
         if (!bytes)
@@ -1254,7 +1254,7 @@ StackFrame *
 js_GetScriptedCaller(JSContext *cx, StackFrame *fp)
 {
     if (!fp)
-        fp = js_GetTopStackFrame(cx);
+        fp = js_GetTopStackFrame(cx, FRAME_EXPAND_TOP);
     while (fp && fp->isDummyFrame())
         fp = fp->prev();
     JS_ASSERT_IF(fp, fp->isScriptFrame());
@@ -1388,9 +1388,10 @@ JSContext::resetCompartment()
     }
 
     compartment = scopeobj->compartment();
+    inferenceEnabled = compartment->types.inferenceEnabled;
+
     if (isExceptionPending())
         wrapPendingException();
-    updateJITEnabled();
     return;
 
 error:
@@ -1434,12 +1435,6 @@ JSContext::generatorFor(StackFrame *fp) const
     }
     JS_NOT_REACHED("no matching generator");
     return NULL;
-}
-
-bool
-JSContext::runningWithTrustedPrincipals() const
-{
-    return !compartment || compartment->principals == runtime->trustedPrincipals();
 }
 
 JS_FRIEND_API(void)
@@ -1581,8 +1576,6 @@ JSContext::updateJITEnabled()
 #ifdef JS_TRACER
     traceJitEnabled = ((runOptions & JSOPTION_JIT) &&
                        !IsJITBrokenHere() &&
-                       compartment &&
-                       !compartment->debugMode() &&
                        (debugHooks == &js_NullDebugHooks ||
                         (debugHooks == &runtime->globalDebugHooks &&
                          !runtime->debuggerInhibitsJIT())));

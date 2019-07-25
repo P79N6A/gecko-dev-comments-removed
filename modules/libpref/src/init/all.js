@@ -98,16 +98,13 @@ pref("dom.indexedDB.enabled", true);
 pref("dom.indexedDB.warningQuota", 50);
 
 
-pref("dom.workers.enabled", true);
-
-pref("dom.workers.maxPerDomain", 20);
-
-
 pref("dom.enable_performance", true);
 
 
 
 pref("browser.sessionhistory.max_total_viewers", -1);
+
+pref("browser.sessionhistory.optimize_eviction", true);
 
 pref("ui.use_native_colors", true);
 pref("ui.click_hold_context_menus", false);
@@ -194,7 +191,6 @@ pref("media.autoplay.enabled", true);
 pref("gfx.color_management.mode", 2);
 pref("gfx.color_management.display_profile", "");
 pref("gfx.color_management.rendering_intent", 0);
-pref("gfx.color_management.enablev4", false);
 
 pref("gfx.downloadable_fonts.enabled", true);
 pref("gfx.downloadable_fonts.fallback_delay", 3000);
@@ -203,7 +199,7 @@ pref("gfx.downloadable_fonts.sanitize", true);
 
 #ifdef XP_MACOSX
 
-pref("gfx.font_rendering.harfbuzz.scripts", 71);
+pref("gfx.font_rendering.harfbuzz.scripts", 7);
 #else
 
 pref("gfx.font_rendering.harfbuzz.scripts", 3);
@@ -624,6 +620,7 @@ pref("javascript.options.methodjit.chrome",  true);
 pref("javascript.options.jitprofiling.content", true);
 pref("javascript.options.jitprofiling.chrome",  true);
 pref("javascript.options.methodjit_always", false);
+pref("javascript.options.typeinference", true);
 
 
 
@@ -632,7 +629,6 @@ pref("javascript.options.mem.high_water_mark", 128);
 pref("javascript.options.mem.max", -1);
 pref("javascript.options.mem.gc_per_compartment", true);
 pref("javascript.options.mem.log", false);
-pref("javascript.options.gc_on_memory_pressure", true);
 
 
 pref("advanced.mailftp",                    false);
@@ -780,10 +776,6 @@ pref("network.http.connection-retry-timeout", 250);
 
 
 
-pref("network.http.fast-fallback-to-IPv4", false);
-
-
-
 
 
 pref("network.ftp.data.qos", 0);
@@ -824,10 +816,6 @@ pref("network.websocket.extensions.stream-deflate", true);
 
 
 pref("network.websocket.max-connections", 200);
-
-
-
-pref("network.websocket.allowInsecureFromHTTPS", false);
 
 
 
@@ -1114,58 +1102,6 @@ pref("intl.uidirection.fa", "rtl");
 pref("intl.hyphenation-alias.en", "en-us");
 
 pref("intl.hyphenation-alias.en-*", "en-us");
-
-pref("intl.hyphenation-alias.af-*", "af");
-pref("intl.hyphenation-alias.bg-*", "bg");
-pref("intl.hyphenation-alias.ca-*", "ca");
-pref("intl.hyphenation-alias.cy-*", "cy");
-pref("intl.hyphenation-alias.da-*", "da");
-pref("intl.hyphenation-alias.eo-*", "eo");
-pref("intl.hyphenation-alias.es-*", "es");
-pref("intl.hyphenation-alias.et-*", "et");
-pref("intl.hyphenation-alias.fi-*", "fi");
-pref("intl.hyphenation-alias.fr-*", "fr");
-pref("intl.hyphenation-alias.gl-*", "gl");
-pref("intl.hyphenation-alias.hr-*", "hr");
-pref("intl.hyphenation-alias.hsb-*", "hsb");
-pref("intl.hyphenation-alias.hu-*", "hu");
-pref("intl.hyphenation-alias.ia-*", "ia");
-pref("intl.hyphenation-alias.is-*", "is");
-pref("intl.hyphenation-alias.it-*", "it");
-pref("intl.hyphenation-alias.kmr-*", "kmr");
-pref("intl.hyphenation-alias.la-*", "la");
-pref("intl.hyphenation-alias.lt-*", "lt");
-pref("intl.hyphenation-alias.mn-*", "mn");
-pref("intl.hyphenation-alias.nl-*", "nl");
-pref("intl.hyphenation-alias.pt-*", "pt");
-pref("intl.hyphenation-alias.ru-*", "ru");
-pref("intl.hyphenation-alias.sl-*", "sl");
-pref("intl.hyphenation-alias.sv-*", "sv");
-pref("intl.hyphenation-alias.tr-*", "tr");
-pref("intl.hyphenation-alias.uk-*", "uk");
-
-
-
-pref("intl.hyphenation-alias.de", "de-1996");
-pref("intl.hyphenation-alias.de-*", "de-1996");
-pref("intl.hyphenation-alias.de-DE-1901", "de-1901");
-pref("intl.hyphenation-alias.de-CH-*", "de-CH");
-
-
-
-
-pref("intl.hyphenation-alias.sr", "sh");
-pref("intl.hyphenation-alias.bs", "sh");
-pref("intl.hyphenation-alias.sh-*", "sh");
-pref("intl.hyphenation-alias.sr-*", "sh");
-pref("intl.hyphenation-alias.bs-*", "sh");
-
-
-
-pref("intl.hyphenation-alias.no", "nb");
-pref("intl.hyphenation-alias.no-*", "nb");
-pref("intl.hyphenation-alias.nb-*", "nb");
-pref("intl.hyphenation-alias.nn-*", "nn");
 
 pref("font.mathfont-family", "STIXNonUnicode, STIXSizeOneSym, STIXSize1, STIXGeneral, Asana Math, Standard Symbols L, DejaVu Sans, Cambria Math");
 
@@ -1462,16 +1398,11 @@ pref("dom.max_script_run_time", 10);
 pref("dom.ipc.plugins.timeoutSecs", 45);
 
 
-
-pref("dom.ipc.plugins.parentTimeoutSecs", 15);
-
-
 pref("dom.ipc.plugins.processLaunchTimeoutSecs", 45);
 #else
 
 pref("dom.ipc.plugins.timeoutSecs", 0);
 pref("dom.ipc.plugins.processLaunchTimeoutSecs", 0);
-pref("dom.ipc.plugins.parentTimeoutSecs", 0);
 #endif
 
 
@@ -1488,8 +1419,6 @@ pref("dom.ipc.plugins.enabled.602plugin.so", false);
 #endif
 #endif
 #endif
-
-pref("dom.ipc.processCount", 1);
 
 pref("svg.smil.enabled", true);
 
@@ -2114,15 +2043,15 @@ pref("font.name-list.monospace.x-central-euro", "Courier");
 pref("font.name-list.cursive.x-central-euro", "Apple Chancery");
 pref("font.name-list.fantasy.x-central-euro", "Papyrus");
 
-pref("font.name.serif.x-cyrillic", "Times");
-pref("font.name.sans-serif.x-cyrillic", "Helvetica");
-pref("font.name.monospace.x-cyrillic", "Monaco");
-pref("font.name.cursive.x-cyrillic", "Geneva");
+pref("font.name.serif.x-cyrillic", "Times CY");
+pref("font.name.sans-serif.x-cyrillic", "Helvetica CY");
+pref("font.name.monospace.x-cyrillic", "Monaco CY");
+pref("font.name.cursive.x-cyrillic", "Geneva CY");
 pref("font.name.fantasy.x-cyrillic", "Charcoal CY");
-pref("font.name-list.serif.x-cyrillic", "Times");
-pref("font.name-list.sans-serif.x-cyrillic", "Helvetica");
-pref("font.name-list.monospace.x-cyrillic", "Monaco");
-pref("font.name-list.cursive.x-cyrillic", "Geneva");
+pref("font.name-list.serif.x-cyrillic", "Times CY");
+pref("font.name-list.sans-serif.x-cyrillic", "Helvetica CY");
+pref("font.name-list.monospace.x-cyrillic", "Monaco CY");
+pref("font.name-list.cursive.x-cyrillic", "Geneva CY");
 pref("font.name-list.fantasy.x-cyrillic", "Charcoal CY");
 
 pref("font.name.serif.x-devanagari", "Devanagari MT");
@@ -3257,10 +3186,10 @@ pref("image.mem.decodeondraw", false);
 pref("image.mem.min_discard_timeout_ms", 10000);
 
 
-pref("image.mem.decode_bytes_at_a_time", 4096);
+pref("image.mem.decode_bytes_at_a_time", 200000);
 
 
-pref("image.mem.max_ms_before_yield", 5);
+pref("image.mem.max_ms_before_yield", 400);
 
 
 pref("image.mem.max_bytes_for_sync_decode", 150000);
@@ -3280,22 +3209,14 @@ pref("network.tcp.sendbuffer", 131072);
 #endif
 
 
-#ifdef MOZ_E10S_COMPAT
-pref("layers.acceleration.disabled", true);
-#else
 pref("layers.acceleration.disabled", false);
-#endif
 
 
 pref("layers.acceleration.force-enabled", false);
 
 #ifdef XP_WIN
 
-#ifdef MOZ_E10S_COMPAT
-pref("gfx.direct2d.disabled", true);
-#else
 pref("gfx.direct2d.disabled", false);
-#endif
 
 
 pref("gfx.direct2d.force-enabled", false);
@@ -3337,12 +3258,3 @@ pref("network.buffer.cache.size",  32768);
 
 
 pref("notification.feature.enabled", false);
-
-
-pref("alerts.slideIncrement", 1);
-pref("alerts.slideIncrementTime", 10);
-pref("alerts.totalOpenTime", 4000);
-pref("alerts.disableSlidingEffect", false);
- 
-
-pref("layout.3d-transforms.enabled, false);

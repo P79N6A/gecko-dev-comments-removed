@@ -47,6 +47,7 @@
 #include "jsprvtd.h"
 #include "jsdbgapi.h"
 #include "jsclist.h"
+#include "jsinfer.h"
 
 
 
@@ -176,7 +177,7 @@ class Bindings {
     bool hasExtensibleParents;
 
   public:
-    inline Bindings(JSContext *cx, EmptyShape *emptyCallShape);
+    inline Bindings(JSContext *cx);
 
     
 
@@ -202,6 +203,9 @@ class Bindings {
 
     bool hasUpvars() const { return nupvars > 0; }
     bool hasLocalNames() const { return countLocalNames() > 0; }
+
+    
+    inline bool ensureShape(JSContext *cx);
 
     
     inline js::Shape *lastShape() const;
@@ -375,14 +379,10 @@ enum JITScriptStatus {
     JITScript_Valid
 };
 
-namespace js {
-namespace mjit {
-
-struct JITScript;
-
-}
-}
+namespace js { namespace mjit { struct JITScript; } }
 #endif
+
+namespace js { namespace analyze { class ScriptAnalysis; } }
 
 class JSPCCounters {
     size_t numBytecodes;
@@ -420,11 +420,6 @@ class JSPCCounters {
     }
 };
 
-static const uint32 JS_SCRIPT_COOKIE = 0xc00cee;
-
-static JSObject * const JS_NEW_SCRIPT = (JSObject *)0x12345678;
-static JSObject * const JS_CACHED_SCRIPT = (JSObject *)0x12341234;
-
 struct JSScript {
     
 
@@ -440,7 +435,8 @@ struct JSScript {
     static JSScript *NewScript(JSContext *cx, uint32 length, uint32 nsrcnotes, uint32 natoms,
                                uint32 nobjects, uint32 nupvars, uint32 nregexps,
                                uint32 ntrynotes, uint32 nconsts, uint32 nglobals,
-                               uint16 nClosedArgs, uint16 nClosedVars, JSVersion version);
+                               uint16 nClosedArgs, uint16 nClosedVars, uint32 nTypeSets,
+                               JSVersion version);
 
     static JSScript *NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg);
 
@@ -449,27 +445,18 @@ struct JSScript {
     jsbytecode      *code;      
     uint32          length;     
 
-#ifdef JS_CRASH_DIAGNOSTICS
-    uint32          cookie1;
-#endif
-
   private:
+    size_t          useCount_;  
+
+
+
     uint16          version;    
 
   public:
     uint16          nfixed;     
 
-  private:
-    size_t          callCount_; 
+    uint16          nTypeSets;  
 
-    
-
-
-
-
-
-
-    uint32          stepMode;
 
     
 
@@ -498,9 +485,20 @@ struct JSScript {
     bool            warnedAboutTwoArgumentEval:1; 
 
 
+    bool            warnedAboutUndefinedProp:1; 
+
+
     bool            hasSingletons:1;  
+    bool            isActiveEval:1;   
+    bool            isCachedEval:1;   
+    bool            isUncachedEval:1; 
+    bool            calledWithNew:1;  
+    bool            usedLazyArgs:1;   
+    bool            ranInference:1;   
 #ifdef JS_METHODJIT
     bool            debugMode:1;      
+    bool            singleStepMode:1; 
+    bool            failedBoundsCheck:1; 
 #endif
 
     jsbytecode      *main;      
@@ -515,16 +513,14 @@ struct JSScript {
     js::Bindings    bindings;   
 
     JSPrincipals    *principals;
-    jschar          *sourceMap; 
-
-#ifdef JS_CRASH_DIAGNOSTICS
-    JSObject        *ownerObject;
-#endif
-
-    void setOwnerObject(JSObject *owner);
-
     union {
         
+
+
+
+
+
+
 
 
 
@@ -547,11 +543,61 @@ struct JSScript {
     
     JSPCCounters    pcCounters;
 
-#ifdef JS_CRASH_DIAGNOSTICS
-    uint32          cookie2;
+  public:
+
+    
+    JSFunction *fun;
+
+    
+
+
+
+    bool typeSetFunction(JSContext *cx, JSFunction *fun);
+
+    
+    js::GlobalObject *global_;
+    inline bool hasGlobal() const;
+    inline js::GlobalObject *global() const;
+
+    inline bool hasClearedGlobal() const;
+
+#ifdef DEBUG
+    
+
+
+
+    unsigned id_;
+    unsigned id() { return id_; }
+#else
+    unsigned id() { return 0; }
 #endif
 
+    
+
+
+
+  private:
+    js::analyze::ScriptAnalysis *analysis_;
+    void makeAnalysis(JSContext *cx);
   public:
+
+    bool hasAnalysis() { return analysis_ != NULL; }
+
+    js::analyze::ScriptAnalysis *analysis(JSContext *cx) {
+        if (!analysis_)
+            makeAnalysis(cx);
+        return analysis_;
+    }
+
+    
+    inline bool ensureRanInference(JSContext *cx);
+
+    
+    js::types::TypeScript types;
+
+    inline bool isAboutToBeFinalized(JSContext *cx);
+    void sweepAnalysis(JSContext *cx);
+
 #ifdef JS_METHODJIT
     
     
@@ -576,8 +622,10 @@ struct JSScript {
         return constructing ? jitCtor : jitNormal;
     }
 
-    size_t callCount() const  { return callCount_; }
-    size_t incCallCount() { return ++callCount_; }
+    size_t useCount() const  { return useCount_; }
+    size_t incUseCount() { return ++useCount_; }
+    size_t *addressOfUseCount() { return &useCount_; }
+    void resetUseCount() { useCount_ = 0; }
 
     JITScriptStatus getJITStatus(bool constructing) {
         void *addr = constructing ? jitArityCheckCtor : jitArityCheckNormal;
@@ -659,7 +707,6 @@ struct JSScript {
     }
 
     inline JSFunction *getFunction(size_t index);
-    inline JSFunction *getCallerFunction();
 
     inline JSObject *getRegExp(size_t index);
 
@@ -687,42 +734,6 @@ struct JSScript {
     }
 
     void copyClosedSlotsTo(JSScript *other);
-
-  private:
-    static const uint32 stepFlagMask = 0x80000000U;
-    static const uint32 stepCountMask = 0x7fffffffU;
-
-    
-
-
-
-    bool recompileForStepMode(JSContext *cx);
-
-    
-    bool tryNewStepMode(JSContext *cx, uint32 newValue);
-
-  public:
-    
-
-
-
-
-
-    bool setStepModeFlag(JSContext *cx, bool step);
-    
-    
-
-
-
-
-
-    bool changeStepModeCount(JSContext *cx, int delta);
-
-    bool stepModeEnabled() { return !!stepMode; }
-
-#ifdef DEBUG
-    uint32 stepModeCount() { return stepMode & stepCountMask; }
-#endif
 };
 
 #define SHARP_NSLOTS            2       /* [#array, #depth] slots if the script
@@ -755,11 +766,30 @@ extern JS_FRIEND_DATA(js::Class) js_ScriptClass;
 extern JSObject *
 js_InitScriptClass(JSContext *cx, JSObject *obj);
 
+namespace js {
+
+extern bool
+InitRuntimeScriptState(JSRuntime *rt);
+
+
+
+
+
+
+
+extern void
+FreeRuntimeScriptState(JSRuntime *rt);
+
+} 
+
 extern void
 js_MarkScriptFilename(const char *filename);
 
 extern void
-js_SweepScriptFilenames(JSCompartment *comp);
+js_MarkScriptFilenames(JSRuntime *rt);
+
+extern void
+js_SweepScriptFilenames(JSRuntime *rt);
 
 
 
@@ -778,10 +808,10 @@ js_CallDestroyScriptHook(JSContext *cx, JSScript *script);
 
 
 extern void
-js_DestroyScript(JSContext *cx, JSScript *script, uint32 caller);
+js_DestroyScript(JSContext *cx, JSScript *script);
 
 extern void
-js_DestroyScriptFromGC(JSContext *cx, JSScript *script, JSObject *owner);
+js_DestroyScriptFromGC(JSContext *cx, JSScript *script);
 
 
 
@@ -793,7 +823,7 @@ extern void
 js_DestroyCachedScript(JSContext *cx, JSScript *script);
 
 extern void
-js_TraceScript(JSTracer *trc, JSScript *script, JSObject *owner);
+js_TraceScript(JSTracer *trc, JSScript *script);
 
 extern JSObject *
 js_NewScriptObject(JSContext *cx, JSScript *script);

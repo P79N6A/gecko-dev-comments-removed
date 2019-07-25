@@ -1,4 +1,4 @@
 
 function f() { eval(''); }
-trap(f, 6, '');
+trap(f, 8, '');
 f();

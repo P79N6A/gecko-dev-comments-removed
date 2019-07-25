@@ -52,7 +52,6 @@
 inline bool
 JSAtom::isUnitString(const void *ptr)
 {
-#ifdef JS_HAS_STATIC_STRINGS
     jsuword delta = reinterpret_cast<jsuword>(ptr) -
                     reinterpret_cast<jsuword>(unitStaticTable);
     if (delta >= UNIT_STATIC_LIMIT * sizeof(JSString))
@@ -61,15 +60,11 @@ JSAtom::isUnitString(const void *ptr)
     
     JS_ASSERT(delta % sizeof(JSString) == 0);
     return true;
-#else
-    return false;
-#endif
 }
 
 inline bool
 JSAtom::isLength2String(const void *ptr)
 {
-#ifdef JS_HAS_STATIC_STRINGS
     jsuword delta = reinterpret_cast<jsuword>(ptr) -
                     reinterpret_cast<jsuword>(length2StaticTable);
     if (delta >= NUM_SMALL_CHARS * NUM_SMALL_CHARS * sizeof(JSString))
@@ -78,15 +73,11 @@ JSAtom::isLength2String(const void *ptr)
     
     JS_ASSERT(delta % sizeof(JSString) == 0);
     return true;
-#else
-    return false;
-#endif
 }
 
 inline bool
 JSAtom::isHundredString(const void *ptr)
 {
-#ifdef JS_HAS_STATIC_STRINGS
     jsuword delta = reinterpret_cast<jsuword>(ptr) -
                     reinterpret_cast<jsuword>(hundredStaticTable);
     if (delta >= NUM_HUNDRED_STATICS * sizeof(JSString))
@@ -95,9 +86,6 @@ JSAtom::isHundredString(const void *ptr)
     
     JS_ASSERT(delta % sizeof(JSString) == 0);
     return true;
-#else
-    return false;
-#endif
 }
 
 inline bool
@@ -127,13 +115,49 @@ const size_t SLOTS_TO_THING_KIND_LIMIT = 17;
 
 
 static inline FinalizeKind
-GetGCObjectKind(size_t numSlots)
+GetGCObjectKind(size_t numSlots, bool isArray = false)
 {
     extern FinalizeKind slotsToThingKind[];
 
-    if (numSlots >= SLOTS_TO_THING_KIND_LIMIT)
-        return FINALIZE_OBJECT0;
+    if (numSlots >= SLOTS_TO_THING_KIND_LIMIT) {
+        
+
+
+
+
+
+        return isArray ? FINALIZE_OBJECT0 : FINALIZE_OBJECT16;
+    }
     return slotsToThingKind[numSlots];
+}
+
+static inline bool
+IsBackgroundFinalizeKind(FinalizeKind kind)
+{
+    JS_ASSERT(kind <= FINALIZE_OBJECT_LAST);
+    return kind % 2 == 1;
+}
+
+static inline FinalizeKind
+GetBackgroundFinalizeKind(FinalizeKind kind)
+{
+    JS_ASSERT(!IsBackgroundFinalizeKind(kind));
+    return (FinalizeKind) (kind + 1);
+}
+
+static inline bool
+CanBumpFinalizeKind(FinalizeKind kind)
+{
+    JS_ASSERT(kind <= FINALIZE_OBJECT_LAST);
+    return (kind + 2) <= FINALIZE_OBJECT_LAST;
+}
+
+
+static inline FinalizeKind
+BumpFinalizeKind(FinalizeKind kind)
+{
+    JS_ASSERT(CanBumpFinalizeKind(kind));
+    return (FinalizeKind) (kind + 2);
 }
 
 
@@ -215,8 +239,8 @@ NewGCThing(JSContext *cx, unsigned thingKind, size_t thingSize)
         js::gc::RunDebugGC(cx);
 #endif
 
-    void *t = cx->compartment->freeLists.getNext(thingKind, thingSize);
-    return static_cast<T *>(t ? t : js::gc::RefillFinalizableFreeList(cx, thingKind));
+    js::gc::Cell *cell = cx->compartment->freeLists.getNext(thingKind, thingSize);
+    return static_cast<T *>(cell ? cell : js::gc::RefillFinalizableFreeList(cx, thingKind));
 }
 
 inline JSObject *
@@ -226,6 +250,7 @@ js_NewGCObject(JSContext *cx, js::gc::FinalizeKind kind)
     JSObject *obj = NewGCThing<JSObject>(cx, kind, js::gc::GCThingSizeMap[kind]);
     if (obj) {
         obj->capacity = js::gc::GetGCKindSlots(kind);
+        obj->type = NULL;     
         obj->lastProp = NULL; 
     }
     return obj;
@@ -268,8 +293,12 @@ js_NewGCShape(JSContext *cx)
 }
 
 #if JS_HAS_XML_SUPPORT
-extern JSXML *
-js_NewGCXML(JSContext *cx);
+inline JSXML *
+js_NewGCXML(JSContext *cx)
+{
+    return NewGCThing<JSXML>(cx, js::gc::FINALIZE_XML, sizeof(JSXML));
+}
 #endif
+
 
 #endif 

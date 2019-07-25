@@ -294,9 +294,6 @@ JS_BEGIN_EXTERN_C
 
 
 
-
-
-
 typedef enum JSParseNodeArity {
     PN_NULLARY,                         
     PN_UNARY,                           
@@ -464,15 +461,10 @@ protected:
     }
 
     static JSParseNode *create(JSParseNodeArity arity, JSTreeContext *tc);
-    static JSParseNode *create(JSParseNodeArity arity, js::TokenKind type, JSOp op,
-                               const js::TokenPos &pos, JSTreeContext *tc);
 
 public:
     static JSParseNode *newBinaryOrAppend(js::TokenKind tt, JSOp op, JSParseNode *left,
                                           JSParseNode *right, JSTreeContext *tc);
-
-    static JSParseNode *newTernary(js::TokenKind tt, JSOp op, JSParseNode *kid1, JSParseNode *kid2,
-                                   JSParseNode *kid3, JSTreeContext *tc);
 
     
 
@@ -713,38 +705,12 @@ struct UnaryNode : public JSParseNode {
 };
 
 struct BinaryNode : public JSParseNode {
-    static inline BinaryNode *create(TokenKind type, JSOp op, const TokenPos &pos,
-                                     JSParseNode *left, JSParseNode *right,
-                                     JSTreeContext *tc) {
-        BinaryNode *pn = (BinaryNode *) JSParseNode::create(PN_BINARY, type, op, pos, tc);
-        if (pn) {
-            pn->pn_left = left;
-            pn->pn_right = right;
-        }
-        return pn;
-    }
-
     static inline BinaryNode *create(JSTreeContext *tc) {
         return (BinaryNode *)JSParseNode::create(PN_BINARY, tc);
     }
 };
 
 struct TernaryNode : public JSParseNode {
-    static inline TernaryNode *create(TokenKind type, JSOp op,
-                                      JSParseNode *kid1, JSParseNode *kid2, JSParseNode *kid3,
-                                      JSTreeContext *tc) {
-        TokenPos pos;
-        pos.begin = (kid1 ? kid1 : kid2)->pn_pos.begin;
-        pos.end = kid3->pn_pos.end;
-        TernaryNode *pn = (TernaryNode *) JSParseNode::create(PN_TERNARY, type, op, pos, tc);
-        if (pn) {
-            pn->pn_kid1 = kid1;
-            pn->pn_kid2 = kid2;
-            pn->pn_kid3 = kid3;
-        }
-        return pn;
-    }
-
     static inline TernaryNode *create(JSTreeContext *tc) {
         return (TernaryNode *)JSParseNode::create(PN_TERNARY, tc);
     }
@@ -1107,7 +1073,6 @@ struct Parser : private js::AutoGCRooter
     uint32              functionCount;  
     JSObjectBox         *traceListHead; 
     JSTreeContext       *tc;            
-    js::EmptyShape      *emptyCallShape;
 
     
     js::AutoKeepAtoms   keepAtoms;
@@ -1270,8 +1235,6 @@ private:
     JSParseNode *xmlElementOrList(JSBool allowList);
     JSParseNode *xmlElementOrListRoot(JSBool allowList);
 #endif 
-
-    bool setAssignmentLhsOps(JSParseNode *pn, JSOp op);
 };
 
 inline bool
