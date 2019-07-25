@@ -747,11 +747,8 @@ SyncEngine.prototype = {
     
     
     this._tracker.clearChangedIDs();
- 
-    
-    
-    this._modifiedIDs = Object.keys(this._modified);
-    this._log.info(this._modifiedIDs.length +
+
+    this._log.info(Object.keys(this._modified).length +
                    " outgoing items pre-reconciliation");
 
     
@@ -1013,19 +1010,6 @@ SyncEngine.prototype = {
     
   },
 
-  _isEqual: function SyncEngine__isEqual(item) {
-    let local = this._createRecord(item.id);
-    if (this._log.level <= Log4Moz.Level.Trace)
-      this._log.trace("Local record: " + local);
-    if (Utils.deepEquals(item.cleartext, local.cleartext)) {
-      this._log.trace("Local record is the same");
-      return true;
-    } else {
-      this._log.trace("Local record is different");
-      return false;
-    }
-  },
-
   _deleteId: function _deleteId(id) {
     this._tracker.removeChangedID(id);
 
@@ -1036,85 +1020,195 @@ SyncEngine.prototype = {
       this._delete.ids.push(id);
   },
 
-  _handleDupe: function _handleDupe(item, dupeId) {
-    
-    let preferLocal = dupeId.length < item.id.length ||
-      (dupeId.length == item.id.length && dupeId < item.id);
-
-    if (preferLocal) {
-      this._log.trace("Preferring local id: " + [dupeId, item.id]);
-      this._deleteId(item.id);
-      item.id = dupeId;
-      this._tracker.addChangedID(dupeId, 0);
-    }
-    else {
-      this._log.trace("Switching local id to incoming: " + [item.id, dupeId]);
-      this._store.changeItemID(dupeId, item.id);
-      this._deleteId(dupeId);
-    }
-  },
-
   
-  
-  _reconcile: function SyncEngine__reconcile(item, dupePerformed) {
-    if (this._log.level <= Log4Moz.Level.Trace)
+
+
+
+
+
+
+
+
+
+  _reconcile: function _reconcile(item) {
+    if (this._log.level <= Log4Moz.Level.Trace) {
       this._log.trace("Incoming: " + item);
+    }
 
-    this._log.trace("Reconcile step 1: Check for conflicts");
-    if (item.id in this._modified) {
+    
+    
+    
+    let existsLocally   = this._store.itemExists(item.id);
+    let locallyModified = item.id in this._modified;
+
+    
+    let remoteAge = AsyncResource.serverTime - item.modified;
+    let localAge  = locallyModified ?
+      (Date.now() / 1000 - this._modified[item.id]) : null;
+    let remoteIsNewer = remoteAge < localAge;
+
+    this._log.trace("Reconciling " + item.id + ". exists=" +
+                    existsLocally + "; modified=" + locallyModified +
+                    "; local age=" + localAge + "; incoming age=" +
+                    remoteAge);
+
+    
+    
+    if (item.deleted) {
       
-      if (this._isEqual(item)) {
-        delete this._modified[item.id];
+      
+      
+      if (!existsLocally) {
+        this._log.trace("Ignoring incoming item because it was deleted and " +
+                        "the item does not exist locally.");
         return false;
       }
 
       
-      let recordAge = AsyncResource.serverTime - item.modified;
-      let localAge = Date.now() / 1000 - this._modified[item.id];
-      this._log.trace("Record age vs local age: " + [recordAge, localAge]);
+      
+      
+      
+      if (!locallyModified) {
+        this._log.trace("Applying incoming delete because the local item " +
+                        "exists and isn't modified.");
+        return true;
+      }
 
       
-      return recordAge < localAge;
+      
+      
+      
+      
+      this._log.trace("Incoming record is deleted but we had local changes. " +
+                      "Applying the youngest record.");
+      return remoteIsNewer;
     }
 
-    this._log.trace("Reconcile step 2: Check for updates");
-    if (this._store.itemExists(item.id))
-      return !this._isEqual(item);
+    
+    
+    
+    
+    
+    
+    
+    
+    if (!existsLocally) {
+      let dupeID = this._findDupe(item);
+      if (dupeID) {
+        this._log.trace("Local item " + dupeID + " is a duplicate for " +
+                        "incoming item " + item.id);
 
-    this._log.trace("Reconcile step 2.5: Don't dupe deletes");
-    if (item.deleted)
+        
+        this._deleteId(dupeID);
+
+        
+        
+        
+        existsLocally = this._store.itemExists(dupeID);
+
+        
+        
+        
+        this._log.debug("Switching local ID to incoming: " + dupeID + " -> " +
+                        item.id);
+        this._store.changeItemID(dupeID, item.id);
+
+        
+        
+        if (dupeID in this._modified) {
+          locallyModified = true;
+          localAge = Date.now() / 1000 - this._modified[dupeID];
+          remoteIsNewer = remoteAge < localAge;
+
+          this._modified[item.id] = this._modified[dupeID];
+          delete this._modified[dupeID];
+        } else {
+          locallyModified = false;
+          localAge = null;
+        }
+
+        this._log.debug("Local item after duplication: age=" + localAge +
+                        "; modified=" + locallyModified + "; exists=" +
+                        existsLocally);
+      } else {
+        this._log.trace("No duplicate found for incoming item: " + item.id);
+      }
+    }
+
+    
+    
+    
+
+    if (!existsLocally) {
+      
+      
+      
+      if (!locallyModified) {
+        this._log.trace("Applying incoming because local item does not exist " +
+                        "and was not deleted.");
+        return true;
+      }
+
+      
+      
+      
+      if (remoteIsNewer) {
+        this._log.trace("Applying incoming because local item was deleted " +
+                        "before the incoming item was changed.");
+        delete this._modified[item.id];
+        return true;
+      }
+
+      this._log.trace("Ignoring incoming item because the local item's " +
+                      "deletion is newer.");
+      return false;
+    }
+
+    
+    
+    
+    
+    
+    
+    let localRecord = this._createRecord(item.id);
+    let recordsEqual = Utils.deepEquals(item.cleartext,
+                                        localRecord.cleartext);
+
+    
+    
+    
+    if (recordsEqual) {
+      this._log.trace("Ignoring incoming item because the local item is " +
+                      "identical.");
+
+      delete this._modified[item.id];
+      return false;
+    }
+
+    
+
+    
+    if (!locallyModified) {
+      this._log.trace("Applying incoming record because no local conflicts.");
       return true;
-
-    
-    if (dupePerformed) {
-      this._log.warn("Duplicate record not reconciled on second pass: " +
-                     item);
-      
-      return true;
     }
 
     
     
     
-    this._log.trace("Reconcile step 3: Find dupes");
-    let dupeId = this._findDupe(item);
-    if (dupeId) {
-      
-      
-      this._handleDupe(item, dupeId);
-      this._log.debug("Reconciling de-duped record: " + item.id);
-      return this._reconcile(item, true);
-    }
-
     
-    return true;
+    this._log.warn("DATA LOSS: Both local and remote changes to record: " +
+                   item.id);
+    return remoteIsNewer;
   },
 
   
   _uploadOutgoing: function SyncEngine__uploadOutgoing() {
     this._log.trace("Uploading local changes to server.");
-    if (this._modifiedIDs.length) {
-      this._log.trace("Preparing " + this._modifiedIDs.length +
+
+    let modifiedIDs = Object.keys(this._modified);
+    if (modifiedIDs.length) {
+      this._log.trace("Preparing " + modifiedIDs.length +
                       " outgoing records");
 
       
@@ -1123,8 +1217,8 @@ SyncEngine.prototype = {
 
       
       let doUpload = Utils.bind2(this, function(desc) {
-        this._log.info("Uploading " + desc + " of " +
-                       this._modifiedIDs.length + " records");
+        this._log.info("Uploading " + desc + " of " + modifiedIDs.length +
+                       " records");
         let resp = up.post();
         if (!resp.success) {
           this._log.debug("Uploading records failed: " + resp);
@@ -1151,7 +1245,7 @@ SyncEngine.prototype = {
         up.clearRecords();
       });
 
-      for each (let id in this._modifiedIDs) {
+      for each (let id in modifiedIDs) {
         try {
           let out = this._createRecord(id);
           if (this._log.level <= Log4Moz.Level.Trace)
@@ -1214,8 +1308,7 @@ SyncEngine.prototype = {
     for (let [id, when] in Iterator(this._modified)) {
       this._tracker.addChangedID(id, when);
     }
-    this._modified    = {};
-    this._modifiedIDs = [];
+    this._modified = {};
   },
 
   _sync: function SyncEngine__sync() {
