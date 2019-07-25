@@ -2365,23 +2365,29 @@ HUD_SERVICE.prototype =
     return sequencer(aInt);
   },
 
+  
+  
   scriptErrorFlags: {
-    0: "error",
-    1: "warn",
-    2: "exception",
+    0: "error", 
+    1: "warn", 
+    2: "exception", 
     4: "error", 
     5: "warn", 
+    8: "error", 
+    13: "warn", 
   },
 
   
 
 
   scriptMsgLogLevel: {
-    0: "typeError",
-    1: "typeWarning",
-    2: "typeException",
+    0: "typeError", 
+    1: "typeWarning", 
+    2: "typeException", 
     4: "typeError", 
     5: "typeStrict", 
+    8: "typeError", 
+    13: "typeWarning", 
   },
 
   
