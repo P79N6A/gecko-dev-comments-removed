@@ -280,7 +280,14 @@ template <class T>
 JS_ALWAYS_INLINE static void
 PodZero(T *t, size_t nelem)
 {
-    memset(t, 0, nelem * sizeof(T));
+    
+
+
+
+
+
+    for (size_t i = 0; i < nelem; ++i, ++t)
+        memset(t, 0, sizeof(T));
 }
 
 
