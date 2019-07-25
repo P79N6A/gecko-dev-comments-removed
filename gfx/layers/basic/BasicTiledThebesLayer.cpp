@@ -236,7 +236,13 @@ BasicTiledThebesLayer::PaintThebes(gfxContext* aContext,
       ->Paint(aContext, nsnull);
   }
 
-  BasicManager()->PaintedTiledLayerBuffer(BasicManager()->Hold(this), &mTiledBuffer);
+  
+  
+  
+  
+  BasicTiledLayerBuffer *heapCopy = new BasicTiledLayerBuffer(mTiledBuffer);
+
+  BasicManager()->PaintedTiledLayerBuffer(BasicManager()->Hold(this), heapCopy);
 }
 
 } 

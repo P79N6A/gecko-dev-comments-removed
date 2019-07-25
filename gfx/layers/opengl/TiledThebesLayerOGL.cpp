@@ -132,6 +132,8 @@ void
 TiledThebesLayerOGL::PaintedTiledLayerBuffer(const BasicTiledLayerBuffer* mTiledBuffer)
 {
   mMainMemoryTiledBuffer = *mTiledBuffer;
+  
+  delete mTiledBuffer;
   mRegionToUpload.Or(mRegionToUpload, mMainMemoryTiledBuffer.GetLastPaintRegion());
 
 }
