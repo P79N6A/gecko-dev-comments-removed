@@ -111,6 +111,7 @@ function StyleEditor(aDocument, aStyleSheet)
 
   this._styleSheet = aStyleSheet;
   this._styleSheetIndex = -1; 
+  this._styleSheetFilePath = null; 
 
   this._loaded = false;
 
@@ -578,9 +579,11 @@ StyleEditor.prototype = {
 
 
 
+
   saveToFile: function SE_saveToFile(aFile, aCallback)
   {
-    aFile = this._showFilePicker(aFile, true);
+    aFile = this._showFilePicker(aFile || this._styleSheetFilePath, true);
+
     if (!aFile) {
       if (aCallback) {
         aCallback(null);
@@ -730,6 +733,14 @@ StyleEditor.prototype = {
   {
     if (typeof(aFile) == "string") {
       try {
+        if (Services.io.extractScheme(aFile) == "file") {
+          let uri = Services.io.newURI(aFile, null, null);
+          let file = uri.QueryInterface(Ci.nsIFileURL).file;
+          return file;
+        }
+      } catch (ex) {
+      }
+      try {
         let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
         file.initWithPath(aFile);
         return file;
@@ -772,6 +783,7 @@ StyleEditor.prototype = {
     let scheme = Services.io.extractScheme(this.styleSheet.href);
     switch (scheme) {
       case "file":
+        this._styleSheetFilePath = this.styleSheet.href;
       case "chrome":
       case "resource":
         this._loadSourceFromFile(this.styleSheet.href);
