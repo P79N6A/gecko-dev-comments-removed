@@ -210,12 +210,9 @@ private:
   FindStoppedPluginForURL(nsIURI* aURL, nsIPluginInstanceOwner *aOwner);
 
   nsresult
-  SetUpDefaultPluginInstance(const char *aMimeType, nsIURI *aURL, nsIPluginInstanceOwner *aOwner);
-
-  nsresult
   AddInstanceToActiveList(nsCOMPtr<nsIPlugin> aPlugin,
                           nsIPluginInstance* aInstance,
-                          nsIURI* aURL, PRBool aDefaultPlugin);
+                          nsIURI* aURL);
 
   nsresult
   FindPlugins(PRBool aCreatePluginList, PRBool * aPluginsChanged);
@@ -269,12 +266,6 @@ private:
 
   
   PRPackedBool mOverrideInternalTypes;
-
-  
-  PRPackedBool mAllowAlienStarHandler;
-
-  
-  PRPackedBool mDefaultPluginDisabled;
 
   
   PRPackedBool mPluginsDisabled;
