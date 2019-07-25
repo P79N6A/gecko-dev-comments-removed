@@ -356,6 +356,9 @@ pref("browser.ui.kinetic.speedSensitivity", 80);
 pref("browser.ui.kinetic.swipeLength", 160);
 
 
+pref("browser.ui.zoom.pageFitGranularity", 10); 
+
+
 pref("browser.ui.touch.radius", 16);
 
 
