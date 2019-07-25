@@ -2358,6 +2358,11 @@ IonBuilder::jsop_call(uint32 argc, bool constructing)
         }
     }
 
+    if (optimizeNativeCall(argc)) {
+        IonSpew(IonSpew_Inlining, "Replace native call.");
+        return true;
+    }
+
     
     uint32 targetArgs = argc;
     JSFunction *target = getSingleCallTarget(argc, pc);

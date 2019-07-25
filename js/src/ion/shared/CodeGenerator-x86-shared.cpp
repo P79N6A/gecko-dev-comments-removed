@@ -397,6 +397,17 @@ CodeGeneratorX86Shared::visitOutOfLineBailout(OutOfLineBailout *ool)
 }
 
 bool
+CodeGeneratorX86Shared::visitAbsD(LAbsD *ins)
+{
+    FloatRegister input = ToFloatRegister(ins->input());
+    FloatRegister output = ToFloatRegister(ins->output());
+    masm.xorpd(output, output);
+    masm.subsd(input, output); 
+    masm.andpd(input, output); 
+    return true;
+}
+
+bool
 CodeGeneratorX86Shared::visitAddI(LAddI *ins)
 {
     if (ins->rhs()->isConstant())
@@ -827,6 +838,61 @@ CodeGeneratorX86Shared::visitMathD(LMathD *math)
         JS_NOT_REACHED("unexpected opcode");
         return false;
     }
+    return true;
+}
+
+bool
+CodeGeneratorX86Shared::visitRound(LRound *lir)
+{
+    FloatRegister input = ToFloatRegister(lir->input());
+    Register output = ToRegister(lir->output());
+
+    if (!lir->snapshot())
+        return false;
+
+    Label belowZero, end;
+
+    
+    
+    
+
+    
+    if (lir->mir()->mode() == MRound::RoundingMode_Round) {
+        
+        static const double ZeroFive = 0.5;
+        masm.loadStaticDouble(&ZeroFive, ScratchFloatReg);
+        masm.addsd(ScratchFloatReg, input);
+    }
+
+    
+    
+    
+
+    masm.xorpd(ScratchFloatReg, ScratchFloatReg);
+    masm.ucomisd(input, ScratchFloatReg);
+    masm.j(Assembler::Below, &belowZero);
+
+    
+    masm.cvttsd2si(input, output);
+    masm.cmp32(output, Imm32(0x80000000));
+    
+    if (!bailoutIf(Assembler::Equal, lir->snapshot()))
+        return false;
+    masm.jump(&end);
+
+    
+    masm.bind(&belowZero);
+    masm.subsd(input, ScratchFloatReg);
+    masm.cvttsd2si(ScratchFloatReg, output);
+    masm.negl(output);
+    
+    
+    if (!bailoutIf(Assembler::Overflow, lir->snapshot()))
+        return false;
+    
+    if (!bailoutIf(Assembler::Equal, lir->snapshot()))
+        return false;
+    masm.bind(&end);
     return true;
 }
 
