@@ -3518,7 +3518,13 @@ PluginInstanceChild::SwapSurfaces()
 
         mDoubleBufferCARenderer.ClearFrontSurface();
     }
-#endif 
+#else
+    if (mCurrentSurface && mBackSurface &&
+        (mCurrentSurface->GetSize() != mBackSurface->GetSize() ||
+         mCurrentSurface->GetContentType() != mBackSurface->GetContentType())) {
+        ClearCurrentSurface();
+    }
+#endif
 }
 
 void
