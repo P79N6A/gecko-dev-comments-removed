@@ -3931,14 +3931,13 @@ var FullScreen = {
     
     
     
-    let targetDoc = event.target.ownerDocument ? event.target.ownerDocument : event.target;
-    if (targetDoc != document) {
+    if (event.target != document) {
       
       
       
       
       
-      if (targetDoc.defaultView.top != gBrowser.contentWindow) {
+      if (event.target.defaultView.top != gBrowser.contentWindow) {
         document.mozCancelFullScreen();
       }
       return;
