@@ -4254,7 +4254,7 @@ mjit::Compiler::jsop_instanceof()
     
     frame.dup();
 
-    if (!jsop_getprop(cx->runtime->atomState.classPrototypeAtom, false))
+    if (!jsop_getprop(cx->runtime->atomState.classPrototypeAtom, false, false))
         return false;
 
     
