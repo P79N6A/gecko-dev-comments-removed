@@ -47,10 +47,11 @@
 #else
 #define ALOG(args...)
 #endif
-#endif 
+#endif
 
 
 
+#define NANOSECONDS_PER_SECOND     1000000000
 #define NANOSECONDS_IN_MILLISECOND 1000000
 #define MILLISECONDS_PER_SECOND    1000
 
@@ -98,6 +99,8 @@ enum AudioFormatEncoding {
 
 struct sa_stream {
   jobject output_unit;
+  jbyteArray output_buf;
+  unsigned int output_buf_size;
 
   unsigned int rate;
   unsigned int channels;
@@ -107,7 +110,6 @@ struct sa_stream {
   int64_t timePlaying;
   int64_t amountWritten;
   unsigned int bufferSize;
-  unsigned int minBufferSize;
 
   jclass at_class;
 };
@@ -178,6 +180,8 @@ sa_stream_create_pcm(
   }
 
   s->output_unit = NULL;
+  s->output_buf  = NULL;
+  s->output_buf_size = 0;
   s->rate        = rate;
   s->channels    = channels;
   s->isPaused    = 0;
@@ -187,7 +191,6 @@ sa_stream_create_pcm(
   s->amountWritten = 0;
 
   s->bufferSize = 0;
-  s->minBufferSize = 0;
 
   *_s = s;
   return SA_SUCCESS;
@@ -226,11 +229,9 @@ sa_stream_open(sa_stream_t *s) {
     return SA_ERROR_INVALID;
   }
 
-  s->minBufferSize = minsz;
-
   s->bufferSize = s->rate * s->channels * sizeof(int16_t);
-  if (s->bufferSize < s->minBufferSize) {
-    s->bufferSize = s->minBufferSize;
+  if (s->bufferSize < minsz) {
+    s->bufferSize = minsz;
   }
 
   jobject obj =
@@ -258,9 +259,26 @@ sa_stream_open(sa_stream_t *s) {
   }
 
   s->output_unit = (*jenv)->NewGlobalRef(jenv, obj);
+
+  
+
+  s->output_buf_size = 4096 * s->channels * sizeof(int16_t);
+  jbyteArray buf = (*jenv)->NewByteArray(jenv, s->output_buf_size);
+  if (!buf) {
+    (*jenv)->ExceptionClear(jenv);
+    (*jenv)->DeleteGlobalRef(jenv, s->output_unit);
+    (*jenv)->DeleteGlobalRef(jenv, s->at_class);
+    (*jenv)->PopLocalFrame(jenv, NULL);
+    return SA_ERROR_OOM;
+  }
+
+  s->output_buf = (*jenv)->NewGlobalRef(jenv, buf);
+
   (*jenv)->PopLocalFrame(jenv, NULL);
 
-  ALOG("%p - New stream %u %u bsz=%u min=%u", s,  s->rate, s->channels, s->bufferSize, s->minBufferSize);
+  ALOG("%p - New stream %u %u bsz=%u min=%u obsz=%u", s, s->rate, s->channels,
+       s->bufferSize, minsz, s->output_buf_size);
+
   return SA_SUCCESS;
 }
 
@@ -280,6 +298,7 @@ sa_stream_destroy(sa_stream_t *s) {
   (*jenv)->CallVoidMethod(jenv, s->output_unit, at.stop);
   (*jenv)->CallVoidMethod(jenv, s->output_unit, at.flush);
   (*jenv)->CallVoidMethod(jenv, s->output_unit, at.release);
+  (*jenv)->DeleteGlobalRef(jenv, s->output_buf);
   (*jenv)->DeleteGlobalRef(jenv, s->output_unit);
   (*jenv)->DeleteGlobalRef(jenv, s->at_class);
   free(s);
@@ -309,51 +328,46 @@ sa_stream_write(sa_stream_t *s, const void *data, size_t nbytes) {
     return SA_ERROR_OOM;
   }
 
-  jbyteArray bytearray = (*jenv)->NewByteArray(jenv, nbytes);
-  if (!bytearray) {
-    (*jenv)->ExceptionClear(jenv);
-    (*jenv)->PopLocalFrame(jenv, NULL);
-    return SA_ERROR_OOM;
-  }
-
-  (*jenv)->SetByteArrayRegion(jenv, bytearray, 0, nbytes, data);
-
-  size_t wroteSoFar = 0;
-  jint retval;
-  int first = 1;
-
+  unsigned char *p = data;
+  jint r = 0;
+  size_t wrote = 0;
   do {
-    retval = (*jenv)->CallIntMethod(jenv,
-                                    s->output_unit,
-                                    at.write,
-                                    bytearray,
-                                    wroteSoFar,
-                                    nbytes - wroteSoFar);
-    if (retval < 0) {
-      ALOG("%p - Write failed %d", s, retval);
+    size_t towrite = nbytes - wrote;
+    if (towrite > s->output_buf_size) {
+      towrite = s->output_buf_size;
+    }
+    (*jenv)->SetByteArrayRegion(jenv, s->output_buf, 0, towrite, p);
+
+    r = (*jenv)->CallIntMethod(jenv,
+                               s->output_unit,
+                               at.write,
+                               s->output_buf,
+                               0,
+                               towrite);
+    if (r < 0) {
+      ALOG("%p - Write failed %d", s, r);
       break;
     }
 
-    wroteSoFar += retval;
-
     
-    if (first && !s->isPaused) {
+
+
+
+    if (r != towrite) {
+      ALOG("%p - Buffer full, starting playback", s);
       sa_stream_resume(s);
-      first = 0;
     }
 
-    if (wroteSoFar != nbytes) {
-      struct timespec ts = {0, 100000000}; 
-      nanosleep(&ts, NULL);
-    }
-  } while(wroteSoFar < nbytes);
+    p += r;
+    wrote += r;
+  } while (wrote < nbytes);
 
   ALOG("%p - Wrote %u", s,  nbytes);
   s->amountWritten += nbytes;
 
   (*jenv)->PopLocalFrame(jenv, NULL);
 
-  return retval < 0 ? SA_ERROR_INVALID : SA_SUCCESS;
+  return r < 0 ? SA_ERROR_INVALID : SA_SUCCESS;
 }
 
 
@@ -372,9 +386,13 @@ sa_stream_get_write_size(sa_stream_t *s, size_t *size) {
 
   
 
-
   *size = s->bufferSize - ((s->timePlaying * s->channels * s->rate * sizeof(int16_t) /
                             MILLISECONDS_PER_SECOND) - s->amountWritten);
+
+  
+  if (*size > s->bufferSize) {
+    *size = s->bufferSize;
+  }
   ALOG("%p - Write Size tp=%lld aw=%u sz=%zu", s, s->timePlaying, s->amountWritten, *size);
 
   return SA_SUCCESS;
@@ -463,20 +481,21 @@ sa_stream_drain(sa_stream_t *s)
 
 
 
+
   size_t available;
   sa_stream_get_write_size(s, &available);
 
-  void *p = calloc(1, available);
-  sa_stream_write(s, p, available);
+  void *p = calloc(1, s->bufferSize);
+  sa_stream_write(s, p, s->bufferSize);
   free(p);
 
   
 
-  long x = (s->bufferSize - available) * 1000 / s->channels / s->rate /
-           sizeof(int16_t) * NANOSECONDS_IN_MILLISECOND;
-  ALOG("%p - Drain - flush %u, sleep for %ld ns", s, available, x);
+  unsigned long long x = (s->bufferSize - available) * 1000 / s->channels / s->rate /
+                         sizeof(int16_t) * NANOSECONDS_IN_MILLISECOND;
+  ALOG("%p - Drain - flush %u, sleep for %llu ns", s, available, x);
 
-  struct timespec ts = {0, x};
+  struct timespec ts = {x / NANOSECONDS_PER_SECOND, x % NANOSECONDS_PER_SECOND};
   nanosleep(&ts, NULL);
 
   return SA_SUCCESS;
