@@ -61,9 +61,8 @@
 #include "nsHtml5StreamParser.h"
 #include "nsHtml5AtomTable.h"
 #include "nsWeakReference.h"
-#include "nsAHtml5FragmentParser.h"
 
-class nsHtml5Parser : public nsAHtml5FragmentParser, 
+class nsHtml5Parser : public nsIParser,
                       public nsSupportsWeakReference
 {
   public:
@@ -259,7 +258,6 @@ class nsHtml5Parser : public nsAHtml5FragmentParser,
 
     
 
-    
 
 
 
@@ -270,16 +268,12 @@ class nsHtml5Parser : public nsAHtml5FragmentParser,
 
 
 
-
-    NS_IMETHOD ParseHtml5Fragment(const nsAString& aSourceBuffer,
-                                  nsIContent* aTargetNode,
-                                  nsIAtom* aContextLocalName,
-                                  PRInt32 aContextNamespace,
-                                  PRBool aQuirks,
-                                  PRBool aPreventScriptExecution);
-
-
-    
+    nsresult ParseHtml5Fragment(const nsAString& aSourceBuffer,
+                                nsIContent* aTargetNode,
+                                nsIAtom* aContextLocalName,
+                                PRInt32 aContextNamespace,
+                                PRBool aQuirks,
+                                PRBool aPreventScriptExecution);
 
     
     
