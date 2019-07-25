@@ -210,7 +210,7 @@
 #include "nsIScriptObjectPrincipal.h"
 #include "nsIPrincipal.h"
 #include "nsISecurityCheckedComponent.h"
-
+#include "xpcObjectHelper.h"
 #include "nsIThreadInternal.h"
 
 #ifdef XP_WIN
@@ -3222,126 +3222,6 @@ private:
     nsCOMPtr<nsIVariant> mValue;
 };
 
-
-
-
-class xpcObjectHelper
-{
-public:
-    xpcObjectHelper(nsISupports *aObject, nsWrapperCache *aCache = nsnull)
-    : mCanonical(nsnull),
-      mObject(aObject),
-      mCache(aCache),
-      mIsNode(false)
-    {
-        if (!mCache) {
-            if (aObject)
-                CallQueryInterface(aObject, &mCache);
-            else
-                mCache = nsnull;
-        }
-    }
-
-    nsISupports* Object()
-    {
-        return mObject;
-    }
-
-    nsISupports* GetCanonical()
-    {
-        if (!mCanonical) {
-            mCanonicalStrong = do_QueryInterface(mObject);
-            mCanonical = mCanonicalStrong;
-        }
-        return mCanonical;
-    }
-
-    already_AddRefed<nsISupports> forgetCanonical()
-    {
-        NS_ASSERTION(mCanonical, "Huh, no canonical to forget?");
-
-        if (!mCanonicalStrong)
-            mCanonicalStrong = mCanonical;
-        mCanonical = nsnull;
-        return mCanonicalStrong.forget();
-    }
-
-    nsIClassInfo *GetClassInfo()
-    {
-        if (mXPCClassInfo)
-          return mXPCClassInfo;
-        if (!mClassInfo)
-            mClassInfo = do_QueryInterface(mObject);
-        return mClassInfo;
-    }
-    nsXPCClassInfo *GetXPCClassInfo()
-    {
-        if (!mXPCClassInfo) {
-            if (mIsNode)
-                mXPCClassInfo = static_cast<nsINode*>(GetCanonical())->GetClassInfo();
-            else
-                CallQueryInterface(mObject, getter_AddRefs(mXPCClassInfo));
-        }
-        return mXPCClassInfo;
-    }
-
-    already_AddRefed<nsXPCClassInfo> forgetXPCClassInfo()
-    {
-        GetXPCClassInfo();
-
-        return mXPCClassInfo.forget();
-    }
-
-    
-    PRUint32 GetScriptableFlags()
-    {
-        
-        nsCOMPtr<nsIXPCScriptable> sinfo = GetXPCClassInfo();
-
-        
-        if (!sinfo)
-            sinfo = do_QueryInterface(GetCanonical());
-
-        
-        MOZ_ASSERT(sinfo);
-
-        
-        PRUint32 flags;
-        mozilla::DebugOnly<nsresult> rv = sinfo->GetScriptableFlags(&flags);
-        MOZ_ASSERT(NS_SUCCEEDED(rv));
-
-        return flags;
-    }
-
-    nsWrapperCache *GetWrapperCache()
-    {
-        return mCache;
-    }
-
-protected:
-    xpcObjectHelper(nsISupports *aObject, nsISupports *aCanonical,
-                    nsWrapperCache *aCache, bool aIsNode)
-    : mCanonical(aCanonical),
-      mObject(aObject),
-      mCache(aCache),
-      mIsNode(aIsNode)
-    {
-        if (!mCache && aObject)
-            CallQueryInterface(aObject, &mCache);
-    }
-
-    nsCOMPtr<nsISupports>    mCanonicalStrong;
-    nsISupports*             mCanonical;
-
-private:
-    xpcObjectHelper(xpcObjectHelper& aOther);
-
-    nsISupports*             mObject;
-    nsWrapperCache*          mCache;
-    nsCOMPtr<nsIClassInfo>   mClassInfo;
-    nsRefPtr<nsXPCClassInfo> mXPCClassInfo;
-    bool                     mIsNode;
-};
 
 
 class XPCConvert
