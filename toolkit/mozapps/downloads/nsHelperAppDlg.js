@@ -162,8 +162,7 @@ nsUnknownContentTypeDialog.prototype = {
     } catch (ex) {
       
       
-      const NS_BINDING_ABORTED = 0x804b0002;
-      this.mLauncher.cancel(NS_BINDING_ABORTED);
+      this.mLauncher.cancel(Components.results.NS_BINDING_ABORTED);
       return;
     }
 
@@ -916,8 +915,7 @@ nsUnknownContentTypeDialog.prototype = {
 
     
     try {
-      const NS_BINDING_ABORTED = 0x804b0002;
-      this.mLauncher.cancel(NS_BINDING_ABORTED);
+      this.mLauncher.cancel(Components.results.NS_BINDING_ABORTED);
     } catch(exception) {
     }
 
