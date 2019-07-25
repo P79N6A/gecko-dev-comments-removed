@@ -3,6 +3,11 @@
 
 
 #include <windows.h>
+
+
+#include <tlhelp32.h>
+#ifndef ONLY_SERVICE_LAUNCHING
+
 #include <stdio.h>
 #include "shlobj.h"
 #include "updatehelper.h"
@@ -10,8 +15,6 @@
 
 
 #include <shlwapi.h>
-
-#include <tlhelp32.h>
 #pragma comment(lib, "shlwapi.lib") 
 
 WCHAR* MakeCommandLine(int argc, WCHAR **argv);
@@ -236,6 +239,8 @@ StartServiceUpdate(int argc, LPWSTR *argv)
   return svcUpdateProcessStarted;
 }
 
+#endif 
+
 
 
 
@@ -293,6 +298,8 @@ StartServiceCommand(int argc, LPCWSTR* argv)
   CloseServiceHandle(serviceManager);
   return lastError;
 }
+
+#ifndef ONLY_SERVICE_LAUNCHING
 
 
 
@@ -402,6 +409,8 @@ WriteStatusFailure(LPCWSTR updateDirPath, int errorCode)
   CloseHandle(statusFile);
   return ok && wrote == toWrite;
 }
+
+#endif
 
 
 
@@ -535,6 +544,8 @@ WaitForServiceStop(LPCWSTR serviceName, DWORD maxWaitSeconds)
   return lastServiceState;
 }
 
+#ifndef ONLY_SERVICE_LAUNCHING
+
 
 
 
@@ -619,6 +630,8 @@ DoesFallbackKeyExist()
   RegCloseKey(testOnlyFallbackKey);
   return TRUE;
 }
+
+#endif
 
 
 
