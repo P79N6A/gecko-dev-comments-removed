@@ -40,10 +40,6 @@
 
 #include "nsISupports.h"
 
-
-
-
-
 #define NS_CYCLECOLLECTIONPARTICIPANT_IID                                      \
 {                                                                              \
     0x9674489b,                                                                \

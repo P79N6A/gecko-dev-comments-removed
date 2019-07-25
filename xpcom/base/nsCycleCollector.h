@@ -40,8 +40,6 @@
 
 
 
-
-
 class nsISupports;
 class nsICycleCollectorListener;
 class nsCycleCollectionParticipant;
@@ -52,14 +50,10 @@ class nsCycleCollectionTraversalCallback;
 
 struct nsCycleCollectionLanguageRuntime
 {
-    virtual nsresult BeginCycleCollection(nsCycleCollectionTraversalCallback &cb,
-                                          bool explainLiveExpectedGarbage) = 0;
+    virtual nsresult BeginCycleCollection(nsCycleCollectionTraversalCallback &cb) = 0;
     virtual nsresult FinishTraverse() = 0;
     virtual nsresult FinishCycleCollection() = 0;
     virtual nsCycleCollectionParticipant *ToParticipant(void *p) = 0;
-#ifdef DEBUG_CC
-    virtual void PrintAllReferencesTo(void *p) = 0;
-#endif
 };
 
 

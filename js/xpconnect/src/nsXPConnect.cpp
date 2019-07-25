@@ -119,9 +119,6 @@ nsXPConnect::nsXPConnect()
     mRuntime = XPCJSRuntime::newXPCJSRuntime(this);
 
     nsCycleCollector_registerRuntime(nsIProgrammingLanguage::JAVASCRIPT, this);
-#ifdef DEBUG_CC
-    mJSRoots.ops = nsnull;
-#endif
 
     char* reportableEnv = PR_GetEnv("MOZ_REPORT_ALL_JS_EXCEPTIONS");
     if (reportableEnv && *reportableEnv)
@@ -431,37 +428,6 @@ nsXPConnect::GarbageCollect(PRUint32 reason, PRUint32 kind)
     return NS_OK;
 }
 
-#ifdef DEBUG_CC
-struct NoteJSRootTracer : public JSTracer
-{
-    NoteJSRootTracer(PLDHashTable *aObjects,
-                     nsCycleCollectionTraversalCallback& cb)
-      : mObjects(aObjects),
-        mCb(cb)
-    {
-    }
-    PLDHashTable* mObjects;
-    nsCycleCollectionTraversalCallback& mCb;
-};
-
-static void
-NoteJSRoot(JSTracer *trc, void *thing, JSGCTraceKind kind)
-{
-    if (AddToCCKind(kind)) {
-        NoteJSRootTracer *tracer = static_cast<NoteJSRootTracer*>(trc);
-        PLDHashEntryHdr *entry = PL_DHashTableOperate(tracer->mObjects, thing,
-                                                      PL_DHASH_ADD);
-        if (entry && !reinterpret_cast<PLDHashEntryStub*>(entry)->key) {
-            reinterpret_cast<PLDHashEntryStub*>(entry)->key = thing;
-            tracer->mCb.NoteRoot(nsIProgrammingLanguage::JAVASCRIPT, thing,
-                                 nsXPConnect::GetXPConnect());
-        }
-    } else if (kind != JSTRACE_STRING) {
-        JS_TraceChildren(trc, thing, kind);
-    }
-}
-#endif
-
 struct NoteWeakMapChildrenTracer : public JSTracer
 {
     NoteWeakMapChildrenTracer(nsCycleCollectionTraversalCallback &cb)
@@ -538,8 +504,7 @@ TraceWeakMapping(js::WeakMapTracer *trc, JSObject *m,
 }
 
 nsresult
-nsXPConnect::BeginCycleCollection(nsCycleCollectionTraversalCallback &cb,
-                                  bool explainLiveExpectedGarbage)
+nsXPConnect::BeginCycleCollection(nsCycleCollectionTraversalCallback &cb)
 {
     
     
@@ -564,31 +529,6 @@ nsXPConnect::BeginCycleCollection(nsCycleCollectionTraversalCallback &cb,
             NS_RUNTIMEABORT("Cannot cycle collect if GC has not run first!");
         gcHasRun = true;
     }
-
-#ifdef DEBUG_CC
-    NS_ASSERTION(!mJSRoots.ops, "Didn't call FinishCycleCollection?");
-
-    if (explainLiveExpectedGarbage) {
-        
-
-        
-        
-        
-        
-        if (!PL_DHashTableInit(&mJSRoots, PL_DHashGetStubOps(), nsnull,
-                               sizeof(PLDHashEntryStub), PL_DHASH_MIN_SIZE)) {
-            mJSRoots.ops = nsnull;
-
-            return NS_ERROR_OUT_OF_MEMORY;
-        }
-
-        NoteJSRootTracer trc(&mJSRoots, cb);
-        JS_TracerInit(&trc, mCycleCollectionContext->GetJSContext(), NoteJSRoot);
-        JS_TraceRuntime(&trc);
-    }
-#else
-    NS_ASSERTION(!explainLiveExpectedGarbage, "Didn't call nsXPConnect::Collect()?");
-#endif
 
     GetRuntime()->AddXPConnectRoots(cb);
 
@@ -641,13 +581,6 @@ nsXPConnect::FinishTraverse()
 nsresult
 nsXPConnect::FinishCycleCollection()
 {
-#ifdef DEBUG_CC
-    if (mJSRoots.ops) {
-        PL_DHashTableFinish(&mJSRoots);
-        mJSRoots.ops = nsnull;
-    }
-#endif
-
     return NS_OK;
 }
 
@@ -664,19 +597,6 @@ nsXPConnect::Root(void *p)
 {
     return NS_OK;
 }
-
-#ifdef DEBUG_CC
-void
-nsXPConnect::PrintAllReferencesTo(void *p)
-{
-#ifdef DEBUG
-    XPCCallContext ccx(NATIVE_CALLER);
-    if (ccx.IsValid())
-        JS_DumpHeap(ccx.GetJSContext(), stdout, nsnull, 0, p,
-                    0x7fffffff, nsnull);
-#endif
-}
-#endif
 
 NS_IMETHODIMP
 nsXPConnect::Unlink(void *p)
@@ -909,30 +829,7 @@ nsXPConnect::Traverse(void *p, nsCycleCollectionTraversalCallback &cb)
         }
     }
 
-    bool isMarked;
-
-#ifdef DEBUG_CC
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    if (mJSRoots.ops) {
-        
-        PLDHashEntryHdr* entry =
-            PL_DHashTableOperate(&mJSRoots, p, PL_DHASH_LOOKUP);
-        isMarked = markJSObject || PL_DHASH_ENTRY_IS_BUSY(entry);
-    } else
-#endif
-    {
-        
-        isMarked = markJSObject || !xpc_IsGrayGCThing(p);
-    }
+    bool isMarked = markJSObject || !xpc_IsGrayGCThing(p);
 
     if (cb.WantDebugInfo()) {
         char name[72];
