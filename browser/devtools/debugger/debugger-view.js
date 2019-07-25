@@ -157,28 +157,28 @@ DebuggerView.Stackframes = {
 
 
 
-  addFrame: function DVF_addFrame(aDepth, aFrameIdText, aFrameNameText) {
+  addFrame: function DVF_addFrame(aDepth, aFrameNameText, aFrameDetailsText) {
     
     if (document.getElementById("stackframe-" + aDepth)) {
       return null;
     }
 
     let frame = document.createElement("div");
-    let frameId = document.createElement("span");
     let frameName = document.createElement("span");
+    let frameDetails = document.createElement("span");
 
     
     frame.id = "stackframe-" + aDepth;
     frame.className = "dbg-stackframe list-item";
 
     
-    frameId.className = "dbg-stackframe-id";
     frameName.className = "dbg-stackframe-name";
-    frameId.appendChild(document.createTextNode(aFrameIdText));
+    frameDetails.className = "dbg-stackframe-details";
     frameName.appendChild(document.createTextNode(aFrameNameText));
+    frameDetails.appendChild(document.createTextNode(aFrameDetailsText));
 
-    frame.appendChild(frameId);
     frame.appendChild(frameName);
+    frame.appendChild(frameDetails);
 
     this._frames.appendChild(frame);
 
