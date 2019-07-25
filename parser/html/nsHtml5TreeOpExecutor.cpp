@@ -298,14 +298,6 @@ nsHtml5TreeOpExecutor::FlushTags()
 }
 
 void
-nsHtml5TreeOpExecutor::PostEvaluateScript(nsIScriptElement *aElement)
-{
-  nsCOMPtr<nsIHTMLDocument> htmlDocument = do_QueryInterface(mDocument);
-  NS_ASSERTION(htmlDocument, "Document didn't QI into HTML document.");
-  htmlDocument->ScriptExecuted(aElement);
-}
-
-void
 nsHtml5TreeOpExecutor::ContinueInterruptedParsingAsync()
 {
   nsCOMPtr<nsIRunnable> flusher = new nsHtml5ExecutorReflusher(this);  
@@ -757,11 +749,6 @@ nsHtml5TreeOpExecutor::RunScript(nsIContent* aScriptElement)
   sele->SetCreatorParser(mParser);
 
   
-  nsCOMPtr<nsIHTMLDocument> htmlDocument = do_QueryInterface(mDocument);
-  NS_ASSERTION(htmlDocument, "Document didn't QI into HTML document.");
-  htmlDocument->ScriptLoading(sele);
-
-  
   
   
   bool block = sele->AttemptToExecute();
@@ -774,10 +761,6 @@ nsHtml5TreeOpExecutor::RunScript(nsIContent* aScriptElement)
       mParser->BlockParser();
     }
   } else {
-    
-    
-    htmlDocument->ScriptExecuted(sele);
-    
     
 
     

@@ -149,9 +149,6 @@ public:
                                nsISupports **aResult,
                                nsWrapperCache **aCache);
 
-  virtual void ScriptLoading(nsIScriptElement *aScript);
-  virtual void ScriptExecuted(nsIScriptElement *aScript);
-
   virtual void AddedForm();
   virtual void RemovedForm();
   virtual PRInt32 GetNumFormsSynchronous();
@@ -279,24 +276,7 @@ protected:
   
   
   
-  
-  
-  
-  
-  enum {
-    eNotWriting,
-    eDocumentOpened,
-    ePendingClose,
-    eDocumentClosed
-  } mWriteState;
-
-  
-  
-  
-  
   PRUint32 mWriteLevel;
-
-  nsAutoTArray<nsIScriptElement*, 1> mPendingScripts;
 
   
   PRUint32 mLoadFlags;

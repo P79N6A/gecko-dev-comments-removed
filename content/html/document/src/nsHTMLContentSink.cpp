@@ -295,9 +295,6 @@ protected:
   void CloseHeadContext();
 
   
-  virtual void PreEvaluateScript();
-  virtual void PostEvaluateScript(nsIScriptElement *aElement);
-
   void UpdateChildCounts();
 
   void NotifyInsert(nsIContent* aContent,
@@ -2716,79 +2713,12 @@ HTMLContentSink::UpdateChildCounts()
   mCurrentContext->UpdateChildCounts();
 }
 
-void
-HTMLContentSink::PreEvaluateScript()
-{
-  
-  
-  SINK_TRACE(gSinkLogModuleInfo, SINK_TRACE_CALLS,
-             ("HTMLContentSink::PreEvaluateScript: flushing tags before "
-              "evaluating script"));
-
-  
-  mCurrentContext->FlushText();
-}
-
-void
-HTMLContentSink::PostEvaluateScript(nsIScriptElement *aElement)
-{
-  mHTMLDocument->ScriptExecuted(aElement);
-}
-
 nsresult
 HTMLContentSink::ProcessSCRIPTEndTag(nsGenericHTMLElement *content,
                                      bool aMalformed)
 {
-  
-  
-  
-  
-  
-  
-  
-
-  
-  mCurrentContext->FlushText();
-
-  nsCOMPtr<nsIScriptElement> sele = do_QueryInterface(content);
-  NS_ASSERTION(sele, "Not really closing a script tag?");
-
-  if (aMalformed) {
-    
-    sele->SetIsMalformed();
-  }
-  if (mFrameset) {
-    sele->PreventExecution();
-  }
-
-  
-  mHTMLDocument->ScriptLoading(sele);
-
-  
-  
-  bool block = sele->AttemptToExecute();
-
-  
-  
-  if (block) {
-    
-    
-    
-    
-    mScriptElements.AppendObject(sele);
-  } else {
-    
-    
-    mHTMLDocument->ScriptExecuted(sele);
-  }
-
-  
-  
-  if (mParser && !mParser->IsParserEnabled()) {
-    block = true;
-  }
-
-  return block ? NS_ERROR_HTMLPARSER_BLOCK : NS_OK;
+  MOZ_NOT_REACHED("Must not use HTMLContentSink to run scripts.");
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 
