@@ -40,26 +40,6 @@
 
 
 function test() {
-
-  
-
-  
-  
-  Components.classes["@mozilla.org/moz/jssubscript-loader;1"].
-   getService(Components.interfaces.mozIJSSubScriptLoader).loadSubScript(
-   "chrome://mochikit/content/browser/toolkit/content/tests/browser/common/_loadAll.js",
-   this);
-
-  
-
-  const kBaseUrl =
-        "http://mochi.test:8888/browser/toolkit/content/tests/browser/data/";
-
-  
-  function FramePostData_TestGenerator() {
-      ok(true, true);
-  }
-
   
 
 
@@ -146,7 +126,23 @@ function test() {
 
 
 
-  
 
-  testRunner.runTest(FramePostData_TestGenerator);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  ok(true, true);
+    
 }
