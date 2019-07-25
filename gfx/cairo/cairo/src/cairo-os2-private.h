@@ -61,6 +61,7 @@ typedef struct _cairo_os2_surface
 
     
     cairo_bool_t           blit_as_changes;
+    cairo_bool_t           use_24bpp;
 } cairo_os2_surface_t;
 
 #endif 

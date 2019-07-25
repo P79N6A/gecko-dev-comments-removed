@@ -35,6 +35,7 @@
 
 
 
+
 #include "cairoint.h"
 
 #include "cairo-os2-private.h"
@@ -66,7 +67,7 @@
 
 static int cairo_os2_initialization_count = 0;
 
-static void inline
+static inline void
 DisableFPUException (void)
 {
     unsigned short usCW;
@@ -169,43 +170,35 @@ cairo_os2_fini (void)
 
 void *_buffer_alloc (size_t a, size_t b, const unsigned int size)
 {
-    
+    size_t nbytes;
+    void  *buffer = NULL;
 
-
-    size_t nbytes = b &&
-                    a >= INT32_MAX / b ? 0 : size &&
-                    a*b >= INT32_MAX / size ? 0 : a * b * size;
-    void *buffer = NULL;
-#ifdef OS2_USE_PLATFORM_ALLOC
-    APIRET rc = NO_ERROR;
-
-    rc = DosAllocMem ((PPVOID)&buffer,
-                      nbytes,
-#ifdef OS2_HIGH_MEMORY           
-                      OBJ_ANY |  
-#endif
-                      PAG_READ | PAG_WRITE | PAG_COMMIT);
-    if (rc != NO_ERROR) {
-        
-
-
-
-        if (rc != ERROR_NOT_ENOUGH_MEMORY && buffer) {
-            DosFreeMem (buffer);
-        }
+    if (!a || !b || !size ||
+        a >= INT32_MAX / b || a*b >= INT32_MAX / size) {
         return NULL;
     }
-#else
-    buffer = malloc (nbytes);
+    nbytes = a * b * size;
+
+#ifdef OS2_USE_PLATFORM_ALLOC
+    
+
+
+
+#ifdef OS2_HIGH_MEMORY
+    if (!DosAllocMem (&buffer, nbytes,
+                      OBJ_ANY | PAG_READ | PAG_WRITE | PAG_COMMIT))
+        return buffer;
 #endif
-
+    if (DosAllocMem (&buffer, nbytes,
+                     PAG_READ | PAG_WRITE | PAG_COMMIT))
+        return NULL;
+#else
     
-
-
-    
-
-
-
+    buffer = malloc (nbytes);
+    if (buffer) {
+        memset (buffer, 0, nbytes);
+    }
+#endif
     return buffer;
 }
 
@@ -303,45 +296,37 @@ _cairo_os2_surface_blit_pixels (cairo_os2_surface_t *surface,
                                 PRECTL               prcl_begin_paint_rect)
 {
     POINTL aptlPoints[4];
-    LONG lOldYInversion, rc = GPI_OK;
+    LONG   lOldYInversion;
+    LONG   rc = GPI_OK;
+
+    
+    if (prcl_begin_paint_rect->xLeft < 0)
+        prcl_begin_paint_rect->xLeft = 0;
+    if (prcl_begin_paint_rect->yBottom < 0)
+        prcl_begin_paint_rect->yBottom = 0;
+    if (prcl_begin_paint_rect->xRight > (LONG) surface->bitmap_info.cx)
+        prcl_begin_paint_rect->xRight = (LONG) surface->bitmap_info.cx;
+    if (prcl_begin_paint_rect->yTop > (LONG) surface->bitmap_info.cy)
+        prcl_begin_paint_rect->yTop = (LONG) surface->bitmap_info.cy;
+
+    
+    if (prcl_begin_paint_rect->xLeft   >= prcl_begin_paint_rect->xRight ||
+        prcl_begin_paint_rect->yBottom >= prcl_begin_paint_rect->yTop)
+        return;
+
+    
+    *((PRECTL)&aptlPoints[0]) = *prcl_begin_paint_rect;
+    *((PRECTL)&aptlPoints[2]) = *prcl_begin_paint_rect;
+
+    
+    aptlPoints[1].x -= 1;
+    aptlPoints[1].y -= 1;
 
     
 
 
     lOldYInversion = GpiQueryYInversion (hps_begin_paint);
     GpiEnableYInversion (hps_begin_paint, surface->bitmap_info.cy-1);
-
-    
-    aptlPoints[0].x = prcl_begin_paint_rect->xLeft;
-    aptlPoints[0].y = prcl_begin_paint_rect->yBottom;
-
-    aptlPoints[1].x = prcl_begin_paint_rect->xRight-1;
-    aptlPoints[1].y = prcl_begin_paint_rect->yTop-1;
-
-    
-    aptlPoints[2].x = prcl_begin_paint_rect->xLeft;
-    aptlPoints[2].y = prcl_begin_paint_rect->yBottom;
-
-    aptlPoints[3].x = prcl_begin_paint_rect->xRight;
-    aptlPoints[3].y = (prcl_begin_paint_rect->yTop);
-
-    
-
-
-
-    {
-        int i;
-        for (i = 0; i < 4; i++) {
-            if (aptlPoints[i].x < 0)
-                aptlPoints[i].x = 0;
-            if (aptlPoints[i].y < 0)
-                aptlPoints[i].y = 0;
-            if (aptlPoints[i].x > (LONG) surface->bitmap_info.cx)
-                aptlPoints[i].x = (LONG) surface->bitmap_info.cx;
-            if (aptlPoints[i].y > (LONG) surface->bitmap_info.cy)
-                aptlPoints[i].y = (LONG) surface->bitmap_info.cy;
-        }
-    }
 
     
 #if 0
@@ -364,63 +349,81 @@ _cairo_os2_surface_blit_pixels (cairo_os2_surface_t *surface,
         }
     }
 #endif
-    rc = GpiDrawBits (hps_begin_paint,
-                      surface->pixels,
-                      &(surface->bitmap_info),
-                      4,
-                      aptlPoints,
-                      ROP_SRCCOPY,
-                      BBO_IGNORE);
-
-    if (rc != GPI_OK) {
-        
-
-
-
-
-
-
-        BITMAPINFOHEADER2 bmpheader;
-        unsigned char *pchPixBuf, *pchPixSource;
-        void *pBufStart;
-        ULONG ulPixels;
-
-        
-        pchPixBuf = (unsigned char *) _buffer_alloc (surface->bitmap_info.cy,
-                                                     surface->bitmap_info.cx,
-                                                     3);
-        pchPixSource = surface->pixels; 
-        pBufStart = pchPixBuf; 
-
-        
-        for (ulPixels = 0; ulPixels < surface->bitmap_info.cx * surface->bitmap_info.cy; ulPixels++)
-        {
-            
-            *pchPixBuf++ = *pchPixSource++;
-            *pchPixBuf++ = *pchPixSource++;
-            *pchPixBuf++ = *pchPixSource++;
-            pchPixSource++; 
-        }
-
-        
-        pchPixBuf = pBufStart;
-
-        
-        memset (&bmpheader, 0, sizeof (bmpheader));
-        bmpheader.cbFix = sizeof (BITMAPINFOHEADER2);
-        bmpheader.cx = surface->bitmap_info.cx;
-        bmpheader.cy = surface->bitmap_info.cy;
-        bmpheader.cPlanes = surface->bitmap_info.cPlanes;
-        bmpheader.cBitCount = 24;
+    if (!surface->use_24bpp) {
         rc = GpiDrawBits (hps_begin_paint,
-                          pchPixBuf,
-                          (PBITMAPINFO2)&bmpheader,
+                          surface->pixels,
+                          &(surface->bitmap_info),
                           4,
                           aptlPoints,
                           ROP_SRCCOPY,
                           BBO_IGNORE);
+        if (rc != GPI_OK)
+            surface->use_24bpp = TRUE;
+    }
 
-        _buffer_free (pchPixBuf);
+    if (surface->use_24bpp) {
+        
+
+
+
+
+
+
+        BITMAPINFO2       bmpinfo;
+        unsigned char    *pchPixBuf;
+        unsigned char    *pchTarget;
+        ULONG            *pulSource;
+        ULONG             ulX;
+        ULONG             ulY;
+        ULONG             ulPad;
+
+        
+        bmpinfo = surface->bitmap_info;
+        bmpinfo.cBitCount = 24;
+
+        
+
+
+
+        ulX = (((bmpinfo.cx * bmpinfo.cBitCount) + 31) / 32) * 4;
+        bmpinfo.cbImage = ulX * bmpinfo.cy;
+        ulPad = ulX - bmpinfo.cx * 3;
+
+        
+
+
+
+
+        pchPixBuf = (unsigned char *)_buffer_alloc (1, 1,
+                                        bmpinfo.cbImage + (ulPad ? 0 : 1));
+
+        if (pchPixBuf) {
+            
+
+
+
+            pchTarget = pchPixBuf;
+            pulSource = (ULONG*)surface->pixels;
+            for (ulY = bmpinfo.cy; ulY; ulY--) {
+                for (ulX = bmpinfo.cx; ulX; ulX--) {
+                    *((ULONG*)pchTarget) = *pulSource++;
+                    pchTarget += 3;
+                }
+                pchTarget += ulPad;
+            }
+
+            rc = GpiDrawBits (hps_begin_paint,
+                              pchPixBuf,
+                              &bmpinfo,
+                              4,
+                              aptlPoints,
+                              ROP_SRCCOPY,
+                              BBO_IGNORE);
+            if (rc != GPI_OK)
+                surface->use_24bpp = FALSE;
+
+            _buffer_free (pchPixBuf);
+        }
     }
 
     
@@ -434,7 +437,6 @@ _cairo_os2_surface_get_pixels_from_screen (cairo_os2_surface_t *surface,
 {
     HPS hps;
     HDC hdc;
-    HAB hab;
     SIZEL sizlTemp;
     HBITMAP hbmpTemp;
     BITMAPINFO2 bmi2Temp;
@@ -454,17 +456,8 @@ _cairo_os2_surface_get_pixels_from_screen (cairo_os2_surface_t *surface,
 
 
 
-
-
-
-
-
-
-
-    hab = (HAB) 1; 
-
     
-    hdc = DevOpenDC (hab, OD_MEMORY,"*",0L, NULL, NULLHANDLE);
+    hdc = DevOpenDC (0, OD_MEMORY,"*",0L, NULL, NULLHANDLE);
     if (!hdc) {
         return;
     }
@@ -472,7 +465,7 @@ _cairo_os2_surface_get_pixels_from_screen (cairo_os2_surface_t *surface,
     
     sizlTemp.cx = prcl_begin_paint_rect->xRight - prcl_begin_paint_rect->xLeft;
     sizlTemp.cy = prcl_begin_paint_rect->yTop - prcl_begin_paint_rect->yBottom;
-    hps = GpiCreatePS (hab,
+    hps = GpiCreatePS (0,
                        hdc,
                        &sizlTemp,
                        PU_PELS | GPIT_NORMAL | GPIA_ASSOC);
@@ -537,7 +530,7 @@ _cairo_os2_surface_get_pixels_from_screen (cairo_os2_surface_t *surface,
         GpiQueryBitmapBits (hps,
                             sizlTemp.cy - y - 1, 
                             1,                   
-                            pchTemp,
+                            (PBYTE)pchTemp,
                             &bmi2Temp);
 
         
@@ -722,6 +715,14 @@ _cairo_os2_surface_get_extents (void                    *abstract_surface,
 {
     cairo_os2_surface_t *local_os2_surface;
 
+    local_os2_surface = (cairo_os2_surface_t *) abstract_surface;
+    if ((!local_os2_surface) ||
+        (local_os2_surface->base.backend != &cairo_os2_surface_backend))
+    {
+        
+        return _cairo_error (CAIRO_STATUS_SURFACE_TYPE_MISMATCH);
+    }
+
     rectangle->x = 0;
     rectangle->y = 0;
     rectangle->width  = local_os2_surface->bitmap_info.cx;
@@ -750,77 +751,54 @@ _cairo_os2_surface_get_extents (void                    *abstract_surface,
 
 
 
+
 cairo_surface_t *
 cairo_os2_surface_create (HPS hps_client_window,
                           int width,
                           int height)
 {
-    cairo_os2_surface_t *local_os2_surface;
+    cairo_os2_surface_t *local_os2_surface = 0;
     cairo_status_t status;
     int rc;
 
     
-    if ((width <= 0) ||
-        (height <= 0))
-    {
-        
-	return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_INVALID_SIZE));
+    if ((width <= 0) || (height <= 0)) {
+        status = _cairo_error (CAIRO_STATUS_INVALID_SIZE);
+        goto error_exit;
     }
 
+    
     local_os2_surface = (cairo_os2_surface_t *) malloc (sizeof (cairo_os2_surface_t));
     if (!local_os2_surface) {
-        
-	return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_NO_MEMORY));
+        status = _cairo_error (CAIRO_STATUS_NO_MEMORY);
+        goto error_exit;
     }
 
-    
+    memset(local_os2_surface, 0, sizeof(cairo_os2_surface_t));
 
     
-    rc = DosCreateMutexSem (NULL,
-                            &(local_os2_surface->hmtx_use_private_fields),
-                            0,
-                            FALSE);
-    if (rc != NO_ERROR) {
-        
-        free (local_os2_surface);
-	return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_NO_MEMORY));
+    if (DosCreateMutexSem (NULL,
+                           &(local_os2_surface->hmtx_use_private_fields),
+                           0,
+                           FALSE))
+    {
+        status = _cairo_error (CAIRO_STATUS_NO_MEMORY);
+        goto error_exit;
     }
 
-    
-    local_os2_surface->hps_client_window = hps_client_window;
-
-    
-    local_os2_surface->hwnd_client_window = NULLHANDLE;
-    local_os2_surface->blit_as_changes = TRUE;
-    local_os2_surface->pixel_array_lend_count = 0;
-    rc = DosCreateEventSem (NULL,
-                            &(local_os2_surface->hev_pixel_array_came_back),
-                            0,
-                            FALSE);
-
-    if (rc != NO_ERROR) {
-        
-        DosCloseMutexSem (local_os2_surface->hmtx_use_private_fields);
-        free (local_os2_surface);
-	return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_NO_MEMORY));
+    if (DosCreateEventSem (NULL,
+                           &(local_os2_surface->hev_pixel_array_came_back),
+                           0,
+                           FALSE))
+    {
+        status = _cairo_error (CAIRO_STATUS_NO_MEMORY);
+        goto error_exit;
     }
 
-    
-    memset (&(local_os2_surface->bitmap_info), 0, sizeof (local_os2_surface->bitmap_info));
-    local_os2_surface->bitmap_info.cbFix = sizeof (BITMAPINFOHEADER2);
-    local_os2_surface->bitmap_info.cx = width;
-    local_os2_surface->bitmap_info.cy = height;
-    local_os2_surface->bitmap_info.cPlanes = 1;
-    local_os2_surface->bitmap_info.cBitCount = 32;
-
-    
     local_os2_surface->pixels = (unsigned char *) _buffer_alloc (height, width, 4);
-    if (!(local_os2_surface->pixels)) {
-        
-        DosCloseEventSem (local_os2_surface->hev_pixel_array_came_back);
-        DosCloseMutexSem (local_os2_surface->hmtx_use_private_fields);
-        free (local_os2_surface);
-	return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_NO_MEMORY));
+    if (!local_os2_surface->pixels) {
+        status = _cairo_error (CAIRO_STATUS_NO_MEMORY);
+        goto error_exit;
     }
 
     
@@ -830,21 +808,90 @@ cairo_os2_surface_create (HPS hps_client_window,
                                              width,      
                                              height,     
                                              width * 4); 
-
     status = local_os2_surface->image_surface->base.status;
-    if (status) {
-        
-        _buffer_free (local_os2_surface->pixels);
-        DosCloseEventSem (local_os2_surface->hev_pixel_array_came_back);
-        DosCloseMutexSem (local_os2_surface->hmtx_use_private_fields);
-        free (local_os2_surface);
-        return _cairo_surface_create_in_error (status);
-    }
+    if (status)
+        goto error_exit;
+
+    
+
+
+
+    local_os2_surface->hps_client_window = hps_client_window;
+    local_os2_surface->blit_as_changes = TRUE;
+
+    
+    local_os2_surface->bitmap_info.cbFix = sizeof (BITMAPINFOHEADER2);
+    local_os2_surface->bitmap_info.cx = width;
+    local_os2_surface->bitmap_info.cy = height;
+    local_os2_surface->bitmap_info.cPlanes = 1;
+    local_os2_surface->bitmap_info.cBitCount = 32;
 
     
     _cairo_surface_init (&local_os2_surface->base,
                          &cairo_os2_surface_backend,
                          _cairo_content_from_format (CAIRO_FORMAT_ARGB32));
+
+    
+    return (cairo_surface_t *)local_os2_surface;
+
+ error_exit:
+
+    
+
+    if (local_os2_surface) {
+        if (local_os2_surface->pixels)
+            _buffer_free (local_os2_surface->pixels);
+        if (local_os2_surface->hev_pixel_array_came_back)
+            DosCloseEventSem (local_os2_surface->hev_pixel_array_came_back);
+        if (local_os2_surface->hmtx_use_private_fields)
+            DosCloseMutexSem (local_os2_surface->hmtx_use_private_fields);
+        free (local_os2_surface);
+    }
+
+    return _cairo_surface_create_in_error (status);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+cairo_surface_t *
+cairo_os2_surface_create_for_window (HWND hwnd_client_window,
+                                     int width,
+                                     int height)
+{
+    cairo_os2_surface_t *local_os2_surface;
+
+    
+    if (!hwnd_client_window) {
+        return _cairo_surface_create_in_error (
+                                _cairo_error (CAIRO_STATUS_NO_MEMORY));
+    }
+
+    
+    local_os2_surface = (cairo_os2_surface_t *)
+        cairo_os2_surface_create (0, width, height);
+
+    
+    if (!local_os2_surface->image_surface->base.status) {
+        local_os2_surface->hwnd_client_window = hwnd_client_window;
+        local_os2_surface->blit_as_changes = FALSE;
+    }
 
     return (cairo_surface_t *)local_os2_surface;
 }
@@ -1014,6 +1061,7 @@ cairo_os2_surface_refresh_window (cairo_surface_t *surface,
 {
     cairo_os2_surface_t *local_os2_surface;
     RECTL rclTemp;
+    HPS hpsTemp = 0;
 
     local_os2_surface = (cairo_os2_surface_t *) surface;
     if ((!local_os2_surface) ||
@@ -1024,8 +1072,18 @@ cairo_os2_surface_refresh_window (cairo_surface_t *surface,
     }
 
     
-    if (!hps_begin_paint)
+    if (!hps_begin_paint) {
         hps_begin_paint = local_os2_surface->hps_client_window;
+        if (!hps_begin_paint) {
+            if (local_os2_surface->hwnd_client_window) {
+                hpsTemp = WinGetPS(local_os2_surface->hwnd_client_window);
+                hps_begin_paint = hpsTemp;
+            }
+            
+            if (!hps_begin_paint)
+                return;
+        }
+    }
 
     if (prcl_begin_paint_rect == NULL) {
         
@@ -1046,6 +1104,8 @@ cairo_os2_surface_refresh_window (cairo_surface_t *surface,
         != NO_ERROR)
     {
         
+        if (hpsTemp)
+            WinReleasePS(hpsTemp);
         return;
     }
 
@@ -1073,6 +1133,9 @@ cairo_os2_surface_refresh_window (cairo_surface_t *surface,
     }
 
     DosReleaseMutexSem (local_os2_surface->hmtx_use_private_fields);
+
+    if (hpsTemp)
+        WinReleasePS(hpsTemp);
 }
 
 static cairo_status_t
@@ -1214,6 +1277,74 @@ cairo_os2_surface_get_manual_window_refresh (cairo_surface_t *surface)
     return !(local_os2_surface->blit_as_changes);
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+cairo_status_t
+cairo_os2_surface_get_hps (cairo_surface_t *surface,
+                           HPS             *hps)
+{
+    cairo_os2_surface_t *local_os2_surface;
+
+    local_os2_surface = (cairo_os2_surface_t *) surface;
+    if ((!local_os2_surface) ||
+        (local_os2_surface->base.backend != &cairo_os2_surface_backend))
+    {
+        
+        return _cairo_error (CAIRO_STATUS_SURFACE_TYPE_MISMATCH);
+    }
+    if (!hps)
+    {
+        return _cairo_error (CAIRO_STATUS_NULL_POINTER);
+    }
+    *hps = local_os2_surface->hps_client_window;
+
+    return CAIRO_STATUS_SUCCESS;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+cairo_status_t
+cairo_os2_surface_set_hps (cairo_surface_t *surface,
+                           HPS              hps)
+{
+    cairo_os2_surface_t *local_os2_surface;
+
+    local_os2_surface = (cairo_os2_surface_t *) surface;
+    if ((!local_os2_surface) ||
+        (local_os2_surface->base.backend != &cairo_os2_surface_backend))
+    {
+        
+        return _cairo_error (CAIRO_STATUS_SURFACE_TYPE_MISMATCH);
+    }
+    local_os2_surface->hps_client_window = hps;
+
+    return CAIRO_STATUS_SUCCESS;
+}
+
 static cairo_status_t
 _cairo_os2_surface_mark_dirty_rectangle (void *surface,
                                          int   x,
@@ -1324,6 +1455,12 @@ static const cairo_surface_backend_t cairo_os2_surface_backend = {
     NULL, 
     NULL, 
     _cairo_os2_surface_mark_dirty_rectangle,
+    NULL, 
+    NULL, 
+    NULL, 
+    NULL, 
+    NULL, 
+    NULL, 
     NULL, 
     NULL, 
     NULL, 
