@@ -171,6 +171,7 @@ DOMSVGNumberList::Clear()
   }
 
   if (Length() > 0) {
+    nsAttrValue emptyOrOldValue = Element()->WillChangeNumberList(AttrEnum());
     
     
     
@@ -178,7 +179,7 @@ DOMSVGNumberList::Clear()
 
     mItems.Clear();
     InternalList().Clear();
-    Element()->DidChangeNumberList(AttrEnum(), true);
+    Element()->DidChangeNumberList(AttrEnum(), emptyOrOldValue);
     if (mAList->IsAnimating()) {
       Element()->AnimationNeedsResample();
     }
@@ -256,6 +257,7 @@ DOMSVGNumberList::InsertItemBefore(nsIDOMSVGNumber *newItem,
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
+  nsAttrValue emptyOrOldValue = Element()->WillChangeNumberList(AttrEnum());
   
   MaybeInsertNullInAnimValListAt(index);
 
@@ -269,7 +271,7 @@ DOMSVGNumberList::InsertItemBefore(nsIDOMSVGNumber *newItem,
 
   UpdateListIndicesFromIndex(mItems, index + 1);
 
-  Element()->DidChangeNumberList(AttrEnum(), true);
+  Element()->DidChangeNumberList(AttrEnum(), emptyOrOldValue);
   if (mAList->IsAnimating()) {
     Element()->AnimationNeedsResample();
   }
@@ -298,6 +300,7 @@ DOMSVGNumberList::ReplaceItem(nsIDOMSVGNumber *newItem,
     domItem = domItem->Clone(); 
   }
 
+  nsAttrValue emptyOrOldValue = Element()->WillChangeNumberList(AttrEnum());
   if (mItems[index]) {
     
     
@@ -311,7 +314,7 @@ DOMSVGNumberList::ReplaceItem(nsIDOMSVGNumber *newItem,
   
   domItem->InsertingIntoList(this, AttrEnum(), index, IsAnimValList());
 
-  Element()->DidChangeNumberList(AttrEnum(), true);
+  Element()->DidChangeNumberList(AttrEnum(), emptyOrOldValue);
   if (mAList->IsAnimating()) {
     Element()->AnimationNeedsResample();
   }
@@ -340,6 +343,7 @@ DOMSVGNumberList::RemoveItem(PRUint32 index,
   
   EnsureItemAt(index);
 
+  nsAttrValue emptyOrOldValue = Element()->WillChangeNumberList(AttrEnum());
   
   
   mItems[index]->RemovingFromList();
@@ -350,7 +354,7 @@ DOMSVGNumberList::RemoveItem(PRUint32 index,
 
   UpdateListIndicesFromIndex(mItems, index);
 
-  Element()->DidChangeNumberList(AttrEnum(), true);
+  Element()->DidChangeNumberList(AttrEnum(), emptyOrOldValue);
   if (mAList->IsAnimating()) {
     Element()->AnimationNeedsResample();
   }
