@@ -146,8 +146,6 @@ struct Parser : private AutoGCRooter
     enum FunctionBodyType { StatementListBody, ExpressionBody };
     ParseNode *functionBody(FunctionBodyType type);
 
-    bool checkForArgumentsAndRest();
-
   private:
     
 
@@ -210,7 +208,7 @@ struct Parser : private AutoGCRooter
 
 
     enum FunctionType { Getter, Setter, Normal };
-    bool functionArguments(ParseNode **list, bool &hasRest);
+    bool functionArguments(ParseNode **list);
 
     ParseNode *functionDef(HandlePropertyName name, FunctionType type, FunctionSyntaxKind kind);
 

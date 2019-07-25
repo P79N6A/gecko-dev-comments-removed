@@ -227,9 +227,6 @@ frontend::CompileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
     }
 #endif
 
-    if (!parser.checkForArgumentsAndRest())
-        goto out;
-
     
 
 
