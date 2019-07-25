@@ -47,6 +47,11 @@
 
 
 
+
+
+
+
+
 pref("keyword.URL", "http://www.google.com/search?ie=UTF-8&oe=utf-8&q=");
 pref("keyword.enabled", false);
 pref("general.useragent.locale", "chrome://global/locale/intl.properties");
@@ -3398,7 +3403,7 @@ pref("layers.acceleration.disabled", false);
 
 pref("layers.acceleration.force-enabled", false);
 
-pref("layers.acceleration.draw-fps", false);
+pref("layers.acceleration.draw-fps", true);
 
 pref("layers.offmainthreadcomposition.enabled", false);
 
