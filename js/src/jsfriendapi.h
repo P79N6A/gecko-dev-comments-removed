@@ -151,6 +151,16 @@ JS_END_EXTERN_C
 
 namespace js {
 
+#ifdef DEBUG
+ 
+
+
+
+extern JS_FRIEND_API(void)
+DumpHeapComplete(JSContext *cx, FILE *fp);
+
+#endif
+
 class JS_FRIEND_API(AutoPreserveCompartment) {
   private:
     JSContext *cx;
