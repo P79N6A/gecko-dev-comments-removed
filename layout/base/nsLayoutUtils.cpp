@@ -143,10 +143,6 @@ static void DestroyViewID(void* aObject, nsIAtom* aPropertyName,
   delete id;
 }
 
-
-
-
-
 ViewID
 nsLayoutUtils::FindIDFor(nsIContent* aContent)
 {
@@ -181,19 +177,9 @@ nsLayoutUtils::FindContentFor(ViewID aId)
   }
 }
 
-bool
-nsLayoutUtils::GetDisplayPort(nsIContent* aContent, nsRect *aResult)
-{
-  void* property = aContent->GetProperty(nsGkAtoms::DisplayPort);
-  if (!property) {
-    return false;
-  }
 
-  if (aResult) {
-    *aResult = *static_cast<nsRect*>(property);
-  }
-  return true;
-}
+
+
 
 nsIFrame*
 nsLayoutUtils::GetLastContinuationWithChild(nsIFrame* aFrame)
@@ -1382,16 +1368,6 @@ nsLayoutUtils::PaintFrame(nsIRenderingContext* aRenderingContext, nsIFrame* aFra
   nsPresContext* presContext = aFrame->PresContext();
   nsIPresShell* presShell = presContext->PresShell();
 
-  nsIFrame* rootScrollFrame = presShell->GetRootScrollFrame();
-  bool usingDisplayPort = false;
-  nsRect displayport;
-  if (rootScrollFrame) {
-    nsIContent* content = rootScrollFrame->GetContent();
-    if (content) {
-      usingDisplayPort = nsLayoutUtils::GetDisplayPort(content, &displayport);
-    }
-  }
-
   PRBool ignoreViewportScrolling = presShell->IgnoringViewportScrolling();
   nsRegion visibleRegion;
   if (aFlags & PAINT_WIDGET_LAYERS) {
@@ -1401,10 +1377,10 @@ nsLayoutUtils::PaintFrame(nsIRenderingContext* aRenderingContext, nsIFrame* aFra
     
     
     
-    if (!usingDisplayPort) {
+    if (!presShell->UsingDisplayPort()) {
       visibleRegion = aFrame->GetVisualOverflowRectRelativeToSelf();
     } else {
-      visibleRegion = displayport;
+      visibleRegion = presShell->GetDisplayPort();
     }
   } else {
     visibleRegion = aDirtyRegion;

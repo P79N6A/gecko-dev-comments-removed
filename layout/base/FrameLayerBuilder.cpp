@@ -1252,8 +1252,7 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
       item->GetLayerState(mBuilder, mManager);
 
     
-    if (layerState == LAYER_ACTIVE_FORCE ||
-        layerState == LAYER_ACTIVE && (aClip.mRoundedClipRects.IsEmpty() ||
+    if (layerState == LAYER_ACTIVE && (aClip.mRoundedClipRects.IsEmpty() ||
         
         
         !aClip.IsRectClippedByRoundedCorner(item->GetVisibleRect()))) {

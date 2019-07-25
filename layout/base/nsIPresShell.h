@@ -1155,20 +1155,18 @@ public:
 
 
 
-
   virtual void SetDisplayPort(const nsRect& aDisplayPort) = 0;
   PRBool UsingDisplayPort() const
-  { NS_ABORT_IF_FALSE(false, "UsingDisplayPort is deprecated"); return false; }
+  { return mRenderFlags & STATE_USING_DISPLAYPORT; }
 
   
 
 
 
-
   nsRect GetDisplayPort()
   {
-    NS_ABORT_IF_FALSE(false, "GetDisplayPort is deprecated");
-    return nsRect();
+    NS_ABORT_IF_FALSE(UsingDisplayPort(), "no displayport defined!");
+    return mDisplayPort;
   }
 
    

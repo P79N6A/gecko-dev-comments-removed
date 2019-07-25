@@ -1791,11 +1791,8 @@ public:
 
 
 
-
-
   nsDisplayScrollLayer(nsDisplayListBuilder* aBuilder, nsDisplayList* aList,
-                       nsIFrame* aForFrame, nsIFrame* aViewportFrame,
-                       const nsRect& aDisplayPort);
+                       nsIFrame* aForFrame, nsIFrame* aViewportFrame);
   NS_DISPLAY_DECL_NAME("ScrollLayer", TYPE_SCROLL_LAYER)
 
 #ifdef NS_BUILD_REFCNT_LOGGING
@@ -1810,16 +1807,8 @@ public:
                                    const nsRect& aAllowVisibleRegionExpansion,
                                    PRBool& aContainsRootContentDocBG);
 
-  virtual LayerState GetLayerState(nsDisplayListBuilder* aBuilder,
-                                   LayerManager* aManager)
-  {
-    
-    
-    return mozilla::LAYER_ACTIVE_FORCE;
-  }
 private:
   nsIFrame* mViewportFrame;
-  nsRect mDisplayPort;
 };
 #endif
 

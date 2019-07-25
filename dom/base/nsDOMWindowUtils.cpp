@@ -48,7 +48,6 @@
 #include "nsFocusManager.h"
 #include "nsIEventStateManager.h"
 #include "nsEventStateManager.h"
-#include "nsFrameManager.h"
 
 #include "nsIScrollableFrame.h"
 
@@ -259,25 +258,9 @@ nsDOMWindowUtils::SetCSSViewport(float aWidthPx, float aHeightPx)
   return NS_OK;
 }
 
-static void DestroyNsRect(void* aObject, nsIAtom* aPropertyName,
-                          void* aPropertyValue, void* aData)
-{
-  nsRect* rect = static_cast<nsRect*>(aPropertyValue);
-  delete rect;
-}
-
 NS_IMETHODIMP
 nsDOMWindowUtils::SetDisplayPort(float aXPx, float aYPx,
                                  float aWidthPx, float aHeightPx)
-{
-  NS_ABORT_IF_FALSE(false, "This interface is deprecated.");
-  return NS_ERROR_FAILURE;
-}
-
-NS_IMETHODIMP
-nsDOMWindowUtils::SetDisplayPortForElement(float aXPx, float aYPx,
-                                           float aWidthPx, float aHeightPx,
-                                           nsIDOMElement* aElement)
 {
   if (!IsUniversalXPConnectCapable()) {
     return NS_ERROR_DOM_SECURITY_ERR;
@@ -292,58 +275,9 @@ nsDOMWindowUtils::SetDisplayPortForElement(float aXPx, float aYPx,
                      nsPresContext::CSSPixelsToAppUnits(aYPx),
                      nsPresContext::CSSPixelsToAppUnits(aWidthPx),
                      nsPresContext::CSSPixelsToAppUnits(aHeightPx));
+  presShell->SetDisplayPort(displayport);
 
-  if (!aElement) {
-    return NS_ERROR_INVALID_ARG;
-  }
-
-  nsCOMPtr<nsIContent> content = do_QueryInterface(aElement);
-
-  if (!content) {
-    return NS_ERROR_INVALID_ARG;
-  }
-
-  nsRect lastDisplayPort;
-  if (nsLayoutUtils::GetDisplayPort(content, &lastDisplayPort) &&
-      displayport == lastDisplayPort) {
-    return NS_OK;
-  }
-
-  content->SetProperty(nsGkAtoms::DisplayPort, new nsRect(displayport),
-                       DestroyNsRect);
-
-  nsIFrame* rootScrollFrame = presShell->GetRootScrollFrame();
-  if (rootScrollFrame) {
-    if (content == rootScrollFrame->GetContent()) {
-      
-      
-      presShell->SetIgnoreViewportScrolling(PR_TRUE);
-    }
-  }
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  nsPresContext* rootPresContext = GetPresContext()->GetRootPresContext();
-  if (rootPresContext) {
-    nsIPresShell* rootPresShell = rootPresContext->GetPresShell();
-    nsIFrame* rootFrame = rootPresShell->FrameManager()->GetRootFrame();
-    if (rootFrame) {
-      rootFrame->InvalidateFrameSubtree();
-    }
-  }
+  presShell->SetIgnoreViewportScrolling(PR_TRUE);
 
   return NS_OK;
 }
