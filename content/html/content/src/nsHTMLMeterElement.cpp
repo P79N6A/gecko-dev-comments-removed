@@ -81,11 +81,29 @@ public:
 
   virtual nsIDOMNode* AsDOMNode() { return this; }
 
-protected:
+private:
 
   static const double kDefaultValue;
   static const double kDefaultMin;
   static const double kDefaultMax;
+
+  
+  double GetMin() const;
+
+  
+  double GetMax() const;
+
+  
+  double GetValue() const;
+
+  
+  double GetLow() const;
+
+  
+  double GetHigh() const;
+
+  
+  double GetOptimum() const;
 };
 
 const double nsHTMLMeterElement::kDefaultValue =  0.0;
@@ -155,8 +173,13 @@ nsHTMLMeterElement::GetForm(nsIDOMHTMLFormElement** aForm)
   return nsGenericHTMLFormElement::GetForm(aForm);
 }
 
-NS_IMETHODIMP
-nsHTMLMeterElement::GetMin(double* aValue)
+
+
+
+
+
+double
+nsHTMLMeterElement::GetMin() const
 {
   
 
@@ -164,11 +187,158 @@ nsHTMLMeterElement::GetMin(double* aValue)
 
   const nsAttrValue* attrMin = mAttrsAndChildren.GetAttr(nsGkAtoms::min);
   if (attrMin && attrMin->Type() == nsAttrValue::eDoubleValue) {
-    *aValue = attrMin->GetDoubleValue();
-    return NS_OK;
+    return attrMin->GetDoubleValue();
+  }
+  return kDefaultMin;
+}
+
+double
+nsHTMLMeterElement::GetMax() const
+{
+  
+
+
+
+
+
+  double max;
+
+  const nsAttrValue* attrMax = mAttrsAndChildren.GetAttr(nsGkAtoms::max);
+  if (attrMax && attrMax->Type() == nsAttrValue::eDoubleValue) {
+    max = attrMax->GetDoubleValue();
+  } else {
+    max = kDefaultMax;
   }
 
-  *aValue = kDefaultMin;
+  return NS_MAX(max, GetMin());
+}
+
+double
+nsHTMLMeterElement::GetValue() const
+{
+  
+
+
+
+
+
+
+
+  double value;
+
+  const nsAttrValue* attrValue = mAttrsAndChildren.GetAttr(nsGkAtoms::value);
+  if (attrValue && attrValue->Type() == nsAttrValue::eDoubleValue) {
+    value = attrValue->GetDoubleValue();
+  } else {
+    value = kDefaultValue;
+  }
+
+  double min = GetMin();
+
+  if (value <= min) {
+    return min;
+  }
+
+  return NS_MIN(value, GetMax());
+}
+
+double
+nsHTMLMeterElement::GetLow() const
+{
+  
+
+
+
+
+
+
+
+
+  double min = GetMin();
+
+  const nsAttrValue* attrLow = mAttrsAndChildren.GetAttr(nsGkAtoms::low);
+  if (!attrLow || attrLow->Type() != nsAttrValue::eDoubleValue) {
+    return min;
+  }
+
+  double low = attrLow->GetDoubleValue();
+
+  if (low <= min) {
+    return min;
+  }
+
+  return NS_MIN(low, GetMax());
+}
+
+double
+nsHTMLMeterElement::GetHigh() const
+{
+  
+
+
+
+
+
+
+
+
+  double max = GetMax();
+
+  const nsAttrValue* attrHigh = mAttrsAndChildren.GetAttr(nsGkAtoms::high);
+  if (!attrHigh || attrHigh->Type() != nsAttrValue::eDoubleValue) {
+    return max;
+  }
+
+  double high = attrHigh->GetDoubleValue();
+
+  if (high >= max) {
+    return max;
+  }
+
+  return NS_MAX(high, GetLow());
+}
+
+double
+nsHTMLMeterElement::GetOptimum() const
+{
+  
+
+
+
+
+
+
+
+
+
+
+  double max = GetMax();
+
+  double min = GetMin();
+
+  const nsAttrValue* attrOptimum =
+              mAttrsAndChildren.GetAttr(nsGkAtoms::optimum);
+  if (!attrOptimum || attrOptimum->Type() != nsAttrValue::eDoubleValue) {
+    return (min + max) / 2.0;
+  }
+
+  double optimum = attrOptimum->GetDoubleValue();
+
+  if (optimum <= min) {
+    return min;
+  }
+
+  return NS_MIN(optimum, max);
+}
+
+
+
+
+
+NS_IMETHODIMP
+nsHTMLMeterElement::GetMin(double* aValue)
+{
+  *aValue = GetMin();
   return NS_OK;
 }
 
@@ -181,24 +351,7 @@ nsHTMLMeterElement::SetMin(double aValue)
 NS_IMETHODIMP
 nsHTMLMeterElement::GetMax(double* aValue)
 {
-  
-
-
-
-
-
-  const nsAttrValue* attrMax = mAttrsAndChildren.GetAttr(nsGkAtoms::max);
-  if (attrMax && attrMax->Type() == nsAttrValue::eDoubleValue) {
-    *aValue = attrMax->GetDoubleValue();
-  } else {
-    *aValue = kDefaultMax;
-  }
-
-  double min;
-  GetMin(&min);
-
-  *aValue = NS_MAX(*aValue, min);
-
+  *aValue = GetMax();
   return NS_OK;
 }
 
@@ -211,34 +364,7 @@ nsHTMLMeterElement::SetMax(double aValue)
 NS_IMETHODIMP
 nsHTMLMeterElement::GetValue(double* aValue)
 {
-  
-
-
-
-
-
-
-
-  const nsAttrValue* attrValue = mAttrsAndChildren.GetAttr(nsGkAtoms::value);
-  if (attrValue && attrValue->Type() == nsAttrValue::eDoubleValue) {
-    *aValue = attrValue->GetDoubleValue();
-  } else {
-    *aValue = kDefaultValue;
-  }
-
-  double min;
-  GetMin(&min);
-
-  if (*aValue <= min) {
-    *aValue = min;
-    return NS_OK;
-  }
-
-  double max;
-  GetMax(&max);
-
-  *aValue = NS_MIN(*aValue, max);
-
+  *aValue = GetValue();
   return NS_OK;
 }
 
@@ -251,36 +377,7 @@ nsHTMLMeterElement::SetValue(double aValue)
 NS_IMETHODIMP
 nsHTMLMeterElement::GetLow(double* aValue)
 {
-  
-
-
-
-
-
-
-
-
-  double min;
-  GetMin(&min);
-
-  const nsAttrValue* attrLow = mAttrsAndChildren.GetAttr(nsGkAtoms::low);
-  if (!attrLow || attrLow->Type() != nsAttrValue::eDoubleValue) {
-    *aValue = min;
-    return NS_OK;
-  }
-
-  *aValue = attrLow->GetDoubleValue();
-
-  if (*aValue <= min) {
-    *aValue = min;
-    return NS_OK;
-  }
-
-  double max;
-  GetMax(&max);
-
-  *aValue = NS_MIN(*aValue, max);
-
+  *aValue = GetLow();
   return NS_OK;
 }
 
@@ -293,36 +390,7 @@ nsHTMLMeterElement::SetLow(double aValue)
 NS_IMETHODIMP
 nsHTMLMeterElement::GetHigh(double* aValue)
 {
-  
-
-
-
-
-
-
-
-
-  double max;
-  GetMax(&max);
-
-  const nsAttrValue* attrHigh = mAttrsAndChildren.GetAttr(nsGkAtoms::high);
-  if (!attrHigh || attrHigh->Type() != nsAttrValue::eDoubleValue) {
-    *aValue = max;
-    return NS_OK;
-  }
-
-  *aValue = attrHigh->GetDoubleValue();
-
-  if (*aValue >= max) {
-    *aValue = max;
-    return NS_OK;
-  }
-
-  double low;
-  GetLow(&low);
-
-  *aValue = NS_MAX(*aValue, low);
-
+  *aValue = GetHigh();
   return NS_OK;
 }
 
@@ -335,39 +403,7 @@ nsHTMLMeterElement::SetHigh(double aValue)
 NS_IMETHODIMP
 nsHTMLMeterElement::GetOptimum(double* aValue)
 {
-  
-
-
-
-
-
-
-
-
-
-
-  double max;
-  GetMax(&max);
-
-  double min;
-  GetMin(&min);
-
-  const nsAttrValue* attrOptimum =
-              mAttrsAndChildren.GetAttr(nsGkAtoms::optimum);
-  if (!attrOptimum || attrOptimum->Type() != nsAttrValue::eDoubleValue) {
-    *aValue = (min + max) / 2.0;
-    return NS_OK;
-  }
-
-  *aValue = attrOptimum->GetDoubleValue();
-
-  if (*aValue <= min) {
-    *aValue = min;
-    return NS_OK;
-  }
-
-  *aValue = NS_MIN(*aValue, max);
-
+  *aValue = GetOptimum();
   return NS_OK;
 }
 
