@@ -134,6 +134,7 @@
 #include "nsMimeTypes.h"
 #include "nsIRequest.h"
 #include "nsHtml5TreeOpExecutor.h"
+#include "nsHtml5Parser.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -1644,8 +1645,8 @@ nsHTMLDocument::Close()
   }
 
   ++mWriteLevel;
-  nsresult rv = mParser->Parse(EmptyString(), nsnull,
-                               GetContentTypeInternal(), true);
+  nsresult rv = (static_cast<nsHtml5Parser*>(mParser.get()))->Parse(
+    EmptyString(), nsnull, GetContentTypeInternal(), true);
   --mWriteLevel;
 
   
@@ -1764,13 +1765,11 @@ nsHTMLDocument::WriteCommon(JSContext *cx,
   
   
   if (aNewlineTerminate) {
-    rv = mParser->Parse(aText + new_line,
-                        key, GetContentTypeInternal(),
-                        false);
+    rv = (static_cast<nsHtml5Parser*>(mParser.get()))->Parse(
+      aText + new_line, key, GetContentTypeInternal(), false);
   } else {
-    rv = mParser->Parse(aText,
-                        key, GetContentTypeInternal(),
-                        false);
+    rv = (static_cast<nsHtml5Parser*>(mParser.get()))->Parse(
+      aText, key, GetContentTypeInternal(), false);
   }
 
   --mWriteLevel;

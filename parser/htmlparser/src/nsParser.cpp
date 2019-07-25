@@ -1301,15 +1301,10 @@ nsParser::Parse(nsIURI* aURL,
 
 
 
-
-
-
-NS_IMETHODIMP
+nsresult
 nsParser::Parse(const nsAString& aSourceBuffer,
                 void* aKey,
-                const nsACString& aMimeType,
-                bool aLastCall,
-                nsDTDMode aMode)
+                bool aLastCall)
 {
   nsresult result = NS_OK;
 
@@ -1326,11 +1321,6 @@ nsParser::Parse(const nsAString& aSourceBuffer,
     
     return result;
   }
-
-  
-  
-  if (aMode == eDTDMode_fragment)
-    mCommand = eViewFragment;
 
   
   
@@ -1354,7 +1344,8 @@ nsParser::Parse(const nsAString& aSourceBuffer,
 
       eAutoDetectResult theStatus = eUnknownDetect;
 
-      if (mParserContext && mParserContext->mMimeType == aMimeType) {
+      if (mParserContext &&
+          mParserContext->mMimeType.EqualsLiteral("application/xml")) {
         
         NS_ASSERTION(mDTD, "How come the DTD is null?");
 
@@ -1390,13 +1381,8 @@ nsParser::Parse(const nsAString& aSourceBuffer,
       
 
       pc->mContextType=CParserContext::eCTString;
-      pc->SetMimeType(aMimeType);
-      if (pc->mPrevContext && aMode == eDTDMode_autodetect) {
-        
-        pc->mDTDMode = pc->mPrevContext->mDTDMode;
-      } else {
-        pc->mDTDMode = aMode;
-      }
+      pc->SetMimeType(NS_LITERAL_CSTRING("application/xml"));
+      pc->mDTDMode = eDTDMode_full_standards;
 
       mUnusedInput.Truncate();
 
@@ -1454,9 +1440,7 @@ nsParser::ParseFragment(const nsAString& aSourceBuffer,
   
   result = Parse(theContext,
                  (void*)&theContext,
-                 NS_LITERAL_CSTRING("application/xml"),
-                 false,
-                 eDTDMode_full_standards);
+                 false);
   if (NS_FAILED(result)) {
     mFlags |= NS_PARSER_FLAG_OBSERVERS_ENABLED;
     return result;
@@ -1478,18 +1462,14 @@ nsParser::ParseFragment(const nsAString& aSourceBuffer,
   if (theCount == 0) {
     result = Parse(aSourceBuffer,
                    &theContext,
-                   NS_LITERAL_CSTRING("application/xml"),
-                   true,
-                   eDTDMode_full_standards);
+                   true);
     fragSink->DidBuildContent();
   } else {
     
     
     result = Parse(aSourceBuffer + NS_LITERAL_STRING("</"),
                    &theContext,
-                   NS_LITERAL_CSTRING("application/xml"),
-                   false,
-                   eDTDMode_full_standards);
+                   false);
     fragSink->DidBuildContent();
 
     if (NS_SUCCEEDED(result)) {
@@ -1514,9 +1494,7 @@ nsParser::ParseFragment(const nsAString& aSourceBuffer,
 
       result = Parse(endContext,
                      &theContext,
-                     NS_LITERAL_CSTRING("application/xml"),
-                     true,
-                     eDTDMode_full_standards);
+                     true);
     }
   }
 
