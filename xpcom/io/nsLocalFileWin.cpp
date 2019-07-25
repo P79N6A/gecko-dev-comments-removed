@@ -682,14 +682,6 @@ class nsDirEnumerator : public nsISimpleEnumerator,
                 if (NS_FAILED(rv))
                     return rv;
 
-                
-                PRBool exists;
-                rv = file->Exists(&exists);
-                if (NS_FAILED(rv) || !exists)
-                {
-                    return HasMoreElements(result);
-                }
-
                 mNext = do_QueryInterface(file);
             }
             *result = mNext != nsnull;
