@@ -476,10 +476,9 @@ js_AtomizeString(JSContext *cx, JSString *strArg, uintN flags)
     if (staticStr)
         return STRING_TO_ATOM(staticStr);
 
-    JSAtomState *state = &cx->runtime->atomState;
-    AtomSet &atoms = state->atoms;
-
     AutoLockAtomsCompartment lock(cx);
+
+    AtomSet &atoms = cx->runtime->atomState.atoms;
     AtomSet::AddPtr p = atoms.lookupForAdd(str);
 
     
@@ -493,46 +492,24 @@ js_AtomizeString(JSContext *cx, JSString *strArg, uintN flags)
 
 
 
-        bool needNewString = !!(flags & ATOM_TMPSTR) ||
-                             str->asCell()->compartment() != cx->runtime->atomsCompartment;
-
-        
-
-
-
-
-
-        if (!needNewString && str->isFlat()) {
-            str->flatClearExtensible();
-            key = str;
-            atoms.add(p, StringToInitialAtomEntry(key));
-        } else {
-            if (needNewString) {
-                SwitchToCompartment sc(cx, cx->runtime->atomsCompartment);
-                if (flags & ATOM_NOCOPY) {
-                    key = js_NewString(cx, const_cast<jschar *>(str->flatChars()), length);
-                    if (!key)
-                        return NULL;
-
-                    
-                    JS_ASSERT(flags & ATOM_TMPSTR);
-                    str->u.chars = NULL;
-                } else {
-                    key = js_NewStringCopyN(cx, chars, length);
-                    if (!key)
-                        return NULL;
-                }
-            } else {
-                JS_ASSERT(str->isDependent());
-                if (!str->undepend(cx))
-                    return NULL;
-                key = str;
-            }
-
-            if (!atoms.relookupOrAdd(p, key, StringToInitialAtomEntry(key))) {
-                JS_ReportOutOfMemory(cx); 
+        SwitchToCompartment sc(cx, cx->runtime->atomsCompartment);
+        if (flags & ATOM_NOCOPY) {
+            key = js_NewString(cx, const_cast<jschar *>(str->flatChars()), length);
+            if (!key)
                 return NULL;
-            }
+
+            
+            JS_ASSERT(flags & ATOM_TMPSTR);
+            str->u.chars = NULL;
+        } else {
+            key = js_NewStringCopyN(cx, chars, length);
+            if (!key)
+                return NULL;
+        }
+
+        if (!atoms.relookupOrAdd(p, key, StringToInitialAtomEntry(key))) {
+            JS_ReportOutOfMemory(cx); 
+            return NULL;
         }
         key->flatSetAtomized();
     }
