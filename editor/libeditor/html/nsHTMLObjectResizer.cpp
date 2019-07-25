@@ -947,10 +947,6 @@ nsHTMLEditor::SetFinalSize(PRInt32 aX, PRInt32 aY)
   y = top - ((mResizedObjectIsAbsolutelyPositioned) ? mResizedObjectBorderTop+mResizedObjectMarginTop : 0);
 
   
-  bool useCSS;
-  GetIsCSSEnabled(&useCSS);
-
-  
   nsAutoEditBatch batchIt(this);
 
   NS_NAMED_LITERAL_STRING(widthStr,  "width");
@@ -969,7 +965,7 @@ nsHTMLEditor::SetFinalSize(PRInt32 aX, PRInt32 aY)
                                           x,
                                           false);
   }
-  if (useCSS || mResizedObjectIsAbsolutelyPositioned) {
+  if (IsCSSEnabled() || mResizedObjectIsAbsolutelyPositioned) {
     if (setWidth && NS_SUCCEEDED(mResizedObject->HasAttribute(widthStr, &hasAttr)) && hasAttr)
       RemoveAttribute(mResizedObject, widthStr);
 

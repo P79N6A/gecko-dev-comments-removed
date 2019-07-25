@@ -112,9 +112,7 @@ NS_IMETHODIMP nsHTMLEditor::SetCSSInlineProperty(nsIAtom *aProperty,
                             const nsAString & aAttribute, 
                             const nsAString & aValue)
 {
-  bool useCSS;
-  GetIsCSSEnabled(&useCSS);
-  if (useCSS) {
+  if (IsCSSEnabled()) {
     return SetInlineProperty(aProperty, aAttribute, aValue);
   }
   return NS_OK;
@@ -307,10 +305,7 @@ nsHTMLEditor::SetInlinePropertyOnTextNode( nsIDOMCharacterData *aTextNode,
   
   
   bool bHasProp;
-  bool useCSS;
-  GetIsCSSEnabled(&useCSS);
-
-  if (useCSS &&
+  if (IsCSSEnabled() &&
       mHTMLCSSUtils->IsCSSEditableProperty(node, aProperty, aAttribute)) {
     
     
@@ -388,10 +383,7 @@ nsHTMLEditor::SetInlinePropertyOnNode( nsIDOMNode *aNode,
   aProperty->ToString(tag);
   ToLowerCase(tag);
   
-  bool useCSS;
-  GetIsCSSEnabled(&useCSS);
-
-  if (useCSS)
+  if (IsCSSEnabled())
   {
     
     if (mHTMLCSSUtils->IsCSSEditableProperty(aNode, aProperty, aAttribute))
@@ -584,8 +576,7 @@ nsresult nsHTMLEditor::SplitStyleAbovePoint(nsCOMPtr<nsIDOMNode> *aNode,
   nsCOMPtr<nsIDOMNode> parent, tmp = *aNode;
   PRInt32 offset;
 
-  bool useCSS;
-  GetIsCSSEnabled(&useCSS);
+  bool useCSS = IsCSSEnabled();
 
   bool isSet;
   while (tmp && !IsBlockNode(tmp))
@@ -731,11 +722,8 @@ nsresult nsHTMLEditor::RemoveStyleInside(nsIDOMNode *aNode,
     }
   }
   else {
-    bool useCSS;
-    GetIsCSSEnabled(&useCSS);
-
-    if (!aChildrenOnly
-        && useCSS && mHTMLCSSUtils->IsCSSEditableProperty(aNode, aProperty, aAttribute)) {
+    if (!aChildrenOnly && IsCSSEnabled() &&
+        mHTMLCSSUtils->IsCSSEditableProperty(aNode, aProperty, aAttribute)) {
       
       
       nsAutoString propertyValue;
@@ -1011,8 +999,7 @@ nsHTMLEditor::GetInlinePropertyBase(nsIAtom *aProperty,
   *aFirst=false;
   bool first=true;
 
-  bool useCSS;
-  GetIsCSSEnabled(&useCSS);
+  bool useCSS = IsCSSEnabled();
 
   nsCOMPtr<nsISelection>selection;
   result = GetSelection(getter_AddRefs(selection));
@@ -1268,9 +1255,7 @@ nsresult nsHTMLEditor::RemoveInlinePropertyImpl(nsIAtom *aProperty, const nsAStr
   bool isCollapsed;
   selection->GetIsCollapsed(&isCollapsed);
 
-  bool useCSS;
-  GetIsCSSEnabled(&useCSS);
-
+  bool useCSS = IsCSSEnabled();
   if (isCollapsed)
   {
     
@@ -1901,13 +1886,7 @@ nsHTMLEditor::GetFontColorState(bool *aMixed, nsAString &aOutColor)
 nsresult
 nsHTMLEditor::GetIsCSSEnabled(bool *aIsCSSEnabled)
 {
-  *aIsCSSEnabled = false;
-  if (mCSSAware) {
-    
-    if (mHTMLCSSUtils) {
-      *aIsCSSEnabled = mHTMLCSSUtils->IsCSSPrefChecked();
-    }
-  }
+  *aIsCSSEnabled = IsCSSEnabled();
   return NS_OK;
 }
 

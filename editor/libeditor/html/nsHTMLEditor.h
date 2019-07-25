@@ -418,7 +418,14 @@ public:
                                   nsCSSStyleSheet *aStyleSheet);
 
   nsresult RemoveStyleSheetFromList(const nsAString &aURL);
-                       
+
+  bool IsCSSEnabled()
+  {
+    
+    return mCSSAware && mHTMLCSSUtils && mHTMLCSSUtils->IsCSSPrefChecked();
+  }
+
+
 protected:
 
   NS_IMETHOD  InitRules();
