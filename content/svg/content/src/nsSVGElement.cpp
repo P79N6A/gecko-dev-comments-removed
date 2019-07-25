@@ -97,6 +97,8 @@
 #include "nsIDOMSVGTransformable.h"
 #endif 
 
+using namespace mozilla;
+
 
 
 
@@ -2088,7 +2090,7 @@ nsSVGElement::GetAnimatedAttr(nsIAtom* aName)
 
   
   if (aName == nsGkAtoms::mozAnimateMotionDummyAttr) {
-    return new mozilla::SVGMotionSMILAttr(this);
+    return new SVGMotionSMILAttr(this);
   }
 
   
