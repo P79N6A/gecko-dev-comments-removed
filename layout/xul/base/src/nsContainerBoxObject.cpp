@@ -45,7 +45,7 @@
 #include "nsIContent.h"
 #include "nsIDocument.h"
 #include "nsIFrame.h"
-#include "nsIFrameFrame.h"
+#include "nsSubDocumentFrame.h"
 
 
 
@@ -83,12 +83,12 @@ NS_IMETHODIMP nsContainerBoxObject::GetDocShell(nsIDocShell** aResult)
   nsIFrame *frame = GetFrame(PR_FALSE);
 
   if (frame) {
-    nsIFrameFrame *frame_frame = do_QueryFrame(frame);
-    if (frame_frame) {
+    nsSubDocumentFrame *subDocFrame = do_QueryFrame(frame);
+    if (subDocFrame) {
       
       
 
-      return frame_frame->GetDocShell(aResult);
+      return subDocFrame->GetDocShell(aResult);
     }
   }
 
