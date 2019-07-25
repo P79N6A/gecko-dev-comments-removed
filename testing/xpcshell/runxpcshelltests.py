@@ -162,7 +162,10 @@ class XPCShellTests(object):
     self.env["MOZ_CRASHREPORTER_NO_REPORT"] = "1"
     
     
-    self.env["NS_TRACE_MALLOC_DISABLE_STACKS"] = "1"
+    if not (sys.platform == 'osx' or sys.platform == "darwin"):
+      
+      
+      self.env["NS_TRACE_MALLOC_DISABLE_STACKS"] = "1"
 
     if sys.platform == 'win32':
       self.env["PATH"] = self.env["PATH"] + ";" + self.xrePath
