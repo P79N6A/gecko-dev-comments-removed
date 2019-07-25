@@ -4263,146 +4263,6 @@ BindDestructuringLHS(JSContext *cx, JSParseNode *pn, JSTreeContext *tc)
     return JS_TRUE;
 }
 
-typedef struct FindPropValData {
-    uint32          numvars;    
-    uint32          maxstep;    
-    JSDHashTable    table;      
-} FindPropValData;
-
-typedef struct FindPropValEntry {
-    JSDHashEntryHdr hdr;
-    JSParseNode     *pnkey;
-    JSParseNode     *pnval;
-} FindPropValEntry;
-
-#define ASSERT_VALID_PROPERTY_KEY(pnkey)                                      \
-    JS_ASSERT(((pnkey)->pn_arity == PN_NULLARY &&                             \
-               ((pnkey)->pn_type == TOK_NUMBER ||                             \
-                (pnkey)->pn_type == TOK_STRING ||                             \
-                (pnkey)->pn_type == TOK_NAME)) ||                             \
-               ((pnkey)->pn_arity == PN_NAME && (pnkey)->pn_type == TOK_NAME))
-
-static JSDHashNumber
-HashFindPropValKey(JSDHashTable *table, const void *key)
-{
-    const JSParseNode *pnkey = (const JSParseNode *)key;
-
-    ASSERT_VALID_PROPERTY_KEY(pnkey);
-    return (pnkey->pn_type == TOK_NUMBER)
-           ? (JSDHashNumber) JS_HASH_DOUBLE(pnkey->pn_dval)
-           : ATOM_HASH(pnkey->pn_atom);
-}
-
-static JSBool
-MatchFindPropValEntry(JSDHashTable *table,
-                      const JSDHashEntryHdr *entry,
-                      const void *key)
-{
-    const FindPropValEntry *fpve = (const FindPropValEntry *)entry;
-    const JSParseNode *pnkey = (const JSParseNode *)key;
-
-    ASSERT_VALID_PROPERTY_KEY(pnkey);
-    return pnkey->pn_type == fpve->pnkey->pn_type &&
-           ((pnkey->pn_type == TOK_NUMBER)
-            ? pnkey->pn_dval == fpve->pnkey->pn_dval
-            : pnkey->pn_atom == fpve->pnkey->pn_atom);
-}
-
-static const JSDHashTableOps FindPropValOps = {
-    JS_DHashAllocTable,
-    JS_DHashFreeTable,
-    HashFindPropValKey,
-    MatchFindPropValEntry,
-    JS_DHashMoveEntryStub,
-    JS_DHashClearEntryStub,
-    JS_DHashFinalizeStub,
-    NULL
-};
-
-#define STEP_HASH_THRESHOLD     10
-#define BIG_DESTRUCTURING        5
-#define BIG_OBJECT_INIT         20
-
-static JSParseNode *
-FindPropertyValue(JSParseNode *pn, JSParseNode *pnid, FindPropValData *data)
-{
-    FindPropValEntry *entry;
-    JSParseNode *pnhit, *pnhead, *pnprop, *pnkey;
-    uint32 step;
-
-    
-    if (data->table.ops) {
-        entry = (FindPropValEntry *)
-                JS_DHashTableOperate(&data->table, pnid, JS_DHASH_LOOKUP);
-        return JS_DHASH_ENTRY_IS_BUSY(&entry->hdr) ? entry->pnval : NULL;
-    }
-
-    
-    if (pn->pn_type != TOK_RC)
-        return NULL;
-
-    
-
-
-
-    pnhit = NULL;
-    step = 0;
-    ASSERT_VALID_PROPERTY_KEY(pnid);
-    pnhead = pn->pn_head;
-    if (pnid->pn_type == TOK_NUMBER) {
-        for (pnprop = pnhead; pnprop; pnprop = pnprop->pn_next) {
-            JS_ASSERT(pnprop->pn_type == TOK_COLON);
-            if (pnprop->pn_op == JSOP_NOP) {
-                pnkey = pnprop->pn_left;
-                ASSERT_VALID_PROPERTY_KEY(pnkey);
-                if (pnkey->pn_type == TOK_NUMBER &&
-                    pnkey->pn_dval == pnid->pn_dval) {
-                    pnhit = pnprop;
-                }
-                ++step;
-            }
-        }
-    } else {
-        for (pnprop = pnhead; pnprop; pnprop = pnprop->pn_next) {
-            JS_ASSERT(pnprop->pn_type == TOK_COLON);
-            if (pnprop->pn_op == JSOP_NOP) {
-                pnkey = pnprop->pn_left;
-                ASSERT_VALID_PROPERTY_KEY(pnkey);
-                if (pnkey->pn_type == pnid->pn_type &&
-                    pnkey->pn_atom == pnid->pn_atom) {
-                    pnhit = pnprop;
-                }
-                ++step;
-            }
-        }
-    }
-    if (!pnhit)
-        return NULL;
-
-    
-    JS_ASSERT(!data->table.ops);
-    if (step > data->maxstep) {
-        data->maxstep = step;
-        if (step >= STEP_HASH_THRESHOLD &&
-            data->numvars >= BIG_DESTRUCTURING &&
-            pn->pn_count >= BIG_OBJECT_INIT &&
-            JS_DHashTableInit(&data->table, &FindPropValOps, pn,
-                              sizeof(FindPropValEntry),
-                              JS_DHASH_DEFAULT_CAPACITY(pn->pn_count)))
-        {
-            for (pn = pnhead; pn; pn = pn->pn_next) {
-                JS_ASSERT(pnprop->pn_type == TOK_COLON);
-                ASSERT_VALID_PROPERTY_KEY(pn->pn_left);
-                entry = (FindPropValEntry *)
-                        JS_DHashTableOperate(&data->table, pn->pn_left,
-                                             JS_DHASH_ADD);
-                entry->pnval = pn->pn_right;
-            }
-        }
-    }
-    return pnhit->pn_right;
-}
-
 
 
 
@@ -4548,67 +4408,31 @@ CheckDestructuring(JSContext *cx, BindData *data, JSParseNode *left, JSTreeConte
 
 
 
-static JSBool
-UndominateInitializers(JSParseNode *left, JSParseNode *right, JSTreeContext *tc)
+static void
+UndominateInitializers(JSParseNode *left, const TokenPtr &end, JSTreeContext *tc)
 {
-    FindPropValData fpvd;
-    JSParseNode *lhs, *rhs;
-
-    JS_ASSERT(left->pn_type != TOK_ARRAYCOMP);
-    JS_ASSERT(right);
-
-#if JS_HAS_DESTRUCTURING_SHORTHAND
-    if (right->pn_arity == PN_LIST && (right->pn_xflags & PNX_DESTRUCT)) {
-        ReportCompileErrorNumber(tc->parser->context, TS(tc->parser), right, JSREPORT_ERROR,
-                                 JSMSG_BAD_OBJECT_INIT);
-        return JS_FALSE;
-    }
-#endif
-
-    if (right->pn_type != left->pn_type)
-        return JS_TRUE;
-
-    fpvd.table.ops = NULL;
-    lhs = left->pn_head;
     if (left->pn_type == TOK_RB) {
-        rhs = right->pn_head;
-
-        while (lhs && rhs) {
+        for (JSParseNode *pn = left->pn_head; pn; pn = pn->pn_next) {
             
-            if (lhs->pn_type != TOK_COMMA || lhs->pn_arity != PN_NULLARY) {
-                if (lhs->pn_type == TOK_RB || lhs->pn_type == TOK_RC) {
-                    if (!UndominateInitializers(lhs, rhs, tc))
-                        return JS_FALSE;
-                } else {
-                    lhs->pn_pos.end = rhs->pn_pos.end;
-                }
+            if (pn->pn_type != TOK_COMMA || pn->pn_arity != PN_NULLARY) {
+                if (pn->pn_type == TOK_RB || pn->pn_type == TOK_RC)
+                    UndominateInitializers(pn, end, tc);
+                else
+                    pn->pn_pos.end = end;
             }
-
-            lhs = lhs->pn_next;
-            rhs = rhs->pn_next;
         }
     } else {
         JS_ASSERT(left->pn_type == TOK_RC);
-        fpvd.numvars = left->pn_count;
-        fpvd.maxstep = 0;
 
-        while (lhs) {
-            JS_ASSERT(lhs->pn_type == TOK_COLON);
-            JSParseNode *pn = lhs->pn_right;
-
-            rhs = FindPropertyValue(right, lhs->pn_left, &fpvd);
-            if (pn->pn_type == TOK_RB || pn->pn_type == TOK_RC) {
-                if (rhs && !UndominateInitializers(pn, rhs, tc))
-                    return JS_FALSE;
-            } else {
-                if (rhs)
-                    pn->pn_pos.end = rhs->pn_pos.end;
-            }
-
-            lhs = lhs->pn_next;
+        for (JSParseNode *pair = left->pn_head; pair; pair = pair->pn_next) {
+            JS_ASSERT(pair->pn_type == TOK_COLON);
+            JSParseNode *pn = pair->pn_right;
+            if (pn->pn_type == TOK_RB || pn->pn_type == TOK_RC)
+                UndominateInitializers(pn, end, tc);
+            else
+                pn->pn_pos.end = end;
         }
     }
-    return JS_TRUE;
 }
 
 JSParseNode *
@@ -6312,8 +6136,9 @@ Parser::variables(bool inLetHead)
             }
 #endif
 
-            if (!init || !UndominateInitializers(pn2, init, tc))
+            if (!init)
                 return NULL;
+            UndominateInitializers(pn2, init->pn_pos.end, tc);
 
             pn2 = JSParseNode::newBinaryOrAppend(TOK_ASSIGN, JSOP_NOP, pn2, init, tc);
             if (!pn2)
