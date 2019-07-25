@@ -117,8 +117,6 @@ nsSMILCSSProperty::GetBaseValue() const
     
     
     
-    nsSMILValue tmpVal(&nsSMILCSSValueType::sSingleton);
-    baseValue.Swap(tmpVal);
     return baseValue;
   }
 

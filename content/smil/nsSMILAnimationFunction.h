@@ -201,7 +201,7 @@ public:
 
 
 
-  PRBool WillReplace() const;
+  virtual PRBool WillReplace() const;
 
   
 

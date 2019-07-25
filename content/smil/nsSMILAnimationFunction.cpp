@@ -246,7 +246,7 @@ nsSMILAnimationFunction::ComposeResult(const nsISMILAttr& aSMILAttr,
       mSimpleDuration.IsIndefinite() || mLastValue,
       "Unresolved simple duration for active or frozen animation");
 
-  nsSMILValue result(aResult.mType);
+  nsSMILValue result;
 
   if (mSimpleDuration.IsIndefinite() ||
       (values.Length() == 1 && TreatSingleValueAsStatic())) {
@@ -402,15 +402,19 @@ nsSMILAnimationFunction::InterpolateResult(const nsSMILValueArray& aValues,
     
     double intervalProgress = -1.f;
     if (IsToAnimation()) {
-      from = &aBaseValue;
-      to = &aValues[0];
-      if (calcMode == CALC_PACED) {
-        
-        intervalProgress = simpleProgress;
+      if (aBaseValue.IsNull()) {
+        rv = NS_ERROR_FAILURE;
       } else {
-        double scaledSimpleProgress =
-          ScaleSimpleProgress(simpleProgress, calcMode);
-        intervalProgress = ScaleIntervalProgress(scaledSimpleProgress, 0);
+        from = &aBaseValue;
+        to = &aValues[0];
+        if (calcMode == CALC_PACED) {
+          
+          intervalProgress = simpleProgress;
+        } else {
+          double scaledSimpleProgress =
+            ScaleSimpleProgress(simpleProgress, calcMode);
+          intervalProgress = ScaleIntervalProgress(scaledSimpleProgress, 0);
+        }
       }
     } else {
       if (calcMode == CALC_PACED) {
