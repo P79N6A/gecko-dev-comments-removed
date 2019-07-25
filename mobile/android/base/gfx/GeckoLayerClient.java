@@ -204,18 +204,14 @@ public class GeckoLayerClient implements GeckoEventListener,
     }
 
     
-
-
-
-
-    public void endDrawing(int x, int y, int width, int height) {
+    public void endDrawing() {
         updateViewport(!mUpdateViewportOnEndDraw);
         mUpdateViewportOnEndDraw = false;
         Log.i(LOGTAG, "zerdatime " + SystemClock.uptimeMillis() + " - endDrawing");
 
         
         if (mDrawListener != null) {
-            mDrawListener.drawFinished(x, y, width, height);
+            mDrawListener.drawFinished();
         }
     }
 
@@ -486,7 +482,7 @@ public class GeckoLayerClient implements GeckoEventListener,
 
     
     public interface DrawListener {
-        public void drawFinished(int x, int y, int width, int height);
+        public void drawFinished();
     }
 }
 
