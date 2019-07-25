@@ -576,11 +576,16 @@ LoopState::hoistArrayLengthCheck(InvariantArrayKind arrayKind, const CrossSSAVal
 
     if (indexSlot == UNASSIGNED) {
         
+        if (indexConstant < 0) {
+            JaegerSpew(JSpew_Analysis, "Constant index is negative\n");
+            return false;
+        }
         return addHoistedCheck(arrayKind, objSlot, UNASSIGNED, UNASSIGNED, indexConstant);
     }
 
     if (loopInvariantEntry(indexSlot)) {
         
+        addNegativeCheck(indexSlot, indexConstant);
         return addHoistedCheck(arrayKind, objSlot, indexSlot, UNASSIGNED, indexConstant);
     }
 
