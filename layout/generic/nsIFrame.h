@@ -161,9 +161,6 @@ typedef PRUint64 nsFrameState;
 #define NS_FRAME_IN_REFLOW                          NS_FRAME_STATE_BIT(0)
 
 
-#define NS_FRAME_FORCE_DISPLAY_LIST_DESCEND_INTO    NS_FRAME_STATE_BIT(0)
-
-
 
 
 #define NS_FRAME_FIRST_REFLOW                       NS_FRAME_STATE_BIT(1)
@@ -293,6 +290,12 @@ typedef PRUint64 nsFrameState;
 
 #define NS_FRAME_PAINTED_THEBES                     NS_FRAME_STATE_BIT(38)
 
+
+
+#define NS_FRAME_IN_CONSTRAINED_HEIGHT              NS_FRAME_STATE_BIT(39)
+
+
+#define NS_FRAME_FORCE_DISPLAY_LIST_DESCEND_INTO    NS_FRAME_STATE_BIT(40)
 
 
 #define NS_FRAME_RESERVED                           ~NS_FRAME_IMPL_RESERVED
