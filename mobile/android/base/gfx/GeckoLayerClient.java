@@ -363,7 +363,7 @@ public class GeckoLayerClient implements GeckoEventResponder, LayerView.Listener
     public void setPageRect(float cssPageLeft, float cssPageTop, float cssPageRight, float cssPageBottom) {
         synchronized (mLayerController) {
             RectF cssPageRect = new RectF(cssPageLeft, cssPageTop, cssPageRight, cssPageBottom);
-            float ourZoom = mLayerController.getZoomFactor();
+            float ourZoom = mLayerController.getViewportMetrics().zoomFactor;
             mLayerController.setPageRect(RectUtils.scale(cssPageRect, ourZoom), cssPageRect);
             
             
