@@ -1622,10 +1622,6 @@ nsSMILTimedElement::GetNextInterval(const nsSMILInterval* aPrevInterval,
     beginAfter = aPrevInterval->End()->Time();
     prevIntervalWasZeroDur
       = aPrevInterval->End()->Time() == aPrevInterval->Begin()->Time();
-    if (aFixedBeginTime) {
-      prevIntervalWasZeroDur &=
-        aPrevInterval->Begin()->Time() == aFixedBeginTime->Time();
-    }
   } else {
     beginAfter.SetMillis(LL_MININT);
   }
@@ -1647,17 +1643,17 @@ nsSMILTimedElement::GetNextInterval(const nsSMILInterval* aPrevInterval,
       tempBegin = new nsSMILInstanceTime(nsSMILTimeValue(0));
     } else {
       PRInt32 beginPos = 0;
-      
-      
-      
-      
-      
       do {
         tempBegin =
           GetNextGreaterOrEqual(mBeginInstances, beginAfter, beginPos);
         if (!tempBegin || !tempBegin->Time().IsDefinite()) {
           return false;
         }
+      
+      
+      
+      
+      
       } while (aReplacedInterval &&
                tempBegin->GetBaseTime() == aReplacedInterval->Begin());
     }
@@ -1668,21 +1664,23 @@ nsSMILTimedElement::GetNextInterval(const nsSMILInterval* aPrevInterval,
     
     {
       PRInt32 endPos = 0;
-      
-      
-      
       do {
         tempEnd =
           GetNextGreaterOrEqual(mEndInstances, tempBegin->Time(), endPos);
+
+        
+        
+        
+        
+        if (tempEnd && prevIntervalWasZeroDur &&
+            tempEnd->Time() == beginAfter) {
+          tempEnd = GetNextGreater(mEndInstances, tempBegin->Time(), endPos);
+        }
+      
+      
+      
       } while (tempEnd && aReplacedInterval &&
                tempEnd->GetBaseTime() == aReplacedInterval->End());
-
-      
-      
-      if (tempEnd && tempEnd->Time() == tempBegin->Time() &&
-          prevIntervalWasZeroDur) {
-        tempEnd = GetNextGreater(mEndInstances, tempBegin->Time(), endPos);
-      }
 
       
       
@@ -1695,8 +1693,8 @@ nsSMILTimedElement::GetNextInterval(const nsSMILInterval* aPrevInterval,
       
       
       bool openEndedIntervalOk = mEndSpecs.IsEmpty() ||
-                                   !HaveDefiniteEndTimes() ||
-                                   EndHasEventConditions();
+                                 !HaveDefiniteEndTimes() ||
+                                 EndHasEventConditions();
       if (!tempEnd && !openEndedIntervalOk)
         return false; 
 
@@ -1713,14 +1711,18 @@ nsSMILTimedElement::GetNextInterval(const nsSMILInterval* aPrevInterval,
     
     
     
-    if (tempEnd->Time().IsDefinite() && tempBegin->Time() == tempEnd->Time()) {
+    
+    
+    
+    
+    if (prevIntervalWasZeroDur && tempEnd->Time() == beginAfter) {
       if (prevIntervalWasZeroDur) {
-        beginAfter.SetMillis(tempEnd->Time().GetMillis() + 1);
+        beginAfter.SetMillis(tempBegin->Time().GetMillis() + 1);
         prevIntervalWasZeroDur = false;
         continue;
       }
-      prevIntervalWasZeroDur = true;
     }
+    prevIntervalWasZeroDur = tempBegin->Time() == tempEnd->Time();
 
     
     if (tempEnd->Time() > zeroTime ||
