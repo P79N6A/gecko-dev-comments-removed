@@ -71,8 +71,6 @@
 #include "nsINode.h"
 #include "nsHashtable.h"
 
-#include "jsapi.h"
-
 struct nsNativeKeyEvent; 
 
 class nsIDOMScriptObjectFactory;
