@@ -56,12 +56,6 @@
 
 #undef DEBUG_very_verbose
 
-
-
-
-
-PR_STATIC_ASSERT(sizeof(PULONG) == sizeof(ULONG));
-
 typedef NTSTATUS (NTAPI *LdrLoadDll_func) (PWCHAR filePath, PULONG flags, PUNICODE_STRING moduleFileName, PHANDLE handle);
 
 static LdrLoadDll_func stub_LdrLoadDll = 0;
