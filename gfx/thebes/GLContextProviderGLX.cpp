@@ -636,7 +636,7 @@ CreateOffscreenPixmapContext(const gfxIntSize& aSize,
                  "glXChooseFBConfig() failed to match our requested format and violated its spec (!)");
 
     ScopedXFree<XVisualInfo> vinfo;
-    int chosenIndex;
+    int chosenIndex = 0;
 
     for (int i = 0; i < numConfigs; ++i) {
         int dtype, visid;

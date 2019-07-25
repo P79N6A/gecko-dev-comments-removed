@@ -212,7 +212,9 @@ LayerManagerOGL::Initialize(GLContext *aExistingContext)
 
   
   
+#ifdef DEBUG
   GLint programIndex = 0;
+#endif
 
   
   SHADER_PROGRAM(RGBALayerProgramType, ColorTextureLayerProgram,

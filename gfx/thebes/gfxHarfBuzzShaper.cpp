@@ -35,6 +35,7 @@
 
 
 
+
 #include "prtypes.h"
 #include "prmem.h"
 #include "nsString.h"
@@ -869,8 +870,10 @@ gfxHarfBuzzShaper::InitTextRun(gfxContext *aContext,
         hb_buffer_reverse(buffer);
     }
 
-    nsresult rv = SetGlyphsFromRun(aContext, aTextRun, buffer,
-                                   aRunStart, aRunLength);
+#ifdef DEBUG
+    nsresult rv =
+#endif
+    SetGlyphsFromRun(aContext, aTextRun, buffer, aRunStart, aRunLength);
     NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "failed to store glyphs into textrun");
     hb_buffer_destroy(buffer);
     hb_font_destroy(font);
@@ -1067,20 +1070,20 @@ gfxHarfBuzzShaper::SetGlyphsFromRun(gfxContext *aContext,
         
         
         PRInt32 baseCharIndex, endCharIndex;
-        while (charEnd < aRunLength && charToGlyph[charEnd] == NO_GLYPH)
+        while (charEnd < PRInt32(aRunLength) && charToGlyph[charEnd] == NO_GLYPH)
             charEnd++;
         baseCharIndex = charStart;
         endCharIndex = charEnd;
 
         
         
-        if (baseCharIndex >= aRunLength) {
+        if (baseCharIndex >= PRInt32(aRunLength)) {
             glyphStart = glyphEnd;
             charStart = charEnd;
             continue;
         }
         
-        endCharIndex = PR_MIN(endCharIndex, aRunLength);
+        endCharIndex = NS_MIN<PRInt32>(endCharIndex, aRunLength);
 
         
         PRInt32 glyphsInClump = glyphEnd - glyphStart;
@@ -1162,7 +1165,8 @@ gfxHarfBuzzShaper::SetGlyphsFromRun(gfxContext *aContext,
 
         
         
-        while (++baseCharIndex != endCharIndex && baseCharIndex < aRunLength) {
+        while (++baseCharIndex != endCharIndex &&
+               baseCharIndex < PRInt32(aRunLength)) {
             gfxTextRun::CompressedGlyph g;
             g.SetComplex(inOrder &&
                          aTextRun->IsClusterStart(aTextRunOffset + baseCharIndex),
