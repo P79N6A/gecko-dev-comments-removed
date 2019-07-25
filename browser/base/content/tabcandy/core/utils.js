@@ -15,9 +15,6 @@ var homeWindow = Cc["@mozilla.org/embedcomp/window-watcher;1"]
 var consoleService = Cc["@mozilla.org/consoleservice;1"]
     .getService(Components.interfaces.nsIConsoleService);
 
-var extensionManager = Cc["@mozilla.org/extensions/manager;1"]  
-    .getService(Ci.nsIExtensionManager);  
-
 
 
 
@@ -339,6 +336,8 @@ var Utils = {
     
   
   getInstallDirectory: function(id) { 
+    var extensionManager = Cc["@mozilla.org/extensions/manager;1"]  
+                           .getService(Ci.nsIExtensionManager);  
     var file = extensionManager.getInstallLocation(id).getItemFile(id, "install.rdf"); 
     return file.parent;  
   }, 
@@ -359,17 +358,19 @@ var Utils = {
 
   getVisualizationNames: function() {
     var names = [];
-    var dir = this.getInstallDirectory('tabcandy@aza.raskin');  
-    dir.append('content');
-    dir.append('candies');
-    var files = this.getFiles(dir);
-    var count = files.length;
-    var a;
-    for(a = 0; a < count; a++) {
-      var file = files[a];
-      if(file.isDirectory()) 
-        names.push(file.leafName);
-    }
+    
+
+
+
+
+
+
+
+
+
+
+
+
 
     return names;
   },
