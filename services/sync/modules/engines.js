@@ -356,6 +356,18 @@ SyncEngine.prototype = {
     Cu.forceGC();
   },
 
+  
+
+
+
+
+  _findLikeId: function SyncEngine__findLikeId(item) {
+    
+    for (let id in this._tracker.changedIDs)
+      if (this._recordLike(item, this._createRecord(id)))
+        return id;
+  },
+
   _isEqual: function SyncEngine__isEqual(item) {
     let local = this._createRecord(item.id);
     this._log.trace("Local record: \n" + local);
@@ -406,15 +418,17 @@ SyncEngine.prototype = {
 
     
     this._log.trace("Reconcile step 3");
-    for (let id in this._tracker.changedIDs) {
-      let out = this._createRecord(id);
-      if (this._recordLike(item, out)) {
-        this._store.changeItemID(id, item.id);
-        this._tracker.removeChangedID(id);
-        this._tracker.removeChangedID(item.id);
-        this._store.cache.clear(); 
-        return false;
-      }
+    let likeId = this._findLikeId(item);
+    if (likeId) {
+      
+      this._store.changeItemID(likeId, item.id);
+
+      
+      this._tracker.removeChangedID(likeId);
+      this._tracker.removeChangedID(item.id);
+
+      this._store.cache.clear(); 
+      return false;
     }
 
     return true;
