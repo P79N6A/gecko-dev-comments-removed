@@ -45,11 +45,11 @@ public:
     mFramesWithLayers.Init();
   }
   ~LayerManagerData() {
-    MOZ_COUNT_DTOR(LayerManagerData);
     
     
     mFramesWithLayers.EnumerateEntries(
         FrameLayerBuilder::RemoveDisplayItemDataForFrame, this);
+    MOZ_COUNT_DTOR(LayerManagerData);
   }
 
   
@@ -58,14 +58,6 @@ public:
   nsTHashtable<FrameLayerBuilder::DisplayItemDataEntry> mFramesWithLayers;
   bool mInvalidateAllLayers;
 };
-
- void
-FrameLayerBuilder::DestroyDisplayItemDataFor(nsIFrame* aFrame)
-{
-  FrameProperties props = aFrame->Properties();
-  props.Delete(LayerManagerDataProperty());
-  props.Delete(LayerManagerSecondaryDataProperty());
-}
 
 namespace {
 
@@ -527,61 +519,6 @@ ThebesDisplayItemLayerUserData* GetThebesDisplayItemLayerUserData(Layer* aLayer)
 } 
 
 PRUint8 gLayerManagerLayerBuilder;
-PRUint8 gLayerManagerSecondary;
-
-bool FrameLayerBuilder::sWidgetManagerSecondary = nsnull;
-
- const FramePropertyDescriptor* 
-FrameLayerBuilder::GetDescriptorForManager(LayerManager* aManager)
-{
-  bool secondary = sWidgetManagerSecondary;
-  if (aManager) {
-    secondary = !!static_cast<LayerManagerSecondary*>(aManager->GetUserData(&gLayerManagerSecondary));
-  }
-
-  return secondary ? LayerManagerSecondaryDataProperty() : LayerManagerDataProperty();
-}
-
-LayerManagerData*
-FrameLayerBuilder::GetManagerData(nsIFrame* aFrame, LayerManager* aManager)
-{
-  FrameProperties props = aFrame->Properties();
-  return static_cast<LayerManagerData*>(props.Get(GetDescriptorForManager(aManager)));
-}
-
-void
-FrameLayerBuilder::SetManagerData(nsIFrame* aFrame, LayerManagerData* aData)
-{
-  FrameProperties props = aFrame->Properties();
-  const FramePropertyDescriptor* desc = GetDescriptorForManager(nsnull);
-
-  props.Remove(desc);
-  if (aData) {
-    props.Set(desc, aData);
-  }
-}
-
-void
-FrameLayerBuilder::ClearManagerData(nsIFrame* aFrame)
-{
-  SetManagerData(aFrame, nsnull);
-}
-
-void
-FrameLayerBuilder::ClearManagerData(nsIFrame* aFrame, LayerManagerData* aData)
-{
-  NS_ABORT_IF_FALSE(aData, "Must have a widget manager to check for manager data!");
-
-  FrameProperties props = aFrame->Properties();
-  if (aData == static_cast<LayerManagerData*>(props.Get(LayerManagerDataProperty()))) {
-    props.Remove(LayerManagerDataProperty());
-    return;
-  }
-  if (aData == static_cast<LayerManagerData*>(props.Get(LayerManagerSecondaryDataProperty()))) {
-    props.Remove(LayerManagerSecondaryDataProperty());
-    return;
-  }
-}
 
  void
 FrameLayerBuilder::Shutdown()
@@ -748,9 +685,6 @@ FrameLayerBuilder::DidBeginRetainedLayerTransaction(LayerManager* aManager)
     (aManager->GetUserData(&gLayerManagerUserData));
   if (data) {
     mInvalidateAllLayers = data->mInvalidateAllLayers;
-  } else {
-    data = new LayerManagerData();
-    aManager->SetUserData(&gLayerManagerUserData, data);
   }
 }
 
@@ -789,10 +723,13 @@ FrameLayerBuilder::WillEndTransaction()
   
   LayerManagerData* data = static_cast<LayerManagerData*>
     (mRetainingManager->GetUserData(&gLayerManagerUserData));
-  NS_ASSERTION(data, "Must have data!");
-  
-  data->mFramesWithLayers.EnumerateEntries(UpdateDisplayItemDataForFrame, this);
-  
+  if (data) {
+    
+    data->mFramesWithLayers.EnumerateEntries(UpdateDisplayItemDataForFrame, this);
+  } else {
+    data = new LayerManagerData();
+    mRetainingManager->SetUserData(&gLayerManagerUserData, data);
+  }
   
   
   
@@ -830,23 +767,27 @@ FrameLayerBuilder::UpdateDisplayItemDataForFrame(DisplayItemDataEntry* aEntry,
 {
   FrameLayerBuilder* builder = static_cast<FrameLayerBuilder*>(aUserArg);
   nsIFrame* f = aEntry->GetKey();
+  FrameProperties props = f->Properties();
   DisplayItemDataEntry* newDisplayItems =
     builder ? builder->mNewDisplayItemData.GetEntry(f) : nsnull;
   LayerManagerData* managerData = static_cast<LayerManagerData*>
     (builder->GetRetainingLayerManager()->GetUserData(&gLayerManagerUserData));
-  LayerManagerData* data = GetManagerData(f);
+  LayerManagerData* data = static_cast<LayerManagerData*>(props.Get(LayerManagerDataProperty()));
   if (!newDisplayItems || newDisplayItems->mData.IsEmpty()) {
     
     if (newDisplayItems) {
       builder->mNewDisplayItemData.RawRemoveEntry(newDisplayItems);
     }
     if (data == managerData) {
-      ClearManagerData(f);
+      props.Remove(LayerManagerDataProperty());
     }
     return PL_DHASH_REMOVE;
   }
 
-  SetManagerData(f, managerData);
+  if (data) {
+    props.Remove(LayerManagerDataProperty());
+  }
+  props.Set(LayerManagerDataProperty(), managerData);
 
   
   aEntry->mData.SwapElements(newDisplayItems->mData);
@@ -864,7 +805,12 @@ FrameLayerBuilder::RemoveDisplayItemDataForFrame(DisplayItemDataEntry* aEntry,
   
   
   if (f != sDestroyedFrame) {
-    ClearManagerData(f, managerData);
+    FrameProperties props = f->Properties();
+    bool found;
+    LayerManagerData* data = static_cast<LayerManagerData*>(props.Get(LayerManagerDataProperty()));
+    if (data == managerData) {
+      props.Remove(LayerManagerDataProperty(), &found);
+    }
   }
   return PL_DHASH_REMOVE;
 }
@@ -875,6 +821,7 @@ FrameLayerBuilder::StoreNewDisplayItemData(DisplayItemDataEntry* aEntry,
 {
   LayerManagerData* data = static_cast<LayerManagerData*>(aUserArg);
   nsIFrame* f = aEntry->GetKey();
+  FrameProperties props = f->Properties();
   
   NS_ASSERTION(!data->mFramesWithLayers.GetEntry(f),
                "We shouldn't get here if we're already in mFramesWithLayers");
@@ -886,36 +833,21 @@ FrameLayerBuilder::StoreNewDisplayItemData(DisplayItemDataEntry* aEntry,
   
   
   
-  SetManagerData(f, data);
+  props.Remove(LayerManagerDataProperty());
+  props.Set(LayerManagerDataProperty(), data);
   return PL_DHASH_REMOVE;
-}
-
-
-
-
-
-static LayerManagerData*
-GetDefaultLayerManagerDataForFrame(nsIFrame* aFrame)
-{
-  FrameProperties props = aFrame->Properties();
-  return static_cast<LayerManagerData*>(props.Get(FrameLayerBuilder::LayerManagerDataProperty()));
 }
 
  FrameLayerBuilder::DisplayItemData*
 FrameLayerBuilder::GetDisplayItemDataForManager(nsIFrame* aFrame, PRUint32 aDisplayItemKey, LayerManager* aManager)
 {
-  LayerManagerData *data;
-  if (!aManager) {
-    data = GetDefaultLayerManagerDataForFrame(aFrame);
-  } else {
-    data = static_cast<LayerManagerData*>(aManager->GetUserData(&gLayerManagerUserData));
-  }
-  
-  if (!data) {
+  LayerManagerData* managerData = static_cast<LayerManagerData*>
+    (aManager->GetUserData(&gLayerManagerUserData));
+  if (!managerData) {
     return nsnull;
   }
 
-  DisplayItemDataEntry *entry = data->mFramesWithLayers.GetEntry(aFrame);
+  DisplayItemDataEntry *entry = managerData->mFramesWithLayers.GetEntry(aFrame);
   if (!entry) {
     return nsnull;
   }
@@ -978,7 +910,8 @@ FrameLayerBuilder::GetOldLayerFor(nsIFrame* aFrame, PRUint32 aDisplayItemKey, ns
  Layer*
 FrameLayerBuilder::GetDebugOldLayerFor(nsIFrame* aFrame, PRUint32 aDisplayItemKey)
 {
-  LayerManagerData* data = GetManagerData(aFrame);
+  FrameProperties props = aFrame->Properties();
+  LayerManagerData* data = static_cast<LayerManagerData*>(props.Get(LayerManagerDataProperty()));
   if (!data) {
     return nsnull;
   }
@@ -2620,20 +2553,24 @@ FrameLayerBuilder::InvalidateAllLayers(LayerManager* aManager)
 Layer*
 FrameLayerBuilder::GetDedicatedLayer(nsIFrame* aFrame, PRUint32 aDisplayItemKey)
 {
-  
-  
-  
-
-  DisplayItemData *data = GetDisplayItemDataForManager(aFrame, aDisplayItemKey, nsnull);
+  FrameProperties props = aFrame->Properties();
+  LayerManagerData* data = static_cast<LayerManagerData*>(props.Get(LayerManagerDataProperty()));
   if (!data) {
     return nsnull;
   }
- 
-  Layer* layer = data->mLayer;
-  if (!layer->HasUserData(&gColorLayerUserData) &&
-      !layer->HasUserData(&gImageLayerUserData) &&
-      !layer->HasUserData(&gThebesDisplayItemLayerUserData)) {
-    return layer;
+  DisplayItemDataEntry *entry = data->mFramesWithLayers.GetEntry(aFrame);
+  if (!entry) {
+    return nsnull;
+  }
+
+  for (PRUint32 i = 0; i < entry->mData.Length(); ++i) {
+    if (entry->mData.ElementAt(i).mDisplayItemKey == aDisplayItemKey) {
+      Layer* layer = entry->mData.ElementAt(i).mLayer;
+      if (!layer->HasUserData(&gColorLayerUserData) &&
+          !layer->HasUserData(&gImageLayerUserData) &&
+          !layer->HasUserData(&gThebesDisplayItemLayerUserData))
+        return layer;
+    }
   }
   return nsnull;
 }
@@ -2643,12 +2580,23 @@ FrameLayerBuilder::GetThebesLayerResolutionForFrame(nsIFrame* aFrame,
                                                     double* aXres, double* aYres,
                                                     gfxPoint* aPoint)
 {
-  LayerManagerData *data = GetDefaultLayerManagerDataForFrame(aFrame);
-  if (!data) {
+  nsRefPtr<LayerManager> layerManager;
+  nsIFrame* referenceFrame = nsLayoutUtils::GetDisplayRootFrame(aFrame);
+  nsIWidget* window = referenceFrame->GetNearestWidget();
+  if (window) {
+    layerManager = window->GetLayerManager();
+  }
+
+  if (!layerManager) {
+    return false;
+  }
+  LayerManagerData* managerData = static_cast<LayerManagerData*>
+    (layerManager->GetUserData(&gLayerManagerUserData));
+  if (!managerData) {
     return false;
   }
 
-  DisplayItemDataEntry *entry = data->mFramesWithLayers.GetEntry(aFrame);
+  DisplayItemDataEntry *entry = managerData->mFramesWithLayers.GetEntry(aFrame);
   if (!entry)
     return false;
 
