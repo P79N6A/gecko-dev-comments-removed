@@ -331,11 +331,6 @@ public:
 
   NS_IMETHOD GetNativeInterface(void **aOutAccessible);
 
-  
-  
-  static STDMETHODIMP AccessibleObjectFromWindow(HWND hwnd,DWORD dwObjectID,REFIID riid,void **ppvObject);
-  static STDMETHODIMP NotifyWinEvent(DWORD event,HWND hwnd,LONG idObjectType,LONG idObject);
-
   static IDispatch *NativeAccessible(nsIAccessible *aXPAccessible);
 
   
