@@ -623,8 +623,8 @@ const AddonListener = {
     properties.forEach(function(aProperty) {
       
       
-      if (aProperties.indexOf(aProperty) != -1)
-        ok(false, "Did not see property change for " + aProperty);
+      if (aProperties.indexOf(aProperty) == -1)
+        do_throw("Did not see property change for " + aProperty);
     });
     return check_test_completed(arguments);
   },
