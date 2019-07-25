@@ -174,7 +174,7 @@ public:
   
   
   
-  nsMenuFrame* Enter();
+  nsMenuFrame* Enter(nsGUIEvent* aEvent);
 
   virtual void SetParent(nsIFrame* aParent);
 

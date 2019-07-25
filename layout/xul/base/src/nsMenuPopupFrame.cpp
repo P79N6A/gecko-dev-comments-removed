@@ -1537,13 +1537,13 @@ nsMenuPopupFrame::ChangeMenuItem(nsMenuFrame* aMenuItem,
 }
 
 nsMenuFrame*
-nsMenuPopupFrame::Enter()
+nsMenuPopupFrame::Enter(nsGUIEvent* aEvent)
 {
   mIncrementalString.Truncate();
 
   
   if (mCurrentMenu)
-    return mCurrentMenu->Enter();
+    return mCurrentMenu->Enter(aEvent);
 
   return nsnull;
 }
