@@ -43,6 +43,7 @@
 #include "nsHTMLContainerFrame.h"
 #include "nsIAnonymousContentCreator.h"
 #include "nsBoxFrame.h"
+#include "nsDisplayList.h"
 #include "nsIScrollableFrame.h"
 #include "nsIScrollPositionListener.h"
 #include "nsIStatefulFrame.h"
@@ -90,6 +91,12 @@ public:
   nsresult BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                             const nsRect&           aDirtyRect,
                             const nsDisplayListSet& aLists);
+
+  nsresult AppendScrollPartsTo(nsDisplayListBuilder*          aBuilder,
+                               const nsRect&                  aDirtyRect,
+                               const nsDisplayListSet&        aLists,
+                               const nsDisplayListCollection& aDest,
+                               PRBool&                        aCreateLayer);
 
   PRBool GetBorderRadii(nscoord aRadii[8]) const;
 
@@ -295,6 +302,9 @@ public:
   
   
   PRPackedBool mScrollingActive:1;
+  
+  
+  PRPackedBool mScrollbarsCanOverlapContent:1;
 };
 
 

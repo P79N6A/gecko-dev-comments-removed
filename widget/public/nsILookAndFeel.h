@@ -184,6 +184,7 @@ public:
     eMetric_SelectTextfieldsOnKeyFocus,                   
     eMetric_SubmenuDelay,                                 
     eMetric_MenusCanOverlapOSBar,                         
+    eMetric_ScrollbarsCanOverlapContent,                  
     eMetric_SkipNavigatingDisabledMenuItem,               
     eMetric_DragThresholdX,                               
     eMetric_DragThresholdY,

@@ -76,10 +76,10 @@
 #ifdef ACCESSIBILITY
 #include "nsIAccessibilityService.h"
 #endif
-#include "nsDisplayList.h"
 #include "nsBidiUtils.h"
 #include "nsFrameManager.h"
 #include "nsIPrefService.h"
+#include "nsILookAndFeel.h"
 #include "mozilla/dom/Element.h"
 
 using namespace mozilla::dom;
@@ -1319,6 +1319,12 @@ nsGfxScrollFrameInner::nsGfxScrollFrameInner(nsContainerFrame* aOuter,
     mUpdateScrollbarAttributes(PR_FALSE),
     mScrollingActive(PR_FALSE)
 {
+  
+  PRBool canOverlap;
+  nsPresContext* presContext = mOuter->PresContext();
+  presContext->LookAndFeel()->
+    GetMetric(nsILookAndFeel::eMetric_ScrollbarsCanOverlapContent, canOverlap);
+  mScrollbarsCanOverlapContent = canOverlap;
 }
 
 nsGfxScrollFrameInner::~nsGfxScrollFrameInner()
@@ -1708,6 +1714,34 @@ AppendToTop(nsDisplayListBuilder* aBuilder, nsDisplayList* aDest,
 }
 
 nsresult
+nsGfxScrollFrameInner::AppendScrollPartsTo(nsDisplayListBuilder*          aBuilder,
+                                           const nsRect&                  aDirtyRect,
+                                           const nsDisplayListSet&        aLists,
+                                           const nsDisplayListCollection& aDest,
+                                           PRBool&                        aCreateLayer)
+{
+  nsresult rv = NS_OK;
+  PRBool hasResizer = HasResizer();
+  for (nsIFrame* kid = mOuter->GetFirstChild(nsnull); kid; kid = kid->GetNextSibling()) {
+    if (kid != mScrolledFrame) {
+      if (kid == mScrollCornerBox && hasResizer) {
+        
+        continue;
+      }
+      rv = mOuter->BuildDisplayListForChild(aBuilder, kid, aDirtyRect, aDest,
+                                            nsIFrame::DISPLAY_CHILD_FORCE_STACKING_CONTEXT);
+      NS_ENSURE_SUCCESS(rv, rv);
+      
+      
+      ::AppendToTop(aBuilder, aLists.BorderBackground(),
+                    aDest.PositionedDescendants(), kid,
+                    aCreateLayer);
+    }
+  }
+  return rv;
+}
+
+nsresult
 nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                         const nsRect&           aDirtyRect,
                                         const nsDisplayListSet& aLists)
@@ -1731,35 +1765,22 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   
-  PRBool hasResizer = HasResizer();
-  nsDisplayListCollection scrollParts;
-  
-  
-  
-  
   
   
   
   
   PRBool createLayersForScrollbars = mIsRoot &&
     mOuter->PresContext()->IsRootContentDocument();
-  for (nsIFrame* kid = mOuter->GetFirstChild(nsnull); kid; kid = kid->GetNextSibling()) {
-    if (kid != mScrolledFrame) {
-      if (kid == mScrollCornerBox && hasResizer) {
-        
-        continue;
-      }
-      rv = mOuter->BuildDisplayListForChild(aBuilder, kid, aDirtyRect, scrollParts,
-                                            nsIFrame::DISPLAY_CHILD_FORCE_STACKING_CONTEXT);
-      NS_ENSURE_SUCCESS(rv, rv);
-      
-      
-      ::AppendToTop(aBuilder, aLists.BorderBackground(),
-                    scrollParts.PositionedDescendants(), kid,
-                    createLayersForScrollbars);
-    }
-  }
 
+  nsDisplayListCollection scrollParts;
+  if (!mScrollbarsCanOverlapContent) {
+    
+    
+    
+    
+    AppendScrollPartsTo(aBuilder, aDirtyRect, aLists,
+                        scrollParts, createLayersForScrollbars);
+  }
 
   
   
@@ -1771,7 +1792,7 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   dirtyRect.IntersectRect(aDirtyRect, mScrollPort);
-  
+
   nsDisplayListCollection set;
   rv = mOuter->BuildDisplayListForChild(aBuilder, mScrolledFrame, dirtyRect, set);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1789,11 +1810,16 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                             PR_TRUE, mIsRoot);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  if (mScrollbarsCanOverlapContent) {
+    AppendScrollPartsTo(aBuilder, aDirtyRect, aLists,
+                       scrollParts, createLayersForScrollbars);
+  }
+
   
   
   
   
-  if (hasResizer && mScrollCornerBox) {
+  if (HasResizer() && mScrollCornerBox) {
     rv = mOuter->BuildDisplayListForChild(aBuilder, mScrollCornerBox, aDirtyRect, scrollParts,
                                           nsIFrame::DISPLAY_CHILD_FORCE_STACKING_CONTEXT);
     NS_ENSURE_SUCCESS(rv, rv);
