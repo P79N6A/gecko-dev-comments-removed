@@ -94,6 +94,11 @@ public:
 
   static already_AddRefed<nsIXPConnect> getXPConnect();
 
+  
+
+
+  static PRInt32 getSynchronousPref();
+
 private:
   Service();
   virtual ~Service();
@@ -133,6 +138,8 @@ private:
   static Service *gService;
 
   static nsIXPConnect *sXPConnect;
+
+  static PRInt32 sSynchronousPref;
 };
 
 } 
