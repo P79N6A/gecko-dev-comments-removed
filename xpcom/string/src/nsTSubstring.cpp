@@ -35,6 +35,7 @@
 
 
 
+#include "prdtoa.h"
 
 #ifdef XPCOM_STRING_CONSTRUCTOR_OUT_OF_LINE
 nsTSubstring_CharT::nsTSubstring_CharT( char_type *data, size_type length,
@@ -742,3 +743,111 @@ void nsTSubstring_CharT::AppendPrintf( const char* format, ...)
     AppendASCII(buf, len);
     va_end(ap);
   }
+
+
+
+#ifdef CharT_is_PRUnichar
+
+
+
+
+
+
+static void 
+Modified_cnvtf(char *buf, int bufsz, int prcsn, double fval)
+{
+  PRIntn decpt, sign, numdigits;
+  char *num, *nump;
+  char *bufp = buf;
+  char *endnum;
+
+  
+  num = (char*)malloc(bufsz);
+  if (num == NULL) {
+    buf[0] = '\0';
+    return;
+  }
+  if (PR_dtoa(fval, 2, prcsn, &decpt, &sign, &endnum, num, bufsz)
+      == PR_FAILURE) {
+    buf[0] = '\0';
+    goto done;
+  }
+  numdigits = endnum - num;
+  nump = num;
+
+  
+
+
+
+
+
+  if (sign && fval < 0.0f) {
+    *bufp++ = '-';
+  }
+
+  if (decpt == 9999) {
+    while ((*bufp++ = *nump++) != 0) {} 
+    goto done;
+  }
+
+  if (decpt > (prcsn+1) || decpt < -(prcsn-1) || decpt < -5) {
+    *bufp++ = *nump++;
+    if (numdigits != 1) {
+      *bufp++ = '.';
+    }
+
+    while (*nump != '\0') {
+      *bufp++ = *nump++;
+    }
+    *bufp++ = 'e';
+    PR_snprintf(bufp, bufsz - (bufp - buf), "%+d", decpt-1);
+  }
+  else if (decpt >= 0) {
+    if (decpt == 0) {
+      *bufp++ = '0';
+    }
+    else {
+      while (decpt--) {
+        if (*nump != '\0') {
+          *bufp++ = *nump++;
+        }
+        else {
+          *bufp++ = '0';
+        }
+      }
+    }
+    if (*nump != '\0') {
+      *bufp++ = '.';
+      while (*nump != '\0') {
+        *bufp++ = *nump++;
+      }
+    }
+    *bufp++ = '\0';
+  }
+  else if (decpt < 0) {
+    *bufp++ = '0';
+    *bufp++ = '.';
+    while (decpt++) {
+      *bufp++ = '0';
+    }
+
+    while (*nump != '\0') {
+      *bufp++ = *nump++;
+    }
+    *bufp++ = '\0';
+  }
+done:
+  free(num);
+}
+#endif 
+
+void
+nsTSubstring_CharT::DoAppendFloat( double aFloat, int digits )
+{
+  char buf[40];
+  
+  
+  Modified_cnvtf(buf, sizeof(buf), digits, aFloat);
+  AppendASCII(buf);
+}
+
