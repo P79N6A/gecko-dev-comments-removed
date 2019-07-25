@@ -115,7 +115,7 @@ public:
 
 
 
-    PRInt32 AppUnitsPerDevPixel() const { return mAppUnitsPerDevPixel; }
+    PRUint32 AppUnitsPerDevPixel() const { return mAppUnitsPerDevPixel; }
 
     
 
@@ -311,7 +311,7 @@ protected:
     nscoord  mWidth;
     nscoord  mHeight;
     PRUint32 mDepth;
-    PRInt32  mAppUnitsPerDevPixel;
+    PRUint32  mAppUnitsPerDevPixel;
     PRInt32  mAppUnitsPerDevNotScaledPixel;
     PRInt32  mAppUnitsPerPhysicalInch;
     float    mPixelScale;
