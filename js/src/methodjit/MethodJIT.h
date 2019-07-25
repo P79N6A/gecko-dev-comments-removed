@@ -317,7 +317,10 @@ enum RejoinState {
 
 
 
-    REJOIN_BRANCH
+    REJOIN_BRANCH,
+
+    
+    REJOIN_FINISH_FRAME
 };
 
 
