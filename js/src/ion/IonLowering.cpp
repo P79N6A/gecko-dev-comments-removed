@@ -343,7 +343,7 @@ LIRGenerator::visitBlock(MBasicBlock *block)
     }
 
     
-    current->add(new LLabel());
+    add(new LLabel());
 
     for (MInstructionIterator iter = block->begin(); *iter != block->lastIns(); iter++) {
         if (!visitInstruction(*iter))
