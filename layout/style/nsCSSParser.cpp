@@ -574,6 +574,8 @@ protected:
   bool ParseColorStop(nsCSSValueGradient* aGradient);
   bool ParseGradient(nsCSSValue& aValue, bool aIsRadial,
                        bool aIsRepeating);
+  bool IsLegacyGradientLine(const nsCSSTokenType& aType,
+                            const nsString& aId);
   bool ParseGradientColorStops(nsCSSValueGradient* aGradient,
                                nsCSSValue& aValue);
 
@@ -4989,13 +4991,6 @@ CSSParserImpl::ParseGradient(nsCSSValue& aValue, bool aIsRadial,
     = new nsCSSValueGradient(aIsRadial, aIsRepeating);
 
   
-  
-  
-  
-  
-  
-  
-
   if (!GetToken(true)) {
     return false;
   }
@@ -5014,43 +5009,8 @@ CSSParserImpl::ParseGradient(nsCSSValue& aValue, bool aIsRadial,
   cssGradient->mIsToCorner = toCorner;
   UngetToken();
 
-  bool haveGradientLine = false;
-  switch (ty) {
-  case eCSSToken_Percentage:
-  case eCSSToken_Number:
-  case eCSSToken_Dimension:
-    haveGradientLine = true;
-    break;
-
-  case eCSSToken_Function:
-    if (id.LowerCaseEqualsLiteral("-moz-calc")) {
-      haveGradientLine = true;
-      break;
-    }
-    
-  case eCSSToken_ID:
-  case eCSSToken_Ref:
-    
-    break;
-
-  case eCSSToken_Ident: {
-    
-    nsCSSKeyword kw = nsCSSKeywords::LookupKeyword(id);
-    PRInt32 junk;
-    if (kw != eCSSKeyword_UNKNOWN &&
-        nsCSSProps::FindKeyword(kw, nsCSSProps::kBackgroundPositionKTable,
-                                junk)) {
-      haveGradientLine = true;
-    }
-    break;
-  }
-
-  default:
-    
-    SkipUntil(')');
-    return false;
-  }
-
+  
+  bool haveGradientLine = IsLegacyGradientLine(ty, id);
   if (haveGradientLine) {
     if (toCorner) {
       
@@ -5130,6 +5090,56 @@ CSSParserImpl::ParseGradient(nsCSSValue& aValue, bool aIsRadial,
   }
 
   return ParseGradientColorStops(cssGradient, aValue);
+}
+
+bool
+CSSParserImpl::IsLegacyGradientLine(const nsCSSTokenType& aType,
+                                    const nsString& aId)
+{
+  
+  
+  
+  
+  
+  
+
+  bool haveGradientLine = false;
+  switch (aType) {
+  case eCSSToken_Percentage:
+  case eCSSToken_Number:
+  case eCSSToken_Dimension:
+    haveGradientLine = true;
+    break;
+
+  case eCSSToken_Function:
+    if (aId.LowerCaseEqualsLiteral("-moz-calc")) {
+      haveGradientLine = true;
+      break;
+    }
+    
+  case eCSSToken_ID:
+  case eCSSToken_Ref:
+    
+    break;
+
+  case eCSSToken_Ident: {
+    
+    nsCSSKeyword kw = nsCSSKeywords::LookupKeyword(aId);
+    PRInt32 junk;
+    if (kw != eCSSKeyword_UNKNOWN &&
+        nsCSSProps::FindKeyword(kw, nsCSSProps::kBackgroundPositionKTable,
+                                junk)) {
+      haveGradientLine = true;
+    }
+    break;
+  }
+
+  default:
+    
+    break;
+  }
+
+  return haveGradientLine;
 }
 
 bool
