@@ -1095,19 +1095,6 @@ nsIContent::IsEqual(nsIContent* aOther)
         return PR_FALSE;
       }
     }
-
-    
-    PRUint32 childCount = GetChildCount();
-    if (childCount != element2->GetChildCount()) {
-      return PR_FALSE;
-    }
-
-    
-    for (PRUint32 i = 0; i < childCount; ++i) {
-      if (!GetChildAt(i)->IsEqual(element2->GetChildAt(i))) {
-        return PR_FALSE;
-      }
-    }
   } else {
     
     nsCOMPtr<nsIDOMNode> domNode1 = do_QueryInterface(this);
@@ -1120,6 +1107,18 @@ nsIContent::IsEqual(nsIContent* aOther)
     }
   }
 
+  
+  PRUint32 childCount = GetChildCount();
+  if (childCount != aOther->GetChildCount()) {
+    return PR_FALSE;
+  }
+
+  
+  for (PRUint32 i = 0; i < childCount; ++i) {
+    if (!GetChildAt(i)->IsEqual(aOther->GetChildAt(i))) {
+      return PR_FALSE;
+    }
+  }
   return PR_TRUE;
 }
 
