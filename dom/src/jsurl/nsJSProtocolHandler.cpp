@@ -894,7 +894,12 @@ nsJSChannel::SetLoadFlags(nsLoadFlags aLoadFlags)
         }
         bogusLoadBackground = !loadGroupIsBackground;
     }
+
     
+    
+    
+    aLoadFlags &= ~LOAD_CLASSIFY_URI;
+
     
     
     
