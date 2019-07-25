@@ -300,8 +300,7 @@ nsPlaintextEditor::SetDocumentCharacterSet(const nsACString & characterSet)
             nsCOMPtr<nsIDOMNode>resultNode; 
             
             result = CreateNode(NS_LITERAL_STRING("meta"), headNode, 0, getter_AddRefs(resultNode)); 
-            if (NS_FAILED(result)) 
-              return NS_ERROR_FAILURE; 
+            NS_ENSURE_SUCCESS(result, NS_ERROR_FAILURE); 
 
             
             if (resultNode && !characterSet.IsEmpty()) { 
@@ -1358,8 +1357,7 @@ nsPlaintextEditor::OutputToString(const nsAString& aFormatType,
 
   nsCOMPtr<nsIDocumentEncoder> encoder;
   rv = GetAndInitDocEncoder(aFormatType, aFlags, charsetStr, getter_AddRefs(encoder));
-  if (NS_FAILED(rv))
-    return rv;
+  NS_ENSURE_SUCCESS(rv, rv);
   return encoder->EncodeToString(aOutputString);
 }
 
@@ -1388,8 +1386,7 @@ nsPlaintextEditor::OutputToStream(nsIOutputStream* aOutputStream,
   rv = GetAndInitDocEncoder(aFormatType, aFlags, aCharset,
                             getter_AddRefs(encoder));
 
-  if (NS_FAILED(rv))
-    return rv;
+  NS_ENSURE_SUCCESS(rv, rv);
 
   return encoder->EncodeToStream(aOutputStream);
 }
@@ -1473,8 +1470,7 @@ nsPlaintextEditor::InsertAsQuotation(const nsAString& aQuotedText,
   
   nsString quotedStuff;
   nsresult rv = citer->GetCiteString(aQuotedText, quotedStuff);
-  if (NS_FAILED(rv))
-    return rv;
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   
@@ -1551,8 +1547,7 @@ nsPlaintextEditor::Rewrap(PRBool aRespectNewlines)
 {
   PRInt32 wrapCol;
   nsresult rv = GetWrapWidth(&wrapCol);
-  if (NS_FAILED(rv))
-    return NS_OK;
+  NS_ENSURE_SUCCESS(rv, NS_OK);
 
   
   if (wrapCol <= 0)

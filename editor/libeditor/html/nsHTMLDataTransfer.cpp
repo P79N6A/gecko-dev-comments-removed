@@ -1087,8 +1087,7 @@ NS_IMETHODIMP nsHTMLEditor::PrepareHTMLTransferable(nsITransferable **aTransfera
 {
   
   nsresult rv = CallCreateInstance("@mozilla.org/widget/transferable;1", aTransferable);
-  if (NS_FAILED(rv))
-    return rv;
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   if (aTransferable)
@@ -1347,8 +1346,7 @@ NS_IMETHODIMP nsHTMLEditor::InsertFromTransferable(nsITransferable *transferable
         
         nsCOMPtr<nsIURI> uri;
         rv = NS_NewFileURI(getter_AddRefs(uri), fileObj);
-        if (NS_FAILED(rv))
-          return rv;
+        NS_ENSURE_SUCCESS(rv, rv);
         
         nsCOMPtr<nsIURL> fileURL(do_QueryInterface(uri));
         if (fileURL)
@@ -1636,8 +1634,7 @@ NS_IMETHODIMP nsHTMLEditor::InsertFromDrop(nsIDOMEvent* aDropEvent)
       {
         PRInt32 rangeCount;
         rv = selection->GetRangeCount(&rangeCount);
-        if (NS_FAILED(rv)) 
-          return rv;
+        NS_ENSURE_SUCCESS(rv, rv);
 
         for (PRInt32 j = 0; j < rangeCount; j++)
         {
@@ -1841,8 +1838,7 @@ NS_IMETHODIMP nsHTMLEditor::Paste(PRInt32 aSelectionType)
   
   nsresult rv;
   nsCOMPtr<nsIClipboard> clipboard(do_GetService("@mozilla.org/widget/clipboard;1", &rv));
-  if (NS_FAILED(rv))
-    return rv;
+  NS_ENSURE_SUCCESS(rv, rv);
   
   
   
@@ -1943,8 +1939,7 @@ NS_IMETHODIMP nsHTMLEditor::PasteNoFormatting(PRInt32 aSelectionType)
   
   nsresult rv;
   nsCOMPtr<nsIClipboard> clipboard(do_GetService("@mozilla.org/widget/clipboard;1", &rv));
-  if (NS_FAILED(rv))
-    return rv;
+  NS_ENSURE_SUCCESS(rv, rv);
     
   
   
@@ -2571,8 +2566,7 @@ nsresult FindTargetNode(nsIDOMNode *aStart, nsCOMPtr<nsIDOMNode> &aResult)
     
     
     rv = FindTargetNode(child, aResult);
-    if (NS_FAILED(rv))
-      return rv;
+    NS_ENSURE_SUCCESS(rv, rv);
 
     rv = child->GetNextSibling(getter_AddRefs(tmp));
     NS_ENSURE_SUCCESS(rv, rv);

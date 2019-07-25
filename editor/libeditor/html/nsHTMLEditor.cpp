@@ -535,8 +535,7 @@ nsHTMLEditor::BeginningOfDocument()
   
   nsCOMPtr<nsISelection> selection;
   nsresult res = GetSelection(getter_AddRefs(selection));
-  if (NS_FAILED(res))
-    return res;
+  NS_ENSURE_SUCCESS(res, res);
   NS_ENSURE_TRUE(selection, NS_ERROR_NOT_INITIALIZED);
     
   
@@ -925,8 +924,7 @@ nsHTMLEditor::SetDocumentTitle(const nsAString &aTitle)
   NS_ENSURE_TRUE(txn, NS_ERROR_OUT_OF_MEMORY);
 
   nsresult result = txn->Init(this, &aTitle);
-  if (NS_FAILED(result))
-    return result;
+  NS_ENSURE_SUCCESS(result, result);
 
   
   nsAutoTxnsConserveSelection dontChangeSelection(this);
@@ -1131,8 +1129,7 @@ nsHTMLEditor::NextNodeInBlock(nsIDOMNode *aNode, IterDirection aDir)
   nsresult rv;
   nsCOMPtr<nsIContentIterator> iter =
        do_CreateInstance("@mozilla.org/content/post-content-iterator;1", &rv);
-  if (NS_FAILED(rv))
-    return nullNode;
+  NS_ENSURE_SUCCESS(rv, nullNode);
 
   
   content = do_QueryInterface(aNode);
@@ -1748,8 +1745,7 @@ nsHTMLEditor::ReplaceHeadContentsWithHTML(const nsAString& aSourceToInsert)
   
   nsCOMPtr<nsIDOMRange> range;
   res = selection->GetRangeAt(0, getter_AddRefs(range));
-  if (NS_FAILED(res))
-    return res;
+  NS_ENSURE_SUCCESS(res, res);
 
   nsCOMPtr<nsIDOMNSRange> nsrange (do_QueryInterface(range));
   NS_ENSURE_TRUE(nsrange, NS_ERROR_NO_INTERFACE);
@@ -1882,17 +1878,14 @@ nsHTMLEditor::RebuildDocumentFromSource(const nsAString& aSourceString)
       res = LoadHTML(body);
     else 
       res = LoadHTML(body + aSourceString);
-    if (NS_FAILED(res))
-      return res;
+    NS_ENSURE_SUCCESS(res, res);
 
     nsCOMPtr<nsIDOMElement> divElement;
     res = CreateElementWithDefaults(NS_LITERAL_STRING("div"), getter_AddRefs(divElement));
-    if (NS_FAILED(res))
-      return res;
+    NS_ENSURE_SUCCESS(res, res);
 
     res = CloneAttributes(bodyElement, divElement);
-    if (NS_FAILED(res))
-      return res;
+    NS_ENSURE_SUCCESS(res, res);
 
     return BeginningOfDocument();
   }
@@ -2051,8 +2044,7 @@ nsHTMLEditor::InsertElementAtSelection(nsIDOMElement* aElement, PRBool aDeleteSe
       nsCOMPtr<nsIDOMNode> tempNode;
       PRInt32 tempOffset;
       nsresult result = DeleteSelectionAndPrepareToCreateNode(tempNode,tempOffset);
-      if (NS_FAILED(result))
-        return result;
+      NS_ENSURE_SUCCESS(result, result);
     }
 
     
@@ -2169,8 +2161,7 @@ nsHTMLEditor::InsertNodeAtPoint(nsIDOMNode *aNode,
   {
     
     res = SplitNodeDeep(topChild, *ioParent, *ioOffset, &offsetOfInsert, aNoEmptyNodes);
-    if (NS_FAILED(res))
-      return res;
+    NS_ENSURE_SUCCESS(res, res);
     *ioParent = parent;
     *ioOffset = offsetOfInsert;
   }
@@ -3648,8 +3639,7 @@ nsHTMLEditor::EnableExistingStyleSheet(const nsAString &aURL)
 {
   nsRefPtr<nsCSSStyleSheet> sheet;
   nsresult rv = GetStyleSheetForURL(aURL, getter_AddRefs(sheet));
-  if (NS_FAILED(rv))
-    return PR_FALSE;
+  NS_ENSURE_SUCCESS(rv, PR_FALSE);
 
   
   if (sheet)

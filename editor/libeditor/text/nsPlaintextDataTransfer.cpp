@@ -73,8 +73,7 @@ NS_IMETHODIMP nsPlaintextEditor::PrepareTransferable(nsITransferable **transfera
 {
   
   nsresult rv = CallCreateInstance("@mozilla.org/widget/transferable;1", transferable);
-  if (NS_FAILED(rv))
-    return rv;
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   if (transferable) {
