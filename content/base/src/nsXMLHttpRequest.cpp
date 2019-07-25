@@ -35,6 +35,7 @@
 
 
 
+
 #include "mozilla/Util.h"
 
 #include "nsXMLHttpRequest.h"
@@ -109,6 +110,7 @@
 #include "nsIDOMFormData.h"
 
 #include "nsWrapperCacheInlines.h"
+#include "nsStreamListenerWrapper.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -3046,9 +3048,6 @@ nsXMLHttpRequest::Send(JSContext *aCx, nsIVariant* aVariant, const Nullable<Requ
   if (mState & XML_HTTP_REQUEST_MULTIPART) {
     Telemetry::Accumulate(Telemetry::MULTIPART_XHR_RESPONSE, 1);
     listener = new nsMultipartProxyListener(listener);
-    if (!listener) {
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
   } else {
     Telemetry::Accumulate(Telemetry::MULTIPART_XHR_RESPONSE, 0);
   }
@@ -3062,9 +3061,18 @@ nsXMLHttpRequest::Send(JSContext *aCx, nsIVariant* aVariant, const Nullable<Requ
     
     listener = new nsCORSListenerProxy(listener, mPrincipal, mChannel,
                                        withCredentials, true, &rv);
-    NS_ENSURE_TRUE(listener, NS_ERROR_OUT_OF_MEMORY);
     NS_ENSURE_SUCCESS(rv, rv);
   }
+  else {
+    
+    
+    
+
+    listener = new nsStreamListenerWrapper(listener);
+  }
+
+  NS_ASSERTION(listener != this,
+               "Using an object as a listener that can't be exposed to JS");
 
   
   
