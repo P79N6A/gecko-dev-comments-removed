@@ -822,7 +822,6 @@ LinearScanAllocator::allocateRegisters()
 
         
         if (req->kind() != Requirement::REGISTER && hint->kind() == Requirement::NONE) {
-            
             IonSpew(IonSpew_RegAlloc, "  Eagerly spilling virtual register %d",
                     current->reg() ? current->reg()->reg() : 0);
             if (!spill())
@@ -1986,26 +1985,37 @@ LinearScanAllocator::setIntervalRequirement(LiveInterval *interval)
         }
     }
 
-    
     UsePosition *fixedOp = NULL;
     UsePosition *registerOp = NULL;
 
-    for (UsePositionIterator usePos(interval->usesBegin()); usePos != interval->usesEnd(); usePos++) {
-        if (interval->start() == usePos->pos || interval->start() == usePos->pos.previous()) {
-            if (usePos->use->policy() == LUse::FIXED) {
+    
+    UsePositionIterator usePos(interval->usesBegin());
+    for (; usePos != interval->usesEnd(); usePos++) {
+        if (interval->start().next() < usePos->pos)
+            break;
+
+        LUse::Policy policy = usePos->use->policy();
+        if (policy == LUse::FIXED) {
+            fixedOp = *usePos;
+            interval->setRequirement(Requirement(Requirement::REGISTER));
+            break;
+        } else if (policy == LUse::REGISTER) {
+            
+            interval->setRequirement(Requirement(Requirement::REGISTER));
+        }
+    }
+
+    
+    
+    
+    if (!fixedOp && !interval->reg()->canonicalSpill()) {
+        for (; usePos != interval->usesEnd(); usePos++) {
+            LUse::Policy policy = usePos->use->policy();
+            if (policy == LUse::FIXED) {
                 fixedOp = *usePos;
-                interval->setRequirement(Requirement(Requirement::REGISTER));
                 break;
-            } else if (usePos->use->policy() == LUse::REGISTER) {
-                
-                interval->setRequirement(Requirement(Requirement::REGISTER));
-            }
-        } else {
-            if (usePos->use->policy() == LUse::FIXED) {
-                if (!fixedOp)
-                    fixedOp = *usePos;
-            } else if (usePos->use->policy() == LUse::REGISTER) {
-                if (!registerOp || usePos->pos.ins() < registerOp->pos.ins())
+            } else if (policy == LUse::REGISTER) {
+                if (!registerOp)
                     registerOp = *usePos;
             }
         }
