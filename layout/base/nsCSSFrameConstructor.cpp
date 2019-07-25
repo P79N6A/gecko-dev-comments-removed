@@ -4371,7 +4371,8 @@ nsCSSFrameConstructor::FindDisplayData(const nsStyleDisplay* aDisplay,
       aDisplay->IsScrollableOverflow() &&
       !propagatedScrollToViewport &&
       (!mPresShell->GetPresContext()->IsPaginated() ||
-       !aDisplay->IsBlockOutside())) {
+       !aDisplay->IsBlockOutside() ||
+       aContent->IsInNativeAnonymousSubtree())) {
     static const FrameConstructionData sScrollableBlockData =
       FULL_CTOR_FCDATA(0, &nsCSSFrameConstructor::ConstructScrollableBlock);
     return &sScrollableBlockData;
@@ -4510,7 +4511,8 @@ nsCSSFrameConstructor::ConstructNonScrollableBlock(nsFrameConstructorState& aSta
       (mPresShell->GetPresContext()->IsPaginated() &&
        aDisplay->IsBlockInside() &&
        aDisplay->IsScrollableOverflow() &&
-       aDisplay->IsBlockOutside())) {
+       aDisplay->IsBlockOutside() &&
+       !aItem.mContent->IsInNativeAnonymousSubtree())) {
     *aNewFrame = NS_NewBlockFormattingContext(mPresShell, styleContext);
   } else {
     *aNewFrame = NS_NewBlockFrame(mPresShell, styleContext);
