@@ -323,6 +323,27 @@ UncachedInlineCall(VMFrame &f, InitialFrameFlags initial,
     types::TypeMonitorCall(cx, args, construct);
 
     
+    if (newscript->getJITStatus(construct) == JITScript_None) {
+        CompileStatus status = CanMethodJIT(cx, newscript, construct, CompileRequest_Interpreter);
+        if (status == Compile_Error) {
+            
+            return false;
+        }
+        if (status == Compile_Abort)
+            *unjittable = true;
+    }
+
+    
+
+
+
+
+    if (f.regs.inlined() && newfun->isHeavyweight()) {
+        ExpandInlineFrames(cx->compartment);
+        JS_ASSERT(!f.regs.inlined());
+    }
+
+    
 
 
 
@@ -341,18 +362,6 @@ UncachedInlineCall(VMFrame &f, InitialFrameFlags initial,
     
     if (newfun->isHeavyweight() && !js::CreateFunCallObject(cx, regs.fp()))
         return false;
-
-    
-    if (newscript->getJITStatus(f.fp()->isConstructing()) == JITScript_None) {
-        CompileStatus status = CanMethodJIT(cx, newscript, regs.fp(), CompileRequest_Interpreter);
-        if (status == Compile_Error) {
-            
-            f.cx->stack.popInlineFrame(regs);
-            return false;
-        }
-        if (status == Compile_Abort)
-            *unjittable = true;
-    }
 
     
 
