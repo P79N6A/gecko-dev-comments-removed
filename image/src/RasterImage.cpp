@@ -2291,16 +2291,13 @@ RasterImage::WriteToDecoder(const char *aBuffer, PRUint32 aCount)
     curframe->UnlockImageData();
   }
 
-  if (!mDecoder)
-    return NS_ERROR_FAILURE;
+  nsresult status = mDecoder->GetDecoderError();
+  if (NS_SUCCEEDED(status)) {
     
-  CONTAINER_ENSURE_SUCCESS(mDecoder->GetDecoderError());
-
-  
-  
-  mBytesDecoded += aCount;
-
-  return NS_OK;
+    
+    mBytesDecoded += aCount;
+  }
+  return status;
 }
 
 
