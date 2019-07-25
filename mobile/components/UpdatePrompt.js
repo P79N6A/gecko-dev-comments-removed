@@ -39,6 +39,8 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 
+const UPDATE_NOTIFICATION_NAME = "update-app";
+
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
@@ -49,6 +51,10 @@ XPCOMUtils.defineLazyGetter(this, "gUpdateBundle", function aus_gUpdateBundle() 
 
 XPCOMUtils.defineLazyGetter(this, "gBrandBundle", function aus_gBrandBundle() {
   return Services.strings.createBundle("chrome://branding/locale/brand.properties");
+});
+
+XPCOMUtils.defineLazyGetter(this, "gBrowserBundle", function aus_gBrowserBundle() {
+  return Services.strings.createBundle("chrome://browser/locale/browser.properties");
 });
 
 function getPref(func, preference, defaultValue) {
@@ -66,7 +72,7 @@ function UpdatePrompt() { }
 
 UpdatePrompt.prototype = {
   classID: Components.ID("{88b3eb21-d072-4e3b-886d-f89d8c49fe59}"),
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIUpdatePrompt]),
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIUpdatePrompt, Ci.nsIRequestObserver, Ci.nsIProgressEventSink]),
 
   get _enabled() {
     return !getPref("getBoolPref", "app.update.silent", false);
@@ -85,7 +91,7 @@ UpdatePrompt.prototype = {
     };
 
     let notifier = Cc["@mozilla.org/alerts-service;1"].getService(Ci.nsIAlertsService);
-    notifier.showAlertNotification(aImageUrl, aTitle, aText, true, "", observer, "update-app");
+    notifier.showAlertNotification(aImageUrl, aTitle, aText, true, "", observer, UPDATE_NOTIFICATION_NAME);
   },
 
   _handleUpdate: function UP__handleUpdate(aUpdate, aMode) {
@@ -106,7 +112,14 @@ UpdatePrompt.prototype = {
       if (download) {
         
         let aus = Cc["@mozilla.org/updates/update-service;1"].getService(Ci.nsIApplicationUpdateService);
-        aus.downloadUpdate(aUpdate, true);
+        if (aus.downloadUpdate(aUpdate, true) != "failed") {
+          let title = gBrowserBundle.formatStringFromName("alertDownloadsStart", [aUpdate.name], 1);
+          let imageUrl = "drawable://alert_download_progress";
+          this._showNotification(aUpdate, title, "", imageUrl, "download");
+
+          
+          aus.addDownloadListener(this);
+        }
       }
     } else if(aMode == "downloaded") {
       
@@ -121,6 +134,16 @@ UpdatePrompt.prototype = {
     }
   },
 
+  _updateDownloadProgress: function UP__updateDownloadProgress(aProgress, aTotal) {
+    let alertsService = Cc["@mozilla.org/alerts-service;1"].getService(Ci.nsIAlertsService);
+    let progressListener = alertsService.QueryInterface(Ci.nsIAlertsProgressListener);
+    progressListener.onProgress(UPDATE_NOTIFICATION_NAME, aProgress, aTotal);
+  },
+
+  
+  
+  
+  
   checkForUpdates: function UP_checkForUpdates() {
     
   },
@@ -171,7 +194,37 @@ UpdatePrompt.prototype = {
 
   showUpdateHistory: function UP_showUpdateHistory(aParent) {
     
+  },
+  
+  
+  
+  
+  
+  
+  onStartRequest: function(request, context) {
+    
+  },
+
+  
+  onStopRequest: function(request, context, status) {
+    let aus = Cc["@mozilla.org/updates/update-service;1"].getService(Ci.nsIApplicationUpdateService);
+    aus.removeDownloadListener(this);
+  },
+
+  
+  
+  
+  
+  
+  onProgress: function(request, context, progress, maxProgress) {
+    this._updateDownloadProgress(progress, maxProgress);
+  },
+
+  
+  onStatus: function(request, context, status, statusText) {
+    
   }
+  
 };
 
 const NSGetFactory = XPCOMUtils.generateNSGetFactory([UpdatePrompt]);
