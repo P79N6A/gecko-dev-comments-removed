@@ -502,7 +502,9 @@ protected:
     PRBool ValidateAttribIndex(WebGLuint index, const char *info);
     PRBool ValidateStencilParamsForDrawCall();
     
-    bool  ValidateGLSLIdentifier(const nsAString& name, const char *info);
+    bool ValidateGLSLVariableName(const nsAString& name, const char *info);
+    bool ValidateGLSLCharacter(PRUnichar c);
+    bool ValidateGLSLString(const nsAString& string, const char *info);
 
     static PRUint32 GetTexelSize(WebGLenum format, WebGLenum type);
 
@@ -813,10 +815,8 @@ public:
     PRBool CopyDataIfElementArray(const void* data) {
         if (mTarget == LOCAL_GL_ELEMENT_ARRAY_BUFFER) {
             mData = realloc(mData, mByteLength);
-            if (!mData) {
-                mByteLength = 0;
+            if (!mData)
                 return PR_FALSE;
-            }
             memcpy(mData, data, mByteLength);
         }
         return PR_TRUE;
@@ -826,10 +826,8 @@ public:
     PRBool ZeroDataIfElementArray() {
         if (mTarget == LOCAL_GL_ELEMENT_ARRAY_BUFFER) {
             mData = realloc(mData, mByteLength);
-            if (!mData) {
-                mByteLength = 0;
+            if (!mData)
                 return PR_FALSE;
-            }
             memset(mData, 0, mByteLength);
         }
         return PR_TRUE;
@@ -837,7 +835,7 @@ public:
 
     
     void CopySubDataIfElementArray(GLuint byteOffset, GLuint byteLength, const void* data) {
-        if (mTarget == LOCAL_GL_ELEMENT_ARRAY_BUFFER && mByteLength) {
+        if (mTarget == LOCAL_GL_ELEMENT_ARRAY_BUFFER) {
             memcpy((void*) (size_t(mData)+byteOffset), data, byteLength);
         }
     }
@@ -1049,6 +1047,10 @@ protected:
             (mMinFilter == LOCAL_GL_NEAREST || mMinFilter == LOCAL_GL_NEAREST_MIPMAP_NEAREST);
     }
 
+    PRBool DoesMinFilterRequireMipmap() const {
+        return !(mMinFilter == LOCAL_GL_NEAREST || mMinFilter == LOCAL_GL_LINEAR);
+    }
+
     PRBool AreBothWrapModesClampToEdge() const {
         return mWrapS == LOCAL_GL_CLAMP_TO_EDGE && mWrapT == LOCAL_GL_CLAMP_TO_EDGE;
     }
@@ -1151,12 +1153,6 @@ public:
     void SetWrapT(WebGLenum aWrapT) {
         mWrapT = aWrapT;
         SetDontKnowIfNeedFakeBlack();
-    }
-    
-    WebGLenum MinFilter() const { return mMinFilter; }
-
-    PRBool DoesMinFilterRequireMipmap() const {
-        return !(mMinFilter == LOCAL_GL_NEAREST || mMinFilter == LOCAL_GL_LINEAR);
     }
 
     void SetGeneratedMipmap() {
@@ -1372,12 +1368,12 @@ public:
     void IncrementAttachCount() { mAttachCount++; }
     void DecrementAttachCount() { mAttachCount--; }
 
-    void SetSource(const nsCString& src) {
+    void SetSource(const nsAString& src) {
         
         mSource.Assign(src);
     }
 
-    const nsCString& Source() const { return mSource; }
+    const nsString& Source() const { return mSource; }
 
     void SetNeedsTranslation() { mNeedsTranslation = true; }
     bool NeedsTranslation() const { return mNeedsTranslation; }
@@ -1388,7 +1384,7 @@ public:
     }
 
     void SetTranslationFailure(const nsCString& msg) {
-        mTranslationLog.Assign(msg);
+        mTranslationLog.Assign(msg); 
     }
 
     const nsCString& TranslationLog() const { return mTranslationLog; }
@@ -1399,7 +1395,7 @@ protected:
     WebGLuint mName;
     PRBool mDeleted;
     WebGLenum mType;
-    nsCString mSource;
+    nsString mSource;
     nsCString mTranslationLog;
     bool mNeedsTranslation;
     PRUint32 mAttachCount;
