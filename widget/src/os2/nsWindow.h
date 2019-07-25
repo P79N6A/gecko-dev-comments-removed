@@ -228,6 +228,7 @@ protected:
                                      HWND aParentWnd,
                                      const nsIntRect& aRect,
                                      nsWidgetInitData* aInitData);
+  gfxASurface*          ConfirmThebesSurface();
   HWND                  GetMainWindow();
   static nsWindow*      GetNSWindowPtr(HWND aWnd);
   static PRBool         SetNSWindowPtr(HWND aWnd, nsWindow* aPtr);
@@ -286,6 +287,7 @@ protected:
   PRInt32       mWindowState;       
   PRBool        mIsDestroying;      
   PRBool        mInSetFocus;        
+  PRBool        mNoPaint;           
   HPS           mDragHps;           
   PRUint32      mDragStatus;        
   HWND          mClipWnd;           

@@ -222,6 +222,7 @@ nsWindow::nsWindow() : nsBaseWidget()
   mOnDestroyCalled    = PR_FALSE;
   mIsDestroying       = PR_FALSE;
   mInSetFocus         = PR_FALSE;
+  mNoPaint            = PR_FALSE;
   mDragHps            = 0;
   mDragStatus         = 0;
   mClipWnd            = 0;
@@ -399,6 +400,15 @@ NS_METHOD nsWindow::Create(nsIWidget* aParent,
   if (aInitData) {
     mWindowType = aInitData->mWindowType;
     mBorderStyle = aInitData->mBorderStyle;
+
+    
+    
+    if (mWindowType == eWindowType_toplevel ||
+        mWindowType == eWindowType_invisible ||
+        (mWindowType == eWindowType_child &&
+         aInitData->mContentType == eContentTypeContent)) {
+      mNoPaint = PR_TRUE;
+    }
   }
 
   
@@ -696,6 +706,19 @@ NS_IMETHODIMP nsWindow::Update()
 gfxASurface* nsWindow::GetThebesSurface()
 {
   if (mWnd && !mThebesSurface) {
+    mThebesSurface = new gfxOS2Surface(mWnd);
+  }
+  return mThebesSurface;
+}
+
+
+
+
+
+
+gfxASurface* nsWindow::ConfirmThebesSurface()
+{
+  if (!mThebesSurface && !mNoPaint && mWnd) {
     mThebesSurface = new gfxOS2Surface(mWnd);
   }
   return mThebesSurface;
@@ -1971,11 +1994,9 @@ PRBool nsWindow::OnReposition(PSWP pSwp)
     mBounds.height = pSwp->cy;
 
     
-    
-    if (!mThebesSurface) {
-      mThebesSurface = new gfxOS2Surface(mWnd);
+    if (ConfirmThebesSurface()) {
+        mThebesSurface->Resize(gfxIntSize(mBounds.width, mBounds.height));
     }
-    mThebesSurface->Resize(gfxIntSize(mBounds.width, mBounds.height));
 
     result = DispatchResizeEvent(mBounds.width, mBounds.height);
   }
@@ -2027,7 +2048,15 @@ do {
   WinBeginPaint(mWnd, hPS, &rcl);
 
   
-  if (WinIsRectEmpty(0, &rcl) || !GetThebesSurface()) {
+  if (WinIsRectEmpty(0, &rcl)) {
+    break;
+  }
+
+  
+  
+  
+  if (!ConfirmThebesSurface()) {
+    WinDrawBorder(hPS, &rcl, 0, 0, 0, 0, DB_INTERIOR | DB_AREAATTRS);
     break;
   }
 
@@ -2043,6 +2072,15 @@ do {
   InitEvent(event);
   nsRefPtr<gfxContext> thebesContext = new gfxContext(mThebesSurface);
   thebesContext->SetFlag(gfxContext::FLAG_DESTINED_FOR_SCREEN);
+
+  
+  
+  HRGN hrgnPaint;
+  hrgnPaint = GpiCreateRegion(hPS, 1, &rcl);
+  if (hrgnPaint) {
+    GpiCombineRegion(hPS, hrgn, hrgn, hrgnPaint, CRGN_AND);
+    GpiDestroyRegion(hPS, hrgnPaint);
+  }
 
   
   
