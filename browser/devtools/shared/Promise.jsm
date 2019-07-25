@@ -140,10 +140,8 @@ Promise.prototype.reject = function(data) {
 Promise.prototype._complete = function(list, status, data, name) {
   
   if (this._status != Promise.PENDING) {
-    if (typeof 'console' === 'object') {
-      console.error('Promise complete. Attempted ' + name + '() with ', data);
-      console.error('Prev status = ', this._status, ', value = ', this._value);
-    }
+    Promise._error("Promise complete.", "Attempted ", name, "() with ", data);
+    Promise._error("Previous status: ", this._status, ", value =", this._value);
     throw new Error('Promise already complete');
   }
 
@@ -171,6 +169,33 @@ Promise.prototype._complete = function(list, status, data, name) {
 
   return this;
 };
+
+
+
+
+
+
+
+
+
+Promise._error = null;
+if (typeof console != "undefined" && console.warn) {
+  Promise._error = function() {
+    var args = Array.prototype.slice.call(arguments);
+    args.unshift("Promise");
+    console.warn.call(console, args);
+  };
+} else {
+  Promise._error = function() {
+    var i;
+    var len = arguments.length;
+    dump("Promise: ");
+    for (i = 0; i < len; ++i) {
+      dump(arguments[i]+" ");
+    }
+    dump("\n");
+  };
+}
 
 
 
@@ -212,4 +237,87 @@ Promise.group = function(promiseList) {
   });
 
   return groupPromise;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Promise.prototype.trap = function(aTrap) {
+  var promise = new Promise();
+  var resolve = Promise.prototype.resolve.bind(promise);
+  var reject = function(aRejection) {
+    try {
+      
+      var result = aTrap.call(aTrap, aRejection);
+      promise.resolve(result);
+    } catch (x) {
+      promise.reject(x);
+    }
+  };
+  this.then(resolve, reject);
+  return promise;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Promise.prototype.always = function(aTrap) {
+  var promise = new Promise();
+  var resolve = function(result) {
+    try {
+      aTrap.call(aTrap);
+      promise.resolve(result);
+    } catch (x) {
+      promise.reject(x);
+    }
+  };
+  var reject = function(result) {
+    try {
+      aTrap.call(aTrap);
+      promise.reject(result);
+    } catch (x) {
+      promise.reject(result);
+    }
+  };
+  this.then(resolve, reject);
+  return promise;
 };
