@@ -46,6 +46,7 @@ const Ci = Components.interfaces;
 const Cu = Components.utils;
 
 const DBG_XUL = "chrome://browser/content/debugger.xul";
+const DBG_STRINGS_URI = "chrome://browser/locale/devtools/debugger.properties";
 const REMOTE_PROFILE_NAME = "_remote-debug";
 
 Cu.import("resource://gre/modules/devtools/dbg-server.jsm");
@@ -85,19 +86,17 @@ DebuggerUI.prototype = {
 
 
 
-
-  toggleRemoteDebugger: function DUI_toggleRemoteDebugger(aOnClose, aOnRun) {
+  toggleRemoteDebugger: function DUI_toggleRemoteDebugger() {
     let win = this.chromeWindow;
 
     if (win._remoteDebugger) {
       win._remoteDebugger.close();
       return null;
     }
-    return new DebuggerProcess(win, aOnClose, aOnRun);
+    return new RemoteDebuggerWindow(this);
   },
 
   
-
 
 
 
@@ -108,7 +107,7 @@ DebuggerUI.prototype = {
       win._chromeDebugger.close();
       return null;
     }
-    return new DebuggerProcess(win, aOnClose, aOnRun, true);
+    return new ChromeDebuggerProcess(win, aOnClose, aOnRun, true);
   },
 
   
@@ -117,6 +116,24 @@ DebuggerUI.prototype = {
 
   getDebugger: function DUI_getDebugger(aTab) {
     return aTab._scriptDebugger;
+  },
+
+  
+
+
+
+  getRemoteDebugger: function DUI_getRemoteDebugger() {
+    let win = this.chromeWindow;
+    return '_remoteDebugger' in win ? win._remoteDebugger : null;
+  },
+
+  
+
+
+
+  getChromeDebugger: function DUI_getChromeDebugger() {
+    let win = this.chromeWindow;
+    return '_chromeDebugger' in win ? win._chromeDebugger : null;
   },
 
   
@@ -134,9 +151,11 @@ DebuggerUI.prototype = {
 
 
 
+
+
 function DebuggerPane(aTab) {
   this._tab = aTab;
-  
+
   this._initServer();
   this._create();
 }
@@ -181,7 +200,7 @@ DebuggerPane.prototype = {
       self._frame.addEventListener("unload", self.close, true);
 
       
-      let bkp = self.debuggerWindow.DebuggerController.Breakpoints;
+      let bkp = self.contentWindow.DebuggerController.Breakpoints;
       self.addBreakpoint = bkp.addBreakpoint;
       self.removeBreakpoint = bkp.removeBreakpoint;
       self.getBreakpoint = bkp.getBreakpoint;
@@ -216,7 +235,7 @@ DebuggerPane.prototype = {
 
 
 
-  get debuggerWindow() {
+  get contentWindow() {
     return this._frame ? this._frame.contentWindow : null;
   },
 
@@ -225,9 +244,100 @@ DebuggerPane.prototype = {
 
 
   get breakpoints() {
-    let debuggerWindow = this.debuggerWindow;
-    if (debuggerWindow) {
-      return debuggerWindow.DebuggerController.Breakpoints.store;
+    let contentWindow = this.contentWindow;
+    if (contentWindow) {
+      return contentWindow.DebuggerController.Breakpoints.store;
+    }
+    return null;
+  }
+};
+
+
+
+
+
+
+
+function RemoteDebuggerWindow(aDebuggerUI) {
+  this._globalUI = aDebuggerUI;
+  this._win = aDebuggerUI.chromeWindow;
+
+  this._initServer(); 
+  this._create();
+}
+
+RemoteDebuggerWindow.prototype = {
+
+  
+
+
+  _initServer: function DP__initServer() {
+    if (!DebuggerServer.initialized) {
+      DebuggerServer.init();
+      DebuggerServer.addBrowserActors();
+    }
+  },
+
+  
+
+
+  _create: function DP__create() {
+    this._win._remoteDebugger = this;
+
+    this._dbgwin = this._globalUI.chromeWindow.open(DBG_XUL,
+      L10N.getStr("remoteDebuggerWindowTitle"),
+      "width=" + DebuggerPreferences.remoteWinWidth + "," +
+      "height=" + DebuggerPreferences.remoteWinHeight + "," +
+      "chrome,dependent,resizable,centerscreen");
+
+    this._dbgwin._remoteFlag = true;
+
+    this.close = this.close.bind(this);
+    let self = this;
+
+    this._dbgwin.addEventListener("Debugger:Loaded", function dbgLoaded() {
+      self._dbgwin.removeEventListener("Debugger:Loaded", dbgLoaded, true);
+      self._dbgwin.addEventListener("Debugger:Close", self.close, true);
+      self._dbgwin.addEventListener("unload", self.close, true);
+
+      
+      let bkp = self.contentWindow.DebuggerController.Breakpoints;
+      self.addBreakpoint = bkp.addBreakpoint;
+      self.removeBreakpoint = bkp.removeBreakpoint;
+      self.getBreakpoint = bkp.getBreakpoint;
+    }, true);
+  },
+
+  
+
+
+  close: function DP_close() {
+    if (!this._win) {
+      return;
+    }
+    delete this._win._remoteDebugger;
+    this._win = null;
+
+    this._dbgwin.close();
+    this._dbgwin = null;
+  },
+
+  
+
+
+
+  get contentWindow() {
+    return this._dbgwin;
+  },
+
+  
+
+
+
+  get breakpoints() {
+    let contentWindow = this.contentWindow;
+    if (contentWindow) {
+      return contentWindow.DebuggerController.Breakpoints.store;
     }
     return null;
   }
@@ -243,20 +353,17 @@ DebuggerPane.prototype = {
 
 
 
-
-
-
-function DebuggerProcess(aWindow, aOnClose, aOnRun, aInitServerFlag) {
+function ChromeDebuggerProcess(aWindow, aOnClose, aOnRun) {
   this._win = aWindow;
   this._closeCallback = aOnClose;
   this._runCallback = aOnRun;
 
-  aInitServerFlag && this._initServer();
+  this._initServer();
   this._initProfile();
   this._create();
 }
 
-DebuggerProcess.prototype = {
+ChromeDebuggerProcess.prototype = {
 
   
 
@@ -293,7 +400,7 @@ DebuggerProcess.prototype = {
 
 
   _create: function RDP__create() {
-    this._win._remoteDebugger = this;
+    this._win._chromeDebugger = this;
 
     let file = FileUtils.getFile("CurProcD",
       [Services.appinfo.OS == "WINNT" ? "firefox.exe"
@@ -323,7 +430,7 @@ DebuggerProcess.prototype = {
     if (!this._win) {
       return;
     }
-    delete this._win._remoteDebugger;
+    delete this._win._chromeDebugger;
     this._win = null;
 
     if (this._dbgProcess.isRunning) {
@@ -340,6 +447,26 @@ DebuggerProcess.prototype = {
     this._dbgProfile = null;
   }
 };
+
+
+
+
+let L10N = {
+
+  
+
+
+
+
+
+  getStr: function L10N_getStr(aName) {
+    return this.stringBundle.GetStringFromName(aName);
+  }
+};
+
+XPCOMUtils.defineLazyGetter(L10N, "stringBundle", function() {
+  return Services.strings.createBundle(DBG_STRINGS_URI);
+});
 
 
 

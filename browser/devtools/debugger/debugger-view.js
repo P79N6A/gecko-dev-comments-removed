@@ -82,6 +82,14 @@ let DebuggerView = {
 
   _onEditorLoad: function DV__onEditorLoad() {
     DebuggerController.Breakpoints.initialize();
+  },
+
+  
+
+
+
+  showCloseButton: function DV_showCloseButton(aVisibleFlag) {
+    document.getElementById("close").setAttribute("hidden", !aVisibleFlag);
   }
 };
 

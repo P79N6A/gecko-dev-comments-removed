@@ -87,6 +87,7 @@ let DebuggerController = {
     DebuggerView.StackFrames.initialize();
     DebuggerView.Properties.initialize();
     DebuggerView.Scripts.initialize();
+    DebuggerView.showCloseButton(!this._isRemoteDebugger && !this._isChromeDebugger);
 
     this.dispatchEvent("Debugger:Loaded");
     this._connect();
@@ -114,7 +115,7 @@ let DebuggerController = {
 
     this.dispatchEvent("Debugger:Unloaded");
     this._disconnect();
-    this._isRemote && this._quitApp();
+    this._isChromeDebugger && this._quitApp();
   },
 
   
@@ -122,9 +123,9 @@ let DebuggerController = {
 
 
   _connect: function DC__connect() {
-    let transport =
-      this._isRemote ? debuggerSocketConnect(Prefs.remoteHost, Prefs.remotePort)
-                     : DebuggerServer.connectPipe();
+    let transport = this._isChromeDebugger
+      ? debuggerSocketConnect(Prefs.remoteHost, Prefs.remotePort)
+      : DebuggerServer.connectPipe();
 
     let client = this.client = new DebuggerClient(transport);
 
@@ -223,8 +224,16 @@ let DebuggerController = {
 
 
 
-  get _isRemote() {
-    return !window.parent.content;
+  get _isRemoteDebugger() {
+    return window._remoteFlag;
+  },
+
+  
+
+
+
+  get _isChromeDebugger() {
+    return !window.parent.content && !this._isRemoteDebugger;
   },
 
   
