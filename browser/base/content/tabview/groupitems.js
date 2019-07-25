@@ -66,6 +66,7 @@
 
 
 
+
 function GroupItem(listOfEls, options) {
   if (!options)
     options = {};
@@ -218,11 +219,12 @@ function GroupItem(listOfEls, options) {
       if (!same)
         return;
 
-      if (!self.isDragging) {
-        self.$titleShield.hide();
-        (self.$title)[0].focus();
-      }
+      if (!self.isDragging)
+        self.focusTitle();
     });
+
+  if (options.focusTitle)
+    this.focusTitle();
 
   
   this.$expander = iQ("<div/>")
@@ -402,6 +404,14 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     var css = {width: w};
     this.$title.css(css);
     this.$titleShield.css(css);
+  },
+
+  
+  
+  
+  focusTitle: function GroupItem_focusTitle() {
+    this.$titleShield.hide();
+    this.$title[0].focus();
   },
 
   
