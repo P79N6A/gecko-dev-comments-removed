@@ -314,7 +314,10 @@ function run_test() {
   }
 
   checkFilesAfterUpdateFailure();
-  checkUpdateLogContents(LOG_PARTIAL_FAILURE);
+  
+  if (!IS_UNIX) {
+    checkUpdateLogContents(LOG_PARTIAL_FAILURE);
+  }
 
   logTestInfo("testing tobedeleted directory doesn't exist");
   let toBeDeletedDir = getApplyDirFile("tobedeleted", true);
