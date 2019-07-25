@@ -298,6 +298,9 @@ mjit::Compiler::finishThisUp()
             script->mics[i].u.name.typeConst = mics[i].u.name.typeConst;
             script->mics[i].u.name.dataConst = mics[i].u.name.dataConst;
             script->mics[i].u.name.dataWrite = mics[i].u.name.dataWrite;
+#if defined JS_PUNBOX64
+            script->mics[i].patchValueOffset = mics[i].patchValueOffset;
+#endif
         } else {
             uint32 offs = uint32(mics[i].jumpTarget - script->code);
             JS_ASSERT(jumpMap[offs].isValid());
@@ -2981,22 +2984,43 @@ mjit::Compiler::jsop_getgname(uint32 index)
     
     uint32 slot = 1 << 24;
 
+    masm.loadPtr(Address(objReg, offsetof(JSObject, dslots)), objReg);
+    Address address(objReg, slot);
+    
     
 
 
 
 
-    frame.freeReg(frame.allocReg());
+
+
+
+
+
+
+    
+    RegisterID dreg = frame.allocReg();
+    
+    RegisterID treg = objReg;
 
     mic.load = masm.label();
-    masm.loadPtr(Address(objReg, offsetof(JSObject, dslots)), objReg);
-    Address address(objReg, slot);
-    frame.freeReg(objReg);
-    frame.push(address);
+# if defined JS_NUNBOX32
+    masm.loadPayload(address, dreg);
+    masm.loadTypeTag(address, treg);
+# elif defined JS_PUNBOX64
+    masm.loadValue(address, treg);
+    mic.patchValueOffset = masm.differenceBetween(mic.load, masm.label());
+
+    masm.move(treg, dreg);
+    masm.convertValueToPayload(dreg);
+    masm.convertValueToType(treg);
+# endif
+
+    frame.pushRegs(treg, dreg);
 
     stubcc.rejoin(Changes(1));
-
     mics.append(mic);
+
 #else
     jsop_getgname_slow(index);
 #endif
@@ -3081,6 +3105,7 @@ mjit::Compiler::jsop_setgname(uint32 index)
     masm.loadPtr(Address(objReg, offsetof(JSObject, dslots)), objReg);
     Address address(objReg, slot);
 
+#if defined JS_NUNBOX32
     if (mic.u.name.dataConst) {
         masm.storeValue(v, address);
     } else {
@@ -3090,6 +3115,27 @@ mjit::Compiler::jsop_setgname(uint32 index)
             masm.storeTypeTag(typeReg, address);
         masm.storePayload(dataReg, address);
     }
+#elif defined JS_PUNBOX64
+    if (mic.u.name.dataConst) {
+        
+        masm.storeValue(v, address);
+    } else {
+        if (mic.u.name.typeConst)
+            masm.move(ImmType(typeTag), Registers::ValueReg);
+        else
+            masm.move(typeReg, Registers::ValueReg);
+        masm.orPtr(dataReg, Registers::ValueReg);
+        masm.storePtr(Registers::ValueReg, address);
+    }
+
+    
+
+
+
+
+
+    mic.patchValueOffset = masm.differenceBetween(mic.load, masm.label());
+#endif
 
     if (objFe->isConstant())
         frame.freeReg(objReg);
