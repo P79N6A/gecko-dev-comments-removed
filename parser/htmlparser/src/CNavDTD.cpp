@@ -1688,16 +1688,6 @@ CNavDTD::HandleSavedTokens(PRInt32 anIndex)
       PRInt32   attrCount;
       PRInt32   theTopIndex = anIndex + 1;
       PRInt32   theTagCount = mBodyContext->GetCount();
-      bool      formWasOnStack = mSink->IsFormOnStack();
-
-      if (formWasOnStack) {
-        
-        
-        
-        
-        
-        ++anIndex;
-      }
 
       
       result = mSink->BeginContext(anIndex);
@@ -1762,12 +1752,6 @@ CNavDTD::HandleSavedTokens(PRInt32 anIndex)
         CloseContainersTo(theTopIndex, mBodyContext->TagAt(theTopIndex),
                           true);
       }      
-
-      if (!formWasOnStack && mSink->IsFormOnStack()) {
-        
-        
-        mSink->CloseContainer(eHTMLTag_form);
-      }
 
       
       
@@ -1846,15 +1830,7 @@ nsresult
 CNavDTD::HandleCommentToken(CToken* aToken)
 {
   NS_PRECONDITION(nsnull != aToken, kNullToken);
-
-  nsCParserNode* theNode = mNodeAllocator.CreateNode(aToken, mTokenAllocator);
-  NS_ENSURE_TRUE(theNode, NS_ERROR_OUT_OF_MEMORY);
-
-  nsresult result = mSink ? mSink->AddComment(*theNode) : NS_OK;
-
-  IF_FREE(theNode, &mNodeAllocator);
-
-  return result;
+  return NS_OK;
 }
 
 
@@ -1887,15 +1863,7 @@ nsresult
 CNavDTD::HandleProcessingInstructionToken(CToken* aToken)
 {
   NS_PRECONDITION(nsnull != aToken, kNullToken);
-
-  nsCParserNode* theNode = mNodeAllocator.CreateNode(aToken, mTokenAllocator);
-  NS_ENSURE_TRUE(theNode, NS_ERROR_OUT_OF_MEMORY);
-
-  nsresult result = mSink ? mSink->AddProcessingInstruction(*theNode) : NS_OK;
-
-  IF_FREE(theNode, &mNodeAllocator);
-
-  return result;
+  return NS_OK;
 }
 
 
@@ -1928,15 +1896,7 @@ CNavDTD::HandleDocTypeDeclToken(CToken* aToken)
   
   docTypeStr.Cut(0, 2);
   theToken->SetStringValue(docTypeStr);
-
-  nsCParserNode* theNode = mNodeAllocator.CreateNode(aToken, mTokenAllocator);
-  NS_ENSURE_TRUE(theNode, NS_ERROR_OUT_OF_MEMORY);
-
-  nsresult result = mSink ? mSink->AddDocTypeDecl(*theNode) : NS_OK;
-
-  IF_FREE(theNode, &mNodeAllocator);
-
-  return result;
+  return NS_OK;
 }
 
 
