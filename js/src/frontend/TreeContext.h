@@ -142,8 +142,6 @@ struct SharedContext {
     Rooted<StaticBlockObject *> blockChain;
                                     
 
-
-
   private:
     RootedFunction  fun_;           
 
