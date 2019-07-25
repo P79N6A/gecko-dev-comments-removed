@@ -196,6 +196,8 @@ select {
   text-indent: 0;
   overflow: -moz-hidden-unscrollable;
   text-shadow: none;
+  
+  display: inline-block;
 }
 
 
