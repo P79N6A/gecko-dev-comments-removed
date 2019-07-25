@@ -467,23 +467,6 @@ nsHtml5TreeBuilder::elementPushed(PRInt32 aNamespace, nsIAtom* aName, nsIContent
     treeOp->Init(eTreeOpStartLayout);
     return;
   }
-  if (aName == nsHtml5Atoms::input ||
-      aName == nsHtml5Atoms::button) {
-    if (!formPointer) {
-      
-      
-      
-      mOpQueue.AppendElement()->Init(eTreeOpFlushPendingAppendNotifications);
-    }
-    mOpQueue.AppendElement()->Init(eTreeOpDoneCreatingElement, aElement);
-    return;
-  }
-  if (aName == nsHtml5Atoms::audio ||
-      aName == nsHtml5Atoms::video ||
-      aName == nsHtml5Atoms::menuitem) {
-    mOpQueue.AppendElement()->Init(eTreeOpDoneCreatingElement, aElement);
-    return;
-  }
 }
 
 void
@@ -561,12 +544,35 @@ nsHtml5TreeBuilder::elementPopped(PRInt32 aNamespace, nsIAtom* aName, nsIContent
     treeOp->Init(eTreeOpDoneAddingChildren, aElement);
     return;
   }
+  if (aName == nsHtml5Atoms::input ||
+      aName == nsHtml5Atoms::button ||
+      aName == nsHtml5Atoms::menuitem) {
+    if (!formPointer) {
+      
+      
+      
+      nsHtml5TreeOperation* treeOp = mOpQueue.AppendElement();
+      NS_ASSERTION(treeOp, "Tree op allocation failed.");
+      treeOp->Init(eTreeOpFlushPendingAppendNotifications);
+    }
+    nsHtml5TreeOperation* treeOp = mOpQueue.AppendElement();
+    NS_ASSERTION(treeOp, "Tree op allocation failed.");
+    treeOp->Init(eTreeOpDoneCreatingElement, aElement);
+    return;
+  }
   if (aName == nsHtml5Atoms::meta && !fragment) {
     nsHtml5TreeOperation* treeOp = mOpQueue.AppendElement();
     NS_ASSERTION(treeOp, "Tree op allocation failed.");
     treeOp->Init(eTreeOpProcessMeta, aElement);
     return;
   }
+  if (aName == nsHtml5Atoms::audio || aName == nsHtml5Atoms::video) {
+    nsHtml5TreeOperation* treeOp = mOpQueue.AppendElement();
+    NS_ASSERTION(treeOp, "Tree op allocation failed.");
+    treeOp->Init(eTreeOpDoneCreatingElement, aElement);
+    return;
+  }   
+
   return;
 }
 
