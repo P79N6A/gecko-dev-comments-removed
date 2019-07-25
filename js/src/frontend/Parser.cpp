@@ -78,7 +78,7 @@
 #include "jsstr.h"
 
 #include "frontend/BytecodeCompiler.h"
-#include "frontend/BytecodeGenerator.h"
+#include "frontend/BytecodeEmitter.h"
 #include "frontend/FoldConstants.h"
 #include "frontend/ParseMaps.h"
 #include "frontend/TokenStream.h"
@@ -1852,7 +1852,7 @@ LeaveFunction(ParseNode *fn, TreeContext *funtc, PropertyName *funName = NULL,
 }
 
 static bool
-DefineGlobal(ParseNode *pn, CodeGenerator *cg, PropertyName *name);
+DefineGlobal(ParseNode *pn, BytecodeEmitter *bce, PropertyName *name);
 
 
 
@@ -2309,7 +2309,7 @@ Parser::functionDef(PropertyName *funName, FunctionType type, FunctionSyntaxKind
 
     if (!outertc->inFunction() && bodyLevel && kind == Statement && outertc->compiling()) {
         JS_ASSERT(pn->pn_cookie.isFree());
-        if (!DefineGlobal(pn, outertc->asCodeGenerator(), funName))
+        if (!DefineGlobal(pn, outertc->asBytecodeEmitter(), funName))
             return NULL;
     }
 
@@ -2676,17 +2676,17 @@ OuterLet(TreeContext *tc, StmtInfo *stmt, JSAtom *atom)
 
 
 static bool
-DefineGlobal(ParseNode *pn, CodeGenerator *cg, PropertyName *name)
+DefineGlobal(ParseNode *pn, BytecodeEmitter *bce, PropertyName *name)
 {
-    GlobalScope *globalScope = cg->compiler()->globalScope;
+    GlobalScope *globalScope = bce->compiler()->globalScope;
     JSObject *globalObj = globalScope->globalObj;
 
-    if (!cg->compileAndGo() || !globalObj || cg->compilingForEval())
+    if (!bce->compileAndGo() || !globalObj || bce->compilingForEval())
         return true;
 
     AtomIndexAddPtr p = globalScope->names.lookupForAdd(name);
     if (!p) {
-        JSContext *cx = cg->parser->context;
+        JSContext *cx = bce->parser->context;
 
         JSObject *holder;
         JSProperty *prop;
@@ -2802,7 +2802,7 @@ BindTopLevelVar(JSContext *cx, BindData *data, ParseNode *pn, TreeContext *tc)
 
 
 
-    return DefineGlobal(pn, tc->asCodeGenerator(), pn->pn_atom->asPropertyName());
+    return DefineGlobal(pn, tc->asBytecodeEmitter(), pn->pn_atom->asPropertyName());
 }
 
 static bool

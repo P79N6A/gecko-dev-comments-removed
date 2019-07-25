@@ -38,8 +38,8 @@
 
 
 
-#ifndef BytecodeGenerator_h__
-#define BytecodeGenerator_h__
+#ifndef BytecodeEmitter_h__
+#define BytecodeEmitter_h__
 
 
 
@@ -159,7 +159,7 @@ struct StmtInfo {
 #define SET_STATEMENT_TOP(stmt, top)                                          \
     ((stmt)->update = (top), (stmt)->breaks = (stmt)->continues = (-1))
 
-#define TCF_COMPILING           0x01 /* TreeContext is CodeGenerator */
+#define TCF_COMPILING           0x01 /* TreeContext is BytecodeEmitter */
 #define TCF_IN_FUNCTION         0x02 /* parsing inside function body */
 #define TCF_RETURN_EXPR         0x04 /* function has 'return expr;' */
 #define TCF_RETURN_VOID         0x08 /* function has 'return;' */
@@ -298,7 +298,7 @@ struct StmtInfo {
                                  TCF_STRICT_MODE_CODE    |                    \
                                  TCF_FUN_EXTENSIBLE_SCOPE)
 
-struct CodeGenerator;
+struct BytecodeEmitter;
 
 struct TreeContext {                
     uint32          flags;          
@@ -446,7 +446,7 @@ struct TreeContext {
     bool inFunction() const { return flags & TCF_IN_FUNCTION; }
 
     bool compiling() const { return flags & TCF_COMPILING; }
-    inline CodeGenerator *asCodeGenerator();
+    inline BytecodeEmitter *asBytecodeEmitter();
 
     bool usesArguments() const {
         return flags & TCF_FUN_USES_ARGUMENTS;
@@ -609,7 +609,7 @@ class GCConstList {
     void finish(JSConstArray *array);
 };
 
-struct CodeGenerator : public TreeContext
+struct BytecodeEmitter : public TreeContext
 {
     struct {
         jsbytecode  *base;          
@@ -670,7 +670,7 @@ struct CodeGenerator : public TreeContext
     uint16          traceIndex;     
     uint16          typesetCount;   
 
-    CodeGenerator(Parser *parser, uintN lineno);
+    BytecodeEmitter(Parser *parser, uintN lineno);
     bool init(JSContext *cx, TreeContext::InitBehavior ib = USED_AS_CODE_GENERATOR);
 
     JSContext *context() {
@@ -683,7 +683,7 @@ struct CodeGenerator : public TreeContext
 
 
 
-    ~CodeGenerator();
+    ~BytecodeEmitter();
 
     
 
@@ -748,34 +748,34 @@ struct CodeGenerator : public TreeContext
     }
 };
 
-#define CG_TS(cg)               TS((cg)->parser)
+#define CG_TS(bce)               TS((bce)->parser)
 
-#define CG_BASE(cg)             ((cg)->current->base)
-#define CG_LIMIT(cg)            ((cg)->current->limit)
-#define CG_NEXT(cg)             ((cg)->current->next)
-#define CG_CODE(cg,offset)      (CG_BASE(cg) + (offset))
-#define CG_OFFSET(cg)           (CG_NEXT(cg) - CG_BASE(cg))
+#define CG_BASE(bce)             ((bce)->current->base)
+#define CG_LIMIT(bce)            ((bce)->current->limit)
+#define CG_NEXT(bce)             ((bce)->current->next)
+#define CG_CODE(bce,offset)      (CG_BASE(bce) + (offset))
+#define CG_OFFSET(bce)           (CG_NEXT(bce) - CG_BASE(bce))
 
-#define CG_NOTES(cg)            ((cg)->current->notes)
-#define CG_NOTE_COUNT(cg)       ((cg)->current->noteCount)
-#define CG_NOTE_LIMIT(cg)       ((cg)->current->noteLimit)
-#define CG_LAST_NOTE_OFFSET(cg) ((cg)->current->lastNoteOffset)
-#define CG_CURRENT_LINE(cg)     ((cg)->current->currentLine)
+#define CG_NOTES(bce)            ((bce)->current->notes)
+#define CG_NOTE_COUNT(bce)       ((bce)->current->noteCount)
+#define CG_NOTE_LIMIT(bce)       ((bce)->current->noteLimit)
+#define CG_LAST_NOTE_OFFSET(bce) ((bce)->current->lastNoteOffset)
+#define CG_CURRENT_LINE(bce)     ((bce)->current->currentLine)
 
-#define CG_PROLOG_BASE(cg)      ((cg)->prolog.base)
-#define CG_PROLOG_LIMIT(cg)     ((cg)->prolog.limit)
-#define CG_PROLOG_NEXT(cg)      ((cg)->prolog.next)
-#define CG_PROLOG_CODE(cg,poff) (CG_PROLOG_BASE(cg) + (poff))
-#define CG_PROLOG_OFFSET(cg)    (CG_PROLOG_NEXT(cg) - CG_PROLOG_BASE(cg))
+#define CG_PROLOG_BASE(bce)      ((bce)->prolog.base)
+#define CG_PROLOG_LIMIT(bce)     ((bce)->prolog.limit)
+#define CG_PROLOG_NEXT(bce)      ((bce)->prolog.next)
+#define CG_PROLOG_CODE(bce,poff) (CG_PROLOG_BASE(bce) + (poff))
+#define CG_PROLOG_OFFSET(bce)    (CG_PROLOG_NEXT(bce) - CG_PROLOG_BASE(bce))
 
-#define CG_SWITCH_TO_MAIN(cg)   ((cg)->current = &(cg)->main)
-#define CG_SWITCH_TO_PROLOG(cg) ((cg)->current = &(cg)->prolog)
+#define CG_SWITCH_TO_MAIN(bce)   ((bce)->current = &(bce)->main)
+#define CG_SWITCH_TO_PROLOG(bce) ((bce)->current = &(bce)->prolog)
 
-inline CodeGenerator *
-TreeContext::asCodeGenerator()
+inline BytecodeEmitter *
+TreeContext::asBytecodeEmitter()
 {
     JS_ASSERT(compiling());
-    return static_cast<CodeGenerator *>(this);
+    return static_cast<BytecodeEmitter *>(this);
 }
 
 namespace frontend {
@@ -784,56 +784,54 @@ namespace frontend {
 
 
 ptrdiff_t
-Emit1(JSContext *cx, CodeGenerator *cg, JSOp op);
+Emit1(JSContext *cx, BytecodeEmitter *bce, JSOp op);
 
 
 
 
 ptrdiff_t
-Emit2(JSContext *cx, CodeGenerator *cg, JSOp op, jsbytecode op1);
+Emit2(JSContext *cx, BytecodeEmitter *bce, JSOp op, jsbytecode op1);
 
 
 
 
 ptrdiff_t
-Emit3(JSContext *cx, CodeGenerator *cg, JSOp op, jsbytecode op1,
-         jsbytecode op2);
+Emit3(JSContext *cx, BytecodeEmitter *bce, JSOp op, jsbytecode op1, jsbytecode op2);
 
 
 
 
 ptrdiff_t
-Emit5(JSContext *cx, CodeGenerator *cg, JSOp op, uint16 op1,
-         uint16 op2);
+Emit5(JSContext *cx, BytecodeEmitter *bce, JSOp op, uint16 op1, uint16 op2);
 
 
 
 
 ptrdiff_t
-EmitN(JSContext *cx, CodeGenerator *cg, JSOp op, size_t extra);
+EmitN(JSContext *cx, BytecodeEmitter *bce, JSOp op, size_t extra);
 
 
 
 
-#define CHECK_AND_SET_JUMP_OFFSET_CUSTOM(cx,cg,pc,off,BAD_EXIT)               \
+#define CHECK_AND_SET_JUMP_OFFSET_CUSTOM(cx,bce,pc,off,BAD_EXIT)              \
     JS_BEGIN_MACRO                                                            \
-        if (!SetJumpOffset(cx, cg, pc, off)) {                             \
+        if (!SetJumpOffset(cx, bce, pc, off)) {                               \
             BAD_EXIT;                                                         \
         }                                                                     \
     JS_END_MACRO
 
-#define CHECK_AND_SET_JUMP_OFFSET(cx,cg,pc,off)                               \
-    CHECK_AND_SET_JUMP_OFFSET_CUSTOM(cx,cg,pc,off,return JS_FALSE)
+#define CHECK_AND_SET_JUMP_OFFSET(cx,bce,pc,off)                              \
+    CHECK_AND_SET_JUMP_OFFSET_CUSTOM(cx,bce,pc,off,return JS_FALSE)
 
-#define CHECK_AND_SET_JUMP_OFFSET_AT_CUSTOM(cx,cg,off,BAD_EXIT)               \
-    CHECK_AND_SET_JUMP_OFFSET_CUSTOM(cx, cg, CG_CODE(cg,off),                 \
-                                     CG_OFFSET(cg) - (off), BAD_EXIT)
+#define CHECK_AND_SET_JUMP_OFFSET_AT_CUSTOM(cx,bce,off,BAD_EXIT)              \
+    CHECK_AND_SET_JUMP_OFFSET_CUSTOM(cx, bce, CG_CODE(bce,off),               \
+                                     CG_OFFSET(bce) - (off), BAD_EXIT)
 
-#define CHECK_AND_SET_JUMP_OFFSET_AT(cx,cg,off)                               \
-    CHECK_AND_SET_JUMP_OFFSET_AT_CUSTOM(cx, cg, off, return JS_FALSE)
+#define CHECK_AND_SET_JUMP_OFFSET_AT(cx,bce,off)                              \
+    CHECK_AND_SET_JUMP_OFFSET_AT_CUSTOM(cx, bce, off, return JS_FALSE)
 
 JSBool
-SetJumpOffset(JSContext *cx, CodeGenerator *cg, jsbytecode *pc, ptrdiff_t off);
+SetJumpOffset(JSContext *cx, BytecodeEmitter *bce, jsbytecode *pc, ptrdiff_t off);
 
 
 
@@ -862,7 +860,7 @@ PopStatementTC(TreeContext *tc);
 
 
 JSBool
-PopStatementCG(JSContext *cx, CodeGenerator *cg);
+PopStatementCG(JSContext *cx, BytecodeEmitter *bce);
 
 
 
@@ -877,7 +875,7 @@ PopStatementCG(JSContext *cx, CodeGenerator *cg);
 
 
 JSBool
-DefineCompileTimeConstant(JSContext *cx, CodeGenerator *cg, JSAtom *atom, ParseNode *pn);
+DefineCompileTimeConstant(JSContext *cx, BytecodeEmitter *bce, JSAtom *atom, ParseNode *pn);
 
 
 
@@ -900,13 +898,13 @@ LexicalLookup(TreeContext *tc, JSAtom *atom, jsint *slotp, StmtInfo *stmt = NULL
 
 
 JSBool
-EmitTree(JSContext *cx, CodeGenerator *cg, ParseNode *pn);
+EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn);
 
 
 
 
 JSBool
-EmitFunctionScript(JSContext *cx, CodeGenerator *cg, ParseNode *body);
+EmitFunctionScript(JSContext *cx, BytecodeEmitter *bce, ParseNode *body);
 
 } 
 
@@ -1062,20 +1060,20 @@ namespace frontend {
 
 
 intN
-NewSrcNote(JSContext *cx, CodeGenerator *cg, SrcNoteType type);
+NewSrcNote(JSContext *cx, BytecodeEmitter *bce, SrcNoteType type);
 
 intN
-NewSrcNote2(JSContext *cx, CodeGenerator *cg, SrcNoteType type, ptrdiff_t offset);
+NewSrcNote2(JSContext *cx, BytecodeEmitter *bce, SrcNoteType type, ptrdiff_t offset);
 
 intN
-NewSrcNote3(JSContext *cx, CodeGenerator *cg, SrcNoteType type, ptrdiff_t offset1,
+NewSrcNote3(JSContext *cx, BytecodeEmitter *bce, SrcNoteType type, ptrdiff_t offset1,
                ptrdiff_t offset2);
 
 
 
 
 jssrcnote *
-AddToSrcNoteDelta(JSContext *cx, CodeGenerator *cg, jssrcnote *sn, ptrdiff_t delta);
+AddToSrcNoteDelta(JSContext *cx, BytecodeEmitter *bce, jssrcnote *sn, ptrdiff_t delta);
 
 
 
@@ -1087,18 +1085,19 @@ AddToSrcNoteDelta(JSContext *cx, CodeGenerator *cg, jssrcnote *sn, ptrdiff_t del
 
 
 
-#define CG_COUNT_FINAL_SRCNOTES(cg, cnt)                                      \
+#define CG_COUNT_FINAL_SRCNOTES(bce, cnt)                                     \
     JS_BEGIN_MACRO                                                            \
-        ptrdiff_t diff_ = CG_PROLOG_OFFSET(cg) - (cg)->prolog.lastNoteOffset; \
-        cnt = (cg)->prolog.noteCount + (cg)->main.noteCount + 1;              \
-        if ((cg)->prolog.noteCount &&                                         \
-            (cg)->prolog.currentLine != (cg)->firstLine) {                    \
+        ptrdiff_t diff_ =                                                     \
+            CG_PROLOG_OFFSET(bce) - (bce)->prolog.lastNoteOffset;             \
+        cnt = (bce)->prolog.noteCount + (bce)->main.noteCount + 1;            \
+        if ((bce)->prolog.noteCount &&                                        \
+            (bce)->prolog.currentLine != (bce)->firstLine) {                  \
             if (diff_ > SN_DELTA_MASK)                                        \
                 cnt += JS_HOWMANY(diff_ - SN_DELTA_MASK, SN_XDELTA_MASK);     \
-            cnt += 2 + (((cg)->firstLine > SN_3BYTE_OFFSET_MASK) << 1);       \
+            cnt += 2 + (((bce)->firstLine > SN_3BYTE_OFFSET_MASK) << 1);      \
         } else if (diff_ > 0) {                                               \
-            if (cg->main.noteCount) {                                         \
-                jssrcnote *sn_ = (cg)->main.notes;                            \
+            if ((bce)->main.noteCount) {                                      \
+                jssrcnote *sn_ = (bce)->main.notes;                           \
                 diff_ -= SN_IS_XDELTA(sn_)                                    \
                          ? SN_XDELTA_MASK - (*sn_ & SN_XDELTA_MASK)           \
                          : SN_DELTA_MASK - (*sn_ & SN_DELTA_MASK);            \
@@ -1109,10 +1108,10 @@ AddToSrcNoteDelta(JSContext *cx, CodeGenerator *cg, jssrcnote *sn, ptrdiff_t del
     JS_END_MACRO
 
 JSBool
-FinishTakingSrcNotes(JSContext *cx, CodeGenerator *cg, jssrcnote *notes);
+FinishTakingSrcNotes(JSContext *cx, BytecodeEmitter *bce, jssrcnote *notes);
 
 void
-FinishTakingTryNotes(CodeGenerator *cg, JSTryNoteArray *array);
+FinishTakingTryNotes(BytecodeEmitter *bce, JSTryNoteArray *array);
 
 } 
 } 
