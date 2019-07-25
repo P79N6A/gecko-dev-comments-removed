@@ -301,7 +301,7 @@ public class GeckoLayerClient implements GeckoEventResponder,
                     ImmutableViewportMetrics oldMetrics = mLayerController.getViewportMetrics();
                     newMetrics.setSize(oldMetrics.getSize());
                     mLayerController.setViewportMetrics(newMetrics);
-                    mLayerController.abortPanZoomAnimation();
+                    mLayerController.abortPanZoomAnimation(false);
                 }
             } catch (JSONException e) {
                 Log.e(LOGTAG, "Unable to create viewport metrics in " + event + " handler", e);
@@ -349,7 +349,14 @@ public class GeckoLayerClient implements GeckoEventResponder,
             currentMetrics.setZoomFactor(zoom);
             currentMetrics.setPageSize(new FloatSize(pageWidth, pageHeight));
             mLayerController.setViewportMetrics(currentMetrics);
-            mLayerController.abortPanZoomAnimation();
+            
+            
+            
+            
+            
+            
+            
+            mLayerController.abortPanZoomAnimation(true);
         }
     }
 
@@ -363,6 +370,10 @@ public class GeckoLayerClient implements GeckoEventResponder,
             pageWidth = pageWidth * ourZoom / zoom;
             pageHeight = pageHeight * ourZoom /zoom;
             mLayerController.setPageSize(new FloatSize(pageWidth, pageHeight));
+            
+            
+            
+            
         }
     }
 
