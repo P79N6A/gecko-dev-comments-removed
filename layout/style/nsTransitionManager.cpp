@@ -667,6 +667,19 @@ nsTransitionManager::ConsiderStartingTransition(nsCSSProperty aProperty,
       double valuePortion =
         oldPT.ValuePortionFor(mostRecentRefresh) * oldPT.mReversePortion +
         (1.0 - oldPT.mReversePortion); 
+      
+      
+      
+      
+      if (valuePortion < 0.0)
+        valuePortion = -valuePortion;
+      
+      
+      
+      
+      
+      if (valuePortion > 1.0)
+        valuePortion = 1.0;
 
       
       
