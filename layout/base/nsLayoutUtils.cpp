@@ -1545,6 +1545,12 @@ nsLayoutUtils::PaintFrame(nsIRenderingContext* aRenderingContext, nsIFrame* aFra
       nsIntRegion dirtyWindowRegion(aDirtyRegion.ToOutsidePixels(pixelRatio));
       builder.SetFinalTransparentRegion(visibleRegion);
       widget->UpdatePossiblyTransparentRegion(dirtyWindowRegion, visibleWindowRegion);
+
+      
+      
+      nsIWidget_MOZILLA_2_0_BRANCH* widget2 =
+        static_cast<nsIWidget_MOZILLA_2_0_BRANCH*>(widget);
+      widget2->UpdateThemeGeometries(builder.GetThemeGeometries());
     }
   }
 

@@ -362,6 +362,8 @@ public:
     mFinalTransparentRegion = &aFinalTransparentRegion;
   }
 
+  const nsTArray<ThemeGeometry>& GetThemeGeometries() { return mThemeGeometries; }
+
   
 
 
@@ -389,9 +391,9 @@ public:
 
   void RegisterThemeGeometry(PRUint8 aWidgetType,
                              const nsIntRect& aRect) {
-    if (mIsPaintingToWindow) {
+    if (mIsPaintingToWindow && mPresShellStates.Length() == 1) {
       ThemeGeometry geometry(aWidgetType, aRect);
-      CurrentPresShellState()->mThemeGeometries.AppendElement(geometry);
+      mThemeGeometries.AppendElement(geometry);
     }
   }
 
@@ -457,7 +459,6 @@ private:
     nsIFrame*     mCaretFrame;
     PRUint32      mFirstFrameMarkedForDisplay;
     PRPackedBool  mIsBackgroundOnly;
-    nsAutoTArray<ThemeGeometry,2> mThemeGeometries;
   };
   PresShellState* CurrentPresShellState() {
     NS_ASSERTION(mPresShellStates.Length() > 0,
@@ -472,6 +473,7 @@ private:
   nsCOMPtr<nsISelection>         mBoundingSelection;
   nsAutoTArray<PresShellState,8> mPresShellStates;
   nsAutoTArray<nsIFrame*,100>    mFramesMarkedForDisplay;
+  nsAutoTArray<ThemeGeometry,2>  mThemeGeometries;
   nsDisplayTableItem*            mCurrentTableItem;
   const nsRegion*                mFinalTransparentRegion;
   Mode                           mMode;
