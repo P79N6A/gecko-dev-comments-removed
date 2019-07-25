@@ -275,6 +275,12 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
 #define NS_STYLE_BG_CLIP_CONTENT          2
 
 
+
+
+
+#define NS_STYLE_BG_CLIP_MOZ_ALMOST_PADDING 127
+
+
 #define NS_STYLE_BG_INLINE_POLICY_EACH_BOX      0
 #define NS_STYLE_BG_INLINE_POLICY_CONTINUOUS    1
 #define NS_STYLE_BG_INLINE_POLICY_BOUNDING_BOX  2
