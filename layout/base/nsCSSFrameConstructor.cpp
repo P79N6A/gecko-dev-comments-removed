@@ -3151,6 +3151,8 @@ nsCSSFrameConstructor::ConstructFieldSetFrame(nsFrameConstructorState& aState,
   
   newFrame->SetInitialChildList(kPrincipalList, fieldsetKids);
 
+  newFrame->AddStateBits(NS_FRAME_MAY_HAVE_GENERATED_CONTENT);
+
   
   *aNewFrame = newFrame; 
 

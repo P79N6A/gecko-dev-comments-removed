@@ -1419,7 +1419,10 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
       
       
       if (!pseudoTag &&
-          (aFrame->GetStateBits() & NS_FRAME_MAY_HAVE_GENERATED_CONTENT)) {
+          ((aFrame->GetStateBits() & NS_FRAME_MAY_HAVE_GENERATED_CONTENT) ||
+           
+           (aFrame->GetContentInsertionFrame()->GetStateBits() &
+            NS_FRAME_MAY_HAVE_GENERATED_CONTENT))) {
         
         
         nsIFrame* prevContinuation = aFrame->GetPrevContinuation();
@@ -1447,7 +1450,10 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
       
       
       if (!pseudoTag &&
-          (aFrame->GetStateBits() & NS_FRAME_MAY_HAVE_GENERATED_CONTENT)) {
+          ((aFrame->GetStateBits() & NS_FRAME_MAY_HAVE_GENERATED_CONTENT) ||
+           
+           (aFrame->GetContentInsertionFrame()->GetStateBits() &
+            NS_FRAME_MAY_HAVE_GENERATED_CONTENT))) {
         
         
         nsIFrame* nextContinuation = aFrame->GetNextContinuation();
