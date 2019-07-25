@@ -1,0 +1,50 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "mozilla/mozalloc.h"
+
+#define hnj_malloc(size)      moz_xmalloc(size)
+#define hnj_realloc(p, size)  moz_xrealloc(p, size)
+#define hnj_free(p)           moz_free(p)
+

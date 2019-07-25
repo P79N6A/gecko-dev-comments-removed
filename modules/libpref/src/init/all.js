@@ -1048,6 +1048,11 @@ pref("intl.uidirection.ar", "rtl");
 pref("intl.uidirection.he", "rtl");
 pref("intl.uidirection.fa", "rtl");
 
+
+pref("intl.hyphenation-alias.en", "en-us");
+
+pref("intl.hyphenation-alias.en-*", "en-us");
+
 pref("font.mathfont-family", "STIXNonUnicode, STIXSizeOneSym, STIXSize1, STIXGeneral, Standard Symbols L, DejaVu Sans, Cambria Math");
 
 
