@@ -44,6 +44,10 @@ const Cu = Components.utils;
 
 const INCOMING_SHARED_ANNO = "weave/shared-incoming";
 const OUTGOING_SHARED_ANNO = "weave/shared-outgoing";
+const SERVER_PATH_ANNO = "weave/shared-server-path";
+
+const KEYRING_FILE_NAME = "keyring";
+const SHARED_BOOKMARK_FILE_NAME = "shared_bookmarks";
 
 Cu.import("resource://weave/log4moz.js");
 Cu.import("resource://weave/dav.js");
@@ -97,7 +101,6 @@ BookmarksEngine.prototype = {
     if ( Utils.prefs.getBoolPref( "xmpp.enabled" ) ) {
       dump( "Starting XMPP client for bookmark engine..." );
       this._startXmppClient.async(this);
-      
     }
   },
 
@@ -117,7 +120,6 @@ BookmarksEngine.prototype = {
     
     let clientName = Utils.prefs.getCharPref( "xmpp.client.name" );
     let clientPassword = Utils.prefs.getCharPref( "xmpp.client.password" );
-
     let transport = new HTTPPollingTransport( serverUrl, false, 15000 );
     let auth = new PlainAuthenticator(); 
     
@@ -144,6 +146,8 @@ BookmarksEngine.prototype = {
  	let words = messageText.split(" ");
 	let commandWord = words[0];
 	let directoryName = words.slice(1).join(" ");
+	
+	
         if ( commandWord == "share" ) {
 	  bmkEngine._incomingShareOffer( directoryName, from );
 	} else if ( commandWord == "stop" ) {
@@ -196,6 +200,8 @@ BookmarksEngine.prototype = {
     let self = yield;
     this.__proto__.__proto__._sync.async(this, self.cb );
     yield;
+    this.updateAllOutgoingShares(self.cb);
+    yield;
     this.updateAllIncomingShares(self.cb);
     yield;
     self.done();
@@ -213,15 +219,13 @@ BookmarksEngine.prototype = {
 
 
     
-    
     dump( "About to call _createOutgoingShare asynchronously.\n" );
     this._createOutgoingShare.async( this, self.cb, selectedFolder, username );
-    yield;
+    let serverPath = yield;
     dump( "Done calling _createOutgoingShare asynchronously.\n" );
-    
+    this._updateOutgoingShare.async( this, self.cb, selectedFolder );
 
     
-
 
     let folderItemId = selectedFolder.node.itemId;
     let folderName = selectedFolder.getAttribute( "label" );
@@ -233,10 +237,11 @@ BookmarksEngine.prototype = {
     if ( this._xmppClient ) {
       if ( this._xmppClient._connectionStatus == this._xmppClient.CONNECTED ) {
 	dump( "Gonna send notification...\n" );
+	
 	let msgText = "share " + folderName;
 	this._xmppClient.sendMessage( username, msgText );
       } else {
-	this._log.info( "XMPP connection not available for share notification." );
+	this._log.warn( "No XMPP connection for share notification." );
       }
     } 
 
@@ -246,7 +251,7 @@ BookmarksEngine.prototype = {
 
     dump( "Bookmark engine shared " +folderName + " with " + username + "\n" );
     ret = true;
-    self.done( ret );
+    self.done( true );
   },
 
   updateAllIncomingShares: function BmkEngine_updateAllIncoming(onComplete) {
@@ -274,83 +279,115 @@ BookmarksEngine.prototype = {
     }
   },
 
+  updateAllOutgoingShares: function BmkEngine_updateAllOutgoing(onComplete) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+  },
+
   _createOutgoingShare: function BmkEngine__createOutgoing(folder, username) {
+    
+
+
+
+
+
     let self = yield;
-    let prefix = DAV.defaultPrefix;
-
-    dump( "CreateOutgoingShare: " + folder + ", " + username  + "\n" );
-    this._log.debug("Sharing bookmarks from " + folder + " with " + username);
-
-    
-    let keychain = this._remote.keys;
-    let identity = 'jono';
-    keychain.getKey( this.cb, identity );
-    let symKey = yield;
-    dump( "SymKey is " + symKey + "\n" );
-
-
-
-
-
+    let myUserName = ID.get('WeaveID').username;
+    this._log.debug("Sharing bookmarks from " + folder.getAttribute( "label" ) 
+                    + " with " + username);
 
     
-    
 
+    let uuidgen = Cc["@mozilla.org/uuid-generator;1"].
+        getService(Ci.nsIUUIDGenerator);
+    let folderGuid = uuidgen.generateUUID().toString().replace(/[{}]/g, '');
 
     
-    dump( "Trying DAV.GET...\n" );
-    DAV.GET(this.keysFile, self.cb);
-    let ret = yield;
-    Utils.ensureStatus(ret.status, "Could not get keys file.");
-    
-    let keys = this._json.decode(ret.responseText);
-
-    dump( "Trying to get public key...\n" );
-    
-    let serverURL = Utils.prefs.getCharPref("serverURL");
-
-    try {
-      DAV.defaultPrefix = "user/" + username + "/";
-      DAV.GET("public/pubkey", self.cb);
-      ret = yield;
+    let serverPath = "/user/" + myUserName + "/share/" + folderGuid;
+    if (!server.exists(serverPath)) {
+      DAV.MKCOL(serverPath, self.cb);
+      let ret = yeild;
+      if (!ret) {
+	this._log.error("Can't create remote folder for outgoing share.");
+	self.done(false);
+      }
     }
-    catch (e) { throw e; }
-    finally { DAV.defaultPrefix = prefix; }
 
-    Utils.ensureStatus(ret.status, "Could not get public key for " + username);
-
-    let id = new Identity();
-    id.pubkey = ret.responseText;
-    dump( "Trying encrypt...\n" );
     
-    Crypto.RSAencrypt.async(Crypto, self.cb, this._engineId.password, id);
-    let enckey = yield;
-    if (!enckey)
-      throw "Could not encrypt symmetric encryption key";
 
-    dump( "Trying DAV.PUT...\n" );
-    keys.ring[username] = enckey;
-    DAV.PUT(this.keysFile, this._json.encode(keys), self.cb);
-    ret = yield;
-    Utils.ensureStatus(ret.status, "Could not upload keyring file.");
+    let ans = Cc["@mozilla.org/browser/annotation-service;1"].
+      getService(Ci.nsIAnnotationService);
+    ans.setItemAnnotation(folder.node.itemId,
+                          SERVER_PATH_ANNO,
+                          serverPath,
+                          0,
+                          ans.EXPIRE_NEVER);
 
-    this._log.debug("All done sharing!\n");
-
-    dump( "Trying atul's API for setting htaccess...\n" );
     
-    let api = new Sharing.Api( DAV );
-    api.shareWithUsers( directory, [username], self.cb );
+    Crypto.PBEkeygen.async(Crypto, self.cb);
+    let newSymKey = yield;
+
+    
+
+    let myPubKeyFile = new Resource("/user/" + myUserName + "/public/pubkey");
+    let myPubKey = myPubKeyFile.get(); 
+    let userPubKeyFile = new Resource("/user/" + username + "/public/pubkey");
+    let userPubKey = userPubKeyFile.get();
+
+    
+
+    Crypto.RSAencrypt.async(Crypto, self.cb, symKey, {pubkey: myPubKey} );
+    let encryptedForMe = yield;
+    Crypto.RSAencrypt.async(Crypto, self.cb, symKey, {pubkey: userPubKey} );
+    let encryptedForYou = yield;
+    let keyring = { myUserName: encryptedForMe,
+                    username: encryptedForYou };
+    let keyringFile = new Resource( serverPath + "/" + KEYRING_FILE_NAME );
+    keyringFile.put( this._json.encode( keyring ) ); 
+
+    
+    let sharingApi = new Sharing.Api( DAV );
+    sharingApi.shareWithUsers( serverPath, [username], self.cb );
     let result = yield;
 
-    self.done(true);
+    
+    self.done( serverPath );
   },
 
-  _updateOutgoingShare: function BmkEngine__updateOutgoing(guid, username) {
+  _updateOutgoingShare: function BmkEngine__updateOutgoing(folderNode) {
+    let self = yield;
+    let myUserName = ID.get('WeaveID').username;
+    let ans = Cc["@mozilla.org/browser/annotation-service;1"].
+      getService(Ci.nsIAnnotationService);
+    let serverPath = ans.getItemAnnotation(folderNode, SERVER_PATH_ANNO);
+    let keyringFile = new Resource(serverPath + "/" + KEYRING_FILE_NAME);
+    let keyring = keyringFile.get();
+    let symKey = keyring[ myUserName ];
+    let json = this._store._wrapMount( folderNode, myUserName ); 
+    
+    
+    let bookmarkFile = new Resource(serverPath + "/" + SHARED_BOOKMARK_FILE_NAME);
+    Crypto.PBEencrypt.async( Crypto, self.cb, json, {password:symKey} );
+    let cyphertext = yield;
+    bookmarkFile.put( cyphertext );
+    self.done();
+  },
+
+  _stopOutgoingShare: function BmkEngine__stopOutgoingShare(folderNode) {
     
 
-  },
-
-  _stopOutgoingShare: function BmkEngine__stopOutgoingShare( guid, username ) {
+    
+    
+    
+    
     
   },
 
@@ -399,6 +436,9 @@ BookmarksEngine.prototype = {
     
 
 
+    
+    
+    
     
 
 
