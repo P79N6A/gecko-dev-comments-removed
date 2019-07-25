@@ -8178,10 +8178,9 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
     
     
     
-    nsIFrame* rootFrame = GetRootFrame();
     nsRootPresContext* rootPC = presContext->GetRootPresContext();
     if (rootPC) {
-      rootPC->RequestUpdatePluginGeometry(rootFrame);
+      rootPC->RequestUpdatePluginGeometry();
     }
   }
 

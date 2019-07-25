@@ -887,17 +887,6 @@ public:
   {
     PropertyTable()->DeleteAllFor(aFrame);
   }
-  inline void ForgetUpdatePluginGeometryFrame(nsIFrame* aFrame);
-
-  bool GetContainsUpdatePluginGeometryFrame()
-  {
-    return mContainsUpdatePluginGeometryFrame;
-  }
-
-  void SetContainsUpdatePluginGeometryFrame(bool aValue)
-  {
-    mContainsUpdatePluginGeometryFrame = aValue;
-  }
 
   bool MayHaveFixedBackgroundFrames() { return mMayHaveFixedBackgroundFrames; }
   void SetHasFixedBackgroundFrame() { mMayHaveFixedBackgroundFrames = true; }
@@ -1158,7 +1147,6 @@ protected:
   unsigned              mProcessingRestyles : 1;
   unsigned              mProcessingAnimationStyleChange : 1;
 
-  unsigned              mContainsUpdatePluginGeometryFrame : 1;
   unsigned              mFireAfterPaintEvents : 1;
 
   
@@ -1266,21 +1254,7 @@ public:
 
 
 
-  void RequestUpdatePluginGeometry(nsIFrame* aFrame);
-
-  
-
-
-
-  void RootForgetUpdatePluginGeometryFrame(nsIFrame* aFrame);
-
-  
-
-
-
-
-
-  void RootForgetUpdatePluginGeometryFrameForPresContext(nsPresContext* aPresContext);
+  void RequestUpdatePluginGeometry();
 
   
 
@@ -1343,21 +1317,9 @@ protected:
   
   nsTArray<nsCOMPtr<nsIRunnable> > mWillPaintObservers;
   nsRevocableEventPtr<RunWillPaintObservers> mWillPaintFallbackEvent;
-  nsIFrame* mUpdatePluginGeometryForFrame;
   uint32_t mDOMGeneration;
   bool mNeedsToUpdatePluginGeometry;
 };
-
-inline void
-nsPresContext::ForgetUpdatePluginGeometryFrame(nsIFrame* aFrame)
-{
-  if (mContainsUpdatePluginGeometryFrame) {
-    nsRootPresContext* rootPC = GetRootPresContext();
-    if (rootPC) {
-      rootPC->RootForgetUpdatePluginGeometryFrame(aFrame);
-    }
-  }
-}
 
 #ifdef MOZ_REFLOW_PERF
 

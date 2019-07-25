@@ -767,18 +767,6 @@ nsSubDocumentFrame::DestroyFrom(nsIFrame* aDestructRoot)
   
   
   
-  nsIFrame* subdocRootFrame = GetSubdocumentRootFrame();
-  if (subdocRootFrame) {
-    nsPresContext* pc = subdocRootFrame->PresContext();
-    nsRootPresContext* rpc = pc ? pc->GetRootPresContext() : nullptr;
-    if (rpc) {
-      rpc->RootForgetUpdatePluginGeometryFrameForPresContext(pc);
-    }
-  }
-
-  
-  
-  
   nsFrameLoader* frameloader = FrameLoader();
   if (frameloader) {
     nsIView* detachedViews = ::BeginSwapDocShellsForViews(mInnerView->GetFirstChild());
