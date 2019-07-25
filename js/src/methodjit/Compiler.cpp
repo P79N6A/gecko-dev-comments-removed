@@ -110,7 +110,7 @@ mjit::Compiler::Compiler(JSContext *cx, JSScript *outerScript, bool isConstructi
     traceICs(CompilerAllocPolicy(cx, *thisFromCtor())),
 #endif
 #if defined JS_POLYIC
-    pics(CompilerAllocPolicy(cx, *thisFromCtor())), 
+    pics(CompilerAllocPolicy(cx, *thisFromCtor())),
     getElemICs(CompilerAllocPolicy(cx, *thisFromCtor())),
     setElemICs(CompilerAllocPolicy(cx, *thisFromCtor())),
 #endif
@@ -142,7 +142,7 @@ mjit::Compiler::Compiler(JSContext *cx, JSScript *outerScript, bool isConstructi
 
     
     if (!debugMode() && cx->typeInferenceEnabled() && globalObj &&
-        (outerScript->useCount() >= USES_BEFORE_INLINING ||
+        (outerScript->getUseCount() >= USES_BEFORE_INLINING ||
          cx->hasRunOption(JSOPTION_METHODJIT_ALWAYS))) {
         inlining_ = true;
     }
@@ -183,6 +183,11 @@ mjit::Compiler::compile()
 CompileStatus
 mjit::Compiler::checkAnalysis(JSScript *script)
 {
+    if (script->hasClearedGlobal()) {
+        JaegerSpew(JSpew_Abort, "script has a cleared global\n");
+        return Compile_Abort;
+    }
+
     if (!script->ensureRanAnalysis(cx))
         return Compile_Error;
     if (cx->typeInferenceEnabled() && !script->ensureRanInference(cx))
@@ -525,8 +530,8 @@ mjit::Compiler::performCompilation(JITScript **jitp)
     JaegerSpew(JSpew_Prof, "compilation took %d us\n", prof.time_us());
 #endif
 
-    JaegerSpew(JSpew_Scripts, "successfully compiled (code \"%p\") (size \"%ld\")\n",
-               (*jitp)->code.m_code.executableAddress(), (*jitp)->code.m_size);
+    JaegerSpew(JSpew_Scripts, "successfully compiled (code \"%p\") (size \"%u\")\n",
+               (*jitp)->code.m_code.executableAddress(), unsigned((*jitp)->code.m_size));
 
     if (!*jitp)
         return Compile_Abort;
@@ -900,8 +905,8 @@ mjit::Compiler::finishThisUp(JITScript **jitp)
                       jumpTableOffsets.length() * sizeof(void *);
 
     JSC::ExecutablePool *execPool;
-    uint8 *result =
-        (uint8 *)script->compartment->jaegerCompartment()->execAlloc()->alloc(codeSize, &execPool);
+    uint8 *result = (uint8 *)script->compartment()->jaegerCompartment()->execAlloc()->
+                    alloc(codeSize, &execPool, JSC::METHOD_CODE);
     if (!result) {
         js_ReportOutOfMemory(cx);
         return Compile_Error;
@@ -910,9 +915,9 @@ mjit::Compiler::finishThisUp(JITScript **jitp)
     JSC::ExecutableAllocator::makeWritable(result, codeSize);
     masm.executableCopy(result);
     stubcc.masm.executableCopy(result + masm.size());
-    
-    JSC::LinkBuffer fullCode(result, codeSize);
-    JSC::LinkBuffer stubCode(result + masm.size(), stubcc.size());
+
+    JSC::LinkBuffer fullCode(result, codeSize, JSC::METHOD_CODE);
+    JSC::LinkBuffer stubCode(result + masm.size(), stubcc.size(), JSC::METHOD_CODE);
 
     size_t nNmapLive = loopEntries.length();
     for (size_t i = 0; i < script->length; i++) {
@@ -1147,7 +1152,7 @@ mjit::Compiler::finishThisUp(JITScript **jitp)
                  fullCode.locationOf(callICs[i].funGuard);
         jitCallICs[i].joinPointOffset = offset;
         JS_ASSERT(jitCallICs[i].joinPointOffset == offset);
-                                        
+
         
         offset = stubCode.locationOf(callICs[i].oolCall) -
                  stubCode.locationOf(callICs[i].slowPathStart);
@@ -1207,7 +1212,7 @@ mjit::Compiler::finishThisUp(JITScript **jitp)
         if (equalityICs[i].jumpToStub.isSet())
             jitEqualityICs[i].jumpToStub = fullCode.locationOf(equalityICs[i].jumpToStub.get());
         jitEqualityICs[i].fallThrough = fullCode.locationOf(equalityICs[i].fallThrough);
-        
+
         stubCode.patch(equalityICs[i].addrLabel, &jitEqualityICs[i]);
     }
 
@@ -1244,7 +1249,7 @@ mjit::Compiler::finishThisUp(JITScript **jitp)
         jitTraceICs[i].loopCounterStart = hotloop;
         jitTraceICs[i].loopCounter = hotloop < prevCount ? 1 : hotloop - prevCount;
 #endif
-        
+
         stubCode.patch(traceICs[i].addrLabel, &jitTraceICs[i]);
     }
 #endif 
@@ -1605,7 +1610,7 @@ mjit::Compiler::generateMethod()
 
     
 
- 
+
 
         lastPC = PC;
 
@@ -1976,7 +1981,7 @@ mjit::Compiler::generateMethod()
             frame.pop();
             pushSyncedEntry(0);
           }
-          END_CASE(JSOP_DELPROP) 
+          END_CASE(JSOP_DELPROP)
 
           BEGIN_CASE(JSOP_DELELEM)
           {
@@ -2505,20 +2510,26 @@ mjit::Compiler::generateMethod()
             JSObjStubFun stub = stubs::Lambda;
             uint32 uses = 0;
 
-            jsbytecode *pc2 = AdvanceOverBlockchainOp(PC + JSOP_LAMBDA_LENGTH);
-            JSOp next = JSOp(*pc2);
-            
-            if (next == JSOP_INITMETHOD) {
-                stub = stubs::LambdaForInit;
-            } else if (next == JSOP_SETMETHOD) {
-                stub = stubs::LambdaForSet;
-                uses = 1;
-            } else if (fun->joinable()) {
-                if (next == JSOP_CALL) {
-                    stub = stubs::LambdaJoinableForCall;
-                    uses = frame.frameSlots();
+            jsbytecode *pc2 = NULL;
+            if (fun->joinable()) {
+                pc2 = AdvanceOverBlockchainOp(PC + JSOP_LAMBDA_LENGTH);
+                JSOp next = JSOp(*pc2);
+
+                if (next == JSOP_INITMETHOD) {
+                    stub = stubs::LambdaJoinableForInit;
+                } else if (next == JSOP_SETMETHOD) {
+                    stub = stubs::LambdaJoinableForSet;
+                    uses = 1;
+                } else if (next == JSOP_CALL) {
+                    int iargc = GET_ARGC(pc2);
+                    if (iargc == 1 || iargc == 2) {
+                        stub = stubs::LambdaJoinableForCall;
+                        uses = frame.frameSlots();
+                    }
                 } else if (next == JSOP_NULL) {
-                    stub = stubs::LambdaJoinableForNull;
+                    pc2 += JSOP_NULL_LENGTH;
+                    if (JSOp(*pc2) == JSOP_CALL && GET_ARGC(pc2) == 0)
+                        stub = stubs::LambdaJoinableForNull;
                 }
             }
 
@@ -2752,7 +2763,7 @@ mjit::Compiler::generateMethod()
 
     
 
- 
+
 
         if (cx->typeInferenceEnabled() && PC == lastPC + analyze::GetBytecodeLength(lastPC)) {
             
@@ -2851,7 +2862,7 @@ mjit::Compiler::fullAtomIndex(jsbytecode *pc)
 
     
 #if 0
-    return GET_SLOTNO(pc) + (atoms - script->atomMap.vector);
+    return GET_SLOTNO(pc) + (atoms - script->atoms);
 #endif
 }
 
@@ -4080,7 +4091,7 @@ mjit::Compiler::compareTwoValues(JSContext *cx, JSOp op, const Value &lhs, const
         }
     } else {
         double ld, rd;
-        
+
         
         JS_ALWAYS_TRUE(ToNumber(cx, lhs, &ld));
         JS_ALWAYS_TRUE(ToNumber(cx, rhs, &rd));
@@ -4608,7 +4619,7 @@ mjit::Compiler::jsop_callprop_str(JSAtom *atom)
 {
     if (!globalObj) {
         jsop_callprop_slow(atom);
-        return true; 
+        return true;
     }
 
     
@@ -4671,7 +4682,7 @@ mjit::Compiler::jsop_callprop_obj(JSAtom *atom)
 
     JS_ASSERT(top->isTypeKnown());
     JS_ASSERT(top->getKnownType() == JSVAL_TYPE_OBJECT);
-    
+
     RESERVE_IC_SPACE(masm);
 
     pic.pc = PC;
@@ -5611,7 +5622,7 @@ mjit::Compiler::iter(uintN flags)
     frame.unpinReg(reg);
 
     
-    masm.loadPtr(&script->compartment->nativeIterCache.last, ioreg);
+    masm.loadPtr(&script->compartment()->nativeIterCache.last, ioreg);
 
     
     Jump nullIterator = masm.branchTest32(Assembler::Zero, ioreg, ioreg);
@@ -5960,7 +5971,7 @@ mjit::Compiler::jsop_getgname(uint32 index)
 
     masm.loadPtr(Address(objReg, offsetof(JSObject, slots)), objReg);
     Address address(objReg, slot);
-    
+
     
     RegisterID treg = frame.allocReg();
     
@@ -6272,7 +6283,7 @@ mjit::Compiler::jsop_instanceof()
         OOL_STUBCALL(stubs::InstanceOf, REJOIN_FALLTHROUGH);
         firstSlow = stubcc.masm.jump();
     }
-    
+
 
     
     frame.dup();
@@ -6493,7 +6504,7 @@ mjit::Compiler::finishLoop(jsbytecode *head)
 #ifdef DEBUG
     if (IsJaegerSpewChannelActive(JSpew_Regalloc)) {
         RegisterAllocation *alloc = analysis->getAllocation(head);
-        JaegerSpew(JSpew_Regalloc, "loop allocation at %u:", head - script->code);
+        JaegerSpew(JSpew_Regalloc, "loop allocation at %u:", unsigned(head - script->code));
         frame.dumpAllocation(alloc);
     }
 #endif

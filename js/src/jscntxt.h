@@ -427,7 +427,7 @@ struct JSRuntime {
     int64               gcNextFullGCTime;
     int64               gcJitReleaseTime;
     JSGCMode            gcMode;
-    volatile jsuword    gcIsNeeded;
+    volatile bool       gcIsNeeded;
     js::WeakMapBase     *gcWeakMapList;
 
     
@@ -1497,7 +1497,6 @@ class AutoGCRooter {
         STRING =      -14, 
         IDVECTOR =    -15, 
         OBJVECTOR =   -16, 
-        TYPE =        -17  
     };
 
     private:
@@ -1794,33 +1793,17 @@ class AutoXMLRooter : private AutoGCRooter {
 
 class AutoLockGC {
   public:
-    explicit AutoLockGC(JSRuntime *rt = NULL
+    explicit AutoLockGC(JSRuntime *rt
                         JS_GUARD_OBJECT_NOTIFIER_PARAM)
-      : runtime(rt)
+      : rt(rt)
     {
         JS_GUARD_OBJECT_NOTIFIER_INIT;
-        if (rt)
-            JS_LOCK_GC(rt);
-    }
-
-    bool locked() const {
-        return !!runtime;
-    }
-
-    void lock(JSRuntime *rt) {
-        JS_ASSERT(rt);
-        JS_ASSERT(!runtime);
-        runtime = rt;
         JS_LOCK_GC(rt);
     }
-
-    ~AutoLockGC() {
-        if (runtime)
-            JS_UNLOCK_GC(runtime);
-    }
+    ~AutoLockGC() { JS_UNLOCK_GC(rt); }
 
   private:
-    JSRuntime *runtime;
+    JSRuntime *rt;
     JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
