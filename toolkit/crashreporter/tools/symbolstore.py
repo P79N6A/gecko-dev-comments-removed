@@ -706,7 +706,8 @@ class Dumper_Mac(Dumper):
             shutil.rmtree(dsymbundle)
         
         subprocess.call(["dsymutil"] + [a.replace('-a ', '--arch=') for a in self.archs if a]
-                        + [file])
+                        + [file],
+                        stdout=open("/dev/null","w"))
         if not os.path.exists(dsymbundle):
             
             return False
