@@ -82,6 +82,9 @@ private:
         return mResponseQ[i];
     }
 
+    
+    nsHttpPipeline *QueryPipeline();
+
     nsAHttpConnection            *mConnection;
     nsTArray<nsAHttpTransaction*> mRequestQ;  
     nsTArray<nsAHttpTransaction*> mResponseQ; 

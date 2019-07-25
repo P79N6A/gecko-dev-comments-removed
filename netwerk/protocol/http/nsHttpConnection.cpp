@@ -959,8 +959,56 @@ nsHttpConnection::ReadTimeoutTick(PRIntervalTime now)
         return;
     }
     
+    PRIntervalTime delta = PR_IntervalNow() - mLastReadTime;
+
+    
+    
+    
+    
+    
+    
+    
     
 
+    const PRIntervalTime k1000ms = PR_MillisecondsToInterval(1000);
+
+    if (delta < k1000ms)
+        return;
+
+    PRUint32 pipelineDepth = mTransaction->PipelineDepth();
+
+    
+    
+    LOG(("cancelling pipeline due to a %ums stall - depth %d\n",
+         PR_IntervalToMilliseconds(delta), pipelineDepth));
+
+    if (pipelineDepth > 1) {
+        nsHttpPipeline *pipeline = mTransaction->QueryPipeline();
+        NS_ABORT_IF_FALSE(pipeline, "pipelinedepth > 1 without pipeline");
+        
+        if (pipeline)
+            pipeline->CancelPipeline(NS_ERROR_NET_TIMEOUT);
+    }
+    
+    if (delta < gHttpHandler->GetPipelineTimeout())
+        return;
+
+    if (pipelineDepth <= 1 && !mTransaction->PipelinePosition())
+        return;
+    
+    
+    
+    
+    
+    
+
+    LOG(("canceling transaction stalled for %ums on a pipeline"
+         "of depth %d and scheduled originally at pos %d\n",
+         PR_IntervalToMilliseconds(delta),
+         pipelineDepth, mTransaction->PipelinePosition()));
+
+    
+    CloseTransaction(mTransaction, NS_ERROR_NET_TIMEOUT);
 }
 
 void
@@ -1286,8 +1334,20 @@ nsHttpConnection::OnSocketReadable()
     const PRIntervalTime k1200ms = PR_MillisecondsToInterval(1200);
 
     if (delta > k1200ms) {
+        LOG(("Read delta ms of %u causing slow read major "
+             "event and pipeline cancellation",
+             PR_IntervalToMilliseconds(delta)));
+
         gHttpHandler->ConnMgr()->PipelineFeedbackInfo(
             mConnInfo, nsHttpConnectionMgr::BadSlowReadMajor, this, 0);
+
+        if (mTransaction->PipelineDepth() > 1) {
+            nsHttpPipeline *pipeline = mTransaction->QueryPipeline();
+            NS_ABORT_IF_FALSE(pipeline, "pipelinedepth > 1 without pipeline");
+            
+            if (pipeline)
+                pipeline->CancelPipeline(NS_ERROR_NET_TIMEOUT);
+        }
     }
     else if (delta > k400ms) {
         gHttpHandler->ConnMgr()->PipelineFeedbackInfo(

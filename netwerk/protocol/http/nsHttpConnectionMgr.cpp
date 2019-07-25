@@ -1941,12 +1941,6 @@ nsHttpConnectionMgr::ActivateTimeoutTick()
     
     
     
-    if (!gHttpHandler->IsSpdyEnabled())
-        return;
-
-    
-    
-    
 
     if (mReadTimeoutTick && mReadTimeoutTickArmed)
         return;
@@ -1961,8 +1955,7 @@ nsHttpConnectionMgr::ActivateTimeoutTick()
 
     NS_ABORT_IF_FALSE(!mReadTimeoutTickArmed, "timer tick armed");
     mReadTimeoutTickArmed = true;
-    
-    mReadTimeoutTick->Init(this, 15000, nsITimer::TYPE_REPEATING_SLACK);
+    mReadTimeoutTick->Init(this, 1000, nsITimer::TYPE_REPEATING_SLACK);
 }
 
 void
