@@ -656,11 +656,21 @@ class XPCShellTests(object):
       if 'debug' in test:
           args.insert(0, '-d')
 
+      completeCmd = cmdH + cmdT + args
+
       try:
         self.log.info("TEST-INFO | %s | running test ..." % name)
+        if verbose:
+            self.log.info("TEST-INFO | %s | full command: %r" % (name, completeCmd))
+            self.log.info("TEST-INFO | %s | current directory: %r" % (name, testdir))
+            
+            
+            changedEnv = (set("%s=%s" % i for i in self.env.iteritems())
+                          - set("%s=%s" % i for i in os.environ.iteritems()))
+            self.log.info("TEST-INFO | %s | environment: %s" % (name, list(changedEnv)))
         startTime = time.time()
 
-        proc = self.launchProcess(cmdH + cmdT + args,
+        proc = self.launchProcess(completeCmd,
                     stdout=pStdout, stderr=pStderr, env=self.env, cwd=testdir)
 
         
