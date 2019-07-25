@@ -879,6 +879,11 @@ InspectorUI.prototype = {
       this.treePanel = new this.TreePanel(this.chromeWin, this);
     }
 
+    if (Services.prefs.getBoolPref("devtools.styleinspector.enabled") &&
+        !this.toolRegistered("styleinspector")) {
+      this.stylePanel = new StyleInspector(this.chromeWin, this);
+    }
+
     this.toolbar.hidden = false;
     this.inspectMenuitem.setAttribute("checked", true);
 
@@ -896,25 +901,6 @@ InspectorUI.prototype = {
   initTools: function IUI_initTools()
   {
     
-    if (Services.prefs.getBoolPref("devtools.styleinspector.enabled") &&
-        !this.toolRegistered("styleinspector")) {
-      let stylePanel = StyleInspector.createPanel(true);
-      this.registerTool({
-        id: "styleinspector",
-        label: StyleInspector.l10n("style.highlighter.button.label"),
-        tooltiptext: StyleInspector.l10n("style.highlighter.button.tooltip"),
-        accesskey: StyleInspector.l10n("style.highlighter.accesskey"),
-        context: stylePanel,
-        get isOpen() stylePanel.isOpen(),
-        onSelect: stylePanel.selectNode,
-        show: stylePanel.showTool,
-        hide: stylePanel.hideTool,
-        dim: stylePanel.dimTool,
-        panel: stylePanel,
-        unregister: stylePanel.destroy,
-      });
-      this.stylePanel = stylePanel;
-    }
   },
 
   

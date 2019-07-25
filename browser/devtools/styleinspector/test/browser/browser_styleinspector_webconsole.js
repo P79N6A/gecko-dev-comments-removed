@@ -115,40 +115,43 @@ function teststylePanels() {
   for (let i = 0, max = stylePanels.length; i < max; i++) {
     ok(stylePanels[i], "style inspector instance " + i +
        " correctly initialized");
-    ok(stylePanels[i].isOpen(), "style inspector " + i + " is open");
+    is(stylePanels[i].state, "open", "style inspector " + i + " is open");
 
-    let htmlTree = stylePanels[i].cssHtmlTree;
-    let cssLogic = htmlTree.cssLogic;
-    let elt = eltArray[i];
-    let eltId = elt.id;
 
-    
-    is(elt, htmlTree.viewedElement,
-      "style inspector node matches the selected node (id=" + eltId + ")");
-    is(htmlTree.viewedElement, stylePanels[i].cssLogic.viewedElement,
-      "cssLogic node matches the cssHtmlTree node (id=" + eltId + ")");
 
-    
-    let matchedSelectors = cssLogic.getPropertyInfo("font-family").matchedSelectors;
-    let sel = matchedSelectors[0];
-    let selector = sel.selector.text;
-    let value = sel.value;
 
-    
-    
-    switch(eltId) {
-      case "text":
-        is(selector, "#container > .text", "correct best match for #text");
-        is(value, "cursive", "correct css property value for #" + eltId);
-        break;
-      case "text2":
-        is(selector, "#container > span", "correct best match for #text2");
-        is(value, "cursive", "correct css property value for #" + eltId);
-        break;
-      case "container":
-        is(selector, "#container", "correct best match for #container");
-        is(value, "fantasy", "correct css property value for #" + eltId);
-    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   }
 
   info("hiding stylePanels[1]");
@@ -160,9 +163,9 @@ function teststylePanels() {
 function styleInspectorClosedByHide()
 {
   Services.obs.removeObserver(styleInspectorClosedByHide, "StyleInspector-closed", false);
-  ok(stylePanels[0].isOpen(), "instance stylePanels[0] is still open");
-  ok(!stylePanels[1].isOpen(), "instance stylePanels[1] is hidden");
-  ok(stylePanels[2].isOpen(), "instance stylePanels[2] is still open");
+  is(stylePanels[0].state, "open", "instance stylePanels[0] is still open");
+  is(stylePanels[1].state, undefined, "instance stylePanels[1] is hidden");
+  is(stylePanels[2].state, "open", "instance stylePanels[2] is still open");
 
   info("closing web console");
   Services.obs.addObserver(styleInspectorClosedFromConsole1,
