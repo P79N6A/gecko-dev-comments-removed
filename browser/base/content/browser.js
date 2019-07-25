@@ -1415,6 +1415,8 @@ function prepareForStartup() {
     return;
   }
 
+  messageManager.loadFrameScript("chrome://browser/content/content.js", true);
+
   
   
   gBrowser.init();
