@@ -216,6 +216,10 @@ public:
   
 
 
+  PRBool IsIgnoringPaintSuppression() { return mIgnoreSuppression; }
+  
+
+
 
   PRBool GetHadToIgnorePaintSuppression() { return mHadToIgnoreSuppression; }
   
