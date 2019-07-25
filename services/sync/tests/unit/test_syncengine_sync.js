@@ -181,6 +181,7 @@ function test_syncStartup_emptyOrOutdatedGlobalsResetsSync() {
     do_check_true(!!collection.wbos.scotsman.payload);
 
     engine.lastSync = Date.now() / 1000;
+    engine.lastSyncLocal = Date.now();
     engine._syncStartup();
 
     
@@ -190,15 +191,13 @@ function test_syncStartup_emptyOrOutdatedGlobalsResetsSync() {
 
     
     do_check_eq(engine.lastSync, 0);
+    do_check_eq(engine.lastSyncLocal, 0);
     do_check_eq(collection.wbos.flying.payload, undefined);
     do_check_eq(collection.wbos.scotsman.payload, undefined);
 
     
     do_check_true(!!crypto_steam.payload);
     do_check_true(!!crypto_steam.data.keyring);
-
-    
-    do_check_eq(engine._tracker.changedIDs["rekolok"], 0);
 
   } finally {
     server.stop(do_test_finished);
@@ -248,10 +247,12 @@ function test_syncStartup_metaGet404() {
     do_check_true(!!collection.wbos.scotsman.payload);
 
     engine.lastSync = Date.now() / 1000;
+    engine.lastSyncLocal = Date.now();
     engine._syncStartup();
 
     _("Sync was reset and server data was wiped");
     do_check_eq(engine.lastSync, 0);
+    do_check_eq(engine.lastSyncLocal, 0);
     do_check_eq(collection.wbos.flying.payload, undefined);
     do_check_eq(collection.wbos.scotsman.payload, undefined);
 
@@ -363,6 +364,7 @@ function test_syncStartup_syncIDMismatchResetsClient() {
     do_check_eq(engine._tracker.changedIDs["rekolok"], undefined);
 
     engine.lastSync = Date.now() / 1000;
+    engine.lastSyncLocal = Date.now();
     engine._syncStartup();
 
     
@@ -370,6 +372,7 @@ function test_syncStartup_syncIDMismatchResetsClient() {
 
     
     do_check_eq(engine.lastSync, 0);
+    do_check_eq(engine.lastSyncLocal, 0);
 
   } finally {
     server.stop(do_test_finished);
@@ -430,10 +433,12 @@ function test_syncStartup_badKeyWipesServerData() {
     do_check_true(!!collection.wbos.scotsman.payload);
 
     engine.lastSync = Date.now() / 1000;
+    engine.lastSyncLocal = Date.now();
     engine._syncStartup();
 
     
     do_check_eq(engine.lastSync, 0);
+    do_check_eq(engine.lastSyncLocal, 0);
     do_check_eq(collection.wbos.flying.payload, undefined);
     do_check_eq(collection.wbos.scotsman.payload, undefined);
 
@@ -520,6 +525,10 @@ function test_processIncoming_createFromServer() {
   createAndUploadSymKey("http://localhost:8080/1.0/foo/storage/crypto/steam");
 
   let engine = makeSteamEngine();
+  let meta_global = Records.set(engine.metaURL, new WBORecord(engine.metaURL));
+  meta_global.payload.engines = {steam: {version: engine.version,
+                                         syncID: engine.syncID}};
+
   try {
 
     
@@ -530,6 +539,7 @@ function test_processIncoming_createFromServer() {
     do_check_eq(engine._store.items['../pathological'], undefined);
     do_check_eq(engine._store.items.wrong_keyuri, undefined);
 
+    engine._syncStartup();
     engine._processIncoming();
 
     
@@ -625,6 +635,10 @@ function test_processIncoming_reconcile() {
   
   engine._tracker.addChangedID('olderidentical', Date.now()/1000);
 
+  let meta_global = Records.set(engine.metaURL, new WBORecord(engine.metaURL));
+  meta_global.payload.engines = {steam: {version: engine.version,
+                                         syncID: engine.syncID}};
+
   try {
 
     
@@ -635,7 +649,7 @@ function test_processIncoming_reconcile() {
     do_check_eq(engine._store.items.nukeme, "Nuke me!");
     do_check_true(engine._tracker.changedIDs['olderidentical'] > 0);
 
-    engine._delete = {}; 
+    engine._syncStartup();
     engine._processIncoming();
 
     
@@ -711,10 +725,14 @@ function test_processIncoming_mobile_batchSize() {
   createAndUploadSymKey("http://localhost:8080/1.0/foo/storage/crypto/steam");
 
   let engine = makeSteamEngine();
+  let meta_global = Records.set(engine.metaURL, new WBORecord(engine.metaURL));
+  meta_global.payload.engines = {steam: {version: engine.version,
+                                         syncID: engine.syncID}};
 
   try {
 
     
+    engine._syncStartup();
     engine._processIncoming();
     do_check_eq([id for (id in engine._store.items)].length, 234);
     do_check_true('record-no-0' in engine._store.items);
@@ -770,19 +788,28 @@ function test_uploadOutgoing_toEmptyServer() {
   createAndUploadSymKey("http://localhost:8080/1.0/foo/storage/crypto/steam");
 
   let engine = makeSteamEngine();
+  engine.lastSync = 123; 
   engine._store.items = {flying: "LNER Class A3 4472",
                          scotsman: "Flying Scotsman"};
   
   engine._tracker.addChangedID('scotsman', 0);
 
+  let meta_global = Records.set(engine.metaURL, new WBORecord(engine.metaURL));
+  meta_global.payload.engines = {steam: {version: engine.version,
+                                         syncID: engine.syncID}};
+
   try {
 
     
+    do_check_eq(engine.lastSyncLocal, 0);
     do_check_eq(collection.wbos.flying.payload, undefined);
     do_check_eq(collection.wbos.scotsman.payload, undefined);
-    do_check_eq(engine._tracker.changedIDs['scotsman'], 0);
 
+    engine._syncStartup();
     engine._uploadOutgoing();
+
+    
+    do_check_true(engine.lastSyncLocal > 0);
 
     
     
@@ -825,6 +852,7 @@ function test_uploadOutgoing_failed() {
   createAndUploadSymKey("http://localhost:8080/1.0/foo/storage/crypto/steam");
 
   let engine = makeSteamEngine();
+  engine.lastSync = 123; 
   engine._store.items = {flying: "LNER Class A3 4472",
                          scotsman: "Flying Scotsman",
                          peppercorn: "Peppercorn Class"};
@@ -836,15 +864,24 @@ function test_uploadOutgoing_failed() {
   engine._tracker.addChangedID('scotsman', SCOTSMAN_CHANGED);
   engine._tracker.addChangedID('peppercorn', PEPPERCORN_CHANGED);
 
+  let meta_global = Records.set(engine.metaURL, new WBORecord(engine.metaURL));
+  meta_global.payload.engines = {steam: {version: engine.version,
+                                         syncID: engine.syncID}};
+
   try {
 
     
+    do_check_eq(engine.lastSyncLocal, 0);
     do_check_eq(collection.wbos.flying.payload, undefined);
     do_check_eq(engine._tracker.changedIDs['flying'], FLYING_CHANGED);
     do_check_eq(engine._tracker.changedIDs['scotsman'], SCOTSMAN_CHANGED);
     do_check_eq(engine._tracker.changedIDs['peppercorn'], PEPPERCORN_CHANGED);
 
+    engine._syncStartup();
     engine._uploadOutgoing();
+
+    
+    do_check_true(engine.lastSyncLocal > 0);
 
     
     do_check_true(!!collection.wbos.flying.payload);
@@ -891,6 +928,10 @@ function test_uploadOutgoing_MAX_UPLOAD_RECORDS() {
     collection.wbos[id] = new ServerWBO(id);
   }
 
+  let meta_global = Records.set(engine.metaURL, new WBORecord(engine.metaURL));
+  meta_global.payload.engines = {steam: {version: engine.version,
+                                         syncID: engine.syncID}};
+
   let server = sync_httpd_setup({
       "/1.0/foo/storage/crypto/steam": crypto_steam.handler(),
       "/1.0/foo/storage/steam": collection.handler()
@@ -904,6 +945,7 @@ function test_uploadOutgoing_MAX_UPLOAD_RECORDS() {
     
     do_check_eq(noOfUploads, 0);
 
+    engine._syncStartup();
     engine._uploadOutgoing();
 
     
@@ -1053,6 +1095,72 @@ function test_syncFinish_deleteLotsInBatches() {
   }
 }
 
+function test_sync_rollback() {
+  _("SyncEngine.sync() rolls back tracker's changedIDs when syncing fails.");
+  Svc.Prefs.set("clusterURL", "http://localhost:8080/");
+  Svc.Prefs.set("username", "foo");
+
+  
+  let crypto_steam = new ServerWBO('steam');
+  let server = sync_httpd_setup({
+      "/1.0/foo/storage/crypto/steam": crypto_steam.handler()
+  });
+  do_test_pending();
+  createAndUploadKeypair();
+  createAndUploadSymKey("http://localhost:8080/1.0/foo/storage/crypto/steam");
+
+  let engine = makeSteamEngine();
+  engine.lastSync = 123; 
+  engine.lastSyncLocal = 456;
+  engine._store.items = {flying: "LNER Class A3 4472",
+                         scotsman: "Flying Scotsman",
+                         peppercorn: "Peppercorn Class"};
+
+  
+  const FLYING_CHANGED = 12345;
+  const SCOTSMAN_CHANGED = 23456;
+  const PEPPERCORN_CHANGED = 34567;
+  engine._tracker.addChangedID('flying', FLYING_CHANGED);
+  engine._tracker.addChangedID('scotsman', SCOTSMAN_CHANGED);
+  engine._tracker.addChangedID('peppercorn', PEPPERCORN_CHANGED);
+
+  let meta_global = Records.set(engine.metaURL, new WBORecord(engine.metaURL));
+  meta_global.payload.engines = {steam: {version: engine.version,
+                                         syncID: engine.syncID}};
+
+
+  try {
+
+    
+    do_check_eq(engine.lastSyncLocal, 456);
+    do_check_eq(engine._tracker.changedIDs['flying'], FLYING_CHANGED);
+    do_check_eq(engine._tracker.changedIDs['scotsman'], SCOTSMAN_CHANGED);
+    do_check_eq(engine._tracker.changedIDs['peppercorn'], PEPPERCORN_CHANGED);
+
+    engine.enabled = true;
+    let error;
+    try {
+      engine.sync();
+    } catch (ex) {
+      error = ex;
+    }
+    do_check_true(!!error);
+
+    
+    do_check_eq(engine.lastSyncLocal, 456);
+    do_check_eq(engine._tracker.changedIDs['flying'], FLYING_CHANGED);
+    do_check_eq(engine._tracker.changedIDs['scotsman'], SCOTSMAN_CHANGED);
+    do_check_eq(engine._tracker.changedIDs['peppercorn'], PEPPERCORN_CHANGED);
+
+  } finally {
+    server.stop(do_test_finished);
+    Svc.Prefs.resetBranch("");
+    Records.clearCache();
+    CryptoMetas.clearCache();
+    syncTesting = new SyncTestingInfrastructure(makeSteamEngine);
+  }
+}
+
 function test_canDecrypt_noCryptoMeta() {
   _("SyncEngine.canDecrypt returns false if the engine fails to decrypt items on the server, e.g. due to a missing crypto key.");
   Svc.Prefs.set("clusterURL", "http://localhost:8080/");
@@ -1135,6 +1243,7 @@ function run_test() {
   test_syncFinish_noDelete();
   test_syncFinish_deleteByIds();
   test_syncFinish_deleteLotsInBatches();
+  test_sync_rollback();
   test_canDecrypt_noCryptoMeta();
   test_canDecrypt_true();
 }

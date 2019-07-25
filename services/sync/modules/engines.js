@@ -35,6 +35,7 @@
 
 
 
+
 const EXPORTED_SYMBOLS = ['Engines', 'Engine', 'SyncEngine'];
 
 const Cc = Components.classes;
@@ -306,6 +307,9 @@ SyncEngine.prototype = {
     Svc.Prefs.set(this.name + ".syncID", value);
   },
 
+  
+
+
   get lastSync() {
     return parseFloat(Svc.Prefs.get(this.name + ".lastSync", "0"));
   },
@@ -319,6 +323,27 @@ SyncEngine.prototype = {
     this._log.debug("Resetting " + this.name + " last sync time");
     Svc.Prefs.reset(this.name + ".lastSync");
     Svc.Prefs.set(this.name + ".lastSync", "0");
+    this.lastSyncLocal = 0;
+  },
+
+  
+
+
+  get lastSyncLocal() {
+    return parseInt(Svc.Prefs.get(this.name + ".lastSyncLocal", "0"), 10);
+  },
+  set lastSyncLocal(value) {
+    
+    Svc.Prefs.set(this.name + ".lastSyncLocal", value.toString());
+  },
+
+  
+
+
+
+
+  getChangedIDs: function getChangedIDs() {
+    return this._tracker.changedIDs;
   },
 
   
@@ -411,14 +436,22 @@ SyncEngine.prototype = {
       CryptoMetas.set(meta.uri, meta);
     }
 
-    
-    if (!this.lastSync) {
+    this._maybeLastSyncLocal = Date.now();
+    if (this.lastSync) {
+      this._modified = this.getChangedIDs();
+      
+      
+      this._backupChangedIDs = this._tracker.changedIDs;
+      this._tracker.clearChangedIDs();
+    } else {
+      
       this._log.debug("First sync, uploading all items");
+      this._modified = {};
       for (let id in this._store.getAllIDs())
-        this._tracker.addChangedID(id, 0);
+        this._modified[id] = 0;
     }
 
-    let outnum = [i for (i in this._tracker.changedIDs)].length;
+    let outnum = [i for (i in this._modified)].length;
     this._log.info(outnum + " outgoing items pre-reconciliation");
 
     
@@ -471,7 +504,7 @@ SyncEngine.prototype = {
 
         
         if (this._store.itemExists(item.id))
-          this._tracker.addChangedID(item.id, 0);
+          this._modified[item.id] = 0;
       }
       this._tracker.ignoreAll = false;
       Sync.sleep(0);
@@ -586,7 +619,7 @@ SyncEngine.prototype = {
       this._log.trace("Incoming: " + item);
 
     this._log.trace("Reconcile step 1: Check for conflicts");
-    if (item.id in this._tracker.changedIDs) {
+    if (item.id in this._modified) {
       
       if (this._isEqual(item)) {
         this._tracker.removeChangedID(item.id);
@@ -595,7 +628,7 @@ SyncEngine.prototype = {
 
       
       let recordAge = Resource.serverTime - item.modified;
-      let localAge = Date.now() / 1000 - this._tracker.changedIDs[item.id];
+      let localAge = Date.now() / 1000 - this._modified[item.id];
       this._log.trace("Record age vs local age: " + [recordAge, localAge]);
 
       
@@ -622,7 +655,7 @@ SyncEngine.prototype = {
   
   _uploadOutgoing: function SyncEngine__uploadOutgoing() {
     let failed = {};
-    let outnum = [i for (i in this._tracker.changedIDs)].length;
+    let outnum = [i for (i in this._modified)].length;
     if (outnum) {
       this._log.trace("Preparing " + outnum + " outgoing records");
 
@@ -649,7 +682,7 @@ SyncEngine.prototype = {
         
         let failed_ids = [];
         for (let id in resp.obj.failed) {
-          failed[id] = this._tracker.changedIDs[id];
+          failed[id] = this._modified[id];
           failed_ids.push(id);
         }
         if (failed_ids.length)
@@ -660,7 +693,7 @@ SyncEngine.prototype = {
         up.clearRecords();
       });
 
-      for (let id in this._tracker.changedIDs) {
+      for (let id in this._modified) {
         try {
           let out = this._createRecord(id);
           if (this._log.level <= Log4Moz.Level.Trace)
@@ -684,7 +717,11 @@ SyncEngine.prototype = {
       if (count % MAX_UPLOAD_RECORDS > 0)
         doUpload(count >= MAX_UPLOAD_RECORDS ? "last batch" : "all");
     }
-    this._tracker.clearChangedIDs();
+
+    
+    this.lastSyncLocal = this._maybeLastSyncLocal;
+    delete this._modified;
+    delete this._backupChangedIDs;
 
     
     for (let id in failed) {
@@ -721,6 +758,15 @@ SyncEngine.prototype = {
     }
   },
 
+  _rollback: function _rollback() {
+    if (!this._backupChangedIDs)
+      return;
+
+    for (let [id, when] in Iterator(this._backupChangedIDs)) {
+      this._tracker.addChangedID(id, when);
+    }
+  },
+
   _sync: function SyncEngine__sync() {
     try {
       this._syncStartup();
@@ -731,6 +777,7 @@ SyncEngine.prototype = {
       this._syncFinish();
     }
     catch (e) {
+      this._rollback();
       this._log.warn("Sync failed");
       throw e;
     }
