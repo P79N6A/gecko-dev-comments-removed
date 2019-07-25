@@ -71,8 +71,74 @@
 #include "nsNetUtil.h"
 #include "nsIProtocolHandler.h"
 
+#include "nsIPrefService.h"
+#include "nsIPrefBranch2.h"
+
+#define DISCARD_PREF "image.mem.discardable"
+#define DECODEONDRAW_PREF "image.mem.decodeondraw"
+
+
 static PRBool gDecodeOnDraw = PR_FALSE;
 static PRBool gDiscardable = PR_FALSE;
+
+
+
+
+
+
+static PRBool gRegisteredPrefObserver = PR_FALSE;
+
+
+static void
+ReloadPrefs(nsIPrefBranch *aBranch)
+{
+  
+  PRBool discardable;
+  nsresult rv = aBranch->GetBoolPref(DISCARD_PREF, &discardable);
+  if (NS_SUCCEEDED(rv))
+    gDiscardable = discardable;
+
+  
+  PRBool decodeondraw;
+  rv = aBranch->GetBoolPref(DECODEONDRAW_PREF, &decodeondraw);
+  if (NS_SUCCEEDED(rv))
+    gDecodeOnDraw = decodeondraw;
+}
+
+
+class imgRequestPrefObserver : public nsIObserver {
+public:
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSIOBSERVER
+};
+NS_IMPL_ISUPPORTS1(imgRequestPrefObserver, nsIObserver)
+
+
+NS_IMETHODIMP
+imgRequestPrefObserver::Observe(nsISupports     *aSubject,
+                                const char      *aTopic,
+                                const PRUnichar *aData)
+{
+  
+  NS_ABORT_IF_FALSE(!strcmp(aTopic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID), "invalid topic");
+
+  
+  if (strcmp(NS_LossyConvertUTF16toASCII(aData).get(), DISCARD_PREF) &&
+      strcmp(NS_LossyConvertUTF16toASCII(aData).get(), DECODEONDRAW_PREF))
+    return NS_OK;
+
+  
+  nsCOMPtr<nsIPrefBranch> branch = do_QueryInterface(aSubject);
+  if (!branch) {
+    NS_WARNING("Couldn't get pref branch within imgRequestPrefObserver::Observe!");
+    return NS_OK;
+  }
+
+  
+  ReloadPrefs(branch);
+
+  return NS_OK;
+}
 
 #if defined(PR_LOGGING)
 PRLogModuleInfo *gImgLog = PR_NewLogModule("imgRequest");
@@ -149,6 +215,22 @@ nsresult imgRequest::Init(nsIURI *aURI,
   mCacheId = aCacheId;
 
   SetLoadId(aLoadId);
+
+  
+  if (NS_UNLIKELY(!gRegisteredPrefObserver)) {
+    imgRequestPrefObserver *observer = new imgRequestPrefObserver();
+    if (observer) {
+      nsCOMPtr<nsIPrefBranch2> branch = do_GetService(NS_PREFSERVICE_CONTRACTID);
+      if (branch) {
+        branch->AddObserver(DISCARD_PREF, observer, PR_FALSE);
+        branch->AddObserver(DECODEONDRAW_PREF, observer, PR_FALSE);
+        ReloadPrefs(branch);
+        gRegisteredPrefObserver = PR_TRUE;
+      }
+    }
+    else
+      delete observer;
+  }
 
   return NS_OK;
 }
