@@ -199,7 +199,7 @@ public:
   virtual bool ShouldIgnoreInvalidation();
   virtual void WillPaint(bool aWillSendDidPaint);
   virtual void DidPaint();
-  virtual void ScheduleViewManagerFlush(PRUint32 aFlags = 0);
+  virtual void ScheduleViewManagerFlush();
   virtual void DispatchSynthMouseMove(nsGUIEvent *aEvent, bool aFlushOnHoverChange);
   virtual void ClearMouseCaptureOnView(nsIView* aView);
   virtual bool IsVisible();
@@ -767,12 +767,6 @@ protected:
   bool                      mLastRootReflowHadUnconstrainedHeight : 1;
   bool                      mNoDelayedMouseEvents : 1;
   bool                      mNoDelayedKeyEvents : 1;
-
-  
-  
-  
-  bool                      mPaintRequired : 1;
-
 
   
   

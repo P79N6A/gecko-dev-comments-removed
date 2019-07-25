@@ -243,6 +243,12 @@ typedef PRUint64 nsFrameState;
 #define NS_FRAME_HAS_CLIP                           NS_FRAME_STATE_BIT(35)
 
 
+
+
+
+#define NS_FRAME_UPDATE_LAYER_TREE                  NS_FRAME_STATE_BIT(36)
+
+
 #define NS_FRAME_HAS_ABSPOS_CHILDREN                NS_FRAME_STATE_BIT(37)
 
 
@@ -2154,14 +2160,7 @@ public:
 
 
 
-
-
-
-
-  enum {
-    PAINT_COMPOSITE_ONLY
-  };
-  void SchedulePaint(PRUint32 aFlags = 0);
+  void SchedulePaint();
 
   
 
