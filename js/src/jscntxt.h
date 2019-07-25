@@ -588,11 +588,17 @@ struct JSThreadData {
 
 
 struct JSThread {
+    typedef js::HashMap<void *,
+                        JSThread *,
+                        js::DefaultHasher<void *>,
+                        js::SystemAllocPolicy> Map;
+
+
     
     JSCList             contextList;
 
     
-    jsword              id;
+    void                *id;
 
     
     JSTitle             *titleToShare;
@@ -624,11 +630,6 @@ struct JSThread {
 const size_t JS_GC_THREAD_MALLOC_LIMIT = 1 << 19;
 
 #define JS_THREAD_DATA(cx)      (&(cx)->thread->data)
-
-struct JSThreadsHashEntry {
-    JSDHashEntryHdr     base;
-    JSThread            *thread;
-};
 
 extern JSThread *
 js_CurrentThread(JSRuntime *rt);
@@ -861,7 +862,7 @@ struct JSRuntime {
     
     PRLock              *rtLock;
 #ifdef DEBUG
-    jsword              rtLockOwner;
+    void *              rtLockOwner;
 #endif
 
     
@@ -897,7 +898,7 @@ struct JSRuntime {
 
     PRLock              *debuggerLock;
 
-    JSDHashTable        threads;
+    JSThread::Map       threads;
 #endif 
     uint32              debuggerMutations;
 
@@ -2049,8 +2050,48 @@ js_FinishThreads(JSRuntime *rt);
 extern void
 js_PurgeThreads(JSContext *cx);
 
-extern void
-js_TraceThreads(JSRuntime *rt, JSTracer *trc);
+namespace js {
+
+#ifdef JS_THREADSAFE
+
+
+class ThreadDataIter : public JSThread::Map::Range
+{
+  public:
+    ThreadDataIter(JSRuntime *rt) : JSThread::Map::Range(rt->threads.all()) {}
+
+    JSThreadData *threadData() const {
+        return &front().value->data;
+    }
+};
+
+#else 
+
+class ThreadDataIter
+{
+    JSRuntime *runtime;
+    bool done;
+  public:
+    ThreadDataIter(JSRuntime *rt) : runtime(rt), done(false) {}
+
+    bool empty() const {
+        return done;
+    }
+
+    void popFront() {
+        JS_ASSERT(!done);
+        done = true;
+    }
+
+    JSThreadData *threadData() const {
+        JS_ASSERT(!done);
+        return &runtime->threadData;
+    }
+};
+
+#endif  
+
+} 
 
 
 
