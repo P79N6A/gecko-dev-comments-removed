@@ -69,8 +69,6 @@ using mozilla::layout::RenderFrameParent;
 #include "nsIDocument.h"
 #include "nsIView.h"
 #include "nsIViewManager.h"
-#include "nsWidgetsCID.h"
-#include "nsViewsCID.h"
 #include "nsGkAtoms.h"
 #include "nsStyleCoord.h"
 #include "nsStyleContext.h"
@@ -222,7 +220,7 @@ nsSubDocumentFrame::ShowViewer()
   if (!PresContext()->IsDynamic()) {
     
     
-    (void) CreateViewAndWidget(eContentTypeContent);
+    (void) EnsureInnerView();
   } else {
     nsRefPtr<nsFrameLoader> frameloader = FrameLoader();
     if (frameloader) {
@@ -1011,10 +1009,9 @@ nsSubDocumentFrame::EndSwapDocShells(nsIFrame* aOther)
 }
 
 nsIView*
-nsSubDocumentFrame::CreateViewAndWidget(nsContentType aContentType)
+nsSubDocumentFrame::EnsureInnerView()
 {
   if (mInnerView) {
-    
     return mInnerView;
   }
 
