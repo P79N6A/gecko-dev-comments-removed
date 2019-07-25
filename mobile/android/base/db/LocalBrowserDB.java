@@ -352,31 +352,28 @@ public class LocalBrowserDB implements BrowserDB.BrowserDBIface {
         cr.delete(mHistoryUriWithProfile, null, null);
     }
 
-    
-    
     public Cursor getBookmarksInFolder(ContentResolver cr, long folderId) {
         Cursor c = null;
+        boolean addDesktopFolder = false;
 
         
-        
-        if (folderId == Bookmarks.FIXED_ROOT_ID && !desktopBookmarksExist(cr))
+        if (folderId == Bookmarks.FIXED_ROOT_ID) {
             folderId = getMobileBookmarksFolderId(cr);
 
-        if (folderId == Bookmarks.FIXED_ROOT_ID) {
             
             
+            addDesktopFolder = desktopBookmarksExist(cr);
+        }
+
+        if (folderId == Bookmarks.FAKE_DESKTOP_FOLDER_ID) {
             
             
             c = cr.query(mBookmarksUriWithProfile,
                          DEFAULT_BOOKMARK_COLUMNS,
-                         Bookmarks.PARENT + " = ? AND (" +
                          Bookmarks.GUID + " = ? OR " +
                          Bookmarks.GUID + " = ? OR " +
-                         Bookmarks.GUID + " = ? OR " +
-                         Bookmarks.GUID + " = ?)",
-                         new String[] { String.valueOf(folderId),
-                                        Bookmarks.MOBILE_FOLDER_GUID,
-                                        Bookmarks.TOOLBAR_FOLDER_GUID,
+                         Bookmarks.GUID + " = ?",
+                         new String[] { Bookmarks.TOOLBAR_FOLDER_GUID,
                                         Bookmarks.MENU_FOLDER_GUID,
                                         Bookmarks.UNFILED_FOLDER_GUID },
                          null);
@@ -391,6 +388,11 @@ public class LocalBrowserDB implements BrowserDB.BrowserDBIface {
                                         String.valueOf(Bookmarks.TYPE_BOOKMARK),
                                         String.valueOf(Bookmarks.TYPE_FOLDER) },
                          null);
+        }
+
+        if (addDesktopFolder) {
+            
+            c = new DesktopBookmarksCursorWrapper(c);
         }
 
         return new LocalDBCursor(c);
@@ -662,6 +664,67 @@ public class LocalBrowserDB implements BrowserDB.BrowserDBIface {
         c.close();
 
         return b;
+    }
+
+    
+    
+    private static class DesktopBookmarksCursorWrapper extends CursorWrapper {
+        private boolean mAtDesktopBookmarksPosition = false;
+
+        public DesktopBookmarksCursorWrapper(Cursor c) {
+            super(c);
+        }
+
+        @Override
+        public int getCount() {
+            return super.getCount() + 1;
+        }
+
+        @Override
+        public boolean moveToPosition(int position) {
+            if (position == 0) {
+                mAtDesktopBookmarksPosition = true;
+                return true;
+            }
+
+            mAtDesktopBookmarksPosition = false;
+            return super.moveToPosition(position - 1);
+        }
+
+        @Override
+        public long getLong(int columnIndex) {
+            if (!mAtDesktopBookmarksPosition)
+                return super.getLong(columnIndex);
+
+            if (columnIndex == getColumnIndex(Bookmarks._ID))
+                return Bookmarks.FAKE_DESKTOP_FOLDER_ID;
+            if (columnIndex == getColumnIndex(Bookmarks.PARENT))
+                return Bookmarks.FIXED_ROOT_ID;
+
+            return -1;
+        }
+
+        @Override
+        public int getInt(int columnIndex) {
+            if (!mAtDesktopBookmarksPosition)
+                return super.getInt(columnIndex);
+
+            if (columnIndex == getColumnIndex(Bookmarks.TYPE))
+                return Bookmarks.TYPE_FOLDER;
+
+            return -1;
+        }
+
+        @Override
+        public String getString(int columnIndex) {
+            if (!mAtDesktopBookmarksPosition)
+                return super.getString(columnIndex);
+
+            if (columnIndex == getColumnIndex(Bookmarks.GUID))
+                return Bookmarks.FAKE_DESKTOP_FOLDER_GUID;
+
+            return "";
+        }
     }
 
     private static class LocalDBCursor extends CursorWrapper {
