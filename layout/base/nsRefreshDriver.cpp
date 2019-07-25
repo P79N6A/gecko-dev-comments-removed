@@ -112,7 +112,6 @@ nsRefreshDriver::nsRefreshDriver(nsPresContext *aPresContext)
     mTimerIsPrecise(false),
     mLastTimerInterval(0)
 {
-  mRequests.Init();
 }
 
 nsRefreshDriver::~nsRefreshDriver()
@@ -184,29 +183,6 @@ nsRefreshDriver::RemoveRefreshObserver(nsARefreshObserver *aObserver,
   return array.RemoveElement(aObserver);
 }
 
-bool
-nsRefreshDriver::AddImageRequest(imgIRequest* aRequest)
-{
-  if (!mRequests.PutEntry(aRequest)) {
-    return false;
-  }
-
-  EnsureTimerStarted(false);
-
-  return true;
-}
-
-void
-nsRefreshDriver::RemoveImageRequest(imgIRequest* aRequest)
-{
-  mRequests.RemoveEntry(aRequest);
-}
-
-void nsRefreshDriver::ClearAllImageRequests()
-{
-  mRequests.Clear();
-}
-
 void
 nsRefreshDriver::EnsureTimerStarted(bool aAdjustingTimer)
 {
@@ -260,7 +236,6 @@ nsRefreshDriver::ObserverCount() const
   for (PRUint32 i = 0; i < NS_ARRAY_LENGTH(mObservers); ++i) {
     sum += mObservers[i].Length();
   }
-
   
   
   
@@ -270,12 +245,6 @@ nsRefreshDriver::ObserverCount() const
   sum += mBeforePaintTargets.Length();
   sum += mAnimationFrameListenerDocs.Length();
   return sum;
-}
-
-PRUint32
-nsRefreshDriver::ImageRequestCount() const
-{
-  return mRequests.Count();
 }
 
 void
@@ -332,7 +301,7 @@ nsRefreshDriver::Notify(nsITimer *aTimer)
   UpdateMostRecentRefresh();
 
   nsCOMPtr<nsIPresShell> presShell = mPresContext->GetPresShell();
-  if (!presShell || (ObserverCount() == 0 && ImageRequestCount() == 0)) {
+  if (!presShell || ObserverCount() == 0) {
     
     
     
@@ -361,7 +330,6 @@ nsRefreshDriver::Notify(nsITimer *aTimer)
         return NS_OK;
       }
     }
-
     if (i == 0) {
       
       
@@ -434,17 +402,6 @@ nsRefreshDriver::Notify(nsITimer *aTimer)
     }
   }
 
-  
-
-
-
-
-  ImageRequestParameters parms = {mMostRecentRefresh};
-  if (mRequests.Count()) {
-    mRequests.EnumerateEntries(nsRefreshDriver::ImageRequestEnumerator, &parms);
-    EnsureTimerStarted(false);
-  }
-
   if (mThrottled ||
       (mTimerIsPrecise !=
        (GetRefreshTimerType() == nsITimer::TYPE_REPEATING_PRECISE_CAN_SKIP))) {
@@ -465,24 +422,6 @@ nsRefreshDriver::Notify(nsITimer *aTimer)
   return NS_OK;
 }
 
-PLDHashOperator
-nsRefreshDriver::ImageRequestEnumerator(nsISupportsHashKey* aEntry,
-                                        void* aUserArg)
-{
-  ImageRequestParameters* parms =
-    static_cast<ImageRequestParameters*> (aUserArg);
-  mozilla::TimeStamp mostRecentRefresh = parms->ts;
-  imgIRequest* req = static_cast<imgIRequest*>(aEntry->GetKey());
-  NS_ABORT_IF_FALSE(req, "Unable to retrieve the image request");
-  nsCOMPtr<imgIContainer> image;
-  req->GetImage(getter_AddRefs(image));
-  if (image) {
-    image->RequestRefresh(mostRecentRefresh);
-  }
-
-  return PL_DHASH_NEXT;
-}
-
 void
 nsRefreshDriver::Freeze()
 {
@@ -496,7 +435,7 @@ nsRefreshDriver::Thaw()
 {
   NS_ASSERTION(mFrozen, "Thaw called on an unfrozen refresh driver");
   mFrozen = false;
-  if (ObserverCount() || ImageRequestCount()) {
+  if (ObserverCount()) {
     
     
     
