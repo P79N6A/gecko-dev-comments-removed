@@ -317,7 +317,7 @@ IdentityManager.prototype = {
 
     
     
-    if (!this._syncKeyBundle) {
+    if (!this.syncKeyBundle) {
       return LOGIN_FAILED_INVALID_PASSPHRASE;
     }
 
