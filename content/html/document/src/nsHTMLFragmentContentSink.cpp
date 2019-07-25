@@ -71,7 +71,6 @@
 #include "nsCSSProperty.h"
 #include "mozilla/css/Declaration.h"
 #include "mozilla/css/StyleRule.h"
-#include "nsUnicharInputStream.h"
 #include "nsCSSStyleSheet.h"
 #include "nsICSSRuleList.h"
 #include "nsIDOMCSSRule.h"
@@ -1154,66 +1153,60 @@ nsHTMLParanoidFragmentSink::CloseContainer(const nsHTMLTag aTag)
       nsAutoString styleText;
       nsContentUtils::GetNodeTextContent(style, PR_FALSE, styleText);
       
-      nsCOMPtr<nsIUnicharInputStream> uin;
-      rv = nsSimpleUnicharStreamFactory::GetInstance()->
-        CreateInstanceFromString(styleText, getter_AddRefs(uin));
+      nsRefPtr<nsCSSStyleSheet> sheet;
+      rv = NS_NewCSSStyleSheet(getter_AddRefs(sheet));
       if (NS_SUCCEEDED(rv)) {
+        nsCOMPtr<nsIURI> baseURI = style->GetBaseURI();
+        sheet->SetURIs(mTargetDocument->GetDocumentURI(), nsnull, baseURI);
+        sheet->SetPrincipal(mTargetDocument->NodePrincipal());
         
-        nsRefPtr<nsCSSStyleSheet> sheet;
-        rv = NS_NewCSSStyleSheet(getter_AddRefs(sheet));
+        nsCSSParser parser(nsnull, sheet);
+        rv = parser.ParseSheet(styleText, mTargetDocument->GetDocumentURI(),
+                               baseURI, mTargetDocument->NodePrincipal(),
+                               0, PR_FALSE);
+        
         if (NS_SUCCEEDED(rv)) {
-          nsCOMPtr<nsIURI> baseURI = style->GetBaseURI();
-          sheet->SetURIs(mTargetDocument->GetDocumentURI(), nsnull, baseURI);
-          sheet->SetPrincipal(mTargetDocument->NodePrincipal());
+          NS_ABORT_IF_FALSE(!sheet->IsModified(),
+                            "should not get marked modified during parsing");
+          sheet->SetComplete();
+        }
+        if (NS_SUCCEEDED(rv)) {
           
-          nsCSSParser parser(nsnull, sheet);
-          rv = parser.ParseSheet(*uin, mTargetDocument->GetDocumentURI(),
-                                 baseURI, mTargetDocument->NodePrincipal(),
-                                 0, PR_FALSE);
-          
-          if (NS_SUCCEEDED(rv)) {
-            NS_ABORT_IF_FALSE(!sheet->IsModified(),
-                              "should not get marked modified during parsing");
-            sheet->SetComplete();
-          }
-          if (NS_SUCCEEDED(rv)) {
-            
-            PRInt32 ruleCount = sheet->StyleRuleCount();
-            for (PRInt32 i = 0; i < ruleCount; ++i) {
-              nsRefPtr<css::Rule> rule;
-              rv = sheet->GetStyleRuleAt(i, *getter_AddRefs(rule));
-              if (NS_FAILED(rv))
-                continue;
-              NS_ASSERTION(rule, "We should have a rule by now");
-              switch (rule->GetType()) {
-                default:
-                  didSanitize = PR_TRUE;
-                  
-                  break;
-                case css::Rule::NAMESPACE_RULE:
-                case css::Rule::FONT_FACE_RULE: {
-                  
-                  nsAutoString cssText;
-                  nsCOMPtr<nsIDOMCSSRule> styleRule = do_QueryInterface(rule);
-                  if (styleRule) {
-                    rv = styleRule->GetCssText(cssText);
-                    if (NS_SUCCEEDED(rv)) {
-                      sanitizedStyleText.Append(cssText);
-                    }
-                  }
-                  break;
-                }
-                case css::Rule::STYLE_RULE: {
-                  
-                  
-                  nsRefPtr<css::StyleRule> styleRule = do_QueryObject(rule);
-                  NS_ASSERTION(styleRule, "Must be a style rule");
-                  nsAutoString decl;
-                  didSanitize = SanitizeStyleRule(styleRule, decl) || didSanitize;
-                  styleRule->GetCssText(decl);
-                  sanitizedStyleText.Append(decl);
+          PRInt32 ruleCount = sheet->StyleRuleCount();
+          for (PRInt32 i = 0; i < ruleCount; ++i) {
+            nsRefPtr<css::Rule> rule;
+            rv = sheet->GetStyleRuleAt(i, *getter_AddRefs(rule));
+            if (NS_FAILED(rv))
+              continue;
+            NS_ASSERTION(rule, "We should have a rule by now");
+            switch (rule->GetType()) {
+            default:
+              didSanitize = PR_TRUE;
+              
+              break;
+            case css::Rule::NAMESPACE_RULE:
+            case css::Rule::FONT_FACE_RULE: {
+              
+              nsAutoString cssText;
+              nsCOMPtr<nsIDOMCSSRule> styleRule = do_QueryInterface(rule);
+              if (styleRule) {
+                rv = styleRule->GetCssText(cssText);
+                if (NS_SUCCEEDED(rv)) {
+                  sanitizedStyleText.Append(cssText);
                 }
               }
+              break;
+            }
+            case css::Rule::STYLE_RULE: {
+              
+              
+              nsRefPtr<css::StyleRule> styleRule = do_QueryObject(rule);
+              NS_ASSERTION(styleRule, "Must be a style rule");
+              nsAutoString decl;
+              didSanitize = SanitizeStyleRule(styleRule, decl) || didSanitize;
+              styleRule->GetCssText(decl);
+              sanitizedStyleText.Append(decl);
+            }
             }
           }
         }
