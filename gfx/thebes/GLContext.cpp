@@ -564,6 +564,13 @@ BasicTextureImage::EndUpdate()
         return PR_FALSE;
 
     mGLContext->fBindTexture(LOCAL_GL_TEXTURE_2D, mTexture);
+
+    
+    
+    
+    mGLContext->fPixelStorei(LOCAL_GL_UNPACK_ROW_LENGTH,
+                             uploadImage->Stride() / 4);
+
     if (!mTextureInited)
     {
         mGLContext->fTexImage2D(LOCAL_GL_TEXTURE_2D,
@@ -588,6 +595,10 @@ BasicTextureImage::EndUpdate()
                                    uploadImage->Data());
     }
     mUpdateContext = NULL;
+
+    
+    mGLContext->fPixelStorei(LOCAL_GL_UNPACK_ROW_LENGTH, 0);
+
     return PR_TRUE;         
 }
 
