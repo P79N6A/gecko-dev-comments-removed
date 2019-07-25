@@ -333,7 +333,7 @@ protected:
     
 
 
-    nsCOMArray<nsITemplateRDFQuery> mQueries;
+    nsTArray<nsCOMPtr<nsITemplateRDFQuery> > mQueries;
 
     
 
