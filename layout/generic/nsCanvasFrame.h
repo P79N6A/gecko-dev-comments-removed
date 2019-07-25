@@ -198,6 +198,12 @@ public:
     nsCanvasFrame* frame = static_cast<nsCanvasFrame*>(mFrame);
     return frame->CanvasArea() + ToReferenceFrame();
   }
+  virtual void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
+                       HitTestState* aState, nsTArray<nsIFrame*> *aOutFrames)
+  {
+    
+    aOutFrames->AppendElement(mFrame);
+  }
 
   virtual void Paint(nsDisplayListBuilder* aBuilder,
                      nsIRenderingContext* aCtx);

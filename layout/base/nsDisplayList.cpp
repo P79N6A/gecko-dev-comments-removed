@@ -700,6 +700,89 @@ nsDisplayBackground::nsDisplayBackground(nsDisplayListBuilder* aBuilder,
 }
 
 
+static PRBool
+CheckCorner(nscoord aXOffset, nscoord aYOffset,
+            nscoord aXRadius, nscoord aYRadius)
+{
+  NS_ABORT_IF_FALSE(aXOffset > 0 && aYOffset > 0,
+                    "must not pass nonpositives to CheckCorner");
+  NS_ABORT_IF_FALSE(aXRadius >= 0 && aYRadius >= 0,
+                    "must not pass negatives to CheckCorner");
+
+  
+  
+  
+  if (aXOffset >= aXRadius || aYOffset >= aYRadius)
+    return PR_TRUE;
+
+  
+  
+  float scaledX = float(aXRadius - aXOffset) / float(aXRadius);
+  float scaledY = float(aYRadius - aYOffset) / float(aYRadius);
+  return scaledX * scaledX + scaledY * scaledY < 1.0f;
+}
+
+
+
+
+
+
+
+
+
+static PRBool
+RoundedRectIntersectsRect(const nsRect& aRoundedRect, nscoord aRadii[8],
+                          const nsRect& aTestRect)
+{
+  NS_ABORT_IF_FALSE(aTestRect.Intersects(aRoundedRect),
+                    "we should already have tested basic rect intersection");
+
+  
+  
+  nsMargin insets;
+  insets.top = aTestRect.YMost() - aRoundedRect.y;
+  insets.right = aRoundedRect.XMost() - aTestRect.x;
+  insets.bottom = aRoundedRect.YMost() - aTestRect.y;
+  insets.left = aTestRect.XMost() - aRoundedRect.x;
+
+  
+  
+  
+  return CheckCorner(insets.left, insets.top,
+                     aRadii[NS_CORNER_TOP_LEFT_X],
+                     aRadii[NS_CORNER_TOP_LEFT_Y]) &&
+         CheckCorner(insets.right, insets.top,
+                     aRadii[NS_CORNER_TOP_RIGHT_X],
+                     aRadii[NS_CORNER_TOP_RIGHT_Y]) &&
+         CheckCorner(insets.right, insets.bottom,
+                     aRadii[NS_CORNER_BOTTOM_RIGHT_X],
+                     aRadii[NS_CORNER_BOTTOM_RIGHT_Y]) &&
+         CheckCorner(insets.left, insets.bottom,
+                     aRadii[NS_CORNER_BOTTOM_LEFT_X],
+                     aRadii[NS_CORNER_BOTTOM_LEFT_Y]);
+}
+
+
+
+
+static PRBool
+RoundedBorderIntersectsRect(nsIFrame* aFrame,
+                            const nsPoint& aFrameToReferenceFrame,
+                            const nsRect& aTestRect)
+{
+  NS_ABORT_IF_FALSE(nsRect(aFrameToReferenceFrame,
+                           aFrame->GetSize()).Intersects(aTestRect),
+                    "must intersect non-rounded rect");
+  nscoord radii[8];
+  return !aFrame->GetBorderRadii(radii) ||
+         RoundedRectIntersectsRect(nsRect(aFrameToReferenceFrame,
+                                          aFrame->GetSize()),
+                                   radii, aTestRect);
+}
+
+
+
+
 
 
 
@@ -725,6 +808,24 @@ static PRBool RoundedRectContainsRect(const nsRect& aRoundedRect,
     return PR_TRUE;
 
   return PR_FALSE;
+}
+
+void
+nsDisplayBackground::HitTest(nsDisplayListBuilder* aBuilder,
+                             const nsRect& aRect,
+                             HitTestState* aState,
+                             nsTArray<nsIFrame*> *aOutFrames)
+{
+  
+  
+  
+  if (!mIsThemed &&
+      !RoundedBorderIntersectsRect(mFrame, ToReferenceFrame(), aRect)) {
+    
+    return;
+  }
+
+  aOutFrames->AppendElement(mFrame);
 }
 
 PRBool
@@ -926,6 +1027,20 @@ nsDisplayOutline::ComputeVisibility(nsDisplayListBuilder* aBuilder,
   }
 
   return PR_TRUE;
+}
+
+void
+nsDisplayEventReceiver::HitTest(nsDisplayListBuilder* aBuilder,
+                                const nsRect& aRect,
+                                HitTestState* aState,
+                                nsTArray<nsIFrame*> *aOutFrames)
+{
+  if (!RoundedBorderIntersectsRect(mFrame, ToReferenceFrame(), aRect)) {
+    
+    return;
+  }
+
+  aOutFrames->AppendElement(mFrame);
 }
 
 void
@@ -1433,7 +1548,16 @@ nsDisplayClipRoundedRect::HitTest(nsDisplayListBuilder* aBuilder,
                                   const nsRect& aRect, HitTestState* aState,
                                   nsTArray<nsIFrame*> *aOutFrames)
 {
-  
+  if (!RoundedRectIntersectsRect(mClip, mRadii, aRect)) {
+    
+
+    
+    
+    
+    
+    return;
+  }
+
   mList.HitTest(aBuilder, aRect, aState, aOutFrames);
 }
 
