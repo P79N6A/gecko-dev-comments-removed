@@ -498,4 +498,16 @@ js_GetClassPrototype(JSContext *cx, JSObject *scope, JSProtoKey protoKey,
 
 #endif
 
+
+
+
+
+
+
+extern JS_FRIEND_API(JSBool)
+js_DateIsValid(JSContext *cx, JSObject* obj);
+
+extern JS_FRIEND_API(double)
+js_DateGetMsecSinceEpoch(JSContext *cx, JSObject *obj);
+
 #endif

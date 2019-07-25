@@ -39,7 +39,7 @@
 #include "SmsMessage.h"
 #include "nsIDOMClassInfo.h"
 #include "jsapi.h" 
-#include "jsdate.h" 
+#include "jsfriendapi.h" 
 #include "Constants.h"
 
 DOMCI_DATA(MozSmsMessage, mozilla::dom::sms::SmsMessage)
