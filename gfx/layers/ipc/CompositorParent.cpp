@@ -13,6 +13,7 @@
 # include "AndroidBridge.h"
 #endif
 
+#include "AsyncPanZoomController.h"
 #include "BasicLayers.h"
 #include "CompositorParent.h"
 #include "LayerManagerOGL.h"
@@ -34,12 +35,29 @@ namespace layers {
 static CompositorParent* sCurrentCompositor;
 static Thread* sCompositorThread = nsnull;
 
+struct LayerTreeState {
+  nsRefPtr<Layer> mRoot;
+  nsRefPtr<AsyncPanZoomController> mController;
+};
+
+static uint8_t sPanZoomUserDataKey;
+struct PanZoomUserData : public LayerUserData {
+  PanZoomUserData(AsyncPanZoomController* aController)
+    : mController(aController)
+  { }
+
+  
+  
+  
+  AsyncPanZoomController* mController;
+};
 
 
 
 
 
-static Layer* GetIndirectShadowTree(uint64_t aId);
+
+static const LayerTreeState* GetIndirectShadowTree(uint64_t aId);
 
 void CompositorParent::StartUp()
 {
@@ -338,12 +356,19 @@ private:
   void WalkTheTree(Layer* aLayer, Layer* aParent)
   {
     if (RefLayer* ref = aLayer->AsRefLayer()) {
-      if (Layer* referent = GetIndirectShadowTree(ref->GetReferentId())) {
+      if (const LayerTreeState* state = GetIndirectShadowTree(ref->GetReferentId())) {
+        Layer* referent = state->mRoot;
         if (OP == Resolve) {
           ref->ConnectReferentLayer(referent);
-          TemporarilyCompensateForContentScrollOffset(ref, referent);
+          if (AsyncPanZoomController* apzc = state->mController) {
+            referent->SetUserData(&sPanZoomUserDataKey,
+                                  new PanZoomUserData(apzc));
+          } else {
+            CompensateForContentScrollOffset(ref, referent);
+          }
         } else {
           ref->DetachReferentLayer(referent);
+          referent->RemoveUserData(&sPanZoomUserDataKey);
         }
       }
     }
@@ -354,9 +379,8 @@ private:
   }
 
   
-  
-  void TemporarilyCompensateForContentScrollOffset(Layer* aContainer,
-                                                   Layer* aShadowContent)
+  void CompensateForContentScrollOffset(Layer* aContainer,
+                                        Layer* aShadowContent)
   {
     ContainerLayer* c = aShadowContent->AsContainerLayer();
     if (!c) {
@@ -391,7 +415,10 @@ CompositorParent::Composite()
   Layer* aLayer = mLayerManager->GetRoot();
   AutoResolveRefLayers resolve(aLayer);
 
-  TransformShadowTree();
+  bool requestNextFrame = TransformShadowTree(mLastCompose);
+  if (requestNextFrame) {
+    ScheduleComposition();
+  }
 
   RenderTraceLayers(aLayer, "0000");
 
@@ -493,92 +520,148 @@ SetShadowProperties(Layer* aLayer)
   }
 }
 
-void
-CompositorParent::TransformShadowTree()
+bool
+CompositorParent::ApplyAsyncContentTransformToTree(TimeStamp aCurrentFrame,
+                                                   Layer *aLayer,
+                                                   bool* aWantNextFrame)
 {
+  bool appliedTransform = false;
+  for (Layer* child = aLayer->GetFirstChild();
+      child; child = child->GetNextSibling()) {
+    appliedTransform |=
+      ApplyAsyncContentTransformToTree(aCurrentFrame, child, aWantNextFrame);
+  }
+
+  ContainerLayer* container = aLayer->AsContainerLayer();
+  if (!container) {
+    return appliedTransform;
+  }
+
+  if (LayerUserData* data = aLayer->GetUserData(&sPanZoomUserDataKey)) {
+    AsyncPanZoomController* controller = static_cast<PanZoomUserData*>(data)->mController;
+    ShadowLayer* shadow = aLayer->AsShadowLayer();
+
+    gfx3DMatrix newTransform;
+    *aWantNextFrame |=
+      controller->SampleContentTransformForFrame(aCurrentFrame,
+                                                 container->GetFrameMetrics(),
+                                                 aLayer->GetTransform(),
+                                                 &newTransform);
+
+    shadow->SetShadowTransform(newTransform);
+
+    appliedTransform = true;
+  }
+
+  return appliedTransform;
+}
+
+bool
+CompositorParent::TransformShadowTree(TimeStamp aCurrentFrame)
+{
+  bool wantNextFrame = false;
   Layer* layer = GetPrimaryScrollableLayer();
   ShadowLayer* shadow = layer->AsShadowLayer();
   ContainerLayer* container = layer->AsContainerLayer();
+  Layer* root = mLayerManager->GetRoot();
 
   const FrameMetrics& metrics = container->GetFrameMetrics();
-  const gfx3DMatrix& rootTransform = mLayerManager->GetRoot()->GetTransform();
+  const gfx3DMatrix& rootTransform = root->GetTransform();
   const gfx3DMatrix& currentTransform = layer->GetTransform();
 
-  float rootScaleX = rootTransform.GetXScale();
-  float rootScaleY = rootTransform.GetYScale();
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (!ApplyAsyncContentTransformToTree(aCurrentFrame, root, &wantNextFrame)) {
+    gfx3DMatrix treeTransform;
 
-  if (mIsFirstPaint) {
-    mContentRect = metrics.mContentRect;
-    SetFirstPaintViewport(metrics.mViewportScrollOffset,
-                          1/rootScaleX,
-                          mContentRect,
-                          metrics.mCSSContentRect);
-    mIsFirstPaint = false;
-  } else if (!metrics.mContentRect.IsEqualEdges(mContentRect)) {
-    mContentRect = metrics.mContentRect;
-    SetPageRect(metrics.mCSSContentRect);
+    
+    
+    gfxPoint offset;
+    gfxPoint scaleDiff;
+
+    float rootScaleX = rootTransform.GetXScale(),
+          rootScaleY = rootTransform.GetYScale();
+
+    if (mIsFirstPaint) {
+      mContentRect = metrics.mContentRect;
+      SetFirstPaintViewport(metrics.mViewportScrollOffset,
+                            1/rootScaleX,
+                            mContentRect,
+                            metrics.mCSSContentRect);
+      mIsFirstPaint = false;
+    } else if (!metrics.mContentRect.IsEqualEdges(mContentRect)) {
+      mContentRect = metrics.mContentRect;
+      SetPageRect(metrics.mCSSContentRect);
+    }
+
+    
+    
+    
+    nsIntRect displayPort = metrics.mDisplayPort;
+    nsIntPoint scrollOffset = metrics.mViewportScrollOffset;
+    displayPort.x += scrollOffset.x;
+    displayPort.y += scrollOffset.y;
+
+    SyncViewportInfo(displayPort, 1/rootScaleX, mLayersUpdated,
+                     mScrollOffset, mXScale, mYScale);
+    mLayersUpdated = false;
+
+    
+    
+    
+    
+    
+    
+    float tempScaleDiffX = rootScaleX * mXScale;
+    float tempScaleDiffY = rootScaleY * mYScale;
+
+    nsIntPoint metricsScrollOffset(0, 0);
+    if (metrics.IsScrollable()) {
+      metricsScrollOffset = metrics.mViewportScrollOffset;
+    }
+
+    nsIntPoint scrollCompensation(
+      (mScrollOffset.x / tempScaleDiffX - metricsScrollOffset.x) * mXScale,
+      (mScrollOffset.y / tempScaleDiffY - metricsScrollOffset.y) * mYScale);
+    treeTransform = gfx3DMatrix(ViewTransform(-scrollCompensation, mXScale, mYScale));
+
+    
+    
+    
+    if (mContentRect.width * tempScaleDiffX < mWidgetSize.width) {
+      offset.x = -metricsScrollOffset.x;
+      scaleDiff.x = NS_MIN(1.0f, mWidgetSize.width / (float)mContentRect.width);
+    } else {
+      offset.x = clamped(mScrollOffset.x / tempScaleDiffX, (float)mContentRect.x,
+                         mContentRect.XMost() - mWidgetSize.width / tempScaleDiffX) -
+                 metricsScrollOffset.x;
+      scaleDiff.x = tempScaleDiffX;
+    }
+
+    if (mContentRect.height * tempScaleDiffY < mWidgetSize.height) {
+      offset.y = -metricsScrollOffset.y;
+      scaleDiff.y = NS_MIN(1.0f, mWidgetSize.height / (float)mContentRect.height);
+    } else {
+      offset.y = clamped(mScrollOffset.y / tempScaleDiffY, (float)mContentRect.y,
+                         mContentRect.YMost() - mWidgetSize.height / tempScaleDiffY) -
+                 metricsScrollOffset.y;
+      scaleDiff.y = tempScaleDiffY;
+    }
+
+    shadow->SetShadowTransform(treeTransform * currentTransform);
+    TransformFixedLayers(layer, offset, scaleDiff);
   }
 
-  
-  
-  
-  nsIntRect displayPort = metrics.mDisplayPort;
-  nsIntPoint scrollOffset = metrics.mViewportScrollOffset;
-  displayPort.x += scrollOffset.x;
-  displayPort.y += scrollOffset.y;
-
-  SyncViewportInfo(displayPort, 1/rootScaleX, mLayersUpdated,
-                   mScrollOffset, mXScale, mYScale);
-  mLayersUpdated = false;
-
-  
-  
-  
-  
-  
-  
-  float tempScaleDiffX = rootScaleX * mXScale;
-  float tempScaleDiffY = rootScaleY * mYScale;
-
-  nsIntPoint metricsScrollOffset(0, 0);
-  if (metrics.IsScrollable())
-    metricsScrollOffset = metrics.mViewportScrollOffset;
-
-  nsIntPoint scrollCompensation(
-    (mScrollOffset.x / tempScaleDiffX - metricsScrollOffset.x) * mXScale,
-    (mScrollOffset.y / tempScaleDiffY - metricsScrollOffset.y) * mYScale);
-  ViewTransform treeTransform(-scrollCompensation, mXScale, mYScale);
-  shadow->SetShadowTransform(gfx3DMatrix(treeTransform) * currentTransform);
-
-  
-  
-  gfxPoint offset;
-  gfxPoint scaleDiff;
-
-  
-  
-  
-  if (mContentRect.width * tempScaleDiffX < mWidgetSize.width) {
-    offset.x = -metricsScrollOffset.x;
-    scaleDiff.x = NS_MIN(1.0f, mWidgetSize.width / (float)mContentRect.width);
-  } else {
-    offset.x = clamped(mScrollOffset.x / tempScaleDiffX, (float)mContentRect.x,
-                       mContentRect.XMost() - mWidgetSize.width / tempScaleDiffX) -
-               metricsScrollOffset.x;
-    scaleDiff.x = tempScaleDiffX;
-  }
-
-  if (mContentRect.height * tempScaleDiffY < mWidgetSize.height) {
-    offset.y = -metricsScrollOffset.y;
-    scaleDiff.y = NS_MIN(1.0f, mWidgetSize.height / (float)mContentRect.height);
-  } else {
-    offset.y = clamped(mScrollOffset.y / tempScaleDiffY, (float)mContentRect.y,
-                       mContentRect.YMost() - mWidgetSize.height / tempScaleDiffY) -
-               metricsScrollOffset.y;
-    scaleDiff.y = tempScaleDiffY;
-  }
-
-  TransformFixedLayers(layer, offset, scaleDiff);
+  return wantNextFrame;
 }
 
 void
@@ -731,7 +814,7 @@ CompositorParent* CompositorParent::RemoveCompositor(PRUint64 id)
   return it->second;
 }
 
-typedef map<uint64_t, RefPtr<Layer> > LayerTreeMap;
+typedef map<uint64_t, LayerTreeState> LayerTreeMap;
 static LayerTreeMap sIndirectLayerTrees;
 
  uint64_t
@@ -741,6 +824,45 @@ CompositorParent::AllocateLayerTreeId()
   MOZ_ASSERT(NS_IsMainThread());
   static uint64_t ids;
   return ++ids;
+}
+
+static void
+EraseLayerState(uint64_t aId)
+{
+  sIndirectLayerTrees.erase(aId);
+}
+
+ void
+CompositorParent::DeallocateLayerTreeId(uint64_t aId)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  CompositorLoop()->PostTask(FROM_HERE,
+                             NewRunnableFunction(&EraseLayerState, aId));
+}
+
+static void
+UpdateControllerForLayersId(uint64_t aLayersId,
+                            AsyncPanZoomController* aController)
+{
+  
+  sIndirectLayerTrees[aLayersId].mController =
+    already_AddRefed<AsyncPanZoomController>(aController);
+
+  
+  
+  aController->SetCompositorParent(sCurrentCompositor);
+}
+
+ void
+CompositorParent::SetPanZoomControllerForLayerTree(uint64_t aLayersId,
+                                                   AsyncPanZoomController* aController)
+{
+  
+  aController->AddRef();
+  CompositorLoop()->PostTask(FROM_HERE,
+                             NewRunnableFunction(&UpdateControllerForLayersId,
+                                                 aLayersId,
+                                                 aController));
 }
 
 
@@ -817,20 +939,24 @@ CompositorParent::Create(Transport* aTransport, ProcessId aOtherProcess)
 }
 
 static void
-UpdateIndirectTree(uint64_t aId, Layer* aRoot)
+UpdateIndirectTree(uint64_t aId, Layer* aRoot, bool isFirstPaint)
 {
-  sIndirectLayerTrees[aId] = aRoot;
+  sIndirectLayerTrees[aId].mRoot = aRoot;
+  if (ContainerLayer* root = aRoot->AsContainerLayer()) {
+    if (AsyncPanZoomController* apzc = sIndirectLayerTrees[aId].mController) {
+      apzc->NotifyLayersUpdated(root->GetFrameMetrics(), isFirstPaint);
+    }
+  }
 }
 
-
-static Layer*
+static const LayerTreeState*
 GetIndirectShadowTree(uint64_t aId)
 {
   LayerTreeMap::const_iterator cit = sIndirectLayerTrees.find(aId);
   if (sIndirectLayerTrees.end() == cit) {
     return nsnull;
   }
-  return cit->second;
+  return &cit->second;
 }
 
 static void
@@ -880,7 +1006,7 @@ CrossProcessCompositorParent::ShadowLayersUpdated(ShadowLayersParent* aLayerTree
   if (shadowRoot) {
     SetShadowProperties(shadowRoot);
   }
-  UpdateIndirectTree(id, shadowRoot);
+  UpdateIndirectTree(id, shadowRoot, isFirstPaint);
 
   sCurrentCompositor->ScheduleComposition();
 }
@@ -894,4 +1020,3 @@ CrossProcessCompositorParent::DeferredDestroy()
 
 } 
 } 
-

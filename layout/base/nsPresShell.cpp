@@ -680,7 +680,15 @@ PresShell::PresShell()
   mSelectionFlags = nsISelectionDisplay::DISPLAY_TEXT | nsISelectionDisplay::DISPLAY_IMAGES;
   mIsThemeSupportDisabled = false;
   mIsActive = true;
+  
+#ifdef MOZ_JAVA_COMPOSITOR
+  
+  
+  
   mIsFirstPaint = false;
+#else
+  mIsFirstPaint = true;
+#endif
   mFrozen = false;
 #ifdef DEBUG
   mPresArenaAllocCount = 0;

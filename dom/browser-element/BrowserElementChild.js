@@ -4,13 +4,10 @@
 
 "use strict";
 
-let Cu = Components.utils;
-let Ci = Components.interfaces;
-let Cc = Components.classes;
-let Cr = Components.results;
-
+let { classes: Cc, interfaces: Ci, results: Cr, utils: Cu }  = Components;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/Geometry.jsm");
 Cu.import("resource://gre/modules/BrowserElementPromptService.jsm");
 
 
@@ -575,3 +572,10 @@ BrowserElementChild.prototype = {
 };
 
 var api = new BrowserElementChild();
+
+
+
+
+
+
+#include BrowserElementScrolling.js

@@ -30,6 +30,7 @@ class Thread;
 namespace mozilla {
 namespace layers {
 
+class AsyncPanZoomController;
 class LayerManager;
 
 
@@ -107,7 +108,27 @@ public:
   static void ShutDown();
 
   
+
+
+
+
+
   static uint64_t AllocateLayerTreeId();
+  
+
+
+
+
+  static void DeallocateLayerTreeId(uint64_t aId);
+
+  
+
+
+
+
+
+  static void SetPanZoomControllerForLayerTree(uint64_t aLayersId,
+                                               AsyncPanZoomController* aController);
 
   
 
@@ -135,7 +156,14 @@ private:
   void ResumeComposition();
   void ResumeCompositionAndResize(int width, int height);
 
-  void TransformShadowTree();
+  
+  
+  bool TransformShadowTree(TimeStamp aCurrentFrame);
+  
+  
+  
+  bool ApplyAsyncContentTransformToTree(TimeStamp aCurrentFrame, Layer* aLayer,
+                                        bool* aWantNextFrame);
 
   inline PlatformThreadId CompositorThreadID();
 

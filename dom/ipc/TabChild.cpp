@@ -52,6 +52,7 @@
 #include "nsPIDOMWindow.h"
 #include "nsPIWindowRoot.h"
 #include "nsPresContext.h"
+#include "nsPrintfCString.h"
 #include "nsScriptLoader.h"
 #include "nsSerializationHelper.h"
 #include "nsThreadUtils.h"
@@ -626,6 +627,37 @@ TabChild::RecvUpdateDimensions(const nsRect& rect, const nsIntSize& size)
 }
 
 bool
+TabChild::RecvUpdateFrame(const nsIntRect& aDisplayPort,
+                          const nsIntPoint& aScrollOffset,
+                          const gfxSize& aResolution,
+                          const nsIntRect& aScreenSize)
+{
+    nsCString data;
+    data += nsPrintfCString("{ \"x\" : %d", aScrollOffset.x);
+    data += nsPrintfCString(", \"y\" : %d", aScrollOffset.y);
+    
+    
+    data += nsPrintfCString(", \"zoom\" : %f", aResolution.width);
+    data += nsPrintfCString(", \"displayPort\" : ");
+        data += nsPrintfCString("{ \"left\" : %d", aDisplayPort.X());
+        data += nsPrintfCString(", \"top\" : %d", aDisplayPort.Y());
+        data += nsPrintfCString(", \"width\" : %d", aDisplayPort.Width());
+        data += nsPrintfCString(", \"height\" : %d", aDisplayPort.Height());
+        data += nsPrintfCString(", \"resolution\" : %f", aResolution.width);
+        data += nsPrintfCString(" }");
+    data += nsPrintfCString(", \"screenSize\" : ");
+        data += nsPrintfCString("{ \"width\" : %d", aScreenSize.width);
+        data += nsPrintfCString(", \"height\" : %d", aScreenSize.height);
+        data += nsPrintfCString(" }");
+    data += nsPrintfCString(" }");
+
+    
+    
+    return RecvAsyncMessage(NS_LITERAL_STRING("Viewport:Change"),
+                            NS_ConvertUTF8toUTF16(data));
+}
+
+bool
 TabChild::RecvActivate()
 {
   nsCOMPtr<nsIWebBrowserFocus> browser = do_QueryInterface(mWebNav);
@@ -967,7 +999,8 @@ TabChild::RecvDestroy()
 }
 
 PRenderFrameChild*
-TabChild::AllocPRenderFrame(LayersBackend* aBackend,
+TabChild::AllocPRenderFrame(ScrollingBehavior* aScrolling,
+                            LayersBackend* aBackend,
                             int32_t* aMaxTextureSize,
                             uint64_t* aLayersId)
 {
@@ -1040,7 +1073,7 @@ TabChild::InitWidget(const nsIntSize& size)
     int32_t maxTextureSize;
     RenderFrameChild* remoteFrame =
         static_cast<RenderFrameChild*>(SendPRenderFrameConstructor(
-                                           &be, &maxTextureSize, &id));
+                                           &mScrolling, &be, &maxTextureSize, &id));
     if (!remoteFrame) {
       NS_WARNING("failed to construct RenderFrame");
       return false;
@@ -1101,6 +1134,12 @@ TabChild::NotifyPainted()
         
         mRemoteFrame->SendNotifyCompositorTransaction();
     }
+}
+
+bool
+TabChild::IsAsyncPanZoomEnabled()
+{
+    return mScrolling == ASYNC_PAN_ZOOM;
 }
 
 NS_IMETHODIMP
