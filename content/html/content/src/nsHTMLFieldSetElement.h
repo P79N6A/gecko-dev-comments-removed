@@ -41,7 +41,6 @@
 #include "nsGenericHTMLElement.h"
 #include "nsIDOMHTMLFieldSetElement.h"
 #include "nsIConstraintValidation.h"
-#include "nsTPtrArray.h"
 
 
 class nsHTMLFieldSetElement : public nsGenericHTMLFormElement,
@@ -113,7 +112,7 @@ private:
   nsRefPtr<nsContentList> mElements;
 
   
-  nsTPtrArray<nsGenericHTMLFormElement> mDependentElements;
+  nsTArray<nsGenericHTMLFormElement*> mDependentElements;
 
   nsIContent* mFirstLegend;
 };

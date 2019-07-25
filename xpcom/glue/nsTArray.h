@@ -115,6 +115,36 @@ struct NS_COM_GLUE nsTArrayHeader
 
 
 
+template <class E, class Derived>
+struct nsTArray_SafeElementAtHelper
+{
+  typedef E*       elem_type;
+  typedef PRUint32 index_type;
+
+  
+  
+  
+  elem_type& SafeElementAt(index_type i);
+  const elem_type& SafeElementAt(index_type i) const;
+};
+
+template <class E, class Derived>
+struct nsTArray_SafeElementAtHelper<E*, Derived>
+{
+  typedef E*       elem_type;
+  typedef PRUint32 index_type;
+
+  elem_type SafeElementAt(index_type i) {
+    return static_cast<Derived*> (this)->SafeElementAt(i, nsnull);
+  }
+
+  const elem_type SafeElementAt(index_type i) const {
+    return static_cast<const Derived*> (this)->SafeElementAt(i, nsnull);
+  }
+};
+
+
+
 
 
 
@@ -349,7 +379,8 @@ public:
 
 
 template<class E, class Alloc=nsTArrayDefaultAllocator>
-class nsTArray : public nsTArray_base<Alloc>
+class nsTArray : public nsTArray_base<Alloc>,
+                 public nsTArray_SafeElementAtHelper<E, nsTArray<E, Alloc> >
 {
 public:
   typedef nsTArray_base<Alloc>           base_type;
@@ -358,6 +389,9 @@ public:
   typedef E                              elem_type;
   typedef nsTArray<E, Alloc>             self_type;
   typedef nsTArrayElementTraits<E>       elem_traits;
+  typedef nsTArray_SafeElementAtHelper<E, self_type> safeelementat_helper_type;
+
+  using safeelementat_helper_type::SafeElementAt;
 
   
   

@@ -38,7 +38,6 @@
 #define nsTableFrame_h__
 
 #include "nscore.h"
-#include "nsTPtrArray.h"
 #include "nsHTMLContainerFrame.h"
 #include "nsStyleCoord.h"
 #include "nsStyleConsts.h"
@@ -615,7 +614,7 @@ protected:
 
   nsIFrame* GetFirstBodyRowGroupFrame();
 public:
-  typedef nsAutoTPtrArray<nsTableRowGroupFrame, 8> RowGroupArray;
+  typedef nsAutoTArray<nsTableRowGroupFrame*, 8> RowGroupArray;
   
 
 
@@ -776,7 +775,7 @@ protected:
   void DumpRowGroup(nsIFrame* aChildFrame);
 #endif
   
-  nsAutoTPtrArray<nsTableColFrame, 8> mColFrames;
+  nsAutoTArray<nsTableColFrame*, 8> mColFrames;
 
   struct TableBits {
     PRUint32 mHaveReflowedColGroups:1; 

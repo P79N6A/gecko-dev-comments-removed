@@ -39,17 +39,15 @@
 #ifndef txOwningArray_h__
 #define txOwningArray_h__
 
-#include "nsTPtrArray.h"
-
 
 
 
 
 template<class E>
-class txOwningArray : public nsTPtrArray<E>
+class txOwningArray : public nsTArray<E*>
 {
 public:
-    typedef nsTPtrArray<E> base_type;
+    typedef nsTArray<E*> base_type;
     typedef typename base_type::elem_type elem_type;
 
     ~txOwningArray()
