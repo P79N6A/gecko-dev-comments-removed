@@ -28,7 +28,6 @@ class ImageLoader : public nsStubImageDecoderObserver,
 public:
   ImageLoader(nsIDocument* aDocument)
   : mDocument(aDocument),
-    mHavePainted(false),
     mInClone(false)
   {
     MOZ_ASSERT(mDocument);
@@ -53,11 +52,6 @@ public:
   NS_IMETHOD FrameChanged(imgIRequest* aRequest,
                           imgIContainer *aContainer,
                           const nsIntRect *aDirtyRect);
-
-  inline void NotifyPaint()
-  {
-    mHavePainted = true;
-  }
 
   void DropDocumentReference();
 
@@ -119,9 +113,6 @@ private:
   
   
   ImageHashSet mImages;
-
-  
-  bool mHavePainted;
 
   
   bool mInClone;
