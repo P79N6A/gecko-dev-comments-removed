@@ -220,6 +220,10 @@ nsNavBookmarks::InitTables(mozIStorageConnection* aDBConn)
     
     rv = aDBConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_BOOKMARKS_PLACELASTMODIFIED);
     NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    rv = aDBConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_BOOKMARKS_GUID);
+    NS_ENSURE_SUCCESS(rv, rv);
   }
 
   rv = aDBConn->TableExists(NS_LITERAL_CSTRING("moz_bookmarks_roots"), &exists);

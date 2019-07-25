@@ -831,6 +831,10 @@ nsNavHistory::InitDB()
     currentSchemaVersion = DATABASE_SCHEMA_VERSION;
   }
 
+  
+  rv = InitFunctions();
+  NS_ENSURE_SUCCESS(rv, rv);
+
   if (DATABASE_SCHEMA_VERSION != currentSchemaVersion) {
     
     
@@ -990,10 +994,7 @@ nsNavHistory::InitDB()
 nsresult
 nsNavHistory::InitAdditionalDBItems()
 {
-  nsresult rv = InitFunctions();
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = InitTriggers();
+  nsresult rv = InitTriggers();
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -1009,6 +1010,23 @@ nsNavHistory::InitAdditionalDBItems()
   return NS_OK;
 }
 
+
+nsresult
+nsNavHistory::CheckAndUpdateGUIDs()
+{
+  nsCOMPtr<mozIStorageStatement> stmt;
+  nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+    "UPDATE moz_bookmarks "
+    "SET guid = GENERATE_GUID() "
+    "WHERE guid IS NULL "
+  ), getter_AddRefs(stmt));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = stmt->Execute();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
 
 NS_IMETHODIMP
 nsNavHistory::GetDatabaseStatus(PRUint16 *aDatabaseStatus)
@@ -1821,6 +1839,29 @@ nsNavHistory::MigrateV11Up(mozIStorageConnection *aDBConn)
                           nsINavHistoryService::TRANSITION_DOWNLOAD) +
       NS_LITERAL_CSTRING(")")
   );
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  nsCOMPtr<mozIStorageStatement> hasGuidStatement;
+  rv = aDBConn->CreateStatement(NS_LITERAL_CSTRING(
+      "SELECT guid FROM moz_bookmarks"),
+    getter_AddRefs(hasGuidStatement));
+
+  if (NS_FAILED(rv)) {
+    
+    
+    rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+      "ALTER TABLE moz_bookmarks "
+      "ADD COLUMN guid TEXT"
+    ));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = aDBConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_BOOKMARKS_GUID);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  
+  rv = CheckAndUpdateGUIDs();
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;

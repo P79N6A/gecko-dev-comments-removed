@@ -37,8 +37,8 @@
 
 
 
-#ifndef __nsPlacesIndexes_h__
-#define __nsPlacesIndexes_h__
+#ifndef nsPlacesIndexes_h__
+#define nsPlacesIndexes_h__
 
 #define CREATE_PLACES_IDX(__name, __table, __columns, __type) \
   NS_LITERAL_CSTRING( \
@@ -115,6 +115,11 @@
 #define CREATE_IDX_MOZ_BOOKMARKS_PLACELASTMODIFIED \
   CREATE_PLACES_IDX( \
     "itemlastmodifiedindex", "moz_bookmarks", "fk, lastModified", "" \
+  )
+
+#define CREATE_IDX_MOZ_BOOKMARKS_GUID \
+  CREATE_PLACES_IDX( \
+    "guid_uniqueindex", "moz_bookmarks", "guid", "UNIQUE" \
   )
 
 
