@@ -261,10 +261,10 @@ function UpdateBackForwardCommands(aWebNavigation) {
 function SetClickAndHoldHandlers() {
   var timer;
 
-  function timerCallback(aButton) {
+  function openMenu(aButton) {
+    cancelHold(aButton);
     aButton.firstChild.hidden = false;
     aButton.open = true;
-    timer = null;
   }
 
   function mousedownHandler(aEvent) {
@@ -276,7 +276,29 @@ function SetClickAndHoldHandlers() {
     
     aEvent.currentTarget.firstChild.hidden = true;
 
-    timer = setTimeout(timerCallback, 500, aEvent.currentTarget);
+    aEvent.currentTarget.addEventListener("mouseout", mouseoutHandler, false);
+    aEvent.currentTarget.addEventListener("mouseup", mouseupHandler, false);
+    timer = setTimeout(openMenu, 500, aEvent.currentTarget);
+  }
+
+  function mouseoutHandler(aEvent) {
+    let buttonRect = aEvent.currentTarget.getBoundingClientRect();
+    if (aEvent.clientX >= buttonRect.left &&
+        aEvent.clientX <= buttonRect.right &&
+        aEvent.clientY >= buttonRect.bottom)
+      openMenu(aEvent.currentTarget);
+    else
+      cancelHold(aEvent.currentTarget);
+  }
+
+  function mouseupHandler(aEvent) {
+    cancelHold(aEvent.currentTarget);
+  }
+
+  function cancelHold(aButton) {
+    clearTimeout(timer);
+    aButton.removeEventListener("mouseout", mouseoutHandler, false);
+    aButton.removeEventListener("mouseup", mouseupHandler, false);
   }
 
   function clickHandler(aEvent) {
@@ -292,17 +314,8 @@ function SetClickAndHoldHandlers() {
     }
   }
 
-  function stopTimer(aEvent) {
-    if (timer) {
-      clearTimeout(timer);
-      timer = null;
-    }
-  }
-
   function _addClickAndHoldListenersOnElement(aElm) {
     aElm.addEventListener("mousedown", mousedownHandler, true);
-    aElm.addEventListener("mouseup", stopTimer, false);
-    aElm.addEventListener("mouseout", stopTimer, false);
     aElm.addEventListener("click", clickHandler, true);
   }
 
@@ -2244,7 +2257,11 @@ function loadURI(uri, referrer, postData, allowThirdPartyFixup)
   }
 }
 
-function getShortcutOrURI(aURL, aPostDataRef) {
+function getShortcutOrURI(aURL, aPostDataRef, aMayInheritPrincipal) {
+  
+  if (aMayInheritPrincipal)
+    aMayInheritPrincipal.value = false;
+
   var shortcutURL = null;
   var keyword = aURL;
   var param = "";
@@ -2315,6 +2332,11 @@ function getShortcutOrURI(aURL, aPostDataRef) {
 
     return aURL;
   }
+
+  
+  
+  if (aMayInheritPrincipal)
+    aMayInheritPrincipal.value = true;
 
   return shortcutURL;
 }
@@ -2860,7 +2882,7 @@ var PrintPreviewListener = {
     this._printPreviewTab = null;
   },
   _toggleAffectedChrome: function () {
-    gNavToolbox.hidden = gInPrintPreviewMode;
+    gNavToolbox.collapsed = gInPrintPreviewMode;
 
     if (gInPrintPreviewMode)
       this._hideChrome();
@@ -2951,11 +2973,7 @@ function FillInHTMLTooltip(tipElement)
   var titleText = null;
   var XLinkTitleText = null;
   var SVGTitleText = null;
-#ifdef MOZ_SVG
   var lookingForSVGTitle = true;
-#else
-  var lookingForSVGTitle = false;
-#endif 
   var direction = tipElement.ownerDocument.dir;
 
   
@@ -2976,11 +2994,8 @@ function FillInHTMLTooltip(tipElement)
       titleText = tipElement.getAttribute("title");
       if ((tipElement instanceof HTMLAnchorElement && tipElement.href) ||
           (tipElement instanceof HTMLAreaElement && tipElement.href) ||
-          (tipElement instanceof HTMLLinkElement && tipElement.href)
-#ifdef MOZ_SVG
-          || (tipElement instanceof SVGAElement && tipElement.hasAttributeNS(XLinkNS, "href"))
-#endif 
-          ) {
+          (tipElement instanceof HTMLLinkElement && tipElement.href) ||
+          (tipElement instanceof SVGAElement && tipElement.hasAttributeNS(XLinkNS, "href"))) {
         XLinkTitleText = tipElement.getAttributeNS(XLinkNS, "title");
       }
       if (lookingForSVGTitle &&
@@ -3333,7 +3348,7 @@ const BrowserSearch = {
       var win = getTopWin();
       if (win) {
         
-        win.focus()
+        win.focus();
         win.BrowserSearch.webSearch();
       } else {
         
@@ -3343,7 +3358,7 @@ const BrowserSearch = {
             Services.obs.removeObserver(observer, "browser-delayed-startup-finished");
           }
         }
-        win = window.openDialog("chrome://browser/content/", "_blank",
+        win = window.openDialog(getBrowserURL(), "_blank",
                                 "chrome,all,dialog=no", "about:blank");
         Services.obs.addObserver(observer, "browser-delayed-startup-finished", false); 
       }
@@ -7676,12 +7691,6 @@ var gIdentityHandler = {
 
       
       
-      var lookupHost = this._lastLocation.host;
-      if (lookupHost.indexOf(':') < 0)
-        lookupHost += ":443";
-
-      
-      
       var tooltip = gNavigatorBundle.getFormattedString("identity.identified.verifier",
                                                         [iData.caOrg]);
 
@@ -7689,7 +7698,12 @@ var gIdentityHandler = {
       
       
       
-      if (this._overrideService.hasMatchingOverride(this._lastLocation.hostname,
+      
+      
+      
+      
+      if (this._lastLocation.hostname &&
+          this._overrideService.hasMatchingOverride(this._lastLocation.hostname,
                                                     (this._lastLocation.port || 443),
                                                     iData.cert, {}, {}))
         tooltip = gNavigatorBundle.getString("identity.identified.verified_by_you");

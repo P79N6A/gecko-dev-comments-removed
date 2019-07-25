@@ -814,6 +814,12 @@ pref("network.websocket.extensions.stream-deflate", false);
 
 
 
+pref("dom.server-events.enabled", true);
+
+pref("dom.server-events.default-reconnection-time", 5000); 
+
+
+
 
 pref("network.jar.open-unsafe-types", false);
 
@@ -856,6 +862,7 @@ pref("network.IDN.whitelist.kr", true);
 pref("network.IDN.whitelist.li", true);
 pref("network.IDN.whitelist.lt", true);
 pref("network.IDN.whitelist.lu", true);
+pref("network.IDN.whitelist.lv", true);
 pref("network.IDN.whitelist.no", true);
 pref("network.IDN.whitelist.nu", true);
 pref("network.IDN.whitelist.nz", true);
@@ -885,6 +892,9 @@ pref("network.IDN.whitelist.xn--mgba3a4fra", true);
 
 pref("network.IDN.whitelist.xn--mgbayh7gpa", true);
 
+pref("network.IDN.whitelist.xn--fzc2c9e2c", true);
+pref("network.IDN.whitelist.xn--xkc2al3hye2a", true);
+
 pref("network.IDN.whitelist.xn--wgbl6a", true);
 
 pref("network.IDN.whitelist.xn--p1ai", true);
@@ -894,10 +904,13 @@ pref("network.IDN.whitelist.xn--mgberp4a5d4a87g", true);
 pref("network.IDN.whitelist.xn--mgbqly7c0a67fbc", true);
 pref("network.IDN.whitelist.xn--mgbqly7cvafr", true);
 
+pref("network.IDN.whitelist.xn--ogbpf8fl", true);
+
 pref("network.IDN.whitelist.xn--kpry57d", true);  
 pref("network.IDN.whitelist.xn--kprw13d", true);  
 
 
+pref("network.IDN.whitelist.asia", true);
 pref("network.IDN.whitelist.biz", true);
 pref("network.IDN.whitelist.cat", true);
 pref("network.IDN.whitelist.info", true);
@@ -1807,6 +1820,16 @@ pref("gfx.font_rendering.cleartype_params.cleartype_level", -1);
 pref("gfx.font_rendering.cleartype_params.pixel_structure", -1);
 pref("gfx.font_rendering.cleartype_params.rendering_mode", -1);
 
+
+
+
+
+pref("gfx.font_rendering.cleartype_params.force_gdi_classic_for_families",
+     "Arial,Courier New,Segoe UI,Tahoma,Trebuchet MS,Verdana");
+
+
+pref("gfx.font_rendering.cleartype_params.force_gdi_classic_max_size", 15);
+
 pref("ui.key.menuAccessKeyFocuses", true);
 
 
@@ -1873,7 +1896,7 @@ pref("ui.panel.default_level_parent", false);
 pref("mousewheel.system_scroll_override_on_root_content.enabled", true);
 
 
-pref("mousewheel.enable_pixel_scrolling", false);
+pref("mousewheel.enable_pixel_scrolling", true);
 
 
 
