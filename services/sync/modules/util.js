@@ -41,12 +41,13 @@ const EXPORTED_SYMBOLS = ["XPCOMUtils", "Services", "NetUtil", "PlacesUtils",
 const {classes: Cc, interfaces: Ci, results: Cr, utils: Cu} = Components;
 
 Cu.import("resource://services-common/log4moz.js");
+Cu.import("resource://services-common/observers.js");
 Cu.import("resource://services-common/preferences.js");
 Cu.import("resource://services-common/stringbundle.js");
 Cu.import("resource://services-common/utils.js");
 Cu.import("resource://services-common/async.js");
+Cu.import("resource://services-crypto/utils.js");
 Cu.import("resource://services-sync/constants.js");
-Cu.import("resource://services-common/observers.js");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/PlacesUtils.jsm");
@@ -68,6 +69,24 @@ let Utils = {
   encodeUTF8: CommonUtils.encodeUTF8,
   decodeUTF8: CommonUtils.decodeUTF8,
   safeAtoB: CommonUtils.safeAtoB,
+  byteArrayToString: CommonUtils.byteArrayToString,
+  bytesAsHex: CommonUtils.bytesAsHex,
+  encodeBase32: CommonUtils.encodeBase32,
+  decodeBase32: CommonUtils.decodeBase32,
+
+  
+  generateRandomBytes: CryptoUtils.generateRandomBytes,
+  computeHTTPMACSHA1: CryptoUtils.computeHTTPMACSHA1,
+  digestUTF8: CryptoUtils.digestUTF8,
+  digestBytes: CryptoUtils.digestBytes,
+  sha1: CryptoUtils.sha1,
+  sha1Base32: CryptoUtils.sha1Base32,
+  makeHMACKey: CryptoUtils.makeHMACKey,
+  makeHMACHasher: CryptoUtils.makeHMACHasher,
+  hkdfExpand: CryptoUtils.hkdfExpand,
+  pbkdf2Generate: CryptoUtils.pbkdf2Generate,
+  deriveKeyFromPassphrase: CryptoUtils.deriveKeyFromPassphrase,
+  getHTTPMACSHA1Header: CryptoUtils.getHTTPMACSHA1Header,
 
   
 
@@ -181,20 +200,6 @@ let Utils = {
     }
   },
 
-  byteArrayToString: function byteArrayToString(bytes) {
-    return [String.fromCharCode(byte) for each (byte in bytes)].join("");
-  },
-
-  
-
-
-  generateRandomBytes: function generateRandomBytes(length) {
-    let rng = Cc["@mozilla.org/security/random-generator;1"]
-                .createInstance(Ci.nsIRandomGenerator);
-    let bytes = rng.generateRandomBytes(length);
-    return Utils.byteArrayToString(bytes);
-  },
-
   
 
 
@@ -294,310 +299,6 @@ let Utils = {
 
 
 
-  digestUTF8: function digestUTF8(message, hasher) {
-    let data = this._utf8Converter.convertToByteArray(message, {});
-    hasher.update(data, data.length);
-    let result = hasher.finish(false);
-    if (hasher instanceof Ci.nsICryptoHMAC) {
-      hasher.reset();
-    }
-    return result;
-  },
-
-  
-
-
-
-
-  digestBytes: function digestBytes(message, hasher) {
-    
-    let bytes = [b.charCodeAt() for each (b in message)];
-    hasher.update(bytes, bytes.length);
-    let result = hasher.finish(false);
-    if (hasher instanceof Ci.nsICryptoHMAC) {
-      hasher.reset();
-    }
-    return result;
-  },
-
-  bytesAsHex: function bytesAsHex(bytes) {
-    let hex = "";
-    for (let i = 0; i < bytes.length; i++) {
-      hex += ("0" + bytes[i].charCodeAt().toString(16)).slice(-2);
-    }
-    return hex;
-  },
-
-  _sha1: function _sha1(message) {
-    let hasher = Cc["@mozilla.org/security/hash;1"].
-      createInstance(Ci.nsICryptoHash);
-    hasher.init(hasher.SHA1);
-    return Utils.digestUTF8(message, hasher);
-  },
-
-  sha1: function sha1(message) {
-    return Utils.bytesAsHex(Utils._sha1(message));
-  },
-
-  sha1Base32: function sha1Base32(message) {
-    return Utils.encodeBase32(Utils._sha1(message));
-  },
-  
-  
-
-
-  makeHMACKey: function makeHMACKey(str) {
-    return Svc.KeyFactory.keyFromString(Ci.nsIKeyObject.HMAC, str);
-  },
-    
-  
-
-
-  makeHMACHasher: function makeHMACHasher(type, key) {
-    let hasher = Cc["@mozilla.org/security/hmac;1"]
-                   .createInstance(Ci.nsICryptoHMAC);
-    hasher.init(type, key);
-    return hasher;
-  },
-
-  
-
-
-  hkdfExpand: function hkdfExpand(prk, info, len) {
-    const BLOCKSIZE = 256 / 8;
-    let h = Utils.makeHMACHasher(Ci.nsICryptoHMAC.SHA256,
-                                 Utils.makeHMACKey(prk));
-    let T = "";
-    let Tn = "";
-    let iterations = Math.ceil(len/BLOCKSIZE);
-    for (let i = 0; i < iterations; i++) {
-      Tn = Utils.digestBytes(Tn + info + String.fromCharCode(i + 1), h);
-      T += Tn;
-    }
-    return T.slice(0, len);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  pbkdf2Generate : function pbkdf2Generate(P, S, c, dkLen) {
-    
-    
-    if (!dkLen)
-      dkLen = SYNC_KEY_DECODED_LENGTH;
-    
-    
-    const HLEN = 20;
-    
-    function F(S, c, i, h) {
-    
-      function XOR(a, b, isA) {
-        if (a.length != b.length) {
-          return false;
-        }
-
-        let val = [];
-        for (let i = 0; i < a.length; i++) {
-          if (isA) {
-            val[i] = a[i] ^ b[i];
-          } else {
-            val[i] = a.charCodeAt(i) ^ b.charCodeAt(i);
-          }
-        }
-
-        return val;
-      }
-    
-      let ret;
-      let U = [];
-
-      
-      let I = [];
-      I[0] = String.fromCharCode((i >> 24) & 0xff);
-      I[1] = String.fromCharCode((i >> 16) & 0xff);
-      I[2] = String.fromCharCode((i >> 8) & 0xff);
-      I[3] = String.fromCharCode(i & 0xff);
-
-      U[0] = Utils.digestBytes(S + I.join(''), h);
-      for (let j = 1; j < c; j++) {
-        U[j] = Utils.digestBytes(U[j - 1], h);
-      }
-
-      ret = U[0];
-      for (j = 1; j < c; j++) {
-        ret = Utils.byteArrayToString(XOR(ret, U[j]));
-      }
-
-      return ret;
-    }
-    
-    let l = Math.ceil(dkLen / HLEN);
-    let r = dkLen - ((l - 1) * HLEN);
-
-    
-    let h = Utils.makeHMACHasher(Ci.nsICryptoHMAC.SHA1, Utils.makeHMACKey(P));
-    
-    T = [];
-    for (let i = 0; i < l;) {
-      T[i] = F(S, c, ++i, h);
-    }
-
-    let ret = '';
-    for (i = 0; i < l-1;) {
-      ret += T[i++];
-    }
-    ret += T[l - 1].substr(0, r);
-
-    return ret;
-  },
-
-
-  
-
-
-  decodeBase32: function decodeBase32(str) {
-    const key = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
-
-    let padChar = str.indexOf("=");
-    let chars = (padChar == -1) ? str.length : padChar;
-    let bytes = Math.floor(chars * 5 / 8);
-    let blocks = Math.ceil(chars / 8);
-
-    
-    
-    
-    function processBlock(ret, cOffset, rOffset) {
-      let c, val;
-
-      
-      
-      function accumulate(val) {
-        ret[rOffset] |= val;
-      }
-
-      function advance() {
-        c  = str[cOffset++];
-        if (!c || c == "" || c == "=") 
-          throw "Done";                
-        val = key.indexOf(c);
-        if (val == -1)
-          throw "Unknown character in base32: " + c;
-      }
-
-      
-      function left(octet, shift)
-        (octet << shift) & 0xff;
-
-      advance();
-      accumulate(left(val, 3));
-      advance();
-      accumulate(val >> 2);
-      ++rOffset;
-      accumulate(left(val, 6));
-      advance();
-      accumulate(left(val, 1));
-      advance();
-      accumulate(val >> 4);
-      ++rOffset;
-      accumulate(left(val, 4));
-      advance();
-      accumulate(val >> 1);
-      ++rOffset;
-      accumulate(left(val, 7));
-      advance();
-      accumulate(left(val, 2));
-      advance();
-      accumulate(val >> 3);
-      ++rOffset;
-      accumulate(left(val, 5));
-      advance();
-      accumulate(val);
-      ++rOffset;
-    }
-
-    
-    let ret  = new Array(bytes);
-    let i    = 0;
-    let cOff = 0;
-    let rOff = 0;
-
-    for (; i < blocks; ++i) {
-      try {
-        processBlock(ret, cOff, rOff);
-      } catch (ex) {
-        
-        if (ex == "Done")
-          break;
-        throw ex;
-      }
-      cOff += 8;
-      rOff += 5;
-    }
-
-    
-    return Utils.byteArrayToString(ret.slice(0, bytes));
-  },
-
-  
-
-
-  encodeBase32: function encodeBase32(bytes) {
-    const key = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
-    let quanta = Math.floor(bytes.length / 5);
-    let leftover = bytes.length % 5;
-
-    
-    if (leftover) {
-      quanta += 1;
-      for (let i = leftover; i < 5; i++)
-        bytes += "\0";
-    }
-
-    
-    
-    let ret = "";
-    for (let i = 0; i < bytes.length; i += 5) {
-      let c = [byte.charCodeAt() for each (byte in bytes.slice(i, i + 5))];
-      ret += key[c[0] >> 3]
-           + key[((c[0] << 2) & 0x1f) | (c[1] >> 6)]
-           + key[(c[1] >> 1) & 0x1f]
-           + key[((c[1] << 4) & 0x1f) | (c[2] >> 4)]
-           + key[((c[2] << 1) & 0x1f) | (c[3] >> 7)]
-           + key[(c[3] >> 2) & 0x1f]
-           + key[((c[3] << 3) & 0x1f) | (c[4] >> 5)]
-           + key[c[4] & 0x1f];
-    }
-
-    switch (leftover) {
-      case 1:
-        return ret.slice(0, -6) + "======";
-      case 2:
-        return ret.slice(0, -4) + "====";
-      case 3:
-        return ret.slice(0, -3) + "===";
-      case 4:
-        return ret.slice(0, -1) + "=";
-      default:
-        return ret;
-    }
-  },
-
-  
-
-
-
 
 
   base32ToFriendly: function base32ToFriendly(input) {
@@ -611,7 +312,6 @@ let Utils = {
                 .replace("8", 'L', "g")
                 .replace("9", 'O', "g");
   },
-
 
   
 
@@ -635,23 +335,13 @@ let Utils = {
     return btoa(keyData);
   },
 
-  deriveKeyFromPassphrase: function deriveKeyFromPassphrase(passphrase, salt, keyLength, forceJS) {
-    if (Svc.Crypto.deriveKeyFromPassphrase && !forceJS) {
-      return Svc.Crypto.deriveKeyFromPassphrase(passphrase, salt, keyLength);
-    }
-    else {
-      
-      
-      return Utils.pbkdf2Generate(passphrase, atob(salt), 4096, keyLength);
-    }
-  },
-
   
 
 
 
   derivePresentableKeyFromPassphrase : function derivePresentableKeyFromPassphrase(passphrase, salt, keyLength, forceJS) {
-    let k = Utils.deriveKeyFromPassphrase(passphrase, salt, keyLength, forceJS);
+    let k = CryptoUtils.deriveKeyFromPassphrase(passphrase, salt, keyLength,
+                                                forceJS);
     return Utils.encodeKeyBase32(k);
   },
 
@@ -660,7 +350,8 @@ let Utils = {
 
 
   deriveEncodedKeyFromPassphrase : function deriveEncodedKeyFromPassphrase(passphrase, salt, keyLength, forceJS) {
-    let k = Utils.deriveKeyFromPassphrase(passphrase, salt, keyLength, forceJS);
+    let k = CryptoUtils.deriveKeyFromPassphrase(passphrase, salt, keyLength,
+                                                forceJS);
     return Utils.base64Key(k);
   },
 
@@ -671,130 +362,6 @@ let Utils = {
 
   presentEncodedKeyAsSyncKey : function presentEncodedKeyAsSyncKey(encodedKey) {
     return Utils.encodeKeyBase32(atob(encodedKey));
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  computeHTTPMACSHA1: function computeHTTPMACSHA1(identifier, key, method,
-                                                  uri, extra) {
-    let ts = (extra && extra.ts) ? extra.ts : Math.floor(Date.now() / 1000);
-    let nonce_bytes = (extra && extra.nonce_bytes > 0) ? extra.nonce_bytes : 8;
-
-    
-    let nonce = (extra && extra.nonce)
-                ? extra.nonce
-                : btoa(Utils.generateRandomBytes(nonce_bytes));
-
-    let host = uri.asciiHost;
-    let port;
-    let usedMethod = method.toUpperCase();
-
-    if (uri.port != -1) {
-      port = uri.port;
-    } else if (uri.scheme == "http") {
-      port = "80";
-    } else if (uri.scheme == "https") {
-      port = "443";
-    } else {
-      throw new Error("Unsupported URI scheme: " + uri.scheme);
-    }
-
-    let ext = (extra && extra.ext) ? extra.ext : "";
-
-    let requestString = ts.toString(10) + "\n" +
-                        nonce           + "\n" +
-                        usedMethod      + "\n" +
-                        uri.path        + "\n" +
-                        host            + "\n" +
-                        port            + "\n" +
-                        ext             + "\n";
-
-    let hasher = Utils.makeHMACHasher(Ci.nsICryptoHMAC.SHA1,
-                                      Utils.makeHMACKey(key));
-    let mac = Utils.digestBytes(requestString, hasher);
-
-    function getHeader() {
-      return Utils.getHTTPMACSHA1Header(this.identifier, this.ts, this.nonce,
-                                        this.mac, this.ext);
-    }
-
-    return {
-      identifier: identifier,
-      key:        key,
-      method:     usedMethod,
-      hostname:   host,
-      port:       port,
-      mac:        mac,
-      nonce:      nonce,
-      ts:         ts,
-      ext:        ext,
-      getHeader:  getHeader
-    };
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  getHTTPMACSHA1Header: function getHTTPMACSHA1Header(identifier, ts, nonce,
-                                                      mac, ext) {
-    let header ='MAC id="' + identifier + '", ' +
-                'ts="'     + ts         + '", ' +
-                'nonce="'  + nonce      + '", ' +
-                'mac="'    + btoa(mac)  + '"';
-
-    if (!ext) {
-      return header;
-    }
-
-    return header += ', ext="' + ext +'"';
   },
 
   
@@ -897,7 +464,7 @@ let Utils = {
     
     
     
-    return Utils.encodeKeyBase32(Utils.generateRandomBytes(16));
+    return Utils.encodeKeyBase32(CryptoUtils.generateRandomBytes(16));
   },
 
   
@@ -1084,7 +651,6 @@ let _sessionCID = Services.appinfo.ID == SEAMONKEY_ID ?
 
 [["Form", "@mozilla.org/satchel/form-history;1", "nsIFormHistory2"],
  ["Idle", "@mozilla.org/widget/idleservice;1", "nsIIdleService"],
- ["KeyFactory", "@mozilla.org/security/keyobjectfactory;1", "nsIKeyObjectFactory"],
  ["Session", _sessionCID, "nsISessionStore"]
 ].forEach(function([name, contract, iface]) {
   XPCOMUtils.defineLazyServiceGetter(Svc, name, contract, iface);
