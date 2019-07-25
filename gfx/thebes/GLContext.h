@@ -562,6 +562,40 @@ public:
                                                        const gfxIntSize& aSize,
                                                        GLenum aTextureFormat);
 
+    
+
+
+
+    void ReadPixelsIntoImageSurface(GLint aX, GLint aY, GLsizei aWidth, GLsizei aHeight,
+                                    gfxImageSurface *aDest);
+
+    
+
+
+
+
+
+
+    enum GLExtensions {
+        EXT_framebuffer_object,
+        ARB_framebuffer_object,
+        EXT_bgra,
+        EXT_texture_format_BGRA8888,
+        OES_depth24,
+        OES_depth32,
+        OES_stencil8,
+        OES_texture_npot,
+        OES_depth_texture,
+        OES_packed_depth_stencil,
+        IMG_read_format,
+        EXT_read_format_bgra,
+        Extensions_Max
+    };
+
+    PRBool IsExtensionSupported(GLExtensions aKnownExtension) {
+        return mAvailableExtensions[aKnownExtension];
+    }
+
 protected:
     PRPackedBool mInitialized;
     PRPackedBool mIsOffscreen;
@@ -588,6 +622,25 @@ protected:
     
     
     
+    template<size_t setlen>
+    struct ExtensionBitset {
+        ExtensionBitset() {
+            for (int i = 0; i < setlen; ++i)
+                values[i] = false;
+        }
+
+        bool& operator[](const int index) {
+            NS_ASSERTION(index >= 0 && index < setlen, "out of range");
+            return values[index];
+        }
+
+        bool values[setlen];
+    };
+    ExtensionBitset<Extensions_Max> mAvailableExtensions;
+
+    
+    
+    
     void ClearSafely();
 
     nsDataHashtable<nsVoidPtrHashKey, void*> mUserData;
@@ -599,6 +652,7 @@ protected:
 
     PRBool InitWithPrefix(const char *prefix, PRBool trygl);
 
+    void InitExtensions();
     PRBool IsExtensionSupported(const char *extension);
 
     virtual already_AddRefed<TextureImage>

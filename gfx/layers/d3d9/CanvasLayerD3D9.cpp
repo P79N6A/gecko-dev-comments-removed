@@ -111,9 +111,15 @@ CanvasLayerD3D9::Updated(const nsIntRect& aRect)
     
     
     
-    mGLContext->fReadPixels(0, 0, mBounds.width, mBounds.height,
-                            LOCAL_GL_BGRA, LOCAL_GL_UNSIGNED_INT_8_8_8_8_REV,
-                            destination);
+    nsRefPtr<gfxImageSurface> tmpSurface =
+      new gfxImageSurface(destination,
+                          gfxIntSize(mBounds.width, mBounds.height),
+                          mBounds.width * 4,
+                          gfxASurface::ImageFormatARGB32);
+    mGLContext->ReadPixelsIntoImageSurface(0, 0,
+                                           mBounds.width, mBounds.height,
+                                           tmpSurface);
+    tmpSurface = nsnull;
 
     
     if (currentFramebuffer != mCanvasFramebuffer)

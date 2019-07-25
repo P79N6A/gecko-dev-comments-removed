@@ -701,15 +701,9 @@ BasicCanvasLayer::Updated(const nsIntRect& aRect)
     
     
     
-    if (mGLContext->IsGLES2()) {
-      mGLContext->fReadPixels(0, 0, mBounds.width, mBounds.height,
-                              LOCAL_GL_RGBA, LOCAL_GL_UNSIGNED_BYTE,
-                              isurf->Data());
-    } else {
-      mGLContext->fReadPixels(0, 0, mBounds.width, mBounds.height,
-                              LOCAL_GL_BGRA, LOCAL_GL_UNSIGNED_INT_8_8_8_8_REV,
-                              isurf->Data());
-    }
+    mGLContext->ReadPixelsIntoImageSurface(0, 0,
+                                           mBounds.width, mBounds.height,
+                                           isurf);
 
     
     if (currentFramebuffer != mCanvasFramebuffer)
