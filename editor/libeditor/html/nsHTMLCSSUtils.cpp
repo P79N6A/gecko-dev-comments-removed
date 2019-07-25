@@ -614,24 +614,13 @@ nsHTMLCSSUtils::RemoveCSSInlineStyle(nsIDOMNode *aNode, nsIAtom *aProperty, cons
   nsresult res = RemoveCSSProperty(elem, aProperty, aPropertyValue, false);
   NS_ENSURE_SUCCESS(res, res);
 
-  if (nsEditor::NodeIsType(aNode, nsEditProperty::span)) {
-    nsCOMPtr<nsIContent> content = do_QueryInterface(aNode);
-    PRUint32 attrCount = content->GetAttrCount();
-
-    if (0 == attrCount) {
-      
-      res = mHTMLEditor->RemoveContainer(aNode);
-      NS_ENSURE_SUCCESS(res, res);
-    }
-    else if (1 == attrCount) {
-      
-      if (content->GetAttrNameAt(0)->Equals(nsEditProperty::mozdirty)) {
-        res = mHTMLEditor->RemoveContainer(aNode);
-        NS_ENSURE_SUCCESS(res, res);
-      }
-    }
+  nsCOMPtr<dom::Element> element = do_QueryInterface(aNode);
+  if (!element || !element->IsHTML(nsGkAtoms::span) ||
+      nsHTMLEditor::HasAttributes(element)) {
+    return NS_OK;
   }
-  return NS_OK;
+
+  return mHTMLEditor->RemoveContainer(aNode);
 }
 
 
