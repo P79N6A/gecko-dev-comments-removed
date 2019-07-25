@@ -1869,15 +1869,13 @@ mjit::Compiler::jsop_getelem_typed(int atype)
     
     
     
-    
-    
     AnyRegisterID dataReg;
     MaybeRegisterID typeReg, tempReg;
     JSValueType type = knownPushedType(0);
     bool maybeReadFloat = (atype == TypedArray::TYPE_FLOAT32 ||
                            atype == TypedArray::TYPE_FLOAT64 ||
                            atype == TypedArray::TYPE_UINT32);
-    if (maybeReadFloat && type == JSVAL_TYPE_DOUBLE && !hasTypeBarriers(PC)) {
+    if (maybeReadFloat && type == JSVAL_TYPE_DOUBLE) {
         dataReg = frame.allocFPReg();
         
         if (atype == TypedArray::TYPE_UINT32)
@@ -1888,7 +1886,7 @@ mjit::Compiler::jsop_getelem_typed(int atype)
         
         
         
-        if (maybeReadFloat || type != JSVAL_TYPE_INT32 || hasTypeBarriers(PC))
+        if (maybeReadFloat || type != JSVAL_TYPE_INT32)
             typeReg = frame.allocReg();
     }
 
@@ -1969,7 +1967,8 @@ mjit::Compiler::jsop_getelem(bool isCall)
 
 #ifdef JS_METHODJIT_TYPED_ARRAY
         if (obj->mightBeType(JSVAL_TYPE_OBJECT) &&
-            !types->hasObjectFlags(cx, types::OBJECT_FLAG_NON_TYPED_ARRAY)) {
+            !types->hasObjectFlags(cx, types::OBJECT_FLAG_NON_TYPED_ARRAY) &&
+            pushedTypeSet(0)->baseFlags() != 0) {
             
             int atype = types->getTypedArrayType(cx);
             if (atype != TypedArray::TYPE_MAX) {
