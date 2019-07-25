@@ -1237,6 +1237,13 @@ JS_TransplantWrapper(JSContext *cx, JSObject *wrapper, JSObject *target)
 
 
     JSCompartment *destination = target->getCompartment();
+    if (wrapper->getCompartment() == destination) {
+        
+        
+        
+        wrapper->swap(target);
+        return wrapper;
+    }
 
     JSObject *obj;
     WrapperMap &map = destination->crossCompartmentWrappers;
@@ -1260,13 +1267,18 @@ JS_TransplantWrapper(JSContext *cx, JSObject *wrapper, JSObject *target)
     
     
     
-    Value targetv = ObjectValue(*target);
+    Value targetv = ObjectValue(*obj);
     WrapperVector &vector = cx->runtime->compartments;
     for (JSCompartment **p = vector.begin(), **end = vector.end(); p != end; ++p) {
         WrapperMap &pmap = (*p)->crossCompartmentWrappers;
         if (WrapperMap::Ptr wp = pmap.lookup(wrapperv)) {
             
             JSObject *wobj = &wp->value.toObject();
+
+            
+            
+            
+            pmap.remove(wp);
 
             
             
@@ -1279,11 +1291,20 @@ JS_TransplantWrapper(JSContext *cx, JSObject *wrapper, JSObject *target)
             
             
             
-            
+            JS_ASSERT(tobj != wobj);
             wobj->swap(tobj);
             pmap.put(targetv, ObjectValue(*wobj));
-            pmap.remove(wp);
         }
+    }
+
+    
+    {
+        JSAutoEnterCompartment ac;
+        JSObject *tobj = obj;
+        if (!ac.enter(cx, wrapper) || !JS_WrapObject(cx, &tobj))
+            return NULL;
+        wrapper->swap(tobj);
+        wrapper->getCompartment()->crossCompartmentWrappers.put(targetv, wrapperv);
     }
 
     return obj;
