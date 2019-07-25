@@ -3568,17 +3568,17 @@ nsINode::doInsertChildAt(nsIContent* aKid, PRUint32 aIndex,
     }
   }
 
-  PRUint32 childCount = aChildArray.ChildCount();
-  NS_ENSURE_TRUE(aIndex <= childCount, NS_ERROR_ILLEGAL_VALUE);
-
   
   
   nsMutationGuard::DidMutate();
 
-  PRBool isAppend = (aIndex == childCount);
-
+  
   nsIDocument* doc = GetCurrentDoc();
   mozAutoDocUpdate updateBatch(doc, UPDATE_CONTENT_MODEL, aNotify);
+
+  PRUint32 childCount = aChildArray.ChildCount();
+  NS_ENSURE_TRUE(aIndex <= childCount, NS_ERROR_ILLEGAL_VALUE);
+  PRBool isAppend = (aIndex == childCount);
 
   rv = aChildArray.InsertChildAt(aKid, aIndex);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -4019,6 +4019,8 @@ nsINode::ReplaceOrInsertBefore(PRBool aReplace, nsINode* aNewChild,
   nsresult res = NS_OK;
   PRInt32 insPos;
 
+  mozAutoDocConditionalContentUpdateBatch batch(GetCurrentDoc(), PR_TRUE);
+
   
   if (aRefChild) {
     insPos = IndexOf(aRefChild);
@@ -4079,11 +4081,6 @@ nsINode::ReplaceOrInsertBefore(PRBool aReplace, nsINode* aNewChild,
                    "ownerDocument changed again after adopting!");
     }
   }
-
-  
-  
-  mozAutoDocConditionalContentUpdateBatch batch(GetCurrentDoc(),
-    aReplace || nodeType == nsIDOMNode::DOCUMENT_FRAGMENT_NODE);
 
   
   if (aReplace) {
