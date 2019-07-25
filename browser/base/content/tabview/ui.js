@@ -86,6 +86,10 @@ var UIManager = {
 
   
   
+  get frameInitalized() this._frameInitalized,
+
+  
+  
   
   init: function() {
     var self = this;
@@ -137,7 +141,7 @@ var UIManager = {
   
   
   
-  _initFrame: function() {
+  initFrame: function() {
     try {
       Utils.assert("must not be already initialized", !this._frameInitalized);
 
@@ -179,7 +183,7 @@ var UIManager = {
       this._addTabActionHandlers();
 
       
-      
+
       GroupItems.init();
 
       var groupItemsData = Storage.readGroupItemsData(gWindow);
@@ -316,11 +320,10 @@ var UIManager = {
     if (this._isTabViewVisible())
       return;
 
-    var self = this;
-
     if (!this._frameInitalized)
-      this._initFrame();
+      this.initFrame();
 
+    var self = this;
     var currentTab = this._currentTab;
     var item = null;
 
