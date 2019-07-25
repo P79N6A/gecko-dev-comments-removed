@@ -232,7 +232,7 @@ public:
     sMaxEtciCount = 0;
   }
 
-  nsCOMPtr<nsIDOMEventTarget>      mTarget;
+  nsCOMPtr<nsIDOMEventTarget>       mTarget;
   nsEventTargetChainItem*           mChild;
   union {
     nsEventTargetChainItem*         mParent;
@@ -243,7 +243,7 @@ public:
   PRUint16                          mItemFlags;
   nsCOMPtr<nsISupports>             mItemData;
   
-  nsCOMPtr<nsIDOMEventTarget>      mNewTarget;
+  nsCOMPtr<nsIDOMEventTarget>       mNewTarget;
   
   nsRefPtr<nsEventListenerManager>  mManager;
 
@@ -619,7 +619,7 @@ nsEventDispatcher::Dispatch(nsISupports* aTarget,
   if (preVisitor.mCanHandle) {
     
     
-    nsCOMPtr<nsIDOMEventTarget> t = do_QueryInterface(aEvent->target);
+    nsCOMPtr<nsIDOMEventTarget> t = aEvent->target;
     targetEtci->SetNewTarget(t);
     nsEventTargetChainItem* topEtci = targetEtci;
     while (preVisitor.mParentTarget) {

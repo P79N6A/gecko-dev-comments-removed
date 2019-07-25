@@ -450,10 +450,7 @@ nsWidgetUtils::GetChromeEventHandler(nsIDOMWindow *aDOMWin,
         chromeEventHandler = privateDOMWindow->GetChromeEventHandler();
     }
 
-    nsCOMPtr<nsIDOMEventTarget> target(do_QueryInterface(chromeEventHandler));
-
-    *aChromeTarget = target;
-    NS_IF_ADDREF(*aChromeTarget);
+    NS_IF_ADDREF(*aChromeTarget = chromeEventHandler);
 }
 
 void
@@ -467,17 +464,18 @@ nsWidgetUtils::RemoveWindowListeners(nsIDOMWindow *aDOMWin)
     }
 
     
-    nsCOMPtr<nsIDOMEventTarget> piTarget(do_QueryInterface(chromeEventHandler));
 
     
-    rv = piTarget->RemoveEventListenerByIID(static_cast<nsIDOMMouseListener*>(this),
-                                            NS_GET_IID(nsIDOMMouseListener));
+    rv = chromeEventHandler->
+      RemoveEventListenerByIID(static_cast<nsIDOMMouseListener*>(this),
+                               NS_GET_IID(nsIDOMMouseListener));
     if (NS_FAILED(rv)) {
         NS_WARNING("Failed to add Mouse Motion listener\n");
         return;
     }
-    rv = piTarget->RemoveEventListenerByIID(static_cast<nsIDOMMouseMotionListener*>(this),
-                                            NS_GET_IID(nsIDOMMouseMotionListener));
+    rv = chromeEventHandler->
+      RemoveEventListenerByIID(static_cast<nsIDOMMouseMotionListener*>(this),
+                               NS_GET_IID(nsIDOMMouseMotionListener));
     if (NS_FAILED(rv)) {
         NS_WARNING("Failed to add Mouse Motion listener\n");
         return;
@@ -495,17 +493,18 @@ nsWidgetUtils::AttachWindowListeners(nsIDOMWindow *aDOMWin)
     }
 
     
-    nsCOMPtr<nsIDOMEventTarget> piTarget(do_QueryInterface(chromeEventHandler));
 
     
-    rv = piTarget->AddEventListenerByIID(static_cast<nsIDOMMouseListener*>(this),
-                                         NS_GET_IID(nsIDOMMouseListener));
+    rv = chromeEventHandler->
+      AddEventListenerByIID(static_cast<nsIDOMMouseListener*>(this),
+                            NS_GET_IID(nsIDOMMouseListener));
     if (NS_FAILED(rv)) {
         NS_WARNING("Failed to add Mouse Motion listener\n");
         return;
     }
-    rv = piTarget->AddEventListenerByIID(static_cast<nsIDOMMouseMotionListener*>(this),
-                                         NS_GET_IID(nsIDOMMouseMotionListener));
+    rv = chromeEventHandler->
+      AddEventListenerByIID(static_cast<nsIDOMMouseMotionListener*>(this),
+                            NS_GET_IID(nsIDOMMouseMotionListener));
     if (NS_FAILED(rv)) {
         NS_WARNING("Failed to add Mouse Motion listener\n");
         return;
