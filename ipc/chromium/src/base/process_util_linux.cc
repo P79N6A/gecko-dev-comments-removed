@@ -25,6 +25,15 @@
 
 
 
+
+
+#include <private/android_filesystem_config.h>
+#define CHILD_UNPRIVILEGED_UID AID_APP
+#define CHILD_UNPRIVILEGED_GID AID_APP
+
+
+
+
 #define HAVE_PR_DUPLICATE_ENVIRONMENT
 
 #include "plstr.h"
@@ -32,6 +41,14 @@
 #include "prmem.h"
 
 extern "C" { NSPR_API(pthread_mutex_t *)PR_GetEnvLock(void); }
+#else
+
+
+
+
+
+#define CHILD_UNPRIVILEGED_UID 65534
+#define CHILD_UNPRIVILEGED_GID 65534
 #endif
 
 namespace {
@@ -164,6 +181,17 @@ bool LaunchApp(const std::vector<std::string>& argv,
                const environment_map& env_vars_to_set,
                bool wait, ProcessHandle* process_handle,
                ProcessArchitecture arch) {
+  return LaunchApp(argv, fds_to_remap, env_vars_to_set,
+                   SAME_PRIVILEGES_AS_PARENT,
+                   wait, process_handle);
+}
+
+bool LaunchApp(const std::vector<std::string>& argv,
+               const file_handle_mapping_vector& fds_to_remap,
+               const environment_map& env_vars_to_set,
+               ChildPrivileges privs,
+               bool wait, ProcessHandle* process_handle,
+               ProcessArchitecture arch) {
   scoped_array<char*> argv_cstr(new char*[argv.size() + 1]);
   
   InjectiveMultimap fd_shuffle1, fd_shuffle2;
@@ -199,6 +227,19 @@ bool LaunchApp(const std::vector<std::string>& argv,
     for (size_t i = 0; i < argv.size(); i++)
       argv_cstr[i] = const_cast<char*>(argv[i].c_str());
     argv_cstr[argv.size()] = NULL;
+
+    if (privs == UNPRIVILEGED) {
+      if (setgid(CHILD_UNPRIVILEGED_GID) != 0) {
+        DLOG(ERROR) << "FAILED TO setgid() CHILD PROCESS, path: " << argv_cstr[0];
+        _exit(127);
+      }
+      if (setuid(CHILD_UNPRIVILEGED_UID) != 0) {
+        DLOG(ERROR) << "FAILED TO setuid() CHILD PROCESS, path: " << argv_cstr[0];
+        _exit(127);
+      }
+      if (chdir("/") != 0)
+        gProcessLog.print("==> could not chdir()\n");
+    }
 
 #ifdef HAVE_PR_DUPLICATE_ENVIRONMENT
     execve(argv_cstr[0], argv_cstr.get(), envp);
