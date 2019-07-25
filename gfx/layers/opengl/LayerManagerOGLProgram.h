@@ -59,55 +59,6 @@ namespace layers {
 #define ASSERT_THIS_PROGRAM
 #endif
 
-struct UniformValue {
-  UniformValue() {
-    memset(this, 0, sizeof(UniformValue));
-  }
-
-  void setInt(const int i) {
-    value.i[0] = i;
-  }
-
-  void setFloat(const float f) {
-    value.f[0] = f;
-  }
-
-  void setFloatN(const float *f, const int n) {
-    memcpy(value.f, f, sizeof(float)*n);
-  }
-
-  void setColor(const gfxRGBA& c) {
-    value.f[0] = float(c.r);
-    value.f[1] = float(c.g);
-    value.f[2] = float(c.b);
-    value.f[3] = float(c.a);
-  }
-
-  bool equalsInt(const int i) {
-    return i == value.i[0];
-  }
-
-  bool equalsFloat(const float f) {
-    return f == value.f[0];
-  }
-
-  bool equalsFloatN(const float *f, const int n) {
-    return memcmp(f, value.f, sizeof(float)*n) == 0;
-  }
-
-  bool equalsColor(const gfxRGBA& c) {
-    return value.f[0] == float(c.r) &&
-      value.f[1] == float(c.g) &&
-      value.f[2] == float(c.b) &&
-      value.f[3] == float(c.a);
-  }
-
-  union {
-    int i[1];
-    float f[16];
-  } value;
-};
-
 class LayerManagerOGLProgram {
 protected:
 #ifdef CHECK_CURRENT_PROGRAM
@@ -146,26 +97,16 @@ public:
 
   void SetUniform(GLuint aUniform, float aFloatValue) {
     ASSERT_THIS_PROGRAM;
-
     if (aUniform == GLuint(-1))
       return;
-
-    if (!mUniformValues[aUniform].equalsFloat(aFloatValue)) {
-      mGL->fUniform1f(aUniform, aFloatValue);
-      mUniformValues[aUniform].setFloat(aFloatValue);
-    }
+    mGL->fUniform1f(aUniform, aFloatValue);
   }
 
   void SetUniform(GLuint aUniform, const gfxRGBA& aColor) {
     ASSERT_THIS_PROGRAM;
-
     if (aUniform == GLuint(-1))
       return;
-
-    if (!mUniformValues[aUniform].equalsColor(aColor)) {
-      mGL->fUniform4f(aUniform, float(aColor.r), float(aColor.g), float(aColor.b), float(aColor.a));
-      mUniformValues[aUniform].setColor(aColor);
-    }
+    mGL->fUniform4f(aUniform, float(aColor.r), float(aColor.g), float(aColor.b), float(aColor.a));
   }
 
   void SetUniform(GLuint aUniform, int aLength, float *aFloatValues) {
@@ -174,52 +115,37 @@ public:
     if (aUniform == GLuint(-1))
       return;
 
-    if (!mUniformValues[aUniform].equalsFloatN(aFloatValues, aLength)) {
-      if (aLength == 1) {
-        mGL->fUniform1fv(aUniform, 1, aFloatValues);
-      } else if (aLength == 2) {
-        mGL->fUniform2fv(aUniform, 1, aFloatValues);
-      } else if (aLength == 3) {
-        mGL->fUniform3fv(aUniform, 1, aFloatValues);
-      } else if (aLength == 4) {
-        mGL->fUniform4fv(aUniform, 1, aFloatValues);
-      } else {
-        NS_NOTREACHED("Bogus aLength param");
-      }
-      mUniformValues[aUniform].setFloatN(aFloatValues, aLength);
+    if (aLength == 1) {
+      mGL->fUniform1fv(aUniform, 1, aFloatValues);
+    } else if (aLength == 2) {
+      mGL->fUniform2fv(aUniform, 1, aFloatValues);
+    } else if (aLength == 3) {
+      mGL->fUniform3fv(aUniform, 1, aFloatValues);
+    } else if (aLength == 4) {
+      mGL->fUniform4fv(aUniform, 1, aFloatValues);
+    } else {
+      NS_NOTREACHED("Bogus aLength param");
     }
   }
 
   void SetUniform(GLuint aUniform, GLint aIntValue) {
     ASSERT_THIS_PROGRAM;
-
     if (aUniform == GLuint(-1))
       return;
-
-    if (!mUniformValues[aUniform].equalsInt(aIntValue)) {
-      mGL->fUniform1i(aUniform, aIntValue);
-      mUniformValues[aUniform].setInt(aIntValue);
-    }
+    mGL->fUniform1i(aUniform, aIntValue);
   }
 
   void SetMatrixUniform(GLuint aUniform, const float *aFloatValues) {
     ASSERT_THIS_PROGRAM;
-
     if (aUniform == GLuint(-1))
       return;
-
-    if (!mUniformValues[aUniform].equalsFloatN(aFloatValues, 16)) {
-      mGL->fUniformMatrix4fv(aUniform, 1, false, aFloatValues);
-      mUniformValues[aUniform].setFloatN(aFloatValues, 16);
-    }
+    mGL->fUniformMatrix4fv(aUniform, 1, false, aFloatValues);
   }
 
 protected:
   nsRefPtr<GLContext> mGL;
 
   GLuint mProgram;
-
-  nsTArray<UniformValue> mUniformValues;
 
   GLint CreateShader(GLenum aShaderType,
                      const char *aShaderSource)
@@ -322,34 +248,6 @@ protected:
       return false;
     }
 
-    
-    
-    
-    
-    
-    
-    GLint count, maxnamelen;
-    nsCAutoString uname;
-    GLint maxloc = 0;
-    mGL->fGetProgramiv(mProgram, LOCAL_GL_ACTIVE_UNIFORMS, &count);
-    mGL->fGetProgramiv(mProgram, LOCAL_GL_ACTIVE_UNIFORM_MAX_LENGTH, &maxnamelen);
-    uname.SetCapacity(maxnamelen);
-    for (int i = 0; i < count; ++i) {
-      GLsizei namelen;
-      GLint usize;
-      GLenum utype;
-
-      mGL->fGetActiveUniform(mProgram, i, maxnamelen, &namelen, &usize, &utype, uname.BeginWriting());
-      uname.SetLength(namelen);
-      GLint uloc = mGL->fGetUniformLocation(mProgram, uname.BeginReading());
-      if (maxloc < uloc)
-        maxloc = uloc;
-    }
-
-    
-    
-    mUniformValues.SetLength(maxloc+1);
-    
     return true;
   }
 
