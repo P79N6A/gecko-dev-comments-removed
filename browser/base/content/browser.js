@@ -1400,7 +1400,7 @@ var gBrowserInit = {
 
       
       if (gPrefService.getBoolPref("devtools.toolbar.visible")) {
-        DeveloperToolbar.show(false);
+        DeveloperToolbar.show();
       }
     }
 
@@ -2610,13 +2610,16 @@ function BrowserOnClick(event) {
         if (previousNotification)
           notificationBox.removeNotification(previousNotification);
 
-        notificationBox.appendNotification(
+        let notification = notificationBox.appendNotification(
           title,
           value,
           "chrome://global/skin/icons/blacklist_favicon.png",
           notificationBox.PRIORITY_CRITICAL_HIGH,
           buttons
         );
+        
+        
+        notification.persistence = -1;
       }
     }
     else if (/^about:home$/i.test(ownerDoc.documentURI)) {
