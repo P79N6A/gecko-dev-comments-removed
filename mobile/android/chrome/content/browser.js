@@ -2018,6 +2018,7 @@ Tab.prototype = {
         
         let contentDocument = aSubject;
         if (contentDocument == this.browser.contentDocument) {
+          sendMessageToJava({ gecko: { type: "Document:Shown" } });
           ViewportHandler.updateMetadata(this);
           this.documentIdForCurrentViewport = ViewportHandler.getIdForDocument(contentDocument);
         }
