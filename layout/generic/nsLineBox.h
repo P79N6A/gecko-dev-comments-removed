@@ -486,14 +486,14 @@ public:
   
   
   
-  bool CachedIsEmpty();
+  bool CachedIsEmpty() const;
 
   void InvalidateCachedIsEmpty() {
     mFlags.mEmptyCacheValid = PR_FALSE;
   }
 
   
-  bool IsValidCachedIsEmpty() {
+  bool IsValidCachedIsEmpty() const {
     return mFlags.mEmptyCacheValid;
   }
 
@@ -514,8 +514,8 @@ public:
     PRUint32 mLineWrapped: 1;
     PRUint32 mInvalidateTextRuns : 1;
     PRUint32 mResizeReflowOptimizationDisabled: 1;  
-    PRUint32 mEmptyCacheValid: 1;
-    PRUint32 mEmptyCacheState: 1;
+    mutable PRUint32 mEmptyCacheValid: 1;
+    mutable PRUint32 mEmptyCacheState: 1;
     
     
     PRUint32 mHasBullet : 1;

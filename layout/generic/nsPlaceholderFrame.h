@@ -69,6 +69,8 @@
 #include "nsFrame.h"
 #include "nsGkAtoms.h"
 
+class nsLineBox;
+
 nsIFrame* NS_NewPlaceholderFrame(nsIPresShell* aPresShell,
                                  nsStyleContext* aContext,
                                  nsFrameState aTypeBit);
@@ -200,8 +202,17 @@ public:
     return outOfFlow;
   }
 
+  
+  
+  
+  
+  const nsLineBox* GetCachedLineBox() const {
+    return mCachedLineBox;
+  }
+
 protected:
   nsIFrame* mOutOfFlowFrame;
+  nsLineBox* mCachedLineBox;
 };
 
 #endif 
