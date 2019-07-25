@@ -951,14 +951,9 @@ struct TraceMonitor {
 
 
 
-
-
-
-
     VMAllocator*            dataAlloc;
     VMAllocator*            traceAlloc;
     VMAllocator*            tempAlloc;
-    VMAllocator*            reTempAlloc;
     nanojit::CodeAlloc*     codeAlloc;
     nanojit::Assembler*     assembler;
     FrameInfoCache*         frameCache;
