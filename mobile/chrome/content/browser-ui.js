@@ -399,9 +399,11 @@ var BrowserUI = {
       PreferencesView.init();
       ConsoleView.init();
 
+#ifdef MOZ_IPC
       
       Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULRuntime)
           .ensureContentProcess();
+#endif
 
       
       WeaveGlue.init();
