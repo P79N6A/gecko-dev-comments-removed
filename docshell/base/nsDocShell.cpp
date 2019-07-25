@@ -4315,7 +4315,13 @@ nsDocShell::LoadPage(nsISupports *aPageDescriptor, PRUint32 aDisplayType)
     nsCOMPtr<nsISHEntry> shEntry;
     nsresult rv = shEntryIn->Clone(getter_AddRefs(shEntry));
     NS_ENSURE_SUCCESS(rv, rv);
+
     
+    
+    
+    rv = shEntry->SetUniqueDocIdentifier();
+    NS_ENSURE_SUCCESS(rv, rv);
+
     
     
     
