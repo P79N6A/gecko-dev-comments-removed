@@ -18,8 +18,7 @@ var expected = {
   "clearDataButton": {"value": "Clear private data", "element_id": "prefs-clear-data", "label": "Clear", "tagName": "button"}
 };
 
-function getPreferencesElements()
-{
+function getPreferencesElements() {
    var prefElements = {};
    prefElements.panelOpen = document.getElementById("tool-panel-open");
    prefElements.panelClose = document.getElementById("tool-panel-close");
@@ -55,7 +54,7 @@ function runNextTest() {
   }
   else {
     
-      finish();
+    finish();
   }
 }
 
