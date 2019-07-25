@@ -2315,104 +2315,104 @@ nsPrintEngine::DoPrint(nsPrintObject * aPO)
       }
 #endif
 
-      if (mPrt->mPrintSettings) {
-        PRUnichar * docTitleStr = nsnull;
-        PRUnichar * docURLStr   = nsnull;
-
-        GetDisplayTitleAndURL(aPO, &docTitleStr, &docURLStr, eDocTitleDefBlank); 
-
-        if (nsIPrintSettings::kRangeSelection == printRangeType) {
-          CloneSelection(aPO->mDocument->GetOriginalDocument(), aPO->mDocument);
-
-          poPresContext->SetIsRenderingOnlySelection(PR_TRUE);
-          
-          
-          nsCOMPtr<nsIRenderingContext> rc;
-          mPrt->mPrintDC->CreateRenderingContext(*getter_AddRefs(rc));
-
-          
-          
-          nsIFrame* startFrame;
-          nsIFrame* endFrame;
-          PRInt32   startPageNum;
-          PRInt32   endPageNum;
-          nsRect    startRect;
-          nsRect    endRect;
-
-          nsCOMPtr<nsISelection> selectionPS;
-          selectionPS = poPresShell->GetCurrentSelection(nsISelectionController::SELECTION_NORMAL);
-
-          rv = GetPageRangeForSelection(poPresShell, poPresContext, *rc, selectionPS, pageSequence,
-                                        &startFrame, startPageNum, startRect,
-                                        &endFrame, endPageNum, endRect);
-          if (NS_SUCCEEDED(rv)) {
-            mPrt->mPrintSettings->SetStartPageRange(startPageNum);
-            mPrt->mPrintSettings->SetEndPageRange(endPageNum);
-            nsIntMargin marginTwips(0,0,0,0);
-            nsIntMargin unwrtMarginTwips(0,0,0,0);
-            mPrt->mPrintSettings->GetMarginInTwips(marginTwips);
-            mPrt->mPrintSettings->GetUnwriteableMarginInTwips(unwrtMarginTwips);
-            nsMargin totalMargin = poPresContext->CSSTwipsToAppUnits(marginTwips + 
-                                                                     unwrtMarginTwips);
-            if (startPageNum == endPageNum) {
-              {
-                startRect.y -= totalMargin.top;
-                endRect.y   -= totalMargin.top;
-
-                
-                if (startRect.y < 0) {
-                  
-                  
-                  startRect.height = NS_MAX(0, startRect.YMost());
-                  startRect.y = 0;
-                }
-                if (endRect.y < 0) {
-                  
-                  
-                  endRect.height = NS_MAX(0, endRect.YMost());
-                  endRect.y = 0;
-                }
-                NS_ASSERTION(endRect.y >= startRect.y,
-                             "Selection end point should be after start point");
-                NS_ASSERTION(startRect.height >= 0,
-                             "rect should have non-negative height.");
-                NS_ASSERTION(endRect.height >= 0,
-                             "rect should have non-negative height.");
-
-                nscoord selectionHgt = endRect.y + endRect.height - startRect.y;
-                
-                pageSequence->SetSelectionHeight(startRect.y * aPO->mZoomRatio,
-                                                 selectionHgt * aPO->mZoomRatio);
-
-                
-                
-                nscoord pageWidth, pageHeight;
-                mPrt->mPrintDC->GetDeviceSurfaceDimensions(pageWidth, pageHeight);
-                pageHeight -= totalMargin.top + totalMargin.bottom;
-                PRInt32 totalPages = NSToIntCeil(float(selectionHgt) * aPO->mZoomRatio / float(pageHeight));
-                pageSequence->SetTotalNumPages(totalPages);
-              }
-            }
-          }
-        }
-
-        nsIFrame * seqFrame = do_QueryFrame(pageSequence);
-        if (!seqFrame) {
-          SetIsPrinting(PR_FALSE);
-          return NS_ERROR_FAILURE;
-        }
-
-        mPageSeqFrame = pageSequence;
-        mPageSeqFrame->StartPrint(poPresContext, mPrt->mPrintSettings, docTitleStr, docURLStr);
-
-        
-        PR_PL(("Scheduling Print of PO: %p (%s) \n", aPO, gFrameTypesStr[aPO->mFrameType]));
-        StartPagePrintTimer(aPO);
-      } else {
+      if (!mPrt->mPrintSettings) {
         
         SetIsPrinting(PR_FALSE);
         return NS_ERROR_FAILURE;
       }
+
+      PRUnichar * docTitleStr = nsnull;
+      PRUnichar * docURLStr   = nsnull;
+
+      GetDisplayTitleAndURL(aPO, &docTitleStr, &docURLStr, eDocTitleDefBlank);
+
+      if (nsIPrintSettings::kRangeSelection == printRangeType) {
+        CloneSelection(aPO->mDocument->GetOriginalDocument(), aPO->mDocument);
+
+        poPresContext->SetIsRenderingOnlySelection(PR_TRUE);
+        
+        
+        nsCOMPtr<nsIRenderingContext> rc;
+        mPrt->mPrintDC->CreateRenderingContext(*getter_AddRefs(rc));
+
+        
+        
+        nsIFrame* startFrame;
+        nsIFrame* endFrame;
+        PRInt32   startPageNum;
+        PRInt32   endPageNum;
+        nsRect    startRect;
+        nsRect    endRect;
+
+        nsCOMPtr<nsISelection> selectionPS;
+        selectionPS = poPresShell->GetCurrentSelection(nsISelectionController::SELECTION_NORMAL);
+
+        rv = GetPageRangeForSelection(poPresShell, poPresContext, *rc, selectionPS, pageSequence,
+                                      &startFrame, startPageNum, startRect,
+                                      &endFrame, endPageNum, endRect);
+        if (NS_SUCCEEDED(rv)) {
+          mPrt->mPrintSettings->SetStartPageRange(startPageNum);
+          mPrt->mPrintSettings->SetEndPageRange(endPageNum);
+          nsIntMargin marginTwips(0,0,0,0);
+          nsIntMargin unwrtMarginTwips(0,0,0,0);
+          mPrt->mPrintSettings->GetMarginInTwips(marginTwips);
+          mPrt->mPrintSettings->GetUnwriteableMarginInTwips(unwrtMarginTwips);
+          nsMargin totalMargin = poPresContext->CSSTwipsToAppUnits(marginTwips +
+                                                                   unwrtMarginTwips);
+          if (startPageNum == endPageNum) {
+            startRect.y -= totalMargin.top;
+            endRect.y   -= totalMargin.top;
+
+            
+            if (startRect.y < 0) {
+              
+              
+              startRect.height = NS_MAX(0, startRect.YMost());
+              startRect.y = 0;
+            }
+            if (endRect.y < 0) {
+              
+              
+              endRect.height = NS_MAX(0, endRect.YMost());
+              endRect.y = 0;
+            }
+            NS_ASSERTION(endRect.y >= startRect.y,
+                         "Selection end point should be after start point");
+            NS_ASSERTION(startRect.height >= 0,
+                         "rect should have non-negative height.");
+            NS_ASSERTION(endRect.height >= 0,
+                         "rect should have non-negative height.");
+
+            nscoord selectionHgt = endRect.y + endRect.height - startRect.y;
+            
+            pageSequence->SetSelectionHeight(startRect.y * aPO->mZoomRatio,
+                                             selectionHgt * aPO->mZoomRatio);
+
+            
+            
+            nscoord pageWidth, pageHeight;
+            mPrt->mPrintDC->GetDeviceSurfaceDimensions(pageWidth, pageHeight);
+            pageHeight -= totalMargin.top + totalMargin.bottom;
+            PRInt32 totalPages = NSToIntCeil(float(selectionHgt) * aPO->mZoomRatio / float(pageHeight));
+            pageSequence->SetTotalNumPages(totalPages);
+          }
+        }
+      }
+
+      nsIFrame * seqFrame = do_QueryFrame(pageSequence);
+      if (!seqFrame) {
+        SetIsPrinting(PR_FALSE);
+        if (docTitleStr) nsMemory::Free(docTitleStr);
+        if (docURLStr) nsMemory::Free(docURLStr);
+        return NS_ERROR_FAILURE;
+      }
+
+      mPageSeqFrame = pageSequence;
+      mPageSeqFrame->StartPrint(poPresContext, mPrt->mPrintSettings, docTitleStr, docURLStr);
+
+      
+      PR_PL(("Scheduling Print of PO: %p (%s) \n", aPO, gFrameTypesStr[aPO->mFrameType]));
+      StartPagePrintTimer(aPO);
     }
   }
 
