@@ -72,6 +72,13 @@ PreparePatternForUntiledDrawing(gfxPattern* aPattern,
                                 gfxASurface *currentTarget,
                                 const gfxPattern::GraphicsFilter aDefaultFilter)
 {
+    if (!currentTarget) {
+        
+        aPattern->SetExtend(gfxPattern::EXTEND_PAD);
+        aPattern->SetFilter(aDefaultFilter);
+        return;
+    }
+
     
     
     
