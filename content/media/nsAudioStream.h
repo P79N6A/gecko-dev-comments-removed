@@ -98,7 +98,7 @@ public:
   virtual void SetVolume(double aVolume) = 0;
 
   
-  virtual void Drain() = 0;
+  virtual nsresult Drain() = 0;
 
   
   virtual void Pause() = 0;
