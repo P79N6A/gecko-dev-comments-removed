@@ -198,10 +198,9 @@ const ACTION = {
   TIMED_ANALYZE:   1 << 2, 
   CLEAR_HISTORY:   1 << 3, 
   SHUTDOWN_DIRTY:  1 << 4, 
-  SHUTDOWN_CLEAN:  1 << 5, 
-  IDLE_DIRTY:      1 << 6, 
-  IDLE_DAILY:      1 << 7, 
-  DEBUG:           1 << 8, 
+  IDLE_DIRTY:      1 << 5, 
+  IDLE_DAILY:      1 << 6, 
+  DEBUG:           1 << 7, 
 };
 
 
@@ -387,15 +386,13 @@ const EXPIRATION_QUERIES = {
   
   QUERY_EXPIRE_ANNOS_SESSION: {
     sql: "DELETE FROM moz_annos WHERE expiration = :expire_session",
-    actions: ACTION.CLEAR_HISTORY | ACTION.SHUTDOWN_DIRTY |
-             ACTION.SHUTDOWN_CLEAN | ACTION.DEBUG
+    actions: ACTION.CLEAR_HISTORY | ACTION.DEBUG
   },
 
   
   QUERY_EXPIRE_ITEMS_ANNOS_SESSION: {
     sql: "DELETE FROM moz_items_annos WHERE expiration = :expire_session",
-    actions: ACTION.CLEAR_HISTORY | ACTION.SHUTDOWN_DIRTY |
-             ACTION.SHUTDOWN_CLEAN | ACTION.DEBUG
+    actions: ACTION.CLEAR_HISTORY | ACTION.DEBUG
   },
 
   
@@ -530,10 +527,10 @@ nsPlacesExpiration.prototype = {
       let hasRecentClearHistory =
         Date.now() - this._lastClearHistoryTime <
           SHUTDOWN_WITH_RECENT_CLEARHISTORY_TIMEOUT_SECONDS * 1000;
-      let action = hasRecentClearHistory ||
-                   this.status != STATUS.DIRTY ? ACTION.SHUTDOWN_CLEAN
-                                               : ACTION.SHUTDOWN_DIRTY;
-      this._expireWithActionAndLimit(action, LIMIT.LARGE);
+      if (!hasRecentClearHistory && this.status == STATUS.DIRTY) {
+        this._expireWithActionAndLimit(ACTION.SHUTDOWN_DIRTY, LIMIT.LARGE);
+      }
+
       this._finalizeInternalStatements();
     }
     else if (aTopic == TOPIC_PREF_CHANGED) {
@@ -857,8 +854,7 @@ nsPlacesExpiration.prototype = {
     if (this._inBatchMode)
       return;
     
-    if (this._shuttingDown &&
-        aAction != ACTION.SHUTDOWN_DIRTY && aAction != ACTION.SHUTDOWN_CLEAN) {
+    if (this._shuttingDown && aAction != ACTION.SHUTDOWN_DIRTY) {
       return;
     }
 
