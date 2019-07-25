@@ -64,6 +64,10 @@ NS_IMETHODIMP nsTestCrasher::Crash(PRInt16 how)
     
     break;
   }
+  case nsITestCrasher::CRASH_RUNTIMEABORT: {
+    NS_RUNTIMEABORT("Intentional crash");
+    break;
+  }
   default:
     return NS_ERROR_INVALID_ARG;
   }
