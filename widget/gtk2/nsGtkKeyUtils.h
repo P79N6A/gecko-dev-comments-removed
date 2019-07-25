@@ -64,7 +64,7 @@ public:
     
 
 
-    static PRUint32 ComputeDOMKeyCode(guint aGDKKeyval);
+    static PRUint32 ComputeDOMKeyCode(const GdkEventKey* aGdkKeyEvent);
 
     
 
