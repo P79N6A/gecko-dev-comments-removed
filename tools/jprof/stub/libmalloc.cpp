@@ -213,9 +213,12 @@ static void DumpAddressMap()
 }
 #endif
 
+static bool was_paused = true;
+
 static void EndProfilingHook(int signum)
 {
     DumpAddressMap();
+    was_paused = true;
     puts("Jprof: profiling paused.");
 }
 
@@ -229,6 +232,12 @@ JprofLog(u_long aTime, void* stack_top, void* top_instr_ptr)
 
   me.delTime = aTime;
   me.thread = syscall(SYS_gettid); 
+  if (was_paused) {
+      me.flags = JP_FIRST_AFTER_PAUSE;
+      was_paused = 0;
+  } else {
+      me.flags = 0;
+  }
 
   CrawlStack(&me, stack_top, top_instr_ptr);
 
@@ -497,11 +506,13 @@ NS_EXPORT_(void) setupProfilingStuff(void)
 
                     if (!rtcHz || firstDelay != 0)
 #endif
-                    if (realTime) {
-                        sigaction(SIGALRM, &action, NULL);
-                    } else {
-                        sigaction(SIGPROF, &action, NULL);
+                    {
+                        if (realTime) {
+                            sigaction(SIGALRM, &action, NULL);
+                        }
                     }
+                    
+                    sigaction(SIGPROF, &action, NULL);
 
 		    
 		    
