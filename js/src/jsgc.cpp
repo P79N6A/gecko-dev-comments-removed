@@ -3688,16 +3688,18 @@ Collect(JSRuntime *rt, bool incremental, int64_t budget,
                 callback(rt, JSGC_BEGIN);
         }
 
-        {
-            rt->gcPoke = false;
-            GCCycle(rt, incremental, budget, gckind);
-        }
+        rt->gcPoke = false;
+        GCCycle(rt, incremental, budget, gckind);
 
         if (rt->gcIncrementalState == NO_INCREMENTAL) {
             gcstats::AutoPhase ap(rt->gcStats, gcstats::PHASE_GC_END);
             if (JSGCCallback callback = rt->gcCallback)
                 callback(rt, JSGC_END);
         }
+
+        
+        if (!rt->hasContexts() && rt->gcPoke)
+            PrepareForFullGC(rt);
 
         
 
