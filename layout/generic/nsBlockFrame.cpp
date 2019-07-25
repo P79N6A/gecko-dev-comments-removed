@@ -1484,18 +1484,9 @@ nsBlockFrame::ComputeOverflowAreas(const nsHTMLReflowState& aReflowState,
     
     
     
-    nscoord bottomEdgeOfContents = aBottomEdgeOfChildren;
-    if (GetStyleContext()->GetPseudo() == nsCSSAnonBoxes::scrolledContent) {
-      
-      
-      bottomEdgeOfContents += aReflowState.mComputedPadding.bottom;
-    }
-    
-    
-    
     NS_FOR_FRAME_OVERFLOW_TYPES(otype) {
       nsRect& o = areas.Overflow(otype);
-      o.height = NS_MAX(o.YMost(), bottomEdgeOfContents) - o.y;
+      o.height = NS_MAX(o.YMost(), aBottomEdgeOfChildren) - o.y;
     }
   }
 #ifdef NOISY_COMBINED_AREA
