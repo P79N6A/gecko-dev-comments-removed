@@ -1,7 +1,4 @@
 
-
-
-
 "use strict";
 
 browserElementTestHelpers.setEnabledPref(true);

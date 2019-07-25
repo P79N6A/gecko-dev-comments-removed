@@ -1,8 +1,6 @@
-
-
-
-
 "use strict";
+
+
 
 const browserElementTestHelpers = {
   _getBoolPref: function(pref) {

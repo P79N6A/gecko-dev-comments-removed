@@ -1,8 +1,5 @@
 
 
-
-
-
 "use strict";
 SimpleTest.waitForExplicitFinish();
 
