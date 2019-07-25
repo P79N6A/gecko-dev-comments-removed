@@ -8114,22 +8114,24 @@ nsDocument::AddImage(imgIRequest* aImage)
   if (!success)
     return NS_ERROR_OUT_OF_MEMORY;
 
+  nsresult rv = NS_OK;
+
   
   
-  if ((oldCount == 0) && mLockingImages) {
-    nsresult rv = aImage->LockImage();
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = aImage->RequestDecode();
-    NS_ENSURE_SUCCESS(rv, rv);
+  if (oldCount == 0 && mLockingImages) {
+    rv = aImage->LockImage();
+    if (NS_SUCCEEDED(rv))
+      rv = aImage->RequestDecode();
   }
 
   
   
   if (oldCount == 0 && mAnimatingImages) {
-    return aImage->IncrementAnimationConsumers();
+    nsresult rv2 = aImage->IncrementAnimationConsumers();
+    rv = NS_SUCCEEDED(rv) ? rv2 : rv;
   }
 
-  return NS_OK;
+  return rv;
 }
 
 nsresult
@@ -8154,17 +8156,21 @@ nsDocument::RemoveImage(imgIRequest* aImage)
     mImageTracker.Put(aImage, count);
   }
 
-  
-  
-  if ((count == 0) && mLockingImages)
-    return aImage->UnlockImage();
+  nsresult rv = NS_OK;
 
   
   
-  if (count == 0 && mAnimatingImages)
-    return aImage->DecrementAnimationConsumers();
+  if (count == 0 && mLockingImages)
+    rv = aImage->UnlockImage();
 
-  return NS_OK;
+  
+  
+  if (count == 0 && mAnimatingImages) {
+    nsresult rv2 = aImage->DecrementAnimationConsumers();
+    rv = NS_SUCCEEDED(rv) ? rv2 : rv;
+  }
+
+  return rv;
 }
 
 PLDHashOperator LockEnumerator(imgIRequest* aKey,
