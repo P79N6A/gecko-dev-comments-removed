@@ -243,7 +243,8 @@ ResponseListener.prototype =
 
     if (HUDService.saveRequestAndResponseBodies &&
         this.receivedData.length < RESPONSE_BODY_LIMIT) {
-      this.receivedData += data;
+      this.receivedData += NetworkHelper.
+                           convertToUnicode(data, aRequest.contentCharset);
     }
 
     binaryOutputStream.writeBytes(data, aCount);
@@ -401,10 +402,22 @@ var NetworkHelper =
 
   convertToUnicode: function NH_convertToUnicode(aText, aCharset)
   {
+    if (!aCharset) {
+      return aText;
+    }
+
     let conv = Cc["@mozilla.org/intl/scriptableunicodeconverter"].
                createInstance(Ci.nsIScriptableUnicodeConverter);
-    conv.charset = aCharset || "UTF-8";
-    return conv.ConvertToUnicode(aText);
+    conv.charset = aCharset;
+
+    try {
+      return conv.ConvertToUnicode(aText);
+    }
+    catch (ex) {
+      Cu.reportError("NH_convertToUnicode(aText, '" +
+        aCharset + "') exception: " + ex);
+      return aText;
+    }
   },
 
   
@@ -2471,7 +2484,10 @@ HUD_SERVICE.prototype =
               return;
             }
 
-            let msgObject, updatePanel = false;
+            hudId = httpActivity.hudId;
+            let msgObject = httpActivity.messageObject;
+
+            let updatePanel = false;
             let data, textNode;
             
             httpActivity.timing[transCodes[aActivitySubtype]] = aTimestamp;
@@ -2483,10 +2499,14 @@ HUD_SERVICE.prototype =
                   break;
                 }
 
-                let gBrowser = HUDService.currentContext().gBrowser;
+                let gBrowser = msgObject.messageNode.ownerDocument.
+                               defaultView.gBrowser;
+                let HUD = HUDService.hudReferences[hudId];
+                let browser = gBrowser.
+                              getBrowserForDocument(HUD.contentDocument);
 
-                let sentBody = NetworkHelper.readPostTextFromRequest(
-                                aChannel, gBrowser);
+                let sentBody = NetworkHelper.
+                               readPostTextFromRequest(aChannel, browser);
                 if (!sentBody) {
                   
                   
@@ -2495,8 +2515,8 @@ HUD_SERVICE.prototype =
                   
                   
                   
-                  if (httpActivity.url == gBrowser.contentWindow.location.href) {
-                    sentBody = NetworkHelper.readPostTextFromPage(gBrowser);
+                  if (httpActivity.url == browser.contentWindow.location.href) {
+                    sentBody = NetworkHelper.readPostTextFromPage(browser);
                   }
                   if (!sentBody) {
                     sentBody = "";
@@ -2506,8 +2526,6 @@ HUD_SERVICE.prototype =
                 break;
 
               case activityDistributor.ACTIVITY_SUBTYPE_RESPONSE_HEADER:
-                msgObject = httpActivity.messageObject;
-
                 
                 
                 
@@ -2535,9 +2553,6 @@ HUD_SERVICE.prototype =
                 break;
 
               case activityDistributor.ACTIVITY_SUBTYPE_TRANSACTION_CLOSE:
-                msgObject = httpActivity.messageObject;
-
-
                 let timing = httpActivity.timing;
                 let requestDuration =
                   Math.round((timing.RESPONSE_COMPLETE -
