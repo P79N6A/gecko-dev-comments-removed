@@ -1506,11 +1506,12 @@ nsCacheService::ProcessRequest(nsCacheRequest *           request,
     
     nsresult           rv;
     nsCacheEntry *     entry = nsnull;
+    nsCacheEntry *     doomedEntry = nsnull;
     nsCacheAccessMode  accessGranted = nsICache::ACCESS_NONE;
     if (result) *result = nsnull;
 
     while(1) {  
-        rv = ActivateEntry(request, &entry);  
+        rv = ActivateEntry(request, &entry, &doomedEntry);  
         if (NS_FAILED(rv))  break;
 
         while(1) { 
@@ -1546,6 +1547,24 @@ nsCacheService::ProcessRequest(nsCacheRequest *           request,
     
     if (NS_SUCCEEDED(rv))
         rv = entry->CreateDescriptor(request, accessGranted, &descriptor);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (doomedEntry) {
+        (void) ProcessPendingRequests(doomedEntry);
+        if (doomedEntry->IsNotInUse())
+            DeactivateEntry(doomedEntry);
+        doomedEntry = nsnull;
+    }
 
     if (request->mListener) {  
     
@@ -1624,7 +1643,8 @@ nsCacheService::OpenCacheEntry(nsCacheSession *           session,
 
 nsresult
 nsCacheService::ActivateEntry(nsCacheRequest * request, 
-                              nsCacheEntry ** result)
+                              nsCacheEntry ** result,
+                              nsCacheEntry ** doomedEntry)
 {
     CACHE_LOG_DEBUG(("Activate entry for request %p\n", request));
     
@@ -1632,7 +1652,9 @@ nsCacheService::ActivateEntry(nsCacheRequest * request,
 
     NS_ASSERTION(request != nsnull, "ActivateEntry called with no request");
     if (result) *result = nsnull;
-    if ((!request) || (!result))  return NS_ERROR_NULL_POINTER;
+    if (doomedEntry) *doomedEntry = nsnull;
+    if ((!request) || (!result) || (!doomedEntry))
+        return NS_ERROR_NULL_POINTER;
 
     
     if (!mEnableMemoryDevice && !request->IsStreamBased())
@@ -1654,6 +1676,8 @@ nsCacheService::ActivateEntry(nsCacheRequest * request,
         if (collision) return NS_ERROR_CACHE_IN_USE;
 
         if (entry)  entry->MarkInitialized();
+    } else {
+        NS_ASSERTION(entry->IsActive(), "Inactive entry found in mActiveEntries!");
     }
 
     if (entry) {
@@ -1671,7 +1695,10 @@ nsCacheService::ActivateEntry(nsCacheRequest * request,
 
     {
         
-        rv = DoomEntry_Internal(entry);
+        
+        
+        rv = DoomEntry_Internal(entry, false);
+        *doomedEntry = entry;
         if (NS_FAILED(rv)) {
             
         }
@@ -1693,7 +1720,7 @@ nsCacheService::ActivateEntry(nsCacheRequest * request,
         
         entry->Fetched();
         ++mTotalEntries;
-        
+
         
     }
 
@@ -1773,7 +1800,9 @@ nsCacheDevice *
 nsCacheService::EnsureEntryHasDevice(nsCacheEntry * entry)
 {
     nsCacheDevice * device = entry->CacheDevice();
-    if (device)  return device;
+    
+    
+    if (device || entry->IsDoomed())  return device;
 
     PRInt64 predictedDataSize = entry->PredictedDataSize();
 #ifdef NECKO_DISK_CACHE
@@ -1849,12 +1878,13 @@ nsCacheService::EnsureEntryHasDevice(nsCacheEntry * entry)
 nsresult
 nsCacheService::DoomEntry(nsCacheEntry * entry)
 {
-    return gService->DoomEntry_Internal(entry);
+    return gService->DoomEntry_Internal(entry, true);
 }
 
 
 nsresult
-nsCacheService::DoomEntry_Internal(nsCacheEntry * entry)
+nsCacheService::DoomEntry_Internal(nsCacheEntry * entry,
+                                   PRBool doProcessPendingRequests)
 {
     if (entry->IsDoomed())  return NS_OK;
     
@@ -1878,11 +1908,14 @@ nsCacheService::DoomEntry_Internal(nsCacheEntry * entry)
     PR_APPEND_LINK(entry, &mDoomedEntries);
 
     
-    rv = ProcessPendingRequests(entry);
-    
-    
-    if (entry->IsNotInUse()) {
-        DeactivateEntry(entry); 
+    if (doProcessPendingRequests) {
+        
+        rv = ProcessPendingRequests(entry);
+
+        
+        if (entry->IsNotInUse()) {
+            DeactivateEntry(entry); 
+        }
     }
     return rv;
 }
@@ -2269,6 +2302,11 @@ nsCacheService::ProcessPendingRequests(nsCacheEntry * entry)
     nsCacheRequest *    nextRequest;
     PRBool              newWriter = PR_FALSE;
     
+    CACHE_LOG_DEBUG(("ProcessPendingRequests for %sinitialized %s %salid entry %p\n",
+                    (entry->IsInitialized()?"" : "Un"),
+                    (entry->IsDoomed()?"DOOMED" : ""),
+                    (entry->IsValid()? "V":"Inv"), entry));
+
     if (request == &entry->mRequestQ)  return NS_OK;    
 
     if (!entry->IsDoomed() && entry->IsInvalid()) {
@@ -2288,6 +2326,7 @@ nsCacheService::ProcessPendingRequests(nsCacheEntry * entry)
         while (request != &entry->mRequestQ) {
             if (request->AccessRequested() == nsICache::ACCESS_READ_WRITE) {
                 newWriter = PR_TRUE;
+                CACHE_LOG_DEBUG(("  promoting request %p to 1st writer\n", request));
                 break;
             }
 
@@ -2306,6 +2345,8 @@ nsCacheService::ProcessPendingRequests(nsCacheEntry * entry)
 
     while (request != &entry->mRequestQ) {
         nextRequest = (nsCacheRequest *)PR_NEXT_LINK(request);
+        CACHE_LOG_DEBUG(("  %sync request %p for %p\n",
+                        (request->mListener?"As":"S"), request, entry));
 
         if (request->mListener) {
 
@@ -2333,7 +2374,7 @@ nsCacheService::ProcessPendingRequests(nsCacheEntry * entry)
                 rv = entry->CreateDescriptor(request,
                                              accessGranted,
                                              &descriptor);
-                
+
                 
                 rv = NotifyListener(request, descriptor, accessGranted, rv);
                 delete request;
@@ -2404,6 +2445,7 @@ nsCacheService::DeactivateAndClearEntry(PLDHashTable *    table,
 {
     nsCacheEntry * entry = ((nsCacheEntryHashTableEntry *)hdr)->cacheEntry;
     NS_ASSERTION(entry, "### active entry = nsnull!");
+    
     gService->ClearPendingRequests(entry);
     entry->DetachDescriptors();
     
@@ -2423,7 +2465,7 @@ nsCacheService::DoomActiveEntries()
 
     PRUint32 count = array.Length();
     for (PRUint32 i=0; i < count; ++i)
-        DoomEntry_Internal(array[i]);
+        DoomEntry_Internal(array[i], true);
 }
 
 
