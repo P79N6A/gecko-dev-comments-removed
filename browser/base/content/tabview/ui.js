@@ -448,10 +448,25 @@ let UI = {
   _addTabActionHandlers: function UI__addTabActionHandlers() {
     var self = this;
 
+    
+    this._eventListeners.open = function(tab) {
+      if (tab.ownerDocument.defaultView != gWindow)
+        return;
+
+      
+      if (tab.pinned)
+        GroupItems.addAppTab(tab);
+    };
+    
+    
     this._eventListeners.close = function(tab) {
       if (tab.ownerDocument.defaultView != gWindow)
         return;
 
+      
+      if (tab.pinned)
+        GroupItems.removeAppTab(tab);
+        
       if (self._isTabViewVisible()) {
         
         if (self._currentTab == tab)
@@ -470,13 +485,17 @@ let UI = {
 
           
           
+          let closingLastOfGroup = (groupItem && 
+              groupItem._children.length == 1 && 
+              groupItem._children[0].tab == tab);
           
           
           
           
-          
-          if ((groupItem && groupItem._children.length == 1) ||
-              (groupItem == null && gBrowser.visibleTabs.length <= 1)) {
+          let closingUnnamedGroup = (groupItem == null &&
+              gBrowser.visibleTabs.length <= 1); 
+              
+          if (closingLastOfGroup || closingUnnamedGroup) {
             
             self._closedLastVisibleTab = true;
             
@@ -488,6 +507,7 @@ let UI = {
       }
     };
 
+    
     this._eventListeners.move = function(tab) {
       if (tab.ownerDocument.defaultView != gWindow)
         return;
@@ -497,6 +517,7 @@ let UI = {
         self.setReorderTabItemsOnShow(activeGroupItem);
     };
 
+    
     this._eventListeners.select = function(tab) {
       if (tab.ownerDocument.defaultView != gWindow)
         return;
@@ -504,13 +525,14 @@ let UI = {
       self.onTabSelect(tab);
     };
 
+    
     for (let name in this._eventListeners)
       AllTabs.register(name, this._eventListeners[name]);
 
     
     function handleTabPin(event) {
       TabItems.handleTabPin(event.originalTarget);
-      GroupItems.handleTabPin(event.originalTarget);
+      GroupItems.addAppTab(event.originalTarget);
     }
 
     gBrowser.tabContainer.addEventListener("TabPinned", handleTabPin, false);
@@ -521,7 +543,7 @@ let UI = {
     
     function handleTabUnpin(event) {
       TabItems.handleTabUnpin(event.originalTarget);
-      GroupItems.handleTabUnpin(event.originalTarget);
+      GroupItems.removeAppTab(event.originalTarget);
     }
 
     gBrowser.tabContainer.addEventListener("TabUnpinned", handleTabUnpin, false);

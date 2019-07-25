@@ -1543,6 +1543,7 @@ let GroupItems = {
 
   
   
+  
   _handleAttrModified: function GroupItems__handleAttrModified(xulTab) {
     if (xulTab.ownerDocument.defaultView != gWindow || !xulTab.pinned)
       return;
@@ -1562,7 +1563,8 @@ let GroupItems = {
 
   
   
-  handleTabPin: function GroupItems_handleTabPin(xulTab) {
+  
+  addAppTab: function GroupItems_addAppTab(xulTab) {
     this.groupItems.forEach(function(groupItem) {
       groupItem.addAppTab(xulTab);
     });
@@ -1570,7 +1572,8 @@ let GroupItems = {
 
   
   
-  handleTabUnpin: function GroupItems_handleTabUnpin(xulTab) {
+  
+  removeAppTab: function GroupItems_removeAppTab(xulTab) {
     this.groupItems.forEach(function(groupItem) {
       groupItem.removeAppTab(xulTab);
     });
