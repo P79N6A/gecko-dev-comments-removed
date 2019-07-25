@@ -1003,15 +1003,15 @@ namespace nanojit
         #ifdef _WIN64
             else if (ty == ARGTYPE_D && arg_index < NumArgRegs) {
                 
-                Register rxi = { REGNUM(XMM0) + arg_index };
+                Register rxi = XMM0 + arg_index;
                 asm_regarg(ty, arg, rxi);
                 arg_index++;
             }
         #else
-            else if (ty == ARGTYPE_D && REGNUM(fr) < REGNUM(XMM8)) {
+            else if (ty == ARGTYPE_D && fr < XMM8) {
                 
                 asm_regarg(ty, arg, fr);
-                fr = REGINC(fr);
+                fr = fr + 1;
             }
         #endif
             else {
