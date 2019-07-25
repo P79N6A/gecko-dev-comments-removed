@@ -404,7 +404,7 @@ nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext)
     (mStylePosition->MaxHeightDependsOnContainer() &&
      
      mStylePosition->mMaxHeight.GetUnit() != eStyleUnit_Auto) ||
-    mStylePosition->mOffset.GetTopUnit() == eStyleUnit_Percent ||
+    mStylePosition->OffsetHasPercent(NS_SIDE_TOP) ||
     mStylePosition->mOffset.GetBottomUnit() != eStyleUnit_Auto ||
     frame->IsBoxFrame() ||
     (mStylePosition->mHeight.GetUnit() == eStyleUnit_Auto &&
@@ -614,10 +614,10 @@ nsHTMLReflowState::ComputeRelativeOffsets(const nsHTMLReflowState* cbrs,
   
   
   if (NS_UNCONSTRAINEDSIZE == aContainingBlockWidth) {
-    if (eStyleUnit_Percent == mStylePosition->mOffset.GetLeftUnit()) {
+    if (mStylePosition->OffsetHasPercent(NS_SIDE_LEFT)) {
       leftIsAuto = PR_TRUE;
     }
-    if (eStyleUnit_Percent == mStylePosition->mOffset.GetRightUnit()) {
+    if (mStylePosition->OffsetHasPercent(NS_SIDE_RIGHT)) {
       rightIsAuto = PR_TRUE;
     }
   }
@@ -668,10 +668,10 @@ nsHTMLReflowState::ComputeRelativeOffsets(const nsHTMLReflowState* cbrs,
   
   
   if (NS_AUTOHEIGHT == aContainingBlockHeight) {
-    if (eStyleUnit_Percent == mStylePosition->mOffset.GetTopUnit()) {
+    if (mStylePosition->OffsetHasPercent(NS_SIDE_TOP)) {
       topIsAuto = PR_TRUE;
     }
-    if (eStyleUnit_Percent == mStylePosition->mOffset.GetBottomUnit()) {
+    if (mStylePosition->OffsetHasPercent(NS_SIDE_BOTTOM)) {
       bottomIsAuto = PR_TRUE;
     }
   }

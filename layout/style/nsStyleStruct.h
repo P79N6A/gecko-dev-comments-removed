@@ -1101,12 +1101,24 @@ struct nsStylePosition {
     { return WidthCoordDependsOnContainer(mMinWidth); }
   PRBool MaxWidthDependsOnContainer() const
     { return WidthCoordDependsOnContainer(mMaxWidth); }
+
+  
+  
+  
+  
+  
+  
   PRBool HeightDependsOnContainer() const
     { return HeightCoordDependsOnContainer(mHeight); }
   PRBool MinHeightDependsOnContainer() const
     { return HeightCoordDependsOnContainer(mMinHeight); }
   PRBool MaxHeightDependsOnContainer() const
     { return HeightCoordDependsOnContainer(mMaxHeight); }
+
+  PRBool OffsetHasPercent(mozilla::css::Side aSide) const
+  {
+    return mOffset.Get(aSide).HasPercent();
+  }
 
 private:
   static PRBool WidthCoordDependsOnContainer(const nsStyleCoord &aCoord);

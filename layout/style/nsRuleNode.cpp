@@ -5531,7 +5531,8 @@ nsRuleNode::ComputePositionData(void* aStartStruct,
   NS_FOR_CSS_SIDES(side) {
     nsStyleCoord parentCoord = parentPos->mOffset.Get(side);
     if (SetCoord(posData.mOffset.*(nsCSSRect::sides[side]),
-                 coord, parentCoord, SETCOORD_LPAH | SETCOORD_INITIAL_AUTO,
+                 coord, parentCoord,
+                 SETCOORD_LPAH | SETCOORD_INITIAL_AUTO | SETCOORD_STORE_CALC,
                  aContext, mPresContext, canStoreInRuleTree)) {
       pos->mOffset.Set(side, coord);
     }
