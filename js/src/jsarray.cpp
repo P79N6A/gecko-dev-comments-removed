@@ -3102,7 +3102,7 @@ js_NewEmptyArray(JSContext* cx, JSObject* proto)
     
     obj->map = const_cast<JSObjectMap *>(&SharedArrayMap);
 
-    obj->init(&js_ArrayClass, NonFunObjTag(*proto), proto->getParent(), NullTag());
+    obj->init(&js_ArrayClass, NonFunObjTag(*proto), proto->getParentValue(), NullTag());
     obj->setDenseArrayLength(0);
     obj->setDenseArrayCount(0);
     return obj;
