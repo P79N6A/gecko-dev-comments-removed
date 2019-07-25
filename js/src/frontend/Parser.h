@@ -50,9 +50,11 @@ struct Parser : private AutoGCRooter
     
     const bool          foldConstants:1;
 
+  private:
     
     const bool          compileAndGo:1;
 
+  public:
     Parser(JSContext *cx, JSPrincipals *prin, JSPrincipals *originPrin,
            const jschar *chars, size_t length, const char *fn, unsigned ln, JSVersion version,
            StackFrame *cfp, bool foldConstants, bool compileAndGo);

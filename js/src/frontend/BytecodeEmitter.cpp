@@ -661,7 +661,7 @@ LookupCompileTimeConstant(JSContext *cx, BytecodeEmitter *bce, JSAtom *atom, Val
 
     constp->setMagic(JS_NO_CONSTANT);
     do {
-        if (bce->sc->inFunction() || bce->parser->compileAndGo) {
+        if (bce->sc->inFunction() || bce->script->compileAndGo) {
             
             StmtInfo *stmt = LexicalLookup(bce->sc, atom, NULL);
             if (stmt)
@@ -684,7 +684,7 @@ LookupCompileTimeConstant(JSContext *cx, BytecodeEmitter *bce, JSAtom *atom, Val
                 if (bce->sc->bindings.hasBinding(cx, atom))
                     break;
             } else {
-                JS_ASSERT(bce->parser->compileAndGo);
+                JS_ASSERT(bce->script->compileAndGo);
                 JSObject *obj = bce->sc->scopeChain();
 
                 const Shape *shape = obj->nativeLookup(cx, AtomToId(atom));
@@ -1132,7 +1132,7 @@ EmitEnterBlock(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, JSOp op)
 static bool
 TryConvertToGname(BytecodeEmitter *bce, ParseNode *pn, JSOp *op)
 {
-    if (bce->parser->compileAndGo &&
+    if (bce->script->compileAndGo &&
         bce->globalScope->globalObj &&
         !bce->sc->funMightAliasLocals() &&
         !pn->isDeoptimized() &&
@@ -1230,7 +1230,7 @@ BindNameToSlot(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
       case JSOP_DELNAME:
         if (dn_kind != Definition::UNKNOWN) {
             if (bce->parser->callerFrame && dn->isTopLevel())
-                JS_ASSERT(bce->parser->compileAndGo);
+                JS_ASSERT(bce->script->compileAndGo);
             else
                 pn->setOp(JSOP_FALSE);
             pn->pn_dflags |= PND_BOUND;
@@ -1254,7 +1254,7 @@ BindNameToSlot(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
     if (cookie.isFree()) {
         StackFrame *caller = bce->parser->callerFrame;
         if (caller) {
-            JS_ASSERT(bce->parser->compileAndGo);
+            JS_ASSERT(bce->script->compileAndGo);
 
             
 
@@ -1603,7 +1603,7 @@ CheckSideEffects(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, JSBool *ans
 bool
 BytecodeEmitter::needsImplicitThis()
 {
-    if (!parser->compileAndGo)
+    if (!script->compileAndGo)
         return true;
 
     if (sc->inFunction()) {
@@ -4863,8 +4863,10 @@ EmitFunc(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
         
         Rooted<JSScript*> script(cx);
-        script = JSScript::Create(cx, bce->script->principals, bce->script->originPrincipals,
-                                   false, bce->script->getVersion());
+        Rooted<JSScript*> parent(cx, bce->script);
+        script = JSScript::Create(cx, parent->principals, parent->originPrincipals,
+                                  parent->compileAndGo,  false,
+                                  parent->getVersion());
         if (!script)
             return false;
 
@@ -5698,7 +5700,7 @@ EmitObject(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
 
     RootedObject obj(cx);
-    if (bce->parser->compileAndGo) {
+    if (bce->script->compileAndGo) {
         gc::AllocKind kind = GuessObjectGCKind(pn->pn_count);
         obj = NewBuiltinClassInstance(cx, &ObjectClass, kind);
         if (!obj)
