@@ -4640,8 +4640,7 @@ EmitAssignment(JSContext *cx, JSCodeGenerator *cg, JSParseNode *lhs, JSOp op, JS
       case TOK_LP:
         if (!js_EmitTree(cx, cg, lhs))
             return false;
-        JS_ASSERT(lhs->pn_xflags & PNX_SETCALL);
-        offset += 2;
+        offset++;
         break;
 #if JS_HAS_XML_SUPPORT
       case TOK_UNARYOP:
@@ -4719,12 +4718,7 @@ EmitAssignment(JSContext *cx, JSCodeGenerator *cg, JSParseNode *lhs, JSOp op, JS
             return false;
     } else {
         
-
-
-
-
-
-        if (offset != 1 && js_Emit2(cx, cg, JSOP_PICK, offset - 1) < 0)
+        if (js_Emit2(cx, cg, JSOP_ITERNEXT, offset) < 0)
             return false;
     }
 
@@ -5427,6 +5421,7 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
             SET_STATEMENT_TOP(&stmtInfo, top);
             if (EmitTraceOp(cx, cg, NULL) < 0)
                 return JS_FALSE;
+
 #ifdef DEBUG
             intN loopDepth = cg->stackDepth;
 #endif
@@ -5437,8 +5432,6 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
 
 
-            if (js_Emit1(cx, cg, JSOP_ITERNEXT) < 0)
-                return false;
             if (!EmitAssignment(cx, cg, pn2->pn_kid2, JSOP_NOP, NULL))
                 return false;
             tmp2 = CG_OFFSET(cg);

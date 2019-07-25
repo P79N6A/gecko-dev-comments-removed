@@ -61,6 +61,9 @@
 #include "nsIJSContextStack.h"
 
 
+#include "jscompartment.h"
+
+
 
 
 
