@@ -1032,6 +1032,12 @@ pref("devtools.inspector.enabled", true);
 pref("devtools.inspector.htmlHeight", 112);
 
 
+pref("devtools.debugger.enabled", false);
+
+
+pref("devtools.debugger.ui.height", 250);
+
+
 pref("devtools.styleinspector.enabled", true);
 
 

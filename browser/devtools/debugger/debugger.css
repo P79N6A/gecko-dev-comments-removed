@@ -1,0 +1,173 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#dbg-content > * > .vbox {
+  cursor: default;
+}
+
+
+
+
+
+#dbg-statusbar {
+  -moz-appearance: statusbar;
+}
+
+
+
+
+
+#stack {
+  width: 200px;
+}
+
+#stackframes {
+  overflow: auto;
+}
+
+
+
+
+
+#properties {
+  width: 250px;
+}
+
+#variables {
+  overflow: auto;
+}
+
+
+
+
+
+.scope {
+  display: -moz-box;
+  -moz-box-orient: vertical;
+}
+
+.scope > .details {
+  display: none;
+}
+
+.scope > .details[open] {
+  display: -moz-box;
+  -moz-box-orient: vertical;
+}
+
+
+
+
+
+.variable {
+  display: -moz-box;
+  -moz-box-orient: vertical;
+}
+
+.variable > .title {
+  white-space: nowrap;
+}
+
+.variable > .details {
+  display: none;
+}
+
+.variable > .details[open] {
+  display: -moz-box;
+  -moz-box-orient: vertical;
+}
+
+
+
+
+
+.property {
+  display: -moz-box;
+  -moz-box-orient: vertical;
+}
+
+.property > .title {
+  white-space: nowrap;
+}
+
+.property > .title > .key {
+  display: inline-block;
+}
+
+.property > .title > .value {
+  display: inline-block;
+}
+
+.property > .details {
+  display: none;
+}
+
+.property > .details[open] {
+  display: -moz-box;
+  -moz-box-orient: vertical;
+}
+
+
+
+
+
+.hbox {
+  display: -moz-box;
+  -moz-box-orient: horizontal;
+}
+
+.vbox {
+  display: -moz-box;
+  -moz-box-orient: vertical;
+}
+
+.flex {
+  -moz-box-flex: 1;
+}
+
+.unselectable {
+  -moz-user-select: -moz-none;
+  cursor: default;
+}

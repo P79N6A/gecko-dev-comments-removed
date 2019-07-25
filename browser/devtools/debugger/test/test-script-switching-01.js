@@ -1,0 +1,6 @@
+
+
+
+function firstCall() {
+  eval("secondCall();");
+}

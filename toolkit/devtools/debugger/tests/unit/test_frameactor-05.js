@@ -1,0 +1,90 @@
+
+
+
+
+
+
+
+
+var gDebuggee;
+var gClient;
+var gThreadClient;
+
+function run_test()
+{
+  initTestDebuggerServer();
+  gDebuggee = addTestGlobal("test-stack");
+  gClient = new DebuggerClient(DebuggerServer.connectPipe());
+  gClient.ready(function() {
+    attachTestGlobalClientAndResume(gClient, "test-stack", function(aResponse, aThreadClient) {
+      gThreadClient = aThreadClient;
+      test_pause_frame();
+    });
+  });
+  do_test_pending();
+}
+
+function test_frame_slice() {
+  if (gSliceTests.length == 0) {
+    gThreadClient.resume(function() { finishClient(gClient); });
+    return;
+  }
+
+  let test = gSliceTests.shift();
+  gThreadClient.frames(test.start, test.count, function(aResponse) {
+    var testFrames = gFrames.slice(test.start, test.count ? test.start + test.count : undefined);
+    do_check_eq(testFrames.length, aResponse.frames.length);
+    for (var i = 0; i < testFrames.length; i++) {
+      let expected = testFrames[i];
+      let actual = aResponse.frames[i];
+
+      if (test.resetActors) {
+        expected.actor = actual.actor;
+      }
+
+      for (var key in expected) {
+        do_check_eq(expected[key], actual[key]);
+      }
+    }
+    test_frame_slice();
+  });
+}
+
+function test_pause_frame()
+{
+  gThreadClient.addOneTimeListener("paused", function(aEvent, aPacket1) {
+    gThreadClient.frames(0, null, function(aFrameResponse) {
+      do_check_eq(aFrameResponse.frames.length, 5);
+      
+      
+      let expectPopped = [frame.actor for each (frame in aFrameResponse.frames.slice(0, 3))];
+      expectPopped.sort()
+
+      gThreadClient.addOneTimeListener("paused", function(aEvent, aPausePacket) {
+        let popped = aPausePacket.poppedFrames.sort();
+        do_check_eq(popped.length, 3);
+        for (let i = 0; i < 3; i++) {
+          do_check_eq(expectPopped[i], popped[i]);
+        }
+
+        gThreadClient.resume(function() { finishClient(gClient); });
+      });
+      gThreadClient.resume();
+    });
+  });
+
+  gDebuggee.eval("(" + function() {
+    function depth3() {
+      debugger;
+    }
+    function depth2() {
+      depth3();
+    }
+    function depth1() {
+      depth2();
+    };
+    depth1();
+    debugger;
+    ")"
+  } + ")()");
+}
