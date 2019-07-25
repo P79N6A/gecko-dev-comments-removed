@@ -203,8 +203,8 @@ class NunboxAssembler : public JSC::MacroAssembler
 
 
 
-    DataLabel32 storeValueWithAddressOffsetPatch(RegisterID treg, RegisterID dreg, Address address) {
-        DataLabel32 start = dataLabel32();
+    Label storeValueWithAddressOffsetPatch(RegisterID treg, RegisterID dreg, Address address) {
+        Label start = label();
 #if defined JS_CPU_X86
         
 
@@ -218,13 +218,16 @@ class NunboxAssembler : public JSC::MacroAssembler
         JS_ASSERT(differenceBetween(endType, endPayload) == 6);
         return start;
 #elif defined JS_CPU_ARM
-        return store64WithAddressOffsetPatch(treg, dreg, address);
+        DataLabel32 store = store64WithAddressOffsetPatch(treg, dreg, address);
+        JS_ASSERT(differenceBetween(start, store) == 0);
+        (void) store;
+        return start;
 #endif
     }
 
     
-    DataLabel32 storeValueWithAddressOffsetPatch(ImmType type, RegisterID dreg, Address address) {
-        DataLabel32 start = dataLabel32();
+    Label storeValueWithAddressOffsetPatch(ImmType type, RegisterID dreg, Address address) {
+        Label start = label();
 #if defined JS_CPU_X86
         storeTypeTag(type, address);
         DBGLABEL_NOMASM(endType);
@@ -234,17 +237,20 @@ class NunboxAssembler : public JSC::MacroAssembler
         JS_ASSERT(differenceBetween(endType, endPayload) == 6);
         return start;
 #elif defined JS_CPU_ARM
-        return store64WithAddressOffsetPatch(type, dreg, address);
+        DataLabel32 store = store64WithAddressOffsetPatch(type, dreg, address);
+        JS_ASSERT(differenceBetween(start, store) == 0);
+        (void) store;
+        return start;
 #endif
     }
 
     
-    DataLabel32 storeValueWithAddressOffsetPatch(const Value &v, Address address) {
+    Label storeValueWithAddressOffsetPatch(const Value &v, Address address) {
         jsval_layout jv;
         jv.asBits = JSVAL_BITS(Jsvalify(v));
         ImmTag type(jv.s.tag);
         Imm32 payload(jv.s.payload.u32);
-        DataLabel32 start = dataLabel32();
+        Label start = label();
 #if defined JS_CPU_X86
         store32(type, tagOf(address));
         DBGLABEL_NOMASM(endType);
@@ -254,12 +260,15 @@ class NunboxAssembler : public JSC::MacroAssembler
         JS_ASSERT(differenceBetween(endType, endPayload) == 10);
         return start;
 #elif defined JS_CPU_ARM
-        return store64WithAddressOffsetPatch(type, payload, address);
+        DataLabel32 store = store64WithAddressOffsetPatch(type, payload, address);
+        JS_ASSERT(differenceBetween(start, store) == 0);
+        (void) store;
+        return start;
 #endif
     }
 
     
-    DataLabel32 storeValueWithAddressOffsetPatch(const ValueRemat &vr, Address address) {
+    Label storeValueWithAddressOffsetPatch(const ValueRemat &vr, Address address) {
         if (vr.isConstant()) {
             return storeValueWithAddressOffsetPatch(vr.value(), address);
         } else if (vr.isTypeKnown()) {
@@ -323,7 +332,7 @@ class NunboxAssembler : public JSC::MacroAssembler
         loadPtr(privAddr, to);
     }
 
-    void loadFunctionPrivate(RegisterID base, RegisterID to) {
+    void loadObjPrivate(RegisterID base, RegisterID to) {
         Address priv(base, offsetof(JSObject, privateData));
         loadPtr(priv, to);
     }

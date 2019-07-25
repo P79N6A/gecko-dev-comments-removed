@@ -159,30 +159,25 @@ class PunboxAssembler : public JSC::MacroAssembler
 
 
 
-    DataLabel32 storeValueWithAddressOffsetPatch(RegisterID type, RegisterID payload, Address address) {
-        move(type, Registers::ValueReg);
-        orPtr(payload, Registers::ValueReg);
-        return storePtrWithAddressOffsetPatch(Registers::ValueReg, address);
+    Label storeValueWithAddressOffsetPatch(RegisterID type, RegisterID payload, Address address) {
+        storeValueFromComponents(type, payload, address);
+        return label();
     }
 
     
-    DataLabel32 storeValueWithAddressOffsetPatch(ImmTag type, RegisterID payload, Address address) {
-        move(type, Registers::ValueReg);
-        orPtr(payload, Registers::ValueReg);
-        return storePtrWithAddressOffsetPatch(Registers::ValueReg, address);
+    Label storeValueWithAddressOffsetPatch(ImmTag type, RegisterID payload, Address address) {
+        storeValueFromComponents(type, payload, address);
+        return label();
     }
 
     
-    DataLabel32 storeValueWithAddressOffsetPatch(const Value &v, Address address) {
-        jsval_layout jv;
-        jv.asBits = JSVAL_BITS(Jsvalify(v));
-
-        move(ImmPtr(reinterpret_cast<void*>(jv.asBits)), Registers::ValueReg);
-        return storePtrWithAddressOffsetPatch(Registers::ValueReg, valueOf(address));
+    Label storeValueWithAddressOffsetPatch(const Value &v, Address address) {
+        storeValue(v, address);
+        return label();
     }
 
     
-    DataLabel32 storeValueWithAddressOffsetPatch(const ValueRemat &vr, Address address) {
+    Label storeValueWithAddressOffsetPatch(const ValueRemat &vr, Address address) {
         if (vr.isConstant()) {
             return storeValueWithAddressOffsetPatch(vr.value(), address);
         } else if (vr.isTypeKnown()) {
@@ -271,7 +266,7 @@ class PunboxAssembler : public JSC::MacroAssembler
         lshiftPtr(Imm32(1), to);
     }
 
-    void loadFunctionPrivate(RegisterID base, RegisterID to) {
+    void loadObjPrivate(RegisterID base, RegisterID to) {
         Address priv(base, offsetof(JSObject, privateData));
         loadPtr(priv, to);
     }
