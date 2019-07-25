@@ -1009,11 +1009,6 @@
 #endif
 
 
-#if !defined(ENABLE_JIT) && WTF_COMPILER_MSVC && WTF_CPU_X86_64
-#define ENABLE_JIT 0
-#endif
-
-
 #if !defined(ENABLE_JIT) \
     && (WTF_CPU_X86 || WTF_CPU_X86_64 || WTF_CPU_ARM || WTF_CPU_MIPS) \
     && (WTF_OS_DARWIN || !WTF_COMPILER_GCC || GCC_VERSION_AT_LEAST(4, 1, 0)) \
