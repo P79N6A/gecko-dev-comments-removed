@@ -288,6 +288,7 @@ class Compiler : public BaseCompiler
     bool debugMode;
     bool addTraceHints;
     bool oomInVector;       
+    enum { NoApplyTricks, LazyArgsObj } applyTricks;
 
     Compiler *thisFromCtor() { return this; }
 
@@ -320,6 +321,7 @@ class Compiler : public BaseCompiler
     bool jumpInScript(Jump j, jsbytecode *pc);
     bool compareTwoValues(JSContext *cx, JSOp op, const Value &lhs, const Value &rhs);
     void addCallSite(uint32 id, bool stub);
+    bool canUseApplyTricks();
 
     
     void restoreFrameRegs(Assembler &masm);
@@ -353,7 +355,8 @@ class Compiler : public BaseCompiler
     void dispatchCall(VoidPtrStubUInt32 stub, uint32 argc);
     void interruptCheckHelper();
     void emitUncachedCall(uint32 argc, bool callingNew);
-    void checkCallApplySpeculation(uint32 argc, FrameEntry *origCallee, FrameEntry *origThis,
+    void checkCallApplySpeculation(uint32 callImmArgc, uint32 speculatedArgc,
+                                   FrameEntry *origCallee, FrameEntry *origThis,
                                    MaybeRegisterID origCalleeType, RegisterID origCalleeData,
                                    MaybeRegisterID origThisType, RegisterID origThisData,
                                    Jump *uncachedCallSlowRejoin, CallPatchInfo *uncachedCallPatch);
@@ -387,6 +390,7 @@ class Compiler : public BaseCompiler
     void enterBlock(JSObject *obj);
     void leaveBlock();
     void emitEval(uint32 argc);
+    void jsop_arguments();
 
     
     void jsop_binary(JSOp op, VoidStub stub);
