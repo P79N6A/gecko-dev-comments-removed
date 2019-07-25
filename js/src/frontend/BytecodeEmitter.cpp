@@ -5735,7 +5735,8 @@ EmitNormalFor(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t top)
 static inline bool
 EmitFor(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t top)
 {
-    return pn->pn_left->isKind(PNK_IN)
+    JS_ASSERT(pn->pn_left->isKind(PNK_FORIN) || pn->pn_left->isKind(PNK_FORHEAD));
+    return pn->pn_left->isKind(PNK_FORIN)
            ? EmitForIn(cx, bce, pn, top)
            : EmitNormalFor(cx, bce, pn, top);
 }

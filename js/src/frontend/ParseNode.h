@@ -144,6 +144,7 @@ enum ParseNodeKind {
     PNK_LEXICALSCOPE,
     PNK_LET,
     PNK_SEQ,
+    PNK_FORIN,
     PNK_FORHEAD,
     PNK_ARGSBODY,
     PNK_UPVARS,
@@ -194,8 +195,6 @@ enum ParseNodeKind {
 
     PNK_LIMIT 
 };
-
-
 
 
 
@@ -717,7 +716,7 @@ struct ParseNode {
 #define PNX_STRCAT      0x01            /* PNK_ADD list has string term */
 #define PNX_CANTFOLD    0x02            /* PNK_ADD list has unfoldable term */
 #define PNX_POPVAR      0x04            /* PNK_VAR last result needs popping */
-#define PNX_FORINVAR    0x08            /* PNK_VAR is left kid of PNK_IN node,
+#define PNX_FORINVAR    0x08            /* PNK_VAR is left kid of PNK_FORIN node
                                            which is left kid of PNK_FOR */
 #define PNX_ENDCOMMA    0x10            /* array literal has comma at end */
 #define PNX_XMLROOT     0x20            /* top-most node in XML literal tree */
