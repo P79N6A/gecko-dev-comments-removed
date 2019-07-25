@@ -58,6 +58,7 @@ import android.util.Log;
 import android.view.View;
 import java.util.Map;
 import java.util.HashMap;
+import org.mozilla.gecko.Tabs;
 
 public class GeckoLayerClient implements GeckoEventResponder,
                                          LayerView.Listener {
@@ -329,6 +330,7 @@ public class GeckoLayerClient implements GeckoEventResponder,
             currentMetrics.setZoomFactor(zoom);
             currentMetrics.setPageSize(new FloatSize(pageWidth, pageHeight), new FloatSize(cssPageWidth, cssPageHeight));
             mLayerController.setViewportMetrics(currentMetrics);
+            mLayerController.setCheckerboardColor(Tabs.getInstance().getSelectedTab().getCheckerboardColor());
             
             
             

@@ -52,8 +52,6 @@ import android.graphics.RectF;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.View.OnTouchListener;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 
 
@@ -95,8 +93,6 @@ public class LayerController {
     private boolean mCheckerboardShouldShowChecks;
 
     private boolean mForceRedraw;
-
-    private static Pattern sColorPattern;
 
     public LayerController(Context context) {
         mContext = context;
@@ -359,29 +355,4 @@ public class LayerController {
         mCheckerboardColor = newColor;
         mView.requestRender();
     }
-
-    
-    public void setCheckerboardColor(String newColor) {
-        setCheckerboardColor(parseColorFromGecko(newColor));
-    }
-
-    
-    
-    private static int parseColorFromGecko(String string) {
-        if (sColorPattern == null) {
-            sColorPattern = Pattern.compile("rgb\\((\\d+),\\s*(\\d+),\\s*(\\d+)\\)");
-        }
-
-        Matcher matcher = sColorPattern.matcher(string);
-        if (!matcher.matches()) {
-            return Color.WHITE;
-        }
-
-        int r = Integer.parseInt(matcher.group(1));
-        int g = Integer.parseInt(matcher.group(2));
-        int b = Integer.parseInt(matcher.group(3));
-        return Color.rgb(r, g, b);
-    } 
-
 }
-
