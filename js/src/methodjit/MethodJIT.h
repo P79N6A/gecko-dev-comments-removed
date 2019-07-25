@@ -749,6 +749,8 @@ struct ChunkDescriptor
 
     
     JITChunk *chunk;
+
+    ChunkDescriptor() { PodZero(this); }
 };
 
 
@@ -775,6 +777,8 @@ struct CrossChunkEdge
 
 
     void *shimLabel;
+
+    CrossChunkEdge() { PodZero(this); }
 };
 
 struct JITScript
