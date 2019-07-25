@@ -320,6 +320,24 @@ function SettingsMessage(name, value) {
 var webapps = [
   { 
     installOrigin: 'http://gaiamobile.org:8888',
+    origin: '../clock',
+    receipt: null,
+    installTime: 1323339869000,
+    manifest: {
+      'name': 'Clock',
+      'description': 'Gaia Clock',
+      'launch_path': '/clock.html',
+      'developer': {
+        'name': 'The Gaia Team',
+        'url': 'https://github.com/andreasgal/gaia'
+      },
+      'icons': {
+        '120': '/style/icons/Clock.png'
+      }
+    }
+  },
+  { 
+    installOrigin: 'http://gaiamobile.org:8888',
     origin: '../browser',
     receipt: null,
     installTime: 1323339869000,
