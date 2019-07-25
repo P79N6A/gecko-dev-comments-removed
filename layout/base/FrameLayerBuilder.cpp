@@ -88,6 +88,11 @@ public:
 
 namespace {
 
+
+
+
+static const int MIN_ACTIVE_LAYER_SIZE = 16;
+
 static void DestroyRegion(void* aPropertyValue)
 {
   delete static_cast<nsRegion*>(aPropertyValue);
@@ -1328,7 +1333,7 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
     NS_ASSERTION(appUnitsPerDevPixel == AppUnitsPerDevPixel(item),
       "items in a container layer should all have the same app units per dev pixel");
 
-    nsIntRect itemVisibleRect =
+    nsIntRect itemVisibleRectPixels =
       item->GetVisibleRect().ScaleToOutsidePixels(
           mParameters.mXScale, mParameters.mYScale, appUnitsPerDevPixel);
     nsRect itemContent = item->GetBounds(mBuilder);
@@ -1346,22 +1351,24 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
     
     if (layerState == LAYER_ACTIVE_FORCE ||
         layerState == LAYER_ACTIVE_EMPTY ||
-        layerState == LAYER_ACTIVE && (aClip.mRoundedClipRects.IsEmpty() ||
-        
-        
-        !aClip.IsRectClippedByRoundedCorner(item->GetVisibleRect()))) {
+        (layerState == LAYER_ACTIVE &&
+          (aClip.mRoundedClipRects.IsEmpty() ||
+           
+           
+           !aClip.IsRectClippedByRoundedCorner(item->GetVisibleRect())) &&
+          !(itemVisibleRectPixels.Size() < nsIntSize(MIN_ACTIVE_LAYER_SIZE, MIN_ACTIVE_LAYER_SIZE)))) {
 
       
       
       NS_ASSERTION(layerState != LAYER_ACTIVE_EMPTY ||
-                   itemVisibleRect.IsEmpty(),
+                   itemVisibleRectPixels.IsEmpty(),
                    "State is LAYER_ACTIVE_EMPTY but visible rect is not.");
 
       
       
       
       
-      if (itemVisibleRect.IsEmpty() && layerState != LAYER_ACTIVE_EMPTY) {
+      if (itemVisibleRectPixels.IsEmpty() && layerState != LAYER_ACTIVE_EMPTY) {
         InvalidateForLayerChange(item, nsnull);
         continue;
       }
@@ -1399,14 +1406,14 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
       }
       ThebesLayerData* data = GetTopThebesLayerData();
       if (data) {
-        data->mVisibleAboveRegion.Or(data->mVisibleAboveRegion, itemVisibleRect);
+        data->mVisibleAboveRegion.Or(data->mVisibleAboveRegion, itemVisibleRectPixels);
         
         
         
         
         data->mDrawAboveRegion.Or(data->mDrawAboveRegion, itemDrawRect);
       }
-      RestrictVisibleRegionForLayer(ownLayer, itemVisibleRect);
+      RestrictVisibleRegionForLayer(ownLayer, itemVisibleRectPixels);
       ContainerLayer* oldContainer = ownLayer->GetParent();
       if (oldContainer && oldContainer != mContainerLayer) {
         oldContainer->RemoveChild(ownLayer);
@@ -1420,7 +1427,7 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
       mBuilder->LayerBuilder()->AddLayerDisplayItem(ownLayer, item, layerState);
     } else {
       nsRefPtr<ThebesLayer> thebesLayer =
-        FindThebesLayerFor(item, itemVisibleRect, itemDrawRect, aClip,
+        FindThebesLayerFor(item, itemVisibleRectPixels, itemDrawRect, aClip,
                            activeScrolledRoot);
 
       thebesLayer->SetIsFixedPosition(!nsLayoutUtils::ScrolledByViewportScrolling(
