@@ -332,6 +332,7 @@ class nsBuiltinDecoder : public nsMediaDecoder
 {
 public:
   typedef mozilla::MediaChannelStatistics MediaChannelStatistics;
+  class DecodedStreamMainThreadListener;
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIOBSERVER
@@ -377,29 +378,27 @@ public:
   virtual void SetVolume(double aVolume);
   virtual void SetAudioCaptured(bool aCaptured);
 
-  virtual void AddOutputStream(SourceMediaStream* aStream, bool aFinishWhenEnded);
   
-  struct OutputMediaStream {
-    void Init(PRInt64 aInitialTime, SourceMediaStream* aStream, bool aFinishWhenEnded)
-    {
-      mLastAudioPacketTime = -1;
-      mLastAudioPacketEndTime = -1;
-      mAudioFramesWrittenBaseTime = aInitialTime;
-      mAudioFramesWritten = 0;
-      mNextVideoTime = aInitialTime;
-      mStream = aStream;
-      mStreamInitialized = false;
-      mFinishWhenEnded = aFinishWhenEnded;
-      mHaveSentFinish = false;
-      mHaveSentFinishAudio = false;
-      mHaveSentFinishVideo = false;
-    }
+  
+  
+  
+  
+  
+
+  struct DecodedStreamData {
+    DecodedStreamData(nsBuiltinDecoder* aDecoder,
+                      PRInt64 aInitialTime, SourceMediaStream* aStream);
+    ~DecodedStreamData();
+
+    
+    
     PRInt64 mLastAudioPacketTime; 
     PRInt64 mLastAudioPacketEndTime; 
     
     PRInt64 mAudioFramesWritten;
     
-    PRInt64 mAudioFramesWrittenBaseTime; 
+    
+    PRInt64 mInitialTime; 
     
     
     
@@ -407,21 +406,78 @@ public:
     
     
     nsRefPtr<Image> mLastVideoImage;
-    nsRefPtr<SourceMediaStream> mStream;
     gfxIntSize mLastVideoImageDisplaySize;
     
     
     bool mStreamInitialized;
-    bool mFinishWhenEnded;
     bool mHaveSentFinish;
     bool mHaveSentFinishAudio;
     bool mHaveSentFinishVideo;
+
+    
+    
+    const nsRefPtr<SourceMediaStream> mStream;
+    
+    
+    const nsRefPtr<DecodedStreamMainThreadListener> mMainThreadListener;
+    
+    
+    bool mHaveBlockedForPlayState;
   };
-  nsTArray<OutputMediaStream>& OutputStreams()
+  struct OutputStreamData {
+    void Init(ProcessedMediaStream* aStream, bool aFinishWhenEnded)
+    {
+      mStream = aStream;
+      mFinishWhenEnded = aFinishWhenEnded;
+    }
+    nsRefPtr<ProcessedMediaStream> mStream;
+    
+    nsRefPtr<MediaInputPort> mPort;
+    bool mFinishWhenEnded;
+  };
+  
+
+
+  void ConnectDecodedStreamToOutputStream(OutputStreamData* aStream);
+  
+
+
+
+  void DestroyDecodedStream();
+  
+
+
+
+
+  void RecreateDecodedStream(PRInt64 aStartTimeUSecs);
+  
+
+
+
+
+  void NotifyDecodedStreamMainThreadStateChanged();
+  nsTArray<OutputStreamData>& OutputStreams()
   {
     GetReentrantMonitor().AssertCurrentThreadIn();
     return mOutputStreams;
   }
+  DecodedStreamData* GetDecodedStream()
+  {
+    GetReentrantMonitor().AssertCurrentThreadIn();
+    return mDecodedStream;
+  }
+  class DecodedStreamMainThreadListener : public MainThreadMediaStreamListener {
+  public:
+    DecodedStreamMainThreadListener(nsBuiltinDecoder* aDecoder)
+      : mDecoder(aDecoder) {}
+    virtual void NotifyMainThreadStateChanged()
+    {
+      mDecoder->NotifyDecodedStreamMainThreadStateChanged();
+    }
+    nsBuiltinDecoder* mDecoder;
+  };
+
+  virtual void AddOutputStream(ProcessedMediaStream* aStream, bool aFinishWhenEnded);
 
   virtual double GetDuration();
 
@@ -718,7 +774,13 @@ public:
   ReentrantMonitor mReentrantMonitor;
 
   
-  nsTArray<OutputMediaStream> mOutputStreams;
+  nsTArray<OutputStreamData> mOutputStreams;
+  
+  
+  
+  
+  
+  nsAutoPtr<DecodedStreamData> mDecodedStream;
 
   
   
@@ -750,6 +812,10 @@ public:
 
   
   bool mInfiniteStream;
+
+  
+  
+  bool mTriggerPlaybackEndedWhenSourceStreamFinishes;
 };
 
 #endif
