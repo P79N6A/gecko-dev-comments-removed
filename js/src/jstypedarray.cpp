@@ -300,24 +300,42 @@ ArrayBuffer::obj_setProperty(JSContext *cx, JSObject *obj, jsid id, Value *vp, J
         return true;
 
     if (JSID_IS_ATOM(id, cx->runtime->atomState.protoAtom)) {
-        if (!vp->isObjectOrNull())
-            return JS_TRUE;
-
-        JSObject *pobj = vp->toObjectOrNull();
-
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         JSObject *delegate = DelegateObject(cx, obj);
         if (!delegate)
             return false;
 
-        
         JSObject *oldDelegateProto = delegate->getProto();
-        if (!SetProto(cx, delegate, pobj, true))
+
+        if (!js_SetProperty(cx, delegate, id, vp, strict))
             return false;
 
-        if (!SetProto(cx, obj, pobj, true)) {
+        if (delegate->getProto() != oldDelegateProto) {
             
-            JS_ALWAYS_TRUE(SetProto(cx, delegate, oldDelegateProto, true));
-            return false;
+            
+            if (!SetProto(cx, obj, vp->toObjectOrNull(), true)) {
+                
+                
+                delegate->setProto(oldDelegateProto);
+                return false;
+            }
         }
         return true;
     }
