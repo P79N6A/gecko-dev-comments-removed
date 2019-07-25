@@ -344,16 +344,32 @@ static nsRegion ConvertRegionBetweenViews(const nsRegion& aIn,
   return out;
 }
 
-static nsView* GetDisplayRootFor(nsView* aView)
+nsIView* nsIViewManager::GetDisplayRootFor(nsIView* aView)
 {
-  nsView *displayRoot = aView;
+  nsIView *displayRoot = aView;
   for (;;) {
-    nsView *displayParent = displayRoot->GetParent();
+    nsIView *displayParent = displayRoot->GetParent();
     if (!displayParent)
       return displayRoot;
 
     if (displayRoot->GetFloating() && !displayParent->GetFloating())
       return displayRoot;
+
+    
+    
+    
+    
+    nsIWidget* widget = displayRoot->GetWidget();
+    if (widget) {
+      nsWindowType type;
+      widget->GetWindowType(type);
+      if (type == eWindowType_popup) {
+        NS_ASSERTION(displayRoot->GetFloating() && displayParent->GetFloating(),
+          "this should only happen with floating views that have floating parents");
+        return displayRoot;
+      }
+    }
+
     displayRoot = displayParent;
   }
 }
@@ -658,7 +674,7 @@ NS_IMETHODIMP nsViewManager::UpdateViewNoSuppression(nsIView *aView,
     return NS_OK;
   }
 
-  nsView* displayRoot = GetDisplayRootFor(view);
+  nsView* displayRoot = static_cast<nsView*>(GetDisplayRootFor(view));
   nsViewManager* displayRootVM = displayRoot->GetViewManager();
   
   
@@ -1011,7 +1027,7 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent,
         if (NS_IsEventUsingCoordinates(aEvent)) {
           
           
-          view = GetDisplayRootFor(baseView);
+          view = static_cast<nsView*>(GetDisplayRootFor(baseView));
         }
 
         if (nsnull != view) {

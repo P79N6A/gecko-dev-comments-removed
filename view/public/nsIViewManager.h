@@ -378,6 +378,12 @@ public:
 
 
   NS_IMETHOD GetLastUserEventTime(PRUint32& aTime)=0;
+
+  
+
+
+
+  static nsIView* GetDisplayRootFor(nsIView* aView);
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIViewManager, NS_IVIEWMANAGER_IID)
