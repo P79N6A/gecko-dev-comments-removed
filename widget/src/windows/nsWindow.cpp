@@ -2506,27 +2506,18 @@ RegionFromArray(const nsTArray<nsIntRect>& aRects)
   return region;
 }
 
-void nsWindow::UpdateTransparentRegion(const nsIntRegion &aTransparentRegion)
+void nsWindow::UpdateOpaqueRegion(const nsIntRegion &aOpaqueRegion)
 {
 #if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
   if (!HasGlass() || GetParent())
     return;
-
-  nsIntRect clientBounds;
-  GetClientBounds(clientBounds);
-
-  
-  
-  
-  nsIntRegion opaqueRegion;
-  opaqueRegion.Sub(clientBounds, aTransparentRegion);
 
   
   
   
   MARGINS margins = { -1, -1, -1, -1 };
   bool visiblePlugin = false;
-  if (!opaqueRegion.IsEmpty()) {
+  if (!aOpaqueRegion.IsEmpty()) {
     nsIntRect pluginBounds;
     for (nsIWidget* child = GetFirstChild(); child; child = child->GetNextSibling()) {
       nsWindowType type;
@@ -2547,11 +2538,14 @@ void nsWindow::UpdateTransparentRegion(const nsIntRegion &aTransparentRegion)
       }
     }
 
+    nsIntRect clientBounds;
+    GetClientBounds(clientBounds);
+
     
     
     
     
-    nsIntRect largest = opaqueRegion.GetLargestRectangle(pluginBounds);
+    nsIntRect largest = aOpaqueRegion.GetLargestRectangle(pluginBounds);
     if (visiblePlugin || 
         (largest.x <= MAX_HORIZONTAL_GLASS_MARGIN &&
          clientBounds.width - largest.XMost() <= MAX_HORIZONTAL_GLASS_MARGIN &&
