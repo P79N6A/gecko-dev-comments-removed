@@ -48,19 +48,30 @@
 
 
 
+#if defined(MOZ_MEMORY)
+#  if defined(XP_WIN) || defined(SOLARIS)
+#    define HAVE_JEMALLOC_STATS 1
+#    include "jemalloc.h"
+#  elif defined(XP_LINUX)
+#    define HAVE_JEMALLOC_STATS 1
+#    include "jemalloc_types.h"
 
 
 
 
-#if defined(MOZ_MEMORY) && defined(XP_WIN)
-#define HAVE_JEMALLOC_STATS 1
-#else
-#undef HAVE_JEMALLOC_STATS
-#endif
 
-#if defined(HAVE_JEMALLOC_STATS)
-#define HAVE_MALLOC_REPORTERS 1
-#include "jemalloc.h"
+
+
+
+extern "C" {
+extern void jemalloc_stats(jemalloc_stats_t* stats)
+  NS_VISIBILITY_DEFAULT __attribute__((weak));
+}
+#  endif  
+#endif  
+
+#if HAVE_JEMALLOC_STATS
+#  define HAVE_MALLOC_REPORTERS 1
 
 PRInt64 getMallocMapped(void *) {
     jemalloc_stats_t stats;
