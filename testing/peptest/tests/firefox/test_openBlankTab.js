@@ -10,9 +10,9 @@ c.waitForPageLoad();
 
 
 pep.performAction('open_blank_tab', function() {
-  c.rootElement.keypress('t', {'ctrlKey': true});
+  c.rootElement.keypress('t', {'accelKey': true});
 });
 
 pep.performAction('close_blank_tab', function() {
-  c.rootElement.keypress('w', {'ctrlKey': true});
+  c.rootElement.keypress('w', {'accelKey': true});
 });
