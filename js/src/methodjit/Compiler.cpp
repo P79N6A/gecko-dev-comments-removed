@@ -317,6 +317,17 @@ mjit::Compiler::scanInlineCalls(uint32 index, uint32 depth)
 
 
 
+
+            if (!script->hasAnalysis() || !script->analysis()->ranInference()) {
+                okay = false;
+                break;
+            }
+
+            
+
+
+
+
             if (!globalObj ||
                 fun->getParent() != globalObj ||
                 outerScript->strictModeCode != script->strictModeCode) {
