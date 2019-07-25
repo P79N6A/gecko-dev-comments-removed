@@ -146,6 +146,13 @@ public:
     static NS_METHOD ReadFromStream(nsIInputStream *, void *, const char *,
                                     PRUint32, PRUint32, PRUint32 *);
 
+    
+    
+    
+    
+    void BeginIdleMonitoring();
+    void EndIdleMonitoring();
+
 private:
     
     nsresult ProxyStartSSL();
@@ -196,6 +203,7 @@ private:
     PRPackedBool                    mIsActivated;
     PRPackedBool                    mCompletedProxyConnect;
     PRPackedBool                    mLastTransactionExpectedNoContent;
+    PRPackedBool                    mIdleMonitoring;
 };
 
 #endif 

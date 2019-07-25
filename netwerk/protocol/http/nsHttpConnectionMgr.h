@@ -138,6 +138,11 @@ public:
     
     nsresult ProcessPendingQ(nsHttpConnectionInfo *);
 
+    
+    
+    
+    nsresult CloseIdleConnection(nsHttpConnection *);
+
 private:
     virtual ~nsHttpConnectionMgr();
     class nsHalfOpenSocket;
