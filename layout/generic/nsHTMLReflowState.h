@@ -43,6 +43,7 @@
 #include "nsMargin.h"
 #include "nsStyleCoord.h"
 #include "nsIFrame.h"
+#include "mozilla/AutoRestore.h"
 
 class nsPresContext;
 class nsRenderingContext;
@@ -369,6 +370,12 @@ public:
     
   } mFlags;
 
+private:
+
+  mozilla::AutoRestore<nsIFrame*> mRestoreCurrentInflationContainer;
+  mozilla::AutoRestore<nscoord> mRestoreCurrentInflationContainerWidth;
+
+public:
   
   
   
