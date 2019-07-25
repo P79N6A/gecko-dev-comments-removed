@@ -575,7 +575,7 @@ RegisterAllocation *
 FrameState::computeAllocation(jsbytecode *target)
 {
     JS_ASSERT(cx->typeInferenceEnabled());
-    RegisterAllocation *alloc = ArenaNew<RegisterAllocation>(cx->compartment->pool, false);
+    RegisterAllocation *alloc = cx->typeLifoAlloc().new_<RegisterAllocation>(false);
     if (!alloc)
         return NULL;
 
@@ -853,7 +853,7 @@ FrameState::discardForJoin(RegisterAllocation *&alloc, uint32 stackDepth)
 
 
 
-        alloc = ArenaNew<RegisterAllocation>(cx->compartment->pool, false);
+        alloc = cx->typeLifoAlloc().new_<RegisterAllocation>(false);
         if (!alloc)
             return false;
     }
