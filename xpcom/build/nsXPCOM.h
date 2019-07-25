@@ -264,7 +264,6 @@ NS_Alloc(PRSize size);
 
 
 
-
 XPCOM_API(void*)
 NS_Realloc(void* ptr, PRSize size);
 
