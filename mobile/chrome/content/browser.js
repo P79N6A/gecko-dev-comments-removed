@@ -2603,7 +2603,8 @@ Tab.prototype = {
     let session = { data: dead.__SS_data, extra: dead.__SS_extdata };
 
     
-    let currentURL = dead.currentURI.spec;
+    
+    let currentURL = dead.__SS_restore ? session.data.entries[0].url : dead.currentURI.spec;
     let sibling = dead.nextSibling;
 
     
