@@ -64,6 +64,9 @@ const kSpeedSensitivity = .8;
 const kTimeRelevance = .01;
 
 
+const kStateActive = 0x00000001;
+
+
 
 
 
@@ -840,6 +843,7 @@ MouseModule.prototype = {
 function DragData(owner, dragRadius) {
   this._owner = owner;
   this._dragRadius = dragRadius;
+  this._domUtils = Cc["@mozilla.org/inspector/dom-utils;1"].getService(Ci.inIDOMUtils);
   this.reset();
 };
 
@@ -877,6 +881,12 @@ DragData.prototype = {
     if (!this._isPan) {
       let distanceSquared = (Math.pow(sX - this._originX, 2) + Math.pow(sY - this._originY, 2));
       this._isPan = (distanceSquared > Math.pow(this._dragRadius, 2));
+      if (this._isPan) {
+        
+        let target = document.documentElement;
+        let state = this._domUtils.getContentState(target);
+        this._domUtils.setContentState(target, state & kStateActive);
+      }
     }
 
     
