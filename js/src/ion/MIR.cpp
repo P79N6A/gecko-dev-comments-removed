@@ -544,8 +544,14 @@ NeedNegativeZeroCheck(MDefinition *def)
             
             
             MDefinition *operand = use_def->getOperand(0);
-            if (operand == def)
+            if (operand == def) {
                 operand = use_def->getOperand(1);
+
+                
+                
+                if (operand == def)
+                    return true;
+            }
 
             
             
