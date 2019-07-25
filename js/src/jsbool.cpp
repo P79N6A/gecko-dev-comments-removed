@@ -186,13 +186,6 @@ js_BooleanToString(JSContext *cx, JSBool b)
     return cx->runtime->atomState.booleanAtoms[b ? 1 : 0];
 }
 
-
-bool
-js::BooleanToStringBuffer(JSContext *cx, JSBool b, StringBuffer &sb)
-{
-    return b ? sb.append("true") : sb.append("false");
-}
-
 namespace js {
 
 bool
