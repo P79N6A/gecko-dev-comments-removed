@@ -5,8 +5,8 @@
 
 
 
-#ifndef ParseContext_h__
-#define ParseContext_h__
+#ifndef TreeContext_h__
+#define TreeContext_h__
 
 #include "jstypes.h"
 #include "jsatom.h"
@@ -187,19 +187,19 @@ struct SharedContext {
 
 typedef HashSet<JSAtom *> FuncStmtSet;
 struct Parser;
-struct StmtInfoPC;
+struct StmtInfoTC;
 
-struct ParseContext {                
+struct TreeContext {                
 
-    typedef StmtInfoPC StmtInfo;
+    typedef StmtInfoTC StmtInfo;
 
     SharedContext   *sc;            
 
     uint32_t        bodyid;         
     uint32_t        blockidGen;     
 
-    StmtInfoPC      *topStmt;       
-    StmtInfoPC      *topScopeStmt;  
+    StmtInfoTC      *topStmt;       
+    StmtInfoTC      *topScopeStmt;  
     Rooted<StaticBlockObject *> blockChain;
                                     
 
@@ -218,14 +218,14 @@ struct ParseContext {
     FunctionBox     *functionList;
 
   private:
-    ParseContext    **parserPC;     
+    TreeContext     **parserTC;     
 
 
 
   public:
     OwnedAtomDefnMapPtr lexdeps;    
 
-    ParseContext    *parent;        
+    TreeContext     *parent;        
 
     ParseNode       *innermostWith; 
 
@@ -255,8 +255,8 @@ struct ParseContext {
 
     void trace(JSTracer *trc);
 
-    inline ParseContext(Parser *prs, SharedContext *sc, unsigned staticLevel, uint32_t bodyid);
-    inline ~ParseContext();
+    inline TreeContext(Parser *prs, SharedContext *sc, unsigned staticLevel, uint32_t bodyid);
+    inline ~TreeContext();
 
     inline bool init();
 
@@ -362,20 +362,20 @@ struct StmtInfoBase {
     }
 };
 
-struct StmtInfoPC : public StmtInfoBase {
-    StmtInfoPC      *down;          
-    StmtInfoPC      *downScope;     
+struct StmtInfoTC : public StmtInfoBase {
+    StmtInfoTC      *down;          
+    StmtInfoTC      *downScope;     
 
     uint32_t        blockid;        
 
     
     bool            isFunctionBodyBlock;
 
-    StmtInfoPC(JSContext *cx) : StmtInfoBase(cx), isFunctionBodyBlock(false) {}
+    StmtInfoTC(JSContext *cx) : StmtInfoBase(cx), isFunctionBodyBlock(false) {}
 };
 
 bool
-GenerateBlockId(ParseContext *pc, uint32_t &blockid);
+GenerateBlockId(TreeContext *tc, uint32_t &blockid);
 
 
 template <class ContextT>

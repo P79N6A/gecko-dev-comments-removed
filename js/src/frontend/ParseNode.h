@@ -14,7 +14,7 @@
 
 #include "frontend/ParseMaps.h"
 #include "frontend/TokenStream.h"
-#include "frontend/ParseContext.h"
+#include "frontend/TreeContext.h"
 
 namespace js {
 namespace frontend {
@@ -1038,9 +1038,9 @@ struct FunctionNode : public ParseNode {
 };
 
 struct NameNode : public ParseNode {
-    static NameNode *create(ParseNodeKind kind, JSAtom *atom, Parser *parser, ParseContext *pc);
+    static NameNode *create(ParseNodeKind kind, JSAtom *atom, Parser *parser, TreeContext *tc);
 
-    inline void initCommon(ParseContext *pc);
+    inline void initCommon(TreeContext *tc);
 
 #ifdef DEBUG
     inline void dump(int indent);
@@ -1521,7 +1521,7 @@ struct FunctionBox : public ObjectBox
 
     ContextFlags    cxFlags;
 
-    FunctionBox(ObjectBox* traceListHead, JSObject *obj, ParseNode *fn, ParseContext *pc);
+    FunctionBox(ObjectBox* traceListHead, JSObject *obj, ParseNode *fn, TreeContext *tc);
 
     bool funIsHeavyweight()      const { return cxFlags.funIsHeavyweight; }
     bool funIsGenerator()        const { return cxFlags.funIsGenerator; }

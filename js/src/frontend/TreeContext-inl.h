@@ -5,11 +5,11 @@
 
 
 
-#ifndef ParseContext_inl_h__
-#define ParseContext_inl_h__
+#ifndef TreeContext_inl_h__
+#define TreeContext_inl_h__
 
 #include "frontend/Parser.h"
-#include "frontend/ParseContext.h"
+#include "frontend/TreeContext.h"
 
 #include "frontend/ParseMaps-inl.h"
 
@@ -36,19 +36,19 @@ SharedContext::needStrictChecks() {
 }
 
 inline unsigned
-ParseContext::blockid()
+TreeContext::blockid()
 {
     return topStmt ? topStmt->blockid : bodyid;
 }
 
 inline bool
-ParseContext::atBodyLevel()
+TreeContext::atBodyLevel()
 {
     return !topStmt || topStmt->isFunctionBodyBlock;
 }
 
 inline
-ParseContext::ParseContext(Parser *prs, SharedContext *sc, unsigned staticLevel, uint32_t bodyid)
+TreeContext::TreeContext(Parser *prs, SharedContext *sc, unsigned staticLevel, uint32_t bodyid)
   : sc(sc),
     bodyid(0),           
     blockidGen(bodyid),  
@@ -62,9 +62,9 @@ ParseContext::ParseContext(Parser *prs, SharedContext *sc, unsigned staticLevel,
     decls(prs->context),
     yieldNode(NULL),
     functionList(NULL),
-    parserPC(&prs->pc),
+    parserTC(&prs->tc),
     lexdeps(prs->context),
-    parent(prs->pc),
+    parent(prs->tc),
     innermostWith(NULL),
     funcStmts(NULL),
     hasReturnExpr(false),
@@ -72,11 +72,11 @@ ParseContext::ParseContext(Parser *prs, SharedContext *sc, unsigned staticLevel,
     inForInit(false),
     inDeclDestructuring(false)
 {
-    prs->pc = this;
+    prs->tc = this;
 }
 
 inline bool
-ParseContext::init()
+TreeContext::init()
 {
     if (!frontend::GenerateBlockId(this, this->bodyid))
         return false;
@@ -88,12 +88,12 @@ ParseContext::init()
 
 
 inline
-ParseContext::~ParseContext()
+TreeContext::~TreeContext()
 {
     
     
-    JS_ASSERT(*parserPC == this);
-    *parserPC = this->parent;
+    JS_ASSERT(*parserTC == this);
+    *parserTC = this->parent;
     sc->context->delete_(funcStmts);
 }
 
