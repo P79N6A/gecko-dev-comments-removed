@@ -2269,7 +2269,7 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
         
         NS_ASSERTION(pulledLine->GetChildCount() == 0 &&
                      !pulledLine->mFirstChild, "bad empty line");
-        aState.FreeLineBox(pulledLine);
+        FreeLineBox(pulledLine);
         continue;
       }
 
@@ -2464,7 +2464,7 @@ nsBlockFrame::DeleteLine(nsBlockReflowState& aState,
                  "but perhaps OK now");
     nsLineBox *line = aLine;
     aLine = mLines.erase(aLine);
-    aState.FreeLineBox(line);
+    FreeLineBox(line);
     
     
     if (aLine != aLineEnd)
@@ -2696,7 +2696,7 @@ nsBlockFrame::PullFrameFrom(nsBlockReflowState&  aState,
     Invalidate(fromLine->GetVisualOverflowArea());
     fromLineList->erase(aFromLine);
     
-    aState.FreeLineBox(fromLine);
+    FreeLineBox(fromLine);
 
     
     if (aFromOverflowLine) {
@@ -3305,7 +3305,7 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
 
             
             if (madeContinuation) {
-              nsLineBox* line = aState.NewLineBox(nextFrame, 1, true);
+              nsLineBox* line = NewLineBox(nextFrame, 1, true);
               NS_ENSURE_TRUE(line, NS_ERROR_OUT_OF_MEMORY);
               mLines.after_insert(aLine, line);
             }
@@ -3639,7 +3639,7 @@ nsBlockFrame::DoReflowInlineFrames(nsBlockReflowState& aState,
         nsLineBox *toremove = aLine;
         aLine = mLines.erase(aLine);
         NS_ASSERTION(nsnull == toremove->mFirstChild, "bad empty line");
-        aState.FreeLineBox(toremove);
+        FreeLineBox(toremove);
       }
       --aLine;
 
@@ -4099,7 +4099,7 @@ nsBlockFrame::SplitLine(nsBlockReflowState& aState,
 #endif
 
     
-    nsLineBox* newLine = aState.NewLineBox(aFrame, pushCount, false);
+    nsLineBox* newLine = NewLineBox(aFrame, pushCount, false);
     if (!newLine) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
@@ -4874,8 +4874,6 @@ nsBlockFrame::AddFrames(nsFrameList& aFrameList, nsIFrame* aPrevSibling)
     aPrevSibling = GetInsideBullet();
   }
   
-  nsIPresShell *presShell = PresContext()->PresShell();
-
   
   FrameLines* overflowLines;
   nsLineList* lineList = &mLines;
@@ -4922,7 +4920,7 @@ nsBlockFrame::AddFrames(nsFrameList& aFrameList, nsIFrame* aPrevSibling)
     PRInt32 rem = prevSibLine->GetChildCount() - prevSiblingIndex - 1;
     if (rem) {
       
-      nsLineBox* line = NS_NewLineBox(presShell, aPrevSibling->GetNextSibling(), rem, false);
+      nsLineBox* line = NewLineBox(aPrevSibling->GetNextSibling(), rem, false);
       if (!line) {
         return NS_ERROR_OUT_OF_MEMORY;
       }
@@ -4968,7 +4966,7 @@ nsBlockFrame::AddFrames(nsFrameList& aFrameList, nsIFrame* aPrevSibling)
         (aPrevSibling && ShouldPutNextSiblingOnNewLine(aPrevSibling))) {
       
       
-      nsLineBox* line = NS_NewLineBox(presShell, newFrame, 1, isBlock);
+      nsLineBox* line = NewLineBox(newFrame, 1, isBlock);
       if (!line) {
         return NS_ERROR_OUT_OF_MEMORY;
       }
