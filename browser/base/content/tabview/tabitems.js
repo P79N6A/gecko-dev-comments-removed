@@ -551,9 +551,8 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
 
     if (childHitResult.shouldZoom) {
       
-      var orig = $tabEl.bounds();
-      var scale = window.innerWidth/orig.width;
       var tab = this.tab;
+      var orig = $tabEl.bounds();
 
       function onZoomDone() {
         UI.goToTab(tab);
@@ -570,24 +569,11 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
           childHitResult.callback();
       }
 
-      
-      
-      
-      
-      
-      
-      var scaleCheat = 1.7;
-
       let animateZoom = gPrefBranch.getBoolPref("animate_zoom");
       if (animateZoom) {
         TabItems.pausePainting();
         $tabEl.addClass("front")
-        .animate({
-          top:    orig.top    * (1 - 1/scaleCheat),
-          left:   orig.left   * (1 - 1/scaleCheat),
-          width:  orig.width  * scale/scaleCheat,
-          height: orig.height * scale/scaleCheat
-        }, {
+        .animate(this.getZoomRect(), {
           duration: 230,
           easing: 'fast',
           complete: function() {
@@ -657,6 +643,33 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
+  
+  getZoomRect: function TabItem_getZoomRect(scaleCheat) {
+    let $tabEl = iQ(this.container);
+    let orig = $tabEl.bounds();
+    
+    
+    
+    
+    
+    
+    if (!scaleCheat)
+      scaleCheat = 1.7;
+
+    let zoomWidth = orig.width + (window.innerWidth - orig.width) / scaleCheat;
+    return {
+      top:    orig.top    * (1 - 1/scaleCheat),
+      left:   orig.left   * (1 - 1/scaleCheat),
+      width:  zoomWidth,
+      height: orig.height * zoomWidth / orig.width
+    };
+  },
+
+  
+  
+  
+  
+  
   setZoomPrep: function TabItem_setZoomPrep(value) {
     let animateZoom = gPrefBranch.getBoolPref("animate_zoom");
 
@@ -675,15 +688,10 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       
       
       
-      var scaleCheat = 2;
+
       $div
         .addClass('front')
-        .css({
-          left: box.left * (1-1/scaleCheat),
-          top: box.top * (1-1/scaleCheat),
-          width: window.innerWidth/scaleCheat,
-          height: box.height * (window.innerWidth / box.width)/scaleCheat
-        });
+        .css(this.getZoomRect(2));
     } else {
       this._zoomPrep = false;
       $div.removeClass('front');
