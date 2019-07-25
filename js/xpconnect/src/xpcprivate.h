@@ -1351,7 +1351,8 @@ private:
 
 
 
-extern js::Class XPC_WN_NoHelper_JSClass;
+struct XPCWrappedNativeJSClass;
+extern XPCWrappedNativeJSClass XPC_WN_NoHelper_JSClass;
 extern js::Class XPC_WN_NoMods_WithCall_Proto_JSClass;
 extern js::Class XPC_WN_NoMods_NoCall_Proto_JSClass;
 extern js::Class XPC_WN_ModsAllowed_WithCall_Proto_JSClass;
@@ -2035,7 +2036,10 @@ public:
 
 
 
-struct XPCNativeScriptableSharedJSClass
+
+
+
+struct XPCWrappedNativeJSClass
 {
     js::Class base;
     PRUint32 interfacesBitmap;
@@ -2077,7 +2081,7 @@ public:
 
 private:
     XPCNativeScriptableFlags mFlags;
-    XPCNativeScriptableSharedJSClass mJSClass;
+    XPCWrappedNativeJSClass  mJSClass;
     JSBool                   mCanBeSlim;
 };
 

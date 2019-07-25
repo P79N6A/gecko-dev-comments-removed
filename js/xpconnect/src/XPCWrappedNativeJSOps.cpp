@@ -814,7 +814,8 @@ XPC_WN_OuterObject(JSContext *cx, JSObject *obj)
     return obj;
 }
 
-js::Class XPC_WN_NoHelper_JSClass = {
+XPCWrappedNativeJSClass XPC_WN_NoHelper_JSClass = {
+  { 
     "XPCWrappedNative_NoHelper",    
     WRAPPER_SLOTS |
     JSCLASS_PRIVATE_IS_NSISUPPORTS, 
@@ -885,6 +886,8 @@ js::Class XPC_WN_NoHelper_JSClass = {
         XPC_WN_JSOp_ThisObject,
         XPC_WN_JSOp_Clear
     }
+  },
+  0 
 };
 
 
@@ -1204,7 +1207,7 @@ XPC_WN_JSOp_Enumerate(JSContext *cx, JSObject *obj, JSIterateOp enum_op,
                       jsval *statep, jsid *idp)
 {
     js::Class *clazz = js::GetObjectClass(obj);
-    if (!IS_WRAPPER_CLASS(clazz) || clazz == &XPC_WN_NoHelper_JSClass) {
+    if (!IS_WRAPPER_CLASS(clazz) || clazz == &XPC_WN_NoHelper_JSClass.base) {
         
         
         
