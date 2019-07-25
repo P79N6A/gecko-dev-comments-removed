@@ -1710,6 +1710,7 @@ Tab.prototype = {
 
     
     
+    cwu = this.browser.contentWindow.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
     cwu.setDisplayPortForElement((aDisplayPort.left / resolution) - (aViewportX / zoom),
                                  (aDisplayPort.top / resolution) - (aViewportY / zoom),
                                  (aDisplayPort.right - aDisplayPort.left) / resolution,
