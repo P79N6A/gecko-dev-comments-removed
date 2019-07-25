@@ -446,6 +446,8 @@ WeaveSvc.prototype = {
     let success = yield;
     if (!success) {
       try {
+        
+        
         this._checkUserDir.async(this, self.cb);
         yield;
       } catch (e) {  }
