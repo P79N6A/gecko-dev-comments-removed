@@ -131,13 +131,11 @@ public:
   void ProcessUploadQueue();
 
   
-  
-  
   void RenderTile(TiledTexture aTile,
                   const gfx3DMatrix& aTransform,
                   const nsIntPoint& aOffset,
-                  nsIntRect aScreenRect,
-                  nsIntRect aTextureRect,
+                  nsIntRegion aScreenRegion,
+                  nsIntPoint aTextureOffset,
                   nsIntSize aTextureBounds);
 
 private:
