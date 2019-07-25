@@ -24,6 +24,7 @@ let AppsUtils = {
   
   cloneAppObject: function cloneAppObject(aApp) {
     return {
+      name: aApp.name,
       installOrigin: aApp.installOrigin,
       origin: aApp.origin,
       receipts: aApp.receipts ? JSON.parse(JSON.stringify(aApp.receipts)) : null,
