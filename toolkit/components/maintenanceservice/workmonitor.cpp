@@ -292,6 +292,34 @@ ProcessSoftwareUpdateCommand(DWORD argc, LPWSTR *argv)
   
   
   
+  BOOL isLocal = FALSE;
+  if (!IsLocalFile(argv[0], isLocal) || !isLocal) {
+    LOG(("Filesystem in path %ls is not supported"
+         "Last error: %d\n", argv[0], GetLastError()));
+    if (!WriteStatusFailure(argv[1], 
+                            SERVICE_UPDATER_NOT_FIXED_DRIVE)) {
+      LOG(("Could not write update.status service update failure."
+           "Last error: %d\n", GetLastError()));
+    }
+    return FALSE;
+  }
+
+  nsAutoHandle noWriteLock(CreateFileW(argv[0], GENERIC_READ, FILE_SHARE_READ, 
+                                       NULL, OPEN_EXISTING, 0, NULL));
+  if (INVALID_HANDLE_VALUE == noWriteLock) {
+      LOG(("Could not set no write sharing access on file."
+           "Last error: %d\n", GetLastError()));
+    if (!WriteStatusFailure(argv[1], 
+                            SERVICE_COULD_NOT_LOCK_UPDATER)) {
+      LOG(("Could not write update.status service update failure."
+           "Last error: %d\n", GetLastError()));
+    }
+    return FALSE;
+  }
+
+  
+  
+  
   WCHAR installDirUpdater[MAX_PATH + 1];
   wcsncpy(installDirUpdater, argv[2], MAX_PATH);
   if (!PathAppendSafe(installDirUpdater, L"updater.exe")) {

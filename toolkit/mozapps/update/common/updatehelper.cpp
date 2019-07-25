@@ -652,3 +652,23 @@ DoesFallbackKeyExist()
   RegCloseKey(testOnlyFallbackKey);
   return TRUE;
 }
+
+
+
+
+
+
+
+BOOL
+IsLocalFile(LPCWSTR file, BOOL &isLocal)
+{
+  WCHAR rootPath[MAX_PATH + 1];
+  if (wcslen(file) > MAX_PATH) {
+    return FALSE;
+  }
+
+  wcscpy(rootPath, file);
+  PathStripToRootW(rootPath);
+  isLocal = GetDriveTypeW(rootPath) == DRIVE_FIXED;
+  return TRUE;
+}

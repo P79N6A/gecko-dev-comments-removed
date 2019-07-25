@@ -1819,6 +1819,14 @@ int NS_main(int argc, NS_tchar **argv)
 
       
       
+      
+      if (useService) {
+        BOOL isLocal = FALSE;
+        useService = IsLocalFile(argv[0], isLocal) && isLocal;
+      }
+      
+      
+      
       if (useService) {
         WCHAR maintenanceServiceKey[MAX_PATH + 1];
         if (CalculateRegistryPathFromFilePath(argv[2], maintenanceServiceKey)) {
