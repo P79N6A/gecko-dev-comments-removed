@@ -1262,7 +1262,9 @@ abstract public class GeckoApp
     public void onCreate(Bundle savedInstanceState)
     {
         
-        
+        if (getResources().getBoolean(R.bool.enableStrictMode)) {
+            enableStrictMode();
+        }
 
         System.loadLibrary("mozutils");
         mMainHandler = new Handler();
