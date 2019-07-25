@@ -994,13 +994,15 @@ void qcms_profile_precache_output_transform(qcms_profile *profile)
 	if (profile->color_space != RGB_SIGNATURE)
 		return;
 
-	
-	if (profile->B2A0)
-		return;
+	if (qcms_supports_iccv4) {
+		
+		if (profile->B2A0)
+			return;
 
-	
-	if (profile->mBA)
-		return;
+		
+		if (profile->mBA)
+			return;
+	}
 
 	
 	if (!profile->redTRC || !profile->greenTRC || !profile->blueTRC)
