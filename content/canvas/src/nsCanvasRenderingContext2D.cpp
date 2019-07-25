@@ -3441,24 +3441,47 @@ nsCanvasRenderingContext2D::DrawImage(nsIDOMElement *imgElt, float a1,
         return NS_ERROR_INVALID_ARG;
     }
 
+    if (sw == 0.0 || sh == 0.0) {
+        
+        return NS_ERROR_DOM_INDEX_SIZE_ERR;
+    }
+
     if (dw == 0.0 || dh == 0.0) {
         
         
         return NS_OK;
     }
 
-    if (!FloatValidate(sx, sy, sw, sh) || !FloatValidate(dx, dy, dw, dh)) {
+    
+    
+    
+    if (!FloatValidate(sx + sw, sy + sh, dx + dw, dy + dh)) {
         return NS_ERROR_DOM_SYNTAX_ERR;
     }
 
     
-    if (sx < 0.0 || sy < 0.0 ||
-        sw < 0.0 || sw > (double) imgSize.width ||
-        sh < 0.0 || sh > (double) imgSize.height ||
-        dw < 0.0 || dh < 0.0)
-    {
-        
-        return NS_ERROR_DOM_INDEX_SIZE_ERR;
+    
+    if (sw < 0.0) {
+      sx += sw;
+      sw = -sw;
+    }
+    if (sh < 0.0) {
+      sy += sh;
+      sh = -sh;
+    }
+    if (dw < 0.0) {
+      dx += dw;
+      dw = -dw;
+    }
+    if (dh < 0.0) {
+      dy += dh;
+      dh = -dh;
+    }
+
+    
+    if (sx < 0 || sx + sw > (double) imgSize.width || 
+        sy < 0 || sy + sh > (double) imgSize.height) {
+      return NS_ERROR_DOM_INDEX_SIZE_ERR;
     }
 
     matrix.Translate(gfxPoint(sx, sy));
