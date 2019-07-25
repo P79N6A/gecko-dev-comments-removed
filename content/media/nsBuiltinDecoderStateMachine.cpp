@@ -901,7 +901,23 @@ PRBool nsBuiltinDecoderStateMachine::IsDecodeCloseToDownload()
   double threshold = (bufferTarget > 0 && length != -1) ?
     (length / (bufferTarget)) : LIVE_BUFFER_MARGIN;
   return (downloadPos - decodePos) < threshold;
-}        
+}
+
+void nsBuiltinDecoderStateMachine::NotifyDataExhausted()
+{
+  MonitorAutoEnter mon(mDecoder->GetMonitor());
+  nsMediaStream* stream = mDecoder->GetCurrentStream();
+  NS_ASSERTION(!stream->IsDataCachedToEndOfStream(mDecoder->mDecoderPosition),
+               "We shouldn't be notified in this case!");
+  if (mDecoder->GetState() == nsBuiltinDecoder::PLAY_STATE_PLAYING &&
+      mState == DECODER_STATE_DECODING &&
+      !stream->IsSuspended())
+  {
+    
+    
+    StartBuffering();
+  }
+}
 
 nsresult nsBuiltinDecoderStateMachine::Run()
 {
@@ -991,17 +1007,6 @@ nsresult nsBuiltinDecoderStateMachine::Run()
 
         if (mState != DECODER_STATE_DECODING)
           continue;
-
-        if (IsDecodeCloseToDownload() &&
-            mDecoder->GetState() == nsBuiltinDecoder::PLAY_STATE_PLAYING &&
-            !stream->IsDataCachedToEndOfStream(mDecoder->mDecoderPosition) &&
-            !stream->IsSuspended())
-        {
-          
-          
-          
-          StartBuffering();
-        }
       }
       break;
 
@@ -1107,6 +1112,11 @@ nsresult nsBuiltinDecoderStateMachine::Run()
 
     case DECODER_STATE_BUFFERING:
       {
+        if (IsPlaying()) {
+          StopPlayback(AUDIO_PAUSE);
+          mDecoder->GetMonitor().NotifyAll();
+        }
+
         TimeStamp now = TimeStamp::Now();
         if (mBufferingEndOffset == -1) {
           
@@ -1479,10 +1489,6 @@ void nsBuiltinDecoderStateMachine::LoadMetadata()
 void nsBuiltinDecoderStateMachine::StartBuffering()
 {
   mDecoder->GetMonitor().AssertCurrentThreadIn();
-  if (IsPlaying()) {
-    StopPlayback(AUDIO_PAUSE);
-    mDecoder->GetMonitor().NotifyAll();
-  }
 
   
   

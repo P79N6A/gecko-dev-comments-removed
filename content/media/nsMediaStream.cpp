@@ -571,6 +571,15 @@ nsresult nsMediaChannelStream::Read(char* aBuffer,
 {
   NS_ASSERTION(!NS_IsMainThread(), "Don't call on main thread");
 
+  PRInt64 pos = Tell();
+  PRInt64 endOfRead = pos + aCount;
+  if (endOfRead > mCacheStream.GetCachedDataEnd(pos) &&
+      !IsDataCachedToEndOfStream(pos)) {
+    
+    
+    mDecoder->NotifyDataExhausted();
+  }
+
   return mCacheStream.Read(aBuffer, aCount, aBytes);
 }
 

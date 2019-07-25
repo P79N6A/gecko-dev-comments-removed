@@ -250,6 +250,8 @@ public:
     return mEndTime;
   }
 
+  void NotifyDataExhausted();
+
 protected:
 
   
