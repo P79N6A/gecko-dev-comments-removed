@@ -132,14 +132,27 @@ BrowserElementAPI.prototype = {
     
     var unwrappedWin = XPCNativeWrapper.unwrap(win);
 
-    Object.defineProperty(unwrappedWin, 'top', {
+    
+    
+    Object.defineProperty(win, 'browserFrameTop', {
       get: function() {
         if (isTopLevel) {
           return win;
         }
+
+        if ('browserFrameTop' in win.parent) {
+          return win.parent.browserFrameTop;
+        }
+
         
         
-        return XPCNativeWrapper.unwrap(win.parent).top;
+        throw new Error('Internal error in window.browserFrameTop.');
+      }
+    });
+
+    Object.defineProperty(unwrappedWin, 'top', {
+      get: function() {
+        return win.browserFrameTop;
       }
     });
 
