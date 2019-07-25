@@ -117,6 +117,10 @@ CSS_PSEUDO_CLASS(mozWindowInactive, ":-moz-window-inactive")
 
 
 
+CSS_PSEUDO_CLASS(mozTableBorderNonzero, ":-moz-table-border-nonzero")
+
+
+
 CSS_PSEUDO_CLASS(notPseudo, ":not")
 
 CSS_STATE_PSEUDO_CLASS(link, ":link", NS_EVENT_STATE_UNVISITED)

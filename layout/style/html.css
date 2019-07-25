@@ -295,37 +295,38 @@ table[rules] {
 
 
   
-table[border]:not([border="0"]) { 
+
+
+table:-moz-table-border-nonzero { 
   border: thin outset; 
 }
 
-  
 table[frame] {
   border: thin hidden;
 }
 
 
-table[frame][frame="void"]   { border-style: hidden; }
-table[frame][frame="above"]  { border-style: outset hidden hidden hidden; }
-table[frame][frame="below"]  { border-style: hidden hidden outset hidden; }
-table[frame][frame="lhs"]    { border-style: hidden hidden hidden outset; }
-table[frame][frame="rhs"]    { border-style: hidden outset hidden hidden; }
-table[frame][frame="hsides"] { border-style: outset hidden; }
-table[frame][frame="vsides"] { border-style: hidden outset; }
-table[frame][frame="box"],
-table[frame][frame="border"] { border-style: outset; }
+table[frame="void"]   { border-style: hidden; }
+table[frame="above"]  { border-style: outset hidden hidden hidden; }
+table[frame="below"]  { border-style: hidden hidden outset hidden; }
+table[frame="lhs"]    { border-style: hidden hidden hidden outset; }
+table[frame="rhs"]    { border-style: hidden outset hidden hidden; }
+table[frame="hsides"] { border-style: outset hidden; }
+table[frame="vsides"] { border-style: hidden outset; }
+table[frame="box"],
+table[frame="border"] { border-style: outset; }
 
  
 
 
   
 
-table[border]:not([border="0"])> * > tr > td,
-table[border]:not([border="0"])> * > tr > th,
-table[border]:not([border="0"])> * > td,
-table[border]:not([border="0"])> * > th,
-table[border]:not([border="0"])> td,
-table[border]:not([border="0"])> th
+table:-moz-table-border-nonzero > * > tr > td,
+table:-moz-table-border-nonzero > * > tr > th,
+table:-moz-table-border-nonzero > * > td,
+table:-moz-table-border-nonzero > * > th,
+table:-moz-table-border-nonzero > td,
+table:-moz-table-border-nonzero > th
 {
   border: thin inset;
 }
