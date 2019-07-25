@@ -106,8 +106,10 @@ public:
                                    LayerManager* aManager)
   {
     
-    
-    return mozilla::LAYER_ACTIVE;
+    if (aManager->IsCompositingCheap())
+      return mozilla::LAYER_ACTIVE;
+
+    return mFrame->AreLayersMarkedActive() ? LAYER_ACTIVE : LAYER_INACTIVE;
   }
 };
 
@@ -119,6 +121,21 @@ NS_NewHTMLCanvasFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 }
 
 NS_IMPL_FRAMEARENA_HELPERS(nsHTMLCanvasFrame)
+
+NS_IMETHODIMP
+nsHTMLCanvasFrame::Init(nsIContent* aContent,
+                        nsIFrame*   aParent,
+                        nsIFrame*   aPrevInFlow)
+{
+  nsresult rv = nsSplittableFrame::Init(aContent, aParent, aPrevInFlow);
+
+  
+  
+  
+  MarkLayersActive();
+
+  return rv;
+}
 
 nsHTMLCanvasFrame::~nsHTMLCanvasFrame()
 {

@@ -2778,6 +2778,14 @@ BasicShadowLayerManager::Hold(Layer* aLayer)
   mKeepAlive.AppendElement(aLayer);
   return shadowable;
 }
+
+PRBool
+BasicShadowLayerManager::IsCompositingCheap()
+{
+  
+  return mShadowManager &&
+         LayerManager::IsCompositingCheap(GetParentBackendType());
+}
 #endif  
 
 }

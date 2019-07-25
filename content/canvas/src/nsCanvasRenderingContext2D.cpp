@@ -4066,6 +4066,7 @@ nsCanvasRenderingContext2D::GetCanvasLayer(CanvasLayer *aOldLayer,
             
             aOldLayer->Updated(nsIntRect(0, 0, mWidth, mHeight));
             MarkContextClean();
+            HTMLCanvasElement()->GetPrimaryCanvasFrame()->MarkLayersActive();
         }
 
         return aOldLayer;

@@ -474,6 +474,11 @@ public:
   static bool IsLogEnabled();
   static PRLogModuleInfo* GetLog() { return sLog; }
 
+  PRBool IsCompositingCheap(LayerManager::LayersBackend aBackend)
+  { return LAYERS_BASIC != aBackend; }
+
+  virtual PRBool IsCompositingCheap() { return PR_TRUE; }
+
 protected:
   nsRefPtr<Layer> mRoot;
   LayerUserDataSet mUserData;

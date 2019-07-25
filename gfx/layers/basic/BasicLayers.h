@@ -184,6 +184,8 @@ public:
 
   void SetTransactionIncomplete() { mTransactionIncomplete = true; }
 
+  virtual PRBool IsCompositingCheap() { return PR_FALSE; }
+
 protected:
 #ifdef DEBUG
   enum TransactionPhase {
@@ -268,6 +270,8 @@ public:
   {
     mShadowManager = aShadowManager;
   }
+
+  virtual PRBool IsCompositingCheap();
 
 private:
   
