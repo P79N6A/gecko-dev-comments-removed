@@ -1332,21 +1332,11 @@ struct GCMarker : public JSTracer {
 void
 MarkStackRangeConservatively(JSTracer *trc, Value *begin, Value *end);
 
-static inline uint64
-TraceKindMask(unsigned kind)
-{
-    return uint64(1) << kind;
-}
-
-static inline bool
-TraceKindInMask(unsigned kind, uint64 mask)
-{
-    return !!(mask & TraceKindMask(kind));
-}
-
-typedef void (*IterateCallback)(JSContext *cx, void *data, size_t traceKind, void *obj);
-
-
+typedef void (*IterateCompartmentCallback)(JSContext *cx, void *data, JSCompartment *compartment);
+typedef void (*IterateArenaCallback)(JSContext *cx, void *data, gc::Arena *arena, size_t traceKind,
+                                     size_t thingSize);
+typedef void (*IterateCellCallback)(JSContext *cx, void *data, void *thing, size_t traceKind,
+                                    size_t thingSize);
 
 
 
@@ -1354,8 +1344,10 @@ typedef void (*IterateCallback)(JSContext *cx, void *data, size_t traceKind, voi
 
 
 extern JS_FRIEND_API(void)
-IterateCells(JSContext *cx, JSCompartment *comp, uint64 traceKindMask,
-             void *data, IterateCallback callback);
+IterateCompartmentsArenasCells(JSContext *cx, void *data,
+                               IterateCompartmentCallback compartmentCallback, 
+                               IterateArenaCallback arenaCallback,
+                               IterateCellCallback cellCallback);
 
 } 
 

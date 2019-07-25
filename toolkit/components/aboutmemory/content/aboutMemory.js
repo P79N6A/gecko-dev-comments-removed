@@ -243,7 +243,6 @@ function update()
           "reporter to see a detailed description of what it measures.</span>"
           "</div>";
 
-
   var div = document.createElement("div");
   div.innerHTML = text;
   content.appendChild(div);
@@ -252,7 +251,7 @@ function update()
 
 
 
-function cmp_amount(a, b)
+function cmpAmount(a, b)
 {
   if (a._units != b._units)
     return a._units - b._units;   
@@ -451,7 +450,7 @@ function genProcessText(aProcess, aReporters)
 
     function filterTree(aT)
     {
-      aT._kids.sort(cmp_amount);
+      aT._kids.sort(cmpAmount);
 
       for (var i = 0; i < aT._kids.length; i++) {
         if (shouldOmit(aT._kids[i]._amount)) {
@@ -460,21 +459,26 @@ function genProcessText(aProcess, aReporters)
           
           var i0 = i;
           var aggBytes = 0;
-          var aggNames = [];
           for ( ; i < aT._kids.length; i++) {
             aggBytes += aT._kids[i]._amount;
-            aggNames.push(aT._kids[i]._name);
           }
           aT._kids.splice(i0);
           var n = i - i0;
           var rSub = {
             _name: "(" + n + " omitted)",
             _kind: KIND_OTHER,
-            _description: "Omitted sub-trees: " + aggNames.join(", ") + ".",
             _amount: aggBytes,
+            _description: n + " sub-trees that were below the " + 
+                          omitThresholdPerc + "% significance threshold.  " +
+                          "Click 'More verbose' at the bottom of this page " +
+                          "to see them.",
             _kids: []
           };
+          
+          
+          
           aT._kids[i0] = rSub;
+          aT._kids.sort(cmpAmount);
           break;
         }
         filterTree(aT._kids[i]);
@@ -648,7 +652,41 @@ function kindToString(aKind)
 
 function escapeQuotes(aStr)
 {
-  return aStr.replace(/'/g, '&#39;');
+  return aStr.replace(/\&/g, '&amp;').replace(/'/g, '&#39;');
+}
+
+
+function escapeAll(aStr)
+{
+  return aStr.replace(/\&/g, '&amp;').replace(/'/g, '&#39;').
+              replace(/\</g, '&lt;').replace(/>/g, '&gt;').
+              replace(/\"/g, '&quot;');
+}
+
+
+
+
+function flipBackslashes(aStr)
+{
+  return aStr.replace(/\\/g, '/');
+}
+
+
+function truncateCompartmentName(aStr)
+{
+  return (gVerbose)
+       ? aStr
+       : aStr.replace(/compartment\((.{40}).*\)/, 'compartment($1...)');
+}
+
+function prepName(aStr)
+{
+  return escapeAll(flipBackslashes(truncateCompartmentName(aStr)));
+}
+
+function prepDesc(aStr)
+{
+  return escapeQuotes(flipBackslashes(aStr));
 }
 
 function genMrNameText(aKind, aDesc, aName, aHasProblem)
@@ -658,8 +696,8 @@ function genMrNameText(aKind, aDesc, aName, aHasProblem)
     "The reported value is the sum of all entries below '" + aName + "', " +
     "which is probably less than the true value.";
   var text = "-- <span class='mrName hasDesc' title='" +
-             kindToString(aKind) + escapeQuotes(aDesc) +
-             "'>" + aName + "</span>";
+             kindToString(aKind) + prepDesc(aDesc) +
+             "'>" + prepName(aName) + "</span>";
   text += aHasProblem
         ? " <span class='mrStar' title=\"" + problemDesc + "\">[*]</span>\n"
         : "\n";
@@ -802,7 +840,7 @@ function genOtherText(aReporters)
         _path:        r._path,
         _kind:        r._kind,
         _units:       r._units,
-        _amount:  hasProblem ? 0 : r._amount,
+        _amount:      hasProblem ? 0 : r._amount,
         _description: r._description,
         _hasProblem:  hasProblem
       };
@@ -813,7 +851,7 @@ function genOtherText(aReporters)
       }
     }
   }
-  rArray.sort(cmp_amount);
+  rArray.sort(cmpAmount);
 
   
   var text = "";

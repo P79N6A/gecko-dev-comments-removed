@@ -617,11 +617,6 @@ struct JSRuntime {
     JSWrapObjectCallback wrapObjectCallback;
     JSPreWrapCallback    preWrapObjectCallback;
 
-#ifdef JS_METHODJIT
-    
-    size_t               mjitDataSize;
-#endif
-
     
 
 
