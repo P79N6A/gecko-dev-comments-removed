@@ -41,43 +41,35 @@
 #include "nsToolkit.h"
 #import <Cocoa/Cocoa.h>
 
+extern "C" {
+  typedef CFTypeRef CUIRendererRef;
+  void CUIDraw(CUIRendererRef r, CGRect rect, CGContextRef ctx, CFDictionaryRef options, CFDictionaryRef* result);
+}
+
+@interface NSWindow(CoreUIRendererPrivate)
++ (CUIRendererRef)coreUIRenderer;
+@end
+
 enum ColorName {
-  headerStartGrey,
-  headerEndGrey,
-  headerBorderGrey,
   toolbarTopBorderGrey,
-  statusbarFirstTopBorderGrey,
-  statusbarSecondTopBorderGrey,
-  statusbarGradientStartGrey,
-  statusbarGradientEndGrey
+  toolbarFillGrey,
+  toolbarBottomBorderGrey,
 };
 
 static const int sLeopardThemeColors[][2] = {
   
   
-  { 0xC5, 0xE9 }, 
+  { 0xC0, 0xE2 }, 
   { 0x96, 0xCA }, 
   { 0x42, 0x89 }, 
-  { 0xC0, 0xE2 }, 
-  
-  { 0x42, 0x86 }, 
-  { 0xD8, 0xEE }, 
-  { 0xBD, 0xE4 }, 
-  { 0x96, 0xCF }  
 };
 
 static const int sSnowLeopardThemeColors[][2] = {
   
   
-  { 0xD1, 0xEE }, 
+  { 0xD0, 0xF1 }, 
   { 0xA7, 0xD8 }, 
   { 0x51, 0x99 }, 
-  { 0xD0, 0xF1 }, 
-  
-  { 0x51, 0x99 }, 
-  { 0xE8, 0xF6 }, 
-  { 0xCB, 0xEA }, 
-  { 0xA7, 0xDE }  
 };
 
 __attribute__((unused))
@@ -104,4 +96,4 @@ static void DrawNativeGreyColorInRect(CGContextRef context, ColorName name,
   CGContextFillRect(context, rect);
 }
 
-#endif 
+#endif
