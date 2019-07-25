@@ -79,12 +79,6 @@ XPCOMUtils.defineLazyGetter(this, "gcli", function () {
   return obj.gcli;
 });
 
-XPCOMUtils.defineLazyGetter(this, "GcliCommands", function () {
-  var obj = {};
-  Cu.import("resource:///modules/GcliCommands.jsm", obj);
-  return obj.GcliCommands;
-});
-
 XPCOMUtils.defineLazyGetter(this, "StyleInspector", function () {
   var obj = {};
   Cu.import("resource:///modules/devtools/StyleInspector.jsm", obj);
@@ -131,6 +125,23 @@ function LogFactory(aMessagePrefix)
     dump(_msg);
   }
   return log;
+}
+
+
+
+
+
+
+
+
+
+
+function loadCommands() {
+  let commandExports = {};
+
+  Cu.import("resource:///modules/GcliCommands.jsm", commandExports);
+
+  return commandExports;
 }
 
 let log = LogFactory("*** HUDService:");
@@ -6885,6 +6896,11 @@ catch (ex) {
 
 
 
+let commandExports = undefined;
+
+
+
+
 
 
 
@@ -6932,7 +6948,10 @@ function GcliTerm(aContentWindow, aHudId, aDocument, aConsole, aHintNode)
 
   gcli._internal.commandOutputManager.addListener(this.onCommandOutput, this);
   gcli._internal.createView(this.opts);
-  GcliCommands.setDocument(aContentWindow.document);
+
+  if (!commandExports) {
+    commandExports = loadCommands();
+  }
 }
 
 GcliTerm.prototype = {
@@ -6957,7 +6976,6 @@ GcliTerm.prototype = {
 
   destroy: function Gcli_destroy()
   {
-    GcliCommands.unsetDocument();
     gcli._internal.removeView(this.opts);
     gcli._internal.commandOutputManager.removeListener(this.onCommandOutput, this);
 
