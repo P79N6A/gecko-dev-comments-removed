@@ -75,10 +75,11 @@ public:
 
 
 
+
   virtual nsresult ValueFromString(const nsAString& aStr,
                                    const nsISMILAnimationElement* aSrcElement,
                                    nsSMILValue& aValue,
-                                   PRBool& aCanCache) const = 0;
+                                   PRBool& aPreventCachingOfSandwich) const = 0;
 
   
 

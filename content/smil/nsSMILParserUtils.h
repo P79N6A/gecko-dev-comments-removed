@@ -75,7 +75,7 @@ public:
                               const nsISMILAnimationElement* aSrcElement,
                               const nsISMILAttr& aAttribute,
                               nsTArray<nsSMILValue>& aValuesArray,
-                              PRBool& aCanCache);
+                              PRBool& aPreventCachingOfSandwich);
 
   
   

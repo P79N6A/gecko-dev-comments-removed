@@ -155,7 +155,7 @@ nsresult
 nsSMILCSSProperty::ValueFromString(const nsAString& aStr,
                                    const nsISMILAnimationElement* aSrcElement,
                                    nsSMILValue& aValue,
-                                   PRBool& aCanCache) const
+                                   PRBool& aPreventCachingOfSandwich) const
 {
   NS_ENSURE_TRUE(IsPropertyAnimatable(mPropID), NS_ERROR_FAILURE);
 
@@ -172,7 +172,8 @@ nsSMILCSSProperty::ValueFromString(const nsAString& aStr,
   
   
   
-  aCanCache = PR_FALSE;
+  
+  aPreventCachingOfSandwich = PR_TRUE;
   return NS_OK;
 }
 
