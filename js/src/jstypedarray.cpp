@@ -105,10 +105,16 @@ ValueIsLength(JSContext *cx, const Value &v, jsuint *len)
 
 
 
+
+
+
+
+
+
 JSObject *
 ArrayBuffer::getArrayBuffer(JSObject *obj)
 {
-    while (!js_IsArrayBuffer(obj))
+    while (obj && !js_IsArrayBuffer(obj))
         obj = obj->getProto();
     return obj;
 }
@@ -117,6 +123,10 @@ JSBool
 ArrayBuffer::prop_getByteLength(JSContext *cx, JSObject *obj, jsid id, Value *vp)
 {
     JSObject *arrayBuffer = getArrayBuffer(obj);
+    if (!arrayBuffer) {
+        vp->setInt32(0);
+        return true;
+    }
     vp->setInt32(jsint(ArrayBuffer::getByteLength(arrayBuffer)));
     return true;
 }
