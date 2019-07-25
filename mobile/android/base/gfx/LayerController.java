@@ -120,11 +120,6 @@ public class LayerController implements Tabs.OnTabsChangedListener {
 
     
 
-    private static final int DANGER_ZONE_X = 75;
-    private static final int DANGER_ZONE_Y = 150;
-
-    
-
     private int mTimeout = 200;
 
     private boolean allowDefaultActions = true;
@@ -330,23 +325,7 @@ public class LayerController implements Tabs.OnTabsChangedListener {
             return false;
         }
 
-        return aboutToCheckerboard();
-    }
-
-    
-    private boolean aboutToCheckerboard() {
-        
-        
-        
-        FloatSize pageSize = getPageSize();
-        RectF adjustedViewport = RectUtils.expand(getViewport(), DANGER_ZONE_X, DANGER_ZONE_Y);
-        if (adjustedViewport.top < 0) adjustedViewport.top = 0;
-        if (adjustedViewport.left < 0) adjustedViewport.left = 0;
-        if (adjustedViewport.right > pageSize.width) adjustedViewport.right = pageSize.width;
-        if (adjustedViewport.bottom > pageSize.height) adjustedViewport.bottom = pageSize.height;
-
-        DisplayPortMetrics displayPort = (mLayerClient == null ? new DisplayPortMetrics() : mLayerClient.getDisplayPort());
-        return !displayPort.contains(adjustedViewport);
+        return DisplayPortCalculator.aboutToCheckerboard(mViewportMetrics, mLayerClient.getDisplayPort());
     }
 
     
