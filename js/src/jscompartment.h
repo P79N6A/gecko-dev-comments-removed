@@ -55,10 +55,169 @@
 #endif
 
 namespace js {
+
+
+typedef HashMap<jsbytecode*,
+                size_t,
+                DefaultHasher<jsbytecode*>,
+                SystemAllocPolicy> RecordAttemptMap;
+
+
+typedef HashMap<jsbytecode*,
+                LoopProfile*,
+                DefaultHasher<jsbytecode*>,
+                SystemAllocPolicy> LoopProfileMap;
+
+class Oracle;
+
+typedef HashSet<JSScript *,
+                DefaultHasher<JSScript *>,
+                SystemAllocPolicy> TracedScriptSet;
+
+
+
+
+
+
+struct TraceMonitor {
+    
+
+
+
+
+
+
+
+
+
+    JSContext               *tracecx;
+
+    
+
+
+
+
+    TraceNativeStorage      *storage;
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    VMAllocator*            dataAlloc;
+    VMAllocator*            traceAlloc;
+    VMAllocator*            tempAlloc;
+    nanojit::CodeAlloc*     codeAlloc;
+    nanojit::Assembler*     assembler;
+    FrameInfoCache*         frameCache;
+
+    
+    uintN                   flushEpoch;
+
+    Oracle*                 oracle;
+    TraceRecorder*          recorder;
+
+    
+    LoopProfile*            profile;
+
+    GlobalState             globalStates[MONITOR_N_GLOBAL_STATES];
+    TreeFragment*           vmfragments[FRAGMENT_TABLE_SIZE];
+    RecordAttemptMap*       recordAttempts;
+
+    
+    LoopProfileMap*         loopProfiles;
+
+    
+
+
+
+    uint32                  maxCodeCacheBytes;
+
+    
+
+
+
+
+    JSBool                  needFlush;
+
+    
+
+
+    REHashMap*              reFragments;
+
+    
+    
+    
+    TypeMap*                cachedTempTypeMap;
+
+    
+    TracedScriptSet         tracedScripts;
+
+#ifdef DEBUG
+    
+    nanojit::Seq<nanojit::Fragment*>* branches;
+    uint32                  lastFragID;
+    
+
+
+
+    VMAllocator*            profAlloc;
+    FragStatsMap*           profTab;
+#endif
+
+    bool ontrace() const {
+        return !!tracecx;
+    }
+
+    
+    void flush();
+
+    
+    void sweep();
+
+    bool outOfMemory() const;
+};
+
 namespace mjit {
 class JaegerCompartment;
 }
 }
+
+
+#ifndef JS_EVAL_CACHE_SHIFT
+# define JS_EVAL_CACHE_SHIFT        6
+#endif
+#define JS_EVAL_CACHE_SIZE          JS_BIT(JS_EVAL_CACHE_SHIFT)
+
+#ifdef DEBUG
+# define EVAL_CACHE_METER_LIST(_)   _(probe), _(hit), _(step), _(noscope)
+# define identity(x)                x
+
+struct JSEvalCacheMeter {
+    uint64 EVAL_CACHE_METER_LIST(identity);
+};
+
+# undef identity
+#endif
 
 struct JS_FRIEND_API(JSCompartment) {
     JSRuntime                    *rt;
@@ -70,6 +229,18 @@ struct JS_FRIEND_API(JSCompartment) {
 
 #ifdef JS_GCMETER
     js::gc::JSGCArenaStats       compartmentStats[js::gc::FINALIZE_LIMIT];
+#endif
+
+#ifdef JS_TRACER
+    
+    js::TraceMonitor traceMonitor;
+#endif
+
+    
+    JSScript                     *scriptsToGC[JS_EVAL_CACHE_SIZE];
+
+#ifdef DEBUG
+    JSEvalCacheMeter    evalCacheMeter;
 #endif
 
     void                         *data;
@@ -112,6 +283,15 @@ struct JS_FRIEND_API(JSCompartment) {
     void finishArenaLists();
     bool arenaListsAreEmpty();
 };
+
+#define JS_TRACE_MONITOR(cx)    (cx->compartment->traceMonitor)
+#define JS_SCRIPTS_TO_GC(cx)    (cx->compartment->scriptsToGC)
+
+#ifdef DEBUG
+# define EVAL_CACHE_METER(x)    (cx->compartment->evalCacheMeter.x++)
+#else
+# define EVAL_CACHE_METER(x)    ((void) 0)
+#endif
 
 #ifdef _MSC_VER
 #pragma warning(pop)
