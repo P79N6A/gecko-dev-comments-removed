@@ -381,7 +381,6 @@ CodeGeneratorShared::callVM(const VMFunction &fun, LInstruction *ins)
         argumentPadding = (fun.explicitStackSlots() * sizeof(void *)) % StackAlignment;
         masm.reserveStack(argumentPadding);
     }
-
     
     
     
