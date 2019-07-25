@@ -38,11 +38,45 @@
 
 
 #include "IDBObjectStoreRequest.h"
+#include "AsyncConnectionHelper.h"
+#include "nsIIDBDatabaseError.h"
 
 #include "nsDOMClassInfo.h"
 #include "nsThreadUtils.h"
+#include "mozilla/Storage.h"
 
 USING_INDEXEDDB_NAMESPACE
+
+namespace {
+
+class PutObjectStoreHelper : public AsyncConnectionHelper
+{
+public:
+  PutObjectStoreHelper(IDBDatabaseRequest* aDatabase,
+                       nsIDOMEventTarget* aTarget,
+                       PRInt64 aObjectStoreID,
+                       nsIVariant* aValue,
+                       nsIVariant* aKey,
+                       bool aAutoIncrement,
+                       bool aNoOverwrite)
+  : AsyncConnectionHelper(aDatabase, aTarget), mOSID(aObjectStoreID),
+    mValue(aValue), mKey(aKey), mAutoIncrement(aAutoIncrement),
+    mNoOverwrite(aNoOverwrite)
+  { }
+
+  nsresult Init();
+  PRUint16 DoDatabaseWork();
+  void GetSuccessResult(nsIWritableVariant* aResult);
+
+private:
+  const PRInt64 mOSID;
+  nsCOMPtr<nsIVariant> mValue;
+  nsCOMPtr<nsIVariant> mKey;
+  const bool mAutoIncrement;
+  const bool mNoOverwrite;
+};
+
+} 
 
 
 already_AddRefed<IDBObjectStoreRequest>
@@ -218,4 +252,68 @@ IDBObjectStoreRequest::OpenCursor(nsIIDBKeyRange* aRange,
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
   return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+
+
+
+nsresult
+PutObjectStoreHelper::Init()
+{
+  return NS_OK;
+}
+
+PRUint16
+PutObjectStoreHelper::DoDatabaseWork()
+{
+  nsresult rv = mDatabase->EnsureConnection();
+  NS_ENSURE_SUCCESS(rv, nsIIDBDatabaseError::UNKNOWN_ERR);
+
+  nsCOMPtr<mozIStorageConnection> connection = mDatabase->Connection();
+
+  
+  mozStorageTransaction transaction(connection, PR_FALSE);
+
+  
+
+  
+  nsCOMPtr<mozIStorageStatement> stmt;
+  if (mAutoIncrement) {
+    rv = connection->CreateStatement(NS_LITERAL_CSTRING(
+      "INSERT INTO ai_object_data (object_store_id, data)"
+      "VALUES (:osid, :data)"
+    ), getter_AddRefs(stmt));
+  }
+  else {
+    rv = connection->CreateStatement(NS_LITERAL_CSTRING(
+      "INSERT INTO object_data (object_store_id, key_value, data)"
+      "VALUES (:osid, :key_value, :data)"
+    ), getter_AddRefs(stmt));
+    NS_ENSURE_SUCCESS(rv, nsIIDBDatabaseError::UNKNOWN_ERR);
+
+    
+    
+  }
+  NS_ENSURE_SUCCESS(rv, nsIIDBDatabaseError::UNKNOWN_ERR);
+
+  rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("osid"), mOSID);
+  NS_ENSURE_SUCCESS(rv, nsIIDBDatabaseError::UNKNOWN_ERR);
+
+  
+
+  if (NS_FAILED(stmt->Execute())) {
+    return nsIIDBDatabaseError::CONSTRAINT_ERR;
+  }
+
+  
+
+  return NS_SUCCEEDED(transaction.Commit()) ?
+         OK :
+         nsIIDBDatabaseError::UNKNOWN_ERR;
+}
+
+void
+PutObjectStoreHelper::GetSuccessResult(nsIWritableVariant* aResult)
+{
+  
 }
