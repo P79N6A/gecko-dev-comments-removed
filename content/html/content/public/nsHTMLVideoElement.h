@@ -85,7 +85,7 @@ public:
 
   
   
-  nsIntSize GetVideoSize(nsIntSize defaultSize);
+  nsresult GetVideoSize(nsIntSize* size);
 
   virtual nsresult SetAcceptHeader(nsIHttpChannel* aChannel);
 
