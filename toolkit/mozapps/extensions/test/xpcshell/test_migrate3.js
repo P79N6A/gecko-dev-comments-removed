@@ -4,6 +4,10 @@
 
 
 
+
+
+Components.utils.import("resource://gre/modules/LightweightThemeManager.jsm");
+
 var addon1 = {
   id: "addon1@tests.mozilla.org",
   version: "1.0",
@@ -100,6 +104,22 @@ function run_test() {
   writeInstallRDFForExtension(theme1, profileDir);
   writeInstallRDFForExtension(theme2, profileDir);
 
+  
+  
+  Services.prefs.setCharPref("lightweightThemes.usedThemes", JSON.stringify([{
+    id: "1",
+    version: "1",
+    name: "Test LW Theme",
+    description: "A test theme",
+    author: "Mozilla",
+    homepageURL: "http://localhost:4444/data/index.html",
+    headerURL: "http://localhost:4444/data/header.png",
+    footerURL: "http://localhost:4444/data/footer.png",
+    previewURL: "http://localhost:4444/data/preview.png",
+    iconURL: "http://localhost:4444/data/icon.png"
+  }]));
+  Services.prefs.setBoolPref("lightweightThemes.isThemeSelected", true);
+
   let old = do_get_file("data/test_migrate.rdf");
   old.copyTo(gProfD, "extensions.rdf");
 
@@ -144,10 +164,10 @@ function run_test() {
 
     
     do_check_neq(t1, null);
-    do_check_false(t1.userDisabled);
+    do_check_true(t1.userDisabled);
     do_check_false(t1.appDisabled);
-    do_check_true(t1.isActive);
-    do_check_false(hasFlag(t1.permissions, AddonManager.PERM_CAN_ENABLE));
+    do_check_false(t1.isActive);
+    do_check_true(hasFlag(t1.permissions, AddonManager.PERM_CAN_ENABLE));
 
     
     do_check_neq(t1, null);

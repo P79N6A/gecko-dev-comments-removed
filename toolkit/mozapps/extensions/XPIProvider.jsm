@@ -46,6 +46,7 @@ var EXPORTED_SYMBOLS = [];
 Components.utils.import("resource://gre/modules/Services.jsm");
 Components.utils.import("resource://gre/modules/AddonManager.jsm");
 Components.utils.import("resource://gre/modules/AddonRepository.jsm");
+Components.utils.import("resource://gre/modules/LightweightThemeManager.jsm");
 Components.utils.import("resource://gre/modules/FileUtils.jsm");
 Components.utils.import("resource://gre/modules/NetUtil.jsm");
 
@@ -515,10 +516,15 @@ function loadManifestFromRDF(aUri, aStream) {
   });
 
   
-  if (addon.type == "theme")
-    addon.userDisabled = addon.internalName != XPIProvider.selectedSkin;
-  else
+  
+  
+  if (addon.type == "theme") {
+    addon.userDisabled = !!LightweightThemeManager.currentTheme ||
+                         addon.internalName != XPIProvider.selectedSkin;
+  }
+  else {
     addon.userDisabled = addon.blocklistState == Ci.nsIBlocklistService.STATE_SOFTBLOCKED;
+  }
 
   addon.appDisabled = !isUsableAddon(addon);
 
