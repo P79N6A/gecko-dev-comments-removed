@@ -290,9 +290,9 @@ nsGeolocationRequest::Notify(nsITimer* aTimer)
   
   
   
-  NotifyError(nsIDOMGeoPositionError::TIMEOUT);
   
   mLocator->RemoveRequest(this);
+  NotifyError(nsIDOMGeoPositionError::TIMEOUT);
 
   mTimeoutTimer = nsnull;
   return NS_OK;
@@ -338,10 +338,10 @@ nsGeolocationRequest::GetElement(nsIDOMElement * *aRequestingElement)
 NS_IMETHODIMP
 nsGeolocationRequest::Cancel()
 {
-  NotifyError(nsIDOMGeoPositionError::PERMISSION_DENIED);
-
   
   mLocator->RemoveRequest(this);
+
+  NotifyError(nsIDOMGeoPositionError::PERMISSION_DENIED);
   return NS_OK;
 }
 
