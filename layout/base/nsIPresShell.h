@@ -834,11 +834,15 @@ public:
 
 
 
+
+
+
   enum {
     RENDER_IS_UNTRUSTED = 0x01,
     RENDER_IGNORE_VIEWPORT_SCROLLING = 0x02,
     RENDER_CARET = 0x04,
-    RENDER_USE_WIDGET_LAYERS = 0x08
+    RENDER_USE_WIDGET_LAYERS = 0x08,
+    RENDER_ASYNC_DECODE_IMAGES = 0x10
   };
   virtual NS_HIDDEN_(nsresult) RenderDocument(const nsRect& aRect, PRUint32 aFlags,
                                               nscolor aBackgroundColor,
