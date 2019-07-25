@@ -192,6 +192,19 @@ TabStore.prototype = {
   create: function TabStore_create(record) {
     this._log.debug("Adding remote tabs from " + record.clientName);
     this._remoteClients[record.id] = record.cleartext;
+
+    
+    let roundModify = Math.floor(record.modified / 1000);
+    let notifyState = Svc.Prefs.get("notifyTabState");
+    
+    if (notifyState == null)
+      Svc.Prefs.set("notifyTabState", roundModify);
+    
+    else if (notifyState == 0)
+      return;
+    
+    else if (notifyState != roundModify)
+      Svc.Prefs.set("notifyTabState", 0);
   }
 };
 
