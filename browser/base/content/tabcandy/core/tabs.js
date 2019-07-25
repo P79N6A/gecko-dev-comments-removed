@@ -214,7 +214,7 @@ function EventListenerMixIn(options) {
 
 
 
-window.TabsManager = $.extend(new Subscribable(), {
+window.TabsManager = iQ.extend(new Subscribable(), {
   
   
   
