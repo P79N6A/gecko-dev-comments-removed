@@ -457,14 +457,6 @@ BuildContentLists(nsISupports* aKey,
     return PL_DHASH_NEXT;
 
   
-  
-  nsInsertionPointList* contentList = new nsInsertionPointList;
-  if (!contentList) {
-    data->mRv = NS_ERROR_OUT_OF_MEMORY;
-    return PL_DHASH_STOP;
-  }
-
-  
   nsXBLInsertionPoint* currPoint = aData->ElementAt(0);
   nsCOMPtr<nsIContent> parent = currPoint->GetInsertionParent();
   if (!parent) {
@@ -472,6 +464,14 @@ BuildContentLists(nsISupports* aKey,
     return PL_DHASH_STOP;
   }
   PRInt32 currIndex = currPoint->GetInsertionIndex();
+
+  
+  
+  nsInsertionPointList* contentList = new nsInsertionPointList;
+  if (!contentList) {
+    data->mRv = NS_ERROR_OUT_OF_MEMORY;
+    return PL_DHASH_STOP;
+  }
 
   nsCOMPtr<nsIDOMNodeList> nodeList;
   if (parent == boundElement) {
