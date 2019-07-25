@@ -2273,18 +2273,12 @@ nsresult nsPluginHost::LoadPlugins()
   return NS_OK;
 }
 
-#include "nsITimelineService.h"
-
 
 
 
 nsresult nsPluginHost::FindPlugins(PRBool aCreatePluginList, PRBool * aPluginsChanged)
 {
   Telemetry::AutoTimer<Telemetry::FIND_PLUGINS> telemetry;
-  
-  if (aCreatePluginList) {
-    NS_TIMELINE_START_TIMER("LoadPlugins");
-  }
 
 #ifdef CALL_SAFETY_ON
   
@@ -2458,9 +2452,6 @@ nsresult nsPluginHost::FindPlugins(PRBool aCreatePluginList, PRBool * aPluginsCh
   
   NS_ITERATIVE_UNREF_LIST(nsRefPtr<nsPluginTag>, mCachedPlugins, mNext);
   NS_ITERATIVE_UNREF_LIST(nsRefPtr<nsInvalidPluginTag>, mInvalidPlugins, mNext);
-
-  NS_TIMELINE_STOP_TIMER("LoadPlugins");
-  NS_TIMELINE_MARK_TIMER("LoadPlugins");
 
   return NS_OK;
 }

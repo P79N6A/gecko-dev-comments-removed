@@ -122,7 +122,6 @@
 
 #include "nsIScrollableFrame.h"
 #include "nsIHTMLDocument.h"
-#include "nsITimelineService.h"
 #include "nsGfxCIID.h"
 #include "nsStyleSheetService.h"
 #include "nsURILoader.h"
@@ -1068,22 +1067,6 @@ DocumentViewerImpl::LoadComplete(nsresult aStatus)
       if (timing) {
         timing->NotifyLoadEventEnd();
       }
-#ifdef MOZ_TIMELINE
-      
-      
-
-      nsIURI *uri = mDocument ? mDocument->GetDocumentURI() : nsnull;
-
-      if (uri) {
-        
-        nsCAutoString spec;
-        uri->GetSpec(spec);
-        if (spec.EqualsLiteral("chrome://navigator/content/navigator.xul") ||
-            spec.EqualsLiteral("chrome://browser/content/browser.xul")) {
-          NS_TIMELINE_MARK("Navigator Window visible now");
-        }
-      }
-#endif 
     }
   } else {
     
