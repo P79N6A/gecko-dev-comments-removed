@@ -44,6 +44,16 @@
 #include "IPC/IPCMessageUtils.h"
 #include "Layers.h"
 
+#if defined(MOZ_X11)
+#  include "mozilla/layers/ShadowLayerUtilsX11.h"
+#else
+namespace mozilla { namespace layers {
+struct SurfaceDescriptorX11 {
+  bool operator==(const SurfaceDescriptorX11&) const { return false; }
+};
+} }
+#endif
+
 namespace IPC {
 
 template <>
@@ -65,6 +75,15 @@ struct ParamTraits<mozilla::layers::FrameMetrics>
             ReadParam(aMsg, aIter, &aResult->mDisplayPort));
   }
 };
+
+#if !defined(MOZ_HAVE_SURFACEDESCRIPTORX11)
+template <>
+struct ParamTraits<mozilla::layers::SurfaceDescriptorX11> {
+  typedef mozilla::layers::SurfaceDescriptorX11 paramType;
+  static void Write(Message*, const paramType&) {}
+  static bool Read(const Message*, void**, paramType*) { return false; }
+};
+#endif  
 
 }
 
