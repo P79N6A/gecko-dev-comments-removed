@@ -99,9 +99,6 @@ class Bytecode
     bool jumpTarget : 1;
 
     
-    bool loopHead : 1;
-
-    
     bool fallthrough : 1;
 
     

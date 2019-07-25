@@ -4237,7 +4237,7 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb)
 
                     pc2 = pc + len;
                     op = JSOp(*pc2);
-                    if (op == JSOP_TRACE || op == JSOP_NOP)
+                    if (op == JSOP_LOOPHEAD || op == JSOP_NOP)
                         pc2 += JSOP_NOP_LENGTH;
                     LOCAL_ASSERT(pc2 < endpc ||
                                  endpc < outer->code + outer->length);
@@ -5488,16 +5488,10 @@ CallResultEscapes(jsbytecode *pc)
 
 
 
-
-
-
     if (*pc != JSOP_CALL)
         return true;
 
     pc += JSOP_CALL_LENGTH;
-
-    if (*pc == JSOP_TRACE)
-        pc += JSOP_TRACE_LENGTH;
 
     if (*pc == JSOP_POP)
         return false;
