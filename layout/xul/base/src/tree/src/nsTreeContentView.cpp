@@ -1,39 +1,39 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is mozilla.org code.
+ *
+ * The Initial Developer of the Original Code is Jan Varga.
+ * Portions created by the Initial Developer are Copyright (C) 2001
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Brian Ryner <bryner@brianryner.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either of the GNU General Public License Version 2 or later (the "GPL"),
+ * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #include "nsINameSpaceManager.h"
 #include "nsGkAtoms.h"
@@ -48,7 +48,7 @@
 #include "nsINodeInfo.h"
 #include "nsIXULSortService.h"
 
-
+// A content model view implementation for the tree.
 
 #define ROW_FLAG_CONTAINER      0x01
 #define ROW_FLAG_OPEN           0x02
@@ -99,31 +99,31 @@ class Row
     }
     PRBool IsSeparator() { return !!(mFlags & ROW_FLAG_SEPARATOR); }
 
-    
+    // Weak reference to a content item.
     nsIContent*         mContent;
 
-    
+    // The parent index of the item, set to -1 for the top level items.
     PRInt32             mParentIndex;
 
-    
+    // Subtree size for this item.
     PRInt32             mSubtreeSize;
 
   private:
-    
-    
+    // Hide so that only Create() and Destroy() can be used to
+    // allocate and deallocate from the heap
     static void* operator new(size_t) CPP_THROW_NEW { return 0; } 
     static void operator delete(void*, size_t) {}
 
-    
+    // State flags
     PRInt8		mFlags;
 };
 
 
-
-
-
-
-
+// We don't reference count the reference to the document
+// If the document goes away first, we'll be informed and we
+// can drop our reference.
+// If we go away first, we'll get rid of ourselves from the
+// document's observer list.
 
 nsTreeContentView::nsTreeContentView(void) :
   mBoxObject(nsnull),
@@ -143,7 +143,7 @@ nsTreeContentView::nsTreeContentView(void) :
 
 nsTreeContentView::~nsTreeContentView(void)
 {
-  
+  // Remove ourselves from mDocument's observers.
   if (mDocument)
     mDocument->RemoveObserver(this);
 }
@@ -386,10 +386,10 @@ nsTreeContentView::HasNextSibling(PRInt32 aRowIndex, PRInt32 aAfterIndex, PRBool
   if (aRowIndex < 0 || aRowIndex >= PRInt32(mRows.Length()))
     return NS_ERROR_INVALID_ARG;   
 
-  
+  // We have a next sibling if the row is not the last in the subtree.
   PRInt32 parentIndex = mRows[aRowIndex]->mParentIndex;
   if (parentIndex >= 0) {
-    
+    // Compute the last index in this subtree.
     PRInt32 lastIndex = parentIndex + (mRows[parentIndex])->mSubtreeSize;
     Row* row = mRows[lastIndex];
     while (row->mParentIndex != parentIndex) {
@@ -511,8 +511,8 @@ nsTreeContentView::GetCellText(PRInt32 aRow, nsITreeColumn* aCol, nsAString& _re
 
   Row* row = mRows[aRow];
 
-  
-  
+  // Check for a "label" attribute - this is valid on an <treeitem>
+  // or an <option>, with a single implied column.
   if (row->mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::label, _retval)
       && !_retval.IsEmpty())
     return NS_OK;
@@ -520,7 +520,7 @@ nsTreeContentView::GetCellText(PRInt32 aRow, nsITreeColumn* aCol, nsAString& _re
   nsIAtom *rowTag = row->mContent->Tag();
   if (rowTag == nsGkAtoms::option &&
       row->mContent->IsHTML()) {
-    
+    // Use the text node child as the label
     nsCOMPtr<nsIDOMHTMLOptionElement> elem = do_QueryInterface(row->mContent);
     elem->GetText(_retval);
   }
@@ -551,7 +551,7 @@ nsTreeContentView::SetTree(nsITreeBoxObject* aTree)
   mBoxObject = aTree;
 
   if (aTree && !mRoot) {
-    
+    // Get our root element
     nsCOMPtr<nsIBoxObject> boxObject = do_QueryInterface(mBoxObject);
     nsCOMPtr<nsIDOMElement> element;
     boxObject->GetElement(getter_AddRefs(element));
@@ -559,7 +559,7 @@ nsTreeContentView::SetTree(nsITreeBoxObject* aTree)
     mRoot = do_QueryInterface(element);
     NS_ENSURE_STATE(mRoot);
 
-    
+    // Add ourselves to document's observers.
     nsIDocument* document = mRoot->GetDocument();
     if (document) {
       document->AddObserver(this);
@@ -585,13 +585,13 @@ nsTreeContentView::ToggleOpenState(PRInt32 aIndex)
   if (aIndex < 0 || aIndex >= PRInt32(mRows.Length()))
     return NS_ERROR_INVALID_ARG;   
 
-  
-  
+  // We don't serialize content right here, since content might be generated
+  // lazily.
   Row* row = mRows[aIndex];
 
   if (row->mContent->Tag() == nsGkAtoms::optgroup &&
       row->mContent->IsHTML()) {
-    
+    // we don't use an attribute for optgroup's open state
     if (row->IsOpen())
       CloseContainer(aIndex);
     else
@@ -806,7 +806,7 @@ nsTreeContentView::ContentStatesChanged(nsIDocument* aDocument,
     return;
 
   if (aContent1->Tag() == nsGkAtoms::option) {
-    
+    // update the selected state for this node
     PRInt32 index = FindContent(aContent1);
     if (index >= 0)
       mSelection->ToggleSelect(index);
@@ -820,11 +820,11 @@ nsTreeContentView::AttributeChanged(nsIDocument *aDocument,
                                     nsIAtom*     aAttribute,
                                     PRInt32      aModType)
 {
-  
+  // Lots of codepaths under here that do all sorts of stuff, so be safe.
   nsCOMPtr<nsIMutationObserver> kungFuDeathGrip(this);
 
-  
-  
+  // Make sure this notification concerns us.
+  // First check the tag to see if it's one that we care about.
   nsIAtom *tag = aContent->Tag();
 
   if (mBoxObject && (aContent == mRoot || aContent == mBody)) {
@@ -839,7 +839,7 @@ nsTreeContentView::AttributeChanged(nsIDocument *aDocument,
         tag != nsGkAtoms::treerow &&
         tag != nsGkAtoms::treecell)
       return;
-    
+    // We don't consider XUL nodes under non-XUL nodes.
     if (!aContent->GetParent()->IsXUL())
       return;
   }
@@ -847,19 +847,19 @@ nsTreeContentView::AttributeChanged(nsIDocument *aDocument,
     return;
   }
 
-  
-  
+  // If we have a legal tag, go up to the tree/select and make sure
+  // that it's ours.
 
   for (nsIContent* element = aContent; element != mBody; element = element->GetParent()) {
     if (!element)
-      return; 
+      return; // this is not for us
     nsIAtom *parentTag = element->Tag();
     if ((element->IsXUL() && parentTag == nsGkAtoms::tree) ||
         (element->IsHTML() && parentTag == nsGkAtoms::select))
-      return; 
+      return; // this is not for us
   }
 
-  
+  // Handle changes of the hidden attribute.
   if (aAttribute == nsGkAtoms::hidden &&
      (tag == nsGkAtoms::treeitem || tag == nsGkAtoms::treeseparator)) {
     PRBool hidden = aContent->AttrValueIs(kNameSpaceID_None,
@@ -868,13 +868,13 @@ nsTreeContentView::AttributeChanged(nsIDocument *aDocument,
  
     PRInt32 index = FindContent(aContent);
     if (hidden && index >= 0) {
-      
+      // Hide this row along with its children.
       PRInt32 count = RemoveRow(index);
       if (mBoxObject)
         mBoxObject->RowCountChanged(index, -count);
     }
     else if (!hidden && index < 0) {
-      
+      // Show this row along with its children.
       nsCOMPtr<nsIContent> parent = aContent->GetParent();
       if (parent) {
         InsertRowFor(parent, aContent);
@@ -962,7 +962,7 @@ nsTreeContentView::AttributeChanged(nsIDocument *aDocument,
         if (grandParent && grandParent->IsXUL()) {
           PRInt32 index = FindContent(grandParent);
           if (index >= 0 && mBoxObject) {
-            
+            // XXX Should we make an effort to invalidate only cell ?
             mBoxObject->InvalidateRow(index);
           }
         }
@@ -975,10 +975,10 @@ void
 nsTreeContentView::ContentAppended(nsIDocument *aDocument,
                                    nsIContent* aContainer,
                                    nsIContent* aFirstNewContent,
-                                   PRInt32     )
+                                   PRInt32     /* unused */)
 {
   for (nsIContent* cur = aFirstNewContent; cur; cur = cur->GetNextSibling()) {
-    
+    // Our contentinserted doesn't use the index
     ContentInserted(aDocument, aContainer, cur, 0);
   }
 }
@@ -987,12 +987,12 @@ void
 nsTreeContentView::ContentInserted(nsIDocument *aDocument,
                                    nsIContent* aContainer,
                                    nsIContent* aChild,
-                                   PRInt32 )
+                                   PRInt32 /* unused */)
 {
   NS_ASSERTION(aChild, "null ptr");
 
-  
-  
+  // Make sure this notification concerns us.
+  // First check the tag to see if it's one that we care about.
   nsIAtom *childTag = aChild->Tag();
 
   if (aChild->IsHTML()) {
@@ -1007,7 +1007,7 @@ nsTreeContentView::ContentInserted(nsIDocument *aDocument,
         childTag != nsGkAtoms::treerow &&
         childTag != nsGkAtoms::treecell)
       return;
-    
+    // Don't allow XUL nodes to be inserted under non-XUL nodes.
     if (!aContainer->IsXUL())
       return;
   }
@@ -1015,19 +1015,19 @@ nsTreeContentView::ContentInserted(nsIDocument *aDocument,
     return;
   }
 
-  
-  
+  // If we have a legal tag, go up to the tree/select and make sure
+  // that it's ours.
 
   for (nsIContent* element = aContainer; element != mBody; element = element->GetParent()) {
     if (!element)
-      return; 
+      return; // this is not for us
     nsIAtom *parentTag = element->Tag();
     if ((element->IsXUL() && parentTag == nsGkAtoms::tree) ||
         (element->IsHTML() && parentTag == nsGkAtoms::select))
-      return; 
+      return; // this is not for us
   }
 
-  
+  // Lots of codepaths under here that do all sorts of stuff, so be safe.
   nsCOMPtr<nsIMutationObserver> kungFuDeathGrip(this);
 
   if (childTag == nsGkAtoms::treechildren) {
@@ -1076,14 +1076,15 @@ nsTreeContentView::ContentInserted(nsIDocument *aDocument,
 
 void
 nsTreeContentView::ContentRemoved(nsIDocument *aDocument,
-                                     nsIContent* aContainer,
-                                     nsIContent* aChild,
-                                     PRInt32 aIndexInContainer)
+                                  nsIContent* aContainer,
+                                  nsIContent* aChild,
+                                  PRInt32 aIndexInContainer,
+                                  nsIContent* aPreviousSibling)
 {
   NS_ASSERTION(aChild, "null ptr");
 
-  
-  
+  // Make sure this notification concerns us.
+  // First check the tag to see if it's one that we care about.
   nsIAtom *tag = aChild->Tag();
 
   if (aChild->IsHTML()) {
@@ -1098,7 +1099,7 @@ nsTreeContentView::ContentRemoved(nsIDocument *aDocument,
         tag != nsGkAtoms::treerow &&
         tag != nsGkAtoms::treecell)
       return;
-    
+    // We don't consider XUL nodes under non-XUL nodes.
     if (!aContainer->IsXUL())
       return;
   }
@@ -1106,19 +1107,19 @@ nsTreeContentView::ContentRemoved(nsIDocument *aDocument,
     return;
   }
 
-  
-  
+  // If we have a legal tag, go up to the tree/select and make sure
+  // that it's ours.
 
   for (nsIContent* element = aContainer; element != mBody; element = element->GetParent()) {
     if (!element)
-      return; 
+      return; // this is not for us
     nsIAtom *parentTag = element->Tag();
     if ((element->IsXUL() && parentTag == nsGkAtoms::tree) ||
         (element->IsHTML() && parentTag == nsGkAtoms::select))
-      return; 
+      return; // this is not for us
   }
 
-  
+  // Lots of codepaths under here that do all sorts of stuff, so be safe.
   nsCOMPtr<nsIMutationObserver> kungFuDeathGrip(this);
 
   if (tag == nsGkAtoms::treechildren) {
@@ -1127,7 +1128,7 @@ nsTreeContentView::ContentRemoved(nsIDocument *aDocument,
       Row* row = mRows[index];
       row->SetEmpty(PR_TRUE);
       PRInt32 count = RemoveSubtree(index);
-      
+      // Invalidate also the row to update twisty.
       if (mBoxObject) {
         mBoxObject->InvalidateRow(index);
         mBoxObject->RowCountChanged(index + 1, -count);
@@ -1164,18 +1165,18 @@ nsTreeContentView::ContentRemoved(nsIDocument *aDocument,
 void
 nsTreeContentView::NodeWillBeDestroyed(const nsINode* aNode)
 {
-  
+  // XXXbz do we need this strong ref?  Do we drop refs to self in ClearRows?
   nsCOMPtr<nsIMutationObserver> kungFuDeathGrip(this);
   ClearRows();
 }
 
 
-
+// Recursively serialize content, starting with aContent.
 void
 nsTreeContentView::Serialize(nsIContent* aContent, PRInt32 aParentIndex,
                              PRInt32* aIndex, nsTArray<Row*>& aRows)
 {
-  
+  // Don't allow XUL nodes under non-XUL nodes.
   PRBool containerIsXUL = aContent->IsXUL();
 
   ChildIterator iter, last;
@@ -1220,7 +1221,7 @@ nsTreeContentView::SerializeItem(nsIContent* aContent, PRInt32 aParentIndex,
       nsIContent* child =
         nsTreeUtils::GetImmediateChild(aContent, nsGkAtoms::treechildren);
       if (child) {
-        
+        // Now, recursively serialize our child.
         PRInt32 count = aRows.Length();
         PRInt32 index = 0;
         Serialize(child, aParentIndex + *aIndex + 1, &index, aRows);
@@ -1256,8 +1257,8 @@ nsTreeContentView::SerializeOption(nsIContent* aContent, PRInt32 aParentIndex,
   Row* row = Row::Create(mAllocator, aContent, aParentIndex);
   aRows.AppendElement(row);
 
-  
-  
+  // This will happen before the TreeSelection is hooked up.  So, cache the selected
+  // state in the row properties and update the selection when it is attached.
 
   nsCOMPtr<nsIDOMHTMLOptionElement> optEl = do_QueryInterface(aContent);
   PRBool isSelected;
@@ -1278,7 +1279,7 @@ nsTreeContentView::SerializeOptGroup(nsIContent* aContent, PRInt32 aParentIndex,
   nsIContent* child =
     nsTreeUtils::GetImmediateChild(aContent, nsGkAtoms::option);
   if (child) {
-    
+    // Now, recursively serialize our child.
     PRInt32 count = aRows.Length();
     PRInt32 index = 0;
     Serialize(aContent, aParentIndex + *aIndex + 1, &index, aRows);
@@ -1360,8 +1361,8 @@ nsTreeContentView::EnsureSubtree(PRInt32 aIndex)
   row->mSubtreeSize += count;
   UpdateSubtreeSizes(row->mParentIndex, count);
 
-  
-  
+  // Update parent indexes, but skip newly added rows.
+  // They already have correct values.
   UpdateParentIndexes(aIndex, count + 1, count);
 
   return count;
@@ -1399,17 +1400,17 @@ nsTreeContentView::InsertRowFor(nsIContent* aParent, nsIContent* aChild)
   if ((grandParent->IsXUL() && grandParentTag == nsGkAtoms::tree) ||
       (grandParent->IsHTML() && grandParentTag == nsGkAtoms::select)
      ) {
-    
+    // Allow insertion to the outermost container.
     insertRow = PR_TRUE;
   }
   else {
-    
+    // Test insertion to an inner container.
 
-    
-    
+    // First try to find this parent in our array of rows, if we find one
+    // we can be sure that all other parents are open too.
     grandParentIndex = FindContent(grandParent);
     if (grandParentIndex >= 0) {
-      
+      // Got it, now test if it is open.
       if (mRows[grandParentIndex]->IsOpen())
         insertRow = PR_TRUE;
     }
@@ -1448,8 +1449,8 @@ nsTreeContentView::InsertRow(PRInt32 aParentIndex, PRInt32 aIndex, nsIContent* a
 
   UpdateSubtreeSizes(aParentIndex, count);
 
-  
-  
+  // Update parent indexes, but skip added rows.
+  // They already have correct values.
   UpdateParentIndexes(aParentIndex + aIndex, count + 1, count);
 
   return count;
@@ -1484,7 +1485,7 @@ nsTreeContentView::ClearRows()
   mRows.Clear();
   mRoot = nsnull;
   mBody = nsnull;
-  
+  // Remove ourselves from mDocument's observers.
   if (mDocument) {
     mDocument->RemoveObserver(this);
     mDocument = nsnull;
@@ -1559,8 +1560,8 @@ nsTreeContentView::GetCell(nsIContent* aContainer, nsITreeColumn* aCol)
   aCol->GetAtom(getter_AddRefs(colAtom));
   aCol->GetIndex(&colIndex);
 
-  
-  
+  // Traverse through cells, try to find the cell by "ref" attribute or by cell
+  // index in a row. "ref" attribute has higher priority.
   nsIContent* result = nsnull;
   PRInt32 j = 0;
   ChildIterator iter, last;

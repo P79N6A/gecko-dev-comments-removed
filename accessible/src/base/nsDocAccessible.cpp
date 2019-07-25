@@ -1250,7 +1250,8 @@ nsDocAccessible::ContentInserted(nsIDocument *aDocument, nsIContent* aContainer,
 
 void
 nsDocAccessible::ContentRemoved(nsIDocument *aDocument, nsIContent* aContainer,
-                                nsIContent* aChild, PRInt32 )
+                                nsIContent* aChild, PRInt32 ,
+                                nsIContent* aPreviousSibling)
 {
   
   

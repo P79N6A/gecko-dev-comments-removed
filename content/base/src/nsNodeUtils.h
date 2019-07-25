@@ -126,7 +126,8 @@ public:
 
   static void ContentRemoved(nsINode* aContainer,
                              nsIContent* aChild,
-                             PRInt32 aIndexInContainer);
+                             PRInt32 aIndexInContainer,
+                             nsIContent* aPreviousSibling);
   
 
 

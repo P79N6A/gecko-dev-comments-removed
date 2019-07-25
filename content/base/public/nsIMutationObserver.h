@@ -45,8 +45,8 @@ class nsIDocument;
 class nsINode;
 
 #define NS_IMUTATION_OBSERVER_IID \
-{0x365d600b, 0x868a, 0x452a, \
-  {0x8d, 0xe8, 0xf4, 0x6f, 0xad, 0x8f, 0xee, 0x53 } }
+{ 0x85eea794, 0xed8e, 0x4e1b, \
+  { 0xa1, 0x28, 0xd0, 0x93, 0x00, 0xae, 0x51, 0xaa } }
 
 
 
@@ -266,10 +266,13 @@ public:
 
 
 
+
+
   virtual void ContentRemoved(nsIDocument *aDocument,
                               nsIContent* aContainer,
                               nsIContent* aChild,
-                              PRInt32 aIndexInContainer) = 0;
+                              PRInt32 aIndexInContainer,
+                              nsIContent* aPreviousSibling) = 0;
 
  
 
@@ -351,7 +354,8 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIMutationObserver, NS_IMUTATION_OBSERVER_IID)
     virtual void ContentRemoved(nsIDocument* aDocument,                      \
                                 nsIContent* aContainer,                      \
                                 nsIContent* aChild,                          \
-                                PRInt32 aIndexInContainer);
+                                PRInt32 aIndexInContainer,                   \
+                                nsIContent* aPreviousSibling);
 
 #define NS_DECL_NSIMUTATIONOBSERVER_NODEWILLBEDESTROYED                      \
     virtual void NodeWillBeDestroyed(const nsINode* aNode);
@@ -423,7 +427,8 @@ void                                                                      \
 _class::ContentRemoved(nsIDocument* aDocument,                            \
                        nsIContent* aContainer,                            \
                        nsIContent* aChild,                                \
-                       PRInt32 aIndexInContainer)                         \
+                       PRInt32 aIndexInContainer,                         \
+                       nsIContent* aPreviousSibling)                      \
 {                                                                         \
 }                                                                         \
 void                                                                      \
