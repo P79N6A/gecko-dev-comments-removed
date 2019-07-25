@@ -57,6 +57,7 @@ public interface GlobalSyncStage {
 
 
 
+    syncTabs,
     syncBookmarks,
     syncHistory,
     completed,
