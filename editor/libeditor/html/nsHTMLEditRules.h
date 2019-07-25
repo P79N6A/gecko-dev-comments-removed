@@ -311,6 +311,7 @@ protected:
   PRPackedBool            mReturnInEmptyLIKillsList;
   PRPackedBool            mDidDeleteSelection;
   PRPackedBool            mDidRangedDelete;
+  PRPackedBool            mRestoreContentEditableCount;
   nsCOMPtr<nsIDOMRange>   mUtilRange;
   PRUint32                mJoinOffset;  
   nsCOMPtr<nsIDOMNode>    mNewBlock;
