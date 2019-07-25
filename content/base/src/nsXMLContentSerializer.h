@@ -105,13 +105,6 @@ class nsXMLContentSerializer : public nsIContentSerializer {
   
 
 
-  void AppendToString(const PRUnichar* aStr,
-                      PRInt32 aLength,
-                      nsAString& aOutputStr);
-
-  
-
-
   void AppendToString(const PRUnichar aChar,
                       nsAString& aOutputStr);
 
