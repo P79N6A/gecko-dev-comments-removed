@@ -175,6 +175,7 @@ WeaveSvc.prototype = {
     ID.get('WeaveID').username = value;
     ID.get('WeaveCryptoID').username = value;
 
+    
     this._genKeyURLs();
   },
 
