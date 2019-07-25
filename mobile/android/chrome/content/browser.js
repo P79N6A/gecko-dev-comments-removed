@@ -6612,8 +6612,13 @@ let Reader = {
 
     browser.addEventListener("DOMContentLoaded", function (event) {
       let doc = event.originalTarget;
+
+      
+      if (doc != browser.contentDocument)
+        return;
+
       this.log("Done loading: " + doc);
-      if (doc.location.href == "about:blank" || doc.defaultView.frameElement) {
+      if (doc.location.href == "about:blank") {
         callback(null);
 
         
