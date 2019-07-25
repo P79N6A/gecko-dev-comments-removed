@@ -351,6 +351,7 @@ struct TreeContext {
 
     Bindings        bindings;       
 
+    Bindings::StackRoot bindingsRoot; 
 
     void trace(JSTracer *trc);
 

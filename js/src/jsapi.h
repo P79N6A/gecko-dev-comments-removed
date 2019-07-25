@@ -215,6 +215,36 @@ inline Anchor<T>::~Anchor()
 
 
 
+inline void PoisonPtr(jsuword *v)
+{
+#if defined(JSGC_ROOT_ANALYSIS) && defined(DEBUG)
+    uint8_t *ptr = (uint8_t *) v + 3;
+    *ptr = JS_FREE_PATTERN;
+#endif
+}
+
+template <typename T>
+inline bool IsPoisonedPtr(T *v)
+{
+#if defined(JSGC_ROOT_ANALYSIS) && defined(DEBUG)
+    uint32_t mask = jsuword(v) & 0xff000000;
+    return mask == uint32_t(JS_FREE_PATTERN << 24);
+#else
+    return false;
+#endif
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -281,6 +311,7 @@ class Value
 
     JS_ALWAYS_INLINE
     void setString(JSString *str) {
+        JS_ASSERT(!IsPoisonedPtr(str));
         data = STRING_TO_JSVAL_IMPL(str);
     }
 
@@ -291,6 +322,7 @@ class Value
 
     JS_ALWAYS_INLINE
     void setObject(JSObject &obj) {
+        JS_ASSERT(!IsPoisonedPtr(&obj));
         data = OBJECT_TO_JSVAL_IMPL(&obj);
     }
 
@@ -680,6 +712,16 @@ class Value
     friend jsval_layout (::JSVAL_TO_IMPL)(Value);
     friend Value (::IMPL_TO_JSVAL)(jsval_layout l);
 } JSVAL_ALIGNMENT;
+
+inline bool
+IsPoisonedValue(const Value &v)
+{
+    if (v.isString())
+        return IsPoisonedPtr(v.toString());
+    if (v.isObject())
+        return IsPoisonedPtr(&v.toObject());
+    return false;
+}
 
 
 
@@ -1981,6 +2023,16 @@ JS_IsInRequest(JSContext *cx);
 
 #ifdef __cplusplus
 JS_END_EXTERN_C
+
+inline bool
+IsPoisonedId(jsid iden)
+{
+    if (JSID_IS_STRING(iden))
+        return JS::IsPoisonedPtr(JSID_TO_STRING(iden));
+    if (JSID_IS_OBJECT(iden))
+        return JS::IsPoisonedPtr(JSID_TO_OBJECT(iden));
+    return false;
+}
 
 class JSAutoRequest {
   public:
