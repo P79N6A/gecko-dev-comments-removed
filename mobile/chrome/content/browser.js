@@ -145,9 +145,18 @@ var BrowserApp = {
     Services.obs.addObserver(this, "Preferences:Set", false);
     Services.obs.addObserver(this, "ScrollTo:FocusedInput", false);
     Services.obs.addObserver(this, "Sanitize:ClearAll", false);
+    Services.obs.addObserver(this, "FullScreen:Exit", false);
 
     Services.obs.addObserver(XPInstallObserver, "addon-install-blocked", false);
     Services.obs.addObserver(XPInstallObserver, "addon-install-started", false);
+
+    window.addEventListener("fullscreen", function() {
+      sendMessageToJava({
+        gecko: {
+          type: window.fullScreen ? "ToggleChrome:Show" : "ToggleChrome:Hide"
+        }       
+      });
+    }, false);
 
     NativeWindow.init();
     Downloads.init();
@@ -539,6 +548,8 @@ var BrowserApp = {
       this.scrollToFocusedInput(browser);
     } else if (aTopic == "Sanitize:ClearAll") {
       Sanitizer.sanitize();
+    } else if (aTopic == "FullScreen:Exit") {
+      browser.contentDocument.mozCancelFullScreen();
     }
   }
 }
@@ -639,11 +650,13 @@ var NativeWindow = {
     items: {}, 
     textContext: null, 
     linkContext: null, 
+    videoContext: null,
     _contextId: 0, 
 
     init: function() {
       this.textContext = this.SelectorContext("input[type='text'],input[type='password'],textarea");
       this.linkContext = this.SelectorContext("a:not([href='']),area:not([href='']),link");
+      this.videoContext = this.SelectorContext("video");
       Services.obs.addObserver(this, "Gesture:LongPress", false);
 
       
@@ -658,6 +671,12 @@ var NativeWindow = {
                this.textContext,
                function(aTarget) {
                  Cc["@mozilla.org/imepicker;1"].getService(Ci.nsIIMEPicker).show();
+               });
+
+      this.add(Strings.browser.GetStringFromName("contextmenu.fullScreen"),
+               this.videoContext,
+               function(aTarget) {
+                 aTarget.mozRequestFullScreen();
                });
     },
 

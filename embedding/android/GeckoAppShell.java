@@ -1048,12 +1048,7 @@ public class GeckoAppShell
     }
 
     public static void setFullScreen(boolean fullscreen) {
-        GeckoApp.mFullscreen = fullscreen;
-
-        
-        GeckoApp.mAppContext.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-        GeckoApp.mAppContext.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
-        GeckoApp.mAppContext.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_USER);
+        GeckoApp.mAppContext.setFullScreen(fullscreen);
     }
 
     public static String showFilePicker(String aFilters) {
