@@ -904,8 +904,7 @@ void
 nsBidiPresUtils::TraverseFrames(nsBlockFrame*              aBlockFrame,
                                 nsBlockInFlowLineIterator* aLineIter,
                                 nsIFrame*                  aCurrentFrame,
-                                BidiParagraphData*         aBpd,
-                                BidiParagraphData*         aContainingParagraph)
+                                BidiParagraphData*         aBpd)
 {
   if (!aCurrentFrame)
     return;
@@ -934,10 +933,6 @@ nsBidiPresUtils::TraverseFrames(nsBlockFrame*              aBlockFrame,
       if (realFrame->GetType() == nsGkAtoms::letterFrame) {
         frame = realFrame;
       }
-    }
-
-    if (aContainingParagraph && isFirstFrame) {
-      aBpd->Reset(aCurrentFrame, aContainingParagraph);
     }
 
     PRUnichar ch = 0;
@@ -1111,8 +1106,18 @@ nsBidiPresUtils::TraverseFrames(nsBlockFrame*              aBlockFrame,
         if (text->mUnicodeBidi & NS_STYLE_UNICODE_BIDI_ISOLATE) {
           
           
-          TraverseFrames(aBlockFrame, aLineIter, kid,
-                         aBpd->GetSubParagraph(), aBpd);
+          BidiParagraphData* subParagraph = aBpd->GetSubParagraph();
+          if (!frame->GetPrevContinuation()) {
+            subParagraph->Reset(kid, aBpd);
+          }
+          TraverseFrames(aBlockFrame, aLineIter, kid, subParagraph);
+          if (!frame->GetNextContinuation()) {
+            ResolveParagraph(aBlockFrame, subParagraph);
+          }
+
+          
+          
+          aBpd->AppendControlChar(kObjectSubstitute);
         } else {
           TraverseFrames(aBlockFrame, aLineIter, kid, aBpd);
         }
@@ -1125,13 +1130,6 @@ nsBidiPresUtils::TraverseFrames(nsBlockFrame*              aBlockFrame,
         
         
         aBpd->PopBidiControl();
-      }
-      if (aContainingParagraph) {
-        ResolveParagraph(aBlockFrame, aBpd);
-
-        
-        
-        aContainingParagraph->AppendControlChar(kObjectSubstitute);
       }
     }
     childFrame = nextSibling;

@@ -371,8 +371,7 @@ private:
   static void TraverseFrames(nsBlockFrame*              aBlockFrame,
                              nsBlockInFlowLineIterator* aLineIter,
                              nsIFrame*                  aCurrentFrame,
-                             BidiParagraphData*         aBpd,
-                             BidiParagraphData*         containingParagraph = nsnull);
+                             BidiParagraphData*         aBpd);
   
   
 
