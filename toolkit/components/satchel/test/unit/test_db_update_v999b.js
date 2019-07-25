@@ -73,6 +73,10 @@ function run_test()
   do_check_false(bakFile.exists());
   var fh = Cc["@mozilla.org/satchel/form-history;1"].
            getService(Ci.nsIFormHistory2);
+  
+  do_check_false(bakFile.exists());
+  
+  fh.DBConnection;
   do_check_true(bakFile.exists());
   bakFile.remove(false);
 
