@@ -151,18 +151,17 @@
             
             
             if (preventMouseEvents) {
-              let target = evt.target;
-              ignoreEvents = true;
-              try {
-                this.fireMouseEvent('mousemove', evt);
-                this.fireMouseEvent('mousedown', evt);
-                this.fireMouseEvent('mouseup', evt);
-              } catch (e) {
-                alert(e);
-              }
               evt.preventDefault();
               evt.stopPropagation();
-              ignoreEvents = false;
+
+              let target = evt.target;
+              ignoreEvents = true;
+              window.setTimeout(function dispatchMouseEvents(self) {
+                self.fireMouseEvent('mousemove', evt);
+                self.fireMouseEvent('mousedown', evt);
+                self.fireMouseEvent('mouseup', evt);
+                ignoreEvents = false;
+              }, 0, this);
             }
 
             debug('click: fire');
