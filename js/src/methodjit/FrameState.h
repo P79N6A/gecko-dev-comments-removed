@@ -343,6 +343,9 @@ class FrameState
     inline bool haveSameBacking(FrameEntry *lhs, FrameEntry *rhs);
 
     
+    void separateBinaryEntries(FrameEntry *lhs, FrameEntry *rhs);
+
+    
 
 
     inline void enterBlock(uint32 n);
