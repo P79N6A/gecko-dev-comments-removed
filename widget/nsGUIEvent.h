@@ -1409,6 +1409,7 @@ public:
     deltaX(0.0), deltaY(0.0), deltaZ(0.0),
     deltaMode(nsIDOMWheelEvent::DOM_DELTA_PIXEL),
     customizedByUserPrefs(false),
+    lineOrPageDeltaX(0), lineOrPageDeltaY(0),
     overflowDeltaX(0.0), overflowDeltaY(0.0)
   {
   }
@@ -1423,6 +1424,12 @@ public:
   
   
   bool customizedByUserPrefs;
+
+  
+  
+  
+  PRInt32 lineOrPageDeltaX;
+  PRInt32 lineOrPageDeltaY;
 
   
   

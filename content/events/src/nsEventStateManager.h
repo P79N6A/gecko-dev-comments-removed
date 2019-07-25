@@ -86,6 +86,14 @@ public:
                            nsIFrame* aTargetFrame,
                            nsEventStatus* aStatus);
 
+  
+
+
+
+  void DispatchLegacyMouseScrollEvents(nsIFrame* aTargetFrame,
+                                       mozilla::widget::WheelEvent* aEvent,
+                                       nsEventStatus* aStatus);
+
   void NotifyDestroyPresContext(nsPresContext* aPresContext);
   void SetPresContext(nsPresContext* aPresContext);
   void ClearFrameRefs(nsIFrame* aFrame);
@@ -392,15 +400,52 @@ protected:
     static WheelPrefs* sInstance;
   };
 
+  
+
+
+
+
+  enum DeltaDirection
+  {
+    DELTA_DIRECTION_X = 0,
+    DELTA_DIRECTION_Y
+  };
+
+  
+
+
+
+
+
+
+
+
+
+
+
   void SendLineScrollEvent(nsIFrame* aTargetFrame,
-                           nsMouseScrollEvent* aEvent,
-                           nsPresContext* aPresContext,
+                           mozilla::widget::WheelEvent* aEvent,
                            nsEventStatus* aStatus,
-                           PRInt32 aNumLines);
+                           PRInt32 aDelta,
+                           DeltaDirection aDeltaDirection);
+
+  
+
+
+
+
+
+
+
+
+
+
+
   void SendPixelScrollEvent(nsIFrame* aTargetFrame,
-                            nsMouseScrollEvent* aEvent,
-                            nsPresContext* aPresContext,
-                            nsEventStatus* aStatus);
+                            mozilla::widget::WheelEvent* aEvent,
+                            nsEventStatus* aStatus,
+                            PRInt32 aPixelDelta,
+                            DeltaDirection aDeltaDirection);
 
   
 
