@@ -670,34 +670,6 @@ nsNSSComponent::GetNSSBundleString(const char *name,
   return rv;
 }
 
-NS_IMETHODIMP
-nsNSSComponent::SkipOcsp()
-{
-  nsNSSShutDownPreventionLock locker;
-  CERTCertDBHandle *certdb = CERT_GetDefaultCertDB();
-
-  SECStatus rv = CERT_DisableOCSPChecking(certdb);
-  return (rv == SECSuccess) ? NS_OK : NS_ERROR_FAILURE;
-}
-
-NS_IMETHODIMP
-nsNSSComponent::SkipOcspOff()
-{
-  nsNSSShutDownPreventionLock locker;
-  PRInt32 ocspEnabled;
-  if (NS_FAILED(mPrefBranch->GetIntPref("security.OCSP.enabled", &ocspEnabled)))
-    ocspEnabled = OCSP_ENABLED_DEFAULT;
-  
-  
-  
-  setNonPkixOcspEnabled(ocspEnabled, mPrefBranch);
-
-  if (ocspEnabled)
-    SSL_ClearSessionCache();
-
-  return NS_OK;
-}
-
 void
 nsNSSComponent::LaunchSmartCardThreads()
 {
@@ -1228,6 +1200,34 @@ void nsNSSComponent::setValidationOptions(nsIPrefBranch * pref)
 
 
   SSL_ClearSessionCache();
+}
+
+NS_IMETHODIMP
+nsNSSComponent::SkipOcsp()
+{
+  nsNSSShutDownPreventionLock locker;
+  CERTCertDBHandle *certdb = CERT_GetDefaultCertDB();
+
+  SECStatus rv = CERT_DisableOCSPChecking(certdb);
+  return (rv == SECSuccess) ? NS_OK : NS_ERROR_FAILURE;
+}
+
+NS_IMETHODIMP
+nsNSSComponent::SkipOcspOff()
+{
+  nsNSSShutDownPreventionLock locker;
+  PRInt32 ocspEnabled;
+  if (NS_FAILED(mPrefBranch->GetIntPref("security.OCSP.enabled", &ocspEnabled)))
+    ocspEnabled = OCSP_ENABLED_DEFAULT;
+  
+  
+  
+  setNonPkixOcspEnabled(ocspEnabled, mPrefBranch);
+
+  if (ocspEnabled)
+    SSL_ClearSessionCache();
+
+  return NS_OK;
 }
 
 nsresult
