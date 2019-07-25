@@ -1598,6 +1598,13 @@ exports.createUrlLookup = function(callingModule) {
       return require('text!gcli/ui/' + path);
     }
     catch (ex) {
+      
+      
+      
+      if (callingModule.filename) {
+        return callingModule.filename + path;
+      }
+
       var filename = callingModule.id.split('/').pop() + '.js';
 
       if (callingModule.uri.substr(-filename.length) !== filename) {
@@ -9472,7 +9479,8 @@ History.prototype.backward = function() {
 
 exports.History = History;
 
-});define("text!gcli/ui/inputter.css", [], "");
+});
+define("text!gcli/ui/inputter.css", [], "");
 
 
 
