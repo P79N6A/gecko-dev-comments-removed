@@ -875,12 +875,6 @@ pref("browser.ssl_override_behavior", 2);
 
 
 
-
-
-pref("browser.identity.ssl_domain_display", 0);
-
-
-
 pref("browser.offline-apps.notify", true);
 
 
@@ -1058,14 +1052,9 @@ pref("devtools.layoutview.open", false);
 
 
 pref("devtools.debugger.enabled", false);
-pref("devtools.debugger.remote-enabled", false);
-pref("devtools.debugger.remote-host", "localhost");
-pref("devtools.debugger.remote-port", 6000);
 
 
 pref("devtools.debugger.ui.height", 250);
-pref("devtools.debugger.ui.remote-win.width", 900);
-pref("devtools.debugger.ui.remote-win.height", 400);
 
 
 pref("devtools.styleinspector.enabled", true);

@@ -8183,30 +8183,19 @@ var gIdentityHandler = {
 
 
   setIdentityMessages : function(newMode) {
-    if (newMode == this.IDENTITY_MODE_DOMAIN_VERIFIED) {
-      var iData = this.getIdentityData();
+    let icon_label = "";
+    let tooltip = "";
+    let icon_country_label = "";
+    let icon_labels_dir = "ltr";
+
+    switch (newMode) {
+    case this.IDENTITY_MODE_DOMAIN_VERIFIED: {
+      let iData = this.getIdentityData();
 
       
       
-      
-      
-      
-      
-      var icon_label = "";
-      var icon_country_label = "";
-      var icon_labels_dir = "ltr";
-      switch (gPrefService.getIntPref("browser.identity.ssl_domain_display")) {
-        case 2 : 
-          icon_label = this._lastLocation.hostname;
-          break;
-        case 1 : 
-          icon_label = this.getEffectiveHost();
-      }
-
-      
-      
-      var tooltip = gNavigatorBundle.getFormattedString("identity.identified.verifier",
-                                                        [iData.caOrg]);
+      tooltip = gNavigatorBundle.getFormattedString("identity.identified.verifier",
+                                                    [iData.caOrg]);
 
       
       
@@ -8221,15 +8210,16 @@ var gIdentityHandler = {
                                                     (this._lastLocation.port || 443),
                                                     iData.cert, {}, {}))
         tooltip = gNavigatorBundle.getString("identity.identified.verified_by_you");
-    }
-    else if (newMode == this.IDENTITY_MODE_IDENTIFIED) {
+      break; }
+    case this.IDENTITY_MODE_IDENTIFIED: {
       
-      iData = this.getIdentityData();
+      let iData = this.getIdentityData();
       tooltip = gNavigatorBundle.getFormattedString("identity.identified.verifier",
                                                     [iData.caOrg]);
       icon_label = iData.subjectOrg;
       if (iData.country)
         icon_country_label = "(" + iData.country + ")";
+
       
       
       
@@ -8238,18 +8228,11 @@ var gIdentityHandler = {
       
       icon_labels_dir = /^[\u0590-\u08ff\ufb1d-\ufdff\ufe70-\ufefc]/.test(icon_label) ?
                         "rtl" : "ltr";
-    }
-    else if (newMode == this.IDENTITY_MODE_CHROMEUI) {
-      icon_label = "";
-      tooltip = "";
-      icon_country_label = "";
-      icon_labels_dir = "ltr";
-    }
-    else {
+      break; }
+    case this.IDENTITY_MODE_CHROMEUI:
+      break;
+    default:
       tooltip = gNavigatorBundle.getString("identity.unknown.tooltip");
-      icon_label = "";
-      icon_country_label = "";
-      icon_labels_dir = "ltr";
     }
 
     
@@ -8279,19 +8262,20 @@ var gIdentityHandler = {
     this._identityPopupEncLabel.textContent = this._encryptionLabel[newMode];
 
     
-    var supplemental = "";
-    var verifier = "";
+    let supplemental = "";
+    let verifier = "";
+    let host = "";
+    let owner = "";
 
-    if (newMode == this.IDENTITY_MODE_DOMAIN_VERIFIED) {
-      var iData = this.getIdentityData();
-      var host = this.getEffectiveHost();
-      var owner = gNavigatorBundle.getString("identity.ownerUnknown2");
+    switch (newMode) {
+    case this.IDENTITY_MODE_DOMAIN_VERIFIED:
+      host = this.getEffectiveHost();
+      owner = gNavigatorBundle.getString("identity.ownerUnknown2");
       verifier = this._identityBox.tooltipText;
-      supplemental = "";
-    }
-    else if (newMode == this.IDENTITY_MODE_IDENTIFIED) {
+      break;
+    case this.IDENTITY_MODE_IDENTIFIED: {
       
-      iData = this.getIdentityData();
+      let iData = this.getIdentityData();
       host = this.getEffectiveHost();
       owner = iData.subjectOrg;
       verifier = this._identityBox.tooltipText;
@@ -8306,11 +8290,7 @@ var gIdentityHandler = {
         supplemental += iData.state;
       else if (iData.country) 
         supplemental += iData.country;
-    }
-    else {
-      
-      host = "";
-      owner = "";
+      break; }
     }
 
     
