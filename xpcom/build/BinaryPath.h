@@ -46,6 +46,7 @@
 #include <CoreFoundation/CoreFoundation.h>
 #elif defined(XP_UNIX)
 #include <sys/stat.h>
+#include <string.h>
 #endif
 
 namespace mozilla {
@@ -105,7 +106,8 @@ private:
     
     
     
-    if (realpath(argv0, aResult) && stat(aResult, &fileStat) == 0)
+    if (strchr(argv0, '/') && realpath(argv0, aResult) &&
+        stat(aResult, &fileStat) == 0)
       return NS_OK;
 
     const char *path = getenv("PATH");
