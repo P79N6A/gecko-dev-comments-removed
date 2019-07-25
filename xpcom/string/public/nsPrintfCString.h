@@ -17,26 +17,27 @@
 
 
 
+
+
+
+
 class nsPrintfCString : public nsFixedCString
+{
+  typedef nsCString string_type;
+
+public:
+  explicit nsPrintfCString( const char_type* format, ... )
+    : nsFixedCString(mLocalBuffer, kLocalBufferSize, 0)
   {
-    typedef nsCString string_type;
+    va_list ap;
+    va_start(ap, format);
+    AppendPrintf(format, ap);
+    va_end(ap);
+  }
 
-    public:
-      explicit nsPrintfCString( const char_type* format, ... )
-        : nsFixedCString(mLocalBuffer, kLocalBufferSize, 0)
-        {
-          va_list ap;
-          va_start(ap, format);
-          AppendPrintf(format, ap);
-          va_end(ap);
-        }
+private:
+  static const PRUint32 kLocalBufferSize = 16;
+  char_type mLocalBuffer[kLocalBufferSize];
+};
 
-    private:
-      enum { kLocalBufferSize=15 };
-      
-      
-
-      char_type  mLocalBuffer[ kLocalBufferSize ];
-  };
-
-#endif
+#endif 
