@@ -110,7 +110,6 @@ Collection.prototype = {
   
   
   
-  
   get sort() { return this._sort; },
   set sort(value) {
     this._sort = value;
