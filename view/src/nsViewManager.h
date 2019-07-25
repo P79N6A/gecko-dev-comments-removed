@@ -104,8 +104,6 @@ public:
   NS_IMETHOD  SetWindowDimensions(nscoord width, nscoord height);
   NS_IMETHOD  FlushDelayedResize(bool aDoReflow);
 
-  NS_IMETHOD  Composite(void);
-
   NS_IMETHOD  UpdateView(nsIView *aView, PRUint32 aUpdateFlags);
   NS_IMETHOD  UpdateViewNoSuppression(nsIView *aView, const nsRect &aRect,
                                       PRUint32 aUpdateFlags);
@@ -141,7 +139,6 @@ public:
   NS_IMETHOD  EndUpdateViewBatch(PRUint32 aUpdateFlags);
 
   NS_IMETHOD GetRootWidget(nsIWidget **aWidget);
-  NS_IMETHOD ForceUpdate();
  
   NS_IMETHOD IsPainting(bool& aIsPainting);
   NS_IMETHOD GetLastUserEventTime(PRUint32& aTime);
@@ -188,12 +185,6 @@ private:
   
 
   bool IsViewInserted(nsView *aView);
-
-  
-
-
-
-  void UpdateWidgetsForView(nsView* aView);
 
   
 

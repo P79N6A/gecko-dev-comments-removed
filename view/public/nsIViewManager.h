@@ -119,16 +119,6 @@ public:
   
 
 
-  
-  
-  
-  
-  
-  NS_IMETHOD  Composite(void) = 0;
-
-  
-
-
 
 
 
@@ -350,16 +340,6 @@ public:
 
 
   NS_IMETHOD GetRootWidget(nsIWidget **aWidget) = 0;
-
-  
-
-
-
-
-  
-  
-  
-  NS_IMETHOD ForceUpdate() = 0;
 
   
 
