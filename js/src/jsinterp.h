@@ -168,6 +168,8 @@ struct JSStackFrame
     void            *hookData;      
     JSVersion       callerVersion;  
 
+    void            *padding;
+
     void putActivationObjects(JSContext *cx) {
         
 

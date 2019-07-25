@@ -983,6 +983,14 @@ nsEventListenerManager::CompileEventHandlerInternal(nsIScriptContext *aContext,
       else if (aName == nsGkAtoms::onSVGZoom)
         attrName = nsGkAtoms::onzoom;
 #endif 
+#ifdef MOZ_SMIL
+      else if (aName == nsGkAtoms::onbeginEvent)
+        attrName = nsGkAtoms::onbegin;
+      else if (aName == nsGkAtoms::onrepeatEvent)
+        attrName = nsGkAtoms::onrepeat;
+      else if (aName == nsGkAtoms::onendEvent)
+        attrName = nsGkAtoms::onend;
+#endif 
 
       content->GetAttr(kNameSpaceID_None, attrName, handlerBody);
 

@@ -205,6 +205,28 @@ namespace js {
 
 
 
+const double DOUBLE_INTEGRAL_PRECISION_LIMIT = uint64(1) << 53;
+
+
+
+
+
+
+
+
+
+
+
+
+
+extern bool
+GetPrefixInteger(JSContext *cx, const jschar *start, const jschar *end, int base,
+                 const jschar **endp, jsdouble *dp);
+
+
+
+
+
 JS_ALWAYS_INLINE bool
 ValueToNumber(JSContext *cx, const js::Value &v, double *out)
 {
@@ -558,19 +580,6 @@ extern JSBool
 js_strtod(JSContext *cx, const jschar *s, const jschar *send,
           const jschar **ep, jsdouble *dp);
 
-
-
-
-
-
-
-
-
-
-extern JSBool
-js_strtointeger(JSContext *cx, const jschar *s, const jschar *send,
-                const jschar **ep, jsint radix, jsdouble *dp);
-
 namespace js {
 
 static JS_ALWAYS_INLINE bool
@@ -619,8 +628,9 @@ StringToNumberType(JSContext *cx, JSString *str)
     
     if (end - bp >= 2 && bp[0] == '0' && (bp[1] == 'x' || bp[1] == 'X')) {
         
-        if (!js_strtointeger(cx, bp, end, &ep, 16, &d) ||
-            js_SkipWhiteSpace(ep, end) != end) {
+        const jschar *endptr;
+        if (!GetPrefixInteger(cx, bp + 2, end, 16, &endptr, &d) ||
+            js_SkipWhiteSpace(endptr, end) != end) {
             return NumberTraits<T>::NaN();
         }
         return NumberTraits<T>::toSelfType(d);

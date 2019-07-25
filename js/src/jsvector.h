@@ -42,6 +42,12 @@
 
 #include "jstl.h"
 
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable:4345)
+#endif
+
 namespace js {
 
 
@@ -785,5 +791,9 @@ Vector<T,N,AP>::replaceRawBuffer(T *p, size_t length)
 }
 
 }  
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 #endif

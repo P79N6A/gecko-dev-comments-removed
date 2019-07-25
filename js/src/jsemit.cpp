@@ -6073,47 +6073,6 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
         break;
 
       case TOK_PLUS:
-        
-        if (pn->pn_arity == PN_LIST && pn->pn_count < JS_BIT(16) &&
-            cg->inFunction()) {
-            
-            for (pn2 = pn->pn_head; pn2; pn2 = pn2->pn_next) {
-                if (pn2->pn_type == TOK_STRING)
-                    break;
-                if (!js_EmitTree(cx, cg, pn2))
-                    return JS_FALSE;
-                if (pn2 != pn->pn_head && js_Emit1(cx, cg, JSOP_ADD) < 0)
-                    return JS_FALSE;
-            }
-
-            if (!pn2)
-                break;
-
-            
-
-
-
-
-
-
-            if (pn2 == pn->pn_head) {
-                index = 0;
-            } else {
-                if (!js_Emit1(cx, cg, JSOP_OBJTOSTR))
-                    return JS_FALSE;
-                index = 1;
-            }
-
-            for (; pn2; pn2 = pn2->pn_next, index++) {
-                if (!js_EmitTree(cx, cg, pn2))
-                    return JS_FALSE;
-                if (!pn2->isLiteral() && js_Emit1(cx, cg, JSOP_OBJTOSTR) < 0)
-                    return JS_FALSE;
-            }
-
-            EMIT_UINT16_IMM_OP(JSOP_CONCATN, index);
-            break;
-        }
       case TOK_BITOR:
       case TOK_BITXOR:
       case TOK_BITAND:

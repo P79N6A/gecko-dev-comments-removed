@@ -2510,9 +2510,66 @@ JS_REQUIRES_STACK void
 js_TraceRuntime(JSTracer *trc)
 {
     JSRuntime *rt = trc->context->runtime;
-
     ConservativeGCStackMarker cgc(trc);
     trc->conservativeMarker = &cgc;
+
+    if (rt->state != JSRTS_LANDING)
+	    cgc.markRoots();
+
+    
+
+
+
+
+    JSContext *iter;
+#if 1
+    iter = NULL;
+    while (JSContext *acx = js_ContextIterator(rt, JS_TRUE, &iter)) {
+        for (AutoGCRooter *gcr = acx->autoGCRooters; gcr; gcr = gcr->down) {
+#ifdef JS_THREADSAFE
+            JS_ASSERT(acx->outstandingRequests != 0);
+#endif
+            void *thing;
+            switch (gcr->tag) {
+              default:
+                continue;
+              case AutoGCRooter::JSVAL: {
+                const Value &v = static_cast<AutoValueRooter *>(gcr)->val;
+                if (!v.isMarkable())
+                    continue;
+                thing = v.asGCThing();
+                break;
+              }
+              case AutoGCRooter::XML:
+                thing = static_cast<AutoXMLRooter *>(gcr)->xml;
+                break;
+              case AutoGCRooter::OBJECT:
+                thing = static_cast<AutoObjectRooter *>(gcr)->obj;
+                if (!thing)
+                    continue;
+                break;
+              case AutoGCRooter::ID: {
+                jsid id = static_cast<AutoIdRooter *>(gcr)->id();
+                if (!JSID_IS_GCTHING(id))
+                    continue;
+                thing = JSID_TO_GCTHING(id);
+                break;
+              }
+            }
+
+            if (JSString::isStatic(thing))
+                continue;
+
+            if (!IsMarkedGCThing(thing)) {
+                fprintf(stderr,
+                        "Conservative GC scanner has missed the root %p with tag %lu"
+                        " on the stack. Aborting.\n", thing, (unsigned long) gcr->tag);
+                JS_ASSERT(false);
+                abort();
+            }
+        }
+    }
+#endif
 
     for (RootRange r = rt->gcRootsHash.all(); !r.empty(); r.popFront())
         gc_root_traversal(trc, r.front());
@@ -2523,7 +2580,7 @@ js_TraceRuntime(JSTracer *trc)
     js_TraceAtomState(trc);
     js_MarkTraps(trc);
 
-    JSContext *iter = NULL;
+    iter = NULL;
     while (JSContext *acx = js_ContextIterator(rt, JS_TRUE, &iter))
         js_TraceContext(trc, acx);
 
@@ -2533,9 +2590,6 @@ js_TraceRuntime(JSTracer *trc)
     
 
 
-
-    if (rt->state != JSRTS_LANDING)
-        cgc.markRoots();
 
     if (rt->gcExtraRootsTraceOp)
         rt->gcExtraRootsTraceOp(trc, rt->gcExtraRootsData);

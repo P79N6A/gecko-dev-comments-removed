@@ -111,7 +111,6 @@ class nsIRunnable;
 class nsIInterfaceRequestor;
 template<class E> class nsCOMArray;
 struct JSRuntime;
-class nsICaseConversion;
 class nsIUGenCategory;
 class nsIWidget;
 class nsIDragSession;
@@ -158,6 +157,7 @@ enum EventNameType {
   EventNameType_XUL = 0x0002,
   EventNameType_SVGGraphic = 0x0004, 
   EventNameType_SVGSVG = 0x0008, 
+  EventNameType_SMIL = 0x0016, 
 
   EventNameType_HTMLXUL = 0x0003,
   EventNameType_All = 0xFFFF
@@ -614,11 +614,6 @@ public:
   static nsIWordBreaker* WordBreaker()
   {
     return sWordBreaker;
-  }
-  
-  static nsICaseConversion* GetCaseConv()
-  {
-    return sCaseConv;
   }
 
   static nsIUGenCategory* GetGenCat()
@@ -1741,7 +1736,6 @@ private:
 
   static nsILineBreaker* sLineBreaker;
   static nsIWordBreaker* sWordBreaker;
-  static nsICaseConversion* sCaseConv;
   static nsIUGenCategory* sGenCat;
 
   
