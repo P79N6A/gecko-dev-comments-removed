@@ -54,16 +54,6 @@
 extern "C" __declspec(dllimport) void CacheRangeFlush(LPVOID pAddr, DWORD dwLength, DWORD dwFlags);
 #endif
 
-#define JIT_ALLOCATOR_PAGE_SIZE (ExecutableAllocator::pageSize)
-
-
-
-
-
-
-
-#define JIT_ALLOCATOR_LARGE_ALLOC_SIZE (ExecutableAllocator::pageSize * 16)
-
 #if ENABLE_ASSEMBLER_WX_EXCLUSIVE
 #define PROTECTION_FLAGS_RW (PROT_READ | PROT_WRITE)
 #define PROTECTION_FLAGS_RX (PROT_READ | PROT_EXEC)
@@ -163,12 +153,21 @@ class ExecutableAllocator {
     enum ProtectionSeting { Writable, Executable };
 
 public:
-    static size_t pageSize;
-
     ExecutableAllocator()
     {
-        if (!pageSize)
+        if (!pageSize) {
             pageSize = determinePageSize();
+            
+
+
+
+
+
+
+
+            largeAllocSize = pageSize * 16;
+        }
+
         JS_ASSERT(m_smallAllocationPools.empty());
     }
 
@@ -204,6 +203,9 @@ public:
     }
 
 private:
+    static size_t pageSize;
+    static size_t largeAllocSize;
+
     static const size_t OVERSIZE_ALLOCATION = size_t(-1);
 
     static size_t roundUpAllocationSize(size_t request, size_t granularity)
@@ -226,7 +228,7 @@ private:
 
     ExecutablePool* createPool(size_t n)
     {
-        size_t allocSize = roundUpAllocationSize(n, JIT_ALLOCATOR_PAGE_SIZE);
+        size_t allocSize = roundUpAllocationSize(n, pageSize);
         if (allocSize == OVERSIZE_ALLOCATION)
             return NULL;
 #ifdef DEBUG_STRESS_JSC_ALLOCATOR
@@ -263,11 +265,11 @@ private:
 #endif
 
         
-        if (n > JIT_ALLOCATOR_LARGE_ALLOC_SIZE)
+        if (n > largeAllocSize)
             return createPool(n);
 
         
-        ExecutablePool* pool = createPool(JIT_ALLOCATOR_LARGE_ALLOC_SIZE);
+        ExecutablePool* pool = createPool(largeAllocSize);
         if (!pool)
             return NULL;
   	    
