@@ -21,9 +21,11 @@ function onPageLoaded() {
 
   
   
-  SelectHelper.show(combo);
   
-  waitFor(onUIReady, function() { return document.getElementById("select-container").hidden == false; });
+  finish();
+  
+  
+  
 }
   
 function onUIReady() {    

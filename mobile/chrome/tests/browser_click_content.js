@@ -4,6 +4,10 @@ let newTab;
 let element;
 let isClickFired = false;
 let clickPosition = { x: null, y: null};
+let isLoading = function() {
+  return !newTab.isLoading() &&
+    newTab.browser.currentURI.spec != "about:blank";
+};
 
 
 
@@ -16,7 +20,7 @@ function test() {
   ok(newTab, "Tab Opened");
 
   
-  waitFor(testClickAndPosition, function() { return newTab.isLoading() == false; });
+  waitFor(testClickAndPosition, isLoading);
 }
 
 function clickFired(aEvent) {
@@ -47,6 +51,9 @@ function checkClick() {
   isClickFired = false;
   element = newTab.browser.contentDocument.documentElement;
   element.addEventListener("click", clickFired, true);
+
+  finish(); 
+
   let rect = Browser.getBoundingContentRect(element);
   EventUtils.synthesizeMouse(element, 1, rect.height + 10, {}, window);
   waitFor(checkPosition, function() { return isClickFired });
