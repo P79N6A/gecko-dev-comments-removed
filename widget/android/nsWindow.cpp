@@ -2084,7 +2084,16 @@ nsWindow::SetInputContext(const InputContext& aContext,
         return;
     }
 
-    AndroidBridge::NotifyIMEEnabled(int(aContext.mIMEState.mEnabled),
+    int enabled = int(aContext.mIMEState.mEnabled);
+
+    
+    
+    if (aContext.mIMEState.mEnabled == IMEState::PLUGIN &&
+        aContext.mIMEState.mOpen != IMEState::OPEN) {
+        enabled = int(IMEState::DISABLED);
+    }
+
+    AndroidBridge::NotifyIMEEnabled(enabled,
                                     aContext.mHTMLInputType,
                                     aContext.mActionHint);
 }
