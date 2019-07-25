@@ -19,6 +19,7 @@
 
 namespace js {
 
+class Debugger;
 class ObjectImpl;
 
 class AutoPropDescArrayRooter;
@@ -40,26 +41,29 @@ CastAsStrictPropertyOp(JSObject *object)
 
 
 struct PropDesc {
+  private:
     
 
 
 
-    Value pd;
+    Value pd_;
 
-    Value value, get, set;
+    Value value_, get_, set_;
 
     
     uint8_t attrs;
 
     
-    bool hasGet : 1;
-    bool hasSet : 1;
-    bool hasValue : 1;
-    bool hasWritable : 1;
-    bool hasEnumerable : 1;
-    bool hasConfigurable : 1;
+    bool hasGet_ : 1;
+    bool hasSet_ : 1;
+    bool hasValue_ : 1;
+    bool hasWritable_ : 1;
+    bool hasEnumerable_ : 1;
+    bool hasConfigurable_ : 1;
 
+  public:
     friend class AutoPropDescArrayRooter;
+    friend void JS::AutoGCRooter::trace(JSTracer *trc);
 
     PropDesc();
 
@@ -87,14 +91,26 @@ struct PropDesc {
     void initFromPropertyDescriptor(const PropertyDescriptor &desc);
     bool makeObject(JSContext *cx);
 
+    bool hasGet() const { return hasGet_; }
+    bool hasSet() const { return hasSet_; }
+    bool hasValue() const { return hasValue_; }
+    bool hasWritable() const { return hasWritable_; }
+    bool hasEnumerable() const { return hasEnumerable_; }
+    bool hasConfigurable() const { return hasConfigurable_; }
+
+    Value pd() const { return pd_; }
+    void clearPd() { pd_ = UndefinedValue(); }
+
+    uint8_t attributes() const { return attrs; }
+
     
     bool isAccessorDescriptor() const {
-        return hasGet || hasSet;
+        return hasGet_ || hasSet_;
     }
 
     
     bool isDataDescriptor() const {
-        return hasValue || hasWritable;
+        return hasValue_ || hasWritable_;
     }
 
     
@@ -103,36 +119,52 @@ struct PropDesc {
     }
 
     bool configurable() const {
+        MOZ_ASSERT(hasConfigurable_);
         return (attrs & JSPROP_PERMANENT) == 0;
     }
 
     bool enumerable() const {
+        MOZ_ASSERT(hasEnumerable_);
         return (attrs & JSPROP_ENUMERATE) != 0;
     }
 
     bool writable() const {
+        MOZ_ASSERT(hasWritable_);
         return (attrs & JSPROP_READONLY) == 0;
     }
 
-    JSObject* getterObject() const {
-        return get.isUndefined() ? NULL : &get.toObject();
-    }
-    JSObject* setterObject() const {
-        return set.isUndefined() ? NULL : &set.toObject();
+    const Value & value() const {
+        MOZ_ASSERT(hasValue_);
+        return value_;
     }
 
-    const Value &getterValue() const {
-        return get;
+    JSObject * getterObject() const {
+        MOZ_ASSERT(hasGet_);
+        return get_.isUndefined() ? NULL : &get_.toObject();
     }
-    const Value &setterValue() const {
-        return set;
+    JSObject * setterObject() const {
+        MOZ_ASSERT(hasSet_);
+        return set_.isUndefined() ? NULL : &set_.toObject();
     }
+
+    const Value & getterValue() const {
+        MOZ_ASSERT(hasGet_);
+        return get_;
+    }
+    const Value & setterValue() const {
+        MOZ_ASSERT(hasSet_);
+        return set_;
+    }
+
+    
+
+
 
     PropertyOp getter() const {
-        return CastAsPropertyOp(getterObject());
+        return CastAsPropertyOp(get_.isUndefined() ? NULL : &get_.toObject());
     }
     StrictPropertyOp setter() const {
-        return CastAsStrictPropertyOp(setterObject());
+        return CastAsStrictPropertyOp(set_.isUndefined() ? NULL : &set_.toObject());
     }
 
     
@@ -140,8 +172,14 @@ struct PropDesc {
 
 
 
-    inline bool checkGetter(JSContext *cx);
-    inline bool checkSetter(JSContext *cx);
+    bool checkGetter(JSContext *cx);
+    bool checkSetter(JSContext *cx);
+
+    bool unwrapDebuggerObjectsInto(JSContext *cx, Debugger *dbg, JSObject *obj,
+                                   PropDesc *unwrapped) const;
+
+    bool wrapInto(JSContext *cx, JSObject *obj, const jsid &id, jsid *wrappedId,
+                  PropDesc *wrappedDesc) const;
 };
 
 class DenseElementsHeader;
