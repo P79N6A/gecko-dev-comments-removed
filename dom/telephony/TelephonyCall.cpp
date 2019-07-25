@@ -1,0 +1,245 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "TelephonyCall.h"
+
+#include "nsDOMClassInfo.h"
+
+#include "CallEvent.h"
+#include "Telephony.h"
+
+USING_TELEPHONY_NAMESPACE
+
+
+already_AddRefed<TelephonyCall>
+TelephonyCall::Create(Telephony* aTelephony, const nsAString& aNumber,
+                      PRUint16 aCallState, PRUint32 aCallIndex)
+{
+  NS_ASSERTION(aTelephony, "Null pointer!");
+  NS_ASSERTION(!aNumber.IsEmpty(), "Empty number!");
+  NS_ASSERTION(aCallIndex >= 1, "Invalid call index!");
+
+  nsRefPtr<TelephonyCall> call = new TelephonyCall();
+
+  call->mOwner = aTelephony->Owner();
+  call->mScriptContext = aTelephony->ScriptContext();
+  call->mTelephony = aTelephony;
+  call->mNumber = aNumber;
+  call->mCallIndex = aCallIndex;
+
+  call->ChangeStateInternal(aCallState, false);
+
+  return call.forget();
+}
+
+void
+TelephonyCall::ChangeStateInternal(PRUint16 aCallState, bool aFireEvents)
+{
+  nsRefPtr<TelephonyCall> kungFuDeathGrip(this);
+
+  nsString stateString;
+  switch (aCallState) {
+    case nsITelephone::CALL_STATE_DIALING:
+      stateString.AssignLiteral("dialing");
+      break;
+    case nsITelephone::CALL_STATE_RINGING:
+      stateString.AssignLiteral("ringing");
+      break;
+    case nsITelephone::CALL_STATE_BUSY:
+      stateString.AssignLiteral("busy");
+      break;
+    case nsITelephone::CALL_STATE_CONNECTING:
+      stateString.AssignLiteral("connecting");
+      break;
+    case nsITelephone::CALL_STATE_CONNECTED:
+      stateString.AssignLiteral("connected");
+      break;
+    case nsITelephone::CALL_STATE_HOLDING:
+      stateString.AssignLiteral("holding");
+      break;
+    case nsITelephone::CALL_STATE_HELD:
+      stateString.AssignLiteral("held");
+      break;
+    case nsITelephone::CALL_STATE_RESUMING:
+      stateString.AssignLiteral("resuming");
+      break;
+    case nsITelephone::CALL_STATE_DISCONNECTING:
+      stateString.AssignLiteral("disconnecting");
+      break;
+    case nsITelephone::CALL_STATE_DISCONNECTED:
+      stateString.AssignLiteral("disconnected");
+      break;
+    case nsITelephone::CALL_STATE_INCOMING:
+      stateString.AssignLiteral("incoming");
+      break;
+    default:
+      NS_NOTREACHED("Unknown state!");
+  }
+
+  mState = stateString;
+  mCallState = aCallState;
+
+  if (aCallState == nsITelephone::CALL_STATE_DISCONNECTED) {
+    NS_ASSERTION(mLive, "Should be live!");
+    mTelephony->RemoveCall(this);
+    mLive = false;
+  } else if (!mLive) {
+    mTelephony->AddCall(this);
+    mLive = true;
+  }
+
+  if (aFireEvents) {
+    nsRefPtr<CallEvent> event = CallEvent::Create(this);
+    NS_ASSERTION(event, "This should never fail!");
+
+    if (NS_FAILED(event->Dispatch(ToIDOMEventTarget(),
+                                  NS_LITERAL_STRING("statechange")))) {
+      NS_WARNING("Failed to dispatch statechange event!");
+    }
+
+    
+    
+    if (mCallState == aCallState) {
+      event = CallEvent::Create(this);
+      NS_ASSERTION(event, "This should never fail!");
+
+      if (NS_FAILED(event->Dispatch(ToIDOMEventTarget(), stateString))) {
+        NS_WARNING("Failed to dispatch specific event!");
+      }
+    }
+  }
+}
+
+NS_IMPL_CYCLE_COLLECTION_CLASS(TelephonyCall)
+
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(TelephonyCall,
+                                                  nsDOMEventTargetWrapperCache)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NATIVE_PTR(tmp->mTelephony->ToISupports(),
+                                               Telephony, "mTelephony")
+  NS_CYCLE_COLLECTION_TRAVERSE_EVENT_HANDLER(statechange)
+  NS_CYCLE_COLLECTION_TRAVERSE_EVENT_HANDLER(dialing)
+  NS_CYCLE_COLLECTION_TRAVERSE_EVENT_HANDLER(ringing)
+  NS_CYCLE_COLLECTION_TRAVERSE_EVENT_HANDLER(busy)
+  NS_CYCLE_COLLECTION_TRAVERSE_EVENT_HANDLER(connecting)
+  NS_CYCLE_COLLECTION_TRAVERSE_EVENT_HANDLER(connected)
+  NS_CYCLE_COLLECTION_TRAVERSE_EVENT_HANDLER(disconnecting)
+  NS_CYCLE_COLLECTION_TRAVERSE_EVENT_HANDLER(disconnected)
+  NS_CYCLE_COLLECTION_TRAVERSE_EVENT_HANDLER(incoming)
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
+
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(TelephonyCall,
+                                                nsDOMEventTargetWrapperCache)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mTelephony)
+  NS_CYCLE_COLLECTION_UNLINK_EVENT_HANDLER(statechange)
+  NS_CYCLE_COLLECTION_UNLINK_EVENT_HANDLER(dialing)
+  NS_CYCLE_COLLECTION_UNLINK_EVENT_HANDLER(ringing)
+  NS_CYCLE_COLLECTION_UNLINK_EVENT_HANDLER(busy)
+  NS_CYCLE_COLLECTION_UNLINK_EVENT_HANDLER(connecting)
+  NS_CYCLE_COLLECTION_UNLINK_EVENT_HANDLER(connected)
+  NS_CYCLE_COLLECTION_UNLINK_EVENT_HANDLER(disconnecting)
+  NS_CYCLE_COLLECTION_UNLINK_EVENT_HANDLER(disconnected)
+  NS_CYCLE_COLLECTION_UNLINK_EVENT_HANDLER(incoming)
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
+
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(TelephonyCall)
+  NS_INTERFACE_MAP_ENTRY(nsIDOMTelephonyCall)
+  NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(TelephonyCall)
+NS_INTERFACE_MAP_END_INHERITING(nsDOMEventTargetWrapperCache)
+
+NS_IMPL_ADDREF_INHERITED(TelephonyCall, nsDOMEventTargetWrapperCache)
+NS_IMPL_RELEASE_INHERITED(TelephonyCall, nsDOMEventTargetWrapperCache)
+
+DOMCI_DATA(TelephonyCall, TelephonyCall)
+
+NS_IMETHODIMP
+TelephonyCall::GetNumber(nsAString& aNumber)
+{
+  aNumber.Assign(mNumber);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+TelephonyCall::GetState(nsAString& aState)
+{
+  aState.Assign(mState);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+TelephonyCall::Answer()
+{
+  if (mCallState != nsITelephone::CALL_STATE_INCOMING) {
+    NS_WARNING("Answer on non-incoming call ignored!");
+    return NS_OK;
+  }
+
+  nsresult rv = mTelephony->Telephone()->AnswerCall(mCallIndex);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  ChangeStateInternal(nsITelephone::CALL_STATE_CONNECTING, true);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+TelephonyCall::HangUp()
+{
+  if (mCallState == nsITelephone::CALL_STATE_DISCONNECTING ||
+      mCallState == nsITelephone::CALL_STATE_DISCONNECTED) {
+    NS_WARNING("HangUp on previously disconnected call ignored!");
+    return NS_OK;
+  }
+
+  nsresult rv = mCallState == nsITelephone::CALL_STATE_INCOMING ?
+                mTelephony->Telephone()->RejectCall(mCallIndex) :
+                mTelephony->Telephone()->HangUp(mCallIndex);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  ChangeStateInternal(nsITelephone::CALL_STATE_DISCONNECTING, true);
+  return NS_OK;
+}
+
+NS_IMPL_EVENT_HANDLER(TelephonyCall, statechange)
+NS_IMPL_EVENT_HANDLER(TelephonyCall, dialing)
+NS_IMPL_EVENT_HANDLER(TelephonyCall, ringing)
+NS_IMPL_EVENT_HANDLER(TelephonyCall, busy)
+NS_IMPL_EVENT_HANDLER(TelephonyCall, connecting)
+NS_IMPL_EVENT_HANDLER(TelephonyCall, connected)
+NS_IMPL_EVENT_HANDLER(TelephonyCall, disconnecting)
+NS_IMPL_EVENT_HANDLER(TelephonyCall, disconnected)
+NS_IMPL_EVENT_HANDLER(TelephonyCall, incoming)
