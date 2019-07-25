@@ -1,0 +1,249 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "nsWyciwyg.h"
+
+#include "mozilla/net/WyciwygChannelParent.h"
+#include "nsWyciwygChannel.h"
+#include "nsNetUtil.h"
+#include "nsISupportsPriority.h"
+#include "nsIParser.h"
+#include "nsISerializable.h"
+#include "nsSerializationHelper.h"
+
+namespace mozilla {
+namespace net {
+
+WyciwygChannelParent::WyciwygChannelParent()
+ : mIPCClosed(false)
+{
+#if defined(PR_LOGGING)
+  if (!gWyciwygLog)
+    gWyciwygLog = PR_NewLogModule("nsWyciwygChannel");
+#endif
+}
+
+WyciwygChannelParent::~WyciwygChannelParent()
+{
+}
+
+void
+WyciwygChannelParent::ActorDestroy(ActorDestroyReason why)
+{
+  
+  
+  mIPCClosed = true;
+}
+
+
+
+
+
+NS_IMPL_ISUPPORTS2(WyciwygChannelParent,
+                   nsIStreamListener,
+                   nsIRequestObserver);
+
+
+
+
+
+bool
+WyciwygChannelParent::RecvInit(const IPC::URI& aURI)
+{
+  nsresult rv;
+
+  nsCOMPtr<nsIURI> uri(aURI);
+
+  nsCString uriSpec;
+  uri->GetSpec(uriSpec);
+  LOG(("WyciwygChannelParent RecvAsyncOpen [this=%x uri=%s]\n",
+       this, uriSpec.get()));
+
+  nsCOMPtr<nsIIOService> ios(do_GetIOService(&rv));
+  if (NS_FAILED(rv))
+    return false;       
+
+  nsCOMPtr<nsIChannel> chan;
+  rv = NS_NewChannel(getter_AddRefs(chan), uri, ios);
+  if (NS_FAILED(rv))
+    return false;       
+
+  mChannel = do_QueryInterface(chan, &rv);
+  if (NS_FAILED(rv))
+    return false;       
+
+  return true;
+}
+
+bool
+WyciwygChannelParent::RecvAsyncOpen(const IPC::URI& aOriginal,
+                                    const PRUint32& aLoadFlags)
+{
+  nsCOMPtr<nsIURI> original(aOriginal);
+
+  nsresult rv;
+
+  rv = mChannel->SetOriginalURI(original);
+  if (NS_FAILED(rv))
+    return false;       
+
+  rv = mChannel->SetLoadFlags(aLoadFlags);
+  if (NS_FAILED(rv))
+    return false;       
+
+  rv = mChannel->AsyncOpen(this, nsnull);
+  if (NS_FAILED(rv))
+    return false;       
+
+  return true;
+}
+
+bool
+WyciwygChannelParent::RecvWriteToCacheEntry(const nsString& data)
+{
+  mChannel->WriteToCacheEntry(data);
+  return true;
+}
+
+bool
+WyciwygChannelParent::RecvCloseCacheEntry(const nsresult& reason)
+{
+  mChannel->CloseCacheEntry(reason);
+  return true;
+}
+
+bool
+WyciwygChannelParent::RecvSetCharsetAndSource(const PRInt32& aCharsetSource,
+                                              const nsCString& aCharset)
+{
+  mChannel->SetCharsetAndSource(aCharsetSource, aCharset);
+  return true;
+}
+
+bool
+WyciwygChannelParent::RecvSetSecurityInfo(const nsCString& aSecurityInfo)
+{
+  nsCOMPtr<nsISupports> securityInfo;
+  NS_DeserializeObject(aSecurityInfo, getter_AddRefs(securityInfo));
+  mChannel->SetSecurityInfo(securityInfo);
+  return true;
+}
+
+
+
+
+
+NS_IMETHODIMP
+WyciwygChannelParent::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
+{
+  LOG(("WyciwygChannelParent::OnStartRequest [this=%x]\n", this));
+
+  nsresult rv;
+
+  nsCOMPtr<nsIWyciwygChannel> chan = do_QueryInterface(aRequest, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsresult status;
+  chan->GetStatus(&status);
+
+  PRInt32 contentLength = -1;
+  chan->GetContentLength(&contentLength);
+
+  PRInt32 charsetSource = kCharsetUninitialized;
+  nsCAutoString charset;
+  chan->GetCharsetAndSource(&charsetSource, charset);
+
+  nsCOMPtr<nsISupports> securityInfo;
+  chan->GetSecurityInfo(getter_AddRefs(securityInfo));
+  nsCString secInfoStr;
+  if (securityInfo) {
+    nsCOMPtr<nsISerializable> serializable = do_QueryInterface(securityInfo);
+    if (serializable)
+      NS_SerializeToString(serializable, secInfoStr);
+    else
+      NS_WARNING("Can't serialize security info");
+  }
+
+  if (mIPCClosed ||
+      !SendOnStartRequest(status, contentLength, charsetSource, charset, secInfoStr)) {
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+WyciwygChannelParent::OnStopRequest(nsIRequest *aRequest,
+                                    nsISupports *aContext,
+                                    nsresult aStatusCode)
+{
+  LOG(("WyciwygChannelParent::OnStopRequest: [this=%x status=%ul]\n",
+       this, aStatusCode));
+
+  if (mIPCClosed || !SendOnStopRequest(aStatusCode)) {
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  return NS_OK;
+}
+
+
+
+
+
+NS_IMETHODIMP
+WyciwygChannelParent::OnDataAvailable(nsIRequest *aRequest,
+                                      nsISupports *aContext,
+                                      nsIInputStream *aInputStream,
+                                      PRUint32 aOffset,
+                                      PRUint32 aCount)
+{
+  LOG(("WyciwygChannelParent::OnDataAvailable [this=%x]\n", this));
+
+  nsCString data;
+  nsresult rv = NS_ReadInputStreamToString(aInputStream, data, aCount);
+  if (NS_FAILED(rv))
+    return rv;
+
+  if (mIPCClosed || !SendOnDataAvailable(data, aOffset)) {
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  return NS_OK;
+}
+
+}} 
