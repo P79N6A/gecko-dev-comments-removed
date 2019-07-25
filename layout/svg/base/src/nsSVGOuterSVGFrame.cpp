@@ -141,7 +141,6 @@ NS_IMPL_FRAMEARENA_HELPERS(nsSVGOuterSVGFrame)
 
 nsSVGOuterSVGFrame::nsSVGOuterSVGFrame(nsStyleContext* aContext)
     : nsSVGOuterSVGFrameBase(aContext)
-    , mRedrawSuspendCount(0)
     , mFullZoom(0)
     , mViewportInitialized(false)
 #ifdef XP_MACOSX
@@ -183,8 +182,6 @@ nsSVGOuterSVGFrame::Init(nsIContent* aContent,
     
     doc->AddMutationObserverUnlessExists(&sSVGMutationObserver);
   }
-
-  SuspendRedraw();  
 
   return rv;
 }
@@ -433,6 +430,11 @@ nsSVGOuterSVGFrame::DidReflow(nsPresContext*   aPresContext,
 
   if (firstReflow) {
     
+    
+    
+    AddStateBits(NS_FRAME_FIRST_REFLOW);
+
+    
     nsIFrame* kid = mFrames.FirstChild();
     while (kid) {
       nsISVGChildFrame* SVGFrame = do_QueryFrame(kid);
@@ -441,8 +443,9 @@ nsSVGOuterSVGFrame::DidReflow(nsPresContext*   aPresContext,
       }
       kid = kid->GetNextSibling();
     }
+
     
-    UnsuspendRedraw(); 
+    RemoveStateBits(NS_FRAME_FIRST_REFLOW);
   } else {
     
     
@@ -685,26 +688,6 @@ nsSVGOuterSVGFrame::GetType() const
 
 
 
-
-void
-nsSVGOuterSVGFrame::SuspendRedraw()
-{
-  if (++mRedrawSuspendCount != 1)
-    return;
-
-  nsSVGUtils::NotifyRedrawSuspended(this);
-}
-
-void
-nsSVGOuterSVGFrame::UnsuspendRedraw()
-{
-  NS_ASSERTION(mRedrawSuspendCount >=0, "unbalanced suspend count!");
-
-  if (--mRedrawSuspendCount > 0)
-    return;
-
-  nsSVGUtils::NotifyRedrawUnsuspended(this);
-}
 
 void
 nsSVGOuterSVGFrame::NotifyViewportChange()

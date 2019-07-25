@@ -86,7 +86,6 @@ public:
 
   
   virtual void NotifySVGChanged(PRUint32 aFlags);
-  virtual void NotifyRedrawUnsuspended();
   
   
   NS_IMETHOD PaintSVG(nsRenderingContext* aContext,

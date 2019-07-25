@@ -511,10 +511,22 @@ nsSVGGlyphFrame::InitialUpdate()
   NS_ASSERTION(!(mState & NS_FRAME_IN_REFLOW),
                "We don't actually participate in reflow");
 
-  
   mState &= ~(NS_FRAME_FIRST_REFLOW | NS_FRAME_IS_DIRTY |
               NS_FRAME_HAS_DIRTY_CHILDREN);
-  
+
+  if (!(GetParent()->GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
+    
+    
+    
+    nsSVGUtils::InvalidateCoveredRegion(this);
+
+    
+    
+    
+    
+    UpdateCoveredRegion();
+  }
+
   return NS_OK;
 }  
 
@@ -534,21 +546,6 @@ nsSVGGlyphFrame::NotifySVGChanged(PRUint32 aFlags)
   if (!(aFlags & DO_NOT_NOTIFY_RENDERING_OBSERVERS)) {
     nsSVGUtils::UpdateGraphic(this);
   }
-}
-
-void
-nsSVGGlyphFrame::NotifyRedrawSuspended()
-{
-  AddStateBits(NS_STATE_SVG_REDRAW_SUSPENDED);
-}
-
-void
-nsSVGGlyphFrame::NotifyRedrawUnsuspended()
-{
-  RemoveStateBits(NS_STATE_SVG_REDRAW_SUSPENDED);
-
-  if (GetStateBits() & NS_STATE_SVG_DIRTY)
-    nsSVGUtils::UpdateGraphic(this);
 }
 
 void

@@ -91,8 +91,6 @@ public:
   virtual gfxMatrix GetCanvasTM();
 
   
-  virtual void SuspendRedraw();
-  virtual void UnsuspendRedraw();
   virtual void NotifyViewportChange();
 
 protected:

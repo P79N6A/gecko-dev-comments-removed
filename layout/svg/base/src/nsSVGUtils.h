@@ -94,16 +94,11 @@ class Element;
 
 #define NS_STATE_IS_OUTER_SVG                    NS_FRAME_STATE_BIT(20)
 
-#define NS_STATE_SVG_DIRTY                       NS_FRAME_STATE_BIT(21)
-
 
 #define NS_STATE_SVG_NONDISPLAY_CHILD            NS_FRAME_STATE_BIT(22)
 
 
 #define NS_STATE_SVG_CLIPPATH_CHILD              NS_FRAME_STATE_BIT(23)
-
-
-#define NS_STATE_SVG_REDRAW_SUSPENDED            NS_FRAME_STATE_BIT(24)
 
 
 
@@ -398,19 +393,6 @@ public:
 
   static void
   NotifyChildrenOfSVGChange(nsIFrame *aFrame, PRUint32 aFlags);
-
-  
-
-
-  static void
-  NotifyRedrawSuspended(nsIFrame *aFrame);
-
-  
-
-
-
-  static void
-  NotifyRedrawUnsuspended(nsIFrame *aFrame);
 
   
 

@@ -216,15 +216,6 @@ nsSVGTextFrame::NotifySVGChanged(PRUint32 aFlags)
   }
 }
 
-void
-nsSVGTextFrame::NotifyRedrawUnsuspended()
-{
-  RemoveStateBits(NS_STATE_SVG_REDRAW_SUSPENDED);
-
-  UpdateGlyphPositioning(false);
-  nsSVGTextFrameBase::NotifyRedrawUnsuspended();
-}
-
 NS_IMETHODIMP
 nsSVGTextFrame::PaintSVG(nsRenderingContext* aContext,
                          const nsIntRect *aDirtyRect)
@@ -253,7 +244,12 @@ nsSVGTextFrame::UpdateCoveredRegion()
 NS_IMETHODIMP
 nsSVGTextFrame::InitialUpdate()
 {
+  
   nsresult rv = nsSVGTextFrameBase::InitialUpdate();
+
+  
+  
+  
   
   UpdateGlyphPositioning(false);
 
@@ -344,7 +340,7 @@ nsSVGTextFrame::SetWhitespaceHandling(nsSVGGlyphFrame *aFrame)
 void
 nsSVGTextFrame::UpdateGlyphPositioning(bool aForceGlobalTransform)
 {
-  if ((GetStateBits() & NS_STATE_SVG_REDRAW_SUSPENDED) || !mPositioningDirty)
+  if (!mPositioningDirty)
     return;
 
   mPositioningDirty = false;

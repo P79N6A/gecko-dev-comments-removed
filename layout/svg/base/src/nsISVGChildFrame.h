@@ -112,8 +112,6 @@ public:
     COORD_CONTEXT_CHANGED = 0x04
   };
   virtual void NotifySVGChanged(PRUint32 aFlags)=0;
-  virtual void NotifyRedrawSuspended()=0;
-  virtual void NotifyRedrawUnsuspended()=0;
 
   
 
