@@ -245,9 +245,9 @@ mjit::Compiler::jsop_bitop(JSOp op)
 
 
 
-                masm.pop();
+                frame.pop();
                 if (stubNeeded)
-                    stubcc.rejoin(2);
+                    stubcc.rejoin(1);
                 return;
             }
 
