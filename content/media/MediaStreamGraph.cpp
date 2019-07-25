@@ -99,6 +99,7 @@ public:
   
   
   virtual void RunDuringShutdown() {}
+  MediaStream* GetStream() { return mStream; }
 
 protected:
   
@@ -1537,6 +1538,9 @@ void
 MediaStreamGraphImpl::AppendMessage(ControlMessage* aMessage)
 {
   NS_ASSERTION(NS_IsMainThread(), "main thread only");
+  NS_ASSERTION(!aMessage->GetStream() ||
+               !aMessage->GetStream()->IsDestroyed(),
+               "Stream already destroyed");
 
   if (mDetectedNotRunning &&
       mLifecycleState > LIFECYCLE_WAITING_FOR_MAIN_THREAD_CLEANUP) {
@@ -1599,6 +1603,7 @@ MediaStream::Destroy()
   };
   mWrapper = nullptr;
   GraphImpl()->AppendMessage(new Message(this));
+  mMainThreadDestroyed = true;
 }
 
 void
