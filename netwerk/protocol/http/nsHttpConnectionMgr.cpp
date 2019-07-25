@@ -3073,5 +3073,7 @@ nsConnectionEntry::RemoveHalfOpen(nsHalfOpenSocket *halfOpen)
 
     if (!UnconnectedHalfOpens())
         
-        gHttpHandler->ConnMgr()->ProcessPendingQForEntry(this);
+        
+        
+        gHttpHandler->ConnMgr()->ProcessPendingQ(mConnInfo);
 }
