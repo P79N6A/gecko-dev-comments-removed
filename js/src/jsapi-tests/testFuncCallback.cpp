@@ -127,15 +127,12 @@ BEGIN_TEST(testFuncCallback_bug507012)
 
 
 
-
-
-
 virtual
 JSContext *createContext()
 {
     JSContext *cx = JSAPITest::createContext();
     if (cx)
-        JS_SetOptions(cx, JS_GetOptions(cx) | JSOPTION_JIT | JSOPTION_METHODJIT | JSOPTION_PCCOUNT);
+        JS_SetOptions(cx, JS_GetOptions(cx) | JSOPTION_METHODJIT | JSOPTION_PCCOUNT);
     return cx;
 }
 
