@@ -183,6 +183,7 @@ public:
   NS_SCRIPTABLE NS_IMETHOD LockImage(void);
   NS_SCRIPTABLE NS_IMETHOD UnlockImage(void);
   NS_SCRIPTABLE NS_IMETHOD ResetAnimation(void);
+  NS_IMETHOD_(void) RequestRefresh(const mozilla::TimeStamp& aTime);
   
 
   RasterImage(imgStatusTracker* aStatusTracker = nsnull);
