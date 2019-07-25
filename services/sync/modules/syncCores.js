@@ -450,14 +450,14 @@ CookieSyncCore.prototype = {
 
   _itemExists: function CSC__itemExists(GUID) {
     
+
+
+
+
     
     
-    
-    
-    
-    
-    
-    
+
+
     
     let cookieArray = GUID.split( ":" );
     let cookieHost = cookieArray[0];
@@ -465,8 +465,9 @@ CookieSyncCore.prototype = {
     let cookieName = cookieArray[2];
 
     
-    
-    
+
+
+
     let enumerator = this._cookieManager.enumerator;
     while (enumerator.hasMoreElements())
       {
@@ -478,6 +479,12 @@ CookieSyncCore.prototype = {
 	}
       }
     return false;
+    
+
+
+
+
+
   },
 
   _commandLike: function CSC_commandLike(a, b) {
