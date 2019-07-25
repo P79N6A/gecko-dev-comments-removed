@@ -113,6 +113,7 @@
 
 #include "nsITransferable.h"
 #include "nsComputedDOMStyle.h"
+#include "nsTextEditUtils.h"
 
 #include "mozilla/FunctionTimer.h"
 
@@ -2273,11 +2274,53 @@ NS_IMETHODIMP nsEditor::InsertTextImpl(const nsAString& aStringToInsert,
   
   
   
+  nsresult res;
   NS_ENSURE_TRUE(aInOutNode && *aInOutNode && aInOutOffset && aDoc, NS_ERROR_NULL_POINTER);
   if (!mInIMEMode && aStringToInsert.IsEmpty()) return NS_OK;
   nsCOMPtr<nsIDOMText> nodeAsText = do_QueryInterface(*aInOutNode);
+  if (!nodeAsText && IsPlaintextEditor()) {
+    
+    
+    
+    
+    if (*aInOutNode == GetRoot() && *aInOutOffset == 0) {
+      nsCOMPtr<nsIDOMNode> possibleTextNode;
+      res = (*aInOutNode)->GetFirstChild(getter_AddRefs(possibleTextNode));
+      if (NS_SUCCEEDED(res)) {
+        nodeAsText = do_QueryInterface(possibleTextNode);
+        if (nodeAsText) {
+          *aInOutNode = possibleTextNode;
+        }
+      }
+    }
+    
+    
+    
+    if (!nodeAsText && *aInOutNode == GetRoot() && *aInOutOffset > 0) {
+      nsCOMPtr<nsIDOMNodeList> children;
+      res = (*aInOutNode)->GetChildNodes(getter_AddRefs(children));
+      if (NS_SUCCEEDED(res)) {
+        nsCOMPtr<nsIDOMNode> possibleMozBRNode;
+        res = children->Item(*aInOutOffset, getter_AddRefs(possibleMozBRNode));
+        if (NS_SUCCEEDED(res) && nsTextEditUtils::IsMozBR(possibleMozBRNode)) {
+          nsCOMPtr<nsIDOMNode> possibleTextNode;
+          res = children->Item(*aInOutOffset - 1, getter_AddRefs(possibleTextNode));
+          if (NS_SUCCEEDED(res)) {
+            nodeAsText = do_QueryInterface(possibleTextNode);
+            if (nodeAsText) {
+              PRUint32 length;
+              res = nodeAsText->GetLength(&length);
+              if (NS_SUCCEEDED(res)) {
+                *aInOutOffset = PRInt32(length);
+                *aInOutNode = possibleTextNode;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
   PRInt32 offset = *aInOutOffset;
-  nsresult res;
   if (mInIMEMode)
   {
     if (!nodeAsText)
