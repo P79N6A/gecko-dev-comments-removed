@@ -887,6 +887,17 @@ let UI = {
   
   
   
+  onExitButtonPressed: function() {
+    let activeTab = this.getActiveTab();
+    if (!activeTab)
+      activeTab = gBrowser.selectedTab.tabItem;
+    if (activeTab)
+      activeTab.zoomIn();
+  },
+
+  
+  
+  
   _addDevMenu: function UI__addDevMenu() {
     try {
       var self = this;
