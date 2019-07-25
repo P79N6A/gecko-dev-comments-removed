@@ -42,7 +42,6 @@
 
 #ifdef MOZILLA_INTERNAL_API
 # define NS_InitXPCOM2               NS_InitXPCOM2_P
-# define NS_InitXPCOM3               NS_InitXPCOM3_P
 # define NS_ShutdownXPCOM            NS_ShutdownXPCOM_P
 # define NS_GetServiceManager        NS_GetServiceManager_P
 # define NS_GetComponentManager      NS_GetComponentManager_P
@@ -97,15 +96,11 @@ DECL_CLASS(nsIDebug);
 DECL_CLASS(nsITraceRefcnt);
 DECL_STRUCT(nsPurpleBufferEntry);
 
-
-
-
-
-
-
-typedef nsresult (*nsGetModuleProc)(nsIComponentManager *aCompMgr,
-                                    nsIFile* location,
-                                    nsIModule** return_cobj);
+#ifdef __cplusplus
+namespace mozilla {
+struct Module;
+}
+#endif
 
 
 
@@ -153,65 +148,6 @@ NS_InitXPCOM2(nsIServiceManager* *result,
 
 
 
-typedef struct nsStaticModuleInfo {
-  const char      *name;
-  nsGetModuleProc  getModule;
-} nsStaticModuleInfo;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-XPCOM_API(nsresult)
-NS_InitXPCOM3(nsIServiceManager* *result, 
-              nsIFile* binDirectory,
-              nsIDirectoryServiceProvider* appFileLocationProvider,
-              nsStaticModuleInfo const *staticComponents,
-              PRUint32 componentCount);
-
-
-
-
-
-
-
-
 
 
 
@@ -247,6 +183,7 @@ NS_GetServiceManager(nsIServiceManager* *result);
 
 XPCOM_API(nsresult)
 NS_GetComponentManager(nsIComponentManager* *result);
+
 
 
 

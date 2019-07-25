@@ -307,9 +307,8 @@ XRE_API(nsresult,
 
 
 
-XRE_API(void,
-        XRE_GetStaticComponents, (nsStaticModuleInfo const **aStaticComponents,
-                                  PRUint32 *aComponentCount))
+XRE_API(const mozilla::Module*,
+        XRE_GetStaticModule, ())
 
 
 
@@ -342,6 +341,10 @@ XRE_API(nsresult,
 
 
 
+XRE_API(nsresult,
+        XRE_InitEmbedding2, (nsILocalFile *aLibXULDirectory,
+                             nsILocalFile *aAppDirectory,
+                             nsIDirectoryServiceProvider *aAppDirProvider))
 
 
 
@@ -349,11 +352,18 @@ XRE_API(nsresult,
 
 
 XRE_API(nsresult,
-        XRE_InitEmbedding, (nsILocalFile *aLibXULDirectory,
-                            nsILocalFile *aAppDirectory,
-                            nsIDirectoryServiceProvider *aAppDirProvider,
-                            nsStaticModuleInfo const *aStaticComponents,
-                            PRUint32 aStaticComponentCount))
+        XRE_AddStaticComponent, (const mozilla::Module* aComponent))
+
+
+
+
+
+
+
+
+
+XRE_API(nsresult,
+        XRE_AddComponentLocation, (nsILocalFile* aLocation))
 
 
 
@@ -452,7 +462,7 @@ XRE_API(GeckoProcessType,
 #if defined(MOZ_CRASHREPORTER)
 
 XRE_API(PRBool,
-        XRE_GetMinidumpForChild, (PRUint32 aChildPid, nsIFile** aDump))
+        XRE_TakeMinidumpForChild, (PRUint32 aChildPid, nsILocalFile** aDump))
 
 
 XRE_API(PRBool,

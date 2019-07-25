@@ -245,10 +245,6 @@ main(int argc, char **argv)
 
     
     {
-        nsCOMPtr<nsIComponentRegistrar> registrar;
-        NS_GetComponentRegistrar(getter_AddRefs(registrar));
-        registrar->AutoRegister(nsnull);
-
         nsCOMPtr<nsITestProxy> tester = new ProxyTest();
         tester->Test(0, 0, nsnull);
     }

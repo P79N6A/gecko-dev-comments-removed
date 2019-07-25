@@ -504,10 +504,6 @@ main(int argc, char **argv)
 
     
     {
-        nsCOMPtr<nsIComponentRegistrar> registrar;
-        NS_GetComponentRegistrar(getter_AddRefs(registrar));
-        registrar->AutoRegister(nsnull);
-
         RunApartmentTest();
 
         nsCOMPtr<nsIThread> eventLoopThread;

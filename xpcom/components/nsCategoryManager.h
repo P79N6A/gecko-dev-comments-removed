@@ -65,10 +65,8 @@ class CategoryLeaf : public nsDepCharHashKey
 public:
   CategoryLeaf(const char* aKey)
     : nsDepCharHashKey(aKey),
-      pValue(nsnull),
-      nonpValue(nsnull) { }
-  const char* pValue;
-  const char* nonpValue;
+      value(NULL) { }
+  const char* value;
 };
 
 
@@ -85,18 +83,8 @@ public:
 
   NS_METHOD AddLeaf(const char* aEntryName,
                     const char* aValue,
-                    PRBool aPersist,
-                    PRBool aReplace,
                     char** _retval,
                     PLArenaPool* aArena);
-
-  NS_METHOD DeleteLeaf(const char* aEntryName,
-                       PRBool aDontPersist);
-
-  void Clear() {
-    mozilla::MutexAutoLock lock(mLock);
-    mTable.Clear();
-  }
 
   PRUint32 Count() {
     mozilla::MutexAutoLock lock(mLock);
@@ -105,8 +93,6 @@ public:
   }
 
   NS_METHOD Enumerate(nsISimpleEnumerator** _retval);
-
-  PRBool WritePersistentEntries(PRFileDesc* fd, const char* aCategoryName);
 
   
   static CategoryNode* Create(PLArenaPool* aArena);
@@ -141,24 +127,22 @@ public:
 
 
 
-  NS_METHOD WriteCategoryManagerToRegistry(PRFileDesc* fd);
-
-  
-
-
-
 
   NS_METHOD SuppressNotifications(PRBool aSuppress);
 
-  nsCategoryManager()
-    : mLock("nsCategoryManager")
-    , mSuppressNotifications(PR_FALSE)
-  { }
+  void AddCategoryEntry(const char* aCategory,
+                        const char* aKey,
+                        const char* aValue);
+
+  static nsresult Create(nsISupports* aOuter, REFNSIID aIID, void** aResult);
+
+  static nsCategoryManager* GetSingleton();
+  static void Destroy();
 
 private:
-  friend class nsCategoryManagerFactory;
-  static nsCategoryManager* Create();
+  static nsCategoryManager* gCategoryManager;
 
+  nsCategoryManager();
   ~nsCategoryManager();
 
   CategoryNode* get_category(const char* aName);

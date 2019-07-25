@@ -41,10 +41,10 @@
 
 
 #include "xpcprivate.h"
-#include "XPCWrapper.h"
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(XPCVariant)
 
+NS_IMPL_CLASSINFO(XPCVariant, NULL, 0)
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(XPCVariant)
   NS_INTERFACE_MAP_ENTRY(XPCVariant)
   NS_INTERFACE_MAP_ENTRY(nsIVariant)
@@ -432,16 +432,14 @@ XPCVariant::VariantDataToJS(XPCLazyCallContext& lccx,
         NS_ASSERTION(type == nsIDataType::VTYPE_INTERFACE ||
                      type == nsIDataType::VTYPE_INTERFACE_IS,
                      "Weird variant");
+        *pJSVal = realVal;
+        return JS_TRUE;
 
-        return XPCWrapper::RewrapObject(lccx.GetJSContext(), scope,
-                                        JSVAL_TO_OBJECT(realVal),
-                                        XPCWrapper::UNKNOWN, pJSVal);
+        
+        
+
+        
     }
-
-    
-    
-
-    
 
     
     

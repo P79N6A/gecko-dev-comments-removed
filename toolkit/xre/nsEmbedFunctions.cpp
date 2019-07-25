@@ -68,7 +68,6 @@
 #include "nsAutoRef.h"
 #include "nsDirectoryServiceDefs.h"
 #include "nsExceptionHandler.h"
-#include "nsStaticComponents.h"
 #include "nsString.h"
 #include "nsThreadUtils.h"
 #include "nsWidgetsCID.h"
@@ -81,54 +80,39 @@
 #include "base/message_loop.h"
 #include "base/process_util.h"
 #include "chrome/common/child_process.h"
+#include "chrome/common/notification_service.h"
 
-#include "mozilla/ipc/GeckoChildProcessHost.h"
 #include "mozilla/ipc/BrowserProcessSubThread.h"
+#include "mozilla/ipc/GeckoChildProcessHost.h"
+#include "mozilla/ipc/IOThreadChild.h"
+#include "mozilla/ipc/ProcessChild.h"
 #include "ScopedXREEmbed.h"
 
-#include "mozilla/plugins/PluginThreadChild.h"
-#include "mozilla/dom/ContentProcessThread.h"
-#include "mozilla/dom/ContentProcessParent.h"
-#include "mozilla/dom/ContentProcessChild.h"
-
-#include "mozilla/ipc/TestShellParent.h"
-#include "mozilla/ipc/XPCShellEnvironment.h"
-#include "mozilla/Monitor.h"
+#include "mozilla/plugins/PluginProcessChild.h"
 
 #ifdef MOZ_IPDL_TESTS
 #include "mozilla/_ipdltest/IPDLUnitTests.h"
-#include "mozilla/_ipdltest/IPDLUnitTestThreadChild.h"
+#include "mozilla/_ipdltest/IPDLUnitTestProcessChild.h"
 
-using mozilla::_ipdltest::IPDLUnitTestThreadChild;
+using mozilla::_ipdltest::IPDLUnitTestProcessChild;
 #endif  
 
-using mozilla::ipc::GeckoChildProcessHost;
 using mozilla::ipc::BrowserProcessSubThread;
+using mozilla::ipc::GeckoChildProcessHost;
+using mozilla::ipc::IOThreadChild;
+using mozilla::ipc::ProcessChild;
 using mozilla::ipc::ScopedXREEmbed;
 
-using mozilla::plugins::PluginThreadChild;
-using mozilla::dom::ContentProcessThread;
-using mozilla::dom::ContentProcessParent;
-using mozilla::dom::ContentProcessChild;
-using mozilla::ipc::TestShellParent;
-using mozilla::ipc::TestShellCommandParent;
-using mozilla::ipc::XPCShellEnvironment;
-
-using mozilla::Monitor;
-using mozilla::MonitorAutoEnter;
+using mozilla::plugins::PluginProcessChild;
 
 using mozilla::startup::sChildProcessType;
 #endif
 
 static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
 
-void
-XRE_GetStaticComponents(nsStaticModuleInfo const **aStaticComponents,
-                        PRUint32 *aComponentCount)
-{
-  *aStaticComponents = kPStaticModules;
-  *aComponentCount = kStaticModuleCount;
-}
+#ifdef XP_WIN
+static const PRUnichar kShellLibraryName[] =  L"shell32.dll";
+#endif
 
 nsresult
 XRE_LockProfileDirectory(nsILocalFile* aDirectory,
@@ -144,15 +128,12 @@ XRE_LockProfileDirectory(nsILocalFile* aDirectory,
   return rv;
 }
 
-static nsStaticModuleInfo *sCombined;
 static PRInt32 sInitCounter;
 
 nsresult
-XRE_InitEmbedding(nsILocalFile *aLibXULDirectory,
-                  nsILocalFile *aAppDirectory,
-                  nsIDirectoryServiceProvider *aAppDirProvider,
-                  nsStaticModuleInfo const *aStaticComponents,
-                  PRUint32 aStaticComponentCount)
+XRE_InitEmbedding2(nsILocalFile *aLibXULDirectory,
+		   nsILocalFile *aAppDirectory,
+		   nsIDirectoryServiceProvider *aAppDirProvider)
 {
   
   static char* kNullCommandLine[] = { nsnull };
@@ -178,23 +159,11 @@ XRE_InitEmbedding(nsILocalFile *aLibXULDirectory,
   if (NS_FAILED(rv))
     return rv;
 
-  
-  PRUint32 combinedCount = kStaticModuleCount + aStaticComponentCount;
-
-  sCombined = new nsStaticModuleInfo[combinedCount];
-  if (!sCombined)
-    return NS_ERROR_OUT_OF_MEMORY;
-
-  memcpy(sCombined, kPStaticModules,
-         sizeof(nsStaticModuleInfo) * kStaticModuleCount);
-  memcpy(sCombined + kStaticModuleCount, aStaticComponents,
-         sizeof(nsStaticModuleInfo) * aStaticComponentCount);
-
-  rv = NS_InitXPCOM3(nsnull, aAppDirectory, gDirServiceProvider,
-                     sCombined, combinedCount);
+  rv = NS_InitXPCOM2(nsnull, aAppDirectory, gDirServiceProvider);
   if (NS_FAILED(rv))
     return rv;
 
+  
   
   
   
@@ -228,7 +197,6 @@ XRE_TermEmbedding()
 
   gDirServiceProvider->DoShutdown();
   NS_ShutdownXPCOM(nsnull);
-  delete [] sCombined;
   delete gDirServiceProvider;
 }
 
@@ -259,18 +227,17 @@ GeckoProcessType sChildProcessType = GeckoProcessType_Default;
 }
 }
 
-static MessageLoop* sIOMessageLoop;
-
 #if defined(MOZ_CRASHREPORTER)
 
 
 
 PRBool
-XRE_GetMinidumpForChild(PRUint32 aChildPid, nsIFile** aDump)
+XRE_TakeMinidumpForChild(PRUint32 aChildPid, nsILocalFile** aDump)
 {
-  return CrashReporter::GetMinidumpForChild(aChildPid, aDump);
+  return CrashReporter::TakeMinidumpForChild(aChildPid, aDump);
 }
 
+#if !defined(XP_MACOSX)
 PRBool
 XRE_SetRemoteExceptionHandler(const char* aPipe)
 {
@@ -283,6 +250,34 @@ XRE_SetRemoteExceptionHandler(const char* aPipe)
 #endif
 }
 #endif 
+#endif 
+
+#if defined(XP_WIN)
+void
+SetTaskbarGroupId(const nsString& aId)
+{
+    typedef HRESULT (WINAPI * SetCurrentProcessExplicitAppUserModelIDPtr)(PCWSTR AppID);
+
+    SetCurrentProcessExplicitAppUserModelIDPtr funcAppUserModelID = nsnull;
+
+    HMODULE hDLL = ::LoadLibraryW(kShellLibraryName);
+
+    funcAppUserModelID = (SetCurrentProcessExplicitAppUserModelIDPtr)
+                          GetProcAddress(hDLL, "SetCurrentProcessExplicitAppUserModelID");
+
+    if (!funcAppUserModelID) {
+        ::FreeLibrary(hDLL);
+        return;
+    }
+
+    if (FAILED(funcAppUserModelID(aId.get()))) {
+        NS_WARNING("SetCurrentProcessExplicitAppUserModelID failed for child process.");
+    }
+
+    if (hDLL)
+        ::FreeLibrary(hDLL);
+}
+#endif
 
 nsresult
 XRE_InitChildProcess(int aArgc,
@@ -328,7 +323,27 @@ XRE_InitChildProcess(int aArgc,
   bool ok = base::OpenProcessHandle(parentPID, &parentHandle);
   NS_ABORT_IF_FALSE(ok, "can't open handle to parent");
 
+#if defined(XP_WIN)
+  
+  
+  
+  const char* const appModelUserId = aArgv[aArgc-1];
+  --aArgc;
+  if (appModelUserId) {
+    
+    if (*appModelUserId != '-') {
+      nsString appId;
+      appId.AssignWithConversion(nsDependentCString(appModelUserId));
+      
+      appId.Trim(NS_LITERAL_CSTRING("\"").get());
+      
+      SetTaskbarGroupId(appId);
+    }
+  }
+#endif
+
   base::AtExitManager exitManager;
+  NotificationService notificationService;
 
   NS_LogInit();
 
@@ -338,10 +353,10 @@ XRE_InitChildProcess(int aArgc,
     return NS_ERROR_FAILURE;
   }
 
-  MessageLoopForIO mainMessageLoop;
-
+  
+  MessageLoopForUI uiMessageLoop;
   {
-    ChildThread* mainThread;
+    nsAutoPtr<ProcessChild> process;
 
     switch (aProcess) {
     case GeckoProcessType_Default:
@@ -349,17 +364,13 @@ XRE_InitChildProcess(int aArgc,
       break;
 
     case GeckoProcessType_Plugin:
-      mainThread = new PluginThreadChild(parentHandle);
-      break;
-
-    case GeckoProcessType_Content:
-      mainThread = new ContentProcessThread(parentHandle);
+      process = new PluginProcessChild(parentHandle);
       break;
 
     case GeckoProcessType_IPDLUnitTest:
 #ifdef MOZ_IPDL_TESTS
-      mainThread = new IPDLUnitTestThreadChild(parentHandle);
-#else
+      process = new IPDLUnitTestProcessChild(parentHandle);
+#else 
       NS_RUNTIMEABORT("rebuild with --enable-ipdl-tests");
 #endif
       break;
@@ -368,14 +379,17 @@ XRE_InitChildProcess(int aArgc,
       NS_RUNTIMEABORT("Unknown main thread class");
     }
 
-    ChildProcess process(mainThread);
+    if (!process->Init()) {
+      NS_LogTerm();
+      return NS_ERROR_FAILURE;
+    }
 
     
-    sIOMessageLoop = MessageLoop::current();
+    uiMessageLoop.MessageLoop::Run();
 
-    sIOMessageLoop->Run();
-
-    sIOMessageLoop = nsnull;
+    
+    
+    process->CleanUp();
   }
 
   NS_LogTerm();
@@ -386,10 +400,9 @@ MessageLoop*
 XRE_GetIOMessageLoop()
 {
   if (sChildProcessType == GeckoProcessType_Default) {
-    NS_ASSERTION(!sIOMessageLoop, "Shouldn't be set on parent process!");
     return BrowserProcessSubThread::GetMessageLoop(BrowserProcessSubThread::IO);
   }
-  return sIOMessageLoop;
+  return IOThreadChild::message_loop();
 }
 
 namespace {
@@ -494,13 +507,6 @@ XRE_RunAppShell()
     return appShell->Run();
 }
 
-template<>
-struct RunnableMethodTraits<ContentProcessChild>
-{
-    static void RetainCallee(ContentProcessChild* obj) { }
-    static void ReleaseCallee(ContentProcessChild* obj) { }
-};
-
 void
 XRE_ShutdownChildProcess()
 {
@@ -509,48 +515,13 @@ XRE_ShutdownChildProcess()
   MessageLoop* ioLoop = XRE_GetIOMessageLoop();
   NS_ABORT_IF_FALSE(!!ioLoop, "Bad shutdown order");
 
-  ioLoop->PostTask(FROM_HERE, new MessageLoop::QuitTask());
-}
-
-namespace {
-TestShellParent* gTestShellParent = nsnull;
-}
-
-bool
-XRE_SendTestShellCommand(JSContext* aCx,
-                         JSString* aCommand,
-                         void* aCallback)
-{
-    if (!gTestShellParent) {
-        ContentProcessParent* parent = ContentProcessParent::GetSingleton();
-        NS_ENSURE_TRUE(parent, false);
-
-        gTestShellParent = parent->CreateTestShell();
-        NS_ENSURE_TRUE(gTestShellParent, false);
-    }
-
-    nsDependentString command((PRUnichar*)JS_GetStringChars(aCommand),
-                              JS_GetStringLength(aCommand));
-    if (!aCallback) {
-        return gTestShellParent->SendExecuteCommand(command);
-    }
-
-    TestShellCommandParent* callback = static_cast<TestShellCommandParent*>(
-        gTestShellParent->SendPTestShellCommandConstructor(command));
-    NS_ENSURE_TRUE(callback, false);
-
-    jsval callbackVal = *reinterpret_cast<jsval*>(aCallback);
-    NS_ENSURE_TRUE(callback->SetCallback(aCx, callbackVal), false);
-
-    return true;
-}
-
-bool
-XRE_ShutdownTestShell()
-{
-  if (!gTestShellParent)
-    return true;
-  return ContentProcessParent::GetSingleton()->DestroyTestShell(gTestShellParent);
+  
+  
+  
+  
+  
+  
+  MessageLoop::current()->Quit(); 
 }
 
 #ifdef MOZ_X11

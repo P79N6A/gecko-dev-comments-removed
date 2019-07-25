@@ -238,7 +238,7 @@ public:
   
   
   static CanPlayStatus CanHandleMediaType(const char* aMIMEType,
-                                          const char*** aSupportedCodecs);
+                                          char const *const ** aSupportedCodecs);
 
   
   
@@ -250,14 +250,20 @@ public:
   
   static PRBool ShouldHandleMediaType(const char* aMIMEType);
 
-  
+  static bool IsOggEnabled();
+  static bool IsOggType(const nsACString& aType);
+  static const char gOggTypes[3][16];
+  static char const *const gOggCodecs[3];
 
+  static bool IsWaveEnabled();
+  static bool IsWaveType(const nsACString& aType);
+  static const char gWaveTypes[4][16];
+  static char const *const gWaveCodecs[2];
 
-  static void InitMediaTypes();
-  
-
-
-  static void ShutdownMediaTypes();
+  static bool IsWebMEnabled();
+  static bool IsWebMType(const nsACString& aType);
+  static const char gWebMTypes[2][17];
+  static char const *const gWebMCodecs[4];
 
   
 

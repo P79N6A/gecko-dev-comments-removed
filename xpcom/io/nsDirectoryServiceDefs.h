@@ -77,17 +77,6 @@
 
 
 
-
-#define NS_XPCOM_COMPONENT_DIR                  "ComsD"
-
-
-
-
-#define NS_XPCOM_COMPONENT_DIR_LIST             "ComsDL"
-
-
-
-
 #define NS_XPCOM_COMPONENT_REGISTRY_FILE        "ComRegF"
 
 
@@ -99,13 +88,6 @@
 
 
 #define NS_GRE_DIR                              "GreD"
-
-
-
-
-
-#define NS_GRE_COMPONENT_DIR                    "GreComsD" 
-
 
 
 

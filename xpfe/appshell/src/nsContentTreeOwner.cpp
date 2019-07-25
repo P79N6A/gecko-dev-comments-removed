@@ -43,7 +43,6 @@
 #include "nsXULWindow.h"
 
 
-#include "nsIGenericFactory.h"
 #include "nsIServiceManager.h"
 #include "nsAutoPtr.h"
 

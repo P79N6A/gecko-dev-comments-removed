@@ -69,13 +69,8 @@ main(void)
         printf("ERROR: XPCOM intialization error [%x].\n", rv);
         return -1;
     }
-    
-    nsCOMPtr<nsIComponentRegistrar> registrar = do_QueryInterface(servMan);
-    NS_ASSERTION(registrar, "Null nsIComponentRegistrar");
-    registrar->AutoRegister(nsnull);
-    
-    nsCOMPtr<nsIComponentManager> manager = do_QueryInterface(registrar);
-    NS_ASSERTION(registrar, "Null nsIComponentManager");
+
+    nsCOMPtr<nsIComponentManager> manager = do_QueryInterface(servMan);
     
     
     nsCOMPtr<nsISample> mysample;
@@ -133,7 +128,6 @@ main(void)
     
     
     servMan = 0;
-    registrar = 0;
     manager = 0;
     mysample = 0;
     

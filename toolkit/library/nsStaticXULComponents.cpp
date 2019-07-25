@@ -40,12 +40,12 @@
 
 #define XPCOM_TRANSLATE_NSGM_ENTRY_POINT 1
 
-#include "nsIGenericFactory.h"
+#include "mozilla/Module.h"
 #include "nsXPCOM.h"
 #include "nsStaticComponents.h"
 #include "nsMemory.h"
 
-#define NSGETMODULE(_name) _name##_NSGetModule
+
 
 #ifdef MOZ_AUTH_EXTENSION
 #define AUTH_MODULE    MODULE(nsAuthModule)
@@ -135,13 +135,6 @@
 #define LAYOUT_DEBUG_MODULE MODULE(nsLayoutDebugModule)
 #else
 #define LAYOUT_DEBUG_MODULE
-#endif
-
-#ifdef MOZ_IPC
-#define JETPACK_MODULES \
-    MODULE(jetpack)
-#else
-#define JETPACK_MODULES
 #endif
 
 #ifdef MOZ_PLUGINS
@@ -250,7 +243,6 @@
     WIDGET_MODULES                           \
     MODULE(nsImageLib2Module)                \
     ICON_MODULE                              \
-    JETPACK_MODULES                          \
     PLUGINS_MODULES                          \
     MODULE(nsLayoutModule)                   \
     MODULE(docshell_provider)                \
@@ -284,20 +276,20 @@
     /* end of list */
 
 #define MODULE(_name) \
-NSGETMODULE_ENTRY_POINT(_name) (nsIComponentManager*, nsIFile*, nsIModule**);
+  NSMODULE_DECL(_name);
 
 XUL_MODULES
 
 #undef MODULE
 
-#define MODULE(_name) { #_name, NSGETMODULE(_name) },
+#define MODULE(_name) \
+    NSMODULE_NAME(_name),
 
-
-
-
-static nsStaticModuleInfo const gStaticModuleInfo[] = {
-    XUL_MODULES
+static const mozilla::Module *const kStaticModules[] = {
+  XUL_MODULES
+  NULL
 };
 
-nsStaticModuleInfo const *const kPStaticModules = gStaticModuleInfo;
-PRUint32 const kStaticModuleCount = NS_ARRAY_LENGTH(gStaticModuleInfo);
+#undef MODULE
+
+mozilla::Module const *const *const kPStaticModules = kStaticModules;
