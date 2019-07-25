@@ -551,6 +551,11 @@ CustomElf::InitDyn(const Phdr *pt_dyn)
         {
            Word flags = dyn->d_un.d_val;
            
+           if (flags & DF_TEXTREL) {
+             log("%s: Text relocations are not supported", GetPath());
+             return false;
+           }
+           
            flags &= ~DF_SYMBOLIC;
            if (flags)
              log("%s: Warning: unhandled flags #%" PRIxAddr" not handled",
