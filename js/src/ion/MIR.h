@@ -369,6 +369,10 @@ class MDefinition : public MNode
         return NO_WIN;
     }
 
+    bool hasHoistWin() {
+        return estimateHoistWin() != NO_WIN;
+    }
+
   public:
     
 #   define OPCODE_CASTS(opcode)                                             \

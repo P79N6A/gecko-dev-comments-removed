@@ -127,7 +127,7 @@ Loop::iterateLoopBlocks(MBasicBlock *current)
     for (MInstructionIterator i = current->begin(); i != current->end(); i ++) {
         MInstruction *ins = *i;
 
-        if (ins->estimateHoistWin() != MDefinition::NO_WIN) {
+        if (ins->hasHoistWin()) {
             if (!insertInWorklist(ins))
                 return false;
         }
@@ -160,24 +160,18 @@ Loop::optimize()
                 return false;
 
             
-            MUse *use = ins->uses();
-            while (use != NULL) {
-                if (!use->node()->isDefinition()) {
-                    use = use->next();
+            for (MUseDefIterator iter(ins->toDefinition()); iter; iter++) {
+                MDefinition *consumer = iter.def();
+
+                if (consumer->inWorklist())
                     continue;
-                }
-                MDefinition *def = use->node()->toDefinition();
+
                 
                 
-                
-                if (!def->inWorklist() &&
-                    isInLoop(def) &&
-                    def->estimateHoistWin() != MDefinition::NO_WIN)
-                {
-                    if (!insertInWorklist(def->toInstruction()))
+                if (isInLoop(consumer) && consumer->hasHoistWin()) {
+                    if (insertInWorklist(consumer->toInstruction()))
                         return false;
                 }
-                use = use->next();
             }
 
             if (IonSpewEnabled(IonSpew_LICM))
@@ -234,22 +228,19 @@ Loop::isLoopInvariant(MInstruction *ins)
 bool
 Loop::shouldHoist(MInstruction *ins)
 {
-    JS_ASSERT(ins->estimateHoistWin() != MDefinition::NO_WIN);
+    JS_ASSERT(ins->hasHoistWin());
 
     if (ins->estimateHoistWin() == MDefinition::BIG_WIN)
         return true;
 
     
     
-    MUse *use = ins->uses();
-    while (use != NULL) {
-        if (use->node()->isDefinition()) {
-            MDefinition *def = use->node()->toDefinition();
-            if (def->isLoopInvariant() && def->estimateHoistWin() == MDefinition::BIG_WIN)
-                return true;
-        }
-
-        use = use->next();
+    
+    
+    
+    for (MUseDefIterator use(ins->toDefinition()); use; use++) {
+        if (use.def()->isLoopInvariant() && use.def()->hasHoistWin())
+            return true;
     }
     return false;
 }
