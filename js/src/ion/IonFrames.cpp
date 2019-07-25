@@ -310,6 +310,45 @@ MarkIonJSFrame(JSTracer *trc, const IonFrameIterator &frame)
     IonJSFrameLayout *layout = (IonJSFrameLayout *)frame.fp();
     
     MarkCalleeToken(trc, layout->calleeToken());
+
+    if (!CalleeTokenIsFunction(layout->calleeToken())) {
+        
+        
+        
+        JS_NOT_REACHED("NYI");
+        return;
+    }
+
+    JSFunction *fun = CalleeTokenToFunction(layout->calleeToken());
+
+    
+    Value *argv = layout->argv();
+    for (size_t i = 0; i < fun->nargs; i++)
+        gc::MarkRoot(trc, argv[i], "ion-argv");
+
+    IonScript *ionScript = fun->script()->ion;
+    const IonFrameInfo *fi = ionScript->getFrameInfo(frame.returnAddressToFp());
+
+    SafepointReader safepoint(ionScript, fi);
+
+    GeneralRegisterSet actual, spilled;
+    safepoint.getGcRegs(&actual, &spilled);
+    
+    
+    JS_ASSERT(actual.empty() && spilled.empty());
+
+    
+    
+    uint32 slot;
+    while (safepoint.getGcSlot(&slot)) {
+        uintptr_t *ref = layout->slotRef(slot);
+        gc::MarkRootThingOrValue(trc, *ref, "ion-gc-slot");
+    }
+
+    while (safepoint.getValueSlot(&slot)) {
+        Value *v = (Value *)layout->slotRef(slot);
+        gc::MarkRoot(trc, *v, "ion-gc-slot");
+    }
 }
 
 static void
