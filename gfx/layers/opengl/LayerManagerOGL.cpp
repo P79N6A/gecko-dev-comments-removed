@@ -786,7 +786,7 @@ LayerManagerOGL::Render()
                                  LOCAL_GL_ONE, LOCAL_GL_ONE);
   mGLContext->fEnable(LOCAL_GL_BLEND);
 
-  const nsIntRect *clipRect = NULL;
+  const nsIntRect *clipRect = mRoot->GetClipRect();
 
   if (clipRect) {
     nsIntRect r = *clipRect;
@@ -796,24 +796,10 @@ LayerManagerOGL::Render()
     mGLContext->fScissor(0, 0, width, height);
   }
 
-  
+  mGLContext->fEnable(LOCAL_GL_SCISSOR_TEST);
 
   mGLContext->fClearColor(0.0, 0.0, 0.0, 0.0);
   mGLContext->fClear(LOCAL_GL_COLOR_BUFFER_BIT | LOCAL_GL_DEPTH_BUFFER_BIT);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   
   RootLayer()->RenderLayer(mGLContext->IsDoubleBuffered() ? 0 : mBackBufferFBO,
@@ -831,7 +817,7 @@ LayerManagerOGL::Render()
     mFPS.DrawFPS(mGLContext, GetCopy2DProgram());
   }
 
-  if (true || mGLContext->IsDoubleBuffered()) {
+  if (mGLContext->IsDoubleBuffered()) {
     mGLContext->SwapBuffers();
     mGLContext->fBindBuffer(LOCAL_GL_ARRAY_BUFFER, 0);
     return;
