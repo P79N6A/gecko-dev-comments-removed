@@ -846,20 +846,15 @@ void nsHTMLMediaElement::UpdatePreloadAction()
     
     const nsAttrValue* val = mAttrsAndChildren.GetAttr(nsGkAtoms::preload,
                                                        kNameSpaceID_None);
-    PRUint32 preloadDefault = nsContentUtils::GetIntPref("media.preload.default",
-                            nsHTMLMediaElement::PRELOAD_ATTR_METADATA);
-    PRUint32 preloadAuto = nsContentUtils::GetIntPref("media.preload.auto",
-                            nsHTMLMediaElement::PRELOAD_ENOUGH);
     if (!val) {
       
-      
-      nextAction = static_cast<PreloadAction>(preloadDefault);
+      nextAction = nsHTMLMediaElement::PRELOAD_METADATA;
     } else if (val->Type() == nsAttrValue::eEnum) {
       PreloadAttrValue attr = static_cast<PreloadAttrValue>(val->GetEnumValue());
       if (attr == nsHTMLMediaElement::PRELOAD_ATTR_EMPTY ||
           attr == nsHTMLMediaElement::PRELOAD_ATTR_AUTO)
       {
-        nextAction = static_cast<PreloadAction>(preloadAuto);
+        nextAction = nsHTMLMediaElement::PRELOAD_ENOUGH;
       } else if (attr == nsHTMLMediaElement::PRELOAD_ATTR_METADATA) {
         nextAction = nsHTMLMediaElement::PRELOAD_METADATA;
       } else if (attr == nsHTMLMediaElement::PRELOAD_ATTR_NONE) {
@@ -868,7 +863,7 @@ void nsHTMLMediaElement::UpdatePreloadAction()
     } else {
       
       
-      nextAction = static_cast<PreloadAction>(preloadDefault);
+      nextAction = nsHTMLMediaElement::PRELOAD_METADATA;
     }
   }
 

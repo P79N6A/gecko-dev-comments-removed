@@ -394,25 +394,3 @@ function mediaTestCleanup() {
     netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
     Components.utils.forceGC();
 }
-
-(function() {
-  netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
-  
-  var prefService = Components.classes["@mozilla.org/preferences-service;1"]
-                               .getService(Components.interfaces.nsIPrefService);
-  var branch = prefService.getBranch("media.");
-  var oldDefault = 2;
-  var oldAuto = 3;
-  try {
-    oldDefault = branch.getIntPref("preload.default");
-    oldAuto    = branch.getIntPref("preload.auto");
-  } catch(ex) { }
-  branch.setIntPref("preload.default", 2); 
-  branch.setIntPref("preload.auto", 3); 
-
-  window.addEventListener("unload", function() {
-    netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
-    branch.setIntPref("preload.default", oldDefault);
-    branch.setIntPref("preload.auto", oldAuto);
-  }, false);
- })();
