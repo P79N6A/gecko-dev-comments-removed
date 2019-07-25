@@ -306,7 +306,14 @@ Tester.prototype = {
     var headPath = currentTestDirPath + "/head.js";
     try {
       this._scriptLoader.loadSubScript(headPath, this.currentTest.scope);
-    } catch (ex) {  }
+    } catch (ex) {
+      
+      
+      
+      if (ex.toString() != 'Error opening input stream (invalid filename?)') {
+       this.currentTest.addResult(new testResult(false, "head.js import threw an exception", ex, false));
+      }
+    }
 
     
     try {
