@@ -1211,6 +1211,10 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       .attr("src", iconUrl)
       .data("xulTab", xulTab)
       .appendTo(this.$appTabTray)
+      .mousedown(function onAppTabMousedown(event) {
+        
+        event.stopPropagation();
+      })
       .click(function(event) {
         if (!Utils.isLeftClick(event))
           return;
