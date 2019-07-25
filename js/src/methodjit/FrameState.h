@@ -808,6 +808,9 @@ class FrameState
     
     Address addressOf(const FrameEntry *fe) const { return addressOf(fe, a); }
     Address addressOf(uint32 slot) const { return addressOf(entries + slot); }
+    int32 frameOffset(const FrameEntry *fe) const {
+        return frameOffset(fe, a) + (a->depth * sizeof(Value));
+    }
 
     
     
