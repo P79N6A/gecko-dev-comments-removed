@@ -2108,6 +2108,63 @@ nsWindow::SetNonClientMargins(nsIntMargin &margins)
   return NS_OK;
 }
 
+void
+nsWindow::InvalidateNonClientRegion()
+{
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  RECT rect;
+  GetWindowRect(mWnd, &rect);
+  MapWindowPoints(NULL, mWnd, (LPPOINT)&rect, 2);
+  HRGN winRgn = CreateRectRgnIndirect(&rect);
+
+  
+  
+  
+  GetWindowRect(mWnd, &rect);
+  rect.top += mCaptionHeight;
+  rect.right -= mHorResizeMargin;
+  rect.bottom -= mHorResizeMargin;
+  rect.left += mVertResizeMargin;
+  MapWindowPoints(NULL, mWnd, (LPPOINT)&rect, 2);
+  HRGN clientRgn = CreateRectRgnIndirect(&rect);
+  CombineRgn(winRgn, winRgn, clientRgn, RGN_DIFF);
+  DeleteObject(clientRgn);
+
+  
+  RedrawWindow(mWnd, NULL, winRgn, RDW_FRAME|RDW_INVALIDATE);
+  DeleteObject(winRgn);
+}
+
+HRGN
+nsWindow::ExcludeNonClientFromPaintRegion(HRGN aRegion)
+{
+  RECT rect;
+  HRGN rgn = NULL;
+  if (aRegion == (HRGN)1) { 
+    GetWindowRect(mWnd, &rect);
+    rgn = CreateRectRgnIndirect(&rect);
+  } else {
+    rgn = aRegion;
+  }
+  GetClientRect(mWnd, &rect);
+  MapWindowPoints(mWnd, NULL, (LPPOINT)&rect, 2);
+  HRGN nonClientRgn = CreateRectRgnIndirect(&rect);
+  CombineRgn(rgn, rgn, nonClientRgn, RGN_DIFF);
+  DeleteObject(nonClientRgn);
+  return rgn;
+}
+
 
 
 
@@ -4704,6 +4761,87 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
       result = PR_TRUE;
       break;
     }
+
+    case WM_SETTEXT:
+      
+
+
+
+
+      if (mNonClientMargins.top == -1)
+        break;
+
+      {
+        
+        
+        
+        DWORD style = GetWindowLong(mWnd, GWL_STYLE);
+        SetWindowLong(mWnd, GWL_STYLE, style & ~WS_VISIBLE);
+        *aRetValue = CallWindowProcW(GetPrevWindowProc(), mWnd,
+                                     msg, wParam, lParam);
+        SetWindowLong(mWnd, GWL_STYLE, style);
+        return PR_TRUE;
+      }
+
+    case WM_NCACTIVATE:
+    {
+      
+
+
+
+
+      if (!mCustomNonClient)
+        break;
+
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
+      
+      if(nsUXThemeData::CheckForCompositor())
+        break;
+#endif
+
+      if (wParam == TRUE) {
+        
+        *aRetValue = FALSE; 
+        result = PR_TRUE;
+        
+        InvalidateNonClientRegion();
+        break;
+      } else {
+        
+        *aRetValue = TRUE; 
+        result = PR_TRUE;
+        
+        InvalidateNonClientRegion();
+        break;
+      }
+    }
+
+    case WM_NCPAINT:
+    {
+      
+
+
+
+
+
+      if (!mCustomNonClient)
+        break;
+
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
+      
+      if(nsUXThemeData::CheckForCompositor())
+        break;
+#endif
+
+      HRGN paintRgn = ExcludeNonClientFromPaintRegion((HRGN)wParam);
+      LRESULT res = CallWindowProcW(GetPrevWindowProc(), mWnd,
+                                    msg, (WPARAM)paintRgn, lParam);
+      if (paintRgn != (HRGN)wParam)
+        DeleteObject(paintRgn);
+      *aRetValue = res;
+      result = PR_TRUE;
+    }
+    break;
 
 #ifndef WINCE
     case WM_POWERBROADCAST:
