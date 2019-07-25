@@ -984,7 +984,7 @@ Class js_ArrayClass = {
     NULL,           
     NULL,           
     NULL,           
-    array_trace,    
+    NULL,           
     JS_NULL_CLASS_EXT,
     {
         array_lookupProperty,
@@ -996,6 +996,7 @@ Class js_ArrayClass = {
         array_deleteProperty,
         NULL,       
         array_typeOf,
+        array_trace,
         array_fix,
         NULL,       
         NULL,       

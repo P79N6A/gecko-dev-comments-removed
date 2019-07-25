@@ -3234,6 +3234,7 @@ Class js_WithClass = {
         with_Enumerate,
         with_TypeOf,
         NULL,             
+        NULL,             
         with_ThisObject,
         NULL,             
     }

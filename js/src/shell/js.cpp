@@ -3243,6 +3243,7 @@ static Class split_global_class = {
         NULL, 
         NULL, 
         NULL, 
+        NULL, 
         split_thisObject,
         NULL, 
     },
