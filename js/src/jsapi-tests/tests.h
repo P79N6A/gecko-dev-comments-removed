@@ -281,6 +281,22 @@ class JSAPITest
         JSContext *cx = JS_NewContext(rt, 8192);
         if (!cx)
             return NULL;
+
+        const size_t MAX_STACK_SIZE =
+
+#if (defined(DEBUG) && defined(__SUNPRO_CC))  || defined(JS_CPU_SPARC)
+            
+
+
+
+            5000000
+#else
+            500000
+#endif
+        ;
+
+        JS_SetNativeStackQuota(cx, MAX_STACK_SIZE);
+
         JS_SetOptions(cx, JSOPTION_VAROBJFIX | JSOPTION_JIT);
         JS_SetVersion(cx, JSVERSION_LATEST);
         JS_SetErrorReporter(cx, &reportError);
