@@ -29,9 +29,7 @@ enum LayerState {
   
   LAYER_ACTIVE_FORCE,
   
-  LAYER_ACTIVE_EMPTY,
-  
-  LAYER_SVG_EFFECTS
+  LAYER_ACTIVE_EMPTY
 };
 
 
