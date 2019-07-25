@@ -35,6 +35,7 @@
 
 
 
+
 package org.mozilla.gecko.db;
 
 import java.io.ByteArrayOutputStream;
@@ -57,6 +58,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
 import android.provider.Browser;
+import android.util.Log;
 
 public class LocalBrowserDB implements BrowserDB.BrowserDBIface {
     
@@ -64,6 +66,16 @@ public class LocalBrowserDB implements BrowserDB.BrowserDBIface {
 
     
     public static final int TRUNCATE_N_OLDEST = 5;
+
+    
+    
+    private static final String LOGTAG = "GeckoLocalBrowserDB";
+    private static boolean logDebug = Log.isLoggable(LOGTAG, Log.DEBUG);
+    protected static void debug(String message) {
+        if (logDebug) {
+            Log.d(LOGTAG, message);
+        }
+    }
 
     private final String mProfile;
     private long mMobileFolderId;
@@ -359,44 +371,89 @@ public class LocalBrowserDB implements BrowserDB.BrowserDBIface {
         return mMobileFolderId;
     }
 
+    
+
+
+
+    protected void bumpParents(ContentResolver cr, String param, String value) {
+        ContentValues values = new ContentValues();
+        values.put(Bookmarks.DATE_MODIFIED, System.currentTimeMillis());
+
+        
+        final Uri updateURI =
+            Bookmarks.CONTENT_URI.buildUpon()
+                                 .appendPath("parents")
+                                 .appendQueryParameter(BrowserContract.PARAM_PROFILE, mProfile)
+                                 .build();
+        String where  = param + " = ?";
+        String[] args = new String[] { value };
+        int updated  = cr.update(updateURI, values, where, args);
+        debug("Updated " + updated + " rows to new modified time.");
+    }
+
     public void addBookmark(ContentResolver cr, String title, String uri) {
         long folderId = getMobileBookmarksFolderId(cr);
         if (folderId < 0)
             return;
 
+        final long now = System.currentTimeMillis();
         ContentValues values = new ContentValues();
         values.put(Browser.BookmarkColumns.TITLE, title);
         values.put(Bookmarks.URL, uri);
         values.put(Bookmarks.PARENT, folderId);
+        values.put(Bookmarks.DATE_MODIFIED, now);
 
         
         values.put(Bookmarks.IS_DELETED, 0);
 
-        int updated = cr.update(appendProfile(Bookmarks.CONTENT_URI),
+        Uri contentUri = appendProfile(Bookmarks.CONTENT_URI);
+        int updated = cr.update(contentUri,
                                 values,
                                 Bookmarks.URL + " = ?",
                                 new String[] { uri });
 
         if (updated == 0)
-            cr.insert(appendProfile(Bookmarks.CONTENT_URI), values);
+            cr.insert(contentUri, values);
 
-        cr.notifyChange(appendProfile(Bookmarks.CONTENT_URI), null);
+        
+        debug("Bumping parent modified time for addition to: " + folderId);
+        final String where  = Bookmarks._ID + " = ?";
+        final String[] args = new String[] { String.valueOf(folderId) };
+
+        ContentValues bumped = new ContentValues();
+        bumped.put(Bookmarks.DATE_MODIFIED, now);
+
+        updated = cr.update(contentUri, bumped, where, args);
+        debug("Updated " + updated + " rows to new modified time.");
+
+        cr.notifyChange(contentUri, null);
     }
 
     public void removeBookmark(ContentResolver cr, int id) {
-        cr.delete(appendProfile(Bookmarks.CONTENT_URI),
-                  Bookmarks._ID + " = ?",
-                  new String[] { String.valueOf(id) });
+        Uri contentUri = appendProfile(Bookmarks.CONTENT_URI);
 
-        cr.notifyChange(appendProfile(Bookmarks.CONTENT_URI), null);
+        
+        final String idString = String.valueOf(id);
+        bumpParents(cr, Bookmarks._ID, idString);
+
+        final String[] idArgs = new String[] { idString };
+        final String idEquals = Bookmarks._ID + " = ?";
+        cr.delete(contentUri, idEquals, idArgs);
+
+        cr.notifyChange(contentUri, null);
     }
 
     public void removeBookmarksWithURL(ContentResolver cr, String uri) {
-        cr.delete(appendProfile(Bookmarks.CONTENT_URI),
-                  Bookmarks.URL + " = ?",
-                  new String[] { uri });
+        Uri contentUri = appendProfile(Bookmarks.CONTENT_URI);
 
-        cr.notifyChange(appendProfile(Bookmarks.CONTENT_URI), null);
+        
+        bumpParents(cr, Bookmarks.URL, uri);
+
+        final String[] urlArgs = new String[] { uri };
+        final String urlEquals = Bookmarks.URL + " = ?";
+        cr.delete(contentUri, urlEquals, urlArgs);
+
+        cr.notifyChange(contentUri, null);
     }
 
     public void registerBookmarkObserver(ContentResolver cr, ContentObserver observer) {
