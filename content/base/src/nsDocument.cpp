@@ -177,6 +177,7 @@ static NS_DEFINE_CID(kDOMEventGroupCID, NS_DOMEVENTGROUP_CID);
 #include "nsIPropertyBag2.h"
 #include "nsIDOMPageTransitionEvent.h"
 #include "nsFrameLoader.h"
+#include "nsEscape.h"
 #ifdef MOZ_MEDIA
 #include "nsHTMLMediaElement.h"
 #endif 
@@ -7675,6 +7676,100 @@ void
 nsDocument::RegisterFileDataUri(nsACString& aUri)
 {
   mFileDataUris.AppendElement(aUri);
+}
+
+void
+nsDocument::SetScrollToRef(nsIURI *aDocumentURI)
+{
+  if (!aDocumentURI) {
+    return;
+  }
+
+  nsCAutoString ref;
+
+  
+  
+  
+  
+
+  aDocumentURI->GetSpec(ref);
+
+  nsReadingIterator<char> start, end;
+
+  ref.BeginReading(start);
+  ref.EndReading(end);
+
+  if (FindCharInReadable('#', start, end)) {
+    ++start; 
+
+    mScrollToRef = Substring(start, end);
+  }
+}
+
+void
+nsDocument::ScrollToRef()
+{
+  if (mScrolledToRefAlready) {
+    return;
+  }
+
+  if (mScrollToRef.IsEmpty()) {
+    return;
+  }
+
+  char* tmpstr = ToNewCString(mScrollToRef);
+  if (!tmpstr) {
+    return;
+  }
+
+  nsUnescape(tmpstr);
+  nsCAutoString unescapedRef;
+  unescapedRef.Assign(tmpstr);
+  nsMemory::Free(tmpstr);
+
+  nsresult rv = NS_ERROR_FAILURE;
+  
+  
+  NS_ConvertUTF8toUTF16 ref(unescapedRef);
+
+  nsCOMPtr<nsIPresShell> shell = GetPrimaryShell();
+  if (shell) {
+    
+    if (!ref.IsEmpty()) {
+      
+      rv = shell->GoToAnchor(ref, mChangeScrollPosWhenScrollingToRef);
+    } else {
+      rv = NS_ERROR_FAILURE;
+    }
+
+    
+    
+
+    if (NS_FAILED(rv)) {
+      const nsACString &docCharset = GetDocumentCharacterSet();
+
+      rv = nsContentUtils::ConvertStringFromCharset(docCharset, unescapedRef, ref);
+
+      if (NS_SUCCEEDED(rv) && !ref.IsEmpty()) {
+        rv = shell->GoToAnchor(ref, mChangeScrollPosWhenScrollingToRef);
+      }
+    }
+    if (NS_SUCCEEDED(rv)) {
+      mScrolledToRefAlready = PR_TRUE;
+    }
+  }
+}
+
+void
+nsDocument::ResetScrolledToRefAlready()
+{
+  mScrolledToRefAlready = PR_FALSE;
+}
+
+void
+nsDocument::SetChangeScrollPosWhenScrollingToRef(PRBool aValue)
+{
+  mChangeScrollPosWhenScrollingToRef = aValue;
 }
 
 void
