@@ -103,12 +103,12 @@ public class LayerController {
         return mViewportMetrics.getSize();
     }
 
-    public RectF getPageRect() {
-        return mViewportMetrics.getPageRect();
+    public FloatSize getPageSize() {
+        return mViewportMetrics.getPageSize();
     }
 
-    public RectF getCssPageRect() {
-        return mViewportMetrics.getCssPageRect();
+    public FloatSize getCssPageSize() {
+        return mViewportMetrics.getCssPageSize();
     }
 
     public PointF getOrigin() {
@@ -168,15 +168,12 @@ public class LayerController {
     }
 
     
-    public void setPageRect(RectF rect, RectF cssRect) {
-        
-        
-        
-        if (mViewportMetrics.getCssPageRect().equals(cssRect))
+    public void setPageSize(FloatSize size, FloatSize cssSize) {
+        if (mViewportMetrics.getCssPageSize().equals(cssSize))
             return;
 
         ViewportMetrics viewportMetrics = new ViewportMetrics(mViewportMetrics);
-        viewportMetrics.setPageRect(rect, cssRect);
+        viewportMetrics.setPageSize(size, cssSize);
         mViewportMetrics = new ImmutableViewportMetrics(viewportMetrics);
 
         
@@ -184,7 +181,7 @@ public class LayerController {
 
         mView.post(new Runnable() {
             public void run() {
-                mPanZoomController.pageRectUpdated();
+                mPanZoomController.pageSizeUpdated();
                 mView.requestRender();
             }
         });

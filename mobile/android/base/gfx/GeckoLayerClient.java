@@ -204,7 +204,7 @@ public class GeckoLayerClient implements GeckoEventResponder,
                 
                 float scaleFactor = oldMetrics.zoomFactor / messageMetrics.getZoomFactor();
                 newMetrics = new ViewportMetrics(oldMetrics);
-                newMetrics.setPageRect(RectUtils.scale(messageMetrics.getPageRect(), scaleFactor), messageMetrics.getCssPageRect());
+                newMetrics.setPageSize(messageMetrics.getPageSize().scale(scaleFactor), messageMetrics.getCssPageSize());
                 break;
             }
 
@@ -301,15 +301,12 @@ public class GeckoLayerClient implements GeckoEventResponder,
 
 
 
-    public void setFirstPaintViewport(float offsetX, float offsetY, float zoom,
-            float pageLeft, float pageTop, float pageRight, float pageBottom,
-            float cssPageLeft, float cssPageTop, float cssPageRight, float cssPageBottom) {
+    public void setFirstPaintViewport(float offsetX, float offsetY, float zoom, float pageWidth, float pageHeight, float cssPageWidth, float cssPageHeight) {
         synchronized (mLayerController) {
             final ViewportMetrics currentMetrics = new ViewportMetrics(mLayerController.getViewportMetrics());
             currentMetrics.setOrigin(new PointF(offsetX, offsetY));
             currentMetrics.setZoomFactor(zoom);
-            currentMetrics.setPageRect(new RectF(pageLeft, pageTop, pageRight, pageBottom),
-                                       new RectF(cssPageLeft, cssPageTop, cssPageRight, cssPageBottom));
+            currentMetrics.setPageSize(new FloatSize(pageWidth, pageHeight), new FloatSize(cssPageWidth, cssPageHeight));
             
             
             
@@ -348,16 +345,15 @@ public class GeckoLayerClient implements GeckoEventResponder,
 
 
 
-    public void setPageRect(float zoom, float pageLeft, float pageTop, float pageRight, float pageBottom,
-            float cssPageLeft, float cssPageTop, float cssPageRight, float cssPageBottom) {
+    public void setPageSize(float zoom, float pageWidth, float pageHeight, float cssPageWidth, float cssPageHeight) {
         synchronized (mLayerController) {
             
             
             
-            RectF pageRect = new RectF(pageLeft, pageTop, pageRight, pageBottom);
-            RectF cssPageRect = new RectF(cssPageLeft, cssPageTop, cssPageRight, cssPageBottom);
             float ourZoom = mLayerController.getZoomFactor();
-            mLayerController.setPageRect(RectUtils.scale(pageRect, ourZoom / zoom), cssPageRect);
+            pageWidth = pageWidth * ourZoom / zoom;
+            pageHeight = pageHeight * ourZoom /zoom;
+            mLayerController.setPageSize(new FloatSize(pageWidth, pageHeight), new FloatSize(cssPageWidth, cssPageHeight));
             
             
             

@@ -2170,7 +2170,17 @@ public class GeckoAppShell
             }
 
             Tab tab = Tabs.getInstance().getSelectedTab();
-            GeckoAppShell.screenshotWholePage(tab);
+            ImmutableViewportMetrics viewport = GeckoApp.mAppContext.getLayerController().getViewportMetrics();
+            
+
+
+
+
+
+
+
+                GeckoAppShell.screenshotWholePage(tab);
+            
         }
 
         void addRectToRepaint(float top, float left, float bottom, float right) {
@@ -2218,8 +2228,8 @@ public class GeckoAppShell
         ImmutableViewportMetrics viewport = GeckoApp.mAppContext.getLayerController().getViewportMetrics();
         Log.i(LOGTAG, "Taking whole-screen screenshot, viewport: " + viewport);
         
-        float sw = viewport.getPageWidth() / viewport.zoomFactor;
-        float sh = viewport.getPageHeight() / viewport.zoomFactor;
+        float sw = viewport.pageSizeWidth / viewport.zoomFactor;
+        float sh = viewport.pageSizeHeight / viewport.zoomFactor;
         int maxPixels = Math.min(ScreenshotLayer.getMaxNumPixels(), sMaxTextureSize * sMaxTextureSize);
         
         
@@ -2237,9 +2247,6 @@ public class GeckoAppShell
         sCheckerboardPageWidth = sw;
         sCheckerboardPageHeight = sh;
 
-        GeckoAppShell.sendEventToGecko(GeckoEvent.createScreenshotEvent(tab.getId(),
-                (int)FloatMath.ceil(viewport.pageRectLeft), (int)FloatMath.ceil(viewport.pageRectTop),
-                (int)FloatMath.floor(viewport.getPageWidth()), (int)FloatMath.floor(viewport.getPageHeight()),
-                0, 0,  dw, dh, GeckoAppShell.SCREENSHOT_WHOLE_PAGE));
+        GeckoAppShell.sendEventToGecko(GeckoEvent.createScreenshotEvent(tab.getId(), 0, 0, (int)sw, (int)sh, 0, 0,  dw, dh, GeckoAppShell.SCREENSHOT_WHOLE_PAGE));
     }
 }

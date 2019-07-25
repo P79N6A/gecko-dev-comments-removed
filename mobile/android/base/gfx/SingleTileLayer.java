@@ -67,7 +67,7 @@ public class SingleTileLayer extends TileLayer {
         } else if (stretches()) {
             
             
-            bounds = new RectF(context.pageRect);
+            bounds = new RectF(0.0f, 0.0f, context.pageSize.width, context.pageSize.height);
             textureBounds = bounds;
         } else {
             bounds = getBounds(context);

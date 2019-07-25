@@ -77,10 +77,10 @@ public:
 
   FrameMetrics()
     : mViewport(0, 0, 0, 0)
-    , mContentRect(0, 0, 0, 0)
+    , mContentSize(0, 0)
     , mViewportScrollOffset(0, 0)
     , mScrollId(NULL_SCROLL_ID)
-    , mCSSContentRect(0, 0, 0, 0)
+    , mCSSContentSize(0, 0)
     , mResolution(1, 1)
   {}
 
@@ -115,14 +115,14 @@ public:
 
   
   nsIntRect mViewport;
-  nsIntRect mContentRect;
+  nsIntSize mContentSize;
   nsIntPoint mViewportScrollOffset;
   nsIntRect mDisplayPort;
   ViewID mScrollId;
 
   
   
-  gfx::Rect mCSSContentRect;
+  gfx::Size mCSSContentSize;
 
   
   

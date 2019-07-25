@@ -64,9 +64,6 @@ namespace layers {
 
 
 
-
-
-
 template<typename Derived, typename Tile>
 class TiledLayerBuffer
 {

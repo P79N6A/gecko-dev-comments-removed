@@ -52,33 +52,33 @@ public class NinePatchTileLayer extends TileLayer {
 
 
 
-        
-        RectF page = context.pageRect;
+        FloatSize size = context.pageSize;
+        float width = size.width, height = size.height;
 
         drawPatch(context, 0, PATCH_SIZE * 3,                                              
-                  page.left - PATCH_SIZE, page.top - PATCH_SIZE, PATCH_SIZE, PATCH_SIZE);
-        drawPatch(context, PATCH_SIZE, PATCH_SIZE * 3,                                     
-                  page.left, page.top - PATCH_SIZE, page.width(), PATCH_SIZE);
-        drawPatch(context, PATCH_SIZE * 2, PATCH_SIZE * 3,                                 
-                  page.right, page.top - PATCH_SIZE, PATCH_SIZE, PATCH_SIZE);
+                  0.0f, 0.0f, PATCH_SIZE, PATCH_SIZE);
+        drawPatch(context, PATCH_SIZE, PATCH_SIZE*3,                                       
+                  PATCH_SIZE, 0.0f, width, PATCH_SIZE);
+        drawPatch(context, PATCH_SIZE * 2, PATCH_SIZE*3,                                   
+                  PATCH_SIZE + width, 0.0f, PATCH_SIZE, PATCH_SIZE);
         drawPatch(context, 0, PATCH_SIZE * 2,                                              
-                  page.left - PATCH_SIZE, page.top, PATCH_SIZE, page.height());
+                  0.0f, PATCH_SIZE, PATCH_SIZE, height);
         drawPatch(context, PATCH_SIZE * 2, PATCH_SIZE * 2,                                 
-                  page.right, page.top, PATCH_SIZE, page.height());
+                  PATCH_SIZE + width, PATCH_SIZE, PATCH_SIZE, height);
         drawPatch(context, 0, PATCH_SIZE,                                                  
-                  page.left - PATCH_SIZE, page.bottom, PATCH_SIZE, PATCH_SIZE);
+                  0.0f, PATCH_SIZE + height, PATCH_SIZE, PATCH_SIZE);
         drawPatch(context, PATCH_SIZE, PATCH_SIZE,                                         
-                  page.left, page.bottom, page.width(), PATCH_SIZE);
+                  PATCH_SIZE, PATCH_SIZE + height, width, PATCH_SIZE);
         drawPatch(context, PATCH_SIZE * 2, PATCH_SIZE,                                     
-                  page.right, page.bottom, PATCH_SIZE, PATCH_SIZE);
+                  PATCH_SIZE + width, PATCH_SIZE + height, PATCH_SIZE, PATCH_SIZE);
     }
 
     private void drawPatch(RenderContext context, int textureX, int textureY,
                            float tileX, float tileY, float tileWidth, float tileHeight) {
         RectF viewport = context.viewport;
         float viewportHeight = viewport.height();
-        float drawX = tileX - viewport.left;
-        float drawY = viewportHeight - (tileY + tileHeight - viewport.top);
+        float drawX = tileX - viewport.left - PATCH_SIZE;
+        float drawY = viewportHeight - (tileY + tileHeight - viewport.top - PATCH_SIZE);
 
         float[] coords = {
             
