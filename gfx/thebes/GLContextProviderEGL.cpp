@@ -1171,6 +1171,7 @@ public:
             } else {
                 mShaderType = RGBALayerProgramType;
             }
+            Resize(aSize);
         } else {
             
             
@@ -1185,9 +1186,6 @@ public:
             
             mShaderType = BGRALayerProgramType;
         }
-
-	
-        Resize(aSize);
     }
 
     virtual ~TextureImageEGL()
@@ -1382,12 +1380,22 @@ public:
 
     virtual void BindTexture(GLenum aTextureUnit)
     {
+        
+        if (mTextureState == Created) {
+            Resize(mSize);
+        }
+
         mGLContext->fActiveTexture(aTextureUnit);
         mGLContext->fBindTexture(LOCAL_GL_TEXTURE_2D, mTexture);
         mGLContext->fActiveTexture(LOCAL_GL_TEXTURE0);
     }
 
-    virtual GLuint GetTextureID() {
+    virtual GLuint GetTextureID() 
+    {
+        
+        if (mTextureState == Created) {
+            Resize(mSize);
+        }
         return mTexture;
     };
 
