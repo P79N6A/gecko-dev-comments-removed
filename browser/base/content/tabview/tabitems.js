@@ -1462,7 +1462,7 @@ TabCanvas.prototype = {
 
     
     
-    let maxWidth = win.innerWidth - 25;
+    let maxWidth = Math.max(1, win.innerWidth - 25);
     let maxHeight = win.innerHeight;
 
     let height = Math.min(maxHeight, Math.floor(origHeight * maxWidth / origWidth));
