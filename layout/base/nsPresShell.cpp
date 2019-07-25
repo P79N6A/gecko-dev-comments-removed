@@ -4338,22 +4338,6 @@ PresShell::ScrollFrameRectIntoView(nsIFrame*     aFrame,
       if (aFlags & nsIPresShell::SCROLL_FIRST_ANCESTOR_ONLY) {
         break;
       }
-
-      nsRect scrollPort = sf->GetScrollPortRect();
-      if (rect.XMost() < scrollPort.x ||
-          rect.x > scrollPort.XMost() ||
-          rect.YMost() < scrollPort.y ||
-          rect.y > scrollPort.YMost()) {
-        
-        
-        
-        break;
-      }
-
-      
-      
-      
-      rect.IntersectRect(rect, sf->GetScrollPortRect());
     }
     rect += container->GetPosition();
     nsIFrame* parent = container->GetParent();
