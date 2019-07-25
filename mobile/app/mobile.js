@@ -74,9 +74,6 @@ pref("browser.cache.memory.enable", true);
 pref("browser.cache.memory.capacity", 1024); 
 
 
-pref("tile.cache.size", 10); 
-
-
 pref("image.cache.size", 1048576); 
 
 
