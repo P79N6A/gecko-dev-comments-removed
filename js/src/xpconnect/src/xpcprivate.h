@@ -1254,18 +1254,23 @@ private:
 
     
     
-    
-    
-    
     struct StringWrapperEntry
     {
-        StringWrapperEntry() : mInUse(PR_FALSE) { }
+        StringWrapperEntry()
+            : mInUse(PR_FALSE)
+        {
+        }
 
-        js::AlignedStorage2<XPCReadableJSStringWrapper> mString;
+        XPCReadableJSStringWrapper mString;
         PRBool mInUse;
     };
 
-    StringWrapperEntry mScratchStrings[XPCCCX_STRING_CACHE_SIZE];
+    
+    
+    
+    
+    
+    char mStringWrapperData[sizeof(StringWrapperEntry) * XPCCCX_STRING_CACHE_SIZE];
 };
 
 class XPCLazyCallContext
@@ -1452,7 +1457,6 @@ XPC_WN_JSOp_ThisObject(JSContext *cx, JSObject *obj);
         nsnull, /* deleteProperty */                                          \
         js::Valueify(XPC_WN_JSOp_Enumerate),                                  \
         XPC_WN_JSOp_TypeOf_Function,                                          \
-        nsnull, /* trace          */                                          \
         nsnull, /* fix            */                                          \
         XPC_WN_JSOp_ThisObject,                                               \
         XPC_WN_JSOp_Clear                                                     \
@@ -1469,7 +1473,6 @@ XPC_WN_JSOp_ThisObject(JSContext *cx, JSObject *obj);
         nsnull, /* deleteProperty */                                          \
         js::Valueify(XPC_WN_JSOp_Enumerate),                                  \
         XPC_WN_JSOp_TypeOf_Object,                                            \
-        nsnull, /* trace          */                                          \
         nsnull, /* fix            */                                          \
         XPC_WN_JSOp_ThisObject,                                               \
         XPC_WN_JSOp_Clear                                                     \
