@@ -5527,12 +5527,6 @@ nsBlockFrame::AdjustFloatAvailableSpace(nsBlockReflowState& aState,
     
     
     availWidth = aFloatAvailableSpace.width;
-    
-    
-    
-    
-    nscoord twp = nsPresContext::CSSPixelsToAppUnits(1);
-    availWidth -=  availWidth % twp;
   }
 
   
@@ -5579,6 +5573,7 @@ nsBlockFrame::ReflowFloat(nsBlockReflowState& aState,
                           const nsRect&       aAdjustedAvailableSpace,
                           nsIFrame*           aFloat,
                           nsMargin&           aFloatMargin,
+                          PRBool              aFloatPushedDown,
                           nsReflowStatus&     aReflowStatus)
 {
   NS_PRECONDITION(aFloat->GetStateBits() & NS_FRAME_OUT_OF_FLOW,
@@ -5597,6 +5592,20 @@ nsBlockFrame::ReflowFloat(nsBlockReflowState& aState,
   nsHTMLReflowState floatRS(aState.mPresContext, aState.mReflowState, aFloat,
                             nsSize(aAdjustedAvailableSpace.width,
                                    aAdjustedAvailableSpace.height));
+
+  
+  
+  
+  
+  
+  
+  
+  
+  if (floatRS.mFlags.mIsTopOfPage &&
+      (aFloatPushedDown ||
+       aAdjustedAvailableSpace.width != aState.mContentArea.width)) {
+    floatRS.mFlags.mIsTopOfPage = PR_FALSE;
+  }
 
   
   nsBlockReflowContext brc(aState.mPresContext, aState.mReflowState);

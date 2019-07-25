@@ -822,8 +822,9 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame*       aFloat,
   
   
   nsMargin floatMargin; 
+  PRBool pushedDown = mY != saveY;
   mBlock->ReflowFloat(*this, adjustedAvailableSpace, aFloat,
-                      floatMargin, aReflowStatus);
+                      floatMargin, pushedDown, aReflowStatus);
   if (aFloat->GetPrevInFlow())
     floatMargin.top = 0;
   if (NS_FRAME_IS_NOT_COMPLETE(aReflowStatus))

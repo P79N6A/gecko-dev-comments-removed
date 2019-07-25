@@ -588,6 +588,10 @@ protected:
                        const nsRect&       aAdjustedAvailableSpace,
                        nsIFrame*           aFloat,
                        nsMargin&           aFloatMargin,
+                       
+                       
+                       
+                       PRBool              aFloatPushedDown,
                        nsReflowStatus&     aReflowStatus);
 
   

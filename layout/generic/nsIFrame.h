@@ -418,6 +418,8 @@ typedef PRUint32 nsReflowStatus;
 
 
 
+
+
 #define NS_FRAME_TRUNCATED  0x0010
 #define NS_FRAME_IS_TRUNCATED(status) \
   (0 != ((status) & NS_FRAME_TRUNCATED))
