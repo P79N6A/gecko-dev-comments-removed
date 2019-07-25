@@ -95,7 +95,6 @@
 #include "jsobjinlines.h"
 
 #include "vm/String-inl.h"
-#include "vm/CallObject-inl.h"
 
 #ifdef MOZ_VALGRIND
 # define JS_VALGRIND
@@ -648,11 +647,7 @@ js_GCThingIsMarked(void *thing, uintN color = BLACK)
 }
 
 
-
-
-
-
-static const int64 JIT_SCRIPT_EIGHTH_LIFETIME = 60 * 1000 * 1000;
+static const int64 JIT_SCRIPT_RELEASE_TYPES_INTERVAL = 60 * 1000 * 1000;
 
 JSBool
 js_InitGC(JSRuntime *rt, uint32 maxbytes)
@@ -694,7 +689,7 @@ js_InitGC(JSRuntime *rt, uint32 maxbytes)
 
     rt->setGCLastBytes(8192, GC_NORMAL);
 
-    rt->gcJitReleaseTime = PRMJ_Now() + JIT_SCRIPT_EIGHTH_LIFETIME;
+    rt->gcJitReleaseTime = PRMJ_Now() + JIT_SCRIPT_RELEASE_TYPES_INTERVAL;
     return true;
 }
 
@@ -2128,20 +2123,12 @@ static void
 SweepCrossCompartmentWrappers(JSContext *cx)
 {
     JSRuntime *rt = cx->runtime;
-    
 
-
-
-
-    uint32 releaseInterval = 0;
+    bool releaseTypes = false;
     int64 now = PRMJ_Now();
     if (now >= rt->gcJitReleaseTime) {
-        releaseInterval = 8;
-        while (now >= rt->gcJitReleaseTime) {
-            if (--releaseInterval == 1)
-                rt->gcJitReleaseTime = now;
-            rt->gcJitReleaseTime += JIT_SCRIPT_EIGHTH_LIFETIME;
-        }
+        releaseTypes = true;
+        rt->gcJitReleaseTime = now + JIT_SCRIPT_RELEASE_TYPES_INTERVAL;
     }
 
     
@@ -2152,7 +2139,7 @@ SweepCrossCompartmentWrappers(JSContext *cx)
 
 
     for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); ++c)
-        (*c)->sweep(cx, releaseInterval);
+        (*c)->sweep(cx, releaseTypes);
 }
 
 static void
@@ -2260,7 +2247,7 @@ MarkAndSweep(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind GCTIM
 
     while (WatchpointMap::markAllIteratively(&gcmarker) ||
            WeakMapBase::markAllIteratively(&gcmarker) ||
-           Debugger::markAllIteratively(&gcmarker))
+           Debugger::markAllIteratively(&gcmarker, gckind))
     {
         gcmarker.drainMarkStack();
     }
