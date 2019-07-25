@@ -55,6 +55,8 @@
 
 namespace js {
 
+namespace mjit { struct JITScript; }
+
 struct VMFrame
 {
     union Arguments {
@@ -137,6 +139,7 @@ struct VMFrame
 
     JSStackFrame *&fp() { return regs.fp; }
     JSScript *script() { return fp()->script(); }
+    mjit::JITScript *jit() { return script()->getJIT(fp()->isConstructing()); }
 };
 
 #ifdef JS_CPU_ARM
@@ -296,6 +299,13 @@ struct JITScript {
 
     js::mjit::CallSite *callSites;
     uint32          nCallSites;
+
+    
+
+
+
+    uint32          recompilations;
+
 #ifdef JS_MONOIC
     ic::MICInfo     *mics;      
     uint32          nMICs;      
@@ -305,6 +315,8 @@ struct JITScript {
     uint32          nEqualityICs;
     ic::TraceICInfo *traceICs;
     uint32          nTraceICs;
+
+    JSCList          callers;  
 
     
     typedef Vector<JSC::ExecutablePool *, 0, SystemAllocPolicy> ExecPoolVector;
@@ -380,15 +392,21 @@ struct CallSite
 {
     uint32 codeOffset;
     uint32 pcOffset;
-    uint32 id;
+    size_t id;
 
     
     
     
-    
-    static const uint32 MAGIC_TRAP_ID = 0xFEDCBABC;
 
-    void initialize(uint32 codeOffset, uint32 pcOffset, uint32 id) {
+    
+    
+    
+    static const size_t MAGIC_TRAP_ID = 0;
+
+    
+    static const size_t NCODE_RETURN_ID = 1;
+
+    void initialize(uint32 codeOffset, uint32 pcOffset, size_t id) {
         this->codeOffset = codeOffset;
         this->pcOffset = pcOffset;
         this->id = id;

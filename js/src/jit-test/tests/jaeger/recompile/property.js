@@ -2,11 +2,12 @@
 
 
 var v = {};
-if (0)
+if (typeof v == 'string')
   v.x = 0;
-function prop(x)
+function prop(v)
 {
-  assertEq(prop.x, undefined);
+  var z = v.x + 1;
+  assertEq(z, NaN);
 }
 prop(v);
 

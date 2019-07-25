@@ -580,6 +580,7 @@ class CallCompiler : public BaseCompiler
         ic.fastGuardedObject = obj;
 
         JITScript *jit = script->getJIT(callingNew);
+        JS_APPEND_LINK(&ic.links, &jit->callers);
 
         repatch.repatch(ic.funGuard, obj);
         repatch.relink(ic.funGuard.jumpAtOffset(ic.hotJumpOffset),
@@ -750,6 +751,20 @@ class CallCompiler : public BaseCompiler
             masm.storeValue(v, Address(vpReg, sizeof(Value)));
         }
 
+#ifdef JS_TYPE_INFERENCE
+        
+
+
+
+
+
+#if defined(JS_CPU_X86) && !defined(JS_NO_FASTCALL)
+        masm.storePtr(ImmPtr(NULL), FrameAddress(-4));
+#else
+        JS_NOT_REACHED("FIXME");
+#endif
+#endif
+
         masm.setupABICall(Registers::NormalCall, 3);
         masm.storeArg(2, vpReg);
         if (ic.frameSize.isStatic())
@@ -774,18 +789,20 @@ class CallCompiler : public BaseCompiler
             THROWV(true);
 
         JSC::LinkBuffer buffer(&masm, ep);
+        ic.nativeFunGuard = buffer.locationOf(funGuard);
+        ic.nativeJump = buffer.locationOf(done);
         buffer.link(done, ic.slowPathStart.labelAtOffset(ic.slowJoinOffset));
         buffer.link(funGuard, ic.slowPathStart);
         masm.finalize(buffer);
-        
-        JSC::CodeLocationLabel cs = buffer.finalizeCodeAddendum();
+
+        ic.nativeStart = buffer.finalizeCodeAddendum();
 
         JaegerSpew(JSpew_PICs, "generated native CALL stub %p (%d bytes)\n",
-                   cs.executableAddress(), masm.size());
+                   ic.nativeStart.executableAddress(), masm.size());
 
         uint8 *start = (uint8 *)ic.funJump.executableAddress();
         JSC::RepatchBuffer repatch(start - 32, 64);
-        repatch.relink(ic.funJump, cs);
+        repatch.relink(ic.funJump, ic.nativeStart);
 
         ic.fastGuardedNative = obj;
 
@@ -794,11 +811,17 @@ class CallCompiler : public BaseCompiler
 
     void *update()
     {
+        uint32 recompilations = f.jit()->recompilations;
         stubs::UncachedCallResult ucr;
         if (callingNew)
             stubs::UncachedNewHelper(f, ic.frameSize.staticArgc(), &ucr);
         else
             stubs::UncachedCallHelper(f, ic.frameSize.getArgc(f), &ucr);
+
+        
+        
+        if (!ucr.codeAddr && f.jit()->recompilations != recompilations)
+            return NULL;
 
         
         
@@ -1090,9 +1113,7 @@ JITScript::sweepCallICs()
 
         if (fastFunDead) {
             repatch.repatch(ic.funGuard, NULL);
-            ic.releasePool(CallICInfo::Pool_ClosureStub);
-            ic.hasJsFunCheck = false;
-            ic.fastGuardedObject = NULL;
+            ic.purgeGuardedObject();
         }
 
         if (nativeDead) {

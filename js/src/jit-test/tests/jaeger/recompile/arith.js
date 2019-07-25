@@ -39,3 +39,11 @@ function uncopy(x, y)
   assertEq(x, 2147483732);
 }
 uncopy(0x7ffffff0, 100);
+
+function addmore(x, y)
+{
+  var q = (x + 10) + (x + y);
+  assertEq(q, 4294967374);
+  x = q;
+}
+addmore(0x7ffffff0, 100);

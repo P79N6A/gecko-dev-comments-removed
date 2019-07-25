@@ -163,12 +163,6 @@ struct Bytecode
 
     inline types::TypeObject* getInitObject(JSContext *cx, bool isArray);
 
-    
-
-
-
-    inline JSValueType getKnownTypeTag();
-
     void print(JSContext *cx, FILE *out);
 
 #endif 
@@ -273,6 +267,26 @@ class Script
         return localDefined(local, pc - script->code);
     }
 
+    bool argEscapes(unsigned arg)
+    {
+        for (unsigned i = 0; i < script->nClosedArgs; i++) {
+            if (arg == script->getClosedArg(i))
+                return true;
+        }
+        return false;
+    }
+
+    bool localEscapes(unsigned local)
+    {
+        if (local >= localCount())
+            return true;
+        for (unsigned i = 0; i < script->nClosedVars; i++) {
+            if (local == script->getClosedVar(i))
+                return true;
+        }
+        return false;
+    }
+
   private:
     void setOOM(JSContext *cx) {
         if (!outOfMemory)
@@ -295,11 +309,7 @@ class Script
     unsigned id;
 
     
-    types::TypeFunction *function;
-
-    
-    unsigned argCount;
-    jsid thisName;
+    JSFunction *fun;
 
     
     types::TypeObject *objects;
@@ -326,7 +336,9 @@ class Script
 
     void setFunction(JSContext *cx, JSFunction *fun);
 
-    inline bool isEval() { return parent && !function; }
+    bool isEval() { return parent && !fun; }
+    unsigned argCount() { return fun ? fun->nargs : 0; }
+    types::TypeFunction *function() { return fun->getTypeObject()->asFunction(); }
 
     
 
@@ -365,6 +377,10 @@ class Script
 
     
     inline types::TypeSet *getStackTypes(unsigned index, types::TypeStack *stack);
+
+    
+    inline JSValueType knownArgumentTypeTag(JSContext *cx, JSScript *script, unsigned arg);
+    inline JSValueType knownLocalTypeTag(JSContext *cx, JSScript *script, unsigned local);
 
 #endif
 

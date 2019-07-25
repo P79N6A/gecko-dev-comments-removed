@@ -479,6 +479,12 @@ class FrameState
                         bool resultNeeded = true);
 
     
+
+
+
+    void rematBinary(FrameEntry *lhs, FrameEntry *rhs, const BinaryAlloc &alloc, Assembler &masm);
+
+    
     void ensureFullRegs(FrameEntry *fe, MaybeRegisterID *typeReg, MaybeRegisterID *dataReg);
 
     

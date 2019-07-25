@@ -686,6 +686,18 @@ FrameState::sync(Assembler &masm, Uses uses) const
             ensureTypeSynced(fe, masm);
 #endif
     }
+
+    
+
+
+
+
+    for (FrameEntry *fe = bottom - 1; fe >= spBase; fe--) {
+        if (!fe->isTracked())
+            continue;
+        if (fe->isType(JSVAL_TYPE_INT32) && !fe->isConstant())
+            ensureTypeSynced(fe, masm);
+    }
 }
 
 void
@@ -812,6 +824,7 @@ void
 FrameState::merge(Assembler &masm, Changes changes) const
 {
     
+
 
 
 
@@ -1148,17 +1161,18 @@ FrameState::ensureDouble(FrameEntry *fe)
         return;
     }
 
-    if (backing->data.inMemory()) {
-        FPRegisterID fpreg = allocFPReg();
-        masm.moveInt32OrDouble(addressOf(backing), fpreg);
+    syncFe(backing);
 
-        setFPRegister(fe, fpreg);
-        fe->data.unsync();
-        fe->type.unsync();
-        return;
-    }
+    if (fe == backing)
+        forgetAllRegs(backing);
 
-    JS_NOT_REACHED("FIXME");
+    FPRegisterID fpreg = allocFPReg();
+    masm.moveInt32OrDouble(addressOf(backing), fpreg);
+
+    setFPRegister(fe, fpreg);
+    fe->data.unsync();
+    fe->type.unsync();
+    return;
 }
 
 void
@@ -1705,6 +1719,8 @@ AllocHelper(RematInfo &info, MaybeRegisterID &maybe)
 void
 FrameState::allocForSameBinary(FrameEntry *fe, JSOp op, BinaryAlloc &alloc)
 {
+    alloc.rhsNeedsRemat = false;
+
     if (!fe->isTypeKnown()) {
         alloc.lhsType = tempRegForType(fe);
         pinReg(alloc.lhsType.reg());
@@ -1938,6 +1954,15 @@ FrameState::allocForBinary(FrameEntry *lhs, FrameEntry *rhs, JSOp op, BinaryAllo
         unpinReg(backingLeft->data.reg());
     if (backingRight->data.inRegister())
         unpinReg(backingRight->data.reg());
+}
+
+void
+FrameState::rematBinary(FrameEntry *lhs, FrameEntry *rhs, const BinaryAlloc &alloc, Assembler &masm)
+{
+    if (alloc.rhsNeedsRemat)
+        masm.loadPayload(addressForDataRemat(rhs), alloc.rhsData.reg());
+    if (alloc.lhsNeedsRemat)
+        masm.loadPayload(addressForDataRemat(lhs), alloc.lhsData.reg());
 }
 
 MaybeRegisterID

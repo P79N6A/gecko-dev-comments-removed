@@ -79,13 +79,13 @@ js::JMCheckLogging()
             "  scripts       ???\n"
             "  profile       ???\n"
 #ifdef DEBUG
-            "  pcprofile     Runtime hit counts of every JS opcode executed\n"
             "  jsops         JS opcodes\n"
 #endif
             "  insns         JS opcodes and generated insns\n"
             "  vmframe       VMFrame contents\n"
             "  pics          PIC patching activity\n"
             "  slowcalls     Calls to slow path functions\n"
+            "  recompile     Dynamic recompilations\n"
             "  full          everything\n"
             "  notrace       disable trace hints\n"
             "\n"
@@ -100,8 +100,6 @@ js::JMCheckLogging()
     if (strstr(env, "profile"))
         LoggingBits |= (1 << uint32(JSpew_Prof));
 #ifdef DEBUG
-    if (strstr(env, "pcprofile"))
-        LoggingBits |= (1 << uint32(JSpew_PCProf));
     if (strstr(env, "jsops"))
         LoggingBits |= (1 << uint32(JSpew_JSOps));
 #endif
@@ -113,6 +111,8 @@ js::JMCheckLogging()
         LoggingBits |= (1 << uint32(JSpew_PICs));
     if (strstr(env, "slowcalls"))
         LoggingBits |= (1 << uint32(JSpew_SlowCalls));
+    if (strstr(env, "recompile"))
+        LoggingBits |= (1 << uint32(JSpew_Recompile));
     if (strstr(env, "full"))
         LoggingBits |= 0xFFFFFFFF;
 }
@@ -132,11 +132,11 @@ js::JaegerSpew(JaegerSpewChannel channel, const char *fmt, ...)
     if (!(LoggingBits & (1 << uint32(channel))))
         return;
 
-    fprintf(stderr, "[jaeger] %-7s  ", ChannelNames[channel]);
+    fprintf(stdout, "[jaeger] %-7s  ", ChannelNames[channel]);
 
     va_list ap;
     va_start(ap, fmt);
-    vfprintf(stderr, fmt, ap);
+    vfprintf(stdout, fmt, ap);
     va_end(ap);
 
     

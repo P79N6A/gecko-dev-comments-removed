@@ -266,13 +266,13 @@ struct TypeSet
 
 
 
-    JSValueType getKnownTypeTag(JSContext *cx, JSScript *script, bool isConstructing);
+    JSValueType getKnownTypeTag(JSContext *cx, JSScript *script);
 
     
-    ObjectKind getKnownObjectKind(JSContext *cx, JSScript *script, bool isConstructing);
+    ObjectKind getKnownObjectKind(JSContext *cx, JSScript *script);
 
     
-    bool hasGetterSetter(JSContext *cx, JSScript *script, bool isConstructing);
+    bool hasGetterSetter(JSContext *cx, JSScript *script);
 };
 
 
@@ -309,6 +309,12 @@ struct TypeStack
 
     
     bool isForEach;
+
+    
+
+
+
+    bool ignoreTypeTag;
 
     
     jsid letVariable;
@@ -578,8 +584,9 @@ enum FixedTypeObjectName
     TYPE_OBJECT_FUNCTION,
     TYPE_OBJECT_ARRAY,
     TYPE_OBJECT_FUNCTION_PROTOTYPE,
+    TYPE_OBJECT_EMPTY_FUNCTION,  
 
-    TYPE_OBJECT_FUNCTION_LAST = TYPE_OBJECT_FUNCTION_PROTOTYPE,
+    TYPE_OBJECT_FUNCTION_LAST = TYPE_OBJECT_EMPTY_FUNCTION,
 
     
     TYPE_OBJECT_OBJECT_PROTOTYPE,
@@ -713,6 +720,9 @@ struct TypeCompartment
     ObjectNameTable *objectNameTable;
 
     
+    Vector<JSScript*> *pendingRecompiles;
+
+    
 
     
     struct PendingWork
@@ -799,6 +809,10 @@ struct TypeCompartment
                         const char *format, ...);
     void addDynamicPush(JSContext *cx, analyze::Bytecode &code, unsigned index, jstype type);
     void dynamicAssign(JSContext *cx, JSObject *obj, jsid id, const Value &rval);
+
+    inline bool hasPendingRecompiles() { return pendingRecompiles != NULL; }
+    void processPendingRecompiles(JSContext *cx);
+    void addPendingRecompile(JSContext *cx, JSScript *script);
 
     
     void monitorBytecode(JSContext *cx, analyze::Bytecode *code);
