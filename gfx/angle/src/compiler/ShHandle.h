@@ -22,6 +22,7 @@
 #include "compiler/SymbolTable.h"
 #include "compiler/VariableInfo.h"
 
+class LongNameMap;
 class TCompiler;
 
 
@@ -101,7 +102,7 @@ private:
     TVariableInfoList uniforms;  
 
     
-    std::map<std::string, std::string> varyingLongNameMap;
+    LongNameMap* longNameMap;
 };
 
 

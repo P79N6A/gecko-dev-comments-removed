@@ -1463,7 +1463,7 @@ bool TParseContext::structNestingErrorCheck(TSourceLoc line, const TType& fieldT
 
     
     
-    if (1 + fieldType.getDeepestStructNesting() >= kWebGLMaxStructNesting) {
+    if (1 + fieldType.getDeepestStructNesting() > kWebGLMaxStructNesting) {
         error(line, "", "", "Reference of struct type %s exceeds maximum struct nesting of %d",
               fieldType.getTypeName().c_str(), kWebGLMaxStructNesting);
         return true;

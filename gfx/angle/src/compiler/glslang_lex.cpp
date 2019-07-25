@@ -1,4 +1,4 @@
-#line 17 "compiler/glslang.l"
+#line 17 "./glslang.l"
 
 
 
@@ -8,8 +8,15 @@
 
 
 
+#if defined(__GNUC__)
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#elif defined(_MSC_VER)
+#pragma warning(disable: 4065)
+#endif
 
-#line 13 "compiler/glslang_lex.cpp"
+
+
+#line 20 "./glslang_lex.cpp"
 
 #define  YY_INT_ALIGNED short int
 
@@ -63,6 +70,7 @@ typedef int flex_int32_t;
 typedef unsigned char flex_uint8_t; 
 typedef unsigned short int flex_uint16_t;
 typedef unsigned int flex_uint32_t;
+#endif 
 
 
 #ifndef INT8_MIN
@@ -92,8 +100,6 @@ typedef unsigned int flex_uint32_t;
 #ifndef UINT32_MAX
 #define UINT32_MAX             (4294967295U)
 #endif
-
-#endif 
 
 #endif 
 
@@ -168,15 +174,7 @@ typedef void* yyscan_t;
 
 
 #ifndef YY_BUF_SIZE
-#ifdef __ia64__
-
-
-
-
-#define YY_BUF_SIZE 32768
-#else
 #define YY_BUF_SIZE 16384
-#endif 
 #endif
 
 
@@ -922,12 +920,7 @@ static int input (yyscan_t yyscanner );
     
 
 #ifndef YY_READ_BUF_SIZE
-#ifdef __ia64__
-
-#define YY_READ_BUF_SIZE 16384
-#else
 #define YY_READ_BUF_SIZE 8192
-#endif 
 #endif
 
 
@@ -935,7 +928,7 @@ static int input (yyscan_t yyscanner );
 
 
 
-#define ECHO do { if (fwrite( yytext, yyleng, 1, yyout )) {} } while (0)
+#define ECHO fwrite( yytext, yyleng, 1, yyout )
 #endif
 
 
@@ -946,7 +939,7 @@ static int input (yyscan_t yyscanner );
 	if ( YY_CURRENT_BUFFER_LVALUE->yy_is_interactive ) \
 		{ \
 		int c = '*'; \
-		size_t n; \
+		int n; \
 		for ( n = 0; n < max_size && \
 			     (c = getc( yyin )) != EOF && c != '\n'; ++n ) \
 			buf[n] = (char) c; \
@@ -3129,6 +3122,8 @@ void updateExtensionBehavior(const char* extName, const char* behavior)
             case EBhDisable:
                 msg = TString("extension '") + extName + "' is not supported";
                 context->infoSink.info.message(EPrefixWarning, msg.c_str(), yylineno); 
+                break;
+            default:
                 break;
             }
             return;

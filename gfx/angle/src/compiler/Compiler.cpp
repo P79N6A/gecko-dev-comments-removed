@@ -8,10 +8,10 @@
 #include "compiler/DetectRecursion.h"
 #include "compiler/ForLoopUnroll.h"
 #include "compiler/Initialize.h"
+#include "compiler/MapLongVariableNames.h"
 #include "compiler/ParseHelper.h"
 #include "compiler/ShHandle.h"
 #include "compiler/ValidateLimitations.h"
-#include "compiler/MapLongVariableNames.h"
 
 namespace {
 bool InitializeSymbolTable(
@@ -91,10 +91,13 @@ TCompiler::TCompiler(ShShaderType type, ShShaderSpec spec)
       shaderSpec(spec),
       builtInFunctionEmulator(type)
 {
+    longNameMap = LongNameMap::GetInstance();
 }
 
 TCompiler::~TCompiler()
 {
+    ASSERT(longNameMap);
+    longNameMap->Release();
 }
 
 bool TCompiler::Init(const ShBuiltInResources& resources)
@@ -246,7 +249,8 @@ void TCompiler::collectAttribsUniforms(TIntermNode* root)
 
 void TCompiler::mapLongVariableNames(TIntermNode* root)
 {
-    MapLongVariableNames map(varyingLongNameMap);
+    ASSERT(longNameMap);
+    MapLongVariableNames map(longNameMap);
     root->traverse(&map);
 }
 
