@@ -165,7 +165,7 @@ let iQClass = function(selector, context) {
     return null;
   }
 
-  if (selector.selector !== undefined) {
+  if (typeof selector.selector !== "undefined") {
     this.selector = selector.selector;
     this.context = selector.context;
   }
@@ -299,8 +299,7 @@ iQClass.prototype = {
   
   
   
-  remove: function(unused) {
-    Utils.assert('does not accept a selector', unused === undefined);
+  remove: function() {
     for (let i = 0; this[i] != null; i++) {
       let elem = this[i];
       if (elem.parentNode) {
@@ -326,16 +325,14 @@ iQClass.prototype = {
   
   
   
-  width: function(unused) {
-    Utils.assert('does not yet support setting', unused === undefined);
+  width: function() {
     return parseInt(this.css('width'));
   },
 
   
   
   
-  height: function(unused) {
-    Utils.assert('does not yet support setting', unused === undefined);
+  height: function() {
     return parseInt(this.css('height'));
   },
 
@@ -343,8 +340,7 @@ iQClass.prototype = {
   
   
   
-  position: function(unused) {
-    Utils.assert('does not yet support setting', unused === undefined);
+  position: function() {
     return {
       left: parseInt(this.css('left')),
       top: parseInt(this.css('top'))
@@ -365,7 +361,7 @@ iQClass.prototype = {
   
   data: function(key, value) {
     let data = null;
-    if (value === undefined) {
+    if (typeof value === "undefined") {
       Utils.assert('does not yet support multi-objects (or null objects)', this.length == 1);
       data = this[0].iQData;
       if (data)
@@ -393,7 +389,7 @@ iQClass.prototype = {
   
   html: function(value) {
     Utils.assert('does not yet support multi-objects (or null objects)', this.length == 1);
-    if (value === undefined)
+    if (typeof value === "undefined")
       return this[0].innerHTML;
 
     this[0].innerHTML = value;
@@ -406,7 +402,7 @@ iQClass.prototype = {
   
   text: function(value) {
     Utils.assert('does not yet support multi-objects (or null objects)', this.length == 1);
-    if (value === undefined) {
+    if (typeof value === "undefined") {
       return this[0].textContent;
     }
 
@@ -418,7 +414,7 @@ iQClass.prototype = {
   
   val: function(value) {
     Utils.assert('does not yet support multi-objects (or null objects)', this.length == 1);
-    if (value === undefined) {
+    if (typeof value === "undefined") {
       return this[0].value;
     }
 
@@ -451,7 +447,7 @@ iQClass.prototype = {
   attr: function(key, value) {
     try {
       Utils.assert('string key', typeof key === 'string');
-      if (value === undefined) {
+      if (typeof value === "undefined") {
         Utils.assert('retrieval does not support multi-objects (or null objects)', this.length == 1);
         return this[0].getAttribute(key);
       }
@@ -479,7 +475,7 @@ iQClass.prototype = {
 
     if (typeof a === 'string') {
       let key = a;
-      if (b === undefined) {
+      if (typeof b === "undefined") {
         Utils.assert('retrieval does not support multi-objects (or null objects)', this.length == 1);
 
         let substitutions = {
@@ -593,7 +589,9 @@ iQClass.prototype = {
   
   
   fadeOut: function(callback) {
-    Utils.assert('does not yet support duration', typeof callback == "function" || callback === undefined);
+    Utils.assert('does not yet support duration', typeof callback == "function" 
+        || typeof callback === "undefined");
+      
     this.animate({
       opacity: 0
     }, {
