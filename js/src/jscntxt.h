@@ -416,9 +416,7 @@ class StackSegment
         return *initialVarObj;
     }
 
-#ifdef DEBUG
     JS_REQUIRES_STACK bool contains(const JSStackFrame *fp) const;
-#endif
 
     JSStackFrame *computeNextFrame(JSStackFrame *fp) const;
 };
@@ -724,6 +722,9 @@ class StackSpace
     
     bool getExecuteFrame(JSContext *cx, JSScript *script, ExecuteFrameGuard *fg) const;
     void pushExecuteFrame(JSContext *cx, JSObject *initialVarObj, ExecuteFrameGuard *fg);
+
+    
+    js::StackSegment *containingSegment(const JSStackFrame *target);
 
     
 
@@ -1765,12 +1766,6 @@ struct JSContext
 
     
     void restoreSegment();
-
-    
-
-
-
-    js::StackSegment *containingSegment(const JSStackFrame *target);
 
     
     JSStackFrame *findFrameAtLevel(uintN targetLevel) const {
