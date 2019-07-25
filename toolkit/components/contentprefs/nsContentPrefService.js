@@ -304,6 +304,8 @@ ContentPrefService.prototype = {
       this.__stmtUpdatePref = null;
     }
 
+    this._dbConnection.asyncClose();
+
     
     
     
