@@ -43,13 +43,22 @@
 #define jsion_macro_assembler_x86_h__
 
 #include "ion/shared/MacroAssembler-x86-shared.h"
+#include "ion/MoveResolver.h"
 
 namespace js {
 namespace ion {
 
 class MacroAssemblerX86 : public MacroAssemblerX86Shared
 {
-    static const uint32 StackAlignment = 16;
+    
+    
+    uint32 stackAdjust_;
+    bool dynamicAlignment_;
+    bool inCall_;
+    bool enoughMemory_;
+
+  protected:
+    MoveResolver moveResolver_;
 
   private:
     Operand payloadOf(const Address &address) {
@@ -59,29 +68,28 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
         return Operand(address.base, address.offset + 4);
     }
 
-  protected:
-    uint32 alignStackForCall(uint32 stackForArgs) {
-        
-        uint32 displacement = stackForArgs + framePushed_;
-        return stackForArgs + ComputeByteAlignment(displacement, StackAlignment);
-    }
-
-    uint32 dynamicallyAlignStackForCall(uint32 stackForArgs, const Register &scratch) {
-        
-        
-        
-        movl(esp, scratch);
-        andl(Imm32(~(StackAlignment - 1)), esp);
-        push(scratch);
-        uint32 displacement = stackForArgs + STACK_SLOT_SIZE;
-        return stackForArgs + ComputeByteAlignment(displacement, StackAlignment);
-    }
-
-    void restoreStackFromDynamicAlignment() {
-        pop(esp);
-    }
+    
+    
+    
+    
+    
+    uint32 setupABICall(uint32 arg);
 
   public:
+    typedef MoveResolver::MoveOperand MoveOperand;
+    typedef MoveResolver::Move Move;
+
+    MacroAssemblerX86()
+      : stackAdjust_(0),
+        inCall_(false),
+        enoughMemory_(true)
+    {
+    }
+
+    bool oom() const {
+        return MacroAssemblerX86Shared::oom() || !enoughMemory_;
+    }
+
     
     
     
@@ -257,16 +265,6 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
     void setStackArg(const Register &reg, uint32 arg) {
         movl(reg, Operand(esp, arg * STACK_SLOT_SIZE));
     }
-    void checkCallAlignment() {
-#ifdef DEBUG
-        Label good;
-        movl(esp, eax);
-        testl(eax, Imm32(StackAlignment - 1));
-        j(Equal, &good);
-        breakpoint();
-        bind(&good);
-#endif
-    }
 
     
     
@@ -366,6 +364,32 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
         testl(operand.payloadReg(), operand.payloadReg());
         j(truthy ? NonZero : Zero, label);
     }
+
+    
+    
+    
+    
+    
+    
+    
+    void setupAlignedABICall(uint32 args);
+
+    
+    
+    void setupUnalignedABICall(uint32 args, const Register &scratch);
+
+    
+    
+    
+    
+    
+    
+    void setABIArg(uint32 arg, const MoveOperand &from);
+    void setABIArg(uint32 arg, const Register &reg);
+
+    
+    void callWithABI(void *fun);
+
 };
 
 typedef MacroAssemblerX86 MacroAssemblerSpecific;

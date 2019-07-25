@@ -44,6 +44,7 @@
 
 #include "ion/shared/MacroAssembler-x86-shared.h"
 #include "jsnum.h"
+#include "ion/MoveResolver.h"
 
 namespace js {
 namespace ion {
@@ -68,32 +69,38 @@ struct ImmTag : public Imm32
 
 class MacroAssemblerX64 : public MacroAssemblerX86Shared
 {
-    static const uint32 StackAlignment = 16;
+    
+    
+    uint32 stackAdjust_;
+    bool dynamicAlignment_;
+    bool inCall_;
+    bool enoughMemory_;
+
+    
+    
+    
+    
+    
+    uint32 setupABICall(uint32 arg);
 
   protected:
-    uint32 alignStackForCall(uint32 stackForArgs) {
-        uint32 total = stackForArgs + ShadowStackSpace;
-        uint32 displacement = total + framePushed_;
-        return total + ComputeByteAlignment(displacement, StackAlignment);
-    }
-
-    uint32 dynamicallyAlignStackForCall(uint32 stackForArgs, const Register &scratch) {
-        
-        
-        
-        movq(rsp, scratch);
-        andq(Imm32(~(StackAlignment - 1)), rsp);
-        push(scratch);
-        uint32 total = stackForArgs + ShadowStackSpace;
-        uint32 displacement = total + STACK_SLOT_SIZE;
-        return total + ComputeByteAlignment(displacement, StackAlignment);
-    }
-
-    void restoreStackFromDynamicAlignment() {
-        pop(rsp);
-    }
+    MoveResolver moveResolver_;
 
   public:
+    typedef MoveResolver::MoveOperand MoveOperand;
+    typedef MoveResolver::Move Move;
+
+    MacroAssemblerX64()
+      : stackAdjust_(0),
+        inCall_(false),
+        enoughMemory_(true)
+    {
+    }
+
+    bool oom() const {
+        return MacroAssemblerX86Shared::oom() || !enoughMemory_;
+    }
+
     
     
     
@@ -236,16 +243,6 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     void setStackArg(const Register &reg, uint32 arg) {
         uint32 disp = GetArgStackDisp(arg);
         movq(reg, Operand(rsp, disp));
-    }
-    void checkCallAlignment() {
-#ifdef DEBUG
-        Label good;
-        movl(rsp, rax);
-        testq(rax, Imm32(StackAlignment - 1));
-        j(Equal, &good);
-        breakpoint();
-        bind(&good);
-#endif
     }
 
     void splitTag(Register src, Register dest) {
@@ -417,6 +414,31 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         testl(operand.valueReg(), operand.valueReg());
         j(truthy ? NonZero : Zero, label);
     }
+
+    
+    
+    
+    
+    
+    
+    
+    void setupAlignedABICall(uint32 args);
+
+    
+    
+    void setupUnalignedABICall(uint32 args, const Register &scratch);
+
+    
+    
+    
+    
+    
+    
+    void setABIArg(uint32 arg, const MoveOperand &from);
+    void setABIArg(uint32 arg, const Register &reg);
+
+    
+    void callWithABI(void *fun);
 };
 
 typedef MacroAssemblerX64 MacroAssemblerSpecific;

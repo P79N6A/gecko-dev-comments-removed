@@ -42,91 +42,9 @@
 #include "jsinfer.h"
 #include "jsinferinlines.h"
 #include "IonMacroAssembler.h"
-#include "MoveEmitter.h"
 
 using namespace js;
 using namespace js::ion;
-
-uint32
-MacroAssembler::setupABICall(uint32 args)
-{
-    JS_ASSERT(!inCall_);
-    inCall_ = true;
-
-    uint32 stackForArgs = args > NumArgRegs
-                          ? (args - NumArgRegs) * sizeof(void *)
-                          : 0;
-    return stackForArgs;
-}
-
-void
-MacroAssembler::setupAlignedABICall(uint32 args)
-{
-    uint32 stackForCall = setupABICall(args);
-
-    
-    
-    
-    dynamicAlignment_ = false;
-    stackAdjust_ = alignStackForCall(stackForCall);
-    reserveStack(stackAdjust_);
-}
-
-void
-MacroAssembler::setupUnalignedABICall(uint32 args, const Register &scratch)
-{
-    uint32 stackForCall = setupABICall(args);
-
-    
-    
-    dynamicAlignment_ = true;
-    stackAdjust_ = dynamicallyAlignStackForCall(stackForCall, scratch);
-    reserveStack(stackAdjust_);
-}
-
-void
-MacroAssembler::setAnyABIArg(uint32 arg, const MoveOperand &from)
-{
-    MoveOperand to;
-    Register dest;
-    if (GetArgReg(arg, &dest)) {
-        to = MoveOperand(dest);
-    } else {
-        
-        
-        uint32 disp = GetArgStackDisp(arg);
-        to = MoveOperand(StackPointer, disp);
-    }
-    enoughMemory_ &= moveResolver_.addMove(from, to, Move::GENERAL);
-}
-
-void
-MacroAssembler::callWithABI(void *fun)
-{
-    JS_ASSERT(inCall_);
-
-    
-    enoughMemory_ &= moveResolver_.resolve();
-    if (!enoughMemory_)
-        return;
-    
-    MoveEmitter emitter(*this);
-    emitter.emit(moveResolver());
-    emitter.finish();
-
-#ifdef DEBUG
-    checkCallAlignment();
-#endif
-
-    call(fun);
-
-    freeStack(stackAdjust_);
-    if (dynamicAlignment_)
-        restoreStackFromDynamicAlignment();
-
-    JS_ASSERT(inCall_);
-    inCall_ = false;
-}
 
 template <typename T> void
 MacroAssembler::guardTypeSet(const T &address, types::TypeSet *types,

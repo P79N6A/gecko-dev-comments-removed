@@ -49,16 +49,12 @@
 #elif defined(JS_CPU_ARM)
 # include "ion/arm/MacroAssembler-arm.h"
 #endif
-#include "MoveResolver.h"
 
 namespace js {
 namespace ion {
 
 class MacroAssembler : public MacroAssemblerSpecific
 {
-    typedef MoveResolver::MoveOperand MoveOperand;
-    typedef MoveResolver::Move Move;
-
     MacroAssembler *thisFromCtor() {
         return this;
     }
@@ -81,43 +77,15 @@ class MacroAssembler : public MacroAssemblerSpecific
     };
 
     AutoRooter autoRooter_;
-    MoveResolver moveResolver_;
-
-    
-    
-    uint32 stackAdjust_;
-    bool dynamicAlignment_;
-    bool inCall_;
-
-    bool enoughMemory_;
-
-    
-    
-    
-    
-    
-    uint32 setupABICall(uint32 arg);
-
-    
-    
-    
-    
-    void setAnyABIArg(uint32 arg, const MoveOperand &from);
 
   public:
     MacroAssembler()
-      : autoRooter_(GetIonContext()->cx, thisFromCtor()),
-        stackAdjust_(0),
-        inCall_(false),
-        enoughMemory_(true)
+      : autoRooter_(GetIonContext()->cx, thisFromCtor())
     {
     }
 
     MacroAssembler(JSContext *cx)
-      : autoRooter_(cx, thisFromCtor()),
-        stackAdjust_(0),
-        inCall_(false),
-        enoughMemory_(true)
+      : autoRooter_(cx, thisFromCtor())
     {
     }
 
@@ -128,40 +96,6 @@ class MacroAssembler : public MacroAssemblerSpecific
     size_t instructionsSize() const {
         return size();
     }
-
-    bool oom() const {
-        return MacroAssemblerSpecific::oom() || !enoughMemory_;
-    }
-
-
-    
-    
-    
-    
-    
-    
-    
-    void setupAlignedABICall(uint32 args);
-
-    
-    
-    void setupUnalignedABICall(uint32 args, const Register &scratch);
-
-    
-    
-    
-    
-    
-    inline void setABIArg(uint32 arg, const MoveOperand &from) {
-        setAnyABIArg(arg, from);
-    }
-
-    inline void setABIArg(uint32 arg, const Register &reg) {
-        setABIArg(arg, MoveOperand(reg));
-    }
-
-    
-    void callWithABI(void *fun);
 
     
     
