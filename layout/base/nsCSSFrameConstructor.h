@@ -154,9 +154,10 @@ private:
   
   
   
-  
   nsIFrame* GetRangeInsertionPoint(nsIContent* aContainer,
                                    nsIFrame* aParentFrame,
+                                   nsIContent* aStartChild,
+                                   nsIContent* aEndChild,
                                    PRInt32 aStartIndexInContainer,
                                    PRInt32 aEndIndexInContainer,
                                    PRBool aAllowLazyConstruction);
