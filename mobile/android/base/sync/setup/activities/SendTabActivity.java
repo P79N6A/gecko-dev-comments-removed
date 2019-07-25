@@ -15,14 +15,11 @@ import org.mozilla.gecko.sync.setup.Constants;
 import android.accounts.Account;
 import android.accounts.AccountManager;
 import android.app.Activity;
-import android.app.Dialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
-import android.view.View.OnClickListener;
-import android.view.Window;
-import android.widget.Button;
 import android.widget.ListView;
+import android.widget.Toast;
 
 public class SendTabActivity extends Activity {
   public static final String LOG_TAG = "SendTabActivity";
@@ -111,23 +108,20 @@ public class SendTabActivity extends Activity {
       }
     }.start();
 
-    openDialog();
+    notifyAndFinish();
   }
 
-  private void openDialog() {
-    final Dialog dialog = new Dialog(this);
-    dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
-    dialog.setContentView(R.layout.sync_custom_popup);
-    Button button = (Button) dialog.findViewById(R.id.continue_browsing);
-    button.setOnClickListener(new OnClickListener() {
-      @Override
-      public void onClick(View v) {
-        dialog.dismiss();
-        finish();
-      }
-    });
+  
 
-    dialog.show();
+
+
+
+
+
+
+  private void notifyAndFinish() {
+    Toast.makeText(this, R.string.sync_text_tab_sent, Toast.LENGTH_LONG).show();
+    finish();
   }
 
   public void enableSend(boolean shouldEnable) {
