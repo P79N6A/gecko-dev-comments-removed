@@ -52,11 +52,11 @@ typedef struct {
   char temp; 
   unsigned short x0; 
   unsigned short y0; 
-} ThinkPadDeviceMotionData;
+} ThinkPadAccelerometerData;
 
-typedef void (__stdcall *ShockproofGetDeviceMotionData)(ThinkPadDeviceMotionData*);
+typedef void (__stdcall *ShockproofGetAccelerometerData)(ThinkPadAccelerometerData*);
 
-ShockproofGetDeviceMotionData gShockproofGetDeviceMotionData = nsnull;
+ShockproofGetAccelerometerData gShockproofGetAccelerometerData = nsnull;
 
 class ThinkPadSensor : public Sensor
 {
@@ -85,9 +85,9 @@ ThinkPadSensor::Startup()
   if (!mLibrary)
     return PR_FALSE;
 
-  gShockproofGetDeviceMotionData = (ShockproofGetDeviceMotionData)
-    GetProcAddress(mLibrary, "ShockproofGetDeviceMotionData");
-  if (!gShockproofGetDeviceMotionData) {
+  gShockproofGetAccelerometerData = (ShockproofGetAccelerometerData)
+    GetProcAddress(mLibrary, "ShockproofGetAccelerometerData");
+  if (!gShockproofGetAccelerometerData) {
     FreeLibrary(mLibrary);
     mLibrary = nsnull;
     return PR_FALSE;
@@ -101,15 +101,15 @@ ThinkPadSensor::Shutdown()
   NS_ASSERTION(mLibrary, "Shutdown called when mLibrary is null?");
   FreeLibrary(mLibrary);
   mLibrary = nsnull;
-  gShockproofGetDeviceMotionData = nsnull;
+  gShockproofGetAccelerometerData = nsnull;
 }
 
 void
 ThinkPadSensor::GetValues(double *x, double *y, double *z)
 {
-  ThinkPadDeviceMotionData accelData;
+  ThinkPadAccelerometerData accelData;
 
-  gShockproofGetDeviceMotionData(&accelData);
+  gShockproofGetAccelerometerData(&accelData);
 
   
   
