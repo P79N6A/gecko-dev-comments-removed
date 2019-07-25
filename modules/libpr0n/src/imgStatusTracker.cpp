@@ -61,6 +61,16 @@ imgStatusTracker::imgStatusTracker(imgIContainer* aImage)
     mHadLastPart(PR_FALSE)
 {}
 
+imgStatusTracker::imgStatusTracker(const imgStatusTracker& aOther)
+  : mImage(aOther.mImage),
+    mState(aOther.mState),
+    mImageStatus(aOther.mImageStatus),
+    mHadLastPart(aOther.mHadLastPart)
+    
+    
+    
+{}
+
 PRBool
 imgStatusTracker::IsLoading() const
 {
@@ -81,20 +91,32 @@ class imgRequestNotifyRunnable : public nsRunnable
 {
   public:
     imgRequestNotifyRunnable(imgRequest* request, imgRequestProxy* requestproxy)
-      : mRequest(request), mProxy(requestproxy)
-    {}
+      : mRequest(request)
+    {
+      mProxies.AppendElement(requestproxy);
+    }
 
     NS_IMETHOD Run()
     {
-      mProxy->SetNotificationsDeferred(PR_FALSE);
+      for (PRUint32 i = 0; i < mProxies.Length(); ++i) {
+        mProxies[i]->SetNotificationsDeferred(PR_FALSE);
+        mRequest->mImage->GetStatusTracker().SyncNotify(mProxies[i]);
+      }
 
-      mRequest->mImage->GetStatusTracker().SyncNotify(mProxy);
+      mRequest->mImage->GetStatusTracker().mRequestRunnable = nsnull;
       return NS_OK;
     }
 
+    void AddProxy(imgRequestProxy* aRequestProxy)
+    {
+      mProxies.AppendElement(aRequestProxy);
+    }
+
   private:
+    friend class imgStatusTracker;
+
     nsRefPtr<imgRequest> mRequest;
-    nsRefPtr<imgRequestProxy> mProxy;
+    nsTArray<nsRefPtr<imgRequestProxy> > mProxies;
 };
 
 void
@@ -110,8 +132,19 @@ imgStatusTracker::Notify(imgRequest* request, imgRequestProxy* proxy)
 
   proxy->SetNotificationsDeferred(PR_TRUE);
 
-  nsCOMPtr<nsIRunnable> ev = new imgRequestNotifyRunnable(request, proxy);
-  NS_DispatchToCurrentThread(ev);
+  
+  
+  
+  imgRequestNotifyRunnable* runnable = static_cast<imgRequestNotifyRunnable*>(mRequestRunnable.get());
+  if (runnable && runnable->mRequest == request) {
+    runnable->AddProxy(proxy);
+  } else {
+    
+    
+    
+    mRequestRunnable = new imgRequestNotifyRunnable(request, proxy);
+    NS_DispatchToCurrentThread(mRequestRunnable);
+  }
 }
 
 
@@ -119,7 +152,7 @@ imgStatusTracker::Notify(imgRequest* request, imgRequestProxy* proxy)
 class imgStatusNotifyRunnable : public nsRunnable
 {
   public:
-    imgStatusNotifyRunnable(imgStatusTracker status,
+    imgStatusNotifyRunnable(imgStatusTracker& status,
                             imgRequestProxy* requestproxy)
       : mStatus(status), mImage(status.mImage), mProxy(requestproxy)
     {}
@@ -153,6 +186,7 @@ imgStatusTracker::NotifyCurrentState(imgRequestProxy* proxy)
 
   proxy->SetNotificationsDeferred(PR_TRUE);
 
+  
   nsCOMPtr<nsIRunnable> ev = new imgStatusNotifyRunnable(*this, proxy);
   NS_DispatchToCurrentThread(ev);
 }
