@@ -130,6 +130,12 @@ CSPRep.fromString = function(aStr, self) {
   var aCSPR = new CSPRep();
   aCSPR._originalText = aStr;
 
+  var selfUri = null;
+  if (self instanceof Components.interfaces.nsIURI)
+    selfUri = self.clone();
+  else if (self)
+    selfUri = gIoService.newURI(self, null, null);
+
   var dirs = aStr.split(";");
 
   directive:
@@ -170,7 +176,6 @@ CSPRep.fromString = function(aStr, self) {
       
       var uriStrings = dirvalue.split(/\s+/);
       var okUriStrings = [];
-      var selfUri = self ? gIoService.newURI(self.toString(),null,null) : null;
 
       
       
@@ -217,15 +222,14 @@ CSPRep.fromString = function(aStr, self) {
 
       var uri = '';
       try {
-        uri = gIoService.newURI(dirvalue, null, null);
+        uri = gIoService.newURI(dirvalue, null, selfUri);
       } catch(e) {
         CSPError("could not parse URI in policy URI: " + dirvalue);
         return CSPRep.fromString("allow 'none'");
       }
+
       
-      
-      if (self) {
-        var selfUri = gIoService.newURI(self.toString(), null, null);
+      if (selfUri) {
         if (selfUri.host !== uri.host){
           CSPError("can't fetch policy uri from non-matching hostname: " + uri.host);
           return CSPRep.fromString("allow 'none'");
@@ -249,14 +253,14 @@ CSPRep.fromString = function(aStr, self) {
       
       
       
-      req.open("GET", dirvalue, false);
+      req.open("GET", uri.asciiSpec, false);
 
       
       
       
       req.channel.loadFlags |= Components.interfaces.nsIChannel.LOAD_ANONYMOUS;
 
-      req.send(null);  
+      req.send(null);
       if (req.status == 200) {
         aCSPR = CSPRep.fromString(req.responseText, self);
         
