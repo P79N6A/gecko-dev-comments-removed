@@ -1559,6 +1559,7 @@ nsHTMLDocument::Open(const nsAString& aContentTypeOrUrl,
   
   mSecurityInfo = securityInfo;
 
+  mParserAborted = false;
   bool loadAsHtml5 = nsHtml5Module::sEnabled;
   if (loadAsHtml5) {
     mParser = nsHtml5Module::NewHtml5Parser();
@@ -1700,6 +1701,13 @@ nsHTMLDocument::WriteCommon(JSContext *cx,
     
 
     return NS_ERROR_DOM_INVALID_STATE_ERR;
+  }
+
+  if (mParserAborted) {
+    
+    
+    
+    return NS_OK;
   }
 
   nsresult rv = NS_OK;
