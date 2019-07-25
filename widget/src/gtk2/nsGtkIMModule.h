@@ -160,7 +160,7 @@ protected:
 
     
     
-    nsString mCompositionString;
+    nsString mDispatchedCompositionString;
 
     
     
@@ -298,7 +298,8 @@ protected:
 
     
     
-    PRBool DispatchTextEvent(PRBool aCheckAttr);
+    PRBool DispatchTextEvent(const nsAString& aCompositionString,
+                             PRBool aCheckAttr);
 
 };
 
