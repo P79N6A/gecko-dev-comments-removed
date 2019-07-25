@@ -4859,7 +4859,16 @@ JS_TriggerOperationCallback(JSContext *cx)
 
 
 
-    JS_ATOMIC_SET(&cx->operationCallbackFlag, 1);
+    JSThreadData *td;
+#ifdef JS_THREADSAFE
+    JSThread *thread = cx->thread;
+    if (!thread)
+        return;
+    td = &thread->data;
+#else
+    td = JS_THREAD_DATA(cx);
+#endif
+    td->triggerOperationCallback();
 }
 
 JS_PUBLIC_API(void)

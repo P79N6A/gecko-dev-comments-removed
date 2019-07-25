@@ -3332,7 +3332,11 @@ BeginGCSession(JSContext *cx)
 
 
 
-    js_NudgeOtherContexts(cx);
+    for (JSThread::Map::Range r = rt->threads.all(); !r.empty(); r.popFront()) {
+        JSThread *thread = r.front().value;
+        if (thread != cx->thread)
+            thread->data.triggerOperationCallback();
+    }
 
     
 

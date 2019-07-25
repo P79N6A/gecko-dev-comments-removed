@@ -1879,14 +1879,15 @@ js_GetErrorMessage(void *userRef, const char *locale, const uintN errorNumber)
 JSBool
 js_InvokeOperationCallback(JSContext *cx)
 {
-    JS_ASSERT(cx->operationCallbackFlag);
+    JS_ASSERT(cx->requestDepth >= 1);
+    JS_ASSERT(JS_THREAD_DATA(cx)->operationCallbackFlag);
 
     
 
 
 
 
-    cx->operationCallbackFlag = 0;
+    JS_THREAD_DATA(cx)->operationCallbackFlag = 0;
 
     
 
@@ -1935,9 +1936,8 @@ js_TriggerAllOperationCallbacks(JSRuntime *rt, JSBool gcLocked)
 #ifdef JS_THREADSAFE
     Conditionally<AutoLockGC> lockIf(!gcLocked, rt);
 #endif
-    JSContext *iter = NULL;
-    while (JSContext *acx = js_ContextIterator(rt, JS_FALSE, &iter))
-        JS_TriggerOperationCallback(acx);
+    for (ThreadDataIter i(rt); !i.empty(); i.popFront())
+        i.threadData()->triggerOperationCallback();
 }
 
 JSStackFrame *

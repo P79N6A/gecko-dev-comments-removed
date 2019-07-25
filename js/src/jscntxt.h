@@ -965,6 +965,12 @@ struct JSPendingProxyOperation {
 };
 
 struct JSThreadData {
+    
+
+
+
+    volatile int32      operationCallbackFlag;
+
     JSGCFreeLists       gcFreeLists;
 
     
@@ -1027,6 +1033,16 @@ struct JSThreadData {
     void finish();
     void mark(JSTracer *trc);
     void purge(JSContext *cx);
+
+    void triggerOperationCallback() {
+        
+
+
+
+
+
+        JS_ATOMIC_SET(&operationCallbackFlag, 1);
+    }
 };
 
 #ifdef JS_THREADSAFE
@@ -1677,12 +1693,6 @@ struct JSRegExpStatics {
 struct JSContext
 {
     explicit JSContext(JSRuntime *rt);
-
-    
-
-
-
-    volatile jsint      operationCallbackFlag;
 
     
     JSCList             link;
@@ -2942,8 +2952,9 @@ extern JSErrorFormatString js_ErrorFormatString[JSErr_Limit];
 
 
 
-#define JS_CHECK_OPERATION_LIMIT(cx) \
-    (!(cx)->operationCallbackFlag || js_InvokeOperationCallback(cx))
+#define JS_CHECK_OPERATION_LIMIT(cx)                                          \
+    (JS_ASSERT((cx)->requestDepth >= 1),                                      \
+     (!JS_THREAD_DATA(cx)->operationCallbackFlag || js_InvokeOperationCallback(cx)))
 
 
 
