@@ -40,9 +40,35 @@
 #ifndef mozilla_CheckedInt_h
 #define mozilla_CheckedInt_h
 
-#include "prtypes.h"
 
-#include <mozilla/Assertions.h>
+
+
+
+
+#define CHECKEDINT_ENABLE_PR_INTEGER_TYPES
+
+
+#define CHECKEDINT_ENABLE_LONG_LONG
+
+
+
+#define CHECKEDINT_ENABLE_MOZ_ASSERTS
+
+
+
+
+
+#ifdef CHECKEDINT_ENABLE_MOZ_ASSERTS
+    #include <mozilla/Assertions.h>
+#else
+    #ifndef MOZ_STATIC_ASSERT
+        #define MOZ_STATIC_ASSERT(x)
+    #endif
+#endif
+
+#ifdef CHECKEDINT_ENABLE_PR_INTEGER_TYPES
+    #include "prtypes.h"
+#endif
 
 #include <climits>
 
@@ -95,18 +121,21 @@ template<> struct is_supported_pass_2<int>  { enum { value = 1 }; };
 template<> struct is_supported_pass_2<unsigned int> { enum { value = 1 }; };
 template<> struct is_supported_pass_2<long>  { enum { value = 1 }; };
 template<> struct is_supported_pass_2<unsigned long> { enum { value = 1 }; };
-template<> struct is_supported_pass_2<long long>  { enum { value = 1 }; };
-template<> struct is_supported_pass_2<unsigned long long> { enum { value = 1 }; };
+#ifdef CHECKEDINT_ENABLE_LONG_LONG
+    template<> struct is_supported_pass_2<long long>  { enum { value = 1 }; };
+    template<> struct is_supported_pass_2<unsigned long long> { enum { value = 1 }; };
+#endif
 
-template<> struct is_supported_pass_3<PRInt8>   { enum { value = 1 }; };
-template<> struct is_supported_pass_3<PRUint8>  { enum { value = 1 }; };
-template<> struct is_supported_pass_3<PRInt16>  { enum { value = 1 }; };
-template<> struct is_supported_pass_3<PRUint16> { enum { value = 1 }; };
-template<> struct is_supported_pass_3<PRInt32>  { enum { value = 1 }; };
-template<> struct is_supported_pass_3<PRUint32> { enum { value = 1 }; };
-template<> struct is_supported_pass_3<PRInt64>  { enum { value = 1 }; };
-template<> struct is_supported_pass_3<PRUint64> { enum { value = 1 }; };
-
+#ifdef CHECKEDINT_ENABLE_PR_INTEGER_TYPES
+    template<> struct is_supported_pass_3<PRInt8>   { enum { value = 1 }; };
+    template<> struct is_supported_pass_3<PRUint8>  { enum { value = 1 }; };
+    template<> struct is_supported_pass_3<PRInt16>  { enum { value = 1 }; };
+    template<> struct is_supported_pass_3<PRUint16> { enum { value = 1 }; };
+    template<> struct is_supported_pass_3<PRInt32>  { enum { value = 1 }; };
+    template<> struct is_supported_pass_3<PRUint32> { enum { value = 1 }; };
+    template<> struct is_supported_pass_3<PRInt64>  { enum { value = 1 }; };
+    template<> struct is_supported_pass_3<PRUint64> { enum { value = 1 }; };
+#endif
 
 
 
