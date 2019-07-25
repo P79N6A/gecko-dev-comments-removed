@@ -35,4 +35,21 @@ assertEq(completesNormally("Function('010')"),
 assertEq(raisesException(SyntaxError)("Function('\"use strict\"; 010')"),
          true);
 
+
+
+
+
+var call_this, eval_this;
+function f(code) {
+  
+
+
+
+
+  eval(code);
+  call_this = this; 
+}
+f.call(true, 'eval_this = this');
+assertEq(call_this, eval_this);
+
 reportCompare(true, true);

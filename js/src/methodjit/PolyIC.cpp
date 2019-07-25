@@ -2228,49 +2228,35 @@ ic::CallProp(VMFrame &f, ic::PICInfo *pic)
         regs.sp++;
         regs.sp[-2] = rval;
         regs.sp[-1] = lval;
-        goto end_callprop;
-    }
-
-    
-
-
-
-    jsid id;
-    id = ATOM_TO_JSID(pic->atom);
-
-    regs.sp++;
-    regs.sp[-1].setNull();
-    if (lval.isObject()) {
-        if (!js_GetMethod(cx, &objv.toObject(), id,
-                          JS_LIKELY(!objv.toObject().getOps()->getProperty)
-                          ? JSGET_CACHE_RESULT | JSGET_NO_METHOD_BARRIER
-                          : JSGET_NO_METHOD_BARRIER,
-                          &rval)) {
-            THROW();
-        }
-        regs.sp[-1] = objv;
-        regs.sp[-2] = rval;
     } else {
-        JS_ASSERT(!objv.toObject().getOps()->getProperty);
-        if (!js_GetPropertyHelper(cx, &objv.toObject(), id,
-                                  JSGET_CACHE_RESULT | JSGET_NO_METHOD_BARRIER,
-                                  &rval)) {
-            THROW();
-        }
-        regs.sp[-1] = lval;
-        regs.sp[-2] = rval;
-    }
-
-  end_callprop:
-    
-    if (lval.isPrimitive()) {
         
-        JSObject *funobj;
-        if (!IsFunctionObject(rval, &funobj) ||
-            !PrimitiveThisTest(GET_FUNCTION_PRIVATE(cx, funobj), lval)) {
-            if (!js_PrimitiveToObject(cx, &regs.sp[-1]))
+
+
+
+        jsid id;
+        id = ATOM_TO_JSID(pic->atom);
+
+        regs.sp++;
+        regs.sp[-1].setNull();
+        if (lval.isObject()) {
+            if (!js_GetMethod(cx, &objv.toObject(), id,
+                              JS_LIKELY(!objv.toObject().getOps()->getProperty)
+                              ? JSGET_CACHE_RESULT | JSGET_NO_METHOD_BARRIER
+                              : JSGET_NO_METHOD_BARRIER,
+                              &rval)) {
                 THROW();
-            usePIC = false;
+            }
+            regs.sp[-1] = objv;
+            regs.sp[-2] = rval;
+        } else {
+            JS_ASSERT(!objv.toObject().getOps()->getProperty);
+            if (!js_GetPropertyHelper(cx, &objv.toObject(), id,
+                                      JSGET_CACHE_RESULT | JSGET_NO_METHOD_BARRIER,
+                                      &rval)) {
+                THROW();
+            }
+            regs.sp[-1] = lval;
+            regs.sp[-2] = rval;
         }
     }
 
@@ -2294,7 +2280,7 @@ ic::CallProp(VMFrame &f, ic::PICInfo *pic)
     }
 
 #if JS_HAS_NO_SUCH_METHOD
-    if (JS_UNLIKELY(rval.isUndefined())) {
+    if (JS_UNLIKELY(rval.isUndefined()) && regs.sp[-1].isObject()) {
         regs.sp[-2].setString(ATOM_TO_STRING(pic->atom));
         if (!js_OnUnknownMethod(cx, regs.sp - 2))
             THROW();

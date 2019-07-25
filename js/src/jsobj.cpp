@@ -1103,6 +1103,14 @@ obj_eval(JSContext *cx, uintN argc, Value *vp)
     if (directCall && caller->scopeChain().compartment() != vp[0].toObject().compartment())
         directCall = false;
 
+    
+
+
+
+
+    if (!caller->computeThis(cx))
+        return false;
+        
     Value *argv = JS_ARGV(cx, vp);
     if (!argv[0].isString()) {
         *vp = argv[0];

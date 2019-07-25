@@ -21,24 +21,20 @@ var bind = Function.prototype.bind;
 assertEq(bind.length, 1);
 
 
-
-
 var strictReturnThis = function() { "use strict"; return this; };
-if (strictReturnThis() === undefined)
-{
-  assertEq(strictReturnThis.bind(undefined)(), undefined);
-  assertEq(strictReturnThis.bind(null)(), undefined);
 
-  var obj = {};
-  assertEq(strictReturnThis.bind(obj)(), obj);
+assertEq(strictReturnThis.bind(undefined)(), undefined);
+assertEq(strictReturnThis.bind(null)(), null);
 
-  assertEq(strictReturnThis.bind(NaN)(), NaN);
+var obj = {};
+assertEq(strictReturnThis.bind(obj)(), obj);
 
-  assertEq(strictReturnThis.bind(true)(), true);
-  assertEq(strictReturnThis.bind(false)(), false);
+assertEq(strictReturnThis.bind(NaN)(), NaN);
 
-  assertEq(strictReturnThis.bind("foopy")(), "foopy");
-}
+assertEq(strictReturnThis.bind(true)(), true);
+assertEq(strictReturnThis.bind(false)(), false);
+
+assertEq(strictReturnThis.bind("foopy")(), "foopy");
 
 
 

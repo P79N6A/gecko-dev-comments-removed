@@ -2260,18 +2260,10 @@ js_fun_call(JSContext *cx, uintN argc, Value *vp)
     Value *argv = vp + 2;
     Value thisv;
     if (argc == 0) {
-        
         thisv.setUndefined();
     } else {
-        
-        if (argv[0].isNullOrUndefined()) {
-            thisv.setUndefined();
-        } else {
-            if (!js_ValueToObjectOrNull(cx, argv[0], &obj))
-                return JS_FALSE;
-            JS_ASSERT(obj);
-            thisv.setObject(*obj);
-        }
+        thisv = argv[0];
+
         argc--;
         argv++;
     }
@@ -2365,18 +2357,6 @@ js_fun_apply(JSContext *cx, uintN argc, Value *vp)
         }
     }
 
-
-    
-    Value thisv;
-    if (vp[2].isNullOrUndefined()) {
-        thisv.setUndefined();
-    } else {
-        if (!js_ValueToObjectOrNull(cx, vp[2], &obj))
-            return JS_FALSE;
-        JS_ASSERT(obj);
-        thisv.setObject(*obj);
-    }
-
     LeaveTrace(cx);
 
     
@@ -2388,7 +2368,7 @@ js_fun_apply(JSContext *cx, uintN argc, Value *vp)
 
     
     args.callee() = fval;
-    args.thisv() = thisv;
+    args.thisv() = vp[2];
 
     
     if (aobj && aobj->isArguments() && !aobj->isArgsLengthOverridden()) {
@@ -2530,22 +2510,8 @@ CallOrConstructBoundFunction(JSContext *cx, uintN argc, Value *vp)
     
     args.callee().setObject(*target);
 
-    if (!constructing) {
-        
-
-
-
-
-        if (boundThis.isNullOrUndefined()) {
-            args.thisv().setUndefined();
-        } else {
-            JSObject *boundThisObj;
-            if (!js_ValueToObjectOrNull(cx, boundThis, &boundThisObj))
-                return false;
-            JS_ASSERT(boundThisObj);
-            args.thisv().setObject(*boundThisObj);
-        }
-    }
+    if (!constructing)
+        args.thisv() = boundThis;
 
     if (constructing ? !InvokeConstructor(cx, args) : !Invoke(cx, args, 0))
         return false;

@@ -31,30 +31,26 @@ assertEq(dateToJSON.length, 1);
 
 
 
-function strictThis() { "use strict"; return this; }
-if (strictThis.call(null) === null)
+try
 {
-  try
-  {
-    dateToJSON.call(null);
-    throw new Error("should have thrown a TypeError");
-  }
-  catch (e)
-  {
-    assertEq(e instanceof TypeError, true,
-             "ToObject throws TypeError for null/undefined");
-  }
+  dateToJSON.call(null);
+  throw new Error("should have thrown a TypeError");
+}
+catch (e)
+{
+  assertEq(e instanceof TypeError, true,
+           "ToObject throws TypeError for null/undefined");
+}
 
-  try
-  {
-    dateToJSON.call(undefined);
-    throw new Error("should have thrown a TypeError");
-  }
-  catch (e)
-  {
-    assertEq(e instanceof TypeError, true,
-             "ToObject throws TypeError for null/undefined");
-  }
+try
+{
+  dateToJSON.call(undefined);
+  throw new Error("should have thrown a TypeError");
+}
+catch (e)
+{
+  assertEq(e instanceof TypeError, true,
+           "ToObject throws TypeError for null/undefined");
 }
 
 

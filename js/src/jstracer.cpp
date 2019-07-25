@@ -10055,10 +10055,11 @@ TraceRecorder::getThis(LIns*& this_ins)
     }
 
     JS_ASSERT(fp->callee().getGlobal() == globalObj);    
-    const Value& thisv = fp->thisValue();
+    Value& thisv = fp->thisValue();
 
-    if (!thisv.isUndefined()) {
+    if (fp->fun()->inStrictMode() || thisv.isObject()) {
         
+
 
 
 
@@ -10068,16 +10069,30 @@ TraceRecorder::getThis(LIns*& this_ins)
     }
 
     
+    if (!thisv.isNullOrUndefined())
+        RETURN_STOP("wrapping primitive |this|");
+
+    
 
 
 
 
-    JSObject *obj = fp->computeThisObject(cx);
-    if (!obj)
-        RETURN_ERROR("getThisObject failed");
-    JS_ASSERT(&fp->thisValue().toObject() == obj);
-    this_ins = INS_CONSTOBJ(obj);
-    set(&fp->thisValue(), this_ins);
+    if (!fp->computeThis(cx))
+        RETURN_ERROR("computeThis failed");
+
+    
+#ifdef DEBUG
+    
+
+
+
+    JS_ASSERT(thisv.isObject());
+    JSObject *thisObj = thisv.toObject().wrappedObject(cx);
+    OBJ_TO_INNER_OBJECT(cx, thisObj);
+    JS_ASSERT(thisObj == globalObj);
+#endif
+    this_ins = INS_CONSTOBJ(globalObj);
+    set(&thisv, this_ins);
     return RECORD_CONTINUE;
 }
 
@@ -15906,7 +15921,11 @@ TraceRecorder::record_JSOP_GETTHISPROP()
 
 
 
-    CHECK_STATUS_A(getProp(&cx->fp()->thisValue().toObject(), this_ins));
+    const Value &thisv = cx->fp()->thisValue();
+    if (!thisv.isObject())
+        RETURN_STOP_A("primitive this for GETTHISPROP");
+
+    CHECK_STATUS_A(getProp(&thisv.toObject(), this_ins));
     return ARECORD_CONTINUE;
 }
 
