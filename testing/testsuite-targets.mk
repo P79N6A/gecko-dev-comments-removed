@@ -148,7 +148,7 @@ reftest:
 reftest-remote: TEST_PATH?=layout/reftests/reftest.list
 reftest-remote: DM_TRANS?=adb
 reftest-remote:
-	@if test -f ${MOZ_HOST_BIN}/xpcshell && [ "${TEST_DEVICE}" != "" ]; \
+	@if test -f ${MOZ_HOST_BIN}/xpcshell -a ("${TEST_DEVICE}" != "" -o "$DM_TRANS" = "adb") ; \
 	  then ln -s $(abspath $(topsrcdir)) _tests/reftest/tests;$(call REMOTE_REFTEST,tests/$(TEST_PATH)); $(CHECK_TEST_ERROR); \
         else \
           echo "please prepare your host with environment variables for TEST_DEVICE and MOZ_HOST_BIN"; \
