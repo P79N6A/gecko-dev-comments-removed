@@ -407,13 +407,7 @@ var stringBundle;
     setStrings(PAGE_TYPE_STATUS);
     
 
-
-    let eidString = getUrlParam("eid");
-    if (eidString == "") {
-      showStatusMenuPage();
-    } else {
-      loadExperimentPage();
-    }
+    loadExperimentPage();
   }
 
   function setStrings(pageType) {

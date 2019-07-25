@@ -75,9 +75,9 @@ DbUtils.createTable = function createTable(connection, tableName, schema){
   logger.debug("File is " + file + "\n");
   try{
     if(!connection.tableExists(tableName)){
+      
       connection.executeSimpleSQL(schema);
-    }
-    else{
+    } else{
       logger.debug("database table: " + tableName + " already exists\n");
     }
   }

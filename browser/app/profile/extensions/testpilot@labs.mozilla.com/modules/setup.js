@@ -259,13 +259,13 @@ let TestPilotSetup = {
 
         if (currVersion != self.version) {
           if(!self._isBetaChannel()) {
+            
             self._prefs.setValue(VERSION_PREF, self.version);
             let browser = self._getFrontBrowserWindow().getBrowser();
             let url = self._prefs.getValue(FIRST_RUN_PREF, "");
             let tab = browser.addTab(url);
             browser.selectedTab = tab;
           }
-          
         }
 
         
