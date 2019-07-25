@@ -1147,6 +1147,7 @@ TextPropertyEditor.prototype = {
 
 
 
+
 function editableField(aOptions)
 {
   aOptions.element.addEventListener("focus", function() {
@@ -1286,11 +1287,11 @@ InplaceEditor.prototype = {
 
   _onBlur: function InplaceEditor_onBlur(aEvent)
   {
-    if (this.done) {
-      this.done(this.cancelled ? this.initial : this.input.value.trim(),
-                !this.cancelled);
-    }
+    let val = this.input.value.trim();
     this._clear();
+    if (this.done) {
+      this.done(this.cancelled ? this.initial : val, !this.cancelled);
+    }
   },
 
   _onKeyPress: function InplaceEditor_onKeyPress(aEvent)
