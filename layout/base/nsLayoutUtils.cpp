@@ -1526,8 +1526,6 @@ nsLayoutUtils::PaintFrame(nsIRenderingContext* aRenderingContext, nsIFrame* aFra
   PRUint32 flags = nsDisplayList::PAINT_DEFAULT;
   if (aFlags & PAINT_WIDGET_LAYERS) {
     flags |= nsDisplayList::PAINT_USE_WIDGET_LAYERS;
-
-    nsIWidget *widget = aFrame->GetNearestWidget();
     if (willFlushRetainedLayers) {
       
       
@@ -1537,17 +1535,15 @@ nsLayoutUtils::PaintFrame(nsIRenderingContext* aRenderingContext, nsIFrame* aFra
       
       NS_WARNING("Flushing retained layers!");
       flags |= nsDisplayList::PAINT_FLUSH_LAYERS;
-    } else if (widget && !(aFlags & PAINT_DOCUMENT_RELATIVE)) {
-      nsIWidget_MOZILLA_2_0_BRANCH* widget2 =
-        static_cast<nsIWidget_MOZILLA_2_0_BRANCH*>(widget);
-      PRInt32 pixelRatio = presContext->AppUnitsPerDevPixel();
-      nsIntRegion visibleWindowRegion(visibleRegion.ToOutsidePixels(pixelRatio));
-      builder.SetFinalTransparentRegion(visibleRegion);
-      widget2->UpdateTransparentRegion(visibleWindowRegion);
-
-      
-      
-      widget2->UpdateThemeGeometries(builder.GetThemeGeometries());
+    } else if (!(aFlags & PAINT_DOCUMENT_RELATIVE)) {
+      nsIWidget_MOZILLA_2_0_BRANCH *widget2 =
+        static_cast<nsIWidget_MOZILLA_2_0_BRANCH*>(aFrame->GetNearestWidget());
+      if (widget2) {
+        builder.SetFinalTransparentRegion(visibleRegion);
+        
+        
+        widget2->UpdateThemeGeometries(builder.GetThemeGeometries());
+      }
     }
   }
   if (aFlags & PAINT_EXISTING_TRANSACTION) {
@@ -1555,6 +1551,20 @@ nsLayoutUtils::PaintFrame(nsIRenderingContext* aRenderingContext, nsIFrame* aFra
   }
 
   list.PaintRoot(&builder, aRenderingContext, flags);
+
+  
+  
+  if ((aFlags & PAINT_WIDGET_LAYERS) &&
+      !willFlushRetainedLayers &&
+      !(aFlags & PAINT_DOCUMENT_RELATIVE)) {
+    nsIWidget_MOZILLA_2_0_BRANCH *widget2 =
+      static_cast<nsIWidget_MOZILLA_2_0_BRANCH*>(aFrame->GetNearestWidget());
+    if (widget2) {
+      PRInt32 pixelRatio = presContext->AppUnitsPerDevPixel();
+      nsIntRegion visibleWindowRegion(visibleRegion.ToOutsidePixels(presContext->AppUnitsPerDevPixel()));
+      widget2->UpdateTransparentRegion(visibleWindowRegion);
+    }
+  }
 
 #ifdef DEBUG
   if (gDumpPaintList) {
