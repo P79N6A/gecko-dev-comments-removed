@@ -978,6 +978,7 @@ nsWindow::OnGlobalAndroidEvent(AndroidGeckoEvent *ae)
             break;
 
         case AndroidGeckoEvent::DRAW:
+        case AndroidGeckoEvent::EXPOSE:
             win->OnDraw(ae);
             break;
 
@@ -1168,15 +1169,16 @@ nsWindow::OnDraw(AndroidGeckoEvent *ae)
     if (gAndroidBounds.width <= 0 || gAndroidBounds.height <= 0)
         return;
 
+    nsCOMPtr<nsIAndroidDrawMetadataProvider> metadataProvider =
+        AndroidBridge::Bridge()->GetDrawMetadataProvider();
+
     
 
 
 
-    nsCOMPtr<nsIAndroidDrawMetadataProvider> metadataProvider =
-        AndroidBridge::Bridge()->GetDrawMetadataProvider();
 
     bool shouldDraw = true;
-    if (metadataProvider) {
+    if (metadataProvider && ae->Type() == AndroidGeckoEvent::DRAW) {
         metadataProvider->DrawingAllowed(&shouldDraw);
     }
     if (!shouldDraw) {
@@ -1186,6 +1188,12 @@ nsWindow::OnDraw(AndroidGeckoEvent *ae)
     AndroidGeckoSoftwareLayerClient &client =
         AndroidBridge::Bridge()->GetSoftwareLayerClient();
     client.BeginDrawing(gAndroidBounds.width, gAndroidBounds.height);
+
+    
+    
+    nsIntRect rect(0, 0, gAndroidBounds.width, gAndroidBounds.height);
+    if (ae->Type() == AndroidGeckoEvent::DRAW)
+        rect = ae->Rect();
 
     nsAutoString metadata;
     unsigned char *bits = NULL;
@@ -1219,7 +1227,7 @@ nsWindow::OnDraw(AndroidGeckoEvent *ae)
               
               DrawTo(targetSurface);
             } else {
-              DrawTo(targetSurface, ae->Rect());
+              DrawTo(targetSurface, rect);
             }
 
             if (metadataProvider) {
@@ -1232,7 +1240,7 @@ nsWindow::OnDraw(AndroidGeckoEvent *ae)
           client.UnlockBuffer();
         }
     }
-    client.EndDrawing(ae->Rect(), metadata);
+    client.EndDrawing(rect, metadata);
     return;
 #endif
 
