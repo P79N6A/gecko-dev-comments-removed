@@ -109,7 +109,7 @@ public:
 
   
 
-  NS_IMETHOD StartOperation(OperationID opID,
+  NS_IMETHOD StartOperation(EditAction opID,
                             nsIEditor::EDirection aDirection);
 
   

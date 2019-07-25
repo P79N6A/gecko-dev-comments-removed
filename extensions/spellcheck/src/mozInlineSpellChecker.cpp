@@ -103,7 +103,7 @@ mozInlineSpellStatus::mozInlineSpellStatus(mozInlineSpellChecker* aSpellChecker)
 
 nsresult
 mozInlineSpellStatus::InitForEditorChange(
-    OperationID aAction,
+    EditAction aAction,
     nsIDOMNode* aAnchorNode, PRInt32 aAnchorOffset,
     nsIDOMNode* aPreviousNode, PRInt32 aPreviousOffset,
     nsIDOMNode* aStartNode, PRInt32 aStartOffset,
@@ -120,7 +120,7 @@ mozInlineSpellStatus::InitForEditorChange(
                                 getter_AddRefs(mAnchorRange));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (aAction == OperationID::deleteSelection) {
+  if (aAction == EditAction::deleteSelection) {
     
     
     
@@ -153,7 +153,7 @@ mozInlineSpellStatus::InitForEditorChange(
 
   
   
-  if (aAction == OperationID::insertText)
+  if (aAction == EditAction::insertText)
     mCreatedRange = mRange;
 
   
@@ -731,7 +731,7 @@ mozInlineSpellChecker::SpellCheckAfterEditorChange(
   NS_ENSURE_SUCCESS(rv, rv);
 
   mozInlineSpellStatus status(this);
-  rv = status.InitForEditorChange((OperationID)aAction,
+  rv = status.InitForEditorChange((EditAction)aAction,
                                   anchorNode, anchorOffset,
                                   aPreviousSelectedNode, aPreviousSelectedOffset,
                                   aStartNode, aStartOffset,
