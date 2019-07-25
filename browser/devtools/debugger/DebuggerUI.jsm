@@ -114,21 +114,6 @@ DebuggerUI.prototype = {
 
 
 
-
-  toggleChromeDebugger: function DUI_toggleChromeDebugger(aOnClose, aOnRun) {
-    let win = this.chromeWindow;
-
-    if (win._chromeDebugger) {
-      win._chromeDebugger.close();
-      return null;
-    }
-    return new DebuggerProcess(win, aOnClose, aOnRun, true);
-  },
-
-  
-
-
-
   getDebugger: function DUI_getDebugger(aTab) {
     return '_scriptDebugger' in aTab ? aTab._scriptDebugger : null;
   },
@@ -151,7 +136,6 @@ DebuggerUI.prototype = {
 function DebuggerPane(aDebuggerUI, aTab) {
   this._globalUI = aDebuggerUI;
   this._tab = aTab;
-  
   this._initServer();
   this._create();
 }
@@ -262,15 +246,10 @@ DebuggerPane.prototype = {
 
 
 
-
-
-
-function DebuggerProcess(aWindow, aOnClose, aOnRun, aInitServerFlag) {
+function DebuggerProcess(aWindow, aOnClose, aOnRun) {
   this._win = aWindow;
   this._closeCallback = aOnClose;
   this._runCallback = aOnRun;
-
-  aInitServerFlag && this._initServer();
   this._initProfile();
   this._create();
 }
