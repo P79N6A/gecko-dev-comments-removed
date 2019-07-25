@@ -159,7 +159,7 @@ struct SharedContext {
 
     Bindings        bindings;       
 
-    Bindings::StackRoot bindingsRoot; 
+    Bindings::AutoRooter bindingsRoot; 
 
     const bool      inFunction:1;   
 

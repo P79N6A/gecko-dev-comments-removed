@@ -216,7 +216,7 @@ JS_END_EXTERN_C
 namespace JS {
 
 template <typename T>
-class Root;
+class RootedVar;
 
 class SkipRoot;
 
@@ -254,7 +254,7 @@ struct ContextFriendFields {
 
 
 
-    Root<void*> *thingGCRooters[THING_ROOT_LIMIT];
+    RootedVar<void*> *thingGCRooters[THING_ROOT_LIMIT];
 
 #ifdef DEBUG
     

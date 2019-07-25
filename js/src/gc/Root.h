@@ -59,11 +59,6 @@ namespace JS {
 
 
 
-
-
-
-
-template <typename T> class Root;
 template <typename T> class RootedVar;
 
 template <typename T>
@@ -101,7 +96,6 @@ class Handle
 
 
 
-    template <typename S> inline Handle(const Root<S> &root);
     template <typename S> inline Handle(const RootedVar<S> &root);
 
     const T *address() const { return ptr; }
@@ -145,35 +139,39 @@ struct RootMethods<T *>
 
 
 
-
-
-
-
-
 template <typename T>
-class Root
+class RootedVar
 {
-  public:
-    Root(JSContext *cx_, const T *ptr
-         JS_GUARD_OBJECT_NOTIFIER_PARAM)
+    void init(JSContext *cx_, T initial)
     {
 #ifdef JSGC_ROOT_ANALYSIS
         ContextFriendFields *cx = ContextFriendFields::get(cx_);
 
         ThingRootKind kind = RootMethods<T>::kind();
-        this->stack = reinterpret_cast<Root<T>**>(&cx->thingGCRooters[kind]);
+        this->stack = reinterpret_cast<RootedVar<T>**>(&cx->thingGCRooters[kind]);
         this->prev = *stack;
         *stack = this;
 
-        JS_ASSERT(!RootMethods<T>::poisoned(*ptr));
+        JS_ASSERT(!RootMethods<T>::poisoned(initial));
 #endif
 
-        this->ptr = ptr;
-
-        JS_GUARD_OBJECT_NOTIFIER_INIT;
+        ptr = initial;
     }
 
-    ~Root()
+  public:
+    RootedVar(JSContext *cx) { init(cx, RootMethods<T>::initial()); }
+    RootedVar(JSContext *cx, T initial) { init(cx, initial); }
+
+    
+
+
+
+
+
+
+    operator Handle<T> () const { return Handle<T>(*this); }
+
+    ~RootedVar()
     {
 #ifdef JSGC_ROOT_ANALYSIS
         JS_ASSERT(*stack == this);
@@ -182,34 +180,53 @@ class Root
     }
 
 #ifdef JSGC_ROOT_ANALYSIS
-    Root<T> *previous() { return prev; }
+    RootedVar<T> *previous() { return prev; }
 #endif
 
-    const T *address() const { return ptr; }
+    operator T () const { return ptr; }
+    T operator ->() const { return ptr; }
+    T * address() { return &ptr; }
+    const T * address() const { return &ptr; }
+    T & reference() { return ptr; }
+    T raw() const { return ptr; }
+
+    T & operator =(T value)
+    {
+        JS_ASSERT(!RootMethods<T>::poisoned(value));
+        ptr = value;
+        return ptr;
+    }
+
+    T & operator =(const RootedVar &value)
+    {
+        ptr = value;
+        return ptr;
+    }
 
   private:
 
 #ifdef JSGC_ROOT_ANALYSIS
-    Root<T> **stack, *prev;
+    RootedVar<T> **stack, *prev;
 #endif
-    const T *ptr;
+    T ptr;
 
-    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
+    RootedVar() MOZ_DELETE;
+    RootedVar(const RootedVar &) MOZ_DELETE;
 };
 
 template<typename T> template <typename S>
 inline
-Handle<T>::Handle(const Root<S> &root)
+Handle<T>::Handle(const RootedVar<S> &root)
 {
     testAssign<S>();
     ptr = reinterpret_cast<const T *>(root.address());
 }
 
-typedef Root<JSObject*>    RootObject;
-typedef Root<JSFunction*>  RootFunction;
-typedef Root<JSString*>    RootString;
-typedef Root<jsid>         RootId;
-typedef Root<Value>        RootValue;
+typedef RootedVar<JSObject*>    RootedVarObject;
+typedef RootedVar<JSFunction*>  RootedVarFunction;
+typedef RootedVar<JSString*>    RootedVarString;
+typedef RootedVar<jsid>         RootedVarId;
+typedef RootedVar<Value>        RootedVarValue;
 
 
 
@@ -238,7 +255,7 @@ class SkipRoot
   public:
     template <typename T>
     SkipRoot(JSContext *cx, const T *ptr
-              JS_GUARD_OBJECT_NOTIFIER_PARAM)
+             JS_GUARD_OBJECT_NOTIFIER_PARAM)
     {
         init(ContextFriendFields::get(cx), ptr, 1);
         JS_GUARD_OBJECT_NOTIFIER_INIT;
@@ -246,7 +263,7 @@ class SkipRoot
 
     template <typename T>
     SkipRoot(JSContext *cx, const T *ptr, size_t count
-              JS_GUARD_OBJECT_NOTIFIER_PARAM)
+             JS_GUARD_OBJECT_NOTIFIER_PARAM)
     {
         init(ContextFriendFields::get(cx), ptr, count);
         JS_GUARD_OBJECT_NOTIFIER_INIT;
@@ -285,70 +302,6 @@ class SkipRoot
 
     JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
-
-
-template <typename T>
-class RootedVar
-{
-  public:
-    RootedVar(JSContext *cx)
-      : ptr(RootMethods<T>::initial()), root(cx, &ptr)
-    {}
-
-    RootedVar(JSContext *cx, T initial)
-      : ptr(initial), root(cx, &ptr)
-    {}
-
-    operator T () const { return ptr; }
-    T operator ->() const { return ptr; }
-    T * address() { return &ptr; }
-    const T * address() const { return &ptr; }
-    T & reference() { return ptr; }
-    T raw() { return ptr; }
-
-    
-
-
-
-
-
-
-    operator Handle<T> () const { return Handle<T>(*this); }
-
-    T & operator =(T value)
-    {
-        JS_ASSERT(!RootMethods<T>::poisoned(value));
-        ptr = value;
-        return ptr;
-    }
-
-    T & operator =(const RootedVar &value)
-    {
-        ptr = value;
-        return ptr;
-    }
-
-  private:
-    T ptr;
-    Root<T> root;
-
-    RootedVar() MOZ_DELETE;
-    RootedVar(const RootedVar &) MOZ_DELETE;
-};
-
-template <typename T> template <typename S>
-inline
-Handle<T>::Handle(const RootedVar<S> &root)
-{
-    testAssign<S>();
-    ptr = reinterpret_cast<const T *>(root.address());
-}
-
-typedef RootedVar<JSObject*>    RootedVarObject;
-typedef RootedVar<JSFunction*>  RootedVarFunction;
-typedef RootedVar<JSString*>    RootedVarString;
-typedef RootedVar<jsid>         RootedVarId;
-typedef RootedVar<Value>        RootedVarValue;
 
 
 

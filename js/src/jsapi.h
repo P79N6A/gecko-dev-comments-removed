@@ -919,7 +919,15 @@ class JS_PUBLIC_API(AutoGCRooter) {
         STRING =      -14, 
         IDVECTOR =    -15, 
         OBJVECTOR =   -16, 
-        SCRIPTVECTOR =-17  
+        SCRIPTVECTOR =-17, 
+        PROPDESC =    -18, 
+        SHAPERANGE =  -19, 
+        STACKSHAPE =  -20, 
+        STACKBASESHAPE=-21,
+        BINDINGS =    -22, 
+        GETTERSETTER =-23, 
+        REGEXPSTATICS=-24, 
+        HASHABLEVALUE=-25
     };
 
   private:
