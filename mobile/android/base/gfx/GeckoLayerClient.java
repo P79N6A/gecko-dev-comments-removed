@@ -349,16 +349,11 @@ public class GeckoLayerClient implements GeckoEventResponder,
 
 
 
-    public void setPageRect(float zoom, float pageLeft, float pageTop, float pageRight, float pageBottom,
-            float cssPageLeft, float cssPageTop, float cssPageRight, float cssPageBottom) {
+    public void setPageRect(float cssPageLeft, float cssPageTop, float cssPageRight, float cssPageBottom) {
         synchronized (mLayerController) {
-            
-            
-            
-            RectF pageRect = new RectF(pageLeft, pageTop, pageRight, pageBottom);
             RectF cssPageRect = new RectF(cssPageLeft, cssPageTop, cssPageRight, cssPageBottom);
             float ourZoom = mLayerController.getZoomFactor();
-            mLayerController.setPageRect(RectUtils.scale(pageRect, ourZoom / zoom), cssPageRect);
+            mLayerController.setPageRect(RectUtils.scale(cssPageRect, ourZoom), cssPageRect);
             
             
             
