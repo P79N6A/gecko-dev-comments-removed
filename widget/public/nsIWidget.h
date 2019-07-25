@@ -1399,6 +1399,14 @@ class nsIWidget_MOZILLA_2_0_BRANCH : public nsIWidget {
     
     
     using nsIWidget::GetLayerManager;
+
+    
+
+
+
+
+
+    virtual void DrawOver(LayerManager* aManager, nsIntRect aRect) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIWidget_MOZILLA_2_0_BRANCH, NS_IWIDGET_MOZILLA_2_0_BRANCH_IID)

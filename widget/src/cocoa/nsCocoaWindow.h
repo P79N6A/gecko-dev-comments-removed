@@ -279,6 +279,7 @@ public:
     void DispatchSizeModeEvent();
 
     virtual gfxASurface* GetThebesSurface();
+    virtual void DrawOver(LayerManager* aManager, nsIntRect aRect);
 
     
     virtual PRBool DragEvent(unsigned int aMessage, Point aMouseGlobal, UInt16 aKeyModifiers);
