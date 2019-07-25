@@ -1454,6 +1454,63 @@ public:
 
   static void Shutdown();
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static void RegisterImageRequest(nsPresContext* aPresContext,
+                                   imgIRequest* aRequest,
+                                   bool* aRequestRegistered);
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static void DeregisterImageRequest(nsPresContext* aPresContext,
+                                     imgIRequest* aRequest,
+                                     bool* aRequestRegistered);
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static void DeregisterImageRequestIfNotAnimated(nsPresContext* aPresContext,
+                                                  imgIRequest* aRequest,
+                                                  bool* aRequestRegistered);
+
 #ifdef DEBUG
   
 
