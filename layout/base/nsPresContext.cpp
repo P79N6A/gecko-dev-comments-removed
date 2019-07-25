@@ -2359,6 +2359,9 @@ nsPresContext::IsRootContentDocument()
 {
   
   
+  if (mDocument->IsResourceDoc()) {
+    return PR_FALSE;
+  }
   if (IsChrome()) {
     return PR_FALSE;
   }
@@ -2370,11 +2373,11 @@ nsPresContext::IsRootContentDocument()
   }
   view = view->GetParent(); 
   if (!view) {
-    return PR_FALSE;
+    return PR_TRUE;
   }
   view = view->GetParent(); 
   if (!view) {
-    return PR_FALSE;
+    return PR_TRUE;
   }
 
   nsIFrame* f = static_cast<nsIFrame*>(view->GetClientData());
