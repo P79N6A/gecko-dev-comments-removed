@@ -402,7 +402,6 @@ pref("b2g.remote-js.port", 9999);
 
 
 pref("b2g.keys.menu.enabled", true);
-pref("b2g.keys.search.enabled", false);
 
 
 pref("power.screen.timeout", 60);
