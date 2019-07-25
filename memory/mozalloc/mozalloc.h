@@ -52,6 +52,8 @@
 #endif
 
 
+#define MOZALLOC_HAVE_XMALLOC
+
 #if defined(MOZALLOC_EXPORT)
 
 
