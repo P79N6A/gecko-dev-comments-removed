@@ -8,6 +8,10 @@ Cu.import("resource:///modules/devtools/LayoutHelpers.jsm", tempScope);
 let LayoutHelpers = tempScope.LayoutHelpers;
 
 
+let testDir = gTestPath.substr(0, gTestPath.lastIndexOf("/"));
+Services.scriptloader.loadSubScript(testDir + "/helper.js", this);
+
+
 function clearUserPrefs()
 {
   Services.prefs.clearUserPref("devtools.inspector.htmlPanelOpen");
