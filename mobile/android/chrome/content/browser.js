@@ -978,6 +978,8 @@ function Tab(aURL, aParams) {
                      pageWidth: 1, pageHeight: 1, zoom: 1.0 };
   this.viewportExcess = { x: 0, y: 0 };
   this.userScrollPos = { x: 0, y: 0 };
+  this._pluginsToPlay = [];
+  this._pluginOverlayShowing = false;
 }
 
 Tab.prototype = {
@@ -1022,6 +1024,8 @@ Tab.prototype = {
     this.browser.addEventListener("DOMLinkAdded", this, true);
     this.browser.addEventListener("DOMTitleChanged", this, true);
     this.browser.addEventListener("scroll", this, true);
+    this.browser.addEventListener("PluginClickToPlay", this, true);
+    this.browser.addEventListener("pagehide", this, true);
     Services.obs.addObserver(this, "http-on-modify-request", false);
     this.browser.loadURI(aURL);
   },
@@ -1058,6 +1062,8 @@ Tab.prototype = {
     this.browser.removeEventListener("DOMLinkAdded", this, true);
     this.browser.removeEventListener("DOMTitleChanged", this, true);
     this.browser.removeEventListener("scroll", this, true);
+    this.browser.removeEventListener("PluginClickToPlay", this, true);
+    this.browser.removeEventListener("pagehide", this, true);
     BrowserApp.deck.removeChild(this.vbox);
     Services.obs.removeObserver(this, "http-on-modify-request", false);
     this.browser = null;
@@ -1233,6 +1239,10 @@ Tab.prototype = {
           }.bind(this), true);
         }
 
+        
+        if (this._pluginsToPlay.length && !this._pluginOverlayShowing)
+          PluginHelper.showDoorHanger(this);
+
         break;
       }
 
@@ -1300,6 +1310,35 @@ Tab.prototype = {
             }
           });
         }
+        break;
+      }
+
+      case "PluginClickToPlay": {
+        let plugin = aEvent.target;
+        
+        this._pluginsToPlay.push(plugin);
+        
+        let overlay = plugin.ownerDocument.getAnonymousElementByAttribute(plugin, "class", "mainBox");        
+        if (!overlay)
+          return;
+
+        
+        
+        if (PluginHelper.isTooSmall(plugin, overlay)) {
+          overlay.style.visibility = "hidden";
+          return;
+        }
+
+        
+        PluginHelper.addPluginClickCallback(plugin, "playAllPlugins", this);
+        this._pluginOverlayShowing = true;
+        break;
+      }
+
+      case "pagehide": {
+        
+        this._pluginsToPlay = [];
+        this._pluginOverlayShowing = false;
         break;
       }
     }
@@ -2847,5 +2886,73 @@ var ConsoleAPI = {
       aSourceURL = aSourceURL.substring(slashIndex + 1);
 
     return aSourceURL;
+  }
+};
+
+var PluginHelper = {
+  showDoorHanger: function(aTab) {
+    let message = Strings.browser.GetStringFromName("clickToPlayFlash.message");
+    let buttons = [
+      {
+        label: Strings.browser.GetStringFromName("clickToPlayFlash.yes"),
+        callback: function() {
+          PluginHelper.playAllPlugins(aTab);
+        }
+      },
+      {
+        label: Strings.browser.GetStringFromName("clickToPlayFlash.no"),
+        callback: function() {
+          
+        }
+      }
+    ]
+    NativeWindow.doorhanger.show(message, "ask-to-play-plugins", buttons, aTab.id);
+  },
+
+  playAllPlugins: function(aTab) {
+    let plugins = aTab._pluginsToPlay;
+    for (let i = 0; i < plugins.length; i++) {
+      let objLoadingContent = plugins[i].QueryInterface(Ci.nsIObjectLoadingContent);
+      objLoadingContent.playPlugin();
+    }
+  },
+
+  
+  addPluginClickCallback: function (plugin, callbackName ) {
+    
+    let self = this;
+    let callbackArgs = Array.prototype.slice.call(arguments).slice(2);
+      plugin.addEventListener("click", function(evt) {
+      if (!evt.isTrusted)
+        return;
+      evt.preventDefault();
+      if (callbackArgs.length == 0)
+        callbackArgs = [ evt ];
+      (self[callbackName]).apply(self, callbackArgs);
+    }, true);
+
+    plugin.addEventListener("keydown", function(evt) {
+      if (!evt.isTrusted)
+        return;
+      if (evt.keyCode == evt.DOM_VK_RETURN) {
+        evt.preventDefault();
+        if (callbackArgs.length == 0)
+          callbackArgs = [ evt ];
+        evt.preventDefault();
+        (self[callbackName]).apply(self, callbackArgs);
+      }
+    }, true);
+  },
+
+  
+  isTooSmall : function (plugin, overlay) {
+    
+    let pluginRect = plugin.getBoundingClientRect();
+    
+    
+    let overflows = (overlay.scrollWidth > pluginRect.width) ||
+                    (overlay.scrollHeight - 5 > pluginRect.height);
+
+    return overflows;
   }
 };
