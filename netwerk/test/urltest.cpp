@@ -137,8 +137,9 @@ nsresult writeoutto(const char* i_pURL, char** o_Result, PRInt32 urlFactory = UR
         rv = tURL->GetFileExtension(temp);
         output += RESULT();
         output += ',';
-        rv = tURL->GetParam(temp);
-        output += RESULT();
+        
+        
+        
         output += ',';
         rv = tURL->GetQuery(temp);
         output += RESULT();
