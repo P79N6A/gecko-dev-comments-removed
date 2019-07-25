@@ -1263,6 +1263,9 @@ var BrowserUI = {
         break;
       case "cmd_remoteTabs":
         if (Weave.Status.checkSetup() == Weave.CLIENT_NOT_CONFIGURED) {
+          
+          
+          this.activePanel = RemoteTabsList;
           WeaveGlue.open();
         } else if (!Weave.Service.isLoggedIn && !Services.prefs.getBoolPref("browser.sync.enabled")) {
           
@@ -1279,11 +1282,10 @@ var BrowserUI = {
               prefsBox.scrollBoxObject.scrollTo(0, syncAreaY - prefsBoxY);
             }, 0);
           }
-
-          return;
+        } else {
+          this.activePanel = RemoteTabsList;
         }
 
-        this.activePanel = RemoteTabsList;
         break;
       case "cmd_quit":
         
