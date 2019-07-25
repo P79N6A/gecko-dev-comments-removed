@@ -1539,9 +1539,13 @@ struct nsStyleDisplay {
   float   mOpacity;             
   PRUint8 mDisplay;             
   PRUint8 mOriginalDisplay;     
+                                
+                                
   PRUint8 mAppearance;          
   PRUint8 mPosition;            
   PRUint8 mFloats;              
+  PRUint8 mOriginalFloats;      
+                                
   PRUint8 mBreakType;           
   bool mBreakBefore;    
   bool mBreakAfter;     

@@ -3877,6 +3877,14 @@ nsRuleNode::ComputeDisplayData(void* aStartStruct,
 
   
   
+  
+  
+  
+  display->mDisplay = display->mOriginalDisplay;
+  display->mFloats = display->mOriginalFloats;
+
+  
+  
   TransitionPropData transitionPropData[4];
   TransitionPropData& delay = transitionPropData[0];
   TransitionPropData& duration = transitionPropData[1];
@@ -4281,6 +4289,10 @@ nsRuleNode::ComputeDisplayData(void* aStartStruct,
   SetDiscrete(*aRuleData->ValueForDisplay(), display->mDisplay, canStoreInRuleTree,
               SETDSC_ENUMERATED, parentDisplay->mDisplay,
               NS_STYLE_DISPLAY_INLINE, 0, 0, 0, 0);
+  
+  
+  
+  display->mOriginalDisplay = display->mDisplay;
 
   
   SetDiscrete(*aRuleData->ValueForAppearance(),
@@ -4358,6 +4370,8 @@ nsRuleNode::ComputeDisplayData(void* aStartStruct,
               display->mFloats, canStoreInRuleTree,
               SETDSC_ENUMERATED, parentDisplay->mFloats,
               NS_STYLE_FLOAT_NONE, 0, 0, 0, 0);
+  
+  display->mOriginalFloats = display->mFloats;
 
   
   SetDiscrete(*aRuleData->ValueForOverflowX(),
@@ -4483,7 +4497,8 @@ nsRuleNode::ComputeDisplayData(void* aStartStruct,
     if (nsCSSPseudoElements::firstLetter == aContext->GetPseudo()) {
       
       
-      display->mDisplay = NS_STYLE_DISPLAY_INLINE;
+      
+      display->mOriginalDisplay = display->mDisplay = NS_STYLE_DISPLAY_INLINE;
 
       
       
@@ -4494,28 +4509,25 @@ nsRuleNode::ComputeDisplayData(void* aStartStruct,
     if (display->IsAbsolutelyPositioned()) {
       
       
-
-      
-      
-      
-      display->mOriginalDisplay = display->mDisplay;
       EnsureBlockDisplay(display->mDisplay);
       display->mFloats = NS_STYLE_FLOAT_NONE;
 
       
       
       
-      canStoreInRuleTree = false;
+      
+      
+      
     } else if (display->mFloats != NS_STYLE_FLOAT_NONE) {
       
       
-
       EnsureBlockDisplay(display->mDisplay);
 
       
       
       
-      canStoreInRuleTree = false;
+      
+      
     }
 
   }
