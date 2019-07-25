@@ -85,7 +85,7 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
 
     private static final int MAX_FRAME_TIME = 16;   
 
-    private static final int FRAME_RATE_METER_WIDTH = 64;
+    private static final int FRAME_RATE_METER_WIDTH = 128;
     private static final int FRAME_RATE_METER_HEIGHT = 32;
 
     private final LayerView mView;
@@ -405,7 +405,7 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
         }
     }
 
-    private void checkMonitoringEnabled() {
+    void checkMonitoringEnabled() {
         
         new Thread(new Runnable() {
             @Override
