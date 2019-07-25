@@ -46,6 +46,7 @@
 #include "nsContentUtils.h"
 #include "nsIXPConnect.h"
 #include "nsDOMError.h"
+#include "nsIGfxInfo.h"
 
 #include "gfxContext.h"
 #include "gfxPattern.h"
@@ -313,6 +314,29 @@ WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
     prefService->GetBoolPref("webgl.force_osmesa", &forceOSMesa);
 
     if (!forceOSMesa) {
+
+    PRBool useOpenGL = PR_TRUE;
+    PRBool useANGLE = PR_TRUE;
+
+    nsCOMPtr<nsIGfxInfo> gfxInfo = do_GetService("@mozilla.org/gfx/info;1");
+    if (gfxInfo) {
+        PRInt32 status;
+        if (NS_SUCCEEDED(gfxInfo->GetFeatureStatus(nsIGfxInfo::FEATURE_WEBGL_OPENGL, &status))) {
+            if (status != nsIGfxInfo::FEATURE_STATUS_UNKNOWN &&
+                status != nsIGfxInfo::FEATURE_AVAILABLE)
+            {
+                useOpenGL = PR_FALSE;
+            }
+        }
+        if (NS_SUCCEEDED(gfxInfo->GetFeatureStatus(nsIGfxInfo::FEATURE_WEBGL_ANGLE, &status))) {
+            if (status != nsIGfxInfo::FEATURE_STATUS_UNKNOWN &&
+                status != nsIGfxInfo::FEATURE_AVAILABLE)
+            {
+                useANGLE = PR_FALSE;
+            }
+        }
+    }
+
     #ifdef XP_WIN
         
         
@@ -321,7 +345,7 @@ WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
         bool preferEGL = PR_GetEnv("MOZ_WEBGL_PREFER_EGL") != nsnull;
 
         
-        if (!gl && preferEGL) {
+        if (!gl && preferEGL && useANGLE) {
             gl = gl::GLContextProviderEGL::CreateOffscreen(gfxIntSize(width, height), format);
             if (gl && !InitAndValidateGL()) {
                 gl = nsnull;
@@ -329,7 +353,7 @@ WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
         }
 
         
-        if (!gl) {
+        if (!gl && useOpenGL) {
             gl = gl::GLContextProvider::CreateOffscreen(gfxIntSize(width, height), format);
             if (gl && !InitAndValidateGL()) {
                 gl = nsnull;
@@ -337,7 +361,7 @@ WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
         }
 
         
-        if (!gl && !preferEGL) {
+        if (!gl && !preferEGL && useANGLE) {
             gl = gl::GLContextProviderEGL::CreateOffscreen(gfxIntSize(width, height), format);
             if (gl && !InitAndValidateGL()) {
                 gl = nsnull;
@@ -345,7 +369,7 @@ WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
         }
     #else
         
-        if (!gl) {
+        if (!gl && useOpenGL) {
             gl = gl::GLContextProvider::CreateOffscreen(gfxIntSize(width, height), format);
             if (gl && !InitAndValidateGL()) {
                 gl = nsnull;
