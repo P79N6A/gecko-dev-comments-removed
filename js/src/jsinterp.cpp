@@ -5523,31 +5523,6 @@ BEGIN_CASE(JSOP_DEFVAR)
         obj2 = obj;
     }
 
-    
-
-
-
-
-
-    if (!fp->fun &&
-        index < GlobalVarCount(fp) &&
-        obj2 == obj &&
-        obj->isNative()) {
-        JSScopeProperty *sprop = (JSScopeProperty *) prop;
-        if (!sprop->configurable() &&
-            SPROP_HAS_VALID_SLOT(sprop, obj->scope()) &&
-            sprop->hasDefaultGetterOrIsMethod() &&
-            sprop->hasDefaultSetter()) {
-            
-
-
-
-
-
-            fp->slots()[index].setInt32(sprop->slot);
-        }
-    }
-
     obj2->dropProperty(cx, prop);
 }
 END_CASE(JSOP_DEFVAR)
