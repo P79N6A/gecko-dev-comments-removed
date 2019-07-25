@@ -428,6 +428,13 @@ private:
   
   
   
+  
+  
+  
+  
+  
+  
+  
   PRUint32 mRefCnt;
 
 public:
