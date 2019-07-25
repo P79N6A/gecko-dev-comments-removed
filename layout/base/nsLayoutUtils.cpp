@@ -1396,7 +1396,7 @@ nsLayoutUtils::PaintFrame(nsIRenderingContext* aRenderingContext, nsIFrame* aFra
       
       
       flags |= nsDisplayList::PAINT_FLUSH_LAYERS;
-    } else {
+    } else if (widget) {
       
       
       widget->UpdatePossiblyTransparentRegion(dirtyWindowRegion, visibleWindowRegion);
