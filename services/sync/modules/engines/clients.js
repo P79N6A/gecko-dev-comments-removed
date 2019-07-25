@@ -162,6 +162,10 @@ ClientEngine.prototype = {
   },
   set localType(value) Svc.Prefs.set("client.type", value),
 
+  isMobile: function isMobile(id) {
+    return this._store._remoteClients[id].type == "mobile";
+  },
+
   
   _reconcile: function _reconcile() {
     return true;
