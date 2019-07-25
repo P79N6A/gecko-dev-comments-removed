@@ -422,6 +422,9 @@ nsHTMLTextFieldAccessible::GetNameInternal(nsAString& aName)
 
 NS_IMETHODIMP nsHTMLTextFieldAccessible::GetValue(nsAString& _retval)
 {
+  if (IsDefunct())
+    return NS_ERROR_FAILURE;
+
   if (NativeState() & states::PROTECTED)    
     return NS_ERROR_FAILURE;
 
