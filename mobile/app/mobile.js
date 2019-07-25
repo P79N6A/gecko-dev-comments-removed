@@ -157,3 +157,7 @@ pref("browser.search.updateinterval", 6);
 
 
 pref("browser.search.suggest.enabled", true);
+
+
+pref("browser.xul.error_pages.enabled", true);
+
