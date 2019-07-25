@@ -2971,7 +2971,7 @@ RasterImage::DecodeWorker::DecodeSomeOfImage(
 
   
   
-  if (!aImg->mDecoder)
+  if (!aImg->mDecoder || aImg->mDecoded)
     return NS_OK;
 
   nsRefPtr<Decoder> decoderKungFuDeathGrip = aImg->mDecoder;
@@ -2988,21 +2988,12 @@ RasterImage::DecodeWorker::DecodeSomeOfImage(
     maxBytes = gDecodeBytesAtATime;
   }
 
-  
   PRInt32 chunkCount = 0;
   TimeStamp start = TimeStamp::Now();
   TimeStamp deadline = start + TimeDuration::FromMilliseconds(gMaxMSBeforeYield);
 
   
-  
-  
-  
-  
-  while (aImg->mSourceData.Length() > aImg->mBytesDecoded &&
-         !aImg->IsDecodeFinished() &&
-         TimeStamp::Now() < deadline) {
-
-    
+  do {
     chunkCount++;
     nsresult rv = aImg->DecodeSomeData(maxBytes);
     if (NS_FAILED(rv)) {
@@ -3012,9 +3003,16 @@ RasterImage::DecodeWorker::DecodeSomeOfImage(
 
     
     
+    
+    
+    
+
     if (aDecodeType == DECODE_TYPE_UNTIL_SIZE && aImg->mHasSize)
       break;
   }
+  while (aImg->mSourceData.Length() > aImg->mBytesDecoded &&
+         !aImg->IsDecodeFinished() &&
+         TimeStamp::Now() < deadline);
 
   aImg->mDecodeRequest.mDecodeTime += (TimeStamp::Now() - start);
 
