@@ -266,12 +266,6 @@ SyncEngine.prototype = {
     Utils.prefs.setCharPref(this.name + ".lastSync", value);
   },
 
-  get outgoing() {
-    if (!this._outgoing)
-      this._outgoing = {};
-    return this._outgoing;
-  },
-
   
   _createRecord: function SyncEngine__createRecord(id) {
     let record = this._store.createRecord(id);
@@ -293,19 +287,11 @@ SyncEngine.prototype = {
     return Utils.deepEquals(a.cleartext, b.cleartext);
   },
 
-  _changeRecordRefs: function SyncEngine__changeRecordRefs(oldID, newID) {
-    let self = yield;
-    for each (let rec in this.outgoing) {
-      if (rec.parentid == oldID)
-        rec.parentid = newID;
-    }
-  },
-
   _lowMemCheck: function SyncEngine__lowMemCheck() {
-    if (mem.isLowMemory()) {
+    if (this._memory.isLowMemory()) {
       this._log.warn("Low memory, forcing GC");
       Cu.forceGC();
-      if (mem.isLowMemory()) {
+      if (this._memory.isLowMemory()) {
         this._log.warn("Low memory, aborting sync!");
         throw "Low memory";
       }
@@ -336,16 +322,13 @@ SyncEngine.prototype = {
     
     if (!this.lastSync) {
       this._log.info("First sync, uploading all items");
-
-      
       this._tracker.clearChangedIDs();
-
-      
-      let all = this._store.getAllIDs();
-      for (let id in all) {
-        this._tracker.changedIDs[id] = true;
-      }
+      [i for (i in this._store.getAllIDs())]
+        .forEach(function(id) this._tracker.changedIDs[id] = true, this);
     }
+
+    let outnum = [i for (i in this._tracker.changedIDs)].length;
+    this._log.info(outnum + " outgoing items pre-reconciliation");
 
     this._tracker.disable(); 
   },
@@ -377,7 +360,7 @@ SyncEngine.prototype = {
       if (yield this._reconcile.async(this, self.cb, item))
         yield this._applyIncoming.async(this, self.cb, item);
       else {
-        this._log.debug("Skipping reconciled incoming item " + item.id);
+        this._log.trace("Skipping reconciled incoming item " + item.id);
         if (this._lastSyncTmp < item.modified)
           this._lastSyncTmp = item.modified;
       }
@@ -385,7 +368,9 @@ SyncEngine.prototype = {
     if (this.lastSync < this._lastSyncTmp)
         this.lastSync = this._lastSyncTmp;
 
-    this._store.cache.clear(); 
+    
+    this._store.cache.clear();
+    Cu.forceGC();
   },
 
   
@@ -408,12 +393,10 @@ SyncEngine.prototype = {
     if (item.id in this._tracker.changedIDs) {
       
       let out = this._createRecord(item.id);
-      if (Utils.deepEquals(item.cleartext, out.cleartext)) {
+      if (Utils.deepEquals(item.cleartext, out.cleartext))
         this._tracker.removeChangedID(item.id);
-        delete this.outgoing[item.id];
-      } else {
+      else
         this._log.debug("Discarding server change due to conflict with local change");
-      }
       self.done(false);
       return;
     }
@@ -427,16 +410,10 @@ SyncEngine.prototype = {
     
     for (let id in this._tracker.changedIDs) {
       let out = this._createRecord(id);
-
       if (this._recordLike(item, out)) {
-        
-        
-        yield this._changeRecordRefs.async(this, self.cb, id, item.id);
         this._store.changeItemID(id, item.id);
-
         this._tracker.removeChangedID(item.id);
-        delete this.outgoing[item.id];
-
+        this._store.cache.clear(); 
         self.done(false);
         return;
       }
@@ -447,7 +424,6 @@ SyncEngine.prototype = {
   
   _applyIncoming: function SyncEngine__applyIncoming(item) {
     let self = yield;
-    this._log.debug("Applying incoming record");
     this._log.trace("Incoming:\n" + item);
     try {
       yield this._store.applyIncoming(self.cb, item);
@@ -463,12 +439,12 @@ SyncEngine.prototype = {
   _uploadOutgoing: function SyncEngine__uploadOutgoing() {
     let self = yield;
 
-    if (this.outgoing.length) {
-      this._log.debug("Uploading client changes (" + this.outgoing.length + ")");
-
+    let outnum = [i for (i in this._tracker.changedIDs)].length;
+    this._log.debug("Preparing " + outnum + " outgoing records");
+    if (outnum) {
       
       let up = new Collection(this.engineURL);
-      let depth = {};
+      let meta = {};
 
       
       this._store.cache.enabled = false;
@@ -478,24 +454,29 @@ SyncEngine.prototype = {
         this._log.trace("Outgoing:\n" + out);
         yield out.encrypt(self.cb, ID.get('WeaveCryptoID').password);
         yield up.pushRecord(self.cb, out);
-        this._store.wrapDepth(out.id, depth);
+        this._store.createMetaRecords(out.id, meta);
       }
 
       this._store.cache.enabled = true;
 
       
-      this._log.trace(depth.length + "outgoing depth records");
-      for (let id in depth) {
-        up.pushDepthRecord({id: id, depth: depth[id]});
+      
+      let count = 0;
+      for each (let obj in meta) {
+          if (!obj.id in this._tracker.changedIDs) {
+            up.pushLiteral.push(obj);
+            count++;
+          }
       }
+
+      this._log.debug("Uploading client changes (" + outnum + ")");
+      this._log.debug(count + " outgoing depth+index records");
 
       
       yield up.post(self.cb);
 
       
       let mod = up.data.modified;
-      if (typeof(mod) == "string")
-        mod = parseInt(mod);
       if (mod > this.lastSync)
         this.lastSync = mod;
     }
