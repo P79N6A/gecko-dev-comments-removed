@@ -341,6 +341,40 @@ TypeAnalyzer::determineSpecializations()
     } while (!worklist_.empty());
 }
 
+static inline bool
+ShouldSpecializeInput(MDefinition *box, MNode *use, MUnbox *unbox)
+{
+    
+    
+    if (use->isSnapshot()) {
+        MSnapshot *snapshot = use->toSnapshot();
+            
+        
+        
+        
+        MSnapshot *defSnapshot;
+        if (box->isInstruction())
+            defSnapshot = box->toInstruction()->snapshot();
+        else if (box->isPhi())
+            defSnapshot = box->block()->entrySnapshot();
+        return (defSnapshot != snapshot);
+    }
+
+    MDefinition *def = use->toDefinition();
+
+    
+    
+    if (def->isPhi())
+        return def->type() != MIRType_Value;
+
+    
+    
+    if (def->typePolicy())
+        return true;
+
+    return false;
+}
+
 void
 TypeAnalyzer::adjustOutput(MDefinition *def)
 {
@@ -371,21 +405,7 @@ TypeAnalyzer::adjustOutput(MDefinition *def)
     JS_ASSERT(def->usesBegin()->node() == unbox);
 
     for (MUseIterator use(def->usesBegin()); use != def->usesEnd(); ) {
-        if (use->node()->isSnapshot()) {
-            MSnapshot *snapshot = use->node()->toSnapshot();
-            
-            
-            
-            
-            if (def->isInstruction() && def->toInstruction()->snapshot() == snapshot) {
-                use++;
-                continue;
-            }
-        }
-
-        
-        
-        if (use->node()->typePolicy())
+        if (ShouldSpecializeInput(def, use->node(), unbox))
             use = use->node()->replaceOperand(use, unbox);
         else
             use++;
