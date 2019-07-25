@@ -74,7 +74,7 @@ public class SurfaceTextureLayer extends Layer implements SurfaceTexture.OnFrame
     private boolean mBlend;
     private boolean mNewBlend;
 
-	private FloatBuffer textureBuffer;
+    private FloatBuffer textureBuffer;
     private FloatBuffer textureBufferInverted;
 
     public SurfaceTextureLayer(int textureId) {
@@ -95,19 +95,19 @@ public class SurfaceTextureLayer extends Layer implements SurfaceTexture.OnFrame
         mSurface = tmp;
 
         float textureMap[] = {
-                0.0f, 1.0f,	
-                0.0f, 0.0f,	
-                1.0f, 1.0f,	
-                1.0f, 0.0f,	
+                0.0f, 1.0f, 
+                0.0f, 0.0f, 
+                1.0f, 1.0f, 
+                1.0f, 0.0f, 
         };
 
         textureBuffer = createBuffer(textureMap);
 
         float textureMapInverted[] = {
-                0.0f, 0.0f,	
-                0.0f, 1.0f,	
-                1.0f, 0.0f,	
-                1.0f, 1.0f,	
+                0.0f, 0.0f, 
+                0.0f, 1.0f, 
+                1.0f, 0.0f, 
+                1.0f, 1.0f, 
         };
 
         textureBufferInverted = createBuffer(textureMapInverted);
@@ -130,12 +130,12 @@ public class SurfaceTextureLayer extends Layer implements SurfaceTexture.OnFrame
 
     private FloatBuffer createBuffer(float[] input) {
         
-		ByteBuffer byteBuffer = ByteBuffer.allocateDirect(input.length * 4);
-		byteBuffer.order(ByteOrder.nativeOrder());
+        ByteBuffer byteBuffer = ByteBuffer.allocateDirect(input.length * 4);
+        byteBuffer.order(ByteOrder.nativeOrder());
 
         FloatBuffer floatBuffer = byteBuffer.asFloatBuffer();
         floatBuffer.put(input);
-		floatBuffer.position(0);
+        floatBuffer.position(0);
 
         return floatBuffer;
     }
