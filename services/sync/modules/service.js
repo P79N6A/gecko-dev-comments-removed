@@ -461,14 +461,15 @@ WeaveSvc.prototype = {
 
       let res = new Resource(this.baseURL + "api/register/chknode/" + username);
       try {
-        yield res.get(self.cb);
+        res.get();
       } catch (e) {  }
 
       if (res.lastChannel.responseStatus == 404) {
         this._log.debug("Using serverURL as data cluster (multi-cluster support disabled)");
         ret = Svc.Prefs.get("serverURL");
       } else if (res.lastChannel.responseStatus == 200) {
-        ret = "https://" + res.data + "/";
+        
+        ret = 'https://' + res.data.trim() + '/';
       }
 
       self.done(ret);
@@ -515,7 +516,7 @@ WeaveSvc.prototype = {
           return headers;
         }
       };
-      yield res.get(self.cb);
+      res.get();
 
       
       self.done(true);

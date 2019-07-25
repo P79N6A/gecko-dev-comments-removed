@@ -72,7 +72,7 @@ WBORecord.prototype = {
     if (typeof(value) != "string")
       value = value.spec;
     let foo = value.split('/');
-    this.id = foo.pop();
+    this.data.id = foo.pop();
     this.baseUri = Utils.makeURI(foo.join('/') + '/');
   },
 
@@ -153,7 +153,7 @@ RecordManager.prototype = {
 
       try {
         this.lastResource = new Resource(url);
-        yield this.lastResource.get(self.cb);
+        this.lastResource.get();
 
         record = new this._recordType();
         record.deserialize(this.lastResource.data);

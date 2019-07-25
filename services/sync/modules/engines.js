@@ -249,18 +249,18 @@ SyncEngine.prototype = {
   },
 
   get lastSync() {
-    return parseFloat(Svc.Prefs.get(this.name + ".lastSync", "0"));
+    return Svc.Prefs.get(this.name + ".lastSync", 0);
   },
   set lastSync(value) {
-    
     Svc.Prefs.reset(this.name + ".lastSync");
-    
-    Svc.Prefs.set(this.name + ".lastSync", value.toString());
+    if (typeof(value) == "string")
+      value = parseInt(value);
+    Svc.Prefs.set(this.name + ".lastSync", value);
   },
   resetLastSync: function SyncEngine_resetLastSync() {
     this._log.debug("Resetting " + this.name + " last sync time");
     Svc.Prefs.reset(this.name + ".lastSync");
-    Svc.Prefs.set(this.name + ".lastSync", "0");
+    Svc.Prefs.set(this.name + ".lastSync", 0);
   },
 
   
@@ -343,7 +343,7 @@ SyncEngine.prototype = {
     newitems.newer = this.lastSync;
     newitems.full = true;
     newitems.sort = "depthindex";
-    yield newitems.get(self.cb);
+    newitems.get();
 
     let item;
     let count = {applied: 0, reconciled: 0};
@@ -505,7 +505,7 @@ SyncEngine.prototype = {
 
       this._log.info("Uploading " + outnum + " records + " + count + " index/depth records)");
       
-      yield up.post(self.cb);
+      up.post();
 
       
       let mod = up.data.modified;
