@@ -65,6 +65,7 @@ extern PRLogModuleInfo *gSocketTransportLog;
 
 
 
+#define NS_SOCKET_MAX_COUNT    50
 #define NS_SOCKET_POLL_TIMEOUT PR_INTERVAL_NO_TIMEOUT
 
 
@@ -90,19 +91,13 @@ public:
 
     
     
-    static PRUint32 gMaxCount;
-    static PRCallOnceType gMaxCountInitOnce;
-    static PRStatus DiscoverMaxCount();
-
-    
-    
     
     
     
     
     
     PRBool CanAttachSocket() {
-        return mActiveCount + mIdleCount < gMaxCount;
+        return mActiveCount + mIdleCount < NS_SOCKET_MAX_COUNT;
     }
 
 protected:
@@ -158,25 +153,19 @@ private:
         PRUint16          mElapsedTime;  
     };
 
-    SocketContext *mActiveList;                   
-    SocketContext *mIdleList;                     
+    SocketContext mActiveList [ NS_SOCKET_MAX_COUNT ];
+    SocketContext mIdleList   [ NS_SOCKET_MAX_COUNT ];
 
-    PRUint32 mActiveListSize;
-    PRUint32 mIdleListSize;
     PRUint32 mActiveCount;
     PRUint32 mIdleCount;
 
-    nsresult DetachSocket(SocketContext *, SocketContext *);
+    nsresult DetachSocket(SocketContext *);
     nsresult AddToIdleList(SocketContext *);
     nsresult AddToPollList(SocketContext *);
     void RemoveFromIdleList(SocketContext *);
     void RemoveFromPollList(SocketContext *);
     void MoveToIdleList(SocketContext *sock);
     void MoveToPollList(SocketContext *sock);
-
-    PRBool GrowActiveList();
-    PRBool GrowIdleList();
-    void   InitMaxCount();
     
     
     
@@ -185,7 +174,7 @@ private:
     
     
 
-    PRPollDesc *mPollList;                        
+    PRPollDesc mPollList[ NS_SOCKET_MAX_COUNT + 1 ];
 
     PRIntervalTime PollTimeout();            
     nsresult       DoPollIteration(PRBool wait);
