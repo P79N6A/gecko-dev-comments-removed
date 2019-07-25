@@ -858,8 +858,10 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
         $el = iQ(a);
         item = Items.item($el);
       }
-      Utils.assertThrow(!item.parent || item.parent == this,
-          "shouldn't already be in another groupItem");
+
+      
+      if (item.parent && item.parent !== this)
+        item.parent.remove(item);
 
       item.removeTrenches();
 
@@ -1540,12 +1542,6 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
                                   addTab: drag.info.item.parent != self,
                                   animate: true});
       }
-
-      
-      
-      var groupItem = drag.info.item.parent;
-      if (groupItem && self !== groupItem)
-        groupItem.remove(drag.info.$el, {dontClose: true});
 
       if (dropIndex !== false)
         options = {index: dropIndex};
