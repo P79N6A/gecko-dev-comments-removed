@@ -19,7 +19,7 @@ static const char* sDiscardTimeoutPref = "image.mem.min_discard_timeout_ms";
  bool DiscardTracker::sInitialized = false;
  bool DiscardTracker::sTimerOn = false;
  bool DiscardTracker::sDiscardRunnablePending = false;
- ssize_t DiscardTracker::sCurrentDecodedImageBytes = 0;
+ PRUint64 DiscardTracker::sCurrentDecodedImageBytes = 0;
  PRUint32 DiscardTracker::sMinDiscardTimeoutMs = 10000;
  PRUint32 DiscardTracker::sMaxDecodedImageKB = 42 * 1024;
 
@@ -119,7 +119,7 @@ DiscardTracker::DiscardAll()
 }
 
 void
-DiscardTracker::InformAllocation(ssize_t bytes)
+DiscardTracker::InformAllocation(PRUint64 bytes)
 {
   
 
