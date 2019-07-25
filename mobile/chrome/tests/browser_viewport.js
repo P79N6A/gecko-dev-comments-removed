@@ -44,7 +44,10 @@ let testURL_blank = baseURI + "browser_blank_01.html";
 const DEFAULT_WIDTH = 800;
 
 function testURL(n) {
-  return baseURI + "browser_viewport.sjs?" + encodeURIComponent(gTestData[n].metadata);
+  return baseURI + "browser_viewport.sjs" +
+    "?metadata=" + encodeURIComponent(gTestData[n].metadata || "") +
+    "&style=" + encodeURIComponent(gTestData[n].style || "") +
+    "&xhtml=" + encodeURIComponent(!!gTestData[n].xhtml);
 }
 
 function scaleRatio(n) {
@@ -64,13 +67,16 @@ let loadURL = function loadURL(aPageURL, aCallback, aScale) {
       
       
       waitFor(aCallback, function() {
-        return aScale == aMessage.target.scale;
+        return !aScale || aScale == aMessage.target.scale;
       });
     }
   });
 
   BrowserUI.goToURI(aPageURL);
 };
+
+
+window.resizeTo(800, 480);
 
 let gTestData = [
   { metadata: "", width: DEFAULT_WIDTH, scale: 1 },
@@ -87,7 +93,7 @@ let gTestData = [
   { metadata: "width=100, maximum-scale=2.0", width: 266.67, scale: 3, maxScale: 3 },
   { metadata: "width=2000, initial-scale=0.75", width: 2000, scale: 1.125 },
   { metadata: "width=20000, initial-scale=100", width: 10000, scale: 4 },
-  { metadata: "XHTML", width: 533.33, scale: 1.5, disableZoom: false },
+  { xhtml: true, width: 533.33, scale: 1.5, disableZoom: false },
   
   { metadata: "width= 2000, minimum-scale=0.75", width: 2000, scale: 1.125 },
   { metadata: "width = 2000, minimum-scale=0.75", width: 2000, scale: 1.125 },
@@ -96,11 +102,10 @@ let gTestData = [
   { metadata: "width = 2000 , minimum-scale = 0.75", width: 2000, scale: 1.125 },
   { metadata: "width =  2000   ,    minimum-scale      =       0.75", width: 2000, scale: 1.125 },
   
-  { metadata: "style=width:400px;margin:0px;", width: DEFAULT_WIDTH, scale: 1 },
-  { metadata: "style=width:1000px;margin:0px;", width: 980, scale: window.innerWidth/1000 },
-  { metadata: "style=width:800px;margin:0px;", width: DEFAULT_WIDTH, scale: 1 },
+  { style: "width:400px;margin:0px;", width: DEFAULT_WIDTH, scale: 1 },
+  { style: "width:2000px;margin:0px;", width: 980, scale: window.innerWidth/2000 },
+  { style: "width:800px;margin:0px;", width: DEFAULT_WIDTH, scale: 1 },
 ];
-
 
 
 
@@ -117,8 +122,9 @@ function test() {
 }
 
 function startTest(n) {
+  info(JSON.stringify(gTestData[n]));
   BrowserUI.goToURI(testURL_blank);
-  loadURL(testURL_blank, verifyBlank(n), 1);
+  loadURL(testURL_blank, verifyBlank(n));
   Services.prefs.setIntPref("browser.viewport.scaleRatio", scaleRatio(n));
 }
 
@@ -128,14 +134,11 @@ function verifyBlank(n) {
     let uri = currentTab.browser.currentURI.spec;
     is(uri, testURL_blank, "URL Matches blank page " + n);
 
-    
     waitFor(function() {
-      is(currentTab.browser.contentWindowWidth, DEFAULT_WIDTH, "Normal 'browser' width is " + DEFAULT_WIDTH + " pixels");
       loadURL(testURL(n), verifyTest(n), gTestData[n].scale);
     }, function() {
-      return currentTab.browser.scale == 1;
-    })
-    
+      return currentTab.browser.contentWindowWidth == DEFAULT_WIDTH;
+    });
   }
 }
 
@@ -199,6 +202,7 @@ function finishTest(n) {
   if (n + 1 < gTestData.length) {
     startTest(n + 1);
   } else {
+    window.resizeTo(480, 800);
     Browser.closeTab(currentTab);
     finish();
   }
