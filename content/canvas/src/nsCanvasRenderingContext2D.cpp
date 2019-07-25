@@ -96,7 +96,6 @@
 #include "nsIDocShellTreeNode.h"
 #include "nsIXPConnect.h"
 #include "jsapi.h"
-#include "nsDisplayList.h"
 
 #include "nsTArray.h"
 
@@ -408,8 +407,7 @@ public:
     NS_IMETHOD GetThebesSurface(gfxASurface **surface);
     NS_IMETHOD SetIsOpaque(PRBool isOpaque);
     NS_IMETHOD Reset();
-    already_AddRefed<CanvasLayer> GetCanvasLayer(nsDisplayListBuilder* aBuilder,
-                                                 CanvasLayer *aOldLayer,
+    already_AddRefed<CanvasLayer> GetCanvasLayer(CanvasLayer *aOldLayer,
                                                  LayerManager *aManager);
     void MarkContextClean();
     NS_IMETHOD SetIsIPC(PRBool isIPC);
@@ -457,6 +455,7 @@ public:
     friend class PathAutoSaveRestore;
 
 protected:
+
     
 
 
@@ -4120,22 +4119,8 @@ nsCanvasRenderingContext2D::SetMozImageSmoothingEnabled(PRBool val)
 
 static PRUint8 g2DContextLayerUserData;
 
-class CanvasRenderingContext2DUserData : public LayerUserData {
-public:
-  CanvasRenderingContext2DUserData(nsHTMLCanvasElement *aContent)
-    : mContent(aContent) {}
-  static void DidTransactionCallback(void* aData)
-  {
-    static_cast<CanvasRenderingContext2DUserData*>(aData)->mContent->MarkContextClean();
-  }
-
-private:
-  nsRefPtr<nsHTMLCanvasElement> mContent;
-};
-
 already_AddRefed<CanvasLayer>
-nsCanvasRenderingContext2D::GetCanvasLayer(nsDisplayListBuilder* aBuilder,
-                                           CanvasLayer *aOldLayer,
+nsCanvasRenderingContext2D::GetCanvasLayer(CanvasLayer *aOldLayer,
                                            LayerManager *aManager)
 {
     if (!mValid)
@@ -4144,6 +4129,14 @@ nsCanvasRenderingContext2D::GetCanvasLayer(nsDisplayListBuilder* aBuilder,
     if (!mResetLayer && aOldLayer &&
         aOldLayer->HasUserData(&g2DContextLayerUserData)) {
         NS_ADDREF(aOldLayer);
+        if (mIsEntireFrameInvalid || mInvalidateCount > 0) {
+            
+            
+            aOldLayer->Updated(nsIntRect(0, 0, mWidth, mHeight));
+            MarkContextClean();
+            HTMLCanvasElement()->GetPrimaryCanvasFrame()->MarkLayersActive();
+        }
+
         return aOldLayer;
     }
 
@@ -4152,25 +4145,7 @@ nsCanvasRenderingContext2D::GetCanvasLayer(nsDisplayListBuilder* aBuilder,
         NS_WARNING("CreateCanvasLayer returned null!");
         return nsnull;
     }
-    CanvasRenderingContext2DUserData *userData = nsnull;
-    if (aBuilder->IsPaintingToWindow()) {
-      
-      
-      
-      
-      
-      
-
-      
-      
-      
-      
-      
-      userData = new CanvasRenderingContext2DUserData(HTMLCanvasElement());
-      canvasLayer->SetDidTransactionCallback(
-              CanvasRenderingContext2DUserData::DidTransactionCallback, userData);
-    }
-    canvasLayer->SetUserData(&g2DContextLayerUserData, userData);
+    canvasLayer->SetUserData(&g2DContextLayerUserData, nsnull);
 
     CanvasLayer::Data data;
 
@@ -4180,11 +4155,13 @@ nsCanvasRenderingContext2D::GetCanvasLayer(nsDisplayListBuilder* aBuilder,
     canvasLayer->Initialize(data);
     PRUint32 flags = mOpaque ? Layer::CONTENT_OPAQUE : 0;
     canvasLayer->SetContentFlags(flags);
-    canvasLayer->Updated();
+    canvasLayer->Updated(nsIntRect(0, 0, mWidth, mHeight));
 
     mResetLayer = PR_FALSE;
 
-    return canvasLayer.forget();
+    MarkContextClean();
+
+    return canvasLayer.forget().get();
 }
 
 void
