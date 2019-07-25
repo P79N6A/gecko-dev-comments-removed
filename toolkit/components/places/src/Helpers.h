@@ -46,6 +46,7 @@
 #include "mozilla/storage.h"
 #include "nsIURI.h"
 #include "nsThreadUtils.h"
+#include "nsProxyRelease.h"
 
 namespace mozilla {
 namespace places {
@@ -212,22 +213,32 @@ public:
 
 
 
+
+
+
+
   FinalizeStatementCacheProxy(
-    mozilla::storage::StatementCache<StatementType>& aStatementCache
+    mozilla::storage::StatementCache<StatementType>& aStatementCache,
+    nsISupports* aOwner
   )
   : mStatementCache(aStatementCache)
+  , mOwner(aOwner)
+  , mCallingThread(do_GetCurrentThread())
   {
   }
 
-  NS_IMETHOD
-  Run()
+  NS_IMETHOD Run()
   {
     mStatementCache.FinalizeStatements();
+    
+    (void)NS_ProxyRelease(mCallingThread, mOwner);
     return NS_OK;
   }
 
 protected:
   mozilla::storage::StatementCache<StatementType>& mStatementCache;
+  nsCOMPtr<nsISupports> mOwner;
+  nsCOMPtr<nsIThread> mCallingThread;
 };
 
 } 
