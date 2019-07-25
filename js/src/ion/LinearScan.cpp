@@ -775,55 +775,12 @@ LinearScanAllocator::reifyAllocations()
     }
 
     
-    uint32 last = 1;
-    RegisterSet freeRegs(RegisterSet::All());
     LiveInterval *interval;
     while ((interval = unhandled.dequeue()) != NULL) {
         VirtualRegister *reg = interval->reg();
 
         IonSpew(IonSpew_LSRA, " Reifying interval %u = [%u,%u]", reg->reg(), interval->start(),
                 interval->end());
-
-        
-        for (; last < interval->start().ins(); last++) {
-            if (vregs[last].inputMoves())
-                vregs[last].inputMoves()->setFreeRegisters(freeRegs);
-            if (vregs[last].outputMoves())
-                vregs[last].outputMoves()->setFreeRegisters(freeRegs);
-        }
-
-        
-        for (IntervalIterator i(active.begin()); i != active.end(); ) {
-            if (i->end() < interval->start()) {
-                if (i->getAllocation()->isRegister())
-                    freeRegs.add(i->getAllocation()->toRegister());
-                i = active.removeAt(i);
-            } else if (i->covers(interval->start())) {
-                i++;
-            } else {
-                if (i->getAllocation()->isRegister())
-                    freeRegs.add(i->getAllocation()->toRegister());
-                LiveInterval *save = *i;
-                i = active.removeAt(i);
-                inactive.insert(save);
-            }
-        }
-        for (IntervalIterator i(inactive.begin()); i != inactive.end(); ) {
-            if (i->end() < interval->start()) {
-                i = inactive.removeAt(i);
-            } else if (i->covers(interval->start())) {
-                if (i->getAllocation()->isRegister())
-                    freeRegs.take(i->getAllocation()->toRegister());
-                LiveInterval *save = *i;
-                i = inactive.removeAt(i);
-                active.insert(save);
-            } else {
-                i++;
-            }
-        }
-        active.insert(interval);
-        if (interval->getAllocation()->isRegister())
-            freeRegs.take(interval->getAllocation()->toRegister());
 
         
         for (size_t i = 0; i < reg->numUses(); i++) {
@@ -1067,11 +1024,9 @@ LinearScanAllocator::findBestFreeRegister()
     }
 
     
-    freeRegs.clear();
     Register best = Register::FromCode(0);
     for (uint32 i = 0; i < Registers::Total; i++) {
         Register reg = Register::FromCode(i);
-        freeRegs.add(reg);
         if (freeUntilPos[i] > freeUntilPos[best.code()])
             best = reg;
     }
