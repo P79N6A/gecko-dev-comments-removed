@@ -46,7 +46,11 @@
 window.Keys = {meta: false};
 
 
+
+
 Navbar = {
+  
+  
   
   get urlBar() {
     var win = Utils.getCurrentWindow();
@@ -60,6 +64,8 @@ Navbar = {
 
 
 var Tabbar = {
+  
+  
   
   get el() {
     return window.Tabs[0].raw.parentNode; 
@@ -154,10 +160,16 @@ window.Page = {
   closedSelectedTabInTabCandy: false,
   stopZoomPreparation: false,
     
+  
+  
+  
   isTabCandyVisible: function(){
     return (Utils.getCurrentWindow().document.getElementById("tab-candy-deck").
              selectedIndex == 1);
   },
+  
+  
+  
   
   hideChrome: function(){
     var currentWin = Utils.getCurrentWindow();
@@ -167,6 +179,9 @@ window.Page = {
     this._setActiveTitleColor(true);
   },
     
+  
+  
+  
   showChrome: function(){
     var currentWin = Utils.getCurrentWindow();
     var tabContainer = currentWin.gBrowser.tabContainer;
@@ -181,6 +196,13 @@ window.Page = {
     this._setActiveTitleColor(false);
   },
 
+  
+  
+  
+  
+  
+  
+  
   _setActiveTitleColor: function(set) {
     
     if (Utils.isMac()) {
@@ -193,6 +215,9 @@ window.Page = {
     }
   },
 
+  
+  
+  
   showTabCandy: function() {
     var self = this;
     var currentTab = UI.currentTab;
@@ -223,6 +248,9 @@ window.Page = {
     }
   },
 
+  
+  
+  
   setupKeyHandlers: function(){
     var self = this;
     iQ(window).keyup(function(e){
@@ -281,6 +309,8 @@ window.Page = {
   },
     
   
+  
+  
   init: function() {
     var self = this;
         
@@ -338,6 +368,8 @@ window.Page = {
       self.tabOnFocus(this);
     });
   },
+  
+  
   
   
   tabOnFocus: function(tab) {
@@ -406,6 +438,9 @@ window.Page = {
     }, 1);
   },
 
+  
+  
+  
   
   createGroupOnDrag: function(e){
 
@@ -784,6 +819,9 @@ UIClass.prototype = {
   },
   
   
+  
+  
+  
   setBrowserKeyHandler : function() {
     var self = this;
     var browser = Utils.getCurrentWindow().gBrowser;
@@ -870,7 +908,14 @@ UIClass.prototype = {
   },
   
   
+  
+  
+  
+  
+  
+  
   advanceSelectedTab : function(reverse, index) {
+    Utils.assert('reverse should be false when index exists', !index || !reverse);
     var tabbox = Utils.getCurrentWindow().gBrowser.mTabBox;
     var tabs = tabbox.tabs;
     var visibleTabs = [];
@@ -910,6 +955,12 @@ UIClass.prototype = {
     }
   },
 
+  
+  
+  
+  
+  
+  
   
   resize: function(force) {
     if ( typeof(force) == "undefined" ) force = false;
@@ -998,6 +1049,8 @@ UIClass.prototype = {
   },
   
   
+  
+  
   addDevMenu: function() {
     try {
       var self = this;
@@ -1073,11 +1126,16 @@ UIClass.prototype = {
   },
 
   
+  
+  
   reset: function() {
     Storage.wipe();
     location.href = '';      
   },
     
+  
+  
+  
   
   saveAll: function() {  
     this.save();
@@ -1085,6 +1143,8 @@ UIClass.prototype = {
     TabItems.saveAll();
   },
 
+  
+  
   
   save: function() {  
     if (!this.initialized) 
@@ -1098,6 +1158,8 @@ UIClass.prototype = {
       Storage.saveUIData(Utils.getCurrentWindow(), data);
   },
 
+  
+  
   
   storageSanity: function(data) {
     if (iQ.isEmptyObject(data))
@@ -1113,10 +1175,14 @@ UIClass.prototype = {
   },
 
   
+  
+  
   saveVisibility: function(isVisible) {
     Storage.saveVisibilityData(Utils.getCurrentWindow(), { visible: isVisible });
   },
 
+  
+  
   
   arrangeBySite: function() {
     function putInGroup(set, key) {
@@ -1162,6 +1228,8 @@ UIClass.prototype = {
     
     Groups.arrange();
   }, 
+  
+  
   
   
   newTab: function(url) {

@@ -59,7 +59,10 @@ var consoleService = Cc["@mozilla.org/consoleservice;1"]
 
 window.Point = function(a, y) {
   if (isPoint(a)) {
+    
     this.x = a.x;
+    
+    
     this.y = a.y;
   } else {
     this.x = (Utils.isNumber(a) ? a : 0);
@@ -68,11 +71,16 @@ window.Point = function(a, y) {
 };
 
 
+
+
+
 window.isPoint = function(p) {
   return (p && Utils.isNumber(p.x) && Utils.isNumber(p.y));
 };
 
 window.Point.prototype = { 
+  
+  
   
   distance: function(point) { 
     var ax = Math.abs(this.x - point.x);
@@ -80,6 +88,8 @@ window.Point.prototype = {
     return Math.sqrt((ax * ax) + (ay * ay));
   },
 
+  
+  
   
   plus: function(point) { 
     return new Point(this.x + point.x, this.y + point.y);
@@ -93,12 +103,21 @@ window.Point.prototype = {
 
 
 
+
+
 window.Rect = function(a, top, width, height) {
   
   if (isRect(a)) {
+    
     this.left = a.left;
+    
+    
     this.top = a.top;
+    
+    
     this.width = a.width;
+    
+    
     this.height = a.height;
   } else {
     this.left = a;
@@ -107,6 +126,9 @@ window.Rect = function(a, top, width, height) {
     this.height = height;
   }
 };
+
+
+
 
 
 window.isRect = function(r) {
@@ -119,6 +141,7 @@ window.isRect = function(r) {
 
 window.Rect.prototype = {
   
+  
   get right() {
     return this.left + this.width;
   },
@@ -128,6 +151,7 @@ window.Rect.prototype = {
     this.width = value - this.left;
   },
 
+  
   
   get bottom() {
     return this.top + this.height;
@@ -139,9 +163,13 @@ window.Rect.prototype = {
   },
 
   
+  
+  
   get xRange() {
     return new Range(this.left,this.right);
   },
+  
+  
   
   
   get yRange() {
@@ -149,12 +177,17 @@ window.Rect.prototype = {
   },
 
   
+  
+  
   intersects: function(rect) {
     return (rect.right > this.left
         && rect.left < this.right
         && rect.bottom > this.top
         && rect.top < this.bottom);      
   },
+  
+  
+  
   
   
   intersection: function(rect) {
@@ -196,9 +229,13 @@ window.Rect.prototype = {
   },
   
   
+  
+  
   center: function() {
     return new Point(this.left + (this.width / 2), this.top + (this.height / 2));
   },
+  
+  
   
   
   size: function() {
@@ -206,9 +243,13 @@ window.Rect.prototype = {
   },
   
   
+  
+  
   position: function() {
     return new Point(this.left, this.top);
   },
+  
+  
   
   
   area: function() {
@@ -251,12 +292,16 @@ window.Rect.prototype = {
   },
   
   
+  
+  
   equals: function(a) {
     return (a.left == this.left
         && a.top == this.top
         && a.width == this.width
         && a.height == this.height);
   },
+  
+  
   
   
   union: function(a){
@@ -268,6 +313,8 @@ window.Rect.prototype = {
   
     return newRect;
   },
+  
+  
   
   
   copy: function(a) {
@@ -306,6 +353,9 @@ window.Range = function(min, max) {
     this.max = max || 0;
   }
 };
+
+
+
 
 
 window.isRange = function(r) {
@@ -495,16 +545,30 @@ var Utils = {
   },
   
   
-    
+
+  
+  
+  
+  
   log: function() { 
     var text = this.expandArgumentsForLog(arguments);
     consoleService.logStringMessage(text);
   }, 
   
+  
+  
+  
+  
+  
   error: function() { 
     var text = this.expandArgumentsForLog(arguments);
     Cu.reportError('tabcandy error: ' + text);
   }, 
+  
+  
+  
+  
+  
   
   trace: function() { 
     var text = this.expandArgumentsForLog(arguments);
@@ -516,6 +580,9 @@ var Utils = {
       this.log('trace: ' + text + '\n' + calls.join('\n'));
     }
   }, 
+  
+  
+  
   
   assert: function(label, condition) {
     if (!condition) {
@@ -536,6 +603,7 @@ var Utils = {
   
   
   
+  
   assertThrow: function(label, condition) {
     if (!condition) {
       var text;
@@ -553,6 +621,9 @@ var Utils = {
       throw text;       
     }
   },
+  
+  
+  
   
   expandObject: function(obj) {
       var s = obj + ' = {';
@@ -577,6 +648,9 @@ var Utils = {
       return s + '}';
     }, 
     
+  
+  
+  
   expandArgumentsForLog: function(args) {
     var s = '';
     var count = args.length;
@@ -594,6 +668,9 @@ var Utils = {
     return s;
   },
   
+  
+  
+  
   testLogging: function() {
     this.log('beginning logging test'); 
     this.error('this is an error');
@@ -601,6 +678,10 @@ var Utils = {
     this.log(1, null, {'foo': 'hello', 'bar': 2}, 'whatever');
     this.log('ending logging test');
   }, 
+  
+  
+
+  
   
   
   isRightClick: function(event) {
@@ -613,10 +694,14 @@ var Utils = {
   },
   
   
+  
+  
   getMilliseconds: function() {
     var date = new Date();
     return date.getTime();
   },
+  
+  
   
   
   isDOMElement: function(object) {
@@ -645,6 +730,8 @@ var Utils = {
     return value;
   },
 
+  
+  
   
   isMac: function() {
     if (this._isMac == null) {
