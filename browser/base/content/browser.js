@@ -3951,6 +3951,9 @@ var FullScreen = {
       return;
     }
 
+    if (gFindBarInitialized)
+      gFindBar.close();
+
     this.showWarning(true);
 
     
