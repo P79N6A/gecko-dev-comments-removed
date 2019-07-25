@@ -199,10 +199,7 @@ public:
       return NS_ERROR_NULL_POINTER;
     }
 
-    nsIDocument* document = mElement->GetOwnerDoc();
-    if (!document) {
-      return NS_OK;
-    }
+    nsIDocument* document = mElement->OwnerDoc();
 
     nsPIDOMWindow* window = document->GetWindow();
     if (!window) {
@@ -227,7 +224,7 @@ public:
 
     
     if (!fm->GetFocusedContent() ||
-        fm->GetFocusedContent()->GetOwnerDoc() != document) {
+        fm->GetFocusedContent()->OwnerDoc() != document) {
       return mElement->Focus();
     }
 
@@ -677,10 +674,7 @@ nsGenericHTMLElement::GetInnerHTML(nsAString& aInnerHTML)
 {
   aInnerHTML.Truncate();
 
-  nsIDocument* doc = GetOwnerDoc();
-  if (!doc) {
-    return NS_OK; 
-  }
+  nsIDocument* doc = OwnerDoc();
 
   nsresult rv = NS_OK;
 
@@ -748,8 +742,7 @@ nsGenericHTMLElement::FireMutationEventsForDirectParsing(nsIDocument* aDoc,
 nsresult
 nsGenericHTMLElement::SetInnerHTML(const nsAString& aInnerHTML)
 {
-  nsIDocument* doc = GetOwnerDoc();
-  NS_ENSURE_STATE(doc);
+  nsIDocument* doc = OwnerDoc();
 
   nsresult rv = NS_OK;
 
@@ -834,8 +827,7 @@ nsGenericHTMLElement::InsertAdjacentHTML(const nsAString& aPosition,
     destination = this;
   }
 
-  nsIDocument* doc = GetOwnerDoc();
-  NS_ENSURE_STATE(doc);
+  nsIDocument* doc = OwnerDoc();
 
   
   mozAutoDocUpdate updateBatch(doc, UPDATE_CONTENT_MODEL, true);
@@ -958,7 +950,7 @@ nsGenericHTMLElement::GetSpellcheck(bool* aSpellcheck)
   }
 
   
-  if (nsContentUtils::IsChromeDoc(GetOwnerDoc())) {
+  if (nsContentUtils::IsChromeDoc(OwnerDoc())) {
     return NS_OK;                       
   }
 
@@ -1264,7 +1256,7 @@ nsGenericHTMLElement::GetEventListenerManagerForAttr(nsIAtom* aAttrName,
     
     
     
-    nsIDocument *document = GetOwnerDoc();
+    nsIDocument *document = OwnerDoc();
 
     
     
@@ -1272,8 +1264,7 @@ nsGenericHTMLElement::GetEventListenerManagerForAttr(nsIAtom* aAttrName,
     
     
     *aDefer = false;
-    if (document &&
-        (win = document->GetInnerWindow()) && win->IsInnerWindow()) {
+    if ((win = document->GetInnerWindow()) && win->IsInnerWindow()) {
       nsCOMPtr<nsIDOMEventTarget> piTarget(do_QueryInterface(win));
 
       return piTarget->GetListenerManager(true);
@@ -1378,12 +1369,7 @@ nsGenericHTMLElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttribute,
 void
 nsGenericHTMLElement::GetBaseTarget(nsAString& aBaseTarget) const
 {
-  nsIDocument* ownerDoc = GetOwnerDoc();
-  if (ownerDoc) {
-    ownerDoc->GetBaseTarget(aBaseTarget);
-  } else {
-    aBaseTarget.Truncate();
-  }
+  OwnerDoc()->GetBaseTarget(aBaseTarget);
 }
 
 
@@ -2342,7 +2328,7 @@ nsGenericHTMLElement::GetURIAttr(nsIAtom* aAttr, nsIAtom* aBaseAttr, nsIURI** aU
       nsCOMPtr<nsIURI> baseAttrURI;
       nsresult rv =
         nsContentUtils::NewURIWithDocumentCharset(getter_AddRefs(baseAttrURI),
-                                                  baseAttrValue, GetOwnerDoc(),
+                                                  baseAttrValue, OwnerDoc(),
                                                   baseURI);
       if (NS_FAILED(rv)) {
         return true;
@@ -2355,7 +2341,7 @@ nsGenericHTMLElement::GetURIAttr(nsIAtom* aAttr, nsIAtom* aBaseAttr, nsIURI** aU
   
   nsContentUtils::NewURIWithDocumentCharset(aURI,
                                             attr->GetStringValue(),
-                                            GetOwnerDoc(), baseURI);
+                                            OwnerDoc(), baseURI);
   return true;
 }
 
@@ -2368,7 +2354,7 @@ nsGenericHTMLElement::GetURIListAttr(nsIAtom* aAttr, nsAString& aResult)
   if (!GetAttr(kNameSpaceID_None, aAttr, value))
     return NS_OK;
 
-  nsIDocument* doc = GetOwnerDoc(); 
+  nsIDocument* doc = OwnerDoc(); 
   nsCOMPtr<nsIURI> baseURI = GetBaseURI();
 
   
@@ -2973,7 +2959,7 @@ nsGenericHTMLFormElement::AddFormIdObserver()
                                 "we should be in a document!");
 
   nsAutoString formId;
-  nsIDocument* doc = GetOwnerDoc();
+  nsIDocument* doc = OwnerDoc();
   GetAttr(kNameSpaceID_None, nsGkAtoms::form, formId);
   NS_ASSERTION(!formId.IsEmpty(),
                "@form value should not be the empty string!");
@@ -2994,7 +2980,7 @@ nsGenericHTMLFormElement::RemoveFormIdObserver()
 
 
 
-  nsIDocument* doc = GetOwnerDoc();
+  nsIDocument* doc = OwnerDoc();
 
   
   
@@ -3365,7 +3351,7 @@ nsGenericHTMLFrameElement::CopyInnerTo(nsGenericElement* aDest) const
   nsresult rv = nsGenericHTMLElement::CopyInnerTo(aDest);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsIDocument* doc = aDest->GetOwnerDoc();
+  nsIDocument* doc = aDest->OwnerDoc();
   if (doc->IsStaticDocument() && mFrameLoader) {
     nsGenericHTMLFrameElement* dest =
       static_cast<nsGenericHTMLFrameElement*>(aDest);
@@ -3426,8 +3412,7 @@ nsresult nsGenericHTMLElement::MozRequestFullScreen()
     return NS_OK;
   }
 
-  nsIDocument* doc = GetOwnerDoc();
-  NS_ENSURE_STATE(doc);
+  nsIDocument* doc = OwnerDoc();
   nsCOMPtr<nsIDOMDocument> domDocument(do_QueryInterface(doc));
   NS_ENSURE_STATE(domDocument);
   bool fullScreenEnabled;

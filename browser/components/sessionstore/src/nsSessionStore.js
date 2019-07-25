@@ -143,7 +143,7 @@ XPCOMUtils.defineLazyGetter(this, "NetUtil", function() {
 XPCOMUtils.defineLazyServiceGetter(this, "CookieSvc",
   "@mozilla.org/cookiemanager;1", "nsICookieManager2");
 
-#ifdef MOZ_CRASH_REPORTER
+#ifdef MOZ_CRASHREPORTER
 XPCOMUtils.defineLazyServiceGetter(this, "CrashReporter",
   "@mozilla.org/xre/app-info;1", "nsICrashReporter");
 #endif
@@ -2481,7 +2481,19 @@ SessionStoreService.prototype = {
     if (ix != -1 && total[ix] && total[ix].sizemode == "minimized")
       ix = -1;
 
-    return { windows: total, selectedWindow: ix + 1, _closedWindows: lastClosedWindowsCopy };
+    let session = {
+      state: this._loadState == STATE_RUNNING ? STATE_RUNNING_STR : STATE_STOPPED_STR,
+      lastUpdate: Date.now(),
+      startTime: this._sessionStartTime,
+      recentCrashes: this._recentCrashes
+    };
+
+    return {
+      windows: total,
+      selectedWindow: ix + 1,
+      _closedWindows: lastClosedWindowsCopy,
+      session: session
+    };
   },
 
   
@@ -2565,7 +2577,7 @@ SessionStoreService.prototype = {
       this._closedWindows = root._closedWindows;
 
     var winData;
-    if (!root.selectedWindow) {
+    if (!root.selectedWindow || root.selectedWindow > root.windows.length) {
       root.selectedWindow = 0;
     } else {
       
@@ -3263,31 +3275,48 @@ SessionStoreService.prototype = {
         if (!node)
           continue;
 
+        let eventType;
         let value = aData[key];
         if (typeof value == "string" && node.type != "file") {
           if (node.value == value)
             continue; 
 
           node.value = value;
-
-          let event = aDocument.createEvent("UIEvents");
-          event.initUIEvent("input", true, true, aDocument.defaultView, 0);
-          node.dispatchEvent(event);
+          eventType = "input";
         }
-        else if (typeof value == "boolean")
+        else if (typeof value == "boolean") {
+          if (node.checked == value)
+            continue; 
+
           node.checked = value;
-        else if (typeof value == "number")
+          eventType = "change";
+        }
+        else if (typeof value == "number") {
           try {
             node.selectedIndex = value;
+            eventType = "change";
           } catch (ex) {  }
-        else if (value && value.fileList && value.type == "file" && node.type == "file")
+        }
+        else if (value && value.fileList && value.type == "file" && node.type == "file") {
           node.mozSetFileNameArray(value.fileList, value.fileList.length);
+          eventType = "input";
+        }
         else if (value && typeof value.indexOf == "function" && node.options) {
           Array.forEach(node.options, function(aOpt, aIx) {
             aOpt.selected = value.indexOf(aIx) > -1;
+
+            
+            if (!aOpt.defaultSelected)
+              eventType = "change";
           });
         }
+
         
+        if (eventType) {
+          let event = aDocument.createEvent("UIEvents");
+          event.initUIEvent(eventType, true, true, aDocument.defaultView, 0);
+          node.dispatchEvent(event);
+        }
       }
     }
 
@@ -3520,14 +3549,6 @@ SessionStoreService.prototype = {
         Services.prefs.savePrefFile(null);
       }
     }
-
-    oState.session = {
-      state: this._loadState == STATE_RUNNING ? STATE_RUNNING_STR : STATE_STOPPED_STR,
-      lastUpdate: Date.now(),
-      startTime: this._sessionStartTime
-    };
-    if (this._recentCrashes)
-      oState.session.recentCrashes = this._recentCrashes;
 
     
     if (this._lastSessionState)
@@ -3796,7 +3817,7 @@ SessionStoreService.prototype = {
 
 
   _updateCrashReportURL: function sss_updateCrashReportURL(aWindow) {
-#ifdef MOZ_CRASH_REPORTER
+#ifdef MOZ_CRASHREPORTER
     try {
       var currentURI = aWindow.gBrowser.currentURI.clone();
       

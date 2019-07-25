@@ -11,6 +11,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function TabItem(tab, options) {
   Utils.assert(tab, "tab");
 
@@ -29,7 +68,8 @@ function TabItem(tab, options) {
   let div = document.body.lastChild;
   let $div = iQ(div);
 
-  this._showsCachedData = false;
+  this._cachedImageData = null;
+  this._thumbnailNeedsSaving = false;
   this.canvasSizeForced = false;
   this.$thumb = iQ('.thumb', $div);
   this.$fav   = iQ('.favicon', $div);
@@ -41,6 +81,13 @@ function TabItem(tab, options) {
 
   this.tabCanvas = new TabCanvas(this.tab, this.$canvas[0]);
 
+  let self = this;
+
+  
+  this.tabCanvas.addSubscriber("painted", function () {
+    self._thumbnailNeedsSaving = true;
+  });
+
   this.defaultSize = new Point(TabItems.tabWidth, TabItems.tabHeight);
   this._hidden = false;
   this.isATabItem = true;
@@ -49,13 +96,14 @@ function TabItem(tab, options) {
   this._reconnected = false;
   this.isDragging = false;
   this.isStacked = false;
+  this.url = "";
 
   
   
   if (Utils.isEmptyObject(TabItems.tabItemPadding)) {
     TabItems.tabItemPadding.x = parseInt($div.css('padding-left'))
         + parseInt($div.css('padding-right'));
-
+  
     TabItems.tabItemPadding.y = parseInt($div.css('padding-top'))
         + parseInt($div.css('padding-bottom'));
   }
@@ -75,8 +123,6 @@ function TabItem(tab, options) {
   };
 
   this.draggable();
-
-  let self = this;
 
   
   $div.mousedown(function(e) {
@@ -102,13 +148,11 @@ function TabItem(tab, options) {
 
   this.droppable(true);
 
-  this.$close.attr("title", tabbrowserString("tabs.closeTab"));
-
   TabItems.register(this);
 
   
   if (!TabItems.reconnectingPaused())
-    this._reconnect(options);
+    this._reconnect();
 };
 
 TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
@@ -145,32 +189,34 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   isShowingCachedData: function TabItem_isShowingCachedData() {
-    return this._showsCachedData;
+    return (this._cachedImageData != null);
   },
 
   
   
   
   
-  showCachedData: function TabItem_showCachedData() {
-    let {title, url} = this.getTabState();
-    let thumbnailURL = gPageThumbnails.getThumbnailURL(url);
-
-    this.$cachedThumb.attr("src", thumbnailURL).show();
+  
+  
+  
+  
+  showCachedData: function TabItem_showCachedData(tabData, imageData) {
+    this._cachedImageData = imageData;
+    this.$cachedThumb.attr("src", this._cachedImageData).show();
     this.$canvas.css({opacity: 0});
+    this.$tabTitle.text(tabData.title ? tabData.title : "");
 
-    let tooltip = (title && title != url ? title + "\n" + url : url);
-    this.$tabTitle.text(title).attr("title", tooltip);
-    this._showsCachedData = true;
+    this._sendToSubscribers("showingCachedData");
   },
 
   
   
   
   hideCachedData: function TabItem_hideCachedData() {
-    this.$cachedThumb.attr("src", "").hide();
+    this.$cachedThumb.hide();
     this.$canvas.css({opacity: 1.0});
-    this._showsCachedData = false;
+    if (this._cachedImageData)
+      this._cachedImageData = null;
   },
 
   
@@ -178,7 +224,9 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   getStorageData: function TabItem_getStorageData() {
     let data = {
-      groupID: (this.parent ? this.parent.id : 0)
+      url: this.tab.linkedBrowser.currentURI.spec,
+      groupID: (this.parent ? this.parent.id : 0),
+      title: this.tab.label
     };
     if (this.parent && this.parent.getActiveTab() == this)
       data.active = true;
@@ -191,7 +239,7 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   save: function TabItem_save() {
     try {
-      if (!this.tab || !Utils.isValidXULTab(this.tab) || !this._reconnected) 
+      if (!this.tab || this.tab.parentNode == null || !this._reconnected) 
         return;
 
       let data = this.getStorageData();
@@ -205,69 +253,111 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  _getCurrentTabStateEntry: function TabItem__getCurrentTabStateEntry() {
-    let tabState = Storage.getTabState(this.tab);
+  loadThumbnail: function TabItem_loadThumbnail(tabData) {
+    Utils.assert(tabData, "invalid or missing argument <tabData>");
 
-    if (tabState) {
-      let index = (tabState.index || tabState.entries.length) - 1;
-      if (index in tabState.entries)
-        return tabState.entries[index];
+    let self = this;
+
+    function TabItem_loadThumbnail_callback(error, imageData) {
+      
+      if (error || !imageData || !self.tab)
+        return;
+
+      self._sendToSubscribers("loadedCachedImageData");
+
+      
+      
+      
+      let currentUrl = self.tab.linkedBrowser.currentURI.spec;
+      if (tabData.url == currentUrl || currentUrl == "about:blank")
+        self.showCachedData(tabData, imageData);
     }
 
-    return null;
+    ThumbnailStorage.loadThumbnail(tabData.url, TabItem_loadThumbnail_callback);
   },
 
   
   
   
-  
-  getTabState: function TabItem_getTabState() {
-    let entry = this._getCurrentTabStateEntry();
-    let title = "";
-    let url = "";
+  saveThumbnail: function TabItem_saveThumbnail(options) {
+    if (!this.tabCanvas)
+      return;
 
-    if (entry) {
-      if (entry.title)
-        title = entry.title;
+    
+    if (!this._thumbnailNeedsSaving)
+      return;
 
-      url = entry.url;
+    
+    if (!StoragePolicy.canStoreThumbnailForTab(this.tab)) {
+      this._sendToSubscribers("deniedToSaveImageData");
+      return;
+    }
+
+    let url = this.tab.linkedBrowser.currentURI.spec;
+    let delayed = this._saveThumbnailDelayed;
+    let synchronously = (options && options.synchronously);
+
+    
+    if (delayed) {
+      
+      if (!synchronously && url == delayed.url)
+        return;
+
+      
+      clearTimeout(delayed.timeout);
+    }
+
+    let self = this;
+
+    function callback(error) {
+      if (!error) {
+        self._thumbnailNeedsSaving = false;
+        self._sendToSubscribers("savedCachedImageData");
+      }
+    }
+
+    function doSaveThumbnail() {
+      self._saveThumbnailDelayed = null;
+
+      
+      if (!self.tabCanvas)
+        return;
+
+      let imageData = self.tabCanvas.toImageData();
+      ThumbnailStorage.saveThumbnail(url, imageData, callback, options);
+    }
+
+    if (synchronously) {
+      doSaveThumbnail();
     } else {
-      url = this.tab.linkedBrowser.currentURI.spec;
+      let timeout = setTimeout(doSaveThumbnail, 2000);
+      this._saveThumbnailDelayed = {url: url, timeout: timeout};
     }
-
-    return {title: title, url: url};
   },
 
   
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  _reconnect: function TabItem__reconnect(options) {
+  _reconnect: function TabItem__reconnect() {
     Utils.assertThrow(!this._reconnected, "shouldn't already be reconnected");
     Utils.assertThrow(this.tab, "should have a xul:tab");
 
     let tabData = Storage.getTabData(this.tab);
-    let groupItem;
 
     if (tabData && TabItems.storageSanity(tabData)) {
-      
-      
-      this.showCachedData();
+      this.loadThumbnail(tabData);
 
       if (this.parent)
         this.parent.remove(this, {immediately: true});
 
-      if (tabData.groupID)
+      let groupItem;
+
+      if (tabData.groupID) {
         groupItem = GroupItems.groupItem(tabData.groupID);
-      else
+      } else {
         groupItem = new GroupItem([], {immediately: true, bounds: tabData.bounds});
+      }
 
       if (groupItem) {
         groupItem.add(this, {immediately: true});
@@ -283,15 +373,8 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
           UI.setActive(this.parent);
       }
     } else {
-      if (options && options.groupItemId)
-        groupItem = GroupItems.groupItem(options.groupItemId);
-
-      if (groupItem) {
-        groupItem.add(this, {immediately: true});
-      } else {
-        
-        GroupItems.newTab(this, {immediately: true});
-      }
+      
+      GroupItems.newTab(this, {immediately: true});
     }
 
     this._reconnected = true;
@@ -436,7 +519,7 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
 
     Utils.assert(Utils.isRect(this.bounds), 'TabItem.setBounds: this.bounds is not a real rectangle!');
 
-    if (!this.parent && Utils.isValidXULTab(this.tab))
+    if (!this.parent && this.tab.parentNode != null)
       this.setTrenches(rect);
 
     this.save();
@@ -535,7 +618,7 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     let tab = this.tab;
 
     function onZoomDone() {
-      $canvas.css({ 'transform': null });
+      $canvas.css({ '-moz-transform': null });
       $tabEl.removeClass("front");
 
       UI.goToTab(tab);
@@ -563,8 +646,8 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
         $tabEl.removeClass("stack-trayed");
       $tabEl.addClass("front");
       $canvas
-        .css({ 'transform-origin': transform.transformOrigin })
-        .animate({ 'transform': transform.transform }, {
+        .css({ '-moz-transform-origin': transform.transformOrigin })
+        .animate({ '-moz-transform': transform.transform }, {
           duration: 230,
           easing: 'fast',
           complete: function() {
@@ -593,7 +676,7 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     
     let onZoomDone = function onZoomDone() {
       $tab.removeClass("front");
-      $canvas.css("transform", null);
+      $canvas.css("-moz-transform", null);
 
       if (typeof complete == "function")
         complete();
@@ -612,11 +695,11 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       TabItems.pausePainting();
 
       $canvas.css({
-        'transform': transform.transform,
-        'transform-origin': transform.transformOrigin
+        '-moz-transform': transform.transform,
+        '-moz-transform-origin': transform.transformOrigin
       });
 
-      $canvas.animate({ "transform": "scale(1.0)" }, {
+      $canvas.animate({ "-moz-transform": "scale(1.0)" }, {
         duration: 300,
         easing: 'cubic-bezier', 
         complete: function() {
@@ -666,32 +749,6 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       transformOrigin: xOrigin + "% " + yOrigin + "%",
       transform: "scale(" + zoomScaleFactor + ")"
     };
-  },
-
-  
-  
-  
-  updateCanvas: function TabItem_updateCanvas() {
-    
-    let $canvas = this.$canvas;
-    if (!this.canvasSizeForced) {
-      let w = $canvas.width();
-      let h = $canvas.height();
-      if (w != $canvas[0].width || h != $canvas[0].height) {
-        $canvas[0].width = w;
-        $canvas[0].height = h;
-      }
-    }
-
-    TabItems._lastUpdateTime = Date.now();
-    this._lastTabUpdateTime = TabItems._lastUpdateTime;
-
-    if (this.tabCanvas)
-      this.tabCanvas.paint();
-
-    
-    if (this.isShowingCachedData())
-      this.hideCachedData();
   }
 });
 
@@ -719,7 +776,6 @@ let TabItems = {
   tempCanvas: null,
   _reconnectingPaused: false,
   tabItemPadding: {},
-  _mozAfterPaintHandler: null,
 
   
   
@@ -751,10 +807,6 @@ let TabItems = {
     this.tempCanvas.width = 150;
     this.tempCanvas.height = 112;
 
-    let mm = gWindow.messageManager;
-    this._mozAfterPaintHandler = this.onMozAfterPaint.bind(this);
-    mm.addMessageListener("Panorama:MozAfterPaint", this._mozAfterPaintHandler);
-
     
     this._eventListeners.open = function (event) {
       let tab = event.target;
@@ -782,21 +834,12 @@ let TabItems = {
       AllTabs.register(name, this._eventListeners[name]);
     }
 
-    let activeGroupItem = GroupItems.getActiveGroupItem();
-    let activeGroupItemId = activeGroupItem ? activeGroupItem.id : null;
     
     AllTabs.tabs.forEach(function (tab) {
       if (tab.pinned)
         return;
 
-      let options = {immediately: true};
-      
-      
-      
-      
-      if (!tab.hidden && activeGroupItemId)
-         options.groupItemId = activeGroupItemId;
-      self.link(tab, options);
+      self.link(tab, {immediately: true});
       self.update(tab);
     });
   },
@@ -804,9 +847,6 @@ let TabItems = {
   
   
   uninit: function TabItems_uninit() {
-    let mm = gWindow.messageManager;
-    mm.removeMessageListener("Panorama:MozAfterPaint", this._mozAfterPaintHandler);
-
     for (let name in this._eventListeners) {
       AllTabs.unregister(name, this._eventListeners[name]);
     }
@@ -848,30 +888,17 @@ let TabItems = {
   
   
   
-  _isComplete: function TabItems__isComplete(tab, callback) {
+  isComplete: function TabItems_isComplete(tab) {
+    
+    
+    
+    
     Utils.assertThrow(tab, "tab");
-
-    let mm = tab.linkedBrowser.messageManager;
-    let message = "Panorama:isDocumentLoaded";
-
-    mm.addMessageListener(message, function onMessage(cx) {
-      mm.removeMessageListener(cx.name, onMessage);
-      callback(cx.json.isLoaded);
-    });
-    mm.sendAsyncMessage(message);
-  },
-
-  
-  
-  
-  onMozAfterPaint: function TabItems_onMozAfterPaint(cx) {
-    let index = gBrowser.browsers.indexOf(cx.target);
-    if (index == -1)
-      return;
-
-    let tab = gBrowser.tabs[index];
-    if (!tab.pinned)
-      this.update(tab);
+    return (
+      tab.linkedBrowser.contentDocument.readyState == 'complete' &&
+      !(tab.linkedBrowser.contentDocument.URL == 'about:blank' &&
+        tab._tabViewTabItem.url != 'about:blank')
+    );
   },
 
   
@@ -921,21 +948,20 @@ let TabItems = {
       let tabItem = tab._tabViewTabItem;
 
       
+
       
-      FavIcons.getFavIconUrlForTab(tab, function TabItems__update_getFavIconUrlCallback(iconUrl) {
-        let favImage = tabItem.$favImage[0];
-        let fav = tabItem.$fav;
-        if (iconUrl) {
-          if (favImage.src != iconUrl)
-            favImage.src = iconUrl;
-          fav.show();
-        } else {
-          if (favImage.hasAttribute("src"))
-            favImage.removeAttribute("src");
-          fav.hide();
-        }
-        tabItem._sendToSubscribers("iconUpdated");
-      });
+      if (UI.shouldLoadFavIcon(tab.linkedBrowser)) {
+        let iconUrl = UI.getFavIconUrlForTab(tab);
+
+        if (tabItem.$favImage[0].src != iconUrl)
+          tabItem.$favImage[0].src = iconUrl;
+
+        iQ(tabItem.$fav[0]).show();
+      } else {
+        if (tabItem.$favImage[0].hasAttribute("src"))
+          tabItem.$favImage[0].removeAttribute("src");
+        iQ(tabItem.$fav[0]).hide();
+      }
 
       
       let label = tab.label;
@@ -949,26 +975,42 @@ let TabItems = {
 
       
       let tabUrl = tab.linkedBrowser.currentURI.spec;
-      let tooltip = (label == tabUrl ? label : label + "\n" + tabUrl);
-      tabItem.$container.attr("title", tooltip);
+      if (tabUrl != tabItem.url) {
+        let oldURL = tabItem.url;
+        tabItem.url = tabUrl;
+        tabItem.save();
+      }
 
       
-      if (options && options.force) {
-        tabItem.updateCanvas();
-        tabItem._sendToSubscribers("updated");
-      } else {
-        this._isComplete(tab, function TabItems__update_isComplete(isComplete) {
-          if (!Utils.isValidXULTab(tab) || tab.pinned)
-            return;
-
-          if (isComplete) {
-            tabItem.updateCanvas();
-            tabItem._sendToSubscribers("updated");
-          } else {
-            this._tabsWaitingForUpdate.push(tab);
-          }
-        }.bind(this));
+      if (!this.isComplete(tab) && (!options || !options.force)) {
+        
+        this._tabsWaitingForUpdate.push(tab);
+        return;
       }
+
+      
+      let $canvas = tabItem.$canvas;
+      if (!tabItem.canvasSizeForced) {
+        let w = $canvas.width();
+        let h = $canvas.height();
+        if (w != tabItem.$canvas[0].width || h != tabItem.$canvas[0].height) {
+          tabItem.$canvas[0].width = w;
+          tabItem.$canvas[0].height = h;
+        }
+      }
+
+      this._lastUpdateTime = Date.now();
+      tabItem._lastTabUpdateTime = this._lastUpdateTime;
+
+      tabItem.tabCanvas.paint();
+      tabItem.saveThumbnail();
+
+      
+      if (tabItem.isShowingCachedData())
+        tabItem.hideCachedData();
+
+      
+      tabItem._sendToSubscribers("updated");
     } catch(e) {
       Utils.log(e);
     }
@@ -1177,6 +1219,17 @@ let TabItems = {
 
     tabItems.forEach(function TabItems_saveAll_forEach(tabItem) {
       tabItem.save();
+    });
+  },
+
+  
+  
+  
+  saveAllThumbnails: function TabItems_saveAllThumbnails(options) {
+    let tabItems = this.getItems();
+
+    tabItems.forEach(function TabItems_saveAllThumbnails_forEach(tabItem) {
+      tabItem.saveThumbnail(options);
     });
   },
 

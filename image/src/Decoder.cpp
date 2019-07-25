@@ -4,26 +4,57 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "Decoder.h"
 #include "nsIServiceManager.h"
 #include "nsIConsoleService.h"
 #include "nsIScriptError.h"
 
 namespace mozilla {
-namespace image {
+namespace imagelib {
 
 Decoder::Decoder(RasterImage &aImage, imgIDecoderObserver* aObserver)
   : mImage(aImage)
   , mObserver(aObserver)
   , mDecodeFlags(0)
-  , mDecodeDone(false)
-  , mDataError(false)
   , mFrameCount(0)
   , mFailCode(NS_OK)
   , mInitialized(false)
   , mSizeDecode(false)
   , mInFrame(false)
-  , mIsAnimated(false)
+  , mDecodeDone(false)
+  , mDataError(false)
 {
 }
 
@@ -45,7 +76,7 @@ Decoder::Init()
 
   
   if (!IsSizeDecode() && mObserver)
-      mObserver->OnStartDecode(nullptr);
+      mObserver->OnStartDecode(nsnull);
 
   
   InitInternal();
@@ -66,7 +97,7 @@ Decoder::InitSharedDecoder()
 }
 
 void
-Decoder::Write(const char* aBuffer, uint32_t aCount)
+Decoder::Write(const char* aBuffer, PRUint32 aCount)
 {
   
   NS_ABORT_IF_FALSE(!HasDecoderError(),
@@ -98,21 +129,23 @@ Decoder::Finish()
     
     nsCOMPtr<nsIConsoleService> consoleService =
       do_GetService(NS_CONSOLESERVICE_CONTRACTID);
-    nsCOMPtr<nsIScriptError> errorObject =
+    nsCOMPtr<nsIScriptError2> errorObject =
       do_CreateInstance(NS_SCRIPTERROR_CONTRACTID);
 
     if (consoleService && errorObject && !HasDecoderError()) {
       nsAutoString msg(NS_LITERAL_STRING("Image corrupt or truncated: ") +
                        NS_ConvertASCIItoUTF16(mImage.GetURIString()));
 
-      if (NS_SUCCEEDED(errorObject->InitWithWindowID(
-                         msg,
-                         NS_ConvertUTF8toUTF16(mImage.GetURIString()),
-                         EmptyString(), 0, 0, nsIScriptError::errorFlag,
-                         "Image", mImage.InnerWindowID()
-                       ))) {
-        consoleService->LogMessage(errorObject);
-      }
+      errorObject->InitWithWindowID
+        (msg.get(),
+         NS_ConvertUTF8toUTF16(mImage.GetURIString()).get(),
+         nsnull,
+         0, 0, nsIScriptError::errorFlag,
+         "Image", mImage.InnerWindowID()
+         );
+  
+      nsCOMPtr<nsIScriptError> error = do_QueryInterface(errorObject);
+      consoleService->LogMessage(error);
     }
 
     
@@ -124,8 +157,8 @@ Decoder::Finish()
 
     
     if (mObserver) {
-      mObserver->OnStopContainer(nullptr, &mImage);
-      mObserver->OnStopDecode(nullptr, salvage ? NS_OK : NS_ERROR_FAILURE, nullptr);
+      mObserver->OnStopContainer(nsnull, &mImage);
+      mObserver->OnStopDecode(nsnull, salvage ? NS_OK : NS_ERROR_FAILURE, nsnull);
     }
   }
 }
@@ -153,22 +186,8 @@ Decoder::FlushInvalidations()
 
   
   if (mObserver) {
-#ifdef XP_MACOSX
-    
-    
-    
-    int32_t width;
-    int32_t height;
-
-    mImage.GetWidth(&width);
-    mImage.GetHeight(&height);
-    nsIntRect mImageBound(0, 0, width, height);
-
-    mInvalidRect.Inflate(1);
-    mInvalidRect = mInvalidRect.Intersect(mImageBound);
-#endif
     bool isCurrentFrame = mImage.GetCurrentFrameIndex() == (mFrameCount - 1);
-    mObserver->OnDataAvailable(nullptr, isCurrentFrame, &mInvalidRect);
+    mObserver->OnDataAvailable(nsnull, isCurrentFrame, &mInvalidRect);
   }
 
   
@@ -180,7 +199,7 @@ Decoder::FlushInvalidations()
 
 
 void Decoder::InitInternal() { }
-void Decoder::WriteInternal(const char* aBuffer, uint32_t aCount) { }
+void Decoder::WriteInternal(const char* aBuffer, PRUint32 aCount) { }
 void Decoder::FinishInternal() { }
 
 
@@ -188,7 +207,7 @@ void Decoder::FinishInternal() { }
 
 
 void
-Decoder::PostSize(int32_t aWidth, int32_t aHeight)
+Decoder::PostSize(PRInt32 aWidth, PRInt32 aHeight)
 {
   
   NS_ABORT_IF_FALSE(aWidth >= 0, "Width can't be negative!");
@@ -199,7 +218,7 @@ Decoder::PostSize(int32_t aWidth, int32_t aHeight)
 
   
   if (mObserver)
-    mObserver->OnStartContainer(nullptr, &mImage);
+    mObserver->OnStartContainer(nsnull, &mImage);
 }
 
 void
@@ -225,7 +244,7 @@ Decoder::PostFrameStart()
 
   
   if (mObserver)
-    mObserver->OnStartFrame(nullptr, mFrameCount - 1); 
+    mObserver->OnStartFrame(nsnull, mFrameCount - 1); 
 }
 
 void
@@ -241,13 +260,8 @@ Decoder::PostFrameStop()
   FlushInvalidations();
 
   
-  if (mObserver) {
-    mObserver->OnStopFrame(nullptr, mFrameCount - 1); 
-    if (mFrameCount > 1 && !mIsAnimated) {
-      mIsAnimated = true;
-      mObserver->OnImageIsAnimated(nullptr);
-    }
-  }
+  if (mObserver)
+    mObserver->OnStopFrame(nsnull, mFrameCount - 1); 
 }
 
 void
@@ -269,17 +283,10 @@ Decoder::PostDecodeDone()
   mDecodeDone = true;
 
   
-  int frames = GetFrameCount();
-  bool isNonPremult = GetDecodeFlags() & DECODER_NO_PREMULTIPLY_ALPHA;
-  for (int i = 0; i < frames; i++) {
-    mImage.SetFrameAsNonPremult(i, isNonPremult);
-  }
-
-  
   mImage.DecodingComplete();
   if (mObserver) {
-    mObserver->OnStopContainer(nullptr, &mImage);
-    mObserver->OnStopDecode(nullptr, NS_OK, nullptr);
+    mObserver->OnStopContainer(nsnull, &mImage);
+    mObserver->OnStopDecode(nsnull, NS_OK, nsnull);
   }
 }
 

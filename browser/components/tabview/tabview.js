@@ -1,7 +1,3 @@
-
-
-
-
 "use strict";
 
 const Cc = Components.classes;
@@ -17,20 +13,28 @@ XPCOMUtils.defineLazyGetter(this, "tabviewBundle", function() {
   return Services.strings.
     createBundle("chrome://browser/locale/tabview.properties");
 });
-XPCOMUtils.defineLazyGetter(this, "tabbrowserBundle", function() {
-  return Services.strings.
-    createBundle("chrome://browser/locale/tabbrowser.properties");
-});
 
 function tabviewString(name) tabviewBundle.GetStringFromName('tabview.' + name);
-function tabbrowserString(name) tabbrowserBundle.GetStringFromName(name);
 
 XPCOMUtils.defineLazyGetter(this, "gPrefBranch", function() {
   return Services.prefs.getBranch("browser.panorama.");
 });
 
-XPCOMUtils.defineLazyModuleGetter(this, "gPageThumbnails",
-  "resource:
+XPCOMUtils.defineLazyGetter(this, "gPrivateBrowsing", function() {
+  return Cc["@mozilla.org/privatebrowsing;1"].
+           getService(Ci.nsIPrivateBrowsingService);
+});
+
+XPCOMUtils.defineLazyGetter(this, "gFavIconService", function() {
+  return Cc["@mozilla.org/browser/favicon-service;1"].
+           getService(Ci.nsIFaviconService);
+});
+
+XPCOMUtils.defineLazyGetter(this, "gNetUtil", function() {
+  var obj = {};
+  Cu.import("resource://gre/modules/NetUtil.jsm", obj);
+  return obj.NetUtil;
+});
 
 var gWindow = window.parent;
 var gBrowser = gWindow.gBrowser;
@@ -51,7 +55,7 @@ let AllTabs = {
   },
 
   get tabs() {
-    return Array.filter(gBrowser.tabs, function (tab) Utils.isValidXULTab(tab));
+    return Array.filter(gBrowser.tabs, function (tab) !tab.closing);
   },
 
   register: function AllTabs_register(eventName, callback) {
@@ -67,12 +71,12 @@ let AllTabs = {
 
 #include iq.js
 #include storage.js
+#include storagePolicy.js
 #include items.js
 #include groupitems.js
 #include tabitems.js
-#include favicons.js
 #include drag.js
 #include trench.js
+#include thumbnailStorage.js
 #include search.js
-#include telemetry.js
 #include ui.js

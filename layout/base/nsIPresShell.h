@@ -1173,6 +1173,10 @@ public:
   static void InitializeStatics();
   static void ReleaseStatics();
 
+  
+  
+  static void ClearMouseCapture(nsIFrame* aFrame);
+
 protected:
   friend class nsRefreshDriver;
 

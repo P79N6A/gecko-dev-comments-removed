@@ -1,15 +1,6 @@
 
 
 
-
-
-
-Services.prefs.setBoolPref("browser.sessionstore.restore_on_demand", false);
-registerCleanupFunction(function () {
-  Services.prefs.clearUserPref("browser.sessionstore.restore_on_demand");
-});
-
-
 function createEmptyGroupItem(contentWindow, width, height, padding, animate) {
   let pageBounds = contentWindow.Items.getPageBounds();
   pageBounds.inset(padding, padding);
@@ -78,23 +69,13 @@ function closeGroupItem(groupItem, callback) {
 function afterAllTabItemsUpdated(callback, win) {
   win = win || window;
   let tabItems = win.document.getElementById("tab-view").contentWindow.TabItems;
-  let counter = 0;
 
   for (let a = 0; a < win.gBrowser.tabs.length; a++) {
     let tabItem = win.gBrowser.tabs[a]._tabViewTabItem;
-    if (tabItem) {
-      let tab = win.gBrowser.tabs[a];
-      counter++;
-      tabItem.addSubscriber("updated", function onUpdated() {
-        tabItem.removeSubscriber("updated", onUpdated);
-        if (--counter == 0)
-          callback();
-      });
-      tabItems.update(tab);
-    }
+    if (tabItem)
+      tabItems._update(win.gBrowser.tabs[a]);
   }
-  if (counter == 0)
-    callback();
+  callback();
 }
 
 
@@ -263,6 +244,7 @@ function whenSearchIsDisabled(callback, win) {
 }
 
 
+
 function hideGroupItem(groupItem, callback) {
   if (groupItem.hidden) {
     if (callback)
@@ -340,19 +322,15 @@ function newWindowWithState(state, callback) {
       callback(win);
   };
 
-  whenDelayedStartupFinished(win, function () {
-    ss.setWindowState(win, JSON.stringify(state), true);
-    win.close();
-    win = ss.undoCloseWindow(0);
-
-    whenWindowLoaded(win, function () {
-      whenWindowStateReady(win, function () {
-        afterAllTabsLoaded(check, win);
-      });
+  whenWindowLoaded(win, function () {
+    whenWindowStateReady(win, function () {
+      afterAllTabsLoaded(check, win);
     });
 
-    whenDelayedStartupFinished(win, check);
+    ss.setWindowState(win, JSON.stringify(state), true);
   });
+
+  whenDelayedStartupFinished(win, check);
 }
 
 
@@ -393,27 +371,4 @@ function togglePrivateBrowsing(callback) {
            getService(Ci.nsIPrivateBrowsingService);
 
   pb.privateBrowsingEnabled = !pb.privateBrowsingEnabled;
-}
-
-
-function goToNextGroup(win) {
-  win = win || window;
-
-  let utils =
-    win.QueryInterface(Ci.nsIInterfaceRequestor).
-      getInterface(Ci.nsIDOMWindowUtils);
-
-  const masks = Ci.nsIDOMNSEvent;
-  let mval = 0;
-  mval |= masks.CONTROL_MASK;
-
-  utils.sendKeyEvent("keypress", 0, 96, mval);
-}
-
-
-function whenAppTabIconAdded(groupItem, callback) {
-  groupItem.addSubscriber("appTabIconAdded", function onAppTabIconAdded() {
-    groupItem.removeSubscriber("appTabIconAdded", onAppTabIconAdded);
-    executeSoon(callback);
-  });
 }

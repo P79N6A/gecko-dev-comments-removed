@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef MOZILLA_IMAGELIB_IMAGE_H_
 #define MOZILLA_IMAGELIB_IMAGE_H_
 
@@ -11,14 +43,14 @@
 #include "prtypes.h"
 
 namespace mozilla {
-namespace image {
+namespace imagelib {
 
 class Image : public imgIContainer
 {
 public:
   
-  NS_IMETHOD GetAnimationMode(uint16_t *aAnimationMode);
-  NS_IMETHOD SetAnimationMode(uint16_t aAnimationMode);
+  NS_SCRIPTABLE NS_IMETHOD GetAnimationMode(PRUint16 *aAnimationMode);
+  NS_SCRIPTABLE NS_IMETHOD SetAnimationMode(PRUint16 aAnimationMode);
 
   imgStatusTracker& GetStatusTracker() { return *mStatusTracker; }
 
@@ -38,10 +70,10 @@ public:
 
 
 
-  static const uint32_t INIT_FLAG_NONE           = 0x0;
-  static const uint32_t INIT_FLAG_DISCARDABLE    = 0x1;
-  static const uint32_t INIT_FLAG_DECODE_ON_DRAW = 0x2;
-  static const uint32_t INIT_FLAG_MULTIPART      = 0x4;
+  static const PRUint32 INIT_FLAG_NONE           = 0x0;
+  static const PRUint32 INIT_FLAG_DISCARDABLE    = 0x1;
+  static const PRUint32 INIT_FLAG_DECODE_ON_DRAW = 0x2;
+  static const PRUint32 INIT_FLAG_MULTIPART      = 0x4;
 
   
 
@@ -53,7 +85,7 @@ public:
   virtual nsresult Init(imgIDecoderObserver* aObserver,
                         const char* aMimeType,
                         const char* aURIString,
-                        uint32_t aFlags) = 0;
+                        PRUint32 aFlags) = 0;
 
   
 
@@ -65,15 +97,15 @@ public:
 
 
 
-  uint32_t SizeOfData();
+  PRUint32 GetDataSize();
 
   
 
       
-  virtual size_t HeapSizeOfSourceWithComputedFallback(nsMallocSizeOfFun aMallocSizeOf) const = 0;
-  virtual size_t HeapSizeOfDecodedWithComputedFallback(nsMallocSizeOfFun aMallocSizeOf) const = 0;
-  virtual size_t NonHeapSizeOfDecoded() const = 0;
-  virtual size_t OutOfProcessSizeOfDecoded() const = 0;
+  virtual PRUint32 GetDecodedHeapSize() = 0;
+  virtual PRUint32 GetDecodedNonheapSize() = 0;
+  virtual PRUint32 GetDecodedOutOfProcessSize() = 0;
+  virtual PRUint32 GetSourceHeapSize() = 0;
 
   
   enum eDecoderType {
@@ -90,13 +122,13 @@ public:
   void IncrementAnimationConsumers();
   void DecrementAnimationConsumers();
 #ifdef DEBUG
-  uint32_t GetAnimationConsumers() { return mAnimationConsumers; }
+  PRUint32 GetAnimationConsumers() { return mAnimationConsumers; }
 #endif
 
-  void SetInnerWindowID(uint64_t aInnerWindowId) {
+  void SetInnerWindowID(PRUint64 aInnerWindowId) {
     mInnerWindowId = aInnerWindowId;
   }
-  uint64_t InnerWindowID() const { return mInnerWindowId; }
+  PRUint64 InnerWindowID() const { return mInnerWindowId; }
 
   bool HasError() { return mError; }
 
@@ -112,12 +144,12 @@ protected:
   virtual nsresult StartAnimation() = 0;
   virtual nsresult StopAnimation() = 0;
 
-  uint64_t mInnerWindowId;
+  PRUint64 mInnerWindowId;
 
   
   nsAutoPtr<imgStatusTracker> mStatusTracker;
-  uint32_t                    mAnimationConsumers;
-  uint16_t                    mAnimationMode;   
+  PRUint32                    mAnimationConsumers;
+  PRUint16                    mAnimationMode;   
   bool                        mInitialized:1;   
   bool                        mAnimating:1;     
   bool                        mError:1;         

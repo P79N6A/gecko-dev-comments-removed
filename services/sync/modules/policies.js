@@ -72,15 +72,25 @@ let SyncScheduler = {
     this.idle = false;
 
     this.hasIncomingItems = false;
-    this.numClients = 0;
 
-    this.nextSync = 0,
-    this.syncInterval = this.singleDeviceInterval;
-    this.syncThreshold = SINGLE_USER_THRESHOLD;
+    this.clearSyncTriggers();
   },
+
+  
+  get nextSync() Svc.Prefs.get("nextSync", 0) * 1000,
+  set nextSync(value) Svc.Prefs.set("nextSync", Math.floor(value / 1000)),
+
+  get syncInterval() Svc.Prefs.get("syncInterval", this.singleDeviceInterval),
+  set syncInterval(value) Svc.Prefs.set("syncInterval", value),
+
+  get syncThreshold() Svc.Prefs.get("syncThreshold", SINGLE_USER_THRESHOLD),
+  set syncThreshold(value) Svc.Prefs.set("syncThreshold", value),
 
   get globalScore() Svc.Prefs.get("globalScore", 0),
   set globalScore(value) Svc.Prefs.set("globalScore", value),
+
+  get numClients() Svc.Prefs.get("numClients", 0),
+  set numClients(value) Svc.Prefs.set("numClients", value),
 
   init: function init() {
     this._log.level = Log4Moz.Level[Svc.Prefs.get("log.logger.service.main")];
@@ -103,7 +113,6 @@ let SyncScheduler = {
     if (Status.checkSetup() == STATUS_OK) {
       Svc.Idle.addIdleObserver(this, Svc.Prefs.get("scheduler.idleTime"));
     }
-
   },
 
   observe: function observe(subject, topic, data) {
@@ -357,6 +366,10 @@ let SyncScheduler = {
 
     
     if (Status.backoffInterval && interval < Status.backoffInterval) {
+      this._log.trace("Requested interval " + interval +
+                      " ms is smaller than the backoff interval. " + 
+                      "Using backoff interval " +
+                      Status.backoffInterval + " ms instead.");
       interval = Status.backoffInterval;
     }
 
@@ -364,18 +377,23 @@ let SyncScheduler = {
       
       
       let currentInterval = this.nextSync - Date.now();
-      if (currentInterval < interval) {
+      this._log.trace("There's already a sync scheduled in " +
+                      currentInterval + " ms.");
+      if (currentInterval < interval && this.syncTimer) {
+        this._log.trace("Ignoring scheduling request for next sync in " +
+                        interval + " ms.");
         return;
       }
     }
 
     
     if (interval <= 0) {
+      this._log.trace("Requested sync should happen right away.");
       this.syncIfMPUnlocked();
       return;
     }
 
-    this._log.trace("Next sync in " + Math.ceil(interval / 1000) + " sec.");
+    this._log.debug("Next sync in " + interval + " ms.");
     Utils.namedTimer(this.syncIfMPUnlocked, interval, this, "syncTimer");
 
     
@@ -389,12 +407,12 @@ let SyncScheduler = {
 
   scheduleAtInterval: function scheduleAtInterval(minimumInterval) {
     let interval = Utils.calculateBackoff(this._syncErrors, MINIMUM_BACKOFF_INTERVAL);
-    if (minimumInterval)
+    if (minimumInterval) {
       interval = Math.max(minimumInterval, interval);
+    }
 
-    let d = new Date(Date.now() + interval);
-    this._log.config("Starting backoff, next sync at:" + d.toString());
-
+    this._log.debug("Starting client-initiated backoff. Next sync in " +
+                    interval + " ms.");
     this.scheduleNextSync(interval);
   },
 
@@ -414,7 +432,10 @@ let SyncScheduler = {
 
   autoConnect: function autoConnect() {
     if (Weave.Service._checkSetup() == STATUS_OK && !Weave.Service._checkSync()) {
-      Utils.nextTick(Weave.Service.sync, Weave.Service);
+      
+      
+      
+      this.scheduleNextSync(this.nextSync - Date.now());
     }
 
     

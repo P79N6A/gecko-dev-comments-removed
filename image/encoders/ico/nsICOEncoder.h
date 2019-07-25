@@ -2,10 +2,42 @@
 
 
 
-#include "mozilla/Attributes.h"
-#include "mozilla/ReentrantMonitor.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "imgIEncoder.h"
+
+#include "mozilla/ReentrantMonitor.h"
 
 #include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
@@ -25,7 +57,7 @@ class nsPNGEncoder;
 
 
 
-class nsICOEncoder MOZ_FINAL : public imgIEncoder
+class nsICOEncoder : public imgIEncoder
 {
   typedef mozilla::ReentrantMonitor ReentrantMonitor;
 public:
@@ -38,34 +70,34 @@ public:
   ~nsICOEncoder();
   
   
-  uint32_t GetRealWidth() const
+  PRUint32 GetRealWidth() const
   {
     return mICODirEntry.mWidth == 0 ? 256 : mICODirEntry.mWidth; 
   }
 
   
-  uint32_t GetRealHeight() const
+  PRUint32 GetRealHeight() const
   {
     return mICODirEntry.mHeight == 0 ? 256 : mICODirEntry.mHeight; 
   }
 
 protected:
-  nsresult ParseOptions(const nsAString& aOptions, uint32_t* bpp, 
+  nsresult ParseOptions(const nsAString& aOptions, PRUint32* bpp, 
                         bool *usePNG);
   void NotifyListener();
 
   
   void InitFileHeader();
   
-  void InitInfoHeader(uint32_t aBPP, uint8_t aWidth, uint8_t aHeight);
+  void InitInfoHeader(PRUint32 aBPP, PRUint8 aWidth, PRUint8 aHeight);
   
   void EncodeFileHeader();
   
   void EncodeInfoHeader();
   
-  inline int32_t GetCurrentImageBufferOffset()
+  inline PRInt32 GetCurrentImageBufferOffset()
   {
-    return static_cast<int32_t>(mImageBufferCurr - mImageBufferStart);
+    return static_cast<PRInt32>(mImageBufferCurr - mImageBufferStart);
   }
 
   
@@ -75,17 +107,17 @@ protected:
   
   
   
-  mozilla::image::IconFileHeader mICOFileHeader;
-  mozilla::image::IconDirEntry mICODirEntry;
+  mozilla::imagelib::IconFileHeader mICOFileHeader;
+  mozilla::imagelib::IconDirEntry mICODirEntry;
 
   
-  uint8_t* mImageBufferStart;
+  PRUint8* mImageBufferStart;
   
-  uint8_t* mImageBufferCurr;
+  PRUint8* mImageBufferCurr;
   
-  uint32_t mImageBufferSize;
+  PRUint32 mImageBufferSize;
   
-  uint32_t mImageBufferReadPoint;
+  PRUint32 mImageBufferReadPoint;
   
   bool mFinished;
   
@@ -93,5 +125,5 @@ protected:
 
   nsCOMPtr<nsIInputStreamCallback> mCallback;
   nsCOMPtr<nsIEventTarget> mCallbackTarget;
-  uint32_t mNotifyThreshold;
+  PRUint32 mNotifyThreshold;
 };

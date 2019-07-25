@@ -2261,22 +2261,4 @@ public:
   nscoord mRightEdge; 
 };
 
-
-
-
-
-
-
-class nsDisplayForcePaintOnScroll : public nsDisplayItem
-{
-public:
-  nsDisplayForcePaintOnScroll(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame);
-#ifdef NS_BUILD_REFCNT_LOGGING
-  virtual ~nsDisplayForcePaintOnScroll();
-#endif
-  NS_DISPLAY_DECL_NAME("ForcePaintOnScroll", TYPE_FORCEPAINTONSCROLL)
-  virtual bool IsVaryingRelativeToMovingFrame(nsDisplayListBuilder* aBuilder,
-                                                nsIFrame* aFrame);
-};
-
 #endif

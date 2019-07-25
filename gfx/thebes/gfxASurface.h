@@ -229,7 +229,28 @@ public:
 
     virtual const gfxIntSize GetSize() const { return gfxIntSize(-1, -1); }
 
+#ifdef DEBUG
+    
+
+
+
+    
+
+
+    void WriteAsPNG(const char* aFile);
+
+    
+
+
     void DumpAsDataURL();
+
+    
+
+
+    void CopyAsDataURL();
+    
+    void WriteAsPNG_internal(FILE* aFile, bool aBinary);
+#endif
 
     void SetOpaqueRect(const gfxRect& aRect) {
         if (aRect.IsEmpty()) {

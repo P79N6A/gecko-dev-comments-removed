@@ -681,6 +681,27 @@ public:
     void ClearFlag(PRInt32 aFlag) { mFlags &= ~aFlag; }
     PRInt32 GetFlags() const { return mFlags; }
 
+#ifdef DEBUG
+    
+
+
+
+    
+
+
+    void WriteAsPNG(const char* aFile);
+
+    
+
+
+    void DumpAsDataURL();
+
+    
+
+
+    void CopyAsDataURL();
+#endif
+
 private:
     cairo_t *mCairo;
     nsRefPtr<gfxASurface> mSurface;

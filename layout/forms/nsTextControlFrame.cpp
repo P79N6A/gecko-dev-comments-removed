@@ -1407,7 +1407,7 @@ nsTextControlFrame::CheckFireOnChange()
   {
     mFocusedValue = value;
     
-    nsContentUtils::DispatchTrustedEvent(mContent->GetOwnerDoc(), mContent,
+    nsContentUtils::DispatchTrustedEvent(mContent->OwnerDoc(), mContent,
                                          NS_LITERAL_STRING("change"), true,
                                          false);
   }

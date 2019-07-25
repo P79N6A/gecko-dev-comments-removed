@@ -1346,7 +1346,6 @@ function BrowserStartup() {
       gURLBar.setAttribute("readonly", "true");
       gURLBar.setAttribute("enablehistory", "false");
     }
-    goSetCommandEnabled("Browser:OpenLocation", false);
     goSetCommandEnabled("cmd_newNavigatorTab", false);
   }
 
@@ -1670,8 +1669,19 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
   
   
   window.addEventListener("fullscreen", onFullScreen, true);
+
+  
+  
+  window.addEventListener("mozfullscreenchange", onMozFullScreenChange, true);
+
+  
+  
+  window.addEventListener("MozShowFullScreenWarning", onShowFullScreenWarning, true);
+
   if (window.fullScreen)
     onFullScreen();
+  if (document.mozFullScreen)
+    onMozFullScreenChange();
 
 #ifdef MOZ_SERVICES_SYNC
   
@@ -2125,7 +2135,7 @@ function loadOneOrMoreURIs(aURIString)
 }
 
 function focusAndSelectUrlBar() {
-  if (gURLBar && !gURLBar.readOnly) {
+  if (gURLBar) {
     if (window.fullScreen)
       FullScreen.mouseoverToggle(true);
     if (isElementVisible(gURLBar)) {
@@ -2281,18 +2291,17 @@ function BrowserTryToCloseWindow()
     window.close();     
 }
 
-function loadURI(uri, referrer, postData, allowThirdPartyFixup)
-{
+function loadURI(uri, referrer, postData, allowThirdPartyFixup) {
+  if (postData === undefined)
+    postData = null;
+
+  var flags = nsIWebNavigation.LOAD_FLAGS_NONE;
+  if (allowThirdPartyFixup)
+    flags |= nsIWebNavigation.LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP;
+
   try {
-    if (postData === undefined)
-      postData = null;
-    var flags = nsIWebNavigation.LOAD_FLAGS_NONE;
-    if (allowThirdPartyFixup) {
-      flags = nsIWebNavigation.LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP;
-    }
     gBrowser.loadURIWithFlags(uri, flags, referrer, null, postData);
-  } catch (e) {
-  }
+  } catch (e) {}
 }
 
 function getShortcutOrURI(aURL, aPostDataRef, aMayInheritPrincipal) {
@@ -2840,6 +2849,14 @@ function onFullScreen(event) {
   FullScreen.toggle(event);
 }
 
+function onMozFullScreenChange(event) {
+  FullScreen.enterDomFullScreen(event);
+}
+
+function onShowFullScreenWarning(event) {
+  FullScreen.showWarning(false);
+}
+
 function getWebNavigation()
 {
   try {
@@ -3123,7 +3140,16 @@ var bookmarksButtonObserver = {
     let name = { };
     let url = browserDragAndDrop.drop(aEvent, name);
     try {
-      PlacesUIUtils.showMinimalAddBookmarkUI(makeURI(url), name);
+      PlacesUIUtils.showBookmarkDialog({ action: "add"
+                                       , type: "bookmark"
+                                       , uri: makeURI(url)
+                                       , title: name
+                                       , hiddenRows: [ "description"
+                                                     , "location"
+                                                     , "loadInSidebar"
+                                                     , "folderPicker"
+                                                     , "keyword" ]
+                                       });
     } catch(ex) { }
   },
 
@@ -3430,6 +3456,7 @@ const BrowserSearch = {
     openLinkIn(submission.uri.spec,
                useNewTab ? "tab" : "current",
                { postData: submission.postData,
+                 inBackground: false,
                  relatedToCurrent: true });
   },
 
@@ -3822,16 +3849,18 @@ var FullScreen = {
       
       
       
-      let fullScrToggler = document.getElementById("fullscr-toggler");
-      if (!fullScrToggler) {
-        fullScrToggler = document.createElement("hbox");
-        fullScrToggler.id = "fullscr-toggler";
-        fullScrToggler.collapsed = true;
-        gNavToolbox.parentNode.insertBefore(fullScrToggler, gNavToolbox.nextSibling);
+      
+      if (!document.mozFullScreen) {
+        let fullScrToggler = document.getElementById("fullscr-toggler");
+        if (!fullScrToggler) {
+          fullScrToggler = document.createElement("hbox");
+          fullScrToggler.id = "fullscr-toggler";
+          fullScrToggler.collapsed = true;
+          gNavToolbox.parentNode.insertBefore(fullScrToggler, gNavToolbox.nextSibling);
+        }
+        fullScrToggler.addEventListener("mouseover", this._expandCallback, false);
+        fullScrToggler.addEventListener("dragenter", this._expandCallback, false);
       }
-      fullScrToggler.addEventListener("mouseover", this._expandCallback, false);
-      fullScrToggler.addEventListener("dragenter", this._expandCallback, false);
-
       if (gPrefService.getBoolPref("browser.fullscreen.autohide"))
         gBrowser.mPanelContainer.addEventListener("mousemove",
                                                   this._collapseCallback, false);
@@ -3839,7 +3868,10 @@ var FullScreen = {
       document.addEventListener("keypress", this._keyToggleCallback, false);
       document.addEventListener("popupshown", this._setPopupOpen, false);
       document.addEventListener("popuphidden", this._setPopupOpen, false);
-      this._shouldAnimate = true;
+      
+      
+      
+      this._shouldAnimate = !document.mozFullScreen;
       this.mouseoverToggle(false);
 
       
@@ -3860,6 +3892,29 @@ var FullScreen = {
     }
   },
 
+  enterDomFullScreen : function(event) {
+    if (!document.mozFullScreen) {
+      return;
+    }
+    this.showWarning(true);
+
+    
+    
+    clearInterval(this._animationInterval);
+    clearTimeout(this._animationTimeout);
+    this._isAnimating = false;
+    this._shouldAnimate = false;
+    this.mouseoverToggle(false);
+
+    
+    
+    let fullScrToggler = document.getElementById("fullscr-toggler");
+    if (fullScrToggler) {
+      fullScrToggler.removeEventListener("mouseover", this._expandCallback, false);
+      fullScrToggler.removeEventListener("dragenter", this._expandCallback, false);
+    }
+  },
+
   cleanup: function () {
     if (window.fullScreen) {
       gBrowser.mPanelContainer.removeEventListener("mousemove",
@@ -3874,6 +3929,7 @@ var FullScreen = {
         fullScrToggler.removeEventListener("mouseover", this._expandCallback, false);
         fullScrToggler.removeEventListener("dragenter", this._expandCallback, false);
       }
+      this.cancelWarning();
     }
   },
 
@@ -3994,6 +4050,84 @@ var FullScreen = {
     FullScreen._animationInterval = setInterval(animateUpFrame, 70);
   },
 
+  cancelWarning: function(event) {
+    if (!this.warningBox) {
+      return;
+    }
+    if (this.onWarningHidden) {
+      this.warningBox.removeEventListener("transitionend", this.onWarningHidden, false);
+      this.onWarningHidden = null;
+    }
+    if (this.warningFadeOutTimeout) {
+      clearTimeout(this.warningFadeOutTimeout);
+      this.warningFadeOutTimeout = null;
+    }
+    if (this.revealBrowserTimeout) {
+      clearTimeout(this.revealBrowserTimeout);
+      this.revealBrowserTimeout = null;
+    }
+    this.warningBox.removeAttribute("fade-warning-out");
+    this.warningBox.removeAttribute("stop-obscuring-browser");
+    this.warningBox.removeAttribute("obscure-browser");
+    this.warningBox.setAttribute("hidden", true);
+    this.warningBox = null;
+  },
+
+  warningBox: null,
+  warningFadeOutTimeout: null,
+  revealBrowserTimeout: null,  
+  onWarningHidden: null,
+
+  
+  
+  showWarning: function(obscureBackground) {
+    if (!document.mozFullScreen || !gPrefService.getBoolPref("full-screen-api.warning.enabled")) {
+      return;
+    }
+    if (this.warningBox) {
+      
+      
+      if (this.warningFadeOutTimeout) {
+        clearTimeout(this.warningFadeOutTimeout);
+        this.warningFadeOutTimeout = null;
+      }
+    } else {
+      this.warningBox = document.getElementById("full-screen-warning-container");
+      
+      this.onWarningHidden =
+        function(event) {
+          if (event.propertyName != "opacity")
+            return;
+          this.cancelWarning();
+        }.bind(this);
+      this.warningBox.addEventListener("transitionend", this.onWarningHidden, false);
+      this.warningBox.removeAttribute("hidden");
+    }
+
+    if (obscureBackground) {
+      
+      this.warningBox.setAttribute("obscure-browser", "true");
+      
+      this.warningBox.removeAttribute("stop-obscuring-browser");
+      this.revealBrowserTimeout =
+        setTimeout(
+          function() {
+            if (this.warningBox)
+              this.warningBox.setAttribute("stop-obscuring-browser", "true");
+          }.bind(this),
+          1250);
+    }
+
+    
+    this.warningFadeOutTimeout =
+      setTimeout(
+        function() {
+          if (this.warningBox)
+            this.warningBox.setAttribute("fade-warning-out", "true");
+        }.bind(this),
+        3000);
+  },
+
   mouseoverToggle: function(aShow, forceHide)
   {
     
@@ -4033,7 +4167,10 @@ var FullScreen = {
     gNavToolbox.style.marginTop =
       aShow ? "" : -gNavToolbox.getBoundingClientRect().height + "px";
 
-    document.getElementById("fullscr-toggler").collapsed = aShow;
+    let toggler = document.getElementById("fullscr-toggler");
+    if (toggler) {
+      toggler.collapsed = aShow;
+    }
     this._isChromeCollapsed = !aShow;
     if (gPrefService.getIntPref("browser.fullscreen.animateUp") == 2)
       this._shouldAnimate = true;
@@ -4159,7 +4296,7 @@ var XULBrowserWindow = {
   startTime: 0,
   statusText: "",
   isBusy: false,
-  inContentWhitelist: ["about:addons", "about:permissions"],
+  inContentWhitelist: ["about:addons", "about:permissions", "about:sync-progress"],
 
   QueryInterface: function (aIID) {
     if (aIID.equals(Ci.nsIWebProgressListener) ||
@@ -5588,9 +5725,16 @@ function contentAreaClick(event, isPanelClick)
       
       
       
-      PlacesUIUtils.showMinimalAddBookmarkUI(makeURI(href),
-                                             linkNode.getAttribute("title"),
-                                             null, null, true, true);
+      PlacesUIUtils.showBookmarkDialog({ action: "add"
+                                       , type: "bookmark"
+                                       , uri: makeURI(href)
+                                       , title: linkNode.getAttribute("title")
+                                       , loadBookmarkInSidebar: true
+                                       , hiddenRows: [ "description"
+                                                     , "location"
+                                                     , "folderPicker"
+                                                     , "keyword" ]
+                                       });
       event.preventDefault();
       return true;
     }
@@ -5647,7 +5791,8 @@ function middleMousePaste(event) {
   
   clipboard = clipboard.replace(/\s*\n\s*/g, "");
 
-  let url = getShortcutOrURI(clipboard);
+  let mayInheritPrincipal = { value: false };
+  let url = getShortcutOrURI(clipboard, mayInheritPrincipal);
   try {
     makeURI(url);
   } catch (ex) {
@@ -5663,9 +5808,10 @@ function middleMousePaste(event) {
     Cu.reportError(ex);
   }
 
-  openUILink(url,
-             event,
-             true );
+  
+  let where = whereToOpenLink(event, true);
+  openUILinkIn(url, where,
+               { disallowInheritPrincipal: !mayInheritPrincipal.value });
 
   event.stopPropagation();
 }
@@ -5840,9 +5986,8 @@ function stylesheetFillPopup(menuPopup) {
 
     
     if (currentStyleSheet.media.length > 0) {
-      let media = currentStyleSheet.media.mediaText.split(", ");
-      if (media.indexOf("screen") == -1 &&
-          media.indexOf("all") == -1)
+      let mediaQueryList = currentStyleSheet.media.mediaText;
+      if (!window.content.matchMedia(mediaQueryList).matches)
         continue;
     }
 
@@ -6625,8 +6770,18 @@ function AddKeywordForSearchField() {
   else
     spec += "?" + formData.join("&");
 
-  PlacesUIUtils.showMinimalAddBookmarkUI(makeURI(spec), title, description, null,
-                                         null, null, "", postData, charset);
+  PlacesUIUtils.showBookmarkDialog({ action: "add"
+                                   , type: "bookmark"
+                                   , uri: makeURI(spec)
+                                   , title: title
+                                   , description: description
+                                   , keyword: ""
+                                   , postData: postData
+                                   , charSet: charset
+                                   , hiddenRows: [ "location"
+                                                 , "loadInSidebar"
+                                                 , "folderPicker" ]
+                                   });
 }
 
 function SwitchDocumentDirection(aWindow) {
@@ -6676,14 +6831,6 @@ var gPluginHandler = {
     delete this.CrashSubmit;
     Cu.import("resource://gre/modules/CrashSubmit.jsm", this);
     return this.CrashSubmit;
-  },
-
-  get crashReportHelpURL() {
-    delete this.crashReportHelpURL;
-    let url = formatURL("app.support.baseURL", true);
-    url += "plugin-crashed";
-    this.crashReportHelpURL = url;
-    return this.crashReportHelpURL;
   },
 
   
@@ -6825,9 +6972,24 @@ var gPluginHandler = {
   },
 
   
-  submitReport : function(pluginDumpID, browserDumpID) {
+  retryPluginPage: function (browser, plugin, pluginDumpID, browserDumpID) {
+    let doc = plugin.ownerDocument;
+
+    let statusDiv =
+      doc.getAnonymousElementByAttribute(plugin, "class", "submitStatus");
+    let status = statusDiv.getAttribute("status");
+
+    let submitChk =
+      doc.getAnonymousElementByAttribute(plugin, "class", "pleaseSubmitCheckbox");
+
     
-    
+    if (status == "please" && submitChk.checked) {
+      this.submitReport(pluginDumpID, browserDumpID);
+    }
+    this.reloadPage(browser);
+  },
+
+  submitReport: function (pluginDumpID, browserDumpID) {
     this.CrashSubmit.submit(pluginDumpID);
     if (browserDumpID)
       this.CrashSubmit.submit(browserDumpID);
@@ -7046,7 +7208,6 @@ var gPluginHandler = {
 
     let submittedReport = aEvent.getData("submittedCrashReport");
     let doPrompt        = true; 
-    let submitReports   = true; 
     let pluginName      = aEvent.getData("pluginName");
     let pluginFilename  = aEvent.getData("pluginFilename");
     let pluginDumpID    = aEvent.getData("pluginDumpID");
@@ -7064,6 +7225,7 @@ var gPluginHandler = {
     let overlay = doc.getAnonymousElementByAttribute(plugin, "class", "mainBox");
     let statusDiv = doc.getAnonymousElementByAttribute(plugin, "class", "submitStatus");
 #ifdef MOZ_CRASHREPORTER
+    let submitReports = gCrashReporter.submitReports;
     let status;
 
     
@@ -7074,18 +7236,21 @@ var gPluginHandler = {
       status = "noSubmit";
     }
     else { 
-      status = "please";
       
-      let pleaseLink = doc.getAnonymousElementByAttribute(
-                            plugin, "class", "pleaseSubmitLink");
-      this.addLinkClickCallback(pleaseLink, "submitReport",
-                                pluginDumpID, browserDumpID);
+      let submitChk = doc.getAnonymousElementByAttribute(
+                        plugin, "class", "pleaseSubmitCheckbox");
+      submitChk.checked = submitReports;
+      submitChk.addEventListener("click", function() {
+        gCrashReporter.submitReports = this.checked;
+      }, false);
+
+      status = "please";
     }
 
     
     
     if (!pluginDumpID) {
-        status = "noReport";
+      status = "noReport";
     }
 
     statusDiv.setAttribute("status", status);
@@ -7099,6 +7264,19 @@ var gPluginHandler = {
     
     
     if (doPrompt) {
+      let submitReportsPrefObserver = {
+        QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
+                                               Ci.nsISupportsWeakReference]),
+        observe : function(subject, topic, data) {
+          let submitChk = doc.getAnonymousElementByAttribute(
+                            plugin, "class", "pleaseSubmitCheckbox");
+          submitChk.checked = gCrashReporter.submitReports;
+        },
+        handleEvent : function(event) {
+            
+        }
+      };
+
       let observer = {
         QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
                                                Ci.nsISupportsWeakReference]),
@@ -7115,16 +7293,21 @@ var gPluginHandler = {
         handleEvent : function(event) {
             
         }
-      }
+      };
 
       
       Services.obs.addObserver(observer, "crash-report-status", true);
+      Services.obs.addObserver(
+        submitReportsPrefObserver, "submit-reports-pref-changed", true);
+
       
       
       
       
       
       doc.addEventListener("mozCleverClosureHack", observer, false);
+      doc.addEventListener(
+        "mozCleverClosureHack", submitReportsPrefObserver, false);
     }
 #endif
 
@@ -7134,7 +7317,12 @@ var gPluginHandler = {
     let browser = gBrowser.getBrowserForDocument(doc.defaultView.top.document);
 
     let link = doc.getAnonymousElementByAttribute(plugin, "class", "reloadLink");
+#ifdef MOZ_CRASHREPORTER
+    this.addLinkClickCallback(
+      link, "retryPluginPage", browser, plugin, pluginDumpID, browserDumpID);
+#else
     this.addLinkClickCallback(link, "reloadPage", browser);
+#endif
 
     let notificationBox = gBrowser.getNotificationBox(browser);
 
@@ -7200,7 +7388,10 @@ var gPluginHandler = {
       let link = notification.ownerDocument.createElementNS(XULNS, "label");
       link.className = "text-link";
       link.setAttribute("value", gNavigatorBundle.getString("crashedpluginsMessage.learnMore"));
-      link.href = gPluginHandler.crashReportHelpURL;
+      let crashurl = formatURL("app.support.baseURL", true);
+      crashurl += "plugin-crashed-notificationbar";
+      link.href = crashurl;
+
       let description = notification.ownerDocument.getAnonymousElementByAttribute(notification, "anonid", "messageText");
       description.appendChild(link);
 

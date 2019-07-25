@@ -9,10 +9,10 @@ pref("services.sync.syncKeyHelpURL", "https://services.mozilla.com/help/synckey"
 pref("services.sync.lastversion", "firstrun");
 pref("services.sync.sendVersionInfo", true);
 
-pref("services.sync.scheduler.singleDeviceInterval", 3600);  
+pref("services.sync.scheduler.singleDeviceInterval", 86400); 
 pref("services.sync.scheduler.idleInterval",         3600);  
-pref("services.sync.scheduler.activeInterval",       300);   
-pref("services.sync.scheduler.immediateInterval",    60);    
+pref("services.sync.scheduler.activeInterval",       600);   
+pref("services.sync.scheduler.immediateInterval",    90);    
 pref("services.sync.scheduler.idleTime",             300);   
 
 pref("services.sync.errorhandler.networkFailureReportTimeout", 604800); 
@@ -38,6 +38,7 @@ pref("services.sync.log.appender.file.logOnSuccess", false);
 pref("services.sync.log.appender.file.maxErrorAge", 864000); 
 pref("services.sync.log.rootLogger", "Debug");
 pref("services.sync.log.logger.service.main", "Debug");
+pref("services.sync.log.logger.status", "Debug");
 pref("services.sync.log.logger.authenticator", "Debug");
 pref("services.sync.log.logger.network.resources", "Debug");
 pref("services.sync.log.logger.service.jpakeclient", "Debug");

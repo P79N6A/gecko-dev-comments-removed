@@ -5,12 +5,62 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 let Keys = { meta: false };
 
 
 
 
 let UI = {
+  
+  
+  
+  DBLCLICK_INTERVAL: 500,
+
+  
+  
+  
+  DBLCLICK_OFFSET: 5,
+
   
   
   _frameInitialized: false,
@@ -49,6 +99,11 @@ let UI = {
   
   
   _currentTab: null,
+
+  
+  
+  
+  _lastClick: 0,
 
   
   
@@ -99,10 +154,6 @@ let UI = {
 
   
   
-  _originalSmoothScroll: null,
-
-  
-  
   
   toString: function UI_toString() {
     return "[UI]";
@@ -119,7 +170,13 @@ let UI = {
       this._initPageDirection();
 
       
+      ThumbnailStorage.init();
+
+      
       Storage.init();
+
+      
+      StoragePolicy.init();
 
       if (Storage.readWindowBusyState(gWindow))
         this.storageBusy();
@@ -131,8 +188,6 @@ let UI = {
       
       Search.init();
 
-      Telemetry.init();
-
       
       this._currentTab = gBrowser.selectedTab;
 
@@ -140,8 +195,7 @@ let UI = {
       iQ("#exit-button").click(function() {
         self.exit();
         self.blurAll();
-      })
-      .attr("title", tabviewString("button.exitTabGroups"));
+      });
 
       
       
@@ -153,29 +207,38 @@ let UI = {
               element.blur();
           });
         }
-        if (e.originalTarget.id == "content" &&
-            Utils.isLeftClick(e) &&
-            e.detail == 1) {
-          self._createGroupItemOnDrag(e);
+        if (e.originalTarget.id == "content") {
+          if (!Utils.isLeftClick(e)) {
+            self._lastClick = 0;
+            self._lastClickPositions = null;
+          } else {
+            
+            if (Date.now() - self._lastClick <= self.DBLCLICK_INTERVAL && 
+                (self._lastClickPositions.x - self.DBLCLICK_OFFSET) <= e.clientX &&
+                (self._lastClickPositions.x + self.DBLCLICK_OFFSET) >= e.clientX &&
+                (self._lastClickPositions.y - self.DBLCLICK_OFFSET) <= e.clientY &&
+                (self._lastClickPositions.y + self.DBLCLICK_OFFSET) >= e.clientY) {
+
+              let box =
+                new Rect(e.clientX - Math.floor(TabItems.tabWidth/2),
+                         e.clientY - Math.floor(TabItems.tabHeight/2),
+                         TabItems.tabWidth, TabItems.tabHeight);
+              box.inset(-30, -30);
+
+              let opts = {immediately: true, bounds: box};
+              let groupItem = new GroupItem([], opts);
+              groupItem.newTab();
+
+              self._lastClick = 0;
+              self._lastClickPositions = null;
+              gTabView.firstUseExperienced = true;
+            } else {
+              self._lastClick = Date.now();
+              self._lastClickPositions = new Point(e.clientX, e.clientY);
+              self._createGroupItemOnDrag(e);
+            }
+          }
         }
-      });
-
-      iQ(gTabViewFrame.contentDocument).dblclick(function(e) {
-        if (e.originalTarget.id != "content")
-          return;
-
-        
-        let box =
-          new Rect(e.clientX - Math.floor(TabItems.tabWidth/2),
-                   e.clientY - Math.floor(TabItems.tabHeight/2),
-                   TabItems.tabWidth, TabItems.tabHeight);
-        box.inset(-30, -30);
-
-        let opts = {immediately: true, bounds: box};
-        let groupItem = new GroupItem([], opts);
-        groupItem.newTab();
-
-        gTabView.firstUseExperienced = true;
       });
 
       iQ(window).bind("unload", function() {
@@ -206,9 +269,6 @@ let UI = {
       TabItems.init();
       TabItems.pausePainting();
 
-      
-      FavIcons.init();
-
       if (!hasGroupItemsData)
         this.reset();
 
@@ -233,6 +293,7 @@ let UI = {
           GroupItems.removeHiddenGroups();
 
         TabItems.saveAll();
+        TabItems.saveAllThumbnails({synchronously: true});
 
         self._save();
       }, false);
@@ -269,9 +330,8 @@ let UI = {
     
     TabItems.uninit();
     GroupItems.uninit();
-    FavIcons.uninit();
     Storage.uninit();
-    Telemetry.uninit();
+    StoragePolicy.uninit();
 
     this._removeTabActionHandlers();
     this._currentTab = null;
@@ -405,12 +465,11 @@ let UI = {
     if (item.isATabItem) {
       if (item.parent)
         GroupItems.setActiveGroupItem(item.parent);
-      if (!options || !options.dontSetActiveTabInGroup)
-        this._setActiveTab(item);
+      this._setActiveTab(item);
     } else {
       GroupItems.setActiveGroupItem(item);
       if (!options || !options.dontSetActiveTabInGroup) {
-        let activeTab = item.getActiveTab();
+        let activeTab = item.getActiveTab()
         if (activeTab)
           this._setActiveTab(activeTab);
       }
@@ -452,11 +511,6 @@ let UI = {
       return;
 
     this._isChangingVisibility = true;
-
-    
-    let tabStrip = gBrowser.tabContainer.mTabstrip;
-    this._originalSmoothScroll = tabStrip.smoothScroll;
-    tabStrip.smoothScroll = false;
 
     
     this._initPageDirection();
@@ -509,8 +563,7 @@ let UI = {
         TabItems.resumePainting();
       });
     } else {
-      if (!currentTab || !currentTab._tabViewTabItem)
-        self.clearActiveTab();
+      self.clearActiveTab();
       self._isChangingVisibility = false;
       dispatchEvent(event);
 
@@ -554,7 +607,6 @@ let UI = {
     gBrowser.selectedBrowser.focus();
 
     gBrowser.updateTitlebar();
-    gBrowser.tabContainer.mTabstrip.smoothScroll = this._originalSmoothScroll;
 #ifdef XP_MACOSX
     this.setTitlebarColors(false);
 #endif
@@ -669,6 +721,11 @@ let UI = {
         if (data == "enter" || data == "exit") {
           Search.hide();
           self._privateBrowsing.transitionMode = data;
+
+          
+          
+          if (data == "enter")
+            TabItems.saveAllThumbnails({synchronously: true});
         }
       } else if (topic == "private-browsing-transition-complete") {
         
@@ -723,11 +780,11 @@ let UI = {
         if (gBrowser.tabs.length > 1) {
           
           for (let a = 0; a < gBrowser._numPinnedTabs; a++) {
-            if (Utils.isValidXULTab(gBrowser.tabs[a]))
+            if (!gBrowser.tabs[a].closing)
               return;
           }
 
-          let groupItem = GroupItems.getActiveGroupItem();
+          var groupItem = GroupItems.getActiveGroupItem();
 
           
           
@@ -1112,7 +1169,6 @@ let UI = {
 
       let preventDefault = true;
       let activeTab;
-      let activeGroupItem;
       let norm = null;
       switch (event.keyCode) {
         case KeyEvent.DOM_VK_RIGHT:
@@ -1130,7 +1186,7 @@ let UI = {
       }
 
       if (norm != null) {
-        let nextTab = getClosestTabBy(norm);
+        var nextTab = getClosestTabBy(norm);
         if (nextTab) {
           if (nextTab.isStacked && !nextTab.parent.expanded)
             nextTab = nextTab.parent.getChild(0);
@@ -1139,7 +1195,7 @@ let UI = {
       } else {
         switch(event.keyCode) {
           case KeyEvent.DOM_VK_ESCAPE:
-            activeGroupItem = GroupItems.getActiveGroupItem();
+            let activeGroupItem = GroupItems.getActiveGroupItem();
             if (activeGroupItem && activeGroupItem.expanded)
               activeGroupItem.collapse();
             else
@@ -1147,18 +1203,9 @@ let UI = {
             break;
           case KeyEvent.DOM_VK_RETURN:
           case KeyEvent.DOM_VK_ENTER:
-            activeGroupItem = GroupItems.getActiveGroupItem();
-            if (activeGroupItem) {
-              activeTab = self.getActiveTab();
-
-              if (!activeTab || activeTab.parent != activeGroupItem)
-                activeTab = activeGroupItem.getActiveTab();
-
-              if (activeTab)
-                activeTab.zoomIn();
-              else
-                activeGroupItem.newTab();
-            }
+            activeTab = self.getActiveTab();
+            if (activeTab)
+              activeTab.zoomIn();
             break;
           case KeyEvent.DOM_VK_TAB:
             
@@ -1568,10 +1615,39 @@ let UI = {
   
   
   
+  
   _saveAll: function UI__saveAll() {
     this._save();
     GroupItems.saveAll();
     TabItems.saveAll();
+  },
+
+  
+  
+  
+  shouldLoadFavIcon: function UI_shouldLoadFavIcon(browser) {
+    return !(browser.contentDocument instanceof window.ImageDocument) &&
+            (browser.currentURI.schemeIs("about") ||
+             gBrowser.shouldLoadFavIcon(browser.contentDocument.documentURIObject));
+  },
+
+  
+  
+  
+  getFavIconUrlForTab: function UI_getFavIconUrlForTab(tab) {
+    let url;
+
+    if (tab.image) {
+      
+      if (/^https?:/.test(tab.image))
+        url = gFavIconService.getFaviconLinkForIcon(gWindow.makeURI(tab.image)).spec;
+      else
+        url = tab.image;
+    } else {
+      url = gFavIconService.getFaviconImageForPage(tab.linkedBrowser.currentURI).spec;
+    }
+
+    return url;
   },
 
   

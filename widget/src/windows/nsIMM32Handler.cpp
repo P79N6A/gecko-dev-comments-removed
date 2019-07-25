@@ -2066,7 +2066,8 @@ nsIMM32Handler::ResolveIMECaretPos(nsIWidget* aReferenceWidget,
 bool
 nsIMM32Handler::OnMouseEvent(nsWindow* aWindow, LPARAM lParam, int aAction)
 {
-  if (!sWM_MSIME_MOUSE || !mIsComposing) {
+  if (!sWM_MSIME_MOUSE || !mIsComposing ||
+      !ShouldDrawCompositionStringOurselves()) {
     return false;
   }
 
@@ -2090,8 +2091,18 @@ nsIMM32Handler::OnMouseEvent(nsWindow* aWindow, LPARAM lParam, int aAction)
   ResolveIMECaretPos(aWindow, cursorRect,
                      aWindow->GetTopLevelWindow(false), cursorInTopLevel);
   PRInt32 cursorXInChar = cursorInTopLevel.x - charAtPt.mReply.mRect.x;
-  int positioning = cursorXInChar * 4 / charAtPt.mReply.mRect.width;
-  positioning = (positioning + 2) % 4;
+  
+  
+  
+  
+  
+  
+  
+  int positioning = 1;
+  if (charAtPt.mReply.mRect.width > 0) {
+    positioning = cursorXInChar * 4 / charAtPt.mReply.mRect.width;
+    positioning = (positioning + 2) % 4;
+  }
 
   int offset = charAtPt.mReply.mOffset - mCompositionStart;
   if (positioning < 2) {

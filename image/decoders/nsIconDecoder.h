@@ -4,6 +4,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsIconDecoder_h__
 #define nsIconDecoder_h__
 
@@ -14,7 +48,7 @@
 #include "imgIDecoderObserver.h"
 
 namespace mozilla {
-namespace image {
+namespace imagelib {
 class RasterImage;
 
 
@@ -43,14 +77,14 @@ public:
   nsIconDecoder(RasterImage &aImage, imgIDecoderObserver* aObserver);
   virtual ~nsIconDecoder();
 
-  virtual void WriteInternal(const char* aBuffer, uint32_t aCount);
+  virtual void WriteInternal(const char* aBuffer, PRUint32 aCount);
 
-  uint8_t mWidth;
-  uint8_t mHeight;
-  uint32_t mPixBytesRead;
-  uint32_t mPixBytesTotal;
-  uint8_t* mImageData;
-  uint32_t mState;
+  PRUint8 mWidth;
+  PRUint8 mHeight;
+  PRUint32 mPixBytesRead;
+  PRUint32 mPixBytesTotal;
+  PRUint8* mImageData;
+  PRUint32 mState;
 };
 
 enum {

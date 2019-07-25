@@ -98,6 +98,8 @@ public:
 
   void OwnerContentChanged(nsIContent* aContent);
 
+  void SetBackgroundColor(nscolor aColor) { mBackgroundColor = gfxRGBA(aColor); };
+
 protected:
   NS_OVERRIDE void ActorDestroy(ActorDestroyReason why);
 
@@ -133,6 +135,8 @@ private:
   
   
   bool mFrameLoaderDestroyed;
+  
+  gfxRGBA mBackgroundColor;
 };
 
 } 

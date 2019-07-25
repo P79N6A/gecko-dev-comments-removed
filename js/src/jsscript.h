@@ -175,7 +175,10 @@ class Bindings {
     bool hasExtensibleParents;
 
   public:
-    inline Bindings(JSContext *cx);
+    inline Bindings(JSContext *cx)
+        : lastBinding(NULL), nargs(0), nvars(0), nupvars(0), hasExtensibleParents(false)
+    {
+    }
 
     
 
@@ -435,9 +438,6 @@ class JSPCCounters {
 
 static const uint32 JS_SCRIPT_COOKIE = 0xc00cee;
 
-static JSObject * const JS_NEW_SCRIPT = (JSObject *)0x12345678;
-static JSObject * const JS_CACHED_SCRIPT = (JSObject *)0x12341234;
-
 struct JSScript : public js::gc::Cell {
     
 
@@ -456,7 +456,7 @@ struct JSScript : public js::gc::Cell {
                                uint16 nClosedArgs, uint16 nClosedVars, uint32 nTypeSets,
                                JSVersion version);
 
-    static JSScript *NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg);
+    static JSScript *NewScriptFromEmitter(JSContext *cx, js::BytecodeEmitter *bce);
 
 #ifdef JS_CRASH_DIAGNOSTICS
     
@@ -579,10 +579,11 @@ struct JSScript : public js::gc::Cell {
 
 
 
-        JSObject    *object;
+
+        js::GlobalObject    *globalObject;
 
         
-        JSScript    *evalHashLink;
+        JSScript            *evalHashLink;
     } u;
 
     uint32          *closedSlots; 
@@ -598,13 +599,9 @@ struct JSScript : public js::gc::Cell {
 #endif
 
 #ifdef JS_CRASH_DIAGNOSTICS
-    JSObject        *ownerObject;
-
     
-    uint32          cookie2[sizeof(JSObject *) == 4 ? 1 : 2];
+    uint32          cookie2[Cell::CellSize / sizeof(uint32)];
 #endif
-
-    void setOwnerObject(JSObject *owner);
 
 #ifdef DEBUG
     
@@ -654,6 +651,11 @@ struct JSScript : public js::gc::Cell {
 
     inline void clearNesting();
 
+    
+    js::GlobalObject *getGlobalObjectOrNull() const {
+        return isCachedEval ? NULL : u.globalObject;
+    }
+
   private:
     bool makeTypes(JSContext *cx, JSFunction *fun);
     bool makeAnalysis(JSContext *cx);
@@ -701,7 +703,7 @@ struct JSScript : public js::gc::Cell {
 
     
     JS_FRIEND_API(size_t) jitDataSize(JSUsableSizeFun usf);
-    
+
 #endif
 
     jsbytecode *main() {
@@ -819,7 +821,7 @@ struct JSScript : public js::gc::Cell {
 
 
     bool setStepModeFlag(JSContext *cx, bool step);
-    
+
     
 
 
@@ -864,9 +866,6 @@ StackDepth(JSScript *script)
     JS_END_MACRO
 
 
-extern JSObject *
-js_InitScriptClass(JSContext *cx, JSObject *obj);
-
 extern void
 js_MarkScriptFilename(const char *filename);
 
@@ -890,17 +889,9 @@ namespace js {
 #ifdef JS_CRASH_DIAGNOSTICS
 
 void
-CheckScriptOwner(JSScript *script, JSObject *owner);
-
-void
 CheckScript(JSScript *script, JSScript *prev);
 
 #else
-
-inline void
-CheckScriptOwner(JSScript *script, JSObject *owner)
-{
-}
 
 inline void
 CheckScript(JSScript *script, JSScript *prev)
@@ -910,9 +901,6 @@ CheckScript(JSScript *script, JSScript *prev)
 #endif 
 
 } 
-
-extern JSObject *
-js_NewScriptObject(JSContext *cx, JSScript *script);
 
 
 

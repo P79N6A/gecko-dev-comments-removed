@@ -5,10 +5,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef mozilla_imagelib_SVGDocumentWrapper_h_
 #define mozilla_imagelib_SVGDocumentWrapper_h_
-
-#include "mozilla/Attributes.h"
 
 #include "nsCOMPtr.h"
 #include "nsIStreamListener.h"
@@ -29,11 +60,11 @@ class nsSVGSVGElement;
 
 
 namespace mozilla {
-namespace image {
+namespace imagelib {
 
-class SVGDocumentWrapper MOZ_FINAL : public nsIStreamListener,
-                                     public nsIObserver,
-                                     nsSupportsWeakReference
+class SVGDocumentWrapper : public nsIStreamListener,
+                           public nsIObserver,
+                           nsSupportsWeakReference
 {
 public:
   SVGDocumentWrapper();
@@ -62,7 +93,7 @@ public:
 
 
 
-  bool      GetWidthOrHeight(Dimension aDimension, int32_t& aResult);
+  bool      GetWidthOrHeight(Dimension aDimension, PRInt32& aResult);
 
   
 
@@ -152,6 +183,10 @@ private:
   nsCOMPtr<nsIStreamListener> mListener;
   bool                        mIgnoreInvalidation;
   bool                        mRegisteredForXPCOMShutdown;
+
+  
+  
+  static nsIAtom* kSVGAtom;
 };
 
 } 

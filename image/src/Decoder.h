@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef MOZILLA_IMAGELIB_DECODER_H_
 #define MOZILLA_IMAGELIB_DECODER_H_
 
@@ -11,7 +44,7 @@
 #include "imgIDecoderObserver.h"
 
 namespace mozilla {
-namespace image {
+namespace imagelib {
 
 class Decoder
 {
@@ -52,7 +85,7 @@ public:
 
 
 
-  void Write(const char* aBuffer, uint32_t aCount);
+  void Write(const char* aBuffer, PRUint32 aCount);
 
   
 
@@ -98,10 +131,10 @@ public:
 
   
   
-  uint32_t GetFrameCount() { return mFrameCount; }
+  PRUint32 GetFrameCount() { return mFrameCount; }
 
   
-  uint32_t GetCompleteFrameCount() { return mInFrame ? mFrameCount - 1 : mFrameCount; }
+  PRUint32 GetCompleteFrameCount() { return mInFrame ? mFrameCount - 1 : mFrameCount; }
 
   
   bool HasError() { return HasDataError() || HasDecoderError(); };
@@ -117,11 +150,11 @@ public:
   
   
   enum {
-    DECODER_NO_PREMULTIPLY_ALPHA = 0x2,     
-    DECODER_NO_COLORSPACE_CONVERSION = 0x4  
+    DECODER_NO_PREMULTIPLY_ALPHA = 0x2,
+    DECODER_NO_COLORSPACE_CONVERSION = 0x4
   };
-  void SetDecodeFlags(uint32_t aFlags) { mDecodeFlags = aFlags; }
-  uint32_t GetDecodeFlags() { return mDecodeFlags; }
+  void SetDecodeFlags(PRUint32 aFlags) { mDecodeFlags = aFlags; }
+  PRUint32 GetDecodeFlags() { return mDecodeFlags; }
 
   
   virtual Telemetry::ID SpeedHistogram() { return Telemetry::HistogramCount; }
@@ -133,7 +166,7 @@ protected:
 
 
   virtual void InitInternal();
-  virtual void WriteInternal(const char* aBuffer, uint32_t aCount);
+  virtual void WriteInternal(const char* aBuffer, PRUint32 aCount);
   virtual void FinishInternal();
 
   
@@ -142,7 +175,7 @@ protected:
 
   
   
-  void PostSize(int32_t aWidth, int32_t aHeight);
+  void PostSize(PRInt32 aWidth, PRInt32 aHeight);
 
   
   
@@ -171,12 +204,12 @@ protected:
   RasterImage &mImage;
   nsCOMPtr<imgIDecoderObserver> mObserver;
 
-  uint32_t mDecodeFlags;
+  PRUint32 mDecodeFlags;
   bool mDecodeDone;
   bool mDataError;
 
 private:
-  uint32_t mFrameCount; 
+  PRUint32 mFrameCount; 
 
   nsIntRect mInvalidRect; 
 
@@ -185,7 +218,6 @@ private:
   bool mInitialized;
   bool mSizeDecode;
   bool mInFrame;
-  bool mIsAnimated;
 };
 
 } 

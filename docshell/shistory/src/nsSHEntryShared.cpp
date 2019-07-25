@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsSHEntryShared.h"
 #include "nsISHistory.h"
 #include "nsISHistoryInternal.h"
@@ -14,13 +47,12 @@
 #include "nsThreadUtils.h"
 #include "nsILayoutHistoryState.h"
 #include "prprf.h"
-#include "mozilla/Attributes.h"
 
 namespace dom = mozilla::dom;
 
 namespace {
 
-uint64_t gSHEntrySharedID = 0;
+PRUint64 gSHEntrySharedID = 0;
 
 } 
 
@@ -29,7 +61,7 @@ uint64_t gSHEntrySharedID = 0;
 #define CONTENT_VIEWER_TIMEOUT_SECONDS (30*60)
 
 typedef nsExpirationTracker<nsSHEntryShared, 3> HistoryTrackerBase;
-class HistoryTracker MOZ_FINAL : public HistoryTrackerBase {
+class HistoryTracker : public HistoryTrackerBase {
 public:
   
   HistoryTracker() 
@@ -44,7 +76,7 @@ protected:
   }
 };
 
-static HistoryTracker *gHistoryTracker = nullptr;
+static HistoryTracker *gHistoryTracker = nsnull;
 
 void
 nsSHEntryShared::Startup()
@@ -56,11 +88,12 @@ void
 nsSHEntryShared::Shutdown()
 {
   delete gHistoryTracker;
-  gHistoryTracker = nullptr;
+  gHistoryTracker = nsnull;
 }
 
 nsSHEntryShared::nsSHEntryShared()
   : mDocShellID(0)
+  , mParent(nsnull)
   , mIsFrameNavigation(false)
   , mSaveLayoutState(true)
   , mSticky(true)
@@ -83,7 +116,7 @@ nsSHEntryShared::~nsSHEntryShared()
     iterator(gHistoryTracker);
 
   nsSHEntryShared *elem;
-  while ((elem = iterator.Next()) != nullptr) {
+  while ((elem = iterator.Next()) != nsnull) {
     NS_ASSERTION(elem != this, "Found dead entry still in the tracker!");
   }
 #endif
@@ -103,6 +136,7 @@ nsSHEntryShared::Duplicate(nsSHEntryShared *aEntry)
   newEntry->mDocShellID = aEntry->mDocShellID;
   newEntry->mChildShells.AppendObjects(aEntry->mChildShells);
   newEntry->mOwner = aEntry->mOwner;
+  newEntry->mParent = aEntry->mParent;
   newEntry->mContentType.Assign(aEntry->mContentType);
   newEntry->mIsFrameNavigation = aEntry->mIsFrameNavigation;
   newEntry->mSaveLayoutState = aEntry->mSaveLayoutState;
@@ -140,22 +174,22 @@ nsSHEntryShared::DropPresentationState()
   nsRefPtr<nsSHEntryShared> kungFuDeathGrip = this;
 
   if (mDocument) {
-    mDocument->SetBFCacheEntry(nullptr);
+    mDocument->SetBFCacheEntry(nsnull);
     mDocument->RemoveMutationObserver(this);
-    mDocument = nullptr;
+    mDocument = nsnull;
   }
   if (mContentViewer) {
     mContentViewer->ClearHistoryEntry();
   }
 
   RemoveFromExpirationTracker();
-  mContentViewer = nullptr;
+  mContentViewer = nsnull;
   mSticky = true;
-  mWindowState = nullptr;
+  mWindowState = nsnull;
   mViewerBounds.SetRect(0, 0, 0, 0);
   mChildShells.Clear();
-  mRefreshURIList = nullptr;
-  mEditorData = nullptr;
+  mRefreshURIList = nsnull;
+  mEditorData = nsnull;
 }
 
 void
@@ -282,7 +316,7 @@ nsSHEntryShared::RemoveFromBFCacheAsync()
 }
 
 nsresult
-nsSHEntryShared::GetID(uint64_t *aID)
+nsSHEntryShared::GetID(PRUint64 *aID)
 {
   *aID = mID;
   return NS_OK;
@@ -316,18 +350,18 @@ nsSHEntryShared::CharacterDataChanged(nsIDocument* aDocument,
 void
 nsSHEntryShared::AttributeWillChange(nsIDocument* aDocument,
                                      dom::Element* aContent,
-                                     int32_t aNameSpaceID,
+                                     PRInt32 aNameSpaceID,
                                      nsIAtom* aAttribute,
-                                     int32_t aModType)
+                                     PRInt32 aModType)
 {
 }
 
 void
 nsSHEntryShared::AttributeChanged(nsIDocument* aDocument,
                                   dom::Element* aElement,
-                                  int32_t aNameSpaceID,
+                                  PRInt32 aNameSpaceID,
                                   nsIAtom* aAttribute,
-                                  int32_t aModType)
+                                  PRInt32 aModType)
 {
   RemoveFromBFCacheAsync();
 }
@@ -336,7 +370,7 @@ void
 nsSHEntryShared::ContentAppended(nsIDocument* aDocument,
                                  nsIContent* aContainer,
                                  nsIContent* aFirstNewContent,
-                                 int32_t )
+                                 PRInt32 )
 {
   RemoveFromBFCacheAsync();
 }
@@ -345,7 +379,7 @@ void
 nsSHEntryShared::ContentInserted(nsIDocument* aDocument,
                                  nsIContent* aContainer,
                                  nsIContent* aChild,
-                                 int32_t )
+                                 PRInt32 )
 {
   RemoveFromBFCacheAsync();
 }
@@ -354,7 +388,7 @@ void
 nsSHEntryShared::ContentRemoved(nsIDocument* aDocument,
                                 nsIContent* aContainer,
                                 nsIContent* aChild,
-                                int32_t aIndexInContainer,
+                                PRInt32 aIndexInContainer,
                                 nsIContent* aPreviousSibling)
 {
   RemoveFromBFCacheAsync();

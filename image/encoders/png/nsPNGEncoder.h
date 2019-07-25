@@ -3,10 +3,41 @@
 
 
 
-#include "mozilla/Attributes.h"
-#include "mozilla/ReentrantMonitor.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "imgIEncoder.h"
+
+#include "mozilla/ReentrantMonitor.h"
 
 #include "nsCOMPtr.h"
 
@@ -23,7 +54,7 @@
 
 
 
-class nsPNGEncoder MOZ_FINAL : public imgIEncoder
+class nsPNGEncoder : public imgIEncoder
 {
   typedef mozilla::ReentrantMonitor ReentrantMonitor;
 public:
@@ -39,19 +70,18 @@ protected:
   nsresult ParseOptions(const nsAString& aOptions,
                         bool* useTransparency,
                         bool* skipFirstFrame,
-                        uint32_t* numAnimatedFrames,
-                        uint32_t* numIterations,
-                        uint32_t* frameDispose,
-                        uint32_t* frameBlend,
-                        uint32_t* frameDelay,
-                        uint32_t* offsetX,
-                        uint32_t* offsetY);
-  void ConvertHostARGBRow(const uint8_t* aSrc, uint8_t* aDest,
-                          uint32_t aPixelWidth, bool aUseTransparency);
-  void StripAlpha(const uint8_t* aSrc, uint8_t* aDest,
-                  uint32_t aPixelWidth);
-  static void WarningCallback(png_structp png_ptr, png_const_charp warning_msg);
-  static void ErrorCallback(png_structp png_ptr, png_const_charp error_msg);
+                        PRUint32* numAnimatedFrames,
+                        PRUint32* numIterations,
+                        PRUint32* frameDispose,
+                        PRUint32* frameBlend,
+                        PRUint32* frameDelay,
+                        PRUint32* offsetX,
+                        PRUint32* offsetY);
+  void ConvertHostARGBRow(const PRUint8* aSrc, PRUint8* aDest,
+                          PRUint32 aPixelWidth, bool aUseTransparency);
+  void StripAlpha(const PRUint8* aSrc, PRUint8* aDest,
+                  PRUint32 aPixelWidth);
+  static void ErrorCallback(png_structp png_ptr, png_const_charp warning_msg);
   static void WriteCallback(png_structp png, png_bytep data, png_size_t size);
   void NotifyListener();
 
@@ -62,15 +92,15 @@ protected:
   bool mFinished;
 
   
-  uint8_t* mImageBuffer;
-  uint32_t mImageBufferSize;
-  uint32_t mImageBufferUsed;
+  PRUint8* mImageBuffer;
+  PRUint32 mImageBufferSize;
+  PRUint32 mImageBufferUsed;
 
-  uint32_t mImageBufferReadPoint;
+  PRUint32 mImageBufferReadPoint;
 
   nsCOMPtr<nsIInputStreamCallback> mCallback;
   nsCOMPtr<nsIEventTarget> mCallbackTarget;
-  uint32_t mNotifyThreshold;
+  PRUint32 mNotifyThreshold;
 
   
 

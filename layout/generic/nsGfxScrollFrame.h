@@ -64,6 +64,12 @@ class nsIScrollFrameInternal;
 class nsPresState;
 struct ScrollReflowState;
 
+
+
+
+
+#define NS_SCROLLFRAME_INVALIDATE_CONTENTS_ON_SCROLL NS_FRAME_STATE_BIT(20)
+
 class nsGfxScrollFrameInner : public nsIReflowCallback {
 public:
   class AsyncScroll;

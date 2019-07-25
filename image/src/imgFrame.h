@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef imgFrame_h
 #define imgFrame_h
 
@@ -22,7 +54,6 @@
 #include "gfxQuartzImageSurface.h"
 #endif
 #include "nsAutoPtr.h"
-#include "imgIContainer.h"
 
 class imgFrame
 {
@@ -30,39 +61,41 @@ public:
   imgFrame();
   ~imgFrame();
 
-  nsresult Init(int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight, gfxASurface::gfxImageFormat aFormat, uint8_t aPaletteDepth = 0);
+  nsresult Init(PRInt32 aX, PRInt32 aY, PRInt32 aWidth, PRInt32 aHeight, gfxASurface::gfxImageFormat aFormat, PRUint8 aPaletteDepth = 0);
   nsresult Optimize();
 
   void Draw(gfxContext *aContext, gfxPattern::GraphicsFilter aFilter,
             const gfxMatrix &aUserSpaceToImageSpace, const gfxRect& aFill,
-            const nsIntMargin &aPadding, const nsIntRect &aSubimage,
-            uint32_t aImageFlags = imgIContainer::FLAG_NONE);
+            const nsIntMargin &aPadding, const nsIntRect &aSubimage);
 
   nsresult Extract(const nsIntRect& aRegion, imgFrame** aResult);
 
   nsresult ImageUpdated(const nsIntRect &aUpdateRect);
 
+  PRInt32 GetX() const;
+  PRInt32 GetY() const;
+  PRInt32 GetWidth() const;
+  PRInt32 GetHeight() const;
   nsIntRect GetRect() const;
   gfxASurface::gfxImageFormat GetFormat() const;
   bool GetNeedsBackground() const;
-  uint32_t GetImageBytesPerRow() const;
-  uint32_t GetImageDataLength() const;
+  PRUint32 GetImageBytesPerRow() const;
+  PRUint32 GetImageDataLength() const;
   bool GetIsPaletted() const;
   bool GetHasAlpha() const;
-  void GetImageData(uint8_t **aData, uint32_t *length) const;
-  void GetPaletteData(uint32_t **aPalette, uint32_t *length) const;
+  void GetImageData(PRUint8 **aData, PRUint32 *length) const;
+  void GetPaletteData(PRUint32 **aPalette, PRUint32 *length) const;
 
-  int32_t GetTimeout() const;
-  void SetTimeout(int32_t aTimeout);
+  PRInt32 GetTimeout() const;
+  void SetTimeout(PRInt32 aTimeout);
 
-  int32_t GetFrameDisposalMethod() const;
-  void SetFrameDisposalMethod(int32_t aFrameDisposalMethod);
-  int32_t GetBlendMethod() const;
-  void SetBlendMethod(int32_t aBlendMethod);
+  PRInt32 GetFrameDisposalMethod() const;
+  void SetFrameDisposalMethod(PRInt32 aFrameDisposalMethod);
+  PRInt32 GetBlendMethod() const;
+  void SetBlendMethod(PRInt32 aBlendMethod);
   bool ImageComplete() const;
 
   void SetHasNoAlpha();
-  void SetAsNonPremult(bool aIsNonPremult);
 
   bool GetCompositingFailed() const;
   void SetCompositingFailed(bool val);
@@ -101,15 +134,13 @@ public:
     return mImageSurface;
   }
 
-  size_t SizeOfExcludingThisWithComputedFallbackIfHeap(
-           gfxASurface::MemoryLocation aLocation,
-           nsMallocSizeOfFun aMallocSizeOf) const;
+  PRUint32 EstimateMemoryUsed(gfxASurface::MemoryLocation aLocation) const;
 
-  uint8_t GetPaletteDepth() const { return mPaletteDepth; }
+  PRUint8 GetPaletteDepth() const { return mPaletteDepth; }
 
 private: 
-  uint32_t PaletteDataLength() const {
-    return ((1 << mPaletteDepth) * sizeof(uint32_t));
+  PRUint32 PaletteDataLength() const {
+    return ((1 << mPaletteDepth) * sizeof(PRUint32));
   }
 
   struct SurfaceWithFormat {
@@ -149,31 +180,27 @@ private:
   
   
   
-  uint8_t*     mPalettedImageData;
+  PRUint8*     mPalettedImageData;
 
-  
   gfxRGBA      mSinglePixelColor;
 
-  int32_t      mTimeout; 
-  int32_t      mDisposalMethod;
+  PRInt32      mTimeout; 
+  PRInt32      mDisposalMethod;
 
   gfxASurface::gfxImageFormat mFormat;
-  uint8_t      mPaletteDepth;
-  int8_t       mBlendMethod;
+  PRUint8      mPaletteDepth;
+  PRInt8       mBlendMethod;
   bool mSinglePixel;
   bool mNeverUseDeviceSurface;
   bool mFormatChanged;
   bool mCompositingFailed;
-  bool mNonPremult;
   
   bool mLocked;
-
-  
-  bool mInformedDiscardTracker;
 
 #ifdef XP_WIN
   bool mIsDDBSurface;
 #endif
+
 };
 
 #endif 

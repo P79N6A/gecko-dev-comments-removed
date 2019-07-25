@@ -291,6 +291,9 @@ typedef PRUint64 nsFrameState;
 #define NS_FRAME_HAS_ABSPOS_CHILDREN                NS_FRAME_STATE_BIT(37)
 
 
+#define NS_FRAME_PAINTED_THEBES                     NS_FRAME_STATE_BIT(38)
+
+
 
 #define NS_FRAME_RESERVED                           ~NS_FRAME_IMPL_RESERVED
 
@@ -1898,12 +1901,6 @@ public:
 
 
 
-  virtual bool AreAncestorViewsVisible() const;
-
-  
-
-
-
 
 
 
@@ -2752,6 +2749,23 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::EmbeddingLevelProperty()))
   virtual void MarkAsAbsoluteContainingBlock();
   
   virtual mozilla::layout::FrameChildListID GetAbsoluteListID() const { return kAbsoluteList; }
+
+  
+  
+  bool CheckAndClearPaintedState();
+
+  
+  
+  
+  
+  
+  
+  
+  
+  enum {
+    VISIBILITY_CROSS_CHROME_CONTENT_BOUNDARY = 0x01
+  };
+  bool IsVisibleConsideringAncestors(PRUint32 aFlags = 0) const;
 
 protected:
   

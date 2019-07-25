@@ -4,8 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "imgFrame.h"
-#include "DiscardTracker.h"
 
 #include <limits.h>
 
@@ -18,7 +49,6 @@
 static bool gDisableOptimize = false;
 
 #include "cairo.h"
-#include "sampler.h"
 
 #if defined(XP_WIN)
 
@@ -27,8 +57,8 @@ static bool gDisableOptimize = false;
 
 #define USE_WIN_SURFACE 1
 
-static uint32_t gTotalDDBs = 0;
-static uint32_t gTotalDDBSize = 0;
+static PRUint32 gTotalDDBs = 0;
+static PRUint32 gTotalDDBSize = 0;
 
 #define kMaxDDBSize (64*1024*1024)
 
@@ -36,13 +66,11 @@ static uint32_t gTotalDDBSize = 0;
 
 #endif
 
-using namespace mozilla::image;
 
-
-static bool AllowedImageSize(int32_t aWidth, int32_t aHeight)
+static bool AllowedImageSize(PRInt32 aWidth, PRInt32 aHeight)
 {
   
-  const int32_t k64KLimit = 0x0000FFFF;
+  const PRInt32 k64KLimit = 0x0000FFFF;
   if (NS_UNLIKELY(aWidth > k64KLimit || aHeight > k64KLimit )) {
     NS_WARNING("image too big");
     return false;
@@ -54,7 +82,7 @@ static bool AllowedImageSize(int32_t aWidth, int32_t aHeight)
   }
 
   
-  int32_t tmp = aWidth * aHeight;
+  PRInt32 tmp = aWidth * aHeight;
   if (NS_UNLIKELY(tmp / aHeight != aWidth)) {
     NS_WARNING("width or height too large");
     return false;
@@ -105,7 +133,7 @@ static bool ShouldUseImageSurfaces()
 
 imgFrame::imgFrame() :
   mDecoded(0, 0, 0, 0),
-  mPalettedImageData(nullptr),
+  mPalettedImageData(nsnull),
   mSinglePixelColor(0),
   mTimeout(100),
   mDisposalMethod(0), 
@@ -113,13 +141,11 @@ imgFrame::imgFrame() :
   mSinglePixel(false),
   mNeverUseDeviceSurface(false),
   mFormatChanged(false),
-  mCompositingFailed(false),
-  mNonPremult(false),
+  mCompositingFailed(false)
 #ifdef USE_WIN_SURFACE
-  mIsDDBSurface(false),
+  , mIsDDBSurface(false)
 #endif
-  mLocked(false),
-  mInformedDiscardTracker(false)
+  , mLocked(false)
 {
   static bool hasCheckedOptimize = false;
   if (!hasCheckedOptimize) {
@@ -139,14 +165,10 @@ imgFrame::~imgFrame()
       gTotalDDBSize -= mSize.width * mSize.height * 4;
   }
 #endif
-
-  if (mInformedDiscardTracker) {
-    DiscardTracker::InformAllocation(-4 * mSize.height * mSize.width);
-  }
 }
 
-nsresult imgFrame::Init(int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight, 
-                        gfxASurface::gfxImageFormat aFormat, uint8_t aPaletteDepth )
+nsresult imgFrame::Init(PRInt32 aX, PRInt32 aY, PRInt32 aWidth, PRInt32 aHeight, 
+                        gfxASurface::gfxImageFormat aFormat, PRUint8 aPaletteDepth )
 {
   
   if (!AllowedImageSize(aWidth, aHeight))
@@ -166,7 +188,7 @@ nsresult imgFrame::Init(int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight,
     }
 
     
-    mPalettedImageData = (uint8_t*)moz_malloc(PaletteDataLength() + GetImageDataLength());
+    mPalettedImageData = (PRUint8*)moz_malloc(PaletteDataLength() + GetImageDataLength());
     NS_ENSURE_TRUE(mPalettedImageData, NS_ERROR_OUT_OF_MEMORY);
   } else {
     
@@ -179,7 +201,7 @@ nsresult imgFrame::Init(int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight,
         
         mImageSurface = mWinSurface->GetAsImageSurface();
       } else {
-        mWinSurface = nullptr;
+        mWinSurface = nsnull;
       }
     }
 #endif
@@ -192,7 +214,7 @@ nsresult imgFrame::Init(int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight,
       mImageSurface = new gfxImageSurface(gfxIntSize(mSize.width, mSize.height), mFormat);
 
     if (!mImageSurface || mImageSurface->CairoStatus()) {
-      mImageSurface = nullptr;
+      mImageSurface = nsnull;
       
       return NS_ERROR_OUT_OF_MEMORY;
     }
@@ -202,14 +224,6 @@ nsresult imgFrame::Init(int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight,
       mQuartzSurface = new gfxQuartzImageSurface(mImageSurface);
     }
 #endif
-  }
-
-  
-  
-  
-  if (!mPalettedImageData) {
-    DiscardTracker::InformAllocation(4 * mSize.width * mSize.height);
-    mInformedDiscardTracker = true;
   }
 
   return NS_OK;
@@ -224,17 +238,12 @@ nsresult imgFrame::Optimize()
     return NS_OK;
 
   
-  
-  if (mNonPremult)
-    return NS_OK;
-
-  
 
   
   if (mImageSurface->Stride() == mSize.width * 4) {
-    uint32_t *imgData = (uint32_t*) mImageSurface->Data();
-    uint32_t firstPixel = * (uint32_t*) imgData;
-    uint32_t pixelCount = mSize.width * mSize.height + 1;
+    PRUint32 *imgData = (PRUint32*) mImageSurface->Data();
+    PRUint32 firstPixel = * (PRUint32*) imgData;
+    PRUint32 pixelCount = mSize.width * mSize.height + 1;
 
     while (--pixelCount && *imgData++ == firstPixel)
       ;
@@ -244,32 +253,23 @@ nsresult imgFrame::Optimize()
       if (mFormat == gfxASurface::ImageFormatARGB32 ||
           mFormat == gfxASurface::ImageFormatRGB24)
       {
-        
-        gfxRGBA::PackedColorType inputType = gfxRGBA::PACKED_XRGB;
-        if (mFormat == gfxASurface::ImageFormatARGB32)
-          inputType = gfxRGBA::PACKED_ARGB_PREMULTIPLIED;
-
-        mSinglePixelColor = gfxRGBA(firstPixel, inputType);
+        mSinglePixelColor = gfxRGBA
+          (firstPixel,
+           (mFormat == gfxImageSurface::ImageFormatRGB24 ?
+            gfxRGBA::PACKED_XRGB :
+            gfxRGBA::PACKED_ARGB_PREMULTIPLIED));
 
         mSinglePixel = true;
 
         
-        mImageSurface = nullptr;
-        mOptSurface = nullptr;
+        mImageSurface = nsnull;
+        mOptSurface = nsnull;
 #ifdef USE_WIN_SURFACE
-        mWinSurface = nullptr;
+        mWinSurface = nsnull;
 #endif
 #ifdef XP_MACOSX
-        mQuartzSurface = nullptr;
+        mQuartzSurface = nsnull;
 #endif
-
-        
-        
-        if (mInformedDiscardTracker) {
-          DiscardTracker::InformAllocation(-4 * mSize.width * mSize.height);
-          mInformedDiscardTracker = false;
-        }
-
         return NS_OK;
       }
     }
@@ -282,7 +282,7 @@ nsresult imgFrame::Optimize()
   if (mNeverUseDeviceSurface || ShouldUseImageSurfaces())
     return NS_OK;
 
-  mOptSurface = nullptr;
+  mOptSurface = nsnull;
 
 #ifdef USE_WIN_SURFACE
   
@@ -306,11 +306,11 @@ nsresult imgFrame::Optimize()
     
 
     
-    uint32_t ddbSize = mSize.width * mSize.height * 4;
+    PRUint32 ddbSize = mSize.width * mSize.height * 4;
     if (ddbSize <= kMaxSingleDDBSize &&
         ddbSize + gTotalDDBSize <= kMaxDDBSize)
     {
-      nsRefPtr<gfxWindowsSurface> wsurf = mWinSurface->OptimizeToDDB(nullptr, gfxIntSize(mSize.width, mSize.height), mFormat);
+      nsRefPtr<gfxWindowsSurface> wsurf = mWinSurface->OptimizeToDDB(nsnull, gfxIntSize(mSize.width, mSize.height), mFormat);
       if (wsurf) {
         gTotalDDBs++;
         gTotalDDBSize += ddbSize;
@@ -332,16 +332,16 @@ nsresult imgFrame::Optimize()
   }
 #endif
 
-  if (mOptSurface == nullptr)
+  if (mOptSurface == nsnull)
     mOptSurface = gfxPlatform::GetPlatform()->OptimizeImage(mImageSurface, mFormat);
 
   if (mOptSurface) {
-    mImageSurface = nullptr;
+    mImageSurface = nsnull;
 #ifdef USE_WIN_SURFACE
-    mWinSurface = nullptr;
+    mWinSurface = nsnull;
 #endif
 #ifdef XP_MACOSX
-    mQuartzSurface = nullptr;
+    mQuartzSurface = nsnull;
 #endif
   }
 
@@ -381,7 +381,7 @@ imgFrame::SurfaceForDrawing(bool               aDoPadding,
                             gfxRect&           aSourceRect,
                             gfxRect&           aImageRect)
 {
-  gfxIntSize size(int32_t(aImageRect.Width()), int32_t(aImageRect.Height()));
+  gfxIntSize size(PRInt32(aImageRect.Width()), PRInt32(aImageRect.Height()));
   if (!aDoPadding && !aDoPartialDecode) {
     NS_ASSERTION(!mSinglePixel, "This should already have been handled");
     return SurfaceWithFormat(new gfxSurfaceDrawable(ThebesSurface(), size), mFormat);
@@ -409,7 +409,6 @@ imgFrame::SurfaceForDrawing(bool               aDoPadding,
     }
     tmpCtx.Rectangle(available);
     tmpCtx.Fill();
-
     return SurfaceWithFormat(new gfxSurfaceDrawable(surface, size), format);
   }
 
@@ -434,10 +433,8 @@ imgFrame::SurfaceForDrawing(bool               aDoPadding,
 
 void imgFrame::Draw(gfxContext *aContext, gfxPattern::GraphicsFilter aFilter,
                     const gfxMatrix &aUserSpaceToImageSpace, const gfxRect& aFill,
-                    const nsIntMargin &aPadding, const nsIntRect &aSubimage,
-                    uint32_t aImageFlags)
+                    const nsIntMargin &aPadding, const nsIntRect &aSubimage)
 {
-  SAMPLE_LABEL("image", "imgFrame::Draw");
   NS_ASSERTION(!aFill.IsEmpty(), "zero dest size --- fix caller");
   NS_ASSERTION(!aSubimage.IsEmpty(), "zero source size --- fix caller");
   NS_ASSERTION(!mPalettedImageData, "Directly drawing a paletted image!");
@@ -460,8 +457,7 @@ void imgFrame::Draw(gfxContext *aContext, gfxPattern::GraphicsFilter aFilter,
   NS_ASSERTION(!sourceRect.Intersect(subimage).IsEmpty(),
                "We must be allowed to sample *some* source pixels!");
 
-  bool doTile = !imageRect.Contains(sourceRect) &&
-                !(aImageFlags & imgIContainer::FLAG_CLAMP);
+  bool doTile = !imageRect.Contains(sourceRect);
   SurfaceWithFormat surfaceResult =
     SurfaceForDrawing(doPadding, doPartialDecode, doTile, aPadding,
                       userSpaceToImageSpace, fill, subimage, sourceRect,
@@ -471,7 +467,7 @@ void imgFrame::Draw(gfxContext *aContext, gfxPattern::GraphicsFilter aFilter,
     gfxUtils::DrawPixelSnapped(aContext, surfaceResult.mDrawable,
                                userSpaceToImageSpace,
                                subimage, sourceRect, imageRect, fill,
-                               surfaceResult.mFormat, aFilter, aImageFlags);
+                               surfaceResult.mFormat, aFilter);
   }
 }
 
@@ -494,8 +490,6 @@ nsresult imgFrame::Extract(const nsIntRect& aRegion, imgFrame** aResult)
   nsresult rv = subImage->Init(0, 0, aRegion.width, aRegion.height, 
                                mFormat, mPaletteDepth);
   NS_ENSURE_SUCCESS(rv, rv);
-
-  subImage->SetAsNonPremult(mNonPremult);
 
   
   {
@@ -542,6 +536,26 @@ nsresult imgFrame::ImageUpdated(const nsIntRect &aUpdateRect)
   return NS_OK;
 }
 
+PRInt32 imgFrame::GetX() const
+{
+  return mOffset.x;
+}
+
+PRInt32 imgFrame::GetY() const
+{
+  return mOffset.y;
+}
+
+PRInt32 imgFrame::GetWidth() const
+{
+  return mSize.width;
+}
+
+PRInt32 imgFrame::GetHeight() const
+{
+  return mSize.height;
+}
+
 nsIntRect imgFrame::GetRect() const
 {
   return nsIntRect(mOffset, mSize);
@@ -558,7 +572,7 @@ bool imgFrame::GetNeedsBackground() const
   return (mFormat == gfxASurface::ImageFormatARGB32 || !ImageComplete());
 }
 
-uint32_t imgFrame::GetImageBytesPerRow() const
+PRUint32 imgFrame::GetImageBytesPerRow() const
 {
   if (mImageSurface)
     return mImageSurface->Stride();
@@ -571,26 +585,26 @@ uint32_t imgFrame::GetImageBytesPerRow() const
   return 0;
 }
 
-uint32_t imgFrame::GetImageDataLength() const
+PRUint32 imgFrame::GetImageDataLength() const
 {
   return GetImageBytesPerRow() * mSize.height;
 }
 
-void imgFrame::GetImageData(uint8_t **aData, uint32_t *length) const
+void imgFrame::GetImageData(PRUint8 **aData, PRUint32 *length) const
 {
   if (mImageSurface)
     *aData = mImageSurface->Data();
   else if (mPalettedImageData)
     *aData = mPalettedImageData + PaletteDataLength();
   else
-    *aData = nullptr;
+    *aData = nsnull;
 
   *length = GetImageDataLength();
 }
 
 bool imgFrame::GetIsPaletted() const
 {
-  return mPalettedImageData != nullptr;
+  return mPalettedImageData != nsnull;
 }
 
 bool imgFrame::GetHasAlpha() const
@@ -598,13 +612,13 @@ bool imgFrame::GetHasAlpha() const
   return mFormat == gfxASurface::ImageFormatARGB32;
 }
 
-void imgFrame::GetPaletteData(uint32_t **aPalette, uint32_t *length) const
+void imgFrame::GetPaletteData(PRUint32 **aPalette, PRUint32 *length) const
 {
   if (!mPalettedImageData) {
-    *aPalette = nullptr;
+    *aPalette = nsnull;
     *length = 0;
   } else {
-    *aPalette = (uint32_t *) mPalettedImageData;
+    *aPalette = (PRUint32 *) mPalettedImageData;
     *length = PaletteDataLength();
   }
 }
@@ -635,12 +649,12 @@ nsresult imgFrame::LockImageData()
       context.SetSource(mOptSurface);
     context.Paint();
 
-    mOptSurface = nullptr;
+    mOptSurface = nsnull;
 #ifdef USE_WIN_SURFACE
-    mWinSurface = nullptr;
+    mWinSurface = nsnull;
 #endif
 #ifdef XP_MACOSX
-    mQuartzSurface = nullptr;
+    mQuartzSurface = nsnull;
 #endif
   }
 
@@ -687,7 +701,7 @@ nsresult imgFrame::UnlockImageData()
   return NS_OK;
 }
 
-int32_t imgFrame::GetTimeout() const
+PRInt32 imgFrame::GetTimeout() const
 {
   
   
@@ -708,29 +722,29 @@ int32_t imgFrame::GetTimeout() const
     return mTimeout;
 }
 
-void imgFrame::SetTimeout(int32_t aTimeout)
+void imgFrame::SetTimeout(PRInt32 aTimeout)
 {
   mTimeout = aTimeout;
 }
 
-int32_t imgFrame::GetFrameDisposalMethod() const
+PRInt32 imgFrame::GetFrameDisposalMethod() const
 {
   return mDisposalMethod;
 }
 
-void imgFrame::SetFrameDisposalMethod(int32_t aFrameDisposalMethod)
+void imgFrame::SetFrameDisposalMethod(PRInt32 aFrameDisposalMethod)
 {
   mDisposalMethod = aFrameDisposalMethod;
 }
 
-int32_t imgFrame::GetBlendMethod() const
+PRInt32 imgFrame::GetBlendMethod() const
 {
   return mBlendMethod;
 }
 
-void imgFrame::SetBlendMethod(int32_t aBlendMethod)
+void imgFrame::SetBlendMethod(PRInt32 aBlendMethod)
 {
-  mBlendMethod = (int8_t)aBlendMethod;
+  mBlendMethod = (PRInt8)aBlendMethod;
 }
 
 bool imgFrame::ImageComplete() const
@@ -752,11 +766,6 @@ void imgFrame::SetHasNoAlpha()
   }
 }
 
-void imgFrame::SetAsNonPremult(bool aIsNonPremult)
-{
-  mNonPremult = aIsNonPremult;
-}
-
 bool imgFrame::GetCompositingFailed() const
 {
   return mCompositingFailed;
@@ -767,44 +776,36 @@ void imgFrame::SetCompositingFailed(bool val)
   mCompositingFailed = val;
 }
 
-size_t
-imgFrame::SizeOfExcludingThisWithComputedFallbackIfHeap(gfxASurface::MemoryLocation aLocation, nsMallocSizeOfFun aMallocSizeOf) const
+PRUint32
+imgFrame::EstimateMemoryUsed(gfxASurface::MemoryLocation aLocation) const
 {
-  
-  
-  NS_ABORT_IF_FALSE(
-    (aLocation == gfxASurface::MEMORY_IN_PROCESS_HEAP &&  aMallocSizeOf) ||
-    (aLocation != gfxASurface::MEMORY_IN_PROCESS_HEAP && !aMallocSizeOf),
-    "mismatch between aLocation and aMallocSizeOf");
+  PRUint32 size = 0;
 
-  size_t n = 0;
-
-  if (mPalettedImageData && aLocation == gfxASurface::MEMORY_IN_PROCESS_HEAP) {
-    size_t usable = aMallocSizeOf(mPalettedImageData);
-    if (!usable) {
-      usable = GetImageDataLength() + PaletteDataLength();
-    }
-    n += usable;
+  if (mSinglePixel && aLocation == gfxASurface::MEMORY_IN_PROCESS_HEAP) {
+    size += sizeof(gfxRGBA);
   }
 
-  
+  if (mPalettedImageData && aLocation == gfxASurface::MEMORY_IN_PROCESS_HEAP) {
+    size += GetImageDataLength() + PaletteDataLength();
+  }
+
 #ifdef USE_WIN_SURFACE
   if (mWinSurface && aLocation == mWinSurface->GetMemoryLocation()) {
-    n += mWinSurface->KnownMemoryUsed();
+    size += mWinSurface->KnownMemoryUsed();
   } else
 #endif
 #ifdef XP_MACOSX
   if (mQuartzSurface && aLocation == gfxASurface::MEMORY_IN_PROCESS_HEAP) {
-    n += mSize.width * mSize.height * 4;
+    size += mSize.width * mSize.height * 4;
   } else
 #endif
   if (mImageSurface && aLocation == mImageSurface->GetMemoryLocation()) {
-    n += mImageSurface->KnownMemoryUsed();
+    size += mImageSurface->KnownMemoryUsed();
   }
 
   if (mOptSurface && aLocation == mOptSurface->GetMemoryLocation()) {
-    n += mOptSurface->KnownMemoryUsed();
+    size += mOptSurface->KnownMemoryUsed();
   }
 
-  return n;
+  return size;
 }

@@ -174,8 +174,7 @@ private:
   void TriggerRefresh(PRUint32 aUpdateFlags);
 
   
-  void Refresh(nsView *aView, nsIWidget *aWidget,
-               const nsIntRegion& aRegion, PRUint32 aUpdateFlags);
+  void Refresh(nsView *aView, nsIWidget *aWidget, const nsIntRegion& aRegion);
   
   
   void RenderViews(nsView *aRootView, nsIWidget *aWidget,
@@ -296,9 +295,6 @@ private:
 
   void PostInvalidateEvent();
 };
-
-
-#define NS_VMREFRESH_DOUBLE_BUFFER      0x0001
 
 class nsInvalidateEvent : public nsRunnable {
 public:

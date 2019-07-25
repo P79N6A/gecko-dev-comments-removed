@@ -4,6 +4,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _nsBMPDecoder_h
 #define _nsBMPDecoder_h
 
@@ -14,7 +48,7 @@
 #include "BMPFileHeaders.h"
 
 namespace mozilla {
-namespace image {
+namespace imagelib {
 
 class RasterImage;
 
@@ -33,20 +67,20 @@ public:
     
     void SetUseAlphaData(bool useAlphaData);
     
-    int32_t GetBitsPerPixel() const;
+    PRInt32 GetBitsPerPixel() const;
     
-    int32_t GetWidth() const;
+    PRInt32 GetWidth() const;
     
-    int32_t GetHeight() const;
+    PRInt32 GetHeight() const;
     
-    uint32_t* GetImageData();
+    PRUint32* GetImageData();
     
-    int32_t GetCompressedImageSize() const;
+    PRInt32 GetCompressedImageSize() const;
     
     
     bool HasAlphaData() const;
 
-    virtual void WriteInternal(const char* aBuffer, uint32_t aCount);
+    virtual void WriteInternal(const char* aBuffer, PRUint32 aCount);
     virtual void FinishInternal();
 
 private:
@@ -55,28 +89,28 @@ private:
 
     NS_METHOD CalcBitShift();
 
-    uint32_t mPos;
+    PRUint32 mPos;
 
     BMPFILEHEADER mBFH;
-    BITMAPV5HEADER mBIH;
-    char mRawBuf[WIN_V3_INTERNAL_BIH_LENGTH];
+    BMPINFOHEADER mBIH;
+    char mRawBuf[36];
 
-    uint32_t mLOH; 
+    PRUint32 mLOH; 
 
-    uint32_t mNumColors; 
+    PRUint32 mNumColors; 
     colorTable *mColors;
 
     bitFields mBitFields;
 
-    uint32_t *mImageData; 
-    uint8_t *mRow;      
-    uint32_t mRowBytes; 
-    int32_t mCurLine;   
-    int32_t mOldLine;   
-    int32_t mCurPos;    
+    PRUint32 *mImageData; 
+    PRUint8 *mRow;      
+    PRUint32 mRowBytes; 
+    PRInt32 mCurLine;   
+    PRInt32 mOldLine;   
+    PRInt32 mCurPos;    
 
     ERLEState mState;   
-    uint32_t mStateData;
+    PRUint32 mStateData;
 
     
 
@@ -101,12 +135,12 @@ private:
 
 
 
-static inline void SetPixel(uint32_t*& aDecoded, uint8_t aRed, uint8_t aGreen, uint8_t aBlue, uint8_t aAlpha = 0xFF)
+static inline void SetPixel(PRUint32*& aDecoded, PRUint8 aRed, PRUint8 aGreen, PRUint8 aBlue, PRUint8 aAlpha = 0xFF)
 {
-    *aDecoded++ = gfxPackedPixel(aAlpha, aRed, aGreen, aBlue);
+    *aDecoded++ = GFX_PACKED_PIXEL(aAlpha, aRed, aGreen, aBlue);
 }
 
-static inline void SetPixel(uint32_t*& aDecoded, uint8_t idx, colorTable* aColors)
+static inline void SetPixel(PRUint32*& aDecoded, PRUint8 idx, colorTable* aColors)
 {
     SetPixel(aDecoded, aColors[idx].red, aColors[idx].green, aColors[idx].blue);
 }
@@ -117,10 +151,10 @@ static inline void SetPixel(uint32_t*& aDecoded, uint8_t idx, colorTable* aColor
 
 
 
-inline void Set4BitPixel(uint32_t*& aDecoded, uint8_t aData,
-                         uint32_t& aCount, colorTable* aColors)
+inline void Set4BitPixel(PRUint32*& aDecoded, PRUint8 aData,
+                         PRUint32& aCount, colorTable* aColors)
 {
-    uint8_t idx = aData >> 4;
+    PRUint8 idx = aData >> 4;
     SetPixel(aDecoded, idx, aColors);
     if (--aCount > 0) {
         idx = aData & 0xF;

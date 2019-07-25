@@ -1388,6 +1388,12 @@ nsHTMLTableAccessible::IsProbablyForLayout(bool *aIsProbablyForLayout)
   }
 
   
+  if (mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::datatable,
+                            NS_LITERAL_STRING("0"), eCaseMatters)) {
+    RETURN_LAYOUT_ANSWER(true, "Has datatable = 0 attribute, it's for layout");
+  }
+
+  
   nsAutoString summary;
   if (mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::summary, summary) &&
       !summary.IsEmpty())

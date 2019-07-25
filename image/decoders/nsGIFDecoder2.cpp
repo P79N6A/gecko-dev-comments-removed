@@ -38,6 +38,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <stddef.h>
 #include "prmem.h"
 
@@ -51,7 +85,7 @@
 #include "qcms.h"
 
 namespace mozilla {
-namespace image {
+namespace imagelib {
 
 
 
@@ -77,7 +111,7 @@ nsGIFDecoder2::nsGIFDecoder2(RasterImage &aImage, imgIDecoderObserver* aObserver
   : Decoder(aImage, aObserver)
   , mCurrentRow(-1)
   , mLastFlushedRow(-1)
-  , mImageData(nullptr)
+  , mImageData(nsnull)
   , mOldColor(0)
   , mCurrentFrame(-1)
   , mCurrentPass(0)
@@ -123,7 +157,7 @@ nsGIFDecoder2::FinishInternal()
 
 
 void
-nsGIFDecoder2::FlushImageData(uint32_t fromRow, uint32_t rows)
+nsGIFDecoder2::FlushImageData(PRUint32 fromRow, PRUint32 rows)
 {
   nsIntRect r(mGIFStruct.x_offset, mGIFStruct.y_offset + fromRow, mGIFStruct.width, rows);
   PostInvalidation(r);
@@ -168,9 +202,9 @@ void nsGIFDecoder2::BeginGIF()
 }
 
 
-nsresult nsGIFDecoder2::BeginImageFrame(uint16_t aDepth)
+nsresult nsGIFDecoder2::BeginImageFrame(PRUint16 aDepth)
 {
-  uint32_t imageDataLength;
+  PRUint32 imageDataLength;
   nsresult rv;
   gfxASurface::gfxImageFormat format;
   if (mGIFStruct.is_transparent)
@@ -209,7 +243,7 @@ nsresult nsGIFDecoder2::BeginImageFrame(uint16_t aDepth)
     
     
     if (mGIFStruct.y_offset > 0) {
-      int32_t imgWidth;
+      PRInt32 imgWidth;
       mImage.GetWidth(&imgWidth);
       nsIntRect r(0, 0, imgWidth, mGIFStruct.y_offset);
       PostInvalidation(r);
@@ -232,7 +266,7 @@ void nsGIFDecoder2::EndImageFrame()
     
     
     
-    const uint32_t realFrameHeight = mGIFStruct.height + mGIFStruct.y_offset;
+    const PRUint32 realFrameHeight = mGIFStruct.height + mGIFStruct.y_offset;
     if (realFrameHeight < mGIFStruct.screen_height) {
       nsIntRect r(0, realFrameHeight,
                   mGIFStruct.screen_width,
@@ -251,7 +285,7 @@ void nsGIFDecoder2::EndImageFrame()
   if (mGIFStruct.rows_remaining != mGIFStruct.height) {
     if (mGIFStruct.rows_remaining && mGIFStruct.images_decoded) {
       
-      uint8_t *rowp = mImageData + ((mGIFStruct.height - mGIFStruct.rows_remaining) * mGIFStruct.width);
+      PRUint8 *rowp = mImageData + ((mGIFStruct.height - mGIFStruct.rows_remaining) * mGIFStruct.width);
       memset(rowp, 0, mGIFStruct.rows_remaining * mGIFStruct.width);
     }
 
@@ -283,13 +317,13 @@ void nsGIFDecoder2::EndImageFrame()
 
 
 
-uint32_t nsGIFDecoder2::OutputRow()
+PRUint32 nsGIFDecoder2::OutputRow()
 {
   int drow_start, drow_end;
   drow_start = drow_end = mGIFStruct.irow;
 
   
-  if ((unsigned)drow_start >= mGIFStruct.height) {
+  if ((PRUintn)drow_start >= mGIFStruct.height) {
     NS_WARNING("GIF2.cpp::OutputRow - too much image data");
     return 0;
   }
@@ -303,8 +337,8 @@ uint32_t nsGIFDecoder2::OutputRow()
 
     if (mGIFStruct.progressive_display && mGIFStruct.interlaced && (mGIFStruct.ipass < 4)) {
       
-      const uint32_t row_dup = 15 >> mGIFStruct.ipass;
-      const uint32_t row_shift = row_dup >> 1;
+      const PRUint32 row_dup = 15 >> mGIFStruct.ipass;
+      const PRUint32 row_shift = row_dup >> 1;
   
       drow_start -= row_shift;
       drow_end = drow_start + row_dup;
@@ -316,34 +350,34 @@ uint32_t nsGIFDecoder2::OutputRow()
       
       if (drow_start < 0)
         drow_start = 0;
-      if ((unsigned)drow_end >= mGIFStruct.height)
+      if ((PRUintn)drow_end >= mGIFStruct.height)
         drow_end = mGIFStruct.height - 1;
     }
 
     
-    const uint32_t bpr = sizeof(uint32_t) * mGIFStruct.width; 
-    uint8_t *rowp = mImageData + (mGIFStruct.irow * bpr);
+    const PRUint32 bpr = sizeof(PRUint32) * mGIFStruct.width; 
+    PRUint8 *rowp = mImageData + (mGIFStruct.irow * bpr);
 
     
-    uint8_t *from = rowp + mGIFStruct.width;
-    uint32_t *to = ((uint32_t*)rowp) + mGIFStruct.width;
-    uint32_t *cmap = mColormap;
+    PRUint8 *from = rowp + mGIFStruct.width;
+    PRUint32 *to = ((PRUint32*)rowp) + mGIFStruct.width;
+    PRUint32 *cmap = mColormap;
     if (mColorMask == 0xFF) {
-      for (uint32_t c = mGIFStruct.width; c > 0; c--) {
+      for (PRUint32 c = mGIFStruct.width; c > 0; c--) {
         *--to = cmap[*--from];
       }
     } else {
       
-      uint8_t mask = mColorMask;
-      for (uint32_t c = mGIFStruct.width; c > 0; c--) {
+      PRUint8 mask = mColorMask;
+      for (PRUint32 c = mGIFStruct.width; c > 0; c--) {
         *--to = cmap[(*--from) & mask];
       }
     }
   
     
     if (mGIFStruct.is_transparent && !mSawTransparency) {
-      const uint32_t *rgb = (uint32_t*)rowp;
-      for (uint32_t i = mGIFStruct.width; i > 0; i--) {
+      const PRUint32 *rgb = (PRUint32*)rowp;
+      for (PRUint32 i = mGIFStruct.width; i > 0; i--) {
         if (*rgb++ == 0) {
           mSawTransparency = true;
           break;
@@ -370,7 +404,7 @@ uint32_t nsGIFDecoder2::OutputRow()
   if (!mGIFStruct.interlaced) {
     mGIFStruct.irow++;
   } else {
-    static const uint8_t kjump[5] = { 1, 8, 8, 4, 2 };
+    static const PRUint8 kjump[5] = { 1, 8, 8, 4, 2 };
     do {
       
       mGIFStruct.irow += kjump[mGIFStruct.ipass];
@@ -388,7 +422,7 @@ uint32_t nsGIFDecoder2::OutputRow()
 
 
 bool
-nsGIFDecoder2::DoLzw(const uint8_t *q)
+nsGIFDecoder2::DoLzw(const PRUint8 *q)
 {
   if (!mGIFStruct.rows_remaining)
     return true;
@@ -404,18 +438,18 @@ nsGIFDecoder2::DoLzw(const uint8_t *q)
   int count       = mGIFStruct.count;
   int oldcode     = mGIFStruct.oldcode;
   const int clear_code = ClearCode();
-  uint8_t firstchar = mGIFStruct.firstchar;
-  int32_t datum     = mGIFStruct.datum;
-  uint16_t *prefix  = mGIFStruct.prefix;
-  uint8_t *stackp   = mGIFStruct.stackp;
-  uint8_t *suffix   = mGIFStruct.suffix;
-  uint8_t *stack    = mGIFStruct.stack;
-  uint8_t *rowp     = mGIFStruct.rowp;
+  PRUint8 firstchar = mGIFStruct.firstchar;
+  PRInt32 datum     = mGIFStruct.datum;
+  PRUint16 *prefix  = mGIFStruct.prefix;
+  PRUint8 *stackp   = mGIFStruct.stackp;
+  PRUint8 *suffix   = mGIFStruct.suffix;
+  PRUint8 *stack    = mGIFStruct.stack;
+  PRUint8 *rowp     = mGIFStruct.rowp;
 
-  uint32_t bpr = mGIFStruct.width;
+  PRUint32 bpr = mGIFStruct.width;
   if (!mGIFStruct.images_decoded) 
-    bpr *= sizeof(uint32_t);
-  uint8_t *rowend   = mImageData + (bpr * mGIFStruct.irow) + mGIFStruct.width;
+    bpr *= sizeof(PRUint32);
+  PRUint8 *rowend   = mImageData + (bpr * mGIFStruct.irow) + mGIFStruct.width;
 
 #define OUTPUT_ROW()                                        \
   PR_BEGIN_MACRO                                            \
@@ -425,7 +459,7 @@ nsGIFDecoder2::DoLzw(const uint8_t *q)
     rowend = rowp + mGIFStruct.width;                       \
   PR_END_MACRO
 
-  for (const uint8_t* ch = q; count-- > 0; ch++)
+  for (const PRUint8* ch = q; count-- > 0; ch++)
   {
     
     datum += ((int32) *ch) << bits;
@@ -535,7 +569,7 @@ nsGIFDecoder2::DoLzw(const uint8_t *q)
 
 
 
-static void ConvertColormap(uint32_t *aColormap, uint32_t aColors)
+static void ConvertColormap(PRUint32 *aColormap, PRUint32 aColors)
 {
   
   if (gfxPlatform::GetCMSMode() == eCMSMode_All) {
@@ -545,20 +579,20 @@ static void ConvertColormap(uint32_t *aColormap, uint32_t aColors)
   }
   
   
-  uint8_t *from = ((uint8_t *)aColormap) + 3 * aColors;
-  uint32_t *to = aColormap + aColors;
+  PRUint8 *from = ((PRUint8 *)aColormap) + 3 * aColors;
+  PRUint32 *to = aColormap + aColors;
 
   
 
   
   if (!aColors) return;
-  uint32_t c = aColors;
+  PRUint32 c = aColors;
 
   
   
   for (; (NS_PTR_TO_UINT32(from) & 0x3) && c; --c) {
     from -= 3;
-    *--to = gfxPackedPixel(0xFF, from[0], from[1], from[2]);
+    *--to = GFX_PACKED_PIXEL(0xFF, from[0], from[1], from[2]);
   }
 
   
@@ -573,30 +607,30 @@ static void ConvertColormap(uint32_t *aColormap, uint32_t aColors)
   
   while (c--) {
     from -= 3;
-    *--to = gfxPackedPixel(0xFF, from[0], from[1], from[2]);
+    *--to = GFX_PACKED_PIXEL(0xFF, from[0], from[1], from[2]);
   }
 }
 
 void
-nsGIFDecoder2::WriteInternal(const char *aBuffer, uint32_t aCount)
+nsGIFDecoder2::WriteInternal(const char *aBuffer, PRUint32 aCount)
 {
   NS_ABORT_IF_FALSE(!HasError(), "Shouldn't call WriteInternal after error!");
 
   
-  const uint8_t *buf = (const uint8_t *)aBuffer;
-  uint32_t len = aCount;
+  const PRUint8 *buf = (const PRUint8 *)aBuffer;
+  PRUint32 len = aCount;
 
-  const uint8_t *q = buf;
+  const PRUint8 *q = buf;
 
   
   
   
-  uint8_t* p = (mGIFStruct.state == gif_global_colormap) ? (uint8_t*)mGIFStruct.global_colormap :
-               (mGIFStruct.state == gif_image_colormap) ? (uint8_t*)mColormap :
-               (mGIFStruct.bytes_in_hold) ? mGIFStruct.hold : nullptr;
+  PRUint8* p = (mGIFStruct.state == gif_global_colormap) ? (PRUint8*)mGIFStruct.global_colormap :
+               (mGIFStruct.state == gif_image_colormap) ? (PRUint8*)mColormap :
+               (mGIFStruct.bytes_in_hold) ? mGIFStruct.hold : nsnull;
   if (p) {
     
-    uint32_t l = NS_MIN(len, mGIFStruct.bytes_to_consume);
+    PRUint32 l = NS_MIN(len, mGIFStruct.bytes_to_consume);
     memcpy(p+mGIFStruct.bytes_in_hold, buf, l);
 
     if (l < mGIFStruct.bytes_to_consume) {
@@ -703,7 +737,7 @@ nsGIFDecoder2::WriteInternal(const char *aBuffer, uint32_t aCount)
 
       if (q[4] & 0x80) { 
         
-        const uint32_t size = (3 << mGIFStruct.global_colormap_depth);
+        const PRUint32 size = (3 << mGIFStruct.global_colormap_depth);
         if (len < size) {
           
           GETN(size, gif_global_colormap);
@@ -887,6 +921,7 @@ nsGIFDecoder2::WriteInternal(const char *aBuffer, uint32_t aCount)
         BeginGIF();
         if (HasError()) {
           
+          
           mGIFStruct.state = gif_error;
           return;
         }
@@ -910,10 +945,10 @@ nsGIFDecoder2::WriteInternal(const char *aBuffer, uint32_t aCount)
       
       
       
-      uint32_t depth = mGIFStruct.global_colormap_depth;
+      PRUint32 depth = mGIFStruct.global_colormap_depth;
       if (q[8] & 0x80)
         depth = (q[8]&0x07) + 1;
-      uint32_t realDepth = depth;
+      PRUint32 realDepth = depth;
       while (mGIFStruct.tpixel >= (1 << realDepth) && (realDepth < 8)) {
         realDepth++;
       } 
@@ -949,16 +984,16 @@ nsGIFDecoder2::WriteInternal(const char *aBuffer, uint32_t aCount)
         if (!mGIFStruct.images_decoded) {
           
           
-          mColormapSize = sizeof(uint32_t) << realDepth;
+          mColormapSize = sizeof(PRUint32) << realDepth;
           if (!mGIFStruct.local_colormap) {
-            mGIFStruct.local_colormap = (uint32_t*)moz_xmalloc(mColormapSize);
+            mGIFStruct.local_colormap = (PRUint32*)moz_xmalloc(mColormapSize);
           }
           mColormap = mGIFStruct.local_colormap;
         }
-        const uint32_t size = 3 << depth;
+        const PRUint32 size = 3 << depth;
         if (mColormapSize > size) {
           
-          memset(((uint8_t*)mColormap) + size, 0, mColormapSize - size);
+          memset(((PRUint8*)mColormap) + size, 0, mColormapSize - size);
         }
         if (len < size) {
           
@@ -1044,8 +1079,8 @@ nsGIFDecoder2::WriteInternal(const char *aBuffer, uint32_t aCount)
   mGIFStruct.bytes_in_hold = len;
   if (len) {
     
-    uint8_t* p = (mGIFStruct.state == gif_global_colormap) ? (uint8_t*)mGIFStruct.global_colormap :
-                 (mGIFStruct.state == gif_image_colormap) ? (uint8_t*)mColormap :
+    PRUint8* p = (mGIFStruct.state == gif_global_colormap) ? (PRUint8*)mGIFStruct.global_colormap :
+                 (mGIFStruct.state == gif_image_colormap) ? (PRUint8*)mColormap :
                  mGIFStruct.hold;
     memcpy(p, buf, len);
     mGIFStruct.bytes_to_consume -= len;

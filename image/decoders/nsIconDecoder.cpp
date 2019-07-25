@@ -4,6 +4,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIconDecoder.h"
 #include "nsIInputStream.h"
 #include "RasterImage.h"
@@ -11,10 +45,10 @@
 #include "nspr.h"
 #include "nsRect.h"
 
-#include "nsError.h"
+#include "ImageErrors.h"
 
 namespace mozilla {
-namespace image {
+namespace imagelib {
 
 nsIconDecoder::nsIconDecoder(RasterImage &aImage, imgIDecoderObserver* aObserver)
  : Decoder(aImage, aObserver),
@@ -22,7 +56,7 @@ nsIconDecoder::nsIconDecoder(RasterImage &aImage, imgIDecoderObserver* aObserver
    mHeight(-1),
    mPixBytesRead(0),
    mPixBytesTotal(0),
-   mImageData(nullptr),
+   mImageData(nsnull),
    mState(iconStateStart)
 {
   
@@ -32,13 +66,13 @@ nsIconDecoder::~nsIconDecoder()
 { }
 
 void
-nsIconDecoder::WriteInternal(const char *aBuffer, uint32_t aCount)
+nsIconDecoder::WriteInternal(const char *aBuffer, PRUint32 aCount)
 {
   NS_ABORT_IF_FALSE(!HasError(), "Shouldn't call WriteInternal after error!");
 
   
   
-  uint32_t bytesToRead = 0;
+  PRUint32 bytesToRead = 0;
   nsresult rv;
 
   
@@ -51,7 +85,7 @@ nsIconDecoder::WriteInternal(const char *aBuffer, uint32_t aCount)
       case iconStateStart:
 
         
-        mWidth = (uint8_t)*aBuffer;
+        mWidth = (PRUint8)*aBuffer;
 
         
         aBuffer++;
@@ -62,11 +96,12 @@ nsIconDecoder::WriteInternal(const char *aBuffer, uint32_t aCount)
       case iconStateHaveHeight:
 
         
-        mHeight = (uint8_t)*aBuffer;
+        mHeight = (PRUint8)*aBuffer;
 
         
         PostSize(mWidth, mHeight);
         if (HasError()) {
+          
           
           mState = iconStateFinished;
           return;

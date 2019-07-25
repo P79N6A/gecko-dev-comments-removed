@@ -4,6 +4,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _nsICODecoder_h
 #define _nsICODecoder_h
 
@@ -15,7 +50,7 @@
 #include "ICOFileHeaders.h"
 
 namespace mozilla {
-namespace image {
+namespace imagelib {
 
 class RasterImage;
 
@@ -27,57 +62,47 @@ public:
   virtual ~nsICODecoder();
 
   
-  uint32_t GetRealWidth() const
+  PRUint32 GetRealWidth() const
   {
     return mDirEntry.mWidth == 0 ? 256 : mDirEntry.mWidth; 
   }
 
   
-  uint32_t GetRealHeight() const
+  PRUint32 GetRealHeight() const
   {
     return mDirEntry.mHeight == 0 ? 256 : mDirEntry.mHeight; 
   }
 
-  virtual void WriteInternal(const char* aBuffer, uint32_t aCount);
+  virtual void WriteInternal(const char* aBuffer, PRUint32 aCount);
   virtual void FinishInternal();
 
 private:
-  
-  
-  bool WriteToContainedDecoder(const char* aBuffer, uint32_t aCount);
-
   
   void ProcessDirEntry(IconDirEntry& aTarget);
   
   void SetHotSpotIfCursor();
   
-  bool FillBitmapFileHeaderBuffer(int8_t *bfh);
+  bool FillBitmapFileHeaderBuffer(PRInt8 *bfh);
   
+  void FillBitmapInformationBufferHeight(PRInt8 *bih);
   
+  PRInt32 ExtractBIHSizeFromBitmap(PRInt8 *bih);
   
+  PRInt32 ExtractBPPFromBitmap(PRInt8 *bih);
   
-  bool FixBitmapHeight(int8_t *bih);
+  PRUint32 CalcAlphaRowSize();
   
-  
-  bool FixBitmapWidth(int8_t *bih);
-  
-  int32_t ExtractBIHSizeFromBitmap(int8_t *bih);
-  
-  int32_t ExtractBPPFromBitmap(int8_t *bih);
-  
-  uint32_t CalcAlphaRowSize();
-  
-  uint16_t GetNumColors();
+  PRUint16 GetNumColors();
 
-  uint16_t mBPP; 
-  uint32_t mPos; 
-  uint16_t mNumIcons; 
-  uint16_t mCurrIcon; 
-  uint32_t mImageOffset; 
-  uint8_t *mRow;      
-  int32_t mCurLine;   
-  uint32_t mRowBytes; 
-  int32_t mOldLine;   
+  PRUint16 mBPP; 
+  PRUint32 mPos; 
+  PRUint16 mNumIcons; 
+  PRUint16 mCurrIcon; 
+  PRUint32 mImageOffset; 
+  PRUint8 *mRow;      
+  PRInt32 mCurLine;   
+  PRUint32 mRowBytes; 
+  PRInt32 mOldLine;   
   nsAutoPtr<Decoder> mContainedDecoder; 
 
   char mDirEntryArray[ICODIRENTRYSIZE]; 

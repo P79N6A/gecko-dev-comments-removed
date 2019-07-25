@@ -1,50 +1,50 @@
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is mozilla.org code.
+ *
+ * The Initial Developer of the Original Code is
+ * Netscape Communications Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 1998
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   L. David Baron <dbaron@dbaron.org>, Mozilla Corporation
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either of the GNU General Public License Version 2 or later (the "GPL"),
+ * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * data structures passed to nsIStyleRuleProcessor methods (to pull loop
+ * invariant computations out of the loop)
+ */
 
 #ifndef nsRuleProcessorData_h_
 #define nsRuleProcessorData_h_
 
-#include "nsPresContext.h" 
+#include "nsPresContext.h" // for nsCompatibility
 #include "nsString.h"
 #include "nsChangeHint.h"
 #include "nsIContent.h"
@@ -57,20 +57,20 @@ class nsIAtom;
 class nsICSSPseudoComparator;
 class nsAttrValue;
 
-
-
-
-
-
-
-
-
-
-
-
-
+/**
+ * A |TreeMatchContext| has data about a matching operation.  The
+ * data are not node-specific but are invariants of the DOM tree the
+ * nodes being matched against are in.
+ *
+ * Most of the members are in parameters to selector matching.  The
+ * one out parameter is mHaveRelevantLink.  Consumers that use a
+ * TreeMatchContext for more than one matching operation and care
+ * about :visited and mHaveRelevantLink need to
+ * ResetForVisitedMatching() and ResetForUnvisitedMatching() as
+ * needed.
+ */
 struct NS_STACK_CLASS TreeMatchContext {
-  
+  // Reset this context for matching for the style-if-:visited.
   void ResetForVisitedMatching() {
     NS_PRECONDITION(mForStyling, "Why is this being called?");
     mHaveRelevantLink = false;
@@ -91,44 +91,44 @@ struct NS_STACK_CLASS TreeMatchContext {
     return mVisitedHandling;
   }
 
-  
-  
-  
+  // Is this matching operation for the creation of a style context?
+  // (If it is, we need to set slow selector bits on nodes indicating
+  // that certain restyling needs to happen.)
   const bool mForStyling;
 
  private:
-  
-  
-  
-  
-  
+  // When mVisitedHandling is eRelevantLinkUnvisited, this is set to true if a
+  // relevant link (see explanation in definition of VisitedHandling enum) was
+  // encountered during the matching process, which means that matching needs
+  // to be rerun with eRelevantLinkVisited.  Otherwise, its behavior is
+  // undefined (it might get set appropriately, or might not).
   bool mHaveRelevantLink;
 
-  
-  
+  // How matching should be performed.  See the documentation for
+  // nsRuleWalker::VisitedHandlingType.
   nsRuleWalker::VisitedHandlingType mVisitedHandling;
 
  public:
-  
+  // The document we're working with.
   nsIDocument* const mDocument;
 
-  
-  
+  // Root of scoped stylesheet (set and unset by the supplier of the
+  // scoped stylesheet).
   nsIContent* mScopedRoot;
 
-  
-  
-  
+  // Whether our document is HTML (as opposed to XML of some sort,
+  // including XHTML).
+  // XXX XBL2 issue: Should we be caching this?  What should it be for XBL2?
   const bool mIsHTMLDocument;
 
-  
-  
+  // Possibly remove use of mCompatMode in SelectorMatches?
+  // XXX XBL2 issue: Should we be caching this?  What should it be for XBL2?
   const nsCompatibility mCompatMode;
 
-  
+  // The nth-index cache we should use
   nsNthIndexCache mNthIndexCache;
 
-  
+  // Constructor to use when creating a tree match context for styling
   TreeMatchContext(bool aForStyling,
                    nsRuleWalker::VisitedHandlingType aVisitedHandling,
                    nsIDocument* aDocument)
@@ -143,8 +143,8 @@ struct NS_STACK_CLASS TreeMatchContext {
   }
 };
 
-
-
+// The implementation of the constructor and destructor are currently in
+// nsCSSRuleProcessor.cpp.
 
 struct NS_STACK_CLASS RuleProcessorData  {
   RuleProcessorData(nsPresContext* aPresContext,
@@ -157,14 +157,14 @@ struct NS_STACK_CLASS RuleProcessorData  {
     , mTreeMatchContext(aTreeMatchContext)
   {
     NS_ASSERTION(aElement, "null element leaked into SelectorMatches");
-    NS_ASSERTION(aElement->GetOwnerDoc(), "Document-less node here?");
+    NS_ASSERTION(aElement->OwnerDoc(), "Document-less node here?");
     NS_PRECONDITION(aTreeMatchContext.mForStyling == !!aRuleWalker,
                     "Should be styling if and only if we have a rule walker");
   }
   
   nsPresContext* const mPresContext;
-  mozilla::dom::Element* const mElement; 
-  nsRuleWalker* const mRuleWalker; 
+  mozilla::dom::Element* const mElement; // weak ref, must not be null
+  nsRuleWalker* const mRuleWalker; // Used to add rules to our results.
   TreeMatchContext& mTreeMatchContext;
 };
 
@@ -256,8 +256,8 @@ struct NS_STACK_CLASS StateRuleProcessorData : public RuleProcessorData {
     NS_PRECONDITION(aPresContext, "null pointer");
     NS_PRECONDITION(!aTreeMatchContext.mForStyling, "Not styling here!");
   }
-  const nsEventStates mStateMask; 
-                                  
+  const nsEventStates mStateMask; // |HasStateDependentStyle| for which state(s)?
+                                  //  Constants defined in nsEventStates.h .
 };
 
 struct NS_STACK_CLASS AttributeRuleProcessorData : public RuleProcessorData {
@@ -275,9 +275,9 @@ struct NS_STACK_CLASS AttributeRuleProcessorData : public RuleProcessorData {
     NS_PRECONDITION(aPresContext, "null pointer");
     NS_PRECONDITION(!aTreeMatchContext.mForStyling, "Not styling here!");
   }
-  nsIAtom* mAttribute; 
-  PRInt32 mModType;    
-  bool mAttrHasChanged; 
+  nsIAtom* mAttribute; // |HasAttributeDependentStyle| for which attribute?
+  PRInt32 mModType;    // The type of modification (see nsIDOMMutationEvent).
+  bool mAttrHasChanged; // Whether the attribute has already changed.
 };
 
-#endif 
+#endif /* !defined(nsRuleProcessorData_h_) */

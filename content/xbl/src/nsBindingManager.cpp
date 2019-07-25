@@ -932,8 +932,7 @@ nsBindingManager::RemoveLayeredBinding(nsIContent* aContent, nsIURI* aURL)
   
   
   
-  nsCOMPtr<nsIDocument> doc = aContent->GetOwnerDoc();
-  NS_ASSERTION(doc, "No owner document?");
+  nsCOMPtr<nsIDocument> doc = aContent->OwnerDoc();
   
   
   
@@ -1251,9 +1250,7 @@ nsBindingManager::GetBindingImplementation(nsIContent* aContent, REFNSIID aIID,
       
       
 
-      nsIDocument* doc = aContent->GetOwnerDoc();
-      if (!doc)
-        return NS_NOINTERFACE;
+      nsIDocument* doc = aContent->OwnerDoc();
 
       nsIScriptGlobalObject *global = doc->GetScriptGlobalObject();
       if (!global)

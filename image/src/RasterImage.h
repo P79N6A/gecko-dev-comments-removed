@@ -14,6 +14,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef mozilla_imagelib_RasterImage_h_
 #define mozilla_imagelib_RasterImage_h_
 
@@ -30,14 +66,11 @@
 #include "DiscardTracker.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/Telemetry.h"
-#include "mozilla/LinkedList.h"
-#include "mozilla/StaticPtr.h"
 #ifdef DEBUG
   #include "imgIContainerDebug.h"
 #endif
 
 class imgIDecoder;
-class imgIContainerObserver;
 class nsIInputStream;
 
 #define NS_RASTERIMAGE_CID \
@@ -111,28 +144,14 @@ class nsIInputStream;
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 namespace mozilla {
-namespace layers {
-class LayerManager;
-class ImageContainer;
-}
-namespace image {
+namespace imagelib {
 
+class imgDecodeWorker;
 class Decoder;
 
 class RasterImage : public Image
+                  , public nsITimerCallback
                   , public nsIProperties
                   , public nsSupportsWeakReference
 #ifdef DEBUG
@@ -141,6 +160,7 @@ class RasterImage : public Image
 {
 public:
   NS_DECL_ISUPPORTS
+  NS_DECL_NSITIMERCALLBACK
   NS_DECL_NSIPROPERTIES
 #ifdef DEBUG
   NS_DECL_IMGICONTAINERDEBUG
@@ -148,27 +168,24 @@ public:
 
   
   
-  NS_IMETHOD GetWidth(int32_t *aWidth);
-  NS_IMETHOD GetHeight(int32_t *aHeight);
-  NS_IMETHOD GetType(uint16_t *aType);
-  NS_IMETHOD_(uint16_t) GetType(void);
-  NS_IMETHOD GetAnimated(bool *aAnimated);
-  NS_IMETHOD GetCurrentFrameIsOpaque(bool *aCurrentFrameIsOpaque);
-  NS_IMETHOD GetFrame(uint32_t aWhichFrame, uint32_t aFlags, gfxASurface **_retval);
-  NS_IMETHOD GetImageContainer(mozilla::layers::ImageContainer **_retval);
-  NS_IMETHOD CopyFrame(uint32_t aWhichFrame, uint32_t aFlags, gfxImageSurface **_retval);
-  NS_IMETHOD ExtractFrame(uint32_t aWhichFrame, const nsIntRect & aRect, uint32_t aFlags, imgIContainer **_retval);
-  NS_IMETHOD Draw(gfxContext *aContext, gfxPattern::GraphicsFilter aFilter, const gfxMatrix & aUserSpaceToImageSpace, const gfxRect & aFill, const nsIntRect & aSubimage, const nsIntSize & aViewportSize, uint32_t aFlags);
+  NS_SCRIPTABLE NS_IMETHOD GetWidth(PRInt32 *aWidth);
+  NS_SCRIPTABLE NS_IMETHOD GetHeight(PRInt32 *aHeight);
+  NS_SCRIPTABLE NS_IMETHOD GetType(PRUint16 *aType);
+  NS_IMETHOD_(PRUint16) GetType(void);
+  NS_SCRIPTABLE NS_IMETHOD GetAnimated(bool *aAnimated);
+  NS_SCRIPTABLE NS_IMETHOD GetCurrentFrameIsOpaque(bool *aCurrentFrameIsOpaque);
+  NS_IMETHOD GetFrame(PRUint32 aWhichFrame, PRUint32 aFlags, gfxASurface **_retval NS_OUTPARAM);
+  NS_IMETHOD CopyFrame(PRUint32 aWhichFrame, PRUint32 aFlags, gfxImageSurface **_retval NS_OUTPARAM);
+  NS_IMETHOD ExtractFrame(PRUint32 aWhichFrame, const nsIntRect & aRect, PRUint32 aFlags, imgIContainer **_retval NS_OUTPARAM);
+  NS_IMETHOD Draw(gfxContext *aContext, gfxPattern::GraphicsFilter aFilter, const gfxMatrix & aUserSpaceToImageSpace, const gfxRect & aFill, const nsIntRect & aSubimage, const nsIntSize & aViewportSize, PRUint32 aFlags);
   NS_IMETHOD_(nsIFrame *) GetRootLayoutFrame(void);
-  NS_IMETHOD RequestDecode(void);
-  NS_IMETHOD LockImage(void);
-  NS_IMETHOD UnlockImage(void);
-  NS_IMETHOD RequestDiscard(void);
-  NS_IMETHOD ResetAnimation(void);
-  NS_IMETHOD_(void) RequestRefresh(const mozilla::TimeStamp& aTime);
+  NS_SCRIPTABLE NS_IMETHOD RequestDecode(void);
+  NS_SCRIPTABLE NS_IMETHOD LockImage(void);
+  NS_SCRIPTABLE NS_IMETHOD UnlockImage(void);
+  NS_SCRIPTABLE NS_IMETHOD ResetAnimation(void);
   
 
-  RasterImage(imgStatusTracker* aStatusTracker = nullptr);
+  RasterImage(imgStatusTracker* aStatusTracker = nsnull);
   virtual ~RasterImage();
 
   virtual nsresult StartAnimation();
@@ -178,45 +195,44 @@ public:
   nsresult Init(imgIDecoderObserver* aObserver,
                 const char* aMimeType,
                 const char* aURIString,
-                uint32_t aFlags);
+                PRUint32 aFlags);
   void     GetCurrentFrameRect(nsIntRect& aRect);
 
   
   static NS_METHOD WriteToRasterImage(nsIInputStream* aIn, void* aClosure,
                                       const char* aFromRawSegment,
-                                      uint32_t aToOffset, uint32_t aCount,
-                                      uint32_t* aWriteCount);
+                                      PRUint32 aToOffset, PRUint32 aCount,
+                                      PRUint32* aWriteCount);
 
   
 
-  uint32_t GetCurrentFrameIndex();
+  PRUint32 GetCurrentFrameIndex();
 
   
-  uint32_t GetNumFrames();
+  PRUint32 GetNumFrames();
 
-  virtual size_t HeapSizeOfSourceWithComputedFallback(nsMallocSizeOfFun aMallocSizeOf) const;
-  virtual size_t HeapSizeOfDecodedWithComputedFallback(nsMallocSizeOfFun aMallocSizeOf) const;
-  virtual size_t NonHeapSizeOfDecoded() const;
-  virtual size_t OutOfProcessSizeOfDecoded() const;
+  virtual PRUint32 GetDecodedHeapSize();
+  virtual PRUint32 GetDecodedNonheapSize();
+  virtual PRUint32 GetDecodedOutOfProcessSize();
+  virtual PRUint32 GetSourceHeapSize();
 
   
   void Discard(bool force = false);
   void ForceDiscard() { Discard( true); }
 
   
-  nsresult SetFrameDisposalMethod(uint32_t aFrameNum,
-                                  int32_t aDisposalMethod);
-  nsresult SetFrameTimeout(uint32_t aFrameNum, int32_t aTimeout);
-  nsresult SetFrameBlendMethod(uint32_t aFrameNum, int32_t aBlendMethod);
-  nsresult SetFrameHasNoAlpha(uint32_t aFrameNum);
-  nsresult SetFrameAsNonPremult(uint32_t aFrameNum, bool aIsNonPremult);
+  nsresult SetFrameDisposalMethod(PRUint32 aFrameNum,
+                                  PRInt32 aDisposalMethod);
+  nsresult SetFrameTimeout(PRUint32 aFrameNum, PRInt32 aTimeout);
+  nsresult SetFrameBlendMethod(PRUint32 aFrameNum, PRInt32 aBlendMethod);
+  nsresult SetFrameHasNoAlpha(PRUint32 aFrameNum);
 
   
 
 
 
 
-  nsresult SetSize(int32_t aWidth, int32_t aHeight);
+  nsresult SetSize(PRInt32 aWidth, PRInt32 aHeight);
 
 
   
@@ -225,26 +241,26 @@ public:
 
 
 
-  nsresult EnsureFrame(uint32_t aFramenum, int32_t aX, int32_t aY,
-                       int32_t aWidth, int32_t aHeight,
+  nsresult EnsureFrame(PRUint32 aFramenum, PRInt32 aX, PRInt32 aY,
+                       PRInt32 aWidth, PRInt32 aHeight,
                        gfxASurface::gfxImageFormat aFormat,
-                       uint8_t aPaletteDepth,
-                       uint8_t** imageData,
-                       uint32_t* imageLength,
-                       uint32_t** paletteData,
-                       uint32_t* paletteLength);
+                       PRUint8 aPaletteDepth,
+                       PRUint8** imageData,
+                       PRUint32* imageLength,
+                       PRUint32** paletteData,
+                       PRUint32* paletteLength);
 
   
 
 
 
-  nsresult EnsureFrame(uint32_t aFramenum, int32_t aX, int32_t aY,
-                       int32_t aWidth, int32_t aHeight,
+  nsresult EnsureFrame(PRUint32 aFramenum, PRInt32 aX, PRInt32 aY,
+                       PRInt32 aWidth, PRInt32 aHeight,
                        gfxASurface::gfxImageFormat aFormat,
-                       uint8_t** imageData,
-                       uint32_t* imageLength);
+                       PRUint8** imageData,
+                       PRUint32* imageLength);
 
-  void FrameUpdated(uint32_t aFrameNum, nsIntRect& aUpdatedRect);
+  void FrameUpdated(PRUint32 aFrameNum, nsIntRect& aUpdatedRect);
 
   
   nsresult DecodingComplete();
@@ -253,7 +269,7 @@ public:
 
 
 
-  void     SetLoopCount(int32_t aLoopCount);
+  void     SetLoopCount(PRInt32 aLoopCount);
 
   
 
@@ -263,13 +279,13 @@ public:
 
 
 
-  nsresult AddSourceData(const char *aBuffer, uint32_t aCount);
+  nsresult AddSourceData(const char *aBuffer, PRUint32 aCount);
 
   
   nsresult SourceDataComplete();
 
   
-  nsresult NewSourceData(const char *aMimeType);
+  nsresult NewSourceData();
 
   
 
@@ -282,7 +298,7 @@ public:
 
 
 
-  nsresult SetSourceSizeHint(uint32_t sizeHint);
+  nsresult SetSourceSizeHint(PRUint32 sizeHint);
 
   
   
@@ -305,6 +321,11 @@ public:
     kDisposeRestorePrevious 
   };
 
+  
+  static void SetDecodeBytesAtATime(PRUint32 aBytesAtATime);
+  static void SetMaxMSBeforeYield(PRUint32 aMaxMS);
+  static void SetMaxBytesForSyncDecode(PRUint32 aMaxBytes);
+
   const char* GetURIString() { return mURIString.get();}
 
 private:
@@ -312,13 +333,9 @@ private:
   {
     
     nsIntRect                  firstFrameRefreshArea;
-    uint32_t                   currentAnimationFrameIndex; 
-
+    PRUint32                   currentAnimationFrameIndex; 
     
-    TimeStamp                  currentAnimationFrameTime;
-
-    
-    int32_t                    lastCompositedFrameIndex;
+    PRInt32                    lastCompositedFrameIndex;
     
 
 
@@ -335,36 +352,21 @@ private:
 
 
     nsAutoPtr<imgFrame>        compositingPrevFrame;
+    
+    nsCOMPtr<nsITimer>         timer;
 
     Anim() :
       firstFrameRefreshArea(),
       currentAnimationFrameIndex(0),
-      lastCompositedFrameIndex(-1) {}
-    ~Anim() {}
-  };
-
-  
-
-
-
-
-
-  struct DecodeRequest : public LinkedListElement<DecodeRequest>
-  {
-    DecodeRequest(RasterImage* aImage)
-      : mImage(aImage)
-      , mIsASAP(false)
+      lastCompositedFrameIndex(-1)
     {
+      ;
     }
-
-    RasterImage* const mImage;
-
-    
-
-    TimeDuration mDecodeTime;
-
-    
-    bool mIsASAP;
+    ~Anim()
+    {
+      if (timer)
+        timer->Cancel();
+    }
   };
 
   
@@ -375,133 +377,14 @@ private:
 
 
 
-
-
-
-
-
-
-
-
-
-  class DecodeWorker : public nsRunnable
-  {
-  public:
-    static DecodeWorker* Singleton();
-
-    
-
-
-    void RequestDecode(RasterImage* aImg);
-
-    
-
-
-
-    void DecodeABitOf(RasterImage* aImg);
-
-    
-
-
-
-
-
-
-
-    void MarkAsASAP(RasterImage* aImg);
-
-    
-
-
-
-
-
-
-    void StopDecoding(RasterImage* aImg);
-
-    
-
-
-
-
-
-
-
-    nsresult DecodeUntilSizeAvailable(RasterImage* aImg);
-
-    NS_IMETHOD Run();
-
-  private: 
-    static StaticRefPtr<DecodeWorker> sSingleton;
-
-  private: 
-    DecodeWorker()
-      : mPendingInEventLoop(false)
-    {}
-
-    
-    void EnsurePendingInEventLoop();
-
-    
-
-    void AddDecodeRequest(DecodeRequest* aRequest);
-
-    enum DecodeType {
-      DECODE_TYPE_NORMAL,
-      DECODE_TYPE_UNTIL_SIZE
-    };
-
-    
-
-    nsresult DecodeSomeOfImage(RasterImage* aImg,
-                               DecodeType aDecodeType = DECODE_TYPE_NORMAL);
-
-  private: 
-
-    LinkedList<DecodeRequest> mASAPDecodeRequests;
-    LinkedList<DecodeRequest> mNormalDecodeRequests;
-
-    
-
-    bool mPendingInEventLoop;
-  };
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  bool AdvanceFrame(mozilla::TimeStamp aTime, nsIntRect* aDirtyRect);
-
-  
-
-
-
-
-
-
-
-  void DeleteImgFrame(uint32_t framenum);
-
-  imgFrame* GetImgFrameNoDecode(uint32_t framenum);
-  imgFrame* GetImgFrame(uint32_t framenum);
-  imgFrame* GetDrawableImgFrame(uint32_t framenum);
+  void DeleteImgFrame(PRUint32 framenum);
+
+  imgFrame* GetImgFrameNoDecode(PRUint32 framenum);
+  imgFrame* GetImgFrame(PRUint32 framenum);
+  imgFrame* GetDrawableImgFrame(PRUint32 framenum);
   imgFrame* GetCurrentImgFrame();
   imgFrame* GetCurrentDrawableImgFrame();
-  uint32_t GetCurrentImgFrameIndex() const;
-  mozilla::TimeStamp GetCurrentImgFrameEndTime() const;
+  PRUint32 GetCurrentImgFrameIndex() const;
   
   inline void EnsureAnimExists()
   {
@@ -520,12 +403,9 @@ private:
       
       
       LockImage();
-
-      
-      mStatusTracker->RecordImageIsAnimated();
     }
   }
-
+  
   
 
 
@@ -536,8 +416,8 @@ private:
   nsresult DoComposite(nsIntRect* aDirtyRect,
                        imgFrame* aPrevFrame,
                        imgFrame* aNextFrame,
-                       int32_t aNextFrameIndex);
-
+                       PRInt32 aNextFrameIndex);
+  
   
 
 
@@ -545,7 +425,7 @@ private:
 
 
   static void ClearFrame(imgFrame* aFrame);
-
+  
   
   static void ClearFrame(imgFrame* aFrame, nsIntRect &aRect);
   
@@ -564,15 +444,13 @@ private:
                               imgFrame *aDstFrame,
                               nsIntRect& aRect);
 
-  nsresult InternalAddFrameHelper(uint32_t framenum, imgFrame *frame,
-                                  uint8_t **imageData, uint32_t *imageLength,
-                                  uint32_t **paletteData, uint32_t *paletteLength);
-  nsresult InternalAddFrame(uint32_t framenum, int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight,
-                            gfxASurface::gfxImageFormat aFormat, uint8_t aPaletteDepth,
-                            uint8_t **imageData, uint32_t *imageLength,
-                            uint32_t **paletteData, uint32_t *paletteLength);
-
-  bool ApplyDecodeFlags(uint32_t aNewFlags);
+  nsresult InternalAddFrameHelper(PRUint32 framenum, imgFrame *frame,
+                                  PRUint8 **imageData, PRUint32 *imageLength,
+                                  PRUint32 **paletteData, PRUint32 *paletteLength);
+  nsresult InternalAddFrame(PRUint32 framenum, PRInt32 aX, PRInt32 aY, PRInt32 aWidth, PRInt32 aHeight,
+                            gfxASurface::gfxImageFormat aFormat, PRUint8 aPaletteDepth,
+                            PRUint8 **imageData, PRUint32 *imageLength,
+                            PRUint32 **paletteData, PRUint32 *paletteLength);
 
 private: 
 
@@ -586,7 +464,7 @@ private:
   
   
   
-  uint32_t                   mFrameDecodeFlags;
+  PRUint32                   mFrameDecodeFlags;
 
   
   
@@ -602,36 +480,34 @@ private:
   RasterImage::Anim*        mAnim;
   
   
-  int32_t                    mLoopCount;
+  PRInt32                    mLoopCount;
   
   
   nsWeakPtr                  mObserver;
 
   
-  uint32_t                   mLockCount;
-  DiscardTracker::Node       mDiscardTrackerNode;
+  PRUint32                   mLockCount;
+  DiscardTrackerNode         mDiscardTrackerNode;
 
   
   FallibleTArray<char>       mSourceData;
   nsCString                  mSourceDataMimeType;
   nsCString                  mURIString;
 
+  friend class imgDecodeWorker;
   friend class DiscardTracker;
 
   
   nsRefPtr<Decoder>              mDecoder;
-  DecodeRequest                  mDecodeRequest;
-  uint32_t                       mBytesDecoded;
+  nsRefPtr<imgDecodeWorker>      mWorker;
+  PRUint32                       mBytesDecoded;
 
   
   
-  int32_t                        mDecodeCount;
-
-  
-  nsRefPtr<mozilla::layers::ImageContainer> mImageContainer;
+  PRInt32                        mDecodeCount;
 
 #ifdef DEBUG
-  uint32_t                       mFramesNotified;
+  PRUint32                       mFramesNotified;
 #endif
 
   
@@ -645,6 +521,8 @@ private:
   bool                       mDecoded:1;
   bool                       mHasBeenDecoded:1;
 
+  
+  bool                       mWorkerPending:1;
   bool                       mInDecoder:1;
 
   
@@ -655,8 +533,8 @@ private:
   nsresult WantDecodedFrames();
   nsresult SyncDecode();
   nsresult InitDecoder(bool aDoSizeDecode);
-  nsresult WriteToDecoder(const char *aBuffer, uint32_t aCount);
-  nsresult DecodeSomeData(uint32_t aMaxBytes);
+  nsresult WriteToDecoder(const char *aBuffer, PRUint32 aCount);
+  nsresult DecodeSomeData(PRUint32 aMaxBytes);
   bool     IsDecodeFinished();
   TimeStamp mDrawStartTime;
 
@@ -674,10 +552,33 @@ private:
   bool CanDiscard();
   bool CanForciblyDiscard();
   bool DiscardingActive();
-  bool StoringSourceData() const;
+  bool StoringSourceData();
 
 protected:
   bool ShouldAnimate();
+};
+
+
+
+
+
+
+
+
+
+
+class imgDecodeWorker : public nsRunnable
+{
+  public:
+    imgDecodeWorker(imgIContainer* aContainer) {
+      mContainer = do_GetWeakReference(aContainer);
+    }
+    NS_IMETHOD Run();
+    NS_METHOD  Dispatch();
+
+  private:
+    nsWeakPtr mContainer;
+    TimeDuration mDecodeTime; 
 };
 
 

@@ -1304,12 +1304,40 @@ public:
 
   PRUint32 GetDOMGeneration() { return mDOMGeneration; }
 
-private:
+  
+
+
+
+
+  void AddWillPaintObserver(nsIRunnable* aRunnable);
+
+  
+
+
+  void FlushWillPaintObservers();
+
+protected:
+  class RunWillPaintObservers : public nsRunnable {
+  public:
+    RunWillPaintObservers(nsRootPresContext* aPresContext) : mPresContext(aPresContext) {}
+    void Revoke() { mPresContext = nsnull; }
+    NS_IMETHOD Run()
+    {
+      if (mPresContext) {
+        mPresContext->FlushWillPaintObservers();
+      }
+      return NS_OK;
+    }
+    nsRootPresContext* mPresContext;
+  };
+
   nsCOMPtr<nsITimer> mNotifyDidPaintTimer;
   nsTHashtable<nsPtrHashKey<nsObjectFrame> > mRegisteredPlugins;
   
   
   
+  nsTArray<nsCOMPtr<nsIRunnable> > mWillPaintObservers;
+  nsRevocableEventPtr<RunWillPaintObservers> mWillPaintFallbackEvent;
   nsIFrame* mUpdatePluginGeometryForFrame;
   PRUint32 mDOMGeneration;
   bool mNeedsToUpdatePluginGeometry;

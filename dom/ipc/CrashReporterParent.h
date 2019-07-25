@@ -86,7 +86,7 @@ public:
 
 
   template<class Toplevel>
-  static void CreateCrashReporter(Toplevel* actor);
+  static bool CreateCrashReporter(Toplevel* actor);
 #endif
   
   void
@@ -176,7 +176,7 @@ CrashReporterParent::GenerateCrashReport(Toplevel* t,
 }
 
 template<class Toplevel>
- void
+ bool
 CrashReporterParent::CreateCrashReporter(Toplevel* actor)
 {
 #ifdef MOZ_CRASHREPORTER
@@ -189,7 +189,9 @@ CrashReporterParent::CreateCrashReporter(Toplevel* actor)
   } else {
     NS_ERROR("Error creating crash reporter actor");
   }
+  return !!p;
 #endif
+  return false;
 }
 
 #endif

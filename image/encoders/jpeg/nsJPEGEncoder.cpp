@@ -3,12 +3,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsJPEGEncoder.h"
 #include "prmem.h"
 #include "prprf.h"
 #include "nsString.h"
 #include "nsStreamUtils.h"
-#include "gfxColor.h"
 
 #include <setjmp.h>
 #include "jerror.h"
@@ -24,10 +56,10 @@ struct encoder_error_mgr {
 };
 
 nsJPEGEncoder::nsJPEGEncoder() : mFinished(false),
-                                 mImageBuffer(nullptr), mImageBufferSize(0),
+                                 mImageBuffer(nsnull), mImageBufferSize(0),
                                  mImageBufferUsed(0), mImageBufferReadPoint(0),
-                                 mCallback(nullptr),
-                                 mCallbackTarget(nullptr), mNotifyThreshold(0),
+                                 mCallback(nsnull),
+                                 mCallbackTarget(nsnull), mNotifyThreshold(0),
                                  mReentrantMonitor("nsJPEGEncoder.mReentrantMonitor")
 {
 }
@@ -36,7 +68,7 @@ nsJPEGEncoder::~nsJPEGEncoder()
 {
   if (mImageBuffer) {
     PR_Free(mImageBuffer);
-    mImageBuffer = nullptr;
+    mImageBuffer = nsnull;
   }
 }
 
@@ -48,12 +80,12 @@ nsJPEGEncoder::~nsJPEGEncoder()
 
 
 
-NS_IMETHODIMP nsJPEGEncoder::InitFromData(const uint8_t* aData,
-                                          uint32_t aLength, 
-                                          uint32_t aWidth,
-                                          uint32_t aHeight,
-                                          uint32_t aStride,
-                                          uint32_t aInputFormat,
+NS_IMETHODIMP nsJPEGEncoder::InitFromData(const PRUint8* aData,
+                                          PRUint32 aLength, 
+                                          PRUint32 aWidth,
+                                          PRUint32 aHeight,
+                                          PRUint32 aStride,
+                                          PRUint32 aInputFormat,
                                           const nsAString& aOutputOptions)
 {
   NS_ENSURE_ARG(aData);
@@ -75,7 +107,7 @@ NS_IMETHODIMP nsJPEGEncoder::InitFromData(const uint8_t* aData,
   }
 
   
-  if (mImageBuffer != nullptr)
+  if (mImageBuffer != nsnull)
     return NS_ERROR_ALREADY_INITIALIZED;
 
   
@@ -148,18 +180,18 @@ NS_IMETHODIMP nsJPEGEncoder::InitFromData(const uint8_t* aData,
   
   if (aInputFormat == INPUT_FORMAT_RGB) {
     while (cinfo.next_scanline < cinfo.image_height) {
-      const uint8_t* row = &aData[cinfo.next_scanline * aStride];
-      jpeg_write_scanlines(&cinfo, const_cast<uint8_t**>(&row), 1);
+      const PRUint8* row = &aData[cinfo.next_scanline * aStride];
+      jpeg_write_scanlines(&cinfo, const_cast<PRUint8**>(&row), 1);
     }
   } else if (aInputFormat == INPUT_FORMAT_RGBA) {
-    uint8_t* row = new uint8_t[aWidth * 3];
+    PRUint8* row = new PRUint8[aWidth * 3];
     while (cinfo.next_scanline < cinfo.image_height) {
-      ConvertRGBARow(&aData[cinfo.next_scanline * aStride], row, aWidth);
+      StripAlpha(&aData[cinfo.next_scanline * aStride], row, aWidth);
       jpeg_write_scanlines(&cinfo, &row, 1);
     }
     delete[] row;
   } else if (aInputFormat == INPUT_FORMAT_HOSTARGB) {
-    uint8_t* row = new uint8_t[aWidth * 3];
+    PRUint8* row = new PRUint8[aWidth * 3];
     while (cinfo.next_scanline < cinfo.image_height) {
       ConvertHostARGBRow(&aData[cinfo.next_scanline * aStride], row, aWidth);
       jpeg_write_scanlines(&cinfo, &row, 1);
@@ -181,19 +213,19 @@ NS_IMETHODIMP nsJPEGEncoder::InitFromData(const uint8_t* aData,
 }
 
 
-NS_IMETHODIMP nsJPEGEncoder::StartImageEncode(uint32_t aWidth,
-                                              uint32_t aHeight,
-                                              uint32_t aInputFormat,
+NS_IMETHODIMP nsJPEGEncoder::StartImageEncode(PRUint32 aWidth,
+                                              PRUint32 aHeight,
+                                              PRUint32 aInputFormat,
                                               const nsAString& aOutputOptions)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 
-NS_IMETHODIMP nsJPEGEncoder::GetImageBufferUsed(uint32_t *aOutputSize)
+NS_IMETHODIMP  nsJPEGEncoder::GetImageBufferSize(PRUint32 *aOutputSize)
 {
   NS_ENSURE_ARG_POINTER(aOutputSize);
-  *aOutputSize = mImageBufferUsed;
+  *aOutputSize = mImageBufferSize;
   return NS_OK;
 }
 
@@ -205,12 +237,12 @@ NS_IMETHODIMP nsJPEGEncoder::GetImageBuffer(char **aOutputBuffer)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsJPEGEncoder::AddImageFrame(const uint8_t* aData,
-                                           uint32_t aLength,
-                                           uint32_t aWidth,
-                                           uint32_t aHeight,
-                                           uint32_t aStride,
-                                           uint32_t aFrameFormat,
+NS_IMETHODIMP nsJPEGEncoder::AddImageFrame(const PRUint8* aData,
+                                           PRUint32 aLength,
+                                           PRUint32 aWidth,
+                                           PRUint32 aHeight,
+                                           PRUint32 aStride,
+                                           PRUint32 aFrameFormat,
                                            const nsAString& aFrameOptions)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
@@ -225,9 +257,9 @@ NS_IMETHODIMP nsJPEGEncoder::EndImageEncode()
 
 NS_IMETHODIMP nsJPEGEncoder::Close()
 {
-  if (mImageBuffer != nullptr) {
+  if (mImageBuffer != nsnull) {
     PR_Free(mImageBuffer);
-    mImageBuffer = nullptr;
+    mImageBuffer = nsnull;
     mImageBufferSize = 0;
     mImageBufferUsed = 0;
     mImageBufferReadPoint = 0;
@@ -236,7 +268,7 @@ NS_IMETHODIMP nsJPEGEncoder::Close()
 }
 
 
-NS_IMETHODIMP nsJPEGEncoder::Available(uint64_t *_retval)
+NS_IMETHODIMP nsJPEGEncoder::Available(PRUint32 *_retval)
 {
   if (!mImageBuffer)
     return NS_BASE_STREAM_CLOSED;
@@ -246,19 +278,19 @@ NS_IMETHODIMP nsJPEGEncoder::Available(uint64_t *_retval)
 }
 
 
-NS_IMETHODIMP nsJPEGEncoder::Read(char * aBuf, uint32_t aCount,
-                                  uint32_t *_retval)
+NS_IMETHODIMP nsJPEGEncoder::Read(char * aBuf, PRUint32 aCount,
+                                  PRUint32 *_retval)
 {
   return ReadSegments(NS_CopySegmentToBuffer, aBuf, aCount, _retval);
 }
 
 
-NS_IMETHODIMP nsJPEGEncoder::ReadSegments(nsWriteSegmentFun aWriter, void *aClosure, uint32_t aCount, uint32_t *_retval)
+NS_IMETHODIMP nsJPEGEncoder::ReadSegments(nsWriteSegmentFun aWriter, void *aClosure, PRUint32 aCount, PRUint32 *_retval)
 {
   
   ReentrantMonitorAutoEnter autoEnter(mReentrantMonitor);
 
-  uint32_t maxCount = mImageBufferUsed - mImageBufferReadPoint;
+  PRUint32 maxCount = mImageBufferUsed - mImageBufferReadPoint;
   if (maxCount == 0) {
     *_retval = 0;
     return mFinished ? NS_OK : NS_BASE_STREAM_WOULD_BLOCK;
@@ -286,8 +318,8 @@ NS_IMETHODIMP nsJPEGEncoder::IsNonBlocking(bool *_retval)
 }
 
 NS_IMETHODIMP nsJPEGEncoder::AsyncWait(nsIInputStreamCallback *aCallback,
-                                       uint32_t aFlags,
-                                       uint32_t aRequestedCount,
+                                       PRUint32 aFlags,
+                                       PRUint32 aRequestedCount,
                                        nsIEventTarget *aTarget)
 {
   if (aFlags != 0)
@@ -325,18 +357,22 @@ NS_IMETHODIMP nsJPEGEncoder::CloseWithStatus(nsresult aStatus)
 
 
 
-
 void
-nsJPEGEncoder::ConvertHostARGBRow(const uint8_t* aSrc, uint8_t* aDest,
-                                  uint32_t aPixelWidth)
+nsJPEGEncoder::ConvertHostARGBRow(const PRUint8* aSrc, PRUint8* aDest,
+                                 PRUint32 aPixelWidth)
 {
-  for (uint32_t x = 0; x < aPixelWidth; x++) {
-    const uint32_t& pixelIn = ((const uint32_t*)(aSrc))[x];
-    uint8_t *pixelOut = &aDest[x * 3];
+  for (PRUint32 x = 0; x < aPixelWidth; x ++) {
+    const PRUint32& pixelIn = ((const PRUint32*)(aSrc))[x];
+    PRUint8 *pixelOut = &aDest[x * 3];
 
-    pixelOut[0] = (pixelIn & 0xff0000) >> 16;
-    pixelOut[1] = (pixelIn & 0x00ff00) >>  8;
-    pixelOut[2] = (pixelIn & 0x0000ff) >>  0;
+    PRUint8 alpha = (pixelIn & 0xff000000) >> 24;
+    if (alpha == 0) {
+      pixelOut[0] = pixelOut[1] = pixelOut[2] = 0;
+    } else {
+      pixelOut[0] = (((pixelIn & 0xff0000) >> 16) * 255 + alpha / 2) / alpha;
+      pixelOut[1] = (((pixelIn & 0x00ff00) >>  8) * 255 + alpha / 2) / alpha;
+      pixelOut[2] = (((pixelIn & 0x0000ff) >>  0) * 255 + alpha / 2) / alpha;
+    }
   }
 }
 
@@ -346,19 +382,18 @@ nsJPEGEncoder::ConvertHostARGBRow(const uint8_t* aSrc, uint8_t* aDest,
 
 
 void
-nsJPEGEncoder::ConvertRGBARow(const uint8_t* aSrc, uint8_t* aDest,
-                              uint32_t aPixelWidth)
+nsJPEGEncoder::StripAlpha(const PRUint8* aSrc, PRUint8* aDest,
+                          PRUint32 aPixelWidth)
 {
-  for (uint32_t x = 0; x < aPixelWidth; x++) {
-    const uint8_t* pixelIn = &aSrc[x * 4];
-    uint8_t* pixelOut = &aDest[x * 3];
-
-    uint8_t alpha = pixelIn[3];
-    pixelOut[0] = gfxPreMultiply(pixelIn[0], alpha);
-    pixelOut[1] = gfxPreMultiply(pixelIn[1], alpha);
-    pixelOut[2] = gfxPreMultiply(pixelIn[2], alpha);
+  for (PRUint32 x = 0; x < aPixelWidth; x ++) {
+    const PRUint8* pixelIn = &aSrc[x * 4];
+    PRUint8* pixelOut = &aDest[x * 3];
+    pixelOut[0] = pixelIn[0];
+    pixelOut[1] = pixelIn[1];
+    pixelOut[2] = pixelIn[2];
   }
 }
+
 
 
 
@@ -373,7 +408,7 @@ nsJPEGEncoder::initDestination(jpeg_compress_struct* cinfo)
   NS_ASSERTION(! that->mImageBuffer, "Image buffer already initialized");
 
   that->mImageBufferSize = 8192;
-  that->mImageBuffer = (uint8_t*)PR_Malloc(that->mImageBufferSize);
+  that->mImageBuffer = (PRUint8*)PR_Malloc(that->mImageBufferSize);
   that->mImageBufferUsed = 0;
 
   cinfo->dest->next_output_byte = that->mImageBuffer;
@@ -407,20 +442,18 @@ nsJPEGEncoder::emptyOutputBuffer(jpeg_compress_struct* cinfo)
   
   that->mImageBufferSize *= 2;
 
-  uint8_t* newBuf = (uint8_t*)PR_Realloc(that->mImageBuffer,
+  PRUint8* newBuf = (PRUint8*)PR_Realloc(that->mImageBuffer,
                                          that->mImageBufferSize);
   if (! newBuf) {
     
     PR_Free(that->mImageBuffer);
-    that->mImageBuffer = nullptr;
+    that->mImageBuffer = nsnull;
     that->mImageBufferSize = 0;
     that->mImageBufferUsed = 0;
 
     
-    
-    
     longjmp(((encoder_error_mgr*)(cinfo->err))->setjmp_buffer,
-            static_cast<int>(NS_ERROR_OUT_OF_MEMORY));
+            NS_ERROR_OUT_OF_MEMORY);
   }
   that->mImageBuffer = newBuf;
 
@@ -471,8 +504,7 @@ nsJPEGEncoder::errorExit(jpeg_common_struct* cinfo)
   }
 
   
-  
-  longjmp(err->setjmp_buffer, static_cast<int>(error_code));
+  longjmp(err->setjmp_buffer, error_code);
 }
 
 void
@@ -499,8 +531,8 @@ nsJPEGEncoder::NotifyListener()
     NS_ASSERTION(callback, "Shouldn't fail to make the callback");
     
     
-    mCallback = nullptr;
-    mCallbackTarget = nullptr;
+    mCallback = nsnull;
+    mCallbackTarget = nsnull;
     mNotifyThreshold = 0;
 
     callback->OnInputStreamReady(this);

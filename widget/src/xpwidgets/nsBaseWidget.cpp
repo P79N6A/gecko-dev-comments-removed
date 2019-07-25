@@ -104,7 +104,6 @@ nsBaseWidget::nsBaseWidget()
 , mEventCallback(nsnull)
 , mViewCallback(nsnull)
 , mContext(nsnull)
-, mToolkit(nsnull)
 , mCursor(eCursor_standard)
 , mWindowType(eWindowType_child)
 , mBorderStyle(eBorderStyle_none)
@@ -150,7 +149,6 @@ nsBaseWidget::~nsBaseWidget()
   printf("WIDGETS- = %d\n", gNumWidgets);
 #endif
 
-  NS_IF_RELEASE(mToolkit);
   NS_IF_RELEASE(mContext);
   delete mOriginalBounds;
 }
@@ -165,42 +163,8 @@ void nsBaseWidget::BaseCreate(nsIWidget *aParent,
                               const nsIntRect &aRect,
                               EVENT_CALLBACK aHandleEventFunction,
                               nsDeviceContext *aContext,
-                              nsIToolkit *aToolkit,
                               nsWidgetInitData *aInitData)
 {
-  if (nsnull == mToolkit) {
-    if (nsnull != aToolkit) {
-      mToolkit = (nsIToolkit*)aToolkit;
-      NS_ADDREF(mToolkit);
-    }
-    else {
-      if (nsnull != aParent) {
-        mToolkit = aParent->GetToolkit();
-        NS_IF_ADDREF(mToolkit);
-      }
-      
-      
-#if !defined(USE_TLS_FOR_TOOLKIT)
-      else {
-        static NS_DEFINE_CID(kToolkitCID, NS_TOOLKIT_CID);
-        
-        nsresult res;
-        res = CallCreateInstance(kToolkitCID, &mToolkit);
-        NS_ASSERTION(NS_SUCCEEDED(res), "Can not create a toolkit in nsBaseWidget::Create");
-        if (mToolkit)
-          mToolkit->Init(PR_GetCurrentThread());
-      }
-#else
-      else {
-        nsresult rv;
-
-        rv = NS_GetCurrentToolkit(&mToolkit);
-      }
-#endif
-    }
-    
-  }
-  
   
   mEventCallback = aHandleEventFunction;
   
@@ -253,7 +217,6 @@ already_AddRefed<nsIWidget>
 nsBaseWidget::CreateChild(const nsIntRect  &aRect,
                           EVENT_CALLBACK   aHandleEventFunction,
                           nsDeviceContext *aContext,
-                          nsIToolkit       *aToolkit,
                           nsWidgetInitData *aInitData,
                           bool             aForceUseIWidgetParent)
 {
@@ -280,8 +243,7 @@ nsBaseWidget::CreateChild(const nsIntRect  &aRect,
   if (widget &&
       NS_SUCCEEDED(widget->Create(parent, nativeParent, aRect,
                                   aHandleEventFunction,
-                                  aContext, aToolkit,
-                                  aInitData))) {
+                                  aContext, aInitData))) {
     return widget.forget();
   }
 
@@ -908,17 +870,6 @@ BasicLayerManager* nsBaseWidget::CreateBasicLayerManager()
 
 
 
-nsIToolkit* nsBaseWidget::GetToolkit()
-{
-  return mToolkit;
-}
-
-
-
-
-
-
-
 nsDeviceContext* nsBaseWidget::GetDeviceContext() 
 {
   return mContext; 
@@ -946,7 +897,6 @@ void nsBaseWidget::OnDestroy()
 {
   
   NS_IF_RELEASE(mContext);
-  NS_IF_RELEASE(mToolkit);
 }
 
 NS_METHOD nsBaseWidget::SetWindowClass(const nsAString& xulWinType)

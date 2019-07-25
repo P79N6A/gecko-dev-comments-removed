@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "SVGDocumentWrapper.h"
 
 #include "mozilla/dom/Element.h"
@@ -23,7 +56,6 @@
 #include "nsIXMLContentSink.h"
 #include "nsNetCID.h"
 #include "nsComponentManagerUtils.h"
-#include "nsSMILAnimationController.h"
 #include "nsServiceManagerUtils.h"
 #include "nsSize.h"
 #include "gfxRect.h"
@@ -34,7 +66,9 @@
 using namespace mozilla::dom;
 
 namespace mozilla {
-namespace image {
+namespace imagelib {
+
+nsIAtom* SVGDocumentWrapper::kSVGAtom = nsnull; 
 
 NS_IMPL_ISUPPORTS4(SVGDocumentWrapper,
                    nsIStreamListener,
@@ -46,6 +80,12 @@ SVGDocumentWrapper::SVGDocumentWrapper()
   : mIgnoreInvalidation(false),
     mRegisteredForXPCOMShutdown(false)
 {
+  
+  
+  if (!SVGDocumentWrapper::kSVGAtom) {
+    SVGDocumentWrapper::kSVGAtom =
+      NS_NewPermanentAtom(NS_LITERAL_STRING("svg"));
+  }
 }
 
 SVGDocumentWrapper::~SVGDocumentWrapper()
@@ -60,16 +100,16 @@ void
 SVGDocumentWrapper::DestroyViewer()
 {
   if (mViewer) {
-    mViewer->GetDocument()->OnPageHide(false, nullptr);
-    mViewer->Close(nullptr);
+    mViewer->GetDocument()->OnPageHide(false, nsnull);
+    mViewer->Close(nsnull);
     mViewer->Destroy();
-    mViewer = nullptr;
+    mViewer = nsnull;
   }
 }
 
 bool
 SVGDocumentWrapper::GetWidthOrHeight(Dimension aDimension,
-                                     int32_t& aResult)
+                                     PRInt32& aResult)
 {
   nsSVGSVGElement* rootElem = GetRootSVGElem();
   NS_ABORT_IF_FALSE(rootElem, "root elem missing or of wrong type");
@@ -93,7 +133,7 @@ SVGDocumentWrapper::GetWidthOrHeight(Dimension aDimension,
   NS_ENSURE_TRUE(domLength, false);
 
   
-  uint16_t unitType;
+  PRUint16 unitType;
   rv = domLength->GetUnitType(&unitType);
   NS_ENSURE_SUCCESS(rv, false);
   if (unitType == nsIDOMSVGLength::SVG_LENGTHTYPE_PERCENTAGE) {
@@ -114,7 +154,7 @@ nsIFrame*
 SVGDocumentWrapper::GetRootLayoutFrame()
 {
   Element* rootElem = GetRootSVGElem();
-  return rootElem ? rootElem->GetPrimaryFrame() : nullptr;
+  return rootElem ? rootElem->GetPrimaryFrame() : nsnull;
 }
 
 void
@@ -145,9 +185,13 @@ SVGDocumentWrapper::FlushImageTransformInvalidation()
 bool
 SVGDocumentWrapper::IsAnimated()
 {
+#ifdef MOZ_SMIL
   nsIDocument* doc = mViewer->GetDocument();
   return doc && doc->HasAnimationController() &&
     doc->GetAnimationController()->HasRegisteredAnimations();
+#else
+  return false;
+#endif 
 }
 
 void
@@ -160,10 +204,12 @@ SVGDocumentWrapper::StartAnimation()
 
   nsIDocument* doc = mViewer->GetDocument();
   if (doc) {
+#ifdef MOZ_SMIL
     nsSMILAnimationController* controller = doc->GetAnimationController();
     if (controller) {
       controller->Resume(nsSMILTimeContainer::PAUSE_IMAGE);
     }
+#endif 
     doc->SetImagesNeedAnimating(true);
   }
 }
@@ -178,10 +224,12 @@ SVGDocumentWrapper::StopAnimation()
 
   nsIDocument* doc = mViewer->GetDocument();
   if (doc) {
+#ifdef MOZ_SMIL
     nsSMILAnimationController* controller = doc->GetAnimationController();
     if (controller) {
       controller->Pause(nsSMILTimeContainer::PAUSE_IMAGE);
     }
+#endif 
     doc->SetImagesNeedAnimating(false);
   }
 }
@@ -209,8 +257,8 @@ SVGDocumentWrapper::ResetAnimation()
 NS_IMETHODIMP
 SVGDocumentWrapper::OnDataAvailable(nsIRequest* aRequest, nsISupports* ctxt,
                                     nsIInputStream* inStr,
-                                    uint64_t sourceOffset,
-                                    uint32_t count)
+                                    PRUint32 sourceOffset,
+                                    PRUint32 count)
 {
   return mListener->OnDataAvailable(aRequest, ctxt, inStr,
                                     sourceOffset, count);
@@ -227,13 +275,13 @@ SVGDocumentWrapper::OnStartRequest(nsIRequest* aRequest, nsISupports* ctxt)
                             getter_AddRefs(mLoadGroup));
 
   if (NS_SUCCEEDED(rv) &&
-      NS_SUCCEEDED(mListener->OnStartRequest(aRequest, nullptr))) {
+      NS_SUCCEEDED(mListener->OnStartRequest(aRequest, nsnull))) {
     mViewer->GetDocument()->SetIsBeingUsedAsImage();
     StopAnimation(); 
 
-    rv = mViewer->Init(nullptr, nsIntRect(0, 0, 0, 0));
+    rv = mViewer->Init(nsnull, nsIntRect(0, 0, 0, 0));
     if (NS_SUCCEEDED(rv)) {
-      rv = mViewer->Open(nullptr, nullptr);
+      rv = mViewer->Open(nsnull, nsnull);
     }
   }
   return rv;
@@ -259,7 +307,7 @@ SVGDocumentWrapper::OnStopRequest(nsIRequest* aRequest, nsISupports* ctxt,
       parser->ContinueInterruptedParsing();
     }
     FlushLayout();
-    mListener = nullptr;
+    mListener = nsnull;
 
     
     
@@ -286,9 +334,9 @@ SVGDocumentWrapper::Observe(nsISupports* aSubject,
     
     DestroyViewer();
     if (mListener)
-      mListener = nullptr;
+      mListener = nsnull;
     if (mLoadGroup)
-      mLoadGroup = nullptr;
+      mLoadGroup = nsnull;
 
     
     
@@ -345,7 +393,7 @@ SVGDocumentWrapper::SetupViewer(nsIRequest* aRequest,
   nsCOMPtr<nsIStreamListener> listener;
   rv = docLoaderFactory->CreateInstance("external-resource", chan,
                                         newLoadGroup,
-                                        SVG_MIMETYPE, nullptr, nullptr,
+                                        SVG_MIMETYPE, nsnull, nsnull,
                                         getter_AddRefs(listener),
                                         getter_AddRefs(viewer));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -418,15 +466,17 @@ nsSVGSVGElement*
 SVGDocumentWrapper::GetRootSVGElem()
 {
   if (!mViewer)
-    return nullptr; 
+    return nsnull; 
 
   nsIDocument* doc = mViewer->GetDocument();
   if (!doc)
-    return nullptr; 
+    return nsnull; 
 
   Element* rootElem = mViewer->GetDocument()->GetRootElement();
-  if (!rootElem || !rootElem->IsSVG(nsGkAtoms::svg)) {
-    return nullptr;
+  if (!rootElem ||
+      rootElem->GetNameSpaceID() != kNameSpaceID_SVG ||
+      rootElem->Tag() != SVGDocumentWrapper::kSVGAtom) {
+    return nsnull;
   }
 
   return static_cast<nsSVGSVGElement*>(rootElem);

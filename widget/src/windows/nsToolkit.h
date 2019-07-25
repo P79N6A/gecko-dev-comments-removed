@@ -40,7 +40,6 @@
 #define TOOLKIT_H
 
 #include "nsdefs.h"
-#include "nsIToolkit.h"
 
 #include "nsITimer.h"
 #include "nsCOMPtr.h"
@@ -73,15 +72,11 @@ class MouseTrailer;
 
  
 
-class nsToolkit : public nsIToolkit
+class nsToolkit
 {
 
   public:
-
-            NS_DECL_ISUPPORTS
-
                             nsToolkit();
-            NS_IMETHOD      Init(PRThread *aThread);
             void            CreateInternalWindow(PRThread *aThread);
 
 private:
@@ -89,6 +84,9 @@ private:
             void            CreateUIThread(void);
 
 public:
+
+    static nsToolkit* GetToolkit();
+
     
     static LRESULT CALLBACK WindowProc(HWND hWnd, 
                                         UINT Msg, 
@@ -96,6 +94,8 @@ public:
                                         LPARAM lParam);
 
 protected:
+    static nsToolkit* gToolkit;
+
     
     HWND        mDispatchWnd;
     
@@ -114,8 +114,6 @@ public:
 
     static MouseTrailer *gMouseTrailer;
 };
-
-class  nsWindow;
 
 
 

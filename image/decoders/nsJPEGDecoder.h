@@ -4,6 +4,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsJPEGDecoder_h__
 #define nsJPEGDecoder_h__
 
@@ -29,7 +63,7 @@ extern "C" {
 #include <setjmp.h>
 
 namespace mozilla {
-namespace image {
+namespace imagelib {
 
 typedef struct {
     struct jpeg_error_mgr pub;  
@@ -56,7 +90,7 @@ public:
   virtual ~nsJPEGDecoder();
 
   virtual void InitInternal();
-  virtual void WriteInternal(const char* aBuffer, uint32_t aCount);
+  virtual void WriteInternal(const char* aBuffer, PRUint32 aCount);
   virtual void FinishInternal();
 
   virtual Telemetry::ID SpeedHistogram();
@@ -66,32 +100,32 @@ protected:
   void OutputScanlines(bool* suspend);
 
 public:
-  uint8_t *mImageData;
+  PRUint8 *mImageData;
 
   struct jpeg_decompress_struct mInfo;
   struct jpeg_source_mgr mSourceMgr;
   decoder_error_mgr mErr;
   jstate mState;
 
-  uint32_t mBytesToSkip;
+  PRUint32 mBytesToSkip;
 
   const JOCTET *mSegment;   
-  uint32_t mSegmentLen;     
+  PRUint32 mSegmentLen;     
 
   JOCTET *mBackBuffer;
-  uint32_t mBackBufferLen; 
-  uint32_t mBackBufferSize; 
-  uint32_t mBackBufferUnreadLen; 
+  PRUint32 mBackBufferLen; 
+  PRUint32 mBackBufferSize; 
+  PRUint32 mBackBufferUnreadLen; 
 
   JOCTET  *mProfile;
-  uint32_t mProfileLength;
+  PRUint32 mProfileLength;
 
   qcms_profile *mInProfile;
   qcms_transform *mTransform;
 
   bool mReading;
 
-  uint32_t mCMSMode;
+  PRUint32 mCMSMode;
 };
 
 } 

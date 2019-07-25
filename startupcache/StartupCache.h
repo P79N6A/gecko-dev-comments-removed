@@ -95,6 +95,8 @@
 
 
 
+class nsIMemoryReporter;
+
 namespace mozilla {
 namespace scache {
 
@@ -148,6 +150,8 @@ public:
   static StartupCache* GetSingleton();
   static void DeleteSingleton();
 
+  PRInt64 SizeOfMapping();
+
 private:
   StartupCache();
   ~StartupCache();
@@ -178,6 +182,8 @@ private:
 #ifdef DEBUG
   nsTHashtable<nsISupportsHashKey> mWriteObjectMap;
 #endif
+
+  nsIMemoryReporter* mMemoryReporter;
 };
 
 

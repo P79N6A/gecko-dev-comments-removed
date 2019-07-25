@@ -310,11 +310,11 @@ nsStyledElementNotElementCSSInlineStyle::ParseStyleAttribute(const nsAString& aV
                                                              nsAttrValue& aResult,
                                                              bool aForceInDataDoc)
 {
-  nsIDocument* doc = GetOwnerDoc();
+  nsIDocument* doc = OwnerDoc();
 
-  if (doc && (aForceInDataDoc ||
-              !doc->IsLoadedAsData() ||
-              doc->IsStaticDocument())) {
+  if (aForceInDataDoc ||
+      !doc->IsLoadedAsData() ||
+      doc->IsStaticDocument()) {
     bool isCSS = true; 
 
     if (!IsInNativeAnonymousSubtree()) {  

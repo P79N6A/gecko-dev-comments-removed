@@ -332,13 +332,21 @@ class RemoteReftest(RefTest):
         RefTest.createReftestProfile(self, options, profileDir, server=options.remoteWebServer)
 
         
+        fhandle = open(os.path.join(profileDir, "user.js"), 'a')
+        fhandle.write("""
+user_pref("browser.firstrun.show.localepicker", false);
+""")
+
+        
         if options.enablePrivilege:
-          fhandle = open(os.path.join(profileDir, "user.js"), 'a')
           fhandle.write("""
 user_pref("capability.principal.codebase.p2.granted", "UniversalPreferencesWrite UniversalXPConnect UniversalBrowserWrite UniversalPreferencesRead UniversalBrowserRead");
 user_pref("capability.principal.codebase.p2.id", "http://%s:%s");
 """ % (options.remoteWebServer, options.httpPort))
-          fhandle.close()
+
+        
+        fhandle.close()
+
 
         if (self._devicemanager.pushDir(profileDir, options.remoteProfile) == None):
             raise devicemanager.FileError("Failed to copy profiledir to device")
@@ -421,9 +429,6 @@ def main():
     reftest = RemoteReftest(automation, dm, options, SCRIPT_DIRECTORY)
 
     
-    reftest.startWebServer(options)
-
-    
     os.system("ln -s ../jsreftest " + str(os.path.join(SCRIPT_DIRECTORY, "jsreftest")))
 
     
@@ -433,6 +438,12 @@ def main():
     elif os.path.exists(args[0]):
         manifestPath = os.path.abspath(args[0]).split(SCRIPT_DIRECTORY)[1].strip('/')
         manifest = "http://" + str(options.remoteWebServer) + ":" + str(options.httpPort) + "/" + manifestPath
+    else:
+        print "ERROR: Could not find test manifest '%s'" % manifest
+        sys.exit(1)
+
+    
+    reftest.startWebServer(options)
 
     procName = options.app.split('/')[-1]
     if (dm.processExist(procName)):

@@ -53,14 +53,7 @@
 
 #include <unknwn.h>
 
-NS_IMPL_ISUPPORTS1(nsToolkit, nsIToolkit)
-
-
-
-
-
-static PRUintn gToolkitTLSIndex = 0;
-
+nsToolkit* nsToolkit::gToolkit = nsnull;
 
 HINSTANCE nsToolkit::mDllInstance = 0;
 bool      nsToolkit::mIsWinXP     = false;
@@ -125,6 +118,22 @@ nsToolkit::nsToolkit()
 #endif
 
     gMouseTrailer = new MouseTrailer();
+
+    
+    
+    PRThread* thread = PR_GetCurrentThread();
+    if (NULL != thread) {
+      CreateInternalWindow(thread);
+    } else {
+      
+      CreateUIThread();
+    }
+
+    mD3D9Timer = do_CreateInstance("@mozilla.org/timer;1");
+    mD3D9Timer->InitWithFuncCallback(::StartAllowingD3D9,
+                                     NULL,
+                                     kD3DUsageDelay,
+                                     nsITimer::TYPE_ONE_SHOT);
 }
 
 
@@ -142,18 +151,11 @@ nsToolkit::~nsToolkit()
     ::DestroyWindow(mDispatchWnd);
     mDispatchWnd = NULL;
 
-    
-    PR_SetThreadPrivate(gToolkitTLSIndex, nsnull);
-
     if (gMouseTrailer) {
       gMouseTrailer->DestroyTimer();
       delete gMouseTrailer;
       gMouseTrailer = nsnull;
     }
-
-#if defined (MOZ_STATIC_COMPONENT_LIBS)
-    nsToolkit::Shutdown();
-#endif
 }
 
 void
@@ -185,18 +187,21 @@ nsToolkit::Startup(HMODULE hModule)
 void
 nsToolkit::Shutdown()
 {
+#if defined (MOZ_STATIC_COMPONENT_LIBS)
     
     
     
     ::UnregisterClassW(L"nsToolkitClass", nsToolkit::mDllInstance);
+#endif
+
+    delete gToolkit;
+    gToolkit = nsnull;
 }
 
 void
 nsToolkit::StartAllowingD3D9()
 {
-  nsRefPtr<nsIToolkit> toolkit;
-  NS_GetCurrentToolkit(getter_AddRefs(toolkit));
-  static_cast<nsToolkit*>(toolkit.get())->mD3D9Timer->Cancel();
+  nsToolkit::GetToolkit()->mD3D9Timer->Cancel();
   nsWindow::StartAllowingD3D9(false);
 }
 
@@ -268,30 +273,6 @@ void nsToolkit::CreateUIThread()
 
 
 
-NS_METHOD nsToolkit::Init(PRThread *aThread)
-{
-    
-    
-    if (NULL != aThread) {
-        CreateInternalWindow(aThread);
-    } else {
-        
-        CreateUIThread();
-    }
-
-    mD3D9Timer = do_CreateInstance("@mozilla.org/timer;1");
-    mD3D9Timer->InitWithFuncCallback(::StartAllowingD3D9,
-                                     NULL,
-                                     kD3DUsageDelay,
-                                     nsITimer::TYPE_ONE_SHOT);
-
-    return NS_OK;
-}
-
-
-
-
-
 
 LRESULT CALLBACK nsToolkit::WindowProc(HWND hWnd, UINT msg, WPARAM wParam, 
                                        LPARAM lParam)
@@ -323,47 +304,14 @@ LRESULT CALLBACK nsToolkit::WindowProc(HWND hWnd, UINT msg, WPARAM wParam,
 
 
 
-NS_METHOD NS_GetCurrentToolkit(nsIToolkit* *aResult)
+
+nsToolkit* nsToolkit::GetToolkit()
 {
-  nsIToolkit* toolkit = nsnull;
-  nsresult rv = NS_OK;
-  PRStatus status;
-
-  
-  if (0 == gToolkitTLSIndex) {
-    status = PR_NewThreadPrivateIndex(&gToolkitTLSIndex, NULL);
-    if (PR_FAILURE == status) {
-      rv = NS_ERROR_FAILURE;
-    }
+  if (!gToolkit) {
+    gToolkit = new nsToolkit();
   }
 
-  if (NS_SUCCEEDED(rv)) {
-    toolkit = (nsIToolkit*)PR_GetThreadPrivate(gToolkitTLSIndex);
-
-    
-    
-    
-    if (!toolkit) {
-      toolkit = new nsToolkit();
-
-      if (!toolkit) {
-        rv = NS_ERROR_OUT_OF_MEMORY;
-      } else {
-        NS_ADDREF(toolkit);
-        toolkit->Init(PR_GetCurrentThread());
-        
-        
-        
-        
-        PR_SetThreadPrivate(gToolkitTLSIndex, (void*)toolkit);
-      }
-    } else {
-      NS_ADDREF(toolkit);
-    }
-    *aResult = toolkit;
-  }
-
-  return rv;
+  return gToolkit;
 }
 
 

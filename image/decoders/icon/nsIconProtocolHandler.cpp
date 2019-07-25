@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIconChannel.h"
 #include "nsIconURI.h"
 #include "nsIconProtocolHandler.h"
@@ -35,20 +68,20 @@ NS_IMETHODIMP nsIconProtocolHandler::GetScheme(nsACString &result)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsIconProtocolHandler::GetDefaultPort(int32_t *result) 
+NS_IMETHODIMP nsIconProtocolHandler::GetDefaultPort(PRInt32 *result) 
 {
   *result = 0;
   return NS_OK;
 }
 
-NS_IMETHODIMP nsIconProtocolHandler::AllowPort(int32_t port, const char *scheme, bool *_retval)
+NS_IMETHODIMP nsIconProtocolHandler::AllowPort(PRInt32 port, const char *scheme, bool *_retval)
 {
     
     *_retval = false;
     return NS_OK;
 }
 
-NS_IMETHODIMP nsIconProtocolHandler::GetProtocolFlags(uint32_t *result)
+NS_IMETHODIMP nsIconProtocolHandler::GetProtocolFlags(PRUint32 *result)
 {
   *result = URI_NORELATIVE | URI_NOAUTH | URI_IS_UI_RESOURCE |
             URI_IS_LOCAL_RESOURCE;

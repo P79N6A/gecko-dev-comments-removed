@@ -4,8 +4,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "imgRequestProxy.h"
-#include "imgIOnloadBlocker.h"
 
 #include "nsIInputStream.h"
 #include "nsIComponentManager.h"
@@ -18,12 +50,12 @@
 #include "nsCRT.h"
 
 #include "Image.h"
-#include "nsError.h"
+#include "ImageErrors.h"
 #include "ImageLogging.h"
 
 #include "nspr.h"
 
-using namespace mozilla::image;
+using namespace mozilla::imagelib;
 
 NS_IMPL_ADDREF(imgRequestProxy)
 NS_IMPL_RELEASE(imgRequestProxy)
@@ -34,15 +66,15 @@ NS_INTERFACE_MAP_BEGIN(imgRequestProxy)
   NS_INTERFACE_MAP_ENTRY(nsIRequest)
   NS_INTERFACE_MAP_ENTRY(nsISupportsPriority)
   NS_INTERFACE_MAP_ENTRY(nsISecurityInfoProvider)
-  NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsITimedChannel, TimedChannel() != nullptr)
+  NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsITimedChannel, TimedChannel() != nsnull)
 NS_INTERFACE_MAP_END
 
 imgRequestProxy::imgRequestProxy() :
-  mOwner(nullptr),
-  mURI(nullptr),
-  mImage(nullptr),
-  mPrincipal(nullptr),
-  mListener(nullptr),
+  mOwner(nsnull),
+  mURI(nsnull),
+  mImage(nsnull),
+  mPrincipal(nsnull),
+  mListener(nsnull),
   mLoadFlags(nsIRequest::LOAD_NORMAL),
   mLockCount(0),
   mAnimationConsumers(0),
@@ -127,12 +159,12 @@ nsresult imgRequestProxy::ChangeOwner(imgRequest *aNewOwner)
 
   
   
-  uint32_t oldLockCount = mLockCount;
+  PRUint32 oldLockCount = mLockCount;
   while (mLockCount)
     UnlockImage();
 
   
-  uint32_t oldAnimationConsumers = mAnimationConsumers;
+  PRUint32 oldAnimationConsumers = mAnimationConsumers;
   ClearAnimationConsumers();
 
   
@@ -140,13 +172,13 @@ nsresult imgRequestProxy::ChangeOwner(imgRequest *aNewOwner)
   mImage = aNewOwner->mImage;
 
   
-  for (uint32_t i = 0; i < oldLockCount; i++)
+  for (PRUint32 i = 0; i < oldLockCount; i++)
     LockImage();
 
   if (mCanceled) {
     
     
-    for (uint32_t i = 0; i < oldAnimationConsumers; i++)
+    for (PRUint32 i = 0; i < oldAnimationConsumers; i++)
       IncrementAnimationConsumers();
 
     return NS_OK;
@@ -167,7 +199,7 @@ nsresult imgRequestProxy::ChangeOwner(imgRequest *aNewOwner)
   
   
   
-  for (uint32_t i = 0; i < oldAnimationConsumers; i++)
+  for (PRUint32 i = 0; i < oldAnimationConsumers; i++)
     IncrementAnimationConsumers();
 
   mOwner = aNewOwner;
@@ -187,7 +219,7 @@ void imgRequestProxy::AddToLoadGroup()
   NS_ASSERTION(!mIsInLoadGroup, "Whaa, we're already in the loadgroup!");
 
   if (!mIsInLoadGroup && mLoadGroup) {
-    mLoadGroup->AddRequest(this, nullptr);
+    mLoadGroup->AddRequest(this, nsnull);
     mIsInLoadGroup = true;
   }
 }
@@ -204,12 +236,12 @@ void imgRequestProxy::RemoveFromLoadGroup(bool releaseLoadGroup)
 
   nsCOMPtr<imgIRequest> kungFuDeathGrip(this);
 
-  mLoadGroup->RemoveRequest(this, nullptr, NS_OK);
+  mLoadGroup->RemoveRequest(this, nsnull, NS_OK);
   mIsInLoadGroup = false;
 
   if (releaseLoadGroup) {
     
-    mLoadGroup = nullptr;
+    mLoadGroup = nsnull;
   }
 }
 
@@ -338,16 +370,6 @@ imgRequestProxy::UnlockImage()
   return NS_OK;
 }
 
-
-NS_IMETHODIMP
-imgRequestProxy::RequestDiscard()
-{
-  if (mImage) {
-    return mImage->RequestDiscard();
-  }
-  return NS_OK;
-}
-
 NS_IMETHODIMP
 imgRequestProxy::IncrementAnimationConsumers()
 {
@@ -437,7 +459,7 @@ NS_IMETHODIMP imgRequestProxy::GetImage(imgIContainer * *aImage)
 }
 
 
-NS_IMETHODIMP imgRequestProxy::GetImageStatus(uint32_t *aStatus)
+NS_IMETHODIMP imgRequestProxy::GetImageStatus(PRUint32 *aStatus)
 {
   *aStatus = GetStatusTracker().GetImageStatus();
 
@@ -485,7 +507,7 @@ NS_IMETHODIMP imgRequestProxy::Clone(imgIDecoderObserver* aObserver,
 
   LOG_SCOPE(gImgLog, "imgRequestProxy::Clone");
 
-  *aClone = nullptr;
+  *aClone = nsnull;
   nsRefPtr<imgRequestProxy> clone = new imgRequestProxy();
 
   
@@ -527,18 +549,7 @@ NS_IMETHODIMP imgRequestProxy::GetImagePrincipal(nsIPrincipal **aPrincipal)
 }
 
 
-NS_IMETHODIMP imgRequestProxy::GetMultipart(bool *aMultipart)
-{
-  if (!mOwner)
-    return NS_ERROR_FAILURE;
-
-  *aMultipart = mOwner->GetMultipart();
-
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP imgRequestProxy::GetCORSMode(int32_t* aCorsMode)
+NS_IMETHODIMP imgRequestProxy::GetCORSMode(PRInt32* aCorsMode)
 {
   if (!mOwner)
     return NS_ERROR_FAILURE;
@@ -550,21 +561,21 @@ NS_IMETHODIMP imgRequestProxy::GetCORSMode(int32_t* aCorsMode)
 
 
 
-NS_IMETHODIMP imgRequestProxy::GetPriority(int32_t *priority)
+NS_IMETHODIMP imgRequestProxy::GetPriority(PRInt32 *priority)
 {
   NS_ENSURE_STATE(mOwner);
   *priority = mOwner->Priority();
   return NS_OK;
 }
 
-NS_IMETHODIMP imgRequestProxy::SetPriority(int32_t priority)
+NS_IMETHODIMP imgRequestProxy::SetPriority(PRInt32 priority)
 {
   NS_ENSURE_STATE(mOwner && !mCanceled);
   mOwner->AdjustPriority(this, priority - mOwner->Priority());
   return NS_OK;
 }
 
-NS_IMETHODIMP imgRequestProxy::AdjustPriority(int32_t priority)
+NS_IMETHODIMP imgRequestProxy::AdjustPriority(PRInt32 priority)
 {
   NS_ENSURE_STATE(mOwner && !mCanceled);
   mOwner->AdjustPriority(this, priority);
@@ -578,7 +589,7 @@ NS_IMETHODIMP imgRequestProxy::GetSecurityInfo(nsISupports** _retval)
   if (mOwner)
     return mOwner->GetSecurityInfo(_retval);
 
-  *_retval = nullptr;
+  *_retval = nsnull;
   return NS_OK;
 }
 
@@ -603,7 +614,7 @@ void imgRequestProxy::FrameChanged(imgIContainer *container,
   if (mListener && !mCanceled) {
     
     nsCOMPtr<imgIDecoderObserver> kungFuDeathGrip(mListener);
-    mListener->FrameChanged(this, container, dirtyRect);
+    mListener->FrameChanged(container, dirtyRect);
   }
 }
 
@@ -632,7 +643,7 @@ void imgRequestProxy::OnStartContainer(imgIContainer *image)
   }
 }
 
-void imgRequestProxy::OnStartFrame(uint32_t frame)
+void imgRequestProxy::OnStartFrame(PRUint32 frame)
 {
   LOG_FUNC(gImgLog, "imgRequestProxy::OnStartFrame");
 
@@ -654,7 +665,7 @@ void imgRequestProxy::OnDataAvailable(bool aCurrentFrame, const nsIntRect * rect
   }
 }
 
-void imgRequestProxy::OnStopFrame(uint32_t frame)
+void imgRequestProxy::OnStopFrame(PRUint32 frame)
 {
   LOG_FUNC(gImgLog, "imgRequestProxy::OnStopFrame");
 
@@ -674,10 +685,6 @@ void imgRequestProxy::OnStopContainer(imgIContainer *image)
     nsCOMPtr<imgIDecoderObserver> kungFuDeathGrip(mListener);
     mListener->OnStopContainer(this, image);
   }
-
-  
-  if (mOwner && mOwner->GetMultipart())
-    mSentStartContainer = false;
 }
 
 void imgRequestProxy::OnStopDecode(nsresult status, const PRUnichar *statusArg)
@@ -702,20 +709,10 @@ void imgRequestProxy::OnDiscard()
   }
 }
 
-void imgRequestProxy::OnImageIsAnimated()
-{
-  LOG_FUNC(gImgLog, "imgRequestProxy::OnImageIsAnimated");
-  if (mListener && !mCanceled) {
-    
-    nsCOMPtr<imgIDecoderObserver> kungFuDeathGrip(mListener);
-    mListener->OnImageIsAnimated(this);
-  }
-}
-
 void imgRequestProxy::OnStartRequest()
 {
 #ifdef PR_LOGGING
-  nsAutoCString name;
+  nsCAutoString name;
   GetName(name);
   LOG_FUNC_WITH_PARAM(gImgLog, "imgRequestProxy::OnStartRequest", "name", name.get());
 #endif
@@ -732,7 +729,7 @@ void imgRequestProxy::OnStartRequest()
 void imgRequestProxy::OnStopRequest(bool lastPart)
 {
 #ifdef PR_LOGGING
-  nsAutoCString name;
+  nsCAutoString name;
   GetName(name);
   LOG_FUNC_WITH_PARAM(gImgLog, "imgRequestProxy::OnStopRequest", "name", name.get());
 #endif
@@ -772,34 +769,6 @@ void imgRequestProxy::OnStopRequest(bool lastPart)
   }
 }
 
-void imgRequestProxy::BlockOnload()
-{
-#ifdef PR_LOGGING
-  nsAutoCString name;
-  GetName(name);
-  LOG_FUNC_WITH_PARAM(gImgLog, "imgRequestProxy::BlockOnload", "name", name.get());
-#endif
-
-  nsCOMPtr<imgIOnloadBlocker> blocker = do_QueryInterface(mListener);
-  if (blocker) {
-    blocker->BlockOnload(this);
-  }
-}
-
-void imgRequestProxy::UnblockOnload()
-{
-#ifdef PR_LOGGING
-  nsAutoCString name;
-  GetName(name);
-  LOG_FUNC_WITH_PARAM(gImgLog, "imgRequestProxy::UnblockOnload", "name", name.get());
-#endif
-
-  nsCOMPtr<imgIOnloadBlocker> blocker = do_QueryInterface(mListener);
-  if (blocker) {
-    blocker->UnblockOnload(this);
-  }
-}
-
 void imgRequestProxy::NullOutListener()
 {
   
@@ -812,14 +781,14 @@ void imgRequestProxy::NullOutListener()
     obs.swap(mListener);
     mListenerIsStrongRef = false;
   } else {
-    mListener = nullptr;
+    mListener = nsnull;
   }
 }
 
 NS_IMETHODIMP
 imgRequestProxy::GetStaticRequest(imgIRequest** aReturn)
 {
-  *aReturn = nullptr;
+  *aReturn = nsnull;
 
   bool animated;
   if (!mImage || (NS_SUCCEEDED(mImage->GetAnimated(&animated)) && !animated)) {
@@ -829,8 +798,8 @@ imgRequestProxy::GetStaticRequest(imgIRequest** aReturn)
   }
 
   
-  int32_t w = 0;
-  int32_t h = 0;
+  PRInt32 w = 0;
+  PRInt32 h = 0;
   mImage->GetWidth(&w);
   mImage->GetHeight(&h);
   nsIntRect rect(0, 0, w, h);
@@ -845,7 +814,7 @@ imgRequestProxy::GetStaticRequest(imgIRequest** aReturn)
 
   
   nsRefPtr<imgRequestProxy> req = new imgRequestProxy();
-  req->Init(nullptr, nullptr, frame, mURI, nullptr);
+  req->Init(nsnull, nsnull, frame, mURI, nsnull);
   req->SetPrincipal(mPrincipal);
 
   NS_ADDREF(*aReturn = req);
@@ -891,17 +860,16 @@ void
 imgRequestProxy::SetImage(Image* aImage)
 {
   NS_ABORT_IF_FALSE(aImage,  "Setting null image");
-  NS_ABORT_IF_FALSE(!mImage || mOwner->GetMultipart(),
-                    "Setting image when we already have one");
+  NS_ABORT_IF_FALSE(!mImage, "Setting image when we already have one");
 
   mImage = aImage;
 
   
-  for (uint32_t i = 0; i < mLockCount; ++i)
+  for (PRUint32 i = 0; i < mLockCount; ++i)
     mImage->LockImage();
 
   
-  for (uint32_t i = 0; i < mAnimationConsumers; i++)
+  for (PRUint32 i = 0; i < mAnimationConsumers; i++)
     mImage->IncrementAnimationConsumers();
 }
 

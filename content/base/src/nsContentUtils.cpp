@@ -203,8 +203,7 @@ static NS_DEFINE_CID(kXTFServiceCID, NS_XTFSERVICE_CID);
 #include "nsDOMTouchEvent.h"
 #include "nsIScriptElement.h"
 #include "nsIContentViewer.h"
-
-#include "prdtoa.h"
+#include "nsIObjectLoadingContent.h"
 
 #include "mozilla/Preferences.h"
 
@@ -3247,10 +3246,7 @@ nsContentUtils::HasMutationListeners(nsINode* aNode,
                                      PRUint32 aType,
                                      nsINode* aTargetForSubtreeModified)
 {
-  nsIDocument* doc = aNode->GetOwnerDoc();
-  if (!doc) {
-    return false;
-  }
+  nsIDocument* doc = aNode->OwnerDoc();
 
   
   nsPIDOMWindow* window = doc->GetInnerWindow();
@@ -3321,7 +3317,7 @@ nsContentUtils::MaybeFireNodeRemoved(nsINode* aChild, nsINode* aParent,
 {
   NS_PRECONDITION(aChild, "Missing child");
   NS_PRECONDITION(aChild->GetNodeParent() == aParent, "Wrong parent");
-  NS_PRECONDITION(aChild->GetOwnerDoc() == aOwnerDoc, "Wrong owner-doc");
+  NS_PRECONDITION(aChild->OwnerDoc() == aOwnerDoc, "Wrong owner-doc");
 
   
   
@@ -3493,9 +3489,7 @@ nsContentUtils::CreateContextualFragment(nsINode* aContextNode,
 
   
   
-  nsCOMPtr<nsIDocument> document = aContextNode->GetOwnerDoc();
-  NS_ENSURE_TRUE(document, NS_ERROR_NOT_AVAILABLE);
-
+  nsCOMPtr<nsIDocument> document = aContextNode->OwnerDoc();
   bool isHTML = document->IsHTML();
 #ifdef DEBUG
   nsCOMPtr<nsIHTMLDocument> htmlDoc = do_QueryInterface(document);
@@ -3736,7 +3730,7 @@ nsContentUtils::SetNodeTextContent(nsIContent* aContent,
   {
     
     
-    nsIDocument* doc = aContent->GetOwnerDoc();
+    nsIDocument* doc = aContent->OwnerDoc();
 
     
     if (HasMutationListeners(doc, NS_EVENT_BITS_MUTATION_NODEREMOVED)) {
@@ -3885,7 +3879,7 @@ public:
   AnonymousContentDestroyer(nsCOMPtr<nsIContent>* aContent) {
     mContent.swap(*aContent);
     mParent = mContent->GetParent();
-    mDoc = mContent->GetOwnerDoc();
+    mDoc = mContent->OwnerDoc();
   }
   NS_IMETHOD Run() {
     mContent->UnbindFromTree();
@@ -4736,15 +4730,9 @@ nsContentUtils::GetContextForEventHandlers(nsINode* aNode,
                                            nsresult* aRv)
 {
   *aRv = NS_OK;
-  nsIDocument* ownerDoc = aNode->GetOwnerDoc();
-  if (!ownerDoc) {
-    *aRv = NS_ERROR_UNEXPECTED;
-    return nsnull;
-  }
-
   bool hasHadScriptObject = true;
   nsIScriptGlobalObject* sgo =
-    ownerDoc->GetScriptHandlingObject(hasHadScriptObject);
+    aNode->OwnerDoc()->GetScriptHandlingObject(hasHadScriptObject);
   
   
   if (!sgo && hasHadScriptObject) {
@@ -5185,7 +5173,7 @@ nsContentUtils::DispatchXULCommand(nsIContent* aTarget,
                                    bool aMeta)
 {
   NS_ENSURE_STATE(aTarget);
-  nsIDocument* doc = aTarget->GetOwnerDoc();
+  nsIDocument* doc = aTarget->OwnerDoc();
   nsCOMPtr<nsIDOMDocument> domDoc = do_QueryInterface(doc);
   NS_ENSURE_STATE(domDoc);
   nsCOMPtr<nsIDOMEvent> event;
@@ -5354,8 +5342,7 @@ AllocClassMatchingInfo(nsINode* aRootNode,
   }
 
   info->mCaseTreatment =
-    aRootNode->GetOwnerDoc() &&
-    aRootNode->GetOwnerDoc()->GetCompatibilityMode() == eCompatibility_NavQuirks ?
+    aRootNode->OwnerDoc()->GetCompatibilityMode() == eCompatibility_NavQuirks ?
     eIgnoreCase : eCaseMatters;
   return info;
 }
@@ -5825,6 +5812,70 @@ bool
 nsContentUtils::IsFullScreenKeyInputRestricted()
 {
   return sFullScreenKeyInputRestricted;
+}
+
+static void
+CheckForWindowedPlugins(nsIContent* aContent, void* aResult)
+{
+  if (!aContent->IsInDoc()) {
+    return;
+  }
+  nsCOMPtr<nsIObjectLoadingContent> olc(do_QueryInterface(aContent));
+  if (!olc) {
+    return;
+  }
+  nsRefPtr<nsNPAPIPluginInstance> plugin;
+  olc->GetPluginInstance(getter_AddRefs(plugin));
+  if (!plugin) {
+    return;
+  }
+  bool isWindowless = false;
+  nsresult res = plugin->IsWindowless(&isWindowless);
+  if (NS_SUCCEEDED(res) && !isWindowless) {
+    *static_cast<bool*>(aResult) = true;
+  }
+}
+
+static bool
+DocTreeContainsWindowedPlugins(nsIDocument* aDoc, void* aResult)
+{
+  if (!nsContentUtils::IsChromeDoc(aDoc)) {
+    aDoc->EnumerateFreezableElements(CheckForWindowedPlugins, aResult);
+  }
+  if (*static_cast<bool*>(aResult)) {
+    
+    return false;
+  }
+  aDoc->EnumerateSubDocuments(DocTreeContainsWindowedPlugins, aResult);
+  
+  
+  return !*static_cast<bool*>(aResult);
+}
+
+
+bool
+nsContentUtils::HasPluginWithUncontrolledEventDispatch(nsIDocument* aDoc)
+{
+#ifdef XP_MACOSX
+  
+  return false;
+#endif
+  bool result = false;
+  DocTreeContainsWindowedPlugins(aDoc, &result);
+  return result;
+}
+
+
+bool
+nsContentUtils::HasPluginWithUncontrolledEventDispatch(nsIContent* aContent)
+{
+#ifdef XP_MACOSX
+  
+  return false;
+#endif
+  bool result = false;
+  CheckForWindowedPlugins(aContent, &result);
+  return result;
 }
 
 

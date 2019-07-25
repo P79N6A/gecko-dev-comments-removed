@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef imgRequestProxy_h__
 #define imgRequestProxy_h__
 
@@ -34,7 +67,7 @@ class imgRequestNotifyRunnable;
 class imgStatusNotifyRunnable;
 
 namespace mozilla {
-namespace image {
+namespace imagelib {
 class Image;
 } 
 } 
@@ -58,7 +91,7 @@ public:
   
   
   nsresult Init(imgRequest *request, nsILoadGroup *aLoadGroup,
-                mozilla::image::Image* aImage,
+                mozilla::imagelib::Image* aImage,
                 nsIURI* aURI, imgIDecoderObserver *aObserver);
 
   nsresult ChangeOwner(imgRequest *aNewOwner); 
@@ -68,7 +101,7 @@ public:
   void RemoveFromLoadGroup(bool releaseLoadGroup);
 
   inline bool HasObserver() const {
-    return mListener != nullptr;
+    return mListener != nsnull;
   }
 
   void SetPrincipal(nsIPrincipal *aPrincipal);
@@ -97,7 +130,7 @@ public:
 
   
   
-  void SetImage(mozilla::image::Image* aImage);
+  void SetImage(mozilla::imagelib::Image* aImage);
 
   
   
@@ -135,15 +168,14 @@ protected:
   
 
   
-  void OnStartDecode     ();
-  void OnStartContainer  (imgIContainer *aContainer);
-  void OnStartFrame      (uint32_t aFrame);
-  void OnDataAvailable   (bool aCurrentFrame, const nsIntRect * aRect);
-  void OnStopFrame       (uint32_t aFrame);
-  void OnStopContainer   (imgIContainer *aContainer);
-  void OnStopDecode      (nsresult status, const PRUnichar *statusArg);
-  void OnDiscard         ();
-  void OnImageIsAnimated ();
+  void OnStartDecode   ();
+  void OnStartContainer(imgIContainer *aContainer);
+  void OnStartFrame    (PRUint32 aFrame);
+  void OnDataAvailable (bool aCurrentFrame, const nsIntRect * aRect);
+  void OnStopFrame     (PRUint32 aFrame);
+  void OnStopContainer (imgIContainer *aContainer);
+  void OnStopDecode    (nsresult status, const PRUnichar *statusArg); 
+  void OnDiscard       ();
 
   
   void FrameChanged(imgIContainer *aContainer,
@@ -152,10 +184,6 @@ protected:
   
   void OnStartRequest();
   void OnStopRequest(bool aLastPart);
-
-  
-  void BlockOnload();
-  void UnblockOnload();
 
   
   void DoCancel(nsresult status);
@@ -176,7 +204,7 @@ protected:
   nsITimedChannel* TimedChannel()
   {
     if (!mOwner)
-      return nullptr;
+      return nsnull;
     return mOwner->mTimedChannel;
   }
 
@@ -199,7 +227,7 @@ private:
 
   
   
-  nsRefPtr<mozilla::image::Image> mImage;
+  nsRefPtr<mozilla::imagelib::Image> mImage;
 
   
   
@@ -212,8 +240,8 @@ private:
   nsCOMPtr<nsILoadGroup> mLoadGroup;
 
   nsLoadFlags mLoadFlags;
-  uint32_t    mLockCount;
-  uint32_t    mAnimationConsumers;
+  PRUint32    mLockCount;
+  PRUint32    mAnimationConsumers;
   bool mCanceled;
   bool mIsInLoadGroup;
   bool mListenerIsStrongRef;

@@ -2,11 +2,43 @@
 
 
 
-#include "mozilla/Attributes.h"
-#include "mozilla/ReentrantMonitor.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "imgIEncoder.h"
 #include "BMPFileHeaders.h"
+
+#include "mozilla/ReentrantMonitor.h"
 
 #include "nsCOMPtr.h"
 
@@ -21,7 +53,7 @@
 
 
 
-class nsBMPEncoder MOZ_FINAL : public imgIEncoder
+class nsBMPEncoder : public imgIEncoder
 {
   typedef mozilla::ReentrantMonitor ReentrantMonitor;
 public:
@@ -34,58 +66,52 @@ public:
   ~nsBMPEncoder();
 
 protected:
-  enum Version {
-      VERSION_3 = 3,
-      VERSION_5 = 5
-  };
-
   
-  nsresult ParseOptions(const nsAString& aOptions, Version* version,
-                        uint32_t* bpp);
+  nsresult ParseOptions(const nsAString& aOptions, PRUint32* bpp);
   
-  void ConvertHostARGBRow(const uint8_t* aSrc, uint8_t* aDest,
-                          uint32_t aPixelWidth);
+  void ConvertHostARGBRow(const PRUint8* aSrc, PRUint8* aDest,
+                          PRUint32 aPixelWidth);
+  
+  void StripAlpha(const PRUint8* aSrc, PRUint8* aDest,
+                  PRUint32 aPixelWidth);
   
   void NotifyListener();
 
   
-  void InitFileHeader(Version aVersion, uint32_t aBPP, uint32_t aWidth,
-                      uint32_t aHeight);
+  void InitFileHeader(PRUint32 aBPP, PRUint32 aWidth, PRUint32 aHeight);
   
-  void InitInfoHeader(Version aVersion, uint32_t aBPP, uint32_t aWidth,
-                      uint32_t aHeight);
-
+  void InitInfoHeader(PRUint32 aBPP, PRUint32 aWidth, PRUint32 aHeight);
   
   void EncodeFileHeader();
   
   void EncodeInfoHeader();
   
-  void EncodeImageDataRow24(const uint8_t* aData);
+  void EncodeImageDataRow24(const PRUint8* aData);
   
-  void EncodeImageDataRow32(const uint8_t* aData);
+  void EncodeImageDataRow32(const PRUint8* aData);
   
-  inline int32_t GetCurrentImageBufferOffset()
+  inline PRInt32 GetCurrentImageBufferOffset()
   {
-    return static_cast<int32_t>(mImageBufferCurr - mImageBufferStart);
+    return static_cast<PRInt32>(mImageBufferCurr - mImageBufferStart);
   }
 
   
   
-  mozilla::image::BMPFILEHEADER mBMPFileHeader;
-  mozilla::image::BITMAPV5HEADER mBMPInfoHeader;
+  mozilla::imagelib::BMPFILEHEADER mBMPFileHeader;
+  mozilla::imagelib::BMPINFOHEADER mBMPInfoHeader;
 
   
-  uint8_t* mImageBufferStart;
+  PRUint8* mImageBufferStart;
   
-  uint8_t* mImageBufferCurr;
+  PRUint8* mImageBufferCurr;
   
-  uint32_t mImageBufferSize;
+  PRUint32 mImageBufferSize;
   
-  uint32_t mImageBufferReadPoint;
+  PRUint32 mImageBufferReadPoint;
   
   bool mFinished;
 
   nsCOMPtr<nsIInputStreamCallback> mCallback;
   nsCOMPtr<nsIEventTarget> mCallbackTarget;
-  uint32_t mNotifyThreshold;
+  PRUint32 mNotifyThreshold;
 };

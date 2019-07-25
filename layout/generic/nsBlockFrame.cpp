@@ -3544,10 +3544,24 @@ nsBlockFrame::DoReflowInlineFrames(nsBlockReflowState& aState,
   
   aLine->EnableResizeReflowOptimization();
 
+  
+  
+  
+  
+  PRUint8 direction;
+  if (GetStyleTextReset()->mUnicodeBidi & NS_STYLE_UNICODE_BIDI_PLAINTEXT) {
+    FramePropertyTable *propTable = aState.mPresContext->PropertyTable();
+    direction =  NS_PTR_TO_INT32(propTable->Get(aLine->mFirstChild,
+                                                BaseLevelProperty())) & 1;
+  } else {
+    direction = GetStyleVisibility()->mDirection;
+  }
+
   aLineLayout.BeginLineReflow(x, aState.mY,
                               availWidth, availHeight,
                               aFloatAvailableSpace.mHasFloats,
-                              false );
+                              false, 
+                              direction);
 
   aState.SetFlag(BRS_LINE_LAYOUT_EMPTY, false);
 
@@ -6231,11 +6245,6 @@ nsBlockFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     if (NS_SUCCEEDED(rv) && nonDecreasingYs && lineCount >= MIN_LINES_NEEDING_CURSOR) {
       SetupLineCursor();
     }
-  }
-
-  
-  if (textOverflow) {
-    textOverflow->DidProcessLines();
   }
 
   if (NS_SUCCEEDED(rv) && (nsnull != mBullet) && HaveOutsideBullet()) {

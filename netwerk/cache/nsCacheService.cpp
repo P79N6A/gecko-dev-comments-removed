@@ -171,7 +171,8 @@ public:
     PRInt32         MemoryCacheCapacity();
     PRInt32         MemoryCacheMaxEntrySize()     { return mMemoryCacheMaxEntrySize; }
 
-    static PRUint32 GetSmartCacheSize(const nsAString& cachePath);
+    static PRUint32 GetSmartCacheSize(const nsAString& cachePath,
+                                      PRUint32 currentSize);
 
 private:
     bool                    PermittedToSmartSize(nsIPrefBranch*, bool firstRun);
@@ -200,8 +201,8 @@ NS_IMPL_THREADSAFE_ISUPPORTS1(nsCacheProfilePrefObserver, nsIObserver)
 class nsSetSmartSizeEvent: public nsRunnable 
 {
 public:
-    nsSetSmartSizeEvent(bool firstRun, PRInt32 smartSize) 
-        : mFirstRun(firstRun) , mSmartSize(smartSize) {}
+    nsSetSmartSizeEvent(PRInt32 smartSize)
+        : mSmartSize(smartSize) {}
 
     NS_IMETHOD Run() 
     {
@@ -226,8 +227,6 @@ public:
             smartSizeEnabled = false;
         if (smartSizeEnabled) {
             nsCacheService::SetDiskCacheCapacity(mSmartSize);
-            
-            nsCacheService::gService->mObserver->SetDiskCacheCapacity(mSmartSize);
             rv = branch->SetIntPref(DISK_CACHE_SMART_SIZE_PREF, mSmartSize);
             if (NS_FAILED(rv)) 
                 NS_WARNING("Failed to set smart size pref");
@@ -235,8 +234,7 @@ public:
         return rv;
     }
 
-private: 
-    bool mFirstRun;
+private:
     PRInt32 mSmartSize;
 };
 
@@ -245,28 +243,25 @@ private:
 class nsGetSmartSizeEvent: public nsRunnable
 {
 public:
-    nsGetSmartSizeEvent(bool firstRun, const nsAString& cachePath) 
-      : mFirstRun(firstRun)
-      , mCachePath(cachePath)
-      , mSmartSize(0) 
+    nsGetSmartSizeEvent(const nsAString& cachePath, PRUint32 currentSize)
+      : mCachePath(cachePath)
+      , mCurrentSize(currentSize)
     {}
    
     
     
     NS_IMETHOD Run()
     {
-        mSmartSize = 
-          nsCacheProfilePrefObserver::GetSmartCacheSize(mCachePath);
-        nsCOMPtr<nsIRunnable> event = new nsSetSmartSizeEvent(mFirstRun,
-                                                              mSmartSize);
-        NS_DispatchToMainThread(event);
+        PRUint32 size;
+        size = nsCacheProfilePrefObserver::GetSmartCacheSize(mCachePath,
+                                                             mCurrentSize);
+        NS_DispatchToMainThread(new nsSetSmartSizeEvent(size));
         return NS_OK;
     }
 
-private: 
-    bool mFirstRun;
+private:
     nsString mCachePath;
-    PRInt32 mSmartSize;
+    PRUint32 mCurrentSize;
 };
 
 class nsBlockOnCacheThreadEvent : public nsRunnable {
@@ -435,18 +430,7 @@ nsCacheProfilePrefObserver::Observe(nsISupports *     subject,
                 return rv;
             PRInt32 newCapacity = 0;
             if (smartSizeEnabled) {
-                
-                
-                if (!mDiskCacheParentDirectory) 
-                    return NS_ERROR_NOT_AVAILABLE; 
-                nsAutoString cachePath;
-                rv = mDiskCacheParentDirectory->GetPath(cachePath);
-                if (NS_FAILED(rv)) 
-                    return rv;
-                
-                nsCOMPtr<nsIRunnable> event = 
-                    new nsGetSmartSizeEvent(false, cachePath);
-                rv = nsCacheService::DispatchToCacheIOThread(event);
+                nsCacheService::SetDiskSmartSize();
             } else {
                 
                 rv = branch->GetIntPref(DISK_CACHE_CAPACITY_PREF, &newCapacity);
@@ -559,6 +543,42 @@ nsCacheProfilePrefObserver::Observe(nsISupports *     subject,
     return NS_OK;
 }
 
+
+
+static PRUint32
+SmartCacheSize(const PRUint32 availKB)
+{
+    if (availKB > 100 * 1024 * 1024)
+        return MAX_CACHE_SIZE;  
+
+    
+    
+    
+    PRUint32 sz10MBs = 0;
+    PRUint32 avail10MBs = availKB / (1024*10);
+
+    
+    if (avail10MBs > 2500) {
+        sz10MBs += (avail10MBs - 2500)*.005;
+        avail10MBs = 2500;
+    }
+    
+    if (avail10MBs > 700) {
+        sz10MBs += (avail10MBs - 700)*.01;
+        avail10MBs = 700;
+    }
+    
+    if (avail10MBs > 50) {
+        sz10MBs += (avail10MBs - 50)*.05;
+        avail10MBs = 50;
+    }
+
+    
+    sz10MBs += NS_MAX<PRUint32>(5, avail10MBs * .4);
+
+    return NS_MIN<PRUint32>(MAX_CACHE_SIZE, sz10MBs * 10 * 1024);
+}
+
  
 
 
@@ -571,45 +591,24 @@ nsCacheProfilePrefObserver::Observe(nsISupports *     subject,
 
 
 PRUint32
-nsCacheProfilePrefObserver::GetSmartCacheSize(const nsAString& cachePath) 
+nsCacheProfilePrefObserver::GetSmartCacheSize(const nsAString& cachePath,
+                                              PRUint32 currentSize)
 {
-  
-  nsresult rv;
-  nsCOMPtr<nsILocalFile> 
-      cacheDirectory (do_CreateInstance(NS_LOCAL_FILE_CONTRACTID, &rv));
-  if (NS_FAILED(rv) || !cacheDirectory)
-    return DEFAULT_CACHE_SIZE;
-  rv = cacheDirectory->InitWithPath(cachePath);
-  if (NS_FAILED(rv))
-    return DEFAULT_CACHE_SIZE;
-  PRInt64 bytesAvailable;
-  rv = cacheDirectory->GetDiskSpaceAvailable(&bytesAvailable);
-  if (NS_FAILED(rv))
-    return DEFAULT_CACHE_SIZE;
-  PRInt64 kBytesAvail = bytesAvailable / 1024;
-  
-  
-  if (kBytesAvail < DEFAULT_CACHE_SIZE * 2) 
-    return NS_MAX<PRInt64>(MIN_CACHE_SIZE, kBytesAvail * 4 / 10);
-  
-  
-  if (kBytesAvail < static_cast<PRInt64>(DEFAULT_CACHE_SIZE) * 10) 
-    return DEFAULT_CACHE_SIZE;
+    
+    nsresult rv;
+    nsCOMPtr<nsILocalFile> 
+        cacheDirectory (do_CreateInstance(NS_LOCAL_FILE_CONTRACTID, &rv));
+    if (NS_FAILED(rv) || !cacheDirectory)
+        return DEFAULT_CACHE_SIZE;
+    rv = cacheDirectory->InitWithPath(cachePath);
+    if (NS_FAILED(rv))
+        return DEFAULT_CACHE_SIZE;
+    PRInt64 bytesAvailable;
+    rv = cacheDirectory->GetDiskSpaceAvailable(&bytesAvailable);
+    if (NS_FAILED(rv))
+        return DEFAULT_CACHE_SIZE;
 
-  
-  if (kBytesAvail < static_cast<PRInt64>(DEFAULT_CACHE_SIZE) * 20) 
-    return kBytesAvail / 10;
-
-  
-  if (kBytesAvail < static_cast<PRInt64>(DEFAULT_CACHE_SIZE) * 200 ) 
-    return DEFAULT_CACHE_SIZE * 5 / 2;
-
-  
-  if (kBytesAvail < static_cast<PRInt64>(DEFAULT_CACHE_SIZE) * 300) 
-    return DEFAULT_CACHE_SIZE / 5 * 16;  
-  
-  
-  return MAX_CACHE_SIZE;
+    return SmartCacheSize((bytesAvailable / 1024) + currentSize);
 }
 
 
@@ -732,13 +731,6 @@ nsCacheProfilePrefObserver::ReadPrefs(nsIPrefBranch* branch)
                 } else {
                     mDiskCacheCapacity = DEFAULT_CACHE_SIZE;
                 }
-            }
-            nsAutoString cachePath;
-            rv = mDiskCacheParentDirectory->GetPath(cachePath);
-            if (NS_SUCCEEDED(rv)) {
-                nsCOMPtr<nsIRunnable> event = 
-                    new nsGetSmartSizeEvent(!!firstSmartSizeRun, cachePath);
-                nsCacheService::DispatchToCacheIOThread(event);
             }
         }
 
@@ -1369,6 +1361,9 @@ nsCacheService::CreateDiskDevice()
         delete mDiskDevice;
         mDiskDevice = nsnull;
     }
+
+    SetDiskSmartSize_Locked(true);
+
     return rv;
 }
 
@@ -2554,4 +2549,50 @@ nsCacheService::OnEnterExitPrivateBrowsing()
         
         gService->mMemoryDevice->EvictEntries(nsnull);
     }
+}
+
+nsresult
+nsCacheService::SetDiskSmartSize()
+{
+    nsCacheServiceAutoLock lock;
+
+    if (!gService) return NS_ERROR_NOT_AVAILABLE;
+
+    return gService->SetDiskSmartSize_Locked(false);
+}
+
+nsresult
+nsCacheService::SetDiskSmartSize_Locked(bool checkPref)
+{
+    nsresult rv;
+
+    if (!mObserver->DiskCacheParentDirectory())
+        return NS_ERROR_NOT_AVAILABLE;
+
+    if (!mDiskDevice)
+        return NS_ERROR_NOT_AVAILABLE;
+
+    if (checkPref) {
+        nsCOMPtr<nsIPrefBranch2> branch = do_GetService(NS_PREFSERVICE_CONTRACTID);
+        if (!branch) return NS_ERROR_FAILURE;
+
+        bool smartSizeEnabled;
+        rv = branch->GetBoolPref(DISK_CACHE_SMART_SIZE_ENABLED_PREF,
+                                 &smartSizeEnabled);
+
+        if (NS_FAILED(rv) || !smartSizeEnabled)
+            return NS_ERROR_NOT_AVAILABLE;
+    }
+
+    nsAutoString cachePath;
+    rv = mObserver->DiskCacheParentDirectory()->GetPath(cachePath);
+    if (NS_SUCCEEDED(rv)) {
+        nsCOMPtr<nsIRunnable> event =
+            new nsGetSmartSizeEvent(cachePath, mDiskDevice->getCacheSize());
+        DispatchToCacheIOThread(event);
+    } else {
+        return NS_ERROR_FAILURE;
+    }
+
+    return NS_OK;
 }

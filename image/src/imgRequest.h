@@ -4,6 +4,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef imgRequest_h__
 #define imgRequest_h__
 
@@ -24,21 +58,20 @@
 #include "nsString.h"
 #include "nsTObserverArray.h"
 #include "nsWeakReference.h"
-#include "nsError.h"
+#include "ImageErrors.h"
 #include "imgIRequest.h"
 #include "imgStatusTracker.h"
 #include "nsIAsyncVerifyRedirectCallback.h"
 
 class imgCacheValidator;
 
-class imgLoader;
 class imgRequestProxy;
 class imgCacheEntry;
 class imgMemoryReporter;
 class imgRequestNotifyRunnable;
 
 namespace mozilla {
-namespace image {
+namespace imagelib {
 class Image;
 } 
 } 
@@ -51,7 +84,7 @@ class imgRequest : public imgIDecoderObserver,
                    public nsIAsyncVerifyRedirectCallback
 {
 public:
-  imgRequest(imgLoader* aLoader);
+  imgRequest();
   virtual ~imgRequest();
 
   NS_DECL_ISUPPORTS
@@ -63,7 +96,7 @@ public:
                 imgCacheEntry *aCacheEntry,
                 void *aLoadId,
                 nsIPrincipal* aLoadingPrincipal,
-                int32_t aCORSMode);
+                PRInt32 aCORSMode);
 
   
   nsresult AddProxy(imgRequestProxy *proxy);
@@ -71,7 +104,7 @@ public:
   
   nsresult RemoveProxy(imgRequestProxy *proxy, nsresult aStatus, bool aNotify);
 
-  void SniffMimeType(const char *buf, uint32_t len);
+  void SniffMimeType(const char *buf, PRUint32 len);
 
   
   
@@ -84,11 +117,11 @@ public:
   nsresult UnlockImage();
   nsresult RequestDecode();
 
-  inline void SetInnerWindowID(uint64_t aInnerWindowId) {
+  inline void SetInnerWindowID(PRUint64 aInnerWindowId) {
     mInnerWindowId = aInnerWindowId;
   }
 
-  inline uint64_t InnerWindowID() const {
+  inline PRUint64 InnerWindowID() const {
     return mInnerWindowId;
   }
 
@@ -98,10 +131,8 @@ public:
   
   static void SetCacheValidation(imgCacheEntry* aEntry, nsIRequest* aRequest);
 
-  bool GetMultipart() const { return mIsMultiPartChannel; }
-
   
-  int32_t GetCORSMode() const { return mCORSMode; }
+  PRInt32 GetCORSMode() const { return mCORSMode; }
 
   
   
@@ -155,11 +186,11 @@ private:
 
   
   
-  int32_t Priority() const;
+  PRInt32 Priority() const;
 
   
   
-  void AdjustPriority(imgRequestProxy *aProxy, int32_t aDelta);
+  void AdjustPriority(imgRequestProxy *aProxy, PRInt32 aDelta);
 
   
   bool HasTransferredData() const { return mGotData; }
@@ -184,8 +215,6 @@ public:
 private:
   friend class imgMemoryReporter;
 
-  
-  imgLoader* mLoader;
   nsCOMPtr<nsIRequest> mRequest;
   
   
@@ -198,7 +227,7 @@ private:
   nsCOMPtr<nsIPrincipal> mPrincipal;
   
   nsAutoPtr<imgStatusTracker> mStatusTracker;
-  nsRefPtr<mozilla::image::Image> mImage;
+  nsRefPtr<mozilla::imagelib::Image> mImage;
   nsCOMPtr<nsIProperties> mProperties;
   nsCOMPtr<nsISupports> mSecurityInfo;
   nsCOMPtr<nsIChannel> mChannel;
@@ -220,11 +249,11 @@ private:
   nsCOMPtr<nsIChannel> mNewRedirectChannel;
 
   
-  uint64_t mInnerWindowId;
+  PRUint64 mInnerWindowId;
 
   
   
-  int32_t mCORSMode;
+  PRInt32 mCORSMode;
 
   
   
@@ -233,7 +262,6 @@ private:
   bool mIsMultiPartChannel : 1;
   bool mGotData : 1;
   bool mIsInCache : 1;
-  bool mBlockingOnload : 1;
 };
 
 #endif

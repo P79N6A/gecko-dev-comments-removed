@@ -80,6 +80,7 @@ nsBufferedStream::nsBufferedStream()
       mFillPoint(0),
       mStream(nsnull),
       mBufferDisabled(false),
+      mEOF(false),
       mGetBufferCount(0)
 {
 }
@@ -186,8 +187,11 @@ nsBufferedStream::Seek(PRInt32 whence, PRInt64 offset)
     
     
     
+    
+    
+    
     PRUint32 offsetInBuffer = PRUint32(absPos - mBufferStartOffset);
-    if (offsetInBuffer <= mFillPoint) {
+    if (offsetInBuffer <= mFillPoint && !mEOF) {
         METER(bufstats.mSeeksWithinBuffer++);
         mCursor = offsetInBuffer;
         return NS_OK;
@@ -201,6 +205,21 @@ nsBufferedStream::Seek(PRInt32 whence, PRInt64 offset)
 
     rv = ras->Seek(whence, offset);
     if (NS_FAILED(rv)) return rv;
+
+    mEOF = false;
+
+    
+    
+    
+    offsetInBuffer = PRUint32(absPos - mBufferStartOffset);
+    if (offsetInBuffer <= mFillPoint) {
+        
+        
+        
+        
+        mCursor = offsetInBuffer;
+        return NS_OK;
+    }
 
     METER(if (bufstats.mBigSeekIndex < MAX_BIG_SEEKS)
               bufstats.mBigSeek[bufstats.mBigSeekIndex].mOldOffset =
@@ -246,7 +265,10 @@ nsBufferedStream::SetEOF()
     nsCOMPtr<nsISeekableStream> ras = do_QueryInterface(mStream, &rv);
     if (NS_FAILED(rv)) return rv;
 
-    return ras->SetEOF();
+    rv = ras->SetEOF();
+    if (NS_SUCCEEDED(rv))
+        mEOF = true;
+    return rv;
 }
 
 
@@ -327,8 +349,12 @@ nsBufferedInputStream::Read(char * buf, PRUint32 count, PRUint32 *result)
             return NS_OK;
         }
         nsresult rv = Source()->Read(buf, count, result);
-        if (NS_SUCCEEDED(rv))
+        if (NS_SUCCEEDED(rv)) {
             mBufferStartOffset += *result;  
+            if (*result == 0) {
+                mEOF = true;
+            }
+        }
         return rv;
     }
 
@@ -399,6 +425,9 @@ nsBufferedInputStream::Fill()
     rv = Source()->Read(mBuffer + mFillPoint, mBufferSize - mFillPoint, &amt);
     if (NS_FAILED(rv)) return rv;
 
+    if (amt == 0)
+        mEOF = true;
+    
     mFillPoint += amt;
     return NS_OK;
 }

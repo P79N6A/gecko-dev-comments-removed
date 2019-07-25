@@ -27,6 +27,46 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function GroupItem(listOfEls, options) {
   if (!options)
     options = {};
@@ -108,7 +148,6 @@ function GroupItem(listOfEls, options) {
     .click(function() {
       self.closeAll();
     })
-    .attr("title", tabviewString("groupItem.closeGroup"))
     .appendTo($container);
 
   
@@ -159,8 +198,7 @@ function GroupItem(listOfEls, options) {
       e.stopPropagation();
     })
     .keypress(handleKeyPress)
-    .keyup(handleKeyUp)
-    .attr("title", tabviewString("groupItem.defaultName"));
+    .keyup(handleKeyUp);
 
   this.$titleShield
     .mousedown(function(e) {
@@ -174,8 +212,7 @@ function GroupItem(listOfEls, options) {
 
       if (!self.isDragging)
         self.focusTitle();
-    })
-    .attr("title", tabviewString("groupItem.defaultName"));
+    });
 
   if (options.focusTitle)
     this.focusTitle();
@@ -194,12 +231,10 @@ function GroupItem(listOfEls, options) {
     .addClass("appTabTray")
     .appendTo(appTabTrayContainer);
 
-  let pinnedTabCount = gBrowser._numPinnedTabs;
-  AllTabs.tabs.forEach(function (xulTab, index) {
-    
+  AllTabs.tabs.forEach(function(xulTab) {
     if (xulTab.pinned)
-      this.addAppTab(xulTab, {dontAdjustTray: index + 1 < pinnedTabCount});
-  }, this);
+      self.addAppTab(xulTab, {dontAdjustTray: true});
+  });
 
   
   this.$undoContainer = null;
@@ -619,7 +654,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     } else {
       iQ(this.container).animate({
         opacity: 0,
-        "transform": "scale(.3)",
+        "-moz-transform": "scale(.3)",
       }, {
         duration: 170,
         complete: destroyGroup
@@ -641,7 +676,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
 
       iQ(this.container).animate({
          opacity: 0,
-         "transform": "scale(.3)",
+         "-moz-transform": "scale(.3)",
       }, {
         duration: 170,
         complete: function() {
@@ -720,21 +755,21 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       });
 
       UI.setActive(self);
-      self._sendToSubscribers("groupShown");
+      self._sendToSubscribers("groupShown", { groupItemId: self.id });
     };
 
     let $container = iQ(this.container).show();
 
     if (!options || !options.immediately) {
       $container.animate({
-        "transform": "scale(1)",
+        "-moz-transform": "scale(1)",
         "opacity": 1
       }, {
         duration: 170,
         complete: finalize
       });
     } else {
-      $container.css({"transform": "none", opacity: 1});
+      $container.css({"-moz-transform": "none", opacity: 1});
       finalize();
     }
 
@@ -869,13 +904,12 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       .appendTo(this.$undoContainer);
     let undoClose = iQ("<span/>")
       .addClass("close")
-      .attr("title", tabviewString("groupItem.discardClosedGroup"))
       .appendTo(this.$undoContainer);
 
     this.$undoContainer.css({
       left: this.bounds.left + this.bounds.width/2 - iQ(self.$undoContainer).width()/2,
       top:  this.bounds.top + this.bounds.height/2 - iQ(self.$undoContainer).height()/2,
-      "transform": "scale(.1)",
+      "-moz-transform": "scale(.1)",
       opacity: 0
     });
     this.hidden = true;
@@ -883,13 +917,13 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     
     setTimeout(function() {
       self.$undoContainer.animate({
-        "transform": "scale(1)",
+        "-moz-transform": "scale(1)",
         "opacity": 1
       }, {
         easing: "tabviewBounce",
         duration: 170,
         complete: function() {
-          self._sendToSubscribers("groupHidden");
+          self._sendToSubscribers("groupHidden", { groupItemId: self.id });
         }
       });
     }, 50);
@@ -1014,7 +1048,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
         this.arrange({animate: !options.immediately});
 
       this._unfreezeItemSize({dontArrange: true});
-      this._sendToSubscribers("childAdded", { item: item });
+      this._sendToSubscribers("childAdded",{ groupItemId: this.id, item: item });
 
       UI.setReorderTabsOnHide(this);
     } catch(e) {
@@ -1038,7 +1072,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     if (dontArrange)
       this._freezeItemSize(count);
 
-    if (this._children.length > 0 && this._activeTab && tabItem.closedManually)
+    if (this._children.length > 0 && this._activeTab)
       UI.setActive(this);
   },
 
@@ -1057,8 +1091,8 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   remove: function GroupItem_remove(a, options) {
     try {
-      let $el;
-      let item;
+      var $el;
+      var item;
 
       if (a.isAnItem) {
         item = a;
@@ -1071,7 +1105,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       if (!options)
         options = {};
 
-      let index = this._children.indexOf(item);
+      var index = this._children.indexOf(item);
       if (index != -1)
         this._children.splice(index, 1);
 
@@ -1108,16 +1142,14 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
         options.dontClose = true;
 
       let closed = options.dontClose ? false : this.closeIfEmpty();
-      if (closed ||
-          (this._children.length == 0 && !gBrowser._numPinnedTabs &&
-           !item.isDragging)) {
+      if (closed) {
         this._makeLastActiveGroupItemActive();
       } else if (!options.dontArrange) {
         this.arrange({animate: !options.immediately});
         this._unfreezeItemSize({dontArrange: true});
       }
 
-      this._sendToSubscribers("childRemoved", { item: item });
+      this._sendToSubscribers("childRemoved",{ groupItemId: this.id, item: item });
     } catch(e) {
       Utils.log(e);
     }
@@ -1150,43 +1182,29 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   addAppTab: function GroupItem_addAppTab(xulTab, options) {
-    GroupItems.getAppTabFavIconUrl(xulTab, function(iconUrl) {
-      
-      if (!Utils.isValidXULTab(xulTab) || !xulTab.pinned)
-        return;
+    let self = this;
 
-      let self = this;
-      let $appTab = iQ("<img>")
-        .addClass("appTabIcon")
-        .attr("src", iconUrl)
-        .data("xulTab", xulTab)
-        .mousedown(function GroupItem_addAppTab_onAppTabMousedown(event) {
-          
-          event.stopPropagation();
-        })
-        .click(function GroupItem_addAppTab_onAppTabClick(event) {
-          if (!Utils.isLeftClick(event))
-            return;
+    let iconUrl = GroupItems.getAppTabFavIconUrl(xulTab);
+    let $appTab = iQ("<img>")
+      .addClass("appTabIcon")
+      .attr("src", iconUrl)
+      .data("xulTab", xulTab)
+      .appendTo(this.$appTabTray)
+      .mousedown(function onAppTabMousedown(event) {
+        
+        event.stopPropagation();
+      })
+      .click(function(event) {
+        if (!Utils.isLeftClick(event))
+          return;
 
-          UI.setActive(self, { dontSetActiveTabInGroup: true });
-          UI.goToTab(iQ(this).data("xulTab"));
-        });
+        UI.setActive(self, { dontSetActiveTabInGroup: true });
+        UI.goToTab(iQ(this).data("xulTab"));
+      });
 
-      if (options && "position" in options) {
-        let children = this.$appTabTray[0].childNodes;
-
-        if (options.position >= children.length)
-          $appTab.appendTo(this.$appTabTray);
-        else
-          this.$appTabTray[0].insertBefore($appTab[0], children[options.position]);
-      } else {
-        $appTab.appendTo(this.$appTabTray);
-      }
-      if (!options || !options.dontAdjustTray)
-        this.adjustAppTabTray(true);
-
-      this._sendToSubscribers("appTabIconAdded", { item: $appTab });
-    }.bind(this));
+    
+    if (!options || !options.dontAdjustTray)
+      this.adjustAppTabTray(true);
   },
 
   
@@ -1832,7 +1850,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     UI.setActive(this, { dontSetActiveTabInGroup: true });
 
     let dontZoomIn = !!(options && options.dontZoomIn);
-    return gBrowser.loadOneTab(url || gWindow.BROWSER_NEW_TAB_URL, { inBackground: dontZoomIn });
+    return gBrowser.loadOneTab(url || "about:blank", { inBackground: dontZoomIn });
   },
 
   
@@ -2054,11 +2072,16 @@ let GroupItems = {
     if (!xulTab.pinned)
       return;
 
-    this.getAppTabFavIconUrl(xulTab, function(iconUrl) {
-      iQ(".appTabIcon").each(function GroupItems__updateAppTabIcons_forEach(icon) {
-         let $icon = iQ(icon);
-         if ($icon.data("xulTab") == xulTab && iconUrl != $icon.attr("src"))
-           $icon.attr("src", iconUrl);
+    let iconUrl = this.getAppTabFavIconUrl(xulTab);
+    this.groupItems.forEach(function(groupItem) {
+      iQ(".appTabIcon", groupItem.$appTabTray).each(function(icon) {
+        let $icon = iQ(icon);
+        if ($icon.data("xulTab") != xulTab)
+          return true;
+
+        if (iconUrl != $icon.attr("src"))
+          $icon.attr("src", iconUrl);
+        return false;
       });
     });
   },
@@ -2066,10 +2089,15 @@ let GroupItems = {
   
   
   
-  getAppTabFavIconUrl: function GroupItems_getAppTabFavIconUrl(xulTab, callback) {
-    FavIcons.getFavIconUrlForTab(xulTab, function GroupItems_getAppTabFavIconUrl_getFavIconUrlForTab(iconUrl) {
-      callback(iconUrl || FavIcons.defaultFavicon);
-    });
+  getAppTabFavIconUrl: function GroupItems_getAppTabFavIconUrl(xulTab) {
+    let iconUrl;
+
+    if (UI.shouldLoadFavIcon(xulTab.linkedBrowser))
+      iconUrl = UI.getFavIconUrlForTab(xulTab);
+    else
+      iconUrl = gFavIconService.defaultFavicon.spec;
+
+    return iconUrl;
   },
 
   
@@ -2202,29 +2230,13 @@ let GroupItems = {
         toClose.forEach(function(groupItem) {
           
           
-          groupItem.getChildren().forEach(function (tabItem) {
-            if (tabItem.parent.hidden)
-              iQ(tabItem.container).show();
-
-            tabItem._reconnected = false;
-
-            
-            let tabData = Storage.getTabData(tabItem.tab);
-
-            if (tabData) {
-              let parentGroup = GroupItems.groupItem(tabData.groupID);
-
-              
-              
-              
-              if (!parentGroup || -1 < toClose.indexOf(parentGroup)) {
-                tabData.groupID = activeGroupId || Object.keys(groupItemData)[0];
-                Storage.saveTab(tabItem.tab, tabData);
-              }
-            }
-          });
-
           
+          groupItem.getChildren().forEach(function (tabItem) {
+            if (tabItem.parent && tabItem.parent.hidden)
+              iQ(tabItem.container).show();
+            tabItem._reconnected = false;
+            tabItem._reconnect();
+          });
           groupItem.close({immediately: true});
         });
       }
@@ -2438,14 +2450,10 @@ let GroupItems = {
   
   
   
-  
-  
-  
-  updateActiveGroupItemAndTabBar: 
-    function GroupItems_updateActiveGroupItemAndTabBar(tabItem, options) {
+  updateActiveGroupItemAndTabBar: function GroupItems_updateActiveGroupItemAndTabBar(tabItem) {
     Utils.assertThrow(tabItem && tabItem.isATabItem, "tabItem must be a TabItem");
 
-    UI.setActive(tabItem, options);
+    UI.setActive(tabItem);
     this._updateTabBar();
   },
 

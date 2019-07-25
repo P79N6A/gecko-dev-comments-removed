@@ -151,6 +151,16 @@ JS_END_EXTERN_C
 
 namespace js {
 
+#ifdef DEBUG
+ 
+
+
+
+extern JS_FRIEND_API(void)
+DumpHeapComplete(JSContext *cx, FILE *fp);
+
+#endif
+
 class JS_FRIEND_API(AutoPreserveCompartment) {
   private:
     JSContext *cx;
@@ -333,6 +343,9 @@ CastAsJSStrictPropertyOp(JSObject *object)
 
 JS_FRIEND_API(bool)
 GetPropertyNames(JSContext *cx, JSObject *obj, uintN flags, js::AutoIdVector *props);
+
+JS_FRIEND_API(bool)
+StringIsArrayIndex(JSLinearString *str, jsuint *indexp);
 
 
 

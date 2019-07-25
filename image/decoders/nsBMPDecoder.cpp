@@ -7,6 +7,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <stdlib.h>
 
 #include "EndianMacros.h"
@@ -18,7 +53,7 @@
 #include "ImageLogging.h"
 
 namespace mozilla {
-namespace image {
+namespace imagelib {
 
 #ifdef PR_LOGGING
 PRLogModuleInfo *gBMPLog = PR_NewLogModule("BMPDecoder");
@@ -31,14 +66,14 @@ PRLogModuleInfo *gBMPLog = PR_NewLogModule("BMPDecoder");
 nsBMPDecoder::nsBMPDecoder(RasterImage &aImage, imgIDecoderObserver* aObserver)
  : Decoder(aImage, aObserver)
 {
-  mColors = nullptr;
-  mRow = nullptr;
-  mImageData = nullptr;
+  mColors = nsnull;
+  mRow = nsnull;
+  mImageData = nsnull;
   mCurPos = mPos = mNumColors = mRowBytes = 0;
   mOldLine = mCurLine = 1; 
   mState = eRLEStateInitial;
   mStateData = 0;
-  mLOH = WIN_V3_HEADER_LENGTH;
+  mLOH = WIN_HEADER_LENGTH;
   mUseAlphaData = mHaveAlphaData = false;
 }
 
@@ -58,35 +93,35 @@ nsBMPDecoder::SetUseAlphaData(bool useAlphaData)
 }
 
 
-int32_t 
+PRInt32 
 nsBMPDecoder::GetBitsPerPixel() const
 {
   return mBIH.bpp;
 }
 
 
-int32_t 
+PRInt32 
 nsBMPDecoder::GetWidth() const
 {
   return mBIH.width; 
 }
 
 
-int32_t 
+PRInt32 
 nsBMPDecoder::GetHeight() const
 {
-  return abs(mBIH.height);
+  return mBIH.height; 
 }
 
 
-uint32_t* 
+PRUint32* 
 nsBMPDecoder::GetImageData() 
 {
   return mImageData;
 }
 
 
-int32_t 
+PRInt32 
 nsBMPDecoder::GetCompressedImageSize() const
 {
   
@@ -96,7 +131,7 @@ nsBMPDecoder::GetCompressedImageSize() const
 
   
   
-  uint32_t rowSize = (mBIH.bpp * mBIH.width + 7) / 8; 
+  PRUint32 rowSize = (mBIH.bpp * mBIH.width + 7) / 8; 
   
   if (rowSize % 4) {
     rowSize += (4 - (rowSize % 4));
@@ -104,7 +139,7 @@ nsBMPDecoder::GetCompressedImageSize() const
 
   
   
-  int32_t pixelArraySize = rowSize * GetHeight();
+  PRInt32 pixelArraySize = rowSize * abs(mBIH.height); 
   return pixelArraySize;
 }
 
@@ -130,7 +165,7 @@ nsBMPDecoder::FinishInternal()
     if (!IsSizeDecode() && (GetFrameCount() == 1)) {
 
         
-        nsIntRect r(0, 0, mBIH.width, GetHeight());
+        nsIntRect r(0, 0, mBIH.width, mBIH.height);
         PostInvalidation(r);
 
         PostFrameStop();
@@ -142,10 +177,10 @@ nsBMPDecoder::FinishInternal()
 
 
 
-static void calcBitmask(uint32_t aMask, uint8_t& aBegin, uint8_t& aLength)
+static void calcBitmask(PRUint32 aMask, PRUint8& aBegin, PRUint8& aLength)
 {
     
-    uint8_t pos;
+    PRUint8 pos;
     bool started = false;
     aBegin = aLength = 0;
     for (pos = 0; pos <= 31; pos++) {
@@ -162,7 +197,7 @@ static void calcBitmask(uint32_t aMask, uint8_t& aBegin, uint8_t& aLength)
 
 NS_METHOD nsBMPDecoder::CalcBitShift()
 {
-    uint8_t begin, length;
+    PRUint8 begin, length;
     
     calcBitmask(mBitFields.red, begin, length);
     mBitFields.redRightShift = begin;
@@ -179,7 +214,7 @@ NS_METHOD nsBMPDecoder::CalcBitShift()
 }
 
 void
-nsBMPDecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
+nsBMPDecoder::WriteInternal(const char* aBuffer, PRUint32 aCount)
 {
     NS_ABORT_IF_FALSE(!HasError(), "Shouldn't call WriteInternal after error!");
 
@@ -189,7 +224,7 @@ nsBMPDecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
 
     nsresult rv;
     if (mPos < BFH_INTERNAL_LENGTH) { 
-        uint32_t toCopy = BFH_INTERNAL_LENGTH - mPos;
+        PRUint32 toCopy = BFH_INTERNAL_LENGTH - mPos;
         if (toCopy > aCount)
             toCopy = aCount;
         memcpy(mRawBuf + mPos, aBuffer, toCopy);
@@ -207,7 +242,7 @@ nsBMPDecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
             mLOH = OS2_HEADER_LENGTH;
     }
     if (mPos >= BFH_INTERNAL_LENGTH && mPos < mLOH) { 
-        uint32_t toCopy = mLOH - mPos;
+        PRUint32 toCopy = mLOH - mPos;
         if (toCopy > aCount)
             toCopy = aCount;
         memcpy(mRawBuf + (mPos - BFH_INTERNAL_LENGTH), aBuffer, toCopy);
@@ -232,17 +267,18 @@ nsBMPDecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
 
         
         
-        const int32_t k64KWidth = 0x0000FFFF;
+        const PRInt32 k64KWidth = 0x0000FFFF;
         if (mBIH.width < 0 || mBIH.width > k64KWidth) {
             PostDataError();
             return;
         }
 
-        uint32_t real_height = GetHeight();
+        PRUint32 real_height = (mBIH.height > 0) ? mBIH.height : -mBIH.height;
 
         
         PostSize(mBIH.width, real_height);
         if (HasError()) {
+          
           
           return;
         }
@@ -302,15 +338,15 @@ nsBMPDecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
           return;
         }
 
-        uint32_t imageLength;
+        PRUint32 imageLength;
         if (mBIH.compression == BI_RLE8 || mBIH.compression == BI_RLE4 || 
             mBIH.compression == BI_ALPHABITFIELDS) {
             rv = mImage.EnsureFrame(0, 0, 0, mBIH.width, real_height, 
                                     gfxASurface::ImageFormatARGB32,
-                                    (uint8_t**)&mImageData, &imageLength);
+                                    (PRUint8**)&mImageData, &imageLength);
         } else {
             
-            mRow = (uint8_t*)moz_malloc((mBIH.width * mBIH.bpp) / 8 + 4);
+            mRow = (PRUint8*)moz_malloc((mBIH.width * mBIH.bpp) / 8 + 4);
             
             
             
@@ -322,11 +358,11 @@ nsBMPDecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
             if (mUseAlphaData) {
               rv = mImage.EnsureFrame(0, 0, 0, mBIH.width, real_height, 
                                       gfxASurface::ImageFormatARGB32,
-                                      (uint8_t**)&mImageData, &imageLength);
+                                      (PRUint8**)&mImageData, &imageLength);
             } else {
               rv = mImage.EnsureFrame(0, 0, 0, mBIH.width, real_height, 
                                       gfxASurface::ImageFormatRGB24,
-                                      (uint8_t**)&mImageData, &imageLength);
+                                      (PRUint8**)&mImageData, &imageLength);
             }
         }
         if (NS_FAILED(rv) || !mImageData) {
@@ -343,17 +379,14 @@ nsBMPDecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
         
         PostFrameStart();
     }
-
-    if (mColors && mPos >= mLOH) {
-      
-      uint8_t bytesPerColor = (mBFH.bihsize == OS2_BIH_LENGTH) ? 3 : 4;
-      if (mPos < (mLOH + mNumColors * bytesPerColor)) {
+    PRUint8 bpc; 
+    bpc = (mBFH.bihsize == OS2_BIH_LENGTH) ? 3 : 4; 
+    if (mColors && (mPos >= mLOH && (mPos < (mLOH + mNumColors * bpc)))) {
         
-        uint32_t colorBytes = mPos - mLOH; 
-        
-        uint8_t colorNum = colorBytes / bytesPerColor;
-        uint8_t at = colorBytes % bytesPerColor;
-        while (aCount && (mPos < (mLOH + mNumColors * bytesPerColor))) {
+        PRUint32 colorBytes = mPos - mLOH; 
+        PRUint8 colorNum = colorBytes / bpc; 
+        PRUint8 at = colorBytes % bpc;
+        while (aCount && (mPos < (mLOH + mNumColors * bpc))) {
             switch (at) {
                 case 0:
                     mColors[colorNum].blue = *aBuffer;
@@ -363,38 +396,31 @@ nsBMPDecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
                     break;
                 case 2:
                     mColors[colorNum].red = *aBuffer;
-                    
-                    
-                    if (bytesPerColor == 3)
-                      colorNum++;
+                    colorNum++;
                     break;
                 case 3:
                     
-                    
-                    colorNum++;
                     break;
             }
             mPos++; aBuffer++; aCount--;
-            at = (at + 1) % bytesPerColor;
+            at = (at + 1) % bpc;
         }
-      }
     }
-    else if (aCount && mBIH.compression == BI_BITFIELDS && mPos < (WIN_V3_HEADER_LENGTH + BITFIELD_LENGTH)) {
+    else if (aCount && mBIH.compression == BI_BITFIELDS && mPos < (WIN_HEADER_LENGTH + BITFIELD_LENGTH)) {
         
         
-        uint32_t toCopy = (WIN_V3_HEADER_LENGTH + BITFIELD_LENGTH) - mPos;
+        PRUint32 toCopy = (WIN_HEADER_LENGTH + BITFIELD_LENGTH) - mPos;
         if (toCopy > aCount)
             toCopy = aCount;
-        memcpy(mRawBuf + (mPos - WIN_V3_HEADER_LENGTH), aBuffer, toCopy);
+        memcpy(mRawBuf + (mPos - WIN_HEADER_LENGTH), aBuffer, toCopy);
         mPos += toCopy;
         aBuffer += toCopy;
         aCount -= toCopy;
     }
-    if (mPos == WIN_V3_HEADER_LENGTH + BITFIELD_LENGTH && 
-        mBIH.compression == BI_BITFIELDS) {
-        mBitFields.red = LITTLE_TO_NATIVE32(*(uint32_t*)mRawBuf);
-        mBitFields.green = LITTLE_TO_NATIVE32(*(uint32_t*)(mRawBuf + 4));
-        mBitFields.blue = LITTLE_TO_NATIVE32(*(uint32_t*)(mRawBuf + 8));
+    if (mBIH.compression == BI_BITFIELDS && mPos == WIN_HEADER_LENGTH + BITFIELD_LENGTH) {
+        mBitFields.red = LITTLE_TO_NATIVE32(*(PRUint32*)mRawBuf);
+        mBitFields.green = LITTLE_TO_NATIVE32(*(PRUint32*)(mRawBuf + 4));
+        mBitFields.blue = LITTLE_TO_NATIVE32(*(PRUint32*)(mRawBuf + 8));
         CalcBitShift();
     }
     while (aCount && (mPos < mBFH.dataoffset)) { 
@@ -404,11 +430,11 @@ nsBMPDecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
         
         
         if (!mBIH.compression || mBIH.compression == BI_BITFIELDS) {
-            uint32_t rowSize = (mBIH.bpp * mBIH.width + 7) / 8; 
+            PRUint32 rowSize = (mBIH.bpp * mBIH.width + 7) / 8; 
             if (rowSize % 4) {
                 rowSize += (4 - (rowSize % 4)); 
             }
-            uint32_t toCopy;
+            PRUint32 toCopy;
             do {
                 toCopy = rowSize - mRowBytes;
                 if (toCopy) {
@@ -421,14 +447,14 @@ nsBMPDecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
                 }
                 if (rowSize == mRowBytes) {
                     
-                    uint8_t* p = mRow;
-                    uint32_t* d = mImageData + PIXEL_OFFSET(mCurLine, 0);
-                    uint32_t lpos = mBIH.width;
+                    PRUint8* p = mRow;
+                    PRUint32* d = mImageData + PIXEL_OFFSET(mCurLine, 0);
+                    PRUint32 lpos = mBIH.width;
                     switch (mBIH.bpp) {
                       case 1:
                         while (lpos > 0) {
-                          int8_t bit;
-                          uint8_t idx;
+                          PRInt8 bit;
+                          PRUint8 idx;
                           for (bit = 7; bit >= 0 && lpos > 0; bit--) {
                               idx = (*p >> bit) & 1;
                               SetPixel(d, idx, mColors);
@@ -452,7 +478,7 @@ nsBMPDecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
                         break;
                       case 16:
                         while (lpos > 0) {
-                          uint16_t val = LITTLE_TO_NATIVE16(*(uint16_t*)p);
+                          PRUint16 val = LITTLE_TO_NATIVE16(*(PRUint16*)p);
                           SetPixel(d,
                                   (val & mBitFields.red) >> mBitFields.redRightShift << mBitFields.redLeftShift,
                                   (val & mBitFields.green) >> mBitFields.greenRightShift << mBitFields.greenLeftShift,
@@ -480,12 +506,9 @@ nsBMPDecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
                               
                               
                               
-                              uint32_t* start = mImageData + GetWidth() * (mCurLine - 1);
-                              uint32_t heightDifference = GetHeight() - mCurLine + 1;
-                              uint32_t pixelCount = GetWidth() * heightDifference;
-
-                              memset(start, 0, pixelCount * sizeof(uint32_t));
-
+                              memset(mImageData + (mCurLine - 1) * GetWidth(), 0, 
+                                     (GetHeight() - mCurLine + 1) * 
+                                     GetWidth() * sizeof(PRUint32));
                               mHaveAlphaData = true;
                             }
                             SetPixel(d, p[2], p[1], p[0], mHaveAlphaData ? p[3] : 0xFF);
@@ -517,11 +540,11 @@ nsBMPDecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
             }
 
             while (aCount > 0) {
-                uint8_t byte;
+                PRUint8 byte;
 
                 switch(mState) {
                     case eRLEStateInitial:
-                        mStateData = (uint8_t)*aBuffer++;
+                        mStateData = (PRUint8)*aBuffer++;
                         aCount--;
 
                         mState = eRLEStateNeedSecondEscapeByte;
@@ -538,9 +561,9 @@ nsBMPDecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
                             
                             
                             mState = eRLEStateInitial;
-                            uint32_t pixelsNeeded = NS_MIN<uint32_t>(mBIH.width - mCurPos, mStateData);
+                            PRUint32 pixelsNeeded = NS_MIN<PRUint32>(mBIH.width - mCurPos, mStateData);
                             if (pixelsNeeded) {
-                                uint32_t* d = mImageData + PIXEL_OFFSET(mCurLine, mCurPos);
+                                PRUint32* d = mImageData + PIXEL_OFFSET(mCurLine, mCurPos);
                                 mCurPos += pixelsNeeded;
                                 if (mBIH.compression == BI_RLE8) {
                                     do {
@@ -575,11 +598,11 @@ nsBMPDecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
                             default : 
                                 
                                 mStateData = byte;
-                                if (mCurPos + mStateData > (uint32_t)mBIH.width) {
+                                if (mCurPos + mStateData > (PRUint32)mBIH.width) {
                                     
                                     
                                     mStateData -= mBIH.width & 1;
-                                    if (mCurPos + mStateData > (uint32_t)mBIH.width) {
+                                    if (mCurPos + mStateData > (PRUint32)mBIH.width) {
                                         PostDataError();
                                         return;
                                     }
@@ -618,7 +641,7 @@ nsBMPDecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
                         byte = *aBuffer++;
                         aCount--;
                         mState = eRLEStateInitial;
-                        mCurLine -= NS_MIN<int32_t>(byte, mCurLine);
+                        mCurLine -= NS_MIN<PRInt32>(byte, mCurLine);
                         break;
 
                     case eRLEStateAbsoluteMode: 
@@ -628,8 +651,8 @@ nsBMPDecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
                             
                             
                             
-                            uint32_t* d = mImageData + PIXEL_OFFSET(mCurLine, mCurPos);
-                            uint32_t* oldPos = d;
+                            PRUint32* d = mImageData + PIXEL_OFFSET(mCurLine, mCurPos);
+                            PRUint32* oldPos = d;
                             if (mBIH.compression == BI_RLE8) {
                                 while (aCount > 0 && mStateData > 0) {
                                     byte = *aBuffer++;
@@ -678,7 +701,7 @@ nsBMPDecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
         }
     }
 
-    const uint32_t rows = mOldLine - mCurLine;
+    const PRUint32 rows = mOldLine - mCurLine;
     if (rows) {
 
         

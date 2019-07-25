@@ -1,4 +1,4 @@
-
+  
 
 
 
@@ -38,7 +38,8 @@
 
 
 #include "mozilla/dom/CrashReporterChild.h"
-
+#include "mozilla/Services.h"
+#include "nsIObserverService.h"
 #include "mozilla/Util.h"
 
 #include "nsXULAppAPI.h"
@@ -1551,7 +1552,21 @@ nsresult GetSubmitReports(bool* aSubmitReports)
 
 nsresult SetSubmitReports(bool aSubmitReports)
 {
-    return PrefSubmitReports(&aSubmitReports, true);
+    nsresult rv;
+
+    nsCOMPtr<nsIObserverService> obsServ =
+      mozilla::services::GetObserverService();
+    if (!obsServ) {
+      return NS_ERROR_FAILURE;
+    }
+
+    rv = PrefSubmitReports(&aSubmitReports, true);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
+
+    obsServ->NotifyObservers(nsnull, "submit-reports-pref-changed", nsnull);
+    return NS_OK;
 }
 
 

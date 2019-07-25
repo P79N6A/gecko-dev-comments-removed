@@ -457,7 +457,7 @@ nsFrameManager::ClearAllUndisplayedContentIn(nsIContent* aParentContent)
   
   
   nsINodeList* list =
-    aParentContent->GetOwnerDoc()->BindingManager()->GetXBLChildNodesFor(aParentContent);
+    aParentContent->OwnerDoc()->BindingManager()->GetXBLChildNodesFor(aParentContent);
   if (list) {
     PRUint32 length;
     list->GetLength(&length);

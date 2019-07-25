@@ -278,6 +278,8 @@ nsUrlClassifierPrefixSet::Probe(PRUint32 aPrefix, PRUint32 aKey,
 {
   MutexAutoLock lock(mPrefixSetLock);
 
+  *aFound = false;
+
   
   
   

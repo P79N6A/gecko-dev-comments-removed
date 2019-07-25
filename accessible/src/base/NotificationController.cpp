@@ -380,7 +380,7 @@ NotificationController::CoalesceEvents()
         
         
         if (!thisEvent->mNode ||
-            thisEvent->mNode->GetOwnerDoc() != tailEvent->mNode->GetOwnerDoc())
+            thisEvent->mNode->OwnerDoc() != tailEvent->mNode->OwnerDoc())
           continue;
 
         

@@ -4,10 +4,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef imgLoader_h__
 #define imgLoader_h__
-
-#include "mozilla/Attributes.h"
 
 #include "imgILoader.h"
 #include "imgICache.h"
@@ -27,24 +59,21 @@
 #include "prlock.h"
 #endif
 
-class imgLoader;
 class imgRequest;
 class imgRequestProxy;
 class imgIRequest;
 class imgIDecoderObserver;
 class nsILoadGroup;
-class imgCacheExpirationTracker;
-class imgMemoryReporter;
 
 class imgCacheEntry
 {
 public:
-  imgCacheEntry(imgLoader* loader, imgRequest *request, bool aForcePrincipalCheck);
+  imgCacheEntry(imgRequest *request, bool aForcePrincipalCheck);
   ~imgCacheEntry();
 
   nsrefcnt AddRef()
   {
-    NS_PRECONDITION(int32_t(mRefCnt) >= 0, "illegal refcnt");
+    NS_PRECONDITION(PRInt32(mRefCnt) >= 0, "illegal refcnt");
     NS_ABORT_IF_FALSE(_mOwningThread.GetThread() == PR_GetCurrentThread(), "imgCacheEntry addref isn't thread-safe!");
     ++mRefCnt;
     NS_LOG_ADDREF(this, mRefCnt, "imgCacheEntry", sizeof(*this));
@@ -65,32 +94,32 @@ public:
     return mRefCnt;                              
   }
 
-  uint32_t GetDataSize() const
+  PRUint32 GetDataSize() const
   {
     return mDataSize;
   }
-  void SetDataSize(uint32_t aDataSize)
+  void SetDataSize(PRUint32 aDataSize)
   {
-    int32_t oldsize = mDataSize;
+    PRInt32 oldsize = mDataSize;
     mDataSize = aDataSize;
     UpdateCache(mDataSize - oldsize);
   }
 
-  int32_t GetTouchedTime() const
+  PRInt32 GetTouchedTime() const
   {
     return mTouchedTime;
   }
-  void SetTouchedTime(int32_t time)
+  void SetTouchedTime(PRInt32 time)
   {
     mTouchedTime = time;
     Touch( false);
   }
 
-  int32_t GetExpiryTime() const
+  PRInt32 GetExpiryTime() const
   {
     return mExpiryTime;
   }
-  void SetExpiryTime(int32_t aExpiryTime)
+  void SetExpiryTime(PRInt32 aExpiryTime)
   {
     mExpiryTime = aExpiryTime;
     Touch();
@@ -133,16 +162,11 @@ public:
     return mForcePrincipalCheck;
   }
 
-  imgLoader* Loader() const
-  {
-    return mLoader;
-  }
-
 private: 
   friend class imgLoader;
   friend class imgCacheQueue;
   void Touch(bool updateTime = true);
-  void UpdateCache(int32_t diff = 0);
+  void UpdateCache(PRInt32 diff = 0);
   void SetEvicted(bool evict)
   {
     mEvicted = evict;
@@ -156,11 +180,10 @@ private:
   nsAutoRefCnt mRefCnt;
   NS_DECL_OWNINGTHREAD
 
-  imgLoader* mLoader;
   nsRefPtr<imgRequest> mRequest;
-  uint32_t mDataSize;
-  int32_t mTouchedTime;
-  int32_t mExpiryTime;
+  PRUint32 mDataSize;
+  PRInt32 mTouchedTime;
+  PRInt32 mExpiryTime;
   nsExpirationState mExpirationState;
   bool mMustValidate : 1;
   bool mEvicted : 1;
@@ -188,9 +211,9 @@ public:
   bool IsDirty();
   already_AddRefed<imgCacheEntry> Pop();
   void Refresh();
-  uint32_t GetSize() const;
-  void UpdateSize(int32_t diff);
-  uint32_t GetNumElements() const;
+  PRUint32 GetSize() const;
+  void UpdateSize(PRInt32 diff);
+  PRUint32 GetNumElements() const;
   typedef std::vector<nsRefPtr<imgCacheEntry> > queueContainer;  
   typedef queueContainer::iterator iterator;
   typedef queueContainer::const_iterator const_iterator;
@@ -203,7 +226,7 @@ public:
 private:
   queueContainer mQueue;
   bool mDirty;
-  uint32_t mSize;
+  PRUint32 mSize;
 };
 
 class imgMemoryReporter;
@@ -226,21 +249,20 @@ public:
 
   nsresult Init();
 
-  static nsresult GetMimeTypeFromContent(const char* aContents, uint32_t aLength, nsACString& aContentType);
+  static nsresult GetMimeTypeFromContent(const char* aContents, PRUint32 aLength, nsACString& aContentType);
 
-  static void GlobalInit(); 
   static void Shutdown(); 
 
-  nsresult ClearChromeImageCache();
-  nsresult ClearImageCache();
-  void MinimizeCaches();
+  static nsresult ClearChromeImageCache();
+  static nsresult ClearImageCache();
+  static void MinimizeCaches();
 
-  nsresult InitCache();
+  static nsresult InitCache();
 
-  bool RemoveFromCache(nsIURI *aKey);
-  bool RemoveFromCache(imgCacheEntry *entry);
+  static bool RemoveFromCache(nsIURI *aKey);
+  static bool RemoveFromCache(imgCacheEntry *entry);
 
-  bool PutIntoCache(nsIURI *key, imgCacheEntry *entry);
+  static bool PutIntoCache(nsIURI *key, imgCacheEntry *entry);
 
   
   
@@ -266,7 +288,7 @@ public:
     return oneweight < twoweight;
   }
 
-  void VerifyCacheSizes();
+  static void VerifyCacheSizes();
 
   
   
@@ -279,8 +301,8 @@ public:
   
   
   
-  bool SetHasNoProxies(nsIURI *key, imgCacheEntry *entry);
-  bool SetHasProxies(nsIURI *key);
+  static bool SetHasNoProxies(nsIURI *key, imgCacheEntry *entry);
+  static bool SetHasProxies(nsIURI *key);
 
 private: 
 
@@ -294,7 +316,7 @@ private:
                        imgIRequest **aProxyRequest,
                        nsIChannelPolicy *aPolicy,
                        nsIPrincipal* aLoadingPrincipal,
-                       int32_t aCORSMode);
+                       PRInt32 aCORSMode);
   bool ValidateRequestWithNewChannel(imgRequest *request, nsIURI *aURI,
                                        nsIURI *aInitialDocumentURI,
                                        nsIURI *aReferrerURI,
@@ -305,7 +327,7 @@ private:
                                        imgIRequest **aProxyRequest,
                                        nsIChannelPolicy *aPolicy,
                                        nsIPrincipal* aLoadingPrincipal,
-                                       int32_t aCORSMode);
+                                       PRInt32 aCORSMode);
 
   nsresult CreateNewProxyForRequest(imgRequest *aRequest, nsILoadGroup *aLoadGroup,
                                     imgIDecoderObserver *aObserver,
@@ -317,32 +339,27 @@ private:
 
   typedef nsRefPtrHashtable<nsCStringHashKey, imgCacheEntry> imgCacheTable;
 
-  nsresult EvictEntries(imgCacheTable &aCacheToClear);
-  nsresult EvictEntries(imgCacheQueue &aQueueToClear);
+  static nsresult EvictEntries(imgCacheTable &aCacheToClear);
+  static nsresult EvictEntries(imgCacheQueue &aQueueToClear);
 
-  imgCacheTable &GetCache(nsIURI *aURI);
-  imgCacheQueue &GetCacheQueue(nsIURI *aURI);
-  void CacheEntriesChanged(nsIURI *aURI, int32_t sizediff = 0);
-  void CheckCacheLimits(imgCacheTable &cache, imgCacheQueue &queue);
+  static imgCacheTable &GetCache(nsIURI *aURI);
+  static imgCacheQueue &GetCacheQueue(nsIURI *aURI);
+  static void CacheEntriesChanged(nsIURI *aURI, PRInt32 sizediff = 0);
+  static void CheckCacheLimits(imgCacheTable &cache, imgCacheQueue &queue);
 
 private: 
   friend class imgCacheEntry;
   friend class imgMemoryReporter;
 
-  imgCacheTable mCache;
-  imgCacheQueue mCacheQueue;
+  static imgCacheTable sCache;
+  static imgCacheQueue sCacheQueue;
 
-  imgCacheTable mChromeCache;
-  imgCacheQueue mChromeCacheQueue;
-
-  static double sCacheTimeWeight;
-  static uint32_t sCacheMaxSize;
-  static imgMemoryReporter* sMemReporter;
+  static imgCacheTable sChromeCache;
+  static imgCacheQueue sChromeCacheQueue;
+  static PRFloat64 sCacheTimeWeight;
+  static PRUint32 sCacheMaxSize;
 
   nsCString mAcceptHeader;
-
-  nsAutoPtr<imgCacheExpirationTracker> mCacheTracker;
-  bool mRespectPrivacy;
 };
 
 
@@ -375,10 +392,9 @@ private:
 
 
 
-class nsProgressNotificationProxy MOZ_FINAL
-  : public nsIProgressEventSink
-  , public nsIChannelEventSink
-  , public nsIInterfaceRequestor
+class nsProgressNotificationProxy : public nsIProgressEventSink
+                                  , public nsIChannelEventSink
+                                  , public nsIInterfaceRequestor
 {
   public:
     nsProgressNotificationProxy(nsIChannel* channel,
@@ -410,8 +426,8 @@ class imgCacheValidator : public nsIStreamListener,
                           public nsIAsyncVerifyRedirectCallback
 {
 public:
-  imgCacheValidator(nsProgressNotificationProxy* progress, imgLoader* loader,
-                    imgRequest *request, void *aContext, bool forcePrincipalCheckForCacheEntry);
+  imgCacheValidator(nsProgressNotificationProxy* progress, imgRequest *request,
+                    void *aContext, bool forcePrincipalCheckForCacheEntry);
   virtual ~imgCacheValidator();
 
   void AddProxy(imgRequestProxy *aProxy);
@@ -437,7 +453,7 @@ private:
 
   void *mContext;
 
-  imgLoader* mImgLoader;
+  static imgLoader sImgLoader;
 };
 
 #endif  

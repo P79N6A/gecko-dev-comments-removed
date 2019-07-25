@@ -267,15 +267,20 @@ nsGSettingsCollection::GetInt(const nsACString& aKey,
   return NS_OK;
 }
 
+
+
+
+typedef void (*nsGSettingsFunc)();
+struct nsGSettingsDynamicFunction {
+  const char *functionName;
+  nsGSettingsFunc *function;
+};
+
 nsresult
 nsGSettingsService::Init()
 {
 #define FUNC(name, type, params) { #name, (nsGSettingsFunc *)&_##name },
-  typedef void (*nsGSettingsFunc)();
-  static const struct nsGSettingsDynamicFunction {
-    const char *functionName;
-    nsGSettingsFunc *function;
-  } kGSettingsSymbols[] = {
+  static const nsGSettingsDynamicFunction kGSettingsSymbols[] = {
     GSETTINGS_FUNCTIONS
   };
 #undef FUNC

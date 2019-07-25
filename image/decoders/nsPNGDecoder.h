@@ -4,6 +4,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsPNGDecoder_h__
 #define nsPNGDecoder_h__
 
@@ -19,7 +53,7 @@
 #include "qcms.h"
 
 namespace mozilla {
-namespace image {
+namespace imagelib {
 class RasterImage;
 
 class nsPNGDecoder : public Decoder
@@ -29,68 +63,53 @@ public:
   virtual ~nsPNGDecoder();
 
   virtual void InitInternal();
-  virtual void WriteInternal(const char* aBuffer, uint32_t aCount);
+  virtual void WriteInternal(const char* aBuffer, PRUint32 aCount);
   virtual Telemetry::ID SpeedHistogram();
 
   void CreateFrame(png_uint_32 x_offset, png_uint_32 y_offset,
-                   int32_t width, int32_t height,
+                   PRInt32 width, PRInt32 height,
                    gfxASurface::gfxImageFormat format);
   void SetAnimFrameInfo();
 
   void EndImageFrame();
 
   
-  
-  bool IsValidICO() const
+  bool HasValidInfo() const 
   {
-    
-    
-    
-    
-    if (setjmp(png_jmpbuf(mPNG))) {
-      
-      return false;
+    return mInfo && mInfo->valid;
+  }
+
+  
+  PRInt32 GetPixelDepth() const
+  {
+    if (!mInfo) {
+      return 0;
     }
-
-    png_uint_32
-        png_width,  
-        png_height; 
-
-    int png_bit_depth,
-        png_color_type;
-
-    if (png_get_IHDR(mPNG, mInfo, &png_width, &png_height, &png_bit_depth,
-                     &png_color_type, NULL, NULL, NULL)) {
-
-      return (png_color_type == PNG_COLOR_TYPE_RGB_ALPHA &&
-              png_bit_depth == 8);
-    } else {
-      return false;
-    }
+    return mInfo->pixel_depth;
   }
 
 public:
   png_structp mPNG;
   png_infop mInfo;
   nsIntRect mFrameRect;
-  uint8_t *mCMSLine;
-  uint8_t *interlacebuf;
-  uint8_t *mImageData;
+  PRUint8 *mCMSLine;
+  PRUint8 *interlacebuf;
+  PRUint8 *mImageData;
   qcms_profile *mInProfile;
   qcms_transform *mTransform;
 
   gfxASurface::gfxImageFormat format;
 
   
-  uint8_t *mHeaderBuf;
-  uint32_t mHeaderBytesRead;
+  PRUint8 *mHeaderBuf;
+  PRUint32 mHeaderBytesRead;
 
-  uint8_t mChannels;
+  PRUint8 mChannels;
   bool mFrameHasNoAlpha;
   bool mFrameIsHidden;
 
   
-  uint32_t mCMSMode;
+  PRUint32 mCMSMode;
   bool mDisablePremultipliedAlpha;
   
   
@@ -113,7 +132,7 @@ public:
 
   
   
-  static const uint8_t pngSignatureBytes[];
+  static const PRUint8 pngSignatureBytes[];
 };
 
 } 

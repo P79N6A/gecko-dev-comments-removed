@@ -184,6 +184,7 @@ public:
   static void AddToCARefreshTimer(nsPluginInstanceOwner *aPluginInstance);
   static void RemoveFromCARefreshTimer(nsPluginInstanceOwner *aPluginInstance);
   void SetupCARefresh();
+  
   void* FixUpPluginWindow(PRInt32 inPaintState);
   void HidePluginWindow();
   
@@ -309,6 +310,7 @@ private:
   
   void FixUpURLS(const nsString &name, nsAString &value);
 #ifdef ANDROID
+  void AddPluginView(const gfxRect& aRect);
   void RemovePluginView();
 #endif 
  

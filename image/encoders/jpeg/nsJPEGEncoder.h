@@ -3,10 +3,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "imgIEncoder.h"
 
 #include "mozilla/ReentrantMonitor.h"
-#include "mozilla/Attributes.h"
 
 #include "nsCOMPtr.h"
 
@@ -28,7 +60,7 @@ extern "C" {
 
 
 
-class nsJPEGEncoder MOZ_FINAL : public imgIEncoder
+class nsJPEGEncoder : public imgIEncoder
 {
   typedef mozilla::ReentrantMonitor ReentrantMonitor;
 public:
@@ -44,9 +76,9 @@ private:
 
 protected:
 
-  void ConvertHostARGBRow(const uint8_t* aSrc, uint8_t* aDest,
-                          uint32_t aPixelWidth);
-  void ConvertRGBARow(const uint8_t* aSrc, uint8_t* aDest, uint32_t aPixelWidth);
+  void ConvertHostARGBRow(const PRUint8* aSrc, PRUint8* aDest,
+                          PRUint32 aPixelWidth);
+  void StripAlpha(const PRUint8* aSrc, PRUint8* aDest, PRUint32 aPixelWidth);
 
   static void initDestination(jpeg_compress_struct* cinfo);
   static boolean emptyOutputBuffer(jpeg_compress_struct* cinfo);
@@ -59,15 +91,15 @@ protected:
   bool mFinished;
 
   
-  uint8_t* mImageBuffer;
-  uint32_t mImageBufferSize;
-  uint32_t mImageBufferUsed;
+  PRUint8* mImageBuffer;
+  PRUint32 mImageBufferSize;
+  PRUint32 mImageBufferUsed;
 
-  uint32_t mImageBufferReadPoint;
+  PRUint32 mImageBufferReadPoint;
 
   nsCOMPtr<nsIInputStreamCallback> mCallback;
   nsCOMPtr<nsIEventTarget> mCallbackTarget;
-  uint32_t mNotifyThreshold;
+  PRUint32 mNotifyThreshold;
 
   
 

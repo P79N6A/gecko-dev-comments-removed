@@ -5,143 +5,231 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "frontend/BytecodeCompiler.h"
 
 #include "jsprobes.h"
 
 #include "frontend/BytecodeEmitter.h"
 #include "frontend/FoldConstants.h"
-#include "frontend/NameFunctions.h"
+#include "frontend/SemanticAnalysis.h"
 #include "vm/GlobalObject.h"
 
 #include "jsinferinlines.h"
 
-#include "frontend/ParseMaps-inl.h"
-#include "frontend/Parser-inl.h"
-#include "frontend/SharedContext-inl.h"
-
 using namespace js;
 using namespace js::frontend;
 
-static bool
-CheckLength(JSContext *cx, size_t length)
+bool
+DefineGlobals(JSContext *cx, GlobalScope &globalScope, JSScript *script)
 {
-    
-    
-    
-    if (length > UINT32_MAX) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_SOURCE_TOO_LONG);
-        return false;
-    }
-    return true;
-}
+    JSObject *globalObj = globalScope.globalObj;
 
-static bool
-SetSourceMap(JSContext *cx, TokenStream &tokenStream, ScriptSource *ss, JSScript *script)
-{
-    if (tokenStream.hasSourceMap()) {
-        if (!ss->setSourceMap(cx, tokenStream.releaseSourceMap(), script->filename))
+    
+    for (size_t i = 0; i < globalScope.defs.length(); i++) {
+        GlobalScope::GlobalDef &def = globalScope.defs[i];
+
+        
+        if (!def.atom)
+            continue;
+
+        jsid id = ATOM_TO_JSID(def.atom);
+        Value rval;
+
+        if (def.funbox) {
+            JSFunction *fun = def.funbox->function();
+
+            
+
+
+
+            rval.setObject(*fun);
+            types::AddTypePropertyId(cx, globalObj, id, rval);
+        } else {
+            rval.setUndefined();
+        }
+
+        
+
+
+
+
+
+
+        const Shape *shape =
+            DefineNativeProperty(cx, globalObj, id, rval, JS_PropertyStub, JS_StrictPropertyStub,
+                                 JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0, DNP_SKIP_TYPE);
+        if (!shape)
             return false;
+        def.knownSlot = shape->slot;
     }
+
+    Vector<JSScript *, 16> worklist(cx);
+    if (!worklist.append(script))
+        return false;
+
+    
+
+
+
+
+
+    while (worklist.length()) {
+        JSScript *outer = worklist.back();
+        worklist.popBack();
+
+        if (JSScript::isValidOffset(outer->objectsOffset)) {
+            JSObjectArray *arr = outer->objects();
+
+            
+
+
+
+            size_t start = outer->savedCallerFun ? 1 : 0;
+
+            for (size_t i = start; i < arr->length; i++) {
+                JSObject *obj = arr->vector[i];
+                if (!obj->isFunction())
+                    continue;
+                JSFunction *fun = obj->getFunctionPrivate();
+                JS_ASSERT(fun->isInterpreted());
+                JSScript *inner = fun->script();
+                if (outer->isHeavyweightFunction) {
+                    outer->isOuterFunction = true;
+                    inner->isInnerFunction = true;
+                }
+                if (!JSScript::isValidOffset(inner->globalsOffset) &&
+                    !JSScript::isValidOffset(inner->objectsOffset)) {
+                    continue;
+                }
+                if (!worklist.append(inner))
+                    return false;
+            }
+        }
+
+        if (!JSScript::isValidOffset(outer->globalsOffset))
+            continue;
+
+        GlobalSlotArray *globalUses = outer->globals();
+        uint32 nGlobalUses = globalUses->length;
+        for (uint32 i = 0; i < nGlobalUses; i++) {
+            uint32 index = globalUses->vector[i].slot;
+            JS_ASSERT(index < globalScope.defs.length());
+            globalUses->vector[i].slot = globalScope.defs[index].knownSlot;
+        }
+    }
+
     return true;
 }
 
 JSScript *
-frontend::CompileScript(JSContext *cx, HandleObject scopeChain, StackFrame *callerFrame,
-                        const CompileOptions &options,
+frontend::CompileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerFrame,
+                        JSPrincipals *principals, uint32 tcflags,
                         const jschar *chars, size_t length,
-                        JSString *source_ ,
-                        unsigned staticLevel )
+                        const char *filename, uintN lineno, JSVersion version,
+                        JSString *source ,
+                        uintN staticLevel )
 {
-    RootedString source(cx, source_);
+    TokenKind tt;
+    ParseNode *pn;
+    JSScript *script;
+    bool inDirectivePrologue;
 
-    class ProbesManager
-    {
-        const char* filename;
-        unsigned lineno;
-
-      public:
-        ProbesManager(const char *f, unsigned l) : filename(f), lineno(l) {
-            Probes::compileScriptBegin(filename, lineno);
-        }
-        ~ProbesManager() { Probes::compileScriptEnd(filename, lineno); }
-    };
-    ProbesManager probesManager(options.filename, options.lineno);
+    JS_ASSERT(!(tcflags & ~(TCF_COMPILE_N_GO | TCF_NO_SCRIPT_RVAL | TCF_COMPILE_FOR_EVAL
+                            | TCF_NEED_SCRIPT_GLOBAL)));
 
     
 
 
 
-    JS_ASSERT_IF(callerFrame, options.compileAndGo);
+    JS_ASSERT_IF(callerFrame, tcflags & TCF_COMPILE_N_GO);
     JS_ASSERT_IF(staticLevel != 0, callerFrame);
 
-    if (!CheckLength(cx, length))
+    Parser parser(cx, principals, callerFrame);
+    if (!parser.init(chars, length, filename, lineno, version))
         return NULL;
-    JS_ASSERT_IF(staticLevel != 0, options.sourcePolicy != CompileOptions::LAZY_SOURCE);
-    ScriptSource *ss = cx->new_<ScriptSource>();
-    if (!ss)
+
+    TokenStream &tokenStream = parser.tokenStream;
+
+    BytecodeEmitter bce(&parser, tokenStream.getLineno());
+    if (!bce.init(cx, TreeContext::USED_AS_TREE_CONTEXT))
         return NULL;
-    ScriptSourceHolder ssh(cx->runtime, ss);
-    SourceCompressionToken sct(cx);
-    switch (options.sourcePolicy) {
-      case CompileOptions::SAVE_SOURCE:
-        if (!ss->setSourceCopy(cx, chars, length, false, &sct))
-            return NULL;
-        break;
-      case CompileOptions::LAZY_SOURCE:
-        ss->setSourceRetrievable();
-        break;
-      case CompileOptions::NO_SOURCE:
-        break;
+
+    Probes::compileScriptBegin(cx, filename, lineno);
+    MUST_FLOW_THROUGH("out");
+
+    
+    JSObject *globalObj = scopeChain && scopeChain == scopeChain->getGlobal()
+                        ? scopeChain->getGlobal()
+                        : NULL;
+
+    JS_ASSERT_IF(globalObj, globalObj->isNative());
+    JS_ASSERT_IF(globalObj, JSCLASS_HAS_GLOBAL_FLAG_AND_SLOTS(globalObj->getClass()));
+
+    
+    script = NULL;
+
+    GlobalScope globalScope(cx, globalObj, &bce);
+    bce.flags |= tcflags;
+    bce.setScopeChain(scopeChain);
+    bce.globalScope = &globalScope;
+    if (!SetStaticLevel(&bce, staticLevel))
+        goto out;
+
+    
+    if (callerFrame &&
+        callerFrame->isScriptFrame() &&
+        callerFrame->script()->strictModeCode) {
+        bce.flags |= TCF_STRICT_MODE_CODE;
+        tokenStream.setStrictMode();
     }
 
-    Parser parser(cx, options, chars, length,  true);
-    if (!parser.init())
-        return NULL;
-    parser.sct = &sct;
-
-    SharedContext sc(cx, scopeChain,  NULL, StrictModeFromContext(cx));
-
-    ParseContext pc(&parser, &sc, staticLevel,  0);
-    if (!pc.init())
-        return NULL;
-
-    bool savedCallerFun = options.compileAndGo && callerFrame && callerFrame->isFunctionFrame();
-    Rooted<JSScript*> script(cx, JSScript::Create(cx, NullPtr(), savedCallerFun,
-                                                  options, staticLevel, ss, 0, length));
-    if (!script)
-        return NULL;
-
-    
-    
-    InternalHandle<Bindings*> bindings(script, &script->bindings);
-    if (!Bindings::initWithTemporaryStorage(cx, bindings, 0, 0, NULL))
-        return NULL;
-
-    
-    JSObject *globalScope = scopeChain && scopeChain == &scopeChain->global() ? (JSObject*) scopeChain : NULL;
-    JS_ASSERT_IF(globalScope, globalScope->isNative());
-    JS_ASSERT_IF(globalScope, JSCLASS_HAS_GLOBAL_FLAG_AND_SLOTS(globalScope->getClass()));
-
-    BytecodeEmitter bce( NULL, &parser, &sc, script, callerFrame, !!globalScope,
-                        options.lineno, options.selfHostingMode);
-    if (!bce.init())
-        return NULL;
-
-    
-    if (callerFrame && callerFrame->script()->strictModeCode)
-        sc.strictModeState = StrictMode::STRICT;
-
-    if (options.compileAndGo) {
+#ifdef DEBUG
+    bool savedCallerFun;
+    savedCallerFun = false;
+#endif
+    if (tcflags & TCF_COMPILE_N_GO) {
         if (source) {
             
 
 
 
-            JSAtom *atom = AtomizeString(cx, source);
+            JSAtom *atom = js_AtomizeString(cx, source);
             jsatomid _;
             if (!atom || !bce.makeAtomIndex(atom, &_))
-                return NULL;
+                goto out;
         }
 
         if (callerFrame && callerFrame->isFunctionFrame()) {
@@ -152,62 +240,66 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain, StackFrame *call
 
             ObjectBox *funbox = parser.newObjectBox(callerFrame->fun());
             if (!funbox)
-                return NULL;
-            bce.objectList.add(funbox);
+                goto out;
+            funbox->emitLink = bce.objectList.lastbox;
+            bce.objectList.lastbox = funbox;
+            bce.objectList.length++;
+#ifdef DEBUG
+            savedCallerFun = true;
+#endif
         }
     }
 
-    ParseNode *pn;
+    
+
+
+
+    uint32 bodyid;
+    if (!GenerateBlockId(&bce, bodyid))
+        goto out;
+    bce.bodyid = bodyid;
+
 #if JS_HAS_XML_SUPPORT
     pn = NULL;
     bool onlyXML;
     onlyXML = true;
 #endif
 
-    TokenStream &tokenStream = parser.tokenStream;
-    {
-        ParseNode *stringsAtStart = ListNode::create(PNK_STATEMENTLIST, &parser);
-        if (!stringsAtStart)
-            return NULL;
-        stringsAtStart->makeEmpty();
-        bool ok = parser.processDirectives(stringsAtStart) && EmitTree(cx, &bce, stringsAtStart);
-        parser.freeTree(stringsAtStart);
-        if (!ok)
-            return NULL;
-    }
-    JS_ASSERT(sc.strictModeState != StrictMode::UNKNOWN);
+    inDirectivePrologue = true;
+    tokenStream.setOctalCharacterEscape(false);
     for (;;) {
-        TokenKind tt = tokenStream.peekToken(TSF_OPERAND);
+        tt = tokenStream.peekToken(TSF_OPERAND);
         if (tt <= TOK_EOF) {
             if (tt == TOK_EOF)
                 break;
             JS_ASSERT(tt == TOK_ERROR);
-            return NULL;
+            goto out;
         }
 
         pn = parser.statement();
         if (!pn)
-            return NULL;
+            goto out;
+        JS_ASSERT(!bce.blockNode);
 
-        if (!FoldConstants(cx, pn, &parser))
-            return NULL;
-        if (!NameFunctions(cx, pn))
-            return NULL;
+        if (inDirectivePrologue && !parser.recognizeDirectivePrologue(pn, &inDirectivePrologue))
+            goto out;
 
-        pc.functionList = NULL;
+        if (!FoldConstants(cx, pn, &bce))
+            goto out;
+
+        if (!AnalyzeFunctions(&bce))
+            goto out;
+        bce.functionList = NULL;
 
         if (!EmitTree(cx, &bce, pn))
-            return NULL;
+            goto out;
 
 #if JS_HAS_XML_SUPPORT
-        if (!pn->isKind(PNK_SEMI) || !pn->pn_kid || !pn->pn_kid->isXMLItem())
+        if (!pn->isKind(TOK_SEMI) || !pn->pn_kid || !TreeTypeIsXML(pn->pn_kid->getKind()))
             onlyXML = false;
 #endif
-        parser.freeTree(pn);
+        bce.freeTree(pn);
     }
-
-    if (!SetSourceMap(cx, tokenStream, ss, script))
-        return NULL;
 
 #if JS_HAS_XML_SUPPORT
     
@@ -217,18 +309,41 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain, StackFrame *call
 
 
     if (pn && onlyXML && !callerFrame) {
-        parser.reportError(NULL, JSMSG_XML_WHOLE_PROGRAM);
-        return NULL;
+        parser.reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_XML_WHOLE_PROGRAM);
+        goto out;
     }
 #endif
 
     
-    if (callerFrame && callerFrame->isFunctionFrame() && callerFrame->fun()->hasRest()) {
-        PropertyName *arguments = cx->runtime->atomState.argumentsAtom;
-        for (AtomDefnRange r = pc.lexdeps->all(); !r.empty(); r.popFront()) {
-            if (r.front().key() == arguments) {
-                parser.reportError(NULL, JSMSG_ARGUMENTS_AND_REST);
-                return NULL;
+
+
+
+
+    if (bce.hasSharps()) {
+        jsbytecode *code, *end;
+        JSOp op;
+        const JSCodeSpec *cs;
+        uintN len, slot;
+
+        code = bce.base();
+        for (end = code + bce.offset(); code != end; code += len) {
+            JS_ASSERT(code < end);
+            op = (JSOp) *code;
+            cs = &js_CodeSpec[op];
+            len = (cs->length > 0)
+                  ? (uintN) cs->length
+                  : js_GetVariableBytecodeLength(code);
+            if ((cs->format & JOF_SHARPSLOT) ||
+                JOF_TYPE(cs->format) == JOF_LOCAL ||
+                (JOF_TYPE(cs->format) == JOF_SLOTATOM)) {
+                JS_ASSERT_IF(!(cs->format & JOF_SHARPSLOT),
+                             JOF_TYPE(cs->format) != JOF_SLOTATOM);
+                slot = GET_SLOTNO(code);
+                if (!(cs->format & JOF_SHARPSLOT))
+                    slot += bce.sharpSlots();
+                if (slot >= SLOTNO_LIMIT)
+                    goto too_many_slots;
+                SET_SLOTNO(code, slot);
             }
         }
     }
@@ -238,72 +353,80 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain, StackFrame *call
 
 
     if (Emit1(cx, &bce, JSOP_STOP) < 0)
-        return NULL;
+        goto out;
 
-    if (!JSScript::fullyInitFromEmitter(cx, script, &bce))
-        return NULL;
+    JS_ASSERT(bce.version() == version);
 
-    bce.tellDebuggerAboutCompiledScript(cx);
+    script = JSScript::NewScriptFromEmitter(cx, &bce);
+    if (!script)
+        goto out;
 
+    JS_ASSERT(script->savedCallerFun == savedCallerFun);
+
+    if (!DefineGlobals(cx, globalScope, script))
+        script = NULL;
+
+  out:
+    Probes::compileScriptEnd(cx, script, filename, lineno);
     return script;
+
+  too_many_slots:
+    parser.reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_TOO_MANY_LOCALS);
+    script = NULL;
+    goto out;
 }
 
 
 
+
+
 bool
-frontend::CompileFunctionBody(JSContext *cx, HandleFunction fun, CompileOptions options,
-                              const AutoNameVector &formals, const jschar *chars, size_t length)
+frontend::CompileFunctionBody(JSContext *cx, JSFunction *fun, JSPrincipals *principals,
+                              Bindings *bindings, const jschar *chars, size_t length,
+                              const char *filename, uintN lineno, JSVersion version)
 {
-    if (!CheckLength(cx, length))
+    Parser parser(cx, principals);
+    if (!parser.init(chars, length, filename, lineno, version))
         return false;
-    ScriptSource *ss = cx->new_<ScriptSource>();
-    if (!ss)
+
+    TokenStream &tokenStream = parser.tokenStream;
+
+    BytecodeEmitter funbce(&parser, tokenStream.getLineno());
+    if (!funbce.init(cx, TreeContext::USED_AS_TREE_CONTEXT))
         return false;
-    ScriptSourceHolder ssh(cx->runtime, ss);
-    SourceCompressionToken sct(cx);
-    JS_ASSERT(options.sourcePolicy != CompileOptions::LAZY_SOURCE);
-    if (options.sourcePolicy == CompileOptions::SAVE_SOURCE) {
-        if (!ss->setSourceCopy(cx, chars, length, true, &sct))
-            return false;
-    }
 
-    options.setCompileAndGo(false);
-    Parser parser(cx, options, chars, length,  true);
-    if (!parser.init())
-        return false;
-    parser.sct = &sct;
-
-    JS_ASSERT(fun);
-
-    StrictMode sms = StrictModeFromContext(cx);
-    FunctionBox *funbox = parser.newFunctionBox(fun,  NULL, sms);
-
-    SharedContext funsc(cx,  NULL, funbox, sms);
-    fun->setArgCount(formals.length());
-
-    unsigned staticLevel = 0;
-    ParseContext funpc(&parser, &funsc, staticLevel,  0);
-    if (!funpc.init())
+    funbce.flags |= TCF_IN_FUNCTION;
+    funbce.setFunction(fun);
+    funbce.bindings.transfer(cx, bindings);
+    fun->setArgCount(funbce.bindings.countArgs());
+    if (!GenerateBlockId(&funbce, funbce.bodyid))
         return false;
 
     
-    ParseNode *fn = FunctionNode::create(PNK_NAME, &parser);
-    if (!fn)
-        return false;
+    tokenStream.mungeCurrentToken(TOK_NAME);
+    ParseNode *fn = FunctionNode::create(&funbce);
+    if (fn) {
+        fn->pn_body = NULL;
+        fn->pn_cookie.makeFree();
 
-    fn->pn_body = NULL;
-    fn->pn_cookie.makeFree();
+        uintN nargs = fun->nargs;
+        if (nargs) {
+            
 
-    ParseNode *argsbody = ListNode::create(PNK_ARGSBODY, &parser);
-    if (!argsbody)
-        return false;
-    argsbody->setOp(JSOP_NOP);
-    argsbody->makeEmpty();
-    fn->pn_body = argsbody;
 
-    for (unsigned i = 0; i < formals.length(); i++) {
-        if (!DefineArg(&parser, fn, formals[i]))
-            return false;
+
+            Vector<JSAtom *> names(cx);
+            if (!funbce.bindings.getLocalNameArray(cx, &names)) {
+                fn = NULL;
+            } else {
+                for (uintN i = 0; i < nargs; i++) {
+                    if (!DefineArg(fn, names[i], i, &funbce)) {
+                        fn = NULL;
+                        break;
+                    }
+                }
+            }
+        }
     }
 
     
@@ -311,47 +434,33 @@ frontend::CompileFunctionBody(JSContext *cx, HandleFunction fun, CompileOptions 
 
 
 
-    ParseNode *pn = parser.functionBody(Parser::StatementListBody);
-    if (!pn) 
-        return false;
 
-    if (!parser.tokenStream.matchToken(TOK_EOF)) {
-        parser.reportError(NULL, JSMSG_SYNTAX_ERROR);
-        return false;
+
+    tokenStream.mungeCurrentToken(TOK_LC);
+    ParseNode *pn = fn ? parser.functionBody() : NULL;
+    if (pn) {
+        if (!CheckStrictParameters(cx, &funbce)) {
+            pn = NULL;
+        } else if (!tokenStream.matchToken(TOK_EOF)) {
+            parser.reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_SYNTAX_ERROR);
+            pn = NULL;
+        } else if (!FoldConstants(cx, pn, &funbce)) {
+            
+            pn = NULL;
+        } else if (!AnalyzeFunctions(&funbce)) {
+            pn = NULL;
+        } else {
+            if (fn->pn_body) {
+                JS_ASSERT(fn->pn_body->isKind(TOK_ARGSBODY));
+                fn->pn_body->append(pn);
+                fn->pn_body->pn_pos = pn->pn_pos;
+                pn = fn->pn_body;
+            }
+
+            if (!EmitFunctionScript(cx, &funbce, pn))
+                pn = NULL;
+        }
     }
 
-    if (!FoldConstants(cx, pn, &parser))
-        return false;
-
-    Rooted<JSScript*> script(cx, JSScript::Create(cx, NullPtr(), false, options,
-                                                  staticLevel, ss, 0, length));
-    if (!script)
-        return false;
-
-    InternalHandle<Bindings*> bindings(script, &script->bindings);
-    if (!funpc.generateFunctionBindings(cx, bindings))
-        return false;
-
-    BytecodeEmitter funbce( NULL, &parser, &funsc, script,  NULL,
-                            false, options.lineno);
-    if (!funbce.init())
-        return false;
-
-    if (!NameFunctions(cx, pn))
-        return false;
-
-    if (fn->pn_body) {
-        JS_ASSERT(fn->pn_body->isKind(PNK_ARGSBODY));
-        fn->pn_body->append(pn);
-        fn->pn_body->pn_pos = pn->pn_pos;
-        pn = fn->pn_body;
-    }
-
-    if (!SetSourceMap(cx, parser.tokenStream, ss, script))
-        return false;
-
-    if (!EmitFunctionScript(cx, &funbce, pn))
-        return false;
-
-    return true;
+    return pn != NULL;
 }

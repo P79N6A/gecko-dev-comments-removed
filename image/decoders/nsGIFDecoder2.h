@@ -4,6 +4,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _nsGIFDecoder2_h
 #define _nsGIFDecoder2_h
 
@@ -14,7 +48,7 @@
 #include "GIF2.h"
 
 namespace mozilla {
-namespace image {
+namespace imagelib {
 class RasterImage;
 
 
@@ -27,7 +61,7 @@ public:
   nsGIFDecoder2(RasterImage &aImage, imgIDecoderObserver* aObserver);
   ~nsGIFDecoder2();
 
-  virtual void WriteInternal(const char* aBuffer, uint32_t aCount);
+  virtual void WriteInternal(const char* aBuffer, PRUint32 aCount);
   virtual void FinishInternal();
   virtual Telemetry::ID SpeedHistogram();
 
@@ -36,32 +70,32 @@ private:
 
 
   void      BeginGIF();
-  nsresult  BeginImageFrame(uint16_t aDepth);
+  nsresult  BeginImageFrame(PRUint16 aDepth);
   void      EndImageFrame();
   void      FlushImageData();
-  void      FlushImageData(uint32_t fromRow, uint32_t rows);
+  void      FlushImageData(PRUint32 fromRow, PRUint32 rows);
 
-  nsresult  GifWrite(const uint8_t * buf, uint32_t numbytes);
-  uint32_t  OutputRow();
-  bool      DoLzw(const uint8_t *q);
+  nsresult  GifWrite(const PRUint8 * buf, PRUint32 numbytes);
+  PRUint32  OutputRow();
+  bool      DoLzw(const PRUint8 *q);
 
   inline int ClearCode() const { return 1 << mGIFStruct.datasize; }
 
-  int32_t mCurrentRow;
-  int32_t mLastFlushedRow;
+  PRInt32 mCurrentRow;
+  PRInt32 mLastFlushedRow;
 
-  uint8_t *mImageData;       
-  uint32_t *mColormap;       
-  uint32_t mColormapSize;
-  uint32_t mOldColor;        
+  PRUint8 *mImageData;       
+  PRUint32 *mColormap;       
+  PRUint32 mColormapSize;
+  PRUint32 mOldColor;        
 
   
   
-  int32_t mCurrentFrame;
+  PRInt32 mCurrentFrame;
 
-  uint8_t mCurrentPass;
-  uint8_t mLastFlushedPass;
-  uint8_t mColorMask;        
+  PRUint8 mCurrentPass;
+  PRUint8 mLastFlushedPass;
+  PRUint8 mColorMask;        
   bool mGIFOpen;
   bool mSawTransparency;
 

@@ -4,10 +4,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsIconChannel_h___
 #define nsIconChannel_h___
-
-#include "mozilla/Attributes.h"
 
 #include "nsCOMPtr.h"
 #include "nsXPIDLString.h"
@@ -21,7 +53,7 @@
 
 class nsIFile;
 
-class nsIconChannel MOZ_FINAL : public nsIChannel, public nsIStreamListener
+class nsIconChannel : public nsIChannel, public nsIStreamListener
 {
 public:
   NS_DECL_ISUPPORTS
@@ -38,7 +70,7 @@ public:
 protected:
   nsCOMPtr<nsIURI> mUrl;
   nsCOMPtr<nsIURI> mOriginalURI;
-  int32_t          mContentLength;
+  PRInt32          mContentLength;
   nsCOMPtr<nsILoadGroup> mLoadGroup;
   nsCOMPtr<nsIInterfaceRequestor> mCallbacks;
   nsCOMPtr<nsISupports>  mOwner; 
@@ -48,7 +80,7 @@ protected:
   
   nsresult MakeInputStream(nsIInputStream** _retval, bool nonBlocking);
   
-  nsresult ExtractIconInfoFromUrl(nsIFile ** aLocalFile, uint32_t * aDesiredImageSize,
+  nsresult ExtractIconInfoFromUrl(nsIFile ** aLocalFile, PRUint32 * aDesiredImageSize,
                            nsACString &aContentType, nsACString &aFileExtension);
 };
 
