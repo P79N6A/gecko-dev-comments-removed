@@ -318,6 +318,7 @@ function runHttpTests(testArray, done)
       }
     }
 
+    listener._channel = ch;
     ch.asyncOpen(listener, null);
   }
 
@@ -328,10 +329,13 @@ function runHttpTests(testArray, done)
   var listener =
     {
       
+      _channel: null,
+      
       _data: [],
 
       onStartRequest: function(request, cx)
       {
+        do_check_true(request === this._channel);
         var ch = request.QueryInterface(Ci.nsIHttpChannel)
                         .QueryInterface(Ci.nsIHttpChannelInternal);
 
@@ -360,6 +364,8 @@ function runHttpTests(testArray, done)
       },
       onStopRequest: function(request, cx, status)
       {
+        this._channel = null;
+
         var ch = request.QueryInterface(Ci.nsIHttpChannel)
                         .QueryInterface(Ci.nsIHttpChannelInternal);
 
@@ -491,6 +497,7 @@ function runRawTests(testArray, done)
 
   function waitForMoreInput(stream)
   {
+    reader.stream = stream;
     stream = stream.QueryInterface(Ci.nsIAsyncInputStream);
     stream.asyncWait(reader, 0, 0, currentThread);
   }
@@ -522,6 +529,7 @@ function runRawTests(testArray, done)
     {
       onInputStreamReady: function(stream)
       {
+        do_check_true(stream === this.stream);
         try
         {
           var bis = new BinaryInputStream(stream);
