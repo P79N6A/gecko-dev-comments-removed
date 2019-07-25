@@ -36,8 +36,8 @@ function onTabViewWindowLoaded(win) {
   ok(!group.shouldStack(group._children.length), "Group should not stack.");
   
   
-  group.addSubscriber(group, "close", function() {
-    group.removeSubscriber(group, "close");
+  group.addSubscriber("close", function onClose() {
+    group.removeSubscriber("close", onClose);
 
     ok(group.isEmpty(), "The group is empty again");
 
@@ -78,11 +78,7 @@ function onTabViewWindowLoaded(win) {
   
       
       
-      group.addSubscriber(group, "groupHidden", function() {
-        group.removeSubscriber(group, "groupHidden");
-        group.closeHidden();
-      });
-      group.closeAll();
+      closeGroupItem(group);
     }, win);  
   }, win);
 }

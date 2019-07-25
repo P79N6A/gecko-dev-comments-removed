@@ -82,8 +82,8 @@ function testEmptyGroupItem(contentWindow) {
     }
 
     
-    emptyGroupItem.addSubscriber(emptyGroupItem, "close", function() {
-      emptyGroupItem.removeSubscriber(emptyGroupItem, "close");
+    emptyGroupItem.addSubscriber("close", function onClose() {
+      emptyGroupItem.removeSubscriber("close", onClose);
   
       
       is(contentWindow.GroupItems.groupItems.length, --groupItemCount,
