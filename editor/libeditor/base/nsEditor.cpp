@@ -75,8 +75,7 @@
 #include "nsCaret.h"
 #include "nsIWidget.h"
 #include "nsIPlaintextEditor.h"
-#include "nsIPrivateDOMEvent.h"
-#include "nsGUIEvent.h"
+#include "nsGUIEvent.h"  
 
 #include "nsIFrame.h"  
 
@@ -5046,61 +5045,6 @@ nsEditor::RemoveAttributeOrEquivalent(nsIDOMElement * aElement,
 }
 
 nsresult
-nsEditor::HandleKeyPressEvent(nsIDOMKeyEvent* aKeyEvent)
-{
-  
-  
-  
-  
-  
-  
-
-  nsKeyEvent* nativeKeyEvent = GetNativeKeyEvent(aKeyEvent);
-  NS_ENSURE_TRUE(nativeKeyEvent, NS_ERROR_UNEXPECTED);
-  NS_ASSERTION(nativeKeyEvent->message == NS_KEY_PRESS,
-               "HandleKeyPressEvent gets non-keypress event");
-
-  
-  if (IsReadonly() || IsDisabled()) {
-    
-    
-    if (nativeKeyEvent->keyCode == nsIDOMKeyEvent::DOM_VK_BACK_SPACE) {
-      aKeyEvent->PreventDefault();
-    }
-    return NS_OK;
-  }
-
-  switch (nativeKeyEvent->keyCode) {
-    case nsIDOMKeyEvent::DOM_VK_META:
-    case nsIDOMKeyEvent::DOM_VK_SHIFT:
-    case nsIDOMKeyEvent::DOM_VK_CONTROL:
-    case nsIDOMKeyEvent::DOM_VK_ALT:
-      aKeyEvent->PreventDefault(); 
-      return NS_OK;
-    case nsIDOMKeyEvent::DOM_VK_BACK_SPACE:
-      if (nativeKeyEvent->isControl || nativeKeyEvent->isAlt ||
-          nativeKeyEvent->isMeta) {
-        return NS_OK;
-      }
-      DeleteSelection(nsIEditor::ePrevious);
-      aKeyEvent->PreventDefault(); 
-      return NS_OK;
-    case nsIDOMKeyEvent::DOM_VK_DELETE:
-      
-      
-      
-      if (nativeKeyEvent->isShift || nativeKeyEvent->isControl ||
-          nativeKeyEvent->isAlt || nativeKeyEvent->isMeta) {
-        return NS_OK;
-      }
-      DeleteSelection(nsIEditor::eNext);
-      aKeyEvent->PreventDefault(); 
-      return NS_OK; 
-  }
-  return NS_OK;
-}
-
-nsresult
 nsEditor::HandleInlineSpellCheck(PRInt32 action,
                                    nsISelection *aSelection,
                                    nsIDOMNode *previousSelectedNode,
@@ -5253,17 +5197,6 @@ PRBool
 nsEditor::IsModifiableNode(nsIDOMNode *aNode)
 {
   return PR_TRUE;
-}
-
-nsKeyEvent*
-nsEditor::GetNativeKeyEvent(nsIDOMKeyEvent* aDOMKeyEvent)
-{
-  nsCOMPtr<nsIPrivateDOMEvent> privDOMEvent = do_QueryInterface(aDOMKeyEvent);
-  NS_ENSURE_TRUE(privDOMEvent, nsnull);
-  nsEvent* nativeEvent = privDOMEvent->GetInternalNSEvent();
-  NS_ENSURE_TRUE(nativeEvent, nsnull);
-  NS_ENSURE_TRUE(nativeEvent->eventStructType == NS_KEY_EVENT, nsnull);
-  return static_cast<nsKeyEvent*>(nativeEvent);
 }
 
 PRBool

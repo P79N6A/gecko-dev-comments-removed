@@ -148,8 +148,6 @@ public:
   
   NS_IMETHOD SelectEntireDocument(nsISelection *aSelection);
 
-  virtual nsresult HandleKeyPressEvent(nsIDOMKeyEvent* aKeyEvent);
-
   
   NS_IMETHOD TypedText(const nsAString& aString, PRInt32 aAction);
 
