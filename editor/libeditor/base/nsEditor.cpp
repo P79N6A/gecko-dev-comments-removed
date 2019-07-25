@@ -486,6 +486,26 @@ nsEditor::SetFlags(PRUint32 aFlags)
 }
 
 NS_IMETHODIMP
+nsEditor::GetIsSelectionEditable(PRBool *aIsSelectionEditable)
+{
+  NS_ENSURE_ARG_POINTER(aIsSelectionEditable);
+
+  
+  nsCOMPtr<nsISelection> selection;
+  nsresult res = GetSelection(getter_AddRefs(selection));
+  NS_ENSURE_SUCCESS(res, res);
+  NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
+
+  
+  
+  nsCOMPtr<nsIDOMNode> anchorNode;
+  selection->GetAnchorNode(getter_AddRefs(anchorNode));
+  *aIsSelectionEditable = anchorNode && IsEditable(anchorNode);
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 nsEditor::GetIsDocumentEditable(PRBool *aIsDocumentEditable)
 {
   NS_ENSURE_ARG_POINTER(aIsDocumentEditable);
