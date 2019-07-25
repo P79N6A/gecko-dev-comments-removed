@@ -161,6 +161,10 @@ public:
 
   
   
+  void NotifySuspendedByCache(bool aIsSuspended);
+
+  
+  
   
   
   
@@ -833,7 +837,7 @@ protected:
   
   
   
-  bool mLoadIsSuspended;
+  bool mSuspendedForPreloadNone;
 
   
   bool mMediaSecurityVerified;
@@ -843,6 +847,9 @@ protected:
 
   
   bool mHasAudio;
+
+  
+  bool mDownloadSuspendedByCache;
 };
 
 #endif
