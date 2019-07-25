@@ -988,7 +988,7 @@ typedef void
 
 namespace js {
 
-typedef js::Vector<JSCompartment *, 0, js::SystemAllocPolicy> CompartmentVector;
+typedef js::Vector<JSCompartment *, 0, js::SystemAllocPolicy> WrapperVector;
 
 }
 
@@ -1000,7 +1000,7 @@ struct JSRuntime {
 #endif
 
     
-    js::CompartmentVector compartments;
+    js::WrapperVector compartments;
 
     
     JSRuntimeState      state;
