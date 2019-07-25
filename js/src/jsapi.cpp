@@ -3956,7 +3956,6 @@ JS_PUBLIC_API(JSBool)
 JS_NextProperty(JSContext *cx, JSObject *iterobj, jsid *idp)
 {
     jsint i;
-    JSObject *obj;
     const Shape *shape;
     JSIdArray *ida;
 
@@ -3965,14 +3964,8 @@ JS_NextProperty(JSContext *cx, JSObject *iterobj, jsid *idp)
     i = iterobj->getSlot(JSSLOT_ITER_INDEX).toInt32();
     if (i < 0) {
         
-        obj = iterobj->getParent();
-        JS_ASSERT(obj->isNative());
+        JS_ASSERT(iterobj->getParent()->isNative());
         shape = (Shape *) iterobj->getPrivate();
-
-        
-
-
-
 
         while (shape->previous() && (!shape->enumerable() || shape->isAlias()))
             shape = shape->previous();
