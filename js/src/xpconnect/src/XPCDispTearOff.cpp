@@ -338,6 +338,8 @@ STDMETHODIMP XPCDispatchTearOff::Invoke(DISPID dispIdMember, REFIID riid,
         XPCJSRuntime* rt = ccx.GetRuntime();
         int j;
 
+        js::InvokeArgsGuard args;
+
         thisObj = obj = GetJSObject();;
 
         if(!cx || !xpcc)
@@ -354,11 +356,7 @@ STDMETHODIMP XPCDispatchTearOff::Invoke(DISPID dispIdMember, REFIID riid,
         
         
 
-        
-
-        
-        stack_size = argc + 2;
-
+        js::LeaveTrace(cx);
 
         
         
@@ -382,19 +380,17 @@ STDMETHODIMP XPCDispatchTearOff::Invoke(DISPID dispIdMember, REFIID riid,
             goto pre_call_clean_up;
         }
 
-        
-        if(stack_size && !(stackbase = sp = js_AllocStack(cx, stack_size, &mark)))
+        if (!cx->stack().pushInvokeArgsFriendAPI(cx, argc, args))
         {
             retval = NS_ERROR_OUT_OF_MEMORY;
             goto pre_call_clean_up;
         }
 
+        sp = stackbase = args.getvp();
+
         
-        if(stack_size != argc)
-        {
-            *sp++ = fval;
-            *sp++ = OBJECT_TO_JSVAL(thisObj);
-        }
+        *sp++ = fval;
+        *sp++ = OBJECT_TO_JSVAL(thisObj);
 
         
         for(i = 0; i < argc; i++)
@@ -445,7 +441,7 @@ pre_call_clean_up:
 
         if(!JSVAL_IS_PRIMITIVE(fval))
         {
-            success = js_Invoke(cx, argc, stackbase, 0);
+            success = js_Invoke(cx, args, 0);
             result = stackbase[0];
         }
         else
@@ -527,9 +523,6 @@ pre_call_clean_up:
         }
 
 done:
-        if(sp)
-            js_FreeStack(cx, mark);
-
         
         
         return retval;

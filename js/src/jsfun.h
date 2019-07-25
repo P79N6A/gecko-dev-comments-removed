@@ -163,6 +163,10 @@ struct JSFunction : public JSObject
 
     bool optimizedClosure() const { return FUN_KIND(this) > JSFUN_INTERPRETED; }
     bool needsWrapper()     const { return FUN_NULL_CLOSURE(this) && u.i.skipmin != 0; }
+    bool isInterpreted()    const { return FUN_INTERPRETED(this); }
+    bool isFastNative()     const { return flags & JSFUN_FAST_NATIVE; }
+    bool isHeavyweight()    const { return JSFUN_HEAVYWEIGHT_TEST(flags); }
+    unsigned minArgs()      const { return FUN_MINARGS(this); }
 
     uintN countVars() const {
         JS_ASSERT(FUN_INTERPRETED(this));
@@ -419,7 +423,11 @@ js_IsNamedLambda(JSFunction *fun) { return (fun->flags & JSFUN_LAMBDA) && fun->a
 
 
 
-const uint32 JS_ARGS_LENGTH_MAX = JS_BIT(24) - 1;
+
+
+
+
+const uint32 JS_ARGS_LENGTH_MAX = JS_BIT(19) - 1024;
 
 
 

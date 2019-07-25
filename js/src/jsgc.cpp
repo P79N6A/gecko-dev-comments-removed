@@ -134,8 +134,6 @@ JS_STATIC_ASSERT(JSVAL_NULL == 0);
 JS_STATIC_ASSERT(FINALIZE_EXTERNAL_STRING_LAST - FINALIZE_EXTERNAL_STRING0 ==
                  JS_EXTERNAL_STRING_LIMIT - 1);
 
-JS_STATIC_ASSERT(sizeof(JSStackHeader) >= 2 * sizeof(jsval));
-
 
 
 
@@ -1276,7 +1274,6 @@ js_named_root_dumper(JSDHashTable *table, JSDHashEntryHdr *hdr, uint32 number,
     return JS_DHASH_NEXT;
 }
 
-JS_BEGIN_EXTERN_C
 void
 js_DumpNamedRoots(JSRuntime *rt,
                   void (*dump)(const char *name, void *rp, void *data),
@@ -1288,7 +1285,6 @@ js_DumpNamedRoots(JSRuntime *rt,
     args.data = data;
     JS_DHashTableEnumerate(&rt->gcRootsHash, js_named_root_dumper, &args);
 }
-JS_END_EXTERN_C
 
 #endif 
 
@@ -2241,54 +2237,16 @@ TraceObjectVector(JSTracer *trc, JSObject **vec, uint32 len)
 void
 js_TraceStackFrame(JSTracer *trc, JSStackFrame *fp)
 {
-    uintN nslots, minargs, skip;
 
     if (fp->callobj)
         JS_CALL_OBJECT_TRACER(trc, fp->callobj, "call");
     if (fp->argsobj)
         JS_CALL_OBJECT_TRACER(trc, JSVAL_TO_OBJECT(fp->argsobj), "arguments");
-    if (fp->script) {
+    if (fp->script)
         js_TraceScript(trc, fp->script);
-
-        
-        if (fp->slots) {
-            
-
-
-
-            if (fp->regs && fp->regs->sp) {
-                nslots = (uintN) (fp->regs->sp - fp->slots);
-                JS_ASSERT(nslots >= fp->script->nfixed);
-            } else {
-                nslots = fp->script->nfixed;
-            }
-            TraceValues(trc, nslots, fp->slots, "slot");
-        }
-    } else {
-        JS_ASSERT(!fp->slots);
-        JS_ASSERT(!fp->regs);
-    }
 
     
     JS_CALL_VALUE_TRACER(trc, fp->thisv, "this");
-
-    if (fp->argv) {
-        JS_CALL_VALUE_TRACER(trc, fp->calleeValue(), "callee");
-        nslots = fp->argc;
-        skip = 0;
-        if (fp->fun) {
-            minargs = FUN_MINARGS(fp->fun);
-            if (minargs > nslots)
-                nslots = minargs;
-            if (!FUN_INTERPRETED(fp->fun)) {
-                JS_ASSERT(!(fp->fun->flags & JSFUN_FAST_NATIVE));
-                nslots += fp->fun->u.n.extra;
-            }
-            if (fp->fun->flags & JSFRAME_ROOTED_ARGV)
-                skip = 2 + fp->argc;
-        }
-        TraceValues(trc, 2 + nslots - skip, fp->argv - 2 + skip, "operand");
-    }
 
     JS_CALL_VALUE_TRACER(trc, fp->rval, "rval");
     if (fp->scopeChain)
@@ -2330,48 +2288,10 @@ JSWeakRoots::mark(JSTracer *trc)
     js_CallValueTracerIfGCThing(trc, lastInternalResult);
 }
 
-static void inline
-TraceFrameChain(JSTracer *trc, JSStackFrame *fp)
-{
-    do {
-        js_TraceStackFrame(trc, fp);
-    } while ((fp = fp->down) != NULL);
-}
-
-JS_REQUIRES_STACK JS_FRIEND_API(void)
+void
 js_TraceContext(JSTracer *trc, JSContext *acx)
 {
-    JSStackHeader *sh;
-
     
-
-
-
-
-
-
-#ifdef JS_THREADSAFE
-    if (acx->thread)
-#endif
-    {
-        
-        JSStackFrame *fp = js_GetTopStackFrame(acx);
-        if (fp) {
-            JS_ASSERT(!acx->activeCallStack()->isSuspended());
-            TraceFrameChain(trc, fp);
-            if (JSObject *o = acx->activeCallStack()->getInitialVarObj())
-                JS_CALL_OBJECT_TRACER(trc, o, "variables");
-        }
-
-        
-        CallStack *cur = acx->currentCallStack;
-        CallStack *cs = fp ? cur->getPrevious() : cur;
-        for (; cs; cs = cs->getPrevious()) {
-            TraceFrameChain(trc, cs->getSuspendedFrame());
-            if (cs->getInitialVarObj())
-                JS_CALL_OBJECT_TRACER(trc, cs->getInitialVarObj(), "var env");
-        }
-    }
 
     
     if (acx->globalObject && !JS_HAS_OPTION(acx, JSOPTION_UNROOTED_GLOBAL))
@@ -2382,12 +2302,6 @@ js_TraceContext(JSTracer *trc, JSContext *acx)
     } else {
         
         acx->exception = JSVAL_NULL;
-    }
-
-    for (sh = acx->stackHeaders; sh; sh = sh->down) {
-        METER(trc->context->runtime->gcStats.stackseg++);
-        METER(trc->context->runtime->gcStats.segslots += sh->nslots);
-        TraceValues(trc, sh->nslots, JS_STACK_SEGMENT(sh), "stack");
     }
 
     for (js::AutoGCRooter *gcr = acx->autoGCRooters; gcr; gcr = gcr->down)
