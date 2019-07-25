@@ -565,9 +565,10 @@ BuildBackgroundPatternFor(ContainerLayer* aContainer,
 RenderFrameParent::RenderFrameParent(nsFrameLoader* aFrameLoader)
   : mFrameLoader(aFrameLoader)
 {
-  NS_ABORT_IF_FALSE(aFrameLoader, "Need a frameloader here");
-  mContentViews[FrameMetrics::ROOT_SCROLL_ID] =
-    new nsContentView(aFrameLoader, FrameMetrics::ROOT_SCROLL_ID);
+  if (aFrameLoader) {
+    mContentViews[FrameMetrics::ROOT_SCROLL_ID] =
+      new nsContentView(aFrameLoader, FrameMetrics::ROOT_SCROLL_ID);
+  }
 }
 
 RenderFrameParent::~RenderFrameParent()
@@ -708,7 +709,7 @@ RenderFrameParent::OwnerContentChanged(nsIContent* aContent)
 void
 RenderFrameParent::ActorDestroy(ActorDestroyReason why)
 {
-  if (mFrameLoader->GetCurrentRemoteFrame() == this) {
+  if (mFrameLoader && mFrameLoader->GetCurrentRemoteFrame() == this) {
     
     
     
@@ -721,10 +722,15 @@ RenderFrameParent::ActorDestroy(ActorDestroyReason why)
 }
 
 PLayersParent*
-RenderFrameParent::AllocPLayers()
+RenderFrameParent::AllocPLayers(LayerManager::LayersBackend* aBackendType)
 {
+  if (!mFrameLoader) {
+    *aBackendType = LayerManager::LAYERS_NONE;
+    return nsnull;
+  }
+
   LayerManager* lm = GetLayerManager();
-  switch (lm->GetBackendType()) {
+  switch (*aBackendType = lm->GetBackendType()) {
   case LayerManager::LAYERS_BASIC: {
     BasicShadowLayerManager* bslm = static_cast<BasicShadowLayerManager*>(lm);
     return new ShadowLayersParent(bslm);
@@ -741,6 +747,7 @@ RenderFrameParent::AllocPLayers()
 #endif 
   default: {
     NS_WARNING("shadow layers no sprechen D3D backend yet");
+    *aBackendType = LayerManager::LAYERS_NONE;
     return nsnull;
   }
   }
