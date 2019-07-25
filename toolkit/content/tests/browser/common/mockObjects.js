@@ -65,6 +65,7 @@ MockObjectRegisterer.prototype = {
 
 
   register: function MOR_register() {
+    netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
     if (this._originalCID)
       throw new Exception("Invalid object state when calling register()");
 
@@ -96,6 +97,7 @@ MockObjectRegisterer.prototype = {
 
 
   unregister: function MOR_unregister() {
+    netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
     if (!this._originalCID)
       throw new Exception("Invalid object state when calling unregister()");
 
