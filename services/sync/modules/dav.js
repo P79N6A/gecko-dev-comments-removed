@@ -225,6 +225,36 @@ DAVCollection.prototype = {
   },
 
   
+  listFiles: function DC_listFiles(path) {
+    let self = yield;
+
+    if (!path)
+      path = "";
+
+    let headers = {'Content-type': 'text/xml; charset="utf-8"',
+                   'Depth': '1'};
+    headers.__proto__ = this._defaultHeaders;
+
+    this._makeRequest.async(this, self.cb, "PROPFIND", path, headers,
+                           "<?xml version=\"1.0\" encoding=\"utf-8\" ?>" +
+                            "<D:propfind xmlns:D='DAV:'><D:prop/></D:propfind>");
+    let resp = yield;
+    Utils.ensureStatus(resp.status, "propfind failed");
+
+    
+    let tokens = Utils.xpath(resp.responseXML, '//D:href');
+    let ret = [],
+        token,
+        root = tokens.iterateNext();
+    root = root.textContent;
+
+    while (token = tokens.iterateNext())
+      ret.push(token.textContent.replace(root, ''));
+
+    self.done(ret);
+  },
+
+  
 
   login: function DC_login(username, password) {
     let self = yield;

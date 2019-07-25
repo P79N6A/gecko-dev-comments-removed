@@ -351,6 +351,10 @@ WeaveSyncService.prototype = {
 
       } else {
         
+        this._serverWipe.async(this, self.cb);
+        yield;
+        
+        
         this._log.debug("Generating new RSA key");
         Crypto.RSAkeygen.async(Crypto, self.cb, this._cryptoId.password);
         let [privkey, pubkey] = yield;
@@ -452,7 +456,7 @@ WeaveSyncService.prototype = {
     let self = yield;
 
     if (!this._lock())
-      return;
+      throw "Could not acrquire lock";
 
     this._bmkEngine.resetServer(self.cb);
     this._histEngine.resetServer(self.cb);
@@ -465,12 +469,27 @@ WeaveSyncService.prototype = {
     let self = yield;
 
     if (!this._lock())
-      return;
+      throw "Could not acrquire lock";
 
     this._bmkEngine.resetClient(self.cb);
     this._histEngine.resetClient(self.cb);
 
     this._unlock();
+    self.done();
+  },
+
+  _serverWipe: function WeaveSync__serverWipe() {
+    let self = yield;
+
+    this._dav.listFiles.async(this._dav, self.cb);
+    let names = yield;
+
+    for (let i = 0; i < names.length; i++) {
+      this._dav.DELETE(names[i], self.cb);
+      let resp = yield;
+      this._log.debug(resp.status);
+    }
+
     self.done();
   },
 
