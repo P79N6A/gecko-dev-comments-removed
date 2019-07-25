@@ -255,7 +255,7 @@
 
 static const PRUint16 gPair[MAX_CLASSES] = {
   0x0FFF,
-  0x0E02,
+  0x0C02,
   0x0806,
   0x0842,
   0x0802,
