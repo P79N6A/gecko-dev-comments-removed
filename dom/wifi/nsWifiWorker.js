@@ -241,7 +241,7 @@ var WifiManager = (function() {
   }
 
   function setScanModeCommand(setActive, callback) {
-    sScanModeActive = setActive;
+    scanModeActive = setActive;
     doSetScanModeCommand(setActive, callback);
   }
 
@@ -737,7 +737,7 @@ var WifiManager = (function() {
   manager.getNetworkConfiguration = function(config, callback) {
     var netId = config.netId;
     var done = 0;
-    for (var n = 0; n < networkConfigurationFields; ++n) {
+    for (var n = 0; n < networkConfigurationFields.length; ++n) {
       var fieldName = networkConfigurationFields[n];
       getNetworkVariableCommand(netId, fieldName, function(value) {
         config[fieldName] = value;
@@ -833,6 +833,10 @@ var WifiManager = (function() {
   }
   manager.getMacAddress = getMacAddressCommand;
   manager.getScanResults = scanResultsCommand;
+  manager.setScanMode = function(mode, callback) {
+    setScanModeCommand(mode === "active", callback);
+  }
+  manager.scan = scanCommand;
   return manager;
 })();
 
@@ -865,22 +869,18 @@ function nsWifiWorker() {
     self.state = this.state;
 
     
-    if (self.state === "INACTIVE" && connectToMozilla.waiting)
+    if (self.state === "INACTIVE")
       connectToMozilla();
   }
 
   function connectToMozilla() {
-    if (self.state !== "INACTIVE") {
-      connectToMozilla.waiting = true;
-      return;
-    }
-
+    
     
     
 
     debug("Haven't connected to a network, trying a default (for now)");
     var configs = [
-      { "ssid": '"mozilla demo"', "key_mgmt": "NONE", "disabled": 0 },
+      { "ssid": '"mozilla demo"', "key_mgmt": "NONE", "scan_ssid": 1, "disabled": 0 },
       { "ssid": '"Mozilla"', "key_mgmt": "NONE", "disabled": 0 },
       { "ssid": '"Mozilla Guest"', "key_mgmt": "NONE", "scan_ssid": 1, "disabled": 0 },
     ];
@@ -897,15 +897,21 @@ function nsWifiWorker() {
           addThem();
           return;
         }
+
+        
+        
+        WifiManager.scan(false, function(){});
       });
     }
     addThem();
   }
-  this.waitForScan(connectToMozilla);
 
   WifiManager.onscanresultsavailable = function() {
     debug("Scan results are available! Asking for them.");
     WifiManager.getScanResults(function(r) {
+      
+      
+      WifiManager.setScanMode("inactive", function() {});
       let lines = r.split("\n");
       
       for (let i = 1; i < lines.length; ++i) {
