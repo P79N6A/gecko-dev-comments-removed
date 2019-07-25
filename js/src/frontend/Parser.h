@@ -73,7 +73,7 @@ struct Parser : private AutoGCRooter
     StackFrame          *const callerFrame;  
     JSObject            *const callerVarObj; 
     ParseNodeAllocator  allocator;
-    uint32              functionCount;  
+    uint32_t            functionCount;  
     ObjectBox           *traceListHead; 
     TreeContext         *tc;            
 

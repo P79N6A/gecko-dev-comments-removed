@@ -592,7 +592,7 @@ mjit::Compiler::jsop_binary_full(FrameEntry *lhs, FrameEntry *rhs, JSOp op,
     }
 
     
-    int32 value = 0;
+    int32_t value = 0;
     JSOp origOp = op;
     MaybeRegisterID reg;
     MaybeJump preOverflow;
@@ -732,7 +732,7 @@ mjit::Compiler::jsop_binary_full(FrameEntry *lhs, FrameEntry *rhs, JSOp op,
             stubcc.masm.neg32(reg.reg());
         } else {
             JS_ASSERT(op == JSOP_ADD || op == JSOP_SUB);
-            int32 fixValue = (op == JSOP_ADD) ? -value : value;
+            int32_t fixValue = (op == JSOP_ADD) ? -value : value;
             stubcc.masm.add32(Imm32(fixValue), regs.result);
         }
     }
@@ -974,7 +974,7 @@ mjit::Compiler::jsop_mod()
     
     MaybeRegisterID temp;
     RegisterID rhsReg;
-    uint32 mask = Registers::AvailRegs & ~Registers::maskReg(X86Registers::edx);
+    uint32_t mask = Registers::AvailRegs & ~Registers::maskReg(X86Registers::edx);
     if (!rhs->isConstant()) {
         rhsReg = frame.tempRegInMaskForData(rhs, mask).reg();
         JS_ASSERT(rhsReg != X86Registers::edx);
@@ -1565,7 +1565,7 @@ mjit::Compiler::jsop_relational_full(JSOp op, BoolStub stub, jsbytecode *target,
 
     
     JSOp cmpOp = op;
-    int32 value = 0;
+    int32_t value = 0;
     RegisterID cmpReg;
     MaybeRegisterID reg;
     if (regs.lhsData.isSet()) {

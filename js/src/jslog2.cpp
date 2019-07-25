@@ -36,7 +36,6 @@
 
 
 
-#include "jsstdint.h"
 #include "jsutil.h"
 
 
@@ -45,7 +44,7 @@
 
 
 #ifdef JS_HAS_BUILTIN_BITSCAN32
-JS_STATIC_ASSERT(sizeof(unsigned int) == sizeof(JSUint32));
+JS_STATIC_ASSERT(sizeof(unsigned int) == sizeof(uint32_t));
 JS_STATIC_ASSERT_IF(JS_BYTES_PER_WORD == 4,
                     sizeof(unsigned int) == sizeof(JSUword));
 #endif

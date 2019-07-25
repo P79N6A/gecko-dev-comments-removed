@@ -43,6 +43,7 @@
 
 
 
+
 #include "jstypes.h"
 #include "jsutil.h"
 
@@ -79,7 +80,7 @@ JS_BEGIN_EXTERN_C
 #define JS_DHASH_GOLDEN_RATIO   0x9E3779B9U
 
 
-typedef uint32                  JSDHashNumber;
+typedef uint32_t                JSDHashNumber;
 typedef struct JSDHashEntryHdr  JSDHashEntryHdr;
 typedef struct JSDHashEntryStub JSDHashEntryStub;
 typedef struct JSDHashTable     JSDHashTable;
@@ -197,33 +198,33 @@ struct JSDHashEntryHdr {
 struct JSDHashTable {
     const JSDHashTableOps *ops;         
     void                *data;          
-    int16               hashShift;      
-    uint8               maxAlphaFrac;   
-    uint8               minAlphaFrac;   
-    uint32              entrySize;      
-    uint32              entryCount;     
-    uint32              removedCount;   
-    uint32              generation;     
+    int16_t             hashShift;      
+    uint8_t             maxAlphaFrac;   
+    uint8_t             minAlphaFrac;   
+    uint32_t            entrySize;      
+    uint32_t            entryCount;     
+    uint32_t            removedCount;   
+    uint32_t            generation;     
     char                *entryStore;    
 #ifdef JS_DHASHMETER
     struct JSDHashStats {
-        uint32          searches;       
-        uint32          steps;          
-        uint32          hits;           
-        uint32          misses;         
-        uint32          lookups;        
-        uint32          addMisses;      
-        uint32          addOverRemoved; 
-        uint32          addHits;        
-        uint32          addFailures;    
-        uint32          removeHits;     
-        uint32          removeMisses;   
-        uint32          removeFrees;    
-        uint32          removeEnums;    
-        uint32          grows;          
-        uint32          shrinks;        
-        uint32          compresses;     
-        uint32          enumShrinks;    
+        uint32_t        searches;       
+        uint32_t        steps;          
+        uint32_t        hits;           
+        uint32_t        misses;         
+        uint32_t        lookups;        
+        uint32_t        addMisses;      
+        uint32_t        addOverRemoved; 
+        uint32_t        addHits;        
+        uint32_t        addFailures;    
+        uint32_t        removeHits;     
+        uint32_t        removeMisses;   
+        uint32_t        removeFrees;    
+        uint32_t        removeEnums;    
+        uint32_t        grows;          
+        uint32_t        shrinks;        
+        uint32_t        compresses;     
+        uint32_t        enumShrinks;    
     } stats;
 #endif
 };
@@ -241,7 +242,7 @@ struct JSDHashTable {
 
 
 typedef void *
-(* JSDHashAllocTable)(JSDHashTable *table, uint32 nbytes);
+(* JSDHashAllocTable)(JSDHashTable *table, uint32_t nbytes);
 
 typedef void
 (* JSDHashFreeTable) (JSDHashTable *table, void *ptr);
@@ -343,7 +344,7 @@ struct JSDHashTableOps {
 
 
 extern JS_PUBLIC_API(void *)
-JS_DHashAllocTable(JSDHashTable *table, uint32 nbytes);
+JS_DHashAllocTable(JSDHashTable *table, uint32_t nbytes);
 
 extern JS_PUBLIC_API(void)
 JS_DHashFreeTable(JSDHashTable *table, void *ptr);
@@ -399,8 +400,8 @@ JS_DHashGetStubOps(void);
 
 
 extern JS_PUBLIC_API(JSDHashTable *)
-JS_NewDHashTable(const JSDHashTableOps *ops, void *data, uint32 entrySize,
-                 uint32 capacity);
+JS_NewDHashTable(const JSDHashTableOps *ops, void *data, uint32_t entrySize,
+                 uint32_t capacity);
 
 
 
@@ -417,7 +418,7 @@ JS_DHashTableDestroy(JSDHashTable *table);
 
 extern JS_PUBLIC_API(JSBool)
 JS_DHashTableInit(JSDHashTable *table, const JSDHashTableOps *ops, void *data,
-                  uint32 entrySize, uint32 capacity);
+                  uint32_t entrySize, uint32_t capacity);
 
 
 
@@ -455,11 +456,11 @@ JS_DHashTableSetAlphaBounds(JSDHashTable *table,
 #define JS_DHASH_DEFAULT_MIN_ALPHA 0.25
 
 #define JS_DHASH_CAP(entryCount, maxAlpha)                                    \
-    ((uint32)((double)(entryCount) / (maxAlpha)))
+    ((uint32_t)((double)(entryCount) / (maxAlpha)))
 
 #define JS_DHASH_CAPACITY(entryCount, maxAlpha)                               \
     (JS_DHASH_CAP(entryCount, maxAlpha) +                                     \
-     (((JS_DHASH_CAP(entryCount, maxAlpha) * (uint8)(0x100 * (maxAlpha)))     \
+     (((JS_DHASH_CAP(entryCount, maxAlpha) * (uint8_t)(0x100 * (maxAlpha)))   \
        >> 8) < (entryCount)))
 
 #define JS_DHASH_DEFAULT_CAPACITY(entryCount)                                 \
@@ -573,10 +574,9 @@ JS_DHashTableRawRemove(JSDHashTable *table, JSDHashEntryHdr *entry);
 
 
 typedef JSDHashOperator
-(* JSDHashEnumerator)(JSDHashTable *table, JSDHashEntryHdr *hdr, uint32 number,
-                      void *arg);
+(* JSDHashEnumerator)(JSDHashTable *table, JSDHashEntryHdr *hdr, uint32_t number, void *arg);
 
-extern JS_PUBLIC_API(uint32)
+extern JS_PUBLIC_API(uint32_t)
 JS_DHashTableEnumerate(JSDHashTable *table, JSDHashEnumerator etor, void *arg);
 
 typedef size_t

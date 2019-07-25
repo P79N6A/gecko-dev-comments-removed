@@ -65,9 +65,9 @@ enum ConservativeGCTest
 
 struct ConservativeGCStats
 {
-    uint32  counter[gc::CGCT_END];  
+    uint32_t counter[gc::CGCT_END]; 
 
-    uint32  unaligned;              
+    uint32_t unaligned;             
  
 
     void add(const ConservativeGCStats &another) {

@@ -68,7 +68,7 @@ JS_BEGIN_EXTERN_C
 
 
 
-extern JS_PUBLIC_API(JSUint32) JS_snprintf(char *out, JSUint32 outlen, const char *fmt, ...);
+extern JS_PUBLIC_API(uint32_t) JS_snprintf(char *out, uint32_t outlen, const char *fmt, ...);
 
 
 
@@ -98,17 +98,17 @@ extern JS_PUBLIC_API(char*) JS_sprintf_append(char *last, const char *fmt, ...);
 
 
 
-typedef JSIntn (*JSStuffFunc)(void *arg, const char *s, JSUint32 slen);
+typedef JSIntn (*JSStuffFunc)(void *arg, const char *s, uint32_t slen);
 
-extern JS_PUBLIC_API(JSUint32) JS_sxprintf(JSStuffFunc f, void *arg, const char *fmt, ...);
-
-
+extern JS_PUBLIC_API(uint32_t) JS_sxprintf(JSStuffFunc f, void *arg, const char *fmt, ...);
 
 
-extern JS_PUBLIC_API(JSUint32) JS_vsnprintf(char *out, JSUint32 outlen, const char *fmt, va_list ap);
+
+
+extern JS_PUBLIC_API(uint32_t) JS_vsnprintf(char *out, uint32_t outlen, const char *fmt, va_list ap);
 extern JS_PUBLIC_API(char*) JS_vsmprintf(const char *fmt, va_list ap);
 extern JS_PUBLIC_API(char*) JS_vsprintf_append(char *last, const char *fmt, va_list ap);
-extern JS_PUBLIC_API(JSUint32) JS_vsxprintf(JSStuffFunc f, void *arg, const char *fmt, va_list ap);
+extern JS_PUBLIC_API(uint32_t) JS_vsxprintf(JSStuffFunc f, void *arg, const char *fmt, va_list ap);
 
 JS_END_EXTERN_C
 

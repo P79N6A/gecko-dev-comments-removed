@@ -42,6 +42,7 @@
 
 
 
+
 #include <stddef.h>
 #include <stdio.h>
 #include "jstypes.h"
@@ -49,7 +50,7 @@
 
 JS_BEGIN_EXTERN_C
 
-typedef uint32 JSHashNumber;
+typedef uint32_t JSHashNumber;
 typedef struct JSHashEntry JSHashEntry;
 typedef struct JSHashTable JSHashTable;
 
@@ -84,18 +85,18 @@ struct JSHashEntry {
 
 struct JSHashTable {
     JSHashEntry         **buckets;      
-    uint32              nentries;       
-    uint32              shift;          
+    uint32_t            nentries;       
+    uint32_t            shift;          
     JSHashFunction      keyHash;        
     JSHashComparator    keyCompare;     
     JSHashComparator    valueCompare;   
     JSHashAllocOps      *allocOps;      
     void                *allocPriv;     
 #ifdef JS_HASHMETER
-    uint32              nlookups;       
-    uint32              nsteps;         
-    uint32              ngrows;         
-    uint32              nshrinks;       
+    uint32_t            nlookups;       
+    uint32_t            nsteps;         
+    uint32_t            ngrows;         
+    uint32_t            nshrinks;       
 #endif
 };
 
@@ -104,7 +105,7 @@ struct JSHashTable {
 
 
 extern JS_PUBLIC_API(JSHashTable *)
-JS_NewHashTable(uint32 n, JSHashFunction keyHash,
+JS_NewHashTable(uint32_t n, JSHashFunction keyHash,
                 JSHashComparator keyCompare, JSHashComparator valueCompare,
                 JSHashAllocOps *allocOps, void *allocPriv);
 

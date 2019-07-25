@@ -352,7 +352,7 @@ class StackFrame
     };
 
   private:
-    mutable uint32      flags_;         
+    mutable uint32_t    flags_;         
     union {                             
         JSScript        *script;        
         JSFunction      *fun;           
@@ -394,14 +394,14 @@ class StackFrame
 
     
     void initCallFrame(JSContext *cx, JSFunction &callee,
-                       JSScript *script, uint32 nactual, StackFrame::Flags flags);
+                       JSScript *script, uint32_t nactual, StackFrame::Flags flags);
 
     
     void resetCallFrame(JSScript *script);
 
     
     void initJitFrameCallerHalf(StackFrame *prev, StackFrame::Flags flags, void *ncode);
-    void initJitFrameEarlyPrologue(JSFunction *fun, uint32 nactual);
+    void initJitFrameEarlyPrologue(JSFunction *fun, uint32_t nactual);
     bool initJitFrameLatePrologue(JSContext *cx, Value **limit);
 
     
@@ -1024,7 +1024,7 @@ class StackFrame
         JS_STATIC_ASSERT((int)INITIAL_NONE == 0);
         JS_STATIC_ASSERT((int)INITIAL_CONSTRUCT == (int)CONSTRUCTING);
         JS_STATIC_ASSERT((int)INITIAL_LOWERED == (int)LOWERED_CALL_APPLY);
-        uint32 mask = CONSTRUCTING | LOWERED_CALL_APPLY;
+        uint32_t mask = CONSTRUCTING | LOWERED_CALL_APPLY;
         JS_ASSERT((flags_ & mask) != mask);
         return InitialFrameFlags(flags_ & mask);
     }

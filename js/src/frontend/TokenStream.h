@@ -236,8 +236,8 @@ TokenKindIsDecl(TokenKind tt)
 }
 
 struct TokenPtr {
-    uint32              index;          
-    uint32              lineno;         
+    uint32_t            index;          
+    uint32_t            lineno;         
 
     bool operator==(const TokenPtr& bptr) const {
         return index == bptr.index && lineno == bptr.lineno;
@@ -333,7 +333,7 @@ struct Token {
             JSAtom       *data;         
             PropertyName *target;       
         } xmlpi;
-        uint16          sharpNumber;    
+        uint16_t        sharpNumber;    
         jsdouble        number;         
         RegExpFlag      reflags;        
 
@@ -368,7 +368,7 @@ struct Token {
         u.reflags = flags;
     }
 
-    void setSharpNumber(uint16 sharpNum) {
+    void setSharpNumber(uint16_t sharpNum) {
         u.sharpNumber = sharpNum;
     }
 
@@ -409,7 +409,7 @@ struct Token {
         return u.reflags;
     }
 
-    uint16 sharpNumber() const {
+    uint16_t sharpNumber() const {
         JS_ASSERT(type == TOK_DEFSHARP || type == TOK_USESHARP);
         return u.sharpNumber;
     }
@@ -767,7 +767,7 @@ class TokenStream
         }
 #endif
 
-        static bool isRawEOLChar(int32 c) {
+        static bool isRawEOLChar(int32_t c) {
             return (c == '\n' || c == '\r' || c == LINE_SEPARATOR || c == PARA_SEPARATOR);
         }
 
@@ -782,14 +782,14 @@ class TokenStream
 
     TokenKind getTokenInternal();     
 
-    int32 getChar();
-    int32 getCharIgnoreEOL();
-    void ungetChar(int32 c);
-    void ungetCharIgnoreEOL(int32 c);
+    int32_t getChar();
+    int32_t getCharIgnoreEOL();
+    void ungetChar(int32_t c);
+    void ungetCharIgnoreEOL(int32_t c);
     Token *newToken(ptrdiff_t adjust);
-    bool peekUnicodeEscape(int32 *c);
-    bool matchUnicodeEscapeIdStart(int32 *c);
-    bool matchUnicodeEscapeIdent(int32 *c);
+    bool peekUnicodeEscape(int32_t *c);
+    bool matchUnicodeEscapeIdStart(int32_t *c);
+    bool matchUnicodeEscapeIdent(int32_t *c);
     bool peekChars(intN n, jschar *cp);
     bool getAtLine();
     bool getAtSourceMappingURL();
@@ -798,21 +798,21 @@ class TokenStream
     bool getXMLTextOrTag(TokenKind *ttp, Token **tpp);
     bool getXMLMarkup(TokenKind *ttp, Token **tpp);
 
-    bool matchChar(int32 expect) {
-        int32 c = getChar();
+    bool matchChar(int32_t expect) {
+        int32_t c = getChar();
         if (c == expect)
             return true;
         ungetChar(c);
         return false;
     }
 
-    void consumeKnownChar(int32 expect) {
-        mozilla::DebugOnly<int32> c = getChar();
+    void consumeKnownChar(int32_t expect) {
+        mozilla::DebugOnly<int32_t> c = getChar();
         JS_ASSERT(c == expect);
     }
 
-    int32 peekChar() {
-        int32 c = getChar();
+    int32_t peekChar() {
+        int32_t c = getChar();
         ungetChar(c);
         return c;
     }
@@ -837,7 +837,7 @@ class TokenStream
     jschar              *sourceMap;     
     void                *listenerTSData;
     CharBuffer          tokenbuf;       
-    int8                oneCharTokens[128];  
+    int8_t              oneCharTokens[128];  
     JSPackedBool        maybeEOL[256];       
     JSPackedBool        maybeStrSpecial[256];
     JSVersion           version;        

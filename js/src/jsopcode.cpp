@@ -91,7 +91,7 @@ using namespace js::gc;
 
 
 
-JS_STATIC_ASSERT(sizeof(uint32) * JS_BITS_PER_BYTE >= INDEX_LIMIT_LOG2 + 1);
+JS_STATIC_ASSERT(sizeof(uint32_t) * JS_BITS_PER_BYTE >= INDEX_LIMIT_LOG2 + 1);
 
 
 #define OPDEF(op,val,name,token,length,nuses,ndefs,prec,format)               \
@@ -150,7 +150,7 @@ Dup(const char *chars, DupBuffer *cb)
 static ptrdiff_t
 GetJumpOffset(jsbytecode *pc, jsbytecode *pc2)
 {
-    uint32 type;
+    uint32_t type;
 
     type = JOF_OPTYPE(*pc);
     if (JOF_TYPE_IS_EXTENDED_JUMP(type))
@@ -445,7 +445,7 @@ js_DumpScript(JSContext *cx, JSScript *script)
 }
 
 static char *
-QuoteString(Sprinter *sp, JSString *str, uint32 quote);
+QuoteString(Sprinter *sp, JSString *str, uint32_t quote);
 
 static bool
 ToDisassemblySource(JSContext *cx, jsval v, JSAutoByteString *bytes)
@@ -543,7 +543,7 @@ js_Disassemble1(JSContext *cx, JSScript *script, jsbytecode *pc,
         Sprint(sp, "%4u", JS_PCToLineNumber(cx, script, pc));
     Sprint(sp, "  %s", js_CodeName[op]);
 
-    switch (uint32 type = JOF_TYPE(cs->format)) {
+    switch (uint32_t type = JOF_TYPE(cs->format)) {
       case JOF_BYTE:
           
           
@@ -551,7 +551,7 @@ js_Disassemble1(JSContext *cx, JSScript *script, jsbytecode *pc,
           
           if (op == JSOP_TRY) {
               JSTryNoteArray *trynotes = script->trynotes();
-              uint32 i;
+              uint32_t i;
               for(i = 0; i < trynotes->length; i++) {
                   JSTryNote note = trynotes->vector[i];
                   if (note.kind == JSTRY_CATCH && note.start == loc + 1) {
@@ -644,7 +644,7 @@ js_Disassemble1(JSContext *cx, JSScript *script, jsbytecode *pc,
         pc2 += UINT16_LEN;
         Sprint(sp, " offset %d npairs %u", intN(off), uintN(npairs));
         while (npairs) {
-            uint16 constIndex = GET_INDEX(pc2);
+            uint16_t constIndex = GET_INDEX(pc2);
             pc2 += INDEX_LEN;
             off = GetJumpOffset(pc, pc2);
             pc2 += jmplen;
@@ -864,7 +864,7 @@ const char js_EscapeMap[] = {
 #define DONT_ESCAPE     0x10000
 
 static char *
-QuoteString(Sprinter *sp, JSString *str, uint32 quote)
+QuoteString(Sprinter *sp, JSString *str, uint32_t quote)
 {
     
     JSBool dontEscape = (quote & DONT_ESCAPE) != 0;
@@ -1232,7 +1232,7 @@ PushOff(SprintStack *ss, ptrdiff_t off, JSOp op)
 }
 
 static ptrdiff_t
-PopOffPrec(SprintStack *ss, uint8 prec)
+PopOffPrec(SprintStack *ss, uint8_t prec)
 {
     uintN top;
     const JSCodeSpec *topcs;
@@ -1257,7 +1257,7 @@ PopOffPrec(SprintStack *ss, uint8 prec)
 }
 
 static const char *
-PopStrPrec(SprintStack *ss, uint8 prec)
+PopStrPrec(SprintStack *ss, uint8_t prec)
 {
     ptrdiff_t off;
 
@@ -2259,7 +2259,7 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb)
 
 
 
-            uint32 format = cs->format;
+            uint32_t format = cs->format;
             bool matchPC = false;
             if (StackFrame *fp = js_GetScriptedCaller(cx, NULL)) {
                 jsbytecode *npc = fp->pcQuadratic(cx);
@@ -2272,7 +2272,7 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb)
             }
             if ((matchPC || (pc == startpc && nuses != 0)) &&
                 format & (JOF_SET|JOF_DEL|JOF_INCDEC|JOF_VARPROP)) {
-                uint32 mode = JOF_MODE(format);
+                uint32_t mode = JOF_MODE(format);
                 if (mode == JOF_NAME) {
                     
 
@@ -2280,7 +2280,7 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb)
 
 
 
-                    uint32 type = JOF_TYPE(format);
+                    uint32_t type = JOF_TYPE(format);
                     op = (type == JOF_QARG)
                          ? JSOP_GETARG
                          : (type == JOF_LOCAL)
@@ -4380,7 +4380,7 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb)
                     } else {
                         table[k].label = NULL;
                     }
-                    uint16 constIndex = GET_INDEX(pc2);
+                    uint16_t constIndex = GET_INDEX(pc2);
                     pc2 += INDEX_LEN;
                     off2 = GetJumpOffset(pc, pc2);
                     pc2 += jmplen;

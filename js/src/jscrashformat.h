@@ -67,36 +67,36 @@ struct CrashHeader
     char cookie[crash_cookie_len];
 
     
-    uint64 id;
+    uint64_t id;
 
-    CrashHeader(uint64 id) : id(id) { memcpy(cookie, crash_cookie, crash_cookie_len); }
+    CrashHeader(uint64_t id) : id(id) { memcpy(cookie, crash_cookie, crash_cookie_len); }
 };
 
 struct CrashRegisters
 {
-    uint64 ip, sp, bp;
+    uint64_t ip, sp, bp;
 };
 
 const static int crash_buffer_size = 32 * 1024;
 
 struct CrashStack
 {
-    CrashStack(uint64 id) : header(id) {}
+    CrashStack(uint64_t id) : header(id) {}
 
     CrashHeader header;
-    uint64 snaptime;      
+    uint64_t snaptime;    
     CrashRegisters regs;  
-    uint64 stack_base;    
-    uint64 stack_len;     
+    uint64_t stack_base;  
+    uint64_t stack_len;   
     char stack[crash_buffer_size]; 
 };
 
 struct CrashRing
 {
-    CrashRing(uint64 id) : header(id), offset(0) { memset(buffer, 0, sizeof(buffer)); }
+    CrashRing(uint64_t id) : header(id), offset(0) { memset(buffer, 0, sizeof(buffer)); }
 
     CrashHeader header;
-    uint64 offset; 
+    uint64_t offset; 
     char buffer[crash_buffer_size];
 };
 

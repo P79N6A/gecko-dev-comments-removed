@@ -392,9 +392,9 @@ JS_EvaluateInStackFrame(JSContext *cx, JSStackFrame *fp,
 typedef struct JSPropertyDesc {
     jsval           id;         
     jsval           value;      
-    uint8           flags;      
-    uint8           spare;      
-    uint16          slot;       
+    uint8_t         flags;      
+    uint8_t         spare;      
+    uint16_t        slot;       
     jsval           alias;      
 } JSPropertyDesc;
 
@@ -410,7 +410,7 @@ typedef struct JSPropertyDesc {
                                 
 
 typedef struct JSPropertyDescArray {
-    uint32          length;     
+    uint32_t        length;     
     JSPropertyDesc  *array;     
 } JSPropertyDescArray;
 

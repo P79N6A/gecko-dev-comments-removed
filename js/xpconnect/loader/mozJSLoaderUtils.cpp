@@ -90,7 +90,7 @@ ReadScriptFromStream(JSContext *cx, nsIObjectInputStream *stream,
     
     
 
-    uint32 length;
+    uint32_t length;
     data = static_cast<char*>(JS_XDRMemGetData(xdr, &length));
     JS_XDRMemSetData(xdr, nsnull, 0);
     JS_XDRDestroy(xdr);
@@ -127,7 +127,7 @@ WriteScriptToStream(JSContext *cx, JSScript *script,
         
         
 
-        uint32 size;
+        uint32_t size;
         const char* data = reinterpret_cast<const char*>
                                            (JS_XDRMemGetData(xdr, &size));
         NS_ASSERTION(data, "no decoded JSXDRState data!");

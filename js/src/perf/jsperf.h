@@ -100,17 +100,17 @@ class JS_FRIEND_API(PerfMeasurement)
 
 
 
-    uint64 cpu_cycles;
-    uint64 instructions;
-    uint64 cache_references;
-    uint64 cache_misses;
-    uint64 branch_instructions;
-    uint64 branch_misses;
-    uint64 bus_cycles;
-    uint64 page_faults;
-    uint64 major_page_faults;
-    uint64 context_switches;
-    uint64 cpu_migrations;
+    uint64_t cpu_cycles;
+    uint64_t instructions;
+    uint64_t cache_references;
+    uint64_t cache_misses;
+    uint64_t branch_instructions;
+    uint64_t branch_misses;
+    uint64_t bus_cycles;
+    uint64_t page_faults;
+    uint64_t major_page_faults;
+    uint64_t context_switches;
+    uint64_t cpu_migrations;
 
     
 

@@ -105,9 +105,9 @@ namespace js { class FunctionExtended; }
 
 struct JSFunction : public JSObject
 {
-    uint16          nargs;        
+    uint16_t        nargs;        
 
-    uint16          flags;        
+    uint16_t        flags;        
     union U {
         struct Native {
             js::Native  native;   
@@ -134,8 +134,8 @@ struct JSFunction : public JSObject
     bool isFunctionPrototype() const { return flags & JSFUN_PROTOTYPE; }
     bool isInterpretedConstructor() const { return isInterpreted() && !isFunctionPrototype(); }
 
-    uint16 kind()            const { return flags & JSFUN_KINDMASK; }
-    void setKind(uint16 k) {
+    uint16_t kind()          const { return flags & JSFUN_KINDMASK; }
+    void setKind(uint16_t k) {
         JS_ASSERT(!(k & ~JSFUN_KINDMASK));
         flags = (flags & ~JSFUN_KINDMASK) | k;
     }
@@ -143,7 +143,7 @@ struct JSFunction : public JSObject
     
     inline bool inStrictMode() const;
 
-    void setArgCount(uint16 nargs) {
+    void setArgCount(uint16_t nargs) {
         JS_ASSERT(this->nargs == 0);
         this->nargs = nargs;
     }
@@ -254,13 +254,13 @@ struct JSFunction : public JSObject
 
 
 
-    static const uint32 FLAT_CLOSURE_UPVARS_SLOT = 0;
+    static const uint32_t FLAT_CLOSURE_UPVARS_SLOT = 0;
 
     static inline size_t getFlatClosureUpvarsOffset();
 
-    inline js::Value getFlatClosureUpvar(uint32 i) const;
-    inline void setFlatClosureUpvar(uint32 i, const js::Value &v);
-    inline void initFlatClosureUpvar(uint32 i, const js::Value &v);
+    inline js::Value getFlatClosureUpvar(uint32_t i) const;
+    inline void setFlatClosureUpvar(uint32_t i, const js::Value &v);
+    inline void initFlatClosureUpvar(uint32_t i, const js::Value &v);
 
   private:
     inline bool hasFlatClosureUpvars() const;
@@ -271,10 +271,10 @@ struct JSFunction : public JSObject
     inline void finalizeUpvars();
 
     
-    static const uint32 METHOD_PROPERTY_SLOT = 0;
+    static const uint32_t METHOD_PROPERTY_SLOT = 0;
 
     
-    static const uint32 METHOD_OBJECT_SLOT = 1;
+    static const uint32_t METHOD_OBJECT_SLOT = 1;
 
     
     inline bool isClonedMethod() const;

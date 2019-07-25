@@ -258,9 +258,9 @@ JSD_ClearAllProfileData(JSDContext* jsdc);
 
 
 extern JSD_PUBLIC_API(void)
-JSD_SetContextFlags (JSDContext* jsdc, uint32 flags);
+JSD_SetContextFlags (JSDContext* jsdc, uint32_t flags);
 
-extern JSD_PUBLIC_API(uint32)
+extern JSD_PUBLIC_API(uint32_t)
 JSD_GetContextFlags (JSDContext* jsdc);     
 
 
@@ -398,11 +398,11 @@ JSD_GetJSFunction(JSDContext* jsdc, JSDScript *script);
 
 #define JSD_SCRIPT_DEBUG_BIT   0x02
 
-extern JSD_PUBLIC_API(uint32)
+extern JSD_PUBLIC_API(uint32_t)
 JSD_GetScriptFlags(JSDContext *jsdc, JSDScript* jsdscript);
 
 extern JSD_PUBLIC_API(void)
-JSD_SetScriptFlags(JSDContext *jsdc, JSDScript* jsdscript, uint32 flags);
+JSD_SetScriptFlags(JSDContext *jsdc, JSDScript* jsdscript, uint32_t flags);
 
 
 
@@ -1286,7 +1286,7 @@ JSD_GetValueBoolean(JSDContext* jsdc, JSDValue* jsdval);
 
 
 
-extern JSD_PUBLIC_API(int32)
+extern JSD_PUBLIC_API(int32_t)
 JSD_GetValueInt(JSDContext* jsdc, JSDValue* jsdval);
 
 

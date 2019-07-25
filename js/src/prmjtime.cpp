@@ -116,7 +116,7 @@ ComputeLocalTime(time_t local, struct tm *ptm)
 
 
 
-JSInt32
+int32_t
 PRMJ_LocalGMTDifference()
 {
 #if defined(XP_WIN)
@@ -162,9 +162,9 @@ PRMJ_LocalGMTDifference()
 
 #ifdef HAVE_SYSTEMTIMETOFILETIME
 
-static const JSInt64 win2un = 0x19DB1DED53E8000;
+static const int64_t win2un = 0x19DB1DED53E8000;
 
-#define FILETIME2INT64(ft) (((JSInt64)ft.dwHighDateTime) << 32LL | (JSInt64)ft.dwLowDateTime)
+#define FILETIME2INT64(ft) (((int64_t)ft.dwHighDateTime) << 32LL | (int64_t)ft.dwLowDateTime)
 
 #endif
 
@@ -192,7 +192,7 @@ typedef struct CalibrationData {
     long double timer_offset; 
 
     
-    JSInt64 last;
+    int64_t last;
 
     JSBool calibrated;
 
@@ -219,7 +219,7 @@ NowCalibrate()
         }
     }
     if (calibration.freq > 0.0) {
-        JSInt64 calibrationDelta = 0;
+        int64_t calibrationDelta = 0;
 
         
 
@@ -293,16 +293,16 @@ static PRCallOnceType calibrationOnce = { 0 };
 
 
 #if defined(XP_OS2)
-JSInt64
+int64_t
 PRMJ_Now(void)
 {
     struct timeb b;
     ftime(&b);
-    return (JSInt64(b.time) * PRMJ_USEC_PER_SEC) + (JSInt64(b.millitm) * PRMJ_USEC_PER_MSEC);
+    return (int64_t(b.time) * PRMJ_USEC_PER_SEC) + (int64_t(b.millitm) * PRMJ_USEC_PER_MSEC);
 }
 
 #elif defined(XP_UNIX)
-JSInt64
+int64_t
 PRMJ_Now(void)
 {
     struct timeval tv;
@@ -313,7 +313,7 @@ PRMJ_Now(void)
     gettimeofday(&tv, 0);
 #endif 
 
-    return JSInt64(tv.tv_sec) * PRMJ_USEC_PER_SEC + JSInt64(tv.tv_usec);
+    return int64_t(tv.tv_sec) * PRMJ_USEC_PER_SEC + int64_t(tv.tv_usec);
 }
 
 #else
@@ -385,7 +385,7 @@ PRMJ_Now(void)
 
 int CALIBRATION_DELAY_COUNT = 10;
 
-JSInt64
+int64_t
 PRMJ_Now(void)
 {
     static int nCalls = 0;
@@ -394,7 +394,7 @@ PRMJ_Now(void)
     LARGE_INTEGER now;
     JSBool calibrated = JS_FALSE;
     JSBool needsCalibration = JS_FALSE;
-    JSInt64 returnedTime;
+    int64_t returnedTime;
     long double cachedOffset = 0.0;
 
     
@@ -457,7 +457,7 @@ PRMJ_Now(void)
 
             
 
-            calibration.last = JS_MAX(calibration.last,(JSInt64)highresTime);
+            calibration.last = JS_MAX(calibration.last, int64_t(highresTime));
             returnedTime = calibration.last;
             MUTEX_UNLOCK(&calibration.data_lock);
 
@@ -495,7 +495,7 @@ PRMJ_Now(void)
 
 
 
-                    returnedTime = (JSInt64)lowresTime;
+                    returnedTime = int64_t(lowresTime);
                     needsCalibration = JS_FALSE;
                 } else {
                     
@@ -511,12 +511,12 @@ PRMJ_Now(void)
                 }
             } else {
                 
-                returnedTime = (JSInt64)highresTime;
+                returnedTime = int64_t(highresTime);
                 needsCalibration = JS_FALSE;
             }
         } else {
             
-            returnedTime = (JSInt64)lowresTime;
+            returnedTime = int64_t(lowresTime);
         }
     } while (needsCalibration);
 
@@ -658,8 +658,8 @@ PRMJ_FormatTime(char *buf, int buflen, const char *fmt, PRMJTime *prtm)
     return result;
 }
 
-JSInt64
-DSTOffsetCache::computeDSTOffsetMilliseconds(int64 localTimeSeconds)
+int64_t
+DSTOffsetCache::computeDSTOffsetMilliseconds(int64_t localTimeSeconds)
 {
     JS_ASSERT(localTimeSeconds >= 0);
     JS_ASSERT(localTimeSeconds <= MAX_UNIX_TIMET);
@@ -677,13 +677,13 @@ DSTOffsetCache::computeDSTOffsetMilliseconds(int64 localTimeSeconds)
     if (!ComputeLocalTime(static_cast<time_t>(localTimeSeconds), &tm))
         return 0;
 
-    JSInt32 base = PRMJ_LocalGMTDifference();
+    int32_t base = PRMJ_LocalGMTDifference();
 
-    int32 dayoff = int32((localTimeSeconds - base) % (SECONDS_PER_HOUR * 24));
-    int32 tmoff = tm.tm_sec + (tm.tm_min * SECONDS_PER_MINUTE) +
+    int32_t dayoff = int32_t((localTimeSeconds - base) % (SECONDS_PER_HOUR * 24));
+    int32_t tmoff = tm.tm_sec + (tm.tm_min * SECONDS_PER_MINUTE) +
         (tm.tm_hour * SECONDS_PER_HOUR);
 
-    JSInt32 diff = tmoff - dayoff;
+    int32_t diff = tmoff - dayoff;
 
     if (diff < 0)
         diff += SECONDS_PER_DAY;
@@ -691,12 +691,12 @@ DSTOffsetCache::computeDSTOffsetMilliseconds(int64 localTimeSeconds)
     return diff * MILLISECONDS_PER_SECOND;
 }
 
-JSInt64
-DSTOffsetCache::getDSTOffsetMilliseconds(JSInt64 localTimeMilliseconds, JSContext *cx)
+int64_t
+DSTOffsetCache::getDSTOffsetMilliseconds(int64_t localTimeMilliseconds, JSContext *cx)
 {
     sanityCheck();
 
-    JSInt64 localTimeSeconds = localTimeMilliseconds / MILLISECONDS_PER_SECOND;
+    int64_t localTimeSeconds = localTimeMilliseconds / MILLISECONDS_PER_SECOND;
 
     if (localTimeSeconds > MAX_UNIX_TIMET) {
         localTimeSeconds = MAX_UNIX_TIMET;
@@ -726,9 +726,9 @@ DSTOffsetCache::getDSTOffsetMilliseconds(JSInt64 localTimeMilliseconds, JSContex
     oldRangeEndSeconds = rangeEndSeconds;
 
     if (rangeStartSeconds <= localTimeSeconds) {
-        JSInt64 newEndSeconds = JS_MIN(rangeEndSeconds + RANGE_EXPANSION_AMOUNT, MAX_UNIX_TIMET);
+        int64_t newEndSeconds = JS_MIN(rangeEndSeconds + RANGE_EXPANSION_AMOUNT, MAX_UNIX_TIMET);
         if (newEndSeconds >= localTimeSeconds) {
-            JSInt64 endOffsetMilliseconds = computeDSTOffsetMilliseconds(newEndSeconds);
+            int64_t endOffsetMilliseconds = computeDSTOffsetMilliseconds(newEndSeconds);
             if (endOffsetMilliseconds == offsetMilliseconds) {
                 rangeEndSeconds = newEndSeconds;
                 return offsetMilliseconds;
@@ -749,9 +749,9 @@ DSTOffsetCache::getDSTOffsetMilliseconds(JSInt64 localTimeMilliseconds, JSContex
         return offsetMilliseconds;
     }
 
-    JSInt64 newStartSeconds = JS_MAX(rangeStartSeconds - RANGE_EXPANSION_AMOUNT, 0);
+    int64_t newStartSeconds = JS_MAX(rangeStartSeconds - RANGE_EXPANSION_AMOUNT, 0);
     if (newStartSeconds <= localTimeSeconds) {
-        JSInt64 startOffsetMilliseconds = computeDSTOffsetMilliseconds(newStartSeconds);
+        int64_t startOffsetMilliseconds = computeDSTOffsetMilliseconds(newStartSeconds);
         if (startOffsetMilliseconds == offsetMilliseconds) {
             rangeStartSeconds = newStartSeconds;
             return offsetMilliseconds;

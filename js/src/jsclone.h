@@ -189,7 +189,7 @@ struct JSStructuredCloneWriter {
     
     
     
-    typedef js::HashMap<JSObject *, uint32> CloneMemory;
+    typedef js::HashMap<JSObject *, uint32_t> CloneMemory;
     CloneMemory memory;
 
     

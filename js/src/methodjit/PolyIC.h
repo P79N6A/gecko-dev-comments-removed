@@ -57,8 +57,8 @@ namespace mjit {
 namespace ic {
 
 
-static const uint32 MAX_PIC_STUBS = 16;
-static const uint32 MAX_GETELEM_IC_STUBS = 17;
+static const uint32_t MAX_PIC_STUBS = 16;
+static const uint32_t MAX_GETELEM_IC_STUBS = 17;
 
 enum LookupStatus {
     Lookup_Error = 0,
@@ -84,7 +84,7 @@ struct BaseIC : public MacroAssemblerTypedefs {
     
     
     
-    int32 secondShapeGuard;
+    int32_t secondShapeGuard;
 
     
     bool hit : 1;
@@ -97,7 +97,7 @@ struct BaseIC : public MacroAssemblerTypedefs {
     bool forcedTypeBarrier : 1;
 
     
-    uint32 stubsGenerated : 5;
+    uint32_t stubsGenerated : 5;
 
     
     JSOp op : 9;
@@ -260,9 +260,9 @@ struct GetElementIC : public BasePolyIC {
     
     
     
-    int32 atomGuard : 8;          
-    int32 firstShapeGuard : 11;    
-    int32 secondShapeGuard : 11;   
+    int32_t atomGuard : 8;          
+    int32_t firstShapeGuard : 11;    
+    int32_t secondShapeGuard : 11;   
 
     bool hasLastStringStub : 1;
     JITCode lastStringStub;
@@ -321,7 +321,7 @@ struct SetElementIC : public BaseIC {
     RegisterID objReg    : 5;
 
     
-    int32 objRemat       : MIN_STATE_REMAT_BITS;
+    int32_t objRemat       : MIN_STATE_REMAT_BITS;
 
     
     unsigned inlineShapeGuard : 6;
@@ -340,14 +340,14 @@ struct SetElementIC : public BaseIC {
 
     
     
-    uint32 volatileMask;
+    uint32_t volatileMask;
 
     
     
     bool hasConstantKey : 1;
     union {
         RegisterID keyReg;
-        int32      keyValue;
+        int32_t    keyValue;
     };
 
     
@@ -365,8 +365,8 @@ struct SetElementIC : public BaseIC {
         inlineHoleGuardPatched = false;
     }
     void purge(Repatcher &repatcher);
-    LookupStatus attachTypedArray(VMFrame &f, JSObject *obj, int32 key);
-    LookupStatus attachHoleStub(VMFrame &f, JSObject *obj, int32 key);
+    LookupStatus attachTypedArray(VMFrame &f, JSObject *obj, int32_t key);
+    LookupStatus attachHoleStub(VMFrame &f, JSObject *obj, int32_t key);
     LookupStatus update(VMFrame &f, const Value &objval, const Value &idval);
     LookupStatus disable(JSContext *cx, const char *reason);
     LookupStatus error(JSContext *cx);
@@ -398,7 +398,7 @@ struct PICInfo : public BasePolyIC {
             bool hasTypeCheck   : 1;  
 
             
-            int32 typeCheckOffset;
+            int32_t typeCheckOffset;
         } get;
         ValueRemat vr;
     } u;
@@ -457,7 +457,7 @@ struct PICInfo : public BasePolyIC {
     bool typeMonitored : 1;
 
     
-    uint32 shapeGuard;
+    uint32_t shapeGuard;
 
     
     types::TypeSet *rhsTypes;

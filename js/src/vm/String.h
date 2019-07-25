@@ -520,7 +520,7 @@ class JSFlatString : public JSLinearString
 
 
 
-    bool isIndex(uint32 *indexp) const;
+    bool isIndex(uint32_t *indexp) const;
 
     
 
@@ -745,10 +745,10 @@ class StaticStrings
     bool init(JSContext *cx);
     void trace(JSTracer *trc);
 
-    static inline bool hasUint(uint32 u);
-    inline JSAtom *getUint(uint32 u);
+    static inline bool hasUint(uint32_t u);
+    inline JSAtom *getUint(uint32_t u);
 
-    static inline bool hasInt(int32 i);
+    static inline bool hasInt(int32_t i);
     inline JSAtom *getInt(jsint i);
 
     static inline bool hasUnit(jschar c);
@@ -763,7 +763,7 @@ class StaticStrings
     inline JSAtom *lookup(const jschar *chars, size_t length);
 
   private:
-    typedef uint8 SmallChar;
+    typedef uint8_t SmallChar;
     static const SmallChar INVALID_SMALL_CHAR = -1;
 
     static inline bool fitsInSmallChar(jschar c);
@@ -771,7 +771,7 @@ class StaticStrings
     static const SmallChar toSmallChar[];
 
     JSAtom *getLength2(jschar c1, jschar c2);
-    JSAtom *getLength2(uint32 i);
+    JSAtom *getLength2(uint32_t u);
 };
 
 
@@ -850,7 +850,7 @@ inline js::PropertyName *
 JSAtom::asPropertyName()
 {
 #ifdef DEBUG
-    uint32 dummy;
+    uint32_t dummy;
     JS_ASSERT(!isIndex(&dummy));
 #endif
     return static_cast<js::PropertyName *>(this);

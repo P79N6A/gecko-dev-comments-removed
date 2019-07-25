@@ -166,26 +166,26 @@ struct GetPropLabels : MacroAssemblerTypedefs {
 
   private:
     
-    int32 dslotsLoadOffset : 8;
+    int32_t dslotsLoadOffset : 8;
 
     
-    int32 inlineShapeOffset : 8;
+    int32_t inlineShapeOffset : 8;
 
     
-    int32 inlineValueLoadOffset : 8;
+    int32_t inlineValueLoadOffset : 8;
 
     
 
 
 
 
-    int32 stubShapeJumpOffset : 8;
+    int32_t stubShapeJumpOffset : 8;
 
     
-    int32 inlineShapeJumpOffset : 8;
+    int32_t inlineShapeJumpOffset : 8;
 
     
-    int32 inlineTypeJumpOffset : 8;
+    int32_t inlineTypeJumpOffset : 8;
 };
 
 
@@ -287,22 +287,22 @@ struct SetPropLabels : MacroAssemblerTypedefs {
     }
 
     
-    int32 dslotsLoadOffset : 8;
+    int32_t dslotsLoadOffset : 8;
 
     
-    int32 inlineShapeDataOffset : 8;
+    int32_t inlineShapeDataOffset : 8;
 
     
 
 
 
 
-    int32 stubShapeJumpOffset : 8;
+    int32_t stubShapeJumpOffset : 8;
 
-    int32 inlineValueStoreOffset : 8;
+    int32_t inlineValueStoreOffset : 8;
 
     
-    int32 inlineShapeJumpOffset : 8;
+    int32_t inlineShapeJumpOffset : 8;
 };
 
 
@@ -347,10 +347,10 @@ struct BindNameLabels : MacroAssemblerTypedefs {
 
   private:
     
-    int32 inlineJumpOffset : 8;
+    int32_t inlineJumpOffset : 8;
 
     
-    int32 stubJumpOffset : 8;
+    int32_t stubJumpOffset : 8;
 };
 
 
@@ -395,10 +395,10 @@ struct ScopeNameLabels : MacroAssemblerTypedefs {
 
   private:
     
-    int32 inlineJumpOffset : 8;
+    int32_t inlineJumpOffset : 8;
 
     
-    int32 stubJumpOffset : 8;
+    int32_t stubJumpOffset : 8;
 };
 
 } 

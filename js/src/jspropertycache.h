@@ -70,7 +70,7 @@ struct PropertyCacheEntry
     const Shape         *kshape;        
     const Shape         *pshape;        
     const Shape         *prop;          
-    uint16              vindex;         
+    uint16_t            vindex;         
 
 
     bool directHit() const { return vindex == 0; }
@@ -113,35 +113,35 @@ class PropertyCache
   public:
 #ifdef JS_PROPERTY_CACHE_METERING
     PropertyCacheEntry  *pctestentry;   
-    uint32              fills;          
-    uint32              nofills;        
-    uint32              rofills;        
-    uint32              disfills;       
-    uint32              oddfills;       
-    uint32              add2dictfills;  
-    uint32              modfills;       
-    uint32              brandfills;     
+    uint32_t            fills;          
+    uint32_t            nofills;        
+    uint32_t            rofills;        
+    uint32_t            disfills;       
+    uint32_t            oddfills;       
+    uint32_t            add2dictfills;  
+    uint32_t            modfills;       
+    uint32_t            brandfills;     
 
-    uint32              noprotos;       
-    uint32              longchains;     
-    uint32              recycles;       
-    uint32              tests;          
-    uint32              pchits;         
-    uint32              protopchits;    
-    uint32              initests;       
-    uint32              inipchits;      
-    uint32              inipcmisses;    
-    uint32              settests;       
-    uint32              addpchits;      
-    uint32              setpchits;      
-    uint32              setpcmisses;    
-    uint32              setmisses;      
-    uint32              kpcmisses;      
-    uint32              kshapemisses;   
-    uint32              vcapmisses;     
-    uint32              misses;         
-    uint32              flushes;        
-    uint32              pcpurges;       
+    uint32_t            noprotos;       
+    uint32_t            longchains;     
+    uint32_t            recycles;       
+    uint32_t            tests;          
+    uint32_t            pchits;         
+    uint32_t            protopchits;    
+    uint32_t            initests;       
+    uint32_t            inipchits;      
+    uint32_t            inipcmisses;    
+    uint32_t            settests;       
+    uint32_t            addpchits;      
+    uint32_t            setpchits;      
+    uint32_t            setpcmisses;    
+    uint32_t            setmisses;      
+    uint32_t            kpcmisses;      
+    uint32_t            kshapemisses;   
+    uint32_t            vcapmisses;     
+    uint32_t            misses;         
+    uint32_t            flushes;        
+    uint32_t            pcpurges;       
 
 # define PCMETER(x)     x
 #else
@@ -159,7 +159,7 @@ class PropertyCache
         return (((jsuword(pc) >> SIZE_LOG2) ^ jsuword(pc) ^ ((jsuword)kshape >> 3)) & MASK);
     }
 
-    static inline bool matchShape(JSContext *cx, JSObject *obj, uint32 shape);
+    static inline bool matchShape(JSContext *cx, JSObject *obj, uint32_t shape);
 
     JS_REQUIRES_STACK JSAtom *fullTest(JSContext *cx, jsbytecode *pc, JSObject **objp,
                                        JSObject **pobjp, PropertyCacheEntry *entry);
