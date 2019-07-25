@@ -81,6 +81,7 @@ let DebuggerView = {
 
   _onEditorLoad: function DV__onEditorLoad() {
     DebuggerController.Breakpoints.initialize();
+    this.editor.focus();
   },
 
   
@@ -523,6 +524,22 @@ ScriptsView.prototype = {
         editor.setSelection(offset, offset + token.length)
       }
     }
+  },
+
+  
+
+
+  _onSearch: function DVS__onSearch() {
+    this._searchbox.focus();
+    this._searchbox.value = "";
+  },
+
+  
+
+
+  _onTokenSearch: function DVS__onTokenSearch() {
+    this._searchbox.focus();
+    this._searchbox.value = "#";
   },
 
   
