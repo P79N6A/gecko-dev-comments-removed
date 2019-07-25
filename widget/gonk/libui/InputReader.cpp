@@ -1206,7 +1206,9 @@ TouchButtonAccumulator::TouchButtonAccumulator() :
 }
 
 void TouchButtonAccumulator::configure(InputDevice* device) {
-    mHaveBtnTouch = device->hasKey(BTN_TOUCH);
+    
+    
+    
 }
 
 void TouchButtonAccumulator::reset(InputDevice* device) {
