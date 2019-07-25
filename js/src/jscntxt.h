@@ -224,16 +224,22 @@ struct JSRuntime : js::RuntimeFriendFields
 
 
 
+#if ENABLE_ASSEMBLER
     JSC::ExecutableAllocator *execAlloc_;
+#endif
     WTF::BumpPointerAllocator *bumpAlloc_;
 
+#if ENABLE_ASSEMBLER
     JSC::ExecutableAllocator *createExecutableAllocator(JSContext *cx);
+#endif
     WTF::BumpPointerAllocator *createBumpPointerAllocator(JSContext *cx);
 
   public:
+#if ENABLE_ASSEMBLER
     JSC::ExecutableAllocator *getExecutableAllocator(JSContext *cx) {
         return execAlloc_ ? execAlloc_ : createExecutableAllocator(cx);
     }
+#endif
     WTF::BumpPointerAllocator *getBumpPointerAllocator(JSContext *cx) {
         return bumpAlloc_ ? bumpAlloc_ : createBumpPointerAllocator(cx);
     }
