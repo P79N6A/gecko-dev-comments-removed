@@ -1650,6 +1650,14 @@ DefineProperty(JSContext *cx, JSObject *obj, const jsid &id, const PropDesc &des
 
 
 
+extern bool
+ReadPropertyDescriptors(JSContext *cx, JSObject *props, bool checkAccessors,
+                        AutoIdVector *ids, AutoPropDescArrayRooter *descs);
+
+
+
+
+
 static const uintN RESOLVE_INFER = 0xffff;
 
 

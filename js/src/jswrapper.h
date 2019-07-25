@@ -200,6 +200,22 @@ class AutoCompartment
     AutoCompartment & operator=(const AutoCompartment &);
 };
 
+
+
+
+
+
+class ErrorCopier {
+    AutoCompartment &ac;
+    JSObject *scope;
+
+  public:
+    ErrorCopier(AutoCompartment &ac, JSObject *scope) : ac(ac), scope(scope) {
+        JS_ASSERT(scope->compartment() == ac.origin);
+    }
+    ~ErrorCopier();
+};
+
 extern JSObject *
 TransparentObjectWrapper(JSContext *cx, JSObject *obj, JSObject *wrappedProto, JSObject *parent,
                          uintN flags);
