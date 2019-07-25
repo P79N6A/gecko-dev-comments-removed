@@ -55,8 +55,13 @@ ReportIncompatibleMethod(JSContext *cx, CallReceiver call, Class *clasp);
 
 
 
-inline JSObject *
-NonGenericMethodGuard(JSContext *cx, CallArgs args, Native native, Class *clasp, bool *ok);
+
+
+
+
+
+inline bool
+NonGenericMethodGuard(JSContext *cx, CallArgs args, Native native, Class *clasp, JSObject **thisObj);
 
 
 
