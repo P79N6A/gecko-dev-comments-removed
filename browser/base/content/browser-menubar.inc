@@ -211,7 +211,7 @@
                 <menuitem id="menu_tabcandy"
                           label="&showTabCandy.label;"
                           key="key_tabcandy"
-                          command="Browser:ShowTabCandy"/>
+                          command="Browser:ToggleTabCandy"/>
                 <menu id="viewToolbarsMenu"
                       label="&viewToolbarsMenu.label;"
                       accesskey="&viewToolbarsMenu.accesskey;">
@@ -326,7 +326,7 @@
                       onpopupshown="CreateMenu('more-menu');"
                       observes="isImage">
                     <template>
-                        <rule rdf:type="http://home.netscape.com/NC-rdf#BookmarkSeparator">
+                        <rule rdf:type="http:
                             <menupopup>
                             <menuseparator uri="..." />
                             </menupopup>
@@ -341,7 +341,7 @@
                     <menupopup>
                     <menu label="&charsetMenuAutodet.label;" accesskey="&charsetMenuAutodet.accesskey;" datasources="rdf:charset-menu" ref="NC:BrowserAutodetMenuRoot">
                         <template>
-                            <rule rdf:type="http://home.netscape.com/NC-rdf#CharsetDetector">
+                            <rule rdf:type="http:
                                 <menupopup>
                                 <menuitem type="radio" name="detectorGroup" checked="rdf:http://home.netscape.com/NC-rdf#Checked" uri="..." label="rdf:http://home.netscape.com/NC-rdf#Name"/>
                                 </menupopup>

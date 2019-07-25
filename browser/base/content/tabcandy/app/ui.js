@@ -160,6 +160,7 @@ window.Page = {
   startX: 30, 
   startY: 70,
   closedLastVisibleTab: false,
+  closedSelectedTabInTabCandy: false,
     
   isTabCandyVisible: function(){
     return (Utils.getCurrentWindow().document.getElementById("tab-candy-deck").
@@ -192,7 +193,6 @@ window.Page = {
 
   showTabCandy : function() {
     let self = this;
-
     let currentTab = UI.currentTab;
     let item = null;
 
@@ -295,19 +295,24 @@ window.Page = {
     this.setupKeyHandlers();
 
     Tabs.onClose(function(){
-      if (!self.isTabCandyVisible()) {        
+      if (self.isTabCandyVisible()) {
         
-        
-        
-        
-        
+        if (UI.currentTab == this) {
+          self.closedSelectedTabInTabCandy = true;
+        }
+      } else {
         var group = Groups.getActiveGroup();
+        
+        
+        
+        
+        
         if ((group && group._children.length == 1) ||
             (group == null && Tabbar.getVisibleTabCount() == 1)) {
           self.closedLastVisibleTab = true;
           
           if(this && this.mirror) {
-            item = TabItems.getItemByTabElement(this.mirror.el);
+            var item = TabItems.getItemByTabElement(this.mirror.el);
             if (item) {
               item.setZoomPrep(false);
             }
@@ -320,10 +325,8 @@ window.Page = {
     
     Tabs.onMove(function() {
       iQ.timeout(function() { 
-        Utils.log("hit on move...");
         var activeGroup = Groups.getActiveGroup();
         if( activeGroup ) {
-          Utils.log("has group");
           activeGroup.reorderBasedOnTabOrder();                
         }
       }, 1);
@@ -341,48 +344,56 @@ window.Page = {
     
     UI.currentTab = focusTab;
     
-    if (this.isTabCandyVisible() && !this.closedLastVisibleTab) {
-      this.showChrome()
+    if (this.isTabCandyVisible()) {
+      if (!this.closedLastVisibleTab && !this.closedSelectedTabInTabCandy) {
+        this.showChrome();
+        doSetup = true;
+      }
+    } else {
+      doSetup = true;
+    }
+    
+    if (doSetup) {
+      iQ.timeout(function() { 
+        let visibleTabCount = Tabbar.getVisibleTabs().length;
+   
+        if(focusTab != UI.currentTab) {
+          
+          return;
+        }
+         
+        let newItem = null;
+        if(focusTab && focusTab.mirror)
+          newItem = TabItems.getItemByTabElement(focusTab.mirror.el);
+  
+        if(newItem)
+          Groups.setActiveGroup(newItem.parent);
+  
+        
+        let oldItem = null;
+        if(currentTab && currentTab.mirror)
+          oldItem = TabItems.getItemByTabElement(currentTab.mirror.el);
+  
+        if(newItem != oldItem) {
+          if(oldItem)
+            oldItem.setZoomPrep(false);
+          
+          
+          
+          if (visibleTabCount > 0) {
+            if(newItem)
+              newItem.setZoomPrep(true);
+          }
+        } else {
+          
+          
+          if (oldItem)
+            oldItem.setZoomPrep(true);
+        }
+      }, 1);
     }
     this.closedLastVisibleTab = false;
-
-    iQ.timeout(function() { 
-      let visibleTabCount = Tabbar.getVisibleTabCount();
- 
-      if(focusTab != UI.currentTab) {
-        
-        return;
-      }
-       
-      let newItem = null;
-      if(focusTab && focusTab.mirror)
-        newItem = TabItems.getItemByTabElement(focusTab.mirror.el);
-
-      if(newItem)
-        Groups.setActiveGroup(newItem.parent);
-
-      
-      let oldItem = null;
-      if(currentTab && currentTab.mirror)
-        oldItem = TabItems.getItemByTabElement(currentTab.mirror.el);
-
-      if(newItem != oldItem) {
-        if(oldItem)
-          oldItem.setZoomPrep(false);
-        
-        
-        
-        if (visibleTabCount > 0) {
-          if(newItem)
-            newItem.setZoomPrep(true);
-        }
-      } else {
-        
-        
-        if (oldItem)
-          oldItem.setZoomPrep(true);
-      }
-    }, 1);
+    this.closedSelectedTabInTabCandy = false;
   },
 
   
@@ -617,7 +628,12 @@ UIClass.prototype = {
         }, false);
         
       currentWindow.addEventListener(
-        "tabcandyhide", function() { Page.showChrome(); }, false);
+        "tabcandyhide", function() {
+          var activeTab = Page.getActiveTab();
+          if (activeTab) {
+            activeTab.zoomIn();
+          }
+        }, false);
           
       
       Storage.onReady(function() {
@@ -783,15 +799,6 @@ UIClass.prototype = {
             self.advanceSelectedTab(false, (charCode - 48));
             event.stopPropagation();
             event.preventDefault();
-          } else if (charCode == 101) { 
-            if (Page.isTabCandyVisible()) {
-              var activeTab = Page.getActiveTab();
-              if (activeTab) {
-                activeTab.zoomIn();
-              }
-              event.stopPropagation();
-              event.preventDefault();
-            }
           }
         }
       }
