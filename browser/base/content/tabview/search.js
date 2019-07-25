@@ -132,7 +132,7 @@ var TabUtils = {
   
   
   faviconURLOf: function TabUtils_faviconURLOf(tab) {
-    return tab.image != undefined ? tab.image : tab.favEl.src;
+    return tab.image != undefined ? tab.image : tab.favImgEl.src;
   },
   
   
