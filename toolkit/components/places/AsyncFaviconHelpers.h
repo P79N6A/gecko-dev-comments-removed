@@ -317,6 +317,53 @@ private:
 
 
 
+
+
+class AsyncGetFaviconDataForPage : public AsyncFaviconHelperBase
+{
+public:
+  NS_DECL_NSIRUNNABLE
+
+  
+
+
+
+
+
+
+
+
+
+  static nsresult start(nsIURI* aPageURI,
+                        nsCOMPtr<mozIStorageConnection>& aDBConn,
+                        nsIFaviconDataCallback* aCallback);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  AsyncGetFaviconDataForPage(const nsACString& aPageSpec,
+                             nsCOMPtr<mozIStorageConnection>& aDBConn,
+                             nsRefPtr<nsFaviconService>& aFaviconSvc,
+                             nsCOMPtr<nsIFaviconDataCallback>& aCallback);
+
+  virtual ~AsyncGetFaviconDataForPage();
+
+private:
+  nsCString mPageSpec;
+};
+
+
+
+
 class NotifyIconObservers : public AsyncFaviconHelperBase
 {
 public:
