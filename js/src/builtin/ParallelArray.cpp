@@ -804,7 +804,6 @@ Class ParallelArrayObject::class_ = {
         enumerate,
         NULL,                
         NULL,                
-        NULL,                
     }
 };
 

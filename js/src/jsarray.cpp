@@ -1194,7 +1194,6 @@ Class js::ArrayClass = {
         NULL,       
         array_typeOf,
         NULL,       
-        NULL,       
     }
 };
 

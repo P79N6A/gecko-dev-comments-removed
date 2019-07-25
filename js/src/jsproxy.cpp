@@ -1786,7 +1786,6 @@ JS_FRIEND_DATA(Class) js::ObjectProxyClass = {
         NULL,                
         proxy_TypeOf,
         NULL,                
-        NULL,                
     }
 };
 
@@ -1841,7 +1840,6 @@ JS_FRIEND_DATA(Class) js::OuterWindowProxyClass = {
         proxy_DeleteProperty,
         proxy_DeleteElement,
         proxy_DeleteSpecial,
-        NULL,                
         NULL,                
         NULL,                
         NULL,                
@@ -1913,7 +1911,6 @@ JS_FRIEND_DATA(Class) js::FunctionProxyClass = {
         proxy_DeleteSpecial,
         NULL,                
         proxy_TypeOf,
-        NULL,                
         NULL,                
     }
 };

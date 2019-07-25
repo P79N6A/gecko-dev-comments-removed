@@ -4777,8 +4777,19 @@ JS_DeleteElement(JSContext *cx, JSObject *obj, uint32_t index);
 extern JS_PUBLIC_API(JSBool)
 JS_DeleteElement2(JSContext *cx, JSObject *obj, uint32_t index, jsval *rval);
 
-extern JS_PUBLIC_API(void)
-JS_ClearScope(JSContext *cx, JSObject *obj);
+
+
+
+
+JS_PUBLIC_API(void)
+JS_ClearNonGlobalObject(JSContext *cx, JSObject *objArg);
+
+
+
+
+
+JS_PUBLIC_API(void)
+JS_SetAllNonReservedSlotsToUndefined(JSContext *cx, JSObject *objArg);
 
 extern JS_PUBLIC_API(JSIdArray *)
 JS_Enumerate(JSContext *cx, JSObject *obj);

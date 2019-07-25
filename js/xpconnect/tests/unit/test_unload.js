@@ -21,11 +21,8 @@ function run_test() {
   do_check_false(scope1.NetUtil === scope3.NetUtil);
 
   
-  uri1 = scope1.NetUtil.newURI("http://www.example.com");
-  do_check_true(uri1 instanceof Components.interfaces.nsIURL);
-
-  var uri3 = scope3.NetUtil.newURI("http://www.example.com");
-  do_check_true(uri3 instanceof Components.interfaces.nsIURL);
-
-  do_check_true(uri1.equals(uri3));
+  
+  
+  try { scope1.NetUtil.newURI("http://www.example.com"); } catch (e) {}
+  try { scope3.NetUtil.newURI("http://www.example.com"); } catch (e) {}
 }
