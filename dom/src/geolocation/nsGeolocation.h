@@ -134,7 +134,9 @@ public:
   NS_DECL_NSIGEOLOCATIONUPDATE
   NS_DECL_NSIOBSERVER
 
-  nsGeolocationService() {}
+  nsGeolocationService() {
+      mHigherAccuracy = false;
+  }
 
   nsresult Init();
 
@@ -153,6 +155,9 @@ public:
   
   
   void     SetDisconnectTimer();
+
+  
+  void     SetHigherAccuracy(bool aEnable);
 
 private:
 
@@ -173,6 +178,9 @@ private:
 
   
   nsCOMPtr<nsIDOMGeoPosition> mLastPosition;
+
+  
+  bool mHigherAccuracy;
 };
 
 
