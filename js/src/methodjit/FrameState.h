@@ -407,6 +407,13 @@ class FrameState
 
 
 
+
+    inline void forgetConstantData(FrameEntry *fe);
+
+    
+
+
+
     inline void convertInt32ToDouble(Assembler &masm, FrameEntry *fe,
                                      FPRegisterID fpreg) const;
 
