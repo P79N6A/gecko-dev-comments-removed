@@ -379,6 +379,10 @@ var BrowserApp = {
     CharacterEncoding.uninit();
   },
 
+  displayedDocumentChanged: function() {
+    window.top.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils).isFirstPaint = true;
+  },
+
   get tabs() {
     return this._tabs;
   },
@@ -396,7 +400,8 @@ var BrowserApp = {
       return;
 
     aTab.setActive(true);
-    aTab.sendViewportUpdate();
+    aTab.setResolution(aTab._zoom, true);
+    this.displayedDocumentChanged();
     this.deck.selectedPanel = aTab.browser;
   },
 
@@ -1652,19 +1657,20 @@ Tab.prototype = {
     win.scrollTo(aViewport.x, aViewport.y);
     this.userScrollPos.x = win.scrollX;
     this.userScrollPos.y = win.scrollY;
-    this.setResolution(aViewport.zoom);
+    this.setResolution(aViewport.zoom, false);
 
     
     this.refreshDisplayPort(aViewport.displayPortMargins);
   },
 
-  setResolution: function(aZoom) {
+  setResolution: function(aZoom, aForce) {
     
-    if (Math.abs(aZoom - this._zoom) >= 1e-6) {
+    if (aForce || Math.abs(aZoom - this._zoom) >= 1e-6) {
       this._zoom = aZoom;
-      let cwu = window.top.QueryInterface(Ci.nsIInterfaceRequestor)
-                           .getInterface(Ci.nsIDOMWindowUtils);
-      cwu.setResolution(aZoom, aZoom);
+      if (BrowserApp.selectedTab == this) {
+        let cwu = window.top.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
+        cwu.setResolution(aZoom, aZoom);
+      }
     }
   },
 
@@ -1988,8 +1994,11 @@ Tab.prototype = {
     sendMessageToJava(message);
 
     if ((aFlags & Ci.nsIWebProgressListener.LOCATION_CHANGE_SAME_DOCUMENT) == 0) {
-      this._zoom = this.getDefaultZoomLevel();
-      this.sendViewportUpdate();
+      
+      
+      
+      
+      this.refreshDisplayPort({left: 0, top: 0, right: 0, bottom: 0 });
     } else {
       this.sendViewportUpdate();
     }
@@ -2154,7 +2163,7 @@ Tab.prototype = {
     this.userScrollPos.x = win.scrollX;
     this.userScrollPos.y = win.scrollY;
 
-    this._zoom = oldBrowserWidth * this._zoom / viewportW;
+    this.setResolution(oldBrowserWidth * this._zoom / viewportW, false);
     this.sendViewportUpdate();
   },
 
@@ -2214,7 +2223,9 @@ Tab.prototype = {
         
         let contentDocument = aSubject;
         if (contentDocument == this.browser.contentDocument) {
+          this.setResolution(this.getDefaultZoomLevel(), false);
           ViewportHandler.updateMetadata(this);
+          BrowserApp.displayedDocumentChanged();
         }
         break;
     }
