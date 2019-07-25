@@ -1105,6 +1105,17 @@ nsTextEditRules::CreateTrailingBRIfNeeded()
     NS_ENSURE_SUCCESS(res, res); 
     nsCOMPtr<nsIDOMNode> unused;
     res = CreateMozBR(body, rootLen, address_of(unused));
+  } else {
+    
+    
+    nsCOMPtr<nsIContent> lastBR = do_QueryInterface(lastChild);
+    if (!mEditor->IsMozEditorBogusNode(lastBR))
+      return NS_OK;
+
+    
+    dom::Element* elem = lastBR->AsElement();
+    elem->UnsetAttr(kNameSpaceID_None, kMOZEditorBogusNodeAttrAtom, false);
+    elem->SetAttr(kNameSpaceID_None, nsGkAtoms::type, NS_LITERAL_STRING("_moz"), true);
   }
   return res;
 }
