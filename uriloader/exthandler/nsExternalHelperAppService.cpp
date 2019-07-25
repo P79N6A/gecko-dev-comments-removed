@@ -1459,7 +1459,6 @@ nsresult nsExternalAppHandler::SetUpTempFile(nsIChannel * aChannel)
     tempLeafName.Append(ext);
   }
 
-#ifdef XP_WIN
   
   
   
@@ -1476,7 +1475,6 @@ nsresult nsExternalAppHandler::SetUpTempFile(nsIChannel * aChannel)
   
   dummyFile->IsExecutable(&mTempFileIsExecutable);
   dummyFile->Remove(PR_FALSE);
-#endif
 
   
   
@@ -1487,12 +1485,6 @@ nsresult nsExternalAppHandler::SetUpTempFile(nsIChannel * aChannel)
   NS_ENSURE_SUCCESS(rv, rv);
   rv = mTempFile->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0600);
   NS_ENSURE_SUCCESS(rv, rv);
-
-#ifndef XP_WIN
-  
-  
-  mTempFile->IsExecutable(&mTempFileIsExecutable);
-#endif
 
   nsCOMPtr<nsIOutputStream> outputStream;
   rv = NS_NewLocalFileOutputStream(getter_AddRefs(outputStream), mTempFile,
