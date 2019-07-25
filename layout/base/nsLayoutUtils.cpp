@@ -3362,17 +3362,17 @@ nsLayoutUtils::GetFrameTransparency(nsIFrame* aBackgroundFrame,
   if (HasNonZeroCorner(aCSSRootFrame->GetStyleContext()->GetStyleBorder()->mBorderRadius))
     return eTransparencyTransparent;
 
-  nsITheme::Transparency transparency;
-  if (aCSSRootFrame->IsThemed(&transparency))
-    return transparency == nsITheme::eTransparent
-         ? eTransparencyTransparent
-         : eTransparencyOpaque;
-
   if (aCSSRootFrame->GetStyleDisplay()->mAppearance == NS_THEME_WIN_GLASS)
     return eTransparencyGlass;
 
   if (aCSSRootFrame->GetStyleDisplay()->mAppearance == NS_THEME_WIN_BORDERLESS_GLASS)
     return eTransparencyBorderlessGlass;
+
+  nsITheme::Transparency transparency;
+  if (aCSSRootFrame->IsThemed(&transparency))
+    return transparency == nsITheme::eTransparent
+         ? eTransparencyTransparent
+         : eTransparencyOpaque;
 
   
   

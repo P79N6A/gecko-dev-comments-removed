@@ -162,7 +162,8 @@ protected:
     ThebesLayerData() :
       mActiveScrolledRoot(nsnull), mLayer(nsnull),
       mIsSolidColorInVisibleRegion(PR_FALSE),
-      mHasText(PR_FALSE), mHasTextOverTransparent(PR_FALSE) {}
+      mHasText(PR_FALSE), mHasTextOverTransparent(PR_FALSE),
+      mForceTransparentSurface(PR_FALSE) {}
     
 
 
@@ -240,6 +241,13 @@ protected:
 
 
     PRPackedBool mHasTextOverTransparent;
+    
+
+
+
+
+
+    PRPackedBool mForceTransparentSurface;
   };
 
   
@@ -861,7 +869,7 @@ ContainerState::PopThebesLayerData()
     userData->mForcedBackgroundColor = backgroundColor;
   }
   PRUint32 flags =
-    (isOpaque ? Layer::CONTENT_OPAQUE : 0) |
+    ((isOpaque && !data->mForceTransparentSurface) ? Layer::CONTENT_OPAQUE : 0) |
     (data->mHasText ? 0 : Layer::CONTENT_NO_TEXT) |
     (data->mHasTextOverTransparent ? 0 : Layer::CONTENT_NO_TEXT_OVER_TRANSPARENT);
   layer->SetContentFlags(flags);
@@ -912,7 +920,8 @@ ContainerState::ThebesLayerData::Accumulate(nsDisplayListBuilder* aBuilder,
   mDrawRegion.Or(mDrawRegion, aDrawRect);
   mDrawRegion.SimplifyOutward(4);
 
-  if (aItem->IsOpaque(aBuilder)) {
+  PRBool forceTransparentSurface = PR_FALSE;
+  if (aItem->IsOpaque(aBuilder, &forceTransparentSurface)) {
     
     
     
@@ -929,6 +938,7 @@ ContainerState::ThebesLayerData::Accumulate(nsDisplayListBuilder* aBuilder,
       mHasTextOverTransparent = PR_TRUE;
     }
   }
+  mForceTransparentSurface = mForceTransparentSurface || forceTransparentSurface;
 }
 
 already_AddRefed<ThebesLayer>
@@ -1392,7 +1402,8 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
   state.ProcessDisplayItems(aChildren, clip);
   state.Finish();
 
-  PRUint32 flags = aChildren.IsOpaque() ? Layer::CONTENT_OPAQUE : 0;
+  PRUint32 flags = aChildren.IsOpaque() && 
+                   !aChildren.NeedsTransparentSurface() ? Layer::CONTENT_OPAQUE : 0;
   containerLayer->SetContentFlags(flags);
   return containerLayer.forget();
 }
