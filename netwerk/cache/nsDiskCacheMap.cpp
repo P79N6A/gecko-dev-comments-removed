@@ -1396,12 +1396,16 @@ nsDiskCacheMap::RevalidateCache()
 
     if (!IsCacheInSafeState()) {
         Telemetry::Accumulate(Telemetry::DISK_CACHE_REVALIDATION_SAFE, 0);
-        CACHE_LOG_DEBUG(("CACHE: Revalidation not performed because "
+        CACHE_LOG_DEBUG(("CACHE: Revalidation should not performed because "
                          "cache not in a safe state\n"));
-        return NS_ERROR_FAILURE;
+        
+        
+        
+        
+        
+    } else {
+        Telemetry::Accumulate(Telemetry::DISK_CACHE_REVALIDATION_SAFE, 1);
     }
-
-    Telemetry::Accumulate(Telemetry::DISK_CACHE_REVALIDATION_SAFE, 1);
 
     
     Telemetry::AutoTimer<Telemetry::NETWORK_DISK_CACHE_REVALIDATION> totalTimer;
