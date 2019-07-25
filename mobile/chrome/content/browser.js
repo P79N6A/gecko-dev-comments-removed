@@ -844,7 +844,8 @@ IdentityHandler.prototype = {
         .setConsumeRollupEvent(Ci.nsIPopupBoxObject.ROLLUP_CONSUME);
 
     
-    this.setPopupMessages(this._identityBox.className);
+    this.setPopupMessages(this._identityBox.className ||
+                          this.IDENTITY_MODE_UNKNOWN);
 
     
     this._identityPopup.openPopup(this._identityBox, 'after_start');
