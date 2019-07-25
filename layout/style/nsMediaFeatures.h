@@ -63,6 +63,7 @@ struct nsMediaFeature {
         
         eLength,     
         eInteger,    
+        eFloat,      
         eBoolInteger,
         eIntRatio,   
         eResolution, 
