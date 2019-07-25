@@ -467,6 +467,18 @@ protected:
                                       gfxImageSurface **imageOut,
                                       int *format);
 
+    nsresult CopyTexSubImage2D_base(WebGLenum target,
+                                    WebGLint level,
+                                    WebGLenum internalformat,
+                                    WebGLint xoffset,
+                                    WebGLint yoffset,
+                                    WebGLint x,
+                                    WebGLint y,
+                                    WebGLsizei width,
+                                    WebGLsizei height,
+                                    bool sub
+                                  );
+
     
     template<class ConcreteObjectType, class BaseInterfaceType>
     PRBool GetConcreteObject(const char *info,
