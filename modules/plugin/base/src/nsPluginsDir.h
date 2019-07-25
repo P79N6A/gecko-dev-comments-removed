@@ -66,9 +66,6 @@ struct nsPluginInfo {
 	char* fFileName;
 	char* fFullPath;
 	char* fVersion;
-#ifdef XP_MACOSX
-  PRBool fBundle;
-#endif
 };
 
 
@@ -105,9 +102,6 @@ public:
 
 
 	nsresult FreePluginInfo(nsPluginInfo &PluginInfo);
-
-	
-	short OpenPluginResource(void);
 };
 
 #endif 
