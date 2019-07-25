@@ -33,7 +33,7 @@ function getFrameWorkerHandle(url, clientWindow, name) {
   let existingWorker = workerCache[url];
   if (!existingWorker) {
     
-    let worker = new FrameWorker(url, clientWindow, name);
+    let worker = new FrameWorker(url, name);
     worker.pendingPorts.push(clientPort);
     existingWorker = workerCache[url] = worker;
   } else {
@@ -253,11 +253,6 @@ function WorkerHandle(port, worker) {
   this._worker = worker;
 }
 WorkerHandle.prototype = {
-  __exposedProps__: {
-    port: "r",
-    terminate: "r"
-  },
-
   
   
   
@@ -329,7 +324,7 @@ function initClientMessageHandler(worker, workerWindow) {
 
 
 function ClientPort(portid, clientWindow) {
-  this._clientWindow = clientWindow
+  this._clientWindow = clientWindow;
   this._window = null;
   
   this._pendingMessagesOutgoing = [];
@@ -338,17 +333,17 @@ function ClientPort(portid, clientWindow) {
 
 ClientPort.prototype = {
   __exposedProps__: {
-    'port': 'r',
-    'onmessage': 'rw',
-    'postMessage': 'r',
-    'close': 'r'
+    onmessage: "rw",
+    postMessage: "r",
+    close: "r",
+    toString: "r"
   },
   __proto__: AbstractPort.prototype,
   _portType: "client",
 
   _JSONParse: function fw_ClientPort_JSONParse(data) {
     if (this._clientWindow) {
-      return this._clientWindow.JSON.parse(data);
+      return XPCNativeWrapper.unwrap(this._clientWindow).JSON.parse(data);
     }
     return JSON.parse(data);
   },
@@ -383,6 +378,7 @@ ClientPort.prototype = {
     this.postMessage({topic: "social.port-closing"});
     AbstractPort.prototype.close.call(this);
     this._window = null;
+    this._clientWindow = null;
     this._pendingMessagesOutgoing = null;
   }
 }
