@@ -46,6 +46,7 @@
 #include "nsWeakReference.h"
 #include "nsNPAPIPluginStreamListener.h"
 #include "nsHashtable.h"
+#include "nsNPAPIPluginInstance.h"
 
 class nsIChannel;
 
@@ -98,21 +99,21 @@ public:
   
   
   nsresult Initialize(nsIURI *aURL,
-                      nsIPluginInstance *aInstance,
+                      nsNPAPIPluginInstance *aInstance,
                       nsIPluginStreamListener *aListener,
                       PRInt32 requestCount = 1);
   
   nsresult InitializeEmbedded(nsIURI *aURL,
-                              nsIPluginInstance* aInstance,
+                              nsNPAPIPluginInstance* aInstance,
                               nsIPluginInstanceOwner *aOwner = nsnull);
   
-  nsresult InitializeFullPage(nsIURI* aURL, nsIPluginInstance *aInstance);
+  nsresult InitializeFullPage(nsIURI* aURL, nsNPAPIPluginInstance *aInstance);
   
   nsresult OnFileAvailable(nsIFile* aFile);
   
   nsresult ServeStreamAsFile(nsIRequest *request, nsISupports *ctxt);
   
-  nsIPluginInstance *GetPluginInstance() { return mInstance; }
+  nsNPAPIPluginInstance *GetPluginInstance() { return mPluginInstance; }
   
 private:
   nsresult SetUpStreamListener(nsIRequest* request, nsIURI* aURL);
@@ -121,7 +122,6 @@ private:
   nsCOMPtr<nsIURI> mURL;
   nsCString mURLSpec; 
   nsCOMPtr<nsIPluginInstanceOwner> mOwner;
-  nsCOMPtr<nsIPluginInstance> mInstance;
   nsCOMPtr<nsIPluginStreamListener> mPStreamListener;
   
   
@@ -148,7 +148,7 @@ private:
   nsCString mContentType;
   PRBool mSeekable;
   PRUint32 mModified;
-  nsCOMPtr<nsIPluginInstance> mPluginInstance;
+  nsRefPtr<nsNPAPIPluginInstance> mPluginInstance;
   PRInt32 mStreamOffset;
   PRBool mStreamComplete;
   
