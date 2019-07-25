@@ -46,11 +46,6 @@
 #include "IonCode.h"
 #include "jsinfer.h"
 
-#ifdef DEBUG
-
-#define TRACK_SNAPSHOTS 1
-#endif
-
 namespace js {
 namespace ion {
 

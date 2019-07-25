@@ -82,6 +82,11 @@ enum BailoutKind
     Bailout_RecompileCheck
 };
 
+#ifdef DEBUG
+
+#define TRACK_SNAPSHOTS 1
+#endif
+
 } 
 } 
 
