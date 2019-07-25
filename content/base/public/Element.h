@@ -88,9 +88,9 @@ namespace dom {
 class Link;
 
 
-#define NS_ELEMENT_IID \
-{ 0xab6554b0, 0xb675, 0x45a7, \
-  { 0xac, 0x23, 0x44, 0x1c, 0x94, 0x5f, 0x3b, 0xee } }
+#define NS_ELEMENT_IID      \
+{ 0xa1588efb, 0x5a84, 0x49cd, \
+  { 0x99, 0x1a, 0xac, 0x84, 0x9d, 0x92, 0x05, 0x0f } }
 
 class Element : public nsIContent
 {
@@ -170,53 +170,6 @@ public:
 
 
   void ClearStyleStateLocks();
-
-  
-
-
-  virtual css::StyleRule* GetInlineStyleRule() = 0;
-
-  
-
-
-
-  virtual nsresult SetInlineStyleRule(css::StyleRule* aStyleRule,
-                                      const nsAString* aSerialized,
-                                      bool aNotify) = 0;
-
-  
-
-
-
-  virtual css::StyleRule* GetSMILOverrideStyleRule() = 0;
-
-  
-
-
-
-
-  virtual nsresult SetSMILOverrideStyleRule(css::StyleRule* aStyleRule,
-                                            bool aNotify) = 0;
-
-  
-
-
-
-
-
-  virtual nsISMILAttr* GetAnimatedAttr(PRInt32 aNamespaceID, nsIAtom* aName) = 0;
-
-  
-
-
-
-
-
-
-
-
-
-  virtual nsIDOMCSSStyleDeclaration* GetSMILOverrideStyle() = 0;
 
 protected:
   

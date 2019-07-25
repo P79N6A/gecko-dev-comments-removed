@@ -91,7 +91,6 @@ public:
                         PRUint32 argc, jsval* argv);
 
   
-  using mozilla::dom::FileIOObject::Notify;
   NS_IMETHOD Notify(const char *aCharset, nsDetectionConfident aConf);
 
   

@@ -134,7 +134,8 @@ nsEventListenerInfo::ToSource(nsAString& aResult)
   nsCOMPtr<nsIThreadJSContextStack> stack =
     nsContentUtils::ThreadJSContextStack();
   if (stack) {
-    JSContext* cx = stack->GetSafeJSContext();
+    JSContext* cx = nsnull;
+    stack->GetSafeJSContext(&cx);
     if (cx && NS_SUCCEEDED(stack->Push(cx))) {
       {
         
@@ -176,7 +177,8 @@ nsEventListenerInfo::GetDebugObject(nsISupports** aRetVal)
   nsCOMPtr<nsIThreadJSContextStack> stack =
     nsContentUtils::ThreadJSContextStack();
   if (stack) {
-    JSContext* cx = stack->GetSafeJSContext();
+    JSContext* cx = nsnull;
+    stack->GetSafeJSContext(&cx);
     if (cx && NS_SUCCEEDED(stack->Push(cx))) {
       {
         

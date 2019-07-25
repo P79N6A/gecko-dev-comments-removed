@@ -505,12 +505,6 @@ JSContext::ensureParseMapPool()
     return parseMapPool_;
 }
 
-inline js::PropertyTree&
-JSContext::propertyTree()
-{
-    return compartment->propertyTree;
-}
-
 
 static inline js::StackFrame *
 js_GetTopStackFrame(JSContext *cx, FrameExpandKind expand)

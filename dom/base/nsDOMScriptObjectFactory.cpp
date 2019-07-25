@@ -71,7 +71,8 @@ static NS_DEFINE_CID(kDOMScriptObjectFactoryCID, NS_DOM_SCRIPT_OBJECT_FACTORY_CI
 
 nsIExceptionProvider* gExceptionProvider = nsnull;
 
-nsDOMScriptObjectFactory::nsDOMScriptObjectFactory()
+nsDOMScriptObjectFactory::nsDOMScriptObjectFactory() :
+  mLoadedAllLanguages(false)
 {
   nsCOMPtr<nsIObserverService> observerService =
     mozilla::services::GetObserverService();
@@ -79,23 +80,26 @@ nsDOMScriptObjectFactory::nsDOMScriptObjectFactory()
     observerService->AddObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID, false);
   }
 
-  nsCOMPtr<nsIExceptionProvider> provider = new nsDOMExceptionProvider();
-  nsCOMPtr<nsIExceptionService> xs =
-    do_GetService(NS_EXCEPTIONSERVICE_CONTRACTID);
+  nsCOMPtr<nsIExceptionProvider> provider(new nsDOMExceptionProvider());
+  if (provider) {
+    nsCOMPtr<nsIExceptionService> xs =
+      do_GetService(NS_EXCEPTIONSERVICE_CONTRACTID);
 
-  if (xs) {
-    xs->RegisterExceptionProvider(provider, NS_ERROR_MODULE_DOM);
-    xs->RegisterExceptionProvider(provider, NS_ERROR_MODULE_SVG);
-    xs->RegisterExceptionProvider(provider, NS_ERROR_MODULE_DOM_XPATH);
-    xs->RegisterExceptionProvider(provider, NS_ERROR_MODULE_DOM_INDEXEDDB);
-    xs->RegisterExceptionProvider(provider, NS_ERROR_MODULE_XPCONNECT);
+    if (xs) {
+      xs->RegisterExceptionProvider(provider, NS_ERROR_MODULE_DOM);
+      xs->RegisterExceptionProvider(provider, NS_ERROR_MODULE_SVG);
+      xs->RegisterExceptionProvider(provider, NS_ERROR_MODULE_DOM_XPATH);
+      xs->RegisterExceptionProvider(provider, NS_ERROR_MODULE_DOM_INDEXEDDB);
+      xs->RegisterExceptionProvider(provider, NS_ERROR_MODULE_XPCONNECT);
+      xs->RegisterExceptionProvider(provider, NS_ERROR_MODULE_DOM_EVENTS);
+    }
+
+    NS_ASSERTION(!gExceptionProvider, "Registered twice?!");
+    provider.swap(gExceptionProvider);
   }
 
-  NS_ASSERTION(!gExceptionProvider, "Registered twice?!");
-  provider.swap(gExceptionProvider);
-
   
-  NS_CreateJSRuntime(getter_AddRefs(mJSRuntime));
+  NS_CreateJSRuntime(getter_AddRefs(mLanguageArray[NS_STID_INDEX(nsIProgrammingLanguage::JAVASCRIPT)]));
 }
 
 NS_INTERFACE_MAP_BEGIN(nsDOMScriptObjectFactory)
@@ -107,6 +111,119 @@ NS_INTERFACE_MAP_END
 
 NS_IMPL_ADDREF(nsDOMScriptObjectFactory)
 NS_IMPL_RELEASE(nsDOMScriptObjectFactory)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+NS_IMETHODIMP
+nsDOMScriptObjectFactory::GetScriptRuntime(const nsAString &aLanguageName,
+                                           nsIScriptRuntime **aLanguage)
+{
+  
+  
+  
+  
+  
+  
+  nsCAutoString contractid(NS_LITERAL_CSTRING(
+                          "@mozilla.org/script-language;1?script-type="));
+  
+  AppendUTF16toUTF8(aLanguageName, contractid);
+  nsresult rv;
+  nsCOMPtr<nsIScriptRuntime> lang =
+        do_GetService(contractid.get(), &rv);
+
+  if (NS_FAILED(rv)) {
+    if (aLanguageName.Equals(NS_LITERAL_STRING("application/javascript")))
+      return GetScriptRuntimeByID(nsIProgrammingLanguage::JAVASCRIPT, aLanguage);
+    
+    NS_WARNING("No script language registered for this mime-type");
+    return NS_ERROR_FACTORY_NOT_REGISTERED;
+  }
+  
+  PRUint32 lang_ndx = NS_STID_INDEX(nsIProgrammingLanguage::JAVASCRIPT);
+  if (mLanguageArray[lang_ndx] == nsnull) {
+    mLanguageArray[lang_ndx] = lang;
+  } else {
+    
+    NS_ASSERTION(mLanguageArray[lang_ndx] == lang,
+                 "Got a different language for this ID???");
+  }
+  *aLanguage = lang;
+  NS_IF_ADDREF(*aLanguage);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDOMScriptObjectFactory::GetScriptRuntimeByID(PRUint32 aLanguageID, 
+                                               nsIScriptRuntime **aLanguage)
+{
+  if (!NS_STID_VALID(aLanguageID)) {
+    NS_WARNING("Unknown script language");
+    return NS_ERROR_UNEXPECTED;
+  }
+  *aLanguage = mLanguageArray[NS_STID_INDEX(aLanguageID)];
+  if (!*aLanguage) {
+    nsCAutoString contractid(NS_LITERAL_CSTRING(
+                        "@mozilla.org/script-language;1?id="));
+    char langIdStr[25]; 
+    sprintf(langIdStr, "%d", aLanguageID);
+    contractid += langIdStr;
+    nsresult rv;
+    nsCOMPtr<nsIScriptRuntime> lang = do_GetService(contractid.get(), &rv);
+
+    if (NS_FAILED(rv)) {
+      NS_ERROR("Failed to get the script language");
+      return rv;
+    }
+
+    
+    mLanguageArray[NS_STID_INDEX(aLanguageID)] = lang;
+    *aLanguage = lang;
+  }
+  NS_IF_ADDREF(*aLanguage);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDOMScriptObjectFactory::GetIDForScriptType(const nsAString &aLanguageName,
+                                             PRUint32 *aScriptTypeID)
+{
+  nsCOMPtr<nsIScriptRuntime> languageRuntime;
+  nsresult rv;
+  rv = GetScriptRuntime(aLanguageName, getter_AddRefs(languageRuntime));
+  if (NS_FAILED(rv))
+    return rv;
+
+  *aScriptTypeID = nsIProgrammingLanguage::JAVASCRIPT;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDOMScriptObjectFactory::NewScriptGlobalObject(bool aIsChrome,
+                                                bool aIsModalContentWindow,
+                                                nsIScriptGlobalObject **aGlobal)
+{
+  return NS_NewScriptGlobalObject(aIsChrome, aIsModalContentWindow, aGlobal);
+}
 
 NS_IMETHODIMP_(nsISupports *)
 nsDOMScriptObjectFactory::GetClassInfoInstance(nsDOMClassInfoID aID)
@@ -174,6 +291,8 @@ nsDOMScriptObjectFactory::Observe(nsISupports *aSubject,
                                         NS_ERROR_MODULE_DOM_XPATH);
         xs->UnregisterExceptionProvider(gExceptionProvider,
                                         NS_ERROR_MODULE_XPCONNECT);
+        xs->UnregisterExceptionProvider(gExceptionProvider,
+                                        NS_ERROR_MODULE_DOM_EVENTS);
       }
 
       NS_RELEASE(gExceptionProvider);
@@ -200,7 +319,7 @@ CreateXPConnectException(nsresult aResult, nsIException *aDefaultException,
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  exception.forget(_retval);
+  NS_ADDREF(*_retval = exception);
   return NS_OK;
 }
 
@@ -226,40 +345,29 @@ nsDOMScriptObjectFactory::RegisterDOMClassInfo(const char *aName,
 }
 
 
-
-static nsresult
-GetJSRuntime(nsIScriptRuntime** aLanguage)
-{
-  nsCOMPtr<nsIDOMScriptObjectFactory> factory =
-    do_GetService(kDOMScriptObjectFactoryCID);
-  NS_ENSURE_TRUE(factory, NS_ERROR_FAILURE);
-
-  NS_IF_ADDREF(*aLanguage = factory->GetJSRuntime());
-  return NS_OK;
-}
-
 nsresult NS_GetScriptRuntime(const nsAString &aLanguageName,
                              nsIScriptRuntime **aLanguage)
 {
-  *aLanguage = NULL;
-
-  NS_ENSURE_TRUE(aLanguageName.EqualsLiteral("application/javascript"),
-                 NS_ERROR_FAILURE);
-
-  return GetJSRuntime(aLanguage);
+  nsresult rv;
+  *aLanguage = nsnull;
+  nsCOMPtr<nsIDOMScriptObjectFactory> factory = \
+        do_GetService(kDOMScriptObjectFactoryCID, &rv);
+  if (NS_FAILED(rv))
+    return rv;
+  return factory->GetScriptRuntime(aLanguageName, aLanguage);
 }
 
 nsresult NS_GetScriptRuntimeByID(PRUint32 aScriptTypeID,
                                  nsIScriptRuntime **aLanguage)
 {
-  *aLanguage = NULL;
-
-  NS_ENSURE_TRUE(aScriptTypeID == nsIProgrammingLanguage::JAVASCRIPT,
-                 NS_ERROR_FAILURE);
-
-  return GetJSRuntime(aLanguage);
+  nsresult rv;
+  *aLanguage = nsnull;
+  nsCOMPtr<nsIDOMScriptObjectFactory> factory = \
+        do_GetService(kDOMScriptObjectFactoryCID, &rv);
+  if (NS_FAILED(rv))
+    return rv;
+  return factory->GetScriptRuntimeByID(aScriptTypeID, aLanguage);
 }
-
 
 NS_IMPL_THREADSAFE_ISUPPORTS1(nsDOMExceptionProvider, nsIExceptionProvider)
 

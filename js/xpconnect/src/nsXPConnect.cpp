@@ -2374,6 +2374,18 @@ nsXPConnect::SetReportAllJSExceptions(bool newval)
 }
 
 
+NS_IMETHODIMP_(bool)
+nsXPConnect::DefineDOMQuickStubs(JSContext * cx,
+                                 JSObject * proto,
+                                 PRUint32 flags,
+                                 PRUint32 interfaceCount,
+                                 const nsIID * *interfaceArray)
+{
+    return DOM_DefineQuickStubs(cx, proto, flags,
+                                interfaceCount, interfaceArray);
+}
+
+
 NS_IMETHODIMP
 nsXPConnect::GetRuntime(JSRuntime **runtime)
 {
@@ -2594,16 +2606,20 @@ nsXPConnect::Push(JSContext * cx)
 }
 
 
-JSContext*
-nsXPConnect::GetSafeJSContext()
+NS_IMETHODIMP
+nsXPConnect::GetSafeJSContext(JSContext * *aSafeJSContext)
 {
-    XPCPerThreadData *data = XPCPerThreadData::GetData(NULL);
+    NS_ASSERTION(aSafeJSContext, "loser!");
+
+    XPCPerThreadData* data = XPCPerThreadData::GetData(nsnull);
 
     if (!data) {
-        return NULL;
+        *aSafeJSContext = nsnull;
+        return NS_ERROR_FAILURE;
     }
 
-    return data->GetJSContextStack()->GetSafeJSContext();
+    *aSafeJSContext = data->GetJSContextStack()->GetSafeJSContext();
+    return *aSafeJSContext ? NS_OK : NS_ERROR_FAILURE;
 }
 
 nsIPrincipal*
