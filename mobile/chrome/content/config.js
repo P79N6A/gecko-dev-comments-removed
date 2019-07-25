@@ -217,7 +217,7 @@ var ViewConfig = {
     
     
     let item = shouldUpdateEditor ? this._editor.nextSibling
-                                  : this._container.childNodes[aIndex + 1]
+                                  : this._container.childNodes[aIndex + 1];
     if (!item) 
       return;
 
@@ -352,7 +352,7 @@ var Utils = {
     let low = 0, middle, element;
 
     while (low <= high) {
-      middle = parseInt((low + high) / 2)
+      middle = parseInt((low + high) / 2);
       element = prefs[middle];
 
       if (element.name > aPrefName)

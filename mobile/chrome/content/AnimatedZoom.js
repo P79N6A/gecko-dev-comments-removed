@@ -104,7 +104,7 @@ AnimatedZoom.prototype._createCanvas = function(width, height) {
   canvas.height = height;
   canvas.mozOpaque = true;
   return canvas;
-}
+};
 
 
 AnimatedZoom.prototype.updateTo = function(nextRect) {
@@ -146,7 +146,7 @@ AnimatedZoom.prototype.updateTo = function(nextRect) {
   }
 
   ctx.restore();
-}
+};
 
 
 AnimatedZoom.prototype.animateTo = function(aZoomRect) {
@@ -165,7 +165,7 @@ AnimatedZoom.prototype.animateTo = function(aZoomRect) {
   
   this.lastTime = 0;
   return true;
-}
+};
 
 
 AnimatedZoom.prototype._callback = function() {
@@ -192,7 +192,7 @@ AnimatedZoom.prototype._callback = function() {
     this.finish();
     throw e;
   }
-}
+};
 
 
 AnimatedZoom.prototype.finish = function() {
@@ -211,5 +211,5 @@ AnimatedZoom.prototype.finish = function() {
     }
     this.snapshot = null;
   }
-}
+};
 

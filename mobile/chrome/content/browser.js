@@ -1169,7 +1169,7 @@ var Browser = {
   zoomToPoint: function zoomToPoint(cX, cY, aRect) {
     let bv = this._browserView;
     if (!bv.allowZoom)
-      return;
+      return null;
 
     let zoomRect = null;
     if (aRect)
@@ -1539,7 +1539,7 @@ const BrowserSearch = {
       button.engine = engine;
     }
   }
-}
+};
 
 
 
@@ -2679,7 +2679,7 @@ var ImagePreloader = {
       image.src = "chrome://browser/skin/images/" + images[i] + size + ".png";
     }
   }
-}
+};
 
 
 
@@ -2708,7 +2708,7 @@ function rendererFactory(aBrowser, aCanvas) {
     };
     wrapper.checkBrowser = function(browser) {
       return !browser.contentWindow;
-    }
+    };
     wrapper.drawContent = function(callback) {
       callback(ctx, draw);
     };
