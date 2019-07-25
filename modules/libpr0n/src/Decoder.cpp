@@ -90,11 +90,11 @@ void
 Decoder::Write(const char* aBuffer, PRUint32 aCount)
 {
   
-  NS_ABORT_IF_FALSE(!IsDecoderError(),
+  NS_ABORT_IF_FALSE(!HasDecoderError(),
                     "Not allowed to make more decoder calls after error!");
 
   
-  if (IsDataError())
+  if (HasDataError())
     return;
 
   
@@ -105,11 +105,11 @@ void
 Decoder::Finish()
 {
   
-  if (!IsError())
+  if (!HasError())
     FinishInternal();
 
   
-  if (mInFrame && !IsDecoderError())
+  if (mInFrame && !HasDecoderError())
     PostFrameStop();
 
   
@@ -118,14 +118,14 @@ Decoder::Finish()
 
     
     nsCOMPtr<nsIConsoleService> aConsoleService = do_GetService("@mozilla.org/consoleservice;1");
-    if (aConsoleService && !IsDecoderError()) {
+    if (aConsoleService && !HasDecoderError()) {
       nsAutoString msg(NS_LITERAL_STRING("Image corrupt or truncated: ") +
                        NS_ConvertASCIItoUTF16(mImage->GetURIString()));
       aConsoleService->LogStringMessage(msg.get());
     }
 
     
-    bool salvage = !IsDecoderError() && mImage->GetNumFrames();
+    bool salvage = !HasDecoderError() && mImage->GetNumFrames();
 
     
     if (salvage)
@@ -142,7 +142,7 @@ Decoder::Finish()
 void
 Decoder::FlushInvalidations()
 {
-  NS_ABORT_IF_FALSE(!IsDecoderError(),
+  NS_ABORT_IF_FALSE(!HasDecoderError(),
                     "Not allowed to make more decoder calls after error!");
 
   

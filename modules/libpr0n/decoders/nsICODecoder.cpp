@@ -104,7 +104,7 @@ void
 nsICODecoder::FinishInternal()
 {
   
-  NS_ABORT_IF_FALSE(!IsError(), "Shouldn't call FinishInternal after error!");
+  NS_ABORT_IF_FALSE(!HasError(), "Shouldn't call FinishInternal after error!");
 
   
   NS_ABORT_IF_FALSE(GetFrameCount() <= 1, "Multiple ICO frames?");
@@ -124,7 +124,7 @@ nsICODecoder::FinishInternal()
 void
 nsICODecoder::WriteInternal(const char* aBuffer, PRUint32 aCount)
 {
-  NS_ABORT_IF_FALSE(!IsError(), "Shouldn't call WriteInternal after error!");
+  NS_ABORT_IF_FALSE(!HasError(), "Shouldn't call WriteInternal after error!");
 
   if (!aCount) 
     return;

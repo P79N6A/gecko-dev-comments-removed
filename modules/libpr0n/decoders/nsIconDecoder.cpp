@@ -67,7 +67,7 @@ nsIconDecoder::~nsIconDecoder()
 void
 nsIconDecoder::WriteInternal(const char *aBuffer, PRUint32 aCount)
 {
-  NS_ABORT_IF_FALSE(!IsError(), "Shouldn't call WriteInternal after error!");
+  NS_ABORT_IF_FALSE(!HasError(), "Shouldn't call WriteInternal after error!");
 
   
   
