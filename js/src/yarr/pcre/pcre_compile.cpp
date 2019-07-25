@@ -2033,7 +2033,7 @@ static int calculateCompiledPatternLength(const UChar* pattern, int patternLengt
         return -1;
     }
 
-    int length = 3 + LINK_SIZE;      
+    int length = BRA_LEN;      
     int branch_extra = 0;
     int lastitemlength = 0;
     unsigned brastackptr = 0;
@@ -2351,7 +2351,7 @@ static int calculateCompiledPatternLength(const UChar* pattern, int patternLengt
                 
             case '(': {
                 int branch_newextra = 0;
-                int bracket_length = 3 + LINK_SIZE;
+                int bracket_length = BRA_LEN;
                 bool capturing = false;
                 
                 
@@ -2379,7 +2379,7 @@ static int calculateCompiledPatternLength(const UChar* pattern, int patternLengt
                             return -1;
                     }
                 } else
-                    capturing = 1;
+                    capturing = true;
                 
                 
 
@@ -2417,7 +2417,7 @@ static int calculateCompiledPatternLength(const UChar* pattern, int patternLengt
 
             case ')': {
                 int duplength;
-                length += 1 + LINK_SIZE;
+                length += KET_LEN;
                 if (brastackptr > 0) {
                     duplength = length - brastack[--brastackptr];
                     branch_extra = bralenstack[brastackptr];
@@ -2458,7 +2458,7 @@ static int calculateCompiledPatternLength(const UChar* pattern, int patternLengt
                 if (minRepeats == 0) {
                     length++;
                     if (maxRepeats > 0) {
-                        repeatsLength = multiplyWithOverflowCheck(maxRepeats - 1, duplength + BRA_LEN + KET_LEN);
+                        repeatsLength = multiplyWithOverflowCheck(maxRepeats - 1, duplength + BRA_LEN + KET_LEN + OPCODE_LEN);
                         if (repeatsLength < 0) {
                             errorcode = ERR16;
                             return -1;
@@ -2529,7 +2529,7 @@ static int calculateCompiledPatternLength(const UChar* pattern, int patternLengt
         }
     }
     
-    length += 2 + LINK_SIZE;    
+    length += KET_LEN + OPCODE_LEN;    
 
     cd.numCapturingBrackets = bracount;
     return length;
