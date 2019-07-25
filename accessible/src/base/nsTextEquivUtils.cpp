@@ -416,7 +416,7 @@ nsTextEquivUtils::IsWhitespace(PRUnichar aChar)
 
 PRUint32 nsTextEquivUtils::gRoleToNameRulesMap[] =
 {
-  eNoRule,           
+  eFromSubtreeIfRec, 
   eNoRule,           
   eNoRule,           
   eNoRule,           
