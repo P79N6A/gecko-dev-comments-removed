@@ -82,6 +82,7 @@ public:
     NS_IMETHOD SetWWWCredentials(const nsACString & aCredentials);
     NS_IMETHOD OnAuthAvailable();
     NS_IMETHOD OnAuthCancelled(bool userCancel);
+    NS_IMETHOD GetAsciiHostForAuth(nsACString &aHost);
     
     
     

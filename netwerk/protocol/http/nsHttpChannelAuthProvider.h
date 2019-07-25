@@ -16,6 +16,7 @@
 #include "nsIURI.h"
 #include "nsHttpAuthCache.h"
 #include "nsProxyInfo.h"
+#include "nsIDNSListener.h"
 
 class nsIHttpAuthenticator;
 
@@ -56,6 +57,9 @@ private:
                               nsIHttpAuthenticator **auth);
     void     ParseRealm(const char *challenge, nsACString &realm);
     void     GetIdentityFromURI(PRUint32 authFlags, nsHttpAuthIdentity&);
+    bool     AuthModuleRequiresCanonicalName(nsISupports *state);
+    nsresult ResolveHost();
+
     
 
 
@@ -105,12 +109,16 @@ private:
 
     nsresult ProcessSTSHeader();
 
+    void SetDNSQuery(nsICancelable *aQuery) { mDNSQuery = aQuery; }
+    void SetCanonicalizedHost(nsACString &aHost) { mCanonicalizedHost = aHost; }
+
 private:
     nsIHttpAuthenticableChannel      *mAuthChannel;  
 
     nsCOMPtr<nsIURI>                  mURI;
     nsCOMPtr<nsProxyInfo>             mProxyInfo;
     nsCString                         mHost;
+    nsCString                         mCanonicalizedHost;
     PRInt32                           mPort;
     bool                              mUsingSSL;
 
@@ -140,6 +148,22 @@ private:
     PRUint32                          mTriedProxyAuth           : 1;
     PRUint32                          mTriedHostAuth            : 1;
     PRUint32                          mSuppressDefensiveAuth    : 1;
+    PRUint32                          mResolvedHost             : 1;
+
+    
+    class DNSCallback : public nsIDNSListener
+    {
+        NS_DECL_ISUPPORTS
+        NS_DECL_NSIDNSLISTENER
+
+        DNSCallback(nsHttpChannelAuthProvider *authProvider)
+            : mAuthProvider(authProvider)
+        { }
+
+    private:
+        nsRefPtr<nsHttpChannelAuthProvider> mAuthProvider;
+    };
+    nsCOMPtr<nsICancelable>          mDNSQuery;
 };
 
 #endif 
