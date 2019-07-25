@@ -49,6 +49,30 @@
 using namespace js;
 using namespace js::ion;
 
+class DeferredJumpTable : public DeferredData
+{
+    LTableSwitch *lswitch;
+
+  public:
+    DeferredJumpTable(LTableSwitch *lswitch)
+      : lswitch(lswitch)
+    { }
+    
+    void copy(IonCode *code, uint8 *buffer) const {
+        void **jumpData = (void **)buffer;
+
+        
+        for (uint j = 0; j < lswitch->mir()->numCases(); j++) { 
+            LBlock *caseblock = lswitch->mir()->getCase(j)->lir();
+            Label *caseheader = caseblock->label();
+
+            uint32 offset = caseheader->offset();
+            *jumpData = (void *)(code->raw() + offset);
+            jumpData++;
+        }
+    }
+};
+
 CodeGeneratorX86Shared::CodeGeneratorX86Shared(MIRGenerator *gen, LIRGraph &graph)
   : CodeGeneratorShared(gen, graph),
     deoptLabel_(NULL)
@@ -487,34 +511,19 @@ CodeGeneratorX86Shared::visitTableSwitch(LTableSwitch *ins)
     int32 cases = mir->numCases();
     masm.cmpl(ToOperand(index), Imm32(cases));
     masm.j(AssemblerX86Shared::AboveOrEqual, defaultcase->label());
- 
+
     
-    
-    CodeLabel *label = new CodeLabel();
-    if (!masm.addCodeLabel(label))
+    DeferredJumpTable *d = new DeferredJumpTable(ins);
+    if (!masm.addDeferredData(d, (1 << ScalePointer) * cases))
         return false;
-  
+   
     
     LDefinition *base = ins->getTemp(1);
-    masm.mov(label->dest(), ToRegister(base));
-    Operand pointer = Operand(ToRegister(base), ToRegister(index), TimesEight);
-    masm.lea(pointer, ToRegister(base));
+    masm.mov(d->label(), ToRegister(base));
+    Operand pointer = Operand(ToRegister(base), ToRegister(index), ScalePointer);
 
     
-    masm.jmp(ToOperand(base));
-
-    
-    
-    
-    masm.align(1 << TimesFour);
-    masm.bind(label->src());
-
-    for (uint j=0; j<ins->mir()->numCases(); j++) { 
-        LBlock *caseblock = ins->mir()->getCase(j)->lir();
-
-        masm.jmp(caseblock->label());
-        masm.align(1 << TimesFour);
-    }
+    masm.jmp(pointer);
 
     return true;
 }
