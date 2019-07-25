@@ -43,6 +43,9 @@ const Cu = Components.utils;
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
+
+const PAYLOAD_VERSION = 1;
+
 const PREF_SERVER = "toolkit.telemetry.server";
 const PREF_ENABLED = "toolkit.telemetry.enabled";
 
@@ -114,20 +117,62 @@ function generateUUID() {
 
 
 
+
+
+
+
+
+
 function getMetadata(reason) {
-  let si = Cc["@mozilla.org/toolkit/app-startup;1"].
-           getService(Ci.nsIAppStartup).getStartupInfo();
   let ai = Services.appinfo;
   let ret = {
-    uptime: (new Date() - si.process),
     reason: reason,
     OS: ai.OS,
-    XPCOMABI: ai.XPCOMABI,
-    ID: ai.ID,
-    version: ai.version,
-    name: ai.name,
+    appID: ai.ID,
+    appVersion: ai.version,
+    appName: ai.name,
     appBuildID: ai.appBuildID,
     platformBuildID: ai.platformBuildID,
+  };
+
+  
+  let sysInfo = Cc["@mozilla.org/system-info;1"].getService(Ci.nsIPropertyBag2);
+  let fields = ["cpucount", "memsize", "arch", "version", "device", "manufacturer", "hardware"];
+  for each (let field in fields) {
+    let value;
+    try {
+      value = sysInfo.getProperty(field);
+    } catch (e) {
+      continue
+    }
+    if (field == "memsize") {
+      
+      
+      value = Math.round(value / 1024 / 1024)
+    }
+    ret[field] = value
+  }
+  return ret;
+}
+
+
+
+
+
+
+
+function getSimpleMeasurements() {
+  let si = Cc["@mozilla.org/toolkit/app-startup;1"].
+           getService(Ci.nsIAppStartup).getStartupInfo();
+
+  var ret = {
+    
+    uptime: Math.round((new Date() - si.process) / 60000)
+  }
+  for each (let field in ["main", "firstPaint", "sessionRestored"]) {
+    if (!(field in si))
+      continue;
+    ret[field] = si[field] - si.process
   }
   return ret;
 }
@@ -180,7 +225,9 @@ TelemetryPing.prototype = {
     this.gatherMemory();
     let nativeJSON = Cc["@mozilla.org/dom/json;1"].createInstance(Ci.nsIJSON);
     let payload = {
+      ver: PAYLOAD_VERSION,
       info: getMetadata(reason),
+      simpleMeasurements: getSimpleMeasurements(),
       histograms: getHistograms()
     };
     let isTestPing = (reason == "test-ping");
