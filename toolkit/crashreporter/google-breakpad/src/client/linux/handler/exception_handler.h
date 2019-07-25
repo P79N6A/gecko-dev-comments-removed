@@ -34,6 +34,7 @@
 #include <string>
 
 #include <signal.h>
+#include <stdio.h>
 
 #include "client/linux/crash_generation/crash_generation_client.h"
 #include "processor/scoped_ptr.h"
@@ -41,6 +42,8 @@
 struct sigaction;
 
 namespace google_breakpad {
+
+class ExceptionHandler;
 
 
 
@@ -153,9 +156,37 @@ class ExceptionHandler {
 
   
   
+  bool WriteMinidump(bool write_exception_stream);
+
+  
+  
   static bool WriteMinidump(const std::string &dump_path,
                             MinidumpCallback callback,
                             void *callback_context);
+
+  
+  
+  static bool WriteMinidump(const std::string &dump_path,
+                            bool write_exception_stream,
+                            MinidumpCallback callback,
+                            void* callback_context);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  static bool WriteMinidumpForChild(pid_t child,
+                                    pid_t child_blamed_thread,
+                                    const std::string &dump_path,
+                                    MinidumpCallback callback,
+                                    void *callback_context);
 
   
   
@@ -163,7 +194,10 @@ class ExceptionHandler {
     siginfo_t siginfo;
     pid_t tid;  
     struct ucontext context;
+#if !defined(__ARM_EABI__)
+    
     struct _libc_fpstate float_state;
+#endif
   };
 
   
@@ -178,6 +212,8 @@ class ExceptionHandler {
   void UninstallHandlers();
   void PreresolveSymbols();
   bool GenerateDump(CrashContext *context);
+  void SendContinueSignalToChild();
+  void WaitForContinueSignal();
 
   void UpdateNextID();
   static void SignalHandler(int sig, siginfo_t* info, void* uc);
@@ -217,6 +253,13 @@ class ExceptionHandler {
 
   
   std::vector<std::pair<int, struct sigaction *> > old_handlers_;
+
+  
+  
+  
+  
+  
+  int fdes[2];
 };
 
 }  
