@@ -44,7 +44,7 @@
 #ifndef mozilla_dom_Link_h__
 #define mozilla_dom_Link_h__
 
-#include "nsIContent.h"
+#include "mozilla/dom/Element.h"
 #include "mozilla/IHistory.h"
 
 namespace mozilla {
@@ -60,7 +60,11 @@ public:
   NS_DECLARE_STATIC_IID_ACCESSOR(MOZILLA_DOM_LINK_IMPLEMENTATION_IID)
 
   static const nsLinkState defaultState = eLinkState_Unknown;
-  Link();
+
+  
+
+
+  Link(Element* aElement);
   nsLinkState GetLinkState() const;
   virtual void SetLinkState(nsLinkState aState);
 
@@ -127,12 +131,7 @@ private:
 
   bool mRegistered;
 
-  
-
-
-
-  nsIContent *Content();
-  nsIContent *mContent;
+  Element * const mElement;
 
   
   
