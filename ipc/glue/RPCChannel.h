@@ -295,7 +295,7 @@ private:
 
     
     
-    void DumpRPCStack(FILE* outfile=NULL, const char* const pfx="") const;
+    void DumpRPCStack(const char* const pfx="") const;
 
     
     
