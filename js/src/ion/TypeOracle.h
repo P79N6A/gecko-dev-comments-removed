@@ -61,7 +61,8 @@ enum MIRType
     MIRType_Object,
     MIRType_Value,
     MIRType_Any,        
-    MIRType_None        
+    MIRType_None,       
+    MIRType_Slots       
 };
 
 class TypeOracle
