@@ -136,6 +136,11 @@ var SidebarUtils = {
   },
 
   setMouseoverURL: function SU_setMouseoverURL(aURL) {
-    window.top.XULBrowserWindow.setOverLink(aURL, null);
+    
+    
+    
+    if (top.XULBrowserWindow) {
+      top.XULBrowserWindow.setOverLink(aURL, null);
+    }
   }
 };
