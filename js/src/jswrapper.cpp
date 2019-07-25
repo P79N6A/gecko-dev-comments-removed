@@ -399,7 +399,7 @@ ForceFrame::enter()
     JSObject *scopeChain = target->getGlobal();
     JS_ASSERT(scopeChain->isNative());
 
-    return context->stack.pushDummyFrame(context, *scopeChain, frame);
+    return context->stack.pushDummyFrame(context, REPORT_ERROR, *scopeChain, frame);
 }
 
 AutoCompartment::AutoCompartment(JSContext *cx, JSObject *target)
@@ -428,8 +428,21 @@ AutoCompartment::enter()
         JS_ASSERT(scopeChain->isNative());
 
         frame.construct();
-        if (!context->stack.pushDummyFrame(context, *scopeChain, &frame.ref()))
+
+        
+
+
+
+
+
+
+
+        context->compartment = destination;
+        if (!context->stack.pushDummyFrame(context, DONT_REPORT_ERROR, *scopeChain, &frame.ref())) {
+            context->compartment = origin;
+            js_ReportOverRecursed(context);
             return false;
+        }
 
         if (context->isExceptionPending())
             context->wrapPendingException();

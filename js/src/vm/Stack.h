@@ -44,7 +44,6 @@
 #include "jsfun.h"
 
 struct JSContext;
-struct JSCompartment;
 
 namespace js {
 
@@ -1331,14 +1330,9 @@ class StackSpace
     friend class StackFrame;
 
     inline bool ensureSpace(JSContext *cx, MaybeReportError report,
-                            Value *from, ptrdiff_t nvals,
-                            JSCompartment *dest) const;
-    inline bool ensureSpace(JSContext *cx, MaybeReportError report,
                             Value *from, ptrdiff_t nvals) const;
     JS_FRIEND_API(bool) ensureSpaceSlow(JSContext *cx, MaybeReportError report,
-                                        Value *from, ptrdiff_t nvals,
-                                        JSCompartment *dest) const;
-
+                                        Value *from, ptrdiff_t nvals) const;
     StackSegment &findContainingSegment(const StackFrame *target) const;
 
   public:
@@ -1427,9 +1421,6 @@ class ContextStack
     StackSegment *pushSegment(JSContext *cx);
     enum MaybeExtend { CAN_EXTEND = true, CANT_EXTEND = false };
     Value *ensureOnTop(JSContext *cx, MaybeReportError report, uintN nvars,
-                       MaybeExtend extend, bool *pushedSeg,
-                       JSCompartment *dest);
-    Value *ensureOnTop(JSContext *cx, MaybeReportError report, uintN nvars,
                        MaybeExtend extend, bool *pushedSeg);
 
     inline StackFrame *
@@ -1512,15 +1503,8 @@ class ContextStack
     bool pushGeneratorFrame(JSContext *cx, JSGenerator *gen, GeneratorFrameGuard *gfg);
 
     
-
-
-
-
-
-
-
-
-    bool pushDummyFrame(JSContext *cx, JSObject &scopeChain, DummyFrameGuard *dfg);
+    bool pushDummyFrame(JSContext *cx, MaybeReportError report, JSObject &scopeChain,
+                        DummyFrameGuard *dfg);
 
     
 
