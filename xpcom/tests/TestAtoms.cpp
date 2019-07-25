@@ -273,8 +273,13 @@ tests[] =
     { "test_buffersharing", test_buffersharing },
     { "test_null", test_null },
     { "test_invalid", test_invalid },
+
+
+
+#if 0
     { "test_atomtable", test_atomtable },
     { "test_permanent", test_permanent },
+#endif
     { nsnull, nsnull }
   };
 
