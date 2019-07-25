@@ -641,15 +641,14 @@ SessionStoreService.prototype = {
         if (quitting) {
           
           
-          
-          
-          
           if ("_stateBackup" in this) {
             var oState = this._stateBackup;
             oState.session = { state: STATE_STOPPED_STR };
 
             this._saveStateObject(oState);
           }
+          
+          this._prefBranch.setBoolPref("sessionstore.resume_session_once", true);
         }
         else
           this._inPrivateBrowsing = false;
@@ -1674,9 +1673,13 @@ SessionStoreService.prototype = {
     }
     else if (history && history.count > 0) {
       try {
+        
+        
+        let bfCacheEntryMap = {'max': 0};
         for (var j = 0; j < history.count; j++) {
           let entry = this._serializeHistoryEntry(history.getEntryAtIndex(j, false),
-                                                  aFullData, aTab.pinned);
+                                                  aFullData, aTab.pinned,
+                                                  bfCacheEntryMap);
           tabData.entries.push(entry);
         }
         
@@ -1767,8 +1770,12 @@ SessionStoreService.prototype = {
 
 
 
+
+
+
   _serializeHistoryEntry:
-    function sss_serializeHistoryEntry(aEntry, aFullData, aIsPinned) {
+    function sss_serializeHistoryEntry(aEntry, aFullData,
+                                       aIsPinned, aBFCacheEntryMap) {
     var entry = { url: aEntry.URI.spec };
 
     try {
@@ -1859,8 +1866,14 @@ SessionStoreService.prototype = {
       catch (ex) { debug(ex); }
     }
 
-    if (aEntry.docIdentifier) {
-      entry.docIdentifier = aEntry.docIdentifier;
+    if (aBFCacheEntryMap[aEntry.BFCacheEntry]) {
+      entry.docIdentifier = aBFCacheEntryMap[aEntry.BFCacheEntry];
+    }
+    else {
+      let id = aBFCacheEntryMap['max'] + 1;
+      entry.docIdentifier = id;
+      aBFCacheEntryMap['max'] = id;
+      aBFCacheEntryMap[aEntry.BFCacheEntry] = id;
     }
 
     if (aEntry.stateData != null) {
@@ -1878,7 +1891,7 @@ SessionStoreService.prototype = {
         var child = aEntry.GetChildAt(i);
         if (child) {
           entry.children.push(this._serializeHistoryEntry(child, aFullData,
-                                                          aIsPinned));
+                                                          aIsPinned, aBFCacheEntryMap));
         }
         else { 
           entry.children.push({ url: "about:blank" });
@@ -1913,15 +1926,7 @@ SessionStoreService.prototype = {
     let hasContent = false;
 
     for (let i = 0; i < aHistory.count; i++) {
-      let uri;
-      try {
-        uri = aHistory.getEntryAtIndex(i, false).URI;
-      }
-      catch (ex) {
-        
-        
-        continue;
-      }
+      let uri = aHistory.getEntryAtIndex(i, false).URI;
       
       let domain = uri.spec;
       try {
@@ -2969,7 +2974,6 @@ SessionStoreService.prototype = {
       browser.__SS_restore_data = tabData.entries[activeIndex] || {};
       browser.__SS_restore_pageStyle = tabData.pageStyle || "";
       browser.__SS_restore_tab = aTab;
-      browser.__SS_restore_docIdentifier = curSHEntry.docIdentifier;
 
       didStartLoad = true;
       try {
@@ -3126,20 +3130,12 @@ SessionStoreService.prototype = {
       
       
       
-      
-      
-      
-      
-      
-      
-      
-      let ident = aDocIdentMap[aEntry.docIdentifier];
-      if (!ident) {
-        shEntry.setUniqueDocIdentifier();
-        aDocIdentMap[aEntry.docIdentifier] = shEntry.docIdentifier;
+      let matchingEntry = aDocIdentMap[aEntry.docIdentifier];
+      if (!matchingEntry) {
+        aDocIdentMap[aEntry.docIdentifier] = shEntry;
       }
       else {
-        shEntry.docIdentifier = ident;
+        shEntry.adoptBFCacheEntry(matchingEntry);
       }
     }
 
@@ -3275,19 +3271,12 @@ SessionStoreService.prototype = {
       aBrowser.markupDocumentViewer.authorStyleDisabled = selectedPageStyle == "_nostyle";
     }
 
-    if (aBrowser.__SS_restore_docIdentifier) {
-      let sh = aBrowser.webNavigation.sessionHistory;
-      sh.getEntryAtIndex(sh.index, false).QueryInterface(Ci.nsISHEntry).
-         docIdentifier = aBrowser.__SS_restore_docIdentifier;
-    }
-
     
     this._sendTabRestoredNotification(aBrowser.__SS_restore_tab);
 
     delete aBrowser.__SS_restore_data;
     delete aBrowser.__SS_restore_pageStyle;
     delete aBrowser.__SS_restore_tab;
-    delete aBrowser.__SS_restore_docIdentifier;
   },
 
   
