@@ -601,7 +601,7 @@ png_set_mem_fn(png_structp png_ptr, png_voidp mem_ptr, png_malloc_ptr
 
 
 png_voidp PNGAPI
-png_get_mem_ptr(png_structp png_ptr)
+png_get_mem_ptr(png_const_structp png_ptr)
 {
    if (png_ptr == NULL)
       return (NULL);

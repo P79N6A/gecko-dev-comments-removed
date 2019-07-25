@@ -340,6 +340,19 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef PNG_H
 #define PNG_H
 
@@ -350,9 +363,9 @@
 
 
 
-#define PNG_LIBPNG_VER_STRING "1.4.3"
+#define PNG_LIBPNG_VER_STRING "1.4.7"
 #define PNG_HEADER_VERSION_STRING \
-   " libpng version 1.4.3 - June 26, 2010\n"
+   " libpng version 1.4.7 - April 10, 2011\n"
 
 #define PNG_LIBPNG_VER_SONUM   14
 #define PNG_LIBPNG_VER_DLLNUM  14
@@ -360,7 +373,7 @@
 
 #define PNG_LIBPNG_VER_MAJOR   1
 #define PNG_LIBPNG_VER_MINOR   4
-#define PNG_LIBPNG_VER_RELEASE 3
+#define PNG_LIBPNG_VER_RELEASE 7
 
 
 
@@ -390,7 +403,7 @@
 
 
 
-#define PNG_LIBPNG_VER 10403 /* 1.4.3 */
+#define PNG_LIBPNG_VER 10407 /* 1.4.7 */
 
 #ifndef PNG_VERSION_INFO_ONLY
 
@@ -910,6 +923,7 @@ defined(PNG_READ_BACKGROUND_SUPPORTED)
 } png_info;
 
 typedef png_info FAR * png_infop;
+typedef PNG_CONST png_info FAR * png_const_infop;
 typedef png_info FAR * FAR * png_infopp;
 
 
@@ -1034,6 +1048,7 @@ typedef png_row_info FAR * FAR * png_row_infopp;
 
 typedef struct png_struct_def png_struct;
 typedef png_struct FAR * png_structp;
+typedef PNG_CONST png_struct FAR * png_const_structp;
 
 typedef void (PNGAPI *png_error_ptr) PNGARG((png_structp, png_const_charp));
 typedef void (PNGAPI *png_rw_ptr) PNGARG((png_structp, png_bytep, png_size_t));
@@ -1051,7 +1066,7 @@ typedef void (PNGAPI *png_progressive_row_ptr) PNGARG((png_structp, png_bytep,
    png_uint_32, int));
 
 #ifdef PNG_APNG_SUPPORTED
-typedef void (PNGAPI *png_progressive_frame_ptr) PNGARG((png_structp, 
+typedef void (PNGAPI *png_progressive_frame_ptr) PNGARG((png_structp,
    png_uint_32));
 #endif
 #endif
@@ -1530,7 +1545,7 @@ struct png_struct_def
 
 
 
-typedef png_structp version_1_4_3;
+typedef png_structp version_1_4_7;
 
 typedef png_struct FAR * FAR * png_structpp;
 
@@ -1541,12 +1556,12 @@ typedef png_struct FAR * FAR * png_structpp;
 
 
 
-extern PNG_EXPORT(png_uint_32,png_access_version_number) PNGARG((void));
+PNG_EXPORT(png_uint_32,png_access_version_number) PNGARG((void));
 
 
 
 
-extern PNG_EXPORT(void,png_set_sig_bytes) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_sig_bytes) PNGARG((png_structp png_ptr,
    int num_bytes));
 
 
@@ -1554,7 +1569,7 @@ extern PNG_EXPORT(void,png_set_sig_bytes) PNGARG((png_structp png_ptr,
 
 
 
-extern PNG_EXPORT(int,png_sig_cmp) PNGARG((png_bytep sig, png_size_t start,
+PNG_EXPORT(int,png_sig_cmp) PNGARG((png_bytep sig, png_size_t start,
    png_size_t num_to_check));
 
 
@@ -1563,19 +1578,19 @@ extern PNG_EXPORT(int,png_sig_cmp) PNGARG((png_bytep sig, png_size_t start,
 #define png_check_sig(sig,n) !png_sig_cmp((sig), 0, (n))
 
 
-extern PNG_EXPORT(png_structp,png_create_read_struct)
+PNG_EXPORT(png_structp,png_create_read_struct)
    PNGARG((png_const_charp user_png_ver, png_voidp error_ptr,
    png_error_ptr error_fn, png_error_ptr warn_fn)) PNG_ALLOCATED;
 
 
-extern PNG_EXPORT(png_structp,png_create_write_struct)
+PNG_EXPORT(png_structp,png_create_write_struct)
    PNGARG((png_const_charp user_png_ver, png_voidp error_ptr,
    png_error_ptr error_fn, png_error_ptr warn_fn)) PNG_ALLOCATED;
 
-extern PNG_EXPORT(png_size_t,png_get_compression_buffer_size)
-   PNGARG((png_structp png_ptr));
+PNG_EXPORT(png_size_t,png_get_compression_buffer_size)
+   PNGARG((png_const_structp png_ptr));
 
-extern PNG_EXPORT(void,png_set_compression_buffer_size)
+PNG_EXPORT(void,png_set_compression_buffer_size)
    PNGARG((png_structp png_ptr, png_size_t size));
 
 
@@ -1589,7 +1604,7 @@ extern PNG_EXPORT(void,png_set_compression_buffer_size)
 
 
 
-extern PNG_EXPORT(jmp_buf*, png_set_longjmp_fn)
+PNG_EXPORT(jmp_buf*, png_set_longjmp_fn)
    PNGARG((png_structp png_ptr, png_longjmp_ptr longjmp_fn, size_t
        jmp_buf_size));
 #  define png_jmpbuf(png_ptr) \
@@ -1601,170 +1616,170 @@ extern PNG_EXPORT(jmp_buf*, png_set_longjmp_fn)
 
 #ifdef PNG_READ_SUPPORTED
 
-extern PNG_EXPORT(int,png_reset_zstream) PNGARG((png_structp png_ptr));
+PNG_EXPORT(int,png_reset_zstream) PNGARG((png_structp png_ptr));
 #endif
 
 
 #ifdef PNG_USER_MEM_SUPPORTED
-extern PNG_EXPORT(png_structp,png_create_read_struct_2)
+PNG_EXPORT(png_structp,png_create_read_struct_2)
    PNGARG((png_const_charp user_png_ver, png_voidp error_ptr,
    png_error_ptr error_fn, png_error_ptr warn_fn, png_voidp mem_ptr,
    png_malloc_ptr malloc_fn, png_free_ptr free_fn)) PNG_ALLOCATED;
-extern PNG_EXPORT(png_structp,png_create_write_struct_2)
+PNG_EXPORT(png_structp,png_create_write_struct_2)
    PNGARG((png_const_charp user_png_ver, png_voidp error_ptr,
    png_error_ptr error_fn, png_error_ptr warn_fn, png_voidp mem_ptr,
    png_malloc_ptr malloc_fn, png_free_ptr free_fn)) PNG_ALLOCATED;
 #endif
 
 
-extern PNG_EXPORT(void,png_write_sig) PNGARG((png_structp png_ptr));
+PNG_EXPORT(void,png_write_sig) PNGARG((png_structp png_ptr));
 
 
-extern PNG_EXPORT(void,png_write_chunk) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_write_chunk) PNGARG((png_structp png_ptr,
    png_bytep chunk_name, png_bytep data, png_size_t length));
 
 
-extern PNG_EXPORT(void,png_write_chunk_start) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_write_chunk_start) PNGARG((png_structp png_ptr,
    png_bytep chunk_name, png_uint_32 length));
 
 
-extern PNG_EXPORT(void,png_write_chunk_data) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_write_chunk_data) PNGARG((png_structp png_ptr,
    png_bytep data, png_size_t length));
 
 
-extern PNG_EXPORT(void,png_write_chunk_end) PNGARG((png_structp png_ptr));
+PNG_EXPORT(void,png_write_chunk_end) PNGARG((png_structp png_ptr));
 
 
-extern PNG_EXPORT(png_infop,png_create_info_struct)
+PNG_EXPORT(png_infop,png_create_info_struct)
    PNGARG((png_structp png_ptr)) PNG_ALLOCATED;
 
-extern PNG_EXPORT(void,png_info_init_3) PNGARG((png_infopp info_ptr,
+PNG_EXPORT(void,png_info_init_3) PNGARG((png_infopp info_ptr,
     png_size_t png_info_struct_size));
 
 
-extern PNG_EXPORT(void,png_write_info_before_PLTE) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_write_info_before_PLTE) PNGARG((png_structp png_ptr,
    png_infop info_ptr));
-extern PNG_EXPORT(void,png_write_info) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_write_info) PNGARG((png_structp png_ptr,
    png_infop info_ptr));
 
 #ifdef PNG_SEQUENTIAL_READ_SUPPORTED
 
-extern PNG_EXPORT(void,png_read_info) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_read_info) PNGARG((png_structp png_ptr,
    png_infop info_ptr));
 #endif
 
 #ifdef PNG_TIME_RFC1123_SUPPORTED
-extern PNG_EXPORT(png_charp,png_convert_to_rfc1123)
+PNG_EXPORT(png_charp,png_convert_to_rfc1123)
    PNGARG((png_structp png_ptr, png_timep ptime));
 #endif
 
 #ifdef PNG_CONVERT_tIME_SUPPORTED
 
-extern PNG_EXPORT(void,png_convert_from_struct_tm) PNGARG((png_timep ptime,
+PNG_EXPORT(void,png_convert_from_struct_tm) PNGARG((png_timep ptime,
    struct tm FAR * ttime));
 
 
-extern PNG_EXPORT(void,png_convert_from_time_t) PNGARG((png_timep ptime,
+PNG_EXPORT(void,png_convert_from_time_t) PNGARG((png_timep ptime,
    time_t ttime));
 #endif 
 
 #ifdef PNG_READ_EXPAND_SUPPORTED
 
-extern PNG_EXPORT(void,png_set_expand) PNGARG((png_structp png_ptr));
-extern PNG_EXPORT(void,png_set_expand_gray_1_2_4_to_8) PNGARG((png_structp
+PNG_EXPORT(void,png_set_expand) PNGARG((png_structp png_ptr));
+PNG_EXPORT(void,png_set_expand_gray_1_2_4_to_8) PNGARG((png_structp
   png_ptr));
-extern PNG_EXPORT(void,png_set_palette_to_rgb) PNGARG((png_structp png_ptr));
-extern PNG_EXPORT(void,png_set_tRNS_to_alpha) PNGARG((png_structp png_ptr));
+PNG_EXPORT(void,png_set_palette_to_rgb) PNGARG((png_structp png_ptr));
+PNG_EXPORT(void,png_set_tRNS_to_alpha) PNGARG((png_structp png_ptr));
 #endif
 
 #if defined(PNG_READ_BGR_SUPPORTED) || defined(PNG_WRITE_BGR_SUPPORTED)
 
-extern PNG_EXPORT(void,png_set_bgr) PNGARG((png_structp png_ptr));
+PNG_EXPORT(void,png_set_bgr) PNGARG((png_structp png_ptr));
 #endif
 
 #ifdef PNG_READ_GRAY_TO_RGB_SUPPORTED
 
-extern PNG_EXPORT(void,png_set_gray_to_rgb) PNGARG((png_structp png_ptr));
+PNG_EXPORT(void,png_set_gray_to_rgb) PNGARG((png_structp png_ptr));
 #endif
 
 #ifdef PNG_READ_RGB_TO_GRAY_SUPPORTED
 
 #ifdef PNG_FLOATING_POINT_SUPPORTED
-extern PNG_EXPORT(void,png_set_rgb_to_gray) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_rgb_to_gray) PNGARG((png_structp png_ptr,
    int error_action, double red, double green ));
 #endif
-extern PNG_EXPORT(void,png_set_rgb_to_gray_fixed) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_rgb_to_gray_fixed) PNGARG((png_structp png_ptr,
    int error_action, png_fixed_point red, png_fixed_point green ));
-extern PNG_EXPORT(png_byte,png_get_rgb_to_gray_status) PNGARG((png_structp
+PNG_EXPORT(png_byte,png_get_rgb_to_gray_status) PNGARG((png_const_structp
    png_ptr));
 #endif
 
-extern PNG_EXPORT(void,png_build_grayscale_palette) PNGARG((int bit_depth,
+PNG_EXPORT(void,png_build_grayscale_palette) PNGARG((int bit_depth,
    png_colorp palette));
 
 #ifdef PNG_READ_STRIP_ALPHA_SUPPORTED
-extern PNG_EXPORT(void,png_set_strip_alpha) PNGARG((png_structp png_ptr));
+PNG_EXPORT(void,png_set_strip_alpha) PNGARG((png_structp png_ptr));
 #endif
 
 #if defined(PNG_READ_SWAP_ALPHA_SUPPORTED) || \
     defined(PNG_WRITE_SWAP_ALPHA_SUPPORTED)
-extern PNG_EXPORT(void,png_set_swap_alpha) PNGARG((png_structp png_ptr));
+PNG_EXPORT(void,png_set_swap_alpha) PNGARG((png_structp png_ptr));
 #endif
 
 #if defined(PNG_READ_INVERT_ALPHA_SUPPORTED) || \
     defined(PNG_WRITE_INVERT_ALPHA_SUPPORTED)
-extern PNG_EXPORT(void,png_set_invert_alpha) PNGARG((png_structp png_ptr));
+PNG_EXPORT(void,png_set_invert_alpha) PNGARG((png_structp png_ptr));
 #endif
 
 #if defined(PNG_READ_FILLER_SUPPORTED) || defined(PNG_WRITE_FILLER_SUPPORTED)
 
-extern PNG_EXPORT(void,png_set_filler) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_filler) PNGARG((png_structp png_ptr,
    png_uint_32 filler, int flags));
 
 #define PNG_FILLER_BEFORE 0
 #define PNG_FILLER_AFTER 1
 
-extern PNG_EXPORT(void,png_set_add_alpha) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_add_alpha) PNGARG((png_structp png_ptr,
    png_uint_32 filler, int flags));
 #endif 
 
 #if defined(PNG_READ_SWAP_SUPPORTED) || defined(PNG_WRITE_SWAP_SUPPORTED)
 
-extern PNG_EXPORT(void,png_set_swap) PNGARG((png_structp png_ptr));
+PNG_EXPORT(void,png_set_swap) PNGARG((png_structp png_ptr));
 #endif
 
 #if defined(PNG_READ_PACK_SUPPORTED) || defined(PNG_WRITE_PACK_SUPPORTED)
 
-extern PNG_EXPORT(void,png_set_packing) PNGARG((png_structp png_ptr));
+PNG_EXPORT(void,png_set_packing) PNGARG((png_structp png_ptr));
 #endif
 
 #if defined(PNG_READ_PACKSWAP_SUPPORTED) || \
     defined(PNG_WRITE_PACKSWAP_SUPPORTED)
 
-extern PNG_EXPORT(void,png_set_packswap) PNGARG((png_structp png_ptr));
+PNG_EXPORT(void,png_set_packswap) PNGARG((png_structp png_ptr));
 #endif
 
 #if defined(PNG_READ_SHIFT_SUPPORTED) || defined(PNG_WRITE_SHIFT_SUPPORTED)
 
-extern PNG_EXPORT(void,png_set_shift) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_shift) PNGARG((png_structp png_ptr,
    png_color_8p true_bits));
 #endif
 
 #if defined(PNG_READ_INTERLACING_SUPPORTED) || \
     defined(PNG_WRITE_INTERLACING_SUPPORTED)
 
-extern PNG_EXPORT(int,png_set_interlace_handling) PNGARG((png_structp png_ptr));
+PNG_EXPORT(int,png_set_interlace_handling) PNGARG((png_structp png_ptr));
 #endif
 
 #if defined(PNG_READ_INVERT_SUPPORTED) || defined(PNG_WRITE_INVERT_SUPPORTED)
 
-extern PNG_EXPORT(void,png_set_invert_mono) PNGARG((png_structp png_ptr));
+PNG_EXPORT(void,png_set_invert_mono) PNGARG((png_structp png_ptr));
 #endif
 
 #ifdef PNG_READ_BACKGROUND_SUPPORTED
 
 #ifdef PNG_FLOATING_POINT_SUPPORTED
-extern PNG_EXPORT(void,png_set_background) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_background) PNGARG((png_structp png_ptr,
    png_color_16p background_color, int background_gamma_code,
    int need_expand, double background_gamma));
 #endif
@@ -1776,14 +1791,14 @@ extern PNG_EXPORT(void,png_set_background) PNGARG((png_structp png_ptr,
 
 #ifdef PNG_READ_16_TO_8_SUPPORTED
 
-extern PNG_EXPORT(void,png_set_strip_16) PNGARG((png_structp png_ptr));
+PNG_EXPORT(void,png_set_strip_16) PNGARG((png_structp png_ptr));
 #endif
 
 #ifdef PNG_READ_QUANTIZE_SUPPORTED
 
 
 
-extern PNG_EXPORT(void,png_set_quantize) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_quantize) PNGARG((png_structp png_ptr,
    png_colorp palette, int num_palette, int maximum_colors,
    png_uint_16p histogram, int full_quantize));
 #endif
@@ -1793,7 +1808,7 @@ extern PNG_EXPORT(void,png_set_quantize) PNGARG((png_structp png_ptr,
 #ifdef PNG_READ_GAMMA_SUPPORTED
 
 #ifdef PNG_FLOATING_POINT_SUPPORTED
-extern PNG_EXPORT(void,png_set_gamma) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_gamma) PNGARG((png_structp png_ptr,
    double screen_gamma, double default_file_gamma));
 #endif
 #endif
@@ -1801,85 +1816,85 @@ extern PNG_EXPORT(void,png_set_gamma) PNGARG((png_structp png_ptr,
 
 #ifdef PNG_WRITE_FLUSH_SUPPORTED
 
-extern PNG_EXPORT(void,png_set_flush) PNGARG((png_structp png_ptr, int nrows));
+PNG_EXPORT(void,png_set_flush) PNGARG((png_structp png_ptr, int nrows));
 
-extern PNG_EXPORT(void,png_write_flush) PNGARG((png_structp png_ptr));
+PNG_EXPORT(void,png_write_flush) PNGARG((png_structp png_ptr));
 #endif
 
 
-extern PNG_EXPORT(void,png_start_read_image) PNGARG((png_structp png_ptr));
+PNG_EXPORT(void,png_start_read_image) PNGARG((png_structp png_ptr));
 
 
-extern PNG_EXPORT(void,png_read_update_info) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_read_update_info) PNGARG((png_structp png_ptr,
    png_infop info_ptr));
 
 #ifdef PNG_SEQUENTIAL_READ_SUPPORTED
 
-extern PNG_EXPORT(void,png_read_rows) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_read_rows) PNGARG((png_structp png_ptr,
    png_bytepp row, png_bytepp display_row, png_uint_32 num_rows));
 #endif
 
 #ifdef PNG_SEQUENTIAL_READ_SUPPORTED
 
-extern PNG_EXPORT(void,png_read_row) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_read_row) PNGARG((png_structp png_ptr,
    png_bytep row,
    png_bytep display_row));
 #endif
 
 #ifdef PNG_SEQUENTIAL_READ_SUPPORTED
 
-extern PNG_EXPORT(void,png_read_image) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_read_image) PNGARG((png_structp png_ptr,
    png_bytepp image));
 #endif
 
 
-extern PNG_EXPORT(void,png_write_row) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_write_row) PNGARG((png_structp png_ptr,
    png_bytep row));
 
 
-extern PNG_EXPORT(void,png_write_rows) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_write_rows) PNGARG((png_structp png_ptr,
    png_bytepp row, png_uint_32 num_rows));
 
 
-extern PNG_EXPORT(void,png_write_image) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_write_image) PNGARG((png_structp png_ptr,
    png_bytepp image));
 
 #ifdef PNG_WRITE_APNG_SUPPORTED
 extern PNG_EXPORT (void,png_write_frame_head) PNGARG((png_structp png_ptr,
    png_infop png_info, png_bytepp row_pointers,
    png_uint_32 width, png_uint_32 height,
-   png_uint_32 x_offset, png_uint_32 y_offset, 
+   png_uint_32 x_offset, png_uint_32 y_offset,
    png_uint_16 delay_num, png_uint_16 delay_den, png_byte dispose_op,
    png_byte blend_op));
 
 extern PNG_EXPORT (void,png_write_frame_tail) PNGARG((png_structp png_ptr,
    png_infop png_info));
 #endif
-   
 
-extern PNG_EXPORT(void,png_write_end) PNGARG((png_structp png_ptr,
+
+PNG_EXPORT(void,png_write_end) PNGARG((png_structp png_ptr,
    png_infop info_ptr));
 
 #ifdef PNG_SEQUENTIAL_READ_SUPPORTED
 
-extern PNG_EXPORT(void,png_read_end) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_read_end) PNGARG((png_structp png_ptr,
    png_infop info_ptr));
 #endif
 
 
-extern PNG_EXPORT(void,png_destroy_info_struct) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_destroy_info_struct) PNGARG((png_structp png_ptr,
    png_infopp info_ptr_ptr));
 
 
-extern PNG_EXPORT(void,png_destroy_read_struct) PNGARG((png_structpp
+PNG_EXPORT(void,png_destroy_read_struct) PNGARG((png_structpp
    png_ptr_ptr, png_infopp info_ptr_ptr, png_infopp end_info_ptr_ptr));
 
 
-extern PNG_EXPORT(void,png_destroy_write_struct)
+PNG_EXPORT(void,png_destroy_write_struct)
    PNGARG((png_structpp png_ptr_ptr, png_infopp info_ptr_ptr));
 
 
-extern PNG_EXPORT(void,png_set_crc_action) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_crc_action) PNGARG((png_structp png_ptr,
    int crit_action, int ancil_action));
 
 
@@ -1909,7 +1924,7 @@ extern PNG_EXPORT(void,png_set_crc_action) PNGARG((png_structp png_ptr,
 
 
 
-extern PNG_EXPORT(void,png_set_filter) PNGARG((png_structp png_ptr, int method,
+PNG_EXPORT(void,png_set_filter) PNGARG((png_structp png_ptr, int method,
    int filters));
 
 
@@ -1966,7 +1981,7 @@ extern PNG_EXPORT(void,png_set_filter) PNGARG((png_structp png_ptr, int method,
 
 
 #ifdef PNG_FLOATING_POINT_SUPPORTED
-extern PNG_EXPORT(void,png_set_filter_heuristics) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_filter_heuristics) PNGARG((png_structp png_ptr,
    int heuristic_method, int num_weights, png_doublep filter_weights,
    png_doublep filter_costs));
 #endif
@@ -1987,19 +2002,19 @@ extern PNG_EXPORT(void,png_set_filter_heuristics) PNGARG((png_structp png_ptr,
 
 
 
-extern PNG_EXPORT(void,png_set_compression_level) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_compression_level) PNGARG((png_structp png_ptr,
    int level));
 
-extern PNG_EXPORT(void,png_set_compression_mem_level)
+PNG_EXPORT(void,png_set_compression_mem_level)
    PNGARG((png_structp png_ptr, int mem_level));
 
-extern PNG_EXPORT(void,png_set_compression_strategy)
+PNG_EXPORT(void,png_set_compression_strategy)
    PNGARG((png_structp png_ptr, int strategy));
 
-extern PNG_EXPORT(void,png_set_compression_window_bits)
+PNG_EXPORT(void,png_set_compression_window_bits)
    PNGARG((png_structp png_ptr, int window_bits));
 
-extern PNG_EXPORT(void,png_set_compression_method) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_compression_method) PNGARG((png_structp png_ptr,
    int method));
 
 
@@ -2013,7 +2028,7 @@ extern PNG_EXPORT(void,png_set_compression_method) PNGARG((png_structp png_ptr,
 
 #ifdef PNG_STDIO_SUPPORTED
 
-extern PNG_EXPORT(void,png_init_io) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_init_io) PNGARG((png_structp png_ptr,
     png_FILE_p fp));
 #endif
 
@@ -2025,11 +2040,11 @@ extern PNG_EXPORT(void,png_init_io) PNGARG((png_structp png_ptr,
 
 
 
-extern PNG_EXPORT(void,png_set_error_fn) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_error_fn) PNGARG((png_structp png_ptr,
    png_voidp error_ptr, png_error_ptr error_fn, png_error_ptr warning_fn));
 
 
-extern PNG_EXPORT(png_voidp,png_get_error_ptr) PNGARG((png_structp png_ptr));
+PNG_EXPORT(png_voidp,png_get_error_ptr) PNGARG((png_const_structp png_ptr));
 
 
 
@@ -2041,54 +2056,54 @@ extern PNG_EXPORT(png_voidp,png_get_error_ptr) PNGARG((png_structp png_ptr));
 
 
 
-extern PNG_EXPORT(void,png_set_write_fn) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_write_fn) PNGARG((png_structp png_ptr,
    png_voidp io_ptr, png_rw_ptr write_data_fn, png_flush_ptr output_flush_fn));
 
 
-extern PNG_EXPORT(void,png_set_read_fn) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_read_fn) PNGARG((png_structp png_ptr,
    png_voidp io_ptr, png_rw_ptr read_data_fn));
 
 
-extern PNG_EXPORT(png_voidp,png_get_io_ptr) PNGARG((png_structp png_ptr));
+PNG_EXPORT(png_voidp,png_get_io_ptr) PNGARG((png_structp png_ptr));
 
-extern PNG_EXPORT(void,png_set_read_status_fn) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_read_status_fn) PNGARG((png_structp png_ptr,
    png_read_status_ptr read_row_fn));
 
-extern PNG_EXPORT(void,png_set_write_status_fn) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_write_status_fn) PNGARG((png_structp png_ptr,
    png_write_status_ptr write_row_fn));
 
 #ifdef PNG_USER_MEM_SUPPORTED
 
-extern PNG_EXPORT(void,png_set_mem_fn) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_mem_fn) PNGARG((png_structp png_ptr,
    png_voidp mem_ptr, png_malloc_ptr malloc_fn, png_free_ptr free_fn));
 
-extern PNG_EXPORT(png_voidp,png_get_mem_ptr) PNGARG((png_structp png_ptr));
+PNG_EXPORT(png_voidp,png_get_mem_ptr) PNGARG((png_const_structp png_ptr));
 #endif
 
 #ifdef PNG_READ_USER_TRANSFORM_SUPPORTED
-extern PNG_EXPORT(void,png_set_read_user_transform_fn) PNGARG((png_structp
+PNG_EXPORT(void,png_set_read_user_transform_fn) PNGARG((png_structp
    png_ptr, png_user_transform_ptr read_user_transform_fn));
 #endif
 
 #ifdef PNG_WRITE_USER_TRANSFORM_SUPPORTED
-extern PNG_EXPORT(void,png_set_write_user_transform_fn) PNGARG((png_structp
+PNG_EXPORT(void,png_set_write_user_transform_fn) PNGARG((png_structp
    png_ptr, png_user_transform_ptr write_user_transform_fn));
 #endif
 
 #if defined(PNG_READ_USER_TRANSFORM_SUPPORTED) || \
     defined(PNG_WRITE_USER_TRANSFORM_SUPPORTED)
-extern PNG_EXPORT(void,png_set_user_transform_info) PNGARG((png_structp
+PNG_EXPORT(void,png_set_user_transform_info) PNGARG((png_structp
    png_ptr, png_voidp user_transform_ptr, int user_transform_depth,
    int user_transform_channels));
 
-extern PNG_EXPORT(png_voidp,png_get_user_transform_ptr)
-   PNGARG((png_structp png_ptr));
+PNG_EXPORT(png_voidp,png_get_user_transform_ptr)
+   PNGARG((png_const_structp png_ptr));
 #endif
 
 #ifdef PNG_USER_CHUNKS_SUPPORTED
-extern PNG_EXPORT(void,png_set_read_user_chunk_fn) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_read_user_chunk_fn) PNGARG((png_structp png_ptr,
    png_voidp user_chunk_ptr, png_user_chunk_ptr read_user_chunk_fn));
-extern PNG_EXPORT(png_voidp,png_get_user_chunk_ptr) PNGARG((png_structp
+PNG_EXPORT(png_voidp,png_get_user_chunk_ptr) PNGARG((png_const_structp
    png_ptr));
 #endif
 
@@ -2096,50 +2111,52 @@ extern PNG_EXPORT(png_voidp,png_get_user_chunk_ptr) PNGARG((png_structp
 
 
 
-extern PNG_EXPORT(void,png_set_progressive_read_fn) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_progressive_read_fn) PNGARG((png_structp png_ptr,
    png_voidp progressive_ptr,
    png_progressive_info_ptr info_fn, png_progressive_row_ptr row_fn,
    png_progressive_end_ptr end_fn));
+
 #ifdef PNG_READ_APNG_SUPPORTED
-extern PNG_EXPORT(void,png_set_progressive_frame_fn) PNGARG((png_structp png_ptr,
+extern PNG_EXPORT(void,png_set_progressive_frame_fn) PNGARG((png_structp
+   png_ptr,
    png_progressive_frame_ptr frame_info_fn,
    png_progressive_frame_ptr frame_end_fn));
 #endif
 
 
-extern PNG_EXPORT(png_voidp,png_get_progressive_ptr)
-   PNGARG((png_structp png_ptr));
+PNG_EXPORT(png_voidp,png_get_progressive_ptr)
+   PNGARG((png_const_structp png_ptr));
 
 
-extern PNG_EXPORT(void,png_process_data) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_process_data) PNGARG((png_structp png_ptr,
    png_infop info_ptr, png_bytep buffer, png_size_t buffer_size));
 
 
 
 
-extern PNG_EXPORT(void,png_progressive_combine_row) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_progressive_combine_row) PNGARG((png_structp png_ptr,
    png_bytep old_row, png_bytep new_row));
 #endif 
 
-extern PNG_EXPORT(png_voidp,png_malloc) PNGARG((png_structp png_ptr,
+PNG_EXPORT(png_voidp,png_malloc) PNGARG((png_structp png_ptr,
    png_alloc_size_t size)) PNG_ALLOCATED;
 
-extern PNG_EXPORT(png_voidp,png_calloc) PNGARG((png_structp png_ptr,
-   png_alloc_size_t size)) PNG_ALLOCATED;
-
-
-extern PNG_EXPORT(png_voidp,png_malloc_warn) PNGARG((png_structp png_ptr,
+PNG_EXPORT(png_voidp,png_calloc) PNGARG((png_structp png_ptr,
    png_alloc_size_t size)) PNG_ALLOCATED;
 
 
-extern PNG_EXPORT(void,png_free) PNGARG((png_structp png_ptr, png_voidp ptr));
+PNG_EXPORT(png_voidp,png_malloc_warn) PNGARG((png_structp png_ptr,
+   png_alloc_size_t size)) PNG_ALLOCATED;
 
 
-extern PNG_EXPORT(void,png_free_data) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_free) PNGARG((png_structp png_ptr, png_voidp ptr));
+
+
+PNG_EXPORT(void,png_free_data) PNGARG((png_structp png_ptr,
    png_infop info_ptr, png_uint_32 free_me, int num));
 
 
-extern PNG_EXPORT(void,png_data_freer) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_data_freer) PNGARG((png_structp png_ptr,
    png_infop info_ptr, int freer, png_uint_32 mask));
 
 #define PNG_DESTROY_WILL_FREE_DATA 1
@@ -2161,45 +2178,45 @@ extern PNG_EXPORT(void,png_data_freer) PNGARG((png_structp png_ptr,
 #define PNG_FREE_MUL  0x4220 /* PNG_FREE_SPLT|PNG_FREE_TEXT|PNG_FREE_UNKN */
 
 #ifdef PNG_USER_MEM_SUPPORTED
-extern PNG_EXPORT(png_voidp,png_malloc_default) PNGARG((png_structp png_ptr,
+PNG_EXPORT(png_voidp,png_malloc_default) PNGARG((png_structp png_ptr,
    png_alloc_size_t size)) PNG_ALLOCATED;
-extern PNG_EXPORT(void,png_free_default) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_free_default) PNGARG((png_structp png_ptr,
    png_voidp ptr));
 #endif
 
 #ifndef PNG_NO_ERROR_TEXT
 
-extern PNG_EXPORT(void,png_error) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_error) PNGARG((png_structp png_ptr,
    png_const_charp error_message)) PNG_NORETURN;
 
 
-extern PNG_EXPORT(void,png_chunk_error) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_chunk_error) PNGARG((png_structp png_ptr,
    png_const_charp error_message)) PNG_NORETURN;
 
 #else
 
-extern PNG_EXPORT(void,png_err) PNGARG((png_structp png_ptr)) PNG_NORETURN;
+PNG_EXPORT(void,png_err) PNGARG((png_structp png_ptr)) PNG_NORETURN;
 #endif
 
 
-extern PNG_EXPORT(void,png_warning) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_warning) PNGARG((png_structp png_ptr,
    png_const_charp warning_message));
 
 
-extern PNG_EXPORT(void,png_chunk_warning) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_chunk_warning) PNGARG((png_structp png_ptr,
    png_const_charp warning_message));
 
 #ifdef PNG_BENIGN_ERRORS_SUPPORTED
 
 
-extern PNG_EXPORT(void,png_benign_error) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_benign_error) PNGARG((png_structp png_ptr,
    png_const_charp warning_message));
 
 
-extern PNG_EXPORT(void,png_chunk_benign_error) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_chunk_benign_error) PNGARG((png_structp png_ptr,
    png_const_charp warning_message));
 
-extern PNG_EXPORT(void,png_set_benign_errors) PNGARG((png_structp
+PNG_EXPORT(void,png_set_benign_errors) PNGARG((png_structp
    png_ptr, int allowed));
 #endif
 
@@ -2216,109 +2233,109 @@ extern PNG_EXPORT(void,png_set_benign_errors) PNGARG((png_structp
 
 
 
-extern PNG_EXPORT(png_uint_32,png_get_valid) PNGARG((png_structp png_ptr,
-png_infop info_ptr, png_uint_32 flag));
+PNG_EXPORT(png_uint_32,png_get_valid) PNGARG((png_const_structp png_ptr,
+   png_const_infop info_ptr, png_uint_32 flag));
 
 
-extern PNG_EXPORT(png_size_t,png_get_rowbytes) PNGARG((png_structp png_ptr,
-png_infop info_ptr));
+PNG_EXPORT(png_size_t,png_get_rowbytes) PNGARG((png_const_structp png_ptr,
+   png_const_infop info_ptr));
 
 #ifdef PNG_INFO_IMAGE_SUPPORTED
 
 
 
-extern PNG_EXPORT(png_bytepp,png_get_rows) PNGARG((png_structp png_ptr,
-png_infop info_ptr));
+PNG_EXPORT(png_bytepp,png_get_rows) PNGARG((png_const_structp png_ptr,
+   png_const_infop info_ptr));
 
 
 
-extern PNG_EXPORT(void,png_set_rows) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_rows) PNGARG((png_structp png_ptr,
    png_infop info_ptr, png_bytepp row_pointers));
 #endif
 
 
-extern PNG_EXPORT(png_byte,png_get_channels) PNGARG((png_structp png_ptr,
-png_infop info_ptr));
+PNG_EXPORT(png_byte,png_get_channels) PNGARG((png_const_structp png_ptr,
+   png_const_infop info_ptr));
 
 #ifdef PNG_EASY_ACCESS_SUPPORTED
 
-extern PNG_EXPORT(png_uint_32, png_get_image_width) PNGARG((png_structp
-png_ptr, png_infop info_ptr));
+PNG_EXPORT(png_uint_32, png_get_image_width) PNGARG((png_const_structp
+   png_ptr, png_const_infop info_ptr));
 
 
-extern PNG_EXPORT(png_uint_32, png_get_image_height) PNGARG((png_structp
-png_ptr, png_infop info_ptr));
+PNG_EXPORT(png_uint_32, png_get_image_height) PNGARG((png_const_structp
+   png_ptr, png_const_infop info_ptr));
 
 
-extern PNG_EXPORT(png_byte, png_get_bit_depth) PNGARG((png_structp
-png_ptr, png_infop info_ptr));
+PNG_EXPORT(png_byte, png_get_bit_depth) PNGARG((png_const_structp
+   png_ptr, png_const_infop info_ptr));
 
 
-extern PNG_EXPORT(png_byte, png_get_color_type) PNGARG((png_structp
-png_ptr, png_infop info_ptr));
+PNG_EXPORT(png_byte, png_get_color_type) PNGARG((png_const_structp
+   png_ptr, png_const_infop info_ptr));
 
 
-extern PNG_EXPORT(png_byte, png_get_filter_type) PNGARG((png_structp
-png_ptr, png_infop info_ptr));
+PNG_EXPORT(png_byte, png_get_filter_type) PNGARG((png_const_structp
+   png_ptr, png_const_infop info_ptr));
 
 
-extern PNG_EXPORT(png_byte, png_get_interlace_type) PNGARG((png_structp
-png_ptr, png_infop info_ptr));
+PNG_EXPORT(png_byte, png_get_interlace_type) PNGARG((png_const_structp
+   png_ptr, png_const_infop info_ptr));
 
 
-extern PNG_EXPORT(png_byte, png_get_compression_type) PNGARG((png_structp
-png_ptr, png_infop info_ptr));
+PNG_EXPORT(png_byte, png_get_compression_type) PNGARG((png_const_structp
+   png_ptr, png_const_infop info_ptr));
 
 
-extern PNG_EXPORT(png_uint_32, png_get_pixels_per_meter) PNGARG((png_structp
-png_ptr, png_infop info_ptr));
-extern PNG_EXPORT(png_uint_32, png_get_x_pixels_per_meter) PNGARG((png_structp
-png_ptr, png_infop info_ptr));
-extern PNG_EXPORT(png_uint_32, png_get_y_pixels_per_meter) PNGARG((png_structp
-png_ptr, png_infop info_ptr));
+PNG_EXPORT(png_uint_32, png_get_pixels_per_meter) PNGARG((png_const_structp
+   png_ptr, png_const_infop info_ptr));
+PNG_EXPORT(png_uint_32, png_get_x_pixels_per_meter) PNGARG((png_const_structp
+   png_ptr, png_const_infop info_ptr));
+PNG_EXPORT(png_uint_32, png_get_y_pixels_per_meter) PNGARG((png_const_structp
+   png_ptr, png_const_infop info_ptr));
 
 
 #ifdef PNG_FLOATING_POINT_SUPPORTED
-extern PNG_EXPORT(float, png_get_pixel_aspect_ratio) PNGARG((png_structp
-png_ptr, png_infop info_ptr));
+PNG_EXPORT(float, png_get_pixel_aspect_ratio) PNGARG((png_const_structp
+   png_ptr, png_const_infop info_ptr));
 #endif
 
 
-extern PNG_EXPORT(png_int_32, png_get_x_offset_pixels) PNGARG((png_structp
-png_ptr, png_infop info_ptr));
-extern PNG_EXPORT(png_int_32, png_get_y_offset_pixels) PNGARG((png_structp
-png_ptr, png_infop info_ptr));
-extern PNG_EXPORT(png_int_32, png_get_x_offset_microns) PNGARG((png_structp
-png_ptr, png_infop info_ptr));
-extern PNG_EXPORT(png_int_32, png_get_y_offset_microns) PNGARG((png_structp
-png_ptr, png_infop info_ptr));
+PNG_EXPORT(png_int_32, png_get_x_offset_pixels) PNGARG((png_const_structp
+   png_ptr, png_const_infop info_ptr));
+PNG_EXPORT(png_int_32, png_get_y_offset_pixels) PNGARG((png_const_structp
+   png_ptr, png_const_infop info_ptr));
+PNG_EXPORT(png_int_32, png_get_x_offset_microns) PNGARG((png_const_structp
+   png_ptr, png_const_infop info_ptr));
+PNG_EXPORT(png_int_32, png_get_y_offset_microns) PNGARG((png_const_structp
+   png_ptr, png_const_infop info_ptr));
 
 #endif 
 
 
-extern PNG_EXPORT(png_bytep,png_get_signature) PNGARG((png_structp png_ptr,
-png_infop info_ptr));
+PNG_EXPORT(png_bytep,png_get_signature) PNGARG((png_const_structp png_ptr,
+   png_infop info_ptr));
 
 #ifdef PNG_bKGD_SUPPORTED
-extern PNG_EXPORT(png_uint_32,png_get_bKGD) PNGARG((png_structp png_ptr,
+PNG_EXPORT(png_uint_32,png_get_bKGD) PNGARG((png_const_structp png_ptr,
    png_infop info_ptr, png_color_16p *background));
 #endif
 
 #ifdef PNG_bKGD_SUPPORTED
-extern PNG_EXPORT(void,png_set_bKGD) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_bKGD) PNGARG((png_structp png_ptr,
    png_infop info_ptr, png_color_16p background));
 #endif
 
 #ifdef PNG_cHRM_SUPPORTED
 #ifdef PNG_FLOATING_POINT_SUPPORTED
-extern PNG_EXPORT(png_uint_32,png_get_cHRM) PNGARG((png_structp png_ptr,
-   png_infop info_ptr, double *white_x, double *white_y, double *red_x,
+PNG_EXPORT(png_uint_32,png_get_cHRM) PNGARG((png_const_structp png_ptr,
+   png_const_infop info_ptr, double *white_x, double *white_y, double *red_x,
    double *red_y, double *green_x, double *green_y, double *blue_x,
    double *blue_y));
 #endif
 #ifdef PNG_FIXED_POINT_SUPPORTED
-extern PNG_EXPORT(png_uint_32,png_get_cHRM_fixed) PNGARG((png_structp png_ptr,
-   png_infop info_ptr, png_fixed_point *int_white_x, png_fixed_point
+PNG_EXPORT(png_uint_32,png_get_cHRM_fixed) PNGARG((png_const_structp png_ptr,
+   png_const_infop info_ptr, png_fixed_point *int_white_x, png_fixed_point
    *int_white_y, png_fixed_point *int_red_x, png_fixed_point *int_red_y,
    png_fixed_point *int_green_x, png_fixed_point *int_green_y, png_fixed_point
    *int_blue_x, png_fixed_point *int_blue_y));
@@ -2327,12 +2344,12 @@ extern PNG_EXPORT(png_uint_32,png_get_cHRM_fixed) PNGARG((png_structp png_ptr,
 
 #ifdef PNG_cHRM_SUPPORTED
 #ifdef PNG_FLOATING_POINT_SUPPORTED
-extern PNG_EXPORT(void,png_set_cHRM) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_cHRM) PNGARG((png_structp png_ptr,
    png_infop info_ptr, double white_x, double white_y, double red_x,
    double red_y, double green_x, double green_y, double blue_x, double blue_y));
 #endif
 #ifdef PNG_FIXED_POINT_SUPPORTED
-extern PNG_EXPORT(void,png_set_cHRM_fixed) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_cHRM_fixed) PNGARG((png_structp png_ptr,
    png_infop info_ptr, png_fixed_point int_white_x, png_fixed_point int_white_y,
    png_fixed_point int_red_x, png_fixed_point int_red_y, png_fixed_point
    int_green_x, png_fixed_point int_green_y, png_fixed_point int_blue_x,
@@ -2342,132 +2359,132 @@ extern PNG_EXPORT(void,png_set_cHRM_fixed) PNGARG((png_structp png_ptr,
 
 #ifdef PNG_gAMA_SUPPORTED
 #ifdef PNG_FLOATING_POINT_SUPPORTED
-extern PNG_EXPORT(png_uint_32,png_get_gAMA) PNGARG((png_structp png_ptr,
-   png_infop info_ptr, double *file_gamma));
+PNG_EXPORT(png_uint_32,png_get_gAMA) PNGARG((png_const_structp png_ptr,
+   png_const_infop info_ptr, double *file_gamma));
 #endif
-extern PNG_EXPORT(png_uint_32,png_get_gAMA_fixed) PNGARG((png_structp png_ptr,
-   png_infop info_ptr, png_fixed_point *int_file_gamma));
+PNG_EXPORT(png_uint_32,png_get_gAMA_fixed) PNGARG((png_const_structp png_ptr,
+   png_const_infop info_ptr, png_fixed_point *int_file_gamma));
 #endif
 
 #ifdef PNG_gAMA_SUPPORTED
 #ifdef PNG_FLOATING_POINT_SUPPORTED
-extern PNG_EXPORT(void,png_set_gAMA) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_gAMA) PNGARG((png_structp png_ptr,
    png_infop info_ptr, double file_gamma));
 #endif
-extern PNG_EXPORT(void,png_set_gAMA_fixed) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_gAMA_fixed) PNGARG((png_structp png_ptr,
    png_infop info_ptr, png_fixed_point int_file_gamma));
 #endif
 
 #ifdef PNG_hIST_SUPPORTED
-extern PNG_EXPORT(png_uint_32,png_get_hIST) PNGARG((png_structp png_ptr,
-   png_infop info_ptr, png_uint_16p *hist));
+PNG_EXPORT(png_uint_32,png_get_hIST) PNGARG((png_const_structp png_ptr,
+   png_const_infop info_ptr, png_uint_16p *hist));
 #endif
 
 #ifdef PNG_hIST_SUPPORTED
-extern PNG_EXPORT(void,png_set_hIST) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_hIST) PNGARG((png_structp png_ptr,
    png_infop info_ptr, png_uint_16p hist));
 #endif
 
-extern PNG_EXPORT(png_uint_32,png_get_IHDR) PNGARG((png_structp png_ptr,
+PNG_EXPORT(png_uint_32,png_get_IHDR) PNGARG((png_structp png_ptr,
    png_infop info_ptr, png_uint_32 *width, png_uint_32 *height,
    int *bit_depth, int *color_type, int *interlace_method,
    int *compression_method, int *filter_method));
 
-extern PNG_EXPORT(void,png_set_IHDR) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_IHDR) PNGARG((png_structp png_ptr,
    png_infop info_ptr, png_uint_32 width, png_uint_32 height, int bit_depth,
    int color_type, int interlace_method, int compression_method,
    int filter_method));
 
 #ifdef PNG_oFFs_SUPPORTED
-extern PNG_EXPORT(png_uint_32,png_get_oFFs) PNGARG((png_structp png_ptr,
-   png_infop info_ptr, png_int_32 *offset_x, png_int_32 *offset_y,
+PNG_EXPORT(png_uint_32,png_get_oFFs) PNGARG((png_const_structp png_ptr,
+   png_const_infop info_ptr, png_int_32 *offset_x, png_int_32 *offset_y,
    int *unit_type));
 #endif
 
 #ifdef PNG_oFFs_SUPPORTED
-extern PNG_EXPORT(void,png_set_oFFs) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_oFFs) PNGARG((png_structp png_ptr,
    png_infop info_ptr, png_int_32 offset_x, png_int_32 offset_y,
    int unit_type));
 #endif
 
 #ifdef PNG_pCAL_SUPPORTED
-extern PNG_EXPORT(png_uint_32,png_get_pCAL) PNGARG((png_structp png_ptr,
-   png_infop info_ptr, png_charp *purpose, png_int_32 *X0, png_int_32 *X1,
+PNG_EXPORT(png_uint_32,png_get_pCAL) PNGARG((png_const_structp png_ptr,
+   png_const_infop info_ptr, png_charp *purpose, png_int_32 *X0, png_int_32 *X1,
    int *type, int *nparams, png_charp *units, png_charpp *params));
 #endif
 
 #ifdef PNG_pCAL_SUPPORTED
-extern PNG_EXPORT(void,png_set_pCAL) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_pCAL) PNGARG((png_structp png_ptr,
    png_infop info_ptr, png_charp purpose, png_int_32 X0, png_int_32 X1,
    int type, int nparams, png_charp units, png_charpp params));
 #endif
 
 #ifdef PNG_pHYs_SUPPORTED
-extern PNG_EXPORT(png_uint_32,png_get_pHYs) PNGARG((png_structp png_ptr,
-   png_infop info_ptr, png_uint_32 *res_x, png_uint_32 *res_y, int *unit_type));
+PNG_EXPORT(png_uint_32,png_get_pHYs) PNGARG((png_const_structp png_ptr,
+   png_const_infop info_ptr, png_uint_32 *res_x, png_uint_32 *res_y, int *unit_type));
 #endif
 
 #ifdef PNG_pHYs_SUPPORTED
-extern PNG_EXPORT(void,png_set_pHYs) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_pHYs) PNGARG((png_structp png_ptr,
    png_infop info_ptr, png_uint_32 res_x, png_uint_32 res_y, int unit_type));
 #endif
 
-extern PNG_EXPORT(png_uint_32,png_get_PLTE) PNGARG((png_structp png_ptr,
-   png_infop info_ptr, png_colorp *palette, int *num_palette));
+PNG_EXPORT(png_uint_32,png_get_PLTE) PNGARG((png_const_structp png_ptr,
+   png_const_infop info_ptr, png_colorp *palette, int *num_palette));
 
-extern PNG_EXPORT(void,png_set_PLTE) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_PLTE) PNGARG((png_structp png_ptr,
    png_infop info_ptr, png_colorp palette, int num_palette));
 
 #ifdef PNG_sBIT_SUPPORTED
-extern PNG_EXPORT(png_uint_32,png_get_sBIT) PNGARG((png_structp png_ptr,
+PNG_EXPORT(png_uint_32,png_get_sBIT) PNGARG((png_const_structp png_ptr,
    png_infop info_ptr, png_color_8p *sig_bit));
 #endif
 
 #ifdef PNG_sBIT_SUPPORTED
-extern PNG_EXPORT(void,png_set_sBIT) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_sBIT) PNGARG((png_structp png_ptr,
    png_infop info_ptr, png_color_8p sig_bit));
 #endif
 
 #ifdef PNG_sRGB_SUPPORTED
-extern PNG_EXPORT(png_uint_32,png_get_sRGB) PNGARG((png_structp png_ptr,
-   png_infop info_ptr, int *intent));
+PNG_EXPORT(png_uint_32,png_get_sRGB) PNGARG((png_const_structp png_ptr,
+   png_const_infop info_ptr, int *intent));
 #endif
 
 #ifdef PNG_sRGB_SUPPORTED
-extern PNG_EXPORT(void,png_set_sRGB) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_sRGB) PNGARG((png_structp png_ptr,
    png_infop info_ptr, int intent));
-extern PNG_EXPORT(void,png_set_sRGB_gAMA_and_cHRM) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_sRGB_gAMA_and_cHRM) PNGARG((png_structp png_ptr,
    png_infop info_ptr, int intent));
 #endif
 
 #ifdef PNG_iCCP_SUPPORTED
-extern PNG_EXPORT(png_uint_32,png_get_iCCP) PNGARG((png_structp png_ptr,
-   png_infop info_ptr, png_charpp name, int *compression_type,
+PNG_EXPORT(png_uint_32,png_get_iCCP) PNGARG((png_const_structp png_ptr,
+   png_const_infop info_ptr, png_charpp name, int *compression_type,
    png_charpp profile, png_uint_32 *proflen));
    
 #endif
 
 #ifdef PNG_iCCP_SUPPORTED
-extern PNG_EXPORT(void,png_set_iCCP) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_iCCP) PNGARG((png_structp png_ptr,
    png_infop info_ptr, png_charp name, int compression_type,
    png_charp profile, png_uint_32 proflen));
    
 #endif
 
 #ifdef PNG_sPLT_SUPPORTED
-extern PNG_EXPORT(png_uint_32,png_get_sPLT) PNGARG((png_structp png_ptr,
-   png_infop info_ptr, png_sPLT_tpp entries));
+PNG_EXPORT(png_uint_32,png_get_sPLT) PNGARG((png_const_structp png_ptr,
+   png_const_infop info_ptr, png_sPLT_tpp entries));
 #endif
 
 #ifdef PNG_sPLT_SUPPORTED
-extern PNG_EXPORT(void,png_set_sPLT) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_sPLT) PNGARG((png_structp png_ptr,
    png_infop info_ptr, png_sPLT_tp entries, int nentries));
 #endif
 
 #ifdef PNG_TEXT_SUPPORTED
 
-extern PNG_EXPORT(png_uint_32,png_get_text) PNGARG((png_structp png_ptr,
-   png_infop info_ptr, png_textp *text_ptr, int *num_text));
+PNG_EXPORT(png_uint_32,png_get_text) PNGARG((png_const_structp png_ptr,
+   png_const_infop info_ptr, png_textp *text_ptr, int *num_text));
 #endif
 
 
@@ -2478,28 +2495,28 @@ extern PNG_EXPORT(png_uint_32,png_get_text) PNGARG((png_structp png_ptr,
 
 
 #ifdef PNG_TEXT_SUPPORTED
-extern PNG_EXPORT(void,png_set_text) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_text) PNGARG((png_structp png_ptr,
    png_infop info_ptr, png_textp text_ptr, int num_text));
 #endif
 
 #ifdef PNG_tIME_SUPPORTED
-extern PNG_EXPORT(png_uint_32,png_get_tIME) PNGARG((png_structp png_ptr,
+PNG_EXPORT(png_uint_32,png_get_tIME) PNGARG((png_const_structp png_ptr,
    png_infop info_ptr, png_timep *mod_time));
 #endif
 
 #ifdef PNG_tIME_SUPPORTED
-extern PNG_EXPORT(void,png_set_tIME) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_tIME) PNGARG((png_structp png_ptr,
    png_infop info_ptr, png_timep mod_time));
 #endif
 
 #ifdef PNG_tRNS_SUPPORTED
-extern PNG_EXPORT(png_uint_32,png_get_tRNS) PNGARG((png_structp png_ptr,
+PNG_EXPORT(png_uint_32,png_get_tRNS) PNGARG((png_const_structp png_ptr,
    png_infop info_ptr, png_bytep *trans_alpha, int *num_trans,
    png_color_16p *trans_color));
 #endif
 
 #ifdef PNG_tRNS_SUPPORTED
-extern PNG_EXPORT(void,png_set_tRNS) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_tRNS) PNGARG((png_structp png_ptr,
    png_infop info_ptr, png_bytep trans_alpha, int num_trans,
    png_color_16p trans_color));
 #endif
@@ -2509,23 +2526,23 @@ extern PNG_EXPORT(void,png_set_tRNS) PNGARG((png_structp png_ptr,
 
 #ifdef PNG_sCAL_SUPPORTED
 #ifdef PNG_FLOATING_POINT_SUPPORTED
-extern PNG_EXPORT(png_uint_32,png_get_sCAL) PNGARG((png_structp png_ptr,
-   png_infop info_ptr, int *unit, double *width, double *height));
+PNG_EXPORT(png_uint_32,png_get_sCAL) PNGARG((png_const_structp png_ptr,
+   png_const_infop info_ptr, int *unit, double *width, double *height));
 #else
 #ifdef PNG_FIXED_POINT_SUPPORTED
-extern PNG_EXPORT(png_uint_32,png_get_sCAL_s) PNGARG((png_structp png_ptr,
-   png_infop info_ptr, int *unit, png_charpp swidth, png_charpp sheight));
+PNG_EXPORT(png_uint_32,png_get_sCAL_s) PNGARG((png_const_structp png_ptr,
+   png_const_infop info_ptr, int *unit, png_charpp swidth, png_charpp sheight));
 #endif
 #endif
 #endif 
 
 #ifdef PNG_sCAL_SUPPORTED
 #ifdef PNG_FLOATING_POINT_SUPPORTED
-extern PNG_EXPORT(void,png_set_sCAL) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_sCAL) PNGARG((png_structp png_ptr,
    png_infop info_ptr, int unit, double width, double height));
 #else
 #ifdef PNG_FIXED_POINT_SUPPORTED
-extern PNG_EXPORT(void,png_set_sCAL_s) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void,png_set_sCAL_s) PNGARG((png_structp png_ptr,
    png_infop info_ptr, int unit, png_charp swidth, png_charp sheight));
 #endif
 #endif
@@ -2534,21 +2551,21 @@ extern PNG_EXPORT(void,png_set_sCAL_s) PNGARG((png_structp png_ptr,
 #ifdef PNG_APNG_SUPPORTED
 extern PNG_EXPORT(png_uint_32,png_get_acTL) PNGARG((png_structp png_ptr,
    png_infop info_ptr, png_uint_32 *num_frames, png_uint_32 *num_plays));
-extern PNG_EXPORT(png_uint_32,png_set_acTL) PNGARG((png_structp png_ptr, 
+extern PNG_EXPORT(png_uint_32,png_set_acTL) PNGARG((png_structp png_ptr,
    png_infop info_ptr, png_uint_32 num_frames, png_uint_32 num_plays));
 extern PNG_EXPORT(png_uint_32,png_get_num_frames) PNGARG((png_structp png_ptr,
    png_infop info_ptr));
-extern PNG_EXPORT(png_uint_32,png_get_num_plays) 
+extern PNG_EXPORT(png_uint_32,png_get_num_plays)
    PNGARG((png_structp png_ptr, png_infop info_ptr));
 
-extern PNG_EXPORT(png_uint_32,png_get_next_frame_fcTL) 
-   PNGARG((png_structp png_ptr, png_infop info_ptr, png_uint_32 *width, 
-   png_uint_32 *height, png_uint_32 *x_offset, png_uint_32 *y_offset, 
+extern PNG_EXPORT(png_uint_32,png_get_next_frame_fcTL)
+   PNGARG((png_structp png_ptr, png_infop info_ptr, png_uint_32 *width,
+   png_uint_32 *height, png_uint_32 *x_offset, png_uint_32 *y_offset,
    png_uint_16 *delay_num, png_uint_16 *delay_den, png_byte *dispose_op,
    png_byte *blend_op));
-extern PNG_EXPORT(png_uint_32,png_set_next_frame_fcTL) 
-   PNGARG((png_structp png_ptr, png_infop info_ptr, png_uint_32 width, 
-   png_uint_32 height, png_uint_32 x_offset, png_uint_32 y_offset, 
+extern PNG_EXPORT(png_uint_32,png_set_next_frame_fcTL)
+   PNGARG((png_structp png_ptr, png_infop info_ptr, png_uint_32 width,
+   png_uint_32 height, png_uint_32 x_offset, png_uint_32 y_offset,
    png_uint_16 delay_num, png_uint_16 delay_den, png_byte dispose_op,
    png_byte blend_op));
 extern PNG_EXPORT(void,png_ensure_fcTL_is_valid)
@@ -2594,47 +2611,47 @@ extern PNG_EXPORT(void,png_read_frame_head) PNGARG((png_structp png_ptr,
 
 
 
-extern PNG_EXPORT(void, png_set_keep_unknown_chunks) PNGARG((png_structp
+PNG_EXPORT(void, png_set_keep_unknown_chunks) PNGARG((png_structp
    png_ptr, int keep, png_bytep chunk_list, int num_chunks));
 PNG_EXPORT(int,png_handle_as_unknown) PNGARG((png_structp png_ptr, png_bytep
    chunk_name));
 #endif
 #ifdef PNG_UNKNOWN_CHUNKS_SUPPORTED
-extern PNG_EXPORT(void, png_set_unknown_chunks) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void, png_set_unknown_chunks) PNGARG((png_structp png_ptr,
    png_infop info_ptr, png_unknown_chunkp unknowns, int num_unknowns));
-extern PNG_EXPORT(void, png_set_unknown_chunk_location)
+PNG_EXPORT(void, png_set_unknown_chunk_location)
    PNGARG((png_structp png_ptr, png_infop info_ptr, int chunk, int location));
-extern PNG_EXPORT(png_uint_32,png_get_unknown_chunks) PNGARG((png_structp
-   png_ptr, png_infop info_ptr, png_unknown_chunkpp entries));
+PNG_EXPORT(png_uint_32,png_get_unknown_chunks) PNGARG((png_const_structp
+   png_ptr, png_const_infop info_ptr, png_unknown_chunkpp entries));
 #endif
 
 
 
 
 
-extern PNG_EXPORT(void, png_set_invalid) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void, png_set_invalid) PNGARG((png_structp png_ptr,
    png_infop info_ptr, int mask));
 
 #ifdef PNG_INFO_IMAGE_SUPPORTED
 
-extern PNG_EXPORT(void, png_read_png) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void, png_read_png) PNGARG((png_structp png_ptr,
                         png_infop info_ptr,
                         int transforms,
                         png_voidp params));
-extern PNG_EXPORT(void, png_write_png) PNGARG((png_structp png_ptr,
+PNG_EXPORT(void, png_write_png) PNGARG((png_structp png_ptr,
                         png_infop info_ptr,
                         int transforms,
                         png_voidp params));
 #endif
 
-extern PNG_EXPORT(png_charp,png_get_copyright) PNGARG((png_structp png_ptr));
-extern PNG_EXPORT(png_charp,png_get_header_ver) PNGARG((png_structp png_ptr));
-extern PNG_EXPORT(png_charp,png_get_header_version) PNGARG((png_structp
+PNG_EXPORT(png_charp,png_get_copyright) PNGARG((png_const_structp png_ptr));
+PNG_EXPORT(png_charp,png_get_header_ver) PNGARG((png_const_structp png_ptr));
+PNG_EXPORT(png_charp,png_get_header_version) PNGARG((png_const_structp
     png_ptr));
-extern PNG_EXPORT(png_charp,png_get_libpng_ver) PNGARG((png_structp png_ptr));
+PNG_EXPORT(png_charp,png_get_libpng_ver) PNGARG((png_const_structp png_ptr));
 
 #ifdef PNG_MNG_FEATURES_SUPPORTED
-extern PNG_EXPORT(png_uint_32,png_permit_mng_features) PNGARG((png_structp
+PNG_EXPORT(png_uint_32,png_permit_mng_features) PNGARG((png_structp
    png_ptr, png_uint_32 mng_features_permitted));
 #endif
 
@@ -2648,57 +2665,58 @@ extern PNG_EXPORT(png_uint_32,png_permit_mng_features) PNGARG((png_structp
 
 
 #ifdef PNG_ERROR_NUMBERS_SUPPORTED
-extern PNG_EXPORT(void,png_set_strip_error_numbers) PNGARG((png_structp
+PNG_EXPORT(void,png_set_strip_error_numbers) PNGARG((png_structp
    png_ptr, png_uint_32 strip_mode));
 #endif
 
 
 #ifdef PNG_SET_USER_LIMITS_SUPPORTED
-extern PNG_EXPORT(void,png_set_user_limits) PNGARG((png_structp
+PNG_EXPORT(void,png_set_user_limits) PNGARG((png_structp
    png_ptr, png_uint_32 user_width_max, png_uint_32 user_height_max));
-extern PNG_EXPORT(png_uint_32,png_get_user_width_max) PNGARG((png_structp
+PNG_EXPORT(png_uint_32,png_get_user_width_max) PNGARG((png_const_structp
    png_ptr));
-extern PNG_EXPORT(png_uint_32,png_get_user_height_max) PNGARG((png_structp
+PNG_EXPORT(png_uint_32,png_get_user_height_max) PNGARG((png_const_structp
    png_ptr));
 
-extern PNG_EXPORT(void,png_set_chunk_cache_max) PNGARG((png_structp
+PNG_EXPORT(void,png_set_chunk_cache_max) PNGARG((png_structp
    png_ptr, png_uint_32 user_chunk_cache_max));
-extern PNG_EXPORT(png_uint_32,png_get_chunk_cache_max)
-   PNGARG((png_structp png_ptr));
+PNG_EXPORT(png_uint_32,png_get_chunk_cache_max)
+   PNGARG((png_const_structp png_ptr));
 
-extern PNG_EXPORT(void,png_set_chunk_malloc_max) PNGARG((png_structp
+PNG_EXPORT(void,png_set_chunk_malloc_max) PNGARG((png_structp
    png_ptr, png_alloc_size_t user_chunk_cache_max));
-extern PNG_EXPORT(png_alloc_size_t,png_get_chunk_malloc_max)
-   PNGARG((png_structp png_ptr));
+PNG_EXPORT(png_alloc_size_t,png_get_chunk_malloc_max)
+   PNGARG((png_const_structp png_ptr));
 #endif
 
 #if defined(PNG_INCH_CONVERSIONS) && defined(PNG_FLOATING_POINT_SUPPORTED)
-PNG_EXPORT(png_uint_32,png_get_pixels_per_inch) PNGARG((png_structp png_ptr,
-png_infop info_ptr));
+PNG_EXPORT(png_uint_32,png_get_pixels_per_inch)
+   PNGARG((png_const_structp png_ptr, png_const_infop info_ptr));
 
-PNG_EXPORT(png_uint_32,png_get_x_pixels_per_inch) PNGARG((png_structp png_ptr,
-png_infop info_ptr));
+PNG_EXPORT(png_uint_32,png_get_x_pixels_per_inch)
+   PNGARG((png_const_structp png_ptr, png_const_infop info_ptr));
 
-PNG_EXPORT(png_uint_32,png_get_y_pixels_per_inch) PNGARG((png_structp png_ptr,
-png_infop info_ptr));
+PNG_EXPORT(png_uint_32,png_get_y_pixels_per_inch)
+   PNGARG((png_const_structp png_ptr, png_const_infop info_ptr));
 
-PNG_EXPORT(float,png_get_x_offset_inches) PNGARG((png_structp png_ptr,
-png_infop info_ptr));
+PNG_EXPORT(float,png_get_x_offset_inches) PNGARG((png_const_structp png_ptr,
+   png_const_infop info_ptr));
 
-PNG_EXPORT(float,png_get_y_offset_inches) PNGARG((png_structp png_ptr,
-png_infop info_ptr));
+PNG_EXPORT(float,png_get_y_offset_inches) PNGARG((png_const_structp png_ptr,
+   png_const_infop info_ptr));
 
 #ifdef PNG_pHYs_SUPPORTED
-PNG_EXPORT(png_uint_32,png_get_pHYs_dpi) PNGARG((png_structp png_ptr,
-png_infop info_ptr, png_uint_32 *res_x, png_uint_32 *res_y, int *unit_type));
+PNG_EXPORT(png_uint_32,png_get_pHYs_dpi) PNGARG((png_const_structp png_ptr,
+   png_const_infop info_ptr, png_uint_32 *res_x, png_uint_32 *res_y,
+   int *unit_type));
 #endif 
 #endif  
 
 
 #ifdef PNG_IO_STATE_SUPPORTED
-extern PNG_EXPORT(png_uint_32,png_get_io_state) PNGARG((png_structp png_ptr));
+PNG_EXPORT(png_uint_32,png_get_io_state) PNGARG((png_const_structp png_ptr));
 
-extern PNG_EXPORT(png_bytep,png_get_io_chunk_name)
+PNG_EXPORT(png_bytep,png_get_io_chunk_name)
    PNGARG((png_structp png_ptr));
 
 
@@ -2764,44 +2782,52 @@ extern PNG_EXPORT(png_bytep,png_get_io_chunk_name)
 
 
 
-
 #  define png_get_uint_32(buf) \
      (((png_uint_32)(*(buf)) << 24) + \
       ((png_uint_32)(*((buf) + 1)) << 16) + \
       ((png_uint_32)(*((buf) + 2)) << 8) + \
       ((png_uint_32)(*((buf) + 3))))
+
+  
+
+
+
+
+
+
+
+
 #  define png_get_uint_16(buf) \
-     (((png_uint_32)(*(buf)) << 8) + \
-      ((png_uint_32)(*((buf) + 1))))
-#ifdef PNG_GET_INT_32_SUPPORTED
+     ((png_uint_16) \
+       (((unsigned int)(*(buf)) << 8) + \
+        ((unsigned int)(*((buf) + 1)))))
+
 #  define png_get_int_32(buf) \
-     (((png_int_32)(*(buf)) << 24) + \
-      ((png_int_32)(*((buf) + 1)) << 16) + \
-      ((png_int_32)(*((buf) + 2)) << 8) + \
-      ((png_int_32)(*((buf) + 3))))
-#endif
+     ((png_int_32)((*(buf) & 0x80) \
+      ? -((png_int_32)((png_get_uint_32(buf) ^ 0xffffffffL) + 1)) \
+      : (png_int_32)png_get_uint_32(buf)))
 #else
-extern PNG_EXPORT(png_uint_32,png_get_uint_32) PNGARG((png_bytep buf));
-extern PNG_EXPORT(png_uint_16,png_get_uint_16) PNGARG((png_bytep buf));
+PNG_EXPORT(png_uint_32,png_get_uint_32) PNGARG((png_bytep buf));
+PNG_EXPORT(png_uint_16,png_get_uint_16) PNGARG((png_bytep buf));
 #ifdef PNG_GET_INT_32_SUPPORTED
-extern PNG_EXPORT(png_int_32,png_get_int_32) PNGARG((png_bytep buf));
+PNG_EXPORT(png_int_32,png_get_int_32) PNGARG((png_bytep buf));
 #endif
 #endif
-extern PNG_EXPORT(png_uint_32,png_get_uint_31)
+PNG_EXPORT(png_uint_32,png_get_uint_31)
   PNGARG((png_structp png_ptr, png_bytep buf));
 
 
 
-extern PNG_EXPORT(void,png_save_uint_32)
+PNG_EXPORT(void,png_save_uint_32)
    PNGARG((png_bytep buf, png_uint_32 i));
-extern PNG_EXPORT(void,png_save_int_32)
+PNG_EXPORT(void,png_save_int_32)
    PNGARG((png_bytep buf, png_int_32 i));
 
 
 
 
 
-extern PNG_EXPORT(void,png_save_uint_16)
+PNG_EXPORT(void,png_save_uint_16)
    PNGARG((png_bytep buf, unsigned int i));
 
 

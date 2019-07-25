@@ -306,7 +306,7 @@ png_default_error(png_structp png_ptr, png_const_charp error_message)
    
    PNG_ABORT();
 #ifndef PNG_CONSOLE_IO_SUPPORTED
-   error_message = error_message; 
+   PNG_UNUSED(error_message) 
 #endif
 }
 
@@ -352,9 +352,9 @@ png_default_warning(png_structp png_ptr, png_const_charp warning_message)
      fprintf(stderr, PNG_STRING_NEWLINE);
    }
 #else
-   warning_message = warning_message; 
+   PNG_UNUSED(warning_message) 
 #endif
-   png_ptr = png_ptr; 
+   PNG_UNUSED(png_ptr) 
 }
 #endif 
 
@@ -380,7 +380,7 @@ png_set_error_fn(png_structp png_ptr, png_voidp error_ptr,
 
 
 png_voidp PNGAPI
-png_get_error_ptr(png_structp png_ptr)
+png_get_error_ptr(png_const_structp png_ptr)
 {
    if (png_ptr == NULL)
       return NULL;

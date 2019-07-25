@@ -17,11 +17,7 @@
 #include "pngpriv.h"
 
 
-typedef version_1_4_3 Your_png_h_is_not_version_1_4_3;
-
-
-
-
+typedef version_1_4_7 Your_png_h_is_not_version_1_4_7;
 
 
 
@@ -543,21 +539,21 @@ png_convert_to_rfc1123(png_structp png_ptr, png_timep ptime)
 #endif 
 
 png_charp PNGAPI
-png_get_copyright(png_structp png_ptr)
+png_get_copyright(png_const_structp png_ptr)
 {
-   png_ptr = png_ptr;  
+   PNG_UNUSED(png_ptr)  
 #ifdef PNG_STRING_COPYRIGHT
       return PNG_STRING_COPYRIGHT
 #else
 #ifdef __STDC__
    return ((png_charp) PNG_STRING_NEWLINE \
-     "libpng version 1.4.3 - June 26, 2010" PNG_STRING_NEWLINE \
+     "libpng version 1.4.7 - April 10, 2011" PNG_STRING_NEWLINE \
      "Copyright (c) 1998-2010 Glenn Randers-Pehrson" PNG_STRING_NEWLINE \
      "Copyright (c) 1996-1997 Andreas Dilger" PNG_STRING_NEWLINE \
      "Copyright (c) 1995-1996 Guy Eric Schalnat, Group 42, Inc." \
      PNG_STRING_NEWLINE);
 #else
-      return ((png_charp) "libpng version 1.4.3 - June 26, 2010\
+      return ((png_charp) "libpng version 1.4.7 - April 10, 2011\
       Copyright (c) 1998-2010 Glenn Randers-Pehrson\
       Copyright (c) 1996-1997 Andreas Dilger\
       Copyright (c) 1995-1996 Guy Eric Schalnat, Group 42, Inc.");
@@ -574,23 +570,23 @@ png_get_copyright(png_structp png_ptr)
 
 
 png_charp PNGAPI
-png_get_libpng_ver(png_structp png_ptr)
+png_get_libpng_ver(png_const_structp png_ptr)
 {
    
-   png_ptr = png_ptr;  
+   PNG_UNUSED(png_ptr)  
    return ((png_charp) PNG_LIBPNG_VER_STRING);
 }
 
 png_charp PNGAPI
-png_get_header_ver(png_structp png_ptr)
+png_get_header_ver(png_const_structp png_ptr)
 {
    
-   png_ptr = png_ptr;  
+   PNG_UNUSED(png_ptr)  
    return ((png_charp) PNG_LIBPNG_VER_STRING);
 }
 
 png_charp PNGAPI
-png_get_header_version(png_structp png_ptr)
+png_get_header_version(png_const_structp png_ptr)
 {
    
    png_ptr = png_ptr;  
@@ -678,7 +674,7 @@ png_convert_size(size_t size)
 
 
 void 
-png_64bit_product (long v1, long v2, unsigned long *hi_product,
+png_64bit_product(long v1, long v2, unsigned long *hi_product,
    unsigned long *lo_product)
 {
    int a, b, c, d;

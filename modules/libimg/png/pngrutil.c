@@ -23,49 +23,97 @@
 png_uint_32 PNGAPI
 png_get_uint_31(png_structp png_ptr, png_bytep buf)
 {
-   png_uint_32 i = png_get_uint_32(buf);
-   if (i > PNG_UINT_31_MAX)
+   png_uint_32 val = png_get_uint_32(buf);
+
+   if (val > PNG_UINT_31_MAX)
      png_error(png_ptr, "PNG unsigned integer out of range");
-   return (i);
+   return (val);
 }
+
 #ifndef PNG_USE_READ_MACROS
 
-png_uint_32 PNGAPI
-png_get_uint_32(png_bytep buf)
-{
-   png_uint_32 i = ((png_uint_32)(*buf) << 24) +
-      ((png_uint_32)(*(buf + 1)) << 16) +
-      ((png_uint_32)(*(buf + 2)) << 8) +
-      (png_uint_32)(*(buf + 3));
 
-   return (i);
+
+
+
+
+png_uint_32 (PNGAPI
+png_get_uint_32)(png_bytep buf)
+{
+   png_uint_32 uval = png_get_uint_32(buf);
+   if ((uval & 0x80000000L) == 0) 
+      return uval;
+
+   uval = (uval ^ 0xffffffffL) + 1;  
+   return -(png_int_32)uval;
 }
 
 
 
 
 
-png_int_32 PNGAPI
-png_get_int_32(png_bytep buf)
-{
-   png_int_32 i = ((png_int_32)(*buf) << 24) +
-      ((png_int_32)(*(buf + 1)) << 16) +
-      ((png_int_32)(*(buf + 2)) << 8) +
-      (png_int_32)(*(buf + 3));
 
-   return (i);
+png_int_32 (PNGAPI
+png_get_int_32)(png_bytep buf)
+{
+   png_uint_32 uval = png_get_uint_32(buf);
+   if ((uval & 0x80000000L) == 0) 
+      return uval;
+
+   uval = (uval ^ 0xffffffffL) + 1;  
+   return -(png_int_32)uval;
 }
 
 
-png_uint_16 PNGAPI
-png_get_uint_16(png_bytep buf)
+png_uint_16 (PNGAPI
+png_get_uint_16)(png_bytep buf)
 {
-   png_uint_16 i = (png_uint_16)(((png_uint_16)(*buf) << 8) +
-      (png_uint_16)(*(buf + 1)));
+   
 
-   return (i);
+
+
+
+   unsigned int val =
+       ((unsigned int)(*buf) << 8) +
+       ((unsigned int)(*(buf + 1)));
+
+   return (png_uint_16)val;
 }
 #endif 
+
+
+void 
+png_read_sig(png_structp png_ptr, png_infop info_ptr)
+{
+   png_size_t num_checked, num_to_check;
+
+   
+   if (png_ptr->sig_bytes >= 8)
+      return;
+
+   num_checked = png_ptr->sig_bytes;
+   num_to_check = 8 - num_checked;
+
+#ifdef PNG_IO_STATE_SUPPORTED
+   png_ptr->io_state = PNG_IO_READING | PNG_IO_SIGNATURE;
+#endif
+
+   
+   png_read_data(png_ptr, &(info_ptr->signature[num_checked]), num_to_check);
+   png_ptr->sig_bytes = 8;
+
+   if (png_sig_cmp(info_ptr->signature, num_checked, num_to_check))
+   {
+      if (num_checked < 4 &&
+          png_sig_cmp(info_ptr->signature, num_checked, num_to_check - 4))
+         png_error(png_ptr, "Not a PNG file");
+
+      else
+         png_error(png_ptr, "PNG file corrupted by ASCII conversion");
+   }
+   if (num_checked < 3)
+      png_ptr->mode |= PNG_HAVE_PNG_SIGNATURE;
+}
 
 
 
@@ -77,13 +125,12 @@ png_read_chunk_header(png_structp png_ptr)
    png_uint_32 length;
 
 #ifdef PNG_IO_STATE_SUPPORTED
-   
-
-
    png_ptr->io_state = PNG_IO_READING | PNG_IO_CHUNK_HDR;
 #endif
 
    
+
+
    png_read_data(png_ptr, buf, 8);
    length = png_get_uint_31(png_ptr, buf);
 
@@ -91,7 +138,7 @@ png_read_chunk_header(png_structp png_ptr)
    png_memcpy(png_ptr->chunk_name, buf + 4, 4);
 
    png_debug2(0, "Reading %s chunk, length = %lu",
-      png_ptr->chunk_name, length);
+      png_ptr->chunk_name, (unsigned long)length);
 
    
    png_reset_crc(png_ptr);
@@ -116,6 +163,7 @@ png_crc_read(png_structp png_ptr, png_bytep buf, png_size_t length)
 {
    if (png_ptr == NULL)
       return;
+
    png_read_data(png_ptr, buf, length);
    png_calculate_crc(png_ptr, buf, length);
 }
@@ -135,6 +183,7 @@ png_crc_finish(png_structp png_ptr, png_uint_32 skip)
    {
       png_crc_read(png_ptr, png_ptr->zbuf, png_ptr->zbuf_size);
    }
+
    if (i)
    {
       png_crc_read(png_ptr, png_ptr->zbuf, i);
@@ -149,11 +198,13 @@ png_crc_finish(png_structp png_ptr, png_uint_32 skip)
       {
          png_chunk_warning(png_ptr, "CRC error");
       }
+
       else
       {
          png_chunk_benign_error(png_ptr, "CRC error");
          return (0);
       }
+
       return (1);
    }
 
@@ -176,6 +227,7 @@ png_crc_error(png_structp png_ptr)
           (PNG_FLAG_CRC_ANCILLARY_USE | PNG_FLAG_CRC_ANCILLARY_NOWARN))
          need_crc = 0;
    }
+
    else                                                    
    {
       if (png_ptr->flags & PNG_FLAG_CRC_CRITICAL_IGNORE)
@@ -183,11 +235,10 @@ png_crc_error(png_structp png_ptr)
    }
 
 #ifdef PNG_IO_STATE_SUPPORTED
-   
-   
    png_ptr->io_state = PNG_IO_READING | PNG_IO_CHUNK_CRC;
 #endif
 
+   
    png_read_data(png_ptr, crc_bytes, 4);
 
    if (need_crc)
@@ -195,6 +246,7 @@ png_crc_error(png_structp png_ptr)
       crc = png_get_uint_32(crc_bytes);
       return ((int)(crc != png_ptr->crc));
    }
+
    else
       return (0);
 }
@@ -234,6 +286,7 @@ png_inflate(png_structp png_ptr, const png_byte *data, png_size_t size,
             if (avail < copy) copy = avail;
             png_memcpy(output + count, png_ptr->zbuf, copy);
          }
+
          count += avail;
       }
 
@@ -267,9 +320,11 @@ png_inflate(png_structp png_ptr, const png_byte *data, png_size_t size,
                case Z_BUF_ERROR:
                   msg = "Buffer error in compressed datastream in %s chunk";
                   break;
+
                case Z_DATA_ERROR:
                   msg = "Data error in compressed datastream in %s chunk";
                   break;
+
                default:
                   msg = "Incomplete compressed datastream in %s chunk";
                   break;
@@ -369,6 +424,7 @@ png_decompress_chunk(png_structp png_ptr, int comp_type,
             png_warning(png_ptr, "png_inflate logic error");
             png_free(png_ptr, text);
          }
+
          else
           png_warning(png_ptr, "Not enough memory to decompress chunk");
       }
@@ -652,7 +708,7 @@ png_handle_IEND(png_structp png_ptr, png_infop info_ptr, png_uint_32 length)
    }
    png_crc_finish(png_ptr, length);
 
-   info_ptr = info_ptr; 
+   PNG_UNUSED(info_ptr) 
 }
 
 #ifdef PNG_READ_gAMA_SUPPORTED
@@ -1165,9 +1221,7 @@ png_handle_sPLT(png_structp png_ptr, png_infop info_ptr, png_uint_32 length)
 {
    png_bytep entry_start;
    png_sPLT_t new_palette;
-#ifdef PNG_POINTER_INDEXING_SUPPORTED
    png_sPLT_entryp pp;
-#endif
    int data_length, entry_size, i;
    png_uint_32 skip = 0;
    png_size_t slength;
@@ -1306,7 +1360,7 @@ png_handle_sPLT(png_structp png_ptr, png_infop info_ptr, png_uint_32 length)
           pp[i].blue  = png_get_uint_16(entry_start); entry_start += 2;
           pp[i].alpha = png_get_uint_16(entry_start); entry_start += 2;
       }
-      pp->frequency = png_get_uint_16(entry_start); entry_start += 2;
+      pp[i].frequency = png_get_uint_16(entry_start); entry_start += 2;
    }
 #endif
 
@@ -1675,7 +1729,7 @@ png_handle_pCAL(png_structp png_ptr, png_infop info_ptr, png_uint_32 length)
    }
 
    png_debug1(2, "Allocating and reading pCAL chunk data (%lu bytes)",
-      length + 1);
+      (unsigned long)(length + 1));
    png_free(png_ptr, png_ptr->chunkdata);
    png_ptr->chunkdata = (png_charp)png_malloc_warn(png_ptr, length + 1);
    if (png_ptr->chunkdata == NULL)
@@ -1813,7 +1867,7 @@ png_handle_sCAL(png_structp png_ptr, png_infop info_ptr, png_uint_32 length)
    }
 
    png_debug1(2, "Allocating and reading sCAL chunk data (%lu bytes)",
-      length + 1);
+      (unsigned long)(length + 1));
    png_ptr->chunkdata = (png_charp)png_malloc_warn(png_ptr, length + 1);
    if (png_ptr->chunkdata == NULL)
    {
@@ -1880,9 +1934,6 @@ png_handle_sCAL(png_structp png_ptr, png_infop info_ptr, png_uint_32 length)
       png_warning(png_ptr, "malformed height string in sCAL chunk");
       png_free(png_ptr, png_ptr->chunkdata);
       png_ptr->chunkdata = NULL;
-#if defined(PNG_FIXED_POINT_SUPPORTED) && !defined(PNG_FLOATING_POINT_SUPPORTED)
-      png_free(png_ptr, swidth);
-#endif
       return;
    }
 #else
@@ -1893,9 +1944,7 @@ png_handle_sCAL(png_structp png_ptr, png_infop info_ptr, png_uint_32 length)
       png_warning(png_ptr, "Out of memory while processing sCAL chunk height");
       png_free(png_ptr, png_ptr->chunkdata);
       png_ptr->chunkdata = NULL;
-#if defined(PNG_FIXED_POINT_SUPPORTED) && !defined(PNG_FLOATING_POINT_SUPPORTED)
       png_free(png_ptr, swidth);
-#endif
       return;
    }
    png_memcpy(sheight, ep, png_strlen(ep));
@@ -2357,7 +2406,7 @@ png_handle_acTL(png_structp png_ptr, png_infop info_ptr, png_uint_32 length)
     png_uint_32 num_frames;
     png_uint_32 num_plays;
     png_uint_32 didSet;
-    
+
     png_debug(1, "in png_handle_acTL");
 
     if (!(png_ptr->mode & PNG_HAVE_IHDR))
@@ -2382,13 +2431,13 @@ png_handle_acTL(png_structp png_ptr, png_infop info_ptr, png_uint_32 length)
         png_crc_finish(png_ptr, length);
         return;
     }
-    
+
     png_crc_read(png_ptr, data, 8);
     png_crc_finish(png_ptr, 0);
-    
+
     num_frames = png_get_uint_31(png_ptr, data);
     num_plays = png_get_uint_31(png_ptr, data + 4);
-    
+
     
     didSet = png_set_acTL(png_ptr, info_ptr, num_frames, num_plays);
     if(didSet)
@@ -2407,9 +2456,11 @@ png_handle_fcTL(png_structp png_ptr, png_infop info_ptr, png_uint_32 length)
     png_uint_16 delay_den;
     png_byte dispose_op;
     png_byte blend_op;
-    
+
     png_debug(1, "in png_handle_fcTL");
-    
+
+    png_ensure_sequence_number(png_ptr, length);
+   
     if (!(png_ptr->mode & PNG_HAVE_IHDR))
     {
         png_error(png_ptr, "Missing IHDR before fcTL");
@@ -2420,13 +2471,13 @@ png_handle_fcTL(png_structp png_ptr, png_infop info_ptr, png_uint_32 length)
 
 
         png_warning(png_ptr, "Invalid fcTL after IDAT skipped");
-        png_crc_finish(png_ptr, length);
+        png_crc_finish(png_ptr, length-4);
         return;
     }
     else if (png_ptr->mode & PNG_HAVE_fcTL)
     {
         png_warning(png_ptr, "Duplicate fcTL within one frame skipped");
-        png_crc_finish(png_ptr, length);
+        png_crc_finish(png_ptr, length-4);
         return;
     }
     else if (length != 26)
@@ -2435,12 +2486,10 @@ png_handle_fcTL(png_structp png_ptr, png_infop info_ptr, png_uint_32 length)
         png_crc_finish(png_ptr, length);
         return;
     }
-    
-    png_ensure_sequence_number(png_ptr, length);
-    
+
     png_crc_read(png_ptr, data, 22);
     png_crc_finish(png_ptr, 0);
-    
+
     width = png_get_uint_31(png_ptr, data);
     height = png_get_uint_31(png_ptr, data + 4);
     x_offset = png_get_uint_31(png_ptr, data + 8);
@@ -2449,21 +2498,29 @@ png_handle_fcTL(png_structp png_ptr, png_infop info_ptr, png_uint_32 length)
     delay_den = png_get_uint_16(data + 18);
     dispose_op = data[20];
     blend_op = data[21];
-    
+
     if (png_ptr->num_frames_read == 0 && (x_offset != 0 || y_offset != 0))
         png_error(png_ptr, "fcTL for the first frame must have zero offset");
-    if (png_ptr->num_frames_read == 0 && 
+    if (png_ptr->num_frames_read == 0 &&
         (width != info_ptr->width || height != info_ptr->height))
         png_error(png_ptr, "size in first frame's fcTL must match "
                            "the size in IHDR");
-    
-    
-    png_set_next_frame_fcTL(png_ptr, info_ptr, width, height, 
-                            x_offset, y_offset, delay_num, delay_den,
-                            dispose_op, blend_op);
-    
-    png_read_reinit(png_ptr, info_ptr);
-    
+
+    if (info_ptr != NULL)
+    {
+        if (png_ptr->num_frames_read == 0 &&
+            (width != info_ptr->width || height != info_ptr->height))
+            png_error(png_ptr, "size in first frame's fcTL must match "
+                               "the size in IHDR");
+        
+        
+        png_set_next_frame_fcTL(png_ptr, info_ptr, width, height,
+                                x_offset, y_offset, delay_num, delay_den,
+                                dispose_op, blend_op);
+        
+        png_read_reinit(png_ptr, info_ptr);
+    }
+
     png_ptr->mode |= PNG_HAVE_fcTL;
 }
 
@@ -2481,7 +2538,7 @@ void
 png_handle_fdAT(png_structp png_ptr, png_infop info_ptr, png_uint_32 length)
 {
     png_ensure_sequence_number(png_ptr, length);
-    
+
     
 
 
@@ -2496,17 +2553,17 @@ png_ensure_sequence_number(png_structp png_ptr, png_uint_32 length)
 {
     png_byte data[4];
     png_uint_32 sequence_number;
-    
+
     if (length < 4)
         png_error(png_ptr, "invalid fcTL or fdAT chunk found");
-    
+
     png_crc_read(png_ptr, data, 4);
     sequence_number = png_get_uint_31(png_ptr, data);
-    
+
     if (sequence_number != png_ptr->next_seq_num)
         png_error(png_ptr, "fcTL or fdAT chunk with out-of-order sequence "
                            "number found");
-    
+
     png_ptr->next_seq_num++;
 }
 #endif 
@@ -2621,7 +2678,7 @@ png_handle_unknown(png_structp png_ptr, png_infop info_ptr, png_uint_32 length)
    png_crc_finish(png_ptr, skip);
 
 #ifndef PNG_READ_USER_CHUNKS_SUPPORTED
-   info_ptr = info_ptr; 
+   PNG_UNUSED(info_ptr) 
 #endif
 }
 
@@ -3077,7 +3134,7 @@ png_do_read_interlace(png_structp png_ptr)
       row_info->rowbytes = PNG_ROWBYTES(row_info->pixel_depth, final_width);
    }
 #ifndef PNG_READ_PACKSWAP_SUPPORTED
-   transformations = transformations; 
+   PNG_UNUSED(transformations)  
 #endif
 }
 #endif 
@@ -3087,7 +3144,8 @@ png_read_filter_row(png_structp png_ptr, png_row_infop row_info, png_bytep row,
    png_bytep prev_row, int filter)
 {
    png_debug(1, "in png_read_filter_row");
-   png_debug2(2, "row = %lu, filter = %d", png_ptr->row_number, filter);
+   png_debug2(2, "row = %lu, filter = %d",
+      (unsigned long)png_ptr->row_number, filter);
    switch (filter)
    {
       case PNG_FILTER_VALUE_NONE:
@@ -3278,17 +3336,10 @@ png_read_finish_row(png_structp png_ptr)
          {
             while (!png_ptr->idat_size)
             {
-               png_byte chunk_length[4];
-
                png_crc_finish(png_ptr, 0);
-
-               png_read_data(png_ptr, chunk_length, 4);
-               png_ptr->idat_size = png_get_uint_31(png_ptr, chunk_length);
-               png_reset_crc(png_ptr);
-               png_crc_read(png_ptr, png_ptr->chunk_name, 4);
+               png_ptr->idat_size = png_read_chunk_header(png_ptr);
                if (png_memcmp(png_ptr->chunk_name, png_IDAT, 4))
                   png_error(png_ptr, "Not enough image data");
-
             }
             png_ptr->zstream.avail_in = (uInt)png_ptr->zbuf_size;
             png_ptr->zstream.next_in = png_ptr->zbuf;
@@ -3535,13 +3586,13 @@ defined(PNG_USER_TRANSFORM_PTR_SUPPORTED)
 
    png_memset(png_ptr->prev_row, 0, png_ptr->rowbytes + 1);
 
-   png_debug1(3, "width = %lu,", png_ptr->width);
-   png_debug1(3, "height = %lu,", png_ptr->height);
-   png_debug1(3, "iwidth = %lu,", png_ptr->iwidth);
-   png_debug1(3, "num_rows = %lu,", png_ptr->num_rows);
-   png_debug1(3, "rowbytes = %lu,", png_ptr->rowbytes);
+   png_debug1(3, "width = %lu,", (unsigned long)png_ptr->width);
+   png_debug1(3, "height = %lu,", (unsigned long)png_ptr->height);
+   png_debug1(3, "iwidth = %lu,", (unsigned long)png_ptr->iwidth);
+   png_debug1(3, "num_rows = %lu,", (unsigned long)png_ptr->num_rows);
+   png_debug1(3, "rowbytes = %lu,", (unsigned long)png_ptr->rowbytes);
    png_debug1(3, "irowbytes = %lu",
-       PNG_ROWBYTES(png_ptr->pixel_depth, png_ptr->iwidth) + 1);
+       (unsigned long)PNG_ROWBYTES(png_ptr->pixel_depth, png_ptr->iwidth) + 1);
 
    png_ptr->flags |= PNG_FLAG_ROW_INIT;
 }
@@ -3585,7 +3636,7 @@ png_progressive_read_reset(png_structp png_ptr)
 
     
     const int FARDATA png_pass_yinc[] = {8, 8, 8, 4, 4, 2, 2};
-    
+
     if (png_ptr->interlaced)
     {
         if (!(png_ptr->transformations & PNG_INTERLACE))

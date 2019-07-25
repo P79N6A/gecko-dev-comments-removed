@@ -46,10 +46,10 @@
 
 
 #ifdef PNG_USER_CONFIG
+#  include "pngusr.h"
 #  ifndef PNG_USER_PRIVATEBUILD
 #    define PNG_USER_PRIVATEBUILD
 #  endif
-#  include "pngusr.h"
 #endif
 
 
@@ -84,6 +84,18 @@
 #  endif
 #endif 
 
+
+
+
+#ifndef PNG_UNUSED
+
+
+
+
+
+
+#  define PNG_UNUSED(param) (void)param;
+#endif
 
 
 #ifndef PNG_VERSION_INFO_ONLY
@@ -271,10 +283,18 @@
 
 
 
+#ifdef _WIN32_WCE
+#  define PNG_NO_CONSOLE_IO
+#  define PNG_NO_STDIO
+#  define PNG_NO_TIME_RFC1123
+#  ifdef PNG_DEBUG
+#    undef PNG_DEBUG
+#  endif
+#endif
+
 #if !defined(PNG_NO_STDIO) && !defined(PNG_STDIO_SUPPORTED)
 #  define PNG_STDIO_SUPPORTED
 #endif
-
 
 #ifdef PNG_BUILD_DLL
 #  if !defined(PNG_CONSOLE_IO_SUPPORTED) && !defined(PNG_NO_CONSOLE_IO)
@@ -451,6 +471,8 @@
 #    define PNG_CONST
 #  endif
 #endif
+
+
 
 
 
@@ -1129,7 +1151,7 @@ typedef unsigned char png_byte;
 #else
    typedef size_t png_size_t;
 #endif
-#define png_sizeof(x) sizeof(x)
+#define png_sizeof(x) (sizeof (x))
 
 
 
@@ -1251,6 +1273,13 @@ typedef char            FAR * FAR * FAR * png_charppp;
 #  define PNG_DLL
 #endif
 
+
+
+
+
+
+
+
 #ifdef __CYGWIN__
 #  undef PNGAPI
 #  define PNGAPI __cdecl
@@ -1258,14 +1287,11 @@ typedef char            FAR * FAR * FAR * png_charppp;
 #  define PNG_IMPEXP
 #endif
 
-#define PNG_USE_LOCAL_ARRAYS
-
-
-
-
-
-
-
+#ifdef __WATCOMC__
+#  ifndef PNGAPI
+#    define PNGAPI
+#  endif
+#endif
 
 #if defined(__MINGW32__) && !defined(PNG_MODULEDEF)
 #  ifndef PNG_NO_MODULEDEF
@@ -1350,6 +1376,8 @@ typedef char            FAR * FAR * FAR * png_charppp;
 #  define PNG_EXPORT(type,symbol) PNG_IMPEXP type PNGAPI symbol
 #endif
 
+#define PNG_USE_LOCAL_ARRAYS
+
 
 
 
@@ -1379,14 +1407,14 @@ typedef char            FAR * FAR * FAR * png_charppp;
 #    ifndef PNG_ALLOCATED
 #      define PNG_ALLOCATED  __attribute__((__malloc__))
 #    endif
+#    ifndef PNG_DEPRECATED
+#      define PNG_DEPRECATED __attribute__((__deprecated__))
+#    endif
 
     
 
 
 
-#    ifndef PNG_DEPRECATED
-#      define PNG_DEPRECATED __attribute__((__deprecated__))
-#    endif
 #    ifndef PNG_DEPSTRUCT
 #      define PNG_DEPSTRUCT  __attribute__((__deprecated__))
 #    endif
@@ -1427,7 +1455,7 @@ typedef char            FAR * FAR * FAR * png_charppp;
 
 
 #ifndef PNG_ABORT
-#  ifdef _WINDOWS_
+#  if (defined(_Windows) || defined(_WINDOWS) || defined(_WINDOWS_))
 #     define PNG_ABORT() ExitProcess(0)
 #  else
 #     define PNG_ABORT() abort()
@@ -1448,7 +1476,8 @@ typedef char            FAR * FAR * FAR * png_charppp;
 #  define png_memset  _fmemset
 #  define png_sprintf sprintf
 #else
-#  ifdef _WINDOWS_  
+#  if (defined(_Windows) || defined(_WINDOWS) || defined(_WINDOWS_))
+#    
 #    define CVT_PTR(ptr)         (ptr)
 #    define CVT_PTR_NOCHECK(ptr) (ptr)
 #    define png_strcpy  lstrcpyA
@@ -1468,29 +1497,30 @@ typedef char            FAR * FAR * FAR * png_charppp;
 #    define png_memcpy  memcpy
 #    define png_memset  memset
 #    define png_sprintf sprintf
-#    ifndef PNG_NO_SNPRINTF
-#      ifdef _MSC_VER
-#        define png_snprintf _snprintf   /* Added to v 1.2.19 */
-#        define png_snprintf2 _snprintf
-#        define png_snprintf6 _snprintf
-#      else
-#        define png_snprintf snprintf   /* Added to v 1.2.19 */
-#        define png_snprintf2 snprintf
-#        define png_snprintf6 snprintf
-#      endif
-#    else
-       
-
-
-
-
-
-#      define png_snprintf(s1,n,fmt,x1) sprintf(s1,fmt,x1)
-#      define png_snprintf2(s1,n,fmt,x1,x2) sprintf(s1,fmt,x1,x2)
-#      define png_snprintf6(s1,n,fmt,x1,x2,x3,x4,x5,x6) \
-          sprintf(s1,fmt,x1,x2,x3,x4,x5,x6)
-#    endif
 #  endif
+#endif
+
+#ifndef PNG_NO_SNPRINTF
+#  ifdef _MSC_VER
+#    define png_snprintf _snprintf   /* Added to v 1.2.19 */
+#    define png_snprintf2 _snprintf
+#    define png_snprintf6 _snprintf
+#  else
+#    define png_snprintf snprintf   /* Added to v 1.2.19 */
+#    define png_snprintf2 snprintf
+#    define png_snprintf6 snprintf
+#  endif
+#else
+   
+
+
+
+
+
+#  define png_snprintf(s1,n,fmt,x1) png_sprintf(s1,fmt,x1)
+#  define png_snprintf2(s1,n,fmt,x1,x2) png_sprintf(s1,fmt,x1,x2)
+#  define png_snprintf6(s1,n,fmt,x1,x2,x3,x4,x5,x6) \
+      png_sprintf(s1,fmt,x1,x2,x3,x4,x5,x6)
 #endif
 
 
@@ -1503,22 +1533,19 @@ typedef char            FAR * FAR * FAR * png_charppp;
 
 
 #if defined(__TURBOC__) && !defined(__FLAT__)
-#  define  png_mem_alloc farmalloc
-#  define  png_mem_free  farfree
    typedef unsigned long png_alloc_size_t;
 #else
 #  if defined(_MSC_VER) && defined(MAXSEG_64K)
-#    define  png_mem_alloc(s) halloc(s, 1)
-#    define  png_mem_free     hfree
      typedef unsigned long    png_alloc_size_t;
 #  else
-#    if defined(_WINDOWS_) && (!defined(INT_MAX) || INT_MAX <= 0x7ffffffeL)
-#      define  png_mem_alloc(s) HeapAlloc(GetProcessHeap(), 0, s)
-#      define  png_mem_free(p)  HeapFree(GetProcessHeap(), 0, p)
-       typedef DWORD            png_alloc_size_t;
+     
+
+
+
+#    if (defined(_Windows) || defined(_WINDOWS) || defined(_WINDOWS_)) && \
+        (!defined(INT_MAX) || INT_MAX <= 0x7ffffffeL)
+       typedef DWORD         png_alloc_size_t;
 #    else
-#      define  png_mem_alloc malloc
-#      define  png_mem_free  free
        typedef png_size_t    png_alloc_size_t;
 #    endif
 #  endif

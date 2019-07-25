@@ -662,7 +662,7 @@ png_set_user_transform_info(png_structp png_ptr, png_voidp
 
 
 png_voidp PNGAPI
-png_get_user_transform_ptr(png_structp png_ptr)
+png_get_user_transform_ptr(png_const_structp png_ptr)
 {
    if (png_ptr == NULL)
       return (NULL);
