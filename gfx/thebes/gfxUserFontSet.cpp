@@ -373,7 +373,8 @@ SanitizeOpenTypeData(const PRUint8* aData, PRUint32 aLength,
 }
 
 static void
-StoreUserFontData(gfxFontEntry* aFontEntry, gfxProxyFontEntry* aProxy)
+StoreUserFontData(gfxFontEntry* aFontEntry, gfxProxyFontEntry* aProxy,
+                  nsTArray<PRUint8>* aMetadata, PRUint32 aMetaOrigLen)
 {
     if (!aFontEntry->mUserFontData) {
         aFontEntry->mUserFontData = new gfxUserFontData;
@@ -387,6 +388,54 @@ StoreUserFontData(gfxFontEntry* aFontEntry, gfxProxyFontEntry* aProxy)
         userFontData->mURI = src.mURI;
     }
     userFontData->mFormat = src.mFormatFlags;
+    if (aMetadata) {
+        userFontData->mMetadata.SwapElements(*aMetadata);
+        userFontData->mMetaOrigLen = aMetaOrigLen;
+    }
+}
+
+static void
+CopyWOFFMetadata(const PRUint8* aFontData, PRUint32 aLength,
+                 nsTArray<PRUint8>* aMetadata, PRUint32* aMetaOrigLen)
+{
+    
+    
+    
+    
+    
+    
+    struct WOFFHeader {
+        AutoSwap_PRUint32 signature;
+        AutoSwap_PRUint32 flavor;
+        AutoSwap_PRUint32 length;
+        AutoSwap_PRUint16 numTables;
+        AutoSwap_PRUint16 reserved;
+        AutoSwap_PRUint32 totalSfntSize;
+        AutoSwap_PRUint16 majorVersion;
+        AutoSwap_PRUint16 minorVersion;
+        AutoSwap_PRUint32 metaOffset;
+        AutoSwap_PRUint32 metaCompLen;
+        AutoSwap_PRUint32 metaOrigLen;
+        AutoSwap_PRUint32 privOffset;
+        AutoSwap_PRUint32 privLen;
+    };
+    if (aLength < sizeof(WOFFHeader)) {
+        return;
+    }
+    const WOFFHeader* woff = reinterpret_cast<const WOFFHeader*>(aFontData);
+    PRUint32 metaOffset = woff->metaOffset;
+    PRUint32 metaCompLen = woff->metaCompLen;
+    if (!metaOffset || !metaCompLen || !woff->metaOrigLen) {
+        return;
+    }
+    if (metaOffset >= aLength || metaCompLen > aLength - metaOffset) {
+        return;
+    }
+    if (!aMetadata->SetLength(woff->metaCompLen)) {
+        return;
+    }
+    memcpy(aMetadata->Elements(), aFontData + metaOffset, metaCompLen);
+    *aMetaOrigLen = woff->metaOrigLen;
 }
 
 
@@ -401,14 +450,26 @@ gfxUserFontSet::OnLoadComplete(gfxProxyFontEntry *aProxy,
     if (NS_SUCCEEDED(aDownloadStatus)) {
         gfxFontEntry *fe = nsnull;
 
+        gfxUserFontType fontType =
+            gfxFontUtils::DetermineFontDataType(aFontData, aLength);
+
+        
+        
+        
+        
+        
+        
+        nsTArray<PRUint8> metadata;
+        PRUint32 metaOrigLen = 0;
+        if (fontType == GFX_USERFONT_WOFF) {
+            CopyWOFFMetadata(aFontData, aLength, &metadata, &metaOrigLen);
+        }
+
         
         
 
         if (gfxPlatform::GetPlatform()->SanitizeDownloadedFonts()) {
-            gfxUserFontType fontType =
-                gfxFontUtils::DetermineFontDataType(aFontData, aLength);
-
-            
+           
             
             PRUint32 saneLen;
             const PRUint8* saneData =
@@ -464,7 +525,7 @@ gfxUserFontSet::OnLoadComplete(gfxProxyFontEntry *aProxy,
             
             fe->mFeatureSettings.AppendElements(aProxy->mFeatureSettings);
             fe->mLanguageOverride = aProxy->mLanguageOverride;
-            StoreUserFontData(fe, aProxy);
+            StoreUserFontData(fe, aProxy, &metadata, metaOrigLen);
 #ifdef PR_LOGGING
             
             
@@ -556,7 +617,7 @@ gfxUserFontSet::LoadNext(gfxProxyFontEntry *aProxyEntry)
                      PRUint32(mGeneration)));
                 fe->mFeatureSettings.AppendElements(aProxyEntry->mFeatureSettings);
                 fe->mLanguageOverride = aProxyEntry->mLanguageOverride;
-                StoreUserFontData(fe, aProxyEntry);
+                StoreUserFontData(fe, aProxyEntry, nsnull, 0);
                 ReplaceFontEntry(aProxyEntry, fe);
                 return STATUS_LOADED;
             } else {
