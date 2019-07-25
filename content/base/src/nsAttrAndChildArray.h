@@ -173,6 +173,14 @@ private:
   PRBool GrowBy(PRUint32 aGrowSize);
   PRBool AddAttrSlot();
 
+  
+
+
+
+
+  inline void SetChildAtPos(void** aPos, nsIContent* aChild, PRUint32 aIndex,
+                            PRUint32 aChildCount);
+
   struct InternalAttr
   {
     nsAttrName mName;
