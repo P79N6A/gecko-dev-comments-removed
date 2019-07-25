@@ -462,6 +462,15 @@ public:
   virtual void HandleEvent(nsEventChainPostVisitor& aVisitor)
   {
     if (aVisitor.mPresContext && aVisitor.mEvent->eventStructType != NS_EVENT) {
+      if (aVisitor.mEvent->message == NS_MOUSE_BUTTON_DOWN ||
+          aVisitor.mEvent->message == NS_MOUSE_BUTTON_UP) {
+        
+        
+        
+        
+        
+        mPresShell->FlushPendingNotifications(Flush_Layout);
+      }
       nsIFrame* frame = mPresShell->GetCurrentEventFrame();
       if (frame) {
         frame->HandleEvent(aVisitor.mPresContext,
