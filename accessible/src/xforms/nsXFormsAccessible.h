@@ -90,7 +90,7 @@ public:
 
   
   
-  virtual PRBool GetAllowsAnonChildAccessibles();
+  virtual bool GetAllowsAnonChildAccessibles();
 
 protected:
   
@@ -131,7 +131,7 @@ public:
 
   
   
-  virtual PRBool GetAllowsAnonChildAccessibles();
+  virtual bool GetAllowsAnonChildAccessibles();
 };
 
 
@@ -176,7 +176,7 @@ protected:
   nsIContent* GetItemByIndex(PRUint32* aIndex,
                              nsAccessible* aAccessible = nsnull);
 
-  PRBool mIsSelect1Element;
+  bool mIsSelect1Element;
 };
 
 

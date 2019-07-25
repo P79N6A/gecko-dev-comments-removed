@@ -93,7 +93,7 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
   }
 
   nsWeakFrame weakFrame(this);
-  PRBool doDefault = PR_TRUE;
+  bool doDefault = true;
 
   switch (aEvent->message) {
     case NS_MOUSE_BUTTON_DOWN: {
@@ -123,23 +123,27 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
           }
 
           mMouseDownRect = rect.ToNearestPixels(aPresContext->AppUnitsPerDevPixel());
+          doDefault = PR_FALSE;
         }
         else {
+          
+          if (!window)
+            break;
+
+          doDefault = PR_FALSE;
+            
           
           Direction direction = GetDirection();
           nsresult rv = aEvent->widget->BeginResizeDrag(aEvent,
                         direction.mHorizontal, direction.mVertical);
-          if (rv == NS_ERROR_NOT_IMPLEMENTED && window) {
-            
-            
-            window->GetPositionAndSize(&mMouseDownRect.x, &mMouseDownRect.y,
-                                       &mMouseDownRect.width, &mMouseDownRect.height);
-          }
-          else {
-            
-            doDefault = PR_FALSE;
-            break;
-          }
+          
+          if (rv != NS_ERROR_NOT_IMPLEMENTED)
+             break;
+             
+          
+          
+          window->GetPositionAndSize(&mMouseDownRect.x, &mMouseDownRect.y,
+                                     &mMouseDownRect.width, &mMouseDownRect.height);
         }
 
         
@@ -149,8 +153,6 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
         mMouseDownPoint = aEvent->refPoint + aEvent->widget->WidgetToScreenOffset();
 
         nsIPresShell::SetCapturingContent(GetContent(), CAPTURE_IGNOREALLOWED);
-
-        doDefault = PR_FALSE;
       }
     }
     break;
@@ -345,7 +347,7 @@ nsResizerFrame::GetContentToResize(nsIPresShell* aPresShell, nsIBaseWindow** aWi
     }
 
     
-    PRBool isChromeShell = PR_FALSE;
+    bool isChromeShell = false;
     nsCOMPtr<nsISupports> cont = aPresShell->GetPresContext()->GetContainer();
     nsCOMPtr<nsIDocShellTreeItem> dsti = do_QueryInterface(cont);
     if (dsti) {
@@ -358,7 +360,7 @@ nsResizerFrame::GetContentToResize(nsIPresShell* aPresShell, nsIBaseWindow** aWi
       
       
       nsIContent* nonNativeAnon = mContent->FindFirstNonNativeAnonymous();
-      if (nonNativeAnon && !nonNativeAnon->GetParent()) {
+      if (!nonNativeAnon || nonNativeAnon->GetParent()) {
         return nsnull;
       }
     }

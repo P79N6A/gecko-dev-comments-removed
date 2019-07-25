@@ -213,17 +213,17 @@ class nsTSubstring_CharT
           return mLength;
         }
 
-      PRBool IsEmpty() const
+      bool IsEmpty() const
         {
           return mLength == 0;
         }
 
-      PRBool IsVoid() const
+      bool IsVoid() const
         {
           return (mFlags & F_VOIDED) != 0;
         }
 
-      PRBool IsTerminated() const
+      bool IsTerminated() const
         {
           return (mFlags & F_TERMINATED) != 0;
         }
@@ -260,24 +260,24 @@ class nsTSubstring_CharT
 
 
 
-      PRBool NS_FASTCALL Equals( const self_type& ) const;
-      PRBool NS_FASTCALL Equals( const self_type&, const comparator_type& ) const;
+      bool NS_FASTCALL Equals( const self_type& ) const;
+      bool NS_FASTCALL Equals( const self_type&, const comparator_type& ) const;
 
-      PRBool NS_FASTCALL Equals( const char_type* data ) const;
-      PRBool NS_FASTCALL Equals( const char_type* data, const comparator_type& comp ) const;
+      bool NS_FASTCALL Equals( const char_type* data ) const;
+      bool NS_FASTCALL Equals( const char_type* data, const comparator_type& comp ) const;
 
         
 
 
 
 
-      PRBool NS_FASTCALL EqualsASCII( const char* data, size_type len ) const;
+      bool NS_FASTCALL EqualsASCII( const char* data, size_type len ) const;
         
 
 
 
 
-      PRBool NS_FASTCALL EqualsASCII( const char* data ) const;
+      bool NS_FASTCALL EqualsASCII( const char* data ) const;
 
     
     
@@ -285,18 +285,18 @@ class nsTSubstring_CharT
     
     
 #ifdef NS_DISABLE_LITERAL_TEMPLATE
-      inline PRBool EqualsLiteral( const char* str ) const
+      inline bool EqualsLiteral( const char* str ) const
         {
           return EqualsASCII(str);
         }
 #else
       template<int N>
-      inline PRBool EqualsLiteral( const char (&str)[N] ) const
+      inline bool EqualsLiteral( const char (&str)[N] ) const
         {
           return EqualsASCII(str, N-1);
         }
       template<int N>
-      inline PRBool EqualsLiteral( char (&str)[N] ) const
+      inline bool EqualsLiteral( char (&str)[N] ) const
         {
           const char* s = str;
           return EqualsASCII(s, N-1);
@@ -308,26 +308,26 @@ class nsTSubstring_CharT
     
     
     
-      PRBool NS_FASTCALL LowerCaseEqualsASCII( const char* data, size_type len ) const;
-      PRBool NS_FASTCALL LowerCaseEqualsASCII( const char* data ) const;
+      bool NS_FASTCALL LowerCaseEqualsASCII( const char* data, size_type len ) const;
+      bool NS_FASTCALL LowerCaseEqualsASCII( const char* data ) const;
 
     
     
     
     
 #ifdef NS_DISABLE_LITERAL_TEMPLATE
-      inline PRBool LowerCaseEqualsLiteral( const char* str ) const
+      inline bool LowerCaseEqualsLiteral( const char* str ) const
         {
           return LowerCaseEqualsASCII(str);
         }
 #else
       template<int N>
-      inline PRBool LowerCaseEqualsLiteral( const char (&str)[N] ) const
+      inline bool LowerCaseEqualsLiteral( const char (&str)[N] ) const
         {
           return LowerCaseEqualsASCII(str, N-1);
         }
       template<int N>
-      inline PRBool LowerCaseEqualsLiteral( char (&str)[N] ) const
+      inline bool LowerCaseEqualsLiteral( char (&str)[N] ) const
         {
           const char* s = str;
           return LowerCaseEqualsASCII(s, N-1);
@@ -470,7 +470,7 @@ class nsTSubstring_CharT
 
 
 
-      PRBool NS_FASTCALL SetCapacity( size_type newCapacity );
+      bool NS_FASTCALL SetCapacity( size_type newCapacity );
 
       void NS_FASTCALL SetLength( size_type newLength );
 
@@ -526,7 +526,7 @@ class nsTSubstring_CharT
 
 
 
-      void NS_FASTCALL SetIsVoid( PRBool );
+      void NS_FASTCALL SetIsVoid( bool );
 
         
 
@@ -649,7 +649,7 @@ class nsTSubstring_CharT
 
 
 
-      PRBool NS_FASTCALL MutatePrep( size_type capacity, char_type** old_data, PRUint32* old_flags );
+      bool NS_FASTCALL MutatePrep( size_type capacity, char_type** old_data, PRUint32* old_flags );
 
         
 
@@ -671,7 +671,7 @@ class nsTSubstring_CharT
 
 
 
-      PRBool ReplacePrep(index_type cutStart, size_type cutLength,
+      bool ReplacePrep(index_type cutStart, size_type cutLength,
                          size_type newLength)
       {
         cutLength = NS_MIN(cutLength, mLength - cutStart);
@@ -685,7 +685,7 @@ class nsTSubstring_CharT
         return ReplacePrepInternal(cutStart, cutLength, newLength, newTotalLen);
       }
 
-      PRBool NS_FASTCALL ReplacePrepInternal(index_type cutStart,
+      bool NS_FASTCALL ReplacePrepInternal(index_type cutStart,
                                              size_type cutLength,
                                              size_type newFragLength,
                                              size_type newTotalLength);
@@ -703,12 +703,12 @@ class nsTSubstring_CharT
 
 
 
-      PRBool NS_FASTCALL EnsureMutable( size_type newLen = size_type(-1) );
+      bool NS_FASTCALL EnsureMutable( size_type newLen = size_type(-1) );
 
         
 
 
-      PRBool IsDependentOn( const char_type *start, const char_type *end ) const
+      bool IsDependentOn( const char_type *start, const char_type *end ) const
         {
           
 
@@ -792,37 +792,37 @@ int NS_FASTCALL Compare( const nsTSubstring_CharT::base_string_type& lhs, const 
 
 
 inline
-PRBool operator!=( const nsTSubstring_CharT::base_string_type& lhs, const nsTSubstring_CharT::base_string_type& rhs )
+bool operator!=( const nsTSubstring_CharT::base_string_type& lhs, const nsTSubstring_CharT::base_string_type& rhs )
   {
     return !lhs.Equals(rhs);
   }
 
 inline
-PRBool operator< ( const nsTSubstring_CharT::base_string_type& lhs, const nsTSubstring_CharT::base_string_type& rhs )
+bool operator< ( const nsTSubstring_CharT::base_string_type& lhs, const nsTSubstring_CharT::base_string_type& rhs )
   {
     return Compare(lhs, rhs)< 0;
   }
 
 inline
-PRBool operator<=( const nsTSubstring_CharT::base_string_type& lhs, const nsTSubstring_CharT::base_string_type& rhs )
+bool operator<=( const nsTSubstring_CharT::base_string_type& lhs, const nsTSubstring_CharT::base_string_type& rhs )
   {
     return Compare(lhs, rhs)<=0;
   }
 
 inline
-PRBool operator==( const nsTSubstring_CharT::base_string_type& lhs, const nsTSubstring_CharT::base_string_type& rhs )
+bool operator==( const nsTSubstring_CharT::base_string_type& lhs, const nsTSubstring_CharT::base_string_type& rhs )
   {
     return lhs.Equals(rhs);
   }
 
 inline
-PRBool operator>=( const nsTSubstring_CharT::base_string_type& lhs, const nsTSubstring_CharT::base_string_type& rhs )
+bool operator>=( const nsTSubstring_CharT::base_string_type& lhs, const nsTSubstring_CharT::base_string_type& rhs )
   {
     return Compare(lhs, rhs)>=0;
   }
 
 inline
-PRBool operator> ( const nsTSubstring_CharT::base_string_type& lhs, const nsTSubstring_CharT::base_string_type& rhs )
+bool operator> ( const nsTSubstring_CharT::base_string_type& lhs, const nsTSubstring_CharT::base_string_type& rhs )
   {
     return Compare(lhs, rhs)> 0;
   }

@@ -138,11 +138,11 @@ public:
 
 
 
-  PRBool GetEnabled()
+  bool GetEnabled()
   {
     return mEnabled;
   }
-  void SetEnabled(PRBool aEnabled)
+  void SetEnabled(bool aEnabled)
   {
     if (!mEnabled && aEnabled) {
       ProcessPendingRequestsAsync();
@@ -199,7 +199,7 @@ public:
 
 
 
-  static PRBool ShouldExecuteScript(nsIDocument* aDocument,
+  static bool ShouldExecuteScript(nsIDocument* aDocument,
                                     nsIChannel* aChannel);
 
   
@@ -223,7 +223,7 @@ public:
 
 
 
-  void ParsingComplete(PRBool aTerminated);
+  void ParsingComplete(bool aTerminated);
 
   
 
@@ -272,17 +272,17 @@ private:
 
 
 
-  PRBool ReadyToExecuteScripts();
+  bool ReadyToExecuteScripts();
 
   
 
 
-  PRBool SelfReadyToExecuteScripts()
+  bool SelfReadyToExecuteScripts()
   {
     return mEnabled && !mBlockerCount;
   }
 
-  PRBool AddPendingChildLoader(nsScriptLoader* aChild) {
+  bool AddPendingChildLoader(nsScriptLoader* aChild) {
     return mPendingChildLoaders.AppendElement(aChild) != nsnull;
   }
   
@@ -315,14 +315,14 @@ private:
   };
 
   struct PreloadRequestComparator {
-    PRBool Equals(const PreloadInfo &aPi, nsScriptLoadRequest * const &aRequest)
+    bool Equals(const PreloadInfo &aPi, nsScriptLoadRequest * const &aRequest)
         const
     {
       return aRequest == aPi.mRequest;
     }
   };
   struct PreloadURIComparator {
-    PRBool Equals(const PreloadInfo &aPi, nsIURI * const &aURI) const;
+    bool Equals(const PreloadInfo &aPi, nsIURI * const &aURI) const;
   };
   nsTArray<PreloadInfo> mPreloads;
 
@@ -331,9 +331,9 @@ private:
   
   nsTArray< nsRefPtr<nsScriptLoader> > mPendingChildLoaders;
   PRUint32 mBlockerCount;
-  PRPackedBool mEnabled;
-  PRPackedBool mDeferEnabled;
-  PRPackedBool mDocumentParsingDone;
+  bool mEnabled;
+  bool mDeferEnabled;
+  bool mDocumentParsingDone;
 };
 
 class nsAutoScriptLoaderDisabler
@@ -355,7 +355,7 @@ public:
     }
   }
   
-  PRBool mWasEnabled;
+  bool mWasEnabled;
   nsRefPtr<nsScriptLoader> mLoader;
 };
 

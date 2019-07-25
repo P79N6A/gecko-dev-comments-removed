@@ -124,7 +124,7 @@ public:
 
 
 
-  NS_IMETHOD IsEnabled(PRInt32 aTag, PRBool* aReturn) = 0;
+  NS_IMETHOD IsEnabled(PRInt32 aTag, bool* aReturn) = 0;
 
   
 
@@ -229,7 +229,7 @@ public:
 
 
 
-  NS_IMETHOD_(PRBool) IsFormOnStack() = 0;
+  NS_IMETHOD_(bool) IsFormOnStack() = 0;
 
 };
 

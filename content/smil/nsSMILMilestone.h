@@ -66,7 +66,7 @@
 class nsSMILMilestone
 {
 public:
-  nsSMILMilestone(nsSMILTime aTime, PRBool aIsEnd)
+  nsSMILMilestone(nsSMILTime aTime, bool aIsEnd)
     : mTime(aTime), mIsEnd(aIsEnd)
   { }
 
@@ -74,36 +74,36 @@ public:
     : mTime(0), mIsEnd(PR_FALSE)
   { }
 
-  PRBool operator==(const nsSMILMilestone& aOther) const
+  bool operator==(const nsSMILMilestone& aOther) const
   {
     return mTime == aOther.mTime && mIsEnd == aOther.mIsEnd;
   }
 
-  PRBool operator!=(const nsSMILMilestone& aOther) const
+  bool operator!=(const nsSMILMilestone& aOther) const
   {
     return !(*this == aOther);
   }
 
-  PRBool operator<(const nsSMILMilestone& aOther) const
+  bool operator<(const nsSMILMilestone& aOther) const
   {
     
     return mTime < aOther.mTime ||
           (mTime == aOther.mTime && mIsEnd && !aOther.mIsEnd);
   }
 
-  PRBool operator<=(const nsSMILMilestone& aOther) const
+  bool operator<=(const nsSMILMilestone& aOther) const
   {
     return *this == aOther || *this < aOther;
   }
 
-  PRBool operator>=(const nsSMILMilestone& aOther) const
+  bool operator>=(const nsSMILMilestone& aOther) const
   {
     return !(*this < aOther);
   }
 
   nsSMILTime   mTime;  
                        
-  PRPackedBool mIsEnd; 
+  bool mIsEnd; 
                        
 };
 

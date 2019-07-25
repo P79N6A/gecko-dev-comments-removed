@@ -148,9 +148,9 @@ OfflineCacheUpdateParent::UpdateStateChanged(nsIOfflineCacheUpdate *aUpdate, PRU
         
         
         
-        PRBool isUpgrade;
+        bool isUpgrade;
         aUpdate->GetIsUpgrade(&isUpgrade);
-        PRBool succeeded;
+        bool succeeded;
         aUpdate->GetSucceeded(&succeeded);
 
         SendFinish(succeeded, isUpgrade);

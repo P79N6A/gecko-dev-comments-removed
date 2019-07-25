@@ -37,8 +37,6 @@
 
 
 
-#include "jsobj.h"
-
 #include "WrapperFactory.h"
 #include "CrossOriginWrapper.h"
 #include "FilteringWrapper.h"
@@ -49,6 +47,8 @@
 #include "xpcprivate.h"
 #include "xpcmaps.h"
 
+using namespace js;
+
 namespace xpc {
 
 
@@ -58,7 +58,7 @@ namespace xpc {
 
 
 
-JSWrapper WaiveXrayWrapperWrapper(WrapperFactory::WAIVE_XRAY_WRAPPER_FLAG);
+Wrapper WaiveXrayWrapperWrapper(WrapperFactory::WAIVE_XRAY_WRAPPER_FLAG);
 
 
 
@@ -76,10 +76,10 @@ CrossOriginWrapper CrossOriginWrapper::singleton(0);
 static JSObject *
 GetCurrentOuter(JSContext *cx, JSObject *obj)
 {
-    OBJ_TO_OUTER_OBJECT(cx, obj);
-    if (obj->isWrapper() && !obj->getClass()->ext.innerObject) {
-        obj = obj->unwrap();
-        NS_ASSERTION(obj->getClass()->ext.innerObject,
+    obj = JS_ObjectToOuterObject(cx, obj);
+    if (IsWrapper(obj) && !js::GetObjectClass(obj)->ext.innerObject) {
+        obj = UnwrapObject(obj);
+        NS_ASSERTION(js::GetObjectClass(obj)->ext.innerObject,
                      "weird object, expecting an outer window proxy");
     }
 
@@ -89,7 +89,7 @@ GetCurrentOuter(JSContext *cx, JSObject *obj)
 JSObject *
 WrapperFactory::WaiveXray(JSContext *cx, JSObject *obj)
 {
-    obj = obj->unwrap();
+    obj = UnwrapObject(obj);
 
     
     
@@ -98,22 +98,22 @@ WrapperFactory::WaiveXray(JSContext *cx, JSObject *obj)
     {
         
         CompartmentPrivate *priv =
-            (CompartmentPrivate *)JS_GetCompartmentPrivate(cx, obj->compartment());
+            (CompartmentPrivate *)JS_GetCompartmentPrivate(cx, js::GetObjectCompartment(obj));
         JSObject *wobj = nsnull;
         if (priv && priv->waiverWrapperMap)
             wobj = priv->waiverWrapperMap->Find(obj);
 
         
         if (!wobj) {
-            JSObject *proto = obj->getProto();
+            JSObject *proto = js::GetObjectProto(obj);
             if (proto && !(proto = WaiveXray(cx, proto)))
                 return nsnull;
 
             JSAutoEnterCompartment ac;
             if (!ac.enter(cx, obj) || !JS_WrapObject(cx, &proto))
                 return nsnull;
-            wobj = JSWrapper::New(cx, obj, proto, JS_GetGlobalForObject(cx, obj),
-                                  &WaiveXrayWrapperWrapper);
+            wobj = Wrapper::New(cx, obj, proto, JS_GetGlobalForObject(cx, obj),
+                                &WaiveXrayWrapperWrapper);
             if (!wobj)
                 return nsnull;
 
@@ -156,12 +156,12 @@ JSObject *
 WrapperFactory::PrepareForWrapping(JSContext *cx, JSObject *scope, JSObject *obj, uintN flags)
 {
     
-    if (obj->getClass()->ext.innerObject)
+    if (js::GetObjectClass(obj)->ext.innerObject)
         return DoubleWrap(cx, obj, flags);
 
     
     
-    JS_ASSERT(!obj->isWrapper());
+    JS_ASSERT(!IsWrapper(obj));
 
     
     
@@ -170,7 +170,7 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, JSObject *scope, JSObject *obj
 
     
     obj = GetCurrentOuter(cx, obj);
-    if (obj->getClass()->ext.innerObject)
+    if (js::GetObjectClass(obj)->ext.innerObject)
         return DoubleWrap(cx, obj, flags);
 
     
@@ -178,7 +178,7 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, JSObject *scope, JSObject *obj
     
     
     
-    if (!IS_WN_WRAPPER(obj) || !obj->getParent())
+    if (!IS_WN_WRAPPER(obj) || !js::GetObjectParent(obj))
         return DoubleWrap(cx, obj, flags);
 
     XPCWrappedNative *wn = static_cast<XPCWrappedNative *>(xpc_GetJSPrivate(obj));
@@ -206,7 +206,7 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, JSObject *scope, JSObject *obj
             
             
             
-            if (originalScope->compartment() != scope->getCompartment())
+            if (js::GetObjectCompartment(originalScope) != js::GetObjectCompartment(scope))
                 return DoubleWrap(cx, obj, flags);
 
             
@@ -242,9 +242,9 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, JSObject *scope, JSObject *obj
 static XPCWrappedNative *
 GetWrappedNative(JSContext *cx, JSObject *obj)
 {
-    OBJ_TO_INNER_OBJECT(cx, obj);
+    obj = JS_ObjectToInnerObject(cx, obj);
     return IS_WN_WRAPPER(obj)
-           ? static_cast<XPCWrappedNative *>(obj->getPrivate())
+           ? static_cast<XPCWrappedNative *>(js::GetObjectPrivate(obj))
            : nsnull;
 }
 
@@ -252,23 +252,22 @@ JSObject *
 WrapperFactory::Rewrap(JSContext *cx, JSObject *obj, JSObject *wrappedProto, JSObject *parent,
                        uintN flags)
 {
-    NS_ASSERTION(!obj->isWrapper() ||
-                 (obj->isWrapper() &&
-                  obj->getProxyHandler() == &WaiveXrayWrapperWrapper) ||
-                 obj->getClass()->ext.innerObject,
+    NS_ASSERTION(!IsWrapper(obj) ||
+                 GetProxyHandler(obj) == &WaiveXrayWrapperWrapper ||
+                 js::GetObjectClass(obj)->ext.innerObject,
                  "wrapped object passed to rewrap");
     NS_ASSERTION(JS_GET_CLASS(cx, obj) != &XrayUtils::HolderClass, "trying to wrap a holder");
 
-    JSCompartment *origin = obj->compartment();
+    JSCompartment *origin = js::GetObjectCompartment(obj);
     JSCompartment *target = cx->compartment;
     JSObject *xrayHolder = nsnull;
 
-    JSWrapper *wrapper;
+    Wrapper *wrapper;
     CompartmentPrivate *targetdata =
         static_cast<CompartmentPrivate *>(JS_GetCompartmentPrivate(cx, target));
     if (AccessCheck::isChrome(target)) {
         if (AccessCheck::isChrome(origin)) {
-            wrapper = &JSCrossCompartmentWrapper::singleton;
+            wrapper = &CrossCompartmentWrapper::singleton;
         } else {
             bool isSystem;
             {
@@ -281,15 +280,15 @@ WrapperFactory::Rewrap(JSContext *cx, JSObject *obj, JSObject *wrappedProto, JSO
             }
 
             if (isSystem) {
-                wrapper = &JSCrossCompartmentWrapper::singleton;
+                wrapper = &CrossCompartmentWrapper::singleton;
             } else if (flags & WAIVE_XRAY_WRAPPER_FLAG) {
                 
                 
                 wrapper = &CrossOriginWrapper::singleton;
             } else {
                 
-                if (IS_WN_WRAPPER(obj) || obj->getClass()->ext.innerObject) {
-                    typedef XrayWrapper<JSCrossCompartmentWrapper> Xray;
+                if (IS_WN_WRAPPER(obj) || js::GetObjectClass(obj)->ext.innerObject) {
+                    typedef XrayWrapper<CrossCompartmentWrapper> Xray;
                     wrapper = &Xray::singleton;
                     xrayHolder = Xray::createHolder(cx, obj, parent);
                     if (!xrayHolder)
@@ -300,8 +299,8 @@ WrapperFactory::Rewrap(JSContext *cx, JSObject *obj, JSObject *wrappedProto, JSO
             }
         }
     } else if (AccessCheck::isChrome(origin)) {
-        if (obj->isFunction()) {
-            JSFunction *fun = obj->getFunctionPrivate();
+        JSFunction *fun = JS_GetObjectFunction(obj);
+        if (fun) {
             if (JS_IsBuiltinEvalFunction(fun) || JS_IsBuiltinFunctionConstructor(fun)) {
                 JS_ReportError(cx, "Not allowed to access chrome eval or Function from content");
                 return nsnull;
@@ -312,31 +311,31 @@ WrapperFactory::Rewrap(JSContext *cx, JSObject *obj, JSObject *wrappedProto, JSO
         if (targetdata &&
             (wn = GetWrappedNative(cx, obj)) &&
             wn->HasProto() && wn->GetProto()->ClassIsDOMObject()) {
-            typedef XrayWrapper<JSCrossCompartmentWrapper> Xray;
+            typedef XrayWrapper<CrossCompartmentWrapper> Xray;
             wrapper = &FilteringWrapper<Xray,
                                         CrossOriginAccessiblePropertiesOnly>::singleton;
             xrayHolder = Xray::createHolder(cx, obj, parent);
             if (!xrayHolder)
                 return nsnull;
         } else {
-            wrapper = &FilteringWrapper<JSCrossCompartmentWrapper,
+            wrapper = &FilteringWrapper<CrossCompartmentWrapper,
                                         ExposedPropertiesOnly>::singleton;
         }
     } else if (AccessCheck::isSameOrigin(origin, target)) {
         
         
         if (AccessCheck::needsSystemOnlyWrapper(obj)) {
-            wrapper = &FilteringWrapper<JSCrossCompartmentWrapper,
+            wrapper = &FilteringWrapper<CrossCompartmentWrapper,
                                         OnlyIfSubjectIsSystem>::singleton;
         } else if (targetdata && targetdata->wantXrays &&
-                   (IS_WN_WRAPPER(obj) || obj->getClass()->ext.innerObject)) {
-            typedef XrayWrapper<JSCrossCompartmentWrapper> Xray;
+                   (IS_WN_WRAPPER(obj) || js::GetObjectClass(obj)->ext.innerObject)) {
+            typedef XrayWrapper<CrossCompartmentWrapper> Xray;
             wrapper = &Xray::singleton;
             xrayHolder = Xray::createHolder(cx, obj, parent);
             if (!xrayHolder)
                 return nsnull;
         } else {
-            wrapper = &JSCrossCompartmentWrapper::singleton;
+            wrapper = &CrossCompartmentWrapper::singleton;
         }
     } else {
         NS_ASSERTION(!AccessCheck::needsSystemOnlyWrapper(obj),
@@ -346,11 +345,11 @@ WrapperFactory::Rewrap(JSContext *cx, JSObject *obj, JSObject *wrappedProto, JSO
         
         
         
-        if (!IS_WN_WRAPPER(obj) && !obj->getClass()->ext.innerObject) {
-            wrapper = &FilteringWrapper<JSCrossCompartmentWrapper,
+        if (!IS_WN_WRAPPER(obj) && !js::GetObjectClass(obj)->ext.innerObject) {
+            wrapper = &FilteringWrapper<CrossCompartmentWrapper,
                                         CrossOriginAccessiblePropertiesOnly>::singleton;
         } else {
-            typedef XrayWrapper<JSCrossCompartmentWrapper> Xray;
+            typedef XrayWrapper<CrossCompartmentWrapper> Xray;
 
             
             
@@ -368,37 +367,37 @@ WrapperFactory::Rewrap(JSContext *cx, JSObject *obj, JSObject *wrappedProto, JSO
         }
     }
 
-    JSObject *wrapperObj = JSWrapper::New(cx, obj, wrappedProto, parent, wrapper);
+    JSObject *wrapperObj = Wrapper::New(cx, obj, wrappedProto, parent, wrapper);
     if (!wrapperObj || !xrayHolder)
         return wrapperObj;
 
     
     
-    wrapperObj->setProxyExtra(js::ObjectValue(*xrayHolder));
+    js::SetProxyExtra(wrapperObj, js::ObjectValue(*xrayHolder));
     return wrapperObj;
 }
 
-typedef FilteringWrapper<XrayWrapper<JSWrapper>,
+typedef FilteringWrapper<XrayWrapper<Wrapper>,
                          SameOriginOrCrossOriginAccessiblePropertiesOnly> LW;
 
 bool
 WrapperFactory::IsLocationObject(JSObject *obj)
 {
-    const char *name = obj->getClass()->name;
+    const char *name = js::GetObjectClass(obj)->name;
     return name[0] == 'L' && !strcmp(name, "Location");
 }
 
 JSObject *
 WrapperFactory::WrapLocationObject(JSContext *cx, JSObject *obj)
 {
-    JSObject *xrayHolder = LW::createHolder(cx, obj, obj->getParent());
+    JSObject *xrayHolder = LW::createHolder(cx, obj, js::GetObjectParent(obj));
     if (!xrayHolder)
         return nsnull;
-    JSObject *wrapperObj = JSWrapper::New(cx, obj, obj->getProto(), obj->getParent(),
-                                          &LW::singleton);
+    JSObject *wrapperObj = Wrapper::New(cx, obj, js::GetObjectProto(obj), js::GetObjectParent(obj),
+                                        &LW::singleton);
     if (!wrapperObj)
         return nsnull;
-    wrapperObj->setProxyExtra(js::ObjectValue(*xrayHolder));
+    js::SetProxyExtra(wrapperObj, js::ObjectValue(*xrayHolder));
     return wrapperObj;
 }
 
@@ -412,9 +411,9 @@ WrapperFactory::WaiveXrayAndWrap(JSContext *cx, jsval *vp)
     if (JSVAL_IS_PRIMITIVE(*vp))
         return JS_WrapValue(cx, vp);
 
-    JSObject *obj = JSVAL_TO_OBJECT(*vp)->unwrap();
+    JSObject *obj = js::UnwrapObject(JSVAL_TO_OBJECT(*vp));
     obj = GetCurrentOuter(cx, obj);
-    if (obj->compartment() == cx->compartment) {
+    if (js::GetObjectCompartment(obj) == cx->compartment) {
         *vp = OBJECT_TO_JSVAL(obj);
         return true;
     }
@@ -431,9 +430,9 @@ JSObject *
 WrapperFactory::WrapSOWObject(JSContext *cx, JSObject *obj)
 {
     JSObject *wrapperObj =
-        JSWrapper::New(cx, obj, JS_GetPrototype(cx, obj), JS_GetGlobalForObject(cx, obj),
-                       &FilteringWrapper<JSWrapper,
-                                         OnlyIfSubjectIsSystem>::singleton);
+        Wrapper::New(cx, obj, JS_GetPrototype(cx, obj), JS_GetGlobalForObject(cx, obj),
+                     &FilteringWrapper<Wrapper,
+                                       OnlyIfSubjectIsSystem>::singleton);
     return wrapperObj;
 }
 

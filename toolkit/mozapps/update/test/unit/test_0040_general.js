@@ -63,7 +63,7 @@ function end_test() {
 
 function callHandleEvent() {
   var e = { target: gXHR };
-  gXHR.onload.handleEvent(e);
+  gXHR.onload(e);
 }
 
 

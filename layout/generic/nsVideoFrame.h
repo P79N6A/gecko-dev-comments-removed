@@ -81,11 +81,11 @@ public:
   virtual nsSize ComputeSize(nsRenderingContext *aRenderingContext,
                              nsSize aCBSize, nscoord aAvailableWidth,
                              nsSize aMargin, nsSize aBorder, nsSize aPadding,
-                             PRBool aShrinkWrap);
+                             bool aShrinkWrap);
   virtual nscoord GetMinWidth(nsRenderingContext *aRenderingContext);
   virtual nscoord GetPrefWidth(nsRenderingContext *aRenderingContext);
   virtual void DestroyFrom(nsIFrame* aDestructRoot);
-  virtual PRBool IsLeaf() const;
+  virtual bool IsLeaf() const;
 
   NS_IMETHOD Reflow(nsPresContext*          aPresContext,
                     nsHTMLReflowMetrics&     aDesiredSize,
@@ -98,7 +98,7 @@ public:
 
   virtual nsIAtom* GetType() const;
 
-  virtual PRBool IsFrameOfType(PRUint32 aFlags) const
+  virtual bool IsFrameOfType(PRUint32 aFlags) const
   {
     return nsSplittableFrame::IsFrameOfType(aFlags & ~(nsIFrame::eReplaced));
   }
@@ -111,7 +111,7 @@ public:
 
   
   
-  PRBool ShouldDisplayPoster();
+  bool ShouldDisplayPoster();
 
 #ifdef DEBUG
   NS_IMETHOD GetFrameName(nsAString& aResult) const;
@@ -125,17 +125,17 @@ protected:
 
   
   
-  PRBool HasVideoElement();
+  bool HasVideoElement();
 
   
   
   
-  PRBool HasVideoData();
+  bool HasVideoData();
 
   
   
   
-  nsresult UpdatePosterSource(PRBool aNotify);
+  nsresult UpdatePosterSource(bool aNotify);
 
   virtual ~nsVideoFrame();
 

@@ -88,7 +88,7 @@ public:
                       const nsACString& aGenericFamily,
                       nsTArray<nsString>& aListOfFonts);
 
-    virtual PRBool ResolveFontName(const nsAString& aFontName,
+    virtual bool ResolveFontName(const nsAString& aFontName,
                                    nsAString& aResolvedFontName);
 
     void UpdateFontList() { InitFontList(); }
@@ -102,9 +102,9 @@ public:
     
     virtual gfxFontFamily* FindFamily(const nsAString& aFamily);
 
-    gfxFontEntry* FindFontForFamily(const nsAString& aFamily, const gfxFontStyle* aStyle, PRBool& aNeedsBold);
+    gfxFontEntry* FindFontForFamily(const nsAString& aFamily, const gfxFontStyle* aStyle, bool& aNeedsBold);
 
-    PRBool GetPrefFontFamilyEntries(eFontPrefLang aLangGroup, nsTArray<nsRefPtr<gfxFontFamily> > *array);
+    bool GetPrefFontFamilyEntries(eFontPrefLang aLangGroup, nsTArray<nsRefPtr<gfxFontFamily> > *array);
     void SetPrefFontFamilyEntries(eFontPrefLang aLangGroup, nsTArray<nsRefPtr<gfxFontFamily> >& array);
 
     
@@ -115,13 +115,13 @@ public:
 
     void AddPostscriptName(gfxFontEntry *aFontEntry, nsAString& aPostscriptName);
 
-    PRBool NeedFullnamePostscriptNames() { return mNeedFullnamePostscriptNames; }
+    bool NeedFullnamePostscriptNames() { return mNeedFullnamePostscriptNames; }
 
     
 
     
     virtual gfxFontEntry* GetDefaultFont(const gfxFontStyle* aStyle,
-                                         PRBool& aNeedsBold) = 0;
+                                         bool& aNeedsBold) = 0;
 
     
     virtual gfxFontEntry* LookupLocalFont(const gfxProxyFontEntry *aProxyEntry,
@@ -135,10 +135,10 @@ public:
 
     
     
-    virtual PRBool GetStandardFamilyName(const nsAString& aFontName, nsAString& aFamilyName);
+    virtual bool GetStandardFamilyName(const nsAString& aFontName, nsAString& aFamilyName);
 
 protected:
-    gfxPlatformFontList(PRBool aNeedFullnamePostscriptNames = PR_TRUE);
+    gfxPlatformFontList(bool aNeedFullnamePostscriptNames = true);
 
     static gfxPlatformFontList *sPlatformFontList;
 
@@ -178,7 +178,7 @@ protected:
 
     
     virtual void InitLoader();
-    virtual PRBool RunLoader();
+    virtual bool RunLoader();
     virtual void FinishLoader();
 
     
@@ -189,13 +189,13 @@ protected:
     nsRefPtrHashtable<nsStringHashKey, gfxFontFamily> mOtherFamilyNames;
 
     
-    PRPackedBool mOtherFamilyNamesInitialized;
+    bool mOtherFamilyNamesInitialized;
 
     
-    PRPackedBool mFaceNamesInitialized;
+    bool mFaceNamesInitialized;
 
     
-    PRPackedBool mNeedFullnamePostscriptNames;
+    bool mNeedFullnamePostscriptNames;
 
     
     nsRefPtrHashtable<nsStringHashKey, gfxFontEntry> mFullnames;

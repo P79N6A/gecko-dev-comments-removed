@@ -41,7 +41,6 @@
 #define nsInlineFrame_h___
 
 #include "nsHTMLContainerFrame.h"
-#include "nsAbsoluteContainingBlock.h"
 #include "nsLineLayout.h"
 
 class nsAnonymousBlockFrame;
@@ -88,17 +87,19 @@ public:
 #endif
   virtual nsIAtom* GetType() const;
 
-  virtual PRBool IsFrameOfType(PRUint32 aFlags) const
+  virtual bool IsFrameOfType(PRUint32 aFlags) const
   {
     return nsInlineFrameSuper::IsFrameOfType(aFlags &
       ~(nsIFrame::eBidiInlineContainer | nsIFrame::eLineParticipant));
   }
 
-  virtual PRBool IsEmpty();
-  virtual PRBool IsSelfEmpty();
+  virtual bool IsEmpty();
+  virtual bool IsSelfEmpty();
 
-  virtual PRBool PeekOffsetCharacter(PRBool aForward, PRInt32* aOffset,
-                                     PRBool aRespectClusters = PR_TRUE);
+  virtual void DestroyFrom(nsIFrame* aDestructRoot);
+
+  virtual bool PeekOffsetCharacter(bool aForward, PRInt32* aOffset,
+                                     bool aRespectClusters = true);
   
   
   virtual void AddInlineMinWidth(nsRenderingContext *aRenderingContext,
@@ -108,14 +109,14 @@ public:
   virtual nsSize ComputeSize(nsRenderingContext *aRenderingContext,
                              nsSize aCBSize, nscoord aAvailableWidth,
                              nsSize aMargin, nsSize aBorder, nsSize aPadding,
-                             PRBool aShrinkWrap);
+                             bool aShrinkWrap);
   virtual nsRect ComputeTightBounds(gfxContext* aContext) const;
   NS_IMETHOD Reflow(nsPresContext* aPresContext,
                     nsHTMLReflowMetrics& aDesiredSize,
                     const nsHTMLReflowState& aReflowState,
                     nsReflowStatus& aStatus);
 
-  virtual PRBool CanContinueTextRun() const;
+  virtual bool CanContinueTextRun() const;
 
   virtual void PullOverflowsFromPrevInFlow();
   virtual nscoord GetBaseline() const;
@@ -123,7 +124,7 @@ public:
   
 
 
-  PRBool IsLeftMost() const {
+  bool IsLeftMost() const {
     
     
     return (GetStateBits() & NS_INLINE_FRAME_BIDI_VISUAL_STATE_IS_SET)
@@ -134,7 +135,7 @@ public:
   
 
 
-  PRBool IsRightMost() const {
+  bool IsRightMost() const {
     
     
     return (GetStateBits() & NS_INLINE_FRAME_BIDI_VISUAL_STATE_IS_SET)
@@ -149,7 +150,7 @@ protected:
     nsInlineFrame* mNextInFlow;
     nsIFrame*      mLineContainer;
     nsLineLayout*  mLineLayout;
-    PRPackedBool mSetParentPointer;  
+    bool mSetParentPointer;  
                                      
 
     InlineReflowState()  {
@@ -184,11 +185,11 @@ protected:
 
 
   void ReparentFloatsForInlineChild(nsIFrame* aOurBlock, nsIFrame* aFrame,
-                                    PRBool aReparentSiblings);
+                                    bool aReparentSiblings);
 
   virtual nsIFrame* PullOneFrame(nsPresContext* aPresContext,
                                  InlineReflowState& rs,
-                                 PRBool* aIsComplete);
+                                 bool* aIsComplete);
 
   virtual void PushFrames(nsPresContext* aPresContext,
                           nsIFrame* aFromChild,
@@ -226,55 +227,7 @@ protected:
 
   virtual nsIFrame* PullOneFrame(nsPresContext* aPresContext,
                                  InlineReflowState& rs,
-                                 PRBool* aIsComplete);
-};
-
-
-
-
-
-
-
-class nsPositionedInlineFrame : public nsInlineFrame
-{
-public:
-  NS_DECL_FRAMEARENA_HELPERS
-
-  nsPositionedInlineFrame(nsStyleContext* aContext)
-    : nsInlineFrame(aContext)
-    , mAbsoluteContainer(kAbsoluteList)
-  {}
-
-  virtual ~nsPositionedInlineFrame() { } 
-
-  virtual void DestroyFrom(nsIFrame* aDestructRoot);
-
-  NS_IMETHOD SetInitialChildList(ChildListID  aListID,
-                                 nsFrameList& aChildList);
-  NS_IMETHOD AppendFrames(ChildListID  aListID,
-                          nsFrameList& aFrameList);
-  NS_IMETHOD InsertFrames(ChildListID  aListID,
-                          nsIFrame*    aPrevFrame,
-                          nsFrameList& aFrameList);
-  NS_IMETHOD RemoveFrame(ChildListID aListID,
-                         nsIFrame*   aOldFrame);
-
-  NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                              const nsRect&           aDirtyRect,
-                              const nsDisplayListSet& aLists);
-
-  virtual nsFrameList GetChildList(ChildListID aListID) const;
-  virtual void GetChildLists(nsTArray<ChildList>* aLists) const;
-
-  NS_IMETHOD Reflow(nsPresContext*          aPresContext,
-                    nsHTMLReflowMetrics&     aDesiredSize,
-                    const nsHTMLReflowState& aReflowState,
-                    nsReflowStatus&          aStatus);
-  
-  virtual nsIAtom* GetType() const;
-
-protected:
-  nsAbsoluteContainingBlock mAbsoluteContainer;
+                                 bool* aIsComplete);
 };
 
 #endif 

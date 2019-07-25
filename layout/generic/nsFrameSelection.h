@@ -93,10 +93,10 @@ struct NS_STACK_CLASS nsPeekOffsetStruct
                nsDirection aDirection,
                PRInt32 aStartOffset,
                nscoord aDesiredX,
-               PRBool aJumpLines,
-               PRBool aScrollViewStop,
-               PRBool aIsKeyboardSelect,
-               PRBool aVisual,
+               bool aJumpLines,
+               bool aScrollViewStop,
+               bool aIsKeyboardSelect,
+               bool aVisual,
                EWordMovementType aWordMovementType = eDefaultBehavior)
 
   {
@@ -149,19 +149,19 @@ struct NS_STACK_CLASS nsPeekOffsetStruct
 
   
   
-  PRPackedBool mJumpLines;
+  bool mJumpLines;
 
   
   
-  PRPackedBool mScrollViewStop;
+  bool mScrollViewStop;
 
   
   
-  PRPackedBool mIsKeyboardSelect;
+  bool mIsKeyboardSelect;
 
   
   
-  PRPackedBool mVisual;
+  bool mVisual;
 
   
 
@@ -180,7 +180,7 @@ struct NS_STACK_CLASS nsPeekOffsetStruct
   
   
   
-  PRBool mAttachForward;
+  bool mAttachForward;
 };
 
 struct nsPrevNextBidiLevels
@@ -242,9 +242,9 @@ public:
   nsresult HandleClick(nsIContent *aNewFocus,
                        PRUint32 aContentOffset,
                        PRUint32 aContentEndOffset,
-                       PRBool aContinueSelection,
-                       PRBool aMultipleSelection,
-                       PRBool aHint);
+                       bool aContinueSelection,
+                       bool aMultipleSelection,
+                       bool aHint);
 
   
 
@@ -354,25 +354,25 @@ public:
   SelectionDetails* LookUpSelection(nsIContent *aContent,
                                     PRInt32 aContentOffset,
                                     PRInt32 aContentLength,
-                                    PRBool aSlowCheck) const;
+                                    bool aSlowCheck) const;
 
   
 
 
 
   
-  void SetMouseDownState(PRBool aState);
+  void SetMouseDownState(bool aState);
 
   
 
 
 
-  PRBool GetMouseDownState() const { return mMouseDownState; }
+  bool GetMouseDownState() const { return mMouseDownState; }
 
   
 
 
-  PRBool GetTableCellSelection() const { return mSelectingTableCellMode != 0; }
+  bool GetTableCellSelection() const { return mSelectingTableCellMode != 0; }
   void ClearTableCellSelection() { mSelectingTableCellMode = 0; }
 
   
@@ -429,8 +429,8 @@ public:
 
 
   
-  void CommonPageMove(PRBool aForward,
-                      PRBool aExtend,
+  void CommonPageMove(bool aForward,
+                      bool aExtend,
                       nsIScrollableFrame* aScrollableFrame);
 
   void SetHint(HINT aHintRight) { mHint = aHintRight; }
@@ -458,7 +458,7 @@ public:
 
 
   
-  nsresult CharacterMove(PRBool aForward, PRBool aExtend);
+  nsresult CharacterMove(bool aForward, bool aExtend);
 
   
 
@@ -478,14 +478,14 @@ public:
 
 
   
-  nsresult WordMove(PRBool aForward, PRBool aExtend);
+  nsresult WordMove(bool aForward, bool aExtend);
 
   
 
 
 
   
-  nsresult WordExtendForDelete(PRBool aForward);
+  nsresult WordExtendForDelete(bool aForward);
   
   
 
@@ -493,7 +493,7 @@ public:
 
 
   
-  nsresult LineMove(PRBool aForward, PRBool aExtend);
+  nsresult LineMove(bool aForward, bool aExtend);
 
   
 
@@ -501,7 +501,7 @@ public:
 
 
   
-  nsresult IntraLineMove(PRBool aForward, PRBool aExtend); 
+  nsresult IntraLineMove(bool aForward, bool aExtend); 
 
   
 
@@ -545,12 +545,12 @@ public:
 
 
 
-  void SetMouseDoubleDown(PRBool aDoubleDown) { mMouseDoubleDownState = aDoubleDown; }
+  void SetMouseDoubleDown(bool aDoubleDown) { mMouseDoubleDownState = aDoubleDown; }
   
   
 
 
-  PRBool GetMouseDoubleDown() const { return mMouseDoubleDownState; }
+  bool GetMouseDoubleDown() const { return mMouseDoubleDownState; }
 
   
 
@@ -570,7 +570,7 @@ public:
 
   virtual nsPrevNextBidiLevels GetPrevNextBidiLevels(nsIContent *aNode,
                                                      PRUint32 aContentOffset,
-                                                     PRBool aJumpLines) const;
+                                                     bool aJumpLines) const;
 
   
 
@@ -612,8 +612,8 @@ private:
                      PRUint32 aContentOffset,
                      PRUint32 aContentEndOffset,
                      HINT aHint,
-                     PRBool aContinueSelection,
-                     PRBool aMultipleSelection);
+                     bool aContinueSelection,
+                     bool aMultipleSelection);
 
   void BidiLevelFromMove(nsIPresShell* aPresShell,
                          nsIContent *aNode,
@@ -624,9 +624,9 @@ private:
   nsPrevNextBidiLevels GetPrevNextBidiLevels(nsIContent *aNode,
                                              PRUint32 aContentOffset,
                                              HINT aHint,
-                                             PRBool aJumpLines) const;
+                                             bool aJumpLines) const;
 
-  PRBool AdjustForMaintainedSelection(nsIContent *aContent, PRInt32 aOffset);
+  bool AdjustForMaintainedSelection(nsIContent *aContent, PRInt32 aOffset);
 
 
   void    PostReason(PRInt16 aReason) { mSelectionChangeReason = aReason; }
@@ -644,11 +644,11 @@ private:
 
   void ResizeBuffer(PRUint32 aNewBufSize);
 
-  nsresult     MoveCaret(PRUint32 aKeycode, PRBool aContinueSelection,
+  nsresult     MoveCaret(PRUint32 aKeycode, bool aContinueSelection,
                          nsSelectionAmount aAmount);
-  nsresult     MoveCaret(PRUint32 aKeycode, PRBool aContinueSelection,
+  nsresult     MoveCaret(PRUint32 aKeycode, bool aContinueSelection,
                          nsSelectionAmount aAmount,
-                         PRBool aVisualMovement);
+                         bool aVisualMovement);
 
   nsresult     FetchDesiredX(nscoord &aDesiredX); 
   void         InvalidateDesiredX(); 
@@ -657,8 +657,8 @@ private:
   nsresult     ConstrainFrameAndPointToAnchorSubtree(nsIFrame *aFrame, nsPoint& aPoint, nsIFrame **aRetFrame, nsPoint& aRetPoint);
 
   PRUint32     GetBatching() const {return mBatching; }
-  PRBool       GetNotifyFrames() const { return mNotifyFrames; }
-  void         SetDirty(PRBool aDirty=PR_TRUE){if (mBatching) mChangesDuringBatching = aDirty;}
+  bool         GetNotifyFrames() const { return mNotifyFrames; }
+  void         SetDirty(bool aDirty=true){if (mBatching) mChangesDuringBatching = aDirty;}
 
   
   
@@ -676,7 +676,7 @@ private:
   nsresult UnselectCells(nsIContent *aTable,
                          PRInt32 aStartRowIndex, PRInt32 aStartColumnIndex,
                          PRInt32 aEndRowIndex, PRInt32 aEndColumnIndex,
-                         PRBool aRemoveOutsideOfCellRange);
+                         bool aRemoveOutsideOfCellRange);
 
   nsresult GetCellIndexes(nsIContent *aCell, PRInt32 &aRowIndex, PRInt32 &aColIndex);
 
@@ -728,16 +728,16 @@ private:
 
   nsMouseEvent mDelayedMouseEvent;
 
-  PRPackedBool mDelayedMouseEventValid;
+  bool mDelayedMouseEventValid;
 
-  PRPackedBool mChangesDuringBatching;
-  PRPackedBool mNotifyFrames;
-  PRPackedBool mDragSelectingCells;
-  PRPackedBool mMouseDownState;   
-  PRPackedBool mMouseDoubleDownState; 
-  PRPackedBool mDesiredXSet;
+  bool mChangesDuringBatching;
+  bool mNotifyFrames;
+  bool mDragSelectingCells;
+  bool mMouseDownState;   
+  bool mMouseDoubleDownState; 
+  bool mDesiredXSet;
 
   PRInt8 mCaretMovementStyle;
 };
 
-#endif
+#endif 

@@ -159,7 +159,10 @@ PrepareAndDispatch(nsXPTCStubBase* self, PRUint32 methodIndex, PRUint64* args,
 
         case nsXPTType::T_FLOAT:
              if (iCount < PARAM_FPR_COUNT)
-                dp->val.f  = (float)fprData[iCount++];
+                
+                
+                
+                dp->val.d  = (double)fprData[iCount++];
              else
                 dp->val.f  = *((float*)ap++);
              break;
@@ -173,9 +176,9 @@ PrepareAndDispatch(nsXPTCStubBase* self, PRUint32 methodIndex, PRUint64* args,
 
         case nsXPTType::T_BOOL:
            if (iCount < PARAM_GPR_COUNT)
-              dp->val.b  = (PRBool)gprData[iCount++];
+              dp->val.b  = (bool)gprData[iCount++];
            else
-              dp->val.b  = *((PRBool*)ap++);
+              dp->val.b  = *((bool*)ap++);
            break;
 
         case nsXPTType::T_CHAR:

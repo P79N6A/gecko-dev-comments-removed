@@ -101,14 +101,14 @@ xptiInterfaceEntry::xptiInterfaceEntry(const char* name,
     SetResolvedState(PARTIALLY_RESOLVED);
 }
 
-PRBool 
+bool 
 xptiInterfaceEntry::Resolve()
 {
     MutexAutoLock lock(xptiInterfaceInfoManager::GetResolveLock());
     return ResolveLocked();
 }
 
-PRBool 
+bool 
 xptiInterfaceEntry::ResolveLocked()
 {
     int resolvedState = GetResolveState();
@@ -173,7 +173,7 @@ xptiInterfaceEntry::GetIID(nsIID **iid)
 }
 
 nsresult
-xptiInterfaceEntry::IsScriptable(PRBool* result)
+xptiInterfaceEntry::IsScriptable(bool* result)
 {
     
     *result = GetScriptableFlag();
@@ -181,7 +181,7 @@ xptiInterfaceEntry::IsScriptable(PRBool* result)
 }
 
 nsresult
-xptiInterfaceEntry::IsFunction(PRBool* result)
+xptiInterfaceEntry::IsFunction(bool* result)
 {
     if(!EnsureResolved())
         return NS_ERROR_UNEXPECTED;
@@ -567,7 +567,7 @@ xptiInterfaceEntry::GetInterfaceIsArgNumberForParam(uint16 methodIndex,
 
 
 nsresult 
-xptiInterfaceEntry::IsIID(const nsIID * IID, PRBool *_retval)
+xptiInterfaceEntry::IsIID(const nsIID * IID, bool *_retval)
 {
     
     *_retval = mIID.Equals(*IID);
@@ -594,7 +594,7 @@ xptiInterfaceEntry::GetIIDShared(const nsIID * *iid)
 
 
 nsresult 
-xptiInterfaceEntry::HasAncestor(const nsIID * iid, PRBool *_retval)
+xptiInterfaceEntry::HasAncestor(const nsIID * iid, bool *_retval)
 {
     *_retval = PR_FALSE;
 
@@ -649,7 +649,7 @@ xptiInterfaceEntry::LockedInvalidateInterfaceInfo()
     }
 }
 
-PRBool
+bool
 xptiInterfaceInfo::BuildParent()
 {
     mozilla::ReentrantMonitorAutoEnter monitor(xptiInterfaceInfoManager::GetSingleton()->

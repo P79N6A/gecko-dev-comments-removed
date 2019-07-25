@@ -68,14 +68,14 @@ public:
 
   
   static nsresult ParseSemicolonDelimitedProgressList(const nsAString& aSpec,
-                                                      PRBool aNonDecreasing,
+                                                      bool aNonDecreasing,
                                                       nsTArray<double>& aArray);
 
   static nsresult ParseValues(const nsAString& aSpec,
                               const nsISMILAnimationElement* aSrcElement,
                               const nsISMILAttr& aAttribute,
                               nsTArray<nsSMILValue>& aValuesArray,
-                              PRBool& aPreventCachingOfSandwich);
+                              bool& aPreventCachingOfSandwich);
 
   
   
@@ -123,7 +123,7 @@ public:
   static nsresult ParseClockValue(const nsAString& aSpec,
                                   nsSMILTimeValue* aResult,
                                   PRUint32 aFlags = 0,
-                                  PRBool* aIsMedia = nsnull);
+                                  bool* aIsMedia = nsnull);
 
   
 

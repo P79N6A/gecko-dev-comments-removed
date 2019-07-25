@@ -47,7 +47,7 @@
 
 
 
-PRBool 
+bool 
 nsTextEditUtils::IsBody(nsIDOMNode *node)
 {
   return nsEditor::NodeIsTypeString(node, NS_LITERAL_STRING("body"));
@@ -58,7 +58,7 @@ nsTextEditUtils::IsBody(nsIDOMNode *node)
 
 
 
-PRBool 
+bool 
 nsTextEditUtils::IsBreak(nsIDOMNode *node)
 {
   return nsEditor::NodeIsTypeString(node, NS_LITERAL_STRING("br"));
@@ -68,7 +68,7 @@ nsTextEditUtils::IsBreak(nsIDOMNode *node)
 
 
 
-PRBool 
+bool 
 nsTextEditUtils::IsMozBR(nsIDOMNode *node)
 {
   NS_PRECONDITION(node, "null node passed to nsHTMLEditUtils::IsMozBR");
@@ -82,7 +82,7 @@ nsTextEditUtils::IsMozBR(nsIDOMNode *node)
 
 
 
-PRBool 
+bool 
 nsTextEditUtils::HasMozAttr(nsIDOMNode *node)
 {
   NS_PRECONDITION(node, "null parent passed to nsHTMLEditUtils::HasMozAttr");

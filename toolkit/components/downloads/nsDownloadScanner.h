@@ -57,10 +57,10 @@ public:
   AVCheckPolicyState CheckPolicy(nsIURI *aSource, nsIURI *aTarget);
 
 private:
-  PRBool mAESExists;
+  bool mAESExists;
   nsTArray<CLSID> mScanCLSID;
-  PRBool IsAESAvailable();
-  PRBool EnumerateOAVProviders();
+  bool IsAESAvailable();
+  bool EnumerateOAVProviders();
 
   nsAutoPtr<nsDownloadScannerWatchdog> mWatchdog;
 
@@ -83,7 +83,7 @@ private:
 
     
     
-    PRBool NotifyTimeout();
+    bool NotifyTimeout();
 
   private:
     nsDownloadScanner *mDLScanner;
@@ -97,8 +97,8 @@ private:
     nsString mName;
     nsString mOrigin;
     
-    PRBool mIsHttpDownload;
-    PRBool mSkipSource;
+    bool mIsHttpDownload;
+    bool mSkipSource;
 
     
 
@@ -106,13 +106,13 @@ private:
 
 
 
-    PRBool CheckAndSetState(AVScanState newState, AVScanState expectedState);
+    bool CheckAndSetState(AVScanState newState, AVScanState expectedState);
 
     NS_IMETHOD Run();
 
     void DoScan();
-    PRBool DoScanAES();
-    PRBool DoScanOAV();
+    bool DoScanAES();
+    bool DoScanOAV();
 
     friend unsigned int __stdcall nsDownloadScanner::ScannerThreadFunction(void *);
   };

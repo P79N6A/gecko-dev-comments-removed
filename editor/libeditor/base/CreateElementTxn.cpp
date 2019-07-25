@@ -47,7 +47,7 @@
 #include "nsIContent.h"
 
 #ifdef NS_DEBUG
-static PRBool gNoisy = PR_FALSE;
+static bool gNoisy = false;
 #endif
 
 CreateElementTxn::CreateElementTxn()
@@ -156,7 +156,7 @@ NS_IMETHODIMP CreateElementTxn::DoTransaction(void)
       NS_ENSURE_SUCCESS(result, result); 
 
       
-      PRBool bAdjustSelection;
+      bool bAdjustSelection;
       mEditor->ShouldTxnSetSelection(&bAdjustSelection);
       if (bAdjustSelection)
       {

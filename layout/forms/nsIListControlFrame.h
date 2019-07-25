@@ -73,7 +73,13 @@ public:
 
 
 
-  virtual void CaptureMouseEvents(PRBool aGrabMouseEvents) = 0;
+  virtual already_AddRefed<nsIContent> GetCurrentOption() = 0;
+
+  
+
+
+
+  virtual void CaptureMouseEvents(bool aGrabMouseEvents) = 0;
 
   
 

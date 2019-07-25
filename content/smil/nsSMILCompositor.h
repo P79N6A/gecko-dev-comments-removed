@@ -72,7 +72,7 @@ public:
 
   
   KeyTypeRef GetKey() const { return mKey; }
-  PRBool KeyEquals(KeyTypePointer aKey) const;
+  bool KeyEquals(KeyTypePointer aKey) const;
   static KeyTypePointer KeyToPointer(KeyTypeRef aKey) { return &aKey; }
   static PLDHashNumber HashKey(KeyTypePointer aKey);
   enum { ALLOW_MEMMOVE = PR_FALSE };
@@ -128,7 +128,7 @@ public:
   
   
   
-  PRPackedBool mForceCompositing;
+  bool mForceCompositing;
 
   
   

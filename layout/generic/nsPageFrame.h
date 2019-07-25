@@ -59,8 +59,6 @@ public:
                               const nsRect&           aDirtyRect,
                               const nsDisplayListSet& aLists);
 
-  virtual PRBool IsContainingBlock() const;
-
   
 
 
@@ -83,7 +81,7 @@ public:
 
   
   
-  virtual PRBool HonorPrintBackgroundSettings() { return PR_FALSE; }
+  virtual bool HonorPrintBackgroundSettings() { return false; }
 
   void PaintHeaderFooter(nsRenderingContext& aRenderingContext,
                          nsPoint aPt);
@@ -155,7 +153,7 @@ protected:
   virtual nscoord GetIntrinsicWidth();
   virtual nscoord GetIntrinsicHeight();
 
-    PRBool mHaveReflowed;
+    bool mHaveReflowed;
 
     friend nsIFrame* NS_NewPageBreakFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 };

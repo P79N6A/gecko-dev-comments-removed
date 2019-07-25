@@ -57,7 +57,7 @@ public:
 
     
     nsresult SetHeader(nsHttpAtom header, const nsACString &value,
-                       PRBool merge = PR_FALSE);
+                       bool merge = false);
 
     
     
@@ -73,7 +73,7 @@ public:
     }
 
     
-    PRBool HasHeaderValue(nsHttpAtom header, const char *value) {
+    bool HasHeaderValue(nsHttpAtom header, const char *value) {
         return FindHeaderValue(header, value) != nsnull;
     }
 
@@ -85,7 +85,7 @@ public:
                              nsHttpAtom *header=nsnull,
                              char **value=nsnull);
 
-    void Flatten(nsACString &, PRBool pruneProxyHeaders=PR_FALSE);
+    void Flatten(nsACString &, bool pruneProxyHeaders=false);
 
     PRUint32 Count() { return mHeaders.Length(); }
 
@@ -101,7 +101,7 @@ public:
         nsCString  value;
 
         struct MatchHeader {
-          PRBool Equals(const nsEntry &entry, const nsHttpAtom &header) const {
+          bool Equals(const nsEntry &entry, const nsHttpAtom &header) const {
             return entry.header == header;
           }
         };
@@ -112,12 +112,12 @@ private:
     void MergeHeader(nsHttpAtom header, nsEntry *entry, const nsACString &value);
 
     
-    PRBool  IsSingletonHeader(nsHttpAtom header);
+    bool    IsSingletonHeader(nsHttpAtom header);
 
     
     
     
-    PRBool  IsSuspectDuplicateHeader(nsHttpAtom header);
+    bool    IsSuspectDuplicateHeader(nsHttpAtom header);
 
     nsTArray<nsEntry> mHeaders;
 
@@ -138,7 +138,7 @@ nsHttpHeaderArray::LookupEntry(nsHttpAtom header, nsEntry **entry)
     return index;
 }
 
-inline PRBool
+inline bool
 nsHttpHeaderArray::IsSingletonHeader(nsHttpAtom header)
 {
     return header == nsHttp::Content_Type        ||
@@ -180,10 +180,10 @@ nsHttpHeaderArray::MergeHeader(nsHttpAtom header,
     entry->value.Append(value);
 }
 
-inline PRBool
+inline bool
 nsHttpHeaderArray::IsSuspectDuplicateHeader(nsHttpAtom header)
 {
-    PRBool retval =  header == nsHttp::Content_Length         ||
+    bool retval =  header == nsHttp::Content_Length         ||
                      header == nsHttp::Content_Disposition    ||
                      header == nsHttp::Location;
 

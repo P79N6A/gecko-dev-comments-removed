@@ -85,7 +85,7 @@ ToUTF8(const nsACString &aString, const char *aCharset, nsACString &aResult)
 NS_IMETHODIMP  
 nsUTF8ConverterService::ConvertStringToUTF8(const nsACString &aString, 
                                             const char *aCharset, 
-                                            PRBool aSkipCheck, 
+                                            bool aSkipCheck, 
                                             nsACString &aUTF8String)
 {
   
@@ -130,7 +130,7 @@ nsUTF8ConverterService::ConvertURISpecToUTF8(const nsACString &aSpec,
   nsCAutoString unescapedSpec; 
   
   
-  PRBool written = NS_UnescapeURL(PromiseFlatCString(aSpec).get(), aSpec.Length(), 
+  bool written = NS_UnescapeURL(PromiseFlatCString(aSpec).get(), aSpec.Length(), 
                                   esc_OnlyNonASCII, unescapedSpec);
 
   if (!written) {

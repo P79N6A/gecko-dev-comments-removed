@@ -89,9 +89,6 @@ public:
   virtual gfxMatrix GetCanvasTM();
 
   
-  
-
-  
   NS_IMETHOD SuspendRedraw();
   NS_IMETHOD UnsuspendRedraw();
   NS_IMETHOD NotifyViewportChange();

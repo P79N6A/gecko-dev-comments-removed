@@ -74,7 +74,7 @@ public:
 
     nsresult ResolveFontName(const nsAString& aFontName,
                              FontResolverCallback aCallback,
-                             void *aClosure, PRBool& aAborted);
+                             void *aClosure, bool& aAborted);
 
     nsresult GetStandardFamilyName(const nsAString& aFontName, nsAString& aFamilyName);
 
@@ -102,7 +102,7 @@ public:
 
 
 
-    virtual PRBool IsFontFormatSupported(nsIURI *aFontURI,
+    virtual bool IsFontFormatSupported(nsIURI *aFontURI,
                                          PRUint32 aFormatFlags);
 #endif
 
@@ -110,7 +110,7 @@ public:
     FontFamily *FindFontFamily(const nsAString& aName);
     FontEntry *FindFontEntry(const nsAString& aFamilyName, const gfxFontStyle& aFontStyle);
     already_AddRefed<gfxFont> FindFontForChar(PRUint32 aCh, gfxFont *aFont);
-    PRBool GetPrefFontEntries(const nsCString& aLangGroup, nsTArray<nsRefPtr<gfxFontEntry> > *aFontEntryList);
+    bool GetPrefFontEntries(const nsCString& aLangGroup, nsTArray<nsRefPtr<gfxFontEntry> > *aFontEntryList);
     void SetPrefFontEntries(const nsCString& aLangGroup, nsTArray<nsRefPtr<gfxFontEntry> >& aFontEntryList);
 #endif
 
@@ -124,8 +124,11 @@ public:
 
     static PRInt32 GetDPI();
 
-    static PRBool UseClientSideRendering() {
-#if defined(MOZ_X11) && defined(MOZ_GFX_OPTIMIZE_MOBILE)
+    static bool UseClientSideRendering() {
+#if defined(MOZ_X11) && defined(MOZ_PLATFORM_MAEMO)
+        
+        
+        
         
         
         

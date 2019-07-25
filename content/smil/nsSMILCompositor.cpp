@@ -41,7 +41,7 @@
 #include "nsHashKeys.h"
 
 
-PRBool
+bool
 nsSMILCompositor::KeyEquals(KeyTypePointer aKey) const
 {
   return aKey && aKey->Equals(mKey);

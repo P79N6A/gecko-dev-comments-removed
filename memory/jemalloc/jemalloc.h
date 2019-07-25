@@ -53,6 +53,10 @@ int	posix_memalign(void **memptr, size_t alignment, size_t size);
 
 #ifdef MOZ_MEMORY_ANDROID
 int	posix_memalign(void **memptr, size_t alignment, size_t size);
+
+
+void    _malloc_prefork(void);
+void    _malloc_postfork(void);
 #endif
 
 #if defined(MOZ_MEMORY_DARWIN) || defined(MOZ_MEMORY_WINDOWS)

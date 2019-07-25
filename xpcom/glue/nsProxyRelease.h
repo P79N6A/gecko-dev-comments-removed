@@ -55,7 +55,7 @@
 template <class T>
 inline NS_HIDDEN_(nsresult)
 NS_ProxyRelease
-    (nsIEventTarget *target, nsCOMPtr<T> &doomed, PRBool alwaysProxy=PR_FALSE)
+    (nsIEventTarget *target, nsCOMPtr<T> &doomed, bool alwaysProxy=false)
 {
    T* raw = nsnull;
    doomed.swap(raw);
@@ -70,7 +70,7 @@ NS_ProxyRelease
 template <class T>
 inline NS_HIDDEN_(nsresult)
 NS_ProxyRelease
-    (nsIEventTarget *target, nsRefPtr<T> &doomed, PRBool alwaysProxy=PR_FALSE)
+    (nsIEventTarget *target, nsRefPtr<T> &doomed, bool alwaysProxy=false)
 {
    T* raw = nsnull;
    doomed.swap(raw);
@@ -92,6 +92,6 @@ NS_ProxyRelease
 
 NS_COM_GLUE nsresult
 NS_ProxyRelease
-    (nsIEventTarget *target, nsISupports *doomed, PRBool alwaysProxy=PR_FALSE);
+    (nsIEventTarget *target, nsISupports *doomed, bool alwaysProxy=false);
 
 #endif

@@ -121,7 +121,7 @@ NS_IMETHODIMP PlaceholderTxn::RedoTransaction(void)
 }
 
 
-NS_IMETHODIMP PlaceholderTxn::Merge(nsITransaction *aTransaction, PRBool *aDidMerge)
+NS_IMETHODIMP PlaceholderTxn::Merge(nsITransaction *aTransaction, bool *aDidMerge)
 {
   NS_ENSURE_TRUE(aDidMerge && aTransaction, NS_ERROR_NULL_POINTER);
 
@@ -165,7 +165,7 @@ NS_IMETHODIMP PlaceholderTxn::Merge(nsITransaction *aTransaction, PRBool *aDidMe
       }
       else  
       {
-        PRBool didMerge;
+        bool didMerge;
         mIMETextTxn->Merge(otherTxn, &didMerge);
         if (!didMerge)
         {
@@ -206,7 +206,7 @@ NS_IMETHODIMP PlaceholderTxn::Merge(nsITransaction *aTransaction, PRBool *aDidMe
         {
           
           
-          PRBool isSame;
+          bool isSame;
           plcTxn->StartSelectionEquals(&mEndSel, &isSame);
           if (isSame)
           {
@@ -246,7 +246,7 @@ NS_IMETHODIMP PlaceholderTxn::GetTxnName(nsIAtom **aName)
   return GetName(aName);
 }
 
-NS_IMETHODIMP PlaceholderTxn::StartSelectionEquals(nsSelectionState *aSelState, PRBool *aResult)
+NS_IMETHODIMP PlaceholderTxn::StartSelectionEquals(nsSelectionState *aSelState, bool *aResult)
 {
   
   

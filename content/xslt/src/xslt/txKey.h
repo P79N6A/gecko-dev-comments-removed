@@ -75,7 +75,7 @@ struct txKeyValueHashEntry : public PLDHashEntryHdr
     }
 
     
-    PRBool MatchEntry(const void* aKey) const;
+    bool MatchEntry(const void* aKey) const;
     static PLDHashNumber HashKey(const void* aKey);
     
     txKeyValueHashKey mKey;
@@ -107,11 +107,11 @@ struct txIndexedKeyHashEntry : public PLDHashEntryHdr
     }
 
     
-    PRBool MatchEntry(const void* aKey) const;
+    bool MatchEntry(const void* aKey) const;
     static PLDHashNumber HashKey(const void* aKey);
 
     txIndexedKeyHashKey mKey;
-    PRBool mIndexed;
+    bool mIndexed;
 };
 
 DECL_DHASH_WRAPPER(txIndexedKeyHash, txIndexedKeyHashEntry,
@@ -134,7 +134,7 @@ public:
 
 
 
-    PRBool addKey(nsAutoPtr<txPattern> aMatch, nsAutoPtr<Expr> aUse);
+    bool addKey(nsAutoPtr<txPattern> aMatch, nsAutoPtr<Expr> aUse);
 
     
 
@@ -202,7 +202,7 @@ public:
     nsresult getKeyNodes(const txExpandedName& aKeyName,
                          const txXPathNode& aRoot,
                          const nsAString& aKeyValue,
-                         PRBool aIndexIfNotFound,
+                         bool aIndexIfNotFound,
                          txExecutionState& aEs,
                          txNodeSet** aResult);
 

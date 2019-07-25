@@ -73,7 +73,7 @@ public:
                                    nsresult status, PRUint64 progress) = 0;
 
     
-    virtual PRBool   IsDone() = 0;
+    virtual bool     IsDone() = 0;
     virtual nsresult Status() = 0;
 
     
@@ -103,7 +103,7 @@ public:
                               nsIEventTarget **);       \
     void OnTransportStatus(nsITransport* transport, \
                            nsresult status, PRUint64 progress); \
-    PRBool   IsDone(); \
+    bool     IsDone(); \
     nsresult Status(); \
     PRUint32 Available(); \
     nsresult ReadSegments(nsAHttpSegmentReader *, PRUint32, PRUint32 *); \

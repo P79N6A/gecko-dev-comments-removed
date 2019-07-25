@@ -103,7 +103,7 @@ public:
 
 
 
-  PRBool Initialize();
+  bool Initialize();
 
   
 
@@ -138,7 +138,8 @@ public:
   };
 
   virtual void EndTransaction(DrawThebesLayerCallback aCallback,
-                              void* aCallbackData);
+                              void* aCallbackData,
+                              EndTransactionFlags aFlags = END_DEFAULT);
 
   const CallbackInfo &GetCallbackInfo() { return mCurrentCallbackInfo; }
 
@@ -179,7 +180,7 @@ public:
   
 
 
-  void SetClippingEnabled(PRBool aEnabled);
+  void SetClippingEnabled(bool aEnabled);
 
   void SetShaderMode(DeviceManagerD3D9::ShaderMode aMode)
     { mDeviceManager->SetShaderMode(aMode); }

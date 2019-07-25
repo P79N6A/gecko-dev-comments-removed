@@ -105,7 +105,7 @@ struct THEBES_API gfxRect :
 
 
 
-    PRBool WithinEpsilonOfIntegerPixels(gfxFloat aEpsilon) const;
+    bool WithinEpsilonOfIntegerPixels(gfxFloat aEpsilon) const;
 
     
     

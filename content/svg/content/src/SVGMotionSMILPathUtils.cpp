@@ -59,7 +59,7 @@ SVGMotionSMILPathUtils::PathGenerator::
 }
 
 
-PRBool
+bool
 SVGMotionSMILPathUtils::PathGenerator::
   MoveToAbsolute(const nsAString& aCoordPairStr)
 {
@@ -76,7 +76,7 @@ SVGMotionSMILPathUtils::PathGenerator::
 }
 
 
-PRBool
+bool
 SVGMotionSMILPathUtils::PathGenerator::
   LineToAbsolute(const nsAString& aCoordPairStr, double& aSegmentDistance)
 {
@@ -94,7 +94,7 @@ SVGMotionSMILPathUtils::PathGenerator::
 }
 
 
-PRBool
+bool
 SVGMotionSMILPathUtils::PathGenerator::
   LineToRelative(const nsAString& aCoordPairStr, double& aSegmentDistance)
 {
@@ -118,7 +118,7 @@ SVGMotionSMILPathUtils::PathGenerator::GetResultingPath()
 
 
 
-PRBool
+bool
 SVGMotionSMILPathUtils::PathGenerator::
   ParseCoordinatePair(const nsAString& aCoordPairStr,
                       float& aXVal, float& aYVal)
@@ -160,7 +160,7 @@ nsresult
 SVGMotionSMILPathUtils::MotionValueParser::
   Parse(const nsAString& aValueStr)
 {
-  PRBool success;
+  bool success;
   if (!mPathGenerator->HaveReceivedCommands()) {
     
     success = mPathGenerator->MoveToAbsolute(aValueStr);

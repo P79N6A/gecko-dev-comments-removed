@@ -43,7 +43,7 @@
 #define MOZILLA_SSE_INCLUDE_HEADER_FOR_SSE2
 #include "mozilla/SSE.h"
 
- PRBool
+ bool
 gfxAlphaRecovery::RecoverAlpha(gfxImageSurface* blackSurf,
                                const gfxImageSurface* whiteSurf,
                                Analysis* analysis)

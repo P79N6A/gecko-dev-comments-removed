@@ -542,7 +542,7 @@ PluginInstanceChild::AnswerNPP_GetValue_NPPVpluginWantsAllNetworkStreams(
 {
     AssertPluginThread();
 
-    PRBool value = 0;
+    PRUint32 value = 0;
     if (!mPluginIface->getvalue) {
         *rv = NPERR_GENERIC_ERROR;
     }
@@ -568,7 +568,7 @@ PluginInstanceChild::AnswerNPP_GetValue_NPPVpluginNeedsXEmbed(
     
     
     
-    PRBool needsXEmbed = 0;
+    PRUint32 needsXEmbed = 0;
     if (!mPluginIface->getvalue) {
         *rv = NPERR_GENERIC_ERROR;
     }
@@ -1404,7 +1404,7 @@ NeuteredWindowProc(HWND hwnd,
 const wchar_t kOldWndProcProp[] = L"MozillaIPCOldWndProc";
 
 
-PRBool
+bool
 PluginInstanceChild::SetWindowLongHookCheck(HWND hWnd,
                                             int nIndex,
                                             LONG_PTR newLong)

@@ -122,13 +122,13 @@ public:
 
 
 
-  PRBool Init(PRUint32 initSize = PL_DHASH_MIN_SIZE);
+  bool Init(PRUint32 initSize = PL_DHASH_MIN_SIZE);
 
   
 
 
 
-  PRBool IsInitialized() const { return !!mTable.entrySize; }
+  bool IsInitialized() const { return !!mTable.entrySize; }
 
   
 
@@ -260,7 +260,7 @@ protected:
   static PLDHashNumber s_HashKey(PLDHashTable *table,
                                  const void   *key);
 
-  static PRBool s_MatchEntry(PLDHashTable           *table,
+  static bool s_MatchEntry(PLDHashTable           *table,
                              const PLDHashEntryHdr  *entry,
                              const void             *key);
   
@@ -271,7 +271,7 @@ protected:
   static void s_ClearEntry(PLDHashTable *table,
                            PLDHashEntryHdr *entry);
 
-  static PRBool s_InitEntry(PLDHashTable     *table,
+  static bool s_InitEntry(PLDHashTable     *table,
                             PLDHashEntryHdr  *entry,
                             const void       *key);
 
@@ -319,7 +319,7 @@ nsTHashtable<EntryType>::~nsTHashtable()
 }
 
 template<class EntryType>
-PRBool
+bool
 nsTHashtable<EntryType>::Init(PRUint32 initSize)
 {
   if (mTable.entrySize)
@@ -366,7 +366,7 @@ nsTHashtable<EntryType>::s_HashKey(PLDHashTable  *table,
 }
 
 template<class EntryType>
-PRBool
+bool
 nsTHashtable<EntryType>::s_MatchEntry(PLDHashTable          *table,
                                       const PLDHashEntryHdr *entry,
                                       const void            *key)
@@ -398,7 +398,7 @@ nsTHashtable<EntryType>::s_ClearEntry(PLDHashTable    *table,
 }
 
 template<class EntryType>
-PRBool
+bool
 nsTHashtable<EntryType>::s_InitEntry(PLDHashTable    *table,
                                      PLDHashEntryHdr *entry,
                                      const void      *key)

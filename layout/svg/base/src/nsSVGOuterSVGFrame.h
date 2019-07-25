@@ -82,7 +82,7 @@ public:
   virtual nsSize ComputeSize(nsRenderingContext *aRenderingContext,
                              nsSize aCBSize, nscoord aAvailableWidth,
                              nsSize aMargin, nsSize aBorder, nsSize aPadding,
-                             PRBool aShrinkWrap);
+                             bool aShrinkWrap);
 
   NS_IMETHOD Reflow(nsPresContext*          aPresContext,
                     nsHTMLReflowMetrics&     aDesiredSize,
@@ -132,9 +132,9 @@ public:
   
   
   
-  PRBool UpdateAndInvalidateCoveredRegion(nsIFrame *aFrame);
+  bool UpdateAndInvalidateCoveredRegion(nsIFrame *aFrame);
 
-  PRBool IsRedrawSuspended();
+  bool IsRedrawSuspended();
 
   
   NS_IMETHOD SuspendRedraw();
@@ -158,12 +158,12 @@ protected:
 
 
 
-  PRBool IsRootOfReplacedElementSubDoc(nsIFrame **aEmbeddingFrame = nsnull);
+  bool IsRootOfReplacedElementSubDoc(nsIFrame **aEmbeddingFrame = nsnull);
 
   
 
 
-  PRBool IsRootOfImage();
+  bool IsRootOfImage();
 
   
   
@@ -175,11 +175,11 @@ protected:
 
   float mFullZoom;
 
-  PRPackedBool mViewportInitialized;
+  bool mViewportInitialized;
 #ifdef XP_MACOSX
-  PRPackedBool mEnableBitmapFallback;
+  bool mEnableBitmapFallback;
 #endif
-  PRPackedBool mIsRootContent;
+  bool mIsRootContent;
 };
 
 #endif

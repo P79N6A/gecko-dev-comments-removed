@@ -118,7 +118,7 @@ public:
         ANY_RESULT = 0xFFFF
     };
     virtual ResultType getReturnType() = 0;
-    PRBool canReturnType(ResultType aType)
+    bool canReturnType(ResultType aType)
     {
         return (getReturnType() & aType) != 0;
     }
@@ -139,7 +139,7 @@ public:
 
 
 
-    virtual PRBool isSensitiveTo(ContextSensitivity aContexts) = 0;
+    virtual bool isSensitiveTo(ContextSensitivity aContexts) = 0;
 
     
 
@@ -153,7 +153,7 @@ public:
     virtual void setSubExprAt(PRUint32 aPos, Expr* aExpr) = 0;
 
     virtual nsresult evaluateToBool(txIEvalContext* aContext,
-                                    PRBool& aResult);
+                                    bool& aResult);
 
     virtual nsresult evaluateToString(txIEvalContext* aContext,
                                       nsString& aResult);
@@ -184,7 +184,7 @@ public:
 #define TX_DECL_EXPR_BASE \
     nsresult evaluate(txIEvalContext* aContext, txAExprResult** aResult); \
     ResultType getReturnType(); \
-    PRBool isSensitiveTo(ContextSensitivity aContexts);
+    bool isSensitiveTo(ContextSensitivity aContexts);
 
 #define TX_DECL_EXPR \
     TX_DECL_EXPR_BASE \
@@ -315,7 +315,7 @@ public:
 
 
 
-    virtual PRBool requireParams(PRInt32 aParamCountMin,
+    virtual bool requireParams(PRInt32 aParamCountMin,
                                  PRInt32 aParamCountMax,
                                  txIEvalContext* aContext);
 
@@ -343,7 +343,7 @@ protected:
     
 
 
-    PRBool argsSensitiveTo(ContextSensitivity aContexts);
+    bool argsSensitiveTo(ContextSensitivity aContexts);
 
 
 #ifdef TX_TO_STRING
@@ -402,7 +402,7 @@ public:
 
     TX_DECL_FUNCTION
 
-    static PRBool getTypeFromAtom(nsIAtom* aName, eType& aType);
+    static bool getTypeFromAtom(nsIAtom* aName, eType& aType);
 
 private:
     eType mType;
@@ -430,7 +430,7 @@ public:
 
 
 
-    virtual PRBool matches(const txXPathNode& aNode,
+    virtual bool matches(const txXPathNode& aNode,
                            txIMatchContext* aContext) = 0;
     virtual double getDefaultPriority() = 0;
 
@@ -451,7 +451,7 @@ public:
 
 
 
-    virtual PRBool isSensitiveTo(Expr::ContextSensitivity aContext) = 0;
+    virtual bool isSensitiveTo(Expr::ContextSensitivity aContext) = 0;
 
 #ifdef TX_TO_STRING
     virtual void toString(nsAString& aDest) = 0;
@@ -460,9 +460,9 @@ public:
 
 #define TX_DECL_NODE_TEST \
     TX_DECL_TOSTRING \
-    PRBool matches(const txXPathNode& aNode, txIMatchContext* aContext); \
+    bool matches(const txXPathNode& aNode, txIMatchContext* aContext); \
     double getDefaultPriority(); \
-    PRBool isSensitiveTo(Expr::ContextSensitivity aContext);
+    bool isSensitiveTo(Expr::ContextSensitivity aContext);
 
 
 
@@ -579,7 +579,7 @@ public:
     
 
 
-    PRBool isEmpty()
+    bool isEmpty()
     {
         return mPredicates.IsEmpty();
     }
@@ -597,7 +597,7 @@ public:
 #endif
 
 protected:
-    PRBool isSensitiveTo(Expr::ContextSensitivity aContext);
+    bool isSensitiveTo(Expr::ContextSensitivity aContext);
     Expr* getSubExprAt(PRUint32 aPos)
     {
         return mPredicates.SafeElementAt(aPos);
@@ -822,7 +822,7 @@ public:
     TX_DECL_EXPR
 
 private:
-    PRBool compareResults(txIEvalContext* aContext, txAExprResult* aLeft,
+    bool compareResults(txIEvalContext* aContext, txAExprResult* aLeft,
                           txAExprResult* aRight);
 
     nsAutoPtr<Expr> mLeftExpr;
@@ -929,14 +929,14 @@ public:
 
 #ifdef TX_TO_STRING
 public:
-    void setSerialize(PRBool aSerialize)
+    void setSerialize(bool aSerialize)
     {
         mSerialize = aSerialize;
     }
 
 private:
     
-    PRBool mSerialize;
+    bool mSerialize;
 #endif
 }; 
 

@@ -49,18 +49,18 @@ public:
   ~nsWaveReader();
 
   virtual nsresult Init(nsBuiltinDecoderReader* aCloneDonor);
-  virtual PRBool DecodeAudioData();
-  virtual PRBool DecodeVideoFrame(PRBool &aKeyframeSkip,
+  virtual bool DecodeAudioData();
+  virtual bool DecodeVideoFrame(bool &aKeyframeSkip,
                                   PRInt64 aTimeThreshold);
 
-  virtual PRBool HasAudio()
+  virtual bool HasAudio()
   {
-    return PR_TRUE;
+    return true;
   }
 
-  virtual PRBool HasVideo()
+  virtual bool HasVideo()
   {
-    return PR_FALSE;
+    return false;
   }
 
   virtual nsresult ReadMetadata(nsVideoInfo* aInfo);
@@ -68,11 +68,11 @@ public:
   virtual nsresult GetBuffered(nsTimeRanges* aBuffered, PRInt64 aStartTime);
 
 private:
-  PRBool ReadAll(char* aBuf, PRInt64 aSize, PRInt64* aBytesRead = nsnull);
-  PRBool LoadRIFFChunk();
-  PRBool ScanForwardUntil(PRUint32 aWantedChunk, PRUint32* aChunkSize);
-  PRBool LoadFormatChunk();
-  PRBool FindDataOffset();
+  bool ReadAll(char* aBuf, PRInt64 aSize, PRInt64* aBytesRead = nsnull);
+  bool LoadRIFFChunk();
+  bool ScanForwardUntil(PRUint32 aWantedChunk, PRUint32* aChunkSize);
+  bool LoadFormatChunk();
+  bool FindDataOffset();
 
   
   
@@ -86,7 +86,7 @@ private:
 
   
   
-  PRInt64 RoundDownToSample(PRInt64 aBytes) const;
+  PRInt64 RoundDownToFrame(PRInt64 aBytes) const;
   PRInt64 GetDataLength();
   PRInt64 GetPosition();
 
@@ -103,7 +103,7 @@ private:
 
   
   
-  PRUint32 mSampleSize;
+  PRUint32 mFrameSize;
 
   
   nsAudioStream::SampleFormat mSampleFormat;

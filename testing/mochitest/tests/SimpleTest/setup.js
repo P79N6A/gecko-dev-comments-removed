@@ -136,6 +136,10 @@ var gTestList = [];
 var RunSet = {}
 RunSet.runall = function(e) {
   
+  
+  gTestList = filterTests(params.runOnlyTests, params.excludeTests);
+
+  
   var my_tests = gTestList;
 
   if (params.totalChunks && params.thisChunk) {
@@ -212,6 +216,63 @@ RunSet.reloadAndRunAll = function(e) {
     window.location.href += "?autorun=1";
   }  
 };
+
+
+
+
+
+function filterTests(runOnly, exclude) {
+  var filteredTests = [];
+  var filterFile = null;
+
+  if (runOnly) {
+    filterFile = runOnly;
+  } else if (exclude) {
+    filterFile = exclude;
+  }
+
+  if (filterFile == null)
+    return gTestList;
+
+  var datafile = "http://mochi.test:8888/" + filterFile;
+  var objXml = new XMLHttpRequest();
+  objXml.open("GET",datafile,false);
+  objXml.send(null);
+  try {
+    var filter = JSON.parse(objXml.responseText);
+  } catch (ex) {
+    dump("INFO | setup.js | error loading or parsing '" + datafile + "'\n");
+    return gTestList;
+  }
+  
+  for (var i = 0; i < gTestList.length; ++i) {
+    var test_path = gTestList[i];
+    
+    
+    var tmp_path = test_path.replace(/^\//, '');
+
+    var found = false;
+
+    for (var f in filter) {
+      
+      file = f.replace(/^\//, '')
+      file = file.replace(/^tests\//, '')
+      
+      
+      if (tmp_path.match("^tests/" + file) != null) {
+        if (runOnly)
+          filteredTests.push(test_path);
+        found = true;
+        break;
+      }
+    }
+
+    if (exclude && !found)
+      filteredTests.push(test_path);
+  }
+
+  return filteredTests;
+}
 
 
 function toggleVisible(elem) {

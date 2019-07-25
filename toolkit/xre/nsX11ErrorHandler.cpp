@@ -38,9 +38,6 @@
 
 #include "nsX11ErrorHandler.h"
 
-#include "mozilla/plugins/PluginProcessChild.h"
-using mozilla::plugins::PluginProcessChild;
-
 #include "prenv.h"
 #include "nsXULAppAPI.h"
 #include "nsExceptionHandler.h"
@@ -156,15 +153,9 @@ X11Error(Display *display, XErrorEvent *event) {
 #ifdef MOZ_CRASHREPORTER
   switch (XRE_GetProcessType()) {
   case GeckoProcessType_Default:
-    CrashReporter::AppendAppNotesToCrashReport(notes);
-    break;
   case GeckoProcessType_Plugin:
-    if (CrashReporter::GetEnabled()) {
-      
-      
-      
-      PluginProcessChild::AppendNotesToCrashReport(notes);
-    }
+  case GeckoProcessType_Content:
+    CrashReporter::AppendAppNotesToCrashReport(notes);
     break;
   default: 
     ; 

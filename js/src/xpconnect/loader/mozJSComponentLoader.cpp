@@ -751,7 +751,7 @@ mozJSComponentLoader::GlobalForLocation(nsILocalFile *aComponentFile,
     JSCLContextHelper cx(this);
 
     
-    JS::AutoPreserveCompartment pc(cx);
+    js::AutoPreserveCompartment pc(cx);
 
     rv = mSystemPrincipal->GetJSPrincipals(cx, &jsPrincipals);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -841,7 +841,7 @@ mozJSComponentLoader::GlobalForLocation(nsILocalFile *aComponentFile,
     
     
     
-    PRBool writeToCache = PR_FALSE;
+    bool writeToCache = false;
     StartupCache* cache = StartupCache::GetSingleton();
 
     nsCAutoString cachePath(kJSCachePrefix);

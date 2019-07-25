@@ -132,9 +132,9 @@ class LayerManager;
 
 typedef struct CapturingContentInfo {
   
-  PRPackedBool mAllowed;
-  PRPackedBool mRetargetToElement;
-  PRPackedBool mPreventDrag;
+  bool mAllowed;
+  bool mRetargetToElement;
+  bool mPreventDrag;
   nsIContent* mContent;
 } CapturingContentInfo;
 
@@ -217,7 +217,7 @@ public:
 
   virtual NS_HIDDEN_(void) Destroy() = 0;
 
-  PRBool IsDestroying() { return mIsDestroying; }
+  bool IsDestroying() { return mIsDestroying; }
 
   
   
@@ -276,8 +276,8 @@ public:
 
   
   
-  NS_HIDDEN_(void) SetAuthorStyleDisabled(PRBool aDisabled);
-  NS_HIDDEN_(PRBool) GetAuthorStyleDisabled() const;
+  NS_HIDDEN_(void) SetAuthorStyleDisabled(bool aDisabled);
+  NS_HIDDEN_(bool) GetAuthorStyleDisabled() const;
 
   
 
@@ -305,7 +305,7 @@ public:
 
 
 
-  virtual NS_HIDDEN_(nsresult) SetPreferenceStyleRules(PRBool aForceReflow) = 0;
+  virtual NS_HIDDEN_(nsresult) SetPreferenceStyleRules(bool aForceReflow) = 0;
 
   
 
@@ -330,7 +330,7 @@ public:
   
 
 
-  PRBool DidInitialReflow() const { return mDidInitialReflow; }
+  bool DidInitialReflow() const { return mDidInitialReflow; }
 
   
 
@@ -360,12 +360,12 @@ public:
   
 
 
-  virtual PRBool GetIsViewportOverridden() = 0;
+  virtual bool GetIsViewportOverridden() = 0;
 
   
 
 
-  virtual PRBool IsLayoutFlushObserver() = 0;
+  virtual bool IsLayoutFlushObserver() = 0;
 
   
 
@@ -477,7 +477,7 @@ public:
 
 
 
-  virtual NS_HIDDEN_(PRBool) IsSafeToFlush() const = 0;
+  virtual NS_HIDDEN_(bool) IsSafeToFlush() const = 0;
 
   
 
@@ -514,7 +514,7 @@ public:
 
 
 
-  virtual NS_HIDDEN_(nsresult) GoToAnchor(const nsAString& aAnchorName, PRBool aScroll) = 0;
+  virtual NS_HIDDEN_(nsresult) GoToAnchor(const nsAString& aAnchorName, bool aScroll) = 0;
 
   
 
@@ -594,7 +594,7 @@ public:
 
 
 
-  virtual PRBool ScrollFrameRectIntoView(nsIFrame*     aFrame,
+  virtual bool ScrollFrameRectIntoView(nsIFrame*     aFrame,
                                          const nsRect& aRect,
                                          PRIntn        aVPercent,
                                          PRIntn        aHPercent,
@@ -622,7 +622,7 @@ public:
 
 
 
-  virtual NS_HIDDEN_(void) SetIgnoreFrameDestruction(PRBool aIgnore) = 0;
+  virtual NS_HIDDEN_(void) SetIgnoreFrameDestruction(bool aIgnore) = 0;
 
   
 
@@ -717,20 +717,20 @@ public:
 
 
 
-  virtual NS_HIDDEN_(nsresult) CaptureHistoryState(nsILayoutHistoryState** aLayoutHistoryState, PRBool aLeavingPage = PR_FALSE) = 0;
+  virtual NS_HIDDEN_(nsresult) CaptureHistoryState(nsILayoutHistoryState** aLayoutHistoryState, bool aLeavingPage = false) = 0;
 
   
 
 
 
-  PRBool IsReflowLocked() const { return mIsReflowing; }
+  bool IsReflowLocked() const { return mIsReflowing; }
 
   
 
 
 
 
-  PRBool IsPaintingSuppressed() const { return mPaintingSuppressed; }
+  bool IsPaintingSuppressed() const { return mPaintingSuppressed; }
 
   
 
@@ -749,7 +749,7 @@ public:
   
 
 
-  PRBool IsThemeSupportEnabled() const { return !mIsThemeSupportDisabled; }
+  bool IsThemeSupportEnabled() const { return !mIsThemeSupportDisabled; }
 
   
 
@@ -790,12 +790,12 @@ public:
 
 
 
-  static PRBool GetVerifyReflowEnable();
+  static bool GetVerifyReflowEnable();
 
   
 
 
-  static void SetVerifyReflowEnable(PRBool aEnabled);
+  static void SetVerifyReflowEnable(bool aEnabled);
 
   virtual nsIFrame* GetAbsoluteContainingBlock(nsIFrame* aFrame);
 
@@ -808,8 +808,8 @@ public:
                                       nsIFrame * aFrame,
                                       const nsPoint& aOffset,
                                       PRUint32 aColor) = 0;
-  virtual NS_HIDDEN_(void) SetPaintFrameCount(PRBool aOn) = 0;
-  virtual PRBool IsPaintingFrameCounts() = 0;
+  virtual NS_HIDDEN_(void) SetPaintFrameCount(bool aOn) = 0;
+  virtual bool IsPaintingFrameCounts() = 0;
 #endif
 
 #ifdef DEBUG
@@ -839,7 +839,7 @@ public:
 
 
   virtual void Freeze() = 0;
-  PRBool IsFrozen() { return mFrozen; }
+  bool IsFrozen() { return mFrozen; }
 
   
 
@@ -847,7 +847,7 @@ public:
 
   virtual void Thaw() = 0;
 
-  virtual void FireOrClearDelayedEvents(PRBool aFireEvents) = 0;
+  virtual void FireOrClearDelayedEvents(bool aFireEvents) = 0;
 
   
 
@@ -972,7 +972,7 @@ public:
 
 
 
-  virtual NS_HIDDEN_(void) DisableNonTestMouseEvents(PRBool aDisable) = 0;
+  virtual NS_HIDDEN_(void) DisableNonTestMouseEvents(bool aDisable) = 0;
 
   
 
@@ -1025,18 +1025,18 @@ public:
 
   virtual nscolor ComputeBackstopColor(nsIView* aDisplayRoot) = 0;
 
-  void ObserveNativeAnonMutationsForPrint(PRBool aObserve)
+  void ObserveNativeAnonMutationsForPrint(bool aObserve)
   {
     mObservesMutationsForPrint = aObserve;
   }
-  PRBool ObservesNativeAnonMutationsForPrint()
+  bool ObservesNativeAnonMutationsForPrint()
   {
     return mObservesMutationsForPrint;
   }
 
-  virtual nsresult SetIsActive(PRBool aIsActive) = 0;
+  virtual nsresult SetIsActive(bool aIsActive) = 0;
 
-  PRBool IsActive()
+  bool IsActive()
   {
     return mIsActive;
   }
@@ -1075,7 +1075,7 @@ public:
   
 
 
-  static void AllowMouseCapture(PRBool aAllowed)
+  static void AllowMouseCapture(bool aAllowed)
   {
     gCaptureInfo.mAllowed = aAllowed;
   }
@@ -1084,7 +1084,7 @@ public:
 
 
 
-  static PRBool IsMouseCapturePreventingDrag()
+  static bool IsMouseCapturePreventingDrag()
   {
     return gCaptureInfo.mPreventDrag && gCaptureInfo.mContent;
   }
@@ -1112,8 +1112,8 @@ public:
 
 
 
-  virtual void SetIgnoreViewportScrolling(PRBool aIgnore) = 0;
-  PRBool IgnoringViewportScrolling() const
+  virtual void SetIgnoreViewportScrolling(bool aIgnore) = 0;
+  bool IgnoringViewportScrolling() const
   { return mRenderFlags & STATE_IGNORING_VIEWPORT_SCROLLING; }
 
    
@@ -1134,22 +1134,22 @@ public:
 
 
 
-  virtual void SynthesizeMouseMove(PRBool aFromScroll) = 0;
+  virtual void SynthesizeMouseMove(bool aFromScroll) = 0;
 
   
 
 
 protected:
-  virtual PRBool AddRefreshObserverExternal(nsARefreshObserver* aObserver,
+  virtual bool AddRefreshObserverExternal(nsARefreshObserver* aObserver,
                                             mozFlushType aFlushType);
-  PRBool AddRefreshObserverInternal(nsARefreshObserver* aObserver,
+  bool AddRefreshObserverInternal(nsARefreshObserver* aObserver,
                                     mozFlushType aFlushType);
-  virtual PRBool RemoveRefreshObserverExternal(nsARefreshObserver* aObserver,
+  virtual bool RemoveRefreshObserverExternal(nsARefreshObserver* aObserver,
                                                mozFlushType aFlushType);
-  PRBool RemoveRefreshObserverInternal(nsARefreshObserver* aObserver,
+  bool RemoveRefreshObserverInternal(nsARefreshObserver* aObserver,
                                        mozFlushType aFlushType);
 public:
-  PRBool AddRefreshObserver(nsARefreshObserver* aObserver,
+  bool AddRefreshObserver(nsARefreshObserver* aObserver,
                             mozFlushType aFlushType) {
 #ifdef _IMPL_NS_LAYOUT
     return AddRefreshObserverInternal(aObserver, aFlushType);
@@ -1158,7 +1158,7 @@ public:
 #endif
   }
 
-  PRBool RemoveRefreshObserver(nsARefreshObserver* aObserver,
+  bool RemoveRefreshObserver(nsARefreshObserver* aObserver,
                                mozFlushType aFlushType) {
 #ifdef _IMPL_NS_LAYOUT
     return RemoveRefreshObserverInternal(aObserver, aFlushType);
@@ -1201,23 +1201,23 @@ protected:
 
   PRInt16                   mSelectionFlags;
 
-  PRPackedBool              mStylesHaveChanged;
-  PRPackedBool              mDidInitialReflow;
-  PRPackedBool              mIsDestroying;
-  PRPackedBool              mIsReflowing;
-  PRPackedBool              mPaintingSuppressed;  
-  PRPackedBool              mIsThemeSupportDisabled;  
-  PRPackedBool              mIsActive;
-  PRPackedBool              mFrozen;
+  bool                      mStylesHaveChanged;
+  bool                      mDidInitialReflow;
+  bool                      mIsDestroying;
+  bool                      mIsReflowing;
+  bool                      mPaintingSuppressed;  
+  bool                      mIsThemeSupportDisabled;  
+  bool                      mIsActive;
+  bool                      mFrozen;
 
-  PRPackedBool              mObservesMutationsForPrint;
+  bool                      mObservesMutationsForPrint;
 
-  PRPackedBool              mReflowScheduled; 
+  bool                      mReflowScheduled; 
                                               
                                               
                                               
 
-  PRPackedBool              mSuppressInterruptibleReflows;
+  bool                      mSuppressInterruptibleReflows;
 
   
   nsWeakFrame*              mWeakFrames;

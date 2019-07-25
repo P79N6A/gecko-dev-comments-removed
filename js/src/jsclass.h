@@ -48,6 +48,8 @@
 #include "jsapi.h"
 #include "jsprvtd.h"
 
+#ifdef __cplusplus
+
 namespace js {
 
 class AutoIdVector;
@@ -388,5 +390,23 @@ Valueify(JSClass *c)
     return (Class *)c;
 }
 
+
+
+
+
+enum ESClassValue { ESClass_Array, ESClass_Number, ESClass_String, ESClass_Boolean };
+
+
+
+
+
+
+
+inline bool
+ObjectClassIs(JSObject &obj, ESClassValue classValue, JSContext *cx);
+
 }  
+
+#endif  
+
 #endif  

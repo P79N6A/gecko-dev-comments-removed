@@ -44,9 +44,9 @@
 #include "jsversion.h"
 #include "jsapi.h"
 #include "jsprvtd.h"
+#include "jshash.h"
 #include "jshashtable.h"
 #include "jspubtd.h"
-#include "jsstr.h"
 #include "jslock.h"
 
 #include "vm/String.h"
@@ -163,6 +163,16 @@ js_AtomToPrintableString(JSContext *cx, JSAtom *atom, JSAutoByteString *bytes);
 
 namespace js {
 
+
+inline uint32
+HashChars(const jschar *chars, size_t length)
+{
+    uint32 h = 0;
+    for (; length; chars++, length--)
+        h = JS_ROTATE_LEFT32(h, 4) ^ *chars;
+    return h;
+}
+
 typedef TaggedPointerEntry<JSAtom> AtomStateEntry;
 
 struct AtomHasher
@@ -193,6 +203,29 @@ struct AtomHasher
 };
 
 typedef HashSet<AtomStateEntry, AtomHasher, SystemAllocPolicy> AtomSet;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+enum FlationCoding
+{
+    NormalEncoding,
+    CESU8Encoding
+};
 
 }  
 

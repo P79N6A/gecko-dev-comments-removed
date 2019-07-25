@@ -67,8 +67,8 @@ public:
   
   
   
-  PRInt32 GetNthIndex(Element* aChild, PRBool aIsOfType, PRBool aIsFromEnd,
-                      PRBool aCheckEdgeOnly);
+  PRInt32 GetNthIndex(Element* aChild, bool aIsOfType, bool aIsFromEnd,
+                      bool aCheckEdgeOnly);
 
   void Reset();
 
@@ -78,15 +78,15 @@ private:
 
 
   inline bool SiblingMatchesElement(nsIContent* aSibling, Element* aElement,
-                                    PRBool aIsOfType);
+                                    bool aIsOfType);
 
   
 
 
 
   inline bool IndexDetermined(nsIContent* aSibling, Element* aChild,
-                              PRBool aIsOfType, PRBool aIsFromEnd,
-                              PRBool aCheckEdgeOnly, PRInt32& aResult);
+                              bool aIsOfType, bool aIsFromEnd,
+                              bool aCheckEdgeOnly, PRInt32& aResult);
 
   struct CacheEntry {
     CacheEntry() {

@@ -260,7 +260,19 @@ function InitAndStartRefTests()
     try {
       var prefs = Components.classes["@mozilla.org/preferences-service;1"].
                   getService(Components.interfaces.nsIPrefBranch2);
+    } catch(e) {
+      gDumpLog("REFTEST TEST-UNEXPECTED-FAIL | | EXCEPTION: " + e + "\n");
+    }
+    
+    
+    try {
       gLoadTimeout = prefs.getIntPref("reftest.timeout");
+    } catch(e) { 
+      gLoadTimeout = 5 * 60 * 1000; 
+    }
+    
+    
+    try {
       logFile = prefs.getCharPref("reftest.logFile");
       if (logFile) {
         try {
@@ -273,13 +285,19 @@ function InitAndStartRefTests()
           gDumpLog = dump;
         }
       }
+    } catch(e) {}
+    
+    try {
       gRemote = prefs.getBoolPref("reftest.remote");
-      gIgnoreWindowSize = prefs.getBoolPref("reftest.ignoreWindowSize");
-    }
-    catch(e) {
-      gLoadTimeout = 5 * 60 * 1000; 
+    } catch(e) { 
+      gRemote = false;
     }
 
+    try {
+      gIgnoreWindowSize = prefs.getBoolPref("reftest.ignoreWindowSize");
+    } catch(e) {
+      gIgnoreWindowSize = false;
+    }
 
     
     try {
@@ -864,14 +882,13 @@ function Focus()
         return false;
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
+    var fm = CC["@mozilla.org/focus-manager;1"].getService(CI.nsIFocusManager);
+    fm.activeWindow = window;
+    try {
+        var dock = CC["@mozilla.org/widget/macdocksupport;1"].getService(CI.nsIMacDockSupport);
+        dock.activateApplication(true);
+    } catch(ex) {
+    }
     return true;
 }
 
@@ -923,7 +940,9 @@ function StartCurrentURI(aState)
         
         setTimeout(RecordResult, 0);
     } else {
-        gDumpLog("REFTEST TEST-START | " + gCurrentURL + "\n");
+        var currentTest = gTotalTests - gURLs.length;
+        gDumpLog("REFTEST TEST-START | " + gCurrentURL + " | " + currentTest + " / " + gTotalTests +
+            " (" + Math.floor(100 * (currentTest / gTotalTests)) + "%)\n");
         LogInfo("START " + gCurrentURL);
         var type = gURLs[0].type
         if (TYPE_SCRIPT == type) {

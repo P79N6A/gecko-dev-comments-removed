@@ -92,7 +92,7 @@ static nsCharType cc2ucd[5] = {
     ((c) + (PRUint16)ARABIC_TO_PERSIAN_DIGIT_INCREMENT) : \
      (c)))
 
-PRUnichar HandleNumberInChar(PRUnichar aChar, PRBool aPrevCharArabic, PRUint32 aNumFlag)
+PRUnichar HandleNumberInChar(PRUnichar aChar, bool aPrevCharArabic, PRUint32 aNumFlag)
 {
   
   
@@ -148,7 +148,7 @@ nsresult HandleNumbers(PRUnichar* aBuffer, PRUint32 aSize, PRUint32 aNumFlag)
 }
 
 #define LRM_CHAR 0x200e
-PRBool IsBidiControl(PRUint32 aChar)
+bool IsBidiControl(PRUint32 aChar)
 {
   
   
@@ -156,7 +156,7 @@ PRBool IsBidiControl(PRUint32 aChar)
   return (eBidiCat_CC == GetBidiCat(aChar) || ((aChar)&0xfffffe)==LRM_CHAR);
 }
 
-PRBool HasRTLChars(const nsAString& aString)
+bool HasRTLChars(const nsAString& aString)
 {
 
 

@@ -112,8 +112,8 @@ nsDisplayXULTreeColSplitterTarget::HitTest(nsDisplayListBuilder* aBuilder, const
   nsRect rect = aRect - ToReferenceFrame();
   
   
-  PRBool left = PR_FALSE;
-  PRBool right = PR_FALSE;
+  bool left = false;
+  bool right = false;
   if (mFrame->GetSize().width - nsPresContext::CSSPixelsToAppUnits(4) <= rect.XMost()) {
     right = PR_TRUE;
   } else if (nsPresContext::CSSPixelsToAppUnits(4) > rect.x) {
@@ -122,7 +122,7 @@ nsDisplayXULTreeColSplitterTarget::HitTest(nsDisplayListBuilder* aBuilder, const
 
   
   if (mFrame->GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL) {
-    PRBool tmp = left;
+    bool tmp = left;
     left = right;
     right = tmp;
   }
@@ -180,7 +180,7 @@ nsTreeColFrame::AttributeChanged(PRInt32 aNameSpaceID,
 void
 nsTreeColFrame::SetBounds(nsBoxLayoutState& aBoxLayoutState,
                           const nsRect& aRect,
-                          PRBool aRemoveOverflowArea) {
+                          bool aRemoveOverflowArea) {
   nscoord oldWidth = mRect.width;
 
   nsBoxFrame::SetBounds(aBoxLayoutState, aRect, aRemoveOverflowArea);
@@ -213,7 +213,7 @@ nsTreeColFrame::GetTreeBoxObject()
 }
 
 void
-nsTreeColFrame::InvalidateColumns(PRBool aCanWalkFrameTree)
+nsTreeColFrame::InvalidateColumns(bool aCanWalkFrameTree)
 {
   nsITreeBoxObject* treeBoxObject = GetTreeBoxObject();
   if (treeBoxObject) {

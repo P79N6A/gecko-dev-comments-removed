@@ -37,6 +37,7 @@
 
 
 
+
 const Cu = Components.utils;
 const Ci = Components.interfaces;
 
@@ -109,8 +110,6 @@ var StyleInspector = {
     let iframeReady = false;
     function SI_iframeOnload() {
       iframe.removeEventListener("load", SI_iframeOnload, true);
-      panel.cssLogic = new CssLogic();
-      panel.cssHtmlTree = new CssHtmlTree(iframe, panel.cssLogic, panel);
       iframeReady = true;
       if (panelReady) {
         SI_popupShown.call(panel);
@@ -124,6 +123,10 @@ var StyleInspector = {
     function SI_popupShown() {
       panelReady = true;
       if (iframeReady) {
+        if (!this.cssLogic) {
+          this.cssLogic = new CssLogic();
+          this.cssHtmlTree = new CssHtmlTree(iframe, this.cssLogic, this);
+        }
         let selectedNode = this.selectedNode || null;
         this.cssLogic.highlight(selectedNode);
         this.cssHtmlTree.highlight(selectedNode);
@@ -162,12 +165,9 @@ var StyleInspector = {
     panel.selectNode = function SI_selectNode(aNode)
     {
       this.selectedNode = aNode;
-      if (this.isOpen()) {
+      if (this.isOpen() && !this.hasAttribute("dimmed")) {
         this.cssLogic.highlight(aNode);
         this.cssHtmlTree.highlight(aNode);
-      } else {
-        let win = Services.wm.getMostRecentWindow("navigator:browser");
-        this.openPopup(win.gBrowser.selectedBrowser, "end_before", 0, 0, false, false);
       }
     };
 
@@ -176,12 +176,47 @@ var StyleInspector = {
 
     panel.destroy = function SI_destroy()
     {
+      if (!this.cssLogic)
+        return;
+      if (this.isOpen())
+        this.hideTool();
       this.cssLogic = null;
       this.cssHtmlTree = null;
       this.removeEventListener("popupshown", SI_popupShown);
       this.removeEventListener("popuphidden", SI_popupHidden);
       this.parentNode.removeChild(this);
       Services.obs.notifyObservers(null, "StyleInspector-closed", null);
+    };
+
+    
+
+
+
+
+
+    panel.dimTool = function SI_dimTool(aState)
+    {
+      if (!this.isOpen())
+        return;
+
+      if (aState) {
+        this.setAttribute("dimmed", "true");
+      } else if (this.hasAttribute("dimmed")) {
+        this.removeAttribute("dimmed");
+      }
+    };
+
+    panel.showTool = function SI_showTool(aSelection)
+    {
+      this.selectNode(aSelection);
+      let win = Services.wm.getMostRecentWindow("navigator:browser");
+      this.openPopup(win.gBrowser.selectedBrowser, "end_before", 0, 0,
+        false, false);
+    };
+
+    panel.hideTool = function SI_hideTool()
+    {
+      this.hidePopup();
     };
 
     

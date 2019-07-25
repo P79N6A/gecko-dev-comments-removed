@@ -68,7 +68,7 @@ class nsILayoutHistoryState;
 class nsFrameManagerBase
 {
 public:
-  PRBool IsDestroyingFrames() { return mIsDestroyingFrames; }
+  bool IsDestroyingFrames() { return mIsDestroyingFrames; }
 
   
 
@@ -92,7 +92,7 @@ protected:
   nsIFrame*                       mRootFrame;
   PLDHashTable                    mPlaceholderMap;
   UndisplayedMap*                 mUndisplayedMap;
-  PRPackedBool                    mIsDestroyingFrames;  
+  bool                            mIsDestroyingFrames;  
 };
 
 #endif

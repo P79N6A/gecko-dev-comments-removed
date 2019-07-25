@@ -83,8 +83,8 @@ public:
                    nsIWidget*         aWidgetToPaint,
                    const nsRegion&    aDirtyRegion,
                    const nsIntRegion& aIntDirtyRegion,
-                   PRBool             aPaintDefaultBackground,
-                   PRBool             aWillSendDidPaint) = 0;
+                   bool               aPaintDefaultBackground,
+                   bool               aWillSendDidPaint) = 0;
 
   
 
@@ -99,7 +99,7 @@ public:
 
   NS_IMETHOD HandleEvent(nsIView*       aView,
                          nsGUIEvent*    aEvent,
-                         PRBool         aDontRetargetEvents,
+                         bool           aDontRetargetEvents,
                          nsEventStatus* aEventStatus) = 0;
 
   
@@ -115,14 +115,14 @@ public:
 
 
 
-  NS_IMETHOD_(PRBool) ShouldIgnoreInvalidation() = 0;
+  NS_IMETHOD_(bool) ShouldIgnoreInvalidation() = 0;
 
   
 
 
 
 
-  NS_IMETHOD_(void) WillPaint(PRBool aWillSendDidPaint) = 0;
+  NS_IMETHOD_(void) WillPaint(bool aWillSendDidPaint) = 0;
 
   
 
@@ -137,7 +137,7 @@ public:
 
 
   NS_IMETHOD_(void) DispatchSynthMouseMove(nsGUIEvent *aEvent,
-                                           PRBool aFlushOnHoverChange) = 0;
+                                           bool aFlushOnHoverChange) = 0;
 
   
 

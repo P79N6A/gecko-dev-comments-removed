@@ -226,14 +226,14 @@ public:
   
   
   nsMediaCacheStream(nsMediaChannelStream* aClient)
-    : mClient(aClient), mResourceID(0), mInitialized(PR_FALSE),
-      mIsSeekable(PR_FALSE), mCacheSuspended(PR_FALSE),
-      mUsingNullPrincipal(PR_FALSE),
+    : mClient(aClient), mResourceID(0), mInitialized(false),
+      mIsSeekable(false), mCacheSuspended(false),
+      mUsingNullPrincipal(false),
       mChannelOffset(0), mStreamLength(-1),  
       mStreamOffset(0), mPlaybackBytesPerSecond(10000),
       mPinCount(0), mCurrentMode(MODE_PLAYBACK),
-      mMetadataInPartialBlockBuffer(PR_FALSE),
-      mClosed(PR_FALSE) {}
+      mMetadataInPartialBlockBuffer(false),
+      mClosed(false) {}
   ~nsMediaCacheStream();
 
   
@@ -254,12 +254,12 @@ public:
   
   
   
-  void SetSeekable(PRBool aIsSeekable);
+  void SetSeekable(bool aIsSeekable);
   
   
   void Close();
   
-  PRBool IsClosed() const { return mClosed; }
+  bool IsClosed() const { return mClosed; }
   
   nsIPrincipal* GetCurrentPrincipal() { return mPrincipal; }
 
@@ -334,7 +334,7 @@ public:
   
   
   
-  PRBool IsDataCachedToEndOfStream(PRInt64 aOffset);
+  bool IsDataCachedToEndOfStream(PRInt64 aOffset);
   
   void SetReadMode(ReadMode aMode);
   
@@ -343,7 +343,7 @@ public:
   
   void SetPlaybackRate(PRUint32 aBytesPerSecond);
   
-  PRBool IsSeekable();
+  bool IsSeekable();
 
   
   
@@ -390,7 +390,7 @@ private:
     
     
     PRInt32 GetPrevBlock(PRInt32 aBlock) const;
-    PRBool IsEmpty() const { return mFirstBlock < 0; }
+    bool IsEmpty() const { return mFirstBlock < 0; }
     PRInt32 GetCount() const { return mCount; }
     
     void NotifyBlockSwapped(PRInt32 aBlockIndex1, PRInt32 aBlockIndex2);
@@ -445,20 +445,20 @@ private:
   
   PRInt64                mResourceID;
   
-  PRPackedBool           mInitialized;
+  bool                   mInitialized;
 
   
   
 
   
-  PRPackedBool mIsSeekable;
+  bool mIsSeekable;
   
   
   
-  PRPackedBool mCacheSuspended;
+  bool mCacheSuspended;
   
   
-  PRPackedBool mUsingNullPrincipal;
+  bool mUsingNullPrincipal;
   
   PRInt64      mChannelOffset;
   
@@ -489,10 +489,10 @@ private:
   
   ReadMode          mCurrentMode;
   
-  PRPackedBool      mMetadataInPartialBlockBuffer;
+  bool              mMetadataInPartialBlockBuffer;
   
   
-  PRPackedBool      mClosed;
+  bool              mClosed;
 
   
   

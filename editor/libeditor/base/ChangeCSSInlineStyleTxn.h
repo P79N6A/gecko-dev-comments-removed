@@ -62,7 +62,7 @@ public:
                   nsIDOMElement  * aElement,
                   nsIAtom        * aProperty,
                   const nsAString & aValue,
-                  PRBool aRemoveProperty);
+                  bool aRemoveProperty);
 
   
 
@@ -71,7 +71,7 @@ public:
 
 
 
-  static PRBool ValueIncludes(const nsAString & aValueList, const nsAString & aValue, PRBool aCaseSensitive);
+  static bool ValueIncludes(const nsAString & aValueList, const nsAString & aValue, bool aCaseSensitive);
 
   
 
@@ -88,7 +88,7 @@ private:
 
 
 
-  PRBool AcceptsMoreThanOneValue(nsIAtom * aCSSProperty);
+  bool AcceptsMoreThanOneValue(nsIAtom * aCSSProperty);
 
   
 
@@ -101,7 +101,7 @@ private:
 
 
 
-  nsresult SetStyle(PRBool aAttributeWasSet, nsAString & aValue);
+  nsresult SetStyle(bool aAttributeWasSet, nsAString & aValue);
 
 public:
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(ChangeCSSInlineStyleTxn, EditTxn)
@@ -130,12 +130,12 @@ protected:
   
   nsString mRedoValue;
   
-  PRBool   mUndoAttributeWasSet;
+  bool     mUndoAttributeWasSet;
   
-  PRBool   mRedoAttributeWasSet;
+  bool     mRedoAttributeWasSet;
 
   
-  PRBool   mRemoveProperty;
+  bool     mRemoveProperty;
 };
 
 #endif

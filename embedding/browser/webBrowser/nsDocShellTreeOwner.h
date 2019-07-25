@@ -213,13 +213,13 @@ private:
     
   nsCOMPtr<nsIWebBrowserChrome> mWebBrowserChrome;
 
-  PRPackedBool mTooltipListenerInstalled;
+  bool mTooltipListenerInstalled;
 
   nsCOMPtr<nsITimer> mTooltipTimer;
   static void sTooltipCallback ( nsITimer* aTimer, void* aListener ) ;
   PRInt32 mMouseClientX, mMouseClientY;       
   PRInt32 mMouseScreenX, mMouseScreenY;       
-  PRBool mShowingTooltip;
+  bool mShowingTooltip;
 
     
   nsCOMPtr<nsITimer> mAutoHideTimer;
@@ -267,7 +267,7 @@ private:
   NS_IMETHOD AddContextMenuListener();
   NS_IMETHOD RemoveContextMenuListener();
 
-  PRPackedBool mContextMenuListenerInstalled;
+  bool mContextMenuListenerInstalled;
 
   nsWebBrowser* mWebBrowser;
   nsCOMPtr<nsIDOMEventTarget> mEventTarget;

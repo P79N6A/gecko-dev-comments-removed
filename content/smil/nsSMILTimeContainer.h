@@ -101,7 +101,7 @@ public:
 
 
 
-  PRBool IsPausedByType(PRUint32 aType) const { return mPauseState & aType; }
+  bool IsPausedByType(PRUint32 aType) const { return mPauseState & aType; }
 
   
 
@@ -110,7 +110,7 @@ public:
 
 
 
-  PRBool IsPaused() const { return mPauseState != 0; }
+  bool IsPaused() const { return mPauseState != 0; }
 
   
 
@@ -169,13 +169,13 @@ public:
 
 
 
-  PRBool NeedsSample() const { return !mPauseState || mNeedsPauseSample; }
+  bool NeedsSample() const { return !mPauseState || mNeedsPauseSample; }
 
   
 
 
 
-  PRBool NeedsRewind() const { return mNeedsRewind; }
+  bool NeedsRewind() const { return mNeedsRewind; }
   void ClearNeedsRewind() { mNeedsRewind = PR_FALSE; }
 
   
@@ -183,7 +183,7 @@ public:
 
 
 
-  PRBool IsSeeking() const { return mIsSeeking; }
+  bool IsSeeking() const { return mIsSeeking; }
   void MarkSeekFinished() { mIsSeeking = PR_FALSE; }
 
   
@@ -201,7 +201,7 @@ public:
 
 
 
-  PRBool AddMilestone(const nsSMILMilestone& aMilestone,
+  bool AddMilestone(const nsSMILMilestone& aMilestone,
                       nsISMILAnimationElement& aElement);
 
   
@@ -218,7 +218,7 @@ public:
 
 
 
-  PRBool GetNextMilestoneInParentTime(nsSMILMilestone& aNextMilestone) const;
+  bool GetNextMilestoneInParentTime(nsSMILMilestone& aNextMilestone) const;
 
   typedef nsTArray<nsRefPtr<nsISMILAnimationElement> > AnimElemArray;
 
@@ -232,7 +232,7 @@ public:
 
 
 
-  PRBool PopMilestoneElementsAtMilestone(const nsSMILMilestone& aMilestone,
+  bool PopMilestoneElementsAtMilestone(const nsSMILMilestone& aMilestone,
                                          AnimElemArray& aMatchedElements);
 
   
@@ -293,10 +293,10 @@ protected:
   nsSMILTime mPauseStart;
 
   
-  PRPackedBool mNeedsPauseSample;
+  bool mNeedsPauseSample;
 
-  PRPackedBool mNeedsRewind; 
-  PRPackedBool mIsSeeking; 
+  bool mNeedsRewind; 
+  bool mIsSeeking; 
 
   
   PRUint32 mPauseState;
@@ -308,7 +308,7 @@ protected:
       : mMilestone(aMilestone), mTimebase(&aElement)
     { }
 
-    PRBool operator<(const MilestoneEntry& aOther) const
+    bool operator<(const MilestoneEntry& aOther) const
     {
       return mMilestone < aOther.mMilestone;
     }

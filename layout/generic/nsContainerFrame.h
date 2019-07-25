@@ -87,10 +87,10 @@ public:
   virtual void DestroyFrom(nsIFrame* aDestructRoot);
   virtual void ChildIsDirty(nsIFrame* aChild);
 
-  virtual PRBool IsLeaf() const;
-  virtual PRBool PeekOffsetNoAmount(PRBool aForward, PRInt32* aOffset);
-  virtual PRBool PeekOffsetCharacter(PRBool aForward, PRInt32* aOffset,
-                                     PRBool aRespectClusters = PR_TRUE);
+  virtual bool IsLeaf() const;
+  virtual bool PeekOffsetNoAmount(bool aForward, PRInt32* aOffset);
+  virtual bool PeekOffsetCharacter(bool aForward, PRInt32* aOffset,
+                                     bool aRespectClusters = true);
   
 #ifdef DEBUG
   NS_IMETHOD List(FILE* out, PRInt32 aIndent) const;
@@ -106,14 +106,14 @@ public:
 
   virtual void DeleteNextInFlowChild(nsPresContext* aPresContext,
                                      nsIFrame*      aNextInFlow,
-                                     PRBool         aDeletingEmptyFrames);
+                                     bool           aDeletingEmptyFrames);
 
   
 
 
 
   static nsresult CreateViewForFrame(nsIFrame* aFrame,
-                                     PRBool aForce);
+                                     bool aForce);
 
   
   static void PositionFrameView(nsIFrame* aKidFrame);
@@ -170,7 +170,7 @@ public:
   virtual nsSize ComputeAutoSize(nsRenderingContext *aRenderingContext,
                                  nsSize aCBSize, nscoord aAvailableWidth,
                                  nsSize aMargin, nsSize aBorder,
-                                 nsSize aPadding, PRBool aShrinkWrap);
+                                 nsSize aPadding, bool aShrinkWrap);
 
   
 
@@ -303,7 +303,7 @@ public:
 
   virtual nsresult StealFrame(nsPresContext* aPresContext,
                               nsIFrame*      aChild,
-                              PRBool         aForceNormal = PR_FALSE);
+                              bool           aForceNormal = false);
 
   
 
@@ -415,7 +415,7 @@ protected:
 
 
 
-  PRBool MoveOverflowToChildList(nsPresContext* aPresContext);
+  bool MoveOverflowToChildList(nsPresContext* aPresContext);
 
   
 
@@ -461,7 +461,7 @@ protected:
 
 
 
-  PRBool RemovePropTableFrame(nsPresContext*                 aPresContext,
+  bool RemovePropTableFrame(nsPresContext*                 aPresContext,
                               nsIFrame*                      aFrame,
                               const FramePropertyDescriptor* aProperty);
 
@@ -533,8 +533,8 @@ public:
 
   nsOverflowContinuationTracker(nsPresContext*    aPresContext,
                                 nsContainerFrame* aFrame,
-                                PRBool            aWalkOOFFrames,
-                                PRBool            aSkipOverflowContainerChildren = PR_TRUE);
+                                bool              aWalkOOFFrames,
+                                bool              aSkipOverflowContainerChildren = true);
   
 
 
@@ -611,9 +611,9 @@ private:
   nsContainerFrame* mParent;
   
 
-  PRBool mSkipOverflowContainerChildren;
+  bool mSkipOverflowContainerChildren;
   
-  PRBool mWalkOOFFrames;
+  bool mWalkOOFFrames;
 };
 
 inline

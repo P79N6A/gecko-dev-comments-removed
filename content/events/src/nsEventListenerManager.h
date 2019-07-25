@@ -68,7 +68,7 @@ typedef struct {
   PRUint32                      mEventType;
   nsCOMPtr<nsIAtom>             mTypeAtom;
   PRUint16                      mFlags;
-  PRPackedBool                  mHandlerIsString;
+  bool                          mHandlerIsString;
 
   nsIJSEventListener* GetJSListener() const {
     return (mFlags & NS_PRIV_EVENT_FLAG_SCRIPT) ?
@@ -93,11 +93,11 @@ public:
 
   void AddEventListener(const nsAString& aType,
                         nsIDOMEventListener* aListener,
-                        PRBool aUseCapture,
-                        PRBool aWantsUntrusted);
+                        bool aUseCapture,
+                        bool aWantsUntrusted);
   void RemoveEventListener(const nsAString& aType,
                            nsIDOMEventListener* aListener,
-                           PRBool aUseCapture);
+                           bool aUseCapture);
 
   
 
@@ -121,8 +121,8 @@ public:
   nsresult AddScriptEventListener(nsIAtom *aName,
                                   const nsAString& aFunc,
                                   PRUint32 aLanguage,
-                                  PRBool aDeferCompilation,
-                                  PRBool aPermitUntrustedEvents);
+                                  bool aDeferCompilation,
+                                  bool aPermitUntrustedEvents);
   
 
 
@@ -177,13 +177,13 @@ public:
   
 
 
-  PRBool HasMutationListeners();
+  bool HasMutationListeners();
 
   
 
 
 
-  PRBool HasUnloadListeners();
+  bool HasUnloadListeners();
 
   
 
@@ -197,12 +197,12 @@ public:
   
 
 
-  PRBool HasListenersFor(const nsAString& aEventName);
+  bool HasListenersFor(const nsAString& aEventName);
 
   
 
 
-  PRBool HasListeners();
+  bool HasListeners();
 
   
 
@@ -218,21 +218,21 @@ public:
 
 
 
-  PRBool MayHavePaintEventListener() { return mMayHavePaintEventListener; }
+  bool MayHavePaintEventListener() { return mMayHavePaintEventListener; }
 
   
 
 
 
-  PRBool MayHaveAudioAvailableEventListener() { return mMayHaveAudioAvailableEventListener; }
+  bool MayHaveAudioAvailableEventListener() { return mMayHaveAudioAvailableEventListener; }
 
   
 
 
 
-  PRBool MayHaveTouchEventListener() { return mMayHaveTouchEventListener; }
+  bool MayHaveTouchEventListener() { return mMayHaveTouchEventListener; }
 
-  PRBool MayHaveMouseEnterLeaveEventListener() { return mMayHaveMouseEnterLeaveEventListener; }
+  bool MayHaveMouseEnterLeaveEventListener() { return mMayHaveMouseEnterLeaveEventListener; }
 
   PRInt64 SizeOf() const;
 protected:
@@ -249,7 +249,7 @@ protected:
 
 
   nsresult CompileEventHandlerInternal(nsListenerStruct *aListenerStruct,
-                                       PRBool aNeedsCxPush,
+                                       bool aNeedsCxPush,
                                        const nsAString* aBody);
 
   
@@ -267,7 +267,7 @@ protected:
                               void *aScopeGlobal,
                               nsIAtom* aName,
                               JSObject *aHandler,
-                              PRBool aPermitUntrustedEvents,
+                              bool aPermitUntrustedEvents,
                               nsListenerStruct **aListenerStruct);
 
 public:

@@ -127,7 +127,7 @@ typedef enum nsCharType nsCharType;
 
 
 
-  PRUnichar HandleNumberInChar(PRUnichar aChar, PRBool aPrevCharArabic, PRUint32 aNumFlag);
+  PRUnichar HandleNumberInChar(PRUnichar aChar, bool aPrevCharArabic, PRUint32 aNumFlag);
 
   
 
@@ -151,13 +151,13 @@ typedef enum nsCharType nsCharType;
 
 
 
-  PRBool IsBidiControl(PRUint32 aChar);
+  bool IsBidiControl(PRUint32 aChar);
 
   
 
 
 
-  PRBool HasRTLChars(const nsAString& aString);
+  bool HasRTLChars(const nsAString& aString);
 
 
 

@@ -63,7 +63,7 @@ struct nsMediaExpression {
   nsCSSValue mValue;
 
   
-  PRBool Matches(nsPresContext* aPresContext,
+  bool Matches(nsPresContext* aPresContext,
                  const nsCSSValue& aActualValue) const;
 };
 
@@ -98,15 +98,15 @@ public:
 
 
   void AddExpression(const nsMediaExpression* aExpression,
-                     PRBool aExpressionMatches);
-  PRBool Matches(nsPresContext* aPresContext) const;
+                     bool aExpressionMatches);
+  bool Matches(nsPresContext* aPresContext) const;
 private:
   struct ExpressionEntry {
     
     
     
     nsMediaExpression mExpression;
-    PRBool mExpressionMatches;
+    bool mExpressionMatches;
   };
   struct FeatureEntry {
     const nsMediaFeature *mFeature;
@@ -163,14 +163,14 @@ public:
 
   
   
-  PRBool Matches(nsPresContext* aPresContext,
+  bool Matches(nsPresContext* aPresContext,
                  nsMediaQueryResultCacheKey* aKey) const;
 
 private:
-  PRPackedBool mNegated;
-  PRPackedBool mHasOnly; 
-  PRPackedBool mTypeOmitted; 
-  PRPackedBool mHadUnknownExpression;
+  bool mNegated;
+  bool mHasOnly; 
+  bool mTypeOmitted; 
+  bool mHadUnknownExpression;
   nsCOMPtr<nsIAtom> mMediaType;
   nsTArray<nsMediaExpression> mExpressions;
 };
@@ -188,7 +188,7 @@ public:
 
   
   
-  PRBool Matches(nsPresContext* aPresContext,
+  bool Matches(nsPresContext* aPresContext,
                  nsMediaQueryResultCacheKey* aKey);
 
   nsresult SetStyleSheet(nsCSSStyleSheet* aSheet);
@@ -218,7 +218,7 @@ protected:
   nsresult Append(const nsAString & aOldMedium);
 
   nsTArray<nsAutoPtr<nsMediaQuery> > mArray;
-  PRBool mIsEmpty;
+  bool mIsEmpty;
   
   
   

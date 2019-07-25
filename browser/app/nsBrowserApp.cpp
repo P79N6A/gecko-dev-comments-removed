@@ -89,7 +89,7 @@ static void Output(const char *fmt, ... )
 
 
 
-static PRBool IsArg(const char* arg, const char* s)
+static bool IsArg(const char* arg, const char* s)
 {
   if (*arg == '-')
   {

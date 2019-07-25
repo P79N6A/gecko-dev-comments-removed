@@ -67,7 +67,7 @@ private:
     
     
     nsAdoptingCString         mIPv4OnlyDomains;
-    PRBool                    mDisableIPv6;
-    PRBool                    mDisablePrefetch;
-    PRBool                    mFirstTime;
+    bool                      mDisableIPv6;
+    bool                      mDisablePrefetch;
+    bool                      mFirstTime;
 };

@@ -70,7 +70,7 @@ public:
   
   void GetValueAsString(nsAString& aValue) const;
 
-  PRBool IsEmpty() const {
+  bool IsEmpty() const {
     return mLengths.IsEmpty();
   }
 
@@ -82,9 +82,9 @@ public:
     return mLengths[aIndex];
   }
 
-  PRBool operator==(const SVGLengthList& rhs) const;
+  bool operator==(const SVGLengthList& rhs) const;
 
-  PRBool SetCapacity(PRUint32 size) {
+  bool SetCapacity(PRUint32 size) {
     return mLengths.SetCapacity(size);
   }
 
@@ -115,7 +115,7 @@ protected:
 
 
 
-  PRBool SetLength(PRUint32 aNumberOfItems) {
+  bool SetLength(PRUint32 aNumberOfItems) {
     return mLengths.SetLength(aNumberOfItems);
   }
 
@@ -131,7 +131,7 @@ private:
     mLengths.Clear();
   }
 
-  PRBool InsertItem(PRUint32 aIndex, const SVGLength &aLength) {
+  bool InsertItem(PRUint32 aIndex, const SVGLength &aLength) {
     if (aIndex >= mLengths.Length()) aIndex = mLengths.Length();
     return !!mLengths.InsertElementAt(aIndex, aLength);
   }
@@ -148,7 +148,7 @@ private:
     mLengths.RemoveElementAt(aIndex);
   }
 
-  PRBool AppendItem(SVGLength aLength) {
+  bool AppendItem(SVGLength aLength) {
     return !!mLengths.AppendElement(aLength);
   }
 
@@ -206,13 +206,13 @@ public:
     , mCanZeroPadList(PR_FALSE)
   {}
 
-  SVGLengthListAndInfo(nsSVGElement *aElement, PRUint8 aAxis, PRBool aCanZeroPadList)
+  SVGLengthListAndInfo(nsSVGElement *aElement, PRUint8 aAxis, bool aCanZeroPadList)
     : mElement(do_GetWeakReference(static_cast<nsINode*>(aElement)))
     , mAxis(aAxis)
     , mCanZeroPadList(aCanZeroPadList)
   {}
 
-  void SetInfo(nsSVGElement *aElement, PRUint8 aAxis, PRBool aCanZeroPadList) {
+  void SetInfo(nsSVGElement *aElement, PRUint8 aAxis, bool aCanZeroPadList) {
     mElement = do_GetWeakReference(static_cast<nsINode*>(aElement));
     mAxis = aAxis;
     mCanZeroPadList = aCanZeroPadList;
@@ -253,13 +253,13 @@ public:
 
 
 
-  PRBool CanZeroPadList() const {
+  bool CanZeroPadList() const {
     
     return mCanZeroPadList;
   }
 
   
-  void SetCanZeroPadList(PRBool aCanZeroPadList) {
+  void SetCanZeroPadList(bool aCanZeroPadList) {
     mCanZeroPadList = aCanZeroPadList;
   }
 
@@ -288,7 +288,7 @@ public:
   SVGLength& operator[](PRUint32 aIndex) {
     return SVGLengthList::operator[](aIndex);
   }
-  PRBool SetLength(PRUint32 aNumberOfItems) {
+  bool SetLength(PRUint32 aNumberOfItems) {
     return SVGLengthList::SetLength(aNumberOfItems);
   }
 
@@ -299,7 +299,7 @@ private:
   
   nsWeakPtr mElement;
   PRUint8 mAxis;
-  PRPackedBool mCanZeroPadList;
+  bool mCanZeroPadList;
 };
 
 

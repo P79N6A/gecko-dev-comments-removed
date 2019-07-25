@@ -117,7 +117,7 @@ class nsIParserNode {
 
 
 
-    virtual PRInt32 GetAttributeCount(PRBool askToken=PR_FALSE) const =0;
+    virtual PRInt32 GetAttributeCount(bool askToken=false) const =0;
 
     
 
@@ -160,8 +160,8 @@ class nsIParserNode {
 
 
 
-    virtual PRBool  GetGenericState(void) const =0;
-    virtual void    SetGenericState(PRBool aState) =0;
+    virtual bool    GetGenericState(void) const =0;
+    virtual void    SetGenericState(bool aState) =0;
 
     
 

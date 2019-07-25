@@ -1020,7 +1020,9 @@ void _vp_couple_quantize_normalize(int blobno,
   int limit = g->coupling_pointlimit[p->vi->blockflag][blobno];
   float prepoint=stereo_threshholds[g->coupling_prepointamp[blobno]];
   float postpoint=stereo_threshholds[g->coupling_postpointamp[blobno]];
+#if 0
   float de=0.1*p->m_val; 
+#endif
 
   
   

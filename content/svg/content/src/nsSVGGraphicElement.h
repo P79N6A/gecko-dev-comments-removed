@@ -60,7 +60,7 @@ public:
   NS_DECL_NSIDOMSVGTRANSFORMABLE
 
   
-  NS_IMETHOD_(PRBool) IsAttributeMapped(const nsIAtom* aAttribute) const;
+  NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const;
 
   virtual gfxMatrix PrependLocalTransformTo(const gfxMatrix &aMatrix) const;
   virtual void SetAnimateMotionTransform(const gfxMatrix* aMatrix);
@@ -72,7 +72,7 @@ public:
 
 protected:
   
-  virtual PRBool IsEventName(nsIAtom* aName);
+  virtual bool IsEventName(nsIAtom* aName);
 
   nsAutoPtr<mozilla::SVGAnimatedTransformList> mTransforms;
 

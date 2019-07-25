@@ -91,7 +91,7 @@ public:
 
 
 
-    inline PRBool isEmpty()
+    inline bool isEmpty()
     {
         return IsEmpty();
     }
@@ -129,7 +129,7 @@ public:
 
 
 
-    inline PRBool hasNext()
+    inline bool hasNext()
     {
         return (mPosition < mStack->Length());
     }

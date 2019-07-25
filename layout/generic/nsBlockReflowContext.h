@@ -64,17 +64,17 @@ public:
   ~nsBlockReflowContext() { }
 
   nsresult ReflowBlock(const nsRect&       aSpace,
-                       PRBool              aApplyTopMargin,
+                       bool                aApplyTopMargin,
                        nsCollapsingMargin& aPrevMargin,
                        nscoord             aClearance,
-                       PRBool              aIsAdjacentWithTop,
+                       bool                aIsAdjacentWithTop,
                        nsLineBox*          aLine,
                        nsHTMLReflowState&  aReflowState,
                        nsReflowStatus&     aReflowStatus,
                        nsBlockReflowState& aState);
 
-  PRBool PlaceBlock(const nsHTMLReflowState& aReflowState,
-                    PRBool                   aForceFit,
+  bool PlaceBlock(const nsHTMLReflowState& aReflowState,
+                    bool                     aForceFit,
                     nsLineBox*               aLine,
                     nsCollapsingMargin&      aBottomMarginResult ,
                     nsRect&                  aInFlowBounds,
@@ -107,9 +107,9 @@ public:
 
 
 
-  static PRBool ComputeCollapsedTopMargin(const nsHTMLReflowState& aRS,
+  static bool ComputeCollapsedTopMargin(const nsHTMLReflowState& aRS,
                                           nsCollapsingMargin* aMargin, nsIFrame* aClearanceFrame,
-                                          PRBool* aMayNeedRetry, PRBool* aIsEmpty = nsnull);
+                                          bool* aMayNeedRetry, bool* aIsEmpty = nsnull);
 
 protected:
   nsPresContext* mPresContext;

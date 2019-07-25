@@ -41,8 +41,8 @@
 #define xpcpublic_h
 
 #include "jsapi.h"
+#include "jsclass.h"
 #include "jsfriendapi.h"
-#include "jsobj.h"
 #include "jsgc.h"
 #include "jspubtd.h"
 
@@ -81,7 +81,7 @@ xpc_MorphSlimWrapper(JSContext *cx, nsISupports *tomorph);
 inline JSBool
 DebugCheckWrapperClass(JSObject* obj)
 {
-    NS_ASSERTION(IS_WRAPPER_CLASS(obj->getClass()),
+    NS_ASSERTION(IS_WRAPPER_CLASS(js::GetObjectClass(obj)),
                  "Forgot to check if this is a wrapper?");
     return JS_TRUE;
 }
@@ -94,22 +94,22 @@ DebugCheckWrapperClass(JSObject* obj)
 
 
 #define IS_WN_WRAPPER_OBJECT(obj)                                             \
-    (DebugCheckWrapperClass(obj) && obj->getSlot(0).isUndefined())
+    (DebugCheckWrapperClass(obj) && js::GetReservedSlot(obj, 0).isUndefined())
 #define IS_SLIM_WRAPPER_OBJECT(obj)                                           \
-    (DebugCheckWrapperClass(obj) && !obj->getSlot(0).isUndefined())
+    (DebugCheckWrapperClass(obj) && !js::GetReservedSlot(obj, 0).isUndefined())
 
 
 
 
 #define IS_WN_WRAPPER(obj)                                                    \
-    (IS_WRAPPER_CLASS(obj->getClass()) && IS_WN_WRAPPER_OBJECT(obj))
+    (IS_WRAPPER_CLASS(js::GetObjectClass(obj)) && IS_WN_WRAPPER_OBJECT(obj))
 #define IS_SLIM_WRAPPER(obj)                                                  \
-    (IS_WRAPPER_CLASS(obj->getClass()) && IS_SLIM_WRAPPER_OBJECT(obj))
+    (IS_WRAPPER_CLASS(js::GetObjectClass(obj)) && IS_SLIM_WRAPPER_OBJECT(obj))
 
 inline JSObject *
 xpc_GetGlobalForObject(JSObject *obj)
 {
-    while(JSObject *parent = obj->getParent())
+    while(JSObject *parent = js::GetObjectParent(obj))
         obj = parent;
     return obj;
 }
@@ -127,7 +127,7 @@ xpc_FastGetCachedWrapper(nsWrapperCache *cache, JSObject *scope, jsval *vp)
                      !IS_SLIM_WRAPPER_OBJECT(wrapper),
                      "Should never have a slim wrapper when IsProxy()");
         if (wrapper &&
-            wrapper->compartment() == scope->getCompartment() &&
+            js::GetObjectCompartment(wrapper) == js::GetObjectCompartment(scope) &&
             (IS_SLIM_WRAPPER_OBJECT(wrapper) ||
              xpc_OkToHandOutWrapper(cache))) {
             *vp = OBJECT_TO_JSVAL(wrapper);

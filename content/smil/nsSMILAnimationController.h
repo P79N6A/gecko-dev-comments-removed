@@ -123,7 +123,7 @@ public:
   void NotifyRefreshDriverDestroying(nsRefreshDriver* aRefreshDriver);
 
   
-  PRBool HasRegisteredAnimations()
+  bool HasRegisteredAnimations()
   { return mAnimationElementTable.Count() != 0; }
 
 protected:
@@ -136,7 +136,7 @@ protected:
   struct SampleTimeContainerParams
   {
     TimeContainerHashtable* mActiveContainers;
-    PRBool                  mSkipUnchangedContainers;
+    bool                    mSkipUnchangedContainers;
   };
 
   struct SampleAnimationParams
@@ -167,7 +167,7 @@ protected:
 
   
   virtual void DoSample();
-  void DoSample(PRBool aSkipUnchangedContainers);
+  void DoSample(bool aSkipUnchangedContainers);
 
   void RewindElements();
   PR_STATIC_CALLBACK(PLDHashOperator) RewindNeeded(
@@ -191,7 +191,7 @@ protected:
                                  TimeContainerHashtable* aActiveContainers);
   static void AddAnimationToCompositorTable(
     nsISMILAnimationElement* aElement, nsSMILCompositorTable* aCompositorTable);
-  static PRBool GetTargetIdentifierForAnimation(
+  static bool GetTargetIdentifierForAnimation(
       nsISMILAnimationElement* aAnimElem, nsSMILTargetIdentifier& aResult);
 
   
@@ -225,12 +225,12 @@ protected:
   
   nsSMILTime                 mAvgTimeBetweenSamples;
 
-  PRPackedBool               mResampleNeeded;
+  bool                       mResampleNeeded;
   
   
   
-  PRPackedBool               mDeferredStartSampling;
-  PRPackedBool               mRunningSample;
+  bool                       mDeferredStartSampling;
+  bool                       mRunningSample;
 
   
   

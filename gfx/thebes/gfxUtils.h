@@ -41,6 +41,7 @@
 #include "gfxTypes.h"
 #include "gfxPattern.h"
 #include "gfxImageSurface.h"
+#include "ImageLayers.h"
 
 class gfxDrawable;
 class nsIntRegion;
@@ -116,13 +117,39 @@ public:
 
 
 
-    static PRBool GfxRectToIntRect(const gfxRect& aIn, nsIntRect* aOut);
+    static bool GfxRectToIntRect(const gfxRect& aIn, nsIntRect* aOut);
 
     
 
 
 
     static gfxFloat ClampToScaleFactor(gfxFloat aVal);
+
+    
+
+
+
+
+
+
+
+
+    static void
+    GetYCbCrToRGBDestFormatAndSize(const mozilla::layers::PlanarYCbCrImage::Data& aData,
+                                   gfxASurface::gfxImageFormat& aSuggestedFormat,
+                                   gfxIntSize& aSuggestedSize);
+
+    
+
+
+
+
+    static void
+    ConvertYCbCrToRGB(const mozilla::layers::PlanarYCbCrImage::Data& aData,
+                      const gfxASurface::gfxImageFormat& aDestFormat,
+                      const gfxIntSize& aDestSize,
+                      unsigned char* aDestBuffer,
+                      PRInt32 aStride);
 };
 
 #endif

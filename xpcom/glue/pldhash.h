@@ -255,7 +255,7 @@ typedef PLDHashNumber
 
 
 
-typedef PRBool
+typedef bool
 (* PLDHashMatchEntry)(PLDHashTable *table, const PLDHashEntryHdr *entry,
                       const void *key);
 
@@ -292,7 +292,7 @@ typedef void
 
 
 
-typedef PRBool
+typedef bool
 (* PLDHashInitEntry)(PLDHashTable *table, PLDHashEntryHdr *entry,
                      const void *key);
 
@@ -358,12 +358,12 @@ struct PLDHashEntryStub {
 NS_COM_GLUE PLDHashNumber
 PL_DHashVoidPtrKeyStub(PLDHashTable *table, const void *key);
 
-NS_COM_GLUE PRBool
+NS_COM_GLUE bool
 PL_DHashMatchEntryStub(PLDHashTable *table,
                        const PLDHashEntryHdr *entry,
                        const void *key);
 
-NS_COM_GLUE PRBool
+NS_COM_GLUE bool
 PL_DHashMatchStringKey(PLDHashTable *table,
                        const PLDHashEntryHdr *entry,
                        const void *key);
@@ -413,7 +413,7 @@ PL_DHashTableDestroy(PLDHashTable *table);
 
 
 
-NS_COM_GLUE PRBool
+NS_COM_GLUE bool
 PL_DHashTableInit(PLDHashTable *table, const PLDHashTableOps *ops, void *data,
                   PRUint32 entrySize, PRUint32 capacity);
 

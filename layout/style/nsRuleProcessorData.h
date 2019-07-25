@@ -84,7 +84,7 @@ struct NS_STACK_CLASS TreeMatchContext {
   }
 
   void SetHaveRelevantLink() { mHaveRelevantLink = PR_TRUE; }
-  PRBool HaveRelevantLink() const { return mHaveRelevantLink; }
+  bool HaveRelevantLink() const { return mHaveRelevantLink; }
 
   nsRuleWalker::VisitedHandlingType VisitedHandling() const
   {
@@ -94,7 +94,7 @@ struct NS_STACK_CLASS TreeMatchContext {
   
   
   
-  const PRBool mForStyling;
+  const bool mForStyling;
 
  private:
   
@@ -102,7 +102,7 @@ struct NS_STACK_CLASS TreeMatchContext {
   
   
   
-  PRBool mHaveRelevantLink;
+  bool mHaveRelevantLink;
 
   
   
@@ -119,7 +119,7 @@ struct NS_STACK_CLASS TreeMatchContext {
   
   
   
-  const PRPackedBool mIsHTMLDocument;
+  const bool mIsHTMLDocument;
 
   
   
@@ -129,7 +129,7 @@ struct NS_STACK_CLASS TreeMatchContext {
   nsNthIndexCache mNthIndexCache;
 
   
-  TreeMatchContext(PRBool aForStyling,
+  TreeMatchContext(bool aForStyling,
                    nsRuleWalker::VisitedHandlingType aVisitedHandling,
                    nsIDocument* aDocument)
     : mForStyling(aForStyling)
@@ -265,7 +265,7 @@ struct NS_STACK_CLASS AttributeRuleProcessorData : public RuleProcessorData {
                              mozilla::dom::Element* aElement,
                              nsIAtom* aAttribute,
                              PRInt32 aModType,
-                             PRBool aAttrHasChanged,
+                             bool aAttrHasChanged,
                              TreeMatchContext& aTreeMatchContext)
     : RuleProcessorData(aPresContext, aElement, nsnull, aTreeMatchContext),
       mAttribute(aAttribute),
@@ -277,7 +277,7 @@ struct NS_STACK_CLASS AttributeRuleProcessorData : public RuleProcessorData {
   }
   nsIAtom* mAttribute; 
   PRInt32 mModType;    
-  PRBool mAttrHasChanged; 
+  bool mAttrHasChanged; 
 };
 
 #endif 

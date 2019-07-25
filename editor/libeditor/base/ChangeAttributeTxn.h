@@ -61,7 +61,7 @@ public:
                   nsIDOMElement  *aNode,
                   const nsAString& aAttribute,
                   const nsAString& aValue,
-                  PRBool aRemoveAttribute);
+                  bool aRemoveAttribute);
 
   ChangeAttributeTxn();
 
@@ -90,10 +90,10 @@ protected:
   nsString mUndoValue;
 
   
-  PRBool   mAttributeWasSet;
+  bool     mAttributeWasSet;
 
   
-  PRBool   mRemoveAttribute;
+  bool     mRemoveAttribute;
 };
 
 #endif

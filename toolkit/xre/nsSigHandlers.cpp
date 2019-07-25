@@ -60,7 +60,7 @@
 #include <sys/resource.h>
 #include <unistd.h>
 #include <stdlib.h> 
-#ifndef __arm__ 
+#ifndef ANDROID 
 #  include <ucontext.h>
 #endif
 #endif
@@ -190,7 +190,7 @@ static void fpehandler(int signum, siginfo_t *si, void *context)
   *mxcsr &= ~SSE_STATUS_FLAGS; 
 #endif
 #endif
-#if defined(LINUX) && !defined(__arm__)
+#if defined(LINUX) && !defined(ANDROID)
   ucontext_t *uc = (ucontext_t *)context;
 
 #if defined(__i386__)

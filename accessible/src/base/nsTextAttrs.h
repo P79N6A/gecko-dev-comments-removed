@@ -80,7 +80,7 @@ public:
 
 
   nsTextAttrsMgr(nsHyperTextAccessible *aHyperTextAcc,
-                 PRBool aIncludeDefAttrs = PR_TRUE,
+                 bool aIncludeDefAttrs = true,
                  nsAccessible *aOffsetAcc = nsnull,
                  PRInt32 aOffsetAccIdx = -1);
 
@@ -116,7 +116,7 @@ protected:
 private:
   nsRefPtr<nsHyperTextAccessible> mHyperTextAcc;
 
-  PRBool mIncludeDefAttrs;
+  bool mIncludeDefAttrs;
 
   nsRefPtr<nsAccessible> mOffsetAcc;
   PRInt32 mOffsetAccIdx;
@@ -148,13 +148,13 @@ public:
 
 
 
-  virtual PRBool GetValue(nsAString& aValue, PRBool aIncludeDefAttrValue) = 0;
+  virtual bool GetValue(nsAString& aValue, bool aIncludeDefAttrValue) = 0;
 
   
 
 
 
-  virtual PRBool Equal(nsIContent *aContent) = 0;
+  virtual bool Equal(nsIContent *aContent) = 0;
 };
 
 
@@ -165,17 +165,17 @@ template<class T>
 class nsTextAttr : public nsITextAttr
 {
 public:
-  nsTextAttr(PRBool aGetRootValue) : mGetRootValue(aGetRootValue) {}
+  nsTextAttr(bool aGetRootValue) : mGetRootValue(aGetRootValue) {}
 
   
-  virtual PRBool GetValue(nsAString& aValue, PRBool aIncludeDefAttrValue)
+  virtual bool GetValue(nsAString& aValue, bool aIncludeDefAttrValue)
   {
     if (mGetRootValue) {
       Format(mRootNativeValue, aValue);
       return mIsRootDefined;
     }
 
-    PRBool isDefined = mIsDefined;
+    bool isDefined = mIsDefined;
     T* nativeValue = &mNativeValue;
 
     if (!isDefined) {
@@ -194,10 +194,10 @@ public:
     return PR_TRUE;
   }
 
-  virtual PRBool Equal(nsIContent *aContent)
+  virtual bool Equal(nsIContent *aContent)
   {
     T nativeValue;
-    PRBool isDefined = GetValueFor(aContent, &nativeValue);
+    bool isDefined = GetValueFor(aContent, &nativeValue);
 
     if (!mIsDefined && !isDefined)
       return PR_TRUE;
@@ -214,24 +214,24 @@ public:
 protected:
 
   
-  virtual PRBool GetValueFor(nsIContent *aContent, T *aValue) = 0;
+  virtual bool GetValueFor(nsIContent *aContent, T *aValue) = 0;
 
   
   virtual void Format(const T& aValue, nsAString& aFormattedValue) = 0;
 
   
-  PRBool mGetRootValue;
+  bool mGetRootValue;
 
   
   
   
   T mNativeValue;
-  PRBool mIsDefined;
+  bool mIsDefined;
 
   
   
   T mRootNativeValue;
-  PRBool mIsRootDefined;
+  bool mIsRootDefined;
 };
 
 
@@ -251,11 +251,11 @@ public:
 protected:
 
   
-  virtual PRBool GetValueFor(nsIContent *aElm, nsAutoString *aValue);
+  virtual bool GetValueFor(nsIContent *aElm, nsAutoString *aValue);
   virtual void Format(const nsAutoString& aValue, nsAString& aFormattedValue);
 
 private:
-  PRBool GetLang(nsIContent *aContent, nsAString& aLang);
+  bool GetLang(nsIContent *aContent, nsAString& aLang);
   nsCOMPtr<nsIContent> mRootContent;
 };
 
@@ -276,7 +276,7 @@ public:
 protected:
 
   
-  virtual PRBool GetValueFor(nsIContent *aContent, nsAutoString *aValue);
+  virtual bool GetValueFor(nsIContent *aContent, nsAutoString *aValue);
   virtual void Format(const nsAutoString& aValue, nsAString& aFormattedValue);
 
 private:
@@ -298,11 +298,11 @@ public:
 
 protected:
   
-  virtual PRBool GetValueFor(nsIContent *aContent, nscolor *aValue);
+  virtual bool GetValueFor(nsIContent *aContent, nscolor *aValue);
   virtual void Format(const nscolor& aValue, nsAString& aFormattedValue);
 
 private:
-  PRBool GetColor(nsIFrame *aFrame, nscolor *aColor);
+  bool GetColor(nsIFrame *aFrame, nscolor *aColor);
   nsIFrame *mRootFrame;
 };
 
@@ -322,7 +322,7 @@ public:
 protected:
 
   
-  virtual PRBool GetValueFor(nsIContent *aContent, nscoord *aValue);
+  virtual bool GetValueFor(nsIContent *aContent, nscoord *aValue);
   virtual void Format(const nscoord& aValue, nsAString& aFormattedValue);
 
 private:
@@ -354,7 +354,7 @@ public:
 protected:
 
   
-  virtual PRBool GetValueFor(nsIContent *aElm, PRInt32 *aValue);
+  virtual bool GetValueFor(nsIContent *aElm, PRInt32 *aValue);
   virtual void Format(const PRInt32& aValue, nsAString& aFormattedValue);
 
 private:

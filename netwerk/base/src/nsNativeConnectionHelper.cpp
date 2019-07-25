@@ -50,7 +50,7 @@
 
 
 
-PRBool
+bool
 nsNativeConnectionHelper::OnConnectionFailed(const PRUnichar* hostName)
 {
   
@@ -69,7 +69,7 @@ nsNativeConnectionHelper::OnConnectionFailed(const PRUnichar* hostName)
     return PR_FALSE;
 }
 
-PRBool
+bool
 nsNativeConnectionHelper::IsAutodialEnabled()
 {
     nsAutodial autodial;

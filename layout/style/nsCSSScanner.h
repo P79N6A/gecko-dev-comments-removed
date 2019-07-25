@@ -117,13 +117,13 @@ struct nsCSSToken {
   PRInt32         mInteger2;
   nsCSSTokenType  mType;
   PRUnichar       mSymbol;
-  PRPackedBool    mIntegerValid; 
-  PRPackedBool    mHasSign; 
+  bool            mIntegerValid; 
+  bool            mHasSign; 
 
   nsCSSToken();
 
-  PRBool IsSymbol(PRUnichar aSymbol) {
-    return PRBool((eCSSToken_Symbol == mType) && (mSymbol == aSymbol));
+  bool IsSymbol(PRUnichar aSymbol) {
+    return bool((eCSSToken_Symbol == mType) && (mSymbol == aSymbol));
   }
 
   void AppendToString(nsString& aBuffer);
@@ -148,16 +148,16 @@ class nsCSSScanner {
             nsCSSStyleSheet* aSheet, mozilla::css::Loader* aLoader);
   void Close();
 
-  static PRBool InitGlobals();
+  static bool InitGlobals();
   static void ReleaseGlobals();
 
   
-  void SetSVGMode(PRBool aSVGMode) {
+  void SetSVGMode(bool aSVGMode) {
     NS_ASSERTION(aSVGMode == PR_TRUE || aSVGMode == PR_FALSE,
-                 "bad PRBool value");
+                 "bad bool value");
     mSVGMode = aSVGMode;
   }
-  PRBool IsSVGMode() const {
+  bool IsSVGMode() const {
     return mSVGMode;
   }
 
@@ -189,10 +189,10 @@ class nsCSSScanner {
 
   
   
-  PRBool Next(nsCSSToken& aTokenResult);
+  bool Next(nsCSSToken& aTokenResult);
 
   
-  PRBool NextURL(nsCSSToken& aTokenResult);
+  bool NextURL(nsCSSToken& aTokenResult);
 
   
   
@@ -208,23 +208,23 @@ class nsCSSScanner {
   void SetLowLevelError(nsresult aErrorCode);
   
 protected:
-  PRBool EnsureData();
+  bool EnsureData();
   PRInt32 Read();
   PRInt32 Peek();
-  PRBool LookAhead(PRUnichar aChar);
-  PRBool LookAheadOrEOF(PRUnichar aChar); 
+  bool LookAhead(PRUnichar aChar);
+  bool LookAheadOrEOF(PRUnichar aChar); 
   void EatWhiteSpace();
 
-  PRBool ParseAndAppendEscape(nsString& aOutput, PRBool aInString);
-  PRBool ParseIdent(PRInt32 aChar, nsCSSToken& aResult);
-  PRBool ParseAtKeyword(PRInt32 aChar, nsCSSToken& aResult);
-  PRBool ParseNumber(PRInt32 aChar, nsCSSToken& aResult);
-  PRBool ParseRef(PRInt32 aChar, nsCSSToken& aResult);
-  PRBool ParseString(PRInt32 aChar, nsCSSToken& aResult);
-  PRBool ParseURange(PRInt32 aChar, nsCSSToken& aResult);
-  PRBool SkipCComment();
+  bool ParseAndAppendEscape(nsString& aOutput, bool aInString);
+  bool ParseIdent(PRInt32 aChar, nsCSSToken& aResult);
+  bool ParseAtKeyword(PRInt32 aChar, nsCSSToken& aResult);
+  bool ParseNumber(PRInt32 aChar, nsCSSToken& aResult);
+  bool ParseRef(PRInt32 aChar, nsCSSToken& aResult);
+  bool ParseString(PRInt32 aChar, nsCSSToken& aResult);
+  bool ParseURange(PRInt32 aChar, nsCSSToken& aResult);
+  bool SkipCComment();
 
-  PRBool GatherIdent(PRInt32 aChar, nsString& aIdent);
+  bool GatherIdent(PRInt32 aChar, nsString& aIdent);
 
   
   nsCOMPtr<nsIUnicharInputStream> mInputStream;
@@ -241,7 +241,7 @@ protected:
 
   PRUint32 mLineNumber;
   
-  PRPackedBool mSVGMode;
+  bool mSVGMode;
 #ifdef CSS_REPORT_PARSE_ERRORS
   nsXPIDLCString mFileName;
   nsCOMPtr<nsIURI> mURI;  
@@ -249,7 +249,7 @@ protected:
   nsFixedString mError;
   PRUnichar mErrorBuf[200];
   PRUint64 mInnerWindowID;
-  PRBool mWindowIDCached;
+  bool mWindowIDCached;
   nsCSSStyleSheet* mSheet;
   mozilla::css::Loader* mLoader;
 #endif

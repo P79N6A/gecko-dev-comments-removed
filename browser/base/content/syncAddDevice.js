@@ -59,8 +59,12 @@ let gSyncAddDevice = {
                         pin2: this.pin3,
                         pin3: this.wizard.getButton("next")};
 
-    this.throbber = document.getElementById("add-device-throbber");
+    this.throbber = document.getElementById("pairDeviceThrobber");
     this.errorRow = document.getElementById("errorRow");
+
+    
+    
+    Weave.Utils.nextTick(Weave.Service.sync, Weave.Service);
   },
 
   onPageShow: function onPageShow() {
@@ -103,18 +107,33 @@ let gSyncAddDevice = {
 
   startTransfer: function startTransfer() {
     this.errorRow.hidden = true;
+    
+    const JPAKE_ERROR_USERABORT = Weave.JPAKE_ERROR_USERABORT;
+
     let self = this;
-    this._jpakeclient = new Weave.JPAKEClient({
+    let jpakeclient = this._jpakeclient = new Weave.JPAKEClient({
+      onPaired: function onPaired() {
+        let credentials = {account:   Weave.Service.account,
+                           password:  Weave.Service.password,
+                           synckey:   Weave.Service.passphrase,
+                           serverURL: Weave.Service.serverURL};
+        jpakeclient.sendAndComplete(credentials);
+      },
       onComplete: function onComplete() {
         delete self._jpakeclient;
         self.wizard.pageIndex = DEVICE_CONNECTED_PAGE;
+
+        
+        
+        Weave.SyncScheduler.scheduleNextSync(Weave.SyncScheduler.activeInterval);
       },
       onAbort: function onAbort(error) {
         delete self._jpakeclient;
 
         
-        if (!error)
+        if (error == JPAKE_ERROR_USERABORT) {
           return;
+        }
 
         self.errorRow.hidden = false;
         self.throbber.hidden = true;
@@ -128,11 +147,8 @@ let gSyncAddDevice = {
     this.wizard.canAdvance = false;
 
     let pin = this.pin1.value + this.pin2.value + this.pin3.value;
-    let credentials = {account: Weave.Service.account,
-                       password: Weave.Service.password,
-                       synckey: Weave.Service.passphrase,
-                       serverURL: Weave.Service.serverURL};
-    this._jpakeclient.sendWithPIN(pin, credentials);
+    let expectDelay = false;
+    jpakeclient.pairWithPIN(pin, expectDelay);
   },
 
   onWizardBack: function onWizardBack() {

@@ -45,14 +45,14 @@ class nsMaemoNetworkManager
 {
 public:
   
-  static PRBool OpenConnectionSync();
+  static bool OpenConnectionSync();
   static void CloseConnection();
 
-  static PRBool IsConnected();
-  static PRBool GetLinkStatusKnown();
+  static bool IsConnected();
+  static bool GetLinkStatusKnown();
 
   
-  static PRBool Startup();
+  static bool Startup();
   static void Shutdown();
 };
 

@@ -46,20 +46,21 @@ const Cu = Components.utils;
 
 
 
-const INTRO_PAGE                    = 0;
-const NEW_ACCOUNT_START_PAGE        = 1;
-const NEW_ACCOUNT_PP_PAGE           = 2;
-const NEW_ACCOUNT_CAPTCHA_PAGE      = 3;
-const EXISTING_ACCOUNT_CONNECT_PAGE = 4;
-const EXISTING_ACCOUNT_LOGIN_PAGE   = 5;
-const OPTIONS_PAGE                  = 6;
-const OPTIONS_CONFIRM_PAGE          = 7;
-const SETUP_SUCCESS_PAGE            = 8;
+const PAIR_PAGE                     = 0;
+const INTRO_PAGE                    = 1;
+const NEW_ACCOUNT_START_PAGE        = 2;
+const EXISTING_ACCOUNT_CONNECT_PAGE = 3;
+const EXISTING_ACCOUNT_LOGIN_PAGE   = 4;
+const OPTIONS_PAGE                  = 5;
+const OPTIONS_CONFIRM_PAGE          = 6;
+const SETUP_SUCCESS_PAGE            = 7;
 
 
 
 
 const RECAPTCHA_DOMAIN = "https://www.google.com";
+
+const PIN_PART_LENGTH = 4;
 
 Cu.import("resource://services-sync/main.js");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -67,12 +68,16 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/PlacesUtils.jsm");
 Cu.import("resource://gre/modules/PluralForm.jsm");
 
+
+function setVisibility(element, visible) {
+  element.style.visibility = visible ? "visible" : "hidden";
+}
+
 var gSyncSetup = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsISupports,
                                          Ci.nsIWebProgressListener,
                                          Ci.nsISupportsWeakReference]),
 
-  haveCaptcha: true,
   captchaBrowser: null,
   wizard: null,
   _disabledSites: [],
@@ -120,17 +125,23 @@ var gSyncSetup = {
     }, 0);
 
     this.captchaBrowser = document.getElementById("captcha");
-    this.wizard = document.getElementById("accountSetup");
 
-    if (window.arguments && window.arguments[0] == true) {
-      
-      this._resettingSync = true;
-      this.wizard.pageIndex = OPTIONS_PAGE;
+    this.wizardType = null;
+    if (window.arguments && window.arguments[0]) {
+      this.wizardType = window.arguments[0];
     }
-    else {
-      this.wizard.canAdvance = false;
-      this.captchaBrowser.addProgressListener(this);
-      Weave.Svc.Prefs.set("firstSync", "notReady");
+    switch (this.wizardType) {
+      case null:
+        this.wizard.pageIndex = INTRO_PAGE;
+        
+      case "pair":
+        this.captchaBrowser.addProgressListener(this);
+        Weave.Svc.Prefs.set("firstSync", "notReady");
+        break;
+      case "reset":
+        this._resettingSync = true;
+        this.wizard.pageIndex = OPTIONS_PAGE;
+        break;
     }
 
     this.wizard.getButton("extra1").label =
@@ -150,14 +161,19 @@ var gSyncSetup = {
       return false;
     this._settingUpNew = true;
     this.wizard.pageIndex = NEW_ACCOUNT_START_PAGE;
-    this.loadCaptcha();
   },
 
   useExistingAccount: function () {
     if (!Weave.Utils.ensureMPUnlocked())
       return false;
     this._settingUpNew = false;
-    this.wizard.pageIndex = EXISTING_ACCOUNT_CONNECT_PAGE;
+    if (this.wizardType == "pair") {
+      
+      
+      this.wizard.pageIndex = EXISTING_ACCOUNT_LOGIN_PAGE;
+    } else {
+      this.wizard.pageIndex = EXISTING_ACCOUNT_CONNECT_PAGE;
+    }
   },
 
   resetPassphrase: function resetPassphrase() {
@@ -205,6 +221,20 @@ var gSyncSetup = {
 
   onLoginEnd: function () {
     this.toggleLoginFeedback(true);
+  },
+
+  sendCredentialsAfterSync: function () {
+    let send = function() {
+      Services.obs.removeObserver("weave:service:sync:finish", send);
+      Services.obs.removeObserver("weave:service:sync:error", send);
+      let credentials = {account:   Weave.Service.account,
+                         password:  Weave.Service.password,
+                         synckey:   Weave.Service.passphrase,
+                         serverURL: Weave.Service.serverURL};
+      this._jpakeclient.sendAndComplete(credentials);
+    }.bind(this);
+    Services.obs.addObserver("weave:service:sync:finish", send, false);
+    Services.obs.addObserver("weave:service:sync:error", send, false);
   },
 
   toggleLoginFeedback: function (stop) {
@@ -289,6 +319,15 @@ var gSyncSetup = {
     return true;
   },
 
+  onPINInput: function onPINInput(textbox) {
+    if (textbox && textbox.value.length == PIN_PART_LENGTH) {
+      this.nextFocusEl[textbox.id].focus();
+    }
+    this.wizard.canAdvance = (this.pin1.value.length == PIN_PART_LENGTH &&
+                              this.pin2.value.length == PIN_PART_LENGTH &&
+                              this.pin3.value.length == PIN_PART_LENGTH);
+  },
+
   onEmailInput: function () {
     
     if (this._checkAccountTimer)
@@ -335,16 +374,8 @@ var gSyncSetup = {
 
   onPasswordChange: function () {
     let password = document.getElementById("weavePassword");
-    let valid, str;
-    if (password.value == document.getElementById("weavePassphrase").value) {
-      
-      valid = false;
-      errorString = Weave.Utils.getErrorString("change.password.pwSameAsSyncKey");
-    }
-    else {
-      let pwconfirm = document.getElementById("weavePasswordConfirm");
-      [valid, errorString] = gSyncUtils.validatePassword(password, pwconfirm);
-    }
+    let pwconfirm = document.getElementById("weavePasswordConfirm");
+    let [valid, errorString] = gSyncUtils.validatePassword(password, pwconfirm);
 
     let feedback = document.getElementById("passwordFeedbackRow");
     this._setFeedback(feedback, valid, errorString);
@@ -353,31 +384,23 @@ var gSyncSetup = {
     this.checkFields();
   },
 
-  onPassphraseGenerate: function () {
-    let passphrase = Weave.Utils.generatePassphrase();
-    Weave.Service.passphrase = passphrase;
-    let el = document.getElementById("weavePassphrase");
-    el.value = Weave.Utils.hyphenatePassphrase(passphrase);
-  },
-
   onPageShow: function() {
     switch (this.wizard.pageIndex) {
+      case PAIR_PAGE:
+        this.wizard.getButton("back").hidden = true;
+        this.wizard.getButton("extra1").hidden = true;
+        this.onPINInput();
+        this.pin1.focus();
+        break;
       case INTRO_PAGE:
+        
+        
+        
+        this.loadCaptcha();
         this.wizard.getButton("next").hidden = true;
         this.wizard.getButton("back").hidden = true;
         this.wizard.getButton("extra1").hidden = true;
-        break;
-      case NEW_ACCOUNT_PP_PAGE:
-        document.getElementById("saveSyncKeyButton").focus();
-        let el = document.getElementById("weavePassphrase");
-        if (!el.value)
-          this.onPassphraseGenerate();
         this.checkFields();
-        break;
-      case NEW_ACCOUNT_CAPTCHA_PAGE:
-        if (!this.haveCaptcha) {
-          gSyncSetup.wizard.advance();
-        }
         break;
       case NEW_ACCOUNT_START_PAGE:
         this.wizard.getButton("extra1").hidden = false;
@@ -396,6 +419,9 @@ var gSyncSetup = {
         this.startEasySetup();
         break;
       case EXISTING_ACCOUNT_LOGIN_PAGE:
+        this.wizard.getButton("next").hidden = false;
+        this.wizard.getButton("back").hidden = false;
+        this.wizard.getButton("extra1").hidden = false;
         this.wizard.canRewind = true;
         this.checkFields();
         break;
@@ -407,6 +433,9 @@ var gSyncSetup = {
         this.wizard.getButton("cancel").hidden = true;
         this.wizard.getButton("finish").hidden = false;
         this._handleSuccess();
+        if (this.wizardType == "pair") {
+          this.completePairing();
+        }
         break;
       case OPTIONS_PAGE:
         this.wizard.canRewind = false;
@@ -445,19 +474,23 @@ var gSyncSetup = {
       return false;
     }
       
-    if (!this.wizard.pageIndex)
-      return true;
-
     switch (this.wizard.pageIndex) {
+      case PAIR_PAGE:
+        this.startPairing();
+        return false;
       case NEW_ACCOUNT_START_PAGE:
         
         
-        if (this._checkAccountTimer)
+        if (this._checkAccountTimer) {
           this.checkAccount();
-        if (this._checkServerTimer)
+        }
+        if (this._checkServerTimer) {
           this.checkServer();
-        return this.wizard.canAdvance;
-      case NEW_ACCOUNT_CAPTCHA_PAGE:
+        }
+        if (!this.wizard.canAdvance) {
+          return false;
+        }
+
         let doc = this.captchaBrowser.contentDocument;
         let getField = function getField(field) {
           let node = doc.getElementById("recaptcha_" + field + "_field");
@@ -470,7 +503,7 @@ var gSyncSetup = {
         let label = image.nextSibling;
         image.setAttribute("status", "active");
         label.value = this._stringBundle.GetStringFromName("verifying.label");
-        feedback.hidden = false;
+        setVisibility(feedback, true);
 
         let password = document.getElementById("weavePassword").value;
         let email = Weave.Utils.normalizeAccount(
@@ -484,6 +517,7 @@ var gSyncSetup = {
         if (error == null) {
           Weave.Service.account = email;
           Weave.Service.password = password;
+          Weave.Service.passphrase = Weave.Utils.generatePassphrase();
           this._handleNoScript(false);
           this.wizard.pageIndex = SETUP_SUCCESS_PAGE;
           return false;
@@ -529,6 +563,15 @@ var gSyncSetup = {
         this.abortEasySetup();
         this.wizard.pageIndex = INTRO_PAGE;
         return false;
+      case EXISTING_ACCOUNT_LOGIN_PAGE:
+        
+        
+        
+        if (this.wizardType == "pair") {
+          this.wizard.pageIndex = INTRO_PAGE;
+          return false;
+        }
+        return true;
       case OPTIONS_CONFIRM_PAGE:
         
         document.getElementById("mergeChoiceRadio").selectedIndex = 0;
@@ -594,6 +637,59 @@ var gSyncSetup = {
     return false;
   },
 
+  startPairing: function startPairing() {
+    this.pairDeviceErrorRow.hidden = true;
+    
+    const JPAKE_ERROR_USERABORT = Weave.JPAKE_ERROR_USERABORT;
+
+    let self = this;
+    let jpakeclient = this._jpakeclient = new Weave.JPAKEClient({
+      onPaired: function onPaired() {
+        self.wizard.pageIndex = INTRO_PAGE;
+      },
+      onComplete: function onComplete() {
+        
+        
+      },
+      onAbort: function onAbort(error) {
+        delete self._jpakeclient;
+
+        
+        
+        if (error == JPAKE_ERROR_USERABORT) {
+          return;
+        }
+
+        self.pairDeviceErrorRow.hidden = false;
+        self.pairDeviceThrobber.hidden = true;
+        self.pin1.value = self.pin2.value = self.pin3.value = "";
+        self.pin1.disabled = self.pin2.disabled = self.pin3.disabled = false;
+        if (self.wizard.pageIndex == PAIR_PAGE) {
+          self.pin1.focus();
+        }
+      }
+    });
+    this.pairDeviceThrobber.hidden = false;
+    this.pin1.disabled = this.pin2.disabled = this.pin3.disabled = true;
+    this.wizard.canAdvance = false;
+
+    let pin = this.pin1.value + this.pin2.value + this.pin3.value;
+    let expectDelay = true;
+    jpakeclient.pairWithPIN(pin, expectDelay);
+  },
+
+  completePairing: function completePairing() {
+    if (!this._jpakeclient) {
+      
+      
+      
+      
+      return;
+    }
+    let controller = new Weave.SendCredentialsController(this._jpakeclient);
+    this._jpakeclient.controller = controller;
+  },
+
   startEasySetup: function () {
     
     
@@ -610,6 +706,8 @@ var gSyncSetup = {
         document.getElementById("easySetupPIN2").value = pin.slice(4, 8);
         document.getElementById("easySetupPIN3").value = pin.slice(8);
       },
+
+      onPairingStart: function onPairingStart() {},
 
       onComplete: function onComplete(credentials) {
         Weave.Service.account = credentials.account;
@@ -708,7 +806,7 @@ var gSyncSetup = {
   },
 
   onServerCommand: function () {
-    document.getElementById("TOSRow").hidden = !this._usingMainServers;
+    setVisibility(document.getElementById("TOSRow"), this._usingMainServers);
     let control = document.getElementById("server");
     if (!this._usingMainServers) {
       control.setAttribute("editable", "true");
@@ -962,9 +1060,12 @@ var gSyncSetup = {
   },
 
   loadCaptcha: function loadCaptcha() {
+    let captchaURI = Weave.Service.miscAPI + "captcha_html";
     
     this._handleNoScript(true);
-    this.captchaBrowser.loadURI(Weave.Service.miscAPI + "captcha_html");
+    if (this.captchaBrowser.currentURI.spec != captchaURI) {
+      this.captchaBrowser.loadURI(captchaURI);
+    }
   },
 
   onStateChange: function(webProgress, request, stateFlags, status) {
@@ -977,29 +1078,35 @@ var gSyncSetup = {
       return;
 
     
-    if (request.QueryInterface(Ci.nsIHttpChannel).responseStatus == 404) {
-      this.haveCaptcha = false;
-      
-      
-      this.captchaBrowser.hidden = true;
-      if (this.wizard.pageIndex == NEW_ACCOUNT_CAPTCHA_PAGE) {
-        this.onWizardAdvance();
-      }
-    } else {
-      this.haveCaptcha = true;
-      this.captchaBrowser.hidden = false;
-    }
+    let responseStatus = request.QueryInterface(Ci.nsIHttpChannel).responseStatus;
+    setVisibility(this.captchaBrowser, responseStatus != 404);
+    
   },
   onProgressChange: function() {},
   onStatusChange: function() {},
   onSecurityChange: function() {},
   onLocationChange: function () {}
-}
+};
 
 
 
-XPCOMUtils.defineLazyGetter(gSyncSetup, "wizard", function() {
-  return document.getElementById("accountSetup");
+
+
+
+["wizard",
+ "pin1",
+ "pin2",
+ "pin3",
+ "pairDeviceErrorRow",
+ "pairDeviceThrobber"].forEach(function (id) {
+  XPCOMUtils.defineLazyGetter(gSyncSetup, id, function() {
+    return document.getElementById(id);
+  });
+});
+XPCOMUtils.defineLazyGetter(gSyncSetup, "nextFocusEl", function () {
+  return {pin1: this.pin2,
+          pin2: this.pin3,
+          pin3: this.wizard.getButton("next")};
 });
 XPCOMUtils.defineLazyGetter(gSyncSetup, "_stringBundle", function() {
   return Services.strings.createBundle("chrome://browser/locale/syncSetup.properties");

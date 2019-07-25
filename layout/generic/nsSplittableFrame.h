@@ -81,8 +81,8 @@ public:
 
 #ifdef DEBUG
   
-  static PRBool IsInPrevContinuationChain(nsIFrame* aFrame1, nsIFrame* aFrame2);
-  static PRBool IsInNextContinuationChain(nsIFrame* aFrame1, nsIFrame* aFrame2);
+  static bool IsInPrevContinuationChain(nsIFrame* aFrame1, nsIFrame* aFrame2);
+  static bool IsInNextContinuationChain(nsIFrame* aFrame1, nsIFrame* aFrame2);
 #endif
   
   

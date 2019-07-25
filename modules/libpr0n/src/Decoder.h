@@ -50,7 +50,7 @@ class Decoder
 {
 public:
 
-  Decoder();
+  Decoder(RasterImage* aImage, imgIDecoderObserver* aObserver);
   virtual ~Decoder();
 
   
@@ -61,7 +61,7 @@ public:
 
 
 
-  void Init(RasterImage* aImage, imgIDecoderObserver* aObserver);
+  void Init();
 
 
   
@@ -73,7 +73,7 @@ public:
 
 
 
-  void InitSharedDecoder(RasterImage* aImage, imgIDecoderObserver* aObserver);
+  void InitSharedDecoder();
 
   
 

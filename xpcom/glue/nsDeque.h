@@ -233,7 +233,7 @@ private:
 
   nsDeque& operator=(const nsDeque& anOther);
 
-  PRBool GrowCapacity();
+  bool GrowCapacity();
 };
 
 
@@ -288,7 +288,7 @@ public:
 
 
 
-  PRBool operator!=(nsDequeIterator& aIter);
+  bool operator!=(nsDequeIterator& aIter);
 
   
 
@@ -299,7 +299,7 @@ public:
 
 
 
-  PRBool operator<(nsDequeIterator& aIter);
+  bool operator<(nsDequeIterator& aIter);
 
   
 
@@ -307,7 +307,7 @@ public:
 
 
 
-  PRBool operator==(nsDequeIterator& aIter);
+  bool operator==(nsDequeIterator& aIter);
 
   
 
@@ -318,7 +318,7 @@ public:
 
 
 
-  PRBool operator>=(nsDequeIterator& aIter);
+  bool operator>=(nsDequeIterator& aIter);
 
   
 

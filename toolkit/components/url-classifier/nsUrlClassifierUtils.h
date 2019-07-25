@@ -64,7 +64,7 @@ private:
     
 
 
-    PRBool Contains(unsigned char c) const
+    bool Contains(unsigned char c) const
     {
       return mMap[c >> 5] & (1 << (c & 31));
     }
@@ -94,14 +94,14 @@ public:
   
   
   
-  PRBool SpecialEncode(const nsACString & url,
-                       PRBool foldSlashes,
+  bool SpecialEncode(const nsACString & url,
+                       bool foldSlashes,
                        nsACString & _retval);
 
   void ParseIPAddress(const nsACString & host, nsACString & _retval);
   void CanonicalNum(const nsACString & num,
                     PRUint32 bytes,
-                    PRBool allowOctal,
+                    bool allowOctal,
                     nsACString & _retval);
 
   
@@ -117,7 +117,7 @@ private:
   nsUrlClassifierUtils(const nsUrlClassifierUtils&);
 
   
-  PRBool ShouldURLEscape(const unsigned char c) const;
+  bool ShouldURLEscape(const unsigned char c) const;
 
   void CleanupHostname(const nsACString & host, nsACString & _retval);
 

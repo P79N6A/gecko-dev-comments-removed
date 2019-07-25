@@ -86,7 +86,7 @@ class nsTSubstringTuple_CharT
 
 
 
-      PRBool IsDependentOn(const char_type *start, const char_type *end) const;
+      bool IsDependentOn(const char_type *start, const char_type *end) const;
 
     private:
 

@@ -59,7 +59,7 @@ NS_IMETHODIMP nsSemanticUnitScanner::Start(const char *characterSet)
 }
 
 
-NS_IMETHODIMP nsSemanticUnitScanner::Next(const PRUnichar *text, PRInt32 length, PRInt32 pos, PRBool isLastBuffer, PRInt32 *begin, PRInt32 *end, PRBool *_retval)
+NS_IMETHODIMP nsSemanticUnitScanner::Next(const PRUnichar *text, PRInt32 length, PRInt32 pos, bool isLastBuffer, PRInt32 *begin, PRInt32 *end, bool *_retval)
 {
     
     

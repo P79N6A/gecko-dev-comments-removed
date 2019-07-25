@@ -73,65 +73,6 @@ var BookmarkHelper = {
     this.box.hidden = true;
   },
 
-  createShortcut: function BH_createShortcut(aTitle, aURL, aIconURL) {
-    
-    
-    const kIconSize = 72;
-    const kOverlaySize = 32;
-    const kOffset = 20;
-
-    
-    aTitle = aTitle || aURL;
-
-    let canvas = document.createElementNS("http://www.w3.org/1999/xhtml", "canvas");
-    canvas.setAttribute("style", "display: none");
-
-    function _createShortcut() {
-      let icon = canvas.toDataURL("image/png", "");
-      canvas = null;
-      try {
-        let shell = Cc["@mozilla.org/browser/shell-service;1"].createInstance(Ci.nsIShellService);
-        shell.createShortcut(aTitle, aURL, icon, "bookmark");
-      } catch(e) {
-        Cu.reportError(e);
-      }
-    }
-
-    
-    let image = new Image();
-    image.onload = function() {
-      canvas.width = canvas.height = kIconSize;
-      let ctx = canvas.getContext("2d");
-      ctx.drawImage(image, 0, 0, kIconSize, kIconSize);
-
-      
-      if (aIconURL) {
-        let favicon = new Image();
-        favicon.onload = function() {
-          
-          ctx.drawImage(favicon, kOffset, kOffset, kOverlaySize, kOverlaySize);
-          _createShortcut();
-        }
-
-        favicon.onerror = function() {
-          Cu.reportError("CreateShortcut: favicon image load error");
-        }
-
-        favicon.src = aIconURL;
-      } else {
-        _createShortcut();
-      }
-    }
-
-    image.onerror = function() {
-      Cu.reportError("CreateShortcut: background image load error");
-    }
-
-    
-    image.src = aIconURL ? "chrome://browser/skin/images/homescreen-blank-hdpi.png"
-                         : "chrome://browser/skin/images/homescreen-default-hdpi.png";
-  },
-
   removeBookmarksForURI: function BH_removeBookmarksForURI(aURI) {
     
     

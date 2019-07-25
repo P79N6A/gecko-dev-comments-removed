@@ -113,8 +113,8 @@ protected:
 
 
   nsAccessible* mActionAcc;
-  PRPackedBool mIsLink;
-  PRPackedBool mIsOnclick;
+  bool mIsLink;
+  bool mIsOnclick;
 };
 
 

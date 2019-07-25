@@ -60,11 +60,11 @@ class nsIDocumentViewerPrint : public nsISupports
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_IDOCUMENT_VIEWER_PRINT_IID)
 
-  virtual void SetIsPrinting(PRBool aIsPrinting) = 0;
-  virtual PRBool GetIsPrinting() = 0;
+  virtual void SetIsPrinting(bool aIsPrinting) = 0;
+  virtual bool GetIsPrinting() = 0;
 
-  virtual void SetIsPrintPreview(PRBool aIsPrintPreview) = 0;
-  virtual PRBool GetIsPrintPreview() = 0;
+  virtual void SetIsPrintPreview(bool aIsPrintPreview) = 0;
+  virtual bool GetIsPrintPreview() = 0;
 
   
   
@@ -80,7 +80,7 @@ public:
   
 
 
-  virtual PRBool IsInitializedForPrintPreview() = 0;
+  virtual bool IsInitializedForPrintPreview() = 0;
 
   
 
@@ -100,15 +100,15 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIDocumentViewerPrint,
 
 
 #define NS_DECL_NSIDOCUMENTVIEWERPRINT \
-  virtual void     SetIsPrinting(PRBool aIsPrinting); \
-  virtual PRBool   GetIsPrinting(); \
-  virtual void     SetIsPrintPreview(PRBool aIsPrintPreview); \
-  virtual PRBool   GetIsPrintPreview(); \
+  virtual void     SetIsPrinting(bool aIsPrinting); \
+  virtual bool     GetIsPrinting(); \
+  virtual void     SetIsPrintPreview(bool aIsPrintPreview); \
+  virtual bool     GetIsPrintPreview(); \
   virtual nsresult CreateStyleSet(nsIDocument* aDocument, nsStyleSet** aStyleSet); \
   virtual void     IncrementDestroyRefCount(); \
   virtual void     ReturnToGalleyPresentation(); \
   virtual void     OnDonePrinting(); \
-  virtual PRBool   IsInitializedForPrintPreview(); \
+  virtual bool     IsInitializedForPrintPreview(); \
   virtual void     InitializeForPrintPreview(); \
   virtual void     SetPrintPreviewPresentation(nsIViewManager* aViewManager, \
                                                nsPresContext* aPresContext, \

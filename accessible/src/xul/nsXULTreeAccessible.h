@@ -86,7 +86,6 @@ public:
   virtual PRUint64 NativeState();
   virtual nsAccessible* ChildAtPoint(PRInt32 aX, PRInt32 aY,
                                      EWhichChildAtPoint aWhichChild);
-  virtual nsAccessible* FocusedChild();
 
   virtual nsAccessible* GetChildAt(PRUint32 aIndex);
   virtual PRInt32 GetChildCount();
@@ -101,6 +100,14 @@ public:
   virtual bool RemoveItemFromSelection(PRUint32 aIndex);
   virtual bool SelectAll();
   virtual bool UnselectAll();
+
+  
+  virtual bool IsWidget() const;
+  virtual bool IsActiveWidget() const;
+  virtual bool AreItemsOperable() const;
+  virtual nsAccessible* CurrentItem();
+
+  virtual nsAccessible* ContainerWidget() const;
 
   
 
@@ -185,7 +192,7 @@ public:
   NS_IMETHOD GetBounds(PRInt32 *aX, PRInt32 *aY,
                        PRInt32 *aWidth, PRInt32 *aHeight);
 
-  NS_IMETHOD SetSelected(PRBool aSelect); 
+  NS_IMETHOD SetSelected(bool aSelect); 
   NS_IMETHOD TakeFocus();
 
   NS_IMETHOD GroupPosition(PRInt32 *aGroupLevel,
@@ -208,6 +215,9 @@ public:
 
   
   virtual PRUint8 ActionCount();
+
+  
+  virtual nsAccessible* ContainerWidget() const;
 
   
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_XULTREEITEMBASEACCESSIBLE_IMPL_CID)
@@ -242,7 +252,7 @@ protected:
   
 
 
-  PRBool IsExpandable();
+  bool IsExpandable();
 
   
 
@@ -277,7 +287,7 @@ public:
 
   
   virtual bool IsDefunct() const;
-  virtual PRBool Init();
+  virtual bool Init();
   virtual void Shutdown();
 
   

@@ -88,7 +88,7 @@ private:
     nsresult Prefetch(nsIURI *aURI,
                       nsIURI *aReferrerURI,
                       nsIDOMNode *aSource,
-                      PRBool aExplicit);
+                      bool aExplicit);
 
     void     AddProgressListener();
     void     RemoveProgressListener();
@@ -107,7 +107,7 @@ private:
     PRInt32                           mStopCount;
     
     PRInt32                           mHaveProcessed;
-    PRBool                            mDisabled;
+    bool                              mDisabled;
 };
 
 

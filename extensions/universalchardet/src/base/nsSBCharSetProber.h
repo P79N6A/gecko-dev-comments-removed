@@ -54,7 +54,7 @@ typedef struct
   const unsigned char* const charToOrderMap;    
   const PRUint8* const precedenceMatrix;  
   float  mTypicalPositiveRatio;     
-  PRBool keepEnglishLetter;         
+  bool keepEnglishLetter;         
   const char* const charsetName;
 } SequenceModel;
 
@@ -63,7 +63,7 @@ class nsSingleByteCharSetProber : public nsCharSetProber{
 public:
   nsSingleByteCharSetProber(const SequenceModel *model) 
     :mModel(model), mReversed(PR_FALSE), mNameProber(0) { Reset(); }
-  nsSingleByteCharSetProber(const SequenceModel *model, PRBool reversed, nsCharSetProber* nameProber)
+  nsSingleByteCharSetProber(const SequenceModel *model, bool reversed, nsCharSetProber* nameProber)
     :mModel(model), mReversed(reversed), mNameProber(nameProber) { Reset(); }
 
   virtual const char* GetCharSetName();
@@ -79,7 +79,7 @@ public:
   
   
   
-  PRBool KeepEnglishLetters() {return mModel->keepEnglishLetter;} 
+  bool KeepEnglishLetters() {return mModel->keepEnglishLetter;} 
 
 #ifdef DEBUG_chardet
   virtual void  DumpStatus();
@@ -88,7 +88,7 @@ public:
 protected:
   nsProbingState mState;
   const SequenceModel* const mModel;
-  const PRBool mReversed; 
+  const bool mReversed; 
 
   
   unsigned char mLastOrder;

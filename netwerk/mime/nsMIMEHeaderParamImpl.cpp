@@ -62,9 +62,9 @@
 
   
 static char *DecodeQ(const char *, PRUint32);
-static PRBool Is7bitNonAsciiString(const char *, PRUint32);
+static bool Is7bitNonAsciiString(const char *, PRUint32);
 static void CopyRawHeader(const char *, PRUint32, const char *, nsACString &);
-static nsresult DecodeRFC2047Str(const char *, const char *, PRBool, nsACString&);
+static nsresult DecodeRFC2047Str(const char *, const char *, bool, nsACString&);
 
 
 
@@ -80,7 +80,7 @@ NS_IMETHODIMP
 nsMIMEHeaderParamImpl::GetParameter(const nsACString& aHeaderVal, 
                                     const char *aParamName,
                                     const nsACString& aFallbackCharset, 
-                                    PRBool aTryLocaleCharset, 
+                                    bool aTryLocaleCharset, 
                                     char **aLang, nsAString& aResult)
 {
     aResult.Truncate();
@@ -223,7 +223,7 @@ nsMIMEHeaderParamImpl::GetParameterInternal(const char *aHeaderValue,
     const char *tokenEnd = 0;
     const char *valueStart = str;
     const char *valueEnd = 0;
-    PRBool seenEquals = PR_FALSE;
+    bool seenEquals = false;
 
     NS_ASSERTION(!nsCRT::IsAsciiSpace(*str), "should be after whitespace.");
 
@@ -240,7 +240,7 @@ nsMIMEHeaderParamImpl::GetParameterInternal(const char *aHeaderValue,
     }
     while (nsCRT::IsAsciiSpace(*str)) ++str;
 
-    PRBool needUnquote = PR_FALSE;
+    bool needUnquote = false;
     
     if (*str != '"')
     {
@@ -297,7 +297,7 @@ nsMIMEHeaderParamImpl::GetParameterInternal(const char *aHeaderValue,
              *(tokenStart + paramLen) == '*')
     {
       const char *cp = tokenStart + paramLen + 1; 
-      PRBool needUnescape = *(tokenEnd - 1) == '*';
+      bool needUnescape = *(tokenEnd - 1) == '*';
       
       
       
@@ -410,8 +410,8 @@ nsMIMEHeaderParamImpl::GetParameterInternal(const char *aHeaderValue,
 NS_IMETHODIMP
 nsMIMEHeaderParamImpl::DecodeRFC2047Header(const char* aHeaderVal, 
                                            const char* aDefaultCharset, 
-                                           PRBool aOverrideCharset, 
-                                           PRBool aEatContinuations,
+                                           bool aOverrideCharset, 
+                                           bool aEatContinuations,
                                            nsACString& aResult)
 {
   aResult.Truncate();
@@ -451,7 +451,7 @@ NS_IMETHODIMP
 nsMIMEHeaderParamImpl::DecodeParameter(const nsACString& aParamValue,
                                        const char* aCharset,
                                        const char* aDefaultCharset,
-                                       PRBool aOverrideCharset, 
+                                       bool aOverrideCharset, 
                                        nsACString& aResult)
 {
   aResult.Truncate();
@@ -557,7 +557,7 @@ char *DecodeQ(const char *in, PRUint32 length)
 
 
 
-PRBool Is7bitNonAsciiString(const char *input, PRUint32 len)
+bool Is7bitNonAsciiString(const char *input, PRUint32 len)
 {
   PRInt32 c;
 
@@ -633,7 +633,7 @@ void CopyRawHeader(const char *aInput, PRUint32 aLen,
 
   
   
-  PRBool skipCheck = (c == 0x1B || c == '~') && 
+  bool skipCheck = (c == 0x1B || c == '~') && 
                      IS_7BIT_NON_ASCII_CHARSET(aDefaultCharset);
 
   
@@ -665,7 +665,7 @@ static const char especials[] = "()<>@,;:\\\"/[]?.=";
 
 
 nsresult DecodeRFC2047Str(const char *aHeader, const char *aDefaultCharset, 
-                          PRBool aOverrideCharset, nsACString &aResult)
+                          bool aOverrideCharset, nsACString &aResult)
 {
   const char *p, *q, *r;
   char *decodedText;

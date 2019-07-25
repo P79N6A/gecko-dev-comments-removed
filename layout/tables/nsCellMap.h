@@ -86,7 +86,7 @@ class nsTableCellMap
 {
 public:
   nsTableCellMap(nsTableFrame&   aTableFrame,
-                 PRBool          aBorderCollapse);
+                 bool            aBorderCollapse);
 
   
 
@@ -115,7 +115,7 @@ public:
   nsTableCellFrame* GetCellFrame(PRInt32   aRowIndex,
                                  PRInt32   aColIndex,
                                  CellData& aData,
-                                 PRBool    aUseRowIfOverlap) const;
+                                 bool      aUseRowIfOverlap) const;
 
   
   CellData* GetDataAt(PRInt32 aRowIndex,
@@ -128,7 +128,7 @@ public:
 
   CellData* AppendCell(nsTableCellFrame&     aCellFrame,
                        PRInt32               aRowIndex,
-                       PRBool                aRebuildIfNecessary,
+                       bool                  aRebuildIfNecessary,
                        nsRect&               aDamageArea);
 
   void InsertCells(nsTArray<nsTableCellFrame*>& aCellFrames,
@@ -144,12 +144,12 @@ public:
   void InsertRows(nsTableRowGroupFrame*       aRowGroup,
                   nsTArray<nsTableRowFrame*>& aRows,
                   PRInt32                     aFirstRowIndex,
-                  PRBool                      aConsiderSpans,
+                  bool                        aConsiderSpans,
                   nsRect&                     aDamageArea);
 
   void RemoveRows(PRInt32         aFirstRowIndex,
                   PRInt32         aNumRowsToRemove,
-                  PRBool          aConsiderSpans,
+                  bool            aConsiderSpans,
                   nsRect&               aDamageArea);
 
   PRInt32 GetNumCellsOriginatingInRow(PRInt32 aRowIndex) const;
@@ -158,7 +158,7 @@ public:
   
 
 
-  PRBool HasMoreThanOneCell(PRInt32 aRowIndex) const;
+  bool HasMoreThanOneCell(PRInt32 aRowIndex) const;
 
   PRInt32 GetEffectiveRowSpan(PRInt32 aRowIndex,
                               PRInt32 aColIndex) const;
@@ -173,7 +173,7 @@ public:
 
   nsTableCellFrame* GetCellInfoAt(PRInt32  aRowX,
                                   PRInt32  aColX,
-                                  PRBool*  aOriginates = nsnull,
+                                  bool*  aOriginates = nsnull,
                                   PRInt32* aColSpan = nsnull) const;
 
   
@@ -202,13 +202,13 @@ public:
   void AddColsAtEnd(PRUint32 aNumCols);
   void RemoveColsAtEnd();
 
-  PRBool RowIsSpannedInto(PRInt32 aRowIndex, PRInt32 aNumEffCols) const;
-  PRBool RowHasSpanningCells(PRInt32 aRowIndex, PRInt32 aNumEffCols) const;
+  bool RowIsSpannedInto(PRInt32 aRowIndex, PRInt32 aNumEffCols) const;
+  bool RowHasSpanningCells(PRInt32 aRowIndex, PRInt32 aNumEffCols) const;
   void RebuildConsideringCells(nsCellMap*                   aCellMap,
                                nsTArray<nsTableCellFrame*>* aCellFrames,
                                PRInt32                      aRowIndex,
                                PRInt32                      aColIndex,
-                               PRBool                       aInsert,
+                               bool                         aInsert,
                                nsRect&                      aDamageArea);
 
 protected:
@@ -233,7 +233,7 @@ public:
                      nsCellMap& aCellMap,
                      PRUint32   aYPos,
                      PRUint32   aXPos,
-                     PRBool     aIsLowerRight = PR_FALSE);
+                     bool       aIsLowerRight = false);
 
   void SetBCBorderEdge(mozilla::css::Side aEdge,
                        nsCellMap&    aCellMap,
@@ -243,7 +243,7 @@ public:
                        PRUint32      aLength,
                        BCBorderOwner aOwner,
                        nscoord       aSize,
-                       PRBool        aChanged);
+                       bool          aChanged);
 
   void SetBCBorderCorner(Corner      aCorner,
                          nsCellMap&  aCellMap,
@@ -252,8 +252,8 @@ public:
                          PRUint32    aXPos,
                          mozilla::css::Side aOwner,
                          nscoord     aSubSize,
-                         PRBool      aBevel,
-                         PRBool      aIsBottomRight = PR_FALSE);
+                         bool        aBevel,
+                         bool        aIsBottomRight = false);
 
   
 #ifdef NS_DEBUG
@@ -304,7 +304,7 @@ public:
 
 
 
-  nsCellMap(nsTableRowGroupFrame* aRowGroupFrame, PRBool aIsBC);
+  nsCellMap(nsTableRowGroupFrame* aRowGroupFrame, bool aIsBC);
 
   
 
@@ -322,7 +322,7 @@ public:
   nsTableCellFrame* GetCellFrame(PRInt32   aRowIndex,
                                  PRInt32   aColIndex,
                                  CellData& aData,
-                                 PRBool    aUseRowSpanIfOverlap) const;
+                                 bool      aUseRowSpanIfOverlap) const;
 
   
 
@@ -377,7 +377,7 @@ public:
   CellData* AppendCell(nsTableCellMap&   aMap,
                        nsTableCellFrame* aCellFrame,
                        PRInt32           aRowIndex,
-                       PRBool            aRebuildIfNecessary,
+                       bool              aRebuildIfNecessary,
                        nsRect&           aDamageArea,
                        PRInt32*          aBeginSearchAtCol = nsnull);
 
@@ -411,31 +411,31 @@ public:
   void InsertRows(nsTableCellMap&             aMap,
                   nsTArray<nsTableRowFrame*>& aRows,
                   PRInt32                     aFirstRowIndex,
-                  PRBool                      aConsiderSpans,
+                  bool                        aConsiderSpans,
                   nsRect&                     aDamageArea);
 
   void RemoveRows(nsTableCellMap& aMap,
                   PRInt32         aFirstRowIndex,
                   PRInt32         aNumRowsToRemove,
-                  PRBool          aConsiderSpans,
+                  bool            aConsiderSpans,
                   nsRect&         aDamageArea);
 
   PRInt32 GetNumCellsOriginatingInRow(PRInt32 aRowIndex) const;
   PRInt32 GetNumCellsOriginatingInCol(PRInt32 aColIndex) const;
 
   
-  PRInt32 GetRowCount(PRBool aConsiderDeadRowSpanRows = PR_FALSE) const;
+  PRInt32 GetRowCount(bool aConsiderDeadRowSpanRows = false) const;
 
   nsTableCellFrame* GetCellInfoAt(const nsTableCellMap& aMap,
                                   PRInt32          aRowX,
                                   PRInt32          aColX,
-                                  PRBool*          aOriginates = nsnull,
+                                  bool*          aOriginates = nsnull,
                                   PRInt32*         aColSpan = nsnull) const;
 
-  PRBool RowIsSpannedInto(PRInt32 aRowIndex,
+  bool RowIsSpannedInto(PRInt32 aRowIndex,
                           PRInt32 aNumEffCols) const;
 
-  PRBool RowHasSpanningCells(PRInt32 aRowIndex,
+  bool RowHasSpanningCells(PRInt32 aRowIndex,
                              PRInt32 aNumEffCols) const;
 
   void ExpandZeroColSpans(nsTableCellMap& aMap);
@@ -443,7 +443,7 @@ public:
   
 
 
-  PRBool HasMoreThanOneCell(PRInt32 aRowIndex) const;
+  bool HasMoreThanOneCell(PRInt32 aRowIndex) const;
 
   
 
@@ -453,18 +453,18 @@ public:
 
   PRInt32 GetRowSpan(PRInt32 aRowIndex,
                      PRInt32 aColIndex,
-                     PRBool  aGetEffective) const;
+                     bool    aGetEffective) const;
 
   PRInt32 GetEffectiveColSpan(const nsTableCellMap& aMap,
                               PRInt32     aRowIndex,
                               PRInt32     aColIndex,
-                              PRBool&     aIsZeroColSpan) const;
+                              bool&     aIsZeroColSpan) const;
 
   typedef nsTArray<CellData*> CellDataArray;
 
   
 #ifdef NS_DEBUG
-  void Dump(PRBool aIsBorderCollapse) const;
+  void Dump(bool aIsBorderCollapse) const;
 #endif
 
 protected:
@@ -478,7 +478,7 @@ protected:
 
 
 
-  PRBool Grow(nsTableCellMap& aMap,
+  bool Grow(nsTableCellMap& aMap,
               PRInt32         aNumRows,
               PRInt32         aRowIndex = -1);
 
@@ -506,7 +506,7 @@ protected:
                        PRInt32                      aRowIndex,
                        PRInt32                      aColIndex,
                        PRInt32                      aRowSpan,
-                       PRBool                       aRowSpanIsZero,
+                       bool                         aRowSpanIsZero,
                        nsRect&                      aDamageArea);
 
   void ShrinkWithoutRows(nsTableCellMap& aMap,
@@ -539,10 +539,10 @@ protected:
                                nsTArray<nsTableCellFrame*>* aCellFrames,
                                PRInt32                      aRowIndex,
                                PRInt32                      aColIndex,
-                               PRBool                       aInsert,
+                               bool                         aInsert,
                                nsRect&                      aDamageArea);
 
-  PRBool CellsSpanOut(nsTArray<nsTableRowFrame*>& aNewRows) const;
+  bool CellsSpanOut(nsTArray<nsTableRowFrame*>& aNewRows) const;
 
   
 
@@ -555,7 +555,7 @@ protected:
 
 
 
-  PRBool CellsSpanInOrOut(PRInt32 aStartRowIndex,
+  bool CellsSpanInOrOut(PRInt32 aStartRowIndex,
                           PRInt32 aEndRowIndex,
                           PRInt32 aStartColIndex,
                           PRInt32 aEndColIndex) const;
@@ -563,15 +563,15 @@ protected:
   void ExpandForZeroSpan(nsTableCellFrame* aCellFrame,
                          PRInt32           aNumColsInTable);
 
-  PRBool CreateEmptyRow(PRInt32 aRowIndex,
+  bool CreateEmptyRow(PRInt32 aRowIndex,
                         PRInt32 aNumCols);
 
   PRInt32 GetRowSpanForNewCell(nsTableCellFrame* aCellFrameToAdd,
                                PRInt32           aRowIndex,
-                               PRBool&           aIsZeroRowSpan) const;
+                               bool&           aIsZeroRowSpan) const;
 
   PRInt32 GetColSpanForNewCell(nsTableCellFrame& aCellFrameToAdd,
-                               PRBool&           aIsZeroColSpan) const;
+                               bool&           aIsZeroColSpan) const;
 
   
   
@@ -600,7 +600,7 @@ protected:
   nsCellMap* mNextSibling;
 
   
-  PRBool mIsBC;
+  bool mIsBC;
 
   
   nsRefPtr<nsPresContext> mPresContext;
@@ -695,7 +695,7 @@ inline nsTableRowGroupFrame* nsCellMap::GetRowGroup() const
   return mRowGroupFrame;
 }
 
-inline PRInt32 nsCellMap::GetRowCount(PRBool aConsiderDeadRowSpanRows) const
+inline PRInt32 nsCellMap::GetRowCount(bool aConsiderDeadRowSpanRows) const
 {
   PRInt32 rowCount = (aConsiderDeadRowSpanRows) ? mRows.Length() : mContentRowCount;
   return rowCount;

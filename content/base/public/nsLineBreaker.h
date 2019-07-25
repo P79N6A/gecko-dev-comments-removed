@@ -67,7 +67,7 @@ public:
 
 
 
-  virtual void SetCapitalization(PRUint32 aStart, PRUint32 aLength, PRPackedBool* aCapitalize) = 0;
+  virtual void SetCapitalization(PRUint32 aStart, PRUint32 aLength, bool* aCapitalize) = 0;
 };
 
 
@@ -97,9 +97,9 @@ public:
   nsLineBreaker();
   ~nsLineBreaker();
   
-  static inline PRBool IsSpace(PRUnichar u) { return NS_IsSpace(u); }
+  static inline bool IsSpace(PRUnichar u) { return NS_IsSpace(u); }
 
-  static inline PRBool IsComplexASCIIChar(PRUnichar u)
+  static inline bool IsComplexASCIIChar(PRUnichar u)
   {
     return !((0x0030 <= u && u <= 0x0039) ||
              (0x0041 <= u && u <= 0x005A) ||
@@ -107,7 +107,7 @@ public:
              (0x000a == u));
   }
 
-  static inline PRBool IsComplexChar(PRUnichar u)
+  static inline bool IsComplexChar(PRUnichar u)
   {
     return IsComplexASCIIChar(u) ||
            NS_NeedsPlatformNativeHandling(u) ||
@@ -199,7 +199,7 @@ public:
 
 
 
-  nsresult Reset(PRBool* aTrailingBreak);
+  nsresult Reset(bool* aTrailingBreak);
 
 private:
   
@@ -235,14 +235,14 @@ private:
   
   nsAutoTArray<TextItem,2>    mTextItems;
   nsIAtom*                    mCurrentWordLangGroup;
-  PRPackedBool                mCurrentWordContainsMixedLang;
-  PRPackedBool                mCurrentWordContainsComplexChar;
+  bool                        mCurrentWordContainsMixedLang;
+  bool                        mCurrentWordContainsComplexChar;
 
   
-  PRPackedBool                mAfterBreakableSpace;
+  bool                        mAfterBreakableSpace;
   
   
-  PRPackedBool                mBreakHere;
+  bool                        mBreakHere;
 };
 
 #endif 

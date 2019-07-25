@@ -135,7 +135,7 @@ class nsStringBuffer
 
 
 
-      PRBool IsReadonly() const
+      bool IsReadonly() const
         {
           return mRefCount > 1;
         }
@@ -166,9 +166,9 @@ class nsStringBuffer
 
 
       void ToString(PRUint32 len, nsAString &str,
-                           PRBool aMoveOwnership = PR_FALSE);
+                           bool aMoveOwnership = false);
       void ToString(PRUint32 len, nsACString &str,
-                           PRBool aMoveOwnership = PR_FALSE);
+                           bool aMoveOwnership = false);
   };
 
 #endif 

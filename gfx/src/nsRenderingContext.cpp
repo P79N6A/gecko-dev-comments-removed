@@ -300,7 +300,7 @@ nsRenderingContext::DrawRect(nscoord aX, nscoord aY,
 
 #define CAIRO_COORD_MAX (double(0x7fffff))
 
-static PRBool
+static bool
 ConditionRect(gfxRect& r) {
     
     
@@ -449,7 +449,7 @@ nsRenderingContext::FillPolygon(const nsPoint twPoints[], PRInt32 aNumPoints)
 
 
 void
-nsRenderingContext::SetTextRunRTL(PRBool aIsRTL)
+nsRenderingContext::SetTextRunRTL(bool aIsRTL)
 {
     mFontMetrics->SetTextRunRTL(aIsRTL);
 }
@@ -583,7 +583,7 @@ nsRenderingContext::DrawString(const PRUnichar *aString, PRUint32 aLength,
         return;
     }
 
-    PRBool isRTL = mFontMetrics->GetTextRunRTL();
+    bool isRTL = mFontMetrics->GetTextRunRTL();
 
     
     if (isRTL) {

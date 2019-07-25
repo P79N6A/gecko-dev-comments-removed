@@ -28,12 +28,15 @@ class VertexShader;
 
 struct Uniform
 {
-    Uniform(GLenum type, const std::string &name, unsigned int arraySize);
+    Uniform(GLenum type, const std::string &_name, unsigned int arraySize);
 
     ~Uniform();
 
+    bool isArray();
+
     const GLenum type;
-    const std::string name;
+    const std::string _name;   
+    const std::string name;    
     const unsigned int arraySize;
 
     unsigned char *data;
@@ -47,7 +50,7 @@ struct Uniform
 
 struct UniformLocation
 {
-    UniformLocation(const std::string &name, unsigned int element, unsigned int index);
+    UniformLocation(const std::string &_name, unsigned int element, unsigned int index);
 
     std::string name;
     unsigned int element;
@@ -75,7 +78,7 @@ class Program
     GLint getSamplerMapping(SamplerType type, unsigned int samplerIndex);
     TextureType getSamplerTextureType(SamplerType type, unsigned int samplerIndex);
 
-    GLint getUniformLocation(const char *name, bool decorated);
+    GLint getUniformLocation(std::string name);
     bool setUniform1fv(GLint location, GLsizei count, const GLfloat *v);
     bool setUniform2fv(GLint location, GLsizei count, const GLfloat *v);
     bool setUniform3fv(GLint location, GLsizei count, const GLfloat *v);
@@ -127,6 +130,9 @@ class Program
 
     unsigned int getSerial() const;
 
+    static std::string decorateAttribute(const std::string &name);    
+    static std::string undecorateUniform(const std::string &_name);   
+
   private:
     DISALLOW_COPY_AND_ASSIGN(Program);
 
@@ -164,9 +170,6 @@ class Program
     void appendToInfoLogSanitized(const char *message);
     void appendToInfoLog(const char *info, ...);
     void resetInfoLog();
-
-    static std::string decorate(const std::string &string);     
-    static std::string undecorate(const std::string &string);   
 
     static unsigned int issueSerial();
 

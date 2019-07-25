@@ -156,13 +156,14 @@ public:
 
   
   virtual bool IsDefunct() const;
-  virtual PRBool Init();
+  virtual bool Init();
   virtual bool IsPrimaryForNode() const;
 
   
   virtual nsAccessible* FocusedChild();
   virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);
   virtual PRInt32 IndexInParent() const;
+  virtual Relation RelationByType(PRUint32 aType);
   virtual PRUint32 NativeRole();
   virtual PRUint64 NativeState();
 
@@ -194,7 +195,7 @@ protected:
   
 
 
-  PRBool IsEditable() const;
+  bool IsEditable() const;
 
   enum { eAction_Click = 0 };
 

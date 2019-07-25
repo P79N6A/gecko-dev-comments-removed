@@ -62,7 +62,7 @@ public:
 
     
     
-    PRBool                   mHasDependency;
+    bool                     mHasDependency;
 
     RDFBinding*              mNext;
 
@@ -139,7 +139,7 @@ public:
 
 
 
-    PRBool
+    bool
     SyncAssignments(nsIRDFResource* aSubject,
                     nsIRDFResource* aPredicate,
                     nsIRDFNode* aTarget,

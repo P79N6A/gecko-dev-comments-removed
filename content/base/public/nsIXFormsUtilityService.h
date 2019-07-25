@@ -82,22 +82,22 @@ public:
   
 
 
-  NS_IMETHOD IsReadonly(nsIDOMNode *aElement, PRBool *aState) = 0;
+  NS_IMETHOD IsReadonly(nsIDOMNode *aElement, bool *aState) = 0;
 
   
 
 
-  NS_IMETHOD IsRelevant(nsIDOMNode *aElement, PRBool *aState) = 0;
+  NS_IMETHOD IsRelevant(nsIDOMNode *aElement, bool *aState) = 0;
 
   
 
 
-  NS_IMETHOD IsRequired(nsIDOMNode *aElement, PRBool *aState) = 0;
+  NS_IMETHOD IsRequired(nsIDOMNode *aElement, bool *aState) = 0;
 
   
 
 
-  NS_IMETHOD IsValid(nsIDOMNode *aElement, PRBool *aState) = 0;
+  NS_IMETHOD IsValid(nsIDOMNode *aElement, bool *aState) = 0;
 
   
 
@@ -147,7 +147,7 @@ public:
 
 
 
-  NS_IMETHOD IsDropmarkerOpen(nsIDOMNode *aElement, PRBool* aIsOpen) = 0;
+  NS_IMETHOD IsDropmarkerOpen(nsIDOMNode *aElement, bool* aIsOpen) = 0;
 
   
 
@@ -209,7 +209,7 @@ public:
 
 
   NS_IMETHOD IsSelectItemSelected(nsIDOMNode *aElement, nsIDOMNode *aItem,
-                                  PRBool *aIsSelected) = 0;
+                                  bool *aIsSelected) = 0;
 
   
 

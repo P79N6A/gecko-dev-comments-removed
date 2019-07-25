@@ -78,7 +78,7 @@ private:
 
     
     nsCString           mBuffer;            
-    PRBool              mSentHeading;       
+    bool                mSentHeading;       
 
     nsIStreamListener   *mFinalListener; 
 };

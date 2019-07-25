@@ -78,7 +78,7 @@ public:
     
 
 
-    virtual PRBool caseInsensitiveNameTests() = 0;
+    virtual bool caseInsensitiveNameTests() = 0;
 
     
 

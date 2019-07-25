@@ -150,8 +150,8 @@ class nsTString_CharT : public nsTSubstring_CharT
 
 
 
-      PRInt32 Find( const nsCString& aString, PRBool aIgnoreCase=PR_FALSE, PRInt32 aOffset=0, PRInt32 aCount=-1 ) const;
-      PRInt32 Find( const char* aString, PRBool aIgnoreCase=PR_FALSE, PRInt32 aOffset=0, PRInt32 aCount=-1 ) const;
+      PRInt32 Find( const nsCString& aString, bool aIgnoreCase=false, PRInt32 aOffset=0, PRInt32 aCount=-1 ) const;
+      PRInt32 Find( const char* aString, bool aIgnoreCase=false, PRInt32 aOffset=0, PRInt32 aCount=-1 ) const;
 
 #ifdef CharT_is_PRUnichar
       PRInt32 Find( const nsAFlatString& aString, PRInt32 aOffset=0, PRInt32 aCount=-1 ) const;
@@ -171,8 +171,8 @@ class nsTString_CharT : public nsTSubstring_CharT
 
 
 
-      PRInt32 RFind( const nsCString& aString, PRBool aIgnoreCase=PR_FALSE, PRInt32 aOffset=-1, PRInt32 aCount=-1 ) const;
-      PRInt32 RFind( const char* aCString, PRBool aIgnoreCase=PR_FALSE, PRInt32 aOffset=-1, PRInt32 aCount=-1 ) const;
+      PRInt32 RFind( const nsCString& aString, bool aIgnoreCase=false, PRInt32 aOffset=-1, PRInt32 aCount=-1 ) const;
+      PRInt32 RFind( const char* aCString, bool aIgnoreCase=false, PRInt32 aOffset=-1, PRInt32 aCount=-1 ) const;
 
 #ifdef CharT_is_PRUnichar
       PRInt32 RFind( const nsAFlatString& aString, PRInt32 aOffset=-1, PRInt32 aCount=-1 ) const;
@@ -242,7 +242,7 @@ class nsTString_CharT : public nsTSubstring_CharT
 
 
 #ifdef CharT_is_char
-      PRInt32 Compare( const char* aString, PRBool aIgnoreCase=PR_FALSE, PRInt32 aCount=-1 ) const;
+      PRInt32 Compare( const char* aString, bool aIgnoreCase=false, PRInt32 aCount=-1 ) const;
 #endif
 
 
@@ -255,11 +255,11 @@ class nsTString_CharT : public nsTSubstring_CharT
 
 
 #ifdef CharT_is_char
-      PRBool EqualsIgnoreCase( const char* aString, PRInt32 aCount=-1 ) const {
+      bool EqualsIgnoreCase( const char* aString, PRInt32 aCount=-1 ) const {
         return Compare(aString, PR_TRUE, aCount) == 0;
       }
 #else
-      PRBool EqualsIgnoreCase( const char* aString, PRInt32 aCount=-1 ) const;
+      bool EqualsIgnoreCase( const char* aString, PRInt32 aCount=-1 ) const;
 
 
 #endif 
@@ -333,7 +333,7 @@ class nsTString_CharT : public nsTSubstring_CharT
 
 
 
-      PRBool SetCharAt( PRUnichar aChar, PRUint32 aIndex );
+      bool SetCharAt( PRUnichar aChar, PRUint32 aIndex );
 
 
         
@@ -371,7 +371,7 @@ class nsTString_CharT : public nsTSubstring_CharT
 
 
 
-      void Trim( const char* aSet, PRBool aEliminateLeading=PR_TRUE, PRBool aEliminateTrailing=PR_TRUE, PRBool aIgnoreQuotes=PR_FALSE );
+      void Trim( const char* aSet, bool aEliminateLeading=true, bool aEliminateTrailing=true, bool aIgnoreQuotes=false );
 
         
 
@@ -381,7 +381,7 @@ class nsTString_CharT : public nsTSubstring_CharT
 
 
 
-      void CompressWhitespace( PRBool aEliminateLeading=PR_TRUE, PRBool aEliminateTrailing=PR_TRUE );
+      void CompressWhitespace( bool aEliminateLeading=true, bool aEliminateTrailing=true );
 
 
         

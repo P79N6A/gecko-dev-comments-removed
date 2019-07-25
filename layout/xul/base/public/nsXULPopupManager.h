@@ -160,15 +160,15 @@ class nsMenuChainItem
 private:
   nsMenuPopupFrame* mFrame; 
   nsPopupType mPopupType; 
-  PRPackedBool mIsContext; 
-  PRPackedBool mOnMenuBar; 
-  PRPackedBool mIgnoreKeys; 
+  bool mIsContext; 
+  bool mOnMenuBar; 
+  bool mIgnoreKeys; 
 
   nsMenuChainItem* mParent;
   nsMenuChainItem* mChild;
 
 public:
-  nsMenuChainItem(nsMenuPopupFrame* aFrame, PRBool aIsContext, nsPopupType aPopupType)
+  nsMenuChainItem(nsMenuPopupFrame* aFrame, bool aIsContext, nsPopupType aPopupType)
     : mFrame(aFrame),
       mPopupType(aPopupType),
       mIsContext(aIsContext),
@@ -189,12 +189,12 @@ public:
   nsIContent* Content();
   nsMenuPopupFrame* Frame() { return mFrame; }
   nsPopupType PopupType() { return mPopupType; }
-  PRBool IsMenu() { return mPopupType == ePopupTypeMenu; }
-  PRBool IsContextMenu() { return mIsContext; }
-  PRBool IgnoreKeys() { return mIgnoreKeys; }
-  PRBool IsOnMenuBar() { return mOnMenuBar; }
-  void SetIgnoreKeys(PRBool aIgnoreKeys) { mIgnoreKeys = aIgnoreKeys; }
-  void SetOnMenuBar(PRBool aOnMenuBar) { mOnMenuBar = aOnMenuBar; }
+  bool IsMenu() { return mPopupType == ePopupTypeMenu; }
+  bool IsContextMenu() { return mIsContext; }
+  bool IgnoreKeys() { return mIgnoreKeys; }
+  bool IsOnMenuBar() { return mOnMenuBar; }
+  void SetIgnoreKeys(bool aIgnoreKeys) { mIgnoreKeys = aIgnoreKeys; }
+  void SetOnMenuBar(bool aOnMenuBar) { mOnMenuBar = aOnMenuBar; }
   nsMenuChainItem* GetParent() { return mParent; }
   nsMenuChainItem* GetChild() { return mChild; }
 
@@ -214,8 +214,8 @@ class nsXULPopupShowingEvent : public nsRunnable
 {
 public:
   nsXULPopupShowingEvent(nsIContent *aPopup,
-                         PRBool aIsContextMenu,
-                         PRBool aSelectFirstItem)
+                         bool aIsContextMenu,
+                         bool aSelectFirstItem)
     : mPopup(aPopup),
       mIsContextMenu(aIsContextMenu),
       mSelectFirstItem(aSelectFirstItem)
@@ -227,8 +227,8 @@ public:
 
 private:
   nsCOMPtr<nsIContent> mPopup;
-  PRBool mIsContextMenu;
-  PRBool mSelectFirstItem;
+  bool mIsContextMenu;
+  bool mSelectFirstItem;
 };
 
 
@@ -239,7 +239,7 @@ public:
                         nsIContent* aNextPopup,
                         nsIContent* aLastPopup,
                         nsPopupType aPopupType,
-                        PRBool aDeselectMenu)
+                        bool aDeselectMenu)
     : mPopup(aPopup),
       mNextPopup(aNextPopup),
       mLastPopup(aLastPopup),
@@ -257,7 +257,7 @@ private:
   nsCOMPtr<nsIContent> mNextPopup;
   nsCOMPtr<nsIContent> mLastPopup;
   nsPopupType mPopupType;
-  PRBool mDeselectMenu;
+  bool mDeselectMenu;
 };
 
 
@@ -265,13 +265,13 @@ class nsXULMenuCommandEvent : public nsRunnable
 {
 public:
   nsXULMenuCommandEvent(nsIContent *aMenu,
-                        PRBool aIsTrusted,
-                        PRBool aShift,
-                        PRBool aControl,
-                        PRBool aAlt,
-                        PRBool aMeta,
-                        PRBool aUserInput,
-                        PRBool aFlipChecked)
+                        bool aIsTrusted,
+                        bool aShift,
+                        bool aControl,
+                        bool aAlt,
+                        bool aMeta,
+                        bool aUserInput,
+                        bool aFlipChecked)
     : mMenu(aMenu),
       mIsTrusted(aIsTrusted),
       mShift(aShift),
@@ -291,13 +291,13 @@ public:
 
 private:
   nsCOMPtr<nsIContent> mMenu;
-  PRBool mIsTrusted;
-  PRBool mShift;
-  PRBool mControl;
-  PRBool mAlt;
-  PRBool mMeta;
-  PRBool mUserInput;
-  PRBool mFlipChecked;
+  bool mIsTrusted;
+  bool mShift;
+  bool mControl;
+  bool mAlt;
+  bool mMeta;
+  bool mUserInput;
+  bool mFlipChecked;
   CloseMenuMode mCloseMenuMode;
 };
 
@@ -320,8 +320,8 @@ public:
 
   
   NS_IMETHOD Rollup(PRUint32 aCount, nsIContent **aContent);
-  NS_IMETHOD ShouldRollupOnMouseWheelEvent(PRBool *aShould);
-  NS_IMETHOD ShouldRollupOnMouseActivate(PRBool *aShould);
+  NS_IMETHOD ShouldRollupOnMouseWheelEvent(bool *aShould);
+  NS_IMETHOD ShouldRollupOnMouseActivate(bool *aShould);
 
   virtual PRUint32 GetSubmenuWidgetChain(nsTArray<nsIWidget*> *aWidgetChain);
   virtual void AdjustPopupsOnWindowChange(nsPIDOMWindow* aWindow);
@@ -341,7 +341,7 @@ public:
   
   nsIFrame* GetFrameOfTypeForContent(nsIContent* aContent,
                                      nsIAtom* aFrameType,
-                                     PRBool aShouldFlush);
+                                     bool aShouldFlush);
 
   
   
@@ -364,17 +364,17 @@ public:
   
   static nsMenuFrame* GetPreviousMenuItem(nsIFrame* aParent,
                                           nsMenuFrame* aStart,
-                                          PRBool aIsPopup);
+                                          bool aIsPopup);
   static nsMenuFrame* GetNextMenuItem(nsIFrame* aParent,
                                       nsMenuFrame* aStart,
-                                      PRBool aIsPopup);
+                                      bool aIsPopup);
 
   
   
   
-  static PRBool IsValidMenuItem(nsPresContext* aPresContext,
+  static bool IsValidMenuItem(nsPresContext* aPresContext,
                                 nsIContent* aContent,
-                                PRBool aOnPopup);
+                                bool aOnPopup);
 
   
   
@@ -383,7 +383,7 @@ public:
   
   
   
-  void SetActiveMenuBar(nsMenuBarFrame* aMenuBar, PRBool aActivate);
+  void SetActiveMenuBar(nsMenuBarFrame* aMenuBar, bool aActivate);
 
   
   
@@ -398,7 +398,7 @@ public:
 
 
 
-  void ShowMenu(nsIContent *aMenu, PRBool aSelectFirstItem, PRBool aAsynchronous);
+  void ShowMenu(nsIContent *aMenu, bool aSelectFirstItem, bool aAsynchronous);
 
   
 
@@ -415,9 +415,9 @@ public:
                  nsIContent* aAnchorContent,
                  const nsAString& aPosition,
                  PRInt32 aXPos, PRInt32 aYPos,
-                 PRBool aIsContextMenu,
-                 PRBool aAttributesOverride,
-                 PRBool aSelectFirstItem,
+                 bool aIsContextMenu,
+                 bool aAttributesOverride,
+                 bool aSelectFirstItem,
                  nsIDOMEvent* aTriggerEvent);
 
   
@@ -432,7 +432,7 @@ public:
 
   void ShowPopupAtScreen(nsIContent* aPopup,
                          PRInt32 aXPos, PRInt32 aYPos,
-                         PRBool aIsContextMenu,
+                         bool aIsContextMenu,
                          nsIDOMEvent* aTriggerEvent);
 
   
@@ -456,7 +456,7 @@ public:
                                 nsAString& aAnchor,
                                 nsAString& aAlign,
                                 PRInt32 aXPos, PRInt32 aYPos,
-                                PRBool aIsContextMenu);
+                                bool aIsContextMenu);
 
   
 
@@ -474,9 +474,9 @@ public:
 
 
   void HidePopup(nsIContent* aPopup,
-                 PRBool aHideChain,
-                 PRBool aDeselectMenu,
-                 PRBool aAsynchronous,
+                 bool aHideChain,
+                 bool aDeselectMenu,
+                 bool aAsynchronous,
                  nsIContent* aLastPopup = nsnull);
 
   
@@ -509,12 +509,12 @@ public:
   
 
 
-  PRBool IsPopupOpen(nsIContent* aPopup);
+  bool IsPopupOpen(nsIContent* aPopup);
 
   
 
 
-  PRBool IsPopupOpenForMenuParent(nsMenuParent* aMenuParent);
+  bool IsPopupOpenForMenuParent(nsMenuParent* aMenuParent);
 
   
 
@@ -549,7 +549,7 @@ public:
 
 
 
-  PRBool MayShowPopup(nsMenuPopupFrame* aFrame);
+  bool MayShowPopup(nsMenuPopupFrame* aFrame);
 
   
 
@@ -575,7 +575,7 @@ public:
 
 
 
-  PRBool HasContextMenu(nsMenuPopupFrame* aPopup);
+  bool HasContextMenu(nsMenuPopupFrame* aPopup);
 
   
 
@@ -608,21 +608,21 @@ public:
 
 
 
-  PRBool HandleShortcutNavigation(nsIDOMKeyEvent* aKeyEvent,
+  bool HandleShortcutNavigation(nsIDOMKeyEvent* aKeyEvent,
                                   nsMenuPopupFrame* aFrame);
 
   
 
 
 
-  PRBool HandleKeyboardNavigation(PRUint32 aKeyCode);
+  bool HandleKeyboardNavigation(PRUint32 aKeyCode);
 
   
 
 
 
 
-  PRBool HandleKeyboardNavigationInPopup(nsMenuPopupFrame* aFrame,
+  bool HandleKeyboardNavigationInPopup(nsMenuPopupFrame* aFrame,
                                          nsNavigationDirection aDir)
   {
     return HandleKeyboardNavigationInPopup(nsnull, aFrame, aDir);
@@ -640,7 +640,7 @@ protected:
   nsMenuFrame* GetMenuFrameForContent(nsIContent* aContent);
 
   
-  nsMenuPopupFrame* GetPopupFrameForContent(nsIContent* aContent, PRBool aShouldFlush);
+  nsMenuPopupFrame* GetPopupFrameForContent(nsIContent* aContent, bool aShouldFlush);
 
   
   nsMenuChainItem* GetTopVisibleMenu();
@@ -650,7 +650,7 @@ protected:
   
   
   void HidePopupsInList(const nsTArray<nsMenuPopupFrame *> &aFrames,
-                        PRBool aDeselectMenu);
+                        bool aDeselectMenu);
 
   
   
@@ -659,14 +659,14 @@ protected:
   
   void ShowPopupCallback(nsIContent* aPopup,
                          nsMenuPopupFrame* aPopupFrame,
-                         PRBool aIsContextMenu,
-                         PRBool aSelectFirstItem);
+                         bool aIsContextMenu,
+                         bool aSelectFirstItem);
   void HidePopupCallback(nsIContent* aPopup,
                          nsMenuPopupFrame* aPopupFrame,
                          nsIContent* aNextPopup,
                          nsIContent* aLastPopup,
                          nsPopupType aPopupType,
-                         PRBool aDeselectMenu);
+                         bool aDeselectMenu);
 
   
 
@@ -676,8 +676,8 @@ protected:
 
 
   void FirePopupShowingEvent(nsIContent* aPopup,
-                             PRBool aIsContextMenu,
-                             PRBool aSelectFirstItem);
+                             bool aIsContextMenu,
+                             bool aSelectFirstItem);
 
   
 
@@ -702,12 +702,12 @@ protected:
                             nsIContent* aLastPopup,
                             nsPresContext *aPresContext,
                             nsPopupType aPopupType,
-                            PRBool aDeselectMenu);
+                            bool aDeselectMenu);
 
   
 
 
-  PRBool HandleKeyboardNavigationInPopup(nsMenuChainItem* aItem,
+  bool HandleKeyboardNavigationInPopup(nsMenuChainItem* aItem,
                                          nsNavigationDirection aDir)
   {
     return HandleKeyboardNavigationInPopup(aItem, aItem->Frame(), aDir);
@@ -721,13 +721,13 @@ private:
 
 
 
-  PRBool HandleKeyboardNavigationInPopup(nsMenuChainItem* aItem,
+  bool HandleKeyboardNavigationInPopup(nsMenuChainItem* aItem,
                                          nsMenuPopupFrame* aFrame,
                                          nsNavigationDirection aDir);
 
 protected:
 
-  already_AddRefed<nsIDOMNode> GetLastTriggerNode(nsIDocument* aDocument, PRBool aIsTooltip);
+  already_AddRefed<nsIDOMNode> GetLastTriggerNode(nsIDocument* aDocument, bool aIsTooltip);
 
   
 
@@ -752,7 +752,7 @@ protected:
   
 
 
-  PRBool IsChildOfDocShell(nsIDocument* aDoc, nsIDocShellTreeItem* aExpected);
+  bool IsChildOfDocShell(nsIDocument* aDoc, nsIDocShellTreeItem* aExpected);
 
   
   nsCOMPtr<nsIDOMEventTarget> mKeyListener;

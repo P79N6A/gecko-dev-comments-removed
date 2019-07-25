@@ -206,6 +206,51 @@ nsSVGMarkerFrame::RegionMark(nsSVGPathGeometryFrame *aMarkedFrame,
   return nsSVGUtils::GetCoveredRegion(mFrames);
 }
 
+gfxRect
+nsSVGMarkerFrame::GetMarkBBoxContribution(const gfxMatrix &aToBBoxUserspace,
+                                          PRUint32 aFlags,
+                                          nsSVGPathGeometryFrame *aMarkedFrame,
+                                          const nsSVGMark *aMark,
+                                          float aStrokeWidth)
+{
+  
+  
+  
+  if (mInUse)
+    return gfxRect();
+
+  AutoMarkerReferencer markerRef(this, aMarkedFrame);
+
+  mStrokeWidth = aStrokeWidth;
+  mX = aMark->x;
+  mY = aMark->y;
+  mAutoAngle = aMark->angle;
+
+  gfxRect bbox;
+
+  nsSVGMarkerElement *content = static_cast<nsSVGMarkerElement*>(mContent);
+
+  gfxMatrix markerTM =
+    content->GetMarkerTransform(mStrokeWidth, mX, mY, mAutoAngle);
+  gfxMatrix viewBoxTM = content->GetViewBoxTransform();
+
+  gfxMatrix tm = viewBoxTM * markerTM * aToBBoxUserspace;
+
+  for (nsIFrame* kid = mFrames.FirstChild();
+       kid;
+       kid = kid->GetNextSibling()) {
+    nsISVGChildFrame* child = do_QueryFrame(kid);
+    if (child) {
+      
+      
+      
+      bbox.UnionRect(bbox, child->GetBBoxContribution(tm, aFlags));
+    }
+  }
+
+  return bbox;
+}
+
 void
 nsSVGMarkerFrame::SetParentCoordCtxProvider(nsSVGSVGElement *aContext)
 {

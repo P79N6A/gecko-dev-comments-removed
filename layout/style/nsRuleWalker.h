@@ -82,10 +82,10 @@ public:
 
   void Reset() { mCurrent = mRoot; }
 
-  PRBool AtRoot() { return mCurrent == mRoot; }
+  bool AtRoot() { return mCurrent == mRoot; }
 
-  void SetLevel(PRUint8 aLevel, PRBool aImportance,
-                PRBool aCheckForImportantRules) {
+  void SetLevel(PRUint8 aLevel, bool aImportance,
+                bool aCheckForImportantRules) {
     NS_ASSERTION(!aCheckForImportantRules || !aImportance,
                  "Shouldn't be checking for important rules while walking "
                  "important rules");
@@ -94,8 +94,8 @@ public:
     mCheckForImportantRules = aCheckForImportantRules;
   }
   PRUint8 GetLevel() const { return mLevel; }
-  PRBool GetImportance() const { return mImportance; }
-  PRBool GetCheckForImportantRules() const { return mCheckForImportantRules; }
+  bool GetImportance() const { return mImportance; }
+  bool GetCheckForImportantRules() const { return mCheckForImportantRules; }
 
   
   
@@ -115,8 +115,8 @@ private:
   nsRuleNode* mCurrent; 
   nsRuleNode* mRoot; 
   PRUint8 mLevel; 
-  PRPackedBool mImportance;
-  PRPackedBool mCheckForImportantRules; 
+  bool mImportance;
+  bool mCheckForImportantRules; 
                                         
                                         
 

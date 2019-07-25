@@ -96,7 +96,7 @@ public:
 
 
 
-  NS_IMETHOD DidBuildModel(PRBool aTerminated) {
+  NS_IMETHOD DidBuildModel(bool aTerminated) {
     return NS_OK;
   }
 
@@ -150,7 +150,7 @@ public:
 
 
 
-  virtual PRBool IsScriptExecuting()
+  virtual bool IsScriptExecuting()
   {
     return PR_FALSE;
   }

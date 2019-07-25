@@ -117,7 +117,7 @@ public:
 
 
 
-  PRBool IsAnimating() const;
+  bool IsAnimating() const;
 
 private:
 

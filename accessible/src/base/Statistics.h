@@ -49,6 +49,18 @@ namespace statistics {
   inline void A11yInitialized()
     { Telemetry::Accumulate(Telemetry::A11Y_INSTANTIATED, true); }
 
+  
+
+
+  inline void ISimpleDOMUsed()
+    { Telemetry::Accumulate(Telemetry::ISIMPLE_DOM_USAGE, 1); }
+
+  
+
+
+  inline void IAccessibleTableUsed()
+    { Telemetry::Accumulate(Telemetry::IACCESSIBLE_TABLE_USAGE, 1); }
+
 } 
 } 
 } 

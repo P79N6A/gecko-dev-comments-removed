@@ -76,7 +76,7 @@ nsSMILTimeValueSpec::EventListener::HandleEvent(nsIDOMEvent* aEvent)
 #pragma warning(disable:4355)
 #endif
 nsSMILTimeValueSpec::nsSMILTimeValueSpec(nsSMILTimedElement& aOwner,
-                                         PRBool aIsBegin)
+                                         bool aIsBegin)
   : mOwner(&aOwner),
     mIsBegin(aIsBegin),
     mReferencedElement(this)
@@ -164,7 +164,7 @@ nsSMILTimeValueSpec::ResolveReferences(nsIContent* aContextNode)
   UpdateReferencedElement(oldReferencedElement, mReferencedElement.get());
 }
 
-PRBool
+bool
 nsSMILTimeValueSpec::IsEventBased() const
 {
   return mParams.mType == nsSMILTimeValueSpecParams::EVENT ||
@@ -207,7 +207,7 @@ nsSMILTimeValueSpec::HandleChangedInstanceTime(
     const nsSMILInstanceTime& aBaseTime,
     const nsSMILTimeContainer* aSrcContainer,
     nsSMILInstanceTime& aInstanceTimeToUpdate,
-    PRBool aObjectChanged)
+    bool aObjectChanged)
 {
   
   
@@ -237,7 +237,7 @@ nsSMILTimeValueSpec::HandleDeletedInstanceTime(
   mOwner->RemoveInstanceTime(&aInstanceTime, mIsBegin);
 }
 
-PRBool
+bool
 nsSMILTimeValueSpec::DependsOnBegin() const
 {
   return mParams.mSyncBegin;
@@ -414,7 +414,7 @@ nsSMILTimeValueSpec::HandleEvent(nsIDOMEvent* aEvent)
   mOwner->AddInstanceTime(newInstance, mIsBegin);
 }
 
-PRBool
+bool
 nsSMILTimeValueSpec::CheckEventDetail(nsIDOMEvent *aEvent)
 {
   switch (mParams.mType)
@@ -431,7 +431,7 @@ nsSMILTimeValueSpec::CheckEventDetail(nsIDOMEvent *aEvent)
   }
 }
 
-PRBool
+bool
 nsSMILTimeValueSpec::CheckRepeatEventDetail(nsIDOMEvent *aEvent)
 {
   nsCOMPtr<nsIDOMTimeEvent> timeEvent = do_QueryInterface(aEvent);
@@ -445,7 +445,7 @@ nsSMILTimeValueSpec::CheckRepeatEventDetail(nsIDOMEvent *aEvent)
   return detail > 0 && (PRUint32)detail == mParams.mRepeatIterationOrAccessKey;
 }
 
-PRBool
+bool
 nsSMILTimeValueSpec::CheckAccessKeyEventDetail(nsIDOMEvent *aEvent)
 {
   nsCOMPtr<nsIDOMKeyEvent> keyEvent = do_QueryInterface(aEvent);
@@ -457,8 +457,8 @@ nsSMILTimeValueSpec::CheckAccessKeyEventDetail(nsIDOMEvent *aEvent)
   
   
   
-  PRBool isCtrl;
-  PRBool isMeta;
+  bool isCtrl;
+  bool isMeta;
   keyEvent->GetCtrlKey(&isCtrl);
   keyEvent->GetMetaKey(&isMeta);
   if (isCtrl || isMeta)
@@ -473,8 +473,8 @@ nsSMILTimeValueSpec::CheckAccessKeyEventDetail(nsIDOMEvent *aEvent)
   
   
   
-  PRBool isAlt;
-  PRBool isShift;
+  bool isAlt;
+  bool isShift;
   keyEvent->GetAltKey(&isAlt);
   keyEvent->GetShiftKey(&isShift);
   if (isAlt || isShift)

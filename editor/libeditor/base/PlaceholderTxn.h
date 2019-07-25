@@ -72,7 +72,7 @@ public:
   NS_DECL_EDITTXN
 
   NS_IMETHOD RedoTransaction();
-  NS_IMETHOD Merge(nsITransaction *aTransaction, PRBool *aDidMerge);
+  NS_IMETHOD Merge(nsITransaction *aTransaction, bool *aDidMerge);
 
 
 
@@ -80,7 +80,7 @@ public:
   
   NS_IMETHOD GetTxnName(nsIAtom **aName);
   
-  NS_IMETHOD StartSelectionEquals(nsSelectionState *aSelState, PRBool *aResult);
+  NS_IMETHOD StartSelectionEquals(nsSelectionState *aSelState, bool *aResult);
 
   NS_IMETHOD EndPlaceHolderBatch();
 
@@ -93,11 +93,11 @@ public:
 protected:
 
   
-  PRBool      mAbsorb;          
+  bool        mAbsorb;          
   nsWeakPtr   mForwarding;
   IMETextTxn *mIMETextTxn;      
                                 
-  PRBool      mCommitted;       
+  bool        mCommitted;       
   
   
   

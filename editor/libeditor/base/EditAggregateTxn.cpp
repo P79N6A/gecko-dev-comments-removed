@@ -103,7 +103,7 @@ NS_IMETHODIMP EditAggregateTxn::RedoTransaction(void)
   return result;
 }
 
-NS_IMETHODIMP EditAggregateTxn::Merge(nsITransaction *aTransaction, PRBool *aDidMerge)
+NS_IMETHODIMP EditAggregateTxn::Merge(nsITransaction *aTransaction, bool *aDidMerge)
 {
   nsresult result=NS_OK;  
   if (aDidMerge)

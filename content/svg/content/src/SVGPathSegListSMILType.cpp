@@ -84,7 +84,7 @@ SVGPathSegListSMILType::Assign(nsSMILValue& aDest,
   return dest->CopyFrom(*src);
 }
 
-PRBool
+bool
 SVGPathSegListSMILType::IsEqual(const nsSMILValue& aLeft,
                                 const nsSMILValue& aRight) const
 {
@@ -95,7 +95,7 @@ SVGPathSegListSMILType::IsEqual(const nsSMILValue& aLeft,
          *static_cast<const SVGPathDataAndOwner*>(aRight.mU.mPtr);
 }
 
-static PRBool
+static bool
 ArcFlagsDiffer(SVGPathDataAndOwner::const_iterator aPathData1,
                SVGPathDataAndOwner::const_iterator aPathData2)
 {
@@ -218,7 +218,7 @@ AddWeightedPathSegs(double aCoeff1,
   
   aResultSeg[0] = aSeg2[0];  
 
-  PRBool isArcType = SVGPathSegUtils::IsArcType(segType);
+  bool isArcType = SVGPathSegUtils::IsArcType(segType);
   if (isArcType) {
     
     NS_ABORT_IF_FALSE(!aSeg1 || !ArcFlagsDiffer(aSeg1, aSeg2),
@@ -295,7 +295,7 @@ AddWeightedPathSegLists(double aCoeff1, const SVGPathDataAndOwner& aList1,
   
   
   if (aResult.IsIdentity()) {
-    DebugOnly<PRBool> success = aResult.SetLength(aList2.Length());
+    DebugOnly<bool> success = aResult.SetLength(aList2.Length());
     NS_ABORT_IF_FALSE(success, "infallible nsTArray::SetLength should succeed");
     aResult.SetElement(aList2.Element()); 
   }
@@ -514,7 +514,7 @@ SVGPathSegListSMILType::Interpolate(const nsSMILValue& aStartVal,
   if (check == eRequiresConversion) {
     
     
-    DebugOnly<PRBool> success = result.SetLength(end.Length());
+    DebugOnly<bool> success = result.SetLength(end.Length());
     NS_ABORT_IF_FALSE(success, "infallible nsTArray::SetLength should succeed");
     result.SetElement(end.Element()); 
 

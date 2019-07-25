@@ -108,7 +108,7 @@ public:
   
   
   nsresult GetNextWord(nsAString& aText, nsIDOMRange** aRange,
-                       PRBool* aSkipChecking);
+                       bool* aSkipChecking);
 
   
   
@@ -151,16 +151,16 @@ private:
   struct RealWord {
     PRInt32      mSoftTextOffset;
     PRInt32      mLength;
-    PRPackedBool mCheckableWord;
+    bool mCheckableWord;
     
-    RealWord(PRInt32 aOffset, PRInt32 aLength, PRPackedBool aCheckable)
+    RealWord(PRInt32 aOffset, PRInt32 aLength, bool aCheckable)
       : mSoftTextOffset(aOffset), mLength(aLength), mCheckableWord(aCheckable) {}
     PRInt32 EndOffset() const { return mSoftTextOffset + mLength; }
   };
   nsTArray<RealWord> mRealWords;
   PRInt32            mNextWordIndex;
 
-  PRPackedBool mSoftTextValid;
+  bool mSoftTextValid;
 
   void InvalidateWords() { mSoftTextValid = PR_FALSE; }
   void EnsureWords();
@@ -182,7 +182,7 @@ private:
   
   
   PRInt32 FindRealWordContaining(PRInt32 aSoftTextOffset, DOMMapHint aHint,
-                                 PRBool aSearchForward);
+                                 bool aSearchForward);
     
   
   void BuildSoftText();

@@ -81,7 +81,7 @@ class nsXPITriggerItem
     nsString    mArguments;
     nsString    mCertName;
 
-    PRBool      mHashFound; 
+    bool        mHashFound; 
     nsCString   mHash;
     nsCOMPtr<nsICryptoHash> mHasher;
     PRInt32     mFlags;
@@ -92,7 +92,7 @@ class nsXPITriggerItem
 
     void    SetPrincipal(nsIPrincipal* aPrincipal);
 
-    PRBool  IsFileURL() { return StringBeginsWith(mURL, NS_LITERAL_STRING("file:/")); }
+    bool    IsFileURL() { return StringBeginsWith(mURL, NS_LITERAL_STRING("file:/")); }
 
     const PRUnichar* GetSafeURLString();
 

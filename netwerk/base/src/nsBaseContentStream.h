@@ -72,17 +72,17 @@ public:
   NS_DECL_NSIINPUTSTREAM
   NS_DECL_NSIASYNCINPUTSTREAM
 
-  nsBaseContentStream(PRBool nonBlocking)
+  nsBaseContentStream(bool nonBlocking)
     : mStatus(NS_OK)
     , mNonBlocking(nonBlocking) {
   }
 
   nsresult Status() { return mStatus; }
-  PRBool IsNonBlocking() { return mNonBlocking; }
-  PRBool IsClosed() { return NS_FAILED(mStatus); }
+  bool IsNonBlocking() { return mNonBlocking; }
+  bool IsClosed() { return NS_FAILED(mStatus); }
 
   
-  PRBool HasPendingCallback() { return mCallback != nsnull; }
+  bool HasPendingCallback() { return mCallback != nsnull; }
 
   
   nsIEventTarget *CallbackTarget() { return mCallbackTarget; }
@@ -91,7 +91,7 @@ public:
   
   
   
-  void DispatchCallback(PRBool async = PR_TRUE);
+  void DispatchCallback(bool async = true);
 
   
   void DispatchCallbackSync() { DispatchCallback(PR_FALSE); }
@@ -108,7 +108,7 @@ private:
   nsCOMPtr<nsIInputStreamCallback> mCallback;
   nsCOMPtr<nsIEventTarget>         mCallbackTarget;
   nsresult                         mStatus;
-  PRPackedBool                     mNonBlocking;
+  bool                             mNonBlocking;
 };
 
 #endif 

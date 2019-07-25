@@ -89,7 +89,7 @@ public:
 
 
 
-  virtual PRBool IsDone() = 0;
+  virtual bool IsDone() = 0;
 
   
 

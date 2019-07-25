@@ -218,10 +218,10 @@ NS_IMETHODIMP nsFilePicker::ShowW(PRInt16 *aReturnVal)
   if (mParentWidget) {
     nsIWidget *tmp = mParentWidget;
     nsWindow *parent = static_cast<nsWindow *>(tmp);
-    parent->SuppressBlurEvents(PR_TRUE);
+    parent->SuppressBlurEvents(true);
   }
 
-  PRBool result = PR_FALSE;
+  bool result = false;
   nsAutoArrayPtr<PRUnichar> fileBuffer(new PRUnichar[FILE_BUFFER_SIZE+1]);
             
   wcsncpy(fileBuffer,  mDefault.get(), FILE_BUFFER_SIZE);
@@ -305,7 +305,7 @@ NS_IMETHODIMP nsFilePicker::ShowW(PRInt16 *aReturnVal)
     
     nsCOMPtr<nsIPrivateBrowsingService> pbs =
       do_GetService(NS_PRIVATE_BROWSING_SERVICE_CONTRACTID);
-    PRBool privacyModeEnabled = PR_FALSE;
+    bool privacyModeEnabled = false;
     if (pbs) {
       pbs->GetPrivateBrowsingEnabled(&privacyModeEnabled);
     }
@@ -387,7 +387,7 @@ NS_IMETHODIMP nsFilePicker::ShowW(PRInt16 *aReturnVal)
         
         
         NS_ConvertUTF16toUTF8 ext(mDefault);
-        ext.Trim(" .", PR_FALSE, PR_TRUE); 
+        ext.Trim(" .", false, true); 
         ToLowerCase(ext);
         if (StringEndsWith(ext, NS_LITERAL_CSTRING(".lnk")) ||
             StringEndsWith(ext, NS_LITERAL_CSTRING(".pif")) ||
@@ -411,12 +411,12 @@ NS_IMETHODIMP nsFilePicker::ShowW(PRInt16 *aReturnVal)
         NS_ERROR("unsupported mode"); 
       }
     }
-    MOZ_SEH_EXCEPT(PR_TRUE) {
+    MOZ_SEH_EXCEPT(true) {
       MessageBoxW(ofn.hwndOwner,
                   0,
                   L"The filepicker was unexpectedly closed by Windows.",
                   MB_ICONERROR);
-      result = PR_FALSE;
+      result = false;
     }
 
     if (result) {
@@ -522,7 +522,7 @@ NS_IMETHODIMP nsFilePicker::ShowW(PRInt16 *aReturnVal)
     if (mMode == modeSave) {
       
       
-      PRBool exists = PR_FALSE;
+      bool exists = false;
       file->Exists(&exists);
 
       if (exists)
@@ -536,7 +536,7 @@ NS_IMETHODIMP nsFilePicker::ShowW(PRInt16 *aReturnVal)
   if (mParentWidget) {
     nsIWidget *tmp = mParentWidget;
     nsWindow *parent = static_cast<nsWindow *>(tmp);
-    parent->SuppressBlurEvents(PR_FALSE);
+    parent->SuppressBlurEvents(false);
   }
 
   return NS_OK;

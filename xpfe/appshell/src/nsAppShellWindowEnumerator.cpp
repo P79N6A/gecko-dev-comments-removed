@@ -128,7 +128,7 @@ nsWindowInfo::~nsWindowInfo()
 
 
 
-PRBool nsWindowInfo::TypeEquals(const nsAString &aType)
+bool nsWindowInfo::TypeEquals(const nsAString &aType)
 { 
   nsAutoString rtnString;
   GetWindowType(mWindow, rtnString);
@@ -162,7 +162,7 @@ void nsWindowInfo::InsertAfter(nsWindowInfo *inOlder , nsWindowInfo *inHigher)
 }
 
 
-void nsWindowInfo::Unlink(PRBool inAge, PRBool inZ)
+void nsWindowInfo::Unlink(bool inAge, bool inZ)
 {
   if (inAge) {
     mOlder->mYounger = mYounger;
@@ -176,7 +176,7 @@ void nsWindowInfo::Unlink(PRBool inAge, PRBool inZ)
 }
 
 
-void nsWindowInfo::ReferenceSelf(PRBool inAge, PRBool inZ)
+void nsWindowInfo::ReferenceSelf(bool inAge, bool inZ)
 {
   if (inAge) {
     mYounger = this;
@@ -217,7 +217,7 @@ void nsAppShellWindowEnumerator::AdjustInitialPosition()
     mCurrentPosition = FindNext();
 }
 
-NS_IMETHODIMP nsAppShellWindowEnumerator::HasMoreElements(PRBool *retval)
+NS_IMETHODIMP nsAppShellWindowEnumerator::HasMoreElements(bool *retval)
 {
   if (!retval)
     return NS_ERROR_INVALID_ARG;
@@ -312,7 +312,7 @@ nsWindowInfo *nsASDOMWindowEarlyToLateEnumerator::FindNext()
 {
   nsWindowInfo *info,
                *listEnd;
-  PRBool        allWindows = mType.IsEmpty();
+  bool          allWindows = mType.IsEmpty();
 
   
   if (!mCurrentPosition)
@@ -351,7 +351,7 @@ nsWindowInfo *nsASXULWindowEarlyToLateEnumerator::FindNext()
 {
   nsWindowInfo *info,
                *listEnd;
-  PRBool        allWindows = mType.IsEmpty();
+  bool          allWindows = mType.IsEmpty();
 
   
 
@@ -396,7 +396,7 @@ nsWindowInfo *nsASDOMWindowFrontToBackEnumerator::FindNext()
 {
   nsWindowInfo *info,
                *listEnd;
-  PRBool        allWindows = mType.IsEmpty();
+  bool          allWindows = mType.IsEmpty();
 
   
   if (!mCurrentPosition)
@@ -435,7 +435,7 @@ nsWindowInfo *nsASXULWindowFrontToBackEnumerator::FindNext()
 {
   nsWindowInfo *info,
                *listEnd;
-  PRBool        allWindows = mType.IsEmpty();
+  bool          allWindows = mType.IsEmpty();
 
   
   if (!mCurrentPosition)
@@ -475,7 +475,7 @@ nsWindowInfo *nsASDOMWindowBackToFrontEnumerator::FindNext()
 {
   nsWindowInfo *info,
                *listEnd;
-  PRBool        allWindows = mType.IsEmpty();
+  bool          allWindows = mType.IsEmpty();
 
   
   if (!mCurrentPosition)
@@ -517,7 +517,7 @@ nsWindowInfo *nsASXULWindowBackToFrontEnumerator::FindNext()
 {
   nsWindowInfo *info,
                *listEnd;
-  PRBool        allWindows = mType.IsEmpty();
+  bool          allWindows = mType.IsEmpty();
 
   
   if (!mCurrentPosition)

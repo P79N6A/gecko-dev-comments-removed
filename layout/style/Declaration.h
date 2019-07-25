@@ -90,13 +90,13 @@ public:
 
   void RemoveProperty(nsCSSProperty aProperty);
 
-  PRBool HasProperty(nsCSSProperty aProperty) const;
+  bool HasProperty(nsCSSProperty aProperty) const;
 
   void GetValue(nsCSSProperty aProperty, nsAString& aValue) const;
 
-  PRBool HasImportantData() const { return mImportantData != nsnull; }
-  PRBool GetValueIsImportant(nsCSSProperty aProperty) const;
-  PRBool GetValueIsImportant(const nsAString& aProperty) const;
+  bool HasImportantData() const { return mImportantData != nsnull; }
+  bool GetValueIsImportant(nsCSSProperty aProperty) const;
+  bool GetValueIsImportant(const nsAString& aProperty) const;
 
   PRUint32 Count() const {
     return mOrder.Length();
@@ -164,9 +164,9 @@ public:
 
 
 
-  PRBool TryReplaceValue(nsCSSProperty aProperty, PRBool aIsImportant,
+  bool TryReplaceValue(nsCSSProperty aProperty, bool aIsImportant,
                          nsCSSExpandedDataBlock& aFromBlock,
-                         PRBool* aChanged)
+                         bool* aChanged)
   {
     AssertMutable();
     NS_ABORT_IF_FALSE(mData, "called while expanded");
@@ -193,7 +193,7 @@ public:
     return block->TryReplaceValue(aProperty, aFromBlock, aChanged);
   }
 
-  PRBool HasNonImportantValueFor(nsCSSProperty aProperty) const {
+  bool HasNonImportantValueFor(nsCSSProperty aProperty) const {
     NS_ABORT_IF_FALSE(!nsCSSProps::IsShorthand(aProperty), "must be longhand");
     return !!mData->ValueFor(aProperty);
   }
@@ -241,11 +241,11 @@ public:
 private:
   
   Declaration& operator=(const Declaration& aCopy);
-  PRBool operator==(const Declaration& aCopy) const;
+  bool operator==(const Declaration& aCopy) const;
 
-  static void AppendImportanceToString(PRBool aIsImportant, nsAString& aString);
+  static void AppendImportanceToString(bool aIsImportant, nsAString& aString);
   
-  PRBool AppendValueToString(nsCSSProperty aProperty, nsAString& aResult) const;
+  bool AppendValueToString(nsCSSProperty aProperty, nsAString& aResult) const;
   
   void AppendPropertyAndValueToString(nsCSSProperty aProperty,
                                       nsAutoString& aValue,
@@ -268,7 +268,7 @@ private:
 
   
   
-  mutable PRPackedBool mImmutable;
+  mutable bool mImmutable;
 };
 
 } 

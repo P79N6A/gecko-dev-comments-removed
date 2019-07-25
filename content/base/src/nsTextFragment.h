@@ -106,7 +106,7 @@ public:
   
 
 
-  PRBool Is2b() const
+  bool Is2b() const
   {
     return mState.mIs2b;
   }
@@ -116,7 +116,7 @@ public:
 
 
 
-  PRBool IsBidi() const
+  bool IsBidi() const
   {
     return mState.mIsBidi;
   }
@@ -148,7 +148,7 @@ public:
     return mState.mLength;
   }
 
-  PRBool CanGrowBy(size_t n) const
+  bool CanGrowBy(size_t n) const
   {
     return n < (1 << 29) && mState.mLength + n < (1 << 29);
   }
@@ -158,14 +158,14 @@ public:
 
 
 
-  void SetTo(const PRUnichar* aBuffer, PRInt32 aLength, PRBool aUpdateBidi);
+  void SetTo(const PRUnichar* aBuffer, PRInt32 aLength, bool aUpdateBidi);
 
   
 
 
 
 
-  void Append(const PRUnichar* aBuffer, PRUint32 aLength, PRBool aUpdateBidi);
+  void Append(const PRUnichar* aBuffer, PRUint32 aLength, bool aUpdateBidi);
 
   
 

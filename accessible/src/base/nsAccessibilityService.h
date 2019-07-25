@@ -44,9 +44,23 @@
 #include "a11yGeneric.h"
 #include "nsAccDocManager.h"
 
+#include "mozilla/a11y/FocusManager.h"
+
 #include "nsIObserver.h"
 
+namespace mozilla {
+namespace a11y {
+
+
+
+
+FocusManager* FocusMgr();
+
+} 
+} 
+
 class nsAccessibilityService : public nsAccDocManager,
+                               public mozilla::a11y::FocusManager,
                                public nsIAccessibilityService,
                                public nsIObserver
 {
@@ -61,7 +75,7 @@ public:
   virtual nsAccessible* GetAccessibleInShell(nsINode* aNode,
                                              nsIPresShell* aPresShell);
   virtual nsAccessible* GetRootDocumentAccessible(nsIPresShell* aPresShell,
-                                                  PRBool aCanCreate);
+                                                  bool aCanCreate);
 
   virtual already_AddRefed<nsAccessible>
     CreateHTMLBRAccessible(nsIContent* aContent, nsIPresShell* aPresShell);
@@ -146,7 +160,7 @@ public:
   
 
 
-  static PRBool IsShutdown() { return gIsShutdown; }
+  static bool IsShutdown() { return gIsShutdown; }
 
   
 
@@ -208,24 +222,12 @@ private:
   
 
 
-  PRBool Init();
+  bool Init();
 
   
 
 
   void Shutdown();
-
-  
-
-
-
-
-
-
-
-  nsAccessible* GetAreaAccessible(nsIFrame* aImageFrame, nsINode* aAreaNode,
-                                  nsIWeakReference* aWeakShell,
-                                  nsAccessible** aImageAccessible = nsnull);
 
   
 
@@ -259,12 +261,12 @@ private:
   
 
 
-  static nsAccessibilityService *gAccessibilityService;
+  static nsAccessibilityService* gAccessibilityService;
 
   
 
 
-  static PRBool gIsShutdown;
+  static bool gIsShutdown;
 
   
 
@@ -273,9 +275,10 @@ private:
 
 
 
-  PRBool HasUniversalAriaProperty(nsIContent *aContent);
+  bool HasUniversalAriaProperty(nsIContent *aContent);
 
   friend nsAccessibilityService* GetAccService();
+  friend mozilla::a11y::FocusManager* mozilla::a11y::FocusMgr();
 
   friend nsresult NS_GetAccessibilityService(nsIAccessibilityService** aResult);
 };

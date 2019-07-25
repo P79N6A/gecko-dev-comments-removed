@@ -74,7 +74,7 @@ protected:
   PRUint32 mUcs4; 
   PRUint8 mState; 
   PRUint8 mBytes;
-  PRPackedBool mFirst;
+  bool mFirst;
 
   
   

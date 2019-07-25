@@ -154,7 +154,7 @@ nsFileProtocolHandler::ReadURLFile(nsIFile* aFile, nsIURI** aURI)
         return NS_ERROR_NOT_AVAILABLE;
 
     
-    PRBool isUrl;
+    bool isUrl;
     rv = os2File->IsFileType(NS_LITERAL_CSTRING("UniformResourceLocator"),
                              &isUrl);
     if (NS_FAILED(rv) || !isUrl)
@@ -294,7 +294,7 @@ nsFileProtocolHandler::NewChannel(nsIURI *uri, nsIChannel **result)
 }
 
 NS_IMETHODIMP 
-nsFileProtocolHandler::AllowPort(PRInt32 port, const char *scheme, PRBool *result)
+nsFileProtocolHandler::AllowPort(PRInt32 port, const char *scheme, bool *result)
 {
     
     *result = PR_FALSE;

@@ -60,7 +60,7 @@ public:
 
     
     virtual nscoord GetPrefWidth(nsRenderingContext* aRenderingContext,
-                                 PRBool aComputingSize) = 0;
+                                 bool aComputingSize) = 0;
 
     
     virtual void MarkIntrinsicWidthsDirty() = 0;

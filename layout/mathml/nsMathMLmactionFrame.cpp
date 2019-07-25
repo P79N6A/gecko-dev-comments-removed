@@ -294,7 +294,7 @@ nsMathMLmactionFrame::Reflow(nsPresContext*          aPresContext,
 
  nsresult
 nsMathMLmactionFrame::Place(nsRenderingContext& aRenderingContext,
-                            PRBool               aPlaceOrigin,
+                            bool                 aPlaceOrigin,
                             nsHTMLReflowMetrics& aDesiredSize)
 {
   aDesiredSize.width = aDesiredSize.height = 0;
@@ -399,7 +399,7 @@ nsMathMLmactionFrame::MouseClick()
       char cbuf[10];
       PR_snprintf(cbuf, sizeof(cbuf), "%d", selection);
       value.AssignASCII(cbuf);
-      PRBool notify = PR_FALSE; 
+      bool notify = false; 
       mContent->SetAttr(kNameSpaceID_None, nsGkAtoms::selection_, value, notify);
 
       

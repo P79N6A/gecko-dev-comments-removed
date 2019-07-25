@@ -55,11 +55,11 @@ public:
 
   
   NS_IMETHOD HasDataMatchingFlavors(const char** aFlavorList, PRUint32 aLength,
-                                    PRInt32 aWhichClipboard, PRBool *_retval);
+                                    PRInt32 aWhichClipboard, bool *_retval);
 
   
   static NSDictionary* PasteboardDictFromTransferable(nsITransferable *aTransferable);
-  static PRBool IsStringType(const nsCString& aMIMEType, NSString** aPasteboardType);
+  static bool IsStringType(const nsCString& aMIMEType, NSString** aPasteboardType);
   static NSString* WrapHtmlForSystemPasteboard(NSString* aString);
   static nsresult TransferableFromPasteboard(nsITransferable *aTransferable, NSPasteboard *pboard);
 

@@ -135,7 +135,7 @@ protected:
 
 
 
-  virtual PRBool IsEqual(const nsSMILValue& aLeft,
+  virtual bool IsEqual(const nsSMILValue& aLeft,
                          const nsSMILValue& aRight) const = 0;
 
   

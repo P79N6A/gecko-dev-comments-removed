@@ -115,7 +115,12 @@ window.addEventListener("unload", shutdown, false);
 var gPendingInitializations = 1;
 __defineGetter__("gIsInitializing", function() gPendingInitializations > 0);
 
-function initialize() {
+function initialize(event) {
+  
+  
+  if (event.target instanceof XMLStylesheetProcessingInstruction) {
+    return;
+  }
   document.removeEventListener("load", initialize, true);
   gViewController.initialize();
   gCategories.initialize();

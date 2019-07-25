@@ -67,9 +67,9 @@ nsBlockReflowState::nsBlockReflowState(const nsHTMLReflowState& aReflowState,
                                        nsPresContext* aPresContext,
                                        nsBlockFrame* aFrame,
                                        const nsHTMLReflowMetrics& aMetrics,
-                                       PRBool aTopMarginRoot,
-                                       PRBool aBottomMarginRoot,
-                                       PRBool aBlockNeedsFloatManager)
+                                       bool aTopMarginRoot,
+                                       bool aBottomMarginRoot,
+                                       bool aBlockNeedsFloatManager)
   : mBlock(aFrame),
     mPresContext(aPresContext),
     mReflowState(aReflowState),
@@ -151,7 +151,7 @@ nsBlockReflowState::nsBlockReflowState(const nsHTMLReflowState& aReflowState,
 nsLineBox*
 nsBlockReflowState::NewLineBox(nsIFrame* aFrame,
                                PRInt32 aCount,
-                               PRBool aIsBlock)
+                               bool aIsBlock)
 {
   return NS_NewLineBox(mPresContext->PresShell(), aFrame, aCount, aIsBlock);
 }
@@ -168,10 +168,7 @@ void
 nsBlockReflowState::ComputeReplacedBlockOffsetsForFloats(nsIFrame* aFrame,
                                                          const nsRect& aFloatAvailableSpace,
                                                          nscoord& aLeftResult,
-                                                         nscoord& aRightResult,
-                                                         nsBlockFrame::
-                                                      ReplacedElementWidthToClear
-                                                                 *aReplacedWidth)
+                                                         nscoord& aRightResult)
 {
   
   
@@ -188,28 +185,18 @@ nsBlockReflowState::ComputeReplacedBlockOffsetsForFloats(nsIFrame* aFrame,
     leftOffset = 0;
     rightOffset = 0;
   } else {
-    
-    
-    
-    
-    
+    nsMargin frameMargin;
     nsCSSOffsetState os(aFrame, mReflowState.rendContext, mContentArea.width);
-    NS_ASSERTION(!aReplacedWidth ||
-                 aFrame->GetType() == nsGkAtoms::tableOuterFrame ||
-                 (aReplacedWidth->marginLeft  == os.mComputedMargin.left &&
-                  aReplacedWidth->marginRight == os.mComputedMargin.right),
-                 "unexpected aReplacedWidth");
+    frameMargin = os.mComputedMargin;
 
     nscoord leftFloatXOffset = aFloatAvailableSpace.x - mContentArea.x;
-    leftOffset = NS_MAX(leftFloatXOffset, os.mComputedMargin.left) -
-                 (aReplacedWidth ? aReplacedWidth->marginLeft
-                                 : os.mComputedMargin.left);
+    leftOffset = NS_MAX(leftFloatXOffset, frameMargin.left) -
+                 frameMargin.left;
     leftOffset = NS_MAX(leftOffset, 0); 
     nscoord rightFloatXOffset =
       mContentArea.XMost() - aFloatAvailableSpace.XMost();
-    rightOffset = NS_MAX(rightFloatXOffset, os.mComputedMargin.right) -
-                  (aReplacedWidth ? aReplacedWidth->marginRight
-                                  : os.mComputedMargin.right);
+    rightOffset = NS_MAX(rightFloatXOffset, frameMargin.right) -
+                  frameMargin.right;
     rightOffset = NS_MAX(rightOffset, 0); 
   }
   aLeftResult = leftOffset;
@@ -223,7 +210,7 @@ void
 nsBlockReflowState::ComputeBlockAvailSpace(nsIFrame* aFrame,
                                            const nsStyleDisplay* aDisplay,
                                            const nsFlowAreaRect& aFloatAvailableSpace,
-                                           PRBool aBlockAvoidsFloats,
+                                           bool aBlockAvoidsFloats,
                                            nsRect& aResult)
 {
 #ifdef REALLY_NOISY_REFLOW
@@ -285,19 +272,9 @@ nsBlockReflowState::ComputeBlockAvailSpace(nsIFrame* aFrame,
     }
   }
   else {
-    nsBlockFrame::ReplacedElementWidthToClear replacedWidthStruct;
-    nsBlockFrame::ReplacedElementWidthToClear *replacedWidth = nsnull;
-    if (aFrame->GetType() == nsGkAtoms::tableOuterFrame) {
-      replacedWidth = &replacedWidthStruct;
-      replacedWidthStruct =
-        nsBlockFrame::WidthToClearPastFloats(*this, aFloatAvailableSpace.mRect,
-                                             aFrame);
-    }
-
     nscoord leftOffset, rightOffset;
     ComputeReplacedBlockOffsetsForFloats(aFrame, aFloatAvailableSpace.mRect,
-                                         leftOffset, rightOffset,
-                                         replacedWidth);
+                                         leftOffset, rightOffset);
     aResult.x = mContentArea.x + leftOffset;
     aResult.width = mContentArea.width - leftOffset - rightOffset;
   }
@@ -516,7 +493,7 @@ nsBlockReflowState::RecoverStateFrom(nsLineList::iterator aLine,
 
 
 
-PRBool
+bool
 nsBlockReflowState::AddFloat(nsLineLayout*       aLineLayout,
                              nsIFrame*           aFloat,
                              nscoord             aAvailableWidth)
@@ -561,7 +538,7 @@ nsBlockReflowState::AddFloat(nsLineLayout*       aLineLayout,
   nscoord dy = oy - mFloatManagerY;
   mFloatManager->Translate(-dx, -dy);
 
-  PRBool placed;
+  bool placed;
 
   
   
@@ -602,7 +579,7 @@ nsBlockReflowState::AddFloat(nsLineLayout*       aLineLayout,
   return placed;
 }
 
-PRBool
+bool
 nsBlockReflowState::CanPlaceFloat(nscoord aFloatWidth,
                                   const nsFlowAreaRect& aFloatAvailableSpace)
 {
@@ -638,7 +615,7 @@ FloatMarginWidth(const nsHTMLReflowState& aCBReflowState,
   aFloatOffsetState.mComputedBorderPadding.LeftRight();
 }
 
-PRBool
+bool
 nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
 {
   
@@ -688,7 +665,7 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
   
   
   
-  PRBool isLetter = aFloat->GetType() == nsGkAtoms::letterFrame;
+  bool isLetter = aFloat->GetType() == nsGkAtoms::letterFrame;
   if (isLetter) {
     mBlock->ReflowFloat(*this, adjustedAvailableSpace, aFloat,
                         floatMargin, PR_FALSE, reflowStatus);
@@ -706,12 +683,12 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
 	       "invalid float type");
 
   
-  PRBool keepFloatOnSameLine = PR_FALSE;
+  bool keepFloatOnSameLine = false;
 
   
   
   
-  PRBool mustPlaceFloat =
+  bool mustPlaceFloat =
     mReflowState.mFlags.mIsTopOfPage && IsAdjacentWithTop();
 
   for (;;) {
@@ -819,7 +796,7 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
   
   
   if (!isLetter) {
-    PRBool pushedDown = mY != saveY;
+    bool pushedDown = mY != saveY;
     mBlock->ReflowFloat(*this, adjustedAvailableSpace, aFloat,
                         floatMargin, pushedDown, reflowStatus);
   }
@@ -858,7 +835,7 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
   
   
   
-  PRBool moved = aFloat->GetPosition() != origin;
+  bool moved = aFloat->GetPosition() != origin;
   if (moved) {
     aFloat->SetPosition(origin);
     nsContainerFrame::PositionFrameView(aFloat);
@@ -966,7 +943,7 @@ nsBlockReflowState::PlaceBelowCurrentLineFloats(nsFloatCacheFreeList& aList,
     }
 #endif
     
-    PRBool placed = FlowAndPlaceFloat(fc->mFloat);
+    bool placed = FlowAndPlaceFloat(fc->mFloat);
     nsFloatCache *next = fc->Next();
     if (!placed) {
       aList.Remove(fc);

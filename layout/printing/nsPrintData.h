@@ -87,7 +87,7 @@ public:
   void OnStartPrinting();
   void DoOnProgressChange(PRInt32      aProgess,
                           PRInt32      aMaxProgress,
-                          PRBool       aDoStartStop,
+                          bool         aDoStartStop,
                           PRInt32      aFlag);
 
 
@@ -104,13 +104,13 @@ public:
   nsCOMPtr<nsIDOMWindow> mCurrentFocusWin; 
 
   nsTArray<nsPrintObject*>    mPrintDocList;
-  PRPackedBool                mIsIFrameSelected;
-  PRPackedBool                mIsParentAFrameSet;
-  PRPackedBool                mOnStartSent;
-  PRPackedBool                mIsAborted;           
-  PRPackedBool                mPreparingForPrint;   
-  PRPackedBool                mDocWasToBeDestroyed; 
-  PRBool                      mShrinkToFit;
+  bool                        mIsIFrameSelected;
+  bool                        mIsParentAFrameSet;
+  bool                        mOnStartSent;
+  bool                        mIsAborted;           
+  bool                        mPreparingForPrint;   
+  bool                        mDocWasToBeDestroyed; 
+  bool                        mShrinkToFit;
   PRInt16                     mPrintFrameType;
   PRInt32                     mNumPrintablePages;
   PRInt32                     mNumPagesPrinted;

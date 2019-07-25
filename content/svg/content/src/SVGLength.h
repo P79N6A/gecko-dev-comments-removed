@@ -87,7 +87,7 @@ public:
     return *this;
   }
 
-  PRBool operator==(const SVGLength &rhs) const {
+  bool operator==(const SVGLength &rhs) const {
     return mValue == rhs.mValue && mUnit == rhs.mUnit;
   }
 
@@ -97,7 +97,7 @@ public:
 
 
 
-  PRBool SetValueFromString(const nsAString& aValue);
+  bool SetValueFromString(const nsAString& aValue);
 
   
 
@@ -147,7 +147,7 @@ public:
 
 
 
-  PRBool SetFromUserUnitValue(float aUserUnitValue,
+  bool SetFromUserUnitValue(float aUserUnitValue,
                               nsSVGElement *aElement,
                               PRUint8 aAxis) {
     float uuPerUnit = GetUserUnitsPerUnit(aElement, aAxis);
@@ -177,7 +177,7 @@ public:
 
 
 
-  PRBool ConvertToUnit(PRUint32 aUnit, nsSVGElement *aElement, PRUint8 aAxis) {
+  bool ConvertToUnit(PRUint32 aUnit, nsSVGElement *aElement, PRUint8 aAxis) {
     float val = GetValueInSpecifiedUnit(aUnit, aElement, aAxis);
     if (NS_finite(val)) {
       mValue = val;
@@ -188,11 +188,11 @@ public:
     return PR_FALSE;
   }
 
-  PRBool IsPercentage() const {
+  bool IsPercentage() const {
     return mUnit == nsIDOMSVGLength::SVG_LENGTHTYPE_PERCENTAGE;
   }
 
-  static PRBool IsValidUnitType(PRUint16 unit) {
+  static bool IsValidUnitType(PRUint16 unit) {
     return unit > nsIDOMSVGLength::SVG_LENGTHTYPE_UNKNOWN &&
            unit <= nsIDOMSVGLength::SVG_LENGTHTYPE_PC;
   }
@@ -200,7 +200,7 @@ public:
 private:
 
 #ifdef DEBUG
-  PRBool IsValid() const {
+  bool IsValid() const {
     return NS_finite(mValue) && IsValidUnitType(mUnit);
   }
 #endif

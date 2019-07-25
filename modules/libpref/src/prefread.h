@@ -62,7 +62,7 @@ typedef void (*PrefReader)(void       *closure,
                            const char *pref,
                            PrefValue   val,
                            PrefType    type,
-                           PRBool      defPref);
+                           bool        defPref);
 
 
 typedef struct PrefParseState {
@@ -82,7 +82,7 @@ typedef struct PrefParseState {
     char       *lbend;      
     char       *vb;         
     PrefType    vtype;      
-    PRBool      fdefault;   
+    bool        fdefault;   
 } PrefParseState;
 
 
@@ -127,7 +127,7 @@ void PREF_FinalizeParseState(PrefParseState *ps);
 
 
 
-PRBool PREF_ParseBuf(PrefParseState *ps, const char *buf, int bufLen);
+bool PREF_ParseBuf(PrefParseState *ps, const char *buf, int bufLen);
 
 PR_END_EXTERN_C
 #endif 

@@ -70,8 +70,8 @@ public:
   void SetLayoutFlags(PRUint32 aFlags) { mLayoutFlags = aFlags; }
 
   
-  void SetPaintingDisabled(PRBool aDisable) { mPaintingDisabled = aDisable; }
-  PRBool PaintingDisabled() const { return mPaintingDisabled; }
+  void SetPaintingDisabled(bool aDisable) { mPaintingDisabled = aDisable; }
+  bool PaintingDisabled() const { return mPaintingDisabled; }
 
   
   
@@ -91,7 +91,7 @@ private:
   nsRenderingContext *mRenderingContext;
   PRUint32 mLayoutFlags;
   PRUint16 mReflowDepth; 
-  PRPackedBool mPaintingDisabled;
+  bool mPaintingDisabled;
 };
 
 #endif

@@ -61,7 +61,7 @@ public:
   static nsresult OnChangeFocus(nsPresContext* aPresContext,
                                 nsIContent* aContent,
                                 PRUint32 aReason);
-  static void OnInstalledMenuKeyboardListener(PRBool aInstalling);
+  static void OnInstalledMenuKeyboardListener(bool aInstalling);
 
   
   
@@ -99,8 +99,8 @@ protected:
 
   static nsIContent*    sContent;
   static nsPresContext* sPresContext;
-  static PRBool         sInstalledMenuKeyboardListener;
-  static PRBool         sInSecureInputMode;
+  static bool           sInstalledMenuKeyboardListener;
+  static bool           sInSecureInputMode;
 
   static nsTextStateManager* sTextStateObserver;
 };

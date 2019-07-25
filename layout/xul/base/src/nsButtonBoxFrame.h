@@ -73,7 +73,7 @@ public:
 
 
 
-  void DoMouseClick(nsGUIEvent* aEvent, PRBool aTrustEvent);
+  void DoMouseClick(nsGUIEvent* aEvent, bool aTrustEvent);
   void UpdateMouseThrough() { AddStateBits(NS_FRAME_MOUSE_THROUGH_NEVER); }
 }; 
 

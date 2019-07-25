@@ -58,15 +58,15 @@ public:
       mAudioChannels(0),
       mDisplay(0,0),
       mStereoMode(mozilla::layers::STEREO_MODE_MONO),
-      mHasAudio(PR_FALSE),
-      mHasVideo(PR_FALSE)
+      mHasAudio(false),
+      mHasVideo(false)
   {}
 
   
   
   
   
-  static PRBool ValidateVideoRegion(const nsIntSize& aFrame,
+  static bool ValidateVideoRegion(const nsIntSize& aFrame,
                                     const nsIntRect& aPicture,
                                     const nsIntSize& aDisplay);
 
@@ -84,10 +84,10 @@ public:
   mozilla::layers::StereoMode mStereoMode;
 
   
-  PRPackedBool mHasAudio;
+  bool mHasAudio;
 
   
-  PRPackedBool mHasVideo;
+  bool mHasVideo;
 };
 
 #ifdef MOZ_TREMOR
@@ -122,28 +122,13 @@ public:
   AudioData(PRInt64 aOffset,
             PRInt64 aTime,
             PRInt64 aDuration,
-            PRUint32 aSamples,
+            PRUint32 aFrames,
             AudioDataValue* aData,
             PRUint32 aChannels)
   : mOffset(aOffset),
     mTime(aTime),
     mDuration(aDuration),
-    mSamples(aSamples),
-    mChannels(aChannels),
-    mAudioData(aData)
-  {
-    MOZ_COUNT_CTOR(AudioData);
-  }
-
-  AudioData(PRInt64 aOffset,
-            PRInt64 aDuration,
-            PRUint32 aSamples,
-            AudioDataValue* aData,
-            PRUint32 aChannels)
-  : mOffset(aOffset),
-    mTime(-1),
-    mDuration(aDuration),
-    mSamples(aSamples),
+    mFrames(aFrames),
     mChannels(aChannels),
     mAudioData(aData)
   {
@@ -155,17 +140,13 @@ public:
     MOZ_COUNT_DTOR(AudioData);
   }
 
-  PRUint32 AudioDataLength() {
-    return mChannels * mSamples;
-  }
-
   
   
   const PRInt64 mOffset;
 
   PRInt64 mTime; 
   const PRInt64 mDuration; 
-  const PRUint32 mSamples;
+  const PRUint32 mFrames;
   const PRUint32 mChannels;
   nsAutoArrayPtr<AudioDataValue> mAudioData;
 };
@@ -203,7 +184,7 @@ public:
                            PRInt64 aTime,
                            PRInt64 aEndTime,
                            const YCbCrBuffer &aBuffer,
-                           PRBool aKeyframe,
+                           bool aKeyframe,
                            PRInt64 aTimecode,
                            nsIntRect aPicture);
 
@@ -246,8 +227,8 @@ public:
 
   
   
-  PRPackedBool mDuplicate;
-  PRPackedBool mKeyframe;
+  bool mDuplicate;
+  bool mKeyframe;
 
 public:
   VideoData(PRInt64 aOffset, PRInt64 aTime, PRInt64 aEndTime, PRInt64 aTimecode)
@@ -255,8 +236,8 @@ public:
       mTime(aTime),
       mEndTime(aEndTime),
       mTimecode(aTimecode),
-      mDuplicate(PR_TRUE),
-      mKeyframe(PR_FALSE)
+      mDuplicate(true),
+      mKeyframe(false)
   {
     MOZ_COUNT_CTOR(VideoData);
     NS_ASSERTION(aEndTime >= aTime, "Frame must start before it ends.");
@@ -265,7 +246,7 @@ public:
   VideoData(PRInt64 aOffset,
             PRInt64 aTime,
             PRInt64 aEndTime,
-            PRBool aKeyframe,
+            bool aKeyframe,
             PRInt64 aTimecode,
             nsIntSize aDisplay)
     : mDisplay(aDisplay),
@@ -273,7 +254,7 @@ public:
       mTime(aTime),
       mEndTime(aEndTime),
       mTimecode(aTimecode),
-      mDuplicate(PR_FALSE),
+      mDuplicate(false),
       mKeyframe(aKeyframe)
   {
     MOZ_COUNT_CTOR(VideoData);
@@ -357,26 +338,26 @@ template <class T> class MediaQueue : private nsDeque {
       T* x = PopFront();
       delete x;
     }
-    mEndOfStream = PR_FALSE;
+    mEndOfStream = false;
   }
 
-  PRBool AtEndOfStream() {
+  bool AtEndOfStream() {
     ReentrantMonitorAutoEnter mon(mReentrantMonitor);
-    return GetSize() == 0 && mEndOfStream;    
+    return GetSize() == 0 && mEndOfStream;
   }
 
   
   
   
-  PRBool IsFinished() {
+  bool IsFinished() {
     ReentrantMonitorAutoEnter mon(mReentrantMonitor);
-    return mEndOfStream;    
+    return mEndOfStream;
   }
 
   
   void Finish() {
     ReentrantMonitorAutoEnter mon(mReentrantMonitor);
-    mEndOfStream = PR_TRUE;    
+    mEndOfStream = true;
   }
 
   
@@ -400,7 +381,7 @@ private:
 
   
   
-  PRBool mEndOfStream;
+  bool mEndOfStream;
 };
 
 
@@ -426,16 +407,16 @@ public:
   
   
   
-  virtual PRBool DecodeAudioData() = 0;
+  virtual bool DecodeAudioData() = 0;
 
   
   
   
-  virtual PRBool DecodeVideoFrame(PRBool &aKeyframeSkip,
+  virtual bool DecodeVideoFrame(bool &aKeyframeSkip,
                                   PRInt64 aTimeThreshold) = 0;
 
-  virtual PRBool HasAudio() = 0;
-  virtual PRBool HasVideo() = 0;
+  virtual bool HasAudio() = 0;
+  virtual bool HasVideo() = 0;
 
   
   
@@ -502,7 +483,7 @@ public:
 
     virtual void* operator()(void* anObject) {
       const AudioData* audioData = static_cast<const AudioData*>(anObject);
-      mResult += audioData->mSamples * audioData->mChannels * sizeof(AudioDataValue);
+      mResult += audioData->mFrames * audioData->mChannels * sizeof(AudioDataValue);
       return nsnull;
     }
 
@@ -527,7 +508,7 @@ protected:
 
   
   
-  typedef PRBool (nsBuiltinDecoderReader::*DecodeFn)();
+  typedef bool (nsBuiltinDecoderReader::*DecodeFn)();
 
   
   
@@ -537,8 +518,8 @@ protected:
 
   
   
-  PRBool DecodeVideoFrame() {
-    PRBool f = PR_FALSE;
+  bool DecodeVideoFrame() {
+    bool f = false;
     return DecodeVideoFrame(f, 0);
   }
 

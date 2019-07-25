@@ -58,9 +58,9 @@ public:
   virtual ~nsXBLDocumentInfo();
 
   already_AddRefed<nsIDocument> GetDocument()
-    { NS_ADDREF(mDocument); return mDocument.get(); }
+    { nsCOMPtr<nsIDocument> copy = mDocument; return copy.forget(); }
 
-  PRBool GetScriptAccess() { return mScriptAccess; }
+  bool GetScriptAccess() { return mScriptAccess; }
 
   nsIURI* DocumentURI() { return mDocument->GetDocumentURI(); }
 
@@ -72,7 +72,7 @@ public:
   
   void FlushSkinStylesheets();
 
-  PRBool IsChrome() { return mIsChrome; }
+  bool IsChrome() { return mIsChrome; }
 
   
   virtual nsIScriptGlobalObject* GetScriptGlobalObject();
@@ -82,8 +82,8 @@ public:
 
 private:
   nsCOMPtr<nsIDocument> mDocument;
-  PRPackedBool mScriptAccess;
-  PRPackedBool mIsChrome;
+  bool mScriptAccess;
+  bool mIsChrome;
   
   nsObjectHashtable* mBindingTable;
   

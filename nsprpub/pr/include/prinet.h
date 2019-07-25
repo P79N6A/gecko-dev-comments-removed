@@ -106,6 +106,11 @@ struct sockaddr_dl;
 #include <machine/endian.h>
 #endif
 
+
+#ifdef __ANDROID__
+#include <sys/endian.h>
+#endif
+
 #elif defined(WIN32)
 
 

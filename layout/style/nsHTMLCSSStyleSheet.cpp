@@ -140,7 +140,7 @@ nsHTMLCSSStyleSheet::HasStateDependentStyle(StateRuleProcessorData* aData)
   return nsRestyleHint(0);
 }
 
- PRBool
+ bool
 nsHTMLCSSStyleSheet::HasDocumentStateDependentStyle(StateRuleProcessorData* aData)
 {
   return PR_FALSE;
@@ -159,7 +159,7 @@ nsHTMLCSSStyleSheet::HasAttributeDependentStyle(AttributeRuleProcessorData* aDat
   return nsRestyleHint(0);
 }
 
- PRBool
+ bool
 nsHTMLCSSStyleSheet::MediumFeaturesChanged(nsPresContext* aPresContext)
 {
   return PR_FALSE;
@@ -196,25 +196,25 @@ nsHTMLCSSStyleSheet::GetType(nsString& aType) const
   aType.AssignLiteral("text/html");
 }
 
- PRBool
+ bool
 nsHTMLCSSStyleSheet::HasRules() const
 {
   
   return PR_TRUE;
 }
 
- PRBool
+ bool
 nsHTMLCSSStyleSheet::IsApplicable() const
 {
   return PR_TRUE;
 }
 
  void
-nsHTMLCSSStyleSheet::SetEnabled(PRBool aEnabled)
+nsHTMLCSSStyleSheet::SetEnabled(bool aEnabled)
 { 
 }
 
- PRBool
+ bool
 nsHTMLCSSStyleSheet::IsComplete() const
 {
   return PR_TRUE;

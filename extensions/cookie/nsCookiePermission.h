@@ -74,7 +74,7 @@ private:
 
   PRInt64      mCookiesLifetimeSec;            
   PRUint8      mCookiesLifetimePolicy;         
-  PRPackedBool mCookiesAlwaysAcceptSession;    
+  bool mCookiesAlwaysAcceptSession;    
 };
 
 

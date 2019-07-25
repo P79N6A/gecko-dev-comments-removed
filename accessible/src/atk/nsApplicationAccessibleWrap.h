@@ -54,11 +54,11 @@ public:
     virtual ~nsApplicationAccessibleWrap();
 
     
-    virtual PRBool Init();
+    virtual bool Init();
 
     
-    virtual PRBool AppendChild(nsAccessible* aChild);
-    virtual PRBool RemoveChild(nsAccessible* aChild);
+    virtual bool AppendChild(nsAccessible* aChild);
+    virtual bool RemoveChild(nsAccessible* aChild);
 
     
     NS_IMETHOD GetNativeInterface(void **aOutAccessible);

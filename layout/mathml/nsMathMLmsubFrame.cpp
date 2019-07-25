@@ -83,7 +83,7 @@ nsMathMLmsubFrame::TransmitAutomaticData()
 
  nsresult
 nsMathMLmsubFrame::Place (nsRenderingContext& aRenderingContext,
-                          PRBool               aPlaceOrigin,
+                          bool                 aPlaceOrigin,
                           nsHTMLReflowMetrics& aDesiredSize)
 {
   
@@ -115,7 +115,7 @@ nsMathMLmsubFrame::Place (nsRenderingContext& aRenderingContext,
 nsresult
 nsMathMLmsubFrame::PlaceSubScript (nsPresContext*      aPresContext,
                                    nsRenderingContext& aRenderingContext,
-                                   PRBool               aPlaceOrigin,
+                                   bool                 aPlaceOrigin,
                                    nsHTMLReflowMetrics& aDesiredSize,
                                    nsMathMLContainerFrame* aFrame,
                                    nscoord              aUserSubScriptShift,

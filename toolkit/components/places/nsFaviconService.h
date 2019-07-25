@@ -107,7 +107,7 @@ public:
   
   nsresult DoSetAndLoadFaviconForPage(nsIURI* aPageURI,
                                       nsIURI* aFaviconURI,
-                                      PRBool aForceReload,
+                                      bool aForceReload,
                                       nsIFaviconDataCallback* aCallback);
 
   
@@ -214,7 +214,7 @@ private:
   nsDataHashtable<nsCStringHashKey, PRUint32> mFailedFavicons;
 
   nsresult SetFaviconUrlForPageInternal(nsIURI* aURI, nsIURI* aFavicon,
-                                        PRBool* aHasData);
+                                        bool* aHasData);
 
   friend class FaviconLoadListener;
 

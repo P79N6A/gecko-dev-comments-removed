@@ -178,7 +178,7 @@ class nsWatcherWindowEnumerator : public nsISimpleEnumerator {
 public:
   nsWatcherWindowEnumerator(nsWindowWatcher *inWatcher);
   virtual ~nsWatcherWindowEnumerator();
-  NS_IMETHOD HasMoreElements(PRBool *retval);
+  NS_IMETHOD HasMoreElements(bool *retval);
   NS_IMETHOD GetNext(nsISupports **retval);
 
   NS_DECL_ISUPPORTS
@@ -212,7 +212,7 @@ nsWatcherWindowEnumerator::~nsWatcherWindowEnumerator()
 }
 
 NS_IMETHODIMP
-nsWatcherWindowEnumerator::HasMoreElements(PRBool *retval)
+nsWatcherWindowEnumerator::HasMoreElements(bool *retval)
 {
   if (!retval)
     return NS_ERROR_INVALID_ARG;
@@ -410,7 +410,7 @@ nsWindowWatcher::OpenWindow(nsIDOMWindow *aParent,
     }
   }
 
-  PRBool dialog = (argc != 0);
+  bool dialog = (argc != 0);
   return OpenWindowJSInternal(aParent, aUrl, aName, aFeatures, dialog, 
                               argsArray, PR_FALSE, _retval);
 }
@@ -434,23 +434,23 @@ struct SizeSpec {
   PRInt32 mInnerWidth;  
   PRInt32 mInnerHeight; 
 
-  PRPackedBool mLeftSpecified;
-  PRPackedBool mTopSpecified;
-  PRPackedBool mOuterWidthSpecified;
-  PRPackedBool mOuterHeightSpecified;
-  PRPackedBool mInnerWidthSpecified;
-  PRPackedBool mInnerHeightSpecified;
+  bool mLeftSpecified;
+  bool mTopSpecified;
+  bool mOuterWidthSpecified;
+  bool mOuterHeightSpecified;
+  bool mInnerWidthSpecified;
+  bool mInnerHeightSpecified;
 
   
   
-  PRPackedBool mUseDefaultWidth;
-  PRPackedBool mUseDefaultHeight;
+  bool mUseDefaultWidth;
+  bool mUseDefaultHeight;
 
-  PRBool PositionSpecified() const {
+  bool PositionSpecified() const {
     return mLeftSpecified || mTopSpecified;
   }
   
-  PRBool SizeSpecified() const {
+  bool SizeSpecified() const {
     return mOuterWidthSpecified || mOuterHeightSpecified ||
       mInnerWidthSpecified || mInnerHeightSpecified;
   }
@@ -461,7 +461,7 @@ nsWindowWatcher::OpenWindowJS(nsIDOMWindow *aParent,
                               const char *aUrl,
                               const char *aName,
                               const char *aFeatures,
-                              PRBool aDialog,
+                              bool aDialog,
                               nsIArray *argv,
                               nsIDOMWindow **_retval)
 {
@@ -485,13 +485,13 @@ nsWindowWatcher::OpenWindowJSInternal(nsIDOMWindow *aParent,
                                       const char *aUrl,
                                       const char *aName,
                                       const char *aFeatures,
-                                      PRBool aDialog,
+                                      bool aDialog,
                                       nsIArray *argv,
-                                      PRBool aCalledFromJS,
+                                      bool aCalledFromJS,
                                       nsIDOMWindow **_retval)
 {
   nsresult                        rv = NS_OK;
-  PRBool                          nameSpecified,
+  bool                            nameSpecified,
                                   featuresSpecified,
                                   isNewToplevelWindow = PR_FALSE,
                                   windowIsNew = PR_FALSE,
@@ -544,7 +544,7 @@ nsWindowWatcher::OpenWindowJSInternal(nsIDOMWindow *aParent,
   
 
   
-  PRBool hasChromeParent = PR_TRUE;
+  bool hasChromeParent = true;
   if (aParent) {
     
     nsCOMPtr<nsIDOMDocument> domdoc;
@@ -586,7 +586,7 @@ nsWindowWatcher::OpenWindowJSInternal(nsIDOMWindow *aParent,
   rv = sm->GetSubjectPrincipal(getter_AddRefs(callerPrincipal));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  PRBool isCallerChrome = PR_TRUE;
+  bool isCallerChrome = true;
   if (callerPrincipal) {
     rv = sm->IsSystemPrincipal(callerPrincipal, &isCallerChrome);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -643,8 +643,8 @@ nsWindowWatcher::OpenWindowJSInternal(nsIDOMWindow *aParent,
     }
   }
   
-  PRBool newWindowShouldBeModal = PR_FALSE;
-  PRBool parentIsModal = PR_FALSE;
+  bool newWindowShouldBeModal = false;
+  bool parentIsModal = false;
   if (!newDocShellItem) {
     windowIsNew = PR_TRUE;
     isNewToplevelWindow = PR_TRUE;
@@ -652,7 +652,7 @@ nsWindowWatcher::OpenWindowJSInternal(nsIDOMWindow *aParent,
     nsCOMPtr<nsIWebBrowserChrome> parentChrome(do_GetInterface(parentTreeOwner));
 
     
-    PRBool weAreModal = (chromeFlags & nsIWebBrowserChrome::CHROME_MODAL) != 0;
+    bool weAreModal = (chromeFlags & nsIWebBrowserChrome::CHROME_MODAL) != 0;
     newWindowShouldBeModal = weAreModal;
     if (!weAreModal && parentChrome) {
       parentChrome->IsWindowModal(&weAreModal);
@@ -671,7 +671,7 @@ nsWindowWatcher::OpenWindowJSInternal(nsIDOMWindow *aParent,
     
     
     if (!hasChromeParent && (chromeFlags & nsIWebBrowserChrome::CHROME_MODAL)) {
-      PRBool parentVisible = PR_TRUE;
+      bool parentVisible = true;
       nsCOMPtr<nsIBaseWindow> parentWindow(do_GetInterface(parentTreeOwner));
       nsCOMPtr<nsIWidget> parentWidget;
       if (parentWindow)
@@ -699,7 +699,7 @@ nsWindowWatcher::OpenWindowJSInternal(nsIDOMWindow *aParent,
       nsCOMPtr<nsIWindowCreator2> windowCreator2(do_QueryInterface(mWindowCreator));
       if (windowCreator2) {
         PRUint32 contextFlags = 0;
-        PRBool popupConditions = PR_FALSE;
+        bool popupConditions = false;
 
         
         nsCOMPtr<nsPIDOMWindow> piWindow(do_QueryInterface(aParent));
@@ -714,7 +714,7 @@ nsWindowWatcher::OpenWindowJSInternal(nsIDOMWindow *aParent,
         if (popupConditions)
           contextFlags |= nsIWindowCreator2::PARENT_IS_LOADING_OR_RUNNING_TIMEOUT;
 
-        PRBool cancel = PR_FALSE;
+        bool cancel = false;
         rv = windowCreator2->CreateChromeWindow2(parentChrome, chromeFlags,
                                                  contextFlags, uriToLoad,
                                                  &cancel,
@@ -872,7 +872,7 @@ nsWindowWatcher::OpenWindowJSInternal(nsIDOMWindow *aParent,
       }
     }
 
-    PRBool isSystem;
+    bool isSystem;
     rv = sm->IsSystemPrincipal(newWindowPrincipal, &isSystem);
     if (NS_FAILED(rv) || isSystem) {
       
@@ -1229,7 +1229,7 @@ nsWindowWatcher::FindWindowEntry(nsIDOMWindow *aWindow)
                        *listEnd;
 #ifdef USEWEAKREFS
   nsresult    rv;
-  PRBool      found;
+  bool        found;
 #endif
 
   info = mOldestWindow;
@@ -1348,14 +1348,14 @@ nsWindowWatcher::GetWindowByName(const PRUnichar *aTargetName,
   return NS_OK;
 }
 
-PRBool
+bool
 nsWindowWatcher::AddEnumerator(nsWatcherWindowEnumerator* inEnumerator)
 {
   
   return mEnumeratorList.AppendElement(inEnumerator) != nsnull;
 }
 
-PRBool
+bool
 nsWindowWatcher::RemoveEnumerator(nsWatcherWindowEnumerator* inEnumerator)
 {
   
@@ -1426,10 +1426,10 @@ nsWindowWatcher::URIfromURL(const char *aURL,
 
 
 PRUint32 nsWindowWatcher::CalculateChromeFlags(const char *aFeatures,
-                                               PRBool aFeaturesSpecified,
-                                               PRBool aDialog,
-                                               PRBool aChromeURL,
-                                               PRBool aHasChromeParent)
+                                               bool aFeaturesSpecified,
+                                               bool aDialog,
+                                               bool aChromeURL,
+                                               bool aHasChromeParent)
 {
    if(!aFeaturesSpecified || !aFeatures) {
       if(aDialog)
@@ -1449,7 +1449,7 @@ PRUint32 nsWindowWatcher::CalculateChromeFlags(const char *aFeatures,
 
 
   PRUint32 chromeFlags = 0;
-  PRBool presenceFlag = PR_FALSE;
+  bool presenceFlag = false;
 
   chromeFlags = nsIWebBrowserChrome::CHROME_WINDOW_BORDERS;
   if (aDialog && WinHasOption(aFeatures, "all", 0, &presenceFlag))
@@ -1461,7 +1461,7 @@ PRUint32 nsWindowWatcher::CalculateChromeFlags(const char *aFeatures,
     securityManager(do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID));
   NS_ENSURE_TRUE(securityManager, NS_ERROR_FAILURE);
 
-  PRBool isChrome = PR_FALSE;
+  bool isChrome = false;
   nsresult rv = securityManager->SubjectPrincipalIsSystem(&isChrome);
   if (NS_FAILED(rv)) {
     isChrome = PR_FALSE;
@@ -1474,7 +1474,7 @@ PRUint32 nsWindowWatcher::CalculateChromeFlags(const char *aFeatures,
   rv = prefs->GetBranch("dom.disable_window_open_feature.", getter_AddRefs(prefBranch));
   NS_ENSURE_SUCCESS(rv, PR_TRUE);
 
-  PRBool forceEnable = PR_FALSE;
+  bool forceEnable = false;
 
   NS_CALCULATE_CHROME_FLAG_FOR("titlebar",
                                nsIWebBrowserChrome::CHROME_TITLEBAR);
@@ -1555,7 +1555,7 @@ PRUint32 nsWindowWatcher::CalculateChromeFlags(const char *aFeatures,
 
 
   
-  PRBool enabled;
+  bool enabled;
   nsresult res =
     securityManager->IsCapabilityEnabled("UniversalBrowserWrite", &enabled);
 
@@ -1588,7 +1588,7 @@ PRUint32 nsWindowWatcher::CalculateChromeFlags(const char *aFeatures,
 
 PRInt32
 nsWindowWatcher::WinHasOption(const char *aOptions, const char *aName,
-                              PRInt32 aDefault, PRBool *aPresenceFlag)
+                              PRInt32 aDefault, bool *aPresenceFlag)
 {
   if (!aOptions)
     return 0;
@@ -1656,7 +1656,7 @@ nsWindowWatcher::FindItemWithName(const PRUnichar* aName,
   if (!windows)
     return NS_ERROR_FAILURE;
 
-  PRBool   more;
+  bool     more;
   nsresult rv = NS_OK;
 
   do {
@@ -1768,7 +1768,7 @@ nsWindowWatcher::SafeGetWindowByName(const nsAString& aName,
 nsresult
 nsWindowWatcher::ReadyOpenedDocShellItem(nsIDocShellTreeItem *aOpenedItem,
                                          nsIDOMWindow        *aParent,
-                                         PRBool              aWindowIsNew,
+                                         bool                aWindowIsNew,
                                          nsIDOMWindow        **aOpenedWindow)
 {
   nsresult rv = NS_ERROR_FAILURE;
@@ -1810,7 +1810,7 @@ void
 nsWindowWatcher::CalcSizeSpec(const char* aFeatures, SizeSpec& aResult)
 {
   
-  PRBool  present;
+  bool    present;
   PRInt32 temp;
 
   present = PR_FALSE;
@@ -1887,7 +1887,7 @@ nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem *aDocShellItem,
   PRInt32 chromeWidth = 0,
           chromeHeight = 0;
   
-  PRBool  sizeChromeWidth = PR_TRUE,
+  bool    sizeChromeWidth = true,
           sizeChromeHeight = PR_TRUE;
 
   
@@ -1970,10 +1970,10 @@ nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem *aDocShellItem,
     }
   }
 
-  PRBool positionSpecified = aSizeSpec.PositionSpecified();
+  bool positionSpecified = aSizeSpec.PositionSpecified();
   
   nsresult res;
-  PRBool enabled = PR_FALSE;
+  bool enabled = false;
 
   
   nsCOMPtr<nsIScriptSecurityManager>
@@ -1986,7 +1986,7 @@ nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem *aDocShellItem,
     else if (enabled && aParent) {
       nsCOMPtr<nsIDOMChromeWindow> chromeWin(do_QueryInterface(aParent));
 
-      PRBool isChrome = PR_FALSE;
+      bool isChrome = false;
       nsresult rv = securityManager->SubjectPrincipalIsSystem(&isChrome);
       if (NS_FAILED(rv)) {
         isChrome = PR_FALSE;

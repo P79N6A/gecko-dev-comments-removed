@@ -122,7 +122,13 @@ function viewPartialSourceForSelection(selection)
 
   
   
-  ancestorContainer = ancestorContainer.cloneNode(true);
+  
+  
+  
+  
+  var dataDoc =
+    ancestorContainer.ownerDocument.implementation.createDocument("", "", null);
+  ancestorContainer = dataDoc.importNode(ancestorContainer, true);
   startContainer = ancestorContainer;
   endContainer = ancestorContainer;
 
@@ -155,7 +161,7 @@ function viewPartialSourceForSelection(selection)
           !endContainer.parentNode || !endContainer.parentNode.parentNode)
         endContainer.insertData(endOffset, MARK_SELECTION_END);
       else {
-        tmpNode = doc.createTextNode(MARK_SELECTION_END);
+        tmpNode = dataDoc.createTextNode(MARK_SELECTION_END);
         endContainer = endContainer.parentNode;
         if (endOffset == 0)
           endContainer.parentNode.insertBefore(tmpNode, endContainer);
@@ -164,7 +170,7 @@ function viewPartialSourceForSelection(selection)
       }
     }
     else {
-      tmpNode = doc.createTextNode(MARK_SELECTION_END);
+      tmpNode = dataDoc.createTextNode(MARK_SELECTION_END);
       endContainer.insertBefore(tmpNode, endContainer.childNodes.item(endOffset));
     }
 
@@ -180,7 +186,7 @@ function viewPartialSourceForSelection(selection)
           startContainer != startContainer.parentNode.lastChild)
         startContainer.insertData(startOffset, MARK_SELECTION_START);
       else {
-        tmpNode = doc.createTextNode(MARK_SELECTION_START);
+        tmpNode = dataDoc.createTextNode(MARK_SELECTION_START);
         startContainer = startContainer.parentNode;
         if (startOffset == 0)
           startContainer.parentNode.insertBefore(tmpNode, startContainer);
@@ -189,13 +195,13 @@ function viewPartialSourceForSelection(selection)
       }
     }
     else {
-      tmpNode = doc.createTextNode(MARK_SELECTION_START);
+      tmpNode = dataDoc.createTextNode(MARK_SELECTION_START);
       startContainer.insertBefore(tmpNode, startContainer.childNodes.item(startOffset));
     }
   }
 
   
-  tmpNode = doc.createElementNS(NS_XHTML, 'div');
+  tmpNode = dataDoc.createElementNS(NS_XHTML, 'div');
   tmpNode.appendChild(ancestorContainer);
 
   

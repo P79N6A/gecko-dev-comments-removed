@@ -118,11 +118,11 @@ public:
   
   
   void EmulateRequestFinished(imgRequestProxy* proxy, nsresult aStatus,
-                              PRBool aOnlySendStopRequest);
+                              bool aOnlySendStopRequest);
 
   
   
-  PRBool IsLoading() const;
+  bool IsLoading() const;
 
   
   PRUint32 GetImageStatus() const;
@@ -149,8 +149,8 @@ public:
   void SendStartContainer(imgRequestProxy* aProxy, imgIContainer* aContainer);
   void RecordStartFrame(PRUint32 aFrame);
   void SendStartFrame(imgRequestProxy* aProxy, PRUint32 aFrame);
-  void RecordDataAvailable(PRBool aCurrentFrame, const nsIntRect* aRect);
-  void SendDataAvailable(imgRequestProxy* aProxy, PRBool aCurrentFrame, const nsIntRect* aRect);
+  void RecordDataAvailable(bool aCurrentFrame, const nsIntRect* aRect);
+  void SendDataAvailable(imgRequestProxy* aProxy, bool aCurrentFrame, const nsIntRect* aRect);
   void RecordStopFrame(PRUint32 aFrame);
   void SendStopFrame(imgRequestProxy* aProxy, PRUint32 aFrame);
   void RecordStopContainer(imgIContainer* aContainer);
@@ -169,8 +169,8 @@ public:
   
   void RecordStartRequest();
   void SendStartRequest(imgRequestProxy* aProxy);
-  void RecordStopRequest(PRBool aLastPart, nsresult aStatus);
-  void SendStopRequest(imgRequestProxy* aProxy, PRBool aLastPart, nsresult aStatus);
+  void RecordStopRequest(bool aLastPart, nsresult aStatus);
+  void SendStopRequest(imgRequestProxy* aProxy, bool aLastPart, nsresult aStatus);
 
 private:
   friend class imgStatusNotifyRunnable;
@@ -183,7 +183,7 @@ private:
   mozilla::imagelib::Image* mImage;
   PRUint32 mState;
   nsresult mImageStatus;
-  PRPackedBool mHadLastPart;
+  bool mHadLastPart;
 };
 
 #endif

@@ -181,7 +181,7 @@ protected:
 
 
 
-  nsresult PauseAllDownloads(PRBool aSetResume);
+  nsresult PauseAllDownloads(bool aSetResume);
 
   
 
@@ -190,7 +190,7 @@ protected:
 
 
 
-  nsresult ResumeAllDownloads(PRBool aResumeAll);
+  nsresult ResumeAllDownloads(bool aResumeAll);
 
   
 
@@ -269,7 +269,7 @@ private:
   nsAutoPtr<mozStorageTransaction> mHistoryTransaction;
 
   enum DatabaseType mDBType;
-  PRBool mInPrivateBrowsing;
+  bool mInPrivateBrowsing;
 
   static nsDownloadManager *gDownloadManagerService;
 
@@ -349,32 +349,32 @@ protected:
   
 
 
-  PRBool IsPaused();
+  bool IsPaused();
 
   
 
 
-  PRBool IsResumable();
+  bool IsResumable();
 
   
 
 
-  PRBool WasResumed();
+  bool WasResumed();
 
   
 
 
-  PRBool ShouldAutoResume();
+  bool ShouldAutoResume();
 
   
 
 
-  PRBool IsFinishable();
+  bool IsFinishable();
 
   
 
 
-  PRBool IsFinished();
+  bool IsFinished();
 
   
 
@@ -434,7 +434,7 @@ private:
   PRInt64 mResumedAt;
   double mSpeed;
 
-  PRBool mHasMultipleFiles;
+  bool mHasMultipleFiles;
 
   
 

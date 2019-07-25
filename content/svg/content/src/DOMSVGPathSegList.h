@@ -104,7 +104,7 @@ public:
   static already_AddRefed<DOMSVGPathSegList>
   GetDOMWrapper(void *aList,
                 nsSVGElement *aElement,
-                PRBool aIsAnimValList);
+                bool aIsAnimValList);
 
   
 
@@ -150,7 +150,7 @@ public:
 
 
 
-  PRBool AttrIsAnimating() const;
+  bool AttrIsAnimating() const;
 
 private:
 
@@ -158,7 +158,7 @@ private:
 
 
 
-  DOMSVGPathSegList(nsSVGElement *aElement, PRBool aIsAnimValList)
+  DOMSVGPathSegList(nsSVGElement *aElement, bool aIsAnimValList)
     : mElement(aElement)
     , mIsAnimValList(aIsAnimValList)
   {
@@ -172,7 +172,7 @@ private:
   }
 
   
-  PRBool IsAnimValList() const {
+  bool IsAnimValList() const {
     return mIsAnimValList;
   }
 
@@ -236,7 +236,7 @@ private:
   
   nsRefPtr<nsSVGElement> mElement;
 
-  PRPackedBool mIsAnimValList;
+  bool mIsAnimValList;
 };
 
 } 

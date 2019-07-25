@@ -73,7 +73,7 @@ public:
   virtual nsIURI* GetBaseURI() const = 0;
   virtual void GetTitle(nsString& aTitle) const = 0;
   virtual void GetType(nsString& aType) const = 0;
-  virtual PRBool HasRules() const = 0;
+  virtual bool HasRules() const = 0;
 
   
 
@@ -82,7 +82,7 @@ public:
 
 
 
-  virtual PRBool IsApplicable() const = 0;
+  virtual bool IsApplicable() const = 0;
 
   
 
@@ -93,12 +93,12 @@ public:
 
 
 
-  virtual void SetEnabled(PRBool aEnabled) = 0;
+  virtual void SetEnabled(bool aEnabled) = 0;
 
   
 
 
-  virtual PRBool IsComplete() const = 0;
+  virtual bool IsComplete() const = 0;
   virtual void SetComplete() = 0;
 
   

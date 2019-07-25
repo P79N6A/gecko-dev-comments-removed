@@ -763,15 +763,21 @@ BrowserGlue.prototype = {
     const PREF_TELEMETRY_ENABLED  = "toolkit.telemetry.enabled";
     const PREF_TELEMETRY_INFOURL  = "toolkit.telemetry.infoURL";
     const PREF_TELEMETRY_SERVER_OWNER = "toolkit.telemetry.server_owner";
+    
+    const TELEMETRY_PROMPT_REV = 2;
 
+    var telemetryPrompted = null;
     try {
-      
-      
-      if (Services.prefs.getBoolPref(PREF_TELEMETRY_ENABLED) ||
-          Services.prefs.getBoolPref(PREF_TELEMETRY_PROMPTED))
-         return;
+      telemetryPrompted = Services.prefs.getIntPref(PREF_TELEMETRY_PROMPTED);
     } catch(e) {}
-
+    
+    
+    if (telemetryPrompted === TELEMETRY_PROMPT_REV)
+      return;
+    
+    Services.prefs.clearUserPref(PREF_TELEMETRY_PROMPTED);
+    Services.prefs.clearUserPref(PREF_TELEMETRY_ENABLED);
+    
     
     var win = this.getMostRecentBrowserWindow();
     var browser = win.gBrowser; 
@@ -782,7 +788,7 @@ BrowserGlue.prototype = {
 
     var productName        = brandBundle.GetStringFromName("brandFullName");
     var serverOwner        = Services.prefs.getCharPref(PREF_TELEMETRY_SERVER_OWNER);
-    var telemetryText      = browserBundle.formatStringFromName("telemetryText", [productName, serverOwner], 2);
+    var telemetryPrompt    = browserBundle.formatStringFromName("telemetryPrompt", [productName, serverOwner], 2);
 
     var buttons = [
                     {
@@ -802,10 +808,10 @@ BrowserGlue.prototype = {
                   ];
 
     
-    Services.prefs.setBoolPref(PREF_TELEMETRY_PROMPTED, true);
+    Services.prefs.setIntPref(PREF_TELEMETRY_PROMPTED, TELEMETRY_PROMPT_REV);
 
-    var notification = notifyBox.appendNotification(telemetryText, "telemetry", null, notifyBox.PRIORITY_INFO_LOW, buttons);
-    notification.persistence = 3; 
+    var notification = notifyBox.appendNotification(telemetryPrompt, "telemetry", null, notifyBox.PRIORITY_INFO_LOW, buttons);
+    notification.persistence = 6; 
 
     let XULNS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
     let link = notification.ownerDocument.createElementNS(XULNS, "label");
@@ -818,7 +824,7 @@ BrowserGlue.prototype = {
       notification.parentNode.removeNotification(notification, true);
       
       var notifyBox = browser.getNotificationBox();
-      notifyBox.appendNotification(telemetryText, "telemetry", null, notifyBox.PRIORITY_INFO_LOW, buttons);
+      notifyBox.appendNotification(telemetryPrompt, "telemetry", null, notifyBox.PRIORITY_INFO_LOW, buttons);
     }, false);
     let description = notification.ownerDocument.getAnonymousElementByAttribute(notification, "anonid", "messageText");
     description.appendChild(link);

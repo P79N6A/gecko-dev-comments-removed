@@ -66,7 +66,7 @@
 
 
 
-typedef PRBool (*nsContentListMatchFunc)(nsIContent* aContent,
+typedef bool (*nsContentListMatchFunc)(nsIContent* aContent,
                                          PRInt32 aNamespaceID,
                                          nsIAtom* aAtom,
                                          void* aData);
@@ -123,7 +123,7 @@ public:
   }
 
 
-  virtual PRInt32 IndexOf(nsIContent *aContent, PRBool aDoFlush);
+  virtual PRInt32 IndexOf(nsIContent *aContent, bool aDoFlush);
 
 protected:
   nsCOMArray<nsIContent> mElements;
@@ -248,7 +248,7 @@ public:
                 PRInt32 aMatchNameSpaceId,
                 nsIAtom* aHTMLMatchAtom,
                 nsIAtom* aXMLMatchAtom,
-                PRBool aDeep = PR_TRUE);
+                bool aDeep = true);
 
   
 
@@ -270,17 +270,17 @@ public:
                 nsContentListMatchFunc aFunc,
                 nsContentListDestroyFunc aDestroyFunc,
                 void* aData,
-                PRBool aDeep = PR_TRUE,
+                bool aDeep = true,
                 nsIAtom* aMatchAtom = nsnull,
                 PRInt32 aMatchNameSpaceId = kNameSpaceID_None,
-                PRBool aFuncMayDependOnAttr = PR_TRUE);
+                bool aFuncMayDependOnAttr = true);
   virtual ~nsContentList();
 
   
   NS_DECL_NSIDOMHTMLCOLLECTION
 
   
-  virtual PRInt32 IndexOf(nsIContent *aContent, PRBool aDoFlush);
+  virtual PRInt32 IndexOf(nsIContent *aContent, bool aDoFlush);
   virtual nsIContent* GetNodeAt(PRUint32 aIndex);
   virtual PRInt32 IndexOf(nsIContent* aContent);
   virtual nsINode* GetParentObject()
@@ -294,9 +294,9 @@ public:
                                     nsWrapperCache** aCache);
 
   
-  NS_HIDDEN_(PRUint32) Length(PRBool aDoFlush);
-  NS_HIDDEN_(nsIContent*) Item(PRUint32 aIndex, PRBool aDoFlush);
-  NS_HIDDEN_(nsIContent*) NamedItem(const nsAString& aName, PRBool aDoFlush);
+  NS_HIDDEN_(PRUint32) Length(bool aDoFlush);
+  NS_HIDDEN_(nsIContent*) Item(PRUint32 aIndex, bool aDoFlush);
+  NS_HIDDEN_(nsIContent*) NamedItem(const nsAString& aName, bool aDoFlush);
 
   
   NS_DECL_NSIMUTATIONOBSERVER_ATTRIBUTECHANGED
@@ -321,7 +321,7 @@ public:
     return static_cast<nsContentList*>(list);
   }
 
-  PRBool MatchesKey(const nsContentListKey& aKey) const
+  bool MatchesKey(const nsContentListKey& aKey) const
   {
     
     
@@ -341,7 +341,7 @@ protected:
 
 
 
-  PRBool Match(mozilla::dom::Element *aElement);
+  bool Match(mozilla::dom::Element *aElement);
   
 
 
@@ -349,7 +349,7 @@ protected:
 
 
 
-  PRBool MatchSelf(nsIContent *aContent);
+  bool MatchSelf(nsIContent *aContent);
 
   
 
@@ -369,7 +369,7 @@ protected:
 
 
 
-  PRBool MayContainRelevantNodes(nsINode* aContainer)
+  bool MayContainRelevantNodes(nsINode* aContainer)
   {
     return mDeep || aContainer == mRootNode;
   }
@@ -383,7 +383,7 @@ protected:
 
 
 
-  inline void BringSelfUpToDate(PRBool aDoFlush);
+  inline void BringSelfUpToDate(bool aDoFlush);
 
   
 
@@ -510,12 +510,12 @@ public:
 
   virtual ~nsCacheableFuncStringContentList();
 
-  PRBool Equals(const nsFuncStringCacheKey* aKey) {
+  bool Equals(const nsFuncStringCacheKey* aKey) {
     return mRootNode == aKey->mRootNode && mFunc == aKey->mFunc &&
       mString == aKey->mString;
   }
 
-  PRBool AllocatedData() const { return !!mData; }
+  bool AllocatedData() const { return !!mData; }
 protected:
   virtual void RemoveFromCaches() {
     RemoveFromFuncStringHashtable();

@@ -139,7 +139,7 @@ public:
 
 
 
-  virtual void ClearForm(PRBool aRemoveFromForm) = 0;
+  virtual void ClearForm(bool aRemoveFromForm) = 0;
 
   
 
@@ -177,48 +177,48 @@ public:
 
 
 
-  virtual PRBool RestoreState(nsPresState* aState) = 0;
+  virtual bool RestoreState(nsPresState* aState) = 0;
 
-  virtual PRBool AllowDrop() = 0;
-
-  
-
-
-
-
-  inline PRBool IsSubmitControl() const;
+  virtual bool AllowDrop() = 0;
 
   
 
 
 
 
-  inline PRBool IsTextControl(PRBool aExcludePassword) const ;
+  inline bool IsSubmitControl() const;
 
   
 
 
 
 
-  inline PRBool IsSingleLineTextControl(PRBool aExcludePassword) const;
+  inline bool IsTextControl(bool aExcludePassword) const ;
 
   
 
 
 
-  inline PRBool IsLabelableControl() const;
+
+  inline bool IsSingleLineTextControl(bool aExcludePassword) const;
 
   
 
 
 
-  inline PRBool IsSubmittableControl() const;
+  inline bool IsLabelableControl() const;
 
   
 
 
 
-  inline PRBool AllowDraggableChildren() const;
+  inline bool IsSubmittableControl() const;
+
+  
+
+
+
+  inline bool AllowDraggableChildren() const;
 
 protected:
 
@@ -237,7 +237,7 @@ protected:
   inline bool IsAutofocusable() const;
 };
 
-PRBool
+bool
 nsIFormControl::IsSubmitControl() const
 {
   PRUint32 type = GetType();
@@ -246,16 +246,16 @@ nsIFormControl::IsSubmitControl() const
          type == NS_FORM_BUTTON_SUBMIT;
 }
 
-PRBool
-nsIFormControl::IsTextControl(PRBool aExcludePassword) const
+bool
+nsIFormControl::IsTextControl(bool aExcludePassword) const
 {
   PRUint32 type = GetType();
   return type == NS_FORM_TEXTAREA ||
          IsSingleLineTextControl(aExcludePassword, type);
 }
 
-PRBool
-nsIFormControl::IsSingleLineTextControl(PRBool aExcludePassword) const
+bool
+nsIFormControl::IsSingleLineTextControl(bool aExcludePassword) const
 {
   return IsSingleLineTextControl(aExcludePassword, GetType());
 }
@@ -272,7 +272,7 @@ nsIFormControl::IsSingleLineTextControl(bool aExcludePassword, PRUint32 aType)
          (!aExcludePassword && aType == NS_FORM_INPUT_PASSWORD);
 }
 
-PRBool
+bool
 nsIFormControl::IsLabelableControl() const
 {
   
@@ -289,7 +289,7 @@ nsIFormControl::IsLabelableControl() const
          type == NS_FORM_TEXTAREA;
 }
 
-PRBool
+bool
 nsIFormControl::IsSubmittableControl() const
 {
   
@@ -302,7 +302,7 @@ nsIFormControl::IsSubmittableControl() const
          type & NS_FORM_INPUT_ELEMENT;
 }
 
-PRBool
+bool
 nsIFormControl::AllowDraggableChildren() const
 {
   PRUint32 type = GetType();

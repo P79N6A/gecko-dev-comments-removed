@@ -52,7 +52,7 @@
 
 
 
-static inline PRBool
+static inline bool
 NodeHasChildren(nsINode *aNode)
 {
   return aNode->GetChildCount() > 0;
@@ -80,8 +80,8 @@ NodeToParentOffset(nsINode *aNode, PRInt32 *aOffset)
 
 
 
-static PRBool
-NodeIsInTraversalRange(nsINode *aNode, PRBool aIsPreMode,
+static bool
+NodeIsInTraversalRange(nsINode *aNode, bool aIsPreMode,
                        nsINode *aStartNode, PRInt32 aStartOffset,
                        nsINode *aEndNode, PRInt32 aEndOffset)
 {
@@ -121,7 +121,7 @@ public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS(nsContentIterator)
 
-  explicit nsContentIterator(PRBool aPre);
+  explicit nsContentIterator(bool aPre);
   virtual ~nsContentIterator();
 
   
@@ -141,7 +141,7 @@ public:
 
   virtual nsINode *GetCurrentNode();
 
-  virtual PRBool IsDone();
+  virtual bool IsDone();
 
   virtual nsresult PositionAt(nsINode* aCurNode);
 
@@ -195,8 +195,8 @@ protected:
   
   
   
-  PRBool mIsDone;
-  PRBool mPre;
+  bool mIsDone;
+  bool mPre;
   
 private:
 
@@ -260,7 +260,7 @@ NS_IMPL_CYCLE_COLLECTION_4(nsContentIterator,
 
 
 
-nsContentIterator::nsContentIterator(PRBool aPre) :
+nsContentIterator::nsContentIterator(bool aPre) :
   
   mCachedIndex(0), mIsDone(PR_FALSE), mPre(aPre)
 {
@@ -333,7 +333,7 @@ nsContentIterator::Init(nsIRange* aRange)
   nsINode* endNode = aRange->GetEndParent();
   NS_ENSURE_TRUE(endNode, NS_ERROR_FAILURE);
 
-  PRBool startIsData = startNode->IsNodeOfType(nsINode::eDATA_NODE);
+  bool startIsData = startNode->IsNodeOfType(nsINode::eDATA_NODE);
 
   
   if (startNode == endNode)
@@ -436,7 +436,7 @@ nsContentIterator::Init(nsIRange* aRange)
 
   
 
-  PRBool endIsData = endNode->IsNodeOfType(nsINode::eDATA_NODE);
+  bool endIsData = endNode->IsNodeOfType(nsINode::eDATA_NODE);
 
   if (endIsData || !NodeHasChildren(endNode) || endIndx == 0)
   {
@@ -569,7 +569,7 @@ nsContentIterator::GetDeepFirstChild(nsINode *aRoot,
   }
 
   nsINode *n = aRoot;
-  nsINode *nChild = n->GetChildAt(0);
+  nsINode *nChild = n->GetFirstChild();
 
   while (nChild)
   {
@@ -579,7 +579,7 @@ nsContentIterator::GetDeepFirstChild(nsINode *aRoot,
       aIndexes->AppendElement(0);
     }
     n = nChild;
-    nChild = n->GetChildAt(0);
+    nChild = n->GetFirstChild();
   }
 
   return n;
@@ -747,7 +747,7 @@ nsContentIterator::NextNode(nsINode *aNode, nsTArray<PRInt32> *aIndexes)
     
     if (NodeHasChildren(n))
     {
-      nsINode *nFirstChild = n->GetChildAt(0);
+      nsINode *nFirstChild = n->GetFirstChild();
 
       
       if (aIndexes)
@@ -889,7 +889,8 @@ nsContentIterator::PrevNode(nsINode *aNode, nsTArray<PRInt32> *aIndexes)
     
     if (numChildren)
     {
-      nsINode *nLastChild = n->GetChildAt(--numChildren);
+      nsINode *nLastChild = n->GetLastChild();
+      numChildren--;
 
       
       if (aIndexes)
@@ -979,7 +980,7 @@ nsContentIterator::Prev()
 }
 
 
-PRBool
+bool
 nsContentIterator::IsDone()
 {
   return mIsDone;
@@ -1300,7 +1301,7 @@ nsresult nsContentSubtreeIterator::Init(nsIDOMRange* aRange)
   
   if (startParent == endParent)
   {
-    nsINode* nChild = nStartP->GetChildAt(0);
+    nsINode* nChild = nStartP->GetFirstChild();
   
     if (!nChild) 
     {
@@ -1364,7 +1365,7 @@ nsresult nsContentSubtreeIterator::Init(nsIDOMRange* aRange)
   
   
   
-  PRBool nodeBefore, nodeAfter;
+  bool nodeBefore, nodeAfter;
   if (NS_FAILED(nsRange::CompareNodeToRange(firstCandidate, aRange,
                                             &nodeBefore, &nodeAfter)))
     return NS_ERROR_FAILURE;
@@ -1490,7 +1491,7 @@ nsContentSubtreeIterator::Next()
   {
     
     
-    nextNode = nextNode->GetChildAt(0);
+    nextNode = nextNode->GetFirstChild();
     NS_ASSERTION(nextNode, "Iterator error, expected a child node!");
 
     
@@ -1561,7 +1562,7 @@ nsContentSubtreeIterator::GetTopAncestorInRange(nsINode *aNode,
   
   
   
-  PRBool nodeBefore, nodeAfter;
+  bool nodeBefore, nodeAfter;
   if (NS_FAILED(nsRange::CompareNodeToRange(aNode, mRange, &nodeBefore,
                                             &nodeAfter)))
     return NS_ERROR_FAILURE;

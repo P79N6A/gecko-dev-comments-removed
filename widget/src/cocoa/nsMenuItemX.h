@@ -84,10 +84,10 @@ public:
   
   nsresult      Create(nsMenuX* aParent, const nsString& aLabel, EMenuItemType aItemType,
                        nsMenuGroupOwnerX* aMenuGroupOwner, nsIContent* aNode);
-  nsresult      SetChecked(PRBool aIsChecked);
+  nsresult      SetChecked(bool aIsChecked);
   EMenuItemType GetMenuItemType();
   void          DoCommand();
-  nsresult      DispatchDOMEvent(const nsString &eventName, PRBool* preventDefaultCalled);
+  nsresult      DispatchDOMEvent(const nsString &eventName, bool* preventDefaultCalled);
   void          SetupIcon();
 
 protected:
@@ -102,7 +102,7 @@ protected:
   nsCOMPtr<nsIContent>      mCommandContent;
   
   nsRefPtr<nsMenuItemIconX> mIcon;
-  PRBool                    mIsChecked;
+  bool                      mIsChecked;
 };
 
 #endif 

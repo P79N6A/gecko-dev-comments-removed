@@ -111,7 +111,7 @@ public:
     : width(aWidth)
     , height(aHeight)
   {}
-  PRBool operator!=(const svgFloatSize& rhs) {
+  bool operator!=(const svgFloatSize& rhs) {
     return width != rhs.width || height != rhs.height;
   }
   float width;
@@ -186,26 +186,20 @@ public:
 #endif 
 
   
-  NS_IMETHOD_(PRBool) IsAttributeMapped(const nsIAtom* aAttribute) const;
+  NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const;
 #ifdef MOZ_SMIL
   virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor);
 #endif 
 
   
   virtual gfxMatrix PrependLocalTransformTo(const gfxMatrix &aMatrix) const;
-  virtual void DidChangeLength(PRUint8 aAttrEnum, PRBool aDoSetAttr);
-  virtual void DidChangeViewBox(PRBool aDoSetAttr);
-  virtual void DidChangePreserveAspectRatio(PRBool aDoSetAttr);
-
-  virtual void DidAnimateViewBox();
-  virtual void DidAnimatePreserveAspectRatio();
   
   
   float GetLength(PRUint8 mCtxType);
 
   
   gfxMatrix GetViewBoxTransform() const;
-  PRBool    HasValidViewbox() const { return mViewBox.IsValid(); }
+  bool      HasValidViewbox() const { return mViewBox.IsValid(); }
 
   
   
@@ -237,22 +231,22 @@ private:
   
   
   
-  PRBool ShouldSynthesizeViewBox() const;
+  bool ShouldSynthesizeViewBox() const;
 
 protected:
   
-  PRBool IsEventName(nsIAtom* aName);
+  bool IsEventName(nsIAtom* aName);
 
 #ifdef MOZ_SMIL
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               nsIContent* aBindingParent,
-                              PRBool aCompileEventHandlers);
-  virtual void UnbindFromTree(PRBool aDeep, PRBool aNullParent);
+                              bool aCompileEventHandlers);
+  virtual void UnbindFromTree(bool aDeep, bool aNullParent);
 #endif 
 
   
 
-  PRBool IsRoot() const {
+  bool IsRoot() const {
     NS_ASSERTION((IsInDoc() && !GetParent()) ==
                  (GetOwnerDoc() && (GetOwnerDoc()->GetRootElement() == this)),
                  "Can't determine if we're root");
@@ -263,7 +257,7 @@ protected:
 
 
 
-  PRBool IsInner() const {
+  bool IsInner() const {
     const nsIContent *parent = GetFlattenedTreeParent();
     return parent && parent->GetNameSpaceID() == kNameSpaceID_SVG &&
            parent->Tag() != nsGkAtoms::foreignObject;
@@ -279,7 +273,7 @@ protected:
 
 
 
-  PRBool WillBeOutermostSVG(nsIContent* aParent,
+  bool WillBeOutermostSVG(nsIContent* aParent,
                             nsIContent* aBindingParent) const;
 #endif 
 
@@ -289,7 +283,7 @@ protected:
   
   
   
-  PRBool HasPreserveAspectRatio();
+  bool HasPreserveAspectRatio();
 
   virtual LengthAttributesInfo GetLengthInfo();
 
@@ -342,10 +336,10 @@ protected:
   
   
   
-  PRPackedBool                      mStartAnimationOnBindToTree;
+  bool                              mStartAnimationOnBindToTree;
 #endif 
-  PRPackedBool                      mImageNeedsTransformInvalidation;
-  PRPackedBool                      mIsPaintingSVGImageElement;
+  bool                              mImageNeedsTransformInvalidation;
+  bool                              mIsPaintingSVGImageElement;
 };
 
 #endif

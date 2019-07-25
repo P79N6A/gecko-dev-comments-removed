@@ -301,7 +301,7 @@ class NS_STACK_CLASS nsWSRunObject
     nsresult GetAsciiWSBounds(PRInt16 aDir, nsIDOMNode *aNode, PRInt32 aOffset,
                                 nsCOMPtr<nsIDOMNode> *outStartNode, PRInt32 *outStartOffset,
                                 nsCOMPtr<nsIDOMNode> *outEndNode, PRInt32 *outEndOffset);
-    nsresult FindRun(nsIDOMNode *aNode, PRInt32 aOffset, WSFragment **outRun, PRBool after);
+    nsresult FindRun(nsIDOMNode *aNode, PRInt32 aOffset, WSFragment **outRun, bool after);
     PRUnichar GetCharAt(nsIContent *aTextNode, PRInt32 aOffset);
     nsresult GetWSPointAfter(nsIDOMNode *aNode, PRInt32 aOffset, WSPoint *outPoint);
     nsresult GetWSPointBefore(nsIDOMNode *aNode, PRInt32 aOffset, WSPoint *outPoint);
@@ -320,7 +320,7 @@ class NS_STACK_CLASS nsWSRunObject
     PRInt32 mOffset;                      
     
     
-    PRBool  mPRE;                         
+    bool    mPRE;                         
     nsCOMPtr<nsIDOMNode> mStartNode;      
     PRInt32 mStartOffset;                 
     PRInt16 mStartReason;                 

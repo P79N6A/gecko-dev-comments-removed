@@ -27,7 +27,7 @@ function test() {
       
       
       for (let i = 0; i < 2; i++) {
-        children[1].close();
+        EventUtils.synthesizeMouseAtCenter(children[1].container, {button: 1}, cw);
         ok(bounds.equals(children[1].getBounds()), "tabItems were re-arranged");
       }
 

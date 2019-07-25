@@ -96,14 +96,14 @@ public:
   void ClearAnimValue(nsSVGElement *aElement,
                       PRUint32 aAttrEnum);
 
-  PRBool IsAnimating() const {
+  bool IsAnimating() const {
     return !!mAnimVal;
   }
 
 #ifdef MOZ_SMIL
   
   nsISMILAttr* ToSMILAttr(nsSVGElement* aSVGElement, PRUint8 aAttrEnum,
-                          PRUint8 aAxis, PRBool aCanZeroPadList);
+                          PRUint8 aAxis, bool aCanZeroPadList);
 #endif 
 
 private:
@@ -124,7 +124,7 @@ private:
                            nsSVGElement* aSVGElement,
                            PRUint8 aAttrEnum,
                            PRUint8 aAxis,
-                           PRBool aCanZeroPadList)
+                           bool aCanZeroPadList)
       : mVal(aVal)
       , mElement(aSVGElement)
       , mAttrEnum(aAttrEnum)
@@ -139,13 +139,13 @@ private:
     nsSVGElement* mElement;
     PRUint8 mAttrEnum;
     PRUint8 mAxis;
-    PRPackedBool mCanZeroPadList; 
+    bool mCanZeroPadList; 
 
     
     virtual nsresult ValueFromString(const nsAString& aStr,
                                      const nsISMILAnimationElement* aSrcElement,
                                      nsSMILValue& aValue,
-                                     PRBool& aPreventCachingOfSandwich) const;
+                                     bool& aPreventCachingOfSandwich) const;
     virtual nsSMILValue GetBaseValue() const;
     virtual void ClearAnimValue();
     virtual nsresult SetAnimValue(const nsSMILValue& aValue);

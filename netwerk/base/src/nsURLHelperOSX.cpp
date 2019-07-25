@@ -49,7 +49,7 @@
 
 static nsTArray<nsCString> *gVolumeList = nsnull;
 
-static PRBool pathBeginsWithVolName(const nsACString& path, nsACString& firstPathComponent)
+static bool pathBeginsWithVolName(const nsACString& path, nsACString& firstPathComponent)
 {
   
   
@@ -189,7 +189,7 @@ net_GetFileFromURLSpec(const nsACString &aURL, nsIFile **result)
     return rv;
   
   nsCAutoString directory, fileBaseName, fileExtension, path;
-  PRBool bHFSPath = PR_FALSE;
+  bool bHFSPath = false;
 
   rv = net_ParseFileURL(aURL, directory, fileBaseName, fileExtension);
   if (NS_FAILED(rv))

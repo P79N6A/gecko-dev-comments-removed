@@ -43,6 +43,8 @@
 #include "nsApplicationAccessibleWrap.h"
 #include "nsARIAGridAccessibleWrap.h"
 #include "nsARIAMap.h"
+#include "FocusManager.h"
+
 #include "nsIContentViewer.h"
 #include "nsCURILoader.h"
 #include "nsDocAccessible.h"
@@ -68,6 +70,7 @@
 #include "nsImageFrame.h"
 #include "nsILink.h"
 #include "nsIObserverService.h"
+#include "nsLayoutUtils.h"
 #include "nsNPAPIPluginInstance.h"
 #include "nsISupportsUtils.h"
 #include "nsObjectFrame.h"
@@ -115,9 +118,10 @@ using namespace mozilla::a11y;
 
 
 nsAccessibilityService *nsAccessibilityService::gAccessibilityService = nsnull;
-PRBool nsAccessibilityService::gIsShutdown = PR_TRUE;
+bool nsAccessibilityService::gIsShutdown = true;
 
-nsAccessibilityService::nsAccessibilityService() : nsAccDocManager()
+nsAccessibilityService::nsAccessibilityService() :
+  nsAccDocManager(), FocusManager()
 {
   NS_TIME_FUNCTION;
 }
@@ -175,7 +179,7 @@ nsAccessibilityService::FireAccessibleEvent(PRUint32 aEvent,
 
 nsAccessible*
 nsAccessibilityService::GetRootDocumentAccessible(nsIPresShell* aPresShell,
-                                                  PRBool aCanCreate)
+                                                  bool aCanCreate)
 {
   nsIDocument* documentNode = aPresShell->GetDocument();
   if (documentNode) {
@@ -873,7 +877,7 @@ nsAccessibilityService::GetAccessibleOrContainer(nsINode* aNode,
   return document ? document->GetAccessibleOrContainer(aNode) : nsnull;
 }
 
-static PRBool HasRelatedContent(nsIContent *aContent)
+static bool HasRelatedContent(nsIContent *aContent)
 {
   nsAutoString id;
   if (!aContent || !nsCoreUtils::GetID(aContent, id) || id.IsEmpty()) {
@@ -959,8 +963,21 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
     
     
     
-    return GetAreaAccessible(weakFrame.GetFrame(), aNode, aWeakShell);
+    
+
+#ifdef DEBUG
+  nsImageFrame* imageFrame = do_QueryFrame(weakFrame.GetFrame());
+  NS_ASSERTION(imageFrame && content->IsHTML() && content->Tag() == nsGkAtoms::area,
+               "Unknown case of not main content for the frame!");
+#endif
+    return nsnull;
   }
+
+#ifdef DEBUG
+  nsImageFrame* imageFrame = do_QueryFrame(weakFrame.GetFrame());
+  NS_ASSERTION(!imageFrame || !content->IsHTML() || content->Tag() != nsGkAtoms::area,
+               "Image map manages the area accessible creation!");
+#endif
 
   nsDocAccessible* docAcc =
     GetAccService()->GetDocAccessible(aNode->GetOwnerDoc());
@@ -992,7 +1009,7 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
     return nsnull;
   }
 
-  PRBool isHTML = content->IsHTML();
+  bool isHTML = content->IsHTML();
   if (isHTML && content->Tag() == nsGkAtoms::map) {
     
     
@@ -1002,9 +1019,8 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
     
     
     
-    nsAutoString name;
-    content->GetAttr(kNameSpaceID_None, nsGkAtoms::name, name);
-    if (!name.IsEmpty()) {
+    if (nsLayoutUtils::GetAllInFlowRectsUnion(weakFrame,
+                                              weakFrame->GetParent()).IsEmpty()) {
       if (aIsSubtreeHidden)
         *aIsSubtreeHidden = true;
 
@@ -1028,11 +1044,11 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
   }
 
   if (weakFrame.IsAlive() && !newAcc && isHTML) {  
-    PRBool tryTagNameOrFrame = PR_TRUE;
+    bool tryTagNameOrFrame = true;
 
     nsIAtom *frameType = weakFrame.GetFrame()->GetType();
 
-    PRBool partOfHTMLTable =
+    bool partOfHTMLTable =
       frameType == nsGkAtoms::tableCaptionFrame ||
       frameType == nsGkAtoms::tableCellFrame ||
       frameType == nsGkAtoms::tableRowGroupFrame ||
@@ -1206,7 +1222,7 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
 
 
 
-PRBool
+bool
 nsAccessibilityService::Init()
 {
   
@@ -1252,7 +1268,7 @@ nsAccessibilityService::Shutdown()
   nsAccessNodeWrap::ShutdownAccessibility();
 }
 
-PRBool
+bool
 nsAccessibilityService::HasUniversalAriaProperty(nsIContent *aContent)
 {
   
@@ -1273,50 +1289,6 @@ nsAccessibilityService::HasUniversalAriaProperty(nsIContent *aContent)
          nsAccUtils::HasDefinedARIAToken(aContent, nsGkAtoms::aria_live) ||
          nsAccUtils::HasDefinedARIAToken(aContent, nsGkAtoms::aria_owns) ||
          nsAccUtils::HasDefinedARIAToken(aContent, nsGkAtoms::aria_relevant);
-}
-
-nsAccessible*
-nsAccessibilityService::GetAreaAccessible(nsIFrame* aImageFrame,
-                                          nsINode* aAreaNode,
-                                          nsIWeakReference* aWeakShell,
-                                          nsAccessible** aImageAccessible)
-{
-  
-  nsImageFrame *imageFrame = do_QueryFrame(aImageFrame);
-  if (!imageFrame)
-    return nsnull;
-
-  nsCOMPtr<nsIDOMHTMLAreaElement> areaElmt = do_QueryInterface(aAreaNode);
-  if (!areaElmt)
-    return nsnull;
-
-  
-  
-  nsRefPtr<nsAccessible> image =
-    GetAccessibleInWeakShell(aImageFrame->GetContent(), aWeakShell);
-  if (!image) {
-    image = CreateHTMLImageAccessible(aImageFrame->GetContent(),
-                                      aImageFrame->PresContext()->PresShell());
-
-    nsDocAccessible* document =
-      GetAccService()->GetDocAccessible(aAreaNode->GetOwnerDoc());
-    if (!document) {
-      NS_NOTREACHED("No document for accessible being created!");
-      return nsnull;
-    }
-
-    if (!document->BindToDocument(image, nsnull))
-      return nsnull;
-  }
-
-  if (aImageAccessible)
-    *aImageAccessible = image;
-
-  
-  
-  image->EnsureChildren();
-
-  return GetAccessibleInWeakShell(aAreaNode, aWeakShell);
 }
 
 already_AddRefed<nsAccessible>
@@ -1852,3 +1824,13 @@ nsAccessibilityService::CreateAccessibleForXULTree(nsIContent* aContent,
   return accessible;
 }
 #endif
+
+
+
+
+
+mozilla::a11y::FocusManager*
+mozilla::a11y::FocusMgr()
+{
+  return nsAccessibilityService::gAccessibilityService;
+}

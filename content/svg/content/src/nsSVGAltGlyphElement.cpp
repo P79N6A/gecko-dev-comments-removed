@@ -66,7 +66,7 @@ public:
   NS_FORWARD_NSIDOMSVGTEXTPOSITIONINGELEMENT(nsSVGAltGlyphElementBase::)
 
   
-  NS_IMETHOD_(PRBool) IsAttributeMapped(const nsIAtom* aAttribute) const;
+  NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const;
 
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
@@ -76,7 +76,7 @@ protected:
   
   virtual StringAttributesInfo GetStringInfo();
 
-  virtual PRBool IsEventName(nsIAtom* aName);
+  virtual bool IsEventName(nsIAtom* aName);
 
   enum { HREF };
   nsSVGString mStringAttributes[1];
@@ -162,7 +162,7 @@ NS_IMETHODIMP nsSVGAltGlyphElement::SetFormat(const nsAString & aFormat)
 
 
 
-NS_IMETHODIMP_(PRBool)
+NS_IMETHODIMP_(bool)
 nsSVGAltGlyphElement::IsAttributeMapped(const nsIAtom* name) const
 {
   static const MappedAttributeEntry* const map[] = {
@@ -180,7 +180,7 @@ nsSVGAltGlyphElement::IsAttributeMapped(const nsIAtom* name) const
 
 
 
-PRBool
+bool
 nsSVGAltGlyphElement::IsEventName(nsIAtom* aName)
 {
   return nsContentUtils::IsEventAttributeName(aName, EventNameType_SVGGraphic);

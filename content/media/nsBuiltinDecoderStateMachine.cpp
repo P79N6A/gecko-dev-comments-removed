@@ -45,6 +45,7 @@
 #include "mozilla/mozalloc.h"
 #include "VideoUtils.h"
 #include "nsTimeRanges.h"
+#include "mozilla/Preferences.h"
 
 using namespace mozilla;
 using namespace mozilla::layers;
@@ -59,14 +60,7 @@ extern PRLogModuleInfo* gBuiltinDecoderLog;
 
 
 
-static const PRUint32 BUFFERING_WAIT = 30;
-
-
-
-
-
-#define BUFFERING_MIN_RATE 50000
-#define BUFFERING_RATE(x) ((x)< BUFFERING_MIN_RATE ? BUFFERING_MIN_RATE : (x))
+static const PRUint32 BUFFERING_WAIT = 30000;
 
 
 
@@ -194,7 +188,8 @@ private:
 };
 
 nsBuiltinDecoderStateMachine::nsBuiltinDecoderStateMachine(nsBuiltinDecoder* aDecoder,
-                                                           nsBuiltinDecoderReader* aReader) :
+                                                           nsBuiltinDecoderReader* aReader,
+                                                           bool aRealTime) :
   mDecoder(aDecoder),
   mState(DECODER_STATE_DECODING_METADATA),
   mCbCrSize(0),
@@ -209,18 +204,19 @@ nsBuiltinDecoderStateMachine::nsBuiltinDecoderStateMachine(nsBuiltinDecoder* aDe
   mAudioEndTime(-1),
   mVideoFrameEndTime(-1),
   mVolume(1.0),
-  mSeekable(PR_TRUE),
-  mPositionChangeQueued(PR_FALSE),
-  mAudioCompleted(PR_FALSE),
-  mGotDurationFromMetaData(PR_FALSE),
-  mStopDecodeThread(PR_TRUE),
-  mDecodeThreadIdle(PR_FALSE),
-  mStopAudioThread(PR_TRUE),
-  mQuickBuffering(PR_FALSE),
-  mIsRunning(PR_FALSE),
-  mRunAgain(PR_FALSE),
-  mDispatchedRunEvent(PR_FALSE),
-  mDecodeThreadWaiting(PR_FALSE),
+  mSeekable(true),
+  mPositionChangeQueued(false),
+  mAudioCompleted(false),
+  mGotDurationFromMetaData(false),
+  mStopDecodeThread(true),
+  mDecodeThreadIdle(false),
+  mStopAudioThread(true),
+  mQuickBuffering(false),
+  mIsRunning(false),
+  mRunAgain(false),
+  mDispatchedRunEvent(false),
+  mDecodeThreadWaiting(false),
+  mRealTime(aRealTime),
   mEventManager(aDecoder)
 {
   MOZ_COUNT_CTOR(nsBuiltinDecoderStateMachine);
@@ -233,6 +229,13 @@ nsBuiltinDecoderStateMachine::nsBuiltinDecoderStateMachine(nsBuiltinDecoder* aDe
     NS_ABORT_IF_FALSE(NS_SUCCEEDED(res), "Can't create media state machine thread");
   }
   gStateMachineCount++;
+
+  
+  if (Preferences::GetBool("media.realtime_decoder.enabled", false) == false)
+    mRealTime = false;
+
+  mBufferingWait = mRealTime ? 0 : BUFFERING_WAIT;
+  mLowDataThresholdUsecs = mRealTime ? 0 : LOW_DATA_THRESHOLD_USECS;
 }
 
 nsBuiltinDecoderStateMachine::~nsBuiltinDecoderStateMachine()
@@ -256,7 +259,7 @@ nsBuiltinDecoderStateMachine::~nsBuiltinDecoderStateMachine()
   }
 }
 
-PRBool nsBuiltinDecoderStateMachine::HasFutureAudio() const {
+bool nsBuiltinDecoderStateMachine::HasFutureAudio() const {
   mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
   NS_ASSERTION(HasAudio(), "Should only call HasFutureAudio() when we have audio");
   
@@ -268,7 +271,7 @@ PRBool nsBuiltinDecoderStateMachine::HasFutureAudio() const {
          (AudioDecodedUsecs() > LOW_AUDIO_USECS || mReader->mAudioQueue.IsFinished());
 }
 
-PRBool nsBuiltinDecoderStateMachine::HaveNextFrameData() const {
+bool nsBuiltinDecoderStateMachine::HaveNextFrameData() const {
   mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
   return (!HasAudio() || HasFutureAudio()) &&
          (!HasVideo() || mReader->mVideoQueue.GetSize() > 0);
@@ -308,7 +311,7 @@ void nsBuiltinDecoderStateMachine::DecodeThreadRun()
     }
   }
 
-  mDecodeThreadIdle = PR_TRUE;
+  mDecodeThreadIdle = true;
   LOG(PR_LOG_DEBUG, ("%p Decode thread finished", mDecoder.get()));
 }
 
@@ -321,23 +324,23 @@ void nsBuiltinDecoderStateMachine::DecodeLoop()
 
   
   
-  PRBool audioPump = PR_TRUE;
-  PRBool videoPump = PR_TRUE;
+  bool audioPump = true;
+  bool videoPump = true;
 
   
   
   
   
-  PRBool skipToNextKeyframe = PR_FALSE;
+  bool skipToNextKeyframe = false;
 
   
   
-  const unsigned videoPumpThreshold = AMPLE_VIDEO_FRAMES / 2;
+  const unsigned videoPumpThreshold = mRealTime ? 0 : AMPLE_VIDEO_FRAMES / 2;
 
   
   
   
-  const unsigned audioPumpThreshold = LOW_AUDIO_USECS * 2;
+  const unsigned audioPumpThreshold = mRealTime ? 0 : LOW_AUDIO_USECS * 2;
 
   
   
@@ -352,8 +355,8 @@ void nsBuiltinDecoderStateMachine::DecodeLoop()
   MediaQueue<AudioData>& audioQueue = mReader->mAudioQueue;
 
   
-  PRBool videoPlaying = HasVideo();
-  PRBool audioPlaying = HasAudio();
+  bool videoPlaying = HasVideo();
+  bool audioPlaying = HasAudio();
   while ((mState == DECODER_STATE_DECODING || mState == DECODER_STATE_BUFFERING) &&
          !mStopDecodeThread &&
          (videoPlaying || audioPlaying))
@@ -364,14 +367,14 @@ void nsBuiltinDecoderStateMachine::DecodeLoop()
     if (videoPump &&
         static_cast<PRUint32>(videoQueue.GetSize()) >= videoPumpThreshold)
     {
-      videoPump = PR_FALSE;
+      videoPump = false;
     }
 
     
     
     
     if (audioPump && GetDecodedAudioDuration() >= audioPumpThreshold) {
-      audioPump = PR_FALSE;
+      audioPump = false;
     }
 
     
@@ -390,7 +393,7 @@ void nsBuiltinDecoderStateMachine::DecodeLoop()
         !HasLowUndecodedData())
 
     {
-      skipToNextKeyframe = PR_TRUE;
+      skipToNextKeyframe = true;
       LOG(PR_LOG_DEBUG, ("%p Skipping video decode to the next keyframe", mDecoder.get()));
     }
 
@@ -429,7 +432,7 @@ void nsBuiltinDecoderStateMachine::DecodeLoop()
       ReentrantMonitorAutoExit exitMon(mDecoder->GetReentrantMonitor());
       audioPlaying = mReader->DecodeAudioData();
     }
-    
+
     
     
     mDecoder->GetReentrantMonitor().NotifyAll();
@@ -456,7 +459,7 @@ void nsBuiltinDecoderStateMachine::DecodeLoop()
       
       
       
-      mDecodeThreadWaiting = PR_TRUE;
+      mDecodeThreadWaiting = true;
       if (mDecoder->GetState() != nsBuiltinDecoder::PLAY_STATE_PLAYING) {
         
         
@@ -465,7 +468,7 @@ void nsBuiltinDecoderStateMachine::DecodeLoop()
         ScheduleStateMachine();
       }
       mDecoder->GetReentrantMonitor().Wait();
-      mDecodeThreadWaiting = PR_FALSE;
+      mDecodeThreadWaiting = false;
     }
 
   } 
@@ -481,7 +484,7 @@ void nsBuiltinDecoderStateMachine::DecodeLoop()
   LOG(PR_LOG_DEBUG, ("%p Exiting DecodeLoop", mDecoder.get()));
 }
 
-PRBool nsBuiltinDecoderStateMachine::IsPlaying()
+bool nsBuiltinDecoderStateMachine::IsPlaying()
 {
   mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
 
@@ -494,14 +497,14 @@ void nsBuiltinDecoderStateMachine::AudioLoop()
   LOG(PR_LOG_DEBUG, ("%p Begun audio thread/loop", mDecoder.get()));
   PRInt64 audioDuration = 0;
   PRInt64 audioStartTime = -1;
-  PRInt64 samplesWritten = 0;
+  PRInt64 framesWritten = 0;
   PRUint32 channels, rate;
   double volume = -1;
-  PRBool setVolume;
-  PRInt32 minWriteSamples = -1;
+  bool setVolume;
+  PRInt32 minWriteFrames = -1;
   {
     ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-    mAudioCompleted = PR_FALSE;
+    mAudioCompleted = false;
     audioStartTime = mAudioStartTime;
     channels = mInfo.mAudioChannels;
     rate = mInfo.mAudioRate;
@@ -575,8 +578,8 @@ void nsBuiltinDecoderStateMachine::AudioLoop()
     if (setVolume) {
       mAudioStream->SetVolume(volume);
     }
-    if (minWriteSamples == -1) {
-      minWriteSamples = mAudioStream->GetMinWriteSamples();
+    if (minWriteFrames == -1) {
+      minWriteFrames = mAudioStream->GetMinWriteSize();
     }
     NS_ASSERTION(mReader->mAudioQueue.GetSize() > 0,
                  "Should have data to play");
@@ -586,45 +589,45 @@ void nsBuiltinDecoderStateMachine::AudioLoop()
 
     
     
-    PRInt64 playedSamples = 0;
-    if (!UsecsToSamples(audioStartTime, rate, playedSamples)) {
-      NS_WARNING("Int overflow converting playedSamples");
+    PRInt64 playedFrames = 0;
+    if (!UsecsToFrames(audioStartTime, rate, playedFrames)) {
+      NS_WARNING("Int overflow converting playedFrames");
       break;
     }
-    if (!AddOverflow(playedSamples, audioDuration, playedSamples)) {
-      NS_WARNING("Int overflow adding playedSamples");
+    if (!AddOverflow(playedFrames, audioDuration, playedFrames)) {
+      NS_WARNING("Int overflow adding playedFrames");
       break;
     }
 
     
     
     PRInt64 sampleTime = 0;
-    if (!UsecsToSamples(s->mTime, rate, sampleTime)) {
+    if (!UsecsToFrames(s->mTime, rate, sampleTime)) {
       NS_WARNING("Int overflow converting sampleTime");
       break;
     }
-    PRInt64 missingSamples = 0;
-    if (!AddOverflow(sampleTime, -playedSamples, missingSamples)) {
-      NS_WARNING("Int overflow adding missingSamples");
+    PRInt64 missingFrames = 0;
+    if (!AddOverflow(sampleTime, -playedFrames, missingFrames)) {
+      NS_WARNING("Int overflow adding missingFrames");
       break;
     }
 
-    if (missingSamples > 0) {
+    if (missingFrames > 0) {
       
       
       
       
-      missingSamples = NS_MIN(static_cast<PRInt64>(PR_UINT32_MAX), missingSamples);
-      samplesWritten = PlaySilence(static_cast<PRUint32>(missingSamples),
-                                   channels, playedSamples);
+      missingFrames = NS_MIN(static_cast<PRInt64>(PR_UINT32_MAX), missingFrames);
+      framesWritten = PlaySilence(static_cast<PRUint32>(missingFrames),
+                                  channels, playedFrames);
     } else {
-      samplesWritten = PlayFromAudioQueue(sampleTime, channels);
+      framesWritten = PlayFromAudioQueue(sampleTime, channels);
     }
-    audioDuration += samplesWritten;
+    audioDuration += framesWritten;
     {
       ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
       PRInt64 playedUsecs;
-      if (!SamplesToUsecs(audioDuration, rate, playedUsecs)) {
+      if (!FramesToUsecs(audioDuration, rate, playedUsecs)) {
         NS_WARNING("Int overflow calculating playedUsecs");
         break;
       }
@@ -635,7 +638,7 @@ void nsBuiltinDecoderStateMachine::AudioLoop()
 
       PRInt64 audioAhead = mAudioEndTime - GetMediaTime();
       if (audioAhead > AMPLE_AUDIO_USECS &&
-          samplesWritten > minWriteSamples)
+          framesWritten > minWriteFrames)
       {
         
         
@@ -658,21 +661,21 @@ void nsBuiltinDecoderStateMachine::AudioLoop()
   {
     
     
-    PRBool seeking = PR_FALSE;
+    bool seeking = false;
     {
       ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-      if (samplesWritten < minWriteSamples) {
+      if (framesWritten < minWriteFrames) {
         
         
         
-        PRInt64 samples = minWriteSamples - samplesWritten;
-        if (samples < PR_UINT32_MAX / channels) {
+        PRInt64 minToWrite = minWriteFrames - framesWritten;
+        if (minToWrite < PR_UINT32_MAX / channels) {
           
           
-          PRUint32 numValues = samples * channels;
-          nsAutoArrayPtr<AudioDataValue> buf(new AudioDataValue[numValues]);
-          memset(buf.get(), 0, sizeof(AudioDataValue) * numValues);
-          mAudioStream->Write(buf, numValues);
+          PRUint32 numSamples = minToWrite * channels;
+          nsAutoArrayPtr<AudioDataValue> buf(new AudioDataValue[numSamples]);
+          memset(buf.get(), 0, numSamples * sizeof(AudioDataValue));
+          mAudioStream->Write(buf, minToWrite);
         }
       }
 
@@ -704,7 +707,7 @@ void nsBuiltinDecoderStateMachine::AudioLoop()
     ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
     mAudioStream = nsnull;
     mEventManager.Clear();
-    mAudioCompleted = PR_TRUE;
+    mAudioCompleted = true;
     UpdateReadyState();
     
     mDecoder->GetReentrantMonitor().NotifyAll();
@@ -718,31 +721,31 @@ void nsBuiltinDecoderStateMachine::AudioLoop()
   LOG(PR_LOG_DEBUG, ("%p Audio stream finished playing, audio thread exit", mDecoder.get()));
 }
 
-PRUint32 nsBuiltinDecoderStateMachine::PlaySilence(PRUint32 aSamples,
+PRUint32 nsBuiltinDecoderStateMachine::PlaySilence(PRUint32 aFrames,
                                                    PRUint32 aChannels,
-                                                   PRUint64 aSampleOffset)
+                                                   PRUint64 aFrameOffset)
 
 {
   NS_ASSERTION(OnAudioThread(), "Only call on audio thread.");
   NS_ASSERTION(!mAudioStream->IsPaused(), "Don't play when paused");
-  PRUint32 maxSamples = SILENCE_BYTES_CHUNK / aChannels;
-  PRUint32 samples = NS_MIN(aSamples, maxSamples);
-  PRUint32 numValues = samples * aChannels;
-  nsAutoArrayPtr<AudioDataValue> buf(new AudioDataValue[numValues]);
-  memset(buf.get(), 0, sizeof(AudioDataValue) * numValues);
-  mAudioStream->Write(buf, numValues);
+  PRUint32 maxFrames = SILENCE_BYTES_CHUNK / aChannels / sizeof(AudioDataValue);
+  PRUint32 frames = NS_MIN(aFrames, maxFrames);
+  PRUint32 numSamples = frames * aChannels;
+  nsAutoArrayPtr<AudioDataValue> buf(new AudioDataValue[numSamples]);
+  memset(buf.get(), 0, numSamples * sizeof(AudioDataValue));
+  mAudioStream->Write(buf, frames);
   
-  mEventManager.QueueWrittenAudioData(buf.get(), numValues,
-                                      (aSampleOffset + samples) * aChannels);
-  return samples;
+  mEventManager.QueueWrittenAudioData(buf.get(), frames * aChannels,
+                                      (aFrameOffset + frames) * aChannels);
+  return frames;
 }
 
-PRUint32 nsBuiltinDecoderStateMachine::PlayFromAudioQueue(PRUint64 aSampleOffset,
+PRUint32 nsBuiltinDecoderStateMachine::PlayFromAudioQueue(PRUint64 aFrameOffset,
                                                           PRUint32 aChannels)
 {
   NS_ASSERTION(OnAudioThread(), "Only call on audio thread.");
   NS_ASSERTION(!mAudioStream->IsPaused(), "Don't play when paused");
-  nsAutoPtr<AudioData> audioData(mReader->mAudioQueue.PopFront());
+  nsAutoPtr<AudioData> audio(mReader->mAudioQueue.PopFront());
   {
     ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
     NS_WARN_IF_FALSE(IsPlaying(), "Should be playing");
@@ -751,7 +754,7 @@ PRUint32 nsBuiltinDecoderStateMachine::PlayFromAudioQueue(PRUint64 aSampleOffset
     mDecoder->GetReentrantMonitor().NotifyAll();
   }
   PRInt64 offset = -1;
-  PRUint32 samples = 0;
+  PRUint32 frames = 0;
   
   
   
@@ -760,24 +763,24 @@ PRUint32 nsBuiltinDecoderStateMachine::PlayFromAudioQueue(PRUint64 aSampleOffset
   
   
   if (!mAudioStream->IsPaused()) {
-    mAudioStream->Write(audioData->mAudioData,
-                        audioData->AudioDataLength());
+    mAudioStream->Write(audio->mAudioData,
+                        audio->mFrames);
 
-    offset = audioData->mOffset;
-    samples = audioData->mSamples;
+    offset = audio->mOffset;
+    frames = audio->mFrames;
 
     
-    mEventManager.QueueWrittenAudioData(audioData->mAudioData.get(),
-                                        audioData->AudioDataLength(),
-                                        (aSampleOffset + samples) * aChannels);
+    mEventManager.QueueWrittenAudioData(audio->mAudioData.get(),
+                                        audio->mFrames * aChannels,
+                                        (aFrameOffset + frames) * aChannels);
   } else {
-    mReader->mAudioQueue.PushFront(audioData);
-    audioData.forget();
+    mReader->mAudioQueue.PushFront(audio);
+    audio.forget();
   }
   if (offset != -1) {
     mDecoder->UpdatePlaybackOffset(offset);
   }
-  return samples;
+  return frames;
 }
 
 nsresult nsBuiltinDecoderStateMachine::Init(nsDecoderStateMachine* aCloneDonor)
@@ -854,9 +857,9 @@ void nsBuiltinDecoderStateMachine::UpdatePlaybackPosition(PRInt64 aTime)
 {
   UpdatePlaybackPositionInternal(aTime);
 
-  PRBool fragmentEnded = mFragmentEndTime >= 0 && GetMediaTime() >= mFragmentEndTime;
+  bool fragmentEnded = mFragmentEndTime >= 0 && GetMediaTime() >= mFragmentEndTime;
   if (!mPositionChangeQueued || fragmentEnded) {
-    mPositionChangeQueued = PR_TRUE;
+    mPositionChangeQueued = true;
     nsCOMPtr<nsIRunnable> event =
       NS_NewRunnableMethod(mDecoder, &nsBuiltinDecoder::PlaybackPositionChanged);
     NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
@@ -875,7 +878,7 @@ void nsBuiltinDecoderStateMachine::ClearPositionChangeFlag()
   NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
   mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
 
-  mPositionChangeQueued = PR_FALSE;
+  mPositionChangeQueued = false;
 }
 
 nsHTMLMediaElement::NextFrameStatus nsBuiltinDecoderStateMachine::GetNextFrameStatus()
@@ -948,7 +951,7 @@ void nsBuiltinDecoderStateMachine::SetFragmentEndTime(PRInt64 aEndTime)
   mFragmentEndTime = aEndTime < 0 ? aEndTime : aEndTime + mStartTime;
 }
 
-void nsBuiltinDecoderStateMachine::SetSeekable(PRBool aSeekable)
+void nsBuiltinDecoderStateMachine::SetSeekable(bool aSeekable)
 {
   NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
   mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
@@ -1004,7 +1007,7 @@ void nsBuiltinDecoderStateMachine::ResetPlayback()
   mVideoFrameEndTime = -1;
   mAudioStartTime = -1;
   mAudioEndTime = -1;
-  mAudioCompleted = PR_FALSE;
+  mAudioCompleted = false;
 }
 
 void nsBuiltinDecoderStateMachine::Seek(double aTime)
@@ -1041,7 +1044,7 @@ void nsBuiltinDecoderStateMachine::StopDecodeThread()
 {
   NS_ASSERTION(OnStateMachineThread(), "Should be on state machine thread.");
   mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
-  mStopDecodeThread = PR_TRUE;
+  mStopDecodeThread = true;
   mDecoder->GetReentrantMonitor().NotifyAll();
   if (mDecodeThread) {
     LOG(PR_LOG_DEBUG, ("%p Shutdown decode thread", mDecoder.get()));
@@ -1050,14 +1053,14 @@ void nsBuiltinDecoderStateMachine::StopDecodeThread()
       mDecodeThread->Shutdown();
     }
     mDecodeThread = nsnull;
-    mDecodeThreadIdle = PR_FALSE;
+    mDecodeThreadIdle = false;
   }
 }
 
 void nsBuiltinDecoderStateMachine::StopAudioThread()
 {
   mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
-  mStopAudioThread = PR_TRUE;
+  mStopAudioThread = true;
   mDecoder->GetReentrantMonitor().NotifyAll();
   if (mAudioThread) {
     LOG(PR_LOG_DEBUG, ("%p Shutdown audio thread", mDecoder.get()));
@@ -1074,7 +1077,7 @@ nsBuiltinDecoderStateMachine::StartDecodeThread()
 {
   NS_ASSERTION(OnStateMachineThread(), "Should be on state machine thread.");
   mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
-  mStopDecodeThread = PR_FALSE;
+  mStopDecodeThread = false;
   if ((mDecodeThread && !mDecodeThreadIdle) || mState >= DECODER_STATE_COMPLETED)
     return NS_OK;
 
@@ -1090,7 +1093,7 @@ nsBuiltinDecoderStateMachine::StartDecodeThread()
   nsCOMPtr<nsIRunnable> event =
     NS_NewRunnableMethod(this, &nsBuiltinDecoderStateMachine::DecodeThreadRun);
   mDecodeThread->Dispatch(event, NS_DISPATCH_NORMAL);
-  mDecodeThreadIdle = PR_FALSE;
+  mDecodeThreadIdle = false;
   return NS_OK;
 }
 
@@ -1100,7 +1103,7 @@ nsBuiltinDecoderStateMachine::StartAudioThread()
   NS_ASSERTION(OnStateMachineThread() || OnDecodeThread(),
                "Should be on state machine or decode thread.");
   mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
-  mStopAudioThread = PR_FALSE;
+  mStopAudioThread = false;
   if (HasAudio() && !mAudioThread) {
     nsresult rv = NS_NewThread(getter_AddRefs(mAudioThread),
                                nsnull,
@@ -1127,7 +1130,7 @@ PRInt64 nsBuiltinDecoderStateMachine::AudioDecodedUsecs() const
   return pushed + mReader->mAudioQueue.Duration();
 }
 
-PRBool nsBuiltinDecoderStateMachine::HasLowDecodedData(PRInt64 aAudioUsecs) const
+bool nsBuiltinDecoderStateMachine::HasLowDecodedData(PRInt64 aAudioUsecs) const
 {
   mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
   
@@ -1144,9 +1147,9 @@ PRBool nsBuiltinDecoderStateMachine::HasLowDecodedData(PRInt64 aAudioUsecs) cons
           static_cast<PRUint32>(mReader->mVideoQueue.GetSize()) < LOW_VIDEO_FRAMES));
 }
 
-PRBool nsBuiltinDecoderStateMachine::HasLowUndecodedData() const
+bool nsBuiltinDecoderStateMachine::HasLowUndecodedData() const
 {
-  return GetUndecodedData() < LOW_DATA_THRESHOLD_USECS;
+  return GetUndecodedData() < mLowDataThresholdUsecs;
 }
 
 PRInt64 nsBuiltinDecoderStateMachine::GetUndecodedData() const
@@ -1290,7 +1293,7 @@ void nsBuiltinDecoderStateMachine::DecodeSeek()
   PRInt64 seekTime = mSeekTime;
   mDecoder->StopProgressUpdates();
 
-  PRBool currentTimeChanged = false;
+  bool currentTimeChanged = false;
   PRInt64 mediaTime = GetMediaTime();
   if (mediaTime != seekTime) {
     currentTimeChanged = true;
@@ -1381,7 +1384,7 @@ void nsBuiltinDecoderStateMachine::DecodeSeek()
   
   
   
-  mQuickBuffering = PR_FALSE;
+  mQuickBuffering = false;
 
   ScheduleStateMachine();
 }
@@ -1509,11 +1512,11 @@ nsresult nsBuiltinDecoderStateMachine::RunStateMachine()
       
       
       TimeDuration elapsed = now - mBufferingStart;
-      PRBool isLiveStream = mDecoder->GetCurrentStream()->GetLength() == -1;
+      bool isLiveStream = mDecoder->GetCurrentStream()->GetLength() == -1;
       if ((isLiveStream || !mDecoder->CanPlayThrough()) &&
-            elapsed < TimeDuration::FromSeconds(BUFFERING_WAIT) &&
+            elapsed < TimeDuration::FromSeconds(mBufferingWait) &&
             (mQuickBuffering ? HasLowDecodedData(QUICK_BUFFERING_LOW_DATA_USECS)
-                            : (GetUndecodedData() < BUFFERING_WAIT * USECS_PER_S)) &&
+                            : (GetUndecodedData() < mBufferingWait * USECS_PER_S / 1000)) &&
             !stream->IsDataCachedToEndOfStream(mDecoder->mDecoderPosition) &&
             !stream->IsSuspended())
       {
@@ -1521,8 +1524,8 @@ nsresult nsBuiltinDecoderStateMachine::RunStateMachine()
             ("%p Buffering: %.3lfs/%ds, timeout in %.3lfs %s",
               mDecoder.get(),
               GetUndecodedData() / static_cast<double>(USECS_PER_S),
-              BUFFERING_WAIT,
-              BUFFERING_WAIT - elapsed.ToSeconds(),
+              mBufferingWait,
+              mBufferingWait - elapsed.ToSeconds(),
               (mQuickBuffering ? "(quick exit)" : "")));
         ScheduleStateMachine(USECS_PER_S);
         return NS_OK;
@@ -1683,7 +1686,7 @@ void nsBuiltinDecoderStateMachine::AdvanceFrame()
   nsAutoPtr<VideoData> currentFrame;
   if (mReader->mVideoQueue.GetSize() > 0) {
     VideoData* frame = mReader->mVideoQueue.PeekFront();
-    while (clock_time >= frame->mTime) {
+    while (mRealTime || clock_time >= frame->mTime) {
       mVideoFrameEndTime = frame->mEndTime;
       currentFrame = frame;
       mReader->mVideoQueue.PopFront();
@@ -1840,7 +1843,7 @@ void nsBuiltinDecoderStateMachine::UpdateReadyState() {
   NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
 }
 
-PRBool nsBuiltinDecoderStateMachine::JustExitedQuickBuffering()
+bool nsBuiltinDecoderStateMachine::JustExitedQuickBuffering()
 {
   return !mDecodeStartTime.IsNull() &&
     mQuickBuffering &&
@@ -1893,7 +1896,7 @@ nsresult nsBuiltinDecoderStateMachine::GetBuffered(nsTimeRanges* aBuffered) {
   return res;
 }
 
-PRBool nsBuiltinDecoderStateMachine::IsPausedAndDecoderWaiting() {
+bool nsBuiltinDecoderStateMachine::IsPausedAndDecoderWaiting() {
   mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
   NS_ASSERTION(OnStateMachineThread(), "Should be on state machine thread.");
 
@@ -1917,20 +1920,20 @@ nsresult nsBuiltinDecoderStateMachine::CallRunStateMachine()
   NS_ASSERTION(OnStateMachineThread(), "Should be on state machine thread.");
   
   
-  mRunAgain = PR_FALSE;
+  mRunAgain = false;
 
   
   
-  mDispatchedRunEvent = PR_FALSE;
+  mDispatchedRunEvent = false;
 
   mTimeout = TimeStamp();
 
-  mIsRunning = PR_TRUE;
+  mIsRunning = true;
   nsresult res = RunStateMachine();
-  mIsRunning = PR_FALSE;
+  mIsRunning = false;
 
   if (mRunAgain && !mDispatchedRunEvent) {
-    mDispatchedRunEvent = PR_TRUE;
+    mDispatchedRunEvent = true;
     return NS_DispatchToCurrentThread(this);
   }
 
@@ -1949,7 +1952,7 @@ void nsBuiltinDecoderStateMachine::TimeoutExpired()
   ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
   NS_ASSERTION(OnStateMachineThread(), "Must be on state machine thread");
   if (mIsRunning) {
-    mRunAgain = PR_TRUE;
+    mRunAgain = true;
   } else if (!mDispatchedRunEvent) {
     
     
@@ -1989,16 +1992,18 @@ nsresult nsBuiltinDecoderStateMachine::ScheduleStateMachine(PRInt64 aUsecs) {
   }
 
   PRUint32 ms = static_cast<PRUint32>((aUsecs / USECS_PER_MS) & 0xFFFFFFFF);
+  if (mRealTime && ms > 40)
+    ms = 40;
   if (ms == 0) {
     if (mIsRunning) {
       
       
-      mRunAgain = PR_TRUE;
+      mRunAgain = true;
       return NS_OK;
     } else if (!mDispatchedRunEvent) {
       
       
-      mDispatchedRunEvent = PR_TRUE;
+      mDispatchedRunEvent = true;
       return gStateMachineThread->Dispatch(this, NS_DISPATCH_NORMAL);
     }
     

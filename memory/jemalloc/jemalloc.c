@@ -1307,11 +1307,15 @@ static void	_malloc_postfork(void);
 
 
 
+
 #include "osx_zone_types.h"
 
 #define LEOPARD_MALLOC_ZONE_T_VERSION 3
 #define SNOW_LEOPARD_MALLOC_ZONE_T_VERSION 6
 #define LION_MALLOC_ZONE_T_VERSION 8
+
+static bool osx_use_jemalloc = false;
+
 
 
 
@@ -1331,10 +1335,6 @@ static malloc_zone_t *create_zone(unsigned version);
 static void szone2ozone(malloc_zone_t *zone, size_t size);
 static size_t zone_version_size(int version);
 #endif
-
-
-static bool use_jemalloc = false;
-
 
 
 
@@ -5833,13 +5833,19 @@ MALLOC_OUT:
     default_zone = malloc_default_zone();
 
     
-    use_jemalloc = (default_zone->version <= LION_MALLOC_ZONE_T_VERSION);
+
+
+
+
+
+
+    osx_use_jemalloc = (default_zone->version == SNOW_LEOPARD_MALLOC_ZONE_T_VERSION);
 
     
 	if (getenv("NO_MAC_JEMALLOC"))
-        use_jemalloc = false;
+        osx_use_jemalloc = false;
 
-    if (use_jemalloc) {
+    if (osx_use_jemalloc) {
         size_t size;
 
         
@@ -5946,14 +5952,8 @@ wrap(strdup)(const char *src) {
 
 
 
-
-
-
-
-
-
 #if defined(MOZ_MEMORY_DARWIN) && !defined(__i386__)
-#define DARWIN_ONLY(A) if (!use_jemalloc) { A; }
+#define DARWIN_ONLY(A) if (!osx_use_jemalloc) { A; }
 #else
 #define DARWIN_ONLY(A)
 #endif

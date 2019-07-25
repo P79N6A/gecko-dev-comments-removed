@@ -1086,7 +1086,8 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   _onChildClose: function GroupItem__onChildClose(tabItem) {
     let count = this._children.length;
-    let dontArrange = this.expanded || !this.shouldStack(count);
+    let dontArrange = tabItem.closedManually &&
+                      (this.expanded || !this.shouldStack(count));
     let dontClose = !tabItem.closedManually && gBrowser._numPinnedTabs > 0;
     this.remove(tabItem, {dontArrange: dontArrange, dontClose: dontClose});
 
@@ -1211,6 +1212,10 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       .attr("src", iconUrl)
       .data("xulTab", xulTab)
       .appendTo(this.$appTabTray)
+      .mousedown(function onAppTabMousedown(event) {
+        
+        event.stopPropagation();
+      })
       .click(function(event) {
         if (!Utils.isLeftClick(event))
           return;
@@ -1292,9 +1297,6 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   shouldStack: function GroupItem_shouldStack(count) {
-    if (count <= 1)
-      return false;
-
     let bb = this.getContentBounds();
     let options = {
       return: 'widthAndColumns',
@@ -2376,14 +2378,12 @@ let GroupItems = {
 
     let targetGroupItem;
     
+    
     gBrowser.visibleTabs.some(function(tab) {
       if (!tab.pinned && tab != tabItem.tab) {
-        if (tab._tabViewTabItem) {
-          if (!tab._tabViewTabItem.parent && !tab._tabViewTabItem.parent.hidden) {
-            
-            
-            targetGroupItem = tab._tabViewTabItem.parent;
-          }
+        if (tab._tabViewTabItem && tab._tabViewTabItem.parent &&
+            !tab._tabViewTabItem.parent.hidden) {
+          targetGroupItem = tab._tabViewTabItem.parent;
         }
         return true;
       }
@@ -2604,7 +2604,7 @@ let GroupItems = {
     if (groupItemId) {
       groupItem = GroupItems.groupItem(groupItemId);
       groupItem.add(tab._tabViewTabItem);
-      UI.setReorderTabItemsOnShow(groupItem);
+      groupItem.reorderTabsBasedOnTabItemOrder()
     } else {
       let pageBounds = Items.getPageBounds();
       pageBounds.inset(20, 20);

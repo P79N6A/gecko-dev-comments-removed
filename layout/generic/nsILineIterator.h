@@ -81,7 +81,7 @@ public:
 
 
 
-  virtual PRBool GetDirection() = 0;
+  virtual bool GetDirection() = 0;
 
   
   
@@ -118,8 +118,8 @@ public:
   NS_IMETHOD FindFrameAt(PRInt32 aLineNumber,
                          nscoord aX,
                          nsIFrame** aFrameFound,
-                         PRBool* aXIsBeforeFirstFrame,
-                         PRBool* aXIsAfterLastFrame) = 0;
+                         bool* aXIsBeforeFirstFrame,
+                         bool* aXIsAfterLastFrame) = 0;
 
   
   
@@ -129,7 +129,7 @@ public:
   
   
   NS_IMETHOD CheckLineOrder(PRInt32                  aLine,
-                            PRBool                   *aIsReordered,
+                            bool                     *aIsReordered,
                             nsIFrame                 **aFirstVisual,
                             nsIFrame                 **aLastVisual) = 0;
 #endif

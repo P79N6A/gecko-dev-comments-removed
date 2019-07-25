@@ -94,8 +94,8 @@ private:
   nsString    mAppLocale;
   nsCString   mCharset;        
   nsCString   mPlatformLocale; 
-  PRBool      mLocalePreferred24hour;                       
-  PRBool      mLocaleAMPMfirst;                             
+  bool        mLocalePreferred24hour;                       
+  bool        mLocaleAMPMfirst;                             
   nsCOMPtr <nsIUnicodeDecoder>   mDecoder;
 };
 

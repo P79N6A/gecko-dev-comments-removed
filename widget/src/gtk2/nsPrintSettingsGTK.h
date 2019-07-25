@@ -77,8 +77,8 @@ public:
   GtkPrinter* GetGtkPrinter() { return mGTKPrinter; };
   void SetGtkPrinter(GtkPrinter *aPrinter);
 
-  PRBool GetForcePrintSelectionOnly() { return mPrintSelectionOnly; };
-  void SetForcePrintSelectionOnly(PRBool aPrintSelectionOnly) { mPrintSelectionOnly = aPrintSelectionOnly; };
+  bool GetForcePrintSelectionOnly() { return mPrintSelectionOnly; };
+  void SetForcePrintSelectionOnly(bool aPrintSelectionOnly) { mPrintSelectionOnly = aPrintSelectionOnly; };
 
   
   
@@ -93,11 +93,11 @@ public:
 
   
   
-  NS_IMETHOD GetPrintReversed(PRBool *aPrintReversed);
-  NS_IMETHOD SetPrintReversed(PRBool aPrintReversed);
+  NS_IMETHOD GetPrintReversed(bool *aPrintReversed);
+  NS_IMETHOD SetPrintReversed(bool aPrintReversed);
 
-  NS_IMETHOD GetPrintInColor(PRBool *aPrintInColor);
-  NS_IMETHOD SetPrintInColor(PRBool aPrintInColor);
+  NS_IMETHOD GetPrintInColor(bool *aPrintInColor);
+  NS_IMETHOD SetPrintInColor(bool aPrintInColor);
 
   NS_IMETHOD GetOrientation(PRInt32 *aOrientation);
   NS_IMETHOD SetOrientation(PRInt32 aOrientation);
@@ -165,7 +165,7 @@ protected:
   GtkPrinter* mGTKPrinter;
   GtkPaperSize* mPaperSize;
 
-  PRBool mPrintSelectionOnly;
+  bool mPrintSelectionOnly;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsPrintSettingsGTK, NS_PRINTSETTINGSGTK_IID)

@@ -103,8 +103,8 @@ protected:
 
 
 
-  nsresult LoadImage(const nsAString& aNewURI, PRBool aForce,
-                     PRBool aNotify);
+  nsresult LoadImage(const nsAString& aNewURI, bool aForce,
+                     bool aNotify);
 
   
 
@@ -133,7 +133,7 @@ protected:
 
 
 
-  nsresult LoadImage(nsIURI* aNewURI, PRBool aForce, PRBool aNotify,
+  nsresult LoadImage(nsIURI* aNewURI, bool aForce, bool aNotify,
                      nsIDocument* aDocument = nsnull,
                      nsLoadFlags aLoadFlags = nsIRequest::LOAD_NORMAL);
 
@@ -151,7 +151,8 @@ protected:
 
 
 
-  void CancelImageRequests(PRBool aNotify);
+
+  nsIFrame* GetOurPrimaryFrame();
 
   
 
@@ -159,7 +160,24 @@ protected:
 
 
 
-  nsresult UseAsPrimaryRequest(imgIRequest* aRequest, PRBool aNotify);
+
+
+  nsPresContext* GetFramePresContext();
+
+  
+
+
+
+
+  void CancelImageRequests(bool aNotify);
+
+  
+
+
+
+
+
+  nsresult UseAsPrimaryRequest(imgIRequest* aRequest, bool aNotify);
 
   
 
@@ -173,11 +191,11 @@ protected:
 
   void ClearBrokenState() { mBroken = PR_FALSE; }
 
-  PRBool LoadingEnabled() { return mLoadingEnabled; }
+  bool LoadingEnabled() { return mLoadingEnabled; }
 
   
   
-  void SetBlockingOnload(PRBool aBlocking);
+  void SetBlockingOnload(bool aBlocking);
 
   
 
@@ -211,7 +229,7 @@ private:
 
   struct AutoStateChanger {
     AutoStateChanger(nsImageLoadingContent* aImageContent,
-                     PRBool aNotify) :
+                     bool aNotify) :
       mImageContent(aImageContent),
       mNotify(aNotify)
     {
@@ -224,7 +242,7 @@ private:
     }
 
     nsImageLoadingContent* mImageContent;
-    PRBool mNotify;
+    bool mNotify;
   };
 
   friend struct AutoStateChanger;
@@ -234,7 +252,7 @@ private:
 
 
 
-  void UpdateImageState(PRBool aNotify);
+  void UpdateImageState(bool aNotify);
 
   
 
@@ -248,7 +266,7 @@ private:
 
 
 
-  void CancelImageRequests(nsresult aReason, PRBool aEvenIfSizeAvailable,
+  void CancelImageRequests(nsresult aReason, bool aEvenIfSizeAvailable,
                            PRInt16 aNewImageStatus);
 
   
@@ -306,6 +324,16 @@ protected:
 
 
 
+
+
+
+
+  bool* GetRegisteredFlagForRequest(imgIRequest* aRequest);
+
+  
+
+
+
   static bool HaveSize(imgIRequest *aImage);
 
   
@@ -344,26 +372,26 @@ private:
   nsEventStates mForcedImageState;
 
   PRInt16 mImageBlockingStatus;
-  PRPackedBool mLoadingEnabled : 1;
+  bool mLoadingEnabled : 1;
 
   
 
 
-  PRPackedBool mIsImageStateForced : 1;
+  bool mIsImageStateForced : 1;
 
   
 
 
 
-  PRPackedBool mLoading : 1;
-  PRPackedBool mBroken : 1;
-  PRPackedBool mUserDisabled : 1;
-  PRPackedBool mSuppressed : 1;
+  bool mLoading : 1;
+  bool mBroken : 1;
+  bool mUserDisabled : 1;
+  bool mSuppressed : 1;
 
   
 
 
-  PRPackedBool mBlockingOnload : 1;
+  bool mBlockingOnload : 1;
 
 protected:
   
@@ -374,14 +402,19 @@ protected:
 
 
 
-  PRPackedBool mNewRequestsWillNeedAnimationReset : 1;
+  bool mNewRequestsWillNeedAnimationReset : 1;
 
 private:
-  PRPackedBool mPendingRequestNeedsResetAnimation : 1;
-  PRPackedBool mCurrentRequestNeedsResetAnimation : 1;
+  bool mPendingRequestNeedsResetAnimation : 1;
+  bool mCurrentRequestNeedsResetAnimation : 1;
 
   
   PRUint8 mStateChangerDepth;
+
+  
+  
+  bool mCurrentRequestRegistered;
+  bool mPendingRequestRegistered;
 };
 
 #endif 

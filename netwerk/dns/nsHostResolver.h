@@ -117,17 +117,17 @@ public:
     int          addr_info_gencnt; 
     PRAddrInfo  *addr_info;
     PRNetAddr   *addr;
-    PRBool       negative;   
+    bool         negative;   
 
 
 
 
     PRUint32     expiration; 
 
-    PRBool HasResult() const { return addr_info || addr || negative; }
+    bool HasResult() const { return addr_info || addr || negative; }
 
     
-    PRBool Blacklisted(PRNetAddr *query);
+    bool Blacklisted(PRNetAddr *query);
     void   ResetBlacklist();
     void   ReportUnusable(PRNetAddr *addr);
 
@@ -136,12 +136,12 @@ private:
 
     PRCList callbacks; 
 
-    PRBool  resolving; 
+    bool    resolving; 
 
  
     
-    PRBool  onQueue;  
-    PRBool  usingAnyThread; 
+    bool    onQueue;  
+    bool    usingAnyThread; 
 
     
     
@@ -253,7 +253,7 @@ private:
 
     nsresult Init();
     nsresult IssueLookup(nsHostRecord *);
-    PRBool   GetHostToLookup(nsHostRecord **m);
+    bool     GetHostToLookup(nsHostRecord **m);
     void     OnLookupComplete(nsHostRecord *, nsresult, PRAddrInfo *);
     void     DeQueue(PRCList &aQ, nsHostRecord **aResult);
     void     ClearPendingQueue(PRCList *aPendingQueue);
@@ -278,7 +278,7 @@ private:
     PRUint32      mEvictionQSize;
     PRUint32      mPendingCount;
     PRTime        mCreationTime;
-    PRBool        mShutdown;
+    bool          mShutdown;
     PRIntervalTime mLongIdleTimeout;
     PRIntervalTime mShortIdleTimeout;
 };

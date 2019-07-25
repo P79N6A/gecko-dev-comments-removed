@@ -78,7 +78,7 @@ public:
   GetKeyValue(DOMStorageImpl* aStorage,
               const nsAString& aKey,
               nsAString& aValue,
-              PRBool* aSecure);
+              bool* aSecure);
 
   
 
@@ -87,9 +87,9 @@ public:
   SetKey(DOMStorageImpl* aStorage,
          const nsAString& aKey,
          const nsAString& aValue,
-         PRBool aSecure,
+         bool aSecure,
          PRInt32 aQuota,
-         PRBool aExcludeOfflineFromUsage,
+         bool aExcludeOfflineFromUsage,
          PRInt32* aNewUsage);
 
   
@@ -99,7 +99,7 @@ public:
   nsresult
   SetSecure(DOMStorageImpl* aStorage,
             const nsAString& aKey,
-            const PRBool aSecure);
+            const bool aSecure);
 
   
 
@@ -107,7 +107,7 @@ public:
   nsresult
   RemoveKey(DOMStorageImpl* aStorage,
             const nsAString& aKey,
-            PRBool aExcludeOfflineFromUsage,
+            bool aExcludeOfflineFromUsage,
             PRInt32 aKeyUsage);
 
   
@@ -119,7 +119,7 @@ public:
 
 
   nsresult
-  RemoveOwner(const nsACString& aOwner, PRBool aIncludeSubDomains);
+  RemoveOwner(const nsACString& aOwner, bool aIncludeSubDomains);
 
   
 
@@ -127,7 +127,7 @@ public:
 
   nsresult
   RemoveOwners(const nsTArray<nsString>& aOwners,
-               PRBool aIncludeSubDomains, PRBool aMatch);
+               bool aIncludeSubDomains, bool aMatch);
 
   
 
@@ -139,13 +139,13 @@ public:
 
 
   nsresult
-  GetUsage(DOMStorageImpl* aStorage, PRBool aExcludeOfflineFromUsage, PRInt32 *aUsage);
+  GetUsage(DOMStorageImpl* aStorage, bool aExcludeOfflineFromUsage, PRInt32 *aUsage);
 
   
 
 
   nsresult
-  GetUsage(const nsACString& aDomain, PRBool aIncludeSubDomains, PRInt32 *aUsage);
+  GetUsage(const nsACString& aDomain, bool aIncludeSubDomains, PRInt32 *aUsage);
 
   
 
@@ -211,7 +211,7 @@ protected:
   friend class nsDOMStorageDBWrapper;
   friend class nsDOMStorageMemoryDB;
   nsresult
-  GetUsageInternal(const nsACString& aQuotaDomainDBKey, PRBool aExcludeOfflineFromUsage, PRInt32 *aUsage);
+  GetUsageInternal(const nsACString& aQuotaDomainDBKey, bool aExcludeOfflineFromUsage, PRInt32 *aUsage);
 };
 
 #endif 

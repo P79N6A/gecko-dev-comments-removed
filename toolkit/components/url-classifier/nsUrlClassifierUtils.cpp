@@ -51,7 +51,7 @@ static char int_to_hex_digit(PRInt32 i)
   return static_cast<char>(((i < 10) ? (i + '0') : ((i - 10) + 'A')));
 }
 
-static PRBool
+static bool
 IsDecimal(const nsACString & num)
 {
   for (PRUint32 i = 0; i < num.Length(); i++) {
@@ -63,7 +63,7 @@ IsDecimal(const nsACString & num)
   return PR_TRUE;
 }
 
-static PRBool
+static bool
 IsHex(const nsACString & num)
 {
   if (num.Length() < 3) {
@@ -83,7 +83,7 @@ IsHex(const nsACString & num)
   return PR_TRUE;
 }
 
-static PRBool
+static bool
 IsOctal(const nsACString & num)
 {
   if (num.Length() < 2) {
@@ -274,7 +274,7 @@ nsUrlClassifierUtils::ParseIPAddress(const nsACString & host,
   
   
   
-  PRBool allowOctal = PR_TRUE;
+  bool allowOctal = true;
   PRUint32 i;
 
   for (i = 0; i < parts.Length(); i++) {
@@ -319,7 +319,7 @@ nsUrlClassifierUtils::ParseIPAddress(const nsACString & host,
 void
 nsUrlClassifierUtils::CanonicalNum(const nsACString& num,
                                    PRUint32 bytes,
-                                   PRBool allowOctal,
+                                   bool allowOctal,
                                    nsACString& _retval)
 {
   _retval.Truncate();
@@ -361,12 +361,12 @@ nsUrlClassifierUtils::CanonicalNum(const nsACString& num,
 
 
 
-PRBool
+bool
 nsUrlClassifierUtils::SpecialEncode(const nsACString & url,
-                                    PRBool foldSlashes,
+                                    bool foldSlashes,
                                     nsACString & _retval)
 {
-  PRBool changed = PR_FALSE;
+  bool changed = false;
   const char* curChar = url.BeginReading();
   const char* end = url.EndReading();
 
@@ -390,7 +390,7 @@ nsUrlClassifierUtils::SpecialEncode(const nsACString & url,
   return changed;
 }
 
-PRBool
+bool
 nsUrlClassifierUtils::ShouldURLEscape(const unsigned char c) const
 {
   return c <= 32 || c == '%' || c >=127;

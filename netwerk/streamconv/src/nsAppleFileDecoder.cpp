@@ -76,7 +76,7 @@ NS_IMETHODIMP nsAppleFileDecoder::Initialize(nsIOutputStream *outputStream, nsIF
   m_output = outputStream;
   
   nsCOMPtr<nsILocalFileMac> macFile = do_QueryInterface(outputFile);
-  PRBool saveFollowLinks;
+  bool saveFollowLinks;
   macFile->GetFollowLinks(&saveFollowLinks);
   macFile->SetFollowLinks(PR_TRUE);
   macFile->GetFSSpec(&m_fsFileSpec);
@@ -101,22 +101,22 @@ NS_IMETHODIMP nsAppleFileDecoder::Close(void)
   
   if (m_headerOk)
   {
-    PRBool dataOk = PR_TRUE; 
+    bool dataOk = true; 
     if (m_headers.magic == APPLESINGLE_MAGIC)
     {
       for (i = 0; i < m_headers.entriesCount; i ++)
         if (ENT_DFORK == m_entries[i].id)
         {
-          dataOk = (PRBool)(m_totalDataForkWritten == m_entries[i].length);
+          dataOk = (bool)(m_totalDataForkWritten == m_entries[i].length);
           break;
         }
     }
 
-    PRBool resourceOk = FALSE;
+    bool resourceOk = FALSE;
     for (i = 0; i < m_headers.entriesCount; i ++)
       if (ENT_RFORK == m_entries[i].id)
       {
-        resourceOk = (PRBool)(m_totalResourceForkWritten == m_entries[i].length);
+        resourceOk = (bool)(m_totalResourceForkWritten == m_entries[i].length);
         break;
       }
       
@@ -193,7 +193,7 @@ NS_IMETHODIMP nsAppleFileDecoder::WriteSegments(nsReadSegmentFun reader, void * 
   return m_output->WriteSegments(reader, closure, count, _retval);
 }
 
-NS_IMETHODIMP nsAppleFileDecoder::IsNonBlocking(PRBool *aNonBlocking)
+NS_IMETHODIMP nsAppleFileDecoder::IsNonBlocking(bool *aNonBlocking)
 {
   return m_output->IsNonBlocking(aNonBlocking);
 }

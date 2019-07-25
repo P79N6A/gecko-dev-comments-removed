@@ -286,19 +286,19 @@ public:
 
 
 
-    PRBool CheckDPIChange();
+    bool CheckDPIChange();
 
     
 
 
 
 
-    PRBool SetPixelScale(float aScale);
+    bool SetPixelScale(float aScale);
 
     
 
 
-    PRBool IsPrinterSurface();
+    bool IsPrinterSurface();
 
 protected:
     void SetDPI();

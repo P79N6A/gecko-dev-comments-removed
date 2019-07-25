@@ -71,6 +71,7 @@
 #endif
 
 class imgIDecoder;
+class imgIContainerObserver;
 class nsIInputStream;
 
 #define NS_RASTERIMAGE_CID \
@@ -80,6 +81,24 @@ class nsIInputStream;
      0x418a,                                         \
     {0xb1, 0x43, 0x33, 0x40, 0xc0, 0x01, 0x12, 0xf7} \
 }
+
+
+
+
+
+#define UINT64_MAX_VAL PRUint64(-1)
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -151,7 +170,6 @@ class imgDecodeWorker;
 class Decoder;
 
 class RasterImage : public Image
-                  , public nsITimerCallback
                   , public nsIProperties
                   , public nsSupportsWeakReference
 #ifdef DEBUG
@@ -160,7 +178,6 @@ class RasterImage : public Image
 {
 public:
   NS_DECL_ISUPPORTS
-  NS_DECL_NSITIMERCALLBACK
   NS_DECL_NSIPROPERTIES
 #ifdef DEBUG
   NS_DECL_IMGICONTAINERDEBUG
@@ -172,8 +189,8 @@ public:
   NS_SCRIPTABLE NS_IMETHOD GetHeight(PRInt32 *aHeight);
   NS_SCRIPTABLE NS_IMETHOD GetType(PRUint16 *aType);
   NS_IMETHOD_(PRUint16) GetType(void);
-  NS_SCRIPTABLE NS_IMETHOD GetAnimated(PRBool *aAnimated);
-  NS_SCRIPTABLE NS_IMETHOD GetCurrentFrameIsOpaque(PRBool *aCurrentFrameIsOpaque);
+  NS_SCRIPTABLE NS_IMETHOD GetAnimated(bool *aAnimated);
+  NS_SCRIPTABLE NS_IMETHOD GetCurrentFrameIsOpaque(bool *aCurrentFrameIsOpaque);
   NS_IMETHOD GetFrame(PRUint32 aWhichFrame, PRUint32 aFlags, gfxASurface **_retval NS_OUTPARAM);
   NS_IMETHOD CopyFrame(PRUint32 aWhichFrame, PRUint32 aFlags, gfxImageSurface **_retval NS_OUTPARAM);
   NS_IMETHOD ExtractFrame(PRUint32 aWhichFrame, const nsIntRect & aRect, PRUint32 aFlags, imgIContainer **_retval NS_OUTPARAM);
@@ -183,6 +200,7 @@ public:
   NS_SCRIPTABLE NS_IMETHOD LockImage(void);
   NS_SCRIPTABLE NS_IMETHOD UnlockImage(void);
   NS_SCRIPTABLE NS_IMETHOD ResetAnimation(void);
+  NS_IMETHOD_(void) RequestRefresh(const mozilla::TimeStamp& aTime);
   
 
   RasterImage(imgStatusTracker* aStatusTracker = nsnull);
@@ -334,6 +352,10 @@ private:
     
     nsIntRect                  firstFrameRefreshArea;
     PRUint32                   currentAnimationFrameIndex; 
+
+    
+    TimeStamp                  currentAnimationFrameTime;
+
     
     PRInt32                    lastCompositedFrameIndex;
     
@@ -352,22 +374,32 @@ private:
 
 
     nsAutoPtr<imgFrame>        compositingPrevFrame;
-    
-    nsCOMPtr<nsITimer>         timer;
 
     Anim() :
       firstFrameRefreshArea(),
       currentAnimationFrameIndex(0),
-      lastCompositedFrameIndex(-1)
-    {
-      ;
-    }
-    ~Anim()
-    {
-      if (timer)
-        timer->Cancel();
-    }
+      lastCompositedFrameIndex(-1) {}
+    ~Anim() {}
   };
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  bool AdvanceFrame(mozilla::TimeStamp aTime, nsIntRect* aDirtyRect);
 
   
 
@@ -385,6 +417,7 @@ private:
   imgFrame* GetCurrentImgFrame();
   imgFrame* GetCurrentDrawableImgFrame();
   PRUint32 GetCurrentImgFrameIndex() const;
+  mozilla::TimeStamp GetCurrentImgFrameEndTime() const;
   
   inline void EnsureAnimExists()
   {
@@ -405,7 +438,7 @@ private:
       LockImage();
     }
   }
-  
+
   
 
 
@@ -432,7 +465,7 @@ private:
   static void ClearFrame(imgFrame* aFrame, nsIntRect &aRect);
   
   
-  static PRBool CopyFrameImage(imgFrame *aSrcFrame,
+  static bool CopyFrameImage(imgFrame *aSrcFrame,
                                imgFrame *aDstFrame);
   
   
@@ -513,23 +546,23 @@ private:
 #endif
 
   
-  PRPackedBool               mHasSize:1;       
-  PRPackedBool               mDecodeOnDraw:1;  
-  PRPackedBool               mMultipart:1;     
-  PRPackedBool               mDiscardable:1;   
-  PRPackedBool               mHasSourceData:1; 
+  bool                       mHasSize:1;       
+  bool                       mDecodeOnDraw:1;  
+  bool                       mMultipart:1;     
+  bool                       mDiscardable:1;   
+  bool                       mHasSourceData:1; 
 
   
-  PRPackedBool               mDecoded:1;
-  PRPackedBool               mHasBeenDecoded:1;
+  bool                       mDecoded:1;
+  bool                       mHasBeenDecoded:1;
 
   
-  PRPackedBool               mWorkerPending:1;
-  PRPackedBool               mInDecoder:1;
+  bool                       mWorkerPending:1;
+  bool                       mInDecoder:1;
 
   
   
-  PRPackedBool               mAnimationFinished:1;
+  bool                       mAnimationFinished:1;
 
   
   nsresult WantDecodedFrames();
@@ -537,7 +570,7 @@ private:
   nsresult InitDecoder(bool aDoSizeDecode);
   nsresult WriteToDecoder(const char *aBuffer, PRUint32 aCount);
   nsresult DecodeSomeData(PRUint32 aMaxBytes);
-  PRBool   IsDecodeFinished();
+  bool     IsDecodeFinished();
   TimeStamp mDrawStartTime;
 
   

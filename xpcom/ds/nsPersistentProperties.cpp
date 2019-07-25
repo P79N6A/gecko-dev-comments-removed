@@ -155,7 +155,7 @@ public:
   nsresult ParseBuffer(const PRUnichar* aBuffer, PRUint32 aBufferLength);
 
 private:
-  PRBool ParseValueCharacter(
+  bool ParseValueCharacter(
     PRUnichar c,                  
     const PRUnichar* cur,         
     const PRUnichar* &tokenStart, 
@@ -194,14 +194,14 @@ private:
 
   PRUint32  mUnicodeValuesRead; 
   PRUnichar mUnicodeValue;      
-  PRBool    mHaveMultiLine;     
+  bool      mHaveMultiLine;     
                                 
                                 
                                 
                                 
                                 
                                 
-  PRBool    mMultiLineCanSkipN; 
+  bool      mMultiLineCanSkipN; 
   PRUint32  mMinLength;         
                                 
   EParserState mState;
@@ -210,19 +210,19 @@ private:
   nsIPersistentProperties* mProps;
 };
 
-inline PRBool IsWhiteSpace(PRUnichar aChar)
+inline bool IsWhiteSpace(PRUnichar aChar)
 {
   return (aChar == ' ') || (aChar == '\t') ||
          (aChar == '\r') || (aChar == '\n');
 }
 
-inline PRBool IsEOL(PRUnichar aChar)
+inline bool IsEOL(PRUnichar aChar)
 {
   return (aChar == '\r') || (aChar == '\n');
 }
 
 
-PRBool nsPropertiesParser::ParseValueCharacter(
+bool nsPropertiesParser::ParseValueCharacter(
     PRUnichar c, const PRUnichar* cur, const PRUnichar* &tokenStart,
     nsAString& oldValue)
 {
@@ -682,7 +682,7 @@ nsPersistentProperties::Undefine(const char* prop)
 }
 
 NS_IMETHODIMP
-nsPersistentProperties::Has(const char* prop, PRBool *result)
+nsPersistentProperties::Has(const char* prop, bool *result)
 {
   PropertyTableEntry *entry =
     static_cast<PropertyTableEntry*>

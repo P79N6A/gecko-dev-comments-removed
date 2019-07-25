@@ -103,7 +103,7 @@ public:
   NS_DECL_NSIDOMCSSMEDIARULE
 
   
-  virtual PRBool UseForPresentation(nsPresContext* aPresContext,
+  virtual bool UseForPresentation(nsPresContext* aPresContext,
                                     nsMediaQueryResultCacheKey& aKey);
 
   
@@ -145,7 +145,7 @@ public:
   NS_DECL_NSIDOMCSSMOZDOCUMENTRULE
 
   
-  virtual PRBool UseForPresentation(nsPresContext* aPresContext,
+  virtual bool UseForPresentation(nsPresContext* aPresContext,
                                     nsMediaQueryResultCacheKey& aKey);
 
   enum Function {
@@ -322,7 +322,7 @@ public:
 
   NS_IMETHOD GetParentRule(nsIDOMCSSRule **aParent);
   void DropReference() { mRule = nsnull; }
-  virtual mozilla::css::Declaration* GetCSSDeclaration(PRBool aAllocate);
+  virtual mozilla::css::Declaration* GetCSSDeclaration(bool aAllocate);
   virtual nsresult SetCSSDeclaration(mozilla::css::Declaration* aDecl);
   virtual void GetCSSParsingEnvironment(CSSParsingEnvironment& aCSSParseEnv);
   virtual nsIDocument* DocToUpdate();
@@ -423,7 +423,7 @@ public:
   NS_DECL_NSIDOMMOZCSSKEYFRAMESRULE
 
   
-  virtual PRBool UseForPresentation(nsPresContext* aPresContext,
+  virtual bool UseForPresentation(nsPresContext* aPresContext,
                                     nsMediaQueryResultCacheKey& aKey);
 
   const nsString& GetName() { return mName; }

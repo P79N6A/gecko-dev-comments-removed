@@ -119,7 +119,7 @@ class nsAutoTObserverArray : protected nsTObserverArray_base {
     }
 
     
-    PRBool IsEmpty() const {
+    bool IsEmpty() const {
       return mArray.IsEmpty();
     }
 
@@ -160,7 +160,7 @@ class nsAutoTObserverArray : protected nsTObserverArray_base {
     
     
     template<class Item>
-    PRBool Contains(const Item& item) const {
+    bool Contains(const Item& item) const {
       return IndexOf(item) != array_type::NoIndex;
     }
 
@@ -184,7 +184,7 @@ class nsAutoTObserverArray : protected nsTObserverArray_base {
     
     
     template<class Item>
-    PRBool PrependElementUnlessExists(const Item& item) {
+    bool PrependElementUnlessExists(const Item& item) {
       return Contains(item) || mArray.InsertElementAt(0, item) != nsnull;
     }
 
@@ -207,7 +207,7 @@ class nsAutoTObserverArray : protected nsTObserverArray_base {
     
     
     template<class Item>
-    PRBool AppendElementUnlessExists(const Item& item) {
+    bool AppendElementUnlessExists(const Item& item) {
       return Contains(item) || AppendElement(item) != nsnull;
     }
 
@@ -225,7 +225,7 @@ class nsAutoTObserverArray : protected nsTObserverArray_base {
     
     
     template<class Item>
-    PRBool RemoveElement(const Item& item) {
+    bool RemoveElement(const Item& item) {
       index_type index = mArray.IndexOf(item, 0);
       if (index == array_type::NoIndex)
         return PR_FALSE;
@@ -291,7 +291,7 @@ class nsAutoTObserverArray : protected nsTObserverArray_base {
           : Iterator(aPos, aArray) {
         }
 
-        PRBool operator <(const ForwardIterator& aOther) const {
+        bool operator <(const ForwardIterator& aOther) const {
           NS_ASSERTION(&this->mArray == &aOther.mArray,
                        "not iterating the same array");
           return base_type::mPosition < aOther.mPosition;
@@ -300,7 +300,7 @@ class nsAutoTObserverArray : protected nsTObserverArray_base {
         
         
         
-        PRBool HasMore() const {
+        bool HasMore() const {
           return base_type::mPosition < base_type::mArray.Length();
         }
 
@@ -328,7 +328,7 @@ class nsAutoTObserverArray : protected nsTObserverArray_base {
         
         
         
-        PRBool HasMore() const {
+        bool HasMore() const {
           return *this < mEnd;
         }
 

@@ -107,7 +107,7 @@ SetACookieNoHttp(nsICookieService *aCookieService, const char *aSpec, const char
 
 
 
-PRBool
+bool
 GetACookie(nsICookieService *aCookieService, const char *aSpec1, const char *aSpec2, char **aCookie)
 {
     nsCOMPtr<nsIURI> uri1, uri2;
@@ -130,7 +130,7 @@ GetACookie(nsICookieService *aCookieService, const char *aSpec1, const char *aSp
 
 
 
-PRBool
+bool
 GetACookieNoHttp(nsICookieService *aCookieService, const char *aSpec, char **aCookie)
 {
     nsCOMPtr<nsIURI> uri;
@@ -159,7 +159,7 @@ GetACookieNoHttp(nsICookieService *aCookieService, const char *aSpec, char **aCo
 
 
 
-static inline PRBool
+static inline bool
 CheckResult(const char *aLhs, PRUint32 aRule, const char *aRhs = nsnull)
 {
     switch (aRule) {
@@ -186,10 +186,10 @@ CheckResult(const char *aLhs, PRUint32 aRule, const char *aRhs = nsnull)
 
 
 
-PRBool
-PrintResult(const PRBool aResult[], PRUint32 aSize)
+bool
+PrintResult(const bool aResult[], PRUint32 aSize)
 {
-    PRBool failed = PR_FALSE;
+    bool failed = false;
     sBuffer = PR_sprintf_append(sBuffer, "*** tests ");
     for (PRUint32 i = 0; i < aSize; ++i) {
         if (!aResult[i]) {
@@ -239,7 +239,7 @@ main(PRInt32 argc, char *argv[])
     if (test_common_init(&argc, &argv) != 0)
         return -1;
 
-    PRBool allTestsPassed = PR_TRUE;
+    bool allTestsPassed = true;
 
     ScopedXPCOM xpcom;
     if (NS_FAILED(xpcom.rv))
@@ -258,7 +258,7 @@ main(PRInt32 argc, char *argv[])
 
       InitPrefs(prefBranch);
 
-      PRBool rv[20];
+      bool rv[20];
       nsCString cookie;
 
       
@@ -698,7 +698,7 @@ main(PRInt32 argc, char *argv[])
       nsCOMPtr<nsISimpleEnumerator> enumerator;
       rv[4] = NS_SUCCEEDED(cookieMgr->GetEnumerator(getter_AddRefs(enumerator)));
       PRInt32 i = 0;
-      PRBool more;
+      bool more;
       nsCOMPtr<nsICookie2> expiredCookie, newDomainCookie;
       while (NS_SUCCEEDED(enumerator->HasMoreElements(&more)) && more) {
         nsCOMPtr<nsISupports> cookie;
@@ -726,7 +726,7 @@ main(PRInt32 argc, char *argv[])
       rv[8] = NS_SUCCEEDED(cookieMgr2->CountCookiesFromHost(NS_LITERAL_CSTRING("cookiemgr.test"), &hostCookies)) &&
               hostCookies == 2;
       
-      PRBool found;
+      bool found;
       rv[9] = NS_SUCCEEDED(cookieMgr2->CookieExists(newDomainCookie, &found)) && found;
       
       rv[10] = NS_SUCCEEDED(cookieMgr->Remove(NS_LITERAL_CSTRING("new.domain"), 

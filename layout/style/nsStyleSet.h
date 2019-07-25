@@ -106,7 +106,7 @@ class nsStyleSet
   nsRuleNode* GetRuleTree() { return mRuleTree; }
 
   
-  void EnableQuirkStyleSheet(PRBool aEnable);
+  void EnableQuirkStyleSheet(bool aEnable);
 
   
   already_AddRefed<nsStyleContext>
@@ -180,12 +180,12 @@ class nsStyleSet
 
   
   
-  PRBool AppendFontFaceRules(nsPresContext* aPresContext,
+  bool AppendFontFaceRules(nsPresContext* aPresContext,
                              nsTArray<nsFontFaceRuleContainer>& aArray);
 
   
   
-  PRBool AppendKeyframesRules(nsPresContext* aPresContext,
+  bool AppendKeyframesRules(nsPresContext* aPresContext,
                               nsTArray<nsCSSKeyframesRule*>& aArray);
 
   
@@ -211,7 +211,7 @@ class nsStyleSet
                        mozilla::dom::Element* aElement);
 
   
-  PRBool HasDocumentStateDependentStyle(nsPresContext* aPresContext,
+  bool HasDocumentStateDependentStyle(nsPresContext* aPresContext,
                                         nsIContent*    aContent,
                                         nsEventStates  aStateMask);
 
@@ -225,14 +225,14 @@ class nsStyleSet
                                            mozilla::dom::Element* aElement,
                                            nsIAtom*       aAttribute,
                                            PRInt32        aModType,
-                                           PRBool         aAttrHasChanged);
+                                           bool           aAttrHasChanged);
 
   
 
 
 
 
-  PRBool MediumFeaturesChanged(nsPresContext* aPresContext);
+  bool MediumFeaturesChanged(nsPresContext* aPresContext);
 
   
   
@@ -267,8 +267,8 @@ class nsStyleSet
                          const nsCOMArray<nsIStyleSheet> &aNewSheets);
 
   
-  PRBool GetAuthorStyleDisabled();
-  nsresult SetAuthorStyleDisabled(PRBool aStyleDisabled);
+  bool GetAuthorStyleDisabled();
+  nsresult SetAuthorStyleDisabled(bool aStyleDisabled);
 
   PRInt32 SheetCount(sheetType aType) const {
     return mSheets[aType].Count();
@@ -301,7 +301,7 @@ class nsStyleSet
   
   
   
-  PRBool HasCachedStyleData() const {
+  bool HasCachedStyleData() const {
     return (mRuleTree && mRuleTree->TreeHasCachedData()) || !mRoots.IsEmpty();
   }
 
@@ -326,7 +326,7 @@ class nsStyleSet
   nsStyleSet& operator=(const nsStyleSet& aCopy);
 
   
-  PRBool BuildDefaultStyleData(nsPresContext* aPresContext);
+  bool BuildDefaultStyleData(nsPresContext* aPresContext);
 
   
   void GCRuleTrees();
@@ -369,17 +369,17 @@ class nsStyleSet
   
   void WalkRuleProcessors(nsIStyleRuleProcessor::EnumFunc aFunc,
                           RuleProcessorData* aData,
-                          PRBool aWalkAllXBLStylesheets);
+                          bool aWalkAllXBLStylesheets);
 
   already_AddRefed<nsStyleContext>
   GetContext(nsStyleContext* aParentContext,
              nsRuleNode* aRuleNode,
              nsRuleNode* aVisitedRuleNode,
-             PRBool aIsLink,
-             PRBool aIsVisitedLink,
+             bool aIsLink,
+             bool aIsVisitedLink,
              nsIAtom* aPseudoTag,
              nsCSSPseudoElements::Type aPseudoType,
-             PRBool aDoAnimation,
+             bool aDoAnimation,
              mozilla::dom::Element* aElementForAnimation);
 
   nsPresContext* PresContext() { return mRuleTree->GetPresContext(); }

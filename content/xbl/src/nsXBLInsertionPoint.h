@@ -75,7 +75,7 @@ public:
 
   PRInt32 IndexOf(nsIContent* aContent) { return mElements.IndexOf(aContent); }
 
-  PRBool Matches(nsIContent* aContent, PRUint32 aIndex);
+  bool Matches(nsIContent* aContent, PRUint32 aIndex);
 
   
   

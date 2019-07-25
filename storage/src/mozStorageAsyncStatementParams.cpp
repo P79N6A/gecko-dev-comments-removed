@@ -82,7 +82,7 @@ AsyncStatementParams::SetProperty(
   JSObject *aScopeObj,
   jsid aId,
   jsval *_vp,
-  PRBool *_retval
+  bool *_retval
 )
 {
   NS_ENSURE_TRUE(mStatement, NS_ERROR_NOT_INITIALIZED);
@@ -122,7 +122,7 @@ AsyncStatementParams::NewResolve(
   jsid aId,
   PRUint32 aFlags,
   JSObject **_objp,
-  PRBool *_retval
+  bool *_retval
 )
 {
   NS_ENSURE_TRUE(mStatement, NS_ERROR_NOT_INITIALIZED);
@@ -130,7 +130,7 @@ AsyncStatementParams::NewResolve(
   
 
   bool resolved = false;
-  PRBool ok = PR_TRUE;
+  bool ok = true;
   if (JSID_IS_INT(aId)) {
     PRUint32 idx = JSID_TO_INT(aId);
     

@@ -421,13 +421,13 @@ IS_CJK_CHAR(PRUnichar u)
           (0xff00 <= (u) && (u) <= 0xffef) );
 }
 
-static inline PRBool
+static inline bool
 IS_NONBREAKABLE_SPACE(PRUnichar u)
 {
   return u == 0x00A0 || u == 0x2007; 
 }
 
-static inline PRBool
+static inline bool
 IS_HYPHEN(PRUnichar u)
 {
   return (u == U_HYPHEN ||
@@ -529,7 +529,7 @@ GetClass(PRUnichar u)
    return c;
 }
 
-static PRBool
+static bool
 GetPair(PRInt8 c1, PRInt8 c2)
 {
   NS_ASSERTION(c1 < MAX_CLASSES ,"illegal classes 1");
@@ -538,7 +538,7 @@ GetPair(PRInt8 c1, PRInt8 c2)
   return (0 == ((gPair[c1] >> c2) & 0x0001));
 }
 
-static PRBool
+static bool
 GetPairConservative(PRInt8 c1, PRInt8 c2)
 {
   NS_ASSERTION(c1 < MAX_CLASSES ,"illegal classes 1");
@@ -597,11 +597,11 @@ public:
 
 #define CONSERVATIVE_BREAK_RANGE 6
 
-  PRBool UseConservativeBreaking(PRUint32 aOffset = 0) {
+  bool UseConservativeBreaking(PRUint32 aOffset = 0) {
     if (mHasCJKChar)
       return PR_FALSE;
     PRUint32 index = mIndex + aOffset;
-    PRBool result = (index < CONSERVATIVE_BREAK_RANGE ||
+    bool result = (index < CONSERVATIVE_BREAK_RANGE ||
                      mLength - index < CONSERVATIVE_BREAK_RANGE ||
                      index - mLastBreakIndex < CONSERVATIVE_BREAK_RANGE);
     if (result || !mHasNonbreakableSpace)
@@ -623,21 +623,21 @@ public:
     return PR_FALSE;
   }
 
-  PRBool HasPreviousEqualsSign() const {
+  bool HasPreviousEqualsSign() const {
     return mHasPreviousEqualsSign;
   }
   void NotifySeenEqualsSign() {
     mHasPreviousEqualsSign = PR_TRUE;
   }
 
-  PRBool HasPreviousSlash() const {
+  bool HasPreviousSlash() const {
     return mHasPreviousSlash;
   }
   void NotifySeenSlash() {
     mHasPreviousSlash = PR_TRUE;
   }
 
-  PRBool HasPreviousBackslash() const {
+  bool HasPreviousBackslash() const {
     return mHasPreviousBackslash;
   }
   void NotifySeenBackslash() {
@@ -679,12 +679,12 @@ private:
   PRUint32 mLastBreakIndex;
   PRUnichar mPreviousNonHyphenCharacter; 
                                          
-  PRPackedBool mHasCJKChar; 
-  PRPackedBool mHasNonbreakableSpace; 
+  bool mHasCJKChar; 
+  bool mHasNonbreakableSpace; 
                                      
-  PRPackedBool mHasPreviousEqualsSign; 
-  PRPackedBool mHasPreviousSlash;      
-  PRPackedBool mHasPreviousBackslash;  
+  bool mHasPreviousEqualsSign; 
+  bool mHasPreviousSlash;      
+  bool mHasPreviousBackslash;  
 };
 
 static PRInt8
@@ -699,8 +699,8 @@ ContextualAnalysis(PRUnichar prev, PRUnichar cur, PRUnichar next,
       return CLASS_CHARACTER;
     
     
-    PRBool prevIsNum = IS_ASCII_DIGIT(prev);
-    PRBool nextIsNum = IS_ASCII_DIGIT(next);
+    bool prevIsNum = IS_ASCII_DIGIT(prev);
+    bool nextIsNum = IS_ASCII_DIGIT(next);
     if (prevIsNum && nextIsNum)
       return CLASS_NUMERIC;
     
@@ -708,9 +708,9 @@ ContextualAnalysis(PRUnichar prev, PRUnichar cur, PRUnichar next,
     if (!aState.UseConservativeBreaking(1)) {
       PRUnichar prevOfHyphen = aState.GetPreviousNonHyphenCharacter();
       if (prevOfHyphen && next) {
-        PRBool prevIsChar = !NEED_CONTEXTUAL_ANALYSIS(prevOfHyphen) &&
+        bool prevIsChar = !NEED_CONTEXTUAL_ANALYSIS(prevOfHyphen) &&
                             GetClass(prevOfHyphen) == CLASS_CHARACTER;
-        PRBool nextIsChar = !NEED_CONTEXTUAL_ANALYSIS(next) &&
+        bool nextIsChar = !NEED_CONTEXTUAL_ANALYSIS(next) &&
                             GetClass(next) == CLASS_CHARACTER;
         if ((prevIsNum || prevIsChar) && (nextIsNum || nextIsChar))
           return CLASS_CLOSE;
@@ -724,7 +724,7 @@ ContextualAnalysis(PRUnichar prev, PRUnichar cur, PRUnichar next,
         return CLASS_CHARACTER;
       
       
-      PRBool shouldReturn = !aState.UseConservativeBreaking() &&
+      bool shouldReturn = !aState.UseConservativeBreaking() &&
         (cur == U_SLASH ?
          aState.HasPreviousSlash() : aState.HasPreviousBackslash());
 
@@ -771,7 +771,7 @@ PRInt32
 nsJISx4051LineBreaker::WordMove(const PRUnichar* aText, PRUint32 aLen,
                                 PRUint32 aPos, PRInt8 aDirection)
 {
-  PRBool  textNeedsJISx4051 = PR_FALSE;
+  bool    textNeedsJISx4051 = false;
   PRInt32 begin, end;
 
   for (begin = aPos; begin > 0 && !NS_IsSpace(aText[begin - 1]); --begin) {
@@ -855,7 +855,7 @@ nsJISx4051LineBreaker::GetJISx4051Breaks(const PRUnichar* aChars, PRUint32 aLeng
       cl = GetClass(ch);
     }
 
-    PRBool allowBreak;
+    bool allowBreak;
     if (cur > 0) {
       NS_ASSERTION(CLASS_COMPLEX != lastClass || CLASS_COMPLEX != cl,
                    "Loop should have prevented adjacent complex chars here");
@@ -912,7 +912,7 @@ nsJISx4051LineBreaker::GetJISx4051Breaks(const PRUint8* aChars, PRUint32 aLength
       cl = GetClass(ch);
     }
 
-    PRBool allowBreak;
+    bool allowBreak;
     if (cur > 0) {
       if (state.UseConservativeBreaking())
         allowBreak = GetPairConservative(lastClass, cl);

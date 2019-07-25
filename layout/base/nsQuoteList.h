@@ -62,22 +62,22 @@ struct nsQuoteNode : public nsGenConNode {
     NS_ASSERTION(aContentIndex <= PR_INT32_MAX, "out of range");
   }
 
-  virtual PRBool InitTextFrame(nsGenConList* aList, 
+  virtual bool InitTextFrame(nsGenConList* aList, 
           nsIFrame* aPseudoFrame, nsIFrame* aTextFrame);
 
   
-  PRBool IsOpenQuote() {
+  bool IsOpenQuote() {
     return mType == eStyleContentType_OpenQuote ||
            mType == eStyleContentType_NoOpenQuote;
   }
 
   
-  PRBool IsCloseQuote() {
+  bool IsCloseQuote() {
     return !IsOpenQuote();
   }
 
   
-  PRBool IsRealQuote() {
+  bool IsRealQuote() {
     return mType == eStyleContentType_OpenQuote ||
            mType == eStyleContentType_CloseQuote;
   }
