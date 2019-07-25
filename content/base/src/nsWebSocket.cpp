@@ -1300,7 +1300,9 @@ nsWebSocket::Close()
     
     nsRefPtr<nsWebSocket> kungfuDeathGrip = this;
 
-    mConnection->FailConnection();
+    if (mConnection) {
+      mConnection->FailConnection();
+    }
     return NS_OK;
   }
 
