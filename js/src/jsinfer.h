@@ -660,6 +660,14 @@ struct TypeCompartment
 
     
 
+
+
+
+    unsigned recompilations;
+    unsigned frameExpansions;
+
+    
+
     ArrayTypeTable *arrayTypeTable;
     ObjectTypeTable *objectTypeTable;
 
@@ -699,9 +707,6 @@ struct TypeCompartment
     static const unsigned TYPE_COUNT_LIMIT = 4;
     unsigned typeCounts[TYPE_COUNT_LIMIT];
     unsigned typeCountOver;
-
-    
-    unsigned recompilations;
 
     void init(JSContext *cx);
     ~TypeCompartment();

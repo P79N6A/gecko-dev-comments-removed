@@ -805,13 +805,13 @@ class CallCompiler : public BaseCompiler
         if (callingNew)
             vp[1].setMagicWithObjectOrNullPayload(NULL);
 
-        uint32 recompilations = jit->recompilations;
+        RecompilationMonitor monitor(cx);
 
         if (!CallJSNative(cx, fun->u.n.native, ic.frameSize.getArgc(f), vp))
             THROWV(true);
 
         
-        if (f.jit()->recompilations != recompilations)
+        if (monitor.recompiled())
             return true;
 
         
@@ -985,7 +985,7 @@ class CallCompiler : public BaseCompiler
     {
         JSStackFrame *fp = f.fp();
         JITScript *jit = fp->jit();
-        uint32 recompilations = jit->recompilations;
+        RecompilationMonitor monitor(cx);
 
         stubs::UncachedCallResult ucr;
         if (callingNew)
@@ -996,7 +996,7 @@ class CallCompiler : public BaseCompiler
         
         
         
-        if (fp->jit()->recompilations != recompilations)
+        if (monitor.recompiled())
             return ucr.codeAddr;
 
         

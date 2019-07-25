@@ -40,6 +40,7 @@
 #define jsjaeger_h__
 
 #include "jscntxt.h"
+#include "jscompartment.h"
 
 #include "assembler/assembler/MacroAssemblerCodeRef.h"
 #include "assembler/assembler/CodeLocation.h"
@@ -145,6 +146,12 @@ struct VMFrame
 
     JSRuntime *runtime() { return cx->runtime; }
 
+    
+
+
+
+
+
     JSStackFrame *&fp() { return regs.fp; }
     mjit::JITScript *jit() { return fp()->jit(); }
 
@@ -159,6 +166,30 @@ extern "C" void JaegerStubVeneer(void);
 #endif
 
 namespace mjit {
+
+
+struct RecompilationMonitor
+{
+    JSContext *cx;
+
+    
+
+
+
+    unsigned recompilations;
+    unsigned frameExpansions;
+
+    RecompilationMonitor(JSContext *cx)
+        : cx(cx),
+          recompilations(cx->compartment->types.recompilations),
+          frameExpansions(cx->compartment->types.frameExpansions)
+    {}
+
+    bool recompiled() {
+        return cx->compartment->types.recompilations != recompilations
+            || cx->compartment->types.frameExpansions != frameExpansions;
+    }
+};
 
 
 
@@ -347,13 +378,6 @@ struct JITScript {
     uint32          nSetElems;
     uint32          nPICs;
 #endif
-
-    
-
-
-
-
-    uint32          recompilations;
 
 #ifdef JS_MONOIC
     
