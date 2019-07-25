@@ -39,6 +39,7 @@
 
 
 #include "CompositorParent.h"
+#include "RenderTrace.h"
 #include "ShadowLayersParent.h"
 #include "LayerManagerOGL.h"
 #include "nsIWidget.h"

@@ -104,6 +104,7 @@
 #include "vm/RegExpStatics-inl.h"
 #include "vm/Stack-inl.h"
 #include "vm/String-inl.h"
+#include "vm/StringBuffer-inl.h"
 
 #if ENABLE_YARR_JIT
 #include "assembler/jit/ExecutableAllocator.h"
@@ -752,6 +753,7 @@ JSRuntime::JSRuntime()
     gcZealFrequency(0),
     gcNextScheduled(0),
     gcDebugCompartmentGC(false),
+    gcDeterministicOnly(false),
 #endif
     gcCallback(NULL),
     gcSliceCallback(NULL),
@@ -4264,7 +4266,9 @@ prop_iter_trace(JSTracer *trc, JSObject *obj)
 
 
 
-        MarkShapeUnbarriered(trc, (Shape *)pdata, "prop iter shape");
+        Shape *tmp = (Shape *)pdata;
+        MarkShapeUnbarriered(trc, &tmp, "prop iter shape");
+        JS_ASSERT(tmp == pdata);
     } else {
         
         JSIdArray *ida = (JSIdArray *) pdata;
@@ -4405,8 +4409,8 @@ JS_NewArrayObject(JSContext *cx, int length, jsval *vector)
     AssertNoGC(cx);
     CHECK_REQUEST(cx);
     
-    assertSameCompartment(cx, JSValueArray(vector, vector ? (jsuint)length : 0));
-    return NewDenseCopiedArray(cx, (jsuint)length, vector);
+    assertSameCompartment(cx, JSValueArray(vector, vector ? (uint32_t)length : 0));
+    return NewDenseCopiedArray(cx, (uint32_t)length, vector);
 }
 
 JS_PUBLIC_API(JSBool)
@@ -4417,7 +4421,7 @@ JS_IsArrayObject(JSContext *cx, JSObject *obj)
 }
 
 JS_PUBLIC_API(JSBool)
-JS_GetArrayLength(JSContext *cx, JSObject *obj, jsuint *lengthp)
+JS_GetArrayLength(JSContext *cx, JSObject *obj, uint32_t *lengthp)
 {
     AssertNoGC(cx);
     CHECK_REQUEST(cx);
@@ -4426,7 +4430,7 @@ JS_GetArrayLength(JSContext *cx, JSObject *obj, jsuint *lengthp)
 }
 
 JS_PUBLIC_API(JSBool)
-JS_SetArrayLength(JSContext *cx, JSObject *obj, jsuint length)
+JS_SetArrayLength(JSContext *cx, JSObject *obj, uint32_t length)
 {
     AssertNoGC(cx);
     CHECK_REQUEST(cx);
@@ -6463,23 +6467,10 @@ JS_ClearPendingException(JSContext *cx)
 JS_PUBLIC_API(JSBool)
 JS_ReportPendingException(JSContext *cx)
 {
-    JSBool ok;
-    bool save;
-
     AssertNoGC(cx);
     CHECK_REQUEST(cx);
 
-    
-
-
-
-
-
-    save = cx->generatingError;
-    cx->generatingError = JS_TRUE;
-    ok = js_ReportUncaughtException(cx);
-    cx->generatingError = save;
-    return ok;
+    return js_ReportUncaughtException(cx);
 }
 
 struct JSExceptionState {

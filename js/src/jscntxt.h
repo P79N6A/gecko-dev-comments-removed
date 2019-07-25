@@ -419,6 +419,7 @@ struct JSRuntime : js::RuntimeFriendFields
     int                 gcZealFrequency;
     int                 gcNextScheduled;
     bool                gcDebugCompartmentGC;
+    bool                gcDeterministicOnly;
 
     int gcZeal() { return gcZeal_; }
 
@@ -829,11 +830,11 @@ struct JSContext : js::ContextFriendFields
     bool                hasVersionOverride;
 
     
-    JSBool              throwing;           
-    js::Value           exception;          
+    JSBool              throwing;            
+    js::Value           exception;           
 
     
-    unsigned               runOptions;            
+    unsigned            runOptions;          
 
   public:
     int32_t             reportGranularity;  
@@ -844,10 +845,7 @@ struct JSContext : js::ContextFriendFields
     js::AutoResolving   *resolvingList;
 
     
-
-
-
-    bool        generatingError;
+    bool                generatingError;
 
     
     JSCompartment       *compartment;
@@ -1417,6 +1415,14 @@ js_ExpandErrorArguments(JSContext *cx, JSErrorCallback callback,
                         char **message, JSErrorReport *reportp,
                         bool charArgs, va_list ap);
 #endif
+
+namespace js {
+
+
+extern void
+ReportUsageError(JSContext *cx, JSObject *callee, const char *msg);
+
+} 
 
 extern void
 js_ReportOutOfMemory(JSContext *cx);

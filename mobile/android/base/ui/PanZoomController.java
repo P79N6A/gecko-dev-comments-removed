@@ -228,7 +228,7 @@ public class PanZoomController
     public void pageSizeUpdated() {
         if (mState == PanZoomState.NOTHING) {
             ViewportMetrics validated = getValidViewportMetrics();
-            if (! (new ViewportMetrics(mController.getViewportMetrics())).fuzzyEquals(validated)) {
+            if (! mController.getViewportMetrics().fuzzyEquals(validated)) {
                 
                 
                 mController.setViewportMetrics(validated);
@@ -283,12 +283,12 @@ public class PanZoomController
             cancelTouch();
             startPanning(event.getX(0), event.getY(0), event.getEventTime());
             GeckoApp.mAppContext.hidePlugins(false );
-            GeckoApp.mAutoCompletePopup.hide();
+            GeckoApp.mFormAssistPopup.hide();
             track(event);
             return true;
 
         case PANNING_HOLD_LOCKED:
-            GeckoApp.mAutoCompletePopup.hide();
+            GeckoApp.mFormAssistPopup.hide();
             mState = PanZoomState.PANNING_LOCKED;
             
         case PANNING_LOCKED:
@@ -296,7 +296,7 @@ public class PanZoomController
             return true;
 
         case PANNING_HOLD:
-            GeckoApp.mAutoCompletePopup.hide();
+            GeckoApp.mFormAssistPopup.hide();
             mState = PanZoomState.PANNING;
             
         case PANNING:
@@ -742,7 +742,7 @@ public class PanZoomController
         mState = PanZoomState.PINCHING;
         mLastZoomFocus = new PointF(detector.getFocusX(), detector.getFocusY());
         GeckoApp.mAppContext.hidePlugins(false );
-        GeckoApp.mAutoCompletePopup.hide();
+        GeckoApp.mFormAssistPopup.hide();
         cancelTouch();
 
         return true;
@@ -845,7 +845,7 @@ public class PanZoomController
 
     @Override
     public boolean onSingleTapConfirmed(MotionEvent motionEvent) {
-        GeckoApp.mAutoCompletePopup.hide();
+        GeckoApp.mFormAssistPopup.hide();
         sendPointToGecko("Gesture:SingleTap", motionEvent);
         return true;
     }
@@ -862,7 +862,7 @@ public class PanZoomController
     }
 
     private boolean animatedZoomTo(RectF zoomToRect) {
-        GeckoApp.mAutoCompletePopup.hide();
+        GeckoApp.mFormAssistPopup.hide();
 
         mState = PanZoomState.ANIMATED_ZOOM;
         final float startZoom = mController.getZoomFactor();
