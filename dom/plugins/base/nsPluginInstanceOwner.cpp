@@ -674,6 +674,11 @@ NS_IMETHODIMP nsPluginInstanceOwner::InvalidateRegion(NPRegion invalidRegion)
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
+NS_IMETHODIMP nsPluginInstanceOwner::ForceRedraw()
+{
+  return NS_OK;
+}
+
 NS_IMETHODIMP nsPluginInstanceOwner::GetNetscapeWindow(void *value)
 {
   if (!mObjectFrame) {
@@ -1081,13 +1086,6 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetBorderHorizSpace(PRUint32 *result)
     *result = 0;
 
   return rv;
-}
-
-NS_IMETHODIMP nsPluginInstanceOwner::GetUniqueID(PRUint32 *result)
-{
-  NS_ENSURE_ARG_POINTER(result);
-  *result = NS_PTR_TO_INT32(mObjectFrame);
-  return NS_OK;
 }
 
 
