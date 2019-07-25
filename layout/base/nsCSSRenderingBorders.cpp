@@ -1014,11 +1014,15 @@ nsCSSBorderRenderer::DrawBorders()
   PRBool brBordersSame = AreBorderSideFinalStylesSame(SIDE_BIT_BOTTOM | SIDE_BIT_RIGHT);
   PRBool allBordersSame = AreBorderSideFinalStylesSame(SIDE_BITS_ALL);
   if (allBordersSame &&
-      mCompositeColors[0] == NULL &&
-      (mBorderStyles[0] == NS_STYLE_BORDER_STYLE_NONE ||
-       mBorderStyles[0] == NS_STYLE_BORDER_STYLE_HIDDEN ||
-       mBorderColors[0] == NS_RGBA(0,0,0,0)))
+      ((mCompositeColors[0] == NULL &&
+       (mBorderStyles[0] == NS_STYLE_BORDER_STYLE_NONE ||
+        mBorderStyles[0] == NS_STYLE_BORDER_STYLE_HIDDEN ||
+        mBorderColors[0] == NS_RGBA(0,0,0,0))) ||
+       (mCompositeColors[0] &&
+        (mCompositeColors[0]->mColor == NS_RGBA(0,0,0,0) &&
+         !mCompositeColors[0]->mNext))))
   {
+    
     
     
     
