@@ -3864,7 +3864,7 @@ nsHTMLEditor::ContentInserted(nsIDocument *aDocument, nsIContent* aContainer,
     ResetRootElementAndEventTarget();
   }
   
-  else if (!mAction) {
+  else if (!mAction && (aContainer ? aContainer->IsEditable() : aDocument->IsEditable())) {
     mRules->DocumentModified();
   }
 }
@@ -3878,7 +3878,7 @@ nsHTMLEditor::ContentRemoved(nsIDocument *aDocument, nsIContent* aContainer,
     ResetRootElementAndEventTarget();
   }
   
-  else if (!mAction) {
+  else if (!mAction && (aContainer ? aContainer->IsEditable() : aDocument->IsEditable())) {
     mRules->DocumentModified();
   }
 }
