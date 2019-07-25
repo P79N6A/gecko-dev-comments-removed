@@ -61,6 +61,79 @@ class nsPtrHashKey;
     }                                                                          \
   }
 
+namespace mozilla {
+namespace css {
+
+struct URLValue {
+  
+  
+  
+
+  
+  
+  
+  
+  URLValue(nsStringBuffer* aString, nsIURI* aBaseURI, nsIURI* aReferrer,
+           nsIPrincipal* aOriginPrincipal);
+  
+  URLValue(nsIURI* aURI, nsStringBuffer* aString, nsIURI* aReferrer,
+           nsIPrincipal* aOriginPrincipal);
+
+  ~URLValue();
+
+  bool operator==(const URLValue& aOther) const;
+
+  
+  
+  
+  
+  bool URIEquals(const URLValue& aOther) const;
+
+  nsIURI* GetURI() const;
+
+  size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+
+private:
+  
+  
+  
+  mutable nsCOMPtr<nsIURI> mURI;
+public:
+  nsStringBuffer* mString; 
+                           
+  nsCOMPtr<nsIURI> mReferrer;
+  nsCOMPtr<nsIPrincipal> mOriginPrincipal;
+
+  NS_INLINE_DECL_REFCOUNTING(URLValue)
+
+private:
+  mutable bool mURIResolved;
+
+  URLValue(const URLValue& aOther) MOZ_DELETE;
+  URLValue& operator=(const URLValue& aOther) MOZ_DELETE;
+};
+
+struct ImageValue : public URLValue {
+  
+  
+  
+  
+  ImageValue(nsIURI* aURI, nsStringBuffer* aString, nsIURI* aReferrer,
+             nsIPrincipal* aOriginPrincipal, nsIDocument* aDocument);
+  ~ImageValue();
+
+  
+
+  nsInterfaceHashtable<nsISupportsHashKey, imgIRequest> mRequests; 
+
+  
+  
+  NS_INLINE_DECL_REFCOUNTING(ImageValue)
+};
+
+}
+}
+
 enum nsCSSUnit {
   eCSSUnit_Null         = 0,      
   eCSSUnit_Auto         = 1,      
@@ -182,11 +255,9 @@ public:
   struct Array;
   friend struct Array;
 
-  struct URL;
-  friend struct URL;
+  friend struct mozilla::css::URLValue;
 
-  struct Image;
-  friend struct Image;
+  friend struct mozilla::css::ImageValue;
 
   
   explicit nsCSSValue(nsCSSUnit aUnit = eCSSUnit_Null)
@@ -199,8 +270,8 @@ public:
   nsCSSValue(float aValue, nsCSSUnit aUnit);
   nsCSSValue(const nsString& aValue, nsCSSUnit aUnit);
   nsCSSValue(Array* aArray, nsCSSUnit aUnit);
-  explicit nsCSSValue(URL* aValue);
-  explicit nsCSSValue(Image* aValue);
+  explicit nsCSSValue(mozilla::css::URLValue* aValue);
+  explicit nsCSSValue(mozilla::css::ImageValue* aValue);
   explicit nsCSSValue(nsCSSValueGradient* aValue);
   nsCSSValue(const nsCSSValue& aCopy);
   ~nsCSSValue() { Reset(); }
@@ -349,7 +420,7 @@ public:
   inline nsCSSValueTriplet& GetTripletValue();
   inline const nsCSSValueTriplet& GetTripletValue() const;
 
-  URL* GetURLStructValue() const
+  mozilla::css::URLValue* GetURLStructValue() const
   {
     
     
@@ -357,7 +428,7 @@ public:
     return mValue.mURL;
   }
 
-  Image* GetImageStructValue() const
+  mozilla::css::ImageValue* GetImageStructValue() const
   {
     NS_ABORT_IF_FALSE(mUnit == eCSSUnit_Image, "not an Image value");
     return mValue.mImage;
@@ -395,8 +466,8 @@ public:
   void SetStringValue(const nsString& aValue, nsCSSUnit aUnit);
   void SetColorValue(nscolor aValue);
   void SetArrayValue(nsCSSValue::Array* aArray, nsCSSUnit aUnit);
-  void SetURLValue(nsCSSValue::URL* aURI);
-  void SetImageValue(nsCSSValue::Image* aImage);
+  void SetURLValue(mozilla::css::URLValue* aURI);
+  void SetImageValue(mozilla::css::ImageValue* aImage);
   void SetGradientValue(nsCSSValueGradient* aGradient);
   void SetPairValue(const nsCSSValuePair* aPair);
   void SetPairValue(const nsCSSValue& xValue, const nsCSSValue& yValue);
@@ -434,73 +505,6 @@ public:
 
   size_t SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
 
-  struct URL {
-    
-    
-    
-
-    
-    
-    
-    
-    URL(nsStringBuffer* aString, nsIURI* aBaseURI, nsIURI* aReferrer,
-        nsIPrincipal* aOriginPrincipal);
-    
-    URL(nsIURI* aURI, nsStringBuffer* aString, nsIURI* aReferrer,
-        nsIPrincipal* aOriginPrincipal);
-
-    ~URL();
-
-    bool operator==(const URL& aOther) const;
-
-    
-    
-    
-    
-    bool URIEquals(const URL& aOther) const;
-
-    nsIURI* GetURI() const;
-
-    size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
-
-  private:
-    
-    
-    
-    mutable nsCOMPtr<nsIURI> mURI;
-  public:
-    nsStringBuffer* mString; 
-                             
-    nsCOMPtr<nsIURI> mReferrer;
-    nsCOMPtr<nsIPrincipal> mOriginPrincipal;
-
-    NS_INLINE_DECL_REFCOUNTING(nsCSSValue::URL)
-
-  private:
-    mutable bool mURIResolved;
-
-    URL(const URL& aOther) MOZ_DELETE;
-    URL& operator=(const URL& aOther) MOZ_DELETE;
-  };
-
-  struct Image : public URL {
-    
-    
-    
-    
-    Image(nsIURI* aURI, nsStringBuffer* aString, nsIURI* aReferrer,
-          nsIPrincipal* aOriginPrincipal, nsIDocument* aDocument);
-    ~Image();
-
-    
-
-    nsInterfaceHashtable<nsISupportsHashKey, imgIRequest> mRequests; 
-
-    
-    
-    NS_INLINE_DECL_REFCOUNTING(nsCSSValue::Image)
-  };
-
 private:
   static const PRUnichar* GetBufferValue(nsStringBuffer* aBuffer) {
     return static_cast<PRUnichar*>(aBuffer->Data());
@@ -516,8 +520,8 @@ protected:
     nsStringBuffer* mString;
     nscolor    mColor;
     Array*     mArray;
-    URL*       mURL;
-    Image*     mImage;
+    mozilla::css::URLValue* mURL;
+    mozilla::css::ImageValue* mImage;
     nsCSSValueGradient* mGradient;
     nsCSSValuePair_heap* mPair;
     nsCSSRect_heap* mRect;

@@ -1556,7 +1556,7 @@ struct nsStyleDisplay {
 
   
   
-  nsRefPtr<nsCSSValue::URL> mBinding;    
+  nsRefPtr<mozilla::css::URLValue> mBinding;    
   nsRect  mClip;                
   float   mOpacity;             
   uint8_t mDisplay;             
