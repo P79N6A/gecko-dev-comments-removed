@@ -1283,7 +1283,7 @@ js_RemoveRoot(JSRuntime *rt, void *rp);
 #ifdef __cplusplus
 JS_END_EXTERN_C
 
-namespace js {
+namespace JS {
 
 
 
