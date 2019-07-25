@@ -164,6 +164,8 @@ xml_isXMLName(JSContext *cx, uintN argc, jsval *vp)
     return JS_TRUE;
 }
 
+size_t sE4XObjectsCreated = 0;
+
 
 
 
@@ -172,6 +174,9 @@ xml_isXMLName(JSContext *cx, uintN argc, jsval *vp)
 static inline JSObject *
 NewBuiltinClassInstanceXML(JSContext *cx, Class *clasp)
 {
+    if (!cx->runningWithTrustedPrincipals())
+        ++sE4XObjectsCreated;
+
     JSObject *obj = NewBuiltinClassInstance(cx, clasp);
     if (obj)
         obj->syncSpecialEquality();
@@ -7185,6 +7190,12 @@ js_InitXMLClass(JSContext *cx, JSObject *obj)
         return NULL;
     xmlProto->setPrivate(xml);
     xml->object = xmlProto;
+
+    
+    if (!cx->runningWithTrustedPrincipals()) {
+        JS_ASSERT(sE4XObjectsCreated > 0);
+        --sE4XObjectsCreated;
+    }
 
     const uintN XML_CTOR_LENGTH = 1;
     JSFunction *ctor = global->createConstructor(cx, XML, &js_XMLClass, CLASS_ATOM(cx, XML),
