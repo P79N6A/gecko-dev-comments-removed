@@ -24,9 +24,6 @@ class SyncPreference extends Preference {
     @Override
     protected void onClick() {
         
-        final String accountType = org.mozilla.gecko.sync.setup.Constants.ACCOUNTTYPE_SYNC;
-
-        
         if (SyncAccounts.syncAccountsExist(mContext)) {
             SyncAccounts.openSyncSettings(mContext);
         } else {
