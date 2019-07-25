@@ -354,7 +354,7 @@ public:
   }
 #endif
   
-  NS_DISPLAY_DECL_NAME("Video")
+  NS_DISPLAY_DECL_NAME("Video", TYPE_VIDEO)
 
   
   
