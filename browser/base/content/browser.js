@@ -4752,10 +4752,15 @@ var XULBrowserWindow = {
       }
 
       
-      if (this.hideChromeForLocation(location))
+      if (this.hideChromeForLocation(location)) {
         document.documentElement.setAttribute("disablechrome", "true");
-      else
-        document.documentElement.removeAttribute("disablechrome");
+      } else {
+        let ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
+        if (ss.getTabValue(gBrowser.selectedTab, "appOrigin"))
+          document.documentElement.setAttribute("disablechrome", "true");
+        else
+          document.documentElement.removeAttribute("disablechrome");
+      }
 
       
       let disableFind = false;
@@ -5331,6 +5336,8 @@ function setToolbarVisibility(toolbar, isVisible) {
 
 var TabsOnTop = {
   init: function TabsOnTop_init() {
+    this._initialized = true;
+    this.syncUI();
     Services.prefs.addObserver(this._prefName, this, false);
   },
 
@@ -5343,6 +5350,9 @@ var TabsOnTop = {
   },
 
   syncUI: function () {
+    if (!this._initialized)
+      return;
+
     let userEnabled = Services.prefs.getBoolPref(this._prefName);
     let enabled = userEnabled && gBrowser.tabContainer.visible;
 
@@ -9099,7 +9109,6 @@ XPCOMUtils.defineLazyGetter(window, "gShowPageResizers", function () {
   return false;
 #endif
 });
-
 
 var MousePosTracker = {
   _listeners: [],
