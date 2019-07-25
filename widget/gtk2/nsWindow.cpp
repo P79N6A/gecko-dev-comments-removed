@@ -5708,7 +5708,11 @@ drag_leave_event_cb(GtkWidget *aWidget,
 
     nsWindow *mostRecentDragWindow = dragService->GetMostRecentDestWindow();
     if (!mostRecentDragWindow) {
-        NS_WARNING("Spurious drag leave signal");
+        
+        
+        
+        
+        
         return;
     }
 

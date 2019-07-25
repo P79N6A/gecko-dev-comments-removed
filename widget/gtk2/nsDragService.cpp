@@ -1336,8 +1336,10 @@ nsDragService::SourceEndDragSession(GdkDragContext *aContext,
     
     mSourceDataItems = nsnull;
 
-    if (!mDoingDrag)
-        return; 
+    if (!mDoingDrag || mScheduledTask == eDragTaskSourceEnd)
+        
+        
+        return;
 
     if (mEndDragPoint.x < 0) {
         
@@ -1391,7 +1393,7 @@ nsDragService::SourceEndDragSession(GdkDragContext *aContext,
     }
 
     
-    EndDragSession(true);
+    Schedule(eDragTaskSourceEnd, nsnull, NULL, nsIntPoint(), 0);
 }
 
 static void
@@ -1713,6 +1715,14 @@ invisibleSourceDragEnd(GtkWidget        *aWidget,
 
 
 
+
+
+
+
+
+
+
+
 gboolean
 nsDragService::ScheduleMotionEvent(nsWindow *aWindow,
                                    GdkDragContext *aDragContext,
@@ -1768,12 +1778,16 @@ nsDragService::Schedule(DragTask aTask, nsWindow *aWindow,
 {
     
     
-    if (mScheduledTask == eDragTaskDrop)
-        return FALSE;
+    
 
     
     
     
+    
+    
+    if (mScheduledTask == eDragTaskSourceEnd ||
+        (mScheduledTask == eDragTaskDrop && aTask != eDragTaskSourceEnd))
+        return FALSE;
 
     mScheduledTask = aTask;
     mPendingWindow = aWindow;
@@ -1834,7 +1848,12 @@ nsDragService::RunScheduledTask()
     mTargetWindow = mPendingWindow.forget();
     mTargetWindowPoint = mPendingWindowPoint;
 
-    if (task == eDragTaskLeave) {
+    if (task == eDragTaskLeave || task == eDragTaskSourceEnd) {
+        if (task == eDragTaskSourceEnd) {
+            
+            EndDragSession(true);
+        }
+
         
         
         mTaskSource = 0;

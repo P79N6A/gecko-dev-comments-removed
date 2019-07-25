@@ -156,7 +156,8 @@ private:
         eDragTaskNone,
         eDragTaskMotion,
         eDragTaskLeave,
-        eDragTaskDrop
+        eDragTaskDrop,
+        eDragTaskSourceEnd
     };
     DragTask mScheduledTask;
     
