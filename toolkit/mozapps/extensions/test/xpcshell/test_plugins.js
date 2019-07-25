@@ -18,7 +18,7 @@ function run_test() {
 
 
 function get_test_plugin() {
-  var plugins = Services.dirsvc.get("CurProcD", AM_Ci.nsILocalFile);
+  var plugins = Services.dirsvc.get("CurProcD", AM_Ci.nsIFile);
   plugins.append("plugins");
   do_check_true(plugins.exists());
 

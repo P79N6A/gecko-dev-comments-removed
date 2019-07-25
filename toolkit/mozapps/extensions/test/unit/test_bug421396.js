@@ -14,7 +14,6 @@ function RestrictedPath(source, isVisible) {
 }
 
 
-
 RestrictedPath.prototype = {
   
   source: null,
@@ -87,7 +86,6 @@ RestrictedPath.prototype = {
 
   QueryInterface: function(iid) {
     if (iid.equals(Components.interfaces.nsIFile)
-     || iid.equals(Components.interfaces.nsILocalFile)
      || iid.equals(Components.interfaces.nsISupports))
       return this;
 
