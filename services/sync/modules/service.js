@@ -341,6 +341,13 @@ WeaveSyncService.prototype = {
           throw "Created user directory, but login still failed.  Aborting.";
       }
 
+      
+      
+      this._dav.MKCOL("private/", self.cb);
+      ret = yield;
+      if (!ret)
+        throw "Could not create private key directory";
+
       this._dav.GET("private/privkey", self.cb);
       let keyResp = yield;
       Utils.ensureStatus(keyResp.status,
