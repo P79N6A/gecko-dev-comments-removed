@@ -638,7 +638,7 @@ VerifySigning(nsIZipReader* hZip, nsIPrincipal* aPrincipal)
 
     
     nsCOMPtr<nsIPrincipal> principal;
-    nsresult rv = hZip->GetCertificatePrincipal(nsnull, getter_AddRefs(principal));
+    nsresult rv = hZip->GetCertificatePrincipal(EmptyCString(), getter_AddRefs(principal));
     if (NS_FAILED(rv) || !principal)
         return NS_ERROR_FAILURE;
 
@@ -646,7 +646,7 @@ VerifySigning(nsIZipReader* hZip, nsIPrincipal* aPrincipal)
 
     
     nsCOMPtr<nsIUTF8StringEnumerator> entries;
-    rv = hZip->FindEntries(nsnull, getter_AddRefs(entries));
+    rv = hZip->FindEntries(EmptyCString(), getter_AddRefs(entries));
     if (NS_FAILED(rv))
         return rv;
 
@@ -667,7 +667,7 @@ VerifySigning(nsIZipReader* hZip, nsIPrincipal* aPrincipal)
         entryCount++;
 
         
-        rv = hZip->GetCertificatePrincipal(name.get(), getter_AddRefs(principal));
+        rv = hZip->GetCertificatePrincipal(name, getter_AddRefs(principal));
         if (NS_FAILED(rv) || !principal) return NS_ERROR_FAILURE;
 
         PRBool equal;
@@ -713,7 +713,7 @@ OpenAndValidateArchive(nsIZipReader* hZip, nsIFile* jarFile, nsIPrincipal* aPrin
         return nsInstall::CANT_READ_ARCHIVE;
 
     
-    rv = hZip->Test(nsnull);
+    rv = hZip->Test(EmptyCString());
     if (NS_FAILED(rv))
     {
         NS_WARNING("CRC check of archive failed!");
@@ -727,7 +727,7 @@ OpenAndValidateArchive(nsIZipReader* hZip, nsIFile* jarFile, nsIPrincipal* aPrin
         return nsInstall::INVALID_SIGNATURE;
     }
 
-    if (NS_FAILED(hZip->Test("install.rdf")))
+    if (NS_FAILED(hZip->Test(nsDependentCString("install.rdf"))))
     {
         NS_WARNING("Archive did not contain an install manifest!");
         return nsInstall::NO_INSTALL_SCRIPT;
