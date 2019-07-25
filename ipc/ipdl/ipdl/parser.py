@@ -206,8 +206,9 @@ def p_TranslationUnit(p):
 
     
     
-    tu.namespaces = tu.protocol.namespaces
-    tu.name = tu.protocol.name
+    if tu.protocol:
+        tu.namespaces = tu.protocol.namespaces
+        tu.name = tu.protocol.name
 
     p[0] = tu
 
