@@ -6665,3 +6665,77 @@ nsContentUtils::JSArrayToAtomArray(JSContext* aCx, const JS::Value& aJSArray,
   }
   return NS_OK;
 }
+
+
+nsresult
+nsContentUtils::IsOnPrefWhitelist(nsPIDOMWindow* aWindow,
+                                  const char* aPrefURL, bool* aAllowed)
+{
+  
+  nsPIDOMWindow* innerWindow = aWindow->IsInnerWindow() ?
+    aWindow :
+    aWindow->GetCurrentInnerWindow();
+  NS_ENSURE_TRUE(innerWindow, NS_ERROR_FAILURE);
+
+  
+  
+  if (!nsContentUtils::CanCallerAccess(innerWindow)) {
+    return NS_ERROR_DOM_SECURITY_ERR;
+  }
+
+  
+  nsCOMPtr<nsIDocument> document =
+    do_QueryInterface(innerWindow->GetExtantDocument());
+  NS_ENSURE_TRUE(document, NS_NOINTERFACE);
+
+  
+  if (nsContentUtils::IsSystemPrincipal(document->NodePrincipal())) {
+    *aAllowed = true;
+    return NS_OK;    
+  }
+
+  
+  
+  nsCOMPtr<nsIURI> originalURI;
+  nsresult rv =
+    document->NodePrincipal()->GetURI(getter_AddRefs(originalURI));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIURI> documentURI;
+  rv = originalURI->Clone(getter_AddRefs(documentURI));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  nsCOMPtr<nsIURL> documentURL = do_QueryInterface(documentURI);
+  if (documentURL) {
+    rv = documentURL->SetQuery(EmptyCString());
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  bool allowed = false;
+
+  
+  
+  nsCString whitelist;
+  if (NS_SUCCEEDED(Preferences::GetCString(aPrefURL,
+                                           &whitelist))) {
+    nsCOMPtr<nsIIOService> ios = do_GetIOService();
+    NS_ENSURE_TRUE(ios, NS_ERROR_FAILURE);
+
+    nsCCharSeparatedTokenizer tokenizer(whitelist, ',');
+    while (tokenizer.hasMoreTokens()) {
+      nsCOMPtr<nsIURI> uri;
+      if (NS_SUCCEEDED(NS_NewURI(getter_AddRefs(uri), tokenizer.nextToken(),
+                                 nsnull, nsnull, ios))) {
+        rv = documentURI->EqualsExceptRef(uri, &allowed);
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        if (allowed) {
+          break;
+        }
+      }
+    }
+  }
+  *aAllowed = allowed;
+  return NS_OK;
+}
