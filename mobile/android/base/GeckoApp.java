@@ -827,6 +827,10 @@ abstract public class GeckoApp
         tab.updateURL(uri);
         tab.setDocumentURI(documentURI);
 
+        
+        if (sameDocument)
+            return;
+
         tab.setContentType(contentType);
         tab.clearFavicon();
         tab.updateIdentityData(null);
