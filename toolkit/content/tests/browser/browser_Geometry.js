@@ -1,3 +1,41 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Components.utils.import("resource://gre/modules/Geometry.jsm");
+
 function test() {
   ok(Rect, "Rect class exists");
   for (var fname in tests) {
