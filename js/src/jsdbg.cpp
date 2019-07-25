@@ -540,17 +540,21 @@ Debug::markCrossCompartmentDebugObjectReferents(JSTracer *tracer)
     }
 }
 
+
+
+
+
+
+
+
+
+
+
 bool
 Debug::mark(GCMarker *trc, JSCompartment *comp, JSGCInvocationKind gckind)
 {
-    
-    
-    
     bool markedAny = false;
 
-    
-    
-    
     
     
     JSRuntime *rt = trc->context->runtime;
@@ -572,6 +576,8 @@ Debug::mark(GCMarker *trc, JSCompartment *comp, JSGCInvocationKind gckind)
                     Debug *dbg = *p;
                     JSObject *obj = dbg->toJSObject();
 
+                    
+                    
                     
                     
                     if ((!comp || obj->compartment() == comp) && !obj->isMarked()) {
@@ -649,8 +655,15 @@ Debug::sweepAll(JSContext *cx)
 
     }
 
-    for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); c++)
-        sweepCompartment(cx, *c);
+    for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); c++) {
+        
+        GlobalObjectSet &debuggees = (*c)->getDebuggees();
+        for (GlobalObjectSet::Enum e(debuggees); !e.empty(); e.popFront()) {
+            GlobalObject *global = e.front();
+            if (!global->isMarked())
+                detachAllDebuggersFromGlobal(cx, global, &e);
+        }
+    }
 }
 
 void
@@ -660,18 +673,6 @@ Debug::detachAllDebuggersFromGlobal(JSContext *cx, GlobalObject *global, GlobalO
     JS_ASSERT(!debuggers->empty());
     while (!debuggers->empty())
         debuggers->back()->removeDebuggeeGlobal(cx, global, compartmentEnum, NULL);
-}
-
-void
-Debug::sweepCompartment(JSContext *cx, JSCompartment *compartment)
-{
-    
-    GlobalObjectSet &debuggees = compartment->getDebuggees();
-    for (GlobalObjectSet::Enum e(debuggees); !e.empty(); e.popFront()) {
-        GlobalObject *global = e.front();
-        if (!global->isMarked())
-            detachAllDebuggersFromGlobal(cx, global, &e);
-    }
 }
 
 void
