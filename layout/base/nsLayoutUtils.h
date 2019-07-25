@@ -1212,7 +1212,7 @@ public:
 
 
 
-  static nsIDeviceContext*
+  static nsDeviceContext*
   GetDeviceContextForScreenInfo(nsIDocShell* aDocShell);
 
   

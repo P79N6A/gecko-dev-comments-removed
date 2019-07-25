@@ -50,7 +50,7 @@
 
 class nsPagePrintTimer;
 class nsIDocShellTreeNode;
-class nsIDeviceContext;
+class nsDeviceContext;
 class nsIDocumentViewerPrint;
 class nsPrintObject;
 class nsIDocShell;

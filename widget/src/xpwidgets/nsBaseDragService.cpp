@@ -588,7 +588,7 @@ nsBaseDragService::DrawDragForImage(nsPresContext* aPresContext,
 
   
   
-  nsIDeviceContext* deviceContext = aPresContext->DeviceContext();
+  nsDeviceContext* deviceContext = aPresContext->DeviceContext();
   nsRect maxSize;
   deviceContext->GetClientRect(maxSize);
   nscoord maxWidth = aPresContext->AppUnitsToDevPixels(maxSize.width >> 1);

@@ -438,7 +438,7 @@ protected:
 
   nsWeakPtr mContainer; 
   nsWeakPtr mTopContainerWhilePrinting;
-  nsCOMPtr<nsIDeviceContext> mDeviceContext;  
+  nsRefPtr<nsDeviceContext> mDeviceContext;  
 
   
   
@@ -2277,7 +2277,7 @@ DocumentViewerImpl::MakeWindow(const nsSize& aSize, nsIView* aContainerView)
   if (NS_FAILED(rv))
     return rv;
 
-  nsIDeviceContext *dx = mPresContext->DeviceContext();
+  nsDeviceContext *dx = mPresContext->DeviceContext();
 
   rv = mViewManager->Init(dx);
   if (NS_FAILED(rv))

@@ -813,7 +813,7 @@ nsObjectFrame::CreateWidget(nscoord aWidth,
   
   viewMan->SetViewVisibility(view, nsViewVisibility_kHide);
 
-  nsCOMPtr<nsIDeviceContext> dx;
+  nsRefPtr<nsDeviceContext> dx;
   viewMan->GetDeviceContext(*getter_AddRefs(dx));
 
   

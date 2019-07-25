@@ -622,7 +622,7 @@ void nsTextBoxFrame::PaintOneShadow(gfxContext*      aCtx,
 
   
   nsRefPtr<nsRenderingContext> renderingContext = nsnull;
-  nsIDeviceContext* devCtx = PresContext()->DeviceContext();
+  nsDeviceContext* devCtx = PresContext()->DeviceContext();
   devCtx->CreateRenderingContextInstance(*getter_AddRefs(renderingContext));
   if (!renderingContext)
     return;

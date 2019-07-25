@@ -45,7 +45,7 @@
 class nsIWidget;
 struct nsRect;
 class nsRegion;
-class nsIDeviceContext;
+class nsDeviceContext;
 class nsIViewObserver;
 
 #define NS_IVIEWMANAGER_IID \
@@ -63,7 +63,7 @@ public:
 
 
 
-  NS_IMETHOD  Init(nsIDeviceContext* aContext) = 0;
+  NS_IMETHOD  Init(nsDeviceContext* aContext) = 0;
 
   
 
@@ -275,7 +275,7 @@ public:
 
 
 
-  NS_IMETHOD  GetDeviceContext(nsIDeviceContext *&aContext) = 0;
+  NS_IMETHOD  GetDeviceContext(nsDeviceContext *&aContext) = 0;
 
   class UpdateViewBatch {
   public:

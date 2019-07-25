@@ -111,7 +111,7 @@ GetHeight(nsPresContext* aPresContext, const nsMediaFeature*,
     return NS_OK;
 }
 
-inline static nsIDeviceContext*
+inline static nsDeviceContext*
 GetDeviceContextFor(nsPresContext* aPresContext)
 {
   
@@ -227,7 +227,7 @@ GetColor(nsPresContext* aPresContext, const nsMediaFeature*,
     
     
     
-    nsIDeviceContext *dx = GetDeviceContextFor(aPresContext);
+    nsDeviceContext *dx = GetDeviceContextFor(aPresContext);
     PRUint32 depth;
     dx->GetDepth(depth);
     
@@ -268,7 +268,7 @@ GetResolution(nsPresContext* aPresContext, const nsMediaFeature*,
               nsCSSValue& aResult)
 {
     
-    nsIDeviceContext *dx = GetDeviceContextFor(aPresContext);
+    nsDeviceContext *dx = GetDeviceContextFor(aPresContext);
     float dpi = float(dx->AppUnitsPerPhysicalInch()) / float(dx->AppUnitsPerDevPixel());
     aResult.SetFloatValue(dpi, eCSSUnit_Inch);
     return NS_OK;

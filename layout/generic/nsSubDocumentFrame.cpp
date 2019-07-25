@@ -951,7 +951,7 @@ EndSwapDocShellsForDocument(nsIDocument* aDocument, void*)
       if (dv) {
         nsCOMPtr<nsPresContext> pc;
         dv->GetPresContext(getter_AddRefs(pc));
-        nsIDeviceContext* dc = pc ? pc->DeviceContext() : nsnull;
+        nsDeviceContext* dc = pc ? pc->DeviceContext() : nsnull;
         if (dc) {
           nsIView* v = dv->FindContainerView();
           dc->Init(v ? v->GetNearestWidget(nsnull) : nsnull);

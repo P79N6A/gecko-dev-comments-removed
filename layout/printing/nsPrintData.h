@@ -39,7 +39,7 @@
 
 
 #include "nsIDOMWindow.h"
-#include "nsIDeviceContext.h"
+#include "nsDeviceContext.h"
 #include "nsIPrintProgressParams.h"
 #include "nsIPrintOptions.h"
 #include "nsTArray.h"
@@ -92,7 +92,7 @@ public:
 
 
   ePrintDataType               mType;            
-  nsCOMPtr<nsIDeviceContext>   mPrintDC;
+  nsRefPtr<nsDeviceContext>   mPrintDC;
   FILE                        *mDebugFilePtr;    
 
   nsPrintObject *                mPrintObject;

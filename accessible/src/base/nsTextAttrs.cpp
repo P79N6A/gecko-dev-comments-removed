@@ -466,7 +466,7 @@ nsFontSizeTextAttr::Format(const nscoord& aValue, nsAString& aFormattedValue)
   
   
   float px =
-    NSAppUnitsToFloatPixels(aValue, nsIDeviceContext::AppUnitsPerCSSPixel());
+    NSAppUnitsToFloatPixels(aValue, nsDeviceContext::AppUnitsPerCSSPixel());
   
   int pts = NS_lround(px*3/4);
 
