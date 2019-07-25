@@ -43,6 +43,7 @@
 
 
 
+
 const kDoubleClickInterval = 400;
 
 
@@ -56,6 +57,9 @@ const kAxisLockRevertThreshold = 200;
 
 
 const kStateActive = 0x00000001;
+
+
+const kKineticBrakesDelay = 50;
 
 
 
@@ -429,10 +433,13 @@ MouseModule.prototype = {
     let [targetScrollbox, targetScrollInterface]
       = this.getScrollboxFromElement(aEvent.target);
 
-    
-    let oldInterface = this._targetScrollInterface;
-    if (this._kinetic.isActive() && targetScrollInterface != oldInterface)
-      this._kinetic.end();
+    if (this._kinetic.isActive()) {
+      let oldInterface = this._targetScrollInterface;
+      if (targetScrollInterface != oldInterface)
+        this._kinetic.end(); 
+      else
+        this._kinetic.brakesApplied(); 
+    }
 
     let targetClicker = this.getClickerFromElement(aEvent.target);
 
@@ -986,6 +993,11 @@ KineticController.prototype = {
       this._timer = null;
     }
 
+    if (this._brakesTimeout) {
+      clearTimeout(this._brakesTimeout);
+      delete this._brakesTimeout;
+    }
+
     this.momentumBuffer = [];
     this._velocity.set(0, 0);
   },
@@ -1135,6 +1147,20 @@ KineticController.prototype = {
     }
 
     this.momentumBuffer.push({'t': now, 'dx' : dx, 'dy' : dy});
+
+    if (dx > 0 && dy > 0 && this._brakesTimeout) {
+      clearTimeout(this._brakesTimeout);
+      delete this._brakesTimeout;
+    }
+  },
+
+  
+  brakesApplied: function brakesApplied() {
+    let self = this;
+    this._brakesTimeout = setTimeout(function() {
+      self.end();
+      delete self._brakesTimeout;
+    }, kKineticBrakesDelay);
   }
 };
 
