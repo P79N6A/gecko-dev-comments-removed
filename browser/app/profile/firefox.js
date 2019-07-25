@@ -75,11 +75,6 @@ pref("extensions.blocklist.itemURL", "https://addons.mozilla.org/%LOCALE%/%APP%/
 pref("extensions.update.autoUpdateDefault", true);
 
 
-
-
-pref("extensions.autoDisableScopes", 10);
-
-
 pref("browser.dictionaries.download.url", "https://addons.mozilla.org/%LOCALE%/firefox/dictionaries/");
 
 
@@ -1044,6 +1039,17 @@ pref("devtools.hud.loglimit.console", 200);
 
 pref("devtools.editor.tabsize", 4);
 pref("devtools.editor.expandtab", true);
+
+
+
+
+
+
+
+
+
+
+pref("devtools.editor.component", "textarea");
 
 
 
