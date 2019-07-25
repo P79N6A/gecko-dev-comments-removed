@@ -312,7 +312,7 @@ let PromptUtils = {
 
         
         if (!authInfo.realm && !isProxy)
-            realm = null;
+            realm = "";
 
         
         if (realm.length > 150) {

@@ -156,10 +156,6 @@
 #include "winbase.h"
 #endif
 
-#if defined(XP_UNIX) && defined(MOZ_WIDGET_GTK2) & defined(MOZ_X11)
-#include <gdk/gdkx.h> 
-#endif
-
 using mozilla::TimeStamp;
 
 

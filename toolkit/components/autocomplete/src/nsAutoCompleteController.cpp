@@ -381,6 +381,8 @@ nsAutoCompleteController::HandleKeyNavigation(PRUint32 aKey, PRBool *_retval)
 
   if (!mInput) {
     
+    StopSearch();
+    
     
     
     NS_ERROR("Called before attaching to the control or after detaching from the control");
@@ -467,8 +469,19 @@ nsAutoCompleteController::HandleKeyNavigation(PRUint32 aKey, PRBool *_retval)
           if (mRowCount) {
             OpenPopup();
           }
-        } else
+        } else {
+          
+          StopSearch();
+
+          if (!mInput) {
+            
+            
+            
+            return NS_OK;
+          }
+
           StartSearchTimer();
+        }
       }
     }
   } else if (   aKey == nsIDOMKeyEvent::DOM_VK_LEFT
