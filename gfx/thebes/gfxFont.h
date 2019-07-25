@@ -123,22 +123,12 @@ struct THEBES_API gfxFontStyle {
     gfxFontStyle(const gfxFontStyle& aStyle);
 
     
-    PRUint8 style : 7;
+    
+    
+    nsRefPtr<nsIAtom> language;
 
     
-    
-    
-    bool systemFont : 1;
-
-    
-    bool printerFont : 1;
-
-    
-    PRUint16 weight;
-
-    
-    
-    PRInt16 stretch;
+    nsTArray<gfxFontFeature> featureSettings;
 
     
     gfxFloat size;
@@ -148,11 +138,6 @@ struct THEBES_API gfxFontStyle {
     
     
     float sizeAdjust;
-
-    
-    
-    
-    nsRefPtr<nsIAtom> language;
 
     
     
@@ -167,7 +152,22 @@ struct THEBES_API gfxFontStyle {
     PRUint32 languageOverride;
 
     
-    nsTArray<gfxFontFeature> featureSettings;
+    PRUint16 weight;
+
+    
+    
+    PRInt8 stretch;
+
+    
+    
+    
+    bool systemFont : 1;
+
+    
+    bool printerFont : 1;
+
+    
+    PRUint8 style : 2;
 
     
     
