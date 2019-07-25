@@ -498,8 +498,10 @@ struct JSScript {
     bool makeVarTypes(JSContext *cx);
   public:
 
+#ifdef DEBUG
     
     void typeCheckBytecode(JSContext *cx, const jsbytecode *pc, const js::Value *sp);
+#endif
 
     
     inline js::types::TypeObject *getTypeNewObject(JSContext *cx, JSProtoKey key);
