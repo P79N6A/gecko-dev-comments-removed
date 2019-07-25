@@ -196,9 +196,9 @@ GLXLibrary::EnsureInitialized()
     }
 
     int screen = DefaultScreen(display);
-    const char *serverVendor;
-    const char *serverVersionStr;
-    const char *extensionsStr;
+    const char *serverVendor = NULL;
+    const char *serverVersionStr = NULL;
+    const char *extensionsStr = NULL;
 
     
     
