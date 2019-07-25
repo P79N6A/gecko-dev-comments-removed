@@ -61,9 +61,7 @@
 #include "nsGkAtoms.h"
 #include "nsAutoPtr.h"
 #include "nsPIDOMWindow.h"
-#ifdef MOZ_SMIL
 #include "nsSMILAnimationController.h"
-#endif 
 #include "nsIScriptGlobalObject.h"
 #include "nsIDocumentEncoder.h"
 #include "nsIAnimationFrameListener.h"
@@ -1326,7 +1324,6 @@ public:
   void EnumerateFreezableElements(FreezableElementEnumerator aEnumerator,
                                   void* aData);
 
-#ifdef MOZ_SMIL
   
   
   
@@ -1336,7 +1333,6 @@ public:
   
   
   virtual nsSMILAnimationController* GetAnimationController() = 0;
-#endif 
 
   
   
@@ -1649,10 +1645,8 @@ protected:
   
   nsAutoPtr<nsTHashtable<nsPtrHashKey<nsIContent> > > mFreezableElements;
 
-#ifdef MOZ_SMIL
   
   nsRefPtr<nsSMILAnimationController> mAnimationController;
-#endif 
 
   
   nsPropertyTable mPropertyTable;

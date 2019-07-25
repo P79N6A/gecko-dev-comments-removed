@@ -41,11 +41,9 @@
 #include "nsSVGElement.h"
 #include "nsDOMError.h"
 
-#ifdef MOZ_SMIL
 #include "nsISMILAttr.h"
 class nsSMILValue;
 class nsISMILType;
-#endif 
 
 class nsSVGIntegerPair
 {
@@ -87,10 +85,8 @@ public:
   nsresult ToDOMAnimatedInteger(nsIDOMSVGAnimatedInteger **aResult,
                                 PairIndex aIndex,
                                 nsSVGElement* aSVGElement);
-#ifdef MOZ_SMIL
   
   nsISMILAttr* ToSMILAttr(nsSVGElement* aSVGElement);
-#endif 
 
 private:
 
@@ -125,15 +121,12 @@ public:
     
     NS_IMETHOD GetAnimVal(PRInt32* aResult)
     {
-#ifdef MOZ_SMIL
       mSVGElement->FlushAnimations();
-#endif
       *aResult = mVal->GetAnimValue(mIndex);
       return NS_OK;
     }
   };
 
-#ifdef MOZ_SMIL
   struct SMILIntegerPair : public nsISMILAttr
   {
   public:
@@ -155,7 +148,6 @@ public:
     virtual void ClearAnimValue();
     virtual nsresult SetAnimValue(const nsSMILValue& aValue);
   };
-#endif 
 };
 
 #endif 

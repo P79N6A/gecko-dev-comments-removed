@@ -52,9 +52,7 @@
 #include "nsCycleCollectionParticipant.h"
 #include "nsDOMMemoryReporter.h"
 
-#ifdef MOZ_SMIL
 #include "nsISMILAttr.h"
-#endif 
 
 
 
@@ -228,7 +226,6 @@ public:
   virtual void DestroyContent();
   virtual void SaveSubtreeState();
 
-#ifdef MOZ_SMIL
   virtual nsISMILAttr* GetAnimatedAttr(PRInt32 , nsIAtom* )
   {
     return nsnull;
@@ -237,7 +234,6 @@ public:
   virtual mozilla::css::StyleRule* GetSMILOverrideStyleRule();
   virtual nsresult SetSMILOverrideStyleRule(mozilla::css::StyleRule* aStyleRule,
                                             bool aNotify);
-#endif 
 
 #ifdef DEBUG
   virtual void List(FILE* out, PRInt32 aIndent) const;

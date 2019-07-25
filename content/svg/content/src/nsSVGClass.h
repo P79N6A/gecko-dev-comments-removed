@@ -43,9 +43,7 @@
 #include "nsString.h"
 #include "nsDOMError.h"
 
-#ifdef MOZ_SMIL
 #include "nsISMILAttr.h"
-#endif 
 
 class nsSVGStylableElement;
 
@@ -69,10 +67,8 @@ public:
 
   nsresult ToDOMAnimatedString(nsIDOMSVGAnimatedString **aResult,
                                nsSVGStylableElement *aSVGElement);
-#ifdef MOZ_SMIL
   
   nsISMILAttr* ToSMILAttr(nsSVGStylableElement *aSVGElement);
-#endif 
 
 private:
 
@@ -97,7 +93,6 @@ public:
 
     NS_IMETHOD GetAnimVal(nsAString& aResult);
   };
-#ifdef MOZ_SMIL
   struct SMILString : public nsISMILAttr
   {
   public:
@@ -119,6 +114,5 @@ public:
     virtual void ClearAnimValue();
     virtual nsresult SetAnimValue(const nsSMILValue& aValue);
   };
-#endif 
 };
 #endif 

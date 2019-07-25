@@ -37,10 +37,8 @@
 #include "nsSVGEnum.h"
 #include "nsIAtom.h"
 #include "nsSVGElement.h"
-#ifdef MOZ_SMIL
 #include "nsSMILValue.h"
 #include "SMILEnumType.h"
-#endif 
 
 using namespace mozilla;
 
@@ -84,11 +82,9 @@ nsSVGEnum::SetBaseValueString(const nsAString& aValue,
         if (!mIsAnimated) {
           mAnimVal = mBaseVal;
         }
-#ifdef MOZ_SMIL
         else {
           aSVGElement->AnimationNeedsResample();
         }
-#endif
         
         
         
@@ -132,11 +128,9 @@ nsSVGEnum::SetBaseValue(PRUint16 aValue,
         if (!mIsAnimated) {
           mAnimVal = mBaseVal;
         }
-#ifdef MOZ_SMIL
         else {
           aSVGElement->AnimationNeedsResample();
         }
-#endif
         aSVGElement->DidChangeEnum(mAttrEnum, true);
       }
       return NS_OK;
@@ -166,7 +160,6 @@ nsSVGEnum::ToDOMAnimatedEnum(nsIDOMSVGAnimatedEnumeration **aResult,
   return NS_OK;
 }
 
-#ifdef MOZ_SMIL
 nsISMILAttr*
 nsSVGEnum::ToSMILAttr(nsSVGElement *aSVGElement)
 {
@@ -227,4 +220,3 @@ nsSVGEnum::SMILEnum::SetAnimValue(const nsSMILValue& aValue)
   }
   return NS_OK;
 }
-#endif 

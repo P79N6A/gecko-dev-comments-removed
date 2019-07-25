@@ -76,10 +76,8 @@ public:
 
   nsresult ToDOMAnimatedEnum(nsIDOMSVGAnimatedEnumeration **aResult,
                              nsSVGElement* aSVGElement);
-#ifdef MOZ_SMIL
   
   nsISMILAttr* ToSMILAttr(nsSVGElement* aSVGElement);
-#endif 
 
 private:
   nsSVGEnumValue mAnimVal;
@@ -111,15 +109,12 @@ public:
     
     NS_IMETHOD GetAnimVal(PRUint16* aResult)
     {
-#ifdef MOZ_SMIL
       mSVGElement->FlushAnimations();
-#endif
       *aResult = mVal->GetAnimValue();
       return NS_OK;
     }
   };
 
-#ifdef MOZ_SMIL
   struct SMILEnum : public nsISMILAttr
   {
   public:
@@ -141,7 +136,6 @@ public:
     virtual void ClearAnimValue();
     virtual nsresult SetAnimValue(const nsSMILValue& aValue);
   };
-#endif 
 };
 
 #endif 

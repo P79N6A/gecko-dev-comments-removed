@@ -865,11 +865,9 @@ public:
 
   nsTArray<nsCString> mFileDataUris;
 
-#ifdef MOZ_SMIL
   
   
   nsSMILAnimationController* GetAnimationController();
-#endif 
 
   void SetImagesNeedAnimating(bool aAnimating);
 
