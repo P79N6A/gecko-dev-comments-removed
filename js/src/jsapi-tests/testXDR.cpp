@@ -273,7 +273,7 @@ BEGIN_TEST(testXDR_sourceMap)
         CHECK(expected);
 
         
-        script->scriptSource()->setSourceMap(expected);
+        CHECK(script->scriptSource()->setSourceMap(cx, expected, script->filename));
         script = FreezeThaw(cx, script);
         CHECK(script);
         CHECK(script->scriptSource());
