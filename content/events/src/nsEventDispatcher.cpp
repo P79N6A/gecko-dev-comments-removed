@@ -377,8 +377,8 @@ nsEventTargetChainItem::HandleEventTargetChain(nsEventChainPostVisitor& aVisitor
   if (!(aFlags & NS_EVENT_FLAG_SYSTEM_EVENT)) {
     
     
-    
-    aVisitor.mEvent->flags &= ~NS_EVENT_FLAG_STOP_DISPATCH;
+    aVisitor.mEvent->flags &=
+      ~(NS_EVENT_FLAG_STOP_DISPATCH | NS_EVENT_FLAG_STOP_DISPATCH_IMMEDIATELY);
 
     
     aVisitor.mEvent->target = aVisitor.mEvent->originalTarget;
@@ -396,6 +396,11 @@ nsEventTargetChainItem::HandleEventTargetChain(nsEventChainPostVisitor& aVisitor
                            aCallback,
                            createdELMs != nsEventListenerManager::sCreatedCount,
                            aPusher);
+
+    
+    
+    aVisitor.mEvent->flags &=
+      ~(NS_EVENT_FLAG_STOP_DISPATCH | NS_EVENT_FLAG_STOP_DISPATCH_IMMEDIATELY);
   }
 
   return NS_OK;
