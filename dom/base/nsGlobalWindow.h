@@ -661,7 +661,6 @@ protected:
   nsIntSize DevToCSSIntPixels(nsIntSize px);
   nsIntSize CSSToDevIntPixels(nsIntSize px);
 
-  virtual nsIContent* GetFocusedNode();
   virtual void SetFocusedNode(nsIContent* aNode,
                               PRUint32 aFocusMethod = 0,
                               PRBool aNeedsFocus = PR_FALSE);
@@ -803,10 +802,6 @@ protected:
   nsDataHashtable<nsStringHashKey, PRBool> *mPendingStorageEventsObsolete;
 
   PRUint32 mTimeoutsSuspendDepth;
-
-  
-  
-  nsCOMPtr<nsIContent>   mFocusedNode;
 
   
   PRUint32 mFocusMethod;

@@ -1052,6 +1052,16 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
     return JS_TRUE;
   }
 
+  if (!nsContentUtils::IsSafeToRunScript()) {
+    
+    
+    
+    
+
+    JS_ReportWarning(cx, "A long running script was terminated");
+    return JS_FALSE;
+  }
+
   
   
   
