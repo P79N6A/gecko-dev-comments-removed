@@ -225,7 +225,7 @@ public class GeckoLayerClient implements GeckoEventResponder,
                 
                 float scaleFactor = oldMetrics.zoomFactor / messageMetrics.getZoomFactor();
                 newMetrics = new ViewportMetrics(oldMetrics);
-                newMetrics.setPageSize(messageMetrics.getPageSize().scale(scaleFactor));
+                newMetrics.setPageSize(messageMetrics.getPageSize().scale(scaleFactor), messageMetrics.getCssPageSize());
                 break;
             }
 
@@ -322,12 +322,12 @@ public class GeckoLayerClient implements GeckoEventResponder,
 
 
 
-    public void setFirstPaintViewport(float offsetX, float offsetY, float zoom, float pageWidth, float pageHeight) {
+    public void setFirstPaintViewport(float offsetX, float offsetY, float zoom, float pageWidth, float pageHeight, float cssPageWidth, float cssPageHeight) {
         synchronized (mLayerController) {
             ViewportMetrics currentMetrics = new ViewportMetrics(mLayerController.getViewportMetrics());
             currentMetrics.setOrigin(new PointF(offsetX, offsetY));
             currentMetrics.setZoomFactor(zoom);
-            currentMetrics.setPageSize(new FloatSize(pageWidth, pageHeight));
+            currentMetrics.setPageSize(new FloatSize(pageWidth, pageHeight), new FloatSize(cssPageWidth, cssPageHeight));
             mLayerController.setViewportMetrics(currentMetrics);
             
             
@@ -347,7 +347,7 @@ public class GeckoLayerClient implements GeckoEventResponder,
 
 
 
-    public void setPageSize(float zoom, float pageWidth, float pageHeight) {
+    public void setPageSize(float zoom, float pageWidth, float pageHeight, float cssPageWidth, float cssPageHeight) {
         synchronized (mLayerController) {
             
             
@@ -355,7 +355,7 @@ public class GeckoLayerClient implements GeckoEventResponder,
             float ourZoom = mLayerController.getZoomFactor();
             pageWidth = pageWidth * ourZoom / zoom;
             pageHeight = pageHeight * ourZoom /zoom;
-            mLayerController.setPageSize(new FloatSize(pageWidth, pageHeight));
+            mLayerController.setPageSize(new FloatSize(pageWidth, pageHeight), new FloatSize(cssPageWidth, cssPageHeight));
             
             
             

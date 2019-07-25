@@ -1771,6 +1771,9 @@ Tab.prototype = {
       height: gScreenHeight,
       pageWidth: gScreenWidth,
       pageHeight: gScreenHeight,
+      
+      cssPageWidth: gScreenWidth / this._zoom,
+      cssPageHeight: gScreenHeight / this._zoom,
       zoom: this._zoom
     };
 
@@ -1786,6 +1789,9 @@ Tab.prototype = {
     if (doc != null) {
       let [pageWidth, pageHeight] = this.getPageSize(doc, viewport.width, viewport.height);
 
+      let cssPageWidth = pageWidth;
+      let cssPageHeight = pageHeight;
+
       
       pageWidth *= viewport.zoom;
       pageHeight *= viewport.zoom;
@@ -1796,6 +1802,8 @@ Tab.prototype = {
 
 
       if (doc.readyState === 'complete' || (pageWidth >= gScreenWidth && pageHeight >= gScreenHeight)) {
+        viewport.cssPageWidth = cssPageWidth;
+        viewport.cssPageHeight = cssPageHeight;
         viewport.pageWidth = pageWidth;
         viewport.pageHeight = pageHeight;
       }
