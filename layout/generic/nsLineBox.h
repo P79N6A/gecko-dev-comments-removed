@@ -174,7 +174,7 @@ protected:
 
 
 #define LINE_MAX_BREAK_TYPE  ((1 << 4) - 1)
-#define LINE_MAX_CHILD_COUNT ((1 << 20) - 1)
+#define LINE_MAX_CHILD_COUNT PR_INT32_MAX
 
 #if NS_STYLE_CLEAR_LAST_VALUE > 15
 need to rearrange the mBits bitfield;
@@ -330,8 +330,19 @@ public:
   PRBool HasBullet() const {
     return mFlags.mHasBullet;
   }
+
   
-  
+  void SetHadFloatPushed() {
+    mFlags.mHadFloatPushed = PR_TRUE;
+  }
+  void ClearHadFloatPushed() {
+    mFlags.mHadFloatPushed = PR_FALSE;
+  }
+  PRBool HadFloatPushed() const {
+    return mFlags.mHadFloatPushed;
+  }
+
+
   
   PRInt32 GetChildCount() const {
     return (PRInt32) mFlags.mChildCount;
@@ -501,9 +512,13 @@ public:
     
     
     PRUint32 mHasBullet : 1;
+    
+    
+    PRUint32 mHadFloatPushed : 1;
     PRUint32 mBreakType : 4;
 
-    PRUint32 mChildCount : 17;
+    
+    PRUint32 mChildCount;
   };
 
   struct ExtraData {

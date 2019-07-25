@@ -2409,7 +2409,8 @@ nsBlockFrame::ReflowLine(nsBlockReflowState& aState,
   aState.mCurrentLine = aLine;
   aLine->ClearDirty();
   aLine->InvalidateCachedIsEmpty();
-  
+  aLine->ClearHadFloatPushed();
+
   
   if (aLine->IsBlock()) {
     nsRect oldBounds = aLine->mFirstChild->GetRect();
@@ -4213,7 +4214,7 @@ nsBlockFrame::PlaceLine(nsBlockReflowState& aState,
   if (aState.mBelowCurrentLineFloats.NotEmpty()) {
     
     
-    aState.PlaceBelowCurrentLineFloats(aState.mBelowCurrentLineFloats);
+    aState.PlaceBelowCurrentLineFloats(aState.mBelowCurrentLineFloats, aLine);
     aLine->AppendFloats(aState.mBelowCurrentLineFloats);
   }
 
