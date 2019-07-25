@@ -187,12 +187,7 @@ public class GeckoLayerClient implements GeckoEventListener,
                 Log.w(LOGTAG, "Prediction would avoid useless paint of " + area + " pixels (100.0%)");
                 
                 
-                mTileLayer.beginTransaction();      
-                try {
-                    updateViewport(true);
-                } finally {
-                    mTileLayer.endTransaction();
-                }
+                updateViewport(true);
                 return null;
             }
 
@@ -215,15 +210,8 @@ public class GeckoLayerClient implements GeckoEventListener,
 
 
     public void endDrawing(int x, int y, int width, int height) {
-        mTileLayer.beginTransaction();  
-        synchronized (mLayerController) {
-            try {
-                updateViewport(!mUpdateViewportOnEndDraw);
-                mUpdateViewportOnEndDraw = false;
-            } finally {
-                mTileLayer.endTransaction();
-            }
-        }
+        updateViewport(!mUpdateViewportOnEndDraw);
+        mUpdateViewportOnEndDraw = false;
         Log.i(LOGTAG, "zerdatime " + SystemClock.uptimeMillis() + " - endDrawing");
 
         
@@ -233,33 +221,40 @@ public class GeckoLayerClient implements GeckoEventListener,
     }
 
     private void updateViewport(boolean onlyUpdatePageSize) {
-        
-        
-        
-        
-        FloatSize viewportSize = mLayerController.getViewportSize();
-        mGeckoViewport = mNewGeckoViewport;
-        mGeckoViewport.setSize(viewportSize);
+        mTileLayer.beginTransaction(); 
+        try {
+            synchronized (mLayerController) {
+                
+                
+                
+                
+                FloatSize viewportSize = mLayerController.getViewportSize();
+                mGeckoViewport = mNewGeckoViewport;
+                mGeckoViewport.setSize(viewportSize);
 
-        PointF origin = mGeckoViewport.getOrigin();
-        mTileLayer.setOrigin(PointUtils.round(origin));
-        mTileLayer.setResolution(mGeckoViewport.getZoomFactor());
+                PointF origin = mGeckoViewport.getOrigin();
+                mTileLayer.setOrigin(PointUtils.round(origin));
+                mTileLayer.setResolution(mGeckoViewport.getZoomFactor());
 
-        
-        mTileLayer.performUpdates(null);
+                
+                mTileLayer.performUpdates(null);
 
-        Log.e(LOGTAG, "### updateViewport onlyUpdatePageSize=" + onlyUpdatePageSize +
-              " getTileViewport " + mGeckoViewport);
+                Log.e(LOGTAG, "### updateViewport onlyUpdatePageSize=" + onlyUpdatePageSize +
+                      " getTileViewport " + mGeckoViewport);
 
-        if (onlyUpdatePageSize) {
-            
-            
-            if (FloatUtils.fuzzyEquals(mLayerController.getZoomFactor(),
-                    mGeckoViewport.getZoomFactor()))
-                mLayerController.setPageSize(mGeckoViewport.getPageSize());
-        } else {
-            mLayerController.setViewportMetrics(mGeckoViewport);
-            mLayerController.abortPanZoomAnimation();
+                if (onlyUpdatePageSize) {
+                    
+                    
+                    if (FloatUtils.fuzzyEquals(mLayerController.getZoomFactor(),
+                            mGeckoViewport.getZoomFactor()))
+                        mLayerController.setPageSize(mGeckoViewport.getPageSize());
+                } else {
+                    mLayerController.setViewportMetrics(mGeckoViewport);
+                    mLayerController.abortPanZoomAnimation();
+                }
+            }
+        } finally {
+            mTileLayer.endTransaction();
         }
     }
 
