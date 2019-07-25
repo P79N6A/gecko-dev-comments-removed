@@ -48,6 +48,8 @@ typedef struct _cairo_user_data_key cairo_user_data_key_t;
 typedef void (*thebes_destroy_func_t) (void *data);
 
 class gfxImageSurface;
+struct nsIntPoint;
+struct nsIntRect;
 
 
 
@@ -219,6 +221,19 @@ public:
     }
 
     virtual PRBool SupportsSelfCopy() { return PR_TRUE; }
+
+    
+
+
+
+
+
+
+
+
+
+    virtual void MovePixels(const nsIntRect& aSourceRect,
+                            const nsIntPoint& aDestTopLeft);
 
     
 
