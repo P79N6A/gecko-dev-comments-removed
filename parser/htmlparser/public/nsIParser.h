@@ -266,8 +266,7 @@ class nsIParser : public nsISupports {
                              nsIContent* aTargetNode,
                              nsIAtom* aContextLocalName,
                              PRInt32 aContextNamespace,
-                             PRBool aQuirks,
-                             PRBool aPreventScriptExecution) = 0;
+                             PRBool aQuirks) = 0;
 
     
 
