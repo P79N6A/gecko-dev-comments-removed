@@ -1859,20 +1859,24 @@ nsSMILTimedElement::UpdateCurrentInterval(PRBool aForceChangeNotice)
       if (changed || aForceChangeNotice) {
         NotifyChangedInterval();
       }
-   }
+    }
 
     
     
     RegisterMilestone();
-  } else {
-    if (mElementState == STATE_ACTIVE && mClient) {
+  } else { 
+    if (mElementState == STATE_ACTIVE) {
       
       
-      PRBool applyFill = HasPlayed() && mFillMode == FILL_FREEZE;
-      mClient->Inactivate(applyFill);
-    }
-
-    if (mElementState == STATE_ACTIVE || mElementState == STATE_WAITING) {
+      if (!mCurrentInterval->End()->SameTimeAndBase(*mCurrentInterval->Begin()))
+      {
+        mCurrentInterval->SetEnd(*mCurrentInterval->Begin());
+        NotifyChangedInterval();
+      }
+      
+      
+      RegisterMilestone();
+    } else if (mElementState == STATE_WAITING) {
       mElementState = STATE_POSTACTIVE;
       ResetCurrentInterval();
     }

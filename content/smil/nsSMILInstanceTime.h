@@ -178,6 +178,7 @@ protected:
   
   
   
+  
   PRUint16      mFixedEndpointRefCnt;
 
   PRUint32      mSerial; 
