@@ -38,7 +38,6 @@
 
 #include "nsCRT.h"
 
-#include "nsReadableUtils.h"
 #include "nsUnicharUtils.h"
 
 #include "nsHTMLEditor.h"
@@ -57,26 +56,16 @@
 #include "nsIDOMAttr.h"
 #include "nsIDocument.h"
 #include "nsIDOMEventTarget.h" 
-#include "nsIDOM3EventTarget.h" 
 #include "nsIDOMKeyEvent.h"
-#include "nsIDOMKeyListener.h" 
-#include "nsIDOMMouseListener.h"
-#include "nsIDOMMouseEvent.h"
-#include "nsISelection.h"
 #include "nsISelectionPrivate.h"
 #include "nsIDOMHTMLAnchorElement.h"
 #include "nsISelectionController.h"
 #include "nsIDOMHTMLDocument.h"
-#include "nsIDOMHTMLHtmlElement.h"
-#include "nsGUIEvent.h"
-#include "nsIDOMEventGroup.h"
 #include "nsILinkHandler.h"
 
 #include "mozilla/css/Loader.h"
 #include "nsCSSStyleSheet.h"
 #include "nsIDOMStyleSheet.h"
-#include "nsIDocumentObserver.h"
-#include "nsIDocumentStateListener.h"
 
 #include "nsIEnumerator.h"
 #include "nsIContent.h"
@@ -86,18 +75,11 @@
 #include "nsIRangeUtils.h"
 #include "nsISupportsArray.h"
 #include "nsContentUtils.h"
-#include "nsIURL.h"
-#include "nsIComponentManager.h"
-#include "nsIServiceManager.h"
 #include "nsIDocumentEncoder.h"
 #include "nsIDOMDocumentFragment.h"
 #include "nsIPresShell.h"
 #include "nsPresContext.h"
-#include "nsXPCOM.h"
-#include "nsISupportsPrimitives.h"
 #include "SetDocTitleTxn.h"
-#include "nsGUIEvent.h"
-#include "nsTextFragment.h"
 #include "nsFocusManager.h"
 #include "nsPIDOMWindow.h"
 
@@ -106,24 +88,15 @@
 #include "nsNetUtil.h"
 
 
-#include "nsIClipboard.h"
-#include "nsITransferable.h"
-#include "nsIDragService.h"
-#include "nsIDOMNSUIEvent.h"
-#include "nsIContentFilter.h"
-
-
 #include "nsStyleSheetTxns.h"
 
 
 #include "TextEditorTest.h"
 #include "nsEditorUtils.h"
 #include "nsWSRunObject.h"
-#include "nsHTMLObjectResizer.h"
 #include "nsGkAtoms.h"
 
 #include "nsIFrame.h"
-#include "nsIView.h"
 #include "nsIParserService.h"
 #include "nsIEventStateManager.h"
 
