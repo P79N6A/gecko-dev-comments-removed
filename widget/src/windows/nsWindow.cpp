@@ -8249,7 +8249,22 @@ nsWindow::DealWithPopups(HWND inWnd, UINT inMsg, WPARAM inWParam, LPARAM inLPara
         
         
         if (consumeRollupEvent && inMsg != WM_RBUTTONDOWN) {
-          *outResult = TRUE;
+          *outResult = MA_ACTIVATE;
+
+          
+#ifndef WINCE
+          if (inMsg == WM_MOUSEACTIVATE) {
+            nsWindow* activateWindow = GetNSWindowPtr(inWnd);
+            if (activateWindow) {
+              nsWindowType wintype;
+              activateWindow->GetWindowType(wintype);
+              if (wintype == eWindowType_popup && activateWindow->PopupType() == ePopupTypePanel) {
+                *outResult = MA_NOACTIVATE;
+              }
+            }
+          }
+#endif
+
           return TRUE;
         }
 #ifndef WINCE
