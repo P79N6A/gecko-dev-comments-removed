@@ -79,8 +79,8 @@ class Loop
   private:   
     
     
-    MBasicBlock *header_;
     MBasicBlock *footer_;
+    MBasicBlock *header_;
 
     
     

@@ -200,8 +200,15 @@ class MBasicBlock : public TempObject
         }
     };
 
+  public:
+    enum Kind {
+        NORMAL,
+        LOOP_HEADER,
+        SPLIT_EDGE
+    };
+
   private:
-    MBasicBlock(MIRGenerator *gen, jsbytecode *pc);
+    MBasicBlock(MIRGenerator *gen, jsbytecode *pc, Kind kind);
     bool init();
     void copySlots(MBasicBlock *from);
     bool inherit(MBasicBlock *pred);
@@ -231,8 +238,9 @@ class MBasicBlock : public TempObject
 
     
     
-    static MBasicBlock *New(MIRGenerator *gen, MBasicBlock *pred, jsbytecode *entryPc);
+    static MBasicBlock *New(MIRGenerator *gen, MBasicBlock *pred, jsbytecode *entryPc, Kind kind);
     static MBasicBlock *NewLoopHeader(MIRGenerator *gen, MBasicBlock *pred, jsbytecode *entryPc);
+    static MBasicBlock *NewSplitEdge(MIRGenerator *gen, MBasicBlock *pred);
 
     void setId(uint32 id) {
         id_ = id;
@@ -276,6 +284,11 @@ class MBasicBlock : public TempObject
 
     
     
+    void replacePredecessor(MBasicBlock *old, MBasicBlock *split);
+    void replaceSuccessor(size_t pos, MBasicBlock *split);
+
+    
+    
     
     bool setBackedge(MBasicBlock *block, MBasicBlock *successor);
 
@@ -316,11 +329,12 @@ class MBasicBlock : public TempObject
         return instructions_.end();
     }
     bool isLoopHeader() const {
-        return loopSuccessor_ != NULL;
+        return kind_ == LOOP_HEADER;
     }
-    MBasicBlock *getLoopSuccessor() const {
+    MBasicBlock *backedge() const {
         JS_ASSERT(isLoopHeader());
-        return loopSuccessor_;
+        JS_ASSERT(numPredecessors() == 1 || numPredecessors() == 2);
+        return getPredecessor(numPredecessors() - 1);
     }
     MIRGenerator *gen() {
         return gen_;
@@ -422,10 +436,7 @@ class MBasicBlock : public TempObject
     MStart *start_;
     MBasicBlock *successorWithPhis_;
     uint32 positionInPhiSuccessor_;
-
-    
-    
-    MBasicBlock *loopSuccessor_;
+    Kind kind_;
 
     
     bool mark_;

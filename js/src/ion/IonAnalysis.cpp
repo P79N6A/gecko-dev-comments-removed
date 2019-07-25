@@ -50,6 +50,36 @@ using namespace js::ion;
 
 
 
+bool
+ion::SplitCriticalEdges(MIRGenerator *gen, MIRGraph &graph)
+{
+    size_t preSplitEdges = graph.numBlocks();
+    for (size_t i = 0; i < preSplitEdges; i++) {
+        MBasicBlock *block = graph.getBlock(i);
+        if (block->numSuccessors() < 2)
+            continue;
+        for (size_t i = 0; i < block->numSuccessors(); i++) {
+            MBasicBlock *target = block->getSuccessor(i);
+            if (target->numPredecessors() < 2)
+                continue;
+
+            
+            MBasicBlock *split = MBasicBlock::NewSplitEdge(gen, block);
+            if (!graph.addBlock(split))
+                return false;
+            split->end(MGoto::New(target));
+
+            block->replaceSuccessor(i, split);
+            target->replacePredecessor(block, split);
+        }
+    }
+
+    return true;
+}
+
+
+
+
 
 
 
