@@ -179,51 +179,44 @@ typedef struct JSONParser        JSONParser;
 
 
 
-#if JS_BITS_PER_WORD == 32
-typedef uint32 JSValueMaskType;
-# define JSVAL_TYPE_BITS 32
-# define JS_INSERT_VALUE_PADDING() uint32 padding;
-# define JS_PADDING_INIT_VALUE() 0,
-#elif JS_BITS_PER_WORD == 64
-typedef JSUint64 JSValueMaskType;
-# define JSVAL_TYPE_BITS 32
-# define JS_INSERT_VALUE_PADDING()
-# define JS_PADDING_INIT_VALUE()
-#else
-# error "Unsupported word size"
-#endif
-
-#ifdef __GNUC__
-# define VALUE_ALIGNMENT        __attribute__((aligned (8)))
-# define ASSERT_DOUBLE_ALIGN()  JS_ASSERT(size_t(&data.dbl) % sizeof(double) == 0)
-#elif defined(_MSC_VER)
-
-
-# define VALUE_ALIGNMENT
-# define ASSERT_DOUBLE_ALIGN()
-#else
-# error "TODO: do something for compiler"
-#endif
-
-#define JSVAL_NULL_MASK        0x00
-#define JSVAL_UNDEFINED_MASK   0x01
-#define JSVAL_INT32_MASK       0x02
-#define JSVAL_DOUBLE_MASK      0x04
-#define JSVAL_STRING_MASK      0x08
-#define JSVAL_NONFUNOBJ_MASK   0x10
-#define JSVAL_FUNOBJ_MASK      0x20
-#define JSVAL_BOOLEAN_MASK     0x40
-#define JSVAL_MAGIC_MASK       0x80
-#define JSVAL_OBJECT_MASK      (JSVAL_NONFUNOBJ_MASK | JSVAL_FUNOBJ_MASK)
-#define JSVAL_NUMBER_MASK      (JSVAL_INT32_MASK | JSVAL_DOUBLE_MASK)
-#define JSVAL_GCTHING_MASK     (JSVAL_OBJECT_MASK | JSVAL_STRING_MASK)
 
 
 
 
 
+typedef enum JSValueMask16 {
+    JSVAL_MASK16_NULL      = (uint16)0x0001,
+    JSVAL_MASK16_UNDEFINED = (uint16)0x0002,
+    JSVAL_MASK16_INT32     = (uint16)0x0004,
+    JSVAL_MASK16_STRING    = (uint16)0x0008,
+    JSVAL_MASK16_NONFUNOBJ = (uint16)0x0010,
+    JSVAL_MASK16_FUNOBJ    = (uint16)0x0020,
+    JSVAL_MASK16_BOOLEAN   = (uint16)0x0040,
+    JSVAL_MASK16_MAGIC     = (uint16)0x0080,
 
+    JSVAL_MASK16_SINGLETON = JSVAL_MASK16_NULL | JSVAL_MASK16_UNDEFINED,
+    JSVAL_MASK16_OBJECT    = JSVAL_MASK16_NONFUNOBJ | JSVAL_MASK16_FUNOBJ,
+    JSVAL_MASK16_OBJORNULL = JSVAL_MASK16_OBJECT | JSVAL_MASK16_NULL,
+    JSVAL_MASK16_GCTHING   = JSVAL_MASK16_OBJECT | JSVAL_MASK16_STRING,
 
+    JSVAL_NANBOX_PATTERN   = ((uint16)0xFFFF)
+} __attribute__((packed)) JSValueMask16;
+
+#define JSVAL_MASK32_CLEAR       ((uint32)0xFFFF0000)
+
+#define JSVAL_MASK32_NULL        ((uint32)(JSVAL_MASK32_CLEAR | JSVAL_MASK16_NULL))
+#define JSVAL_MASK32_UNDEFINED   ((uint32)(JSVAL_MASK32_CLEAR | JSVAL_MASK16_UNDEFINED))
+#define JSVAL_MASK32_INT32       ((uint32)(JSVAL_MASK32_CLEAR | JSVAL_MASK16_INT32))
+#define JSVAL_MASK32_STRING      ((uint32)(JSVAL_MASK32_CLEAR | JSVAL_MASK16_STRING))
+#define JSVAL_MASK32_NONFUNOBJ   ((uint32)(JSVAL_MASK32_CLEAR | JSVAL_MASK16_NONFUNOBJ))
+#define JSVAL_MASK32_FUNOBJ      ((uint32)(JSVAL_MASK32_CLEAR | JSVAL_MASK16_FUNOBJ))
+#define JSVAL_MASK32_BOOLEAN     ((uint32)(JSVAL_MASK32_CLEAR | JSVAL_MASK16_BOOLEAN))
+#define JSVAL_MASK32_MAGIC       ((uint32)(JSVAL_MASK32_CLEAR | JSVAL_MASK16_MAGIC))
+
+#define JSVAL_MASK32_SINGLETON   ((uint32)(JSVAL_MASK32_CLEAR | JSVAL_MASK16_SINGLETON))
+#define JSVAL_MASK32_OBJECT      ((uint32)(JSVAL_MASK32_CLEAR | JSVAL_MASK16_OBJECT))
+#define JSVAL_MASK32_OBJORNULL   ((uint32)(JSVAL_MASK32_CLEAR | JSVAL_MASK16_OBJORNULL))
+#define JSVAL_MASK32_GCTHING     ((uint32)(JSVAL_MASK32_CLEAR | JSVAL_MASK16_GCTHING))
 
 typedef enum JSWhyMagic
 {
@@ -236,28 +229,45 @@ typedef enum JSWhyMagic
     JS_GENERATOR_CLOSING         
 } JSWhyMagic;
 
-typedef union jsval_data
+typedef union jsval_payload
 {
     int32          i32;
     uint32         u32;
-    double         dbl;
-    JSString *     str;
-    JSObject *     obj;
-    void *         ptr;
     JSBool         boo;
-#ifdef DEBUG
-    JSWhyMagic     why;
+#if JS_BITS_PER_WORD == 32
+    JSString       *str;
+    JSObject       *obj;
+    void           *ptr;
 #endif
-    struct { int32 first; int32 second; } bits;
+    JSWhyMagic     why;
 } jsval_data;
 
+#if !defined(IS_LITTLE_ENDIAN)
+# error "Need to fix up jsval_layout"
+#endif
 
-typedef struct jsval
+
+typedef union jsval_layout
 {
-    JSValueMaskType mask;
-    JS_INSERT_VALUE_PADDING()
-    jsval_data data;
-} VALUE_ALIGNMENT jsval;
+    uint64 asBits;
+    struct {
+        jsval_payload payload;
+        union {
+            struct {
+                JSValueMask16 mask16;
+                uint16 nanBits;
+            } tag;
+            uint32 mask32;
+        };
+    } s;
+    double asDouble;
+} jsval_layout;
+
+typedef uint64 jsval;
+
+
+#define DOUBLE_AS_JSVAL(d)              (*(jsval *)&(d))
+#define JSVAL_CONSTANT(mask32, payload) ((jsval)((((uint64)(mask32)) << 32) | (payload)))
 
 
 
@@ -1021,7 +1031,7 @@ JS_END_EXTERN_C
 namespace js {
 
 class Value;
-struct Class;
+class Class;
 
 typedef JSBool
 (* Native)(JSContext *cx, JSObject *obj, uintN argc, Value *argv, Value *rval);
