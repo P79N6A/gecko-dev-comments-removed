@@ -42,6 +42,7 @@
 #include "nsIForm.h"
 #include "nsIFormControl.h"
 #include "nsIConstraintValidation.h"
+#include "nsEventDispatcher.h"
 
 
 class nsHTMLFieldSetElement : public nsGenericHTMLFormElement,
@@ -68,6 +69,9 @@ public:
 
   
   NS_DECL_NSIDOMHTMLFIELDSETELEMENT
+
+  
+  virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor);
 
   
   NS_IMETHOD_(PRUint32) GetType() const { return NS_FORM_FIELDSET; }
@@ -134,10 +138,24 @@ NS_HTML_CONTENT_INTERFACE_TABLE_TAIL_CLASSINFO(HTMLFieldSetElement)
 NS_IMPL_ELEMENT_CLONE(nsHTMLFieldSetElement)
 
 
+NS_IMPL_BOOL_ATTR(nsHTMLFieldSetElement, Disabled, disabled)
 NS_IMPL_STRING_ATTR(nsHTMLFieldSetElement, Name, name)
 
 
 NS_IMPL_NSICONSTRAINTVALIDATION(nsHTMLFieldSetElement)
+
+
+nsresult
+nsHTMLFieldSetElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
+{
+  
+  aVisitor.mCanHandle = PR_FALSE;
+  if (HasAttr(kNameSpaceID_None, nsGkAtoms::disabled)) {
+    return NS_OK;
+  }
+
+  return nsGenericHTMLFormElement::PreHandleEvent(aVisitor);
+}
 
 
 
