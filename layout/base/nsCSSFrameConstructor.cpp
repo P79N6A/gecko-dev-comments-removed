@@ -5175,7 +5175,9 @@ nsCSSFrameConstructor::AddFrameConstructionItemsInternal(nsFrameConstructorState
         !aContent->IsHTML(nsGkAtoms::option) &&
         
         (!aContent->IsHTML(nsGkAtoms::optgroup) ||
-         parentTag != nsGkAtoms::select)) {
+         parentTag != nsGkAtoms::select) &&
+        
+        !aContent->IsRootOfNativeAnonymousSubtree()) {
       
       if (!isText) {
         SetAsUndisplayedContent(aState.mFrameManager, aContent, styleContext,
