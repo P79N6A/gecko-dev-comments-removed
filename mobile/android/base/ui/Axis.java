@@ -190,7 +190,7 @@ abstract class Axis {
 
     
     float getRealVelocity() {
-        return mLocked ? 0.0f : mVelocity;
+        return (mLocked || !scrollable()) ? 0.0f : mVelocity;
     }
 
     void startPan() {
