@@ -672,6 +672,11 @@ protected:
     nsresult EnsureCommandHandler();
 
     nsIChannel* GetCurrentDocChannel();
+
+    
+    
+    void StopOutstandingOtherDocumentLoad();
+
 protected:
     
     virtual nsresult SetDocLoaderParent(nsDocLoader * aLoader);
