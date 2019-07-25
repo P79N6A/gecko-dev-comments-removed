@@ -115,9 +115,6 @@ protected:
 
   virtual PRUint16 GetHitTestFlags();
 
-private:
-  bool GetStrokeDashData(FallibleTArray<gfxFloat>& dashes, gfxFloat *dashOffset);
-
   
 
 
@@ -126,6 +123,9 @@ private:
 
 
   float MaybeOptimizeOpacity(float aFillOrStrokeOpacity);
+
+private:
+  bool GetStrokeDashData(FallibleTArray<gfxFloat>& dashes, gfxFloat *dashOffset);
 };
 
 #endif 
