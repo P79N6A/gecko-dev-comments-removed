@@ -6568,6 +6568,9 @@ PresShell::HandleEventInternal(nsEvent* aEvent, nsEventStatus* aStatus)
         }
         
         if (!haveChanged) {
+          if (gPreventMouseEvents) {
+              *aStatus = nsEventStatus_eConsumeNoDefault;
+          }
           return NS_OK;
         }
         break;

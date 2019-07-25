@@ -3373,15 +3373,9 @@ JS_GetExternalStringClosure(JSContext *cx, JSString *str);
 
 
 
-extern JS_PUBLIC_API(void)
-JS_SetThreadStackLimit(JSContext *cx, uintptr_t limitAddr);
-
-
-
-
 
 extern JS_PUBLIC_API(void)
-JS_SetNativeStackQuota(JSContext *cx, size_t stackSize);
+JS_SetNativeStackQuota(JSRuntime *cx, size_t stackSize);
 
 
 
@@ -3644,6 +3638,13 @@ JS_InitClass(JSContext *cx, JSObject *obj, JSObject *parent_proto,
              JSClass *clasp, JSNative constructor, uintN nargs,
              JSPropertySpec *ps, JSFunctionSpec *fs,
              JSPropertySpec *static_ps, JSFunctionSpec *static_fs);
+
+
+
+
+
+extern JS_PUBLIC_API(JSBool)
+JS_LinkConstructorAndPrototype(JSContext *cx, JSObject *ctor, JSObject *proto);
 
 #ifdef JS_THREADSAFE
 extern JS_PUBLIC_API(JSClass *)

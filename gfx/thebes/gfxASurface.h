@@ -41,6 +41,9 @@
 #include "gfxTypes.h"
 #include "gfxRect.h"
 #include "nsAutoPtr.h"
+#include "nsAutoRef.h"
+#include "nsThreadUtils.h"
+
 
 typedef struct _cairo_surface cairo_surface_t;
 typedef struct _cairo_user_data_key cairo_user_data_key_t;
@@ -358,4 +361,56 @@ public:
     virtual ~gfxUnknownSurface() { }
 };
 
+#ifndef XPCOM_GLUE_AVOID_NSPR
+
+
+
+
+
+
+
+
+
+
+
+
+class nsMainThreadSurfaceRef;
+
+template <>
+class nsAutoRefTraits<nsMainThreadSurfaceRef> {
+public:
+  typedef gfxASurface* RawRef;
+
+  
+
+
+  class SurfaceReleaser : public nsRunnable {
+  public:
+    SurfaceReleaser(RawRef aRef) : mRef(aRef) {}
+    NS_IMETHOD Run() {
+      mRef->Release();
+      return NS_OK;
+    }
+    RawRef mRef;
+  };
+
+  static RawRef Void() { return nsnull; }
+  static void Release(RawRef aRawRef)
+  {
+    if (NS_IsMainThread()) {
+      aRawRef->Release();
+      return;
+    }
+    nsCOMPtr<nsIRunnable> runnable = new SurfaceReleaser(aRawRef);
+    NS_DispatchToMainThread(runnable);
+  }
+  static void AddRef(RawRef aRawRef)
+  {
+    NS_ASSERTION(NS_IsMainThread(),
+                 "Can only add a reference on the main thread");
+    aRawRef->AddRef();
+  }
+};
+
+#endif
 #endif 

@@ -655,8 +655,16 @@ nsSHEntry::RemoveChild(nsISHEntry * aChild)
       childRemoved = mChildren.ReplaceObjectAt(nsnull, index);
     }
   }
-  if (childRemoved)
+  if (childRemoved) {
     aChild->SetParent(nsnull);
+
+    
+    for (PRInt32 i = mChildren.Count() - 1; i >= 0 && !mChildren[i]; --i) {
+      if (!mChildren.RemoveObjectAt(i)) {
+        break;
+      }
+    }
+  }
   return NS_OK;
 }
 

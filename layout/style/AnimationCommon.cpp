@@ -130,6 +130,12 @@ CommonAnimationManager::MediumFeaturesChanged(nsPresContext* aPresContext)
 CommonAnimationManager::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
 {
   
+  
+  
+  
+  
+  
+
   return 0;
 }
 

@@ -49,6 +49,7 @@
 #include "gfxColor.h"
 #include "gfxPattern.h"
 #include "nsTArray.h"
+#include "nsThreadUtils.h"
 
 #include "mozilla/gfx/2D.h"
 #include "mozilla/TimeStamp.h"
@@ -430,7 +431,7 @@ public:
   
 
 
-  virtual already_AddRefed<ImageContainer> CreateImageContainer() = 0;
+  static already_AddRefed<ImageContainer> CreateImageContainer();
 
   
 

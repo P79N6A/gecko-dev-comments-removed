@@ -435,9 +435,12 @@ nsAnimationManager::RulesMatching(XULTreeRuleProcessorData* aData)
  size_t
 nsAnimationManager::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
 {
-  
-  
   return CommonAnimationManager::SizeOfExcludingThis(aMallocSizeOf);
+
+  
+  
+  
+  
 }
 
  size_t

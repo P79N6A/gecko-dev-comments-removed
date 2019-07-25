@@ -132,9 +132,6 @@ typedef Vector<ScriptOpcodeCountsPair, 0, SystemAllocPolicy> ScriptOpcodeCountsV
 struct ConservativeGCData
 {
     
-    uintptr_t           *nativeStackBase;
-
-    
 
 
 
@@ -153,7 +150,7 @@ struct ConservativeGCData
     unsigned requestThreshold;
 
     ConservativeGCData()
-      : nativeStackBase(NULL), nativeStackTop(NULL), requestThreshold(0)
+      : nativeStackTop(NULL), requestThreshold(0)
     {}
 
     ~ConservativeGCData() {
@@ -184,14 +181,8 @@ struct ConservativeGCData
 
 } 
 
-struct JSRuntime
+struct JSRuntime : js::RuntimeFriendFields
 {
-    
-
-
-
-    volatile int32_t    interrupt;
-
     
     JSCompartment       *atomsCompartment;
 
@@ -246,6 +237,12 @@ struct JSRuntime
     js::RegExpPrivateCache *getRegExpPrivateCache(JSContext *cx) {
         return repCache_ ? repCache_ : createRegExpPrivateCache(cx);
     }
+
+    
+    uintptr_t           nativeStackBase;
+
+    
+    size_t              nativeStackQuota;
 
     
 
@@ -432,7 +429,7 @@ struct JSRuntime
     bool hasContexts() const {
         return !JS_CLIST_IS_EMPTY(&contextList);
     }
-    
+
     
     JSDebugHooks        globalDebugHooks;
 
@@ -777,7 +774,7 @@ typedef HashSet<JSObject *,
 
 } 
 
-struct JSContext
+struct JSContext : js::ContextFriendFields
 {
     explicit JSContext(JSRuntime *rt);
     JSContext *thisDuringConstruction() { return this; }
@@ -812,12 +809,6 @@ struct JSContext
 
 
     JSPackedBool        generatingError;
-
-    
-    uintptr_t           stackLimit;
-
-    
-    JSRuntime *const    runtime;
 
     
     JSCompartment       *compartment;

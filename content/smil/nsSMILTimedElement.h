@@ -626,12 +626,12 @@ protected:
   class AutoIntervalUpdateBatcher;
   bool mDeferIntervalUpdates;
   bool mDoDeferredUpdate; 
-                                  
-                                  
+                          
 
   
-  PRUint16              mUpdateIntervalRecursionDepth;
-  static const PRUint16 sMaxUpdateIntervalRecursionDepth;
+  PRUint8              mDeleteCount;
+  PRUint8              mUpdateIntervalRecursionDepth;
+  static const PRUint8 sMaxUpdateIntervalRecursionDepth;
 };
 
 #endif 

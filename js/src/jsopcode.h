@@ -212,7 +212,6 @@ SET_UINT32_INDEX(jsbytecode *pc, uint32_t index)
 
 
 
-
 #define INDEX_LEN               2
 #define INDEX_HI(i)             ((jsbytecode)((i) >> 8))
 #define INDEX_LO(i)             ((jsbytecode)(i))
@@ -358,18 +357,6 @@ js_GetIndexFromBytecode(JSScript *script, jsbytecode *pc, ptrdiff_t pcoff);
         uintN index_ = js_GetIndexFromBytecode((script), (pc), (pcoff));      \
         JS_ASSERT(index_ < (script)->consts()->length);                       \
         (dbl) = (script)->getConst(index_).toDouble();                        \
-    JS_END_MACRO
-
-#define GET_OBJECT_FROM_BYTECODE(script, pc, pcoff, obj)                      \
-    JS_BEGIN_MACRO                                                            \
-        uintN index_ = js_GetIndexFromBytecode((script), (pc), (pcoff));      \
-        obj = (script)->getObject(index_);                                    \
-    JS_END_MACRO
-
-#define GET_FUNCTION_FROM_BYTECODE(script, pc, pcoff, fun)                    \
-    JS_BEGIN_MACRO                                                            \
-        uintN index_ = js_GetIndexFromBytecode((script), (pc), (pcoff));      \
-        fun = (script)->getFunction(index_);                                  \
     JS_END_MACRO
 
 #ifdef __cplusplus

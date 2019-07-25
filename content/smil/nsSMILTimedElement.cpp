@@ -233,7 +233,7 @@ const PRUint8 nsSMILTimedElement::sMaxNumInstanceTimes = 100;
 
 
 
-const PRUint16 nsSMILTimedElement::sMaxUpdateIntervalRecursionDepth = 20;
+const PRUint8 nsSMILTimedElement::sMaxUpdateIntervalRecursionDepth = 20;
 
 
 
@@ -252,6 +252,7 @@ nsSMILTimedElement::nsSMILTimedElement()
   mSeekState(SEEK_NOT_SEEKING),
   mDeferIntervalUpdates(false),
   mDoDeferredUpdate(false),
+  mDeleteCount(0),
   mUpdateIntervalRecursionDepth(0)
 {
   mSimpleDur.SetIndefinite();
@@ -1965,7 +1966,24 @@ nsSMILTimedElement::UpdateCurrentInterval(bool aForceChangeNotice)
   
   
   
-  AutoRestore<PRUint16> depthRestorer(mUpdateIntervalRecursionDepth);
+  
+  
+  if (mDeleteCount > 1) {
+    
+    
+    
+    
+    NS_ABORT_IF_FALSE(mElementState == STATE_POSTACTIVE,
+      "Expected to be in post-active state after performing double delete");
+    return;
+  }
+
+  
+  
+  
+  
+  
+  AutoRestore<PRUint8> depthRestorer(mUpdateIntervalRecursionDepth);
   if (++mUpdateIntervalRecursionDepth > sMaxUpdateIntervalRecursionDepth) {
     NS_ABORT_IF_FALSE(false,
         "Update current interval recursion depth exceeded threshold");
@@ -2026,6 +2044,8 @@ nsSMILTimedElement::UpdateCurrentInterval(bool aForceChangeNotice)
       
       RegisterMilestone();
     } else if (mElementState == STATE_WAITING) {
+      AutoRestore<PRUint8> deleteCountRestorer(mDeleteCount);
+      ++mDeleteCount;
       mElementState = STATE_POSTACTIVE;
       ResetCurrentInterval();
     }

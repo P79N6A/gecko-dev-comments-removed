@@ -991,6 +991,8 @@ public:
   
   virtual void PostVisibilityUpdateEvent();
 
+  virtual size_t SizeOfStyleSheets(nsMallocSizeOfFun aMallocSizeOf) const;
+
 protected:
   friend class nsNodeUtils;
 

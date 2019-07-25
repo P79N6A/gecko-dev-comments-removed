@@ -119,7 +119,11 @@ protected:
   
   nsIWidget      * mWindow;
   nsIDragService * mDragService;
+  
+  IDropTargetHelper * GetDropTargetHelper();
 
+
+private:
   
   IDropTargetHelper * mDropTargetHelper;
 };

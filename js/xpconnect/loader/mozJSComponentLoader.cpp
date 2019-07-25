@@ -446,9 +446,6 @@ mozJSComponentLoader::ReallyInit()
     
     JS_SetVersion(mContext, JSVERSION_LATEST);
 
-    
-    JS_SetNativeStackQuota(mContext, 512 * 1024);
-
     nsCOMPtr<nsIScriptSecurityManager> secman =
         do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID);
     if (!secman)

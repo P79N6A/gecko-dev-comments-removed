@@ -117,6 +117,13 @@ Rule::GetParentStyleSheet(nsIDOMCSSStyleSheet** aSheet)
   return NS_OK;
 }
 
+size_t
+Rule::SizeOfCOMArrayElementIncludingThis(css::Rule* aElement,
+                                         nsMallocSizeOfFun aMallocSizeOf,
+                                         void* aData)
+{
+  return aElement->SizeOfIncludingThis(aMallocSizeOf);
+}
 
 
 
@@ -322,7 +329,15 @@ CharsetRule::GetParentRule(nsIDOMCSSRule** aParentRule)
   return Rule::GetParentRule(aParentRule);
 }
 
+ size_t
+CharsetRule::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+{
+  return aMallocSizeOf(this);
 
+  
+  
+  
+}
 
 
 
@@ -488,6 +503,20 @@ ImportRule::GetStyleSheet(nsIDOMCSSStyleSheet * *aStyleSheet)
 
   NS_IF_ADDREF(*aStyleSheet = mChildSheet);
   return NS_OK;
+}
+
+ size_t
+ImportRule::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+{
+  return aMallocSizeOf(this);
+
+  
+  
+  
+  
+  
+  
+  
 }
 
 } 
@@ -695,6 +724,17 @@ GroupRule::DeleteRule(PRUint32 aIndex)
   return mSheet->DeleteRuleFromGroup(this, aIndex);
 }
 
+ size_t
+GroupRule::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+{
+  return mRules.SizeOfExcludingThis(Rule::SizeOfCOMArrayElementIncludingThis,
+                                    aMallocSizeOf);
+
+  
+  
+  
+}
+
 
 
 
@@ -864,6 +904,19 @@ MediaRule::UseForPresentation(nsPresContext* aPresContext,
     return mMedia->Matches(aPresContext, &aKey);
   }
   return true;
+}
+
+ size_t
+MediaRule::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+{
+  size_t n = aMallocSizeOf(this);
+  n += GroupRule::SizeOfExcludingThis(aMallocSizeOf);
+
+  
+  
+  
+
+  return n;
 }
 
 } 
@@ -1075,6 +1128,19 @@ DocumentRule::URL::~URL()
   NS_CSS_DELETE_LIST_MEMBER(DocumentRule::URL, this, next);
 }
 
+ size_t
+DocumentRule::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+{
+  size_t n = aMallocSizeOf(this);
+  n += GroupRule::SizeOfExcludingThis(aMallocSizeOf);
+
+  
+  
+  
+
+  return n;
+}
+
 } 
 } 
 
@@ -1198,6 +1264,18 @@ NameSpaceRule::GetParentRule(nsIDOMCSSRule** aParentRule)
 {
   return Rule::GetParentRule(aParentRule);
 }
+
+ size_t
+NameSpaceRule::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+{
+  return aMallocSizeOf(this);
+
+  
+  
+  
+  
+}
+
 
 } 
 } 
@@ -1660,6 +1738,17 @@ nsCSSFontFaceRule::GetDesc(nsCSSFontDesc aDescID, nsCSSValue & aValue)
   aValue = mDecl.*nsCSSFontFaceStyleDecl::Fields[aDescID];
 }
 
+ size_t
+nsCSSFontFaceRule::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+{
+  return aMallocSizeOf(this);
+
+  
+  
+  
+}
+
+
 
 
 
@@ -1882,6 +1971,19 @@ nsCSSKeyframeRule::ChangeDeclaration(css::Declaration* aDeclaration)
   }
 }
 
+ size_t
+nsCSSKeyframeRule::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+{
+  return aMallocSizeOf(this);
+
+  
+  
+  
+  
+  
+}
+
+
 
 
 
@@ -2078,4 +2180,18 @@ nsCSSKeyframesRule::UseForPresentation(nsPresContext* aPresContext,
   NS_ABORT_IF_FALSE(false, "should not be called");
   return false;
 }
+
+ size_t
+nsCSSKeyframesRule::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+{
+  size_t n = aMallocSizeOf(this);
+  n += GroupRule::SizeOfExcludingThis(aMallocSizeOf);
+
+  
+  
+  
+
+  return n;
+}
+
 

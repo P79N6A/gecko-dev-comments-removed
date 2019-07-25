@@ -162,8 +162,6 @@ public:
 
   virtual already_AddRefed<CanvasLayer> CreateCanvasLayer();
 
-  virtual already_AddRefed<ImageContainer> CreateImageContainer();
-
   virtual already_AddRefed<ShadowThebesLayer> CreateShadowThebesLayer();
   virtual already_AddRefed<ShadowContainerLayer> CreateShadowContainerLayer();
   virtual already_AddRefed<ShadowImageLayer> CreateShadowImageLayer();
@@ -172,16 +170,6 @@ public:
 
   virtual LayersBackend GetBackendType() { return LAYERS_OPENGL; }
   virtual void GetBackendName(nsAString& name) { name.AssignLiteral("OpenGL"); }
-
-  
-
-
-
-  
-
-
-  void ForgetImageContainer(ImageContainer* aContainer);
-  void RememberImageContainer(ImageContainer* aContainer);
 
   
 
@@ -422,11 +410,6 @@ private:
   nsRefPtr<GLContext> mGLContext;
 
   already_AddRefed<mozilla::gl::GLContext> CreateContext();
-
-  
-  
-  
-  nsTArray<ImageContainer*> mImageContainers;
 
   static ProgramType sLayerProgramTypes[];
 
