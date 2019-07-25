@@ -18,6 +18,7 @@ XPCOMUtils.defineLazyServiceGetter(this, "gGlobalHistory",
 
 const TEST_DOMAIN = "http://mozilla.org/";
 const TOPIC_UPDATEPLACES_COMPLETE = "places-updatePlaces-complete";
+const URI_VISIT_SAVED = "uri-visit-saved";
 const RECENT_EVENT_THRESHOLD = 15 * 60 * 1000000;
 
 
@@ -93,6 +94,40 @@ TitleChangedObserver.prototype = {
     }
     do_check_eq(aTitle, this.expectedTitle);
     this.callback();
+  },
+};
+
+
+
+
+
+
+
+
+
+
+function VisitObserver(aURI,
+                       aCallback)
+{
+  this.uri = aURI;
+  this.callback = aCallback;
+}
+VisitObserver.prototype = {
+  __proto__: NavHistoryObserver.prototype,
+  onVisit: function(aURI,
+                    aVisitId,
+                    aTime,
+                    aSessionId,
+                    aReferringId,
+                    aTransitionType)
+  {
+    do_log_info("onVisit(" + aURI.spec + ", " + aVisitId + ", " + aTime +
+                ", " + aSessionId + ", " + aReferringId + ", " +
+                aTransitionType + ")");
+    if (!this.uri.equals(aURI)) {
+      return;
+    }
+    this.callback(aTime, aTransitionType);
   },
 };
 
@@ -1133,6 +1168,46 @@ function test_title_change_notifies()
   gHistory.updatePlaces(place);
 }
 
+function test_visit_notifies()
+{
+  
+  
+  let place = {
+    uri: NetUtil.newURI(TEST_DOMAIN + "test_visit_notifies"),
+    visits: [
+      new VisitInfo(),
+    ],
+  };
+  do_check_false(gGlobalHistory.isVisited(place.uri));
+
+  let callbackCount = 0;
+  let finisher = function() {
+    if (++callbackCount == 2) {
+      run_next_test();
+    }
+  }
+  let visitObserver = new VisitObserver(place.uri, function(aVisitDate,
+                                                            aTransitionType) {
+    let visit = place.visits[0];
+    do_check_eq(visit.visitDate, aVisitDate);
+    do_check_eq(visit.transitionType, aTransitionType);
+
+    PlacesUtils.history.removeObserver(visitObserver);
+    finisher();
+  });
+  PlacesUtils.history.addObserver(visitObserver, false);
+  let observer = function(aSubject, aTopic, aData) {
+    do_log_info("observe(" + aSubject + ", " + aTopic + ", " + aData + ")");
+    do_check_true(aSubject instanceof Ci.nsIURI);
+    do_check_true(aSubject.equals(place.uri));
+
+    Services.obs.removeObserver(observer, URI_VISIT_SAVED);
+    finisher();
+  };
+  Services.obs.addObserver(observer, URI_VISIT_SAVED, false);
+  gHistory.updatePlaces(place);
+}
+
 function test_referrer_sessionId_persists()
 {
   
@@ -1204,6 +1279,7 @@ let gTests = [
   test_title_change_saved,
   test_no_title_does_not_clear_title,
   test_title_change_notifies,
+  test_visit_notifies,
   test_referrer_sessionId_persists,
 ];
 
