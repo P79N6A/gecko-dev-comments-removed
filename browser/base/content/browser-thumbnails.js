@@ -28,11 +28,6 @@ let gBrowserThumbnails = {
   
 
 
-  _pageThumbs: null,
-
-  
-
-
   _tabEvents: ["TabClose", "TabSelect"],
 
   init: function Thumbnails_init() {
@@ -52,9 +47,6 @@ let gBrowserThumbnails = {
     }, this);
 
     this._timeouts = new WeakMap();
-
-    XPCOMUtils.defineLazyModuleGetter(this, "_pageThumbs",
-      "resource:///modules/PageThumbs.jsm", "PageThumbs");
   },
 
   uninit: function Thumbnails_uninit() {
@@ -100,7 +92,7 @@ let gBrowserThumbnails = {
 
   _capture: function Thumbnails_capture(aBrowser) {
     if (this._shouldCapture(aBrowser))
-      this._pageThumbs.captureAndStore(aBrowser);
+      PageThumbs.captureAndStore(aBrowser);
   },
 
   _delayedCapture: function Thumbnails_delayedCapture(aBrowser) {

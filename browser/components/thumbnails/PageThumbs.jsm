@@ -116,11 +116,26 @@ let PageThumbs = {
       return;
     }
 
-    let telemetryCaptureTime = new Date();
-    let [sw, sh, scale] = this._determineCropSize(aWindow);
-
     let canvas = this._createCanvas();
-    let ctx = canvas.getContext("2d");
+    this.captureToCanvas(aWindow, canvas);
+
+    
+    
+    
+    Services.tm.currentThread.dispatch(function () {
+      canvas.mozFetchAsStream(aCallback, this.contentType);
+    }.bind(this), Ci.nsIThread.DISPATCH_NORMAL);
+  },
+
+  
+
+
+
+
+  captureToCanvas: function PageThumbs_captureToCanvas(aWindow, aCanvas) {
+    let telemetryCaptureTime = new Date();
+    let [sw, sh, scale] = this._determineCropSize(aWindow, aCanvas);
+    let ctx = aCanvas.getContext("2d");
 
     
     ctx.scale(scale, scale);
@@ -137,12 +152,7 @@ let PageThumbs = {
     telemetry.getHistogramById("FX_THUMBNAILS_CAPTURE_TIME_MS")
       .add(new Date() - telemetryCaptureTime);
 
-    
-    
-    
-    Services.tm.currentThread.dispatch(function () {
-      canvas.mozFetchAsStream(aCallback, this.contentType);
-    }.bind(this), Ci.nsIThread.DISPATCH_NORMAL);
+    return aCanvas;
   },
 
   
@@ -195,11 +205,12 @@ let PageThumbs = {
 
 
 
-  _determineCropSize: function PageThumbs_determineCropSize(aWindow) {
+
+  _determineCropSize: function PageThumbs_determineCropSize(aWindow, aCanvas) {
     let sw = aWindow.innerWidth;
     let sh = aWindow.innerHeight;
 
-    let [thumbnailWidth, thumbnailHeight] = this._getThumbnailSize();
+    let {width: thumbnailWidth, height: thumbnailHeight} = aCanvas;
     let scale = Math.max(thumbnailWidth / sw, thumbnailHeight / sh);
     let scaledWidth = sw * scale;
     let scaledHeight = sh * scale;
