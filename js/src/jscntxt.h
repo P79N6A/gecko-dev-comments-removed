@@ -104,9 +104,6 @@ class JaegerCompartment;
 class WeakMapBase;
 class InterpreterFrames;
 
-class ScriptOpcodeCounts;
-struct ScriptOpcodeCountsPair;
-
 
 
 
@@ -135,7 +132,7 @@ struct PendingProxyOperation {
     JSObject                *object;
 };
 
-typedef Vector<ScriptOpcodeCountsPair, 0, SystemAllocPolicy> ScriptOpcodeCountsVector;
+typedef Vector<ScriptAndCounts, 0, SystemAllocPolicy> ScriptAndCountsVector;
 
 struct ConservativeGCData
 {
@@ -463,7 +460,7 @@ struct JSRuntime : js::RuntimeFriendFields
     js::AutoGCRooter   *autoGCRooters;
 
     
-    js::ScriptOpcodeCountsVector *scriptPCCounters;
+    js::ScriptAndCountsVector *scriptAndCountsVector;
 
     
     js::Value           NaNValue;

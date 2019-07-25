@@ -1367,27 +1367,27 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::MIPSRegiste
     }
 
     
-    void addCounter(const double *value, double *counter, RegisterID scratch)
+    void addCount(const double *value, double *count, RegisterID scratch)
     {
         loadDouble(value, Registers::FPConversionTemp);
-        move(ImmPtr(counter), scratch);
+        move(ImmPtr(count), scratch);
         addDouble(Address(scratch), Registers::FPConversionTemp);
         storeDouble(Registers::FPConversionTemp, Address(scratch));
     }
 
     
-    void bumpCounter(double *counter, RegisterID scratch)
+    void bumpCount(double *count, RegisterID scratch)
     {
-        addCounter(&oneDouble, counter, scratch);
+        addCount(&oneDouble, count, scratch);
     }
 
     
-    void bumpStubCounter(JSScript *script, jsbytecode *pc, RegisterID scratch)
+    void bumpStubCount(JSScript *script, jsbytecode *pc, RegisterID scratch)
     {
-        if (script->pcCounters) {
-            OpcodeCounts counts = script->getCounts(pc);
-            double *counter = &counts.get(OpcodeCounts::BASE_METHODJIT_STUBS);
-            bumpCounter(counter, scratch);
+        if (script->scriptCounts) {
+            PCCounts counts = script->getPCCounts(pc);
+            double *count = &counts.get(PCCounts::BASE_METHODJIT_STUBS);
+            bumpCount(count, scratch);
         }
     }
 
