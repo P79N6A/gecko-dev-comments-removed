@@ -70,7 +70,7 @@ SVGAnimatedLengthList::SetBaseValueString(const nsAString& aValue)
   
 
   rv = mBaseVal.CopyFrom(newBaseValue);
-  if (NS_FAILED(rv)) {
+  if (NS_FAILED(rv) && domWrapper) {
     
     
     domWrapper->InternalBaseValListWillChangeTo(mBaseVal);
