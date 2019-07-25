@@ -4566,17 +4566,6 @@ WebGLContext::CompileShader(nsIWebGLShader *sobj)
     ShShaderOutput targetShaderSourceLanguage = gl->IsGLES2() ? SH_ESSL_OUTPUT : SH_GLSL_OUTPUT;
     bool useShaderSourceTranslation = true;
 
-#ifdef ANDROID
-    
-    
-    
-    
-    
-    
-    targetShaderSourceLanguage = SH_GLSL_OUTPUT;
-    useShaderSourceTranslation = false;
-#endif
-
 #if defined(USE_ANGLE)
     if (shader->NeedsTranslation() && mShaderValidation) {
         ShHandle compiler = 0;
