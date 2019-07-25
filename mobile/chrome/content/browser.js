@@ -2200,7 +2200,18 @@ var ContentCrashObserver = {
     if (!aSubject.QueryInterface(Ci.nsIPropertyBag2).hasKey("abnormal"))
       return;
 
-    let dumpID = aSubject.hasKey("dumpID") ? aSubject.getProperty("dumpID") : null;
+    
+    let env = Cc["@mozilla.org/process/environment;1"].getService(Ci.nsIEnvironment);
+    let shutdown = env.get("MOZ_CRASHREPORTER_SHUTDOWN");
+    if (shutdown) {
+      let appStartup = Cc["@mozilla.org/toolkit/app-startup;1"].getService(Ci.nsIAppStartup);
+      appStartup.quit(Ci.nsIAppStartup.eForceQuit);
+      return;
+    }
+
+    let hideUI = env.get("MOZ_CRASHREPORTER_NO_REPORT");
+    if (hideUI)
+      return;
 
     
     
@@ -2208,6 +2219,8 @@ var ContentCrashObserver = {
       if (aTab.browser.getAttribute("remote") == "true")
         aTab.resurrect();
     })
+
+    let dumpID = aSubject.hasKey("dumpID") ? aSubject.getProperty("dumpID") : null;
 
     
     setTimeout(function(self) {
