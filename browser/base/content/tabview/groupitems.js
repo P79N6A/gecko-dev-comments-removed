@@ -66,6 +66,7 @@
 
 
 
+
 function GroupItem(listOfEls, options) {
   if (!options)
     options = {};
@@ -420,16 +421,19 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  setBounds: function GroupItem_setBounds(rect, immediately, options) {
-    if (!Utils.isRect(rect)) {
-      Utils.trace('GroupItem.setBounds: rect is not a real rectangle!', rect);
+  setBounds: function GroupItem_setBounds(inRect, immediately, options) {
+    if (!Utils.isRect(inRect)) {
+      Utils.trace('GroupItem.setBounds: rect is not a real rectangle!', inRect);
       return;
     }
 
+    
+    let validSize = GroupItems.calcValidSize(
+      new Point(inRect.width, inRect.height));
+    let rect = new Rect(inRect.left, inRect.top, validSize.x, validSize.y);
+
     if (!options)
       options = {};
-
-    GroupItems.enforceMinSize(rect);
 
     var titleHeight = this.$titlebar.height();
 
@@ -939,6 +943,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       item.setParent(null);
       item.removeClass("tabInGroupItem");
       item.removeClass("stacked");
+      item.isStacked = false;
       item.removeClass("stack-trayed");
       item.setRotation(0);
 
@@ -1069,6 +1074,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
+  
   shouldStack: function GroupItem_shouldStack(count) {
     if (count <= 1)
       return false;
@@ -1076,7 +1082,8 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     var bb = this.getContentBounds();
     var options = {
       return: 'widthAndColumns',
-      count: count || this._children.length
+      count: count || this._children.length,
+      hideTitle: false
     };
     let arrObj = Items.arrange(null, bb, options);
  
@@ -1160,28 +1167,25 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     var maxRotation = 35; 
     var scale = 0.8;
     var newTabsPad = 10;
-    var w;
-    var h;
     var itemAspect = TabItems.tabHeight / TabItems.tabWidth;
     var bbAspect = bb.height / bb.width;
 
     
-    
+    let size;
     if (bbAspect > itemAspect) { 
-      w = bb.width * scale;
-      h = w * itemAspect;
-      
-    } else { 
-      h = bb.height * scale;
-      w = h * (1 / itemAspect);
-    }
+      size = TabItems.calcValidSize(new Point(bb.width * scale, -1),
+        {hideTitle:true});
+     } else { 
+      size = TabItems.calcValidSize(new Point(-1, bb.height * scale),
+        {hideTitle:true});
+     }
+
 
     
     
-    var x = (bb.width - w) / 2;
-
-    var y = Math.min(x, (bb.height - h) / 2);
-    var box = new Rect(bb.left + x, bb.top + y, w, h);
+    var x = (bb.width - size.x) / 2;
+    var y = Math.min(size.x, (bb.height - size.y) / 2);
+    var box = new Rect(bb.left + x, bb.top + y, size.x, size.y);
 
     var self = this;
     var children = [];
@@ -1198,7 +1202,10 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
         zIndex--;
 
         child.addClass("stacked");
-        child.setBounds(box, !animate);
+        child.isStacked = true;
+        
+        
+        child.setBounds(box, !animate, {force:true});
         child.setRotation((UI.rtl ? -1 : 1) * Math.min(index, 5) * 5);
       }
     });
@@ -1238,7 +1245,8 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       });
 
       childrenToArrange.forEach(function(child) {
-        child.removeClass("stacked")
+        child.removeClass("stacked");
+        child.isStacked = false;
       });
     }
   
@@ -1248,10 +1256,11 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     
     
     let result = Items.arrange(childrenToArrange, box, arrangeOptions);
-    let {dropIndex, rects} = result;
+    let {dropIndex, rects, columns} = result;
     if ("oldDropIndex" in options && options.oldDropIndex === dropIndex)
       return dropIndex;
 
+    this._columns = columns;
     let index = 0;
     let self = this;
     childrenToArrange.forEach(function GroupItem_arrange_children_each(child, i) {
@@ -2084,7 +2093,7 @@ let GroupItems = {
     
     
     if (orphanTabItem && orphanTabItem.tab != tabItem.tab) {
-      newGroupItemBounds = orphanTabItem.getBoundsWithTitle();
+      newGroupItemBounds = orphanTabItem.getBounds();
       tabItems = [orphanTabItem, tabItem];
     } else {
       tabItem.setPosition(60, 60, true);
@@ -2366,18 +2375,6 @@ let GroupItems = {
   
   
   
-  
-  
-  enforceMinSize: function GroupItems_enforceMinSize(bounds) {
-    bounds.width = Math.max(bounds.width, this.minGroupWidth);
-    bounds.height = Math.max(bounds.height, this.minGroupHeight);
-  },
-
-  
-  
-  
-  
-  
   getUnclosableGroupItemId: function GroupItems_getUnclosableGroupItemId() {
     let unclosableGroupItemId = null;
 
@@ -2410,5 +2407,17 @@ let GroupItems = {
         groupItem.$closeButton.show();
       });
     }
+  },
+  
+  
+  
+  
+  calcValidSize: function GroupItems_calcValidSize(size, options) {
+    Utils.assert(Utils.isPoint(size), 'input is a Point');
+    Utils.assert((size.x>0 || size.y>0) && (size.x!=0 && size.y!=0), 
+      "dimensions are valid:"+size.x+","+size.y);
+    return new Point(
+      Math.max(size.x, GroupItems.minGroupWidth),
+      Math.max(size.y, GroupItems.minGroupHeight));
   }
 };
