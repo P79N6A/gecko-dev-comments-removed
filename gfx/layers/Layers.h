@@ -393,7 +393,7 @@ public:
 
   bool HasUserData(void* aKey)
   {
-    return GetUserData(aKey);
+    return mUserData.Has(static_cast<gfx::UserDataKey*>(aKey));
   }
   
 
@@ -756,7 +756,7 @@ public:
 
   bool HasUserData(void* aKey)
   {
-    return GetUserData(aKey);
+    return mUserData.Has(static_cast<gfx::UserDataKey*>(aKey));
   }
   
 
