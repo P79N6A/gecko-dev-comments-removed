@@ -44,13 +44,6 @@
 
 
 
-function _isIframe(doc){
-  var win = doc.defaultView;
-  return win.parent != win;
-}
-
-
-
 
 var TabCanvas = function(tab, canvas){
   this.init(tab, canvas);
@@ -164,11 +157,9 @@ function Mirror(tab, manager) {
   this.cachedThumbEl = iQ('img.cached-thumb', $div).get(0);
   this.okayToHideCache = false;
 
-  if (!_isIframe(this.tab.linkedBrowser.contentDocument)) {
-    this.tabCanvas = new TabCanvas(this.tab, this.canvasEl);
-    this.tabCanvas.attach();
-    this.triggerPaint();
-  }
+  this.tabCanvas = new TabCanvas(this.tab, this.canvasEl);
+  this.tabCanvas.attach();
+  this.triggerPaint();
 
 
   this.tab.mirror = this;
