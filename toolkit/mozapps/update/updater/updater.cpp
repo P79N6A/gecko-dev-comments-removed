@@ -2433,6 +2433,19 @@ int NS_main(int argc, NS_tchar **argv)
 
       
       
+      
+      
+      
+      
+      if (useService) {
+        BOOL unpromptedElevation;
+        if (IsUnpromptedElevation(unpromptedElevation)) {
+          useService = !unpromptedElevation;
+        }
+      }
+
+      
+      
       if (useService) {
         WCHAR maintenanceServiceKey[MAX_PATH + 1];
         if (CalculateRegistryPathFromFilePath(installDir, maintenanceServiceKey)) {
