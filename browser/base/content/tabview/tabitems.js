@@ -373,6 +373,19 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
               (!GroupItems.getActiveGroupItem() && !self.tab.hidden))
             GroupItems.setActiveGroupItem(self.parent);
         }
+      } else {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        if (GroupItems.getActiveGroupItem() == null)
+          GroupItems.newTab(self, {immediately: true});
       }
     } else {
       
