@@ -156,6 +156,10 @@ typedef struct JSSecurityCallbacks JSSecurityCallbacks;
 typedef struct JSONParser        JSONParser;
 typedef struct JSCompartment     JSCompartment;
 typedef struct JSCrossCompartmentCall JSCrossCompartmentCall;
+#ifdef __cplusplus
+typedef class JSWrapper          JSWrapper;
+typedef class JSCrossCompartmentWrapper JSCrossCompartmentWrapper;
+#endif
 
 
 
@@ -571,6 +575,14 @@ typedef JSPrincipals *
 
 typedef JSBool
 (* JSCSPEvalChecker)(JSContext *cx);
+
+
+
+
+
+
+typedef JSObject *
+(* JSWrapObjectCallback)(JSContext *cx, JSObject *obj, JSObject *proto);
 
 JS_END_EXTERN_C
 

@@ -50,7 +50,9 @@ namespace js {
 
 
 class JSProxyHandler {
+    void *mFamily;
   public:
+    explicit JSProxyHandler(void *family);
     virtual ~JSProxyHandler();
 
     
@@ -81,6 +83,10 @@ class JSProxyHandler {
     virtual JSString *fun_toString(JSContext *cx, JSObject *proxy, uintN indent);
     virtual void finalize(JSContext *cx, JSObject *proxy);
     virtual void trace(JSTracer *trc, JSObject *proxy);
+
+    inline void *family() {
+        return mFamily;
+    }
 };
 
 
