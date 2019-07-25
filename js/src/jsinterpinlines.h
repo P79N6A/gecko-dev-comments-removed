@@ -652,6 +652,82 @@ class PrimitiveBehavior<double> {
 
 } 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+inline bool
+ComputeImplicitThis(JSContext *cx, JSObject *obj, const Value &funval, Value *vp)
+{
+    vp->setUndefined();
+
+    if (!funval.isObject())
+        return true;
+
+    if (!obj->isGlobal()) {
+        if (IsCacheableNonGlobalScope(obj))
+            return true;
+    } else {
+        JSObject *callee = &funval.toObject();
+
+        if (callee->isProxy()) {
+            callee = callee->unwrap();
+            if (!callee->isFunction())
+                return true; 
+        }
+        if (callee->isFunction()) {
+            JSFunction *fun = callee->getFunctionPrivate();
+            if (fun->isInterpreted() && fun->inStrictMode())
+                return true;
+        }
+        if (callee->getGlobal() == cx->fp()->scopeChain().getGlobal())
+            return true;;
+    }
+
+    obj = obj->thisObject(cx);
+    if (!obj)
+        return false;
+
+    vp->setObject(*obj);
+    return true;
+}
+
 template <typename T>
 bool
 GetPrimitiveThis(JSContext *cx, Value *vp, T *v)

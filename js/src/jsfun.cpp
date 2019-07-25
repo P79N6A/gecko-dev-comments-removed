@@ -2668,7 +2668,7 @@ LookupInterpretedFunctionPrototype(JSContext *cx, JSObject *funobj)
     return shape;
 }
 
-}
+} 
 
 static JSBool
 ThrowTypeError(JSContext *cx, uintN argc, Value *vp)
@@ -3050,35 +3050,4 @@ js_ReportIsNotFunction(JSContext *cx, const Value *vp, uintN flags)
         spindex = ((flags & JSV2F_SEARCH_STACK) ? JSDVG_SEARCH_STACK : JSDVG_IGNORE_STACK);
 
     js_ReportValueError3(cx, error, spindex, *vp, NULL, name, source);
-}
-
-namespace js {
-
-bool
-IsSafeForLazyThisCoercion(JSContext *cx, JSObject *callee)
-{
-    
-
-
-
-
-
-
-
-
-
-
-
-    if (callee->isProxy()) {
-        callee = callee->unwrap();
-        if (!callee->isFunction())
-            return true; 
-
-        JSFunction *fun = callee->getFunctionPrivate();
-        if (fun->isInterpreted() && fun->inStrictMode())
-            return true;
-    }
-    return callee->getGlobal() == cx->fp()->scopeChain().getGlobal();
-}
-
 }
