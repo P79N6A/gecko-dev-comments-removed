@@ -795,6 +795,13 @@ public:
 
 
 
+  virtual void GetMergedFrames(nsTArray<nsIFrame*>* aFrames) {}
+
+  
+
+
+
+
 
   virtual bool ShouldFlattenAway(nsDisplayListBuilder* aBuilder) {
     return false;
@@ -1712,6 +1719,10 @@ public:
     NS_WARNING("This list should already have been flattened!!!");
     return false;
   }
+  virtual void GetMergedFrames(nsTArray<nsIFrame*>* aFrames)
+  {
+    aFrames->AppendElements(mMergedFrames);
+  }
   NS_DISPLAY_DECL_NAME("WrapList", TYPE_WRAP_LIST)
 
   virtual nsRect GetComponentAlphaBounds(nsDisplayListBuilder* aBuilder);
@@ -1748,8 +1759,17 @@ protected:
     mList.AppendToBottom(&aOther->mList);
     mBounds.UnionRect(mBounds, aOther->mBounds);
   }
+  void MergeFromTrackingMergedFrames(nsDisplayWrapList* aOther)
+  {
+    MergeFrom(aOther);
+    mMergedFrames.AppendElement(aOther->mFrame);
+    mMergedFrames.MoveElementsFrom(aOther->mMergedFrames);
+  }
 
   nsDisplayList mList;
+  
+  
+  nsTArray<nsIFrame*> mMergedFrames;
   nsRect mBounds;
 };
 
