@@ -195,7 +195,9 @@ class XPCShellRemote(xpcshell.XPCShellTests, object):
         shellArgs = "cd "+self.remoteHere
         shellArgs += "; LD_LIBRARY_PATH="+self.remoteBinDir
         shellArgs += "; export CACHE_PATH="+self.remoteBinDir
-        shellArgs += "; export GRE_HOME="+self.device.getAppRoot()
+        if (self.device.getAppRoot()):
+          
+          shellArgs += "; export GRE_HOME="+self.device.getAppRoot()
         shellArgs += "; export XPCSHELL_TEST_PROFILE_DIR="+self.profileDir
         shellArgs += "; "+xpcshell+" "
         shellArgs += " ".join(cmd[1:])
