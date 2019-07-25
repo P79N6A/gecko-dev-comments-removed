@@ -5,6 +5,7 @@
 
 
 #include "nspr.h"
+#include "private/pprio.h"
 #include "nsString.h"
 #include "nsCRT.h"
 
@@ -22,6 +23,7 @@
 static PRDescIdentity	nsSOCKSIOLayerIdentity;
 static PRIOMethods	nsSOCKSIOLayerMethods;
 static bool firstTime = true;
+static bool ipv6Supported = true;
 
 #if defined(PR_LOGGING)
 static PRLogModuleInfo *gSOCKSLog;
@@ -66,6 +68,7 @@ public:
     NS_DECL_NSIDNSLISTENER
 
     void Init(PRInt32 version,
+              PRInt32 family,
               const char *proxyHost,
               PRInt32 proxyPort,
               const char *destinationHost,
@@ -80,6 +83,7 @@ private:
     void HandshakeFinished(PRErrorCode err = 0);
     PRStatus StartDNS(PRFileDesc *fd);
     PRStatus ConnectToProxy(PRFileDesc *fd);
+    void FixupAddressFamily(PRFileDesc *fd, PRNetAddr *proxy);
     PRStatus ContinueConnectingToProxy(PRFileDesc *fd, PRInt16 oflags);
     PRStatus WriteV4ConnectRequest();
     PRStatus ReadV4ConnectResponse();
@@ -123,6 +127,7 @@ private:
     nsCString mProxyHost;
     PRInt32   mProxyPort;
     PRInt32   mVersion;   
+    PRInt32   mDestinationFamily;
     PRUint32  mFlags;
     PRNetAddr mInternalProxyAddr;
     PRNetAddr mExternalProxyAddr;
@@ -138,6 +143,7 @@ nsSOCKSSocketInfo::nsSOCKSSocketInfo()
     , mAmountToRead(0)
     , mProxyPort(-1)
     , mVersion(-1)
+    , mDestinationFamily(PR_AF_INET)
     , mFlags(0)
     , mTimeout(PR_INTERVAL_NO_TIMEOUT)
 {
@@ -148,9 +154,10 @@ nsSOCKSSocketInfo::nsSOCKSSocketInfo()
 }
 
 void
-nsSOCKSSocketInfo::Init(PRInt32 version, const char *proxyHost, PRInt32 proxyPort, const char *host, PRUint32 flags)
+nsSOCKSSocketInfo::Init(PRInt32 version, PRInt32 family, const char *proxyHost, PRInt32 proxyPort, const char *host, PRUint32 flags)
 {
     mVersion         = version;
+    mDestinationFamily = family;
     mProxyHost       = proxyHost;
     mProxyPort       = proxyPort;
     mDestinationHost = host;
@@ -285,6 +292,12 @@ nsSOCKSSocketInfo::ConnectToProxy(PRFileDesc *fd)
         return PR_FAILURE;
     }
 
+    
+    if (mVersion == 4 &&
+        PR_NetAddrFamily(&mDestinationAddr) == PR_AF_INET6) {
+        mVersion = 5;
+    }
+
     PRInt32 addresses = 0;
     do {
         if (addresses++)
@@ -304,8 +317,9 @@ nsSOCKSSocketInfo::ConnectToProxy(PRFileDesc *fd)
         LOGDEBUG(("socks: trying proxy server, %s:%hu",
                  buf, PR_ntohs(PR_NetAddrInetPort(&mInternalProxyAddr))));
 #endif
-        status = fd->lower->methods->connect(fd->lower,
-                        &mInternalProxyAddr, mTimeout);
+        PRNetAddr proxy = mInternalProxyAddr;
+        FixupAddressFamily(fd, &proxy);
+        status = fd->lower->methods->connect(fd->lower, &proxy, mTimeout);
         if (status != PR_SUCCESS) {
             PRErrorCode c = PR_GetError();
             
@@ -320,6 +334,59 @@ nsSOCKSSocketInfo::ConnectToProxy(PRFileDesc *fd)
     if (mVersion == 4)
         return WriteV4ConnectRequest();
     return WriteV5AuthRequest();
+}
+
+void
+nsSOCKSSocketInfo::FixupAddressFamily(PRFileDesc *fd, PRNetAddr *proxy)
+{
+    PRInt32 proxyFamily = PR_NetAddrFamily(&mInternalProxyAddr);
+    
+    if (proxyFamily == mDestinationFamily) {
+        return;
+    }
+    
+    
+    if (proxyFamily == PR_AF_INET6 && !ipv6Supported) {
+        return;
+    }
+    
+    
+    
+    if (mDestinationFamily == PR_AF_INET6 && !ipv6Supported) {
+        proxy->ipv6.family = PR_AF_INET6;
+        proxy->ipv6.port = mInternalProxyAddr.inet.port;
+        PRUint8 *proxyp = proxy->ipv6.ip.pr_s6_addr;
+        memset(proxyp, 0, 10);
+        memset(proxyp + 10, 0xff, 2);
+        memcpy(proxyp + 12,(char *) &mInternalProxyAddr.inet.ip, 4);
+        
+        return;
+    }
+    
+    PROsfd osfd = PR_FileDesc2NativeHandle(fd);
+    if (osfd == -1) {
+        return;
+    }
+    
+    PRFileDesc *tmpfd = PR_OpenTCPSocket(proxyFamily);
+    if (!tmpfd) {
+        return;
+    }
+    PROsfd newsd = PR_FileDesc2NativeHandle(tmpfd);
+    if (newsd == -1) {
+        PR_Close(tmpfd);
+        return;
+    }
+    
+    fd = PR_GetIdentitiesLayer(fd, PR_NSPR_IO_LAYER);
+    MOZ_ASSERT(fd);
+    
+    PR_ChangeFileDescNativeHandle(fd, newsd);
+    PR_ChangeFileDescNativeHandle(tmpfd, osfd);
+    
+    
+    PR_Close(tmpfd);
+    mDestinationFamily = proxyFamily;
 }
 
 PRStatus
@@ -1136,6 +1203,18 @@ nsSOCKSIOLayerAddToSocket(PRInt32 family,
 
     if (firstTime)
     {
+        
+        
+        PRFileDesc *tmpfd = PR_OpenTCPSocket(PR_AF_INET6);
+        if (!tmpfd) {
+            ipv6Supported = false;
+        } else {
+            
+            
+            ipv6Supported = PR_GetIdentitiesLayer(tmpfd, PR_NSPR_IO_LAYER) == tmpfd;
+            PR_Close(tmpfd);
+        }
+
         nsSOCKSIOLayerIdentity		= PR_GetUniqueIdentity("SOCKS layer");
         nsSOCKSIOLayerMethods		= *PR_GetDefaultIOMethods();
 
@@ -1180,7 +1259,7 @@ nsSOCKSIOLayerAddToSocket(PRInt32 family,
     }
 
     NS_ADDREF(infoObject);
-    infoObject->Init(socksVersion, proxyHost, proxyPort, host, flags);
+    infoObject->Init(socksVersion, family, proxyHost, proxyPort, host, flags);
     layer->secret = (PRFilePrivate*) infoObject;
     rv = PR_PushIOLayer(fd, PR_GetLayersIdentity(fd), layer);
 
