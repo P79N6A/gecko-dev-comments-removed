@@ -2801,19 +2801,17 @@ HTMLContentSink::ProcessSCRIPTEndTag(nsGenericHTMLElement *content,
 
   
   
-  
-  nsresult rv = content->DoneAddingChildren(true);
+  bool block = sele->AttemptToExecute();
 
   
   
-  if (rv == NS_ERROR_HTMLPARSER_BLOCK) {
+  if (block) {
     
     
     
     
     mScriptElements.AppendObject(sele);
-  }
-  else {
+  } else {
     
     
     mHTMLDocument->ScriptExecuted(sele);
@@ -2822,10 +2820,10 @@ HTMLContentSink::ProcessSCRIPTEndTag(nsGenericHTMLElement *content,
   
   
   if (mParser && !mParser->IsParserEnabled()) {
-    rv = NS_ERROR_HTMLPARSER_BLOCK;
+    block = true;
   }
 
-  return rv;
+  return block ? NS_ERROR_HTMLPARSER_BLOCK : NS_OK;
 }
 
 

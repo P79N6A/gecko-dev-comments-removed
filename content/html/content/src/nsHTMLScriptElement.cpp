@@ -114,9 +114,6 @@ public:
                               nsIContent* aBindingParent,
                               bool aCompileEventHandlers);
 
-  virtual nsresult DoneAddingChildren(bool aHaveNotified);
-  virtual bool IsDoneAddingChildren();
-
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
   
@@ -267,25 +264,6 @@ nsresult
 nsHTMLScriptElement::SetInnerHTML(const nsAString& aInnerHTML)
 {
   return nsContentUtils::SetNodeTextContent(this, aInnerHTML, true);
-}
-
-nsresult
-nsHTMLScriptElement::DoneAddingChildren(bool aHaveNotified)
-{
-  mDoneAddingChildren = true;
-  nsresult rv = MaybeProcessScript();
-  if (!mAlreadyStarted) {
-    
-    
-    LoseParserInsertedness();
-  }
-  return rv;
-}
-
-bool
-nsHTMLScriptElement::IsDoneAddingChildren()
-{
-  return mDoneAddingChildren;
 }
 
 

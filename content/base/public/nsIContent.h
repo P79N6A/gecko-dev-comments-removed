@@ -762,10 +762,6 @@ public:
 
 
 
-
-
-
-
   virtual nsresult DoneAddingChildren(bool aHaveNotified)
   {
     return NS_OK;

@@ -49,8 +49,8 @@
 #include "nsIDOMHTMLScriptElement.h"
 
 #define NS_ISCRIPTELEMENT_IID \
-{ 0x6d625b30, 0xfac4, 0x11de, \
-{ 0x8a, 0x39, 0x08, 0x00, 0x20, 0x0c, 0x9a, 0x66 } }
+{ 0xac4c7e7f, 0x0c4a, 0x4796, \
+  { 0xb4, 0xb7, 0x54, 0xbd, 0x13, 0x0f, 0x95, 0x9e } }
 
 
 
@@ -217,7 +217,41 @@ public:
     return parser.forget();
   }
 
+  
+
+
+
+
+
+
+  bool AttemptToExecute()
+  {
+    mDoneAddingChildren = true;
+    nsresult rv = MaybeProcessScript();
+    if (!mAlreadyStarted) {
+      
+      
+      LoseParserInsertedness();
+    }
+    return rv == NS_ERROR_HTMLPARSER_BLOCK;
+  }
+
 protected:
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  virtual nsresult MaybeProcessScript() = 0;
+
   
 
 

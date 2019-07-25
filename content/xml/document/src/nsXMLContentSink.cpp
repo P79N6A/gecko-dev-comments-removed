@@ -586,29 +586,24 @@ nsXMLContentSink::CloseElement(nsIContent* aContent)
     return NS_OK;
   }
 
-  nsresult rv = NS_OK;
-
   if (nodeInfo->Equals(nsGkAtoms::script, kNameSpaceID_XHTML)
       || nodeInfo->Equals(nsGkAtoms::script, kNameSpaceID_SVG)
     ) {
     mConstrainSize = true; 
+    nsCOMPtr<nsIScriptElement> sele = do_QueryInterface(aContent);
 
     if (mPreventScriptExecution) {
-      nsCOMPtr<nsIScriptElement> sele = do_QueryInterface(aContent);
-      NS_ASSERTION(sele, "script did QI correctly!");
       sele->PreventExecution();
-      return rv;
+      return NS_OK;
     }
 
     
     
-    
-    rv = aContent->DoneAddingChildren(true);
+    bool block = sele->AttemptToExecute();
 
     
     
-    if (rv == NS_ERROR_HTMLPARSER_BLOCK) {
-      nsCOMPtr<nsIScriptElement> sele = do_QueryInterface(aContent);
+    if (block) {
       mScriptElements.AppendObject(sele);
     }
 
@@ -617,12 +612,13 @@ nsXMLContentSink::CloseElement(nsIContent* aContent)
     if (mParser && !mParser->IsParserEnabled()) {
       
       mParser->BlockParser();
-      rv = NS_ERROR_HTMLPARSER_BLOCK;
+      block = true;
     }
 
-    return rv;
+    return block ? NS_ERROR_HTMLPARSER_BLOCK : NS_OK;
   }
   
+  nsresult rv = NS_OK;
   if (nodeInfo->Equals(nsGkAtoms::meta, kNameSpaceID_XHTML) &&
            
            
