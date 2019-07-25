@@ -195,8 +195,6 @@ static const char sPrintOptionsContractID[]         = "@mozilla.org/gfx/printset
 
 #include "nsGfxCIID.h"
 
-#include "mozilla/dom/Element.h"
-
 using namespace mozilla;
 
 #ifdef NS_DEBUG

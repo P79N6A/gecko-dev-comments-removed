@@ -71,7 +71,6 @@
 #include "nsHTMLReflowState.h"
 #include "nsIObjectLoadingContent.h"
 #include "mozilla/Preferences.h"
-#include "mozilla/dom/Element.h"
 
 
 #include "nsPresContext.h"

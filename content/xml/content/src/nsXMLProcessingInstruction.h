@@ -63,10 +63,6 @@ public:
   NS_DECL_NSIDOMPROCESSINGINSTRUCTION
 
   
-  NS_DECL_AND_IMPL_DOM_MEMORY_REPORTER_SIZEOF(nsXMLProcessingInstruction,
-                                              nsGenericDOMDataNode)
-
-  
   virtual PRBool IsNodeOfType(PRUint32 aFlags) const;
 
   virtual nsGenericDOMDataNode* CloneDataNode(nsINodeInfo *aNodeInfo,

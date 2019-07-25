@@ -47,7 +47,6 @@
 #include "nsIAttribute.h"
 #include "nsIDocument.h"
 #include "nsThreadUtils.h"
-#include "nsDOMMemoryReporter.h"
 
 
 
@@ -70,9 +69,6 @@ public:
 
   
   NS_FORWARD_NSIDOMTEXT(nsGenericDOMDataNode::)
-
-  
-  NS_DECL_AND_IMPL_DOM_MEMORY_REPORTER_SIZEOF(nsTextNode, nsGenericDOMDataNode)
 
   
   virtual PRBool IsNodeOfType(PRUint32 aFlags) const;
