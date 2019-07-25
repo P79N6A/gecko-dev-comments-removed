@@ -1070,13 +1070,55 @@ CreateHolderIfNeeded(XPCCallContext& ccx, JSObject* obj, jsval* d,
         XPCJSObjectHolder* objHolder = XPCJSObjectHolder::newHolder(ccx, obj);
         if(!objHolder)
             return JS_FALSE;
-        
+
         NS_ADDREF(*dest = objHolder);
     }
 
     *d = OBJECT_TO_JSVAL(obj);
 
     return JS_TRUE;
+}
+
+static void
+ComputeWrapperInfo(const XPCCallContext &ccx,
+                   JSObject **callee,
+                   JSScript **script)
+{
+    *callee = nsnull;
+    *script = nsnull;
+
+    if(ccx.GetXPCContext()->CallerTypeIsJavaScript())
+    {
+        
+        
+        
+        JSStackFrame* fp = JS_GetScriptedCaller(ccx, NULL);
+        if(fp)
+        {
+            *script = fp->maybeScript();
+            *callee = fp->isFunctionFrame()
+                      ? &fp->callee()
+                      : &fp->scopeChain();
+        }
+    }
+    else if(ccx.GetXPCContext()->CallerTypeIsNative())
+    {
+        *callee = ccx.GetCallee();
+        if(*callee && JS_ObjectIsFunction(ccx, *callee))
+        {
+            
+            
+            JSFunction* fun = (JSFunction*) xpc_GetJSPrivate(*callee);
+            NS_ASSERTION(fun, "Must have JSFunction for a Function object");
+            *script = JS_GetFunctionScript(ccx, fun);
+        }
+        else
+        {
+            
+            
+            *callee = nsnull;
+        }
+    }
 }
 
 
@@ -1151,11 +1193,38 @@ XPCConvert::NativeInterface2JSObject(XPCLazyCallContext& lccx,
 
         nsWrapperCache *cache = aHelper.GetWrapperCache();
 
+        JSObject *callee = nsnull;
+        JSScript *script = nsnull;
+
         PRBool tryConstructSlimWrapper = PR_FALSE;
         JSObject *flat;
         if(cache)
         {
             flat = cache->GetWrapper();
+            if(cache->IsProxy())
+            {
+                if(flat)
+                {
+                    XPCCallContext &ccx = lccx.GetXPCCallContext();
+                    if(!ccx.IsValid())
+                        return JS_FALSE;
+
+                    ComputeWrapperInfo(ccx, &callee, &script);
+                    if(!callee)
+                        callee = xpcscope->GetGlobalJSObject();
+
+                    JSAutoCrossCompartmentCall accc;
+                    if(!accc.enter(ccx, callee) || !JS_WrapObject(ccx, &flat))
+                        return JS_FALSE;
+
+                    return CreateHolderIfNeeded(ccx, flat, d, dest);
+                }
+                else
+                {
+                    tryConstructSlimWrapper = PR_TRUE;
+                }
+            }
+
             if(!dest)
             {
                 if(!flat)
@@ -1196,6 +1265,22 @@ XPCConvert::NativeInterface2JSObject(XPCLazyCallContext& lccx,
             
             
             flat = cache->GetWrapper();
+            if(cache->IsProxy())
+            {
+                XPCCallContext &ccx = lccx.GetXPCCallContext();
+                if(!ccx.IsValid())
+                    return JS_FALSE;
+
+                ComputeWrapperInfo(ccx, &callee, &script);
+                if(!callee)
+                    callee = xpcscope->GetGlobalJSObject();
+
+                JSAutoCrossCompartmentCall accc;
+                if(!accc.enter(ccx, callee) || !JS_WrapObject(ccx, &flat))
+                    return JS_FALSE;
+
+                return CreateHolderIfNeeded(ccx, flat, d, dest);
+            }
         }
 
         AutoMarkingNativeInterfacePtr iface;
@@ -1221,7 +1306,8 @@ XPCConvert::NativeInterface2JSObject(XPCLazyCallContext& lccx,
             }
         }
 
-        NS_ASSERTION(!flat || IS_WRAPPER_CLASS(flat->getClass()),
+        NS_ASSERTION(!flat || IS_WRAPPER_CLASS(flat->getClass()) ||
+                     cache->IsProxy(),
                      "What kind of wrapper is this?");
 
         nsresult rv;
@@ -1257,7 +1343,7 @@ XPCConvert::NativeInterface2JSObject(XPCLazyCallContext& lccx,
             else
                 rv = NS_OK;
         }
-        else
+        else if(!cache->IsProxy())
         {
             NS_ASSERTION(IS_SLIM_WRAPPER(flat),
                          "What kind of wrapper is this?");
@@ -1299,45 +1385,7 @@ XPCConvert::NativeInterface2JSObject(XPCLazyCallContext& lccx,
 
                 
 
-                JSScript* script = nsnull;
-                JSObject* callee = nsnull;
-                if(ccx.GetXPCContext()->CallerTypeIsJavaScript())
-                {
-                    
-                    
-                    
-                    JSContext* cx = ccx;
-                    JSStackFrame* fp = JS_GetScriptedCaller(cx, NULL);
-                    if(fp)
-                    {
-                        script = JS_GetFrameScript(cx, fp);
-                        callee = JS_GetFrameCalleeObject(cx, fp);
-                    }
-                }
-                else if(ccx.GetXPCContext()->CallerTypeIsNative())
-                {
-                    callee = ccx.GetCallee();
-                    if(callee && JS_ObjectIsFunction(ccx, callee))
-                    {
-                        
-                        
-                        
-                        JSFunction* fun =
-                            (JSFunction*) xpc_GetJSPrivate(callee);
-                        NS_ASSERTION(fun,
-                                     "Must have JSFunction for a Function "
-                                     "object");
-                        script = JS_GetFunctionScript(ccx, fun);
-                    }
-                    else
-                    {
-                        
-                        
-                        callee = nsnull;
-                    }
-                }
-                
-                
+                ComputeWrapperInfo(ccx, &callee, &script);
 
                 flags = script ? JS_GetScriptFilenameFlags(script) : 0;
                 NS_ASSERTION(flags != JSFILENAME_NULL, "null script filename");
