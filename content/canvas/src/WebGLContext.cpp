@@ -614,35 +614,32 @@ WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
                     gl->SetFlushGuaranteesResolve(true);
                 }
             } else {
-                gl = nsnull;
+                LogMessage("Error during ANGLE OpenGL ES initialization");
+                return NS_ERROR_FAILURE;
             }
-        }
-    }
-
-    
-    if (!gl && useOpenGL) {
-        gl = gl::GLContextProvider::CreateOffscreen(gfxIntSize(width, height), format);
-        if (gl && !InitAndValidateGL()) {
-            gl = nsnull;
-        }
-    }
-#else
-    
-    if (!gl && useOpenGL) {
-        gl = gl::GLContextProvider::CreateOffscreen(gfxIntSize(width, height), format);
-        if (gl && !InitAndValidateGL()) {
-            gl = nsnull;
         }
     }
 #endif
 
     
+    if (!gl && useOpenGL) {
+        gl = gl::GLContextProvider::CreateOffscreen(gfxIntSize(width, height), format);
+        if (gl && !InitAndValidateGL()) {
+            LogMessage("Error during OpenGL initialization");
+            return NS_ERROR_FAILURE;
+        }
+    }
+
+    
     if (!gl) {
         gl = gl::GLContextProviderOSMesa::CreateOffscreen(gfxIntSize(width, height), format);
-        if (!gl || !InitAndValidateGL()) {
-            gl = nsnull;
-        } else {
-            LogMessage("Using software rendering via OSMesa (THIS WILL BE SLOW)");
+        if (gl) {
+            if (!InitAndValidateGL()) {
+                LogMessage("Error during OSMesa initialization");
+                return NS_ERROR_FAILURE;
+            } else {
+                LogMessage("Using software rendering via OSMesa (THIS WILL BE SLOW)");
+            }
         }
     }
 
