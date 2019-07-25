@@ -1094,78 +1094,85 @@ nsXBLBinding::ChangeDocument(nsIDocument* aOldDocument, nsIDocument* aNewDocumen
             nsCxPusher pusher;
             pusher.Push(cx);
 
-            nsCOMPtr<nsIXPConnectJSObjectHolder> wrapper;
-            jsval v;
+            nsCOMPtr<nsIXPConnectWrappedNative> wrapper;
+            nsIXPConnect *xpc = nsContentUtils::XPConnect();
             nsresult rv =
-              nsContentUtils::WrapNative(cx, scope, mBoundElement, &v,
-                                         getter_AddRefs(wrapper));
+              xpc->GetWrappedNativeOfNativeObject(cx, scope, mBoundElement,
+                                                  NS_GET_IID(nsISupports),
+                                                  getter_AddRefs(wrapper));
             if (NS_FAILED(rv))
               return;
 
-            JSObject* scriptObject = JSVAL_TO_OBJECT(v);
+            JSObject* scriptObject;
+            if (wrapper)
+                wrapper->GetJSObject(&scriptObject);
+            else
+                scriptObject = nsnull;
 
-            
-            
-            
-            
-            
+            if (scriptObject) {
+              
+              
+              
+              
+              
 
-            
-            JSObject* base = scriptObject;
-            JSObject* proto;
-            JSAutoRequest ar(cx);
-            JSAutoEnterCompartment ac;
-            if (!ac.enter(cx, scriptObject)) {
-              return;
-            }
+              
+              JSObject* base = scriptObject;
+              JSObject* proto;
+              JSAutoRequest ar(cx);
+              JSAutoEnterCompartment ac;
+              if (!ac.enter(cx, scriptObject)) {
+                return;
+              }
 
-            for ( ; true; base = proto) { 
-              proto = ::JS_GetPrototype(cx, base);
-              if (!proto) {
+              for ( ; true; base = proto) { 
+                proto = ::JS_GetPrototype(cx, base);
+                if (!proto) {
+                  break;
+                }
+
+                JSClass* clazz = ::JS_GET_CLASS(cx, proto);
+                if (!clazz ||
+                    (~clazz->flags &
+                     (JSCLASS_HAS_PRIVATE | JSCLASS_PRIVATE_IS_NSISUPPORTS)) ||
+                    JSCLASS_RESERVED_SLOTS(clazz) != 1 ||
+                    clazz->resolve != (JSResolveOp)XBLResolve ||
+                    clazz->finalize != XBLFinalize) {
+                  
+                  continue;
+                }
+
+                nsRefPtr<nsXBLDocumentInfo> docInfo =
+                  static_cast<nsXBLDocumentInfo*>(::JS_GetPrivate(cx, proto));
+                if (!docInfo) {
+                  
+                  continue;
+                }
+
+                jsval protoBinding;
+                if (!::JS_GetReservedSlot(cx, proto, 0, &protoBinding)) {
+                  NS_ERROR("Really shouldn't happen");
+                  continue;
+                }
+
+                if (JSVAL_TO_PRIVATE(protoBinding) != mPrototypeBinding) {
+                  
+                  continue;
+                }
+
+                
+                
+                JSObject* grandProto = ::JS_GetPrototype(cx, proto);
+                ::JS_SetPrototype(cx, base, grandProto);
                 break;
               }
 
-              JSClass* clazz = ::JS_GET_CLASS(cx, proto);
-              if (!clazz ||
-                  (~clazz->flags &
-                   (JSCLASS_HAS_PRIVATE | JSCLASS_PRIVATE_IS_NSISUPPORTS)) ||
-                  JSCLASS_RESERVED_SLOTS(clazz) != 1 ||
-                  clazz->resolve != (JSResolveOp)XBLResolve ||
-                  clazz->finalize != XBLFinalize) {
-                
-                continue;
-              }
-
-              nsRefPtr<nsXBLDocumentInfo> docInfo =
-                static_cast<nsXBLDocumentInfo*>(::JS_GetPrivate(cx, proto));
-              if (!docInfo) {
-                
-                continue;
-              }
-              
-              jsval protoBinding;
-              if (!::JS_GetReservedSlot(cx, proto, 0, &protoBinding)) {
-                NS_ERROR("Really shouldn't happen");
-                continue;
-              }
-
-              if (JSVAL_TO_PRIVATE(protoBinding) != mPrototypeBinding) {
-                
-                continue;
-              }
+              mPrototypeBinding->UndefineFields(cx, scriptObject);
 
               
               
-              JSObject* grandProto = ::JS_GetPrototype(cx, proto);
-              ::JS_SetPrototype(cx, base, grandProto);
-              break;
+              
             }
-
-            mPrototypeBinding->UndefineFields(cx, scriptObject);
-
-            
-            
-            
           }
         }
       }
