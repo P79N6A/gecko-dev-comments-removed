@@ -100,6 +100,11 @@ NSPR_API(PRBool) PR_VersionCheck(const char *importedVersion);
 
 
 
+NSPR_API(const char*) PR_GetVersion(void);
+
+
+
+
 
 
 
