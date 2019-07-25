@@ -49,6 +49,15 @@ function BrowserElementChild() {
   
   this._windowIDDict = {};
 
+  
+  
+  
+  
+  
+  
+  this._forcedVisible = true;
+  this._ownerVisible = true;
+
   this._init();
 };
 
@@ -127,6 +136,7 @@ BrowserElementChild.prototype = {
     addMsgListener("stop", this._recvStop);
     addMsgListener("unblock-modal-prompt", this._recvStopWaiting);
     addMsgListener("fire-ctx-callback", this._recvFireCtxCallback);
+    addMsgListener("owner-visibility-change", this._recvOwnerVisibilityChange);
 
     let els = Cc["@mozilla.org/eventlistenerservice;1"]
                 .getService(Ci.nsIEventListenerService);
@@ -448,8 +458,24 @@ BrowserElementChild.prototype = {
 
   _recvSetVisible: function(data) {
     debug("Received setVisible message: (" + data.json.visible + ")");
-    if (docShell.isActive !== data.json.visible) {
-      docShell.isActive = data.json.visible;
+    this._forcedVisible = data.json.visible;
+    this._updateDocShellVisibility();
+  },
+
+  
+
+
+
+  _recvOwnerVisibilityChange: function(data) {
+    debug("Received ownerVisibilityChange: (" + data.json.visible + ")");
+    this._ownerVisible = data.json.visible;
+    this._updateDocShellVisibility();
+  },
+
+  _updateDocShellVisibility: function() {
+    var visible = this._forcedVisible && this._ownerVisible;
+    if (docShell.isActive !== visible) {
+      docShell.isActive = visible;
     }
   },
 

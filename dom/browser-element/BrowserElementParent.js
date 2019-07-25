@@ -192,6 +192,13 @@ function BrowserElementParent(frameLoader) {
   defineDOMRequestMethod('getScreenshot', 'get-screenshot');
   defineDOMRequestMethod('getCanGoBack', 'get-can-go-back');
   defineDOMRequestMethod('getCanGoForward', 'get-can-go-forward');
+
+  
+  
+  this._window.addEventListener('mozvisibilitychange',
+                                this._ownerVisibilityChange.bind(this),
+                                 false,
+                                 false);
 }
 
 BrowserElementParent.prototype = {
@@ -218,6 +225,14 @@ BrowserElementParent.prototype = {
 
   _recvHello: function(data) {
     debug("recvHello");
+
+    
+    
+    
+    
+    if (this._window.document.mozHidden) {
+      this._ownerVisibilityChange();
+    }
   },
 
   _fireCtxMenuEvent: function(data) {
@@ -411,6 +426,14 @@ BrowserElementParent.prototype = {
                      data.json.charCode);
 
     this._frameElement.dispatchEvent(evt);
+  },
+
+  
+
+
+  _ownerVisibilityChange: function() {
+    this._sendAsyncMsg('owner-visibility-change',
+                       {visible: !this._window.document.mozHidden});
   },
 };
 
