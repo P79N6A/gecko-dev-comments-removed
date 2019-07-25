@@ -58,7 +58,7 @@ function runEditorTests()
 function highlighterTrap()
 {
   
-  Services.obs.removeObserver(highlighterTrap, InspectorUI.INSPECTOR_NOTIFICATIONS.HIGHLIGHTING);
+  InspectorUI.highlighter.removeListener("nodeselected", highlighterTrap);
   ok(false, "Highlighter moved. Shouldn't be here!");
   finishUp();
 }
@@ -115,8 +115,7 @@ function doEditorTestSteps()
   editorInput.value = "Hello World";
   editorInput.focus();
 
-  Services.obs.addObserver(highlighterTrap,
-      InspectorUI.INSPECTOR_NOTIFICATIONS.HIGHLIGHTING, false);
+  InspectorUI.highlighter.addListener("nodeselected", highlighterTrap);
 
   
   executeSoon(function() {
@@ -130,7 +129,7 @@ function doEditorTestSteps()
   yield; 
 
   
-  Services.obs.removeObserver(highlighterTrap, InspectorUI.INSPECTOR_NOTIFICATIONS.HIGHLIGHTING);
+  InspectorUI.highlighter.removeListener("nodeselected", highlighterTrap);
 
   
   ok(!treePanel.editingContext, "Step 3: editor session ended");

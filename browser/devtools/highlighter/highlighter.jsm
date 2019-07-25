@@ -626,57 +626,6 @@ Highlighter.prototype = {
   
 
 
-
-
-
-
-
-
-
-  midPoint: function Highlighter_midPoint(aPointA, aPointB)
-  {
-    let pointC = { };
-    pointC.x = (aPointB.x - aPointA.x) / 2 + aPointA.x;
-    pointC.y = (aPointB.y - aPointA.y) / 2 + aPointA.y;
-    return pointC;
-  },
-
-  
-
-
-
-
-
-
-
-
-  get highlitNode()
-  {
-    
-    if (!this._highlighting || !this._contentRect) {
-      return null;
-    }
-
-    let a = {
-      x: this._contentRect.left,
-      y: this._contentRect.top
-    };
-
-    let b = {
-      x: a.x + this._contentRect.width,
-      y: a.y + this._contentRect.height
-    };
-
-    
-    let midpoint = this.midPoint(a, b);
-
-    return LayoutHelpers.getElementFromPoint(this.win.document, midpoint.x,
-      midpoint.y);
-  },
-
-  
-
-
   computeZoomFactor: function Highlighter_computeZoomFactor() {
     this.zoom =
       this.win.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
