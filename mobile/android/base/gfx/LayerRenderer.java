@@ -42,7 +42,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 
 
-public class LayerRenderer implements GLSurfaceView.Renderer {
+public class LayerRenderer {
     private static final String LOGTAG = "GeckoLayerRenderer";
     private static final String PROFTAG = "GeckoLayerRendererProf";
 
@@ -202,7 +202,7 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
         }
     }
 
-    public void onSurfaceCreated(GL10 gl, EGLConfig config) {
+    void onSurfaceCreated(EGLConfig config) {
         checkMonitoringEnabled();
         createDefaultProgram();
         activateDefaultProgram();
@@ -274,23 +274,6 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
         }
     }
 
-    
-
-
-    public void onDrawFrame(GL10 gl) {
-	
-
-
-
-
-
-
-
-
-
-
-    }
-
     private void printCheckerboardStats() {
         Log.d(PROFTAG, "Frames rendered over last 1000ms: " + mCompleteFramesRendered + "/" + mFramesRendered);
         mFramesRendered = 0;
@@ -340,11 +323,6 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
         });
 
         
-    }
-
-    @Override
-    public void onSurfaceChanged(GL10 gl, final int width, final int height) {
-        resizeView(width, height);
     }
 
     private void updateDroppedFrames(long frameStartTime) {
