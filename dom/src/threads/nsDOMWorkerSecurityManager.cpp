@@ -49,18 +49,9 @@
 
 #define LOG(_args) PR_LOG(gDOMThreadsLog, PR_LOG_DEBUG, _args)
 
-class nsDOMWorkerPrincipal : public JSPrincipals
+class nsDOMWorkerPrincipal
 {
 public:
-  nsDOMWorkerPrincipal() {
-    codebase = "domworkerthread";
-    getPrincipalArray = NULL;
-    globalPrivilegesEnabled = NULL;
-    refcount = 1;
-    destroy = nsDOMWorkerPrincipal::Destroy;
-    subsume = nsDOMWorkerPrincipal::Subsume;
-  }
-
   static void Destroy(JSContext*, JSPrincipals*) {
     
   }
@@ -70,7 +61,13 @@ public:
   }
 };
 
-static nsDOMWorkerPrincipal gWorkerPrincipal;
+static JSPrincipals gWorkerPrincipal =
+{ "domworkerthread" ,
+  NULL ,
+  NULL ,
+  1 ,
+  nsDOMWorkerPrincipal::Destroy ,
+  nsDOMWorkerPrincipal::Subsume  };
 
 NS_IMPL_THREADSAFE_ISUPPORTS1(nsDOMWorkerSecurityManager,
                               nsIXPCSecurityManager)
