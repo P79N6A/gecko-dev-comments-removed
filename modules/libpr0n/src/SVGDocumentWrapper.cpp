@@ -175,15 +175,11 @@ SVGDocumentWrapper::IsAnimated()
 void
 SVGDocumentWrapper::StartAnimation()
 {
-  nsSVGSVGElement* svgElem = GetRootSVGElem();
-  if (!svgElem)
-    return;
-
-#ifdef DEBUG
-  nsresult rv = 
-#endif
-    svgElem->UnpauseAnimations();
-  NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "UnpauseAnimations failed");
+  nsIDocument* doc = mViewer->GetDocument();
+  if (doc) {
+    doc->GetAnimationController()->Resume(nsSMILTimeContainer::PAUSE_IMAGE);
+    doc->SetImagesNeedAnimating(PR_TRUE);
+  }
 }
 
 void
@@ -196,15 +192,11 @@ SVGDocumentWrapper::StopAnimation()
   if (!mViewer)
     return;
 
-  nsSVGSVGElement* svgElem = GetRootSVGElem();
-  if (!svgElem)
-    return;
-
-#ifdef DEBUG
-  nsresult rv = 
-#endif
-    svgElem->PauseAnimations();
-  NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "PauseAnimations failed");
+  nsIDocument* doc = mViewer->GetDocument();
+  if (doc) {
+    doc->GetAnimationController()->Pause(nsSMILTimeContainer::PAUSE_IMAGE);
+    doc->SetImagesNeedAnimating(PR_FALSE);
+  }
 }
 
 void

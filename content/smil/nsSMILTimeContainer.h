@@ -62,10 +62,11 @@ public:
 
 
   enum {
-    PAUSE_BEGIN    = 1,
-    PAUSE_SCRIPT   = 2,
-    PAUSE_PAGEHIDE = 4,
-    PAUSE_USERPREF = 8
+    PAUSE_BEGIN    =  1, 
+    PAUSE_SCRIPT   =  2, 
+    PAUSE_PAGEHIDE =  4, 
+    PAUSE_USERPREF =  8, 
+    PAUSE_IMAGE    = 16  
   };
 
   

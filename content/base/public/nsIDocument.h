@@ -121,8 +121,8 @@ class Element;
 
 
 #define NS_IDOCUMENT_IID      \
-{ 0x7fb1e97d, 0xbd2c, 0x47cf, \
-  { 0xa3, 0x05, 0x5b, 0x31, 0xd4, 0x1d, 0x3a, 0x52 } }
+{ 0xc38a7935, 0xc854, 0x4df7, \
+  { 0x8f, 0xd4, 0xa2, 0x6f, 0x0d, 0x27, 0x9f, 0x31 } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -1279,6 +1279,11 @@ public:
   
   virtual nsSMILAnimationController* GetAnimationController() = 0;
 #endif 
+
+  
+  
+  
+  virtual void SetImagesNeedAnimating(PRBool aAnimating) = 0;
 
   
 

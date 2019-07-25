@@ -919,6 +919,8 @@ public:
   nsSMILAnimationController* GetAnimationController();
 #endif 
 
+  void SetImagesNeedAnimating(PRBool aAnimating);
+
   virtual void SuppressEventHandling(PRUint32 aIncrease);
 
   virtual void UnsuppressEventHandlingAndFireEvents(PRBool aFireEvents);
@@ -1252,12 +1254,6 @@ private:
 protected:
   PRBool mWillReparent;
 #endif
-
-protected:
-  
-  
-  
-  void SetImagesNeedAnimating(PRBool aAnimating);
 };
 
 #define NS_DOCUMENT_INTERFACE_TABLE_BEGIN(_class)                             \
