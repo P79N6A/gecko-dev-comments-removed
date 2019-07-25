@@ -118,13 +118,13 @@ function test() {
             ww.registerNotification(closeObserver);
             
             organizer.close();
-          }, false);
+          }, true);
           
           var x = {}, y = {}, width = {}, height = {};
           tree.treeBoxObject.getCoordsForCellItem(0, tree.columns[0], "text",
                                                   x, y, width, height);
           
-          EventUtils.synthesizeMouse(tree.body, x + 4, y + 4, {type: "contextmenu"}, organizer);
+          EventUtils.synthesizeMouse(tree.body, x.value + width.value / 2, y.value + height.value / 2, {type: "contextmenu"}, organizer);
         });
       }, organizer);
     }
