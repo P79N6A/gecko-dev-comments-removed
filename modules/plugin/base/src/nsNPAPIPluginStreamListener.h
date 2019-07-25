@@ -38,6 +38,7 @@
 #ifndef nsNPAPIPluginStreamListener_h_
 #define nsNPAPIPluginStreamListener_h_
 
+#include "nscore.h"
 #include "nsIPluginStreamListener.h"
 #include "nsIPluginStreamInfo.h"
 #include "nsIHTTPHeaderListener.h"
@@ -45,15 +46,62 @@
 #include "nsITimer.h"
 #include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
+#include "nsIOutputStream.h"
+#include "nsIPluginInstanceOwner.h"
+#include "nsString.h"
+#include "nsNPAPIPluginInstance.h"
+
+#include "mozilla/PluginLibrary.h"
 
 #define MAX_PLUGIN_NECKO_BUFFER 16384
 
-class nsNPAPIPluginInstance;
 class nsINPAPIPluginStreamInfo;
 
+
+
+#define NS_INPAPIPLUGINSTREAMINFO_IID       \
+{ 0x097fdaaa, 0xa2a3, 0x49c2, \
+{0x91, 0xee, 0xeb, 0xc5, 0x7d, 0x6c, 0x9c, 0x97} }
+
+class nsINPAPIPluginStreamInfo : public nsIPluginStreamInfo
+{
+public:
+  NS_DECLARE_STATIC_IID_ACCESSOR(NS_INPAPIPLUGINSTREAMINFO_IID)
+  
+  nsIRequest *GetRequest()
+  {
+    return mRequest;
+  }
+
+protected:
+  nsCOMPtr<nsIRequest> mRequest;
+};
+
+NS_DEFINE_STATIC_IID_ACCESSOR(nsINPAPIPluginStreamInfo,
+                              NS_INPAPIPLUGINSTREAMINFO_IID)
+
+
+
+
+class nsPluginStreamToFile : public nsIOutputStream
+{
+public:
+  nsPluginStreamToFile(const char* target, nsIPluginInstanceOwner* owner);
+  virtual ~nsPluginStreamToFile();
+
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIOUTPUTSTREAM
+protected:
+  char* mTarget;
+  nsCString mFileURL;
+  nsCOMPtr<nsILocalFile> mTempFile;
+  nsCOMPtr<nsIOutputStream> mOutputStream;
+  nsIPluginInstanceOwner* mOwner;
+};
+
 class nsNPAPIPluginStreamListener : public nsIPluginStreamListener,
-                                 public nsITimerCallback,
-                                 public nsIHTTPHeaderListener
+                                    public nsITimerCallback,
+                                    public nsIHTTPHeaderListener
 {
 private:
   typedef mozilla::PluginLibrary PluginLibrary;
@@ -104,28 +152,5 @@ protected:
 public:
   nsCOMPtr<nsIPluginStreamInfo> mStreamInfo;
 };
-
-
-
-#define NS_INPAPIPLUGINSTREAMINFO_IID       \
-{ 0x097fdaaa, 0xa2a3, 0x49c2, \
-  {0x91, 0xee, 0xeb, 0xc5, 0x7d, 0x6c, 0x9c, 0x97} }
-
-class nsINPAPIPluginStreamInfo : public nsIPluginStreamInfo
-{
-public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_INPAPIPLUGINSTREAMINFO_IID)
-
-  nsIRequest *GetRequest()
-  {
-    return mRequest;
-  }
-
-protected:
-  nsCOMPtr<nsIRequest> mRequest;
-};
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsINPAPIPluginStreamInfo,
-                              NS_INPAPIPLUGINSTREAMINFO_IID)
 
 #endif 
