@@ -478,6 +478,11 @@ protected:
 
   
   
+  
+  PRPackedBool mBufferExhausted;
+
+  
+  
   PRPackedBool mGotDurationFromMetaData;
     
   
