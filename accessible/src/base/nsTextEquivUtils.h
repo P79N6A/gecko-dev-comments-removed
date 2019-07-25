@@ -9,6 +9,7 @@
 #define _nsTextEquivUtils_H_
 
 #include "Accessible.h"
+#include "Role.h"
 
 #include "nsIContent.h"
 #include "nsIStringBundle.h"
@@ -142,7 +143,7 @@ private:
   
 
 
-  static PRUint32 gRoleToNameRulesMap[];
+  static PRUint32 GetRoleRule(mozilla::a11y::roles::Role aRole);
 
   
 
