@@ -479,6 +479,5 @@ socket_unrealize_cb(GtkWidget *widget, gpointer data)
 
   if (children) XFree(children);
 
-  XSync(display, False);
   gdk_error_trap_pop();
 }
