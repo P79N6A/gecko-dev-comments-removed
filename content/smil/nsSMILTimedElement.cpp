@@ -343,6 +343,19 @@ nsSMILTimedElement::AddInstanceTime(nsSMILInstanceTime* aInstanceTime,
 {
   NS_ABORT_IF_FALSE(aInstanceTime, "Attempting to add null instance time");
 
+  
+  
+  if (mElementState != STATE_ACTIVE && !aIsBegin &&
+      aInstanceTime->IsDynamic())
+  {
+    
+    
+    NS_ABORT_IF_FALSE(!aInstanceTime->GetBaseInterval(),
+        "Dynamic instance time has a base interval--we probably need to unlink"
+        " it if we're not going to use it");
+    return;
+  }
+
   aInstanceTime->SetSerial(++mInstanceSerialIndex);
   InstanceTimeList& instanceList = aIsBegin ? mBeginInstances : mEndInstances;
   nsRefPtr<nsSMILInstanceTime>* inserted =
