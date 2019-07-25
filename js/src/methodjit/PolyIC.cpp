@@ -646,7 +646,18 @@ class SetPropCompiler : public PICStubCompiler
                 shape->setterOp() != SetCallVar) {
                 return disable("setter");
             }
+            JS_ASSERT(obj->isCall());
             if (pic.typeMonitored) {
+                
+
+
+
+
+
+
+
+
+
                 RecompilationMonitor monitor(cx);
                 JSScript *script = obj->getCallObjCalleeFunction()->script();
                 uint16 slot = uint16(shape->shortid);
