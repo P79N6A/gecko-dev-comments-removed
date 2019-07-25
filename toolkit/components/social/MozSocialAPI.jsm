@@ -41,15 +41,6 @@ function injectController(doc, topic, data) {
                                   .QueryInterface(Ci.nsIDocShell)
                                   .chromeEventHandler;
 
-    
-    
-    
-    
-    if (!(containingBrowser.id == "social-sidebar-browser" ||
-          containingBrowser.id == "social-notification-browser")) {
-      return;
-    }
-
     let origin = containingBrowser.getAttribute("origin");
     if (!origin) {
       return;
@@ -92,6 +83,18 @@ function attachToWindow(provider, targetWindow) {
     },
     hasBeenIdleFor: function () {
       return false;
+    },
+    openServiceWindow: function(toURL, name, options) {
+      return openServiceWindow(provider, targetWindow, toURL, name, options);
+    },
+    getAttention: function() {
+      let mainWindow = targetWindow.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+                         .getInterface(Components.interfaces.nsIWebNavigation)
+                         .QueryInterface(Components.interfaces.nsIDocShellTreeItem)
+                         .rootTreeItem
+                         .QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+                         .getInterface(Components.interfaces.nsIDOMWindow);
+      mainWindow.getAttention();
     }
   };
 
@@ -127,4 +130,60 @@ function attachToWindow(provider, targetWindow) {
 
 function schedule(callback) {
   Services.tm.mainThread.dispatch(callback, Ci.nsIThread.DISPATCH_NORMAL);
+}
+
+function openServiceWindow(provider, contentWindow, url, name, options) {
+  
+  let uri;
+  let fullURL;
+  try {
+    fullURL = contentWindow.document.documentURIObject.resolve(url);
+    uri = Services.io.newURI(fullURL, null, null);
+  } catch (ex) {
+    Cu.reportError("openServiceWindow: failed to resolve window URL: " + url + "; " + ex);
+    return null;
+  }
+
+  if (provider.origin != uri.prePath) {
+    Cu.reportError("openServiceWindow: unable to load new location, " +
+                   provider.origin + " != " + uri.prePath);
+    return null;
+  }
+
+  function getChromeWindow(contentWin) {
+    return contentWin.QueryInterface(Ci.nsIInterfaceRequestor)
+                     .getInterface(Ci.nsIWebNavigation)
+                     .QueryInterface(Ci.nsIDocShellTreeItem)
+                     .rootTreeItem
+                     .QueryInterface(Ci.nsIInterfaceRequestor)
+                     .getInterface(Ci.nsIDOMWindow);
+
+  }
+  let chromeWindow = Services.ww.getWindowByName("social-service-window-" + name,
+                                                 getChromeWindow(contentWindow));
+  let tabbrowser = chromeWindow && chromeWindow.gBrowser;
+  if (tabbrowser &&
+      tabbrowser.selectedBrowser.getAttribute("origin") == provider.origin) {
+    return tabbrowser.contentWindow;
+  }
+
+  let serviceWindow = contentWindow.openDialog(fullURL, name,
+                                               "chrome=no,dialog=no" + options);
+
+  
+  chromeWindow = getChromeWindow(serviceWindow);
+
+  
+  
+  chromeWindow.name = "social-service-window-" + name;
+  chromeWindow.gBrowser.selectedBrowser.setAttribute("origin", provider.origin);
+
+  
+  
+  serviceWindow.addEventListener("DOMTitleChanged", function() {
+    let sep = xulWindow.document.documentElement.getAttribute("titlemenuseparator");
+    xulWindow.document.title = provider.name + sep + serviceWindow.document.title;
+  });
+
+  return serviceWindow;
 }
