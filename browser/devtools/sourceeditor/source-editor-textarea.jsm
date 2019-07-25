@@ -129,7 +129,7 @@ SourceEditor.prototype = {
 
     this._textbox.style.MozTabSize = this._tabSize;
 
-    this._textbox.setAttribute("value", aConfig.placeholderText);
+    this._textbox.setAttribute("value", aConfig.placeholderText || "");
     this._textbox.setAttribute("class", "monospace");
     this._textbox.style.direction = "ltr";
     this._textbox.readOnly = aConfig.readOnly;
