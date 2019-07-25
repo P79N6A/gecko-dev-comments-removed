@@ -215,6 +215,7 @@ protected:
   bool mFrozen;
   bool mErrorLoadOnRedirect;
   bool mGoingToDispatchAllMessages;
+  bool mWithCredentials;
 
   
   nsCOMPtr<nsIUnicodeDecoder> mUnicodeDecoder;
