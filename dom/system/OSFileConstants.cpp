@@ -9,7 +9,7 @@
 #include "unistd.h"
 #endif 
 
-#if defined(XP_MACOSX) || defined(__FreeBSD__) || defined(__OpenBSD__)
+#if defined(XP_MACOSX)
 #include "copyfile.h"
 #endif 
 
