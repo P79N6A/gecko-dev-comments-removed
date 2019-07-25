@@ -35,15 +35,12 @@
 
 #include "nptest_platform.h"
 #include "npapi.h"
-#include <pthread.h>
 #include <gdk/gdk.h>
 #ifdef MOZ_X11
 #include <gdk/gdkx.h>
 #include <X11/extensions/shape.h>
 #endif
-#include <glib.h>
 #include <gtk/gtk.h>
-#include <unistd.h>
 
  using namespace std;
 
@@ -108,14 +105,7 @@ pluginInstanceShutdown(InstanceData* instanceData)
   GtkWidget* plug = instanceData->platformData->plug;
   if (plug) {
     instanceData->platformData->plug = 0;
-    if (instanceData->cleanupWidget) {
-      
-      gtk_widget_destroy(plug);
-    } else {
-      
-      g_signal_handlers_disconnect_matched(plug, G_SIGNAL_MATCH_DATA, 0, 0,
-                                           NULL, NULL, instanceData);
-    }
+    gtk_widget_destroy(plug);
   }
 
   NPN_MemFree(instanceData->platformData);
@@ -291,10 +281,6 @@ pluginWidgetInit(InstanceData* instanceData, void* oldWindow)
 
   
   GtkWidget* plug = gtk_plug_new(nativeWinId);
-
-  
-  if (!plug->window)
-    g_error("Plug has no window"); 
 
   
   GTK_WIDGET_SET_FLAGS (GTK_WIDGET(plug), GTK_CAN_FOCUS);
@@ -648,80 +634,4 @@ pluginGetClipboardText(InstanceData* instanceData)
   g_free(text);
 
   return retText;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-static void*
-CrasherThread(void* data)
-{
-  
-  usleep(200);
-
-  
-  
-  
-  
-  _exit(1);
-
-  
-  return(NULL);
-}
-
-bool
-pluginCrashInNestedLoop(InstanceData* instanceData)
-{
-  
-  sleep(1);
-
-  
-  bool found_event = false;
-  while (g_main_context_iteration(NULL, FALSE)) {
-    found_event = true;
-  }
-  if (!found_event) {
-    g_warning("DetectNestedEventLoop did not fire");
-    return true; 
-  }
-
-  
-  
-  sleep(1);
-
-  
-  
-  NoteIntentionalCrash();
-
-  
-  pthread_t crasherThread;
-  if (0 != pthread_create(&crasherThread, NULL, CrasherThread, NULL)) {
-    g_warning("Failed to create thread");
-    return true; 
-  }
-
-  
-  
-  
-  found_event = false;
-  while (g_main_context_iteration(NULL, FALSE)) {
-    found_event = true;
-  }
-  if (found_event) {
-    g_warning("Should have crashed in ProcessBrowserEvents");
-  } else {
-    g_warning("ProcessBrowserEvents did not fire");
-  }
-
-  
-  return true;
 }
