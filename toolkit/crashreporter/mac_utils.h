@@ -41,12 +41,6 @@
 #include "nsStringGlue.h"
 
 
-
-
-
-bool PassToOSCrashReporter();
-
-
 void GetObjCExceptionInfo(void* inException, nsACString& outString);
 
 #endif 
