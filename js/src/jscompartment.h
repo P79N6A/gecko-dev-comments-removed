@@ -54,34 +54,25 @@
 #pragma warning(disable:4251) /* Silence warning about JS_FRIEND_API and data members. */
 #endif
 
-namespace js {
-namespace mjit {
-class JaegerCompartment;
-}
-}
-
 struct JS_FRIEND_API(JSCompartment) {
-    JSRuntime                    *rt;
-    JSPrincipals                 *principals;
-    js::gc::Chunk                *chunk;
+    JSRuntime       *rt;
+    JSPrincipals    *principals;
+    js::gc::Chunk   *chunk;
 
-    js::gc::ArenaList            arenas[js::gc::FINALIZE_LIMIT];
-    js::gc::FreeLists            freeLists;
+    js::gc::ArenaList arenas[js::gc::FINALIZE_LIMIT];
+    js::gc::FreeLists freeLists;
 
 #ifdef JS_GCMETER
-    js::gc::JSGCArenaStats       compartmentStats[js::gc::FINALIZE_LIMIT];
+    js::gc::JSGCArenaStats compartmentStats[js::gc::FINALIZE_LIMIT];
 #endif
 
-    void                         *data;
-    bool                         marked;
-    js::WrapperMap               crossCompartmentWrappers;
+    void *data;
+    bool marked;
+    js::WrapperMap crossCompartmentWrappers;
+    bool debugMode;
 
-#ifdef JS_METHODJIT
-    js::mjit::JaegerCompartment  *jaegerCompartment;
-#endif
-
-    bool                         debugMode;  
-    JSCList                      scripts;    
+    
+    JSCList scripts;
 
     
 
@@ -90,8 +81,8 @@ struct JS_FRIEND_API(JSCompartment) {
 
 
 
-    JSObject                     *anynameObject;
-    JSObject                     *functionNamespaceObject;
+    JSObject            *anynameObject;
+    JSObject            *functionNamespaceObject;
 
     JSCompartment(JSRuntime *cx);
     ~JSCompartment();
