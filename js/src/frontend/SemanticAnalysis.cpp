@@ -331,161 +331,6 @@ MarkFunArgs(JSContext *cx, FunctionBox *funbox, uint32_t functionCount)
     return true;
 }
 
-static uint32_t
-MinBlockId(ParseNode *fn, uint32_t id)
-{
-    if (fn->pn_blockid < id)
-        return false;
-    if (fn->isDefn()) {
-        for (ParseNode *pn = fn->dn_uses; pn; pn = pn->pn_link) {
-            if (pn->pn_blockid < id)
-                return false;
-        }
-    }
-    return true;
-}
-
-static inline bool
-CanFlattenUpvar(Definition *dn, FunctionBox *funbox, uint32_t tcflags)
-{
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    FunctionBox *afunbox = funbox;
-    unsigned dnLevel = dn->frameLevel();
-
-    JS_ASSERT(dnLevel <= funbox->level);
-    while (afunbox->level != dnLevel) {
-        afunbox = afunbox->parent;
-
-        
-
-
-
-
-
-
-
-        JS_ASSERT(afunbox);
-
-        
-
-
-
-
-
-        if (!afunbox || afunbox->node->isFunArg())
-            return false;
-
-        
-
-
-
-
-        if (afunbox->tcflags & TCF_FUN_IS_GENERATOR)
-            return false;
-    }
-
-    
-
-
-
-
-
-    if (afunbox->inLoop)
-        return false;
-
-    
-
-
-
-
-
-    if ((afunbox->parent ? afunbox->parent->tcflags : tcflags) & TCF_FUN_HEAVYWEIGHT)
-        return false;
-
-    
-
-
-
-
-
-
-    JSFunction *afun = afunbox->function();
-    if (!(afun->flags & JSFUN_LAMBDA)) {
-        if (dn->isBindingForm() || dn->pn_pos >= afunbox->node->pn_pos)
-            return false;
-    }
-
-    if (!dn->isInitialized())
-        return false;
-
-    Definition::Kind dnKind = dn->kind();
-    if (dnKind != Definition::CONST) {
-        if (dn->isAssigned())
-            return false;
-
-        
-
-
-
-
-
-
-
-
-
-
-        if (dnKind == Definition::ARG &&
-            ((afunbox->parent ? afunbox->parent->tcflags : tcflags) & TCF_FUN_USES_ARGUMENTS)) {
-            return false;
-        }
-    }
-
-    
-
-
-
-
-    if (dnKind != Definition::FUNCTION) {
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        if (dn->pn_pos.end >= afunbox->node->pn_pos.end)
-            return false;
-        if (!MinBlockId(afunbox->node, dn->pn_blockid))
-            return false;
-    }
-    return true;
-}
-
 static void
 FlagHeavyweights(Definition *dn, FunctionBox *funbox, uint32_t *tcflags)
 {
@@ -539,67 +384,28 @@ SetFunctionKinds(FunctionBox *funbox, uint32_t *tcflags, bool isDirectEval)
             JS_ASSERT(!fun->isNullClosure());
         } else {
             bool hasUpvars = false;
-            bool canFlatten = true;
 
             if (pn->isKind(PNK_UPVARS)) {
                 AtomDefnMapPtr upvars = pn->pn_names;
                 JS_ASSERT(!upvars->empty());
 
                 
-
-
-
-
                 for (AtomDefnRange r = upvars->all(); !r.empty(); r.popFront()) {
-                    Definition *defn = r.front().value();
-                    Definition *lexdep = defn->resolve();
-
-                    if (!lexdep->isFreeVar()) {
+                    if (!r.front().value()->resolve()->isFreeVar()) {
                         hasUpvars = true;
-                        if (!CanFlattenUpvar(lexdep, funbox, *tcflags)) {
-                            
-
-
-
-
-
-                            canFlatten = false;
-                            break;
-                        }
+                        break;
                     }
                 }
             }
 
-            
-
-
-
-
-            if (fn->isOp(JSOP_DEFFUN))
-                canFlatten = false;
-
             if (!hasUpvars) {
                 
                 fun->setKind(JSFUN_NULL_CLOSURE);
-            } else if (canFlatten) {
-                fun->setKind(JSFUN_FLAT_CLOSURE);
-                switch (fn->getOp()) {
-                  case JSOP_DEFLOCALFUN:
-                    fn->setOp(JSOP_DEFLOCALFUN_FC);
-                    break;
-                  case JSOP_LAMBDA:
-                    fn->setOp(JSOP_LAMBDA_FC);
-                    break;
-                  default:
-                    
-                    JS_ASSERT(fn->isOp(JSOP_NOP));
-                }
             }
         }
 
         if (fun->kind() == JSFUN_INTERPRETED && pn->isKind(PNK_UPVARS)) {
             
-
 
 
 

@@ -63,61 +63,6 @@ typedef enum JSTryNoteKind {
     JSTRY_ITER
 } JSTryNoteKind;
 
-namespace js {
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class UpvarCookie
-{
-    uint32_t value;
-
-    static const uint32_t FREE_VALUE = 0xfffffffful;
-
-    void checkInvariants() {
-        JS_STATIC_ASSERT(sizeof(UpvarCookie) == sizeof(uint32_t));
-        JS_STATIC_ASSERT(UPVAR_LEVEL_LIMIT < FREE_LEVEL);
-    }
-
-  public:
-    
-
-
-
-    static const uint16_t FREE_LEVEL = 0x3fff;
-
-    
-
-
-
-    static const uint16_t UPVAR_LEVEL_LIMIT = 16;
-    static const uint16_t CALLEE_SLOT = 0xffff;
-    static bool isLevelReserved(uint16_t level) { return level >= FREE_LEVEL; }
-
-    bool isFree() const { return value == FREE_VALUE; }
-    uint32_t asInteger() const { return value; }
-    
-    uint16_t level() const { JS_ASSERT(!isFree()); return uint16_t(value >> 16); }
-    uint16_t slot() const { JS_ASSERT(!isFree()); return uint16_t(value); }
-
-    void set(const UpvarCookie &other) { set(other.level(), other.slot()); }
-    void set(uint16_t newLevel, uint16_t newSlot) { value = (uint32_t(newLevel) << 16) | newSlot; }
-    void makeFree() { set(0xffff, 0xffff); JS_ASSERT(isFree()); }
-    void fromInteger(uint32_t u32) { value = u32; }
-};
-
-}
-
 
 
 
@@ -140,11 +85,6 @@ typedef struct JSObjectArray {
     uint32_t        length;     
 } JSObjectArray;
 
-typedef struct JSUpvarArray {
-    js::UpvarCookie *vector;    
-    uint32_t        length;     
-} JSUpvarArray;
-
 typedef struct JSConstArray {
     js::HeapValue   *vector;    
     uint32_t        length;
@@ -163,7 +103,7 @@ struct GlobalSlotArray {
 
 struct Shape;
 
-enum BindingKind { NONE, ARGUMENT, VARIABLE, CONSTANT, UPVAR };
+enum BindingKind { NONE, ARGUMENT, VARIABLE, CONSTANT };
 
 
 
@@ -171,11 +111,11 @@ enum BindingKind { NONE, ARGUMENT, VARIABLE, CONSTANT, UPVAR };
 
 
 
-class Bindings {
+class Bindings
+{
     HeapPtr<Shape> lastBinding;
     uint16_t nargs;
     uint16_t nvars;
-    uint16_t nupvars;
     bool     hasDup_:1;     
 
     inline Shape *initialShape(JSContext *cx) const;
@@ -198,13 +138,9 @@ class Bindings {
 
     uint16_t countArgs() const { return nargs; }
     uint16_t countVars() const { return nvars; }
-    uint16_t countUpvars() const { return nupvars; }
 
-    unsigned countArgsAndVars() const { return nargs + nvars; }
+    unsigned countLocalNames() const { return nargs + nvars; }
 
-    unsigned countLocalNames() const { return nargs + nvars + nupvars; }
-
-    bool hasUpvars() const { return nupvars > 0; }
     bool hasLocalNames() const { return countLocalNames() > 0; }
 
     
@@ -227,14 +163,10 @@ class Bindings {
 
     enum {
         
-
-
-
         BINDING_COUNT_LIMIT = 0xFFFF
     };
 
     
-
 
 
 
@@ -257,9 +189,6 @@ class Bindings {
     }
     bool addConstant(JSContext *cx, JSAtom *name) {
         return add(cx, name, CONSTANT);
-    }
-    bool addUpvar(JSContext *cx, JSAtom *name) {
-        return add(cx, name, UPVAR);
     }
     bool addArgument(JSContext *cx, JSAtom *name, uint16_t *slotp) {
         JS_ASSERT(name != NULL); 
@@ -316,7 +245,6 @@ class Bindings {
 
     const js::Shape *lastArgument() const;
     const js::Shape *lastVariable() const;
-    const js::Shape *lastUpvar() const;
 
     void trace(JSTracer *trc);
 
@@ -412,7 +340,7 @@ struct JSScript : public js::gc::Cell {
 
 
     static JSScript *NewScript(JSContext *cx, uint32_t length, uint32_t nsrcnotes, uint32_t natoms,
-                               uint32_t nobjects, uint32_t nupvars, uint32_t nregexps,
+                               uint32_t nobjects, uint32_t nregexps,
                                uint32_t ntrynotes, uint32_t nconsts, uint32_t nglobals,
                                uint16_t nClosedArgs, uint16_t nClosedVars, uint32_t nTypeSets,
                                JSVersion version);
@@ -442,8 +370,6 @@ struct JSScript : public js::gc::Cell {
 
     uint8_t         objectsOffset;  
 
-
-    uint8_t         upvarsOffset;   
 
     uint8_t         regexpsOffset;  
 
@@ -694,11 +620,6 @@ struct JSScript : public js::gc::Cell {
     JSObjectArray *objects() {
         JS_ASSERT(isValidOffset(objectsOffset));
         return reinterpret_cast<JSObjectArray *>(data + objectsOffset);
-    }
-
-    JSUpvarArray *upvars() {
-        JS_ASSERT(isValidOffset(upvarsOffset));
-        return reinterpret_cast<JSUpvarArray *>(data + upvarsOffset);
     }
 
     JSObjectArray *regexps() {

@@ -1242,9 +1242,7 @@ JSObject::sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf,
 
     
     *miscSize = 0;
-    if (isFunction()) {
-        *miscSize += toFunction()->sizeOfMisc(mallocSizeOf);
-    } else if (isArguments()) {
+    if (isArguments()) {
         *miscSize += asArguments().sizeOfMisc(mallocSizeOf);
     } else if (isRegExpStatics()) {
         *miscSize += js::SizeOfRegExpStaticsData(this, mallocSizeOf);

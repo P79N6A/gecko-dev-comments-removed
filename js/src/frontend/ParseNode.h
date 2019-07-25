@@ -58,6 +58,50 @@ namespace js {
 
 
 
+class UpvarCookie
+{
+    uint32_t value;
+
+    static const uint32_t FREE_VALUE = 0xfffffffful;
+
+    void checkInvariants() {
+        JS_STATIC_ASSERT(sizeof(UpvarCookie) == sizeof(uint32_t));
+        JS_STATIC_ASSERT(UPVAR_LEVEL_LIMIT < FREE_LEVEL);
+    }
+
+  public:
+    
+
+
+
+    static const uint16_t FREE_LEVEL = 0x3fff;
+
+    
+
+
+
+    static const uint16_t UPVAR_LEVEL_LIMIT = 16;
+    static const uint16_t CALLEE_SLOT = 0xffff;
+    static bool isLevelReserved(uint16_t level) { return level >= FREE_LEVEL; }
+
+    bool isFree() const { return value == FREE_VALUE; }
+    
+    uint16_t level() const { JS_ASSERT(!isFree()); return uint16_t(value >> 16); }
+    uint16_t slot() const { JS_ASSERT(!isFree()); return uint16_t(value); }
+
+    void set(const UpvarCookie &other) { set(other.level(), other.slot()); }
+    void set(uint16_t newLevel, uint16_t newSlot) { value = (uint32_t(newLevel) << 16) | newSlot; }
+    void makeFree() { set(0xffff, 0xffff); JS_ASSERT(isFree()); }
+};
+
+
+
+
+
+
+
+
+
 
 
 enum ParseNodeKind {
