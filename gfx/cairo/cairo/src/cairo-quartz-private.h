@@ -54,6 +54,14 @@ typedef struct cairo_quartz_surface {
     cairo_surface_t *imageSurfaceEquiv;
 
     cairo_surface_clipper_t clipper;
+
+    
+
+
+
+
+    CGImageRef bitmapContextImage;
+
     cairo_rectangle_int_t extents;
 } cairo_quartz_surface_t;
 
