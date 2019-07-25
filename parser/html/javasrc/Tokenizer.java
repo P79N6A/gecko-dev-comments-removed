@@ -1334,8 +1334,6 @@ public class Tokenizer implements Locator {
         return lastCR;
     }
 
-    
-    
     @SuppressWarnings("unused") private int stateLoop(int state, char c,
             int pos, @NoLength char[] buf, boolean reconsume, int returnState,
             int endPos) throws SAXException {
@@ -2312,93 +2310,6 @@ public class Tokenizer implements Locator {
                         }
                     }
                     
-                case BOGUS_COMMENT:
-                    boguscommentloop: for (;;) {
-                        if (reconsume) {
-                            reconsume = false;
-                        } else {
-                            if (++pos == endPos) {
-                                break stateloop;
-                            }
-                            c = checkChar(buf, pos);
-                        }
-                        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                        switch (c) {
-                            case '>':
-                                emitComment(0, pos);
-                                state = Tokenizer.DATA;
-                                continue stateloop;
-                            case '-':
-                                appendLongStrBuf(c);
-                                state = Tokenizer.BOGUS_COMMENT_HYPHEN;
-                                break boguscommentloop;
-                            case '\r':
-                                appendLongStrBufCarriageReturn();
-                                break stateloop;
-                            case '\n':
-                                appendLongStrBufLineFeed();
-                                continue;
-                            case '\u0000':
-                                c = '\uFFFD';
-                                
-                            default:
-                                appendLongStrBuf(c);
-                                continue;
-                        }
-                    }
-                    
-                case BOGUS_COMMENT_HYPHEN:
-                    boguscommenthyphenloop: for (;;) {
-                        if (++pos == endPos) {
-                            break stateloop;
-                        }
-                        c = checkChar(buf, pos);
-                        switch (c) {
-                            case '>':
-                                
-                                maybeAppendSpaceToBogusComment();
-                                
-                                emitComment(0, pos);
-                                state = Tokenizer.DATA;
-                                continue stateloop;
-                            case '-':
-                                appendSecondHyphenToBogusComment();
-                                continue boguscommenthyphenloop;
-                            case '\r':
-                                appendLongStrBufCarriageReturn();
-                                state = Tokenizer.BOGUS_COMMENT;
-                                break stateloop;
-                            case '\n':
-                                appendLongStrBufLineFeed();
-                                state = Tokenizer.BOGUS_COMMENT;
-                                continue stateloop;
-                            case '\u0000':
-                                c = '\uFFFD';
-                                
-                            default:
-                                appendLongStrBuf(c);
-                                state = Tokenizer.BOGUS_COMMENT;
-                                continue stateloop;
-                        }
-                    }
-                    
                 case MARKUP_DECLARATION_OPEN:
                     markupdeclarationopenloop: for (;;) {
                         if (++pos == endPos) {
@@ -2873,6 +2784,1777 @@ public class Tokenizer implements Locator {
 
                             state = Tokenizer.COMMENT;
                             continue stateloop;
+                    }
+                    
+                case CDATA_START:
+                    for (;;) {
+                        if (++pos == endPos) {
+                            break stateloop;
+                        }
+                        c = checkChar(buf, pos);
+                        if (index < 6) { 
+                            if (c == Tokenizer.CDATA_LSQB[index]) {
+                                appendLongStrBuf(c);
+                            } else {
+                                errBogusComment();
+                                state = Tokenizer.BOGUS_COMMENT;
+                                reconsume = true;
+                                continue stateloop;
+                            }
+                            index++;
+                            continue;
+                        } else {
+                            cstart = pos; 
+                            state = Tokenizer.CDATA_SECTION;
+                            reconsume = true;
+                            break; 
+                        }
+                    }
+                    
+                case CDATA_SECTION:
+                    cdatasectionloop: for (;;) {
+                        if (reconsume) {
+                            reconsume = false;
+                        } else {
+                            if (++pos == endPos) {
+                                break stateloop;
+                            }
+                            c = checkChar(buf, pos);
+                        }
+                        switch (c) {
+                            case ']':
+                                flushChars(buf, pos);
+                                state = Tokenizer.CDATA_RSQB;
+                                break cdatasectionloop; 
+                            case '\u0000':
+                                emitReplacementCharacter(buf, pos);
+                                continue;
+                            case '\r':
+                                emitCarriageReturn(buf, pos);
+                                break stateloop;
+                            case '\n':
+                                silentLineFeed();
+                                
+                            default:
+                                continue;
+                        }
+                    }
+                    
+                case CDATA_RSQB:
+                    cdatarsqb: for (;;) {
+                        if (++pos == endPos) {
+                            break stateloop;
+                        }
+                        c = checkChar(buf, pos);
+                        switch (c) {
+                            case ']':
+                                state = Tokenizer.CDATA_RSQB_RSQB;
+                                break cdatarsqb;
+                            default:
+                                tokenHandler.characters(Tokenizer.RSQB_RSQB, 0,
+                                        1);
+                                cstart = pos;
+                                state = Tokenizer.CDATA_SECTION;
+                                reconsume = true;
+                                continue stateloop;
+                        }
+                    }
+                    
+                case CDATA_RSQB_RSQB:
+                    if (++pos == endPos) {
+                        break stateloop;
+                    }
+                    c = checkChar(buf, pos);
+                    switch (c) {
+                        case '>':
+                            cstart = pos + 1;
+                            state = Tokenizer.DATA;
+                            continue stateloop;
+                        default:
+                            tokenHandler.characters(Tokenizer.RSQB_RSQB, 0, 2);
+                            cstart = pos;
+                            state = Tokenizer.CDATA_SECTION;
+                            reconsume = true;
+                            continue stateloop;
+
+                    }
+                    
+                case ATTRIBUTE_VALUE_SINGLE_QUOTED:
+                    attributevaluesinglequotedloop: for (;;) {
+                        if (reconsume) {
+                            reconsume = false;
+                        } else {
+                            if (++pos == endPos) {
+                                break stateloop;
+                            }
+                            c = checkChar(buf, pos);
+                        }
+                        
+
+
+                        switch (c) {
+                            case '\'':
+                                
+
+
+
+                                addAttributeWithValue();
+
+                                state = Tokenizer.AFTER_ATTRIBUTE_VALUE_QUOTED;
+                                continue stateloop;
+                            case '&':
+                                
+
+
+
+
+
+                                clearStrBufAndAppend(c);
+                                setAdditionalAndRememberAmpersandLocation('\'');
+                                returnState = state;
+                                state = Tokenizer.CONSUME_CHARACTER_REFERENCE;
+                                break attributevaluesinglequotedloop;
+                            
+                            case '\r':
+                                appendLongStrBufCarriageReturn();
+                                break stateloop;
+                            case '\n':
+                                appendLongStrBufLineFeed();
+                                continue;
+                            case '\u0000':
+                                c = '\uFFFD';
+                                
+                            default:
+                                
+
+
+
+                                appendLongStrBuf(c);
+                                
+
+
+
+                                continue;
+                        }
+                    }
+                    
+                case CONSUME_CHARACTER_REFERENCE:
+                    if (++pos == endPos) {
+                        break stateloop;
+                    }
+                    c = checkChar(buf, pos);
+                    if (c == '\u0000') {
+                        break stateloop;
+                    }
+                    
+
+
+
+
+
+
+
+                    
+
+
+
+
+
+
+
+
+                    switch (c) {
+                        case ' ':
+                        case '\t':
+                        case '\n':
+                        case '\r': 
+                        case '\u000C':
+                        case '<':
+                        case '&':
+                            emitOrAppendStrBuf(returnState);
+                            if ((returnState & DATA_AND_RCDATA_MASK) == 0) {
+                                cstart = pos;
+                            }
+                            state = returnState;
+                            reconsume = true;
+                            continue stateloop;
+                        case '#':
+                            
+
+
+
+                            appendStrBuf('#');
+                            state = Tokenizer.CONSUME_NCR;
+                            continue stateloop;
+                        default:
+                            if (c == additional) {
+                                emitOrAppendStrBuf(returnState);
+                                state = returnState;
+                                reconsume = true;
+                                continue stateloop;
+                            }
+                            if (c >= 'a' && c <= 'z') {
+                                firstCharKey = c - 'a' + 26;
+                            } else if (c >= 'A' && c <= 'Z') {
+                                firstCharKey = c - 'A';
+                            } else {
+                                
+                                
+
+
+
+                                errNoNamedCharacterMatch();
+                                emitOrAppendStrBuf(returnState);
+                                if ((returnState & DATA_AND_RCDATA_MASK) == 0) {
+                                    cstart = pos;
+                                }
+                                state = returnState;
+                                reconsume = true;
+                                continue stateloop;
+                            }
+                            
+                            appendStrBuf(c);
+                            state = Tokenizer.CHARACTER_REFERENCE_HILO_LOOKUP;
+                            
+                    }
+                    
+                case CHARACTER_REFERENCE_HILO_LOOKUP:
+                    {
+                        if (++pos == endPos) {
+                            break stateloop;
+                        }
+                        c = checkChar(buf, pos);
+                        if (c == '\u0000') {
+                            break stateloop;
+                        }
+                        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                        int hilo = 0;
+                        if (c <= 'z') {
+                            @Const @NoLength int[] row = NamedCharactersAccel.HILO_ACCEL[c];
+                            if (row != null) {
+                                hilo = row[firstCharKey];
+                            }
+                        }
+                        if (hilo == 0) {
+                            
+
+
+
+                            errNoNamedCharacterMatch();
+                            emitOrAppendStrBuf(returnState);
+                            if ((returnState & DATA_AND_RCDATA_MASK) == 0) {
+                                cstart = pos;
+                            }
+                            state = returnState;
+                            reconsume = true;
+                            continue stateloop;
+                        }
+                        
+                        appendStrBuf(c);
+                        lo = hilo & 0xFFFF;
+                        hi = hilo >> 16;
+                        entCol = -1;
+                        candidate = -1;
+                        strBufMark = 0;
+                        state = Tokenizer.CHARACTER_REFERENCE_TAIL;
+                        
+                    }
+                case CHARACTER_REFERENCE_TAIL:
+                    outer: for (;;) {
+                        if (++pos == endPos) {
+                            break stateloop;
+                        }
+                        c = checkChar(buf, pos);
+                        if (c == '\u0000') {
+                            break stateloop;
+                        }
+                        entCol++;
+                        
+
+
+
+
+
+
+                        loloop: for (;;) {
+                            if (hi < lo) {
+                                break outer;
+                            }
+                            if (entCol == NamedCharacters.NAMES[lo].length) {
+                                candidate = lo;
+                                strBufMark = strBufLen;
+                                lo++;
+                            } else if (entCol > NamedCharacters.NAMES[lo].length) {
+                                break outer;
+                            } else if (c > NamedCharacters.NAMES[lo][entCol]) {
+                                lo++;
+                            } else {
+                                break loloop;
+                            }
+                        }
+
+                        hiloop: for (;;) {
+                            if (hi < lo) {
+                                break outer;
+                            }
+                            if (entCol == NamedCharacters.NAMES[hi].length) {
+                                break hiloop;
+                            }
+                            if (entCol > NamedCharacters.NAMES[hi].length) {
+                                break outer;
+                            } else if (c < NamedCharacters.NAMES[hi][entCol]) {
+                                hi--;
+                            } else {
+                                break hiloop;
+                            }
+                        }
+
+                        if (hi < lo) {
+                            break outer;
+                        }
+                        appendStrBuf(c);
+                        continue;
+                    }
+
+                    
+                    if (candidate == -1) {
+                        
+                        
+
+
+                        errNoNamedCharacterMatch();
+                        emitOrAppendStrBuf(returnState);
+                        if ((returnState & DATA_AND_RCDATA_MASK) == 0) {
+                            cstart = pos;
+                        }
+                        state = returnState;
+                        reconsume = true;
+                        continue stateloop;
+                    } else {
+                        
+                        byte[] candidateArr = NamedCharacters.NAMES[candidate];
+                        if (candidateArr.length == 0
+                                || candidateArr[candidateArr.length - 1] != ';') {
+                            
+
+
+
+                            if ((returnState & DATA_AND_RCDATA_MASK) != 0) {
+                                
+
+
+
+
+                                char ch;
+                                if (strBufMark == strBufLen) {
+                                    ch = c;
+                                } else {
+                                    
+                                    
+                                    
+                                    ch = strBuf[strBufMark];
+                                    
+                                }
+                                if (ch == '=' || (ch >= '0' && ch <= '9')
+                                        || (ch >= 'A' && ch <= 'Z')
+                                        || (ch >= 'a' && ch <= 'z')) {
+                                    
+
+
+
+
+
+
+
+
+
+
+
+                                    errNoNamedCharacterMatch();
+                                    appendStrBufToLongStrBuf();
+                                    state = returnState;
+                                    reconsume = true;
+                                    continue stateloop;
+                                }
+                            }
+                            if ((returnState & DATA_AND_RCDATA_MASK) != 0) {
+                                errUnescapedAmpersandInterpretedAsCharacterReference();
+                            } else {
+                                errNotSemicolonTerminated();
+                            }
+                        }
+
+                        
+
+
+
+
+
+                        @Const @NoLength char[] val = NamedCharacters.VALUES[candidate];
+                        
+                        if ((val[0] & 0xFC00) == 0xD800) {
+                            emitOrAppendTwo(val, returnState);
+                        } else {
+                            emitOrAppendOne(val, returnState);
+                        }
+                        
+                        if (strBufMark < strBufLen) {
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                            if ((returnState & DATA_AND_RCDATA_MASK) != 0) {
+                                for (int i = strBufMark; i < strBufLen; i++) {
+                                    appendLongStrBuf(strBuf[i]);
+                                }
+                            } else {
+                                tokenHandler.characters(strBuf, strBufMark,
+                                        strBufLen - strBufMark);
+                            }
+                            
+                        }
+                        if ((returnState & DATA_AND_RCDATA_MASK) == 0) {
+                            cstart = pos;
+                        }
+                        state = returnState;
+                        reconsume = true;
+                        continue stateloop;
+                        
+
+
+
+
+
+
+                    }
+                    
+                case CONSUME_NCR:
+                    if (++pos == endPos) {
+                        break stateloop;
+                    }
+                    c = checkChar(buf, pos);
+                    prevValue = -1;
+                    value = 0;
+                    seenDigits = false;
+                    
+
+
+
+                    switch (c) {
+                        case 'x':
+                        case 'X':
+
+                            
+
+
+
+
+
+
+
+
+
+
+
+
+
+                            appendStrBuf(c);
+                            state = Tokenizer.HEX_NCR_LOOP;
+                            continue stateloop;
+                        default:
+                            
+
+
+
+
+
+
+
+                            state = Tokenizer.DECIMAL_NRC_LOOP;
+                            reconsume = true;
+                            
+                    }
+                    
+                case DECIMAL_NRC_LOOP:
+                    decimalloop: for (;;) {
+                        if (reconsume) {
+                            reconsume = false;
+                        } else {
+                            if (++pos == endPos) {
+                                break stateloop;
+                            }
+                            c = checkChar(buf, pos);
+                        }
+                        
+                        if (value < prevValue) {
+                            value = 0x110000; 
+                            
+                            
+                        }
+                        prevValue = value;
+                        
+
+
+
+                        if (c >= '0' && c <= '9') {
+                            seenDigits = true;
+                            value *= 10;
+                            value += c - '0';
+                            continue;
+                        } else if (c == ';') {
+                            if (seenDigits) {
+                                if ((returnState & DATA_AND_RCDATA_MASK) == 0) {
+                                    cstart = pos + 1;
+                                }
+                                state = Tokenizer.HANDLE_NCR_VALUE;
+                                
+                                break decimalloop;
+                            } else {
+                                errNoDigitsInNCR();
+                                appendStrBuf(';');
+                                emitOrAppendStrBuf(returnState);
+                                if ((returnState & DATA_AND_RCDATA_MASK) == 0) {
+                                    cstart = pos + 1;
+                                }
+                                state = returnState;
+                                continue stateloop;
+                            }
+                        } else {
+                            
+
+
+
+
+
+
+
+
+
+
+                            if (!seenDigits) {
+                                errNoDigitsInNCR();
+                                emitOrAppendStrBuf(returnState);
+                                if ((returnState & DATA_AND_RCDATA_MASK) == 0) {
+                                    cstart = pos;
+                                }
+                                state = returnState;
+                                reconsume = true;
+                                continue stateloop;
+                            } else {
+                                errCharRefLacksSemicolon();
+                                if ((returnState & DATA_AND_RCDATA_MASK) == 0) {
+                                    cstart = pos;
+                                }
+                                state = Tokenizer.HANDLE_NCR_VALUE;
+                                reconsume = true;
+                                
+                                break decimalloop;
+                            }
+                        }
+                    }
+                    
+                case HANDLE_NCR_VALUE:
+                    
+                    
+                    handleNcrValue(returnState);
+                    state = returnState;
+                    continue stateloop;
+                    
+                case HEX_NCR_LOOP:
+                    for (;;) {
+                        if (++pos == endPos) {
+                            break stateloop;
+                        }
+                        c = checkChar(buf, pos);
+                        
+                        if (value < prevValue) {
+                            value = 0x110000; 
+                            
+                            
+                        }
+                        prevValue = value;
+                        
+
+
+
+                        if (c >= '0' && c <= '9') {
+                            seenDigits = true;
+                            value *= 16;
+                            value += c - '0';
+                            continue;
+                        } else if (c >= 'A' && c <= 'F') {
+                            seenDigits = true;
+                            value *= 16;
+                            value += c - 'A' + 10;
+                            continue;
+                        } else if (c >= 'a' && c <= 'f') {
+                            seenDigits = true;
+                            value *= 16;
+                            value += c - 'a' + 10;
+                            continue;
+                        } else if (c == ';') {
+                            if (seenDigits) {
+                                if ((returnState & DATA_AND_RCDATA_MASK) == 0) {
+                                    cstart = pos + 1;
+                                }
+                                state = Tokenizer.HANDLE_NCR_VALUE;
+                                continue stateloop;
+                            } else {
+                                errNoDigitsInNCR();
+                                appendStrBuf(';');
+                                emitOrAppendStrBuf(returnState);
+                                if ((returnState & DATA_AND_RCDATA_MASK) == 0) {
+                                    cstart = pos + 1;
+                                }
+                                state = returnState;
+                                continue stateloop;
+                            }
+                        } else {
+                            
+
+
+
+
+
+
+
+
+
+
+                            if (!seenDigits) {
+                                errNoDigitsInNCR();
+                                emitOrAppendStrBuf(returnState);
+                                if ((returnState & DATA_AND_RCDATA_MASK) == 0) {
+                                    cstart = pos;
+                                }
+                                state = returnState;
+                                reconsume = true;
+                                continue stateloop;
+                            } else {
+                                errCharRefLacksSemicolon();
+                                if ((returnState & DATA_AND_RCDATA_MASK) == 0) {
+                                    cstart = pos;
+                                }
+                                state = Tokenizer.HANDLE_NCR_VALUE;
+                                reconsume = true;
+                                continue stateloop;
+                            }
+                        }
+                    }
+                    
+                case PLAINTEXT:
+                    plaintextloop: for (;;) {
+                        if (reconsume) {
+                            reconsume = false;
+                        } else {
+                            if (++pos == endPos) {
+                                break stateloop;
+                            }
+                            c = checkChar(buf, pos);
+                        }
+                        switch (c) {
+                            case '\u0000':
+                                emitReplacementCharacter(buf, pos);
+                                continue;
+                            case '\r':
+                                emitCarriageReturn(buf, pos);
+                                break stateloop;
+                            case '\n':
+                                silentLineFeed();
+                            default:
+                                
+
+
+
+
+                                continue;
+                        }
+                    }
+                    
+                case CLOSE_TAG_OPEN:
+                    if (++pos == endPos) {
+                        break stateloop;
+                    }
+                    c = checkChar(buf, pos);
+                    
+
+
+
+
+                    switch (c) {
+                        case '>':
+                            
+                            errLtSlashGt();
+                            
+
+
+                            cstart = pos + 1;
+                            state = Tokenizer.DATA;
+                            continue stateloop;
+                        case '\r':
+                            silentCarriageReturn();
+                            
+                            errGarbageAfterLtSlash();
+                            
+
+
+                            clearLongStrBufAndAppend('\n');
+                            state = Tokenizer.BOGUS_COMMENT;
+                            break stateloop;
+                        case '\n':
+                            silentLineFeed();
+                            
+                            errGarbageAfterLtSlash();
+                            
+
+
+                            clearLongStrBufAndAppend('\n');
+                            state = Tokenizer.BOGUS_COMMENT;
+                            continue stateloop;
+                        case '\u0000':
+                            c = '\uFFFD';
+                            
+                        default:
+                            if (c >= 'A' && c <= 'Z') {
+                                c += 0x20;
+                            }
+                            if (c >= 'a' && c <= 'z') {
+                                
+
+
+
+
+                                endTag = true;
+                                
+
+
+                                clearStrBufAndAppend(c);
+                                
+
+
+
+
+                                state = Tokenizer.TAG_NAME;
+                                continue stateloop;
+                            } else {
+                                
+                                errGarbageAfterLtSlash();
+                                
+
+
+                                clearLongStrBufAndAppend(c);
+                                state = Tokenizer.BOGUS_COMMENT;
+                                continue stateloop;
+                            }
+                    }
+                    
+                case RCDATA:
+                    rcdataloop: for (;;) {
+                        if (reconsume) {
+                            reconsume = false;
+                        } else {
+                            if (++pos == endPos) {
+                                break stateloop;
+                            }
+                            c = checkChar(buf, pos);
+                        }
+                        switch (c) {
+                            case '&':
+                                
+
+
+
+                                flushChars(buf, pos);
+                                clearStrBufAndAppend(c);
+                                additional = '\u0000';
+                                returnState = state;
+                                state = Tokenizer.CONSUME_CHARACTER_REFERENCE;
+                                continue stateloop;
+                            case '<':
+                                
+
+
+
+                                flushChars(buf, pos);
+
+                                returnState = state;
+                                state = Tokenizer.RAWTEXT_RCDATA_LESS_THAN_SIGN;
+                                continue stateloop;
+                            case '\u0000':
+                                emitReplacementCharacter(buf, pos);
+                                continue;
+                            case '\r':
+                                emitCarriageReturn(buf, pos);
+                                break stateloop;
+                            case '\n':
+                                silentLineFeed();
+                            default:
+                                
+
+
+
+                                continue;
+                        }
+                    }
+                    
+                case RAWTEXT:
+                    rawtextloop: for (;;) {
+                        if (reconsume) {
+                            reconsume = false;
+                        } else {
+                            if (++pos == endPos) {
+                                break stateloop;
+                            }
+                            c = checkChar(buf, pos);
+                        }
+                        switch (c) {
+                            case '<':
+                                
+
+
+
+                                flushChars(buf, pos);
+
+                                returnState = state;
+                                state = Tokenizer.RAWTEXT_RCDATA_LESS_THAN_SIGN;
+                                break rawtextloop;
+                            
+                            case '\u0000':
+                                emitReplacementCharacter(buf, pos);
+                                continue;
+                            case '\r':
+                                emitCarriageReturn(buf, pos);
+                                break stateloop;
+                            case '\n':
+                                silentLineFeed();
+                            default:
+                                
+
+
+
+                                continue;
+                        }
+                    }
+                    
+                case RAWTEXT_RCDATA_LESS_THAN_SIGN:
+                    rawtextrcdatalessthansignloop: for (;;) {
+                        if (++pos == endPos) {
+                            break stateloop;
+                        }
+                        c = checkChar(buf, pos);
+                        switch (c) {
+                            case '/':
+                                
+
+
+
+
+                                index = 0;
+                                clearStrBuf();
+                                state = Tokenizer.NON_DATA_END_TAG_NAME;
+                                break rawtextrcdatalessthansignloop;
+                            
+                            default:
+                                
+
+
+
+                                tokenHandler.characters(Tokenizer.LT_GT, 0, 1);
+                                
+
+
+
+                                cstart = pos;
+                                state = returnState;
+                                reconsume = true;
+                                continue stateloop;
+                        }
+                    }
+                    
+                case NON_DATA_END_TAG_NAME:
+                    for (;;) {
+                        if (++pos == endPos) {
+                            break stateloop;
+                        }
+                        c = checkChar(buf, pos);
+                        
+
+
+
+
+
+                        if (index < endTagExpectationAsArray.length) {
+                            char e = endTagExpectationAsArray[index];
+                            char folded = c;
+                            if (c >= 'A' && c <= 'Z') {
+                                folded += 0x20;
+                            }
+                            if (folded != e) {
+                                
+                                errHtml4LtSlashInRcdata(folded);
+                                
+                                tokenHandler.characters(Tokenizer.LT_SOLIDUS,
+                                        0, 2);
+                                emitStrBuf();
+                                cstart = pos;
+                                state = returnState;
+                                reconsume = true;
+                                continue stateloop;
+                            }
+                            appendStrBuf(c);
+                            index++;
+                            continue;
+                        } else {
+                            endTag = true;
+                            
+                            
+                            tagName = endTagExpectation;
+                            switch (c) {
+                                case '\r':
+                                    silentCarriageReturn();
+                                    state = Tokenizer.BEFORE_ATTRIBUTE_NAME;
+                                    break stateloop;
+                                case '\n':
+                                    silentLineFeed();
+                                    
+                                case ' ':
+                                case '\t':
+                                case '\u000C':
+                                    
+
+
+
+
+
+
+                                    state = Tokenizer.BEFORE_ATTRIBUTE_NAME;
+                                    continue stateloop;
+                                case '/':
+                                    
+
+
+
+
+
+                                    state = Tokenizer.SELF_CLOSING_START_TAG;
+                                    continue stateloop;
+                                case '>':
+                                    
+
+
+
+
+
+                                    state = emitCurrentTagToken(false, pos);
+                                    if (shouldSuspend) {
+                                        break stateloop;
+                                    }
+                                    continue stateloop;
+                                default:
+                                    
+
+
+
+
+
+
+
+
+                                    
+                                    errWarnLtSlashInRcdata();
+                                    
+                                    tokenHandler.characters(
+                                            Tokenizer.LT_SOLIDUS, 0, 2);
+                                    emitStrBuf();
+                                    if (c == '\u0000') {
+                                        emitReplacementCharacter(buf, pos);
+                                    } else {
+                                        cstart = pos; 
+                                        
+                                    }
+                                    state = returnState;
+                                    continue stateloop;
+                            }
+                        }
+                    }
+                    
+                    
+                case BOGUS_COMMENT:
+                    boguscommentloop: for (;;) {
+                        if (reconsume) {
+                            reconsume = false;
+                        } else {
+                            if (++pos == endPos) {
+                                break stateloop;
+                            }
+                            c = checkChar(buf, pos);
+                        }
+                        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                        switch (c) {
+                            case '>':
+                                emitComment(0, pos);
+                                state = Tokenizer.DATA;
+                                continue stateloop;
+                            case '-':
+                                appendLongStrBuf(c);
+                                state = Tokenizer.BOGUS_COMMENT_HYPHEN;
+                                break boguscommentloop;
+                            case '\r':
+                                appendLongStrBufCarriageReturn();
+                                break stateloop;
+                            case '\n':
+                                appendLongStrBufLineFeed();
+                                continue;
+                            case '\u0000':
+                                c = '\uFFFD';
+                                
+                            default:
+                                appendLongStrBuf(c);
+                                continue;
+                        }
+                    }
+                    
+                case BOGUS_COMMENT_HYPHEN:
+                    boguscommenthyphenloop: for (;;) {
+                        if (++pos == endPos) {
+                            break stateloop;
+                        }
+                        c = checkChar(buf, pos);
+                        switch (c) {
+                            case '>':
+                                
+                                maybeAppendSpaceToBogusComment();
+                                
+                                emitComment(0, pos);
+                                state = Tokenizer.DATA;
+                                continue stateloop;
+                            case '-':
+                                appendSecondHyphenToBogusComment();
+                                continue boguscommenthyphenloop;
+                            case '\r':
+                                appendLongStrBufCarriageReturn();
+                                state = Tokenizer.BOGUS_COMMENT;
+                                break stateloop;
+                            case '\n':
+                                appendLongStrBufLineFeed();
+                                state = Tokenizer.BOGUS_COMMENT;
+                                continue stateloop;
+                            case '\u0000':
+                                c = '\uFFFD';
+                                
+                            default:
+                                appendLongStrBuf(c);
+                                state = Tokenizer.BOGUS_COMMENT;
+                                continue stateloop;
+                        }
+                    }
+                    
+                case SCRIPT_DATA:
+                    scriptdataloop: for (;;) {
+                        if (reconsume) {
+                            reconsume = false;
+                        } else {
+                            if (++pos == endPos) {
+                                break stateloop;
+                            }
+                            c = checkChar(buf, pos);
+                        }
+                        switch (c) {
+                            case '<':
+                                
+
+
+
+                                flushChars(buf, pos);
+                                returnState = state;
+                                state = Tokenizer.SCRIPT_DATA_LESS_THAN_SIGN;
+                                break scriptdataloop; 
+                            
+                            case '\u0000':
+                                emitReplacementCharacter(buf, pos);
+                                continue;
+                            case '\r':
+                                emitCarriageReturn(buf, pos);
+                                break stateloop;
+                            case '\n':
+                                silentLineFeed();
+                            default:
+                                
+
+
+
+
+                                continue;
+                        }
+                    }
+                    
+                case SCRIPT_DATA_LESS_THAN_SIGN:
+                    scriptdatalessthansignloop: for (;;) {
+                        if (++pos == endPos) {
+                            break stateloop;
+                        }
+                        c = checkChar(buf, pos);
+                        switch (c) {
+                            case '/':
+                                
+
+
+
+
+                                index = 0;
+                                clearStrBuf();
+                                state = Tokenizer.NON_DATA_END_TAG_NAME;
+                                continue stateloop;
+                            case '!':
+                                tokenHandler.characters(Tokenizer.LT_GT, 0, 1);
+                                cstart = pos;
+                                state = Tokenizer.SCRIPT_DATA_ESCAPE_START;
+                                break scriptdatalessthansignloop; 
+                            
+                            
+                            default:
+                                
+
+
+
+                                tokenHandler.characters(Tokenizer.LT_GT, 0, 1);
+                                
+
+
+
+                                cstart = pos;
+                                state = Tokenizer.SCRIPT_DATA;
+                                reconsume = true;
+                                continue stateloop;
+                        }
+                    }
+                    
+                case SCRIPT_DATA_ESCAPE_START:
+                    scriptdataescapestartloop: for (;;) {
+                        if (++pos == endPos) {
+                            break stateloop;
+                        }
+                        c = checkChar(buf, pos);
+                        
+
+
+                        switch (c) {
+                            case '-':
+                                
+
+
+
+
+                                state = Tokenizer.SCRIPT_DATA_ESCAPE_START_DASH;
+                                break scriptdataescapestartloop; 
+                            
+                            
+                            default:
+                                
+
+
+
+                                state = Tokenizer.SCRIPT_DATA;
+                                reconsume = true;
+                                continue stateloop;
+                        }
+                    }
+                    
+                case SCRIPT_DATA_ESCAPE_START_DASH:
+                    scriptdataescapestartdashloop: for (;;) {
+                        if (++pos == endPos) {
+                            break stateloop;
+                        }
+                        c = checkChar(buf, pos);
+                        
+
+
+                        switch (c) {
+                            case '-':
+                                
+
+
+
+
+                                state = Tokenizer.SCRIPT_DATA_ESCAPED_DASH_DASH;
+                                break scriptdataescapestartdashloop;
+                            
+                            default:
+                                
+
+
+
+                                state = Tokenizer.SCRIPT_DATA;
+                                reconsume = true;
+                                continue stateloop;
+                        }
+                    }
+                    
+                case SCRIPT_DATA_ESCAPED_DASH_DASH:
+                    scriptdataescapeddashdashloop: for (;;) {
+                        if (++pos == endPos) {
+                            break stateloop;
+                        }
+                        c = checkChar(buf, pos);
+                        
+
+
+                        switch (c) {
+                            case '-':
+                                
+
+
+
+
+                                continue;
+                            case '<':
+                                
+
+
+
+                                flushChars(buf, pos);
+                                state = Tokenizer.SCRIPT_DATA_ESCAPED_LESS_THAN_SIGN;
+                                continue stateloop;
+                            case '>':
+                                
+
+
+
+
+                                state = Tokenizer.SCRIPT_DATA;
+                                continue stateloop;
+                            case '\u0000':
+                                emitReplacementCharacter(buf, pos);
+                                state = Tokenizer.SCRIPT_DATA_ESCAPED;
+                                break scriptdataescapeddashdashloop;
+                            case '\r':
+                                emitCarriageReturn(buf, pos);
+                                state = Tokenizer.SCRIPT_DATA_ESCAPED;
+                                break stateloop;
+                            case '\n':
+                                silentLineFeed();
+                            default:
+                                
+
+
+
+
+                                state = Tokenizer.SCRIPT_DATA_ESCAPED;
+                                break scriptdataescapeddashdashloop;
+                            
+                        }
+                    }
+                    
+                case SCRIPT_DATA_ESCAPED:
+                    scriptdataescapedloop: for (;;) {
+                        if (reconsume) {
+                            reconsume = false;
+                        } else {
+                            if (++pos == endPos) {
+                                break stateloop;
+                            }
+                            c = checkChar(buf, pos);
+                        }
+                        
+
+
+                        switch (c) {
+                            case '-':
+                                
+
+
+
+
+                                state = Tokenizer.SCRIPT_DATA_ESCAPED_DASH;
+                                break scriptdataescapedloop; 
+                            
+                            
+                            case '<':
+                                
+
+
+
+                                flushChars(buf, pos);
+                                state = Tokenizer.SCRIPT_DATA_ESCAPED_LESS_THAN_SIGN;
+                                continue stateloop;
+                            case '\u0000':
+                                emitReplacementCharacter(buf, pos);
+                                continue;
+                            case '\r':
+                                emitCarriageReturn(buf, pos);
+                                break stateloop;
+                            case '\n':
+                                silentLineFeed();
+                            default:
+                                
+
+
+
+
+                                continue;
+                        }
+                    }
+                    
+                case SCRIPT_DATA_ESCAPED_DASH:
+                    scriptdataescapeddashloop: for (;;) {
+                        if (++pos == endPos) {
+                            break stateloop;
+                        }
+                        c = checkChar(buf, pos);
+                        
+
+
+                        switch (c) {
+                            case '-':
+                                
+
+
+
+
+                                state = Tokenizer.SCRIPT_DATA_ESCAPED_DASH_DASH;
+                                continue stateloop;
+                            case '<':
+                                
+
+
+
+                                flushChars(buf, pos);
+                                state = Tokenizer.SCRIPT_DATA_ESCAPED_LESS_THAN_SIGN;
+                                break scriptdataescapeddashloop;
+                            
+                            case '\u0000':
+                                emitReplacementCharacter(buf, pos);
+                                state = Tokenizer.SCRIPT_DATA_ESCAPED;
+                                continue stateloop;
+                            case '\r':
+                                emitCarriageReturn(buf, pos);
+                                state = Tokenizer.SCRIPT_DATA_ESCAPED;
+                                break stateloop;
+                            case '\n':
+                                silentLineFeed();
+                            default:
+                                
+
+
+
+
+                                state = Tokenizer.SCRIPT_DATA_ESCAPED;
+                                continue stateloop;
+                        }
+                    }
+                    
+                case SCRIPT_DATA_ESCAPED_LESS_THAN_SIGN:
+                    scriptdataescapedlessthanloop: for (;;) {
+                        if (++pos == endPos) {
+                            break stateloop;
+                        }
+                        c = checkChar(buf, pos);
+                        
+
+
+                        switch (c) {
+                            case '/':
+                                
+
+
+
+
+                                index = 0;
+                                clearStrBuf();
+                                returnState = Tokenizer.SCRIPT_DATA_ESCAPED;
+                                state = Tokenizer.NON_DATA_END_TAG_NAME;
+                                continue stateloop;
+                            case 'S':
+                            case 's':
+                                
+
+
+
+
+
+                                tokenHandler.characters(Tokenizer.LT_GT, 0, 1);
+                                cstart = pos;
+                                index = 1;
+                                
+
+
+
+
+
+
+
+                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPE_START;
+                                break scriptdataescapedlessthanloop;
+                            
+                            default:
+                                
+
+
+
+
+
+                                tokenHandler.characters(Tokenizer.LT_GT, 0, 1);
+                                cstart = pos;
+                                reconsume = true;
+                                state = Tokenizer.SCRIPT_DATA_ESCAPED;
+                                continue stateloop;
+                        }
+                    }
+                    
+                case SCRIPT_DATA_DOUBLE_ESCAPE_START:
+                    scriptdatadoubleescapestartloop: for (;;) {
+                        if (++pos == endPos) {
+                            break stateloop;
+                        }
+                        c = checkChar(buf, pos);
+                        assert (index > 0);
+                        if (index < 6) { 
+                            char folded = c;
+                            if (c >= 'A' && c <= 'Z') {
+                                folded += 0x20;
+                            }
+                            if (folded != Tokenizer.SCRIPT_ARR[index]) {
+                                reconsume = true;
+                                state = Tokenizer.SCRIPT_DATA_ESCAPED;
+                                continue stateloop;
+                            }
+                            index++;
+                            continue;
+                        }
+                        switch (c) {
+                            case '\r':
+                                emitCarriageReturn(buf, pos);
+                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED;
+                                break stateloop;
+                            case '\n':
+                                silentLineFeed();
+                            case ' ':
+                            case '\t':
+                            case '\u000C':
+                            case '/':
+                            case '>':
+                                
+
+
+
+
+
+
+
+
+                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED;
+                                break scriptdatadoubleescapestartloop;
+                            
+                            default:
+                                
+
+
+
+                                reconsume = true;
+                                state = Tokenizer.SCRIPT_DATA_ESCAPED;
+                                continue stateloop;
+                        }
+                    }
+                    
+                case SCRIPT_DATA_DOUBLE_ESCAPED:
+                    scriptdatadoubleescapedloop: for (;;) {
+                        if (reconsume) {
+                            reconsume = false;
+                        } else {
+                            if (++pos == endPos) {
+                                break stateloop;
+                            }
+                            c = checkChar(buf, pos);
+                        }
+                        
+
+
+                        switch (c) {
+                            case '-':
+                                
+
+
+
+
+                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED_DASH;
+                                break scriptdatadoubleescapedloop; 
+                            
+                            
+                            case '<':
+                                
+
+
+
+
+
+                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED_LESS_THAN_SIGN;
+                                continue stateloop;
+                            case '\u0000':
+                                emitReplacementCharacter(buf, pos);
+                                continue;
+                            case '\r':
+                                emitCarriageReturn(buf, pos);
+                                break stateloop;
+                            case '\n':
+                                silentLineFeed();
+                            default:
+                                
+
+
+
+
+                                continue;
+                        }
+                    }
+                    
+                case SCRIPT_DATA_DOUBLE_ESCAPED_DASH:
+                    scriptdatadoubleescapeddashloop: for (;;) {
+                        if (++pos == endPos) {
+                            break stateloop;
+                        }
+                        c = checkChar(buf, pos);
+                        
+
+
+                        switch (c) {
+                            case '-':
+                                
+
+
+
+
+                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED_DASH_DASH;
+                                break scriptdatadoubleescapeddashloop;
+                            
+                            case '<':
+                                
+
+
+
+
+
+                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED_LESS_THAN_SIGN;
+                                continue stateloop;
+                            case '\u0000':
+                                emitReplacementCharacter(buf, pos);
+                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED;
+                                continue stateloop;
+                            case '\r':
+                                emitCarriageReturn(buf, pos);
+                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED;
+                                break stateloop;
+                            case '\n':
+                                silentLineFeed();
+                            default:
+                                
+
+
+
+
+                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED;
+                                continue stateloop;
+                        }
+                    }
+                    
+                case SCRIPT_DATA_DOUBLE_ESCAPED_DASH_DASH:
+                    scriptdatadoubleescapeddashdashloop: for (;;) {
+                        if (++pos == endPos) {
+                            break stateloop;
+                        }
+                        c = checkChar(buf, pos);
+                        
+
+
+                        switch (c) {
+                            case '-':
+                                
+
+
+
+
+                                continue;
+                            case '<':
+                                
+
+
+
+
+
+                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED_LESS_THAN_SIGN;
+                                break scriptdatadoubleescapeddashdashloop;
+                            case '>':
+                                
+
+
+
+
+                                state = Tokenizer.SCRIPT_DATA;
+                                continue stateloop;
+                            case '\u0000':
+                                emitReplacementCharacter(buf, pos);
+                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED;
+                                continue stateloop;
+                            case '\r':
+                                emitCarriageReturn(buf, pos);
+                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED;
+                                break stateloop;
+                            case '\n':
+                                silentLineFeed();
+                            default:
+                                
+
+
+
+
+                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED;
+                                continue stateloop;
+                        }
+                    }
+                    
+                case SCRIPT_DATA_DOUBLE_ESCAPED_LESS_THAN_SIGN:
+                    scriptdatadoubleescapedlessthanloop: for (;;) {
+                        if (++pos == endPos) {
+                            break stateloop;
+                        }
+                        c = checkChar(buf, pos);
+                        
+
+
+                        switch (c) {
+                            case '/':
+                                
+
+
+
+
+
+                                index = 0;
+                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPE_END;
+                                break scriptdatadoubleescapedlessthanloop;
+                            default:
+                                
+
+
+
+
+                                reconsume = true;
+                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED;
+                                continue stateloop;
+                        }
+                    }
+                    
+                case SCRIPT_DATA_DOUBLE_ESCAPE_END:
+                    scriptdatadoubleescapeendloop: for (;;) {
+                        if (++pos == endPos) {
+                            break stateloop;
+                        }
+                        c = checkChar(buf, pos);
+                        if (index < 6) { 
+                            char folded = c;
+                            if (c >= 'A' && c <= 'Z') {
+                                folded += 0x20;
+                            }
+                            if (folded != Tokenizer.SCRIPT_ARR[index]) {
+                                reconsume = true;
+                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED;
+                                continue stateloop;
+                            }
+                            index++;
+                            continue;
+                        }
+                        switch (c) {
+                            case '\r':
+                                emitCarriageReturn(buf, pos);
+                                state = Tokenizer.SCRIPT_DATA_ESCAPED;
+                                break stateloop;
+                            case '\n':
+                                silentLineFeed();
+                            case ' ':
+                            case '\t':
+                            case '\u000C':
+                            case '/':
+                            case '>':
+                                
+
+
+
+
+
+
+
+
+                                state = Tokenizer.SCRIPT_DATA_ESCAPED;
+                                continue stateloop;
+                            default:
+                                
+
+
+
+                                reconsume = true;
+                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED;
+                                continue stateloop;
+                        }
                     }
                     
                 case MARKUP_DECLARATION_OCTYPE:
@@ -4096,1688 +5778,6 @@ public class Tokenizer implements Locator {
                         }
                     }
                     
-                case CDATA_START:
-                    for (;;) {
-                        if (++pos == endPos) {
-                            break stateloop;
-                        }
-                        c = checkChar(buf, pos);
-                        if (index < 6) { 
-                            if (c == Tokenizer.CDATA_LSQB[index]) {
-                                appendLongStrBuf(c);
-                            } else {
-                                errBogusComment();
-                                state = Tokenizer.BOGUS_COMMENT;
-                                reconsume = true;
-                                continue stateloop;
-                            }
-                            index++;
-                            continue;
-                        } else {
-                            cstart = pos; 
-                            state = Tokenizer.CDATA_SECTION;
-                            reconsume = true;
-                            break; 
-                        }
-                    }
-                    
-                case CDATA_SECTION:
-                    cdatasectionloop: for (;;) {
-                        if (reconsume) {
-                            reconsume = false;
-                        } else {
-                            if (++pos == endPos) {
-                                break stateloop;
-                            }
-                            c = checkChar(buf, pos);
-                        }
-                        switch (c) {
-                            case ']':
-                                flushChars(buf, pos);
-                                state = Tokenizer.CDATA_RSQB;
-                                break cdatasectionloop; 
-                            case '\u0000':
-                                emitReplacementCharacter(buf, pos);
-                                continue;
-                            case '\r':
-                                emitCarriageReturn(buf, pos);
-                                break stateloop;
-                            case '\n':
-                                silentLineFeed();
-                                
-                            default:
-                                continue;
-                        }
-                    }
-                    
-                case CDATA_RSQB:
-                    cdatarsqb: for (;;) {
-                        if (++pos == endPos) {
-                            break stateloop;
-                        }
-                        c = checkChar(buf, pos);
-                        switch (c) {
-                            case ']':
-                                state = Tokenizer.CDATA_RSQB_RSQB;
-                                break cdatarsqb;
-                            default:
-                                tokenHandler.characters(Tokenizer.RSQB_RSQB, 0,
-                                        1);
-                                cstart = pos;
-                                state = Tokenizer.CDATA_SECTION;
-                                reconsume = true;
-                                continue stateloop;
-                        }
-                    }
-                    
-                case CDATA_RSQB_RSQB:
-                    if (++pos == endPos) {
-                        break stateloop;
-                    }
-                    c = checkChar(buf, pos);
-                    switch (c) {
-                        case '>':
-                            cstart = pos + 1;
-                            state = Tokenizer.DATA;
-                            continue stateloop;
-                        default:
-                            tokenHandler.characters(Tokenizer.RSQB_RSQB, 0, 2);
-                            cstart = pos;
-                            state = Tokenizer.CDATA_SECTION;
-                            reconsume = true;
-                            continue stateloop;
-
-                    }
-                    
-                case ATTRIBUTE_VALUE_SINGLE_QUOTED:
-                    attributevaluesinglequotedloop: for (;;) {
-                        if (reconsume) {
-                            reconsume = false;
-                        } else {
-                            if (++pos == endPos) {
-                                break stateloop;
-                            }
-                            c = checkChar(buf, pos);
-                        }
-                        
-
-
-                        switch (c) {
-                            case '\'':
-                                
-
-
-
-                                addAttributeWithValue();
-
-                                state = Tokenizer.AFTER_ATTRIBUTE_VALUE_QUOTED;
-                                continue stateloop;
-                            case '&':
-                                
-
-
-
-
-
-                                clearStrBufAndAppend(c);
-                                setAdditionalAndRememberAmpersandLocation('\'');
-                                returnState = state;
-                                state = Tokenizer.CONSUME_CHARACTER_REFERENCE;
-                                break attributevaluesinglequotedloop;
-                            
-                            case '\r':
-                                appendLongStrBufCarriageReturn();
-                                break stateloop;
-                            case '\n':
-                                appendLongStrBufLineFeed();
-                                continue;
-                            case '\u0000':
-                                c = '\uFFFD';
-                                
-                            default:
-                                
-
-
-
-                                appendLongStrBuf(c);
-                                
-
-
-
-                                continue;
-                        }
-                    }
-                    
-                case CONSUME_CHARACTER_REFERENCE:
-                    if (++pos == endPos) {
-                        break stateloop;
-                    }
-                    c = checkChar(buf, pos);
-                    if (c == '\u0000') {
-                        break stateloop;
-                    }
-                    
-
-
-
-
-
-
-
-                    
-
-
-
-
-
-
-
-
-                    switch (c) {
-                        case ' ':
-                        case '\t':
-                        case '\n':
-                        case '\r': 
-                        case '\u000C':
-                        case '<':
-                        case '&':
-                            emitOrAppendStrBuf(returnState);
-                            if ((returnState & DATA_AND_RCDATA_MASK) == 0) {
-                                cstart = pos;
-                            }
-                            state = returnState;
-                            reconsume = true;
-                            continue stateloop;
-                        case '#':
-                            
-
-
-
-                            appendStrBuf('#');
-                            state = Tokenizer.CONSUME_NCR;
-                            continue stateloop;
-                        default:
-                            if (c == additional) {
-                                emitOrAppendStrBuf(returnState);
-                                state = returnState;
-                                reconsume = true;
-                                continue stateloop;
-                            }
-                            if (c >= 'a' && c <= 'z') {
-                                firstCharKey = c - 'a' + 26;
-                            } else if (c >= 'A' && c <= 'Z') {
-                                firstCharKey = c - 'A';
-                            } else {
-                                
-                                
-
-
-
-                                errNoNamedCharacterMatch();
-                                emitOrAppendStrBuf(returnState);
-                                if ((returnState & DATA_AND_RCDATA_MASK) == 0) {
-                                    cstart = pos;
-                                }
-                                state = returnState;
-                                reconsume = true;
-                                continue stateloop;
-                            }
-                            
-                            appendStrBuf(c);
-                            state = Tokenizer.CHARACTER_REFERENCE_HILO_LOOKUP;
-                            
-                    }
-                    
-                case CHARACTER_REFERENCE_HILO_LOOKUP:
-                    {
-                        if (++pos == endPos) {
-                            break stateloop;
-                        }
-                        c = checkChar(buf, pos);
-                        if (c == '\u0000') {
-                            break stateloop;
-                        }
-                        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                        int hilo = 0;
-                        if (c <= 'z') {
-                            @Const @NoLength int[] row = NamedCharactersAccel.HILO_ACCEL[c];
-                            if (row != null) {
-                                hilo = row[firstCharKey];
-                            }
-                        }
-                        if (hilo == 0) {
-                            
-
-
-
-                            errNoNamedCharacterMatch();
-                            emitOrAppendStrBuf(returnState);
-                            if ((returnState & DATA_AND_RCDATA_MASK) == 0) {
-                                cstart = pos;
-                            }
-                            state = returnState;
-                            reconsume = true;
-                            continue stateloop;
-                        }
-                        
-                        appendStrBuf(c);
-                        lo = hilo & 0xFFFF;
-                        hi = hilo >> 16;
-                        entCol = -1;
-                        candidate = -1;
-                        strBufMark = 0;
-                        state = Tokenizer.CHARACTER_REFERENCE_TAIL;
-                        
-                    }
-                case CHARACTER_REFERENCE_TAIL:
-                    outer: for (;;) {
-                        if (++pos == endPos) {
-                            break stateloop;
-                        }
-                        c = checkChar(buf, pos);
-                        if (c == '\u0000') {
-                            break stateloop;
-                        }
-                        entCol++;
-                        
-
-
-
-
-
-
-                        loloop: for (;;) {
-                            if (hi < lo) {
-                                break outer;
-                            }
-                            if (entCol == NamedCharacters.NAMES[lo].length) {
-                                candidate = lo;
-                                strBufMark = strBufLen;
-                                lo++;
-                            } else if (entCol > NamedCharacters.NAMES[lo].length) {
-                                break outer;
-                            } else if (c > NamedCharacters.NAMES[lo][entCol]) {
-                                lo++;
-                            } else {
-                                break loloop;
-                            }
-                        }
-
-                        hiloop: for (;;) {
-                            if (hi < lo) {
-                                break outer;
-                            }
-                            if (entCol == NamedCharacters.NAMES[hi].length) {
-                                break hiloop;
-                            }
-                            if (entCol > NamedCharacters.NAMES[hi].length) {
-                                break outer;
-                            } else if (c < NamedCharacters.NAMES[hi][entCol]) {
-                                hi--;
-                            } else {
-                                break hiloop;
-                            }
-                        }
-
-                        if (hi < lo) {
-                            break outer;
-                        }
-                        appendStrBuf(c);
-                        continue;
-                    }
-
-                    
-                    if (candidate == -1) {
-                        
-                        
-
-
-                        errNoNamedCharacterMatch();
-                        emitOrAppendStrBuf(returnState);
-                        if ((returnState & DATA_AND_RCDATA_MASK) == 0) {
-                            cstart = pos;
-                        }
-                        state = returnState;
-                        reconsume = true;
-                        continue stateloop;
-                    } else {
-                        
-                        byte[] candidateArr = NamedCharacters.NAMES[candidate];
-                        if (candidateArr.length == 0
-                                || candidateArr[candidateArr.length - 1] != ';') {
-                            
-
-
-
-                            if ((returnState & DATA_AND_RCDATA_MASK) != 0) {
-                                
-
-
-
-
-                                char ch;
-                                if (strBufMark == strBufLen) {
-                                    ch = c;
-                                } else {
-                                    
-                                    
-                                    
-                                    ch = strBuf[strBufMark];
-                                    
-                                }
-                                if (ch == '=' || (ch >= '0' && ch <= '9')
-                                        || (ch >= 'A' && ch <= 'Z')
-                                        || (ch >= 'a' && ch <= 'z')) {
-                                    
-
-
-
-
-
-
-
-
-
-
-
-                                    errNoNamedCharacterMatch();
-                                    appendStrBufToLongStrBuf();
-                                    state = returnState;
-                                    reconsume = true;
-                                    continue stateloop;
-                                }
-                            }
-                            if ((returnState & DATA_AND_RCDATA_MASK) != 0) {
-                                errUnescapedAmpersandInterpretedAsCharacterReference();
-                            } else {
-                                errNotSemicolonTerminated();
-                            }
-                        }
-
-                        
-
-
-
-
-
-                        @Const @NoLength char[] val = NamedCharacters.VALUES[candidate];
-                        
-                        if ((val[0] & 0xFC00) == 0xD800) {
-                            emitOrAppendTwo(val, returnState);
-                        } else {
-                            emitOrAppendOne(val, returnState);
-                        }
-                        
-                        if (strBufMark < strBufLen) {
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            if ((returnState & DATA_AND_RCDATA_MASK) != 0) {
-                                for (int i = strBufMark; i < strBufLen; i++) {
-                                    appendLongStrBuf(strBuf[i]);
-                                }
-                            } else {
-                                tokenHandler.characters(strBuf, strBufMark,
-                                        strBufLen - strBufMark);
-                            }
-                            
-                        }
-                        if ((returnState & DATA_AND_RCDATA_MASK) == 0) {
-                            cstart = pos;
-                        }
-                        state = returnState;
-                        reconsume = true;
-                        continue stateloop;
-                        
-
-
-
-
-
-
-                    }
-                    
-                case CONSUME_NCR:
-                    if (++pos == endPos) {
-                        break stateloop;
-                    }
-                    c = checkChar(buf, pos);
-                    prevValue = -1;
-                    value = 0;
-                    seenDigits = false;
-                    
-
-
-
-                    switch (c) {
-                        case 'x':
-                        case 'X':
-
-                            
-
-
-
-
-
-
-
-
-
-
-
-
-
-                            appendStrBuf(c);
-                            state = Tokenizer.HEX_NCR_LOOP;
-                            continue stateloop;
-                        default:
-                            
-
-
-
-
-
-
-
-                            state = Tokenizer.DECIMAL_NRC_LOOP;
-                            reconsume = true;
-                            
-                    }
-                    
-                case DECIMAL_NRC_LOOP:
-                    decimalloop: for (;;) {
-                        if (reconsume) {
-                            reconsume = false;
-                        } else {
-                            if (++pos == endPos) {
-                                break stateloop;
-                            }
-                            c = checkChar(buf, pos);
-                        }
-                        
-                        if (value < prevValue) {
-                            value = 0x110000; 
-                            
-                            
-                        }
-                        prevValue = value;
-                        
-
-
-
-                        if (c >= '0' && c <= '9') {
-                            seenDigits = true;
-                            value *= 10;
-                            value += c - '0';
-                            continue;
-                        } else if (c == ';') {
-                            if (seenDigits) {
-                                if ((returnState & DATA_AND_RCDATA_MASK) == 0) {
-                                    cstart = pos + 1;
-                                }
-                                state = Tokenizer.HANDLE_NCR_VALUE;
-                                
-                                break decimalloop;
-                            } else {
-                                errNoDigitsInNCR();
-                                appendStrBuf(';');
-                                emitOrAppendStrBuf(returnState);
-                                if ((returnState & DATA_AND_RCDATA_MASK) == 0) {
-                                    cstart = pos + 1;
-                                }
-                                state = returnState;
-                                continue stateloop;
-                            }
-                        } else {
-                            
-
-
-
-
-
-
-
-
-
-
-                            if (!seenDigits) {
-                                errNoDigitsInNCR();
-                                emitOrAppendStrBuf(returnState);
-                                if ((returnState & DATA_AND_RCDATA_MASK) == 0) {
-                                    cstart = pos;
-                                }
-                                state = returnState;
-                                reconsume = true;
-                                continue stateloop;
-                            } else {
-                                errCharRefLacksSemicolon();
-                                if ((returnState & DATA_AND_RCDATA_MASK) == 0) {
-                                    cstart = pos;
-                                }
-                                state = Tokenizer.HANDLE_NCR_VALUE;
-                                reconsume = true;
-                                
-                                break decimalloop;
-                            }
-                        }
-                    }
-                    
-                case HANDLE_NCR_VALUE:
-                    
-                    
-                    handleNcrValue(returnState);
-                    state = returnState;
-                    continue stateloop;
-                    
-                case HEX_NCR_LOOP:
-                    for (;;) {
-                        if (++pos == endPos) {
-                            break stateloop;
-                        }
-                        c = checkChar(buf, pos);
-                        
-                        if (value < prevValue) {
-                            value = 0x110000; 
-                            
-                            
-                        }
-                        prevValue = value;
-                        
-
-
-
-                        if (c >= '0' && c <= '9') {
-                            seenDigits = true;
-                            value *= 16;
-                            value += c - '0';
-                            continue;
-                        } else if (c >= 'A' && c <= 'F') {
-                            seenDigits = true;
-                            value *= 16;
-                            value += c - 'A' + 10;
-                            continue;
-                        } else if (c >= 'a' && c <= 'f') {
-                            seenDigits = true;
-                            value *= 16;
-                            value += c - 'a' + 10;
-                            continue;
-                        } else if (c == ';') {
-                            if (seenDigits) {
-                                if ((returnState & DATA_AND_RCDATA_MASK) == 0) {
-                                    cstart = pos + 1;
-                                }
-                                state = Tokenizer.HANDLE_NCR_VALUE;
-                                continue stateloop;
-                            } else {
-                                errNoDigitsInNCR();
-                                appendStrBuf(';');
-                                emitOrAppendStrBuf(returnState);
-                                if ((returnState & DATA_AND_RCDATA_MASK) == 0) {
-                                    cstart = pos + 1;
-                                }
-                                state = returnState;
-                                continue stateloop;
-                            }
-                        } else {
-                            
-
-
-
-
-
-
-
-
-
-
-                            if (!seenDigits) {
-                                errNoDigitsInNCR();
-                                emitOrAppendStrBuf(returnState);
-                                if ((returnState & DATA_AND_RCDATA_MASK) == 0) {
-                                    cstart = pos;
-                                }
-                                state = returnState;
-                                reconsume = true;
-                                continue stateloop;
-                            } else {
-                                errCharRefLacksSemicolon();
-                                if ((returnState & DATA_AND_RCDATA_MASK) == 0) {
-                                    cstart = pos;
-                                }
-                                state = Tokenizer.HANDLE_NCR_VALUE;
-                                reconsume = true;
-                                continue stateloop;
-                            }
-                        }
-                    }
-                    
-                case PLAINTEXT:
-                    plaintextloop: for (;;) {
-                        if (reconsume) {
-                            reconsume = false;
-                        } else {
-                            if (++pos == endPos) {
-                                break stateloop;
-                            }
-                            c = checkChar(buf, pos);
-                        }
-                        switch (c) {
-                            case '\u0000':
-                                emitReplacementCharacter(buf, pos);
-                                continue;
-                            case '\r':
-                                emitCarriageReturn(buf, pos);
-                                break stateloop;
-                            case '\n':
-                                silentLineFeed();
-                            default:
-                                
-
-
-
-
-                                continue;
-                        }
-                    }
-                    
-                case SCRIPT_DATA:
-                    scriptdataloop: for (;;) {
-                        if (reconsume) {
-                            reconsume = false;
-                        } else {
-                            if (++pos == endPos) {
-                                break stateloop;
-                            }
-                            c = checkChar(buf, pos);
-                        }
-                        switch (c) {
-                            case '<':
-                                
-
-
-
-                                flushChars(buf, pos);
-                                returnState = state;
-                                state = Tokenizer.SCRIPT_DATA_LESS_THAN_SIGN;
-                                break scriptdataloop; 
-                            
-                            case '\u0000':
-                                emitReplacementCharacter(buf, pos);
-                                continue;
-                            case '\r':
-                                emitCarriageReturn(buf, pos);
-                                break stateloop;
-                            case '\n':
-                                silentLineFeed();
-                            default:
-                                
-
-
-
-
-                                continue;
-                        }
-                    }
-                    
-                case SCRIPT_DATA_LESS_THAN_SIGN:
-                    scriptdatalessthansignloop: for (;;) {
-                        if (++pos == endPos) {
-                            break stateloop;
-                        }
-                        c = checkChar(buf, pos);
-                        switch (c) {
-                            case '/':
-                                
-
-
-
-
-                                index = 0;
-                                clearStrBuf();
-                                state = Tokenizer.NON_DATA_END_TAG_NAME;
-                                continue stateloop;
-                            case '!':
-                                tokenHandler.characters(Tokenizer.LT_GT, 0, 1);
-                                cstart = pos;
-                                state = Tokenizer.SCRIPT_DATA_ESCAPE_START;
-                                break scriptdatalessthansignloop; 
-                            
-                            
-                            default:
-                                
-
-
-
-                                tokenHandler.characters(Tokenizer.LT_GT, 0, 1);
-                                
-
-
-
-                                cstart = pos;
-                                state = Tokenizer.SCRIPT_DATA;
-                                reconsume = true;
-                                continue stateloop;
-                        }
-                    }
-                    
-                case SCRIPT_DATA_ESCAPE_START:
-                    scriptdataescapestartloop: for (;;) {
-                        if (++pos == endPos) {
-                            break stateloop;
-                        }
-                        c = checkChar(buf, pos);
-                        
-
-
-                        switch (c) {
-                            case '-':
-                                
-
-
-
-
-                                state = Tokenizer.SCRIPT_DATA_ESCAPE_START_DASH;
-                                break scriptdataescapestartloop; 
-                            
-                            
-                            default:
-                                
-
-
-
-                                state = Tokenizer.SCRIPT_DATA;
-                                reconsume = true;
-                                continue stateloop;
-                        }
-                    }
-                    
-                case SCRIPT_DATA_ESCAPE_START_DASH:
-                    scriptdataescapestartdashloop: for (;;) {
-                        if (++pos == endPos) {
-                            break stateloop;
-                        }
-                        c = checkChar(buf, pos);
-                        
-
-
-                        switch (c) {
-                            case '-':
-                                
-
-
-
-
-                                state = Tokenizer.SCRIPT_DATA_ESCAPED_DASH_DASH;
-                                break scriptdataescapestartdashloop;
-                            
-                            default:
-                                
-
-
-
-                                state = Tokenizer.SCRIPT_DATA;
-                                reconsume = true;
-                                continue stateloop;
-                        }
-                    }
-                    
-                case SCRIPT_DATA_ESCAPED_DASH_DASH:
-                    scriptdataescapeddashdashloop: for (;;) {
-                        if (++pos == endPos) {
-                            break stateloop;
-                        }
-                        c = checkChar(buf, pos);
-                        
-
-
-                        switch (c) {
-                            case '-':
-                                
-
-
-
-
-                                continue;
-                            case '<':
-                                
-
-
-
-                                flushChars(buf, pos);
-                                state = Tokenizer.SCRIPT_DATA_ESCAPED_LESS_THAN_SIGN;
-                                continue stateloop;
-                            case '>':
-                                
-
-
-
-
-                                state = Tokenizer.SCRIPT_DATA;
-                                continue stateloop;
-                            case '\u0000':
-                                emitReplacementCharacter(buf, pos);
-                                state = Tokenizer.SCRIPT_DATA_ESCAPED;
-                                break scriptdataescapeddashdashloop;
-                            case '\r':
-                                emitCarriageReturn(buf, pos);
-                                state = Tokenizer.SCRIPT_DATA_ESCAPED;
-                                break stateloop;
-                            case '\n':
-                                silentLineFeed();
-                            default:
-                                
-
-
-
-
-                                state = Tokenizer.SCRIPT_DATA_ESCAPED;
-                                break scriptdataescapeddashdashloop;
-                            
-                        }
-                    }
-                    
-                case SCRIPT_DATA_ESCAPED:
-                    scriptdataescapedloop: for (;;) {
-                        if (reconsume) {
-                            reconsume = false;
-                        } else {
-                            if (++pos == endPos) {
-                                break stateloop;
-                            }
-                            c = checkChar(buf, pos);
-                        }
-                        
-
-
-                        switch (c) {
-                            case '-':
-                                
-
-
-
-
-                                state = Tokenizer.SCRIPT_DATA_ESCAPED_DASH;
-                                break scriptdataescapedloop; 
-                            
-                            
-                            case '<':
-                                
-
-
-
-                                flushChars(buf, pos);
-                                state = Tokenizer.SCRIPT_DATA_ESCAPED_LESS_THAN_SIGN;
-                                continue stateloop;
-                            case '\u0000':
-                                emitReplacementCharacter(buf, pos);
-                                continue;
-                            case '\r':
-                                emitCarriageReturn(buf, pos);
-                                break stateloop;
-                            case '\n':
-                                silentLineFeed();
-                            default:
-                                
-
-
-
-
-                                continue;
-                        }
-                    }
-                    
-                case SCRIPT_DATA_ESCAPED_DASH:
-                    scriptdataescapeddashloop: for (;;) {
-                        if (++pos == endPos) {
-                            break stateloop;
-                        }
-                        c = checkChar(buf, pos);
-                        
-
-
-                        switch (c) {
-                            case '-':
-                                
-
-
-
-
-                                state = Tokenizer.SCRIPT_DATA_ESCAPED_DASH_DASH;
-                                continue stateloop;
-                            case '<':
-                                
-
-
-
-                                flushChars(buf, pos);
-                                state = Tokenizer.SCRIPT_DATA_ESCAPED_LESS_THAN_SIGN;
-                                break scriptdataescapeddashloop;
-                            
-                            case '\u0000':
-                                emitReplacementCharacter(buf, pos);
-                                state = Tokenizer.SCRIPT_DATA_ESCAPED;
-                                continue stateloop;
-                            case '\r':
-                                emitCarriageReturn(buf, pos);
-                                state = Tokenizer.SCRIPT_DATA_ESCAPED;
-                                break stateloop;
-                            case '\n':
-                                silentLineFeed();
-                            default:
-                                
-
-
-
-
-                                state = Tokenizer.SCRIPT_DATA_ESCAPED;
-                                continue stateloop;
-                        }
-                    }
-                    
-                case SCRIPT_DATA_ESCAPED_LESS_THAN_SIGN:
-                    scriptdataescapedlessthanloop: for (;;) {
-                        if (++pos == endPos) {
-                            break stateloop;
-                        }
-                        c = checkChar(buf, pos);
-                        
-
-
-                        switch (c) {
-                            case '/':
-                                
-
-
-
-
-                                index = 0;
-                                clearStrBuf();
-                                returnState = Tokenizer.SCRIPT_DATA_ESCAPED;
-                                state = Tokenizer.NON_DATA_END_TAG_NAME;
-                                continue stateloop;
-                            case 'S':
-                            case 's':
-                                
-
-
-
-
-
-                                tokenHandler.characters(Tokenizer.LT_GT, 0, 1);
-                                cstart = pos;
-                                index = 1;
-                                
-
-
-
-
-
-
-
-                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPE_START;
-                                break scriptdataescapedlessthanloop;
-                            
-                            default:
-                                
-
-
-
-
-
-                                tokenHandler.characters(Tokenizer.LT_GT, 0, 1);
-                                cstart = pos;
-                                reconsume = true;
-                                state = Tokenizer.SCRIPT_DATA_ESCAPED;
-                                continue stateloop;
-                        }
-                    }
-                    
-                case SCRIPT_DATA_DOUBLE_ESCAPE_START:
-                    scriptdatadoubleescapestartloop: for (;;) {
-                        if (++pos == endPos) {
-                            break stateloop;
-                        }
-                        c = checkChar(buf, pos);
-                        assert (index > 0);
-                        if (index < 6) { 
-                            char folded = c;
-                            if (c >= 'A' && c <= 'Z') {
-                                folded += 0x20;
-                            }
-                            if (folded != Tokenizer.SCRIPT_ARR[index]) {
-                                reconsume = true;
-                                state = Tokenizer.SCRIPT_DATA_ESCAPED;
-                                continue stateloop;
-                            }
-                            index++;
-                            continue;
-                        }
-                        switch (c) {
-                            case '\r':
-                                emitCarriageReturn(buf, pos);
-                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED;
-                                break stateloop;
-                            case '\n':
-                                silentLineFeed();
-                            case ' ':
-                            case '\t':
-                            case '\u000C':
-                            case '/':
-                            case '>':
-                                
-
-
-
-
-
-
-
-
-                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED;
-                                break scriptdatadoubleescapestartloop;
-                            
-                            default:
-                                
-
-
-
-                                reconsume = true;
-                                state = Tokenizer.SCRIPT_DATA_ESCAPED;
-                                continue stateloop;
-                        }
-                    }
-                    
-                case SCRIPT_DATA_DOUBLE_ESCAPED:
-                    scriptdatadoubleescapedloop: for (;;) {
-                        if (reconsume) {
-                            reconsume = false;
-                        } else {
-                            if (++pos == endPos) {
-                                break stateloop;
-                            }
-                            c = checkChar(buf, pos);
-                        }
-                        
-
-
-                        switch (c) {
-                            case '-':
-                                
-
-
-
-
-                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED_DASH;
-                                break scriptdatadoubleescapedloop; 
-                            
-                            
-                            case '<':
-                                
-
-
-
-
-
-                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED_LESS_THAN_SIGN;
-                                continue stateloop;
-                            case '\u0000':
-                                emitReplacementCharacter(buf, pos);
-                                continue;
-                            case '\r':
-                                emitCarriageReturn(buf, pos);
-                                break stateloop;
-                            case '\n':
-                                silentLineFeed();
-                            default:
-                                
-
-
-
-
-                                continue;
-                        }
-                    }
-                    
-                case SCRIPT_DATA_DOUBLE_ESCAPED_DASH:
-                    scriptdatadoubleescapeddashloop: for (;;) {
-                        if (++pos == endPos) {
-                            break stateloop;
-                        }
-                        c = checkChar(buf, pos);
-                        
-
-
-                        switch (c) {
-                            case '-':
-                                
-
-
-
-
-                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED_DASH_DASH;
-                                break scriptdatadoubleescapeddashloop;
-                            
-                            case '<':
-                                
-
-
-
-
-
-                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED_LESS_THAN_SIGN;
-                                continue stateloop;
-                            case '\u0000':
-                                emitReplacementCharacter(buf, pos);
-                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED;
-                                continue stateloop;
-                            case '\r':
-                                emitCarriageReturn(buf, pos);
-                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED;
-                                break stateloop;
-                            case '\n':
-                                silentLineFeed();
-                            default:
-                                
-
-
-
-
-                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED;
-                                continue stateloop;
-                        }
-                    }
-                    
-                case SCRIPT_DATA_DOUBLE_ESCAPED_DASH_DASH:
-                    scriptdatadoubleescapeddashdashloop: for (;;) {
-                        if (++pos == endPos) {
-                            break stateloop;
-                        }
-                        c = checkChar(buf, pos);
-                        
-
-
-                        switch (c) {
-                            case '-':
-                                
-
-
-
-
-                                continue;
-                            case '<':
-                                
-
-
-
-
-
-                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED_LESS_THAN_SIGN;
-                                break scriptdatadoubleescapeddashdashloop;
-                            case '>':
-                                
-
-
-
-
-                                state = Tokenizer.SCRIPT_DATA;
-                                continue stateloop;
-                            case '\u0000':
-                                emitReplacementCharacter(buf, pos);
-                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED;
-                                continue stateloop;
-                            case '\r':
-                                emitCarriageReturn(buf, pos);
-                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED;
-                                break stateloop;
-                            case '\n':
-                                silentLineFeed();
-                            default:
-                                
-
-
-
-
-                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED;
-                                continue stateloop;
-                        }
-                    }
-                    
-                case SCRIPT_DATA_DOUBLE_ESCAPED_LESS_THAN_SIGN:
-                    scriptdatadoubleescapedlessthanloop: for (;;) {
-                        if (++pos == endPos) {
-                            break stateloop;
-                        }
-                        c = checkChar(buf, pos);
-                        
-
-
-                        switch (c) {
-                            case '/':
-                                
-
-
-
-
-
-                                index = 0;
-                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPE_END;
-                                break scriptdatadoubleescapedlessthanloop;
-                            default:
-                                
-
-
-
-
-                                reconsume = true;
-                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED;
-                                continue stateloop;
-                        }
-                    }
-                    
-                case SCRIPT_DATA_DOUBLE_ESCAPE_END:
-                    scriptdatadoubleescapeendloop: for (;;) {
-                        if (++pos == endPos) {
-                            break stateloop;
-                        }
-                        c = checkChar(buf, pos);
-                        if (index < 6) { 
-                            char folded = c;
-                            if (c >= 'A' && c <= 'Z') {
-                                folded += 0x20;
-                            }
-                            if (folded != Tokenizer.SCRIPT_ARR[index]) {
-                                reconsume = true;
-                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED;
-                                continue stateloop;
-                            }
-                            index++;
-                            continue;
-                        }
-                        switch (c) {
-                            case '\r':
-                                emitCarriageReturn(buf, pos);
-                                state = Tokenizer.SCRIPT_DATA_ESCAPED;
-                                break stateloop;
-                            case '\n':
-                                silentLineFeed();
-                            case ' ':
-                            case '\t':
-                            case '\u000C':
-                            case '/':
-                            case '>':
-                                
-
-
-
-
-
-
-
-
-                                state = Tokenizer.SCRIPT_DATA_ESCAPED;
-                                continue stateloop;
-                            default:
-                                
-
-
-
-                                reconsume = true;
-                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED;
-                                continue stateloop;
-                        }
-                    }
-                    
-                case CLOSE_TAG_OPEN:
-                    if (++pos == endPos) {
-                        break stateloop;
-                    }
-                    c = checkChar(buf, pos);
-                    
-
-
-
-
-                    switch (c) {
-                        case '>':
-                            
-                            errLtSlashGt();
-                            
-
-
-                            cstart = pos + 1;
-                            state = Tokenizer.DATA;
-                            continue stateloop;
-                        case '\r':
-                            silentCarriageReturn();
-                            
-                            errGarbageAfterLtSlash();
-                            
-
-
-                            clearLongStrBufAndAppend('\n');
-                            state = Tokenizer.BOGUS_COMMENT;
-                            break stateloop;
-                        case '\n':
-                            silentLineFeed();
-                            
-                            errGarbageAfterLtSlash();
-                            
-
-
-                            clearLongStrBufAndAppend('\n');
-                            state = Tokenizer.BOGUS_COMMENT;
-                            continue stateloop;
-                        case '\u0000':
-                            c = '\uFFFD';
-                            
-                        default:
-                            if (c >= 'A' && c <= 'Z') {
-                                c += 0x20;
-                            }
-                            if (c >= 'a' && c <= 'z') {
-                                
-
-
-
-
-                                endTag = true;
-                                
-
-
-                                clearStrBufAndAppend(c);
-                                
-
-
-
-
-                                state = Tokenizer.TAG_NAME;
-                                continue stateloop;
-                            } else {
-                                
-                                errGarbageAfterLtSlash();
-                                
-
-
-                                clearLongStrBufAndAppend(c);
-                                state = Tokenizer.BOGUS_COMMENT;
-                                continue stateloop;
-                            }
-                    }
-                    
-                case RCDATA:
-                    rcdataloop: for (;;) {
-                        if (reconsume) {
-                            reconsume = false;
-                        } else {
-                            if (++pos == endPos) {
-                                break stateloop;
-                            }
-                            c = checkChar(buf, pos);
-                        }
-                        switch (c) {
-                            case '&':
-                                
-
-
-
-                                flushChars(buf, pos);
-                                clearStrBufAndAppend(c);
-                                additional = '\u0000';
-                                returnState = state;
-                                state = Tokenizer.CONSUME_CHARACTER_REFERENCE;
-                                continue stateloop;
-                            case '<':
-                                
-
-
-
-                                flushChars(buf, pos);
-
-                                returnState = state;
-                                state = Tokenizer.RAWTEXT_RCDATA_LESS_THAN_SIGN;
-                                continue stateloop;
-                            case '\u0000':
-                                emitReplacementCharacter(buf, pos);
-                                continue;
-                            case '\r':
-                                emitCarriageReturn(buf, pos);
-                                break stateloop;
-                            case '\n':
-                                silentLineFeed();
-                            default:
-                                
-
-
-
-                                continue;
-                        }
-                    }
-                    
-                case RAWTEXT:
-                    rawtextloop: for (;;) {
-                        if (reconsume) {
-                            reconsume = false;
-                        } else {
-                            if (++pos == endPos) {
-                                break stateloop;
-                            }
-                            c = checkChar(buf, pos);
-                        }
-                        switch (c) {
-                            case '<':
-                                
-
-
-
-                                flushChars(buf, pos);
-
-                                returnState = state;
-                                state = Tokenizer.RAWTEXT_RCDATA_LESS_THAN_SIGN;
-                                break rawtextloop;
-                            
-                            case '\u0000':
-                                emitReplacementCharacter(buf, pos);
-                                continue;
-                            case '\r':
-                                emitCarriageReturn(buf, pos);
-                                break stateloop;
-                            case '\n':
-                                silentLineFeed();
-                            default:
-                                
-
-
-
-                                continue;
-                        }
-                    }
-                    
-                case RAWTEXT_RCDATA_LESS_THAN_SIGN:
-                    rawtextrcdatalessthansignloop: for (;;) {
-                        if (++pos == endPos) {
-                            break stateloop;
-                        }
-                        c = checkChar(buf, pos);
-                        switch (c) {
-                            case '/':
-                                
-
-
-
-
-                                index = 0;
-                                clearStrBuf();
-                                state = Tokenizer.NON_DATA_END_TAG_NAME;
-                                break rawtextrcdatalessthansignloop;
-                            
-                            default:
-                                
-
-
-
-                                tokenHandler.characters(Tokenizer.LT_GT, 0, 1);
-                                
-
-
-
-                                cstart = pos;
-                                state = returnState;
-                                reconsume = true;
-                                continue stateloop;
-                        }
-                    }
-                    
-                case NON_DATA_END_TAG_NAME:
-                    for (;;) {
-                        if (++pos == endPos) {
-                            break stateloop;
-                        }
-                        c = checkChar(buf, pos);
-                        
-
-
-
-
-
-                        if (index < endTagExpectationAsArray.length) {
-                            char e = endTagExpectationAsArray[index];
-                            char folded = c;
-                            if (c >= 'A' && c <= 'Z') {
-                                folded += 0x20;
-                            }
-                            if (folded != e) {
-                                
-                                errHtml4LtSlashInRcdata(folded);
-                                
-                                tokenHandler.characters(Tokenizer.LT_SOLIDUS,
-                                        0, 2);
-                                emitStrBuf();
-                                cstart = pos;
-                                state = returnState;
-                                reconsume = true;
-                                continue stateloop;
-                            }
-                            appendStrBuf(c);
-                            index++;
-                            continue;
-                        } else {
-                            endTag = true;
-                            
-                            
-                            tagName = endTagExpectation;
-                            switch (c) {
-                                case '\r':
-                                    silentCarriageReturn();
-                                    state = Tokenizer.BEFORE_ATTRIBUTE_NAME;
-                                    break stateloop;
-                                case '\n':
-                                    silentLineFeed();
-                                    
-                                case ' ':
-                                case '\t':
-                                case '\u000C':
-                                    
-
-
-
-
-
-
-                                    state = Tokenizer.BEFORE_ATTRIBUTE_NAME;
-                                    continue stateloop;
-                                case '/':
-                                    
-
-
-
-
-
-                                    state = Tokenizer.SELF_CLOSING_START_TAG;
-                                    continue stateloop;
-                                case '>':
-                                    
-
-
-
-
-
-                                    state = emitCurrentTagToken(false, pos);
-                                    if (shouldSuspend) {
-                                        break stateloop;
-                                    }
-                                    continue stateloop;
-                                default:
-                                    
-
-
-
-
-
-
-
-
-                                    
-                                    errWarnLtSlashInRcdata();
-                                    
-                                    tokenHandler.characters(
-                                            Tokenizer.LT_SOLIDUS, 0, 2);
-                                    emitStrBuf();
-                                    if (c == '\u0000') {
-                                        emitReplacementCharacter(buf, pos);
-                                    } else {
-                                        cstart = pos; 
-                                        
-                                    }
-                                    state = returnState;
-                                    continue stateloop;
-                            }
-                        }
-                    }
             }
         }
         flushChars(buf, pos);
@@ -5789,7 +5789,9 @@ public class Tokenizer implements Locator {
         returnStateSave = returnState;
         return pos;
     }
-
+    
+    
+    
     private void initDoctypeFields() {
         Portability.releaseLocal(doctypeName);
         doctypeName = "";
