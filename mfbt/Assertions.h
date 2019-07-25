@@ -181,16 +181,28 @@ MOZ_Assert(const char* s, const char* file, int ln);
      ((expr) ? ((void)0) : MOZ_Assert(#expr " (" explain ")", __FILE__, __LINE__))
    
    
-#  define MOZ_COUNT_ASSERT_ARGS(...) \
-     MOZ_COUNT_ASSERT_ARGS_IMPL(__VA_ARGS__, 2, 1, 0)
-#  define MOZ_COUNT_ASSERT_ARGS_IMPL(_1, _2, count, ...) \
+
+
+
+
+
+
+
+#  define MOZ_COUNT_ASSERT_ARGS_IMPL2(_1, _2, count, ...) \
      count
+#  define MOZ_COUNT_ASSERT_ARGS_IMPL(args) \
+	 MOZ_COUNT_ASSERT_ARGS_IMPL2 args
+#  define MOZ_COUNT_ASSERT_ARGS(...) \
+     MOZ_COUNT_ASSERT_ARGS_IMPL((__VA_ARGS__, 2, 1, 0))
    
-#  define MOZ_ASSERT_VAHELP2(count, ...) MOZ_ASSERT_HELPER##count(__VA_ARGS__)
-#  define MOZ_ASSERT_VAHELP(count, ...) MOZ_ASSERT_VAHELP2(count, __VA_ARGS__)
+#  define MOZ_ASSERT_CHOOSE_HELPER2(count) MOZ_ASSERT_HELPER##count
+#  define MOZ_ASSERT_CHOOSE_HELPER1(count) MOZ_ASSERT_CHOOSE_HELPER2(count)
+#  define MOZ_ASSERT_CHOOSE_HELPER(count) MOZ_ASSERT_CHOOSE_HELPER1(count)
    
+#  define MOZ_ASSERT_GLUE(x, y) x y
 #  define MOZ_ASSERT(...) \
-     MOZ_ASSERT_VAHELP(MOZ_COUNT_ASSERT_ARGS(__VA_ARGS__), __VA_ARGS__)
+     MOZ_ASSERT_GLUE(MOZ_ASSERT_CHOOSE_HELPER(MOZ_COUNT_ASSERT_ARGS(__VA_ARGS__)), \
+                     (__VA_ARGS__))
 #else
 #  define MOZ_ASSERT(...) ((void)0)
 #endif 
