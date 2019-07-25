@@ -291,6 +291,7 @@ static NS_DEFINE_IID(kCDragServiceCID,  NS_DRAGSERVICE_CID);
 
 
 static nsWindow         *gFocusWindow          = NULL;
+static PRBool            gBlockActivateEvent   = PR_FALSE;
 static PRBool            gGlobalsInitialized   = PR_FALSE;
 static PRBool            gRaiseWindows         = PR_TRUE;
 static nsWindow         *gPluginFocusWindow    = NULL;
@@ -1336,7 +1337,7 @@ nsWindow::SetFocus(PRBool aRaise)
     
     
 
-    LOGFOCUS(("  SetFocus [%p]\n", (void *)this));
+    LOGFOCUS(("  SetFocus %d [%p]\n", aRaise, (void *)this));
 
     GtkWidget *owningWidget = GetMozContainerWidget();
     if (!owningWidget)
@@ -1363,18 +1364,40 @@ nsWindow::SetFocus(PRBool aRaise)
     if (!owningWindow)
         return NS_ERROR_FAILURE;
 
-    if (!GTK_WIDGET_HAS_FOCUS(owningWidget)) {
-        LOGFOCUS(("  grabbing focus for the toplevel [%p]\n", (void *)this));
+    if (aRaise) {
+        
 
         
-        if (gRaiseWindows && aRaise && toplevelWidget &&
-            !GTK_WIDGET_HAS_FOCUS(toplevelWidget) &&
-            owningWindow->mIsShown && GTK_IS_WINDOW(owningWindow->mShell))
-          gtk_window_present(GTK_WINDOW(owningWindow->mShell));
+        
+        
+        if (gRaiseWindows && owningWindow->mIsShown && owningWindow->mShell &&
+            !gtk_window_is_active(GTK_WINDOW(owningWindow->mShell))) {
 
-        gtk_widget_grab_focus(owningWidget);
+            LOGFOCUS(("  requesting toplevel activation [%p]\n", (void *)this));
+            NS_ASSERTION(owningWindow->mWindowType != eWindowType_popup
+                         || mParent,
+                         "Presenting an override-redirect window");
+            gtk_window_present(GTK_WINDOW(owningWindow->mShell));
+        }
 
         return NS_OK;
+    }
+
+    
+    
+
+    
+    
+    
+    
+    if (!gtk_widget_is_focus(owningWidget)) {
+        
+        
+        
+        
+        gBlockActivateEvent = PR_TRUE;
+        gtk_widget_grab_focus(owningWidget);
+        gBlockActivateEvent = PR_FALSE;
     }
 
     
@@ -3092,7 +3115,20 @@ nsWindow::OnContainerFocusInEvent(GtkWidget *aWidget, GdkEventFocus *aEvent)
     if (top_window && (GTK_WIDGET_VISIBLE(top_window)))
         SetUrgencyHint(top_window, PR_FALSE);
 
+    
+    
+    if (gBlockActivateEvent) {
+        LOGFOCUS(("NS_ACTIVATE event is blocked [%p]\n", (void *)this));
+        return;
+    }
+
+    
+    
+    
+    
+    
     gFocusWindow = this;
+
     DispatchActivateEvent();
 
     LOGFOCUS(("Events sent from focus in event [%p]\n", (void *)this));

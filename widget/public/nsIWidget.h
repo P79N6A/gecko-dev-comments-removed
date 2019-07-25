@@ -461,6 +461,14 @@ class nsIWidget : public nsISupports {
     
 
 
+
+
+
+
+
+
+
+
     NS_IMETHOD SetFocus(PRBool aRaise = PR_FALSE) = 0;
 
     
