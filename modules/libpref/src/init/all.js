@@ -799,11 +799,22 @@ pref("network.IDN.whitelist.vn", true);
 
 pref("network.IDN.whitelist.xn--mgbaam7a8h", true); 
 
-pref("network.IDN.whitelist.xn--mgberp4a5d4ar", true); 
+pref("network.IDN.whitelist.xn--fiqz9s", true); 
+pref("network.IDN.whitelist.xn--fiqs8s", true); 
+
+pref("network.IDN.whitelist.xn--j6w193g", true);
+
+pref("network.IDN.whitelist.xn--mgbayh7gpa", true);
 
 pref("network.IDN.whitelist.xn--p1ai", true);
 
-pref("network.IDN.whitelist.xn--mgbayh7gpa", true);
+pref("network.IDN.whitelist.xn--mgberp4a5d4ar", true); 
+pref("network.IDN.whitelist.xn--mgberp4a5d4a87g", true);
+pref("network.IDN.whitelist.xn--mgbqly7c0a67fbc", true);
+pref("network.IDN.whitelist.xn--mgbqly7cvafr", true);
+
+pref("network.IDN.whitelist.xn--kpry57d", true);  
+pref("network.IDN.whitelist.xn--kprw13d", true);  
 
 
 pref("network.IDN.whitelist.biz", true);
