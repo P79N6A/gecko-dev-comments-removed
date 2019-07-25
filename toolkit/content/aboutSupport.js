@@ -75,7 +75,8 @@ const PREFS_WHITELIST = [
   "places.",
   "print.",
   "privacy.",
-  "security."
+  "security.",
+  "webgl."
 ];
 
 
