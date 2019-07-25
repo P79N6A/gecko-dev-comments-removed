@@ -2028,26 +2028,16 @@ Tab.prototype = {
         aMetadata.maxZoom *= scaleRatio;
     }
     ViewportHandler.setMetadataForDocument(this.browser.contentDocument, aMetadata);
-    this.updateViewportSize();
+    this.updateViewportSize(gScreenWidth);
   },
 
   
-  updateViewportSize: function updateViewportSize() {
+  updateViewportSize: function updateViewportSize(aOldScreenWidth) {
     
     
     
     
     
-
-    if (window.outerWidth == 0 || window.outerHeight == 0) {
-        
-        
-        return;
-    }
-
-    let oldScreenWidth = gScreenWidth;
-    gScreenWidth = window.outerWidth;
-    gScreenHeight = window.outerHeight;
 
     let browser = this.browser;
     if (!browser)
@@ -2109,7 +2099,7 @@ Tab.prototype = {
     
     
     
-    let zoomScale = (screenW * oldBrowserWidth) / (oldScreenWidth * viewportW);
+    let zoomScale = (screenW * oldBrowserWidth) / (aOldScreenWidth * viewportW);
     this.setResolution(this._zoom * zoomScale, false);
     this.sendViewportUpdate();
   },
@@ -3201,8 +3191,20 @@ var ViewportHandler = {
       case "resize":
         
         
-        if (window.outerWidth != gScreenWidth || window.outerHeight != gScreenHeight)
-          BrowserApp.selectedTab.updateViewportSize();
+        if (window.outerWidth == 0 || window.outerHeight == 0)
+          break;
+
+        
+        
+        if (window.outerWidth == gScreenWidth && window.outerHeight == gScreenHeight)
+          break;
+
+        let oldScreenWidth = gScreenWidth;
+        gScreenWidth = window.outerWidth;
+        gScreenHeight = window.outerHeight;
+        let tabs = BrowserApp.tabs;
+        for (let i = 0; i < tabs.length; i++)
+          tabs[i].updateViewportSize(oldScreenWidth);
         break;
     }
   },
