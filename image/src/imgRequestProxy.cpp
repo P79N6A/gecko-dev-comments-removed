@@ -299,7 +299,13 @@ imgRequestProxy::DoCancel(nsresult status)
 
 NS_IMETHODIMP imgRequestProxy::CancelAndForgetObserver(nsresult aStatus)
 {
-  if (mCanceled)
+  
+  
+  
+  
+  
+  
+  if (mCanceled && !mListener)
     return NS_ERROR_FAILURE;
 
   LOG_SCOPE(gImgLog, "imgRequestProxy::CancelAndForgetObserver");

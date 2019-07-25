@@ -309,7 +309,10 @@ nsresult imgRequest::RemoveProxy(imgRequestProxy *proxy, nsresult aStatus, bool 
   
   proxy->ClearAnimationConsumers();
 
-  mObservers.RemoveElement(proxy);
+  if (!mObservers.RemoveElement(proxy)) {
+    
+    return NS_OK;
+  }
 
   
   
