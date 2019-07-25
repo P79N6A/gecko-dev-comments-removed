@@ -222,6 +222,10 @@ private:
                                          PRInt64           aExpireTime,
                                          const PRUnichar  *aData);
   void     NotifyObservers(nsIPermission *aPermission, const PRUnichar *aData);
+
+  
+  void     CloseDB();
+
   nsresult RemoveAllInternal();
   nsresult RemoveAllFromMemory();
   nsresult NormalizeToACE(nsCString &aHost);

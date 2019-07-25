@@ -620,6 +620,20 @@ nsPermissionManager::RemoveAll()
   return rv;
 }
 
+void
+nsPermissionManager::CloseDB()
+{
+  
+  mStmtInsert = nsnull;
+  mStmtDelete = nsnull;
+  mStmtUpdate = nsnull;
+  if (mDBConn) {
+    mozilla::DebugOnly<nsresult> rv = mDBConn->Close();
+    MOZ_ASSERT(NS_SUCCEEDED(rv));
+    mDBConn = nsnull;
+  }
+}
+
 nsresult
 nsPermissionManager::RemoveAllInternal()
 {
@@ -629,10 +643,7 @@ nsPermissionManager::RemoveAllInternal()
   if (mDBConn) {
     nsresult rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING("DELETE FROM moz_hosts"));
     if (NS_FAILED(rv)) {
-      mStmtInsert = nsnull;
-      mStmtDelete = nsnull;
-      mStmtUpdate = nsnull;
-      mDBConn = nsnull;
+      CloseDB();
       rv = InitDB(true);
       return rv;
     }
@@ -792,12 +803,7 @@ NS_IMETHODIMP nsPermissionManager::Observe(nsISupports *aSubject, const char *aT
     } else {
       RemoveAllFromMemory();
     }
-    if (mDBConn) {
-      
-      mStmtInsert = nsnull;
-      mStmtDelete = nsnull;
-      mStmtUpdate = nsnull;
-    }
+    CloseDB();
   }
   else if (!nsCRT::strcmp(aTopic, "profile-do-change")) {
     
