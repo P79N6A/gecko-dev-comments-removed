@@ -2,7 +2,7 @@
 dump("###################################### content loaded\n");
 
 
-const kTapOverlayTimeout = 200;
+const kTapOverlayTimeout = 300;
 
 let Cc = Components.classes;
 let Ci = Components.interfaces;
@@ -501,7 +501,7 @@ Content.prototype = {
 
         
         
-        this._contextTimeout.once(500 + 200, function() {
+        this._contextTimeout.once(500 + kTapOverlayTimeout, function() {
           let event = content.document.createEvent("PopupEvents");
           event.initEvent("contextmenu", true, true);
           element.dispatchEvent(event);
