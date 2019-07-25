@@ -823,6 +823,7 @@ pref("network.IDN.whitelist.sh", true);
 pref("network.IDN.whitelist.th", true);
 pref("network.IDN.whitelist.tm", true);
 pref("network.IDN.whitelist.tw", true);
+pref("network.IDN.whitelist.ua", true);
 pref("network.IDN.whitelist.vn", true);
 
 
@@ -831,6 +832,8 @@ pref("network.IDN.whitelist.xn--mgbaam7a8h", true);
 
 pref("network.IDN.whitelist.xn--fiqz9s", true); 
 pref("network.IDN.whitelist.xn--fiqs8s", true); 
+
+pref("network.IDN.whitelist.xn--wgbh1c", true);
 
 pref("network.IDN.whitelist.xn--j6w193g", true);
 
