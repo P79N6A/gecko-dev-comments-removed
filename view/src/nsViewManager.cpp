@@ -600,7 +600,6 @@ nsViewManager::UpdateWidgetArea(nsView *aWidgetView, nsIWidget* aWidget,
       if (view && visible && type != eWindowType_popup) {
         NS_ASSERTION(type == eWindowType_plugin,
                      "Only plugin or popup widgets can be children!");
-        nsViewManager* viewManager = view->GetViewManager();
 
         
         
