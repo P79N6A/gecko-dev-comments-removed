@@ -2727,8 +2727,10 @@ js_NewInstance(JSContext *cx, JSClass *clasp, JSObject *ctor)
         }
     }
 
-    if (proto->isNative())
-        return NewNativeClassInstance(cx, clasp, proto, parent);
+    
+
+
+
     return NewObjectWithGivenProto(cx, clasp, proto, parent);
 }
 
