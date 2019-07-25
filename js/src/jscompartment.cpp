@@ -494,7 +494,6 @@ JSCompartment::mark(JSTracer *trc)
     if (types.inferenceDepth) {
          
 
-        
         for (JSCList *cursor = scripts.next; cursor != &scripts; cursor = cursor->next) {
             JSScript *script = reinterpret_cast<JSScript *>(cursor);
             js_TraceScript(trc, script);
