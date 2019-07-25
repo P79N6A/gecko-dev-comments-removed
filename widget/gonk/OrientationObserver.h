@@ -38,6 +38,10 @@ public:
   ~OrientationObserver();
 
   
+  
+  static void ShutDown();
+
+  
   void Notify(const SensorData& aSensorData);
 
   
