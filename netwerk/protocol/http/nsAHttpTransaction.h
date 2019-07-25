@@ -62,6 +62,7 @@ class nsAHttpTransaction : public nsISupports
 public:
     
     virtual void SetConnection(nsAHttpConnection *) = 0;
+    virtual nsAHttpConnection *Connection() = 0;
 
     
     
@@ -99,6 +100,7 @@ public:
 
 #define NS_DECL_NSAHTTPTRANSACTION \
     void SetConnection(nsAHttpConnection *); \
+    nsAHttpConnection *Connection(); \
     void GetSecurityCallbacks(nsIInterfaceRequestor **, \
                               nsIEventTarget **);       \
     void OnTransportStatus(nsITransport* transport, \

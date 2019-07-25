@@ -47,6 +47,9 @@
 #include "nsIServiceManager.h"
 
 #include "nsIObserverService.h"
+#include "nsIDNSRecord.h"
+#include "nsIDNSService.h"
+#include "nsICancelable.h"
 
 using namespace mozilla;
 
@@ -140,6 +143,7 @@ nsHttpConnectionMgr::Init(PRUint16 maxConns,
 
     {
         ReentrantMonitorAutoEnter mon(mReentrantMonitor);
+        mSpdyPreferredHash.Init();
 
         mMaxConns = maxConns;
         mMaxConnsPerHost = maxConnsPerHost;
@@ -229,8 +233,13 @@ nsHttpConnectionMgr::PruneDeadConnectionsAfter(PRUint32 timeInSeconds)
 }
 
 void
-nsHttpConnectionMgr::StopPruneDeadConnectionsTimer()
+nsHttpConnectionMgr::ConditionallyStopPruneDeadConnectionsTimer()
 {
+    
+    
+    if (mNumIdleConns || (mNumActiveConns && gHttpHandler->IsSpdyEnabled()))
+        return;
+
     LOG(("nsHttpConnectionMgr::StopPruneDeadConnectionsTimer\n"));
 
     
@@ -408,9 +417,89 @@ nsHttpConnectionMgr::CloseIdleConnection(nsHttpConnection *conn)
     conn->Close(NS_ERROR_ABORT);
     NS_RELEASE(conn);
     mNumIdleConns--;
-    if (0 == mNumIdleConns)
-        StopPruneDeadConnectionsTimer();
+    ConditionallyStopPruneDeadConnectionsTimer();
     return NS_OK;
+}
+
+void
+nsHttpConnectionMgr::ReportSpdyConnection(nsHttpConnection *conn,
+                                          bool usingSpdy)
+{
+    NS_ABORT_IF_FALSE(PR_GetCurrentThread() == gSocketThread, "wrong thread");
+    
+    nsConnectionEntry *ent = mCT.Get(conn->ConnectionInfo()->HashKey());
+    NS_ABORT_IF_FALSE(ent, "no connection entry");
+    if (!ent)
+        return;
+
+    ent->mTestedSpdy = true;
+
+    if (!usingSpdy) {
+        if (ent->mUsingSpdy)
+            conn->DontReuse();
+        return;
+    }
+    
+    ent->mUsingSpdy = true;
+
+    PRUint32 ttl = conn->TimeToLive();
+    PRUint64 timeOfExpire = NowInSeconds() + ttl;
+    if (!mTimer || timeOfExpire < mTimeOfNextWakeUp)
+        PruneDeadConnectionsAfter(ttl);
+        
+    nsConnectionEntry *preferred = GetSpdyPreferred(ent->mDottedDecimalAddress);
+    LOG(("ReportSpdyConnection %s %s ent=%p ispreferred=%d\n",
+         ent->mConnInfo->Host(), ent->mDottedDecimalAddress.get(),
+         ent, preferred));
+    
+    if (!preferred) {
+        ent->mSpdyPreferred = true;
+        SetSpdyPreferred(ent->mDottedDecimalAddress, ent);
+        ent->mSpdyRedir = false;
+    }
+    else if (preferred != ent) {
+        
+        
+        ent->mSpdyRedir = true;
+        conn->DontReuse();
+    }
+    ProcessSpdyPendingQ();
+}
+
+nsHttpConnectionMgr::nsConnectionEntry *
+nsHttpConnectionMgr::GetSpdyPreferred(nsACString &aDottedDecimal)
+{
+    if (!gHttpHandler->IsSpdyEnabled() ||
+        !gHttpHandler->CoalesceSpdy() ||
+        aDottedDecimal.IsEmpty())
+        return nsnull;
+
+    return mSpdyPreferredHash.Get(aDottedDecimal);
+}
+
+void
+nsHttpConnectionMgr::SetSpdyPreferred(nsACString &aDottedDecimal,
+                                      nsConnectionEntry *ent)
+{
+    if (!gHttpHandler->CoalesceSpdy())
+        return;
+
+    if (aDottedDecimal.IsEmpty())
+        return;
+    
+    mSpdyPreferredHash.Put(aDottedDecimal, ent);
+}
+
+void
+nsHttpConnectionMgr::RemoveSpdyPreferred(nsACString &aDottedDecimal)
+{
+    if (!gHttpHandler->CoalesceSpdy())
+        return;
+
+    if (aDottedDecimal.IsEmpty())
+        return;
+    
+    mSpdyPreferredHash.Remove(aDottedDecimal);
 }
 
 
@@ -449,8 +538,7 @@ nsHttpConnectionMgr::PurgeExcessIdleConnectionsCB(const nsACString &key,
         conn->Close(NS_ERROR_ABORT);
         NS_RELEASE(conn);
         self->mNumIdleConns--;
-        if (0 == self->mNumIdleConns)
-            self->StopPruneDeadConnectionsTimer();
+        self->ConditionallyStopPruneDeadConnectionsTimer();
     }
     return PL_DHASH_STOP;
 }
@@ -466,6 +554,7 @@ nsHttpConnectionMgr::PruneDeadConnectionsCB(const nsACString &key,
 
     
     
+    bool liveConnections = false;
     PRUint32 timeToNextExpire = PR_UINT32_MAX;
     PRInt32 count = ent->mIdleConns.Length();
     if (count > 0) {
@@ -478,14 +567,33 @@ nsHttpConnectionMgr::PruneDeadConnectionsCB(const nsACString &key,
                 self->mNumIdleConns--;
             } else {
                 timeToNextExpire = NS_MIN(timeToNextExpire, conn->TimeToLive());
+                liveConnections = true;
             }
         }
     }
 
+    if (ent->mUsingSpdy) {
+        for (PRUint32 index = 0; index < ent->mActiveConns.Length(); ++index) {
+            nsHttpConnection *conn = ent->mActiveConns[index];
+            if (conn->UsingSpdy()) {
+                if (!conn->CanReuse()) {
+                    
+                    
+                    conn->DontReuse();
+                }
+                else {
+                    timeToNextExpire = NS_MIN(timeToNextExpire,
+                                              conn->TimeToLive());
+                    liveConnections = true;
+                }
+            }
+        }
+    }
     
     
-    PRUint32 now = NowInSeconds();
-    if (0 < ent->mIdleConns.Length()) {
+    
+    if (liveConnections) {
+        PRUint32 now = NowInSeconds();
         PRUint64 timeOfNextExpire = now + timeToNextExpire;
         
         
@@ -494,8 +602,8 @@ nsHttpConnectionMgr::PruneDeadConnectionsCB(const nsACString &key,
         if (!self->mTimer || timeOfNextExpire < self->mTimeOfNextWakeUp) {
             self->PruneDeadConnectionsAfter(timeToNextExpire);
         }
-    } else if (0 == self->mNumIdleConns) {
-        self->StopPruneDeadConnectionsTimer();
+    } else {
+        self->ConditionallyStopPruneDeadConnectionsTimer();
     }
 #ifdef DEBUG
     count = ent->mActiveConns.Length();
@@ -511,7 +619,10 @@ nsHttpConnectionMgr::PruneDeadConnectionsCB(const nsACString &key,
     if (ent->mIdleConns.Length()   == 0 &&
         ent->mActiveConns.Length() == 0 &&
         ent->mHalfOpens.Length()   == 0 &&
-        ent->mPendingQ.Length()    == 0) {
+        ent->mPendingQ.Length()    == 0 &&
+        ((!ent->mTestedSpdy && !ent->mUsingSpdy) ||
+         !gHttpHandler->IsSpdyEnabled() ||
+         self->mCT.Count() > 300)) {
         LOG(("    removing empty connection entry\n"));
         return PL_DHASH_REMOVE;
     }
@@ -557,8 +668,7 @@ nsHttpConnectionMgr::ShutdownPassCB(const nsACString &key,
     }
     
     
-    if (0 == self->mNumIdleConns)
-        self->StopPruneDeadConnectionsTimer();
+    self->ConditionallyStopPruneDeadConnectionsTimer();
 
     
     while (ent->mPendingQ.Length()) {
@@ -582,15 +692,19 @@ nsHttpConnectionMgr::ShutdownPassCB(const nsACString &key,
 bool
 nsHttpConnectionMgr::ProcessPendingQForEntry(nsConnectionEntry *ent)
 {
+    NS_ABORT_IF_FALSE(PR_GetCurrentThread() == gSocketThread, "wrong thread");
     LOG(("nsHttpConnectionMgr::ProcessPendingQForEntry [ci=%s]\n",
         ent->mConnInfo->HashKey().get()));
 
-    PRInt32 i, count = ent->mPendingQ.Length();
+    if (gHttpHandler->IsSpdyEnabled())
+        ProcessSpdyPendingQ(ent);
+
+    PRUint32 i, count = ent->mPendingQ.Length();
     if (count > 0) {
         LOG(("  pending-count=%u\n", count));
         nsHttpTransaction *trans = nsnull;
         nsHttpConnection *conn = nsnull;
-        for (i=0; i<count; ++i) {
+        for (i = 0; i < count; ++i) {
             trans = ent->mPendingQ[i];
 
             
@@ -609,6 +723,13 @@ nsHttpConnectionMgr::ProcessPendingQForEntry(nsConnectionEntry *ent)
             GetConnection(ent, trans, alreadyHalfOpen, &conn);
             if (conn)
                 break;
+
+            
+            
+            if (count != ent->mPendingQ.Length()) {
+                count = ent->mPendingQ.Length();
+                i = 0;
+            }
         }
         if (conn) {
             LOG(("  dispatching pending transaction...\n"));
@@ -740,12 +861,19 @@ nsHttpConnectionMgr::GetConnection(nsConnectionEntry *ent,
     
     
     
+    
 
     *result = nsnull;
 
     nsHttpConnection *conn = nsnull;
+    bool addConnToActiveList = true;
 
     if (trans->Caps() & NS_HTTP_ALLOW_KEEPALIVE) {
+
+        conn = GetSpdyPreferredConn(ent);
+        if (conn)
+            addConnToActiveList = false;
+
         
         
         
@@ -768,8 +896,7 @@ nsHttpConnectionMgr::GetConnection(nsConnectionEntry *ent,
 
             
             
-            if (0 == mNumIdleConns)
-                StopPruneDeadConnectionsTimer();
+            ConditionallyStopPruneDeadConnectionsTimer();
         }
     }
 
@@ -779,6 +906,25 @@ nsHttpConnectionMgr::GetConnection(nsConnectionEntry *ent,
         
         if (onlyReusedConnection)
             return;
+        
+        
+        
+        
+    
+        if (gHttpHandler->IsSpdyEnabled() &&
+            ent->mConnInfo->UsingSSL() &&
+            !ent->mConnInfo->UsingHttpProxy())
+        {
+            nsConnectionEntry *preferred =
+                GetSpdyPreferred(ent->mDottedDecimalAddress);
+            if (preferred)
+                ent = preferred;
+
+            if ((!ent->mTestedSpdy || ent->mUsingSpdy) &&
+                (ent->mSpdyRedir || ent->mHalfOpens.Length() ||
+                 ent->mActiveConns.Length()))
+                return;
+        }
         
         
         
@@ -799,17 +945,24 @@ nsHttpConnectionMgr::GetConnection(nsConnectionEntry *ent,
             return;
         }
 
+        LOG(("nsHttpConnectionMgr::GetConnection Open Connection "
+             "%s %s ent=%p spdy=%d",
+             ent->mConnInfo->Host(), ent->mDottedDecimalAddress.get(),
+             ent, ent->mUsingSpdy));
+        
         nsresult rv = CreateTransport(ent, trans);
         if (NS_FAILED(rv))
             trans->Close(rv);
         return;
     }
 
+    if (addConnToActiveList) {
+        
+        ent->mActiveConns.AppendElement(conn);
+        mNumActiveConns++;
+    }
     
-    ent->mActiveConns.AppendElement(conn);
-    mNumActiveConns++;
     NS_ADDREF(conn);
-
     *result = conn;
 }
 
@@ -850,12 +1003,21 @@ nsHttpConnectionMgr::CreateTransport(nsConnectionEntry *ent,
 
 nsresult
 nsHttpConnectionMgr::DispatchTransaction(nsConnectionEntry *ent,
-                                         nsAHttpTransaction *trans,
+                                         nsHttpTransaction *aTrans,
                                          PRUint8 caps,
                                          nsHttpConnection *conn)
 {
     LOG(("nsHttpConnectionMgr::DispatchTransaction [ci=%s trans=%x caps=%x conn=%x]\n",
-        ent->mConnInfo->HashKey().get(), trans, caps, conn));
+        ent->mConnInfo->HashKey().get(), aTrans, caps, conn));
+    nsresult rv;
+    
+    PRInt32 priority = aTrans->Priority();
+
+    if (conn->UsingSpdy()) {
+        rv = conn->Activate(aTrans, caps, priority);
+        NS_ABORT_IF_FALSE(NS_SUCCEEDED(rv), "SPDY Cannot Fail Dispatch");
+        return rv;
+    }
 
     nsConnectionHandle *handle = new nsConnectionHandle(conn);
     if (!handle)
@@ -863,6 +1025,8 @@ nsHttpConnectionMgr::DispatchTransaction(nsConnectionEntry *ent,
     NS_ADDREF(handle);
 
     nsHttpPipeline *pipeline = nsnull;
+    nsAHttpTransaction *trans = aTrans;
+
     if (conn->SupportsPipelining() && (caps & NS_HTTP_ALLOW_PIPELINING)) {
         LOG(("  looking to build pipeline...\n"));
         if (BuildPipeline(ent, trans, &pipeline))
@@ -872,7 +1036,7 @@ nsHttpConnectionMgr::DispatchTransaction(nsConnectionEntry *ent,
     
     trans->SetConnection(handle);
 
-    nsresult rv = conn->Activate(trans, caps);
+    rv = conn->Activate(trans, caps, priority);
 
     if (NS_FAILED(rv)) {
         LOG(("  conn->Activate failed [rv=%x]\n", rv));
@@ -969,6 +1133,17 @@ nsHttpConnectionMgr::ProcessNewTransaction(nsHttpTransaction *trans)
 
     
     
+    nsConnectionEntry *preferredEntry =
+        GetSpdyPreferred(ent->mDottedDecimalAddress);
+    if (preferredEntry) {
+        LOG(("nsHttpConnectionMgr::ProcessNewTransaction trans=%p "
+             "redirected via coalescing from %s to %s\n", trans,
+             ent->mConnInfo->Host(), preferredEntry->mConnInfo->Host()));
+        ent = preferredEntry;
+    }
+
+    
+    
     if (caps & NS_HTTP_CLEAR_KEEPALIVES)
         ClosePersistentConnections(ent);
 
@@ -1004,6 +1179,84 @@ nsHttpConnectionMgr::ProcessNewTransaction(nsHttpTransaction *trans)
     }
 
     return rv;
+}
+
+void
+nsHttpConnectionMgr::ProcessSpdyPendingQ(nsConnectionEntry *ent)
+{
+    nsHttpConnection *conn = GetSpdyPreferredConn(ent);
+    if (!conn)
+        return;
+
+    for (PRInt32 index = ent->mPendingQ.Length() - 1;
+         index >= 0 && conn->CanDirectlyActivate();
+         --index) {
+        nsHttpTransaction *trans = ent->mPendingQ[index];
+
+        if (!(trans->Caps() & NS_HTTP_ALLOW_KEEPALIVE) ||
+            trans->Caps() & NS_HTTP_DISALLOW_SPDY)
+            continue;
+ 
+        ent->mPendingQ.RemoveElementAt(index);
+
+        nsresult rv2 = DispatchTransaction(ent, trans, trans->Caps(), conn);
+        NS_ABORT_IF_FALSE(NS_SUCCEEDED(rv2), "Dispatch SPDY Transaction");
+        NS_RELEASE(trans);
+    }
+}
+
+PLDHashOperator
+nsHttpConnectionMgr::ProcessSpdyPendingQCB(const nsACString &key,
+                                           nsAutoPtr<nsConnectionEntry> &ent,
+                                           void *closure)
+{
+    nsHttpConnectionMgr *self = (nsHttpConnectionMgr *) closure;
+    self->ProcessSpdyPendingQ(ent);
+    return PL_DHASH_NEXT;
+}
+
+void
+nsHttpConnectionMgr::ProcessSpdyPendingQ()
+{
+    mCT.Enumerate(ProcessSpdyPendingQCB, this);
+}
+
+nsHttpConnection *
+nsHttpConnectionMgr::GetSpdyPreferredConn(nsConnectionEntry *ent)
+{
+    NS_ABORT_IF_FALSE(PR_GetCurrentThread() == gSocketThread, "wrong thread");
+    NS_ABORT_IF_FALSE(ent, "no connection entry");
+
+    nsConnectionEntry *preferred = GetSpdyPreferred(ent->mDottedDecimalAddress);
+
+    
+    if (preferred && preferred != ent) {
+        ent->mUsingSpdy = true;
+        ent->mSpdyRedir = true;
+    }
+    else {
+        ent->mSpdyRedir = false;
+        
+        
+    }
+
+    if (!preferred)
+        preferred = ent;
+    
+    nsHttpConnection *conn = nsnull;
+    
+    if (preferred->mUsingSpdy) {
+        for (PRUint32 index = 0;
+             index < preferred->mActiveConns.Length();
+             ++index) {
+            if (preferred->mActiveConns[index]->CanDirectlyActivate()) {
+                conn = preferred->mActiveConns[index];
+                break;
+            }
+        }
+    }
+    
+    return conn;
 }
 
 
@@ -1109,7 +1362,10 @@ nsHttpConnectionMgr::OnMsgPruneDeadConnections(PRInt32, void *)
 
     
     mTimeOfNextWakeUp = LL_MAXUINT;
-    if (mNumIdleConns > 0) 
+
+    
+    
+    if (mNumIdleConns || (mNumActiveConns && gHttpHandler->IsSpdyEnabled()))
         mCT.Enumerate(PruneDeadConnectionsCB, this);
 }
 
@@ -1145,6 +1401,10 @@ nsHttpConnectionMgr::OnMsgReclaimConnection(PRInt32, void *param)
         
         
         
+
+        if (ent->mUsingSpdy)
+            conn->DontReuse();
+
         if (ent->mActiveConns.RemoveElement(conn)) {
             nsHttpConnection *temp = conn;
             NS_RELEASE(temp);
@@ -1224,6 +1484,15 @@ nsHttpConnectionMgr::OnMsgUpdateParam(PRInt32, void *param)
 }
 
 
+nsHttpConnectionMgr::nsConnectionEntry::~nsConnectionEntry()
+{
+    if (mSpdyPreferred)
+        gHttpHandler->ConnMgr()->RemoveSpdyPreferred(mDottedDecimalAddress);
+
+    NS_RELEASE(mConnInfo);
+}
+
+
 
 
 nsHttpConnectionMgr::nsConnectionHandle::~nsConnectionHandle()
@@ -1246,15 +1515,15 @@ nsHttpConnectionMgr::nsConnectionHandle::OnHeadersAvailable(nsAHttpTransaction *
 }
 
 nsresult
-nsHttpConnectionMgr::nsConnectionHandle::ResumeSend()
+nsHttpConnectionMgr::nsConnectionHandle::ResumeSend(nsAHttpTransaction *caller)
 {
-    return mConn->ResumeSend();
+    return mConn->ResumeSend(caller);
 }
 
 nsresult
-nsHttpConnectionMgr::nsConnectionHandle::ResumeRecv()
+nsHttpConnectionMgr::nsConnectionHandle::ResumeRecv(nsAHttpTransaction *caller)
 {
-    return mConn->ResumeRecv();
+    return mConn->ResumeRecv(caller);
 }
 
 void
@@ -1416,10 +1685,35 @@ nsHalfOpenSocket::SetupStreams(nsISocketTransport **transport,
 nsresult
 nsHttpConnectionMgr::nsHalfOpenSocket::SetupPrimaryStreams()
 {
-    nsresult rv = SetupStreams(getter_AddRefs(mSocketTransport),
-                               getter_AddRefs(mStreamIn),
-                               getter_AddRefs(mStreamOut),
-                               false);
+    NS_ABORT_IF_FALSE(PR_GetCurrentThread() == gSocketThread, "wrong thread");
+
+    nsresult rv;
+    if (gHttpHandler->IsSpdyEnabled() &&
+        gHttpHandler->CoalesceSpdy() &&
+        mEnt->mConnInfo->UsingSSL() &&
+        !mEnt->mConnInfo->UsingHttpProxy() &&
+        !mEnt->mDidDNS) {
+
+        
+        
+        
+        
+        nsCOMPtr<nsIDNSService> dns = do_GetService(NS_DNSSERVICE_CONTRACTID,
+                                                    &rv);
+        mEnt->mDidDNS = true;
+
+        if (NS_SUCCEEDED(rv)) {
+            nsCOMPtr<nsICancelable> cancelable;
+            dns->AsyncResolve(mEnt->mConnInfo->GetHost(), 0, this,
+                              NS_GetCurrentThread(),
+                              getter_AddRefs(cancelable));
+        }
+    }
+
+    rv = SetupStreams(getter_AddRefs(mSocketTransport),
+                      getter_AddRefs(mStreamIn),
+                      getter_AddRefs(mStreamOut),
+                      false);
     LOG(("nsHalfOpenSocket::SetupPrimaryStream [this=%p ent=%s rv=%x]",
          this, mEnt->mConnInfo->Host(), rv));
     if (NS_FAILED(rv)) {
@@ -1451,11 +1745,28 @@ nsHttpConnectionMgr::nsHalfOpenSocket::SetupBackupStreams()
     return rv;
 }
 
+
+NS_IMETHODIMP 
+nsHttpConnectionMgr::
+nsHalfOpenSocket::OnLookupComplete(nsICancelable *aRequest,
+                                   nsIDNSRecord *aRecord,
+                                   nsresult aStatus)
+{
+    NS_ABORT_IF_FALSE(PR_GetCurrentThread() == gSocketThread, "wrong thread");
+
+    if (NS_SUCCEEDED(aStatus) && mEnt) {
+        aRecord->GetNextAddrAsString(mEnt->mDottedDecimalAddress);
+        gHttpHandler->ConnMgr()->ProcessSpdyPendingQ(mEnt);
+    }
+    return NS_OK;
+}
+
 void
 nsHttpConnectionMgr::nsHalfOpenSocket::SetupBackupTimer()
 {
     PRUint16 timeout = gHttpHandler->GetIdleSynTimeout();
     NS_ABORT_IF_FALSE(!mSynTimer, "timer already initd");
+    
     if (timeout) {
         
         

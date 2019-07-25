@@ -45,9 +45,11 @@
 #include "nsTArray.h"
 #include "nsThreadUtils.h"
 #include "nsClassHashtable.h"
+#include "nsDataHashtable.h"
 #include "nsAutoPtr.h"
 #include "mozilla/ReentrantMonitor.h"
 #include "nsISocketTransportService.h"
+#include "nsIDNSListener.h"
 
 #include "nsIObserver.h"
 #include "nsITimer.h"
@@ -97,7 +99,8 @@ public:
     void PruneDeadConnectionsAfter(PRUint32 time);
 
     
-    void StopPruneDeadConnectionsTimer();
+    
+    void ConditionallyStopPruneDeadConnectionsTimer();
 
     
     nsresult AddTransaction(nsHttpTransaction *, PRInt32 priority);
@@ -147,6 +150,11 @@ public:
     
     nsresult CloseIdleConnection(nsHttpConnection *);
 
+    
+    
+    
+    void ReportSpdyConnection(nsHttpConnection *, bool usingSpdy);
+
 private:
     virtual ~nsHttpConnectionMgr();
     class nsHalfOpenSocket;
@@ -160,17 +168,37 @@ private:
     struct nsConnectionEntry
     {
         nsConnectionEntry(nsHttpConnectionInfo *ci)
-            : mConnInfo(ci)
+          : mConnInfo(ci),
+            mUsingSpdy(false),
+            mTestedSpdy(false),
+            mSpdyRedir(false),
+            mDidDNS(false),
+            mSpdyPreferred(false)
         {
             NS_ADDREF(mConnInfo);
         }
-       ~nsConnectionEntry() { NS_RELEASE(mConnInfo); }
+        ~nsConnectionEntry();
 
         nsHttpConnectionInfo        *mConnInfo;
         nsTArray<nsHttpTransaction*> mPendingQ;    
         nsTArray<nsHttpConnection*>  mActiveConns; 
         nsTArray<nsHttpConnection*>  mIdleConns;   
         nsTArray<nsHalfOpenSocket*>  mHalfOpens;
+
+        
+        
+        
+        
+        
+        
+        
+        nsCString mDottedDecimalAddress;
+
+        bool mUsingSpdy;
+        bool mTestedSpdy;
+        bool mSpdyRedir;
+        bool mDidDNS;
+        bool mSpdyPreferred;
     };
 
     
@@ -200,7 +228,8 @@ private:
     class nsHalfOpenSocket : public nsIOutputStreamCallback,
                              public nsITransportEventSink,
                              public nsIInterfaceRequestor,
-                             public nsITimerCallback
+                             public nsITimerCallback,
+                             public nsIDNSListener
     {
     public:
         NS_DECL_ISUPPORTS
@@ -208,6 +237,7 @@ private:
         NS_DECL_NSITRANSPORTEVENTSINK
         NS_DECL_NSIINTERFACEREQUESTOR
         NS_DECL_NSITIMERCALLBACK
+        NS_DECL_NSIDNSLISTENER
 
         nsHalfOpenSocket(nsConnectionEntry *ent,
                          nsHttpTransaction *trans);
@@ -273,7 +303,7 @@ private:
     bool     AtActiveConnectionLimit(nsConnectionEntry *, PRUint8 caps);
     void     GetConnection(nsConnectionEntry *, nsHttpTransaction *,
                            bool, nsHttpConnection **);
-    nsresult DispatchTransaction(nsConnectionEntry *, nsAHttpTransaction *,
+    nsresult DispatchTransaction(nsConnectionEntry *, nsHttpTransaction *,
                                  PRUint8 caps, nsHttpConnection *);
     bool     BuildPipeline(nsConnectionEntry *, nsAHttpTransaction *, nsHttpPipeline **);
     nsresult ProcessNewTransaction(nsHttpTransaction *);
@@ -283,7 +313,21 @@ private:
     void     AddActiveConn(nsHttpConnection *, nsConnectionEntry *);
     void     StartedConnect();
     void     RecvdConnect();
+
     
+    nsConnectionEntry *GetSpdyPreferred(nsACString &aDottedDecimal);
+    void               SetSpdyPreferred(nsACString &aDottedDecimal,
+                                        nsConnectionEntry *ent);
+    void               RemoveSpdyPreferred(nsACString &aDottedDecimal);
+    nsHttpConnection  *GetSpdyPreferredConn(nsConnectionEntry *ent);
+    nsDataHashtable<nsCStringHashKey, nsConnectionEntry *>   mSpdyPreferredHash;
+
+    void               ProcessSpdyPendingQ(nsConnectionEntry *ent);
+    void               ProcessSpdyPendingQ();
+    static PLDHashOperator ProcessSpdyPendingQCB(
+        const nsACString &key, nsAutoPtr<nsConnectionEntry> &ent,
+        void *closure);
+
     
     typedef void (nsHttpConnectionMgr:: *nsConnEventHandler)(PRInt32, void *);
 
