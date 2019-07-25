@@ -168,7 +168,7 @@ public class DoorHanger extends LinearLayout implements Button.OnClickListener {
     
     
     public boolean shouldRemove() {
-        if (mPersistWhileVisible && GeckoApp.mAppContext.mDoorHangerPopup.isShowing()) {
+        if (mPersistWhileVisible && GeckoApp.mDoorHangerPopup.isShowing()) {
             
             if (mPersistence != 0)
                 mPersistence--;
