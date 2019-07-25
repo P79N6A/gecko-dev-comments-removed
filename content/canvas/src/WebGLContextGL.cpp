@@ -1534,6 +1534,11 @@ WebGLContext::BindFakeBlackTextures()
         return;
 
     if (!mBlackTexturesAreInitialized) {
+        GLuint bound2DTex = 0;
+        GLuint boundCubeTex = 0;
+        gl->fGetIntegerv(LOCAL_GL_TEXTURE_BINDING_2D, (GLint*) &bound2DTex);
+        gl->fGetIntegerv(LOCAL_GL_TEXTURE_BINDING_CUBE_MAP, (GLint*) &boundCubeTex);
+
         const PRUint8 black[] = {0, 0, 0, 255};
 
         gl->fGenTextures(1, &mBlackTexture2D);
@@ -1549,8 +1554,8 @@ WebGLContext::BindFakeBlackTextures()
         }
 
         
-        gl->fBindTexture(LOCAL_GL_TEXTURE_2D, 0);
-        gl->fBindTexture(LOCAL_GL_TEXTURE_CUBE_MAP, 0);
+        gl->fBindTexture(LOCAL_GL_TEXTURE_2D, bound2DTex);
+        gl->fBindTexture(LOCAL_GL_TEXTURE_CUBE_MAP, boundCubeTex);
 
         mBlackTexturesAreInitialized = true;
     }
