@@ -996,6 +996,26 @@ RemoveMatchingPrefixes(const SubPrefixArray& aSubs, nsTArray<T>* aFullHashes)
   Erase(aFullHashes, out, hashIter);
 }
 
+static void
+RemoveDeadSubPrefixes(SubPrefixArray& aSubs, ChunkSet& aAddChunks)
+{
+  SubPrefix * subIter = aSubs.Elements();
+  SubPrefix * subEnd = aSubs.Elements() + aSubs.Length();
+
+  for (SubPrefix * iter = subIter; iter != subEnd; iter++) {
+    bool hasChunk = aAddChunks.Has(iter->AddChunk());
+    
+    
+    if (!hasChunk) {
+      *subIter = *iter;
+      subIter++;
+    }
+  }
+
+  LOG(("Removed %u dead SubPrefix entries.", subEnd - subIter));
+  aSubs.SetLength(subIter - aSubs.Elements());
+}
+
 #ifdef DEBUG
 template <class T>
 static void EnsureSorted(nsTArray<T>* aArray)
@@ -1040,8 +1060,12 @@ HashStore::ProcessSubs()
 
   
   
-  KnockoutSubs(&mSubPrefixes, &mAddPrefixes);
+  KnockoutSubs(&mSubPrefixes,  &mAddPrefixes);
   KnockoutSubs(&mSubCompletes, &mAddCompletes);
+
+  
+  
+  RemoveDeadSubPrefixes(mSubPrefixes, mAddChunks);
 
 #ifdef DEBUG
   EnsureSorted(&mAddPrefixes);
