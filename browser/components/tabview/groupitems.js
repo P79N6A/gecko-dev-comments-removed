@@ -2472,10 +2472,14 @@ let GroupItems = {
   
   
   
-  updateActiveGroupItemAndTabBar: function GroupItems_updateActiveGroupItemAndTabBar(tabItem) {
+  
+  
+  
+  updateActiveGroupItemAndTabBar: 
+    function GroupItems_updateActiveGroupItemAndTabBar(tabItem, options) {
     Utils.assertThrow(tabItem && tabItem.isATabItem, "tabItem must be a TabItem");
 
-    UI.setActive(tabItem);
+    UI.setActive(tabItem, options);
     this._updateTabBar();
   },
 
