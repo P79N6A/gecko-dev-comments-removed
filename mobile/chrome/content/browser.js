@@ -123,6 +123,8 @@ var Browser = {
     
     ih = new InputHandler();
 
+    BrowserUI.init();
+
     
     this.newTab(true);
 
@@ -151,8 +153,6 @@ var Browser = {
 
     
     
-
-    BrowserUI.init();
 
     window.QueryInterface(Ci.nsIDOMChromeWindow).browserDOMWindow = new nsBrowserAccess();
 
