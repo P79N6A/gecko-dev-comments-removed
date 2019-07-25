@@ -2944,6 +2944,25 @@ static JSFunctionSpec JProfFunctions[] = {
 
 #endif 
 
+#ifdef MOZ_DMD
+
+
+
+
+static JSBool
+DMDCheckJS(JSContext *cx, uintN argc, jsval *vp)
+{
+  mozilla::DMDCheckAndDump();
+  return JS_TRUE;
+}
+
+static JSFunctionSpec DMDFunctions[] = {
+    {"DMD",                        DMDCheckJS,                 0, 0},
+    {nsnull,                       nsnull,                     0, 0}
+};
+
+#endif 
+
 nsresult
 nsJSContext::InitClasses(JSObject* aGlobalObj)
 {
@@ -2965,6 +2984,11 @@ nsJSContext::InitClasses(JSObject* aGlobalObj)
 #ifdef MOZ_JPROF
   
   ::JS_DefineFunctions(mContext, aGlobalObj, JProfFunctions);
+#endif
+
+#ifdef MOZ_DMD
+  
+  ::JS_DefineFunctions(mContext, aGlobalObj, DMDFunctions);
 #endif
 
   JSOptionChangedCallback(js_options_dot_str, this);

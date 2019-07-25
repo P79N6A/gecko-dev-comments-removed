@@ -423,16 +423,28 @@ static PRInt64 GetHeapAllocated()
 
 static PRInt64 GetHeapZone0Committed()
 {
+#ifdef MOZ_DMD
+    
+    
+    
+    return (PRInt64) -1;
+#else
     malloc_statistics_t stats;
     malloc_zone_statistics(malloc_default_zone(), &stats);
     return stats.size_in_use;
+#endif
 }
 
 static PRInt64 GetHeapZone0Used()
 {
+#ifdef MOZ_DMD
+    
+    return (PRInt64) -1;
+#else
     malloc_statistics_t stats;
     malloc_zone_statistics(malloc_default_zone(), &stats);
     return stats.size_allocated;
+#endif
 }
 
 NS_MEMORY_REPORTER_IMPLEMENT(HeapZone0Committed,
@@ -859,9 +871,59 @@ NS_UnregisterMemoryMultiReporter (nsIMemoryMultiReporter *reporter)
 
 namespace mozilla {
 
-NS_MEMORY_REPORTER_MALLOC_SIZEOF_FUN(MemoryReporterMallocSizeOf, "default")
+#ifdef MOZ_DMD
 
-NS_MEMORY_REPORTER_MALLOC_SIZEOF_FUN(MemoryReporterMallocSizeOfForCounterInc, "default")
-NS_MEMORY_REPORTER_MALLOC_SIZEOF_FUN(MemoryReporterMallocSizeOfForCounterDec, "default")
+class NullMultiReporterCallback : public nsIMemoryMultiReporterCallback
+{
+public:
+    NS_DECL_ISUPPORTS
+
+    NS_IMETHOD Callback(const nsACString &aProcess, const nsACString &aPath,
+                        PRInt32 aKind, PRInt32 aUnits, PRInt64 aAmount,
+                        const nsACString &aDescription,
+                        nsISupports *aData)
+    {
+        
+        return NS_OK;
+    }
+};
+NS_IMPL_ISUPPORTS1(
+  NullMultiReporterCallback
+, nsIMemoryMultiReporterCallback
+)
+
+void
+DMDCheckAndDump()
+{
+    nsCOMPtr<nsIMemoryReporterManager> mgr =
+        do_GetService("@mozilla.org/memory-reporter-manager;1");
+
+    
+    nsCOMPtr<nsISimpleEnumerator> e;
+    mgr->EnumerateReporters(getter_AddRefs(e));
+    bool more;
+    while (NS_SUCCEEDED(e->HasMoreElements(&more)) && more) {
+        nsCOMPtr<nsIMemoryReporter> r;
+        e->GetNext(getter_AddRefs(r));
+
+        
+        PRInt64 amount;
+        (void)r->GetAmount(&amount);
+    }
+
+    
+    nsCOMPtr<nsISimpleEnumerator> e2;
+    mgr->EnumerateMultiReporters(getter_AddRefs(e2));
+    nsRefPtr<NullMultiReporterCallback> cb = new NullMultiReporterCallback();
+    while (NS_SUCCEEDED(e2->HasMoreElements(&more)) && more) {
+      nsCOMPtr<nsIMemoryMultiReporter> r;
+      e2->GetNext(getter_AddRefs(r));
+      r->CollectReports(cb, nsnull);
+    }
+
+    VALGRIND_DMD_CHECK_REPORTING;
+}
+
+#endif  
 
 }
