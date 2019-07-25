@@ -162,9 +162,8 @@ NS_IMPL_RELEASE(TabChild)
 NS_IMETHODIMP
 TabChild::SetStatus(PRUint32 aStatusType, const PRUnichar* aStatus)
 {
-  NS_NOTREACHED("TabChild::SetStatus not supported in TabChild");
-
-  return NS_ERROR_NOT_IMPLEMENTED;
+  
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -299,9 +298,8 @@ TabChild::GetTitle(PRUnichar** aTitle)
 NS_IMETHODIMP
 TabChild::SetTitle(const PRUnichar* aTitle)
 {
-  NS_NOTREACHED("TabChild::SetTitle not supported in TabChild");
-
-  return NS_ERROR_NOT_IMPLEMENTED;
+  
+  return NS_OK;
 }
 
 NS_IMETHODIMP
