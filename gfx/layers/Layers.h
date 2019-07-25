@@ -1184,6 +1184,16 @@ public:
   
 
 
+  typedef void (* DidTransactionCallback)(void* aClosureData);
+  void SetDidTransactionCallback(DidTransactionCallback aCallback, void* aClosureData)
+  {
+    mCallback = aCallback;
+    mCallbackData = aClosureData;
+  }
+
+  
+
+
 
   void SetFilter(gfxPattern::GraphicsFilter aFilter) { mFilter = aFilter; }
   gfxPattern::GraphicsFilter GetFilter() const { return mFilter; }
@@ -1204,14 +1214,25 @@ public:
 
 protected:
   CanvasLayer(LayerManager* aManager, void* aImplData)
-    : Layer(aManager, aImplData), mFilter(gfxPattern::FILTER_GOOD), mDirty(PR_FALSE) {}
+    : Layer(aManager, aImplData),
+      mCallback(nsnull), mCallbackData(nsnull), mFilter(gfxPattern::FILTER_GOOD),
+      mDirty(PR_FALSE) {}
 
   virtual nsACString& PrintInfo(nsACString& aTo, const char* aPrefix);
+
+  void FireDidTransactionCallback()
+  {
+    if (mCallback) {
+      mCallback(mCallbackData);
+    }
+  }
 
   
 
 
   nsIntRect mBounds;
+  DidTransactionCallback mCallback;
+  void* mCallbackData;
   gfxPattern::GraphicsFilter mFilter;
   
 
