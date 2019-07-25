@@ -123,6 +123,16 @@ let Utils = {
   },
 
   
+
+
+
+
+
+
+  isArray: function Utils_isArray(val) val != null && typeof val == "object" &&
+    val.constructor.name == "Array",
+
+  
   
   lazy: function Weave_lazy(dest, prop, ctr) {
     delete dest[prop];
@@ -187,7 +197,8 @@ let Utils = {
     if (typeof(a) != "object" || typeof(b) != "object")
       return false;
 
-    if ("Array" == a.constructor.name && "Array" == b.constructor.name) {
+    let isArray = [Utils.isArray(a), Utils.isArray(b)];
+    if (isArray[0] && isArray[1]) {
       if (a.length != b.length)
         return false;
 
@@ -198,7 +209,7 @@ let Utils = {
 
     } else {
       
-      if ("Array" == a.constructor.name || "Array" == b.constructor.name)
+      if (isArray[0] || isArray[1])
         return false;
 
       for (let key in a) {
@@ -215,7 +226,7 @@ let Utils = {
       return thing;
     let ret;
 
-    if ("Array" == thing.constructor.name) {
+    if (Utils.isArray(thing)) {
       ret = [];
       for (let i = 0; i < thing.length; i++)
         ret.push(Utils.deepCopy(thing[i], noSort));
