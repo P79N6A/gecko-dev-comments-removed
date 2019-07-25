@@ -172,11 +172,12 @@ nsGTKRemoteService::SetDesktopStartupIDOrTimestamp(const nsACString& aDesktopSta
   nsGTKToolkit* toolkit = nsGTKToolkit::GetToolkit();
   if (!toolkit)
     return;
+
   if (!aDesktopStartupID.IsEmpty()) {
     toolkit->SetDesktopStartupID(aDesktopStartupID);
-  } else {
-    toolkit->SetFocusTimestamp(aTimestamp);
   }
+
+  toolkit->SetFocusTimestamp(aTimestamp);
 }
 
 
