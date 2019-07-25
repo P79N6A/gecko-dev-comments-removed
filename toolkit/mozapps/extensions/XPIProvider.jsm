@@ -6523,17 +6523,21 @@ function AddonWrapper(aAddon) {
 
   this.__defineGetter__("permissions", function() {
     let permissions = 0;
+
+    
+    if (!(aAddon instanceof DBAddonInternal))
+      return permissions;
+
     if (!aAddon.appDisabled) {
       if (aAddon.userDisabled)
         permissions |= AddonManager.PERM_CAN_ENABLE;
       else if (aAddon.type != "theme")
         permissions |= AddonManager.PERM_CAN_DISABLE;
     }
+
     
     
-    
-    if (aAddon._installLocation && !aAddon._installLocation.locked &&
-        !aAddon.pendingUninstall) {
+    if (!aAddon._installLocation.locked && !aAddon.pendingUninstall) {
       
       if (!aAddon._installLocation.isLinkedAddon(aAddon.id))
         permissions |= AddonManager.PERM_CAN_UPGRADE;
