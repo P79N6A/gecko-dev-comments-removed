@@ -604,6 +604,11 @@ let RIL = {
   
 
 
+  cellLocation: {},
+
+  
+
+
   operator: null,
 
   
@@ -1967,6 +1972,26 @@ let RIL = {
           regState == NETWORK_CREG_STATE_REGISTERED_ROAMING) {
         RIL.getSMSCAddress();
       }
+    }
+
+    let cell = this.cellLocation;
+    let cellChanged = false;
+
+    
+    
+    if (cell.lac !== state[1]) {
+      cell.lac = state[1];
+      cellChanged = true;
+    }
+
+    if (cell.cid !== state[2]) {
+      cell.cid = state[2];
+      cellChanged = true;
+    }
+
+    if (cellChanged) {
+      cell.type = "celllocationchanged";
+      this.sendDOMMessage(cell);
     }
 
     let radioTech = RIL.parseInt(state[3], NETWORK_CREG_TECH_UNKNOWN);
