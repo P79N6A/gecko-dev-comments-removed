@@ -2126,6 +2126,12 @@ MarkRuntime(JSTracer *trc)
             c->markTypes(trc);
 
         
+        if (!IS_GC_MARKING_TRACER(trc)) {
+            if (c->watchpointMap)
+                c->watchpointMap->markAll(trc);
+        }
+
+        
         if (rt->profilingScripts) {
             for (CellIterUnderGC i(c, FINALIZE_SCRIPT); !i.done(); i.next()) {
                 JSScript *script = i.get<JSScript>();
