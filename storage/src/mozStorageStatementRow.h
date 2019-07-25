@@ -37,8 +37,8 @@
 
 
 
-#ifndef _MOZSTORAGESTATEMENTROW_H_
-#define _MOZSTORAGESTATEMENTROW_H_
+#ifndef MOZSTORAGESTATEMENTROW_H
+#define MOZSTORAGESTATEMENTROW_H
 
 #include "mozIStorageStatementWrapper.h"
 #include "nsIXPCScriptable.h"

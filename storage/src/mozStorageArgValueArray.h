@@ -37,8 +37,8 @@
 
 
 
-#ifndef _mozStorageArgValueArray_h_
-#define _mozStorageArgValueArray_h_
+#ifndef mozStorageArgValueArray_h
+#define mozStorageArgValueArray_h
 
 #include "mozIStorageValueArray.h"
 

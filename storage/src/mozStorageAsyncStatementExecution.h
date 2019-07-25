@@ -37,8 +37,8 @@
 
 
 
-#ifndef _mozStorageAsyncStatementExecution_h_
-#define _mozStorageAsyncStatementExecution_h_
+#ifndef mozStorageAsyncStatementExecution_h
+#define mozStorageAsyncStatementExecution_h
 
 #include "nscore.h"
 #include "nsTArray.h"

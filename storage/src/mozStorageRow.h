@@ -37,8 +37,8 @@
 
 
 
-#ifndef __mozStorageRow_h__
-#define __mozStorageRow_h__
+#ifndef mozStorageRow_h
+#define mozStorageRow_h
 
 #include "mozIStorageRow.h"
 #include "nsCOMArray.h"

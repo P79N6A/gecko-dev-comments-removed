@@ -37,8 +37,8 @@
 
 
 
-#ifndef _mozilla_storage_SQLCollations_h_
-#define _mozilla_storage_SQLCollations_h_
+#ifndef mozilla_storage_SQLCollations_h
+#define mozilla_storage_SQLCollations_h
 
 #include "mozStorageService.h"
 #include "nscore.h"

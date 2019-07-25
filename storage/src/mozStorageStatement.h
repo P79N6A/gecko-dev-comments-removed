@@ -37,8 +37,8 @@
 
 
 
-#ifndef _mozStorageStatement_h_
-#define _mozStorageStatement_h_
+#ifndef mozStorageStatement_h
+#define mozStorageStatement_h
 
 #include "nsAutoPtr.h"
 #include "nsString.h"

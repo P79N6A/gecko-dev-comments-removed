@@ -37,8 +37,8 @@
 
 
 
-#ifndef _mozStorageStatementWrapper_h_
-#define _mozStorageStatementWrapper_h_
+#ifndef mozStorageStatementWrapper_h
+#define mozStorageStatementWrapper_h
 
 #include "nsTArray.h"
 #include "nsIXPCScriptable.h"

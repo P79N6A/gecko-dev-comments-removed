@@ -37,8 +37,8 @@
 
 
 
-#ifndef _mozStorageBindingParamsArray_h_
-#define _mozStorageBindingParamsArray_h_
+#ifndef mozStorageBindingParamsArray_h
+#define mozStorageBindingParamsArray_h
 
 #include "nsAutoPtr.h"
 #include "nsTArray.h"

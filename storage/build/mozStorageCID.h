@@ -36,8 +36,8 @@
 
 
 
-#ifndef _MOZSTORAGECID_H_
-#define _MOZSTORAGECID_H_
+#ifndef MOZSTORAGECID_H
+#define MOZSTORAGECID_H
 
 #define MOZ_STORAGE_CONTRACTID_PREFIX "@mozilla.org/storage"
 

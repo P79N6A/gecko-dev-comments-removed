@@ -37,8 +37,8 @@
 
 
 
-#ifndef _mozStorageStatementData_h_
-#define _mozStorageStatementData_h_
+#ifndef mozStorageStatementData_h
+#define mozStorageStatementData_h
 
 #include "sqlite3.h"
 

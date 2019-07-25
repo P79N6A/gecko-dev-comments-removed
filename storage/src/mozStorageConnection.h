@@ -38,8 +38,8 @@
 
 
 
-#ifndef _MOZSTORAGECONNECTION_H_
-#define _MOZSTORAGECONNECTION_H_
+#ifndef MOZSTORAGECONNECTION_H
+#define MOZSTORAGECONNECTION_H
 
 #include "nsAutoPtr.h"
 #include "nsCOMPtr.h"

@@ -38,8 +38,8 @@
 
 
 
-#ifndef _mozStoragePrivateHelpers_h_
-#define _mozStoragePrivateHelpers_h_
+#ifndef mozStoragePrivateHelpers_h
+#define mozStoragePrivateHelpers_h
 
 
 

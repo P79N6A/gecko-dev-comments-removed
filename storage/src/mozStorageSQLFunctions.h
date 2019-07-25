@@ -37,8 +37,8 @@
 
 
 
-#ifndef _mozStorageSQLFunctions_h_
-#define _mozStorageSQLFunctions_h_
+#ifndef mozStorageSQLFunctions_h
+#define mozStorageSQLFunctions_h
 
 #include "sqlite3.h"
 #include "nscore.h"

@@ -40,8 +40,8 @@
 
 
 
-#ifndef _MOZSTORAGESERVICE_H_
-#define _MOZSTORAGESERVICE_H_
+#ifndef MOZSTORAGESERVICE_H
+#define MOZSTORAGESERVICE_H
 
 #include "nsCOMPtr.h"
 #include "nsICollation.h"

@@ -37,8 +37,8 @@
 
 
 
-#ifndef __mozStorageError_h__
-#define __mozStorageError_h__
+#ifndef mozStorageError_h
+#define mozStorageError_h
 
 #include "mozIStorageError.h"
 #include "nsString.h"
