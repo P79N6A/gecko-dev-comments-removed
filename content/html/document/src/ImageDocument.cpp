@@ -363,7 +363,7 @@ ImageDocument::SetScriptGlobalObject(nsIScriptGlobalObject* aScriptGlobalObject)
 
   
   
-  nsHTMLDocument::SetScriptGlobalObject(aScriptGlobalObject);
+  MediaDocument::SetScriptGlobalObject(aScriptGlobalObject);
 
   if (aScriptGlobalObject) {
     if (!GetRootElement()) {
