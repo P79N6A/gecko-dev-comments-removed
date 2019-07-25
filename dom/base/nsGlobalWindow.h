@@ -574,6 +574,13 @@ public:
     return sOuterWindowsById ? sOuterWindowsById->Get(aWindowID) : nsnull;
   }
 
+private:
+  
+  void EnableAccelerationUpdates();
+
+  
+  void DisableAccelerationUpdates();
+
 protected:
   
   virtual ~nsGlobalWindow();
@@ -869,7 +876,7 @@ protected:
   PRPackedBool           mFocusByKeyOccurred : 1;
 
   
-  PRPackedBool           mHasAcceleration  : 1;
+  PRPackedBool           mHasAcceleration : 1;
 
   
   PRPackedBool           mNotifiedIDDestroyed : 1;
