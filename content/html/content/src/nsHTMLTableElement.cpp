@@ -50,19 +50,19 @@
 #include "nsStyleContext.h"
 #include "nsIDocument.h"
 #include "nsContentUtils.h"
-
 #include "nsIDOMElement.h"
 #include "nsGenericHTMLElement.h"
 #include "nsIHTMLCollection.h"
-
 #include "nsHTMLStyleSheet.h"
+#include "dombindings.h"
 
 
 
 
 
 
-class TableRowsCollection : public nsIHTMLCollection 
+class TableRowsCollection : public nsIHTMLCollection,
+                            public nsWrapperCache
 {
 public:
   TableRowsCollection(nsHTMLTableElement *aParent);
@@ -77,7 +77,13 @@ public:
 
   NS_IMETHOD    ParentDestroyed();
 
-  NS_DECL_CYCLE_COLLECTION_CLASS(TableRowsCollection)
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(TableRowsCollection)
+
+  
+  virtual JSObject* WrapObject(JSContext *cx, XPCWrappedNativeScope *scope)
+  {
+    return xpc::dom::NodeListBase::create(cx, scope, this, this);
+  }
 
 protected:
   
@@ -94,6 +100,8 @@ TableRowsCollection::TableRowsCollection(nsHTMLTableElement *aParent)
                                   nsGkAtoms::tr,
                                   PR_FALSE))
 {
+  
+  SetIsProxy();
 }
 
 TableRowsCollection::~TableRowsCollection()
@@ -105,16 +113,23 @@ TableRowsCollection::~TableRowsCollection()
 }
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(TableRowsCollection)
-NS_IMPL_CYCLE_COLLECTION_UNLINK_0(TableRowsCollection)
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(TableRowsCollection)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(TableRowsCollection)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR_AMBIGUOUS(mOrphanRows,
                                                        nsIDOMNodeList)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
+NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(TableRowsCollection)
+  NS_IMPL_CYCLE_COLLECTION_TRACE_PRESERVED_WRAPPER
+NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(TableRowsCollection)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(TableRowsCollection)
 
 NS_INTERFACE_TABLE_HEAD(TableRowsCollection)
+  NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
   NS_INTERFACE_TABLE2(TableRowsCollection, nsIHTMLCollection,
                       nsIDOMHTMLCollection)
   NS_INTERFACE_TABLE_TO_MAP_SEGUE_CYCLE_COLLECTION(TableRowsCollection)
