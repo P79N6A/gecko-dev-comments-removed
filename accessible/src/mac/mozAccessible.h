@@ -149,9 +149,6 @@ GetObjectOrRepresentedView(id <mozAccessible> aObject)
 - (void)appendChild:(nsAccessible*)aAccessible;
 
 
-- (void)invalidateParent;
-
-
 
 - (void)expire;
 - (BOOL)isExpired;
