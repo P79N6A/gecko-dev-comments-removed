@@ -1539,6 +1539,7 @@ DocumentViewerImpl::Destroy()
       nsresult rv = mDocument->Sanitize();
       if (NS_FAILED(rv)) {
         
+        
         savePresentation = PR_FALSE;
       }
     }
@@ -1560,8 +1561,9 @@ DocumentViewerImpl::Destroy()
     
     
 
-    if (mDocument)
+    if (mDocument) {
       mDocument->SetContainer(nsnull);
+    }
     if (mPresContext) {
       mPresContext->SetLinkHandler(nsnull);
       mPresContext->SetContainer(nsnull);
@@ -1580,6 +1582,8 @@ DocumentViewerImpl::Destroy()
 
     return NS_OK;
   }
+
+  
 
   if (mDocument) {
     mDocument->Destroy();
