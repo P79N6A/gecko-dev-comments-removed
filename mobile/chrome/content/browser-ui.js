@@ -399,7 +399,11 @@ var BrowserUI = {
     switch (aState) {
       case TOOLBARSTATE_LOADED:
         icons.setAttribute("mode", "view");
-        this.showToolbar(uri.spec == "about:blank");
+        
+        
+        if (uri.spec != "about:blank") {
+          this.showToolbar(false);
+        }
 
         if (!this._faviconLink)
           this._faviconLink = uri.prePath + "/favicon.ico";
@@ -410,6 +414,8 @@ var BrowserUI = {
 
       case TOOLBARSTATE_LOADING:
         this.showToolbar();
+        
+        
         
         icons.setAttribute("mode", "loading");
 
@@ -549,8 +555,9 @@ var BrowserUI = {
   },
 
   newTab : function newTab(aURI) {
-    
-    return Browser.addTab(aURI || "about:blank", true);
+    let tab = Browser.addTab(aURI || "about:blank", true);
+    this.showAutoComplete();
+    return tab;
   },
 
   closeTab : function closeTab(aTab) {
@@ -700,7 +707,7 @@ var BrowserUI = {
         break;
       case "cmd_openLocation":
         this.showToolbar(true);
-        setTimeout(function () { BrowserUI.showAutoComplete(); }, 0);
+        BrowserUI.showAutoComplete();
         break;
       case "cmd_star":
       {
