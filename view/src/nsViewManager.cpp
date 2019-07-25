@@ -105,6 +105,7 @@ nsViewManager::nsViewManager()
   
   
   mHasPendingUpdates = false;
+  mHasPendingWidgetGeometryChanges = false;
   mRecursiveRefreshPending = false;
 }
 
@@ -395,7 +396,8 @@ void nsViewManager::RenderViews(nsView *aView, nsIWidget *aWidget,
   }
 }
 
-void nsViewManager::ProcessPendingUpdatesForView(nsView* aView)
+void nsViewManager::ProcessPendingUpdatesForView(nsView* aView,
+                                                 bool aFlushDirtyRegion)
 {
   NS_ASSERTION(IsRootVM(), "Updates will be missed");
 
@@ -405,18 +407,20 @@ void nsViewManager::ProcessPendingUpdatesForView(nsView* aView)
   }
 
   if (aView->HasWidget()) {
-    aView->ResetWidgetBounds(false, false, true);
+    aView->ResetWidgetBounds(false, true);
   }
 
   
   for (nsView* childView = aView->GetFirstChild(); childView;
        childView = childView->GetNextSibling()) {
-    ProcessPendingUpdatesForView(childView);
+    ProcessPendingUpdatesForView(childView, aFlushDirtyRegion);
   }
 
   
   
-  FlushDirtyRegionToWidget(aView);
+  if (aFlushDirtyRegion) {
+    FlushDirtyRegionToWidget(aView);
+  }
 }
 
 void nsViewManager::FlushDirtyRegionToWidget(nsView* aView)
@@ -459,6 +463,7 @@ nsViewManager::PostPendingUpdate()
 {
   nsViewManager* rootVM = RootViewManager();
   rootVM->mHasPendingUpdates = true;
+  rootVM->mHasPendingWidgetGeometryChanges = true;
   if (rootVM->mPresShell) {
     rootVM->mPresShell->ScheduleViewManagerFlush();
   }
@@ -1362,8 +1367,22 @@ nsViewManager::ProcessPendingUpdates()
   }
 
   if (mHasPendingUpdates) {
-    ProcessPendingUpdatesForView(mRootView);
+    ProcessPendingUpdatesForView(mRootView, true);
     mHasPendingUpdates = false;
+  }
+}
+
+void
+nsViewManager::UpdateWidgetGeometry()
+{
+  if (!IsRootVM()) {
+    RootViewManager()->UpdateWidgetGeometry();
+    return;
+  }
+
+  if (mHasPendingWidgetGeometryChanges) {
+    ProcessPendingUpdatesForView(mRootView, false);
+    mHasPendingWidgetGeometryChanges = false;
   }
 }
 

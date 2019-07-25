@@ -331,6 +331,11 @@ public:
 
 
   virtual void ProcessPendingUpdates()=0;
+
+  
+
+
+  virtual void UpdateWidgetGeometry() = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIViewManager, NS_IVIEWMANAGER_IID)
