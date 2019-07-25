@@ -456,7 +456,7 @@ WebGLContext::InitAndValidateGL()
         
         
 #ifdef XP_WIN
-        if (gl->Vendor() != GLContext::VendorATI))
+        if (gl->Vendor() != gl::GLContext::VendorATI)
 #else
         if (true)
 #endif
