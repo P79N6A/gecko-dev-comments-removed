@@ -588,9 +588,11 @@ nsTransitionManager::ConsiderStartingTransition(nsCSSProperty aProperty,
 
   ElementPropertyTransition pt;
   nsStyleAnimation::Value dummyValue;
-  PRBool shouldAnimate =
+  PRBool haveValues =
     TransExtractComputedValue(aProperty, aOldStyleContext, pt.mStartValue) &&
-    TransExtractComputedValue(aProperty, aNewStyleContext, pt.mEndValue) &&
+    TransExtractComputedValue(aProperty, aNewStyleContext, pt.mEndValue);
+  PRBool shouldAnimate =
+    haveValues &&
     pt.mStartValue != pt.mEndValue &&
     
     
@@ -613,13 +615,19 @@ nsTransitionManager::ConsiderStartingTransition(nsCSSProperty aProperty,
   nsPresContext *presContext = aNewStyleContext->PresContext();
 
   if (!shouldAnimate) {
-    if (currentIndex != nsTArray<ElementPropertyTransition>::NoIndex) {
+    nsTArray<ElementPropertyTransition> &pts =
+      aElementTransitions->mPropertyTransitions;
+    if (currentIndex != nsTArray<ElementPropertyTransition>::NoIndex &&
+        (!haveValues || pts[currentIndex].mEndValue != pt.mEndValue)) {
       
       
       
       
-      nsTArray<ElementPropertyTransition> &pts =
-        aElementTransitions->mPropertyTransitions;
+      
+      
+      
+      
+      
       pts.RemoveElementAt(currentIndex);
       if (pts.IsEmpty()) {
         aElementTransitions->Destroy();
