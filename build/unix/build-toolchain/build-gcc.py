@@ -64,6 +64,7 @@ def build_glibc_aux(stage_dir, inst_dir):
                    "--enable-add-ons=nptl",
                    "--without-selinux",
                    "--enable-kernel=2.6.18",
+                   "--libdir=%s/lib64" % inst_dir,
                    "--prefix=%s" % inst_dir])
 
 def build_one_stage(env, stage_dir, is_stage_one):
@@ -104,10 +105,23 @@ def build_one_stage_aux(stage_dir, is_stage_one):
                           "--disable-bootstrap"]
     if is_stage_one:
         gcc_configure_args.append("--enable-languages=c")
+        gcc_configure_args.append("--disable-multilib")
+        
+        
+        
+        
+        gcc_configure_args.append("--disable-shared")
     else:
         gcc_configure_args.append("--enable-languages=c,c++")
 
     build_package(gcc_source_dir, gcc_build_dir, gcc_configure_args)
+
+    if is_stage_one:
+        
+        
+        d = tool_inst_dir + "/lib/gcc/x86_64-unknown-linux-gnu/4.5.2/"
+        os.symlink(d + "libgcc.a", d + "libgcc_eh.a")
+
     build_glibc({"CC"  : tool_inst_dir + "/bin/gcc",
                  "CXX" : tool_inst_dir + "/bin/g++"},
                 stage_dir, tool_inst_dir)
