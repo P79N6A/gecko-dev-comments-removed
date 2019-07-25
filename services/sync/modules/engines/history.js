@@ -85,12 +85,6 @@ HistoryEngine.prototype = {
 
   _sync: Utils.batchSync("History", SyncEngine),
 
-  _syncFinish: function HistEngine__syncFinish(error) {
-    
-    this._delete.older = this.lastSync - 604800; 
-    SyncEngine.prototype._syncFinish.call(this);
-  },
-
   _findDupe: function _findDupe(item) {
     return GUIDForUri(item.histUri);
   }

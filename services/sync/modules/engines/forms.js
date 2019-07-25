@@ -71,9 +71,6 @@ FormEngine.prototype = {
   
   _syncFinish: function FormEngine__syncFinish(error) {
     this._store.clearFormCache();
-    
-    
-    this._delete.older = this.lastSync - 2592000; 
     SyncEngine.prototype._syncFinish.call(this);
   },
 
