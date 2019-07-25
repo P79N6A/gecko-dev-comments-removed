@@ -1388,8 +1388,7 @@ var NativeWindow = {
                              0, null);
         rootElement.ownerDocument.defaultView.addEventListener("contextmenu", this, false);
         rootElement.dispatchEvent(event);
-      } else {
-        
+      } else if (SelectionHandler.canSelect(rootElement)) {
         SelectionHandler.startSelection(rootElement, aX, aY);
       }
     },
@@ -1641,6 +1640,14 @@ var SelectionHandler = {
     }
 
     this._ignoreCollapsedSelection = false;
+  },
+
+  
+  canSelect: function sh_canSelect(aElement) {
+    return !(aElement instanceof Ci.nsIDOMHTMLButtonElement ||
+             aElement instanceof Ci.nsIDOMHTMLEmbedElement ||
+             aElement instanceof Ci.nsIDOMHTMLImageElement ||
+             aElement instanceof Ci.nsIDOMHTMLMediaElement);
   },
 
   
