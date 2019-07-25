@@ -69,8 +69,8 @@ NS_IMPL_ISUPPORTS_INHERITED0(nsLeafAccessible, nsAccessible)
 
 
 nsAccessible*
-nsLeafAccessible::GetChildAtPoint(PRInt32 aX, PRInt32 aY,
-                                  EWhichChildAtPoint aWhichChild)
+nsLeafAccessible::ChildAtPoint(PRInt32 aX, PRInt32 aY,
+                               EWhichChildAtPoint aWhichChild)
 {
   
   return this;

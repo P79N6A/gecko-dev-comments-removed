@@ -899,38 +899,20 @@ STDMETHODIMP nsAccessibleWrap::accHitTest(
 {
 __try {
   VariantInit(pvarChild);
+  if (IsDefunct())
+    return E_FAIL;
+
+  nsAccessible* accessible = ChildAtPoint(xLeft, yTop, eDirectChild);
 
   
-  nsCOMPtr<nsIAccessible> xpAccessible;
-
-  xLeft = xLeft;
-  yTop = yTop;
-
-  if (nsAccUtils::MustPrune(this)) {
-    xpAccessible = this;
-  }
-  else {
-    GetChildAtPoint(xLeft, yTop, getter_AddRefs(xpAccessible));
-  }
-
-  
-  if (xpAccessible) {
+  if (accessible) {
     
-    if (xpAccessible == static_cast<nsIAccessible*>(this)) {
+    if (accessible == this) {
       pvarChild->vt = VT_I4;
       pvarChild->lVal = CHILDID_SELF;
     } else { 
       pvarChild->vt = VT_DISPATCH;
-      pvarChild->pdispVal = NativeAccessible(xpAccessible);
-      nsCOMPtr<nsIAccessNode> accessNode(do_QueryInterface(xpAccessible));
-      NS_ASSERTION(accessNode, "Unable to QI to nsIAccessNode");
-      nsCOMPtr<nsIDOMNode> domNode;
-      accessNode->GetDOMNode(getter_AddRefs(domNode));
-      if (!domNode) {
-        
-        pvarChild->vt = VT_EMPTY;
-        return E_FAIL;
-      }
+      pvarChild->pdispVal = NativeAccessible(accessible);
     }
   } else {
     

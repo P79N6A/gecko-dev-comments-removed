@@ -106,8 +106,8 @@ refAccessibleAtPointHelper(nsAccessibleWrap* aAccWrap, gint aX, gint aY,
     aY += winCoords.y;
   }
 
-  nsAccessible* accAtPoint = aAccWrap->GetChildAtPoint(aX, aY,
-                                                       nsAccessible::eDirectChild);
+  nsAccessible* accAtPoint = aAccWrap->ChildAtPoint(aX, aY,
+                                                    nsAccessible::eDirectChild);
   if (!accAtPoint)
     return nsnull;
 
