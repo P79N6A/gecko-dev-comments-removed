@@ -205,7 +205,7 @@ function sendHeapMinNotifications()
   sendHeapMinNotificationsInner();
 }
 
-function Reporter(aUnsafePath, aKind, aUnits, aAmount, aUnsafeDesc)
+function Report(aUnsafePath, aKind, aUnits, aAmount, aUnsafeDesc)
 {
   this._unsafePath  = aUnsafePath;
   this._kind        = aKind;
@@ -216,7 +216,7 @@ function Reporter(aUnsafePath, aKind, aUnits, aAmount, aUnsafeDesc)
   
 }
 
-Reporter.prototype = {
+Report.prototype = {
   
   
   
@@ -238,7 +238,7 @@ Reporter.prototype = {
   }
 };
 
-function getReportersByProcess(aMgr)
+function getReportsByProcess(aMgr)
 {
   
   
@@ -250,24 +250,24 @@ function getReportersByProcess(aMgr)
   
   
   
-  let reportersByProcess = {};
+  let reportsByProcess = {};
 
-  function addReporter(aProcess, aUnsafePath, aKind, aUnits, aAmount,
-                       aUnsafeDesc)
+  function handleReport(aProcess, aUnsafePath, aKind, aUnits, aAmount,
+                        aUnsafeDesc)
   {
     let process = aProcess === "" ? "Main" : aProcess;
-    let r = new Reporter(aUnsafePath, aKind, aUnits, aAmount, aUnsafeDesc);
-    if (!reportersByProcess[process]) {
-      reportersByProcess[process] = {};
+    let r = new Report(aUnsafePath, aKind, aUnits, aAmount, aUnsafeDesc);
+    if (!reportsByProcess[process]) {
+      reportsByProcess[process] = {};
     }
-    let reporters = reportersByProcess[process];
-    let reporter = reporters[r._unsafePath];
-    if (reporter) {
+    let reports = reportsByProcess[process];
+    let rOld = reports[r._unsafePath];
+    if (rOld) {
       
       
-      reporter.merge(r);
+      rOld.merge(r);
     } else {
-      reporters[r._unsafePath] = r;
+      reports[r._unsafePath] = r;
     }
   }
 
@@ -276,8 +276,8 @@ function getReportersByProcess(aMgr)
   while (e.hasMoreElements()) {
     let rOrig = e.getNext().QueryInterface(Ci.nsIMemoryReporter);
     try {
-      addReporter(rOrig.process, rOrig.path, rOrig.kind, rOrig.units,
-                  rOrig.amount, rOrig.description);
+      handleReport(rOrig.process, rOrig.path, rOrig.kind, rOrig.units,
+                   rOrig.amount, rOrig.description);
     }
     catch(e) {
       debug("An error occurred when collecting results from the memory reporter " +
@@ -293,14 +293,14 @@ function getReportersByProcess(aMgr)
     }
 
     try {
-      mrOrig.collectReports(addReporter, null);
+      mrOrig.collectReports(handleReport, null);
     }
     catch(e) {
       debug("An error occurred when collecting a multi-reporter's results: " + e);
     }
   }
 
-  return reportersByProcess;
+  return reportsByProcess;
 }
 
 function appendTextNode(aP, aText)
@@ -344,13 +344,13 @@ function update()
 
   
   
-  let reportersByProcess = getReportersByProcess(mgr);
+  let reportsByProcess = getReportsByProcess(mgr);
   let hasMozMallocUsableSize = mgr.hasMozMallocUsableSize;
-  appendProcessElements(content, "Main", reportersByProcess["Main"],
+  appendProcessElements(content, "Main", reportsByProcess["Main"],
                         hasMozMallocUsableSize);
-  for (let process in reportersByProcess) {
+  for (let process in reportsByProcess) {
     if (process !== "Main") {
-      appendProcessElements(content, process, reportersByProcess[process],
+      appendProcessElements(content, process, reportsByProcess[process],
                             hasMozMallocUsableSize);
     }
   }
@@ -399,7 +399,7 @@ function update()
 
   let legendText1 = "Click on a non-leaf node in a tree to expand ('++') " +
                     "or collapse ('--') its children.";
-  let legendText2 = "Hover the pointer over the name of a memory reporter " +
+  let legendText2 = "Hover the pointer over the name of a memory report " +
                     "to see a description of what it measures.";
 
   appendElementWithText(content, "div", "legend", legendText1);
@@ -457,7 +457,7 @@ TreeNode.compare = function(a, b) {
 
 
 
-function buildTree(aReporters, aTreeName)
+function buildTree(aReports, aTreeName)
 {
   
   
@@ -466,25 +466,25 @@ function buildTree(aReporters, aTreeName)
   
   
   
-  let foundReporter = false;
-  for (let unsafePath in aReporters) {
-    if (aReporters[unsafePath].treeNameMatches(aTreeName)) {
-      foundReporter = true;
+  let foundReport = false;
+  for (let unsafePath in aReports) {
+    if (aReports[unsafePath].treeNameMatches(aTreeName)) {
+      foundReport = true;
       break;
     }
   }
-  if (!foundReporter) {
+  if (!foundReport) {
     assert(aTreeName !== 'explicit');
     return null;
   }
 
   let t = new TreeNode("falseRoot");
-  for (let unsafePath in aReporters) {
+  for (let unsafePath in aReports) {
     
-    let r = aReporters[unsafePath];
+    let r = aReports[unsafePath];
     if (r.treeNameMatches(aTreeName)) {
       assert(r._kind === KIND_HEAP || r._kind === KIND_NONHEAP,
-             "reporters in the tree must have KIND_HEAP or KIND_NONHEAP");
+             "reports in the tree must have KIND_HEAP or KIND_NONHEAP");
       assert(r._units === UNITS_BYTES, "r._units === UNITS_BYTES");
       let unsafeNames = r._unsafePath.split('/');
       let u = t;
@@ -567,10 +567,10 @@ function buildTree(aReporters, aTreeName)
 
 
 
-function ignoreSmapsTrees(aReporters)
+function ignoreSmapsTrees(aReports)
 {
-  for (let unsafePath in aReporters) {
-    let r = aReporters[unsafePath];
+  for (let unsafePath in aReports) {
+    let r = aReports[unsafePath];
     if (r.treeNameMatches("smaps")) {
       r._done = true;
     }
@@ -586,7 +586,7 @@ function ignoreSmapsTrees(aReporters)
 
 
 
-function fixUpExplicitTree(aT, aReporters)
+function fixUpExplicitTree(aT, aReports)
 {
   
   function getKnownHeapUsedBytes(aT)
@@ -607,9 +607,9 @@ function fixUpExplicitTree(aT, aReporters)
   
   
   
-  let heapAllocatedReporter = aReporters["heap-allocated"];
-  assert(heapAllocatedReporter, "no 'heap-allocated' reporter");
-  let heapAllocatedBytes = heapAllocatedReporter._amount;
+  let heapAllocatedReport = aReports["heap-allocated"];
+  assert(heapAllocatedReport, "no 'heap-allocated' report");
+  let heapAllocatedBytes = heapAllocatedReport._amount;
   let heapUnclassifiedT = new TreeNode("heap-unclassified");
   let hasKnownHeapAllocated = heapAllocatedBytes !== kUnknown;
   if (hasKnownHeapAllocated) {
@@ -779,8 +779,7 @@ function appendWarningElements(aP, aHasKnownHeapAllocated,
 
 
 
-function appendProcessElements(aP, aProcess, aReporters,
-                               aHasMozMallocUsableSize)
+function appendProcessElements(aP, aProcess, aReports, aHasMozMallocUsableSize)
 {
   appendElementWithText(aP, "h1", "", aProcess + " Process");
   appendTextNode(aP, "\n\n");   
@@ -788,15 +787,15 @@ function appendProcessElements(aP, aProcess, aReporters,
   
   let warningsDiv = appendElement(aP, "div", "accuracyWarning");
 
-  let explicitTree = buildTree(aReporters, 'explicit');
-  let hasKnownHeapAllocated = fixUpExplicitTree(explicitTree, aReporters);
+  let explicitTree = buildTree(aReports, 'explicit');
+  let hasKnownHeapAllocated = fixUpExplicitTree(explicitTree, aReports);
   sortTreeAndInsertAggregateNodes(explicitTree._amount, explicitTree);
   appendTreeElements(aP, explicitTree, aProcess);
 
   
   if (gVerbose) {
     kMapTreePaths.forEach(function(t) {
-      let tree = buildTree(aReporters, t);
+      let tree = buildTree(aReports, t);
 
       
       
@@ -810,12 +809,12 @@ function appendProcessElements(aP, aProcess, aReporters,
     
     
     
-    ignoreSmapsTrees(aReporters);
+    ignoreSmapsTrees(aReports);
   }
 
   
   
-  appendOtherElements(aP, aReporters);
+  appendOtherElements(aP, aReports);
 
   
   
@@ -1238,7 +1237,7 @@ function appendTreeElements(aPOuter, aT, aProcess)
   appendTextNode(aPOuter, "\n");  
 }
 
-function OtherReporter(aUnsafePath, aUnits, aAmount, aUnsafeDesc, aNMerged)
+function OtherReport(aUnsafePath, aUnits, aAmount, aUnsafeDesc, aNMerged)
 {
   
   this._unsafePath = aUnsafePath;
@@ -1253,7 +1252,7 @@ function OtherReporter(aUnsafePath, aUnits, aAmount, aUnsafeDesc, aNMerged)
   this._asString = this.toString();
 }
 
-OtherReporter.prototype = {
+OtherReport.prototype = {
   toString: function() {
     switch (this._units) {
       case UNITS_BYTES:            return formatBytes(this._amount);
@@ -1261,7 +1260,7 @@ OtherReporter.prototype = {
       case UNITS_COUNT_CUMULATIVE: return formatInt(this._amount);
       case UNITS_PERCENTAGE:       return formatPercentage(this._amount);
       default:
-        assert(false, "bad units in OtherReporter.toString");
+        assert(false, "bad units in OtherReport.toString");
     }
   },
 
@@ -1274,12 +1273,12 @@ OtherReporter.prototype = {
       case UNITS_PERCENTAGE:       return (n !== kUnknown &&
                                            !(0 <= n && n <= 10000));
       default:
-        assert(false, "bad units in OtherReporter.isInvalid");
+        assert(false, "bad units in OtherReport.isInvalid");
     }
   }
 };
 
-OtherReporter.compare = function(a, b) {
+OtherReport.compare = function(a, b) {
   return a._unsafePath < b._unsafePath ? -1 :
          a._unsafePath > b._unsafePath ?  1 :
          0;
@@ -1296,7 +1295,7 @@ OtherReporter.compare = function(a, b) {
 
 
 
-function appendOtherElements(aP, aReportersByProcess)
+function appendOtherElements(aP, aReportsByProcess)
 {
   appendSectionHeader(aP, kTreeNames['other']);
 
@@ -1306,27 +1305,27 @@ function appendOtherElements(aP, aReportersByProcess)
   
   
   let maxStringLength = 0;
-  let otherReporters = [];
-  for (let unsafePath in aReportersByProcess) {
-    let r = aReportersByProcess[unsafePath];
+  let otherReports = [];
+  for (let unsafePath in aReportsByProcess) {
+    let r = aReportsByProcess[unsafePath];
     if (!r._done) {
       assert(r._kind === KIND_OTHER,
              "_kind !== KIND_OTHER for " + makeSafe(r._unsafePath));
       assert(r._nMerged === undefined);  
-      let o = new OtherReporter(r._unsafePath, r._units, r._amount,
-                                r._unsafeDescription);
-      otherReporters.push(o);
+      let o = new OtherReport(r._unsafePath, r._units, r._amount,
+                              r._unsafeDescription);
+      otherReports.push(o);
       if (o._asString.length > maxStringLength) {
         maxStringLength = o._asString.length;
       }
     }
   }
-  otherReporters.sort(OtherReporter.compare);
+  otherReports.sort(OtherReport.compare);
 
   
   let text = "";
-  for (let i = 0; i < otherReporters.length; i++) {
-    let o = otherReporters[i];
+  for (let i = 0; i < otherReports.length; i++) {
+    let o = otherReports[i];
     let oIsInvalid = o.isInvalid();
     if (oIsInvalid) {
       gUnsafePathsWithInvalidValuesForThisProcess.push(o._unsafePath);
