@@ -378,11 +378,15 @@ private:
 
 
 
+
+
+
   nsresult InitInternal(nsIWidget* aParentWidget,
                         nsISupports *aState,
                         const nsIntRect& aBounds,
                         PRBool aDoCreation,
-                        PRBool aNeedMakeCX = PR_TRUE);
+                        PRBool aNeedMakeCX = PR_TRUE,
+                        PRBool aForceSetNewDocument = PR_TRUE);
   
 
 
@@ -400,6 +404,7 @@ private:
   nsresult GetDocumentSelection(nsISelection **aSelection);
 
   void DestroyPresShell();
+  void DestroyPresContext();
 
 #ifdef NS_PRINTING
   
@@ -832,8 +837,15 @@ DocumentViewerImpl::InitInternal(nsIWidget* aParentWidget,
                                  nsISupports *aState,
                                  const nsIntRect& aBounds,
                                  PRBool aDoCreation,
-                                 PRBool aNeedMakeCX )
+                                 PRBool aNeedMakeCX ,
+                                 PRBool aForceSetNewDocument )
 {
+  if (mIsPageMode) {
+    
+    
+    aForceSetNewDocument = PR_FALSE;
+  }
+
   
   
   
@@ -952,7 +964,7 @@ DocumentViewerImpl::InitInternal(nsIWidget* aParentWidget,
     if (window) {
       nsCOMPtr<nsIDocument> curDoc =
         do_QueryInterface(window->GetExtantDocument());
-      if (!mIsPageMode || curDoc != mDocument) {
+      if (aForceSetNewDocument || curDoc != mDocument) {
         window->SetNewDocument(mDocument, aState, PR_FALSE);
         nsJSContext::LoadStart();
       }
@@ -1623,9 +1635,7 @@ DocumentViewerImpl::Destroy()
   }
 
   if (mPresContext) {
-    mPresContext->SetContainer(nsnull);
-    mPresContext->SetLinkHandler(nsnull);
-    mPresContext = nsnull;
+    DestroyPresContext();
   }
 
   mWindow = nsnull;
@@ -1735,37 +1745,14 @@ DocumentViewerImpl::SetDocumentInternal(nsIDocument* aDocument,
 
   
 
-  nsCOMPtr<nsILinkHandler> linkHandler;
   if (mPresShell) {
-    nsSize currentSize(0, 0);
-
-    if (mViewManager) {
-      mViewManager->GetWindowDimensions(&currentSize.width, &currentSize.height);
-    }
-
-    if (mPresContext) {
-      
-      
-      linkHandler = mPresContext->GetLinkHandler();
-    }
-
     DestroyPresShell();
-
-    nsIView* containerView = FindContainerView();
-
-    
-    
-    MakeWindow(currentSize, containerView);
   }
 
-  
   if (mPresContext) {
-    
-    if (linkHandler) {
-      mPresContext->SetLinkHandler(linkHandler);
-    }
+    DestroyPresContext();
 
-    rv = InitPresentationStuff(PR_FALSE);
+    InitInternal(mParentWidget, nsnull, mBounds, PR_TRUE, PR_TRUE, PR_FALSE);
   }
 
   return rv;
@@ -2048,11 +2035,8 @@ DocumentViewerImpl::Hide(void)
 
   DestroyPresShell();
 
-  
-  mPresContext->SetContainer(nsnull);
-  mPresContext->SetLinkHandler(nsnull);                             
+  DestroyPresContext();
 
-  mPresContext   = nsnull;
   mViewManager   = nsnull;
   mWindow        = nsnull;
   mDeviceContext = nsnull;
@@ -4230,12 +4214,9 @@ NS_IMETHODIMP DocumentViewerImpl::SetPageMode(PRBool aPageMode, nsIPrintSettings
   }
 
   if (mPresContext) {
-    mPresContext->SetContainer(nsnull);
-    mPresContext->SetLinkHandler(nsnull);
+    DestroyPresContext();
   }
 
-  mPresShell    = nsnull;
-  mPresContext  = nsnull;
   mViewManager  = nsnull;
   mWindow       = nsnull;
 
@@ -4278,6 +4259,14 @@ DocumentViewerImpl::DestroyPresShell()
   nsAutoScriptBlocker scriptBlocker;
   mPresShell->Destroy();
   mPresShell = nsnull;
+}
+
+void
+DocumentViewerImpl::DestroyPresContext()
+{
+  mPresContext->SetContainer(nsnull);
+  mPresContext->SetLinkHandler(nsnull);
+  mPresContext = nsnull;
 }
 
 PRBool
