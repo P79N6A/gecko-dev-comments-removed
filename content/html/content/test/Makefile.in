@@ -1,13 +1,45 @@
 #
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# ***** BEGIN LICENSE BLOCK *****
+# Version: MPL 1.1/GPL 2.0/LGPL 2.1
+#
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+# The Original Code is mozilla.org code.
+#
+# The Initial Developer of the Original Code is
+# Mozilla Foundation.
+# Portions created by the Initial Developer are Copyright (C) 2007
+# the Initial Developer. All Rights Reserved.
+#
+# Contributor(s):
+#
+# Alternatively, the contents of this file may be used under the terms of
+# either of the GNU General Public License Version 2 or later (the "GPL"),
+# or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+# in which case the provisions of the GPL or the LGPL are applicable instead
+# of those above. If you wish to allow use of your version of this file only
+# under the terms of either the GPL or the LGPL, and not to allow others to
+# use your version of this file under the terms of the MPL, indicate your
+# decision by deleting the provisions above and replace them with the notice
+# and other provisions required by the GPL or the LGPL. If you do not delete
+# the provisions above, a recipient may use your version of this file under
+# the terms of any one of the MPL, the GPL or the LGPL.
+#
+# ***** END LICENSE BLOCK *****
 
-DEPTH          = @DEPTH@
+DEPTH          = ../../../..
 topsrcdir      = @top_srcdir@
 srcdir         = @srcdir@
 VPATH          = @srcdir@
-relativesrcdir = @relativesrcdir@
+relativesrcdir = content/html/content/test
 
 include $(DEPTH)/config/autoconf.mk
 
@@ -22,8 +54,9 @@ TEST_DIRS += bug649134
 # For form-related test suite.
 TEST_DIRS += forms
 
+include $(topsrcdir)/config/rules.mk
 
-MOCHITEST_FILES = \
+_TEST_FILES = \
 		test_hidden.html \
 		test_bug589.html \
 		test_bug691.html \
@@ -104,6 +137,7 @@ MOCHITEST_FILES = \
 		test_bug401160.xhtml \
 		test_bug405242.html \
 		test_bug406596.html \
+		test_bug408231.html \
 		test_bug417760.html \
 		file_bug417760.png \
 		test_formSubmission.html \
@@ -168,6 +202,10 @@ MOCHITEST_FILES = \
 		test_bug558788-1.html \
 		test_bug558788-2.html \
 		test_bug561634.html \
+		test_bug588683-1.html \
+		test_bug588683-2.html \
+		test_bug588683-3.html \
+		test_bug588683-4.html \
 		test_bug590353-1.html \
 		test_bug590353-2.html \
 		test_bug593689.html \
@@ -218,6 +256,7 @@ MOCHITEST_FILES = \
 		test_bug641219.html \
 		test_bug643051.html \
 		test_bug583514.html \
+		test_bug514437.html \
 		test_bug560112.html \
 		test_bug586786.html \
 		test_bug646157.html \
@@ -233,7 +272,6 @@ MOCHITEST_FILES = \
 		test_bug674558.html \
 		test_bug583533.html \
 		test_restore_from_parser_fragment.html \
-		test_bug615595.html \
 		test_bug617528.html \
 		test_bug660959-1.html \
 		test_bug660959-2.html \
@@ -254,85 +292,20 @@ MOCHITEST_FILES = \
 		file_fullscreen-esc-exit.html \
 		file_fullscreen-esc-exit-inner.html \
 		file_fullscreen-rollback.html \
-		file_fullscreen-svg-element.html \
 		test_li_attributes_reflection.html \
 		test_ol_attributes_reflection.html \
 		test_bug651956.html \
 		test_bug694503.html \
-		test_object_plugin_nav.html \
-		test_bug742030.html \
-		test_bug742549.html \
-		test_bug745685.html \
-		test_input_file_picker.html \
-		test_bug763626.html \
-		test_bug780993.html \
-		test_iframe_sandbox_inheritance.html \
-		file_iframe_sandbox_a_if1.html \
-		file_iframe_sandbox_a_if2.html \
-		file_iframe_sandbox_a_if3.html \
-		file_iframe_sandbox_a_if4.html \
-		file_iframe_sandbox_a_if5.html \
-		file_iframe_sandbox_a_if6.html \
-		file_iframe_sandbox_a_if7.html \
-		file_iframe_sandbox_a_if8.html \
-		file_iframe_sandbox_a_if9.html \
-		test_iframe_sandbox_same_origin.html \
-		file_iframe_sandbox_b_if1.html \
-		file_iframe_sandbox_b_if2.html \
-		file_iframe_sandbox_b_if3.html \
-		test_iframe_sandbox_general.html \
-		file_iframe_sandbox_c_if1.html \
-		file_iframe_sandbox_c_if2.html \
-		file_iframe_sandbox_c_if3.html \
-		file_iframe_sandbox_c_if4.html \
-		file_iframe_sandbox_c_if5.html \
-		file_iframe_sandbox_c_if6.html \
-		file_iframe_sandbox_c_if7.html \
-		file_iframe_sandbox_c_if8.html \
-		file_iframe_sandbox_form_fail.html \
-		file_iframe_sandbox_form_pass.html \
-		file_iframe_sandbox_open_window_fail.html \
-		file_iframe_sandbox_pass.js \
-		file_iframe_sandbox_fail.js \
-		test_iframe_sandbox_navigation.html \
-		file_iframe_sandbox_d_if1.html \
-		file_iframe_sandbox_d_if2.html \
-		file_iframe_sandbox_d_if3.html \
-		file_iframe_sandbox_d_if4.html \
-		file_iframe_sandbox_d_if5.html \
-		file_iframe_sandbox_d_if6.html \
-		file_iframe_sandbox_d_if7.html \
-		file_iframe_sandbox_d_if8.html \
-		file_iframe_sandbox_d_if9.html \
-		file_iframe_sandbox_d_if10.html \
-		file_iframe_sandbox_d_if11.html \
-		file_iframe_sandbox_d_if12.html \
-		file_iframe_sandbox_d_if13.html \
-		file_iframe_sandbox_navigation_start.html \
-		file_iframe_sandbox_navigation_pass.html \
-		file_iframe_sandbox_navigation_fail.html \
-		file_iframe_sandbox_e_if1.html \
-		file_iframe_sandbox_e_if2.html \
-		file_iframe_sandbox_e_if3.html \
-		file_iframe_sandbox_e_if4.html \
-		file_iframe_sandbox_e_if5.html \
-		file_iframe_sandbox_e_if6.html \
-		file_iframe_sandbox_top_navigation_pass.html \
-		file_iframe_sandbox_top_navigation_fail.html \
-		test_iframe_sandbox_plugins.html \
-		file_iframe_sandbox_f_if1.html \
-		file_iframe_sandbox_f_if2.html \
-		file_iframe_sandbox_f_if2.html^headers^ \
-		test_iframe_sandbox_workers.html \
-		file_iframe_sandbox_g_if1.html \
-		file_iframe_sandbox_worker.js \
-		test_bug786564.html \
 		$(NULL)
 
-MOCHITEST_BROWSER_FILES = \
+_BROWSER_TEST_FILES = \
 		browser_bug649778.js \
 		file_bug649778.html \
 		file_bug649778.html^headers^ \
 		$(NULL)
 
-include $(topsrcdir)/config/rules.mk
+libs:: $(_TEST_FILES)
+	$(INSTALL) $(foreach f,$^,"$f") $(DEPTH)/_tests/testing/mochitest/tests/$(relativesrcdir)
+
+libs:: $(_BROWSER_TEST_FILES)
+	$(INSTALL) $(foreach f,$^,"$f") $(DEPTH)/_tests/testing/mochitest/browser/$(relativesrcdir)
