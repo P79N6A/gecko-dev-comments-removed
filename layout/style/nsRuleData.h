@@ -108,6 +108,8 @@ struct nsRuleData
 
 
 
+
+
   nsCSSValue* ValueFor(nsCSSProperty aProperty);
 };
 
