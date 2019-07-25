@@ -77,11 +77,11 @@ WBORecord.prototype = {
     this.response = r;
     return this;
   },
-  
+
   upload: function upload(uri) {
     return new Resource(uri).put(this);
   },
-  
+
   
   
   uri: function(base) {
@@ -89,7 +89,7 @@ WBORecord.prototype = {
       return Utils.makeURL(base + this.collection + "/" + this.id);
     return null;
   },
-  
+
   deserialize: function deserialize(json) {
     this.data = json.constructor.toString() == String ? JSON.parse(json) : json;
 
@@ -239,7 +239,7 @@ CryptoWrapper.prototype = {
     let cleartext = Svc.Crypto.decrypt(this.ciphertext,
                                        keyBundle.encryptionKey, this.IV);
     let json_result = JSON.parse(cleartext);
-    
+
     if (json_result && (json_result instanceof Object)) {
       this.cleartext = json_result;
       this.ciphertext = null;
@@ -290,20 +290,20 @@ function CollectionKeyManager() {
   this._lastModified = 0;
   this._collections = {};
   this._default = null;
-  
+
   this._log = Log4Moz.repository.getLogger("CollectionKeys");
 }
 
 
 
 CollectionKeyManager.prototype = {
-  
+
   
   
   
   _compareKeyBundleCollections: function _compareKeyBundleCollections(m1, m2) {
     let changed = [];
-    
+
     function process(m1, m2) {
       for (let k1 in m1) {
         let v1 = m1[k1];
@@ -312,11 +312,11 @@ CollectionKeyManager.prototype = {
           changed.push(k1);
       }
     }
-    
+
     
     process(m1, m2);
     process(m2, m1);
-    
+
     
     changed.sort();
     let last;
@@ -324,26 +324,26 @@ CollectionKeyManager.prototype = {
     return {same: changed.length == 0,
             changed: changed};
   },
-  
+
   get isClear() {
    return !this._default;
   },
-  
+
   clear: function clear() {
     this._log.info("Clearing CollectionKeys...");
     this._lastModified = 0;
     this._collections = {};
     this._default = null;
   },
-  
+
   keyForCollection: function(collection) {
-                      
+
     
     this._log.trace("keyForCollection: " + collection + ". Default is " + (this._default ? "not null." : "null."));
-    
+
     if (collection && this._collections[collection])
       return this._collections[collection];
-    
+
     return this._default;
   },
 
@@ -354,7 +354,7 @@ CollectionKeyManager.prototype = {
   generateNewKeys: function(collections) {
     let newDefaultKey = new BulkKeyBundle(null, DEFAULT_KEYBUNDLE_NAME);
     newDefaultKey.generateRandom();
-    
+
     let newColls = {};
     if (collections) {
       collections.forEach(function (c) {
@@ -413,9 +413,9 @@ CollectionKeyManager.prototype = {
   
   
   setContents: function setContents(payload, modified) {
-                 
+
     let self = this;
-    
+
     
     
     
@@ -426,24 +426,24 @@ CollectionKeyManager.prototype = {
       self._log.info("Bumping last modified to " + lm);
       self._lastModified = lm;
     }
-    
+
     this._log.info("Setting CollectionKeys contents. Our last modified: "
         + this._lastModified + ", input modified: " + modified + ".");
-    
+
     if (!payload)
       throw "No payload in CollectionKeys.setContents().";
-    
+
     if (!payload.default) {
       this._log.warn("No downloaded default key: this should not occur.");
       this._log.warn("Not clearing local keys.");
       throw "No default key in CollectionKeys.setContents(). Cannot proceed.";
     }
-    
+
     
     let b = new BulkKeyBundle(null, DEFAULT_KEYBUNDLE_NAME);
     b.keyPair = payload.default;
     let newDefault = b;
-    
+
     
     let newCollections = {};
     if ("collections" in payload) {
@@ -460,38 +460,38 @@ CollectionKeyManager.prototype = {
         }
       }
     }
-    
+
     
     let sameDefault = (this._default && this._default.equals(newDefault));
     let collComparison = this._compareKeyBundleCollections(newCollections, this._collections);
     let sameColls = collComparison.same;
-    
+
     if (sameDefault && sameColls) {
       this._log.info("New keys are the same as our old keys! Bumping local modified time and returning.");
       bumpModified();
       return false;
     }
-      
+
     
     this.clear();
-    
+
     this._log.info("Saving downloaded keys.");
     this._default     = newDefault;
     this._collections = newCollections;
-    
+
     bumpModified();
-    
+
     return sameDefault ? collComparison.changed : true;
   },
 
   updateContents: function updateContents(syncKeyBundle, storage_keys) {
     let log = this._log;
     log.info("Updating collection keys...");
+
     
     
     
-    
-    
+
     let payload;
     try {
       payload = storage_keys.decrypt(syncKeyBundle);
@@ -528,11 +528,11 @@ CollectionKeyManager.prototype = {
 
 function KeyBundle(realm, collectionName, keyStr) {
   let realm = realm || PWDMGR_KEYBUNDLE_REALM;
-  
+
   if (keyStr && !keyStr.charAt)
     
     throw "KeyBundle given non-string key.";
-  
+
   Identity.call(this, realm, collectionName, keyStr);
 }
 KeyBundle.prototype = {
@@ -542,20 +542,20 @@ KeyBundle.prototype = {
   _hmac: null,
   _hmacObj: null,
   _sha256HMACHasher: null,
-  
+
   equals: function equals(bundle) {
     return bundle &&
            (bundle.hmacKey == this.hmacKey) &&
            (bundle.encryptionKey == this.encryptionKey);
   },
-  
+
   
 
 
   get encryptionKey() {
     return this._encrypt;
   },
-  
+
   set encryptionKey(value) {
     this._encrypt = value;
   },
@@ -563,14 +563,14 @@ KeyBundle.prototype = {
   get hmacKey() {
     return this._hmac;
   },
-  
+
   set hmacKey(value) {
     this._hmac = value;
     this._hmacObj = value ? Utils.makeHMACKey(value) : null;
     this._sha256HMACHasher = value ? Utils.makeHMACHasher(
       Ci.nsICryptoHMAC.SHA256, this._hmacObj) : null;
   },
-  
+
   get hmacKeyObject() {
     return this._hmacObj;
   },
@@ -588,17 +588,17 @@ function BulkKeyBundle(realm, collectionName) {
 
 BulkKeyBundle.prototype = {
   __proto__: KeyBundle.prototype,
-   
+
   generateRandom: function generateRandom() {
     let generatedHMAC = Svc.Crypto.generateRandomKey();
     let generatedEncr = Svc.Crypto.generateRandomKey();
     this.keyPair = [generatedEncr, generatedHMAC];
   },
-  
+
   get keyPair() {
     return [this._encrypt, btoa(this._hmac)];
   },
-  
+
   
 
 
@@ -608,7 +608,7 @@ BulkKeyBundle.prototype = {
       let json = JSON.stringify(value);
       let en = value[0];
       let hm = value[1];
-      
+
       this.password = json;
       this.hmacKey  = Utils.safeAtoB(hm);
       this._encrypt = en;          
@@ -625,7 +625,7 @@ function SyncKeyBundle(realm, collectionName, syncKey) {
   KeyBundle.call(this, realm, collectionName, syncKey);
   if (syncKey)
     this.keyStr = syncKey;      
-} 
+}
 
 SyncKeyBundle.prototype = {
   __proto__: KeyBundle.prototype,
@@ -645,7 +645,7 @@ SyncKeyBundle.prototype = {
     this._encrypt = null;
     this._sha256HMACHasher = null;
   },
-  
+
   
 
 
@@ -658,13 +658,13 @@ SyncKeyBundle.prototype = {
       this.generateEntry();
     return this._encrypt;
   },
-  
+
   get hmacKey() {
     if (!this._hmac)
       this.generateEntry();
     return this._hmac;
   },
-  
+
   get hmacKeyObject() {
     if (!this._hmacObj)
       this.generateEntry();
@@ -693,7 +693,7 @@ SyncKeyBundle.prototype = {
     let hmac = okm.slice(32, 64);
 
     
-    this._encrypt = btoa(enc);      
+    this._encrypt = btoa(enc);
     
     this._hmac = hmac;
     this._hmacObj = Utils.makeHMACKey(hmac);

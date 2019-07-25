@@ -129,7 +129,7 @@ WeaveSvc.prototype = {
 
   get passphrase() ID.get("WeaveCryptoID").keyStr,
   set passphrase(value) ID.get("WeaveCryptoID").keyStr = value,
-  
+
   get syncKeyBundle() ID.get("WeaveCryptoID"),
 
   get serverURL() Svc.Prefs.get("serverURL"),
@@ -228,7 +228,7 @@ WeaveSvc.prototype = {
         this._log.info("Cannot start sync: already syncing?");
       }
     }
-      
+
     return Utils.catch.call(this, func, lockExceptions);
   },
 
@@ -262,7 +262,7 @@ WeaveSvc.prototype = {
 
     return ok;
   },
-  
+
   
 
 
@@ -285,38 +285,38 @@ WeaveSvc.prototype = {
 
 
   lastHMACEvent: 0,
-  
+
   
 
 
   handleHMACEvent: function handleHMACEvent() {
     let now = Date.now();
-    
+
     
     
     if ((now - this.lastHMACEvent) < HMAC_EVENT_INTERVAL)
       return false;
-    
+
     this._log.info("Bad HMAC event detected. Attempting recovery " +
                    "or signaling to other clients.");
-    
+
     
     this.lastHMACEvent = now;
-    
+
     
     let cryptoKeys = new CryptoWrapper("crypto", "keys");
     try {
       let cryptoResp = cryptoKeys.fetch(this.cryptoKeysURL).response;
-      
+
       
       
       let cipherText = cryptoKeys.ciphertext;
-      
+
       if (!cryptoResp.success) {
         this._log.warn("Failed to download keys.");
         return false;
       }
-      
+
       let keysChanged = this.handleFetchedKeys(this.syncKeyBundle,
                                                cryptoKeys, true);
       if (keysChanged) {
@@ -324,37 +324,37 @@ WeaveSvc.prototype = {
         this._log.info("Suggesting retry.");
         return true;              
       }
-      
+
       
       cryptoKeys.ciphertext = cipherText;
       cryptoKeys.cleartext  = null;
-      
+
       let uploadResp = cryptoKeys.upload(this.cryptoKeysURL);
       if (uploadResp.success)
         this._log.info("Successfully re-uploaded keys. Continuing sync.");
       else
         this._log.warn("Got error response re-uploading keys. " +
                        "Continuing sync; let's try again later.");
-      
+
       return false;            
-      
+
     } catch (ex) {
       this._log.warn("Got exception \"" + ex + "\" fetching and handling " +
                      "crypto keys. Will try again later.");
       return false;
     }
   },
-  
+
   handleFetchedKeys: function handleFetchedKeys(syncKey, cryptoKeys, skipReset) {
     
     
     
     let wasBlank = CollectionKeys.isClear;
     let keysChanged = CollectionKeys.updateContents(syncKey, cryptoKeys);
-    
+
     if (keysChanged && !wasBlank) {
       this._log.debug("Keys changed: " + JSON.stringify(keysChanged));
-      
+
       if (!skipReset) {
         this._log.info("Resetting client to reflect key change.");
 
@@ -372,7 +372,7 @@ WeaveSvc.prototype = {
       return true;
     }
     return false;
-  },                
+  },
 
   
 
@@ -714,7 +714,7 @@ WeaveSvc.prototype = {
 
   _fetchInfo: function _fetchInfo(url) {
     let infoURL = url || this.infoURL;
-    
+
     this._log.trace("In _fetchInfo: " + infoURL);
     let info;
     try {
@@ -731,13 +731,13 @@ WeaveSvc.prototype = {
   },
 
   verifyAndFetchSymmetricKeys: function verifyAndFetchSymmetricKeys(infoResponse) {
-    
+
     this._log.debug("Fetching and verifying -- or generating -- symmetric keys.");
+
     
     
     
-    
-    
+
     let syncKey = this.syncKeyBundle;
     if (!syncKey) {
       this._log.error("No sync key: cannot fetch symmetric keys.");
@@ -745,7 +745,7 @@ WeaveSvc.prototype = {
       Status.sync = CREDENTIALS_CHANGED;             
       return false;
     }
-    
+
     
     if (!Utils.isPassphrase(syncKey.keyStr)) {
       this._log.warn("Sync key input is invalid: cannot fetch symmetric keys.");
@@ -757,31 +757,31 @@ WeaveSvc.prototype = {
     try {
       if (!infoResponse)
         infoResponse = this._fetchInfo();    
-      
+
       
       if (infoResponse.status != 200) {
         this._log.warn("info/collections returned non-200 response. Failing key fetch.");
         Status.login = LOGIN_FAILED_SERVER_ERROR;
         return false;
       }
-      
+
       let infoCollections = infoResponse.obj;
-      
+
       this._log.info("Testing info/collections: " + JSON.stringify(infoCollections));
-      
+
       if (CollectionKeys.updateNeeded(infoCollections)) {
         this._log.info("CollectionKeys reports that a key update is needed.");
+
         
-        
-            
+
         
         let cryptoKeys;
-        
+
         if (infoCollections && ('crypto' in infoCollections)) {
           try {
             cryptoKeys = new CryptoWrapper("crypto", "keys");
             let cryptoResp = cryptoKeys.fetch(this.cryptoKeysURL).response;
-            
+
             if (cryptoResp.success) {
               let keysChanged = this.handleFetchedKeys(syncKey, cryptoKeys);
               return true;
@@ -802,7 +802,7 @@ WeaveSvc.prototype = {
           catch (ex) {
             this._log.warn("Got exception \"" + ex + "\" fetching cryptoKeys.");
             
-            
+
             
             if (Utils.isHMACMismatch(ex)) {
               Status.login = LOGIN_FAILED_INVALID_PASSPHRASE;
@@ -826,13 +826,13 @@ WeaveSvc.prototype = {
           
           
           this.resetClient();
-          
+
           
           this.generateNewSymmetricKeys();
-          
+
           return true;
         }
-        
+
         
         return false;
       }
@@ -840,13 +840,13 @@ WeaveSvc.prototype = {
         
         return true;
       }
-          
+
     } catch (e) {
       
       return false;
     }
   },
-  
+
   verifyLogin: function verifyLogin()
     this._notify("verify-login", "", function() {
       if (!this.username) {
@@ -878,10 +878,10 @@ WeaveSvc.prototype = {
           Svc.Obs.notify("weave:service:sync:delayed");
           return true;
         }
-        
+
         
         let test = new Resource(this.infoURL).get();
-        
+
         switch (test.status) {
           case 200:
             
@@ -903,7 +903,7 @@ WeaveSvc.prototype = {
             Status.login = LOGIN_SUCCEEDED;
             return true;
             }
-            
+
             this._log.warn("Remote setup failed.");
             
             return false;
@@ -961,7 +961,7 @@ WeaveSvc.prototype = {
     let wbo = CollectionKeys.asWBO("crypto", "keys");
     this._log.info("Encrypting new key bundle. Modified time is " + wbo.modified);
     wbo.encrypt(this.syncKeyBundle);
-    
+
     this._log.info("Uploading...");
     let uploadRes = wbo.upload(this.cryptoKeysURL);
     if (uploadRes.status >= 400) {
@@ -1032,16 +1032,16 @@ WeaveSvc.prototype = {
     
     Status.login = LOGIN_FAILED_NO_USERNAME;
     this.logout();
-    
+
     
     this.resetClient();
     CollectionKeys.clear();
-    
+
     
     this._ignorePrefObserver = true;
     Svc.Prefs.resetBranch("");
     this._ignorePrefObserver = false;
-    
+
     Svc.Prefs.set("lastversion", WEAVE_VERSION);
     
     this.password = "";
@@ -1069,16 +1069,16 @@ WeaveSvc.prototype = {
       
       
       this._log.trace("Autoconnect skipped: master password still locked.");
-      
+
       if (this._autoTimer)
         this._autoTimer.clear();
-      
+
       this._checkSyncStatus();
       Svc.Prefs.set("autoconnect", true);
-      
+
       return;
     }
-    
+
     let reason = this._checkSync([kSyncNotLoggedIn, kFirstSyncChoiceNotMade]);
 
     
@@ -1108,7 +1108,7 @@ WeaveSvc.prototype = {
   },
 
   login: function WeaveSvc_login(username, password, passphrase)
-    this._catch(this._lock("service.js: login", 
+    this._catch(this._lock("service.js: login",
           this._notify("login", "", function() {
       this._loggedIn = false;
       if (Svc.IO.offline) {
@@ -1265,30 +1265,30 @@ WeaveSvc.prototype = {
 
     this._log.debug("Fetching global metadata record");
     let meta = Records.get(this.metaURL);
-    
+
     
     if (infoResponse &&
         (infoResponse.obj.meta != this.metaModified) &&
         (!meta || !meta.isNew)) {
-      
+
       
       this._log.debug("Clearing cached meta record. metaModified is " +
           JSON.stringify(this.metaModified) + ", setting to " +
           JSON.stringify(infoResponse.obj.meta));
-      
+
       Records.del(this.metaURL);
-      
+
       
       let newMeta       = Records.get(this.metaURL);
- 
+
       if (!Records.response.success || !newMeta) {
         this._log.debug("No meta/global record on the server. Creating one.");
         newMeta = new WBORecord("meta", "global");
         newMeta.payload.syncID = this.syncID;
         newMeta.payload.storageVersion = STORAGE_VERSION;
- 
+
         newMeta.isNew = true;
- 
+
         Records.set(this.metaURL, newMeta);
         if (!newMeta.upload(this.metaURL).success) {
           this._log.warn("Unable to upload new meta/global. Failing remote setup.");
@@ -1299,7 +1299,7 @@ WeaveSvc.prototype = {
         newMeta.isNew   = meta.isNew;
         newMeta.changed = meta.changed;
       }
-        
+
       
       meta              = newMeta;
       this.metaModified = infoResponse.obj.meta;
@@ -1315,7 +1315,7 @@ WeaveSvc.prototype = {
     
     if (!meta || !meta.payload.storageVersion || !meta.payload.syncID ||
         STORAGE_VERSION > parseFloat(remoteVersion)) {
-      
+
       this._log.info("One of: no meta, no meta storageVersion, or no meta syncID. Fresh start needed.");
 
       
@@ -1334,7 +1334,7 @@ WeaveSvc.prototype = {
         this._log.warn("No sync id, server wipe needed");
 
       reset = true;
-      
+
       this._log.info("Wiping server data");
       this._freshStart();
 
@@ -1352,7 +1352,7 @@ WeaveSvc.prototype = {
       return false;
     }
     else if (meta.payload.syncID != this.syncID) {
-      
+
       this._log.info("Sync IDs differ. Local is " + this.syncID + ", remote is " + meta.payload.syncID);
       this.resetClient();
       CollectionKeys.clear();
@@ -1363,7 +1363,7 @@ WeaveSvc.prototype = {
         this._log.warn("Failed to upgrade sync key. Failing remote setup.");
         return false;
       }
-      
+
       if (!this.verifyAndFetchSymmetricKeys(infoResponse)) {
         this._log.warn("Failed to fetch symmetric keys. Failing remote setup.");
         return false;
@@ -1405,7 +1405,7 @@ WeaveSvc.prototype = {
            !Svc.IO.offline &&
            !this.isLoggedIn;
   },
-  
+
   
 
 
@@ -1441,7 +1441,7 @@ WeaveSvc.prototype = {
 
   _clearSyncTriggers: function _clearSyncTriggers() {
     this._log.debug("Clearing sync triggers.");
-    
+
     
     if (this._syncTimer)
       this._syncTimer.clear();
@@ -1463,14 +1463,14 @@ WeaveSvc.prototype = {
     
     
     let ignore = [kSyncBackoffNotMet];
-    
+
     
     
     if (Utils.mpLocked()) {
       ignore.push(kSyncNotLoggedIn);
       ignore.push(kSyncMasterPasswordLocked);
     }
-    
+
     let skip = this._checkSync(ignore);
     this._log.trace("_checkSync returned \"" + skip + "\".");
     if (skip) {
@@ -1498,7 +1498,7 @@ WeaveSvc.prototype = {
     if (Status.login == MASTER_PASSWORD_LOCKED &&
         Utils.mpLocked()) {
       this._log.debug("Not syncing on idle: Login status is " + Status.login);
-      
+
       
       this._scheduleAtInterval(MASTER_PASSWORD_LOCKED_RETRY_INTERVAL);
       return false;
@@ -1629,7 +1629,7 @@ WeaveSvc.prototype = {
 
     this._scheduleNextSync(interval);
   },
-  
+
   _syncErrors: 0,
   
 
@@ -1646,7 +1646,7 @@ WeaveSvc.prototype = {
       }
       Status.enforceBackoff = true;
     }
-    
+
     this._scheduleAtInterval();
   },
 
@@ -1660,7 +1660,7 @@ WeaveSvc.prototype = {
     return [LOGIN_FAILED_INVALID_PASSPHRASE,
             LOGIN_FAILED_LOGIN_REJECTED].indexOf(Status.login) == -1;
   },
-  
+
   sync: function sync() {
     let dateStr = new Date().toLocaleFormat(LOG_DATE_FORMAT);
     this._log.info("Starting sync at " + dateStr);
@@ -1671,12 +1671,12 @@ WeaveSvc.prototype = {
         if (!this.login()) {
           this._log.debug("Not syncing: login returned false.");
           this._clearSyncTriggers();    
-          
+
           
           
           if (!this._skipScheduledRetry())
             this._scheduleAtInterval(MASTER_PASSWORD_LOCKED_RETRY_INTERVAL);
-    
+
           return;
         }
       }
@@ -1686,12 +1686,12 @@ WeaveSvc.prototype = {
       return this._lockedSync.apply(this, arguments);
     })();
   },
-  
+
   
 
 
   _lockedSync: function _lockedSync()
-    this._lock("service.js: sync", 
+    this._lock("service.js: sync",
                this._notify("sync", "", function() {
 
     this._log.info("In sync().");
@@ -1847,7 +1847,7 @@ WeaveSvc.prototype = {
     let meta = Records.get(this.metaURL);
     if (meta.isNew || !meta.payload.engines)
       return;
-    
+
     
     
     
@@ -1938,16 +1938,16 @@ WeaveSvc.prototype = {
 
   syncKeyNeedsUpgrade: function syncKeyNeedsUpgrade() {
     let p = this.passphrase;
-    
+
     
     if (Utils.isPassphrase(p)) {
       this._log.info("Sync key is up-to-date: no need to upgrade.");
       return false;
     }
-    
+
     return true;
   },
-                         
+
   
 
 
@@ -1960,22 +1960,22 @@ WeaveSvc.prototype = {
 
   upgradeSyncKey: function upgradeSyncKey(syncID) {
     let p = this.passphrase;
-    
+
     
     if (!this.syncKeyNeedsUpgrade(p))
       return true;
+
     
     
-    
-    
+
     let s = btoa(syncID);        
     let k = Utils.derivePresentableKeyFromPassphrase(p, s, PBKDF2_KEY_BYTES);   
-    
+
     if (!k) {
       this._log.error("No key resulted from derivePresentableKeyFromPassphrase. Failing upgrade.");
       return false;
     }
-    
+
     this._log.info("Upgrading sync key...");
     this.passphrase = k;
     this._log.info("Saving upgraded sync key...");
@@ -2006,7 +2006,7 @@ WeaveSvc.prototype = {
       return engine.name;
     });
     this.wipeServer(collections);
-    
+
     
     this.generateNewSymmetricKeys();
   },
