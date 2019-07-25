@@ -264,39 +264,6 @@ nsSMILTimedElement::BeginElementAt(double aOffsetSeconds)
   nsSMILTime currentTime = container->GetCurrentTime();
   AddInstanceTimeFromCurrentTime(currentTime, aOffsetSeconds, PR_TRUE);
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  
-  
-  
-  if (mElementState != STATE_STARTUP) {
-    DoSampleAt(currentTime, PR_FALSE); 
-  }
-
   return NS_OK;
 }
 
@@ -309,9 +276,6 @@ nsSMILTimedElement::EndElementAt(double aOffsetSeconds)
 
   nsSMILTime currentTime = container->GetCurrentTime();
   AddInstanceTimeFromCurrentTime(currentTime, aOffsetSeconds, PR_FALSE);
-  if (mElementState != STATE_STARTUP) {
-    DoSampleAt(currentTime, PR_FALSE); 
-  }
 
   return NS_OK;
 }

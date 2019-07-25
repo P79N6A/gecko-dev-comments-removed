@@ -539,25 +539,20 @@ nsSVGSVGElement::SetCurrentTime(float seconds)
 #ifdef MOZ_SMIL
   if (NS_SMILEnabled()) {
     if (mTimedDocumentRoot) {
+      
+      FlushAnimations();
       double fMilliseconds = double(seconds) * PR_MSEC_PER_SEC;
       
       
       nsSMILTime lMilliseconds = PRInt64(NS_round(fMilliseconds));
       mTimedDocumentRoot->SetCurrentTime(lMilliseconds);
+      AnimationNeedsResample();
       
       
       
       
       
-      
-      
-      nsIDocument* doc = GetCurrentDoc();
-      if (doc) {
-        nsSMILAnimationController* smilController = doc->GetAnimationController();
-        if (smilController) {
-          smilController->Resample();
-        }
-      }
+      FlushAnimations();
     } 
       
     return NS_OK;

@@ -449,12 +449,18 @@ nsSVGAnimationElement::BeginElementAt(float offset)
   NS_ENSURE_FINITE(offset, NS_ERROR_ILLEGAL_VALUE);
 
   
+  FlushAnimations();
+
+  
   
   nsresult rv = mTimedElement.BeginElementAt(offset);
   if (NS_FAILED(rv))
     return rv;
 
   AnimationNeedsResample();
+  
+  
+  FlushAnimations();
 
   return NS_OK;
 }
@@ -472,11 +478,16 @@ nsSVGAnimationElement::EndElementAt(float offset)
 {
   NS_ENSURE_FINITE(offset, NS_ERROR_ILLEGAL_VALUE);
 
+  
+  FlushAnimations();
+
   nsresult rv = mTimedElement.EndElementAt(offset);
   if (NS_FAILED(rv))
     return rv;
 
   AnimationNeedsResample();
+  
+  FlushAnimations();
  
   return NS_OK;
 }
