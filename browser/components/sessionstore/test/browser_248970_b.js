@@ -116,7 +116,7 @@ function test() {
   let rootDir = getRootDirectory(gTestPath);
   const testURL = rootDir + "browser_248970_b_sample.html";
   const testURL2 = "http://mochi.test:8888/browser/" +
-  "browser/components/sessionstore/test/browser/browser_248970_b_sample.html";
+  "browser/components/sessionstore/test/browser_248970_b_sample.html";
 
   
   let count = ss.getClosedTabCount(window);

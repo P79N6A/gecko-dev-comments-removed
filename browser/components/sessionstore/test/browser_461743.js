@@ -40,7 +40,7 @@ function test() {
   waitForExplicitFinish();
 
   let testURL = "http://mochi.test:8888/browser/" +
-    "browser/components/sessionstore/test/browser/browser_461743_sample.html";
+    "browser/components/sessionstore/test/browser_461743_sample.html";
 
   let frameCount = 0;
   let tab = gBrowser.addTab(testURL);

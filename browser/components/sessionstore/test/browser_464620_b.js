@@ -40,21 +40,21 @@ function test() {
   waitForExplicitFinish();
   
   let testURL = "http://mochi.test:8888/browser/" +
-    "browser/components/sessionstore/test/browser/browser_464620_a.html";
+    "browser/components/sessionstore/test/browser_464620_b.html";
   
   var frameCount = 0;
   let tab = gBrowser.addTab(testURL);
   tab.linkedBrowser.addEventListener("load", function(aEvent) {
     
-    if (frameCount++ < 4)
+    if (frameCount++ < 6)
       return;
     this.removeEventListener("load", arguments.callee, true);
     
     executeSoon(function() {
       frameCount = 0;
       let tab2 = gBrowser.duplicateTab(tab);
-      tab2.linkedBrowser.addEventListener("464620_a", function(aEvent) {
-        tab2.linkedBrowser.removeEventListener("464620_a", arguments.callee, true);
+      tab2.linkedBrowser.addEventListener("464620_b", function(aEvent) {
+        tab2.linkedBrowser.removeEventListener("464620_b", arguments.callee, true);
         is(aEvent.data, "done", "XSS injection was attempted");
         
         
@@ -62,9 +62,9 @@ function test() {
         executeSoon(function() {
           setTimeout(function() {
             let win = tab2.linkedBrowser.contentWindow;
-            isnot(win.frames[0].document.location, testURL,
+            isnot(win.frames[1].document.location, testURL,
                   "cross domain document was loaded");
-            ok(!/XXX/.test(win.frames[0].document.body.innerHTML),
+            ok(!/XXX/.test(win.frames[1].document.body.innerHTML),
                "no content was injected");
             
             

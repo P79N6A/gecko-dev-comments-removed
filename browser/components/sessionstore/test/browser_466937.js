@@ -47,7 +47,7 @@ function test() {
   let testPath = file.path;
   
   let testURL = "http://mochi.test:8888/browser/" +
-    "browser/components/sessionstore/test/browser/browser_466937_sample.html";
+    "browser/components/sessionstore/test/browser_466937_sample.html";
   
   let tab = gBrowser.addTab(testURL);
   tab.linkedBrowser.addEventListener("load", function(aEvent) {
