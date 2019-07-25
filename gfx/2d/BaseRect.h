@@ -277,6 +277,19 @@ struct BaseRect {
   T YMost() const { return y + height; }
 
   
+  void SetLeftEdge(T aX) {
+    width = XMost() - aX;
+    x = aX;
+  }
+  void SetRightEdge(T aXMost) { width = aXMost - x; }
+
+  void SetTopEdge(T aY) {
+    height = YMost() - aY;
+    y = aY;
+  }
+  void SetBottomEdge(T aYMost) { height = aYMost - y; }
+
+  
   
   
   
