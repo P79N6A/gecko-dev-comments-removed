@@ -417,6 +417,24 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
     nsDisplayList list;
     
+
+    
+    nsIFrame* rootScrollFrame = presShell->GetRootScrollFrame();
+    if (rootScrollFrame) {
+      nsIContent* content = rootScrollFrame->GetContent();
+      if (content) {
+        nsRect displayPort;
+        bool usingDisplayport =
+          nsLayoutUtils::GetDisplayPort(content, &displayPort);
+        if (usingDisplayport) {
+          if (displayPort.width > subdocBoundsInParentUnits.width)
+            subdocBoundsInParentUnits.width = displayPort.width;
+          if (displayPort.height > subdocBoundsInParentUnits.height)
+            subdocBoundsInParentUnits.height = displayPort.height;
+        }
+      }
+    }
+
     rv = list.AppendNewToTop(
         new (aBuilder) nsDisplayClip(aBuilder, this, &childItems,
                                      subdocBoundsInParentUnits));
