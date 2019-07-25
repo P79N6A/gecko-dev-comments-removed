@@ -3418,8 +3418,6 @@ ScriptAnalysis::analyzeTypesBytecode(JSContext *cx, unsigned offset,
         break;
       }
 
-      case JSOP_GETALIASEDVAR:
-      case JSOP_CALLALIASEDVAR:
       case JSOP_GETARG:
       case JSOP_CALLARG:
       case JSOP_GETLOCAL:
@@ -3439,12 +3437,11 @@ ScriptAnalysis::analyzeTypesBytecode(JSContext *cx, unsigned offset,
             
             pushed[0].addType(cx, Type::UnknownType());
         }
-        if (op == JSOP_CALLARG || op == JSOP_CALLLOCAL || op == JSOP_CALLALIASEDVAR)
+        if (op == JSOP_CALLARG || op == JSOP_CALLLOCAL)
             pushed[0].addPropagateThis(cx, script, pc, Type::UndefinedType());
         break;
       }
 
-      case JSOP_SETALIASEDVAR:
       case JSOP_SETARG:
       case JSOP_SETLOCAL: {
         uint32_t slot = GetBytecodeSlot(script, pc);
@@ -3461,6 +3458,24 @@ ScriptAnalysis::analyzeTypesBytecode(JSContext *cx, unsigned offset,
         poppedTypes(pc, 0)->addSubset(cx, &pushed[0]);
         break;
       }
+
+      case JSOP_GETALIASEDVAR:
+      case JSOP_CALLALIASEDVAR:
+        
+
+
+
+
+
+
+        bytecodeTypes(pc)->addSubset(cx, &pushed[0]);
+        if (op == JSOP_CALLALIASEDVAR)
+            pushed[0].addPropagateThis(cx, script, pc, Type::UnknownType());
+        break;
+
+      case JSOP_SETALIASEDVAR:
+        poppedTypes(pc, 0)->addSubset(cx, &pushed[0]);
+        break;
 
       case JSOP_INCARG:
       case JSOP_DECARG:
