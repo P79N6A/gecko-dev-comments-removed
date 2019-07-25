@@ -3041,7 +3041,8 @@ nsJSContext::CycleCollectNow(nsICycleCollectorListener *aListener,
 
   if (sCCLockedOut) {
     
-    nsJSContext::GarbageCollectNow(js::gcreason::CC_FORCED);
+    js::PrepareForIncrementalGC(nsJSRuntime::sRuntime);
+    js::FinishIncrementalGC(nsJSRuntime::sRuntime, js::gcreason::CC_FORCED);
   }
 
   SAMPLE_LABEL("GC", "CycleCollectNow");
@@ -3231,7 +3232,8 @@ CCTimerFired(nsITimer *aTimer, void *aClosure)
     }
 
     
-    nsJSContext::GarbageCollectNow(js::gcreason::CC_FORCED);
+    js::PrepareForIncrementalGC(nsJSRuntime::sRuntime);
+    js::FinishIncrementalGC(nsJSRuntime::sRuntime, js::gcreason::CC_FORCED);
   }
 
   ++sCCTimerFireCount;
