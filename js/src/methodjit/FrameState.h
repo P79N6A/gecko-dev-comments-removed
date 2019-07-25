@@ -877,7 +877,7 @@ class FrameState
     Address addressForDataRemat(const FrameEntry *fe) const;
 
     
-    Address addressForInlineReturn() const;
+    Address addressForInlineReturn();
 
     inline StateRemat dataRematInfo(const FrameEntry *fe) const;
 
