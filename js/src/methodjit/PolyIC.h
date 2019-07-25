@@ -187,57 +187,7 @@ union PICLabels {
 };
 #endif
 
-struct BaseIC {
-    
-    JSC::CodeLocationLabel fastPathStart;
-
-    
-    JSC::CodeLocationLabel fastPathRejoin;
-
-    
-    JSC::CodeLocationLabel slowPathStart;
-
-    
-    JSC::CodeLocationCall slowPathCall;
-
-    
-    JSC::CodeLocationLabel lastStubStart;
-
-    typedef Vector<JSC::ExecutablePool *, 0, SystemAllocPolicy> ExecPoolVector;
-
-    
-    ExecPoolVector execPools;
-
-    
-    
-    JSC::CodeLocationLabel lastPathStart() {
-        return stubsGenerated > 0 ? lastStubStart : fastPathStart;
-    }
-
-    
-    bool hit : 1;
-
-    
-    uint32 stubsGenerated : 5;
-
-    
-    void releasePools() {
-        for (JSC::ExecutablePool **pExecPool = execPools.begin();
-             pExecPool != execPools.end();
-             ++pExecPool) {
-            (*pExecPool)->release();
-        }
-    }
-
-    void reset() {
-        hit = false;
-        stubsGenerated = 0;
-        releasePools();
-        execPools.clear();
-    }
-};
-
-struct PICInfo : public BaseIC {
+struct PICInfo {
     typedef JSC::MacroAssembler::RegisterID RegisterID;
 
     
@@ -257,6 +207,7 @@ struct PICInfo : public BaseIC {
     };
 
     union {
+        
         struct {
             RegisterID typeReg  : 5;  
             bool hasTypeCheck   : 1;  
@@ -265,9 +216,11 @@ struct PICInfo : public BaseIC {
             int32 typeCheckOffset;
 
             
-            int32 objRemat      : MIN_STATE_REMAT_BITS;
+            uint32 objRemat     : 20;
             bool objNeedsRemat  : 1;
             RegisterID idReg    : 5;  
+            uint32 idRemat      : 20;
+            bool idNeedsRemat   : 1;
         } get;
         ValueRemat vr;
     } u;
@@ -284,18 +237,25 @@ struct PICInfo : public BaseIC {
     bool shapeRegHasBaseShape : 1;
 
     
+    bool hit : 1;                   
     bool inlinePathPatched : 1;     
 
     RegisterID shapeReg : 5;        
     RegisterID objReg   : 5;        
 
     
+    uint32 stubsGenerated : 5;
+
+    
     uint32 shapeGuard;
     
-    inline bool isSet() const {
+    
+    uint32 callReturn;
+
+    inline bool isSet() {
         return kind == SET || kind == SETMETHOD;
     }
-    inline bool isGet() const {
+    inline bool isGet() {
         return kind == GET || kind == CALL || kind == GETELEM;
     }
     inline RegisterID typeReg() {
@@ -306,13 +266,21 @@ struct PICInfo : public BaseIC {
         JS_ASSERT(isGet());
         return u.get.hasTypeCheck;
     }
-    inline const StateRemat objRemat() const {
+    inline uint32 objRemat() {
         JS_ASSERT(isGet());
-        return StateRemat::FromInt32(u.get.objRemat);
+        return u.get.objRemat;
+    }
+    inline uint32 idRemat() {
+        JS_ASSERT(isGet());
+        return u.get.idRemat;
     }
     inline bool objNeedsRemat() {
         JS_ASSERT(isGet());
         return u.get.objNeedsRemat;
+    }
+    inline bool idNeedsRemat() {
+        JS_ASSERT(isGet());
+        return u.get.idNeedsRemat;
     }
     inline bool shapeNeedsRemat() {
         return !shapeRegHasBaseShape;
@@ -320,12 +288,6 @@ struct PICInfo : public BaseIC {
     inline bool isFastCall() {
         JS_ASSERT(kind == CALL);
         return !hasTypeCheck();
-    }
-
-    inline void setObjRemat(const StateRemat &sr) {
-        JS_ASSERT(isGet());
-        u.get.objRemat = sr.toInt32();
-        JS_ASSERT(u.get.objRemat == sr.toInt32());
     }
 
 #if defined JS_CPU_X64
@@ -336,19 +298,56 @@ struct PICInfo : public BaseIC {
     
     JSAtom *atom;
 
+    
+    JSC::CodeLocationLabel fastPathStart;
+
+    
+    JSC::CodeLocationLabel storeBack;
+
+    
+    JSC::CodeLocationLabel slowPathStart;
+
+    
+    JSC::CodeLocationLabel lastStubStart;
+
+    typedef Vector<JSC::ExecutablePool *, 0, SystemAllocPolicy> ExecPoolVector;
+
+    
+    ExecPoolVector execPools;
+
+    
+    
+    JSC::CodeLocationLabel lastPathStart() {
+        return stubsGenerated > 0 ? lastStubStart : fastPathStart;
+    }
+
     bool shouldGenerate() {
         return stubsGenerated < MAX_PIC_STUBS || !inlinePathPatched;
     }
 
     
+    void releasePools() {
+        for (JSC::ExecutablePool **pExecPool = execPools.begin();
+             pExecPool != execPools.end();
+             ++pExecPool)
+        {
+            (*pExecPool)->release();
+        }
+    }
+
+    
     
     void reset() {
+        hit = false;
         inlinePathPatched = false;
-        if (kind == GET || kind == CALL || kind == GETELEM)
+        if (kind == GET || kind == CALL || kind == GETELEM) {
             u.get.objNeedsRemat = false;
+        }
         secondShapeGuard = 0;
         shapeRegHasBaseShape = true;
-        BaseIC::reset();
+        stubsGenerated = 0;
+        releasePools();
+        execPools.clear();
     }
 };
 
