@@ -6,6 +6,7 @@ package org.mozilla.gecko.sync;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -186,6 +187,17 @@ public class SyncConfiguration implements CredentialsSource {
   public String          syncID;
 
   
+
+
+
+
+
+
+
+
+  public Set<String>     enabledEngineNames;
+
+  
   
   
   public String          prefsPath;
@@ -196,6 +208,7 @@ public class SyncConfiguration implements CredentialsSource {
 
   public static final String PREF_CLUSTER_URL = "clusterURL";
   public static final String PREF_SYNC_ID = "syncID";
+  public static final String PREF_ENABLED_ENGINE_NAMES = "enabledEngineNames";
 
   
 
@@ -237,6 +250,15 @@ public class SyncConfiguration implements CredentialsSource {
       syncID = prefs.getString(PREF_SYNC_ID, null);
       Logger.info(LOG_TAG, "Set syncID from bundle: " + syncID);
     }
+    if (prefs.contains(PREF_ENABLED_ENGINE_NAMES)) {
+      String json = prefs.getString(PREF_ENABLED_ENGINE_NAMES, null);
+      try {
+        ExtendedJSONObject o = ExtendedJSONObject.parseJSONObject(json);
+        enabledEngineNames = new HashSet<String>(o.keySet());
+      } catch (Exception e) {
+        
+      }
+    }
     
     
     
@@ -255,6 +277,15 @@ public class SyncConfiguration implements CredentialsSource {
     }
     if (syncID != null) {
       edit.putString(PREF_SYNC_ID, syncID);
+    }
+    if (enabledEngineNames == null) {
+      edit.remove(PREF_ENABLED_ENGINE_NAMES);
+    } else {
+      ExtendedJSONObject o = new ExtendedJSONObject();
+      for (String engineName : enabledEngineNames) {
+        o.put(engineName, 0);
+      }
+      edit.putString(PREF_ENABLED_ENGINE_NAMES, o.toJSONString());
     }
     edit.commit();
     
