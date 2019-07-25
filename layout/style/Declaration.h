@@ -61,11 +61,16 @@
 #include "nsCSSDataBlock.h"
 #include "nsCSSStruct.h"
 
-
-class CSSStyleRuleImpl;
-
 namespace mozilla {
 namespace css {
+
+
+
+
+
+
+
+
 
 class Declaration {
 public:
@@ -77,6 +82,8 @@ public:
   Declaration();
 
   Declaration(const Declaration& aCopy);
+
+  ~Declaration();
 
   
 
@@ -100,8 +107,6 @@ public:
 
   void ToString(nsAString& aString) const;
 
-  Declaration* Clone() const;
-
   nsCSSCompressedDataBlock* GetNormalBlock() const { return mData; }
   nsCSSCompressedDataBlock* GetImportantBlock() const { return mImportantData; }
 
@@ -117,8 +122,8 @@ public:
   void CompressFrom(nsCSSExpandedDataBlock *aExpandedData) {
     NS_ASSERTION(!mData, "oops");
     NS_ASSERTION(!mImportantData, "oops");
-    aExpandedData->Compress(getter_AddRefs(mData),
-                            getter_AddRefs(mImportantData));
+    aExpandedData->Compress(getter_Transfers(mData),
+                            getter_Transfers(mImportantData));
     aExpandedData->AssertInitialState();
   }
 
@@ -134,9 +139,21 @@ public:
     aExpandedData->AssertInitialState();
 
     NS_ASSERTION(mData, "oops");
-    aExpandedData->Expand(&mData, &mImportantData);
-    NS_ASSERTION(!mData && !mImportantData,
-                 "Expand didn't null things out");
+    aExpandedData->Expand(mData.forget(), mImportantData.forget());
+  }
+
+  
+
+
+
+  void MapNormalRuleInfoInto(nsRuleData *aRuleData) const {
+    NS_ABORT_IF_FALSE(mData, "called while expanded");
+    mData->MapRuleInfoInto(aRuleData);
+  }
+  void MapImportantRuleInfoInto(nsRuleData *aRuleData) const {
+    NS_ABORT_IF_FALSE(mData, "called while expanded");
+    NS_ABORT_IF_FALSE(mImportantData, "must have important data");
+    mImportantData->MapRuleInfoInto(aRuleData);
   }
 
   
@@ -179,6 +196,13 @@ public:
   
 
 
+  bool IsMutable() const {
+    return !mImmutable;
+  }
+
+  
+
+
   Declaration* EnsureMutable();
 
   
@@ -187,6 +211,11 @@ public:
   void AssertMutable() const {
     NS_ABORT_IF_FALSE(IsMutable(), "someone forgot to call EnsureMutable");
   }
+
+  
+
+
+  void SetImmutable() { mImmutable = PR_TRUE; }
 
   
 
@@ -210,67 +239,27 @@ private:
 
   static void AppendImportanceToString(PRBool aIsImportant, nsAString& aString);
   
-  PRBool   AppendValueToString(nsCSSProperty aProperty, nsAString& aResult) const;
+  PRBool AppendValueToString(nsCSSProperty aProperty, nsAString& aResult) const;
   
-  void     AppendPropertyAndValueToString(nsCSSProperty aProperty,
-                                          nsAutoString& aValue,
-                                          nsAString& aResult) const;
-
-private:
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    friend class ::CSSStyleRuleImpl;
-    void AddRef(void) {
-      if (mRefCnt == PR_UINT32_MAX) {
-        NS_WARNING("refcount overflow, leaking object");
-        return;
-      }
-      ++mRefCnt;
-    }
-    void Release(void) {
-      if (mRefCnt == PR_UINT32_MAX) {
-        NS_WARNING("refcount overflow, leaking object");
-        return;
-      }
-      NS_ASSERTION(0 < mRefCnt, "bad Release");
-      if (0 == --mRefCnt) {
-        delete this;
-      }
-    }
-public:
-    void RuleAbort(void) {
-      NS_ASSERTION(0 == mRefCnt, "bad RuleAbort");
-      delete this;
-    }
-private:
-  
-  ~Declaration();
+  void AppendPropertyAndValueToString(nsCSSProperty aProperty,
+                                      nsAutoString& aValue,
+                                      nsAString& aResult) const;
 
   nsCSSProperty OrderValueAt(PRUint32 aValue) const {
     return nsCSSProperty(mOrder.ElementAt(aValue));
   }
 
-private:
-    bool IsMutable() const {
-      return ((!mData || mData->IsMutable()) &&
-              (!mImportantData || mImportantData->IsMutable()));
-    }
+  nsAutoTArray<PRUint8, 8> mOrder;
 
-    nsAutoTArray<PRUint8, 8> mOrder;
-    nsAutoRefCnt mRefCnt;
+  
+  
+  nsAutoPtr<nsCSSCompressedDataBlock> mData;
 
-    
-    nsRefPtr<nsCSSCompressedDataBlock> mData;
+  
+  nsAutoPtr<nsCSSCompressedDataBlock> mImportantData;
 
-    
-    nsRefPtr<nsCSSCompressedDataBlock> mImportantData;
+  
+  PRPackedBool mImmutable;
 };
 
 } 

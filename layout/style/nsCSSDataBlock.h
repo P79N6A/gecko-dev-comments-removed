@@ -39,13 +39,13 @@
 
 
 
+
 #ifndef nsCSSDataBlock_h__
 #define nsCSSDataBlock_h__
 
 #include "nsCSSStruct.h"
 #include "nsCSSProps.h"
 #include "nsCSSPropertySet.h"
-#include "nsAutoPtr.h"
 
 struct nsRuleData;
 class nsCSSExpandedDataBlock;
@@ -62,15 +62,16 @@ class Declaration;
 
 
 
-
-
-
-
-
 class nsCSSCompressedDataBlock {
-public:
+private:
     friend class nsCSSExpandedDataBlock;
-    friend class mozilla::css::Declaration;
+
+    
+    
+    nsCSSCompressedDataBlock() : mStyleBits(0) {}
+
+public:
+    ~nsCSSCompressedDataBlock();
 
     
 
@@ -89,6 +90,13 @@ public:
 
 
     const void* StorageFor(nsCSSProperty aProperty) const;
+
+    
+
+
+    void* SlotForValue(nsCSSProperty aProperty) {
+      return const_cast<void*>(StorageFor(aProperty));
+    }
 
     
 
@@ -129,31 +137,12 @@ public:
     
 
 
-    already_AddRefed<nsCSSCompressedDataBlock> Clone() const;
+    nsCSSCompressedDataBlock* Clone() const;
 
     
 
 
-    static already_AddRefed<nsCSSCompressedDataBlock> CreateEmptyBlock();
-
-    void AddRef() {
-        NS_ASSERTION(mRefCnt == 0 || mRefCnt == 1,
-                     "unexpected reference count");
-        ++mRefCnt;
-    }
-    void Release() {
-        NS_ASSERTION(mRefCnt == 1 || mRefCnt == 2,
-                     "unexpected reference count");
-        if (--mRefCnt == 0) {
-            Destroy();
-        }
-    }
-
-    PRBool IsMutable() const {
-        NS_ASSERTION(mRefCnt == 1 || mRefCnt == 2,
-                     "unexpected reference count");
-        return mRefCnt < 2;
-    }
+    static nsCSSCompressedDataBlock* CreateEmptyBlock();
 
     
 
@@ -171,7 +160,6 @@ public:
 private:
     PRInt32 mStyleBits; 
                         
-    nsAutoRefCnt mRefCnt;
 
     enum { block_chars = 4 }; 
                               
@@ -181,12 +169,6 @@ private:
         return ::operator new(aBaseSize + aDataSize -
                               sizeof(char) * block_chars);
     }
-
-    nsCSSCompressedDataBlock() : mStyleBits(0) {}
-
-    
-    
-    ~nsCSSCompressedDataBlock() { }
 
     
 
@@ -201,13 +183,6 @@ private:
     const char* Block() const { return mBlock_; }
     const char* BlockEnd() const { return mBlockEnd; }
     ptrdiff_t DataSize() const { return BlockEnd() - Block(); }
-
-    
-    
-    void* SlotForValue(nsCSSProperty aProperty) {
-      NS_ABORT_IF_FALSE(IsMutable(), "must be mutable");
-      return const_cast<void*>(StorageFor(aProperty));
-    }
 };
 
 class nsCSSExpandedDataBlock {
@@ -245,9 +220,8 @@ public:
 
 
 
-
-    void Expand(nsRefPtr<nsCSSCompressedDataBlock> *aNormalBlock,
-                nsRefPtr<nsCSSCompressedDataBlock> *aImportantBlock);
+    void Expand(nsCSSCompressedDataBlock *aNormalBlock,
+                nsCSSCompressedDataBlock *aImportantBlock);
 
     
 
@@ -309,8 +283,7 @@ private:
     };
     ComputeSizeResult ComputeSize();
 
-    void DoExpand(nsRefPtr<nsCSSCompressedDataBlock> *aBlock,
-                  PRBool aImportant);
+    void DoExpand(nsCSSCompressedDataBlock *aBlock, PRBool aImportant);
 
     
 

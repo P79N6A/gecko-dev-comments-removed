@@ -1609,7 +1609,7 @@ BuildStyleRule(nsCSSProperty aProperty,
                PRBool aUseSVGMode)
 {
   
-  css::Declaration* declaration = new css::Declaration();
+  nsAutoPtr<css::Declaration> declaration(new css::Declaration());
   declaration->InitializeEmpty();
 
   PRBool changed; 
@@ -1638,11 +1638,10 @@ BuildStyleRule(nsCSSProperty aProperty,
       
       !declaration->HasNonImportantValueFor(propertyToCheck)) {
     NS_WARNING("failure in BuildStyleRule");
-    declaration->RuleAbort();  
     return nsnull;
   }
 
-  return NS_NewCSSStyleRule(nsnull, declaration);
+  return NS_NewCSSStyleRule(nsnull, declaration.forget());
 }
 
 inline
