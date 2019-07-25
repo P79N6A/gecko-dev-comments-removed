@@ -46,10 +46,16 @@
 
 
 #define NS_ICANVASRENDERINGCONTEXTINTERNAL_IID \
-  { 0xed741c16, 0x4039, 0x469b, { 0x91, 0xda, 0xdc, 0xa7, 0x42, 0xc5, 0x1a, 0x9f } }
+  { 0x3c4632ab, 0x8443, 0x4082, { 0xa8, 0xa3, 0x10, 0xe7, 0xcf, 0xba, 0x4c, 0x74 } }
 
 class gfxContext;
 class gfxASurface;
+
+namespace mozilla {
+namespace ipc {
+class Shmem;
+}
+}
 
 class nsICanvasRenderingContextInternal : public nsISupports {
 public:
@@ -90,6 +96,17 @@ public:
 
   
   NS_IMETHOD Redraw(const gfxRect &dirty) = 0;
+
+  
+  
+  
+  
+  NS_IMETHOD SetIsShmem(PRBool isShmem) = 0;
+
+  
+  
+  NS_IMETHOD Swap(mozilla::ipc::Shmem &back,
+                  PRInt32 x, PRInt32 y, PRInt32 w, PRInt32 h) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsICanvasRenderingContextInternal,

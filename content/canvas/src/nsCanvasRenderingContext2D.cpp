@@ -116,9 +116,12 @@
 #include "CanvasUtils.h"
 
 #ifdef MOZ_IPC
+#  include "mozilla/dom/ContentProcessParent.h"
 #  include "mozilla/ipc/PDocumentRendererParent.h"
+#  include "mozilla/ipc/PDocumentRendererShmemParent.h"
 #  include "mozilla/dom/PIFrameEmbeddingParent.h"
 #  include "mozilla/ipc/DocumentRendererParent.h"
+#  include "mozilla/ipc/DocumentRendererShmemParent.h"
 
 #  undef DrawText
 #endif
@@ -170,6 +173,28 @@ static PRBool FloatValidate (double f1, double f2, double f3, double f4, double 
 }
 
 #undef VALIDATE
+
+static void
+CopyContext(gfxContext* dest, gfxContext* src)
+{
+    dest->Multiply(src->CurrentMatrix());
+
+    nsRefPtr<gfxPath> path = src->CopyPath();
+    dest->NewPath();
+    dest->AppendPath(path);
+
+    nsRefPtr<gfxPattern> pattern = src->GetPattern();
+    dest->SetPattern(pattern);
+
+    dest->SetLineWidth(src->CurrentLineWidth());
+    dest->SetLineCap(src->CurrentLineCap());
+    dest->SetLineJoin(src->CurrentLineJoin());
+    dest->SetMiterLimit(src->CurrentMiterLimit());
+    dest->SetFillRule(src->CurrentFillRule());
+
+    dest->SetAntialiasMode(src->CurrentAntialiasMode());
+}
+
 
 
 
@@ -227,7 +252,7 @@ NS_IMPL_RELEASE(nsCanvasGradient)
 NS_INTERFACE_MAP_BEGIN(nsCanvasGradient)
   NS_INTERFACE_MAP_ENTRY(nsCanvasGradient)
   NS_INTERFACE_MAP_ENTRY(nsIDOMCanvasGradient)
-  NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(CanvasGradient)
+  NS_INTERFACE_MAP_ENTRY_CONTENT_CLASSINFO(CanvasGradient)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
@@ -273,7 +298,7 @@ NS_IMPL_RELEASE(nsCanvasPattern)
 NS_INTERFACE_MAP_BEGIN(nsCanvasPattern)
   NS_INTERFACE_MAP_ENTRY(nsCanvasPattern)
   NS_INTERFACE_MAP_ENTRY(nsIDOMCanvasPattern)
-  NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(CanvasPattern)
+  NS_INTERFACE_MAP_ENTRY_CONTENT_CLASSINFO(CanvasPattern)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
@@ -310,7 +335,7 @@ NS_IMPL_RELEASE(nsTextMetrics)
 NS_INTERFACE_MAP_BEGIN(nsTextMetrics)
   NS_INTERFACE_MAP_ENTRY(nsTextMetrics)
   NS_INTERFACE_MAP_ENTRY(nsIDOMTextMetrics)
-  NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(TextMetrics)
+  NS_INTERFACE_MAP_ENTRY_CONTENT_CLASSINFO(TextMetrics)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
@@ -339,8 +364,13 @@ public:
                               nsIInputStream **aStream);
     NS_IMETHOD GetThebesSurface(gfxASurface **surface);
     NS_IMETHOD SetIsOpaque(PRBool isOpaque);
+    NS_IMETHOD SetIsShmem(PRBool isShmem);
     
     NS_IMETHOD Redraw(const gfxRect &r);
+    
+    
+    NS_IMETHOD Swap(mozilla::ipc::Shmem &back, PRInt32 x, PRInt32 y, 
+                    PRInt32 w, PRInt32 h);
 
     
     NS_DECL_ISUPPORTS
@@ -404,6 +434,21 @@ protected:
     PRInt32 mWidth, mHeight;
     PRPackedBool mValid;
     PRPackedBool mOpaque;
+
+#ifdef MOZ_IPC
+    PRPackedBool mShmem;
+
+    
+    
+    mozilla::ipc::Shmem mFrontBuffer;
+    mozilla::ipc::Shmem mBackBuffer;
+    nsRefPtr<gfxASurface> mBackSurface;
+
+    
+    
+    bool CreateShmemSegments(PRInt32 width, PRInt32 height,
+                             gfxASurface::gfxImageFormat format);
+#endif
 
     
     
@@ -672,7 +717,7 @@ NS_INTERFACE_MAP_BEGIN(nsCanvasRenderingContext2D)
   NS_INTERFACE_MAP_ENTRY(nsIDOMCanvasRenderingContext2D)
   NS_INTERFACE_MAP_ENTRY(nsICanvasRenderingContextInternal)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIDOMCanvasRenderingContext2D)
-  NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(CanvasRenderingContext2D)
+  NS_INTERFACE_MAP_ENTRY_CONTENT_CLASSINFO(CanvasRenderingContext2D)
 NS_INTERFACE_MAP_END
 
 
@@ -697,7 +742,7 @@ NS_NewCanvasRenderingContext2D(nsIDOMCanvasRenderingContext2D** aResult)
 }
 
 nsCanvasRenderingContext2D::nsCanvasRenderingContext2D()
-    : mValid(PR_FALSE), mOpaque(PR_FALSE), mCanvasElement(nsnull),
+    : mValid(PR_FALSE), mOpaque(PR_FALSE), mShmem(PR_FALSE), mCanvasElement(nsnull),
       mSaveCount(0), mIsEntireFrameInvalid(PR_FALSE), mInvalidateCount(0),
       mLastStyle(STYLE_MAX), mStyleStack(20)
 {
@@ -905,6 +950,26 @@ nsCanvasRenderingContext2D::Redraw(const gfxRect& r)
     return mCanvasElement->InvalidateFrameSubrect(r);
 }
 
+#ifdef MOZ_IPC
+bool
+nsCanvasRenderingContext2D::CreateShmemSegments(PRInt32 width, PRInt32 height,
+                                                gfxASurface::gfxImageFormat format)
+{
+    if (!mozilla::dom::ContentProcessParent::GetSingleton()->
+                AllocShmem(width * height * 4, &mFrontBuffer))
+        return false;
+    if (!mozilla::dom::ContentProcessParent::GetSingleton()->
+                AllocShmem(width * height * 4, &mBackBuffer))
+        return false;
+
+    mBackSurface = new gfxImageSurface(mBackBuffer.get<unsigned char>(),
+                                       gfxIntSize(width, height),
+                                       width * 4, format);
+
+    return true;
+}
+#endif
+
 NS_IMETHODIMP
 nsCanvasRenderingContext2D::SetDimensions(PRInt32 width, PRInt32 height)
 {
@@ -918,12 +983,19 @@ nsCanvasRenderingContext2D::SetDimensions(PRInt32 width, PRInt32 height)
         if (mOpaque)
             format = gfxASurface::ImageFormatRGB24;
 
-        surface = gfxPlatform::GetPlatform()->CreateOffscreenSurface
-            (gfxIntSize(width, height), format);
+#ifdef MOZ_IPC
+        if (mShmem && CreateShmemSegments(width, height, format)) {
+            NS_ABORT_IF_FALSE(mFrontBuffer.get<unsigned char>(), "No front buffer!");
+            surface = new gfxImageSurface(mFrontBuffer.get<unsigned char>(),
+                                          gfxIntSize(width, height),
+                                          width * 4, format);
+        } else
+#endif
+            surface = gfxPlatform::GetPlatform()->CreateOffscreenSurface
+                (gfxIntSize(width, height), format);
 
-        if (surface->CairoStatus() != 0) {
-          surface = NULL;
-        }
+        if (surface && surface->CairoStatus() != 0)
+            surface = NULL;
     }
     return InitializeWithSurface(NULL, surface, width, height);
 }
@@ -999,6 +1071,62 @@ nsCanvasRenderingContext2D::SetIsOpaque(PRBool isOpaque)
     }
 
     return NS_OK;
+}
+
+NS_IMETHODIMP
+nsCanvasRenderingContext2D::SetIsShmem(PRBool isShmem)
+{
+    if (isShmem == mShmem)
+        return NS_OK;
+
+    mShmem = isShmem;
+
+    if (mValid) {
+        
+
+
+        return SetDimensions(mWidth, mHeight);
+    }
+
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsCanvasRenderingContext2D::Swap(mozilla::ipc::Shmem &aBack, 
+                                 PRInt32 x, PRInt32 y, PRInt32 w, PRInt32 h)
+{
+#ifndef MOZ_IPC
+    return NS_ERROR_NOT_IMPLEMENTED;
+#else
+    
+    
+    
+    if (mFrontBuffer.Size<unsigned char>() != aBack.Size<unsigned char>())
+        return NS_OK;
+
+    
+    
+    
+    mBackBuffer = mFrontBuffer;
+    mFrontBuffer = aBack;
+
+    
+    nsRefPtr<gfxASurface> tmp = mSurface;
+    mSurface = mBackSurface;
+    mBackSurface = tmp;
+
+    nsRefPtr<gfxContext> ctx = new gfxContext(mSurface);
+    CopyContext(ctx, mThebes);
+    mThebes = ctx;
+
+    Redraw(gfxRect(x, y, w, h));
+
+    
+    memcpy(mBackBuffer.get<unsigned char>(), mFrontBuffer.get<unsigned char>(),
+           mWidth * mHeight * 4);
+
+    return NS_OK;
+#endif
 }
 
 NS_IMETHODIMP
@@ -1534,27 +1662,6 @@ nsCanvasRenderingContext2D::GetShadowColor(nsAString& color)
     StyleColorToString(CurrentState().colorStyles[STYLE_SHADOW], color);
 
     return NS_OK;
-}
-
-static void
-CopyContext(gfxContext* dest, gfxContext* src)
-{
-    dest->Multiply(src->CurrentMatrix());
-
-    nsRefPtr<gfxPath> path = src->CopyPath();
-    dest->NewPath();
-    dest->AppendPath(path);
-
-    nsRefPtr<gfxPattern> pattern = src->GetPattern();
-    dest->SetPattern(pattern);
-
-    dest->SetLineWidth(src->CurrentLineWidth());
-    dest->SetLineCap(src->CurrentLineCap());
-    dest->SetLineJoin(src->CurrentLineJoin());
-    dest->SetMiterLimit(src->CurrentMiterLimit());
-    dest->SetFillRule(src->CurrentFillRule());
-
-    dest->SetAntialiasMode(src->CurrentAntialiasMode());
 }
 
 static const gfxFloat SIGMA_MAX = 25;
@@ -3461,11 +3568,37 @@ nsCanvasRenderingContext2D::AsyncDrawXULElement(nsIDOMXULElement* aElem, float a
             w = nsPresContext::CSSPixelsToAppUnits(aW),
             h = nsPresContext::CSSPixelsToAppUnits(aH);
 
-    mozilla::ipc::PDocumentRendererParent *pdocrender =
-        child->SendPDocumentRendererConstructor(x, y, w, h, nsString(aBGColor), renderDocFlags, flush);
-    mozilla::ipc::DocumentRendererParent *docrender = static_cast<mozilla::ipc::DocumentRendererParent *>(pdocrender);
+    if (mShmem) {
+        if (!mBackBuffer.IsWritable())
+            return NS_ERROR_FAILURE;
 
-    docrender->SetCanvasContext(this, mThebes);
+        mozilla::ipc::PDocumentRendererShmemParent *pdocrender =
+            child->SendPDocumentRendererShmemConstructor(x, y, w, h,
+                                                         nsString(aBGColor),
+                                                         renderDocFlags, flush,
+							 mThebes->CurrentMatrix(),
+                                                         mWidth, mHeight,
+                                                         mBackBuffer);
+        if (!pdocrender)
+            return NS_ERROR_FAILURE;
+
+        mozilla::ipc::DocumentRendererShmemParent *docrender = 
+            static_cast<mozilla::ipc::DocumentRendererShmemParent *>(pdocrender);
+
+        docrender->SetCanvas(this);
+    } else {
+        mozilla::ipc::PDocumentRendererParent *pdocrender =
+            child->SendPDocumentRendererConstructor(x, y, w, h,
+                                                    nsString(aBGColor),
+                                                    renderDocFlags, flush);
+        if (!pdocrender)
+            return NS_ERROR_FAILURE;
+
+        mozilla::ipc::DocumentRendererParent *docrender =
+            static_cast<mozilla::ipc::DocumentRendererParent *>(pdocrender);
+
+        docrender->SetCanvasContext(this, mThebes);
+    }
 
     return NS_OK;
 #else
