@@ -104,6 +104,7 @@ typedef FrameMetrics::ViewID ViewID;
  PRUint32 nsLayoutUtils::sFontSizeInflationEmPerLine;
  PRUint32 nsLayoutUtils::sFontSizeInflationMinTwips;
  PRUint32 nsLayoutUtils::sFontSizeInflationLineThreshold;
+ PRInt32 nsLayoutUtils::sFontSizeInflationMappingIntercept;
 
 static ViewID sScrollIdCounter = FrameMetrics::START_SCROLL_ID;
 
@@ -1024,7 +1025,6 @@ nsLayoutUtils::GetEventCoordinatesRelativeTo(const nsEvent* aEvent, nsIFrame* aF
 {
   if (!aEvent || (aEvent->eventStructType != NS_MOUSE_EVENT &&
                   aEvent->eventStructType != NS_MOUSE_SCROLL_EVENT &&
-                  aEvent->eventStructType != NS_WHEEL_EVENT &&
                   aEvent->eventStructType != NS_DRAG_EVENT &&
                   aEvent->eventStructType != NS_SIMPLE_GESTURE_EVENT &&
                   aEvent->eventStructType != NS_GESTURENOTIFY_EVENT &&
@@ -4635,6 +4635,8 @@ nsLayoutUtils::Initialize()
                                         "font.size.inflation.minTwips");
   mozilla::Preferences::AddUintVarCache(&sFontSizeInflationLineThreshold,
                                         "font.size.inflation.lineThreshold");
+  mozilla::Preferences::AddIntVarCache(&sFontSizeInflationMappingIntercept,
+                                       "font.size.inflation.mappingIntercept");
 }
 
 
@@ -4896,21 +4898,38 @@ nsLayoutUtils::FontSizeInflationInner(const nsIFrame *aFrame,
     }
   }
 
-  
-  
-  
-  
+  PRInt32 interceptParam = nsLayoutUtils::FontSizeInflationMappingIntercept();
+
   float ratio = float(styleFontSize) / float(aMinFontSize);
-  if (ratio >= 1.5f) {
-    
-    return 1.0;
-  }
 
   
   
-  
-  
-  return (1.0f / ratio) + (1.0f / 3.0f);
+  if (interceptParam >= 0) {
+    
+    
+    
+    
+    
+    
+
+    float intercept = 1 + float(interceptParam)/2.0f;
+    if (ratio >= intercept) {
+      
+      return 1.0;
+    }
+
+    
+    
+    
+    
+    
+    return (1.0f + (ratio * (intercept - 1) / intercept)) / ratio;
+  } else {
+    
+    
+    
+    return 1 + 1.0f / ratio;
+  }
 }
 
 static bool

@@ -1608,6 +1608,14 @@ public:
     return sFontSizeInflationLineThreshold;
   }
 
+  
+
+
+
+  static PRInt32 FontSizeInflationMappingIntercept() {
+    return sFontSizeInflationMappingIntercept;
+  }
+
   static void Initialize();
   static void Shutdown();
 
@@ -1716,6 +1724,7 @@ private:
   static PRUint32 sFontSizeInflationEmPerLine;
   static PRUint32 sFontSizeInflationMinTwips;
   static PRUint32 sFontSizeInflationLineThreshold;
+  static PRInt32 sFontSizeInflationMappingIntercept;
 };
 
 template<typename PointType, typename RectType, typename CoordType>
