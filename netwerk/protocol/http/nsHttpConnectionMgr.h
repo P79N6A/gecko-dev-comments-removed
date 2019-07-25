@@ -205,6 +205,8 @@ public:
                                   nsHttpConnection *,
                                   PRUint32);
 
+    void ReportFailedToProcess(nsIURI *uri);
+
     
     
     
