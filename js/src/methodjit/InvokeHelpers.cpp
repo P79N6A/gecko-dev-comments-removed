@@ -525,6 +525,8 @@ js_InternalThrow(VMFrame &f)
 {
     JSContext *cx = f.cx;
 
+    ExpandInlineFrames(cx->compartment);
+
     
     
     RemoveOrphanedNative(cx, f.fp());
@@ -621,14 +623,6 @@ js_InternalThrow(VMFrame &f)
 
 
         cx->compartment->jaegerCompartment()->setLastUnfinished(Jaeger_Unfinished);
-
-        
-
-
-
-
-
-        ExpandInlineFrames(cx->compartment);
 
         if (!script->ensureRanBytecode(cx)) {
             js_ReportOutOfMemory(cx);
