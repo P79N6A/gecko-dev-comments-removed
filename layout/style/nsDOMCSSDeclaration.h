@@ -41,7 +41,7 @@
 #define nsDOMCSSDeclaration_h___
 
 #include "nsICSSDeclaration.h"
-#include "nsIDOMNSCSS2Properties.h"
+#include "nsIDOMCSS2Properties.h"
 #include "nsCOMPtr.h"
 
 class nsCSSParser;
@@ -57,7 +57,7 @@ class Loader;
 }
 
 class nsDOMCSSDeclaration : public nsICSSDeclaration,
-                            public nsIDOMNSCSS2Properties
+                            public nsIDOMCSS2Properties
 {
 public:
   
@@ -87,8 +87,6 @@ public:
   
   
   NS_DECL_NSIDOMCSS2PROPERTIES
-  NS_DECL_NSIDOMSVGCSS2PROPERTIES
-  NS_DECL_NSIDOMNSCSS2PROPERTIES
 
 protected:
   
