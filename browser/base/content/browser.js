@@ -2789,6 +2789,17 @@ function FillInHTMLTooltip(tipElement)
 #endif 
   var direction = tipElement.ownerDocument.dir;
 
+  
+  
+  if (tipElement instanceof HTMLInputElement ||
+      tipElement instanceof HTMLTextAreaElement ||
+      tipElement instanceof HTMLSelectElement ||
+      tipElement instanceof HTMLButtonElement) {
+    
+    
+    titleText = tipElement.validationMessage;
+  }
+
   while (!titleText && !XLinkTitleText && !SVGTitleText && tipElement) {
     if (tipElement.nodeType == Node.ELEMENT_NODE) {
       titleText = tipElement.getAttribute("title");
