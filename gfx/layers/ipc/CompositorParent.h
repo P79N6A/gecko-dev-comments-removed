@@ -42,13 +42,15 @@
 
 #include "mozilla/layers/PCompositorParent.h"
 #include "mozilla/layers/PLayersParent.h"
+#include "ShadowLayersHost.h"
 
 class LayerManager;
 
 namespace mozilla {
 namespace layers {
 
-class CompositorParent : public PCompositorParent
+class CompositorParent : public PCompositorParent,
+                         public ShadowLayersHost
 {
   NS_INLINE_DECL_REFCOUNTING(CompositorParent)
 public:
@@ -56,6 +58,9 @@ public:
   virtual ~CompositorParent();
 
   bool AnswerInit();
+
+  virtual mozilla::layout::RenderFrameParent* GetRenderFrameParent() { return NULL; }
+  virtual CompositorParent* GetCompositorParent() { return this; }
 
 protected:
   virtual PLayersParent* AllocPLayers(const LayersBackend &backend, const WidgetDescriptor &widget);
