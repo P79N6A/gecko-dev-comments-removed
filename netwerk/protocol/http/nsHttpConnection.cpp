@@ -178,8 +178,13 @@ nsHttpConnection::EnsureNPNComplete()
     
     
 
-    NS_ABORT_IF_FALSE(mSocketTransport, "EnsureNPNComplete "
-                      "socket transport precondition");
+    if (!mSocketTransport) {
+        
+        NS_ABORT_IF_FALSE(false,
+                          "EnsureNPNComplete socket transport precondition");
+        mNPNComplete = true;
+        return true;
+    }
 
     if (mNPNComplete)
         return true;
@@ -220,7 +225,12 @@ nsHttpConnection::EnsureNPNComplete()
     if (negotiatedNPN.Equals(NS_LITERAL_CSTRING("spdy/2"))) {
         mUsingSpdy = true;
         mEverUsedSpdy = true;
-        mIsReused = true;    
+
+        
+        
+        
+        
+        mIsReused = true;
 
         
         
@@ -440,7 +450,7 @@ nsHttpConnection::DontReuse()
     mKeepAliveMask = false;
     mKeepAlive = false;
     mIdleTimeout = 0;
-    if (mUsingSpdy)
+    if (mSpdySession)
         mSpdySession->DontReuse();
 }
 
@@ -974,10 +984,9 @@ nsHttpConnection::OnSocketWritable()
             n = 0;
         }
         else {
-            if (gHttpHandler->IsSpdyEnabled() && !mReportedSpdy) {
+            if (!mReportedSpdy) {
                 mReportedSpdy = true;
-                gHttpHandler->ConnMgr()->
-                    ReportSpdyConnection(this, mUsingSpdy);
+                gHttpHandler->ConnMgr()->ReportSpdyConnection(this, mUsingSpdy);
             }
 
             LOG(("  writing transaction request stream\n"));

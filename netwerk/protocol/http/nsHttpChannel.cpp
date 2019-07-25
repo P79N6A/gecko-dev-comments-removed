@@ -4131,7 +4131,7 @@ nsHttpChannel::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
         mSecurityInfo = mTransaction->SecurityInfo();
     }
 
-    if (gHttpHandler->IsSpdyEnabled() && !mCachePump && NS_FAILED(mStatus) &&
+    if (!mCachePump && NS_FAILED(mStatus) &&
         (mLoadFlags & LOAD_REPLACE) && mOriginalURI && mAllowSpdy) {
         
         
