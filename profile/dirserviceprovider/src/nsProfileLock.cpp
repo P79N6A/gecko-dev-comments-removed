@@ -142,12 +142,12 @@ static int setupPidLockCleanup;
 PRCList nsProfileLock::mPidLockList =
     PR_INIT_STATIC_CLIST(&nsProfileLock::mPidLockList);
 
-void nsProfileLock::RemovePidLockFiles()
+void nsProfileLock::RemovePidLockFiles(PRBool aFatalSignal)
 {
     while (!PR_CLIST_IS_EMPTY(&mPidLockList))
     {
         nsProfileLock *lock = static_cast<nsProfileLock*>(mPidLockList.next);
-        lock->Unlock();
+        lock->Unlock(aFatalSignal);
     }
 }
 
@@ -163,7 +163,7 @@ void nsProfileLock::FatalSignalHandler(int signo, siginfo_t *info,
                                        void *context)
 {
     
-    RemovePidLockFiles();
+    RemovePidLockFiles(PR_TRUE);
 
     
     struct sigaction *oldact = nsnull;
@@ -385,7 +385,7 @@ nsresult nsProfileLock::LockWithSymlink(const nsACString& lockFilePath, PRBool a
             if (!setupPidLockCleanup++)
             {
                 
-                atexit(RemovePidLockFiles);
+                atexit(RemovePidLockFilesExiting);
 
                 
                 
@@ -652,7 +652,7 @@ nsresult nsProfileLock::Lock(nsILocalFile* aProfileDir,
 }
 
 
-nsresult nsProfileLock::Unlock()
+nsresult nsProfileLock::Unlock(PRBool aFatalSignal)
 {
     nsresult rv = NS_OK;
 
@@ -675,7 +675,14 @@ nsresult nsProfileLock::Unlock()
         {
             PR_REMOVE_LINK(this);
             (void) unlink(mPidLockFileName);
-            free(mPidLockFileName);
+
+            
+            
+            
+            
+            
+            if (!aFatalSignal)
+                free(mPidLockFileName);
             mPidLockFileName = nsnull;
         }
         else if (mLockFileDesc != -1)

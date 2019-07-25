@@ -82,7 +82,13 @@ public:
 
 
     nsresult                Lock(nsILocalFile* aProfileDir, nsIProfileUnlocker* *aUnlocker);
-    nsresult                Unlock();
+
+    
+
+
+
+
+    nsresult                Unlock(PRBool aFatalSignal = PR_FALSE);
         
 private:
     PRPackedBool            mHaveLock;
@@ -92,7 +98,17 @@ private:
 #elif defined (XP_OS2)
     LHANDLE                 mLockFileHandle;
 #elif defined (XP_UNIX)
-    static void             RemovePidLockFiles();
+
+    static void             RemovePidLockFilesExiting()
+    {
+      
+      
+      
+
+      RemovePidLockFiles(PR_FALSE);
+    }
+
+    static void             RemovePidLockFiles(PRBool aFatalSignal);
     static void             FatalSignalHandler(int signo, siginfo_t *info,
                                                void *context);
     static PRCList          mPidLockList;
