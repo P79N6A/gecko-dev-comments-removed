@@ -219,6 +219,8 @@ ArchiveReader::VerifyProductInformation(const char *MARChannelID,
     }
   }
 
+
+#if 0
   if (rv == OK) {
     
 
@@ -235,6 +237,7 @@ ArchiveReader::VerifyProductInformation(const char *MARChannelID,
       rv = VERSION_DOWNGRADE_ERROR;
     }
   }
+#endif
 
   free((void *)productInfoBlock.MARChannelID);
   free((void *)productInfoBlock.productVersion);

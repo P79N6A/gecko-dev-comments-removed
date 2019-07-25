@@ -174,7 +174,8 @@ int main(int argc, char **argv) {
   case 'c': {
     struct ProductInformationBlock infoBlock;
     infoBlock.MARChannelID = MARChannelID;
-    infoBlock.productVersion = productVersion;
+    
+    infoBlock.productVersion = "13.0a1";
     return mar_create(argv[2], argc - 3, argv + 3, &infoBlock);
   }
   case 'i': {
