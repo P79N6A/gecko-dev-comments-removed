@@ -238,9 +238,9 @@ class FrameState
 
     FrameState *thisFromCtor() { return this; }
   public:
-    FrameState(JSContext *cx, JSScript *script, Assembler &masm);
+    FrameState(JSContext *cx, JSScript *script, JSFunction *fun, Assembler &masm);
     ~FrameState();
-    bool init(uint32 nargs);
+    bool init();
 
     
 
@@ -332,9 +332,12 @@ class FrameState
     inline void leaveBlock(uint32 n);
 
     
-
-
+    
     void pushLocal(uint32 n);
+    void pushArg(uint32 n);
+    void pushCallee();
+    void pushThis();
+    inline void learnThisIsObject();
 
     
 
@@ -546,12 +549,15 @@ class FrameState
 
 
     void loadForReturn(FrameEntry *fe, RegisterID typeReg, RegisterID dataReg, RegisterID tempReg);
+    void loadThisForReturn(RegisterID typeReg, RegisterID dataReg, RegisterID tempReg);
 
     
 
 
     void storeLocal(uint32 n, bool popGuaranteed = false, bool typeChange = true);
+    void storeArg(uint32 n, bool popGuaranteed = false);
     void storeTop(FrameEntry *target, bool popGuaranteed = false, bool typeChange = true);
+    void finishStore(FrameEntry *fe, bool closed);
 
     
 
@@ -572,7 +578,7 @@ class FrameState
 
     
     void syncAndKillEverything() {
-        syncAndKill(Registers(Registers::AvailRegs), Uses(frameDepth()));
+        syncAndKill(Registers(Registers::AvailRegs), Uses(frameSlots()));
     }
 
     
@@ -706,17 +712,32 @@ class FrameState
 
     inline void giveOwnRegs(FrameEntry *fe);
 
-    
-
-
     uint32 stackDepth() const { return sp - spBase; }
-    uint32 frameDepth() const { return stackDepth() + script->nfixed; }
+
+    
+    
+    
+    
+    
+    uint32 frameSlots() const { return uint32(sp - entries); }
+
+    
+    uint32 localSlots() const { return uint32(sp - locals); }
 
 #ifdef DEBUG
     void assertValidRegisterState() const;
 #endif
 
+    
+    
+    
+    
     Address addressOf(const FrameEntry *fe) const;
+
+    
+    
+    
+    
     Address addressForDataRemat(const FrameEntry *fe) const;
 
     inline StateRemat dataRematInfo(const FrameEntry *fe) const;
@@ -743,9 +764,8 @@ class FrameState
     void shift(int32 n);
 
     
-
-
     inline void setClosedVar(uint32 slot);
+    inline void setClosedArg(uint32 slot);
 
     inline void setInTryBlock(bool inTryBlock) {
         this->inTryBlock = inTryBlock;
@@ -769,10 +789,13 @@ class FrameState
     inline void syncType(FrameEntry *fe);
     inline void syncData(FrameEntry *fe);
 
+    inline FrameEntry *getOrTrack(uint32 index);
     inline FrameEntry *getLocal(uint32 slot);
+    inline FrameEntry *getArg(uint32 slot);
+    inline FrameEntry *getCallee();
+    inline FrameEntry *getThis();
     inline void forgetAllRegs(FrameEntry *fe);
     inline void swapInTracker(FrameEntry *lhs, FrameEntry *rhs);
-    inline uint32 localIndex(uint32 n);
     void pushCopyOf(uint32 index);
 #if defined JS_NUNBOX32
     void syncFancy(Assembler &masm, Registers avail, FrameEntry *resumeAt,
@@ -804,23 +827,24 @@ class FrameState
         return &entries[index];
     }
 
-    RegisterID evictSomeReg() {
-        return evictSomeReg(Registers::AvailRegs);
-    }
-
-    uint32 indexOf(int32 depth) {
+    RegisterID evictSomeReg() { return evictSomeReg(Registers::AvailRegs); }
+    uint32 indexOf(int32 depth) const {
+        JS_ASSERT(uint32((sp + depth) - entries) < feLimit());
         return uint32((sp + depth) - entries);
     }
-
     uint32 indexOfFe(FrameEntry *fe) const {
+        JS_ASSERT(uint32(fe - entries) < feLimit());
         return uint32(fe - entries);
     }
+    uint32 feLimit() const { return script->nslots + nargs + 2; }
 
     inline bool isClosedVar(uint32 slot);
+    inline bool isClosedArg(uint32 slot);
 
   private:
     JSContext *cx;
     JSScript *script;
+    JSFunction *fun;
     uint32 nargs;
     Assembler &masm;
 
@@ -829,6 +853,9 @@ class FrameState
 
     
     FrameEntry *entries;
+
+    FrameEntry *callee_;
+    FrameEntry *this_;
 
     
     FrameEntry *args;
@@ -856,7 +883,9 @@ class FrameState
 #endif
 
     JSPackedBool *closedVars;
+    JSPackedBool *closedArgs;
     bool eval;
+    bool usesArguments;
     bool inTryBlock;
 };
 

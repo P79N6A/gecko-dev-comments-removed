@@ -991,7 +991,7 @@ mjit::Compiler::jsop_equality_int_string(JSOp op, BoolStub stub, jsbytecode *tar
 
 
 
-        frame.syncAndKill(Registers(Registers::AvailRegs), Uses(frame.frameDepth()), Uses(2));
+        frame.syncAndKill(Registers(Registers::AvailRegs), Uses(frame.frameSlots()), Uses(2));
 
         RegisterID tempReg = frame.allocReg();
 
@@ -1026,13 +1026,14 @@ mjit::Compiler::jsop_equality_int_string(JSOp op, BoolStub stub, jsbytecode *tar
         if (useIC) {
             
             ic.addrLabel = stubcc.masm.moveWithPatch(ImmPtr(NULL), Registers::ArgReg1);
-            ic.stubCall = OOL_STUBCALL_SLOTS(ic::Equality, frame.stackDepth() + script->nfixed + 2);
+            ic.stubCall = OOL_STUBCALL_LOCAL_SLOTS(ic::Equality,
+                                                   frame.stackDepth() + script->nfixed + 2);
             needStub = false;
         }
 #endif
 
         if (needStub)
-            OOL_STUBCALL_SLOTS(stub, frame.stackDepth() + script->nfixed + 2);
+            OOL_STUBCALL_LOCAL_SLOTS(stub, frame.stackDepth() + script->nfixed + 2);
 
         
 
@@ -1418,7 +1419,7 @@ mjit::Compiler::jsop_relational_full(JSOp op, BoolStub stub, jsbytecode *target,
         if (hasDoublePath) {
             if (lhsUnknownDone.isSet())
                 lhsUnknownDone.get().linkTo(stubcc.masm.label(), &stubcc.masm);
-            frame.sync(stubcc.masm, Uses(frame.frameDepth()));
+            frame.sync(stubcc.masm, Uses(frame.frameSlots()));
             doubleTest = stubcc.masm.branchDouble(dblCond, fpLeft, fpRight);
             doubleFall = stubcc.masm.jump();
 
@@ -1436,7 +1437,7 @@ mjit::Compiler::jsop_relational_full(JSOp op, BoolStub stub, jsbytecode *target,
 
 
 
-            frame.sync(stubcc.masm, Uses(frame.frameDepth()));
+            frame.sync(stubcc.masm, Uses(frame.frameSlots()));
             stubcc.leave();
             OOL_STUBCALL(stub);
         }

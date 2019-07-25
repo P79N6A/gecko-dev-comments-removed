@@ -485,7 +485,7 @@ class Compiler : public BaseCompiler
     stubcc.emitStubCall(JS_FUNC_TO_DATA_PTR(void *, (stub)), __LINE__)          \
 
 
-#define OOL_STUBCALL_SLOTS(stub, slots)                                         \
+#define OOL_STUBCALL_LOCAL_SLOTS(stub, slots)                                   \
     stubcc.emitStubCall(JS_FUNC_TO_DATA_PTR(void *, (stub)), (slots), __LINE__) \
 
 } 
