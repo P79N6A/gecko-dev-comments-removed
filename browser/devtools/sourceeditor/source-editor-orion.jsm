@@ -917,6 +917,7 @@ SourceEditor.prototype = {
 
 
 
+
   _getAnnotationsByType: function SE__getAnnotationsByType(aType, aStart, aEnd)
   {
     let annotations = this._annotationModel.getAnnotations(aStart, aEnd);

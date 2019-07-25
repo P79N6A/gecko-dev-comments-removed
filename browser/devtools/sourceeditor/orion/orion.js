@@ -2575,6 +2575,590 @@ define("orion/textview/textModel", ['orion/textview/eventTarget'], function(mEve
 
 
 
+
+
+define("orion/textview/projectionTextModel", ['orion/textview/textModel', 'orion/textview/eventTarget'], function(mTextModel, mEventTarget) {
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	function ProjectionTextModel(baseModel) {
+		this._model = baseModel;	
+		this._projections = [];
+	}
+
+	ProjectionTextModel.prototype =  {
+		
+
+
+
+
+
+
+
+
+
+		addProjection: function(projection) {
+			if (!projection) {return;}
+			
+			var model = this._model, projections = this._projections;
+			projection._lineIndex = model.getLineAtOffset(projection.start);
+			projection._lineCount = model.getLineAtOffset(projection.end) - projection._lineIndex;
+			var text = projection.text;
+			if (!text) { text = ""; }
+			if (typeof text === "string") {
+				projection._model = new mTextModel.TextModel(text, model.getLineDelimiter());
+			} else {
+				projection._model = text;
+			}
+			var eventStart = this.mapOffset(projection.start, true);
+			var removedCharCount = projection.end - projection.start;
+			var removedLineCount = projection._lineCount;
+			var addedCharCount = projection._model.getCharCount();
+			var addedLineCount = projection._model.getLineCount() - 1;
+			var modelChangingEvent = {
+				type: "Changing",
+				text: projection._model.getText(),
+				start: eventStart,
+				removedCharCount: removedCharCount,
+				addedCharCount: addedCharCount,
+				removedLineCount: removedLineCount,
+				addedLineCount: addedLineCount
+			};
+			this.onChanging(modelChangingEvent);
+			var index = this._binarySearch(projections, projection.start);
+			projections.splice(index, 0, projection);
+			var modelChangedEvent = {
+				type: "Changed",
+				start: eventStart,
+				removedCharCount: removedCharCount,
+				addedCharCount: addedCharCount,
+				removedLineCount: removedLineCount,
+				addedLineCount: addedLineCount
+			};
+			this.onChanged(modelChangedEvent);
+		},
+		
+
+
+
+
+
+
+		getProjections: function() {
+			return this._projections.slice(0);
+		},
+		
+
+
+
+
+		getBaseModel: function() {
+			return this._model;
+		},
+		
+
+
+
+
+
+
+
+		mapOffset: function(offset, baseOffset) {
+			var projections = this._projections, delta = 0, i, projection;
+			if (baseOffset) {
+				for (i = 0; i < projections.length; i++) {
+					projection = projections[i];
+					if (projection.start > offset) { break; }
+					if (projection.end > offset) { return -1; }
+					delta += projection._model.getCharCount() - (projection.end - projection.start);
+				}
+				return offset + delta;
+			}
+			for (i = 0; i < projections.length; i++) {
+				projection = projections[i];
+				if (projection.start > offset - delta) { break; }
+				var charCount = projection._model.getCharCount();
+				if (projection.start + charCount > offset - delta) {
+					return -1;
+				}
+				delta += charCount - (projection.end - projection.start);
+			}
+			return offset - delta;
+		},
+		
+
+
+
+
+
+
+
+
+
+
+		removeProjection: function(projection) {
+			
+			var i, delta = 0;
+			for (i = 0; i < this._projections.length; i++) {
+				var p = this._projections[i];
+				if (p === projection) {
+					projection = p;
+					break;
+				}
+				delta += p._model.getCharCount() - (p.end - p.start);
+			}
+			if (i < this._projections.length) {
+				var model = this._model;
+				var eventStart = projection.start + delta;
+				var addedCharCount = projection.end - projection.start;
+				var addedLineCount = projection._lineCount;
+				var removedCharCount = projection._model.getCharCount();
+				var removedLineCount = projection._model.getLineCount() - 1;
+				var modelChangingEvent = {
+					type: "Changing",
+					text: model.getText(projection.start, projection.end),
+					start: eventStart,
+					removedCharCount: removedCharCount,
+					addedCharCount: addedCharCount,
+					removedLineCount: removedLineCount,
+					addedLineCount: addedLineCount
+				};
+				this.onChanging(modelChangingEvent);
+				this._projections.splice(i, 1);
+				var modelChangedEvent = {
+					type: "Changed",
+					start: eventStart,
+					removedCharCount: removedCharCount,
+					addedCharCount: addedCharCount,
+					removedLineCount: removedLineCount,
+					addedLineCount: addedLineCount
+				};
+				this.onChanged(modelChangedEvent);
+			}
+		},
+		
+		_binarySearch: function (array, offset) {
+			var high = array.length, low = -1, index;
+			while (high - low > 1) {
+				index = Math.floor((high + low) / 2);
+				if (offset <= array[index].start) {
+					high = index;
+				} else {
+					low = index;
+				}
+			}
+			return high;
+		},
+		
+
+
+		getCharCount: function() {
+			var count = this._model.getCharCount(), projections = this._projections;
+			for (var i = 0; i < projections.length; i++) {
+				var projection = projections[i];
+				count += projection._model.getCharCount() - (projection.end - projection.start);
+			}
+			return count;
+		},
+		
+
+
+		getLine: function(lineIndex, includeDelimiter) {
+			if (lineIndex < 0) { return null; }
+			var model = this._model, projections = this._projections;
+			var delta = 0, result = [], offset = 0, i, lineCount, projection;
+			for (i = 0; i < projections.length; i++) {
+				projection = projections[i];
+				if (projection._lineIndex >= lineIndex - delta) { break; }
+				lineCount = projection._model.getLineCount() - 1;
+				if (projection._lineIndex + lineCount >= lineIndex - delta) {
+					var projectionLineIndex = lineIndex - (projection._lineIndex + delta);
+					if (projectionLineIndex < lineCount) {
+						return projection._model.getLine(projectionLineIndex, includeDelimiter);
+					} else {
+						result.push(projection._model.getLine(lineCount));
+					}
+				}
+				offset = projection.end;
+				delta += lineCount - projection._lineCount;
+			}
+			offset = Math.max(offset, model.getLineStart(lineIndex - delta));
+			for (; i < projections.length; i++) {
+				projection = projections[i];
+				if (projection._lineIndex > lineIndex - delta) { break; }
+				result.push(model.getText(offset, projection.start));
+				lineCount = projection._model.getLineCount() - 1;
+				if (projection._lineIndex + lineCount > lineIndex - delta) {
+					result.push(projection._model.getLine(0, includeDelimiter));
+					return result.join("");
+				}
+				result.push(projection._model.getText());
+				offset = projection.end;
+				delta += lineCount - projection._lineCount;
+			}
+			var end = model.getLineEnd(lineIndex - delta, includeDelimiter);
+			if (offset < end) {
+				result.push(model.getText(offset, end));
+			}
+			return result.join("");
+		},
+		
+
+
+		getLineAtOffset: function(offset) {
+			var model = this._model, projections = this._projections;
+			var delta = 0, lineDelta = 0;
+			for (var i = 0; i < projections.length; i++) {
+				var projection = projections[i];
+				if (projection.start > offset - delta) { break; }
+				var charCount = projection._model.getCharCount();
+				if (projection.start + charCount > offset - delta) {
+					var projectionOffset = offset - (projection.start + delta);
+					lineDelta += projection._model.getLineAtOffset(projectionOffset);
+					delta += projectionOffset;
+					break;
+				}
+				lineDelta += projection._model.getLineCount() - 1 - projection._lineCount;
+				delta += charCount - (projection.end - projection.start);
+			}
+			return model.getLineAtOffset(offset - delta) + lineDelta;
+		},
+		
+
+
+		getLineCount: function() {
+			var model = this._model, projections = this._projections;
+			var count = model.getLineCount();
+			for (var i = 0; i < projections.length; i++) {
+				var projection = projections[i];
+				count += projection._model.getLineCount() - 1 - projection._lineCount;
+			}
+			return count;
+		},
+		
+
+
+		getLineDelimiter: function() {
+			return this._model.getLineDelimiter();
+		},
+		
+
+
+		getLineEnd: function(lineIndex, includeDelimiter) {
+			if (lineIndex < 0) { return -1; }
+			var model = this._model, projections = this._projections;
+			var delta = 0, offsetDelta = 0;
+			for (var i = 0; i < projections.length; i++) {
+				var projection = projections[i];
+				if (projection._lineIndex > lineIndex - delta) { break; }
+				var lineCount = projection._model.getLineCount() - 1;
+				if (projection._lineIndex + lineCount > lineIndex - delta) {
+					var projectionLineIndex = lineIndex - (projection._lineIndex + delta);
+					return projection._model.getLineEnd (projectionLineIndex, includeDelimiter) + projection.start + offsetDelta;
+				}
+				offsetDelta += projection._model.getCharCount() - (projection.end - projection.start);
+				delta += lineCount - projection._lineCount;
+			}
+			return model.getLineEnd(lineIndex - delta, includeDelimiter) + offsetDelta;
+		},
+		
+
+
+		getLineStart: function(lineIndex) {
+			if (lineIndex < 0) { return -1; }
+			var model = this._model, projections = this._projections;
+			var delta = 0, offsetDelta = 0;
+			for (var i = 0; i < projections.length; i++) {
+				var projection = projections[i];
+				if (projection._lineIndex >= lineIndex - delta) { break; }
+				var lineCount = projection._model.getLineCount() - 1;
+				if (projection._lineIndex + lineCount >= lineIndex - delta) {
+					var projectionLineIndex = lineIndex - (projection._lineIndex + delta);
+					return projection._model.getLineStart (projectionLineIndex) + projection.start + offsetDelta;
+				}
+				offsetDelta += projection._model.getCharCount() - (projection.end - projection.start);
+				delta += lineCount - projection._lineCount;
+			}
+			return model.getLineStart(lineIndex - delta) + offsetDelta;
+		},
+		
+
+
+		getText: function(start, end) {
+			if (start === undefined) { start = 0; }
+			var model = this._model, projections = this._projections;
+			var delta = 0, result = [], i, projection, charCount;
+			for (i = 0; i < projections.length; i++) {
+				projection = projections[i];
+				if (projection.start > start - delta) { break; }
+				charCount = projection._model.getCharCount();
+				if (projection.start + charCount > start - delta) {
+					if (end !== undefined && projection.start + charCount > end - delta) {
+						return projection._model.getText(start - (projection.start + delta), end - (projection.start + delta));
+					} else {
+						result.push(projection._model.getText(start - (projection.start + delta)));
+						start = projection.end + delta + charCount - (projection.end - projection.start);
+					}
+				}
+				delta += charCount - (projection.end - projection.start);
+			}
+			var offset = start - delta;
+			if (end !== undefined) {
+				for (; i < projections.length; i++) {
+					projection = projections[i];
+					if (projection.start > end - delta) { break; }
+					result.push(model.getText(offset, projection.start));
+					charCount = projection._model.getCharCount();
+					if (projection.start + charCount > end - delta) {
+						result.push(projection._model.getText(0, end - (projection.start + delta)));
+						return result.join("");
+					}
+					result.push(projection._model.getText());
+					offset = projection.end;
+					delta += charCount - (projection.end - projection.start);
+				}
+				result.push(model.getText(offset, end - delta));
+			} else {
+				for (; i < projections.length; i++) {
+					projection = projections[i];
+					result.push(model.getText(offset, projection.start));
+					result.push(projection._model.getText());
+					offset = projection.end;
+				}
+				result.push(model.getText(offset));
+			}
+			return result.join("");
+		},
+		
+		_onChanging: function(text, start, removedCharCount, addedCharCount, removedLineCount, addedLineCount) {
+			var model = this._model, projections = this._projections, i, projection, delta = 0, lineDelta;
+			var end = start + removedCharCount;
+			for (; i < projections.length; i++) {
+				projection = projections[i];
+				if (projection.start > start) { break; }
+				delta += projection._model.getCharCount() - (projection.end - projection.start);
+			}
+			
+			var mapStart = start + delta, rangeStart = i;
+			for (; i < projections.length; i++) {
+				projection = projections[i];
+				if (projection.start > end) { break; }
+				delta += projection._model.getCharCount() - (projection.end - projection.start);
+				lineDelta += projection._model.getLineCount() - 1 - projection._lineCount;
+			}
+			
+			var mapEnd = end + delta, rangeEnd = i;
+			this.onChanging(mapStart, mapEnd - mapStart, addedCharCount, removedLineCount + lineDelta, addedLineCount);
+			projections.splice(projections, rangeEnd - rangeStart);
+			var count = text.length - (mapEnd - mapStart);
+			for (; i < projections.length; i++) {
+				projection = projections[i];
+				projection.start += count;
+				projection.end += count;
+				projection._lineIndex = model.getLineAtOffset(projection.start);
+			}
+		},
+		
+
+
+		onChanging: function(modelChangingEvent) {
+			return this.dispatchEvent(modelChangingEvent);
+		},
+		
+
+
+		onChanged: function(modelChangedEvent) {
+			return this.dispatchEvent(modelChangedEvent);
+		},
+		
+
+
+		setLineDelimiter: function(lineDelimiter) {
+			this._model.setLineDelimiter(lineDelimiter);
+		},
+		
+
+
+		setText: function(text, start, end) {
+			if (text === undefined) { text = ""; }
+			if (start === undefined) { start = 0; }
+			var eventStart = start, eventEnd = end;
+			var model = this._model, projections = this._projections;
+			var delta = 0, lineDelta = 0, i, projection, charCount, startProjection, endProjection, startLineDelta = 0;
+			for (i = 0; i < projections.length; i++) {
+				projection = projections[i];
+				if (projection.start > start - delta) { break; }
+				charCount = projection._model.getCharCount();
+				if (projection.start + charCount > start - delta) {
+					if (end !== undefined && projection.start + charCount > end - delta) {
+						projection._model.setText(text, start - (projection.start + delta), end - (projection.start + delta));
+						
+						return;
+					} else {
+						startLineDelta = projection._model.getLineCount() - 1 - projection._model.getLineAtOffset(start - (projection.start + delta));
+						startProjection = {
+							projection: projection,
+							start: start - (projection.start + delta)
+						};
+						start = projection.end + delta + charCount - (projection.end - projection.start);
+					}
+				}
+				lineDelta += projection._model.getLineCount() - 1 - projection._lineCount;
+				delta += charCount - (projection.end - projection.start);
+			}
+			var mapStart = start - delta, rangeStart = i, startLine = model.getLineAtOffset(mapStart) + lineDelta - startLineDelta;
+			if (end !== undefined) {
+				for (; i < projections.length; i++) {
+					projection = projections[i];
+					if (projection.start > end - delta) { break; }
+					charCount = projection._model.getCharCount();
+					if (projection.start + charCount > end - delta) {
+						lineDelta += projection._model.getLineAtOffset(end - (projection.start + delta));
+						charCount = end - (projection.start + delta);
+						end = projection.end + delta;
+						endProjection = {
+							projection: projection,
+							end: charCount
+						};
+						break;
+					}
+					lineDelta += projection._model.getLineCount() - 1 - projection._lineCount;
+					delta += charCount - (projection.end - projection.start);
+				}
+			} else {
+				for (; i < projections.length; i++) {
+					projection = projections[i];
+					lineDelta += projection._model.getLineCount() - 1 - projection._lineCount;
+					delta += projection._model.getCharCount() - (projection.end - projection.start);
+				}
+				end = eventEnd = model.getCharCount() + delta;
+			}
+			var mapEnd = end - delta, rangeEnd = i, endLine = model.getLineAtOffset(mapEnd) + lineDelta;
+			
+			
+			var removedCharCount = eventEnd - eventStart;
+			var removedLineCount = endLine - startLine;
+			var addedCharCount = text.length;
+			var addedLineCount = 0;
+			var cr = 0, lf = 0, index = 0;
+			while (true) {
+				if (cr !== -1 && cr <= index) { cr = text.indexOf("\r", index); }
+				if (lf !== -1 && lf <= index) { lf = text.indexOf("\n", index); }
+				if (lf === -1 && cr === -1) { break; }
+				if (cr !== -1 && lf !== -1) {
+					if (cr + 1 === lf) {
+						index = lf + 1;
+					} else {
+						index = (cr < lf ? cr : lf) + 1;
+					}
+				} else if (cr !== -1) {
+					index = cr + 1;
+				} else {
+					index = lf + 1;
+				}
+				addedLineCount++;
+			}
+			
+			var modelChangingEvent = {
+				type: "Changing",
+				text: text,
+				start: eventStart,
+				removedCharCount: removedCharCount,
+				addedCharCount: addedCharCount,
+				removedLineCount: removedLineCount,
+				addedLineCount: addedLineCount
+			};
+			this.onChanging(modelChangingEvent);
+			
+
+			model.setText(text, mapStart, mapEnd);
+			if (startProjection) {
+				projection = startProjection.projection;
+				projection._model.setText("", startProjection.start);
+			}		
+			if (endProjection) {
+				projection = endProjection.projection;
+				projection._model.setText("", 0, endProjection.end);
+				projection.start = projection.end;
+				projection._lineCount = 0;
+			}
+			projections.splice(rangeStart, rangeEnd - rangeStart);
+			var changeCount = text.length - (mapEnd - mapStart);
+			for (i = rangeEnd; i < projections.length; i++) {
+				projection = projections[i];
+				projection.start += changeCount;
+				projection.end += changeCount;
+
+
+
+				projection._lineIndex = model.getLineAtOffset(projection.start);
+
+			}
+			
+			var modelChangedEvent = {
+				type: "Changed",
+				start: eventStart,
+				removedCharCount: removedCharCount,
+				addedCharCount: addedCharCount,
+				removedLineCount: removedLineCount,
+				addedLineCount: addedLineCount
+			};
+			this.onChanged(modelChangedEvent);
+		}
+	};
+	mEventTarget.EventTarget.addMixin(ProjectionTextModel.prototype);
+
+	return {ProjectionTextModel: ProjectionTextModel};
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
 define("orion/textview/tooltip", ['orion/textview/textView', 'orion/textview/textModel', 'orion/textview/projectionTextModel'], function(mTextView, mTextModel, mProjectionTextModel) {
 
 	
