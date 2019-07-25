@@ -137,6 +137,7 @@ FormHistory.prototype = {
         this.messageManager.addMessageListener("FormHistory:FormSubmitEntries", this);
 
         
+        Services.obs.addObserver(this, "profile-before-change", true);
         Services.obs.addObserver(this, "idle-daily", true);
         Services.obs.addObserver(this, "formhistory-expire-now", true);
     },
@@ -401,6 +402,9 @@ FormHistory.prototype = {
         case "idle-daily":
         case "formhistory-expire-now":
             this.expireOldEntries();
+            break;
+        case "profile-before-change":
+            this._dbFinalize();
             break;
         default:
             this.log("Oops! Unexpected notification: " + topic);
@@ -862,6 +866,18 @@ FormHistory.prototype = {
         }
     },
 
+    
+
+
+
+
+    _dbFinalize : function FH__dbFinalize() {
+        
+        for each (let stmt in this.dbStmts) {
+            stmt.finalize();
+        }
+        this.dbStmts = {};
+    },
 
     
 
@@ -881,13 +897,11 @@ FormHistory.prototype = {
             storage.backupDatabaseFile(this.dbFile, backupFile);
         }
 
-        
-        for each (let stmt in this.dbStmts)
-            stmt.finalize();
-        this.dbStmts = [];
+        this._dbFinalize();
 
         
-        try { this.dbConnection.close() } catch(e) {}
+        
+        try { this.dbConnection.close(); } catch(e) {}
         this.dbFile.remove(false);
     }
 };
