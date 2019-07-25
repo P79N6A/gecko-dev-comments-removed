@@ -192,6 +192,10 @@ public:
                                   const nsAString& aPattern,
                                   int aAttributeId) = 0;
 
+  virtual nsTArray<PRUint32>
+  AddReservedServicesInternal(const nsAString& aAdapterPath,
+                              const nsTArray<PRUint32>& aServices) = 0;
+
   
 
 
