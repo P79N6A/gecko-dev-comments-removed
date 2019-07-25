@@ -1021,14 +1021,10 @@ var Browser = {
   },
 
   zoom: function zoom(aDirection) {
-    Browser._browserView.zoom(aDirection);
-    
-                                    
-                                    
-                                    
-                                    
-                                    
-                                    
+    let bv = this._browserView;
+    let zoomLevel = bv.getZoomLevel() + (aDirection > 0 ? -0.1 : 0.1);
+    let center = this.getVisibleRect().center().map(bv.viewportToBrowser);
+    this.setVisibleRect(this._getZoomRectForPoint(center.x, center.y, zoomLevel));
   },
 
   
