@@ -435,13 +435,6 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
       
     return box;
   },
-
-  
-  
-  
-  getChildrenBounds: function() {
-    return this._getBoundingBox([child.container for each(child in this._children)]);
-  },
   
   
   
