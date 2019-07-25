@@ -311,6 +311,21 @@ MCopy::New(MDefinition *ins)
     return new MCopy(ins);
 }
 
+HashNumber
+MCopy::valueHash() const
+{
+    return getOperand(0)->valueHash();
+}
+
+bool
+MCopy::congruentTo(MDefinition * const &ins) const
+{
+    if (!ins->isCopy())
+        return false;
+
+    return ins->toCopy()->getOperand(0) == getOperand(0);
+}
+
 MTest *
 MTest::New(MDefinition *ins, MBasicBlock *ifTrue, MBasicBlock *ifFalse)
 {
@@ -328,6 +343,22 @@ MPhi::New(uint32 slot)
 {
     return new MPhi(slot);
 }
+
+bool
+MPhi::congruentTo(MDefinition *const &ins) const
+{
+    if (!ins->isPhi())
+        return false;
+    
+    
+    
+    if (ins->block()->id() != block()->id())
+        return false;
+
+    return MDefinition::congruentTo(ins);
+}
+
+
 
 bool
 MPhi::addInput(MDefinition *ins)
