@@ -61,6 +61,8 @@ public:
         
         RENDER_BUFFERED,
         
+        RENDER_DIRECT,
+        
         RENDER_MODE_MAX
     };
 

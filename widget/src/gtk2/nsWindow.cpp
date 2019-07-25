@@ -135,6 +135,8 @@ extern "C" {
 #include "gfxXlibSurface.h"
 #endif
 
+#include "nsShmImage.h"
+
 #ifdef MOZ_DFB
 extern "C" {
 #ifdef MOZ_DIRECT_DEBUG
@@ -286,16 +288,6 @@ UpdateLastInputEventTime()
   }
 }
 
-#ifdef MOZ_HAVE_SHMIMAGE
-
-
-static PRBool gShmAvailable = PR_TRUE;
-static PRBool UseShm()
-{
-    return gfxPlatformGtk::UseClientSideRendering() && gShmAvailable;
-}
-#endif
-
 
 nsWindow *nsWindow::mLastDragMotionWindow = NULL;
 PRBool nsWindow::sIsDraggingOutOf = PR_FALSE;
@@ -388,159 +380,6 @@ protected:
 
     pixman_region32& get() { return *this; }
 };
-
-
-#ifdef MOZ_HAVE_SHMIMAGE
-
-using mozilla::ipc::SharedMemorySysV;
-
-class nsShmImage {
-    NS_INLINE_DECL_REFCOUNTING(nsShmImage)
-
-public:
-    typedef gfxASurface::gfxImageFormat Format;
-
-    static already_AddRefed<nsShmImage>
-    Create(const gfxIntSize& aSize, Visual* aVisual, unsigned int aDepth);
-
-    ~nsShmImage() {
-        if (mImage) {
-            if (mXAttached) {
-                XShmDetach(gdk_x11_get_default_xdisplay(), &mInfo);
-            }
-            XDestroyImage(mImage);
-        }
-    }
-
-    already_AddRefed<gfxASurface> AsSurface();
-
-    void Put(GdkWindow* aWindow, GdkRectangle* aRects, GdkRectangle* aEnd);
-
-    gfxIntSize Size() const { return mSize; }
-
-private:
-    nsShmImage()
-        : mImage(nsnull)
-        , mXAttached(PR_FALSE)
-    { mInfo.shmid = SharedMemorySysV::NULLHandle(); }
-
-    nsRefPtr<SharedMemorySysV>   mSegment;
-    XImage*                      mImage;
-    XShmSegmentInfo              mInfo;
-    gfxIntSize                   mSize;
-    Format                       mFormat;
-    PRPackedBool                 mXAttached;
-};
-
-already_AddRefed<nsShmImage>
-nsShmImage::Create(const gfxIntSize& aSize,
-                   Visual* aVisual, unsigned int aDepth)
-{
-    Display* dpy = gdk_x11_get_default_xdisplay();
-
-    nsRefPtr<nsShmImage> shm = new nsShmImage();
-    shm->mImage = XShmCreateImage(dpy, aVisual, aDepth,
-                                  ZPixmap, nsnull,
-                                  &(shm->mInfo),
-                                  aSize.width, aSize.height);
-    if (!shm->mImage) {
-        return nsnull;
-    }
-
-    size_t size = shm->mImage->bytes_per_line * shm->mImage->height;
-    shm->mSegment = new SharedMemorySysV();
-    if (!shm->mSegment->Create(size) || !shm->mSegment->Map(size)) {
-        return nsnull;
-    }
-
-    shm->mInfo.shmid = shm->mSegment->GetHandle();
-    shm->mInfo.shmaddr =
-        shm->mImage->data = static_cast<char*>(shm->mSegment->memory());
-    shm->mInfo.readOnly = False;
-
-    gdk_error_trap_push();
-    Status attachOk = XShmAttach(dpy, &shm->mInfo);
-    gint xerror = gdk_error_trap_pop();
-
-    if (!attachOk || xerror) {
-        
-        
-        gShmAvailable = PR_FALSE;
-        return nsnull;
-    }
-
-    shm->mXAttached = PR_TRUE;
-    shm->mSize = aSize;
-    switch (shm->mImage->depth) {
-    case 24:
-        shm->mFormat = gfxASurface::ImageFormatRGB24; break;
-    case 16:
-        shm->mFormat = gfxASurface::ImageFormatRGB16_565; break;
-    default:
-        NS_WARNING("Unsupported XShm Image depth!");
-        gShmAvailable = PR_FALSE;
-        return nsnull;
-    }
-    return shm.forget();
-}
-
-already_AddRefed<gfxASurface>
-nsShmImage::AsSurface()
-{
-    return nsRefPtr<gfxASurface>(
-        new gfxImageSurface(static_cast<unsigned char*>(mSegment->memory()),
-                            mSize,
-                            mImage->bytes_per_line,
-                            mFormat)
-        ).forget();
-}
-
-void
-nsShmImage::Put(GdkWindow* aWindow, GdkRectangle* aRects, GdkRectangle* aEnd)
-{
-    GdkDrawable* gd;
-    gint dx, dy;
-    gdk_window_get_internal_paint_info(aWindow, &gd, &dx, &dy);
-
-    Display* dpy = gdk_x11_get_default_xdisplay();
-    Drawable d = GDK_DRAWABLE_XID(gd);
-
-    GC gc = XCreateGC(dpy, d, 0, nsnull);
-    for (GdkRectangle* r = aRects; r < aEnd; r++) {
-        XShmPutImage(dpy, d, gc, mImage,
-                     r->x, r->y,
-                     r->x - dx, r->y - dy,
-                     r->width, r->height,
-                     False);
-    }
-    XFreeGC(dpy, gc);
-
-    
-    
-    
-    
-    
-    
-    XSync(dpy, False);
-}
-
-static already_AddRefed<gfxASurface>
-EnsureShmImage(const gfxIntSize& aSize, Visual* aVisual, unsigned int aDepth,
-               nsRefPtr<nsShmImage>& aImage)
-{
-    if (!aImage || aImage->Size() != aSize) {
-        
-        
-        
-        
-        
-        aImage = nsShmImage::Create(aSize, aVisual, aDepth);
-    }
-    return !aImage ? nsnull : aImage->AsSurface();
-}
-
-#endif  
-
 
 nsWindow::nsWindow()
 {
@@ -2346,7 +2185,7 @@ nsWindow::OnExposeEvent(GtkWidget *aWidget, GdkEventExpose *aEvent)
         layerBuffering = BasicLayerManager::BUFFER_NONE;
         ctx->PushGroup(gfxASurface::CONTENT_COLOR_ALPHA);
 #ifdef MOZ_HAVE_SHMIMAGE
-    } else if (UseShm()) {
+    } else if (nsShmImage::UseShm()) {
         
         layerBuffering = BasicLayerManager::BUFFER_NONE;
 #endif
@@ -2405,7 +2244,7 @@ nsWindow::OnExposeEvent(GtkWidget *aWidget, GdkEventExpose *aEvent)
         }
     }
 #  ifdef MOZ_HAVE_SHMIMAGE
-    if (UseShm() && NS_LIKELY(!mIsDestroyed)) {
+    if (nsShmImage::UseShm() && NS_LIKELY(!mIsDestroyed)) {
         mShmImage->Put(mGdkWindow, rects, r_end);
     }
 #  endif  
@@ -6706,13 +6545,14 @@ nsWindow::GetThebesSurface()
 
 #  ifdef MOZ_HAVE_SHMIMAGE
     PRBool usingShm = PR_FALSE;
-    if (UseShm()) {
+    if (nsShmImage::UseShm()) {
         
         
         
-        mThebesSurface = EnsureShmImage(size,
-                                        visual, gdk_drawable_get_depth(d),
-                                        mShmImage);
+        mThebesSurface =
+            nsShmImage::EnsureShmImage(size,
+                                       visual, gdk_drawable_get_depth(d),
+                                       mShmImage);
         usingShm = mThebesSurface != nsnull;
     }
     if (!usingShm)
