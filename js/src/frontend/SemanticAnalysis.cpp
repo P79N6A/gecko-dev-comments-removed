@@ -56,46 +56,8 @@ SetFunctionKinds(FunctionBox *funbox, bool *isHeavyweight, bool topInFunction, b
             SetFunctionKinds(funbox->kids, isHeavyweight, topInFunction, isDirectEval);
 
         JSFunction *fun = funbox->function();
-
-        JS_ASSERT(fun->kind() == JSFUN_INTERPRETED);
-
-        if (funbox->funIsHeavyweight()) {
-            
-        } else if (isDirectEval || funbox->inAnyDynamicScope()) {
-            
-
-
-
-
-
-
-
-
-
-            JS_ASSERT(!fun->isNullClosure());
-        } else {
-            bool hasUpvars = false;
-
-            if (pn->isKind(PNK_UPVARS)) {
-                AtomDefnMapPtr upvars = pn->pn_names;
-                JS_ASSERT(!upvars->empty());
-
-                
-                for (AtomDefnRange r = upvars->all(); !r.empty(); r.popFront()) {
-                    if (!r.front().value()->resolve()->isFreeVar()) {
-                        hasUpvars = true;
-                        break;
-                    }
-                }
-            }
-
-            if (!hasUpvars) {
-                
-                fun->setKind(JSFUN_NULL_CLOSURE);
-            }
-        }
-
-        if (fun->kind() == JSFUN_INTERPRETED && pn->isKind(PNK_UPVARS)) {
+        JS_ASSERT(fun->isInterpreted());
+        if (pn->isKind(PNK_UPVARS)) {
             
 
 
