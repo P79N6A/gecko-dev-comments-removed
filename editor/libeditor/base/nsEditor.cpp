@@ -4825,19 +4825,10 @@ nsEditor::CreateTxnForDeleteInsertionPoint(nsIDOMRange          *aRange,
 
   
   nsCOMPtr<nsIDOMCharacterData> nodeAsText = do_QueryInterface(node);
+  nsCOMPtr<nsINode> inode = do_QueryInterface(node);
+  MOZ_ASSERT(inode);
 
-  PRUint32 count=0;
-
-  if (nodeAsText)
-    nodeAsText->GetLength(&count);
-  else
-  { 
-    
-    nsCOMPtr<nsIDOMNodeList>childList;
-    result = node->GetChildNodes(getter_AddRefs(childList));
-    if ((NS_SUCCEEDED(result)) && childList)
-      childList->GetLength(&count);
-  }
+  PRUint32 count = inode->Length();
 
   bool isFirst = (0 == offset);
   bool isLast  = (count == (PRUint32)offset);
