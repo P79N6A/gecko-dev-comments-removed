@@ -1040,6 +1040,9 @@ pref("devtools.layoutview.enabled", true);
 pref("devtools.layoutview.open", false);
 
 
+pref("devtools.responsiveUI.enabled", true);
+
+
 pref("devtools.debugger.enabled", true);
 pref("devtools.debugger.remote-enabled", false);
 pref("devtools.debugger.remote-host", "localhost");
