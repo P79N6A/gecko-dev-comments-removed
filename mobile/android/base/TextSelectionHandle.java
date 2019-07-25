@@ -30,6 +30,8 @@ class TextSelectionHandle extends ImageView implements View.OnTouchListener {
     private int mTouchStartX;
     private int mTouchStartY;
 
+    private RelativeLayout.LayoutParams mLayoutParams;
+
     TextSelectionHandle(Context context, AttributeSet attrs) {
         super(context, attrs);
         setOnTouchListener(this);
@@ -94,10 +96,7 @@ class TextSelectionHandle extends ImageView implements View.OnTouchListener {
         }
         GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("TextSelection:Move", args.toString()));
 
-        RelativeLayout.LayoutParams params = (RelativeLayout.LayoutParams) getLayoutParams();
-        params.leftMargin = mLeft;
-        params.topMargin = mTop;
-        setLayoutParams(params);
+        setLayoutPosition();
     }
 
     void positionFromGecko(int left, int top) {
@@ -112,9 +111,21 @@ class TextSelectionHandle extends ImageView implements View.OnTouchListener {
         mLeft = Math.round(geckoPoint.x) - (mHandleType.equals(HandleType.START) ? mWidth : 0);
         mTop = Math.round(geckoPoint.y);
 
-        RelativeLayout.LayoutParams params = (RelativeLayout.LayoutParams) getLayoutParams();
-        params.leftMargin = mLeft;
-        params.topMargin = mTop;
-        setLayoutParams(params);
+        setLayoutPosition();
+    }
+
+    private void setLayoutPosition() {
+        if (mLayoutParams == null) {
+            mLayoutParams = (RelativeLayout.LayoutParams) getLayoutParams();
+            
+            
+            
+            mLayoutParams.rightMargin = 0 - mWidth;
+            mLayoutParams.bottomMargin = 0 - mHeight;
+        }
+
+        mLayoutParams.leftMargin = mLeft;
+        mLayoutParams.topMargin = mTop;
+        setLayoutParams(mLayoutParams);
     }
 }
