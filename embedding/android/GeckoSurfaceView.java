@@ -1,39 +1,39 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: Java; tab-width: 20; indent-tabs-mode: nil; -*-
+ * ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Android code.
+ *
+ * The Initial Developer of the Original Code is Mozilla Foundation.
+ * Portions created by the Initial Developer are Copyright (C) 2010
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Vladimir Vukicevic <vladimir@pobox.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 package org.mozilla.gecko;
 
@@ -58,12 +58,12 @@ import android.location.*;
 
 import android.util.*;
 
-
-
-
-
-
-
+/*
+ * GeckoSurfaceView implements a GL surface view,
+ * similar to GLSurfaceView.  However, since we
+ * already have a thread for Gecko, we don't really want
+ * a separate renderer thread that GLSurfaceView provides.
+ */
 class GeckoSurfaceView
     extends SurfaceView
     implements SurfaceHolder.Callback, SensorEventListener, LocationListener
@@ -90,9 +90,9 @@ class GeckoSurfaceView
         super.finalize();
     }
 
-    
-
-
+    /*
+     * Called on main thread
+     */
 
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
         mSurfaceLock.lock();
@@ -116,7 +116,7 @@ class GeckoSurfaceView
 
             Log.i("GeckoAppJava", "surfaceChanged: fmt: " + format + " dim: " + width + " " + height);
 
-            
+            // XXX This code doesn't seem to actually get hit
             if (!GeckoAppShell.sGeckoRunning) {
                 GeckoAppShell.setInitialSize(width, height);
                 return;
@@ -151,9 +151,9 @@ class GeckoSurfaceView
         return mSoftwareBuffer;
     }
 
-    
-
-
+    /*
+     * Called on Gecko thread
+     */
 
     public static final int DRAW_ERROR = 0;
     public static final int DRAW_GLES_2 = 1;
@@ -164,17 +164,17 @@ class GeckoSurfaceView
             return DRAW_ERROR;
         }
 
-        
-
-
-
-
-
-
-
-
-
-
+        /* Grab the lock, which we'll hold while we're drawing.
+         * It gets released in endDrawing(), and is also used in surfaceChanged
+         * to make sure that we don't change our surface details while
+         * we're in the middle of drawing (and especially in the middle of
+         * executing beginDrawing/endDrawing).
+         *
+         * We might not need to hold this lock in between
+         * beginDrawing/endDrawing, and might just be able to make
+         * surfaceChanged, beginDrawing, and endDrawing synchronized,
+         * but this way is safer for now.
+         */
         mSurfaceLock.lock();
 
         if (!mSurfaceValid) {
@@ -248,7 +248,7 @@ class GeckoSurfaceView
         return inputConnection;
     }
 
-    
+    // accelerometer
     public void onAccuracyChanged(Sensor sensor, int accuracy)
     {
     }
@@ -258,7 +258,7 @@ class GeckoSurfaceView
         GeckoAppShell.sendEventToGecko(new GeckoEvent(event));
     }
 
-    
+    // geolocation
     public void onLocationChanged(Location location)
     {
         GeckoAppShell.sendEventToGecko(new GeckoEvent(location));
@@ -276,44 +276,44 @@ class GeckoSurfaceView
     {
     }
 
-    
+    // event stuff
     public boolean onTouchEvent(MotionEvent event) {
         GeckoAppShell.sendEventToGecko(new GeckoEvent(event));
         return true;
     }
 
-    
+    // Is this surface valid for drawing into?
     boolean mSurfaceValid;
 
-    
+    // Do we need to force a redraw on surfaceChanged?
     boolean mSurfaceNeedsRedraw;
 
-    
-    
+    // Has this surface been changed?  (That is,
+    // do we need to recreate buffers?)
     boolean mSurfaceChanged;
 
-    
+    // Are we actively between beginDrawing/endDrawing?
     boolean mInDrawing;
 
-    
-    
-    
+    // let's not change stuff around while we're in the middle of
+    // starting drawing, ending drawing, or changing surface
+    // characteristics
     ReentrantLock mSurfaceLock;
 
-    
-    
+    // Surface format, from surfaceChanged.  Largely
+    // useless.
     int mFormat;
 
-    
+    // the dimensions of the surface
     int mWidth;
     int mHeight;
 
-    
-    
+    // the dimensions of the buffer we're using for drawing,
+    // that is the software buffer or the EGLSurface
     int mBufferWidth;
     int mBufferHeight;
 
-    
+    // IME stuff
     public static final int IME_STATE_DISABLED = 0;
     public static final int IME_STATE_ENABLED = 1;
     public static final int IME_STATE_PASSWORD = 2;
@@ -322,7 +322,7 @@ class GeckoSurfaceView
     boolean mIMEFocus;
     int mIMEState;
 
-    
+    // Software rendering
     ByteBuffer mSoftwareBuffer;
     Bitmap mSoftwareBitmap;
 }
