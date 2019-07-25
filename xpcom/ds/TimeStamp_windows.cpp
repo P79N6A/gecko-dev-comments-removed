@@ -24,6 +24,25 @@
 #include "prlog.h"
 #include <stdio.h>
 
+#include <intrin.h>
+
+static bool
+HasStableTSC()
+{
+  int regs[4];
+
+  
+  __cpuid(regs, 0x80000000);
+  if (regs[0] < 0x80000007)
+          return false;
+
+  __cpuid(regs, 0x80000007);
+  
+  
+  return regs[3] & (1 << 8);
+}
+
+
 #if defined(PR_LOGGING)
 
 
@@ -46,6 +65,8 @@ static volatile ULONGLONG sResolutionSigDigs;
 static const double   kNsPerSecd  = 1000000000.0;
 static const LONGLONG kNsPerSec   = 1000000000;
 static const LONGLONG kNsPerMillisec = 1000000;
+
+static bool sHasStableTSC = false;
 
 
 
@@ -600,6 +621,8 @@ TimeStamp::Startup()
   InitThresholds();
   InitResolution();
 
+  sHasStableTSC = HasStableTSC();
+
   LOG(("TimeStamp: initial skew is %1.2fms", mt2ms_d(sSkew)));
 
   return NS_OK;
@@ -614,6 +637,9 @@ TimeStamp::Shutdown()
 TimeStamp
 TimeStamp::Now()
 {
+  if (sHasStableTSC) {
+    return TimeStamp(uint64_t(PerformanceCounter()));
+  }
   return TimeStamp(uint64_t(CalibratedPerformanceCounter()));
 }
 
