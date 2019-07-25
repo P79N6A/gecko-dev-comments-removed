@@ -494,10 +494,7 @@ JSThreadData::init()
     if (!stackSpace.init())
         return false;
 #ifdef JS_TRACER
-    if (!InitJIT(&traceMonitor)) {
-        finish();
-        return false;
-    }
+    InitJIT(&traceMonitor);
 #endif
     dtoaState = js_NewDtoaState();
     if (!dtoaState) {
@@ -2277,7 +2274,7 @@ JSContext::updateJITEnabled()
 # endif
                         ;
 #ifdef JS_TRACER
-    profilingEnabled = (options & JSOPTION_PROFILING) && traceJitEnabled;
+    profilingEnabled = (options & JSOPTION_PROFILING) && traceJitEnabled && methodJitEnabled;
 #endif
 #endif
 }

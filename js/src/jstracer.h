@@ -640,7 +640,6 @@ VMFragment::toTreeFragment()
 
 enum MonitorResult {
     MONITOR_RECORDING,
-    MONITOR_PROFILING,
     MONITOR_NOT_RECORDING,
     MONITOR_ERROR
 };
@@ -673,9 +672,6 @@ public:
     
     JSScript *script;
 
-    
-    JSStackFrame *entryfp;
-    
     
     jsbytecode *top, *bottom;
 
@@ -731,14 +727,13 @@ public:
 
 
     struct InnerLoop {
-        JSStackFrame *entryfp;
         JSScript *script;
         jsbytecode *top, *bottom;
         uintN iters;
 
         InnerLoop() {}
-        InnerLoop(JSStackFrame *entryfp, jsbytecode *top, jsbytecode *bottom)
-            : entryfp(entryfp), script(entryfp->script()), top(top), bottom(bottom), iters(0) {}
+        InnerLoop(JSScript *script, jsbytecode *top, jsbytecode *bottom)
+            : script(script), top(top), bottom(bottom), iters(0) {}
     };
 
     
@@ -788,7 +783,7 @@ public:
             return StackValue(false);
     }
     
-    LoopProfile(JSStackFrame *entryfp, jsbytecode *top, jsbytecode *bottom);
+    LoopProfile(JSScript *script, jsbytecode *top, jsbytecode *bottom);
 
     enum ProfileAction {
         ProfContinue,
@@ -1565,7 +1560,7 @@ class TraceRecorder
     friend class DetermineTypesVisitor;
     friend class RecursiveSlotMap;
     friend class UpRecursiveSlotMap;
-    friend MonitorResult RecordLoopEdge(JSContext*, uintN&, bool);
+    friend MonitorResult RecordLoopEdge(JSContext*, uintN&);
     friend TracePointAction RecordTracePoint(JSContext*, uintN &inlineCallCount,
                                              bool *blacklist);
     friend AbortResult AbortRecording(JSContext*, const char*);
@@ -1666,14 +1661,14 @@ MonitorTracePoint(JSContext*, uintN& inlineCallCount, bool* blacklist,
 extern JS_REQUIRES_STACK TraceRecorder::AbortResult
 AbortRecording(JSContext* cx, const char* reason);
 
-extern bool
+extern void
 InitJIT(TraceMonitor *tm);
 
 extern void
 FinishJIT(TraceMonitor *tm);
 
 extern void
-PurgeScriptFragments(TraceMonitor* tm, JSScript* script);
+PurgeScriptFragments(JSContext* cx, JSScript* script);
 
 extern bool
 OverfullJITCache(TraceMonitor* tm);
