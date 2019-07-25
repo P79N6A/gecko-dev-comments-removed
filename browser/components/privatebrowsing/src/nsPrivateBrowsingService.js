@@ -193,9 +193,9 @@ PrivateBrowsingService.prototype = {
       if (!this._quitting && this._saveSession) {
         let browserWindow = this._getBrowserWindow();
 
-	
         
-	if (browserWindow) {
+        
+        if (browserWindow) {
           
           ss.setBrowserState(blankState);
 
@@ -217,7 +217,9 @@ PrivateBrowsingService.prototype = {
                        .getInterface(Ci.nsIXULWindow)
                        .docShell.contentViewer.resetCloseWindow();
         }
+      }
 
+      if (!this._quitting) {
         var windowsEnum = Services.wm.getEnumerator("navigator:browser");
         while (windowsEnum.hasMoreElements()) {
           var window = windowsEnum.getNext();
