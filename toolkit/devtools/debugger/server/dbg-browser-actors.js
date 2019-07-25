@@ -196,6 +196,9 @@ BrowserRootActor.prototype = {
   onWindowTitleChange: function BRA_onWindowTitleChange(aWindow, aTitle) { },
   onOpenWindow: function BRA_onOpenWindow(aWindow) { },
   onCloseWindow: function BRA_onCloseWindow(aWindow) {
+    
+    
+    
     if (aWindow.getBrowser) {
       this.unwatchWindow(aWindow);
     }
