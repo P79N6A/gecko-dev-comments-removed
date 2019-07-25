@@ -373,10 +373,10 @@ resultConvTemplates = {
         "    return JS_TRUE;\n",
 
     '[astring]':
-        "    return xpc_qsStringToJsval(cx, result, ${jsvalPtr});\n",
+        "    return xpc::StringToJsval(cx, result, ${jsvalPtr});\n",
 
     '[domstring]':
-        "    return xpc_qsStringToJsval(cx, result, ${jsvalPtr});\n",
+        "    return xpc::StringToJsval(cx, result, ${jsvalPtr});\n",
 
     '[jsval]':
         

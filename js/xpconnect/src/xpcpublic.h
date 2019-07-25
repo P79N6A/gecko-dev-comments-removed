@@ -191,6 +191,17 @@ xpc_UnmarkGrayObject(JSObject *obj)
 NS_EXPORT_(void)
 xpc_ActivateDebugMode();
 
+namespace xpc {
+
+
+
+
+
+
+bool StringToJsval(JSContext *cx, nsString &str, JS::Value *rval);
+
+} 
+
 class nsIMemoryMultiReporterCallback;
 
 namespace mozilla {

@@ -40,6 +40,9 @@
 #ifndef xpcquickstubs_h___
 #define xpcquickstubs_h___
 
+#include "xpcpublic.h"
+#include "xpcprivate.h"
+
 #include "nsINode.h"
 
 
@@ -445,13 +448,6 @@ xpc_qsJsvalToCharStr(JSContext *cx, jsval v, JSAutoByteString *bytes);
 JSBool
 xpc_qsJsvalToWcharStr(JSContext *cx, jsval v, jsval *pval, const PRUnichar **pstr);
 
-
-
-
-
-
-JSBool
-xpc_qsStringToJsval(JSContext *cx, nsString &str, jsval *rval);
 
 
 JSBool
