@@ -590,7 +590,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     this.$undoContainer = iQ("<div/>")
       .addClass("undo")
       .attr("type", "button")
-      .text(tabviewString("groupItem.undoCloseGroup"))
+      .text("Undo Close Group")
       .appendTo("body");
     let undoClose = iQ("<span/>")
       .addClass("close")
@@ -1909,6 +1909,13 @@ let GroupItems = {
       if (groupItems.length > 0) {
         groupItems.some(function(groupItem) {
           if (!groupItem.hidden) {
+            
+            let activeTab = groupItem.getActiveTab();
+            if (activeTab) {
+              tabItem = activeTab;
+              return true;
+            }
+            
             var child = groupItem.getChild(0);
             if (child) {
               tabItem = child;
@@ -1930,6 +1937,13 @@ let GroupItems = {
       var firstGroupItems = groupItems.slice(currentIndex + 1);
       firstGroupItems.some(function(groupItem) {
         if (!groupItem.hidden) {
+          
+          let activeTab = groupItem.getActiveTab();
+          if (activeTab) {
+            tabItem = activeTab;
+            return true;
+          }
+          
           var child = groupItem.getChild(0);
           if (child) {
             tabItem = child;
@@ -1947,6 +1961,13 @@ let GroupItems = {
         var secondGroupItems = groupItems.slice(0, currentIndex);
         secondGroupItems.some(function(groupItem) {
           if (!groupItem.hidden) {
+            
+            let activeTab = groupItem.getActiveTab();
+            if (activeTab) {
+              tabItem = activeTab;
+              return true;
+            }
+            
             var child = groupItem.getChild(0);
             if (child) {
               tabItem = child;
