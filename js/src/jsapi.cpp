@@ -5248,15 +5248,33 @@ JS_DecompileFunctionBody(JSContext *cx, JSFunction *fun, unsigned indent)
 }
 
 JS_PUBLIC_API(JSBool)
-JS_ExecuteScript(JSContext *cx, JSObject *obj, JSScript *script, jsval *rval)
+JS_ExecuteScript(JSContext *cx, JSObject *obj, JSScript *scriptArg, jsval *rval)
 {
     JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
     AssertNoGC(cx);
     CHECK_REQUEST(cx);
-    assertSameCompartment(cx, obj, script);
+    assertSameCompartment(cx, obj);
     AutoLastFrameCheck lfc(cx);
 
-    return Execute(cx, script, *obj, rval);
+    JS::Anchor<JSScript *> script;
+
+    
+
+
+
+
+
+
+
+    if (scriptArg->compartment() != obj->compartment()) {
+        script = CloneScript(cx, scriptArg);
+        if (!script.get())
+            return false;
+    } else {
+        script = scriptArg;
+    }
+
+    return Execute(cx, script.get(), *obj, rval);
 }
 
 JS_PUBLIC_API(JSBool)
