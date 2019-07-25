@@ -14,7 +14,8 @@ Cu.import('resource://gre/modules/Services.jsm');
 
 var EXPORTED_SYMBOLS = ['VisualPresenter',
                         'AndroidPresenter',
-                        'DummyAndroidPresenter'];
+                        'DummyAndroidPresenter',
+                        'PresenterContext'];
 
 
 
@@ -39,8 +40,7 @@ Presenter.prototype = {
 
 
 
-
-  pivotChanged: function pivotChanged(aObject, aNewContext) {},
+  pivotChanged: function pivotChanged(aContext) {},
 
   
 
@@ -82,7 +82,8 @@ Presenter.prototype = {
 
 
 
-  tabSelected: function tabSelected(aDocObj) {},
+
+  tabSelected: function tabSelected(aDocContext, aVCContext) {},
 
   
 
@@ -139,34 +140,32 @@ VisualPresenter.prototype = {
       this._highlight(this._currentObject);
   },
 
-  pivotChanged: function VisualPresenter_pivotChanged(aObject, aNewContext) {
-    this._currentObject = aObject;
+  pivotChanged: function VisualPresenter_pivotChanged(aContext) {
+    this._currentObject = aContext.accessible;
 
-    if (!aObject) {
+    if (!aContext.accessible) {
       this._hide();
       return;
     }
 
     try {
-      aObject.scrollTo(Ci.nsIAccessibleScrollType.SCROLL_TYPE_ANYWHERE);
-      this._highlight(aObject);
+      aContext.accessible.scrollTo(
+        Ci.nsIAccessibleScrollType.SCROLL_TYPE_ANYWHERE);
+      this._highlight(aContext.accessible);
     } catch (e) {
       dump('Error getting bounds: ' + e);
       return;
     }
   },
 
-  tabSelected: function VisualPresenter_tabSelected(aDocObj) {
-    let vcPos = aDocObj ? aDocObj.QueryInterface(Ci.nsIAccessibleCursorable).
-      virtualCursor.position : null;
-
-    this.pivotChanged(vcPos);
+  tabSelected: function VisualPresenter_tabSelected(aDocContext, aVCContext) {
+    this.pivotChanged(aVCContext);
   },
 
   tabStateChanged: function VisualPresenter_tabStateChanged(aDocObj,
                                                             aPageState) {
     if (aPageState == 'newdoc')
-      this.pivotChanged(null);
+      this._hide();
   },
 
   
@@ -234,14 +233,15 @@ AndroidPresenter.prototype = {
   ANDROID_VIEW_TEXT_CHANGED: 0x10,
   ANDROID_WINDOW_STATE_CHANGED: 0x20,
 
-  pivotChanged: function AndroidPresenter_pivotChanged(aObject, aNewContext) {
+  pivotChanged: function AndroidPresenter_pivotChanged(aContext) {
     let output = [];
-    for (let i in aNewContext)
-      output.push.apply(output,
-                        UtteranceGenerator.genForObject(aNewContext[i]));
+    for (let i in aContext.newAncestry)
+      output.push.apply(
+        output, UtteranceGenerator.genForObject(aContext.newAncestry[i]));
 
     output.push.apply(output,
-                      UtteranceGenerator.genForObject(aObject, true));
+                      UtteranceGenerator.genForObject(aContext.accessible,
+                                                      true));
 
     this.sendMessageToJava({
       gecko: {
@@ -262,21 +262,9 @@ AndroidPresenter.prototype = {
     });
   },
 
-  tabSelected: function AndroidPresenter_tabSelected(aDocObj) {
+  tabSelected: function AndroidPresenter_tabSelected(aDocContext, aVCContext) {
     
-    let vcDoc = aDocObj.QueryInterface(Ci.nsIAccessibleCursorable);
-    let context = [];
-
-    let parent = vcDoc.virtualCursor.position || aDocObj;
-    while ((parent = parent.parent)) {
-      context.push(parent);
-      if (parent == aDocObj)
-        break;
-    }
-
-    context.reverse();
-
-    this.pivotChanged(vcDoc.virtualCursor.position || aDocObj, context);
+    this.pivotChanged(aVCContext);
   },
 
   tabStateChanged: function AndroidPresenter_tabStateChanged(aDocObj,
@@ -340,5 +328,64 @@ DummyAndroidPresenter.prototype = {
 
   sendMessageToJava: function DummyAndroidPresenter_sendMessageToJava(aMsg) {
     dump(JSON.stringify(aMsg, null, 2) + '\n');
+  }
+};
+
+
+
+
+
+function PresenterContext(aAccessible, aOldAccessible) {
+  this._accessible = aAccessible;
+  this._oldAccessible = aOldAccessible;
+}
+
+PresenterContext.prototype = {
+  get accessible() {
+    return this._accessible;
+  },
+
+  get oldAccessible() {
+    return this._oldAccessible;
+  },
+
+  
+
+
+
+
+  get newAncestry() {
+    if (!this._newAncestry) {
+      let newLineage = [];
+      let oldLineage = [];
+
+      let parent = this._accessible;
+      while ((parent = parent.parent))
+        newLineage.push(parent);
+
+      if (this._oldAccessible) {
+        parent = this._oldAccessible;
+        while ((parent = parent.parent))
+          oldLineage.push(parent);
+      }
+
+      let i = 0;
+      this._newAncestry = [];
+
+      while (true) {
+        let newAncestor = newLineage.pop();
+        let oldAncestor = oldLineage.pop();
+
+        if (newAncestor == undefined)
+          break;
+
+        if (newAncestor != oldAncestor)
+          this._newAncestry.push(newAncestor);
+        i++;
+      }
+
+    }
+
+    return this._newAncestry;
   }
 };
