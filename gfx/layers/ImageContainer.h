@@ -614,6 +614,18 @@ private:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 class THEBES_API PlanarYCbCrImage : public Image {
 public:
   struct Data {
@@ -621,16 +633,13 @@ public:
     uint8_t* mYChannel;
     int32_t mYStride;
     gfxIntSize mYSize;
-    int32_t mYOffset;
     int32_t mYSkip;
     
     uint8_t* mCbChannel;
     uint8_t* mCrChannel;
     int32_t mCbCrStride;
     gfxIntSize mCbCrSize;
-    int32_t mCbOffset;
     int32_t mCbSkip;
-    int32_t mCrOffset;
     int32_t mCrSkip;
     
     uint32_t mPicX;
