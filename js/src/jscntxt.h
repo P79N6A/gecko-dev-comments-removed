@@ -113,10 +113,6 @@ template<typename T> class Seq;
 
 }  
 
-namespace JSC {
-    class ExecutableAllocator;
-}
-
 namespace js {
 
 
@@ -212,23 +208,6 @@ struct TracerState
                 uintN &inlineCallCountp, VMSideExit** innermostNestedGuardp);
     ~TracerState();
 };
-
-namespace mjit {
-    struct ThreadData
-    {
-        JSC::ExecutableAllocator *execPool;
-
-        
-        typedef js::HashSet<JSScript*, DefaultHasher<JSScript*>, js::SystemAllocPolicy> ScriptSet;
-        ScriptSet picScripts;
-
-        bool Initialize();
-        void Finish();
-
-        bool addScript(JSScript *script);
-        void removeScript(JSScript *script);
-    };
-}
 
 
 
@@ -1027,10 +1006,6 @@ struct JSThreadData {
     js::TraceMonitor    traceMonitor;
 #endif
 
-#ifdef JS_METHODJIT
-    js::mjit::ThreadData jmData;
-#endif
-
     
     JSScript            *scriptsToGC[JS_EVAL_CACHE_SIZE];
 
@@ -1238,7 +1213,6 @@ struct JSRuntime {
     JSGCArena           *gcEmptyArenaList;
 #endif
     JSGCArenaList       gcArenaList[FINALIZE_LIMIT];
-    JSGCDoubleArenaList gcDoubleArenaList;
     js::RootedValueMap  gcRootsHash;
     JSDHashTable        gcLocksHash;
     jsrefcount          gcKeepAtoms;
@@ -1587,7 +1561,6 @@ struct JSRuntime {
 #define JS_GSN_CACHE(cx)        (JS_THREAD_DATA(cx)->gsnCache)
 #define JS_PROPERTY_CACHE(cx)   (JS_THREAD_DATA(cx)->propertyCache)
 #define JS_TRACE_MONITOR(cx)    (JS_THREAD_DATA(cx)->traceMonitor)
-#define JS_METHODJIT_DATA(cx)   (JS_THREAD_DATA(cx)->jmData)
 #define JS_SCRIPTS_TO_GC(cx)    (JS_THREAD_DATA(cx)->scriptsToGC)
 
 #ifdef JS_EVAL_CACHE_METERING
@@ -1748,7 +1721,7 @@ struct JSContext
     JS_REQUIRES_STACK
     JSFrameRegs         *regs;
 
-  public:
+  private:
     friend class js::StackSpace;
     friend bool js::Interpret(JSContext *);
 
@@ -1761,6 +1734,7 @@ struct JSContext
         this->regs = regs;
     }
 
+  public:
     
     JSArenaPool         tempPool;
 
@@ -2231,8 +2205,7 @@ class AutoGCRooter {
         OBJECT =      -11, 
         STRING =      -12, 
         ID =          -13, 
-        VALVECTOR =   -14, 
-        BOXEDVECTOR = -15  
+        VALVECTOR =   -14  
     };
 
     private:
@@ -3055,48 +3028,6 @@ class AutoValueVector : private AutoGCRooter
     
   private:
     Vector<Value, 8> vector;
-    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
-};
-
-class AutoBoxedWordVector : private AutoGCRooter
-{
-  public:
-    explicit AutoBoxedWordVector(JSContext *cx
-                          JS_GUARD_OBJECT_NOTIFIER_PARAM)
-        : AutoGCRooter(cx, BOXEDVECTOR), vector(cx)
-    {
-        JS_GUARD_OBJECT_NOTIFIER_INIT;
-    }
-
-    size_t length() const { return vector.length(); }
-
-    bool append(jsid id) { return vector.append(id); }
-
-    void popBack() { vector.popBack(); }
-
-    bool resize(size_t newLength) {
-        return vector.resize(newLength);
-    }
-
-    bool reserve(size_t newLength) {
-        return vector.reserve(newLength);
-    }
-
-    jsid operator[](size_t i) { return vector[i]; }
-    jsid operator[](size_t i) const { return vector[i]; }
-
-    const jsid *begin() const { return vector.begin(); }
-    jsid *begin() { return vector.begin(); }
-
-    const jsid *end() const { return vector.end(); }
-    jsid *end() { return vector.end(); }
-
-    jsid back() const { return vector.back(); }
-
-    friend void AutoGCRooter::trace(JSTracer *trc);
-    
-  private:
-    Vector<jsboxedword, 8> vector;
     JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 

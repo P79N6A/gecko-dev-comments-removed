@@ -76,8 +76,6 @@
 #include "jstracer.h"
 #include "jslibmath.h"
 #include "jsvector.h"
-#include "methodjit/MethodJIT.h"
-#include "methodjit/Logging.h"
 
 #include "jsatominlines.h"
 #include "jscntxtinlines.h"
@@ -323,7 +321,7 @@ Class js_NoSuchMethodClass = {
 
 
 
-JSBool
+JS_STATIC_INTERPRET JSBool
 js_OnUnknownMethod(JSContext *cx, Value *vp)
 {
     JS_ASSERT(!vp[1].isPrimitive());
@@ -343,7 +341,7 @@ js_OnUnknownMethod(JSContext *cx, Value *vp)
             if (!js_IsFunctionQName(cx, obj, &id))
                 return false;
             if (id != 0)
-                vp[0] = IdToValue(id);
+                vp[0] = ID_TO_VALUE(id);
         }
 #endif
         obj = NewObjectWithGivenProto(cx, &js_NoSuchMethodClass, NULL, NULL);
@@ -399,53 +397,6 @@ const uint32 PrimitiveValue::Masks[PrimitiveValue::THISP_ARRAY_SIZE] = {
     JSVAL_MASK32_BOOLEAN | FAKE_NUMBER_MASK,                       
     JSVAL_MASK32_BOOLEAN | FAKE_NUMBER_MASK | JSVAL_MASK32_STRING  
 };
-
-struct AutoInterpPreparer 
-{
-    JSContext *cx;
-    JSScript *script;
-
-    AutoInterpPreparer(JSContext *cx, JSScript *script)
-      : cx(cx), script(script)
-    {
-        if (script->staticLevel < JS_DISPLAY_SIZE) {
-            JSStackFrame **disp = &cx->display[script->staticLevel];
-            cx->fp->displaySave = *disp;
-            *disp = cx->fp;
-        }
-        cx->interpLevel++;
-    }
-
-    ~AutoInterpPreparer()
-    {
-        if (script->staticLevel < JS_DISPLAY_SIZE)
-            cx->display[script->staticLevel] = cx->fp->displaySave;
-        --cx->interpLevel;
-    }
-};
-
-JS_REQUIRES_STACK bool
-RunScript(JSContext *cx, JSScript *script, JSFunction *fun, JSObject *scopeChain)
-{
-    JS_ASSERT(script);
-
-#ifdef JS_METHODJIT_SPEW
-    JMCheckLogging();
-#endif
-
-    AutoInterpPreparer prepareInterp(cx, script);
-
-#ifdef JS_METHODJIT
-    mjit::CompileStatus status = mjit::CanMethodJIT(cx, script, fun, scopeChain);
-    if (status == mjit::Compile_Error)
-        return JS_FALSE;
-
-    if (status == mjit::Compile_Okay)
-        return mjit::JaegerShot(cx);
-#endif
-
-    return Interpret(cx);
-}
 
 
 
@@ -676,7 +627,7 @@ Invoke(JSContext *cx, const InvokeArgsGuard &args, uintN flags)
 #endif
     } else {
         JS_ASSERT(script);
-        ok = RunScript(cx, script, fun, fp->scopeChain);
+        ok = Interpret(cx);
     }
 
     DTrace::exitJSFun(cx, fp, fun, fp->rval);
@@ -863,7 +814,7 @@ Execute(JSContext *cx, JSObject *chain, JSScript *script,
     if (JSInterpreterHook hook = cx->debugHooks->executeHook)
         hookData = hook(cx, fp, JS_TRUE, 0, cx->debugHooks->executeHookData);
 
-    JSBool ok = RunScript(cx, script, fp->fun, fp->scopeChain);
+    JSBool ok = Interpret(cx);
     if (result)
         *result = fp->rval;
 
@@ -983,7 +934,7 @@ CheckRedeclaration(JSContext *cx, JSObject *obj, jsid id, uintN attrs,
            : isFunction
            ? js_function_str
            : js_var_str;
-    name = js_ValueToPrintableString(cx, IdToValue(id));
+    name = js_ValueToPrintableString(cx, ID_TO_VALUE(id));
     if (!name)
         return JS_FALSE;
     return !!JS_ReportErrorFlagsAndNumber(cx, report,
@@ -1158,65 +1109,11 @@ InvokeConstructor(JSContext *cx, const InvokeArgsGuard &args, JSBool clampReturn
     return JS_TRUE;
 }
 
-Value
-BoxedWordToValue(jsboxedword w)
-{
-    if (JSBOXEDWORD_IS_STRING(w))
-        return StringTag(JSBOXEDWORD_TO_STRING(w));
-    if (JSBOXEDWORD_IS_INT(w))
-        return Int32Tag(JSBOXEDWORD_TO_INT(w));
-    if (JSBOXEDWORD_IS_DOUBLE(w))
-        return DoubleTag(*JSBOXEDWORD_TO_DOUBLE(w));
-    if (JSBOXEDWORD_IS_OBJECT(w))
-        return ObjectOrNullTag(JSBOXEDWORD_TO_OBJECT(w));
-    if (JSBOXEDWORD_IS_VOID(w))
-        return UndefinedTag();
-    return BooleanTag(!!JSBOXEDWORD_TO_BOOLEAN(w));
-}
-
-bool
-ValueToBoxedWord(JSContext *cx, const Value &v, jsboxedword *wp)
-{
-    int32_t i;
-    if (v.isInt32() &&
-        INT32_FITS_IN_JSID((i = v.asInt32()))) {
-        *wp = INT_TO_JSBOXEDWORD(i);
-        return true;
-    }
-    if (v.isString()) {
-        *wp = STRING_TO_JSBOXEDWORD(v.asString());
-        return true;
-    }
-    if (v.isObjectOrNull()) {
-        *wp = OBJECT_TO_JSBOXEDWORD(v.asObjectOrNull());
-        return true;
-    }
-    if (v.isBoolean()) {
-        *wp = BOOLEAN_TO_JSBOXEDWORD(v.asBoolean());
-        return true;
-    }
-    if (v.isUndefined()) {
-        *wp = JSBOXEDWORD_VOID;
-        return true;
-    }
-    double *dp = js_NewWeaklyRootedDoubleAtom(cx, v.asNumber());
-    if (!dp)
-        return false;
-    *wp = DOUBLE_TO_JSBOXEDWORD(dp);
-    return true;
-}
-
-Value
-IdToValue(jsid id)
-{
-    return BoxedWordToValue(id);
-}
-
 bool
 ValueToId(JSContext *cx, const Value &v, jsid *idp)
 {
     int32_t i;
-    if (ValueFitsInInt32(v, &i) && INT32_FITS_IN_JSID(i)) {
+    if (ValueFitsInInt32(v, &i)) {
         *idp = INT_TO_JSID(i);
         return true;
     }
@@ -1307,7 +1204,7 @@ js_IsActiveWithOrBlock(JSContext *cx, JSObject *obj, int stackDepth)
 
 
 
-JS_REQUIRES_STACK JSBool
+JS_STATIC_INTERPRET JS_REQUIRES_STACK JSBool
 js_UnwindScope(JSContext *cx, jsint stackDepth, JSBool normalUnwind)
 {
     JSObject *obj;
@@ -2060,21 +1957,14 @@ IteratorNext(JSContext *cx, JSObject *iterobj, Value *rval)
     if (iterobj->getClass() == &js_IteratorClass.base) {
         NativeIterator *ni = (NativeIterator *) iterobj->getPrivate();
         JS_ASSERT(ni->props_cursor < ni->props_end);
-        jsboxedword w = *ni->props_cursor;
-        if (JSBOXEDWORD_IS_STRING(w))
-            rval->setString(JSBOXEDWORD_TO_STRING(w));
-        else if (ni->flags & JSITER_FOREACH)
-            
-
-            *rval = BoxedWordToValue(*ni->props_cursor);
-        else
-            goto slow_path;
-
-        ni->props_cursor++;
-        return true;
+        *rval = *ni->props_cursor;
+        if (rval->isString() || (ni->flags & JSITER_FOREACH)) {
+            ni->props_cursor++;
+            return true;
+        }
+        
     }
-  slow_path:
-    return !!js_IteratorNext(cx, iterobj, rval);
+    return js_IteratorNext(cx, iterobj, rval);
 }
 
 
@@ -2246,6 +2136,9 @@ Interpret(JSContext *cx)
 
 #define LOAD_FUNCTION(PCOFF)                                                  \
     (fun = script->getFunction(GET_FULL_INDEX(PCOFF)))
+
+#define LOAD_DOUBLE(PCOFF, dbl)                                               \
+    (dbl = script->getConst(GET_FULL_INDEX(PCOFF)).asDouble())
 
 #ifdef JS_TRACER
 

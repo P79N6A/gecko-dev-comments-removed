@@ -85,7 +85,6 @@ typedef enum JSOp {
 #define JOF_INT8          18      /* int8 immediate operand */
 #define JOF_ATOMOBJECT    19      /* uint16 constant index + object index */
 #define JOF_UINT16PAIR    20      /* pair of uint16 immediates */
-#define JOF_GLOBAL        21      /* uint16 global array index */
 #define JOF_TYPEMASK      0x001f  /* mask for above immediate types */
 
 #define JOF_NAME          (1U<<5) /* name operation */
@@ -255,8 +254,6 @@ struct JSCodeSpec {
     int8                ndefs;          
     uint8               prec;           
     uint32              format;         
-
-    uint32 type() const { return JOF_TYPE(format); }
 };
 
 extern const JSCodeSpec js_CodeSpec[];
@@ -337,12 +334,11 @@ js_GetIndexFromBytecode(JSContext *cx, JSScript *script, jsbytecode *pc,
 
 
 
-#define GET_DOUBLE_FROM_BYTECODE(script, pc, pcoff, atom)                     \
+#define GET_DOUBLE_FROM_BYTECODE(script, pc, pcoff, dbl)                      \
     JS_BEGIN_MACRO                                                            \
         uintN index_ = js_GetIndexFromBytecode(cx, (script), (pc), (pcoff));  \
-        JS_ASSERT(index_ < (script)->atomMap.length);                         \
-        (atom) = (script)->atomMap.vector[index_];                            \
-        JS_ASSERT(ATOM_IS_DOUBLE(atom));                                      \
+        JS_ASSERT(index_ < (script)->consts()->length);                       \
+        (dbl) = (script)->getConst(index_).asDouble();                        \
     JS_END_MACRO
 
 #define GET_OBJECT_FROM_BYTECODE(script, pc, pcoff, obj)                      \

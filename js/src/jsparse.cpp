@@ -90,6 +90,8 @@
 #include "jsdhash.h"
 #endif
 
+#include "jsatominlines.h"
+
 using namespace js;
 
 
@@ -734,8 +736,7 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, JSStackFrame *calle
     void *sbrk(ptrdiff_t), *before = sbrk(0);
 #endif
 
-    JS_ASSERT(!(tcflags & ~(TCF_COMPILE_N_GO | TCF_NO_SCRIPT_RVAL | TCF_NEED_MUTABLE_SCRIPT |
-                            TCF_COMPILE_FOR_EVAL)));
+    JS_ASSERT(!(tcflags & ~(TCF_COMPILE_N_GO | TCF_NO_SCRIPT_RVAL | TCF_NEED_MUTABLE_SCRIPT)));
 
     
 
@@ -762,21 +763,11 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, JSStackFrame *calle
 
     MUST_FLOW_THROUGH("out");
 
-    JSObject *globalObj = scopeChain ? scopeChain->getGlobal() : NULL;
-    js::GlobalScope globalScope(cx, globalObj, &cg);
-    if (globalObj) {
-        JS_ASSERT(globalObj->isNative());
-        JS_ASSERT((globalObj->getClass()->flags & JSCLASS_GLOBAL_FLAGS) == JSCLASS_GLOBAL_FLAGS);
-        globalScope.globalFreeSlot = globalObj->scope()->freeslot;
-    }
-
     
     script = NULL;
 
-    globalScope.cg = &cg;
     cg.flags |= tcflags;
     cg.scopeChain = scopeChain;
-    compiler.globalScope = &globalScope;
     if (!SetStaticLevel(&cg, staticLevel))
         goto out;
 
@@ -934,27 +925,6 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, JSStackFrame *calle
                     goto too_many_slots;
                 SET_SLOTNO(code, slot);
             }
-        }
-    }
-
-    if (globalScope.defs.length()) {
-        JS_ASSERT(globalObj->scope()->freeslot == globalScope.globalFreeSlot);
-        JS_ASSERT(!cg.compilingForEval());
-        for (size_t i = 0; i < globalScope.defs.length(); i++) {
-            JSAtom *atom = globalScope.defs[i];
-            jsid id = ATOM_TO_JSID(atom);
-            JSProperty *prop;
-
-            if (!js_DefineNativeProperty(cx, globalObj, id, Value(UndefinedTag()), PropertyStub,
-                                         PropertyStub, JSPROP_ENUMERATE | JSPROP_PERMANENT,
-                                         0, 0, &prop)) {
-                goto out;
-            }
-
-            JS_ASSERT(prop);
-            JS_ASSERT(((JSScopeProperty*)prop)->slot == globalScope.globalFreeSlot + i);
-
-            globalObj->dropProperty(cx, prop);
         }
     }
 
@@ -2148,10 +2118,11 @@ FlagHeavyweights(JSDefinition *dn, JSFunctionBox *funbox, uint32& tcflags)
         tcflags |= TCF_FUN_HEAVYWEIGHT;
 }
 
-static bool
-DeoptimizeUsesWithin(JSDefinition *dn, const TokenPos &pos)
+static void
+DeoptimizeUsesWithin(JSDefinition *dn, JSFunctionBox *funbox, uint32& tcflags)
 {
     uintN ndeoptimized = 0;
+    const TokenPos &pos = funbox->node->pn_body->pn_pos;
 
     for (JSParseNode *pnu = dn->dn_uses; pnu; pnu = pnu->pn_link) {
         JS_ASSERT(pnu->pn_used);
@@ -2162,7 +2133,8 @@ DeoptimizeUsesWithin(JSDefinition *dn, const TokenPos &pos)
         }
     }
 
-    return ndeoptimized != 0;
+    if (ndeoptimized != 0)
+        FlagHeavyweights(dn, funbox, tcflags);
 }
 
 void
@@ -2324,8 +2296,7 @@ Parser::setFunctionKinds(JSFunctionBox *funbox, uint32& tcflags)
                             ++nflattened;
                             continue;
                         }
-                        if (DeoptimizeUsesWithin(lexdep, funbox->node->pn_body->pn_pos))
-                            FlagHeavyweights(lexdep, funbox, tcflags);
+                        DeoptimizeUsesWithin(lexdep, funbox, tcflags);
                     }
                 }
 
@@ -2499,17 +2470,6 @@ LeaveFunction(JSParseNode *fn, JSTreeContext *funtc, JSAtom *funAtom = NULL,
             }
 
             JSAtomListElement *outer_ale = tc->decls.lookup(atom);
-
-            
-
-
-
-            if ((funtc->flags & TCF_FUN_USES_EVAL) ||
-                (outer_ale && tc->innermostWith &&
-                 ALE_DEFN(outer_ale)->pn_pos < tc->innermostWith->pn_pos)) {
-                DeoptimizeUsesWithin(dn, fn->pn_pos);
-            }
-
             if (!outer_ale)
                 outer_ale = tc->lexdeps.lookup(atom);
             if (outer_ale) {
@@ -3285,69 +3245,6 @@ OuterLet(JSTreeContext *tc, JSStmtInfo *stmt, JSAtom *atom)
     return false;
 }
 
-static bool
-DefineGlobal(JSParseNode *pn, JSCodeGenerator *cg, JSAtom *atom)
-{
-    GlobalScope *globalScope = cg->compiler()->globalScope;
-    JSObject *globalObj = globalScope->globalObj;
-
-    if (!cg->compileAndGo() || !globalObj || cg->compilingForEval())
-        return true;
-
-    JS_LOCK_OBJ(cg->parser->context, globalObj);
-    JSScope *scope = globalObj->scope();
-    if (JSScopeProperty *sprop = scope->lookup(ATOM_TO_JSID(atom))) {
-        
-
-
-
-
-        uint32 index;
-        if (!sprop->configurable() &&
-            SPROP_HAS_VALID_SLOT(sprop, globalObj->scope()) &&
-            sprop->hasDefaultGetterOrIsMethod() &&
-            sprop->hasDefaultSetter() &&
-            cg->addGlobalUse(atom, sprop->slot, &index) &&
-            index != FREE_UPVAR_COOKIE)
-        {
-            pn->pn_op = JSOP_GETGLOBAL;
-            pn->pn_cookie = index;
-            pn->pn_dflags |= PND_BOUND | PND_GVAR;
-        }
-
-        JS_UNLOCK_SCOPE(cg->parser->context, scope);
-        return true;
-    }
-    JS_UNLOCK_SCOPE(cg->parser->context, scope);
-
-    
-    JS_ASSERT(!cg->globalMap.lookup(atom));
-
-    uint32 slot = globalScope->globalFreeSlot + globalScope->defs.length();
-    if (!globalScope->defs.append(atom))
-        return false;
-
-    uint32 index;
-    if (!cg->addGlobalUse(atom, slot, &index))
-        return false;
-
-    if (index != FREE_UPVAR_COOKIE) {
-        pn->pn_op = JSOP_GETGLOBAL;
-        pn->pn_cookie = index;
-        pn->pn_dflags |= PND_BOUND | PND_GVAR;
-    }
-
-    return true;
-}
-
-
-
-
-
-
-
-
-
 
 
 
@@ -3369,38 +3266,27 @@ BindGvar(JSParseNode *pn, JSTreeContext *tc, bool inWith = false)
     JS_ASSERT(pn->pn_op == JSOP_NAME);
     JS_ASSERT(!tc->inFunction());
 
-    if (!tc->compiling() || tc->parser->callerFrame)
-        return true;
+    if (tc->compiling() && !tc->parser->callerFrame) {
+        JSCodeGenerator *cg = (JSCodeGenerator *) tc;
 
-    JSCodeGenerator *cg = (JSCodeGenerator *) tc;
-
-    if (!(pn->pn_dflags & PND_CONST) && !inWith) {
-        if (!DefineGlobal(pn, cg, pn->pn_atom))
+        
+        JSAtomListElement *ale = cg->atomList.add(tc->parser, pn->pn_atom);
+        if (!ale)
             return false;
-        if (pn->pn_dflags & PND_BOUND)
+
+        
+        uintN slot = ALE_INDEX(ale);
+        if ((slot + 1) >> 16)
             return true;
-    }
 
-    
+        if ((uint16)(slot + 1) > cg->ngvars)
+            cg->ngvars = (uint16)(slot + 1);
 
-    
-    JSAtomListElement *ale = cg->atomList.add(tc->parser, pn->pn_atom);
-    if (!ale)
-        return false;
-
-    
-    uintN slot = ALE_INDEX(ale);
-    if ((slot + 1) >> 16)
-        return true;
-
-    if ((uint16)(slot + 1) > cg->ngvars)
-        cg->ngvars = (uint16)(slot + 1);
-
-    
-    if (!inWith) {
-        pn->pn_op = JSOP_GETGVAR;
-        pn->pn_cookie = MAKE_UPVAR_COOKIE(tc->staticLevel, slot);
-        pn->pn_dflags |= PND_BOUND | PND_GVAR;
+        if (!inWith) {
+            pn->pn_op = JSOP_GETGVAR;
+            pn->pn_cookie = MAKE_UPVAR_COOKIE(tc->staticLevel, slot);
+            pn->pn_dflags |= PND_BOUND | PND_GVAR;
+        }
     }
 
     return true;
@@ -3678,12 +3564,10 @@ BindDestructuringVar(JSContext *cx, BindData *data, JSParseNode *pn,
 
 
     if (pn->pn_dflags & PND_BOUND) {
-        JS_ASSERT_IF((pn->pn_dflags & PND_GVAR),
-                     PN_OP(pn) == JSOP_GETGVAR || PN_OP(pn) == JSOP_GETGLOBAL);
         pn->pn_op = (pn->pn_op == JSOP_ARGUMENTS)
                     ? JSOP_SETNAME
                     : (pn->pn_dflags & PND_GVAR)
-                    ? (PN_OP(pn) == JSOP_GETGVAR ? JSOP_SETGVAR : JSOP_SETGLOBAL)
+                    ? JSOP_SETGVAR
                     : JSOP_SETLOCAL;
     } else {
         pn->pn_op = (data->op == JSOP_DEFCONST)
@@ -4212,7 +4096,7 @@ CloneParseTree(JSParseNode *opn, JSTreeContext *tc)
             NULLCHECK(pn->pn_right = CloneParseTree(opn->pn_right, tc));
         else
             pn->pn_right = pn->pn_left;
-        pn->pn_val = opn->pn_val;
+        pn->pn_pval = opn->pn_pval;
         pn->pn_iflags = opn->pn_iflags;
         break;
 
@@ -5442,7 +5326,6 @@ Parser::statement()
         break;
 
       case TOK_WITH:
-      {
         
 
 
@@ -5467,9 +5350,6 @@ Parser::statement()
         MUST_MATCH_TOKEN(TOK_RP, JSMSG_PAREN_AFTER_WITH);
         pn->pn_left = pn2;
 
-        JSParseNode *oldWith = tc->innermostWith;
-        tc->innermostWith = pn;
-
         js_PushStatement(tc, &stmtInfo, STMT_WITH, -1);
         pn2 = statement();
         if (!pn2)
@@ -5479,20 +5359,7 @@ Parser::statement()
         pn->pn_pos.end = pn2->pn_pos.end;
         pn->pn_right = pn2;
         tc->flags |= TCF_FUN_HEAVYWEIGHT;
-        tc->innermostWith = oldWith;
-
-        
-
-
-
-        JSAtomListIterator iter(&tc->lexdeps);
-        while (JSAtomListElement *ale = iter()) {
-            JSDefinition *lexdep = ALE_DEFN(ale)->resolve();
-            DeoptimizeUsesWithin(lexdep, pn->pn_pos);
-        }
-
         return pn;
-      }
 
       case TOK_VAR:
         pn = variables(false);
@@ -5955,13 +5822,10 @@ Parser::variables(bool inLetHead)
                 pn2->pn_expr = init;
             }
 
-            JS_ASSERT_IF((pn2->pn_dflags & PND_GVAR),
-                         PN_OP(pn2) == JSOP_GETGVAR || PN_OP(pn2) == JSOP_GETGLOBAL);
-
             pn2->pn_op = (PN_OP(pn2) == JSOP_ARGUMENTS)
                          ? JSOP_SETNAME
                          : (pn2->pn_dflags & PND_GVAR)
-                         ? (PN_OP(pn2) == JSOP_GETGVAR ? JSOP_SETGVAR : JSOP_SETGLOBAL)
+                         ? JSOP_SETGVAR
                          : (pn2->pn_dflags & PND_BOUND)
                          ? JSOP_SETLOCAL
                          : (data.op == JSOP_DEFCONST)
@@ -7227,7 +7091,7 @@ Parser::memberExpr(JSBool allowCallSyntax)
                 if (pn->pn_atom == context->runtime->atomState.evalAtom) {
                     
                     pn2->pn_op = JSOP_EVAL;
-                    tc->flags |= TCF_FUN_HEAVYWEIGHT | TCF_FUN_USES_EVAL;
+                    tc->flags |= TCF_FUN_HEAVYWEIGHT;
                 }
             } else if (pn->pn_op == JSOP_GETPROP) {
                 if (pn->pn_atom == context->runtime->atomState.applyAtom ||
@@ -8122,8 +7986,11 @@ Parser::primaryExpr(TokenKind tt, JSBool afterDot)
                     return NULL;
                 pn3->pn_dval = tokenStream.currentToken().t_dval;
                 if (tc->needStrictChecks()) {
-                    atom = js_AtomizeDouble(context, pn3->pn_dval);
-                    if (!atom)
+                    
+
+
+
+                    if (!js_ValueToAtom(context, DoubleTag(pn3->pn_dval), &atom))
                         return NULL;
                 } else {
                     atom = NULL; 
@@ -8151,8 +8018,11 @@ Parser::primaryExpr(TokenKind tt, JSBool afterDot)
                             return NULL;
                         pn3->pn_dval = tokenStream.currentToken().t_dval;
                         if (tc->needStrictChecks()) {
-                            atom = js_AtomizeDouble(context, pn3->pn_dval);
-                            if (!atom)
+                            
+
+
+
+                            if (!js_ValueToAtom(context, DoubleTag(pn3->pn_dval), &atom))
                                 return NULL;
                         } else {
                             atom = NULL; 
@@ -8234,19 +8104,6 @@ Parser::primaryExpr(TokenKind tt, JSBool afterDot)
                 } else {
                     JS_NOT_REACHED("bad opcode in object initializer");
                     attributesMask = 0;
-                }
-
-                
-
-
-
-                if (ATOM_IS_DOUBLE(atom)) {
-                    JSString *str = js_NumberToString(context, pn3->pn_dval);
-                    if (!str)
-                        return JS_FALSE;
-                    atom = js_AtomizeString(context, str, 0);
-                    if (!atom)
-                        return JS_FALSE;
                 }
 
                 JSAtomListElement *ale = seen.lookup(atom);

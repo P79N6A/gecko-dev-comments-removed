@@ -205,6 +205,8 @@ struct JSFunction : public JSObject
     }
 };
 
+JS_STATIC_ASSERT(sizeof(JSFunction) % JS_GCTHING_ALIGN == 0);
+
 
 
 

@@ -57,14 +57,10 @@
 #define ATOM_NOCOPY     0x4       /* don't copy atom string bytes */
 #define ATOM_TMPSTR     0x8       /* internal, to avoid extra string */
 
-#define ATOM_KEY(atom)            ((jsboxedword)(atom))
-#define ATOM_IS_DOUBLE(atom)      JSBOXEDWORD_IS_DOUBLE(ATOM_KEY(atom))
-#define ATOM_TO_DOUBLE(atom)      JSBOXEDWORD_TO_DOUBLE(ATOM_KEY(atom))
-#define ATOM_IS_STRING(atom)      JSBOXEDWORD_IS_STRING(ATOM_KEY(atom))
-#define ATOM_TO_STRING(atom)      JSBOXEDWORD_TO_STRING(ATOM_KEY(atom))
+#define STRING_TO_ATOM(str)       (JS_ASSERT(str->isAtomized()),             \
+                                   (JSAtom *)str)
+#define ATOM_TO_STRING(atom)      ((JSString *)atom)
 #define ATOM_TO_JSVAL(atom)       STRING_TO_JSVAL(ATOM_TO_STRING(atom))
-#define STRING_TO_ATOM(str)       (JS_ASSERT(str->isAtomized()),              \
-                                   (JSAtom *)STRING_TO_JSBOXEDWORD(str))
 
 #if JS_BYTES_PER_WORD == 4
 # define ATOM_HASH(atom)          ((JSHashNumber)(atom) >> 2)
@@ -204,7 +200,6 @@ struct JSAtomMap {
 
 struct JSAtomState {
     JSDHashTable        stringAtoms;    
-    JSDHashTable        doubleAtoms;    
 #ifdef JS_THREADSAFE
     JSThinLock          lock;
 #endif
@@ -452,13 +447,6 @@ js_FinishCommonAtoms(JSContext *cx);
 
 
 extern JSAtom *
-js_AtomizeDouble(JSContext *cx, jsdouble d);
-
-
-
-
-
-extern JSAtom *
 js_AtomizeString(JSContext *cx, JSString *str, uintN flags);
 
 extern JSAtom *
@@ -473,12 +461,6 @@ js_AtomizeChars(JSContext *cx, const jschar *chars, size_t length, uintN flags);
 
 extern JSAtom *
 js_GetExistingStringAtom(JSContext *cx, const jschar *chars, size_t length);
-
-
-
-
-JSBool
-js_AtomizePrimitiveValue(JSContext *cx, jsboxedword w, JSAtom **atomp);
 
 #ifdef DEBUG
 

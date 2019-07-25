@@ -441,9 +441,9 @@ END_CASE(JSOP_ANDX)
 #define FETCH_ELEMENT_ID(obj, n, id)                                          \
     JS_BEGIN_MACRO                                                            \
         const Value &idval_ = regs.sp[n];                                     \
-        int32_t i;                                                            \
-        if (ValueFitsInInt32(idval_, &i) && INT32_FITS_IN_JSID(i)) {          \
-            id = INT_TO_JSID(i);                                              \
+        int32_t i_;                                                           \
+        if (ValueFitsInInt32(idval_, &i_)) {                                  \
+            id = INT_TO_JSID(i_);                                             \
         } else {                                                              \
             if (!js_InternNonIntElementId(cx, obj, idval_, &id, &regs.sp[n])) \
                 goto error;                                                   \
@@ -458,10 +458,10 @@ END_CASE(JSOP_ANDX)
             regs.sp -= spdec;                                                 \
             if (cond == (diff_ != 0)) {                                       \
                 ++regs.pc;                                                    \
-                len = GET_JUMP_OFFSET(regs.pc);                         \
+                len = GET_JUMP_OFFSET(regs.pc);                               \
                 BRANCH(len);                                                  \
             }                                                                 \
-            len = 1 + JSOP_IFEQ_LENGTH;                                 \
+            len = 1 + JSOP_IFEQ_LENGTH;                                       \
             DO_NEXT_OP(len);                                                  \
         }                                                                     \
     JS_END_MACRO
@@ -826,7 +826,7 @@ END_CASE(JSOP_BITAND)
 #define EXTENDED_EQUALITY_OP(OP)                                              \
     if (((clasp = l->getClass())->flags & JSCLASS_IS_EXTENDED) &&             \
         ((ExtendedClass *)clasp)->equality) {                                 \
-        if (!((ExtendedClass *)clasp)->equality(cx, l, &lval, &cond))         \
+        if (!((ExtendedClass *)clasp)->equality(cx, l, &rval, &cond))         \
             goto error;                                                       \
         cond = cond OP JS_TRUE;                                               \
     } else
@@ -1049,7 +1049,6 @@ BEGIN_CASE(JSOP_ADD)
 #if JS_HAS_XML_SUPPORT
     if (lval.isNonFunObj() && lval.asObject().isXML() &&
         rval.isNonFunObj() && rval.asObject().isXML()) {
-        Value rval;
         if (!js_ConcatenateXML(cx, &lval.asObject(), &rval.asObject(), &rval))
             goto error;
         regs.sp--;
@@ -1454,25 +1453,6 @@ do_incop:
     int incr, incr2;
     Value *vp;
 
-BEGIN_CASE(JSOP_INCGLOBAL)
-    incr =  1; incr2 =  1; goto do_bound_global_incop;
-BEGIN_CASE(JSOP_DECGLOBAL)
-    incr = -1; incr2 = -1; goto do_bound_global_incop;
-BEGIN_CASE(JSOP_GLOBALINC)
-    incr =  1; incr2 =  0; goto do_bound_global_incop;
-BEGIN_CASE(JSOP_GLOBALDEC)
-    incr = -1; incr2 =  0; goto do_bound_global_incop;
-
-  do_bound_global_incop:
-    uint32 slot;
-    slot = GET_SLOTNO(regs.pc);
-    slot = script->getGlobalSlot(slot);
-    JSObject *obj;
-    obj = fp->scopeChain->getGlobal();
-    vp = &obj->getSlotRef(slot);
-    goto do_int_fast_incop;
-END_CASE(JSOP_INCGLOBAL)
-
     
 BEGIN_CASE(JSOP_DECARG)
     incr = -1; incr2 = -1; goto do_arg_incop;
@@ -1484,6 +1464,8 @@ BEGIN_CASE(JSOP_ARGINC)
     incr =  1; incr2 =  0;
 
   do_arg_incop:
+    
+    uint32 slot;
     slot = GET_ARGNO(regs.pc);
     JS_ASSERT(slot < fp->fun->nargs);
     METER_SLOT_OP(op, slot);
@@ -2091,13 +2073,8 @@ BEGIN_CASE(JSOP_GETELEM)
                 copyFrom = &regs.sp[-1];
             }
         }
-        int32_t i32 = rref.asInt32();
-        if (INT32_FITS_IN_JSID(i32))
-            id = INT_TO_JSID(i32);
-        else
-            goto intern_big_int;
+        id = INT_TO_JSID(rref.asInt32());
     } else {
-      intern_big_int:
         if (!js_InternNonIntElementId(cx, obj, rref, &id))
             goto error;
     }
@@ -2370,19 +2347,6 @@ BEGIN_CASE(JSOP_APPLY)
 #endif
 
             
-
-
-
-            mjit::CompileStatus status = mjit::CanMethodJIT(cx, newscript, fun, newfp->scopeChain);
-            if (status == mjit::Compile_Error)
-                goto error;
-            if (status == mjit::Compile_Okay) {
-                if (!mjit::JaegerShot(cx))
-                    goto error;
-                goto inline_return;
-            }
-
-            
             op = (JSOp) *regs.pc;
             DO_OP();
         }
@@ -2534,10 +2498,10 @@ END_CASE(JSOP_RESETBASE)
 BEGIN_CASE(JSOP_DOUBLE)
 {
     JS_ASSERT(!fp->imacpc);
-    JS_ASSERT(size_t(atoms - script->atomMap.vector) < script->atomMap.length);
-    JSAtom *atom;
-    LOAD_ATOM(0, atom);
-    PUSH_DOUBLE(*ATOM_TO_DOUBLE(atom));
+    JS_ASSERT(size_t(atoms - script->atomMap.vector) <= script->atomMap.length);
+    double dbl;
+    LOAD_DOUBLE(0, dbl);
+    PUSH_DOUBLE(dbl);
 }
 END_CASE(JSOP_DOUBLE)
 
@@ -2711,9 +2675,8 @@ BEGIN_CASE(JSOP_LOOKUPSWITCH)
     bool match;
 #define SEARCH_PAIRS(MATCH_CODE)                                              \
     for (;;) {                                                                \
-        JS_ASSERT(GET_INDEX(pc2) < script->atomMap.length);                   \
-        JSAtom *atom = atoms[GET_INDEX(pc2)];                                 \
-        jsboxedword rval = ATOM_KEY(atom);                                    \
+        JS_ASSERT(GET_INDEX(pc2) < script->consts()->length);                 \
+        Value rval = script->consts()->vector[GET_INDEX(pc2)];                \
         MATCH_CODE                                                            \
         pc2 += INDEX_LEN;                                                     \
         if (match)                                                            \
@@ -2729,25 +2692,18 @@ BEGIN_CASE(JSOP_LOOKUPSWITCH)
         JSString *str = lval.asString();
         JSString *str2;
         SEARCH_PAIRS(
-            match = (JSBOXEDWORD_IS_STRING(rval) &&
-                     ((str2 = JSBOXEDWORD_TO_STRING(rval)) == str ||
+            match = (rval.isString() &&
+                     ((str2 = rval.asString()) == str ||
                       js_EqualStrings(str2, str)));
         )
     } else if (lval.isNumber()) {
-        double dbl = lval.asNumber();
+        double ldbl = lval.asNumber();
         SEARCH_PAIRS(
-            match = (JSBOXEDWORD_IS_INT(rval) && dbl == (double)JSBOXEDWORD_TO_INT(rval)) ||
-                    (JSBOXEDWORD_IS_DOUBLE(rval) && dbl == *JSBOXEDWORD_TO_DOUBLE(rval));
-        )
-    } else if (lval.isUndefined() || lval.isBoolean()) {
-        jsint s = lval.isUndefined() ? 2 : lval.asBoolean();
-        SEARCH_PAIRS(
-            match = JSBOXEDWORD_IS_SPECIAL(rval) && JSBOXEDWORD_TO_SPECIAL(rval) == s;
+            match = rval.isNumber() && ldbl == rval.asNumber();
         )
     } else {
-        JS_ASSERT(lval.isNull());
         SEARCH_PAIRS(
-            match = JSBOXEDWORD_IS_NULL(rval);
+            match = (lval == rval);
         )
     }
 #undef SEARCH_PAIRS
@@ -2940,62 +2896,6 @@ BEGIN_CASE(JSOP_CALLDSLOT)
         PUSH_NULL();
 }
 END_CASE(JSOP_GETDSLOT)
-
-BEGIN_CASE(JSOP_GETGLOBAL)
-BEGIN_CASE(JSOP_CALLGLOBAL)
-{
-    uint32 slot = GET_SLOTNO(regs.pc);
-    slot = script->getGlobalSlot(slot);
-    JSObject *obj = fp->scopeChain->getGlobal();
-    JS_ASSERT(slot < obj->scope()->freeslot);
-    PUSH_COPY(obj->getSlot(slot));
-    if (op == JSOP_CALLGLOBAL)
-        PUSH_NULL();
-}
-END_CASE(JSOP_GETGLOBAL)
-
-BEGIN_CASE(JSOP_FORGLOBAL)
-{
-    Value rval;
-    if (!IteratorNext(cx, &regs.sp[-1].asObject(), &rval))
-        goto error;
-    PUSH_COPY(rval);
-    uint32 slot = GET_SLOTNO(regs.pc);
-    slot = script->getGlobalSlot(slot);
-    JSObject *obj = fp->scopeChain->getGlobal();
-    JS_ASSERT(slot < obj->scope()->freeslot);
-    JS_LOCK_OBJ(cx, obj);
-    {
-        JSScope *scope = obj->scope();
-        if (!scope->methodWriteBarrier(cx, slot, rval)) {
-            JS_UNLOCK_SCOPE(cx, scope);
-            goto error;
-        }
-        obj->lockedSetSlot(slot, rval);
-        JS_UNLOCK_SCOPE(cx, scope);
-    }
-    regs.sp--;
-}
-END_CASE(JSOP_FORGLOBAL)
-
-BEGIN_CASE(JSOP_SETGLOBAL)
-{
-    uint32 slot = GET_SLOTNO(regs.pc);
-    slot = script->getGlobalSlot(slot);
-    JSObject *obj = fp->scopeChain->getGlobal();
-    JS_ASSERT(slot < obj->scope()->freeslot);
-    {
-        JS_LOCK_OBJ(cx, obj);
-        JSScope *scope = obj->scope();
-        if (!scope->methodWriteBarrier(cx, slot, regs.sp[-1])) {
-            JS_UNLOCK_SCOPE(cx, scope);
-            goto error;
-        }
-        obj->lockedSetSlot(slot, regs.sp[-1]);
-        JS_UNLOCK_SCOPE(cx, scope);
-    }
-}
-END_SET_CASE(JSOP_SETGLOBAL)
 
 BEGIN_CASE(JSOP_GETGVAR)
 BEGIN_CASE(JSOP_CALLGVAR)
@@ -4076,7 +3976,7 @@ BEGIN_CASE(JSOP_ANYNAME)
     jsid id;
     if (!js_GetAnyName(cx, &id))
         goto error;
-    PUSH_COPY(IdToValue(id));
+    PUSH_COPY(ID_TO_VALUE(id));
 }
 END_CASE(JSOP_ANYNAME)
 
@@ -4162,7 +4062,7 @@ BEGIN_CASE(JSOP_BINDXMLNAME)
     if (!js_FindXMLProperty(cx, lval, &obj, &id))
         goto error;
     regs.sp[-1].setObjectOrNull(obj);
-    PUSH_COPY(IdToValue(id));
+    PUSH_COPY(ID_TO_VALUE(id));
 }
 END_CASE(JSOP_BINDXMLNAME)
 

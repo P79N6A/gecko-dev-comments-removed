@@ -287,21 +287,6 @@ typedef enum JSParseNodeArity {
 
 struct JSDefinition;
 
-namespace js {
-
-struct GlobalScope {
-    GlobalScope(JSContext *cx, JSObject *globalObj, JSCodeGenerator *cg)
-      : globalObj(globalObj), cg(cg), defs(ContextAllocPolicy(cx))
-    { }
-
-    JSObject *globalObj;
-    JSCodeGenerator *cg;
-    Vector<JSAtom *, 16, ContextAllocPolicy> defs;
-    uint32 globalFreeSlot;
-};
-
-} 
-
 struct JSParseNode {
     uint32              pn_type:16,     
                         pn_op:8,        
@@ -335,7 +320,7 @@ struct JSParseNode {
         struct {                        
             JSParseNode *left;
             JSParseNode *right;
-            jsboxedword val;            
+            js::Value   *pval;          
             uintN       iflags;         
         } binary;
         struct {                        
@@ -387,7 +372,7 @@ struct JSParseNode {
 #define pn_kid3         pn_u.ternary.kid3
 #define pn_left         pn_u.binary.left
 #define pn_right        pn_u.binary.right
-#define pn_val          pn_u.binary.val
+#define pn_pval         pn_u.binary.pval
 #define pn_iflags       pn_u.binary.iflags
 #define pn_kid          pn_u.unary.kid
 #define pn_num          pn_u.unary.num
@@ -1075,7 +1060,6 @@ private:
 struct Compiler
 {
     Parser parser;
-    GlobalScope *globalScope;
 
     Compiler(JSContext *cx, JSPrincipals *prin = NULL, JSStackFrame *cfp = NULL)
       : parser(cx, prin, cfp)

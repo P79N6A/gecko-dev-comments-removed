@@ -277,7 +277,7 @@ js_SetProtoOrParent(JSContext *cx, JSObject *obj, uint32 slot, JSObject *pobj,
 static JSHashNumber
 js_hash_object(const void *key)
 {
-    return JSHashNumber(uintptr_t(key) >> JSBOXEDWORD_TAGBITS);
+    return JSHashNumber(uintptr_t(key) >> JS_GCTHING_ALIGN);
 }
 
 static JSHashEntry *
@@ -657,7 +657,7 @@ obj_toSource(JSContext *cx, uintN argc, Value *vp)
 
 
 
-        idstr = js_ValueToString(cx, IdToValue(id));
+        idstr = js_ValueToString(cx, ID_TO_VALUE(id));
         if (!idstr) {
             ok = JS_FALSE;
             obj2->dropProperty(cx, prop);
@@ -1358,9 +1358,9 @@ obj_eval(JSContext *cx, uintN argc, Value *vp)
 
     JSStackFrame *callerFrame = (staticLevel != 0) ? caller : NULL;
     if (!script) {
-        uint32 tcflags = TCF_COMPILE_N_GO | TCF_NEED_MUTABLE_SCRIPT | TCF_COMPILE_FOR_EVAL;
         script = Compiler::compileScript(cx, scopeobj, callerFrame,
-                                         principals, tcflags,
+                                         principals,
+                                         TCF_COMPILE_N_GO | TCF_NEED_MUTABLE_SCRIPT,
                                          str->chars(), str->length(),
                                          NULL, file, line, str, staticLevel);
         if (!script)
@@ -1430,7 +1430,7 @@ obj_watch_handler(JSContext *cx, JSObject *obj, jsid id, jsval old,
         return JS_TRUE;
     generation = cx->resolvingTable->generation;
 
-    argv[0] = IdToValue(id);
+    argv[0] = ID_TO_VALUE(id);
     argv[1] = Valueify(old);
     argv[2] = Valueify(*nvp);
     ok = InternalCall(cx, obj, ObjectOrNullTag(callable), 3, argv, Valueify(nvp));
@@ -1911,7 +1911,7 @@ obj_keys(JSContext *cx, uintN argc, Value *vp)
 
 
 
-            aobj->setDenseArrayElement(i, IdToValue(id));
+            aobj->setDenseArrayElement(i, ID_TO_VALUE(id));
         }
     }
 
@@ -2047,7 +2047,7 @@ Reject(JSContext *cx, uintN errorNumber, bool throwError, jsid id, bool *rval)
 {
     if (throwError) {
         jsid idstr;
-        if (!js_ValueToStringId(cx, IdToValue(id), &idstr))
+        if (!js_ValueToStringId(cx, ID_TO_VALUE(id), &idstr))
            return JS_FALSE;
         JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, errorNumber,
                              JS_GetStringBytes(JSID_TO_STRING(idstr)));
@@ -2117,8 +2117,8 @@ DefinePropertyOnObject(JSContext *cx, JSObject *obj, const PropertyDescriptor &d
         if (!js_CheckAccess(cx, obj, desc.id, JSACC_WATCH, &dummy, &dummyAttrs))
             return JS_FALSE;
 
-        Value undef = undefinedValue();
-        return js_DefineProperty(cx, obj, desc.id, &undef,
+        Value tmp = UndefinedTag();
+        return js_DefineProperty(cx, obj, desc.id, &tmp,
                                  desc.getter(), desc.setter(), desc.attrs);
     }
 
@@ -3318,55 +3318,6 @@ js_InitObjectClass(JSContext *cx, JSObject *obj)
                         object_props, object_methods, NULL, object_static_methods);
 }
 
-static bool
-DefineStandardSlot(JSContext *cx, JSObject *obj, JSProtoKey key, JSAtom *atom,
-                   const Value &v, uint32 attrs, bool &named)
-{
-    jsid id = ATOM_TO_JSID(atom);
-
-    if (key != JSProto_Null) {
-        
-
-
-
-
-        JS_ASSERT(obj->getClass()->flags & JSCLASS_IS_GLOBAL);
-        JS_ASSERT(obj->isNative());
-
-        JS_LOCK_OBJ(cx, obj);
-
-        JSScope *scope = js_GetMutableScope(cx, obj);
-        if (!scope) {
-            JS_UNLOCK_OBJ(cx, obj);
-            return false;
-        }
-
-        JSScopeProperty *sprop = scope->lookup(id);
-        if (!sprop) {
-            uint32 index = JSProto_LIMIT + key;
-            if (!js_SetReservedSlot(cx, obj, index, v)) {
-                JS_UNLOCK_SCOPE(cx, scope);
-                return false;
-            }
-
-            uint32 slot = JSSLOT_START(obj->getClass()) + index;
-            sprop = scope->addProperty(cx, id, PropertyStub, PropertyStub,
-                                       slot, attrs, 0, 0);
-
-            JS_UNLOCK_SCOPE(cx, scope);
-            if (!sprop)
-                return false;
-
-            named = true;
-            return true;
-        }
-        JS_UNLOCK_SCOPE(cx, scope);
-    }
-
-    named = obj->defineProperty(cx, id, v, PropertyStub, PropertyStub, attrs);
-    return named;
-}
-
 JSObject *
 js_InitClass(JSContext *cx, JSObject *obj, JSObject *parent_proto,
              Class *clasp, Native constructor, uintN nargs,
@@ -3375,8 +3326,8 @@ js_InitClass(JSContext *cx, JSObject *obj, JSObject *parent_proto,
 {
     JSAtom *atom;
     JSProtoKey key;
+    JSBool named;
     JSFunction *fun;
-    bool named = false;
 
     atom = js_Atomize(cx, clasp->name, strlen(clasp->name), 0);
     if (!atom)
@@ -3409,7 +3360,7 @@ js_InitClass(JSContext *cx, JSObject *obj, JSObject *parent_proto,
         return NULL;
 
     
-    AutoValueRooter tvr(cx, ObjectOrNullTag(proto));
+    AutoObjectRooter tvr(cx, proto);
 
     JSObject *ctor;
     if (!constructor) {
@@ -3419,25 +3370,27 @@ js_InitClass(JSContext *cx, JSObject *obj, JSObject *parent_proto,
 
 
 
-        if (!(clasp->flags & JSCLASS_IS_ANONYMOUS) ||
-            !(obj->getClass()->flags & JSCLASS_IS_GLOBAL) ||
-            key == JSProto_Null)
-        {
-            uint32 attrs = (clasp->flags & JSCLASS_IS_ANONYMOUS)
-                           ? JSPROP_READONLY | JSPROP_PERMANENT
-                           : 0;
-            if (!DefineStandardSlot(cx, obj, key, atom, tvr.value(), attrs, named))
+        if ((clasp->flags & JSCLASS_IS_ANONYMOUS) &&
+            (obj->getClass()->flags & JSCLASS_IS_GLOBAL) &&
+            key != JSProto_Null) {
+            named = JS_FALSE;
+        } else {
+            named = obj->defineProperty(cx, ATOM_TO_JSID(atom), ObjectOrNullTag(proto),
+                                        PropertyStub, PropertyStub,
+                                        (clasp->flags & JSCLASS_IS_ANONYMOUS)
+                                        ? JSPROP_READONLY | JSPROP_PERMANENT
+                                        : 0);
+            if (!named)
                 goto bad;
         }
 
         ctor = proto;
     } else {
-        fun = js_NewFunction(cx, NULL, constructor, nargs, 0, obj, atom);
+        
+        fun = js_DefineFunction(cx, obj, atom, constructor, nargs,
+                                JSFUN_STUB_GSOPS);
+        named = (fun != NULL);
         if (!fun)
-            goto bad;
-
-        AutoValueRooter tvr2(cx, FunObjTag(*fun));
-        if (!DefineStandardSlot(cx, obj, key, atom, tvr2.value(), 0, named))
             goto bad;
 
         
@@ -3946,8 +3899,8 @@ js_CheckForStringIndex(jsid id)
     if (cp != end || (negative && index == 0))
         return id;
 
-    if (oldIndex < JSBOXEDWORD_INT_MAX / 10 ||
-        (oldIndex == JSBOXEDWORD_INT_MAX / 10 && c <= (JSBOXEDWORD_INT_MAX % 10))) {
+    if (oldIndex < JSVAL_INT_MAX / 10 ||
+        (oldIndex == JSVAL_INT_MAX / 10 && c <= (JSVAL_INT_MAX % 10))) {
         if (negative)
             index = 0 - index;
         id = INT_TO_JSID((jsint)index);
@@ -4792,7 +4745,7 @@ js_GetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, uintN getHow,
 
             
             if (!js_ReportValueErrorFlags(cx, flags, JSMSG_UNDEFINED_PROP,
-                                          JSDVG_IGNORE_STACK, IdToValue(id),
+                                          JSDVG_IGNORE_STACK, ID_TO_VALUE(id),
                                           NULL, NULL, NULL)) {
                 return JS_FALSE;
             }
@@ -4870,7 +4823,7 @@ JSBool
 ReportReadOnly(JSContext* cx, jsid id, uintN flags)
 {
     return js_ReportValueErrorFlags(cx, flags, JSMSG_READ_ONLY,
-                                    JSDVG_IGNORE_STACK, IdToValue(id), NULL,
+                                    JSDVG_IGNORE_STACK, ID_TO_VALUE(id), NULL,
                                     NULL, NULL);
 }
 
@@ -5581,11 +5534,11 @@ js_Construct(JSContext *cx, JSObject *obj, uintN argc, Value *argv, Value *rval)
 }
 
 JSBool
-js_HasInstance(JSContext *cx, JSObject *obj, const Value *vp, JSBool *bp)
+js_HasInstance(JSContext *cx, JSObject *obj, const Value *v, JSBool *bp)
 {
     Class *clasp = obj->getClass();
     if (clasp->hasInstance)
-        return clasp->hasInstance(cx, obj, vp, bp);
+        return clasp->hasInstance(cx, obj, v, bp);
 #ifdef NARCISSUS
     {
         jsval fval, rval;
@@ -6280,8 +6233,6 @@ JS_FRIEND_API(void)
 DumpAtom(JSAtom *atom)
 {
     fprintf(stderr, "JSAtom* (%p) = ", (void *) atom);
-    if (!JSBOXEDWORD_IS_STRING(ATOM_KEY(atom)))
-        fprintf(stderr, "<non-string atom>\n");
     DumpString(ATOM_TO_STRING(atom));
 }
 
@@ -6347,7 +6298,7 @@ JS_FRIEND_API(void)
 DumpId(jsid id)
 {
     fprintf(stderr, "jsid %p = ", (void *) id);
-    dumpValue(IdToValue(id));
+    dumpValue(ID_TO_VALUE(id));
     fputc('\n', stderr);
 }
 

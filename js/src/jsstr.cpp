@@ -547,7 +547,7 @@ str_getProperty(JSContext *cx, JSObject *obj, jsid id, Value *vp)
 {
     JSString *str;
 
-    if (id == ATOM_KEY(cx->runtime->atomState.lengthAtom)) {
+    if (id == ATOM_TO_JSID(cx->runtime->atomState.lengthAtom)) {
         if (obj->getClass() == &js_StringClass) {
             
             str = obj->getPrimitiveThis().asString();

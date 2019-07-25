@@ -49,7 +49,7 @@
 #define ARRAY_CAPACITY_MIN      7
 
 extern JSBool
-js_IdIsIndex(jsboxedword idw, jsuint *indexp);
+js_IdIsIndex(jsid id, jsuint *indexp);
 
 extern js::Class js_ArrayClass, js_SlowArrayClass;
 
@@ -201,7 +201,7 @@ js_PrototypeHasIndexedProperties(JSContext *cx, JSObject *obj);
 
 
 JSBool
-js_GetDenseArrayElementValue(JSContext *cx, JSObject *obj, JSProperty *prop,
+js_GetDenseArrayElementValue(JSContext *cx, JSObject *obj, jsid id,
                              js::Value *vp);
 
 
