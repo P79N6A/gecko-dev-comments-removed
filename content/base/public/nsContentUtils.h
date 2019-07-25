@@ -1051,6 +1051,7 @@ public:
 
 
 
+
   static nsresult ParseFragmentHTML(const nsAString& aSourceBuffer,
                                     nsIContent* aTargetNode,
                                     nsIAtom* aContextLocalName,
@@ -1074,6 +1075,20 @@ public:
                                    nsTArray<nsString>& aTagStack,
                                    bool aPreventScriptExecution,
                                    nsIDOMDocumentFragment** aReturn);
+
+  
+
+
+
+
+
+
+
+
+
+
+  static nsresult ParseDocumentHTML(const nsAString& aSourceBuffer,
+                                    nsIDocument* aTargetDocument);
 
   
 

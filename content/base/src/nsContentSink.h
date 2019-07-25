@@ -327,7 +327,6 @@ protected:
   
   PRUint8 mBeganUpdate : 1;
   PRUint8 mLayoutStarted : 1;
-  PRUint8 mCanInterruptParser : 1;
   PRUint8 mDynamicLowerValue : 1;
   PRUint8 mParsing : 1;
   PRUint8 mDroppedTimer : 1;
@@ -340,7 +339,8 @@ protected:
   
   PRUint8 mIsDocumentObserver : 1;
   
-  PRUint8 mFragmentMode : 1;
+  
+  PRUint8 mRunsToCompletion : 1;
   
   PRUint8 mPreventScriptExecution : 1;
   
@@ -398,7 +398,6 @@ protected:
   static PRInt32 sInitialPerfTime;
   
   static PRInt32 sEnablePerfMode;
-  static bool sCanInterruptParser;
 };
 
 #endif 

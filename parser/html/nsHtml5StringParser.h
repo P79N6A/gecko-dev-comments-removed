@@ -45,12 +45,17 @@ class nsHtml5TreeOpExecutor;
 class nsHtml5TreeBuilder;
 class nsHtml5Tokenizer;
 class nsIContent;
+class nsIDocument;
 
 class nsHtml5StringParser : public nsParserBase
 {
   public:
 
     NS_DECL_ISUPPORTS
+
+    
+
+
 
     nsHtml5StringParser();
     virtual ~nsHtml5StringParser();
@@ -67,14 +72,27 @@ class nsHtml5StringParser : public nsParserBase
 
 
 
-    nsresult ParseHtml5Fragment(const nsAString& aSourceBuffer,
-                                nsIContent* aTargetNode,
-                                nsIAtom* aContextLocalName,
-                                PRInt32 aContextNamespace,
-                                bool aQuirks,
-                                bool aPreventScriptExecution);
+
+    nsresult ParseFragment(const nsAString& aSourceBuffer,
+                           nsIContent* aTargetNode,
+                           nsIAtom* aContextLocalName,
+                           PRInt32 aContextNamespace,
+                           bool aQuirks,
+                           bool aPreventScriptExecution);
+
+    
+
+
+
+
+    nsresult ParseDocument(const nsAString& aSourceBuffer,
+                           nsIDocument* aTargetDoc);
 
   private:
+
+    void Tokenize(const nsAString& aSourceBuffer,
+                  nsIDocument* aDocument,
+                  bool aScriptingEnabledForNoscriptParsing);
 
     
 
