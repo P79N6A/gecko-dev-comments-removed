@@ -110,8 +110,9 @@ protected:
 
 
 
+
   class TextAttr;
-  void GetRange(const nsTArray<TextAttr*>& aTextAttrArray,
+  void GetRange(TextAttr* aAttrArray[], PRUint32 aAttrArrayLen,
                 PRInt32* aStartHTOffset, PRInt32* aEndHTOffset);
 
 private:
