@@ -99,8 +99,8 @@ int CALLBACK BrowseCallbackProc(HWND hwnd, UINT uMsg, LPARAM lParam, LPARAM lpDa
 
 
 
-static unsigned int CALLBACK FilePickerHook(HWND hwnd, UINT msg,
-                                            WPARAM wParam, LPARAM lParam)
+static UINT_PTR CALLBACK FilePickerHook(HWND hwnd, UINT msg,
+                                        WPARAM wParam, LPARAM lParam)
 {
   switch (msg) {
     case WM_INITDIALOG:
