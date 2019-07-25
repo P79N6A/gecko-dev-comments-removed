@@ -83,7 +83,11 @@
 #endif
 
 
-static const size_t ARENA_PAGE_SIZE = 4096;
+
+
+
+
+static const size_t ARENA_PAGE_SIZE = 8192 - sizeof(PLArena) - PL_ARENA_CONST_ALIGN_MASK;
 
 
 
