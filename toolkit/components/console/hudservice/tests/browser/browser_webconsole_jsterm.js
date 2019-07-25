@@ -153,5 +153,10 @@ function testJSTerm()
   isnot(label.textContent.indexOf("SEVERITY_LOG"), -1,
         "pprint(function) shows function source");
 
+  
+  jsterm.clearOutput();
+  jsterm.execute("null");
+  checkResult("null", "null is null", 1);
+
   finishTest();
 }
