@@ -583,6 +583,20 @@ let Utils = {
   
   
   
+  isLeftClick: function Utils_isLeftClick(event) {
+    return event.button == 0;
+  },
+
+  
+  
+  
+  isMiddleClick: function Utils_isMiddleClick(event) {
+    return event.button == 1;
+  },
+
+  
+  
+  
   isRightClick: function Utils_isRightClick(event) {
     return event.button == 2;
   },
