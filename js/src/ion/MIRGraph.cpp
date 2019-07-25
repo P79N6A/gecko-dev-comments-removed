@@ -164,7 +164,8 @@ MBasicBlock::inherit(MBasicBlock *pred)
 {
     if (pred) {
         stackPosition_ = pred->stackPosition_;
-        copySlots(pred);
+        if (kind_ != PENDING_LOOP_HEADER)
+            copySlots(pred);
     } else {
         uint32_t stackDepth = info().script()->analysis()->getCode(pc()).stackDepth;
         stackPosition_ = info().firstStackSlot() + stackDepth;
@@ -184,8 +185,19 @@ MBasicBlock::inherit(MBasicBlock *pred)
         if (!predecessors_.append(pred))
             return false;
 
-        for (size_t i = 0; i < stackDepth(); i++)
-            entryResumePoint()->initOperand(i, getSlot(i));
+        if (kind_ == PENDING_LOOP_HEADER) {
+            for (size_t i = 0; i < stackDepth(); i++) {
+                MPhi *phi = MPhi::New(i);
+                if (!phi->addInput(pred->getSlot(i)))
+                    return NULL;
+                addPhi(phi);
+                setSlot(i, phi);
+                entryResumePoint()->initOperand(i, phi);
+            }
+        } else {
+            for (size_t i = 0; i < stackDepth(); i++)
+                entryResumePoint()->initOperand(i, getSlot(i));
+        }
     }
 
     return true;
@@ -207,13 +219,13 @@ MDefinition *
 MBasicBlock::getSlot(uint32 index)
 {
     JS_ASSERT(index < stackPosition_);
-    return slots_[index].def;
+    return slots_[index];
 }
 
 void
 MBasicBlock::initSlot(uint32 slot, MDefinition *ins)
 {
-    slots_[slot].set(ins);
+    slots_[slot] = ins;
     entryResumePoint()->initOperand(slot, ins);
 }
 
@@ -225,133 +237,25 @@ MBasicBlock::linkOsrValues(MStart *start)
     MResumePoint *res = start->resumePoint();
 
     for (uint32 i = 0; i < stackDepth(); i++) {
-        StackSlot &var = slots_[i];
-        if (!var.isCopy()) {
-            if (i == info().scopeChainSlot())
-                var.def->toOsrScopeChain()->setResumePoint(res);
-            else
-                var.def->toOsrValue()->setResumePoint(res);
-        }
+        MDefinition *def = slots_[i];
+        if (i == info().scopeChainSlot())
+            def->toOsrScopeChain()->setResumePoint(res);
+        else
+            def->toOsrValue()->setResumePoint(res);
     }
 }
 
 void
 MBasicBlock::setSlot(uint32 slot, MDefinition *ins)
 {
-    StackSlot &var = slots_[slot];
-
-    
-    
-    if (var.isCopied()) {
-        
-        
-        
-        uint32 lowest = var.firstCopy;
-        uint32 prev = NotACopy;
-        do {
-            uint32 next = slots_[lowest].nextCopy;
-            if (next == NotACopy)
-                break;
-            JS_ASSERT(next < lowest);
-            prev = lowest;
-            lowest = next;
-        } while (true);
-
-        
-        for (uint32 copy = var.firstCopy; copy != lowest;) {
-            slots_[copy].copyOf = lowest;
-
-            uint32 next = slots_[copy].nextCopy;
-
-            
-            
-            if (slots_[copy].nextCopy == lowest)
-                slots_[copy].nextCopy = NotACopy;
-
-            copy = next;
-        }
-
-        
-        slots_[lowest].copyOf = NotACopy;
-        slots_[lowest].firstCopy = prev;
-    } else if (var.isCopy()) {
-        uint32 prev = var.copyOf;
-        if (slots_[prev].firstCopy != slot) {
-            
-            prev = slots_[prev].firstCopy;
-            while (slots_[prev].nextCopy != slot) {
-                prev = slots_[prev].nextCopy;
-                JS_ASSERT(prev != NotACopy);
-            }
-            slots_[prev].nextCopy = var.nextCopy;
-        } else {
-            slots_[prev].firstCopy = var.nextCopy;
-        }
-    }
-
-    var.set(ins);
+    slots_[slot] = ins;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 void
 MBasicBlock::setVariable(uint32 index)
 {
     JS_ASSERT(stackPosition_ > info_.firstStackSlot());
-    StackSlot &top = slots_[stackPosition_ - 1];
-
-    MDefinition *def = top.def;
-    if (top.isCopy()) {
-        
-        
-        
-        
-        
-        MInstruction *ins = MCopy::New(def);
-        add(ins);
-        def = ins;
-    }
-
-    setSlot(index, def);
-
-    if (!top.isCopy()) {
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        top.copyOf = index;
-        top.nextCopy = slots_[index].firstCopy;
-        slots_[index].firstCopy = stackPosition_ - 1;
-    }
+    setSlot(index, slots_[stackPosition_ - 1]);
 }
 
 void
@@ -384,27 +288,13 @@ void
 MBasicBlock::push(MDefinition *ins)
 {
     JS_ASSERT(stackPosition_ < info_.nslots());
-    slots_[stackPosition_].set(ins);
-    stackPosition_++;
+    slots_[stackPosition_++] = ins;
 }
 
 void
 MBasicBlock::pushVariable(uint32 slot)
 {
-    JS_ASSERT(slot < stackPosition_);
-    if (slots_[slot].isCopy())
-        slot = slots_[slot].copyOf;
-
-    JS_ASSERT(stackPosition_ < info_.nslots());
-    StackSlot &to = slots_[stackPosition_];
-    StackSlot &from = slots_[slot];
-
-    to.def = from.def;
-    to.copyOf = slot;
-    to.nextCopy = from.firstCopy;
-    from.firstCopy = stackPosition_;
-
-    stackPosition_++;
+    push(slots_[slot]);
 }
 
 void
@@ -431,22 +321,7 @@ MDefinition *
 MBasicBlock::pop()
 {
     JS_ASSERT(stackPosition_ > info_.firstStackSlot());
-
-    StackSlot &slot = slots_[--stackPosition_];
-    if (slot.isCopy()) {
-        
-        
-        StackSlot &backing = slots_[slot.copyOf];
-        JS_ASSERT(backing.isCopied());
-        JS_ASSERT(backing.firstCopy == stackPosition_);
-
-        backing.firstCopy = slot.nextCopy;
-    }
-
-    
-    JS_ASSERT(!slot.isCopied());
-
-    return slot.def;
+    return slots_[--stackPosition_];
 }
 
 void
@@ -467,64 +342,9 @@ MBasicBlock::swapAt(int32 depth)
     uint32 lhsDepth = stackPosition_ + depth - 1;
     uint32 rhsDepth = stackPosition_ + depth;
 
-    JS_ASSERT(depth < 0);
-    JS_ASSERT(lhsDepth >= info_.firstStackSlot());
-
-    StackSlot &lhs = slots_[lhsDepth];
-    StackSlot &rhs = slots_[rhsDepth];
-
-    
-    if (rhs.isCopy()) {
-        if (rhs.copyOf == lhsDepth)
-            return;
-        if (lhs.isCopy() && rhs.copyOf == lhs.copyOf)
-            return;
-    }
-
-    
-    updateIndexes(lhs, lhsDepth, rhsDepth);
-    updateIndexes(rhs, rhsDepth, lhsDepth);
-
-    
-    StackSlot tmp = lhs;
-    lhs = rhs;
-    rhs = tmp;
-}
-
-void
-MBasicBlock::updateIndexes(StackSlot &elem, uint32 oldIdx, uint32 newIdx)
-{
-    
-    
-    JS_ASSERT(oldIdx == newIdx + 1 || oldIdx == newIdx - 1);
-    JS_ASSERT(&elem == &slots_[oldIdx] || &elem == &slots_[newIdx]);
-    JS_ASSERT_IF(slots_[oldIdx].isCopy() || slots_[newIdx].isCopy(),
-                 slots_[oldIdx].copyOf != newIdx &&
-                 slots_[oldIdx].copyOf != slots_[newIdx].copyOf &&
-                 oldIdx != slots_[newIdx].copyOf);
-
-    if (elem.isCopy()) {
-        
-        
-        JS_ASSERT(slots_[elem.copyOf].isCopied());
-        if (slots_[elem.copyOf].firstCopy == oldIdx) {
-            slots_[elem.copyOf].firstCopy = newIdx;
-        } else {
-            uint32 copyIndex = slots_[elem.copyOf].firstCopy;
-            while (slots_[copyIndex].nextCopy != oldIdx)
-                copyIndex = slots_[copyIndex].nextCopy;
-            slots_[copyIndex].nextCopy = newIdx;
-        }
-    } else if (elem.isCopied()) {
-        
-        
-        uint32 copyIndex = elem.firstCopy;
-        while (copyIndex != NotACopy) {
-            JS_ASSERT(slots_[copyIndex].copyOf == oldIdx);
-            slots_[copyIndex].copyOf = newIdx;
-            copyIndex = slots_[copyIndex].nextCopy;
-        }
-    }
+    MDefinition *temp = slots_[lhsDepth];
+    slots_[lhsDepth] = slots_[rhsDepth];
+    slots_[rhsDepth] = temp;
 }
 
 MDefinition *
@@ -736,14 +556,6 @@ MBasicBlock::assertUsesAreNotWithin(MUseIterator use, MUseIterator end)
 #endif
 }
 
-static inline MDefinition *
-FollowCopy(MDefinition *def)
-{
-    MDefinition *ret = def->isCopy() ? def->getOperand(0) : def;
-    JS_ASSERT(!ret->isCopy());
-    return ret;
-}
-
 bool
 MBasicBlock::setBackedge(MBasicBlock *pred)
 {
@@ -756,102 +568,28 @@ MBasicBlock::setBackedge(MBasicBlock *pred)
     JS_ASSERT(kind_ == PENDING_LOOP_HEADER);
 
     
-    
-    
-    
-    
-    
-    
     for (uint32 i = 0; i < pred->stackDepth(); i++) {
-        MDefinition *entryDef = entryResumePoint()->getOperand(i);
-        MDefinition *exitDef = pred->slots_[i].def;
+        MPhi *entryDef = entryResumePoint()->getOperand(i)->toPhi();
+        MDefinition *exitDef = pred->slots_[i];
 
         
-        
-        
-        
-        JS_ASSERT_IF(entryDef->isPhi(), entryDef->block() != this);
+        JS_ASSERT(entryDef->block() == this);
 
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-
-        
-        
-        if (FollowCopy(entryDef) == FollowCopy(exitDef))
-            continue;
-
-        
-        
-        MPhi *phi = MPhi::New(i);
-        addPhi(phi);
-
-        for (MUseIterator use(entryDef->usesBegin()); use != entryDef->usesEnd(); ) {
-            JS_ASSERT(use->node()->getOperand(use->index()) == entryDef);
-
+        if (entryDef == exitDef) {
             
             
             
-            if (use->node()->block()->id() < id()) {
-                assertUsesAreNotWithin(use, entryDef->usesEnd());
-                break;
-            }
-
             
             
             
-            use = use->node()->replaceOperand(use, phi);
+            
+            exitDef = entryDef->getOperand(0);
         }
 
-#ifdef DEBUG
-        
-        
-        
-        
-        
-        
-        
-        for (uint32 j = i + 1; j < pred->stackDepth(); j++)
-            JS_ASSERT(slots_[j].def != entryDef);
-#endif
-
-        if (!phi->addInput(entryDef) || !phi->addInput(exitDef))
+        if (!entryDef->addInput(exitDef))
             return false;
 
-        setSlot(i, phi);
+        setSlot(i, entryDef);
     }
 
     
@@ -932,7 +670,7 @@ MBasicBlock::dumpStack(FILE *fp)
     fprintf(fp, "-------------------------------------------\n");
     for (uint32 i = 0; i < stackPosition_; i++) {
         fprintf(fp, " %-3d", i);
-        fprintf(fp, " %-16p %-6d %-10d\n", (void *)slots_[i].def, slots_[i].copyOf, slots_[i].firstCopy);
+        fprintf(fp, " %-16p\n", (void *)slots_[i]);
     }
 #endif
 }

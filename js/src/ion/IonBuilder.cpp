@@ -1099,8 +1099,6 @@ IonBuilder::finishLoop(CFGState &state, MBasicBlock *successor)
     if (successor)
         successor->inheritPhis(state.loop.entry);
 
-    fixPendingContinues(state.loop.entry);
-
     if (state.loop.breaks) {
         
         DeferredEdge *edge = state.loop.breaks;
@@ -1132,60 +1130,6 @@ IonBuilder::finishLoop(CFGState &state, MBasicBlock *successor)
 
     pc = current->pc();
     return ControlStatus_Joined;
-}
-
-void
-IonBuilder::fixPendingContinues(MBasicBlock *header)
-{
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-    for (size_t i = 0; i < loops_.length() - 1; i++) {
-        CFGState &cfg = cfgStack_[loops_[i].cfgEntry];
-        for (DeferredEdge *edge = cfg.loop.continues; edge; edge = edge->next) {
-            
-            
-            
-            
-            if (edge->block->id() < header->id())
-                break;
-
-            MBasicBlock *block = edge->block;
-            for (MPhiIterator iter = header->phisBegin(); iter != header->phisEnd(); iter++) {
-                
-                JS_ASSERT(block->getEntrySlot(iter->slot()) == *iter);
-
-                block->rewriteSlot(iter->slot(), *iter);
-            }
-        }
-    }
 }
 
 IonBuilder::ControlStatus

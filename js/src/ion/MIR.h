@@ -1276,29 +1276,6 @@ class MCompare
 };
 
 
-
-class MCopy : public MUnaryInstruction
-{
-    MCopy(MDefinition *ins)
-      : MUnaryInstruction(ins)
-    {
-        setResultType(ins->type());
-    }
-
-  public:
-    INSTRUCTION_HEADER(Copy);
-    static MCopy *New(MDefinition *ins);
-
-    HashNumber valueHash() const;
-    bool congruentTo(MDefinition * const &ins) const;
-
-    AliasSet getAliasSet() const {
-        JS_NOT_REACHED("Unexpected MCopy after building SSA");
-        return AliasSet::None();
-    }
-};
-
-
 class MBox : public MUnaryInstruction
 {
     MBox(MDefinition *ins)

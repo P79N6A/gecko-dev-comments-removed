@@ -258,7 +258,6 @@ class IonBuilder : public MIRGenerator
     
     
     ControlStatus finishLoop(CFGState &state, MBasicBlock *successor);
-    void fixPendingContinues(MBasicBlock *header);
 
     void assertValidLoopHeadOp(jsbytecode *pc);
 

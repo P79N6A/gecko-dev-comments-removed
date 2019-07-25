@@ -665,18 +665,14 @@ TestCompiler(IonBuilder &builder, MIRGraph &graph)
     
 
     
-    if (!EliminateDeadPhis(graph))
+    if (!EliminatePhis(graph))
         return false;
-    IonSpewPass("Eliminate dead phis");
+    IonSpewPass("Eliminate phis");
     AssertGraphCoherency(graph);
 
     if (!BuildPhiReverseMapping(graph))
         return false;
     
-
-    EliminateCopies(graph);
-    IonSpewPass("Eliminate copies");
-    AssertGraphCoherency(graph);
 
     
     if (!ApplyTypeInformation(graph))
