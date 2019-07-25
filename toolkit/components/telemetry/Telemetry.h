@@ -42,6 +42,9 @@
 #include "mozilla/GuardObjects.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/StartupTimeline.h"
+#include "nsTArray.h"
+#include "nsStringGlue.h"
+#include "shared-libraries.h"
 
 namespace base {
   class Histogram;
@@ -155,6 +158,22 @@ void RecordSlowSQLStatement(const nsACString &statement,
 
 
 const PRUint32 kSlowStatementThreshold = 100;
+
+
+
+
+typedef nsTArray<uintptr_t> HangStack;
+
+
+
+
+
+
+
+
+void RecordChromeHang(PRUint32 duration,
+                      const HangStack &callStack,
+                      SharedLibraryInfo &moduleMap);
 
 } 
 } 
