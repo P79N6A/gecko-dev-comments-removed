@@ -1835,6 +1835,10 @@ nsTextEditorState::ValueWasChanged(PRBool aNotify)
 void
 nsTextEditorState::UpdatePlaceholderText(PRBool aNotify)
 {
+  
+  if (!mPlaceholderDiv)
+    return;
+
   nsAutoString placeholderValue;
 
   nsCOMPtr<nsIContent> content = do_QueryInterface(mTextCtrlElement);
