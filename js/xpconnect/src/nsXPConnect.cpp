@@ -45,7 +45,6 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/Base64.h"
 #include "mozilla/Util.h"
-#include "mozilla/Preferences.h"
 
 #include "xpcprivate.h"
 #include "XPCWrapper.h"
@@ -1194,6 +1193,46 @@ TraceXPCGlobal(JSTracer *trc, JSObject *obj)
         scope->TraceDOMPrototypes(trc);
 }
 
+#ifdef DEBUG
+#include "mozilla/Preferences.h"
+#include "nsIXULRuntime.h"
+static void
+CheckTypeInference(JSContext *cx, JSClass *clasp, nsIPrincipal *principal)
+{
+    
+    if (strcmp(clasp->name, "Sandbox") ||
+        strcmp(clasp->name, "nsXBLPrototypeScript compilation scope") ||
+        strcmp(clasp->name, "nsXULPrototypeScript compilation scope"))
+        return;
+
+    
+    if (!mozilla::Preferences::GetBool("javascript.options.typeinference"))
+        return;
+
+    
+    bool isSystem;
+    nsIScriptSecurityManager* ssm;
+    ssm = XPCWrapper::GetSecurityManager();
+    if (NS_FAILED(ssm->IsSystemPrincipal(principal, &isSystem)) || !isSystem)
+        return;
+
+    
+    bool safeMode;
+    nsCOMPtr<nsIXULRuntime> xr = do_GetService("@mozilla.org/xre/runtime;1");
+    if (!xr) {
+        NS_WARNING("Couldn't get XUL runtime!");
+        return;
+    }
+    if (NS_FAILED(xr->GetInSafeMode(&safeMode)) || safeMode)
+        return;
+
+    
+    MOZ_ASSERT(JS_GetOptions(cx) & JSOPTION_TYPE_INFERENCE);
+}
+#else
+#define CheckTypeInference(cx, clasp, principal) {}
+#endif
+
 nsresult
 xpc_CreateGlobalObject(JSContext *cx, JSClass *clasp,
                        nsIPrincipal *principal, nsISupports *ptr,
@@ -1202,16 +1241,7 @@ xpc_CreateGlobalObject(JSContext *cx, JSClass *clasp,
 {
     
     
-    mozilla::DebugOnly<bool> isSystem;
-    mozilla::DebugOnly<nsIScriptSecurityManager*> ssm;
-    MOZ_ASSERT_IF(strcmp(clasp->name, "Sandbox") &&
-                  strcmp(clasp->name, "nsXBLPrototypeScript compilation scope") &&
-                  strcmp(clasp->name, "nsXULPrototypeScript compilation scope") &&
-                  mozilla::Preferences::GetBool("javascript.options.typeinference") &&
-                  (ssm = XPCWrapper::GetSecurityManager()) &&
-                  NS_SUCCEEDED(ssm->IsSystemPrincipal(principal, &isSystem.value)) &&
-                  !isSystem.value,
-                  JS_GetOptions(cx) & JSOPTION_TYPE_INFERENCE);
+    CheckTypeInference(cx, clasp, principal);
 
     NS_ABORT_IF_FALSE(NS_IsMainThread(), "using a principal off the main thread?");
     NS_ABORT_IF_FALSE(principal, "bad key");
