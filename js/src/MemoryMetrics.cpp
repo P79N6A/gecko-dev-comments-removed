@@ -69,6 +69,8 @@ StatsCompartmentCallback(JSRuntime *rt, void *data, JSCompartment *compartment)
     
     compartment->sizeOfTypeInferenceData(&cStats.typeInferenceSizes, rtStats->mallocSizeOf);
     cStats.shapesCompartmentTables = compartment->sizeOfShapeTable(rtStats->mallocSizeOf);
+    cStats.crossCompartmentWrappers =
+        compartment->crossCompartmentWrappers.sizeOfExcludingThis(rtStats->mallocSizeOf);
 }
 
 static void
