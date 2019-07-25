@@ -319,7 +319,6 @@ pref("browser.fixup.alternate.enabled", true);
 pref("browser.fixup.alternate.prefix", "www.");
 pref("browser.fixup.alternate.suffix", ".com");
 pref("browser.fixup.hide_user_pass", true);
-pref("browser.fixup.use-utf8", false);
 
 
 pref("browser.urlbar.autocomplete.enabled", true);
@@ -635,7 +634,6 @@ pref("javascript.options.jitprofiling.chrome",  true);
 pref("javascript.options.pccounts.content", false);
 pref("javascript.options.pccounts.chrome",  false);
 pref("javascript.options.methodjit_always", false);
-pref("javascript.options.jit_hardening", true);
 pref("javascript.options.typeinference", true);
 
 
@@ -990,6 +988,10 @@ pref("network.standard-url.escape-utf8", true);
 
 
 pref("network.standard-url.encode-utf8", true);
+
+
+
+pref("network.standard-url.encode-query-utf8", false);
 
 
 pref("network.ftp.idleConnectionTimeout", 300);
@@ -3337,6 +3339,7 @@ pref("browser.history.maxStateObjectSize", 655360);
 
 pref("xpinstall.whitelist.required", true);
 pref("extensions.alwaysUnpack", false);
+pref("extensions.minCompatiblePlatformVersion", "2.0");
 
 pref("network.buffer.cache.count", 24);
 pref("network.buffer.cache.size",  32768);
