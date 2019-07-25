@@ -5002,6 +5002,8 @@ JS_GetStringChars(JSString *str)
     size_t n, size;
     jschar *s;
 
+    str->ensureNotRope();
+
     
 
 
@@ -5050,7 +5052,7 @@ JS_PUBLIC_API(const jschar *)
 JS_GetStringCharsZ(JSContext *cx, JSString *str)
 {
     assertSameCompartment(cx, str);
-    return js_UndependString(cx, str);
+    return str->undepend(cx);
 }
 
 JS_PUBLIC_API(intN)
@@ -5062,14 +5064,8 @@ JS_CompareStrings(JSString *str1, JSString *str2)
 JS_PUBLIC_API(JSString *)
 JS_NewGrowableString(JSContext *cx, jschar *chars, size_t length)
 {
-    JSString *str;
-
     CHECK_REQUEST(cx);
-    str = js_NewString(cx, chars, length);
-    if (!str)
-        return str;
-    str->flatSetMutable();
-    return str;
+    return js_NewString(cx, chars, length);
 }
 
 JS_PUBLIC_API(JSString *)
@@ -5090,7 +5086,7 @@ JS_PUBLIC_API(const jschar *)
 JS_UndependString(JSContext *cx, JSString *str)
 {
     CHECK_REQUEST(cx);
-    return js_UndependString(cx, str);
+    return str->undepend(cx);
 }
 
 JS_PUBLIC_API(JSBool)

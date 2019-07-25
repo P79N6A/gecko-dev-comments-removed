@@ -69,6 +69,20 @@ js_GetDependentStringChars(JSString *str);
 
 JS_STATIC_ASSERT(JS_BITS_PER_WORD >= 32);
 
+struct JSRopeBufferInfo {
+    
+    size_t  capacity;
+};
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -100,17 +114,22 @@ struct JSString {
     friend JSAtom *
     js_AtomizeString(JSContext *cx, JSString *str, uintN flags);
 
-    friend JSString * JS_FASTCALL
-    js_ConcatStrings(JSContext *cx, JSString *left, JSString *right);
-
     
     
-    size_t          mLength;
-    size_t          mOffset;
-    jsword          mFlags;
     union {
-        jschar      *mChars;
-        JSString    *mBase;
+        size_t              mCapacity; 
+        JSString            *mParent; 
+        JSRopeBufferInfo    *mBufferWithInfo; 
+    };
+    union {
+        size_t              mOffset; 
+        JSString            *mLeft;  
+    };
+    size_t                  mLengthAndFlags;  
+    union {
+        jschar              *mChars; 
+        JSString            *mBase;  
+        JSString            *mRight; 
     };
 
     
@@ -118,12 +137,37 @@ struct JSString {
 
 
 
-    static const size_t DEPENDENT =     JSSTRING_BIT(1);
-    static const size_t MUTABLE =       JSSTRING_BIT(2);
-    static const size_t ATOMIZED =      JSSTRING_BIT(3);
+
+
+
+
+
+
+
+
+    static const size_t FLAT =          0;
+    static const size_t DEPENDENT =     1;
+    static const size_t INTERIOR_NODE = 2;
+    static const size_t TOP_NODE =      3;
+
+    
+    static const size_t ROPE_BIT = JSSTRING_BIT(1);
+
+    static const size_t ATOMIZED = JSSTRING_BIT(2);
+    static const size_t MUTABLE = JSSTRING_BIT(3);
+
+    static const size_t FLAGS_LENGTH_SHIFT = 4;
+
+    static const size_t ROPE_TRAVERSAL_COUNT_SHIFT = 2;
+    static const size_t ROPE_TRAVERSAL_COUNT_MASK = JSSTRING_BITMASK(4) -
+                                                    JSSTRING_BITMASK(2);
+    static const size_t ROPE_TRAVERSAL_COUNT_UNIT =
+                                (1 << ROPE_TRAVERSAL_COUNT_SHIFT);
+
+    static const size_t TYPE_MASK = JSSTRING_BITMASK(2);
 
     inline bool hasFlag(size_t flag) const {
-        return (mFlags & flag) != 0;
+        return (mLengthAndFlags & flag) != 0;
     }
 
   public:
@@ -133,28 +177,57 @@ struct JSString {
 
     static const size_t MAX_LENGTH = (1 << 28) - 1;
 
+    inline size_t type() const {
+        return mLengthAndFlags & TYPE_MASK;
+    }
+
     inline bool isDependent() const {
-        return hasFlag(DEPENDENT);
+        return type() == DEPENDENT;
     }
 
     inline bool isFlat() const {
-        return !isDependent();
+        return type() == FLAT;
     }
 
     inline bool isMutable() const {
-        return !isDependent() && hasFlag(MUTABLE);
+        return isFlat() && hasFlag(MUTABLE);
+    }
+
+    inline bool isRope() const {
+        return hasFlag(ROPE_BIT);
     }
 
     inline bool isAtomized() const {
-        return !isDependent() && hasFlag(ATOMIZED);
+        return isFlat() && hasFlag(ATOMIZED);
+    }
+
+    inline bool isInteriorNode() const {
+        return type() == INTERIOR_NODE;
+    }
+
+    inline bool isTopNode() const {
+        return type() == TOP_NODE;
     }
 
     inline jschar *chars() {
-        return isDependent() ? dependentChars() : flatChars();
+        return isFlat() ? flatChars() : nonFlatChars();
+    }
+
+    jschar *nonFlatChars() {
+        if (isDependent())
+            return dependentChars();
+        else {
+            flatten();
+            JS_ASSERT(isFlat() || isDependent());
+            if (isFlat())
+                return flatChars();
+            else
+                return dependentChars();
+        }
     }
 
     inline size_t length() const {
-        return mLength;
+        return mLengthAndFlags >> FLAGS_LENGTH_SHIFT;
     }
 
     inline bool empty() const {
@@ -173,9 +246,17 @@ struct JSString {
     
     inline void initFlat(jschar *chars, size_t length) {
         JS_ASSERT(length <= MAX_LENGTH);
-        mLength = length;
         mOffset = 0;
-        mFlags = 0;
+        mCapacity = 0;
+        mLengthAndFlags = (length << FLAGS_LENGTH_SHIFT) | FLAT;
+        mChars = chars;
+    }
+
+    inline void initFlatMutable(jschar *chars, size_t length, size_t cap) {
+        JS_ASSERT(length <= MAX_LENGTH);
+        mOffset = 0;
+        mCapacity = cap;
+        mLengthAndFlags = (length << FLAGS_LENGTH_SHIFT) | FLAT | MUTABLE;
         mChars = chars;
     }
 
@@ -187,6 +268,11 @@ struct JSString {
     inline size_t flatLength() const {
         JS_ASSERT(isFlat());
         return length();
+    }
+
+    inline size_t flatCapacity() const {
+        JS_ASSERT(isFlat());
+        return mCapacity;
     }
 
     
@@ -217,26 +303,26 @@ struct JSString {
 
 
     inline void flatSetAtomized() {
-        JS_ASSERT(isFlat() && !isMutable());
-        JS_ATOMIC_SET_MASK(&mFlags, ATOMIZED);
+        JS_ASSERT(isFlat());
+        JS_ATOMIC_SET_MASK((jsword *)&mLengthAndFlags, ATOMIZED);
     }
 
     inline void flatSetMutable() {
-        JS_ASSERT(isFlat() && !isAtomized());
-        mFlags |= MUTABLE;
+        JS_ASSERT(isFlat());
+        JS_ASSERT(!isAtomized());
+        mLengthAndFlags |= MUTABLE;
     }
 
     inline void flatClearMutable() {
         JS_ASSERT(isFlat());
-        if (hasFlag(MUTABLE))
-            mFlags &= ~MUTABLE;
+        mLengthAndFlags &= ~MUTABLE;
     }
 
     inline void initDependent(JSString *bstr, size_t off, size_t len) {
         JS_ASSERT(len <= MAX_LENGTH);
-        mLength = len;
+        mParent = NULL;
         mOffset = off;
-        mFlags = DEPENDENT;
+        mLengthAndFlags = DEPENDENT | (len << FLAGS_LENGTH_SHIFT);
         mBase = bstr;
     }
 
@@ -246,9 +332,9 @@ struct JSString {
     }
 
     inline jschar *dependentChars() {
-        return dependentBase()->isDependent()
-               ? js_GetDependentStringChars(this)
-               : dependentBase()->flatChars() + dependentStart();
+        return dependentBase()->isFlat()
+               ? dependentBase()->flatChars() + dependentStart()
+               : js_GetDependentStringChars(this);
     }
 
     inline size_t dependentStart() const {
@@ -259,6 +345,99 @@ struct JSString {
         JS_ASSERT(isDependent());
         return length();
     }
+
+    
+    inline void initTopNode(JSString *left, JSString *right, size_t len,
+                            JSRopeBufferInfo *buf) {
+        JS_ASSERT(left->length() + right->length() <= MAX_LENGTH);
+        mLengthAndFlags = TOP_NODE | (len << FLAGS_LENGTH_SHIFT);
+        mLeft = left;
+        mRight = right;
+        mBufferWithInfo = buf;
+    }
+
+    inline void convertToInteriorNode(JSString *parent) {
+        JS_ASSERT(isTopNode());
+        mParent = parent;
+        mLengthAndFlags = INTERIOR_NODE | (length() << FLAGS_LENGTH_SHIFT);
+    }
+
+    inline JSString *interiorNodeParent() const {
+        JS_ASSERT(isInteriorNode());
+        return mParent;
+    }
+
+    inline JSString *ropeLeft() const {
+        JS_ASSERT(isRope());
+        return mLeft;
+    }
+
+    inline JSString *ropeRight() const {
+        JS_ASSERT(isRope());
+        return mRight;
+    }
+
+    inline size_t topNodeCapacity() const {
+        JS_ASSERT(isTopNode());
+        return mBufferWithInfo->capacity;
+    }
+
+    inline JSRopeBufferInfo *topNodeBuffer() const {
+        JS_ASSERT(isTopNode());
+        return mBufferWithInfo;
+    }
+
+    inline void nullifyTopNodeBuffer() {
+        JS_ASSERT(isTopNode());
+        mBufferWithInfo = NULL;
+    }
+
+    
+
+
+
+    inline void startTraversalConversion(size_t offset) {
+        JS_ASSERT(isInteriorNode());
+        mOffset = offset;
+    }    
+
+    inline void finishTraversalConversion(JSString *base, size_t end) {
+        JS_ASSERT(isInteriorNode());
+        
+        mLengthAndFlags = JSString::DEPENDENT |
+            ((end - mOffset) << JSString::FLAGS_LENGTH_SHIFT);
+        mBase = base;
+    }    
+
+    inline void ropeClearTraversalCount() {
+        JS_ASSERT(isRope());
+        mLengthAndFlags &= ~ROPE_TRAVERSAL_COUNT_MASK;
+    }
+
+    inline size_t ropeTraversalCount() const {
+        JS_ASSERT(isRope());
+        return (mLengthAndFlags & ROPE_TRAVERSAL_COUNT_MASK) >>
+                ROPE_TRAVERSAL_COUNT_SHIFT;
+    }
+
+    inline void ropeIncrementTraversalCount() {
+        JS_ASSERT(isInteriorNode());
+        mLengthAndFlags += ROPE_TRAVERSAL_COUNT_UNIT;
+    }
+
+    inline bool ensureNotDependent(JSContext *cx) {
+        return !isDependent() || undepend(cx);
+    }
+
+    inline void ensureNotRope() {
+        if (isRope())
+            flatten();
+    }
+
+    const jschar *undepend(JSContext *cx);
+
+    
+    void flatten();
 
     static inline bool isUnitString(void *ptr) {
         jsuword delta = reinterpret_cast<jsuword>(ptr) -
@@ -299,6 +478,88 @@ struct JSString {
     static JSString *getUnitString(JSContext *cx, JSString *str, size_t index);
     static JSString *intString(jsint i);
 };
+
+
+
+
+
+
+
+
+
+
+
+
+class JSRopeNodeIterator {
+  private:
+    JSString *mStr;
+    size_t mUsedFlags;
+
+    static const size_t DONE_LEFT = 0x1;
+    static const size_t DONE_RIGHT = 0x2;
+
+  public:
+    JSRopeNodeIterator(JSString *str) {
+        mStr = str;
+    }
+    
+    JSString *init() {
+        
+        if (!mStr->isRope()) {
+            JSString *oldStr = mStr;
+            mStr = NULL;
+            return oldStr;
+        }
+        
+        while (mStr->isInteriorNode())
+            mStr = mStr->interiorNodeParent();
+        while (mStr->ropeLeft()->isInteriorNode())
+            mStr = mStr->ropeLeft();
+        mUsedFlags = 0;
+        return mStr;
+    }
+
+    JSString *next() {
+        if (!mStr)
+            return NULL;
+        if (!mStr->ropeLeft()->isInteriorNode() && !(mUsedFlags & DONE_LEFT)) {
+            mUsedFlags |= DONE_LEFT;
+            return mStr->ropeLeft();
+        }
+        if (!mStr->ropeRight()->isInteriorNode() && !(mUsedFlags & DONE_RIGHT)) {
+            mUsedFlags |= DONE_RIGHT;
+            return mStr->ropeRight();
+        }
+        if (mStr->ropeRight()->isInteriorNode()) {
+            
+
+
+
+            mStr = mStr->ropeRight();
+            while (mStr->ropeLeft()->isInteriorNode())
+                mStr = mStr->ropeLeft();
+        } else {
+            
+
+
+
+            JSString *prev;
+            do {
+                prev = mStr;
+                
+                mStr = mStr->isInteriorNode() ? mStr->interiorNodeParent() : NULL;
+            } while (mStr && mStr->ropeRight() == prev);
+        }
+        mUsedFlags = 0;
+        return mStr;
+    }
+};
+
+JS_STATIC_ASSERT(JSString::INTERIOR_NODE & JSString::ROPE_BIT);
+JS_STATIC_ASSERT(JSString::TOP_NODE & JSString::ROPE_BIT);
+
+JS_STATIC_ASSERT(((JSString::MAX_LENGTH << JSString::FLAGS_LENGTH_SHIFT) >>
+                   JSString::FLAGS_LENGTH_SHIFT) == JSString::MAX_LENGTH);
 
 JS_STATIC_ASSERT(sizeof(JSString) % JS_GCTHING_ALIGN == 0);
 

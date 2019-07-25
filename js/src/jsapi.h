@@ -2639,23 +2639,29 @@ JS_CompareStrings(JSString *str1, JSString *str2);
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 extern JS_PUBLIC_API(JSString *)
 JS_NewGrowableString(JSContext *cx, jschar *chars, size_t length);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2665,9 +2671,6 @@ JS_NewGrowableString(JSContext *cx, jschar *chars, size_t length);
 extern JS_PUBLIC_API(JSString *)
 JS_NewDependentString(JSContext *cx, JSString *str, size_t start,
                       size_t length);
-
-
-
 
 
 

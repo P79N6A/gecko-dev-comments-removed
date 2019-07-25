@@ -7266,7 +7266,7 @@ js_AddAttributePart(JSContext *cx, JSBool isName, JSString *str, JSString *str2)
         str = js_NewStringCopyN(cx, chars, len);
         if (!str)
             return NULL;
-        chars = str->flatChars();
+        chars = str->chars();
     } else {
         
 

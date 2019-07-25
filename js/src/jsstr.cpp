@@ -120,6 +120,7 @@ js_GetDependentStringChars(JSString *str)
     JSString *base;
 
     start = MinimizeDependentStrings(str, 0, &base);
+    JS_ASSERT(base->isFlat());
     JS_ASSERT(start < base->flatLength());
     return base->flatChars() + start;
 }
@@ -132,97 +133,309 @@ js_GetStringChars(JSContext *cx, JSString *str)
     return str->flatChars();
 }
 
+void
+JSString::flatten()
+{
+    JSString *topNode;
+    jschar *chars;
+    size_t capacity;
+    JS_ASSERT(isRope());
+
+    
+
+
+
+    topNode = this;
+    while (topNode->isInteriorNode())
+        topNode = topNode->interiorNodeParent();
+
+#ifdef DEBUG
+    size_t length = topNode->length();
+#endif
+
+    capacity = topNode->topNodeCapacity();
+    chars = (jschar *) topNode->topNodeBuffer();
+
+    
+
+
+
+
+    topNode->convertToInteriorNode(NULL);
+    JSString *str = topNode, *next;
+    size_t pos = 0;
+
+    
+
+
+
+    while (str) {
+        switch (str->ropeTraversalCount()) {
+          case 0:
+            next = str->ropeLeft();
+
+            
+
+
+
+
+            str->startTraversalConversion(pos);
+            str->ropeIncrementTraversalCount();
+            if (next->isInteriorNode()) {
+                str = next;
+            } else {
+                js_strncpy(chars + pos, next->chars(), next->length());
+                pos += next->length();
+            }
+            break;
+          case 1:
+            next = str->ropeRight();
+            str->ropeIncrementTraversalCount();
+            if (next->isInteriorNode()) {
+                str = next;
+            } else {
+                js_strncpy(chars + pos, next->chars(), next->length());
+                pos += next->length();
+            }
+            break;
+          case 2:
+            next = str->interiorNodeParent();
+            
+            str->finishTraversalConversion(topNode, pos);
+            str = next;
+            break;
+          default:
+            JS_NOT_REACHED("bad traversal count");
+        }
+    }
+
+    JS_ASSERT(pos == length);
+    
+    chars[pos] = 0;
+    topNode->initFlatMutable(chars, pos, capacity);
+}
+
+static JS_ALWAYS_INLINE size_t
+RopeAllocSize(const size_t length, size_t *capacity)
+{
+    static const size_t ROPE_DOUBLING_MAX = 1024 * 1024;
+
+    size_t size;
+    size_t minCap = (length + 1) * sizeof(jschar);
+
+    
+
+
+
+
+    if (length > ROPE_DOUBLING_MAX)
+        size = minCap + (minCap / 8);
+    else
+        size = 1 << (JS_CeilingLog2(minCap));
+    *capacity = (size / sizeof(jschar)) - 1;
+    JS_ASSERT(size >= sizeof(JSRopeBufferInfo));
+    return size;
+}
+
+static JS_ALWAYS_INLINE JSRopeBufferInfo *
+ObtainRopeBuffer(JSContext *cx, bool usingLeft, bool usingRight,
+                 JSRopeBufferInfo *sourceBuffer, size_t length,
+                 JSString *left, JSString *right)
+{
+    JSRopeBufferInfo *buf;
+    size_t capacity;
+
+    
+
+
+
+
+
+    if (usingLeft)
+        left->nullifyTopNodeBuffer();
+    if (usingRight)
+        right->nullifyTopNodeBuffer();
+
+    
+
+
+
+    if (length <= sourceBuffer->capacity) {
+        buf = sourceBuffer;
+    } else {
+        size_t allocSize = RopeAllocSize(length, &capacity);
+        cx->free(sourceBuffer);
+        buf = (JSRopeBufferInfo *) cx->malloc(allocSize);
+        if (!buf)
+            return NULL;
+        buf->capacity = capacity;
+    }
+    return buf;
+}
+
+static JS_ALWAYS_INLINE JSString *
+FinishConcat(JSContext *cx, bool usingLeft, bool usingRight,
+             JSString *left, JSString *right, size_t length,
+             JSRopeBufferInfo *buf)
+{
+    JSString *res = js_NewGCString(cx);
+    if (!res) {
+        cx->free(buf);
+        return NULL;
+    }
+    res->initTopNode(left, right, length, buf);
+    if (usingLeft)
+        left->convertToInteriorNode(res);
+    if (usingRight)
+        right->convertToInteriorNode(res);
+    return res;
+}
+
 JSString * JS_FASTCALL
 js_ConcatStrings(JSContext *cx, JSString *left, JSString *right)
 {
-    size_t rn, ln, lrdist, n;
-    jschar *ls, *s;
-    const jschar *rs;
-    JSString *ldep;             
-    JSString *str;
+    size_t length, leftLen, rightLen;
+    bool leftRopeTop, rightRopeTop;
 
-    right->getCharsAndLength(rs, rn);
-    if (rn == 0)
+    leftLen = left->length();
+    if (leftLen == 0)
+        return right;
+    rightLen = right->length();
+    if (rightLen == 0)
         return left;
 
-    left->getCharsAndLength(const_cast<const jschar *&>(ls), ln);
-    if (ln == 0)
-        return right;
+    length = leftLen + rightLen;
 
-    if (!left->isMutable()) {
-        
-        s = (jschar *) cx->malloc((ln + rn + 1) * sizeof(jschar));
-        if (!s)
-            return NULL;
-        js_strncpy(s, ls, ln);
-        ldep = NULL;
-    } else {
-        
+    
+
+
+
+
+
+
+
+
+    if (left->isInteriorNode())
+        left->flatten();
+    if (right->isInteriorNode())
+        right->flatten();
+
+    if (left->isMutable() && !right->isRope() &&
+        left->flatCapacity() >= length) {
         JS_ASSERT(left->isFlat());
-        s = (jschar *) cx->realloc(ls, (ln + rn + 1) * sizeof(jschar));
-        if (!s)
-            return NULL;
 
         
-        lrdist = (size_t)(rs - ls);
-        if (lrdist < ln)
-            rs = s + lrdist;
-        left->mChars = ls = s;
-        ldep = left;
+
+
+
+        jschar *chars = left->chars();
+        js_strncpy(chars + leftLen, right->chars(), rightLen);
+        chars[length] = 0;
+        JSString *res = js_NewString(cx, chars, length);
+        if (!res)
+            return NULL;
+        res->initFlatMutable(chars, length, left->flatCapacity());
+        left->initDependent(res, 0, leftLen);
+        return res;
     }
 
-    js_strncpy(s + ln, rs, rn);
-    n = ln + rn;
-    s[n] = 0;
+    if (length > JSString::MAX_LENGTH) {
+        if (JS_ON_TRACE(cx)) {
+            if (!CanLeaveTrace(cx))
+                return NULL;
+            LeaveTrace(cx);
+        }
+        js_ReportAllocationOverflow(cx);
+        return NULL;
+    }
 
-    str = js_NewString(cx, s, n);
-    if (!str) {
-        
-        if (!ldep) {
-            cx->free(s);
+    leftRopeTop = left->isTopNode();
+    rightRopeTop = right->isTopNode();
+
+    
+
+
+
+    if (left == right && leftRopeTop) {
+        left->flatten();
+        leftRopeTop = false;
+        rightRopeTop = false;
+        JS_ASSERT(leftLen = left->length());
+        JS_ASSERT(rightLen = right->length());
+        JS_ASSERT(!left->isTopNode());
+        JS_ASSERT(!right->isTopNode());
+    }
+
+    
+
+
+
+
+
+    if (leftRopeTop) {
+        if (JS_UNLIKELY(rightRopeTop)) {
+            JSRopeBufferInfo *leftBuf = left->topNodeBuffer();
+            JSRopeBufferInfo *rightBuf = right->topNodeBuffer();
+
+            
+            if (leftBuf->capacity >= rightBuf->capacity) {
+                cx->free(rightBuf);
+            } else {
+                cx->free(leftBuf);
+                leftBuf = rightBuf;
+            }
+
+            JSRopeBufferInfo *buf = ObtainRopeBuffer(cx, true, true, leftBuf,
+                                                     length, left, right);
+            return FinishConcat(cx, true, true, left, right, length, buf);
         } else {
-            s = (jschar *) cx->realloc(ls, (ln + 1) * sizeof(jschar));
-            if (s)
-                left->mChars = s;
+            
+            JSRopeBufferInfo *leftBuf = left->topNodeBuffer();
+
+            JSRopeBufferInfo *buf = ObtainRopeBuffer(cx, true, false, leftBuf,
+                                                     length, left, right);
+            return FinishConcat(cx, true, false, left, right, length, buf);
         }
     } else {
-        str->flatSetMutable();
+        if (JS_UNLIKELY(rightRopeTop)) {
+            
+            JSRopeBufferInfo *rightBuf = right->topNodeBuffer();
 
-        
-        if (ldep) {
-            ldep->initDependent(str, 0, ln);
-#ifdef DEBUG
-            {
-                JSRuntime *rt = cx->runtime;
-                JS_RUNTIME_METER(rt, liveDependentStrings);
-                JS_RUNTIME_METER(rt, totalDependentStrings);
-                JS_LOCK_RUNTIME_VOID(rt,
-                    (rt->strdepLengthSum += (double)ln,
-                     rt->strdepLengthSquaredSum += (double)ln * (double)ln));
-            }
-#endif
+            JSRopeBufferInfo *buf = ObtainRopeBuffer(cx, false, true, rightBuf,
+                                                     length, left, right);
+            return FinishConcat(cx, false, true, left, right, length, buf);
+        } else {
+            
+            size_t capacity;
+            size_t allocSize = RopeAllocSize(length, &capacity);
+            JSRopeBufferInfo *buf = (JSRopeBufferInfo *) cx->malloc(allocSize);
+            if (!buf)
+                return NULL;
+
+            buf->capacity = capacity;
+            return FinishConcat(cx, false, false, left, right, length, buf);
         }
     }
-
-    return str;
 }
 
 const jschar *
-js_UndependString(JSContext *cx, JSString *str)
+JSString::undepend(JSContext *cx)
 {
     size_t n, size;
     jschar *s;
 
-    if (str->isDependent()) {
-        n = str->dependentLength();
+    ensureNotRope();
+
+    if (isDependent()) {
+        n = dependentLength();
         size = (n + 1) * sizeof(jschar);
         s = (jschar *) cx->malloc(size);
         if (!s)
             return NULL;
 
-        js_strncpy(s, str->dependentChars(), n);
+        js_strncpy(s, dependentChars(), n);
         s[n] = 0;
-        str->initFlat(s, n);
+        initFlat(s, n);
 
 #ifdef DEBUG
         {
@@ -236,13 +449,18 @@ js_UndependString(JSContext *cx, JSString *str)
 #endif
     }
 
-    return str->flatChars();
+    return flatChars();
 }
 
 JSBool
 js_MakeStringImmutable(JSContext *cx, JSString *str)
 {
-    if (str->isDependent() && !js_UndependString(cx, str)) {
+    
+
+
+
+    str->ensureNotRope();
+    if (!str->ensureNotDependent(cx)) {
         JS_RUNTIME_METER(cx->runtime, badUndependStrings);
         return JS_FALSE;
     }
@@ -2632,7 +2850,9 @@ static const jschar UnitStringData[] = {
     C(0xf8), C(0xf9), C(0xfa), C(0xfb), C(0xfc), C(0xfd), C(0xfe), C(0xff)
 };
 
-#define U(c) { 1, 0, JSString::ATOMIZED, {(jschar *)UnitStringData + (c) * 2} }
+#define U(c) { {0}, {0},                                                       \
+    JSString::FLAT | JSString::ATOMIZED | (1 << JSString::FLAGS_LENGTH_SHIFT), \
+    {(jschar *)UnitStringData + (c) * 2} }
 
 #ifdef __SUNPRO_CC
 #pragma pack(8)
@@ -2739,9 +2959,17 @@ static const jschar Hundreds[] = {
     O25(0x30), O25(0x31), O25(0x32), O25(0x33), O25(0x34), O25(0x35)
 };
 
-#define L1(c) { 1, 0, JSString::ATOMIZED, {(jschar *)Hundreds + 2 + (c) * 4} } /* length 1: 0..9 */
-#define L2(c) { 2, 0, JSString::ATOMIZED, {(jschar *)Hundreds + 41 + (c - 10) * 4} } /* length 2: 10..99 */
-#define L3(c) { 3, 0, JSString::ATOMIZED, {(jschar *)Hundreds + (c - 100) * 4} } /* length 3: 100..255 */
+#define L1(c) { {0}, {0},                                                      \
+    JSString::FLAT | JSString::ATOMIZED | (1 << JSString::FLAGS_LENGTH_SHIFT), \
+    {(jschar *)Hundreds + 2 + (c) * 4} } /* length 1: 0..9 */
+
+#define L2(c) { {0}, {0},                                                      \
+    JSString::FLAT | JSString::ATOMIZED | (2 << JSString::FLAGS_LENGTH_SHIFT), \
+    {(jschar *)Hundreds + 41 + (c - 10) * 4} } /* length 2: 10..99 */
+                
+#define L3(c) { {0}, {0},                                                      \
+    JSString::FLAT | JSString::ATOMIZED | (3 << JSString::FLAGS_LENGTH_SHIFT), \
+    {(jschar *)Hundreds + (c - 100) * 4} } /* length 3: 100..255 */
 
 #ifdef __SUNPRO_CC
 #pragma pack(8)
@@ -3108,6 +3336,12 @@ js_NewDependentString(JSContext *cx, JSString *base, size_t start,
 
     if (start == 0 && length == base->length())
         return base;
+
+    
+
+
+
+    base->ensureNotRope();
 
     ds = js_NewGCString(cx);
     if (!ds)
