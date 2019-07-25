@@ -198,6 +198,9 @@ NS_DECLARE_FRAME_PROPERTY(FontSizeInflationProperty, nullptr)
 
 
 
+
+
+
 #define TEXT_IN_UNINFLATED_TEXTRUN_USER_DATA NS_FRAME_STATE_BIT(60)
 
 
@@ -7612,7 +7615,8 @@ nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
       length = newLineOffset + 1 - offset;
     }
   }
-  if (atStartOfLine && !textStyle->WhiteSpaceIsSignificant()) {
+  if ((atStartOfLine && !textStyle->WhiteSpaceIsSignificant()) ||
+      (GetStateBits() & TEXT_FORCE_TRIM_WHITESPACE)) {
     
     
     int32_t skipLength = newLineOffset >= 0 ? length - 1 : length;
@@ -7770,7 +7774,8 @@ nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
   bool usedHyphenation;
   gfxFloat trimmedWidth = 0;
   gfxFloat availWidth = aAvailableWidth;
-  bool canTrimTrailingWhitespace = !textStyle->WhiteSpaceIsSignificant();
+  bool canTrimTrailingWhitespace = !textStyle->WhiteSpaceIsSignificant() ||
+                                   (GetStateBits() & TEXT_FORCE_TRIM_WHITESPACE);
   int32_t unusedOffset;  
   gfxBreakPriority breakPriority;
   aLineLayout.GetLastOptionalBreakPosition(&unusedOffset, &breakPriority);
@@ -7839,11 +7844,12 @@ nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
     
     
     
-    if (brokeText) {
+    if (brokeText ||
+        (GetStateBits() & TEXT_FORCE_TRIM_WHITESPACE)) {
       
       
       AddStateBits(TEXT_TRIMMED_TRAILING_WHITESPACE);
-    } else {
+    } else if (!(GetStateBits() & TEXT_FORCE_TRIM_WHITESPACE)) {
       
       
       
