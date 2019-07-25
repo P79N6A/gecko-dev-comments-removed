@@ -1384,15 +1384,11 @@ class TypedArrayTemplate
     fun_subarray(JSContext *cx, uintN argc, Value *vp)
     {
         CallArgs args = CallArgsFromVp(argc, vp);
-        JSObject *obj = ToObject(cx, &args.thisv());
-        if (!obj)
-            return false;
 
-        if (obj->getClass() != fastClass()) {
-            
-            ReportIncompatibleMethod(cx, args, fastClass());
-            return false;
-        }
+        bool ok;
+        JSObject *obj = NonGenericMethodGuard(cx, args, fastClass(), &ok);
+        if (!obj)
+            return ok;
 
         JSObject *tarray = getTypedArray(obj);
         if (!tarray)
@@ -1441,15 +1437,11 @@ class TypedArrayTemplate
     fun_set(JSContext *cx, uintN argc, Value *vp)
     {
         CallArgs args = CallArgsFromVp(argc, vp);
-        JSObject *obj = ToObject(cx, &args.thisv());
-        if (!obj)
-            return false;
 
-        if (obj->getClass() != fastClass()) {
-            
-            ReportIncompatibleMethod(cx, args, fastClass());
-            return false;
-        }
+        bool ok;
+        JSObject *obj = NonGenericMethodGuard(cx, args, fastClass(), &ok);
+        if (!obj)
+            return ok;
 
         JSObject *tarray = getTypedArray(obj);
         if (!tarray)

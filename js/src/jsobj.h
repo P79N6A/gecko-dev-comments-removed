@@ -2234,6 +2234,72 @@ NonNullObject(JSContext *cx, const Value &v);
 
 extern const char *
 InformalValueTypeName(const Value &v);
-}
+
+
+
+
+
+
+
+
+
+
+extern void
+ReportIncompatibleMethod(JSContext *cx, CallReceiver call, Class *clasp);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+inline JSObject *
+NonGenericMethodGuard(JSContext *cx, CallArgs args, Class *clasp, bool *ok);
+
+
+
+
+
+
+
+
+extern bool
+HandleNonGenericMethodClassMismatch(JSContext *cx, CallArgs args, Class *clasp);
+
+
+
+
+
+
+
+
+template <typename T>
+inline bool
+BoxedPrimitiveMethodGuard(JSContext *cx, CallArgs args, T *v, bool *ok);
+
+}  
 
 #endif 

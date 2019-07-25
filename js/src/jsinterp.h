@@ -78,24 +78,6 @@ GetScopeChainFast(JSContext *cx, StackFrame *fp, JSOp op, size_t oplen);
 
 
 
-void
-ReportIncompatibleMethod(JSContext *cx, CallReceiver call, Class *clasp);
-
-
-
-
-
-
-
-
-
-template <typename T>
-bool GetPrimitiveThis(JSContext *cx, CallReceiver call, T *v);
-
-
-
-
-
 
 
 inline bool
