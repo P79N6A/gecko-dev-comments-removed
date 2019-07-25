@@ -1744,9 +1744,12 @@ Loader::DoSheetComplete(SheetLoadData* aLoadData, nsresult aStatus,
   
   SheetLoadData* data = aLoadData;
   while (data) {
-    NS_ABORT_IF_FALSE(!data->mSheet->IsModified(),
-                      "should not get marked modified during parsing");
     if (!data->mSheetAlreadyComplete) {
+      
+      
+      
+      NS_ABORT_IF_FALSE(!data->mSheet->IsModified(),
+                        "should not get marked modified during parsing");
       data->mSheet->SetComplete();
       data->ScheduleLoadEventIfNeeded(aStatus);
     }
