@@ -12,6 +12,14 @@ function test() {
   waitForExplicitFinish();
 
   
+  try {
+    FormHelperUI.enabled;
+  }
+  catch(e) {
+    FormHelperUI.init();
+  }
+
+  
   messageManager.addMessageListener("pageshow", function(aMessage) {
     if (newTab && newTab.browser.currentURI.spec != "about:blank") {
       messageManager.removeMessageListener(aMessage.name, arguments.callee);
@@ -20,15 +28,9 @@ function test() {
     }
   });
 
-  let startupInfo = Cc["@mozilla.org/toolkit/app-startup;1"].getService(Ci.nsIAppStartup).getStartupInfo();
-  if (!("firstPaint" in startupInfo))
-    waitFor(function() { newTab = Browser.addTab(testURL, true); }, function() {
-      let startupInfo = Cc["@mozilla.org/toolkit/app-startup;1"].getService(Ci.nsIAppStartup).getStartupInfo();
-      return ("firstPaint" in startupInfo);
-    }, Date.now() + 3000);
-  else
-    newTab = Browser.addTab(testURL, true);
+  newTab = Browser.addTab(testURL, true);
 }
+
 
 
 

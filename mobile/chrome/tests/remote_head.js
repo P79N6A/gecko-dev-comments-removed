@@ -1,3 +1,5 @@
+dump("======================== Remote Head loaded ========================\n");
+
 
 const window = content.document.defaultView.wrappedJSObject;
 const Element = Components.interfaces.nsIDOMElement;
