@@ -160,6 +160,7 @@ HistoryStore.prototype = {
       return this.__setGUIDStm;
     }
 
+    
     let stmt;
     try {
       stmt = this._getStmt(
