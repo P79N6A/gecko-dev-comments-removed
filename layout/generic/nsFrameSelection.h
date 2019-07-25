@@ -47,6 +47,12 @@
 #include "nsGUIEvent.h"
 #include "nsIRange.h"
 
+
+
+#define NS_FRAME_SELECTION_IID      \
+{ 0x3c6ae2d0, 0x4cf1, 0x44a1, \
+  { 0x9e, 0x9d, 0x24, 0x11, 0x86, 0x7f, 0x19, 0xc6 } }
+
 #ifdef IBMBIDI 
 #define BIDI_LEVEL_UNDEFINED 0x80
 #endif
@@ -271,7 +277,7 @@ public:
 
 
 
-  nsresult SelectCellElement(nsIContent *aCell);
+  virtual nsresult SelectCellElement(nsIContent *aCell);
 
   
 
@@ -282,11 +288,11 @@ public:
 
 
 
-  nsresult AddCellsToSelection(nsIContent *aTable,
-                               PRInt32 aStartRowIndex,
-                               PRInt32 aStartColumnIndex,
-                               PRInt32 aEndRowIndex,
-                               PRInt32 aEndColumnIndex);
+  virtual nsresult AddCellsToSelection(nsIContent *aTable,
+                                       PRInt32 aStartRowIndex,
+                                       PRInt32 aStartColumnIndex,
+                                       PRInt32 aEndRowIndex,
+                                       PRInt32 aEndColumnIndex);
 
   
 
@@ -297,11 +303,11 @@ public:
 
 
 
-  nsresult RemoveCellsFromSelection(nsIContent *aTable,
-                                    PRInt32 aStartRowIndex,
-                                    PRInt32 aStartColumnIndex,
-                                    PRInt32 aEndRowIndex,
-                                    PRInt32 aEndColumnIndex);
+  virtual nsresult RemoveCellsFromSelection(nsIContent *aTable,
+                                            PRInt32 aStartRowIndex,
+                                            PRInt32 aStartColumnIndex,
+                                            PRInt32 aEndRowIndex,
+                                            PRInt32 aEndColumnIndex);
 
   
 
@@ -312,11 +318,11 @@ public:
 
 
 
-  nsresult RestrictCellsToSelection(nsIContent *aTable,
-                                    PRInt32 aStartRowIndex,
-                                    PRInt32 aStartColumnIndex,
-                                    PRInt32 aEndRowIndex,
-                                    PRInt32 aEndColumnIndex);
+  virtual nsresult RestrictCellsToSelection(nsIContent *aTable,
+                                            PRInt32 aStartRowIndex,
+                                            PRInt32 aStartColumnIndex,
+                                            PRInt32 aEndRowIndex,
+                                            PRInt32 aEndColumnIndex);
 
   
 
@@ -405,10 +411,10 @@ public:
 
 
 
-  nsIFrame* GetFrameForNodeOffset(nsIContent *aNode,
-                                  PRInt32     aOffset,
-                                  HINT        aHint,
-                                  PRInt32    *aReturnOffset) const;
+  virtual nsIFrame* GetFrameForNodeOffset(nsIContent *aNode,
+                                          PRInt32     aOffset,
+                                          HINT        aHint,
+                                          PRInt32    *aReturnOffset) const;
 
   
 
@@ -434,13 +440,16 @@ public:
   
 
 
-  void SetCaretBidiLevel (PRUint8 aLevel);
+
+  virtual void SetCaretBidiLevel (PRUint8 aLevel);
   
 
-  PRUint8 GetCaretBidiLevel() const;
+
+  virtual PRUint8 GetCaretBidiLevel() const;
   
 
-  void UndefineCaretBidiLevel();
+
+  virtual void UndefineCaretBidiLevel();
 #endif
 
   
@@ -557,9 +566,11 @@ public:
 
 
 
-  nsPrevNextBidiLevels GetPrevNextBidiLevels(nsIContent *aNode,
-                                             PRUint32 aContentOffset,
-                                             PRBool aJumpLines) const;
+
+
+  virtual nsPrevNextBidiLevels GetPrevNextBidiLevels(nsIContent *aNode,
+                                                     PRUint32 aContentOffset,
+                                                     PRBool aJumpLines) const;
 
   
 
