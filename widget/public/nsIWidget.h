@@ -1369,8 +1369,6 @@ class nsIWidget_MOZILLA_2_0_BRANCH : public nsIWidget {
   public:
     NS_DECLARE_STATIC_IID_ACCESSOR(NS_IWIDGET_MOZILLA_2_0_BRANCH_IID)
 
-    typedef mozilla::layers::LayerManager LayerManager;
-
     
 
 
@@ -1383,15 +1381,6 @@ class nsIWidget_MOZILLA_2_0_BRANCH : public nsIWidget {
 
 
     NS_IMETHOD GetInputMode(IMEContext& aContext) = 0;
-
-    enum LayerManagerPersistence
-    {
-      LAYER_MANAGER_CURRENT = 0,
-      LAYER_MANAGER_PERSISTENT
-    };
-
-    virtual LayerManager *GetLayerManager(LayerManagerPersistence aPersistence = LAYER_MANAGER_CURRENT,
-                                          bool* aAllowRetaining = nsnull) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIWidget_MOZILLA_2_0_BRANCH, NS_IWIDGET_MOZILLA_2_0_BRANCH_IID)

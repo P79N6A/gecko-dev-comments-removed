@@ -190,15 +190,6 @@ public:
     return mKey == aKey ? mValue.get() : nsnull;
   }
 
-  
-
-
-  void Clear()
-  {
-    mKey = nsnull;
-    mValue = nsnull;
-  }
-
 private:
   void* mKey;
   nsAutoPtr<LayerUserData> mValue;
@@ -250,7 +241,7 @@ public:
 
 
 
-  virtual void Destroy() { mDestroyed = PR_TRUE; mUserData.Clear(); }
+  virtual void Destroy() { mDestroyed = PR_TRUE; }
   PRBool IsDestroyed() { return mDestroyed; }
 
   

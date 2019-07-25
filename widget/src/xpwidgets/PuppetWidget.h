@@ -164,8 +164,7 @@ public:
   
 
 
-  virtual LayerManager*     GetLayerManager(LayerManagerPersistence aPersistence = LAYER_MANAGER_CURRENT,
-                                            bool* aAllowRetaining = nsnull);
+  virtual LayerManager*     GetLayerManager(bool* aAllowRetaining = nsnull);
 
   virtual gfxASurface*      GetThebesSurface();
 
