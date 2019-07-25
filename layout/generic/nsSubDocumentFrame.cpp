@@ -107,7 +107,7 @@ GetDocumentFromView(nsIView* aView)
 {
   NS_PRECONDITION(aView, "");
 
-  nsIFrame* f = aView->GetFrame();
+  nsIFrame* f = static_cast<nsIFrame*>(aView->GetClientData());
   nsIPresShell* ps =  f ? f->PresContext()->PresShell() : nsnull;
   return ps ? ps->GetDocument() : nsnull;
 }
@@ -250,7 +250,9 @@ nsSubDocumentFrame::GetSubdocumentRootFrame()
   if (!mInnerView)
     return nsnull;
   nsIView* subdocView = mInnerView->GetFirstChild();
-  return subdocView ? subdocView->GetFrame() : nsnull;
+  if (!subdocView)
+    return nsnull;
+  return static_cast<nsIFrame*>(subdocView->GetClientData());
 }
 
 NS_IMETHODIMP
@@ -285,7 +287,9 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
   nsCOMPtr<nsIPresShell> presShell = nsnull;
 
-  nsIFrame* subdocRootFrame = subdocView->GetFrame();
+  nsIFrame* subdocRootFrame =
+    static_cast<nsIFrame*>(subdocView->GetClientData());
+
   if (subdocRootFrame) {
     presShell = subdocRootFrame->PresContext()->PresShell();
   }
@@ -299,7 +303,7 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     nsIView* nextView = subdocView->GetNextSibling();
     nsIFrame* frame = nsnull;
     if (nextView) {
-      frame = nextView->GetFrame();
+      frame = static_cast<nsIFrame*>(nextView->GetClientData());
     }
     if (frame) {
       nsIPresShell* ps = frame->PresContext()->PresShell();
@@ -340,8 +344,15 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     aBuilder->EnterPresShell(subdocRootFrame, dirty);
   }
 
+  
+  
   nsRect subdocBoundsInParentUnits =
-    mInnerView->GetBounds() + GetOffsetToCrossDoc(aBuilder->ReferenceFrame());
+    subdocView->GetBounds().ConvertAppUnitsRoundOut(subdocAPD, parentAPD);
+
+  
+  subdocBoundsInParentUnits = subdocBoundsInParentUnits +
+                              mInnerView->GetPosition() +
+                              GetOffsetToCrossDoc(aBuilder->ReferenceFrame());
 
   if (subdocRootFrame && NS_SUCCEEDED(rv)) {
     rv = subdocRootFrame->
@@ -355,7 +366,10 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     
     nsRect bounds;
     if (subdocRootFrame) {
-      bounds = subdocBoundsInParentUnits.ConvertAppUnitsRoundOut(parentAPD, subdocAPD);
+      nsPoint offset = mInnerView->GetPosition() +
+                       GetOffsetToCrossDoc(aBuilder->ReferenceFrame());
+      offset = offset.ConvertAppUnits(parentAPD, subdocAPD);
+      bounds = subdocView->GetBounds() + offset;
     } else {
       bounds = subdocBoundsInParentUnits;
     }
@@ -401,21 +415,36 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       childItems.AppendToTop(layerItem);
     }
 
-    if (ShouldClipSubdocument()) {
-      nsDisplayClip* item =
-        new (aBuilder) nsDisplayClip(aBuilder, this, &childItems,
-                                     subdocBoundsInParentUnits);
-      
-      childItems.AppendToTop(item);
+    nsDisplayList list;
+    
+
+    
+    nsIFrame* rootScrollFrame = presShell->GetRootScrollFrame();
+    if (rootScrollFrame) {
+      nsIContent* content = rootScrollFrame->GetContent();
+      if (content) {
+        nsRect displayPort;
+        bool usingDisplayport =
+          nsLayoutUtils::GetDisplayPort(content, &displayPort);
+        if (usingDisplayport) {
+          if (displayPort.width > subdocBoundsInParentUnits.width)
+            subdocBoundsInParentUnits.width = displayPort.width;
+          if (displayPort.height > subdocBoundsInParentUnits.height)
+            subdocBoundsInParentUnits.height = displayPort.height;
+        }
+      }
     }
+
+    rv = list.AppendNewToTop(
+        new (aBuilder) nsDisplayClip(aBuilder, this, &childItems,
+                                     subdocBoundsInParentUnits));
 
     if (mIsInline) {
-      WrapReplacedContentForBorderRadius(aBuilder, &childItems, aLists);
+      WrapReplacedContentForBorderRadius(aBuilder, &list, aLists);
     } else {
-      aLists.Content()->AppendToTop(&childItems);
+      aLists.Content()->AppendToTop(&list);
     }
   }
-
   
   childItems.DeleteAll();
 
@@ -608,14 +637,6 @@ nsSubDocumentFrame::Reflow(nsPresContext*           aPresContext,
     nsIViewManager* vm = mInnerView->GetViewManager();
     vm->MoveViewTo(mInnerView, offset.x, offset.y);
     vm->ResizeView(mInnerView, nsRect(nsPoint(0, 0), innerSize), true);
-  }
-
-  aDesiredSize.SetOverflowAreasToDesiredBounds();
-  if (!ShouldClipSubdocument()) {
-    nsIFrame* subdocRootFrame = GetSubdocumentRootFrame();
-    if (subdocRootFrame) {
-      aDesiredSize.mOverflowAreas.UnionWith(subdocRootFrame->GetOverflowAreas() + offset);
-    }
   }
 
   
