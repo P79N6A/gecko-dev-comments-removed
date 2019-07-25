@@ -267,8 +267,18 @@ BookmarksEngine.prototype = {
         let id = this._store.idForGUID(guid);
         switch (Svc.Bookmark.getItemType(id)) {
           case Svc.Bookmark.TYPE_BOOKMARK:
-            key = "b" + Svc.Bookmark.getBookmarkURI(id).spec + ":" +
-              Svc.Bookmark.getItemTitle(id);
+
+            
+            let queryId;
+            try {
+              queryId = Utils.anno(id, SMART_BOOKMARKS_ANNO);
+            } catch(ex) {}
+            
+            if (queryId)
+              key = "q" + queryId;
+            else
+              key = "b" + Svc.Bookmark.getBookmarkURI(id).spec + ":" +
+                    Svc.Bookmark.getItemTitle(id);
             break;
           case Svc.Bookmark.TYPE_FOLDER:
             key = "f" + Svc.Bookmark.getItemTitle(id);
@@ -302,9 +312,19 @@ BookmarksEngine.prototype = {
       return this._lazyMap = function(item) {
         
         let key;
+        let altKey;
         switch (item.type) {
-          case "bookmark":
           case "query":
+            
+            
+            
+            if (item.queryId) {
+              key = "q" + item.queryId;
+              altKey = "b" + item.bmkUri + ":" + item.title;
+              break;
+            }
+            
+          case "bookmark":
           case "microsummary":
             key = "b" + item.bmkUri + ":" + item.title;
             break;
@@ -322,9 +342,29 @@ BookmarksEngine.prototype = {
         
         this._log.trace("Finding mapping: " + item.parentName + ", " + key);
         let parent = lazyMap[item.parentName];
-        let dupe = parent && parent[key];
-        this._log.trace("Mapped dupe: " + dupe);
-        return dupe;
+        
+        if (!parent) {
+          this._log.trace("No parent => no dupe.");
+          return undefined;
+        }
+          
+        let dupe = parent[key];
+        
+        if (dupe) {
+          this._log.trace("Mapped dupe: " + dupe);
+          return dupe;
+        }
+        
+        if (altKey) {
+          dupe = parent[altKey];
+          if (dupe) {
+            this._log.trace("Mapped dupe using altKey " + altKey + ": " + dupe);
+            return dupe;
+          }
+        }
+        
+        this._log.trace("No dupe found for key " + key + "/" + altKey + ".");
+        return undefined;
       };
     });
 
