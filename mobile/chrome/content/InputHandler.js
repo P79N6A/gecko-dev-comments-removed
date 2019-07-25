@@ -46,6 +46,9 @@
 const kDoubleClickInterval = 400;
 
 
+const kLongTapWait = 700;
+
+
 
 const kDoubleClickThreshold = 200;
 
@@ -127,7 +130,6 @@ function InputHandler(browserViewContainer) {
   window.addEventListener("mouseup", this, true);
   window.addEventListener("mousemove", this, true);
   window.addEventListener("click", this, true);
-  window.addEventListener("contextmenu", this, false);
   window.addEventListener("MozSwipeGesture", this, true);
   window.addEventListener("MozMagnifyGestureStart", this, true);
   window.addEventListener("MozMagnifyGestureUpdate", this, true);
@@ -218,6 +220,14 @@ InputHandler.prototype = {
 
   suppressNextClick: function suppressNextClick() {
     this._suppressNextClick = true;
+  },
+
+  
+  cancelPending: function cancelPending() {
+    let mods = this._modules;
+    for (let i = 0, len = mods.length; i < len; ++i)
+      if (mods[i])
+        mods[i].cancelPending();
   },
 
   
@@ -333,8 +343,7 @@ function MouseModule(owner, browserViewContainer) {
                                         this._kineticStop.bind(this));
 
   this._singleClickTimeout = new Util.Timeout(this._doSingleClick.bind(this));
-
-  messageManager.addMessageListener("Browser:ContextMenu", this);
+  this._longClickTimeout = new Util.Timeout(this._doLongClick.bind(this));
 }
 
 
@@ -348,29 +357,18 @@ MouseModule.prototype = {
         this._onMouseDown(aEvent);
         break;
       case "mousemove":
+        aEvent.stopPropagation();
+        aEvent.preventDefault();
         this._onMouseMove(aEvent);
         break;
       case "mouseup":
         this._onMouseUp(aEvent);
-        break;
-      case "contextmenu":
-        if (ContextHelper.popupState)
-          this.cancelPending();
         break;
       case "MozBeforePaint":
         this._waitingForPaint = false;
         removeEventListener("MozBeforePaint", this, false);
         break;
     }
-  },
-
-  receiveMessage: function receiveMessage(aMessage) {
-    
-    
-    if (aMessage.name != "Browser:ContextMenu" || !ContextHelper.popupState)
-      return;
-
-    this.cancelPending();
   },
 
   
@@ -410,72 +408,72 @@ MouseModule.prototype = {
       this._kinetic.end();
 
     this._targetScrollInterface = targetScrollInterface;
-    this._dragger = dragger;
-    this._target = aEvent.target;
 
-    if (this._targetIsContent(aEvent)) {
-      let event = document.createEvent("Events");
-      event.initEvent("TapDown", true, false);
-      event.clientX = aEvent.clientX;
-      event.clientY = aEvent.clientY;
-      aEvent.target.dispatchEvent(event);
-
+    
+    let event = document.createEvent("Events");
+    event.initEvent("TapDown", true, true);
+    event.clientX = aEvent.clientX;
+    event.clientY = aEvent.clientY;
+    let success = aEvent.target.dispatchEvent(event);
+    if (success) {
       this._recordEvent(aEvent);
+      this._target = aEvent.target;
+      this._longClickTimeout.once(kLongTapWait);
     } else {
       
       this._cleanClickBuffer();
     }
 
-    if (this._dragger) {
-      let draggable = this._dragger.isDraggable(targetScrollbox, targetScrollInterface);
-      if (draggable.x || draggable.y)
+    
+    if (dragger) {
+      let draggable = dragger.isDraggable(targetScrollbox, targetScrollInterface);
+      dragData.locked = !draggable.x || !draggable.y;
+      if (draggable.x || draggable.y) {
+        this._dragger = dragger;
         this._doDragStart(aEvent);
+      }
     }
+
+    this._owner.grab(this);
   },
 
   
   _onMouseUp: function _onMouseUp(aEvent) {
+    this._onMouseMove(aEvent);
+
     let dragData = this._dragData;
-    let oldIsPan = dragData.isPan();
-    if (dragData.dragging) {
-      dragData.setDragPosition(aEvent.screenX, aEvent.screenY);
-      let [sX, sY] = dragData.panPosition();
+    if (dragData.dragging)
       this._doDragStop();
-    }
 
-    if (this._targetIsContent(aEvent)) {
-      if (this._dragger) {
-        let event = document.createEvent("Events");
-        event.initEvent("TapUp", true, false);
-        event.clientX = aEvent.clientX
-        event.clientY = aEvent.clientY;
-        aEvent.target.dispatchEvent(event);
-      }
-
-      
-      this._recordEvent(aEvent);
-      let commitToClicker = dragData.isClick() && (this._downUpEvents.length > 1);
-      if (commitToClicker)
-        
-        this._commitAnotherClick();
-      else
-        
+    
+    if (this._target) {
+      let event = document.createEvent("Events");
+      event.initEvent("TapUp", true, true);
+      event.clientX = aEvent.clientX
+      event.clientY = aEvent.clientY;
+      let success = aEvent.target.dispatchEvent(event);
+      if (!success) {
         this._cleanClickBuffer();
+      } else {
+        this._recordEvent(aEvent);
+        let commitToClicker = dragData.isClick() && (this._downUpEvents.length > 1);
+        if (commitToClicker)
+          
+          this._commitAnotherClick();
+        else
+          
+          this._cleanClickBuffer();
+      }
     }
-    else if (dragData.isPan()) {
+
+    
+    if (dragData.isPan()) {
       
       
       
       let generatesClick = aEvent.detail;
       if (generatesClick)
         this._owner.suppressNextClick();
-
-      
-      if (!oldIsPan) {
-        let event = document.createEvent("Events");
-        event.initEvent("PanBegin", true, false);
-        document.dispatchEvent(event);
-      }
     }
 
     this._owner.ungrab(this);
@@ -490,30 +488,21 @@ MouseModule.prototype = {
     if (dragData.dragging && !this._waitingForPaint) {
       let oldIsPan = dragData.isPan();
       dragData.setDragPosition(aEvent.screenX, aEvent.screenY);
-      aEvent.stopPropagation();
-      aEvent.preventDefault();
       if (dragData.isPan()) {
-        this._owner.grab(this);
         
         let [sX, sY] = dragData.panPosition();
         this._doDragMove();
 
         
         if (!oldIsPan && dragData.isPan()) {
+          this._longClickTimeout.clear();
+
           let event = document.createEvent("Events");
           event.initEvent("PanBegin", true, false);
           aEvent.target.dispatchEvent(event);
         }
       }
     }
-  },
-
-  
-
-
-  _targetIsContent: function _targetIsContent(aEvent) {
-    let target = aEvent.target;
-    return target && target.id == "inputhandler-overlay";
   },
 
   
@@ -578,12 +567,24 @@ MouseModule.prototype = {
   _kineticStop: function _kineticStop() {
     
     
-    if (!dragData.dragging && !dragData.isPan()) {
+    let dragData = this._dragData;
+    if (!dragData.dragging) {
       this._dragger.dragStop(0, 0, this._targetScrollInterface);
       let event = document.createEvent("Events");
       event.initEvent("PanFinished", true, false);
       document.dispatchEvent(event);
     }
+  },
+
+  
+  _doLongClick: function _doLongClick() {
+    let ev = this._downUpEvents[0];
+
+    let event = document.createEvent("Events");
+    event.initEvent("LongTap", true, false);
+    event.clientX = ev.clientX;
+    event.clientY = ev.clientY;
+    ev.target.dispatchEvent(event);
   },
 
   
@@ -652,6 +653,7 @@ MouseModule.prototype = {
 
   _cleanClickBuffer: function _cleanClickBuffer() {
     this._singleClickTimeout.clear();
+    this._longClickTimeout.clear();
     this._downUpEvents.splice(0);
   },
 
@@ -745,8 +747,7 @@ MouseModule.prototype = {
       + 'dragger=' + this._dragger + ', '
       + '\n\tdownUpEvents=' + this._downUpEvents + ', '
       + 'length=' + this._downUpEvents.length + ', '
-      + '\n\ttargetScroller=' + this._targetScrollInterface + ', '
-      + '\n\tclickTimeout=' + this._clickTimeout + '\n  }';
+      + '\n\ttargetScroller=' + this._targetScrollInterface + '}';
   }
 };
 
@@ -1208,12 +1209,6 @@ GestureModule.prototype = {
         case "MozMagnifyGesture":
           consume = true;
           this._pinchEnd(aEvent);
-          break;
-
-        case "contextmenu":
-          
-          if (this._pinchZoom)
-            consume = true;
           break;
       }
       if (consume) {
