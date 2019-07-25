@@ -161,12 +161,13 @@ public:
 #endif
 
   already_AddRefed<FileManager>
-  GetOrCreateFileManager(const nsACString& aOrigin,
-                         const nsAString& aDatabaseName);
-
-  already_AddRefed<FileManager>
   GetFileManager(const nsACString& aOrigin,
                  const nsAString& aDatabaseName);
+
+  void
+  AddFileManager(const nsACString& aOrigin,
+                 const nsAString& aDatabaseName,
+                 FileManager* aFileManager);
 
   void InvalidateFileManagersForOrigin(const nsACString& aOrigin);
 
@@ -431,12 +432,11 @@ private:
   public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSIRUNNABLE
-    AsyncDeleteFileRunnable(const nsAString& aFilePath)
-    : mFilePath(aFilePath)
-    { }
+    AsyncDeleteFileRunnable(FileManager* aFileManager, int64_t aFileId);
 
   private:
-    nsString mFilePath;
+    nsRefPtr<FileManager> mFileManager;
+    int64_t mFileId;
   };
 
   static nsresult RunSynchronizedOp(IDBDatabase* aDatabase,
@@ -474,7 +474,6 @@ private:
 
   
   
-  
   nsClassHashtable<nsCStringHashKey,
                    nsTArray<nsRefPtr<FileManager> > > mFileManagers;
 
@@ -494,6 +493,10 @@ private:
   
   
   nsCOMPtr<mozIStorageQuotaCallback> mQuotaCallbackSingleton;
+
+  
+  
+  nsTArray<nsCString> mInitializedOrigins;
 
   
   
