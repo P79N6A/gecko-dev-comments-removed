@@ -2030,19 +2030,15 @@ nsresult nsPluginHost::ScanPluginsDirectory(nsIFile * pluginsDir,
           *aPluginsChanged = PR_TRUE;
         }
       }
-    }
-    else {
-      
-      *aPluginsChanged = PR_TRUE;
-    }
 
-    
-    
-    if (!aCreatePluginList) {
-      if (*aPluginsChanged)
-        return NS_OK;
-      else
+      
+      
+      if (!aCreatePluginList) {
+        if (*aPluginsChanged) {
+          return NS_OK;
+        }
         continue;
+      }
     }
 
     
@@ -2130,6 +2126,15 @@ nsresult nsPluginHost::ScanPluginsDirectory(nsIFile * pluginsDir,
 
     
     if (bAddIt) {
+      
+      *aPluginsChanged = PR_TRUE;
+
+      
+      
+      if (!aCreatePluginList) {
+        return NS_OK;
+      }
+
       pluginTag->SetHost(this);
       pluginTag->mNext = mPlugins;
       mPlugins = pluginTag;
