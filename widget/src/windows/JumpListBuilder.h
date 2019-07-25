@@ -36,6 +36,7 @@
 
 
 
+
 #ifndef __JumpListBuilder_h__
 #define __JumpListBuilder_h__
 
@@ -77,6 +78,7 @@ private:
 
   PRBool IsSeparator(nsCOMPtr<nsIJumpListItem>& item);
   nsresult TransferIObjectArrayToIMutableArray(IObjectArray *objArray, nsIMutableArray *removedItems);
+  nsresult RemoveIconCacheForItems(nsIMutableArray *removedItems);
 
   friend class WinTaskbar;
 };

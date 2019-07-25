@@ -36,6 +36,7 @@
 
 
 
+
 #if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_WIN7
 
 #include "JumpListBuilder.h"
@@ -145,12 +146,57 @@ NS_IMETHODIMP JumpListBuilder::InitListBuild(nsIMutableArray *removedItems, PRBo
       TransferIObjectArrayToIMutableArray(objArray, removedItems);
       objArray->Release();
     }
+
+    RemoveIconCacheForItems(removedItems);
+
     sBuildingList = PR_TRUE;
     *_retval = PR_TRUE;
     return NS_OK;
   }
 
   return NS_OK;
+}
+
+
+
+nsresult JumpListBuilder::RemoveIconCacheForItems(nsIMutableArray *items) 
+{
+  NS_ENSURE_ARG_POINTER(items);
+  
+  nsresult rv;
+  PRUint32 length;
+  items->GetLength(&length);
+  for (PRUint32 i = 0; i < length; ++i) {
+
+    
+    nsCOMPtr<nsIJumpListItem> item = do_QueryElementAt(items, i);
+    if (!item) {
+      continue;
+    }
+    PRInt16 type;
+    if (NS_FAILED(item->GetType(&type))) {
+      continue;
+    }
+
+    
+    if (type == nsIJumpListItem::JUMPLIST_ITEM_SHORTCUT) {
+      nsCOMPtr<nsIJumpListShortcut> shortcut = do_QueryInterface(item);
+      if (shortcut) {
+        nsCOMPtr<nsIURI> uri;
+        rv = shortcut->GetIconImageUri(getter_AddRefs(uri));
+        if (NS_SUCCEEDED(rv) && uri) {
+          JumpListShortcut::RemoveCacheIcon(uri); 
+
+          
+          
+          
+          
+          shortcut->SetIconImageUri(nsnull);
+        }
+      }
+    }
+
+  } 
 }
 
 
