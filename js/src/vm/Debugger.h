@@ -119,6 +119,8 @@ class Debugger {
     
     ObjectWeakMap environments;
 
+    class FrameRange;
+
     bool addDebuggeeGlobal(JSContext *cx, GlobalObject *obj);
     void removeDebuggeeGlobal(JSContext *cx, GlobalObject *global,
                               GlobalObjectSet::Enum *compartmentEnum,

@@ -143,6 +143,110 @@ ValueToIdentifier(JSContext *cx, const Value &v, jsid *idp)
     return true;
 }
 
+
+
+
+
+
+
+
+class Debugger::FrameRange {
+    JSContext *cx;
+    StackFrame *fp;
+
+    
+    GlobalObject::DebuggerVector *debuggers;
+
+    
+
+
+
+    size_t debuggerCount, nextDebugger;
+
+    
+
+
+
+    FrameMap::Ptr entry;
+
+  public:
+    
+
+
+
+
+
+
+
+
+
+
+    FrameRange(JSContext *cx, StackFrame *fp, GlobalObject *global = NULL)
+      : cx(cx), fp(fp) {
+        nextDebugger = 0;
+
+        
+        if (!global)
+            global = &fp->scopeChain().global();
+
+        
+        JS_ASSERT(&fp->scopeChain().global() == global);
+
+        
+        debuggers = global->getDebuggers();
+        if (debuggers) {
+            debuggerCount = debuggers->length();
+            findNext();
+        } else {
+            debuggerCount = 0;
+        }
+    }
+
+    bool empty() const {
+        return nextDebugger >= debuggerCount;
+    }
+
+    JSObject *frontFrame() const {
+        JS_ASSERT(!empty());
+        return entry->value;
+    }
+
+    Debugger *frontDebugger() const {
+        JS_ASSERT(!empty());
+        return (*debuggers)[nextDebugger];
+    }
+
+    
+
+
+
+    void removeFrontFrame() const {
+        JS_ASSERT(!empty());
+        frontDebugger()->frames.remove(entry);
+    }
+
+    void popFront() { 
+        JS_ASSERT(!empty());
+        nextDebugger++;
+        findNext();
+    }
+
+  private:
+    
+
+
+
+    void findNext() {
+        while (!empty()) {
+            Debugger *dbg = (*debuggers)[nextDebugger];
+            entry = dbg->frames.lookup(fp);
+            if (entry)
+                break;
+            nextDebugger++;
+        }
+    }
+};
+
 
 
 
@@ -458,30 +562,20 @@ void
 Debugger::slowPathOnLeaveFrame(JSContext *cx)
 {
     StackFrame *fp = cx->fp();
-    GlobalObject *global = &fp->scopeChain().global();
 
-    
+    for (FrameRange r(cx, fp); !r.empty(); r.popFront()) {
+        JSObject *frameobj = r.frontFrame();
 
+        frameobj->setPrivate(NULL);
 
-
-
-    if (GlobalObject::DebuggerVector *debuggers = global->getDebuggers()) {
-        for (Debugger **p = debuggers->begin(); p != debuggers->end(); p++) {
-            Debugger *dbg = *p;
-            if (FrameMap::Ptr p = dbg->frames.lookup(fp)) {
-                StackFrame *frame = p->key;
-                JSObject *frameobj = p->value;
-                frameobj->setPrivate(NULL);
-
-                
-                if (!frameobj->getReservedSlot(JSSLOT_DEBUGFRAME_ONSTEP_HANDLER).isUndefined() &&
-                    frame->isScriptFrame()) {
-                    frame->script()->changeStepModeCount(cx, -1);
-                }
-
-                dbg->frames.remove(p);
-            }
+        
+        if (!frameobj->getReservedSlot(JSSLOT_DEBUGFRAME_ONSTEP_HANDLER).isUndefined() &&
+            fp->isScriptFrame())
+        {
+            fp->script()->changeStepModeCount(cx, -1);
         }
+
+        r.removeFrontFrame();
     }
 
     
@@ -975,16 +1069,12 @@ Debugger::onSingleStep(JSContext *cx, Value *vp)
 
 
     AutoObjectVector frames(cx);
-    GlobalObject *global = &fp->scopeChain().global();
-    if (GlobalObject::DebuggerVector *debuggers = global->getDebuggers()) {
-        for (Debugger **d = debuggers->begin(); d != debuggers->end(); d++) {
-            Debugger *dbg = *d;
-            if (FrameMap::Ptr p = dbg->frames.lookup(fp)) {
-                JSObject *frame = p->value;
-                if (!frame->getReservedSlot(JSSLOT_DEBUGFRAME_ONSTEP_HANDLER).isUndefined() &&
-                    !frames.append(frame))
-                    return JSTRAP_ERROR;
-            }
+    for (FrameRange r(cx, fp); !r.empty(); r.popFront()) {
+        JSObject *frame = r.frontFrame();
+        if (!frame->getReservedSlot(JSSLOT_DEBUGFRAME_ONSTEP_HANDLER).isUndefined() &&
+            !frames.append(frame))
+        {
+            return JSTRAP_ERROR;
         }
     }
 
@@ -1001,6 +1091,7 @@ Debugger::onSingleStep(JSContext *cx, Value *vp)
     {
         uint32_t stepperCount = 0;
         JSScript *trappingScript = fp->script();
+        GlobalObject *global = &fp->scopeChain().global();
         if (GlobalObject::DebuggerVector *debuggers = global->getDebuggers()) {
             for (Debugger **p = debuggers->begin(); p != debuggers->end(); p++) {
                 Debugger *dbg = *p;
