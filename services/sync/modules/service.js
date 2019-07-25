@@ -534,7 +534,7 @@ WeaveSvc.prototype = {
     return false;
   },
 
-  _verifyLogin: function _verifyLogin()
+  verifyLogin: function verifyLogin()
     this._notify("verify-login", "", function() {
       
       
@@ -545,10 +545,21 @@ WeaveSvc.prototype = {
         return true;
       }
 
+      if (!this.username) {
+        Status.login = LOGIN_FAILED_NO_USERNAME;
+        return false;
+      }
+
       try {
         let test = new Resource(this.infoURL).get();
         switch (test.status) {
           case 200:
+            
+            if (!this.passphrase) {
+              Status.login = LOGIN_FAILED_NO_PASSPHRASE;
+              return false;
+            }
+
             
             if (!this._verifyPassphrase()) {
               Status.login = LOGIN_FAILED_INVALID_PASSPHRASE;
@@ -563,7 +574,7 @@ WeaveSvc.prototype = {
           case 404:
             
             if (this._setCluster())
-              return this._verifyLogin();
+              return this.verifyLogin();
 
             
             Status.login = LOGIN_FAILED_LOGIN_REJECTED;
@@ -721,7 +732,7 @@ WeaveSvc.prototype = {
 
       this._log.info("Logging in user " + this.username);
 
-      if (!this._verifyLogin()) {
+      if (!this.verifyLogin()) {
         
         throw "Login failed: " + Status.login;
       }
@@ -901,7 +912,7 @@ WeaveSvc.prototype = {
       Sync.sleep(15000);
 
       
-      if (!this._verifyLogin()) {
+      if (!this.verifyLogin()) {
         Status.sync = CREDENTIALS_CHANGED;
         this._log.info("Credentials have changed, aborting sync and forcing re-login.");
         return false;
