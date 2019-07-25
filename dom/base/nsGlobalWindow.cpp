@@ -1988,7 +1988,7 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
     if (aState) {
       newInnerWindow = wsh->GetInnerWindow();
       mInnerWindowHolder = wsh->GetInnerWindowHolder();
-      
+
       NS_ASSERTION(newInnerWindow, "Got a state without inner window");
     } else if (thisChrome) {
       newInnerWindow = new nsGlobalChromeWindow(this);
@@ -2038,6 +2038,15 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
       bool termFuncSet = false;
 
       if (oldDoc == aDocument) {
+        
+        
+        
+        newInnerWindow->mNavigator = currentInner->mNavigator;
+        currentInner->mNavigator = nsnull;
+        if (newInnerWindow->mNavigator) {
+          newInnerWindow->mNavigator->SetWindow(newInnerWindow);
+        }
+
         
         
         JSAutoSuspendRequest asr(cx);

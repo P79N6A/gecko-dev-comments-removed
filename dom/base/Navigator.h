@@ -103,6 +103,11 @@ public:
 
   PRInt64 SizeOf() const;
 
+  
+
+
+  void SetWindow(nsPIDOMWindow *aInnerWindow);
+
 private:
   bool IsSmsAllowed() const;
   bool IsSmsSupported() const;
