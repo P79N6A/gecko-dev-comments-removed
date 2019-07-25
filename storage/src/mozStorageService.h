@@ -53,6 +53,7 @@
 #include "mozIStorageServiceQuotaManagement.h"
 
 class nsIXPConnect;
+struct sqlite3_vfs;
 
 namespace mozilla {
 namespace storage {
@@ -112,6 +113,8 @@ private:
 
 
   Mutex mMutex;
+  
+  sqlite3_vfs *mSqliteVFS;
 
   
 
