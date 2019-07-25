@@ -332,14 +332,6 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
         }
 
         
-        
-        mView.post(new Runnable() {
-            public void run() {
-                mView.setViewportSize(new IntSize(width, height));
-            }
-        });
-
-        
     }
 
     private void updateDroppedFrames(long frameStartTime) {
