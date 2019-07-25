@@ -340,6 +340,21 @@ add_test(function() {
 
 
 add_test(function() {
+  
+  
+  
+  let RDF = Cc["@mozilla.org/rdf/rdf-service;1"].getService(Ci.nsIRDFService);
+  let store = RDF.GetDataSource("rdf:local-store");
+  let filterResource = RDF.GetResource("about:addons#search-filter-radiogroup");
+  let filterProperty = RDF.GetResource("value");
+  let filterTarget = store.GetTarget(filterResource, filterProperty, true);
+
+  if (filterTarget) {
+    is(filterTarget instanceof Ci.nsIRDFLiteral, true,
+       "Filter should be a value");
+    store.Unassert(filterResource, filterProperty, filterTarget);
+  }
+
   open_manager("addons://list/extension", function(aManager) {
     info("Part 1");
     is_in_list(aManager, "addons://list/extension", false, false);
@@ -350,6 +365,21 @@ add_test(function() {
     EventUtils.synthesizeKey("VK_RETURN", {}, aManager);
 
     wait_for_view_load(aManager, function(aManager) {
+      
+      
+      var localFilter = aManager.document.getElementById("search-filter-local");
+      var remoteFilter = aManager.document.getElementById("search-filter-remote");
+
+      is(remoteFilter.selected, true, "Remote filter should be set by default");
+
+      var list = aManager.document.getElementById("search-list");
+      list.ensureElementIsVisible(localFilter);
+      EventUtils.synthesizeMouseAtCenter(localFilter, { }, aManager);
+
+      is(localFilter.selected, true, "Should have changed to local filter");
+
+      
+
       info("Part 2");
       is_in_search(aManager, "bar", true, false);
       check_all_in_list(aManager, ["test2@tests.mozilla.org", "test3@tests.mozilla.org"]);
