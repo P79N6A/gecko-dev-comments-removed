@@ -229,10 +229,29 @@ nsSVGForeignObjectFrame::PaintSVG(nsSVGRenderState *aContext,
     return NS_ERROR_FAILURE;
   }
 
+  nsRect kidDirtyRect = kid->GetVisualOverflowRect();
+
   
   if (aDirtyRect) {
-    PRInt32 appUnitsPerDevPx = PresContext()->AppUnitsPerDevPixel();
-    if (!mRect.ToOutsidePixels(appUnitsPerDevPx).Intersects(*aDirtyRect))
+    
+    gfxMatrix invmatrix = matrix;
+    invmatrix.Invert();
+    NS_ASSERTION(!invmatrix.IsSingular(),
+                 "inverse of non-singular matrix should be non-singular");
+
+    gfxRect transDirtyRect = gfxRect(aDirtyRect->x, aDirtyRect->y,
+                                     aDirtyRect->width, aDirtyRect->height);
+    transDirtyRect = invmatrix.TransformBounds(transDirtyRect);
+
+    kidDirtyRect.IntersectRect(kidDirtyRect,
+      nsLayoutUtils::RoundGfxRectToAppRect(transDirtyRect,
+                       PresContext()->AppUnitsPerCSSPixel()));
+
+    
+    
+    
+    
+    if (kidDirtyRect.IsEmpty())
       return NS_OK;
   }
 
@@ -257,17 +276,6 @@ nsSVGForeignObjectFrame::PaintSVG(nsSVGRenderState *aContext,
   gfxMatrix invmatrix = matrix.Invert();
   NS_ASSERTION(!invmatrix.IsSingular(),
                "inverse of non-singular matrix should be non-singular");
-
-  nsRect kidDirtyRect = kid->GetVisualOverflowRect();
-  if (aDirtyRect) {
-    gfxRect transDirtyRect = gfxRect(aDirtyRect->x, aDirtyRect->y,
-                                     aDirtyRect->width, aDirtyRect->height);
-    transDirtyRect = invmatrix.TransformBounds(transDirtyRect);
-
-    kidDirtyRect.IntersectRect(kidDirtyRect,
-      nsLayoutUtils::RoundGfxRectToAppRect(transDirtyRect,
-                       PresContext()->AppUnitsPerCSSPixel()));
-  }
 
   PRUint32 flags = nsLayoutUtils::PAINT_IN_TRANSFORM;
   if (aContext->IsPaintingToWindow()) {
@@ -340,7 +348,7 @@ nsSVGForeignObjectFrame::GetFrameForPoint(const nsPoint &aPoint)
 NS_IMETHODIMP_(nsRect)
 nsSVGForeignObjectFrame::GetCoveredRegion()
 {
-  return mRect;
+  return nsSVGUtils::TransformFrameRectToOuterSVG(mRect, GetCanvasTM(), PresContext());
 }
 
 NS_IMETHODIMP
@@ -358,8 +366,10 @@ nsSVGForeignObjectFrame::UpdateCoveredRegion()
   if (h < 0.0f) h = 0.0f;
 
   
-  mRect = ToCanvasBounds(gfxRect(0.0, 0.0, w, h), GetCanvasTM(), PresContext());
-  
+  mRect = nsLayoutUtils::RoundGfxRectToAppRect(
+                           gfxRect(0.0, 0.0, w, h),
+                           PresContext()->AppUnitsPerDevPixel());
+
   return NS_OK;
 }
 
@@ -642,18 +652,17 @@ nsSVGForeignObjectFrame::InvalidateDirtyRect(nsSVGOuterSVGFrame* aOuter,
     return;
 
   
+  nsRect rect = aRect.Intersect(mRect);
+  if (rect.IsEmpty())
+    return;
+
+  
+  
   
 
   gfxRect r(aRect.x, aRect.y, aRect.width, aRect.height);
   r.Scale(1.0 / nsPresContext::AppUnitsPerCSSPixel());
-
-  nsRect rect = ToCanvasBounds(r, GetCanvasTM(), PresContext());
-
-  
-  rect.IntersectRect(rect, mRect);
-  if (rect.IsEmpty())
-    return;
-
+  rect = ToCanvasBounds(r, GetCanvasTM(), PresContext());
   rect = nsSVGUtils::FindFilterInvalidation(this, rect);
   aOuter->InvalidateWithFlags(rect, aFlags);
 }
