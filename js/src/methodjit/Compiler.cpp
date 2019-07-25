@@ -4441,7 +4441,10 @@ mjit::Compiler::jsop_getprop(JSAtom *atom, JSValueType knownType,
 
 
     pic.canCallHook = pic.forcedTypeBarrier =
-        usePropCache && JSOp(*PC) == JSOP_GETPROP && analysis->getCode(PC).accessGetter;
+        usePropCache &&
+        JSOp(*PC) == JSOP_GETPROP &&
+        atom != cx->runtime->atomState.lengthAtom &&
+        analysis->getCode(PC).accessGetter;
     if (pic.canCallHook)
         frame.syncAndKillEverything();
 
@@ -4529,6 +4532,10 @@ mjit::Compiler::jsop_callprop_generic(JSAtom *atom)
     
     pic.typeReg = frame.copyTypeIntoReg(top);
 
+    pic.canCallHook = pic.forcedTypeBarrier = analysis->getCode(PC).accessGetter;
+    if (pic.canCallHook)
+        frame.syncAndKillEverything();
+
     RESERVE_IC_SPACE(masm);
 
     
@@ -4549,10 +4556,6 @@ mjit::Compiler::jsop_callprop_generic(JSAtom *atom)
     pic.objReg = objReg;
     pic.shapeReg = shapeReg;
     pic.atom = atom;
-
-    pic.canCallHook = pic.forcedTypeBarrier = analysis->getCode(PC).accessGetter;
-    if (pic.canCallHook)
-        frame.syncAndKillEverything();
 
     
 
