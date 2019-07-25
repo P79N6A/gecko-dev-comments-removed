@@ -1574,14 +1574,7 @@ mjit::Compiler::emitReturn()
     masm.loadPtr(FrameAddress(offsetof(VMFrame, cx)), Registers::ArgReg1);
     masm.storePtr(Registers::ReturnReg, FrameAddress(offsetof(VMFrame, fp)));
     masm.storePtr(Registers::ReturnReg, Address(Registers::ArgReg1, offsetof(JSContext, fp)));
-#if defined(JS_CPU_X86) or defined(JS_CPU_ARM)
-    masm.subPtr(ImmIntPtr(1), FrameAddress(offsetof(VMFrame, inlineCallCount)));
-#elif defined (JS_CPU_X64)
-    
-    masm.loadPtr(FrameAddress(offsetof(VMFrame, inlineCallCount)), JSReturnReg_Data);
-    masm.subPtr(ImmIntPtr(1), JSReturnReg_Data);
-    masm.storePtr(JSReturnReg_Data, FrameAddress(offsetof(VMFrame, inlineCallCount)));
-#endif
+    masm.sub32(Imm32(1), FrameAddress(offsetof(VMFrame, inlineCallCount)));
 
     JS_STATIC_ASSERT(Registers::ReturnReg != JSReturnReg_Data);
     JS_STATIC_ASSERT(Registers::ReturnReg != JSReturnReg_Type);

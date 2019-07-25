@@ -40,8 +40,11 @@
 
 
 
-#if !defined retcon_h___ && defined JS_METHODJIT
-#define retcon_h___
+
+
+
+#if !defined jsjaeger_retcon_h__ && defined JS_METHODJIT
+#define jsjaeger_retcon_h__
 
 #include "jscntxt.h"
 #include "jsscript.h"
@@ -137,3 +140,4 @@ private:
 } 
 
 #endif
+
