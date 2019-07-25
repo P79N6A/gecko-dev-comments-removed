@@ -41,7 +41,7 @@
 #define ANDROID_STUB_H
 
 #include "dlfcn.h"
-#if ANDROID_VERSION >= 8
+#if ANDROID_VERSION < 8
 
 
 typedef struct {
