@@ -88,11 +88,8 @@ WBORecord.prototype = {
   
   
   uri: function(base) {
-    if (this.collection && this.id) {
-      let url = Utils.makeURI(base + this.collection + "/" + this.id);
-      url.QueryInterface(Ci.nsIURL);
-      return url;
-    }
+    if (this.collection && this.id)
+      return Utils.makeURL(base + this.collection + "/" + this.id);
     return null;
   },
 
