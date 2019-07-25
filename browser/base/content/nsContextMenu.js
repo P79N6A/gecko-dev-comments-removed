@@ -499,7 +499,7 @@ nsContextMenu.prototype = {
         this.onTextInput = this.isTargetATextBox(this.target);
         
         if (this.onTextInput && ! this.target.readOnly &&
-            this.target.type != "password") {
+            (this.target.type == "text" || this.target.type == "search")) {
           this.onEditableArea = true;
           InlineSpellCheckerUI.init(this.target.QueryInterface(Ci.nsIDOMNSEditableElement).editor);
           InlineSpellCheckerUI.initFromEvent(aRangeParent, aRangeOffset);
