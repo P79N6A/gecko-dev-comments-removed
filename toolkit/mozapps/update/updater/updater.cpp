@@ -1968,7 +1968,8 @@ int NS_main(int argc, NS_tchar **argv)
     
     
     
-    int retries = 5;
+    const int max_retries = 10;
+    int retries = 1;
     do {
       
       
@@ -1981,8 +1982,13 @@ int NS_main(int argc, NS_tchar **argv)
       if (callbackFile != INVALID_HANDLE_VALUE)
         break;
 
-      Sleep(50);
-    } while (--retries);
+      DWORD lastError = GetLastError();
+      LOG(("NS_main: callback app open attempt %d failed. " \
+           "File: " LOG_S ". Last error: %d\n", retries, 
+           argv[callbackIndex], lastError));
+
+      Sleep(100);
+    } while (++retries <= max_retries);
 
     
     
