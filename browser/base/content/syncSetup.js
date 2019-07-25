@@ -145,9 +145,42 @@ var gSyncSetup = {
     this.wizard.pageIndex = EXISTING_ACCOUNT_CONNECT_PAGE;
   },
 
+  resetPassphrase: function resetPassphrase() {
+    
+    
+    Weave.Service.account = document.getElementById("existingAccountName").value;
+    Weave.Service.password = document.getElementById("existingPassword").value;
+
+    
+    
+    let passphrase = Weave.Utils.generatePassphrase();
+    Weave.Service.passphrase = passphrase;
+
+    
+    Weave.Service.login();
+    if ([Weave.LOGIN_FAILED_INVALID_PASSPHRASE,
+         Weave.LOGIN_FAILED_NO_PASSPHRASE,
+         Weave.LOGIN_SUCCEEDED].indexOf(Weave.Status.login) == -1) {
+      return;
+    }
+
+    
+    let feedback = document.getElementById("existingPassphraseFeedbackRow");
+    feedback.hidden = true;
+    let el = document.getElementById("existingPassphrase");
+    el.value = Weave.Utils.hyphenatePassphrase(passphrase);
+
+    
+    
+    Weave.Svc.Prefs.reset("firstSync");
+    this.setupInitialSync();
+    gSyncUtils.resetPassphrase();
+  },
+
   onResetPassphrase: function () {
     document.getElementById("existingPassphrase").value = 
       Weave.Utils.hyphenatePassphrase(Weave.Service.passphrase);
+    this.checkFields();
     this.wizard.advance();
   },
 
@@ -904,7 +937,6 @@ var gSyncSetup = {
     }
     this._setFeedback(element, success, str);
   },
-
 
   onStateChange: function(webProgress, request, stateFlags, status) {
     
