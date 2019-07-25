@@ -105,7 +105,7 @@ window.InfoItem = function(bounds, options) {
     if(!this.locked.bounds)
       this.draggable();
     
-  	
+    
     this.snap();
     
     

@@ -38,6 +38,7 @@
 
 
 
+
 (function(){
 
 const Cc = Components.classes;
@@ -495,32 +496,21 @@ window.TabsManager = iQ.extend(new Subscribable(), {
         get tabbrowser() tabbrowser,
 
         isFocused: function() {
-          let focused = false;
-          if (browser) {
-            if (tabbrowser.selectedTab == chromeTab) {
-              focused = true;
-            }
-          }
-          return focused;
+          return browser && tabbrowser.selectedTab == chromeTab;
         },
 
         focus: function focus() {
-          if (browser) {
+          if (browser)
             tabbrowser.selectedTab = chromeTab;
-          }
         },
   
         close: function close() {
-          if (browser) {
+          if (browser)
             tabbrowser.removeTab(chromeTab);
-          }
         },
   
         toString: function toString() {
-          if (!browser)
-            return "[Closed Browser Tab]";
-          else
-            return "[Browser Tab]";
+          return !browser ? "[Closed Browser Tab]" : "[Browser Tab]";
         },
   
         _unload: function _unload() {

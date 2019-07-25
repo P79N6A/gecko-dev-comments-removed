@@ -148,7 +148,7 @@ printStackTrace.implementation.prototype = {
             
             
             if (curr === curr.caller && window.opera) {
-	            
+              
                 break;
             }
             curr = curr.caller;
@@ -184,7 +184,7 @@ printStackTrace.implementation.prototype = {
     },
     
     createXMLHTTPObject: function() {
-	    
+      
         var xmlhttp, XMLHttpFactories = [
             function() {
                 return new XMLHttpRequest();

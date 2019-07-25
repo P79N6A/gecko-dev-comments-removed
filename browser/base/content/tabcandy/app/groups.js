@@ -103,11 +103,11 @@ window.Group = function(listOfEls, options) {
   
   this._activeTab = null;
   
- 	
- 	
- 	
- 	
- 	
+   
+   
+   
+   
+   
   this.xDensity = 0;
   this.yDensity = 0;
 
@@ -123,7 +123,7 @@ window.Group = function(listOfEls, options) {
     
   if(!rectToBe) {
     rectToBe = Groups.getBoundingBox(listOfEls);
-		rectToBe.inset( -30, -30 );
+    rectToBe.inset( -30, -30 );
   }
 
   var $container = options.container; 
@@ -312,7 +312,7 @@ window.Group = function(listOfEls, options) {
   
   Groups.register(this);
 
-	
+  
   this.setBounds(rectToBe);
   this.snap();
   
@@ -370,9 +370,9 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
   
   
   
-	isEmpty: function() {
-		return this._children.length == 0 && !this.getTitle();
-	},
+  isEmpty: function() {
+    return this._children.length == 0 && !this.getTitle();
+  },
 
   
   
@@ -668,10 +668,9 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
             var insertLeft = dropPos.left <= box.left + box.width/2;
             if( !insertLeft ) 
               return best.index+1;
-            else 
-              return best.index;
-          } else 
-            return self._children.length;
+            return best.index;
+          }
+          return self._children.length;
         }
         
         return 0;      
@@ -882,30 +881,30 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
         if(this.isNewTabsGroup()) {
           arrangeOptions.count++;
         } else if (!count) {
-					this.xDensity = 0;
-					this.yDensity = 0;
+          this.xDensity = 0;
+          this.yDensity = 0;
           return;
         }
     
         var rects = Items.arrange(this._children, bb, arrangeOptions);
-    		
-    		
-    		
-    		this.yDensity = (rects[rects.length - 1].bottom - bb.top) / (bb.height);
+        
+        
+        
+        this.yDensity = (rects[rects.length - 1].bottom - bb.top) / (bb.height);
 
-    		
-    		
-    		
-    		
-    		
-    		var rightMostRight = 0;
-				for each (let rect in rects) {
-					if (rect.right > rightMostRight)
-						rightMostRight = rect.right;
-					else
-						break;
-				}
-    		this.xDensity = (rightMostRight - bb.left) / (bb.width);
+        
+        
+        
+        
+        
+        var rightMostRight = 0;
+        for each (let rect in rects) {
+          if (rect.right > rightMostRight)
+            rightMostRight = rect.right;
+          else
+            break;
+        }
+        this.xDensity = (rightMostRight - bb.left) / (bb.width);
         
         iQ.each(this._children, function(index, child) {
           if(!child.locked.bounds) {
@@ -972,14 +971,14 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
     if(bbAspect > itemAspect) { 
       w = bb.width * scale;
       h = w * itemAspect;
-			
-			this.xDensity = 1;
-			this.yDensity = h / (bb.height * scale);
+      
+      this.xDensity = 1;
+      this.yDensity = h / (bb.height * scale);
     } else { 
       h = bb.height * scale;
       w = h * (1 / itemAspect);
-			this.yDensity = 1;
-			this.xDensity = h / (bb.width * scale);
+      this.yDensity = 1;
+      this.xDensity = h / (bb.width * scale);
     }
     
     
