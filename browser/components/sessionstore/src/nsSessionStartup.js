@@ -91,7 +91,6 @@ SessionStartup.prototype = {
   
   _iniString: null,
   _sessionType: Ci.nsISessionStartup.NO_SESSION,
-  _restoredTimestamp: 0,
 
 
 
@@ -113,15 +112,15 @@ SessionStartup.prototype = {
                      getService(Ci.nsIProperties);
     let sessionFile = dirService.get("ProfD", Ci.nsILocalFile);
     sessionFile.append("sessionstore.js");
-    
+
     let doResumeSession = prefBranch.getBoolPref("sessionstore.resume_session_once") ||
                           prefBranch.getIntPref("startup.page") == 3;
-    
+
     
     var resumeFromCrash = prefBranch.getBoolPref("sessionstore.resume_from_crash");
     if (!resumeFromCrash && !doResumeSession || !sessionFile.exists())
       return;
-    
+
     
     this._iniString = this._readStateFile(sessionFile);
     if (!this._iniString)
@@ -147,7 +146,7 @@ SessionStartup.prototype = {
     let lastSessionCrashed =
       initialState && initialState.session && initialState.session.state &&
       initialState.session.state == STATE_RUNNING_STR;
-    
+
     
     if (lastSessionCrashed && resumeFromCrash)
       this._sessionType = Ci.nsISessionStartup.RECOVER_SESSION;
@@ -155,9 +154,6 @@ SessionStartup.prototype = {
       this._sessionType = Ci.nsISessionStartup.RESUME_SESSION;
     else
       this._iniString = null; 
-
-    Services.obs.addObserver(this, "sessionstore-browser-state-restored", true);
-    Services.obs.addObserver(this, "sessionstore-windows-restored", true);
 
     if (this._sessionType != Ci.nsISessionStartup.NO_SESSION) {
       
@@ -178,11 +174,11 @@ SessionStartup.prototype = {
 
   observe: function sss_observe(aSubject, aTopic, aData) {
     switch (aTopic) {
-    case "app-startup": 
+    case "app-startup":
       Services.obs.addObserver(this, "final-ui-startup", true);
       Services.obs.addObserver(this, "quit-application", true);
       break;
-    case "final-ui-startup": 
+    case "final-ui-startup":
       Services.obs.removeObserver(this, "final-ui-startup");
       Services.obs.removeObserver(this, "quit-application");
       this.init();
@@ -199,12 +195,6 @@ SessionStartup.prototype = {
         self._onWindowOpened(window);
         window.removeEventListener("load", arguments.callee, false);
       }, false);
-      break;
-    case "sessionstore-browser-state-restored":
-    case "sessionstore-windows-restored":
-      this._restoredTimestamp = new Date() * 1000;
-      Services.obs.removeObserver(this, "sessionstore-browser-state-restored");
-      Services.obs.removeObserver(this, "sessionstore-windows-restored");
       break;
     case "browser:purge-session-history":
       
@@ -224,7 +214,7 @@ SessionStartup.prototype = {
     var wType = aWindow.document.documentElement.getAttribute("windowtype");
     if (wType != "navigator:browser")
       return;
-    
+
     
 
 
@@ -270,10 +260,6 @@ SessionStartup.prototype = {
 
   get sessionType() {
     return this._sessionType;
-  },
-
-  get restoredTimestamp() {
-    return this._restoredTimestamp;
   },
 
 
