@@ -500,6 +500,12 @@ public:
 
 
 
+
+
+
+
+
+
   virtual void SetVisibleRegion(const nsIntRegion& aRegion)
   {
     mVisibleRegion = aRegion;

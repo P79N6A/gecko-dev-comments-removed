@@ -492,6 +492,15 @@ BasicThebesLayer::Paint(gfxContext* aContext,
   mBuffer.DrawTo(this, canUseOpaqueSurface, target, aOpacity);
 }
 
+static PRBool
+IsClippingCheap(gfxContext* aTarget, const nsIntRegion& aRegion)
+{
+  
+  
+  return !aTarget->CurrentMatrix().HasNonIntegerTranslation() &&
+         aRegion.GetNumRects() <= 1; 
+}
+
 void
 BasicThebesLayerBuffer::DrawTo(ThebesLayer* aLayer,
                                PRBool aIsOpaqueContent,
@@ -499,7 +508,15 @@ BasicThebesLayerBuffer::DrawTo(ThebesLayer* aLayer,
                                float aOpacity)
 {
   aTarget->Save();
-  gfxUtils::ClipToRegion(aTarget, aLayer->GetVisibleRegion());
+  
+  
+  
+  if (!aLayer->GetValidRegion().Contains(BufferRect()) ||
+      IsClippingCheap(aTarget, aLayer->GetVisibleRegion())) {
+    
+    
+    gfxUtils::ClipToRegion(aTarget, aLayer->GetVisibleRegion());
+  }
   if (aIsOpaqueContent) {
     aTarget->SetOperator(gfxContext::OPERATOR_SOURCE);
   }
