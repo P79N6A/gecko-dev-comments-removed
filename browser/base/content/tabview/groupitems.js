@@ -744,9 +744,13 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  _unhide: function GroupItem__unhide() {
-    let self = this;
-
+  
+  
+  
+  
+  
+  
+  _unhide: function GroupItem__unhide(options) {
     this._cancelFadeAwayUndoButtonTimer();
     this.hidden = false;
     this.$undoContainer.remove();
@@ -754,20 +758,31 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     this.droppable(true);
     this.setTrenches(this.bounds);
 
-    iQ(this.container).show().animate({
-      "-moz-transform": "scale(1)",
-      "opacity": 1
-    }, {
-      duration: 170,
-      complete: function() {
-        self._children.forEach(function(child) {
-          iQ(child.container).show();
-        });
+    let self = this;
 
-        UI.setActive(self);
-        self._sendToSubscribers("groupShown", { groupItemId: self.id });
-      }
-    });
+    let finalize = function () {
+      self._children.forEach(function(child) {
+        iQ(child.container).show();
+      });
+
+      UI.setActive(self);
+      self._sendToSubscribers("groupShown", { groupItemId: self.id });
+    };
+
+    let $container = iQ(this.container).show();
+
+    if (!options || !options.immediately) {
+      $container.animate({
+        "-moz-transform": "scale(1)",
+        "opacity": 1
+      }, {
+        duration: 170,
+        complete: finalize
+      });
+    } else {
+      $container.css({"-moz-transform": "none", opacity: 1});
+      finalize();
+    }
 
     GroupItems.updateGroupCloseButtons();
   },
@@ -785,17 +800,35 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     let remainingGroups = GroupItems.groupItems.filter(function (groupItem) {
       return (groupItem != self && groupItem.getChildren().length);
     });
+
+    let tab = null;
+
     if (!gBrowser._numPinnedTabs && !remainingGroups.length) {
       let emptyGroups = GroupItems.groupItems.filter(function (groupItem) {
         return (groupItem != self && !groupItem.getChildren().length);
       });
       let group = (emptyGroups.length ? emptyGroups[0] : GroupItems.newGroup());
-      group.newTab(null, { closedLastTab: true });
+      tab = group.newTab(null, {dontZoomIn: true});
     }
 
-    this.destroy();
+    let closed = this.destroy();
+
+    if (!tab)
+      return;
+
+    if (closed) {
+      
+      UI.goToTab(tab);
+    } else {
+      
+      tab._tabViewTabItem.parent.destroy({immediately: true});
+    }
   },
 
+  
+  
+  
+  
   
   
   
@@ -814,14 +847,11 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     
     
     
-    let shouldRemoveTabItems = [];
-    let toClose = this._children.concat();
-    toClose.forEach(function(child) {
+    this._children.concat().forEach(function(child) {
       child.removeSubscriber("close", self._onChildClose);
 
-      let removed = child.close(true);
-      if (removed) {
-        shouldRemoveTabItems.push(child);
+      if (child.close(true)) {
+        self.remove(child, { dontArrange: true });
       } else {
         
         
@@ -829,15 +859,14 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       }
     });
 
-    if (shouldRemoveTabItems.length != toClose.length) {
-      
-      shouldRemoveTabItems.forEach(function(child) {
-        self.remove(child, { dontArrange: true });
-      });
+    if (this._children.length) {
+      if (this.hidden)
+        this.$undoContainer.fadeOut(function() { self._unhide() });
 
-      this.$undoContainer.fadeOut(function() { self._unhide() });
+      return false;
     } else {
       this.close(options);
+      return true;
     }
   },
 
@@ -1818,12 +1847,15 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
+  
   newTab: function GroupItem_newTab(url, options) {
     if (options && options.closedLastTab)
       UI.closedLastTabInTabView = true;
 
     UI.setActive(this, { dontSetActiveTabInGroup: true });
-    gBrowser.loadOneTab(url || "about:blank", { inBackground: false });
+
+    let dontZoomIn = !!(options && options.dontZoomIn);
+    return gBrowser.loadOneTab(url || "about:blank", { inBackground: dontZoomIn });
   },
 
   
