@@ -543,33 +543,28 @@ nsXPConnect::FinishTraverse()
     return NS_OK;
 }
 
-class nsXPConnectParticipant: public nsCycleCollectionParticipant
-{
-public:
-    static NS_METHOD RootImpl(void *n)
-    {
-        return NS_OK;
-    }
-    static NS_METHOD UnlinkImpl(void *n)
-    {
-        return NS_OK;
-    }
-    static NS_METHOD UnrootImpl(void *n)
-    {
-        return NS_OK;
-    }
-    static NS_METHOD TraverseImpl(nsXPConnectParticipant *that, void *n,
-                                  nsCycleCollectionTraversalCallback &cb);
-};
-
-static CCParticipantVTable<nsXPConnectParticipant>::Type XPConnect_cycleCollectorGlobal = {
-  NS_IMPL_CYCLE_COLLECTION_NATIVE_VTABLE(nsXPConnectParticipant)
-};
-
 nsCycleCollectionParticipant *
 nsXPConnect::GetParticipant()
 {
-    return XPConnect_cycleCollectorGlobal.GetParticipant();
+    return this;
+}
+
+NS_IMETHODIMP
+nsXPConnect::Root(void *p)
+{
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsXPConnect::Unlink(void *p)
+{
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsXPConnect::Unroot(void *p)
+{
+    return NS_OK;
 }
 
 JSBool
@@ -747,7 +742,7 @@ xpc_TryUnmarkWrappedGrayObject(nsISupports* aWrappedJS)
     }
 }
 
-static JSBool
+static bool
 WrapperIsNotMainThreadOnly(XPCWrappedNative *wrapper)
 {
     XPCWrappedNativeProto *proto = wrapper->GetProto();
@@ -761,54 +756,28 @@ WrapperIsNotMainThreadOnly(XPCWrappedNative *wrapper)
     return NS_FAILED(CallQueryInterface(wrapper->Native(), &participant));
 }
 
-NS_METHOD
-nsXPConnectParticipant::TraverseImpl(nsXPConnectParticipant *that, void *p,
-                                     nsCycleCollectionTraversalCallback &cb)
+static inline void
+DescribeGCThing(bool isMarked, void *p, JSGCTraceKind traceKind,
+                nsCycleCollectionTraversalCallback &cb)
 {
-    JSGCTraceKind traceKind = js_GetGCThingTraceKind(p);
-    JSObject *obj = nsnull;
-    js::Class *clazz = nsnull;
-
-    
-    
-    
-    
-    
-    
-    JSBool dontTraverse = false;
-    JSBool markJSObject = false;
-    if (traceKind == JSTRACE_OBJECT) {
-        obj = static_cast<JSObject*>(p);
-        clazz = js::GetObjectClass(obj);
-
-        if (clazz == &XPC_WN_Tearoff_JSClass) {
-            XPCWrappedNative *wrapper =
-                (XPCWrappedNative*)xpc_GetJSPrivate(js::GetObjectParent(obj));
-            dontTraverse = WrapperIsNotMainThreadOnly(wrapper);
-        } else if (IS_WRAPPER_CLASS(clazz) && IS_WN_WRAPPER_OBJECT(obj)) {
-            XPCWrappedNative *wrapper = (XPCWrappedNative*)xpc_GetJSPrivate(obj);
-            dontTraverse = WrapperIsNotMainThreadOnly(wrapper);
-            markJSObject = dontTraverse && wrapper->HasExternalReference();
-        }
-    }
-
-    bool isMarked = markJSObject || !xpc_IsGrayGCThing(p);
-
     if (cb.WantDebugInfo()) {
         char name[72];
         if (traceKind == JSTRACE_OBJECT) {
-            XPCNativeScriptableInfo* si = nsnull;
-            if (IS_PROTO_CLASS(clazz)) {
-                XPCWrappedNativeProto* p =
-                    (XPCWrappedNativeProto*) xpc_GetJSPrivate(obj);
+            JSObject *obj = static_cast<JSObject*>(p);
+            js::Class *clasp = js::GetObjectClass(obj);
+            XPCNativeScriptableInfo *si = nsnull;
+
+            if (IS_PROTO_CLASS(clasp)) {
+                XPCWrappedNativeProto *p =
+                    static_cast<XPCWrappedNativeProto*>(xpc_GetJSPrivate(obj));
                 si = p->GetScriptableInfo();
             }
             if (si) {
                 JS_snprintf(name, sizeof(name), "JS Object (%s - %s)",
-                            clazz->name, si->GetJSClass()->name);
-            } else if (clazz == &js::FunctionClass) {
-                JSFunction* fun = JS_GetObjectFunction(obj);
-                JSString* str = JS_GetFunctionId(fun);
+                            clasp->name, si->GetJSClass()->name);
+            } else if (clasp == &js::FunctionClass) {
+                JSFunction *fun = JS_GetObjectFunction(obj);
+                JSString *str = JS_GetFunctionId(fun);
                 if (str) {
                     NS_ConvertUTF16toUTF8 fname(JS_GetInternedStringChars(str));
                     JS_snprintf(name, sizeof(name),
@@ -818,7 +787,7 @@ nsXPConnectParticipant::TraverseImpl(nsXPConnectParticipant *that, void *p,
                 }
             } else {
                 JS_snprintf(name, sizeof(name), "JS Object (%s)",
-                            clazz->name);
+                            clasp->name);
             }
         } else {
             static const char trace_types[][11] = {
@@ -839,36 +808,38 @@ nsXPConnectParticipant::TraverseImpl(nsXPConnectParticipant *that, void *p,
     } else {
         cb.DescribeGCedNode(isMarked, sizeof(js::shadow::Object), "JS Object");
     }
+}
 
-    
-    
-    
-    
-    if (!cb.WantAllTraces() && isMarked)
-        return NS_OK;
-
+static inline void
+NoteGCThingJSChildren(JSRuntime *rt, void *p, JSGCTraceKind traceKind,
+                      nsCycleCollectionTraversalCallback &cb)
+{
     TraversalTracer trc(cb);
-
-    JS_TracerInit(&trc, nsXPConnect::GetRuntimeInstance()->GetJSRuntime(), NoteJSChild);
+    JS_TracerInit(&trc, rt, NoteJSChild);
     trc.eagerlyTraceWeakMaps = false;
     JS_TraceChildren(&trc, p, traceKind);
+}
 
-    if (traceKind != JSTRACE_OBJECT || dontTraverse)
-        return NS_OK;
+static inline void
+NoteGCThingXPCOMChildren(js::Class *clasp, JSObject *obj,
+                         nsCycleCollectionTraversalCallback &cb)
+{
+    MOZ_ASSERT(clasp);
+    MOZ_ASSERT(clasp == js::GetObjectClass(obj));
 
-    if (clazz == &XPC_WN_Tearoff_JSClass) {
+    if (clasp == &XPC_WN_Tearoff_JSClass) {
         
         
         
         XPCWrappedNativeTearOff *to =
-            (XPCWrappedNativeTearOff*) xpc_GetJSPrivate(obj);
+            static_cast<XPCWrappedNativeTearOff*>(xpc_GetJSPrivate(obj));
         NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "xpc_GetJSPrivate(obj)->mNative");
         cb.NoteXPCOMChild(to->GetNative());
     }
     
     
-    else if (clazz->flags & JSCLASS_HAS_PRIVATE &&
-             clazz->flags & JSCLASS_PRIVATE_IS_NSISUPPORTS) {
+    else if (clasp->flags & JSCLASS_HAS_PRIVATE &&
+             clasp->flags & JSCLASS_PRIVATE_IS_NSISUPPORTS) {
         NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "xpc_GetJSPrivate(obj)");
         cb.NoteXPCOMChild(static_cast<nsISupports*>(xpc_GetJSPrivate(obj)));
     } else if (binding::instanceIsProxy(obj)) {
@@ -876,12 +847,62 @@ nsXPConnectParticipant::TraverseImpl(nsXPConnectParticipant *that, void *p,
         nsISupports *identity =
             static_cast<nsISupports*>(js::GetProxyPrivate(obj).toPrivate());
         cb.NoteXPCOMChild(identity);
-    } else if (IsDOMClass(clazz) &&
-               DOMJSClass::FromJSClass(clazz)->mDOMObjectIsISupports) {
+    } else if (IsDOMClass(clasp) &&
+               DOMJSClass::FromJSClass(clasp)->mDOMObjectIsISupports) {
         NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "UnwrapDOMObject(obj)");
         nsISupports *identity = UnwrapDOMObject<nsISupports>(obj);
         cb.NoteXPCOMChild(identity);
     }
+}
+
+NS_IMETHODIMP
+nsXPConnect::Traverse(void *p, nsCycleCollectionTraversalCallback &cb)
+{
+    JSGCTraceKind traceKind = js_GetGCThingTraceKind(p);
+    JSObject *obj = nsnull;
+    js::Class *clasp = nsnull;
+
+    
+    
+    
+    
+    
+    
+    bool dontTraverse = false;
+    bool markJSObject = false;
+    if (traceKind == JSTRACE_OBJECT) {
+        obj = static_cast<JSObject*>(p);
+        clasp = js::GetObjectClass(obj);
+
+        if (clasp == &XPC_WN_Tearoff_JSClass) {
+            XPCWrappedNative *wrapper =
+                static_cast<XPCWrappedNative*>(xpc_GetJSPrivate(js::GetObjectParent(obj)));
+            dontTraverse = WrapperIsNotMainThreadOnly(wrapper);
+        } else if (IS_WRAPPER_CLASS(clasp) && IS_WN_WRAPPER_OBJECT(obj)) {
+            XPCWrappedNative *wrapper =
+                static_cast<XPCWrappedNative*>(xpc_GetJSPrivate(obj));
+            dontTraverse = WrapperIsNotMainThreadOnly(wrapper);
+            markJSObject = dontTraverse && wrapper->HasExternalReference();
+        }
+    }
+
+    bool isMarked = markJSObject || !xpc_IsGrayGCThing(p);
+
+    DescribeGCThing(isMarked, p, traceKind, cb);
+
+    
+    
+    
+    
+    if (isMarked && !cb.WantAllTraces())
+        return NS_OK;
+
+    NoteGCThingJSChildren(GetRuntime()->GetJSRuntime(), p, traceKind, cb);
+
+    if (traceKind != JSTRACE_OBJECT || dontTraverse)
+        return NS_OK;
+
+    NoteGCThingXPCOMChildren(clasp, obj, cb);
 
     return NS_OK;
 }
@@ -903,11 +924,11 @@ nsXPConnect::GetOutstandingRequests(JSContext* cx)
 class JSContextParticipant : public nsCycleCollectionParticipant
 {
 public:
-    static NS_METHOD RootImpl(void *n)
+    NS_IMETHOD Root(void *n)
     {
         return NS_OK;
     }
-    static NS_METHOD UnlinkImpl(void *n)
+    NS_IMETHOD Unlink(void *n)
     {
         JSContext *cx = static_cast<JSContext*>(n);
         JSAutoRequest ar(cx);
@@ -915,12 +936,11 @@ public:
         JS_SetGlobalObject(cx, NULL);
         return NS_OK;
     }
-    static NS_METHOD UnrootImpl(void *n)
+    NS_IMETHOD Unroot(void *n)
     {
         return NS_OK;
     }
-    static NS_METHOD TraverseImpl(JSContextParticipant *that, void *n,
-                                  nsCycleCollectionTraversalCallback &cb)
+    NS_IMETHODIMP Traverse(void *n, nsCycleCollectionTraversalCallback &cb)
     {
         JSContext *cx = static_cast<JSContext*>(n);
 
@@ -939,22 +959,20 @@ public:
     }
 };
 
-static CCParticipantVTable<JSContextParticipant>::Type JSContext_cycleCollectorGlobal = {
-  NS_IMPL_CYCLE_COLLECTION_NATIVE_VTABLE(JSContextParticipant)
-};
+static JSContextParticipant JSContext_cycleCollectorGlobal;
 
 
 nsCycleCollectionParticipant*
 nsXPConnect::JSContextParticipant()
 {
-    return JSContext_cycleCollectorGlobal.GetParticipant();
+    return &JSContext_cycleCollectorGlobal;
 }
 
 NS_IMETHODIMP_(void)
 nsXPConnect::NoteJSContext(JSContext *aJSContext,
                            nsCycleCollectionTraversalCallback &aCb)
 {
-    aCb.NoteNativeChild(aJSContext, JSContext_cycleCollectorGlobal.GetParticipant());
+    aCb.NoteNativeChild(aJSContext, &JSContext_cycleCollectorGlobal);
 }
 
 
