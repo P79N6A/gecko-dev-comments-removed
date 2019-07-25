@@ -110,6 +110,7 @@
 #include "mozilla/Services.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Telemetry.h"
+#include "mozilla/AutoRestore.h"
 
 
 
@@ -10877,25 +10878,6 @@ nsDocShell::GetRootScrollFrame()
     return shell->GetRootScrollFrameAsScrollableExternal();
 }
 
-#ifdef DEBUG
-class nsDebugAutoBoolTrueSetter
-{
-public:
-    nsDebugAutoBoolTrueSetter(PRPackedBool *aBool)
-        : mBool(aBool)
-    {
-        *mBool = PR_TRUE;
-    }
-
-    ~nsDebugAutoBoolTrueSetter()
-    {
-        *mBool = PR_FALSE;
-    }
-protected:
-    PRPackedBool *mBool;
-};
-#endif
-
 NS_IMETHODIMP
 nsDocShell::EnsureScriptEnvironment()
 {
@@ -10915,7 +10897,8 @@ nsDocShell::EnsureScriptEnvironment()
 
     
     
-    nsDebugAutoBoolTrueSetter boolSetter(&mInEnsureScriptEnv);
+    AutoRestore<PRPackedBool> boolSetter(mInEnsureScriptEnv);
+    mInEnsureScriptEnv = PR_TRUE;
 #endif
 
     nsCOMPtr<nsIDOMScriptObjectFactory> factory =

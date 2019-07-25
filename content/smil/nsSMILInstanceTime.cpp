@@ -38,32 +38,7 @@
 #include "nsSMILInstanceTime.h"
 #include "nsSMILInterval.h"
 #include "nsSMILTimeValueSpec.h"
-
-
-
-
-namespace
-{
-  
-  
-  class AutoBoolSetter
-  {
-  public:
-    AutoBoolSetter(PRPackedBool& aValue)
-    : mValue(aValue)
-    {
-      mValue = PR_TRUE;
-    }
- 
-    ~AutoBoolSetter()
-    {
-      mValue = PR_FALSE;
-    }
-
-  private:
-    PRPackedBool&   mValue;
-  };
-}
+#include "mozilla/AutoRestore.h"
 
 
 
@@ -146,7 +121,8 @@ nsSMILInstanceTime::HandleChangedInterval(
   PRBool objectChanged = mCreator->DependsOnBegin() ? aBeginObjectChanged :
                                                       aEndObjectChanged;
 
-  AutoBoolSetter setVisited(mVisited);
+  mozilla::AutoRestore<PRPackedBool> setVisited(mVisited);
+  mVisited = PR_TRUE;
 
   nsRefPtr<nsSMILInstanceTime> deathGrip(this);
   mCreator->HandleChangedInstanceTime(*GetBaseTime(), aSrcContainer, *this,
@@ -224,7 +200,8 @@ nsSMILInstanceTime::IsDependentOn(const nsSMILInstanceTime& aOther) const
     return PR_TRUE;
 
   
-  AutoBoolSetter setVisited(const_cast<nsSMILInstanceTime*>(this)->mVisited);
+  mozilla::AutoRestore<PRPackedBool> setVisited(const_cast<nsSMILInstanceTime*>(this)->mVisited);
+  const_cast<nsSMILInstanceTime*>(this)->mVisited = PR_TRUE;
   return myBaseTime->IsDependentOn(aOther);
 }
 
