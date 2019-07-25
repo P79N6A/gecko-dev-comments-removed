@@ -3776,6 +3776,13 @@ bad:
 JSBool
 js_EmitFunctionScript(JSContext *cx, JSCodeGenerator *cg, JSParseNode *body)
 {
+    
+
+
+
+
+
+
     if (cg->flags & TCF_FUN_IS_GENERATOR) {
         
         CG_SWITCH_TO_PROLOG(cg);
@@ -3800,8 +3807,10 @@ js_EmitFunctionScript(JSContext *cx, JSCodeGenerator *cg, JSParseNode *body)
     }
 
     if (cg->flags & TCF_FUN_UNBRAND_THIS) {
+        CG_SWITCH_TO_PROLOG(cg);
         if (js_Emit1(cx, cg, JSOP_UNBRANDTHIS) < 0)
             return false;
+        CG_SWITCH_TO_MAIN(cg);
     }
 
     return js_EmitTree(cx, cg, body) &&
