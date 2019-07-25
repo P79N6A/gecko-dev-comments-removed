@@ -40,7 +40,6 @@
 
 #include "nsIServerSocket.h"
 #include "nsSocketTransportService2.h"
-#include "mozilla/Mutex.h"
 
 
 
@@ -68,7 +67,7 @@ private:
   nsresult TryAttach();
 
   
-  mozilla::Mutex                    mLock;
+  PRLock                           *mLock;
   PRFileDesc                       *mFD;
   PRNetAddr                         mAddr;
   nsCOMPtr<nsIServerSocketListener> mListener;

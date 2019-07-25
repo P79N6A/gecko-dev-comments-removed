@@ -46,6 +46,7 @@
 #include "nsMemory.h"
 #include "nsHashtable.h"
 
+#include "nsAutoLock.h"
 #include "xptcall.h"
 
 

@@ -41,14 +41,13 @@
 #include "nsIServiceManager.h"
 #include "nsCOMPtr.h"
 #include "prthread.h"
+#include "prlock.h"
 #include "mozilla/Services.h"
-
-using namespace mozilla;
 
 static const PRUintn BAD_TLS_INDEX = (PRUintn) -1;
 
-#define CHECK_SERVICE_USE_OK() if (!sLock) return NS_ERROR_NOT_INITIALIZED
-#define CHECK_MANAGER_USE_OK() if (!mService || !nsExceptionService::sLock) return NS_ERROR_NOT_INITIALIZED
+#define CHECK_SERVICE_USE_OK() if (!lock) return NS_ERROR_NOT_INITIALIZED
+#define CHECK_MANAGER_USE_OK() if (!mService || !nsExceptionService::lock) return NS_ERROR_NOT_INITIALIZED
 
 
 class nsProviderKey : public nsHashKey {
@@ -145,7 +144,7 @@ NS_IMETHODIMP nsExceptionManager::GetExceptionFromProvider(nsresult rc, nsIExcep
 
 
 PRUintn nsExceptionService::tlsIndex = BAD_TLS_INDEX;
-Mutex *nsExceptionService::sLock = nsnull;
+PRLock *nsExceptionService::lock = nsnull;
 nsExceptionManager *nsExceptionService::firstThread = nsnull;
 
 #ifdef NS_DEBUG
@@ -171,7 +170,8 @@ nsExceptionService::nsExceptionService()
     status = PR_NewThreadPrivateIndex( &tlsIndex, ThreadDestruct );
     NS_ASSERTION(status==0, "ScriptErrorService could not allocate TLS storage.");
   }
-  sLock = new Mutex("nsExceptionService.sLock");
+  lock = PR_NewLock();
+  NS_ASSERTION(lock, "Error allocating ExceptionService lock");
 
   
   nsCOMPtr<nsIObserverService> observerService =
@@ -193,7 +193,7 @@ nsExceptionService::~nsExceptionService()
 
 void nsExceptionService::ThreadDestruct( void *data )
 {
-  if (!sLock) {
+  if (!lock) {
     NS_WARNING("nsExceptionService ignoring thread destruction after shutdown");
     return;
   }
@@ -204,10 +204,10 @@ void nsExceptionService::ThreadDestruct( void *data )
 void nsExceptionService::Shutdown()
 {
   mProviders.Reset();
-  if (sLock) {
+  if (lock) {
     DropAllThreads();
-    delete sLock;
-    sLock = nsnull;
+    PR_DestroyLock(lock);
+    lock = nsnull;
   }
   PR_SetThreadPrivate(tlsIndex, nsnull);
 }
@@ -250,6 +250,8 @@ NS_IMETHODIMP nsExceptionService::GetCurrentExceptionManager(nsIExceptionManager
     if (mgr == nsnull) {
         
         mgr = new nsExceptionManager(this);
+        if (mgr == nsnull)
+            return NS_ERROR_OUT_OF_MEMORY;
         PR_SetThreadPrivate(tlsIndex, mgr);
         
         AddThread(mgr);
@@ -321,10 +323,11 @@ nsExceptionService::DoGetExceptionFromProvider(nsresult errCode,
 
  void nsExceptionService::AddThread(nsExceptionManager *thread)
 {
-    MutexAutoLock lock(*sLock);
+    PR_Lock(lock);
     thread->mNextThread = firstThread;
     firstThread = thread;
     NS_ADDREF(thread);
+    PR_Unlock(lock);
 }
 
  void nsExceptionService::DoDropThread(nsExceptionManager *thread)
@@ -340,13 +343,15 @@ nsExceptionService::DoGetExceptionFromProvider(nsresult errCode,
 
  void nsExceptionService::DropThread(nsExceptionManager *thread)
 {
-    MutexAutoLock lock(*sLock);
+    PR_Lock(lock);
     DoDropThread(thread);
+    PR_Unlock(lock);
 }
 
  void nsExceptionService::DropAllThreads()
 {
-    MutexAutoLock lock(*sLock);
+    PR_Lock(lock);
     while (firstThread)
         DoDropThread(firstThread);
+    PR_Unlock(lock);
 }

@@ -48,7 +48,6 @@
 #include "nsITimer.h"
 #include "ImageLayers.h"
 #include "mozilla/Monitor.h"
-#include "mozilla/Mutex.h"
 
 class nsHTMLMediaElement;
 class nsMediaStream;
@@ -90,7 +89,6 @@ public:
   typedef mozilla::layers::ImageContainer ImageContainer;
   typedef mozilla::layers::Image Image;
   typedef mozilla::Monitor Monitor;
-  typedef mozilla::Mutex Mutex;
 
   nsMediaDecoder();
   virtual ~nsMediaDecoder();
@@ -285,7 +283,7 @@ public:
   
   
   
-  virtual void SetDuration(double aDuration) = 0;
+  virtual void SetDuration(PRInt64 aDuration) = 0;
 
   
   virtual void SetSeekable(PRBool aSeekable) = 0;
@@ -443,7 +441,7 @@ protected:
   
   
   
-  Mutex mVideoUpdateLock;
+  PRLock* mVideoUpdateLock;
 
   
   float mPixelAspectRatio;

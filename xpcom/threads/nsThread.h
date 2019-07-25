@@ -39,12 +39,13 @@
 #ifndef nsThread_h__
 #define nsThread_h__
 
-#include "mozilla/Mutex.h"
 #include "nsIThreadInternal.h"
 #include "nsISupportsPriority.h"
 #include "nsEventQueue.h"
 #include "nsThreadUtils.h"
 #include "nsString.h"
+#include "nsAutoLock.h"
+#include "nsAutoPtr.h"
 #include "nsTObserverArray.h"
 
 
@@ -105,6 +106,10 @@ private:
       : mNext(nsnull), mFilter(filter) {
     }
 
+    PRBool IsInitialized() {
+      return mQueue.IsInitialized();
+    }
+
     PRBool GetEvent(PRBool mayWait, nsIRunnable **event) {
       return mQueue.GetEvent(mayWait, event);
     }
@@ -126,7 +131,7 @@ private:
   
   
   
-  mozilla::Mutex mLock;
+  PRLock *mLock;
 
   nsCOMPtr<nsIThreadObserver> mObserver;
 

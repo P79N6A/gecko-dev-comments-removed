@@ -45,10 +45,9 @@
 #include <stdio.h>
 #include "nsRecyclingAllocator.h"
 #include "nsIMemory.h"
+#include "nsAutoLock.h"
 #include "prprf.h"
 #include "nsITimer.h"
-
-using namespace mozilla;
 
 #define NS_SEC_TO_MS(s) ((s) * 1000)
 
@@ -57,7 +56,7 @@ nsRecyclingAllocator::nsRecycleTimerCallback(nsITimer *aTimer, void *aClosure)
 {
     nsRecyclingAllocator *obj = (nsRecyclingAllocator *) aClosure;
 
-    MutexAutoLock lock(obj->mLock);
+    nsAutoLock lock(obj->mLock);
 
     if (!obj->mTouched)
     {
@@ -74,18 +73,19 @@ nsRecyclingAllocator::nsRecycleTimerCallback(nsITimer *aTimer, void *aClosure)
 
 nsRecyclingAllocator::nsRecyclingAllocator(PRUint32 nbucket, PRUint32 recycleAfter, const char *id) :
     mMaxBlocks(nbucket), mFreeListCount(0), mFreeList(nsnull),
-    mLock("nsRecyclingAllocator.mLock"),
     mRecycleTimer(nsnull), mRecycleAfter(recycleAfter), mTouched(PR_FALSE)
 #ifdef DEBUG
     , mId(id), mNAllocated(0)
 #endif
 {
+    mLock = nsAutoLock::NewLock("nsRecyclingAllocatior::mLock");
+    NS_ASSERTION(mLock, "Recycling allocator cannot get lock");
 }
 
 nsresult
 nsRecyclingAllocator::Init(PRUint32 nbucket, PRUint32 recycleAfter, const char *id)
 {
-    MutexAutoLock lock(mLock);
+    nsAutoLock lock(mLock);
 
     ClearFreeList();
 
@@ -102,6 +102,12 @@ nsRecyclingAllocator::Init(PRUint32 nbucket, PRUint32 recycleAfter, const char *
 nsRecyclingAllocator::~nsRecyclingAllocator()
 {
     ClearFreeList();
+
+    if (mLock)
+    {
+        nsAutoLock::DestroyLock(mLock);
+        mLock = nsnull;
+    }
 }
 
 
@@ -124,7 +130,7 @@ nsRecyclingAllocator::Malloc(PRSize bytes, PRBool zeroit)
     
     
     if (mFreeList) {
-        MutexAutoLock lock(mLock);
+        nsAutoLock lock(mLock);
 
         
         
@@ -181,7 +187,7 @@ nsRecyclingAllocator::Free(void *ptr)
 {
     Block* block = DATA_TO_BLOCK(ptr);
 
-    MutexAutoLock lock(mLock);
+    nsAutoLock lock(mLock);
 
     
     

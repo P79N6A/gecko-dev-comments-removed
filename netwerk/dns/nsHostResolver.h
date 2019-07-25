@@ -40,11 +40,10 @@
 
 #include "nscore.h"
 #include "nsAtomicRefcnt.h"
+#include "prcvar.h"
 #include "prclist.h"
 #include "prnetdb.h"
 #include "pldhash.h"
-#include "mozilla/CondVar.h"
-#include "mozilla/Mutex.h"
 #include "nsISupportsImpl.h"
 
 class nsHostResolver;
@@ -86,8 +85,6 @@ struct nsHostKey
 
 class nsHostRecord : public PRCList, public nsHostKey
 {
-    typedef mozilla::Mutex Mutex;
-
 public:
     NS_DECL_REFCOUNTED_THREADSAFE(nsHostRecord)
 
@@ -111,7 +108,7 @@ public:
 
 
 
-    Mutex       *addr_info_lock;
+    PRLock      *addr_info_lock;
     int          addr_info_gencnt; 
     PRAddrInfo  *addr_info;
     PRNetAddr   *addr;
@@ -174,9 +171,6 @@ public:
 
 class nsHostResolver
 {
-    typedef mozilla::CondVar CondVar;
-    typedef mozilla::Mutex Mutex;
-
 public:
     
 
@@ -253,8 +247,8 @@ private:
 
     PRUint32      mMaxCacheEntries;
     PRUint32      mMaxCacheLifetime;
-    Mutex         mLock;
-    CondVar       mIdleThreadCV;
+    PRLock       *mLock;
+    PRCondVar    *mIdleThreadCV; 
     PRUint32      mNumIdleThreads;
     PRUint32      mThreadCount;
     PRUint32      mActiveAnyThreadCount;

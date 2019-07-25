@@ -34,15 +34,13 @@
 
 
 
-#include "mozilla/Mutex.h"
 #include "nsTransportUtils.h"
 #include "nsITransport.h"
 #include "nsProxyRelease.h"
 #include "nsThreadUtils.h"
+#include "nsAutoLock.h"
 #include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
-
-using namespace mozilla;
 
 
 
@@ -59,7 +57,7 @@ public:
                               PRBool coalesceAll)
         : mSink(sink)
         , mTarget(target)
-        , mLock("nsTransportEventSinkProxy.mLock")
+        , mLock(nsAutoLock::NewLock("nsTransportEventSinkProxy::mLock"))
         , mLastEvent(nsnull)
         , mCoalesceAll(coalesceAll)
     {
@@ -68,6 +66,9 @@ public:
 
     virtual ~nsTransportEventSinkProxy()
     {
+        if (mLock)
+            nsAutoLock::DestroyLock(mLock);
+    
         
         
         NS_ProxyRelease(mTarget, mSink);
@@ -75,7 +76,7 @@ public:
 
     nsITransportEventSink           *mSink;
     nsCOMPtr<nsIEventTarget>         mTarget;
-    Mutex                            mLock;
+    PRLock                          *mLock;
     nsTransportStatusEvent          *mLastEvent;
     PRBool                           mCoalesceAll;
 };
@@ -102,7 +103,7 @@ public:
         
         
         {
-            MutexAutoLock lock(mProxy->mLock);
+            nsAutoLock lock(mProxy->mLock);
             if (mProxy->mLastEvent == this)
                 mProxy->mLastEvent = nsnull;
         }
@@ -132,7 +133,7 @@ nsTransportEventSinkProxy::OnTransportStatus(nsITransport *transport,
     nsresult rv = NS_OK;
     nsRefPtr<nsTransportStatusEvent> event;
     {
-        MutexAutoLock lock(mLock);
+        nsAutoLock lock(mLock);
 
         
         if (mLastEvent && (mCoalesceAll || mLastEvent->mStatus == status)) {
@@ -153,7 +154,7 @@ nsTransportEventSinkProxy::OnTransportStatus(nsITransport *transport,
         if (NS_FAILED(rv)) {
             NS_WARNING("unable to post transport status event");
 
-            MutexAutoLock lock(mLock); 
+            nsAutoLock lock(mLock); 
             mLastEvent = nsnull;
         }
     }

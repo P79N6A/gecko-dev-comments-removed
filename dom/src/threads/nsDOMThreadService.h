@@ -47,13 +47,13 @@
 
 
 #include "jsapi.h"
-#include "mozilla/Monitor.h"
 #include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
 #include "nsDataHashtable.h"
 #include "nsRefPtrHashtable.h"
 #include "nsStringGlue.h"
 #include "nsTPtrArray.h"
+#include "prmon.h"
 
 #include "prlog.h"
 #ifdef PR_LOGGING
@@ -185,7 +185,7 @@ private:
 
   
   
-  mozilla::Monitor mMonitor;
+  PRMonitor* mMonitor;
 
   
   nsRefPtrHashtable<nsVoidPtrHashKey, nsDOMWorkerRunnable> mWorkersInProgress;

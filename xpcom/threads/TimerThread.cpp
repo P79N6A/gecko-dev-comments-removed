@@ -41,6 +41,7 @@
 #include "nsTimerImpl.h"
 #include "TimerThread.h"
 
+#include "nsAutoLock.h"
 #include "nsThreadUtils.h"
 #include "pratom.h"
 
@@ -51,15 +52,13 @@
 
 #include <math.h>
 
-using namespace mozilla;
-
 NS_IMPL_THREADSAFE_ISUPPORTS2(TimerThread, nsIRunnable, nsIObserver)
 
 TimerThread::TimerThread() :
   mInitInProgress(0),
   mInitialized(PR_FALSE),
-  mLock("TimerThread.mLock"),
-  mCondVar(mLock, "TimerThread.mCondVar"),
+  mLock(nsnull),
+  mCondVar(nsnull),
   mShutdown(PR_FALSE),
   mWaiting(PR_FALSE),
   mSleeping(PR_FALSE),
@@ -70,6 +69,11 @@ TimerThread::TimerThread() :
 
 TimerThread::~TimerThread()
 {
+  if (mCondVar)
+    PR_DestroyCondVar(mCondVar);
+  if (mLock)
+    nsAutoLock::DestroyLock(mLock);
+
   mThread = nsnull;
 
   NS_ASSERTION(mTimers.IsEmpty(), "Timers remain in TimerThread::~TimerThread");
@@ -78,6 +82,15 @@ TimerThread::~TimerThread()
 nsresult
 TimerThread::InitLocks()
 {
+  NS_ASSERTION(!mLock, "InitLocks called twice?");
+  mLock = nsAutoLock::NewLock("TimerThread::mLock");
+  if (!mLock)
+    return NS_ERROR_OUT_OF_MEMORY;
+
+  mCondVar = PR_NewCondVar(mLock);
+  if (!mCondVar)
+    return NS_ERROR_OUT_OF_MEMORY;
+
   return NS_OK;
 }
 
@@ -117,17 +130,17 @@ nsresult TimerThread::Init()
       }
     }
 
-    {
-      MutexAutoLock lock(mLock);
-      mInitialized = PR_TRUE;
-      mCondVar.NotifyAll();
-    }
+    PR_Lock(mLock);
+    mInitialized = PR_TRUE;
+    PR_NotifyAllCondVar(mCondVar);
+    PR_Unlock(mLock);
   }
   else {
-    MutexAutoLock lock(mLock);
+    PR_Lock(mLock);
     while (!mInitialized) {
-      mCondVar.Wait();
+      PR_WaitCondVar(mCondVar, PR_INTERVAL_NO_TIMEOUT);
     }
+    PR_Unlock(mLock);
   }
 
   if (!mThread)
@@ -145,13 +158,13 @@ nsresult TimerThread::Shutdown()
 
   nsTArray<nsTimerImpl*> timers;
   {   
-    MutexAutoLock lock(mLock);
+    nsAutoLock lock(mLock);
 
     mShutdown = PR_TRUE;
 
     
-    if (mWaiting)
-      mCondVar.Notify();
+    if (mCondVar && mWaiting)
+      PR_NotifyCondVar(mCondVar);
 
     
     
@@ -233,7 +246,7 @@ void TimerThread::UpdateFilter(PRUint32 aDelay, TimeStamp aTimeout,
 
 NS_IMETHODIMP TimerThread::Run()
 {
-  MutexAutoLock lock(mLock);
+  nsAutoLock lock(mLock);
 
   
   
@@ -283,41 +296,40 @@ NS_IMETHODIMP TimerThread::Run()
           NS_ADDREF(timer);
           RemoveTimerInternal(timer);
 
-          {
-            
-            MutexAutoUnlock unlock(mLock);
+          
+          lock.unlock();
 
 #ifdef DEBUG_TIMERS
-            if (PR_LOG_TEST(gTimerLog, PR_LOG_DEBUG)) {
-              PR_LOG(gTimerLog, PR_LOG_DEBUG,
-                     ("Timer thread woke up %fms from when it was supposed to\n",
-                      fabs((now - timer->mTimeout).ToMilliseconds())));
-            }
+          if (PR_LOG_TEST(gTimerLog, PR_LOG_DEBUG)) {
+            PR_LOG(gTimerLog, PR_LOG_DEBUG,
+                   ("Timer thread woke up %fms from when it was supposed to\n",
+                    fabs((now - timer->mTimeout).ToMilliseconds())));
+          }
 #endif
 
+          
+          
+          
+          if (NS_FAILED(timer->PostTimerEvent())) {
+            nsrefcnt rc;
+            NS_RELEASE2(timer, rc);
             
             
             
-            if (NS_FAILED(timer->PostTimerEvent())) {
-              nsrefcnt rc;
-              NS_RELEASE2(timer, rc);
             
-              
-              
-              
-              
-              
-              
-              
-              
-              
-              
-              
-              NS_ASSERTION(rc != 0, "destroyed timer off its target thread!");
-            }
-            timer = nsnull;
+            
+            
+            
+            
+            
+            
+            
+            
+            NS_ASSERTION(rc != 0, "destroyed timer off its target thread!");
           }
+          timer = nsnull;
 
+          lock.lock();
           if (mShutdown)
             break;
 
@@ -360,7 +372,7 @@ NS_IMETHODIMP TimerThread::Run()
     }
 
     mWaiting = PR_TRUE;
-    mCondVar.Wait(waitFor);
+    PR_WaitCondVar(mCondVar, waitFor);
     mWaiting = PR_FALSE;
   }
 
@@ -369,7 +381,7 @@ NS_IMETHODIMP TimerThread::Run()
 
 nsresult TimerThread::AddTimer(nsTimerImpl *aTimer)
 {
-  MutexAutoLock lock(mLock);
+  nsAutoLock lock(mLock);
 
   
   PRInt32 i = AddTimerInternal(aTimer);
@@ -377,15 +389,15 @@ nsresult TimerThread::AddTimer(nsTimerImpl *aTimer)
     return NS_ERROR_OUT_OF_MEMORY;
 
   
-  if (mWaiting && i == 0)
-    mCondVar.Notify();
+  if (mCondVar && mWaiting && i == 0)
+    PR_NotifyCondVar(mCondVar);
 
   return NS_OK;
 }
 
 nsresult TimerThread::TimerDelayChanged(nsTimerImpl *aTimer)
 {
-  MutexAutoLock lock(mLock);
+  nsAutoLock lock(mLock);
 
   
   
@@ -396,15 +408,15 @@ nsresult TimerThread::TimerDelayChanged(nsTimerImpl *aTimer)
     return NS_ERROR_OUT_OF_MEMORY;
 
   
-  if (mWaiting && i == 0)
-    mCondVar.Notify();
+  if (mCondVar && mWaiting && i == 0)
+    PR_NotifyCondVar(mCondVar);
 
   return NS_OK;
 }
 
 nsresult TimerThread::RemoveTimer(nsTimerImpl *aTimer)
 {
-  MutexAutoLock lock(mLock);
+  nsAutoLock lock(mLock);
 
   
   
@@ -417,8 +429,8 @@ nsresult TimerThread::RemoveTimer(nsTimerImpl *aTimer)
     return NS_ERROR_NOT_AVAILABLE;
 
   
-  if (mWaiting)
-    mCondVar.Notify();
+  if (mCondVar && mWaiting)
+    PR_NotifyCondVar(mCondVar);
 
   return NS_OK;
 }

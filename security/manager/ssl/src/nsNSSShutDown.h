@@ -41,8 +41,6 @@
 #include "nscore.h"
 #include "nspr.h"
 #include "pldhash.h"
-#include "mozilla/CondVar.h"
-#include "mozilla/Mutex.h"
 
 class nsNSSShutDownObject;
 class nsOnPK11LogoutCancelObject;
@@ -91,12 +89,12 @@ public:
 
 private:
   
-  mozilla::Mutex mNSSActivityStateLock;
+  PRLock *mNSSActivityStateLock;
 
   
   
   
-  mozilla::CondVar mNSSActivityChanged;
+  PRCondVar *mNSSActivityChanged;
 
   
   int mNSSActivityCounter;
@@ -188,7 +186,7 @@ private:
   doPK11LogoutHelper(PLDHashTable *table, PLDHashEntryHdr *hdr,
                                                     PRUint32 number, void *arg);
 protected:
-  mozilla::Mutex mListLock;
+  PRLock* mListLock;
   static nsNSSShutDownList *singleton;
   PLDHashTable mObjects;
   PRUint32 mActiveSSLSockets;

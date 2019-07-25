@@ -53,8 +53,6 @@
 #include "nsConsoleMessage.h"
 #include "nsIClassInfoImpl.h"
 
-using namespace mozilla;
-
 NS_IMPL_THREADSAFE_ADDREF(nsConsoleService)
 NS_IMPL_THREADSAFE_RELEASE(nsConsoleService)
 NS_IMPL_CLASSINFO(nsConsoleService, NULL, nsIClassInfo::THREADSAFE | nsIClassInfo::SINGLETON, NS_CONSOLESERVICE_CID)
@@ -62,7 +60,7 @@ NS_IMPL_QUERY_INTERFACE1_CI(nsConsoleService, nsIConsoleService)
 NS_IMPL_CI_INTERFACE_GETTER1(nsConsoleService, nsIConsoleService)
 
 nsConsoleService::nsConsoleService()
-    : mMessages(nsnull), mCurrent(0), mFull(PR_FALSE), mListening(PR_FALSE), mLock("nsConsoleService.mLock")
+    : mMessages(nsnull), mCurrent(0), mFull(PR_FALSE), mListening(PR_FALSE), mLock(nsnull)
 {
     
     
@@ -90,6 +88,8 @@ nsConsoleService::~nsConsoleService()
 
     if (mMessages)
         nsMemory::Free(mMessages);
+    if (mLock)
+        nsAutoLock::DestroyLock(mLock);
 }
 
 nsresult
@@ -102,6 +102,10 @@ nsConsoleService::Init()
 
     
     memset(mMessages, 0, mBufferSize * sizeof(nsIConsoleMessage *));
+
+    mLock = nsAutoLock::NewLock("nsConsoleService::mLock");
+    if (!mLock)
+        return NS_ERROR_OUT_OF_MEMORY;
 
     return NS_OK;
 }
@@ -133,7 +137,7 @@ nsConsoleService::LogMessage(nsIConsoleMessage *message)
 
 
     {
-        MutexAutoLock lock(mLock);
+        nsAutoLock lock(mLock);
 
         
 
@@ -168,7 +172,7 @@ nsConsoleService::LogMessage(nsIConsoleMessage *message)
     PRInt32 snapshotCount = listenersSnapshot.Count();
 
     {
-        MutexAutoLock lock(mLock);
+        nsAutoLock lock(mLock);
         if (mListening)
             return NS_OK;
         mListening = PR_TRUE;
@@ -179,7 +183,7 @@ nsConsoleService::LogMessage(nsIConsoleMessage *message)
     }
     
     {
-        MutexAutoLock lock(mLock);
+        nsAutoLock lock(mLock);
         mListening = PR_FALSE;
     }
 
@@ -202,7 +206,7 @@ nsConsoleService::GetMessageArray(nsIConsoleMessage ***messages, PRUint32 *count
 
 
 
-    MutexAutoLock lock(mLock);
+    nsAutoLock lock(mLock);
 
     if (mCurrent == 0 && !mFull) {
         
@@ -268,7 +272,7 @@ nsConsoleService::RegisterListener(nsIConsoleListener *listener) {
         return rv;
 
     {
-        MutexAutoLock lock(mLock);
+        nsAutoLock lock(mLock);
         nsISupportsKey key(listener);
 
         
@@ -287,7 +291,7 @@ nsConsoleService::RegisterListener(nsIConsoleListener *listener) {
 
 NS_IMETHODIMP
 nsConsoleService::UnregisterListener(nsIConsoleListener *listener) {
-    MutexAutoLock lock(mLock);
+    nsAutoLock lock(mLock);
 
     nsISupportsKey key(listener);
     mListeners.Remove(&key);
@@ -314,7 +318,7 @@ nsConsoleService::Reset()
     
 
 
-    MutexAutoLock lock(mLock);
+    nsAutoLock lock(mLock);
 
     mCurrent = 0;
     mFull = PR_FALSE;

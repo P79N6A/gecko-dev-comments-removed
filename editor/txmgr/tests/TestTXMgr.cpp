@@ -4623,17 +4623,10 @@ simple_stress_test()
 
   SimpleTransactionFactory factory;
 
-  PRInt32 iterations =
-#ifdef DEBUG
-  10
-#else
   
   
   
-  1500
-#endif
-  ;
-  return stress_test(&factory, iterations);
+  return stress_test(&factory, 1500);
 }
 
 nsresult
@@ -4659,17 +4652,10 @@ aggregation_stress_test()
 
   AggregateTransactionFactory factory(3, 4);
 
-  PRInt32 iterations =
-#ifdef DEBUG
-  10
-#else
   
   
   
-  500
-#endif
-  ;
-  return stress_test(&factory, iterations);
+  return stress_test(&factory, 500);
 }
 
 nsresult
@@ -4695,17 +4681,10 @@ aggregation_batch_stress_test()
 
   AggregateTransactionFactory factory(3, 4, BATCH_FLAG);
 
-  PRInt32 iterations =
-#ifdef DEBUG
-  10
-#else
   
   
   
-  iterations = 500
-#endif
-  ;
-  return stress_test(&factory, iterations);
+  return stress_test(&factory, 500);
 }
 
 int
