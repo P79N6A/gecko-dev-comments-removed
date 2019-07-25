@@ -232,7 +232,7 @@ function TabTracker(name) {
   this.onTab = Utils.bind2(this, this.onTab);
 
   
-  Svc.WinWatcher.registerNotification(this);
+  Svc.Obs.add("domwindowopened", this);
 
   
   let wins = Svc.WinMediator.getEnumerator("navigator:browser");
