@@ -36,6 +36,7 @@
 
 
 
+
 #ifndef nsHttpHeaderArray_h__
 #define nsHttpHeaderArray_h__
 
@@ -49,17 +50,19 @@
 class nsHttpHeaderArray
 {
 public:
-    enum nsHttpHeaderType {
-        HTTP_REQUEST_HEADERS,
-        HTTP_RESPONSE_HEADERS
-    };
-
-    nsHttpHeaderArray(nsHttpHeaderType headerType) : mType(headerType) {}
+    nsHttpHeaderArray() {}
    ~nsHttpHeaderArray() { Clear(); }
 
     const char *PeekHeader(nsHttpAtom header);
 
-    nsresult SetHeader(nsHttpAtom header, const nsACString &value, PRBool merge = PR_FALSE);
+    
+    nsresult SetHeader(nsHttpAtom header, const nsACString &value,
+                       PRBool merge = PR_FALSE);
+
+    
+    
+    nsresult SetHeaderFromNet(nsHttpAtom header, const nsACString &value);
+
     nsresult GetHeader(nsHttpAtom header, nsACString &value);
     void     ClearHeader(nsHttpAtom h);
 
@@ -104,15 +107,90 @@ public:
         };
     };
 
-    nsTArray<nsEntry> &Headers() { return mHeaders; }
-
 private:
     PRInt32 LookupEntry(nsHttpAtom header, nsEntry **);
-    PRBool  CanAppendToHeader(nsHttpAtom header);
-    PRBool  CanOverwriteHeader(nsHttpAtom header);
+    void MergeHeader(nsHttpAtom header, nsEntry *entry, const nsACString &value);
+
+    
+    PRBool  IsSingletonHeader(nsHttpAtom header);
+
+    
+    
+    
+    PRBool  IsSuspectDuplicateHeader(nsHttpAtom header);
 
     nsTArray<nsEntry> mHeaders;
-    nsHttpHeaderType  mType;
+
+    friend struct IPC::ParamTraits<nsHttpHeaderArray>;
 };
+
+
+
+
+
+
+inline PRInt32
+nsHttpHeaderArray::LookupEntry(nsHttpAtom header, nsEntry **entry)
+{
+    PRUint32 index = mHeaders.IndexOf(header, 0, nsEntry::MatchHeader());
+    if (index != PR_UINT32_MAX)
+        *entry = &mHeaders[index];
+    return index;
+}
+
+inline PRBool
+nsHttpHeaderArray::IsSingletonHeader(nsHttpAtom header)
+{
+    return header == nsHttp::Content_Type        ||
+           header == nsHttp::Content_Disposition ||
+           header == nsHttp::Content_Length      ||
+           header == nsHttp::User_Agent          ||
+           header == nsHttp::Referer             ||
+           header == nsHttp::Host                ||
+           header == nsHttp::Authorization       ||
+           header == nsHttp::Proxy_Authorization ||
+           header == nsHttp::If_Modified_Since   ||
+           header == nsHttp::If_Unmodified_Since ||
+           header == nsHttp::From                ||
+           header == nsHttp::Location            ||
+           header == nsHttp::Max_Forwards;
+}
+
+inline void
+nsHttpHeaderArray::MergeHeader(nsHttpAtom header,
+                               nsEntry *entry,
+                               const nsACString &value)
+{
+    if (value.IsEmpty())
+        return;   
+
+    
+    if (header == nsHttp::Set_Cookie ||
+        header == nsHttp::WWW_Authenticate ||
+        header == nsHttp::Proxy_Authenticate)
+    {
+        
+        
+        
+        entry->value.Append('\n');
+    } else {
+        
+        entry->value.AppendLiteral(", ");
+    }
+    entry->value.Append(value);
+}
+
+inline PRBool
+nsHttpHeaderArray::IsSuspectDuplicateHeader(nsHttpAtom header)
+{
+    PRBool retval =  header == nsHttp::Content_Length         ||
+                     header == nsHttp::Content_Disposition    ||
+                     header == nsHttp::Location;
+
+    NS_ASSERTION(!retval || IsSingletonHeader(header),
+                 "Only non-mergeable headers should be in this list\n");
+
+    return retval;
+}
 
 #endif

@@ -66,6 +66,7 @@ HttpChannelParent::HttpChannelParent(PBrowserParent* iframeEmbedding)
   , mStoredStatus(0)
   , mStoredProgress(0)
   , mStoredProgressMax(0)
+  , mHeadersToSyncToChild(nsnull)
 {
   
   nsIHttpProtocolHandler* handler;
@@ -93,13 +94,14 @@ HttpChannelParent::ActorDestroy(ActorDestroyReason why)
 
 
 
-NS_IMPL_ISUPPORTS6(HttpChannelParent,
+NS_IMPL_ISUPPORTS7(HttpChannelParent,
                    nsIInterfaceRequestor,
                    nsIProgressEventSink,
                    nsIRequestObserver,
                    nsIStreamListener,
                    nsIParentChannel,
-                   nsIParentRedirectingChannel)
+                   nsIParentRedirectingChannel,
+                   nsIHttpHeaderVisitor)
 
 
 
@@ -425,15 +427,11 @@ HttpChannelParent::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
       NS_SerializeToString(secInfoSer, secInfoSerialization);
   }
 
+  
   RequestHeaderTuples headers;
-  nsHttpHeaderArray harray = requestHead->Headers();
-
-  for (PRUint32 i = 0; i < harray.Count(); i++) {
-    RequestHeaderTuple* tuple = headers.AppendElement();
-    tuple->mHeader = harray.Headers()[i].header;
-    tuple->mValue  = harray.Headers()[i].value;
-    tuple->mMerge  = false;
-  }
+  mHeadersToSyncToChild = &headers;
+  requestHead->Headers().VisitHeaders(this);
+  mHeadersToSyncToChild = 0;
 
   nsHttpChannel *httpChan = static_cast<nsHttpChannel *>(mChannel.get());
   if (mIPCClosed || 
@@ -595,6 +593,23 @@ HttpChannelParent::CompleteRedirect(PRBool succeeded)
   }
 
   mRedirectChannel = nsnull;
+  return NS_OK;
+}
+
+
+
+
+
+nsresult
+HttpChannelParent::VisitHeader(const nsACString &header, const nsACString &value)
+{
+  
+  NS_ENSURE_STATE(mHeadersToSyncToChild);
+
+  RequestHeaderTuple* tuple = mHeadersToSyncToChild->AppendElement();
+  tuple->mHeader = header;
+  tuple->mValue  = value;
+  tuple->mMerge  = false;  
   return NS_OK;
 }
 

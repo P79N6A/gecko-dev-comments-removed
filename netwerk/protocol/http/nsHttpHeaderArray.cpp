@@ -37,9 +37,10 @@
 
 
 
+
+
 #include "nsHttpHeaderArray.h"
 #include "nsHttp.h"
-
 
 
 
@@ -62,33 +63,50 @@ nsHttpHeaderArray::SetHeader(nsHttpAtom header,
         return NS_OK;
     }
 
-    
     if (!entry) {
         entry = mHeaders.AppendElement(); 
         if (!entry)
             return NS_ERROR_OUT_OF_MEMORY;
         entry->header = header;
         entry->value = value;
-    }
-    
-    else if (merge && CanAppendToHeader(header)) {
-        if (header == nsHttp::Set_Cookie ||
-            header == nsHttp::WWW_Authenticate ||
-            header == nsHttp::Proxy_Authenticate)
-            
-            
-            
-            entry->value.Append('\n');
-        else
-            
-            entry->value.AppendLiteral(", ");
-        entry->value.Append(value);
-    }
-    
-    else if (CanOverwriteHeader(header))
+    } else if (merge && !IsSingletonHeader(header)) {
+        MergeHeader(header, entry, value);
+    } else {
+        
         entry->value = value;
-    else if (!entry->value.Equals(value))
-        return NS_ERROR_CORRUPTED_CONTENT;
+    }
+
+    return NS_OK;
+}
+
+nsresult
+nsHttpHeaderArray::SetHeaderFromNet(nsHttpAtom header, const nsACString &value)
+{
+    nsEntry *entry = nsnull;
+    PRInt32 index;
+
+    index = LookupEntry(header, &entry);
+
+    if (!entry) {
+        if (value.IsEmpty())
+            return NS_OK; 
+        entry = mHeaders.AppendElement(); 
+        if (!entry)
+            return NS_ERROR_OUT_OF_MEMORY;
+        entry->header = header;
+        entry->value = value;
+    } else if (!IsSingletonHeader(header)) {
+        MergeHeader(header, entry, value);
+    } else {
+        
+        
+        if (!entry->value.Equals(value)) {
+            if (IsSuspectDuplicateHeader(header)) {
+                
+                return NS_ERROR_CORRUPTED_CONTENT;
+            } 
+        }
+    }
 
     return NS_OK;
 }
@@ -186,7 +204,7 @@ nsHttpHeaderArray::ParseHeaderLine(const char *line,
     if (val) *val = p;
 
     
-    return SetHeader(atom, nsDependentCString(p, p2 - p), PR_TRUE);
+    return SetHeaderFromNet(atom, nsDependentCString(p, p2 - p));
 }
 
 void
@@ -219,42 +237,4 @@ void
 nsHttpHeaderArray::Clear()
 {
     mHeaders.Clear();
-}
-
-
-
-
-
-PRInt32
-nsHttpHeaderArray::LookupEntry(nsHttpAtom header, nsEntry **entry)
-{
-    PRUint32 index = mHeaders.IndexOf(header, 0, nsEntry::MatchHeader());
-    if (index != PR_UINT32_MAX)
-      *entry = &mHeaders[index];
-    return index;
-}
-
-PRBool
-nsHttpHeaderArray::CanAppendToHeader(nsHttpAtom header)
-{
-    return header != nsHttp::Content_Type        &&
-           header != nsHttp::Content_Length      &&
-           header != nsHttp::User_Agent          &&
-           header != nsHttp::Referer             &&
-           header != nsHttp::Host                &&
-           header != nsHttp::Authorization       &&
-           header != nsHttp::Proxy_Authorization &&
-           header != nsHttp::If_Modified_Since   &&
-           header != nsHttp::If_Unmodified_Since &&
-           header != nsHttp::From                &&
-           header != nsHttp::Location            &&
-           header != nsHttp::Max_Forwards;
-}
-
-PRBool
-nsHttpHeaderArray::CanOverwriteHeader(nsHttpAtom header)
-{
-    if (mType != HTTP_RESPONSE_HEADERS)
-        return PR_TRUE;
-    return header != nsHttp::Content_Length;
 }
