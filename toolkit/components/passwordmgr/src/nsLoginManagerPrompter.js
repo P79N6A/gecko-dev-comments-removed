@@ -50,7 +50,6 @@ Components.utils.import("resource://gre/modules/Services.jsm");
 
 
 
-
 function LoginManagerPromptFactory() {
     Services.obs.addObserver(this, "quit-application-granted", true);
 }

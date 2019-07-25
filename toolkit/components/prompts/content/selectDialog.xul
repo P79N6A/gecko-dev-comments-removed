@@ -41,9 +41,8 @@
 <!DOCTYPE dialog SYSTEM "chrome://global/locale/commonDialog.dtd">
  
 <dialog xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul" 
-      onload="selectDialogOnLoad()"
-      ondialogaccept="return commonDialogOnOK();"
-      ondialogcancel="return commonDialogOnCancel();">
+      onload="dialogOnLoad()"
+      ondialogaccept="return dialogOK();">
 
   <script type="application/javascript" src="chrome://global/content/selectDialog.js" />
   <keyset id="dialogKeys"/>

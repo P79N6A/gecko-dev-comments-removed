@@ -455,24 +455,6 @@
 
 
 
-
-
-#define NS_DEFAULTPROMPT_CONTRACTID \
-    "@mozilla.org/network/default-prompt;1"
-
-
-
-
-
-
-
-#define NS_DEFAULTAUTHPROMPT_CONTRACTID \
-    "@mozilla.org/network/default-auth-prompt;1"
-
-
-
-
-
 #define NS_URICLASSIFIERSERVICE_CONTRACTID \
     "@mozilla.org/uriclassifierservice"
 

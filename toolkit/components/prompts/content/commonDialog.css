@@ -48,7 +48,7 @@
   white-space: pre-wrap;
 }
 
-#loginLabel, #password1Label, #password2Label {
+#loginLabel, #password1Label {
   text-align: right;
 }
 
