@@ -465,7 +465,9 @@ nsEditor::SetFlags(PRUint32 aFlags)
     PRUint32 newState = nsIContent::IME_STATUS_ENABLE;
     rv = GetPreferredIMEState(&newState);
     if (NS_SUCCEEDED(rv)) {
-      nsIMEStateManager::ChangeIMEStateTo(newState);
+      
+      
+      nsIMEStateManager::UpdateIMEState(newState);
     }
   }
 

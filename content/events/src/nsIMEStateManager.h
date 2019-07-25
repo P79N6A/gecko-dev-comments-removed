@@ -82,7 +82,12 @@ public:
                                            nsIContent** aRoot);
   
   
-  static void ChangeIMEStateTo(PRUint32 aNewIMEState);
+  
+  
+  
+  
+  static void UpdateIMEState(PRUint32 aNewIMEState);
+
 protected:
   static void SetIMEState(PRUint32 aState, nsIWidget* aWidget);
   static PRUint32 GetNewIMEState(nsPresContext* aPresContext,
