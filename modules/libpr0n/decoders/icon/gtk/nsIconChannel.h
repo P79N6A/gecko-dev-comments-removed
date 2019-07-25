@@ -76,6 +76,7 @@ class nsIconChannel : public nsIChannel {
 
 
     nsresult InitWithGnome(nsIMozIconURI *aURI);
+    nsresult InitWithGIO(nsIMozIconURI *aIconURI);
 };
 
 #endif
