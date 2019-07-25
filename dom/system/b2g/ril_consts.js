@@ -337,79 +337,27 @@ const PDU_DCS_MSG_CLASS_TE_SPECIFIC     = 0xF3;
 const PDU_TIMESTAMP_YEAR_OFFSET = 2000;
 
 
+const PDU_NL_LOCKING_SHIFT_TABLES = [
+  
 
-const PDU_ALPHABET_7BIT_DEFAULT = [
-  "@",      
-  "\xa3",   
-  "$",      
-  "\xa5",   
-  "\xe8",   
-  "\xe9",   
-  "\xf9",   
-  "\xec",   
-  "\xf2",   
-  "\xc7",   
-  "\n",     
-  "\xd8",   
-  "\xf8",   
-  "\r",     
-  "\xc5",   
-  "\xe5",   
-  "\u0394", 
-  "_",      
-  "\u03a6", 
-  "\u0393", 
-  "\u039b", 
-  "\u03a9", 
-  "\u03a0", 
-  "\u03a8", 
-  "\u03a3", 
-  "\u0398", 
-  "\u039e", 
-  "\u20ac", 
-  "\xc6",   
-  "\xe6",   
-  "\xdf",   
-  "\xc9",   
-  " ",      
-  "!",      
-  "\"",     
-  "#",      
-  "\xa4",   
-  "%",      
-  "&",      
-  "'",      
-  "(",      
-  ")",      
-  "*",      
-  "+",      
-  ",",      
-  "-",      
-  ".",      
-  "/",      
-  "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
-  ":",      
-  ";",      
-  "<",      
-  "=",      
-  ">",      
-  "?",      
-  "\xa1",   
-  "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
-  "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
-  "\xc4",   
-  "\xd6",   
-  "\xd1",   
-  "\xdc",   
-  "\xa7",   
-  "\xbf",   
-  "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m",
-  "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z",
-  "\xe4",   
-  "\xf6",   
-  "\xf1",   
-  "\xfc",   
-  "\xe0"    
+
+
+  
+    "@\u00a3$\u00a5\u00e8\u00e9\u00f9\u00ec\u00f2\u00c7\n\u00d8\u00f8\r\u00c5\u00e5"
+  
+  + "\u0394_\u03a6\u0393\u039b\u03a9\u03a0\u03a8\u03a3\u0398\u039e\uffff\u00c6\u00e6\u00df\u00c9"
+  
+  + " !\"#\u00a4%&'()*+,-./"
+  
+  + "0123456789:;<=>?"
+  
+  + "\u00a1ABCDEFGHIJKLMNO"
+  
+  + "PQRSTUVWXYZ\u00c4\u00d6\u00d1\u00dc\u00a7"
+  
+  + "\u00bfabcdefghijklmno"
+  
+  + "pqrstuvwxyz\u00e4\u00f6\u00f1\u00fc\u00e0",
 ];
 
 const DATACALL_RADIOTECHNOLOGY_CDMA = 0;
