@@ -53,7 +53,7 @@ class AccessCheck {
     static bool isChrome(JSCompartment *compartment);
     static nsIPrincipal *getPrincipal(JSCompartment *compartment);
     static bool isCrossOriginAccessPermitted(JSContext *cx, JSObject *obj, jsid id,
-                                             JSWrapper::Action act);
+                                             js::Wrapper::Action act);
     static bool isSystemOnlyAccessPermitted(JSContext *cx);
     static bool isLocationObjectSameOrigin(JSContext *cx, JSObject *wrapper);
     static bool documentDomainMakesSameOrigin(JSContext *cx, JSObject *obj);
@@ -66,16 +66,16 @@ class AccessCheck {
 };
 
 struct Policy {
-    typedef JSWrapper::Permission Permission;
+    typedef js::Wrapper::Permission Permission;
 
-    static const Permission PermitObjectAccess = JSWrapper::PermitObjectAccess;
-    static const Permission PermitPropertyAccess = JSWrapper::PermitPropertyAccess;
-    static const Permission DenyAccess = JSWrapper::DenyAccess;
+    static const Permission PermitObjectAccess = js::Wrapper::PermitObjectAccess;
+    static const Permission PermitPropertyAccess = js::Wrapper::PermitPropertyAccess;
+    static const Permission DenyAccess = js::Wrapper::DenyAccess;
 };
 
 
 struct Permissive : public Policy {
-    static bool check(JSContext *cx, JSObject *wrapper, jsid id, JSWrapper::Action act,
+    static bool check(JSContext *cx, JSObject *wrapper, jsid id, js::Wrapper::Action act,
                       Permission &perm) {
         perm = PermitObjectAccess;
         return true;
@@ -85,7 +85,7 @@ struct Permissive : public Policy {
 
 
 struct OnlyIfSubjectIsSystem : public Policy {
-    static bool check(JSContext *cx, JSObject *wrapper, jsid id, JSWrapper::Action act,
+    static bool check(JSContext *cx, JSObject *wrapper, jsid id, js::Wrapper::Action act,
                       Permission &perm) {
         if (AccessCheck::isSystemOnlyAccessPermitted(cx)) {
             perm = PermitObjectAccess;
@@ -103,7 +103,7 @@ struct OnlyIfSubjectIsSystem : public Policy {
 
 
 struct CrossOriginAccessiblePropertiesOnly : public Policy {
-    static bool check(JSContext *cx, JSObject *wrapper, jsid id, JSWrapper::Action act,
+    static bool check(JSContext *cx, JSObject *wrapper, jsid id, js::Wrapper::Action act,
                       Permission &perm) {
         if (AccessCheck::isCrossOriginAccessPermitted(cx, wrapper, id, act)) {
             perm = PermitPropertyAccess;
@@ -121,7 +121,7 @@ struct CrossOriginAccessiblePropertiesOnly : public Policy {
 
 
 struct SameOriginOrCrossOriginAccessiblePropertiesOnly : public Policy {
-    static bool check(JSContext *cx, JSObject *wrapper, jsid id, JSWrapper::Action act,
+    static bool check(JSContext *cx, JSObject *wrapper, jsid id, js::Wrapper::Action act,
                       Permission &perm) {
         if (AccessCheck::isCrossOriginAccessPermitted(cx, wrapper, id, act) ||
             AccessCheck::isLocationObjectSameOrigin(cx, wrapper)) {
@@ -140,7 +140,7 @@ struct SameOriginOrCrossOriginAccessiblePropertiesOnly : public Policy {
 
 
 struct ExposedPropertiesOnly : public Policy {
-    static bool check(JSContext *cx, JSObject *wrapper, jsid id, JSWrapper::Action act,
+    static bool check(JSContext *cx, JSObject *wrapper, jsid id, js::Wrapper::Action act,
                       Permission &perm);
 };
 

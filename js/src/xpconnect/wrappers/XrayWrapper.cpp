@@ -187,7 +187,7 @@ static inline JSObject *
 FindWrapper(JSObject *wrapper)
 {
     while (!wrapper->isWrapper() ||
-           !(JSWrapper::wrapperHandler(wrapper)->flags() & WrapperFactory::IS_XRAY_WRAPPER_FLAG)) {
+           !(Wrapper::wrapperHandler(wrapper)->flags() & WrapperFactory::IS_XRAY_WRAPPER_FLAG)) {
         wrapper = wrapper->getProto();
         
     }
@@ -565,7 +565,7 @@ XrayWrapper<Base>::resolveOwnProperty(JSContext *cx, JSObject *wrapper, jsid id,
            Is<nsIDocument>(wrapper))) &&
          IsPrivilegedScript())) {
         bool status;
-        JSWrapper::Action action = set ? JSWrapper::SET : JSWrapper::GET;
+        Wrapper::Action action = set ? Wrapper::SET : Wrapper::GET;
         desc->obj = NULL; 
         if (!this->enter(cx, wrapper, id, action, &status))
             return status;
@@ -659,7 +659,7 @@ XrayWrapper<Base>::getPropertyDescriptor(JSContext *cx, JSObject *wrapper, jsid 
     }
 
     bool status;
-    JSWrapper::Action action = set ? JSWrapper::SET : JSWrapper::GET;
+    Wrapper::Action action = set ? Wrapper::SET : Wrapper::GET;
     desc->obj = NULL; 
     if (!this->enter(cx, wrapper, id, action, &status))
         return status;
@@ -727,7 +727,7 @@ XrayWrapper<Base>::getOwnPropertyDescriptor(JSContext *cx, JSObject *wrapper, js
     }
 
     bool status;
-    JSWrapper::Action action = set ? JSWrapper::SET : JSWrapper::GET;
+    Wrapper::Action action = set ? Wrapper::SET : Wrapper::GET;
     desc->obj = NULL; 
     if (!this->enter(cx, wrapper, id, action, &status))
         return status;
@@ -924,7 +924,7 @@ XrayWrapper<Base>::get(JSContext *cx, JSObject *wrapper, JSObject *receiver, jsi
     
     
     
-    return JSProxyHandler::get(cx, wrapper, wrapper, id, vp);
+    return ProxyHandler::get(cx, wrapper, wrapper, id, vp);
 }
 
 template <typename Base>
@@ -935,7 +935,7 @@ XrayWrapper<Base>::set(JSContext *cx, JSObject *wrapper, JSObject *receiver, jsi
     
     
     
-    return JSProxyHandler::set(cx, wrapper, wrapper, id, strict, vp);
+    return ProxyHandler::set(cx, wrapper, wrapper, id, strict, vp);
 }
 
 template <typename Base>
@@ -943,7 +943,7 @@ bool
 XrayWrapper<Base>::has(JSContext *cx, JSObject *wrapper, jsid id, bool *bp)
 {
     
-    return JSProxyHandler::has(cx, wrapper, id, bp);
+    return ProxyHandler::has(cx, wrapper, id, bp);
 }
 
 template <typename Base>
@@ -951,7 +951,7 @@ bool
 XrayWrapper<Base>::hasOwn(JSContext *cx, JSObject *wrapper, jsid id, bool *bp)
 {
     
-    return JSProxyHandler::hasOwn(cx, wrapper, id, bp);
+    return ProxyHandler::hasOwn(cx, wrapper, id, bp);
 }
 
 template <typename Base>
@@ -959,7 +959,7 @@ bool
 XrayWrapper<Base>::keys(JSContext *cx, JSObject *wrapper, js::AutoIdVector &props)
 {
     
-    return JSProxyHandler::keys(cx, wrapper, props);
+    return ProxyHandler::keys(cx, wrapper, props);
 }
 
 template <typename Base>
@@ -967,7 +967,7 @@ bool
 XrayWrapper<Base>::iterate(JSContext *cx, JSObject *wrapper, uintN flags, js::Value *vp)
 {
     
-    return JSProxyHandler::iterate(cx, wrapper, flags, vp);
+    return ProxyHandler::iterate(cx, wrapper, flags, vp);
 }
 
 template <typename Base>
@@ -1053,8 +1053,8 @@ XrayWrapper<Base>::createHolder(JSContext *cx, JSObject *wrappedNative, JSObject
     return holder;
 }
 
-#define XPCNW XrayWrapper<JSCrossCompartmentWrapper>
-#define SCNW XrayWrapper<JSWrapper>
+#define XPCNW XrayWrapper<CrossCompartmentWrapper>
+#define SCNW XrayWrapper<Wrapper>
 
 template <> XPCNW XPCNW::singleton(0);
 template <> SCNW SCNW::singleton(0);
