@@ -29,8 +29,8 @@
 #include "mozilla/Util.h" 
 #include "nsContentUtils.h"
 
-static const PRUint32 HTTP_OK_CODE = 200;
-static const PRUint32 HTTP_PARTIAL_RESPONSE_CODE = 206;
+static const uint32_t HTTP_OK_CODE = 200;
+static const uint32_t HTTP_PARTIAL_RESPONSE_CODE = 206;
 
 using namespace mozilla;
 
@@ -87,8 +87,8 @@ nsresult
 ChannelMediaResource::Listener::OnDataAvailable(nsIRequest* aRequest,
                                                 nsISupports* aContext,
                                                 nsIInputStream* aStream,
-                                                PRUint32 aOffset,
-                                                PRUint32 aCount)
+                                                uint32_t aOffset,
+                                                uint32_t aCount)
 {
   if (!mResource)
     return NS_OK;
@@ -98,7 +98,7 @@ ChannelMediaResource::Listener::OnDataAvailable(nsIRequest* aRequest,
 nsresult
 ChannelMediaResource::Listener::AsyncOnChannelRedirect(nsIChannel* aOldChannel,
                                                        nsIChannel* aNewChannel,
-                                                       PRUint32 aFlags,
+                                                       uint32_t aFlags,
                                                        nsIAsyncVerifyRedirectCallback* cb)
 {
   nsresult rv = NS_OK;
@@ -141,7 +141,7 @@ ChannelMediaResource::OnStartRequest(nsIRequest* aRequest)
   nsCOMPtr<nsIHttpChannel> hc = do_QueryInterface(aRequest);
   bool seekable = false;
   if (hc) {
-    PRUint32 responseStatus = 0;
+    uint32_t responseStatus = 0;
     hc->GetResponseStatus(&responseStatus);
     bool succeeded = false;
     hc->GetRequestSucceeded(&succeeded);
@@ -214,7 +214,7 @@ ChannelMediaResource::OnStartRequest(nsIRequest* aRequest)
                 responseStatus == HTTP_PARTIAL_RESPONSE_CODE)) {
       
       
-      PRInt64 cl = -1;
+      int64_t cl = -1;
       nsCOMPtr<nsIPropertyBag2> bag = do_QueryInterface(hc);
 
       if (bag) {
@@ -222,7 +222,7 @@ ChannelMediaResource::OnStartRequest(nsIRequest* aRequest)
       }
 
       if (cl < 0) {
-        PRInt32 cl32;
+        int32_t cl32;
         hc->GetContentLength(&cl32);
         cl = cl32;
       }
@@ -334,7 +334,7 @@ ChannelMediaResource::OnStopRequest(nsIRequest* aRequest, nsresult aStatus)
 
 nsresult
 ChannelMediaResource::OnChannelRedirect(nsIChannel* aOld, nsIChannel* aNew,
-                                        PRUint32 aFlags)
+                                        uint32_t aFlags)
 {
   mChannel = aNew;
   SetupChannelHeaders();
@@ -350,9 +350,9 @@ NS_METHOD
 ChannelMediaResource::CopySegmentToCache(nsIInputStream *aInStream,
                                          void *aClosure,
                                          const char *aFromSegment,
-                                         PRUint32 aToOffset,
-                                         PRUint32 aCount,
-                                         PRUint32 *aWriteCount)
+                                         uint32_t aToOffset,
+                                         uint32_t aCount,
+                                         uint32_t *aWriteCount)
 {
   CopySegmentClosure* closure = static_cast<CopySegmentClosure*>(aClosure);
 
@@ -369,7 +369,7 @@ ChannelMediaResource::CopySegmentToCache(nsIInputStream *aInStream,
 nsresult
 ChannelMediaResource::OnDataAvailable(nsIRequest* aRequest,
                                       nsIInputStream* aStream,
-                                      PRUint32 aCount)
+                                      uint32_t aCount)
 {
   NS_ASSERTION(mChannel.get() == aRequest, "Wrong channel!");
 
@@ -385,9 +385,9 @@ ChannelMediaResource::OnDataAvailable(nsIRequest* aRequest,
   }
   closure.mResource = this;
 
-  PRUint32 count = aCount;
+  uint32_t count = aCount;
   while (count > 0) {
-    PRUint32 read;
+    uint32_t read;
     nsresult rv = aStream->ReadSegments(CopySegmentToCache, &closure, count,
                                         &read);
     if (NS_FAILED(rv))
@@ -574,22 +574,22 @@ void ChannelMediaResource::CloseChannel()
 }
 
 nsresult ChannelMediaResource::ReadFromCache(char* aBuffer,
-                                             PRInt64 aOffset,
-                                             PRUint32 aCount)
+                                             int64_t aOffset,
+                                             uint32_t aCount)
 {
   return mCacheStream.ReadFromCache(aBuffer, aOffset, aCount);
 }
 
 nsresult ChannelMediaResource::Read(char* aBuffer,
-                                    PRUint32 aCount,
-                                    PRUint32* aBytes)
+                                    uint32_t aCount,
+                                    uint32_t* aBytes)
 {
   NS_ASSERTION(!NS_IsMainThread(), "Don't call on main thread");
 
   return mCacheStream.Read(aBuffer, aCount, aBytes);
 }
 
-nsresult ChannelMediaResource::Seek(PRInt32 aWhence, PRInt64 aOffset)
+nsresult ChannelMediaResource::Seek(int32_t aWhence, int64_t aOffset)
 {
   NS_ASSERTION(!NS_IsMainThread(), "Don't call on main thread");
 
@@ -606,7 +606,7 @@ void ChannelMediaResource::EndSeekingForMetadata()
   mSeekingForMetadata = false;
 }
 
-PRInt64 ChannelMediaResource::Tell()
+int64_t ChannelMediaResource::Tell()
 {
   NS_ASSERTION(!NS_IsMainThread(), "Don't call on main thread");
 
@@ -673,7 +673,7 @@ void ChannelMediaResource::Resume()
       PossiblyResume();
       element->DownloadResumed();
     } else {
-      PRInt64 totalLength = mCacheStream.GetLength();
+      int64_t totalLength = mCacheStream.GetLength();
       
       
       
@@ -767,7 +767,7 @@ ChannelMediaResource::CacheClientNotifyPrincipalChanged()
 }
 
 nsresult
-ChannelMediaResource::CacheClientSeek(PRInt64 aOffset, bool aResume)
+ChannelMediaResource::CacheClientSeek(int64_t aOffset, bool aResume)
 {
   NS_ASSERTION(NS_IsMainThread(), "Don't call on non-main thread");
 
@@ -816,20 +816,20 @@ ChannelMediaResource::CacheClientResume()
   return NS_OK;
 }
 
-PRInt64
-ChannelMediaResource::GetNextCachedData(PRInt64 aOffset)
+int64_t
+ChannelMediaResource::GetNextCachedData(int64_t aOffset)
 {
   return mCacheStream.GetNextCachedData(aOffset);
 }
 
-PRInt64
-ChannelMediaResource::GetCachedDataEnd(PRInt64 aOffset)
+int64_t
+ChannelMediaResource::GetCachedDataEnd(int64_t aOffset)
 {
   return mCacheStream.GetCachedDataEnd(aOffset);
 }
 
 bool
-ChannelMediaResource::IsDataCachedToEndOfResource(PRInt64 aOffset)
+ChannelMediaResource::IsDataCachedToEndOfResource(int64_t aOffset)
 {
   return mCacheStream.IsDataCachedToEndOfStream(aOffset);
 }
@@ -860,7 +860,7 @@ ChannelMediaResource::SetReadMode(nsMediaCacheStream::ReadMode aMode)
 }
 
 void
-ChannelMediaResource::SetPlaybackRate(PRUint32 aBytesPerSecond)
+ChannelMediaResource::SetPlaybackRate(uint32_t aBytesPerSecond)
 {
   mCacheStream.SetPlaybackRate(aBytesPerSecond);
 }
@@ -884,7 +884,7 @@ ChannelMediaResource::GetDownloadRate(bool* aIsReliable)
   return mChannelStatistics.GetRate(TimeStamp::Now(), aIsReliable);
 }
 
-PRInt64
+int64_t
 ChannelMediaResource::GetLength()
 {
   return mCacheStream.GetLength();
@@ -933,18 +933,18 @@ public:
   virtual already_AddRefed<nsIPrincipal> GetCurrentPrincipal();
   virtual bool     CanClone();
   virtual MediaResource* CloneData(nsMediaDecoder* aDecoder);
-  virtual nsresult ReadFromCache(char* aBuffer, PRInt64 aOffset, PRUint32 aCount);
+  virtual nsresult ReadFromCache(char* aBuffer, int64_t aOffset, uint32_t aCount);
 
   
 
   
   virtual void     SetReadMode(nsMediaCacheStream::ReadMode aMode) {}
-  virtual void     SetPlaybackRate(PRUint32 aBytesPerSecond) {}
-  virtual nsresult Read(char* aBuffer, PRUint32 aCount, PRUint32* aBytes);
-  virtual nsresult Seek(PRInt32 aWhence, PRInt64 aOffset);
+  virtual void     SetPlaybackRate(uint32_t aBytesPerSecond) {}
+  virtual nsresult Read(char* aBuffer, uint32_t aCount, uint32_t* aBytes);
+  virtual nsresult Seek(int32_t aWhence, int64_t aOffset);
   virtual void     StartSeekingForMetadata() {};
   virtual void     EndSeekingForMetadata() {};
-  virtual PRInt64  Tell();
+  virtual int64_t  Tell();
 
   
   virtual void    Pin() {}
@@ -955,13 +955,13 @@ public:
     *aIsReliable = true;
     return 100*1024*1024; 
   }
-  virtual PRInt64 GetLength() { return mSize; }
-  virtual PRInt64 GetNextCachedData(PRInt64 aOffset)
+  virtual int64_t GetLength() { return mSize; }
+  virtual int64_t GetNextCachedData(int64_t aOffset)
   {
     return (aOffset < mSize) ? aOffset : -1;
   }
-  virtual PRInt64 GetCachedDataEnd(PRInt64 aOffset) { return NS_MAX(aOffset, mSize); }
-  virtual bool    IsDataCachedToEndOfResource(PRInt64 aOffset) { return true; }
+  virtual int64_t GetCachedDataEnd(int64_t aOffset) { return NS_MAX(aOffset, mSize); }
+  virtual bool    IsDataCachedToEndOfResource(int64_t aOffset) { return true; }
   virtual bool    IsSuspendedByCache(MediaResource** aActiveResource)
   {
     if (aActiveResource) {
@@ -975,7 +975,7 @@ public:
 
 private:
   
-  PRInt64 mSize;
+  int64_t mSize;
 
   
   
@@ -1072,12 +1072,12 @@ nsresult FileMediaResource::Open(nsIStreamListener** aStreamListener)
   }
 
   
-  PRUint64 size;
+  uint64_t size;
   rv = mInput->Available(&size);
   NS_ENSURE_SUCCESS(rv, rv);
   NS_ENSURE_TRUE(size <= PR_INT64_MAX, NS_ERROR_FILE_TOO_BIG);
  
-  mSize = (PRInt64)size;
+  mSize = (int64_t)size;
 
   nsCOMPtr<nsIRunnable> event = new LoadedEvent(mDecoder);
   NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
@@ -1137,20 +1137,20 @@ MediaResource* FileMediaResource::CloneData(nsMediaDecoder* aDecoder)
   return new FileMediaResource(aDecoder, channel, mURI);
 }
 
-nsresult FileMediaResource::ReadFromCache(char* aBuffer, PRInt64 aOffset, PRUint32 aCount)
+nsresult FileMediaResource::ReadFromCache(char* aBuffer, int64_t aOffset, uint32_t aCount)
 {
   MutexAutoLock lock(mLock);
   if (!mInput || !mSeekable)
     return NS_ERROR_FAILURE;
-  PRInt64 offset = 0;
+  int64_t offset = 0;
   nsresult res = mSeekable->Tell(&offset);
   NS_ENSURE_SUCCESS(res,res);
   res = mSeekable->Seek(nsISeekableStream::NS_SEEK_SET, aOffset);
   NS_ENSURE_SUCCESS(res,res);
-  PRUint32 bytesRead = 0;
+  uint32_t bytesRead = 0;
   do {
-    PRUint32 x = 0;
-    PRUint32 bytesToRead = aCount - bytesRead;
+    uint32_t x = 0;
+    uint32_t bytesToRead = aCount - bytesRead;
     res = mInput->Read(aBuffer, bytesToRead, &x);
     bytesRead += x;
   } while (bytesRead != aCount && res == NS_OK);
@@ -1166,7 +1166,7 @@ nsresult FileMediaResource::ReadFromCache(char* aBuffer, PRInt64 aOffset, PRUint
   return seekres;
 }
 
-nsresult FileMediaResource::Read(char* aBuffer, PRUint32 aCount, PRUint32* aBytes)
+nsresult FileMediaResource::Read(char* aBuffer, uint32_t aCount, uint32_t* aBytes)
 {
   MutexAutoLock lock(mLock);
   if (!mInput)
@@ -1174,7 +1174,7 @@ nsresult FileMediaResource::Read(char* aBuffer, PRUint32 aCount, PRUint32* aByte
   return mInput->Read(aBuffer, aCount, aBytes);
 }
 
-nsresult FileMediaResource::Seek(PRInt32 aWhence, PRInt64 aOffset)
+nsresult FileMediaResource::Seek(int32_t aWhence, int64_t aOffset)
 {
   NS_ASSERTION(!NS_IsMainThread(), "Don't call on main thread");
 
@@ -1184,7 +1184,7 @@ nsresult FileMediaResource::Seek(PRInt32 aWhence, PRInt64 aOffset)
   return mSeekable->Seek(aWhence, aOffset);
 }
 
-PRInt64 FileMediaResource::Tell()
+int64_t FileMediaResource::Tell()
 {
   NS_ASSERTION(!NS_IsMainThread(), "Don't call on main thread");
 
@@ -1192,7 +1192,7 @@ PRInt64 FileMediaResource::Tell()
   if (!mSeekable)
     return 0;
 
-  PRInt64 offset = 0;
+  int64_t offset = 0;
   mSeekable->Tell(&offset);
   return offset;
 }
