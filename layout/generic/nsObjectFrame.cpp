@@ -3458,7 +3458,9 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetDocument(nsIDocument* *aDocument)
 
 NS_IMETHODIMP nsPluginInstanceOwner::InvalidateRect(NPRect *invalidRect)
 {
-  if (mWaitingForPaint && IsUpToDate()) {
+  
+  
+  if (mWaitingForPaint && (!mObjectFrame || IsUpToDate())) {
     
     
     nsCOMPtr<nsIRunnable> event = new AsyncPaintWaitEvent(mContent, PR_TRUE);
