@@ -12,6 +12,9 @@
 
 
 
+
+
+
 window.Item = function() {
   this.isAnItem = true;
 };
@@ -94,14 +97,10 @@ window.Items = {
   getTopLevelItems: function() {
     var items = [];
     
-    $('.tab').each(function() {
+    $('.tab, .group').each(function() {
       $this = $(this);
       if(!$this.data('group'))
-        items.push($this.data('tabItem'));
-    });
-    
-    $('.group').each(function() {
-      items.push($(this).data('group'));
+        items.push($this.data('item'));
     });
     
     return items;
