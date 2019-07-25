@@ -183,7 +183,8 @@ nsChromeProtocolHandler::NewChannel(nsIURI* aURI,
     if (!nsChromeRegistry::gChromeRegistry) {
         
         
-        nsCOMPtr<nsIChromeRegistry> reg(do_GetService(NS_CHROMEREGISTRY_CONTRACTID));
+        nsCOMPtr<nsIChromeRegistry> reg =
+            mozilla::services::GetChromeRegistryService();
         NS_ENSURE_TRUE(nsChromeRegistry::gChromeRegistry, NS_ERROR_FAILURE);
     }
 

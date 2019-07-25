@@ -580,7 +580,7 @@ nsXULDocument::EndLoad()
 
     if (isChrome) {
         nsCOMPtr<nsIXULOverlayProvider> reg =
-            do_GetService(NS_CHROMEREGISTRY_CONTRACTID);
+            mozilla::services::GetXULOverlayProviderService();
 
         if (reg) {
             nsCOMPtr<nsISimpleEnumerator> overlays;
@@ -2626,7 +2626,8 @@ nsXULDocument::AddChromeOverlays()
     
     if (!IsChromeURI(docUri)) return NS_OK;
 
-    nsCOMPtr<nsIXULOverlayProvider> chromeReg(do_GetService(NS_CHROMEREGISTRY_CONTRACTID));
+    nsCOMPtr<nsIXULOverlayProvider> chromeReg =
+        mozilla::services::GetXULOverlayProviderService();
     
     
     NS_ENSURE_TRUE(chromeReg, NS_OK);
@@ -4636,7 +4637,7 @@ nsXULDocument::IsDocumentRightToLeft()
     
     
     nsCOMPtr<nsIXULChromeRegistry> reg =
-        do_GetService(NS_CHROMEREGISTRY_CONTRACTID);
+        mozilla::services::GetXULChromeRegistryService();
     if (!reg)
         return PR_FALSE;
 
