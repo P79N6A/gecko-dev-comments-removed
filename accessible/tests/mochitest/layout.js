@@ -58,6 +58,29 @@ function getChildAtPoint(aIdentifier, aX, aY, aFindDeepestChild)
 
 
 
+function testBounds(aID, aX, aY, aWidth, aHeight)
+{
+  var [x, y, width, height] = getBounds(aID);
+  is(x, aX, "Wrong x coordinate of " + prettyName(aID));
+  is(y, aY, "Wrong y coordinate of " + prettyName(aID));
+  is(width, aWidth, "Wrong width of " + prettyName(aID));
+  is(height, aHeight, "Wrong height of " + prettyName(aID));
+}
+
+
+
+
+function getBounds(aID)
+{
+  var accessible = getAccessible(aID);
+  var x = {}, y = {}, width = {}, height = {};
+  accessible.getBounds(x, y, width, height);
+  return [x.value, y.value, width.value, height.value];
+}
+
+
+
+
 function getScreenCoords(aNode)
 {
   if (aNode instanceof nsIDOMXULElement)

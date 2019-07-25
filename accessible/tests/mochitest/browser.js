@@ -1,10 +1,11 @@
 
 
 
-function openBrowserWindow(aFunc, aURL)
+function openBrowserWindow(aFunc, aURL, aRect)
 {
   gBrowserContext.testFunc = aFunc;
   gBrowserContext.startURL = aURL;
+  gBrowserContext.browserRect = aRect;
 
   addLoadEvent(openBrowserWindowIntl);
 }
@@ -60,6 +61,14 @@ function currentTabDocument()
 
 
 
+function currentTabWindow()
+{
+  return currentTabDocument().defaultView;
+}
+
+
+
+
 function browserAt(aIndex)
 {
   return tabBrowser().getBrowserAtIndex(aIndex);
@@ -103,9 +112,22 @@ var gBrowserContext =
 
 function openBrowserWindowIntl()
 {
+  var params = "chrome,all,dialog=no";
+  var rect = gBrowserContext.browserRect;
+  if (rect) {
+    if ("left" in rect)
+      params += ",left=" + rect.left;
+    if ("top" in rect)
+      params += ",top=" + rect.top;
+    if ("width" in rect)
+      params += ",width=" + rect.width;
+    if ("height" in rect)
+      params += ",height=" + rect.height;
+  }
+
   gBrowserContext.browserWnd =
     window.openDialog(Services.prefs.getCharPref("browser.chromeURL"),
-                      "_blank", "chrome,all,dialog=no",
+                      "_blank", params,
                       gBrowserContext.startURL);
 
   addA11yLoadEvent(startBrowserTests, browserWindow());
