@@ -62,7 +62,11 @@ struct CharacterPosition {
   gfxFloat angle;
   PRBool draw;
 };
-  
+
+static gfxContext* MakeTmpCtx() {
+  return new gfxContext(gfxPlatform::GetPlatform()->ScreenReferenceSurface());
+}
+
 
 
 
@@ -412,42 +416,50 @@ nsSVGGlyphFrame::PaintSVG(nsSVGRenderState *aContext,
 NS_IMETHODIMP_(nsIFrame*)
 nsSVGGlyphFrame::GetFrameForPoint(const nsPoint &aPoint)
 {
-  if (!mRect.Contains(aPoint))
+  PRUint16 mask = GetHittestMask();
+  if (!mask) {
     return nsnull;
-
-  PRBool events = PR_FALSE;
-  switch (GetStyleVisibility()->mPointerEvents) {
-    case NS_STYLE_POINTER_EVENTS_NONE:
-      break;
-    case NS_STYLE_POINTER_EVENTS_VISIBLEPAINTED:
-    case NS_STYLE_POINTER_EVENTS_AUTO:
-      if (GetStyleVisibility()->IsVisible() &&
-          (GetStyleSVG()->mFill.mType != eStyleSVGPaintType_None ||
-           GetStyleSVG()->mStroke.mType != eStyleSVGPaintType_None))
-        events = PR_TRUE;
-      break;
-    case NS_STYLE_POINTER_EVENTS_VISIBLEFILL:
-    case NS_STYLE_POINTER_EVENTS_VISIBLESTROKE:
-    case NS_STYLE_POINTER_EVENTS_VISIBLE:
-      if (GetStyleVisibility()->IsVisible())
-        events = PR_TRUE;
-      break;
-    case NS_STYLE_POINTER_EVENTS_PAINTED:
-      if (GetStyleSVG()->mFill.mType != eStyleSVGPaintType_None ||
-          GetStyleSVG()->mStroke.mType != eStyleSVGPaintType_None)
-        events = PR_TRUE;
-      break;
-    case NS_STYLE_POINTER_EVENTS_FILL:
-    case NS_STYLE_POINTER_EVENTS_STROKE:
-    case NS_STYLE_POINTER_EVENTS_ALL:
-      events = PR_TRUE;
-      break;
-    default:
-      NS_ERROR("not reached");
-      break;
   }
 
-  if (events && ContainsPoint(aPoint))
+  nsRefPtr<gfxContext> context = MakeTmpCtx();
+  SetupGlobalTransform(context);
+  CharacterIterator iter(this, PR_TRUE);
+  iter.SetInitialMatrix(context);
+
+  
+  
+  
+  
+  
+  
+  
+  
+
+  PRInt32 i;
+  while ((i = iter.NextCluster()) >= 0) {
+    gfxTextRun::Metrics metrics =
+    mTextRun->MeasureText(i, iter.ClusterLength(),
+                          gfxFont::LOOSE_INK_EXTENTS, nsnull, nsnull);
+    iter.SetupForMetrics(context);
+    context->Rectangle(metrics.mBoundingBox);
+  }
+
+  gfxPoint userSpacePoint =
+    context->DeviceToUser(gfxPoint(PresContext()->AppUnitsToGfxUnits(aPoint.x),
+                                   PresContext()->AppUnitsToGfxUnits(aPoint.y)));
+
+  PRBool isHit = PR_FALSE;
+  if (mask & HITTEST_MASK_FILL || mask & HITTEST_MASK_STROKE) {
+    isHit = context->PointInFill(userSpacePoint);
+  }
+
+  
+  
+  
+  
+  
+
+  if (isHit && nsSVGUtils::HitTestClip(this, aPoint))
     return this;
 
   return nsnull;
@@ -457,11 +469,6 @@ NS_IMETHODIMP_(nsRect)
 nsSVGGlyphFrame::GetCoveredRegion()
 {
   return mRect;
-}
-
-static gfxContext *
-MakeTmpCtx() {
-  return new gfxContext(gfxPlatform::GetPlatform()->ScreenReferenceSurface());
 }
 
 NS_IMETHODIMP
@@ -1470,28 +1477,6 @@ nsSVGGlyphFrame::NotifyGlyphMetricsChange()
     static_cast<nsSVGTextContainerFrame *>(mParent);
   if (containerFrame)
     containerFrame->NotifyGlyphMetricsChange();
-}
-
-PRBool
-nsSVGGlyphFrame::ContainsPoint(const nsPoint &aPoint)
-{
-  nsRefPtr<gfxContext> tmpCtx = MakeTmpCtx();
-  SetupGlobalTransform(tmpCtx);
-  CharacterIterator iter(this, PR_TRUE);
-  iter.SetInitialMatrix(tmpCtx);
-  
-  PRInt32 i;
-  while ((i = iter.NextCluster()) >= 0) {
-    gfxTextRun::Metrics metrics =
-      mTextRun->MeasureText(i, iter.ClusterLength(),
-                            gfxFont::LOOSE_INK_EXTENTS, nsnull, nsnull);
-    iter.SetupForMetrics(tmpCtx);
-    tmpCtx->Rectangle(metrics.mBoundingBox);
-  }
-
-  tmpCtx->IdentityMatrix();
-  return tmpCtx->PointInFill(gfxPoint(PresContext()->AppUnitsToGfxUnits(aPoint.x),
-                                      PresContext()->AppUnitsToGfxUnits(aPoint.y)));
 }
 
 PRBool
