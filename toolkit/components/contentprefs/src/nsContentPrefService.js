@@ -43,88 +43,7 @@ const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-
-
-
-
-function electrolify(service) {
-  
-  
-  service.wrappedJSObject = service;
-
-  var appInfo = Cc["@mozilla.org/xre/app-info;1"];
-  if (!appInfo || appInfo.getService(Ci.nsIXULRuntime).processType ==
-      Ci.nsIXULRuntime.PROCESS_TYPE_DEFAULT) {
-    
-
-    
-    
-    service.receiveMessage = function(aMessage) {
-      var json = aMessage.json;
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-
-      const NAME_WHITELIST = ["browser.upload.lastDir"];
-      if (NAME_WHITELIST.indexOf(json.name) == -1)
-        return { succeeded: false };
-
-      switch (aMessage.name) {
-        case "ContentPref:getPref":
-          return { succeeded: true,
-                   value: service.getPref(json.group, json.name, json.value) };
-
-        case "ContentPref:setPref":
-          service.setPref(json.group, json.name, json.value);
-          return { succeeded: true };
-      }
-    };
-  } else {
-    
-
-    service._dbInit = function(){}; 
-
-    service.messageManager = Cc["@mozilla.org/childprocessmessagemanager;1"].
-                             getService(Ci.nsISyncMessageSender);
-
-    
-    [
-      ['getPref', ['group', 'name'], ['_parseGroupParam']],
-      ['setPref', ['group', 'name', 'value'], ['_parseGroupParam']],
-    ].forEach(function(data) {
-      var method = data[0];
-      var params = data[1];
-      var parsers = data[2];
-      service[method] = function __remoted__() {
-        var json = {};
-        for (var i = 0; i < params.length; i++) {
-          if (params[i]) {
-            json[params[i]] = arguments[i];
-            if (parsers[i])
-              json[params[i]] = this[parsers[i]](json[params[i]]);
-          }
-        }
-        var ret = service.messageManager.sendSyncMessage('ContentPref:' + method, json)[0];
-        if (!ret.succeeded)
-          throw "ContentPrefs remoting failed to pass whitelist";
-        return ret.value;
-      };
-    });
-  }
-}
-
 function ContentPrefService() {
-  electrolify(this);
-
   
   
   
@@ -140,8 +59,7 @@ ContentPrefService.prototype = {
   
 
   classID:          Components.ID("{e6a3f533-4ffa-4615-8eb4-d4e72d883fa7}"),
-  QueryInterface:   XPCOMUtils.generateQI([Ci.nsIContentPrefService,
-                                           Ci.nsIFrameMessageListener]),
+  QueryInterface:   XPCOMUtils.generateQI([Ci.nsIContentPrefService]),
 
 
   
@@ -219,10 +137,15 @@ ContentPrefService.prototype = {
       throw Components.Exception("aName cannot be null or an empty string",
                                  Cr.NS_ERROR_ILLEGAL_VALUE);
 
-    var group = this._parseGroupParam(aGroup);
-    if (group == null)
+    if (aGroup == null)
       return this._selectGlobalPref(aName, aCallback);
-    return this._selectPref(group, aName, aCallback);
+    if (aGroup.constructor.name == "String")
+      return this._selectPref(aGroup.toString(), aName, aCallback);
+    if (aGroup instanceof Ci.nsIURI)
+      return this._selectPref(this.grouper.group(aGroup), aName, aCallback);
+
+    throw Components.Exception("aGroup is not a string, nsIURI or null",
+                               Cr.NS_ERROR_ILLEGAL_VALUE);
   },
 
   setPref: function ContentPrefService_setPref(aGroup, aName, aValue) {
@@ -245,15 +168,26 @@ ContentPrefService.prototype = {
     }
 
     var settingID = this._selectSettingID(aName) || this._insertSetting(aName);
-    var group = this._parseGroupParam(aGroup);
-    var groupID, prefID;
-    if (group == null) {
+    var group, groupID, prefID;
+    if (aGroup == null) {
+      group = null;
       groupID = null;
       prefID = this._selectGlobalPrefID(settingID);
     }
-    else {
+    else if (aGroup.constructor.name == "String") {
+      group = aGroup.toString();
       groupID = this._selectGroupID(group) || this._insertGroup(group);
       prefID = this._selectPrefID(groupID, settingID);
+    }
+    else if (aGroup instanceof Ci.nsIURI) {
+      group = this.grouper.group(aGroup);
+      groupID = this._selectGroupID(group) || this._insertGroup(group);
+      prefID = this._selectPrefID(groupID, settingID);
+    }
+    else {
+      
+      throw Components.Exception("aGroup is not a string, nsIURI or null",
+                                 Cr.NS_ERROR_ILLEGAL_VALUE);
     }
 
     
@@ -283,17 +217,27 @@ ContentPrefService.prototype = {
     if (!this.hasPref(aGroup, aName))
       return;
 
-
     var settingID = this._selectSettingID(aName);
-    var group = this._parseGroupParam(aGroup);
-    var groupID, prefID;
-    if (group == null) {
+    var group, groupID, prefID;
+    if (aGroup == null) {
+      group = null;
       groupID = null;
       prefID = this._selectGlobalPrefID(settingID);
     }
-    else {
+    else if (aGroup.constructor.name == "String") {
+      group = aGroup.toString();
       groupID = this._selectGroupID(group);
       prefID = this._selectPrefID(groupID, settingID);
+    }
+    else if (aGroup instanceof Ci.nsIURI) {
+      group = this.grouper.group(aGroup);
+      groupID = this._selectGroupID(group);
+      prefID = this._selectPrefID(groupID, settingID);
+    }
+    else {
+      
+      throw Components.Exception("aGroup is not a string, nsIURI or null",
+                                 Cr.NS_ERROR_ILLEGAL_VALUE);
     }
 
     this._deletePref(prefID);
@@ -368,10 +312,18 @@ ContentPrefService.prototype = {
   },
 
   getPrefs: function ContentPrefService_getPrefs(aGroup) {
-    var group = this._parseGroupParam(aGroup);
-    if (group == null)
+    if (aGroup == null)
       return this._selectGlobalPrefs();
-    return this._selectPrefs(group);
+    if (aGroup.constructor.name == "String") {
+      group = aGroup.toString();
+      return this._selectPrefs(group);
+    }
+    if (aGroup instanceof Ci.nsIURI) {
+      var group = this.grouper.group(aGroup);
+      return this._selectPrefs(group);
+    }
+    throw Components.Exception("aGroup is not a string, nsIURI or null",
+                               Cr.NS_ERROR_ILLEGAL_VALUE);
   },
 
   getPrefsByName: function ContentPrefService_getPrefsByName(aName) {
@@ -1059,19 +1011,8 @@ ContentPrefService.prototype = {
 
   _dbMigrate2To3: function ContentPrefService__dbMigrate2To3(aDBConnection) {
     this._dbCreateIndices(aDBConnection);
-  },
+  }
 
-  _parseGroupParam: function ContentPrefService__parseGroupParam(aGroup) {
-    if (aGroup == null)
-      return null;
-    if (aGroup.constructor.name == "String")
-      return aGroup.toString();
-    if (aGroup instanceof Ci.nsIURI)
-      return this.grouper.group(aGroup);
-
-    throw Components.Exception("aGroup is not a string, nsIURI or null",
-                               Cr.NS_ERROR_ILLEGAL_VALUE);
-  },
 };
 
 

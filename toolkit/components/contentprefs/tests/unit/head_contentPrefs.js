@@ -168,12 +168,6 @@ ContentPrefTest.deleteDatabase();
 
 
 
-
-var appInfo = Cc["@mozilla.org/xre/app-info;1"];
-if (!appInfo || appInfo.getService(Ci.nsIXULRuntime).processType ==
-    Ci.nsIXULRuntime.PROCESS_TYPE_DEFAULT) {
-  var prefBranch = Cc["@mozilla.org/preferences-service;1"].
-                   getService(Ci.nsIPrefBranch);
-  prefBranch.setBoolPref("browser.preferences.content.log", true);
-}
-
+var prefBranch = Cc["@mozilla.org/preferences-service;1"].
+                 getService(Ci.nsIPrefBranch);
+prefBranch.setBoolPref("browser.preferences.content.log", true);
