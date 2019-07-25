@@ -50,6 +50,7 @@ import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.provider.Browser;
 import android.util.Log;
+import android.webkit.WebIconDatabase;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
@@ -114,6 +115,11 @@ public class ProfileMigrator {
     }
 
     public void launchBackground() {
+        
+        
+        
+        WebIconDatabase.getInstance();
+
         PlacesTask placesTask = new PlacesTask();
         new Thread(placesTask).start();
     }
