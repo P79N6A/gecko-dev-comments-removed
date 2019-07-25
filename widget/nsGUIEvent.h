@@ -1284,9 +1284,14 @@ public:
     kIsMomentum =   1 << 6, 
                             
                             
-    kAllowSmoothScroll = 1 << 7 
-                                
-  };
+    kAllowSmoothScroll = 1 << 7, 
+                                 
+    kFromLines =    1 << 8  
+                            
+                            
+                            
+                            
+};
 
   nsMouseScrollEvent(bool isTrusted, PRUint32 msg, nsIWidget *w)
     : nsMouseEvent_base(isTrusted, msg, w, NS_MOUSE_SCROLL_EVENT),
