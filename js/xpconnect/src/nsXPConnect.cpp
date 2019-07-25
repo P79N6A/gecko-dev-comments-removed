@@ -1203,7 +1203,12 @@ xpc_CreateGlobalObject(JSContext *cx, JSClass *clasp,
     }
 
 #ifdef DEBUG
-    if (clasp->flags & JSCLASS_XPCONNECT_GLOBAL) {
+    
+    
+    
+    if (clasp->flags & JSCLASS_XPCONNECT_GLOBAL &&
+        !((js::Class*)clasp)->ext.isWrappedNative)
+    {
         VerifyTraceXPCGlobalCalledTracer trc;
         JS_TracerInit(&trc.base, JS_GetRuntime(cx), VerifyTraceXPCGlobalCalled);
         trc.ok = false;
