@@ -1974,6 +1974,33 @@ nsHttpChannel::ProcessNotModified()
     NS_ENSURE_TRUE(mCacheEntry, NS_ERROR_NOT_INITIALIZED);
 
     
+    
+    
+    
+    
+    
+
+    nsCAutoString lastModified;
+    nsCAutoString lastModified304;
+
+    rv = mCachedResponseHead->GetHeader(nsHttp::Last_Modified,
+                                        lastModified);
+    if (NS_SUCCEEDED(rv))
+        rv = mResponseHead->GetHeader(nsHttp::Last_Modified, 
+                                      lastModified304);
+    if (NS_SUCCEEDED(rv) && !lastModified304.Equals(lastModified)) {
+        LOG(("Cache Entry and 304 Last-Modified Headers Do Not Match "
+             "%s and %s\n", lastModified.get(), lastModified304.get()));
+
+        mCacheEntry->Doom();
+        if (mConnectionInfo)
+            gHttpHandler->ConnMgr()->
+                PipelineFeedbackInfo(mConnectionInfo,
+                                     nsHttpConnectionMgr::RedCorruptedContent,
+                                     nsnull, 0);
+    }
+
+    
     rv = mCachedResponseHead->UpdateHeaders(mResponseHead->Headers());
     if (NS_FAILED(rv)) return rv;
 
