@@ -347,6 +347,7 @@ SyncEngine.prototype = {
 
     
     
+    this._log.trace("Reconcile step 1");
     if (item.id in this._tracker.changedIDs) {
       if (this._isEqual(item))
         this._tracker.removeChangedID(item.id);
@@ -356,22 +357,26 @@ SyncEngine.prototype = {
 
     
     
+    this._log.trace("Reconcile step 2");
     if (this._store.itemExists(item.id)) {
       self.done(!this._isEqual(item));
       return;
     }
 
     
+    this._log.trace("Reconcile step 2.5");
     if (item.cleartext === null) {
       self.done(true);
       return;
     }
 
     
+    this._log.trace("Reconcile step 3");
     for (let id in this._tracker.changedIDs) {
       let out = this._createRecord(id);
       if (this._recordLike(item, out)) {
         this._store.changeItemID(id, item.id);
+        this._tracker.removeChangedID(id);
         this._tracker.removeChangedID(item.id);
         this._store.cache.clear(); 
         self.done(false);
