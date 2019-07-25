@@ -352,9 +352,9 @@ GfxInfo::Init()
     
     
     PRBool is64bitApp = sizeof(void*) == 8;
-    PRUnichar *dllFileName = is64bitApp
-                           ? L"igd10umd64.dll"
-                           : L"igd10umd32.dll";
+    const PRUnichar *dllFileName = is64bitApp
+                                 ? L"igd10umd64.dll"
+                                 : L"igd10umd32.dll";
     nsString dllVersion;
     
     gfxWindowsPlatform::GetPlatform()->GetDLLVersion(dllFileName, dllVersion);
