@@ -4247,12 +4247,14 @@ var XULBrowserWindow = {
 
   
   _state: null,
+  _tooltipText: null,
   _hostChanged: false, 
 
   onSecurityChange: function (aWebProgress, aRequest, aState) {
     
     
     if (this._state == aState &&
+        this._tooltipText == gBrowser.securityUI.tooltipText &&
         !this._hostChanged) {
 #ifdef DEBUG
       try {
@@ -4278,6 +4280,7 @@ var XULBrowserWindow = {
 #endif
 
     this._hostChanged = false;
+    this._tooltipText = gBrowser.securityUI.tooltipText
 
     
     
@@ -5868,11 +5871,6 @@ var IndexedDBPromptHelper = {
 
 function WindowIsClosing()
 {
-  if (TabView.isVisible()) {
-    TabView.hide();
-    return false;
-  }
-
   var reallyClose = closeWindow(false, warnAboutClosingWindow);
   if (!reallyClose)
     return false;
@@ -7905,9 +7903,6 @@ var TabContextMenu = {
     let unpinnedTabs = gBrowser.visibleTabs.length - gBrowser._numPinnedTabs;
     document.getElementById("context_closeOtherTabs").disabled = unpinnedTabs <= 1;
     document.getElementById("context_closeOtherTabs").hidden = this.contextTab.pinned;
-
-    
-    document.getElementById("context_tabViewMenu").disabled = this.contextTab.pinned;
   }
 };
 
