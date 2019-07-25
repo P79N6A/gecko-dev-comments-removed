@@ -207,6 +207,18 @@ protected:
 
     bool OnMaybeDequeueOne();
 
+    
+
+
+
+
+
+
+
+
+
+    size_t RemoteViewOfStackDepth(size_t stackDepth) const;
+
     void Incall(const Message& call, size_t stackDepth);
     void DispatchIncall(const Message& call);
 

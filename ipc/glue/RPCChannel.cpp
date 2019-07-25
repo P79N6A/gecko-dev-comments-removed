@@ -330,7 +330,7 @@ RPCChannel::MaybeUndeferIncall()
     RPC_ASSERT(mDeferred.top().rpc_remote_stack_depth_guess() <= stackDepth,
                "fatal logic error");
 
-    if (mDeferred.top().rpc_remote_stack_depth_guess() < stackDepth)
+    if (mDeferred.top().rpc_remote_stack_depth_guess() < RemoteViewOfStackDepth(stackDepth))
         return;
 
     
@@ -435,6 +435,13 @@ RPCChannel::OnMaybeDequeueOne()
     return true;
 }
 
+size_t
+RPCChannel::RemoteViewOfStackDepth(size_t stackDepth) const
+{
+    AssertWorkerThread();
+    return stackDepth - mOutOfTurnReplies.size();
+}
+
 void
 RPCChannel::Incall(const Message& call, size_t stackDepth)
 {
@@ -445,14 +452,7 @@ RPCChannel::Incall(const Message& call, size_t stackDepth)
     
     
     
-    
-    
-    
-    
-    
-    
-    size_t remoteViewOfStackDepth = (stackDepth - mOutOfTurnReplies.size());
-    if (call.rpc_remote_stack_depth_guess() != remoteViewOfStackDepth) {
+    if (call.rpc_remote_stack_depth_guess() != RemoteViewOfStackDepth(stackDepth)) {
         
         
         
