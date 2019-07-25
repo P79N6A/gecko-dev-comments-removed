@@ -556,6 +556,7 @@ nsChromeRegistry::FlushAllCaches()
 NS_IMETHODIMP
 nsChromeRegistry::ReloadChrome()
 {
+  UpdateSelectedLocale();
   FlushAllCaches();
   
   nsresult rv = NS_OK;
