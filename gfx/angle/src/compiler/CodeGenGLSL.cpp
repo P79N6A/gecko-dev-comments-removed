@@ -11,9 +11,9 @@
 
 
 
-TCompiler* ConstructCompiler(EShLanguage language, int debugOptions)
+TCompiler* ConstructCompiler(EShLanguage language, EShSpec spec)
 {
-    return new TranslatorGLSL(language, debugOptions);
+    return new TranslatorGLSL(language, spec);
 }
 
 

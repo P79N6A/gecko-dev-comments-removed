@@ -36,14 +36,15 @@ struct TPragma {
 
 
 struct TParseContext {
-    TParseContext(TSymbolTable& symt, TIntermediate& interm, EShLanguage L, TInfoSink& is) :
-            intermediate(interm), symbolTable(symt), infoSink(is), language(L), treeRoot(0),
+    TParseContext(TSymbolTable& symt, TIntermediate& interm, EShLanguage l, EShSpec s, TInfoSink& is) :
+            intermediate(interm), symbolTable(symt), infoSink(is), language(l), spec(s), treeRoot(0),
             recoveredFromError(false), numErrors(0), lexAfterType(false), loopNestingLevel(0),
             inTypeParen(false), contextPragma(true, false) {  }
     TIntermediate& intermediate; 
     TSymbolTable& symbolTable;   
     TInfoSink& infoSink;
     EShLanguage language;        
+    EShSpec spec;                
     TIntermNode* treeRoot;       
     bool recoveredFromError;     
     int numErrors;
@@ -55,8 +56,8 @@ struct TParseContext {
     TMap<TString, TBehavior> extensionBehavior;
     void initializeExtensionBehavior();
 
-    void C_DECL error(TSourceLoc, const char *szReason, const char *szToken,
-                      const char *szExtraInfoFormat, ...);
+    void error(TSourceLoc, const char *szReason, const char *szToken,
+               const char *szExtraInfoFormat, ...);
     bool reservedErrorCheck(int line, const TString& identifier);
     void recover();
 

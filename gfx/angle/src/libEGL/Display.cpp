@@ -25,6 +25,7 @@ Display::Display(HDC deviceContext) : mDc(deviceContext)
 {
     mD3d9 = NULL;
     mDevice = NULL;
+    mDeviceWindow = NULL;
 
     mAdapter = D3DADAPTER_DEFAULT;
 
@@ -150,6 +151,13 @@ bool Display::initialize()
                 mConfigSet.mSet.insert(configuration);
             }
         }
+
+        if (!createDevice())
+        {
+            terminate();
+
+            return false;
+        }
     }
 
     if (!isInitialized())
@@ -184,6 +192,12 @@ void Display::terminate()
     {
         mD3d9->Release();
         mD3d9 = NULL;
+    }
+
+    if (mDeviceWindow)
+    {
+        DestroyWindow(mDeviceWindow);
+        mDeviceWindow = NULL;
     }
 }
 
@@ -254,132 +268,74 @@ bool Display::getConfigAttrib(EGLConfig config, EGLint attribute, EGLint *value)
     return true;
 }
 
+bool Display::createDevice()
+{
+    static const TCHAR windowName[] = TEXT("AngleHiddenWindow");
+    static const TCHAR className[] = TEXT("STATIC");
+
+    mDeviceWindow = CreateWindowEx(WS_EX_NOACTIVATE, className, windowName, WS_DISABLED | WS_POPUP, 0, 0, 1, 1, HWND_MESSAGE, NULL, GetModuleHandle(NULL), NULL);
+
+    D3DPRESENT_PARAMETERS presentParameters = {0};
+
+    
+    presentParameters.AutoDepthStencilFormat = D3DFMT_UNKNOWN;
+    presentParameters.BackBufferCount = 1;
+    presentParameters.BackBufferFormat = D3DFMT_UNKNOWN;
+    presentParameters.BackBufferWidth = 1;
+    presentParameters.BackBufferHeight = 1;
+    presentParameters.EnableAutoDepthStencil = FALSE;
+    presentParameters.Flags = 0;
+    presentParameters.hDeviceWindow = mDeviceWindow;
+    presentParameters.MultiSampleQuality = 0;
+    presentParameters.MultiSampleType = D3DMULTISAMPLE_NONE;
+    presentParameters.PresentationInterval = convertInterval(mMinSwapInterval);
+    presentParameters.SwapEffect = D3DSWAPEFFECT_DISCARD;
+    presentParameters.Windowed = TRUE;
+
+    DWORD behaviorFlags = D3DCREATE_FPU_PRESERVE | D3DCREATE_NOWINDOWCHANGES;
+
+    HRESULT result = mD3d9->CreateDevice(mAdapter, mDeviceType, mDeviceWindow, behaviorFlags | D3DCREATE_HARDWARE_VERTEXPROCESSING | D3DCREATE_PUREDEVICE, &presentParameters, &mDevice);
+
+    if (result == D3DERR_OUTOFVIDEOMEMORY || result == E_OUTOFMEMORY)
+    {
+        return error(EGL_BAD_ALLOC, false);
+    }
+
+    if (FAILED(result))
+    {
+        result = mD3d9->CreateDevice(mAdapter, mDeviceType, mDeviceWindow, behaviorFlags | D3DCREATE_SOFTWARE_VERTEXPROCESSING, &presentParameters, &mDevice);
+
+        if (result == D3DERR_OUTOFVIDEOMEMORY || result == E_OUTOFMEMORY)
+        {
+            return error(EGL_BAD_ALLOC, false);
+        }
+    }
+
+    ASSERT(SUCCEEDED(result));
+
+    
+    mDevice->SetRenderState(D3DRS_POINTSPRITEENABLE, TRUE);
+
+    mSceneStarted = false;
+
+    return true;
+}
+
 Surface *Display::createWindowSurface(HWND window, EGLConfig config)
 {
     const Config *configuration = mConfigSet.get(config);
 
-    D3DPRESENT_PARAMETERS presentParameters = {0};
-
-    presentParameters.AutoDepthStencilFormat = configuration->mDepthStencilFormat;
-    presentParameters.BackBufferCount = 1;
-    presentParameters.BackBufferFormat = configuration->mRenderTargetFormat;
-    presentParameters.BackBufferWidth = 0;
-    presentParameters.BackBufferHeight = 0;
-    presentParameters.EnableAutoDepthStencil = configuration->mDepthSize ? TRUE : FALSE;
-    presentParameters.Flags = 0;
-    presentParameters.hDeviceWindow = window;
-    presentParameters.MultiSampleQuality = 0;                  
-    presentParameters.MultiSampleType = D3DMULTISAMPLE_NONE;   
-    presentParameters.PresentationInterval = convertInterval(mMinSwapInterval);
-    presentParameters.SwapEffect = D3DSWAPEFFECT_COPY;
-    presentParameters.Windowed = TRUE;   
-
-    IDirect3DSwapChain9 *swapChain = NULL;
-    IDirect3DSurface9 *depthStencilSurface = NULL;
-
-    if (!mDevice)
-    {
-        DWORD behaviorFlags = D3DCREATE_FPU_PRESERVE | D3DCREATE_NOWINDOWCHANGES;
-
-        HRESULT result = mD3d9->CreateDevice(mAdapter, mDeviceType, window, behaviorFlags | D3DCREATE_HARDWARE_VERTEXPROCESSING | D3DCREATE_PUREDEVICE, &presentParameters, &mDevice);
-
-        if (result == D3DERR_OUTOFVIDEOMEMORY || result == E_OUTOFMEMORY)
-        {
-            return error(EGL_BAD_ALLOC, (egl::Surface*)NULL);
-        }
-
-        if (FAILED(result))
-        {
-            result = mD3d9->CreateDevice(mAdapter, mDeviceType, window, behaviorFlags | D3DCREATE_SOFTWARE_VERTEXPROCESSING, &presentParameters, &mDevice);
-
-            if (result == D3DERR_OUTOFVIDEOMEMORY || result == E_OUTOFMEMORY)
-            {
-                return error(EGL_BAD_ALLOC, (egl::Surface*)NULL);
-            }
-        }
-
-        ASSERT(SUCCEEDED(result));
-
-        if (mDevice)
-        {
-            mSceneStarted = false;
-            mDevice->GetSwapChain(0, &swapChain);
-            mDevice->GetDepthStencilSurface(&depthStencilSurface);
-        }
-    }
-    else
-    {
-        if (!mSurfaceSet.empty())
-        {
-            
-            
-            HRESULT result = mDevice->CreateAdditionalSwapChain(&presentParameters, &swapChain);
-
-            if (result == D3DERR_OUTOFVIDEOMEMORY || result == E_OUTOFMEMORY)
-            {
-                ERR("Could not create additional swap chains. Out of memory.");
-                return error(EGL_BAD_ALLOC, (egl::Surface*)NULL);
-            }
-
-            ASSERT(SUCCEEDED(result));
-
-            
-            
-            result = mDevice->CreateDepthStencilSurface(presentParameters.BackBufferWidth, presentParameters.BackBufferHeight,
-                                                        presentParameters.AutoDepthStencilFormat, presentParameters.MultiSampleType,
-                                                        presentParameters.MultiSampleQuality, FALSE, &depthStencilSurface, NULL);
-
-            if (result == D3DERR_OUTOFVIDEOMEMORY || result == E_OUTOFMEMORY)
-            {
-                swapChain->Release();
-                ERR("Could not create depthstencil surface for new swap chain. Out of memory.");
-                return error(EGL_BAD_ALLOC, (egl::Surface*)NULL);
-            }
-
-            ASSERT(SUCCEEDED(result));
-        }
-        else
-        {
-            
-            
-            
-            HRESULT result = mDevice->Reset(&presentParameters);
-
-            if (result == D3DERR_OUTOFVIDEOMEMORY || result == E_OUTOFMEMORY)
-            {
-                ERR("Could not reset presentation parameters for device. Out of memory.");
-                return error(EGL_BAD_ALLOC, (egl::Surface*)NULL);
-            }
-
-            ASSERT(SUCCEEDED(result));
-
-            if (mDevice)
-            {
-                mSceneStarted = false;
-                mDevice->GetSwapChain(0, &swapChain);
-                mDevice->GetDepthStencilSurface(&depthStencilSurface);
-            }
-        }
-    }
-
-    Surface *surface = NULL;
-
-    if (swapChain)
-    {
-        surface = new Surface(this, swapChain, depthStencilSurface, configuration);
-        mSurfaceSet.insert(surface);
-
-        swapChain->Release();
-    }
+    Surface *surface = new Surface(this, configuration, window);
+    mSurfaceSet.insert(surface);
 
     return surface;
 }
 
-EGLContext Display::createContext(EGLConfig configHandle)
+EGLContext Display::createContext(EGLConfig configHandle, const gl::Context *shareContext)
 {
     const egl::Config *config = mConfigSet.get(configHandle);
 
-    gl::Context *context = glCreateContext(config);
+    gl::Context *context = glCreateContext(config, shareContext);
     mContextSet.insert(context);
 
     return context;

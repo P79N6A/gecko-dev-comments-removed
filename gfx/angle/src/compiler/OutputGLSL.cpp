@@ -391,13 +391,17 @@ bool TOutputGLSL::visitSelection(Visit visit, TIntermSelection* node)
 
     if (node->usesTernaryOperator())
     {
-        out << "(";
+        
+        
+        
+        
+        out << "((";
         node->getCondition()->traverse(this);
         out << ") ? (";
         node->getTrueBlock()->traverse(this);
         out << ") : (";
         node->getFalseBlock()->traverse(this);
-        out << ")";
+        out << "))";
     }
     else
     {
