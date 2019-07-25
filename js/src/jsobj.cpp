@@ -4562,11 +4562,14 @@ js_GetPropertyHelperInline(JSContext *cx, HandleObject obj, HandleObject receive
                 return false;
             }
 
-            if (!cx->hasStrictOption() ||
-                cx->stack.currentScript()->warnedAboutUndefinedProp ||
-                (op != JSOP_GETPROP && op != JSOP_GETELEM)) {
-                return JS_TRUE;
-            }
+            
+            if (!cx->hasStrictOption() || (op != JSOP_GETPROP && op != JSOP_GETELEM))
+                return true;
+
+            
+            JSScript *script = cx->stack.currentScript();
+            if (!script || script->warnedAboutUndefinedProp)
+                return true;
 
             
 
