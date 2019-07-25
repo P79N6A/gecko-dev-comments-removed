@@ -579,6 +579,17 @@ protected:
                              GLsizeiptr size,
                              const GLvoid *data,
                              GLenum usage);
+    
+
+    GLenum CheckedTexImage2D(GLenum target,
+                             GLint level,
+                             GLenum internalFormat,
+                             GLsizei width,
+                             GLsizei height,
+                             GLint border,
+                             GLenum format,
+                             GLenum type,
+                             const GLvoid *data);
 
     
     nsTArray<WebGLVertexAttribData> mAttribBuffers;
@@ -921,6 +932,8 @@ protected:
     
     
 
+public:
+
     struct ImageInfo {
         ImageInfo() : mWidth(0), mHeight(0), mFormat(0), mType(0), mIsDefined(PR_FALSE) {}
         PRBool operator==(const ImageInfo& a) const {
@@ -950,8 +963,6 @@ protected:
         WebGLenum mFormat, mType;
         PRBool mIsDefined;
     };
-
-public:
 
     ImageInfo& ImageInfoAt(size_t level, size_t face = 0) {
 #ifdef DEBUG
