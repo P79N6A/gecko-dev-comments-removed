@@ -133,13 +133,9 @@ public:
                              PRBool aNotify);
 
   
-  virtual void DidChangeLength(PRUint8 aAttrEnum, PRBool aDoSetAttr);
-  virtual void DidChangeViewBox(PRBool aDoSetAttr);
-  virtual void DidChangePreserveAspectRatio(PRBool aDoSetAttr);
-
-  
   gfxMatrix GetMarkerTransform(float aStrokeWidth,
                                float aX, float aY, float aAutoAngle);
+  nsSVGViewBoxRect GetViewBoxRect();
   gfxMatrix GetViewBoxTransform();
 
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
