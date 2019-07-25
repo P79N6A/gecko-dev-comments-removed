@@ -5966,12 +5966,6 @@ var WebappsUI = {
             return;
           let manifest = new DOMApplicationManifest(aManifest, data.origin);
 
-          
-          let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"].createInstance(Ci.nsIScriptableUnicodeConverter);
-          converter.charset = "UTF-8";
-          let name = manifest.name ? converter.ConvertToUnicode(manifest.name) :
-                                     converter.ConvertToUnicode(manifest.fullLaunchPath());
-
           let observer = {
             observe: function (aSubject, aTopic) {
               if (aTopic == "alertclickcallback") {
