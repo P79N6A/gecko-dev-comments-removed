@@ -479,7 +479,7 @@ ChromeProfileMigrator.prototype = {
 
 
 
-  sourceExists: function Chrome_sourceExists()
+  get sourceExists()
   {
     let result = this.getMigrateData(null, false);
     return result != 0;
@@ -495,7 +495,7 @@ ChromeProfileMigrator.prototype = {
 
 
 
-  sourceHomePageURL: function Chrome_sourceHomePageURL()
+  get sourceHomePageURL()
   {
     try  {
       if (this._homepageURL)
