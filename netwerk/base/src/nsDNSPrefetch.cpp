@@ -66,7 +66,8 @@ nsDNSPrefetch::Shutdown()
     return NS_OK;
 }
 
-nsDNSPrefetch::nsDNSPrefetch(nsIURI *aURI)
+nsDNSPrefetch::nsDNSPrefetch(nsIURI *aURI, PRBool storeTiming)
+    : mStoreTiming(storeTiming)
 {
     aURI->GetAsciiHost(mHostname);
 }
@@ -82,6 +83,12 @@ nsDNSPrefetch::Prefetch(PRUint16 flags)
     
     nsCOMPtr<nsICancelable> tmpOutstanding;  
 
+    if (mStoreTiming)
+        mStartTimestamp = mozilla::TimeStamp::Now();
+    
+    
+    
+    
     return sDNSService->AsyncResolve(mHostname, flags | nsIDNSService::RESOLVE_SPECULATE,
                                      this, nsnull, getter_AddRefs(tmpOutstanding));
 }
@@ -112,5 +119,7 @@ nsDNSPrefetch::OnLookupComplete(nsICancelable *request,
                                 nsIDNSRecord  *rec,
                                 nsresult       status)
 {
+    if (mStoreTiming)
+        mEndTimestamp = mozilla::TimeStamp::Now();
     return NS_OK;
 }

@@ -3659,10 +3659,16 @@ nsHttpChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *context)
         
         
         
-        nsRefPtr<nsDNSPrefetch> prefetch = new nsDNSPrefetch(mURI);
-        if (prefetch) {
-            prefetch->PrefetchHigh();
-        }
+        
+        
+        
+        
+        
+        
+        
+        
+        mDNSPrefetch = new nsDNSPrefetch(mURI, mTimingEnabled);
+        mDNSPrefetch->PrefetchHigh();
     }
     
     
@@ -3830,7 +3836,9 @@ nsHttpChannel::GetAsyncOpen(mozilla::TimeStamp* _retval) {
 
 NS_IMETHODIMP
 nsHttpChannel::GetDomainLookupStart(mozilla::TimeStamp* _retval) {
-    if (mTransaction)
+    if (mDNSPrefetch && mDNSPrefetch->TimingsValid())
+        *_retval = mDNSPrefetch->StartTimestamp();
+    else if (mTransaction)
         *_retval = mTransaction->Timings().domainLookupStart;
     else
         *_retval = mTransactionTimings.domainLookupStart;
@@ -3839,7 +3847,9 @@ nsHttpChannel::GetDomainLookupStart(mozilla::TimeStamp* _retval) {
 
 NS_IMETHODIMP
 nsHttpChannel::GetDomainLookupEnd(mozilla::TimeStamp* _retval) {
-    if (mTransaction)
+    if (mDNSPrefetch && mDNSPrefetch->TimingsValid())
+        *_retval = mDNSPrefetch->EndTimestamp();
+    else if (mTransaction)
         *_retval = mTransaction->Timings().domainLookupEnd;
     else
         *_retval = mTransactionTimings.domainLookupEnd;
@@ -4190,6 +4200,15 @@ nsHttpChannel::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult st
         mTransactionTimings = mTransaction->Timings();
         mTransaction = nsnull;
         mTransactionPump = 0;
+
+        
+        if (mDNSPrefetch && mDNSPrefetch->TimingsValid()) {
+            mTransactionTimings.domainLookupStart =
+                mDNSPrefetch->StartTimestamp();
+            mTransactionTimings.domainLookupEnd =
+                mDNSPrefetch->EndTimestamp();
+        }
+        mDNSPrefetch = nsnull;
 
         
         if (authRetry) {

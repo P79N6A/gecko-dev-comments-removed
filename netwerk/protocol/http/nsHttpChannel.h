@@ -65,6 +65,7 @@
 #include "nsIAsyncVerifyRedirectCallback.h"
 #include "nsICryptoHash.h"
 #include "nsITimedChannel.h"
+#include "nsDNSPrefetch.h"
 #include "TimingStruct.h"
 
 class nsAHttpConnection;
@@ -363,6 +364,8 @@ private:
     
     
     TimingStruct                      mTransactionTimings;
+    
+    nsRefPtr<nsDNSPrefetch>           mDNSPrefetch;
 
     nsresult WaitForRedirectCallback();
     void PushRedirectAsyncFunc(nsContinueRedirectionFunc func);
