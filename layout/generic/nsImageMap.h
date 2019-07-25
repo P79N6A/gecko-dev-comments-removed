@@ -64,10 +64,7 @@ public:
 
 
 
-
-
-  bool IsInside(nscoord aX, nscoord aY,
-                  nsIContent** aContent) const;
+  nsIContent* GetArea(nscoord aX, nscoord aY) const;
 
   void Draw(nsIFrame* aFrame, nsRenderingContext& aRC);
   
