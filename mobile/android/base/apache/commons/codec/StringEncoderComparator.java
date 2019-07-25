@@ -28,6 +28,7 @@ import java.util.Comparator;
 
 
 
+@SuppressWarnings("rawtypes")
 public class StringEncoderComparator implements Comparator {
 
     
@@ -68,6 +69,7 @@ public class StringEncoderComparator implements Comparator {
 
 
 
+    @SuppressWarnings("unchecked")
     public int compare(Object o1, Object o2) {
 
         int compareCode = 0;
