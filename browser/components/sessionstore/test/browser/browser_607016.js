@@ -43,7 +43,7 @@ let stateBackup = ss.getBrowserState();
 function cleanup() {
   
   try {
-    Services.prefs.clearUserPref("browser.sessionstore.max_concurrent_tabs");
+    Services.prefs.clearUserPref("browser.sessionstore.restore_on_demand");
   } catch (e) {}
   ss.setBrowserState(stateBackup);
   executeSoon(finish);
@@ -55,7 +55,7 @@ function test() {
 
   
   
-  Services.prefs.setIntPref("browser.sessionstore.max_concurrent_tabs", 0);
+  Services.prefs.setBoolPref("browser.sessionstore.restore_on_demand", true);
 
   
   let progressListener = {

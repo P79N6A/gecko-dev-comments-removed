@@ -60,7 +60,7 @@ let tests = [test_cascade, test_select, test_multiWindowState,
 function runNextTest() {
   
   try {
-    Services.prefs.clearUserPref("browser.sessionstore.max_concurrent_tabs");
+    Services.prefs.clearUserPref("browser.sessionstore.restore_on_demand");
   } catch (e) {}
 
   
@@ -89,9 +89,6 @@ function runNextTest() {
 
 function test_cascade() {
   
-  Services.prefs.setIntPref("browser.sessionstore.max_concurrent_tabs", 1);
-
-  
   let progressListener = {
     onStateChange: function (aBrowser, aWebProgress, aRequest, aStateFlags, aStatus) {
       dump("\n\nload: " + aBrowser.currentURI.spec + "\n" + JSON.stringify(countTabs()) + "\n\n");
@@ -118,11 +115,11 @@ function test_cascade() {
   
   
   let expectedCounts = [
-    [5, 1, 0],
-    [4, 1, 1],
-    [3, 1, 2],
-    [2, 1, 3],
-    [1, 1, 4],
+    [3, 3, 0],
+    [2, 3, 1],
+    [1, 3, 2],
+    [0, 3, 3],
+    [0, 2, 4],
     [0, 1, 5]
   ];
 
@@ -151,7 +148,7 @@ function test_cascade() {
 function test_select() {
   
   
-  Services.prefs.setIntPref("browser.sessionstore.max_concurrent_tabs", 0);
+  Services.prefs.setBoolPref("browser.sessionstore.restore_on_demand", true);
 
   
   let progressListener = {
@@ -299,9 +296,6 @@ function test_multiWindowState() {
 
 function test_setWindowStateNoOverwrite() {
   
-  Services.prefs.setIntPref("browser.sessionstore.max_concurrent_tabs", 1);
-
-  
   let progressListener = {
     onStateChange: function (aBrowser, aWebProgress, aRequest, aStateFlags, aStatus) {
       
@@ -371,9 +365,6 @@ function test_setWindowStateNoOverwrite() {
 
 function test_setWindowStateOverwrite() {
   
-  Services.prefs.setIntPref("browser.sessionstore.max_concurrent_tabs", 1);
-
-  
   let progressListener = {
     onStateChange: function (aBrowser, aWebProgress, aRequest, aStateFlags, aStatus) {
       
@@ -442,9 +433,6 @@ function test_setWindowStateOverwrite() {
 
 
 function test_setBrowserStateInterrupted() {
-  
-  Services.prefs.setIntPref("browser.sessionstore.max_concurrent_tabs", 1);
-
   
   let progressListener = {
     onStateChange: function (aBrowser, aWebProgress, aRequest, aStateFlags, aStatus) {
@@ -563,7 +551,7 @@ function test_setBrowserStateInterrupted() {
 function test_reload() {
   
   
-  Services.prefs.setIntPref("browser.sessionstore.max_concurrent_tabs", 0);
+  Services.prefs.setBoolPref("browser.sessionstore.restore_on_demand", true);
 
   
   let progressListener = {

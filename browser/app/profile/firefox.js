@@ -788,7 +788,7 @@ pref("browser.sessionstore.max_resumed_crashes", 1);
 
 
 
-pref("browser.sessionstore.max_concurrent_tabs", 3);
+pref("browser.sessionstore.restore_on_demand", false);
 
 pref("browser.sessionstore.restore_hidden_tabs", false);
 
