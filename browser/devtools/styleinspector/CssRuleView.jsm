@@ -91,9 +91,23 @@ var EXPORTED_SYMBOLS = ["CssRuleView",
 
 
 
-function ElementStyle(aElement)
+
+
+
+
+
+
+
+function ElementStyle(aElement, aStore)
 {
   this.element = aElement;
+  this.store = aStore || {};
+  if (this.store.disabled) {
+    this.store.disabled = aStore.disabled;
+  } else {
+    this.store.disabled = WeakMap();
+  }
+
   let doc = aElement.ownerDocument;
 
   
@@ -385,10 +399,18 @@ Rule.prototype = {
 
 
 
+
   applyProperties: function Rule_applyProperties()
   {
+    let disabledProps = [];
+
     for each (let prop in this.textProps) {
       if (!prop.enabled) {
+        disabledProps.push({
+          name: prop.name,
+          value: prop.value,
+          priority: prop.priority
+        });
         continue;
       }
 
@@ -400,6 +422,10 @@ Rule.prototype = {
       prop.updateComputed();
     }
     this.elementStyle._changed();
+
+    
+    let disabled = this.elementStyle.store.disabled;
+    disabled.set(this.style, disabledProps);
 
     this.elementStyle.markOverridden();
   },
@@ -488,6 +514,19 @@ Rule.prototype = {
 
       let prop = new TextProperty(this, name, matches[2], matches[3] || "");
       this.textProps.push(prop);
+    }
+
+    
+    let disabledProps = this.elementStyle.store.disabled.get(this.style);
+    if (!disabledProps) {
+      return;
+    }
+
+    for each (let prop in disabledProps) {
+      let textProp = new TextProperty(this, prop.name,
+                                      prop.value, prop.priority);
+      textProp.enabled = false;
+      this.textProps.push(textProp);
     }
   },
 }
@@ -607,13 +646,22 @@ TextProperty.prototype = {
 
 
 
-function CssRuleView(aDoc)
+
+
+
+
+function CssRuleView(aDoc, aStore)
 {
   this.doc = aDoc;
+  this.store = aStore;
 
   this.element = this.doc.createElementNS(HTML_NS, "div");
   this.element.setAttribute("tabindex", "0");
   this.element.classList.add("ruleview");
+
+  
+  
+  this.element.style.position = "relative";
 }
 
 CssRuleView.prototype = {
@@ -643,7 +691,7 @@ CssRuleView.prototype = {
       delete this._elementStyle.onChanged;
     }
 
-    this._elementStyle = new ElementStyle(aElement);
+    this._elementStyle = new ElementStyle(aElement, this.store);
     this._elementStyle.onChanged = function() {
       this._changed();
     }.bind(this);
