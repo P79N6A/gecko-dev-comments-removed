@@ -1846,17 +1846,13 @@ nsHTMLEditor::InsertNodeAtPoint(nsIDOMNode *aNode,
   NS_ENSURE_TRUE(ioOffset, NS_ERROR_NULL_POINTER);
   
   nsresult res = NS_OK;
-  nsAutoString tagName;
-  aNode->GetNodeName(tagName);
-  ToLowerCase(tagName);
   nsCOMPtr<nsIDOMNode> parent = *ioParent;
   nsCOMPtr<nsIDOMNode> topChild = *ioParent;
   nsCOMPtr<nsIDOMNode> tmp;
   PRInt32 offsetOfInsert = *ioOffset;
    
   
-  while (!CanContainTag(parent, tagName))
-  {
+  while (!CanContain(parent, aNode)) {
     
     
     if (nsTextEditUtils::IsBody(parent) || nsHTMLEditUtils::IsTableElement(parent))

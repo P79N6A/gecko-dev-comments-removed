@@ -534,6 +534,7 @@ public:
 
 
   
+  bool CanContain(nsIDOMNode* aParent, nsIDOMNode* aChild);
   bool CanContainTag(nsIDOMNode* aParent, const nsAString &aTag);
   bool TagCanContain(const nsAString &aParentTag, nsIDOMNode* aChild);
   virtual bool TagCanContainTag(const nsAString &aParentTag, const nsAString &aChildTag);
