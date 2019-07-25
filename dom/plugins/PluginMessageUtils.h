@@ -128,6 +128,8 @@ struct NPRemoteWindow
 typedef HWND NativeWindowHandle;
 #elif defined(MOZ_X11)
 typedef XID NativeWindowHandle;
+#elif defined(XP_MACOSX)
+typedef intptr_t NativeWindowHandle; 
 #else
 #error Need NativeWindowHandle for this platform
 #endif

@@ -90,8 +90,7 @@ enum nsDOMClassInfoID {
   
   eDOMClassInfo_HTMLDocument_id,
   eDOMClassInfo_HTMLOptionsCollection_id,
-  eDOMClassInfo_HTMLFormControlCollection_id,
-  eDOMClassInfo_HTMLGenericCollection_id,
+  eDOMClassInfo_HTMLCollection_id,
 
   
   eDOMClassInfo_HTMLAnchorElement_id,
