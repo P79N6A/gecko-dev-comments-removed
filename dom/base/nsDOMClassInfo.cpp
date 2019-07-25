@@ -609,7 +609,9 @@ static const char kDOMStringBundleURL[] =
   (EVENTTARGET_SCRIPTABLE_FLAGS)
 
 #define DOMCLASSINFO_STANDARD_FLAGS                                           \
-  (nsIClassInfo::MAIN_THREAD_ONLY | nsIClassInfo::DOM_OBJECT)
+  (nsIClassInfo::MAIN_THREAD_ONLY |                                           \
+   nsIClassInfo::DOM_OBJECT       |                                           \
+   nsIClassInfo::SINGLETON_CLASSINFO)
 
 
 #ifdef DEBUG
@@ -10712,7 +10714,7 @@ nsNonDOMObjectSH::GetFlags(PRUint32 *aFlags)
   
   
   
-  *aFlags = nsIClassInfo::MAIN_THREAD_ONLY;
+  *aFlags = nsIClassInfo::MAIN_THREAD_ONLY | nsIClassInfo::SINGLETON_CLASSINFO;
   return NS_OK;
 }
 

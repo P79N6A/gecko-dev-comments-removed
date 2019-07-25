@@ -487,8 +487,14 @@ XPCWrappedNative::GetNewOrUsed(XPCCallContext& ccx,
     
     
     
-    JSBool isClassInfo = Interface &&
-                         Interface->GetIID()->Equals(NS_GET_IID(nsIClassInfo));
+    bool iidIsClassInfo = Interface &&
+                          Interface->GetIID()->Equals(NS_GET_IID(nsIClassInfo));
+    PRUint32 classInfoFlags;
+    bool isClassInfoSingleton = helper.GetClassInfo() == helper.Object() &&
+                                NS_SUCCEEDED(helper.GetClassInfo()
+                                                   ->GetFlags(&classInfoFlags)) &&
+                                (classInfoFlags & nsIClassInfo::SINGLETON_CLASSINFO);
+    bool isClassInfo = iidIsClassInfo || isClassInfoSingleton;
 
     nsIClassInfo *info = helper.GetClassInfo();
 
