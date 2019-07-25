@@ -384,6 +384,11 @@ WebGLContext::InitAndValidateGL()
 
     MakeContextCurrent();
 
+    
+    if (!gl->IsGLES2()) {
+        gl->fEnableVertexAttribArray(0);
+    }
+
     gl->fGetIntegerv(LOCAL_GL_MAX_VERTEX_ATTRIBS, (GLint*) &mGLMaxVertexAttribs);
     if (mGLMaxVertexAttribs < 8) {
         LogMessage("GL_MAX_VERTEX_ATTRIBS: %d is < 8!", mGLMaxVertexAttribs);
