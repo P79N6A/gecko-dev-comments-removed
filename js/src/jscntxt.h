@@ -1725,13 +1725,6 @@ struct JSContext
     JSCList             link;
 
     
-
-
-#define JS_DISPLAY_SIZE 16U
-
-    JSStackFrame        *display[JS_DISPLAY_SIZE];
-
-    
     uint16              version;
 
     
@@ -3049,6 +3042,22 @@ CanLeaveTrace(JSContext *cx)
 #else
     return JS_FALSE;
 #endif
+}
+
+
+
+
+
+static JS_INLINE JSStackFrame *
+FindFrameAtLevel(JSContext *cx, uint16 targetLevel, JSStackFrame * const baseFrame = NULL)
+{
+    JSStackFrame *it = baseFrame ? baseFrame : cx->fp;
+    JS_ASSERT(it && it->script);
+    while (it->script->staticLevel != targetLevel) {
+        it = it->down;
+        JS_ASSERT(it && it->script);
+    }
+    return it;
 }
 
 extern void
