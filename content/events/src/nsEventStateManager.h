@@ -344,6 +344,33 @@ protected:
   nsresult ChangeFullZoom(PRInt32 change);
   
 
+
+
+
+
+
+
+  PRInt32 ComputeWheelActionFor(nsMouseScrollEvent* aMouseEvent,
+                                PRBool aUseSystemSettings);
+  
+
+
+
+
+  PRInt32 GetWheelActionFor(nsMouseScrollEvent* aMouseEvent);
+  
+
+
+
+
+  PRInt32 GetScrollLinesFor(nsMouseScrollEvent* aMouseEvent);
+  
+
+
+
+  PRBool UseSystemScrollSettingFor(nsMouseScrollEvent* aMouseEvent);
+  
+
   
 
 
