@@ -352,12 +352,15 @@ nsCaretAccessible::GetCaretRect(nsIWidget **aOutWidget)
   }
 
   nsPoint offset;
+  
+  
   *aOutWidget = frame->GetNearestWidget(offset);
   NS_ENSURE_TRUE(*aOutWidget, nsIntRect());
   rect.MoveBy(offset);
 
   caretRect = rect.ToOutsidePixels(frame->PresContext()->AppUnitsPerDevPixel());
-  caretRect.MoveBy((*aOutWidget)->WidgetToScreenOffset());
+  
+  caretRect.MoveBy((*aOutWidget)->WidgetToScreenOffset() - (*aOutWidget)->GetClientOffset());
 
   
   
