@@ -4,6 +4,7 @@
 
 
 
+
 function run_test() {
   do_test_pending();
 
@@ -19,7 +20,7 @@ function run_test() {
       do_throw("Unexpected error (" + aError.result + "): " + aError.message);
     },
     handleCompletion: function(aReason) {
-      do_check_false(this._gotResult);
+      do_check_true(this._gotResult);
        do_test_finished();
     }
   });

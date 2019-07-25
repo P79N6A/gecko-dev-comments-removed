@@ -74,6 +74,8 @@
 
 #define TOPIC_PLACES_CONNECTION_CLOSED "places-connection-closed"
 
+class nsIStringBundle;
+
 namespace mozilla {
 namespace places {
 
@@ -273,6 +275,11 @@ protected:
   
 
 
+  nsresult CreateBookmarkRoots();
+
+  
+
+
   nsresult InitFunctions();
 
   
@@ -292,6 +299,7 @@ protected:
   nsresult MigrateV14Up();
   nsresult MigrateV15Up();
 
+  nsresult UpdateBookmarkRootTitles();
   nsresult CheckAndUpdateGUIDs();
 
 private:

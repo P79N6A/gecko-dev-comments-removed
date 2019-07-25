@@ -264,34 +264,7 @@ private:
 
 
 
-
-
-
-
-
-
-  nsresult InitRoots(bool aForceCreate);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  nsresult CreateRoot(const nsCString& name,
-                      PRInt64* _itemId,
-                      PRInt64 aParentId,
-                      nsIStringBundle* aBundle,
-                      const PRUnichar* aTitleStringId);
+  nsresult ReadRoots();
 
   nsresult AdjustIndices(PRInt64 aFolder,
                          PRInt32 aStartIndex,
