@@ -1767,7 +1767,7 @@ nsTextEditorState::SetValue(const nsAString& aValue, bool aUserInput,
     
     if (!currentValue.Equals(aValue))
     {
-      nsTextControlFrame::ValueSetter valueSetter(mBoundFrame, mEditor);
+      nsTextControlFrame::ValueSetter valueSetter(mEditor);
 
       
       
