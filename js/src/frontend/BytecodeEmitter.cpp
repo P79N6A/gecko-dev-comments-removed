@@ -6117,7 +6117,7 @@ EmitStatementList(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t 
     if (pn->pn_xflags & PNX_NEEDBRACES) {
         noteIndex = NewSrcNote2(cx, bce, SRC_BRACE, 0);
         if (noteIndex < 0 || Emit1(cx, bce, JSOP_NOP) < 0)
-            return JS_FALSE;
+            return false;
     }
 
     StmtInfo stmtInfo;
@@ -6145,7 +6145,7 @@ EmitStatementList(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t 
             JS_ASSERT(pnchild->isKind(PNK_SEMI));
             JS_ASSERT(pnchild->pn_kid->isKind(PNK_VAR) || pnchild->pn_kid->isKind(PNK_CONST));
             if (!EmitTree(cx, bce, pnchild))
-                return JS_FALSE;
+                return false;
             pnchild = pnchild->pn_next;
         }
 
@@ -6153,7 +6153,7 @@ EmitStatementList(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t 
             if (pn2->isKind(PNK_FUNCTION)) {
                 if (pn2->isOp(JSOP_NOP)) {
                     if (!EmitTree(cx, bce, pn2))
-                        return JS_FALSE;
+                        return false;
                 } else {
                     
 
@@ -6166,13 +6166,14 @@ EmitStatementList(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t 
             }
         }
     }
+
     for (ParseNode *pn2 = pnchild; pn2; pn2 = pn2->pn_next) {
         if (!EmitTree(cx, bce, pn2))
-            return JS_FALSE;
+            return false;
     }
 
     if (noteIndex >= 0 && !SetSrcNoteOffset(cx, bce, (uintN)noteIndex, 0, bce->offset() - tmp))
-        return JS_FALSE;
+        return false;
 
     return PopStatementBCE(cx, bce);
 }
@@ -6183,82 +6184,84 @@ EmitStatement(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
     JS_ASSERT(pn->isKind(PNK_SEMI));
 
     ParseNode *pn2 = pn->pn_kid;
-    if (pn2) {
+    if (!pn2)
+        return true;
+
+    
+
+
+
+
+
+
+
+
+    bool wantval;
+    JSBool useful = wantval = !(bce->flags & (TCF_IN_FUNCTION | TCF_NO_SCRIPT_RVAL));
+
+    
+    if (!useful) {
+        if (!CheckSideEffects(cx, bce, pn2, &useful))
+            return false;
+
         
 
 
 
 
 
-
-
-
-        JSBool wantval;
-        JSBool useful = wantval = !(bce->flags & (TCF_IN_FUNCTION | TCF_NO_SCRIPT_RVAL));
-
-        
-        if (!useful) {
-            if (!CheckSideEffects(cx, bce, pn2, &useful))
-                return JS_FALSE;
-        }
-
-        
-
-
-
-
-
-        if (!useful &&
-            bce->topStmt &&
+        if (bce->topStmt &&
             bce->topStmt->type == STMT_LABEL &&
-            bce->topStmt->update >= bce->offset()) {
+            bce->topStmt->update >= bce->offset())
+        {
             useful = true;
         }
+    }
 
-        if (!useful) {
-            
-            if (!pn->isDirectivePrologueMember()) {
-                bce->current->currentLine = pn2->pn_pos.begin.lineno;
-                if (!ReportCompileErrorNumber(cx, bce->tokenStream(), pn2,
-                                              JSREPORT_WARNING | JSREPORT_STRICT,
-                                              JSMSG_USELESS_EXPR)) {
-                    return JS_FALSE;
-                }
-            }
-        } else {
-            JSOp op = wantval ? JSOP_POPV : JSOP_POP;
-            JS_ASSERT_IF(pn2->isKind(PNK_ASSIGN), pn2->isOp(JSOP_NOP));
+    if (useful) {
+        JSOp op = wantval ? JSOP_POPV : JSOP_POP;
+        JS_ASSERT_IF(pn2->isKind(PNK_ASSIGN), pn2->isOp(JSOP_NOP));
 #if JS_HAS_DESTRUCTURING
+        if (!wantval &&
+            pn2->isKind(PNK_ASSIGN) &&
+            !MaybeEmitGroupAssignment(cx, bce, op, pn2, &op))
+        {
+            return false;
+        }
+#endif
+        if (op != JSOP_NOP) {
+            
+
+
+
+
+
+
             if (!wantval &&
                 pn2->isKind(PNK_ASSIGN) &&
-                !MaybeEmitGroupAssignment(cx, bce, op, pn2, &op)) {
-                return JS_FALSE;
+                pn2->pn_left->isOp(JSOP_SETPROP) &&
+                pn2->pn_right->isOp(JSOP_LAMBDA) &&
+                pn2->pn_right->pn_funbox->joinable())
+            {
+                if (!SetMethodFunction(cx, pn2->pn_right->pn_funbox, pn2->pn_left->pn_atom))
+                    return false;
+                pn2->pn_left->setOp(JSOP_SETMETHOD);
             }
-#endif
-            if (op != JSOP_NOP) {
-                
-
-
-
-
-
-
-                if (!wantval &&
-                    pn2->isKind(PNK_ASSIGN) &&
-                    pn2->pn_left->isOp(JSOP_SETPROP) &&
-                    pn2->pn_right->isOp(JSOP_LAMBDA) &&
-                    pn2->pn_right->pn_funbox->joinable()) {
-                    if (!SetMethodFunction(cx, pn2->pn_right->pn_funbox, pn2->pn_left->pn_atom))
-                        return JS_FALSE;
-                    pn2->pn_left->setOp(JSOP_SETMETHOD);
-                }
-                if (!EmitTree(cx, bce, pn2))
-                    return JS_FALSE;
-                if (Emit1(cx, bce, op) < 0)
-                    return JS_FALSE;
-            }
+            if (!EmitTree(cx, bce, pn2))
+                return false;
+            if (Emit1(cx, bce, op) < 0)
+                return false;
+        }
+    } else if (!pn->isDirectivePrologueMember()) {
+        
+        bce->current->currentLine = pn2->pn_pos.begin.lineno;
+        if (!ReportCompileErrorNumber(cx, bce->tokenStream(), pn2,
+                                      JSREPORT_WARNING | JSREPORT_STRICT, JSMSG_USELESS_EXPR))
+        {
+            return false;
         }
     }
+
     return true;
 }
 
