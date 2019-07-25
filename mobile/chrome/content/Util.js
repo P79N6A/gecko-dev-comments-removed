@@ -125,19 +125,29 @@ let Util = {
     if (handheldFriendly == "true")
       return {reason: "handheld", result: true};
 
+    
+    
+    
+    
     let viewportScale = parseFloat(windowUtils.getDocumentMetadata("viewport-initial-scale"));
     let viewportWidthStr = windowUtils.getDocumentMetadata("viewport-width");
     let viewportHeightStr = windowUtils.getDocumentMetadata("viewport-height");
+
+    
+    if (viewportScale == 1.0 && !viewportWidthStr)
+      viewportWidthStr = "device-width";
+
     let viewportWidth = viewportWidthStr == "device-width" ? window.innerWidth : parseInt(viewportWidthStr);
     let viewportHeight = viewportHeightStr == "device-height" ? window.innerHeight : parseInt(viewportHeightStr);
-    
+
     if (viewportScale > 0 || viewportWidth > 0 || viewportHeight > 0) {
       return {
         reason: "viewport",
         result: true,
         scale: viewportScale,
         width: viewportWidth,
-        height: viewportHeight
+        height: viewportHeight,
+        autoSize: viewportWidthStr == "device-width" || viewportHeightStr == "device-height"
       }
     }
 
