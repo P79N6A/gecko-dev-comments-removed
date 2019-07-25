@@ -14,6 +14,7 @@
 
 
 
+
 window.Item = function() {
   
   
@@ -42,7 +43,7 @@ window.Item = function() {
   
   
   
-  this.locked = {};
+  this.locked = null;
   
   
   
@@ -69,7 +70,8 @@ window.Item.prototype = {
     Utils.assert('Subclass must provide close', typeof(this.close) == 'function');
     Utils.assert('Subclass must provide addOnClose', typeof(this.addOnClose) == 'function');
     Utils.assert('Subclass must provide removeOnClose', typeof(this.removeOnClose) == 'function');
-    Utils.assert('Subclass must provide defaultSize', this.defaultSize);
+    Utils.assert('Subclass must provide defaultSize', isPoint(this.defaultSize));
+    Utils.assert('Subclass must provide locked', this.locked);
     
     this.container = container;
     
@@ -93,6 +95,7 @@ window.Item.prototype = {
   
   
   getBounds: function() {
+    Utils.assert('this.bounds', isRect(this.bounds));
     return new Rect(this.bounds);    
   },
   
@@ -106,6 +109,7 @@ window.Item.prototype = {
   
   
   setPosition: function(left, top, immediately) {
+    Utils.assert('this.bounds', isRect(this.bounds));
     this.setBounds(new Rect(left, top, this.bounds.width, this.bounds.height), immediately);
   },
 
@@ -119,6 +123,7 @@ window.Item.prototype = {
   
   
   setSize: function(width, height, immediately) {
+    Utils.assert('this.bounds', isRect(this.bounds));
     this.setBounds(new Rect(this.bounds.left, this.bounds.top, width, height), immediately);
   },
 
@@ -126,6 +131,7 @@ window.Item.prototype = {
   
   
   setUserSize: function() {
+    Utils.assert('this.bounds', isRect(this.bounds));
     this.userSize = new Point(this.bounds.width, this.bounds.height);
   },
   
@@ -530,7 +536,7 @@ window.Items = {
       var newBounds = new Rect(bounds);
 
       var newSize;
-      if(item.userSize) 
+      if(isPoint(item.userSize)) 
         newSize = new Point(item.userSize);
       else
         newSize = new Point(TabItems.tabWidth, TabItems.tabHeight);
