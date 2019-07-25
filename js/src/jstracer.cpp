@@ -9402,7 +9402,7 @@ TraceRecorder::guardPropertyCacheHit(LIns* obj_ins,
 
         guard(true,
               w.name(w.eqiN(vshape_ins, vshape), "guard_protoHazardShape"),
-              MISMATCH_EXIT);
+              BRANCH_EXIT);
     }
 
     
