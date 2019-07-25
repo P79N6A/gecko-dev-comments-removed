@@ -265,6 +265,22 @@ public:
   }
 
   
+
+
+  nsIntRect GetTextBounds(PRInt32 aStartOffset, PRInt32 aEndOffset)
+  {
+    nsIntRect bounds;
+    GetPosAndText(aStartOffset, aEndOffset, nsnull, nsnull, &bounds);
+    return bounds;
+  }
+
+  
+
+
+
+  PRInt32 CaretLineNumber();
+
+  
   
 
   
@@ -372,13 +388,6 @@ protected:
   void GetSelectionDOMRanges(PRInt16 aType, nsTArray<nsRange*>* aRanges);
 
   nsresult SetSelectionRange(PRInt32 aStartPos, PRInt32 aEndPos);
-
-  
-
-
-
-
-  PRInt32 GetCaretLineNumber();
 
   
   nsresult GetDOMPointByFrameOffset(nsIFrame *aFrame, PRInt32 aOffset,
