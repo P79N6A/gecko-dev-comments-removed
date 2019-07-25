@@ -1,0 +1,12 @@
+
+<html>
+  <head>
+    <style>
+      body { color: red; }
+      body#foo { color: green; }
+    </style>
+  </head>
+  <body onload="document.body.offsetWidth; document.body.id = 'FOO'">
+    This should be green
+  </body>
+</html>
