@@ -123,7 +123,7 @@ Drag.prototype = {
     if ( 
          !Keys.meta
          
-         && !(this.isATabItem && this.item.overlapsWithOtherItems()) ) { 
+         && !(this.item.isATabItem && this.item.overlapsWithOtherItems()) ) { 
       newRect = Trenches.snap(bounds,stationaryCorner,assumeConstantSize,keepProportional);
       if (newRect) { 
         update = true;
