@@ -160,16 +160,54 @@ def validate_mandatory_header(request, key, expected_value):
             (expected_value, key, value))
 
 
-def check_header_lines(request, mandatory_headers):
+def check_request_line(request):
     
     
     if request.method != 'GET':
         raise HandshakeError('Method is not GET')
+
+
+def check_header_lines(request, mandatory_headers):
+    check_request_line(request)
+
     
     
     
     for key, expected_value in mandatory_headers:
         validate_mandatory_header(request, key, expected_value)
+
+
+def parse_token_list(data):
+    """Parses a header value which follows 1#token and returns parsed elements
+    as a list of strings.
+
+    Leading LWSes must be trimmed.
+    """
+
+    state = http_header_util.ParsingState(data)
+
+    token_list = []
+
+    while True:
+        token = http_header_util.consume_token(state)
+        if token is not None:
+            token_list.append(token)
+
+        http_header_util.consume_lwses(state)
+
+        if http_header_util.peek(state) is None:
+            break
+
+        if not http_header_util.consume_string(state, ','):
+            raise HandshakeError(
+                'Expected a comma but found %r' % http_header_util.peek(state))
+
+        http_header_util.consume_lwses(state)
+
+    if len(token_list) == 0:
+        raise HandshakeError('No valid token found')
+
+    return token_list
 
 
 def _parse_extension_param(state, definition):
