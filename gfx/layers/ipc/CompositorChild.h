@@ -45,26 +45,16 @@
 namespace mozilla {
 namespace layers {
 
-class LayerManager;
-class CompositorParent;
-
 class CompositorChild : public PCompositorChild
 {
-  NS_INLINE_DECL_REFCOUNTING(CompositorChild)
+
 public:
-  CompositorChild(LayerManager *aLayerManager);
+  CompositorChild();
   virtual ~CompositorChild();
 
-  void Destroy();
-
 protected:
-  virtual PLayersChild* AllocPLayers(const LayersBackend &aBackend);
+  virtual PLayersChild* AllocPLayers(const LayersBackend &backend);
   virtual bool DeallocPLayers(PLayersChild *aChild);
-
-private:
-  nsRefPtr<LayerManager> mLayerManager;
-
-  DISALLOW_EVIL_CONSTRUCTORS(CompositorChild);
 };
 
 } 

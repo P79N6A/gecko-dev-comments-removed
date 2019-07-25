@@ -23,7 +23,6 @@
  *
  * Contributor(s):
  *   Benoit Girard <bgirard@mozilla.com>
- *   Ali Juma <ajuma@mozilla.com>
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -42,7 +41,6 @@
 include protocol PLayers;
 
 using mozilla::LayersBackend;
-using mozilla::null_t;
 
 namespace mozilla {
 namespace layers {
@@ -52,19 +50,19 @@ namespace layers {
  * the main thread and the compositor thread context. It's primary
  * purpose is to manage the PLayers sub protocol.
  */
-// This should really be 'sync', but we're using 'rpc' as a workaround
-// for Bug 716631.
 rpc protocol PCompositor
 {
-  // A Compositor manages a single Layer Manager (PLayers)
+  // Compositor can manage many Layer Manager (PLayers)
   manages PLayers;
 
 parent:  
 
-  // Clean up in preparation for destruction.
-  sync Stop();
+  rpc Init();
+  async PLayers(LayersBackend backend);
 
-  sync PLayers(LayersBackend backend);
+//parent:
+//  rpc PLayers();
+
 };
 
 } // layers

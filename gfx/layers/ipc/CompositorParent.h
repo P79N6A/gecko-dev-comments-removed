@@ -37,49 +37,42 @@
 
 
 
-
 #ifndef mozilla_layers_CompositorParent_h
 #define mozilla_layers_CompositorParent_h
 
 #include "mozilla/layers/PCompositorParent.h"
 #include "mozilla/layers/PLayersParent.h"
-#include "ShadowLayersManager.h"
-
-class nsIWidget;
 
 namespace mozilla {
 namespace layers {
 
-class LayerManager;
-
-class CompositorParent : public PCompositorParent,
-                         public ShadowLayersManager
+class CompositorParent : public PCompositorParent
 {
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(CompositorParent)
+
 public:
-  CompositorParent(nsIWidget* aWidget);
-  virtual ~CompositorParent();
+  CompositorParent() {}
+  virtual ~CompositorParent() {}
 
-  virtual bool RecvStop() MOZ_OVERRIDE;
-
-  virtual void ShadowLayersUpdated() MOZ_OVERRIDE;
-  void Destroy();
-
-  LayerManager* GetLayerManager() { return mLayerManager; }
+  bool AnswerInit() {
+    printf("Answer init\n");
+    return true;
+  }
 
 protected:
-  virtual PLayersParent* AllocPLayers(const LayersBackend &backendType);
-  virtual bool DeallocPLayers(PLayersParent* aLayers);
+  virtual PLayersParent* AllocPLayers(const LayersBackend &backend) {
+    printf("Alloc PLayers :)\n");
+    
+    
+       return nsnull;
+    
 
-private:
-  void ScheduleComposition();
-  void Composite();
+    
+  }
 
-  nsRefPtr<LayerManager> mLayerManager;
-  bool mStopped;
-  nsIWidget* mWidget;
-
-  DISALLOW_EVIL_CONSTRUCTORS(CompositorParent);
+  virtual bool DeallocPLayers(PLayersParent* aLayers) {
+    delete aLayers;
+    return true;
+   }
 };
 
 } 
