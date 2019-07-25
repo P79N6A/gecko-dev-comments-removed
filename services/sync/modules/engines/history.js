@@ -177,9 +177,6 @@ HistoryStore.prototype = {
         execCb.throw(error);
       },
       handleCompletion: function(reason) {
-        
-        if (this.urlInfo == null)
-          execCb.throw(reason);
         execCb(this.urlInfo);
       }
     });
