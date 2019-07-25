@@ -137,6 +137,42 @@ function getSimpleMeasurements() {
   return ret;
 }
 
+
+
+
+
+
+function getUpdateChannel() {
+  var channel = "default";
+  var prefName;
+  var prefValue;
+
+  var defaults = Services.prefs.getDefaultBranch(null);
+  try {
+    channel = defaults.getCharPref("app.update.channel");
+  } catch (e) {
+    
+  }
+
+  try {
+    var partners = Services.prefs.getChildList("app.partner.");
+    if (partners.length) {
+      channel += "-cck";
+      partners.sort();
+
+      for each (prefName in partners) {
+        prefValue = Services.prefs.getCharPref(prefName);
+        channel += "-" + prefValue;
+      }
+    }
+  }
+  catch (e) {
+    Cu.reportError(e);
+  }
+
+  return channel;
+}
+
 function TelemetryPing() {}
 
 TelemetryPing.prototype = {
@@ -231,7 +267,8 @@ TelemetryPing.prototype = {
       appVersion: ai.version,
       appName: ai.name,
       appBuildID: ai.appBuildID,
-      platformBuildID: ai.platformBuildID,
+      appUpdateChannel: getUpdateChannel(),
+      platformBuildID: ai.platformBuildID
     };
 
     
