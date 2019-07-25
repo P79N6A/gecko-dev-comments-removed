@@ -158,7 +158,8 @@ protected:
   void OnDiscard       ();
 
   
-  void FrameChanged(imgIContainer *aContainer, nsIntRect * aDirtyRect);
+  void FrameChanged(imgIContainer *aContainer,
+                    const nsIntRect *aDirtyRect);
 
   
   void OnStartRequest();

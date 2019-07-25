@@ -91,7 +91,8 @@ public:
   
 
   
-  NS_IMETHOD FrameChanged(imgIContainer *aContainer, nsIntRect *dirtyRect);
+  NS_IMETHOD FrameChanged(imgIContainer *aContainer,
+                          const nsIntRect *aDirtyRect);
 
   void Destroy();
 
