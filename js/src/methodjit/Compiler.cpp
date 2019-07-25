@@ -166,7 +166,7 @@ mjit::Compiler::compile()
         *checkAddr = (*jit)->arityCheckEntry
                      ? (*jit)->arityCheckEntry
                      : (*jit)->invokeEntry;
-    } else {
+    } else if (status != Compile_Retry) {
         *checkAddr = JS_UNJITTABLE_SCRIPT;
         if (outerScript->fun)
             cx->markTypeFunctionUninlineable(outerScript->fun->getType());
@@ -601,15 +601,23 @@ mjit::TryCompile(JSContext *cx, StackFrame *fp)
     if (fp->isConstructing() && !fp->script()->nslots)
         fp->script()->nslots++;
 
-    types::AutoEnterTypeInference enter(cx, true);
+    CompileStatus status;
+    {
+        types::AutoEnterTypeInference enter(cx, true);
 
-    
-    
-    
-    CompileStatus status = Compile_Retry;
-    for (unsigned i = 0; status == Compile_Retry && i < 5; i++) {
         Compiler cc(cx, fp->script(), fp->isConstructing());
         status = cc.compile();
+    }
+
+    if (status == Compile_Okay) {
+        
+
+
+
+
+        JITScriptStatus status = fp->script()->getJITStatus(fp->isConstructing());
+        JS_ASSERT(status != JITScript_Invalid);
+        return (status == JITScript_Valid) ? Compile_Okay : Compile_Retry;
     }
 
     return status;
