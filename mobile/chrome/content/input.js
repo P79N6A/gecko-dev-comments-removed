@@ -320,12 +320,16 @@ MouseModule.prototype = {
   _doDragStop: function _doDragStop() {
     this._dragData.endDrag();
 
+    
+    
+    
+
     let dragData = this._dragData;
-    if (!dragData.isPan()) {
+    if (!dragData.isPan() && !this._kinetic.isActive()) {
       
       this._dragger.dragStop(0, 0, this._targetScrollInterface);
       this._dragger = null;
-    } else {
+    } else if (dragData.isPan()) {
       
       let [sX, sY] = dragData.panPosition();
       let dX = dragData.prevPanX - sX;
