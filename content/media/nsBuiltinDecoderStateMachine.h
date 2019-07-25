@@ -374,6 +374,15 @@ protected:
   
   
   
+  
+  
+  
+  PRInt64 GetDecodedAudioDuration();
+
+  
+  
+  
+  
   Monitor mAudioMonitor;
 
   

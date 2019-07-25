@@ -192,16 +192,19 @@ PRBool nsBuiltinDecoderStateMachine::HaveNextFrameData() const {
          (!HasVideo() || mReader->mVideoQueue.GetSize() > 0);
 }
 
+PRInt64 nsBuiltinDecoderStateMachine::GetDecodedAudioDuration() {
+  NS_ASSERTION(OnDecodeThread(), "Should be on decode thread.");
+  mDecoder->GetMonitor().AssertCurrentThreadIn();
+  PRInt64 audioDecoded = mReader->mAudioQueue.Duration();
+  if (mAudioEndTime != -1) {
+    audioDecoded += mAudioEndTime - GetMediaTime();
+  }
+  return audioDecoded;
+}
+
 void nsBuiltinDecoderStateMachine::DecodeLoop()
 {
   NS_ASSERTION(OnDecodeThread(), "Should be on decode thread.");
-  PRBool videoPlaying = PR_FALSE;
-  PRBool audioPlaying = PR_FALSE;
-  {
-    MonitorAutoEnter mon(mDecoder->GetMonitor());
-    videoPlaying = HasVideo();
-    audioPlaying = HasAudio();
-  }
 
   
   
@@ -232,54 +235,33 @@ void nsBuiltinDecoderStateMachine::DecodeLoop()
   
   PRInt64 ampleAudioThreshold = AMPLE_AUDIO_MS;
 
+  MediaQueue<VideoData>& videoQueue = mReader->mVideoQueue;
+  MediaQueue<SoundData>& audioQueue = mReader->mAudioQueue;
+
+  MonitorAutoEnter mon(mDecoder->GetMonitor());
+
+  PRBool videoPlaying = HasVideo();
+  PRBool audioPlaying = HasAudio();
+
   
-  while (videoPlaying || audioPlaying) {
-    PRBool audioWait = !audioPlaying;
-    PRBool videoWait = !videoPlaying;
-    {
-      
-      
-      MonitorAutoEnter mon(mDecoder->GetMonitor());
-      if (mState == DECODER_STATE_SHUTDOWN || mStopDecodeThreads)
-        break;
-    }
-
-    PRUint32 videoQueueSize = mReader->mVideoQueue.GetSize();
-    
-    
-    if (videoQueueSize > AMPLE_VIDEO_FRAMES) {
-      videoWait = PR_TRUE;
-    }
-
+  while (mState != DECODER_STATE_SHUTDOWN &&
+         !mStopDecodeThreads &&
+         (videoPlaying || audioPlaying))
+  {
     
     
     
-    if (videoPump && videoQueueSize >= videoPumpThreshold) {
+    if (videoPump && videoQueue.GetSize() >= videoPumpThreshold) {
       videoPump = PR_FALSE;
     }
 
     
     
-    PRInt64 currentTime = 0;
-    PRInt64 audioDecoded = 0;
-    PRBool decodeCloseToDownload = PR_FALSE;
-    {
-      MonitorAutoEnter mon(mDecoder->GetMonitor());
-      currentTime = GetMediaTime();
-      audioDecoded = mReader->mAudioQueue.Duration();
-      if (mAudioEndTime != -1) {
-        audioDecoded += mAudioEndTime - currentTime;
-      }
-      decodeCloseToDownload = IsDecodeCloseToDownload();
-    }
-
     
-    if (audioDecoded > ampleAudioThreshold) {
-      audioWait = PR_TRUE;
-    }
-    if (audioPump && audioDecoded > audioPumpThresholdMs) {
+    if (audioPump && GetDecodedAudioDuration() >= audioPumpThresholdMs) {
       audioPump = PR_FALSE;
     }
+
     
     
     
@@ -288,23 +270,28 @@ void nsBuiltinDecoderStateMachine::DecodeLoop()
     
     if (!skipToNextKeyframe &&
         videoPlaying &&
-        !decodeCloseToDownload &&
-        ((!audioPump && audioPlaying && audioDecoded < lowAudioThreshold) ||
-         (!videoPump && videoQueueSize < LOW_VIDEO_FRAMES)))
+        !IsDecodeCloseToDownload() &&
+        ((!audioPump && audioPlaying && GetDecodedAudioDuration() < lowAudioThreshold) ||
+         (!videoPump && videoPlaying && videoQueue.GetSize() < LOW_VIDEO_FRAMES)))
     {
       skipToNextKeyframe = PR_TRUE;
       LOG(PR_LOG_DEBUG, ("Skipping video decode to the next keyframe"));
     }
 
     
-    if (videoPlaying && !videoWait) {
+    if (videoPlaying && videoQueue.GetSize() < AMPLE_VIDEO_FRAMES) {
       
       
       
-      TimeStamp start = TimeStamp::Now();
-      videoPlaying = mReader->DecodeVideoFrame(skipToNextKeyframe, currentTime);
-      TimeDuration decodeTime = TimeStamp::Now() - start;
-      if (!decodeCloseToDownload &&
+      TimeDuration decodeTime;
+      {
+        PRInt64 currentTime = GetMediaTime();
+        MonitorAutoExit exitMon(mDecoder->GetMonitor());
+        TimeStamp start = TimeStamp::Now();
+        videoPlaying = mReader->DecodeVideoFrame(skipToNextKeyframe, currentTime);
+        decodeTime = TimeStamp::Now() - start;
+      }
+      if (!IsDecodeCloseToDownload() &&
           THRESHOLD_FACTOR * decodeTime.ToMilliseconds() > lowAudioThreshold)
       {
         lowAudioThreshold =
@@ -317,50 +304,55 @@ void nsBuiltinDecoderStateMachine::DecodeLoop()
              lowAudioThreshold, ampleAudioThreshold));
       }
     }
-    {
-      MonitorAutoEnter mon(mDecoder->GetMonitor());
-      mDecoder->GetMonitor().NotifyAll();
-    }
 
     
-    if (audioPlaying && !audioWait) {
+    if (audioPlaying &&
+        (GetDecodedAudioDuration() < ampleAudioThreshold || audioQueue.GetSize() == 0))
+    {
+      MonitorAutoExit exitMon(mDecoder->GetMonitor());
       audioPlaying = mReader->DecodeAudioData();
     }
+    
+    
+    
+    mDecoder->GetMonitor().NotifyAll();
 
-    {
-      MonitorAutoEnter mon(mDecoder->GetMonitor());
-
-      if (!IsPlaying()) {
-        
-        
-        
-        UpdateReadyState();
-      }
-
-      if (mState == DECODER_STATE_SHUTDOWN || mStopDecodeThreads) {
-        break;
-      }
-
-      if ((!HasAudio() || audioWait) &&
-          (!HasVideo() || videoWait))
-      {
-        
-        
-        mon.Wait();
-      }
+    if (!IsPlaying()) {
+      
+      
+      
+      UpdateReadyState();
     }
-  }
 
+    if (mState != DECODER_STATE_SHUTDOWN &&
+        !mStopDecodeThreads &&
+        (!audioPlaying || (GetDecodedAudioDuration() >= ampleAudioThreshold &&
+                           audioQueue.GetSize() > 0))
+        &&
+        (!videoPlaying || videoQueue.GetSize() >= AMPLE_VIDEO_FRAMES))
+    {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      mon.Wait();
+    }
+
+  } 
+
+  if (!mStopDecodeThreads &&
+      mState != DECODER_STATE_SHUTDOWN &&
+      mState != DECODER_STATE_SEEKING)
   {
-    MonitorAutoEnter mon(mDecoder->GetMonitor());
-    if (!mStopDecodeThreads &&
-        mState != DECODER_STATE_SHUTDOWN &&
-        mState != DECODER_STATE_SEEKING)
-    {
-      mState = DECODER_STATE_COMPLETED;
-      mDecoder->GetMonitor().NotifyAll();
-    }
+    mState = DECODER_STATE_COMPLETED;
+    mDecoder->GetMonitor().NotifyAll();
   }
+
   LOG(PR_LOG_DEBUG, ("Shutting down DecodeLoop this=%p", this));
 }
 
