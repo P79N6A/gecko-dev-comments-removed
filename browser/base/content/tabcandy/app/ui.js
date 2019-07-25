@@ -411,23 +411,26 @@ var UIManager = {
         if (self._currentTab == this)
           self._closedSelectedTabInTabCandy = true;
       } else {
-        var group = Groups.getActiveGroup();
         
-        
-        
-        
-        
-        if ((group && group._children.length == 1) ||
-            (group == null &&
-             gBrowser.visibleTabs.length == 1)) {
-          self._closedLastVisibleTab = true;
+        if (gBrowser.tabs.length > 1) {
+          var group = Groups.getActiveGroup();
           
-          if (this && this.mirror) {
-            var item = TabItems.getItemByTabElement(this.mirror.el);
-            if (item)
-              item.setZoomPrep(false);
+          
+          
+          
+          
+          if ((group && group._children.length == 1) ||
+              (group == null &&
+               gBrowser.visibleTabs.length == 1)) {
+            self._closedLastVisibleTab = true;
+            
+            if (this && this.mirror) {
+              var item = TabItems.getItemByTabElement(this.mirror.el);
+              if (item)
+                item.setZoomPrep(false);
+            }
+            self.showTabCandy();
           }
-          self.showTabCandy();
         }
       }
       return false;
