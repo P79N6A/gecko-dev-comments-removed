@@ -590,4 +590,70 @@ WrapperFactory::WrapForSameCompartmentXray(JSContext *cx, JSObject *obj)
     return wrapperObj;
 }
 
+
+
+
+
+
+static bool
+FixWaiverAfterTransplant(JSContext *cx, JSObject *oldWaiver, JSObject *newobj)
+{
+    MOZ_ASSERT(Wrapper::wrapperHandler(oldWaiver) == &XrayWaiver);
+    MOZ_ASSERT(!js::IsCrossCompartmentWrapper(newobj));
+
+    
+    
+    
+    
+    JSObject *newWaiver = WrapperFactory::CreateXrayWaiver(cx, newobj);
+    if (!newWaiver)
+        return false;
+
+    
+    
+    if (!js::RemapAllWrappersForObject(cx, oldWaiver, newWaiver))
+        return false;
+
+    
+    
+    
+    CompartmentPrivate *priv = GetCompartmentPrivate(oldWaiver);
+    JSObject *key = Wrapper::wrappedObject(oldWaiver);
+    MOZ_ASSERT(priv->waiverWrapperMap->Find(key));
+    priv->waiverWrapperMap->Remove(key);
+    return true;
+}
+
+JSObject *
+TransplantObject(JSContext *cx, JSObject *origobj, JSObject *target)
+{
+    JSObject *oldWaiver = WrapperFactory::GetXrayWaiver(origobj);
+    JSObject *newIdentity = JS_TransplantObject(cx, origobj, target);
+    if (!newIdentity || !oldWaiver)
+       return newIdentity;
+
+    if (!FixWaiverAfterTransplant(cx, oldWaiver, newIdentity))
+        return NULL;
+    return newIdentity;
+}
+
+JSObject *
+TransplantObjectWithWrapper(JSContext *cx,
+                            JSObject *origobj, JSObject *origwrapper,
+                            JSObject *targetobj, JSObject *targetwrapper)
+{
+    JSObject *oldWaiver = WrapperFactory::GetXrayWaiver(origobj);
+    JSObject *newSameCompartmentWrapper =
+      js_TransplantObjectWithWrapper(cx, origobj, origwrapper, targetobj,
+                                     targetwrapper);
+    if (!newSameCompartmentWrapper || !oldWaiver)
+        return newSameCompartmentWrapper;
+
+    JSObject *newIdentity = Wrapper::wrappedObject(newSameCompartmentWrapper);
+    JS_ASSERT(js::IsWrapper(newIdentity));
+    if (!FixWaiverAfterTransplant(cx, oldWaiver, newIdentity))
+        return NULL;
+    return newSameCompartmentWrapper;
+}
+
 }
