@@ -678,15 +678,8 @@ ExecuteRegExp(JSContext *cx, ExecType execType, uintN argc, Value *vp)
 
     
     jsdouble i;
-    if (lastIndex.isInt32()) {
-        i = lastIndex.toInt32();
-    } else {
-        if (lastIndex.isDouble())
-            i = lastIndex.toDouble();
-        else if (!ValueToNumber(cx, lastIndex, &i))
-            return false;
-        i = js_DoubleToInteger(i);
-    }
+    if (!ToInteger(cx, lastIndex, &i))
+        return false;
 
     
     if (!re->global() && !re->sticky())
