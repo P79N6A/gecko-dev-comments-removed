@@ -9698,8 +9698,7 @@ nsHTMLPluginObjElementSH::Call(nsIXPConnectWrappedNative *wrapper,
   
   
   JSAutoRequest ar(cx);
-  *_retval = ::JS_CallFunctionValue(cx, JSVAL_TO_OBJECT(argv[-1]),
-                                    OBJECT_TO_JSVAL(pi_obj), argc, argv, vp);
+  *_retval = ::JS::Call(cx, argv[-1], pi_obj, argc, argv, vp);
 
   return NS_OK;
 }
