@@ -155,12 +155,12 @@ class DoubleToStringConverter {
   
   
   
-  MFBT_API(bool) ToShortest(double value, StringBuilder* result_builder) const {
+  bool ToShortest(double value, StringBuilder* result_builder) const {
     return ToShortestIeeeNumber(value, result_builder, SHORTEST);
   }
 
   
-  MFBT_API(bool) ToShortestSingle(float value, StringBuilder* result_builder) const {
+  bool ToShortestSingle(float value, StringBuilder* result_builder) const {
     return ToShortestIeeeNumber(value, result_builder, SHORTEST_SINGLE);
   }
 
