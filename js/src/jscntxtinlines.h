@@ -75,16 +75,6 @@ struct PreserveRegsGuard
 static inline GlobalObject *
 GetGlobalForScopeChain(JSContext *cx)
 {
-    
-
-
-
-
-
-
-
-    VOUCH_DOES_NOT_REQUIRE_STACK();
-
     if (cx->hasfp())
         return cx->fp()->scopeChain().getGlobal();
 
@@ -152,7 +142,6 @@ class CompartmentChecker
   public:
     explicit CompartmentChecker(JSContext *cx) : context(cx), compartment(cx->compartment) {
         check(cx->hasfp() ? JS_GetGlobalForScopeChain(cx) : cx->globalObject);
-        VOUCH_DOES_NOT_REQUIRE_STACK();
     }
 
     
@@ -238,7 +227,8 @@ class CompartmentChecker
     }
 
     void check(StackFrame *fp) {
-        check(&fp->scopeChain());
+        if (fp)
+            check(&fp->scopeChain());
     }
 };
 

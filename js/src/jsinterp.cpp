@@ -152,7 +152,6 @@ js::GetBlockChain(JSContext *cx, StackFrame *fp)
     if (!fp->isScriptFrame())
         return NULL;
 
-    
     jsbytecode *target = fp->pcQuadratic(cx->stack);
 
     JSScript *script = fp->script();
@@ -3109,11 +3108,6 @@ BEGIN_CASE(JSOP_LENGTH)
                 }
             }
         }
-
-        
-
-
-
 
         JSObject *obj;
         VALUE_TO_OBJECT(cx, vp, obj);

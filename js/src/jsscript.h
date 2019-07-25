@@ -840,23 +840,6 @@ StackDepth(JSScript *script)
     return script->nslots - script->nfixed;
 }
 
-
-
-
-
-
-#define JS_GET_SCRIPT_ATOM(script_, pc_, index, atom)                         \
-    JS_BEGIN_MACRO                                                            \
-        if ((pc_) < (script_)->code ||                                        \
-            (script_)->code + (script_)->length <= (pc_)) {                   \
-            JS_ASSERT((size_t)(index) < js_common_atom_count);                \
-            (atom) = cx->runtime->atomState.commonAtomsStart()[index];        \
-        } else {                                                              \
-            (atom) = script_->getAtom(index);                                 \
-        }                                                                     \
-    JS_END_MACRO
-
-
 extern void
 js_MarkScriptFilename(const char *filename);
 
@@ -902,14 +885,6 @@ CheckScript(JSScript *script, JSScript *prev)
 
 extern jssrcnote *
 js_GetSrcNoteCached(JSContext *cx, JSScript *script, jsbytecode *pc);
-
-
-
-
-
-
-extern uintN
-js_FramePCToLineNumber(JSContext *cx, js::StackFrame *fp, jsbytecode *pc);
 
 extern uintN
 js_PCToLineNumber(JSContext *cx, JSScript *script, jsbytecode *pc);

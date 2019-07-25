@@ -591,6 +591,11 @@ public:
   
 
 
+  virtual void SetCurrentItem(nsAccessible* aItem);
+
+  
+
+
   virtual nsAccessible* ContainerWidget() const;
 
 protected:

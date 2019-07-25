@@ -47,6 +47,7 @@
 #include "nsThreadUtils.h"
 #include "nsCOMPtr.h"
 #include "prlog.h"
+#include "sampler.h"
 
 static NS_DEFINE_CID(kStreamTransportServiceCID, NS_STREAMTRANSPORTSERVICE_CID);
 
@@ -382,6 +383,7 @@ nsInputStreamPump::OnInputStreamReady(nsIAsyncInputStream *stream)
 {
     LOG(("nsInputStreamPump::OnInputStreamReady [this=%x]\n", this));
 
+    SAMPLE_LABEL("Input", "OnInputStreamReady");
     
     
 

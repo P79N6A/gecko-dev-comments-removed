@@ -210,6 +210,7 @@ private:
     PRIntervalTime                  mConsiderReusedAfterEpoch;
     PRInt64                         mCurrentBytesRead;   
     PRInt64                         mMaxBytesRead;       
+    PRInt64                         mTotalBytesRead;     
 
     nsRefPtr<nsIAsyncInputStream>   mInputOverflow;
 
@@ -222,12 +223,19 @@ private:
     bool                            mIdleMonitoring;
 
     
+    
+    PRUint32                        mHttp1xTransactionCount;
+
+    
     bool                            mNPNComplete;
     bool                            mSetupNPNCalled;
     bool                            mUsingSpdy;
     nsRefPtr<mozilla::net::SpdySession> mSpdySession;
     PRInt32                         mPriority;
     bool                            mReportedSpdy;
+
+    
+    bool                            mEverUsedSpdy;
 };
 
 #endif 

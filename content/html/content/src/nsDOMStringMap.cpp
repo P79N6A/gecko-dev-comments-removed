@@ -51,8 +51,11 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mElement)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsDOMStringMap)
   
-  tmp->mElement->ClearDataset();
-  tmp->mElement = nsnull;
+  if (tmp->mElement) {
+    
+    tmp->mElement->ClearDataset();
+    tmp->mElement = nsnull;
+  }
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsDOMStringMap)

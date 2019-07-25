@@ -233,7 +233,9 @@ PRLogModuleInfo* nsPluginLogging::gPluginLog = nsnull;
 
 
 #define NS_PREF_MAX_NUM_CACHED_INSTANCES "browser.plugins.max_num_cached_plugins"
-#define DEFAULT_NUMBER_OF_STOPPED_INSTANCES 10
+
+
+#define DEFAULT_NUMBER_OF_STOPPED_INSTANCES 50
 
 #ifdef CALL_SAFETY_ON
 

@@ -1478,11 +1478,6 @@ InlineGetProp(VMFrame &f)
 
     Value rval;
     do {
-        
-
-
-
-
         JSObject *aobj = js_GetProtoIfDenseArray(obj);
 
         PropertyCacheEntry *entry;

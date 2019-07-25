@@ -2975,7 +2975,7 @@ struct NS_STACK_CLASS nsCanvasBidiProcessorAzure : public nsBidiPresUtils::BidiP
   virtual void DrawText(nscoord xOffset, nscoord width)
   {
     gfxPoint point = mPt;
-    point.x += xOffset * mAppUnitsPerDevPixel;
+    point.x += xOffset;
 
     
     if (mTextRun->IsRightToLeft()) {
