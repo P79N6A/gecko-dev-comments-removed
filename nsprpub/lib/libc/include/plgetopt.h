@@ -146,6 +146,7 @@ PR_EXTERN(void) PL_DestroyOptState(PLOptState *opt);
 
 
 
+
 PR_EXTERN(PLOptStatus) PL_GetNextOpt(PLOptState *opt);
 
 PR_END_EXTERN_C
