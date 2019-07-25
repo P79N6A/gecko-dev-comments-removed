@@ -85,7 +85,20 @@ private:
   nsCOMPtr<nsIThread> mThread;
 };
 
+class MediaResource;
 } 
+
+class nsTimeRanges;
+
+
+
+
+
+
+
+void GetEstimatedBufferedTimeRanges(mozilla::MediaResource* aStream,
+                                    int64_t aDurationUsecs,
+                                    nsTimeRanges* aOutBuffered);
 
 
 
