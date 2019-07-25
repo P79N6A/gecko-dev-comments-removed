@@ -225,6 +225,15 @@ typedef void (*cairo_destroy_func_t) (void *data);
 
 
 
+typedef void (*cairo_surface_func_t) (cairo_surface_t *surface);
+
+
+
+
+
+
+
+
 
 
 
@@ -2155,6 +2164,14 @@ cairo_surface_set_user_data (cairo_surface_t		 *surface,
 			     void			 *user_data,
 			     cairo_destroy_func_t	 destroy);
 
+cairo_public void
+cairo_surface_attach_snapshot (cairo_surface_t *surface,
+				cairo_surface_t *snapshot,
+				cairo_surface_func_t detach_func);
+
+cairo_public void
+cairo_surface_detach_snapshot (cairo_surface_t *snapshot);
+
 #define CAIRO_MIME_TYPE_JPEG "image/jpeg"
 #define CAIRO_MIME_TYPE_PNG "image/png"
 #define CAIRO_MIME_TYPE_JP2 "image/jp2"
@@ -2332,6 +2349,11 @@ cairo_recording_surface_ink_extents (cairo_surface_t *surface,
                                      double *y0,
                                      double *width,
                                      double *height);
+
+
+
+cairo_public cairo_surface_t *
+cairo_null_surface_create (cairo_content_t content);
 
 
 
