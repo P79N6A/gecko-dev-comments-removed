@@ -1140,6 +1140,12 @@ nsContainerFrame::DeleteNextInFlowChild(nsPresContext* aPresContext,
     StealFrame(aPresContext, aNextInFlow);
   NS_ASSERTION(NS_SUCCEEDED(rv), "StealFrame failure");
 
+#ifdef DEBUG
+  if (aDeletingEmptyFrames) {
+    nsLayoutUtils::AssertTreeOnlyEmptyNextInFlows(aNextInFlow);
+  }
+#endif
+
   
   
   aNextInFlow->Destroy();

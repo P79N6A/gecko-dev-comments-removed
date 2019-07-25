@@ -3811,6 +3811,49 @@ nsLayoutUtils::AssertNoDuplicateContinuations(nsIFrame* aContainer,
     }
   }
 }
+
+
+static bool
+IsInLetterFrame(nsIFrame *aFrame)
+{
+  for (nsIFrame *f = aFrame->GetParent(); f; f = f->GetParent()) {
+    if (f->GetType() == nsGkAtoms::letterFrame) {
+      return true;
+    }
+  }
+  return false;
+}
+
+ void
+nsLayoutUtils::AssertTreeOnlyEmptyNextInFlows(nsIFrame *aSubtreeRoot)
+{
+  NS_ASSERTION(aSubtreeRoot->GetPrevInFlow(),
+               "frame tree not empty, but caller reported complete status");
+
+  
+  PRInt32 start, end;
+  nsresult rv = aSubtreeRoot->GetOffsets(start, end);
+  NS_ASSERTION(NS_SUCCEEDED(rv), "GetOffsets failed");
+  
+  
+  
+  
+  
+  
+  
+  NS_ASSERTION(start == end || IsInLetterFrame(aSubtreeRoot),
+               "frame tree not empty, but caller reported complete status");
+
+  PRInt32 listIndex = 0;
+  nsIAtom* childList = nsnull;
+  do {
+    for (nsIFrame* child = aSubtreeRoot->GetFirstChild(childList); child;
+         child = child->GetNextSibling()) {
+      nsLayoutUtils::AssertTreeOnlyEmptyNextInFlows(child);
+    }
+    childList = aSubtreeRoot->GetAdditionalChildListName(listIndex++);
+  } while (childList);
+}
 #endif
 
 nsSetAttrRunnable::nsSetAttrRunnable(nsIContent* aContent, nsIAtom* aAttrName,

@@ -1273,6 +1273,13 @@ public:
   static void
   AssertNoDuplicateContinuations(nsIFrame* aContainer,
                                  const nsFrameList& aFrameList);
+
+  
+
+
+
+  static void
+  AssertTreeOnlyEmptyNextInFlows(nsIFrame *aSubtreeRoot);
 #endif
 };
 
