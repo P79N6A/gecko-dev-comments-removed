@@ -377,11 +377,21 @@ pref("geo.enabled", true);
 
 pref("javascript.options.methodjit.chrome",  false);
 
-pref("javascript.options.mem.high_water_mark", 32);
-
 
 
 pref("javascript.options.gc_on_memory_pressure", false);
+
+#ifdef MOZ_PKG_SPECIAL
+
+pref("javascript.options.mem.gc_high_frequency_heap_growth_max", 120);
+pref("javascript.options.mem.gc_high_frequency_heap_growth_min", 101);
+pref("javascript.options.mem.gc_high_frequency_high_limit_mb", 40);
+pref("javascript.options.mem.gc_high_frequency_low_limit_mb", 10);
+pref("javascript.options.mem.gc_low_frequency_heap_growth", 105);
+pref("javascript.options.mem.high_water_mark", 16);
+#else
+pref("javascript.options.mem.high_water_mark", 32);
+#endif
 
 pref("dom.max_chrome_script_run_time", 0); 
 pref("dom.max_script_run_time", 20);
