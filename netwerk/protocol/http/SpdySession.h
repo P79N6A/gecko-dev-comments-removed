@@ -79,7 +79,10 @@ public:
   bool RoomForMoreStreams();
 
   
-  void  ReadTimeoutTick(PRIntervalTime now);
+  void ReadTimeoutTick(PRIntervalTime now);
+  
+  
+  PRIntervalTime IdleTime();
 
   PRUint32 RegisterStreamID(SpdyStream *);
 
@@ -206,6 +209,10 @@ private:
   void        ActivateStream(SpdyStream *);
   void        ProcessPending();
 
+  
+  
+  nsresult   NetworkRead(nsAHttpSegmentWriter *, char *, PRUint32, PRUint32 *);
+  
   static PLDHashOperator ShutdownEnumerator(nsAHttpTransaction *,
                                             nsAutoPtr<SpdyStream> &,
                                             void *);
@@ -337,6 +344,11 @@ private:
   PRUint32             mOutputQueueUsed;
   PRUint32             mOutputQueueSent;
   nsAutoArrayPtr<char> mOutputQueueBuffer;
+
+  PRIntervalTime       mLastReadEpoch;     
+  PRIntervalTime       mLastDataReadEpoch; 
+  PRIntervalTime       mPingSentEpoch;
+  PRUint32             mNextPingID;
 };
 
 }} 

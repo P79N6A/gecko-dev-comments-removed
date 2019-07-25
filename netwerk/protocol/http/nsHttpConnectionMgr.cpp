@@ -2180,7 +2180,11 @@ nsHalfOpenSocket::OnOutputStreamReady(nsIAsyncOutputStream *out)
 
         
         
-        conn->SetIdleTimeout(NS_MIN((PRUint16) 5, gHttpHandler->IdleTimeout()));
+        const PRIntervalTime k5Sec = PR_SecondsToInterval(5);
+        if (k5Sec < gHttpHandler->IdleTimeout())
+            conn->SetIdleTimeout(k5Sec);
+        else
+            conn->SetIdleTimeout(gHttpHandler->IdleTimeout());
 
         
         
