@@ -70,7 +70,6 @@
 #include "Link.h"
 #include "nsIDOMSVGElement.h"
 #include "nsIDOMSVGTitleElement.h"
-#include "nsIDOMSVGForeignObjectElem.h"
 #include "nsIDOMEvent.h"
 #include "nsIDOMMouseEvent.h"
 #include "nsIDOMNSUIEvent.h"
@@ -1062,7 +1061,6 @@ DefaultTooltipTextProvider::DefaultTooltipTextProvider()
 
 
 
-
 static PRBool
 UseSVGTitle(nsIDOMElement *currElement)
 {
@@ -1075,12 +1073,10 @@ UseSVGTitle(nsIDOMElement *currElement)
   if (!parent)
     return PR_FALSE;
 
-  nsCOMPtr<nsIDOMSVGForeignObjectElement> parentFOContent(do_QueryInterface(parent));
-  if (parentFOContent)
-    return PR_FALSE;
+  PRUint16 nodeType;
+  nsresult rv = parent->GetNodeType(&nodeType);
 
-  nsCOMPtr<nsIDOMSVGElement> parentSVGContent(do_QueryInterface(parent));
-  return (parentSVGContent != nsnull);
+  return NS_SUCCEEDED(rv) && nodeType != nsIDOMNode::DOCUMENT_NODE;
 }
 
 
