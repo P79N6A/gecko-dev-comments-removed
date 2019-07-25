@@ -210,6 +210,7 @@ var TestPilotXulWindow = {
     Components.utils.import("resource://testpilot/modules/tasks.js");
 
     this._stringBundle = document.getElementById("testpilot-stringbundle");
+    this.sizeWindow();
     this._init(false);
     Observers.add("testpilot:task:changed", this._onTaskStatusChanged, this);
   },
@@ -419,7 +420,28 @@ var TestPilotXulWindow = {
     
     document.getElementById("num-finished-badge").setAttribute(
       "value", numFinishedStudies);
+  },
 
+  sizeWindow: function() {
+    
+    
+    let currList = document.getElementById("current-studies-listbox");
+    let finList = document.getElementById("finished-studies-listbox");
+    let resultsList = document.getElementById("study-results-listbox");
+
+    let screenWidth = window.screen.availWidth;
+    let screenHeight = window.screen.availHeight;
+    let width = screenWidth >= 800 ? 700 : screenWidth - 100;
+    let height = screenHeight >= 800 ? 700 : screenHeight - 100;
+
+    height -= 130; 
+
+    currList.width = width;
+    currList.height = height;
+    finList.width = width;
+    finList.height = height;
+    resultsList.width = width;
+    resultsList.height = height;
     window.sizeToContent();
   },
 
