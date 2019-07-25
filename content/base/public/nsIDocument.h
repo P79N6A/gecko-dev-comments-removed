@@ -689,7 +689,7 @@ public:
   
 
 
-  nsPIDOMWindow *GetWindow()
+  nsPIDOMWindow *GetWindow() const
   {
     return mWindow ? mWindow->GetOuterWindow() : GetWindowInternal();
   }
@@ -707,7 +707,7 @@ public:
   
 
 
-  PRUint64 OuterWindowID()
+  PRUint64 OuterWindowID() const
   {
     nsPIDOMWindow *window = GetWindow();
     return window ? window->WindowID() : 0;
@@ -1531,7 +1531,7 @@ protected:
   nsPropertyTable* GetExtraPropertyTable(PRUint16 aCategory);
 
   
-  virtual nsPIDOMWindow *GetWindowInternal() = 0;
+  virtual nsPIDOMWindow *GetWindowInternal() const = 0;
 
   
   virtual nsPIDOMWindow *GetInnerWindowInternal() = 0;

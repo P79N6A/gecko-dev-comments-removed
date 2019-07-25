@@ -3238,18 +3238,6 @@ nsDocument::doCreateShell(nsPresContext* aContext,
 
   mExternalResourceMap.ShowViewers();
 
-  if (mScriptGlobalObject) {
-    RescheduleAnimationFrameNotifications();
-  }
-
-  shell.swap(*aInstancePtrResult);
-
-  return NS_OK;
-}
-
-void
-nsDocument::RescheduleAnimationFrameNotifications()
-{
   nsRefreshDriver* rd = mPresShell->GetPresContext()->RefreshDriver();
   if (mHavePendingPaint) {
     rd->ScheduleBeforePaintEvent(this);
@@ -3257,6 +3245,10 @@ nsDocument::RescheduleAnimationFrameNotifications()
   if (!mAnimationFrameListeners.IsEmpty()) {
     rd->ScheduleAnimationFrameListeners(this);
   }
+
+  shell.swap(*aInstancePtrResult);
+
+  return NS_OK;
 }
 
 void
@@ -3270,15 +3262,6 @@ void
 nsDocument::DeleteShell()
 {
   mExternalResourceMap.HideViewers();
-  if (mScriptGlobalObject) {
-    RevokeAnimationFrameNotifications();
-  }
-  mPresShell = nsnull;
-}
-
-void
-nsDocument::RevokeAnimationFrameNotifications()
-{
   if (mHavePendingPaint) {
     mPresShell->GetPresContext()->RefreshDriver()->RevokeBeforePaintEvent(this);
   }
@@ -3286,6 +3269,7 @@ nsDocument::RevokeAnimationFrameNotifications()
     mPresShell->GetPresContext()->RefreshDriver()->
       RevokeAnimationFrameListeners(this);
   }
+  mPresShell = nsnull;
 }
 
 static void
@@ -3807,10 +3791,6 @@ nsDocument::SetScriptGlobalObject(nsIScriptGlobalObject *aScriptGlobalObject)
     
     mLayoutHistoryState = GetLayoutHistoryState();
 
-    if (mPresShell) {
-      RevokeAnimationFrameNotifications();
-    }
-
     
     if (mOnloadBlockCount != 0) {
       nsCOMPtr<nsILoadGroup> loadGroup = GetDocumentLoadGroup();
@@ -3867,10 +3847,6 @@ nsDocument::SetScriptGlobalObject(nsIScriptGlobalObject *aScriptGlobalObject)
         mAllowDNSPrefetch = allowDNSPrefetch;
       }
     }
-
-    if (mPresShell) {
-      RescheduleAnimationFrameNotifications();
-    }
   }
 
   
@@ -3913,7 +3889,7 @@ nsDocument::SetScriptHandlingObject(nsIScriptGlobalObject* aScriptObject)
 }
 
 nsPIDOMWindow *
-nsDocument::GetWindowInternal()
+nsDocument::GetWindowInternal() const
 {
   NS_ASSERTION(!mWindow, "This should not be called when mWindow is not null!");
 

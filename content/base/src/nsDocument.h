@@ -1058,7 +1058,7 @@ protected:
                               const nsAString& aType,
                               PRBool aPersisted);
 
-  virtual nsPIDOMWindow *GetWindowInternal();
+  virtual nsPIDOMWindow *GetWindowInternal() const;
   virtual nsPIDOMWindow *GetInnerWindowInternal();
   virtual nsIScriptGlobalObject* GetScriptHandlingObjectInternal() const;
   virtual PRBool InternalAllowXULXBL();
@@ -1206,11 +1206,6 @@ private:
   
   void EnableStyleSheetsForSetInternal(const nsAString& aSheetSet,
                                        PRBool aUpdateCSSLoader);
-
-  
-  void RevokeAnimationFrameNotifications();
-  
-  void RescheduleAnimationFrameNotifications();
 
   
   nsDocument(const nsDocument& aOther);
