@@ -459,6 +459,8 @@ LayerManagerOGL::SetupBackBuffer()
   
 
 
+
+
   mGLContext->fBindTexture(mFBOTextureTarget, mBackBuffer);
   mGLContext->fTexEnvf(LOCAL_GL_TEXTURE_ENV, LOCAL_GL_TEXTURE_ENV_MODE, LOCAL_GL_MODULATE);
   mGLContext->fTexParameteri(mFBOTextureTarget, LOCAL_GL_TEXTURE_MIN_FILTER, LOCAL_GL_NEAREST);
