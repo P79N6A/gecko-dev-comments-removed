@@ -2005,13 +2005,13 @@ nsStandardURL::GetRelativeSpec(nsIURI *uri2, nsACString &aResult)
     while ((*(thatIndex-1) != '/') && (thatIndex != startCharPos))
         thatIndex--;
 
+    const char *limit = mSpec.get() + mFilepath.mPos + mFilepath.mLen;
+
     
-    while (*thisIndex)
+    for (; thisIndex <= limit && *thisIndex; ++thisIndex)
     {
         if (*thisIndex == '/')
             aResult.AppendLiteral("../");
-
-        thisIndex++;
     }
 
     
