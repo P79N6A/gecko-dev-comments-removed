@@ -171,7 +171,7 @@ struct Trampolines {
 
 
 class JaegerCompartment {
-    JSC::ExecutableAllocator *execAlloc;     
+    JSC::ExecutableAllocator *execAlloc_;    
     Trampolines              trampolines;    
     VMFrame                  *activeFrame_;  
 
@@ -182,8 +182,8 @@ class JaegerCompartment {
 
     ~JaegerCompartment() { Finish(); }
 
-    JSC::ExecutablePool *poolForSize(size_t size) {
-        return execAlloc->poolForSize(size);
+    JSC::ExecutableAllocator *execAlloc() {
+        return execAlloc_;
     }
 
     VMFrame *activeFrame() {

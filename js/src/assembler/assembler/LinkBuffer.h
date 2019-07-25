@@ -63,16 +63,16 @@ class LinkBuffer {
 
 public:
     
-    
-    
-    LinkBuffer(MacroAssembler* masm, ExecutablePool* executablePool)
-        : m_executablePool(executablePool)
-        , m_code(executableCopy(*masm, executablePool))
-        , m_size(masm->m_assembler.size())
-#ifndef NDEBUG
-        , m_completed(false)
-#endif
+    LinkBuffer(MacroAssembler* masm, ExecutableAllocator* executableAllocator,
+               ExecutablePool** poolp, bool* ok)
     {
+        m_code = executableAllocAndCopy(*masm, executableAllocator, poolp);
+        m_executablePool = *poolp;
+        m_size = masm->m_assembler.size();  
+#ifndef NDEBUG
+        m_completed = false;
+#endif
+        *ok = !!m_code;
     }
 
     LinkBuffer()
@@ -197,9 +197,10 @@ protected:
         return m_code;
     }
 
-    void *executableCopy(MacroAssembler &masm, ExecutablePool *pool)
+    void *executableAllocAndCopy(MacroAssembler &masm, ExecutableAllocator *allocator,
+                                 ExecutablePool **poolp)
     {
-        return masm.m_assembler.executableCopy(pool);
+        return masm.m_assembler.executableAllocAndCopy(allocator, poolp);
     }
 
     void performFinalization()

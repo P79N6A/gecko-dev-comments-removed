@@ -137,18 +137,19 @@ namespace JSC {
 
 
 
-        void* executableCopy(ExecutablePool* allocator)
+        void* executableAllocAndCopy(ExecutableAllocator* allocator, ExecutablePool** poolp)
         {
-            if (m_oom)
+            if (m_oom || m_size == 0) {
+                *poolp = NULL;
                 return 0;
+            }
 
-            if (!m_size)
+            void* result = allocator->alloc(m_size, poolp);
+            if (!result) {
+                *poolp = NULL;
                 return 0;
-
-            void* result = allocator->alloc(m_size);
-
-            if (!result)
-                return 0;
+            }
+            JS_ASSERT(*poolp);
 
             ExecutableAllocator::makeWritable(result, m_size);
 

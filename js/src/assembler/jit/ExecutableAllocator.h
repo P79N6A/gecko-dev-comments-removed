@@ -105,6 +105,7 @@ namespace JSC {
   
   
   class ExecutablePool {
+    friend class ExecutableAllocator;
 private:
     struct Allocation {
         char* pages;
@@ -113,10 +114,21 @@ private:
         RChunk* chunk;
 #endif
     };
-    typedef js::Vector<Allocation, 2, js::SystemAllocPolicy> AllocationList;
+
+    char* m_freePtr;
+    char* m_end;
+    Allocation m_allocation;
 
     
     unsigned m_refCount;
+
+public:
+    
+    bool m_destroy;
+
+    
+    
+    size_t m_gcNumber;
 
 public:
     
@@ -132,16 +144,17 @@ public:
     { 
         JS_ASSERT(m_refCount != 0);
         if (--m_refCount == 0)
-            js_delete(this);
+            this->destroy();
     }
 
+private:
     static ExecutablePool* create(size_t n)
     {
         
         void *memory = js_malloc(sizeof(ExecutablePool));
         ExecutablePool *pool = memory ? new(memory) ExecutablePool(n) : NULL;
         if (!pool || !pool->m_freePtr) {
-            js_delete(pool);
+            pool->destroy();
             return NULL;
         }
         return pool;
@@ -149,53 +162,36 @@ public:
 
     void* alloc(size_t n)
     {
-        JS_ASSERT(m_freePtr <= m_end);
-
-        
-        
-        n = roundUpAllocationSize(n, sizeof(void*));
-        if (n == OVERSIZE_ALLOCATION)
-            return NULL;
-
-        if (static_cast<ptrdiff_t>(n) < (m_end - m_freePtr)) {
-            void* result = m_freePtr;
-            m_freePtr += n;
-            return result;
-        }
-
-        
-        
-        return poolAllocate(n);
+        JS_ASSERT(n != OVERSIZE_ALLOCATION);
+        JS_ASSERT(n <= available());
+        void *result = m_freePtr;
+        m_freePtr += n;
+        return result;
     }
     
+    void destroy()
+    {
+        
+        this->~ExecutablePool();
+        js_free(this);
+    }
+
     ~ExecutablePool()
     {
-        Allocation* end = m_pools.end();
-        for (Allocation* ptr = m_pools.begin(); ptr != end; ++ptr)
-            ExecutablePool::systemRelease(*ptr);
+        if (m_allocation.pages)
+            ExecutablePool::systemRelease(m_allocation);
     }
 
-    size_t available() const { return (m_pools.length() > 1) ? 0 : m_end - m_freePtr; }
+    size_t available() const { 
+        JS_ASSERT(m_end >= m_freePtr);
+        return m_end - m_freePtr;
+    }
 
-    
-    bool m_destroy;
-
-    
-    
-    size_t m_gcNumber;
-
-private:
     
     static Allocation systemAlloc(size_t n);
     static void systemRelease(const Allocation& alloc);
 
     ExecutablePool(size_t n);
-
-    void* poolAllocate(size_t n);
-
-    char* m_freePtr;
-    char* m_end;
-    AllocationList m_pools;
 };
 
 class ExecutableAllocator {
@@ -230,13 +226,35 @@ public:
     ~ExecutableAllocator()
     {
         for (size_t i = 0; i < m_smallAllocationPools.length(); i++)
-            js_delete(m_smallAllocationPools[i]);
+            m_smallAllocationPools[i]->destroy();
     }
 
     
     
     
+    void* alloc(size_t n, ExecutablePool** poolp)
+    {
+        
+        
+        
+        n = roundUpAllocationSize(n, sizeof(void*));
+        if (n == OVERSIZE_ALLOCATION) {
+            *poolp = NULL;
+            return NULL;
+        }
 
+        *poolp = poolForSize(n);
+        if (!*poolp)
+            return NULL;
+
+        
+        
+        void *result = (*poolp)->alloc(n);
+        JS_ASSERT(result);
+        return result;
+    }
+
+private:
     ExecutablePool* poolForSize(size_t n)
     {
 #ifndef DEBUG_STRESS_JSC_ALLOCATOR
@@ -295,6 +313,7 @@ public:
         return pool;
     }
 
+public:
 #if ENABLE_ASSEMBLER_WX_EXCLUSIVE
     static void makeWritable(void* start, size_t size)
     {
@@ -425,38 +444,9 @@ inline ExecutablePool::ExecutablePool(size_t n) : m_refCount(1), m_destroy(false
         m_freePtr = NULL;
         return;
     }
-    if (!m_pools.append(mem)) {
-        systemRelease(mem);
-        m_freePtr = NULL;
-        return;
-    }
+    m_allocation = mem;
     m_freePtr = mem.pages;
     m_end = m_freePtr + allocSize;
-}
-
-inline void* ExecutablePool::poolAllocate(size_t n)
-{
-    size_t allocSize = roundUpAllocationSize(n, JIT_ALLOCATOR_PAGE_SIZE);
-    if (allocSize == OVERSIZE_ALLOCATION)
-        return NULL;
-    
-#ifdef DEBUG_STRESS_JSC_ALLOCATOR
-    Allocation result = systemAlloc(size_t(4294967291));
-#else
-    Allocation result = systemAlloc(allocSize);
-#endif
-    if (!result.pages)
-        return NULL;
-    
-    JS_ASSERT(m_end >= m_freePtr);
-    if ((allocSize - n) > static_cast<size_t>(m_end - m_freePtr)) {
-        
-        m_freePtr = result.pages + n;
-        m_end = result.pages + allocSize;
-    }
-
-    m_pools.append(result);
-    return result.pages;
 }
 
 }
