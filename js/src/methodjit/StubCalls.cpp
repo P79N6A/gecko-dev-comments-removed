@@ -824,13 +824,12 @@ stubs::DecLocal(VMFrame &f, uint32 slot)
 }
 
 void JS_FASTCALL
-stubs::DefFun(VMFrame &f, uint32 index)
+stubs::DefFun(VMFrame &f, JSFunction *fun)
 {
     JSObject *obj2;
 
     JSContext *cx = f.cx;
     JSStackFrame *fp = f.fp();
-    JSScript *script = fp->getScript();
 
     
 
@@ -838,7 +837,6 @@ stubs::DefFun(VMFrame &f, uint32 index)
 
 
 
-    JSFunction *fun = script->getFunction(index);
     JSObject *obj = FUN_OBJECT(fun);
 
     if (FUN_NULL_CLOSURE(fun)) {
