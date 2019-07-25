@@ -412,7 +412,7 @@ toolbarbutton.choice-remotetabs {
 
 
 
-#browsers > notificationbox > browser {
+#browsers > notificationbox {
   -moz-user-focus: ignore;
 }
 
