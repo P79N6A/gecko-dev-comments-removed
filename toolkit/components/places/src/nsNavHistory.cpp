@@ -141,6 +141,13 @@ using namespace mozilla::places;
 #define DATABASE_SCHEMA_VERSION 10
 
 
+
+
+
+
+#define DATABASE_PAGE_SIZE 4096
+
+
 #define DATABASE_FILENAME NS_LITERAL_STRING("places.sqlite")
 
 
@@ -627,23 +634,37 @@ nsNavHistory::InitDBFile(PRBool aForceInit)
 nsresult
 nsNavHistory::InitDB()
 {
+  PRInt32 pageSize = DATABASE_PAGE_SIZE;
+
   
   PRInt32 currentSchemaVersion = 0;
   nsresult rv = mDBConn->GetSchemaVersion(&currentSchemaVersion);
   NS_ENSURE_SUCCESS(rv, rv);
+  bool databaseInitialized = (currentSchemaVersion > 0);
 
-  
-  
-  nsCOMPtr<mozIStorageStatement> statement;
-  rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING("PRAGMA page_size"),
-                                getter_AddRefs(statement));
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (!databaseInitialized) {
+    
+    
+    
+    
+    nsCAutoString pageSizePragma("PRAGMA page_size = ");
+    pageSizePragma.AppendInt(pageSize);
+    rv = mDBConn->ExecuteSimpleSQL(pageSizePragma);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+  else {
+    
+    
+    nsCOMPtr<mozIStorageStatement> statement;
+    rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING("PRAGMA page_size"),
+                                  getter_AddRefs(statement));
+    NS_ENSURE_SUCCESS(rv, rv);
 
-  PRBool hasResult;
-  mozStorageStatementScoper scoper(statement);
-  rv = statement->ExecuteStep(&hasResult);
-  NS_ENSURE_TRUE(NS_SUCCEEDED(rv) && hasResult, NS_ERROR_FAILURE);
-  PRInt32 pageSize = statement->AsInt32(0);
+    PRBool hasResult;
+    rv = statement->ExecuteStep(&hasResult);
+    NS_ENSURE_TRUE(NS_SUCCEEDED(rv) && hasResult, NS_ERROR_FAILURE);
+    pageSize = statement->AsInt32(0);
+  }
 
   
   
@@ -705,7 +726,6 @@ nsNavHistory::InitDB()
   rv = nsAnnotationService::InitTables(mDBConn);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  bool databaseInitialized = (currentSchemaVersion > 0);
   if (!databaseInitialized) {
     
     
