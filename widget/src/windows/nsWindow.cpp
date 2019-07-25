@@ -310,7 +310,7 @@ PRLogModuleInfo* gWindowsLog                      = nsnull;
 
 #ifndef WINCE
 
-static KeyboardLayout gKbdLayout;
+static nsKeyboardLayout gKbdLayout;
 #endif
 
 #ifdef WINCE_WINDOWS_MOBILE
@@ -6319,7 +6319,8 @@ LRESULT nsWindow::OnKeyDown(const MSG &aMsg,
 #ifdef WINCE
        ))
 #else
-       && !gKbdLayout.IsDeadKey() && KeyboardLayout::IsPrintableCharKey(virtualKeyCode)))
+       && !gKbdLayout.IsDeadKey() &&
+       nsKeyboardLayout::IsPrintableCharKey(virtualKeyCode)))
 #endif
   {
     
@@ -6383,8 +6384,8 @@ LRESULT nsWindow::OnKeyDown(const MSG &aMsg,
   }
 #ifndef WINCE
   else if (!aModKeyState.mIsControlDown && !aModKeyState.mIsAltDown &&
-             (KeyboardLayout::IsPrintableCharKey(virtualKeyCode) ||
-              KeyboardLayout::IsNumpadKey(virtualKeyCode)))
+             (nsKeyboardLayout::IsPrintableCharKey(virtualKeyCode) ||
+              nsKeyboardLayout::IsNumpadKey(virtualKeyCode)))
   {
     
     
@@ -6426,7 +6427,7 @@ LRESULT nsWindow::OnKeyDown(const MSG &aMsg,
       numOfUniChars = 1;
       break;
     default:
-      if (KeyboardLayout::IsPrintableCharKey(virtualKeyCode)) {
+      if (nsKeyboardLayout::IsPrintableCharKey(virtualKeyCode)) {
         numOfUniChars = numOfShiftStates =
           gKbdLayout.GetUniChars(uniChars, shiftStates,
                                  NS_ARRAY_LENGTH(uniChars));
