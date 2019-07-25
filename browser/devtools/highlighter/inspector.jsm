@@ -2062,8 +2062,13 @@ InspectorProgressListener.prototype = {
       return;
     }
 
+    let isStart = aFlag & Ci.nsIWebProgressListener.STATE_START;
+    let isDocument = aFlag & Ci.nsIWebProgressListener.STATE_IS_DOCUMENT;
+    let isNetwork = aFlag & Ci.nsIWebProgressListener.STATE_IS_NETWORK;
+    let isRequest = aFlag & Ci.nsIWebProgressListener.STATE_IS_REQUEST;
+
     
-    if (!(aFlag & Ci.nsIWebProgressListener.STATE_START)) {
+    if (!isStart || !isDocument || !isRequest || !isNetwork) {
       return;
     }
 
