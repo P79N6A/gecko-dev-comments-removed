@@ -3244,7 +3244,7 @@ nsWindow::GetLayerManager()
 
     
     if (!mLayerManager)
-      mLayerManager = new BasicLayerManager(this);
+      mLayerManager = CreateBasicLayerManager();
   }
 #endif
 
