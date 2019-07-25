@@ -77,6 +77,14 @@ namespace mjit {
 
 
 
+
+
+
+
+
+
+
+
 class FrameState
 {
     typedef JSC::MacroAssembler::RegisterID RegisterID;
@@ -171,6 +179,25 @@ class FrameState
     
 
 
+    inline RegisterID tempRegForData(FrameEntry *fe);
+
+    
+
+
+
+
+    inline RegisterID ownRegForData(FrameEntry *fe);
+
+    
+
+
+
+
+    inline bool shouldAvoidDataRemat(FrameEntry *fe);
+
+    
+
+
 
     inline void freeReg(RegisterID reg);
 
@@ -191,6 +218,11 @@ class FrameState
 
 
     void storeTo(FrameEntry *fe, Address address, bool popHint);
+
+    
+
+
+    void merge(Assembler &masm, uint32 ivD) const;
 
     
 
@@ -231,6 +263,8 @@ class FrameState
     void assertValidRegisterState() const;
 #endif
 
+    Address addressOf(const FrameEntry *fe) const;
+
   private:
     inline RegisterID alloc();
     inline RegisterID alloc(FrameEntry *fe, RematInfo::RematType type, bool weak);
@@ -240,12 +274,6 @@ class FrameState
     inline FrameEntry *addToTracker(uint32 index);
     inline void syncType(const FrameEntry *fe, Assembler &masm) const;
     inline void syncData(const FrameEntry *fe, Assembler &masm) const;
-
-    Address addressOf(const FrameEntry *fe) const {
-        uint32 index = (fe - entries);
-        JS_ASSERT(index >= nargs);
-        return Address(Assembler::FpReg, sizeof(JSStackFrame) + sizeof(Value) * index);
-    }
 
     uint32 indexOf(int32 depth) {
         return uint32((sp + depth) - base);
