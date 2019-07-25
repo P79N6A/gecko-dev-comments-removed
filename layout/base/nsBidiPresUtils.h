@@ -51,6 +51,10 @@
 #include "nsBlockFrame.h"
 #include "nsTHashtable.h"
 
+#ifdef DrawText
+#undef DrawText
+#endif
+
 
 
 
