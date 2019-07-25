@@ -245,7 +245,7 @@ struct PICInfo {
     uint32 stubsGenerated : 5;
 
     
-    int shapeGuard;
+    uint32 shapeGuard;
     
     
     uint32 callReturn;
