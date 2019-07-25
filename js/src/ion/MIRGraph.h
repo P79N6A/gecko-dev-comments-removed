@@ -183,6 +183,9 @@ class MBasicBlock : public TempObject
     
     bool setBackedge(MBasicBlock *block, MBasicBlock *successor);
 
+    bool insertBefore(MInstruction *at, MInstruction *ins);
+    bool insertAfter(MInstruction *at, MInstruction *ins);
+
     
     
     
