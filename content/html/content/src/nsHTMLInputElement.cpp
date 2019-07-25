@@ -100,6 +100,8 @@
 #include "nsILocalFile.h"
 #include "nsNetUtil.h"
 #include "nsDOMFile.h"
+#include "nsFileControlFrame.h"
+#include "nsTextControlFrame.h"
 #include "nsIFilePicker.h"
 #include "nsDirectoryServiceDefs.h"
 #include "nsIPrivateBrowsingService.h"
@@ -303,29 +305,31 @@ AsyncClickHandler::Run()
   if (!filePicker)
     return NS_ERROR_FAILURE;
 
-  PRBool multi = mInput->HasAttr(kNameSpaceID_None, nsGkAtoms::multiple);
+  nsFileControlFrame* frame =
+    static_cast<nsFileControlFrame*>(mInput->GetPrimaryFrame());
+
+  PRBool multi;
+  rv = mInput->GetMultiple(&multi);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   rv = filePicker->Init(win, title, multi ?
                         (PRInt16)nsIFilePicker::modeOpenMultiple :
                         (PRInt16)nsIFilePicker::modeOpen);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (mInput->HasAttr(kNameSpaceID_None, nsGkAtoms::accept)) {
-    PRInt32 filters = mInput->GetFilterFromAccept();
+  
+  
+  PRUint32 filter = 0;
+  if (frame)
+    filter = frame->GetFileFilterFromAccept();
+  filePicker->AppendFilters(filter | nsIFilePicker::filterAll);
 
-    if (filters) {
-      
-      filePicker->AppendFilters(filters | nsIFilePicker::filterAll);
-
-      
-      
-      
-      filePicker->SetFilterIndex(1);
-    } else {
-      filePicker->AppendFilters(nsIFilePicker::filterAll);
-    }
-  } else {
-    filePicker->AppendFilters(nsIFilePicker::filterAll);
+  
+  if (filter) {
+    
+    
+    
+    filePicker->SetFilterIndex(1);
   }
 
   
@@ -799,7 +803,7 @@ nsHTMLInputElement::AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                                  PRBool aNotify)
 {
   
-  nsEventStates states;
+  PRInt32 states = 0;
 
   if (aNameSpaceID == kNameSpaceID_None) {
     
@@ -914,7 +918,7 @@ nsHTMLInputElement::AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
 
       states |= NS_EVENT_STATE_REQUIRED | NS_EVENT_STATE_OPTIONAL |
                 NS_EVENT_STATE_VALID | NS_EVENT_STATE_INVALID;
-    } else if (MaxLengthApplies() && aName == nsGkAtoms::maxlength) {
+    } else if (aName == nsGkAtoms::maxlength) {
       UpdateTooLongValidityState();
       states |= NS_EVENT_STATE_VALID | NS_EVENT_STATE_INVALID;
     } else if (aName == nsGkAtoms::pattern) {
@@ -932,7 +936,7 @@ nsHTMLInputElement::AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
         states |= NS_EVENT_STATE_MOZ_READONLY | NS_EVENT_STATE_MOZ_READWRITE;
       }
 
-      if (doc && !states.IsEmpty()) {
+      if (doc && states) {
         MOZ_AUTO_DOC_UPDATE(doc, UPDATE_CONTENT_STATE, PR_TRUE);
         doc->ContentStatesChanged(this, nsnull, states);
       }
@@ -975,7 +979,7 @@ NS_IMPL_STRING_ATTR(nsHTMLInputElement, Name, name)
 NS_IMPL_BOOL_ATTR(nsHTMLInputElement, ReadOnly, readonly)
 NS_IMPL_BOOL_ATTR(nsHTMLInputElement, Required, required)
 NS_IMPL_URI_ATTR(nsHTMLInputElement, Src, src)
-NS_IMPL_INT_ATTR(nsHTMLInputElement, TabIndex, tabindex)
+NS_IMPL_INT_ATTR_DEFAULT_VALUE(nsHTMLInputElement, TabIndex, tabindex, 0)
 NS_IMPL_STRING_ATTR(nsHTMLInputElement, UseMap, usemap)
 
 
@@ -1117,7 +1121,7 @@ nsHTMLInputElement::GetList(nsIDOMHTMLElement** aValue)
     if (doc) {
       Element* elem = doc->GetElementById(dataListId);
 
-      if (elem && elem->IsHTML(nsGkAtoms::datalist)) {
+      if (elem) {
         CallQueryInterface(elem, aValue);
         return NS_OK;
       }
@@ -1285,17 +1289,6 @@ nsHTMLInputElement::GetRootEditorNode()
   nsTextEditorState *state = GetEditorState();
   if (state) {
     return state->GetRootNode();
-  }
-  return nsnull;
-}
-
-NS_IMETHODIMP_(nsIContent*)
-nsHTMLInputElement::CreatePlaceholderNode()
-{
-  nsTextEditorState *state = GetEditorState();
-  if (state) {
-    NS_ENSURE_SUCCESS(state->CreatePlaceholderNode(), nsnull);
-    return state->GetPlaceholderNode();
   }
   return nsnull;
 }
@@ -2758,8 +2751,6 @@ nsHTMLInputElement::GetAttributeChangeHint(const nsIAtom* aAttribute,
   } else if (aAttribute == nsGkAtoms::size &&
              IsSingleLineTextControl(PR_FALSE)) {
     NS_UpdateHint(retval, NS_STYLE_HINT_REFLOW);
-  } else if (PlaceholderApplies() && aAttribute == nsGkAtoms::placeholder) {
-    NS_UpdateHint(retval, NS_STYLE_HINT_FRAMECHANGE);
   }
   return retval;
 }
@@ -3257,13 +3248,13 @@ nsHTMLInputElement::DoneCreatingElement()
   SET_BOOLBIT(mBitField, BF_SHOULD_INIT_CHECKED, PR_FALSE);
 }
 
-nsEventStates
+PRInt32
 nsHTMLInputElement::IntrinsicState() const
 {
   
   
   
-  nsEventStates state = nsGenericHTMLFormElement::IntrinsicState();
+  PRInt32 state = nsGenericHTMLFormElement::IntrinsicState();
   if (mType == NS_FORM_INPUT_CHECKBOX || mType == NS_FORM_INPUT_RADIO) {
     
     if (GET_BOOLBIT(mBitField, BF_CHECKED)) {
@@ -3720,24 +3711,17 @@ nsHTMLInputElement::SetCustomValidity(const nsAString& aError)
 PRBool
 nsHTMLInputElement::IsTooLong()
 {
-  if (!MaxLengthApplies() ||
-      !HasAttr(kNameSpaceID_None, nsGkAtoms::maxlength) ||
-      !GET_BOOLBIT(mBitField, BF_VALUE_CHANGED)) {
+  if (!GET_BOOLBIT(mBitField, BF_VALUE_CHANGED)) {
     return PR_FALSE;
   }
 
   PRInt32 maxLength = -1;
-  GetMaxLength(&maxLength);
-
-  
-  if (maxLength == -1) {
-    return PR_FALSE;
-  }
-
   PRInt32 textLength = -1;
+
+  GetMaxLength(&maxLength);
   GetTextLength(&textLength);
 
-  return textLength > maxLength;
+  return maxLength >= 0 && textLength > maxLength;
 }
 
 PRBool
@@ -3868,13 +3852,12 @@ nsHTMLInputElement::UpdatePatternMismatchValidityState()
 void
 nsHTMLInputElement::UpdateAllValidityStates(PRBool aNotify)
 {
-  PRBool validBefore = IsValid();
   UpdateTooLongValidityState();
   UpdateValueMissingValidityState();
   UpdateTypeMismatchValidityState();
   UpdatePatternMismatchValidityState();
 
-  if (validBefore != IsValid() && aNotify) {
+  if (aNotify) {
     nsIDocument* doc = GetCurrentDoc();
     if (doc) {
       MOZ_AUTO_DOC_UPDATE(doc, UPDATE_CONTENT_STATE, PR_TRUE);
@@ -4417,51 +4400,12 @@ nsHTMLInputElement::OnValueChanged(PRBool aNotify)
 }
 
 void
-nsHTMLInputElement::FieldSetDisabledChanged(nsEventStates aStates, PRBool aNotify)
+nsHTMLInputElement::FieldSetDisabledChanged(PRInt32 aStates)
 {
   UpdateValueMissingValidityState();
   UpdateBarredFromConstraintValidation();
 
   aStates |= NS_EVENT_STATE_VALID | NS_EVENT_STATE_INVALID;
-  nsGenericHTMLFormElement::FieldSetDisabledChanged(aStates, aNotify);
-}
-
-PRInt32
-nsHTMLInputElement::GetFilterFromAccept()
-{
-  NS_ASSERTION(HasAttr(kNameSpaceID_None, nsGkAtoms::accept),
-               "You should not call GetFileFiltersFromAccept if the element"
-               " has no accept attribute!");
-
-  PRInt32 filter = 0;
-  nsAutoString accept;
-  GetAttr(kNameSpaceID_None, nsGkAtoms::accept, accept);
-
-  nsCharSeparatedTokenizerTemplate<nsContentUtils::IsHTMLWhitespace>
-    tokenizer(accept, ',');
-
-  while (tokenizer.hasMoreTokens()) {
-    const nsDependentSubstring token = tokenizer.nextToken();
-
-    PRInt32 tokenFilter = 0;
-    if (token.EqualsLiteral("image/*")) {
-      tokenFilter = nsIFilePicker::filterImages;
-    } else if (token.EqualsLiteral("audio/*")) {
-      tokenFilter = nsIFilePicker::filterAudio;
-    } else if (token.EqualsLiteral("video/*")) {
-      tokenFilter = nsIFilePicker::filterVideo;
-    }
-
-    if (tokenFilter) {
-      
-      
-      if (filter && filter != tokenFilter) {
-        return 0;
-      }
-      filter = tokenFilter;
-    }
-  }
-
-  return filter;
+  nsGenericHTMLFormElement::FieldSetDisabledChanged(aStates);
 }
 
