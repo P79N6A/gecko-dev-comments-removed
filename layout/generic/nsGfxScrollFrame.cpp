@@ -1253,7 +1253,7 @@ class ScrollFrameActivityTracker : public nsExpirationTracker<nsGfxScrollFrameIn
 public:
   
   
-  enum { TIMEOUT_MS = 1000 };
+  enum { TIMEOUT_MS = 25 };
   ScrollFrameActivityTracker()
     : nsExpirationTracker<nsGfxScrollFrameInner,4>(TIMEOUT_MS) {}
   ~ScrollFrameActivityTracker() {

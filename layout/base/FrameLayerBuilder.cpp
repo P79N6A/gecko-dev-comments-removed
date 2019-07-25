@@ -57,21 +57,13 @@ namespace {
 
 
 
-class LayerManagerData : public LayerUserData {
+class LayerManagerData {
 public:
   LayerManagerData() :
     mInvalidateAllThebesContent(PR_FALSE),
     mInvalidateAllLayers(PR_FALSE)
   {
-    MOZ_COUNT_CTOR(LayerManagerData);
     mFramesWithLayers.Init();
-  }
-  ~LayerManagerData() {
-    
-    
-    mFramesWithLayers.EnumerateEntries(
-        FrameLayerBuilder::RemoveDisplayItemDataForFrame, nsnull);
-    MOZ_COUNT_DTOR(LayerManagerData);
   }
 
   
@@ -159,8 +151,7 @@ protected:
   public:
     ThebesLayerData() :
       mActiveScrolledRoot(nsnull), mLayer(nsnull),
-      mIsSolidColorInVisibleRegion(PR_FALSE),
-      mHasText(PR_FALSE), mHasTextOverTransparent(PR_FALSE) {}
+      mIsSolidColorInVisibleRegion(PR_FALSE) {}
     
 
 
@@ -174,10 +165,10 @@ protected:
 
 
 
-    void Accumulate(nsDisplayListBuilder* aBuilder,
-                    nsDisplayItem* aItem,
-                    const nsIntRect& aVisibleRect,
-                    const nsIntRect& aDrawRect);
+    void Accumulate(const nsIntRect& aVisibleRect,
+                    const nsIntRect& aDrawRect,
+                    const nsIntRect* aOpaqueRect,
+                    nscolor* aSolidColor);
     nsIFrame* GetActiveScrolledRoot() { return mActiveScrolledRoot; }
 
     
@@ -229,15 +220,6 @@ protected:
 
 
     PRPackedBool mIsSolidColorInVisibleRegion;
-    
-
-
-    PRPackedBool mHasText;
-    
-
-
-
-    PRPackedBool mHasTextOverTransparent;
   };
 
   
@@ -268,12 +250,6 @@ protected:
 
 
 
-  nscolor FindOpaqueBackgroundColorFor(PRInt32 aThebesLayerIndex);
-  
-
-
-
-
   void PopThebesLayerData();
   
 
@@ -292,10 +268,11 @@ protected:
 
 
 
-  already_AddRefed<ThebesLayer> FindThebesLayerFor(nsDisplayItem* aItem,
-                                                   const nsIntRect& aVisibleRect,
+  already_AddRefed<ThebesLayer> FindThebesLayerFor(const nsIntRect& aVisibleRect,
                                                    const nsIntRect& aDrawRect,
-                                                   nsIFrame* aActiveScrolledRoot);
+                                                   nsIFrame* aActiveScrolledRoot,
+                                                   const nsIntRect* aOpaqueRect,
+                                                   nscolor* aSolidColor);
   ThebesLayerData* GetTopThebesLayerData()
   {
     return mThebesLayerDataStack.IsEmpty() ? nsnull
@@ -325,14 +302,6 @@ protected:
   PRPackedBool                     mInvalidateAllThebesContent;
 };
 
-class ThebesDisplayItemLayerUserData : public LayerUserData
-{
-public:
-  ThebesDisplayItemLayerUserData() :
-    mForcedBackgroundColor(NS_RGBA(0,0,0,0)) {}
-
-  nscolor mForcedBackgroundColor;
-};
 
 
 
@@ -341,21 +310,12 @@ public:
 
 
 
-
-
-PRUint8 gThebesDisplayItemLayerUserData;
-
+static PRUint8 gThebesDisplayItemLayerUserData;
 
 
 
 
-PRUint8 gColorLayerUserData;
-
-
-
-
-
-PRUint8 gLayerManagerUserData;
+static PRUint8 gColorLayerUserData;
 
 } 
 
@@ -382,11 +342,12 @@ FrameLayerBuilder::InternalDestroyDisplayItemData(nsIFrame* aFrame,
   if (aRemoveFromFramesWithLayers) {
     LayerManager* manager = array->ElementAt(0).mLayer->Manager();
     LayerManagerData* data = static_cast<LayerManagerData*>
-      (manager->GetUserData(&gLayerManagerUserData));
+      (manager->GetUserData());
     NS_ASSERTION(data, "Frame with layer should have been recorded");
     data->mFramesWithLayers.RemoveEntry(aFrame);
     if (data->mFramesWithLayers.Count() == 0) {
-      manager->RemoveUserData(&gLayerManagerUserData);
+      delete data;
+      manager->SetUserData(nsnull);
       
       
       
@@ -410,7 +371,7 @@ FrameLayerBuilder::WillBeginRetainedLayerTransaction(LayerManager* aManager)
 {
   mRetainingManager = aManager;
   LayerManagerData* data = static_cast<LayerManagerData*>
-    (aManager->GetUserData(&gLayerManagerUserData));
+    (aManager->GetUserData());
   if (data) {
     mInvalidateAllThebesContent = data->mInvalidateAllThebesContent;
     mInvalidateAllLayers = data->mInvalidateAllLayers;
@@ -459,13 +420,13 @@ FrameLayerBuilder::WillEndTransaction(LayerManager* aManager)
   
   
   LayerManagerData* data = static_cast<LayerManagerData*>
-    (mRetainingManager->GetUserData(&gLayerManagerUserData));
+    (mRetainingManager->GetUserData());
   if (data) {
     
     data->mFramesWithLayers.EnumerateEntries(UpdateDisplayItemDataForFrame, this);
   } else {
     data = new LayerManagerData();
-    mRetainingManager->SetUserData(&gLayerManagerUserData, data);
+    mRetainingManager->SetUserData(data);
     
     
     NS_ADDREF(mRetainingManager);
@@ -489,7 +450,7 @@ FrameLayerBuilder::UpdateDisplayItemDataForFrame(nsPtrHashKey<nsIFrame>* aEntry,
   nsIFrame* f = aEntry->GetKey();
   FrameProperties props = f->Properties();
   DisplayItemDataEntry* newDisplayItems =
-    builder ? builder->mNewDisplayItemData.GetEntry(f) : nsnull;
+    builder->mNewDisplayItemData.GetEntry(f);
   if (!newDisplayItems) {
     
     PRBool found;
@@ -634,7 +595,7 @@ ContainerState::CreateOrRecycleColorLayer()
     if (!layer)
       return nsnull;
     
-    layer->SetUserData(&gColorLayerUserData, nsnull);
+    layer->SetUserData(&gColorLayerUserData);
   }
   return layer.forget();
 }
@@ -676,8 +637,7 @@ ContainerState::CreateOrRecycleThebesLayer(nsIFrame* aActiveScrolledRoot)
     if (!layer)
       return nsnull;
     
-    layer->SetUserData(&gThebesDisplayItemLayerUserData,
-        new ThebesDisplayItemLayerUserData());
+    layer->SetUserData(&gThebesDisplayItemLayerUserData);
   }
 
   
@@ -737,39 +697,6 @@ SetVisibleRectForLayer(Layer* aLayer, const nsIntRect& aRect)
   }
 }
 
-nscolor
-ContainerState::FindOpaqueBackgroundColorFor(PRInt32 aThebesLayerIndex)
-{
-  ThebesLayerData* target = mThebesLayerDataStack[aThebesLayerIndex];
-  for (PRInt32 i = aThebesLayerIndex - 1; i >= 0; --i) {
-    ThebesLayerData* candidate = mThebesLayerDataStack[i];
-    nsIntRegion visibleAboveIntersection;
-    visibleAboveIntersection.And(candidate->mVisibleAboveRegion, target->mVisibleRegion);
-    if (!visibleAboveIntersection.IsEmpty()) {
-      
-      
-      break;
-    }
-
-    nsIntRegion intersection;
-    intersection.And(candidate->mVisibleRegion, target->mVisibleRegion);
-    if (intersection.IsEmpty()) {
-      
-      continue;
-    }
- 
-    
-    
-    nsPresContext* presContext = mContainerFrame->PresContext();
-    nscoord appUnitsPerDevPixel = presContext->AppUnitsPerDevPixel();
-    nsRect rect =
-      target->mVisibleRegion.GetBounds().ToAppUnits(appUnitsPerDevPixel);
-    return mBuilder->LayerBuilder()->
-      FindOpaqueColorCovering(mBuilder, candidate->mLayer, rect);
-  }
-  return NS_RGBA(0,0,0,0);
-}
-
 void
 ContainerState::PopThebesLayerData()
 {
@@ -777,6 +704,21 @@ ContainerState::PopThebesLayerData()
 
   PRInt32 lastIndex = mThebesLayerDataStack.Length() - 1;
   ThebesLayerData* data = mThebesLayerDataStack[lastIndex];
+
+  if (lastIndex > 0) {
+    
+    
+    
+    ThebesLayerData* nextData = mThebesLayerDataStack[lastIndex - 1];
+    nextData->mVisibleAboveRegion.Or(nextData->mVisibleAboveRegion,
+                                     data->mVisibleAboveRegion);
+    nextData->mVisibleAboveRegion.Or(nextData->mVisibleAboveRegion,
+                                     data->mVisibleRegion);
+    nextData->mDrawAboveRegion.Or(nextData->mDrawAboveRegion,
+                                     data->mDrawAboveRegion);
+    nextData->mDrawAboveRegion.Or(nextData->mDrawAboveRegion,
+                                     data->mDrawRegion);
+  }
 
   Layer* layer;
   if (data->mIsSolidColorInVisibleRegion) {
@@ -824,87 +766,26 @@ ContainerState::PopThebesLayerData()
 
   nsIntRegion transparentRegion;
   transparentRegion.Sub(data->mVisibleRegion, data->mOpaqueRegion);
-  PRBool isOpaque = transparentRegion.IsEmpty();
-  
-  
-  
-  if (layer == data->mLayer) {
-    nscolor backgroundColor = NS_RGBA(0,0,0,0);
-    if (!isOpaque) {
-      backgroundColor = FindOpaqueBackgroundColorFor(lastIndex);
-      if (NS_GET_A(backgroundColor) == 255) {
-        isOpaque = PR_TRUE;
-      }
-    }
-
-    
-    ThebesDisplayItemLayerUserData* userData =
-      static_cast<ThebesDisplayItemLayerUserData*>
-        (data->mLayer->GetUserData(&gThebesDisplayItemLayerUserData));
-    NS_ASSERTION(userData, "where did our user data go?");
-    if (userData->mForcedBackgroundColor != backgroundColor) {
-      
-      
-      data->mLayer->InvalidateRegion(data->mLayer->GetValidRegion());
-    }
-    userData->mForcedBackgroundColor = backgroundColor;
-  }
-  PRUint32 flags =
-    (isOpaque ? Layer::CONTENT_OPAQUE : 0) |
-    (data->mHasText ? 0 : Layer::CONTENT_NO_TEXT) |
-    (data->mHasTextOverTransparent ? 0 : Layer::CONTENT_NO_TEXT_OVER_TRANSPARENT);
-  layer->SetContentFlags(flags);
-
-  if (lastIndex > 0) {
-    
-    
-    
-    ThebesLayerData* nextData = mThebesLayerDataStack[lastIndex - 1];
-    nextData->mVisibleAboveRegion.Or(nextData->mVisibleAboveRegion,
-                                     data->mVisibleAboveRegion);
-    nextData->mVisibleAboveRegion.Or(nextData->mVisibleAboveRegion,
-                                     data->mVisibleRegion);
-    nextData->mDrawAboveRegion.Or(nextData->mDrawAboveRegion,
-                                     data->mDrawAboveRegion);
-    nextData->mDrawAboveRegion.Or(nextData->mDrawAboveRegion,
-                                     data->mDrawRegion);
-  }
+  layer->SetIsOpaqueContent(transparentRegion.IsEmpty());
 
   mThebesLayerDataStack.RemoveElementAt(lastIndex);
 }
 
-static PRBool
-IsText(nsDisplayItem* aItem) {
-  switch (aItem->GetType()) {
-  case nsDisplayItem::TYPE_TEXT:
-  case nsDisplayItem::TYPE_BULLET:
-  case nsDisplayItem::TYPE_HEADER_FOOTER:
-  case nsDisplayItem::TYPE_MATHML_CHAR_FOREGROUND:
-#ifdef MOZ_XUL
-  case nsDisplayItem::TYPE_XUL_TEXT_BOX:
-#endif
-    return PR_TRUE;
-  default:
-    return PR_FALSE;
-  }
-}
-
 void
-ContainerState::ThebesLayerData::Accumulate(nsDisplayListBuilder* aBuilder,
-                                            nsDisplayItem* aItem,
-                                            const nsIntRect& aVisibleRect,
-                                            const nsIntRect& aDrawRect)
+ContainerState::ThebesLayerData::Accumulate(const nsIntRect& aVisibleRect,
+                                            const nsIntRect& aDrawRect,
+                                            const nsIntRect* aOpaqueRect,
+                                            nscolor* aSolidColor)
 {
-  nscolor uniformColor;
-  if (aItem->IsUniform(aBuilder, &uniformColor)) {
+  if (aSolidColor) {
     if (mVisibleRegion.IsEmpty()) {
       
-      mSolidColor = uniformColor;
+      mSolidColor = *aSolidColor;
       mIsSolidColorInVisibleRegion = PR_TRUE;
     } else if (mIsSolidColorInVisibleRegion &&
                mVisibleRegion.IsEqual(nsIntRegion(aVisibleRect))) {
       
-      mSolidColor = NS_ComposeColors(mSolidColor, uniformColor);
+      mSolidColor = NS_ComposeColors(mSolidColor, *aSolidColor);
     } else {
       mIsSolidColorInVisibleRegion = PR_FALSE;
     }
@@ -916,31 +797,26 @@ ContainerState::ThebesLayerData::Accumulate(nsDisplayListBuilder* aBuilder,
   mVisibleRegion.SimplifyOutward(4);
   mDrawRegion.Or(mDrawRegion, aDrawRect);
   mDrawRegion.SimplifyOutward(4);
-
-  if (aItem->IsOpaque(aBuilder)) {
+  if (aOpaqueRect) {
     
     
     
     
     
     nsIntRegion tmp;
-    tmp.Or(mOpaqueRegion, aDrawRect);
+    tmp.Or(mOpaqueRegion, *aOpaqueRect);
     if (tmp.GetNumRects() <= 4) {
       mOpaqueRegion = tmp;
-    }
-  } else if (IsText(aItem)) {
-    mHasText = PR_TRUE;
-    if (!mOpaqueRegion.Contains(aVisibleRect)) {
-      mHasTextOverTransparent = PR_TRUE;
     }
   }
 }
 
 already_AddRefed<ThebesLayer>
-ContainerState::FindThebesLayerFor(nsDisplayItem* aItem,
-                                   const nsIntRect& aVisibleRect,
+ContainerState::FindThebesLayerFor(const nsIntRect& aVisibleRect,
                                    const nsIntRect& aDrawRect,
-                                   nsIFrame* aActiveScrolledRoot)
+                                   nsIFrame* aActiveScrolledRoot,
+                                   const nsIntRect* aOpaqueRect,
+                                   nscolor* aSolidColor)
 {
   PRInt32 i;
   PRInt32 lowestUsableLayerWithScrolledRoot = -1;
@@ -994,7 +870,7 @@ ContainerState::FindThebesLayerFor(nsDisplayItem* aItem,
     layer = thebesLayerData->mLayer;
   }
 
-  thebesLayerData->Accumulate(mBuilder, aItem, aVisibleRect, aDrawRect);
+  thebesLayerData->Accumulate(aVisibleRect, aDrawRect, aOpaqueRect, aSolidColor);
   return layer.forget();
 }
 
@@ -1089,7 +965,7 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
 
       
       NS_ASSERTION(ownLayer->Manager() == mManager, "Wrong manager");
-      NS_ASSERTION(!ownLayer->HasUserData(&gLayerManagerUserData),
+      NS_ASSERTION(ownLayer->GetUserData() != &gThebesDisplayItemLayerUserData,
                    "We shouldn't have a FrameLayerBuilder-managed layer here!");
       
       if (aClipRect) {
@@ -1140,9 +1016,17 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
           nsLayoutUtils::GetActiveScrolledRootFor(viewportFrame, mBuilder->ReferenceFrame());
       }
 
+      nscolor uniformColor;
+      PRBool isUniform = item->IsUniform(mBuilder, &uniformColor);
+      PRBool isOpaque = item->IsOpaque(mBuilder);
+      nsIntRect opaqueRect;
+      if (isOpaque) {
+        opaqueRect = item->GetBounds(mBuilder).ToNearestPixels(appUnitsPerDevPixel);
+      }
       nsRefPtr<ThebesLayer> thebesLayer =
-        FindThebesLayerFor(item, itemVisibleRect, itemDrawRect,
-                           activeScrolledRoot);
+        FindThebesLayerFor(itemVisibleRect, itemDrawRect, activeScrolledRoot,
+                           isOpaque ? &opaqueRect : nsnull,
+                           isUniform ? &uniformColor : nsnull);
 
       InvalidateForLayerChange(item, thebesLayer);
 
@@ -1230,36 +1114,15 @@ FrameLayerBuilder::AddLayerDisplayItem(Layer* aLayer,
   }
 }
 
-nscolor
-FrameLayerBuilder::FindOpaqueColorCovering(nsDisplayListBuilder* aBuilder,
-                                           ThebesLayer* aLayer,
-                                           const nsRect& aRect)
-{
-  ThebesLayerItemsEntry* entry = mThebesLayerItems.GetEntry(aLayer);
-  NS_ASSERTION(entry, "Must know about this layer!");
-  for (PRInt32 i = entry->mItems.Length() - 1; i >= 0; --i) {
-    nsDisplayItem* item = entry->mItems[i].mItem;
-    const nsRect& visible = item->GetVisibleRect();
-    if (!visible.Intersects(aRect))
-      continue;
-
-    nscolor color;
-    if (visible.Contains(aRect) && item->IsUniform(aBuilder, &color) &&
-        NS_GET_A(color) == 255)
-      return color;
-    break;
-  }
-  return NS_RGBA(0,0,0,0);
-}
-
 void
 ContainerState::CollectOldLayers()
 {
   for (Layer* layer = mContainerLayer->GetFirstChild(); layer;
        layer = layer->GetNextSibling()) {
-    if (layer->HasUserData(&gColorLayerUserData)) {
+    void* data = layer->GetUserData();
+    if (data == &gColorLayerUserData) {
       mRecycledColorLayers.AppendElement(static_cast<ColorLayer*>(layer));
-    } else if (layer->HasUserData(&gThebesDisplayItemLayerUserData)) {
+    } else if (data == &gThebesDisplayItemLayerUserData) {
       NS_ASSERTION(layer->AsThebesLayer(), "Wrong layer type");
       mRecycledThebesLayers.AppendElement(static_cast<ThebesLayer*>(layer));
     }
@@ -1340,7 +1203,7 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
     Layer* oldLayer = GetOldLayerFor(aContainerFrame, containerDisplayItemKey);
     if (oldLayer) {
       NS_ASSERTION(oldLayer->Manager() == aManager, "Wrong manager");
-      if (oldLayer->HasUserData(&gThebesDisplayItemLayerUserData)) {
+      if (oldLayer->GetUserData() == &gThebesDisplayItemLayerUserData) {
         
         
         
@@ -1396,8 +1259,7 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
   state.ProcessDisplayItems(aChildren, nsnull);
   state.Finish();
 
-  PRUint32 flags = aChildren.IsOpaque() ? Layer::CONTENT_OPAQUE : 0;
-  containerLayer->SetContentFlags(flags);
+  containerLayer->SetIsOpaqueContent(aChildren.IsOpaque());
   return containerLayer.forget();
 }
 
@@ -1414,7 +1276,7 @@ FrameLayerBuilder::GetLeafLayerFor(nsDisplayListBuilder* aBuilder,
   Layer* layer = GetOldLayerFor(f, aItem->GetPerFrameKey());
   if (!layer)
     return nsnull;
-  if (layer->HasUserData(&gThebesDisplayItemLayerUserData)) {
+  if (layer->GetUserData() == &gThebesDisplayItemLayerUserData) {
     
     
     
@@ -1490,7 +1352,7 @@ FrameLayerBuilder::InvalidateThebesLayersInSubtree(nsIFrame* aFrame)
 FrameLayerBuilder::InvalidateAllThebesLayerContents(LayerManager* aManager)
 {
   LayerManagerData* data = static_cast<LayerManagerData*>
-    (aManager->GetUserData(&gLayerManagerUserData));
+    (aManager->GetUserData());
   if (data) {
     data->mInvalidateAllThebesContent = PR_TRUE;
   }
@@ -1500,7 +1362,7 @@ FrameLayerBuilder::InvalidateAllThebesLayerContents(LayerManager* aManager)
 FrameLayerBuilder::InvalidateAllLayers(LayerManager* aManager)
 {
   LayerManagerData* data = static_cast<LayerManagerData*>
-    (aManager->GetUserData(&gLayerManagerUserData));
+    (aManager->GetUserData());
   if (data) {
     data->mInvalidateAllLayers = PR_TRUE;
   }
@@ -1518,9 +1380,9 @@ FrameLayerBuilder::HasDedicatedLayer(nsIFrame* aFrame, PRUint32 aDisplayItemKey)
     (reinterpret_cast<nsTArray<DisplayItemData>*>(&propValue));
   for (PRUint32 i = 0; i < array->Length(); ++i) {
     if (array->ElementAt(i).mDisplayItemKey == aDisplayItemKey) {
-      Layer* layer = array->ElementAt(i).mLayer;
-      if (!layer->HasUserData(&gColorLayerUserData) &&
-          !layer->HasUserData(&gThebesDisplayItemLayerUserData))
+      void* layerUserData = array->ElementAt(i).mLayer->GetUserData();
+      if (layerUserData != &gColorLayerUserData &&
+          layerUserData != &gThebesDisplayItemLayerUserData)
         return PR_TRUE;
     }
   }
@@ -1547,15 +1409,6 @@ FrameLayerBuilder::DrawThebesLayer(ThebesLayer* aLayer,
     
     
     
-  }
-
-  ThebesDisplayItemLayerUserData* userData =
-    static_cast<ThebesDisplayItemLayerUserData*>
-      (aLayer->GetUserData(&gThebesDisplayItemLayerUserData));
-  NS_ASSERTION(userData, "where did our user data go?");
-  if (NS_GET_A(userData->mForcedBackgroundColor) > 0) {
-    aContext->SetColor(gfxRGBA(userData->mForcedBackgroundColor));
-    aContext->Paint();
   }
 
   gfxMatrix transform;

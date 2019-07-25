@@ -243,26 +243,6 @@ public:
 
   Layer* GetOldLayerFor(nsIFrame* aFrame, PRUint32 aDisplayItemKey);
 
-  
-
-
-
-
-
-  static PLDHashOperator RemoveDisplayItemDataForFrame(nsPtrHashKey<nsIFrame>* aEntry,
-                                                       void* aClosure)
-  {
-    return UpdateDisplayItemDataForFrame(aEntry, nsnull);
-  }
-
-  
-
-
-
-
-  nscolor FindOpaqueColorCovering(nsDisplayListBuilder* aBuilder,
-                                  ThebesLayer* aLayer, const nsRect& aRect);
-
 protected:
   
 
