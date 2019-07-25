@@ -644,4 +644,7 @@ const gProfD = do_get_profile().QueryInterface(AM_Ci.nsILocalFile);
 
 Services.prefs.setBoolPref("extensions.logging.enabled", true);
 
+
+Services.prefs.setIntPref("extensions.enabledScopes", AddonManager.SCOPE_PROFILE);
+
 do_register_cleanup(shutdownManager);
