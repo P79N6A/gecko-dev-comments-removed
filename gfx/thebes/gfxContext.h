@@ -51,6 +51,7 @@
 #include "nsISupportsImpl.h"
 
 typedef struct _cairo cairo_t;
+template <typename T> class FallibleTArray;
 
 
 
@@ -466,6 +467,11 @@ public:
     void SetDash(gfxLineType ltype);
     void SetDash(gfxFloat *dashes, int ndash, gfxFloat offset);
     
+    
+    
+    bool CurrentDash(FallibleTArray<gfxFloat>& dashes, gfxFloat* offset) const;
+    
+    gfxFloat CurrentDashOffset() const;
 
     
 
