@@ -2235,17 +2235,19 @@ gfxFontGroup::InitTextRun(gfxContext *aContext,
         PRUint32 matchedLength = range.Length();
         gfxFont *matchedFont = (range.font ? range.font.get() : nsnull);
 
+        
+        aTextRun->AddGlyphRun(matchedFont ? matchedFont : mainFont,
+                              runStart, (matchedLength > 0));
         if (matchedFont) {
             
-            aTextRun->AddGlyphRun(matchedFont, runStart, (matchedLength > 0));
-
-            
-            matchedFont->InitTextRun(aContext, aTextRun, aString,
-                                     runStart, matchedLength, aRunScript);
-        } else {
-            
-            aTextRun->AddGlyphRun(mainFont, runStart, matchedLength);
-
+            if (!matchedFont->InitTextRun(aContext, aTextRun, aString,
+                                          runStart, matchedLength,
+                                          aRunScript)) {
+                
+                matchedFont = nsnull;
+            }
+        }
+        if (!matchedFont) {
             for (PRUint32 index = runStart; index < runStart + matchedLength; index++) {
                 
                 if (NS_IS_HIGH_SURROGATE(aString[index]) &&
