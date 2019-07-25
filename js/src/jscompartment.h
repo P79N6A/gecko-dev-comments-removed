@@ -240,11 +240,6 @@ struct TraceMonitor {
     JSBool                  needFlush;
 
     
-
-
-    REHashMap*              reFragments;
-
-    
     
     
     TypeMap*                cachedTempTypeMap;

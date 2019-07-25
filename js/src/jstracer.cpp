@@ -135,25 +135,82 @@ using namespace js::tjit;
 
 
 
+
+
+
+
+
+
+
+
+#define OUT_OF_MEMORY_ABORT(msg)    JS_Assert(msg, __FILE__, __LINE__);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static const size_t DataReserveSize  = 12500 * sizeof(uintptr_t);
+static const size_t TraceReserveSize =  5000 * sizeof(uintptr_t);
+static const size_t TempReserveSize  =  1000 * sizeof(uintptr_t);
+
 void*
-nanojit::Allocator::allocChunk(size_t nbytes)
+nanojit::Allocator::allocChunk(size_t nbytes, bool fallible)
 {
     VMAllocator *vma = (VMAllocator*)this;
-    JS_ASSERT(!vma->outOfMemory());
+    
+
+
+
+
+
     void *p = js_calloc(nbytes);
-    if (!p) {
-        JS_ASSERT(nbytes < sizeof(vma->mReserve));
+    if (p) {
+        vma->mSize += nbytes;
+    } else {
         vma->mOutOfMemory = true;
-        p = (void*) &vma->mReserve[0];
+        if (!fallible) {
+            p = (void *)vma->mReserveCurr;
+            vma->mReserveCurr += nbytes;
+            if (vma->mReserveCurr > vma->mReserveLimit)
+                OUT_OF_MEMORY_ABORT("nanojit::Allocator::allocChunk: out of memory");
+            memset(p, 0, nbytes);
+            vma->mSize += nbytes;
+        }
     }
-    vma->mSize += nbytes;
     return p;
 }
 
 void
 nanojit::Allocator::freeChunk(void *p) {
     VMAllocator *vma = (VMAllocator*)this;
-    if (p != &vma->mReserve[0])
+    if (p < vma->mReserve || uintptr_t(p) >= vma->mReserveLimit)
         js_free(p);
 }
 
@@ -162,6 +219,7 @@ nanojit::Allocator::postReset() {
     VMAllocator *vma = (VMAllocator*)this;
     vma->mOutOfMemory = false;
     vma->mSize = 0;
+    vma->mReserveCurr = uintptr_t(vma->mReserve);
 }
 
 int
@@ -500,12 +558,6 @@ InitJITStatsClass(JSContext *cx, JSObject *glob)
 
 static avmplus::AvmCore s_core = avmplus::AvmCore();
 static avmplus::AvmCore* core = &s_core;
-
-static void OutOfMemoryAbort()
-{
-    JS_NOT_REACHED("out of memory");
-    abort();
-}
 
 #ifdef JS_JIT_SPEW
 static void
@@ -1399,7 +1451,7 @@ FrameInfoCache::FrameInfoCache(VMAllocator *allocator)
   : allocator(allocator)
 {
     if (!set.init())
-        OutOfMemoryAbort();
+        OUT_OF_MEMORY_ABORT("FrameInfoCache::FrameInfoCache(): out of memory");
 }
 
 #define PC_HASH_COUNT 1024
@@ -2285,7 +2337,7 @@ TraceRecorder::TraceRecorder(JSContext* cx, VMSideExit* anchor, VMFragment* frag
 
 
     if (!guardedShapeTable.init())
-        abort();
+        OUT_OF_MEMORY_ABORT("TraceRecorder::TraceRecorder: out of memory");
 
 #ifdef JS_JIT_SPEW
     debug_only_print0(LC_TMMinimal, "\n");
@@ -2465,7 +2517,6 @@ TraceRecorder::finishAbort(const char* reason)
 {
     JS_ASSERT(!traceMonitor->profile);
     JS_ASSERT(traceMonitor->recorder == this);
-    JS_ASSERT(!fragment->code());
 
     AUDIT(recorderAborted);
 #ifdef DEBUG
@@ -2782,18 +2833,16 @@ TraceMonitor::flush()
     oracle->clear();
     loopProfiles->clear();
 
-    Allocator& alloc = *dataAlloc;
-
     for (size_t i = 0; i < MONITOR_N_GLOBAL_STATES; ++i) {
         globalStates[i].globalShape = -1;
-        globalStates[i].globalSlots = new (alloc) SlotList(&alloc);
+        globalStates[i].globalSlots = new (*dataAlloc) SlotList(dataAlloc);
     }
 
-    assembler = new (alloc) Assembler(*codeAlloc, alloc, alloc, core, &LogController, avmplus::AvmCore::config);
+    assembler = new (*dataAlloc) Assembler(*codeAlloc, *dataAlloc, *dataAlloc, core,
+                                           &LogController, avmplus::AvmCore::config);
     verbose_only( branches = NULL; )
 
     PodArrayZero(vmfragments);
-    reFragments = new (alloc) REHashMap(alloc);
     tracedScripts.clear();
 
     needFlush = JS_FALSE;
@@ -4518,10 +4567,10 @@ TraceRecorder::compile()
 #endif
 
     Assembler *assm = traceMonitor->assembler;
-    JS_ASSERT(assm->error() == nanojit::None);
+    JS_ASSERT(!assm->error());
     assm->compile(fragment, tempAlloc(), true verbose_only(, lirbuf->printer));
 
-    if (assm->error() != nanojit::None) {
+    if (assm->error()) {
         assm->setError(nanojit::None);
         debug_only_print0(LC_TMTracer, "Blacklisted: error during compilation\n");
         Blacklist((jsbytecode*)tree->ip);
@@ -5707,7 +5756,8 @@ RecordTree(JSContext* cx, TreeFragment* first, JSScript* outerScript, jsbytecode
 
     if (tm->outOfMemory() ||
         OverfullJITCache(cx, tm) ||
-        !tm->tracedScripts.put(cx->fp()->script())) {
+        !tm->tracedScripts.put(cx->fp()->script()))
+    {
         if (!OverfullJITCache(cx, tm))
             js_ReportOutOfMemory(cx);
         Backoff(cx, (jsbytecode*) f->root->ip);
@@ -7632,7 +7682,7 @@ InitJIT(TraceMonitor *tm)
     }
     
     if (LogController.lcbits & LC_FragProfile) {
-        tm->profAlloc = js_new<VMAllocator>();
+        tm->profAlloc = js_new<VMAllocator>((char*)NULL, 0); 
         JS_ASSERT(tm->profAlloc);
         tm->profTab = new (*tm->profAlloc) FragStatsMap(*tm->profAlloc);
     }
@@ -7684,9 +7734,13 @@ InitJIT(TraceMonitor *tm)
 
     tm->flushEpoch = 0;
     
-    CHECK_ALLOC(tm->dataAlloc, js_new<VMAllocator>());
-    CHECK_ALLOC(tm->traceAlloc, js_new<VMAllocator>());
-    CHECK_ALLOC(tm->tempAlloc, js_new<VMAllocator>());
+    char *dataReserve, *traceReserve, *tempReserve;
+    CHECK_ALLOC(dataReserve, (char *)js_malloc(DataReserveSize));
+    CHECK_ALLOC(traceReserve, (char *)js_malloc(TraceReserveSize));
+    CHECK_ALLOC(tempReserve, (char *)js_malloc(TempReserveSize));
+    CHECK_ALLOC(tm->dataAlloc, js_new<VMAllocator>(dataReserve, DataReserveSize));
+    CHECK_ALLOC(tm->traceAlloc, js_new<VMAllocator>(traceReserve, TraceReserveSize));
+    CHECK_ALLOC(tm->tempAlloc, js_new<VMAllocator>(tempReserve, TempReserveSize));
     CHECK_ALLOC(tm->codeAlloc, js_new<CodeAlloc>());
     CHECK_ALLOC(tm->frameCache, js_new<FrameInfoCache>(tm->dataAlloc));
     CHECK_ALLOC(tm->storage, js_new<TraceNativeStorage>());
@@ -7782,12 +7836,6 @@ FinishJIT(TraceMonitor *tm)
                     FragProfiling_FragFinalizer(p, tm);
             }
         }
-        REHashMap::Iter iter(*(tm->reFragments));
-        while (iter.next()) {
-            VMFragment* frag = (VMFragment*)iter.value();
-            FragProfiling_FragFinalizer(frag, tm);
-        }
-
         FragProfiling_showResults(tm);
         js_delete(tm->profAlloc);
 
@@ -7909,11 +7957,7 @@ OverfullJITCache(JSContext *cx, TraceMonitor* tm)
 
 
     jsuint maxsz = JS_THREAD_DATA(cx)->maxCodeCacheBytes;
-    VMAllocator *dataAlloc = tm->dataAlloc;
-    VMAllocator *traceAlloc = tm->traceAlloc;
-    CodeAlloc *codeAlloc = tm->codeAlloc;
-
-    return (codeAlloc->size() + dataAlloc->size() + traceAlloc->size() > maxsz);
+    return (tm->codeAlloc->size() + tm->dataAlloc->size() + tm->traceAlloc->size() > maxsz);
 }
 
 JS_FORCES_STACK JS_FRIEND_API(void)
