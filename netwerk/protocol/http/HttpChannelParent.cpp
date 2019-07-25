@@ -85,6 +85,9 @@ HttpChannelParent::ActorDestroy(ActorDestroyReason why)
   
   
   mIPCClosed = true;
+
+  
+  mCacheClosePreventer = 0;
 }
 
 
@@ -297,9 +300,25 @@ HttpChannelParent::RecvCancel(const nsresult& status)
 bool
 HttpChannelParent::RecvSetCacheTokenCachedCharset(const nsCString& charset)
 {
-  if (mCacheDescriptor)
-    mCacheDescriptor->SetMetaDataElement("charset",
-                                         PromiseFlatCString(charset).get());
+  nsHttpChannel *chan = static_cast<nsHttpChannel *>(mChannel.get());
+
+  nsresult rv;
+
+  nsCOMPtr<nsICacheEntryDescriptor> cacheDescriptor;
+  rv = chan->GetCacheToken(getter_AddRefs(cacheDescriptor));
+  if (NS_SUCCEEDED(rv))
+    cacheDescriptor->SetMetaDataElement("charset",
+                                        PromiseFlatCString(charset).get());
+  return true;
+}
+
+bool
+HttpChannelParent::RecvSetResponseHeader(const nsCString& header,
+                                         const nsCString& value,
+                                         const bool& merge)
+{
+  nsHttpChannel *chan = static_cast<nsHttpChannel *>(mChannel.get());
+  chan->SetResponseHeader(header, value, merge);
   return true;
 }
 
@@ -353,7 +372,7 @@ HttpChannelParent::RecvDocumentChannelCleanup()
 {
   
   
-  mCacheDescriptor = 0;
+  mCacheClosePreventer = 0;
 
   return true;
 }
@@ -407,7 +426,12 @@ HttpChannelParent::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
 
   
   
-  chan->GetCacheToken(getter_AddRefs(mCacheDescriptor));
+  
+  
+  
+  
+  
+  chan->GetCacheEntryClosePreventer(getter_AddRefs(mCacheClosePreventer));
 
   nsCString secInfoSerialization;
   nsCOMPtr<nsISupports> secInfoSupp;
@@ -428,12 +452,15 @@ HttpChannelParent::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
     tuple->mMerge  = false;
   }
 
+  nsCOMPtr<nsICacheEntryDescriptor> cacheDescriptor;
+  chan->GetCacheToken(getter_AddRefs(cacheDescriptor));
+
   if (mIPCClosed || 
       !SendOnStartRequest(responseHead ? *responseHead : nsHttpResponseHead(), 
                           !!responseHead,
                           headers,
                           isFromCache,
-                          mCacheDescriptor ? PR_TRUE : PR_FALSE,
+                          cacheDescriptor ? PR_TRUE : PR_FALSE,
                           expirationTime, cachedCharset, secInfoSerialization)) 
   {
     return NS_ERROR_UNEXPECTED; 

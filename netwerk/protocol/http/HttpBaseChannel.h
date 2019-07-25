@@ -186,10 +186,30 @@ public:
         PRPackedBool mReady;
     };
 
-    nsHttpResponseHead * GetResponseHead() const { return mResponseHead; }
-    nsHttpRequestHead * GetRequestHead() { return &mRequestHead; }
+  nsHttpResponseHead * GetResponseHead() const { return mResponseHead; }
+  nsHttpRequestHead * GetRequestHead() { return &mRequestHead; }
 
 protected:
+  
+  
+
+  virtual void OnIncreaseCacheEntryClosePreventCount() = 0;
+  virtual void OnDecreaseCacheEntryClosePreventCount() = 0;
+
+  
+  
+  
+
+  class CacheEntryClosePreventer : public nsISupports
+  {
+  public:
+      NS_DECL_ISUPPORTS
+      CacheEntryClosePreventer(HttpBaseChannel* channel);
+  private:
+      ~CacheEntryClosePreventer();
+      nsRefPtr<HttpBaseChannel> mChannel;
+  };
+
   nsresult ApplyContentConversions();
 
   void AddCookiesToRequest();
@@ -237,6 +257,10 @@ protected:
   PRInt16                           mPriority;
   PRUint8                           mCaps;
   PRUint8                           mRedirectionLimit;
+
+  
+  
+  PRUint32                          mCacheEntryClosePreventionCount;
 
   PRUint32                          mApplyConversion            : 1;
   PRUint32                          mCanceled                   : 1;

@@ -276,6 +276,9 @@ private:
 
     nsresult Hash(const char *buf, nsACString &hash);
 
+    virtual void OnIncreaseCacheEntryClosePreventCount();
+    virtual void OnDecreaseCacheEntryClosePreventCount();
+
 private:
     nsCOMPtr<nsISupports>             mSecurityInfo;
     nsCOMPtr<nsICancelable>           mProxyRequest;
@@ -328,10 +331,6 @@ private:
     PRUint32                          mRedirectType;
 
     
-    
-    PRUint32                          mCacheEntryClosePreventionCount;
-
-    
     PRUint32                          mCachedContentIsValid     : 1;
     PRUint32                          mCachedContentIsPartial   : 1;
     PRUint32                          mTransactionReplaced      : 1;
@@ -368,8 +367,6 @@ private:
     nsresult WaitForRedirectCallback();
     void PushRedirectAsyncFunc(nsContinueRedirectionFunc func);
     void PopRedirectAsyncFunc(nsContinueRedirectionFunc func);
-
-    friend class HttpChannelCacheEntryClosePreventer;
 };
 
 #endif 
