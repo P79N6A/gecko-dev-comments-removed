@@ -133,7 +133,7 @@ var Browser = {
         }
 
         
-        uriFlag = cmdLine.handleFlagWithParam("url", false);
+        var uriFlag = cmdLine.handleFlagWithParam("url", false);
         if (uriFlag) {
           whereURI = cmdLine.resolveURI(uriFlag);
           if (whereURI)
