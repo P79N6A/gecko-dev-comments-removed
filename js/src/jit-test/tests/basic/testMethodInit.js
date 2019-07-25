@@ -8,8 +8,3 @@ function testMethodInit() {
     return x.o() + x.k();
 }
 assertEq(testMethodInit(), "ok");
-checkStats({
-  recorderStarted: 1,
-  traceCompleted: 1,
-  sideExitIntoInterpreter: 1
-});

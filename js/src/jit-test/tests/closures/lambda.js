@@ -20,8 +20,3 @@ function h() {
 }
 
 h();
-
-checkStats({
-  recorderAborted: 8,      
-});
-

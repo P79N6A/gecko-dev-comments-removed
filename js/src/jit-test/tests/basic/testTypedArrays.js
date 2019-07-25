@@ -94,11 +94,3 @@ function testTypedArrayOther()
 testBasicTypedArrays();
 testSpecialTypedArrays();
 testTypedArrayOther();
-
-checkStats({
-    
-    
-    
-    
-    recorderAborted: 5
-});

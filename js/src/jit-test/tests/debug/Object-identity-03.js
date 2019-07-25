@@ -1,6 +1,6 @@
 
 
-var N = HOTLOOP + 4;
+var N = 12;
 
 var g = newGlobal('new-compartment');
 var dbg = Debugger(g);

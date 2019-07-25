@@ -30,10 +30,3 @@ Function.prototype.toString = function () { loop(this, true); return "hah"; };
 
 
 C.call(obj, true);
-
-checkStats({
-    recorderStarted: 1,
-    recorderAborted: 0,
-    traceCompleted: 2,
-    traceTriggered: 4
-});

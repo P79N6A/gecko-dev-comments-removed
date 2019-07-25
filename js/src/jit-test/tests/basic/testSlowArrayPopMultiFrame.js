@@ -2,9 +2,9 @@
 
 function testSlowArrayPopMultiFrame() {    
     var a = [];
-    for (var i = 0; i < RUNLOOP; i++)
+    for (var i = 0; i < 9; i++)
         a[i] = [0];
-    a[RUNLOOP-1].__defineGetter__("0", function () { return 23; });
+    a[8].__defineGetter__("0", function () { return 23; });
 
     function child(a, i) {
         return a[i].pop();  
@@ -17,7 +17,7 @@ function testSlowArrayPopMultiFrame() {
     }
 
     var last;
-    for (var i = 0; i < RUNLOOP; i++)
+    for (var i = 0; i < 9; i++)
         last = gramps(a, i);
     return last;
 }
