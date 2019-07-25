@@ -42,6 +42,7 @@ class nsNativeTheme : public nsITimerCallback
   };
 
   nsNativeTheme();
+  virtual ~nsNativeTheme() {}
 
   
   nsEventStates GetContentState(nsIFrame* aFrame, PRUint8 aWidgetType);
