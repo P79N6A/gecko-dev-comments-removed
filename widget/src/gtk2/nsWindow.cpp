@@ -890,7 +890,7 @@ nsWindow::SetParent(nsIWidget *aNewParent)
             SetWidgetForHierarchy(mGdkWindow, oldContainer, newContainer);
         }
 
-        gdk_window_reparent(mGdkWindow, newParentWindow, mBounds.x, mBounds.y);
+        gdk_window_reparent(mGdkWindow, newParentWindow, 0, 0);
     }
 
     PRBool parentHasMappedToplevel =

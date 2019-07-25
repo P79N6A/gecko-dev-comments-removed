@@ -248,9 +248,6 @@ public:
 
 
   nsIView* GetNextSibling() const { return reinterpret_cast<nsIView*>(mNextSibling); }
-  void SetNextSibling(nsIView *aSibling) {
-    mNextSibling = reinterpret_cast<nsView*>(aSibling);
-  }
 
   
 
