@@ -51,6 +51,8 @@ const FINDSTATE_FIND = 0;
 const FINDSTATE_FIND_AGAIN = 1;
 const FINDSTATE_FIND_PREVIOUS = 2;
 
+const endl = '\n';
+
 Cu.import("resource://gre/modules/SpatialNavigation.js");
 
 function getBrowser() {
@@ -59,8 +61,6 @@ function getBrowser() {
 
 const kDefaultTextZoom = 1.2;
 const kDefaultBrowserWidth = 1024;
-
-let endl = '\n';
 
 function debug() {
   let bv = Browser._browserView;
@@ -87,10 +87,14 @@ function debug() {
     let cr = bv._tileManager._criticalRect;
     dump('criticalRect from BV: ' + (cr ? cr.toString() : null) + endl);
     dump('visibleRect from BV : ' + bv._visibleRect.toString() + endl);
-    dump('visibleRect from foo: ' + getVisibleRect().toString() + endl);
+    dump('visibleRect from foo: ' + Browser.getVisibleRect().toString() + endl);
 
     dump('batch depth:          ' + bv._batchOps.length + endl);
     dump('renderpause depth:    ' + bv._renderMode + endl);
+
+    dump(endl);
+
+    dump('window.innerWidth: ' + window.innerWidth + endl);
 
     dump(endl);
 
@@ -166,7 +170,7 @@ function onKeyPress(e) {
 
   switch (e.charCode) {
   case r:
-    bv.setVisibleRect(getVisibleRect());
+    bv.setVisibleRect(Browser.getVisibleRect());
 
   case d:
     debug();
@@ -197,7 +201,7 @@ function onKeyPress(e) {
     break;
   case a:
     let cr = bv._tileManager._criticalRect;
-    dump('>>>>>> critical rect is ' + (cr ? cr.toString() : cr) + endl);
+    dump('>>>>>> critical rect is ' + (cr ? cr.toString() : cr) + '\n');
     if (cr) {
       let starti = cr.left  >> kTileExponentWidth;
       let endi   = cr.right >> kTileExponentWidth;
@@ -222,38 +226,6 @@ function onKeyPress(e) {
   }
 }
 
-function screenToBrowserView(x, y) {
-  let container = document.getElementById("tile-container");
-  let containerBCR = container.getBoundingClientRect();
-
-  let dx = Math.round(-containerBCR.left);
-  let dy = Math.round(-containerBCR.top);
-
-  dump('stbv: ' + dx + ', ' + dy + '\n');
-
-  return [x + dx, y + dy];
-}
-
-
-function getVisibleRect(noTranslate) {
-  let container = document.getElementById("tile-container");
-  let containerBCR = container.getBoundingClientRect();
-
-  let x = Math.round(noTranslate ? 0 : -containerBCR.left);
-  let y = Math.round(noTranslate ? 0 : -containerBCR.top);
-  let w = window.innerWidth;
-  let h = window.innerHeight;
-
-  return new wsRect(x, y, w, h);
-}
-
-function getScrollboxPosition(scrollBoxObject) {
-  let x = {};
-  let y = {};
-  scrollBoxObject.getPosition(x, y);
-  return [x.value, y.value];
-}
-
 var ih = null;
 
 var Browser = {
@@ -269,7 +241,7 @@ var Browser = {
     dump("begin startup\n");
 
     let container = document.getElementById("tile-container");
-    let bv = this._browserView = new BrowserView(container, getVisibleRect());
+    let bv = this._browserView = new BrowserView(container, Browser.getVisibleRect());
 
     container.customClicker = this._createContentCustomClicker(bv);
 
@@ -294,11 +266,11 @@ var Browser = {
       dragMove: function dragMove(dx, dy, scroller, doReturnDX) {
         bv.onBeforeVisibleMove(dx, dy);
 
-        let [x0, y0] = getScrollboxPosition(scroller);
+        let [x0, y0] = Browser.getScrollboxPosition(scroller);
 
         scroller.scrollBy(dx, dy);
 
-        let [x1, y1] = getScrollboxPosition(scroller);
+        let [x1, y1] = Browser.getScrollboxPosition(scroller);
 
         let realdx = x1 - x0;
         let realdy = y1 - y0;
@@ -312,22 +284,6 @@ var Browser = {
         return (doReturnDX) ? realdx : !(realdx == 0 && realdy == 0);
       }
     };
-
-    
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     
     bv.beginBatchOperation();
@@ -380,7 +336,7 @@ var Browser = {
         }
       }
 
-      bv.setVisibleRect(getVisibleRect());
+      bv.setVisibleRect(Browser.getVisibleRect());
       bv.zoomToPage();
       bv.commitBatchOperation();
     }
@@ -818,7 +774,7 @@ var Browser = {
     
 
     function transformScreenToBrowser(sX, sY) {
-      return screenToBrowserView(sX, sY).map(browserView.viewportToBrowser);
+      return Browser.screenToBrowserView(sX, sY).map(browserView.viewportToBrowser);
     }
 
     function elementFromPoint(browser, x, y) {
@@ -875,6 +831,19 @@ var Browser = {
   
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
   snapSidebars: function snapSidebars(scroller) {
     function visibility(bar, visrect) {
       try {
@@ -887,14 +856,15 @@ var Browser = {
       }
     }
 
-    let visrect = getVisibleRect(true);
     let leftbarCBR = document.getElementById('tabs-container').getBoundingClientRect();
     let ritebarCBR = document.getElementById('browser-controls').getBoundingClientRect();
 
-    let leftbar = new wsRect(leftbarCBR.left, leftbarCBR.top, leftbarCBR.width, leftbarCBR.height);
-    let ritebar = new wsRect(ritebarCBR.left, ritebarCBR.top, ritebarCBR.width, ritebarCBR.height);
+    let leftbar = new wsRect(leftbarCBR.left, 0, leftbarCBR.width, 1);
+    let ritebar = new wsRect(ritebarCBR.left, 0, ritebarCBR.width, 1);
     let leftw = leftbar.width;
     let ritew = ritebar.width;
+
+    let visrect = new wsRect(0, 0, window.innerWidth, 1);
 
     let [leftvis, ] = visibility(leftbar, visrect);
     let [ritevis, ] = visibility(ritebar, visrect);
@@ -921,7 +891,51 @@ var Browser = {
     }
 
     return snappedX;
+  },
+
+  
+
+
+  screenToBrowserView: function screenToBrowserView(x, y) {
+    let container = document.getElementById("tile-container");
+    let containerBCR = container.getBoundingClientRect();
+
+    let dx = Math.round(-containerBCR.left);
+    let dy = Math.round(-containerBCR.top);
+
+    return [x + dx, y + dy];
+  },
+
+  
+
+
+
+  getVisibleRect: function getVisibleRect() {
+    let container = document.getElementById("tile-container");
+    let containerBCR = container.getBoundingClientRect();
+
+    let x = Math.round(-containerBCR.left);
+    let y = Math.round(-containerBCR.top);
+    let w = window.innerWidth;
+    let h = window.innerHeight;
+
+    return new wsRect(x, y, w, h);
+  },
+
+  
+
+
+
+
+
+
+  getScrollboxPosition: function getScrollboxPosition(scroller) {
+    let x = {};
+    let y = {};
+    scroller.getPosition(x, y);
+    return [x.value, y.value];
   }
+
 };
 
 function nsBrowserAccess()

@@ -713,7 +713,6 @@ MouseModule.prototype = {
                               mouseUp2.clientX, mouseUp2.clientY);
   },
 
-
   
 
 
@@ -808,7 +807,7 @@ MouseModule.prototype = {
 
     return (elem) ? elem : null;
   }
-  
+
 };
 
 
