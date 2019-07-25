@@ -39,8 +39,8 @@
 
 
 
-#ifndef jsdbg_h__
-#define jsdbg_h__
+#ifndef Debugger_h__
+#define Debugger_h__
 
 #include "jsapi.h"
 #include "jsclist.h"
@@ -104,7 +104,7 @@ class Debugger {
     ObjectWeakMap objects;
 
     
-    
+
 
 
     typedef WeakMap<JSObject *, JSObject *, DefaultHasher<JSObject *>, CrossCompartmentMarkPolicy>

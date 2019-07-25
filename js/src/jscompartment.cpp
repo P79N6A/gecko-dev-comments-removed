@@ -40,7 +40,6 @@
 
 #include "jscntxt.h"
 #include "jscompartment.h"
-#include "jsdbg.h"
 #include "jsgc.h"
 #include "jsgcmark.h"
 #include "jsiter.h"
@@ -54,6 +53,7 @@
 #include "methodjit/MethodJIT.h"
 #include "methodjit/PolyIC.h"
 #include "methodjit/MonoIC.h"
+#include "vm/Debugger.h"
 
 #include "jsgcinlines.h"
 #include "jsscopeinlines.h"
