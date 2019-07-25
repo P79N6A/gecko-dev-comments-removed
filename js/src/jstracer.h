@@ -878,9 +878,6 @@ class TraceRecorder
     uint32 const                    outerArgc;
 
     
-    JSObject* const                 lexicalBlock;
-
-    
     VMSideExit* const               anchor;
 
     
