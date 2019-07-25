@@ -5056,31 +5056,32 @@ nsContentUtils::GetViewportInfo(nsIDocument *aDocument)
   ret.autoSize = true;
   ret.allowZoom = true;
 
-  
-  
-  nsCOMPtr<nsIDOMDocument>
-    domDoc(do_QueryInterface(aDocument));
-
-  nsCOMPtr<nsIDOMDocumentType> docType;
-  nsresult rv = domDoc->GetDoctype(getter_AddRefs(docType));
-  if (NS_SUCCEEDED(rv) && docType) {
-    nsAutoString docId;
-    rv = docType->GetPublicId(docId);
-    if (NS_SUCCEEDED(rv)) {
-      if ((docId.Find("WAP") != -1) ||
-          (docId.Find("Mobile") != -1) ||
-          (docId.Find("WML") != -1))
-      {
-        return ret;
+  nsAutoString viewport;
+  aDocument->GetHeaderData(nsGkAtoms::viewport, viewport);
+  if (viewport.IsEmpty()) {
+    
+    
+    nsCOMPtr<nsIDOMDocument> domDoc(do_QueryInterface(aDocument));
+    nsCOMPtr<nsIDOMDocumentType> docType;
+    nsresult rv = domDoc->GetDoctype(getter_AddRefs(docType));
+    if (NS_SUCCEEDED(rv) && docType) {
+      nsAutoString docId;
+      rv = docType->GetPublicId(docId);
+      if (NS_SUCCEEDED(rv)) {
+        if ((docId.Find("WAP") != -1) ||
+            (docId.Find("Mobile") != -1) ||
+            (docId.Find("WML") != -1))
+        {
+          return ret;
+        }
       }
     }
-  }
 
-  nsAutoString handheldFriendly;
-  aDocument->GetHeaderData(nsGkAtoms::handheldFriendly, handheldFriendly);
-
-  if (handheldFriendly.EqualsLiteral("true")) {
-    return ret;
+    nsAutoString handheldFriendly;
+    aDocument->GetHeaderData(nsGkAtoms::handheldFriendly, handheldFriendly);
+    if (handheldFriendly.EqualsLiteral("true")) {
+      return ret;
+    }
   }
 
   nsAutoString minScaleStr;
@@ -5232,6 +5233,8 @@ nsContentUtils::ProcessViewportInfo(nsIDocument *aDocument,
 
   
   nsresult rv = NS_OK;
+
+  aDocument->SetHeaderData(nsGkAtoms::viewport, viewportInfo);
 
   
   nsAString::const_iterator tip, tail, end;
