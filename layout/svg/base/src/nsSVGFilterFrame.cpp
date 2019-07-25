@@ -68,7 +68,7 @@ public:
                        nsSVGFilterPaintCallback *aPaint,
                        const nsIntRect *aPostFilterDirtyRect,
                        const nsIntRect *aPreFilterDirtyRect,
-                       const nsIntRect *aOverrideSourceBBox,
+                       const gfxRect *aOverrideBBox,
                        const gfxMatrix *aOverrideUserToDeviceSpace = nsnull);
   ~nsAutoFilterInstance() {}
 
@@ -85,7 +85,7 @@ nsAutoFilterInstance::nsAutoFilterInstance(nsIFrame *aTarget,
                                            nsSVGFilterPaintCallback *aPaint,
                                            const nsIntRect *aPostFilterDirtyRect,
                                            const nsIntRect *aPreFilterDirtyRect,
-                                           const nsIntRect *aOverrideSourceBBox,
+                                           const gfxRect *aOverrideBBox,
                                            const gfxMatrix *aOverrideUserToDeviceSpace)
 {
   const nsSVGFilterElement *filter = aFilterFrame->GetFilterContent();
@@ -95,13 +95,7 @@ nsAutoFilterInstance::nsAutoFilterInstance(nsIFrame *aTarget,
   PRUint16 primitiveUnits =
     aFilterFrame->GetEnumValue(nsSVGFilterElement::PRIMITIVEUNITS);
 
-  gfxRect bbox;
-  if (aOverrideSourceBBox) {
-    bbox = gfxRect(aOverrideSourceBBox->x, aOverrideSourceBBox->y,
-                   aOverrideSourceBBox->width, aOverrideSourceBBox->height);
-  } else {
-    bbox = nsSVGUtils::GetBBox(aTarget);
-  }
+  gfxRect bbox = aOverrideBBox ? *aOverrideBBox : nsSVGUtils::GetBBox(aTarget);
 
   
 
@@ -206,6 +200,7 @@ nsAutoFilterInstance::nsAutoFilterInstance(nsIFrame *aTarget,
   nsISVGChildFrame* svgTarget = do_QueryFrame(aTarget);
   if (svgTarget) {
     if (aOverrideUserToDeviceSpace) {
+      
       
       
       
@@ -466,7 +461,7 @@ nsSVGFilterFrame::GetPreFilterNeededArea(nsIFrame *aFilteredFrame,
 
 nsIntRect
 nsSVGFilterFrame::GetPostFilterBounds(nsIFrame *aFilteredFrame,
-                                      const nsIntRect *aOverrideBBox,
+                                      const gfxRect *aOverrideBBox,
                                       const nsIntRect *aPreFilterBounds)
 {
   bool overrideCTM = false;
