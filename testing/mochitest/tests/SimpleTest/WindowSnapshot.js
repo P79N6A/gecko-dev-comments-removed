@@ -1,7 +1,9 @@
+netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
+
 var gWindowUtils;
 
 try {
-  gWindowUtils = SpecialPowers.DOMWindowUtils;
+  gWindowUtils = window.QueryInterface(Components.interfaces.nsIInterfaceRequestor).getInterface(Components.interfaces.nsIDOMWindowUtils);
   if (gWindowUtils && !gWindowUtils.compareCanvases)
     gWindowUtils = null;
 } catch (e) {
@@ -9,13 +11,28 @@ try {
 }
 
 function snapshotWindow(win, withCaret) {
-  return SpecialPowers.snapshotWindow(win, withCaret);
+  
+  
+  netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
+
+  var el = document.createElementNS("http://www.w3.org/1999/xhtml", "canvas");
+  el.width = win.innerWidth;
+  el.height = win.innerHeight;
+
+  var ctx = el.getContext("2d");
+  ctx.drawWindow(win, win.scrollX, win.scrollY,
+                 win.innerWidth, win.innerHeight,
+                 "rgb(255,255,255)",
+                 withCaret ? ctx.DRAWWINDOW_DRAW_CARET : 0);
+  return el;
 }
 
 
 
 
 function compareSnapshots(s1, s2, expected) {
+  netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
+
   var s1Str, s2Str;
   var correct = false;
   if (gWindowUtils) {
