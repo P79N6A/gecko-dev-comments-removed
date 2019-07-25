@@ -160,7 +160,7 @@ Loop::optimize()
         if (isLoopInvariant(ins)) {
             
             ins->setLoopInvariant();
-            if (!invariantInstructions.insert(invariantInstructions.begin(), ins))
+            if (!invariantInstructions.append(ins))
                 return false;
 
             
@@ -192,8 +192,8 @@ bool
 Loop::hoistInstructions(InstructionQueue &toHoist)
 {
     
-    while (!toHoist.empty()) {
-        MInstruction *ins = toHoist.popCopy();
+    for (size_t i = 0; i < toHoist.length(); i++) {
+        MInstruction *ins = toHoist[i];
         if (checkHotness(ins->block())) {
             ins->block()->remove(ins);
             preLoop_->insertBefore(preLoop_->lastIns(), ins);
