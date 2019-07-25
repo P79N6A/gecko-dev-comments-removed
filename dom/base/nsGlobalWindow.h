@@ -865,6 +865,11 @@ protected:
 
   
   
+  
+  PRPackedBool                  mCleanMessageManager : 1;
+
+  
+  
   PRPackedBool           mNeedsFocus : 1;
   PRPackedBool           mHasFocus : 1;
 
@@ -1004,6 +1009,19 @@ public:
     : nsGlobalWindow(aOuterWindow)
   {
     mIsChrome = PR_TRUE;
+    mCleanMessageManager = PR_TRUE;
+  }
+
+  ~nsGlobalChromeWindow()
+  {
+    NS_ABORT_IF_FALSE(mCleanMessageManager,
+                      "chrome windows may always disconnect the msg manager");
+    if (mMessageManager) {
+      static_cast<nsFrameMessageManager *>(
+        mMessageManager.get())->Disconnect();
+    }
+
+    mCleanMessageManager = PR_FALSE;
   }
 
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED_NO_UNLINK(nsGlobalChromeWindow,
