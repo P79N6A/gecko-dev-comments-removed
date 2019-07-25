@@ -298,6 +298,31 @@ private:
   static nsCSSProperty* gShorthandsContainingPool;
   static PRBool BuildShorthandsContainingTable();
 
+private:
+  static const size_t gPropertyCountInStruct[nsStyleStructID_Length];
+  static const size_t gPropertyIndexInStruct[eCSSProperty_COUNT_no_shorthands];
+public:
+  
+
+
+
+
+  static size_t PropertyCountInStruct(nsStyleStructID aSID) {
+    NS_ABORT_IF_FALSE(0 <= aSID && aSID < nsStyleStructID_Length,
+                      "out of range");
+    return gPropertyCountInStruct[aSID];
+  }
+  
+
+
+
+  static size_t PropertyIndexInStruct(nsCSSProperty aProperty) {
+    NS_ABORT_IF_FALSE(0 <= aProperty &&
+                         aProperty < eCSSProperty_COUNT_no_shorthands,
+                      "out of range");
+    return gPropertyIndexInStruct[aProperty];
+  }
+
 public:
 
 #define CSSPROPS_FOR_SHORTHAND_SUBPROPERTIES(iter_, prop_)                    \
