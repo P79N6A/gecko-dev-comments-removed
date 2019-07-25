@@ -1416,6 +1416,7 @@ JSScript::finalize(FreeOp *fop)
     
 
     CallDestroyScriptHook(fop, this);
+    fop->runtime()->spsProfiler.onScriptFinalized(this);
 
     JS_ASSERT_IF(principals, originPrincipals);
     if (principals)

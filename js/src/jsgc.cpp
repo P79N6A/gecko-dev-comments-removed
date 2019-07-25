@@ -4681,7 +4681,7 @@ MaybeVerifyBarriers(JSContext *cx, bool always)
 
 } 
 
-static void ReleaseAllJITCode(FreeOp *fop)
+void ReleaseAllJITCode(FreeOp *fop)
 {
 #ifdef JS_METHODJIT
     for (CompartmentsIter c(fop->runtime()); !c.done(); c.next()) {

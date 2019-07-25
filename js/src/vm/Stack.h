@@ -266,7 +266,10 @@ class StackFrame
         LOWERED_CALL_APPLY   = 0x200000,  
 
         
-        PREV_UP_TO_DATE    =   0x400000   
+        PREV_UP_TO_DATE    =   0x400000,  
+
+        
+        HAS_PUSHED_SPS_FRAME = 0x800000  
     };
 
   private:
@@ -799,6 +802,14 @@ class StackFrame
     void setHookData(void *v) {
         hookData_ = v;
         flags_ |= HAS_HOOK_DATA;
+    }
+
+    bool hasPushedSPSFrame() {
+        return !!(flags_ & HAS_PUSHED_SPS_FRAME);
+    }
+
+    void setPushedSPSFrame() {
+        flags_ |= HAS_PUSHED_SPS_FRAME;
     }
 
     

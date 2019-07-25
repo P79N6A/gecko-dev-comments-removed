@@ -30,6 +30,7 @@
 #include "js/HashTable.h"
 #include "js/Vector.h"
 #include "vm/Stack.h"
+#include "vm/SPSProfiler.h"
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -689,6 +690,9 @@ struct JSRuntime : js::RuntimeFriendFields
 
     
     bool                debugMode;
+
+    
+    js::SPSProfiler     spsProfiler;
 
     
     bool                profilingScripts;
