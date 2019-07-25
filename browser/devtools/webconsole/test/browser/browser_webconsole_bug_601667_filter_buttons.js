@@ -66,8 +66,8 @@ function testMenuFilterButton(aCategory) {
      aCategory + " is no longer checked after clicking it");
   ok(!HUDService.filterPrefs[hudId][prefKey], prefKey + " messages are " +
      "turned off after clicking the appropriate menu item");
-  ok(!isChecked(button), "the button for category " + aCategory + " is no " +
-     "longer checked after turning off its first menu item");
+  ok(isChecked(button), "the button for category " + aCategory + " is still " +
+     "checked after turning off its first menu item");
 
   
   let anonymousNodes = document.getAnonymousNodes(button);
@@ -82,23 +82,8 @@ function testMenuFilterButton(aCategory) {
   ok(subbutton, "we have the subbutton for category " + aCategory);
 
   clickButton(subbutton);
-  ok(isChecked(button), "the button for category " + aCategory + " is " +
-     "checked after clicking its main part");
-
-  menuItem = firstMenuItem;
-  while (menuItem) {
-    let prefKey = menuItem.getAttribute("prefKey");
-    ok(isChecked(menuItem), "menu item " + prefKey + " for category " +
-       aCategory + " is checked after clicking the button");
-    ok(HUDService.filterPrefs[hudId][prefKey], prefKey + " messages are " +
-       "on after clicking the button");
-    menuItem = menuItem.nextSibling; 
-  }
-
-  
-  clickButton(subbutton);
-  ok(!isChecked(subbutton), "the button for category " + aCategory + " is " +
-     "no longer checked after clicking it");
+  ok(!isChecked(button), "the button for category " + aCategory + " is " +
+     "no longer checked after clicking its main part");
 
   menuItem = firstMenuItem;
   while (menuItem) {
@@ -109,6 +94,32 @@ function testMenuFilterButton(aCategory) {
        "off after clicking the button");
     menuItem = menuItem.nextSibling;
   }
+
+  
+  clickButton(subbutton);
+
+  ok(isChecked(button), "the button for category " + aCategory + " is " +
+     "checked after clicking its main part");
+
+  menuItem = firstMenuItem;
+  while (menuItem) {
+    let prefKey = menuItem.getAttribute("prefKey");
+    ok(isChecked(menuItem), "menu item " + prefKey + " for category " +
+       aCategory + " is checked after clicking the button");
+    ok(HUDService.filterPrefs[hudId][prefKey], prefKey + " messages are " +
+       "on after clicking the button");
+    menuItem = menuItem.nextSibling;
+  }
+
+  
+  menuItem = firstMenuItem;
+  while (menuItem) {
+    chooseMenuItem(menuItem);
+    menuItem = menuItem.nextSibling;
+  }
+
+  ok(!isChecked(button), "the button for category " + aCategory + " is " +
+     "unchecked after unchecking all its filters");
 
   
   clickButton(subbutton);
