@@ -124,7 +124,6 @@ function setUp() {
   Service.serverURL  = TEST_SERVER_URL;
   Service.clusterURL = TEST_CLUSTER_URL;
 
-
   return generateAndUploadKeys();
 }
 
@@ -1601,27 +1600,35 @@ add_test(function test_sync_engine_generic_fail() {
   let log = Log4Moz.repository.getLogger("Sync.ErrorHandler");
   Svc.Prefs.set("log.appender.file.logOnError", true);
 
-  Svc.Obs.add("weave:service:reset-file-log", function onResetFileLog() {
-    Svc.Obs.remove("weave:service:reset-file-log", onResetFileLog);
+  do_check_eq(Status.engines["catapult"], undefined);
 
-    
-    
-    _("Status.engines: " + JSON.stringify(Status.engines));
-    do_check_eq(Status.engines["catapult"], ENGINE_UNKNOWN_FAIL);
-    do_check_eq(Status.service, SYNC_FAILED_PARTIAL);
+  
+  
+  Svc.Obs.add("weave:engine:sync:finish", function onEngineFinish() {
+    Svc.Obs.remove("weave:engine:sync:finish", onEngineFinish);
 
-    
-    let entries = logsdir.directoryEntries;
-    do_check_true(entries.hasMoreElements());
-    let logfile = entries.getNext().QueryInterface(Ci.nsILocalFile);
-    do_check_eq(logfile.leafName.slice(0, LOG_PREFIX_ERROR.length),
-                LOG_PREFIX_ERROR);
+    log.info("Adding reset-file-log observer.");
+    Svc.Obs.add("weave:service:reset-file-log", function onResetFileLog() {
+      Svc.Obs.remove("weave:service:reset-file-log", onResetFileLog);
 
-    clean();
-    server.stop(run_next_test);
+      
+      
+      _("Status.engines: " + JSON.stringify(Status.engines));
+      do_check_eq(Status.engines["catapult"], ENGINE_UNKNOWN_FAIL);
+      do_check_eq(Status.service, SYNC_FAILED_PARTIAL);
+
+      
+      let entries = logsdir.directoryEntries;
+      do_check_true(entries.hasMoreElements());
+      let logfile = entries.getNext().QueryInterface(Ci.nsILocalFile);
+      do_check_eq(logfile.leafName.slice(0, LOG_PREFIX_ERROR.length),
+                  LOG_PREFIX_ERROR);
+
+      clean();
+      server.stop(run_next_test);
+    });
   });
 
-  do_check_eq(Status.engines["catapult"], undefined);
   do_check_true(setUp());
   Service.sync();
 });
