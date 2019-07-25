@@ -174,19 +174,6 @@ class nsEditableTextFunctor : public nsBoolDomIterFunctor
 
 
 
-nsresult
-NS_NewHTMLEditRules(nsIEditRules** aInstancePtrResult)
-{
-  nsHTMLEditRules * rules = new nsHTMLEditRules();
-  if (rules)
-    return rules->QueryInterface(NS_GET_IID(nsIEditRules), (void**) aInstancePtrResult);
-  return NS_ERROR_OUT_OF_MEMORY;
-}
-
-
-
-
-
 nsHTMLEditRules::nsHTMLEditRules() : 
 mDocChangeRange(nsnull)
 ,mListenerEnabled(PR_TRUE)
