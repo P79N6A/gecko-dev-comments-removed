@@ -223,12 +223,12 @@ nsSVGScriptElement::FreezeUriAsyncDefer()
     return;
   }
 
-  if (mStringAttributes[HREF].IsExplicitlySet()) {
-    
-    
-    nsAutoString src;
-    mStringAttributes[HREF].GetAnimValue(src, this);
-
+  
+  
+  nsAutoString src;
+  mStringAttributes[HREF].GetAnimValue(src, this);
+  
+  if (!src.IsEmpty()) {
     nsCOMPtr<nsIURI> baseURI = GetBaseURI();
     NS_NewURI(getter_AddRefs(mUri), src, nsnull, baseURI);
     
@@ -244,7 +244,10 @@ nsSVGScriptElement::FreezeUriAsyncDefer()
 bool
 nsSVGScriptElement::HasScriptContent()
 {
-  return (mFrozen ? mExternal : mStringAttributes[HREF].IsExplicitlySet()) ||
+  nsAutoString src;
+  mStringAttributes[HREF].GetAnimValue(src, this);
+  
+  return (mFrozen ? mExternal : !src.IsEmpty()) ||
          nsContentUtils::HasNonEmptyTextContent(this);
 }
 
