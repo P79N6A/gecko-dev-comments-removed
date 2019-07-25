@@ -1109,8 +1109,8 @@ nsExternalAppHandler::nsExternalAppHandler(nsIMIMEInfo * aMIMEInfo,
 , mReason(aReason)
 , mContentLength(-1)
 , mProgress(0)
-, mRequest(nsnull)
 , mDataBuffer(nsnull)
+, mRequest(nsnull)
 {
 
   
@@ -1130,7 +1130,7 @@ nsExternalAppHandler::nsExternalAppHandler(nsIMIMEInfo * aMIMEInfo,
     PRUnichar(0x202d), 
     PRUnichar(0x202e)  
   };
-  for (int i = 0; i < NS_ARRAY_LENGTH(unsafeBidiCharacters); ++i) {
+  for (PRUint32 i = 0; i < NS_ARRAY_LENGTH(unsafeBidiCharacters); ++i) {
     mSuggestedFileName.ReplaceChar(unsafeBidiCharacters[i], '_');
     mTempFileExtension.ReplaceChar(unsafeBidiCharacters[i], '_');
   }
