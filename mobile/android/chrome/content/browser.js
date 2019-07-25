@@ -2663,6 +2663,29 @@ var BrowserEventHandler = {
     sendMessageToJava({ gecko: { type: "Browser:ZoomToPageWidth"} });
   },
 
+  _isRectZoomedIn: function(aRect, aViewport) {
+    
+    
+    
+    
+    
+    
+    const minDifference = -20;
+    const maxDifference = 20;
+
+    let vRect = new Rect(aViewport.cssX, aViewport.cssY, aViewport.cssWidth, aViewport.cssHeight);
+    let overlap = vRect.intersect(aRect);
+    let overlapArea = overlap.width * overlap.height;
+    let availHeight = Math.min(aRect.width * vRect.height / vRect.width, aRect.height);
+    let showing = overlapArea / (aRect.width * availHeight);
+    let dw = (aRect.width - vRect.width);
+    let dx = (aRect.x - vRect.x);
+
+    return (showing > 0.9 &&
+            dx > minDifference && dx < maxDifference &&
+            dw > minDifference && dw < maxDifference);
+  },
+
   onDoubleTap: function(aData) {
     let data = JSON.parse(aData);
 
@@ -2682,39 +2705,29 @@ var BrowserEventHandler = {
       this._zoomOut();
     } else {
       const margin = 15;
-      const minDifference = -20;
-      const maxDifference = 20;
       let rect = ElementTouchHelper.getBoundingContentRect(element);
 
       let viewport = BrowserApp.selectedTab.getViewport();
-      let vRect = new Rect(viewport.cssX, viewport.cssY, viewport.cssWidth, viewport.cssHeight);
       let bRect = new Rect(Math.max(viewport.cssPageLeft, rect.x - margin),
                            rect.y,
-                           rect.w + 2*margin,
+                           rect.w + 2 * margin,
                            rect.h);
-
       
       bRect.width = Math.min(bRect.width, viewport.cssPageRight - bRect.x);
 
-      let overlap = vRect.intersect(bRect);
-      let overlapArea = overlap.width*overlap.height;
       
       
-      let availHeight = Math.min(bRect.width*vRect.height/vRect.width, bRect.height);
-      let showing = overlapArea/(bRect.width*availHeight);
-      let dw = (bRect.width - vRect.width);
-      let dx = (bRect.x - vRect.x);
-
-      if (showing > 0.9 &&
-          dx > minDifference && dx < maxDifference &&
-          dw > minDifference && dw < maxDifference) {
-            this._zoomOut();
-            return;
+      if (this._isRectZoomedIn(bRect, viewport)) {
+        this._zoomOut();
+        return;
       }
 
       rect.type = "Browser:ZoomToRect";
-      rect.x = bRect.x; rect.y = bRect.y;
-      rect.w = bRect.width; rect.h = availHeight;
+      rect.x = bRect.x;
+      rect.y = bRect.y;
+      rect.w = bRect.width;
+      rect.h = Math.min(bRect.width * viewport.cssHeight / viewport.cssWidth, bRect.height);
+
       sendMessageToJava({ gecko: rect });
     }
   },
