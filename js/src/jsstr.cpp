@@ -703,53 +703,24 @@ static JSFunctionSpec string_functions[] = {
 jschar      js_empty_ucstr[]  = {0};
 JSSubString js_EmptySubString = {0, js_empty_ucstr};
 
-static JSBool
-str_getProperty(JSContext *cx, JSObject *obj, jsid id, Value *vp)
-{
-    JSString *str;
-
-    if (JSID_IS_ATOM(id, cx->runtime->atomState.lengthAtom)) {
-        if (obj->getClass() == &js_StringClass) {
-            
-            str = obj->getPrimitiveThis().toString();
-        } else {
-            
-            str = js_ValueToString(cx, ObjectValue(*obj));
-            if (!str)
-                return JS_FALSE;
-        }
-
-        vp->setInt32(str->length());
-    }
-
-    return JS_TRUE;
-}
-
 #define STRING_ELEMENT_ATTRS (JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT)
 
 static JSBool
 str_enumerate(JSContext *cx, JSObject *obj)
 {
-    JSString *str, *str1;
-    size_t i, length;
-
-    str = obj->getPrimitiveThis().toString();
-
-    length = str->length();
-    for (i = 0; i < length; i++) {
-        str1 = js_NewDependentString(cx, str, i, 1);
+    JSString *str = obj->getPrimitiveThis().toString();
+    for (size_t i = 0, length = str->length(); i < length; i++) {
+        JSString *str1 = js_NewDependentString(cx, str, i, 1);
         if (!str1)
-            return JS_FALSE;
+            return false;
         if (!obj->defineProperty(cx, INT_TO_JSID(i), StringValue(str1),
                                  PropertyStub, StrictPropertyStub,
                                  STRING_ELEMENT_ATTRS)) {
-            return JS_FALSE;
+            return false;
         }
     }
 
-    return obj->defineProperty(cx, ATOM_TO_JSID(cx->runtime->atomState.lengthAtom),
-                               UndefinedValue(), NULL, NULL,
-                               JSPROP_PERMANENT | JSPROP_READONLY | JSPROP_SHARED);
+    return true;
 }
 
 static JSBool
@@ -777,11 +748,11 @@ str_resolve(JSContext *cx, JSObject *obj, jsid id, uintN flags,
 
 Class js_StringClass = {
     js_String_str,
-    JSCLASS_HAS_RESERVED_SLOTS(1) | JSCLASS_NEW_RESOLVE |
-    JSCLASS_HAS_CACHED_PROTO(JSProto_String),
+    JSCLASS_HAS_RESERVED_SLOTS(JSObject::STRING_RESERVED_SLOTS) |
+    JSCLASS_NEW_RESOLVE | JSCLASS_HAS_CACHED_PROTO(JSProto_String),
     PropertyStub,         
     PropertyStub,         
-    str_getProperty,
+    PropertyStub,         
     StrictPropertyStub,   
     str_enumerate,
     (JSResolveOp)str_resolve,
@@ -3475,9 +3446,8 @@ js_String(JSContext *cx, uintN argc, Value *vp)
 
     if (IsConstructing(vp)) {
         JSObject *obj = NewBuiltinClassInstance(cx, &js_StringClass);
-        if (!obj)
+        if (!obj || !obj->initString(cx, str))
             return false;
-        obj->setPrimitiveThis(StringValue(str));
         vp->setObject(*obj);
     } else {
         vp->setString(str);
@@ -3541,27 +3511,83 @@ static JSFunctionSpec string_static_methods[] = {
     JS_FS_END
 };
 
-JSObject *
-js_InitStringClass(JSContext *cx, JSObject *obj)
+const Shape *
+JSObject::assignInitialStringShape(JSContext *cx)
 {
-    JSObject *proto;
+    JS_ASSERT(!cx->compartment->initialStringShape);
+    JS_ASSERT(isString());
+    JS_ASSERT(nativeEmpty());
+
+    return addDataProperty(cx, ATOM_TO_JSID(cx->runtime->atomState.lengthAtom),
+                           JSSLOT_STRING_LENGTH, JSPROP_PERMANENT | JSPROP_READONLY);
+}
+
+JSObject *
+js_InitStringClass(JSContext *cx, JSObject *global)
+{
+    JS_ASSERT(global->isGlobal());
+    JS_ASSERT(global->isNative());
 
     
-    if (!JS_DefineFunctions(cx, obj, string_functions))
+
+
+
+    if (!JS_DefineFunctions(cx, global, string_functions))
         return NULL;
 
-    proto = js_InitClass(cx, obj, NULL, &js_StringClass, js_String, 1,
-                         NULL, string_methods,
-                         NULL, string_static_methods);
-    if (!proto)
+    
+    JSObject *objectProto;
+    if (!js_GetClassPrototype(cx, global, JSProto_Object, &objectProto))
         return NULL;
-    proto->setPrimitiveThis(StringValue(cx->runtime->emptyString));
-    if (!js_DefineNativeProperty(cx, proto, ATOM_TO_JSID(cx->runtime->atomState.lengthAtom),
-                                 UndefinedValue(), NULL, NULL,
-                                 JSPROP_READONLY | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0,
-                                 NULL)) {
-        return JS_FALSE;
+
+    JSObject *proto = NewObject<WithProto::Class>(cx, &js_StringClass, objectProto, global);
+    if (!proto || !proto->initString(cx, cx->runtime->emptyString))
+        return NULL;
+
+    
+    JSAtom *atom = CLASS_ATOM(cx, String);
+    JSFunction *ctor = js_NewFunction(cx, NULL, js_String, 1, JSFUN_CONSTRUCTOR, global, atom);
+    if (!ctor)
+        return NULL;
+
+    
+    FUN_CLASP(ctor) = &js_StringClass;
+
+    
+    if (!ctor->defineProperty(cx, ATOM_TO_JSID(cx->runtime->atomState.classPrototypeAtom),
+                              ObjectValue(*proto), PropertyStub, StrictPropertyStub,
+                              JSPROP_PERMANENT | JSPROP_READONLY) ||
+        !proto->defineProperty(cx, ATOM_TO_JSID(cx->runtime->atomState.constructorAtom),
+                               ObjectValue(*ctor), PropertyStub, StrictPropertyStub, 0))
+    {
+        return NULL;
     }
+
+    
+    if (!JS_DefineFunctions(cx, proto, string_methods) ||
+        !JS_DefineFunctions(cx, ctor, string_static_methods))
+    {
+        return NULL;
+    }
+
+    
+    proto->brand(cx);
+    ctor->brand(cx);
+
+    
+
+
+
+
+
+
+
+    if (!proto->getEmptyShape(cx, &js_StringClass, FINALIZE_OBJECT0))
+        return NULL;
+
+    
+    if (!DefineConstructorAndPrototype(cx, global, JSProto_String, ctor, proto))
+        return NULL;
 
     return proto;
 }
