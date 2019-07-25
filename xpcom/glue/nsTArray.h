@@ -382,24 +382,6 @@ public:
 };
 
 
-
-template <class E, class Comparator>
-class nsQuickSortComparator
-{
-public:
-  typedef E elem_type;
-  
-  
-  
-  static int Compare(const void* e1, const void* e2, void *data) {
-    const Comparator* c = reinterpret_cast<const Comparator*>(data);
-    const elem_type* a = static_cast<const elem_type*>(e1);
-    const elem_type* b = static_cast<const elem_type*>(e2);
-    return c->LessThan(*a, *b) ? -1 : (c->Equals(*a, *b) ? 0 : 1);
-  }
-};
-
-
 template<class A, class B>
 class nsDefaultComparator
 {
@@ -1131,6 +1113,17 @@ public:
   
   
   
+ 
+  
+  
+  
+  template<class Comparator>
+  static int Compare(const void* e1, const void* e2, void *data) {
+    const Comparator* c = reinterpret_cast<const Comparator*>(data);
+    const elem_type* a = static_cast<const elem_type*>(e1);
+    const elem_type* b = static_cast<const elem_type*>(e2);
+    return c->LessThan(*a, *b) ? -1 : (c->Equals(*a, *b) ? 0 : 1);
+  }
 
   
   
@@ -1138,8 +1131,7 @@ public:
   template<class Comparator>
   void Sort(const Comparator& comp) {
     NS_QuickSort(Elements(), Length(), sizeof(elem_type),
-                 nsQuickSortComparator<elem_type, Comparator>::Compare,
-                 const_cast<Comparator*>(&comp));
+                 Compare<Comparator>, const_cast<Comparator*>(&comp));
   }
 
   

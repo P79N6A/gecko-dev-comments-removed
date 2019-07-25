@@ -52,17 +52,15 @@ const XULNS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/AddonManager.jsm");
 
-XPCOMUtils.defineLazyGetter(this, "NetUtil", function() {
-  Cu.import("resource://gre/modules/NetUtil.jsm");
-  return NetUtil;
-});
+XPCOMUtils.defineLazyModuleGetter(this, "AddonManager",
+                                  "resource://gre/modules/AddonManager.jsm");
 
-XPCOMUtils.defineLazyGetter(this, "PlacesUtils", function() {
-  Cu.import("resource://gre/modules/PlacesUtils.jsm");
-  return PlacesUtils;
-});
+XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
+                                  "resource://gre/modules/NetUtil.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
+                                  "resource://gre/modules/PlacesUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "KeywordURLResetPrompter",
                                   "resource:///modules/KeywordURLResetPrompter.jsm");
@@ -429,11 +427,10 @@ BrowserGlue.prototype = {
 
     
     
-    var changedIDs = AddonManager.getStartupChanges(AddonManager.STARTUP_CHANGE_INSTALLED);
+    let changedIDs = AddonManager.getStartupChanges(AddonManager.STARTUP_CHANGE_INSTALLED);
     if (changedIDs.length > 0) {
+      let browser = this.getMostRecentBrowserWindow().gBrowser;
       AddonManager.getAddonsByIDs(changedIDs, function(aAddons) {
-        var win = this.getMostRecentBrowserWindow();
-        var browser = win.gBrowser;
         aAddons.forEach(function(aAddon) {
           
           if (!aAddon.userDisabled || !(aAddon.permissions & AddonManager.PERM_CAN_ENABLE))
@@ -455,13 +452,13 @@ BrowserGlue.prototype = {
     } catch (e) { }
     if (shell) {
 #ifdef DEBUG
-      var shouldCheck = false;
+      let shouldCheck = false;
 #else
-      var shouldCheck = shell.shouldCheckDefaultBrowser;
+      let shouldCheck = shell.shouldCheckDefaultBrowser;
 #endif
-      var willRecoverSession = false;
+      let willRecoverSession = false;
       try {
-        var ss = Cc["@mozilla.org/browser/sessionstartup;1"].
+        let ss = Cc["@mozilla.org/browser/sessionstartup;1"].
                  getService(Ci.nsISessionStartup);
         willRecoverSession =
           (ss.sessionType == Ci.nsISessionStartup.RECOVER_SESSION);
@@ -469,6 +466,7 @@ BrowserGlue.prototype = {
       catch (ex) {  }
       if (shouldCheck && !shell.isDefaultBrowser(true) && !willRecoverSession) {
         Services.tm.mainThread.dispatch(function() {
+          var win = this.getMostRecentBrowserWindow();
           var brandBundle = win.document.getElementById("bundle_brand");
           var shellBundle = win.document.getElementById("bundle_shell");
   
@@ -486,7 +484,7 @@ BrowserGlue.prototype = {
           if (rv == 0)
             shell.setDefaultBrowser(true, false);
           shell.shouldCheckDefaultBrowser = checkEveryTime.value;
-        }, Ci.nsIThread.DISPATCH_NORMAL);
+        }.bind(this), Ci.nsIThread.DISPATCH_NORMAL);
       }
     }
   },

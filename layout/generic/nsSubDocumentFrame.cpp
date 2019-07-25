@@ -180,6 +180,7 @@ nsSubDocumentFrame::Init(nsIContent*     aContent,
     rv = nsContainerFrame::CreateViewForFrame(this, true);
     NS_ENSURE_SUCCESS(rv, rv);
   }
+  EnsureInnerView();
 
   
   

@@ -1104,7 +1104,11 @@ nsresult
 nsHTMLFormElement::AddElement(nsGenericHTMLFormElement* aChild,
                               bool aUpdateValidity, bool aNotify)
 {
-  NS_ASSERTION(aChild->GetParent(), "Form control should have a parent");
+  
+  
+  NS_ASSERTION(aChild->HasAttr(kNameSpaceID_None, nsGkAtoms::form) ||
+               aChild->GetParent(),
+               "Form control should have a parent");
 
   
   

@@ -124,6 +124,9 @@ class Bytecode
     bool inTryBlock : 1;
 
     
+    bool inLoop : 1;
+
+    
     bool safePoint : 1;
 
     
@@ -1205,7 +1208,7 @@ class ScriptAnalysis
 
     
     inline bool addJump(JSContext *cx, unsigned offset,
-                        unsigned *currentOffset, unsigned *forwardJump,
+                        unsigned *currentOffset, unsigned *forwardJump, unsigned *forwardLoop,
                         unsigned stackDepth);
     void checkAliasedName(JSContext *cx, jsbytecode *pc);
 

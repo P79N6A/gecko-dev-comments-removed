@@ -623,6 +623,16 @@ nsRange::ParentChainChanged(nsIContent *aContent)
 }
 
 
+static PRUint32 GetNodeLength(nsINode *aNode)
+{
+  if(aNode->IsNodeOfType(nsINode::eDATA_NODE)) {
+    return static_cast<nsIContent*>(aNode)->TextLength();
+  }
+
+  return aNode->GetChildCount();
+}
+
+
 
 
 NS_IMETHODIMP
@@ -660,6 +670,14 @@ nsRange::ComparePoint(nsIDOMNode* aParent, PRInt32 aOffset, PRInt16* aResult)
     return NS_ERROR_DOM_WRONG_DOCUMENT_ERR;
   }
   
+  if (parent->NodeType() == nsIDOMNode::DOCUMENT_TYPE_NODE) {
+    return NS_ERROR_DOM_INVALID_NODE_TYPE_ERR;
+  }
+
+  if (aOffset < 0 || aOffset > GetNodeLength(parent)) {
+    return NS_ERROR_DOM_INDEX_SIZE_ERR;
+  }
+  
   PRInt32 cmp;
   if ((cmp = nsContentUtils::ComparePoints(parent, aOffset,
                                            mStartParent, mStartOffset)) <= 0) {
@@ -680,16 +698,6 @@ nsRange::ComparePoint(nsIDOMNode* aParent, PRInt32 aOffset, PRInt16* aResult)
 
 
 
-
-
-static PRUint32 GetNodeLength(nsINode *aNode)
-{
-  if(aNode->IsNodeOfType(nsINode::eDATA_NODE)) {
-    return static_cast<nsIContent*>(aNode)->TextLength();
-  }
-
-  return aNode->GetChildCount();
-}
 
 
 
@@ -2099,7 +2107,7 @@ nsRange::InsertNode(nsIDOMNode* aN)
     nsCOMPtr<nsIDOMNode> tSCParentNode;
     res = tStartContainer->GetParentNode(getter_AddRefs(tSCParentNode));
     if(NS_FAILED(res)) return res;
-    NS_ENSURE_STATE(tSCParentNode);
+    NS_ENSURE_TRUE(tSCParentNode, NS_ERROR_DOM_HIERARCHY_REQUEST_ERR);
 
     PRInt32 tEndOffset;
     GetEndOffset(&tEndOffset);

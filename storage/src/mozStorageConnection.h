@@ -193,6 +193,15 @@ private:
 
 
 
+  int executeSql(const char *aSqlString);
+
+  
+
+
+
+
+
+
   enum DatabaseElementType {
     INDEX,
     TABLE

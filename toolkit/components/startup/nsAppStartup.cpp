@@ -873,6 +873,15 @@ nsAppStartup::TrackStartupCrashBegin(bool *aIsSafeModeNecessary)
   mIsSafeModeNecessary = (recentCrashes > maxResumedCrashes && maxResumedCrashes != -1);
 
   
+  
+  
+  char *xreProfilePath = PR_GetEnv("XRE_PROFILE_PATH");
+  if (xreProfilePath) {
+    GetAutomaticSafeModeNecessary(aIsSafeModeNecessary);
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  
   PRInt32 lastSuccessfulStartup;
   rv = Preferences::GetInt(kPrefLastSuccess, &lastSuccessfulStartup);
   NS_ENSURE_SUCCESS(rv, rv);

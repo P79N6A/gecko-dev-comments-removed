@@ -545,8 +545,10 @@ struct AllocationSiteKey {
 };
 
  inline TypeObject *
-TypeScript::InitObject(JSContext *cx, JSScript *script, const jsbytecode *pc, JSProtoKey kind)
+TypeScript::InitObject(JSContext *cx, JSScript *script, jsbytecode *pc, JSProtoKey kind)
 {
+    JS_ASSERT(!UseNewTypeForInitializer(cx, script, pc));
+
     
     uint32_t offset = pc - script->code;
 
@@ -566,6 +568,34 @@ TypeScript::InitObject(JSContext *cx, JSScript *script, const jsbytecode *pc, JS
     if (p)
         return p->value;
     return cx->compartment->types.newAllocationSiteTypeObject(cx, key);
+}
+
+
+static inline bool
+SetInitializerObjectType(JSContext *cx, JSScript *script, jsbytecode *pc, JSObject *obj)
+{
+    if (!cx->typeInferenceEnabled())
+        return true;
+
+    if (UseNewTypeForInitializer(cx, script, pc)) {
+        if (!obj->setSingletonType(cx))
+            return false;
+
+        
+
+
+
+
+        TypeScript::Monitor(cx, script, pc, ObjectValue(*obj));
+    } else {
+        JSProtoKey key = obj->isDenseArray() ? JSProto_Array : JSProto_Object;
+        types::TypeObject *type = TypeScript::InitObject(cx, script, pc, key);
+        if (!type)
+            return false;
+        obj->setType(type);
+    }
+
+    return true;
 }
 
  inline void

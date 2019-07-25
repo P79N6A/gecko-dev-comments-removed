@@ -175,10 +175,6 @@ public:
 
     static gfxPlatform *GetPlatform();
 
-    
-
-
-    static void Init();
 
     
 
@@ -481,6 +477,11 @@ protected:
     mozilla::gfx::BackendType mPreferredDrawTargetBackend;
 
 private:
+    
+
+
+    static void Init();
+
     virtual qcms_profile* GetPlatformCMSOutputProfile();
 
     nsRefPtr<gfxASurface> mScreenReferenceSurface;

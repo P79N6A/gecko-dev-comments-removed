@@ -2713,13 +2713,12 @@ IonBuilder::jsop_newarray(uint32 count)
 {
     using namespace types;
 
-    
-    
-    
-    
-    TypeObject *type = TypeScript::InitObject(cx, script, pc, JSProto_Array);
-    if (!type)
-        return false;
+    types::TypeObject *type = NULL;
+    if (!types::UseNewTypeForInitializer(cx, script, pc)) {
+        type = types::TypeScript::InitObject(cx, script, pc, JSProto_Array);
+        if (!type)
+            return false;
+    }
 
     MNewArray *ins = new MNewArray(count, type);
 
@@ -2737,11 +2736,7 @@ IonBuilder::jsop_newobject(JSObject *baseObj)
     
     JS_ASSERT(script->hasGlobal());
 
-    types::TypeObject *type = types::TypeScript::InitObject(cx, script, pc, JSProto_Object);
-    if (!type)
-        return false;
-
-    MNewObject *ins = MNewObject::New(baseObj, type);
+    MNewObject *ins = MNewObject::New(baseObj);
 
     current->add(ins);
     current->push(ins);

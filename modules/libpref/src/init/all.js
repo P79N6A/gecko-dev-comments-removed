@@ -322,6 +322,9 @@ pref("toolkit.telemetry.server_owner", "Mozilla");
 pref("toolkit.telemetry.infoURL", "http://www.mozilla.com/legal/privacy/firefox.html#telemetry");
 
 
+pref("toolkit.telemetry.debugSlowSql", false);
+
+
 pref("devtools.debugger.log", false);
 
 
@@ -1348,7 +1351,7 @@ pref("mousewheel.horizscroll.withmetakey.sysnumlines",true);
 
 
 pref("general.smoothScroll.pixels.durationMinMS", 200);
-pref("general.smoothScroll.pixels.durationMaxMS", 800);
+pref("general.smoothScroll.pixels.durationMaxMS", 400);
 pref("general.smoothScroll.lines.durationMinMS", 150);
 pref("general.smoothScroll.lines.durationMaxMS", 150);
 pref("general.smoothScroll.pages.durationMinMS", 150);
@@ -2046,7 +2049,6 @@ pref("print.print_extra_margin", 90);
 
 
 pref("print.extend_native_print_dialog", true);
-
 
 
 pref("plugin.scan.SunJRE", "1.3");

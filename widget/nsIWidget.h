@@ -118,8 +118,8 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 #endif
 
 #define NS_IWIDGET_IID \
-  { 0xf60ba9a0, 0x3013, 0x4381, \
-    { 0xb7, 0xd4, 0x34, 0xeb, 0x0c, 0xe7, 0x79, 0x0e } }
+  { 0xe7af49c1, 0xd11b, 0x4070, \
+    { 0x99, 0x7a, 0x2d, 0x2b, 0x7, 0x4b, 0xea, 0xf4 } }
 
 
 
@@ -1375,6 +1375,35 @@ class nsIWidget : public nsISupports {
     virtual nsresult SynthesizeNativeMouseEvent(nsIntPoint aPoint,
                                                 PRUint32 aNativeMessage,
                                                 PRUint32 aModifierFlags) = 0;
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    virtual nsresult SynthesizeNativeMouseScrollEvent(nsIntPoint aPoint,
+                                                      PRUint32 aNativeMessage,
+                                                      double aDeltaX,
+                                                      double aDeltaY,
+                                                      double aDeltaZ,
+                                                      PRUint32 aModifierFlags,
+                                                      PRUint32 aAdditionalFlags) = 0;
 
     
 
