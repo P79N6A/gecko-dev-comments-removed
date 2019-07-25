@@ -836,9 +836,10 @@ public:
     return ((modifiers & mozilla::widget::MODIFIER_META) != 0);
   }
   
-  bool IsWin() const
+  
+  bool IsOS() const
   {
-    return ((modifiers & mozilla::widget::MODIFIER_WIN) != 0);
+    return ((modifiers & mozilla::widget::MODIFIER_OS) != 0);
   }
   
   
@@ -860,7 +861,7 @@ public:
   
   bool IsScrollLocked() const
   {
-    return ((modifiers & mozilla::widget::MODIFIER_SCROLL) != 0);
+    return ((modifiers & mozilla::widget::MODIFIER_SCROLLLOCK) != 0);
   }
 
   
