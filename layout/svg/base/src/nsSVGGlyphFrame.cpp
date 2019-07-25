@@ -78,11 +78,12 @@ public:
 
 
 
-  void SetInitialMatrix(gfxContext *aContext) {
+  bool SetInitialMatrix(gfxContext *aContext) {
     mInitialMatrix = aContext->CurrentMatrix();
     if (mInitialMatrix.IsSingular()) {
       mInError = true;
     }
+    return !mInError;
   }
   
 
@@ -398,7 +399,9 @@ nsSVGGlyphFrame::PaintSVG(nsRenderingContext *aContext,
     SetupGlobalTransform(gfx, FOR_PAINTING);
 
     CharacterIterator iter(this, true);
-    iter.SetInitialMatrix(gfx);
+    if (!iter.SetInitialMatrix(gfx)) {
+      return NS_OK;
+    }
 
     if (GetClipRule() == NS_STYLE_FILL_RULE_EVENODD)
       gfx->SetFillRule(gfxContext::FILL_RULE_EVEN_ODD);
@@ -421,7 +424,10 @@ nsSVGGlyphFrame::PaintSVG(nsRenderingContext *aContext,
   SetupGlobalTransform(gfx, FOR_PAINTING);
 
   CharacterIterator iter(this, true);
-  iter.SetInitialMatrix(gfx);
+  if (!iter.SetInitialMatrix(gfx)) {
+    gfx->Restore();
+    return NS_OK;
+  }
 
   nsRefPtr<gfxPattern> strokePattern;
   DrawMode drawMode = SetupCairoState(gfx, getter_AddRefs(strokePattern));
@@ -448,7 +454,9 @@ nsSVGGlyphFrame::GetFrameForPoint(const nsPoint &aPoint)
   nsRefPtr<gfxContext> tmpCtx = MakeTmpCtx();
   SetupGlobalTransform(tmpCtx, FOR_HIT_TESTING);
   CharacterIterator iter(this, true);
-  iter.SetInitialMatrix(tmpCtx);
+  if (!iter.SetInitialMatrix(tmpCtx)) {
+    return nsnull;
+  }
 
   
   
@@ -621,6 +629,8 @@ SVGBBox
 nsSVGGlyphFrame::GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
                                      PRUint32 aFlags)
 {
+  SVGBBox bbox;
+
   if (mOverrideCanvasTM) {
     *mOverrideCanvasTM = aToBBoxUserspace;
   } else {
@@ -630,13 +640,13 @@ nsSVGGlyphFrame::GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
   nsRefPtr<gfxContext> tmpCtx = MakeTmpCtx();
   SetupGlobalTransform(tmpCtx, FOR_OUTERSVG_TM);
   CharacterIterator iter(this, true);
-  iter.SetInitialMatrix(tmpCtx);
+  if (!iter.SetInitialMatrix(tmpCtx)) {
+    return bbox;
+  }
   AddBoundingBoxesToPath(&iter, tmpCtx);
   tmpCtx->IdentityMatrix();
 
   mOverrideCanvasTM = nsnull;
-
-  gfxRect bbox;
 
   
   
@@ -668,10 +678,9 @@ nsSVGGlyphFrame::GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
   
   if ((aFlags & nsSVGUtils::eBBoxIncludeStrokeGeometry) ||
       ((aFlags & nsSVGUtils::eBBoxIncludeStroke) && HasStroke())) {
-    bbox =
-      bbox.Union(nsSVGUtils::PathExtentsToMaxStrokeExtents(pathExtents,
-                                                           this,
-                                                           aToBBoxUserspace));
+    bbox.UnionEdges(nsSVGUtils::PathExtentsToMaxStrokeExtents(pathExtents,
+                                                              this,
+                                                              aToBBoxUserspace));
   }
 
   return bbox;
