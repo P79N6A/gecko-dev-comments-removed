@@ -254,6 +254,7 @@ namespace nanojit
     
 
 
+
     template<class K, class T, class H=DefaultHash<K> > class HashMap {
         Allocator& allocator;
         size_t nbuckets;
