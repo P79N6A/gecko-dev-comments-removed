@@ -51,7 +51,6 @@
 #include "jsapi.h"
 #include "jscntxt.h"
 #include "jsversion.h"
-#include "jsdbgapi.h"
 #include "jsexn.h"
 #include "jsfun.h"
 #include "jsinterp.h"
@@ -296,8 +295,6 @@ InitExnPrivate(JSContext *cx, JSObject *exnObject, JSString *message,
     stackDepth = 0;
     valueCount = 0;
     for (fp = js_GetTopStackFrame(cx); fp; fp = fp->prev()) {
-        if (fp->scopeChain().compartment() != cx->compartment)
-            break;
         if (fp->isFunctionFrame() && !fp->isEvalFrame()) {
             Value v = NullValue();
             if (checkAccess &&
@@ -339,8 +336,6 @@ InitExnPrivate(JSContext *cx, JSObject *exnObject, JSString *message,
     values = GetStackTraceValueBuffer(priv);
     elem = priv->stackElems;
     for (fp = js_GetTopStackFrame(cx); fp != fpstop; fp = fp->prev()) {
-        if (fp->scopeChain().compartment() != cx->compartment)
-            break;
         if (!fp->isFunctionFrame() || fp->isEvalFrame()) {
             elem->funName = NULL;
             elem->argc = 0;

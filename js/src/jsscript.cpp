@@ -1705,7 +1705,7 @@ js_TraceScript(JSTracer *trc, JSScript *script)
     script->bindings.trace(trc);
 }
 
-JSBool
+JSObject *
 js_NewScriptObject(JSContext *cx, JSScript *script)
 {
     AutoScriptRooter root(cx, script);
@@ -1714,7 +1714,7 @@ js_NewScriptObject(JSContext *cx, JSScript *script)
 
     JSObject *obj = NewNonFunction<WithProto::Class>(cx, &js_ScriptClass, NULL, NULL);
     if (!obj)
-        return JS_FALSE;
+        return NULL;
     obj->setPrivate(script);
     script->u.object = obj;
 
@@ -1728,7 +1728,7 @@ js_NewScriptObject(JSContext *cx, JSScript *script)
     script->owner = NULL;
 #endif
 
-    return JS_TRUE;
+    return obj;
 }
 
 typedef struct GSNCacheEntry {
@@ -1973,7 +1973,7 @@ js_CloneScript(JSContext *cx, JSScript *script)
     
     DisablePrincipalsTranscoding disable(cx);
 
-    if (!JS_XDRScript(w, &script)) {
+    if (!js_XDRScript(w, &script, NULL)) {
         JS_XDRDestroy(w);
         return NULL;
     }
@@ -1997,7 +1997,6 @@ js_CloneScript(JSContext *cx, JSScript *script)
     JS_XDRMemSetData(r, p, nbytes);
     JS_XDRMemSetData(w, NULL, 0);
 
-    
     if (!js_XDRScript(r, &script, NULL))
         return NULL;
 

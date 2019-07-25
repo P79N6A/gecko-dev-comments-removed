@@ -49,6 +49,42 @@
 
 JS_BEGIN_EXTERN_C
 
+extern JS_PUBLIC_API(JSCrossCompartmentCall *)
+JS_EnterCrossCompartmentCallScript(JSContext *cx, JSScript *target);
+
+#ifdef __cplusplus
+JS_END_EXTERN_C
+
+namespace JS {
+
+class JS_PUBLIC_API(AutoEnterScriptCompartment)
+{
+    JSCrossCompartmentCall *call;
+
+  public:
+    AutoEnterScriptCompartment() : call(NULL) {}
+
+    bool enter(JSContext *cx, JSScript *target);
+
+    bool entered() const { return call != NULL; }
+
+    ~AutoEnterScriptCompartment() {
+        if (call && call != reinterpret_cast<JSCrossCompartmentCall*>(1))
+            JS_LeaveCrossCompartmentCall(call);
+    }
+};
+
+} 
+
+JS_BEGIN_EXTERN_C
+#endif
+
+extern JS_PUBLIC_API(JSScript *)
+JS_GetScriptFromObject(JSObject *scriptObject);
+
+extern JS_PUBLIC_API(JSString *)
+JS_DecompileScript(JSContext *cx, JSScript *script, const char *name, uintN indent);
+
 
 
 
@@ -561,6 +597,28 @@ extern JS_FRIEND_API(JSBool)
 js_InitEthogram(JSContext *cx, uintN argc, jsval *vp);
 extern JS_FRIEND_API(JSBool)
 js_ShutdownEthogram(JSContext *cx, uintN argc, jsval *vp);
+#endif 
+
+#ifdef MOZ_TRACE_JSCALLS
+typedef void (*JSFunctionCallback)(const JSFunction *fun,
+                                   const JSScript *scr,
+                                   const JSContext *cx,
+                                   int entering);
+
+
+
+
+
+
+
+
+
+
+extern JS_PUBLIC_API(void)
+JS_SetFunctionCallback(JSContext *cx, JSFunctionCallback fcb);
+
+extern JS_PUBLIC_API(JSFunctionCallback)
+JS_GetFunctionCallback(JSContext *cx);
 #endif 
 
 JS_END_EXTERN_C
