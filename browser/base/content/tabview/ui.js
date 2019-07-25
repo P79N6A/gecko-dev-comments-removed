@@ -448,6 +448,13 @@ let UI = {
       } else {
         
         if (gBrowser.tabs.length > 1) {
+          
+          for (let a = 0; a < gBrowser.tabs.length; a++) {
+            let theTab = gBrowser.tabs[a]; 
+            if (theTab.pinned && gBrowser._removingTabs.indexOf(theTab) == -1) 
+              return;
+          }
+
           var groupItem = GroupItems.getActiveGroupItem();
 
           
@@ -458,7 +465,7 @@ let UI = {
           
           
           if ((groupItem && groupItem._children.length == 1) ||
-              (groupItem == null && gBrowser.visibleTabs.length == 1)) {
+              (groupItem == null && gBrowser.visibleTabs.length <= 1)) {
             
             self._closedLastVisibleTab = true;
             
