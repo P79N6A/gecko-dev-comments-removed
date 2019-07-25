@@ -1570,7 +1570,7 @@ mjit::Compiler::jsop_setelem(bool popGuaranteed)
     ic.slowPathStart = stubcc.syncExit(Uses(3));
 
     
-    ic.claspGuard = masm.testObjClass(Assembler::NotEqual, ic.objReg, &ArrayClass);
+    ic.claspGuard = masm.testObjClass(Assembler::NotEqual, ic.objReg, &js_ArrayClass);
     stubcc.linkExitDirect(ic.claspGuard, ic.slowPathStart);
 
     
@@ -2120,7 +2120,7 @@ mjit::Compiler::jsop_getelem(bool isCall)
         }
 
         
-        ic.claspGuard = masm.testObjClass(Assembler::NotEqual, ic.objReg, &ArrayClass);
+        ic.claspGuard = masm.testObjClass(Assembler::NotEqual, ic.objReg, &js_ArrayClass);
         stubcc.linkExitDirect(ic.claspGuard, ic.slowPathStart);
 
         Int32Key key = id->isConstant()

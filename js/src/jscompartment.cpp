@@ -247,7 +247,7 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
             return true;
 
         
-        if (obj->isStopIteration())
+        if (obj->getClass() == &js_StopIterationClass)
             return js_FindClassObject(cx, NULL, JSProto_StopIteration, vp);
 
         

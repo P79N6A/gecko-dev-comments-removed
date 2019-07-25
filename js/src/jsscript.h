@@ -843,6 +843,7 @@ StackDepth(JSScript *script)
         }                                                                     \
     JS_END_MACRO
 
+extern JS_FRIEND_DATA(js::Class) js_ScriptClass;
 
 extern JSObject *
 js_InitScriptClass(JSContext *cx, JSObject *obj);
@@ -964,6 +965,12 @@ js_CloneScript(JSContext *cx, JSScript *script);
 
 extern JSBool
 js_XDRScript(JSXDRState *xdr, JSScript **scriptp);
+
+inline bool
+JSObject::isScript() const
+{
+    return getClass() == &js_ScriptClass;
+}
 
 inline JSScript *
 JSObject::getScript() const

@@ -82,6 +82,8 @@ class MathCache
 
 
 
+extern js::Class js_MathClass;
+
 extern JSObject *
 js_InitMathClass(JSContext *cx, JSObject *obj);
 
