@@ -1429,7 +1429,7 @@ nsLocalFile::IsExecutable(PRBool *_retval)
             "air",         
             "jar"};        
         nsDependentSubstring ext = Substring(path, dotIdx + 1);
-        for (int i = 0; i < NS_ARRAY_LENGTH(executableExts); i++) {
+        for (size_t i = 0; i < NS_ARRAY_LENGTH(executableExts); i++) {
             if (ext.EqualsASCII(executableExts[i])) {
                 
                 *_retval = PR_TRUE;
