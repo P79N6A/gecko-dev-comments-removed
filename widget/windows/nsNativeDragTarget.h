@@ -29,7 +29,7 @@ struct IDataObject;
 class nsNativeDragTarget MOZ_FINAL : public IDropTarget
 {
 public:
-  nsNativeDragTarget(nsIWidget * aWnd);
+  nsNativeDragTarget(nsIWidget * aWidget);
   ~nsNativeDragTarget();
 
   
@@ -85,7 +85,7 @@ protected:
   bool             mTookOwnRef;
 
   
-  nsIWidget      * mWindow;
+  nsIWidget      * mWidget;
   nsIDragService * mDragService;
   
   IDropTargetHelper * GetDropTargetHelper();
