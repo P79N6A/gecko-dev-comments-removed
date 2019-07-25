@@ -3340,6 +3340,13 @@ cancel_and_failure(nsNSSSocketInfo* infoObject)
 static SECStatus
 nsNSSBadCertHandler(void *arg, PRFileDesc *sslSocket)
 {
+  
+  
+  
+  
+  if (PR_GetError() == SEC_ERROR_REVOKED_CERTIFICATE)
+    return SECFailure;
+
   nsNSSShutDownPreventionLock locker;
   nsNSSSocketInfo* infoObject = (nsNSSSocketInfo *)arg;
   if (!infoObject)
