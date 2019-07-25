@@ -69,7 +69,6 @@
 #define NS_MATHML_ACTION_TYPE_TOGGLE       1
 #define NS_MATHML_ACTION_TYPE_STATUSLINE   2
 #define NS_MATHML_ACTION_TYPE_TOOLTIP      3 // unsupported
-#define NS_MATHML_ACTION_TYPE_RESTYLE      4
 
 
 nsIFrame*
@@ -128,37 +127,6 @@ nsMathMLmactionFrame::Init(nsIContent*      aContent,
         mActionType = NS_MATHML_ACTION_TYPE_STATUSLINE;
     }
 
-    if (NS_MATHML_ACTION_TYPE_NONE == mActionType) {
-      
-      if (8 < value.Length() && 0 == value.Find("restyle#")) {
-        mActionType = NS_MATHML_ACTION_TYPE_RESTYLE;
-        mRestyle = value;
-
-        
-        
-        
-
-        
-        
-        
-        PRBool notify = PR_FALSE; 
-        aContent->UnsetAttr(kNameSpaceID_None, nsGkAtoms::actiontype_, notify);
-
-        
-        nsStyleContext* parentStyleContext = GetStyleContext()->GetParent();
-        newStyleContext = PresContext()->StyleSet()->
-          ResolveStyleFor(aContent->AsElement(), parentStyleContext);
-
-        if (!newStyleContext) 
-          mRestyle.Truncate();
-        else {
-          if (newStyleContext != GetStyleContext())
-            SetStyleContextWithoutNotification(newStyleContext);
-          else
-            mRestyle.Truncate();
-        }
-      }
-    }
   }
 
   
@@ -438,23 +406,6 @@ nsMathMLmactionFrame::MouseClick()
       PresContext()->PresShell()->
         FrameNeedsReflow(mSelectedFrame, nsIPresShell::eTreeChange,
                          NS_FRAME_IS_DIRTY);
-    }
-  }
-  else if (NS_MATHML_ACTION_TYPE_RESTYLE == mActionType) {
-    if (!mRestyle.IsEmpty()) {
-      nsCOMPtr<nsIDOMElement> node( do_QueryInterface(mContent) );
-      if (node.get()) {
-        if (nsContentUtils::HasNonEmptyAttr(mContent, kNameSpaceID_None,
-                                            nsGkAtoms::actiontype_))
-          node->RemoveAttribute(NS_LITERAL_STRING("actiontype"));
-        else
-          node->SetAttribute(NS_LITERAL_STRING("actiontype"), mRestyle);
-
-        
-        PresContext()->PresShell()->
-          FrameNeedsReflow(mSelectedFrame, nsIPresShell::eStyleChange,
-                           NS_FRAME_IS_DIRTY);
-      }
     }
   }
 }
