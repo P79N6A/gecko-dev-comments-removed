@@ -1510,7 +1510,8 @@ function Tab(aURL, aParams) {
   this._drawZoom = 1.0;
   this.userScrollPos = { x: 0, y: 0 };
   this.contentDocumentIsDisplayed = true;
-  this.clickToPlayPluginDoorhangerShown = false;
+  this.pluginDoorhangerTimeout = null;
+  this.shouldShowPluginDoorhanger = true;
   this.clickToPlayPluginsActivated = false;
 }
 
@@ -2111,11 +2112,22 @@ Tab.prototype = {
         
         let overlay = plugin.ownerDocument.getAnonymousElementByAttribute(plugin, "class", "mainBox");
         if (!overlay || PluginHelper.isTooSmall(plugin, overlay)) {
-          if (!this.clickToPlayPluginDoorhangerShown)
-            PluginHelper.showDoorHanger(this);
+          
+          
+          if (!this.pluginDoorhangerTimeout) {
+            this.pluginDoorhangerTimeout = setTimeout(function() {
+              if (this.shouldShowPluginDoorhanger)
+                PluginHelper.showDoorHanger(this);
+            }.bind(this), 500);
+          }
 
+          
           if (!overlay)
             return;
+
+        } else {
+          
+          this.shouldShowPluginDoorhanger = false;
         }
 
         
@@ -2130,8 +2142,7 @@ Tab.prototype = {
           tab.clickToPlayPluginsActivated = true;
           PluginHelper.playAllPlugins(win);
 
-          if (tab.clickToPlayPluginDoorhangerShown)
-            NativeWindow.doorhanger.hide("ask-to-play-plugins", tab.id);
+          NativeWindow.doorhanger.hide("ask-to-play-plugins", tab.id);
         }, true);
         break;
       }
@@ -2209,7 +2220,9 @@ Tab.prototype = {
     let sameDocument = (aFlags & Ci.nsIWebProgressListener.LOCATION_CHANGE_SAME_DOCUMENT) != 0;
 
     
-    this.clickToPlayPluginDoorhangerShown = false;
+    clearTimeout(this.pluginDoorhangerTimeout);
+    this.pluginDoorhangerTimeout = null;
+    this.shouldShowPluginDoorhanger = true;
     this.clickToPlayPluginsActivated = false;
 
     let message = {
@@ -4215,7 +4228,7 @@ var PluginHelper = {
 
     
     
-    aTab.clickToPlayPluginDoorhangerShown = true;
+    aTab.shouldShowPluginDoorhanger = false;
 
     let uri = aTab.browser.currentURI;
 
