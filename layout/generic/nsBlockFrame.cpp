@@ -1012,7 +1012,7 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
   
   
   
-  DrainOverflowLines(state);
+  DrainOverflowLines();
 
   
   nsOverflowAreas ocBounds;
@@ -4439,7 +4439,7 @@ nsBlockFrame::PushLines(nsBlockReflowState&  aState,
 
 
 bool
-nsBlockFrame::DrainOverflowLines(nsBlockReflowState& aState)
+nsBlockFrame::DrainOverflowLines()
 {
 #ifdef DEBUG
   VerifyOverflowSituation();
