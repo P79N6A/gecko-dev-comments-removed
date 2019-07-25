@@ -368,17 +368,23 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
   },
   
   
+  
+  
   getTitle: function() {
     var value = (this.$title ? this.$title.val() : '');
     return (value == this.defaultName ? '' : value);
   },
 
   
+  
+  
   setTitle: function(value) {
     this.$title.val(value); 
     this.save();
   },
 
+  
+  
   
   adjustTitleSize: function() {
     Utils.assert('bounds needs to have been set', this.bounds);
@@ -387,6 +393,8 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
     this.$title.css(css);
     this.$titleShield.css(css);
   },
+  
+  
   
   
   _getBoundingBox: function(els) {
@@ -399,8 +407,10 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
     };
     boundingBox.height = boundingBox.bottom - boundingBox.top;
     boundingBox.width  = boundingBox.right - boundingBox.left;
-    return boundingBox;
+    return new Rect(boundingBox);
   },
+  
+  
   
   
   getContentBounds: function() {
@@ -419,6 +429,8 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
   },
   
   
+  
+  
   reloadBounds: function() {
     var bb = iQ(this.container).bounds();
     
@@ -427,6 +439,8 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
     
     this.setBounds(bb, true);
   },
+  
+  
   
   
   setBounds: function(rect, immediately) {
@@ -1539,7 +1553,7 @@ window.Groups = {
     if(this._activeGroup)
       UI.tabBar.showOnlyTheseTabs( this._activeGroup._children );
     else if( this._activeGroup == null)
-      UI.tabBar.showOnlyTheseTabs( this.getOrphanedTabs());
+      UI.tabBar.showOnlyTheseTabs( this.getOrphanedTabs(), {dontReorg: true});
   },
   
   

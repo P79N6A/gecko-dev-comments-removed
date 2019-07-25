@@ -39,6 +39,7 @@
 
 
 
+
 var Trench = function(element, xory, type, edge) {
 	this.id = Trenches.nextId++;
 	this.el = element;
@@ -105,7 +106,7 @@ Trench.prototype = {
 		}
 	},
 	show: function Trench_show() { 
-		if (!iQ('#showTrenches:checked').length) {
+		if (!Trenches.showDebug) {
 			this.hide();
 			return;
 		}
@@ -216,6 +217,7 @@ var Trenches = {
 	preferLeft: true,
 	activeTrenches: {},
 	trenches: [],
+	showDebug: false,
 	getById: function Trenches_getById(id) {
 		return this.trenches[id];
 	},
@@ -292,12 +294,12 @@ var Trenches = {
 			return false;
 	},
 	show: function Trenches_show() {
-		this.trenches.forEach(function(t){
+    this.trenches.forEach(function(t){
 			t.show();
 		});
-	}
+	}, 
+	toggleShown: function Trenches_toggleShown() {
+    this.showDebug = !this.showDebug;
+    this.show();
+  }
 };
-
-iQ('#showTrenches').change(function() {
-	Trenches.show();
-});
