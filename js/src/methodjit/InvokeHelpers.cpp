@@ -781,7 +781,9 @@ PartialInterpret(VMFrame &f)
               !fp->getScript()->nmap[cx->regs->pc - fp->getScript()->code]);
 
     JSBool ok = JS_TRUE;
-    ok = Interpret(cx, fp, 0, JSINTERP_SAFEPOINT);
+    fp->flags |= JSFRAME_BAILING;
+    ok = Interpret(cx, fp);
+    fp->flags &= ~JSFRAME_BAILING;
 
     f.fp() = cx->fp();
 
@@ -805,8 +807,9 @@ static bool
 RemoveExcessFrames(VMFrame &f, JSStackFrame *entryFrame)
 {
     JSContext *cx = f.cx;
-    while (cx->fp() != entryFrame || entryFrame->hasIMacroPC()) {
+    while (cx->fp() != entryFrame) {
         JSStackFrame *fp = cx->fp();
+        fp->flags &= ~JSFRAME_RECORDING;
 
         if (AtSafePoint(cx)) {
             JSScript *script = fp->getScript();
@@ -823,13 +826,12 @@ RemoveExcessFrames(VMFrame &f, JSStackFrame *entryFrame)
             if (!PartialInterpret(f)) {
                 if (!SwallowErrors(f, entryFrame))
                     return false;
-            } else if (cx->fp() != entryFrame) {
+            } else {
                 
 
 
 
-                JS_ASSERT(!cx->fp()->hasIMacroPC());
-                if (FrameIsFinished(cx)) {
+                if (!cx->fp()->hasIMacroPC() && FrameIsFinished(cx)) {
                     JSOp op = JSOp(*cx->regs->pc);
                     if (op == JSOP_RETURN && !(cx->fp()->flags & JSFRAME_BAILED_AT_RETURN))
                         fp->setReturnValue(f.regs.sp[-1]);
@@ -948,7 +950,16 @@ RunTracer(VMFrame &f)
         THROWV(NULL);
 
     
-    JS_ASSERT(!entryFrame->hasIMacroPC());
+    entryFrame->flags &= ~JSFRAME_RECORDING;
+    while (entryFrame->hasIMacroPC()) {
+        if (!PartialInterpret(f)) {
+            if (!SwallowErrors(f, entryFrame))
+                THROWV(NULL);
+        }
+
+        
+        goto restart;
+    }
 
     
     if (AtSafePoint(cx)) {
