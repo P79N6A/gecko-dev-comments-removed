@@ -114,14 +114,15 @@ typedef struct {
 typedef enum {
   CUBEB_STATE_STARTED, 
   CUBEB_STATE_STOPPED, 
-  CUBEB_STATE_DRAINED 
+  CUBEB_STATE_DRAINED, 
+  CUBEB_STATE_ERROR    
 } cubeb_state;
 
 
 enum {
-  CUBEB_OK = 0,              
-  CUBEB_ERROR = -1,          
-  CUBEB_ERROR_INVALID_FORMAT 
+  CUBEB_OK = 0,                   
+  CUBEB_ERROR = -1,               
+  CUBEB_ERROR_INVALID_FORMAT = -2 
 };
 
 
