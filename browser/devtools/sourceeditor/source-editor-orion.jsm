@@ -66,6 +66,14 @@ const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
 
 
+
+
+const PRIMARY_SELECTION_DELAY = 100;
+
+
+
+
+
 const ORION_THEMES = {
   mozilla: ["chrome://browser/skin/devtools/orion.css"],
 };
@@ -157,6 +165,7 @@ SourceEditor.prototype = {
   _annotationModel: null,
   _dragAndDrop: null,
   _currentLineAnnotation: null,
+  _primarySelectionTimeout: null,
   _mode: null,
   _expandTab: null,
   _tabSize: null,
@@ -567,14 +576,32 @@ SourceEditor.prototype = {
     }
 
     if (Services.appinfo.OS == "Linux") {
-      let text = this.getText(aEvent.newValue.start, aEvent.newValue.end);
-      if (!text) {
-        return;
-      }
+      let window = this.parentElement.ownerDocument.defaultView;
 
-      clipboardHelper.copyStringToClipboard(text,
-                                            Ci.nsIClipboard.kSelectionClipboard);
+      if (this._primarySelectionTimeout) {
+        window.clearTimeout(this._primarySelectionTimeout);
+      }
+      this._primarySelectionTimeout =
+        window.setTimeout(this._updatePrimarySelection.bind(this),
+                          PRIMARY_SELECTION_DELAY);
     }
+  },
+
+  
+
+
+
+  _updatePrimarySelection: function SE__updatePrimarySelection()
+  {
+    this._primarySelectionTimeout = null;
+
+    let text = this.getSelectedText();
+    if (!text) {
+      return;
+    }
+
+    clipboardHelper.copyStringToClipboard(text,
+                                          Ci.nsIClipboard.kSelectionClipboard);
   },
 
   
@@ -1302,6 +1329,12 @@ SourceEditor.prototype = {
       this._view.removeEventListener("Selection", this._onOrionSelection);
     }
     this._onOrionSelection = null;
+
+    if (this._primarySelectionTimeout) {
+      let window = this.parentElement.ownerDocument.defaultView;
+      window.clearTimeout(this._primarySelectionTimeout);
+      this._primarySelectionTimeout = null;
+    }
 
     this._view.destroy();
     this.ui.destroy();
