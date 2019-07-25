@@ -165,18 +165,6 @@ nsFaviconService::GetStatement(const nsCOMPtr<mozIStorageStatement>& aStmt)
     "SELECT id, length(data), expiration FROM moz_favicons "
     "WHERE url = :icon_url"));
 
-  
-  
-  RETURN_IF_STMT(mDBGetIconInfoWithPage, NS_LITERAL_CSTRING(
-    "SELECT id, length(data), expiration, data, mime_type, "
-    "IFNULL(url = (SELECT f.url "
-                  "FROM moz_places h "
-                  "JOIN moz_favicons f ON h.favicon_id = f.id "
-                  "WHERE h.url = :page_url "
-                  "LIMIT 1), "
-           "0) "
-    "FROM moz_favicons WHERE url = :icon_url"));
-
   RETURN_IF_STMT(mDBGetURL, NS_LITERAL_CSTRING(
     "SELECT f.id, f.url, length(f.data), f.expiration "
     "FROM moz_places h "
@@ -198,11 +186,6 @@ nsFaviconService::GetStatement(const nsCOMPtr<mozIStorageStatement>& aStmt)
 
   RETURN_IF_STMT(mDBSetPageFavicon, NS_LITERAL_CSTRING(
     "UPDATE moz_places SET favicon_id = :icon_id WHERE id = :page_id"));
-
-  RETURN_IF_STMT(mDBAssociateFaviconURIToPageURI, NS_LITERAL_CSTRING(
-    "UPDATE moz_places "
-    "SET favicon_id = (SELECT id FROM moz_favicons WHERE url = :icon_url) "
-    "WHERE url = :page_url"));
 
   RETURN_IF_STMT(mDBRemoveOnDiskReferences, NS_LITERAL_CSTRING(
     "UPDATE moz_places "
@@ -396,54 +379,6 @@ nsFaviconService::SetFaviconUrlForPageInternal(nsIURI* aPageURI,
 
 
 
-
-
-
-
-
-
-
-nsresult
-nsFaviconService::UpdateBookmarkRedirectFavicon(nsIURI* aPageURI,
-                                                nsIURI* aFaviconURI)
-{
-  NS_ENSURE_ARG_POINTER(aPageURI);
-  NS_ENSURE_ARG_POINTER(aFaviconURI);
-
-  nsNavBookmarks* bookmarks = nsNavBookmarks::GetBookmarksService();
-  NS_ENSURE_TRUE(bookmarks, NS_ERROR_OUT_OF_MEMORY);
-
-  nsCOMPtr<nsIURI> bookmarkURI;
-  nsresult rv = bookmarks->GetBookmarkedURIFor(aPageURI,
-                                               getter_AddRefs(bookmarkURI));
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (! bookmarkURI)
-    return NS_OK; 
-
-  PRBool sameAsBookmark;
-  if (NS_SUCCEEDED(bookmarkURI->Equals(aPageURI, &sameAsBookmark)) &&
-      sameAsBookmark)
-    return NS_OK; 
-
-  PRBool hasData = PR_FALSE;
-  rv = SetFaviconUrlForPageInternal(bookmarkURI, aFaviconURI, &hasData);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (hasData) {
-    
-    SendFaviconNotifications(bookmarkURI, aFaviconURI);
-  } else {
-    NS_WARNING("Calling UpdateBookmarkRedirectFavicon when you don't have data for the favicon yet.");
-  }
-  return NS_OK;
-}
-
-
-
-
-
-
-
 void
 nsFaviconService::SendFaviconNotifications(nsIURI* aPageURI,
                                            nsIURI* aFaviconURI)
@@ -470,24 +405,6 @@ nsFaviconService::SetAndLoadFaviconForPage(nsIURI* aPageURI,
   if (mFaviconsExpirationRunning)
     return NS_OK;
 
-  nsresult rv = DoSetAndLoadFaviconForPage(aPageURI, aFaviconURI, aForceReload,
-                                           aCallback);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  return NS_OK;
-}
-
-
-nsresult
-nsFaviconService::DoSetAndLoadFaviconForPage(nsIURI* aPageURI,
-                                             nsIURI* aFaviconURI,
-                                             PRBool aForceReload,
-                                             nsIFaviconDataCallback* aCallback)
-{
-  if (mFaviconsExpirationRunning)
-    return NS_OK;
-
-  
   
   PRBool previouslyFailed;
   nsresult rv = IsFailedFavicon(aFaviconURI, &previouslyFailed);
@@ -499,25 +416,12 @@ nsFaviconService::DoSetAndLoadFaviconForPage(nsIURI* aPageURI,
       return NS_OK;
   }
 
-  nsCOMPtr<AsyncFaviconStepper> stepper = new AsyncFaviconStepper(aCallback);
-  stepper->SetPageURI(aPageURI);
-  stepper->SetIconURI(aFaviconURI);
-  rv = stepper->AppendStep(new GetEffectivePageStep());
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = stepper->AppendStep(new FetchDatabaseIconStep());
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = stepper->AppendStep(new EnsureDatabaseEntryStep());
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = stepper->AppendStep(new FetchNetworkIconStep(
-    aForceReload ? FETCH_ALWAYS : FETCH_IF_MISSING));
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = stepper->AppendStep(new SetFaviconDataStep());
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = stepper->AppendStep(new AssociateIconWithPageStep());
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = stepper->AppendStep(new NotifyStep());
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = stepper->Start();
+  
+  
+  rv = AsyncFetchAndSetIconForPage::start(
+    aFaviconURI, aPageURI, aForceReload ? FETCH_ALWAYS : FETCH_IF_MISSING,
+    mDBConn, aCallback
+  );
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -1023,13 +927,11 @@ nsFaviconService::FinalizeStatements() {
     mDBGetURL,
     mDBGetData,
     mDBGetIconInfo,
-    mDBGetIconInfoWithPage,
     mDBInsertIcon,
     mDBUpdateIcon,
     mDBSetPageFavicon,
     mDBRemoveOnDiskReferences,
     mDBRemoveAllFavicons,
-    mDBAssociateFaviconURIToPageURI,
   };
 
   for (PRUint32 i = 0; i < NS_ARRAY_LENGTH(stmts); i++) {
