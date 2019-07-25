@@ -62,7 +62,7 @@ var Tabbar = {
         options = {};
 
       let tabBarTabs = Array.slice(gBrowser.tabs);
-      var visibleTabs = tabs.map(function(tab) tab.tab.raw);
+      let visibleTabs = tabs.map(function(tab) tab.tab);
 
       
       tabBarTabs.forEach(function(tab){
@@ -625,7 +625,7 @@ function UIClass() {
     
     
     
-    this.currentTab = gBrowser.selectedTab.tabcandyBrowserTab;
+    this.currentTab = gBrowser.selectedTab;
   } catch(e) {
     Utils.log(e);
   }
@@ -922,10 +922,9 @@ UIClass.prototype = {
           (charCode == 96 || charCode == 126)) {
         event.stopPropagation();
         event.preventDefault();
-        var tabBrowser = currentWin.gBrowser;
         var tabItem = Groups.getNextGroupTab(event.shiftKey);
         if (tabItem)
-          tabBrowser.selectedTab = tabItem.tab.raw;
+          gBrowser.selectedTab = tabItem.tab;
       }
     }, true);
   },
@@ -1210,7 +1209,7 @@ UIClass.prototype = {
     var groups = [];
     var items = TabItems.getItems();
     items.forEach(function(item) {
-      var url = item.getURL();
+      let url = item.tab.linkedBrowser.currentURI.spec;
       var domain = url.split('/')[2];
       if (!domain)
         newTabsGroup.add(item);

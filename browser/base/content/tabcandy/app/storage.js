@@ -104,7 +104,7 @@ Storage = {
 
       
       Tabs.forEach(function(tab) {
-        self.saveTab(tab.raw, null);
+        self.saveTab(tab, null);
       });
 
       

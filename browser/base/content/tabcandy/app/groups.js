@@ -697,7 +697,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
         if (typeof(item.setResizable) == 'function')
           item.setResizable(false);
 
-        if (item.tab.raw == gBrowser.selectedTab)
+        if (item.tab == gBrowser.selectedTab)
           Groups.setActiveGroup(this);
       }
 
@@ -1342,7 +1342,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
   
   
   reorderBasedOnTabOrder: function(){
-    this._children.sort(function(a,b) a.tab.raw._tPos - b.tab.raw._tPos);
+    this._children.sort(function(a,b) a.tab._tPos - b.tab._tPos);
 
     this.arrange({animate: false});
     
