@@ -1580,7 +1580,27 @@ nsViewManager::FlushPendingInvalidates()
 {
   NS_ASSERTION(IsRootVM(), "Must be root VM for this to be called!\n");
   NS_ASSERTION(mUpdateBatchCnt == 0, "Must not be in an update batch!");
+  
+  
+  
 
+  
+  
+  
+  NS_ASSERTION(gViewManagers, "Better have a viewmanagers array!");
+
+  
+  if (mScrollCnt == 0) {
+    
+    
+    
+    
+    
+    ++mUpdateBatchCnt;
+    CallWillPaintOnObservers();
+    --mUpdateBatchCnt;
+  }
+  
   if (mHasPendingUpdates) {
     ProcessPendingUpdates(mRootView, PR_TRUE);
     mHasPendingUpdates = PR_FALSE;
