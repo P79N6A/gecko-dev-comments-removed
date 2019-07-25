@@ -1015,13 +1015,18 @@ WeaveSvc.prototype = {
 
   startOver: function() {
     
-    for each (let engine in [Clients].concat(Engines.getAll())) {
-      try {
-        engine.removeClientData();
-      } catch(ex) {
-        this._log.warn("Deleting client data for " + engine.name + " failed:"
-                       + Utils.exceptionStr(ex));
+    if (this.clusterURL != "") {
+      
+      for each (let engine in [Clients].concat(Engines.getAll())) {
+        try {
+          engine.removeClientData();
+        } catch(ex) {
+          this._log.warn("Deleting client data for " + engine.name + " failed:"
+                         + Utils.exceptionStr(ex));
+        }
       }
+    } else {
+      this._log.debug("Skipping client data removal: no cluster URL.");
     }
 
     
