@@ -683,18 +683,29 @@ nsContextMenu.prototype = {
 
   
   openLink : function () {
-    openNewWindowWith(this.linkURL, this.target.ownerDocument, null, false);
+    var doc = this.target.ownerDocument;
+    urlSecurityCheck(this.linkURL, doc.nodePrincipal);
+    openLinkIn(this.linkURL, "window",
+               { charset: doc.characterSet,
+                 referrerURI: doc.documentURIObject });
   },
 
   
   openLinkInTab: function() {
-    openNewTabWith(this.linkURL, this.target.ownerDocument, null, null, false);
+    var doc = this.target.ownerDocument;
+    urlSecurityCheck(this.linkURL, doc.nodePrincipal);
+    openLinkIn(this.linkURL, "tab",
+               { charset: doc.characterSet,
+                 referrerURI: doc.documentURIObject });
   },
 
   
   openLinkInCurrent: function() {
-    openUILinkIn(this.linkURL, "current", null, null, 
-                 this.target.ownerDocument.documentURIObject);
+    var doc = this.target.ownerDocument;
+    urlSecurityCheck(this.linkURL, doc.nodePrincipal);
+    openLinkIn(this.linkURL, "current",
+               { charset: doc.characterSet,
+                 referrerURI: doc.documentURIObject });
   },
 
   
@@ -702,9 +713,9 @@ nsContextMenu.prototype = {
     var doc = this.target.ownerDocument;
     var frameURL = doc.location.href;
     var referrer = doc.referrer;
-
-    return openNewTabWith(frameURL, null, null, null, false,
-                          referrer ? makeURI(referrer) : null);
+    openLinkIn(frameURL, "tab",
+               { charset: doc.characterSet,
+                 referrerURI: referrer ? makeURI(referrer) : null });
   },
 
   
@@ -717,9 +728,9 @@ nsContextMenu.prototype = {
     var doc = this.target.ownerDocument;
     var frameURL = doc.location.href;
     var referrer = doc.referrer;
-
-    return openNewWindowWith(frameURL, null, null, false,
-                             referrer ? makeURI(referrer) : null);
+    openLinkIn(frameURL, "window",
+               { charset: doc.characterSet,
+                 referrerURI: referrer ? makeURI(referrer) : null });
   },
 
   
