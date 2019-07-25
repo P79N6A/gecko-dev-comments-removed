@@ -2858,6 +2858,9 @@ TypeObject::clearNewScript(JSContext *cx)
             JS_ASSERT(!inline_);
 
             
+            bool finished = false;
+
+            
             uint32 numProperties = 0;
 
             
@@ -2900,12 +2903,13 @@ TypeObject::clearNewScript(JSContext *cx)
                     }
                 } else {
                     JS_ASSERT(init->kind == TypeNewScript::Initializer::DONE);
-                    JS_ASSERT(numProperties == obj->slotSpan());
+                    finished = true;
                     break;
                 }
             }
 
-            obj->rollbackProperties(numProperties);
+            if (!finished)
+                obj->rollbackProperties(numProperties);
         }
     }
 
