@@ -665,6 +665,28 @@ static const GfxDriverInfo gDriverInfo[] = {
     GfxDriverInfo::allFeatures, nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION,
     DRIVER_LESS_THAN, V(8,741,0,0), "10.6" ),
 
+  
+
+
+
+
+
+  GfxDriverInfo( DRIVER_OS_ALL,
+    vendorATI, GfxDriverInfo::allDevices,
+    nsIGfxInfo::FEATURE_OPENGL_LAYERS, nsIGfxInfo::FEATURE_DISCOURAGED,
+    DRIVER_LESS_THAN, allDriverVersions ),
+  GfxDriverInfo( DRIVER_OS_ALL,
+    vendorATI, GfxDriverInfo::allDevices,
+    nsIGfxInfo::FEATURE_WEBGL_OPENGL, nsIGfxInfo::FEATURE_DISCOURAGED,
+    DRIVER_LESS_THAN, allDriverVersions ),
+  GfxDriverInfo( DRIVER_OS_ALL,
+    vendorAMD, GfxDriverInfo::allDevices,
+    nsIGfxInfo::FEATURE_OPENGL_LAYERS, nsIGfxInfo::FEATURE_DISCOURAGED,
+    DRIVER_LESS_THAN, allDriverVersions ),
+  GfxDriverInfo( DRIVER_OS_ALL,
+    vendorAMD, GfxDriverInfo::allDevices,
+    nsIGfxInfo::FEATURE_WEBGL_OPENGL, nsIGfxInfo::FEATURE_DISCOURAGED,
+    DRIVER_LESS_THAN, allDriverVersions ),
 
   
 
@@ -718,14 +740,6 @@ static const GfxDriverInfo gDriverInfo[] = {
     vendorIntel, GfxDriverInfo::allDevices,
     nsIGfxInfo::FEATURE_WEBGL_OPENGL, nsIGfxInfo::FEATURE_DISCOURAGED,
     DRIVER_LESS_THAN, allDriverVersions ),
-
-  
-
-
-
-  
-
-
 
   GfxDriverInfo()
 };
