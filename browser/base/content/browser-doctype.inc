@@ -11,8 +11,6 @@
 %textcontextDTD;
 <!ENTITY % customizeToolbarDTD SYSTEM "chrome:
   %customizeToolbarDTD;
-<!ENTITY % downloadsDTD SYSTEM "chrome:
-%downloadsDTD;
 <!ENTITY % placesDTD SYSTEM "chrome:
 %placesDTD;
 #ifdef MOZ_SAFE_BROWSING
