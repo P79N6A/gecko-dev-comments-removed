@@ -158,8 +158,6 @@ nsPlatformCharset::InitGetCharset(nsACString &oString)
 NS_IMETHODIMP 
 nsPlatformCharset::Init()
 {
-  nsresult res = NS_OK;
-
   
   
   
