@@ -327,19 +327,6 @@ protected:
 
 
 
-
-
-
-
-
-
-
-    nsCOMPtr<nsIDOMNode>    mTooltipNode;          
-
-    
-
-
-
     DocumentTheme                         mDocLWTheme;
 
     
