@@ -1012,7 +1012,7 @@ var PlacesStarButton = {
     }
 
     
-    if (this._uri.spec == "about:blank") {
+    if (isBlankPageURL(this._uri.spec)) {
       return;
     }
 
