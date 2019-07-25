@@ -414,24 +414,6 @@ struct VMSideExit : public nanojit::SideExit
     uintN lookupFlags;
     unsigned hitcount;
 
-    
-
-
-
-    uintptr_t nativeCalleeWord;
-
-    JSObject * nativeCallee() {
-        return (JSObject *) (nativeCalleeWord & ~1);
-    }
-
-    bool constructing() {
-        return bool(nativeCalleeWord & 1);
-    }
-
-    void setNativeCallee(JSObject *callee, bool constructing) {
-        nativeCalleeWord = uintptr_t(callee) | (constructing ? 1 : 0);
-    }
-
     inline JSValueType* stackTypeMap() {
         return (JSValueType*)(this + 1);
     }

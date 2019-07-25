@@ -484,6 +484,8 @@ extern JS_PUBLIC_DATA(jsid) JSID_EMPTY;
                                            if getters/setters use a shortid */
 
 
+#define JSFUN_CONSTRUCTOR       0x02    /* native that can be called as a ctor
+                                           without creating a this object */
 #define JSFUN_LAMBDA            0x08    /* expressed, not declared, function */
 #define JSFUN_HEAVYWEIGHT       0x80    /* activation requires a Call object */
 
@@ -497,9 +499,7 @@ extern JS_PUBLIC_DATA(jsid) JSID_EMPTY;
 #define JSFUN_THISP_BOOLEAN   0x0400    /* |this| may be a primitive boolean */
 #define JSFUN_THISP_PRIMITIVE 0x0700    /* |this| may be any primitive value */
 
-#define JSFUN_FAST_NATIVE     0x0800    /* JSFastNative needs no JSStackFrame */
-
-#define JSFUN_FLAGS_MASK      0x0ff8    /* overlay JSFUN_* attributes --
+#define JSFUN_FLAGS_MASK      0x07fa    /* overlay JSFUN_* attributes --
                                            bits 12-15 are used internally to
                                            flag interpreted functions */
 
@@ -1079,8 +1079,10 @@ JS_InitCTypesClass(JSContext *cx, JSObject *global);
 
 
 
+
+
+
 #define JS_CALLEE(cx,vp)        ((vp)[0])
-#define JS_ARGV_CALLEE(argv)    ((argv)[-2])
 #define JS_THIS(cx,vp)          JS_ComputeThis(cx, vp)
 #define JS_THIS_OBJECT(cx,vp)   (JSVAL_TO_OBJECT(JS_THIS(cx,vp)))
 #define JS_ARGV(cx,vp)          ((vp) + 2)
@@ -1665,7 +1667,6 @@ struct JSClass {
 #define JSCLASS_NEW_ENUMERATE           (1<<1)  /* has JSNewEnumerateOp hook */
 #define JSCLASS_NEW_RESOLVE             (1<<2)  /* has JSNewResolveOp hook */
 #define JSCLASS_PRIVATE_IS_NSISUPPORTS  (1<<3)  /* private is (nsISupports *) */
-
 #define JSCLASS_NEW_RESOLVE_GETS_START  (1<<5)  /* JSNewResolveOp gets starting
                                                    object in prototype chain
                                                    passed in via *objp in/out
@@ -1798,38 +1799,23 @@ struct JSFunctionSpec {
     JSNative        call;
     uint16          nargs;
     uint16          flags;
-
-    
-
-
-
-
-    uint32          extra;
 };
 
 
 
 
 
-#define JS_FS_END JS_FS(NULL,NULL,0,0,0)
+#define JS_FS_END JS_FS(NULL,NULL,0,0)
 
 
 
 
 
 
-
-#define JS_FS(name,call,nargs,flags,extra)                                    \
-    {name, call, nargs, flags, extra}
-
-
-
-
-
-
-#define JS_FN(name,fastcall,nargs,flags)                                      \
-    JS_FS(name, (JSNative)(fastcall), nargs,                                  \
-          (flags) | JSFUN_FAST_NATIVE | JSFUN_STUB_GSOPS, 0)
+#define JS_FS(name,call,nargs,flags)                                          \
+    {name, call, nargs, flags}
+#define JS_FN(name,call,nargs,flags)                                          \
+    {name, call, nargs, (flags) | JSFUN_STUB_GSOPS}
 
 extern JS_PUBLIC_API(JSObject *)
 JS_InitClass(JSContext *cx, JSObject *obj, JSObject *parent_proto,
@@ -2586,9 +2572,6 @@ JS_TriggerAllOperationCallbacks(JSRuntime *rt);
 extern JS_PUBLIC_API(JSBool)
 JS_IsRunning(JSContext *cx);
 
-extern JS_PUBLIC_API(JSBool)
-JS_IsConstructing(JSContext *cx);
-
 
 
 
@@ -3061,6 +3044,87 @@ JS_SetFunctionCallback(JSContext *cx, JSFunctionCallback fcb);
 extern JS_PUBLIC_API(JSFunctionCallback)
 JS_GetFunctionCallback(JSContext *cx);
 #endif
+
+
+
+
+
+
+
+
+
+
+static JS_ALWAYS_INLINE JSBool
+JS_IsConstructing(JSContext *cx, const jsval *vp)
+{
+    jsval_layout l;
+
+#ifdef DEBUG
+    JSObject *callee = JSVAL_TO_OBJECT(JS_CALLEE(cx, vp));
+    if (JS_ObjectIsFunction(cx, callee)) {
+        JSFunction *fun = JS_ValueToFunction(cx, JS_CALLEE(cx, vp));
+        JS_ASSERT((JS_GetFunctionFlags(fun) & JSFUN_CONSTRUCTOR) != 0);
+    } else {
+        JS_ASSERT(JS_GET_CLASS(cx, callee)->construct != NULL);
+    }
+#endif
+
+    l.asBits = JSVAL_BITS(vp[1]);
+    return JSVAL_IS_MAGIC_IMPL(l);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static JS_ALWAYS_INLINE JSBool
+JS_IsConstructing_PossiblyWithGivenThisObject(JSContext *cx, const jsval *vp,
+                                              JSObject **maybeThis)
+{
+    jsval_layout l;
+    JSBool isCtor;
+
+#ifdef DEBUG
+    JSObject *callee = JSVAL_TO_OBJECT(JS_CALLEE(cx, vp));
+    if (JS_ObjectIsFunction(cx, callee)) {
+        JSFunction *fun = JS_ValueToFunction(cx, JS_CALLEE(cx, vp));
+        JS_ASSERT((JS_GetFunctionFlags(fun) & JSFUN_CONSTRUCTOR) != 0);
+    } else {
+        JS_ASSERT(JS_GET_CLASS(cx, callee)->construct != NULL);
+    }
+#endif
+
+    l.asBits = JSVAL_BITS(vp[1]);
+    isCtor = JSVAL_IS_MAGIC_IMPL(l);
+    if (isCtor)
+        *maybeThis = MAGIC_JSVAL_TO_OBJECT_OR_NULL_IMPL(l);
+    return isCtor;
+}
+
+
+
+
+
+
+extern JS_PUBLIC_API(JSObject *)
+JS_NewObjectForConstructor(JSContext *cx, const jsval *vp);
 
 
 

@@ -6527,10 +6527,13 @@ nsCommonWindowSH::GlobalResolve(nsGlobalWindow *aWin, JSContext *cx,
 
 
 static JSBool
-ContentWindowGetter(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
-                    jsval *rval)
+ContentWindowGetter(JSContext *cx, uintN argc, jsval *vp)
 {
-  return ::JS_GetProperty(cx, obj, "content", rval);
+  JSObject *obj = JS_THIS_OBJECT(cx, vp);
+  if (!obj)
+    return JS_FALSE;
+
+  return ::JS_GetProperty(cx, obj, "content", vp);
 }
 
 PRBool
@@ -8723,16 +8726,20 @@ ResolveImpl(JSContext *cx, nsIXPConnectWrappedNative *wrapper, jsid id,
 
 
 JSBool
-nsHTMLDocumentSH::DocumentOpen(JSContext *cx, JSObject *obj, uintN argc,
-                               jsval *argv, jsval *rval)
+nsHTMLDocumentSH::DocumentOpen(JSContext *cx, uintN argc, jsval *vp)
 {
+  JSObject *obj = JS_THIS_OBJECT(cx, vp);
+  if (!obj)
+    return JS_FALSE;
+
+  jsval *argv = JS_ARGV(cx, vp);
   if (argc > 2) {
     JSObject *global = ::JS_GetGlobalForObject(cx, obj);
 
     
     
 
-    return ::JS_CallFunctionName(cx, global, "open", argc, argv, rval);
+    return ::JS_CallFunctionName(cx, global, "open", argc, JS_ARGV(cx, vp), vp);
   }
 
   nsCOMPtr<nsISupports> native = do_QueryWrapper(cx, obj);
@@ -8785,7 +8792,7 @@ nsHTMLDocumentSH::DocumentOpen(JSContext *cx, JSObject *obj, uintN argc,
   }
 
   nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
-  rv = WrapNative(cx, obj, retval, PR_FALSE, rval,
+  rv = WrapNative(cx, obj, retval, PR_FALSE, vp,
                   getter_AddRefs(holder));
   NS_ASSERTION(NS_SUCCEEDED(rv), "Failed to wrap native!");
 
@@ -9061,8 +9068,7 @@ nsHTMLDocumentSH::ReleaseDocument(JSContext *cx, JSObject *obj)
 }
 
 JSBool
-nsHTMLDocumentSH::CallToGetPropMapper(JSContext *cx, JSObject *obj, uintN argc,
-                                      jsval *argv, jsval *rval)
+nsHTMLDocumentSH::CallToGetPropMapper(JSContext *cx, uintN argc, jsval *vp)
 {
   
 
@@ -9076,28 +9082,30 @@ nsHTMLDocumentSH::CallToGetPropMapper(JSContext *cx, JSObject *obj, uintN argc,
   }
 
   
-  JSString *str = ::JS_ValueToString(cx, argv[0]);
+  JSString *str = ::JS_ValueToString(cx, JS_ARGV(cx, vp)[0]);
   if (!str) {
     return JS_FALSE;
   }
 
   JSObject *self;
 
-  if (::JS_TypeOfValue(cx, argv[-2]) == JSTYPE_FUNCTION) {
+  if (::JS_TypeOfValue(cx, JS_CALLEE(cx, vp)) == JSTYPE_FUNCTION) {
     
     
     
 
-    self = obj;
+    self = JS_THIS_OBJECT(cx, vp);
+    if (!self)
+      return JS_FALSE;
   } else {
     
     
 
-    self = JSVAL_TO_OBJECT(argv[-2]);
+    self = JSVAL_TO_OBJECT(JS_CALLEE(cx, vp));
   }
 
   return ::JS_GetUCProperty(cx, self, ::JS_GetStringChars(str),
-                            ::JS_GetStringLength(str), rval);
+                            ::JS_GetStringLength(str), vp);
 }
 
 

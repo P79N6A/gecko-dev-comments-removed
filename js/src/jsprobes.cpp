@@ -96,6 +96,7 @@ Probes::FunctionLineNumber(JSContext *cx, const JSFunction *fun)
 
 
 
+#if 0
 static void *
 jsprobes_jsvaltovoid(JSContext *cx, const js::Value &argval)
 {
@@ -120,6 +121,7 @@ jsprobes_jsvaltovoid(JSContext *cx, const js::Value &argval)
 
     return argval.asGCThing();
 }
+#endif
 
 const char *
 Probes::FunctionName(JSContext *cx, const JSFunction *fun)

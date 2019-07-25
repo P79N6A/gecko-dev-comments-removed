@@ -332,14 +332,6 @@ typedef JSBool
 
 
 
-
-typedef JSBool
-(* JSCallOp)(JSContext *cx, uintN argc, jsval *vp);
-
-
-
-
-
 typedef JSObject *
 (* JSObjectOp)(JSContext *cx, JSObject *obj);
 

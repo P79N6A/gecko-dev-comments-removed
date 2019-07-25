@@ -8,15 +8,17 @@ const size_t N = 1000;
 static jsval argv[N];
 
 static JSBool
-constructHook(JSContext *cx, JSObject *thisobj, uintN argc, jsval *argv, jsval *rval)
+constructHook(JSContext *cx, uintN argc, jsval *vp)
 {
     
-    JSObject *callee = JSVAL_TO_OBJECT(JS_ARGV_CALLEE(argv));
-    if (!thisobj) {
-        JS_ReportError(cx, "test failed, null 'this'");
+    JSObject *callee = JSVAL_TO_OBJECT(JS_CALLEE(cx, vp));
+
+    JSObject *obj = JS_NewObjectForConstructor(cx, vp);
+    if (!obj) {
+        JS_ReportError(cx, "test failed, could not construct object");
         return false;
     }
-    if (strcmp(JS_GET_CLASS(cx, thisobj)->name, "Object") != 0) {
+    if (strcmp(JS_GET_CLASS(cx, obj)->name, "Object") != 0) {
         JS_ReportError(cx, "test failed, wrong class for 'this'");
         return false;
     }
@@ -28,7 +30,7 @@ constructHook(JSContext *cx, JSObject *thisobj, uintN argc, jsval *argv, jsval *
         JS_ReportError(cx, "test failed, wrong value in argv[2]");
         return false;
     }
-    if (!JS_IsConstructing(cx)) {
+    if (!JS_IsConstructing(cx, vp)) {
         JS_ReportError(cx, "test failed, not constructing");
         return false;
     }
@@ -37,7 +39,7 @@ constructHook(JSContext *cx, JSObject *thisobj, uintN argc, jsval *argv, jsval *
     if (!JS_SetElement(cx, callee, 0, &argv[0]))
         return false;
 
-    *rval = OBJECT_TO_JSVAL(callee); 
+    *vp = OBJECT_TO_JSVAL(obj);
     argv[0] = argv[1] = argv[2] = JSVAL_VOID;  
     return true;
 }
@@ -91,11 +93,8 @@ BEGIN_TEST(testNewObject_1)
     jsvalRoot rt2(cx, OBJECT_TO_JSVAL(ctor));
     obj = JS_New(cx, ctor, 3, argv);
     CHECK(obj);
-    CHECK(obj == ctor);  
     CHECK(JS_GetElement(cx, ctor, 0, &v));
     CHECK_SAME(v, JSVAL_ZERO);
-    CHECK_SAME(argv[0], JSVAL_ZERO);  
-    CHECK_SAME(argv[1], JSVAL_ONE);
     return true;
 }
 END_TEST(testNewObject_1)

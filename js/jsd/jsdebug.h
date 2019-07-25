@@ -244,7 +244,8 @@ JSD_ClearAllProfileData(JSDContext* jsdc);
 
 
 
-#define JSD_DISABLE_OBJECT_TRACE  0x40
+#define JSD_DISABLE_OBJECT_TRACE_RETIRED 0x40
+
 
 extern JSD_PUBLIC_API(void)
 JSD_SetContextFlags (JSDContext* jsdc, uint32 flags);
@@ -948,14 +949,6 @@ extern JSD_PUBLIC_API(const char*)
 JSD_GetNameForStackFrame(JSDContext* jsdc,
                          JSDThreadState* jsdthreadstate,
                          JSDStackFrameInfo* jsdframe);
-
-
-
-
-extern JSD_PUBLIC_API(JSBool)
-JSD_IsStackFrameNative(JSDContext* jsdc,
-                       JSDThreadState* jsdthreadstate,
-                       JSDStackFrameInfo* jsdframe);
 
 
 

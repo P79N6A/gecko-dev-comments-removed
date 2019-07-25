@@ -398,13 +398,12 @@ typedef JSBool
 
 
 
-typedef JSBool
-(* JSNative)(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
-             jsval *rval);
+
+
 
 
 typedef JSBool
-(* JSFastNative)(JSContext *cx, uintN argc, jsval *vp);
+(* JSNative)(JSContext *cx, uintN argc, jsval *vp);
 
 
 

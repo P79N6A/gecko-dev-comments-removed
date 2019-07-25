@@ -576,9 +576,9 @@ static JSBool
 regexp_exec_sub(JSContext *cx, JSObject *obj, uintN argc, Value *argv, JSBool test, Value *rval);
 
 static JSBool
-regexp_call(JSContext *cx, JSObject *obj, uintN argc, Value *argv, Value *rval)
+regexp_call(JSContext *cx, uintN argc, Value *vp)
 {
-    return regexp_exec_sub(cx, argv[-2].toObjectOrNull(), argc, argv, JS_FALSE, rval);
+    return regexp_exec_sub(cx, &JS_CALLEE(cx, vp).toObject(), argc, JS_ARGV(cx, vp), false, vp);
 }
 
 #if JS_HAS_XDR
@@ -960,32 +960,26 @@ static JSFunctionSpec regexp_methods[] = {
 };
 
 static JSBool
-regexp_construct(JSContext *cx, JSObject *obj, uintN argc, Value *argv, Value *rval)
+regexp_construct(JSContext *cx, uintN argc, Value *vp)
 {
-    if (!JS_IsConstructing(cx)) {
-        
+    
 
 
 
 
-        if ((argc < 2 || argv[1].isUndefined()) && !argv[0].isPrimitive() &&
-            argv[0].toObject().getClass() == &js_RegExpClass) {
-            *rval = argv[0];
-            return true;
-        }
-
-        
-        obj = NewBuiltinClassInstance(cx, &js_RegExpClass);
-        if (!obj)
-            return false;
-
-        
-
-
-
-        *rval = ObjectValue(*obj);
+    Value *argv = vp + 2;
+    if ((argc < 2 || argv[1].isUndefined()) && argv[0].isObject() &&
+        argv[0].toObject().getClass() == &js_RegExpClass) {
+        *vp = argv[0];
+        return true;
     }
-    return regexp_compile_sub(cx, obj, argc, argv, rval);
+
+    
+    JSObject *obj = NewBuiltinClassInstance(cx, &js_RegExpClass);
+    if (!obj)
+        return false;
+
+    return regexp_compile_sub(cx, obj, argc, argv, vp);
 }
 
 JSObject *

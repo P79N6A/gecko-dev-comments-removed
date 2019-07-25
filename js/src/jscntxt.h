@@ -812,19 +812,6 @@ class StackSpace
     
 
 
-
-    JS_REQUIRES_STACK
-    void getSynthesizedSlowNativeFrame(JSContext *cx, StackSegment *&seg, JSStackFrame *&fp);
-
-    JS_REQUIRES_STACK
-    void pushSynthesizedSlowNativeFrame(JSContext *cx, StackSegment *seg, JSFrameRegs &regs);
-
-    JS_REQUIRES_STACK
-    void popSynthesizedSlowNativeFrame(JSContext *cx);
-
-    
-
-
     JS_REQUIRES_STACK
     bool pushDummyFrame(JSContext *cx, FrameGuard &fg, JSFrameRegs &regs, JSObject *scopeChain);
 
@@ -2360,8 +2347,6 @@ struct JSContext
         p->~T();
         this->free(p);
     }
-
-    bool isConstructing();
 
     void purge();
 
