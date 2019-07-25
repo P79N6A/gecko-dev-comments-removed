@@ -83,6 +83,8 @@ class MediaStreamGraph;
 
 
 
+
+
 class MediaStreamListener {
 public:
   virtual ~MediaStreamListener() {}
@@ -150,6 +152,27 @@ public:
                                         TrackTicks aTrackOffset,
                                         PRUint32 aTrackEvents,
                                         const MediaSegment& aQueuedMedia) {}
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+class MainThreadMediaStreamListener {
+public:
+  virtual ~MainThreadMediaStreamListener() {}
+
+  NS_INLINE_DECL_REFCOUNTING(MainThreadMediaStreamListener)
+
+  virtual void NotifyMainThreadStateChanged() = 0;
 };
 
 class MediaStreamGraphImpl;
@@ -271,6 +294,16 @@ public:
   
   void AddListener(MediaStreamListener* aListener);
   void RemoveListener(MediaStreamListener* aListener);
+  void AddMainThreadListener(MainThreadMediaStreamListener* aListener)
+  {
+    NS_ASSERTION(NS_IsMainThread(), "Call only on main thread");
+    mMainThreadListeners.AppendElement(aListener);
+  }
+  void RemoveMainThreadListener(MainThreadMediaStreamListener* aListener)
+  {
+    NS_ASSERTION(NS_IsMainThread(), "Call only on main thread");
+    mMainThreadListeners.RemoveElement(aListener);
+  }
   
   void Destroy();
   
@@ -383,6 +416,7 @@ protected:
   
   TimeVarying<GraphTime,PRUint32> mExplicitBlockerCount;
   nsTArray<nsRefPtr<MediaStreamListener> > mListeners;
+  nsTArray<nsRefPtr<MainThreadMediaStreamListener> > mMainThreadListeners;
 
   
   
