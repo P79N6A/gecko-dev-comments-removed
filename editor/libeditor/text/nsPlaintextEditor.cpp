@@ -969,6 +969,7 @@ nsPlaintextEditor::UpdateIMEComposition(const nsAString& aCompositionString,
   
   
 
+  bool notifyEditorObservers = false;
   if (!aCompositionString.IsEmpty() || (mIMETextNode && aTextRangeList)) {
     mIMETextRangeList = aTextRangeList;
 
@@ -992,9 +993,12 @@ nsPlaintextEditor::UpdateIMEComposition(const nsAString& aCompositionString,
     
     
     
-    if (mIsIMEComposing) {
-      NotifyEditorObservers();
-    }
+    
+    notifyEditorObservers = mIsIMEComposing;
+  }
+
+  if (notifyEditorObservers) {
+    NotifyEditorObservers();
   }
 
   return rv;
