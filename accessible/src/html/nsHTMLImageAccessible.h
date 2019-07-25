@@ -92,5 +92,14 @@ private:
   bool IsValidLongDescIndex(PRUint8 aIndex);
 };
 
+
+
+inline nsHTMLImageAccessible*
+nsAccessible::AsImage()
+{
+  return IsImageAccessible() ?
+    static_cast<nsHTMLImageAccessible*>(this) : nsnull;
+}
+
 #endif
 
