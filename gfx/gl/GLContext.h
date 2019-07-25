@@ -67,6 +67,7 @@
 #include "nsRegion.h"
 #include "nsAutoPtr.h"
 #include "nsThreadUtils.h"
+#include "thread_helper.h"
 
 typedef char realGLboolean;
 
@@ -509,6 +510,71 @@ struct THEBES_API ContextFormat
     int colorBits() const { return red + green + blue; }
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class GLContextTLSStorage
+{
+    struct Storage
+    {
+        GLContext *mCurrentGLContext;
+
+        NS_INLINE_DECL_REFCOUNTING(Storage)
+        Storage() : mCurrentGLContext(nsnull) {}
+    };
+
+    nsRefPtr<Storage> mStorage;
+    static tls::key sTLSKey;
+    static bool sTLSKeyAlreadyCreated;
+
+public:
+
+    GLContextTLSStorage() {
+        if (!sTLSKeyAlreadyCreated) {
+            tls::create(&sTLSKey);
+            sTLSKeyAlreadyCreated = true;
+        }
+
+        mStorage = tls::get<Storage>(sTLSKey);
+
+        if (!mStorage) {
+            mStorage = new Storage;
+            tls::set<Storage>(sTLSKey, mStorage);
+        }
+    }
+
+    ~GLContextTLSStorage() {
+    }
+
+    GLContext *CurrentGLContext() const {
+        return mStorage->mCurrentGLContext;
+    }
+
+    void SetCurrentGLContext(GLContext *c) {
+        mStorage->mCurrentGLContext = c;
+    }
+};
+
 class GLContext
     : public GLLibraryLoader
 {
@@ -560,7 +626,7 @@ public:
     }
 
     virtual ~GLContext() {
-        NS_ASSERTION(IsDestroyed(), "GLContext implementation must call MarkDestroyed in destructor!");
+        NS_ABORT_IF_FALSE(IsDestroyed(), "GLContext implementation must call MarkDestroyed in destructor!");
 #ifdef DEBUG
         if (mSharedContext) {
             GLContext *tip = mSharedContext;
@@ -570,6 +636,8 @@ public:
             tip->ReportOutstandingNames();
         }
 #endif
+        if (this == CurrentGLContext())
+            SetCurrentGLContext(nsnull);
     }
 
     enum ContextFlags {
@@ -590,17 +658,18 @@ public:
 
     virtual bool MakeCurrentImpl(bool aForce = false) = 0;
 
-#ifdef DEBUG
-    static void StaticInit() {
-        PR_NewThreadPrivateIndex(&sCurrentGLContextTLS, NULL);
-    }
-#endif
-
     bool MakeCurrent(bool aForce = false) {
-#ifdef DEBUG
-        PR_SetThreadPrivate(sCurrentGLContextTLS, this);
-#endif
-        return MakeCurrentImpl(aForce);
+        if (!aForce &&
+            this == CurrentGLContext())
+        {
+            return true;
+        }
+
+        bool success = MakeCurrentImpl(aForce);
+        if (success) {
+            SetCurrentGLContext(this);
+        }
+        return success;
     }
 
     bool IsContextLost() { return mContextLost; }
@@ -1087,6 +1156,16 @@ public:
     }
 
 private:
+
+    GLContext *CurrentGLContext() const {
+        return mTLSStorage.CurrentGLContext();
+    }
+
+    void SetCurrentGLContext(GLContext *c) {
+        mTLSStorage.SetCurrentGLContext(c);
+    }
+
+
     bool mOffscreenFBOsDirty;
 
     void GetShaderPrecisionFormatNonES2(GLenum shadertype, GLenum precisiontype, GLint* range, GLint* precision) {
@@ -1612,15 +1691,6 @@ protected:
 
     GLContextSymbols mSymbols;
 
-#ifdef DEBUG
-    
-    
-    
-    
-    
-    static PRUintn sCurrentGLContextTLS;
-#endif
-
     void UpdateActualFormat();
     ContextFormat mActualFormat;
 
@@ -1628,6 +1698,8 @@ protected:
     gfxIntSize mOffscreenActualSize;
     GLuint mOffscreenTexture;
     bool mFlipped;
+
+    GLContextTLSStorage mTLSStorage;
 
     
     GLuint mBlitProgram, mBlitFramebuffer;
@@ -1805,16 +1877,12 @@ public:
 
     void BeforeGLCall(const char* glFunction) {
         if (DebugMode()) {
-            GLContext *currentGLContext = NULL;
-
-            currentGLContext = (GLContext*)PR_GetThreadPrivate(sCurrentGLContextTLS);
-
             if (DebugMode() & DebugTrace)
                 printf_stderr("[gl:%p] > %s\n", this, glFunction);
-            if (this != currentGLContext) {
+            if (this != CurrentGLContext()) {
                 printf_stderr("Fatal: %s called on non-current context %p. "
                               "The current context for this thread is %p.\n",
-                               glFunction, this, currentGLContext);
+                               glFunction, this, CurrentGLContext());
                 NS_ABORT();
             }
         }
