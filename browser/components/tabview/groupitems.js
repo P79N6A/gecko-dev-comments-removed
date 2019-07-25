@@ -2233,12 +2233,26 @@ let GroupItems = {
           
           
           
-          groupItem.getChildren().forEach(function (tabItem) {
+          let children = groupItem.getChildren().concat();
+
+          children.forEach(function (tabItem) {
             if (tabItem.parent && tabItem.parent.hidden)
               iQ(tabItem.container).show();
+
+            
+            let tabData = Storage.getTabData(tabItem.tab);
+            let parentGroup = GroupItems.groupItem(tabData.groupID);
+
+            
+            if (!parentGroup || -1 < toClose.indexOf(parentGroup)) {
+              tabData.groupID = activeGroupId || Object.keys(groupItemData)[0];
+              Storage.saveTab(tabItem.tab, tabData);
+            }
+
             tabItem._reconnected = false;
             tabItem._reconnect();
           });
+
           groupItem.close({immediately: true});
         });
       }

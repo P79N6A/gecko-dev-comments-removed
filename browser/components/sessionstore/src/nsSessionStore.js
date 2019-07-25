@@ -1646,25 +1646,13 @@ SessionStoreService.prototype = {
     
     
     
-    let data = this.getWindowValue(aWindow, "tabview-group");
-    if (data) {
-      data = JSON.parse(data);
+    let groupsData = this.getWindowValue(aWindow, "tabview-groups");
+    if (groupsData) {
+      groupsData = JSON.parse(groupsData);
 
       
-      if (Object.keys(data).length > 1) {
+      if (groupsData.totalNumber > 1)
         return [false, false];
-      }
-      else {
-        
-        
-        
-        let groupKey = Object.keys(data)[0];
-        if (groupKey !== "0") {
-          data["0"] = data[groupKey];
-          delete data[groupKey];
-          this.setWindowValue(aWindow, "tabview-groups", JSON.stringify(data));
-        }
-      }
     }
 
     
