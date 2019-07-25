@@ -326,12 +326,10 @@ class SetPropCompiler : public PICStubCompiler
                 masm.storeValue(pic.u.vr, address);
             } else {
                 
-                Address capacity(pic.objReg, offsetof(JSObject, capacity));
-                masm.load32(capacity, pic.shapeReg);
-                Jump overCapacity = masm.branch32(Assembler::LessThanOrEqual, pic.shapeReg,
-                                                  Imm32(shape->slot()));
-                if (!slowExits.append(overCapacity))
-                    return error();
+
+
+
+
 
                 masm.loadPtr(Address(pic.objReg, JSObject::offsetOfSlots()), pic.shapeReg);
                 Address address(pic.shapeReg, obj->dynamicSlotIndex(shape->slot()) * sizeof(Value));
@@ -342,7 +340,7 @@ class SetPropCompiler : public PICStubCompiler
             JS_ASSERT(shape != initialShape);
 
             
-            masm.storePtr(ImmPtr(shape), Address(pic.objReg, offsetof(JSObject, lastProp)));
+            masm.storePtr(ImmPtr(shape), Address(pic.objReg, JSObject::offsetOfShape()));
         } else if (shape->hasDefaultSetter()) {
             JS_ASSERT(!shape->isMethod());
             Address address = masm.objPropAddress(obj, pic.objReg, shape->slot());
@@ -523,11 +521,8 @@ class SetPropCompiler : public PICStubCompiler
                 return disable("index");
 
             const Shape *initialShape = obj->lastProperty();
+            uint32 slots = obj->numDynamicSlots();
 
-            if (!obj->ensureClassReservedSlots(cx))
-                return error();
-
-            uint32 slots = obj->numSlots();
             uintN flags = 0;
             PropertyOp getter = clasp->getProperty;
 
@@ -584,7 +579,7 @@ class SetPropCompiler : public PICStubCompiler
 
 
 
-            if (obj->numSlots() != slots)
+            if (obj->numDynamicSlots() != slots)
                 return disable("insufficient slot capacity");
 
             if (pic.typeMonitored && !updateMonitoredTypes())
@@ -861,7 +856,8 @@ class GetPropCompiler : public PICStubCompiler
         Jump notArray = masm.testClass(Assembler::NotEqual, pic.shapeReg, &SlowArrayClass);
 
         isDense.linkTo(masm.label(), &masm);
-        masm.load32(Address(pic.objReg, offsetof(JSObject, privateData)), pic.objReg);
+        masm.loadPtr(Address(pic.objReg, JSObject::offsetOfElements()), pic.objReg);
+        masm.load32(Address(pic.objReg, ObjectElements::offsetOfLength()), pic.objReg);
         Jump oob = masm.branch32(Assembler::Above, pic.objReg, Imm32(JSVAL_INT_MAX));
         masm.move(ImmType(JSVAL_TYPE_INT32), pic.shapeReg);
         Jump done = masm.jump();
@@ -1186,7 +1182,7 @@ class GetPropCompiler : public PICStubCompiler
         if (obj->isDenseArray()) {
             start = masm.label();
             shapeGuardJump = masm.branchPtr(Assembler::NotEqual,
-                                            Address(pic.objReg, offsetof(JSObject, lastProp)),
+                                            Address(pic.objReg, JSObject::offsetOfShape()),
                                             ImmPtr(obj->lastProperty()));
 
             
@@ -2963,26 +2959,30 @@ SetElementIC::attachHoleStub(JSContext *cx, JSObject *obj, int32 keyval)
     masm.rematPayload(StateRemat::FromInt32(objRemat), objReg);
 
     
-    MaybeJump keyGuard;
-    if (!hasConstantKey)
-        keyGuard = masm.branch32(Assembler::LessThan, keyReg, Imm32(0));
+    masm.loadPtr(Address(objReg, JSObject::offsetOfElements()), objReg);
+
+    Int32Key key = hasConstantKey ? Int32Key::FromConstant(keyValue) : Int32Key::FromRegister(keyReg);
 
     
-    Jump skipUpdate;
-    Address arrayLength(objReg, offsetof(JSObject, privateData));
-    if (hasConstantKey) {
-        skipUpdate = masm.branch32(Assembler::Above, arrayLength, Imm32(keyValue));
-        masm.store32(Imm32(keyValue + 1), arrayLength);
-    } else {
-        skipUpdate = masm.branch32(Assembler::Above, arrayLength, keyReg);
-        masm.add32(Imm32(1), keyReg);
-        masm.store32(keyReg, arrayLength);
-        masm.sub32(Imm32(1), keyReg);
-    }
-    skipUpdate.linkTo(masm.label(), &masm);
+    fails.append(masm.guardArrayExtent(ObjectElements::offsetOfInitializedLength(),
+                                       objReg, key, Assembler::NotEqual));
 
     
-    masm.loadPtr(Address(objReg, JSObject::offsetOfSlots()), objReg);
+    fails.append(masm.guardArrayExtent(ObjectElements::offsetOfCapacity(),
+                                       objReg, key, Assembler::BelowOrEqual));
+
+    masm.bumpKey(key, 1);
+
+    
+    masm.storeKey(key, Address(objReg, ObjectElements::offsetOfInitializedLength()));
+    Jump lengthGuard = masm.guardArrayExtent(ObjectElements::offsetOfLength(),
+                                             objReg, key, Assembler::AboveOrEqual);
+    masm.storeKey(key, Address(objReg, ObjectElements::offsetOfLength()));
+    lengthGuard.linkTo(masm.label(), &masm);
+
+    masm.bumpKey(key, -1);
+
+    
     if (hasConstantKey) {
         Address slot(objReg, keyValue * sizeof(Value));
         masm.storeValue(vr, slot);

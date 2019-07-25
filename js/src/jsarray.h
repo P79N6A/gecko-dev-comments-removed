@@ -55,19 +55,24 @@ inline uint32
 JSObject::getDenseArrayInitializedLength()
 {
     JS_ASSERT(isDenseArray());
-    return initializedLength();
+    return getElementsHeader()->initializedLength;
 }
 
-inline bool
-JSObject::isPackedDenseArray()
+inline void
+JSObject::setDenseArrayInitializedLength(uint32 length)
 {
     JS_ASSERT(isDenseArray());
-    return flags & PACKED_ARRAY;
+    JS_ASSERT(length <= getDenseArrayCapacity());
+    getElementsHeader()->initializedLength = length;
 }
 
 namespace js {
 
 const uint32 MAX_ARRAY_INDEX = 4294967294u;
+    
+extern bool
+StringIsArrayIndex(JSLinearString *str, jsuint *indexp);
+    
 }
 
 inline JSBool
@@ -144,7 +149,7 @@ NewDenseUnallocatedArray(JSContext *cx, uint length, JSObject *proto=NULL);
 
 
 extern JSObject *
-NewDenseCopiedArray(JSContext *cx, uint32 length, const Value *vp, JSObject *proto = NULL);
+NewDenseCopiedArray(JSContext *cx, uint length, const Value *vp, JSObject *proto=NULL);
 
 
 extern JSObject *
@@ -161,13 +166,11 @@ js_SetLengthProperty(JSContext *cx, JSObject *obj, jsdouble length);
 namespace js {
 
 extern JSBool
-array_defineElement(JSContext *cx, JSObject *obj, uint32 index, const Value *value,
-                    PropertyOp getter, StrictPropertyOp setter, uintN attrs);
+array_defineProperty(JSContext *cx, JSObject *obj, jsid id, const Value *value,
+                     PropertyOp getter, StrictPropertyOp setter, uintN attrs);
 
 extern JSBool
-array_deleteElement(JSContext *cx, JSObject *obj, uint32 index, Value *rval, JSBool strict);
-
-
+array_deleteProperty(JSContext *cx, JSObject *obj, jsid id, Value *rval, JSBool strict);
 
 
 
@@ -177,6 +180,31 @@ extern bool
 GetElements(JSContext *cx, JSObject *aobj, jsuint length, js::Value *vp);
 
 }
+
+
+
+
+typedef JSBool (*JSComparator)(void *arg, const void *a, const void *b,
+                               int *result);
+
+enum JSMergeSortElemType {
+    JS_SORTING_VALUES,
+    JS_SORTING_GENERIC
+};
+
+
+
+
+
+
+
+
+
+
+
+extern bool
+js_MergeSort(void *vec, size_t nel, size_t elsize, JSComparator cmp,
+             void *arg, void *tmp, JSMergeSortElemType elemType);
 
 
 namespace js {
@@ -189,12 +217,6 @@ array_push(JSContext *cx, uintN argc, js::Value *vp);
 
 extern JSBool
 array_pop(JSContext *cx, uintN argc, js::Value *vp);
-
-extern JSBool
-array_concat(JSContext *cx, uintN argc, js::Value *vp);
-
-extern JSBool
-array_shift(JSContext *cx, uintN argc, js::Value *vp);
 
 } 
 

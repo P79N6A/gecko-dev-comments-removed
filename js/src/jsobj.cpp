@@ -2714,15 +2714,6 @@ obj_preventExtensions(JSContext *cx, uintN argc, Value *vp)
     return obj->preventExtensions(cx, &props);
 }
 
-size_t
-JSObject::sizeOfSlotsArray(JSUsableSizeFun usf)
-{
-    if (!hasSlotsArray())
-        return 0;
-    size_t usable = usf((void *)slots);
-    return usable ? usable : numSlots() * sizeof(js::Value);
-}
-
 bool
 JSObject::sealOrFreeze(JSContext *cx, ImmutabilityType it)
 {
@@ -3004,7 +2995,7 @@ CreateThisForFunctionWithType(JSContext *cx, types::TypeObject *type, JSObject *
         gc::AllocKind kind = type->newScript->allocKind;
         JSObject *res = NewObjectWithType(cx, type, parent, kind);
         if (res)
-            res->setMap((Shape *) type->newScript->shape);
+            JS_ALWAYS_TRUE(res->setLastProperty(cx, (Shape *) type->newScript->shape));
         return res;
     }
 
@@ -3079,7 +3070,7 @@ JSObject* FASTCALL
 js_InitializerObject(JSContext* cx, JSObject *proto, JSObject *baseobj)
 {
     if (!baseobj) {
-        gc::AllocKind kind = GuessObjectGCKind(0, false);
+        gc::AllocKind kind = GuessObjectGCKind(0);
         return NewObjectWithClassProto(cx, &ObjectClass, proto, kind);
     }
 
@@ -3485,7 +3476,7 @@ js_NewWithObject(JSContext *cx, JSObject *proto, JSObject *parent, jsint depth)
     if (!emptyWithShape)
         return NULL;
 
-    obj->setMap(emptyWithShape);
+    obj->setInitialPropertyInfallible(emptyWithShape);
     OBJ_SET_BLOCK_DEPTH(cx, obj, depth);
 
     AutoObjectRooter tvr(cx, obj);
@@ -3519,7 +3510,7 @@ js_NewBlockObject(JSContext *cx)
         return NULL;
 
     blockObj->init(cx, type, NULL, NULL, false);
-    blockObj->setMap(emptyBlockShape);
+    blockObj->setInitialPropertyInfallible(emptyBlockShape);
 
     return blockObj;
 }
@@ -3546,8 +3537,7 @@ js_CloneBlockObject(JSContext *cx, JSObject *proto, StackFrame *fp)
     if (!clone->initClonedBlock(cx, type, priv))
         return NULL;
 
-    if (!clone->ensureInstanceReservedSlots(cx, count + 1))
-        return NULL;
+    JS_ASSERT(clone->slotSpan() >= count + 1);
 
     clone->setSlot(JSSLOT_BLOCK_DEPTH, proto->getSlot(JSSLOT_BLOCK_DEPTH));
 
@@ -3565,7 +3555,7 @@ js_PutBlockObject(JSContext *cx, JSBool normalUnwind)
 
     
     uintN count = OBJ_BLOCK_COUNT(cx, obj);
-    JS_ASSERT(obj->numSlots() >= JSSLOT_BLOCK_DEPTH + 1 + count);
+    JS_ASSERT(obj->slotSpan() >= JSSLOT_BLOCK_DEPTH + 1 + count);
 
     
     uintN depth = OBJ_BLOCK_DEPTH(cx, obj);
@@ -3653,8 +3643,6 @@ JSObject::defineBlockVariable(JSContext *cx, jsid id, intN index)
                                       false);
     if (!shape)
         return NULL;
-    if (slot >= numSlots() && !growSlots(cx, slot + 1))
-        return NULL;
     return shape;
 }
 
@@ -3722,9 +3710,7 @@ static bool
 CopySlots(JSContext *cx, JSObject *from, JSObject *to)
 {
     JS_ASSERT(!from->isNative() && !to->isNative());
-    size_t nslots = from->numSlots();
-    if (to->ensureSlots(cx, nslots))
-        return false;
+    JS_ASSERT(from->getClass() == to->getClass());
 
     size_t n = 0;
     if (from->isWrapper() &&
@@ -3734,7 +3720,8 @@ CopySlots(JSContext *cx, JSObject *from, JSObject *to)
         n = 2;
     }
 
-    for (; n < nslots; ++n) {
+    size_t span = JSCLASS_RESERVED_SLOTS(from->getClass());
+    for (; n < span; ++n) {
         Value v = from->getSlot(n);
         if (!cx->compartment->wrap(cx, &v))
             return false;
@@ -3826,13 +3813,13 @@ JSObject::ReserveForTradeGuts(JSContext *cx, JSObject *a, JSObject *b,
 
     
 
-    unsigned acap = a->numSlots();
-    unsigned bcap = b->numSlots();
+    if (!reserved.avals.reserve(a->slotSpan()))
+        return false;
+    if (!reserved.bvals.reserve(b->slotSpan()))
+        return false;
 
-    if (!reserved.avals.reserve(acap))
-        return false;
-    if (!reserved.bvals.reserve(bcap))
-        return false;
+    JS_ASSERT(a->elements == emptyObjectElements);
+    JS_ASSERT(b->elements == emptyObjectElements);
 
     
 
@@ -3843,15 +3830,20 @@ JSObject::ReserveForTradeGuts(JSContext *cx, JSObject *a, JSObject *b,
     unsigned afixed = a->numFixedSlots();
     unsigned bfixed = b->numFixedSlots();
 
-    if (afixed < bcap) {
-        reserved.newaslots = (Value *) cx->malloc_(sizeof(Value) * (bcap - afixed));
+    unsigned adynamic = dynamicSlotsCount(afixed, b->slotSpan());
+    unsigned bdynamic = dynamicSlotsCount(bfixed, a->slotSpan());
+
+    if (adynamic) {
+        reserved.newaslots = (Value *) cx->malloc_(sizeof(Value) * adynamic);
         if (!reserved.newaslots)
             return false;
+        Debug_SetValueRangeToCrashOnTouch(reserved.newaslots, adynamic);
     }
-    if (bfixed < acap) {
-        reserved.newbslots = (Value *) cx->malloc_(sizeof(Value) * (acap - bfixed));
+    if (bdynamic) {
+        reserved.newbslots = (Value *) cx->malloc_(sizeof(Value) * bdynamic);
         if (!reserved.newbslots)
             return false;
+        Debug_SetValueRangeToCrashOnTouch(reserved.newbslots, bdynamic);
     }
 
     return true;
@@ -3907,8 +3899,8 @@ JSObject::TradeGuts(JSContext *cx, JSObject *a, JSObject *b, TradeGutsReserved &
 
 
 
-        unsigned acap = a->numSlots();
-        unsigned bcap = b->numSlots();
+        unsigned acap = a->slotSpan();
+        unsigned bcap = b->slotSpan();
 
         for (size_t i = 0; i < acap; i++)
             reserved.avals.infallibleAppend(a->getSlot(i));
@@ -3917,9 +3909,9 @@ JSObject::TradeGuts(JSContext *cx, JSObject *a, JSObject *b, TradeGutsReserved &
             reserved.bvals.infallibleAppend(b->getSlot(i));
 
         
-        if (a->hasSlotsArray())
+        if (a->hasDynamicSlots())
             cx->free_(a->slots);
-        if (b->hasSlotsArray())
+        if (b->hasDynamicSlots())
             cx->free_(b->slots);
 
         unsigned afixed = a->numFixedSlots();
@@ -3932,15 +3924,11 @@ JSObject::TradeGuts(JSContext *cx, JSObject *a, JSObject *b, TradeGutsReserved &
 
         a->updateFixedSlots(afixed);
         a->slots = reserved.newaslots;
-        a->capacity = Max(afixed, bcap);
         a->copySlotRange(0, reserved.bvals.begin(), bcap);
-        a->clearSlotRange(bcap, a->capacity - bcap);
 
         b->updateFixedSlots(bfixed);
         b->slots = reserved.newbslots;
-        b->capacity = Max(bfixed, acap);
         b->copySlotRange(0, reserved.avals.begin(), acap);
-        b->clearSlotRange(acap, b->capacity - acap);
 
         
         reserved.newaslots = NULL;
@@ -4156,9 +4144,6 @@ DefineStandardSlot(JSContext *cx, JSObject *obj, JSProtoKey key, JSAtom *atom,
 
         JS_ASSERT(obj->isGlobal());
         JS_ASSERT(obj->isNative());
-
-        if (!obj->ensureClassReservedSlots(cx))
-            return false;
 
         const Shape *shape = obj->nativeLookup(cx, id);
         if (!shape) {
@@ -4428,115 +4413,276 @@ js_InitClass(JSContext *cx, JSObject *obj, JSObject *protoProto,
 }
 
 void
-JSObject::clearSlotRange(size_t start, size_t length)
+JSObject::copySlotRange(size_t start, const Value *vector, size_t length)
 {
-    JS_ASSERT(start + length <= capacity);
-    if (isDenseArray()) {
-        ClearValueRange(slots + start, length, true);
-    } else {
-        size_t fixed = numFixedSlots();
-        if (start < fixed) {
-            if (start + length < fixed) {
-                ClearValueRange(fixedSlots() + start, length, false);
-            } else {
-                size_t localClear = fixed - start;
-                ClearValueRange(fixedSlots() + start, localClear, false);
-                ClearValueRange(slots, length - localClear, false);
-            }
+    JS_ASSERT(!isDenseArray());
+    JS_ASSERT(slotInRange(start + length,  true));
+    size_t fixed = numFixedSlots();
+    if (start < fixed) {
+        if (start + length < fixed) {
+            memcpy(fixedSlots() + start, vector, length * sizeof(Value));
         } else {
-            ClearValueRange(slots + start - fixed, length, false);
+            size_t localCopy = fixed - start;
+            memcpy(fixedSlots() + start, vector, localCopy * sizeof(Value));
+            memcpy(slots, vector + localCopy, (length - localCopy) * sizeof(Value));
         }
+    } else {
+        memcpy(slots + start - fixed, vector, length * sizeof(Value));
     }
 }
 
-void
-JSObject::copySlotRange(size_t start, const Value *vector, size_t length)
+inline void
+JSObject::clearSlotRange(size_t start, size_t length)
 {
-    JS_ASSERT(start + length <= capacity);
-    if (isDenseArray()) {
-        memcpy(slots + start, vector, length * sizeof(Value));
-    } else {
-        size_t fixed = numFixedSlots();
-        if (start < fixed) {
-            if (start + length < fixed) {
-                memcpy(fixedSlots() + start, vector, length * sizeof(Value));
-            } else {
-                size_t localCopy = fixed - start;
-                memcpy(fixedSlots() + start, vector, localCopy * sizeof(Value));
-                memcpy(slots, vector + localCopy, (length - localCopy) * sizeof(Value));
-            }
+    JS_ASSERT(!isDenseArray());
+    JS_ASSERT(slotInRange(start + length,  true));
+    size_t fixed = numFixedSlots();
+    if (start < fixed) {
+        if (start + length < fixed) {
+            ClearValueRange(fixedSlots() + start, length);
         } else {
-            memcpy(slots + start - fixed, vector, length * sizeof(Value));
+            size_t localClear = fixed - start;
+            ClearValueRange(fixedSlots() + start, localClear);
+            ClearValueRange(slots, length - localClear);
         }
+    } else {
+        ClearValueRange(slots + start - fixed, length);
     }
+}
+
+inline void
+JSObject::invalidateSlotRange(size_t start, size_t length)
+{
+#ifdef DEBUG
+    JS_ASSERT(!isDenseArray());
+
+    size_t fixed = numFixedSlots();
+    size_t numSlots = fixed + numDynamicSlots();
+
+    
+    JS_ASSERT(start <= numSlots);
+    if (start + length > numSlots)
+        length = numSlots - start;
+
+    JS_ASSERT(slotInRange(start + length,  true));
+    if (start < fixed) {
+        if (start + length < fixed) {
+            Debug_SetValueRangeToCrashOnTouch(fixedSlots() + start, length);
+        } else {
+            size_t localClear = fixed - start;
+            Debug_SetValueRangeToCrashOnTouch(fixedSlots() + start, localClear);
+            Debug_SetValueRangeToCrashOnTouch(slots, length - localClear);
+        }
+    } else {
+        Debug_SetValueRangeToCrashOnTouch(slots + start - fixed, length);
+    }
+#endif 
+}
+
+inline void
+JSObject::updateSlotsForSpan(size_t oldSpan, size_t newSpan)
+{
+    JS_ASSERT(oldSpan != newSpan);
+
+    if (newSpan == oldSpan + 1) {
+        setSlot(oldSpan, UndefinedValue());
+        return;
+    }
+
+    if (oldSpan < newSpan)
+        clearSlotRange(oldSpan, newSpan - oldSpan);
+    else
+        invalidateSlotRange(newSpan, oldSpan - newSpan);
 }
 
 bool
-JSObject::allocSlots(JSContext *cx, size_t newcap)
+JSObject::setInitialProperty(JSContext *cx, const js::Shape *shape)
 {
-    JS_ASSERT(newcap >= numSlots() && !hasSlotsArray());
-    size_t oldSize = slotsAndStructSize();
+    JS_ASSERT(isNewborn());
+    JS_ASSERT(shape->compartment() == compartment());
+    JS_ASSERT(!shape->inDictionary());
 
-    
+    size_t span = shape->slotSpan();
 
-
-
-
-
-    if (!hasLazyType() && type()->newScript) {
-        gc::AllocKind kind = type()->newScript->allocKind;
-        unsigned newScriptSlots = gc::GetGCKindSlots(kind);
-        if (newScriptSlots == numFixedSlots() && gc::TryIncrementAllocKind(&kind)) {
-            JSObject *obj = NewReshapedObject(cx, type(), getParent(), kind,
-                                              type()->newScript->shape);
-            if (!obj)
-                return false;
-
-            type()->newScript->allocKind = kind;
-            type()->newScript->shape = obj->lastProperty();
-            type()->markStateChange(cx);
-        }
+    if (!span) {
+        shape_ = const_cast<js::Shape *>(shape);
+        return true;
     }
 
-    if (newcap > NSLOTS_LIMIT) {
-        if (!JS_ON_TRACE(cx))
-            js_ReportAllocationOverflow(cx);
+    size_t count = dynamicSlotsCount(numFixedSlots(), span);
+    if (count && !growSlots(cx, 0, count))
         return false;
+
+    shape_ = const_cast<js::Shape *>(shape);
+    updateSlotsForSpan(0, span);
+    return true;
+}
+
+void
+JSObject::setInitialPropertyInfallible(const js::Shape *shape)
+{
+    JS_ASSERT(isNewborn());
+    JS_ASSERT(shape->compartment() == compartment());
+    JS_ASSERT(!shape->inDictionary());
+    JS_ASSERT(dynamicSlotsCount(numFixedSlots(), shape->slotSpan()) == 0);
+
+    shape_ = const_cast<js::Shape *>(shape);
+
+    size_t span = shape->slotSpan();
+    if (span)
+        updateSlotsForSpan(0, span);
+}
+
+bool
+JSObject::setLastProperty(JSContext *cx, const js::Shape *shape)
+{
+    JS_ASSERT(!isNewborn());
+    JS_ASSERT(!inDictionaryMode());
+    JS_ASSERT(!shape->inDictionary());
+    JS_ASSERT(shape->compartment() == compartment());
+
+    size_t oldSpan = lastProperty()->slotSpan();
+    size_t newSpan = shape->slotSpan();
+
+    if (oldSpan == newSpan) {
+        shape_ = const_cast<js::Shape *>(shape);
+        return true;
     }
 
-    uint32 allocCount = numDynamicSlots(newcap);
+    size_t oldCount = dynamicSlotsCount(numFixedSlots(), oldSpan);
+    size_t newCount = dynamicSlotsCount(numFixedSlots(), newSpan);
+    if (!changeSlots(cx, oldCount, newCount))
+        return false;
 
-    Value *tmpslots = (Value*) cx->malloc_(allocCount * sizeof(Value));
-    if (!tmpslots)
-        return false;  
-    slots = tmpslots;
-    capacity = newcap;
-
-    if (isDenseArray()) {
-        
-        memcpy(slots, fixedSlots(), getDenseArrayInitializedLength() * sizeof(Value));
-        if (!cx->typeInferenceEnabled())
-            backfillDenseArrayHoles(cx);
-    } else {
-        
-        ClearValueRange(slots, allocCount, false);
-    }
-
-    Probes::resizeObject(cx, this, oldSize, slotsAndStructSize());
+    shape_ = const_cast<js::Shape *>(shape);
+    updateSlotsForSpan(oldSpan, newSpan);
 
     return true;
 }
 
 bool
-JSObject::growSlots(JSContext *cx, size_t newcap)
+JSObject::setSlotSpan(JSContext *cx, uint32 span)
 {
+    JS_ASSERT(inDictionaryMode());
+    js::BaseShape *base = lastProperty()->base();
+
+    size_t oldSpan = base->slotSpan();
+
+    if (oldSpan == span)
+        return true;
+
+    size_t oldCount = dynamicSlotsCount(numFixedSlots(), oldSpan);
+    size_t newCount = dynamicSlotsCount(numFixedSlots(), span);
+    if (!changeSlots(cx, oldCount, newCount))
+        return false;
+
+    base->setSlotSpan(span);
+    updateSlotsForSpan(oldSpan, span);
+
+    return true;
+}
+
+bool
+JSObject::growSlots(JSContext *cx, uint32 oldCount, uint32 newCount)
+{
+    JS_ASSERT(newCount > oldCount);
+    JS_ASSERT(newCount >= SLOT_CAPACITY_MIN);
+    JS_ASSERT_IF(!isNewborn(), !isDenseArray());
+
     
 
 
 
 
 
-    JS_ASSERT_IF(isCall(), asCall().maybeStackFrame() != NULL);
+    JS_ASSERT_IF(!isNewborn() && isCall(), asCall().maybeStackFrame() != NULL);
+
+    
+    if (newCount >= NSLOTS_LIMIT) {
+        JS_ReportOutOfMemory(cx);
+        return false;
+    }
+
+    size_t oldSize = Probes::objectResizeActive() ? slotsAndStructSize() : 0;
+    size_t newSize = oldSize + (newCount - oldCount) * sizeof(Value);
+
+    if (!oldCount) {
+        slots = (Value *) cx->malloc_(newCount * sizeof(Value));
+        if (!slots)
+            return false;
+        Debug_SetValueRangeToCrashOnTouch(slots, newCount);
+        if (Probes::objectResizeActive())
+            Probes::resizeObject(cx, this, oldSize, newSize);
+        return true;
+    }
+
+    Value *tmpslots = (Value*) cx->realloc_(slots, oldCount * sizeof(Value),
+                                            newCount * sizeof(Value));
+    if (!tmpslots)
+        return false;  
+
+    bool changed = slots != tmpslots;
+    slots = tmpslots;
+
+    Debug_SetValueRangeToCrashOnTouch(slots + oldCount, newCount - oldCount);
+
+    
+    if (changed && isGlobal())
+        types::MarkObjectStateChange(cx, this);
+
+    if (Probes::objectResizeActive())
+        Probes::resizeObject(cx, this, oldSize, newSize);
+
+    return true;
+}
+
+void
+JSObject::shrinkSlots(JSContext *cx, uint32 oldCount, uint32 newCount)
+{
+    JS_ASSERT(newCount < oldCount);
+    JS_ASSERT(!isDenseArray());
+
+    
+
+
+
+
+
+    if (isCall())
+        return;
+
+    size_t oldSize = Probes::objectResizeActive() ? slotsAndStructSize() : 0;
+    size_t newSize = oldSize - (oldCount - newCount) * sizeof(Value);
+
+    if (newCount == 0) {
+        cx->free_(slots);
+        slots = NULL;
+        if (Probes::objectResizeActive())
+            Probes::resizeObject(cx, this, oldSize, newSize);
+        return;
+    }
+
+    JS_ASSERT(newCount >= SLOT_CAPACITY_MIN);
+
+    Value *tmpslots = (Value*) cx->realloc_(slots, newCount * sizeof(Value));
+    if (!tmpslots)
+        return;  
+
+    bool changed = slots != tmpslots;
+    slots = tmpslots;
+
+    
+    if (changed && isGlobal())
+        types::MarkObjectStateChange(cx, this);
+
+    if (Probes::objectResizeActive())
+        Probes::resizeObject(cx, this, oldSize, newSize);
+}
+
+bool
+JSObject::growElements(JSContext *cx, uintN newcap)
+{
+    JS_ASSERT(isDenseArray());
 
     
 
@@ -4548,10 +4694,10 @@ JSObject::growSlots(JSContext *cx, size_t newcap)
     static const size_t CAPACITY_DOUBLING_MAX = 1024 * 1024;
     static const size_t CAPACITY_CHUNK = CAPACITY_DOUBLING_MAX / sizeof(Value);
 
-    uint32 oldcap = numSlots();
-    JS_ASSERT(oldcap < newcap);
+    uint32 oldcap = getDenseArrayCapacity();
+    JS_ASSERT(oldcap <= newcap);
 
-    size_t oldSize = slotsAndStructSize();
+    size_t oldSize = Probes::objectResizeActive() ? slotsAndStructSize() : 0;
 
     uint32 nextsize = (oldcap <= CAPACITY_DOUBLING_MAX)
                     ? oldcap * 2
@@ -4564,109 +4710,80 @@ JSObject::growSlots(JSContext *cx, size_t newcap)
         actualCapacity = SLOT_CAPACITY_MIN;
 
     
-    if (actualCapacity >= NSLOTS_LIMIT) {
+    if (actualCapacity >= NSLOTS_LIMIT || actualCapacity < oldcap || actualCapacity < newcap) {
         JS_ReportOutOfMemory(cx);
         return false;
     }
 
-    
-    if (!hasSlotsArray())
-        return allocSlots(cx, actualCapacity);
+    JS_STATIC_ASSERT(sizeof(ObjectElements) == 2 * sizeof(js::Value));
 
-    uint32 oldAllocCount = numDynamicSlots(oldcap);
-    uint32 allocCount = numDynamicSlots(actualCapacity);
+    uint32 initlen = getDenseArrayInitializedLength();
 
-    Value *tmpslots = (Value*) cx->realloc_(slots, oldAllocCount * sizeof(Value),
-                                            allocCount * sizeof(Value));
-    if (!tmpslots)
-        return false;    
-
-    bool changed = slots != tmpslots;
-    slots = tmpslots;
-    capacity = actualCapacity;
-
-    if (isDenseArray()) {
-        if (!cx->typeInferenceEnabled())
-            backfillDenseArrayHoles(cx);
+    ObjectElements *tmpheader;
+    if (hasDynamicElements()) {
+        tmpheader = (ObjectElements *)
+            cx->realloc_(getElementsHeader(), (oldcap + 2) * sizeof(Value),
+                         (actualCapacity + 2) * sizeof(Value));
+        if (!tmpheader)
+            return false;  
     } else {
-        
-        ClearValueRange(slots + oldAllocCount, allocCount - oldAllocCount, false);
+        tmpheader = (ObjectElements *) cx->malloc_((actualCapacity + 2) * sizeof(Value));
+        if (!tmpheader)
+            return false;  
+        memcpy(tmpheader, getElementsHeader(), (initlen + 2) * sizeof(Value));
     }
 
-    if (changed && isGlobal())
-        types::MarkObjectStateChange(cx, this);
+    tmpheader->capacity = actualCapacity;
+    elements = tmpheader->elements();
 
-    Probes::resizeObject(cx, this, oldSize, slotsAndStructSize());
+    Debug_SetValueRangeToCrashOnTouch(elements + initlen, actualCapacity - initlen);
+
+    if (Probes::objectResizeActive())
+        Probes::resizeObject(cx, this, oldSize, slotsAndStructSize());
 
     return true;
 }
 
 void
-JSObject::shrinkSlots(JSContext *cx, size_t newcap)
+JSObject::shrinkElements(JSContext *cx, uintN newcap)
 {
-    
+    JS_ASSERT(isDenseArray());
 
-
-
-
-
-    if (isCall())
-        return;
-
-    uint32 oldcap = numSlots();
+    uint32 oldcap = getDenseArrayCapacity();
     JS_ASSERT(newcap <= oldcap);
-    JS_ASSERT(newcap >= slotSpan());
 
-    size_t oldSize = slotsAndStructSize();
+    size_t oldSize = Probes::objectResizeActive() ? slotsAndStructSize() : 0;
 
-    if (oldcap <= SLOT_CAPACITY_MIN || !hasSlotsArray()) {
-        
-
-
-
-
-        if (!isDenseArray())
-            clearSlotRange(newcap, oldcap - newcap);
+    
+    if (oldcap <= SLOT_CAPACITY_MIN || !hasDynamicElements())
         return;
-    }
 
-    uint32 fill = newcap;
-    newcap = Max(newcap, size_t(SLOT_CAPACITY_MIN));
-    newcap = Max(newcap, numFixedSlots());
+    newcap = Max(newcap, SLOT_CAPACITY_MIN);
 
-    Value *tmpslots = (Value*) cx->realloc_(slots, newcap * sizeof(Value));
-    if (!tmpslots)
+    JS_STATIC_ASSERT(sizeof(ObjectElements) == 2 * sizeof(js::Value));
+
+    ObjectElements *tmpheader = (ObjectElements *)
+        cx->realloc_(getElementsHeader(), (newcap + 2) * sizeof(Value));
+    if (!tmpheader)
         return;  
 
-    bool changed = slots != tmpslots;
-    slots = tmpslots;
-    capacity = newcap;
+    tmpheader->capacity = newcap;
+    elements = tmpheader->elements();
 
-    if (fill < newcap) {
-        
-
-
-
-
-        if (!isDenseArray())
-            clearSlotRange(fill, newcap - fill);
-    }
-
-    if (changed && isGlobal())
-        types::MarkObjectStateChange(cx, this);
-
-    Probes::resizeObject(cx, this, oldSize, slotsAndStructSize());
+    if (Probes::objectResizeActive())
+        Probes::resizeObject(cx, this, oldSize, slotsAndStructSize());
 }
 
+#ifdef DEBUG
 bool
-JSObject::ensureInstanceReservedSlots(JSContext *cx, size_t nreserved)
+JSObject::slotInRange(uintN slot, bool sentinelAllowed) const
 {
-    JS_ASSERT_IF(isNative(),
-                 isBlock() || isCall() || (isFunction() && isBoundFunction()));
-
-    uintN nslots = JSSLOT_FREE(getClass()) + nreserved;
-    return nslots <= numSlots() || allocSlots(cx, nslots);
+    size_t capacity = numFixedSlots() + numDynamicSlots();
+    if (sentinelAllowed)
+        return slot <= capacity;
+    return slot < capacity;
 }
+#endif 
 
 static JSObject *
 js_InitNullClass(JSContext *cx, JSObject *obj)
@@ -4692,11 +4809,6 @@ SetProto(JSContext *cx, JSObject *obj, JSObject *proto, bool checkForCycles)
 {
     JS_ASSERT_IF(!checkForCycles, obj != proto);
     JS_ASSERT(obj->isExtensible());
-
-    if (obj->isNative()) {
-        if (!obj->ensureClassReservedSlots(cx))
-            return false;
-    }
 
     if (proto && proto->isXML()) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_XML_PROTO_FORBIDDEN);
@@ -4942,7 +5054,7 @@ JSObject::allocSlot(JSContext *cx, uint32 *slotp)
 
 
     if (inDictionaryMode()) {
-        PropertyTable &table = lastProp->table();
+        PropertyTable &table = lastProperty()->table();
         uint32 last = table.freelist;
         if (last != SHAPE_INVALID_SLOT) {
 #ifdef DEBUG
@@ -4960,15 +5072,10 @@ JSObject::allocSlot(JSContext *cx, uint32 *slotp)
         }
     }
 
-    if (slot >= numSlots() && !growSlots(cx, slot + 1))
-        return false;
-
-    
-    JS_ASSERT(getSlot(slot).isUndefined());
     *slotp = slot;
 
-    if (inDictionaryMode())
-        lastProp->base()->setSlotSpan(slot + 1);
+    if (inDictionaryMode() && !setSlotSpan(cx, slot + 1))
+        return false;
 
     return true;
 }
@@ -4979,7 +5086,7 @@ JSObject::freeSlot(JSContext *cx, uint32 slot)
     JS_ASSERT(slot < slotSpan());
 
     if (inDictionaryMode()) {
-        uint32 &last = lastProp->table().freelist;
+        uint32 &last = lastProperty()->table().freelist;
 
         
         JS_ASSERT_IF(last != SHAPE_INVALID_SLOT, last < slotSpan() && last != slot);
@@ -5070,9 +5177,6 @@ js_AddNativeProperty(JSContext *cx, JSObject *obj, jsid id,
     if (!js_PurgeScopeChain(cx, obj, id))
         return NULL;
 
-    if (!obj->ensureClassReservedSlots(cx))
-        return NULL;
-
     return obj->putProperty(cx, id, getter, setter, slot, attrs, flags, shortid);
 }
 
@@ -5081,9 +5185,6 @@ js_ChangeNativePropertyAttrs(JSContext *cx, JSObject *obj,
                              const Shape *shape, uintN attrs, uintN mask,
                              PropertyOp getter, StrictPropertyOp setter)
 {
-    if (!obj->ensureClassReservedSlots(cx))
-        return NULL;
-
     
 
 
@@ -5221,10 +5322,6 @@ DefineNativeProperty(JSContext *cx, JSObject *obj, jsid id, const Value &value,
         if (attrs & JSPROP_READONLY)
             MarkTypePropertyConfigured(cx, obj, id);
     }
-
-    
-    if (!obj->ensureClassReservedSlots(cx))
-        return NULL;
 
     
 
@@ -6193,10 +6290,6 @@ js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, uintN defineHow,
             return JS_FALSE;
 
         
-        if (!obj->ensureClassReservedSlots(cx))
-            return JS_FALSE;
-
-        
 
 
 
@@ -6943,10 +7036,8 @@ js_GetReservedSlot(JSContext *cx, JSObject *obj, uint32 slot, Value *vp)
         return true;
     }
 
-    if (slot < obj->numSlots())
-        *vp = obj->getSlot(slot);
-    else
-        vp->setUndefined();
+    JS_ASSERT(slot < JSSLOT_FREE(obj->getClass()));
+    *vp = obj->getSlot(slot);
     return true;
 }
 
@@ -6957,13 +7048,7 @@ js_SetReservedSlot(JSContext *cx, JSObject *obj, uint32 slot, const Value &v)
         return true;
 
     Class *clasp = obj->getClass();
-
-    if (slot >= obj->numSlots()) {
-        uint32 nslots = JSSLOT_FREE(clasp);
-        JS_ASSERT(slot < nslots);
-        if (!obj->allocSlots(cx, nslots))
-            return false;
-    }
+    JS_ASSERT(slot < JSSLOT_FREE(clasp));
 
     obj->setSlot(slot, v);
     GCPoke(cx, NullValue());
@@ -6978,6 +7063,9 @@ JSObject::getGlobal() const
         obj = parent;
     return obj->asGlobal();
 }
+
+static ObjectElements emptyObjectHeader(0);
+Value *js::emptyObjectElements = (Value *) (jsuword(&emptyObjectHeader) + sizeof(ObjectElements));
 
 JSBool
 js_ReportGetterOnlyAssignment(JSContext *cx)

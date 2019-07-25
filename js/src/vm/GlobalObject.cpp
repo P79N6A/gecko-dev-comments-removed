@@ -275,9 +275,6 @@ GlobalObject::create(JSContext *cx, Class *clasp)
 bool
 GlobalObject::initStandardClasses(JSContext *cx)
 {
-    
-    JS_ASSERT(numSlots() >= JSSLOT_FREE(getClass()));
-
     JSAtomState &state = cx->runtime->atomState;
 
     

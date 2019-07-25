@@ -45,15 +45,8 @@
 #endif
 #include "jspubtd.h"
 #include "jsprvtd.h"
-#include "jsscript.h"
-#include "jsobj.h"
 
 namespace js {
-
-namespace mjit {
-struct NativeAddressInfo;
-struct Compiler_ActiveFrame;
-}
 
 namespace Probes {
 
@@ -93,9 +86,6 @@ extern const char nullName[];
 extern const char anonymousName[];
 
 
-JSBool startEngine();
-
-
 bool createRuntime(JSRuntime *rt);
 
 
@@ -110,12 +100,6 @@ bool shutdown();
 
 
 bool callTrackingActive(JSContext *);
-
-
-
-
-
-bool wantNativeAddressInfo(JSContext *);
 
 
 bool enterJSFun(JSContext *, JSFunction *, JSScript *, int counter = 1);
@@ -136,6 +120,9 @@ bool resizeHeap(JSCompartment *compartment, size_t oldSize, size_t newSize);
 
 
 bool createObject(JSContext *cx, JSObject *obj);
+
+
+bool objectResizeActive();
 
 
 bool resizeObject(JSContext *cx, JSObject *obj, size_t oldSize, size_t newSize);
@@ -213,101 +200,6 @@ bool CustomMark(int marker);
 
 
 
-enum JITReportGranularity {
-    JITREPORT_GRANULARITY_NONE = 0,
-    JITREPORT_GRANULARITY_FUNCTION = 1,
-    JITREPORT_GRANULARITY_LINE = 2,
-    JITREPORT_GRANULARITY_OP = 3
-};
-
-
-
-
-
-
-class JITWatcher {
-public:
-    virtual JITReportGranularity granularityRequested() = 0;
-
-#ifdef JS_METHODJIT
-    virtual void registerMJITCode(JSContext *cx, js::mjit::JITScript *jscr,
-                                  JSScript *script, JSFunction *fun,
-                                  mjit::Compiler_ActiveFrame** inlineFrames,
-                                  void *mainCodeAddress, size_t mainCodeSize,
-                                  void *stubCodeAddress, size_t stubCodeSize) = 0;
-
-    virtual void discardMJITCode(JSContext *cx, mjit::JITScript *jscr, JSScript *script,
-                                 void* address) = 0;
-
-    virtual void registerICCode(JSContext *cx,
-                                js::mjit::JITScript *jscr, JSScript *script, jsbytecode* pc,
-                                void *start, size_t size) = 0;
-#endif
-
-    virtual void discardExecutableRegion(void *start, size_t size) = 0;
-};
-
-
-
-
-
-bool
-addJITWatcher(JITWatcher *watcher);
-
-
-
-
-
-bool
-removeJITWatcher(JSRuntime *rt, JITWatcher *watcher);
-
-
-
-
-void
-removeAllJITWatchers(JSRuntime *rt);
-
-
-
-
-JITReportGranularity
-JITGranularityRequested();
-
-#ifdef JS_METHODJIT
-
-
-
-void
-registerMJITCode(JSContext *cx, js::mjit::JITScript *jscr,
-                 JSScript *script, JSFunction *fun,
-                 mjit::Compiler_ActiveFrame** inlineFrames,
-                 void *mainCodeAddress, size_t mainCodeSize,
-                 void *stubCodeAddress, size_t stubCodeSize);
-
-
-
-
-void
-discardMJITCode(JSContext *cx, mjit::JITScript *jscr, JSScript *script, void* address);
-
-
-
-
-void
-registerICCode(JSContext *cx,
-               mjit::JITScript *jscr, JSScript *script, jsbytecode* pc,
-               void *start, size_t size);
-#endif 
-
-
-
-
-
-void
-discardExecutableRegion(void *start, size_t size);
-
-
-
 
 
 
@@ -359,6 +251,39 @@ bool ETWResizeHeap(JSCompartment *compartment, size_t oldSize, size_t newSize);
 
 
 inline bool
+Probes::createRuntime(JSRuntime *rt)
+{
+    bool ok = true;
+#ifdef MOZ_ETW
+    if (!ETWCreateRuntime(rt))
+        ok = false;
+#endif
+    return ok;
+}
+
+inline bool
+Probes::destroyRuntime(JSRuntime *rt)
+{
+    bool ok = true;
+#ifdef MOZ_ETW
+    if (!ETWDestroyRuntime(rt))
+        ok = false;
+#endif
+    return ok;
+}
+
+inline bool
+Probes::shutdown()
+{
+    bool ok = true;
+#ifdef MOZ_ETW
+    if (!ETWShutdown())
+        ok = false;
+#endif
+    return ok;
+}
+
+inline bool
 Probes::callTrackingActive(JSContext *cx)
 {
 #ifdef INCLUDE_MOZILLA_DTRACE
@@ -374,13 +299,6 @@ Probes::callTrackingActive(JSContext *cx)
         return true;
 #endif
     return false;
-}
-
-inline bool
-Probes::wantNativeAddressInfo(JSContext *cx)
-{
-    return (cx->reportGranularity >= JITREPORT_GRANULARITY_FUNCTION &&
-            JITGranularityRequested() >= JITREPORT_GRANULARITY_FUNCTION);
 }
 
 inline bool
@@ -487,6 +405,17 @@ Probes::finalizeObject(JSObject *obj)
 #endif
 
     return ok;
+}
+
+inline bool
+Probes::objectResizeActive()
+{
+#ifdef MOZ_ETW
+    if (ProfilingActive)
+        return true;
+#endif
+
+    return false;
 }
 
 inline bool

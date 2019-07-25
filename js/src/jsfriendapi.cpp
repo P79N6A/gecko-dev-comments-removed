@@ -41,19 +41,11 @@
 #include "jscompartment.h"
 #include "jsfriendapi.h"
 #include "jswrapper.h"
-#include "jsweakmap.h"
 
 #include "jsobjinlines.h"
 
 using namespace js;
 using namespace JS;
-
-JS_FRIEND_API(void)
-JS_SetGrayGCRootsTracer(JSRuntime *rt, JSTraceDataOp traceOp, void *data)
-{
-    rt->gcGrayRootsTraceOp = traceOp;
-    rt->gcGrayRootsData = data;
-}
 
 JS_FRIEND_API(JSString *)
 JS_GetAnonymousString(JSRuntime *rt)
@@ -90,9 +82,9 @@ JS_GetObjectFunction(JSObject *obj)
 }
 
 JS_FRIEND_API(JSObject *)
-JS_GetGlobalForFrame(JSStackFrame *fp)
+JS_GetFrameScopeChainRaw(JSStackFrame *fp)
 {
-    return Valueify(fp)->scopeChain().getGlobal();
+    return &Valueify(fp)->scopeChain();
 }
 
 JS_FRIEND_API(JSBool)
@@ -128,15 +120,7 @@ JS_NewObjectWithUniqueType(JSContext *cx, JSClass *clasp, JSObject *proto, JSObj
 JS_FRIEND_API(uint32)
 JS_ObjectCountDynamicSlots(JSObject *obj)
 {
-    if (obj->hasSlotsArray())
-        return obj->numDynamicSlots(obj->numSlots());
-    return 0;
-}
-    
-JS_PUBLIC_API(void)
-JS_ShrinkingGC(JSContext *cx)
-{
-    js_GC(cx, NULL, GC_SHRINK, gcstats::PUBLIC_API);
+    return (obj->slotsAndStructSize() - obj->structSize()) / sizeof(Value);
 }
 
 JS_FRIEND_API(JSPrincipals *)
@@ -186,21 +170,6 @@ AutoSwitchCompartment::~AutoSwitchCompartment()
     cx->compartment = oldCompartment;
 }
 
-#ifdef DEBUG
-JS_FRIEND_API(void)
-js::CheckReservedSlot(const JSObject *obj, size_t slot)
-{
-    CheckSlot(obj, slot);
-    JS_ASSERT(slot < JSSLOT_FREE(obj->getClass()));
-}
-
-JS_FRIEND_API(void)
-js::CheckSlot(const JSObject *obj, size_t slot)
-{
-    JS_ASSERT(slot < obj->numSlots());
-}
-#endif
-
 
 
 
@@ -229,112 +198,3 @@ JS_GetCustomIteratorCount(JSContext *cx)
 {
     return sCustomIteratorCount;
 }
-
-void
-js::TraceWeakMaps(WeakMapTracer *trc)
-{
-    WeakMapBase::traceAllMappings(trc);
-}
-
-JS_FRIEND_API(void)
-JS_SetAccumulateTelemetryCallback(JSRuntime *rt, JSAccumulateTelemetryDataCallback callback)
-{
-    rt->telemetryCallback = callback;
-}
-
-JS_FRIEND_API(void)
-JS_SetGCFinishedCallback(JSRuntime *rt, JSGCFinishedCallback callback)
-{
-    rt->gcFinishedCallback = callback;
-}
-
-#ifdef DEBUG
-
-struct DumpingChildInfo {
-    void *node;
-    JSGCTraceKind kind;
-
-    DumpingChildInfo (void *n, JSGCTraceKind k)
-        : node(n), kind(k)
-    {}
-};
-
-typedef HashSet<void *, DefaultHasher<void *>, ContextAllocPolicy> PtrSet;
-
-struct JSDumpHeapTracer : public JSTracer {
-    PtrSet visited;
-    FILE   *output;
-    Vector<DumpingChildInfo, 0, ContextAllocPolicy> nodes;
-    char   buffer[200];
-    bool   rootTracing;
-
-    JSDumpHeapTracer(JSContext *cx, FILE *fp)
-        : visited(cx), output(fp), nodes(cx)
-    {}
-};
-
-static void
-DumpHeapVisitChild(JSTracer *trc, void *thing, JSGCTraceKind kind);
-
-static void
-DumpHeapPushIfNew(JSTracer *trc, void *thing, JSGCTraceKind kind)
-{
-    JS_ASSERT(trc->callback == DumpHeapPushIfNew ||
-              trc->callback == DumpHeapVisitChild);
-    JSDumpHeapTracer *dtrc = static_cast<JSDumpHeapTracer *>(trc);
-
-    
-
-
-
-    if (dtrc->rootTracing) {
-        fprintf(dtrc->output, "%p %s\n", thing,
-                JS_GetTraceEdgeName(dtrc, dtrc->buffer, sizeof(dtrc->buffer)));
-    }
-
-    PtrSet::AddPtr ptrEntry = dtrc->visited.lookupForAdd(thing);
-    if (ptrEntry || !dtrc->visited.add(ptrEntry, thing))
-        return;
-
-    dtrc->nodes.append(DumpingChildInfo(thing, kind));
-}
-
-static void
-DumpHeapVisitChild(JSTracer *trc, void *thing, JSGCTraceKind kind)
-{
-    JS_ASSERT(trc->callback == DumpHeapVisitChild);
-    JSDumpHeapTracer *dtrc = static_cast<JSDumpHeapTracer *>(trc);
-    const char *edgeName = JS_GetTraceEdgeName(dtrc, dtrc->buffer, sizeof(dtrc->buffer));
-    fprintf(dtrc->output, "> %p %s\n", (void *)thing, edgeName);
-    DumpHeapPushIfNew(dtrc, thing, kind);
-}
-
-void
-js::DumpHeapComplete(JSContext *cx, FILE *fp)
-{
-    JSDumpHeapTracer dtrc(cx, fp);
-    JS_TRACER_INIT(&dtrc, cx, DumpHeapPushIfNew);
-    if (!dtrc.visited.init(10000))
-        return;
-
-    
-    dtrc.rootTracing = true;
-    TraceRuntime(&dtrc);
-    fprintf(dtrc.output, "==========\n");
-
-    
-    dtrc.rootTracing = false;
-    dtrc.callback = DumpHeapVisitChild;
-
-    while (!dtrc.nodes.empty()) {
-        DumpingChildInfo dci = dtrc.nodes.popCopy();
-        JS_PrintTraceThingInfo(dtrc.buffer, sizeof(dtrc.buffer),
-                               &dtrc, dci.node, dci.kind, JS_TRUE);
-        fprintf(fp, "%p %s\n", dci.node, dtrc.buffer);
-        JS_TraceChildren(&dtrc, dci.node, dci.kind);
-    }
-
-    dtrc.visited.finish();
-}
-
-#endif

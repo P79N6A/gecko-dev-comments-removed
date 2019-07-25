@@ -1636,7 +1636,9 @@ class TraceRecorder
 
 
 
-            const Value *vp = globalObj->getRawSlot(slot, globalObj->getRawSlots());
+            
+            JS_NOT_REACHED("FIXME");
+            const Value *vp = NULL;
 
             
             if (tracker.has(vp))

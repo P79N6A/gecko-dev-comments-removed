@@ -68,20 +68,31 @@ const size_t SLOTS_TO_THING_KIND_LIMIT = 17;
 
 
 static inline AllocKind
-GetGCObjectKind(size_t numSlots, bool isArray = false)
+GetGCObjectKind(size_t numSlots)
 {
     extern AllocKind slotsToThingKind[];
 
-    if (numSlots >= SLOTS_TO_THING_KIND_LIMIT) {
-        
-
-
-
-
-
-        return isArray ? FINALIZE_OBJECT0 : FINALIZE_OBJECT16;
-    }
+    if (numSlots >= SLOTS_TO_THING_KIND_LIMIT)
+        return FINALIZE_OBJECT16;
     return slotsToThingKind[numSlots];
+}
+
+
+static inline AllocKind
+GetGCArrayKind(size_t numSlots)
+{
+    extern AllocKind slotsToThingKind[];
+
+    
+
+
+
+
+
+    JS_STATIC_ASSERT(sizeof(ObjectElements) == 2 * sizeof(Value));
+    if (numSlots + 2 >= SLOTS_TO_THING_KIND_LIMIT)
+        return FINALIZE_OBJECT2;
+    return slotsToThingKind[numSlots + 2];
 }
 
 static inline AllocKind
@@ -388,10 +399,9 @@ inline JSFunction*
 js_NewGCFunction(JSContext *cx)
 {
     JSFunction *fun = NewGCThing<JSFunction>(cx, js::gc::FINALIZE_FUNCTION, sizeof(JSFunction));
-    if (fun) {
-        fun->capacity = JSObject::FUN_CLASS_RESERVED_SLOTS;
-        fun->lastProp = NULL; 
-    }
+    if (fun)
+        fun->earlyInit(JSObject::FUN_CLASS_RESERVED_SLOTS);
+
     return fun;
 }
 

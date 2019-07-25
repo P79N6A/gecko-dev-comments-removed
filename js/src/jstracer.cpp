@@ -2687,7 +2687,9 @@ TraceRecorder::nativeGlobalOffset(const Value* p) const
 bool
 TraceRecorder::isGlobal(const Value* p) const
 {
-    return (size_t(p - globalObj->slots) < globalObj->numSlots() - globalObj->numFixedSlots());
+    JS_NOT_REACHED("FIXME");
+    return false;
+    
 }
 
 bool
@@ -3867,7 +3869,8 @@ JS_REQUIRES_STACK void
 TraceRecorder::importGlobalSlot(unsigned slot)
 {
     JS_ASSERT(slot == uint16(slot));
-    JS_ASSERT(globalObj->numSlots() <= MAX_GLOBAL_SLOTS);
+    JS_NOT_REACHED("FIXME");
+    
 
     const Value* vp = &globalObj->getSlot(slot);
     JS_ASSERT(!known(vp));
@@ -3900,8 +3903,9 @@ TraceRecorder::lazilyImportGlobalSlot(unsigned slot)
 
 
 
-    if (globalObj->numSlots() > MAX_GLOBAL_SLOTS)
-        return false;
+    JS_NOT_REACHED("FIXME");
+    
+    
     const Value* vp = &globalObj->getSlot(slot);
     if (known(vp))
         return true; 
@@ -4102,21 +4106,24 @@ TraceRecorder::known(JSObject** p)
 JS_REQUIRES_STACK void
 TraceRecorder::checkForGlobalObjectReallocationHelper()
 {
-    debug_only_print0(LC_TMTracer, "globalObj->slots relocated, updating tracker\n");
-    const Value* src = global_slots;
-    const Value* dst = globalObj->getRawSlots();
-    jsuint length = globalObj->capacity;
-    LIns** map = (LIns**)alloca(sizeof(LIns*) * length);
-    for (jsuint n = 0; n < length; ++n) {
-        const Value *slot = globalObj->getRawSlot(n, src);
-        map[n] = tracker.get(slot);
-        tracker.set(slot, NULL);
-    }
-    for (jsuint n = 0; n < length; ++n) {
-        const Value *slot = globalObj->getRawSlot(n, dst);
-        tracker.set(slot, map[n]);
-    }
-    global_slots = globalObj->getRawSlots();
+    JS_NOT_REACHED("FIXME");
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }
 
 
@@ -9803,7 +9810,6 @@ TraceRecorder::stobj_set_slot(JSObject *obj, LIns* obj_ins, unsigned slot, LIns*
 
 
     if (obj->isFixedSlot(slot)) {
-        JS_ASSERT(slot < obj->numSlots());
         stobj_set_fslot(obj_ins, slot, v, v_ins);
     } else {
         stobj_set_dslot(obj_ins, obj->dynamicSlotIndex(slot), slots_ins, v, v_ins);

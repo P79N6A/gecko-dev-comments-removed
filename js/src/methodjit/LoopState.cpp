@@ -1324,10 +1324,12 @@ LoopState::restoreInvariants(jsbytecode *pc, Assembler &masm,
 
 
             masm.loadPayload(frame.addressOf(entry.u.check.arraySlot), T0);
-            if (entry.kind == InvariantEntry::DENSE_ARRAY_BOUNDS_CHECK)
-                masm.load32(Address(T0, JSObject::offsetOfInitializedLength()), T0);
-            else
-                masm.loadPayload(Address(T0, TypedArray::lengthOffset()), T0);
+            if (entry.kind == InvariantEntry::DENSE_ARRAY_BOUNDS_CHECK) {
+                masm.loadPtr(Address(T0, JSObject::offsetOfElements()), T0);
+                masm.load32(Address(T0, ObjectElements::offsetOfInitializedLength()), T0);
+            } else {
+                masm.load32(Address(T0, TypedArray::lengthOffset()), T0);
+            }
 
             int32 constant = entry.u.check.constant;
 
@@ -1393,18 +1395,16 @@ LoopState::restoreInvariants(jsbytecode *pc, Assembler &masm,
             Jump notObject = masm.testObject(Assembler::NotEqual, frame.addressOf(array));
             jumps->append(notObject);
             masm.loadPayload(frame.addressOf(array), T0);
-
-            uint32 offset = (entry.kind == InvariantEntry::DENSE_ARRAY_SLOTS)
-                ? JSObject::offsetOfSlots()
-                : offsetof(JSObject, privateData);
+            masm.loadPtr(Address(T0, JSObject::offsetOfElements()), T0);
 
             Address address = frame.addressOf(frame.getTemporary(entry.u.array.temporary));
 
-            masm.loadPtr(Address(T0, offset), T0);
-            if (entry.kind == InvariantEntry::DENSE_ARRAY_LENGTH)
+            if (entry.kind == InvariantEntry::DENSE_ARRAY_LENGTH) {
+                masm.load32(Address(T0, ObjectElements::offsetOfLength()), T0);
                 masm.storeValueFromComponents(ImmType(JSVAL_TYPE_INT32), T0, address);
-            else
+            } else {
                 masm.storePayload(T0, address);
+            }
             break;
           }
 
@@ -1418,7 +1418,7 @@ LoopState::restoreInvariants(jsbytecode *pc, Assembler &masm,
             Address address = frame.addressOf(frame.getTemporary(entry.u.array.temporary));
 
             if (entry.kind == InvariantEntry::TYPED_ARRAY_LENGTH) {
-                masm.loadPayload(Address(T0, TypedArray::lengthOffset()), T0);
+                masm.load32(Address(T0, TypedArray::lengthOffset()), T0);
                 masm.storeValueFromComponents(ImmType(JSVAL_TYPE_INT32), T0, address);
             } else {
                 masm.loadPtr(Address(T0, js::TypedArray::dataOffset()), T0);
@@ -1782,7 +1782,7 @@ LoopState::analyzeLoopBody(unsigned frame)
         skipAnalysis = true;
 
     
-    unsigned start = (frame == CrossScriptSSA::OUTER_FRAME) ? lifetime->head + JSOP_LOOPHEAD_LENGTH : 0;
+    unsigned start = (frame == CrossScriptSSA::OUTER_FRAME) ? lifetime->head + JSOP_TRACE_LENGTH : 0;
     unsigned end = (frame == CrossScriptSSA::OUTER_FRAME) ? lifetime->backedge : script->length;
 
     unsigned offset = start;
@@ -1796,12 +1796,11 @@ LoopState::analyzeLoopBody(unsigned frame)
             continue;
         }
 
-        JSOp op = JSOp(*pc);
-
         
-        if (op == JSOP_LOOPHEAD)
+        if (opinfo->loopHead)
             skipAnalysis = true;
 
+        JSOp op = JSOp(*pc);
         switch (op) {
 
           case JSOP_CALL: {
@@ -1896,7 +1895,8 @@ LoopState::analyzeLoopBody(unsigned frame)
             unknownModset = true;
             break;
 
-          case JSOP_LOOPHEAD:
+          case JSOP_TRACE:
+          case JSOP_NOTRACE:
           case JSOP_POP:
           case JSOP_ZERO:
           case JSOP_ONE:
