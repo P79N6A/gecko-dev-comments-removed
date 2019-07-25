@@ -46,7 +46,6 @@
 #include "jsstdint.h"
 #include "jsutil.h"
 #include "jsclist.h"
-#include "jshashtable.h"
 #include "jsapi.h"
 #include "jscntxt.h"
 #include "jsversion.h"
@@ -140,83 +139,51 @@ PurgeCallICs(JSContext *cx, JSScript *start)
 #endif
 
 JS_FRIEND_API(JSBool)
+js_SetDebugMode(JSContext *cx, JSBool debug)
+{
+    if (!cx->compartment)
+        return JS_TRUE;
+
+    cx->compartment->debugMode = debug;
+#ifdef JS_METHODJIT
+    for (JSScript *script = (JSScript *)cx->compartment->scripts.next;
+         &script->links != &cx->compartment->scripts;
+         script = (JSScript *)script->links.next) {
+        if (script->debugMode != !!debug &&
+            script->hasJITCode() &&
+            !IsScriptLive(cx, script)) {
+            
+
+
+
+
+
+            js::mjit::Recompiler recompiler(cx, script);
+            if (!recompiler.recompile()) {
+                
+
+
+
+
+                PurgeCallICs(cx, script);
+                cx->compartment->debugMode = JS_FALSE;
+                return JS_FALSE;
+            }
+        }
+    }
+#endif
+    return JS_TRUE;
+}
+
+JS_PUBLIC_API(JSBool)
 JS_SetDebugMode(JSContext *cx, JSBool debug)
 {
-    JSBool rv = JS_TRUE;
-    JSRuntime *rt = cx->runtime;
-    rt->debugMode = debug;
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-    
-
-    JSContext *iter = NULL;
-    jsword currentThreadId = reinterpret_cast<jsword>(js_CurrentThreadId());
-    typedef HashSet<JSScript *, DefaultHasher<JSScript*>, ContextAllocPolicy> ScriptMap;
-    ScriptMap liveScripts(cx);
-    if (!liveScripts.init()) {
-        rt->debugMode = JS_FALSE;
-        return JS_FALSE;
-    }
-
-    JSContext *icx;
-    while ((icx = JS_ContextIterator(rt, &iter))) {
-        if (JS_GetContextThread(icx) != currentThreadId)
-            continue;
-            
-        for (AllFramesIter i(icx); !i.done(); ++i) {
-            JSScript *script = i.fp()->maybeScript();
-            if (script)
-                liveScripts.put(script);
-        }
-    }
-
-    WrapperVector &vector = rt->compartments;
-    for (JSCompartment **p = vector.begin(); p != vector.end(); ++p) {
-        JSCompartment *comp = *p;
-        comp->debugMode = debug;
-
-        JSAutoEnterCompartment ac;
-
-#ifdef JS_METHODJIT
-        for (JSScript *script = (JSScript *)comp->scripts.next;
-             &script->links != &comp->scripts;
-             script = (JSScript *)script->links.next)
-        {
-            if (!script->debugMode == !debug)
-                continue;
-            if (debug && liveScripts.has(script))
-                continue;
-
-            
-
-
-
-
-
-
-            if (!ac.entered() && !ac.enter(cx, script)) {
-                rt->debugMode = comp->debugMode = JS_FALSE;
-                rv = JS_FALSE;
-                break;
-            }
-
-            mjit::ReleaseScriptCode(cx, script);
-            script->debugMode = !!debug;
-        }
+#ifdef DEBUG
+    for (AllFramesIter i(cx); !i.done(); ++i)
+        JS_ASSERT(!JS_IsScriptFrame(cx, i.fp()));
 #endif
-    }
 
-    return rv;
+    return js_SetDebugMode(cx, debug);
 }
 
 JS_FRIEND_API(JSBool)
