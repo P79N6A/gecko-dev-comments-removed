@@ -560,12 +560,23 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
       
       request = mPreloads[i].mRequest;
       request->mElement = aElement;
-      
-      
+      nsString preloadCharset(mPreloads[i].mCharset);
       mPreloads.RemoveElementAt(i);
-      rv = CheckContentPolicy(mDocument, aElement, request->mURI, type);
-      NS_ENSURE_SUCCESS(rv, rv);
-    } else {
+
+      
+      
+      nsAutoString elementCharset;
+      aElement->GetScriptCharset(elementCharset);
+      if (elementCharset.Equals(preloadCharset)) {
+        rv = CheckContentPolicy(mDocument, aElement, request->mURI, type);
+        NS_ENSURE_SUCCESS(rv, rv);
+      } else {
+        
+        request = nsnull;
+      }
+    }
+
+    if (!request) {
       
       request = new nsScriptLoadRequest(aElement, version);
       NS_ENSURE_TRUE(request, NS_ERROR_OUT_OF_MEMORY);
