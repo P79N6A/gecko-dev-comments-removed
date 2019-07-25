@@ -184,9 +184,6 @@
 #if !defined(WINABLEAPI)
 #include <winable.h>
 #endif 
-#include "nsIAccessible.h"
-#include "nsIAccessibleDocument.h"
-#include "nsIAccessNode.h"
 #endif 
 
 #if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_WIN7
@@ -3613,32 +3610,24 @@ PRBool nsWindow::DispatchMouseEvent(PRUint32 aEventType, WPARAM wParam,
 
 
 #ifdef ACCESSIBILITY
-PRBool nsWindow::DispatchAccessibleEvent(PRUint32 aEventType, nsIAccessible** aAcc, nsIntPoint* aPoint)
+nsAccessible*
+nsWindow::DispatchAccessibleEvent(PRUint32 aEventType)
 {
-  PRBool result = PR_FALSE;
-
   if (nsnull == mEventCallback) {
-    return result;
+    return nsnull;
   }
 
-  *aAcc = nsnull;
-
   nsAccessibleEvent event(PR_TRUE, aEventType, this);
-  InitEvent(event, aPoint);
+  InitEvent(event, nsnull);
 
   event.isShift   = IS_VK_DOWN(NS_VK_SHIFT);
   event.isControl = IS_VK_DOWN(NS_VK_CONTROL);
   event.isMeta    = PR_FALSE;
   event.isAlt     = IS_VK_DOWN(NS_VK_ALT);
-  event.accessible = nsnull;
 
-  result = DispatchWindowEvent(&event);
+  DispatchWindowEvent(&event);
 
-  
-  if (event.accessible)
-    *aAcc = event.accessible;
-
-  return result;
+  return event.mAccessible;
 }
 #endif
 
@@ -4538,7 +4527,7 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
 #ifdef ACCESSIBILITY
       if (nsWindow::sIsAccessibilityOn) {
         
-        nsCOMPtr<nsIAccessible> rootAccessible = GetRootAccessible();
+        nsAccessible *rootAccessible = GetRootAccessible();
       }
 #endif
 
@@ -4623,7 +4612,7 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
     {
       *aRetValue = 0;
       if (lParam == OBJID_CLIENT) { 
-        nsCOMPtr<nsIAccessible> rootAccessible = GetRootAccessible(); 
+        nsAccessible *rootAccessible = GetRootAccessible(); 
         if (rootAccessible) {
           IAccessible *msaaAccessible = NULL;
           rootAccessible->GetNativeInterface((void**)&msaaAccessible); 
@@ -6735,7 +6724,8 @@ nsWindow::OnIMESelectionChange(void)
 #endif 
 
 #ifdef ACCESSIBILITY
-already_AddRefed<nsIAccessible> nsWindow::GetRootAccessible()
+nsAccessible*
+nsWindow::GetRootAccessible()
 {
   
   
@@ -6767,8 +6757,6 @@ already_AddRefed<nsIAccessible> nsWindow::GetRootAccessible()
     return nsnull;
   }
 
-  nsIAccessible *rootAccessible = nsnull;
-
   
   
   
@@ -6782,18 +6770,19 @@ already_AddRefed<nsIAccessible> nsWindow::GetRootAccessible()
       
       accessibleWindow = GetNSWindowPtr(accessibleWnd);
       if (accessibleWindow) {
-        accessibleWindow->DispatchAccessibleEvent(NS_GETACCESSIBLE, &rootAccessible);
+        nsAccessible *rootAccessible =
+          accessibleWindow->DispatchAccessibleEvent(NS_GETACCESSIBLE);
         if (rootAccessible) {
-          break;  
+          
+          return rootAccessible;
         }
       }
       accessibleWnd = ::GetNextWindow(accessibleWnd, GW_HWNDNEXT);
     }
+    return nsnull;
   }
-  else {
-    DispatchAccessibleEvent(NS_GETACCESSIBLE, &rootAccessible);
-  }
-  return rootAccessible;
+
+  return DispatchAccessibleEvent(NS_GETACCESSIBLE);
 }
 
 STDMETHODIMP_(LRESULT)

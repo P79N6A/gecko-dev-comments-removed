@@ -65,8 +65,7 @@
 #endif 
 
 #ifdef ACCESSIBILITY
-#include "nsIAccessNode.h"
-#include "nsIAccessible.h"
+#include "nsAccessible.h"
 #endif
 
 #include "nsGtkIMModule.h"
@@ -408,12 +407,37 @@ private:
 #endif
 
 #ifdef ACCESSIBILITY
-    nsCOMPtr<nsIAccessible> mRootAccessible;
+    nsRefPtr<nsAccessible> mRootAccessible;
+
+    
+
+
     void                CreateRootAccessible();
-    void                GetRootAccessible(nsIAccessible** aAccessible);
+
+    
+
+
+
+    nsAccessible       *DispatchAccessibleEvent();
+
+    
+
+
+
+
+    void                DispatchEventToRootAccessible(PRUint32 aEventType);
+
+    
+
+
+
     void                DispatchActivateEventAccessible();
+
+    
+
+
+
     void                DispatchDeactivateEventAccessible();
-    NS_IMETHOD_(PRBool) DispatchAccessibleEvent(nsIAccessible** aAccessible);
 #endif
 
     
