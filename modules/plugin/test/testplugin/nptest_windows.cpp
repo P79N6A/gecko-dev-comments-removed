@@ -92,6 +92,7 @@ pluginWidgetInit(InstanceData* instanceData, void* oldWindow)
 {
   HWND hWnd = (HWND)instanceData->window.window;
   if (oldWindow) {
+    
     HWND hWndOld = (HWND)oldWindow;
     ClearSubclass(hWndOld);
     if (instanceData->platformData->childWindow) {
@@ -201,6 +202,8 @@ pluginDraw(InstanceData* instanceData)
   HDC hdc = NULL;
   PAINTSTRUCT ps;
 
+  notifyDidPaint(instanceData);
+
   if (instanceData->hasWidget)
     hdc = ::BeginPaint((HWND)instanceData->window.window, &ps);
   else
@@ -226,8 +229,6 @@ pluginDraw(InstanceData* instanceData)
 
   if (instanceData->hasWidget)
     ::EndPaint((HWND)instanceData->window.window, &ps);
-
-  notifyDidPaint(instanceData);
 }
 
 
