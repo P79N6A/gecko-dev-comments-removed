@@ -39,6 +39,8 @@
 package org.mozilla.gecko.gfx;
 
 import android.graphics.Point;
+import android.graphics.PointF;
+import android.graphics.RectF;
 import android.util.Log;
 import java.util.concurrent.locks.ReentrantLock;
 import javax.microedition.khronos.opengles.GL10;
@@ -75,18 +77,14 @@ public abstract class Layer {
     }
 
     
-    public final void transform(GL10 gl) {
-        gl.glScalef(1.0f / mResolution, 1.0f / mResolution, 1.0f);
-        gl.glTranslatef(mOrigin.x, mOrigin.y, 0.0f);
-    }
+    public abstract void draw(RenderContext context);
 
     
-    public final void draw(GL10 gl) {
-        gl.glPushMatrix();
-
-        onDraw(gl);
-
-        gl.glPopMatrix();
+    protected RectF getBounds(RenderContext context, FloatSize size) {
+        float scaleFactor = context.zoomFactor / mResolution;
+        float x = mOrigin.x * scaleFactor, y = mOrigin.y * scaleFactor;
+        float width = size.width * scaleFactor, height = size.height * scaleFactor;
+        return new RectF(x, y, x + width, y + height);
     }
 
     
@@ -158,19 +156,27 @@ public abstract class Layer {
 
 
 
-    protected abstract void onDraw(GL10 gl);
-
-    
-
-
-
-
     protected void performUpdates(GL10 gl) {
         if (mNewOrigin != null) {
             mOrigin = mNewOrigin;
             mNewOrigin = null;
         }
-        mResolution = mNewResolution;
+        if (mNewResolution != 0.0f) {
+            mResolution = mNewResolution;
+            mNewResolution = 0.0f;
+        }
+    }
+
+    public static class RenderContext {
+        public final RectF viewport;
+        public final FloatSize pageSize;
+        public final float zoomFactor;
+
+        public RenderContext(RectF aViewport, FloatSize aPageSize, float aZoomFactor) {
+            viewport = aViewport;
+            pageSize = aPageSize;
+            zoomFactor = aZoomFactor;
+        }
     }
 }
 
