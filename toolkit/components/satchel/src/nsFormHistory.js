@@ -52,12 +52,14 @@ function FormHistory() {
 
 FormHistory.prototype = {
     classID          : Components.ID("{0c1bb408-71a2-403f-854a-3a0659829ded}"),
-    QueryInterface   : XPCOMUtils.generateQI([Ci.nsIFormHistory2, Ci.nsIObserver, Ci.nsIFormSubmitObserver, Ci.nsISupportsWeakReference]),
+    QueryInterface   : XPCOMUtils.generateQI([Ci.nsIFormHistory2,
+                                              Ci.nsIObserver,
+                                              Ci.nsIFrameMessageListener,
+                                              Ci.nsISupportsWeakReference]),
 
     debug          : true,
     enabled        : true,
     saveHttpsForms : true,
-    prefBranch     : null,
 
     
     dbSchema : {
@@ -124,15 +126,21 @@ FormHistory.prototype = {
 
     init : function() {
         let self = this;
-        this.prefBranch = Services.prefs.getBranch("browser.formfill.");
-        this.prefBranch.QueryInterface(Ci.nsIPrefBranch2);
-        this.prefBranch.addObserver("", this, true);
+
+        let prefBranch = Services.prefs.getBranch("browser.formfill.");
+        prefBranch = prefBranch.QueryInterface(Ci.nsIPrefBranch2);
+        prefBranch.addObserver("", this, true);
+
         this.updatePrefs();
 
         this.dbStmts = {};
 
+        this.messageManager = Cc["@mozilla.org/globalmessagemanager;1"].
+                              getService(Ci.nsIChromeFrameMessageManager);
+        this.messageManager.loadFrameScript("chrome://satchel/content/formSubmitListener.js", true);
+        this.messageManager.addMessageListener("FormHistory:FormSubmitEntries", this);
+
         
-        Services.obs.addObserver(this, "earlyformsubmit", false);
         Services.obs.addObserver(function() { self.expireOldEntries() }, "idle-daily", false);
         Services.obs.addObserver(function() { self.expireOldEntries() }, "formhistory-expire-now", false);
 
@@ -158,6 +166,26 @@ FormHistory.prototype = {
     
 
 
+    receiveMessage: function receiveMessage(message) {
+        
+        this.dbConnection.beginTransaction();
+
+        try {
+            let entries = message.json;
+            for (let i = 0; i < entries.length; i++) {
+                this.addEntry(entries[i].name, entries[i].value);
+            }
+        } finally {
+            
+            
+            this.dbConnection.commitTransaction();
+        }
+    },
+
+
+    
+
+
     get hasEntries() {
         return (this.countAllEntries() > 0);
     },
@@ -173,10 +201,10 @@ FormHistory.prototype = {
         let now = Date.now() * 1000; 
 
         let [id, guid] = this.getExistingEntryID(name, value);
+        let stmt;
 
         if (id != -1) {
             
-            let stmt;
             let query = "UPDATE moz_formhistory SET timesUsed = timesUsed + 1, lastUsed = :lastUsed WHERE id = :id";
             let params = {
                             lastUsed : now,
@@ -363,87 +391,6 @@ FormHistory.prototype = {
     
 
 
-    notify : function(form, domWin, actionURI, cancelSubmit) {
-        if (!this.enabled)
-            return;
-
-        this.log("Form submit observer notified.");
-
-        if (!this.saveHttpsForms) {
-            if (actionURI.schemeIs("https"))
-                return;
-            if (form.ownerDocument.documentURIObject.schemeIs("https"))
-                return;
-        }
-
-        if (form.hasAttribute("autocomplete") &&
-            form.getAttribute("autocomplete").toLowerCase() == "off")
-            return;
-
-        
-        this.dbConnection.beginTransaction();
-
-        try {
-            let savedCount = 0;
-            for (let i = 0; i < form.elements.length; i++) {
-                let input = form.elements[i];
-                if (!(input instanceof Ci.nsIDOMHTMLInputElement))
-                    continue;
-
-                
-                if (!input.mozIsTextField(true))
-                    continue;
-
-                
-                
-
-                
-                if (input.hasAttribute("autocomplete") &&
-                    input.getAttribute("autocomplete").toLowerCase() == "off")
-                    continue;
-
-                let value = input.value.trim();
-
-                
-                if (!value || value == input.defaultValue.trim())
-                    continue;
-
-                
-                if (this.isValidCCNumber(value)) {
-                    this.log("skipping saving a credit card number");
-                    continue;
-                }
-
-                let name = input.name || input.id;
-                if (!name)
-                    continue;
-
-                
-                if (name.length > 200 || value.length > 200) {
-                    this.log("skipping input that has a name/value too large");
-                    continue;
-                }
-
-                
-                if (savedCount++ >= 100) {
-                    this.log("not saving any more entries for this form.");
-                    break;
-                }
-
-                this.addEntry(name, value);
-            }
-        } catch (e) {
-            
-        } finally {
-            
-            this.dbConnection.commitTransaction();
-        }
-    },
-
-
-    
-
-
     generateGUID : function() {
         
         let uuid = this.uuidService.generateUUID().toString();
@@ -564,7 +511,8 @@ FormHistory.prototype = {
         
         let expireDays = 180;
         try {
-            expireDays = this.prefBranch.getIntPref("expire_days");
+            let prefBranch = Services.prefs.getBranch("browser.formfill.");
+            expireDays = prefBranch.getIntPref("expire_days");
         } catch (e) {  }
 
         let expireTime = Date.now() - expireDays * DAY_IN_MS;
@@ -603,40 +551,11 @@ FormHistory.prototype = {
 
 
     updatePrefs : function () {
-        this.debug          = this.prefBranch.getBoolPref("debug");
-        this.enabled        = this.prefBranch.getBoolPref("enable");
-        this.saveHttpsForms = this.prefBranch.getBoolPref("saveHttpsForms");
+        let prefBranch = Services.prefs.getBranch("browser.formfill.");
+        this.debug          = prefBranch.getBoolPref("debug");
+        this.enabled        = prefBranch.getBoolPref("enable");
+        this.saveHttpsForms = prefBranch.getBoolPref("saveHttpsForms");
     },
-
-
-    
-    
-    isValidCCNumber : function (ccNumber) {
-        
-        ccNumber = ccNumber.replace(/[\-\s]/g, '');
-
-        let len = ccNumber.length;
-        if (len != 9 && len != 15 && len != 16)
-            return false;
-
-        if (!/^\d+$/.test(ccNumber))
-            return false;
-
-        let total = 0;
-        for (let i = 0; i < len; i++) {
-            let ch = parseInt(ccNumber[len - i - 1]);
-            if (i % 2 == 1) {
-                
-                ch *= 2;
-                if (ch > 9)
-                    ch -= 9;
-            }
-            total += ch;
-        }
-        return total % 10 == 0;
-    },
-
-
 
 
     
