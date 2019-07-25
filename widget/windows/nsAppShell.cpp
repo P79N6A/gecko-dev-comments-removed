@@ -249,17 +249,13 @@ nsAppShell::Run(void)
   memset(modules, 0, sizeof(modules));
   sLoadedModules = modules;	
 
-#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
   
   
   mozilla::widget::StartAudioSession();
-#endif
 
   nsresult rv = nsBaseAppShell::Run();
 
-#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
   mozilla::widget::StopAudioSession();
-#endif
 
   
   sLoadedModules = nsnull;

@@ -224,6 +224,8 @@ public:
 
   const PRUint8* GetData(nsZipItem* aItem);
 
+  bool GetComment(nsACString &aComment);
+
   
 
 
@@ -242,6 +244,9 @@ private:
 
   nsZipItem*    mFiles[ZIP_TABSIZE];
   PLArenaPool   mArena;
+
+  const char*   mCommentPtr;
+  PRUint16      mCommentLen;
 
   
   bool          mBuiltSynthetics;

@@ -1220,7 +1220,6 @@ nsNativeThemeWin::DrawWidgetBackground(nsRenderingContext* aContext,
   if (!nsUXThemeData::drawThemeBG)
     return NS_ERROR_FAILURE;    
 
-#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
   
   if (nsUXThemeData::CheckForCompositor()) {
     switch (aWidgetType) {
@@ -1249,7 +1248,6 @@ nsNativeThemeWin::DrawWidgetBackground(nsRenderingContext* aContext,
       break;
     }
   }
-#endif 
 
   PRInt32 part, state;
   nsresult rv = GetThemePartAndState(aFrame, aWidgetType, part, state);
@@ -1794,11 +1792,9 @@ nsNativeThemeWin::GetWidgetPadding(nsDeviceContext* aContext,
       aWidgetType == NS_THEME_WINDOW_BUTTON_BOX_MAXIMIZED) {
     aResult->SizeTo(0, 0, 0, 0);
 
-#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
     
     if (nsUXThemeData::CheckForCompositor())
       return true;
-#endif
 
     
     if (aWidgetType == NS_THEME_WINDOW_BUTTON_BOX) {

@@ -87,10 +87,8 @@ protected:
   nsresult MakeInputStream(nsIInputStream** _retval, bool nonBlocking);
 
   
-#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
 protected:
   nsresult GetStockHIcon(nsIMozIconURI *aIconURI, HICON *hIcon);
-#endif
 };
 
 #endif 

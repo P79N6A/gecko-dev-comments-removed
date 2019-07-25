@@ -8327,15 +8327,14 @@ nsDocShell::InternalLoad(nsIURI * aURI,
                                   NS_SUCCEEDED(splitRv2) &&
                                   curBeforeHash.Equals(newBeforeHash);
 
-        
-        bool sameDocument = false;
+        bool historyNavBetweenSameDoc = false;
         if (mOSHE && aSHEntry) {
             
 
-            mOSHE->SharesDocumentWith(aSHEntry, &sameDocument);
+            mOSHE->SharesDocumentWith(aSHEntry, &historyNavBetweenSameDoc);
 
 #ifdef DEBUG
-            if (sameDocument) {
+            if (historyNavBetweenSameDoc) {
                 nsCOMPtr<nsIInputStream> currentPostData;
                 mOSHE->GetPostData(getter_AddRefs(currentPostData));
                 NS_ASSERTION(currentPostData == aPostData,
@@ -8358,15 +8357,10 @@ nsDocShell::InternalLoad(nsIURI * aURI,
         
         
         
-        bool doShortCircuitedLoad = (sameDocument && mOSHE != aSHEntry) ||
-                                      (!aSHEntry && aPostData == nsnull &&
-                                       sameExceptHashes && !newHash.IsEmpty());
-
-        
-        
-        bool doHashchange = doShortCircuitedLoad &&
-                              sameExceptHashes &&
-                              !curHash.Equals(newHash);
+        bool doShortCircuitedLoad =
+          (historyNavBetweenSameDoc && mOSHE != aSHEntry) ||
+          (!aSHEntry && aPostData == nsnull &&
+           sameExceptHashes && !newHash.IsEmpty());
 
         if (doShortCircuitedLoad) {
             
@@ -8496,17 +8490,11 @@ nsDocShell::InternalLoad(nsIURI * aURI,
                 }
             }
 
-            if (sameDocument) {
-                
-                nsCOMPtr<nsIURI> newURI;
-                mOSHE->GetURI(getter_AddRefs(newURI));
-                NS_ENSURE_TRUE(newURI, NS_ERROR_FAILURE);
-                nsCOMPtr<nsIDocument> doc =
-                  do_GetInterface(GetAsSupports(this));
-                NS_ENSURE_TRUE(doc, NS_ERROR_FAILURE);
-
-                doc->SetDocumentURI(newURI);
-            }
+            
+            nsCOMPtr<nsIDocument> doc =
+              do_GetInterface(GetAsSupports(this));
+            NS_ENSURE_TRUE(doc, NS_ERROR_FAILURE);
+            doc->SetDocumentURI(aURI);
 
             SetDocCurrentStateObj(mOSHE);
 
@@ -8514,9 +8502,9 @@ nsDocShell::InternalLoad(nsIURI * aURI,
             nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(mScriptGlobal);
             if (window) {
                 
-                
-                
-                if (sameDocument || doHashchange) {
+                bool doHashchange = sameExceptHashes && !curHash.Equals(newHash);
+
+                if (historyNavBetweenSameDoc || doHashchange) {
                   window->DispatchSyncPopState();
                 }
 

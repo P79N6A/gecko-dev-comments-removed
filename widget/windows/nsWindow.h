@@ -593,10 +593,8 @@ protected:
   nsRefPtr<gfxASurface> mTransparentSurface;
   HDC                   mMemoryDC;
   nsTransparencyMode    mTransparencyMode;
-#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
   nsIntRegion           mPossiblyTransparentRegion;
   MARGINS               mGlassMargins;
-#endif 
 #endif 
 
   

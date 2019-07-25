@@ -4043,7 +4043,9 @@ var FullScreen = {
     gBrowser.tabContainer.addEventListener("TabSelect", this.exitDomFullScreen);
 
     
-    window.addEventListener("deactivate", this.exitDomFullScreen, true);
+    if (gPrefService.getBoolPref("full-screen-api.exit-on-deactivate")) {
+      window.addEventListener("deactivate", this.exitDomFullScreen, true);
+    }
 
     
     
