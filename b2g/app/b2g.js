@@ -525,3 +525,6 @@ pref("dom.ipc.processPrelauch.delayMs", 1000);
 
 
 pref("dom.disable_window_open_dialog_feature", true);
+
+
+pref("accessibility.accessfu.activate", 2);
