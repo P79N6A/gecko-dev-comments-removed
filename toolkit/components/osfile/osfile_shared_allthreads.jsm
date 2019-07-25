@@ -4,12 +4,10 @@
 
 {
   if (typeof Components != "undefined") {
-    
-    
-    
-    
-
-    throw new Error("osfile_shared_allthreads.jsm cannot be used from the main thread yet");
+    var EXPORTED_SYMBOLS = ["OS"];
+    Components.utils.import("resource://gre/modules/ctypes.jsm");
+    Components.classes["@mozilla.org/net/osfileconstantsservice;1"].
+      getService(Components.interfaces.nsIOSFileConstantsService).init();
   }
 
   (function(exports) {
@@ -86,6 +84,25 @@
        Object.defineProperty(this, "implementation", { value: implementation });
      }
      Type.prototype = {
+       
+
+
+
+
+
+
+       toMsg: function default_toMsg(value) {
+         return value;
+       },
+       
+
+
+
+
+
+       fromMsg: function default_fromMsg(msg) {
+         return msg;
+       },
        
 
 
@@ -190,6 +207,56 @@
        Type.call(this, name, implementation);
      }
      PtrType.prototype = Object.create(Type.prototype);
+
+     
+
+
+
+
+
+
+
+
+
+     PtrType.prototype.toMsg = function ptr_toMsg(value) {
+       if (value == null) {
+         return null;
+       }
+       if (typeof value == "string") {
+         return { string: value };
+       }
+       let normalized;
+       if ("byteLength" in value) { 
+         normalized = Types.uint8_t.in_ptr.implementation(value);
+       } else if ("addressOfElement" in value) { 
+         normalized = value.addressOfElement(0);
+       } else if ("isNull" in value) { 
+         normalized = value;
+       } else {
+         throw new TypeError("Value " + value +
+           " cannot be converted to a pointer");
+       }
+       let cast = Types.uintptr_t.cast(normalized);
+       return {ptr: cast.value.toString()};
+     };
+
+     
+
+
+     PtrType.prototype.fromMsg = function ptr_fromMsg(msg) {
+       if (msg == null) {
+         return null;
+       }
+       if ("string" in msg) {
+         return msg.string;
+       }
+       if ("ptr" in msg) {
+         let address = ctypes.uintptr_t(msg.ptr);
+         return this.cast(address);
+       }
+       throw new TypeError("Message " + msg.toSource() +
+         " does not represent a pointer");
+     };
 
      exports.OS.Shared.Type = Type;
      let Types = Type;
@@ -756,6 +823,9 @@
        }
        return Strings.importWString(decoded);
      };
+
+     exports.OS.Shared.Utils = { Strings: Strings };
+
 
      
 
