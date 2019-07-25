@@ -60,7 +60,7 @@ nsHtml5StringParser::ParseFragment(const nsAString& aSourceBuffer,
   }
 #endif
 
-  mExecutor->EnableFragmentMode(aPreventScriptExecution);
+  mTreeBuilder->SetPreventScriptExecution(aPreventScriptExecution);
 
   Tokenize(aSourceBuffer, doc, true);
   return NS_OK;
@@ -81,7 +81,7 @@ nsHtml5StringParser::ParseDocument(const nsAString& aSourceBuffer,
                                    nsnull,
                                    false);
 
-  mExecutor->PreventScriptExecution();
+  mTreeBuilder->SetPreventScriptExecution(true);
 
   Tokenize(aSourceBuffer, aTargetDoc, aScriptingEnabledForNoscriptParsing);
   return NS_OK;
@@ -113,6 +113,8 @@ nsHtml5StringParser::Tokenize(const nsAString& aSourceBuffer,
       if (buffer.hasMore()) {
         lastWasCR = mTokenizer->tokenizeBuffer(&buffer);
         if (mTreeBuilder->HasScript()) {
+          
+          
           
           
           mTreeBuilder->Flush(); 

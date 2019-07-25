@@ -183,6 +183,8 @@ protected:
   PRUint8 mPrettyPrinting : 1;  
                                 
   
+  PRUint8 mPreventScriptExecution : 1;
+  
   nsTArray<StackNode>              mContentStack;
 
   nsCOMPtr<nsIDocumentTransformer> mXSLTProcessor;
