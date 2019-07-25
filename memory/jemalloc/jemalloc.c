@@ -989,10 +989,10 @@ struct arena_bin_s {
 };
 
 struct arena_s {
-#ifdef MALLOC_DEBUG
+	
+
 	uint32_t		magic;
 #  define ARENA_MAGIC 0x947d3d24
-#endif
 
 	
 #ifdef MOZ_MEMORY
@@ -4332,7 +4332,15 @@ isalloc_validate(const void *ptr)
 		return (0);
 
 	if (chunk != ptr) {
-		assert(chunk->arena->magic == ARENA_MAGIC);
+		
+
+		if (chunk->arena->magic != ARENA_MAGIC) {
+			_malloc_message("isalloc_validate called with invalid pointer. "
+			                "Crashing...\n", "", "", "");
+			char* boom = (char*) 0;
+			*boom = 1;
+		}
+
 		return (arena_salloc(ptr));
 	} else {
 		size_t ret;
@@ -4842,10 +4850,9 @@ arena_new(arena_t *arena)
 #endif
 	}
 
-#ifdef MALLOC_DEBUG
-	arena->magic = ARENA_MAGIC;
-#endif
+        
 
+	arena->magic = ARENA_MAGIC;
 	return (false);
 }
 
