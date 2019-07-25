@@ -1406,6 +1406,19 @@ History::SetURITitle(nsIURI* aURI, const nsAString& aTitle)
 
 
 NS_IMETHODIMP
+History::UpdatePlaces(const jsval& aPlaceInfos,
+                      mozIVisitInfoCallback* aCallback,
+                      JSContext* aCtx)
+{
+  NS_ENSURE_TRUE(NS_IsMainThread(), NS_ERROR_UNEXPECTED);
+
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+
+
+
+NS_IMETHODIMP
 History::Observe(nsISupports* aSubject, const char* aTopic,
                  const PRUnichar* aData)
 {
@@ -1424,9 +1437,10 @@ History::Observe(nsISupports* aSubject, const char* aTopic,
 
 
 
-NS_IMPL_THREADSAFE_ISUPPORTS2(
+NS_IMPL_THREADSAFE_ISUPPORTS3(
   History
 , IHistory
+, mozIAsyncHistory
 , nsIObserver
 )
 
