@@ -46,9 +46,9 @@ MODULE		= widget
 XPIDL_MODULE	= widget
 GRE_MODULE	= 1
 
-EXPORTS_NAMESPACES = IPC
+EXPORTS_NAMESPACES = mozilla/widget
 
-EXPORTS_IPC = \
+EXPORTS_mozilla/widget = \
 		nsGUIEventIPC.h \
 		$(NULL)
 

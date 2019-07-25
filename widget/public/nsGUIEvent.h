@@ -271,7 +271,6 @@ class nsHashKey;
 #define NS_FORM_CHANGE                  (NS_FORM_EVENT_START + 2)
 #define NS_FORM_SELECTED                (NS_FORM_EVENT_START + 3)
 #define NS_FORM_INPUT                   (NS_FORM_EVENT_START + 4)
-#define NS_FORM_INVALID                 (NS_FORM_EVENT_START + 5)
 
 
 #define NS_FOCUS_EVENT_START            1300
@@ -1055,7 +1054,26 @@ private:
   friend class mozilla::dom::PBrowserChild;
 
   nsTextEvent()
+    : mOwnRangeArray(PR_FALSE), rangeArray(nsnull)
   {
+  }
+
+  PRPackedBool      mOwnRangeArray;
+
+public:
+  ~nsTextEvent()
+  {
+    if (mOwnRangeArray && rangeArray)
+      delete [] rangeArray;
+  }
+
+  nsTextRangeArray AllocRangeArray(PRUint32 aCount)
+  {
+    NS_ASSERTION(!rangeArray, "rangeArray already allocated");
+    mOwnRangeArray = PR_TRUE;
+    rangeCount = aCount;
+    rangeArray = new nsTextRange[aCount];
+    return rangeArray;
   }
 #endif 
 
@@ -1216,7 +1234,7 @@ private:
 public:
   nsQueryContentEvent(PRBool aIsTrusted, PRUint32 aMsg, nsIWidget *aWidget) :
     nsGUIEvent(aIsTrusted, aMsg, aWidget, NS_QUERY_CONTENT_EVENT),
-    mSucceeded(PR_FALSE), mWasAsync(PR_FALSE)
+    mSucceeded(PR_FALSE)
   {
   }
 
@@ -1243,22 +1261,7 @@ public:
     mInput.mLength = aLength;
   }
 
-  PRUint32 GetSelectionStart(void) const
-  {
-    NS_ASSERTION(message == NS_QUERY_SELECTED_TEXT,
-                 "not querying selection");
-    return mReply.mOffset + (mReply.mReversed ? mReply.mString.Length() : 0);
-  }
-
-  PRUint32 GetSelectionEnd(void) const
-  {
-    NS_ASSERTION(message == NS_QUERY_SELECTED_TEXT,
-                 "not querying selection");
-    return mReply.mOffset + (mReply.mReversed ? 0 : mReply.mString.Length());
-  }
-
   PRBool mSucceeded;
-  PRPackedBool mWasAsync;
   struct {
     PRUint32 mOffset;
     PRUint32 mLength;

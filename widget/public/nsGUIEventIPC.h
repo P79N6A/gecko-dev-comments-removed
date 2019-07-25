@@ -35,7 +35,6 @@
 
 
 
-
 #ifndef nsGUIEventIPC_h__
 #define nsGUIEventIPC_h__
 
@@ -180,27 +179,16 @@ struct ParamTraits<nsTextEvent>
         !ReadParam(aMsg, aIter, &aResult->rangeCount))
       return false;
 
-    if (!aResult->rangeCount) {
-      aResult->rangeArray = nsnull;
+    if (!aResult->rangeCount)
       return true;
-    }
 
-    aResult->rangeArray = new nsTextRange[aResult->rangeCount];
-    if (!aResult->rangeArray)
+    if (!aResult->AllocRangeArray(aResult->rangeCount))
       return false;
 
     for (PRUint32 index = 0; index < aResult->rangeCount; index++)
-      if (!ReadParam(aMsg, aIter, &aResult->rangeArray[index])) {
-        Free(*aResult);
+      if (!ReadParam(aMsg, aIter, &aResult->rangeArray[index]))
         return false;
-      }
     return true;
-  }
-
-  static void Free(const paramType& aResult)
-  {
-    if (aResult.rangeArray)
-      delete [] aResult.rangeArray;
   }
 };
 
@@ -240,7 +228,6 @@ struct ParamTraits<nsQueryContentEvent>
 
   static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
   {
-    aResult->mWasAsync = PR_TRUE;
     return ReadParam(aMsg, aIter, static_cast<nsGUIEvent*>(aResult)) &&
            ReadParam(aMsg, aIter, &aResult->mSucceeded) &&
            ReadParam(aMsg, aIter, &aResult->mInput.mOffset) &&
