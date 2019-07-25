@@ -4309,6 +4309,24 @@ nsXPCComponents_Utils::IsDeadWrapper(const jsval &obj, bool *out)
 
 
 NS_IMETHODIMP
+nsXPCComponents_Utils::RecomputeWrappers(const jsval &vobj, JSContext *cx)
+{
+    
+    JSCompartment *c = vobj.isObject()
+                       ? js::GetObjectCompartment(js::UnwrapObject(&vobj.toObject()))
+                       : NULL;
+
+    
+    if (!c)
+        return js::RecomputeWrappers(cx, js::AllCompartments(), js::AllCompartments());
+
+    
+    return js::RecomputeWrappers(cx, js::SingleCompartment(c), js::AllCompartments()) &&
+           js::RecomputeWrappers(cx, js::AllCompartments(), js::SingleCompartment(c));
+}
+
+
+NS_IMETHODIMP
 nsXPCComponents_Utils::CanCreateWrapper(const nsIID * iid, char **_retval)
 {
     
