@@ -225,8 +225,10 @@ BookmarksStore.prototype = {
       else {
         
         let predId = idForGUID(predGUID);
-        if (predId != -1)
+        if (predId != -1 && this._getParentGUIDForId(predId) == parentGUID) {
           record._insertPos = Svc.Bookmark.getItemIndex(predId) + 1;
+          record._predId = predId;
+        }
         else
           this._log.trace("Appending to end until predecessor is synced");
       }
@@ -263,6 +265,32 @@ BookmarksStore.prototype = {
 
     return Svc.Annos.getItemsWithAnnotation(anno, {}).filter(function(id)
       Utils.anno(id, anno) == val);
+  },
+
+  
+
+
+
+  _moveItemChain: function BStore__moveItemChain(itemId, insertPos, stopId) {
+    let parentId = Svc.Bookmark.getFolderIdForItem(itemId);
+
+    
+    do {
+      
+      let itemPos = Svc.Bookmark.getItemIndex(itemId);
+      let nextId = Svc.Bookmark.getIdForItemAt(parentId, itemPos + 1);
+
+      Svc.Bookmark.moveItem(itemId, parentId, insertPos);
+      this._log.trace("Moved " + itemId + " to " + insertPos);
+
+      
+      insertPos = Svc.Bookmark.getItemIndex(itemId) + 1;
+      itemId = nextId;
+
+      
+      if (itemId == -1 || Svc.Annos.itemHasAnnotation(itemId, PREDECESSOR_ANNO))
+        break;
+    } while (itemId != stopId);
   },
 
   create: function BStore_create(record) {
@@ -369,32 +397,11 @@ BookmarksStore.prototype = {
         }
 
         
-        Svc.Annos.removeItemAnnotation(follow, PREDECESSOR_ANNO);
+        let insertPos = Svc.Bookmark.getItemIndex(predId) + 1;
+        this._moveItemChain(follow, insertPos, predId);
 
         
-        let insertAfter = predId;
-        do {
-          
-          let followPos = Svc.Bookmark.getItemIndex(follow);
-          let nextFollow = Svc.Bookmark.getIdForItemAt(parent, followPos + 1);
-
-          let insertPos = Svc.Bookmark.getItemIndex(insertAfter) + 1;
-          Svc.Bookmark.moveItem(follow, parent, insertPos);
-          this._log.trace(["Moved", follow, "to", insertPos, "after",
-            insertAfter, "with", nextFollow, "next"].join(" "));
-
-          
-          insertAfter = follow;
-          follow = nextFollow;
-
-          
-          if (follow == -1)
-            break;
-
-          
-          if (Svc.Annos.itemHasAnnotation(follow, PREDECESSOR_ANNO))
-            break;
-        } while (follow != predId);
+        Svc.Annos.removeItemAnnotation(follow, PREDECESSOR_ANNO);
       }, this);
     }, this);
   },
@@ -438,10 +445,17 @@ BookmarksStore.prototype = {
     this._log.trace("Updating " + record.id + " (" + itemId + ")");
 
     
-    if (Svc.Bookmark.getFolderIdForItem(itemId) != record._parent ||
-        Svc.Bookmark.getItemIndex(itemId) != record._insertPos) {
-      this._log.trace("Moving item (changing folder/position)");
-      this._bms.moveItem(itemId, record._parent, record._insertPos);
+    if (Svc.Bookmark.getFolderIdForItem(itemId) != record._parent) {
+      this._log.trace("Moving item to a new parent");
+      Svc.Bookmark.moveItem(itemId, record._parent, record._insertPos);
+    }
+    
+    else if (Svc.Bookmark.getItemIndex(itemId) != record._insertPos &&
+             !record._orphan) {
+      this._log.trace("Moving item and followers to a new position");
+
+      
+      this._moveItemChain(itemId, record._insertPos, record._predId || itemId);
     }
 
     for (let [key, val] in Iterator(record.cleartext)) {
