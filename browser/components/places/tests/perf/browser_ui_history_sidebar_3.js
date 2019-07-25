@@ -130,6 +130,7 @@ function processTestResult(aTest) {
 }
 
 function test() {
+  requestLongerTimeout(2);
   
   setTimeout(runNextTest, 0);
 }
