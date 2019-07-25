@@ -4556,6 +4556,12 @@ AnalyzeNewScriptProperties(JSContext *cx, TypeObject *type, JSFunction *fun, JSO
         if (op != JSOP_THIS)
             continue;
 
+        
+        if (offset < lastThisPopped) {
+            *pbaseobj = NULL;
+            return false;
+        }
+
         SSAValue thisv = SSAValue::PushedValue(offset, 0);
         SSAUseChain *uses = analysis->useChain(thisv);
 
@@ -4565,11 +4571,6 @@ AnalyzeNewScriptProperties(JSContext *cx, TypeObject *type, JSFunction *fun, JSO
             return false;
         }
 
-        
-        if (offset < lastThisPopped) {
-            *pbaseobj = NULL;
-            return false;
-        }
         lastThisPopped = uses->offset;
 
         
