@@ -290,12 +290,6 @@ class Bindings {
 
 
 
-    int sharpSlotBase(JSContext *cx);
-
-    
-
-
-
 
     void makeImmutable();
 
@@ -455,7 +449,6 @@ struct JSScript : public js::gc::Cell {
     bool            noScriptRval:1; 
 
     bool            savedCallerFun:1; 
-    bool            hasSharps:1;      
     bool            strictModeCode:1; 
     bool            compileAndGo:1;   
     bool            usesEval:1;       
@@ -824,8 +817,6 @@ struct JSScript : public js::gc::Cell {
 
 JS_STATIC_ASSERT(sizeof(JSScript) % js::gc::Cell::CellSize == 0);
 
-#define SHARP_NSLOTS            2       /* [#array, #depth] slots if the script
-                                           uses sharp variables */
 static JS_INLINE uintN
 StackDepth(JSScript *script)
 {

@@ -55,7 +55,7 @@ function test()
 
 
 
-  eval("with({}) let(x=[])(function(){#2=x})()");
+  eval("with({}) let(x=[])(function(){x})()");
 
   reportCompare(expect, actual, summary);
 

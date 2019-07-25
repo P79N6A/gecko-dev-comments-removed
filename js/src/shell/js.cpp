@@ -461,10 +461,6 @@ Process(JSContext *cx, JSObject *obj, const char *filename, bool forceTTY)
 
 
 
-
-
-
-
         int ch = fgetc(file);
         if (ch == '#') {
             while((ch = fgetc(file)) != EOF) {

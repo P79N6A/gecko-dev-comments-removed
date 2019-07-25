@@ -5580,19 +5580,6 @@ Parser::generatorExpr(ParseNode *kid)
 
 
 
-        if (outertc->flags & TCF_HAS_SHARPS) {
-            gentc.flags |= TCF_IN_FUNCTION;
-            if (!gentc.ensureSharpSlots())
-                return NULL;
-        }
-
-        
-
-
-
-
-
-
         gentc.flags |= TCF_FUN_IS_GENERATOR | TCF_GENEXP_LAMBDA |
                        (outertc->flags & (TCF_FUN_FLAGS & ~TCF_FUN_PARAM_ARGUMENTS));
         funbox->tcflags |= gentc.flags;
@@ -7125,48 +7112,6 @@ Parser::primaryExpr(TokenKind tt, JSBool afterDot)
             return NULL;
         break;
 #endif
-
-#if JS_HAS_SHARP_VARS
-      case TOK_DEFSHARP: {
-        if (!tc->ensureSharpSlots())
-            return NULL;
-        const Token &tok = tokenStream.currentToken();
-        TokenPtr begin = tok.pos.begin;
-        uint16_t number = tok.sharpNumber();
-
-        tt = tokenStream.getToken(TSF_OPERAND);
-        ParseNode *expr = primaryExpr(tt, false);
-        if (!expr)
-            return NULL;
-        if (expr->isKind(PNK_USESHARP) ||
-            expr->isKind(PNK_DEFSHARP) ||
-            expr->isKind(PNK_STRING) ||
-            expr->isKind(PNK_NUMBER) ||
-            expr->isKind(PNK_TRUE) ||
-            expr->isKind(PNK_FALSE) ||
-            expr->isKind(PNK_NULL) ||
-            expr->isKind(PNK_THIS))
-        {
-            reportErrorNumber(expr, JSREPORT_ERROR, JSMSG_BAD_SHARP_VAR_DEF);
-            return NULL;
-        }
-        pn = new_<DefSharpExpression>(number, expr, begin, tokenStream.currentToken().pos.end);
-        if (!pn)
-            return NULL;
-        break;
-      }
-
-      case TOK_USESHARP: {
-        if (!tc->ensureSharpSlots())
-            return NULL;
-        
-        const Token &tok = tokenStream.currentToken();
-        pn = new_<UseSharpExpression>(tok.sharpNumber(), tok.pos);
-        if (!pn)
-            return NULL;
-        break;
-      }
-#endif 
 
       case TOK_LP:
       {

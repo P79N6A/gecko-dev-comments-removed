@@ -764,10 +764,6 @@ assertExpr("( [x,y,z] for each (x in foo) for each (y in bar) for each (z in baz
 
 
 
-assertExpr("#1={me:#1#}", graphExpr(1, objExpr([{ key: ident("me"), value: idxExpr(1) }])));
-
-
-
 assertExpr("(let (x=1) x)", letExpr([{ id: ident("x"), init: lit(1) }], ident("x")));
 assertExpr("(let (x=1,y=2) y)", letExpr([{ id: ident("x"), init: lit(1) },
                                          { id: ident("y"), init: lit(2) }],
@@ -1006,8 +1002,6 @@ assertGlobalExpr("(function() { })", 11, { functionExpression: function() 11 });
 assertGlobalExpr("[1,2,3]", 12, { arrayExpression: function() 12 });
 assertGlobalExpr("({ x: y })", 13, { objectExpression: function() 13 });
 assertGlobalExpr("this", 14, { thisExpression: function() 14 });
-assertGlobalExpr("#1={ }", 15, { graphExpression: function() 15 });
-assertGlobalExpr("#1={ self: #1# }", graphExpr(1, objExpr([{ key: ident("self"), value: 16 }])), { graphIndexExpression: function() 16 });
 assertGlobalExpr("[x for (x in y)]", 17, { comprehensionExpression: function() 17 });
 assertGlobalExpr("(x for (x in y))", 18, { generatorExpression: function() 18 });
 assertGlobalExpr("(function() { yield 42 })", genFunExpr(null, [], blockStmt([exprStmt(19)])), { yieldExpression: function() 19 });
