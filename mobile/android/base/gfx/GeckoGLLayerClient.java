@@ -224,6 +224,7 @@ public class GeckoGLLayerClient extends GeckoLayerClient
         
         if (!mLayerRendererInitialized) {
             mLayerRenderer.onSurfaceCreated(null, null);
+            mLayerRendererInitialized = true;
         }
 
         

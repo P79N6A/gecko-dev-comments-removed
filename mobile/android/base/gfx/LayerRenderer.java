@@ -213,18 +213,27 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
         mMaxTextureSize = maxTextureSizeResult[0];
 
         
-        GLES20.glUseProgram(mProgram);
 
-        
-        GLES20.glUniformMatrix4fv(mTMatrixHandle, 1, false, TEXTURE_MATRIX, 0);
 
-        
-        GLES20.glEnableVertexAttribArray(mPositionHandle);
-        GLES20.glEnableVertexAttribArray(mTextureHandle);
 
-        GLES20.glUniform1i(mSampleHandle, 0);
 
-        TextureGenerator.get().fill();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     }
 
     public int getMaxTextureSize() {
