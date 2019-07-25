@@ -104,9 +104,6 @@ class Bindings
     unsigned count() const { return nargs + nvars; }
 
     
-    inline BindingKind slotToFrameIndex(unsigned slot, unsigned *index);
-
-    
 
 
 

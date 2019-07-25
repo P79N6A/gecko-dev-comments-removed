@@ -65,7 +65,6 @@ class StaticScopeIter
 
     
     bool hasDynamicScopeObject() const;
-    Shape *scopeShape() const;
 
     enum Type { BLOCK, FUNCTION, NAMED_LAMBDA };
     Type type() const;
@@ -95,15 +94,23 @@ struct ScopeCoordinate
 };
 
 
-
-
-
-extern StaticScopeIter
-ScopeCoordinateToStaticScope(JSScript *script, jsbytecode *pc);
+extern StaticBlockObject *
+ScopeCoordinateBlockChain(JSScript *script, jsbytecode *pc);
 
 
 extern PropertyName *
 ScopeCoordinateName(JSRuntime *rt, JSScript *script, jsbytecode *pc);
+
+
+
+
+
+
+
+
+enum FrameIndexType { FrameIndex_Local, FrameIndex_Arg };
+extern FrameIndexType
+ScopeCoordinateToFrameIndex(JSScript *script, jsbytecode *pc, unsigned *index);
 
 
 
@@ -195,14 +202,13 @@ class CallObject : public ScopeObject
     inline JSFunction &callee() const;
 
     
-    inline const Value &formal(unsigned i, MaybeCheckAliasing = CHECK_ALIASING) const;
-    inline void setFormal(unsigned i, const Value &v, MaybeCheckAliasing = CHECK_ALIASING);
+    inline const Value &arg(unsigned i, MaybeCheckAliasing = CHECK_ALIASING) const;
+    inline void setArg(unsigned i, const Value &v, MaybeCheckAliasing = CHECK_ALIASING);
 
     
     inline const Value &var(unsigned i, MaybeCheckAliasing = CHECK_ALIASING) const;
     inline void setVar(unsigned i, const Value &v, MaybeCheckAliasing = CHECK_ALIASING);
 
-    
     static JSBool setArgOp(JSContext *cx, HandleObject obj, HandleId id, JSBool strict, Value *vp);
     static JSBool setVarOp(JSContext *cx, HandleObject obj, HandleId id, JSBool strict, Value *vp);
 
