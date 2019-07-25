@@ -397,7 +397,6 @@ FunctionBox::FunctionBox(ObjectBox* traceListHead, JSObject *obj, ParseNode *fn,
     bindings(),
     bufStart(0),
     bufEnd(0),
-    level(pc->staticLevel),
     ndefaults(0),
     strictModeState(sms),
     inWith(!!pc->innermostWith),
@@ -4904,14 +4903,8 @@ CompExprTransplanter::transplant(ParseNode *pn)
 
 
 
-
-
-
-
-
         FunctionBox *funbox = pn->pn_funbox;
 
-        funbox->level = pc->staticLevel + funcLevel;
         if (++funcLevel == 1 && genexp) {
             FunctionBox *parent = pc->sc->funbox();
 
@@ -4923,7 +4916,6 @@ CompExprTransplanter::transplant(ParseNode *pn)
             funbox->parent = parent;
             funbox->siblings = parent->kids;
             parent->kids = funbox;
-            funbox->level = pc->staticLevel;
         }
         
       }
