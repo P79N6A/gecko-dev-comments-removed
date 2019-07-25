@@ -173,7 +173,7 @@ nsPlacesDBFlush.prototype = {
     this._flushWithQueries([kQuerySyncPlacesId, kQuerySyncHistoryVisitsId]);
   },
 
-  onItemAdded: function(aItemId, aParentId, aIndex, aItemType)
+  onItemAdded: function(aItemId, aParentId, aIndex, aItemType, aURI)
   {
     
     

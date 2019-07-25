@@ -400,7 +400,7 @@ TaggingService.prototype = {
     this._inBatch = false;
   },
 
-  onItemAdded: function(aItemId, aFolderId, aIndex, aItemType) {
+  onItemAdded: function(aItemId, aFolderId, aIndex, aItemType, aURI) {
     
     if (aFolderId != PlacesUtils.tagsFolderId ||
         aItemType != PlacesUtils.bookmarks.TYPE_FOLDER)

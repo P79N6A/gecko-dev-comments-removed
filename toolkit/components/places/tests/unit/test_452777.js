@@ -59,7 +59,7 @@ function run_test()
 
   
   bs.addObserver({
-    onItemAdded: function(aItemId, aFolder, aIndex)
+    onItemAdded: function(aItemId, aFolder, aIndex, aItemType, aURI)
     {
       do_check_eq(aItemId, id);
       do_check_eq(bs.getItemTitle(aItemId), TITLE);

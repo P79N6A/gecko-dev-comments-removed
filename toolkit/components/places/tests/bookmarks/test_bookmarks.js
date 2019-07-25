@@ -50,10 +50,11 @@ let bookmarksObserver = {
   onEndUpdateBatch: function() {
     this._endUpdateBatch = true;
   },
-  onItemAdded: function(id, folder, index, itemType) {
+  onItemAdded: function(id, folder, index, itemType, uri) {
     this._itemAddedId = id;
     this._itemAddedParent = folder;
     this._itemAddedIndex = index;
+    this._itemAddedURI = uri;
   },
   onBeforeItemRemoved: function(){},
   onItemRemoved: function(id, folder, index, itemType) {
@@ -128,6 +129,7 @@ function run_test() {
   do_check_eq(bookmarksObserver._itemAddedId, testRoot);
   do_check_eq(bookmarksObserver._itemAddedParent, root);
   do_check_eq(bookmarksObserver._itemAddedIndex, bmStartIndex);
+  do_check_eq(bookmarksObserver._itemAddedURI, null);
   let testStartIndex = 0;
 
   
@@ -146,6 +148,7 @@ function run_test() {
   do_check_eq(bookmarksObserver._itemAddedId, newId);
   do_check_eq(bookmarksObserver._itemAddedParent, testRoot);
   do_check_eq(bookmarksObserver._itemAddedIndex, testStartIndex);
+  do_check_true(bookmarksObserver._itemAddedURI.equals(uri("http://google.com/")));
   do_check_eq(bs.getBookmarkURI(newId).spec, "http://google.com/");
 
   let dateAdded = bs.getItemDateAdded(newId);
@@ -210,6 +213,7 @@ function run_test() {
   do_check_eq(bookmarksObserver._itemAddedId, workFolder);
   do_check_eq(bookmarksObserver._itemAddedParent, testRoot);
   do_check_eq(bookmarksObserver._itemAddedIndex, 0);
+  do_check_eq(bookmarksObserver._itemAddedURI, null);
 
   do_check_eq(bs.getItemTitle(workFolder), "Work");
   bs.setItemTitle(workFolder, "Work #");

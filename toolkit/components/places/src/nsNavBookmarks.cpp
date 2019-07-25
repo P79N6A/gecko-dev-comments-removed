@@ -1015,7 +1015,8 @@ nsNavBookmarks::InsertBookmark(PRInt64 aFolder,
 
   NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
                    nsINavBookmarkObserver,
-                   OnItemAdded(*aNewBookmarkId, aFolder, index, TYPE_BOOKMARK));
+                   OnItemAdded(*aNewBookmarkId, aFolder, index, TYPE_BOOKMARK,
+                               aURI));
 
   
   
@@ -1280,7 +1281,8 @@ nsNavBookmarks::CreateContainerWithID(PRInt64 aItemId,
 
   NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
                    nsINavBookmarkObserver,
-                   OnItemAdded(*aNewFolder, aParent, index, containerType));
+                   OnItemAdded(*aNewFolder, aParent, index, containerType,
+                               nsnull));
 
   *aIndex = index;
   return NS_OK;
@@ -1326,7 +1328,8 @@ nsNavBookmarks::InsertSeparator(PRInt64 aParent,
 
   NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
                    nsINavBookmarkObserver,
-                   OnItemAdded(*aNewItemId, aParent, index, TYPE_SEPARATOR));
+                   OnItemAdded(*aNewItemId, aParent, index, TYPE_SEPARATOR,
+                               nsnull));
 
   return NS_OK;
 }
