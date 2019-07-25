@@ -719,8 +719,10 @@ var WifiManager = (function() {
 
       
       
-      if (fields.state === "ASSOCIATING" || fields.state == "ASSOCIATED")
+      
+      if (fields.BSSID !== "00:00:00:00:00:00")
         manager.connectionInfo.bssid = fields.BSSID;
+
       notifyStateChange(fields);
       return true;
     }
