@@ -170,16 +170,16 @@ EnumeratedIdVectorToIterator(JSContext *cx, HandleObject obj, unsigned flags, Au
 
 
 
-extern JSBool
+bool
 ValueToIterator(JSContext *cx, unsigned flags, Value *vp);
 
-extern bool
+bool
 CloseIterator(JSContext *cx, JSObject *iterObj);
 
-extern bool
+bool
 UnwindIteratorForException(JSContext *cx, JSObject *obj);
 
-extern void
+void
 UnwindIteratorForUncatchableException(JSContext *cx, JSObject *obj);
 
 }

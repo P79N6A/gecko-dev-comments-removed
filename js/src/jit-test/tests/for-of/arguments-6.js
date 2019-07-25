@@ -1,5 +1,7 @@
 
 
+Object.prototype.iterator = Array.prototype.iterator;
+
 var s;
 function f() {
     arguments.length = 2;
