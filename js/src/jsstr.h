@@ -487,10 +487,6 @@ DeflateStringToUTF8Buffer(JSContext *cx, const jschar *chars,
 } 
 
 
-extern JSBool
-js_str_escape(JSContext *cx, uintN argc, js::Value *argv, js::Value *rval);
-
-
 
 
 
