@@ -7580,7 +7580,8 @@ DoApplyRenderingChangeToTree(nsIFrame* aFrame,
 
     
     if (aChange & nsChangeHint_RepaintFrame) {
-      if (aFrame->IsFrameOfType(nsIFrame::eSVG)) {
+      if (aFrame->IsFrameOfType(nsIFrame::eSVG) &&
+          !(aFrame->GetStateBits() & NS_STATE_IS_OUTER_SVG)) {
         if (aChange & nsChangeHint_UpdateEffects) {
           
           nsSVGUtils::InvalidateAndScheduleBoundsUpdate(aFrame);
