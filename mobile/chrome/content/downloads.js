@@ -108,12 +108,13 @@ var DownloadsView = {
 
   _clearList: function dv__clearList() {
     
-    let empty = this._list.cloneNode(false);
-    this._list.parentNode.replaceChild(empty, this._list);
-    this._list = empty;
+    let header = document.getElementById("downloads-list-header");
+    while (header.nextSibling)
+      this._list.removeChild(header.nextSibling);
   },
   
   _ifEmptyShowMessage: function dv__ifEmptyShowMessage() {
+    
     if (this._list.itemCount == 0) {
       let emptyString = Elements.browserBundle.getString("downloadsEmpty");
       let emptyItem = this._list.appendItem(emptyString);
