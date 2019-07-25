@@ -508,7 +508,7 @@ NS_IMETHODIMP
 nsObjectLoadingContent::OnStartRequest(nsIRequest *aRequest,
                                        nsISupports *aContext)
 {
-  if (aRequest != mChannel) {
+  if (aRequest != mChannel || !aRequest) {
     
     
     return NS_BINDING_ABORTED;
@@ -780,6 +780,8 @@ nsObjectLoadingContent::OnStopRequest(nsIRequest *aRequest,
                                       nsISupports *aContext,
                                       nsresult aStatusCode)
 {
+  NS_ENSURE_TRUE(nsContentUtils::IsCallerChrome(), NS_ERROR_NOT_AVAILABLE);
+
   if (aRequest != mChannel) {
     return NS_BINDING_ABORTED;
   }
@@ -798,8 +800,13 @@ nsObjectLoadingContent::OnStopRequest(nsIRequest *aRequest,
 
 
 NS_IMETHODIMP
-nsObjectLoadingContent::OnDataAvailable(nsIRequest *aRequest, nsISupports *aContext, nsIInputStream *aInputStream, PRUint32 aOffset, PRUint32 aCount)
+nsObjectLoadingContent::OnDataAvailable(nsIRequest *aRequest,
+                                        nsISupports *aContext,
+                                        nsIInputStream *aInputStream,
+                                        PRUint32 aOffset, PRUint32 aCount)
 {
+  NS_ENSURE_TRUE(nsContentUtils::IsCallerChrome(), NS_ERROR_NOT_AVAILABLE);
+
   if (aRequest != mChannel) {
     return NS_BINDING_ABORTED;
   }
