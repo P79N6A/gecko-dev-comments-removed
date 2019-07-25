@@ -1700,6 +1700,14 @@ public:
 
   static bool IsSubDocumentTabbable(nsIContent* aContent);
 
+  
+
+
+
+
+
+  static void FlushLayoutForTree(nsIDOMWindow* aWindow);
+
 private:
 
   static PRBool InitializeEventTable();
