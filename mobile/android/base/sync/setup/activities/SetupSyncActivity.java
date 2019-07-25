@@ -2,46 +2,13 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko.sync.setup.activities;
 
 import java.util.HashMap;
 
 import org.json.simple.JSONObject;
 import org.mozilla.gecko.R;
+import org.mozilla.gecko.sync.Logger;
 import org.mozilla.gecko.sync.jpake.JPakeClient;
 import org.mozilla.gecko.sync.jpake.JPakeNoActivePairingException;
 import org.mozilla.gecko.sync.setup.Constants;
@@ -58,7 +25,6 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -67,9 +33,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 public class SetupSyncActivity extends AccountAuthenticatorActivity {
-  private final static String LOG_TAG     = "SetupSync";
+  private final static String LOG_TAG = "SetupSync";
 
-  private boolean             pairWithPin = false;
+  private boolean pairWithPin = false;
 
   
   private EditText            row1;
@@ -93,25 +59,25 @@ public class SetupSyncActivity extends AccountAuthenticatorActivity {
 
   public SetupSyncActivity() {
     super();
-    Log.i(LOG_TAG, "SetupSyncActivity constructor called.");
+    Logger.info(LOG_TAG, "SetupSyncActivity constructor called.");
   }
 
   
   @Override
   public void onCreate(Bundle savedInstanceState) {
     setTheme(R.style.SyncTheme);
-    Log.i(LOG_TAG, "Called SetupSyncActivity.onCreate.");
+    Logger.info(LOG_TAG, "Called SetupSyncActivity.onCreate.");
     super.onCreate(savedInstanceState);
 
     
     mContext = getApplicationContext();
-    Log.d(LOG_TAG, "AccountManager.get(" + mContext + ")");
+    Logger.debug(LOG_TAG, "AccountManager.get(" + mContext + ")");
     mAccountManager = AccountManager.get(mContext);
   }
 
   @Override
   public void onResume() {
-    Log.i(LOG_TAG, "Called SetupSyncActivity.onResume.");
+    Logger.info(LOG_TAG, "Called SetupSyncActivity.onResume.");
     super.onResume();
 
     if (!hasInternet()) {
@@ -123,7 +89,12 @@ public class SetupSyncActivity extends AccountAuthenticatorActivity {
     Account[] accts = mAccountManager.getAccountsByType(Constants.ACCOUNTTYPE_SYNC);
 
     if (accts.length == 0) { 
+      Logger.debug(LOG_TAG, "No accounts; starting J-PAKE receiver.");
       displayReceiveNoPin();
+      if (jClient != null) {
+        
+        jClient.finished = true;
+      }
       jClient = new JPakeClient(this);
       jClient.receiveNoPin();
       return;
@@ -132,13 +103,17 @@ public class SetupSyncActivity extends AccountAuthenticatorActivity {
     
     Bundle extras = this.getIntent().getExtras();
     if (extras != null) {
+      Logger.debug(LOG_TAG, "SetupSync with extras.");
       boolean isSetup = extras.getBoolean(Constants.INTENT_EXTRA_IS_SETUP);
       if (!isSetup) {
+        Logger.debug(LOG_TAG, "Account exists; Pair a Device started.");
         pairWithPin = true;
         displayPairWithPin();
         return;
       }
     }
+
+    Logger.debug(LOG_TAG, "Only one account supported. Redirecting.");
     
     Toast toast = Toast.makeText(mContext, R.string.sync_notification_oneaccount, Toast.LENGTH_LONG);
     toast.show();
@@ -177,7 +152,7 @@ public class SetupSyncActivity extends AccountAuthenticatorActivity {
   }
 
   public void connectClickHandler(View target) {
-    Log.d(LOG_TAG, "Connect clicked.");
+    Logger.debug(LOG_TAG, "Connect clicked.");
     
     pinError.setVisibility(View.INVISIBLE);
     enablePinEntry(false);
@@ -189,10 +164,18 @@ public class SetupSyncActivity extends AccountAuthenticatorActivity {
     pin += row2.getText().toString() + row3.getText().toString();
 
     
-    Log.d(LOG_TAG, "Starting J-PAKE...");
+    if (jClient != null) {
+      
+      jClient.finished = true;
+    }
     jClient = new JPakeClient(this);
-    jClient.pairWithPin(pin, false);
+    jClient.pairWithPin(pin);
   }
+
+  
+
+
+
 
   public void showClickHandler(View target) {
     Uri uri = null;
@@ -206,9 +189,15 @@ public class SetupSyncActivity extends AccountAuthenticatorActivity {
   }
 
   
+
+  
+
+
+
+
   public void displayPin(String pin) {
     if (pin == null) {
-      Log.w(LOG_TAG, "Asked to display null pin.");
+      Logger.warn(LOG_TAG, "Asked to display null pin.");
       return;
     }
     
@@ -224,7 +213,7 @@ public class SetupSyncActivity extends AccountAuthenticatorActivity {
         TextView view2 = pinTextView2;
         TextView view3 = pinTextView3;
         if (view1 == null || view2 == null || view3 == null) {
-          Log.w(LOG_TAG, "Couldn't find view to display PIN.");
+          Logger.warn(LOG_TAG, "Couldn't find view to display PIN.");
           return;
         }
         view1.setText(pin1);
@@ -234,12 +223,17 @@ public class SetupSyncActivity extends AccountAuthenticatorActivity {
     });
   }
 
+  
+
+
+
   public void displayAbort(String error) {
     if (!Constants.JPAKE_ERROR_USERABORT.equals(error) && !hasInternet()) {
       setContentView(R.layout.sync_setup_nointernet);
       return;
     }
     if (pairWithPin) {
+      
       runOnUiThread(new Runnable() {
         @Override
         public void run() {
@@ -257,7 +251,7 @@ public class SetupSyncActivity extends AccountAuthenticatorActivity {
     }
 
     
-    Log.d(LOG_TAG, "abort reason: " + error);
+    Logger.debug(LOG_TAG, "abort reason: " + error);
     if (!Constants.JPAKE_ERROR_USERABORT.equals(error)) {
       jClient = new JPakeClient(this);
       runOnUiThread(new Runnable() {
@@ -285,7 +279,7 @@ public class SetupSyncActivity extends AccountAuthenticatorActivity {
     fields.put(Constants.JSON_KEY_PASSWORD, password);
     fields.put(Constants.JSON_KEY_SERVER,   serverURL);
 
-    Log.d(LOG_TAG, "Extracted account data: " + jAccount.toJSONString());
+    Logger.debug(LOG_TAG, "Extracted account data: " + jAccount.toJSONString());
     return jAccount;
   }
 
@@ -294,21 +288,11 @@ public class SetupSyncActivity extends AccountAuthenticatorActivity {
 
 
   public void onPaired() {
-    if (!pairWithPin) {
-      runOnUiThread(new Runnable() {
-        @Override
-        public void run() {
-          setContentView(R.layout.sync_setup_jpake_waiting);
-        }
-      });
-      return;
-    }
-
     
     Account[] accts = mAccountManager.getAccountsByType(Constants.ACCOUNTTYPE_SYNC);
     if (accts.length == 0) {
       
-      Log.e(LOG_TAG, "No accounts present.");
+      Logger.error(LOG_TAG, "No accounts present.");
       displayAbort(Constants.JPAKE_ERROR_INVALID);
       return;
     }
@@ -324,8 +308,8 @@ public class SetupSyncActivity extends AccountAuthenticatorActivity {
     try {
       jClient.sendAndComplete(jAccount);
     } catch (JPakeNoActivePairingException e) {
-      Log.e(LOG_TAG, "No active J-PAKE pairing.", e);
-      
+      Logger.error(LOG_TAG, "No active J-PAKE pairing.", e);
+      displayAbort(Constants.JPAKE_ERROR_INVALID);
     }
   }
 
@@ -334,8 +318,14 @@ public class SetupSyncActivity extends AccountAuthenticatorActivity {
 
 
   public void onPairingStart() {
-    if (pairWithPin) {
-      
+    if (!pairWithPin) {
+      runOnUiThread(new Runnable() {
+        @Override
+        public void run() {
+          setContentView(R.layout.sync_setup_jpake_waiting);
+        }
+      });
+      return;
     }
   }
 
@@ -352,7 +342,7 @@ public class SetupSyncActivity extends AccountAuthenticatorActivity {
       String syncKey      = (String) jCreds.get(Constants.JSON_KEY_SYNCKEY);
       String serverURL    = (String) jCreds.get(Constants.JSON_KEY_SERVER);
 
-      Log.d(LOG_TAG, "Using account manager " + mAccountManager);
+      Logger.debug(LOG_TAG, "Using account manager " + mAccountManager);
       final Intent intent = AccountActivity.createAccount(mContext, mAccountManager,
                                                           accountName,
                                                           syncKey, password, serverURL);
@@ -416,20 +406,20 @@ public class SetupSyncActivity extends AccountAuthenticatorActivity {
   }
 
   private boolean hasInternet() {
-    Log.d(LOG_TAG, "Checking internet connectivity.");
+    Logger.debug(LOG_TAG, "Checking internet connectivity.");
     ConnectivityManager connManager = (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
     NetworkInfo wifi = connManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
     NetworkInfo mobile = connManager.getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
 
     if (wifi.isConnected() || mobile.isConnected()) {
-      Log.d(LOG_TAG, "Internet connected.");
+      Logger.debug(LOG_TAG, "Internet connected.");
       return true;
     }
     return false;
   }
 
   private void displayPairWithPin() {
-    Log.d(LOG_TAG, "PairWithPin initiated.");
+    Logger.debug(LOG_TAG, "PairWithPin initiated.");
     setContentView(R.layout.sync_setup_pair);
     connectButton = (Button) findViewById(R.id.pair_button_connect);
     pinError = (LinearLayout) findViewById(R.id.pair_error);
@@ -455,8 +445,8 @@ public class SetupSyncActivity extends AccountAuthenticatorActivity {
       @Override
       public void onTextChanged(CharSequence s, int start, int before, int count) {
       }
-
     });
+
     row2.addTextChangedListener(new TextWatcher() {
       @Override
       public void afterTextChanged(Editable s) {
@@ -474,7 +464,6 @@ public class SetupSyncActivity extends AccountAuthenticatorActivity {
       @Override
       public void onTextChanged(CharSequence s, int start, int before, int count) {
       }
-
     });
 
     row3.addTextChangedListener(new TextWatcher() {
@@ -491,12 +480,11 @@ public class SetupSyncActivity extends AccountAuthenticatorActivity {
       @Override
       public void onTextChanged(CharSequence s, int start, int before, int count) {
       }
-
     });
   }
 
   private void displayReceiveNoPin() {
-    Log.d(LOG_TAG, "ReceiveNoPin initiated");
+    Logger.debug(LOG_TAG, "ReceiveNoPin initiated");
     setContentView(R.layout.sync_setup);
 
     
@@ -509,13 +497,13 @@ public class SetupSyncActivity extends AccountAuthenticatorActivity {
 
     
     if (setupTitleView == null) {
-      Log.e(LOG_TAG, "No title view.");
+      Logger.error(LOG_TAG, "No title view.");
     }
     if (setupSubtitleView == null) {
-      Log.e(LOG_TAG, "No subtitle view.");
+      Logger.error(LOG_TAG, "No subtitle view.");
     }
     if (setupNoDeviceLinkTitleView == null) {
-      Log.e(LOG_TAG, "No 'no device' link view.");
+      Logger.error(LOG_TAG, "No 'no device' link view.");
     }
   }
 }
