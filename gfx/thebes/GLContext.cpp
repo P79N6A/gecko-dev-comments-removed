@@ -1349,6 +1349,9 @@ GLContext::UploadSurfaceToTexture(gfxASurface *aSurface,
       break;
     default:
       NS_ASSERTION(false, "Unhandled image surface format!");
+      format = 0;
+      type = 0;
+      shader = ShaderProgramType(0);
   }
 
 #ifndef USE_GLES2
