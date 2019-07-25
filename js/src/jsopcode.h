@@ -257,7 +257,9 @@ struct JSCodeSpec {
     uint8               prec;           
     uint32              format;         
 
+#ifdef __cplusplus
     uint32 type() const { return JOF_TYPE(format); }
+#endif
 };
 
 extern const JSCodeSpec js_CodeSpec[];
