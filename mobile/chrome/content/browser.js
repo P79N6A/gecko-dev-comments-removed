@@ -48,9 +48,6 @@ let Cc = Components.classes;
 let Ci = Components.interfaces;
 let Cu = Components.utils;
 
-Cu.import("resource://gre/modules/SpatialNavigation.js");
-Cu.import("resource://gre/modules/PluralForm.jsm");
-
 function getBrowser() {
   return Browser.selectedBrowser;
 }
@@ -480,18 +477,6 @@ var Browser = {
     browsers.addEventListener("command", this._handleContentCommand, true);
     browsers.addEventListener("MozApplicationManifest", OfflineApps, false);
     browsers.addEventListener("DOMUpdatePageReport", gPopupBlockerObserver.onUpdatePageReport, false);
-
-    
-    function panCallback(aElement) {
-      if (!aElement)
-        return;
-
-      
-      
-    }
-    
-    
-    SpatialNavigation.init(browsers, panCallback);
 
     
     Cc["@mozilla.org/login-manager;1"].getService(Ci.nsILoginManager);
