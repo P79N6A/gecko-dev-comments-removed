@@ -3085,7 +3085,7 @@ BEGIN_CASE(JSOP_REGEXP)
 
 
 
-    jsatomid index = GET_FULL_INDEX(0);
+    uint32_t index = GET_UINT32_INDEX(regs.pc);
     JSObject *proto = regs.fp()->scopeChain().global().getOrCreateRegExpPrototype(cx);
     if (!proto)
         goto error;
