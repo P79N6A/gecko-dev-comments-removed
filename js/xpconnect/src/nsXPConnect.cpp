@@ -707,7 +707,7 @@ static void
 UnmarkGrayChildren(JSTracer *trc, void *thing, JSGCTraceKind kind)
 {
     int stackDummy;
-    if (!JS_CHECK_STACK_SIZE(trc->context->stackLimit, &stackDummy)) {
+    if (!JS_CHECK_STACK_SIZE(js::GetContextStackLimit(trc->context), &stackDummy)) {
         
 
 
