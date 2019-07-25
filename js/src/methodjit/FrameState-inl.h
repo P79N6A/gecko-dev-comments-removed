@@ -879,6 +879,17 @@ FrameState::syncAndForgetFe(FrameEntry *fe, bool markSynced)
 }
 
 inline void
+FrameState::forgetLoopReg(FrameEntry *fe)
+{
+    
+
+
+
+    if (loop)
+        fe->lastLoop = loop->headOffset();
+}
+
+inline void
 FrameState::syncType(FrameEntry *fe)
 {
     JS_ASSERT(!fe->isType(JSVAL_TYPE_DOUBLE));
