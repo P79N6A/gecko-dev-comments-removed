@@ -301,7 +301,6 @@ struct FunctionBox : public ObjectBox
     uint16_t        level;
     uint16_t        ndefaults;
     StrictMode::StrictModeState strictModeState;
-    bool            inLoop:1;               
     bool            inWith:1;               
 
     bool            inGenexpLambda:1;       
