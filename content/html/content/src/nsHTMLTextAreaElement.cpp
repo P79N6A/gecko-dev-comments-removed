@@ -78,6 +78,7 @@
 #include "nsISupportsPrimitives.h"
 #include "nsContentCreatorFunctions.h"
 #include "nsIConstraintValidation.h"
+#include "nsHTMLFormElement.h"
 
 #include "nsTextEditorState.h"
 
@@ -1019,7 +1020,10 @@ nsHTMLTextAreaElement::IntrinsicState() const
       
       
       
-      if (mValueChanged || GetValidityState(VALIDITY_STATE_CUSTOM_ERROR)) {
+      
+      
+      if ((mForm && mForm->HasEverTriedInvalidSubmit()) ||
+          (mValueChanged || GetValidityState(VALIDITY_STATE_CUSTOM_ERROR))) {
         state |= NS_EVENT_STATE_MOZ_UI_INVALID;
       }
     }

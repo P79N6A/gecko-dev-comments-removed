@@ -296,6 +296,15 @@ public:
 
   nsresult WalkFormElements(nsFormSubmission* aFormSubmission);
 
+  
+
+
+
+
+
+
+  bool HasEverTriedInvalidSubmit() const { return mEverTriedInvalidSubmit; }
+
 protected:
   class RemoveElementRunnable;
   friend class RemoveElementRunnable;
@@ -440,6 +449,12 @@ protected:
 
 
   PRInt32 mInvalidElementsCount;
+
+  
+
+
+
+  bool mEverTriedInvalidSubmit;
 
 protected:
   

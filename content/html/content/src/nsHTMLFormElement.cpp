@@ -265,7 +265,8 @@ nsHTMLFormElement::nsHTMLFormElement(already_AddRefed<nsINodeInfo> aNodeInfo)
     mDefaultSubmitElement(nsnull),
     mFirstSubmitInElements(nsnull),
     mFirstSubmitNotInElements(nsnull),
-    mInvalidElementsCount(0)
+    mInvalidElementsCount(0),
+    mEverTriedInvalidSubmit(false)
 {
 }
 
@@ -478,6 +479,10 @@ CollectOrphans(nsINode* aRemovalRoot, nsTArray<nsGenericHTMLFormElement*> aArray
                )
 {
   
+  nsIDocument* doc = aArray.IsEmpty() ? nsnull : aArray[0]->GetCurrentDoc();
+  MOZ_AUTO_DOC_UPDATE(doc, UPDATE_CONTENT_STATE, PR_TRUE);
+
+  
   PRUint32 length = aArray.Length();
   for (PRUint32 i = length; i > 0; --i) {
     nsGenericHTMLFormElement* node = aArray[i-1];
@@ -496,13 +501,17 @@ CollectOrphans(nsINode* aRemovalRoot, nsTArray<nsGenericHTMLFormElement*> aArray
         node->ClearForm(PR_TRUE);
 
         
+        
+        nsEventStates states = NS_EVENT_STATE_MOZ_UI_INVALID;
+
+        
+        
         if (node->IsSubmitControl()) {
-          nsIDocument* doc = node->GetCurrentDoc();
-          if (doc) {
-            MOZ_AUTO_DOC_UPDATE(doc, UPDATE_CONTENT_STATE, PR_TRUE);
-            doc->ContentStatesChanged(node, nsnull,
-                                      NS_EVENT_STATE_MOZ_SUBMITINVALID);
-          }
+          states |= NS_EVENT_STATE_MOZ_SUBMITINVALID;
+        }
+
+        if (doc) {
+          doc->ContentStatesChanged(node, nsnull, states);
         }
 #ifdef DEBUG
         removed = PR_TRUE;
@@ -1705,10 +1714,39 @@ nsHTMLFormElement::CheckValidFormSubmission()
         observer = do_QueryInterface(inst);
 
         if (observer) {
-          rv = observer->
-            NotifyInvalidSubmit(this,
-                                static_cast<nsIArray*>(invalidElements));
-          NS_ENSURE_SUCCESS(rv, rv);
+          observer->NotifyInvalidSubmit(this,
+                                        static_cast<nsIArray*>(invalidElements));
+        }
+      }
+
+      
+      if (!mEverTriedInvalidSubmit) {
+        mEverTriedInvalidSubmit = true;
+
+        nsIDocument* doc = GetCurrentDoc();
+        if (doc) {
+          
+
+
+
+
+
+          MOZ_AUTO_DOC_UPDATE(doc, UPDATE_CONTENT_STATE, PR_TRUE);
+
+          for (PRUint32 i = 0, length = mControls->mElements.Length();
+               i < length; ++i) {
+            doc->ContentStatesChanged(mControls->mElements[i], nsnull,
+                                      NS_EVENT_STATE_MOZ_UI_INVALID);
+          }
+
+          
+          
+          
+          for (PRUint32 i = 0, length = mControls->mNotInElements.Length();
+               i < length; ++i) {
+            doc->ContentStatesChanged(mControls->mNotInElements[i], nsnull,
+                                      NS_EVENT_STATE_MOZ_UI_INVALID);
+          }
         }
       }
 

@@ -3316,11 +3316,14 @@ nsHTMLInputElement::IntrinsicState() const
       
       
       
-      if (valueMode == VALUE_MODE_DEFAULT ||
-          GetValidityState(VALIDITY_STATE_CUSTOM_ERROR) ||
-          (valueMode == VALUE_MODE_DEFAULT_ON && GetCheckedChanged()) ||
-          ((valueMode == VALUE_MODE_FILENAME || valueMode == VALUE_MODE_VALUE) &&
-           GET_BOOLBIT(mBitField, BF_VALUE_CHANGED))) {
+      
+      
+      if ((mForm && mForm->HasEverTriedInvalidSubmit()) ||
+          (valueMode == VALUE_MODE_DEFAULT ||
+           GetValidityState(VALIDITY_STATE_CUSTOM_ERROR) ||
+           (valueMode == VALUE_MODE_DEFAULT_ON && GetCheckedChanged()) ||
+           ((valueMode == VALUE_MODE_FILENAME || valueMode == VALUE_MODE_VALUE) &&
+            GET_BOOLBIT(mBitField, BF_VALUE_CHANGED)))) {
         state |= NS_EVENT_STATE_MOZ_UI_INVALID;
       }
     }
