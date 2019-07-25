@@ -159,12 +159,6 @@ public:
 
     static int FilterA11yExceptions(unsigned int aCode, EXCEPTION_POINTERS *aExceptionInfo);
 
-    static bool IsOnlyMsaaCompatibleJawsPresent();
-
-    static void TurnOffNewTabSwitchingForJawsAndWE();
-
-    static void DoATSpecificProcessing();
-
   static STDMETHODIMP_(LRESULT) LresultFromObject(REFIID riid, WPARAM wParam, LPUNKNOWN pAcc);
 
   static LRESULT CALLBACK WindowProc(HWND hWnd, UINT Msg,
@@ -181,12 +175,6 @@ protected:
 
 
   ISimpleDOMNode *MakeAccessNode(nsINode *aNode);
-
-    
-
-
-
-     static bool gIsIA2Disabled;
 
     
 

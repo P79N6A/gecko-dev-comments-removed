@@ -40,6 +40,7 @@
 
 #include "nsWinUtils.h"
 
+#include "Compatibility.h"
 #include "nsIWinAccessNode.h"
 #include "nsRootAccessible.h"
 
@@ -48,6 +49,7 @@
 #include "nsIDocShellTreeItem.h"
 
 using namespace mozilla;
+using namespace mozilla::a11y;
 
 
 
@@ -111,11 +113,14 @@ nsWinUtils::MaybeStartWindowEmulation()
 {
   
   
-  if (IsWindowEmulationFor(0)) {
+  if (Compatibility::IsJAWS() || Compatibility::IsWE() ||
+      Compatibility::IsDolphin() ||
+      Preferences::GetBool("browser.tabs.remote")) {
     RegisterNativeWindow(kClassNameTabContent);
     nsAccessNodeWrap::sHWNDCache.Init(4);
     return true;
   }
+
   return false;
 }
 
@@ -124,7 +129,7 @@ nsWinUtils::ShutdownWindowEmulation()
 {
   
   
-  if (IsWindowEmulationFor(0))
+  if (IsWindowEmulationStarted())
     ::UnregisterClassW(kClassNameTabContent, GetModuleHandle(NULL));
 }
 
@@ -183,17 +188,4 @@ nsWinUtils::HideNativeWindow(HWND aWnd)
   ::SetWindowPos(aWnd, NULL, 0, 0, 0, 0,
                  SWP_HIDEWINDOW | SWP_NOSIZE | SWP_NOMOVE |
                  SWP_NOZORDER | SWP_NOACTIVATE);
-}
-
-bool
-nsWinUtils::IsWindowEmulationFor(LPCWSTR kModuleHandle)
-{
-  
-  if (Preferences::GetBool("browser.tabs.remote"))
-    return kModuleHandle ? ::GetModuleHandleW(kModuleHandle) : true;
-
-  return kModuleHandle ? ::GetModuleHandleW(kModuleHandle) :
-    ::GetModuleHandleW(kJAWSModuleHandle) ||
-    ::GetModuleHandleW(kWEModuleHandle)  ||
-    ::GetModuleHandleW(kDolphinModuleHandle);
 }
