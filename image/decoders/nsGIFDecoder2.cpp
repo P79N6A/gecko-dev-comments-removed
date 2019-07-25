@@ -107,7 +107,7 @@ namespace imagelib {
 
 
 
-nsGIFDecoder2::nsGIFDecoder2(RasterImage *aImage, imgIDecoderObserver* aObserver)
+nsGIFDecoder2::nsGIFDecoder2(RasterImage &aImage, imgIDecoderObserver* aObserver)
   : Decoder(aImage, aObserver)
   , mCurrentRow(-1)
   , mLastFlushedRow(-1)
@@ -150,7 +150,7 @@ nsGIFDecoder2::FinishInternal()
     mGIFOpen = false;
   }
 
-  mImage->SetLoopCount(mGIFStruct.loop_count - 1);
+  mImage.SetLoopCount(mGIFStruct.loop_count - 1);
 }
 
 
@@ -216,24 +216,24 @@ nsresult nsGIFDecoder2::BeginImageFrame(PRUint16 aDepth)
   
   if (mGIFStruct.images_decoded) {
     
-    rv = mImage->EnsureFrame(mGIFStruct.images_decoded,
-                             mGIFStruct.x_offset, mGIFStruct.y_offset,
-                             mGIFStruct.width, mGIFStruct.height,
-                             format, aDepth, &mImageData, &imageDataLength,
-                             &mColormap, &mColormapSize);
+    rv = mImage.EnsureFrame(mGIFStruct.images_decoded,
+                            mGIFStruct.x_offset, mGIFStruct.y_offset,
+                            mGIFStruct.width, mGIFStruct.height,
+                            format, aDepth, &mImageData, &imageDataLength,
+                            &mColormap, &mColormapSize);
   } else {
     
-    rv = mImage->EnsureFrame(mGIFStruct.images_decoded,
-                             mGIFStruct.x_offset, mGIFStruct.y_offset,
-                             mGIFStruct.width, mGIFStruct.height,
-                             format, &mImageData, &imageDataLength);
+    rv = mImage.EnsureFrame(mGIFStruct.images_decoded,
+                            mGIFStruct.x_offset, mGIFStruct.y_offset,
+                            mGIFStruct.width, mGIFStruct.height,
+                            format, &mImageData, &imageDataLength);
   }
 
   if (NS_FAILED(rv))
     return rv;
 
-  mImage->SetFrameDisposalMethod(mGIFStruct.images_decoded,
-                                 mGIFStruct.disposal_method);
+  mImage.SetFrameDisposalMethod(mGIFStruct.images_decoded,
+                                mGIFStruct.disposal_method);
 
   
   PostFrameStart();
@@ -244,7 +244,7 @@ nsresult nsGIFDecoder2::BeginImageFrame(PRUint16 aDepth)
     
     if (mGIFStruct.y_offset > 0) {
       PRInt32 imgWidth;
-      mImage->GetWidth(&imgWidth);
+      mImage.GetWidth(&imgWidth);
       nsIntRect r(0, 0, imgWidth, mGIFStruct.y_offset);
       PostInvalidation(r);
     }
@@ -275,7 +275,7 @@ void nsGIFDecoder2::EndImageFrame()
     }
     
     if (mGIFStruct.is_transparent && !mSawTransparency) {
-      mImage->SetFrameHasNoAlpha(mGIFStruct.images_decoded);
+      mImage.SetFrameHasNoAlpha(mGIFStruct.images_decoded);
     }
   }
   mCurrentRow = mLastFlushedRow = -1;
@@ -293,7 +293,7 @@ void nsGIFDecoder2::EndImageFrame()
     
     
     
-    mImage->SetFrameTimeout(mGIFStruct.images_decoded, mGIFStruct.delay_time);
+    mImage.SetFrameTimeout(mGIFStruct.images_decoded, mGIFStruct.delay_time);
   }
 
   
