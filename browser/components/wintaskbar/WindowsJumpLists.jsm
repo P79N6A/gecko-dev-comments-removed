@@ -207,7 +207,11 @@ var WinTaskbarJumpList =
     
     
     
-    this._shortcutMaintenance();
+    try {
+      
+      this._shortcutMaintenance();
+    } catch (ex) {
+    }
 
     
     this._tasks = tasksCfg;
@@ -497,9 +501,9 @@ var WinTaskbarJumpList =
     if (!items)
       return;
     var URIsToRemove = [];
-    var enum = items.enumerate();
-    while (enum.hasMoreElements()) {
-      let oldItem = enum.getNext().QueryInterface(Ci.nsIJumpListShortcut);
+    var e = items.enumerate();
+    while (e.hasMoreElements()) {
+      let oldItem = e.getNext().QueryInterface(Ci.nsIJumpListShortcut);
       if (oldItem) {
         try { 
           let uriSpec = oldItem.app.getParameter(0);
