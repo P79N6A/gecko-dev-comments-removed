@@ -390,11 +390,11 @@ protected:
 
 
 
-  NS_METHOD ReflowChildren(nsPresContext*         aPresContext,
-                           nsHTMLReflowMetrics&   aDesiredSize,
-                           nsRowGroupReflowState& aReflowState,
-                           nsReflowStatus&        aStatus,
-                           PRBool*                aPageBreakBeforeEnd = nsnull);
+  nsresult ReflowChildren(nsPresContext*         aPresContext,
+                          nsHTMLReflowMetrics&   aDesiredSize,
+                          nsRowGroupReflowState& aReflowState,
+                          nsReflowStatus&        aStatus,
+                          PRBool*                aPageBreakBeforeEnd = nsnull);
 
   nsresult SplitRowGroup(nsPresContext*           aPresContext,
                          nsHTMLReflowMetrics&     aDesiredSize,

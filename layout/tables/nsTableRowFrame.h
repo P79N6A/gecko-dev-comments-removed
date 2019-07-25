@@ -279,11 +279,11 @@ protected:
 
 
 
-  NS_IMETHOD ReflowChildren(nsPresContext*          aPresContext,
-                            nsHTMLReflowMetrics&     aDesiredSize,
-                            const nsHTMLReflowState& aReflowState,
-                            nsTableFrame&            aTableFrame,
-                            nsReflowStatus&          aStatus);
+  nsresult ReflowChildren(nsPresContext*           aPresContext,
+                          nsHTMLReflowMetrics&     aDesiredSize,
+                          const nsHTMLReflowState& aReflowState,
+                          nsTableFrame&            aTableFrame,
+                          nsReflowStatus&          aStatus);
 
 private:
   struct RowBits {

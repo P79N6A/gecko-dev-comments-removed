@@ -549,10 +549,10 @@ protected:
                                   nsTableRowGroupFrame* aFrame,
                                   nscoord* aDesiredHeight);
 
-  NS_METHOD ReflowChildren(nsTableReflowState&  aReflowState,
-                           nsReflowStatus&      aStatus,
-                           nsIFrame*&           aLastChildReflowed,
-                           nsRect&              aOverflowArea);
+  nsresult ReflowChildren(nsTableReflowState&  aReflowState,
+                          nsReflowStatus&      aStatus,
+                          nsIFrame*&           aLastChildReflowed,
+                          nsOverflowAreas&     aOverflowAreas);
 
   
   
