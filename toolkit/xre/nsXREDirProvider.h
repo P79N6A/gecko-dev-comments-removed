@@ -135,8 +135,9 @@ protected:
   static inline nsresult AppendProfileString(nsIFile* aFile, const char* aPath);
 
   
+  void LoadExtensionBundleDirectories();
+
   
-  void LoadBundleDirectories();
   void LoadAppBundleDirs();
 
   void Append(nsIFile* aDirectory);
@@ -147,7 +148,6 @@ protected:
   nsCOMPtr<nsIFile>      mProfileDir;
   nsCOMPtr<nsIFile>      mProfileLocalDir;
   PRPackedBool           mProfileNotified;
-  PRPackedBool           mExtensionsLoaded;
   nsCOMArray<nsIFile>    mAppBundleDirectories;
   nsCOMArray<nsIFile>    mExtensionDirectories;
   nsCOMArray<nsIFile>    mThemeDirectories;
