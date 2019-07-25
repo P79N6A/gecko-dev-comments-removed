@@ -50,6 +50,7 @@
 #include "nsGkAtoms.h"
 #include "nsIFrame.h"
 #include "nsFrameManager.h"
+#include "mozilla/AutoRestore.h"
 
 #include "nsINameSpaceManager.h"
 
@@ -57,6 +58,8 @@
 #ifdef DEBUG
 #include "nsBlockDebugFlags.h"
 #endif
+
+using namespace mozilla;
 
 nsBlockReflowState::nsBlockReflowState(const nsHTMLReflowState& aReflowState,
                                        nsPresContext* aPresContext,
@@ -670,7 +673,9 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame*       aFloat,
   
   
   
-  nscoord saveY = mY;
+  AutoRestore<nscoord> restoreY(mY);
+  
+  const nscoord saveY = mY;
 
   
   const nsStyleDisplay* floatDisplay = aFloat->GetStyleDisplay();
@@ -717,7 +722,6 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame*       aFloat,
   for (;;) {
     if (floatAvailableSpace.mRect.height <= 0) {
       
-      mY = saveY;
       return PR_FALSE;
     }
 
@@ -839,7 +843,6 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame*       aFloat,
        pushedDown) &&
       aFloat->GetSize().height + floatMargin.TopBottom() >
         mContentArea.height - floatY) {
-    mY = saveY;
     return PR_FALSE;
   }
 
@@ -903,9 +906,6 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame*       aFloat,
          tx, ty, mFloatManagerX, mFloatManagerY,
          region.x, region.y, region.width, region.height);
 #endif
-
-  
-  mY = saveY;
 
 #ifdef DEBUG
   if (nsBlockFrame::gNoisyReflow) {
