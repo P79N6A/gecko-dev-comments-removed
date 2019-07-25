@@ -414,73 +414,6 @@ DeviceToImageTransform(gfxContext* aContext,
     return gfxMatrix(deviceToUser).Multiply(aUserSpaceToImageSpace);
 }
 
-
-#ifdef MOZ_GFX_OPTIMIZE_MOBILE
-static gfxPattern::GraphicsFilter ReduceResamplingFilter(gfxPattern::GraphicsFilter aFilter,
-                                                         int aImgWidth, int aImgHeight,
-                                                         float aSourceWidth, float aSourceHeight)
-{
-    
-    
-    const int kSmallImageSizeThreshold = 8;
-
-    
-    
-    
-    const float kLargeStretch = 3.0f;
-
-    if (aImgWidth <= kSmallImageSizeThreshold
-        || aImgHeight <= kSmallImageSizeThreshold) {
-        
-        
-        return gfxPattern::FILTER_NEAREST;
-    }
-
-    if (aImgHeight * kLargeStretch <= aSourceHeight || aImgWidth * kLargeStretch <= aSourceWidth) {
-        
-
-        
-        
-        
-        
-        if (fabs(aSourceWidth - aImgWidth)/aImgWidth < 0.5 || fabs(aSourceHeight - aImgHeight)/aImgHeight < 0.5)
-            return gfxPattern::FILTER_NEAREST;
-
-        
-        
-        return aFilter;
-    }
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    return aFilter;
-}
-#else
-static gfxPattern::GraphicsFilter ReduceResamplingFilter(gfxPattern::GraphicsFilter aFilter,
-                                                          int aImgWidth, int aImgHeight,
-                                                          int aSourceWidth, int aSourceHeight)
-{
-    
-    return aFilter;
-}
-#endif
-
  void
 gfxUtils::DrawPixelSnapped(gfxContext*      aContext,
                            gfxDrawable*     aDrawable,
@@ -490,7 +423,7 @@ gfxUtils::DrawPixelSnapped(gfxContext*      aContext,
                            const gfxRect&   aImageRect,
                            const gfxRect&   aFill,
                            const gfxImageSurface::gfxImageFormat aFormat,
-                           gfxPattern::GraphicsFilter aFilter,
+                           const gfxPattern::GraphicsFilter& aFilter,
                            PRUint32         aImageFlags)
 {
     SAMPLE_LABEL("gfxUtils", "DrawPixelSnapped");
@@ -507,8 +440,6 @@ gfxUtils::DrawPixelSnapped(gfxContext*      aContext,
         return;
 
     nsRefPtr<gfxDrawable> drawable = aDrawable;
-
-    aFilter = ReduceResamplingFilter(aFilter, aImageRect.Width(), aImageRect.Height(), aSourceRect.Width(), aSourceRect.Height());
 
     
     
