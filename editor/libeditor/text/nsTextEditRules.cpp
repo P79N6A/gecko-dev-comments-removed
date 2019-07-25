@@ -231,22 +231,6 @@ nsTextEditRules::AfterEdit(PRInt32 action, nsIEditor::EDirection aDirection)
 
     
     CollapseSelectionToTrailingBRIfNeeded(selection);
-    
-    
-
-
-
-
-
-    if (action == nsEditor::kOpInsertText
-        || action == nsEditor::kOpInsertIMEText) {
-      nsCOMPtr<nsISelectionPrivate> privateSelection(do_QueryInterface(selection));
-      nsRefPtr<nsFrameSelection> frameSelection;
-      privateSelection->GetFrameSelection(getter_AddRefs(frameSelection));      
-      if (frameSelection) {
-        frameSelection->UndefineCaretBidiLevel();
-      }
-    }
   }
   return res;
 }

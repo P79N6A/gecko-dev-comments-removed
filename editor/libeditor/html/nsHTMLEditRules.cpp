@@ -390,26 +390,6 @@ nsHTMLEditRules::AfterEdit(PRInt32 action, nsIEditor::EDirection aDirection)
     (mHTMLEditor->mRangeUpdater).DropRangeItem(&mRangeItem);
 
     
-
-
-
-
-
-    if (action == nsEditor::kOpInsertText
-        || action == nsEditor::kOpInsertIMEText) {
-
-      nsCOMPtr<nsISelection> selection;
-      nsresult res = mHTMLEditor->GetSelection(getter_AddRefs(selection));
-      NS_ENSURE_SUCCESS(res, res);
-      nsCOMPtr<nsISelectionPrivate> privateSelection(do_QueryInterface(selection));
-      nsRefPtr<nsFrameSelection> frameSelection;
-      privateSelection->GetFrameSelection(getter_AddRefs(frameSelection));
-      if (frameSelection) {
-        frameSelection->UndefineCaretBidiLevel();
-      }
-    }
-
-    
     if (mRestoreContentEditableCount) {
       nsCOMPtr<nsIDOMDocument> doc;
       res = mHTMLEditor->GetDocument(getter_AddRefs(doc));

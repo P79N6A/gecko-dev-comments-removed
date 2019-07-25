@@ -7637,6 +7637,19 @@ nsTextFrame::AdjustOffsetsForBidi(PRInt32 aStart, PRInt32 aEnd)
 
   mContentOffset = aStart;
   SetLength(aEnd - aStart, nsnull, 0);
+
+  
+
+
+
+
+
+
+
+  nsRefPtr<nsFrameSelection> frameSelection = GetFrameSelection();
+  if (frameSelection) {
+    frameSelection->UndefineCaretBidiLevel();
+  }
 }
 
 
