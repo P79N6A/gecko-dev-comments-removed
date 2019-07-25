@@ -815,17 +815,6 @@ private:
 
 } 
 
-
-
-
-
-
-#ifdef JS_TRACER
-# define JS_ON_TRACE(cx)            (cx->compartment && JS_TRACE_MONITOR(cx).ontrace())
-#else
-# define JS_ON_TRACE(cx)            false
-#endif
-
 #ifdef DEBUG
 # define FUNCTION_KIND_METER_LIST(_)                                          \
                         _(allfun), _(heavy), _(nofreeupvar), _(onlyfreevar),  \

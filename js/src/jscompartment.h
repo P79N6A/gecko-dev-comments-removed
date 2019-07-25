@@ -85,10 +85,13 @@ typedef HashMap<JSFunction *,
                 DefaultHasher<JSFunction *>,
                 SystemAllocPolicy> ToSourceCache;
 
+struct TraceMonitor;
+
 
 struct TracerState
 {
     JSContext*     cx;                  
+    TraceMonitor*  traceMonitor;        
     double*        stackBase;           
     double*        sp;                  
     double*        eos;                 
@@ -450,6 +453,17 @@ struct JS_FRIEND_API(JSCompartment) {
 
 #define JS_TRACE_MONITOR(cx)    (cx->compartment->traceMonitor)
 #define JS_SCRIPTS_TO_GC(cx)    (cx->compartment->scriptsToGC)
+
+
+
+
+
+
+#ifdef JS_TRACER
+# define JS_ON_TRACE(cx)            (cx->compartment && JS_TRACE_MONITOR(cx).ontrace())
+#else
+# define JS_ON_TRACE(cx)            false
+#endif
 
 namespace js {
 static inline MathCache *
