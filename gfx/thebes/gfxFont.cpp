@@ -369,25 +369,18 @@ gfxFontFamily::FindFontForStyle(const gfxFontStyle& aFontStyle,
     }
 
     
-    
-    if (baseWeight == 5 && weightDistance == 0) {
-        
-        if (weightList[5]) {
-            PR_LOG(gFontSelection, PR_LOG_DEBUG,
-                   ("(FindFontForStyle) name: %s, sty: %02x, wt: %d, sz: %.1f -> %s using wt 500\n", 
-                    NS_ConvertUTF16toUTF8(mName).get(),
-                    aFontStyle.style, aFontStyle.weight, aFontStyle.size,
-                    NS_ConvertUTF16toUTF8(weightList[5]->Name()).get()));
-            return weightList[5];
-        }
+    PRInt8 matchBaseWeight = 0;
+    PRInt8 i = baseWeight;
 
-        
-        baseWeight = 4;
+    
+    
+    if (baseWeight == 4 && !weightList[4]) {
+        i = 5; 
     }
 
-    PRInt8 matchBaseWeight = 0;
+    
     PRInt8 direction = (baseWeight > 5) ? 1 : -1;
-    for (PRInt8 i = baseWeight; ; i += direction) {
+    for (; ; i += direction) {
         if (weightList[i]) {
             matchBaseWeight = i;
             break;
@@ -396,40 +389,52 @@ gfxFontFamily::FindFontForStyle(const gfxFontStyle& aFontStyle,
         
         
         if (i == 1 || i == 9) {
+            i = baseWeight;
             direction = -direction;
         }
     }
 
-    gfxFontEntry *matchFE = nsnull;
+    NS_ASSERTION(matchBaseWeight != 0, 
+                 "weight mapping should always find at least one font in a family");
+
+    gfxFontEntry *matchFE = weightList[matchBaseWeight];
     const PRInt8 absDistance = abs(weightDistance);
-    direction = (weightDistance >= 0) ? 1 : -1;
-    PRInt8 i, wghtSteps = 0;
+    PRInt8 wghtSteps;
 
-    
-    
-    
-    
-    
-    
+    if (weightDistance != 0) {
+        direction = (weightDistance > 0) ? 1 : -1;
+        PRInt8 j;
 
-    
-    
-    
-    
-    if (weightDistance < 0 && baseWeight > 5 && matchBaseWeight < 6) {
+        
+        
+        
+        
+        
+        
+
+        
+        
+        
+        
+
         wghtSteps = 1; 
-    }
 
-    for (i = matchBaseWeight; i < 10 && i > 0; i += direction) {
-        if (weightList[i]) {
-            matchFE = weightList[i];
-            wghtSteps++;
+        if (weightDistance < 0 && baseWeight > 5 && matchBaseWeight < 6) {
+            wghtSteps++; 
         }
-        if (wghtSteps > absDistance)
-            break;
+
+        for (j = matchBaseWeight + direction;
+             j < 10 && j > 0 && wghtSteps <= absDistance;
+             j += direction) {
+            if (weightList[j]) {
+                matchFE = weightList[j];
+                wghtSteps++;
+            }
+        }
     }
 
-    NS_ASSERTION(matchFE, "we should always be able to return something here");
+    NS_ASSERTION(matchFE,
+                 "weight mapping should always find at least one font in a family");
 
     if (!matchFE->IsBold() &&
         ((weightDistance == 0 && baseWeight >= 6) ||

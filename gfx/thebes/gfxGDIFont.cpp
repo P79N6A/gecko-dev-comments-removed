@@ -461,8 +461,10 @@ gfxGDIFont::FillLogFont(LOGFONTW& aLogFont, gfxFloat aSize)
     if (fe->mIsUserFont) {
         if (fe->IsItalic())
             italic = PR_FALSE; 
-        if (fe->IsBold()) {
-            weight = 400; 
+        if (fe->IsBold() || !mNeedsBold) {
+            
+            
+            weight = 200; 
         }
     }
 
