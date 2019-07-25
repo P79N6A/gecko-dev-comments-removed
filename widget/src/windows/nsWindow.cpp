@@ -4670,12 +4670,17 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
       break;
 
     case WM_SYSCOLORCHANGE:
-      
-      
-      
-      
-      
-      DispatchStandardEvent(NS_SYSCOLORCHANGED);
+      if (mWindowType == eWindowType_invisible) {
+        ::EnumThreadWindows(GetCurrentThreadId(), nsWindow::BroadcastMsg, msg);
+      }
+      else {
+        
+        
+        
+        
+        
+        DispatchStandardEvent(NS_SYSCOLORCHANGED);
+      }
       break;
 
     case WM_NOTIFY:
@@ -5606,26 +5611,6 @@ BOOL CALLBACK nsWindow::BroadcastMsg(HWND aTopWindow, LPARAM aMsg)
   
   ::EnumChildWindows(aTopWindow, nsWindow::BroadcastMsgToChildren, aMsg);
   return TRUE;
-}
-
-
-
-void nsWindow::GlobalMsgWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
-{
-  switch (msg) {
-    case WM_SYSCOLORCHANGE:
-      
-      
-      
-      
-      
-      
-      
-      
-      
-     ::EnumThreadWindows(GetCurrentThreadId(), nsWindow::BroadcastMsg, msg);
-    break;
-  }
 }
 
 
