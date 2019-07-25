@@ -640,7 +640,8 @@ nsObjectLoadingContent::UnbindFromTree(bool aDeep, bool aNullParent)
     if (appShell) {
       appShell->RunInStableState(event);
     }
-  } else {
+  } else if (mType == eType_Document) {
+    
     
     
     
