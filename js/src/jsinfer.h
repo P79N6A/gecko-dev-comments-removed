@@ -134,6 +134,9 @@ inline jstype GetValueType(JSContext *cx, const Value &val);
 
 
 
+
+
+
 class TypeConstraint
 {
 public:
@@ -331,6 +334,9 @@ class TypeSet
     inline unsigned getObjectCount();
     inline TypeObject *getObject(unsigned i);
 
+    
+    inline TypeObject *getSingleObject();
+
     void setIntermediate() { JS_ASSERT(!typeFlags); typeFlags = TYPE_FLAG_INTERMEDIATE_SET; }
     void setOwnProperty(bool configurable) {
         typeFlags |= TYPE_FLAG_OWN_PROPERTY;
@@ -359,7 +365,6 @@ class TypeSet
     void addMonitorRead(JSContext *cx, JSScript *script, TypeSet *target);
 
     void addBaseSubset(JSContext *cx, TypeObject *object, TypeSet *target);
-    void addBaseClearDefinite(JSContext *cx, TypeObject *object);
     void addCondensed(JSContext *cx, JSScript *script);
 
     
@@ -437,6 +442,35 @@ struct ClonedTypeSet
 };
 
 
+
+
+
+
+
+
+
+
+
+
+class TypeIntermediate
+{
+  public:
+    
+    TypeIntermediate *next;
+
+    TypeIntermediate() : next(NULL) {}
+
+    
+    virtual void replay(JSContext *cx, JSScript *script) = 0;
+
+    
+    virtual bool sweep(JSContext *cx, JSCompartment *compartment) = 0;
+
+    
+    virtual bool hasDynamicResult(uint32 offset, jstype type) { return false; }
+};
+
+
 struct Property
 {
     
@@ -451,6 +485,43 @@ struct Property
 
     static uint32 keyBits(jsid id) { return (uint32) JSID_BITS(id); }
     static jsid getKey(Property *p) { return p->id; }
+};
+
+
+
+
+
+struct TypeNewScript
+{
+    JSScript *script;
+
+    
+     unsigned finalizeKind;
+
+    
+    const Shape *shape;
+
+    
+
+
+
+
+
+
+
+    struct Initializer {
+        enum Kind {
+            SETPROP,
+            FRAME_PUSH,
+            FRAME_POP,
+            DONE
+        } kind;
+        uint32 offset;
+        Initializer(Kind kind, uint32 offset)
+          : kind(kind), offset(offset)
+        {}
+    };
+    Initializer *initializerList;
 };
 
 
@@ -481,9 +552,7 @@ struct TypeObject
 
 
 
-    JSScript *newScript;
-     unsigned newScriptFinalizeKind;
-    const Shape *newScriptShape;
+    TypeNewScript *newScript;
 
     
 
@@ -573,7 +642,7 @@ struct TypeObject
     
 
     bool addProperty(JSContext *cx, jsid id, Property **pprop);
-    bool addDefiniteProperties(JSContext *cx, JSObject *obj, bool clearUnknown);
+    bool addDefiniteProperties(JSContext *cx, JSObject *obj);
     void addPrototype(JSContext *cx, TypeObject *proto);
     void setFlags(JSContext *cx, TypeObjectFlags flags);
     void markUnknown(JSContext *cx);
@@ -644,26 +713,6 @@ struct TypeCallsite
     inline TypeObject* getInitObject(JSContext *cx, bool isArray);
 
     inline bool hasGlobal();
-};
-
-
-
-
-
-
-struct TypeResult
-{
-    
-
-
-
-    uint32 offset;
-
-    
-    jstype type;
-
-    
-    TypeResult *next;
 };
 
 struct ArrayTableKey;

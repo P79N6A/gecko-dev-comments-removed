@@ -2986,11 +2986,11 @@ js_CreateThisForFunctionWithProto(JSContext *cx, JSObject *callee, JSObject *pro
         types::TypeObject *type = proto->getNewType(cx, calleeScript);
 
         if (type && type->newScript) {
-            JS_ASSERT(type->newScript == calleeScript);
-            gc::FinalizeKind kind = gc::FinalizeKind(type->newScriptFinalizeKind);
+            JS_ASSERT(type->newScript->script == calleeScript);
+            gc::FinalizeKind kind = gc::FinalizeKind(type->newScript->finalizeKind);
             JSObject *res = NewObjectWithType(cx, type, callee->getParent(), kind);
             if (res)
-                res->setMap((Shape *) type->newScriptShape);
+                res->setMap((Shape *) type->newScript->shape);
             return res;
         }
     }
@@ -4342,21 +4342,21 @@ JSObject::allocSlots(JSContext *cx, size_t newcap)
 
 
     if (type->newScript) {
-        unsigned newScriptSlots = gc::GetGCKindSlots(gc::FinalizeKind(type->newScriptFinalizeKind));
+        unsigned newScriptSlots = gc::GetGCKindSlots(gc::FinalizeKind(type->newScript->finalizeKind));
         if (newScriptSlots == numFixedSlots()) {
             
 
 
 
-            unsigned newKind = type->newScriptFinalizeKind + 2;
+            unsigned newKind = type->newScript->finalizeKind + 2;
             if (newKind <= gc::FINALIZE_OBJECT_LAST) {
                 JSObject *obj = NewReshapedObject(cx, type, getParent(),
-                                                  gc::FinalizeKind(newKind), type->newScriptShape);
+                                                  gc::FinalizeKind(newKind), type->newScript->shape);
                 if (!obj)
                     return false;
 
-                type->newScriptFinalizeKind = newKind;
-                type->newScriptShape = obj->lastProperty();
+                type->newScript->finalizeKind = newKind;
+                type->newScript->shape = obj->lastProperty();
             }
         }
     }

@@ -531,7 +531,11 @@ struct JSScript {
     js::types::TypeObject *typeObjects;
 
     
-    js::types::TypeResult *typeResults;
+    js::types::TypeIntermediate *intermediateTypes;
+    void addIntermediateType(js::types::TypeIntermediate *type) {
+        type->next = intermediateTypes;
+        intermediateTypes = type;
+    }
 
     
   private:
