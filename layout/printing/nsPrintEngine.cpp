@@ -3332,15 +3332,14 @@ nsresult
 nsPrintEngine::StartPagePrintTimer(nsPrintObject* aPO)
 {
   if (!mPagePrintTimer) {
-    nsresult rv = NS_NewPagePrintTimer(&mPagePrintTimer);
-    NS_ENSURE_SUCCESS(rv, rv);
-
     
     
     int32_t printPageDelay = 50;
     mPrt->mPrintSettings->GetPrintPageDelay(&printPageDelay);
 
-    mPagePrintTimer->Init(this, mDocViewerPrint, printPageDelay);
+    nsRefPtr<nsPagePrintTimer> timer =
+      new nsPagePrintTimer(this, mDocViewerPrint, printPageDelay);
+    timer.forget(&mPagePrintTimer);
   }
 
   return mPagePrintTimer->Start(aPO);
