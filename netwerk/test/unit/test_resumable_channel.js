@@ -214,20 +214,6 @@ function run_test() {
 
     
     
-    
-    try { 
-      let processType = Components.classes["@mozilla.org/xre/runtime;1"].
-                        getService(Components.interfaces.nsIXULRuntime).processType;
-      if (processType != Components.interfaces.nsIXULRuntime.PROCESS_TYPE_DEFAULT) {
-        
-        var chan = make_channel("http://localhost:4444/range");
-        chan.nsIResumableChannel.resumeAt(1, entityID);
-        chan.nsIHttpChannel.setRequestHeader("X-Want-404", "true", false);
-        chan.asyncOpen(new ChannelListener(test_404, null, CL_EXPECT_FAILURE), null);
-        return;
-      }
-    } catch (e) { }
-
     var chan = make_channel("http://localhost:4444/range");
     chan.nsIResumableChannel.resumeAt(1, entityID);
     chan.nsIHttpChannel.setRequestHeader("X-Need-Auth", "true", false);
@@ -240,7 +226,7 @@ function run_test() {
     do_check_eq(request.status, NS_ERROR_ENTITY_CHANGED);
 
     
-    var chan = make_channel("http://localhost:4444/auth");
+    var chan = make_channel("http://guest:guest@localhost:4444/auth");
     chan.nsIResumableChannel.resumeAt(1, entityID);
     chan.notificationCallbacks = new Requestor();
     chan.asyncOpen(new ChannelListener(test_auth, null, CL_EXPECT_FAILURE), null);
@@ -251,7 +237,7 @@ function run_test() {
     do_check_true(request.nsIHttpChannel.responseStatus < 300);
 
     
-    var chan = make_channel("http://localhost:4444/range");
+    var chan = make_channel("http://guest:guest@localhost:4444/range");
     chan.nsIResumableChannel.resumeAt(1, entityID);
     chan.notificationCallbacks = new Requestor();
     chan.nsIHttpChannel.setRequestHeader("X-Need-Auth", "true", false);
