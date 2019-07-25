@@ -69,6 +69,8 @@ public:
 {
 }
 - (BOOL)performKeyEquivalent:(NSEvent*)theEvent;
+- (void)actOnKeyEquivalent:(NSEvent*)theEvent;
+- (void)performMenuUserInterfaceEffectsForEvent:(NSEvent*)theEvent;
 @end
 
 
