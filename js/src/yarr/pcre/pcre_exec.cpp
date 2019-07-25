@@ -425,17 +425,6 @@ struct MatchStack {
         while (size)
             popCurrentFrame();
     }
-
-    
-
-    bool atOptionalBracket() const {
-        
-
-
-
-        unsigned char prevOp = currentFrame->args.instructionPtr[-1];
-        return prevOp == OP_BRAZERO;
-    }
 };
 
 static int matchError(int errorCode, MatchStack& stack)
@@ -476,6 +465,27 @@ static inline void repeatInformationFromInstructionOffset(short instructionOffse
     maximumRepeats = maximumRepeatsFromInstructionOffset[instructionOffset];
 }
 
+
+
+
+class LinearFlag {
+public:
+    LinearFlag() : flag(false) {}
+    
+    bool readAndClear() {
+        bool rv = flag;
+        flag = false;
+        return rv;
+    }
+
+    void set() {
+        flag = true;
+    }
+
+private:
+    bool flag;
+};
+
 static int
 match(JSArenaPool *regExpPool, const UChar* subjectPtr, const unsigned char* instructionPtr, int offsetTop, MatchData& md)
 {
@@ -487,6 +497,7 @@ match(JSArenaPool *regExpPool, const UChar* subjectPtr, const unsigned char* ins
     bool minSatisfied;
     
     MatchStack stack(regExpPool);
+    LinearFlag minSatNextBracket;
 
     
 #ifdef USE_COMPUTED_GOTO_FOR_MATCH_OPCODE_LOOP
@@ -552,8 +563,7 @@ RECURSE:
 
                 stack.currentFrame->locals.skipBytes = 3;
                 
-                stack.currentFrame->locals.minSatisfied = instructionPtr != stack.currentFrame->args.instructionPtr &&
-                                                          stack.atOptionalBracket();
+                stack.currentFrame->locals.minSatisfied = minSatNextBracket.readAndClear();
                 do {
                     
 
@@ -658,6 +668,7 @@ RECURSE:
                 stack.currentFrame->locals.startOfRepeatingBracket = stack.currentFrame->args.instructionPtr + 1;
                 stack.currentFrame->extractBrackets(stack.currentFrame->args.instructionPtr + 1);
                 stack.currentFrame->saveOffsets(LOCALS(minBracket), LOCALS(limitBracket), md.offsetVector, md.offsetEnd);
+                minSatNextBracket.set();
                 RECURSIVE_MATCH_NEW_GROUP(14, stack.currentFrame->locals.startOfRepeatingBracket, stack.currentFrame->args.bracketChain, true);
                 if (isMatch)
                     RRETURN;
@@ -766,11 +777,13 @@ RECURSE:
                     else
                         stack.currentFrame->restoreOffsets(LOCALS(minBracket), LOCALS(limitBracket), md.offsetVector, md.offsetEnd);
                     DPRINTF(("recursively matching lazy group\n"));
+                    minSatNextBracket.set();
                     RECURSIVE_MATCH_NEW_GROUP(17, LOCALS(instructionPtrAtStartOfOnce), stack.currentFrame->args.bracketChain, true);
                 } else { 
                     stack.currentFrame->saveOffsets(LOCALS(minBracket), LOCALS(limitBracket), md.offsetVector, md.offsetEnd);
                     stack.currentFrame->clobberOffsets(LOCALS(minBracket), LOCALS(limitBracket), md.offsetVector, md.offsetEnd);
                     DPRINTF(("recursively matching greedy group\n"));
+                    minSatNextBracket.set();
                     RECURSIVE_MATCH_NEW_GROUP(18, LOCALS(instructionPtrAtStartOfOnce), stack.currentFrame->args.bracketChain, true);
                     if (isMatch)
                         RRETURN;
@@ -1859,7 +1872,7 @@ RECURSE:
                     stack.currentFrame->locals.skipBytes = 3; 
                     
                     
-                    stack.currentFrame->locals.minSatisfied = stack.atOptionalBracket();
+                    stack.currentFrame->locals.minSatisfied = minSatNextBracket.readAndClear();
                     do {
                         
 
