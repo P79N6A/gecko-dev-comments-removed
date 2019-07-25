@@ -191,10 +191,10 @@ CallObject::copyUnaliasedValues(StackFrame *fp)
     
     for (unsigned i = 0; i < script->bindings.numArgs(); ++i) {
         if (!script->formalLivesInCallObject(i)) {
-            if (script->argsObjAliasesFormals() && fp->hasArgsObj())
+            if (script->argsObjAliasesFormals())
                 setArg(i, fp->argsObj().arg(i), DONT_CHECK_ALIASING);
             else
-                setArg(i, fp->unaliasedFormal(i, DONT_CHECK_ALIASING), DONT_CHECK_ALIASING);
+                setArg(i, fp->unaliasedFormal(i), DONT_CHECK_ALIASING);
         }
     }
 
@@ -1162,16 +1162,16 @@ class DebugScopeProxy : public BaseProxyHandler
                     return false;
 
                 if (maybefp) {
-                    if (script->argsObjAliasesFormals() && maybefp->hasArgsObj()) {
+                    if (script->argsObjAliasesFormals()) {
                         if (action == GET)
                             *vp = maybefp->argsObj().arg(i);
                         else
                             maybefp->argsObj().setArg(i, *vp);
                     } else {
                         if (action == GET)
-                            *vp = maybefp->unaliasedFormal(i, DONT_CHECK_ALIASING);
+                            *vp = maybefp->unaliasedFormal(i);
                         else
-                            maybefp->unaliasedFormal(i, DONT_CHECK_ALIASING) = *vp;
+                            maybefp->unaliasedFormal(i) = *vp;
                     }
                 } else {
                     if (action == GET)
