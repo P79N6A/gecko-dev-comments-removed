@@ -87,42 +87,45 @@ Drag.prototype = {
     var update = false; 
     var updateX = false;
     var updateY = false;
+    var newRect;
 
     
-    var newRect = Trenches.snap(bounds,true);
-    if (newRect) 
-      update = true;
+    if (!Keys.meta) { 
+      newRect = Trenches.snap(bounds,true);
+      if (newRect) 
+        update = true;
+    }
 
     
     newRect = newRect || bounds;
 
     var swb = this.safeWindowBounds;
 
-    if (newRect.left < swb.left) {
+    var snapRadius = ( Keys.meta ? 0 : Trenches.defaultRadius );
+    if (newRect.left < swb.left + snapRadius ) {
       newRect.left = swb.left;
       update = true;
       updateX = true;
     }
-    if (newRect.left + newRect.width > swb.left + swb.width) {
+    if (newRect.left + newRect.width > swb.left + swb.width - snapRadius) {
       if (updateX)
         newRect.width = swb.left + swb.width - newRect.left;
       else
         newRect.left = swb.left + swb.width - newRect.width;
       update = true;
     }
-    if (newRect.top < swb.top) {
+    if (newRect.top < swb.top + snapRadius) {
       newRect.top = swb.top;
       update = true;
       updateY = true;
     }
-    if (newRect.top + newRect.height > swb.top + swb.height) {
+    if (newRect.top + newRect.height > swb.top + swb.height - snapRadius) {
       if (updateY)
         newRect.height = swb.top + swb.height - newRect.top;
       else
         newRect.top = swb.top + swb.height - newRect.height;
       update = true;
     }
-
 
     if (update)
       this.item.setBounds(newRect,true);
