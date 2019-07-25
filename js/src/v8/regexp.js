@@ -47,7 +47,7 @@ function RegExpSetup() {
   regExpBenchmark = new RegExpBenchmark();
   RegExpRun(); 
 }
-  
+
 function RegExpRun() {
   regExpBenchmark.run();
 }
@@ -1759,6 +1759,6 @@ function RegExpBenchmark() {
       runBlock11();
     }
   }
-  
+
   this.run = run;
 }

@@ -78,7 +78,7 @@ BenchmarkSuite.suites = [];
 
 
 
-BenchmarkSuite.version = '6';
+BenchmarkSuite.version = '7';
 
 
 
