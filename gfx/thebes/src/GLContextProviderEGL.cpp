@@ -47,6 +47,8 @@
 #define GET_NATIVE_WINDOW(aWidget) (EGLNativeWindowType)GDK_WINDOW_XID((GdkWindow *) aWidget->GetNativeData(NS_NATIVE_WINDOW))
 #elif defined(MOZ_WIDGET_QT)
 #include <QWidget>
+#include <QtOpenGL/QGLWidget>
+#define GLdouble_defined 1
 
 #define GET_NATIVE_WINDOW(aWidget) (EGLNativeWindowType)static_cast<QWidget*>(aWidget->GetNativeData(NS_NATIVE_SHELLWIDGET))->handle()
 #endif
@@ -197,12 +199,21 @@ class GLContextEGL : public GLContext
 {
 public:
     GLContextEGL(EGLDisplay aDisplay, EGLConfig aConfig,
-                 EGLSurface aSurface, EGLContext aContext)
-        : mDisplay(aDisplay), mConfig(aConfig),
-          mSurface(aSurface), mContext(aContext){}
+                 EGLSurface aSurface, EGLContext aContext,
+                 void *aGLWidget = nsnull)
+        : mDisplay(aDisplay), mConfig(aConfig) 
+        , mSurface(aSurface), mContext(aContext)
+        , mGLWidget(aGLWidget)
+    {}
 
     ~GLContextEGL()
     {
+        
+        
+        
+        if (mGLWidget)
+            return;
+
         sEGLLibrary.fDestroyContext(mDisplay, mContext);
         sEGLLibrary.fDestroySurface(mDisplay, mSurface);
     }
@@ -226,7 +237,15 @@ public:
         
         
         if (sEGLLibrary.fGetCurrentContext() != mContext) {
-            succeeded = sEGLLibrary.fMakeCurrent(mDisplay, mSurface, mSurface, mContext);
+            if (mGLWidget) {
+#ifdef MOZ_WIDGET_QT
+                static_cast<QGLWidget*>(mGLWidget)->makeCurrent();
+#else
+                succeeded = PR_FALSE;
+#endif
+            }
+            else
+                succeeded = sEGLLibrary.fMakeCurrent(mDisplay, mSurface, mSurface, mContext);
             NS_ASSERTION(succeeded, "Failed to make GL context current!");
         }
 
@@ -258,6 +277,7 @@ private:
     EGLConfig  mConfig;
     EGLSurface mSurface;
     EGLContext mContext;
+    void      *mGLWidget;
 };
 
 already_AddRefed<GLContext>
@@ -266,6 +286,31 @@ GLContextProvider::CreateForWindow(nsIWidget *aWidget)
     if (!sEGLLibrary.EnsureInitialized()) {
         return nsnull;
     }
+
+#ifdef MOZ_WIDGET_QT
+    QWidget *viewport = static_cast<QWidget*>(aWidget->GetNativeData(NS_NATIVE_SHELLWIDGET));
+    if (!viewport)
+        return nsnull;
+
+    if (viewport->paintEngine()->type() == QPaintEngine::OpenGL2) {
+        
+        
+        nsRefPtr<GLContextEGL> glContext =
+            new GLContextEGL(NULL, NULL, NULL,
+                             sEGLLibrary.fGetCurrentContext(),
+                             viewport);
+        if (!glContext->Init())
+            return nsnull;
+        return glContext.forget().get();
+    } else {
+        
+        
+        
+        NS_WARNING("Need special GLContext implementation for QT widgets structure");
+        
+        return nsnull;
+    }
+#endif
 
     EGLDisplay display;
     EGLConfig  config;
