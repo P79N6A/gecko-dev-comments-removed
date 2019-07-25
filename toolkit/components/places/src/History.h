@@ -49,6 +49,7 @@
 #include "nsDeque.h"
 #include "nsIObserver.h"
 #include "mozIStorageConnection.h"
+#include "mozilla/storage/StatementCache.h"
 
 namespace mozilla {
 namespace places {
@@ -110,8 +111,27 @@ public:
 
   static History* GetSingleton();
 
+  
+
+
+  storage::StatementCache<mozIStorageStatement> syncStatements;
+
 private:
   virtual ~History();
+
+  
+
+
+  mozIStorageConnection* GetDBConn();
+
+  
+
+
+
+
+
+
+  nsCOMPtr<mozIStorageConnection> mDBConn;
 
   
 
