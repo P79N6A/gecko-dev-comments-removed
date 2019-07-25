@@ -1,0 +1,12 @@
+var setupModule = function(module) {
+  controller = mozmill.getBrowserController();
+}
+
+
+
+
+
+var testNoExpectedRestartByEndTest = function(){
+  controller.startUserShutdown(1000, true);
+  controller.sleep(100);
+}

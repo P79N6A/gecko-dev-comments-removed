@@ -59,7 +59,7 @@ var testVerifyDefaultBookmarks = function() {
 
   
   var toolbar = new elementslib.XPath(controller.window.document, toolbarElemString);
-  controller.assertProperty(toolbar, "collapsed", true);
+  controller.assertJSProperty(toolbar, "collapsed", true);
 
   
   var bookmarksButton = new elementslib.ID(controller.window.document, "bookmarks-menu-button");
@@ -70,9 +70,14 @@ var testVerifyDefaultBookmarks = function() {
   controller.mouseUp(bookmarkBarItem);
   
   
-  controller.waitFor(function() {
-    return toolbar.getNode().collapsed == false;
-  }, gTimeout, 100, 'Bookmarks toolbar is open' );
+  
+  
+  
+  
+  
+  
+  controller.waitForEval("subject.collapsed == false", gTimeout, 100,
+                         toolbar.getNode());
 
   
   var toolbarNodes = getBookmarkToolbarItems();
@@ -85,12 +90,12 @@ var testVerifyDefaultBookmarks = function() {
   
   var mostVisited = new elementslib.XPath(controller.window.document,
                                           elemString.replace("%1", "1"));
-  controller.assertProperty(mostVisited, "label", toolbarNodes.getChild(0).title);
+  controller.assertJSProperty(mostVisited, "label", toolbarNodes.getChild(0).title);
 
   
   var gettingStarted = new elementslib.XPath(controller.window.document,
                                              elemString.replace("%1", "2"));
-  controller.assertProperty(gettingStarted, "label", toolbarNodes.getChild(1).title);
+  controller.assertJSProperty(gettingStarted, "label", toolbarNodes.getChild(1).title);
 
   var locationBar = new elementslib.ID(controller.window.document, "urlbar");
   controller.click(gettingStarted);
@@ -104,7 +109,7 @@ var testVerifyDefaultBookmarks = function() {
 
   
   var RSS = new elementslib.XPath(controller.window.document, elemString.replace("%1", "3"));
-  controller.assertProperty(RSS, "label", toolbarNodes.getChild(2).title);
+  controller.assertJSProperty(RSS, "label", toolbarNodes.getChild(2).title);
 
   
   toolbarNodes.containerOpen = false;

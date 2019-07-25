@@ -76,6 +76,48 @@ function closeAllTabs(controller)
 
 
 
+
+
+function getTabsWithURL(aUrl) {
+  var tabs = [ ];
+
+  var utilsAPI = collector.getModule('UtilsAPI');
+  var uri = utilsAPI.createURI(aUrl, null, null);
+
+  var wm = Cc["@mozilla.org/appshell/window-mediator;1"].
+           getService(Ci.nsIWindowMediator);
+  var winEnum = wm.getEnumerator("navigator:browser");
+
+  
+  while (winEnum.hasMoreElements()) {
+    var window = winEnum.getNext();
+ 
+    
+    if (window.closed || !("gBrowser" in window))
+      continue;
+
+    
+    var browsers = window.gBrowser.browsers;
+    for (var i = 0; i < browsers.length; i++) {
+      var browser = browsers[i];
+      if (browser.currentURI.equals(uri)) {
+        tabs.push({
+          controller : new mozmill.controller.MozMillController(window),
+          index : i
+        });
+      }
+    }
+  }
+
+  return tabs;
+}
+
+
+
+
+
+
+
 function tabBrowser(controller)
 {
   this._controller = controller;
@@ -126,7 +168,7 @@ tabBrowser.prototype = {
 
 
   set selectedIndex(index) {
-    this._controller.click(this.getTab(index), 2, 2);
+    this._controller.click(this.getTab(index));
   },
 
   
@@ -150,7 +192,10 @@ tabBrowser.prototype = {
 
 
 
-  closeTab : function tabBrowser_closeTab(event) {
+  closeTab : function tabBrowser_closeTab(aEvent) {
+    var event = aEvent || { };
+    var type = (event.type == undefined) ? "menu" : event.type;
+
     
     this._PrefsAPI.preferences.setPref(PREF_TABS_ANIMATE, false);
 
@@ -159,11 +204,11 @@ tabBrowser.prototype = {
     function checkTabClosed() { self.closed = true; }
     this._controller.window.addEventListener("TabClose", checkTabClosed, false);
 
-    switch (event.type) {
+    switch (type) {
       case "closeButton":
         var button = this.getElement({type: "tabs_tabCloseButton",
                                      subtype: "tab", value: this.getTab()});
-        controller.click(button);
+        this._controller.click(button);
         break;
       case "menu":
         var menuitem = new elementslib.Elem(this._controller.menus['file-menu'].menu_close);
@@ -178,7 +223,7 @@ tabBrowser.prototype = {
         this._controller.keypress(null, cmdKey, {accelKey: true});
         break;
       default:
-        throw new Error(arguments.callee.name + ": Unknown event - " + event.type);
+        throw new Error(arguments.callee.name + ": Unknown event type - " + type);
     }
 
     try {
@@ -215,6 +260,7 @@ tabBrowser.prototype = {
 
 
   getElement : function tabBrowser_getElement(spec) {
+    var document = this._controller.window.document;
     var elem = null;
 
     switch(spec.type) {
@@ -239,7 +285,7 @@ tabBrowser.prototype = {
                                       TABS_ARROW_SCROLLBOX + '/anon({"class":"tabs-newtab-button"})');
         break;
       case "tabs_scrollButton":
-        elem = new elementslib.Lookup(controller.window.document,
+        elem = new elementslib.Lookup(this._controller.window.document,
                                       TABS_ARROW_SCROLLBOX +
                                       '/anon({"anonid":"scrollbutton-' + spec.subtype + '"})');
         break;
@@ -254,10 +300,21 @@ tabBrowser.prototype = {
         }
         break;
       case "tabs_tabCloseButton":
-        elem = new elementslib.Elem(spec.value.getNode().boxObject.lastChild);
+        var node = document.getAnonymousElementByAttribute(
+                     spec.value.getNode(),
+                     "anonid",
+                     "close-button"
+                   );
+        elem = new elementslib.Elem(node);
         break;
       case "tabs_tabFavicon":
-        elem = new elementslib.Elem(spec.value.getNode().boxObject.firstChild);
+        var node = document.getAnonymousElementByAttribute(
+                     spec.value.getNode(),
+                     "class",
+                     "tab-icon-image"
+                   );
+
+        elem = new elementslib.Elem(node);
         break;
       case "tabs_tabPanel":
         var panelId = spec.value.getNode().getAttribute("linkedpanel");
@@ -304,7 +361,7 @@ tabBrowser.prototype = {
 
     
     var panel = this.getElement({type: "tabs_tabPanel", subtype: "tab", value: this.getTab(index)});
-    var elem = new elementslib.Lookup(controller.window.document, panel.expression + elemStr);
+    var elem = new elementslib.Lookup(this._controller.window.document, panel.expression + elemStr);
 
     return elem;
   },
@@ -316,7 +373,11 @@ tabBrowser.prototype = {
 
 
 
-  openInNewTab : function tabBrowser_openInNewTab(event) {
+
+  openInNewTab : function tabBrowser_openInNewTab(aEvent) {
+    var event = aEvent || { };
+    var type = (event.type == undefined) ? "middleClick" : event.type;
+
     
     this._PrefsAPI.preferences.setPref(PREF_TABS_ANIMATE, false);
 
@@ -325,7 +386,7 @@ tabBrowser.prototype = {
     function checkTabOpened() { self.opened = true; }
     this._controller.window.addEventListener("TabOpen", checkTabOpened, false);
 
-    switch (event.type) {
+    switch (type) {
       case "contextMenu":
         var contextMenuItem = new elementslib.ID(this._controller.window.document,
                                                  "context-openlinkintab");
@@ -336,6 +397,8 @@ tabBrowser.prototype = {
       case "middleClick":
         this._controller.middleClick(event.target);
         break;
+      default:
+        throw new Error(arguments.callee.name + ": Unknown event type - " + type);
     }
 
     try {
@@ -354,7 +417,11 @@ tabBrowser.prototype = {
 
 
 
-  openTab : function tabBrowser_openTab(event) {
+
+  openTab : function tabBrowser_openTab(aEvent) {
+    var event = aEvent || { };
+    var type = (event.type == undefined) ? "menu" : event.type;
+
     
     this._PrefsAPI.preferences.setPref(PREF_TABS_ANIMATE, false);
 
@@ -363,7 +430,7 @@ tabBrowser.prototype = {
     function checkTabOpened() { self.opened = true; }
     this._controller.window.addEventListener("TabOpen", checkTabOpened, false);
 
-    switch (event.type) {
+    switch (type) {
       case "menu":
         var menuitem = new elementslib.Elem(this._controller.menus['file-menu'].menu_newNavigatorTab);
         this._controller.click(menuitem);
@@ -392,6 +459,8 @@ tabBrowser.prototype = {
           this._controller.doubleClick(tabStrip, tabStrip.getNode().clientWidth - 100, 3);
         }
         break;
+      default:
+        throw new Error(arguments.callee.name + ": Unknown event type - " + type);
     }
 
     try {

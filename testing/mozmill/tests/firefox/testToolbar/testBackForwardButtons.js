@@ -53,19 +53,21 @@ var setupModule = function() {
 
 
 var testBackAndForward = function() {
+  var backButton = new elementslib.ID(controller.window.document, "back-button");
+  var forwardButton = new elementslib.ID(controller.window.document, "forward-button");
   
-  for each(var localPage in LOCAL_TEST_PAGES) {
+  
+  for each (var localPage in LOCAL_TEST_PAGES) {
     controller.open(localPage.url);
     controller.waitForPageLoad();
    
     var element = new elementslib.ID(controller.tabs.activeTab, localPage.id);
-    controller.waitForElement(element, TIMEOUT);
+    controller.assertNode(element);
   }
 
   
   for (var i = LOCAL_TEST_PAGES.length - 2; i >= 0; i--) {
-    controller.goBack();
-    controller.waitForPageLoad();
+    controller.click(backButton);
 
     var element = new elementslib.ID(controller.tabs.activeTab, LOCAL_TEST_PAGES[i].id);
     controller.waitForElement(element, TIMEOUT);
@@ -73,8 +75,7 @@ var testBackAndForward = function() {
 
   
   for (var j = 1; j < LOCAL_TEST_PAGES.length; j++) {
-    controller.goForward();
-    controller.waitForPageLoad();
+    controller.click(forwardButton);
 
     var element = new elementslib.ID(controller.tabs.activeTab, LOCAL_TEST_PAGES[j].id);
     controller.waitForElement(element, TIMEOUT);

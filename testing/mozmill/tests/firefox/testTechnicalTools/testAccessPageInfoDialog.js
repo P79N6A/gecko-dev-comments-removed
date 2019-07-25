@@ -58,7 +58,8 @@ var testAccessPageInfo = function () {
   controller.waitForPageLoad();
 
   
-  controller.rightclick(new elementslib.XPath(controller.tabs.activeTab, "/html"));
+  var content = new elementslib.ID(controller.tabs.activeTab, "content");
+  controller.rightClick(content);
   controller.click(new elementslib.ID(controller.window.document, "context-viewinfo"));
 
   UtilsAPI.handleWindow("type", "Browser:page-info", checkPageInfoWindow);

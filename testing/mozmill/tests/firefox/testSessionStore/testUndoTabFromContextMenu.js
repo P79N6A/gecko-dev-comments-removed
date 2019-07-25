@@ -61,12 +61,12 @@ var teardownModule = function(module) {
 
 var testUndoTabFromContextMenu = function() {
   
-  var tabBar = tabBrowser.getElement({type: 'tabs'});
-  controller.rightClick(tabBar);
+  var currentTab = tabBrowser.getTab();
+  controller.rightClick(currentTab);
 
   
   var contextMenuItem = new elementslib.ID(controller.window.document, 'context_undoCloseTab');
-  controller.assertProperty(contextMenuItem, 'disabled', true);
+  controller.assertJSProperty(contextMenuItem, 'disabled', true);
   UtilsAPI.closeContentAreaContextMenu(controller);
 
   
@@ -93,8 +93,8 @@ var testUndoTabFromContextMenu = function() {
                       {closedTabCount: SessionStoreAPI.getClosedTabCount(controller)});
 
   
-  controller.rightClick(tabBar);
-  controller.assertProperty(contextMenuItem, 'disabled', false);
+  controller.rightClick(currentTab);
+  controller.assertJSProperty(contextMenuItem, 'disabled', false);
 
   
   controller.click(contextMenuItem);
@@ -110,7 +110,7 @@ var testUndoTabFromContextMenu = function() {
                       {closedTabCount: SessionStoreAPI.getClosedTabCount(controller)});
 
   
-  controller.rightClick(tabBar);
-  controller.assertProperty(contextMenuItem, 'disabled', true);
+  controller.rightClick(currentTab);
+  controller.assertJSProperty(contextMenuItem, 'disabled', true);
   UtilsAPI.closeContentAreaContextMenu(controller);
 }

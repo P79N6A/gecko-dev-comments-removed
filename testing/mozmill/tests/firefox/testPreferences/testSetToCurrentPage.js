@@ -42,8 +42,8 @@ const MODULE_REQUIRES = ['PrefsAPI', 'TabbedBrowsingAPI', 'ToolbarAPI'];
 
 const LOCAL_TEST_FOLDER = collector.addHttpResource('../test-files/');
 const LOCAL_TEST_PAGES = [
-  {url: LOCAL_TEST_FOLDER + 'layout/mozilla.html'},
-  {url: LOCAL_TEST_FOLDER + 'layout/mozilla_mission.html'}
+  LOCAL_TEST_FOLDER + 'layout/mozilla.html',
+  LOCAL_TEST_FOLDER + 'layout/mozilla_mission.html'
 ];
 
 var setupModule = function() {
@@ -62,7 +62,7 @@ var teardownModule = function(module) {
 
 var testSetHomePage = function() {
   
-  controller.open(LOCAL_TEST_PAGES[0].url);
+  controller.open(LOCAL_TEST_PAGES[0]);
   controller.waitForPageLoad();
 
   var link = new elementslib.Link(controller.tabs.activeTab, "Community");
@@ -78,7 +78,7 @@ var testSetHomePage = function() {
 var testHomeButton = function()
 {
   
-  controller.open(LOCAL_TEST_PAGES[1].url);
+  controller.open(LOCAL_TEST_PAGES[1]);
   controller.waitForPageLoad();
 
   
@@ -86,7 +86,7 @@ var testHomeButton = function()
   controller.waitForPageLoad();
 
   
-  controller.assertValue(locationBar.urlbar, LOCAL_TEST_PAGES[0].url);
+  controller.assertValue(locationBar.urlbar, LOCAL_TEST_PAGES[0]);
 }
 
 
