@@ -3886,24 +3886,19 @@ nsHTMLEditor::ContentAppended(nsIDocument *aDocument, nsIContent* aContainer,
                               nsIContent* aFirstNewContent,
                               PRInt32 )
 {
-  ContentInserted(aDocument, aContainer, nsnull, 0);
+  ContentInserted(aDocument, aContainer, aFirstNewContent, 0);
 }
 
 void
 nsHTMLEditor::ContentInserted(nsIDocument *aDocument, nsIContent* aContainer,
                               nsIContent* aChild, PRInt32 )
 {
-  
-  
-  if (!mRootElement)
-  {
-    
-    
-    
-    RemoveEventListeners();
-    BeginningOfDocument();
-    InstallEventListeners();
-    SyncRealTimeSpell();
+  if (!aChild || !aChild->IsElement()) {
+    return;
+  }
+
+  if (ShouldReplaceRootElement()) {
+    ResetRootElementAndEventTarget();
   }
 }
 
@@ -3911,13 +3906,8 @@ void
 nsHTMLEditor::ContentRemoved(nsIDocument *aDocument, nsIContent* aContainer,
                              nsIContent* aChild, PRInt32 aIndexInContainer)
 {
-  nsCOMPtr<nsIDOMHTMLElement> elem = do_QueryInterface(aChild);
-  if (elem == mRootElement)
-  {
-    RemoveEventListeners();
-    mRootElement = nsnull;
-    mEventTarget = nsnull;
-    InstallEventListeners();
+  if (SameCOMIdentity(aChild, mRootElement)) {
+    ResetRootElementAndEventTarget();
   }
 }
 
@@ -5864,6 +5854,47 @@ nsHTMLEditor::GetPIDOMEventTarget()
   return piTarget.forget();
 }
 
+PRBool
+nsHTMLEditor::ShouldReplaceRootElement()
+{
+  if (!mRootElement) {
+    
+    return PR_TRUE;
+  }
+
+  
+  
+  nsCOMPtr<nsIDOMHTMLElement> docBody;
+  GetBodyElement(getter_AddRefs(docBody));
+  return !SameCOMIdentity(docBody, mRootElement);
+}
+
+void
+nsHTMLEditor::ResetRootElementAndEventTarget()
+{
+  
+  
+  
+  RemoveEventListeners();
+  mRootElement = nsnull;
+  nsresult rv = InstallEventListeners();
+  NS_ENSURE_SUCCESS(rv, );
+  NS_ENSURE_TRUE(mRootElement, );
+
+  rv = BeginningOfDocument();
+  NS_ENSURE_SUCCESS(rv, );
+
+  
+  
+  nsCOMPtr<nsINode> node = GetFocusedNode();
+  nsCOMPtr<nsIDOMEventTarget> target = do_QueryInterface(node);
+  if (target) {
+    InitializeSelection(target);
+  }
+
+  SyncRealTimeSpell();
+}
+
 nsresult
 nsHTMLEditor::GetBodyElement(nsIDOMHTMLElement** aBody)
 {
@@ -5874,6 +5905,27 @@ nsHTMLEditor::GetBodyElement(nsIDOMHTMLElement** aBody)
   }
   nsCOMPtr<nsIDOMHTMLElement> bodyElement; 
   return htmlDoc->GetBody(aBody);
+}
+
+already_AddRefed<nsINode>
+nsHTMLEditor::GetFocusedNode()
+{
+  if (!HasFocus()) {
+    return nsnull;
+  }
+
+  nsIFocusManager* fm = nsFocusManager::GetFocusManager();
+  NS_ASSERTION(fm, "Focus manager is null");
+  nsCOMPtr<nsIDOMElement> focusedElement;
+  fm->GetFocusedElement(getter_AddRefs(focusedElement));
+  if (focusedElement) {
+    nsCOMPtr<nsINode> node = do_QueryInterface(focusedElement);
+    return node.forget();
+  }
+
+  nsCOMPtr<nsIDocument> doc = do_QueryReferent(mDocWeak);
+  nsCOMPtr<nsINode> node = do_QueryInterface(doc);
+  return node.forget();
 }
 
 PRBool
