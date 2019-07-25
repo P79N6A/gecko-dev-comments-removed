@@ -126,7 +126,7 @@ function viewSource(url)
 
   gBrowser.addEventListener("pagehide", onUnloadContent, true);
   gBrowser.addEventListener("pageshow", onLoadContent, true);
-  gBrowser.addEventListener("command", onCommandContent, false);
+  gBrowser.addEventListener("click", onClickContent, false);
 
   var loadFromURL = true;
 
@@ -279,9 +279,9 @@ function onUnloadContent()
 
 
 
-function onCommandContent(event) {
+function onClickContent(event) {
   
-  if (!event.isTrusted)
+  if (!event.isTrusted || event.target.localName != "button")
     return;
 
   var target = event.originalTarget;
@@ -323,8 +323,6 @@ function onCommandContent(event) {
         }
       }
     } else if (target == errorDoc.getElementById('ignoreWarningButton')) {
-      
-      
       
       gBrowser.loadURIWithFlags(content.location.href,
                                 Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_CLASSIFIER,
