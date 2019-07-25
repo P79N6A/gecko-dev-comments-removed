@@ -493,6 +493,13 @@ SyncEngine.prototype = {
       delete this._delete[key];
 
       
+      if (key == "ids") {
+        for each (let id in val)
+          new Resource(this.engineURL + id).delete();
+        continue;
+      }
+
+      
       this._log.info("Sending delete for " + key + ": " + val);
       let coll = new Collection(this.engineURL, this._recordObj);
       coll[key] = val;
