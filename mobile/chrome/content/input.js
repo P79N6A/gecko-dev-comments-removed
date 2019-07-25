@@ -835,7 +835,8 @@ function KineticController(aPanBy, aEndCallback) {
   
   this._updateInterval = Services.prefs.getIntPref("browser.ui.kinetic.updateInterval");
   
-  this._decelerationRate = Services.prefs.getIntPref("browser.ui.kinetic.decelerationRate") / 10000;
+  this._exponentialC = Services.prefs.getIntPref("browser.ui.kinetic.exponentialC");
+  this._polynomialC = Services.prefs.getIntPref("browser.ui.kinetic.polynomialC") / 1000000;
   
   this._swipeLength = Services.prefs.getIntPref("browser.ui.kinetic.swipeLength");
 
@@ -855,35 +856,29 @@ KineticController.prototype = {
   },
 
   _startTimer: function _startTimer() {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    let self = this;
 
-    let lastx = this._position;  
+    let lastp = this._position;  
     let v0 = this._velocity;  
     let a = this._acceleration;  
+    let c = this._exponentialC;
+    let p = new Point(0, 0);
+    let dx, dy, t, realt;
 
-    
-    let aBin = new Point(0, 0);
-    let v0Bin = new Point(0, 0);
-    let self = this;
+    function calcP(v0, a, t) {
+      
+      
+      
+      
+      
+      
+      
+      return v0 * Math.exp(-t / c) * -c + a * t * t + v0 * c;
+    }
+
+    this._calcV = function(v0, a, t) {
+      return v0 * Math.exp(-t / c) + 2 * a * t;
+    }
 
     let callback = {
       onBeforePaint: function kineticHandleEvent(timeStamp) {
@@ -895,29 +890,27 @@ KineticController.prototype = {
         
         
         
-        let realt = timeStamp - self._initialTime;
+        realt = timeStamp - self._initialTime;
         self._time += self._updateInterval;
-        let t = (self._time + realt) / 2;
+        t = (self._time + realt) / 2;
 
         
-        let x = v0Bin.set(v0).scale(t).add(aBin.set(a).scale(0.5 * t * t));
-        let dx = Math.round(x.x - lastx.x);
-        let dy = Math.round(x.y - lastx.y);
+        p.x = calcP(v0.x, a.x, t);
+        p.y = calcP(v0.y, a.y, t);
+        dx = Math.round(p.x - lastp.x);
+        dy = Math.round(p.y - lastp.y);
 
         
-        
-        if (t >= -v0.x / a.x) {
-          
-          dx = Math.round(-v0.x * v0.x / 2 / a.x - lastx.x);
-          
-          lastx.x = 0;
+        if (dx * a.x > 0) {
+          dx = 0;
+          lastp.x = 0;
           v0.x = 0;
           a.x = 0;
         }
         
-        if (t >= -v0.y / a.y) {
-          dy = Math.round(-v0.y * v0.y / 2 / a.y - lastx.y);
-          lastx.y = 0;
+        if (dy * a.y > 0) {
+          dy = 0;
+          lastp.y = 0;
           v0.y = 0;
           a.y = 0;
         }
@@ -928,7 +921,7 @@ KineticController.prototype = {
           let panStop = false;
           if (dx != 0 || dy != 0) {
             try { panStop = !self._panBy(-dx, -dy, true); } catch (e) {}
-            lastx.add(dx, dy);
+            lastp.add(dx, dy);
           }
 
           if (panStop)
@@ -947,6 +940,12 @@ KineticController.prototype = {
   start: function start() {
     function sign(x) {
       return x ? ((x > 0) ? 1 : -1) : 0;
+    }
+
+    function clampFromZero(x, closerToZero, furtherFromZero) {
+      if (x >= 0)
+        return Math.max(closerToZero, Math.min(furtherFromZero, x));
+      return Math.min(-closerToZero, Math.max(-furtherFromZero, x));
     }
 
     let mb = this.momentumBuffer;
@@ -971,9 +970,10 @@ KineticController.prototype = {
     let currentVelocityY = 0;
 
     if (this.isActive()) {
+      
       let currentTime = Date.now() - this._initialTime;
-      currentVelocityX = Util.clamp(this._velocity.x + this._acceleration.x * currentTime, -kMaxVelocity, kMaxVelocity);
-      currentVelocityY = Util.clamp(this._velocity.y + this._acceleration.y * currentTime, -kMaxVelocity, kMaxVelocity);
+      currentVelocityX = Util.clamp(this._calcV(this._velocity.x, this._acceleration.x, currentTime), -kMaxVelocity, kMaxVelocity);
+      currentVelocityY = Util.clamp(this._calcV(this._velocity.y, this._acceleration.y, currentTime), -kMaxVelocity, kMaxVelocity);
     }
 
     if (currentVelocityX * this._velocity.x <= 0)
@@ -986,7 +986,7 @@ KineticController.prototype = {
     this._velocity.y = clampFromZero((distanceY / swipeTime) + currentVelocityY, Math.abs(currentVelocityY), 6);
 
     
-    this._acceleration.set(this._velocity.clone().map(sign).scale(-this._decelerationRate));
+    this._acceleration.set(this._velocity.clone().map(sign).scale(-this._polynomialC));
 
     this._position.set(0, 0);
     this._initialTime = mozAnimationStartTime;
