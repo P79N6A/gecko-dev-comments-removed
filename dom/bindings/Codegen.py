@@ -2670,7 +2670,7 @@ if (!%(resultStr)s) {
         
         return (setValue(result, True), False)
 
-    if type.isObject():
+    if type.isObject() or type.isSpiderMonkeyInterface():
         
         
         if type.nullable():
@@ -2794,7 +2794,7 @@ def getRetvalDeclarationForType(returnType, descriptorProvider,
         return CGGeneric("JSObject*"), False
     if returnType.tag() is IDLType.Tags.any:
         return CGGeneric("JS::Value"), False
-    if returnType.isObject():
+    if returnType.isObject() or returnType.isSpiderMonkeyInterface():
         return CGGeneric("JSObject*"), False
     if returnType.isSequence():
         nullable = returnType.nullable()
