@@ -627,6 +627,12 @@ xpc_qsGetWrapperCache(nsWrapperCache *cache)
     return cache;
 }
 
+
+
+class nsGlobalWindow;
+inline nsWrapperCache*
+xpc_qsGetWrapperCache(nsGlobalWindow *not_allowed);
+
 inline nsWrapperCache*
 xpc_qsGetWrapperCache(void *p)
 {
