@@ -851,7 +851,6 @@ PropertiesView.prototype = {
       let title = element.getElementsByClassName("title")[0];
 
       
-      separator.className = "unselectable";
       separator.textContent = ": ";
 
       
@@ -1076,7 +1075,6 @@ PropertiesView.prototype = {
       value.classList.add(propertyColor);
 
       
-      separator.className = "unselectable";
       separator.textContent = ": ";
 
       if ("undefined" !== typeof pKey) {
@@ -1332,7 +1330,7 @@ PropertiesView.prototype = {
     arrow.style.visibility = "hidden";
 
     
-    name.className = "name unselectable";
+    name.className = "name";
     name.textContent = aName || "";
 
     
