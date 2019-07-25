@@ -2454,13 +2454,6 @@ nsDisplayTransform::GetResultingTransformMatrix(const nsIFrame* aFrame,
   
 
 
-  if (!aFrame->GetStyleDisplay()->HasTransform()) {
-    return GetResultingTransformMatrix(aFrame->GetParent(), aOrigin - aFrame->GetPosition(), aFactor, nsnull, aOutAncestor);
-  }
-
-  
-
-
   gfxPoint3D toMozOrigin = GetDeltaToMozTransformOrigin(aFrame, aFactor, aBoundsOverride);
   gfxPoint3D toPerspectiveOrigin = GetDeltaToMozPerspectiveOrigin(aFrame, aFactor, aBoundsOverride);
   gfxPoint3D newOrigin = gfxPoint3D(NSAppUnitsToFloatPixels(aOrigin.x, aFactor),
