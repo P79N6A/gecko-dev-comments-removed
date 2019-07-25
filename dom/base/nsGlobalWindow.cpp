@@ -8390,6 +8390,12 @@ nsGlobalWindow::GetIndexedDB(nsIIDBFactory** _retval)
   if (!mIndexedDB) {
     nsresult rv;
 
+    
+    
+    if (mDoc && (mDoc->GetSandboxFlags() & SANDBOXED_ORIGIN)) {
+      return NS_ERROR_DOM_SECURITY_ERR;
+    }
+
     if (!IsChromeWindow()) {
       nsCOMPtr<mozIThirdPartyUtil> thirdPartyUtil =
         do_GetService(THIRDPARTYUTIL_CONTRACTID);
