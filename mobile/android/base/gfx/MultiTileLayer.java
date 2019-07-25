@@ -42,6 +42,7 @@ import org.mozilla.gecko.gfx.IntSize;
 import org.mozilla.gecko.gfx.SingleTileLayer;
 import android.graphics.Point;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.util.Log;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -159,13 +160,59 @@ public class MultiTileLayer extends Layer {
     }
 
     @Override
-    protected void performUpdates(GL10 gl) {
-        super.performUpdates(gl);
+    protected boolean performUpdates(GL10 gl, RenderContext context) {
+        super.performUpdates(gl, context);
 
         validateTiles();
 
-        for (SingleTileLayer layer : mTiles)
-            layer.performUpdates(gl);
+        
+        int dirtyTiles = 0;
+        boolean screenUpdateDone = false;
+        SingleTileLayer firstDirtyTile = null;
+        for (SingleTileLayer layer : mTiles) {
+            
+            
+            boolean invalid = layer.getSkipTextureUpdate();
+            layer.setSkipTextureUpdate(true);
+            layer.performUpdates(gl, context);
+
+            RectF layerBounds = layer.getBounds(context, new FloatSize(layer.getSize()));
+            boolean isDirty = layer.isDirty();
+
+            if (isDirty) {
+                if (!RectF.intersects(layerBounds, context.viewport)) {
+                    if (firstDirtyTile == null)
+                        firstDirtyTile = layer;
+                    dirtyTiles ++;
+                    invalid = true;
+                } else {
+                    
+                    
+                    layer.setSkipTextureUpdate(false);
+                    screenUpdateDone = true;
+                    layer.performUpdates(gl, context);
+                    invalid = false;
+                }
+            }
+
+            
+            
+            
+            
+            layer.setSkipTextureUpdate(invalid);
+        }
+
+        
+        
+        
+        
+        if (!screenUpdateDone && firstDirtyTile != null) {
+            firstDirtyTile.setSkipTextureUpdate(false);
+            firstDirtyTile.performUpdates(gl, context);
+            dirtyTiles --;
+        }
+
+        return (dirtyTiles == 0);
     }
 
     private void refreshTileMetrics(Point origin, float resolution, boolean inTransaction) {
@@ -221,8 +268,17 @@ public class MultiTileLayer extends Layer {
 
     @Override
     public void draw(RenderContext context) {
-        for (SingleTileLayer layer : mTiles)
-            layer.draw(context);
+        for (SingleTileLayer layer : mTiles) {
+            
+            
+            if (layer.getSkipTextureUpdate())
+                continue;
+
+            
+            RectF layerBounds = layer.getBounds(context, new FloatSize(layer.getSize()));
+            if (RectF.intersects(layerBounds, context.viewport))
+                layer.draw(context);
+        }
     }
 }
 
