@@ -143,7 +143,7 @@ JSObject::finalize(JSContext *cx)
 
 
 
-inline bool
+inline const js::Shape *
 JSObject::methodReadBarrier(JSContext *cx, const js::Shape &shape, js::Value *vp)
 {
     JS_ASSERT(canHaveMethodBarrier());
@@ -157,12 +157,13 @@ JSObject::methodReadBarrier(JSContext *cx, const js::Shape &shape, js::Value *vp
     JS_ASSERT(!isGlobal());  
 
     JSObject *funobj = &vp->toObject();
-    JSFunction *fun = GET_FUNCTION_PRIVATE(cx, funobj);
-    JS_ASSERT(fun == funobj && FUN_NULL_CLOSURE(fun));
+    JSFunction *fun = funobj->getFunctionPrivate();
+    JS_ASSERT(fun == funobj);
+    JS_ASSERT(FUN_NULL_CLOSURE(fun));
 
     funobj = CloneFunctionObject(cx, fun, funobj->getParent());
     if (!funobj)
-        return false;
+        return NULL;
     funobj->setMethodObj(*this);
 
     
@@ -194,7 +195,7 @@ JSObject::methodReadBarrier(JSContext *cx, const js::Shape &shape, js::Value *vp
         }
     }
 #endif
-    return true;
+    return newshape;
 }
 
 static JS_ALWAYS_INLINE bool

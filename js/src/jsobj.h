@@ -581,7 +581,7 @@ struct JSObject : js::gc::Cell {
 
 
 
-    bool methodReadBarrier(JSContext *cx, const js::Shape &shape, js::Value *vp);
+    const js::Shape *methodReadBarrier(JSContext *cx, const js::Shape &shape, js::Value *vp);
 
     
 

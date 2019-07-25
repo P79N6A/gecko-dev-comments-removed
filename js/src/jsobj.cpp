@@ -4595,6 +4595,27 @@ js_ChangeNativePropertyAttrs(JSContext *cx, JSObject *obj,
 {
     if (!obj->ensureClassReservedSlots(cx))
         return NULL;
+
+    
+
+
+
+
+
+    if ((attrs & JSPROP_READONLY) && shape->isMethod()) {
+        JSObject *funobj = &shape->methodObject();
+        Value v = ObjectValue(*funobj);
+
+        shape = obj->methodReadBarrier(cx, *shape, &v);
+        if (!shape)
+            return NULL;
+
+        if (CastAsObject(getter) == funobj) {
+            JS_ASSERT(!(attrs & JSPROP_GETTER));
+            getter = NULL;
+        }
+    }
+
     return obj->changeProperty(cx, shape, attrs, mask, getter, setter);
 }
 
@@ -4708,7 +4729,13 @@ js_DefineNativeProperty(JSContext *cx, JSObject *obj, jsid id, const Value &valu
     if (!obj->ensureClassReservedSlots(cx))
         return false;
 
-    bool added = false;
+    
+
+
+
+    Value valueCopy = value;
+    bool adding = false;
+
     if (!shape) {
         
         if (defineHow & JSDNP_SET_METHOD) {
@@ -4727,8 +4754,28 @@ js_DefineNativeProperty(JSContext *cx, JSObject *obj, jsid id, const Value &valu
         if (const Shape *existingShape = obj->nativeLookup(id)) {
             if (existingShape->hasSlot())
                 AbortRecordingIfUnexpectedGlobalWrite(cx, obj, existingShape->slot);
+
+            if (existingShape->isMethod() &&
+                ObjectValue(existingShape->methodObject()) == valueCopy)
+            {
+                
+
+
+
+
+
+
+
+
+
+
+                JS_ASSERT(existingShape->getter() != getter);
+
+                if (!obj->methodReadBarrier(cx, *existingShape, &valueCopy))
+                    return NULL;
+            }
         } else {
-            added = true;
+            adding = true;
         }
 
         uint32 oldShape = obj->shape();
@@ -4743,21 +4790,24 @@ js_DefineNativeProperty(JSContext *cx, JSObject *obj, jsid id, const Value &valu
 
 
 
+
+
+
+
         if (obj->shape() == oldShape && obj->branded() && shape->slot != SHAPE_INVALID_SLOT) {
 #ifdef DEBUG
             const Shape *newshape =
 #endif
-                obj->methodWriteBarrier(cx, *shape, value);
+                obj->methodWriteBarrier(cx, *shape, valueCopy);
             JS_ASSERT(newshape == shape);
         }
     }
 
     
     if (obj->containsSlot(shape->slot))
-        obj->nativeSetSlot(shape->slot, value);
+        obj->nativeSetSlot(shape->slot, valueCopy);
 
     
-    Value valueCopy = value;
     if (!CallAddPropertyHook(cx, clasp, obj, shape, &valueCopy)) {
         obj->removeProperty(cx, id);
         return false;
@@ -4765,7 +4815,7 @@ js_DefineNativeProperty(JSContext *cx, JSObject *obj, jsid id, const Value &valu
 
     if (defineHow & JSDNP_CACHE_RESULT) {
         JS_ASSERT_NOT_ON_TRACE(cx);
-        if (added) {
+        if (adding) {
             JS_PROPERTY_CACHE(cx).fill(cx, obj, 0, 0, obj, shape, true);
             TRACE_1(AddProperty, obj);
         }
