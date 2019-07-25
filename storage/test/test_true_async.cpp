@@ -240,6 +240,7 @@ get_conn_async_thread(mozIStorageConnection *db)
 void
 test_TrueAsyncStatement()
 {
+  
   hook_sqlite_mutex();
 
   nsCOMPtr<mozIStorageConnection> db(getMemoryDatabase());
@@ -365,10 +366,46 @@ test_AsyncCancellation()
   blocking_async_close(db);
 }
 
+
+
+
+
+
+
+void test_AsyncDestructorFinalizesOnAsyncThread()
+{
+  
+
+  nsCOMPtr<mozIStorageConnection> db(getMemoryDatabase());
+  watch_for_mutex_use_on_this_thread();
+
+  
+  nsCOMPtr<mozIStorageAsyncStatement> stmt;
+  db->CreateAsyncStatement(
+    NS_LITERAL_CSTRING("CREATE TABLE test (id INTEGER PRIMARY KEY)"),
+    getter_AddRefs(stmt)
+  );
+
+  
+  blocking_async_execute(stmt);
+  do_check_false(mutex_used_on_watched_thread);
+
+  
+  stmt = nsnull;
+
+  
+  do_check_false(mutex_used_on_watched_thread);
+
+  
+  
+  blocking_async_close(db);
+}
+
 void (*gTests[])(void) = {
   
   test_TrueAsyncStatement,
   test_AsyncCancellation,
+  test_AsyncDestructorFinalizesOnAsyncThread
 };
 
 const char *file = __FILE__;

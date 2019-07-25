@@ -259,7 +259,7 @@ AsyncStatement::getParams()
 
 AsyncStatement::~AsyncStatement()
 {
-  internalAsyncFinalize();
+  destructorAsyncFinalize();
   cleanupJSHelpers();
 
   

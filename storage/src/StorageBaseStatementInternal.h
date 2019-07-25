@@ -163,7 +163,9 @@ protected:
 
 
 
-  void internalAsyncFinalize();
+
+
+  void destructorAsyncFinalize();
 
   NS_IMETHOD NewBindingParamsArray(mozIStorageBindingParamsArray **_array);
   NS_IMETHOD ExecuteAsync(mozIStorageStatementCallback *aCallback,

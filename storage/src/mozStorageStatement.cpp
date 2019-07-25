@@ -404,7 +404,7 @@ Statement::internalFinalize(bool aDestructing)
     
     
     if (aDestructing)
-      internalAsyncFinalize();
+      destructorAsyncFinalize();
     else
       asyncFinalize();
   }

@@ -76,14 +76,65 @@ public:
 
   NS_IMETHOD Run()
   {
-    mStatement->internalAsyncFinalize();
+    if (mStatement->mAsyncStatement) {
+      (void)::sqlite3_finalize(mStatement->mAsyncStatement);
+      mStatement->mAsyncStatement = nsnull;
+    }
     (void)::NS_ProxyRelease(mConnection->threadOpenedOn, mStatement);
     return NS_OK;
   }
 private:
-  
-  nsCOMPtr<StorageBaseStatementInternal> mStatement;
+  nsRefPtr<StorageBaseStatementInternal> mStatement;
   nsRefPtr<Connection> mConnection;
+};
+
+
+
+
+
+class LastDitchSqliteStatementFinalizer : public nsRunnable
+{
+public:
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  LastDitchSqliteStatementFinalizer(nsRefPtr<Connection> &aConnection,
+                                    sqlite3_stmt *aStatement)
+  : mConnection(aConnection)
+  , mAsyncStatement(aStatement)
+  {
+    NS_PRECONDITION(aConnection, "You must provide a Connection");
+  }
+
+  NS_IMETHOD Run()
+  {
+    (void)::sqlite3_finalize(mAsyncStatement);
+    mAsyncStatement = nsnull;
+
+    
+    
+    Connection *rawConnection = nsnull;
+    mConnection.swap(rawConnection);
+    (void)::NS_ProxyRelease(
+      rawConnection->threadOpenedOn,
+      NS_ISUPPORTS_CAST(mozIStorageConnection *, rawConnection));
+    return NS_OK;
+  }
+private:
+  nsRefPtr<Connection> mConnection;
+  sqlite3_stmt *mAsyncStatement;
 };
 
 
@@ -102,27 +153,37 @@ StorageBaseStatementInternal::asyncFinalize()
     
     
     
-    internalAsyncFinalize();
+    destructorAsyncFinalize();
   }
   else {
     nsCOMPtr<nsIRunnable> event =
       new AsyncStatementFinalizer(this, mDBConnection);
 
     
-    if (!event ||
-        NS_FAILED(target->Dispatch(event, NS_DISPATCH_NORMAL))) {
-      internalAsyncFinalize();
+    if (NS_FAILED(target->Dispatch(event, NS_DISPATCH_NORMAL))) {
+      destructorAsyncFinalize();
     }
   }
 }
 
 void
-StorageBaseStatementInternal::internalAsyncFinalize()
+StorageBaseStatementInternal::destructorAsyncFinalize()
 {
-  if (mAsyncStatement) {
-    (void)::sqlite3_finalize(mAsyncStatement);
-    mAsyncStatement = nsnull;
+  if (!mAsyncStatement)
+    return;
+
+  nsIEventTarget *target = mDBConnection->getAsyncExecutionTarget();
+  if (target) {
+    nsCOMPtr<nsIRunnable> event =
+      new LastDitchSqliteStatementFinalizer(mDBConnection, mAsyncStatement);
+    if (NS_SUCCEEDED(target->Dispatch(event, NS_DISPATCH_NORMAL))) {
+      mAsyncStatement = nsnull;
+      return;
+    }
   }
+  
+  (void)::sqlite3_finalize(mAsyncStatement);
+  mAsyncStatement = nsnull;
 }
 
 NS_IMETHODIMP
