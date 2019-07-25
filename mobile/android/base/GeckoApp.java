@@ -955,7 +955,9 @@ abstract public class GeckoApp
                     final double zoom = message.getDouble("zoom");
                     mMainHandler.post(new Runnable() {
                         public void run() {
-                            mAutoCompletePopup.show(suggestions, rect, zoom);
+                            
+                            if (!GeckoInputConnection.mIMELandscapeFS)
+                                mAutoCompletePopup.show(suggestions, rect, zoom);
                         }
                     });
                 }
