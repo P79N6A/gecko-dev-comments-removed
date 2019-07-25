@@ -356,3 +356,62 @@ let ContentScroll =  {
 };
 
 ContentScroll.init();
+
+
+function PromptRemoter() {
+  addEventListener("DOMWindowCreated", this, false);
+}
+
+PromptRemoter.prototype = {
+  handleEvent: function handleEvent(aEvent) {
+    var window = aEvent.originalTarget.defaultView.content;
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    try {
+      if (!window || !window.wrappedJSObject) {
+        return;
+      }
+    }
+    catch(e) {
+      return;
+    }
+
+    function bringTabToFront() {
+      let event = window.document.createEvent("Events");
+      event.initEvent("DOMWillOpenModalDialog", true, false);
+      window.dispatchEvent(event);
+    }
+
+    window.wrappedJSObject.alert = function(aMessage) {
+      bringTabToFront();
+      sendAsyncMessage("Prompt:Alert", {
+        message: aMessage
+      });
+    }
+
+    window.wrappedJSObject.confirm = function(aMessage) {
+      bringTabToFront();
+      return sendSyncMessage("Prompt:Confirm", {
+        message: aMessage
+      });
+    }
+
+    window.wrappedJSObject.prompt = function(aText, aValue) {
+      bringTabToFront();
+      return sendSyncMessage("Prompt:Prompt", {
+        text: aText,
+        value: aValue
+      });
+    }
+  },
+};
+
+new PromptRemoter();
+
