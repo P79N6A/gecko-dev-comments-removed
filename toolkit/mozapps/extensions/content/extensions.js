@@ -35,6 +35,8 @@
 
 
 
+"use strict";
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
@@ -225,13 +227,14 @@ var HTML5History = {
   },
 
   popState: function() {
-    window.addEventListener("popstate", function(event) {
-      window.removeEventListener("popstate", arguments.callee, true);
+    function onStatePopped(aEvent) {
+      window.removeEventListener("popstate", onStatePopped, true);
       
       
       
-      window.history.pushState(event.state, document.title);
-    }, true);
+      window.history.pushState(aEvent.state, document.title);
+    }
+    window.addEventListener("popstate", onStatePopped, true);
     window.history.back();
     gViewController.updateCommand("cmd_back");
     gViewController.updateCommand("cmd_forward");
