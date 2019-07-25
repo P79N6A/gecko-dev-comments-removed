@@ -396,7 +396,7 @@ WeaveSvc.prototype = {
         this._syncErrors = 0;
         break;
       case "weave:service:backoff:interval":
-        let interval = data + Math.random() * data * 0.25; 
+        let interval = (data + Math.random() * data * 0.25) * 1000; 
         Status.backoffInterval = interval;
         Status.minimumNextSync = Date.now() + data;
         break;
@@ -1175,6 +1175,10 @@ WeaveSvc.prototype = {
     this._clearSyncTriggers();
     this.nextSync = 0;
 
+    
+    
+    Status.resetBackoff();
+
     this.globalScore = 0;
 
     if (!(this._remoteSetup()))
@@ -1261,7 +1265,6 @@ WeaveSvc.prototype = {
     this._log.debug("Client count: " + this.numClients + " -> " + numClients);
     this.numClients = numClients;
 
-    let tabEngine = Engines.get("tabs");
     if (numClients == 1) {
       this.syncInterval = SINGLE_USER_SYNC;
       this.syncThreshold = SINGLE_USER_THRESHOLD;
