@@ -65,6 +65,18 @@ let kSpecialIds = {};
 ].forEach(function([guid, placeName]) {
   Utils.lazy2(kSpecialIds, guid, function() Svc.Bookmark[placeName]);
 });
+Utils.lazy2(kSpecialIds, "mobile", function() {
+  
+  let anno = "mobile/bookmarksRoot";
+  let root = Svc.Annos.getItemsWithAnnotation(anno, {});
+  if (root.length != 0)
+    return root[0];
+
+  
+  let mobile = Svc.Bookmark.createFolder(Svc.Bookmark.placesRoot, "mobile", -1);
+  Utils.anno(mobile, anno, 1);
+  return mobile;
+});
 
 
 function idForGUID(guid) {
@@ -1027,6 +1039,15 @@ BookmarksTracker.prototype = {
       return true;
 
     
+    this._ensureMobileQuery();
+
+    
+    if (Svc.Annos.itemHasAnnotation(itemId, "places/excludeFromBackup")) {
+      this.removeChangedID(GUIDForId(itemId));
+      return true;
+    }
+
+    
     if (folder == null)
       folder = this._bms.getFolderIdForItem(itemId);
 
@@ -1061,15 +1082,38 @@ BookmarksTracker.prototype = {
     this._addSuccessor(itemId);
   },
 
-  onItemChanged: function BMT_onItemChanged(itemId, property, isAnno, value) {
-    if (this._ignore(itemId))
+  _ensureMobileQuery: function _ensureMobileQuery() {
+    let anno = "PlacesOrganizer/OrganizerQuery";
+    let find = function(val) Svc.Annos.getItemsWithAnnotation(anno, {}).filter(
+      function(id) Utils.anno(id, anno) == val);
+
+    
+    let all = find("AllBookmarks");
+    if (all.length == 0)
       return;
 
     
-    if (property == "places/excludeFromBackup") {
-      this.removeChangedID(GUIDForId(itemId));
-      return;
+    this.ignoreAll = true;
+
+    
+    let mobile = find("MobileBookmarks");
+    let queryURI = Utils.makeURI("place:folder=" + kSpecialIds.mobile);
+    let title = Str.sync.get("mobile.label");
+    if (mobile.length == 0) {
+      let query = Svc.Bookmark.insertBookmark(all[0], queryURI, -1, title);
+      Utils.anno(query, anno, "MobileBookmarks");
+      Utils.anno(query, "places/excludeFromBackup", 1);
     }
+    
+    else if (Svc.Bookmark.getItemTitle(mobile[0]) != title)
+      Svc.Bookmark.setItemTitle(mobile[0], title);
+
+    this.ignoreAll = false;
+  },
+
+  onItemChanged: function BMT_onItemChanged(itemId, property, isAnno, value) {
+    if (this._ignore(itemId))
+      return;
 
     
     let annos = ["bookmarkProperties/description",
