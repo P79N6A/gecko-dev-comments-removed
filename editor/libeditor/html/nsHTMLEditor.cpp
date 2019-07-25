@@ -554,12 +554,6 @@ nsHTMLEditor::HandleKeyPressEvent(nsIDOMKeyEvent* aKeyEvent)
       
       
       return nsEditor::HandleKeyPressEvent(aKeyEvent);
-    case nsIDOMKeyEvent::DOM_VK_ESCAPE:
-      
-      
-      aKeyEvent->PreventDefault();
-      
-      return nsPlaintextEditor::HandleKeyPressEvent(aKeyEvent);
     case nsIDOMKeyEvent::DOM_VK_TAB: {
       if (IsPlaintextEditor()) {
         

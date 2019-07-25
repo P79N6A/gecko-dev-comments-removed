@@ -405,13 +405,6 @@ nsPlaintextEditor::HandleKeyPressEvent(nsIDOMKeyEvent* aKeyEvent)
       }
       aKeyEvent->PreventDefault();
       return TypedText(EmptyString(), eTypedBreak);
-    case nsIDOMKeyEvent::DOM_VK_ESCAPE:
-      
-      
-      
-      
-      
-      return TypedText(EmptyString(), eTypedText);
   }
 
   
