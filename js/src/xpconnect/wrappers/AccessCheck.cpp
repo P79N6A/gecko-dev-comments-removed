@@ -403,8 +403,9 @@ AccessCheck::isScriptAccessOnly(JSContext *cx, JSObject *wrapper)
     }
 
     
-    if (js::GetProxyHandler(wrapper) == &FilteringWrapper<CrossCompartmentWrapper,
-        CrossOriginAccessiblePropertiesOnly>::singleton) {
+    if (js::GetProxyHandler(wrapper) ==
+        &FilteringWrapper<CrossCompartmentSecurityWrapper,
+                          CrossOriginAccessiblePropertiesOnly>::singleton) {
         jsid scriptOnlyId = GetRTIdByIndex(cx, XPCJSRuntime::IDX_SCRIPTONLY);
         jsval scriptOnly;
         if (JS_LookupPropertyById(cx, obj, scriptOnlyId, &scriptOnly) &&
