@@ -161,9 +161,6 @@ public:
 
   PRBool IsRealBookmark(PRInt64 aPlaceId);
 
-  nsresult BeginUpdateBatch();
-  nsresult EndUpdateBatch();
-
   PRBool ItemExists(PRInt64 aItemId);
 
   
@@ -257,11 +254,6 @@ private:
   PRInt64 mTagsRoot;
   PRInt64 mUnfiledRoot;
   PRInt64 mToolbarRoot;
-
-  
-  PRInt32 mBatchLevel;
-  
-  mozStorageTransaction* mBatchDBTransaction;
 
   nsresult GetParentAndIndexOfFolder(PRInt64 aFolder,
                                      PRInt64* aParent,
@@ -488,22 +480,5 @@ private:
 
   nsresult UpdateKeywordsHashForRemovedBookmark(PRInt64 aItemId);
 };
-
-struct nsBookmarksUpdateBatcher
-{
-  nsBookmarksUpdateBatcher()
-  {
-    nsNavBookmarks* bookmarks = nsNavBookmarks::GetBookmarksService();
-    if (bookmarks)
-      bookmarks->BeginUpdateBatch();
-  }
-  ~nsBookmarksUpdateBatcher()
-  {
-    nsNavBookmarks* bookmarks = nsNavBookmarks::GetBookmarksService();
-    if (bookmarks)
-      bookmarks->EndUpdateBatch();
-  }
-};
-
 
 #endif 
