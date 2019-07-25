@@ -105,6 +105,20 @@ public:
 
   virtual void NotifyConsumptionChanged(MediaStreamGraph* aGraph, Consumption aConsuming) {}
 
+  
+
+
+
+
+
+
+
+
+
+
+
+  virtual void NotifyPull(MediaStreamGraph* aGraph, StreamTime aDesiredTime) {}
+
   enum Blocking {
     BLOCKED,
     UNBLOCKED
@@ -387,6 +401,7 @@ public:
     mLastConsumptionState(MediaStreamListener::NOT_CONSUMED),
     mMutex("mozilla::media::SourceMediaStream"),
     mUpdateKnownTracksTime(0),
+    mPullEnabled(false),
     mUpdateFinished(false), mDestroyed(false)
   {}
 
@@ -396,6 +411,14 @@ public:
   virtual void DestroyImpl();
 
   
+  
+
+
+
+
+
+
+  void SetPullEnabled(bool aEnabled);
   
 
 
@@ -495,6 +518,7 @@ protected:
   
   StreamTime mUpdateKnownTracksTime;
   nsTArray<TrackData> mUpdateTracks;
+  bool mPullEnabled;
   bool mUpdateFinished;
   bool mDestroyed;
 };

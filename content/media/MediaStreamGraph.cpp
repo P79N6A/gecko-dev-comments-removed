@@ -214,7 +214,9 @@ public:
   
 
 
-  void ExtractPendingInput(SourceMediaStream* aStream);
+  void ExtractPendingInput(SourceMediaStream* aStream,
+                           GraphTime aDesiredUpToTime,
+                           bool* aEnsureNextIteration);
   
 
 
@@ -225,7 +227,7 @@ public:
 
 
 
-  void RecomputeBlocking();
+  void RecomputeBlocking(GraphTime aEndBlockingDecisions);
   
   
 
@@ -258,7 +260,7 @@ public:
 
 
 
-  StreamTime GraphTimeToStreamTime(MediaStream* aStream, StreamTime aTime);
+  StreamTime GraphTimeToStreamTime(MediaStream* aStream, GraphTime aTime);
   enum {
     INCLUDE_TRAILING_BLOCKED_INTERVAL = 0x01
   };
@@ -636,11 +638,29 @@ MediaStreamGraphImpl::UpdateConsumptionState(SourceMediaStream* aStream)
 }
 
 void
-MediaStreamGraphImpl::ExtractPendingInput(SourceMediaStream* aStream)
+MediaStreamGraphImpl::ExtractPendingInput(SourceMediaStream* aStream,
+                                          GraphTime aDesiredUpToTime,
+                                          bool* aEnsureNextIteration)
 {
   bool finished;
   {
     MutexAutoLock lock(aStream->mMutex);
+    if (aStream->mPullEnabled) {
+      for (PRUint32 j = 0; j < aStream->mListeners.Length(); ++j) {
+        MediaStreamListener* l = aStream->mListeners[j];
+        {
+          
+          
+          
+          StreamTime t =
+            GraphTimeToStreamTime(aStream, mBlockingDecisionsMadeUntilTime) +
+            (aDesiredUpToTime - mBlockingDecisionsMadeUntilTime);
+          MutexAutoUnlock unlock(aStream->mMutex);
+          l->NotifyPull(this, t);
+          *aEnsureNextIteration = true;
+        }
+      }
+    }
     finished = aStream->mUpdateFinished;
     for (PRInt32 i = aStream->mUpdateTracks.Length() - 1; i >= 0; --i) {
       SourceMediaStream::TrackData* data = &aStream->mUpdateTracks[i];
@@ -932,19 +952,15 @@ MediaStreamGraphImpl::WillUnderrun(MediaStream* aStream, GraphTime aTime,
 }
 
 void
-MediaStreamGraphImpl::RecomputeBlocking()
+MediaStreamGraphImpl::RecomputeBlocking(GraphTime aEndBlockingDecisions)
 {
-  PRInt32 writeAudioUpTo = AUDIO_TARGET_MS;
-  GraphTime endBlockingDecisions =
-    mCurrentTime + MillisecondsToMediaTime(writeAudioUpTo);
-
   bool blockingDecisionsWillChange = false;
   
-  while (mBlockingDecisionsMadeUntilTime < endBlockingDecisions) {
+  while (mBlockingDecisionsMadeUntilTime < aEndBlockingDecisions) {
     LOG(PR_LOG_DEBUG, ("Media graph %p computing blocking for time %f",
                        this, MediaTimeToSeconds(mBlockingDecisionsMadeUntilTime)));
     GraphTime end = GRAPH_TIME_MAX;
-    RecomputeBlockingAt(mBlockingDecisionsMadeUntilTime, endBlockingDecisions, &end);
+    RecomputeBlockingAt(mBlockingDecisionsMadeUntilTime, aEndBlockingDecisions, &end);
     LOG(PR_LOG_DEBUG, ("Media graph %p computed blocking for interval %f to %f",
                        this, MediaTimeToSeconds(mBlockingDecisionsMadeUntilTime),
                        MediaTimeToSeconds(end)));
@@ -953,7 +969,7 @@ MediaStreamGraphImpl::RecomputeBlocking()
       blockingDecisionsWillChange = true;
     }
   }
-  mBlockingDecisionsMadeUntilTime = endBlockingDecisions;
+  mBlockingDecisionsMadeUntilTime = aEndBlockingDecisions;
 
   for (PRUint32 i = 0; i < mStreams.Length(); ++i) {
     MediaStream* stream = mStreams[i];
@@ -1286,17 +1302,22 @@ MediaStreamGraphImpl::RunThread()
     }
     messageQueue.Clear();
 
+    PRInt32 writeAudioUpTo = AUDIO_TARGET_MS;
+    GraphTime endBlockingDecisions =
+      mCurrentTime + MillisecondsToMediaTime(writeAudioUpTo);
+
     
+    bool ensureNextIteration = false;
     for (PRUint32 i = 0; i < mStreams.Length(); ++i) {
       SourceMediaStream* is = mStreams[i]->AsSourceStream();
       if (is) {
         UpdateConsumptionState(is);
-        ExtractPendingInput(is);
+        ExtractPendingInput(is, endBlockingDecisions, &ensureNextIteration);
       }
     }
 
     GraphTime prevBlockingDecisionsMadeUntilTime = mBlockingDecisionsMadeUntilTime;
-    RecomputeBlocking();
+    RecomputeBlocking(endBlockingDecisions);
 
     PRUint32 audioStreamsActive = 0;
     bool allBlockedForever = true;
@@ -1320,7 +1341,7 @@ MediaStreamGraphImpl::RunThread()
         allBlockedForever = false;
       }
     }
-    if (!allBlockedForever || audioStreamsActive > 0) {
+    if (ensureNextIteration || !allBlockedForever || audioStreamsActive > 0) {
       EnsureNextIteration();
     }
 
@@ -1851,6 +1872,16 @@ SourceMediaStream::DestroyImpl()
     mDestroyed = true;
   }
   MediaStream::DestroyImpl();
+}
+
+void
+SourceMediaStream::SetPullEnabled(bool aEnabled)
+{
+  MutexAutoLock lock(mMutex);
+  mPullEnabled = aEnabled;
+  if (mPullEnabled && !mDestroyed) {
+    GraphImpl()->EnsureNextIteration();
+  }
 }
 
 void
