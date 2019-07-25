@@ -77,6 +77,8 @@ public:
 
 
 
+
+
   already_AddRefed<nsIStyleRule>
     StyleContextChanged(mozilla::dom::Element *aElement,
                         nsStyleContext *aOldStyleContext,

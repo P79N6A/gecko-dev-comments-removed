@@ -88,7 +88,8 @@ nsHTMLCSSStyleSheet::RulesMatching(ElementRuleProcessorData* aData)
       
       
       
-      aData->mPresContext->PresShell()->RestyleForAnimation(element);
+      aData->mPresContext->PresShell()->RestyleForAnimation(element,
+                                                            eRestyle_Self);
     } else {
       
       

@@ -766,7 +766,7 @@ nsSVGElement::WalkContentStyleRules(nsRuleWalker* aRuleWalker)
       
       
       
-      shell->RestyleForAnimation(this);
+      shell->RestyleForAnimation(this, eRestyle_Self);
     } else {
       
       
