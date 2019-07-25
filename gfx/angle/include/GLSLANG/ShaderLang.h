@@ -6,28 +6,25 @@
 #ifndef _COMPILER_INTERFACE_INCLUDED_
 #define _COMPILER_INTERFACE_INCLUDED_
 
+#include "nscore.h"
+
 #include "ResourceLimits.h"
 
 #ifdef _WIN32
-
-#define C_DECL __cdecl
-
-#ifndef MOZ_ENABLE_LIBXUL
-#ifdef ANGLE_BUILD
-#define ANGLE_EXPORT  __declspec(dllexport)
+# ifndef MOZ_ENABLE_LIBXUL
+#  ifdef ANGLE_BUILD
+#   define ANGLE_API NS_EXPORT
+#  else
+#   define ANGLE_API NS_IMPORT
+#  endif
+# else
+#  define ANGLE_API
+# endif
+# define C_DECL __cdecl
 #else
-#define ANGLE_EXPORT  __declspec(dllimport)
-#endif
-#else
-#define ANGLE_EXPORT
-#endif
-
-#else
-
-#define ANGLE_EXPORT
-#define __fastcall
-#define C_DECL
-
+# define ANGLE_API NS_EXTERNAL_VIS
+# define __fastcall
+# define C_DECL
 #endif
 
 
@@ -42,11 +39,11 @@
 
 
 
-ANGLE_EXPORT int ShInitialize();
+ANGLE_API int ShInitialize();
 
 
 
-ANGLE_EXPORT int ShFinalize();
+ANGLE_API int ShFinalize();
 
 
 
@@ -103,10 +100,10 @@ typedef void* ShHandle;
 
 
 
-ANGLE_EXPORT ShHandle ShConstructCompiler(const EShLanguage, int debugOptions);  
-ANGLE_EXPORT ShHandle ShConstructLinker(const EShExecutable, int debugOptions);  
-ANGLE_EXPORT ShHandle ShConstructUniformMap();                 
-ANGLE_EXPORT void ShDestruct(ShHandle);
+ANGLE_API ShHandle ShConstructCompiler(const EShLanguage, int debugOptions);  
+ANGLE_API ShHandle ShConstructLinker(const EShExecutable, int debugOptions);  
+ANGLE_API ShHandle ShConstructUniformMap();                 
+ANGLE_API void ShDestruct(ShHandle);
 
 
 
@@ -115,7 +112,7 @@ ANGLE_EXPORT void ShDestruct(ShHandle);
 
 
 
-ANGLE_EXPORT int ShCompile(
+ANGLE_API int ShCompile(
 	const ShHandle,
 	const char* const shaderStrings[],
 	const int numStrings,
@@ -129,14 +126,14 @@ ANGLE_EXPORT int ShCompile(
 
 
 
-ANGLE_EXPORT int ShCompileIntermediate(
+ANGLE_API int ShCompileIntermediate(
 	ShHandle compiler,
 	ShHandle intermediate,
 	const EShOptimizationLevel,
 	int debuggable           
 	);
 
-ANGLE_EXPORT int ShLink(
+ANGLE_API int ShLink(
 	const ShHandle,               
 	const ShHandle h[],           
 	const int numHandles,
@@ -144,7 +141,7 @@ ANGLE_EXPORT int ShLink(
 	short int** uniformsAccessed,  
 	int* numUniformsAccessed); 	
 
-ANGLE_EXPORT int ShLinkExt(
+ANGLE_API int ShLinkExt(
 	const ShHandle,               
 	const ShHandle h[],           
 	const int numHandles);
@@ -153,28 +150,28 @@ ANGLE_EXPORT int ShLinkExt(
 
 
 
-ANGLE_EXPORT void ShSetEncryptionMethod(ShHandle);
+ANGLE_API void ShSetEncryptionMethod(ShHandle);
 
 
 
 
 
-ANGLE_EXPORT const char* ShGetInfoLog(const ShHandle);
-ANGLE_EXPORT const char* ShGetObjectCode(const ShHandle);
-ANGLE_EXPORT const void* ShGetExecutable(const ShHandle);
-ANGLE_EXPORT int ShSetVirtualAttributeBindings(const ShHandle, const ShBindingTable*);   
-ANGLE_EXPORT int ShSetFixedAttributeBindings(const ShHandle, const ShBindingTable*);     
-ANGLE_EXPORT int ShGetPhysicalAttributeBindings(const ShHandle, const ShBindingTable**); 
+ANGLE_API const char* ShGetInfoLog(const ShHandle);
+ANGLE_API const char* ShGetObjectCode(const ShHandle);
+ANGLE_API const void* ShGetExecutable(const ShHandle);
+ANGLE_API int ShSetVirtualAttributeBindings(const ShHandle, const ShBindingTable*);   
+ANGLE_API int ShSetFixedAttributeBindings(const ShHandle, const ShBindingTable*);     
+ANGLE_API int ShGetPhysicalAttributeBindings(const ShHandle, const ShBindingTable**); 
 
 
 
-ANGLE_EXPORT int ShExcludeAttributes(const ShHandle, int *attributes, int count);
+ANGLE_API int ShExcludeAttributes(const ShHandle, int *attributes, int count);
 
 
 
 
 
-ANGLE_EXPORT int ShGetUniformLocation(const ShHandle uniformMap, const char* name);
+ANGLE_API int ShGetUniformLocation(const ShHandle uniformMap, const char* name);
 
 enum TDebugOptions {
 	EDebugOpNone               = 0x000,
