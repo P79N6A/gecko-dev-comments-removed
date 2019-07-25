@@ -279,13 +279,19 @@ void
 nsTransitionManager::Disconnect()
 {
   
+  RemoveAllTransitions();
+
+  mPresContext = nsnull;
+}
+
+void
+nsTransitionManager::RemoveAllTransitions()
+{
   while (!PR_CLIST_IS_EMPTY(&mElementTransitions)) {
     ElementTransitions *head = static_cast<ElementTransitions*>(
                                  PR_LIST_HEAD(&mElementTransitions));
     head->Destroy();
   }
-
-  mPresContext = nsnull;
 }
 
 static PRBool
@@ -868,6 +874,14 @@ nsTransitionManager::WillRefresh(mozilla::TimeStamp aTime)
   NS_ABORT_IF_FALSE(mPresContext,
                     "refresh driver should not notify additional observers "
                     "after pres context has been destroyed");
+  if (!mPresContext->GetPresShell()) {
+    
+    
+    
+    
+    RemoveAllTransitions();
+    return;
+  }
 
   nsTArray<TransitionEventInfo> events;
 
