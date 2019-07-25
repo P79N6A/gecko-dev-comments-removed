@@ -1160,42 +1160,36 @@ nsGlobalWindow::ClearControllers()
   }
 }
 
-class ClearScopeEvent : public nsRunnable
-{
-public:
-  ClearScopeEvent(nsGlobalWindow *innerWindow)
-    : mInnerWindow(innerWindow) {
-  }
-
-  NS_IMETHOD Run()
-  {
-    mInnerWindow->ReallyClearScope(this);
-    return NS_OK;
-  }
-
-private:
-  nsRefPtr<nsGlobalWindow> mInnerWindow;
-};
 
 void
-nsGlobalWindow::ReallyClearScope(nsRunnable *aRunnable)
+nsGlobalWindow::TryClearWindowScope(nsISupports *aWindow)
+{
+  nsGlobalWindow *window =
+          static_cast<nsGlobalWindow *>(static_cast<nsIDOMWindow*>(aWindow));
+
+  
+  
+  
+  
+  window->ClearScopeWhenAllScriptsStop();
+}
+
+void
+nsGlobalWindow::ClearScopeWhenAllScriptsStop()
 {
   NS_ASSERTION(IsInnerWindow(), "Must be an inner window");
 
+  
+  
+  
   nsIScriptContext *jsscx = GetContextInternal();
   if (jsscx && jsscx->GetExecutingScript()) {
-    if (!aRunnable) {
-      aRunnable = new ClearScopeEvent(this);
-      if (!aRunnable) {
-        
-        
-        
-        
-        return;
-      }
-    }
-
-    NS_DispatchToMainThread(aRunnable);
+    
+    
+    
+    
+    jsscx->SetTerminationFunction(TryClearWindowScope,
+                                  static_cast<nsIDOMWindow *>(this));
     return;
   }
 
@@ -1270,9 +1264,7 @@ nsGlobalWindow::FreeInnerObjects(PRBool aClearScope)
   mIndexedDB = nsnull;
 
   if (aClearScope) {
-    
-    
-    ReallyClearScope(nsnull);
+    ClearScopeWhenAllScriptsStop();
   }
 
   if (mDummyJavaPluginOwner) {
