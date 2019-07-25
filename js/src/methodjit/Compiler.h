@@ -1,42 +1,42 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=4 sw=4 et tw=99:
+ *
+ * ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla SpiderMonkey JavaScript 1.9 code, released
+ * May 28, 2008.
+ *
+ * The Initial Developer of the Original Code is
+ *   Brendan Eich <brendan@mozilla.org>
+ *
+ * Contributor(s):
+ *   David Anderson <danderson@mozilla.com>
+ *   David Mandelin <dmandelin@mozilla.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either of the GNU General Public License Version 2 or later (the "GPL"),
+ * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 #if !defined jsjaeger_compiler_h__ && defined JS_METHODJIT
 #define jsjaeger_compiler_h__
 
@@ -81,8 +81,7 @@ class Compiler : public BaseCompiler
         ic::MICInfo::Kind kind;
         jsbytecode *jumpTarget;
         Jump traceHint;
-        MaybeJump slowTraceHintOne;
-        MaybeJump slowTraceHintTwo;
+        MaybeJump slowTraceHint;
         union {
             struct {
                 bool typeConst;
@@ -94,17 +93,30 @@ class Compiler : public BaseCompiler
         } u;
     };
 
+    struct EqualityGenInfo {
+        DataLabelPtr addrLabel;
+        Label stubEntry;
+        Call stubCall;
+        BoolStub stub;
+        MaybeJump jumpToStub;
+        Label fallThrough;
+        jsbytecode *jumpTarget;
+        ValueRemat lvr, rvr;
+        Assembler::Condition cond;
+        JSC::MacroAssembler::RegisterID tempReg;
+    };
     
+    /* InlineFrameAssembler wants to see this. */
   public:
     struct CallGenInfo {
         CallGenInfo(uint32 argc)
           : argc(argc)
         { }
 
-        
-
-
-
+        /*
+         * These members map to members in CallICInfo. See that structure for
+         * more comments.
+         */
         jsbytecode   *pc;
         uint32       argc;
         DataLabelPtr funGuard;
@@ -126,10 +138,10 @@ class Compiler : public BaseCompiler
   private:
 #endif
 
-    
-
-
-
+    /*
+     * Writes of call return addresses which needs to be delayed until the final
+     * absolute address of the join point is known.
+     */
     struct CallPatchInfo {
         Label joinPoint;
         DataLabelPtr fastNcodePatch;
@@ -215,6 +227,7 @@ class Compiler : public BaseCompiler
 #if defined JS_MONOIC
     js::Vector<MICGenInfo, 64> mics;
     js::Vector<CallGenInfo, 64> callICs;
+    js::Vector<EqualityGenInfo, 64> equalityICs;
 #endif
 #if defined JS_POLYIC
     js::Vector<PICGenInfo, 16> pics;
@@ -229,8 +242,8 @@ class Compiler : public BaseCompiler
     bool addTraceHints;
 
   public:
-    
-    
+    // Special atom index used to indicate that the atom is 'length'. This
+    // follows interpreter usage in JSOP_LENGTH.
     enum { LengthAtomIndex = uint32(-2) };
 
     Compiler(JSContext *cx, JSStackFrame *fp);
@@ -251,13 +264,13 @@ class Compiler : public BaseCompiler
     CompileStatus generateEpilogue();
     CompileStatus finishThisUp(JITScript **jitp);
 
-    
+    /* Non-emitting helpers. */
     uint32 fullAtomIndex(jsbytecode *pc);
     void jumpInScript(Jump j, jsbytecode *pc);
     bool compareTwoValues(JSContext *cx, JSOp op, const Value &lhs, const Value &rhs);
     void addCallSite(uint32 id, bool stub);
 
-    
+    /* Emitting helpers. */
     void restoreFrameRegs(Assembler &masm);
     void emitStubCmpOp(BoolStub stub, jsbytecode *target, JSOp fused);
     void iter(uintN flags);
@@ -273,8 +286,8 @@ class Compiler : public BaseCompiler
 #endif
     bool constructThis();
 
-    
-    void jumpAndTrace(Jump j, jsbytecode *target, Jump *slowOne = NULL, Jump *slowTwo = NULL);
+    /* Opcode handlers. */
+    void jumpAndTrace(Jump j, jsbytecode *target, Jump *slow = NULL);
     void jsop_bindname(uint32 index);
     void jsop_setglobal(uint32 index);
     void jsop_getglobal(uint32 index);
@@ -317,7 +330,7 @@ class Compiler : public BaseCompiler
     void enterBlock(JSObject *obj);
     void leaveBlock();
 
-    
+    /* Fast arithmetic. */
     void jsop_binary(JSOp op, VoidStub stub);
     void jsop_binary_full(FrameEntry *lhs, FrameEntry *rhs, JSOp op, VoidStub stub);
     void jsop_binary_full_simple(FrameEntry *fe, JSOp op, VoidStub stub);
@@ -341,7 +354,7 @@ class Compiler : public BaseCompiler
     bool tryBinaryConstantFold(JSContext *cx, FrameState &frame, JSOp op,
                                FrameEntry *lhs, FrameEntry *rhs);
 
-    
+    /* Fast opcodes. */
     void jsop_bitop(JSOp op);
     void jsop_rsh();
     RegisterID rightRegForShift(FrameEntry *rhs);
@@ -407,8 +420,8 @@ class Compiler : public BaseCompiler
     Call stubCall(void *ptr);
 };
 
-} 
-} 
+} /* namespace js */
+} /* namespace mjit */
 
 #endif
 

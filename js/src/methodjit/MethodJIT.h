@@ -146,6 +146,7 @@ namespace ic {
 # endif
 # if defined JS_MONOIC
     struct MICInfo;
+    struct EqualityICInfo;
     struct CallICInfo;
 # endif
 }
@@ -175,6 +176,7 @@ typedef void (JS_FASTCALL *VoidStubCallIC)(VMFrame &, js::mjit::ic::CallICInfo *
 typedef void * (JS_FASTCALL *VoidPtrStubCallIC)(VMFrame &, js::mjit::ic::CallICInfo *);
 typedef void (JS_FASTCALL *VoidStubMIC)(VMFrame &, js::mjit::ic::MICInfo *);
 typedef void * (JS_FASTCALL *VoidPtrStubMIC)(VMFrame &, js::mjit::ic::MICInfo *);
+typedef JSBool (JS_FASTCALL *BoolStubEqualityIC)(VMFrame &, js::mjit::ic::EqualityICInfo *);
 #endif
 #ifdef JS_POLYIC
 typedef void (JS_FASTCALL *VoidStubPIC)(VMFrame &, js::mjit::ic::PICInfo *);
@@ -196,6 +198,12 @@ struct JITScript {
     uint32          nMICs;      
     ic::CallICInfo  *callICs;   
     uint32          nCallICs;   
+    ic::EqualityICInfo *equalityICs;
+    uint32          nEqualityICs;
+
+    
+    typedef Vector<JSC::ExecutablePool *, 0, SystemAllocPolicy> ExecPoolVector;
+    ExecPoolVector execPools;
 #endif
 #ifdef JS_POLYIC
     ic::PICInfo     *pics;      

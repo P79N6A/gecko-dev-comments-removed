@@ -957,8 +957,6 @@ mjit::Compiler::jsop_equality_int_string(JSOp op, BoolStub stub, jsbytecode *tar
 
     bool lhsInt = lhs->isType(JSVAL_TYPE_INT32);
     bool rhsInt = rhs->isType(JSVAL_TYPE_INT32);
-    bool lhsString = lhs->isType(JSVAL_TYPE_STRING);
-    bool rhsString = rhs->isType(JSVAL_TYPE_STRING);
 
     
     bool flipCondition = (target && fused == JSOP_IFEQ);
@@ -995,15 +993,14 @@ mjit::Compiler::jsop_equality_int_string(JSOp op, BoolStub stub, jsbytecode *tar
 
         frame.syncAndKill(Registers(Registers::AvailRegs), Uses(frame.frameDepth()), Uses(2));
 
-        
-        RegisterID T1 = frame.allocReg();
+        RegisterID tempReg = frame.allocReg();
 
         frame.pop();
         frame.pop();
         frame.discardFrame();
 
         
-        Label stubCall = stubcc.masm.label();
+        Label stubEntry = stubcc.masm.label();
 
         JaegerSpew(JSpew_Insns, " ---- BEGIN STUB CALL CODE ---- \n");
 
@@ -1011,8 +1008,31 @@ mjit::Compiler::jsop_equality_int_string(JSOp op, BoolStub stub, jsbytecode *tar
         frame.ensureValueSynced(stubcc.masm, lhs, lvr);
         frame.ensureValueSynced(stubcc.masm, rhs, rvr);
 
+        bool needStub = true;
         
-        stubcc.call(stub, frame.stackDepth() + script->nfixed + 2);
+#ifdef JS_MONOIC
+        EqualityGenInfo ic;
+
+        ic.cond = cond;
+        ic.tempReg = tempReg;
+        ic.lvr = lvr;
+        ic.rvr = rvr;
+        ic.stubEntry = stubEntry;
+        ic.stub = stub;
+
+        bool useIC = !addTraceHints || target >= PC;
+
+        
+        if (useIC) {
+            
+            ic.addrLabel = stubcc.masm.moveWithPatch(ImmPtr(NULL), Registers::ArgReg1);
+            ic.stubCall = stubcc.call(ic::Equality, frame.stackDepth() + script->nfixed + 2);
+            needStub = false;
+        }
+#endif
+
+        if (needStub)
+            stubcc.call(stub, frame.stackDepth() + script->nfixed + 2);
 
         
 
@@ -1027,94 +1047,59 @@ mjit::Compiler::jsop_equality_int_string(JSOp op, BoolStub stub, jsbytecode *tar
 
         JaegerSpew(JSpew_Insns, " ---- END STUB CALL CODE ---- \n");
 
-        
-        bool stringPath = !(lhsInt || rhsInt);
-        Label missedInt = stubCall;
-        Jump stringFallthrough;
-        Jump stringMatched;
-
-        if (stringPath) {
-            missedInt = stubcc.masm.label();
-
-            if (!lhsString) {
-                Jump lhsFail = stubcc.masm.testString(Assembler::NotEqual, lvr.typeReg());
-                lhsFail.linkTo(stubCall, &stubcc.masm);
-            }
-            if (!rhsString) {
-                JS_ASSERT(!rhsConst);
-                Jump rhsFail = stubcc.masm.testString(Assembler::NotEqual, rvr.typeReg());
-                rhsFail.linkTo(stubCall, &stubcc.masm);
-            }
-
-            
-            Imm32 atomizedFlags(JSString::FLAT | JSString::ATOMIZED);
-
-            stubcc.masm.load32(Address(lvr.dataReg(), offsetof(JSString, mLengthAndFlags)), T1);
-            stubcc.masm.and32(Imm32(JSString::TYPE_FLAGS_MASK), T1);
-            Jump lhsNotAtomized = stubcc.masm.branch32(Assembler::NotEqual, T1, atomizedFlags);
-            lhsNotAtomized.linkTo(stubCall, &stubcc.masm);
-
-            if (!rhsConst) {
-                stubcc.masm.load32(Address(rvr.dataReg(), offsetof(JSString, mLengthAndFlags)), T1);
-                stubcc.masm.and32(Imm32(JSString::TYPE_FLAGS_MASK), T1);
-                Jump rhsNotAtomized = stubcc.masm.branch32(Assembler::NotEqual, T1, atomizedFlags);
-                rhsNotAtomized.linkTo(stubCall, &stubcc.masm);
-            }
-
-            if (rhsConst) {
-                JSString *str = rval.toString();
-                JS_ASSERT(str->isAtomized());
-                stringMatched = stubcc.masm.branchPtr(cond, lvr.dataReg(), ImmPtr(str));
-            } else {
-                stringMatched = stubcc.masm.branchPtr(cond, lvr.dataReg(), rvr.dataReg());
-            }
-
-            stringFallthrough = stubcc.masm.jump();
-        }
-
         Jump fast;
-        if (lhsString || rhsString) {
-            
-            Jump jump = masm.jump();
-            stubcc.linkExitDirect(jump, missedInt);
-            fast = masm.jump();
-        } else {
-            
+        MaybeJump firstStubJump;
+
+        if (lhsInt || rhsInt || (!lhs->isTypeKnown() && !rhs->isTypeKnown())) {
             if (!lhsInt) {
                 Jump lhsFail = masm.testInt32(Assembler::NotEqual, lvr.typeReg());
-                stubcc.linkExitDirect(lhsFail, missedInt);
+                stubcc.linkExitDirect(lhsFail, stubEntry);
+                firstStubJump = lhsFail;
             }
             if (!rhsInt) {
-                if (rhsConst) {
-                    Jump rhsFail = masm.jump();
-                    stubcc.linkExitDirect(rhsFail, missedInt);
-                } else {
-                    Jump rhsFail = masm.testInt32(Assembler::NotEqual, rvr.typeReg());
-                    stubcc.linkExitDirect(rhsFail, missedInt);
-                }
+                Jump rhsFail = masm.testInt32(Assembler::NotEqual, rvr.typeReg());
+                stubcc.linkExitDirect(rhsFail, stubEntry);
+                if (!firstStubJump.isSet())
+                    firstStubJump = rhsFail;
             }
 
             if (rhsConst)
                 fast = masm.branch32(cond, lvr.dataReg(), Imm32(rval.toInt32()));
             else
                 fast = masm.branch32(cond, lvr.dataReg(), rvr.dataReg());
+
+            jumpInScript(fast, target);
+        } else {
+            Jump j = masm.jump();
+            stubcc.linkExitDirect(j, stubEntry);
+            firstStubJump = j;
+
+            
+            fast = masm.jump();
         }
+
+#ifdef JS_MONOIC
+        ic.jumpToStub = firstStubJump;
+        if (useIC) {
+            ic.fallThrough = masm.label();
+            ic.jumpTarget = target;
+            equalityICs.append(ic);
+        }
+#endif
 
         
         stubcc.crossJump(stubFallthrough, masm.label());
-        if (stringPath)
-            stubcc.crossJump(stringFallthrough, masm.label());
 
         
 
 
 
-        jumpAndTrace(fast, target, &stubBranch, stringPath ? &stringMatched : NULL);
+        jumpAndTrace(fast, target, &stubBranch);
     } else {
         
 
         
-        JS_ASSERT(!lhsString && !rhsString);
+        JS_ASSERT(!lhs->isType(JSVAL_TYPE_STRING) && !rhs->isType(JSVAL_TYPE_STRING));
 
         
         if (!lhsInt) {

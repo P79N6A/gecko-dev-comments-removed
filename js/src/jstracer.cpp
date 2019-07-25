@@ -193,6 +193,7 @@ nanojit::LInsPrinter::accNames[] = {
     "rt",           
 
     "objclasp",     
+    "objflags",     
     "objshape",     
     "objproto",     
     "objparent",    
@@ -9067,6 +9068,11 @@ TraceRecorder::equalityHelper(Value& l, Value& r, LIns* l_ins, LIns* r_ins,
         } else if (l.isObject()) {
             if (l.toObject().getClass()->ext.equality)
                 RETURN_STOP_A("Can't trace extended class equality operator");
+            LIns* flags_ins = lir->insLoad(LIR_ldi, l_ins, offsetof(JSObject, flags),
+                                           ACCSET_OBJ_FLAGS);
+            LIns* flag_ins = lir->ins2(LIR_andi, flags_ins, INS_CONSTU(JSObject::HAS_EQUALITY));
+            guard(true, lir->insEqI_0(flag_ins), BRANCH_EXIT);
+
             op = LIR_eqp;
             cond = (l == r);
         } else if (l.isBoolean()) {
@@ -16906,6 +16912,10 @@ void ValidateWriter::checkAccSet(LOpcode op, LIns* base, int32_t disp, AccSet ac
 
       case ACCSET_OBJ_CLASP:
         ok = OK_OBJ_FIELD(LIR_ldp, clasp);
+        break;
+
+      case ACCSET_OBJ_FLAGS:
+        ok = OK_OBJ_FIELD(LIR_ldi, flags);
         break;
 
       case ACCSET_OBJ_SHAPE:
