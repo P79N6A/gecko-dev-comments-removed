@@ -53,7 +53,6 @@
 #include "nsHashSets.h"
 #include "nsIDOMXMLDocument.h"
 #include "nsIDOMDocumentXBL.h"
-#include "nsIDOMNSDocument.h"
 #include "nsStubDocumentObserver.h"
 #include "nsIDOM3EventTarget.h"
 #include "nsIDOMNSEventTarget.h"
@@ -489,7 +488,6 @@ protected:
 
 class nsDocument : public nsIDocument,
                    public nsIDOMXMLDocument, 
-                   public nsIDOMNSDocument,
                    public nsIDOMDocumentXBL,
                    public nsSupportsWeakReference,
                    public nsIDOMEventTarget,
@@ -788,9 +786,6 @@ public:
 
   
   NS_DECL_NSIDOMXMLDOCUMENT
-
-  
-  NS_DECL_NSIDOMNSDOCUMENT
 
   
   NS_DECL_NSIDOMDOCUMENTXBL
@@ -1233,7 +1228,6 @@ protected:
 #define NS_DOCUMENT_INTERFACE_TABLE_BEGIN(_class)                             \
   NS_NODE_OFFSET_AND_INTERFACE_TABLE_BEGIN(_class)                            \
   NS_INTERFACE_TABLE_ENTRY_AMBIGUOUS(_class, nsIDOMDocument, nsDocument)      \
-  NS_INTERFACE_TABLE_ENTRY_AMBIGUOUS(_class, nsIDOMNSDocument, nsDocument)    \
   NS_INTERFACE_TABLE_ENTRY_AMBIGUOUS(_class, nsIDOMEventTarget, nsDocument)   \
   NS_INTERFACE_TABLE_ENTRY_AMBIGUOUS(_class, nsIDOMNode, nsDocument)
 

@@ -169,6 +169,9 @@ public:
     NS_IMETHOD CloneNode(PRBool deep, nsIDOMNode **_retval);
 
     
+    NS_IMETHOD GetContentType(nsAString& aContentType);
+
+    
     NS_IMETHOD GetElementById(const nsAString& aId, nsIDOMElement** aReturn)
     {
         return nsDocument::GetElementById(aId, aReturn);
@@ -177,9 +180,6 @@ public:
 
     
     NS_DECL_NSIDOMXULDOCUMENT
-
-    
-    NS_IMETHOD GetContentType(nsAString& aContentType);
 
     
     NS_IMETHOD StyleSheetLoaded(nsCSSStyleSheet* aSheet,

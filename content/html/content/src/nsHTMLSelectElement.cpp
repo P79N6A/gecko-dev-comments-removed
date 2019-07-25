@@ -38,6 +38,7 @@
 
 
 #include "nsHTMLSelectElement.h"
+
 #include "nsHTMLOptionElement.h"
 #include "nsIDOMEventTarget.h"
 #include "nsContentCreatorFunctions.h"
@@ -51,12 +52,9 @@
 #include "nsContentCreatorFunctions.h"
 
 #include "nsIDOMHTMLOptGroupElement.h"
-#include "nsHTMLOptionElement.h"
 #include "nsEventStates.h"
 #include "nsGUIEvent.h"
 #include "nsIPrivateDOMEvent.h"
-#include "nsIBoxObject.h"
-#include "nsIDOMNSDocument.h"
 
 
 #include "nsIDocument.h"

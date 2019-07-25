@@ -78,20 +78,6 @@ NS_IMPL_RELEASE_INHERITED(nsSVGDocument, nsXMLDocument)
 
 
 NS_IMETHODIMP
-nsSVGDocument::GetTitle(nsAString& aTitle)
-{
-  return nsXMLDocument::GetTitle(aTitle);
-}
-
-
-NS_IMETHODIMP
-nsSVGDocument::GetReferrer(nsAString& aReferrer)
-{
-  return nsDocument::GetReferrer(aReferrer);
-}
-
-
-NS_IMETHODIMP
 nsSVGDocument::GetDomain(nsAString& aDomain)
 {
   SetDOMStringToNull(aDomain);
