@@ -791,14 +791,8 @@ WeaveSvc.prototype = {
       }
 
       
-      switch (register.status) {
-        case 400:
-          error = this._errorStr(register);
-          break;
-        case 417:
-          error = "captcha-incorrect";
-          break;
-      }
+      if (register.status == 400)
+        error = this._errorStr(register);
     }
     catch(ex) {
       this._log.warn("Failed to create account: " + ex);
