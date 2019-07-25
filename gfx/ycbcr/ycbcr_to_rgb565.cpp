@@ -377,7 +377,8 @@ NS_GFX_(void) ScaleYCbCrToRGB565(const PRUint8 *y_buf,
 
 
   NS_ASSERTION((y_pitch&15) == 0 && (uv_pitch&15) == 0 &&
-   ((y_buf-NULL)&15) == 0 && ((u_buf-NULL)&15) == 0 && ((v_buf-NULL)&15) == 0,
+   ((y_buf-(PRUint8 *)NULL)&15) == 0 &&
+   ((u_buf-(PRUint8 *)NULL)&15) == 0 && ((v_buf-(PRUint8 *)NULL)&15) == 0,
    "ScaleYCbCrToRGB565 source image unaligned");
   
 
