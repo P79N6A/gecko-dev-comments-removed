@@ -43,45 +43,43 @@
 #endif
 
 
-  
 
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class nsPrintfCString : public nsCString
+class nsPrintfCString : public nsFixedCString
   {
     typedef nsCString string_type;
 
-    enum { kLocalBufferSize=15 };
-      
-      
-
     public:
+      explicit nsPrintfCString( const char_type* format, ... )
+        : nsFixedCString(mLocalBuffer, kLocalBufferSize, 0)
+        {
+          va_list ap;
+          va_start(ap, format);
+          AppendPrintf(format, ap);
+          va_end(ap);
+        }
+
       
-      explicit nsPrintfCString( const char_type* format, ... );
-      nsPrintfCString( size_type n, const char_type* format, ...);
+      
+      nsPrintfCString( size_type n, const char_type* format, ...)
+        : nsFixedCString(mLocalBuffer, kLocalBufferSize, 0)
+        {
+          va_list ap;
+          va_start(ap, format);
+          AppendPrintf(format, ap);
+          va_end(ap);
+        }
 
     private:
-      char_type  mLocalBuffer[ kLocalBufferSize + 1 ];
+      enum { kLocalBufferSize=15 };
+      
+      
+
+      char_type  mLocalBuffer[ kLocalBufferSize ];
   };
 
 #endif 

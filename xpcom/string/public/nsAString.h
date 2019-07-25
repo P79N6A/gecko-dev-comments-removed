@@ -56,6 +56,7 @@
 #endif 
 
 #include <string.h>
+#include <stdarg.h>
 
 #define kNotFound -1
 
