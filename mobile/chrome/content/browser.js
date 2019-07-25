@@ -2657,8 +2657,14 @@ Tab.prototype = {
       Elements.browsers.selectedPanel = notification;
       browser.active = true;
       document.getElementById("tabs").selectedTab = this._chromeTab;
-    }
-    else {
+
+      
+      let fl = browser.QueryInterface(Ci.nsIFrameLoaderOwner).frameLoader;
+      browser.focus();
+      try {
+        fl.activateRemoteFrame();
+      } catch (e) {}
+    } else {
       browser.messageManager.sendAsyncMessage("Browser:Blur", { });
       browser.setAttribute("type", "content");
       browser.active = false;
