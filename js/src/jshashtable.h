@@ -593,7 +593,12 @@ class HashTable : AllocPolicy
 #endif
     }
 
-    bool add(AddPtr &p, const T &t)
+    
+
+
+
+
+    bool add(AddPtr &p, T **pentry)
     {
         ReentrancyGuard g(*this);
         JS_ASSERT(mutationCount == p.mutationCount);
@@ -630,7 +635,7 @@ class HashTable : AllocPolicy
             }
         }
 
-        p.entry->t = t;
+        *pentry = &p.entry->t;
         p.entry->setLive(p.keyHash);
         entryCount++;
 #ifdef DEBUG
@@ -842,8 +847,27 @@ class HashMap
 
 
     typedef typename Impl::AddPtr AddPtr;
-    AddPtr lookupForAdd(const Lookup &l) const        { return impl.lookupForAdd(l); }
-    bool add(AddPtr &p, const Key &k, const Value &v) { return impl.add(p,Entry(k,v)); }
+    AddPtr lookupForAdd(const Lookup &l) const {
+        return impl.lookupForAdd(l);
+    }
+
+    bool add(AddPtr &p, const Key &k, const Value &v) {
+        Entry *pentry;
+        if (!impl.add(p, &pentry))
+            return false;
+        const_cast<Key &>(pentry->key) = k;
+        pentry->value = v;
+        return true;
+    }
+
+    bool add(AddPtr &p, const Key &k) {
+        Entry *pentry;
+        if (!impl.add(p, &pentry))
+            return false;
+        const_cast<Key &>(pentry->key) = k;
+        return true;
+    }
+
     bool relookupOrAdd(AddPtr &p, const Key &k, const Value &v) {
         return impl.relookupOrAdd(p, k, Entry(k, v));
     }
@@ -989,8 +1013,17 @@ class HashSet
 
 
     typedef typename Impl::AddPtr AddPtr;
-    AddPtr lookupForAdd(const Lookup &l) const        { return impl.lookupForAdd(l); }
-    bool add(AddPtr &p, const T &t)                   { return impl.add(p,t); }
+    AddPtr lookupForAdd(const Lookup &l) const {
+        return impl.lookupForAdd(l);
+    }
+
+    bool add(AddPtr &p, const T &t) {
+        const T *pentry;
+        if (!impl.add(p, &pentry))
+            return false;
+        const_cast<T &>(*pentry) = t;
+        return true;
+    }
 
     
 
