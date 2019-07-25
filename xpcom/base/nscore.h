@@ -445,15 +445,6 @@ typedef PRUint32 nsrefcnt;
 
 
 
-#ifdef NS_STATIC_CHECKING
-# define NS_SCRIPTABLE __attribute__((user("NS_script")))
-#else
-# define NS_SCRIPTABLE
-#endif
-
-
-
-
 #ifdef HAVE_SEH_EXCEPTIONS
 #define MOZ_SEH_TRY           __try
 #define MOZ_SEH_EXCEPT(expr)  __except(expr)

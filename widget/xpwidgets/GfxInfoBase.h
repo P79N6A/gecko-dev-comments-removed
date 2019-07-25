@@ -42,13 +42,13 @@ public:
   
   
   
-  NS_SCRIPTABLE NS_IMETHOD GetFeatureStatus(PRInt32 aFeature, PRInt32 *_retval);
-  NS_SCRIPTABLE NS_IMETHOD GetFeatureSuggestedDriverVersion(PRInt32 aFeature, nsAString & _retval);
-  NS_SCRIPTABLE NS_IMETHOD GetWebGLParameter(const nsAString & aParam, nsAString & _retval);
+  NS_IMETHOD GetFeatureStatus(PRInt32 aFeature, PRInt32 *_retval);
+  NS_IMETHOD GetFeatureSuggestedDriverVersion(PRInt32 aFeature, nsAString & _retval);
+  NS_IMETHOD GetWebGLParameter(const nsAString & aParam, nsAString & _retval);
 
-  NS_SCRIPTABLE NS_IMETHOD GetFailures(PRUint32 *failureCount, char ***failures);
+  NS_IMETHOD GetFailures(PRUint32 *failureCount, char ***failures);
   NS_IMETHOD_(void) LogFailure(const nsACString &failure);
-  NS_SCRIPTABLE NS_IMETHOD GetInfo(JSContext*, jsval*);
+  NS_IMETHOD GetInfo(JSContext*, jsval*);
 
   
   
