@@ -42,6 +42,7 @@
 #include "mozilla/plugins/PPluginInstanceChild.h"
 #include "mozilla/plugins/PluginScriptableObjectChild.h"
 #include "mozilla/plugins/StreamNotifyChild.h"
+#include "mozilla/plugins/PPluginSurfaceChild.h"
 #if defined(OS_WIN)
 #include "mozilla/gfx/SharedDIBWin.h"
 #elif defined(OS_MACOSX)
@@ -107,6 +108,16 @@ protected:
     DoAsyncSetWindow(const gfxSurfaceType& aSurfaceType,
                      const NPRemoteWindow& aWindow,
                      bool aIsAsync);
+
+    virtual PPluginSurfaceChild* AllocPPluginSurface(const WindowsSharedMemoryHandle&,
+                                                     const gfxIntSize&, const bool&) {
+        return new PPluginSurfaceChild();
+    }
+
+    virtual bool DeallocPPluginSurface(PPluginSurfaceChild* s) {
+        delete s;
+        return true;
+    }
 
     NS_OVERRIDE
     virtual bool
@@ -458,6 +469,15 @@ private:
     void InvalidateRectDelayed(void);
 
     
+    void ClearCurrentSurface();
+
+    
+    void SwapSurfaces();
+
+    
+    void ClearAllSurfaces();
+
+    
     
     bool mLayersRendering;
 
@@ -467,6 +487,12 @@ private:
     
     
     nsRefPtr<gfxASurface> mBackSurface;
+
+#ifdef XP_WIN
+    
+    PPluginSurfaceChild* mCurrentSurfaceActor;
+    PPluginSurfaceChild* mBackSurfaceActor;
+#endif
 
     
     
