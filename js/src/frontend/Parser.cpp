@@ -1136,7 +1136,19 @@ LeaveFunction(ParseNode *fn, Parser *parser, PropertyName *funName = NULL,
                     return false;
                 dn->pn_dflags |= PND_BOUND;
                 JS_ASSERT(dn->kind() == Definition::NAMED_LAMBDA);
-                if (dn->isClosed())
+
+                
+
+
+
+
+
+
+
+
+
+
+                if (dn->isClosed() || dn->isAssigned())
                     funpc->sc->fun()->flags |= JSFUN_HEAVYWEIGHT;
                 continue;
             }
@@ -2222,17 +2234,6 @@ NoteLValue(JSContext *cx, ParseNode *pn, SharedContext *sc)
         pn->pn_lexdef->pn_dflags |= PND_ASSIGNED;
 
     pn->pn_dflags |= PND_ASSIGNED;
-
-    
-
-
-
-
-
-
-
-    if (sc->inFunction() && pn->pn_atom == sc->fun()->atom)
-        sc->setBindingsAccessedDynamically();
 }
 
 static bool
