@@ -19,15 +19,6 @@
 
 
 
-static inline bool
-NodeHasChildren(nsINode *aNode)
-{
-  return aNode->GetChildCount() > 0;
-}
-
-
-
-
 
 static nsINode*
 NodeToParentOffset(nsINode *aNode, PRInt32 *aOffset)
@@ -318,7 +309,7 @@ nsContentIterator::Init(nsIDOMRange* aDOMRange)
 
   nsIContent *cChild = nsnull;
 
-  if (!startIsData && NodeHasChildren(startNode))
+  if (!startIsData && startNode->HasChildren())
     cChild = startNode->GetChildAt(startIndx);
 
   if (!cChild) 
@@ -386,7 +377,7 @@ nsContentIterator::Init(nsIDOMRange* aDOMRange)
 
   bool endIsData = endNode->IsNodeOfType(nsINode::eDATA_NODE);
 
-  if (endIsData || !NodeHasChildren(endNode) || endIndx == 0)
+  if (endIsData || !endNode->HasChildren() || endIndx == 0)
   {
     if (mPre) {
       if (endNode->IsNodeOfType(nsINode::eCONTENT)) {
@@ -693,7 +684,7 @@ nsContentIterator::NextNode(nsINode *aNode, nsTArray<PRInt32> *aIndexes)
   if (mPre)  
   {
     
-    if (NodeHasChildren(n))
+    if (n->HasChildren())
     {
       nsINode *nFirstChild = n->GetFirstChild();
 
