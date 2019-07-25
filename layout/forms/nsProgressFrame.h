@@ -92,6 +92,11 @@ public:
       ~(nsIFrame::eReplaced | nsIFrame::eReplacedContainsBlock));
   }
 
+  
+
+
+  bool ShouldUseNativeStyle() const;
+
 protected:
   
   void ReflowBarFrame(nsIFrame*                aBarFrame,

@@ -137,6 +137,7 @@ nsProgressFrame::AppendAnonymousContentTo(nsBaseContentList& aElements,
 }
 
 NS_QUERYFRAME_HEAD(nsProgressFrame)
+  NS_QUERYFRAME_ENTRY(nsProgressFrame)
   NS_QUERYFRAME_ENTRY(nsIAnonymousContentCreator)
 NS_QUERYFRAME_TAIL_INHERITING(nsHTMLContainerFrame)
 
@@ -217,8 +218,7 @@ nsProgressFrame::ReflowBarFrame(nsIFrame*                aBarFrame,
   
   
   
-  if (position != -1 ||
-      aBarFrame->GetStyleDisplay()->mAppearance == NS_THEME_PROGRESSBAR_CHUNK) {
+  if (position != -1 || ShouldUseNativeStyle()) {
     width -= reflowState.mComputedMargin.LeftRight() +
              reflowState.mComputedBorderPadding.LeftRight();
     width = NS_MAX(width, 0);
@@ -270,5 +270,20 @@ nsProgressFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
   autoSize.width *= 10; 
 
   return autoSize;
+}
+
+bool
+nsProgressFrame::ShouldUseNativeStyle() const
+{
+  
+  
+  
+  
+  return GetStyleDisplay()->mAppearance == NS_THEME_PROGRESSBAR &&
+         mBarDiv->GetPrimaryFrame()->GetStyleDisplay()->mAppearance == NS_THEME_PROGRESSBAR_CHUNK &&
+         !PresContext()->HasAuthorSpecifiedRules(const_cast<nsProgressFrame*>(this),
+                                                 NS_AUTHOR_SPECIFIED_BORDER | NS_AUTHOR_SPECIFIED_BACKGROUND) &&
+         !PresContext()->HasAuthorSpecifiedRules(mBarDiv->GetPrimaryFrame(),
+                                                 NS_AUTHOR_SPECIFIED_BORDER | NS_AUTHOR_SPECIFIED_BACKGROUND);
 }
 
