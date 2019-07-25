@@ -314,7 +314,9 @@ SyncEngine.prototype = {
     this._snapshot.load();
 
     try {
+      this._remote.status.data; 
       yield this._remote.openSession(self.cb, this._snapshot);
+
     } catch (e if e.status == 404) {
       yield this._initialUpload.async(this, self.cb);
       return;
