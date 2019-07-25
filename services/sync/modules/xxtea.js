@@ -43,26 +43,46 @@
 
 const EXPORTED_SYMBOLS = ['encrypt', 'decrypt'];
 
+function Paused() {
+}
+Paused.prototype = {
+  toString: function Paused_toString() {
+    return "[Generator Paused]";
+  }
+}
+
+
+
+
+
+
+
+
 
 
 function encrypt(plaintext, password) {
   var v = new Array(2), k = new Array(4), s = "", i;
 
-  plaintext = escape(plaintext);  
+  
+  plaintext = escape(plaintext);
 
   
-  for (var i=0; i<4; i++) k[i] = Str4ToLong(password.slice(i*4,(i+1)*4));
+  for (i = 0; i < 4; i++)
+    k[i] = Str4ToLong(password.slice(i * 4, (i + 1) * 4));
 
-  for (i=0; i<plaintext.length; i+=8) {  
-    v[0] = Str4ToLong(plaintext.slice(i,i+4));  
-    v[1] = Str4ToLong(plaintext.slice(i+4,i+8));
+  for (i = 0; i < plaintext.length; i += 8) {
+    
+    
+    v[0] = Str4ToLong(plaintext.slice(i, i + 4));
+    v[1] = Str4ToLong(plaintext.slice(i + 4, i + 8));
     code(v, k);
     s += LongToStr4(v[0]) + LongToStr4(v[1]);
+
+    if (i % 512 == 0)
+      yield new Paused();
   }
 
-  return escCtrlCh(s);
-  
-  
+  yield escCtrlCh(s);
 }
 
 
@@ -70,20 +90,25 @@ function encrypt(plaintext, password) {
 function decrypt(ciphertext, password) {
   var v = new Array(2), k = new Array(4), s = "", i;
 
-  for (var i=0; i<4; i++) k[i] = Str4ToLong(password.slice(i*4,(i+1)*4));
+  for (i = 0; i < 4; i++)
+    k[i] = Str4ToLong(password.slice(i * 4, (i + 1) * 4));
 
   ciphertext = unescCtrlCh(ciphertext);
-  for (i=0; i<ciphertext.length; i+=8) {  
-    v[0] = Str4ToLong(ciphertext.slice(i,i+4));
-    v[1] = Str4ToLong(ciphertext.slice(i+4,i+8));
+  for (i = 0; i < ciphertext.length; i += 8) {
+    
+    v[0] = Str4ToLong(ciphertext.slice(i, i + 4));
+    v[1] = Str4ToLong(ciphertext.slice(i + 4, i + 8));
     decode(v, k);
     s += LongToStr4(v[0]) + LongToStr4(v[1]);
+
+    if (i % 512 == 0)
+      yield new Paused();
   }
 
   
   s = s.replace(/\0+$/, '');
 
-  return unescape(s);
+  yield unescape(s);
 }
 
 
