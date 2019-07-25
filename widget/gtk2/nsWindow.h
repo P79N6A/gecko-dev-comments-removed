@@ -95,6 +95,7 @@ extern PRLogModuleInfo *gWidgetDrawLog;
 
 #endif 
 
+class nsDragService;
 #if defined(MOZ_X11) && defined(MOZ_HAVE_SHAREDMEMORYSYSV)
 #  define MOZ_HAVE_SHMIMAGE
 
@@ -318,6 +319,12 @@ public:
     void               DispatchDragEvent(PRUint32 aMsg,
                                          const nsIntPoint& aRefPoint,
                                          guint aTime);
+    void               DispatchDragMotionEvents(nsDragService *aDragService,
+                                                const nsIntPoint& aPoint,
+                                                guint aTime);
+    gboolean           DispatchDragDropEvent(nsDragService *aDragService,
+                                             const nsIntPoint& aWindowPoint,
+                                             guint aTime);
     
     
     bool               DispatchKeyDownEvent(GdkEventKey *aEvent,

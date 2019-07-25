@@ -3324,6 +3324,37 @@ nsWindow::CheckNeedDragLeave(nsWindow* aInnerMostWidget,
 }
 
 void
+nsWindow::DispatchDragMotionEvents(nsDragService *aDragService,
+                                   const nsIntPoint& aWindowPoint, guint aTime)
+{
+    aDragService->SetCanDrop(false);
+
+    aDragService->FireDragEventAtSource(NS_DRAGDROP_DRAG);
+
+    DispatchDragEvent(NS_DRAGDROP_OVER, aWindowPoint, aTime);
+}
+
+
+gboolean
+nsWindow::DispatchDragDropEvent(nsDragService *aDragService,
+                                const nsIntPoint& aWindowPoint, guint aTime)
+{
+    
+    
+    
+    if (mIsDestroyed)
+        return FALSE;
+
+    bool canDrop;
+    aDragService->GetCanDrop(&canDrop);
+    PRUint32 msg = canDrop ? NS_DRAGDROP_DROP : NS_DRAGDROP_EXIT;
+
+    DispatchDragEvent(msg, aWindowPoint, aTime);
+
+    return canDrop;
+}
+
+void
 nsWindow::DispatchDragEvent(PRUint32 aMsg, const nsIntPoint& aRefPoint,
                             guint aTime)
 {
@@ -3398,12 +3429,8 @@ nsWindow::OnDragMotionEvent(GtkWidget *aWidget,
     
     dragServiceGTK->TargetSetLastContext(aWidget, aDragContext, aTime);
 
-    dragServiceGTK->SetCanDrop(false);
-
-    dragService->FireDragEventAtSource(NS_DRAGDROP_DRAG);
-
     innerMostWidget->
-        DispatchDragEvent(NS_DRAGDROP_OVER, nsIntPoint(retx, rety), aTime);
+        DispatchDragMotionEvents(dragServiceGTK, nsIntPoint(retx, rety), aTime);
 
     
     
@@ -3502,27 +3529,12 @@ nsWindow::OnDragDropEvent(GtkWidget *aWidget,
     
 
     dragServiceGTK->TargetSetLastContext(aWidget, aDragContext, aTime);
-    dragServiceGTK->SetCanDrop(false);
-
-    dragService->FireDragEventAtSource(NS_DRAGDROP_DRAG);
 
     innerMostWidget->
-        DispatchDragEvent(NS_DRAGDROP_OVER, nsIntPoint(retx, rety), aTime);
+        DispatchDragMotionEvents(dragServiceGTK, nsIntPoint(retx, rety), aTime);
 
-    gboolean success = FALSE;
-
-    
-    
-    
-    if (!innerMostWidget->mIsDestroyed) {
-        bool canDrop;
-        dragServiceGTK->GetCanDrop(&canDrop);
-        PRUint32 msg = canDrop ? NS_DRAGDROP_DROP : NS_DRAGDROP_EXIT;
-
-        innerMostWidget->DispatchDragEvent(msg, nsIntPoint(retx, rety), aTime);
-
-        success = canDrop;
-    }
+    gboolean success = innerMostWidget->
+        DispatchDragDropEvent(dragServiceGTK, nsIntPoint(retx, rety), aTime);
 
     
 
