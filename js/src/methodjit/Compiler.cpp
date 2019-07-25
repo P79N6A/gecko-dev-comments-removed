@@ -1573,7 +1573,7 @@ mjit::Compiler::generateMethod()
 
 
 
-                if (cx->typeInferenceEnabled() && op == JSOP_LOOPHEAD) {
+                if (cx->typeInferenceEnabled() && op == JSOP_LOOPHEAD && analysis->getLoop(PC)) {
                     frame.syncAndForgetEverything();
                     Jump j = masm.jump();
                     if (!startLoop(PC, j, PC))
