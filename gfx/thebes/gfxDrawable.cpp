@@ -129,12 +129,6 @@ PreparePatternForUntiledDrawing(gfxPattern* aPattern,
             break;
         }
 
-        case gfxASurface::SurfaceTypeQuartz:
-        case gfxASurface::SurfaceTypeQuartzImage:
-            
-            aPattern->SetFilter(aDefaultFilter);
-            break;
-
         default:
             
             
