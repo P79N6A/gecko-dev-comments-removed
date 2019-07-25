@@ -1612,7 +1612,7 @@ nsHTMLEditRules::WillInsertBreak(nsISelection *aSelection, PRBool *aCancel, PRBo
   }
   
   nsCOMPtr<nsIDOMNode> listItem = IsInListItem(blockParent);
-  if (listItem)
+  if (listItem && listItem != hostNode)
   {
     res = ReturnInListItem(aSelection, listItem, node, offset);
     *aHandled = PR_TRUE;
@@ -6509,6 +6509,7 @@ nsHTMLEditRules::MakeTransitionList(nsCOMArray<nsIDOMNode>& inArrayOfNodes,
 
 
 
+
 nsCOMPtr<nsIDOMNode> 
 nsHTMLEditRules::IsInListItem(nsIDOMNode *aNode)
 {
@@ -6520,6 +6521,7 @@ nsHTMLEditRules::IsInListItem(nsIDOMNode *aNode)
   
   while (parent)
   {
+    if (!mHTMLEditor->IsNodeInActiveEditor(parent)) return nsnull;
     if (nsHTMLEditUtils::IsTableElement(parent)) return nsnull;
     if (nsHTMLEditUtils::IsListItem(parent)) return parent;
     tmp=parent; tmp->GetParentNode(getter_AddRefs(parent));
