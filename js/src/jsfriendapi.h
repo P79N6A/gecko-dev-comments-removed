@@ -44,6 +44,8 @@
 #include "jspubtd.h"
 #include "jsprvtd.h"
 
+#include "mozilla/GuardObjects.h"
+
 JS_BEGIN_EXTERN_C
 
 extern JS_FRIEND_API(void)
@@ -453,6 +455,37 @@ JS_FRIEND_API(JSThread *)
 GetContextThread(const JSContext *cx);
 #endif
 
+class JS_FRIEND_API(AutoLockGC)
+{
+  public:
+    explicit AutoLockGC(JSRuntime *rt = NULL
+                        MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+      : runtime(rt)
+    {
+        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+        if (rt)
+            LockGC(rt);
+    }
+
+    ~AutoLockGC()
+    {
+        if (runtime)
+            UnlockGC(runtime);
+    }
+
+    bool locked() const {
+        return !!runtime;
+    }
+    void lock(JSRuntime *rt);
+
+  private:
+    static void LockGC(JSRuntime *rt);
+    static void UnlockGC(JSRuntime *rt);
+
+    JSRuntime *runtime;
+    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+};
+
 } 
 
 
@@ -465,4 +498,4 @@ js_GetClassPrototype(JSContext *cx, JSObject *scope, JSProtoKey protoKey,
 
 #endif
 
-#endif 
+#endif
