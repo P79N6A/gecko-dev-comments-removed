@@ -65,18 +65,17 @@ function getTabModalPromptBox(domWin) {
 
     
     function getChromeWindow(aWindow) {
-        var chromeWin = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+        var chromeWin = SpecialPowers.wrap(aWindow).QueryInterface(Ci.nsIInterfaceRequestor)
                                .getInterface(Ci.nsIWebNavigation)
                                .QueryInterface(Ci.nsIDocShell)
                                .chromeEventHandler.ownerDocument.defaultView;
-        return XPCNativeWrapper.unwrap(chromeWin);
+        return chromeWin;
     }
 
     try {
         
         var promptWin = domWin.top;
 
-        
         
         var chromeWin = getChromeWindow(promptWin);
 
@@ -86,7 +85,8 @@ function getTabModalPromptBox(domWin) {
         
     }
 
-    return promptBox;
+    
+    return SpecialPowers.unwrap(promptBox);
 }
 
 function getDialogDoc() {
