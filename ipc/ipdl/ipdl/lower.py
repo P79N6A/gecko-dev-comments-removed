@@ -3395,7 +3395,7 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
                                             p.routingId()))
             ])
             failif = StmtIf(ExprNot(descriptorvar))
-            failif.addifstmt(StmtReturn.FALSE)
+            failif.addifstmt(StmtReturn(ExprLiteral.NULL))
             createshmem.addstmt(failif)
 
             failif = StmtIf(ExprNot(ExprCall(
