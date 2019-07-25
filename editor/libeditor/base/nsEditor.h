@@ -667,7 +667,7 @@ public:
   }
 
   
-  virtual PRBool HasFocus();
+  virtual already_AddRefed<nsIContent> GetFocusedContent();
 
   
   
