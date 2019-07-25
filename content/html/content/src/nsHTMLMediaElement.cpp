@@ -2572,6 +2572,14 @@ void nsHTMLMediaElement::SetRequestHeaders(nsIHttpChannel* aChannel)
   SetAcceptHeader(aChannel);
 
   
+  
+  
+  
+  
+  aChannel->SetRequestHeader(NS_LITERAL_CSTRING("Accept-Encoding"),
+                             NS_LITERAL_CSTRING(""), PR_FALSE);
+
+  
   nsIDocument* doc = GetOwnerDoc();
   if (doc) {
     aChannel->SetReferrer(doc->GetDocumentURI());
