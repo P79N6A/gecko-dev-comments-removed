@@ -200,16 +200,12 @@ TabStore.prototype = {
     while (enumerator.hasMoreElements()) {
       let window = enumerator.getNext();
       let tabContainer = window.getBrowser().tabContainer;
-      for each (let tabChild in tabContainer.childNodes) {
-        if (!tabChild) {
-          this._log.warn("Undefined item in tabContainer.childNodes.");
+
+      
+      for each (let tab in Array.slice(tabContainer.childNodes)) {
+        if (!(tab instanceof Ci.nsIDOMNode))
           continue;
-        }
-        if (!tabChild.QueryInterface)
-          continue;
-        let tab = tabChild.QueryInterface(Ci.nsIDOMNode);
-        if (!tab)
-          continue;
+
         let tabState = JSON.parse(this._sessionStore.getTabState(tab));
 	
 	if (tabState.entries.length == 0)
