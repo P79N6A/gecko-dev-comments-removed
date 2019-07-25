@@ -7175,6 +7175,9 @@ nsGlobalWindow::ShowModalDialog(const nsAString& aURI, nsIVariant *aArgs,
 
   *aRetVal = nsnull;
 
+  if (Preferences::GetBool("dom.disable_window_showModalDialog", false))
+    return NS_ERROR_NOT_AVAILABLE;
+
   
   
   EnsureReflowFlushAndPaint();
