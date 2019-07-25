@@ -362,8 +362,8 @@ namespace nanojit
         
         
         
-        NanoAssert((_allocator.active[FST0] && _fpuStkDepth == -1) ||
-                   (!_allocator.active[FST0] && _fpuStkDepth == 0));
+        NanoAssert((_allocator.active[REGNUM(FST0)] && _fpuStkDepth == -1) ||
+                   (!_allocator.active[REGNUM(FST0)] && _fpuStkDepth == 0));
 #endif
         _activation.checkForResourceConsistency(_allocator);
         registerConsistencyCheck();
@@ -391,7 +391,7 @@ namespace nanojit
         for (Register r = lsReg(not_managed); not_managed; r = nextLsReg(not_managed, r)) {
             
             
-            if (r <= LastReg) {
+            if (REGNUM(r) <= LastRegNum) {
                 NanoAssert(!_allocator.isFree(r));
                 NanoAssert(!_allocator.getActive(r));
             }
@@ -2272,7 +2272,7 @@ namespace nanojit
         
         
 
-        Register tosave[LastReg-FirstReg+1];
+        Register tosave[LastRegNum - FirstRegNum + 1];
         int len=0;
         RegAlloc *regs = &_allocator;
         RegisterMask evict_set = regs->activeMask() & GpRegs & ~ignore;
@@ -2354,8 +2354,8 @@ namespace nanojit
 
     void Assembler::intersectRegisterState(RegAlloc& saved)
     {
-        Register regsTodo[LastReg + 1];
-        LIns* insTodo[LastReg + 1];
+        Register regsTodo[LastRegNum + 1];
+        LIns* insTodo[LastRegNum + 1];
         int nTodo = 0;
 
         
@@ -2415,8 +2415,8 @@ namespace nanojit
 
     void Assembler::unionRegisterState(RegAlloc& saved)
     {
-        Register regsTodo[LastReg + 1];
-        LIns* insTodo[LastReg + 1];
+        Register regsTodo[LastRegNum + 1];
+        LIns* insTodo[LastRegNum + 1];
         int nTodo = 0;
 
         

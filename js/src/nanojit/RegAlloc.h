@@ -80,44 +80,44 @@ namespace nanojit
             
             NanoAssert(v);
             NanoAssert(r != deprecated_UnknownReg);
-            NanoAssert(active[r] == NULL);
-            active[r] = v;
+            NanoAssert(active[REGNUM(r)] == NULL);
+            active[REGNUM(r)] = v;
             useActive(r);
         }
 
         void useActive(Register r)
         {
             NanoAssert(r != deprecated_UnknownReg);
-            NanoAssert(active[r] != NULL);
-            usepri[r] = priority++;
+            NanoAssert(active[REGNUM(r)] != NULL);
+            usepri[REGNUM(r)] = priority++;
         }
 
         void removeActive(Register r)
         {
             
             NanoAssert(r != deprecated_UnknownReg);
-            NanoAssert(active[r] != NULL);
+            NanoAssert(active[REGNUM(r)] != NULL);
 
             
-            active[r] = NULL;
+            active[REGNUM(r)] = NULL;
         }
 
         void retire(Register r)
         {
             NanoAssert(r != deprecated_UnknownReg);
-            NanoAssert(active[r] != NULL);
-            active[r] = NULL;
+            NanoAssert(active[REGNUM(r)] != NULL);
+            active[REGNUM(r)] = NULL;
             free |= rmask(r);
         }
 
         int32_t getPriority(Register r) {
-            NanoAssert(r != deprecated_UnknownReg && active[r]);
-            return usepri[r];
+            NanoAssert(r != deprecated_UnknownReg && active[REGNUM(r)]);
+            return usepri[REGNUM(r)];
         }
 
         LIns* getActive(Register r) const {
             NanoAssert(r != deprecated_UnknownReg);
-            return active[r];
+            return active[REGNUM(r)];
         }
 
         
@@ -173,8 +173,8 @@ namespace nanojit
         
         
         
-        LIns*           active[LastReg + 1];    
-        int32_t         usepri[LastReg + 1];    
+        LIns*           active[LastRegNum + 1]; 
+        int32_t         usepri[LastRegNum + 1]; 
         RegisterMask    free;       
         RegisterMask    managed;    
         int32_t         priority;
@@ -186,20 +186,16 @@ namespace nanojit
     inline Register lsReg(RegisterMask mask) {
         
         
-        if (sizeof(RegisterMask) == 4)
-            return (Register) lsbSet32(mask);
-        else
-            return (Register) lsbSet64(mask);
+        Register r = { (sizeof(RegisterMask) == 4) ? lsbSet32(mask) : lsbSet64(mask) };
+        return r;
     }
 
     
     inline Register msReg(RegisterMask mask) {
         
         
-        if (sizeof(RegisterMask) == 4)
-            return (Register) msbSet32(mask);
-        else
-            return (Register) msbSet64(mask);
+        Register r = { (sizeof(RegisterMask) == 4) ? msbSet32(mask) : msbSet64(mask) };
+        return r;
     }
 
     

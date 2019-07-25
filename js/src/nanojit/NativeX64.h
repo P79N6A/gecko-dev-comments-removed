@@ -40,6 +40,8 @@
 #ifndef __nanojit_NativeX64__
 #define __nanojit_NativeX64__
 
+#include "NativeCommon.h"
+
 #ifndef NANOJIT_64BIT
 #error "NANOJIT_64BIT must be defined for X64 backend"
 #endif
@@ -66,49 +68,48 @@ namespace nanojit
 #define NJ_F2I_SUPPORTED                1
 #define NJ_SOFTFLOAT_SUPPORTED          0
 
-    enum Register {
-        RAX = 0, 
-        RCX = 1, 
-        RDX = 2, 
-        RBX = 3, 
-        RSP = 4, 
-        RBP = 5, 
-        RSI = 6, 
-        RDI = 7, 
-        R8  = 8, 
-        R9  = 9, 
-        R10 = 10, 
-        R11 = 11, 
-        R12 = 12, 
-        R13 = 13, 
-        R14 = 14, 
-        R15 = 15, 
+    static const Register RAX = { 0 };      
+    static const Register RCX = { 1 };      
+    static const Register RDX = { 2 };      
+    static const Register RBX = { 3 };      
+    static const Register RSP = { 4 };      
+    static const Register RBP = { 5 };      
+    static const Register RSI = { 6 };      
+    static const Register RDI = { 7 };      
+    static const Register R8  = { 8 };      
+    static const Register R9  = { 9 };      
+    static const Register R10 = { 10 };     
+    static const Register R11 = { 11 };     
+    static const Register R12 = { 12 };     
+    static const Register R13 = { 13 };     
+    static const Register R14 = { 14 };     
+    static const Register R15 = { 15 };     
 
-        XMM0  = 16, 
-        XMM1  = 17, 
-        XMM2  = 18, 
-        XMM3  = 19, 
-        XMM4  = 20, 
-        XMM5  = 21, 
-        XMM6  = 22, 
-        XMM7  = 23, 
-        XMM8  = 24, 
-        XMM9  = 25, 
-        XMM10 = 26, 
-        XMM11 = 27, 
-        XMM12 = 28, 
-        XMM13 = 29, 
-        XMM14 = 30, 
-        XMM15 = 31, 
+    static const Register XMM0  = { 16 };   
+    static const Register XMM1  = { 17 };   
+    static const Register XMM2  = { 18 };   
+    static const Register XMM3  = { 19 };   
+    static const Register XMM4  = { 20 };   
+    static const Register XMM5  = { 21 };   
+    static const Register XMM6  = { 22 };   
+    static const Register XMM7  = { 23 };   
+    static const Register XMM8  = { 24 };   
+    static const Register XMM9  = { 25 };   
+    static const Register XMM10 = { 26 };   
+    static const Register XMM11 = { 27 };   
+    static const Register XMM12 = { 28 };   
+    static const Register XMM13 = { 29 };   
+    static const Register XMM14 = { 30 };   
+    static const Register XMM15 = { 31 };   
 
-        FP = RBP,
+    static const Register FP = RBP;
+    static const Register RZero = { 0 };  
 
-        FirstReg = RAX,
-        LastReg = XMM15,
+    static const uint32_t FirstRegNum = 0;
+    static const uint32_t LastRegNum = 31;
 
-        deprecated_UnknownReg = 32,        
-        UnspecifiedReg = 32
-    };
+    static const Register deprecated_UnknownReg = { 32 }; 
+    static const Register UnspecifiedReg = { 32 };
 
 
 
@@ -329,24 +330,28 @@ namespace nanojit
     static const RegisterMask GpRegs = 0xffff;
     static const RegisterMask FpRegs = 0xffff0000;
 #ifdef _WIN64
-    static const RegisterMask SavedRegs = 1<<RBX | 1<<RSI | 1<<RDI | 1<<R12 | 1<<R13 | 1<<R14 | 1<<R15;
+    static const RegisterMask SavedRegs = 1<<REGNUM(RBX) | 1<<REGNUM(RSI) | 1<<REGNUM(RDI) |
+                                          1<<REGNUM(R12) | 1<<REGNUM(R13) | 1<<REGNUM(R14) |
+                                          1<<REGNUM(R15);
     static const int NumSavedRegs = 7; 
     static const int NumArgRegs = 4;
 #else
-    static const RegisterMask SavedRegs = 1<<RBX | 1<<R12 | 1<<R13 | 1<<R14 | 1<<R15;
+    static const RegisterMask SavedRegs = 1<<REGNUM(RBX) | 1<<REGNUM(R12) | 1<<REGNUM(R13) |
+                                          1<<REGNUM(R14) | 1<<REGNUM(R15);
     static const int NumSavedRegs = 5; 
     static const int NumArgRegs = 6;
 #endif
     
     
     
-    static const int SingleByteStoreRegs = GpRegs & ~(1<<RSP | 1<<RBP | 1<<RSI | 1<<RDI);
+    static const RegisterMask SingleByteStoreRegs = GpRegs & ~(1<<REGNUM(RSP) | 1<<REGNUM(RBP) |
+                                                               1<<REGNUM(RSI) | 1<<REGNUM(RDI));
 
     static inline bool IsFpReg(Register r) {
-        return ((1<<r) & FpRegs) != 0;
+        return ((1<<REGNUM(r)) & FpRegs) != 0;
     }
     static inline bool IsGpReg(Register r) {
-        return ((1<<r) & GpRegs) != 0;
+        return ((1<<REGNUM(r)) & GpRegs) != 0;
     }
 
     verbose_only( extern const char* regNames[]; )
@@ -373,10 +378,10 @@ namespace nanojit
         void emit_target64(size_t underrun, uint64_t op, NIns* target); \
         void emitrr(uint64_t op, Register r, Register b);\
         void emitrxb(uint64_t op, Register r, Register x, Register b);\
-        void emitxb(uint64_t op, Register x, Register b) { emitrxb(op, (Register)0, x, b); }\
+        void emitxb(uint64_t op, Register x, Register b) { emitrxb(op, RZero, x, b); }\
         void emitrr8(uint64_t op, Register r, Register b);\
-        void emitr(uint64_t op, Register b) { emitrr(op, (Register)0, b); }\
-        void emitr8(uint64_t op, Register b) { emitrr8(op, (Register)0, b); }\
+        void emitr(uint64_t op, Register b) { emitrr(op, RZero, b); }\
+        void emitr8(uint64_t op, Register b) { emitrr8(op, RZero, b); }\
         void emitprr(uint64_t op, Register r, Register b);\
         void emitrm8(uint64_t op, Register r, int32_t d, Register b);\
         void emitrm(uint64_t op, Register r, int32_t d, Register b);\
@@ -386,7 +391,7 @@ namespace nanojit
         void emitrr_imm(uint64_t op, Register r, Register b, int32_t imm);\
         void emitr_imm64(uint64_t op, Register r, uint64_t imm);\
         void emitrxb_imm(uint64_t op, Register r, Register x, Register b, int32_t imm);\
-        void emitr_imm(uint64_t op, Register r, int32_t imm) { emitrr_imm(op, (Register)0, r, imm); }\
+        void emitr_imm(uint64_t op, Register r, int32_t imm) { emitrr_imm(op, RZero, r, imm); }\
         void emitr_imm8(uint64_t op, Register b, int32_t imm8);\
         void emitxm_abs(uint64_t op, Register r, int32_t addr32);\
         void emitxm_rel(uint64_t op, Register r, NIns* addr64);\

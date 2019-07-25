@@ -547,7 +547,7 @@ namespace nanojit
 
     inline RegisterMask rmask(Register r)
     {
-        return RegisterMask(1) << r;
+        return RegisterMask(1) << REGNUM(r);
     }
 
     
@@ -668,7 +668,7 @@ namespace nanojit
         
         struct SharedFields {
             uint32_t inReg:1;           
-            Register reg:7;
+            uint32_t regnum:7;
             uint32_t inAr:1;            
             uint32_t isResultLive:1;    
 
@@ -758,7 +758,12 @@ namespace nanojit
         }
         Register deprecated_getReg() {
             NanoAssert(isExtant());
-            return ( isInReg() ? sharedFields.reg : deprecated_UnknownReg );
+            if (isInReg()) {
+                Register r = { sharedFields.regnum };
+                return r;
+            } else { 
+                return deprecated_UnknownReg;
+            }
         }
         uint32_t deprecated_getArIndex() {
             NanoAssert(isExtant());
@@ -782,11 +787,12 @@ namespace nanojit
         }
         Register getReg() {
             NanoAssert(isInReg());
-            return sharedFields.reg;
+            Register r = { sharedFields.regnum };
+            return r;
         }
         void setReg(Register r) {
             sharedFields.inReg = 1;
-            sharedFields.reg = r;
+            sharedFields.regnum = REGNUM(r);
         }
         void clearReg() {
             sharedFields.inReg = 0;
