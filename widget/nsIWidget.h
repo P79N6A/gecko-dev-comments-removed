@@ -282,6 +282,9 @@ struct InputContext {
   nsString mHTMLInputType;
 
   
+  nsString mHTMLInputInputmode;
+
+  
   nsString mActionHint;
 };
 
