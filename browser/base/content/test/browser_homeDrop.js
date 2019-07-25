@@ -26,10 +26,8 @@ function test() {
 
     
     executeSoon(function () {
-      info("Dialog closed? " + domwindow.closed + "\n");
       let consoleListener = {
         observe: function (m) {
-          info("m: " + m + "\n");
           info("m.message: " + m.message + "\n");
           if (m.message.indexOf("NS_ERROR_DOM_BAD_URI") > -1) {
             ok(true, "drop was blocked");
@@ -42,18 +40,27 @@ function test() {
         Services.console.unregisterListener(consoleListener);
       });
 
-      
-      
-      expectUncaughtException();
-      let originalHandler = homeButtonObserver.onDrop;
-      homeButtonObserver.onDrop = function (aEvent) {
-        info("homeButtonObserver.onDrop called");
-        originalHandler(aEvent);
-      };
-      registerCleanupFunction(function () {
-        homeButtonObserver.onDrop = originalHandler;
+      executeSoon(function () {
+        info("Attempting second drop, of a javascript: URI");
+        
+        
+        expectUncaughtException();
+        let originalHandler = homeButtonObserver.onDrop;
+        homeButtonObserver.onDrop = function (aEvent) {
+          info("homeButtonObserver.onDrop called");
+          try {
+            originalHandler(aEvent);
+          } catch (ex) {
+            info("originalHandler threw an exception: " + ex);
+            throw ex;
+          }
+        };
+        registerCleanupFunction(function () {
+          homeButtonObserver.onDrop = originalHandler;
+        });
+        chromeUtils.synthesizeDrop(homeButton, homeButton, [[{type: "text/plain", data: "javascript:8888"}]], "copy", window, EventUtils);
+        info("Triggered the second drop of a javascript: URI");
       });
-      chromeUtils.synthesizeDrop(homeButton, homeButton, [[{type: "text/plain", data: "javascript:8888"}]], "copy", window, EventUtils);
     })
   });
 
