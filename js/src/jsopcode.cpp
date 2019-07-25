@@ -1015,13 +1015,7 @@ GetStr(SprintStack *ss, uintN i)
 #define PAREN_SLOP      (2 + 1)
 
 
-
-
-
-
-#define JSOP_GETPROP2   JSOP_LIMIT
-#define JSOP_GETELEM2   JSOP_LIMIT + 1
-JS_STATIC_ASSERT(JSOP_GETELEM2 <= 255);
+JS_STATIC_ASSERT(JSOP_FAKE_LIMIT <= 255);
 
 static void
 AddParenSlop(SprintStack *ss)
@@ -2120,14 +2114,13 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
 
             saveop = op;
             if (op >= JSOP_LIMIT) {
-                switch (op) {
-                  case JSOP_GETPROP2:
+                if (op == JSOP_GETPROP2) {
                     saveop = JSOP_GETPROP;
                     break;
-                  case JSOP_GETELEM2:
+                }
+                if (op == JSOP_GETELEM2) {
                     saveop = JSOP_GETELEM;
                     break;
-                  default:;
                 }
             }
             LOCAL_ASSERT(js_CodeSpec[saveop].length == oplen ||
