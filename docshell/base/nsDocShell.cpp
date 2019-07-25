@@ -11166,3 +11166,97 @@ nsDocShell::GetPrintPreview(nsIWebBrowserPrint** aPrintPreview)
 #ifdef DEBUG
 unsigned long nsDocShell::gNumberOfDocShells = 0;
 #endif
+
+NS_IMETHODIMP
+nsDocShell::GetCanExecuteScripts(PRBool *aResult)
+{
+  NS_ENSURE_ARG_POINTER(aResult);
+  *aResult = PR_FALSE; 
+
+  nsCOMPtr<nsIDocShell> docshell = this;
+  nsCOMPtr<nsIDocShellTreeItem> globalObjTreeItem =
+      do_QueryInterface(docshell);
+
+  if (globalObjTreeItem)
+  {
+      nsCOMPtr<nsIDocShellTreeItem> treeItem(globalObjTreeItem);
+      nsCOMPtr<nsIDocShellTreeItem> parentItem;
+      PRBool firstPass = PR_TRUE;
+      PRBool lookForParents = PR_FALSE;
+
+      
+      do
+      {
+          nsresult rv = docshell->GetAllowJavascript(aResult);
+          if (NS_FAILED(rv)) return rv;
+          if (!*aResult) {
+              nsDocShell* realDocshell = static_cast<nsDocShell*>(docshell.get());
+              if (realDocshell->mContentViewer) {
+                  nsIDocument* doc = realDocshell->mContentViewer->GetDocument();
+                  if (doc && doc->HasFlag(NODE_IS_EDITABLE) &&
+                      realDocshell->mEditorData) {
+                      nsCOMPtr<nsIEditingSession> editSession;
+                      realDocshell->mEditorData->GetEditingSession(getter_AddRefs(editSession));
+                      PRBool jsDisabled = PR_FALSE;
+                      if (editSession &&
+                          NS_SUCCEEDED(rv = editSession->GetJsAndPluginsDisabled(&jsDisabled))) {
+                          if (firstPass) {
+                              if (jsDisabled) {
+                                  
+                                  
+                                  return NS_OK;
+                              }
+                              
+                              
+                              
+                              
+                              *aResult = PR_TRUE;
+                              break;
+                          } else if (lookForParents && jsDisabled) {
+                              
+                              
+                              *aResult = PR_TRUE;
+                              break;
+                          }
+                          
+                          
+                          
+                          *aResult = PR_TRUE;
+                          return NS_OK;
+                      }
+                      NS_WARNING("The editing session does not work?");
+                      return NS_FAILED(rv) ? rv : NS_ERROR_FAILURE;
+                  }
+                  if (firstPass) {
+                      
+                      
+                      
+                      lookForParents = PR_TRUE;
+                  } else {
+                      
+                      
+                      
+                      return NS_OK;
+                  }
+              }
+          } else if (lookForParents) {
+              
+              
+              
+              return NS_OK;
+          }
+          firstPass = PR_FALSE;
+
+          treeItem->GetParent(getter_AddRefs(parentItem));
+          treeItem.swap(parentItem);
+          docshell = do_QueryInterface(treeItem);
+#ifdef DEBUG
+          if (treeItem && !docshell) {
+            NS_ERROR("cannot get a docshell from a treeItem!");
+          }
+#endif 
+      } while (treeItem && docshell);
+  }
+
+  return NS_OK;
+}
