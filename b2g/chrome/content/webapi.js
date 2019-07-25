@@ -38,7 +38,7 @@ XPCOMUtils.defineLazyServiceGetter(Services, 'fm',
     let type = targetElement.type;
     
     
-    let attributeType = targetElement.getAttribute('type');
+    let attributeType = targetElement.getAttribute('type') || '';
     if (attributeType && attributeType.toLowerCase() === 'number')
       type = 'number';
 
