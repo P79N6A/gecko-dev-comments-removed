@@ -1182,6 +1182,7 @@ StackIter::settleOnNewState()
                 if (!ionFrames_.more()) {
                     
                     
+                    ++ionActivations_;
                     popFrame();
                     continue;
                 }
