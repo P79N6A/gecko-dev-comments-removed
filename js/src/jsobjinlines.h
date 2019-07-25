@@ -1157,6 +1157,44 @@ JSObject::lookupProperty(JSContext *cx, js::PropertyName *name, JSObject **objp,
 }
 
 inline JSBool
+JSObject::defineGeneric(JSContext *cx, jsid id, const js::Value &value,
+                        JSPropertyOp getter ,
+                        JSStrictPropertyOp setter ,
+                        uintN attrs )
+{
+    js::DefineGenericOp op = getOps()->defineGeneric;
+    return (op ? op : js_DefineProperty)(cx, this, id, &value, getter, setter, attrs);
+}
+
+inline JSBool
+JSObject::defineProperty(JSContext *cx, js::PropertyName *name, const js::Value &value,
+                        JSPropertyOp getter ,
+                        JSStrictPropertyOp setter ,
+                        uintN attrs )
+{
+    return defineGeneric(cx, ATOM_TO_JSID(name), value, getter, setter, attrs);
+}
+
+inline JSBool
+JSObject::defineElement(JSContext *cx, uint32 index, const js::Value &value,
+                        JSPropertyOp getter ,
+                        JSStrictPropertyOp setter ,
+                        uintN attrs )
+{
+    js::DefineElementOp op = getOps()->defineElement;
+    return (op ? op : js_DefineElement)(cx, this, index, &value, getter, setter, attrs);
+}
+
+inline JSBool
+JSObject::defineSpecial(JSContext *cx, js::SpecialId sid, const js::Value &value,
+                        JSPropertyOp getter ,
+                        JSStrictPropertyOp setter ,
+                        uintN attrs )
+{
+    return defineGeneric(cx, SPECIALID_TO_JSID(sid), value, getter, setter, attrs);
+}
+
+inline JSBool
 JSObject::lookupElement(JSContext *cx, uint32 index, JSObject **objp, JSProperty **propp)
 {
     js::LookupElementOp op = getOps()->lookupElement;
