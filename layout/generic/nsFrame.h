@@ -488,6 +488,8 @@ public:
   static void DisplayReflowShutdown();
 #endif
 
+  static void ShutdownLayerActivityTimer();
+
   
 
 

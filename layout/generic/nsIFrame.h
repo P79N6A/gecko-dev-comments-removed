@@ -1820,6 +1820,19 @@ public:
   
 
 
+
+
+
+  void MarkLayersActive();
+
+  
+
+
+  PRBool AreLayersMarkedActive();
+  
+  
+
+
   void InvalidateWithFlags(const nsRect& aDamageRect, PRUint32 aFlags);
 
   
