@@ -460,13 +460,6 @@ struct TypeObject
     
     bool isPackedArray;
 
-    
-
-
-
-
-    bool possiblePackedArray;
-
     TypeObject() {}
 
     
