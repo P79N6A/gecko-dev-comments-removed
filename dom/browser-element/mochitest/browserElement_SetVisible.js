@@ -1,22 +1,5 @@
-<!DOCTYPE HTML>
-<html>
 
-
-
- <head>
-  <title>Test for Bug 702880</title>
-  <script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
-  <script type="application/javascript" src="browserFrameHelpers.js"></script>
-  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
-</head>
-<body>
-<a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=753595">Mozilla Bug 702880</a>
-
-
-
-
-
-<script type="application/javascript;version=1.7">
+"use strict";
 
 SimpleTest.waitForExplicitFinish();
 
@@ -50,7 +33,7 @@ function runTest() {
       iframe1.setVisible(true);
     } else if (numEvents === 2) {
       ok(msg.json.hidden === false, 'mozHidden attribute correctly set');
-      // Allow some time in case we generate too many events
+      
       setTimeout(function() {
         mm.removeMessageListener('test:visibilitychange', recvVisibilityChanged);
         SimpleTest.finish();
@@ -72,7 +55,4 @@ function runTest() {
 
 addEventListener('load', function() { SimpleTest.executeSoon(runTest); });
 
-</script>
 
-</body>
-</html>

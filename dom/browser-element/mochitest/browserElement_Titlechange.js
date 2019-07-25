@@ -1,22 +1,4 @@
-<!DOCTYPE HTML>
-<html>
 
-
-
-<head>
-  <title>Test for Bug 720157</title>
-  <script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
-  <script type="application/javascript" src="browserFrameHelpers.js"></script>
-  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
-</head>
-<body>
-<a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=720157">Mozilla Bug 720157</a>
-
-
-
-
-
-<script type="application/javascript;version=1.7">
 "use strict";
 
 SimpleTest.waitForExplicitFinish();
@@ -29,22 +11,22 @@ function runTest() {
   iframe1.mozbrowser = true;
   document.body.appendChild(iframe1);
 
-  // iframe2 is a red herring; we modify its title but don't listen for
-  // titlechanges; we want to make sure that its titlechange events aren't
-  // picked up by the listener on iframe1.
+  
+  
+  
   var iframe2 = document.createElement('iframe');
   iframe2.mozbrowser = true;
   document.body.appendChild(iframe2);
 
-  // iframe3 is another red herring.  It's not a mozbrowser, so we shouldn't
-  // get any titlechange events on it.
+  
+  
   var iframe3 = document.createElement('iframe');
   document.body.appendChild(iframe3);
 
   var numTitleChanges = 0;
 
   iframe1.addEventListener('mozbrowsertitlechange', function(e) {
-    // Ignore empty titles; these come from about:blank.
+    
     if (e.detail == '')
       return;
 
@@ -54,10 +36,10 @@ function runTest() {
       is(e.detail, 'Title');
       SpecialPowers.getBrowserFrameMessageManager(iframe1)
                    .loadFrameScript("data:,content.document.title='New title';",
-                                    /* allowDelayedLoad = */ false);
+                                     false);
       SpecialPowers.getBrowserFrameMessageManager(iframe2)
                    .loadFrameScript("data:,content.document.title='BAD TITLE 2';",
-                                    /* allowDelayedLoad = */ false);
+                                     false);
     }
     else if (numTitleChanges == 2) {
       is(e.detail, 'New title');
@@ -83,7 +65,4 @@ function runTest() {
 
 addEventListener('load', function() { SimpleTest.executeSoon(runTest); });
 
-</script>
 
-</body>
-</html>

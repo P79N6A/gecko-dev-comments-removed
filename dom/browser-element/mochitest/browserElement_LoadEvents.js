@@ -1,37 +1,17 @@
-<!DOCTYPE HTML>
-<html>
 
 
 
-<head>
-  <title>Test for Bug 710231</title>
-  <script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
-  <script type="application/javascript" src="browserFrameHelpers.js"></script>
-  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
-</head>
-<body>
-<a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=710231">Mozilla Bug 710231</a>
-
-
-
-
-
-
-<script type="application/javascript;version=1.7">
-
-// Bug 740626: This test fails on Windows XP
-if (navigator.userAgent.indexOf("Windows NT 5.1") == -1) {
-
+"use strict";
 SimpleTest.waitForExplicitFinish();
 
 function runTest() {
   browserFrameHelpers.setEnabledPref(true);
   browserFrameHelpers.addToWhitelist();
 
-  // Load emptypage1 into the iframe, wait for that to finish loading, then
-  // call runTest2.
-  //
-  // This should trigger loadstart, locationchange, and loadend events.
+  
+  
+  
+  
 
   var seenLoadEnd = false;
   var seenLoadStart = false;
@@ -46,6 +26,7 @@ function runTest() {
     ok(e.isTrusted, 'Event should be trusted.');
     ok(!seenLoadEnd, 'loadstart before loadend.');
     ok(!seenLoadStart, 'Just one loadstart event.');
+    ok(!seenLocationChange, 'loadstart before locationchange.');
     seenLoadStart = true;
   }
 
@@ -90,7 +71,7 @@ function runTest2() {
   var seenLoadEnd = false;
   var seenLocationChange = false;
 
-  // Add this event listener to the document; the events should bubble.
+  
   document.addEventListener('mozbrowserloadstart', function(e) {
     ok(e.isTrusted, 'Event should be trusted.');
     ok(!seenLoadStart, 'Just one loadstart event.');
@@ -132,13 +113,3 @@ function runTest2() {
 }
 
 addEventListener('load', function() { SimpleTest.executeSoon(runTest); });
-
-}
-else {
-  ok(true, "Somebody thought it was a great idea to make me type this.");
-}
-
-</script>
-
-</body>
-</html>

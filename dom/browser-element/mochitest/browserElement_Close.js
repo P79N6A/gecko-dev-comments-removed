@@ -1,22 +1,4 @@
-<!DOCTYPE HTML>
-<html>
 
-
-
-<head>
-  <title>Test for Bug 757182</title>
-  <script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
-  <script type="application/javascript" src="browserFrameHelpers.js"></script>
-  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
-</head>
-<body>
-<a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=757182">Mozilla Bug 757182</a>
-
-
-
-
-
-<script type="application/javascript;version=1.7">
 "use strict";
 
 SimpleTest.waitForExplicitFinish();
@@ -38,6 +20,3 @@ function runTest() {
 }
 
 runTest();
-</script>
-</body>
-</html>

@@ -1,22 +1,3 @@
-<!DOCTYPE HTML>
-<html>
-
-
-
-<head>
-  <title>Test for Bug 753595</title>
-  <script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
-  <script type="application/javascript" src="browserFrameHelpers.js"></script>
-  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
-</head>
-<body>
-<a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=753595">Mozilla Bug 753595</a>
-
-
-
-
-
-<script type="application/javascript;version=1.7">
 
 "use strict";
 
@@ -52,8 +33,8 @@ function runTest() {
     }
   }
 
-  // We continually take screenshots until we get one that we are
-  // happy with
+  
+  
   function waitForScreenshot(filter) {
 
     function screenshotLoaded(e) {
@@ -89,7 +70,4 @@ function runTest() {
 
 addEventListener('load', function() { SimpleTest.executeSoon(runTest); });
 
-</script>
 
-</body>
-</html>
