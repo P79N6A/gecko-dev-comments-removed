@@ -2131,13 +2131,14 @@ nsGfxScrollFrameInner::CreateAnonymousContent(nsTArray<nsIContent*>& aElements)
 
   
   
-  if (!presContext->IsDynamic()) {
-    
-    
-    if (!(mIsRoot && presContext->HasPaginatedScrolling())) {
-      mNeverHasVerticalScrollbar = mNeverHasHorizontalScrollbar = PR_TRUE;
-      return NS_OK;
-    }
+  
+  
+  
+  if (presContext->Document()->IsBeingUsedAsImage() ||
+      (!presContext->IsDynamic() &&
+       !(mIsRoot && presContext->HasPaginatedScrolling()))) {
+    mNeverHasVerticalScrollbar = mNeverHasHorizontalScrollbar = PR_TRUE;
+    return NS_OK;
   }
 
   

@@ -119,6 +119,7 @@ private:
 
   PRPackedBool   mIsInitialized:1;        
   PRPackedBool   mIsFullyLoaded:1;        
+  PRPackedBool   mIsDrawing:1;            
   PRPackedBool   mHaveAnimations:1;       
                                           
   PRPackedBool   mHaveRestrictedRegion:1; 
