@@ -650,12 +650,16 @@ nsHttpTransaction::Close(nsresult reason)
         
         
         
-        
-        
         if (!mHaveAllHeaders) {
             char data = '\n';
             PRUint32 unused;
             ParseHead(&data, 1, &unused);
+
+            if (mResponseHead->Version() == NS_HTTP_VERSION_0_9) {
+                
+                LOG(("nsHttpTransaction::Close %p 0 Byte 0.9 Response", this));
+                reason = NS_ERROR_NET_RESET;
+            }
         }
 
         
