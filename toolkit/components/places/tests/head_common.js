@@ -650,6 +650,21 @@ function waitForAsyncUpdates(aCallback, aScope, aArguments)
 
 
 
+function waitForConnectionClosed(aCallback)
+{
+  Services.obs.addObserver(function WFCCCallback() {
+    Services.obs.removeObserver(WFCCCallback, "places-connection-closed");
+    aCallback();
+  }, "places-connection-closed", false);
+  shutdownPlaces();
+}
+
+
+
+
+
+
+
 
 
 function do_check_valid_places_guid(aGuid,
