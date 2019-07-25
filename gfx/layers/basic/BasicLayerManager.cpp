@@ -10,6 +10,7 @@
 #include "gfxSharedImageSurface.h"
 #include "gfxImageSurface.h"
 #include "gfxUtils.h"
+#include "nsXULAppAPI.h"
 #include "RenderTrace.h"
 #include "sampler.h"
 
@@ -950,7 +951,8 @@ BasicShadowLayerManager::BeginTransactionWithTarget(gfxContext* aTarget)
 
     
     
-    if (aTarget && (aTarget != mDefaultTarget)) {
+    if (aTarget && (aTarget != mDefaultTarget) &&
+        XRE_GetProcessType() == GeckoProcessType_Default) {
       mShadowTarget = aTarget;
 
       
