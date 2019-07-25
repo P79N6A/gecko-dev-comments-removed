@@ -863,7 +863,7 @@ WeaveSvc.prototype = {
     
     if (Clients.getClients()[Clients.clientID].commands) {
       try {
-        if (!(yield this.processCommands(self.cb))) {
+        if (!(this.processCommands())) {
           this._detailedStatus.setSyncStatus(ABORT_SYNC_COMMAND);
           throw "aborting sync, process commands said so";
         }
@@ -1140,11 +1140,8 @@ WeaveSvc.prototype = {
 
 
 
-
-
-  processCommands: function WeaveSvc_processCommands(onComplete) {
-    let fn = function WeaveSvc__processCommands() {
-      let self = yield;
+  processCommands: function WeaveSvc_processCommands()
+    this._notify("process-commands", "", function() {
       let info = Clients.getInfo(Clients.clientID);
       let commands = info.commands;
 
@@ -1178,10 +1175,8 @@ WeaveSvc.prototype = {
         }
       }
 
-      self.done(true);
-    };
-    this._notifyAsync("process-commands", "", fn).async(this, onComplete);
-  },
+      return true;
+    })(),
 
   
 
