@@ -3363,24 +3363,28 @@ Selection::FindInsertionPoint(
   *aPoint = 0;
   PRInt32 beginSearch = 0;
   PRInt32 endSearch = aElementArray->Length(); 
-  while (endSearch - beginSearch > 0) {
-    PRInt32 center = (endSearch - beginSearch) / 2 + beginSearch;
 
-    nsRange* range = (*aElementArray)[center].mRange;
+  if (endSearch) {
+    PRInt32 center = endSearch - 1; 
+    do {
+      nsRange* range = (*aElementArray)[center].mRange;
 
-    PRInt32 cmp;
-    nsresult rv = aComparator(aPointNode, aPointOffset, range, &cmp);
-    NS_ENSURE_SUCCESS(rv, rv);
+      PRInt32 cmp;
+      nsresult rv = aComparator(aPointNode, aPointOffset, range, &cmp);
+      NS_ENSURE_SUCCESS(rv, rv);
 
-    if (cmp < 0) {        
-      endSearch = center;
-    } else if (cmp > 0) { 
-      beginSearch = center + 1;
-    } else {              
-      beginSearch = center;
-      break;
-    }
+      if (cmp < 0) {        
+        endSearch = center;
+      } else if (cmp > 0) { 
+        beginSearch = center + 1;
+      } else {              
+        beginSearch = center;
+        break;
+      }
+      center = (endSearch - beginSearch) / 2 + beginSearch;
+    } while (endSearch - beginSearch > 0);
   }
+
   *aPoint = beginSearch;
   return NS_OK;
 }
