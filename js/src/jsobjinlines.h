@@ -139,37 +139,6 @@ JSObject::syncSpecialEquality()
 }
 
 inline void
-JSObject::trace(JSTracer *trc)
-{
-    if (!isNative())
-        return;
-
-    JSContext *cx = trc->context;
-    js::Shape *shape = lastProp;
-
-    if (IS_GC_MARKING_TRACER(trc) && cx->runtime->gcRegenShapes) {
-        
-
-
-
-        if (!shape->hasRegenFlag()) {
-            shape->shape = js_RegenerateShapeForGC(cx->runtime);
-            shape->setRegenFlag();
-        }
-
-        uint32 newShape = shape->shape;
-        if (hasOwnShape()) {
-            newShape = js_RegenerateShapeForGC(cx->runtime);
-            JS_ASSERT(newShape != shape->shape);
-        }
-        objShape = newShape;
-    }
-
-    
-    js::Shape::trace(trc, shape);
-}
-
-inline void
 JSObject::finalize(JSContext *cx)
 {
     
@@ -191,16 +160,16 @@ JSObject::finalize(JSContext *cx)
 
 
 inline void
-JSObject::initCall(JSContext *cx, const js::Bindings *bindings, JSObject *parent)
+JSObject::initCall(JSContext *cx, const js::Bindings &bindings, JSObject *parent)
 {
     init(cx, &js_CallClass, cx->getTypeEmpty(), parent, NULL, false);
-    map = bindings->lastShape();
+    map = bindings.lastShape();
 
     
 
 
 
-    if (bindings->extensibleParents())
+    if (bindings.extensibleParents())
         setOwnShape(js_GenerateShape(cx));
     else
         objShape = map->shape;
@@ -284,15 +253,9 @@ JSObject::methodReadBarrier(JSContext *cx, const js::Shape &shape, js::Value *vp
     if (cx->runtime->functionMeterFilename) {
         JS_FUNCTION_METER(cx, mreadbarrier);
 
-        typedef JSRuntime::FunctionCountMap HM;
-        HM &h = cx->runtime->methodReadBarrierCountMap;
-        HM::AddPtr p = h.lookupForAdd(fun);
-        if (!p) {
-            h.add(p, fun, 1);
-        } else {
-            JS_ASSERT(p->key == fun);
+        typedef JSRuntime::FunctionCountMap::Ptr Ptr;
+        if (Ptr p = cx->runtime->methodReadBarrierCountMap.lookupWithDefault(fun, 0))
             ++p->value;
-        }
     }
 #endif
     return newshape;
@@ -915,8 +878,6 @@ JSObject::init(JSContext *cx, js::Class *aclasp, js::types::TypeObject *type,
 
 
 
-
-    map = NULL;
     objShape = JSObjectMap::INVALID_SHAPE;
 #endif
 
@@ -977,7 +938,7 @@ inline void
 JSObject::freeSlotsArray(JSContext *cx)
 {
     JS_ASSERT(hasSlotsArray());
-    cx->free(slots);
+    cx->free_(slots);
 }
 
 inline void
@@ -1433,6 +1394,27 @@ ClassMethodIsNative(JSContext *cx, JSObject *obj, Class *clasp, jsid methodid,
     JSObject *pobj = obj->getProto();
     return pobj && pobj->getClass() == clasp &&
            HasNativeMethod(pobj, methodid, native);
+}
+
+inline bool
+DefineConstructorAndPrototype(JSContext *cx, JSObject *global,
+                              JSProtoKey key, JSFunction *ctor, JSObject *proto)
+{
+    JS_ASSERT(global->isGlobal());
+    JS_ASSERT(!global->nativeEmpty()); 
+    JS_ASSERT(ctor);
+    JS_ASSERT(proto);
+
+    jsid id = ATOM_TO_JSID(cx->runtime->atomState.classAtoms[key]);
+    JS_ASSERT(!global->nativeLookup(id));
+
+    if (!global->addDataProperty(cx, id, key + JSProto_LIMIT * 2, 0))
+        return false;
+
+    global->setSlot(key, ObjectValue(*ctor));
+    global->setSlot(key + JSProto_LIMIT, ObjectValue(*proto));
+    global->setSlot(key + JSProto_LIMIT * 2, ObjectValue(*ctor));
+    return true;
 }
 
 } 

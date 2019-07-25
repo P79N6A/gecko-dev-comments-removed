@@ -439,6 +439,17 @@ struct JS_FRIEND_API(JSCompartment) {
 
     EmptyShapeSet                emptyShapes;
 
+    
+
+
+
+
+
+
+
+
+    const js::Shape              *initialRegExpShape;
+
     bool                         debugMode;  
     JSCList                      scripts;    
 
@@ -471,6 +482,7 @@ struct JS_FRIEND_API(JSCompartment) {
     void purge(JSContext *cx);
     void finishArenaLists();
     void finalizeObjectArenaLists(JSContext *cx);
+    void finalizeShapeArenaLists(JSContext *cx);
     void finalizeStringArenaLists(JSContext *cx);
     bool arenaListsAreEmpty();
 

@@ -160,7 +160,7 @@ PropertyTable::init(JSRuntime *rt, Shape *lastProp)
 
 
 
-    entries = (Shape **) rt->calloc(JS_BIT(sizeLog2) * sizeof(Shape *));
+    entries = (Shape **) rt->calloc_(JS_BIT(sizeLog2) * sizeof(Shape *));
     if (!entries) {
         METER(tableAllocFails);
         return false;
@@ -187,10 +187,10 @@ bool
 Shape::hashify(JSRuntime *rt)
 {
     JS_ASSERT(!hasTable());
-    void* mem = rt->malloc(sizeof(PropertyTable));
-    if (!mem)
+    PropertyTable *table = rt->new_<PropertyTable>(entryCount());
+    if (!table)
         return false;
-    setTable(new(mem) PropertyTable(entryCount()));
+    setTable(table);
     return getTable()->init(rt, this);
 }
 
@@ -325,15 +325,12 @@ PropertyTable::change(int log2Delta, JSContext *cx)
     
 
 
-
-
-
     oldlog2 = JS_DHASH_BITS - hashShift;
     newlog2 = oldlog2 + log2Delta;
     oldsize = JS_BIT(oldlog2);
     newsize = JS_BIT(newlog2);
     nbytes = PROPERTY_TABLE_NBYTES(newsize);
-    newTable = (Shape **) cx->runtime->calloc(nbytes);
+    newTable = (Shape **) cx->calloc_(nbytes);
     if (!newTable) {
         METER(tableAllocFails);
         return false;
@@ -359,11 +356,7 @@ PropertyTable::change(int log2Delta, JSContext *cx)
     }
 
     
-
-
-
-
-    js_free(oldTable);
+    cx->free_(oldTable);
     return true;
 }
 
@@ -536,8 +529,13 @@ Shape::newDictionaryList(JSContext *cx, Shape **listp)
     Shape *shape = *listp;
     Shape *list = shape;
 
-    Shape **childp = listp;
-    *childp = NULL;
+    
+
+
+
+
+    Shape *root = NULL;
+    Shape **childp = &root;
 
     while (shape) {
         JS_ASSERT_IF(!shape->frozen(), !shape->inDictionary());
@@ -554,16 +552,21 @@ Shape::newDictionaryList(JSContext *cx, Shape **listp)
         shape = shape->parent;
     }
 
-    list = *listp;
-    JS_ASSERT(list->inDictionary());
-    list->hashify(cx->runtime);
-    return list;
+    *listp = root;
+    root->listp = listp;
+
+    JS_ASSERT(root->inDictionary());
+    root->hashify(cx->runtime);
+    return root;
 }
 
 bool
 JSObject::toDictionaryMode(JSContext *cx)
 {
     JS_ASSERT(!inDictionaryMode());
+
+    
+    JS_ASSERT(compartment() == cx->compartment);
     if (!Shape::newDictionaryList(cx, &lastProp))
         return false;
 
@@ -1422,29 +1425,60 @@ PrintPropertyMethod(JSTracer *trc, char *buf, size_t bufsize)
 }
 #endif
 
+
+
+
+
+
+
+
+
+
+
+
 void
-Shape::trace(JSTracer *trc, const Shape *shape)
+Shape::regenerate(JSTracer *trc) const
 {
-    do {
-        if (IS_GC_MARKING_TRACER(trc))
-            shape->mark();
+    JSRuntime *rt = trc->context->runtime;
+    if (IS_GC_MARKING_TRACER(trc) && rt->gcRegenShapes)
+        shape = js_RegenerateShapeForGC(rt);
+}
 
-        MarkId(trc, shape->id, "id");
+void
+Shape::markChildrenNotParent(JSTracer *trc) const
+{
+    MarkId(trc, id, "id");
 
-        if (shape->attrs & (JSPROP_GETTER | JSPROP_SETTER)) {
-            if ((shape->attrs & JSPROP_GETTER) && shape->rawGetter) {
-                JS_SET_TRACING_DETAILS(trc, PrintPropertyGetterOrSetter, shape, 0);
-                Mark(trc, shape->getterObject());
-            }
-            if ((shape->attrs & JSPROP_SETTER) && shape->rawSetter) {
-                JS_SET_TRACING_DETAILS(trc, PrintPropertyGetterOrSetter, shape, 1);
-                Mark(trc, shape->setterObject());
-            }
+    if (attrs & (JSPROP_GETTER | JSPROP_SETTER)) {
+        if ((attrs & JSPROP_GETTER) && rawGetter) {
+            JS_SET_TRACING_DETAILS(trc, PrintPropertyGetterOrSetter, this, 0);
+            Mark(trc, getterObject());
+        }
+        if ((attrs & JSPROP_SETTER) && rawSetter) {
+            JS_SET_TRACING_DETAILS(trc, PrintPropertyGetterOrSetter, this, 1);
+            Mark(trc, setterObject());
+        }
+    }
+
+    if (isMethod()) {
+        JS_SET_TRACING_DETAILS(trc, PrintPropertyMethod, this, 0);
+        Mark(trc, &methodObject());
+    }
+}
+
+void
+Shape::markChildren(JSTracer *trc) const
+{
+    markChildrenNotParent(trc);
+
+    for (Shape *shape = parent; shape; shape = shape->parent) {
+        if (IS_GC_MARKING_TRACER(trc)) {
+            GCMarker *gcmarker = static_cast<GCMarker *>(trc);
+            if (!shape->markIfUnmarked(gcmarker->getMarkColor()))
+                break;
         }
 
-        if (shape->isMethod()) {
-            JS_SET_TRACING_DETAILS(trc, PrintPropertyMethod, shape, 0);
-            Mark(trc, &shape->methodObject());
-        }
-    } while ((shape = shape->parent) != NULL && !shape->marked());
+        shape->regenerate(trc);
+        shape->markChildrenNotParent(trc);
+    }
 }

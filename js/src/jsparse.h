@@ -1016,11 +1016,11 @@ struct JSFunctionBoxQueue {
 
     bool init(uint32 count) {
         lengthMask = JS_BITMASK(JS_CeilingLog2(count));
-        vector = js_array_new<JSFunctionBox*>(length());
+        vector = js::OffTheBooks::array_new<JSFunctionBox*>(length());
         return !!vector;
     }
 
-    ~JSFunctionBoxQueue() { js_array_delete(vector); }
+    ~JSFunctionBoxQueue() { js::UnwantedForeground::array_delete(vector); }
 
     void push(JSFunctionBox *funbox) {
         if (!funbox->queued) {
@@ -1137,6 +1137,14 @@ private:
 
 
 
+
+
+
+
+
+
+
+
     JSParseNode *functionStmt();
     JSParseNode *functionExpr();
     JSParseNode *statements();
@@ -1152,17 +1160,26 @@ private:
     JSParseNode *variables(bool inLetHead);
     JSParseNode *expr();
     JSParseNode *assignExpr();
-    JSParseNode *condExpr();
-    JSParseNode *orExpr();
-    JSParseNode *andExpr();
-    JSParseNode *bitOrExpr();
-    JSParseNode *bitXorExpr();
-    JSParseNode *bitAndExpr();
-    JSParseNode *eqExpr();
-    JSParseNode *relExpr();
-    JSParseNode *shiftExpr();
-    JSParseNode *addExpr();
-    JSParseNode *mulExpr();
+    JSParseNode *condExpr1();
+    JSParseNode *orExpr1();
+    JSParseNode *andExpr1i();
+    JSParseNode *andExpr1n();
+    JSParseNode *bitOrExpr1i();
+    JSParseNode *bitOrExpr1n();
+    JSParseNode *bitXorExpr1i();
+    JSParseNode *bitXorExpr1n();
+    JSParseNode *bitAndExpr1i();
+    JSParseNode *bitAndExpr1n();
+    JSParseNode *eqExpr1i();
+    JSParseNode *eqExpr1n();
+    JSParseNode *relExpr1i();
+    JSParseNode *relExpr1n();
+    JSParseNode *shiftExpr1i();
+    JSParseNode *shiftExpr1n();
+    JSParseNode *addExpr1i();
+    JSParseNode *addExpr1n();
+    JSParseNode *mulExpr1i();
+    JSParseNode *mulExpr1n();
     JSParseNode *unaryExpr();
     JSParseNode *memberExpr(JSBool allowCallSyntax);
     JSParseNode *primaryExpr(js::TokenKind tt, JSBool afterDot);

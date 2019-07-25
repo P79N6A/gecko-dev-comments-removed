@@ -940,7 +940,7 @@ class CallCompiler : public BaseCompiler
 
 
 
-        if (native == js_regexp_exec && IsCallResultUnusedOrTested(f.regs.pc))
+        if (native == js_regexp_exec && !CallResultEscapes(f.regs.pc))
             native = js_regexp_test;
 
         masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, native), false);

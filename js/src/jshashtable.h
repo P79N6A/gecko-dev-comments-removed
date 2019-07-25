@@ -56,7 +56,15 @@ namespace js {
 
 typedef uint32 HashNumber;
 
+
+
 namespace detail {
+
+
+
+
+
+
 
 
 template <class T, class HashPolicy, class AllocPolicy>
@@ -298,7 +306,7 @@ class HashTable : private AllocPolicy
 
     static Entry *createTable(AllocPolicy &alloc, uint32 capacity)
     {
-        Entry *newTable = (Entry *)alloc.malloc(capacity * sizeof(Entry));
+        Entry *newTable = (Entry *)alloc.malloc_(capacity * sizeof(Entry));
         if (!newTable)
             return NULL;
         for (Entry *e = newTable, *end = e + capacity; e != end; ++e)
@@ -310,7 +318,7 @@ class HashTable : private AllocPolicy
     {
         for (Entry *e = oldTable, *end = e + capacity; e != end; ++e)
             e->~Entry();
-        alloc.free(oldTable);
+        alloc.free_(oldTable);
     }
 
   public:
@@ -690,7 +698,9 @@ class HashTable : private AllocPolicy
 #undef METER
 };
 
-}
+}  
+
+
 
 
 
@@ -943,6 +953,7 @@ class HashMap
         return impl.lookup(l) != NULL;
     }
 
+    
     Entry *put(const Key &k, const Value &v) {
         AddPtr p = lookupForAdd(k);
         if (p) {
@@ -952,6 +963,23 @@ class HashMap
         return add(p, k, v) ? &*p : NULL;
     }
 
+    
+    bool putNew(const Key &k, const Value &v) {
+        AddPtr p = lookupForAdd(k);
+        JS_ASSERT(!p);
+        return add(p, k, v);
+    }
+
+    
+    Ptr lookupWithDefault(const Key &k, const Value &defaultValue) {
+        AddPtr p = lookupForAdd(k);
+        if (p)
+            return p;
+        (void)add(p, k, defaultValue);  
+        return p;
+    }
+
+    
     void remove(const Lookup &l) {
         if (Ptr p = lookup(l))
             remove(p);
@@ -1114,9 +1142,17 @@ class HashSet
         return impl.lookup(l) != NULL;
     }
 
+    
     const T *put(const T &t) {
         AddPtr p = lookupForAdd(t);
         return p ? &*p : (add(p, t) ? &*p : NULL);
+    }
+
+    
+    bool putNew(const T &t) {
+        AddPtr p = lookupForAdd(t);
+        JS_ASSERT(!p);
+        return add(p, t);
     }
 
     void remove(const Lookup &l) {

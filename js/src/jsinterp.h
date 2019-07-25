@@ -165,10 +165,6 @@ struct JSStackFrame
 
 
 
-
-
-
-
     bool isFunctionFrame() const {
         return !!(flags_ & JSFRAME_FUNCTION);
     }
@@ -182,16 +178,38 @@ struct JSStackFrame
     }
 
     bool isScriptFrame() const {
-        return !!(flags_ & (JSFRAME_FUNCTION | JSFRAME_GLOBAL));
+        bool retval = !!(flags_ & (JSFRAME_FUNCTION | JSFRAME_GLOBAL));
+        JS_ASSERT(retval == !isDummyFrame());
+        return retval;
     }
+
+    
+
+
+
+
+
+
+
+
+
+
 
     bool isEvalFrame() const {
         JS_ASSERT_IF(flags_ & JSFRAME_EVAL, isScriptFrame());
         return flags_ & JSFRAME_EVAL;
     }
 
-    bool isExecuteFrame() const {
-        return !!(flags_ & (JSFRAME_GLOBAL | JSFRAME_EVAL));
+    bool isNonEvalFunctionFrame() const {
+        return (flags_ & (JSFRAME_FUNCTION | JSFRAME_EVAL)) == JSFRAME_FUNCTION;
+    }
+
+    bool isStrictEvalFrame() const {
+        return isEvalFrame() && script()->strictModeCode;
+    }
+
+    bool isNonStrictEvalFrame() const {
+        return isEvalFrame() && !script()->strictModeCode;
     }
 
     
@@ -378,7 +396,7 @@ struct JSStackFrame
 
     
     bool hasArgs() const {
-        return isFunctionFrame() && !isEvalFrame();
+        return isNonEvalFunctionFrame();
     }
 
     uintN numFormalArgs() const {
@@ -432,7 +450,6 @@ struct JSStackFrame
     }
 
     inline void setArgsObj(JSObject &obj);
-    inline void clearArgsObj();
 
     
 
@@ -522,6 +539,12 @@ struct JSStackFrame
 
 
 
+
+
+
+
+
+
     JSObject &scopeChain() const {
         JS_ASSERT_IF(!(flags_ & JSFRAME_HAS_SCOPECHAIN), isFunctionFrame());
         if (!(flags_ & JSFRAME_HAS_SCOPECHAIN)) {
@@ -532,14 +555,16 @@ struct JSStackFrame
     }
 
     bool hasCallObj() const {
-        return !!(flags_ & JSFRAME_HAS_CALL_OBJ);
+        bool ret = !!(flags_ & JSFRAME_HAS_CALL_OBJ);
+        JS_ASSERT_IF(ret, !isNonStrictEvalFrame());
+        return ret;
     }
 
     inline JSObject &callObj() const;
-    inline JSObject *maybeCallObj() const;
     inline void setScopeChainNoCallObj(JSObject &obj);
-    inline void setScopeChainAndCallObj(JSObject &obj);
-    inline void clearCallObj();
+    inline void setScopeChainWithOwnCallObj(JSObject &obj);
+
+    inline void markActivationObjectsAsPut();
 
     
 
@@ -668,6 +693,17 @@ struct JSStackFrame
 
     void setFloatingGenerator() {
         flags_ |= JSFRAME_FLOATING_GENERATOR;
+    }
+
+    
+
+
+
+
+
+
+    bool isFramePushedByExecute() const {
+        return !!(flags_ & (JSFRAME_GLOBAL | JSFRAME_EVAL));
     }
 
     
@@ -872,10 +908,47 @@ template <typename T>
 bool GetPrimitiveThis(JSContext *cx, Value *vp, T *v);
 
 inline void
-PutActivationObjects(JSContext *cx, JSStackFrame *fp);
+PutActivationObjects(JSContext *cx, JSStackFrame *fp)
+{
+    
+    if (fp->hasCallObj())
+        js_PutCallObject(cx, fp);
+    else if (fp->hasArgsObj())
+        js_PutArgsObject(cx, fp);
+}
 
-inline void
-PutOwnedActivationObjects(JSContext *cx, JSStackFrame *fp);
+
+
+
+
+
+
+inline bool
+ScriptPrologue(JSContext *cx, JSStackFrame *fp, JSScript *script);
+
+inline bool
+ScriptEpilogue(JSContext *cx, JSStackFrame *fp, bool ok);
+
+
+
+
+
+
+
+
+inline bool
+ScriptPrologueOrGeneratorResume(JSContext *cx, JSStackFrame *fp);
+
+inline bool
+ScriptEpilogueOrGeneratorYield(JSContext *cx, JSStackFrame *fp, bool ok);
+
+
+
+extern void
+ScriptDebugPrologue(JSContext *cx, JSStackFrame *fp);
+
+extern bool
+ScriptDebugEpilogue(JSContext *cx, JSStackFrame *fp, bool ok);
 
 
 
@@ -1036,6 +1109,9 @@ CheckRedeclaration(JSContext *cx, JSObject *obj, jsid id, uintN attrs);
 
 extern bool
 StrictlyEqual(JSContext *cx, const Value &lval, const Value &rval, JSBool *equal);
+
+extern bool
+LooselyEqual(JSContext *cx, const Value &lval, const Value &rval, JSBool *equal);
 
 
 extern bool
