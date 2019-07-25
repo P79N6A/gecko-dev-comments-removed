@@ -99,7 +99,7 @@ BrowserRootActor.prototype = {
         }
         let actor = this._tabActors.get(browser);
         if (!actor) {
-          actor = new BrowserTabActor(this.conn, browser);
+          actor = new BrowserTabActor(this.conn, browser, win.gBrowser);
           actor.parentID = this.actorID;
           this._tabActors.set(browser, actor);
         }
@@ -189,10 +189,13 @@ BrowserRootActor.prototype.requestTypes = {
 
 
 
-function BrowserTabActor(aConnection, aBrowser)
+
+
+function BrowserTabActor(aConnection, aBrowser, aTabBrowser)
 {
   this.conn = aConnection;
   this._browser = aBrowser;
+  this._tabbrowser = aTabBrowser;
 
   this._onWindowCreated = this.onWindowCreated.bind(this);
 }
@@ -211,6 +214,8 @@ BrowserTabActor.prototype = {
 
   _contextPool: null,
   get contextActorPool() { return this._contextPool; },
+
+  _pendingNavigation: null,
 
   
 
@@ -250,6 +255,10 @@ BrowserTabActor.prototype = {
 
   disconnect: function BTA_disconnect() {
     this._detach();
+
+    if (this._progressListener) {
+      this._progressListener.destroy();
+    }
   },
 
   
@@ -266,7 +275,11 @@ BrowserTabActor.prototype = {
                        type: "tabDetached" });
     }
 
+    if (this._progressListener) {
+      this._progressListener.destroy();
+    }
     this._browser = null;
+    this._tabbrowser = null;
   },
 
   
@@ -288,6 +301,7 @@ BrowserTabActor.prototype = {
     
     this.browser.addEventListener("DOMWindowCreated", this._onWindowCreated, true);
     this.browser.addEventListener("pageshow", this._onWindowCreated, true);
+    this._progressListener = new DebuggerProgressListener(this);
 
     this._attached = true;
   },
@@ -370,6 +384,10 @@ BrowserTabActor.prototype = {
 
     this._detach();
 
+    if (this._progressListener) {
+      this._progressListener.destroy();
+    }
+
     return { type: "detached" };
   },
 
@@ -401,6 +419,10 @@ BrowserTabActor.prototype = {
                           .getInterface(Ci.nsIDOMWindowUtils);
     windowUtils.resumeTimeouts();
     windowUtils.suppressEventHandling(false);
+    if (this._pendingNavigation) {
+      this._pendingNavigation.resume();
+      this._pendingNavigation = null;
+    }
   },
 
   
@@ -428,6 +450,68 @@ BrowserTabActor.prototype = {
 BrowserTabActor.prototype.requestTypes = {
   "attach": BrowserTabActor.prototype.onAttach,
   "detach": BrowserTabActor.prototype.onDetach
+};
+
+
+
+
+
+
+
+
+
+
+function DebuggerProgressListener(aBrowserTabActor) {
+  this._tabActor = aBrowserTabActor;
+  this._tabActor._tabbrowser.addProgressListener(this);
+}
+
+DebuggerProgressListener.prototype = {
+  onStateChange:
+  function DPL_onStateChange(aProgress, aRequest, aFlag, aStatus) {
+    let isStart = aFlag & Ci.nsIWebProgressListener.STATE_START;
+    let isStop = aFlag & Ci.nsIWebProgressListener.STATE_STOP;
+    let isDocument = aFlag & Ci.nsIWebProgressListener.STATE_IS_DOCUMENT;
+    let isNetwork = aFlag & Ci.nsIWebProgressListener.STATE_IS_NETWORK;
+    let isRequest = aFlag & Ci.nsIWebProgressListener.STATE_IS_REQUEST;
+    let isWindow = aFlag & Ci.nsIWebProgressListener.STATE_IS_WINDOW;
+
+    
+    if (isStart && isDocument && isRequest && isNetwork) {
+      
+      
+      if (aProgress.DOMWindow != this._tabActor.browser.contentWindow) {
+        return;
+      }
+
+      
+      if (this._tabActor.threadActor.state != "paused") {
+        return;
+      }
+
+      aRequest.suspend();
+      this._tabActor._pendingNavigation = aRequest;
+      this._tabActor._detach();
+      this._needsTabNavigated = true;
+    } else if (isStop && isWindow && isNetwork && this._needsTabNavigated) {
+      this._tabActor.conn.send({
+        from: this._tabActor.actorID,
+        type: "tabNavigated",
+        url: this._tabActor.browser.contentDocument.URL
+      });
+
+      this.destroy();
+    }
+  },
+
+  
+
+
+  destroy: function DPL_destroy() {
+    this._tabActor._tabbrowser.removeProgressListener(this);
+    this._tabActor._progressListener = null;
+    this._tabActor = null;
+  }
 };
 
 

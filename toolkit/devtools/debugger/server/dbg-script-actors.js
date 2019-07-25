@@ -543,7 +543,7 @@ ThreadActor.prototype = {
   
 
 
-  onInterrupt: function TA_onScripts(aRequest) {
+  onInterrupt: function TA_onInterrupt(aRequest) {
     if (this.state == "exited") {
       return { type: "exited" };
     } else if (this.state == "paused") {

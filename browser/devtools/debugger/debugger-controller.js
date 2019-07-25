@@ -260,7 +260,8 @@ let DebuggerController = {
 
 
   get _isChromeDebugger() {
-    return !window.parent.content && !this._isRemoteDebugger;
+    
+    return !("content" in window.parent) && !this._isRemoteDebugger;
   },
 
   
