@@ -13,7 +13,23 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#ifndef WIN32
+#ifdef WIN32
+   
+
+
+
+
+
+#  ifdef __cplusplus
+   extern "C" {
+#  endif
+   __declspec(dllimport) int __stdcall
+   TerminateProcess(void* hProcess, unsigned int uExitCode);
+   __declspec(dllimport) void* __stdcall GetCurrentProcess(void);
+#  ifdef __cplusplus
+   }
+#  endif
+#else
 #  include <signal.h>
 #endif
 #ifdef ANDROID
@@ -123,19 +139,27 @@ extern "C" {
 
 
 
+
+
+
+
+
+
+
+
 #  ifdef __cplusplus
 #    define MOZ_CRASH() \
        do { \
          __debugbreak(); \
          *((volatile int*) NULL) = 123; \
-         ::exit(3); \
+         ::TerminateProcess(::GetCurrentProcess(), 3); \
        } while (0)
 #  else
 #    define MOZ_CRASH() \
        do { \
          __debugbreak(); \
          *((volatile int*) NULL) = 123; \
-         exit(3); \
+         TerminateProcess(GetCurrentProcess(), 3); \
        } while (0)
 #  endif
 #else
