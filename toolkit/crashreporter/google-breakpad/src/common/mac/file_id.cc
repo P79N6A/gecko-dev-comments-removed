@@ -53,19 +53,19 @@ bool FileID::FileIdentifier(unsigned char identifier[16]) {
   if (fd == -1)
     return false;
 
-  MD5_CTX md5;
-  MD5_Init(&md5);
+  MD5Context md5;
+  MD5Init(&md5);
 
   
   
   unsigned char buffer[4096 * 2];
   size_t buffer_size = sizeof(buffer);
   while ((buffer_size = read(fd, buffer, buffer_size) > 0)) {
-    MD5_Update(&md5, buffer, buffer_size);
+    MD5Update(&md5, buffer, buffer_size);
   }
 
   close(fd);
-  MD5_Final(identifier, &md5);
+  MD5Final(identifier, &md5);
 
   return true;
 }
