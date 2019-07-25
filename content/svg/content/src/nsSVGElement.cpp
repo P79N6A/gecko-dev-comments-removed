@@ -2445,6 +2445,23 @@ nsSVGElement::GetAnimatedAttr(PRInt32 aNamespaceID, nsIAtom* aName)
 {
   if (aNamespaceID == kNameSpaceID_None) {
     
+    
+    
+    
+
+    
+    if (IsAttributeMapped(aName)) {
+      nsCSSProperty prop =
+        nsCSSProps::LookupProperty(nsDependentAtomString(aName));
+      
+      
+      
+      if (nsSMILCSSProperty::IsPropertyAnimatable(prop)) {
+        return new nsSMILMappedAttribute(prop, this);
+      }
+    }
+
+    
     if (GetTransformListAttrName() == aName) {
       SVGAnimatedTransformList* transformList = GetAnimatedTransformList();
       return transformList ?  transformList->ToSMILAttr(this) : nsnull;
@@ -2589,18 +2606,6 @@ nsSVGElement::GetAnimatedAttr(PRInt32 aNamespaceID, nsIAtom* aName)
         if (segList) {
           return segList->ToSMILAttr(this);
         }
-      }
-    }
-
-    
-    if (IsAttributeMapped(aName)) {
-      nsCSSProperty prop =
-        nsCSSProps::LookupProperty(nsDependentAtomString(aName));
-      
-      
-      
-      if (nsSMILCSSProperty::IsPropertyAnimatable(prop)) {
-        return new nsSMILMappedAttribute(prop, this);
       }
     }
   }
