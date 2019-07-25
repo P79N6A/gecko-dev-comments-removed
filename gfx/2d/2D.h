@@ -50,6 +50,9 @@
 struct _cairo_surface;
 typedef _cairo_surface cairo_surface_t;
 
+struct _cairo_scaled_font;
+typedef _cairo_scaled_font cairo_scaled_font_t;
+
 struct ID3D10Device1;
 struct ID3D10Texture2D;
 
@@ -771,6 +774,14 @@ public:
 
   static TemporaryRef<ScaledFont>
     CreateScaledFontForNativeFont(const NativeFont &aNativeFont, Float aSize);
+
+  
+
+
+
+
+  static TemporaryRef<ScaledFont>
+    CreateScaledFontWithCairo(const NativeFont &aNativeFont, Float aSize, cairo_scaled_font_t* aScaledFont);
 
   
 

@@ -39,7 +39,7 @@
 
 #ifdef USE_CAIRO
 #include "DrawTargetCairo.h"
-#include "ScaledFontCairo.h"
+#include "ScaledFontBase.h"
 #endif
 
 #ifdef USE_SKIA
@@ -159,14 +159,32 @@ Factory::CreateScaledFontForNativeFont(const NativeFont &aNativeFont, Float aSiz
       return new ScaledFontBase(static_cast<gfxFont*>(aNativeFont.mFont), aSize);
     }
 #endif
+#ifdef USE_CAIRO
   case NATIVE_FONT_CAIRO_FONT_FACE:
     {
-      return new ScaledFontCairo(static_cast<gfxFont*>(aNativeFont.mFont));
+      return new ScaledFontBase(aSize);
     }
+#endif
   default:
     gfxWarning() << "Invalid native font type specified.";
     return NULL;
   }
+}
+
+TemporaryRef<ScaledFont>
+Factory::CreateScaledFontWithCairo(const NativeFont& aNativeFont, Float aSize, cairo_scaled_font_t* aScaledFont)
+{
+#ifdef USE_CAIRO
+  
+  
+  
+  
+  RefPtr<ScaledFont> font = CreateScaledFontForNativeFont(aNativeFont, aSize);
+  static_cast<ScaledFontBase*>(font.get())->SetCairoScaledFont(aScaledFont);
+  return font;
+#else
+  return NULL;
+#endif
 }
 
 #ifdef WIN32
