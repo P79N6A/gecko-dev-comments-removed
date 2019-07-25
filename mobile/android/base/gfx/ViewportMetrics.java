@@ -279,11 +279,16 @@ public class ViewportMetrics {
     }
 
     public String toJSON() {
+        
+        
+        int height = Math.round(mViewportRect.height());
+        int width = Math.round(mViewportRect.width());
+
         StringBuffer sb = new StringBuffer(256);
         sb.append("{ \"x\" : ").append(mViewportRect.left)
           .append(", \"y\" : ").append(mViewportRect.top)
-          .append(", \"width\" : ").append(mViewportRect.width())
-          .append(", \"height\" : ").append(mViewportRect.height())
+          .append(", \"width\" : ").append(width)
+          .append(", \"height\" : ").append(height)
           .append(", \"pageWidth\" : ").append(mPageSize.width)
           .append(", \"pageHeight\" : ").append(mPageSize.height)
           .append(", \"offsetX\" : ").append(mViewportOffset.x)
