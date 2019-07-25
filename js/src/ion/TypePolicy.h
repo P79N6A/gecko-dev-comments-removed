@@ -234,6 +234,19 @@ class CallSetElementPolicy : public SingleObjectPolicy
     bool adjustInputs(MInstruction *def);
 };
 
+class StoreTypedArrayPolicy : public BoxInputsPolicy
+{
+  public:
+    bool adjustInputs(MInstruction *ins);
+};
+
+
+class ClampPolicy : public BoxInputsPolicy
+{
+  public:
+    bool adjustInputs(MInstruction *ins);
+};
+
 static inline bool
 CoercesToDouble(MIRType type)
 {

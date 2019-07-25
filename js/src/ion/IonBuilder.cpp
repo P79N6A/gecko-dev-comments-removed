@@ -2802,7 +2802,7 @@ bool
 IonBuilder::jsop_initelem()
 {
     if (oracle->propertyWriteCanSpecialize(script, pc)) {
-        if (oracle->elementWriteIsDense(script, pc))
+        if (oracle->elementWriteIsDenseArray(script, pc))
             return jsop_initelem_dense();
     }
 
@@ -3721,8 +3721,12 @@ bool
 IonBuilder::jsop_setelem()
 {
     if (oracle->propertyWriteCanSpecialize(script, pc)) {
-        if (oracle->elementWriteIsDense(script, pc))
+        if (oracle->elementWriteIsDenseArray(script, pc))
             return jsop_setelem_dense();
+
+        int arrayType = TypedArray::TYPE_MAX;
+        if (oracle->elementWriteIsTypedArray(script, pc, &arrayType))
+            return jsop_setelem_typed(arrayType);
     }
 
     MDefinition *value = current->pop();
@@ -3796,6 +3800,45 @@ IonBuilder::jsop_setelem_dense()
         store->setElementType(elementType);
 
     return true;
+}
+
+bool
+IonBuilder::jsop_setelem_typed(int arrayType)
+{
+    MDefinition *value = current->pop();
+    MDefinition *id = current->pop();
+    MDefinition *obj = current->pop();
+
+    
+    MInstruction *idInt32 = MToInt32::New(id);
+    current->add(idInt32);
+    id = idInt32;
+
+    
+    MTypedArrayLength *length = MTypedArrayLength::New(obj);
+    current->add(length);
+
+    
+    MBoundsCheck *check = MBoundsCheck::New(id, length);
+    current->add(check);
+
+    
+    MTypedArrayElements *elements = MTypedArrayElements::New(obj);
+    current->add(elements);
+
+    
+    MDefinition *unclampedValue = value;
+    if (arrayType == TypedArray::TYPE_UINT8_CLAMPED) {
+        value = MClampToUint8::New(value);
+        current->add(value->toInstruction());
+    }
+
+    
+    MStoreTypedArrayElement *store = MStoreTypedArrayElement::New(elements, id, value, arrayType);
+    current->add(store);
+
+    current->push(unclampedValue);
+    return resumeAfter(store);
 }
 
 bool
