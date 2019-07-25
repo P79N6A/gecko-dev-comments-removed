@@ -536,11 +536,9 @@ protected:
     {
         ContextState& state = CurrentState();
 
-        
-        
         return state.StyleIsColor(STYLE_SHADOW) &&
                NS_GET_A(state.colorStyles[STYLE_SHADOW]) > 0 &&
-               (state.shadowOffset != gfxPoint(0, 0) || state.shadowBlur != 0);
+               mThebes->CurrentOperator() == gfxContext::OPERATOR_OVER;
     }
 
     
@@ -1037,7 +1035,9 @@ nsCanvasRenderingContext2D::Redraw()
         return NS_OK;
     }
 
+#ifdef MOZ_SVG
     nsSVGEffects::InvalidateDirectRenderingObservers(HTMLCanvasElement());
+#endif
 
     HTMLCanvasElement()->InvalidateCanvasContent(nsnull);
 
@@ -1062,7 +1062,9 @@ nsCanvasRenderingContext2D::Redraw(const gfxRect& r)
         return NS_OK;
     }
 
+#ifdef MOZ_SVG
     nsSVGEffects::InvalidateDirectRenderingObservers(HTMLCanvasElement());
+#endif
 
     HTMLCanvasElement()->InvalidateCanvasContent(&r);
 
