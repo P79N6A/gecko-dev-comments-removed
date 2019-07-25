@@ -380,7 +380,7 @@ var Browser = {
     bv.beginBatchOperation();
 
     let stylesheet = document.styleSheets[0];
-    for each (let style in ["viewport-width", "viewport-height", "window-width", "window-height", "toolbar-height", "browser", "browser-viewport"]) {
+    for each (let style in ["viewport-width", "viewport-height", "window-width", "window-height", "toolbar-height"]) {
       let index = stylesheet.insertRule("." + style + " {}", stylesheet.cssRules.length);
       this.styles[style] = stylesheet.cssRules[index].style;
     }
@@ -408,8 +408,6 @@ var Browser = {
       Browser.styles["window-width"].width = w + "px";
       Browser.styles["window-height"].height = h + "px";
       Browser.styles["toolbar-height"].height = toolbarHeight + "px";
-      Browser.styles["browser"].width = kDefaultBrowserWidth + "px";
-      Browser.styles["browser"].height = scaledDefaultH + "px";
 
       
       let browser = Browser.selectedBrowser;
@@ -433,6 +431,9 @@ var Browser = {
         
         Browser.hideSidebars();
       bv.onAfterVisibleMove();
+
+      for (let i = Browser._tabs.length - 1; i >= 0; i--)
+        Browser._tabs[i].updateViewportSize();
 
       bv.commitBatchOperation();
       
@@ -2993,6 +2994,76 @@ Tab.prototype = {
   },
 
   
+  updateViewportMetadata: function updateViewportMetadata() {
+    let browser = this._browser;
+    if (!browser)
+      return;
+
+    let metaData = Util.getViewportMetadata(this._browser);
+    this._browserViewportState.metaData = metaData;
+
+    
+    browser.className = "";
+    browser.style.removeProperty("width");
+    browser.style.removeProperty("height");
+
+    
+    if (metaData.autoSize) {
+      if (metaData.defaultZoom == 1.0) {
+        browser.classList.add("window-width");
+        browser.classList.add("window-height");
+      } else {
+        browser.classList.add("viewport-width");
+        browser.classList.add("viewport-height");
+      }
+    }
+    this.updateViewportSize();
+  },
+
+  
+  updateViewportSize: function updateViewportSize() {
+    let browser = this._browser;
+    let metaData = this._browserViewportState.metaData
+    if (!browser || !metaData)
+      return;
+
+    if (!metaData.autoSize) {
+      let screenW = window.innerWidth;
+      let screenH = window.innerHeight;
+      let viewportW = metaData.width;
+      let viewportH = metaData.height;
+
+      
+      let maxInitialZoom = metaData.defaultZoom || metaData.maxZoom;
+      if (maxInitialZoom && viewportW)
+        viewportW = Math.max(viewportW, screenW / maxInitialZoom);
+
+      let validW = viewportW > 0;
+      let validH = viewportH > 0;
+
+      if (validW && !validH) {
+        viewportH = viewportW * (screenH / screenW);
+      } else if (!validW && validH) {
+        viewportW = viewportH * (screenW / screenH);
+      } else {
+        viewportW = kDefaultBrowserWidth;
+        viewportH = kDefaultBrowserWidth * (screenH / screenW);
+      }
+
+      browser.style.width = viewportW + "px";
+      browser.style.height = viewportH + "px";
+    }
+
+    
+    
+    let doc = browser.contentDocument;
+    if (doc instanceof XULDocument || doc.body instanceof HTMLFrameSetElement) {
+       let [width, height] = BrowserView.Util.getBrowserDimensions(browser);
+       BrowserView.Util.ensureMozScrolledAreaEvent(browser, width, height);
+    }
+  },
+
+  
   getIdentityState: function getIdentityState() {
     return this._listener.state;
   },
@@ -3020,55 +3091,8 @@ Tab.prototype = {
   endLoading: function endLoading() {
     if (!this._loading) throw "Not Loading!";
 
-    
-    let browser = this._browser;
-    let metaData = Util.getViewportMetadata(browser);
-
-    
-    browser.style.removeProperty("width");
-    browser.style.removeProperty("height");
-
-    if (metaData.reason == "handheld" || metaData.reason == "doctype" || metaData.reason == "viewport") {  
-      browser.className = "browser-viewport";
-      if (metaData.autoSize) {
-        browser.classList.add("viewport-width");
-        browser.classList.add("viewport-height");
-      }
-      else {
-        let screenW = window.innerWidth;
-        let screenH = window.innerHeight;
-        let viewportW = metaData.width;
-        let viewportH = metaData.height;
-        let validW = viewportW > 0;
-        let validH = viewportH > 0;
-  
-        if (validW && !validH) {
-          viewportH = viewportW * (screenH / screenW);
-        } else if (!validW && validH) {
-          viewportW = viewportH * (screenW / screenH);
-        } else {
-          viewportW = kDefaultBrowserWidth;
-          viewportH = kDefaultBrowserWidth * (screenH / screenW);
-        }
-
-        browser.style.width = viewportW + "px";
-        browser.style.height = viewportH + "px";
-      }
-    } else if (metaData.reason == "chrome") {
-      browser.className = "browser-chrome window-width window-height";
-    } else {
-      browser.className = "browser";
-    }
-
-    
-    
-    let doc = browser.contentDocument;
-    if (doc instanceof XULDocument || doc.body instanceof HTMLFrameSetElement) {
-       let [width, height] = BrowserView.Util.getBrowserDimensions(browser);
-       BrowserView.Util.ensureMozScrolledAreaEvent(browser, width, height);
-    }
-
-    this.setIcon(browser.mIconURL);
+    this.updateViewportMetadata();
+    this.setIcon(this._browser.mIconURL);
     this._loading = false;
 
     if (this == Browser.selectedTab) {
@@ -3120,7 +3144,6 @@ Tab.prototype = {
     
     let browser = this._browser = document.createElement("browser");
 
-    browser.className = "browser";
     browser.setAttribute("style", "overflow: -moz-hidden-unscrollable; visibility: hidden;");
     browser.setAttribute("type", "content");
 
