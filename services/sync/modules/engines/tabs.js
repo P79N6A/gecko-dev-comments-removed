@@ -460,7 +460,7 @@ TabTracker.prototype = {
       return 0;
 
     
-    let numChanged = c.filter(function(v) v).length;
+    let numChanged = c.filter(function(v) !v).length;
 
     let fractionSimilar = (numShared - (numChanged / 2)) / numTotal;
     let fractionDissimilar = 1 - fractionSimilar;
