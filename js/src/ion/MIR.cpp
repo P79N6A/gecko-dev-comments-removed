@@ -419,7 +419,9 @@ MPhi::foldsTo(bool useValueNumbers)
     MDefinition *first = getOperand(0);
 
     for (size_t i = 1; i < inputs_.length(); i++) {
-        if (!EqualValues(useValueNumbers, getOperand(i), first))
+        
+        
+        if (!EqualValues(false, getOperand(i), first))
             return this;
     }
 
