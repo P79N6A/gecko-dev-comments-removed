@@ -244,7 +244,7 @@ struct FPRegisters {
         | (1 << JSC::ARMRegisters::d3);
     
     static const FPRegisterID First  = JSC::ARMRegisters::d0;
-    static const FPRegisterID Second = JSC::ARMRegisters::d1
+    static const FPRegisterID Second = JSC::ARMRegisters::d1;
 #else
 # error "Unsupported platform"
 #endif
