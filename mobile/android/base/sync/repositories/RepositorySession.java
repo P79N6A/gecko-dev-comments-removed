@@ -5,6 +5,7 @@
 package org.mozilla.gecko.sync.repositories;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -359,7 +360,7 @@ public abstract class RepositorySession {
     
     
     if (!localIsMoreRecent) {
-      trackRecord(out);
+      trackGUID(out.guid);
     }
     return out;
   }
@@ -372,10 +373,13 @@ public abstract class RepositorySession {
 
 
 
-  protected synchronized void trackRecord(Record record) {
+  protected void trackGUID(String guid) {
   }
 
-  protected synchronized void untrackRecord(Record record) {
+  protected synchronized void untrackGUIDs(Collection<String> guids) {
+  }
+
+  protected void untrackGUID(String guid) {
   }
 
   
