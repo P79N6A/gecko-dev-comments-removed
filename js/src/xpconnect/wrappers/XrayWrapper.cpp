@@ -272,16 +272,34 @@ struct NativePropertiesOnly : public Policy {
     static bool check(JSContext *cx, JSObject *obj, jsid id, bool set, Permission &perm);
 };
 
-extern JSWrapper WaiveXrayWrapperWrapper;
+extern JSCrossCompartmentWrapper XrayWrapperWaivedWrapper;
 
 static JSBool
 wrappedJSObject_getter(JSContext *cx, JSObject *holder, jsid id, jsval *vp)
 {
+    if (holder->isWrapper()) {
+#ifdef DEBUG
+        {
+            JSProxyHandler *handler = holder->getProxyHandler();
+            NS_ASSERTION(handler == &XrayWrapper<JSCrossCompartmentWrapper>::singleton ||
+                         handler == &XrayWrapper<CrossOriginWrapper>::singleton,
+                         "bad object");
+        }
+#endif
+        holder = holder->unwrap();
+    }
+
     
     
     
     JSObject *wn = GetWrappedNativeObjectFromHolder(cx, holder);
-    JSObject *obj = JSWrapper::New(cx, wn, NULL, wn->getParent(), &WaiveXrayWrapperWrapper);
+
+    
+    
+    OBJ_TO_OUTER_OBJECT(cx, wn);
+    if (!wn)
+        return false;
+    JSObject *obj = JSWrapper::New(cx, wn, NULL, holder->getParent(), &XrayWrapperWaivedWrapper);
     if (!obj)
         return false;
     *vp = OBJECT_TO_JSVAL(obj);
