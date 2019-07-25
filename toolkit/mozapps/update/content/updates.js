@@ -258,12 +258,6 @@ var gUpdates = {
     
     var neverPrefName = PREF_APP_UPDATE_NEVER_BRANCH + this.update.appVersion;
     gPref.setBoolPref(neverPrefName, true);
-    this.wiz.cancel();
-  },
-
-  later: function () {
-    
-    this.wiz.cancel();
   },
 
   
@@ -917,11 +911,12 @@ var gUpdatesFoundBasicPage = {
   },
 
   onExtra1: function() {
-    gUpdates.later();
+    gUpdates.wiz.cancel();
   },
 
   onExtra2: function() {
     gUpdates.never();
+    gUpdates.wiz.cancel();
   }
 };
 
@@ -1003,12 +998,13 @@ var gUpdatesFoundBillboardPage = {
 
   onExtra1: function() {
     this.onWizardCancel();
-    gUpdates.later();
+    gUpdates.wiz.cancel();
   },
 
   onExtra2: function() {
     this.onWizardCancel();
     gUpdates.never();
+    gUpdates.wiz.cancel();
   },
 
   
