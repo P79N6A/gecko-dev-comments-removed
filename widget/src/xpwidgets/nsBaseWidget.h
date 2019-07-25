@@ -288,7 +288,6 @@ protected:
   PRInt32           mZIndex;
   nsSizeMode        mSizeMode;
   nsPopupLevel      mPopupLevel;
-  PRBool            mDrawFPS;
 
   
   
