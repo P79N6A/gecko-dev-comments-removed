@@ -2799,7 +2799,9 @@ nsScriptSecurityManager::RequestCapability(nsIPrincipal* aPrincipal,
     {
         
         JSContext* cx = GetCurrentJSContext();
-        PRBool remember;
+        
+        
+        PRBool remember = PR_FALSE;
         if (CheckConfirmDialog(cx, aPrincipal, capability, &remember))
             *canEnable = nsIPrincipal::ENABLE_GRANTED;
         else

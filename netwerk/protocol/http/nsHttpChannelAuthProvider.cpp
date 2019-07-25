@@ -1182,7 +1182,9 @@ nsHttpChannelAuthProvider::ConfirmAuth(const nsString &bundleKey,
     PRBool confirmed;
     if (doYesNoPrompt) {
         PRInt32 choice;
-        PRBool checkState;
+        
+        
+        PRBool checkState = PR_FALSE;
         rv = prompt->ConfirmEx(nsnull, msg,
                                nsIPrompt::BUTTON_POS_1_DEFAULT +
                                nsIPrompt::STD_YES_NO_BUTTONS,
