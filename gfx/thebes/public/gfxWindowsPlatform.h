@@ -191,6 +191,26 @@ public:
 
     void ClearPrefFonts() { mPrefFonts.Clear(); }
 
+    
+    
+    PRBool UseClearTypeForDownloadableFonts();
+    PRBool UseClearTypeAlways();
+
+    
+    
+    enum {
+        kWindowsUnknown = 0,
+        kWindows2000 = 0x50000,
+        kWindowsXP = 0x50001,
+        kWindowsServer2003 = 0x50002,
+        kWindowsVista = 0x60000,
+        kWindows7 = 0x60001
+    };
+
+    static PRInt32 WindowsOSVersion();
+
+    virtual void FontsPrefsChanged(nsIPrefBranch *aPrefBranch, const char *aPref);
+
 #ifdef CAIRO_HAS_DWRITE_FONT
     IDWriteFactory *GetDWriteFactory() { return mDWriteFactory; }
 #endif
@@ -203,6 +223,9 @@ protected:
     void InitDisplayCaps();
 
     RenderMode mRenderMode;
+
+    PRBool mUseClearTypeForDownloadableFonts;
+    PRBool mUseClearTypeAlways;
 
 private:
     void Init();

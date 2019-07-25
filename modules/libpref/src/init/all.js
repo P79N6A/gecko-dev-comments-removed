@@ -1608,6 +1608,14 @@ pref("font.size.fixed.zh-HK", 16);
 
 pref("font.mathfont-family", "STIXNonUnicode, STIXSize1, STIXGeneral, Symbol, DejaVu Sans, Cambria Math");
 
+
+
+
+pref("gfx.font_rendering.cleartype.use_for_downloadable_fonts", true);
+
+
+pref("gfx.font_rendering.cleartype.always_use_for_content", true);
+
 pref("ui.key.menuAccessKeyFocuses", true);
 
 
