@@ -39,6 +39,7 @@
 package org.mozilla.gecko.sync.repositories.android;
 
 import org.json.simple.JSONArray;
+import org.mozilla.gecko.sync.Logger;
 import org.mozilla.gecko.sync.repositories.NullCursorException;
 
 import android.content.ContentValues;
@@ -46,23 +47,26 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.util.Log;
 
 public class AndroidBrowserHistoryDataExtender extends SQLiteOpenHelper {
 
-  public static final String TAG = "AndroidBrowserHistoryDataExtender";
-  
+  public static final String LOG_TAG = "SyncHistoryVisits";
+
   
   protected static final String DB_NAME = "history_extension_database";
   protected static final int SCHEMA_VERSION = 1;
 
   
-  public static final String TBL_HISTORY_EXT = "HistoryExtension";
-  public static final String COL_GUID = "guid";
-  public static final String COL_VISITS = "visits";
-  
-  protected AndroidBrowserHistoryDataExtender(Context context) {
+  public static final String   TBL_HISTORY_EXT = "HistoryExtension";
+  public static final String   COL_GUID = "guid";
+  public static final String   COL_VISITS = "visits";
+  public static final String[] TBL_COLUMNS = { COL_GUID, COL_VISITS };
+
+  private final RepoUtils.QueryHelper queryHelper;
+
+  public AndroidBrowserHistoryDataExtender(Context context) {
     super(context, DB_NAME, null, SCHEMA_VERSION);
+    this.queryHelper = new RepoUtils.QueryHelper(context, null, LOG_TAG);
   }
 
   @Override
@@ -124,14 +128,17 @@ public class AndroidBrowserHistoryDataExtender extends SQLiteOpenHelper {
   }
 
   
-  
-  public long store(String guid, JSONArray visits) {
-    SQLiteDatabase db = this.getCachedReadableDatabase();
-    
-    
-    delete(guid);
-    
-    
+
+
+
+
+
+
+
+
+  public void store(String guid, JSONArray visits) {
+    SQLiteDatabase db = this.getCachedWritableDatabase();
+
     ContentValues cv = new ContentValues();
     cv.put(COL_GUID, guid);
     if (visits == null) {
@@ -139,34 +146,79 @@ public class AndroidBrowserHistoryDataExtender extends SQLiteOpenHelper {
     } else {
       cv.put(COL_VISITS, visits.toJSONString());
     }
-    long rowId = db.insert(TBL_HISTORY_EXT, null, cv);
-    Log.i(TAG, "Inserted history extension record into row: " + rowId);
-    return rowId;
+
+    String where = COL_GUID + " = ?";
+    String[] args = new String[] { guid };
+    int rowsUpdated = db.update(TBL_HISTORY_EXT, cv, where, args);
+    if (rowsUpdated >= 1) {
+      Logger.debug(LOG_TAG, "Replaced history extension record for row with GUID " + guid);
+    } else {
+      long rowId = db.insert(TBL_HISTORY_EXT, null, cv);
+      Logger.debug(LOG_TAG, "Inserted history extension record into row: " + rowId);
+    }
   }
+
   
+
+
+
+
+
+
   public Cursor fetch(String guid) throws NullCursorException {
     String where = COL_GUID + " = ?";
     String[] args = new String[] { guid };
 
     SQLiteDatabase db = this.getCachedReadableDatabase();
-    long queryStart = System.currentTimeMillis();
-    Cursor cur = db.query(TBL_HISTORY_EXT,
-                          new String[] { COL_GUID, COL_VISITS },
-                          where, args,
-                          null, null, null);
-    RepoUtils.queryTimeLogger("AndroidBrowserHistoryDataExtender.fetch(guid)", queryStart, System.currentTimeMillis());
-    if (cur == null) {
-      Log.e(TAG, "Got a null cursor while doing fetch for guid " + guid + " on history extension table");
-      throw new NullCursorException(null);
-    }
+    Cursor cur = queryHelper.safeQuery(db, ".fetch", TBL_HISTORY_EXT,
+        TBL_COLUMNS,
+        where, args, null, null, null, null);
     return cur;
   }
+
+  public JSONArray visitsForGUID(String guid) throws NullCursorException {
+    Logger.debug(LOG_TAG, "Fetching visits for GUID " + guid);
+    Cursor visits = fetch(guid);
+    try {
+      if (!visits.moveToFirst()) {
+        
+        return new JSONArray();
+      } else {
+        return RepoUtils.getJSONArrayFromCursor(visits, COL_VISITS);
+      }
+    } finally {
+      visits.close();
+    }
+  }
+
   
-  public void delete(String guid) {
+
+
+
+
+
+  public int delete(String guid) {
     String where = COL_GUID + " = ?";
     String[] args = new String[] { guid };
 
     SQLiteDatabase db = this.getCachedWritableDatabase();
-    db.delete(TBL_HISTORY_EXT, where, args);
+    return db.delete(TBL_HISTORY_EXT, where, args);
+  }
+
+  
+
+
+
+
+
+  public Cursor fetchAll() throws NullCursorException {
+    SQLiteDatabase db = this.getCachedReadableDatabase();
+    Cursor cur = db.query(TBL_HISTORY_EXT,
+        TBL_COLUMNS,
+        null, null, null, null, null);
+    if (cur == null) {
+      throw new NullCursorException(null);
+    }
+    return cur;
   }
 }
