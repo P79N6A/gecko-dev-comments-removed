@@ -630,6 +630,8 @@ class ArenaList {
 #endif
     }
 
+    ArenaHeader *getHead() { return head; }
+
     inline ArenaHeader *searchForFreeArena();
 
     template <typename T>
@@ -1193,6 +1195,31 @@ struct GCMarker : public JSTracer {
 
 void
 MarkStackRangeConservatively(JSTracer *trc, Value *begin, Value *end);
+
+static inline uint64
+TraceKindMask(unsigned kind)
+{
+    return uint64(1) << kind;
+}
+
+static inline bool
+TraceKindInMask(unsigned kind, uint64 mask)
+{
+    return !!(mask & TraceKindMask(kind));
+}
+
+typedef void (*IterateCallback)(JSContext *cx, void *data, size_t traceKind, void *obj);
+
+
+
+
+
+
+
+
+void
+IterateCells(JSContext *cx, JSCompartment *comp, uint64 traceKindMask,
+             void *data, IterateCallback callback);
 
 } 
 
