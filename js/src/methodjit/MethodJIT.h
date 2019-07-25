@@ -380,6 +380,22 @@ struct CallSite
     uint32 codeOffset;
     uint32 pcOffset;
     uint32 id;
+
+    
+    
+    
+    
+    static const uint32 MAGIC_TRAP_ID = 0xFEDCBABC;
+
+    void initialize(uint32 codeOffset, uint32 pcOffset, uint32 id) {
+        this->codeOffset = codeOffset;
+        this->pcOffset = pcOffset;
+        this->id = id;
+    }
+
+    bool isTrap() const {
+        return id == MAGIC_TRAP_ID;
+    }
 };
 
 
