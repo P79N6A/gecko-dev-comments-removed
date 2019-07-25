@@ -4,7 +4,6 @@
 
 
 
-const PREF_DISCOVERURL = "extensions.webservice.discoverURL";
 const PREF_BACKGROUND_UPDATE = "extensions.update.enabled";
 
 var gManagerWindow;
