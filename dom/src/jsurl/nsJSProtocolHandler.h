@@ -35,7 +35,6 @@
 
 
 
-
 #ifndef nsJSProtocolHandler_h___
 #define nsJSProtocolHandler_h___
 
@@ -45,7 +44,6 @@
 #include "nsIMutable.h"
 #include "nsISerializable.h"
 #include "nsIClassInfo.h"
-#include "nsSimpleURI.h"
 
 #define NS_JSPROTOCOLHANDLER_CID                     \
 { /* bfc310d2-38a0-11d3-8cd3-0060b0fc14a3 */         \
@@ -93,35 +91,57 @@ protected:
 };
 
 
-class nsJSURI : public nsSimpleURI
+
+class nsJSURI_base : public nsIURI,
+                     public nsIMutable
 {
 public:
-
-    nsJSURI() {}
-
-    nsJSURI(nsIURI* aBaseURI) : mBaseURI(aBaseURI) {}
-
-    nsIURI* GetBaseURI() const
+    nsJSURI_base(nsIURI* aSimpleURI) :
+        mSimpleURI(aSimpleURI)
     {
+        mMutable = do_QueryInterface(mSimpleURI);
+        NS_ASSERTION(aSimpleURI && mMutable, "This isn't going to work out");
+    }
+    virtual ~nsJSURI_base() {}
+
+    
+    nsJSURI_base() {}
+    
+    NS_FORWARD_NSIURI(mSimpleURI->)
+    NS_FORWARD_NSIMUTABLE(mMutable->)
+
+protected:
+    nsCOMPtr<nsIURI> mSimpleURI;
+    nsCOMPtr<nsIMutable> mMutable;
+};
+
+class nsJSURI : public nsJSURI_base,
+                public nsISerializable,
+                public nsIClassInfo
+{
+public:
+    nsJSURI(nsIURI* aBaseURI, nsIURI* aSimpleURI) :
+        nsJSURI_base(aSimpleURI), mBaseURI(aBaseURI)
+    {}
+    virtual ~nsJSURI() {}
+
+    
+    nsJSURI() : nsJSURI_base() {}
+
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSISERIALIZABLE
+    NS_DECL_NSICLASSINFO
+
+    
+    NS_IMETHOD Clone(nsIURI** aClone);
+    NS_IMETHOD Equals(nsIURI* aOther, PRBool *aResult);
+
+    nsIURI* GetBaseURI() const {
         return mBaseURI;
     }
-
-    NS_DECL_ISUPPORTS_INHERITED
-
-    
-    NS_IMETHOD Equals(nsIURI* other, PRBool *result);
-    virtual nsSimpleURI* StartClone();
-
-    
-    NS_IMETHOD Read(nsIObjectInputStream* aStream);
-    NS_IMETHOD Write(nsIObjectOutputStream* aStream);
-
-    
-    
-    NS_IMETHOD GetClassIDNoAlloc(nsCID *aClassIDNoAlloc);
 
 private:
     nsCOMPtr<nsIURI> mBaseURI;
 };
-
+    
 #endif 
