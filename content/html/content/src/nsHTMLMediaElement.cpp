@@ -1959,12 +1959,12 @@ void nsHTMLMediaElement::UnbindFromTree(bool aDeep,
 }
 
 #ifdef MOZ_RAW
-static const char gRawTypes[][16] = {
+static const char gRawTypes[2][16] = {
   "video/x-raw",
   "video/x-raw-yuv"
 };
 
-static const char* gRawCodecs[] = {
+static const char* gRawCodecs[1] = {
   nullptr
 };
 
@@ -2048,7 +2048,7 @@ nsHTMLMediaElement::IsOggType(const nsACString& aType)
 
 
 
-const char nsHTMLMediaElement::gWaveTypes[4][16] = {
+const char nsHTMLMediaElement::gWaveTypes[4][15] = {
   "audio/x-wav",
   "audio/wav",
   "audio/wave",
@@ -2084,7 +2084,7 @@ nsHTMLMediaElement::IsWaveType(const nsACString& aType)
 #endif
 
 #ifdef MOZ_WEBM
-const char nsHTMLMediaElement::gWebMTypes[2][17] = {
+const char nsHTMLMediaElement::gWebMTypes[2][11] = {
   "video/webm",
   "audio/webm"
 };
@@ -2120,7 +2120,7 @@ nsHTMLMediaElement::IsWebMType(const nsACString& aType)
 #endif
 
 #ifdef MOZ_GSTREAMER
-const char nsHTMLMediaElement::gH264Types[3][17] = {
+const char nsHTMLMediaElement::gH264Types[3][16] = {
   "video/mp4",
   "video/3gpp",
   "video/quicktime",
