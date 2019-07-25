@@ -1,0 +1,39 @@
+<html>
+<head>
+  <title>NPAPI src="" NPStream Test</title>
+  <script type="text/javascript" 
+          src="/tests/SimpleTest/SimpleTest.js"></script>
+  <script type="text/javascript" 
+          src="pluginstream.js"></script>
+  <link rel="stylesheet" type="text/css" 
+        href="/tests/SimpleTest/test.css" />
+</head>
+<body>
+  <p id="display"></p>
+
+  <iframe id="testframe" name="testframe" onload="frameLoaded()"></iframe>
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    var e = document.createElement('object');
+    e.setAttribute('data', 'loremipsum.xtest');
+    e.setAttribute('type', 'application/x-test');
+    e.setAttribute('streammode', 'normal');
+    e.setAttribute('streamchunksize', '100');
+    e.setAttribute('frame', 'testframe');
+    e.setAttribute('style', 'width: 400px; height: 100px;');
+    document.body.appendChild(e);
+  </script>
+</body>
+</html>

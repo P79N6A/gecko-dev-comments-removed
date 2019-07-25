@@ -1033,6 +1033,10 @@ NPP_NewStream(NPP instance, NPMIMEType type, NPStream* stream, NPBool seekable, 
           instanceData->postMode == POSTMODE_STREAM) {
         instanceData->testFunction = FUNCTION_NPP_GETURL;
       }
+      else {
+        
+        instanceData->err << "Received unexpected multiple NPP_NewStream";
+      }
     }
   }
   return NPERR_NO_ERROR;
