@@ -318,7 +318,14 @@ let ContentScroll =  {
           break;
 
         
-        let element = rootCwu.findElementWithViewId(json.id);
+        let element = null;
+        try {
+          element = rootCwu.findElementWithViewId(json.id);
+        } catch(e) {
+          
+          
+        }
+
         if (!element)
           break;
 
