@@ -45,6 +45,10 @@ def generate_precomplete():
         for the location to enumerate and to create the precomplete file.
     """
     root_path = os.getcwd()
+    
+    if os.path.basename(root_path) == "MacOS":
+        root_path = os.path.abspath(os.path.join(root_path, '../../'))
+
     rel_file_path_list, rel_dir_path_list = get_build_entries(root_path)
     precomplete_file_path = os.path.join(root_path,"precomplete")
     
