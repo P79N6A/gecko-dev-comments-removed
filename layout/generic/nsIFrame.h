@@ -923,6 +923,16 @@ public:
 
 
 
+  static PRBool ComputeBorderRadii(const nsStyleCorners& aBorderRadius,
+                                   const nscoord aFrameWidth,
+                                   const nscoord aFrameHeight,
+                                   nscoord aRadii[8]);
+
+  
+
+
+
+
 
   virtual nscoord GetBaseline() const = 0;
 

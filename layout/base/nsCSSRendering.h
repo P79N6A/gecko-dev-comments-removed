@@ -78,16 +78,6 @@ struct nsCSSRendering {
 
 
 
-  static PRBool GetBorderRadiusTwips(const nsStyleCorners& aBorderRadius,
-                                     const nscoord aFrameWidth,
-                                     const nscoord aFrameHeight,
-                                     nscoord aRadii[8]);
-
-  
-
-
-
-
   static void PaintBorder(nsPresContext* aPresContext,
                           nsIRenderingContext& aRenderingContext,
                           nsIFrame* aForFrame,
