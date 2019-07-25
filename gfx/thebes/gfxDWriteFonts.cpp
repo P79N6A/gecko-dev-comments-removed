@@ -126,6 +126,7 @@ gfxDWriteFont::gfxDWriteFont(gfxFontEntry *aFontEntry,
     , mNeedsOblique(PR_FALSE)
     , mNeedsBold(aNeedsBold)
     , mUseSubpixelPositions(PR_FALSE)
+    , mAllowManualShowGlyphs(PR_TRUE)
 {
     gfxDWriteFontEntry *fe =
         static_cast<gfxDWriteFontEntry*>(aFontEntry);
@@ -221,9 +222,9 @@ gfxDWriteFont::ComputeMetrics()
         
         
         
-        if (mAntialiasOption == kAntialiasDefault && UsingClearType()) {
-            mAntialiasOption = kAntialiasGrayscale;
-        }
+        
+        
+        mAllowManualShowGlyphs = PR_FALSE;
     }
 
     mMetrics = new gfxFont::Metrics;
@@ -592,6 +593,9 @@ gfxDWriteFont::CairoScaledFont()
                                                     &identityMatrix,
                                                     fontOptions);
         cairo_font_options_destroy(fontOptions);
+
+        cairo_dwrite_scaled_font_allow_manual_show_glyphs(mCairoScaledFont,
+                                                          mAllowManualShowGlyphs);
     }
 
     NS_ASSERTION(mAdjustedSize == 0.0 ||
