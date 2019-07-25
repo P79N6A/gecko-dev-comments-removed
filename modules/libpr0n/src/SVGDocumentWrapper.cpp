@@ -196,6 +196,11 @@ SVGDocumentWrapper::IsAnimated()
 void
 SVGDocumentWrapper::StartAnimation()
 {
+  
+  
+  if (!mViewer)
+    return;
+
   nsIDocument* doc = mViewer->GetDocument();
   if (doc) {
 #ifdef MOZ_SMIL
@@ -208,8 +213,6 @@ SVGDocumentWrapper::StartAnimation()
 void
 SVGDocumentWrapper::StopAnimation()
 {
-  
-  
   
   
   if (!mViewer)
