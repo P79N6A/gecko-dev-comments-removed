@@ -1479,6 +1479,9 @@ struct JSRuntime {
     JSSecurityCallbacks *securityCallbacks;
 
     
+    const JSStructuredCloneCallbacks *structuredCloneCallbacks;
+
+    
 
 
 

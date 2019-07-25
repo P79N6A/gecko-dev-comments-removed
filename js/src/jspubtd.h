@@ -165,6 +165,10 @@ typedef struct JSSecurityCallbacks JSSecurityCallbacks;
 typedef struct JSONParser        JSONParser;
 typedef struct JSCompartment     JSCompartment;
 typedef struct JSCrossCompartmentCall JSCrossCompartmentCall;
+typedef struct JSStructuredCloneWriter JSStructuredCloneWriter;
+typedef struct JSStructuredCloneReader JSStructuredCloneReader;
+typedef struct JSStructuredCloneCallbacks JSStructuredCloneCallbacks;
+
 #ifdef __cplusplus
 typedef class JSWrapper          JSWrapper;
 typedef class JSCrossCompartmentWrapper JSCrossCompartmentWrapper;
@@ -564,6 +568,37 @@ typedef enum {
 
 typedef JSBool
 (* JSCompartmentCallback)(JSContext *cx, JSCompartment *compartment, uintN compartmentOp);
+
+
+
+
+
+
+
+
+
+typedef JSBool (*ReadStructuredCloneOp)(JSContext *cx, JSStructuredCloneReader *r,
+                                        uint32 tag, uint32 data, jsval *vp);
+
+
+
+
+
+
+
+
+
+
+
+
+typedef JSBool (*WriteStructuredCloneOp)(JSContext *cx, JSStructuredCloneWriter *w, jsval v);
+
+
+
+
+
+
+typedef void (*StructuredCloneErrorOp)(JSContext *cx, uint32 errorid);
 
 JS_END_EXTERN_C
 

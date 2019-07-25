@@ -41,6 +41,7 @@
 #define jsvector_h_
 
 #include "jstl.h"
+#include "jsprvtd.h"
 
 
 #ifdef _MSC_VER
