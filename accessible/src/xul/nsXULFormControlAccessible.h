@@ -141,9 +141,12 @@ public:
   nsXULGroupboxAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
+  NS_IMETHOD GetRelationByType(PRUint32 aRelationType,
+                               nsIAccessibleRelation **aRelation);
+
+  
   virtual PRUint32 NativeRole();
   virtual nsresult GetNameInternal(nsAString& aName);
-  virtual Relation RelationByType(PRUint32 aRelationType);
 };
 
 

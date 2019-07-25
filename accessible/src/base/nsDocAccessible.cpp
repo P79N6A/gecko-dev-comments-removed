@@ -36,7 +36,6 @@
 
 
 
-#include "AccIterator.h"
 #include "States.h"
 #include "nsAccCache.h"
 #include "nsAccessibilityAtoms.h"

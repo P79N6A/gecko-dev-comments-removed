@@ -41,6 +41,7 @@
 
 #include "nsAccessibilityAtoms.h"
 
+#include "nsIDOMDocumentXBL.h"
 #include "nsIDOMNode.h"
 #include "nsIContent.h"
 #include "nsIBoxObject.h"
@@ -398,6 +399,40 @@ public:
 
 private:
   nsTArray<nsString> mNames;
+};
+
+
+
+
+
+
+class IDRefsIterator
+{
+public:
+  IDRefsIterator(nsIContent* aContent, nsIAtom* aIDRefsAttr);
+
+  
+
+
+  const nsDependentSubstring NextID();
+
+  
+
+
+  nsIContent* NextElem();
+
+  
+
+
+  nsIContent* GetElem(const nsDependentSubstring& aID);
+
+private:
+  nsString mIDs;
+  nsAString::index_type mCurrIdx;
+
+  nsIDocument* mDocument;
+  nsCOMPtr<nsIDOMDocumentXBL> mXBLDocument;
+  nsCOMPtr<nsIDOMElement> mBindingParent;
 };
 
 #endif

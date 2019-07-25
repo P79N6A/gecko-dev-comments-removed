@@ -116,9 +116,12 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
+  NS_IMETHOD GetRelationByType(PRUint32 aRelationType,
+                               nsIAccessibleRelation** aRelation);
+
+  
   virtual PRUint32 NativeRole();
   virtual nsresult GetAttributesInternal(nsIPersistentProperties* aAttributes);
-  virtual Relation RelationByType(PRUint32 aType);
 };
 
 

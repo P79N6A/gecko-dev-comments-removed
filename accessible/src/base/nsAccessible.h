@@ -62,7 +62,6 @@ class nsAccessible;
 class nsHyperTextAccessible;
 class nsHTMLLIAccessible;
 struct nsRoleMapEntry;
-class Relation;
 class nsTextAccessible;
 
 struct nsRect;
@@ -237,11 +236,6 @@ public:
 
   virtual void GetPositionAndSizeInternal(PRInt32 *aPosInSet,
                                           PRInt32 *aSetSize);
-
-  
-
-
-  virtual Relation RelationByType(PRUint32 aType);
 
   
   
@@ -673,7 +667,7 @@ protected:
 
 
 
-  nsIContent* GetAtomicRegion() const;
+  nsIDOMNode* GetAtomicRegion();
 
   
 

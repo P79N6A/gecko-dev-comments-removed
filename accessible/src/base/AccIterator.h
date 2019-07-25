@@ -35,37 +35,18 @@
 
 
 
-
-
 #ifndef nsAccIterator_h_
 #define nsAccIterator_h_
 
-#include "nsAccessibilityService.h"
 #include "filters.h"
 #include "nscore.h"
 #include "nsDocAccessible.h"
 
-#include "nsIDOMDocumentXBL.h"
 
 
 
 
-class AccIterable
-{
-public:
-  virtual ~AccIterable() { }
-  virtual nsAccessible* Next() = 0;
-
-private:
-  friend class Relation;
-  nsAutoPtr<AccIterable> mNextIter;
-};
-
-
-
-
-
-class AccIterator : public AccIterable
+class AccIterator
 {
 public:
   
@@ -86,13 +67,13 @@ public:
 
   AccIterator(nsAccessible* aRoot, filters::FilterFuncPtr aFilterFunc,
               IterationType aIterationType = eFlatNav);
-  virtual ~AccIterator();
+  ~AccIterator();
 
   
 
 
 
-  virtual nsAccessible *Next();
+  nsAccessible *GetNext();
 
 private:
   AccIterator();
@@ -118,7 +99,7 @@ private:
 
 
 
-class RelatedAccIterator : public AccIterable
+class RelatedAccIterator
 {
 public:
   
@@ -134,12 +115,10 @@ public:
   RelatedAccIterator(nsDocAccessible* aDocument, nsIContent* aDependentContent,
                      nsIAtom* aRelAttr);
 
-  virtual ~RelatedAccIterator() { }
-
   
 
 
-  virtual nsAccessible* Next();
+  nsAccessible* Next();
 
 private:
   RelatedAccIterator();
@@ -157,7 +136,7 @@ private:
 
 
 
-class HTMLLabelIterator : public AccIterable
+class HTMLLabelIterator
 {
 public:
   enum LabelFilter {
@@ -168,12 +147,10 @@ public:
   HTMLLabelIterator(nsDocAccessible* aDocument, nsIContent* aElement,
                     LabelFilter aFilter = eAllLabels);
 
-  virtual ~HTMLLabelIterator() { }
-
   
 
 
-  virtual nsAccessible* Next();
+  nsAccessible* Next();
 
 private:
   HTMLLabelIterator();
@@ -189,16 +166,15 @@ private:
 
 
 
-class HTMLOutputIterator : public AccIterable
+class HTMLOutputIterator
 {
 public:
   HTMLOutputIterator(nsDocAccessible* aDocument, nsIContent* aElement);
-  virtual ~HTMLOutputIterator() { }
 
   
 
 
-  virtual nsAccessible* Next();
+  nsAccessible* Next();
 
 private:
   HTMLOutputIterator();
@@ -212,16 +188,15 @@ private:
 
 
 
-class XULLabelIterator : public AccIterable
+class XULLabelIterator
 {
 public:
   XULLabelIterator(nsDocAccessible* aDocument, nsIContent* aElement);
-  virtual ~XULLabelIterator() { }
 
   
 
 
-  virtual nsAccessible* Next();
+  nsAccessible* Next();
 
 private:
   XULLabelIterator();
@@ -235,16 +210,15 @@ private:
 
 
 
-class XULDescriptionIterator : public AccIterable
+class XULDescriptionIterator
 {
 public:
   XULDescriptionIterator(nsDocAccessible* aDocument, nsIContent* aElement);
-  virtual ~XULDescriptionIterator() { }
 
   
 
 
-  virtual nsAccessible* Next();
+  nsAccessible* Next();
 
 private:
   XULDescriptionIterator();
@@ -252,68 +226,6 @@ private:
   XULDescriptionIterator& operator = (const XULDescriptionIterator&);
 
   RelatedAccIterator mRelIter;
-};
-
-
-
-
-
-
-class IDRefsIterator : public AccIterable
-{
-public:
-  IDRefsIterator(nsIContent* aContent, nsIAtom* aIDRefsAttr);
-  virtual ~IDRefsIterator() { }
-
-  
-
-
-  const nsDependentSubstring NextID();
-
-  
-
-
-  nsIContent* NextElem();
-
-  
-
-
-  nsIContent* GetElem(const nsDependentSubstring& aID);
-
-  
-  virtual nsAccessible* Next();
-
-private:
-  IDRefsIterator();
-  IDRefsIterator(const IDRefsIterator&);
-  IDRefsIterator operator = (const IDRefsIterator&);
-
-  nsString mIDs;
-  nsAString::index_type mCurrIdx;
-
-  nsIDocument* mDocument;
-  nsCOMPtr<nsIDOMDocumentXBL> mXBLDocument;
-  nsCOMPtr<nsIDOMElement> mBindingParent;
-};
-
-
-
-
-
-class SingleAccIterator : public AccIterable
-{
-public:
-  SingleAccIterator(nsAccessible* aTarget): mAcc(aTarget) { }
-  virtual ~SingleAccIterator() { }
-
-  virtual nsAccessible* Next();
-
-private:
-  SingleAccIterator();
-  SingleAccIterator(const SingleAccIterator&);
-  SingleAccIterator& operator = (const SingleAccIterator&);
-
-  nsRefPtr<nsAccessible> mAcc;
 };
 
 #endif
