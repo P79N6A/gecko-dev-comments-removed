@@ -292,6 +292,11 @@ class Maybe
         return asT();
     }
 
+    const T &ref() const {
+        MOZ_ASSERT(constructed);
+        return const_cast<Maybe *>(this)->asT();
+    }
+
     void destroy() {
         ref().~T();
         constructed = false;

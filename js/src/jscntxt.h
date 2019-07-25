@@ -955,6 +955,11 @@ struct JSContext
     
     JSArenaPool         tempPool;
 
+  private:
+    
+    js::ParseMapPool    *parseMapPool_;
+
+  public:
     
     JSArenaPool         regExpPool;
 
@@ -984,6 +989,13 @@ struct JSContext
     inline js::RegExpStatics *regExpStatics();
 
   public:
+    js::ParseMapPool &parseMapPool() {
+        JS_ASSERT(parseMapPool_);
+        return *parseMapPool_;
+    }
+
+    inline bool ensureParseMapPool();
+
     
 
 
@@ -1262,6 +1274,13 @@ struct JSContext
         this->throwing = false;
         this->exception.setUndefined();
     }
+
+    
+
+
+
+
+    uintN activeCompilations;
 
 #ifdef DEBUG
     
@@ -2291,8 +2310,6 @@ extern bool
 js_CurrentPCIsInImacro(JSContext *cx);
 
 namespace js {
-
-class RegExpStatics;
 
 extern JS_FORCES_STACK JS_FRIEND_API(void)
 LeaveTrace(JSContext *cx);

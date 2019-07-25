@@ -40,13 +40,10 @@
 #ifndef jsatom_h___
 #define jsatom_h___
 
-
-
 #include <stddef.h>
 #include "jsversion.h"
 #include "jsapi.h"
 #include "jsprvtd.h"
-#include "jshash.h"
 #include "jshashtable.h"
 #include "jspubtd.h"
 #include "jsstr.h"
@@ -144,123 +141,9 @@ struct DefaultHasher<jsid>
 extern const char *
 js_AtomToPrintableString(JSContext *cx, JSAtom *atom, JSAutoByteString *bytes);
 
-struct JSAtomListElement {
-    JSHashEntry         entry;
-};
-
-#define ALE_ATOM(ale)   ((JSAtom *) (ale)->entry.key)
-#define ALE_INDEX(ale)  (jsatomid(uintptr_t((ale)->entry.value)))
-#define ALE_VALUE(ale)  ((jsboxedword) (ale)->entry.value)
-#define ALE_NEXT(ale)   ((JSAtomListElement *) (ale)->entry.next)
-
-
-
-
-
-
-#define ALE_DEFN(ale)   ((JSDefinition *) (ale)->entry.value)
-
-#define ALE_SET_ATOM(ale,atom)  ((ale)->entry.key = (const void *)(atom))
-#define ALE_SET_INDEX(ale,index)((ale)->entry.value = (void *)(index))
-#define ALE_SET_DEFN(ale, dn)   ((ale)->entry.value = (void *)(dn))
-#define ALE_SET_VALUE(ale, v)   ((ale)->entry.value = (void *)(v))
-#define ALE_SET_NEXT(ale,nxt)   ((ale)->entry.next = (JSHashEntry *)(nxt))
-
-
-
-
-
-
-
-
-
-
-struct JSAtomSet {
-    JSHashEntry         *list;          
-    JSHashTable         *table;         
-    jsuint              count;          
-};
-
-struct JSAtomList : public JSAtomSet
-{
-#ifdef DEBUG
-    const JSAtomSet* set;               
-#endif
-
-    JSAtomList() {
-        list = NULL; table = NULL; count = 0;
-#ifdef DEBUG
-        set = NULL;
-#endif
-    }
-
-    JSAtomList(const JSAtomSet& as) {
-        list = as.list; table = as.table; count = as.count;
-#ifdef DEBUG
-        set = &as;
-#endif
-    }
-
-    void clear() { JS_ASSERT(!set); list = NULL; table = NULL; count = 0; }
-
-    JSAtomListElement *lookup(JSAtom *atom) {
-        JSHashEntry **hep;
-        return rawLookup(atom, hep);
-    }
-
-    JSAtomListElement *rawLookup(JSAtom *atom, JSHashEntry **&hep);
-
-    enum AddHow { UNIQUE, SHADOW, HOIST };
-
-    JSAtomListElement *add(js::Parser *parser, JSAtom *atom, AddHow how = UNIQUE);
-
-    void remove(js::Parser *parser, JSAtom *atom) {
-        JSHashEntry **hep;
-        JSAtomListElement *ale = rawLookup(atom, hep);
-        if (ale)
-            rawRemove(parser, ale, hep);
-    }
-
-    void rawRemove(js::Parser *parser, JSAtomListElement *ale, JSHashEntry **hep);
-};
-
-
-
-
-
-struct JSAutoAtomList: public JSAtomList
-{
-    JSAutoAtomList(js::Parser *p): parser(p) {}
-    ~JSAutoAtomList();
-  private:
-    js::Parser *parser;         
-};
-
-
-
-
-
-
-
-class JSAtomListIterator {
-    JSAtomList*         list;
-    JSAtomListElement*  next;
-    uint32              index;
-
-  public:
-    JSAtomListIterator(JSAtomList* al) : list(al) { reset(); }
-
-    void reset() {
-        next = (JSAtomListElement *) list->list;
-        index = 0;
-    }
-
-    JSAtomListElement* operator ()();
-};
-
 struct JSAtomMap {
-    JSAtom              **vector;       
-    jsatomid            length;         
+    JSAtom **vector;    
+    uint32 length;      
 };
 
 namespace js {
@@ -678,7 +561,8 @@ js_InternNonIntElementId(JSContext *cx, JSObject *obj, const js::Value &idval,
 
 
 
+
 extern void
-js_InitAtomMap(JSContext *cx, JSAtomMap *map, JSAtomList *al);
+js_InitAtomMap(JSContext *cx, JSAtomMap *map, js::AtomIndexMap *indices);
 
 #endif 

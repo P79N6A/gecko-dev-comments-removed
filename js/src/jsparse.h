@@ -49,6 +49,8 @@
 #include "jsatom.h"
 #include "jsscan.h"
 
+#include "frontend/ParseMaps.h"
+
 JS_BEGIN_EXTERN_C
 
 
@@ -309,7 +311,7 @@ namespace js {
 
 struct GlobalScope {
     GlobalScope(JSContext *cx, JSObject *globalObj, JSCodeGenerator *cg)
-      : globalObj(globalObj), cg(cg), defs(cx)
+      : globalObj(globalObj), cg(cg), defs(cx), names(cx)
     { }
 
     struct GlobalDef {
@@ -339,7 +341,7 @@ struct GlobalScope {
 
 
     Vector<GlobalDef, 16> defs;
-    JSAtomList      names;
+    AtomIndexMap      names;
 };
 
 } 
@@ -406,8 +408,8 @@ struct JSParseNode {
 
         } name;
         struct {                        
-            JSAtomSet   names;          
-            JSParseNode *tree;          
+            js::AtomDefnMapPtr  defnMap;
+            JSParseNode         *tree;  
         } nameset;
         struct {                        
             JSAtom      *atom;          
@@ -441,19 +443,20 @@ struct JSParseNode {
 #define pn_objbox       pn_u.name.objbox
 #define pn_expr         pn_u.name.expr
 #define pn_lexdef       pn_u.name.lexdef
-#define pn_names        pn_u.nameset.names
+#define pn_names        pn_u.nameset.defnMap
 #define pn_tree         pn_u.nameset.tree
 #define pn_dval         pn_u.dval
 #define pn_atom2        pn_u.apair.atom2
 
 protected:
-    void inline init(js::TokenKind type, JSOp op, JSParseNodeArity arity) {
+    void init(js::TokenKind type, JSOp op, JSParseNodeArity arity) {
         pn_type = type;
         pn_op = op;
         pn_arity = arity;
         pn_parens = false;
         JS_ASSERT(!pn_used);
         JS_ASSERT(!pn_defn);
+        pn_names.init();
         pn_next = pn_link = NULL;
     }
 
@@ -856,11 +859,16 @@ struct LexicalScopeNode : public JSParseNode {
 
 
 
+
+
+
+
 #define dn_uses         pn_link
 
 struct JSDefinition : public JSParseNode
 {
     
+
 
 
 
@@ -1055,7 +1063,6 @@ enum FunctionSyntaxKind { Expression, Statement };
 struct Parser : private js::AutoGCRooter
 {
     JSContext           *const context; 
-    JSAtomListElement   *aleFreeList;
     void                *tempFreeList[NUM_TEMP_FREELISTS];
     TokenStream         tokenStream;
     void                *tempPoolMark;  
@@ -1245,17 +1252,17 @@ Parser::reportErrorNumber(JSParseNode *pn, uintN flags, uintN errorNumber, ...)
 
 struct Compiler
 {
-    Parser parser;
+    Parser      parser;
     GlobalScope *globalScope;
 
     Compiler(JSContext *cx, JSPrincipals *prin = NULL, StackFrame *cfp = NULL);
 
-    
+    JSContext *context() {
+        return parser.context;
+    }
 
-
-    inline bool
-    init(const jschar *base, size_t length, const char *filename, uintN lineno, JSVersion version)
-    {
+    bool init(const jschar *base, size_t length, const char *filename, uintN lineno,
+              JSVersion version) {
         return parser.init(base, length, filename, lineno, version);
     }
 

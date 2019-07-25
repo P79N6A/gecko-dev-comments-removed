@@ -51,6 +51,10 @@
 #include "jsprvtd.h"
 #include "jspubtd.h"
 
+#include "frontend/ParseMaps.h"
+
+#include "jsatominlines.h"
+
 JS_BEGIN_EXTERN_C
 
 
@@ -306,7 +310,7 @@ struct JSTreeContext {
 
     JSParseNode     *blockNode;     
 
-    JSAtomList      decls;          
+    js::AtomDecls   decls;          
     js::Parser      *parser;        
     JSParseNode     *yieldNode;     
 
@@ -340,7 +344,7 @@ struct JSTreeContext {
         scopeChain_ = scopeChain;
     }
 
-    JSAtomList      lexdeps;        
+    js::OwnedAtomDefnMapPtr lexdeps;
     JSTreeContext   *parent;        
     uintN           staticLevel;    
 
@@ -358,12 +362,10 @@ struct JSTreeContext {
 
     JSTreeContext(js::Parser *prs)
       : flags(0), bodyid(0), blockidGen(0), parenDepth(0), yieldCount(0), argumentsCount(0),
-        topStmt(NULL), topScopeStmt(NULL),
-        blockChainBox(NULL), blockNode(NULL), parser(prs),
-        yieldNode(NULL), argumentsNode(NULL),
-        scopeChain_(NULL), parent(prs->tc), staticLevel(0), funbox(NULL), functionList(NULL),
-        innermostWith(NULL), bindings(prs->context, prs->emptyCallShape),
-        sharpSlotBase(-1)
+        topStmt(NULL), topScopeStmt(NULL), blockChainBox(NULL), blockNode(NULL),
+        decls(prs->context), parser(prs), yieldNode(NULL), argumentsNode(NULL), scopeChain_(NULL),
+        lexdeps(prs->context), parent(prs->tc), staticLevel(0), funbox(NULL), functionList(NULL),
+        innermostWith(NULL), bindings(prs->context, prs->emptyCallShape), sharpSlotBase(-1)
     {
         prs->tc = this;
     }
@@ -375,6 +377,23 @@ struct JSTreeContext {
 
     ~JSTreeContext() {
         parser->tc = this->parent;
+    }
+
+    
+
+
+
+
+
+    enum InitBehavior {
+        USED_AS_TREE_CONTEXT,
+        USED_AS_CODE_GENERATOR
+    };
+
+    bool init(JSContext *cx, InitBehavior ib = USED_AS_TREE_CONTEXT) {
+        if (ib == USED_AS_CODE_GENERATOR)
+            return true;
+        return decls.init() && lexdeps.ensureMap(cx);
     }
 
     uintN blockid() { return topStmt ? topStmt->blockid : bodyid; }
@@ -593,7 +612,8 @@ struct JSCodeGenerator : public JSTreeContext
         uintN       currentLine;    
     } prolog, main, *current;
 
-    JSAtomList      atomList;       
+    js::OwnedAtomIndexMapPtr atomIndices; 
+    js::AtomDefnMapPtr roLexdeps;
     uintN           firstLine;      
 
     intN            stackDepth;     
@@ -623,13 +643,13 @@ struct JSCodeGenerator : public JSTreeContext
     JSCGObjectList  regexpList;     
 
 
-    JSAtomList      upvarList;      
+    js::OwnedAtomIndexMapPtr upvarIndices; 
     JSUpvarArray    upvarMap;       
 
     typedef js::Vector<js::GlobalSlotArray::Entry, 16> GlobalUseVector;
 
     GlobalUseVector globalUses;     
-    JSAtomList      globalMap;      
+    js::OwnedAtomIndexMapPtr globalMap; 
 
     
     typedef js::Vector<uint32, 8> SlotVector;
@@ -646,7 +666,11 @@ struct JSCodeGenerator : public JSTreeContext
     JSCodeGenerator(js::Parser *parser,
                     JSArenaPool *codePool, JSArenaPool *notePool,
                     uintN lineno);
-    bool init();
+    bool init(JSContext *cx, JSTreeContext::InitBehavior ib = USED_AS_CODE_GENERATOR);
+
+    JSContext *context() {
+        return parser->context;
+    }
 
     
 
@@ -673,6 +697,10 @@ struct JSCodeGenerator : public JSTreeContext
 
     bool addGlobalUse(JSAtom *atom, uint32 slot, js::UpvarCookie *cookie);
 
+    bool hasUpvarIndices() const {
+        return upvarIndices.hasMap() && !upvarIndices->empty();
+    }
+
     bool hasSharps() const {
         bool rv = !!(flags & TCF_HAS_SHARPS);
         JS_ASSERT((sharpSlotBase >= 0) == rv);
@@ -687,6 +715,22 @@ struct JSCodeGenerator : public JSTreeContext
     JSVersion version() const { return parser->versionWithFlags(); }
 
     bool shouldNoteClosedName(JSParseNode *pn);
+
+    JS_ALWAYS_INLINE
+    bool makeAtomIndex(JSAtom *atom, jsatomid *indexp) {
+        js::AtomIndexAddPtr p = atomIndices->lookupForAdd(atom);
+        if (p) {
+            *indexp = p.value();
+            return true;
+        }
+
+        jsatomid index = atomIndices->count();
+        if (!atomIndices->add(p, atom, index))
+            return false;
+
+        *indexp = index;
+        return true;
+    }
 
     bool checkSingletonContext() {
         if (!compileAndGo() || inFunction())
