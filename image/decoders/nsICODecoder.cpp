@@ -166,12 +166,57 @@ bool nsICODecoder::FillBitmapFileHeaderBuffer(PRInt8 *bfh)
 
 
 
-void 
-nsICODecoder::FillBitmapInformationBufferHeight(PRInt8 *bih) 
+bool
+nsICODecoder::FixBitmapHeight(PRInt8 *bih) 
 {
-  PRInt32 height = GetRealHeight();
+  
+  PRInt32 height;
+  memcpy(&height, bih + 8, sizeof(height));
+  height = LITTLE_TO_NATIVE32(height);
+
+  
+  
+  height /= 2;
+
+  if (height > 256) {
+    return false;
+  }
+
+  
+  
+  if (height == 256) {
+    mDirEntry.mHeight = 0;
+  } else {
+    mDirEntry.mHeight = (PRInt8)height;
+  }
+
+  
   height = NATIVE32_TO_LITTLE(height);
   memcpy(bih + 8, &height, sizeof(height));
+  return true;
+}
+
+
+
+bool
+nsICODecoder::FixBitmapWidth(PRInt8 *bih) 
+{
+  
+  PRInt32 width;
+  memcpy(&width, bih + 4, sizeof(width));
+  width = LITTLE_TO_NATIVE32(width);
+  if (width > 256) {
+    return false;
+  }
+
+  
+  
+  if (width == 256) {
+    mDirEntry.mWidth = 0;
+  } else {
+    mDirEntry.mWidth = (PRInt8)width;
+  }
+  return true;
 }
 
 
@@ -411,7 +456,17 @@ nsICODecoder::WriteInternal(const char* aBuffer, PRUint32 aCount)
     SetHotSpotIfCursor();
 
     
-    FillBitmapInformationBufferHeight((PRInt8*)mBIHraw);
+    
+    if (!FixBitmapHeight(reinterpret_cast<PRInt8*>(mBIHraw))) {
+      PostDataError();
+      return;
+    }
+
+    
+    if (!FixBitmapWidth(reinterpret_cast<PRInt8*>(mBIHraw))) {
+      PostDataError();
+      return;
+    }
 
     
     mContainedDecoder->Write(mBIHraw, sizeof(mBIHraw));
