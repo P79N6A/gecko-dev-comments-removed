@@ -1604,12 +1604,13 @@ struct MarkStack {
         return true;
     }
 
-    bool push(T item1, T item2) {
-        T *nextTos = tos + 2;
+    bool push(T item1, T item2, T item3) {
+        T *nextTos = tos + 3;
         if (nextTos > limit)
             return false;
         tos[0] = item1;
         tos[1] = item2;
+        tos[2] = item3;
         tos = nextTos;
         return true;
     }
@@ -1641,7 +1642,6 @@ struct GCMarker : public JSTracer {
 
 
 
-
     enum StackTag {
         ValueArrayTag,
         ObjectTag,
@@ -1654,6 +1654,7 @@ struct GCMarker : public JSTracer {
 
     static void staticAsserts() {
         JS_STATIC_ASSERT(StackTagMask >= uintptr_t(LastTag));
+        JS_STATIC_ASSERT(StackTagMask <= gc::Cell::CellMask);
     }
 
   private:
@@ -1729,16 +1730,6 @@ struct GCMarker : public JSTracer {
         JS_ASSERT(!(addr & StackTagMask));
         if (!stack.push(addr | uintptr_t(tag)))
             delayMarkingChildren(ptr);
-    }
-
-    bool pushValueArray(void *start, void *end) {
-        JS_STATIC_ASSERT(ValueArrayTag == 0);
-        JS_ASSERT(start < end);
-        uintptr_t startAddr = reinterpret_cast<uintptr_t>(start);
-        uintptr_t endAddr = reinterpret_cast<uintptr_t>(end);
-        JS_ASSERT(!(startAddr & StackTagMask));
-        JS_ASSERT(!(endAddr & StackTagMask));
-        return stack.push(endAddr, startAddr);
     }
 };
 
