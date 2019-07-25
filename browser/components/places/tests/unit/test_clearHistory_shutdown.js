@@ -141,6 +141,9 @@ function run_test() {
   );
 
   shutdownPlaces();
+
+  
+  Services.obs.notifyObservers(null, "quit-application", null)
 }
 
 function getDistinctNotifications() {
