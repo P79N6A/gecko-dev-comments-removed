@@ -85,10 +85,6 @@ protected:
 
     void FillLogFont(LOGFONTW& aLogFont, gfxFloat aSize);
 
-    
-    
-    nsAutoPtr<gfxFontShaper>   mUniscribeShaper;
-
     gfxFloat              mAdjustedSize;
 
     HFONT                 mFont;
