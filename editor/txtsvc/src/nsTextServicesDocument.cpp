@@ -1203,7 +1203,8 @@ nsTextServicesDocument::ScrollSelectionIntoView()
 
   
   
-  result = mSelCon->ScrollSelectionIntoView(nsISelectionController::SELECTION_NORMAL, nsISelectionController::SELECTION_FOCUS_REGION, PR_TRUE);
+  result = mSelCon->ScrollSelectionIntoView(nsISelectionController::SELECTION_NORMAL, nsISelectionController::SELECTION_FOCUS_REGION,
+                                            nsISelectionController::SCROLL_SYNCHRONOUS);
 
   UNLOCK_DOC(this);
 

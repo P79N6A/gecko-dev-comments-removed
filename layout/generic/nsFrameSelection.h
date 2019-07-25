@@ -391,10 +391,14 @@ public:
 
 
 
+
+
+
+
   
   nsresult ScrollSelectionIntoView(SelectionType aType,
                                    SelectionRegion aRegion,
-                                   PRBool aIsSynchronous) const;
+                                   PRInt16 aFlags) const;
 
   
 
