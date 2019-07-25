@@ -359,19 +359,21 @@ var Browser = {
     
     Util.forceOnline();
 
-    
-    
-    let defaultURL = this.getHomePage();
+    let homeURL = this.getHomePage();
+    let commandURL;
     if (window.arguments && window.arguments[0])
-      defaultURL = window.arguments[0];
+      commandURL = window.arguments[0];
 
     
     let ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
-    if (ss.shouldRestore())
+    if (ss.shouldRestore()) {
       ss.restoreLastSession();
-    else
-      this.addTab(defaultURL, true);
-    
+      if (commandURL)
+        this.addTab(commandURL, true);
+    } else {
+      this.addTab(commandURL || homeURL, true);
+    }
+
     
     if (Services.prefs.getBoolPref("browser.console.showInPanel")){
       let button = document.getElementById("tool-console");
@@ -2219,11 +2221,11 @@ var ContentCrashObserver = {
       let buttons = Ci.nsIPrompt.BUTTON_POS_1_DEFAULT +
                     (Ci.nsIPrompt.BUTTON_TITLE_IS_STRING * Ci.nsIPrompt.BUTTON_POS_0) +
                     (Ci.nsIPrompt.BUTTON_TITLE_IS_STRING * Ci.nsIPrompt.BUTTON_POS_1);
-  
+
       
       if (!dumpID)
         submitText = null;
-  
+
       let submit = { value: true };
       let reload = Services.prompt.confirmEx(window, title, message, buttons, closeText, reloadText, null, submitText, submit);
       if (reload) {
@@ -2237,12 +2239,12 @@ var ContentCrashObserver = {
         
         if (Browser.tabs.length == 1)
           Browser.addTab(Browser.getHomePage(), false, null, { getAttention: false });
-  
+
         
         
         Browser.closeTab(Browser.selectedTab);
       }
-  
+
       
       if (submit.value && dumpID)
         self.CrashSubmit.submit(dumpID, Elements.stack, null, null);
