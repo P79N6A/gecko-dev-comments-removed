@@ -383,6 +383,20 @@ public:
   
 
 
+
+  virtual Rect GetBounds(const Matrix &aTransform = Matrix()) const = 0;
+
+  
+
+
+
+
+  virtual Rect GetStrokedBounds(const StrokeOptions &aStrokeOptions,
+                                const Matrix &aTransform = Matrix()) const = 0;
+
+  
+
+
   virtual FillRule GetFillRule() const = 0;
 };
 
