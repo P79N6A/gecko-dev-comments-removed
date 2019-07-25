@@ -65,8 +65,9 @@
 #include "jsregexp.h"
 #include "jsscan.h"
 #include "jsscope.h"
+#include "jsscopeinlines.h"
 #include "jsscript.h"
-#include "jsautooplen.h"
+#include "jsautooplen.h"        
 #include "jsstaticcheck.h"
 
 
@@ -1615,23 +1616,12 @@ js_LexicalLookup(JSTreeContext *tc, JSAtom *atom, jsint *slotp, JSStmtInfo *stmt
 
 
 
-#define IS_CONSTANT_PROPERTY(attrs)                                           \
-    (((attrs) & (JSPROP_READONLY | JSPROP_PERMANENT | JSPROP_GETTER)) ==      \
-     (JSPROP_READONLY | JSPROP_PERMANENT))
-
-
-
-
-
 static JSBool
 LookupCompileTimeConstant(JSContext *cx, JSCodeGenerator *cg, JSAtom *atom,
                           jsval *vp)
 {
-    JSBool ok;
     JSStmtInfo *stmt;
-    JSObject *obj, *objbox;
-    JSProperty *prop;
-    uintN attrs;
+    JSObject *obj;
 
     
 
@@ -1640,7 +1630,7 @@ LookupCompileTimeConstant(JSContext *cx, JSCodeGenerator *cg, JSAtom *atom,
 
     *vp = JSVAL_HOLE;
     do {
-        if (cg->inFunction() && cg->compileAndGo()) {
+        if (cg->inFunction() || cg->compileAndGo()) {
             
             stmt = js_LexicalLookup(cg, atom, NULL);
             if (stmt)
@@ -1665,27 +1655,25 @@ LookupCompileTimeConstant(JSContext *cx, JSCodeGenerator *cg, JSAtom *atom,
             } else {
                 JS_ASSERT(cg->compileAndGo());
                 obj = cg->scopeChain;
-                ok = obj->lookupProperty(cx, ATOM_TO_JSID(atom), &objbox, &prop);
-                if (!ok)
-                    return JS_FALSE;
-                if (objbox == obj) {
+
+                JS_LOCK_OBJ(cx, obj);
+                JSScope *scope = obj->scope();
+                JSScopeProperty *sprop = scope->lookup(ATOM_TO_JSID(atom));
+                if (sprop) {
                     
 
 
 
 
 
-                    ok = obj->getAttributes(cx, ATOM_TO_JSID(atom), prop, &attrs);
-                    if (ok && IS_CONSTANT_PROPERTY(attrs)) {
-                        ok = obj->getProperty(cx, ATOM_TO_JSID(atom), vp);
-                        JS_ASSERT_IF(ok, *vp != JSVAL_HOLE);
+                    if (!sprop->writable() && !sprop->configurable() &&
+                        sprop->hasDefaultGetter() && SPROP_HAS_VALID_SLOT(sprop, scope)) {
+                        *vp = obj->lockedGetSlot(sprop->slot);
                     }
                 }
-                if (prop)
-                    objbox->dropProperty(cx, prop);
-                if (!ok)
-                    return JS_FALSE;
-                if (prop)
+                JS_UNLOCK_SCOPE(cx, scope);
+
+                if (sprop)
                     break;
             }
         }
