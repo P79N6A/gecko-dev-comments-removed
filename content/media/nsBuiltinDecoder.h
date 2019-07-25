@@ -746,8 +746,11 @@ public:
   
   
   
+  
+  
   PlayState mPlayState;
 
+  
   
   
   
