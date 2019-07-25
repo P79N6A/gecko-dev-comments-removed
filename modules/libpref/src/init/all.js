@@ -825,7 +825,7 @@ pref("network.http.max-persistent-connections-per-server", 6);
 
 
 
-pref("network.http.max-persistent-connections-per-proxy", 8);
+pref("network.http.max-persistent-connections-per-proxy", 32);
 
 
 
