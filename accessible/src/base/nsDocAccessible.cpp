@@ -1138,7 +1138,8 @@ nsDocAccessible::ARIAAttributeChanged(nsIContent* aContent, nsIAtom* aAttribute)
   
   
   if (aAttribute == nsAccessibilityAtoms::aria_grabbed ||
-      aAttribute == nsAccessibilityAtoms::aria_dropeffect) {
+      aAttribute == nsAccessibilityAtoms::aria_dropeffect ||
+      aAttribute == nsAccessibilityAtoms::aria_hidden) {
     FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_OBJECT_ATTRIBUTE_CHANGED,
                                aContent);
   }
