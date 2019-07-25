@@ -243,26 +243,35 @@ TestRunner.resetTests = function(listURLs) {
 
 
 
-TestRunner.loopTest = function(testPath){
- var numLoops = TestRunner.loops;
-  while(numLoops >= 0){
-    
-    $("current-test-path").innerHTML = testPath;
-    function checkComplete() {
-      var testWindow = window.open(testPath, 'test window');
-      if (testWindow.document.readyState == "complete") {
-        TestRunner.currentTestURL = testPath;
-        TestRunner.updateUI(testWindow.SimpleTest._tests);
-        testWindow.close();
-      } else {
-        setTimeout(checkComplete, 1000);
+TestRunner.loopTest = function(testPath) {
+  
+  document.getElementById("current-test-path").innerHTML = testPath;
+  var numLoops = TestRunner.loops;
+  var completed = 0; 
+
+  
+  function checkComplete() {
+    var testWindow = window.open(testPath, 'test window'); 
+    if (testWindow.document.readyState == "complete") {
+      
+      TestRunner.currentTestURL = testPath;
+      TestRunner.updateUI(testWindow.SimpleTest._tests);
+      testWindow.close();
+      if (TestRunner.loops == completed  && TestRunner.onComplete) {
+        TestRunner.onComplete();
       }
+      completed++;
     }
+    else {
+      
+      setTimeout(checkComplete, 1000);
+    }
+  }
+  while (numLoops >= 0) {
     checkComplete();
     numLoops--;
   }
 }
-
 
 
 
