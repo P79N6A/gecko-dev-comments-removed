@@ -574,6 +574,7 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
         
         public void drawBackground() {
             
+            mBackgroundLayer.setMask(getPageRect());
             mBackgroundLayer.draw(mScreenContext);
 
             
@@ -584,7 +585,18 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
                 mShadowLayer.draw(mPageContext);
 
             
+            Rect rootMask = null;
+            Layer rootLayer = mView.getController().getRoot();
+            if (rootLayer != null) {
+                RectF rootBounds = rootLayer.getBounds(mPageContext);
+                rootBounds.offset(-mPageContext.viewport.left, -mPageContext.viewport.top);
+                rootMask = new Rect();
+                rootBounds.roundOut(rootMask);
+            }
+
+            
             setScissorRect();
+            mCheckerboardLayer.setMask(rootMask);
             mCheckerboardLayer.draw(mScreenContext);
             GLES20.glDisable(GLES20.GL_SCISSOR_TEST);
         }
@@ -596,9 +608,7 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
                 return;
             }
 
-            setScissorRect();
             rootLayer.draw(mPageContext);
-            GLES20.glDisable(GLES20.GL_SCISSOR_TEST);
         }
 
         
