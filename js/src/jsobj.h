@@ -122,20 +122,37 @@ CastAsObjectJsval(StrictPropertyOp op)
     return ObjectOrNullValue(CastAsObject(op));
 }
 
-} 
-
 
 
 
 
 struct PropDesc {
+    
+
+
+
+    js::Value pd;
+
+    js::Value value, get, set;
+
+    
+    uint8 attrs;
+
+    
+    bool hasGet : 1;
+    bool hasSet : 1;
+    bool hasValue : 1;
+    bool hasWritable : 1;
+    bool hasEnumerable : 1;
+    bool hasConfigurable : 1;
+
     friend class js::AutoPropDescArrayRooter;
 
     PropDesc();
 
   public:
     
-    bool initialize(JSContext* cx, jsid id, const js::Value &v);
+    bool initialize(JSContext* cx, const js::Value &v);
 
     
     bool isAccessorDescriptor() const {
@@ -184,24 +201,7 @@ struct PropDesc {
     js::StrictPropertyOp setter() const {
         return js::CastAsStrictPropertyOp(setterObject());
     }
-
-    js::Value pd;
-    jsid id;
-    js::Value value, get, set;
-
-    
-    uint8 attrs;
-
-    
-    bool hasGet : 1;
-    bool hasSet : 1;
-    bool hasValue : 1;
-    bool hasWritable : 1;
-    bool hasEnumerable : 1;
-    bool hasConfigurable : 1;
 };
-
-namespace js {
 
 typedef Vector<PropDesc, 1> PropDescArray;
 
