@@ -252,6 +252,10 @@ public:
   
 
 
+  void SetPaintingToWindow(PRBool aToWindow) { mIsPaintingToWindow = aToWindow; }
+  
+
+
   nsresult DisplayCaret(nsIFrame* aFrame, const nsRect& aDirtyRect,
       nsDisplayList* aList) {
     nsIFrame* frame = GetCaretFrame();
@@ -424,6 +428,7 @@ private:
   
   PRPackedBool                   mInTransform;
   PRPackedBool                   mSyncDecodeImages;
+  PRPackedBool                   mIsPaintingToWindow;
 };
 
 class nsDisplayItem;
