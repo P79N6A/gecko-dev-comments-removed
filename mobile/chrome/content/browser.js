@@ -351,6 +351,7 @@ var Browser = {
     messageManager.addMessageListener("Browser:CanUnload:Return", this);
     messageManager.addMessageListener("scroll", this);
     messageManager.addMessageListener("Browser:CertException", this);
+    messageManager.addMessageListener("Browser:BlockedSite", this);
 
     
     let event = document.createEvent("Events");
@@ -434,6 +435,7 @@ var Browser = {
     messageManager.removeMessageListener("Browser:ZoomToPoint:Return", this);
     messageManager.removeMessageListener("scroll", this);
     messageManager.removeMessageListener("Browser:CertException", this);
+    messageManager.removeMessageListener("Browser:BlockedSite", this);
 
     var os = Services.obs;
     os.removeObserver(XPInstallObserver, "addon-install-blocked");
@@ -847,6 +849,43 @@ var Browser = {
   
 
 
+  _handleBlockedSite: function _handleBlockedSite(aMessage) {
+    let formatter = Cc["@mozilla.org/toolkit/URLFormatterService;1"].getService(Ci.nsIURLFormatter);
+    let json = aMessage.json;
+    switch (json.action) {
+      case "leave": {
+        
+        let url = Browser.getHomePage({ useDefault: true });
+        this.loadURI(url);
+        break;
+      }
+      case "report-malware": {
+        
+        try {
+          let reportURL = formatter.formatURLPref("browser.safebrowsing.malware.reportURL");
+          reportURL += json.url;
+          this.loadURI(reportURL);
+        } catch (e) {
+          Cu.reportError("Couldn't get malware report URL: " + e);
+        }
+        break;
+      }
+      case "report-phishing": {
+        
+        try {
+          let reportURL = formatter.formatURLPref("browser.safebrowsing.warning.infoURL");
+          this.loadURI(reportURL);
+        } catch (e) {
+          Cu.reportError("Couldn't get phishing info URL: " + e);
+        }
+        break;
+      }
+    }
+  },
+
+  
+
+
 
 
 
@@ -1124,6 +1163,9 @@ var Browser = {
         break;
       case "Browser:CertException":
         this._handleCertException(aMessage);
+        break;
+      case "Browser:BlockedSite":
+        this._handleBlockedSite(aMessage);
         break;
     }
   }

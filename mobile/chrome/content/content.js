@@ -275,9 +275,14 @@ let Content = {
       addEventListener("DOMActivate", this, true);
 
     addEventListener("MozApplicationManifest", this, false);
-    addEventListener("command", this, false);
     addEventListener("pagehide", this, false);
     addEventListener("keypress", this, false, false);
+
+    
+    
+    
+    
+    addEventListener("click", this, false);
 
     docShell.QueryInterface(Ci.nsIDocShellHistory).useGlobalHistory = true;
   },
@@ -327,7 +332,7 @@ let Content = {
         break;
       }
 
-      case "command": {
+      case "click": {
         
         if (!aEvent.isTrusted)
           return;
@@ -343,15 +348,38 @@ let Content = {
           if (ot == temp || ot == perm) {
             let action = (ot == perm ? "permanent" : "temporary");
             sendAsyncMessage("Browser:CertException", { url: errorDoc.location.href, action: action });
-          }
-          else if (ot == errorDoc.getElementById("getMeOutOfHereButton")) {
+          } else if (ot == errorDoc.getElementById("getMeOutOfHereButton")) {
             sendAsyncMessage("Browser:CertException", { url: errorDoc.location.href, action: "leave" });
           }
-        }
-        else if (/^about:neterror\?e=netOffline/.test(errorDoc.documentURI)) {
+        } else if (/^about:neterror\?e=netOffline/.test(errorDoc.documentURI)) {
           if (ot == errorDoc.getElementById("errorTryAgain")) {
             
             Util.forceOnline();
+          }
+        } else if (/^about:blocked/.test(errorDoc.documentURI)) {
+          
+          
+          
+          let isMalware = /e=malwareBlocked/.test(errorDoc.documentURI);
+    
+          if (ot == errorDoc.getElementById("getMeOutButton")) {
+            sendAsyncMessage("Browser:BlockedSite", { url: errorDoc.location.href, action: "leave" });
+          } else if (ot == errorDoc.getElementById("reportButton")) {
+            
+            
+            
+            let action = isMalware ? "report-malware" : "report-phising";
+            sendAsyncMessage("Browser:BlockedSite", { url: errorDoc.location.href, action: action });
+          } else if (ot == errorDoc.getElementById("ignoreWarningButton")) {
+            
+            
+            
+            let webNav = docShell.QueryInterface(Ci.nsIWebNavigation);
+            webNav.loadURI(content.location, Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_CLASSIFIER, null, null, null);
+            
+            
+            
+            
           }
         }
         break;
