@@ -92,8 +92,8 @@ class Element;
 } 
 
 #define NS_IDOCUMENT_IID \
-{ 0x7bac702d, 0xca67, 0x4ce1, \
- { 0x80, 0x3c, 0x35, 0xde, 0x81, 0x26, 0x04, 0x97 } }
+{ 0x077dcff0, 0x400d, 0x4d3c, \
+  { 0xbd, 0x4d, 0x5f, 0xd5, 0xe1, 0xa6, 0x63, 0x07 } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -504,7 +504,12 @@ public:
   
 
 
-  Element *GetRootElement() const;
+  nsIContent* GetDocumentType() const;
+
+  
+
+
+  Element* GetRootElement() const;
 
 protected:
   virtual Element *GetRootElementInternal() const = 0;

@@ -4000,8 +4000,8 @@ bool IsAllowedAsChild(nsIContent* aNewChild, nsINode* aParent,
         return true;
       }
 
-      Element* rootElement =
-        static_cast<nsIDocument*>(aParent)->GetRootElement();
+      nsIDocument* parentDocument = static_cast<nsIDocument*>(aParent);
+      Element* rootElement = parentDocument->GetRootElement();
       if (rootElement) {
         
         
@@ -4015,13 +4015,7 @@ bool IsAllowedAsChild(nsIContent* aNewChild, nsINode* aParent,
         return true;
       }
 
-      
-      nsCOMPtr<nsIDOMDocument> doc = do_QueryInterface(aParent);
-      NS_ASSERTION(doc, "Shouldn't happen");
-      nsCOMPtr<nsIDOMDocumentType> docType;
-      doc->GetDoctype(getter_AddRefs(docType));
-      nsCOMPtr<nsIContent> docTypeContent = do_QueryInterface(docType);
-      
+      nsIContent* docTypeContent = parentDocument->GetDocumentType();
       if (!docTypeContent) {
         
         return true;
@@ -4043,11 +4037,8 @@ bool IsAllowedAsChild(nsIContent* aNewChild, nsINode* aParent,
         return false;
       }
 
-      nsCOMPtr<nsIDOMDocument> doc = do_QueryInterface(aParent);
-      NS_ASSERTION(doc, "Shouldn't happen");
-      nsCOMPtr<nsIDOMDocumentType> docType;
-      doc->GetDoctype(getter_AddRefs(docType));
-      nsCOMPtr<nsIContent> docTypeContent = do_QueryInterface(docType);
+      nsIDocument* parentDocument = static_cast<nsIDocument*>(aParent);
+      nsIContent* docTypeContent = parentDocument->GetDocumentType();
       if (docTypeContent) {
         
         return aIsReplace && docTypeContent == aRefChild;
@@ -4055,8 +4046,7 @@ bool IsAllowedAsChild(nsIContent* aNewChild, nsINode* aParent,
 
       
       
-      Element* rootElement =
-        static_cast<nsIDocument*>(aParent)->GetRootElement();
+      Element* rootElement = parentDocument->GetRootElement();
       if (!rootElement) {
         
         return true;
