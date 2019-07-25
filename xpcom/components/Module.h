@@ -57,15 +57,15 @@ struct Module
 
   struct CIDEntry;
 
-  typedef already_AddRefed<nsIFactory> (*GetFactoryProc)
+  typedef already_AddRefed<nsIFactory> (*GetFactoryProcPtr)
     (const Module& module, const CIDEntry& entry);
 
-  typedef nsresult (*ConstructorProc)(nsISupports* aOuter,
-                                      const nsIID& aIID,
-                                      void** aResult);
+  typedef nsresult (*ConstructorProcPtr)(nsISupports* aOuter,
+                                         const nsIID& aIID,
+                                         void** aResult);
 
-  typedef nsresult (*LoadedFunc)();
-  typedef void (*UnloadedFunc)();
+  typedef nsresult (*LoadFuncPtr)();
+  typedef void (*UnloadFuncPtr)();
 
   
 
@@ -75,8 +75,8 @@ struct Module
   {
     const nsCID* cid;
     bool service;
-    GetFactoryProc getfactory;
-    ConstructorProc constructor;
+    GetFactoryProcPtr getFactoryProc;
+    ConstructorProcPtr constructorProc;
   };
 
   struct ContractIDEntry
@@ -122,15 +122,15 @@ struct Module
 
 
 
-  GetFactoryProc getfactory;
+  GetFactoryProcPtr getFactoryProc;
 
   
 
 
 
 
-  LoadedFunc loaded;
-  UnloadedFunc unloaded;
+  LoadFuncPtr loadProc;
+  UnloadFuncPtr unloadProc;
 };
 
 } 
