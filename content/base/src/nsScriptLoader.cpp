@@ -408,29 +408,8 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
     rv = parser.GetType(mimeType);
     NS_ENSURE_SUCCESS(rv, false);
 
-    
-    
-    
-    
-    static const char *jsTypes[] = {
-      "text/javascript",
-      "text/ecmascript",
-      "application/javascript",
-      "application/ecmascript",
-      "application/x-javascript",
-      nullptr
-    };
-
-    bool isJavaScript = false;
-    for (PRInt32 i = 0; jsTypes[i]; i++) {
-      if (mimeType.LowerCaseEqualsASCII(jsTypes[i])) {
-        isJavaScript = true;
-        break;
-      }
-    }
-
-    if (!isJavaScript) {
-      typeID = nsIProgrammingLanguage::UNKNOWN;
+    if (!nsContentUtils::IsJavascriptMIMEType(mimeType)) {
+      return false;
     }
 
     if (typeID != nsIProgrammingLanguage::UNKNOWN) {
