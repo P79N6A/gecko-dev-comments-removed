@@ -119,10 +119,16 @@ CanvasBrowser.prototype = {
     let currentBrowser = this._browser;
     if (currentBrowser) {
       
+      currentBrowser.mZoomLevel = this.zoomLevel;
+      currentBrowser.mPanX = ws._viewingRect.x;
+      currentBrowser.mPanY = ws._viewingRect.y;
+      
+      
       currentBrowser.removeEventListener("MozAfterPaint", this._paintHandler, false);
       currentBrowser.setAttribute("type", "content");
       currentBrowser.docShell.isOffScreenBrowser = false;
     }
+
     this._contentDOMWindowUtils = null;
 
     browser.setAttribute("type", "content-primary");
@@ -139,7 +145,20 @@ CanvasBrowser.prototype = {
 
     
     if (!skipZoom) {
-      self.zoomToPage();
+      this.zoomToPage();
+    }
+
+    if ("mZoomLevel" in browser) {
+      
+      ws.beginUpdateBatch();
+      ws.panTo(browser.mPanX, browser.mPanY);
+      this.zoomLevel = browser.mZoomLevel;
+      ws.endUpdateBatch(true);
+
+      
+      delete browser.mZoomLevel;
+      delete browser.mPanX;
+      delete browser.mPanY;
     }
   },
 
