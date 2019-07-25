@@ -580,7 +580,7 @@ void doSampleStackTrace(ProfileStack *aStack, ThreadProfile &aProfile, TickSampl
   
   
   
-  for (int i = 0; i < aStack->mStackPointer; i++) {
+  for (mozilla::sig_safe_t i = 0; i < aStack->mStackPointer; i++) {
     if (i == 0) {
       Address pc = 0;
       if (sample) {
