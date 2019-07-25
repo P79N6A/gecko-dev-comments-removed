@@ -107,7 +107,7 @@ __defineGetter__("browserWindows", function browserWindows() {
   return browserWindows;
 });
 
-let events = ["attrModified", "close", "move", "open", "select"];
+let events = ["attrModified", "close", "move", "open", "select", "pinned", "unpinned"];
 let eventListeners = {};
 
 function registerBrowserWindow(browserWindow) {
