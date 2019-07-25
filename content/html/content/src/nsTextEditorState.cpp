@@ -879,12 +879,12 @@ nsTextInputListener::EditAction()
   
   mFrame->SetValueChanged(PR_TRUE);
 
-  
-  mFrame->FireOnInput();
-
   if (!mSettingValue) {
     mTxtCtrlElement->OnValueChanged(PR_TRUE);
   }
+
+  
+  mFrame->FireOnInput();
 
   return NS_OK;
 }
