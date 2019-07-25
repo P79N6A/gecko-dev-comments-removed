@@ -77,18 +77,13 @@ const kStateActive = 0x00000001;
 
 
 
-function InputHandler(browserViewContainer) {
+function InputHandler(container) {
   
   this._modules = [];
 
-  
-  browserViewContainer.addEventListener("DOMMouseScroll", this, true);
-  browserViewContainer.addEventListener("MozMousePixelScroll", this, true);
-
   new MouseModule();
   new GestureModule();
-
-  this.addModule(new ScrollwheelModule(this, browserViewContainer));
+  new ScrollwheelModule(container);
 }
 
 
@@ -928,9 +923,9 @@ KineticController.prototype = {
 
 
 
-function ScrollwheelModule(owner, browserViewContainer) {
-  this._owner = owner;
-  this._browserViewContainer = browserViewContainer;
+function ScrollwheelModule(container) {
+  container.addEventListener("DOMMouseScroll", this, true);
+  container.addEventListener("MozMousePixelScroll", this, true);
 }
 
 ScrollwheelModule.prototype = {
