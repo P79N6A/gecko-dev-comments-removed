@@ -350,6 +350,8 @@ protected:
   
   PRUint8 mFragmentMode : 1;
   
+  PRUint8 mPreventScriptExecution : 1;
+  
   
   
   

@@ -594,6 +594,13 @@ nsXMLContentSink::CloseElement(nsIContent* aContent)
     ) {
     mConstrainSize = PR_TRUE; 
 
+    if (mPreventScriptExecution) {
+      nsCOMPtr<nsIScriptElement> sele = do_QueryInterface(aContent);
+      NS_ASSERTION(sele, "script did QI correctly!");
+      sele->PreventExecution();
+      return rv;
+    }
+
     
     
     

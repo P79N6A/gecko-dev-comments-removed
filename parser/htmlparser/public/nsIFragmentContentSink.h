@@ -43,8 +43,8 @@ class nsIDOMDocumentFragment;
 class nsIDocument;
 
 #define NS_I_FRAGMENT_CONTENT_SINK_IID \
-  { 0x7c78cbad, 0xdaf5, 0x487e, \
-    { 0x96, 0x98, 0xab, 0xcc, 0x21, 0x5a, 0x8d, 0x39 } }
+  { 0x1a8ce30b, 0x63fc, 0x441a, \
+    { 0xa3, 0xaa, 0xf7, 0x16, 0xc0, 0xfe, 0x96, 0x69 } }
 
 
 
@@ -93,6 +93,11 @@ public:
 
 
   NS_IMETHOD IgnoreFirstContainer() = 0;
+
+  
+
+
+  NS_IMETHOD SetPreventScriptExecution(PRBool aPreventScriptExecution) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIFragmentContentSink,

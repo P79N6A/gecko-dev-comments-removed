@@ -735,7 +735,6 @@ nsGenericHTMLElement::SetInnerHTML(const nsAString& aInnerHTML)
   FireNodeRemovedForChildren();
 
   
-  
   mozAutoDocUpdate updateBatch(doc, UPDATE_CONTENT_MODEL, PR_TRUE);
 
   
@@ -770,22 +769,12 @@ nsGenericHTMLElement::SetInnerHTML(const nsAString& aInnerHTML)
       nsGenericElement::FireNodeInserted(doc, this, childNodes);
     }
   } else {
-    
-    nsRefPtr<nsScriptLoader> loader = doc->ScriptLoader();
-    PRBool scripts_enabled = loader->GetEnabled();
-    loader->SetEnabled(PR_FALSE);
-
     rv = nsContentUtils::CreateContextualFragment(this, aInnerHTML,
+                                                  PR_TRUE,
                                                   getter_AddRefs(df));
     nsCOMPtr<nsINode> fragment = do_QueryInterface(df);
     if (NS_SUCCEEDED(rv)) {
       static_cast<nsINode*>(this)->AppendChild(fragment, &rv);
-    }
-    if (scripts_enabled) {
-      
-      
-
-      loader->SetEnabled(PR_TRUE);
     }
   }
 

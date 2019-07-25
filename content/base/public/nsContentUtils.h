@@ -1041,8 +1041,10 @@ public:
 
 
 
+
   static nsresult CreateContextualFragment(nsINode* aContextNode,
                                            const nsAString& aFragment,
+                                           PRBool aPreventScriptExecution,
                                            nsIDOMDocumentFragment** aReturn);
 
   
@@ -1072,9 +1074,11 @@ public:
 
 
 
+
   static nsresult ParseFragmentXML(const nsAString& aSourceBuffer,
                                    nsIDocument* aDocument,
                                    nsTArray<nsString>& aTagStack,
+                                   PRBool aPreventScriptExecution,
                                    nsIDOMDocumentFragment** aReturn);
 
   
