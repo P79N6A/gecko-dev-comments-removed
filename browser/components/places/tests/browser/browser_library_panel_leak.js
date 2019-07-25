@@ -65,6 +65,13 @@ function windowObserver(aSubject, aTopic, aData) {
       isnot(contentTree, null, "Sanity check: placeContent tree should exist");
       isnot(organizer.PlacesOrganizer, null, "Sanity check: PlacesOrganizer should exist");
       isnot(organizer.gEditItemOverlay, null, "Sanity check: gEditItemOverlay should exist");
+
+      if (!organizer.gEditItemOverlay._initialized){
+        
+        setTimeout(arguments.callee, 10);
+        return;
+      }
+
       isnot(organizer.gEditItemOverlay.itemId, -1, "Editing a bookmark");
       
       organizer.PlacesOrganizer.selectLeftPaneQuery('History');
