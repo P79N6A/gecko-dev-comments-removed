@@ -594,7 +594,7 @@ nsHTMLComboboxAccessible::Value(nsString& aValue)
   
   nsAccessible* option = SelectedOption();
   if (option)
-    option->GetName(aValue);
+    option->Name(aValue);
 }
 
 PRUint8

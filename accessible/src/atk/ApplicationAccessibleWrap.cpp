@@ -690,14 +690,15 @@ ApplicationAccessibleWrap::Unload()
     
 }
 
-NS_IMETHODIMP
-ApplicationAccessibleWrap::GetName(nsAString& aName)
+ENameValueFlag
+ApplicationAccessibleWrap::Name(nsString& aName)
 {
   
   
   
   
-  return GetAppName(aName);
+  GetAppName(aName);
+  return eNameOK;
 }
 
 NS_IMETHODIMP

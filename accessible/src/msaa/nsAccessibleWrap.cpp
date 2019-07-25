@@ -285,9 +285,7 @@ __try {
     return CO_E_OBJNOTCONNECTED;
 
   nsAutoString name;
-  nsresult rv = xpAccessible->GetName(name);
-  if (NS_FAILED(rv))
-    return GetHRESULT(rv);
+  xpAccessible->Name(name);
 
   
   

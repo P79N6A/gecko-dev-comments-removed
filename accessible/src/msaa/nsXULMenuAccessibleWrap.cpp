@@ -38,6 +38,8 @@
 #include "nsXULMenuAccessibleWrap.h"
 #include "nsINameSpaceManager.h"
 
+using namespace mozilla::a11y;
+
 
 
 
@@ -48,21 +50,19 @@ nsXULMenuitemAccessibleWrap::
 {
 }
 
-NS_IMETHODIMP
-nsXULMenuitemAccessibleWrap::GetName(nsAString& aName)
+ENameValueFlag
+nsXULMenuitemAccessibleWrap::Name(nsString& aName)
 {
   
   
-  nsresult rv = nsXULMenuitemAccessible::GetName(aName);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
+  nsXULMenuitemAccessible::Name(aName);
+  if (aName.IsEmpty())
+    return eNameOK;
   
   nsAutoString accel;
   mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::acceltext, accel);
-  if (!accel.IsEmpty()) {
+  if (!accel.IsEmpty())
     aName += NS_LITERAL_STRING("\t") + accel;
-  }
 
-  return NS_OK;
+  return eNameOK;
 }

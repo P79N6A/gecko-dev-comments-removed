@@ -68,12 +68,12 @@ nsHTMLTextAccessible::
 
 NS_IMPL_ISUPPORTS_INHERITED0(nsHTMLTextAccessible, nsTextAccessible)
 
-NS_IMETHODIMP
-nsHTMLTextAccessible::GetName(nsAString& aName)
+ENameValueFlag
+nsHTMLTextAccessible::Name(nsString& aName)
 {
   
   aName = mText;
-  return NS_OK;
+  return eNameOK;
 }
 
 role
@@ -348,13 +348,10 @@ nsHTMLListBulletAccessible::IsPrimaryForNode() const
 
 
 
-NS_IMETHODIMP
-nsHTMLListBulletAccessible::GetName(nsAString &aName)
+ENameValueFlag
+nsHTMLListBulletAccessible::Name(nsString &aName)
 {
   aName.Truncate();
-
-  if (IsDefunct())
-    return NS_ERROR_FAILURE;
 
   
   nsBlockFrame* blockFrame = do_QueryFrame(mContent->GetPrimaryFrame());
@@ -366,7 +363,7 @@ nsHTMLListBulletAccessible::GetName(nsAString &aName)
     aName.Append(' ');
   }
 
-  return NS_OK;
+  return eNameOK;
 }
 
 role

@@ -56,9 +56,7 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  NS_IMETHOD GetName(nsAString& aName);
-
-  
+  virtual mozilla::a11y::ENameValueFlag Name(nsString& aName);
   virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);
   virtual mozilla::a11y::role NativeRole();
   virtual PRUint64 NativeState();
@@ -130,12 +128,10 @@ public:
   nsHTMLListBulletAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
 
   
-  NS_IMETHOD GetName(nsAString& aName);
-
-  
   virtual bool IsPrimaryForNode() const;
 
   
+  virtual mozilla::a11y::ENameValueFlag Name(nsString& aName);
   virtual mozilla::a11y::role NativeRole();
   virtual PRUint64 NativeState();
   virtual void AppendTextTo(nsAString& aText, PRUint32 aStartOffset = 0,
