@@ -653,7 +653,7 @@ HashableValue::setValue(JSContext *cx, const Value &v)
 {
     if (v.isString()) {
         
-        JSString *str = js_AtomizeString(cx, v.toString(), DoNotInternAtom);
+        JSString *str = AtomizeString(cx, v.toString(), DoNotInternAtom);
         if (!str)
             return false;
         value = StringValue(str);

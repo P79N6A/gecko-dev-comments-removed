@@ -120,7 +120,7 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain, StackFrame *call
 
 
 
-            JSAtom *atom = js_AtomizeString(cx, source);
+            JSAtom *atom = AtomizeString(cx, source);
             jsatomid _;
             if (!atom || !bce.makeAtomIndex(atom, &_))
                 return NULL;
