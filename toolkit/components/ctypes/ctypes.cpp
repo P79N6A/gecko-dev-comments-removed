@@ -125,9 +125,11 @@ InitAndSealCTypesClass(JSContext* cx, JSObject* global)
 
   
   
+  
   if (!SealObjectAndPrototype(cx, global, "Object") ||
       !SealObjectAndPrototype(cx, global, "Function") ||
-      !SealObjectAndPrototype(cx, global, "Array"))
+      !SealObjectAndPrototype(cx, global, "Array") ||
+      !SealObjectAndPrototype(cx, global, "Error"))
     return false;
 
   
