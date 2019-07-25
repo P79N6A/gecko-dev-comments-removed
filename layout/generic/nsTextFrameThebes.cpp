@@ -2338,7 +2338,9 @@ nsTextFrame::GetTrimmedOffsets(const nsTextFragment* aFrag,
   NS_ASSERTION(mTextRun, "Need textrun here");
   
   
-  NS_ASSERTION(!(GetStateBits() & NS_FRAME_FIRST_REFLOW),
+  
+  NS_ASSERTION(!(GetStateBits() & NS_FRAME_FIRST_REFLOW) ||
+               (GetParent()->GetStateBits() & NS_FRAME_TOO_DEEP_IN_FRAME_TREE),
                "Can only call this on frames that have been reflowed");
   NS_ASSERTION(!(GetStateBits() & NS_FRAME_IN_REFLOW),
                "Can only call this on frames that are not being reflowed");
