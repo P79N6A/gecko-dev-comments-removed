@@ -160,9 +160,6 @@ static JSBool
 NPObjWrapper_NewResolve(JSContext *cx, JSObject *obj, jsid id, uintN flags,
                         JSObject **objp);
 
-static JSBool
-NPObjWrapper_Convert(JSContext *cx, JSObject *obj, JSType type, jsval *vp);
-
 static void
 NPObjWrapper_Finalize(JSContext *cx, JSObject *obj);
 
@@ -183,7 +180,7 @@ static JSClass sNPObjectJSWrapperClass =
     NPObjWrapper_AddProperty, NPObjWrapper_DelProperty,
     NPObjWrapper_GetProperty, NPObjWrapper_SetProperty,
     (JSEnumerateOp)NPObjWrapper_newEnumerate,
-    (JSResolveOp)NPObjWrapper_NewResolve, NPObjWrapper_Convert,
+    (JSResolveOp)NPObjWrapper_NewResolve, JS_ConvertStub,
     NPObjWrapper_Finalize, nsnull, nsnull, NPObjWrapper_Call,
     NPObjWrapper_Construct, nsnull, nsnull
   };
@@ -1683,18 +1680,6 @@ NPObjWrapper_NewResolve(JSContext *cx, JSObject *obj, jsid id, uintN flags,
   return JS_TRUE;
 }
 
-static JSBool
-NPObjWrapper_Convert(JSContext *cx, JSObject *obj, JSType type, jsval *vp)
-{
-  
-  
-  
-  
-  
-
-  return JS_TRUE;
-}
-
 static void
 NPObjWrapper_Finalize(JSContext *cx, JSObject *obj)
 {
@@ -2195,6 +2180,9 @@ NPObjectMember_Convert(JSContext *cx, JSObject *obj, JSType type, jsval *vp)
   case JSTYPE_BOOLEAN:
   case JSTYPE_OBJECT:
     *vp = memberPrivate->fieldValue;
+    if (!JSVAL_IS_PRIMITIVE(*vp)) {
+      return JS_ConvertStub(cx, JSVAL_TO_OBJECT(*vp), type, vp);
+    }
     return JS_TRUE;
   case JSTYPE_FUNCTION:
     
