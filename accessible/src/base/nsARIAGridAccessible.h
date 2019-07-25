@@ -77,31 +77,12 @@ protected:
   
 
 
-  already_AddRefed<nsIAccessible> GetRowAt(PRInt32 aRow);
+  nsAccessible *GetRowAt(PRInt32 aRow);
 
   
 
 
-  already_AddRefed<nsIAccessible> GetCellInRowAt(nsIAccessible *aRow,
-                                                 PRInt32 aColumn);
-
-  
-
-
-
-
-
-  already_AddRefed<nsIAccessible> GetNextRow(nsIAccessible *aRow = nsnull);
-
-  
-
-
-
-
-
-
-  already_AddRefed<nsIAccessible> GetNextCellInRow(nsIAccessible *aRow,
-                                                   nsIAccessible *aCell = nsnull);
+  nsAccessible *GetCellInRowAt(nsAccessible *aRow, PRInt32 aColumn);
 
   
 
@@ -111,7 +92,7 @@ protected:
 
 
 
-  nsresult SetARIASelected(nsIAccessible *aAccessible, PRBool aIsSelected,
+  nsresult SetARIASelected(nsAccessible *aAccessible, PRBool aIsSelected,
                            PRBool aNotify = PR_TRUE);
 
   
