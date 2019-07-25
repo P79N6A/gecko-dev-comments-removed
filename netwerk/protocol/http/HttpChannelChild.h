@@ -112,8 +112,13 @@ public:
   
   NS_IMETHOD SetPriority(PRInt32 value);
 
+  
+  
+  
+  void AddIPDLReference();
+  void ReleaseIPDLReference();
+
 protected:
-  void RefcountHitZero();
   bool RecvOnStartRequest(const nsHttpResponseHead& responseHead,
                           const PRBool& useResponseHead,
                           const PRBool& isFromCache,
@@ -137,6 +142,7 @@ private:
 
   
   enum HttpChannelChildState mState;
+  bool mIPCOpen;
 };
 
 } 

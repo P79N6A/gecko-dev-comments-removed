@@ -58,6 +58,7 @@ HttpChannelChild::HttpChannelChild()
   , mCacheEntryAvailable(PR_FALSE)
   , mCacheExpirationTime(nsICache::NO_EXPIRATION_TIME)
   , mState(HCC_NEW)
+  , mIPCOpen(false)
 {
   LOG(("Creating HttpChannelChild @%x\n", this));
 }
@@ -73,18 +74,7 @@ HttpChannelChild::~HttpChannelChild()
 
 
 NS_IMPL_ADDREF(HttpChannelChild)
-NS_IMPL_RELEASE_WITH_DESTROY(HttpChannelChild, RefcountHitZero())
-
-void
-HttpChannelChild::RefcountHitZero()
-{
-  if (mWasOpened) {
-    
-    PHttpChannelChild::Send__delete__(this);
-  } else {
-    delete this;    
-  }
-}
+NS_IMPL_RELEASE(HttpChannelChild)
 
 NS_INTERFACE_MAP_BEGIN(HttpChannelChild)
   NS_INTERFACE_MAP_ENTRY(nsIRequest)
@@ -104,6 +94,22 @@ NS_INTERFACE_MAP_END_INHERITING(HttpBaseChannel)
 
 
 
+
+void
+HttpChannelChild::AddIPDLReference()
+{
+  NS_ABORT_IF_FALSE(!mIPCOpen, "Attempt to retain more than one IPDL reference");
+  mIPCOpen = true;
+  AddRef();
+}
+
+void
+HttpChannelChild::ReleaseIPDLReference()
+{
+  NS_ABORT_IF_FALSE(mIPCOpen, "Attempt to release nonexistent IPDL reference");
+  mIPCOpen = false;
+  Release();
+}
 
 bool 
 HttpChannelChild::RecvOnStartRequest(const nsHttpResponseHead& responseHead,
@@ -186,7 +192,7 @@ HttpChannelChild::RecvOnStopRequest(const nsresult& statusCode)
 
   mIsPending = PR_FALSE;
   mStatus = statusCode;
-  nsresult rv = mListener->OnStopRequest(this, mListenerContext, statusCode);
+  mListener->OnStopRequest(this, mListenerContext, statusCode);
   mListener = 0;
   mListenerContext = 0;
   mCacheEntryAvailable = PR_FALSE;
@@ -194,15 +200,9 @@ HttpChannelChild::RecvOnStopRequest(const nsresult& statusCode)
   if (mLoadGroup)
     mLoadGroup->RemoveRequest(this, nsnull, statusCode);
 
-  SendOnStopRequestCompleted();
-
   
-  this->Release();
   
-  if (NS_FAILED(rv)) {
-    
-    return false;  
-  }
+  PHttpChannelChild::Send__delete__(this);
   return true;
 }
 
@@ -377,6 +377,10 @@ HttpChannelChild::AsyncOpen(nsIStreamListener *listener, nsISupports *aContext)
     tabChild = static_cast<mozilla::dom::TabChild*>(iTabChild.get());
   }
 
+  
+  
+  AddIPDLReference();
+
   gNeckoChild->SendPHttpChannelConstructor(this, tabChild);
 
   SendAsyncOpen(IPC::URI(mURI), IPC::URI(mOriginalURI), IPC::URI(mDocumentURI),
@@ -384,10 +388,6 @@ HttpChannelChild::AsyncOpen(nsIStreamListener *listener, nsISupports *aContext)
                 mRequestHead.Method(), uploadStreamData, 
                 uploadStreamInfo, mPriority, mRedirectionLimit, 
                 mAllowPipelining, mForceAllowThirdPartyCookie);
-
-  
-  
-  this->AddRef();
 
   mState = HCC_OPENED;
   return NS_OK;
@@ -453,7 +453,7 @@ HttpChannelChild::GetCacheTokenCachedCharset(nsACString &_retval)
 NS_IMETHODIMP
 HttpChannelChild::SetCacheTokenCachedCharset(const nsACString &aCharset)
 {
-  if (!mCacheEntryAvailable)
+  if (!mCacheEntryAvailable || !mIPCOpen)
     return NS_ERROR_NOT_AVAILABLE;
 
   mCachedCharset = aCharset;
@@ -523,7 +523,7 @@ HttpChannelChild::SetPriority(PRInt32 aPriority)
   if (mPriority == newValue)
     return NS_OK;
   mPriority = newValue;
-  if (mWasOpened) 
+  if (mIPCOpen) 
     SendSetPriority(mPriority);
   return NS_OK;
 }
