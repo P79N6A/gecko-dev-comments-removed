@@ -824,7 +824,7 @@ namespace nanojit
         _inExit = false;
 
         
-        verbose_only( verbose_outputf("%p:", jmpTarget);)
+        verbose_only( verbose_outputf("%010lx:", (unsigned long)jmpTarget);)
         verbose_only( verbose_outputf("----------------------------------- ## BEGIN exit block (LIR_xt|LIR_xf)") );
 
 #ifdef NANOJIT_IA32
