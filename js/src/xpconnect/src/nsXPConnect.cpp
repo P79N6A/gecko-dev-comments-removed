@@ -54,8 +54,7 @@
 #include "dom_quickstubs.h"
 #include "nsNullPrincipal.h"
 #include "nsIURI.h"
-#include "nsJSEnvironment.h"
-#include "plbase64.h"
+
 #include "jstypedarray.h"
 
 #include "XrayWrapper.h"
@@ -2280,11 +2279,6 @@ NS_IMETHODIMP
 nsXPConnect::AfterProcessNextEvent(nsIThreadInternal *aThread,
                                    PRUint32 aRecursionDepth)
 {
-    
-    if (NS_IsMainThread()) {
-        nsJSContext::MaybeCCIfUserInactive();
-    }
-
     return Pop(nsnull);
 }
 
@@ -2426,8 +2420,6 @@ nsXPConnect::CheckForDebugMode(JSRuntime *rt) {
             return;
         }
 
-        JS_SetRuntimeDebugMode(rt, gDesiredDebugMode);
-
         nsresult rv;
         const char jsdServiceCtrID[] = "@mozilla.org/js/jsd/debugger-service;1";
         nsCOMPtr<jsdIDebuggerService> jsds = do_GetService(jsdServiceCtrID, &rv);
@@ -2440,11 +2432,11 @@ nsXPConnect::CheckForDebugMode(JSRuntime *rt) {
         }
 
         if (NS_SUCCEEDED(rv)) {
+            JS_SetRuntimeDebugMode(rt, gDesiredDebugMode);
             gDebugMode = gDesiredDebugMode;
         } else {
             
             gDesiredDebugMode = gDebugMode;
-            JS_SetRuntimeDebugMode(rt, gDebugMode);
         }
     }
 }
@@ -2588,108 +2580,6 @@ nsXPConnect::GetCaller(JSContext **aJSContext, JSObject **aObj)
 
     
     *aObj = ccx->GetFlattenedJSObject();
-}
-
-
-nsresult
-nsXPConnect::Base64Encode(const nsACString &aBinaryData,
-                          nsACString &aString)
-{
-  
-  if(aBinaryData.Length() > (PR_UINT32_MAX / 4) * 3)
-      return NS_ERROR_FAILURE;
-
-  PRUint32 stringLen = ((aBinaryData.Length() + 2) / 3) * 4;
-
-  char *buffer;
-
-  
-  if(aString.SetCapacity(stringLen + 1) &&
-     (buffer = aString.BeginWriting()) &&
-     PL_Base64Encode(aBinaryData.BeginReading(), aBinaryData.Length(), buffer))
-  {
-      
-      
-      buffer[stringLen] = '\0';
-
-      aString.SetLength(stringLen);
-      return NS_OK;
-  }
-
-  aString.Truncate();
-  return NS_ERROR_INVALID_ARG;
-}
-
-
-nsresult
-nsXPConnect::Base64Encode(const nsAString &aString,
-                          nsAString &aBinaryData)
-{
-    NS_LossyConvertUTF16toASCII string(aString);
-    nsCAutoString binaryData;
-
-    nsresult rv = Base64Encode(string, binaryData);
-    if(NS_SUCCEEDED(rv))
-        CopyASCIItoUTF16(binaryData, aBinaryData);
-    else
-        aBinaryData.Truncate();
-
-    return rv;
-}
-
-
-nsresult
-nsXPConnect::Base64Decode(const nsACString &aString,
-                          nsACString &aBinaryData)
-{
-  
-  if(aString.Length() > PR_UINT32_MAX / 3)
-      return NS_ERROR_FAILURE;
-
-  PRUint32 binaryDataLen = ((aString.Length() * 3) / 4);
-
-  char *buffer;
-
-  
-  if(aBinaryData.SetCapacity(binaryDataLen + 1) &&
-     (buffer = aBinaryData.BeginWriting()) &&
-     PL_Base64Decode(aString.BeginReading(), aString.Length(), buffer))
-  {
-      
-      
-      
-      if(!aString.IsEmpty() && aString[aString.Length() - 1] == '=')
-      {
-          if(aString.Length() > 1 && aString[aString.Length() - 2] == '=')
-              binaryDataLen -= 2;
-          else
-              binaryDataLen -= 1;
-      }
-      buffer[binaryDataLen] = '\0';
-
-      aBinaryData.SetLength(binaryDataLen);
-      return NS_OK;
-  }
-
-  aBinaryData.Truncate();
-  return NS_ERROR_INVALID_ARG;
-}
-
-
-nsresult
-nsXPConnect::Base64Decode(const nsAString &aBinaryData,
-                          nsAString &aString)
-{
-    NS_LossyConvertUTF16toASCII binaryData(aBinaryData);
-    nsCAutoString string;
-
-    nsresult rv = Base64Decode(binaryData, string);
-    if(NS_SUCCEEDED(rv))
-        CopyASCIItoUTF16(string, aString);
-    else
-        aString.Truncate();
-
-    return rv;
 }
 
 NS_IMETHODIMP
