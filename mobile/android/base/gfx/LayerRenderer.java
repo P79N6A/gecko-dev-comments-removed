@@ -277,8 +277,6 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
 
 
 
-
-
     }
 
     private void printCheckerboardStats() {
@@ -302,15 +300,13 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
         return pixelBuffer;
     }
 
-    public RenderContext createScreenContext() {
-        LayerController layerController = mView.getController();
-        IntSize viewportSize = new IntSize(layerController.getViewportSize());
-        RectF viewport = new RectF(0.0f, 0.0f, viewportSize.width, viewportSize.height);
-        FloatSize pageSize = new FloatSize(layerController.getPageSize());
+    private RenderContext createScreenContext(ImmutableViewportMetrics metrics) {
+        RectF viewport = new RectF(0.0f, 0.0f, metrics.getWidth(), metrics.getHeight());
+        FloatSize pageSize = new FloatSize(metrics.getPageSize());
         return createContext(viewport, pageSize, 1.0f);
     }
 
-    public RenderContext createPageContext(ImmutableViewportMetrics metrics) {
+    private RenderContext createPageContext(ImmutableViewportMetrics metrics) {
         Rect viewport = RectUtils.round(metrics.getViewport());
         FloatSize pageSize = metrics.getPageSize();
         float zoomFactor = metrics.zoomFactor;
@@ -320,31 +316,6 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
     private RenderContext createContext(RectF viewport, FloatSize pageSize, float zoomFactor) {
         return new RenderContext(viewport, pageSize, zoomFactor, mPositionHandle, mTextureHandle,
                                  mCoordBuffer);
-    }
-
-    private Rect getPageRect() {
-        LayerController controller = mView.getController();
-
-        Point origin = PointUtils.round(controller.getOrigin());
-        IntSize pageSize = new IntSize(controller.getPageSize());
-
-        origin.negate();
-
-        return new Rect(origin.x, origin.y,
-                        origin.x + pageSize.width, origin.y + pageSize.height);
-    }
-
-    private Rect transformToScissorRect(Rect rect) {
-        LayerController controller = mView.getController();
-        IntSize screenSize = new IntSize(controller.getViewportSize());
-
-        int left = Math.max(0, rect.left);
-        int top = Math.max(0, rect.top);
-        int right = Math.min(screenSize.width, rect.right);
-        int bottom = Math.min(screenSize.height, rect.bottom);
-
-        return new Rect(left, screenSize.height - bottom, right,
-                        (screenSize.height - bottom) + (bottom - top));
     }
 
     public void onSurfaceChanged(GL10 gl, final int width, final int height) {
@@ -445,8 +416,8 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
         return shader;
     }
 
-    public Frame createFrame(RenderContext pageContext, RenderContext screenContext) {
-        return new Frame(pageContext, screenContext);
+    public Frame createFrame(ImmutableViewportMetrics metrics) {
+        return new Frame(metrics);
     }
 
     class FadeRunnable implements Runnable {
@@ -489,14 +460,17 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
         
         private long mFrameStartTime;
         
+        private ImmutableViewportMetrics mFrameMetrics;
+        
         private RenderContext mPageContext, mScreenContext;
         
         private boolean mUpdated;
         private final Rect mPageRect;
 
-        public Frame(RenderContext pageContext, RenderContext screenContext) {
-            mPageContext = pageContext;
-            mScreenContext = screenContext;
+        public Frame(ImmutableViewportMetrics metrics) {
+            mFrameMetrics = metrics;
+            mPageContext = createPageContext(metrics);
+            mScreenContext = createScreenContext(metrics);
             mPageRect = getPageRect();
         }
 
@@ -505,6 +479,28 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
             GLES20.glEnable(GLES20.GL_SCISSOR_TEST);
             GLES20.glScissor(scissorRect.left, scissorRect.top,
                              scissorRect.width(), scissorRect.height());
+        }
+
+        private Rect transformToScissorRect(Rect rect) {
+            IntSize screenSize = new IntSize(mFrameMetrics.getSize());
+
+            int left = Math.max(0, rect.left);
+            int top = Math.max(0, rect.top);
+            int right = Math.min(screenSize.width, rect.right);
+            int bottom = Math.min(screenSize.height, rect.bottom);
+
+            return new Rect(left, screenSize.height - bottom, right,
+                            (screenSize.height - bottom) + (bottom - top));
+        }
+
+        private Rect getPageRect() {
+            Point origin = PointUtils.round(mFrameMetrics.getOrigin());
+            IntSize pageSize = new IntSize(mFrameMetrics.getPageSize());
+
+            origin.negate();
+
+            return new Rect(origin.x, origin.y,
+                            origin.x + pageSize.width, origin.y + pageSize.height);
         }
 
         
@@ -516,8 +512,7 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
 
             mUpdated = true;
 
-            LayerController controller = mView.getController();
-            Layer rootLayer = controller.getRoot();
+            Layer rootLayer = mView.getController().getRoot();
 
             if (!mPageContext.fuzzyEquals(mLastPageContext)) {
                 
@@ -590,8 +585,6 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
 
         
         public void drawForeground() {
-            LayerController controller = mView.getController();
-
             
             if (mExtraLayers.size() > 0) {
                 
@@ -606,16 +599,15 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
             }
 
             
-            IntSize screenSize = new IntSize(controller.getViewportSize());
-            if (mPageRect.height() > screenSize.height)
+            if (mPageRect.height() > mFrameMetrics.getHeight())
                 mVertScrollLayer.draw(mPageContext);
 
             
-            if (mPageRect.width() > screenSize.width)
+            if (mPageRect.width() > mFrameMetrics.getWidth())
                 mHorizScrollLayer.draw(mPageContext);
 
             
-            Layer rootLayer = controller.getRoot();
+            Layer rootLayer = mView.getController().getRoot();
             if ((rootLayer != null) &&
                 (mProfileRender || PanningPerfAPI.isRecordingCheckerboard())) {
                 
