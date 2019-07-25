@@ -91,8 +91,7 @@ var gEditUIVisible = true;
   ["gBrowser",            "content"],
   ["gNavToolbox",         "navigator-toolbox"],
   ["gURLBar",             "urlbar"],
-  ["gNavigatorBundle",    "bundle_browser"],
-  ["gFindBar",            "FindToolbar"]
+  ["gNavigatorBundle",    "bundle_browser"]
 ].forEach(function (elementGlobal) {
   var [name, id] = elementGlobal;
   window.__defineGetter__(name, function () {
@@ -106,6 +105,24 @@ var gEditUIVisible = true;
     delete window[name];
     return window[name] = val;
   });
+});
+
+
+
+var gFindBarInitialized = false;
+XPCOMUtils.defineLazyGetter(window, "gFindBar", function() {
+  let XULNS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
+  let findbar = document.createElementNS(XULNS, "findbar");
+  findbar.setAttribute("browserid", "content");
+  findbar.id = "FindToolbar";
+
+  let browserBottomBox = document.getElementById("browser-bottombox");
+  browserBottomBox.insertBefore(findbar, browserBottomBox.firstChild);
+
+  
+  findbar.clientTop;
+  window.gFindBarInitialized = true;
+  return findbar;
 });
 
 __defineGetter__("gPrefService", function() {
@@ -971,10 +988,13 @@ function BrowserStartup() {
   }
 
   if (window.opener && !window.opener.closed) {
-    let openerFindBar = window.opener.gFindBar;
-    if (openerFindBar && !openerFindBar.hidden &&
-        openerFindBar.findMode == gFindBar.FIND_NORMAL)
+    let openerFindBar = window.opener.gFindBarInitialized ?
+                        window.opener.gFindBar : null;
+    if (openerFindBar &&
+        !openerFindBar.hidden &&
+        openerFindBar.findMode == openerFindBar.FIND_NORMAL) {
       gFindBar.open();
+    }
 
     let openerSidebarBox = window.opener.document.getElementById("sidebar-box");
     
@@ -2598,8 +2618,9 @@ var PrintPreviewListener = {
     this._chromeState.statusbarOpen = !statusbar.hidden;
     statusbar.hidden = true;
 
-    this._chromeState.findOpen = !gFindBar.hidden;
-    gFindBar.close();
+    this._chromeState.findOpen = gFindBarInitialized && !gFindBar.hidden;
+    if (gFindBarInitialized)
+      gFindBar.close();
   },
   _showChrome: function () {
     if (this._chromeState.notificationsOpen)
@@ -4112,16 +4133,18 @@ var XULBrowserWindow = {
     }
     UpdateBackForwardCommands(gBrowser.webNavigation);
 
-    if (gFindBar.findMode != gFindBar.FIND_NORMAL) {
+    if (gFindBarInitialized) {
+      if (gFindBar.findMode != gFindBar.FIND_NORMAL) {
+        
+        gFindBar.close();
+      }
+
       
-      gFindBar.close();
+      
+
+      
+      gFindBar.getElement("highlight").checked = false;      
     }
-
-    
-    
-
-    
-    gFindBar.getElement("highlight").checked = false;
 
     
     
@@ -7255,7 +7278,7 @@ let gPrivateBrowsingUI = {
     if (BrowserSearch.searchBar)
       this._searchBarValue = BrowserSearch.searchBar.textbox.value;
 
-    if (gFindBar)
+    if (gFindBarInitialized)
       this._findBarValue = gFindBar.getElement("findbar-textbox").value;
 
     this._setPBMenuTitle("stop");
@@ -7313,7 +7336,7 @@ let gPrivateBrowsingUI = {
     
     document.getElementById("Tools:Sanitize").removeAttribute("disabled");
 
-    if (gFindBar) {
+    if (gFindBarInitialized) {
       let findbox = gFindBar.getElement("findbar-textbox");
       findbox.reset();
       if (this._findBarValue) {
@@ -7610,4 +7633,4 @@ var TabContextMenu = {
       getService(Ci.nsISessionStore).
       getClosedTabCount(window) == 0;
   }
-}
+};
