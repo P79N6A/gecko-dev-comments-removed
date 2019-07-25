@@ -303,6 +303,10 @@ bool nsDSURIContentListener::CheckFrameOptions(nsIRequest* request)
         
         
         nsCOMPtr<nsIDOMWindow> thisWindow = do_GetInterface(static_cast<nsIDocShell*>(mDocShell));
+        
+        if (!thisWindow)
+            return true;
+
         nsCOMPtr<nsIDOMWindow> topWindow;
         thisWindow->GetTop(getter_AddRefs(topWindow));
 
