@@ -3653,13 +3653,10 @@ function retrieveToolbarIconsizesFromTheme() {
     
     
     let counterReset = getComputedStyle(aToolbar).counterReset;
-    if (counterReset == "smallicons 0") {
+    if (counterReset == "smallicons 0")
       aToolbar.setAttribute("iconsize", "small");
-      document.persist(aToolbar.id, "iconsize");
-    } else if (counterReset == "largeicons 0") {
+    else if (counterReset == "largeicons 0")
       aToolbar.setAttribute("iconsize", "large");
-      document.persist(aToolbar.id, "iconsize");
-    }
   }
 
   Array.forEach(gNavToolbox.childNodes, retrieveToolbarIconsize);
