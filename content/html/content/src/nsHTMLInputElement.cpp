@@ -484,6 +484,11 @@ protected:
   void FreeData();
   nsTextEditorState *GetEditorState() const;
 
+  
+
+
+  void HandleTypeChange(PRUint8 aNewType);
+
   nsCOMPtr<nsIControllers> mControllers;
 
   
@@ -773,7 +778,7 @@ nsHTMLInputElement::AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
         
         
         
-        mType = kInputDefaultType->value;
+        HandleTypeChange(kInputDefaultType->value);
       }
     
       
@@ -2355,6 +2360,25 @@ nsHTMLInputElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
   nsGenericHTMLFormElement::UnbindFromTree(aDeep, aNullParent);
 }
 
+void
+nsHTMLInputElement::HandleTypeChange(PRUint8 aNewType)
+{
+  
+  PRBool isNewTypeSingleLine =
+    IsSingleLineTextControlInternal(PR_FALSE, aNewType);
+  PRBool isCurrentTypeSingleLine =
+    IsSingleLineTextControl(PR_FALSE);
+  if (isNewTypeSingleLine && !isCurrentTypeSingleLine) {
+    FreeData();
+    mInputData.mState = new nsTextEditorState(this);
+    NS_ADDREF(mInputData.mState);
+  } else if (isCurrentTypeSingleLine && !isNewTypeSingleLine) {
+    FreeData();
+  }
+
+  mType = aNewType;
+}
+
 PRBool
 nsHTMLInputElement::ParseAttribute(PRInt32 aNamespaceID,
                                    nsIAtom* aAttribute,
@@ -2387,20 +2411,7 @@ nsHTMLInputElement::ParseAttribute(PRInt32 aNamespaceID,
           ClearFileNames();
         }
 
-        
-        PRBool isNewTypeSingleLine =
-          IsSingleLineTextControlInternal(PR_FALSE, newType);
-        PRBool isCurrentTypeSingleLine =
-          IsSingleLineTextControl(PR_FALSE);
-        if (isNewTypeSingleLine && !isCurrentTypeSingleLine) {
-          FreeData();
-          mInputData.mState = new nsTextEditorState(this);
-          NS_ADDREF(mInputData.mState);
-        } else if (isCurrentTypeSingleLine && !isNewTypeSingleLine) {
-          FreeData();
-        }
-
-        mType = newType;
+        HandleTypeChange(newType);
       }
 
       return success;
