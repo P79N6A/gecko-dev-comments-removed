@@ -88,7 +88,8 @@ public:
         SurfaceTypeQuartzImage,
         SurfaceTypeScript,
         SurfaceTypeQPainter,
-        SurfaceTypeDDraw
+        SurfaceTypeDDraw,
+        SurfaceTypeMax
     } gfxSurfaceType;
 
     typedef enum {
@@ -147,8 +148,26 @@ public:
 
     static gfxContentType ContentFromFormat(gfxImageFormat format);
 
+    
+
+
+
+    static void RecordMemoryUsedForSurfaceType(gfxASurface::gfxSurfaceType aType,
+                                               PRInt32 aBytes);
+
+    
+
+
+
+
+
+    void RecordMemoryUsed(PRInt32 aBytes);
+    void RecordMemoryFreed();
+
+    PRInt32 KnownMemoryUsed() { return mBytesRecorded; }
+
 protected:
-    gfxASurface() : mSurface(nsnull), mFloatingRefs(0), mSurfaceValid(PR_FALSE) { }
+    gfxASurface() : mSurface(nsnull), mFloatingRefs(0), mBytesRecorded(0), mSurfaceValid(PR_FALSE) { }
 
     static gfxASurface* GetSurfaceWrapper(cairo_surface_t *csurf);
     static void SetSurfaceWrapper(cairo_surface_t *csurf, gfxASurface *asurf);
@@ -156,12 +175,15 @@ protected:
     void Init(cairo_surface_t *surface, PRBool existingSurface = PR_FALSE);
 
     virtual ~gfxASurface() {
+        RecordMemoryFreed();
     }
+
 private:
     static void SurfaceDestroyFunc(void *data);
 
     cairo_surface_t *mSurface;
     PRInt32 mFloatingRefs;
+    PRInt32 mBytesRecorded;
 
 protected:
     PRPackedBool mSurfaceValid;

@@ -134,6 +134,8 @@ public:
     return mImageSurface;
   }
 
+  
+  PRUint32 EstimateMemoryUsed() const;
 
 private: 
   PRUint32 PaletteDataLength() const {
