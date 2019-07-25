@@ -590,9 +590,9 @@ class JSAtom : public JSFixedString
 
   private:
     
-    static inline bool isUnitString(void *ptr);
-    static inline bool isLength2String(void *ptr);
-    static inline bool isHundredString(void *ptr);
+    static inline bool isUnitString(const void *ptr);
+    static inline bool isLength2String(const void *ptr);
+    static inline bool isHundredString(const void *ptr);
 
     typedef uint8 SmallChar;
     static const SmallChar INVALID_SMALL_CHAR = -1;
@@ -614,7 +614,7 @@ class JSAtom : public JSFixedString
 
 
 
-    static inline bool isStatic(void *ptr);
+    static inline bool isStatic(const void *ptr);
 
     static inline bool hasIntStatic(int32 i);
     static inline JSStaticAtom &intStatic(jsint i);
