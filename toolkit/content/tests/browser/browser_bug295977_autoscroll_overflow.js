@@ -30,7 +30,8 @@ function test()
 
     var elem = doc.getElementById(test.elem);
     
-    var skipFrames = 3;
+    
+    var skipFrames = 1;
     var checkScroll = function () {
       if (skipFrames--) {
         window.mozRequestAnimationFrame();
@@ -45,7 +46,7 @@ function test()
       ok((scrollHori && elem.scrollLeft > 0) ||
          (!scrollHori && elem.scrollLeft == 0),
          test.elem+' should'+(scrollHori ? '' : ' not')+' have scrolled horizontally');
-      window.removeEventListener("MozAfterPaint", checkScroll, false);
+      window.removeEventListener("MozBeforePaint", checkScroll, false);
       nextTest();
     };
     EventUtils.synthesizeMouse(elem, 50, 50, { button: 1 },
@@ -60,7 +61,7 @@ function test()
     EventUtils.synthesizeMouse(elem, 100, 100,
                                { type: "mousemove", clickCount: "0" },
                                gBrowser.contentWindow);
-    window.addEventListener("MozAfterPaint", checkScroll, false);
+    window.addEventListener("MozBeforePaint", checkScroll, false);
     
 
 
@@ -95,10 +96,6 @@ function test()
 
   function onFocus() {
     doc = gBrowser.contentDocument;
-    
-    window.addEventListener("MozBeforePaint", function(ev) {
-      doc.body.appendChild(doc.createTextNode('.'));
-    }, false);
     nextTest();
   }
 
