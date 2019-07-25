@@ -515,10 +515,16 @@ unsigned int ElfSection::getOffset()
         else
             offset = (offset & ~4095) + (getAddr() & 4095);
     }
-    
-    
     if ((getType() != SHT_NOBITS) && (offset & (getAddrAlign() - 1)))
         offset = (offset | (getAddrAlign() - 1)) + 1;
+
+    
+    
+    if ((getType() != SHT_NOBITS) && getAddr()) {
+        if (((offset >> 12) != (previous->getOffset() >> 12)) &&
+            ((getAddr() >> 12) == (previous->getAddr() >> 12)))
+            throw std::runtime_error("Moving section would require overlapping segments");
+    }
 
     return (shdr.sh_offset = offset);
 }
@@ -655,10 +661,6 @@ void ElfDynamic_Section::setValueForType(unsigned int tag, ElfValue *val)
     if (i < shdr.sh_size / shdr.sh_entsize)
         return;
 
-    
-    
-    
-    throw std::runtime_error("Growing .dynamic section is unsupported");
     Elf_DynValue value;
     value.tag = DT_NULL;
     value.value = NULL;
