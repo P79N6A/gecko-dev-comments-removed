@@ -157,4 +157,16 @@ if (typeof Components != "undefined") {
   Object.defineProperty(exports.OS.Shared, "POS_START", { value: exports.OS.Constants.Win.FILE_BEGIN });
   Object.defineProperty(exports.OS.Shared, "POS_CURRENT", { value: exports.OS.Constants.Win.FILE_CURRENT });
   Object.defineProperty(exports.OS.Shared, "POS_END", { value: exports.OS.Constants.Win.FILE_END });
+
+  
+  
+  let Types = exports.OS.Shared.Type;
+
+  
+
+
+
+
+  Types.path = Types.wstring.withName("[in] path");
+  Types.out_path = Types.out_wstring.withName("[out] path");
 })(this);

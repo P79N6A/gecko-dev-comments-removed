@@ -147,4 +147,16 @@ if (typeof Components != "undefined") {
    Object.defineProperty(exports.OS.Shared, "POS_START", { value: exports.OS.Constants.libc.SEEK_SET });
    Object.defineProperty(exports.OS.Shared, "POS_CURRENT", { value: exports.OS.Constants.libc.SEEK_CUR });
    Object.defineProperty(exports.OS.Shared, "POS_END", { value: exports.OS.Constants.libc.SEEK_END });
+
+  
+  
+  let Types = exports.OS.Shared.Type;
+
+   
+
+
+
+
+  Types.path = Types.cstring.withName("[in] path");
+  Types.out_path = Types.out_cstring.withName("[out] path");
 })(this);
