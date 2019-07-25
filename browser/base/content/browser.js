@@ -6685,22 +6685,6 @@ var FeedHandler = {
 
 
 
-  onFeedButtonClick: function(event) {
-    event.stopPropagation();
-
-    if (event.target.hasAttribute("feed") &&
-        event.eventPhase == Event.AT_TARGET &&
-        (event.button == 0 || event.button == 1)) {
-        this.subscribeToFeed(null, event);
-    }
-  },
-
-  
-
-
-
-
-
 
 
 
@@ -6720,13 +6704,6 @@ var FeedHandler = {
 
     while (menuPopup.firstChild)
       menuPopup.removeChild(menuPopup.firstChild);
-
-    if (feeds.length == 1) {
-      var feedButton = document.getElementById("feed-button");
-      if (feedButton)
-        feedButton.setAttribute("feed", feeds[0].href);
-      return false;
-    }
 
     
     for (var i = 0; i < feeds.length; ++i) {
@@ -6799,30 +6776,16 @@ var FeedHandler = {
 
 
   updateFeeds: function() {
-    var feedButton = document.getElementById("feed-button");
-
     var feeds = gBrowser.selectedBrowser.feeds;
     if (!feeds || feeds.length == 0) {
-      if (feedButton) {
-        feedButton.collapsed = true;
-        feedButton.removeAttribute("feed");
-      }
       this._feedMenuitem.setAttribute("disabled", "true");
       this._feedMenupopup.setAttribute("hidden", "true");
       this._feedMenuitem.removeAttribute("hidden");
     } else {
-      if (feedButton)
-        feedButton.collapsed = false;
-
       if (feeds.length > 1) {
         this._feedMenuitem.setAttribute("hidden", "true");
         this._feedMenupopup.removeAttribute("hidden");
-        if (feedButton)
-          feedButton.removeAttribute("feed");
       } else {
-        if (feedButton)
-          feedButton.setAttribute("feed", feeds[0].href);
-
         this._feedMenuitem.setAttribute("feed", feeds[0].href);
         this._feedMenuitem.removeAttribute("disabled");
         this._feedMenuitem.removeAttribute("hidden");
@@ -6843,12 +6806,6 @@ var FeedHandler = {
       browserForLink.feeds = [];
 
     browserForLink.feeds.push({ href: link.href, title: link.title });
-
-    if (browserForLink == gBrowser.selectedBrowser) {
-      var feedButton = document.getElementById("feed-button");
-      if (feedButton)
-        feedButton.collapsed = false;
-    }
   }
 };
 
