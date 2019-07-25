@@ -4516,7 +4516,6 @@ JS_NewScriptObject(JSContext *cx, JSScript *script)
 
 
     JS_ASSERT(script->u.object);
-    JS_ASSERT(script != JSScript::emptyScript());
     return script->u.object;
 }
 
