@@ -110,7 +110,6 @@
 #include "nsContentCreatorFunctions.h"
 #include "mozAutoDocUpdate.h"
 #include "nsHtml5Module.h"
-#include "nsITextControlElement.h"
 
 #include "nsThreadUtils.h"
 
@@ -2709,19 +2708,13 @@ nsGenericHTMLFormElement::IsTextControl(PRBool aExcludePassword) const
 }
 
 PRBool
-nsGenericHTMLFormElement::IsSingleLineTextControlInternal(PRBool aExcludePassword,
-                                                          PRInt32 aType) const
-{
-  return aType == NS_FORM_INPUT_TEXT ||
-         aType == NS_FORM_INPUT_SEARCH ||
-         aType == NS_FORM_INPUT_TEL ||
-         (!aExcludePassword && aType == NS_FORM_INPUT_PASSWORD);
-}
-
-PRBool
 nsGenericHTMLFormElement::IsSingleLineTextControl(PRBool aExcludePassword) const
 {
-  return IsSingleLineTextControlInternal(aExcludePassword, GetType());
+  PRInt32 type = GetType();
+  return type == NS_FORM_INPUT_TEXT ||
+         type == NS_FORM_INPUT_SEARCH ||
+         type == NS_FORM_INPUT_TEL ||
+         (!aExcludePassword && type == NS_FORM_INPUT_PASSWORD);
 }
 
 PRBool
@@ -2732,6 +2725,8 @@ nsGenericHTMLFormElement::IsLabelableControl() const
   PRInt32 type = GetType();
   return type != NS_FORM_FIELDSET &&
          type != NS_FORM_LABEL &&
+         type != NS_FORM_OPTION &&
+         type != NS_FORM_OPTGROUP &&
          type != NS_FORM_OBJECT;
 }
 
@@ -3173,10 +3168,12 @@ nsGenericHTMLElement::GetEditorInternal(nsIEditor** aEditor)
 {
   *aEditor = nsnull;
 
-  nsCOMPtr<nsITextControlElement> textCtrl = do_QueryInterface(this);
-  if (textCtrl) {
-    *aEditor = textCtrl->GetTextEditor();
-    NS_IF_ADDREF(*aEditor);
+  nsIFormControlFrame *fcFrame = GetFormControlFrame(PR_FALSE);
+  if (fcFrame) {
+    nsITextControlFrame *textFrame = do_QueryFrame(fcFrame);
+    if (textFrame) {
+      return textFrame->GetEditor(aEditor);
+    }
   }
 
   return NS_OK;
