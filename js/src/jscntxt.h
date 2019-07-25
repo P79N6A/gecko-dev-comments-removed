@@ -601,6 +601,10 @@ struct JSRuntime : js::RuntimeFriendFields
 
     bool                gcPoke;
 
+#ifdef DEBUG
+    bool                relaxRootChecks;
+#endif
+
     enum HeapState {
         Idle,       
         Tracing,    
