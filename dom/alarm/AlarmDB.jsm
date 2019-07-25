@@ -84,14 +84,35 @@ AlarmDB.prototype = {
 
 
 
-  remove: function remove(aId, aSuccessCb, aErrorCb) {
+
+
+
+
+  remove: function remove(aId, aManifestURL, aSuccessCb, aErrorCb) {
     debug("remove()");
 
     this.newTxn(
       "readwrite", 
       function txnCb(aTxn, aStore) {
         debug("Going to remove " + aId);
-        aStore.delete(aId);
+
+        
+        
+        aStore.get(aId).onsuccess = function doRemove(aEvent) {
+          let alarm = aEvent.target.result;
+
+          if (!alarm) {
+            debug("Alarm doesn't exist. No need to remove it.");
+            return;
+          }
+
+          if (aManifestURL && aManifestURL != alarm.manifestURL) {
+            debug("Cannot remove the alarm added by other apps.");
+            return;
+          }
+
+          aStore.delete(aId);
+        };
       }, 
       aSuccessCb, 
       aErrorCb
@@ -104,17 +125,25 @@ AlarmDB.prototype = {
 
 
 
-  getAll: function getAll(aSuccessCb, aErrorCb) {
+
+
+
+
+  getAll: function getAll(aManifestURL, aSuccessCb, aErrorCb) {
     debug("getAll()");
 
     this.newTxn(
       "readonly", 
       function txnCb(aTxn, aStore) {
         if (!aTxn.result)
-          aTxn.result = {};
+          aTxn.result = [];
 
         aStore.mozGetAll().onsuccess = function setTxnResult(aEvent) {
-          aTxn.result = aEvent.target.result;
+          aEvent.target.result.forEach(function addAlarm(aAlarm) {
+            if (!aManifestURL || aManifestURL == aAlarm.manifestURL)
+              aTxn.result.push(aAlarm);
+          });
+
           debug("Request successful. Record count: " + aTxn.result.length);
         };
       }, 
