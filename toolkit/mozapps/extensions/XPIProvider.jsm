@@ -64,14 +64,10 @@ const PREF_EM_UPDATE_URL              = "extensions.update.url";
 const PREF_EM_ENABLED_ADDONS          = "extensions.enabledAddons";
 const PREF_EM_EXTENSION_FORMAT        = "extensions.";
 const PREF_EM_ENABLED_SCOPES          = "extensions.enabledScopes";
-const PREF_EM_SHOW_MISMATCH_UI        = "extensions.showMismatchUI";
-const PREF_EM_DISABLED_ADDONS_LIST    = "extensions.disabledAddons";
 const PREF_XPI_ENABLED                = "xpinstall.enabled";
 const PREF_XPI_WHITELIST_REQUIRED     = "xpinstall.whitelist.required";
 const PREF_XPI_WHITELIST_PERMISSIONS  = "xpinstall.whitelist.add";
 const PREF_XPI_BLACKLIST_PERMISSIONS  = "xpinstall.blacklist.add";
-
-const URI_EXTENSION_UPDATE_DIALOG     = "chrome://mozapps/content/extensions/update.xul";
 
 const DIR_EXTENSIONS                  = "extensions";
 const DIR_STAGE                       = "staged";
@@ -984,23 +980,7 @@ var XPIProvider = {
   
   bootstrapScopes: {},
   
-  extensionsActive: false,
-
-  
-  
-  allAppGlobal: true,
-  
   enabledAddons: null,
-  
-  inactiveAddonIDs: [],
-  
-  
-  
-  
-  startupChanges: {
-    
-    appDisabled: []
-  },
 
   
 
@@ -1111,24 +1091,6 @@ var XPIProvider = {
     
     this.applyThemeChange();
 
-    if (Services.prefs.prefHasUserValue(PREF_EM_DISABLED_ADDONS_LIST))
-      Services.prefs.clearUserPref(PREF_EM_DISABLED_ADDONS_LIST);
-
-    
-    
-    
-    if (aAppChanged && !this.allAppGlobal) {
-      
-      if (Prefs.getBoolPref(PREF_EM_SHOW_MISMATCH_UI, true)) {
-        this.showMismatchWindow();
-      }
-      else if (this.startupChanges.appDisabled.length > 0) {
-        
-        Services.prefs.setCharPref(PREF_EM_DISABLED_ADDONS_LIST,
-                                   this.startupChanges.appDisabled.join(","));
-      }
-    }
-
     this.enabledAddons = Prefs.getCharPref(PREF_EM_ENABLED_ADDONS, "");
     if ("nsICrashReporter" in Ci &&
         Services.appinfo instanceof Ci.nsICrashReporter) {
@@ -1166,8 +1128,6 @@ var XPIProvider = {
         Services.obs.removeObserver(this, "quit-application-granted");
       }
     }, "quit-application-granted", false);
-
-    this.extensionsActive = true;
   },
 
   
@@ -1182,12 +1142,6 @@ var XPIProvider = {
     this.bootstrappedAddons = {};
     this.bootstrapScopes = {};
     this.enabledAddons = null;
-    this.allAppGlobal = true;
-
-    for (let type in this.startupChanges)
-      this.startupChanges[type] = [];
-
-    this.inactiveAddonIDs = [];
 
     
     let updates = [i.addon.id for each (i in this.installs)
@@ -1207,9 +1161,6 @@ var XPIProvider = {
 
     this.installLocations = null;
     this.installLocationsByName = null;
-
-    
-    this.extensionsActive = false;
   },
 
   
@@ -1232,21 +1183,6 @@ var XPIProvider = {
       ERROR(e);
     }
     Services.prefs.clearUserPref(PREF_DSS_SWITCHPENDING);
-  },
-
-  
-
-
-  showMismatchWindow: function XPI_showMismatchWindow() {
-    var variant = Cc["@mozilla.org/variant;1"].
-                  createInstance(Ci.nsIWritableVariant);
-    variant.setFromVariant(this.inactiveAddonIDs);
-
-    
-    var features = "chrome,centerscreen,dialog,titlebar,modal";
-    var ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].
-             getService(Ci.nsIWindowWatcher);
-    ww.openWindow(null, URI_EXTENSION_UPDATE_DIALOG, "", features, variant);
   },
 
   
@@ -1569,10 +1505,6 @@ var XPIProvider = {
         let isDisabled = appDisabled || userDisabled;
 
         
-        if (aOldAddon.visible && appDisabled && !aOldAddon.appDisabled)
-          XPIProvider.startupChanges.appDisabled.push(aOldAddon.id);
-
-        
         if (appDisabled != aOldAddon.appDisabled ||
             userDisabled != aOldAddon.userDisabled) {
           LOG("Add-on " + aOldAddon.id + " changed appDisabled state to " +
@@ -1720,16 +1652,12 @@ var XPIProvider = {
         return false;
       }
 
+      
       if (newAddon.visible) {
-        
-        if (newAddon._installLocation.name != KEY_APP_GLOBAL)
-          XPIProvider.allAppGlobal = false;
-
         visibleAddons[newAddon.id] = newAddon;
         if (!newAddon.bootstrap)
           return true;
 
-        
         let dir = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
         dir.persistentDescriptor = aAddonState.descriptor;
         XPIProvider.callBootstrapMethod(newAddon.id, newAddon.version, dir,
@@ -1769,10 +1697,6 @@ var XPIProvider = {
             delete addonStates[aOldAddon.id];
 
             
-            if (aOldAddon.visible && !aOldAddon.active)
-              XPIProvider.inactiveAddonIDs.push(aOldAddon.id);
-
-            
             
             
             
@@ -1789,8 +1713,6 @@ var XPIProvider = {
                                                          aOldAddon, addonState) ||
                         changed;
             }
-            if (aOldAddon.visible && aOldAddon._installLocation.name != KEY_APP_GLOBAL)
-              XPIProvider.allAppGlobal = false;
           }
           else {
             changed = removeMetadata(installLocation, aOldAddon) || changed;
@@ -2245,11 +2167,6 @@ var XPIProvider = {
   enableRequiresRestart: function XPI_enableRequiresRestart(aAddon) {
     
     
-    if (!this.extensionsActive)
-      return false;
-
-    
-    
     if (aAddon.type == "theme")
       return aAddon.internalName != this.currentSkin &&
              !Prefs.getBoolPref(PREF_EM_DSS_ENABLED);
@@ -2265,11 +2182,6 @@ var XPIProvider = {
 
 
   disableRequiresRestart: function XPI_disableRequiresRestart(aAddon) {
-    
-    
-    if (!this.extensionsActive)
-      return false;
-
     
     
     
@@ -2290,11 +2202,6 @@ var XPIProvider = {
 
   installRequiresRestart: function XPI_installRequiresRestart(aAddon) {
     
-    
-    if (!this.extensionsActive)
-      return false;
-
-    
     if (aAddon.type == "theme")
       return aAddon.internalName == this.currentSkin ||
              Prefs.getBoolPref(PREF_EM_DSS_ENABLED);
@@ -2310,11 +2217,6 @@ var XPIProvider = {
 
 
   uninstallRequiresRestart: function XPI_uninstallRequiresRestart(aAddon) {
-    
-    
-    if (!this.extensionsActive)
-      return false;
-
     
     if (aAddon.type == "theme")
       return aAddon.internalName == this.currentSkin ||
@@ -4199,14 +4101,6 @@ AddonInstall.prototype = {
         stagedJSON.remove(true);
       this.state = AddonManager.STATE_CANCELLED;
       XPIProvider.removeActiveInstall(this);
-
-      AddonManagerPrivate.callAddonListeners("onOperationCancelled", createWrapper(this.addon));
-
-      if (this.existingAddon) {
-        delete this.existingAddon.pendingUpgrade;
-        this.existingAddon.pendingUpgrade = null;
-      }
-
       AddonManagerPrivate.callInstallListeners("onInstallCancelled",
                                                this.listeners, this.wrapper);
       break;
@@ -5468,17 +5362,10 @@ function AddonWrapper(aAddon) {
 
   this.__defineGetter__("pendingOperations", function() {
     let pending = 0;
-    if (!(aAddon instanceof DBAddonInternal)) {
-      
-      
-      
-      if (!aAddon._install || aAddon._install.state == AddonManager.STATE_INSTALLING ||
-          aAddon._install.state == AddonManager.STATE_INSTALLED)
-        pending |= AddonManager.PENDING_INSTALL;
-    }
-    else if (aAddon.pendingUninstall) {
+    if (!(aAddon instanceof DBAddonInternal))
+      pending |= AddonManager.PENDING_INSTALL;
+    else if (aAddon.pendingUninstall)
       pending |= AddonManager.PENDING_UNINSTALL;
-    }
 
     if (aAddon.active && (aAddon.userDisabled || aAddon.appDisabled))
       pending |= AddonManager.PENDING_DISABLE;
