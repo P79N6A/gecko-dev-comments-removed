@@ -36,17 +36,17 @@ public:
     nsrefcnt Release(void);
 
     
-    virtual nsresult AddRefExternal(void)
+    virtual nsrefcnt AddRefExternal(void)
     {
       return AddRef();
     }
-    virtual nsresult ReleaseExternal(void)
+    virtual nsrefcnt ReleaseExternal(void)
     {
       return Release();
     }
 #else
-    virtual nsresult AddRef(void);
-    virtual nsresult Release(void);
+    virtual nsrefcnt AddRef(void);
+    virtual nsrefcnt Release(void);
 #endif
 
 public:
@@ -106,7 +106,7 @@ public:
 
     
     cairo_surface_t *CairoSurface() {
-        NS_ASSERTION(mSurface != nullptr, "gfxASurface::CairoSurface called with mSurface == nullptr!");
+        NS_ASSERTION(mSurface != nsnull, "gfxASurface::CairoSurface called with mSurface == nsnull!");
         return mSurface;
     }
 
@@ -152,7 +152,7 @@ public:
 
     virtual already_AddRefed<gfxImageSurface> GetAsImageSurface()
     {
-      return nullptr;
+      return nsnull;
     }
 
     int CairoStatus();
@@ -248,7 +248,7 @@ public:
 
     void SetOpaqueRect(const gfxRect& aRect) {
         if (aRect.IsEmpty()) {
-            mOpaqueRect = nullptr;
+            mOpaqueRect = nsnull;
         } else if (mOpaqueRect) {
             *mOpaqueRect = aRect;
         } else {
@@ -282,7 +282,7 @@ public:
     bool GetAllowUseAsSource() { return mAllowUseAsSource; }
 
 protected:
-    gfxASurface() : mSurface(nullptr), mFloatingRefs(0), mBytesRecorded(0),
+    gfxASurface() : mSurface(nsnull), mFloatingRefs(0), mBytesRecorded(0),
                     mSurfaceValid(false), mAllowUseAsSource(true)
     {
         MOZ_COUNT_CTOR(gfxASurface);
@@ -370,7 +370,7 @@ public:
     RawRef mRef;
   };
 
-  static RawRef Void() { return nullptr; }
+  static RawRef Void() { return nsnull; }
   static void Release(RawRef aRawRef)
   {
     if (NS_IsMainThread()) {
