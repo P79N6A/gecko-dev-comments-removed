@@ -1190,13 +1190,29 @@ EvalKernel(JSContext *cx, const CallArgs &call, EvalType evalType, StackFrame *c
         chars[0] == '(' && chars[length - 1] == ')' &&
         (!caller || !caller->script()->strictModeCode))
     {
-        JSONParser parser(cx, chars + 1, length - 2, JSONParser::StrictJSON, JSONParser::NoError);
-        Value tmp;
-        if (!parser.parse(&tmp))
-            return false;
-        if (!tmp.isUndefined()) {
-            call.rval() = tmp;
-            return true;
+        
+
+
+
+
+
+
+
+        for (const jschar *cp = &chars[1], *end = &chars[length - 2]; ; cp++) {
+            if (*cp == 0x2028 || *cp == 0x2029)
+                break;
+
+            if (cp == end) {
+                JSONParser parser(cx, chars + 1, length - 2,
+                                  JSONParser::StrictJSON, JSONParser::NoError);
+                Value tmp;
+                if (!parser.parse(&tmp))
+                    return false;
+                if (tmp.isUndefined())
+                    break;
+                call.rval() = tmp;
+                return true;
+            }
         }
     }
 
