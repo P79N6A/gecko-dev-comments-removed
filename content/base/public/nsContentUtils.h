@@ -1391,6 +1391,12 @@ public:
   
 
 
+  static void GetLinkLocation(mozilla::dom::Element* aElement,
+                              nsString& aLocationString);
+
+  
+
+
   static nsIWidget* GetTopLevelWidget(nsIWidget* aWidget);
 
   
