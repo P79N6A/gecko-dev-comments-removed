@@ -547,7 +547,15 @@ nsWindowWatcher::OpenWindowJSInternal(nsIDOMWindow *aParent,
 
   
 
-  nsCOMPtr<nsIDOMChromeWindow> chromeParent(do_QueryInterface(aParent));
+  
+  PRBool hasChromeParent = PR_TRUE;
+  if (aParent) {
+    
+    nsCOMPtr<nsIDOMDocument> domdoc;
+    aParent->GetDocument(getter_AddRefs(domdoc));
+    nsCOMPtr<nsIDocument> doc = do_QueryInterface(domdoc);
+    hasChromeParent = doc && nsContentUtils::IsChromeDoc(doc);
+  }
 
   
   
@@ -555,7 +563,7 @@ nsWindowWatcher::OpenWindowJSInternal(nsIDOMWindow *aParent,
   
   chromeFlags = CalculateChromeFlags(features.get(), featuresSpecified,
                                      aDialog, uriToLoadIsChrome,
-                                     !aParent || chromeParent);
+                                     hasChromeParent);
 
   
   
@@ -590,7 +598,7 @@ nsWindowWatcher::OpenWindowJSInternal(nsIDOMWindow *aParent,
 
   JSContext *cx = GetJSContextFromWindow(aParent);
 
-  if (isCallerChrome && !chromeParent && cx) {
+  if (isCallerChrome && !hasChromeParent && cx) {
     
     
     
@@ -666,7 +674,7 @@ nsWindowWatcher::OpenWindowJSInternal(nsIDOMWindow *aParent,
     
     
     
-    if (!chromeParent && (chromeFlags & nsIWebBrowserChrome::CHROME_MODAL)) {
+    if (!hasChromeParent && (chromeFlags & nsIWebBrowserChrome::CHROME_MODAL)) {
       PRBool parentVisible = PR_TRUE;
       nsCOMPtr<nsIBaseWindow> parentWindow(do_GetInterface(parentTreeOwner));
       nsCOMPtr<nsIWidget> parentWidget;
