@@ -40,7 +40,7 @@
 
 """Print a C++ header file for the IDL files specified on the command line"""
 
-import sys, os.path, re, xpidl, itertools
+import sys, os.path, re, xpidl, itertools, glob
 
 printdoccomments = False
 
@@ -500,12 +500,20 @@ if __name__ == '__main__':
         sys.path.append(options.cachedir)
 
     
-    p = xpidl.IDLParser(outputdir=options.cachedir)
-
-    
     if options.regen:
         if options.cachedir is None:
             print >>sys.stderr, "--regen useless without --cachedir"
+        
+        
+        deadfiles = os.path.join(options.cachedir, "*.py*")
+        for filename in glob.glob(deadfiles):
+            print filename
+            os.remove(filename)
+
+    
+    p = xpidl.IDLParser(outputdir=options.cachedir)
+
+    if options.regen:
         sys.exit(0)
 
     if options.depfile is not None and options.outfile is None:
