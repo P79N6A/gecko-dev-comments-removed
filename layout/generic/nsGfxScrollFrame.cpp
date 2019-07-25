@@ -1540,7 +1540,7 @@ InvalidateFixedBackgroundFramesFromList(nsDisplayListBuilder* aBuilder,
       if (item->IsFixedAndCoveringViewport(aBuilder)) {
         
       } else {
-        f->Invalidate(item->GetVisibleRect() - aBuilder->ToReferenceFrame(f));
+        f->Invalidate(item->GetVisibleRect() - item->ToReferenceFrame());
       }
     }
   }

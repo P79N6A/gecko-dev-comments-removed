@@ -476,7 +476,7 @@ void nsDisplayMathMLBoundingMetrics::Paint(nsDisplayListBuilder* aBuilder,
                                            nsIRenderingContext* aCtx)
 {
   aCtx->SetColor(NS_RGB(0,0,255));
-  aCtx->DrawRect(mRect + aBuilder->ToReferenceFrame(mFrame));
+  aCtx->DrawRect(mRect + ToReferenceFrame());
 }
 
 nsresult
@@ -522,7 +522,7 @@ void nsDisplayMathMLBar::Paint(nsDisplayListBuilder* aBuilder,
 {
   
   aCtx->SetColor(mFrame->GetStyleColor()->mColor);
-  aCtx->FillRect(mRect + aBuilder->ToReferenceFrame(mFrame));
+  aCtx->FillRect(mRect + ToReferenceFrame());
 }
 
 nsresult

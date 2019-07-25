@@ -110,7 +110,7 @@ void
 nsDisplayXULTreeColSplitterTarget::HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
                                            HitTestState* aState, nsTArray<nsIFrame*> *aOutFrames)
 {
-  nsRect rect = aRect - aBuilder->ToReferenceFrame(mFrame);
+  nsRect rect = aRect - ToReferenceFrame();
   
   
   PRBool left = PR_FALSE;
