@@ -214,7 +214,8 @@ public:
 
   
   
-  virtual void FlushPreserveAspectRatioOverride();
+  
+  virtual void FlushImageTransformInvalidation();
 
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
@@ -339,7 +340,7 @@ protected:
   
   PRPackedBool                      mStartAnimationOnBindToTree;
 #endif 
-  PRPackedBool                      mNeedsPreserveAspectRatioFlush;
+  PRPackedBool                      mImageNeedsTransformInvalidation;
 };
 
 #endif

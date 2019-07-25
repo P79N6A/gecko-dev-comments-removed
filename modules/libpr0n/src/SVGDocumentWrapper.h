@@ -145,7 +145,7 @@ public:
 
 
 
-  void FlushPreserveAspectRatioOverride();
+  void FlushImageTransformInvalidation();
 
   
 
