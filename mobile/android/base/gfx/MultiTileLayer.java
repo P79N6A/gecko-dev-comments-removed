@@ -67,6 +67,7 @@ public class MultiTileLayer extends Layer {
     private IntSize mBufferSize;
     private Region mDirtyRegion;
     private Region mValidRegion;
+    private Point mRenderOffset;
     private final LinkedList<SubTile> mTiles;
     private final HashMap<Long, SubTile> mPositionHash;
 
@@ -78,6 +79,7 @@ public class MultiTileLayer extends Layer {
         mBufferSize = new IntSize(0, 0);
         mDirtyRegion = new Region();
         mValidRegion = new Region();
+        mRenderOffset = new Point();
         mTiles = new LinkedList<SubTile>();
         mPositionHash = new HashMap<Long, SubTile>();
     }
@@ -160,6 +162,12 @@ public class MultiTileLayer extends Layer {
         return new Long((((long)point.x) << 32) | point.y);
     }
 
+    private Point getOffsetOrigin() {
+        Point origin = new Point(getOrigin());
+        origin.offset(-mRenderOffset.x, -mRenderOffset.y);
+        return origin;
+    }
+
     
 
 
@@ -172,7 +180,7 @@ public class MultiTileLayer extends Layer {
                 
                 
                 
-                Point origin = getOrigin();
+                Point origin = getOffsetOrigin();
                 Rect validRect = tile.getValidTextureArea();
                 validRect.offset(tileOrigin.x - origin.x, tileOrigin.y - origin.y);
                 Region validRegion = new Region(validRect);
@@ -226,9 +234,9 @@ public class MultiTileLayer extends Layer {
         }
 
         
-        Point origin = getOrigin();
+        Point origin = getOffsetOrigin();
         if ((origin.x % mTileSize.width) != 0 || (origin.y % mTileSize.height) != 0) {
-            Log.e(LOGTAG, "MultiTileLayer doesn't support non tile-aligned origins! (" +
+            Log.e(LOGTAG, "MultiTileLayer doesn't support non tile-aligned buffers! (" +
                   origin.x + ", " + origin.y + ")");
             return true;
         }
@@ -393,6 +401,10 @@ public class MultiTileLayer extends Layer {
             if (RectF.intersects(layerBounds, context.viewport))
                 layer.draw(context);
         }
+    }
+
+    public void setRenderOffset(Point offset) {
+        mRenderOffset.set(offset.x, offset.y);
     }
 
     
