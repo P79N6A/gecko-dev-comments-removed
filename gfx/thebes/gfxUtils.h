@@ -39,8 +39,8 @@
 #define GFX_UTILS_H
 
 #include "gfxTypes.h"
-
-class gfxImageSurface;
+#include "gfxPattern.h"
+#include "gfxImageSurface.h"
 
 class THEBES_API gfxUtils {
 public:
@@ -58,6 +58,29 @@ public:
                                         gfxImageSurface *aDestSurface = nsnull);
     static void UnpremultiplyImageSurface(gfxImageSurface *aSurface,
                                           gfxImageSurface *aDestSurface = nsnull);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+    static void DrawPixelSnapped(gfxContext*      aContext,
+                                 gfxASurface*     aSurface,
+                                 const gfxMatrix& aUserSpaceToImageSpace,
+                                 const gfxRect&   aSubimage,
+                                 const gfxRect&   aSourceRect,
+                                 const gfxRect&   aImageRect,
+                                 const gfxRect&   aFill,
+                                 const gfxImageSurface::gfxImageFormat aFormat,
+                                 const gfxPattern::GraphicsFilter& aFilter);
 };
 
 #endif

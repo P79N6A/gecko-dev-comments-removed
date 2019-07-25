@@ -142,12 +142,24 @@ private:
     return ((1 << mPaletteDepth) * sizeof(PRUint32));
   }
 
-  
+  struct SurfaceWithFormat {
+    nsRefPtr<gfxASurface> mSurface;
+    gfxImageSurface::gfxImageFormat mFormat;
+    SurfaceWithFormat() {}
+    SurfaceWithFormat(gfxASurface* aSurface, gfxImageSurface::gfxImageFormat aFormat)
+     : mSurface(aSurface), mFormat(aFormat) {}
+    PRBool IsValid() { return !!mSurface; }
+  };
 
-
-
-
-  gfxContext::GraphicsOperator OptimalFillOperator();
+  SurfaceWithFormat SurfaceForDrawing(PRBool             aDoPadding,
+                                      PRBool             aDoPartialDecode,
+                                      PRBool             aDoTile,
+                                      const nsIntMargin& aPadding,
+                                      gfxMatrix&         aUserSpaceToImageSpace,
+                                      gfxRect&           aFill,
+                                      gfxRect&           aSubimage,
+                                      gfxRect&           aSourceRect,
+                                      gfxRect&           aImageRect);
 
 private: 
   nsRefPtr<gfxImageSurface> mImageSurface;
