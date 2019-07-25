@@ -385,10 +385,6 @@ let tests = [
 
 
 function run_test() {
-  
-  
-  Services.prefs.setIntPref("places.last_vacuum", parseInt(Date.now()/1000));
-
   do_test_pending();
   next_test();
 }

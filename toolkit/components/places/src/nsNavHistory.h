@@ -121,8 +121,6 @@
 
 #define TOPIC_PLACES_INIT_COMPLETE "places-init-complete"
 
-#define TOPIC_DATABASE_VACUUM_STARTING "places-vacuum-starting"
-
 namespace mozilla {
 namespace places {
 
@@ -177,6 +175,7 @@ class nsNavHistory : public nsSupportsWeakReference
                    , public nsICharsetResolver
                    , public nsPIPlacesDatabase
                    , public nsPIPlacesHistoryListenersNotifier
+                   , public mozIStorageVacuumParticipant
 {
   friend class PlacesSQLQueryBuilder;
 
@@ -193,6 +192,7 @@ public:
   NS_DECL_NSIOBSERVER
   NS_DECL_NSPIPLACESDATABASE
   NS_DECL_NSPIPLACESHISTORYLISTENERSNOTIFIER
+  NS_DECL_MOZISTORAGEVACUUMPARTICIPANT
 
 
   
@@ -643,10 +643,6 @@ protected:
 
 
   nsresult DecayFrecency();
-  
-
-
-  nsresult VacuumDatabase();
 
   
 

@@ -123,8 +123,6 @@ using namespace mozilla::places;
 #define PREF_FRECENCY_UNVISITED_BOOKMARK_BONUS  "frecency.unvisitedBookmarkBonus"
 #define PREF_FRECENCY_UNVISITED_TYPED_BONUS     "frecency.unvisitedTypedBonus"
 
-#define PREF_LAST_VACUUM                        "last_vacuum"
-
 #define PREF_CACHE_TO_MEMORY_PERCENTAGE         "database.cache_to_memory_percentage"
 
 
@@ -141,16 +139,6 @@ using namespace mozilla::places;
 
 
 #define DATABASE_CORRUPT_FILENAME NS_LITERAL_STRING("places.sqlite.corrupt")
-
-
-
-#define DATABASE_VACUUM_FREEPAGES_THRESHOLD 0.1
-
-
-#define DATABASE_MAX_TIME_BEFORE_VACUUM (PRInt64)60 * 24 * 60 * 60 * 1000 * 1000
-
-
-#define DATABASE_MIN_TIME_BEFORE_VACUUM (PRInt64)30 * 24 * 60 * 60 * 1000 * 1000
 
 
 
@@ -198,6 +186,7 @@ NS_INTERFACE_MAP_BEGIN(nsNavHistory)
   NS_INTERFACE_MAP_ENTRY(nsICharsetResolver)
   NS_INTERFACE_MAP_ENTRY(nsPIPlacesDatabase)
   NS_INTERFACE_MAP_ENTRY(nsPIPlacesHistoryListenersNotifier)
+  NS_INTERFACE_MAP_ENTRY(mozIStorageVacuumParticipant)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsINavHistoryService)
   NS_IMPL_QUERY_CLASSINFO(nsNavHistory)
 NS_INTERFACE_MAP_END
@@ -219,33 +208,6 @@ static PRInt64 GetSimpleBookmarksQueryFolder(
     nsNavHistoryQueryOptions* aOptions);
 static void ParseSearchTermsFromQueries(const nsCOMArray<nsNavHistoryQuery>& aQueries,
                                         nsTArray<nsTArray<nsString>*>* aTerms);
-
-class VacuumDBListener : public AsyncStatementCallback
-{
-public:
-  VacuumDBListener(nsIPrefBranch* aBranch)
-    : mPrefBranch(aBranch)
-  {
-  }
-
-  NS_IMETHOD HandleResult(mozIStorageResultSet*)
-  {
-    
-    return NS_OK;
-  }
-
-  NS_IMETHOD HandleCompletion(PRUint16 aReason)
-  {
-    if (aReason == REASON_FINISHED && mPrefBranch) {
-      (void)mPrefBranch->SetIntPref(PREF_LAST_VACUUM,
-                                    (PRInt32)(PR_Now() / PR_USEC_PER_SEC));
-    }
-    return NS_OK;
-  }
-
-private:
-  nsCOMPtr<nsIPrefBranch> mPrefBranch;
-};
 
 } 
 
@@ -5309,6 +5271,44 @@ nsNavHistory::AddDocumentRedirect(nsIChannel *aOldChannel,
 
 
 
+
+
+NS_IMETHODIMP
+nsNavHistory::GetDatabaseConnection(mozIStorageConnection** _DBConnection)
+{
+  return GetDBConnection(_DBConnection);
+}
+
+
+NS_IMETHODIMP
+nsNavHistory::GetExpectedDatabasePageSize(PRInt32* _expectedPageSize)
+{
+  *_expectedPageSize = mozIStorageConnection::DEFAULT_PAGE_SIZE;
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP
+nsNavHistory::OnBeginVacuum(PRBool* _vacuumGranted)
+{
+  
+  
+  *_vacuumGranted = PR_TRUE;
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP
+nsNavHistory::OnEndVacuum(PRBool aSucceeded)
+{
+  NS_WARN_IF_FALSE(aSucceeded, "Places.sqlite vacuum failed.");
+  return NS_OK;
+}
+
+
+
+
+
 NS_IMETHODIMP
 nsNavHistory::AddDownload(nsIURI* aSource, nsIURI* aReferrer,
                           PRTime aStartTime)
@@ -5324,6 +5324,8 @@ nsNavHistory::AddDownload(nsIURI* aSource, nsIURI* aReferrer,
   return AddVisit(aSource, aStartTime, aReferrer, TRANSITION_DOWNLOAD, PR_FALSE,
                   0, &visitID);
 }
+
+
 
 
 
@@ -5578,7 +5580,6 @@ nsNavHistory::Observe(nsISupports *aSubject, const char *aTopic,
     NS_ENSURE_TRUE(mDBConn, NS_OK);
 
     (void)DecayFrecency();
-    (void)VacuumDatabase();
   }
 
   else if (strcmp(aTopic, NS_PRIVATE_BROWSING_SWITCH_TOPIC) == 0) {
@@ -5599,98 +5600,6 @@ nsNavHistory::Observe(nsISupports *aSubject, const char *aTopic,
     
     
     (void)FixInvalidFrecencies();
-  }
-
-  return NS_OK;
-}
-
-
-nsresult
-nsNavHistory::VacuumDatabase()
-{
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  PRInt32 lastVacuumPref;
-  PRInt64 lastVacuumTime = 0;
-  if (mPrefBranch &&
-      NS_SUCCEEDED(mPrefBranch->GetIntPref(PREF_LAST_VACUUM, &lastVacuumPref))) {
-    
-    lastVacuumTime = (PRInt64)lastVacuumPref * PR_USEC_PER_SEC;
-  }
-
-  nsresult rv;
-  float freePagesRatio = 0;
-  if (!lastVacuumTime ||
-      (lastVacuumTime < (PR_Now() - DATABASE_MIN_TIME_BEFORE_VACUUM) &&
-       lastVacuumTime > (PR_Now() - DATABASE_MAX_TIME_BEFORE_VACUUM))) {
-    
-    
-    
-    nsCOMPtr<mozIStorageStatement> statement;
-    rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING("PRAGMA page_count"),
-                                  getter_AddRefs(statement));
-    NS_ENSURE_SUCCESS(rv, rv);
-    PRBool hasResult = PR_FALSE;
-    rv = statement->ExecuteStep(&hasResult);
-    NS_ENSURE_SUCCESS(rv, rv);
-    NS_ENSURE_TRUE(hasResult, NS_ERROR_FAILURE);
-    PRInt32 pageCount = statement->AsInt32(0);
-
-    rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING("PRAGMA freelist_count"),
-                                  getter_AddRefs(statement));
-    NS_ENSURE_SUCCESS(rv, rv);
-    hasResult = PR_FALSE;
-    rv = statement->ExecuteStep(&hasResult);
-    NS_ENSURE_SUCCESS(rv, rv);
-    NS_ENSURE_TRUE(hasResult, NS_ERROR_FAILURE);
-    PRInt32 freelistCount = statement->AsInt32(0);
-
-    freePagesRatio = (float)(freelistCount / pageCount);
-  }
-  
-  if (freePagesRatio > DATABASE_VACUUM_FREEPAGES_THRESHOLD ||
-      lastVacuumTime < (PR_Now() - DATABASE_MAX_TIME_BEFORE_VACUUM)) {
-    
-    
-    
-
-    
-    nsCOMPtr<nsIObserverService> observerService =
-      do_GetService(NS_OBSERVERSERVICE_CONTRACTID);
-    if (observerService) {
-      (void)observerService->NotifyObservers(nsnull,
-                                             TOPIC_DATABASE_VACUUM_STARTING,
-                                             nsnull);
-    }
-
-    
-    
-    
-    
-    
-    
-    if (mCurrentJournalMode == JOURNAL_WAL &&
-        mDBPageSize != SQLITE_DEFAULT_PAGE_SIZE) {
-      (void)SetJournalMode(JOURNAL_TRUNCATE);
-    }
-
-    nsCOMPtr<mozIStorageAsyncStatement> vacuum;
-    rv = mDBConn->CreateAsyncStatement(NS_LITERAL_CSTRING("VACUUM"),
-                                       getter_AddRefs(vacuum));
-    NS_ENSURE_SUCCESS(rv, rv);
-    nsCOMPtr<mozIStoragePendingStatement> ps;
-    nsRefPtr<VacuumDBListener> vacuumDBListener =
-      new VacuumDBListener(mPrefBranch);
-    rv = vacuum->ExecuteAsync(vacuumDBListener, getter_AddRefs(ps));
-    NS_ENSURE_SUCCESS(rv, rv);
   }
 
   return NS_OK;
