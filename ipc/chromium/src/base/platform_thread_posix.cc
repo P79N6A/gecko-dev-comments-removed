@@ -11,6 +11,7 @@
 #include <mach/mach.h>
 #elif defined(OS_LINUX)
 #include <sys/syscall.h>
+#include <sys/prctl.h>
 #include <unistd.h>
 #endif
 
@@ -70,8 +71,15 @@ void PlatformThread::SetName(const char* name) {
   
   
   
+  if (PlatformThread::CurrentId() == getpid())
+    return;
+
   
   
+  
+  
+  
+  prctl(PR_SET_NAME, reinterpret_cast<uintptr_t>(name), 0, 0, 0); 
 }
 #endif 
 
