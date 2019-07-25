@@ -1032,17 +1032,9 @@ mjit::Compiler::generateMethod()
             frame.pushSynced();
           END_CASE(JSOP_ARGUMENTS)
 
-          BEGIN_CASE(JSOP_FORARG)
-            iterNext();
-            frame.storeArg(GET_SLOTNO(PC), true);
-            frame.pop();
-          END_CASE(JSOP_FORARG)
-
-          BEGIN_CASE(JSOP_FORLOCAL)
-            iterNext();
-            frame.storeLocal(GET_SLOTNO(PC), true);
-            frame.pop();
-          END_CASE(JSOP_FORLOCAL)
+          BEGIN_CASE(JSOP_ITERNEXT)
+            iterNext(GET_INT8(PC));
+          END_CASE(JSOP_ITERNEXT)
 
           BEGIN_CASE(JSOP_DUP)
             frame.dup();
@@ -1663,24 +1655,6 @@ mjit::Compiler::generateMethod()
             break;
           }
           END_CASE(JSOP_LOCALDEC)
-
-          BEGIN_CASE(JSOP_FORNAME)
-            jsop_forname(script->getAtom(fullAtomIndex(PC)));
-          END_CASE(JSOP_FORNAME)
-
-          BEGIN_CASE(JSOP_FORGNAME)
-            jsop_forgname(script->getAtom(fullAtomIndex(PC)));
-          END_CASE(JSOP_FORGNAME)
-
-          BEGIN_CASE(JSOP_FORPROP)
-            jsop_forprop(script->getAtom(fullAtomIndex(PC)));
-          END_CASE(JSOP_FORPROP)
-
-          BEGIN_CASE(JSOP_FORELEM)
-            
-            
-            iterNext();
-          END_CASE(JSOP_FORELEM)
 
           BEGIN_CASE(JSOP_BINDNAME)
             jsop_bindname(script->getAtom(fullAtomIndex(PC)), true);
@@ -4136,9 +4110,9 @@ mjit::Compiler::iter(uintN flags)
 
 
 void
-mjit::Compiler::iterNext()
+mjit::Compiler::iterNext(ptrdiff_t offset)
 {
-    FrameEntry *fe = frame.peek(-1);
+    FrameEntry *fe = frame.peek(-offset);
     RegisterID reg = frame.tempRegForData(fe);
 
     
@@ -4182,6 +4156,7 @@ mjit::Compiler::iterNext()
     frame.freeReg(T2);
 
     stubcc.leave();
+    stubcc.masm.move(Imm32(offset), Registers::ArgReg1);
     OOL_STUBCALL(stubs::IterNext);
 
     frame.pushUntypedPayload(JSVAL_TYPE_STRING, T3);
@@ -5016,65 +4991,3 @@ mjit::Compiler::jsop_callelem_slow()
     frame.pushSynced();
     frame.pushSynced();
 }
-
-void
-mjit::Compiler::jsop_forprop(JSAtom *atom)
-{
-    
-    
-    frame.dupAt(-2);
-
-    
-    
-    iterNext();
-
-    
-    
-    frame.shimmy(1);
-
-    
-    
-    jsop_setprop(atom, false);
-
-    
-    
-    frame.pop();
-}
-
-void
-mjit::Compiler::jsop_forname(JSAtom *atom)
-{
-    
-    
-    jsop_bindname(atom, false);
-    jsop_forprop(atom);
-}
-
-void
-mjit::Compiler::jsop_forgname(JSAtom *atom)
-{
-    
-    
-    jsop_bindgname();
-
-    
-    
-    frame.dupAt(-2);
-
-    
-    
-    iterNext();
-
-    
-    
-    frame.shimmy(1);
-
-    
-    
-    jsop_setgname(atom, false);
-
-    
-    
-    frame.pop();
-}
-
