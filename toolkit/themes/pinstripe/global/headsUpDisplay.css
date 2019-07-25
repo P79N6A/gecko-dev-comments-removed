@@ -35,10 +35,6 @@
 
 
 
-
-%include shared.inc
-@namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
-
 .hud-box {
     border-bottom: 1px solid #aaa;
 }
@@ -171,10 +167,6 @@
 
 
 .hud-console-filter-toolbar {
-    background: @scopeBarBackground@ !important;
-    border-bottom: @scopeBarSeparatorBorder@;
-    padding: 0px 1px;
-    -moz-appearance: none !important;
+    padding: 1px 0px;
     -moz-box-align: center;
 }
-
