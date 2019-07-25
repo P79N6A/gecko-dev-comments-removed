@@ -517,7 +517,7 @@ BrowserView.prototype = {
         rects.push(r);
     }
 
-    tm.dirtyRects(rects, this.isRendering());
+    tm.dirtyRects(rects, this.isRendering(), true);
   },
 
   
