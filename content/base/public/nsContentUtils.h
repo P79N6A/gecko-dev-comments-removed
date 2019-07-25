@@ -80,6 +80,8 @@ static fp_except_t oldmask = fpsetmask(~allmask);
 #include "nsINode.h"
 #include "nsHashtable.h"
 #include "nsIDOMNode.h"
+#include "nsAHtml5FragmentParser.h"
+#include "nsIFragmentContentSink.h"
 
 struct nsNativeKeyEvent; 
 
@@ -1039,12 +1041,41 @@ public:
 
 
 
-
-
   static nsresult CreateContextualFragment(nsINode* aContextNode,
                                            const nsAString& aFragment,
-                                           PRBool aWillOwnFragment,
                                            nsIDOMDocumentFragment** aReturn);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  static void ParseFragmentHTML(const nsAString& aSourceBuffer,
+                                nsIContent* aTargetNode,
+                                nsIAtom* aContextLocalName,
+                                PRInt32 aContextNamespace,
+                                PRBool aQuirks,
+                                PRBool aPreventScriptExecution);
+
+  
+
+
+
+
+
+
+
+  static nsresult ParseFragmentXML(const nsAString& aSourceBuffer,
+                                   nsIDocument* aDocument,
+                                   nsTArray<nsString>& aTagStack,
+                                   nsIDOMDocumentFragment** aReturn);
 
   
 
@@ -1694,6 +1725,11 @@ public:
 
   static bool AllowXULXBLForPrincipal(nsIPrincipal* aPrincipal);
 
+  
+
+
+  static void XPCOMShutdown();
+
   enum ContentViewerType
   {
       TYPE_UNSUPPORTED,
@@ -1758,6 +1794,8 @@ private:
 
   static void InitializeModifierStrings();
 
+  static void DropFragmentParsers();
+
   static nsIDOMScriptObjectFactory *sDOMScriptObjectFactory;
 
   static nsIXPConnect *sXPConnect;
@@ -1820,6 +1858,10 @@ private:
 
   static PRBool sIsHandlingKeyBoardEvent;
   static PRBool sAllowXULXBL_for_file;
+
+  static nsAHtml5FragmentParser* sHTMLFragmentParser;
+  static nsIParser* sXMLFragmentParser;
+  static nsIFragmentContentSink* sXMLFragmentSink;
 
   static nsString* sShiftText;
   static nsString* sControlText;

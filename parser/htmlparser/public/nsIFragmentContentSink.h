@@ -43,8 +43,8 @@ class nsIDOMDocumentFragment;
 class nsIDocument;
 
 #define NS_I_FRAGMENT_CONTENT_SINK_IID \
-  { 0x1ecdb30d, 0x1f10, 0x45d2, \
-    { 0xa4, 0xf4, 0xec, 0xbc, 0x03, 0x52, 0x9a, 0x7e } }
+  { 0x7c78cbad, 0xdaf5, 0x487e, \
+    { 0x96, 0x98, 0xab, 0xcc, 0x21, 0x5a, 0x8d, 0x39 } }
 
 
 
@@ -61,10 +61,7 @@ public:
 
 
 
-
-
-  NS_IMETHOD GetFragment(PRBool aWillOwnFragment,
-                         nsIDOMDocumentFragment** aFragment) = 0;
+  NS_IMETHOD FinishFragmentParsing(nsIDOMDocumentFragment** aFragment) = 0;
 
   
 
@@ -120,22 +117,7 @@ public:
   virtual void AllowComments() = 0;
 };
 
-
-
-
-
-
-
-#define NS_HTMLFRAGMENTSINK_CONTRACTID "@mozilla.org/layout/htmlfragmentsink;1"
-#define NS_HTMLFRAGMENTSINK2_CONTRACTID "@mozilla.org/layout/htmlfragmentsink;2"
-
-#define NS_XMLFRAGMENTSINK_CONTRACTID "@mozilla.org/layout/xmlfragmentsink;1"
-#define NS_XMLFRAGMENTSINK2_CONTRACTID "@mozilla.org/layout/xmlfragmentsink;2"
-
-
 nsresult
 NS_NewXMLFragmentContentSink(nsIFragmentContentSink** aInstancePtrResult);
-nsresult
-NS_NewXMLFragmentContentSink2(nsIFragmentContentSink** aInstancePtrResult);
 
 #endif

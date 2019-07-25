@@ -63,6 +63,9 @@
 #include "nsHashKeys.h"
 #include "nsTArray.h"
 #include "nsCycleCollectionParticipant.h"
+#include "nsIDocShell.h"
+#include "nsScriptLoader.h"
+#include "mozilla/css/Loader.h"
 
 using namespace mozilla::dom;
 
@@ -70,7 +73,7 @@ class nsXMLFragmentContentSink : public nsXMLContentSink,
                                  public nsIFragmentContentSink
 {
 public:
-  nsXMLFragmentContentSink(PRBool aAllContent = PR_FALSE);
+  nsXMLFragmentContentSink();
   virtual ~nsXMLFragmentContentSink();
 
   NS_DECL_AND_IMPL_ZEROING_OPERATOR_NEW
@@ -106,8 +109,7 @@ public:
   
 
   
-  NS_IMETHOD GetFragment(PRBool aWillOwnFragment,
-                         nsIDOMDocumentFragment** aFragment);
+  NS_IMETHOD FinishFragmentParsing(nsIDOMDocumentFragment** aFragment);
   NS_IMETHOD SetTargetDocument(nsIDocument* aDocument);
   NS_IMETHOD WillBuildContent();
   NS_IMETHOD DidBuildContent();
@@ -139,15 +141,12 @@ protected:
   
   nsCOMPtr<nsIContent>  mRoot;
   PRPackedBool          mParseError;
-
-  
-  PRPackedBool          mAllContent;
 };
 
 static nsresult
-NewXMLFragmentContentSinkHelper(PRBool aAllContent, nsIFragmentContentSink** aResult)
+NewXMLFragmentContentSinkHelper(nsIFragmentContentSink** aResult)
 {
-  nsXMLFragmentContentSink* it = new nsXMLFragmentContentSink(aAllContent);
+  nsXMLFragmentContentSink* it = new nsXMLFragmentContentSink();
   if (!it) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -158,20 +157,15 @@ NewXMLFragmentContentSinkHelper(PRBool aAllContent, nsIFragmentContentSink** aRe
 }
 
 nsresult
-NS_NewXMLFragmentContentSink2(nsIFragmentContentSink** aResult)
-{
-  return NewXMLFragmentContentSinkHelper(PR_TRUE, aResult);
-}
-
-nsresult
 NS_NewXMLFragmentContentSink(nsIFragmentContentSink** aResult)
 {
-  return NewXMLFragmentContentSinkHelper(PR_FALSE, aResult);
+  return NewXMLFragmentContentSinkHelper(aResult);
 }
 
-nsXMLFragmentContentSink::nsXMLFragmentContentSink(PRBool aAllContent)
- : mParseError(PR_FALSE), mAllContent(aAllContent)
+nsXMLFragmentContentSink::nsXMLFragmentContentSink()
+ : mParseError(PR_FALSE)
 {
+  mFragmentMode = PR_TRUE;
 }
 
 nsXMLFragmentContentSink::~nsXMLFragmentContentSink()
@@ -210,21 +204,12 @@ nsXMLFragmentContentSink::WillBuildModel(nsDTDMode aDTDMode)
 
   mRoot = do_QueryInterface(frag);
   
-  if (mAllContent) {
-    
-    PushContent(mRoot);
-  }
-
   return rv;
 }
 
 NS_IMETHODIMP 
 nsXMLFragmentContentSink::DidBuildModel(PRBool aTerminated)
 {
-  if (mAllContent) {
-    PopContent();  
-  }
-
   nsCOMPtr<nsIParser> kungFuDeathGrip(mParser);
 
   
@@ -274,7 +259,7 @@ nsXMLFragmentContentSink::CreateElement(const PRUnichar** aAtts, PRUint32 aAttsC
   
   
   
-  if (!mAllContent && mContentStack.Length() == 0) {
+  if (mContentStack.Length() == 0) {
     *aAppendContent = PR_FALSE;
   }
 
@@ -410,18 +395,24 @@ nsXMLFragmentContentSink::StartLayout()
 
 
 NS_IMETHODIMP 
-nsXMLFragmentContentSink::GetFragment(PRBool aWillOwnFragment,
-                                      nsIDOMDocumentFragment** aFragment)
+nsXMLFragmentContentSink::FinishFragmentParsing(nsIDOMDocumentFragment** aFragment)
 {
   *aFragment = nsnull;
+  mTargetDocument = nsnull;
+  mNodeInfoManager = nsnull;
+  mScriptLoader = nsnull;
+  mCSSLoader = nsnull;
+  mContentStack.Clear();
+  mDocumentURI = nsnull;
+  mDocShell = nsnull;
   if (mParseError) {
     
+    mRoot = nsnull;
+    mParseError = PR_FALSE;
     return NS_ERROR_DOM_SYNTAX_ERR;
   } else if (mRoot) {
     nsresult rv = CallQueryInterface(mRoot, aFragment);
-    if (NS_SUCCEEDED(rv) && aWillOwnFragment) {
-      mRoot = nsnull;
-    }
+    mRoot = nsnull;
     return rv;
   } else {
     return NS_OK;
@@ -442,11 +433,7 @@ nsXMLFragmentContentSink::SetTargetDocument(nsIDocument* aTargetDocument)
 NS_IMETHODIMP
 nsXMLFragmentContentSink::WillBuildContent()
 {
-  
-  
-  if (!mAllContent) {
-    PushContent(mRoot);
-  }
+  PushContent(mRoot);
 
   return NS_OK;
 }
@@ -455,14 +442,11 @@ NS_IMETHODIMP
 nsXMLFragmentContentSink::DidBuildContent()
 {
   
-  if (!mAllContent) {
-    
-    
-    if (!mParseError) {
-      FlushText();
-    }
-    PopContent();
+  
+  if (!mParseError) {
+    FlushText();
   }
+  PopContent();
 
   return NS_OK;
 }

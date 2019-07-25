@@ -53,6 +53,7 @@
 #include "nsElementTable.h"
 #include "nsReadableUtils.h"
 #include "nsUnicharUtils.h"
+#include "nsParserConstants.h"
 
 
 

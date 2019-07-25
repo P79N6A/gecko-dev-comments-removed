@@ -207,20 +207,7 @@ class nsHtml5Parser : public nsAHtml5FragmentParser,
 
 
     NS_IMETHOD ParseFragment(const nsAString& aSourceBuffer,
-                             void* aKey,
-                             nsTArray<nsString>& aTagStack,
-                             PRBool aXMLMode,
-                             const nsACString& aContentType,
-                             nsDTDMode aMode = eDTDMode_autodetect);
-
-    
-
-
-    NS_IMETHOD ParseFragment(const nsAString& aSourceBuffer,
-                             nsIContent* aTargetNode,
-                             nsIAtom* aContextLocalName,
-                             PRInt32 aContextNamespace,
-                             PRBool aQuirks);
+                             nsTArray<nsString>& aTagStack);
 
     
 
