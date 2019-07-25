@@ -39,6 +39,7 @@
 
 
 
+#include <sys/types.h>
 #include <sys/mman.h>
 #include <errno.h>
 #include "nanojit.h"
