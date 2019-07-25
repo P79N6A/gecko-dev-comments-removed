@@ -1031,11 +1031,15 @@ struct TraceMonitor {
     FragStatsMap*           profTab;
 #endif
 
+    bool ontrace() const {
+        return !!tracecx;
+    }
+
     
     void flush();
 
     
-    void mark(JSTracer *trc);
+    void sweep();
 
     bool outOfMemory() const;
 };
@@ -1048,9 +1052,9 @@ struct TraceMonitor {
 
 
 #ifdef JS_TRACER
-# define JS_ON_TRACE(cx)            (JS_TRACE_MONITOR(cx).tracecx != NULL)
+# define JS_ON_TRACE(cx)            (JS_TRACE_MONITOR(cx).ontrace())
 #else
-# define JS_ON_TRACE(cx)            JS_FALSE
+# define JS_ON_TRACE(cx)            false
 #endif
 
 
@@ -1343,7 +1347,6 @@ struct JSRuntime {
     uint32              gcTriggerFactor;
     size_t              gcTriggerBytes;
     volatile JSBool     gcIsNeeded;
-    volatile JSBool     gcFlushCodeCaches;
 
     
 
