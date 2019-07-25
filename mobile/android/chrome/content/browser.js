@@ -2869,29 +2869,12 @@ var FormAssistant = {
     switch (aEvent.type) {
       case "input":
         let currentElement = aEvent.target;
-        if (!this._isAutocomplete(currentElement))
-          break;
-
-        
-        
-        this._currentInputElement = currentElement;
-        let suggestions = this._getAutocompleteSuggestions(currentElement.value, currentElement);
-
-        let rect = ElementTouchHelper.getBoundingContentRect(currentElement);
-        let viewport = BrowserApp.selectedTab.viewport;
-
-        sendMessageToJava({
-          gecko: {
-            type:  "FormAssist:AutoComplete",
-            suggestions: suggestions,
-            rect: [rect.x - (viewport.x / viewport.zoom), rect.y - (viewport.y / viewport.zoom), rect.w, rect.h],
-            zoom: viewport.zoom
-          }
-        });
+        this._showAutoCompleteSuggestions(currentElement);
     }
   },
 
-  _isAutocomplete: function (aElement) {
+  
+  _isAutoComplete: function _isAutoComplete(aElement) {
     if (!(aElement instanceof HTMLInputElement) ||
         (aElement.getAttribute("type") == "password") ||
         (aElement.hasAttribute("autocomplete") &&
@@ -2902,24 +2885,64 @@ var FormAssistant = {
   },
 
   
-  _getAutocompleteSuggestions: function(aSearchString, aElement) {
-    let results = Cc["@mozilla.org/satchel/form-autocomplete;1"].
-                  getService(Ci.nsIFormAutoComplete).
-                  autoCompleteSearch(aElement.name || aElement.id, aSearchString, aElement, null);
+  _getAutoCompleteSuggestions: function _getAutoCompleteSuggestions(aSearchString, aElement) {
+    
+    if (!this._formAutoCompleteService)
+      this._formAutoCompleteService = Cc["@mozilla.org/satchel/form-autocomplete;1"].
+                                      getService(Ci.nsIFormAutoComplete);
 
+    let results = this._formAutoCompleteService.autoCompleteSearch(aElement.name || aElement.id,
+                                                                   aSearchString, aElement, null);
     let suggestions = [];
-    if (results.matchCount > 0) {
-      for (let i = 0; i < results.matchCount; i++) {
-        let value = results.getValueAt(i);
-        
-        if (value == aSearchString)
-          continue;
+    for (let i = 0; i < results.matchCount; i++) {
+      let value = results.getValueAt(i);
 
-        suggestions.push(value);
-      }
+      
+      if (value == aSearchString)
+        continue;
+
+      suggestions.push(value);
     }
 
     return suggestions;
+  },
+
+  
+  
+  _getElementPositionData: function _getElementPositionData(aElement) {
+    let rect = ElementTouchHelper.getBoundingContentRect(aElement);
+    let viewport = BrowserApp.selectedTab.viewport;
+    
+    return { rect: [rect.x - (viewport.x / viewport.zoom),
+                    rect.y - (viewport.y / viewport.zoom),
+                    rect.w, rect.h],
+             zoom: viewport.zoom }
+  },
+
+  
+  
+  
+  _showAutoCompleteSuggestions: function _showAutoCompleteSuggestions(aElement) {
+    if (!this._isAutoComplete(aElement))
+      return false;
+
+    let suggestions = this._getAutoCompleteSuggestions(aElement.value, aElement);
+
+    let positionData = this._getElementPositionData(aElement);
+    sendMessageToJava({
+      gecko: {
+        type:  "FormAssist:AutoComplete",
+        suggestions: suggestions,
+        rect: positionData.rect,
+        zoom: positionData.zoom
+      }
+    });
+
+    
+    
+    this._currentInputElement = aElement;
+
+    return true;
   }
 };
 
