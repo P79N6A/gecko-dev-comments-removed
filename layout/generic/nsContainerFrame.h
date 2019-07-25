@@ -61,6 +61,19 @@ class nsOverflowContinuationTracker;
 
 
 
+
+
+#ifdef DEBUG
+#define CRAZY_W (1000000*60)
+#define CRAZY_H CRAZY_W
+
+#define CRAZY_WIDTH(_x) (((_x) < -CRAZY_W) || ((_x) > CRAZY_W))
+#define CRAZY_HEIGHT(_y) (((_y) < -CRAZY_H) || ((_y) > CRAZY_H))
+#endif
+
+
+
+
 class nsContainerFrame : public nsSplittableFrame
 {
 public:
@@ -97,6 +110,23 @@ public:
 #endif  
 
   
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  nsresult CreateNextInFlow(nsPresContext* aPresContext,
+                            nsIFrame*       aFrame,
+                            nsIFrame*&      aNextInFlowResult);
 
   
 
@@ -365,6 +395,21 @@ protected:
                                                const nsRect&           aDirtyRect,
                                                const nsDisplayListSet& aLists,
                                                PRUint32                aFlags = 0);
+
+  
+
+
+
+  nsresult BuildDisplayListForInline(nsDisplayListBuilder*   aBuilder,
+                                     const nsRect&           aDirtyRect,
+                                     const nsDisplayListSet& aLists) {
+    nsresult rv = DisplayBorderBackgroundOutline(aBuilder, aLists);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = BuildDisplayListForNonBlockChildren(aBuilder, aDirtyRect, aLists,
+                                             DISPLAY_CHILD_INLINE);
+    NS_ENSURE_SUCCESS(rv, rv);
+    return rv;
+  }
 
 
   

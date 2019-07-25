@@ -40,7 +40,7 @@
 
 
 #include "nsContainerFrame.h"
-#include "nsHTMLContainerFrame.h"
+
 #include "nsIContent.h"
 #include "nsIDocument.h"
 #include "nsPresContext.h"
@@ -50,7 +50,6 @@
 #include "nsGUIEvent.h"
 #include "nsStyleConsts.h"
 #include "nsIView.h"
-#include "nsHTMLContainerFrame.h"
 #include "nsFrameManager.h"
 #include "nsIPresShell.h"
 #include "nsCOMPtr.h"
@@ -485,7 +484,7 @@ nsContainerFrame::CreateViewForFrame(nsIFrame* aFrame,
   aFrame->SetView(view);
 
   NS_FRAME_LOG(NS_FRAME_TRACE_CALLS,
-               ("nsHTMLContainerFrame::CreateViewForFrame: frame=%p view=%p",
+               ("nsContainerFrame::CreateViewForFrame: frame=%p view=%p",
                 aFrame));
   return NS_OK;
 }
@@ -1296,6 +1295,42 @@ nsContainerFrame::DestroyOverflowList(nsPresContext* aPresContext,
     else
       list->Destroy();
   }
+}
+
+
+
+
+
+
+nsresult
+nsContainerFrame::CreateNextInFlow(nsPresContext* aPresContext,
+                                   nsIFrame*      aFrame,
+                                   nsIFrame*&     aNextInFlowResult)
+{
+  NS_PRECONDITION(GetType() != nsGkAtoms::blockFrame,
+                  "you should have called nsBlockFrame::CreateContinuationFor instead");
+  NS_PRECONDITION(mFrames.ContainsFrame(aFrame), "expected an in-flow child frame");
+
+  aNextInFlowResult = nsnull;
+
+  nsIFrame* nextInFlow = aFrame->GetNextInFlow();
+  if (nsnull == nextInFlow) {
+    
+    
+    nsresult rv = aPresContext->PresShell()->FrameConstructor()->
+      CreateContinuingFrame(aPresContext, aFrame, this, &nextInFlow);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
+    mFrames.InsertFrame(nsnull, aFrame, nextInFlow);
+
+    NS_FRAME_LOG(NS_FRAME_TRACE_NEW_FRAMES,
+       ("nsContainerFrame::CreateNextInFlow: frame=%p nextInFlow=%p",
+        aFrame, nextInFlow));
+
+    aNextInFlowResult = nextInFlow;
+  }
+  return NS_OK;
 }
 
 

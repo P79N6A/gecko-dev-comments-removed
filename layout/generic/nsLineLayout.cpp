@@ -52,7 +52,7 @@
 #include "nsBlockFrame.h"
 #include "nsInlineFrame.h"
 #include "nsStyleConsts.h"
-#include "nsHTMLContainerFrame.h"
+#include "nsContainerFrame.h"
 #include "nsFloatManager.h"
 #include "nsStyleContext.h"
 #include "nsPresContext.h"
@@ -999,7 +999,7 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
         
         
         
-        nsHTMLContainerFrame* parent = static_cast<nsHTMLContainerFrame*>
+        nsContainerFrame* parent = static_cast<nsContainerFrame*>
                                                   (kidNextInFlow->GetParent());
         parent->DeleteNextInFlowChild(mPresContext, kidNextInFlow, true);
       }
