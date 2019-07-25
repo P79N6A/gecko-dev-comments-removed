@@ -285,8 +285,12 @@ nsDocAccessible::GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState)
     return NS_OK_DEFUNCT_OBJECT;
   }
 
-  if (aExtraState)
-    *aExtraState = 0;
+  if (aExtraState) {
+    
+    
+    *aExtraState = (mContent->GetCurrentDoc() == mDocument) ?
+      0 : nsIAccessibleStates::EXT_STATE_STALE;
+  }
 
 #ifdef MOZ_XUL
   nsCOMPtr<nsIXULDocument> xulDoc(do_QueryInterface(mDocument));
@@ -1346,22 +1350,49 @@ nsDocAccessible::UpdateTree(nsIContent* aContainerNode,
   
   
 
+  
+  
+
   nsCOMPtr<nsIPresShell> presShell = GetPresShell();
   nsIEventStateManager* esm = presShell->GetPresContext()->EventStateManager();
   PRBool fireAllEvents = PR_TRUE;
 
   
-  nsAccessible* container = aIsInsert ?
-    GetAccService()->GetAccessibleOrContainer(aContainerNode, mWeakShell) :
-    GetAccService()->GetCachedAccessibleOrContainer(aContainerNode);
-
+  
+  
+  
+  nsAccessible* container = nsnull;
   if (aIsInsert) {
+    container = aContainerNode ?
+      GetAccService()->GetAccessibleOrContainer(aContainerNode, mWeakShell) :
+      this;
+
+    
+    if (container == this) {
+      nsIContent* rootContent = nsCoreUtils::GetRoleContent(mDocument);
+
+      
+      
+      if (!rootContent)
+        return;
+
+      
+      if (rootContent != mContent)
+        mContent = rootContent;
+    }
+
     
     
     
     
     
     container->InvalidateChildren();
+
+  } else {
+    
+    container = aContainerNode ?
+      GetAccService()->GetCachedAccessibleOrContainer(aContainerNode) :
+      this;
   }
 
   EIsFromUserInput fromUserInput = esm->IsHandlingUserInputExternal() ?
