@@ -233,6 +233,9 @@ private:
 
   HWND mFocusWnd;
 
+  
+  HMONITOR mDeviceMonitor;
+
   PRUint32 mDeviceResetCount;
 
   

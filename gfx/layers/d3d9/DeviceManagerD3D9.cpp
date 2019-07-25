@@ -334,6 +334,14 @@ DeviceManagerD3D9::Init()
 
   
 
+  D3DDEVICE_CREATION_PARAMETERS parameters;
+  if (FAILED(mDevice->GetCreationParameters(&parameters)))
+    return false;
+  mDeviceMonitor = mD3D9->GetAdapterMonitor(parameters.AdapterOrdinal);
+
+
+  
+
  
   if (mNv3DVUtils) { 
     IUnknown* devUnknown = NULL; 
@@ -560,7 +568,26 @@ DeviceManagerD3D9::VerifyReadyForRendering()
   ++mDeviceResetCount;
 
   if (hr == D3DERR_DEVICELOST) {
-    return false;
+    
+
+
+
+
+
+    HMONITOR hMonitorWindow;
+    hMonitorWindow = MonitorFromWindow(mFocusWnd, MONITOR_DEFAULTTOPRIMARY);
+    if (hMonitorWindow == mDeviceMonitor) {
+      
+
+
+      
+
+
+
+
+      return false;
+    }
+    
   }
 
   if (FAILED(hr) || !CreateVertexBuffer()) {
