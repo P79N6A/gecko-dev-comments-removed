@@ -262,8 +262,7 @@ public:
   
   
   virtual nsISupports* GetNamedItem(const nsAString& aName,
-                                    nsWrapperCache** aCache,
-                                    nsresult* aResult);
+                                    nsWrapperCache** aCache);
 
   
   NS_HIDDEN_(nsINode*) GetParentObject() { return mRootNode; }
