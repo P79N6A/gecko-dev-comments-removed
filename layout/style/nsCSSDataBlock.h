@@ -141,11 +141,14 @@ private:
 };
 
 class nsCSSExpandedDataBlock {
+    friend class nsCSSCompressedDataBlock;
+
 public:
     nsCSSExpandedDataBlock();
     ~nsCSSExpandedDataBlock();
-    
 
+private:
+    
 
 
 
@@ -166,6 +169,7 @@ public:
     nsCSSSVG mSVG;
     nsCSSColumn mColumn;
 
+public:
     
 
 
@@ -277,7 +281,6 @@ private:
 
     nsCSSPropertySet mPropertiesImportant;
 
-public:
     
 
 
