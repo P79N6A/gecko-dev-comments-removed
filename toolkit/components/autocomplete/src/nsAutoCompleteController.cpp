@@ -481,8 +481,6 @@ nsAutoCompleteController::HandleKeyNavigation(PRUint32 aKey, PRBool *_retval)
             
             
             
-            
-            
             return NS_OK;
           }
 
@@ -1047,6 +1045,8 @@ nsAutoCompleteController::StartSearch()
       ++searchesFailed;
       --mSearchesOngoing;
     }
+    
+    
     
     
     
