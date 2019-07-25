@@ -148,6 +148,9 @@ public:
 
   virtual already_AddRefed<gfxASurface> GetAsSurface();
 
+  IDirect3DDevice9 *device() { return mDevice; }
+  void SetDevice(IDirect3DDevice9 *aDevice);
+
   
 
 

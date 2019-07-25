@@ -302,6 +302,9 @@ ImageLayerD3D9::RenderLayer()
     CairoImageD3D9 *cairoImage =
       static_cast<CairoImageD3D9*>(image.get());
 
+    if (cairoImage->device() != device()) {
+      cairoImage->SetDevice(device());
+    }
 
     device()->SetVertexShaderConstantF(CBvLayerQuad,
                                        ShaderConstantRect(0,
@@ -549,6 +552,13 @@ CairoImageD3D9::~CairoImageD3D9()
 }
 
 void
+CairoImageD3D9::SetDevice(IDirect3DDevice9 *aDevice)
+{
+  mTexture = NULL;
+  mDevice = aDevice;
+}
+
+void
 CairoImageD3D9::SetData(const CairoImage::Data &aData)
 {
   mSize = aData.mSize;
@@ -569,7 +579,6 @@ CairoImageD3D9::GetOrCreateTexture()
   mTexture = SurfaceToTexture(mDevice, mCachedSurface, mSize);
 
   
-  mCachedSurface = NULL;
   return mTexture;
 }
 
