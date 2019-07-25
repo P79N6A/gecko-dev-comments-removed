@@ -43,7 +43,7 @@
 
 #include "IndexedDatabase.h"
 
-#include "IDBObjectStoreRequest.h"
+#include "IDBObjectStore.h"
 
 BEGIN_INDEXEDDB_NAMESPACE
 
