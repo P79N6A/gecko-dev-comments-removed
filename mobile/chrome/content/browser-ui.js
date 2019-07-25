@@ -174,9 +174,8 @@ var BrowserUI = {
 
   _editToolbar : function _editToolbar(aEdit) {
     var icons = document.getElementById("urlbar-icons");
-    if (aEdit && this._edit.readOnly) {
+    if (aEdit && icons.getAttribute("mode") != "edit") {
       icons.setAttribute("mode", "edit");
-      this._edit.readOnly = false;
       this._edit.defaultValue = this._edit.value;
 
       let urlString = this.getDisplayURI(Browser.selectedBrowser);
@@ -184,13 +183,16 @@ var BrowserUI = {
         urlString = "";
       this._edit.value = urlString;
 
+      
+      
+      
       this._edit.inputField.blur();
+      
       this._edit.inputField.focus();
       this._edit.select();
     }
-    else if (!aEdit && !this._edit.readOnly) {
+    else if (!aEdit && icons.getAttribute("mode") != "view") {
       icons.setAttribute("mode", "view");
-      this._edit.readOnly = true;
       this._edit.inputField.blur();
       this._edit.reallyClosePopup();
     }
