@@ -502,7 +502,7 @@ var Browser = {
     
     
     if (window.arguments && window.arguments[0] &&
-	window.arguments[0] instanceof Ci.nsICommandLine) {
+        window.arguments[0] instanceof Ci.nsICommandLine) {
       try {
         var cmdLine = window.arguments[0];
 
