@@ -2872,13 +2872,18 @@ nsNavHistory::ExecuteQueries(nsINavHistoryQuery** aQueries, PRUint32 aQueryCount
     nsRefPtr<nsNavHistoryResultNode> tempRootNode;
     rv = bookmarks->ResultNodeForContainer(folderId, options,
                                            getter_AddRefs(tempRootNode));
-    NS_ENSURE_SUCCESS(rv, rv);
-    rootNode = tempRootNode->GetAsContainer();
-  } else {
+    NS_WARN_IF_FALSE(NS_SUCCEEDED(rv),
+                     "Generating a generic empty node for a broken query!");
+    if (NS_SUCCEEDED(rv)) {
+      rootNode = tempRootNode->GetAsContainer();
+    }
+  }
+
+  if (!rootNode) {
+    
     
     rootNode = new nsNavHistoryQueryResultNode(EmptyCString(), EmptyCString(),
                                                queries, options);
-    NS_ENSURE_TRUE(rootNode, NS_ERROR_OUT_OF_MEMORY);
   }
 
   
@@ -6485,44 +6490,49 @@ nsNavHistory::QueryRowToResult(PRInt64 itemId, const nsACString& aURI,
   nsCOMPtr<nsNavHistoryQueryOptions> options;
   nsresult rv = QueryStringToQueryArray(aURI, &queries,
                                         getter_AddRefs(options));
-  if (NS_FAILED(rv)) {
+  
+  
+  if (NS_SUCCEEDED(rv)) {
     
-    
-    
-    
-    
-    *aNode = new nsNavHistoryQueryResultNode(aURI, aTitle, aFavicon);
-    if (! *aNode)
-      return NS_ERROR_OUT_OF_MEMORY;
-    NS_ADDREF(*aNode);
-  } else {
     PRInt64 folderId = GetSimpleBookmarksQueryFolder(queries, options);
     if (folderId) {
-      
       nsNavBookmarks *bookmarks = nsNavBookmarks::GetBookmarksService();
       NS_ENSURE_TRUE(bookmarks, NS_ERROR_OUT_OF_MEMORY);
 
       
       rv = bookmarks->ResultNodeForContainer(folderId, options, aNode);
-      NS_ENSURE_SUCCESS(rv, rv);
+      
+      
+      if (NS_SUCCEEDED(rv)) {
+        
+        (*aNode)->GetAsFolder()->mQueryItemId = itemId;
 
-      
-      (*aNode)->GetAsFolder()->mQueryItemId = itemId;
-
-      
-      
-      if (!aTitle.IsVoid())
-        (*aNode)->mTitle = aTitle;
-    } else {
+        
+        
+        if (!aTitle.IsVoid()) {
+          (*aNode)->mTitle = aTitle;
+        }
+      }
+    }
+    else {
       
       *aNode = new nsNavHistoryQueryResultNode(aTitle, EmptyCString(), aTime,
                                                queries, options);
-      if (! *aNode)
-        return NS_ERROR_OUT_OF_MEMORY;
       (*aNode)->mItemId = itemId;
       NS_ADDREF(*aNode);
     }
   }
+
+  if (NS_FAILED(rv)) {
+    NS_WARNING("Generating a generic empty node for a broken query!");
+    
+    
+    
+    *aNode = new nsNavHistoryQueryResultNode(aTitle, aFavicon, aURI);
+    (*aNode)->mItemId = itemId;
+    NS_ADDREF(*aNode);
+  }
+
   return NS_OK;
 }
 
