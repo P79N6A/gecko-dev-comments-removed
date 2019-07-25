@@ -44,7 +44,6 @@
 #include "nsAHttpTransaction.h"
 #include "nsAHttpConnection.h"
 #include "nsCOMPtr.h"
-#include "nsInt64.h"
 
 #include "nsIPipe.h"
 #include "nsIInputStream.h"
@@ -179,8 +178,8 @@ private:
 
     nsCString                       mLineBuf;         
 
-    nsInt64                         mContentLength;   
-    nsInt64                         mContentRead;     
+    PRInt64                         mContentLength;   
+    PRInt64                         mContentRead;     
 
     
     

@@ -969,7 +969,7 @@ NS_IMETHODIMP nsPluginStreamListenerPeer::OnDataAvailable(nsIRequest *request,
       brr->GetStartRange(&absoluteOffset64);
       
       
-      PRInt32 absoluteOffset = (PRInt32)nsInt64(absoluteOffset64);
+      PRInt32 absoluteOffset = (PRInt32)PRInt64(absoluteOffset64);
       
       
       
@@ -1049,7 +1049,7 @@ NS_IMETHODIMP nsPluginStreamListenerPeer::OnStopRequest(nsIRequest *request,
     PRInt64 absoluteOffset64 = LL_ZERO;
     brr->GetStartRange(&absoluteOffset64);
     
-    PRInt32 absoluteOffset = (PRInt32)nsInt64(absoluteOffset64);
+    PRInt32 absoluteOffset = (PRInt32)PRInt64(absoluteOffset64);
     
     nsPRUintKey key(absoluteOffset);
     

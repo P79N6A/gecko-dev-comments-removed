@@ -45,7 +45,6 @@
 #include "nsISeekableStream.h"
 #include "nsIStreamBufferAccess.h"
 #include "nsCOMPtr.h"
-#include "nsInt64.h"
 #include "nsIIPCSerializable.h"
 
 
@@ -70,7 +69,7 @@ protected:
     char*                       mBuffer;
 
     
-    nsInt64                     mBufferStartOffset;
+    PRInt64                     mBufferStartOffset;
 
     
     
