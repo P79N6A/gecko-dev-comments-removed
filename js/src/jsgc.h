@@ -41,6 +41,14 @@
 #define jsgc_h___
 
 
+#ifdef mozilla_mozalloc_macro_wrappers_h
+#  define JS_GC_UNDEFD_MOZALLOC_WRAPPERS
+
+#  include "mozilla/mozalloc_undef_macro_wrappers.h"
+#endif
+
+
+
 
 #include <setjmp.h>
 
@@ -1085,5 +1093,9 @@ JSObject::getCompartment() const
 {
     return compartment();
 }
+
+#ifdef JS_GC_UNDEFD_MOZALLOC_WRAPPERS
+#  include "mozilla/mozalloc_macro_wrappers.h"
+#endif
 
 #endif 
