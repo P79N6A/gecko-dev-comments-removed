@@ -38,6 +38,7 @@
 
 
 
+
 #ifndef _nsICODecoder_h
 #define _nsICODecoder_h
 
@@ -45,9 +46,14 @@
 #include "Decoder.h"
 #include "imgIDecoderObserver.h"
 #include "nsBMPDecoder.h"
+#include "nsPNGDecoder.h"
 
 namespace mozilla {
 namespace imagelib {
+
+#define ICODIRENTRYSIZE 16
+#define PNGSIGNATURESIZE 8
+#define BMPFILEHEADERSIZE 14
 
 class RasterImage;
 
@@ -82,35 +88,40 @@ public:
 private:
   
   void ProcessDirEntry(IconDirEntry& aTarget);
-  void ProcessInfoHeader();
-
-  nsresult SetImageData();
-
+  
+  void SetHotSpotIfCursor();
+  
+  PRBool FillBitmapFileHeaderBuffer(PRInt8 *bfh);
+  
+  void FillBitmapInformationBufferHeight(PRInt8 *bih);
+  
+  PRInt32 ExtractBPPFromBitmap(PRInt8 *bih);
+  
   PRUint32 CalcAlphaRowSize();
+  
+  PRUint16 GetNumColors();
 
-  PRUint32 mPos;
-  PRUint16 mNumIcons;
-  PRUint16 mCurrIcon;
-  PRUint32 mImageOffset;
-
-  char mDirEntryArray[16];
-  IconDirEntry mDirEntry;
-
-  char mBIHraw[40];
-  BMPINFOHEADER mBIH;
-
-  PRUint32 mNumColors;
-  colorTable* mColors;
-
-  PRUint8* mRow; 
+  PRUint16 mBPP; 
+  PRUint32 mPos; 
+  PRUint16 mNumIcons; 
+  PRUint16 mCurrIcon; 
+  PRUint32 mImageOffset; 
+  PRUint8 *mRow;      
+  PRInt32 mCurLine;   
   PRUint32 mRowBytes; 
-  PRInt32 mCurLine;
+  PRInt32 mOldLine;   
+  nsAutoPtr<Decoder> mContainedDecoder; 
 
-  PRUint32* mImageData;
-
-  PRPackedBool mHaveAlphaData;
+  char mDirEntryArray[ICODIRENTRYSIZE]; 
+  IconDirEntry mDirEntry; 
+  
+  char mSignature[PNGSIGNATURESIZE]; 
+  
+  char mBIHraw[40];
+  
   PRPackedBool mIsCursor;
-  PRPackedBool mDecodingAndMask;
+  
+  PRPackedBool mIsPNG;
 };
 
 } 

@@ -78,9 +78,8 @@ static PRLogModuleInfo *gPNGDecoderAccountingLog =
 #define BYTES_NEEDED_FOR_DIMENSIONS (HEIGHT_OFFSET + 4)
 
 
-
-static const PRUint8 pngSignatureBytes[] =
-               { 137, 80, 78, 71, 13, 10, 26, 10 };
+const PRUint8 
+nsPNGDecoder::pngSignatureBytes[] = { 137, 80, 78, 71, 13, 10, 26, 10 };
 
 nsPNGDecoder::nsPNGDecoder() :
   mPNG(nsnull), mInfo(nsnull),
@@ -317,7 +316,8 @@ nsPNGDecoder::WriteInternal(const char *aBuffer, PRUint32 aCount)
     if (mHeaderBytesRead == BYTES_NEEDED_FOR_DIMENSIONS) {
 
       
-      if (memcmp(mHeaderBuf, pngSignatureBytes, sizeof(pngSignatureBytes))) {
+      if (memcmp(mHeaderBuf, nsPNGDecoder::pngSignatureBytes, 
+                 sizeof(pngSignatureBytes))) {
         PostDataError();
         return;
       }

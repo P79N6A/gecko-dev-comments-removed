@@ -37,6 +37,7 @@
 
 
 
+
 #ifndef _nsBMPDecoder_h
 #define _nsBMPDecoder_h
 
@@ -56,11 +57,16 @@ struct BMPFILEHEADER {
 
     PRUint32 bihsize;
 };
-#define BFH_LENGTH 18 // Note: For our purposes, we include bihsize in the BFH
+
+
+#define BFH_LENGTH 14 
+
+
+#define BFH_INTERNAL_LENGTH 18
 
 #define OS2_BIH_LENGTH 12 // This is the real BIH size (as contained in the bihsize field of BMPFILEHEADER)
-#define OS2_HEADER_LENGTH (BFH_LENGTH + 8)
-#define WIN_HEADER_LENGTH (BFH_LENGTH + 36)
+#define OS2_HEADER_LENGTH (BFH_INTERNAL_LENGTH + 8)
+#define WIN_HEADER_LENGTH (BFH_INTERNAL_LENGTH + 36)
 
 struct BMPINFOHEADER {
     PRInt32 width; 
@@ -106,17 +112,34 @@ struct bitFields {
                                (((((PRUint32) x) >> 8) & 0xFF) << 16) | \
                                (((((PRUint32) x) >> 16) & 0xFF) << 8) | \
                                (((PRUint32) x) >> 24))
+
+#define NATIVE32_TO_LITTLE LITTLE_TO_NATIVE32
+
 #else
 #define LITTLE_TO_NATIVE16(x) x
 #define LITTLE_TO_NATIVE32(x) x
+#define NATIVE32_TO_LITTLE(x) x
+
 #endif
 
 #define USE_RGB
 
 
+#ifndef BI_RGB
+#define BI_RGB 0
+#endif
+#ifndef BI_RLE8
 #define BI_RLE8 1
+#endif
+#ifndef BI_RLE4
 #define BI_RLE4 2
+#endif
+#ifndef BI_BITFIELDS
 #define BI_BITFIELDS 3
+#endif
+
+
+#define BI_ALPHABITFIELDS 4
 
 
 #define RLE_ESCAPE       0
@@ -145,6 +168,21 @@ public:
 
     nsBMPDecoder();
     ~nsBMPDecoder();
+
+    
+    
+    
+    void SetUseAlphaData(PRBool useAlphaData);
+    
+    PRInt32 GetBitsPerPixel() const;
+    
+    PRInt32 GetWidth() const;
+    
+    PRInt32 GetHeight() const;
+    
+    PRUint32* GetImageData();
+    
+    PRInt32 GetCompressedImageSize() const;
 
     virtual void WriteInternal(const char* aBuffer, PRUint32 aCount);
     virtual void FinishInternal();
@@ -184,6 +222,16 @@ private:
     
 
     void ProcessInfoHeader();
+
+    
+    
+    
+    
+    
+    
+    
+    
+    PRPackedBool mUseAlphaData;
 };
 
 

@@ -63,6 +63,18 @@ public:
 
   void Init(RasterImage* aImage, imgIDecoderObserver* aObserver);
 
+
+  
+
+
+
+
+
+
+
+
+  void InitSharedDecoder(RasterImage* aImage, imgIDecoderObserver* aObserver);
+
   
 
 
@@ -81,6 +93,14 @@ public:
 
 
   void Finish();
+
+  
+
+
+
+
+
+  void FinishSharedDecoder();
 
   
 
@@ -122,6 +142,9 @@ public:
   bool HasDecoderError() { return NS_FAILED(mFailCode); };
   nsresult GetDecoderError() { return mFailCode; };
   void PostResizeError() { PostDataError(); }
+  bool GetDecodeDone() const {
+    return mDecodeDone;
+  }
 
   
   
@@ -176,12 +199,13 @@ protected:
 
 
   nsRefPtr<RasterImage> mImage;
-
-  PRUint32 mDecodeFlags;
-
-private:
   nsCOMPtr<imgIDecoderObserver> mObserver;
 
+  PRUint32 mDecodeFlags;
+  bool mDecodeDone;
+  bool mDataError;
+
+private:
   PRUint32 mFrameCount; 
 
   nsIntRect mInvalidRect; 
@@ -191,8 +215,6 @@ private:
   bool mInitialized;
   bool mSizeDecode;
   bool mInFrame;
-  bool mDecodeDone;
-  bool mDataError;
 };
 
 } 

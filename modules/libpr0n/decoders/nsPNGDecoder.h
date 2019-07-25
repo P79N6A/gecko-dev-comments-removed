@@ -72,6 +72,21 @@ public:
 
   void EndImageFrame();
 
+  
+  bool HasValidInfo() const 
+  {
+    return mInfo && mInfo->valid;
+  }
+
+  
+  PRInt32 GetPixelDepth() const
+  {
+    if (!mInfo) {
+      return 0;
+    }
+    return mInfo->pixel_depth;
+  }
+
 public:
   png_structp mPNG;
   png_infop mInfo;
@@ -113,6 +128,10 @@ public:
                                     png_const_charp error_msg);
   static void PNGAPI warning_callback(png_structp png_ptr,
                                       png_const_charp warning_msg);
+
+  
+  
+  static const PRUint8 pngSignatureBytes[];
 };
 
 } 

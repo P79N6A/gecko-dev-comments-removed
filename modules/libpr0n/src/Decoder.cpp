@@ -88,6 +88,26 @@ Decoder::Init(RasterImage* aImage, imgIDecoderObserver* aObserver)
   mInitialized = true;
 }
 
+
+
+void 
+Decoder::InitSharedDecoder(RasterImage* aImage, imgIDecoderObserver* aObserver) 
+{
+  
+  NS_ABORT_IF_FALSE(aImage, "Can't initialize decoder without an image!");
+
+  
+  NS_ABORT_IF_FALSE(mImage == nsnull, "Can't re-initialize a decoder!");
+
+  
+  mImage = aImage;
+  mObserver = aObserver;
+
+  
+  InitInternal();
+  mInitialized = true;
+}
+
 void
 Decoder::Write(const char* aBuffer, PRUint32 aCount)
 {
@@ -152,6 +172,14 @@ Decoder::Finish()
       mObserver->OnStopContainer(nsnull, mImage);
       mObserver->OnStopDecode(nsnull, salvage ? NS_OK : NS_ERROR_FAILURE, nsnull);
     }
+  }
+}
+
+void
+Decoder::FinishSharedDecoder()
+{
+  if (!HasError()) {
+    FinishInternal();
   }
 }
 
