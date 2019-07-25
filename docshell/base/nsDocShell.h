@@ -356,10 +356,13 @@ protected:
     
     
     
+    
+    
     PRBool OnNewURI(nsIURI * aURI, nsIChannel * aChannel, nsISupports* aOwner,
                     PRUint32 aLoadType,
                     PRBool aFireOnLocationChange,
-                    PRBool aAddToGlobalHistory = PR_TRUE);
+                    PRBool aAddToGlobalHistory,
+                    PRBool aCloneSHChildren);
 
     virtual void SetReferrerURI(nsIURI * aURI);
 
@@ -367,10 +370,16 @@ protected:
     virtual PRBool ShouldAddToSessionHistory(nsIURI * aURI);
     
     
+    
+    
+    
+    
     virtual nsresult AddToSessionHistory(nsIURI * aURI, nsIChannel * aChannel,
                                          nsISupports* aOwner,
+                                         PRBool aCloneChildren,
                                          nsISHEntry ** aNewEntry);
-    nsresult DoAddChildSHEntry(nsISHEntry* aNewEntry, PRInt32 aChildOffset);
+    nsresult DoAddChildSHEntry(nsISHEntry* aNewEntry, PRInt32 aChildOffset,
+                               PRBool aCloneChildren);
 
     NS_IMETHOD LoadHistoryEntry(nsISHEntry * aEntry, PRUint32 aLoadType);
     NS_IMETHOD PersistLayoutHistoryState();
