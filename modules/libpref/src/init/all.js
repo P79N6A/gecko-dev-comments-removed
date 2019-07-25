@@ -1419,10 +1419,6 @@ pref("mousewheel.with_win.delta_multiplier_z", 100);
 
 
 
-pref("mousewheel.min_line_scroll_amount", 5);
-
-
-
 
 
 
