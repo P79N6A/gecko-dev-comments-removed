@@ -917,7 +917,13 @@ mjit::CanMethodJIT(JSContext *cx, JSScript *script, jsbytecode *pc,
     if (!cx->methodJitEnabled)
         return Compile_Abort;
 
-    if (frame->hasPushedSPSFrame())
+    
+
+
+
+
+
+    if (frame->hasPushedSPSFrame() && !cx->runtime->spsProfiler.enabled())
         return Compile_Skipped;
 
     if (script->hasJITInfo()) {
