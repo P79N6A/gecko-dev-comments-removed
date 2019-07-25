@@ -283,7 +283,7 @@ var Browser = {
       
       let currentElement = document.activeElement;
       let [scrollbox, scrollInterface] = ScrollUtils.getScrollboxFromElement(currentElement);
-      if (currentElement && scrollbox && currentElement != scrollbox) {
+      if (currentElement && (currentElement.id != "inputhandler-overlay") && scrollbox && currentElement != scrollbox) {
         
         while (currentElement.parentNode != scrollbox)
           currentElement = currentElement.parentNode;
