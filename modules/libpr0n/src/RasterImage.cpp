@@ -45,7 +45,7 @@
 #include "nsComponentManagerUtils.h"
 #include "imgIContainerObserver.h"
 #include "ImageErrors.h"
-#include "Decoder.h"
+#include "imgIDecoder.h"
 #include "imgIDecoderObserver.h"
 #include "RasterImage.h"
 #include "nsIInterfaceRequestor.h"
@@ -57,13 +57,6 @@
 #include "prenv.h"
 #include "nsTime.h"
 #include "ImageLogging.h"
-
-#include "nsPNGDecoder.h"
-#include "nsGIFDecoder2.h"
-#include "nsJPEGDecoder.h"
-#include "nsBMPDecoder.h"
-#include "nsICODecoder.h"
-#include "nsIconDecoder.h"
 
 #include "gfxContext.h"
 
@@ -159,6 +152,7 @@ RasterImage::RasterImage() :
   mDecoder(nsnull),
   mWorker(nsnull),
   mBytesDecoded(0),
+  mDecoderFlags(imgIDecoder::DECODER_FLAG_NONE),
   mHasSize(PR_FALSE),
   mDecodeOnDraw(PR_FALSE),
   mMultipart(PR_FALSE),
@@ -264,8 +258,12 @@ RasterImage::Init(imgIDecoderObserver *aObserver,
   
   
   
+  PRUint32 dFlags = imgIDecoder::DECODER_FLAG_NONE;
+  if (mDecodeOnDraw)
+    dFlags |= imgIDecoder::DECODER_FLAG_HEADERONLY;
+
   
-  nsresult rv = InitDecoder( mDecodeOnDraw);
+  nsresult rv = InitDecoder(dFlags);
   CONTAINER_ENSURE_SUCCESS(rv);
 
   
@@ -493,16 +491,30 @@ RasterImage::GetCurrentFrameRect(nsIntRect &aRect)
   return NS_OK;
 }
 
-PRUint32
-RasterImage::GetCurrentFrameIndex()
+nsresult
+RasterImage::GetCurrentFrameIndex(PRUint32 *aCurrentFrameIdx)
 {
-  return GetCurrentImgFrameIndex();
+  if (mError)
+    return NS_ERROR_FAILURE;
+
+  NS_ENSURE_ARG_POINTER(aCurrentFrameIdx);
+  
+  *aCurrentFrameIdx = GetCurrentImgFrameIndex();
+
+  return NS_OK;
 }
 
-PRUint32
-RasterImage::GetNumFrames()
+nsresult
+RasterImage::GetNumFrames(PRUint32 *aNumFrames)
 {
-  return mFrames.Length();
+  if (mError)
+    return NS_ERROR_FAILURE;
+
+  NS_ENSURE_ARG_POINTER(aNumFrames);
+
+  *aNumFrames = mFrames.Length();
+  
+  return NS_OK;
 }
 
 
@@ -651,24 +663,25 @@ RasterImage::GetFrame(PRUint32 aWhichFrame,
   return rv;
 }
 
-PRUint32
-RasterImage::GetDataSize()
+nsresult
+RasterImage::GetDataSize(PRUint32 *_retval)
 {
   if (mError)
-    return 0;
+    return NS_ERROR_FAILURE;
+
+  NS_ENSURE_ARG_POINTER(_retval);
 
   
-  PRUint32 size = 0;
+  *_retval = 0;
 
   
-  size += GetSourceDataSize();
-  NS_ABORT_IF_FALSE(StoringSourceData() || (size == 0),
+  *_retval += GetSourceDataSize();
+  NS_ABORT_IF_FALSE(StoringSourceData() || (*_retval == 0),
                     "Non-zero source data size when we aren't storing it?");
 
   
-  size += GetDecodedDataSize();
-
-  return size;
+  *_retval += GetDecodedDataSize();
+  return NS_OK;
 }
 
 PRUint32
@@ -1391,7 +1404,7 @@ RasterImage::NewSourceData()
 
   
   
-  rv = InitDecoder( false);
+  rv = InitDecoder(imgIDecoder::DECODER_FLAG_NONE);
   CONTAINER_ENSURE_SUCCESS(rv);
 
   return NS_OK;
@@ -2098,7 +2111,7 @@ RasterImage::StoringSourceData() {
 
 
 nsresult
-RasterImage::InitDecoder(bool aDoSizeDecode)
+RasterImage::InitDecoder(PRUint32 dFlags)
 {
   
   NS_ABORT_IF_FALSE(!mDecoder, "Calling InitDecoder() while already decoding!");
@@ -2110,37 +2123,17 @@ RasterImage::InitDecoder(bool aDoSizeDecode)
   NS_ABORT_IF_FALSE(!DiscardingActive(), "Discard Timer active in InitDecoder()!");
 
   
-  eDecoderType type = GetDecoderType(mSourceDataMimeType.get());
-  CONTAINER_ENSURE_TRUE(type != eDecoderType_unknown, NS_IMAGELIB_ERROR_NO_DECODER);
+  nsCAutoString decoderCID(NS_LITERAL_CSTRING("@mozilla.org/image/decoder;3?type=") +
+                                              mSourceDataMimeType);
+  mDecoder = do_CreateInstance(decoderCID.get());
+  CONTAINER_ENSURE_TRUE(mDecoder, NS_IMAGELIB_ERROR_NO_DECODER);
 
   
-  switch (type) {
-    case eDecoderType_png:
-      mDecoder = new nsPNGDecoder();
-      break;
-    case eDecoderType_gif:
-      mDecoder = new nsGIFDecoder2();
-      break;
-    case eDecoderType_jpeg:
-      mDecoder = new nsJPEGDecoder();
-      break;
-    case eDecoderType_bmp:
-      mDecoder = new nsBMPDecoder();
-      break;
-    case eDecoderType_ico:
-      mDecoder = new nsICODecoder();
-      break;
-    case eDecoderType_icon:
-      mDecoder = new nsIconDecoder();
-      break;
-    default:
-      NS_ABORT_IF_FALSE(0, "Shouldn't get here!");
-  }
+  mDecoderFlags = dFlags;
 
   
   nsCOMPtr<imgIDecoderObserver> observer(do_QueryReferent(mObserver));
-  mDecoder->SetSizeDecode(aDoSizeDecode);
-  nsresult result = mDecoder->Init(this, observer);
+  nsresult result = mDecoder->Init(this, observer, dFlags);
   CONTAINER_ENSURE_SUCCESS(result);
 
   
@@ -2168,16 +2161,30 @@ RasterImage::ShutdownDecoder(eShutdownIntent aIntent)
   
   NS_ABORT_IF_FALSE(mDecoder, "Calling ShutdownDecoder() with no active decoder!");
 
-  
-  bool wasSizeDecode = mDecoder->IsSizeDecode();
+  nsresult rv;
 
   
-  nsresult rv = NS_OK;
-  if (aIntent != eShutdownIntent_Error) {
+  if ((aIntent == eShutdownIntent_Done) &&
+      !(mDecoderFlags && imgIDecoder::DECODER_FLAG_HEADERONLY)) {
     mInDecoder = PR_TRUE;
-    rv = mDecoder->Finish();
+    rv = mDecoder->Flush();
     mInDecoder = PR_FALSE;
+
+    
+    
+    if (NS_FAILED(rv)) {
+      DoError();
+      return rv;
+    }
   }
+
+  
+  mInDecoder = PR_TRUE;
+  PRUint32 closeFlags = (aIntent == eShutdownIntent_Error)
+                          ? (PRUint32) imgIDecoder::CLOSE_FLAG_DONTNOTIFY
+                          : 0;
+  rv = mDecoder->Close(closeFlags);
+  mInDecoder = PR_FALSE;
 
   
   
@@ -2193,14 +2200,17 @@ RasterImage::ShutdownDecoder(eShutdownIntent aIntent)
   
   
   PRBool failed = PR_FALSE;
-  if (wasSizeDecode && !mHasSize)
+  if ((mDecoderFlags & imgIDecoder::DECODER_FLAG_HEADERONLY) && !mHasSize)
     failed = PR_TRUE;
-  if (!wasSizeDecode && !mDecoded)
+  if (!(mDecoderFlags & imgIDecoder::DECODER_FLAG_HEADERONLY) && !mDecoded)
     failed = PR_TRUE;
   if ((aIntent == eShutdownIntent_Done) && failed) {
     DoError();
     return NS_ERROR_FAILURE;
   }
+
+  
+  mDecoderFlags = imgIDecoder::DECODER_FLAG_NONE;
 
   
   mBytesDecoded = 0;
@@ -2288,7 +2298,7 @@ RasterImage::RequestDecode()
     return NS_OK;
 
   
-  if (mDecoder && !mDecoder->IsSizeDecode())
+  if (mDecoder && !(mDecoderFlags & imgIDecoder::DECODER_FLAG_HEADERONLY))
     return NS_OK;
 
   
@@ -2306,7 +2316,7 @@ RasterImage::RequestDecode()
 
 
   
-  if (mDecoder && mDecoder->IsSizeDecode()) {
+  if (mDecoder && (mDecoderFlags & imgIDecoder::DECODER_FLAG_HEADERONLY)) {
     rv = ShutdownDecoder(eShutdownIntent_Interrupted);
     CONTAINER_ENSURE_SUCCESS(rv);
   }
@@ -2314,7 +2324,7 @@ RasterImage::RequestDecode()
   
   if (!mDecoder) {
     NS_ABORT_IF_FALSE(mFrames.IsEmpty(), "Trying to decode to non-empty frame-array");
-    rv = InitDecoder( false);
+    rv = InitDecoder(imgIDecoder::DECODER_FLAG_NONE);
     CONTAINER_ENSURE_SUCCESS(rv);
   }
 
@@ -2353,7 +2363,7 @@ RasterImage::SyncDecode()
   NS_ABORT_IF_FALSE(!mInDecoder, "Yikes, forcing sync in reentrant call!");
 
   
-  if (mDecoder && mDecoder->IsSizeDecode()) {
+  if (mDecoder && (mDecoderFlags & imgIDecoder::DECODER_FLAG_HEADERONLY)) {
     rv = ShutdownDecoder(eShutdownIntent_Interrupted);
     CONTAINER_ENSURE_SUCCESS(rv);
   }
@@ -2361,7 +2371,7 @@ RasterImage::SyncDecode()
   
   if (!mDecoder) {
     NS_ABORT_IF_FALSE(mFrames.IsEmpty(), "Trying to decode to non-empty frame-array");
-    rv = InitDecoder( false);
+    rv = InitDecoder(imgIDecoder::DECODER_FLAG_NONE);
     CONTAINER_ENSURE_SUCCESS(rv);
   }
 
@@ -2494,14 +2504,9 @@ RasterImage::DecodeSomeData(PRUint32 aMaxBytes)
 
 
 
-
-
 PRBool
 RasterImage::IsDecodeFinished()
 {
-  
-  NS_ABORT_IF_FALSE(mDecoder, "Can't call IsDecodeFinished() without decoder!");
-
   
   PRBool decodeFinished = PR_FALSE;
 
@@ -2511,7 +2516,7 @@ RasterImage::IsDecodeFinished()
                     "just shut down on SourceDataComplete!");
 
   
-  if (mDecoder->IsSizeDecode()) {
+  if (mDecoderFlags & imgIDecoder::DECODER_FLAG_HEADERONLY) {
     if (mHasSize)
       decodeFinished = PR_TRUE;
   }
@@ -2602,7 +2607,8 @@ imgDecodeWorker::Run()
   
   
   
-  PRUint32 maxBytes = image->mDecoder->IsSizeDecode()
+  PRUint32 maxBytes =
+    (image->mDecoderFlags & imgIDecoder::DECODER_FLAG_HEADERONLY)
     ? image->mSourceData.Length() : DECODE_BYTES_AT_A_TIME;
 
   
@@ -2640,7 +2646,7 @@ imgDecodeWorker::Run()
   
   
   
-  if (image->mDecoder && !image->IsDecodeFinished() && haveMoreData)
+  if (!image->IsDecodeFinished() && haveMoreData)
     return this->Dispatch();
 
   

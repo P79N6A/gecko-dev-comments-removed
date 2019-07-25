@@ -41,12 +41,17 @@
 #define _nsBMPDecoder_h
 
 #include "nsAutoPtr.h"
+#include "imgIDecoder.h"
 #include "imgIDecoderObserver.h"
 #include "gfxColor.h"
-#include "Decoder.h"
 
-namespace mozilla {
-namespace imagelib {
+#define NS_BMPDECODER_CID \
+{ /* {78c61626-4d1f-4843-9364-4652d98ff6e1} */ \
+  0x78c61626, \
+  0x4d1f, \
+  0x4843, \
+  { 0x93, 0x64, 0x46, 0x52, 0xd9, 0x8f, 0xf6, 0xe1 } \
+}
 
 struct BMPFILEHEADER {
     char signature[2]; 
@@ -134,27 +139,34 @@ enum ERLEState {
     eRLEStateAbsoluteModePadded 
 };
 
+namespace mozilla {
+namespace imagelib {
 class RasterImage;
+} 
+} 
 
 
 
 
-class nsBMPDecoder : public Decoder
+class nsBMPDecoder : public imgIDecoder
 {
 public:
-
+    NS_DECL_ISUPPORTS
+    NS_DECL_IMGIDECODER
+    
     nsBMPDecoder();
     ~nsBMPDecoder();
-
-    virtual nsresult InitInternal();
-    virtual nsresult WriteInternal(const char* aBuffer, PRUint32 aCount);
-    virtual nsresult FinishInternal();
 
 private:
 
     
 
     NS_METHOD CalcBitShift();
+
+    nsCOMPtr<imgIDecoderObserver> mObserver;
+
+    nsRefPtr<mozilla::imagelib::RasterImage> mImage;
+    PRUint32 mFlags;
 
     PRUint32 mPos;
 
@@ -218,10 +230,6 @@ inline void Set4BitPixel(PRUint32*& aDecoded, PRUint8 aData,
         --aCount;
     }
 }
-
-} 
-} 
-
 
 #endif
 

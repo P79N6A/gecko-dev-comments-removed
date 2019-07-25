@@ -482,7 +482,9 @@ void imgRequest::SetIsInCache(PRBool incache)
 void imgRequest::UpdateCacheEntrySize()
 {
   if (mCacheEntry) {
-    mCacheEntry->SetDataSize(mImage->GetDataSize());
+    PRUint32 imageSize = 0;
+    mImage->GetDataSize(&imageSize);
+    mCacheEntry->SetDataSize(imageSize);
 
 #ifdef DEBUG_joe
     nsCAutoString url;
@@ -960,7 +962,7 @@ NS_IMETHODIMP imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctx
 
     
     imageType = mContentType.EqualsLiteral(SVG_MIMETYPE) ?
-      (PRUint16) imgIContainer::TYPE_VECTOR : (PRUint16) imgIContainer::TYPE_RASTER;
+      imgIContainer::TYPE_VECTOR : imgIContainer::TYPE_RASTER;
 
     
     nsCOMPtr<nsISupportsCString> contentType(do_CreateInstance("@mozilla.org/supports-cstring;1"));

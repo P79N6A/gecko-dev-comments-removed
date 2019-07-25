@@ -94,30 +94,18 @@ public:
 
 
 
-  virtual PRUint32 GetCurrentFrameIndex() = 0;
+  virtual nsresult GetCurrentFrameIndex(PRUint32* aCurrentFrameIdx) = 0;
 
   
 
 
-  virtual PRUint32 GetNumFrames() = 0;
+  virtual nsresult GetNumFrames(PRUint32* aNumFrames) = 0;
 
   
 
 
 
-  virtual PRUint32 GetDataSize() = 0;
-
-  
-  enum eDecoderType {
-    eDecoderType_png     = 0,
-    eDecoderType_gif     = 1,
-    eDecoderType_jpeg    = 2,
-    eDecoderType_bmp     = 3,
-    eDecoderType_ico     = 4,
-    eDecoderType_icon    = 5,
-    eDecoderType_unknown = 6
-  };
-  static eDecoderType GetDecoderType(const char *aMimeType);
+  virtual nsresult GetDataSize(PRUint32* aDataSize) = 0;
 
 protected:
   Image();

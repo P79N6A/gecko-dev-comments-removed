@@ -43,16 +43,20 @@
 
 #include "imgIContainerObserver.h"
 
+#include "nsIComponentManager.h"
 #include "nsIInputStream.h"
 
 #include "nspr.h"
 #include "nsCRT.h"
 #include "ImageLogging.h"
+#include "nsIInterfaceRequestorUtils.h"
 #include "gfxColor.h"
 
 #include "jerror.h"
 
 #include "gfxPlatform.h"
+
+using namespace mozilla::imagelib;
 
 extern "C" {
 #include "iccjpeg.h"
@@ -71,10 +75,7 @@ ycc_rgb_convert_argb (j_decompress_ptr cinfo,
                  JSAMPARRAY output_buf, int num_rows);
 }
 
-static void cmyk_convert_rgb(JSAMPROW row, JDIMENSION width);
-
-namespace mozilla {
-namespace imagelib {
+NS_IMPL_ISUPPORTS1(nsJPEGDecoder, imgIDecoder)
 
 #if defined(PR_LOGGING)
 PRLogModuleInfo *gJPEGlog = PR_NewLogModule("JPEGDecoder");
@@ -90,6 +91,8 @@ METHODDEF(boolean) fill_input_buffer (j_decompress_ptr jd);
 METHODDEF(void) skip_input_data (j_decompress_ptr jd, long num_bytes);
 METHODDEF(void) term_source (j_decompress_ptr jd);
 METHODDEF(void) my_error_exit (j_common_ptr cinfo);
+
+static void cmyk_convert_rgb(JSAMPROW row, JDIMENSION width);
 
 
 #define MAX_JPEG_MARKER_LENGTH  (((PRUint32)1 << 16) - 1)
@@ -123,10 +126,6 @@ nsJPEGDecoder::nsJPEGDecoder()
 
 nsJPEGDecoder::~nsJPEGDecoder()
 {
-  
-  mInfo.src = nsnull;
-  jpeg_destroy_decompress(&mInfo);
-
   PR_FREEIF(mBackBuffer);
   if (mTransform)
     qcms_transform_release(mTransform);
@@ -139,11 +138,25 @@ nsJPEGDecoder::~nsJPEGDecoder()
 }
 
 
-nsresult
-nsJPEGDecoder::InitInternal()
+
+
+
+
+
+NS_IMETHODIMP nsJPEGDecoder::Init(imgIContainer *aImage, 
+                                  imgIDecoderObserver *aObserver,
+                                  PRUint32 aFlags)
 {
+  NS_ABORT_IF_FALSE(aImage->GetType() == imgIContainer::TYPE_RASTER,
+                    "wrong type of imgIContainer for decoding into");
+
   
-  if (!IsSizeDecode() && mObserver)
+  mImage = static_cast<RasterImage*>(aImage);
+  mObserver = aObserver;
+  mFlags = aFlags;
+
+  
+  if (!(mFlags & imgIDecoder::DECODER_FLAG_HEADERONLY) && mObserver)
     mObserver->OnStartDecode(nsnull);
 
   
@@ -179,19 +192,17 @@ nsJPEGDecoder::InitInternal()
   return NS_OK;
 }
 
-nsresult
-nsJPEGDecoder::FinishInternal()
+
+
+NS_IMETHODIMP nsJPEGDecoder::Close(PRUint32 aFlags)
 {
+  PR_LOG(gJPEGlog, PR_LOG_DEBUG,
+         ("[this=%p] nsJPEGDecoder::Close\n", this));
+
   
+  mInfo.src = nsnull;
 
-
-
-
-
-  if ((mState != JPEG_DONE && mState != JPEG_SINK_NON_JPEG_TRAILER) &&
-      (mState != JPEG_ERROR) &&
-      !IsSizeDecode())
-    this->Write(nsnull, 0);
+  jpeg_destroy_decompress(&mInfo);
 
   
 
@@ -200,15 +211,28 @@ nsJPEGDecoder::FinishInternal()
 
   
 
-  if (!IsSizeDecode() && !mNotifiedDone)
+  if (!(aFlags & CLOSE_FLAG_DONTNOTIFY) &&
+      !(mFlags & imgIDecoder::DECODER_FLAG_HEADERONLY) &&
+      !mNotifiedDone)
     NotifyDone( PR_FALSE);
 
   
   return NS_OK;
 }
 
-nsresult
-nsJPEGDecoder::WriteInternal(const char *aBuffer, PRUint32 aCount)
+
+NS_IMETHODIMP nsJPEGDecoder::Flush()
+{
+  LOG_SCOPE(gJPEGlog, "nsJPEGDecoder::Flush");
+
+  if (mState != JPEG_DONE && mState != JPEG_SINK_NON_JPEG_TRAILER && mState != JPEG_ERROR)
+    return this->Write(nsnull, 0);
+
+  return NS_OK;
+}
+
+
+nsresult nsJPEGDecoder::Write(const char *aBuffer, PRUint32 aCount)
 {
   mSegment = (const JOCTET *)aBuffer;
   mSegmentLen = aCount;
@@ -250,10 +274,12 @@ nsJPEGDecoder::WriteInternal(const char *aBuffer, PRUint32 aCount)
     }
 
     
-    PostSize(mInfo.image_width, mInfo.image_height);
+    mImage->SetSize(mInfo.image_width, mInfo.image_height);
+    if (mObserver)
+      mObserver->OnStartContainer(nsnull, mImage);
 
     
-    if (IsSizeDecode())
+    if (mFlags & imgIDecoder::DECODER_FLAG_HEADERONLY)
       return NS_OK;
 
     
@@ -395,9 +421,8 @@ nsJPEGDecoder::WriteInternal(const char *aBuffer, PRUint32 aCount)
            ("        JPEGDecoderAccounting: nsJPEGDecoder::Write -- created image frame with %ux%u pixels",
             mInfo.image_width, mInfo.image_height));
 
-    
-    PostFrameStart();
-
+    if (mObserver)
+      mObserver->OnStartFrame(nsnull, 0);
     mState = JPEG_START_DECOMPRESS;
   }
 
@@ -568,7 +593,8 @@ nsJPEGDecoder::NotifyDone(PRBool aSuccess)
   NS_ABORT_IF_FALSE(!mNotifiedDone, "calling NotifyDone twice!");
 
   
-  PostFrameStop();
+  if (mObserver)
+    mObserver->OnStopFrame(nsnull, 0);
   if (aSuccess)
     mImage->DecodingComplete();
   if (mObserver) {
@@ -901,9 +927,6 @@ term_source (j_decompress_ptr jd)
   
   decoder->NotifyDone( PR_TRUE);
 }
-
-} 
-} 
 
 
 

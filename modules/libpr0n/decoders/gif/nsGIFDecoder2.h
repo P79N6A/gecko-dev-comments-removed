@@ -42,28 +42,37 @@
 #define _nsGIFDecoder2_h
 
 #include "nsCOMPtr.h"
-#include "Decoder.h"
+#include "imgIDecoder.h"
+#include "imgIContainer.h"
 #include "imgIDecoderObserver.h"
 
 #include "GIF2.h"
 
+#define NS_GIFDECODER2_CID \
+{ /* 797bec5a-1dd2-11b2-a7f8-ca397e0179c4 */         \
+     0x797bec5a,                                     \
+     0x1dd2,                                         \
+     0x11b2,                                         \
+    {0xa7, 0xf8, 0xca, 0x39, 0x7e, 0x01, 0x79, 0xc4} \
+}
+
 namespace mozilla {
 namespace imagelib {
 class RasterImage;
+} 
+} 
 
 
 
 
-class nsGIFDecoder2 : public Decoder
+class nsGIFDecoder2 : public imgIDecoder
 {
 public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_IMGIDECODER
 
   nsGIFDecoder2();
   ~nsGIFDecoder2();
-
-  virtual nsresult InitInternal();
-  virtual nsresult WriteInternal(const char* aBuffer, PRUint32 aCount);
-  virtual nsresult FinishInternal();
 
 private:
   
@@ -82,6 +91,11 @@ private:
 
   inline int ClearCode() const { return 1 << mGIFStruct.datasize; }
 
+  
+  
+  nsRefPtr<mozilla::imagelib::RasterImage> mImageContainer;
+  nsCOMPtr<imgIDecoderObserver> mObserver;
+  PRUint32 mFlags;
   PRInt32 mCurrentRow;
   PRInt32 mLastFlushedRow;
 
@@ -104,8 +118,5 @@ private:
 
   gif_struct mGIFStruct;
 };
-
-} 
-} 
 
 #endif
