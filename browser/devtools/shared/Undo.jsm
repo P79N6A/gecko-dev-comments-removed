@@ -19,13 +19,14 @@ var EXPORTED_SYMBOLS=["UndoStack"];
 
 
 
-function UndoStack(aChange, aMaxUndo)
+function UndoStack(aMaxUndo)
 {
   this.maxUndo = aMaxUndo || 50;
   this._stack = [];
 }
 
 UndoStack.prototype = {
+  
   
   _index: 0,
 
@@ -65,7 +66,8 @@ UndoStack.prototype = {
     }
 
     
-    let start = Math.max(++this._index - this.maxUndo, 0);
+    
+    let start = Math.max((this._index + 1) - this.maxUndo, 0);
     this._stack = this._stack.slice(start, this._index);
 
     let batch = this._batch;
@@ -83,6 +85,7 @@ UndoStack.prototype = {
       }
     };
     this._stack.push(entry);
+    this._index = this._stack.length;
     entry.do();
     this._change();
   },
@@ -127,7 +130,7 @@ UndoStack.prototype = {
 
   canRedo: function Undo_canRedo()
   {
-    return this._stack.length >= this._index;
+    return this._stack.length > this._index;
   },
 
   
