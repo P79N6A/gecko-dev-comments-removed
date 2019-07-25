@@ -170,8 +170,10 @@ ThreadActor.prototype = {
       this.conn.send(packet);
       return this._nest();
     } catch(e) {
-      Cu.reportError("Got an exception during TA__pauseAndRespond: " + e +
-                     ": " + e.stack);
+      let msg = "Got an exception during TA__pauseAndRespond: " + e +
+                ": " + e.stack;
+      Cu.reportError(msg);
+      dumpn(msg);
       return undefined;
     }
   },
@@ -1540,11 +1542,15 @@ EnvironmentActor.prototype = {
       
       
       let desc = {
-        value: this.obj.getVariable(name),
         configurable: false,
         writable: true,
         enumerable: true
       };
+      
+      
+      if (this.obj.callee.live) {
+        desc.value = this.obj.getVariable(name);
+      }
       
       let descForm = {
         enumerable: true,
