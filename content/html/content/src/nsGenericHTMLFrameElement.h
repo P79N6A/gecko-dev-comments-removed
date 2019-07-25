@@ -68,7 +68,7 @@ protected:
 
 
 
-  class TitleChangedListener : public nsIDOMEventListener
+  class TitleChangedListener MOZ_FINAL : public nsIDOMEventListener
   {
   public:
     TitleChangedListener(nsGenericHTMLFrameElement *aElement,
