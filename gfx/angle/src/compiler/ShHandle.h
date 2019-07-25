@@ -101,7 +101,7 @@ private:
     TVariableInfoList uniforms;  
 
     
-    TMap<TString, TString> varyingLongNameMap;
+    std::map<std::string, std::string> varyingLongNameMap;
 };
 
 

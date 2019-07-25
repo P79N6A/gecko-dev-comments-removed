@@ -30,6 +30,7 @@ struct TranslatedAttribute
     UINT stride;   
 
     IDirect3DVertexBuffer9 *vertexBuffer;
+    unsigned int serial;
 };
 
 class VertexBuffer
@@ -41,20 +42,18 @@ class VertexBuffer
     void unmap();
 
     IDirect3DVertexBuffer9 *getBuffer() const;
+    unsigned int getSerial() const;
 
   protected:
     IDirect3DDevice9 *const mDevice;
     IDirect3DVertexBuffer9 *mVertexBuffer;
 
+    unsigned int mSerial;
+    static unsigned int issueSerial();
+    static unsigned int mCurrentSerial;
+
   private:
     DISALLOW_COPY_AND_ASSIGN(VertexBuffer);
-};
-
-class ConstantVertexBuffer : public VertexBuffer
-{
-  public:
-    ConstantVertexBuffer(IDirect3DDevice9 *device, float x, float y, float z, float w);
-    ~ConstantVertexBuffer();
 };
 
 class ArrayVertexBuffer : public VertexBuffer
@@ -100,6 +99,7 @@ class StaticVertexBuffer : public ArrayVertexBuffer
     {
         GLenum type;
         GLint size;
+        GLsizei stride;
         bool normalized;
         int attributeOffset;
 
@@ -131,7 +131,8 @@ class VertexDataManager
     StreamingVertexBuffer *mStreamingBuffer;
 
     bool mDirtyCurrentValue[MAX_VERTEX_ATTRIBS];
-    ConstantVertexBuffer *mCurrentValueBuffer[MAX_VERTEX_ATTRIBS];
+    StreamingVertexBuffer *mCurrentValueBuffer[MAX_VERTEX_ATTRIBS];
+    std::size_t mCurrentValueOffsets[MAX_VERTEX_ATTRIBS];
 
     
     struct FormatConverter

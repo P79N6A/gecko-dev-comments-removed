@@ -425,7 +425,10 @@ public:
 
 protected:
     TIntermTyped* operand;
-    bool useEmulatedFunction; 
+
+    
+    
+    bool useEmulatedFunction;
 };
 
 typedef TVector<TIntermNode*> TIntermSequence;
@@ -436,8 +439,8 @@ typedef TMap<TString, TString> TPragmaTable;
 
 class TIntermAggregate : public TIntermOperator {
 public:
-    TIntermAggregate() : TIntermOperator(EOpNull), userDefined(false), pragmaTable(0), endLine(0) { }
-    TIntermAggregate(TOperator o) : TIntermOperator(o), pragmaTable(0) { }
+    TIntermAggregate() : TIntermOperator(EOpNull), userDefined(false), pragmaTable(0), endLine(0), useEmulatedFunction(false) { }
+    TIntermAggregate(TOperator o) : TIntermOperator(o), pragmaTable(0), useEmulatedFunction(false) { }
     ~TIntermAggregate() { delete pragmaTable; }
 
     virtual TIntermAggregate* getAsAggregate() { return this; }
@@ -460,6 +463,9 @@ public:
     void setEndLine(TSourceLoc line) { endLine = line; }
     TSourceLoc getEndLine() const { return endLine; }
 
+    void setUseEmulatedFunction() { useEmulatedFunction = true; }
+    bool getUseEmulatedFunction() { return useEmulatedFunction; }
+
 protected:
     TIntermAggregate(const TIntermAggregate&); 
     TIntermAggregate& operator=(const TIntermAggregate&); 
@@ -471,6 +477,10 @@ protected:
     bool debug;
     TPragmaTable *pragmaTable;
     TSourceLoc endLine;
+
+    
+    
+    bool useEmulatedFunction;
 };
 
 

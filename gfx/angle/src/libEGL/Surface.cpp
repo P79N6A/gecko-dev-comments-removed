@@ -191,8 +191,26 @@ bool Surface::resetSwapChain(int backbufferWidth, int backbufferHeight)
     
     DWORD windowPID;
     GetWindowThreadProcessId(mWindow, &windowPID);
-    if(windowPID != GetCurrentProcessId())
-    useFlipEx = false;
+    if (windowPID != GetCurrentProcessId())
+    {
+        useFlipEx = false;
+    }
+
+    
+    
+    HDC deviceContext = GetDC(0);
+    int deviceFormatBits = GetDeviceCaps(deviceContext, BITSPIXEL);
+    ReleaseDC(0, deviceContext);
+    if (mConfig->mBufferSize != 32 || deviceFormatBits != 32)
+    {
+        useFlipEx = false;
+    }
+
+    
+    if (mSwapInterval == 0)
+    {
+        useFlipEx = false;
+    }
 
     presentParameters.AutoDepthStencilFormat = mConfig->mDepthStencilFormat;
     
