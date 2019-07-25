@@ -695,6 +695,12 @@ class OpcodeCounts
     }
 };
 
+static inline jsbytecode *
+GetNextPc(jsbytecode *pc)
+{
+    return pc + js_CodeSpec[JSOp(*pc)].length;
+}
+
 } 
 
 #if defined(DEBUG)

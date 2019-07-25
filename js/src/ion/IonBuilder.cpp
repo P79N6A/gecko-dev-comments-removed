@@ -60,7 +60,6 @@ IonBuilder::IonBuilder(JSContext *cx, JSObject *scopeChain, TempAllocator &temp,
   : MIRGenerator(cx, temp, graph, info),
     script(info.script()),
     initialScopeChain_(scopeChain),
-    lastResumePoint_(NULL),
     callerResumePoint_(NULL),
     oracle(oracle),
     inliningDepth(inliningDepth)
@@ -84,12 +83,6 @@ GetJumpOffset(jsbytecode *pc)
 {
     JS_ASSERT(js_CodeSpec[JSOp(*pc)].type() == JOF_JUMP);
     return GET_JUMP_OFFSET(pc);
-}
-
-static inline jsbytecode *
-GetNextPc(jsbytecode *pc)
-{
-    return pc + js_CodeSpec[JSOp(*pc)].length;
 }
 
 IonBuilder::CFGState
@@ -2184,7 +2177,10 @@ IonBuilder::jsop_call_inline(uint32 argc, IonBuilder &inlineBuilder, InliningDat
     
     MBasicBlock *top = current;
 
-    MResumePoint *inlineResumePoint = MResumePoint::New(top, pc, callerResumePoint_);
+    
+    
+    MResumePoint *inlineResumePoint = MResumePoint::New(top, pc, callerResumePoint_,
+                                                        MResumePoint::Outer);
     if (!inlineResumePoint)
         return false;
 
@@ -2694,25 +2690,28 @@ IonBuilder::newPendingLoopHeader(MBasicBlock *predecessor, jsbytecode *pc)
 
 
 
-
-
 bool
-IonBuilder::resumeAfter(MInstruction *ins)
+IonBuilder::resume(MInstruction *ins, jsbytecode *pc, MResumePoint::Mode mode)
 {
-    return resumeAt(ins, GetNextPc(pc));
+    JS_ASSERT(ins->isEffectful());
+
+    MResumePoint *resumePoint = MResumePoint::New(ins->block(), pc, callerResumePoint_, mode);
+    if (!resumePoint)
+        return false;
+    ins->setResumePoint(resumePoint);
+    return true;
 }
 
 bool
 IonBuilder::resumeAt(MInstruction *ins, jsbytecode *pc)
 {
-    JS_ASSERT(ins->isEffectful());
+    return resume(ins, pc, MResumePoint::ResumeAt);
+}
 
-    MResumePoint *resumePoint = MResumePoint::New(ins->block(), pc, callerResumePoint_);
-    if (!resumePoint)
-        return false;
-    lastResumePoint_ = resumePoint;
-    ins->setResumePoint(resumePoint);
-    return true;
+bool
+IonBuilder::resumeAfter(MInstruction *ins)
+{
+    return resume(ins, pc, MResumePoint::ResumeAfter);
 }
 
 void

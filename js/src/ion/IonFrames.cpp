@@ -386,12 +386,6 @@ ion::MarkIonActivations(JSRuntime *rt, JSTracer *trc)
         MarkIonActivation(trc, activations.top());
 }
 
-static inline jsbytecode *
-GetNextPc(jsbytecode *pc)
-{
-    return pc + js_CodeSpec[JSOp(*pc)].length;
-}
-
 void
 ion::GetPcScript(JSContext *cx, JSScript **scriptRes, jsbytecode **pcRes)
 {
@@ -434,12 +428,7 @@ ion::GetPcScript(JSContext *cx, JSScript **scriptRes, jsbytecode **pcRes)
     }
 
     
-    
-    do {
-        pc--;
-    } while (!script->analysis()->maybeCode(pc));
-
-    
     *scriptRes = script;
     *pcRes = pc;
 }
+
