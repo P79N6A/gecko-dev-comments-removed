@@ -252,19 +252,6 @@ function checkMetadata(msg, e, test) {
 }
 
 
-function AllFinished(v) {
-  if (v.length == 0) {
-    return false;
-  }
-  for (var i=0; i<v.length; ++i) {
-    if (!v[i]._finished) {
-      return false;
-    }
-  }
-  return true;
-}
-
-
 
 function getPlayableVideo(candidates) {
   var v = document.createElement("video");
@@ -272,4 +259,119 @@ function getPlayableVideo(candidates) {
   if (resources.length > 0)
     return resources[0];
   return null;
+}
+
+
+
+
+var PARALLEL_TESTS = 2;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function MediaTestManager() {
+
+  
+  
+  
+  
+  
+  
+  
+  
+  this.runTests = function(tests, startTest) {
+    this.testNum = 0;
+    this.tests = tests;
+    this.startTest = startTest;
+    this.tokens = [];
+    
+    SimpleTest.waitForExplicitFinish();
+    this.nextTest();
+  }
+  
+  
+  
+  this.started = function(token) {
+    this.tokens.push(token);
+  }
+  
+  
+  
+  
+  
+  this.finished = function(token) {
+    var i = this.tokens.indexOf(token);
+    if (i != -1) {
+      
+      this.tokens.splice(i, 1);
+    }
+    if (this.tokens.length == 0) {
+      this.nextTest();
+    }
+  }
+  
+  
+  
+  this.nextTest = function() {
+    
+    
+    
+    netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
+    Components.utils.forceGC();
+    if (this.testNum == this.tests.length) {
+      if (this.onFinished) {
+        this.onFinished();
+      }
+      mediaTestCleanup();
+      SimpleTest.finish();
+      return;
+    }
+    while (this.testNum < this.tests.length && this.tokens.length < PARALLEL_TESTS) {
+      var test = this.tests[this.testNum];
+      var token = (test.name ? (test.name + "-"): "") + this.testNum;
+      this.testNum++;
+
+      
+      if (test.type && !document.createElement('video').canPlayType(test.type))
+        continue;
+      
+      
+      this.startTest(test, token);
+      
+    }
+    if (this.tokens.length == 0) {
+      
+      SimpleTest.finish();
+    }
+  }
+}
+
+
+
+
+function mediaTestCleanup() {
+    var V = document.getElementsByTagName("video");
+    for (i=0; i<V.length; i++) {
+      V[i].parentNode.removeChild(V[i]);
+      V[i] = null;
+    }
+    var A = document.getElementsByTagName("audio");
+    for (i=0; i<A.length; i++) {
+      A[i].parentNode.removeChild(A[i]);
+      A[i] = null;
+    }
+    netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
+    Components.utils.forceGC();
 }
