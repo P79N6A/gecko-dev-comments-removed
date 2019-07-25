@@ -49,7 +49,6 @@
 #include <stdlib.h>
 #include "jstypes.h"
 #include "jscompat.h"
-#include "jsstaticcheck.h"
 
 JS_BEGIN_EXTERN_C
 
@@ -89,8 +88,6 @@ struct JSArenaPool {
 
 
 
-
-
 #define JS_ARENA_ALLOCATE_COMMON(p, type, pool, nb, guard)                    \
     JS_BEGIN_MACRO                                                            \
         JSArena *_a = (pool)->current;                                        \
@@ -111,16 +108,21 @@ struct JSArenaPool {
     JS_BEGIN_MACRO                                                            \
         JSArena *_a = (pool)->current;                                        \
         if (_a->avail == (jsuword)(p) + JS_ARENA_ALIGN(pool, size)) {         \
+            /* p was the last thing allocated in the current arena... */      \
             size_t _nb = (size) + (incr);                                     \
             _nb = JS_ARENA_ALIGN(pool, _nb);                                  \
             if (_a->limit >= _nb && (jsuword)(p) <= _a->limit - _nb) {        \
+                /* ... and we have space, so just extend p in-place */        \
                 _a->avail = (jsuword)(p) + _nb;                               \
             } else if ((jsuword)(p) == _a->base) {                            \
+                /* ... p is also the 1st thing in this arena */               \
                 p = (type) JS_ArenaRealloc(pool, p, size, incr);              \
             } else {                                                          \
+                /* hard case */                                               \
                 p = (type) JS_ArenaGrow(pool, p, size, incr);                 \
             }                                                                 \
         } else {                                                              \
+            /* hard case */                                                   \
             p = (type) JS_ArenaGrow(pool, p, size, incr);                     \
         }                                                                     \
         STATIC_ASSUME(!p || ubound((char *)p) >= size + incr);                \
@@ -132,7 +134,7 @@ struct JSArenaPool {
 
 
 
-#define JS_ARENA_MARK_MATCH(a, mark)                                          \
+#define JS_IS_IN_ARENA(a, mark)                                               \
     (JS_UPTRDIFF(mark, (a)->base) <= JS_UPTRDIFF((a)->avail, (a)->base))
 
 #ifdef DEBUG
@@ -150,7 +152,7 @@ struct JSArenaPool {
     JS_BEGIN_MACRO                                                            \
         char *_m = (char *)(mark);                                            \
         JSArena *_a = (pool)->current;                                        \
-        if (_a != &(pool)->first && JS_ARENA_MARK_MATCH(_a, _m)) {            \
+        if (_a != &(pool)->first && JS_IS_IN_ARENA(_a, _m)) {                 \
             _a->avail = (jsuword)JS_ARENA_ALIGN(pool, _m);                    \
             JS_ASSERT(_a->avail <= _a->limit);                                \
             JS_CLEAR_UNUSED(_a);                                              \
@@ -168,6 +170,7 @@ struct JSArenaPool {
         js::UnwantedForeground::free_(a);                                      \
         (a) = NULL;                                                           \
     JS_END_MACRO
+
 
 
 
@@ -218,96 +221,5 @@ extern JS_PUBLIC_API(void)
 JS_ArenaRelease(JSArenaPool *pool, char *mark);
 
 JS_END_EXTERN_C
-
-#ifdef __cplusplus
-
-namespace js {
-
-template <typename T>
-inline T *
-ArenaArray(JSArenaPool &pool, unsigned count)
-{
-    void *v;
-    JS_ARENA_ALLOCATE(v, &pool, count * sizeof(T));
-    return (T *) v;
-}
-
-template <typename T>
-inline T *
-ArenaNew(JSArenaPool &pool)
-{
-    void *v;
-    JS_ARENA_ALLOCATE(v, &pool, sizeof(T));
-    return v ? new (v) T() : NULL;
-}
-
-template <typename T, typename A>
-inline T *
-ArenaNew(JSArenaPool &pool, const A &a)
-{
-    void *v;
-    JS_ARENA_ALLOCATE(v, &pool, sizeof(T));
-    return v ? new (v) T(a) : NULL;
-}
-
-template <typename T, typename A, typename B>
-inline T *
-ArenaNew(JSArenaPool &pool, const A &a, const B &b)
-{
-    void *v;
-    JS_ARENA_ALLOCATE(v, &pool, sizeof(T));
-    return v ? new (v) T(a, b) : NULL;
-}
-
-template <typename T, typename A, typename B, typename C>
-inline T *
-ArenaNew(JSArenaPool &pool, const A &a, const B &b, const C &c)
-{
-    void *v;
-    JS_ARENA_ALLOCATE(v, &pool, sizeof(T));
-    return v ? new (v) T(a, b, c) : NULL;
-}
-
-template <typename T, typename A, typename B, typename C, typename D>
-inline T *
-ArenaNew(JSArenaPool &pool, const A &a, const B &b, const C &c, const D &d)
-{
-    void *v;
-    JS_ARENA_ALLOCATE(v, &pool, sizeof(T));
-    return v ? new (v) T(a, b, c, d) : NULL;
-}
-
-template <typename T, typename A, typename B, typename C, typename D, typename E>
-inline T *
-ArenaNew(JSArenaPool &pool, const A &a, const B &b, const C &c, const D &d, const E &e)
-{
-    void *v;
-    JS_ARENA_ALLOCATE(v, &pool, sizeof(T));
-    return v ? new (v) T(a, b, c, d, e) : NULL;
-}
-
-inline uintN
-ArenaAllocatedSize(const JSArenaPool &pool)
-{
-    uintN res = 0;
-    const JSArena *a = &pool.first;
-    while (a) {
-        res += (a->limit - (jsuword)a);
-        a = a->next;
-    }
-    return res;
-}
-
-
-inline void
-MoveArenaPool(JSArenaPool *oldPool, JSArenaPool *newPool)
-{
-    *newPool = *oldPool;
-    JS_InitArenaPool(oldPool, NULL, newPool->arenasize, newPool->mask + 1);
-}
-
-} 
-
-#endif 
 
 #endif 
