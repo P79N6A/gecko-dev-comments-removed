@@ -3288,14 +3288,17 @@ RENDER_AGAIN:
     case NS_THEME_WINDOW_TITLEBAR:
     case NS_THEME_WINDOW_TITLEBAR_MAXIMIZED:
     {
-      
       RECT rect = widgetRect;
       PRInt32 offset = GetSystemMetrics(SM_CXFRAME);
+      rect.bottom -= 1;
+
+      
+      FillRect(hdc, &rect, (HBRUSH)(COLOR_3DFACE+1));
+
+      
       rect.top += offset;
       rect.left += offset;
       rect.right -= offset;
-      rect.bottom -= 1;
-
       
       
       BOOL bFlag = TRUE;
