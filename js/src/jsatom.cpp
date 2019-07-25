@@ -158,6 +158,8 @@ const char *const js_common_atom_names[] = {
     js_name_str,                
     js_next_str,                
     js_noSuchMethod_str,        
+    "[object Null]",            
+    "[object Undefined]",       
     js_proto_str,               
     js_set_str,                 
     js_source_str,              
