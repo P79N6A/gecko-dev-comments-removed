@@ -165,8 +165,10 @@ class nsStringBuffer
 
 
 
-      NS_COM void ToString(PRUint32 len, nsAString &str);
-      NS_COM void ToString(PRUint32 len, nsACString &str);
+      NS_COM void ToString(PRUint32 len, nsAString &str,
+                           PRBool aMoveOwnership = PR_FALSE);
+      NS_COM void ToString(PRUint32 len, nsACString &str,
+                           PRBool aMoveOwnership = PR_FALSE);
   };
 
 #endif 

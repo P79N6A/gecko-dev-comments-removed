@@ -101,6 +101,8 @@ nsXHTMLContentSerializer::Init(PRUint32 aFlags, PRUint32 aWrapColumn,
                               const char* aCharSet, PRBool aIsCopying,
                               PRBool aRewriteEncodingDeclaration)
 {
+  mInBody = 0;
+
   
   
   

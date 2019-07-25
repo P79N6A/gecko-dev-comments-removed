@@ -63,6 +63,7 @@
 #include "nsSMILAnimationController.h"
 #endif 
 #include "nsIScriptGlobalObject.h"
+#include "nsIDocumentEncoder.h"
 
 class nsIContent;
 class nsPresContext;
@@ -116,10 +117,9 @@ class Element;
 } 
 
 
-
 #define NS_IDOCUMENT_IID      \
-{ 0xfbcd570b, 0xdbfa, 0x479b, \
-  { 0x9b, 0xd0, 0x02, 0x31, 0x21, 0x29, 0xc0, 0x44 } }
+{ 0x1d8bd3d4, 0x6f6d, 0x49fe, \
+  { 0xaf, 0xda, 0xc9, 0x4a, 0xef, 0x8f, 0xcf, 0x1f } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -1115,6 +1115,16 @@ public:
     
   }
 
+  already_AddRefed<nsIDocumentEncoder> GetCachedEncoder()
+  {
+    return mCachedEncoder.forget();
+  }
+
+  void SetCachedEncoder(nsIDocumentEncoder* aEncoder)
+  {
+    mCachedEncoder = aEncoder;
+  }
+
   
   virtual nsresult InitializeFrameLoader(nsFrameLoader* aLoader) = 0;
   
@@ -1422,6 +1432,17 @@ protected:
     return GetRootElement();
   }
 
+  void SetContentTypeInternal(const nsACString& aType)
+  {
+    mCachedEncoder = nsnull;
+    mContentType = aType;
+  }
+
+  nsCString GetContentTypeInternal() const
+  {
+    return mContentType;
+  }
+
   nsCOMPtr<nsIURI> mDocumentURI;
   nsCOMPtr<nsIURI> mDocumentBaseURI;
 
@@ -1530,7 +1551,9 @@ protected:
   PRUint32 mBidiOptions;
 
   nsCString mContentLanguage;
+private:
   nsCString mContentType;
+protected:
 
   
   nsCOMPtr<nsISupports> mSecurityInfo;
@@ -1560,6 +1583,8 @@ protected:
   
   
   nsPIDOMWindow *mWindow;
+
+  nsCOMPtr<nsIDocumentEncoder> mCachedEncoder;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIDocument, NS_IDOCUMENT_IID)

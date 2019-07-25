@@ -342,7 +342,7 @@ nsHTMLDocument::ResetToURI(nsIURI *aURI, nsILoadGroup *aLoadGroup,
   
   
   
-  mContentType = "text/html";
+  SetContentTypeInternal(nsDependentCString("text/html"));
 }
 
 nsStyleSet::sheetType
@@ -2035,7 +2035,7 @@ nsHTMLDocument::OpenCommon(const nsACString& aContentType, PRBool aReplace)
   }
 
   
-  mContentType = aContentType;
+  SetContentTypeInternal(aContentType);
 
   mWriteState = eDocumentOpened;
 
@@ -2134,7 +2134,7 @@ nsHTMLDocument::Close()
 
     ++mWriteLevel;
     rv = mParser->Parse(EmptyString(), mParser->GetRootContextKey(),
-                        mContentType, PR_TRUE);
+                        GetContentTypeInternal(), PR_TRUE);
     --mWriteLevel;
 
     
@@ -2234,11 +2234,11 @@ nsHTMLDocument::WriteCommon(const nsAString& aText,
   
   if (aNewlineTerminate) {
     rv = mParser->Parse(aText + new_line,
-                        key, mContentType,
+                        key, GetContentTypeInternal(),
                         (mWriteState == eNotWriting || (mWriteLevel > 1)));
   } else {
     rv = mParser->Parse(aText,
-                        key, mContentType,
+                        key, GetContentTypeInternal(),
                         (mWriteState == eNotWriting || (mWriteLevel > 1)));
   }
 
