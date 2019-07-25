@@ -574,7 +574,7 @@ pref("dom.storage.default_quota",      5120);
 pref("dom.send_after_paint_to_content", false);
 
 
-pref("dom.min_timeout_value", 10);
+pref("dom.min_timeout_value", 4);
 
 pref("dom.min_background_timeout_value", 1000);
 
