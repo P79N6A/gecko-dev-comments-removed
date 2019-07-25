@@ -819,7 +819,7 @@ nsHttpChannel::ProcessFailedSSLConnect(PRUint32 httpStatus)
     nsresult rv;
     switch (httpStatus) 
     {
-    case 300: case 301: case 302: case 303: case 307:
+    case 300: case 301: case 302: case 303: case 307: case 308:
         
         
         
@@ -1043,6 +1043,7 @@ nsHttpChannel::ProcessResponse()
     case 301:
     case 302:
     case 307:
+    case 308:
     case 303:
 #if 0
     case 305: 
