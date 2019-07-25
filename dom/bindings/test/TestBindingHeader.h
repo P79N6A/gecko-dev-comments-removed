@@ -295,6 +295,14 @@ public:
   void SetAttributeRenamedTo(int8_t, ErrorResult&);
 
   
+  void PassDictionary(const Dict&, ErrorResult&);
+  void PassOptionalDictionary(const Optional<Dict>&, ErrorResult&);
+  void PassNullableDictionary(const Nullable<Dict>&, ErrorResult&);
+  void PassOptionalNullableDictionary(const Optional<Nullable<Dict> >&, ErrorResult&);
+  void PassOtherDictionary(const GrandparentDict&, ErrorResult&);
+  void PassSequenceOfDictionaries(const Sequence<Dict>&, ErrorResult&);
+
+  
   bool GetImplementedProperty(ErrorResult&);
   void SetImplementedProperty(bool, ErrorResult&);
   void ImplementedMethod(ErrorResult&);
