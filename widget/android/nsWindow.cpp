@@ -132,7 +132,7 @@ nsWindow::LogWindow(nsWindow *win, int index, int indent)
 {
     char spaces[] = "                    ";
     spaces[indent < 20 ? indent : 20] = 0;
-    ALOG("%s [% 2d] 0x%08x [parent 0x%08x] [% 3d,% 3d % 3dx% 3d] vis %d type %d",
+    ALOG("%s [% 2d] 0x%08x [parent 0x%08x] [% 3d,% 3dx% 3d,% 3d] vis %d type %d",
          spaces, index, (intptr_t)win, (intptr_t)win->mParent,
          win->mBounds.x, win->mBounds.y,
          win->mBounds.width, win->mBounds.height,
@@ -287,8 +287,6 @@ nsWindow::SetParent(nsIWidget *aNewParent)
     if ((nsIWidget*)mParent == aNewParent)
         return NS_OK;
 
-    
-    
     
     
     if (mParent)
