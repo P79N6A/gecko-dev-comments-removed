@@ -128,18 +128,25 @@ BrowserRootActor.prototype = {
 
 
   watchWindow: function BRA_watchWindow(aWindow) {
-    aWindow.getBrowser().tabContainer.addEventListener("TabClose",
-                                                       this.onTabClosed,
-                                                       false);
+    this.getTabContainer(aWindow).addEventListener("TabClose",
+                                                   this.onTabClosed,
+                                                   false);
   },
 
   
 
 
   unwatchWindow: function BRA_unwatchWindow(aWindow) {
-    aWindow.getBrowser().tabContainer.removeEventListener("TabClose",
-                                                          this.onTabClosed);
+    this.getTabContainer(aWindow).removeEventListener("TabClose",
+                                                      this.onTabClosed);
     this.exitTabActor(aWindow);
+  },
+
+  
+
+
+  getTabContainer: function BRA_getTabContainer(aWindow) {
+    return aWindow.getBrowser().tabContainer;
   },
 
   

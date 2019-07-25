@@ -122,14 +122,11 @@ var shell = {
                 .sessionHistory = Cc["@mozilla.org/browser/shistory;1"]
                                     .createInstance(Ci.nsISHistory);
 
-    
-    
-    
-    
-    
-    window.addEventListener('keydown', this, true);
-    window.addEventListener('keypress', this, true);
-    window.addEventListener('keyup', this, true);
+    ['keydown', 'keypress', 'keyup'].forEach((function listenKey(type) {
+      window.addEventListener(type, this, false, true);
+      window.addEventListener(type, this, true, true);
+    }).bind(this));
+
     window.addEventListener('MozApplicationManifest', this);
     window.addEventListener('mozfullscreenchange', this);
     window.addEventListener('sizemodechange', this);
@@ -168,9 +165,11 @@ var shell = {
   },
 
   stop: function shell_stop() {
-    window.removeEventListener('keydown', this, true);
-    window.removeEventListener('keypress', this, true);
-    window.removeEventListener('keyup', this, true);
+    ['keydown', 'keypress', 'keyup'].forEach((function unlistenKey(type) {
+      window.removeEventListener(type, this, false, true);
+      window.removeEventListener(type, this, true, true);
+    }).bind(this));
+
     window.removeEventListener('MozApplicationManifest', this);
     window.removeEventListener('mozfullscreenchange', this);
     window.removeEventListener('sizemodechange', this);
@@ -181,66 +180,15 @@ var shell = {
 #endif
   },
 
-  
-  
-  
-  filterHardwareKeys: function shell_filterHardwareKeys(evt) {
-    var type;
-    switch (evt.keyCode) {
-      case evt.DOM_VK_HOME:         
-        type = 'home-button';
-        break;
-      case evt.DOM_VK_SLEEP:        
-        type = 'sleep-button';
-        break;
-      case evt.DOM_VK_PAGE_UP:      
-        type = 'volume-up-button';
-        break;
-      case evt.DOM_VK_PAGE_DOWN:    
-        type = 'volume-down-button';
-        break;
-      case evt.DOM_VK_ESCAPE:       
-        type = 'back-button';
-        break;
-      case evt.DOM_VK_CONTEXT_MENU: 
-        type = 'menu-button';
-        break;
-      default:                      
-        return;  
-    }
+  forwardKeyToContent: function shell_forwardKeyToContent(evt) {
+    let content = shell.contentBrowser.contentWindow;
+    let generatedEvent = content.document.createEvent('KeyboardEvent');
+    generatedEvent.initKeyEvent(evt.type, true, true, evt.view, evt.ctrlKey,
+                                evt.altKey, evt.shiftKey, evt.metaKey,
+                                evt.keyCode, evt.charCode);
 
-    
-    
-    evt.stopImmediatePropagation();
-    evt.preventDefault(); 
-
-    
-    
-    switch (evt.type) {
-      case 'keydown':
-        type = type + '-press';
-        break;
-      case 'keyup':
-        type = type + '-release';
-        break;
-      case 'keypress':
-        return;
-    }
-  
-    
-    
-    
-    
-    
-    
-    
-    if (type !== this.lastHardwareButtonEventType) {
-      this.lastHardwareButtonEventType = type;
-      this.sendChromeEvent({type: type});
-    }
+    content.document.documentElement.dispatchEvent(generatedEvent);
   },
-  
-  lastHardwareButtonEventType: null, 
 
   handleEvent: function shell_handleEvent(evt) {
     let content = this.contentBrowser.contentWindow;
@@ -248,8 +196,17 @@ var shell = {
       case 'keydown':
       case 'keyup':
       case 'keypress':
-        this.filterHardwareKeys(evt);
+        
+        
+        let rootContentEvt = (evt.target.ownerDocument.defaultView == content);
+        if (!rootContentEvt && evt.eventPhase == evt.CAPTURING_PHASE &&
+            evt.keyCode == evt.DOM_VK_HOME) {
+          this.forwardKeyToContent(evt);
+          evt.preventDefault();
+          evt.stopImmediatePropagation();
+        }
         break;
+
       case 'mozfullscreenchange':
         
         
@@ -315,9 +272,6 @@ var shell = {
     let event = content.document.createEvent('CustomEvent');
     event.initCustomEvent(type, true, true, details ? details : {});
     content.dispatchEvent(event);
-  },
-  sendChromeEvent: function shell_sendChromeEvent(details) {
-    this.sendEvent(getContentWindow(), "mozChromeEvent", details);
   }
 };
 
@@ -356,7 +310,7 @@ nsBrowserAccess.prototype = {
 Services.obs.addObserver(function onSystemMessage(subject, topic, data) {
   let msg = JSON.parse(data);
   let origin = Services.io.newURI(msg.manifest, null, null).prePath;
-  shell.sendChromeEvent({
+  shell.sendEvent(shell.contentBrowser.contentWindow, 'mozChromeEvent', {
     type: 'open-app',
     url: msg.uri,
     origin: origin,
@@ -461,22 +415,12 @@ var AlertsHelper = {
     return id;
   },
 
-  showAlertNotification: function alert_showAlertNotification(imageUrl,
-                                                              title,
-                                                              text,
-                                                              textClickable,
-                                                              cookie,
-                                                              alertListener,
-                                                              name)
-  {
+  showAlertNotification: function alert_showAlertNotification(imageUrl, title, text, textClickable,
+                                                              cookie, alertListener, name) {
     let id = this.registerListener(cookie, alertListener);
-    shell.sendChromeEvent({
-      type: "desktop-notification",
-      id: id,
-      icon: imageUrl,
-      title: title,
-      text: text
-    });
+    let content = shell.contentBrowser.contentWindow;
+    shell.sendEvent(content, "mozChromeEvent", { type: "desktop-notification", id: id, icon: imageUrl,
+                                                 title: title, text: text } );
   }
 }
 
@@ -512,6 +456,7 @@ var WebappsHelper = {
   },
 
   observe: function webapps_observe(subject, topic, data) {
+    let content = shell.contentBrowser.contentWindow;
     let json = JSON.parse(data);
     switch(topic) {
       case "webapps-launch":
@@ -520,7 +465,7 @@ var WebappsHelper = {
             return;
 
           let manifest = new DOMApplicationManifest(aManifest, json.origin);
-          shell.sendChromeEvent({
+          shell.sendEvent(content, "mozChromeEvent", {
             "type": "webapps-launch",
             "url": manifest.fullLaunchPath(json.startPoint),
             "origin": json.origin
@@ -529,11 +474,7 @@ var WebappsHelper = {
         break;
       case "webapps-ask-install":
         let id = this.registerInstaller(json);
-        shell.sendChromeEvent({
-          type: "webapps-ask-install",
-          id: id,
-          app: json.app
-        });
+        shell.sendEvent(content, "mozChromeEvent", { type: "webapps-ask-install", id: id, app: json.app } );
         break;
     }
   }
@@ -544,6 +485,7 @@ function startDebugger() {
   if (!DebuggerServer.initialized) {
     
     DebuggerServer.init(function () { return true; });
+    DebuggerServer.addBrowserActors();
     DebuggerServer.addActors('chrome://browser/content/dbg-browser-actors.js');
   }
 
@@ -588,28 +530,16 @@ window.addEventListener('ContentStart', function ss_onContentStart() {
       context.drawWindow(window, 0, 0, width, height,
                          'rgb(255,255,255)', flags);
 
-      shell.sendChromeEvent({
-        type: 'take-screenshot-success',
-        file: canvas.mozGetAsFile('screenshot', 'image/png')
+      shell.sendEvent(content, 'mozChromeEvent', {
+          type: 'take-screenshot-success',
+          file: canvas.mozGetAsFile('screenshot', 'image/png')
       });
     } catch (e) {
       dump('exception while creating screenshot: ' + e + '\n');
-      shell.sendChromeEvent({
+      shell.sendEvent(content, 'mozChromeEvent', {
         type: 'take-screenshot-error',
         error: String(e)
       });
     }
   });
 });
-
-Services.obs.addObserver(function ContentHandler(subject, topic, data) {
-  let handler = JSON.parse(data);
-  new MozActivity({
-    name: 'view',
-    data: {
-      type: handler.type,
-      url: handler.url
-    }
-  });
-}, 'content-handler', false);
-
