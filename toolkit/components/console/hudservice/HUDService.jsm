@@ -724,19 +724,21 @@ NetworkPanel.prototype =
 
 
 
+      let row = doc.createElement("tr");
       let textNode = doc.createTextNode(key + ":");
-      let span = doc.createElement("span");
-      span.setAttribute("class", "property-name");
-      span.appendChild(textNode);
-      parent.appendChild(span);
+      let th = doc.createElement("th");
+      th.setAttribute("scope", "row");
+      th.setAttribute("class", "property-name");
+      th.appendChild(textNode);
+      row.appendChild(th);
 
       textNode = doc.createTextNode(sortedList[key]);
-      span = doc.createElement("span");
-      span.setAttribute("class", "property-value");
-      span.appendChild(textNode);
-      parent.appendChild(span);
+      let td = doc.createElement("td");
+      td.setAttribute("class", "property-value");
+      td.appendChild(textNode);
+      row.appendChild(td);
 
-      parent.appendChild(doc.createElement("br"));
+      parent.appendChild(row);
     }
   },
 
@@ -1969,7 +1971,7 @@ HUD_SERVICE.prototype =
 
     let panel = netPanel.panel;
     panel.openPopup(aNode, "after_pointer", 0, 0, false, false);
-    panel.sizeTo(350, 400);
+    panel.sizeTo(450, 500);
     aHttpActivity.panels.push(Cu.getWeakReference(netPanel));
     return netPanel;
   },
