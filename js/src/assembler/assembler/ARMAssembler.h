@@ -148,11 +148,9 @@ namespace JSC {
         ARMAssembler() { }
 #endif
 
-        static unsigned int const maxPoolSlots = 512;
-
         typedef ARMRegisters::RegisterID RegisterID;
         typedef ARMRegisters::FPRegisterID FPRegisterID;
-        typedef AssemblerBufferWithConstantPool<maxPoolSlots * sizeof(ARMWord), 4, 4, 4, ARMAssembler> ARMBuffer;
+        typedef AssemblerBufferWithConstantPool<2048, 4, 4, ARMAssembler> ARMBuffer;
         typedef SegmentedVector<int, 64> Jumps;
 
         unsigned char *buffer() const { return m_buffer.buffer(); }
@@ -206,8 +204,7 @@ namespace JSC {
             STMDB = 0x09200000,
             LDMIA = 0x08b00000,
             B = 0x0a000000,
-            BL = 0x0b000000,
-            NOP = 0x01a00000    
+            BL = 0x0b000000
 #if WTF_ARM_ARCH_VERSION >= 5 || defined(__ARM_ARCH_4T__)
            ,BX = 0x012fff10
 #endif
@@ -320,19 +317,6 @@ namespace JSC {
         {
             ASSERT ( ((op2 & ~OP2_IMM) <= 0xfff) || (((op2 & ~OP2_IMMh) <= 0xfff)) );
             m_buffer.putInt(op | RN(rn) | RD(rd) | op2);
-        }
-
-        
-        
-        
-        
-        
-        ARMWord getOp2RotLSL(int lsl)
-        {
-            ASSERT((lsl >= 0) && (lsl <= 24));
-            ASSERT(!(lsl % 2));
-
-            return (-(lsl/2) & 0xf) << 8;
         }
 
         void and_r(int rd, int rn, ARMWord op2, Condition cc = AL)
@@ -987,180 +971,23 @@ namespace JSC {
 
         
 
-        
-        
-        
-        static void putLDRLiteral(ARMWord* ldr, Condition cc, int rd, ARMWord* literal)
-        {
-            ptrdiff_t   offset = getApparentPCOffset(ldr, literal);
-            ASSERT((rd >= 0) && (rd <= 15));
-
-            if (offset >= 0) {
-                ASSERT(!(offset & ~0xfff));
-                *ldr = cc | DT_UP | 0x051f0000 | (rd << 12) | (offset & 0xfff);
-            } else {
-                offset = -offset;
-                ASSERT(!(offset & ~0xfff));
-                *ldr = cc |         0x051f0000 | (rd << 12) | (offset & 0xfff);
-            }
-        }
-
-        
-        
-        
-        static bool tryPutImmediateBranch(ARMWord * insn, Condition cc, ARMWord value, bool pic=false)
-        {
-            if (value & 0x1) {
-                
-                return false;
-            }
-
-            if (pic) {
-                
-                
-                return false;
-            }
-
-            ptrdiff_t offset = getApparentPCOffset(insn, value);
-
-            
-            ASSERT(!(offset & 0x3));
-            ASSERT(!(value & 0x3));
-
-            if (value == reinterpret_cast<ARMWord>(insn+1)) {
-                
-                
-                *insn = cc | NOP;
-                return true;
-            } else if ((offset >= -33554432) && (offset <= 33554428)) {
-                
-                
-                ASSERT(!((offset/4) & 0xff000000) || !((-offset/4) & 0xff000000));
-                *insn = cc | B | ((offset/4) & 0x00ffffff);
-                return true;
-            }
-
-            return false;
-        }
-
-        
-        
-        
-        
-        
-        
-        
-        
-        static bool tryPutImmediateMove(ARMWord * insn, Condition cc, ARMWord value, int rd, bool pic=false)
-        {
-            if (rd == 15) {
-                
-                return tryPutImmediateBranch(insn, cc, value, pic);
-            }
-
-            ARMWord op2;
-
-#if WTF_ARM_ARCH_VERSION >= 7
-            
-            op2 = getImm16Op2(value);
-            if (op2 != INVALID_IMM) {
-                ASSERT(!(op2 & 0xfff0f000));
-                *insn = cc | MOVW | RD(rd) | op2;
-                return true;
-            }
-#endif
-            
-            op2 = getOp2(value);
-            if (op2 != INVALID_IMM) {
-                ASSERT((op2 & 0xfffff000) == OP2_IMM);
-                *insn = cc | MOV | RD(rd) | op2;
-                return true;
-            }
-            
-            op2 = getOp2(~value);
-            if (op2 != INVALID_IMM) {
-                ASSERT((op2 & 0xfffff000) == OP2_IMM);
-                *insn = cc | MVN | RD(rd) | op2;
-                return true;
-            }
-            
-            if (!pic) {
-                
-                op2 = getOp2(getApparentPCOffset(insn, value));
-                if (op2 != INVALID_IMM) {
-                    ASSERT((op2 & 0xfffff000) == OP2_IMM);
-                    *insn = cc | ADD | RD(rd) | RN(15) | op2;
-                    return true;
-                }
-                
-                op2 = getOp2(-getApparentPCOffset(insn, value));
-                if (op2 != INVALID_IMM) {
-                    ASSERT((op2 & 0xfffff000) == OP2_IMM);
-                    *insn = cc | SUB | RD(rd) | RN(15) | op2;
-                    return true;
-                }
-            }
-            
-            return false;
-        }
-
-        
-        
-        
-        
-        
-        
-        static ARMWord* tryGetLdrImmAddress(ARMWord* insn)
+        static ARMWord* getLdrImmAddress(ARMWord* insn)
         {
 #if WTF_CPU_ARM && WTF_ARM_ARCH_VERSION >= 5
             
             if ((*insn & 0x0f7f0000) != 0x051f0000) {
                 
-                if((*insn & 0x0ffffff0) != 0x012fff30) {
-                    return NULL;
-                }
-                ARMWord blx_reg = *insn & 0xf;
-                
-                
+                ASSERT((*insn & 0x012fff30) == 0x012fff30);
                 insn--;
-                ARMWord ldr_reg = (*insn >> 12) & 0xf;
-
-                
-                
-                
-                if (blx_reg != ldr_reg) {
-                    return NULL;
-                }
             }
 #endif
             
-            if((*insn & 0x0f7f0000) != 0x051f0000) {
-                return NULL;
-            }
+            ASSERT((*insn & 0x0f7f0000) == 0x051f0000);
 
-            
-            ASSERT(!(*insn & 0x3));
-
-            
-            ARMWord *   addr = getApparentPC(insn);
-            ptrdiff_t   offset = (*insn & SDT_OFFSET_MASK) / 4;
-            return addr + ((*insn & DT_UP) ? (offset) : (-offset));
-        }
-
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        static ARMWord* getLdrImmAddress(ARMWord* insn)
-        {
-            ARMWord * addr = tryGetLdrImmAddress(insn);
-            ASSERT(addr);
-            return addr;
+            ARMWord addr = reinterpret_cast<ARMWord>(insn) + DefaultPrefetching * sizeof(ARMWord);
+            if (*insn & DT_UP)
+                return reinterpret_cast<ARMWord*>(addr + (*insn & SDT_OFFSET_MASK));
+            return reinterpret_cast<ARMWord*>(addr - (*insn & SDT_OFFSET_MASK));
         }
 
         static ARMWord* getLdrImmAddressOnPool(ARMWord* insn, uint32_t* constPool)
@@ -1173,502 +1000,21 @@ namespace JSC {
             return getLdrImmAddress(insn);
         }
 
-        
-        
-        static inline bool checkIsLDRLiteral(ARMWord const * insn)
+        static void patchPointerInternal(intptr_t from, void* to)
         {
-            return (*insn & 0x0f7f0000) == 0x051f0000;
+            ARMWord* insn = reinterpret_cast<ARMWord*>(from);
+            ARMWord* addr = getLdrImmAddress(insn);
+            *addr = reinterpret_cast<ARMWord>(to);
         }
 
-        static bool checkIsLDRLiteral(ARMWord const * insn, int * rt, Condition * cc)
+        static ARMWord patchConstantPoolLoad(ARMWord load, ARMWord value)
         {
-            *rt = (*insn >> 12) & 0xf;
-            *cc = getCondition(*insn);
-            return checkIsLDRLiteral(insn);
+            value = (value << 1) + 1;
+            ASSERT(!(value & ~0xfff));
+            return (load & ~0xfff) | value;
         }
 
-        
-        
-        static bool checkIsImmediateMoveOrBranch(ARMWord const * insn, int * rd, Condition * cc)
-        {
-            if (((*insn & 0x0ff00000) == MOVW)                      ||
-                ((*insn & 0x0ff00000) == (MOV | OP2_IMM))           ||
-                ((*insn & 0x0ff00000) == (MVN | OP2_IMM))           ||
-                ((*insn & 0x0fff0000) == (ADD | OP2_IMM | RN(15)))  ||  
-                ((*insn & 0x0fff0000) == (SUB | OP2_IMM | RN(15))))     
-            {
-                
-                
-                
-                
-                *cc = getCondition(*insn);
-                *rd = (*insn >> 12) & 0xf;
-                return true;
-            }
-
-            if ((*insn & 0x0f000000) == B) {
-                
-                *cc = getCondition(*insn);
-                *rd = 15;
-                return true;
-            }
-
-            if ((*insn & 0x0ff00000) == MOV) {
-                
-                if (((*insn >> 12) & 0xf) == (*insn & 0xf)) {
-                    
-                    
-                    *cc = getCondition(*insn);
-                    *rd = 15;
-                    return true;
-                }
-            }
-
-#if WTF_ARM_ARCH_VERSION >= 7
-            if ((*insn & 0x0fffffff) == 0x0320f000) {
-                
-                
-                *cc = getCondition(*insn);
-                *rd = 15;
-                return true;
-            }
-#endif
-
-            return false;
-        }
-
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-
-        
-
-        static inline ptrdiff_t getPoolSlotOffsetNext(ARMWord slot)
-        {
-            return ((slot >> 10) & 0x7ff) - 1023;               
-        }
-
-        static inline ptrdiff_t getPoolSlotOffsetPrev(ARMWord slot)
-        {
-            return ((slot >> 21) & 0x7ff) - 1023;               
-        }
-
-        static inline ptrdiff_t getPoolSlotOffsetLDR(ARMWord slot)
-        {
-            return (slot & 0x3ff) - 1023 - DefaultPrefetching;  
-        }
-
-        
-
-        static inline ARMWord setPoolSlotOffsetNext(ARMWord slot, ptrdiff_t offset)
-        {
-            offset += 1023;                         
-            ASSERT(!(offset & ~0x7ff));
-            return (slot & ~(0x7ff << 10)) | (offset << 10);
-        }
-
-        static inline ARMWord setPoolSlotOffsetPrev(ARMWord slot, ptrdiff_t offset)
-        {
-            offset += 1023;                         
-            ASSERT(!(offset & ~0x7ff));
-            return (slot & ~(0x7ff << 21)) | (offset << 21);
-        }
-
-        static inline ARMWord setPoolSlotOffsetLDR(ARMWord slot, ptrdiff_t offset)
-        {
-            offset += 1023 + DefaultPrefetching;    
-            ASSERT(!(offset & ~0x3ff));
-            return (slot & ~0x3ff) | offset;
-        }
-
-        
-
-        static inline ARMWord * getNextEmptyPoolSlot(ARMWord * current)
-        {
-            ptrdiff_t offset = getPoolSlotOffsetNext(*current);
-            
-            return (offset) ? (current + offset) : (NULL);
-        }
-
-        static inline ARMWord * getPrevEmptyPoolSlot(ARMWord * current)
-        {
-            ptrdiff_t offset = getPoolSlotOffsetPrev(*current);
-            
-            ASSERT(offset != 1024);
-            return current + offset;
-        }
-
-        static inline ARMWord * getLDROfPoolSlot(ARMWord * current)
-        {
-            ptrdiff_t offset = getPoolSlotOffsetLDR(*current);
-            
-            ASSERT(offset || ((*current & 0xffe003ff) == 0xffe003ff));
-            return current + offset;
-        }
-
-        
-        
-        
-        static ARMWord * findLiteralPool(ARMWord * ldr)
-        {
-            ARMWord * pool;
-
-            static ARMWord *  lastPool = NULL;  
-            static ARMWord *  lastLDR = NULL;   
-
-            if (lastPool) {
-                
-                
-                
-                
-                
-                
-                if ((ldr >= lastLDR) && (ldr < lastPool)) {
-                    
-                    
-                    
-                    ASSERT((*lastPool & 0xffe003ff) == 0xffe003ff);
-                    return lastPool;
-                }
-            }
-
-            
-            
-            
-            
-            for (pool = ldr+1; (*pool & 0xffe003ff) != 0xffe003ff; pool++) {
-                
-                
-                ASSERT(getApparentPCOffset(ldr, pool) < (ptrdiff_t)(maxPoolSlots * sizeof(ARMWord)));
-
-                if (lastLDR && (pool == lastLDR)) {
-                    
-                    
-                    
-                    
-                    lastLDR = ldr;
-                    ASSERT((*lastPool & 0xffe003ff) == 0xffe003ff);
-                    ASSERT(getApparentPCOffset(ldr, lastPool) < (ptrdiff_t)(maxPoolSlots * sizeof(ARMWord)));
-                    return lastPool;
-                }
-            }
-
-            lastPool = pool;
-            lastLDR = ldr;
-
-            ASSERT(pool);
-            return pool;
-        }
-
-        
-        
-        
-        
-        
-        
-        
-        static void setEmptyPoolSlot(ARMWord * slot, ARMWord * prev, ARMWord * ldr)
-        {
-            
-            
-            if (!prev) {
-                prev = findLiteralPool(ldr);
-            }
-            ARMWord * next = getNextEmptyPoolSlot(prev);
-            if (!next) {
-                
-                next = slot;
-            }
-
-            ASSERT(slot > ldr); 
-            ASSERT(prev > ldr); 
-
-            
-            ARMWord     prev_scratch = *prev;
-            prev_scratch = setPoolSlotOffsetNext(*prev, slot-prev);
-            ASSERT((slot-prev) == getPoolSlotOffsetNext(prev_scratch));
-
-            ARMWord     next_scratch = *next;
-            next_scratch = setPoolSlotOffsetPrev(*next, slot-next);
-            ASSERT((slot-next) == getPoolSlotOffsetPrev(next_scratch));
-
-            ARMWord     slot_scratch = 0;
-            slot_scratch = setPoolSlotOffsetPrev(slot_scratch, prev-slot);
-            slot_scratch = setPoolSlotOffsetNext(slot_scratch, next-slot);
-            slot_scratch = setPoolSlotOffsetLDR(slot_scratch, ldr-slot);
-
-            ASSERT((prev-slot) == getPoolSlotOffsetPrev(slot_scratch));
-            ASSERT((next-slot) == getPoolSlotOffsetNext(slot_scratch));
-            ASSERT((ldr-slot)  == getPoolSlotOffsetLDR(slot_scratch));
-
-            
-            
-            
-            *prev = prev_scratch;
-            *next = next_scratch;
-            *slot = slot_scratch;
-
-            
-            ASSERT(getNextEmptyPoolSlot(prev) == slot);
-            ASSERT(getPrevEmptyPoolSlot(slot) == prev);
-            ASSERT(getLDROfPoolSlot(slot) == ldr);
-            if (slot != next) {
-                ASSERT(getNextEmptyPoolSlot(slot) == next);
-                ASSERT(getPrevEmptyPoolSlot(next) == slot);
-                ASSERT(getPoolSlotOffsetLDR(*next));
-            } else {
-                ASSERT(!getNextEmptyPoolSlot(slot));
-            }
-        }
-
-        
-        
-        
-        static inline void clearEmptyPoolSlot(ARMWord * slot)
-        {
-            ARMWord * prev = getPrevEmptyPoolSlot(slot);
-            ARMWord * next = getNextEmptyPoolSlot(slot);
-
-            if (!next) {
-                
-                *prev = setPoolSlotOffsetNext(*prev, 0);
-
-                ASSERT(!getNextEmptyPoolSlot(prev));
-            } else {
-                
-                *next = setPoolSlotOffsetPrev(*next, prev-next);
-                *prev = setPoolSlotOffsetNext(*prev, next-prev);
-
-                ASSERT(getNextEmptyPoolSlot(prev) == next);
-                ASSERT(getPrevEmptyPoolSlot(next) == prev);
-            }
-        }
-
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        static ARMWord * findEmptyPoolSlot(ARMWord * base, ARMWord * ldr)
-        {
-            ARMWord * slot = base;
-            if (!slot) {
-                slot = findLiteralPool(ldr);
-            }
-            ASSERT(slot);
-            while (getLDROfPoolSlot(slot) != ldr) {
-                ARMWord * next = getNextEmptyPoolSlot(slot);
-                slot = next;
-
-                
-                
-                ASSERT(slot);
-            }
-            return slot;
-        }
-
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        static void patchLiteral32(ARMWord * from, void* to, bool repatchable=true, bool pic=false)
-        {
-            ASSERT(!(reinterpret_cast<ARMWord>(from) & 0x3));  
-
-            ARMWord *   slot = tryGetLdrImmAddress(from);
-
-            Condition   cc;
-            int         rt;
-
-            if (slot) {
-                
-                
-                
-                
-                
-
-                if (checkIsLDRLiteral(from, &rt, &cc)) {
-                    
-                    
-                    
-
-                    
-                    if (tryPutImmediateMove(from, cc, reinterpret_cast<ARMWord>(to), rt, pic)) {
-                        
-                        
-                        ExecutableAllocator::cacheFlush(from, sizeof(ARMWord));
-                        if (repatchable) {
-                            setEmptyPoolSlot(slot, NULL, from);
-                        }
-                        return;
-                    }
-                }
-
-                
-                *slot = reinterpret_cast<ARMWord>(to);
-                return;
-            } else {
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                ASSERT(repatchable);
-
-                if (checkIsImmediateMoveOrBranch(from, &rt, &cc)) {
-                    
-                    
-                    
-                    
-                    if (tryPutImmediateMove(from, cc, reinterpret_cast<ARMWord>(to), rt, pic)) {
-                        
-                        ExecutableAllocator::cacheFlush(from, sizeof(ARMWord));
-                        return;
-                    }
-
-                    
-                    
-                    slot = findEmptyPoolSlot(NULL, from);
-                    clearEmptyPoolSlot(slot);
-                    putLDRLiteral(from, cc, rt, slot);
-                    ExecutableAllocator::cacheFlush(from, sizeof(ARMWord));
-                    *slot = reinterpret_cast<ARMWord>(to);
-                    return;
-                }
-            }
-
-            
-            
-            
-            ASSERT_NOT_REACHED();
-            return;
-        }
-
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        static ARMWord patchConstantPoolLoad(ARMWord load, ARMWord index)
-        {
-            index = (index << 1) + 1;
-            ASSERT(!(index & ~0xfff));
-            return (load & ~0xfff) | index;
-        }
-
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        static void patchConstantPoolLoad(void* load, void* pool);
+        static void patchConstantPoolLoad(void* loadAddr, void* constPoolAddr);
 
         
 
@@ -1678,9 +1024,7 @@ namespace JSC {
                            ISPFX "##linkPointer     ((%p + %#x)) points to ((%p))\n",
                            code, from.m_offset, to);
 
-            ASSERT(!(from.m_offset & 0x3));
-            ARMWord offset = from.m_offset / sizeof(ARMWord);
-            patchLiteral32(reinterpret_cast<ARMWord*>(code) + offset, to);
+            patchPointerInternal(reinterpret_cast<intptr_t>(code) + from.m_offset, to);
         }
 
         static void repatchInt32(void* from, int32_t to)
@@ -1689,7 +1033,7 @@ namespace JSC {
                            ISPFX "##repatchInt32    ((%p)) holds ((%p))\n",
                            from, to);
 
-            patchLiteral32(reinterpret_cast<ARMWord*>(from), reinterpret_cast<void*>(to));
+            patchPointerInternal(reinterpret_cast<intptr_t>(from), reinterpret_cast<void*>(to));
         }
 
         static void repatchPointer(void* from, void* to)
@@ -1698,7 +1042,7 @@ namespace JSC {
                            ISPFX "##repatchPointer  ((%p)) points to ((%p))\n",
                            from, to);
 
-            patchLiteral32(reinterpret_cast<ARMWord*>(from), to);
+            patchPointerInternal(reinterpret_cast<intptr_t>(from), to);
         }
 
         static void repatchLoadPtrToLEA(void* from)
@@ -1745,9 +1089,8 @@ namespace JSC {
             js::JaegerSpew(js::JSpew_Insns,
                            ISPFX "##linkJump        ((%p + %#x)) jumps to ((%p))\n",
                            code, from.m_offset, to);
-            ASSERT(!(from.m_offset & 0x3));
-            ARMWord offset = from.m_offset / sizeof(ARMWord);
-            patchLiteral32(reinterpret_cast<ARMWord*>(code) + offset, to);
+
+            patchPointerInternal(reinterpret_cast<intptr_t>(code) + from.m_offset, to);
         }
 
         static void relinkJump(void* from, void* to)
@@ -1756,7 +1099,7 @@ namespace JSC {
                            ISPFX "##relinkJump      ((%p)) jumps to ((%p))\n",
                            from, to);
 
-            patchLiteral32(reinterpret_cast<ARMWord*>(from), to);
+            patchPointerInternal(reinterpret_cast<intptr_t>(from), to);
         }
 
         static bool canRelinkJump(void* from, void* to)
@@ -1770,9 +1113,7 @@ namespace JSC {
                            ISPFX "##linkCall        ((%p + %#x)) jumps to ((%p))\n",
                            code, from.m_offset, to);
 
-            ASSERT(!(from.m_offset & 0x3));
-            ARMWord offset = from.m_offset / sizeof(ARMWord);
-            patchLiteral32(reinterpret_cast<ARMWord*>(code) + offset, to);
+            patchPointerInternal(reinterpret_cast<intptr_t>(code) + from.m_offset, to);
         }
 
         static void relinkCall(void* from, void* to)
@@ -1781,7 +1122,7 @@ namespace JSC {
                            ISPFX "##relinkCall      ((%p)) jumps to ((%p))\n",
                            from, to);
 
-            patchLiteral32(reinterpret_cast<ARMWord*>(from), to);
+            patchPointerInternal(reinterpret_cast<intptr_t>(from), to);
         }
 
         
@@ -1865,45 +1206,19 @@ namespace JSC {
             return AL | B | (offset & BRANCH_MASK);
         }
 
-        static ARMWord placeConstantPoolMarker()
-        {
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            return 0xffefffff;
-        }
-
     private:
         
         static char const * nameGpReg(int reg)
         {
+            ASSERT(reg <= 16);
+            ASSERT(reg >= 0);
             static char const * names[] = {
                 "r0", "r1", "r2", "r3",
                 "r4", "r5", "r6", "r7",
                 "r8", "r9", "r10", "r11",
                 "ip", "sp", "lr", "pc"
             };
-            
-            if ((reg >= 0) && (reg <= 15)) {
-                return names[reg];
-            } else {
-                ASSERT(reg <= 15);
-                ASSERT(reg >= 0);
-                return "!!";
-            }
+            return names[reg];
         }
 
         static char const * nameFpRegD(int reg)
@@ -2055,88 +1370,68 @@ namespace JSC {
                     IPFX   "%-15s %s, %s\n", MAYBE_PAD, mnemonic, nameGpReg(r), op2_fmt);
         }
 
-        static ARMWord RM(int reg)
+        ARMWord RM(int reg)
         {
             ASSERT(reg <= ARMRegisters::pc);
             return reg;
         }
 
-        static ARMWord RS(int reg)
+        ARMWord RS(int reg)
         {
             ASSERT(reg <= ARMRegisters::pc);
             return reg << 8;
         }
 
-        static ARMWord RD(int reg)
+        ARMWord RD(int reg)
         {
             ASSERT(reg <= ARMRegisters::pc);
             return reg << 12;
         }
 
-        static ARMWord RN(int reg)
+        ARMWord RN(int reg)
         {
             ASSERT(reg <= ARMRegisters::pc);
             return reg << 16;
         }
 
-        static ARMWord DD(int reg)
+        ARMWord DD(int reg)
         {
             ASSERT(reg <= ARMRegisters::d31);
             
             return ((reg << 12) | (reg << 18)) & 0x0040f000;
         }
 
-        static ARMWord DN(int reg)
+        ARMWord DN(int reg)
         {
             ASSERT(reg <= ARMRegisters::d31);
             
             return ((reg << 16) | (reg << 3)) & 0x000f0080;
         }
 
-        static ARMWord DM(int reg)
+        ARMWord DM(int reg)
         {
             ASSERT(reg <= ARMRegisters::d31);
             
             return ((reg << 1) & 0x20) | (reg & 0xf);
         }
 
-        static ARMWord SD(int reg)
+        ARMWord SD(int reg)
         {
             ASSERT(reg <= ARMRegisters::d31);
             
             return ((reg << 11) | (reg << 22)) & 0x0040f000;
         }
 
-        static ARMWord SM(int reg)
+        ARMWord SM(int reg)
         {
             ASSERT(reg <= ARMRegisters::d31);
             
             return ((reg << 5) & 0x20) | ((reg >> 1) & 0xf);
         }
 
-        static inline ARMWord getConditionalField(ARMWord i)
+        static ARMWord getConditionalField(ARMWord i)
         {
             return i & 0xf0000000;
-        }
-
-        static inline Condition getCondition(ARMWord i)
-        {
-            return static_cast<Condition>(getConditionalField(i));
-        }
-
-        static inline ARMWord * getApparentPC(ARMWord * insn)
-        {
-            return insn + DefaultPrefetching;
-        }
-
-        static inline ptrdiff_t getApparentPCOffset(ARMWord * insn, ARMWord * target)
-        {
-            return reinterpret_cast<intptr_t>(target) - reinterpret_cast<intptr_t>(getApparentPC(insn));
-        }
-
-        static inline ptrdiff_t getApparentPCOffset(ARMWord * insn, ARMWord target_addr)
-        {
-            return getApparentPCOffset(insn, reinterpret_cast<ARMWord*>(target_addr));
         }
 
         int genInt(int reg, ARMWord imm, bool positive);
@@ -2357,6 +1652,24 @@ namespace JSC {
             
             
             emitInst(static_cast<ARMWord>(cc) | FSQRTD, dd, 0, dm);
+        }
+
+        void fdtr_u(bool isLoad, int dd, int rn, ARMWord offset, Condition cc = AL)
+        {
+            char const * ins = isLoad ? "vldr.f64" : "vstr.f64";
+            js::JaegerSpew(js::JSpew_Insns,
+                    IPFX   "%-15s %s, [%s, #+%u]\n", MAYBE_PAD, ins, nameFpRegD(dd), nameGpReg(rn), offset);
+            ASSERT(offset <= 0xff);
+            emitInst(static_cast<ARMWord>(cc) | FDTR | DT_UP | (isLoad ? DT_LOAD : 0), dd, rn, offset);
+        }
+
+        void fdtr_d(bool isLoad, int dd, int rn, ARMWord offset, Condition cc = AL)
+        {
+            char const * ins = isLoad ? "vldr.f64" : "vstr.f64";
+            js::JaegerSpew(js::JSpew_Insns,
+                    IPFX   "%-15s %s, [%s, #-%u]\n", MAYBE_PAD, ins, nameFpRegD(dd), nameGpReg(rn), offset);
+            ASSERT(offset <= 0xff);
+            emitInst(static_cast<ARMWord>(cc) | FDTR | (isLoad ? DT_LOAD : 0), dd, rn, offset);
         }
 
         void fmsr_r(int dd, int rn, Condition cc = AL)
