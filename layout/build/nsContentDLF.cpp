@@ -88,6 +88,7 @@ NS_NewContentViewer(nsIContentViewer** aResult);
 
 
 
+
 static const char* const gHTMLTypes[] = {
   TEXT_HTML,
   TEXT_PLAIN,

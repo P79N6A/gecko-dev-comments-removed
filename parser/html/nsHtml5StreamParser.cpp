@@ -866,6 +866,12 @@ nsHtml5StreamParser::OnStartRequest(nsIRequest* aRequest, nsISupports* aContext)
   mTokenizer->start();
   mExecutor->Start();
   mExecutor->StartReadingFromStage();
+
+  if (mMode == PLAIN_TEXT) {
+    mTreeBuilder->StartPlainText();
+    mTokenizer->StartPlainText();
+  }
+
   
 
 
@@ -891,7 +897,7 @@ nsHtml5StreamParser::OnStartRequest(nsIRequest* aRequest, nsISupports* aContext)
   
   
   
-  mReparseForbidden = !(mMode == NORMAL);
+  mReparseForbidden = !(mMode == NORMAL || mMode == PLAIN_TEXT);
 
   nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(mRequest, &rv));
   if (NS_SUCCEEDED(rv)) {

@@ -37,6 +37,12 @@
 
 nsAutoPtr<nsHtml5Highlighter> mViewSource;
 
+
+
+
+
+void StartPlainText();
+
 void EnableViewSource(nsHtml5Highlighter* aHighlighter);
 
 bool FlushViewSource();
