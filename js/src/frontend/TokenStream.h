@@ -467,7 +467,7 @@ class TokenStream
     
     JSVersion versionNumber() const { return VersionNumber(version); }
     JSVersion versionWithFlags() const { return version; }
-    bool allowsXML() const { return !isStrictMode(); }
+    bool allowsXML() const { return allowXML && !isStrictMode(); }
     bool hasMoarXML() const { return moarXML || VersionShouldParseXML(versionNumber()); }
     void setMoarXML(bool enabled) { moarXML = enabled; }
 
@@ -797,6 +797,7 @@ class TokenStream
     bool                maybeEOL[256];       
     bool                maybeStrSpecial[256];
     JSVersion           version;        
+    bool                allowXML;       
     bool                moarXML;        
     JSContext           *const cx;
     JSPrincipals        *const originPrincipals;
