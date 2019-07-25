@@ -402,6 +402,15 @@ void NotifyAlarmFired();
 
 bool SetAlarm(PRInt32 aSeconds, PRInt32 aNanoseconds);
 
+
+
+
+
+
+
+
+void SetProcessPriority(int aPid, hal::ProcessPriority aPriority);
+
 } 
 } 
 
