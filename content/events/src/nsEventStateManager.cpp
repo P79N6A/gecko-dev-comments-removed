@@ -3827,6 +3827,8 @@ nsEventStateManager::GenerateDragDropEnterExit(nsPresContext* aPresContext,
   switch(aEvent->message) {
   case NS_DRAGDROP_OVER:
     {
+      
+      
       if (mLastDragOverFrame != mCurrentTarget) {
         
         nsCOMPtr<nsIContent> lastContent;
@@ -3837,14 +3839,17 @@ nsEventStateManager::GenerateDragDropEnterExit(nsPresContext* aPresContext,
           
           mLastDragOverFrame->GetContentForEvent(aPresContext, aEvent, getter_AddRefs(lastContent));
 
-          FireDragEnterOrExit(aPresContext, aEvent, NS_DRAGDROP_LEAVE_SYNTH,
-                              targetContent, lastContent, mLastDragOverFrame);
           FireDragEnterOrExit(aPresContext, aEvent, NS_DRAGDROP_EXIT_SYNTH,
                               targetContent, lastContent, mLastDragOverFrame);
         }
 
         FireDragEnterOrExit(aPresContext, aEvent, NS_DRAGDROP_ENTER,
                             lastContent, targetContent, mCurrentTarget);
+
+        if (mLastDragOverFrame) {
+          FireDragEnterOrExit(aPresContext, aEvent, NS_DRAGDROP_LEAVE_SYNTH,
+                              targetContent, lastContent, mLastDragOverFrame);
+        }
 
         mLastDragOverFrame = mCurrentTarget;
       }
@@ -3858,9 +3863,9 @@ nsEventStateManager::GenerateDragDropEnterExit(nsPresContext* aPresContext,
         nsCOMPtr<nsIContent> lastContent;
         mLastDragOverFrame->GetContentForEvent(aPresContext, aEvent, getter_AddRefs(lastContent));
 
-        FireDragEnterOrExit(aPresContext, aEvent, NS_DRAGDROP_LEAVE_SYNTH,
-                            nsnull, lastContent, mLastDragOverFrame);
         FireDragEnterOrExit(aPresContext, aEvent, NS_DRAGDROP_EXIT_SYNTH,
+                            nsnull, lastContent, mLastDragOverFrame);
+        FireDragEnterOrExit(aPresContext, aEvent, NS_DRAGDROP_LEAVE_SYNTH,
                             nsnull, lastContent, mLastDragOverFrame);
 
         mLastDragOverFrame = nsnull;

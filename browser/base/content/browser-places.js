@@ -848,7 +848,7 @@ var PlacesMenuDNDHandler = {
 
 
 
-  onDragLeave: function PMDH_onDragLeave(event) {
+  onDragExit: function PMDH_onDragExit(event) {
     
     if (!this._isStaticContainer(event.target))
       return;
