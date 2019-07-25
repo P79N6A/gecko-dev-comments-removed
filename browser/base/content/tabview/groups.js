@@ -1580,13 +1580,26 @@ window.Groups = {
 			this.setActiveGroup(newGroup);
 
     } else {
-    	Utils.log('creating a new group');
-			new Group([tabItem], {});
+      this.positionNewTabAtBottom(tabItem);
 		}
   },
 
+	
+	
+	
+	
+	
 	positionNewTabAtBottom: function(tabItem) {
 		let windowBounds = Items.getSafeWindowBounds();
+		
+		let itemBounds = new Rect(
+		  windowBounds.right - TabItems.tabWidth,
+		  windowBounds.bottom - TabItems.tabHeight,
+		  TabItems.tabWidth, 
+		  TabItems.tabHeight
+		);
+		
+    tabItem.setBounds(itemBounds);
 	},
 
   
@@ -1611,7 +1624,7 @@ window.Groups = {
     this._activeGroup = group;
     this.updateTabBarForActiveGroup();
 		
-    this.getActiveOrphanTab(null);
+    this.setActiveOrphanTab(null);
   },
 
   
