@@ -46,7 +46,7 @@ class nsHTMLElement : public nsGenericHTMLElement,
                       public nsIDOMHTMLElement
 {
 public:
-  nsHTMLElement(already_AddRefed<nsINodeInfo> aNodeInfo);
+  nsHTMLElement(already_AddRefed<nsNodeInfo> aNodeInfo);
   virtual ~nsHTMLElement();
 
   
@@ -80,7 +80,7 @@ public:
     return nsGenericHTMLElement::SetInnerHTML(aInnerHTML);
   }
 
-  nsresult Clone(nsINodeInfo* aNodeInfo, nsINode** aResult) const;
+  nsresult Clone(nsNodeInfo* aNodeInfo, nsINode** aResult) const;
 
   virtual nsXPCClassInfo* GetClassInfo();
 };
@@ -88,13 +88,13 @@ public:
 
 
 nsGenericHTMLElement*
-NS_NewHTMLElement(already_AddRefed<nsINodeInfo> aNodeInfo,
+NS_NewHTMLElement(already_AddRefed<nsNodeInfo> aNodeInfo,
                   FromParser aFromParser)
 {
   return new nsHTMLElement(aNodeInfo);
 }
 
-nsHTMLElement::nsHTMLElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+nsHTMLElement::nsHTMLElement(already_AddRefed<nsNodeInfo> aNodeInfo)
   : nsGenericHTMLElement(aNodeInfo)
 {
 }

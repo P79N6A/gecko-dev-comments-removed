@@ -192,7 +192,7 @@ NS_INTERFACE_MAP_END_INHERITING(nsSVGSVGElementBase)
 
 
 
-nsSVGSVGElement::nsSVGSVGElement(already_AddRefed<nsINodeInfo> aNodeInfo,
+nsSVGSVGElement::nsSVGSVGElement(already_AddRefed<nsNodeInfo> aNodeInfo,
                                  FromParser aFromParser)
   : nsSVGSVGElementBase(aNodeInfo),
     mCoordCtx(nsnull),
@@ -213,10 +213,10 @@ nsSVGSVGElement::nsSVGSVGElement(already_AddRefed<nsINodeInfo> aNodeInfo,
 
 
 nsresult
-nsSVGSVGElement::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const
+nsSVGSVGElement::Clone(nsNodeInfo *aNodeInfo, nsINode **aResult) const
 {
   *aResult = nsnull;
-  nsCOMPtr<nsINodeInfo> ni = aNodeInfo;
+  nsRefPtr<nsNodeInfo> ni = aNodeInfo;
   nsSVGSVGElement *it = new nsSVGSVGElement(ni.forget(), NOT_FROM_PARSER);
 
   nsCOMPtr<nsINode> kungFuDeathGrip = it;

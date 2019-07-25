@@ -42,7 +42,7 @@
 #include "nsISupports.h"
 
 class nsIContent;
-class nsINodeInfo;
+class nsNodeInfo;
 
 
 #define NS_IXTFSERVICE_IID                             \
@@ -55,7 +55,7 @@ public:
 
     
     virtual nsresult CreateElement(nsIContent** aResult,
-                                   already_AddRefed<nsINodeInfo> aNodeInfo) = 0;
+                                   already_AddRefed<nsNodeInfo> aNodeInfo) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIXTFService, NS_IXTFSERVICE_IID)

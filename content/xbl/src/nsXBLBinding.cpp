@@ -651,7 +651,7 @@ nsXBLBinding::GenerateAnonymousContent()
         children->Item(i, getter_AddRefs(node));
         childContent = do_QueryInterface(node);
 
-        nsINodeInfo *ni = childContent->NodeInfo();
+        nsNodeInfo *ni = childContent->NodeInfo();
         nsIAtom *localName = ni->NameAtom();
         if (ni->NamespaceID() != kNameSpaceID_XUL ||
             (localName != nsGkAtoms::observes &&
@@ -730,7 +730,7 @@ nsXBLBinding::GenerateAnonymousContent()
                 
                 
 
-                nsINodeInfo *ni = childContent->NodeInfo();
+                nsNodeInfo *ni = childContent->NodeInfo();
                 nsIAtom *localName = ni->NameAtom();
                 if (ni->NamespaceID() != kNameSpaceID_XUL ||
                     (localName != nsGkAtoms::observes &&

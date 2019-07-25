@@ -46,8 +46,8 @@ class nsSVGAnimateElement : public nsSVGAnimateElementBase,
 {
 protected:
   friend nsresult NS_NewSVGAnimateElement(nsIContent **aResult,
-                                          already_AddRefed<nsINodeInfo> aNodeInfo);
-  nsSVGAnimateElement(already_AddRefed<nsINodeInfo> aNodeInfo);
+                                          already_AddRefed<nsNodeInfo> aNodeInfo);
+  nsSVGAnimateElement(already_AddRefed<nsNodeInfo> aNodeInfo);
 
   nsSMILAnimationFunction mAnimationFunction;
 
@@ -62,7 +62,7 @@ public:
   NS_FORWARD_NSIDOMSVGANIMATIONELEMENT(nsSVGAnimateElementBase::)
   
   
-  virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
+  virtual nsresult Clone(nsNodeInfo *aNodeInfo, nsINode **aResult) const;
 
   
   virtual nsSMILAnimationFunction& AnimationFunction();
@@ -90,7 +90,7 @@ NS_INTERFACE_MAP_END_INHERITING(nsSVGAnimateElementBase)
 
 
 
-nsSVGAnimateElement::nsSVGAnimateElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+nsSVGAnimateElement::nsSVGAnimateElement(already_AddRefed<nsNodeInfo> aNodeInfo)
   : nsSVGAnimateElementBase(aNodeInfo)
 {
 }

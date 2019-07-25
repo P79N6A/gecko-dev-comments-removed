@@ -92,11 +92,11 @@ public:
   
   
 
-  nsIContent(already_AddRefed<nsINodeInfo> aNodeInfo)
+  nsIContent(already_AddRefed<nsNodeInfo> aNodeInfo)
     : nsINode(aNodeInfo)
   {
     NS_ASSERTION(mNodeInfo,
-                 "No nsINodeInfo passed to nsIContent, PREPARE TO CRASH!!!");
+                 "No nsNodeInfo passed to nsIContent, PREPARE TO CRASH!!!");
   }
 #endif 
 
@@ -303,7 +303,7 @@ public:
 
 
 
-  nsINodeInfo *NodeInfo() const
+  nsNodeInfo *NodeInfo() const
   {
     return mNodeInfo;
   }
@@ -357,7 +357,7 @@ public:
 
 
 
-  virtual already_AddRefed<nsINodeInfo> GetExistingAttrNameFromQName(const nsAString& aStr) const = 0;
+  virtual already_AddRefed<nsNodeInfo> GetExistingAttrNameFromQName(const nsAString& aStr) const = 0;
 
   
 

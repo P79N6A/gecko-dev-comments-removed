@@ -48,7 +48,6 @@
 
 class nsIAtom;
 class nsIDocument;
-class nsINodeInfo;
 class nsNodeInfo;
 class nsIPrincipal;
 class nsIURI;
@@ -84,31 +83,31 @@ public:
   
 
 
-  already_AddRefed<nsINodeInfo> GetNodeInfo(nsIAtom *aName, nsIAtom *aPrefix,
-                                            PRInt32 aNamespaceID,
-                                            PRUint16 aNodeType,
-                                            nsIAtom* aExtraName = nsnull);
+  already_AddRefed<nsNodeInfo> GetNodeInfo(nsIAtom *aName, nsIAtom *aPrefix,
+                                           PRInt32 aNamespaceID,
+                                           PRUint16 aNodeType,
+                                           nsIAtom* aExtraName = nsnull);
   nsresult GetNodeInfo(const nsAString& aName, nsIAtom *aPrefix,
                        PRInt32 aNamespaceID, PRUint16 aNodeType,
-                       nsINodeInfo** aNodeInfo);
+                       nsNodeInfo** aNodeInfo);
   nsresult GetNodeInfo(const nsAString& aName, nsIAtom *aPrefix,
                        const nsAString& aNamespaceURI, PRUint16 aNodeType,
-                       nsINodeInfo** aNodeInfo);
+                       nsNodeInfo** aNodeInfo);
 
   
 
 
-  already_AddRefed<nsINodeInfo> GetTextNodeInfo();
+  already_AddRefed<nsNodeInfo> GetTextNodeInfo();
 
   
 
 
-  already_AddRefed<nsINodeInfo> GetCommentNodeInfo();
+  already_AddRefed<nsNodeInfo> GetCommentNodeInfo();
 
   
 
 
-  already_AddRefed<nsINodeInfo> GetDocumentNodeInfo();     
+  already_AddRefed<nsNodeInfo> GetDocumentNodeInfo();     
 
   
 
@@ -162,9 +161,9 @@ private:
                             
                             
   nsCOMPtr<nsIPrincipal> mDefaultPrincipal; 
-  nsINodeInfo *mTextNodeInfo; 
-  nsINodeInfo *mCommentNodeInfo; 
-  nsINodeInfo *mDocumentNodeInfo; 
+  nsNodeInfo *mTextNodeInfo; 
+  nsNodeInfo *mCommentNodeInfo; 
+  nsNodeInfo *mDocumentNodeInfo; 
   nsBindingManager* mBindingManager; 
                                      
                                      
