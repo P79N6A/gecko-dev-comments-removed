@@ -529,6 +529,12 @@ IonBuilder::inspectOpcode(JSOp op)
       case JSOP_GETGNAME:
         return jsop_getgname(info().getAtom(pc));
 
+      case JSOP_BINDGNAME:
+        return pushConstant(ObjectValue(*script->global()));
+
+      case JSOP_SETGNAME:
+        return jsop_setgname(info().getAtom(pc));
+
       case JSOP_UINT24:
         return pushConstant(Int32Value(GET_UINT24(pc)));
 
@@ -2098,3 +2104,75 @@ IonBuilder::jsop_getgname(JSAtom *atom)
     return pushTypeBarrier(load, types, barrier);
 }
 
+bool
+IonBuilder::jsop_setgname(JSAtom *atom)
+{
+    jsid id = ATOM_TO_JSID(atom);
+
+    bool canSpecialize;
+    types::TypeSet *propertyTypes = oracle->globalPropertyWrite(script, pc, id, &canSpecialize);
+
+    
+    if (!canSpecialize)
+        return abort("SETGNAME unable to specialize property access");
+
+    JSObject *globalObj = script->global();
+    JS_ASSERT(globalObj->isNative());
+
+    
+    
+    const js::Shape *shape = globalObj->nativeLookup(cx, id);
+    if (!shape)
+        return abort("SETGNAME property not found on global");
+    if (shape->isMethod())
+        return abort("SETGNAME found a method");
+    if (!shape->hasDefaultSetter())
+        return abort("SETGNAME found a setter");
+    if (!shape->writable())
+        return abort("SETGNAME non-writable property");
+    if (!shape->hasSlot())
+        return abort("SETGNAME property has no slot");
+
+    if (propertyTypes && propertyTypes->isOwnProperty(cx, globalObj->getType(cx), true))
+        return abort("SETGNAME property is non-configurable, non-enumerable or non-writable");
+
+    MInstruction *global = MConstant::New(ObjectValue(*globalObj));
+    current->add(global);
+
+    
+    
+    
+    if (!propertyTypes) {
+        MGuardShape *guard = MGuardShape::New(global, shape);
+        current->add(guard);
+    }
+
+    JS_ASSERT(shape->slot >= globalObj->numFixedSlots());
+
+    MSlots *slots = MSlots::New(global);
+    current->add(slots);
+
+    MDefinition *value = current->pop();
+    MStoreSlot *store = MStoreSlot::New(slots, shape->slot - globalObj->numFixedSlots(), value);
+    current->add(store);
+
+    if (!resumeAfter(store))
+        return false;
+
+    
+    MDefinition *pushedGlobal = current->pop();
+    JS_ASSERT(&pushedGlobal->toConstant()->value().toObject() == globalObj);
+
+    
+    
+    
+    
+    if (propertyTypes && !globalObj->getSlot(shape->slot).isUndefined()) {
+        JSValueType knownType = propertyTypes->getKnownTypeTag(cx);
+        if (knownType != JSVAL_TYPE_UNKNOWN)
+            store->setSlotType(MIRTypeFromValueType(knownType));
+    }
+
+    current->push(value);
+    return true;
+}

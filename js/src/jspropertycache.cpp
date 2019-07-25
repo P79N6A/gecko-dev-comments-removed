@@ -70,7 +70,7 @@ PropertyCache::fill(JSContext *cx, JSObject *obj, uintN scopeIndex, JSObject *po
 
 
 
-    if (!pobj->nativeContains(*shape)) {
+    if (!pobj->nativeContains(cx, *shape)) {
         PCMETER(oddfills++);
         return JS_NO_PROP_CACHE_FILL;
     }
@@ -155,7 +155,8 @@ PropertyCache::fill(JSContext *cx, JSObject *obj, uintN scopeIndex, JSObject *po
 
 
 
-            if (!pobj->generic() && shape->hasDefaultGetter() && pobj->containsSlot(shape->slot) &&
+            if (false && 
+                !pobj->generic() && shape->hasDefaultGetter() && pobj->containsSlot(shape->slot) &&
                 !cx->typeInferenceEnabled()) {
                 const Value &v = pobj->nativeGetSlot(shape->slot);
                 JSObject *funobj;
@@ -176,7 +177,7 @@ PropertyCache::fill(JSContext *cx, JSObject *obj, uintN scopeIndex, JSObject *po
                     if (!pobj->branded()) {
                         PCMETER(brandfills++);
 #ifdef DEBUG_notme
-                        JSFunction *fun = GET_FUNCTION_PRIVATE(cx, JSVAL_TO_OBJECT(v));
+                        JSFunction *fun = JSVAL_TO_OBJECT(v)->getFunctionPrivate();
                         JSAutoByteString funNameBytes;
                         if (const char *funName = GetFunctionNameBytes(cx, fun, &funNameBytes)) {
                             fprintf(stderr,
@@ -399,7 +400,7 @@ PropertyCache::fullTest(JSContext *cx, jsbytecode *pc, JSObject **objp, JSObject
         jsid id = ATOM_TO_JSID(atom);
 
         id = js_CheckForStringIndex(id);
-        JS_ASSERT(pobj->nativeContains(id));
+        JS_ASSERT(pobj->nativeContains(cx, id));
 #endif
         *pobjp = pobj;
         return NULL;
@@ -498,7 +499,7 @@ PropertyCache::purgeForScript(JSContext *cx, JSScript *script)
     JS_ASSERT(!cx->runtime->gcRunning);
 
     for (PropertyCacheEntry *entry = table; entry < table + SIZE; entry++) {
-        if (JS_UPTRDIFF(entry->kpc, script->code) < script->length) {
+        if (UnsignedPtrDiff(entry->kpc, script->code) < script->length) {
             entry->kpc = NULL;
 #ifdef DEBUG
             entry->kshape = entry->vcap = 0;
