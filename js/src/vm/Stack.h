@@ -745,7 +745,6 @@ class StackFrame
 
 
 
-
     bool getValidCalleeObject(JSContext *cx, Value *vp);
 
     CallReceiver callReceiver() const {
