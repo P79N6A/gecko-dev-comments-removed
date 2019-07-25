@@ -486,107 +486,12 @@ function openFeedbackPage()
   openUILinkIn("http://input.mozilla.com/feedback", "tab");
 }
 
-
-#ifdef MOZ_UPDATER
-
-
-
-function checkForUpdates()
-{
-  var um = 
-      Components.classes["@mozilla.org/updates/update-manager;1"].
-      getService(Components.interfaces.nsIUpdateManager);
-  var prompter = 
-      Components.classes["@mozilla.org/updates/update-prompt;1"].
-      createInstance(Components.interfaces.nsIUpdatePrompt);
-
-  
-  
-  
-  if (um.activeUpdate && um.activeUpdate.state == "pending")
-    prompter.showUpdateDownloaded(um.activeUpdate);
-  else
-    prompter.checkForUpdates();
-}
-#endif
-
-#ifdef MOZ_UPDATER
-
-
-
-function setupCheckForUpdates(checkForUpdates, aStringBundle)
-{
-  var updates = 
-      Components.classes["@mozilla.org/updates/update-service;1"].
-      getService(Components.interfaces.nsIApplicationUpdateService);
-  var um = 
-      Components.classes["@mozilla.org/updates/update-manager;1"].
-      getService(Components.interfaces.nsIUpdateManager);
-
-  
-  
-  var canCheckForUpdates = updates.canCheckForUpdates;
-  checkForUpdates.setAttribute("disabled", !canCheckForUpdates);
-  if (!canCheckForUpdates)
-    return; 
-
-  var activeUpdate = um.activeUpdate;
-
-  
-  
-  function getStringWithUpdateName(key) {
-    if (activeUpdate && activeUpdate.name)
-      return aStringBundle.formatStringFromName(key, [activeUpdate.name], 1);
-    return aStringBundle.GetStringFromName(key + "Fallback");
-  }
-
-  
-  var key = "default";
-  if (activeUpdate) {
-    switch (activeUpdate.state) {
-    case "downloading":
-      
-      
-      
-      key = updates.isDownloading ? "downloading" : "resume";
-      break;
-    case "pending":
-      
-      
-      key = "pending";
-      break;
-    }
-  }
-  checkForUpdates.label = getStringWithUpdateName("updatesItem_" + key);
-  checkForUpdates.accessKey = aStringBundle.
-                              GetStringFromName("updatesItem_" + key + ".accesskey");
-  if (um.activeUpdate && updates.isDownloading)
-    checkForUpdates.setAttribute("loading", "true");
-  else
-    checkForUpdates.removeAttribute("loading");
-}
-#endif
-
 function buildHelpMenu()
 {
   
   
   if (typeof safebrowsing != "undefined")
     safebrowsing.setReportPhishingMenu();
-
-#ifdef XP_MACOSX
-#ifdef MOZ_UPDATER
-  var checkForUpdates = document.getElementById("checkForUpdates");
-  var browserBundle = document.getElementById("bundle_browser").stringBundle;
-  setupCheckForUpdates(checkForUpdates, browserBundle);
-#else  
-  
-  document.getElementById("updateSeparator").hidden = true;
-#endif
-#else
-  
-  document.getElementById("updateSeparator").hidden = true;
-#endif
 }
 
 function isElementVisible(aElement)
