@@ -120,6 +120,7 @@ GLXLibrary::EnsureInitialized()
         { (PRFuncPtr*) &xGetCurrentContext, { "glXGetCurrentContext", NULL } },
         
         { (PRFuncPtr*) &xQueryExtensionsString, { "glXQueryExtensionsString", NULL } },
+        { (PRFuncPtr*) &xGetClientString, { "glXGetClientString", NULL } },
         { (PRFuncPtr*) &xQueryServerString, { "glXQueryServerString", NULL } },
         { NULL, { NULL } }
     };
@@ -171,11 +172,27 @@ GLXLibrary::EnsureInitialized()
     }
 
     Display *display = DefaultXDisplay();
+    PRBool ignoreBlacklist = PR_GetEnv("MOZ_GLX_IGNORE_BLACKLIST") != nsnull;
+    if (!ignoreBlacklist) {
+        
+        
+        
+        const char *clientVendor = xGetClientString(display, GLX_VENDOR);
+        if (clientVendor && strcmp(clientVendor, "ATI") == 0) {
+            printf("[GLX] The ATI proprietary libGL.so.1 is currently "
+                   "blacklisted to avoid crashes that happen in some "
+                   "situations. If you would like to bypass this, set the "
+                   "MOZ_GLX_IGNORE_BLACKLIST environment variable.\n");
+            return PR_FALSE;
+        }
+    }
+
     int screen = DefaultScreen(display);
-    const char *vendor;
+    const char *serverVendor;
     const char *serverVersionStr;
     const char *extensionsStr;
 
+    
     
     
     
@@ -188,15 +205,14 @@ GLXLibrary::EnsureInitialized()
             return PR_FALSE;
         }
 
-        vendor = xQueryServerString(display, screen, GLX_VENDOR);
+        serverVendor = xQueryServerString(display, screen, GLX_VENDOR);
         serverVersionStr = xQueryServerString(display, screen, GLX_VERSION);
 
-        PRBool IsDriverBlacklisted = !vendor ||   
+        PRBool IsDriverBlacklisted = !serverVendor ||   
                                      !serverVersionStr ||
-                                     strcmp(vendor, "NVIDIA Corporation");
+                                     strcmp(serverVendor, "NVIDIA Corporation");
 
-        if (IsDriverBlacklisted &&
-            !PR_GetEnv("MOZ_GLX_IGNORE_BLACKLIST"))
+        if (IsDriverBlacklisted && !ignoreBlacklist)
         {
           printf("[GLX] your GL driver is currently blocked. If you would like to bypass this, "
                   "define the MOZ_GLX_IGNORE_BLACKLIST environment variable.\n");
@@ -245,9 +261,11 @@ GLXLibrary::EnsureInitialized()
         return PR_FALSE;
     }
 
-    gIsATI = vendor && DoesVendorStringMatch(vendor, "ATI");
-    gIsChromium = (vendor && DoesVendorStringMatch(vendor, "Chromium")) ||
-        (serverVersionStr && DoesVendorStringMatch(serverVersionStr, "Chromium"));
+    gIsATI = serverVendor && DoesVendorStringMatch(serverVendor, "ATI");
+    gIsChromium = (serverVendor &&
+                   DoesVendorStringMatch(serverVendor, "Chromium")) ||
+        (serverVersionStr &&
+         DoesVendorStringMatch(serverVersionStr, "Chromium"));
 
     mInitialized = PR_TRUE;
     return PR_TRUE;
