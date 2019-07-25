@@ -598,6 +598,12 @@ nsPluginStreamListenerPeer::OnStartRequest(nsIRequest *request,
           
           if (window->window) {
             ((nsPluginNativeWindow*)window)->CallSetWindow(pluginInstCOMPtr);
+          } else {
+            PRBool useAsyncPainting = PR_FALSE;
+            mPluginInstance->UseAsyncPainting(&useAsyncPainting);
+            if (useAsyncPainting) {
+              mPluginInstance->AsyncSetWindow(window);
+            }
           }
         }
       }
