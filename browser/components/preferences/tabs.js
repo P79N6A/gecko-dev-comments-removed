@@ -62,6 +62,25 @@ var gTabsPane = {
 
 
 
+
+
+#ifdef XP_WIN
+  
+
+
+  init: function () {
+    const Cc = Components.classes;
+    const Ci = Components.interfaces;
+    try {
+      let sysInfo = Cc["@mozilla.org/system-info;1"].
+                    getService(Ci.nsIPropertyBag2);
+      let ver = parseFloat(sysInfo.getProperty("version"));
+      let showTabsInTaskbar = document.getElementById("showTabsInTaskbar");
+      showTabsInTaskbar.hidden = ver < 6.1;
+    } catch (ex) {}
+  },
+#endif
+
   
 
 
