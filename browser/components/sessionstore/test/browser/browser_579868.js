@@ -39,9 +39,8 @@ function test() {
   let tab2 = gBrowser.addTab("about:credits");
   tab1.addEventListener("load", mainPart, true);
   waitForExplicitFinish();
-  
+
   function mainPart() {
-    
     
     let newTabState = '{"entries":[{"url":"about:robots"}],"pinned":true,"userTypedValue":"Hello World!"}';
     let ss = Cc["@mozilla.org/browser/sessionstore;1"]
@@ -50,17 +49,14 @@ function test() {
 
     
     gBrowser.unpinTab(tab1);
-    tab1.linkedBrowser.userTypedValue = null;
 
     is(tab1.linkedBrowser.__SS_data._tabStillLoading, true, 
        "_tabStillLoading should be true.");
-    
+
     
     gBrowser.removeTab(tab1);
     let savedState = JSON.parse(ss.getClosedTabData(window))[0].state;
     isnot(savedState.pinned, true, "Pinned should not be true");
-    isnot(savedState.userTypedValue, "Hello World!",
-          "userTypedValue should not be Hello World!");
     tab1 = ss.undoCloseTab(window, 0);
 
     isnot(tab1.pinned, true, "Should not be pinned");
