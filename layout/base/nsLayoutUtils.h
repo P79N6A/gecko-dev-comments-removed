@@ -66,6 +66,7 @@ class nsClientRectList;
 #include "nsCSSPseudoElements.h"
 
 class nsBlockFrame;
+class gfxDrawable;
 
 
 
@@ -906,6 +907,29 @@ public:
                             const nsPoint&       aAnchor,
                             const nsRect&        aDirty,
                             PRUint32             aImageFlags);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static void DrawPixelSnapped(nsIRenderingContext* aRenderingContext,
+                               gfxDrawable*         aDrawable,
+                               gfxPattern::GraphicsFilter aFilter,
+                               const nsRect&        aDest,
+                               const nsRect&        aFill,
+                               const nsPoint&       aAnchor,
+                               const nsRect&        aDirty);
 
   
 
