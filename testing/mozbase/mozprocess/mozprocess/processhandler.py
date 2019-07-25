@@ -14,14 +14,18 @@ import time
 import traceback
 from Queue import Queue
 from datetime import datetime, timedelta
-
 __all__ = ['ProcessHandlerMixin', 'ProcessHandler']
+
+
+MOZPROCESS_DEBUG = os.getenv("MOZPROCESS_DEBUG")
 
 if mozinfo.isWin:
     import ctypes, ctypes.wintypes, msvcrt
-    from ctypes import sizeof, addressof, c_ulong, byref, POINTER, WinError
+    from ctypes import sizeof, addressof, c_ulong, byref, POINTER, WinError, c_longlong
     import winprocess
-    from qijo import JobObjectAssociateCompletionPortInformation, JOBOBJECT_ASSOCIATE_COMPLETION_PORT
+    from qijo import JobObjectAssociateCompletionPortInformation,\
+    JOBOBJECT_ASSOCIATE_COMPLETION_PORT, JobObjectExtendedLimitInformation,\
+    JOBOBJECT_BASIC_LIMIT_INFORMATION, JOBOBJECT_EXTENDED_LIMIT_INFORMATION, IO_COUNTERS
 
 class ProcessHandlerMixin(object):
     """Class which represents a process to be executed."""
@@ -212,6 +216,35 @@ class ProcessHandlerMixin(object):
                                                           )
 
                         
+                        
+                        jbli = JOBOBJECT_BASIC_LIMIT_INFORMATION(
+                                                c_longlong(0), 
+                                                c_longlong(0), 
+                                                winprocess.JOB_OBJECT_LIMIT_BREAKAWAY_OK,
+                                                0, 
+                                                0, 
+                                                0, 
+                                                None, 
+                                                0, 
+                                                0, 
+                                                )
+
+                        iocntr = IO_COUNTERS()
+                        jeli = JOBOBJECT_EXTENDED_LIMIT_INFORMATION(
+                                                jbli, 
+                                                iocntr,    
+                                                0,    
+                                                0,    
+                                                0,    
+                                                0)    
+                                                
+                        winprocess.SetInformationJobObject(self._job,
+                                                           JobObjectExtendedLimitInformation,
+                                                           addressof(jeli),
+                                                           sizeof(jeli)
+                                                           )
+
+                        
                         winprocess.AssignProcessToJobObject(self._job, int(hp))
 
                         
@@ -255,6 +288,9 @@ falling back to not using job objects for managing child processes"""
                 self._spawned_procs = {}
                 countdowntokill = 0
 
+                if MOZPROCESS_DEBUG:
+                    print "DBG::MOZPROC Self.pid value is: %s" % self.pid
+                
                 while True:
                     msgid = c_ulong(0)
                     compkey = c_ulong(0)
@@ -296,6 +332,8 @@ falling back to not using job objects for managing child processes"""
                             break
 
                     if compkey.value == winprocess.COMPKEY_TERMINATE.value:
+                        if MOZPROCESS_DEBUG:
+                            print "DBG::MOZPROC compkeyterminate detected"
                         
                         break
 
@@ -304,6 +342,8 @@ falling back to not using job objects for managing child processes"""
                         if msgid.value == winprocess.JOB_OBJECT_MSG_ACTIVE_PROCESS_ZERO:
                             
                             
+                            if MOZPROCESS_DEBUG:
+                                print "DBG::MOZPROC job object msg active processes zero"
                             self._process_events.put({self.pid: 'FINISHED'})
                             break
                         elif msgid.value == winprocess.JOB_OBJECT_MSG_NEW_PROCESS:
@@ -312,7 +352,11 @@ falling back to not using job objects for managing child processes"""
                             
                             if pid.value != self.pid:
                                 self._spawned_procs[pid.value] = 1
+                                if MOZPROCESS_DEBUG:
+                                    print "DBG::MOZPROC new process detected with pid value: %s" % pid.value
                         elif msgid.value == winprocess.JOB_OBJECT_MSG_EXIT_PROCESS:
+                            if MOZPROCESS_DEBUG:
+                                print "DBG::MOZPROC process id %s exited normally" % pid.value
                             
                             if pid.value == self.pid and len(self._spawned_procs) > 0:
                                 
@@ -322,6 +366,8 @@ falling back to not using job objects for managing child processes"""
                                 del(self._spawned_procs[pid.value])
                         elif msgid.value == winprocess.JOB_OBJECT_MSG_ABNORMAL_EXIT_PROCESS:
                             
+                            if MOZPROCESS_DEBUG:
+                                print "DBG::MOZPROC process id %s existed abnormally" % pid.value
                             if pid.value == self.pid and len(self._spawned_procs) > 0:
                                 
                                 countdowntokill = datetime.now()
@@ -330,6 +376,8 @@ falling back to not using job objects for managing child processes"""
                                 del self._spawned_procs[pid.value]
                         else:
                             
+                            if MOZPROCESS_DEBUG:
+                                print "DBG::MOZPROC We got a message %s" % msgid.value
                             pass
 
             def _wait(self):
@@ -377,6 +425,8 @@ falling back to not using job objects for managing child processes"""
                     
                     
 
+                    if MOZPROCESS_DEBUG:
+                        print "DBG::MOZPROC NOT USING JOB OBJECTS!!!"
                     
                     if self.returncode != winprocess.STILL_ACTIVE:
                         self._cleanup()

@@ -218,23 +218,20 @@ def _extract(src, dest):
     """
     if zipfile.is_zipfile(src):
         bundle = zipfile.ZipFile(src)
-        namelist = bundle.namelist()
 
-        if hasattr(bundle, 'extractall'):
-            
-            bundle.extractall(path=dest)
-        else:
-            for name in namelist:
-                filename = os.path.realpath(os.path.join(dest, name))
-                if name.endswith('/'):
-                    os.makedirs(filename)
-                else:
-                    path = os.path.dirname(filename)
-                    if not os.path.isdir(path):
-                        os.makedirs(path)
-                    dest = open(filename, 'wb')
-                    dest.write(bundle.read(name))
-                    dest.close()
+        
+        namelist = bundle.namelist()
+        for name in bundle.namelist():
+            filename = os.path.realpath(os.path.join(dest, name))
+            if name.endswith('/'):
+                os.makedirs(filename)
+            else:
+                path = os.path.dirname(filename)
+                if not os.path.isdir(path):
+                    os.makedirs(path)
+                _dest = open(filename, 'wb')
+                _dest.write(bundle.read(name))
+                _dest.close()
 
     elif tarfile.is_tarfile(src):
         bundle = tarfile.open(src)

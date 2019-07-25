@@ -2,6 +2,8 @@
 
 
 
+
+
 import os
 import subprocess
 import sys
@@ -25,6 +27,9 @@ def make_proclaunch(aDir):
         Returns:
             the path to the proclaunch executable that is generated
     """
+    
+    
+    p = subprocess.call(["make", "-C", "iniparser"], cwd=aDir)
     p = subprocess.call(["make"], cwd=aDir)
     if sys.platform == "win32":
         exepath = os.path.join(aDir, "proclaunch.exe")
