@@ -441,7 +441,6 @@ SessionStore.prototype = {
     this._windows[aWindow.__SSID].selected = parseInt(index) + 1; 
 
     
-    
     if (aBrowser.__SS_restore) {
       let data = aBrowser.__SS_data;
       if (data.entries.length > 0) {
@@ -634,12 +633,17 @@ SessionStore.prototype = {
     let closedTab = closedTabs.splice(aIndex, 1).shift();
 
     
-    let tab = aWindow.Browser.addTab(closedTab.entries[0].url, true);
+    let tab = aWindow.Browser.addTab(closedTab.entries[closedTab.index - 1].url, true);
+
+    tab.browser.messageManager.sendAsyncMessage("WebNavigation:LoadURI", {
+      uri: closedTab.entries[closedTab.index - 1].url,
+      flags: null,
+      entries: closedTab.entries,
+      index: closedTab.index
+    });
 
     
     tab.browser.__SS_extdata = closedTab.extData;
-
-    
 
     return tab.chromeTab;
   },
