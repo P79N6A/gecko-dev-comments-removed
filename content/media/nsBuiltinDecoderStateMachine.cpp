@@ -730,6 +730,33 @@ void nsBuiltinDecoderStateMachine::SendOutputStreamData()
   }
 }
 
+void nsBuiltinDecoderStateMachine::FinishOutputStreams()
+{
+  
+  
+  nsTArray<OutputMediaStream>& streams = mDecoder->OutputStreams();
+  for (PRUint32 i = 0; i < streams.Length(); ++i) {
+    OutputMediaStream* stream = &streams[i];
+    if (!stream->mStreamInitialized) {
+      continue;
+    }
+    SourceMediaStream* mediaStream = stream->mStream;
+    if (mInfo.mHasAudio && !stream->mHaveSentFinishAudio) {
+      mediaStream->EndTrack(TRACK_AUDIO);
+      stream->mHaveSentFinishAudio = true;
+    }
+    if (mInfo.mHasVideo && !stream->mHaveSentFinishVideo) {
+      mediaStream->EndTrack(TRACK_VIDEO);
+      stream->mHaveSentFinishVideo = true;
+    }
+    
+    if (!stream->mHaveSentFinish) {
+      mediaStream->Finish();
+      stream->mHaveSentFinish = true;
+    }
+  }
+}
+
 bool nsBuiltinDecoderStateMachine::HaveEnoughDecodedAudio(PRInt64 aAmpleAudioUSecs)
 {
   mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
@@ -2008,6 +2035,10 @@ nsresult nsBuiltinDecoderStateMachine::RunStateMachine()
       StopDecodeThread();
       NS_ASSERTION(mState == DECODER_STATE_SHUTDOWN,
                    "How did we escape from the shutdown state?");
+      
+      
+      
+      FinishOutputStreams();
       
       
       

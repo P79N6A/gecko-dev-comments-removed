@@ -287,6 +287,7 @@ public:
   
   
   void SendOutputStreamData();
+  void FinishOutputStreams();
   bool HaveEnoughDecodedAudio(PRInt64 aAmpleAudioUSecs);
   bool HaveEnoughDecodedVideo();
 

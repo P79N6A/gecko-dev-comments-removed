@@ -668,10 +668,15 @@ MediaStreamGraphImpl::UpdateBufferSufficiencyState(SourceMediaStream* aStream)
     MutexAutoLock lock(aStream->mMutex);
     for (PRUint32 i = 0; i < aStream->mUpdateTracks.Length(); ++i) {
       SourceMediaStream::TrackData* data = &aStream->mUpdateTracks[i];
-      if (data->mCommands & SourceMediaStream::TRACK_CREATE) {
+      if (data->mCommands & SourceMediaStream::TRACK_END) {
+        
+        
         continue;
       }
       StreamBuffer::Track* track = aStream->mBuffer.FindTrack(data->mID);
+      
+      
+      NS_ASSERTION(!track->IsEnded(), "What is this track doing here?");
       data->mHaveEnough = track->GetEndTimeRoundDown() >= desiredEnd;
       if (!data->mHaveEnough) {
         runnables.MoveElementsFrom(data->mDispatchWhenNotEnough);

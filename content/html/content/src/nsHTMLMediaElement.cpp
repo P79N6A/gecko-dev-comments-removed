@@ -581,6 +581,12 @@ void nsHTMLMediaElement::ShutdownDecoder()
   NS_ASSERTION(mDecoder, "Must have decoder to shut down");
   mDecoder->Shutdown();
   mDecoder = nsnull;
+  
+  
+  
+  
+  
+  mOutputStreams.Clear();
 }
 
 void nsHTMLMediaElement::AbortExistingLoads()
