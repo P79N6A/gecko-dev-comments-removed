@@ -435,7 +435,9 @@ private:
       
       
       
-      mPlaces[i].sessionId = navHistory->GetNewSessionID();
+      if (mPlaces[i].sessionId <= 0) {
+        mPlaces[i].sessionId = navHistory->GetNewSessionID();
+      }
     }
   }
 
