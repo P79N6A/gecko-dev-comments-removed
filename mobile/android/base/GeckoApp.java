@@ -1507,7 +1507,8 @@ abstract public class GeckoApp
         if (tab == null)
             return;
 
-        tab.removePluginLayer(surface);
+        Layer layer = tab.removePluginLayer(surface);
+        hidePluginLayer(layer);
     }
 
     public void showSurface(Surface surface, int x, int y,
@@ -2087,7 +2088,7 @@ abstract public class GeckoApp
         Runnable r = new SessionSnapshotRunnable(null);
         GeckoAppShell.getHandler().post(r);
 
-        GeckoAppShell.sendEventToGecko(GeckoEvent.createPauseEvent());
+        GeckoAppShell.sendEventToGecko(GeckoEvent.createPauseEvent(mOwnActivityDepth));
         
         
         
@@ -2107,7 +2108,8 @@ abstract public class GeckoApp
     {
         Log.i(LOGTAG, "resume");
         if (checkLaunchState(LaunchState.GeckoRunning))
-            GeckoAppShell.onResume();
+            GeckoAppShell.sendEventToGecko(GeckoEvent.createResumeEvent(mOwnActivityDepth));
+
         
         
         super.onResume();
@@ -2156,7 +2158,7 @@ abstract public class GeckoApp
         
         
 
-        GeckoAppShell.sendEventToGecko(GeckoEvent.createStoppingEvent());
+        GeckoAppShell.sendEventToGecko(GeckoEvent.createStoppingEvent(mOwnActivityDepth));
         super.onStop();
     }
 
@@ -2173,7 +2175,7 @@ abstract public class GeckoApp
         Log.w(LOGTAG, "zerdatime " + SystemClock.uptimeMillis() + " - onStart");
 
         Log.i(LOGTAG, "start");
-        GeckoAppShell.sendEventToGecko(GeckoEvent.createStartEvent());
+        GeckoAppShell.sendEventToGecko(GeckoEvent.createStartEvent(mOwnActivityDepth));
         super.onStart();
     }
 
