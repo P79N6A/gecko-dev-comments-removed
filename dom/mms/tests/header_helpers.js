@@ -103,6 +103,52 @@ function wsp_decode_test(target, input, expect, exception) {
 
 
 
+
+
+
+
+
+function wsp_encode_test_ex(func, input, expect, exception) {
+  let data = {array: [], offset: 0};
+  do_check_throws(wsp_test_func.bind(null, func.bind(null, data), input,
+                                     expect), exception);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+function wsp_encode_test(target, input, expect, exception) {
+  let func = function encode_func(data, input) {
+    target.encode(data, input);
+
+    
+    while (data.array.length > data.offset) {
+      data.array.pop();
+    }
+
+    return data.array;
+  }
+
+  wsp_encode_test_ex(func, input, expect, exception);
+}
+
+
+
+
+
+
+
+
+
 function strToCharCodeArray(str, noAppendNull) {
   let result = [];
 

@@ -181,6 +181,33 @@ function decodeAlternatives(data, options) {
   }
 }
 
+
+
+
+
+
+
+
+
+
+
+function encodeAlternatives(data, value, options) {
+  let begin = data.offset;
+  for (let i = 3; i < arguments.length; i++) {
+    try {
+      arguments[i].encode(data, value, options);
+      return;
+    } catch (e) {
+      
+      if (i == (arguments.length - 1)) {
+        throw e;
+      }
+
+      data.offset = begin;
+    }
+  }
+}
+
 let Octet = {
   
 
@@ -246,6 +273,21 @@ let Octet = {
     }
 
     return expected;
+  },
+
+  
+
+
+
+
+
+  encode: function encode(data, octet) {
+    if (data.offset >= data.array.length) {
+      data.array.push(octet);
+      data.offset++;
+    } else {
+      data.array[data.offset++] = octet;
+    }
   },
 };
 
@@ -323,6 +365,26 @@ let Text = {
     data.offset = begin;
     return " ";
   },
+
+  
+
+
+
+
+
+
+
+  encode: function encode(data, text) {
+    if (!text) {
+      throw new CodeError("Text: empty string");
+    }
+
+    let code = text.charCodeAt(0);
+    if ((code < CTLS) || (code == DEL) || (code > 255)) {
+      throw new CodeError("Text: invalid char code " + code);
+    }
+    Octet.encode(data, code);
+  },
 };
 
 let NullTerminatedTexts = {
@@ -344,6 +406,21 @@ let NullTerminatedTexts = {
     } catch (e if e instanceof NullCharError) {
       return str;
     }
+  },
+
+  
+
+
+
+
+
+  encode: function encode(data, str) {
+    if (str) {
+      for (let i = 0; i < str.length; i++) {
+        Text.encode(data, str.charAt(i));
+      }
+    }
+    Octet.encode(data, 0);
   },
 };
 
@@ -381,6 +458,37 @@ let Token = {
 
     if (code == NUL) {
       throw new NullCharError();
+    }
+
+    throw new CodeError("Token: invalid char code " + code);
+  },
+
+  
+
+
+
+
+
+
+
+  encode: function encode(data, token) {
+    if (!token) {
+      throw new CodeError("Token: empty string");
+    }
+
+    let code = token.charCodeAt(0);
+    if ((code < ASCIIS) && (code >= CTLS)) {
+      if ((code == HT) || (code == SP)
+          || (code == 34) || (code == 40) || (code == 41) 
+          || (code == 44) || (code == 47)                 
+          || ((code >= 58) && (code <= 64))               
+          || ((code >= 91) && (code <= 93))               
+          || (code == 123) || (code == 125)) {            
+        
+      } else {
+        Octet.encode(data, token.charCodeAt(0));
+	return;
+      }
     }
 
     throw new CodeError("Token: invalid char code " + code);
@@ -464,6 +572,26 @@ let TextString = {
     data.offset = begin;
     return NullTerminatedTexts.decode(data);
   },
+
+  
+
+
+
+
+
+  encode: function encode(data, str) {
+    if (!str) {
+      Octet.encode(data, 0);
+      return;
+    }
+
+    let firstCharCode = str.charCodeAt(0);
+    if (firstCharCode >= 128) {
+      Octet.encode(data, 127);
+    }
+
+    NullTerminatedTexts.encode(data, str);
+  },
 };
 
 
@@ -488,6 +616,21 @@ let TokenText = {
     } catch (e if e instanceof NullCharError) {
       return str;
     }
+  },
+
+  
+
+
+
+
+
+  encode: function encode(data, str) {
+    if (str) {
+      for (let i = 0; i < str.length; i++) {
+        Token.encode(data, str.charAt(i));
+      }
+    }
+    Octet.encode(data, 0);
   },
 };
 
@@ -543,6 +686,22 @@ let ShortInteger = {
     }
 
     return (value & 0x7F);
+  },
+
+  
+
+
+
+
+
+
+
+  encode: function encode(data, value) {
+    if (value & 0x80) {
+      throw new CodeError("Short-integer: invalid value " + value);
+    }
+
+    Octet.encode(data, value | 0x80);
   },
 };
 
@@ -1151,6 +1310,24 @@ let ApplicationHeader = {
       name: name.toLowerCase(),
       value: value,
     };
+  },
+
+  
+
+
+
+
+
+
+
+
+  encode: function encode(data, header) {
+    if (!header.name) {
+      throw new CodeError("Application-header: empty header name");
+    }
+
+    TokenText.encode(data, header.name);
+    TextString.encode(data, header.value);
   },
 };
 
@@ -1908,6 +2085,7 @@ const EXPORTED_SYMBOLS = ALL_CONST_SYMBOLS.concat([
   "ensureHeader",
   "skipValue",
   "decodeAlternatives",
+  "encodeAlternatives",
 
   
   "Octet",
