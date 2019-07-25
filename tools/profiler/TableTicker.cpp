@@ -68,6 +68,7 @@ using namespace mozilla;
  #define snprintf _snprintf
 #endif
 
+static const int DYNAMIC_MAX_STRING = 512;
 
 mozilla::ThreadLocal<ProfileStack *> tlsStack;
 mozilla::ThreadLocal<TableTicker *> tlsTicker;
@@ -121,6 +122,7 @@ private:
   friend class ThreadProfile;
   union {
     const char* mTagData;
+    char mTagChars[sizeof(void*)];
     void* mTagPtr;
     double mTagFloat;
     Address mTagAddress;
@@ -226,6 +228,30 @@ public:
     mWritePos = mLastFlushPos;
   }
 
+  char* processDynamicTag(int readPos, int* tagsConsumed, char* tagBuff)
+  {
+    int readAheadPos = (readPos + 1) % mEntrySize;
+    int tagBuffPos = 0;
+
+    
+    bool seenNullByte = false;
+    while (readAheadPos != mLastFlushPos && !seenNullByte) {
+      (*tagsConsumed)++;
+      ProfileEntry readAheadEntry = mEntries[readAheadPos];
+      for (size_t pos = 0; pos < sizeof(void*); pos++) {
+        tagBuff[tagBuffPos] = readAheadEntry.mTagChars[pos];
+        if (tagBuff[tagBuffPos] == '\0' || tagBuffPos == DYNAMIC_MAX_STRING-2) {
+          seenNullByte = true;
+          break;
+        }
+        tagBuffPos++;
+      }
+      if (!seenNullByte)
+        readAheadPos = (readAheadPos + 1) % mEntrySize;
+    }
+    return tagBuff;
+  }
+
   friend std::ostream& operator<<(std::ostream& stream, const ThreadProfile& profile);
 
   JSObject *ToJSObject(JSContext *aCx)
@@ -241,11 +267,25 @@ public:
 
     int readPos = mReadPos;
     while (readPos != mLastFlushPos) {
+      
+      int incBy = 1;
       ProfileEntry entry = mEntries[readPos];
+
+      
+      const char* tagStringData = entry.mTagData;
+      int readAheadPos = (readPos + 1) % mEntrySize;
+      char tagBuff[DYNAMIC_MAX_STRING];
+      
+      tagBuff[DYNAMIC_MAX_STRING-1] = '\0';
+
+      if (readAheadPos != mLastFlushPos && mEntries[readAheadPos].mTagName == 'd') {
+        tagStringData = processDynamicTag(readPos, &incBy, tagBuff);
+      }
+
       switch (entry.mTagName) {
         case 's':
           sample = b.CreateObject();
-          b.DefineProperty(sample, "name", (const char*)entry.mTagData);
+          b.DefineProperty(sample, "name", tagStringData);
           frames = b.CreateArray();
           b.DefineProperty(sample, "frames", frames);
           b.ArrayPush(samples, sample);
@@ -255,18 +295,21 @@ public:
           {
             if (sample) {
               JSObject *frame = b.CreateObject();
-              char tagBuff[1024];
-              
-              
-              
-              unsigned long long pc = (unsigned long long)(uintptr_t)entry.mTagPtr;
-              snprintf(tagBuff, 1024, "%#llx", pc);
-              b.DefineProperty(frame, "location", tagBuff);
+              if (entry.mTagName == 'l') {
+                
+                
+                
+                unsigned long long pc = (unsigned long long)(uintptr_t)entry.mTagPtr;
+                snprintf(tagBuff, DYNAMIC_MAX_STRING, "%#llx", pc);
+                b.DefineProperty(frame, "location", tagBuff);
+              } else {
+                b.DefineProperty(frame, "location", tagStringData);
+              }
               b.ArrayPush(frames, frame);
             }
           }
       }
-      readPos = (readPos + 1) % mEntrySize;
+      readPos = (readPos + incBy) % mEntrySize;
     }
 
     return profile;
@@ -560,11 +603,30 @@ void doSampleStackTrace(ProfileStack *aStack, ThreadProfile &aProfile, TickSampl
   
   
   
+  aProfile.addTag(ProfileEntry('s', "(root)"));
   for (mozilla::sig_safe_t i = 0; i < aStack->mStackPointer; i++) {
-    if (i == 0) {
-      aProfile.addTag(ProfileEntry('s', aStack->mStack[i]));
+    
+    
+    const char* sampleLabel = aStack->mStack[i].mLabel;
+    if (aStack->mStack[i].isCopyLabel()) {
+      
+      
+
+      aProfile.addTag(ProfileEntry('c', ""));
+      
+      size_t strLen = strlen(sampleLabel) + 1;
+      for (size_t j = 0; j < strLen;) {
+        
+        char text[sizeof(void*)];
+        for (size_t pos = 0; pos < sizeof(void*) && j+pos < strLen; pos++) {
+          text[pos] = sampleLabel[j+pos];
+        }
+        j += sizeof(void*);
+        
+        aProfile.addTag(ProfileEntry('d', *((void**)(&text[0]))));
+      }
     } else {
-      aProfile.addTag(ProfileEntry('c', aStack->mStack[i]));
+      aProfile.addTag(ProfileEntry('c', sampleLabel));
     }
   }
 #ifdef ENABLE_SPS_LEAF_DATA
@@ -657,6 +719,8 @@ std::ostream& operator<<(std::ostream& stream, const ProfileEntry& entry)
     unsigned long long pc = (unsigned long long)(uintptr_t)entry.mTagPtr;
     snprintf(tagBuff, 1024, "l-%#llx\n", pc);
     stream << tagBuff;
+  } else if (entry.mTagName == 'd') {
+    
   } else {
     stream << entry.mTagName << "-" << entry.mTagData << "\n";
   }

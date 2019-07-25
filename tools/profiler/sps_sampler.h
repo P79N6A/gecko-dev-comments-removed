@@ -5,6 +5,7 @@
 
 #include <stdlib.h>
 #include <signal.h>
+#include <stdarg.h>
 #include "mozilla/ThreadLocal.h"
 #include "nscore.h"
 #include "jsapi.h"
@@ -50,6 +51,7 @@ extern bool stack_key_initialized;
 #define SAMPLER_APPEND_LINE_NUMBER(id) SAMPLER_APPEND_LINE_NUMBER_EXPAND(id, __LINE__)
 
 #define SAMPLE_LABEL(name_space, info) mozilla::SamplerStackFrameRAII SAMPLER_APPEND_LINE_NUMBER(sampler_raii)(name_space "::" info)
+#define SAMPLE_LABEL_PRINTF(name_space, info, format, ...) mozilla::SamplerStackFramePrintfRAII SAMPLER_APPEND_LINE_NUMBER(sampler_raii)(name_space "::" info, format, __VA_ARGS__)
 #define SAMPLE_MARKER(info) mozilla_sampler_add_marker(info)
 
 
@@ -124,7 +126,7 @@ LinuxKernelMemoryBarrierFunc pLinuxKernelMemoryBarrier __attribute__((weak)) =
 
 
 
-inline void* mozilla_sampler_call_enter(const char *aInfo);
+inline void* mozilla_sampler_call_enter(const char *aInfo, void *aFrameAddress = NULL, bool aCopy = false);
 inline void  mozilla_sampler_call_exit(void* handle);
 inline void  mozilla_sampler_add_marker(const char *aInfo);
 
@@ -154,7 +156,66 @@ private:
   void* mHandle;
 };
 
+static const int SAMPLER_MAX_STRING = 128;
+class NS_STACK_CLASS SamplerStackFramePrintfRAII {
+public:
+  
+  SamplerStackFramePrintfRAII(const char *aDefault, const char *aFormat, ...) {
+    if (mozilla_sampler_is_active()) {
+      va_list args;
+      va_start(args, aFormat);
+      char buff[SAMPLER_MAX_STRING];
+
+      
+      
+#if _MSC_VER
+      _vsnprintf(buff, SAMPLER_MAX_STRING, aFormat, args);
+      _snprintf(mDest, SAMPLER_MAX_STRING, "%s %s", aDefault, buff);
+#else
+      vsnprintf(buff, SAMPLER_MAX_STRING, aFormat, args);
+      snprintf(mDest, SAMPLER_MAX_STRING, "%s %s", aDefault, buff);
+#endif
+      mHandle = mozilla_sampler_call_enter(mDest, this, true);
+      va_end(args);
+    } else {
+      mHandle = mozilla_sampler_call_enter(aDefault);
+    }
+  }
+  ~SamplerStackFramePrintfRAII() {
+    mozilla_sampler_call_exit(mHandle);
+  }
+private:
+  char mDest[SAMPLER_MAX_STRING];
+  void* mHandle;
+};
+
 } 
+
+class StackEntry
+{
+public:
+  
+  
+  static const void* EncodeStackAddress(const void* aStackAddress, bool aCopy) {
+    aStackAddress = reinterpret_cast<const void*>(
+                      reinterpret_cast<uintptr_t>(aStackAddress) & ~0x1);
+    if (!aCopy)
+      aStackAddress = reinterpret_cast<const void*>(
+                        reinterpret_cast<uintptr_t>(aStackAddress) | 0x1);
+    return aStackAddress;
+  }
+
+  bool isCopyLabel() const volatile {
+    return !((uintptr_t)mStackAddress & 0x1);
+  }
+
+  const char* mLabel;
+  
+  
+  
+  
+  const void* mStackAddress;
+};
 
 
 
@@ -191,7 +252,7 @@ public:
       clearMarkers();
     }
     if (aMarkerId < 0 ||
-	static_cast<mozilla::sig_safe_t>(aMarkerId) >= mMarkerPointer) {
+      static_cast<mozilla::sig_safe_t>(aMarkerId) >= mMarkerPointer) {
       return NULL;
     }
     return mMarkers[aMarkerId];
@@ -206,6 +267,11 @@ public:
 
   void push(const char *aName)
   {
+    push(aName, NULL, false);
+  }
+
+  void push(const char *aName, void *aStackAddress, bool aCopy)
+  {
     if (size_t(mStackPointer) >= mozilla::ArrayLength(mStack)) {
       mDroppedStackEntries++;
       return;
@@ -213,7 +279,9 @@ public:
 
     
     
-    mStack[mStackPointer] = aName;
+    mStack[mStackPointer].mLabel = aName;
+    mStack[mStackPointer].mStackAddress = StackEntry::EncodeStackAddress(aStackAddress, aCopy);
+
     
     STORE_SEQUENCER();
     mStackPointer++;
@@ -232,7 +300,7 @@ public:
   }
 
   
-  char const * volatile mStack[1024];
+  StackEntry volatile mStack[1024];
   
   char const * volatile mMarkers[1024];
   volatile mozilla::sig_safe_t mStackPointer;
@@ -243,7 +311,7 @@ public:
   volatile mozilla::sig_safe_t mQueueClearMarker;
 };
 
-inline void* mozilla_sampler_call_enter(const char *aInfo)
+inline void* mozilla_sampler_call_enter(const char *aInfo, void *aFrameAddress, bool aCopy)
 {
   
   
@@ -258,7 +326,7 @@ inline void* mozilla_sampler_call_enter(const char *aInfo)
   if (!stack) {
     return stack;
   }
-  stack->push(aInfo);
+  stack->push(aInfo, aFrameAddress, aCopy);
 
   
   

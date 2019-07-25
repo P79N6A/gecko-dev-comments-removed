@@ -71,6 +71,11 @@
 #define SAMPLER_GET_RESPONSIVENESS() NULL
 #define SAMPLER_GET_FEATURES() NULL
 #define SAMPLE_LABEL(name_space, info)
+
+
+
+
+#define SAMPLE_LABEL_PRINTF(name_space, info, format, ...)
 #define SAMPLE_LABEL_FN(name_space, info)
 #define SAMPLE_MARKER(info)
 
