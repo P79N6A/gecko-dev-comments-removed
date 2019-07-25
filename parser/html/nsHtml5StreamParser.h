@@ -469,6 +469,11 @@ class nsHtml5StreamParser : public nsIStreamListener,
     
 
 
+    PRBool                        mFeedChardet;
+
+    
+
+
     nsCOMPtr<nsITimer>            mFlushTimer;
 
     

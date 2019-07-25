@@ -764,7 +764,8 @@ nsHtml5TreeOpExecutor::Start()
 }
 
 void
-nsHtml5TreeOpExecutor::NeedsCharsetSwitchTo(const char* aEncoding)
+nsHtml5TreeOpExecutor::NeedsCharsetSwitchTo(const char* aEncoding,
+                                            PRInt32 aSource)
 {
   EndDocUpdate();
 
@@ -780,7 +781,7 @@ nsHtml5TreeOpExecutor::NeedsCharsetSwitchTo(const char* aEncoding)
 
   
   if (NS_SUCCEEDED(wss->StopDocumentLoad())) {
-    wss->ReloadDocument(aEncoding, kCharsetFromMetaTag);
+    wss->ReloadDocument(aEncoding, aSource);
   }
   
   
