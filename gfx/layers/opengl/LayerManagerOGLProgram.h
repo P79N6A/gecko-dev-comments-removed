@@ -265,7 +265,7 @@ protected:
     mGL->fAttachShader(mProgram, mFragmentShader);
 
     
-    mGL->fBindAttribLocation(mProgram, VertexAttrib, "aVertex");
+    mGL->fBindAttribLocation(mProgram, VertexAttrib, "aVertexCoord");
     mGL->fBindAttribLocation(mProgram, TexCoordAttrib, "aTexCoord");
 
     mGL->fLinkProgram(mProgram);
