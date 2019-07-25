@@ -978,6 +978,8 @@ nsHttpChannel::ProcessResponse()
     LOG(("nsHttpChannel::ProcessResponse [this=%p httpStatus=%u]\n",
         this, httpStatus));
 
+    UpdateInhibitPersistentCachingFlag();
+
     if (mTransaction->SSLConnectFailed()) {
         if (!ShouldSSLProxyResponseContinue(httpStatus))
             return ProcessFailedSSLConnect(httpStatus);
@@ -1783,6 +1785,8 @@ nsHttpChannel::ProcessPartialContent()
     
     mResponseHead = mCachedResponseHead;
 
+    UpdateInhibitPersistentCachingFlag();
+
     rv = UpdateExpirationTime();
     if (NS_FAILED(rv)) return rv;
 
@@ -1863,6 +1867,8 @@ nsHttpChannel::ProcessNotModified()
 
     
     mResponseHead = mCachedResponseHead;
+
+    UpdateInhibitPersistentCachingFlag();
 
     rv = UpdateExpirationTime();
     if (NS_FAILED(rv)) return rv;
@@ -2848,6 +2854,8 @@ nsHttpChannel::ReadFromCache()
     if (mCachedResponseHead)
         mResponseHead = mCachedResponseHead;
 
+    UpdateInhibitPersistentCachingFlag();
+
     
     
     
@@ -3002,16 +3010,6 @@ nsHttpChannel::InitCacheEntry()
     LOG(("nsHttpChannel::InitCacheEntry [this=%p entry=%p]\n",
         this, mCacheEntry.get()));
 
-    
-    
-    if (mResponseHead->NoStore())
-        mLoadFlags |= INHIBIT_PERSISTENT_CACHING;
-
-    
-    if (!gHttpHandler->IsPersistentHttpsCachingEnabled() &&
-        mConnectionInfo->UsingSSL())
-        mLoadFlags |= INHIBIT_PERSISTENT_CACHING;
-
     if (mLoadFlags & INHIBIT_PERSISTENT_CACHING) {
         rv = mCacheEntry->SetStoragePolicy(nsICache::STORE_IN_MEMORY);
         if (NS_FAILED(rv)) return rv;
@@ -3028,6 +3026,19 @@ nsHttpChannel::InitCacheEntry()
     return NS_OK;
 }
 
+void
+nsHttpChannel::UpdateInhibitPersistentCachingFlag()
+{
+    
+    
+    if (mResponseHead->NoStore())
+        mLoadFlags |= INHIBIT_PERSISTENT_CACHING;
+
+    
+    if (!gHttpHandler->IsPersistentHttpsCachingEnabled() &&
+        mConnectionInfo->UsingSSL())
+        mLoadFlags |= INHIBIT_PERSISTENT_CACHING;
+}
 
 nsresult
 nsHttpChannel::InitOfflineCacheEntry()

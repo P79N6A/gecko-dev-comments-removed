@@ -136,6 +136,7 @@
 #include "mozilla/dom/Element.h"
 #include "mozilla/Preferences.h"
 #include "nsMimeTypes.h"
+#include "nsIRequest.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -1419,6 +1420,7 @@ nsHTMLDocument::Open(const nsAString& aContentTypeOrUrl,
   nsCOMPtr<nsIURI> uri = callerDoc->GetDocumentURI();
   nsCOMPtr<nsIURI> baseURI = callerDoc->GetBaseURI();
   nsCOMPtr<nsIPrincipal> callerPrincipal = callerDoc->NodePrincipal();
+  nsCOMPtr<nsIChannel> callerChannel = callerDoc->GetChannel();
 
   
   
@@ -1489,6 +1491,21 @@ nsHTMLDocument::Open(const nsAString& aContentTypeOrUrl,
   
   rv = channel->SetOwner(callerPrincipal);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  if (callerChannel) {
+    nsLoadFlags callerLoadFlags;
+    rv = callerChannel->GetLoadFlags(&callerLoadFlags);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsLoadFlags loadFlags;
+    rv = channel->GetLoadFlags(&loadFlags);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    loadFlags |= callerLoadFlags & nsIRequest::INHIBIT_PERSISTENT_CACHING;
+
+    rv = channel->SetLoadFlags(loadFlags);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   
   

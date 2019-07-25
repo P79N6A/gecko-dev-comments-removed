@@ -165,7 +165,8 @@ gssInit()
         const char *const verLibNames[] = {
             "libgssapi_krb5.so.2", 
             "libgssapi.so.4",      
-            "libgssapi.so.1"       
+            "libgssapi.so.1",      
+            "libgssapi.so"         
         };
 
         for (size_t i = 0; i < ArrayLength(verLibNames) && !lib; ++i) {

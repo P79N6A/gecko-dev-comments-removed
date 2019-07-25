@@ -58,7 +58,30 @@ const UNITS_PERCENTAGE = Ci.nsIMemoryReporter.UNITS_PERCENTAGE;
 
 const kUnknown = -1;    
 
-const kTreeDescriptions = {
+
+
+
+
+
+
+function escapeAll(aStr)
+{
+  return aStr.replace(/\&/g, '&amp;').replace(/'/g, '&#39;').
+              replace(/\</g, '&lt;').replace(/>/g, '&gt;').
+              replace(/\"/g, '&quot;');
+}
+
+function flipBackslashes(aStr)
+{
+  return aStr.replace(/\\/g, '/');
+}
+
+function makeSafe(aUnsafeStr)
+{
+  return escapeAll(flipBackslashes(aUnsafeStr));
+}
+
+const kTreeUnsafeDescriptions = {
   'explicit' :
     "This tree covers explicit memory allocations by the application, " +
     "both at the operating system level (via calls to functions such as " +
@@ -199,13 +222,13 @@ function sendHeapMinNotifications()
   sendHeapMinNotificationsInner();
 }
 
-function Reporter(aPath, aKind, aUnits, aAmount, aDescription)
+function Reporter(aUnsafePath, aKind, aUnits, aAmount, aUnsafeDesc)
 {
-  this._path        = aPath;
+  this._unsafePath  = aUnsafePath;
   this._kind        = aKind;
   this._units       = aUnits;
   this._amount      = aAmount;
-  this._description = aDescription;
+  this._unsafeDescription = aUnsafeDesc;
   
   
 }
@@ -228,7 +251,7 @@ Reporter.prototype = {
     
     
     aTreeName += "/";
-    return this._path.slice(0, aTreeName.length) === aTreeName;
+    return this._unsafePath.slice(0, aTreeName.length) === aTreeName;
   }
 };
 
@@ -246,21 +269,22 @@ function getReportersByProcess(aMgr)
   
   var reportersByProcess = {};
 
-  function addReporter(aProcess, aPath, aKind, aUnits, aAmount, aDescription)
+  function addReporter(aProcess, aUnsafePath, aKind, aUnits, aAmount,
+                       aUnsafeDesc)
   {
     var process = aProcess === "" ? "Main" : aProcess;
-    var r = new Reporter(aPath, aKind, aUnits, aAmount, aDescription);
+    var r = new Reporter(aUnsafePath, aKind, aUnits, aAmount, aUnsafeDesc);
     if (!reportersByProcess[process]) {
       reportersByProcess[process] = {};
     }
     var reporters = reportersByProcess[process];
-    var reporter = reporters[r._path];
+    var reporter = reporters[r._unsafePath];
     if (reporter) {
       
       
       reporter.merge(r);
     } else {
-      reporters[r._path] = r;
+      reporters[r._unsafePath] = r;
     }
   }
 
@@ -371,10 +395,10 @@ function update()
 
 
 
-function TreeNode(aName)
+function TreeNode(aUnsafeName)
 {
   
-  this._name = aName;
+  this._unsafeName = aUnsafeName;
   this._kids = [];
   
   
@@ -390,9 +414,9 @@ function TreeNode(aName)
 }
 
 TreeNode.prototype = {
-  findKid: function(aName) {
+  findKid: function(aUnsafeName) {
     for (var i = 0; i < this._kids.length; i++) {
-      if (this._kids[i]._name === aName) {
+      if (this._kids[i]._unsafeName === aUnsafeName) {
         return this._kids[i];
       }
     }
@@ -428,8 +452,8 @@ function buildTree(aReporters, aTreeName)
   
   
   var foundReporter = false;
-  for (var path in aReporters) {
-    if (aReporters[path].treeNameMatches(aTreeName)) {
+  for (var unsafePath in aReporters) {
+    if (aReporters[unsafePath].treeNameMatches(aTreeName)) {
       foundReporter = true;
       break;
     }
@@ -440,22 +464,22 @@ function buildTree(aReporters, aTreeName)
   }
 
   var t = new TreeNode("falseRoot");
-  for (var path in aReporters) {
+  for (var unsafePath in aReporters) {
     
-    var r = aReporters[path];
+    var r = aReporters[unsafePath];
     if (r.treeNameMatches(aTreeName)) {
       assert(r._kind === KIND_HEAP || r._kind === KIND_NONHEAP,
              "reporters in the tree must have KIND_HEAP or KIND_NONHEAP");
       assert(r._units === UNITS_BYTES, "r._units === UNITS_BYTES");
-      var names = r._path.split('/');
+      var unsafeNames = r._unsafePath.split('/');
       var u = t;
-      for (var i = 0; i < names.length; i++) {
-        var name = names[i];
-        var uMatch = u.findKid(name);
+      for (var i = 0; i < unsafeNames.length; i++) {
+        var unsafeName = unsafeNames[i];
+        var uMatch = u.findKid(unsafeName);
         if (uMatch) {
           u = uMatch;
         } else {
-          var v = new TreeNode(name);
+          var v = new TreeNode(unsafeName);
           u._kids.push(v);
           u = v;
         }
@@ -474,19 +498,20 @@ function buildTree(aReporters, aTreeName)
 
   
   
-  function fillInTree(aT, aPrepath)
+  function fillInTree(aT, aUnsafePrePath)
   {
-    var path = aPrepath ? aPrepath + '/' + aT._name : aT._name;
+    var unsafePath =
+      aUnsafePrePath ? aUnsafePrePath + '/' + aT._unsafeName : aT._unsafeName; 
     if (aT._kids.length === 0) {
       
       assert(aT._kind !== undefined, "aT._kind is undefined for leaf node");
-      aT._description = getDescription(aReporters, path);
-      var amount = getBytes(aReporters, path);
+      aT._unsafeDescription = getUnsafeDescription(aReporters, unsafePath);
+      var amount = getBytes(aReporters, unsafePath);
       if (amount !== kUnknown) {
         aT._amount = amount;
       } else {
         aT._amount = 0;
-        aT._hasProblem = true;
+        aT._isUnknown = true;
       }
     } else {
       
@@ -494,10 +519,11 @@ function buildTree(aReporters, aTreeName)
       assert(aT._kind === undefined, "aT._kind is defined for non-leaf node");
       var childrenBytes = 0;
       for (var i = 0; i < aT._kids.length; i++) {
-        childrenBytes += fillInTree(aT._kids[i], path);
+        childrenBytes += fillInTree(aT._kids[i], unsafePath);
       }
       aT._amount = childrenBytes;
-      aT._description = "The sum of all entries below '" + aT._name + "'.";
+      aT._unsafeDescription =
+        "The sum of all entries below '" + aT._unsafeName + "'.";
     }
     assert(aT._amount !== kUnknown, "aT._amount !== kUnknown");
     return aT._amount;
@@ -516,7 +542,7 @@ function buildTree(aReporters, aTreeName)
   }
 
   
-  t._description = kTreeDescriptions[t._name];
+  t._unsafeDescription = kTreeUnsafeDescriptions[t._unsafeName];
 
   return t;
 }
@@ -532,10 +558,10 @@ function buildTree(aReporters, aTreeName)
 
 function ignoreTree(aReporters, aTreeName)
 {
-  for (var path in aReporters) {
-    var r = aReporters[path];
+  for (var unsafePath in aReporters) {
+    var r = aReporters[unsafePath];
     if (r.treeNameMatches(aTreeName)) {
-      var dummy = getBytes(aReporters, path);
+      var dummy = getBytes(aReporters, unsafePath);
     }
   }
 }
@@ -579,15 +605,14 @@ function fixUpExplicitTree(aT, aReporters)
       heapAllocatedBytes - getKnownHeapUsedBytes(aT);
   } else {
     heapUnclassifiedT._amount = 0;
-    heapUnclassifiedT._hasProblem = true;
+    heapUnclassifiedT._isUnknown = true;
   }
   
   
   
-  heapUnclassifiedT._description =
-      kindToString(KIND_HEAP) +
+  heapUnclassifiedT._unsafeDescription = kindToString(KIND_HEAP) +
       "Memory not classified by a more specific reporter. This includes " +
-      "slop bytes due to internal fragmentation in the heap allocator "
+      "slop bytes due to internal fragmentation in the heap allocator " +
       "(caused when the allocator rounds up request sizes).";
 
   aT._kids.push(heapUnclassifiedT);
@@ -649,7 +674,7 @@ function sortTreeAndInsertAggregateNodes(aTotalBytes, aT)
       }
       aggT._hideKids = true;
       aggT._amount = aggBytes;
-      aggT._description =
+      aggT._unsafeDescription =
         nAgg + " sub-trees that are below the " + kSignificanceThresholdPerc +
         "% significance threshold.";
       aT._kids.splice(i0, nAgg, aggT);
@@ -670,6 +695,11 @@ function sortTreeAndInsertAggregateNodes(aTotalBytes, aT)
   
   sortTreeAndInsertAggregateNodes(aTotalBytes, aT._kids[i]);
 }
+
+
+
+
+var gUnsafePathsWithInvalidValuesForThisProcess = [];
 
 function genWarningText(aHasKnownHeapAllocated, aHasMozMallocUsableSize)
 {
@@ -698,6 +728,31 @@ function genWarningText(aHasKnownHeapAllocated, aHasMozMallocUsableSize)
       "by individual memory reporters and so will fall under " +
       "'heap-unclassified'.</p>\n\n";
   }
+
+  if (gUnsafePathsWithInvalidValuesForThisProcess.length > 0) {
+    warningText +=
+      "<div class='accuracyWarning'>" +
+      "<p>WARNING: the following values are negative or unreasonably " +
+      "large.</p>\n" +
+      "<ul>";
+    for (var i = 0;
+         i < gUnsafePathsWithInvalidValuesForThisProcess.length;
+         i++)
+    {
+      warningText +=
+        " <li>" +
+        makeSafe(gUnsafePathsWithInvalidValuesForThisProcess[i]) +
+        "</li>\n";
+    }
+    warningText +=
+      "</ul>" +
+      "<p>This indicates a defect in one or more memory reporters.  The " +
+      "invalid values are highlighted, but you may need to expand one " +
+      "or more sub-trees to see them.</p>\n\n" +
+      "</div>";
+    gUnsafePathsWithInvalidValuesForThisProcess = [];  
+  }
+
   return warningText;
 }
 
@@ -720,18 +775,12 @@ function genProcessText(aProcess, aReporters, aHasMozMallocUsableSize)
   var explicitText = genTreeText(explicitTree, aProcess);
 
   
-  
-  var warningText = "";
-  var accuracyTagText = "<p class='accuracyWarning'>";
-  var warningText =
-        genWarningText(hasKnownHeapAllocated, aHasMozMallocUsableSize);
-
-  
   var mapTreeText = "";
   kMapTreePaths.forEach(function(t) {
     if (gVerbose) {
       var tree = buildTree(aReporters, t);
 
+      
       
       if (tree) {
         sortTreeAndInsertAggregateNodes(tree._amount, tree);
@@ -748,6 +797,13 @@ function genProcessText(aProcess, aReporters, aHasMozMallocUsableSize)
   var otherText = genOtherText(aReporters, aProcess);
 
   
+  
+  
+  var warningText = "";
+  var warningText =
+        genWarningText(hasKnownHeapAllocated, aHasMozMallocUsableSize);
+
+  
   return "<h1>" + aProcess + " Process</h1>\n\n" +
          warningText + explicitText + mapTreeText + otherText +
          "<hr></hr>";
@@ -760,10 +816,26 @@ function genProcessText(aProcess, aReporters, aHasMozMallocUsableSize)
 
 
 
+
+function hasNegativeSign(aN)
+{
+  if (aN === 0) {                   
+    return 1 / aN === -Infinity;    
+  }
+  return aN < 0;
+}
+
+
+
+
+
+
+
+
 function formatInt(aN)
 {
   var neg = false;
-  if (aN < 0) {
+  if (hasNegativeSign(aN)) {
     neg = true;
     aN = -aN;
   }
@@ -804,7 +876,8 @@ function formatBytes(aBytes)
   } else {
     var mbytes = (aBytes / (1024 * 1024)).toFixed(2);
     var a = String(mbytes).split(".");
-    s = formatInt(a[0]) + "." + a[1] + " " + unit;
+    
+    s = formatInt(Number(a[0])) + "." + a[1] + " " + unit;
   }
   return s;
 }
@@ -854,10 +927,10 @@ function pad(aS, aN, aC)
 
 
 
-function getBytes(aReporters, aPath, aDoNotMark)
+function getBytes(aReporters, aUnsafePath, aDoNotMark)
 {
-  var r = aReporters[aPath];
-  assert(r, "getBytes: no such Reporter: " + aPath);
+  var r = aReporters[aUnsafePath];
+  assert(r, "getBytes: no such Reporter: " + makeSafe(aUnsafePath));
   if (!aDoNotMark) {
     r._done = true;
   }
@@ -873,11 +946,11 @@ function getBytes(aReporters, aPath, aDoNotMark)
 
 
 
-function getDescription(aReporters, aPath)
+function getUnsafeDescription(aReporters, aUnsafePath)
 {
-  var r = aReporters[aPath];
-  assert(r, "getDescription: no such Reporter: " + aPath);
-  return r._description;
+  var r = aReporters[aUnsafePath];
+  assert(r, "getUnsafeDescription: no such Reporter: " + makeSafe(aUnsafePath));
+  return r._unsafeDescription;
 }
 
 
@@ -889,9 +962,11 @@ const kHorizontal       = "\u2500",
       kUpAndRight       = "\u2514",
       kVerticalAndRight = "\u251c";
 
-function genMrValueText(aValue)
+function genMrValueText(aValue, aIsInvalid)
 {
-  return "<span class='mrValue'>" + aValue + " </span>";
+  return aIsInvalid ?
+         "<span class='mrValue invalid'>" + aValue + "</span>" :
+         "<span class='mrValue'>"         + aValue + "</span>";
 }
 
 function kindToString(aKind)
@@ -905,59 +980,39 @@ function kindToString(aKind)
   }
 }
 
-
-function escapeAll(aStr)
-{
-  return aStr.replace(/\&/g, '&amp;').replace(/'/g, '&#39;').
-              replace(/\</g, '&lt;').replace(/>/g, '&gt;').
-              replace(/\"/g, '&quot;');
-}
-
-
-
-
-function flipBackslashes(aStr)
-{
-  return aStr.replace(/\\/g, '/');
-}
-
-function prepName(aStr)
-{
-  return escapeAll(flipBackslashes(aStr));
-}
-
-function prepDesc(aStr)
-{
-  return escapeAll(flipBackslashes(aStr));
-}
-
-function genMrNameText(aKind, aShowSubtrees, aHasKids, aDesc, aName,
-                       aHasProblem, aNMerged)
+function genMrNameText(aKind, aShowSubtrees, aHasKids, aUnsafeDesc,
+                       aUnsafeName, aIsUnknown, aIsInvalid, aNMerged)
 {
   var text = "";
   if (aHasKids) {
     if (aShowSubtrees) {
-      text += "<span class='mrSep hidden'>++ </span>";
-      text += "<span class='mrSep'>-- </span>";
+      text += "<span class='mrSep hidden'> ++ </span>";
+      text += "<span class='mrSep'> -- </span>";
     } else {
-      text += "<span class='mrSep'>++ </span>";
-      text += "<span class='mrSep hidden'>-- </span>";
+      text += "<span class='mrSep'> ++ </span>";
+      text += "<span class='mrSep hidden'> -- </span>";
     }
   } else {
-    text += "<span class='mrSep'>" + kHorizontal + kHorizontal + " </span>";
+    text += "<span class='mrSep'> " + kHorizontal + kHorizontal + " </span>";
   }
   text += "<span class='mrName' title='" +
-          kindToString(aKind) + prepDesc(aDesc) + "'>" +
-          prepName(aName) + "</span>";
-  if (aHasProblem) {
+          kindToString(aKind) + makeSafe(aUnsafeDesc) + "'>" +
+          makeSafe(aUnsafeName) + "</span>";
+  if (aIsUnknown) {
     const problemDesc =
       "Warning: this memory reporter was unable to compute a useful value. ";
-    text += "<span class='mrStar' title=\"" + problemDesc + "\"> [*]</span>";
+    text += "<span class='mrNote' title=\"" + problemDesc + "\"> [*]</span>";
+  }
+  if (aIsInvalid) {
+    const invalidDesc =
+      "Warning: this value is invalid and indicates a bug in one or more " +
+      "memory reporters. ";
+    text += "<span class='mrNote' title=\"" + invalidDesc + "\"> [?!]</span>";
   }
   if (aNMerged) {
     const dupDesc = "This value is the sum of " + aNMerged +
                     " memory reporters that all have the same path.";
-    text += "<span class='mrStar' title=\"" + dupDesc + "\"> [" +
+    text += "<span class='mrNote' title=\"" + dupDesc + "\"> [" +
             aNMerged + "]</span>";
   }
   return text + '\n';
@@ -969,7 +1024,7 @@ function genMrNameText(aKind, aShowSubtrees, aHasKids, aDesc, aName,
 
 
 
-var gToggles = {};
+var gTogglesBySafeTreeId = {};
 
 function toggle(aEvent)
 {
@@ -1003,11 +1058,11 @@ function toggle(aEvent)
   subTreeSpan.classList.toggle("hidden");
 
   
-  var treeId = outerSpan.id;
-  if (gToggles[treeId]) {
-    delete gToggles[treeId];
+  var safeTreeId = outerSpan.id;
+  if (gTogglesBySafeTreeId[safeTreeId]) {
+    delete gTogglesBySafeTreeId[safeTreeId];
   } else {
-    gToggles[treeId] = true;
+    gTogglesBySafeTreeId[safeTreeId] = true;
   }
 }
 
@@ -1024,7 +1079,7 @@ function genTreeText(aT, aProcess)
 {
   var treeBytes = aT._amount;
   var rootStringLength = aT.toString().length;
-  var isExplicitTree = aT._name == 'explicit';
+  var isExplicitTree = aT._unsafeName == 'explicit';
 
   
 
@@ -1042,7 +1097,7 @@ function genTreeText(aT, aProcess)
 
 
 
-  function genTreeText2(aPrePath, aT, aIndentGuide, aParentStringLength)
+  function genTreeText2(aUnsafePrePath, aT, aIndentGuide, aParentStringLength)
   {
     function repeatStr(aC, aN)
     {
@@ -1051,6 +1106,15 @@ function genTreeText(aT, aProcess)
         s += aC;
       }
       return s;
+    }
+
+    
+    
+    var unsafePath = aUnsafePrePath + aT._unsafeName;
+    var safeTreeId = escapeAll(aProcess + ":" + unsafePath);
+    var showSubtrees = !aT._hideKids;
+    if (gTogglesBySafeTreeId[safeTreeId]) {
+      showSubtrees = !showSubtrees;
     }
 
     
@@ -1076,23 +1140,23 @@ function genTreeText(aT, aProcess)
     indent += "</span>";
 
     
+    
     var percText = "";
-    var showSubtrees = !aT._hideKids;
+    var tIsInvalid = false;
     if (aT._amount === treeBytes) {
       percText = "100.0";
     } else {
       var perc = (100 * aT._amount / treeBytes);
+      if (!(0 <= perc && perc <= 100)) {
+        tIsInvalid = true;
+        gUnsafePathsWithInvalidValuesForThisProcess.push(unsafePath);
+      }
       percText = (100 * aT._amount / treeBytes).toFixed(2);
       percText = pad(percText, 5, '0');
     }
-    percText = "<span class='mrPerc'>(" + percText + "%) </span>";
-
-    
-    var path = aPrePath + aT._name;
-    var treeId = escapeAll(aProcess + ":" + path);
-    if (gToggles[treeId]) {
-      showSubtrees = !showSubtrees;
-    }
+    percText = tIsInvalid ?
+               "<span class='mrPerc invalid'> (" + percText + "%)</span>" :
+               "<span class='mrPerc'> ("         + percText + "%)</span>";
 
     
     
@@ -1106,12 +1170,13 @@ function genTreeText(aT, aProcess)
     }
     var text = indent;
     if (hasKids) {
-      text +=
-        "<span onclick='toggle(event)' class='hasKids' id='" + treeId + "'>";
+      text += "<span onclick='toggle(event)' class='hasKids' id='" +
+              safeTreeId + "'>";
     }
-    text += genMrValueText(tString) + percText;
-    text += genMrNameText(kind, showSubtrees, hasKids, aT._description,
-                          aT._name, aT._hasProblem, aT._nMerged);
+    text += genMrValueText(tString, tIsInvalid) + percText;
+    text += genMrNameText(kind, showSubtrees, hasKids, aT._unsafeDescription,
+                          aT._unsafeName, aT._isUnknown, tIsInvalid,
+                          aT._nMerged);
     if (hasKids) {
       var hiddenText = showSubtrees ? "" : " hidden";
       
@@ -1121,7 +1186,7 @@ function genTreeText(aT, aProcess)
     for (var i = 0; i < aT._kids.length; i++) {
       
       aIndentGuide.push({ _isLastKid: (i === aT._kids.length - 1), _depth: 3 });
-      text += genTreeText2(path + "/", aT._kids[i], aIndentGuide,
+      text += genTreeText2(unsafePath + "/", aT._kids[i], aIndentGuide,
                            tString.length);
       aIndentGuide.pop();
     }
@@ -1131,28 +1196,27 @@ function genTreeText(aT, aProcess)
 
   var text = genTreeText2("", aT, [], rootStringLength);
 
-  return genSectionMarkup(aT._name, text);
+  return genSectionMarkup(aT._unsafeName, text);
 }
 
-function OtherReporter(aPath, aUnits, aAmount, aDescription,
-                       aNMerged)
+function OtherReporter(aUnsafePath, aUnits, aAmount, aUnsafeDesc, aNMerged)
 {
   
-  this._path        = aPath;
-  this._units       = aUnits;
+  this._unsafePath = aUnsafePath;
+  this._units    = aUnits;
   if (aAmount === kUnknown) {
     this._amount     = 0;
-    this._hasProblem = true;
+    this._isUnknown = true;
   } else {
     this._amount = aAmount;
   }
-  this._description = aDescription;
-  this.asString = this.toString();
+  this._unsafeDescription = aUnsafeDesc;
+  this._asString = this.toString();
 }
 
 OtherReporter.prototype = {
   toString: function() {
-    switch(this._units) {
+    switch (this._units) {
       case UNITS_BYTES:            return formatBytes(this._amount);
       case UNITS_COUNT:
       case UNITS_COUNT_CUMULATIVE: return formatInt(this._amount);
@@ -1160,12 +1224,25 @@ OtherReporter.prototype = {
       default:
         assert(false, "bad units in OtherReporter.toString");
     }
+  },
+
+  isInvalid: function() {
+    var n = this._amount;
+    switch (this._units) {
+      case UNITS_BYTES:
+      case UNITS_COUNT:
+      case UNITS_COUNT_CUMULATIVE: return (n !== kUnknown && n < 0);
+      case UNITS_PERCENTAGE:       return (n !== kUnknown &&
+                                           !(0 <= n && n <= 10000));
+      default:
+        assert(false, "bad units in OtherReporter.isInvalid");
+    }
   }
 };
 
 OtherReporter.compare = function(a, b) {
-  return a._path < b._path ? -1 :
-         a._path > b._path ?  1 :
+  return a._unsafePath < b._unsafePath ? -1 :
+         a._unsafePath > b._unsafePath ?  1 :
          0;
 };
 
@@ -1185,19 +1262,17 @@ function genOtherText(aReportersByProcess, aProcess)
   
   var maxStringLength = 0;
   var otherReporters = [];
-  for (var path in aReportersByProcess) {
-    var r = aReportersByProcess[path];
+  for (var unsafePath in aReportersByProcess) {
+    var r = aReportersByProcess[unsafePath];
     if (!r._done) {
-      assert(r._kind === KIND_OTHER, "_kind !== KIND_OTHER for " + r._path);
-      assert(r.nMerged === undefined);  
-      var hasProblem = false;
-      if (r._amount === kUnknown) {
-        hasProblem = true;
-      }
-      var o = new OtherReporter(r._path, r._units, r._amount, r._description);
+      assert(r._kind === KIND_OTHER,
+             "_kind !== KIND_OTHER for " + makeSafe(r._unsafePath));
+      assert(r._nMerged === undefined);  
+      var o = new OtherReporter(r._unsafePath, r._units, r._amount,
+                                r._unsafeDescription);
       otherReporters.push(o);
-      if (o.asString.length > maxStringLength) {
-        maxStringLength = o.asString.length;
+      if (o._asString.length > maxStringLength) {
+        maxStringLength = o._asString.length;
       }
     }
   }
@@ -1207,10 +1282,14 @@ function genOtherText(aReportersByProcess, aProcess)
   var text = "";
   for (var i = 0; i < otherReporters.length; i++) {
     var o = otherReporters[i];
-    text += genMrValueText(pad(o.asString, maxStringLength, ' '));
+    var oIsInvalid = o.isInvalid();
+    if (oIsInvalid) {
+      gUnsafePathsWithInvalidValuesForThisProcess.push(o._unsafePath);
+    }
+    text += genMrValueText(pad(o._asString, maxStringLength, ' '), oIsInvalid);
     text += genMrNameText(KIND_OTHER, true,
-                          false, o._description, o._path,
-                          o._hasProblem);
+                          false, o._unsafeDescription,
+                          o._unsafePath, o._isUnknown, oIsInvalid);
   }
 
   return genSectionMarkup('other', text);

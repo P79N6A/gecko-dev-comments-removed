@@ -452,7 +452,7 @@ protected:
 
 
 
-  bool DrainOverflowLines(nsBlockReflowState& aState);
+  bool DrainOverflowLines();
 
   
 

@@ -457,7 +457,6 @@ struct JSRuntime
 #ifdef JS_THREADSAFE
     
     PRLock              *gcLock;
-    uint32_t            requestCount;
 
     js::GCHelperThread  gcHelperThread;
 #endif 
@@ -572,7 +571,7 @@ struct JSRuntime
 
 
     void* malloc_(size_t bytes, JSContext *cx = NULL) {
-        updateMallocCounter(bytes);
+        updateMallocCounter(cx, bytes);
         void *p = ::js_malloc(bytes);
         return JS_LIKELY(!!p) ? p : onOutOfMemory(NULL, bytes, cx);
     }
@@ -582,14 +581,14 @@ struct JSRuntime
 
 
     void* calloc_(size_t bytes, JSContext *cx = NULL) {
-        updateMallocCounter(bytes);
+        updateMallocCounter(cx, bytes);
         void *p = ::js_calloc(bytes);
         return JS_LIKELY(!!p) ? p : onOutOfMemory(reinterpret_cast<void *>(1), bytes, cx);
     }
 
     void* realloc_(void* p, size_t oldBytes, size_t newBytes, JSContext *cx = NULL) {
         JS_ASSERT(oldBytes < newBytes);
-        updateMallocCounter(newBytes - oldBytes);
+        updateMallocCounter(cx, newBytes - oldBytes);
         void *p2 = ::js_realloc(p, newBytes);
         return JS_LIKELY(!!p2) ? p2 : onOutOfMemory(p, newBytes, cx);
     }
@@ -600,7 +599,7 @@ struct JSRuntime
 
 
         if (!p)
-            updateMallocCounter(bytes);
+            updateMallocCounter(cx, bytes);
         void *p2 = ::js_realloc(p, bytes);
         return JS_LIKELY(!!p2) ? p2 : onOutOfMemory(p, bytes, cx);
     }
@@ -634,13 +633,7 @@ struct JSRuntime
 
 
 
-    void updateMallocCounter(size_t nbytes) {
-        
-        ptrdiff_t newCount = gcMallocBytes - ptrdiff_t(nbytes);
-        gcMallocBytes = newCount;
-        if (JS_UNLIKELY(newCount <= 0))
-            onTooMuchMalloc();
-    }
+    void updateMallocCounter(JSContext *cx, size_t nbytes);
 
     
 
@@ -1376,14 +1369,6 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode);
 
 extern JSContext *
 js_ContextIterator(JSRuntime *rt, JSBool unlocked, JSContext **iterp);
-
-
-
-
-
-
-extern JS_FRIEND_API(JSContext *)
-js_NextActiveContext(JSRuntime *, JSContext *);
 
 #ifdef va_start
 extern JSBool

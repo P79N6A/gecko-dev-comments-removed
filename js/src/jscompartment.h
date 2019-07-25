@@ -168,6 +168,10 @@ typedef HashSet<ScriptFilenameEntry *,
 
 } 
 
+namespace JS {
+struct TypeInferenceSizes;
+}
+
 struct JSCompartment
 {
     JSRuntime                    *rt;
@@ -192,6 +196,7 @@ struct JSCompartment
     size_t                       gcBytes;
     size_t                       gcTriggerBytes;
     size_t                       gcLastBytes;
+    size_t                       gcMaxMallocBytes;
 
     bool                         hold;
     bool                         isSystemCompartment;
@@ -243,6 +248,10 @@ struct JSCompartment
     size_t sizeOfMjitCode() const;
 #endif
 
+    size_t sizeOfShapeTable(JSMallocSizeOfFun mallocSizeOf);
+    void sizeOfTypeInferenceData(JSContext *cx, JS::TypeInferenceSizes *stats,
+                                 JSMallocSizeOfFun mallocSizeOf);
+
     
 
 
@@ -283,6 +292,12 @@ struct JSCompartment
     enum { DebugFromC = 1, DebugFromJS = 2 };
 
     uintN                        debugModeBits;  
+    
+    
+
+
+
+    volatile ptrdiff_t           gcMallocBytes;
 
   public:
     js::NativeIterCache          nativeIterCache;
@@ -317,6 +332,18 @@ struct JSCompartment
 
     void setGCLastBytes(size_t lastBytes, JSGCInvocationKind gckind);
     void reduceGCTriggerBytes(size_t amount);
+    
+    void resetGCMallocBytes();
+    void setGCMaxMallocBytes(size_t value);
+    void updateMallocCounter(size_t nbytes) {
+        ptrdiff_t oldCount = gcMallocBytes;
+        ptrdiff_t newCount = oldCount - ptrdiff_t(nbytes);
+        gcMallocBytes = newCount;
+        if (JS_UNLIKELY(newCount <= 0 && oldCount > 0))
+            onTooMuchMalloc();
+    }
+    
+    void onTooMuchMalloc();
 
     js::DtoaCache dtoaCache;
 

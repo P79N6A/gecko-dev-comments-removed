@@ -434,18 +434,47 @@ struct TreeContext {
         return flags & TCF_FUN_MUTATES_PARAMETER;
     }
 
-    void noteArgumentsUse(ParseNode *pn) {
+    
+
+
+
+    void noteArgumentsNameUse(ParseNode *node) {
         JS_ASSERT(inFunction());
-        countArgumentsUse(pn);
+        JS_ASSERT(node->isKind(PNK_NAME));
+        JS_ASSERT(node->pn_atom == parser->context->runtime->atomState.argumentsAtom);
+        countArgumentsUse(node);
         flags |= TCF_FUN_USES_ARGUMENTS;
         if (funbox)
             funbox->node->pn_dflags |= PND_FUNARG;
     }
 
-    void countArgumentsUse(ParseNode *pn) {
-        JS_ASSERT(pn->pn_atom == parser->context->runtime->atomState.argumentsAtom);
+    
+
+
+
+
+
+    void noteArgumentsPropertyAccess(ParseNode *node) {
+        JS_ASSERT(inFunction());
+        JS_ASSERT(&node->asPropertyAccess().name() ==
+                  parser->context->runtime->atomState.argumentsAtom);
+        if (!inStrictMode()) {
+            flags |= TCF_FUN_USES_ARGUMENTS;
+            if (funbox)
+                funbox->node->pn_dflags |= PND_FUNARG;
+        }
+    }
+
+    
+
+
+
+
+    void countArgumentsUse(ParseNode *node) {
+        JS_ASSERT(node->isKind(PNK_NAME));
+        JS_ASSERT(node->pn_atom == parser->context->runtime->atomState.argumentsAtom);
         argumentsCount++;
-        argumentsNode = pn;
+        argumentsNode = node;
     }
 
     bool needsEagerArguments() const {

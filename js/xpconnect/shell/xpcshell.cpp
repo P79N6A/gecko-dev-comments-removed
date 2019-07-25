@@ -2012,6 +2012,7 @@ main(int argc, char **argv, char **envp)
             cxstack = nsnull;
             JS_GC(cx);
         } 
+        JS_EndRequest(cx);
         JS_DestroyContext(cx);
     } 
 

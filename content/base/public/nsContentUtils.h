@@ -178,6 +178,48 @@ enum EventNameType {
   EventNameType_All = 0xFFFF
 };
 
+
+
+
+
+struct ViewportInfo
+{
+    
+    
+    double defaultZoom;
+
+    
+    double minZoom;
+
+    
+    double maxZoom;
+
+    
+    
+    PRUint32 width;
+
+    
+    
+    PRUint32 height;
+
+    
+    
+    
+    
+    bool autoSize;
+
+    
+    bool allowZoom;
+
+    
+    
+    
+    
+    
+    
+    bool autoScale;
+};
+
 struct EventNameMapping
 {
   nsIAtom* mAtom;
@@ -1488,6 +1530,18 @@ public:
   static bool IsSafeToRunScript() {
     return sScriptBlockerCount == 0;
   }
+
+  
+
+
+
+
+
+
+
+
+
+  static ViewportInfo GetViewportInfo(nsIDocument* aDocument);
 
   
 

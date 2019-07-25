@@ -153,7 +153,7 @@
 #include "nsSVGFeatures.h"
 #include "nsDOMMemoryReporter.h"
 #include "nsWrapperCacheInlines.h"
-
+#include "nsCycleCollector.h"
 #include "xpcpublic.h"
 #include "xpcprivate.h"
 
@@ -1208,11 +1208,20 @@ nsINode::Trace(nsINode *tmp, TraceCallback cb, void *closure)
   nsContentUtils::TraceWrapper(tmp, cb, closure);
 }
 
-static bool
-IsXBL(nsINode* aNode)
+
+static
+bool UnoptimizableCCNode(nsINode* aNode)
 {
-  return aNode->IsElement() &&
-         aNode->AsElement()->IsInNamespace(kNameSpaceID_XBL);
+  const PtrBits problematicFlags = (NODE_IS_ANONYMOUS |
+                                    NODE_IS_IN_ANONYMOUS_SUBTREE |
+                                    NODE_IS_NATIVE_ANONYMOUS_ROOT |
+                                    NODE_MAY_BE_IN_BINDING_MNGR |
+                                    NODE_IS_INSERTION_PARENT);
+  return aNode->HasFlag(problematicFlags) ||
+         aNode->NodeType() == nsIDOMNode::ATTRIBUTE_NODE ||
+         
+         (aNode->IsElement() &&
+          aNode->AsElement()->IsInNamespace(kNameSpaceID_XBL));
 }
 
 
@@ -1227,18 +1236,11 @@ nsINode::Traverse(nsINode *tmp, nsCycleCollectionTraversalCallback &cb)
 
   if (nsCCUncollectableMarker::sGeneration) {
     
-    if (tmp->IsBlack()) {
+    if (tmp->IsBlack() || tmp->InCCBlackTree()) {
       return false;
     }
 
-    const PtrBits problematicFlags =
-      (NODE_IS_ANONYMOUS |
-       NODE_IS_IN_ANONYMOUS_SUBTREE |
-       NODE_IS_NATIVE_ANONYMOUS_ROOT |
-       NODE_MAY_BE_IN_BINDING_MNGR |
-       NODE_IS_INSERTION_PARENT);
-
-    if (!tmp->HasFlag(problematicFlags) && !IsXBL(tmp)) {
+    if (!UnoptimizableCCNode(tmp)) {
       
       if ((currentDoc && currentDoc->IsBlack())) {
         return false;
@@ -1246,7 +1248,7 @@ nsINode::Traverse(nsINode *tmp, nsCycleCollectionTraversalCallback &cb)
       
       
       nsIContent* parent = tmp->GetParent();
-      if (parent && !IsXBL(parent) && parent->IsBlack()) {
+      if (parent && !UnoptimizableCCNode(parent) && parent->IsBlack()) {
         NS_ABORT_IF_FALSE(parent->IndexOf(tmp) >= 0, "Parent doesn't own us?");
         return false;
       }
@@ -4255,6 +4257,382 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(nsGenericElement)
   nsINode::Trace(tmp, aCallback, aClosure);
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
+
+static JSObject*
+GetJSObjectChild(nsINode* aNode)
+{
+  if (aNode->PreservingWrapper()) {
+    return aNode->GetWrapperPreserveColor();
+  }
+  return aNode->GetExpandoObjectPreserveColor();
+}
+                                  
+static bool
+NeedsScriptTraverse(nsINode* aNode)
+{
+  JSObject* o = GetJSObjectChild(aNode);
+  return o && xpc_IsGrayGCThing(o);
+}
+
+void
+nsGenericElement::MarkUserData(void* aObject, nsIAtom* aKey, void* aChild,
+                               void* aData)
+{
+  PRUint32* gen = static_cast<PRUint32*>(aData);
+  xpc_MarkInCCGeneration(static_cast<nsISupports*>(aChild), *gen);
+}
+
+void
+nsGenericElement::MarkUserDataHandler(void* aObject, nsIAtom* aKey,
+                                      void* aChild, void* aData)
+{
+  nsCOMPtr<nsIXPConnectWrappedJS> wjs =
+    do_QueryInterface(static_cast<nsISupports*>(aChild));
+  xpc_UnmarkGrayObject(wjs);
+}
+
+static void
+MarkNodeChildren(nsINode* aNode)
+{
+  JSObject* o = GetJSObjectChild(aNode);
+  xpc_UnmarkGrayObject(o);
+
+  nsEventListenerManager* elm = aNode->GetListenerManager(false);
+  if (elm) {
+    elm->UnmarkGrayJSListeners();
+  }
+
+  if (aNode->HasProperties()) {
+    nsIDocument* ownerDoc = aNode->OwnerDoc();
+    ownerDoc->PropertyTable(DOM_USER_DATA)->
+      Enumerate(aNode, nsGenericElement::MarkUserData,
+                &nsCCUncollectableMarker::sGeneration);
+    ownerDoc->PropertyTable(DOM_USER_DATA_HANDLER)->
+      Enumerate(aNode, nsGenericElement::MarkUserDataHandler,
+                &nsCCUncollectableMarker::sGeneration);
+  }
+}
+
+nsINode*
+FindOptimizableSubtreeRoot(nsINode* aNode)
+{
+  nsINode* p;
+  while ((p = aNode->GetNodeParent())) {
+    if (UnoptimizableCCNode(aNode)) {
+      return nsnull;
+    }
+    aNode = p;
+  }
+  
+  if (UnoptimizableCCNode(aNode)) {
+    return nsnull;
+  }
+  return aNode;
+}
+
+nsAutoTArray<nsINode*, 1020>* gCCBlackMarkedNodes = nsnull;
+
+void
+ClearBlackMarkedNodes()
+{
+  if (!gCCBlackMarkedNodes) {
+    return;
+  }
+  PRUint32 len = gCCBlackMarkedNodes->Length();
+  for (PRUint32 i = 0; i < len; ++i) {
+    nsINode* n = gCCBlackMarkedNodes->ElementAt(i);
+    n->SetCCMarkedRoot(false);
+    n->SetInCCBlackTree(false);
+  }
+  delete gCCBlackMarkedNodes;
+  gCCBlackMarkedNodes = nsnull;
+}
+
+
+bool
+nsGenericElement::CanSkipInCC(nsINode* aNode)
+{
+  
+  if (nsCCUncollectableMarker::sGeneration == 0) {
+    return false;
+  }
+
+  
+  
+  if (UnoptimizableCCNode(aNode)) {
+    return false;
+  }
+
+  nsIDocument* currentDoc = aNode->GetCurrentDoc();
+  if (currentDoc &&
+      nsCCUncollectableMarker::InGeneration(currentDoc->GetMarkedCCGeneration())) {
+    return !NeedsScriptTraverse(aNode);
+  }
+
+  nsINode* root =
+    currentDoc ? static_cast<nsINode*>(currentDoc) :
+                 FindOptimizableSubtreeRoot(aNode);
+  if (!root) {
+    return false;
+  }
+  
+  
+  if (root->CCMarkedRoot()) {
+    return root->InCCBlackTree() && !NeedsScriptTraverse(aNode);
+  }
+
+  if (!gCCBlackMarkedNodes) {
+    gCCBlackMarkedNodes = new nsAutoTArray<nsINode*, 1020>;
+  }
+
+  
+  
+  nsAutoTArray<nsIContent*, 1020> nodesToUnpurple;
+  
+  
+  
+  nsAutoTArray<nsINode*, 1020> grayNodes;
+
+  bool foundBlack = root->IsBlack();
+  if (root != currentDoc) {
+    currentDoc = nsnull;
+    if (NeedsScriptTraverse(root)) {
+      grayNodes.AppendElement(root);
+    } else if (static_cast<nsIContent*>(root)->IsPurple()) {
+      nodesToUnpurple.AppendElement(static_cast<nsIContent*>(root));
+    }
+  }
+
+  
+  
+  
+  
+  for (nsIContent* node = root->GetFirstChild(); node;
+       node = node->GetNextNode(root)) {
+    foundBlack = foundBlack || node->IsBlack();
+    if (foundBlack && currentDoc) {
+      
+      
+      
+      break;
+    }
+    if (NeedsScriptTraverse(node)) {
+      
+      grayNodes.AppendElement(node);
+    } else if (node->IsPurple()) {
+      nodesToUnpurple.AppendElement(node);
+    }
+  }
+
+  root->SetCCMarkedRoot(true);
+  root->SetInCCBlackTree(foundBlack);
+  gCCBlackMarkedNodes->AppendElement(root);
+
+  if (!foundBlack) {
+    return false;
+  }
+
+  if (currentDoc) {
+    
+    
+    currentDoc->
+      MarkUncollectableForCCGeneration(nsCCUncollectableMarker::sGeneration);
+  } else {
+    for (PRUint32 i = 0; i < grayNodes.Length(); ++i) {
+      nsINode* node = grayNodes[i];
+      node->SetInCCBlackTree(true);
+    }
+    gCCBlackMarkedNodes->AppendElements(grayNodes);
+  }
+
+  
+  
+  for (PRUint32 i = 0; i < nodesToUnpurple.Length(); ++i) {
+    nsIContent* purple = nodesToUnpurple[i];
+    
+    if (purple != aNode) {
+      purple->RemovePurple();
+    }
+  }
+  return !NeedsScriptTraverse(aNode);
+}
+
+nsAutoTArray<nsINode*, 1020>* gPurpleRoots = nsnull;
+
+void ClearPurpleRoots()
+{
+  if (!gPurpleRoots) {
+    return;
+  }
+  PRUint32 len = gPurpleRoots->Length();
+  for (PRUint32 i = 0; i < len; ++i) {
+    nsINode* n = gPurpleRoots->ElementAt(i);
+    n->SetIsPurpleRoot(false);
+  }
+  delete gPurpleRoots;
+  gPurpleRoots = nsnull;
+}
+
+static bool
+ShouldClearPurple(nsIContent* aContent)
+{
+  if (aContent && aContent->IsPurple()) {
+    return true;
+  }
+
+  JSObject* o = GetJSObjectChild(aContent);
+  if (o && xpc_IsGrayGCThing(o)) {
+    return true;
+  }
+
+  if (aContent->GetListenerManager(false)) {
+    return true;
+  }
+
+  return aContent->HasProperties();
+}
+
+
+
+
+
+
+
+bool
+nsGenericElement::CanSkip(nsINode* aNode)
+{
+  
+  if (nsCCUncollectableMarker::sGeneration == 0) {
+    return false;
+  }
+
+  
+  
+  if (UnoptimizableCCNode(aNode)) {
+    return false;
+  }
+
+  nsIDocument* currentDoc = aNode->GetCurrentDoc();
+  if (currentDoc &&
+      nsCCUncollectableMarker::InGeneration(currentDoc->GetMarkedCCGeneration())) {
+    MarkNodeChildren(aNode);
+    return true;
+  }
+
+  nsINode* root = currentDoc ? static_cast<nsINode*>(currentDoc) :
+                               FindOptimizableSubtreeRoot(aNode);
+  if (!root) {
+    return false;
+  }
+ 
+  
+  
+  if (root->IsPurpleRoot()) {
+    return false;
+  }
+
+  
+  
+  nsAutoTArray<nsIContent*, 1020> nodesToClear;
+
+  bool foundBlack = root->IsBlack();
+  if (root != currentDoc) {
+    currentDoc = nsnull;
+    if (ShouldClearPurple(static_cast<nsIContent*>(root))) {
+      nodesToClear.AppendElement(static_cast<nsIContent*>(root));
+    }
+  }
+
+  
+  
+  
+  
+  for (nsIContent* node = root->GetFirstChild(); node;
+       node = node->GetNextNode(root)) {
+    foundBlack = foundBlack || node->IsBlack();
+    if (foundBlack) {
+      if (currentDoc) {
+        
+        
+        
+        break;
+      }
+      
+      
+      if (node->IsPurple() && node != aNode) {
+        node->RemovePurple();
+      }
+      MarkNodeChildren(node);
+    } else if (ShouldClearPurple(node)) {
+      
+      
+      nodesToClear.AppendElement(node);
+    }
+  }
+
+  if (!foundBlack) {
+    if (!gPurpleRoots) {
+      gPurpleRoots = new nsAutoTArray<nsINode*, 1020>();
+    }
+    root->SetIsPurpleRoot(true);
+    gPurpleRoots->AppendElement(root);
+    return false;
+  }
+
+  if (currentDoc) {
+    
+    
+    currentDoc->
+      MarkUncollectableForCCGeneration(nsCCUncollectableMarker::sGeneration);
+    MarkNodeChildren(currentDoc);
+  }
+
+  
+  
+  for (PRUint32 i = 0; i < nodesToClear.Length(); ++i) {
+    nsIContent* n = nodesToClear[i];
+    MarkNodeChildren(n);
+    
+    if (n != aNode && n->IsPurple()) {
+      n->RemovePurple();
+    }
+  }
+  return true;
+}
+
+bool
+nsGenericElement::CanSkipThis(nsINode* aNode)
+{
+  if (nsCCUncollectableMarker::sGeneration == 0) {
+    return false;
+  }
+  if (aNode->IsBlack()) {
+    return true;
+  }
+  nsIDocument* c = aNode->GetCurrentDoc();
+  return 
+    ((c && nsCCUncollectableMarker::InGeneration(c->GetMarkedCCGeneration())) ||
+     aNode->InCCBlackTree()) && !NeedsScriptTraverse(aNode);
+}
+
+void
+nsGenericElement::InitCCCallbacks()
+{
+  nsCycleCollector_setForgetSkippableCallback(ClearPurpleRoots);
+  nsCycleCollector_setBeforeUnlinkCallback(ClearBlackMarkedNodes);
+}
+
+NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_BEGIN(nsGenericElement)
+  return nsGenericElement::CanSkip(tmp);
+NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_END
+
+NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_BEGIN(nsGenericElement)
+  return nsGenericElement::CanSkipInCC(tmp);
+NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_END
+
+NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_BEGIN(nsGenericElement)
+  return nsGenericElement::CanSkipThis(tmp);
+NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_END
 
 static const char* kNSURIs[] = {
   " ([none])",

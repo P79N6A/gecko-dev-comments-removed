@@ -2913,6 +2913,16 @@ MarkAndSweep(JSContext *cx, JSGCInvocationKind gckind)
     
     rt->gcIsNeeded = false;
     rt->gcTriggerCompartment = NULL;
+    
+    
+    JSCompartment **read = rt->compartments.begin();
+    JSCompartment **end = rt->compartments.end();
+    JS_ASSERT(rt->compartments.length() >= 1);
+    
+    while (read < end) {
+        JSCompartment *compartment = *read++;
+        compartment->resetGCMallocBytes();
+    }
 
     
     WeakMapBase::resetWeakMapList(rt);
