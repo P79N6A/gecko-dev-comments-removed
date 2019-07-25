@@ -5,9 +5,11 @@ Cu.import("resource://services-sync/service.js");
 Cu.import("resource://services-sync/util.js");
 Cu.import("resource://services-sync/log4moz.js");
 
-const logsdir = FileUtils.getDir("ProfD", ["weave", "logs"], true);
+const logsdir            = FileUtils.getDir("ProfD", ["weave", "logs"], true);
 const LOG_PREFIX_SUCCESS = "success-";
 const LOG_PREFIX_ERROR   = "error-";
+const CLEANUP_DELAY      = 1000; 
+const DELAY_BUFFER       = 50; 
 
 const PROLONGED_ERROR_DURATION =
   (Svc.Prefs.get('errorhandler.networkFailureReportTimeout') * 2) * 1000;
@@ -230,4 +232,54 @@ add_test(function test_login_error_logOnError_true() {
   
   setLastSync(PROLONGED_ERROR_DURATION);
   Svc.Obs.notify("weave:service:login:error");
+});
+
+
+add_test(function test_logErrorCleanup_age() {
+  let maxAge = CLEANUP_DELAY/1000;
+  let firstlog_name;
+  let oldLogs = [];
+  let numLogs = 10;
+  let errString = "some error log\n";
+
+  Svc.Prefs.set("log.appender.file.logOnError", true);
+  Svc.Prefs.set("log.appender.file.maxErrorAge", maxAge);
+
+  
+  for (let i = 0; i < numLogs; i++) {
+    let filename = LOG_PREFIX_ERROR + Date.now() + i + ".txt";
+    let newLog = FileUtils.getFile("ProfD", ["weave", "logs", filename]);
+    let foStream = FileUtils.openFileOutputStream(newLog);
+    foStream.write(errString, errString.length);
+    foStream.close();
+    oldLogs.push(newLog.leafName);
+  }
+
+  Svc.Obs.add("weave:service:cleanup-logs", function onCleanupLogs() {
+    Svc.Obs.remove("weave:service:cleanup-logs", onCleanupLogs);
+
+    
+    let entries = logsdir.directoryEntries;
+    do_check_true(entries.hasMoreElements());
+    let logfile = entries.getNext().QueryInterface(Ci.nsILocalFile);
+    do_check_true(oldLogs.every(function (e) {
+      return e != logfile.leafName;
+    }));
+    do_check_false(entries.hasMoreElements());
+
+    
+    try {
+      logfile.remove(false);
+    } catch(ex) {
+      dump("Couldn't delete file: " + ex + "\n");
+      
+    }
+
+    Svc.Prefs.resetBranch("");
+    run_next_test();
+  });
+
+  Utils.namedTimer(function () Svc.Obs.notify("weave:service:sync:error"),
+                   CLEANUP_DELAY + DELAY_BUFFER, this, "cleanup-timer");
+
 });
