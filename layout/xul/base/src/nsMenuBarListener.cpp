@@ -161,13 +161,16 @@ nsMenuBarListener::KeyUp(nsIDOMEvent* aKeyEvent)
 
   if (mAccessKey && mAccessKeyFocuses)
   {
+    bool defaultPrevented = false;
+    aKeyEvent->GetDefaultPrevented(&defaultPrevented);
+
     
     
     
     PRUint32 theChar;
     keyEvent->GetKeyCode(&theChar);
 
-    if (mAccessKeyDown && !mAccessKeyDownCanceled &&
+    if (!defaultPrevented && mAccessKeyDown && !mAccessKeyDownCanceled &&
         (PRInt32)theChar == mAccessKey)
     {
       
@@ -340,6 +343,9 @@ nsMenuBarListener::KeyDown(nsIDOMEvent* aKeyEvent)
 
   if (mAccessKey && mAccessKeyFocuses)
   {
+    bool defaultPrevented = false;
+    aKeyEvent->GetDefaultPrevented(&defaultPrevented);
+
     nsCOMPtr<nsIDOMKeyEvent> keyEvent = do_QueryInterface(aKeyEvent);
     PRUint32 theChar;
     keyEvent->GetKeyCode(&theChar);
@@ -360,12 +366,14 @@ nsMenuBarListener::KeyDown(nsIDOMEvent* aKeyEvent)
 
       
       mAccessKeyDown = true;
-      mAccessKeyDownCanceled = false;
+      
+      mAccessKeyDownCanceled = defaultPrevented;
       return NS_OK;
     }
 
     
-    if (mAccessKeyDownCanceled) {
+    
+    if (mAccessKeyDownCanceled || defaultPrevented) {
       return NS_OK;
     }
 
