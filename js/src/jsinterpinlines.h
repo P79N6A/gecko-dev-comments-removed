@@ -511,7 +511,7 @@ class InvokeSessionGuard
 {
     InvokeArgsGuard args_;
     InvokeFrameGuard frame_;
-    Value savedCallee_;
+    Value savedCallee_, savedThis_;
     Value *formals_, *actuals_;
     unsigned nformals_;
     JSScript *script_;
@@ -554,10 +554,12 @@ InvokeSessionGuard::invoke(JSContext *cx) const
 {
     
 
-    if (!optimized()) {
-        args_.callee() = savedCallee_;
+    
+    formals_[-2] = savedCallee_;
+    formals_[-1] = savedThis_;
+
+    if (!optimized())
         return Invoke(cx, args_, 0);
-    }
 
     
     JSStackFrame *fp = frame_.fp();

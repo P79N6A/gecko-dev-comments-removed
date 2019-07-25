@@ -788,6 +788,10 @@ InvokeSessionGuard::start(JSContext *cx, const Value &calleev, const Value &this
     if (!stack.pushInvokeArgs(cx, argc, &args_))
         return false;
 
+    
+    savedCallee_ = args_.callee() = calleev;
+    savedThis_ = args_.thisv() = thisv;
+
     do {
         
         if (!calleev.isObject())
@@ -803,10 +807,6 @@ InvokeSessionGuard::start(JSContext *cx, const Value &calleev, const Value &this
             break;
 
         
-        args_.callee().setObject(callee);
-        args_.thisv() = thisv;
-
-        
         uint32 flags = 0;
         if (!stack.getInvokeFrame(cx, args_, fun, script_, &flags, &frame_))
             return false;
@@ -820,7 +820,7 @@ InvokeSessionGuard::start(JSContext *cx, const Value &calleev, const Value &this
             if (!thisp)
                 return false;
             JS_ASSERT(IsSaneThisObject(*thisp));
-            fp->functionThis().setObject(*thisp);
+            savedThis_.setObject(*thisp);
         }
 
 #ifdef JS_METHODJIT
@@ -859,8 +859,6 @@ InvokeSessionGuard::start(JSContext *cx, const Value &calleev, const Value &this
 
     if (frame_.pushed())
         frame_.pop();
-    args_.thisv() = thisv;
-    savedCallee_ = calleev;
     formals_ = actuals_ = args_.argv();
     nformals_ = (unsigned)-1;
     return true;
