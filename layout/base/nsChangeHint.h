@@ -44,7 +44,13 @@
 
 
 
+
+
+
+
 enum nsChangeHint {
+  
+  
   
   nsChangeHint_RepaintFrame = 0x01,
 
@@ -66,6 +72,7 @@ enum nsChangeHint {
   nsChangeHint_NeedDirtyReflow = 0x10,
 
   
+  
   nsChangeHint_SyncFrameView = 0x20,
 
   
@@ -86,15 +93,26 @@ enum nsChangeHint {
 
 
 
+
   nsChangeHint_UpdateOpacityLayer = 0x100,
+  
+
+
+
   nsChangeHint_UpdateTransformLayer = 0x200,
 
   
-  
+
+
+
+
   nsChangeHint_ReconstructFrame = 0x400,
 
   
-  
+
+
+
+
   nsChangeHint_UpdateOverflow = 0x800
 };
 
