@@ -49,8 +49,6 @@
 #include "jsclist.h"
 #include "jsinfer.h"
 
-#include "gc/Barrier.h"
-
 
 
 
@@ -134,7 +132,7 @@ typedef struct JSTryNoteArray {
 } JSTryNoteArray;
 
 typedef struct JSObjectArray {
-    js::HeapPtrObject *vector;  
+    JSObject        **vector;   
     uint32          length;     
 } JSObjectArray;
 
@@ -144,9 +142,11 @@ typedef struct JSUpvarArray {
 } JSUpvarArray;
 
 typedef struct JSConstArray {
-    js::HeapValue   *vector;    
+    js::Value       *vector;    
     uint32          length;
 } JSConstArray;
+
+struct JSArenaPool;
 
 namespace js {
 
@@ -170,15 +170,13 @@ enum BindingKind { NONE, ARGUMENT, VARIABLE, CONSTANT, UPVAR };
 
 
 class Bindings {
-    HeapPtr<Shape> lastBinding;
+    js::Shape *lastBinding;
     uint16 nargs;
     uint16 nvars;
     uint16 nupvars;
-    bool hasExtensibleParents;
 
   public:
     inline Bindings(JSContext *cx);
-    inline ~Bindings();
 
     
 
@@ -210,6 +208,10 @@ class Bindings {
 
     
     inline js::Shape *lastShape() const;
+
+    
+    inline bool extensibleParents();
+    bool setExtensibleParents(JSContext *cx);
 
     enum {
         
@@ -303,54 +305,6 @@ class Bindings {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    void setExtensibleParents() { hasExtensibleParents = true; }
-    bool extensibleParents() const { return hasExtensibleParents; }
-
-    
-
-
-
-
-
-
-
-
     const js::Shape *lastArgument() const;
     const js::Shape *lastVariable() const;
     const js::Shape *lastUpvar() const;
@@ -379,33 +333,55 @@ enum JITScriptStatus {
 namespace js { namespace mjit { struct JITScript; } }
 #endif
 
-namespace js {
+namespace js { namespace analyze { class ScriptAnalysis; } }
 
-namespace analyze { class ScriptAnalysis; }
-
-class ScriptOpcodeCounts
-{
-    friend struct ::JSScript;
-    OpcodeCounts *counts;
+class JSPCCounters {
+    size_t numBytecodes;
+    double *counts;
 
  public:
 
-    ScriptOpcodeCounts() : counts(NULL) {
+    enum {
+        INTERP = 0,
+        TRACEJIT,
+        METHODJIT,
+        METHODJIT_STUBS,
+        METHODJIT_CODE,
+        METHODJIT_PICS,
+        NUM_COUNTERS
+    };
+
+    JSPCCounters() : numBytecodes(0), counts(NULL) {
     }
 
-    ~ScriptOpcodeCounts() {
+    ~JSPCCounters() {
         JS_ASSERT(!counts);
     }
+
+    bool init(JSContext *cx, size_t numBytecodes);
+    void destroy(JSContext *cx);
 
     
     operator void*() const {
         return counts;
     }
+
+    double *get(int runmode) {
+        JS_ASSERT(runmode >= 0 && runmode < NUM_COUNTERS);
+        return counts ? &counts[numBytecodes * runmode] : NULL;
+    }
+
+    double& get(int runmode, size_t offset) {
+        JS_ASSERT(offset < numBytecodes);
+        JS_ASSERT(counts);
+        return get(runmode)[offset];
+    }
 };
 
-} 
-
 static const uint32 JS_SCRIPT_COOKIE = 0xc00cee;
+
+static JSObject * const JS_NEW_SCRIPT = (JSObject *)0x12345678;
+static JSObject * const JS_CACHED_SCRIPT = (JSObject *)0x12341234;
 
 struct JSScript : public js::gc::Cell {
     
@@ -425,7 +401,7 @@ struct JSScript : public js::gc::Cell {
                                uint16 nClosedArgs, uint16 nClosedVars, uint32 nTypeSets,
                                JSVersion version);
 
-    static JSScript *NewScriptFromEmitter(JSContext *cx, js::BytecodeEmitter *bce);
+    static JSScript *NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg);
 
 #ifdef JS_CRASH_DIAGNOSTICS
     
@@ -520,8 +496,10 @@ struct JSScript : public js::gc::Cell {
 
 
 
+#if JS_BITS_PER_WORD == 64
 #define JS_SCRIPT_INLINE_DATA_LIMIT 4
     uint8           inlineData[JS_SCRIPT_INLINE_DATA_LIMIT];
+#endif
 
     const char      *filename;  
     JSAtom          **atoms;    
@@ -535,7 +513,8 @@ struct JSScript : public js::gc::Cell {
     JSPrincipals    *principals;
     jschar          *sourceMap; 
 
-    
+    union {
+        
 
 
 
@@ -545,21 +524,25 @@ struct JSScript : public js::gc::Cell {
 
 
 
+        JSObject    *object;
 
-    js::HeapPtr<js::GlobalObject, JSScript*> globalObject;
-
-    
-    JSScript        *&evalHashLink() { return *globalObject.unsafeGetUnioned(); }
+        
+        JSScript    *evalHashLink;
+    } u;
 
     uint32          *closedSlots; 
 
     
-    js::ScriptOpcodeCounts pcCounters;
+    JSPCCounters    pcCounters;
 
 #ifdef JS_CRASH_DIAGNOSTICS
+    JSObject        *ownerObject;
+
     
-    uint32          cookie2[Cell::CellSize / sizeof(uint32)];
+    uint32          cookie2[sizeof(JSObject *) == 4 ? 1 : 2];
 #endif
+
+    void setOwnerObject(JSObject *owner);
 
 #ifdef DEBUG
     
@@ -568,7 +551,7 @@ struct JSScript : public js::gc::Cell {
 
     uint32 id_;
     uint32 idpad;
-    unsigned id();
+    unsigned id() { return id_; }
 #else
     unsigned id() { return 0; }
 #endif
@@ -608,11 +591,6 @@ struct JSScript : public js::gc::Cell {
     inline js::types::TypeScriptNesting *nesting() const;
 
     inline void clearNesting();
-
-    
-    js::GlobalObject *getGlobalObjectOrNull() const {
-        return isCachedEval ? NULL : globalObject.get();
-    }
 
   private:
     bool makeTypes(JSContext *cx, JSFunction *fun);
@@ -660,18 +638,9 @@ struct JSScript : public js::gc::Cell {
     }
 
     
-    JS_FRIEND_API(size_t) jitDataSize(JSMallocSizeOfFun mallocSizeOf);
-
-#endif
-
+    JS_FRIEND_API(size_t) jitDataSize(JSUsableSizeFun usf);
     
-    js::OpcodeCounts getCounts(jsbytecode *pc) {
-        JS_ASSERT(unsigned(pc - code) < length);
-        return pcCounters.counts[pc - code];
-    }
-
-    bool initCounts(JSContext *cx);
-    void destroyCounts(JSContext *cx);
+#endif
 
     jsbytecode *main() {
         return code + mainOffset;
@@ -682,9 +651,9 @@ struct JSScript : public js::gc::Cell {
 
 
 
-    JS_FRIEND_API(size_t) dataSize();                               
-    JS_FRIEND_API(size_t) dataSize(JSMallocSizeOfFun mallocSizeOf); 
-    uint32 numNotes();  
+    JS_FRIEND_API(size_t) dataSize();                       
+    JS_FRIEND_API(size_t) dataSize(JSUsableSizeFun usf);    
+    uint32 numNotes();                  
 
     
     jssrcnote *notes() { return (jssrcnote *)(code + length); }
@@ -788,7 +757,7 @@ struct JSScript : public js::gc::Cell {
 
 
     bool setStepModeFlag(JSContext *cx, bool step);
-
+    
     
 
 
@@ -804,9 +773,6 @@ struct JSScript : public js::gc::Cell {
 #endif
 
     void finalize(JSContext *cx);
-
-    static inline void writeBarrierPre(JSScript *script);
-    static inline void writeBarrierPost(JSScript *script, void *addr);
 };
 
 JS_STATIC_ASSERT(sizeof(JSScript) % js::gc::Cell::CellSize == 0);
@@ -836,6 +802,9 @@ StackDepth(JSScript *script)
     JS_END_MACRO
 
 
+extern JSObject *
+js_InitScriptClass(JSContext *cx, JSObject *obj);
+
 extern void
 js_MarkScriptFilename(const char *filename);
 
@@ -859,9 +828,17 @@ namespace js {
 #ifdef JS_CRASH_DIAGNOSTICS
 
 void
+CheckScriptOwner(JSScript *script, JSObject *owner);
+
+void
 CheckScript(JSScript *script, JSScript *prev);
 
 #else
+
+inline void
+CheckScriptOwner(JSScript *script, JSObject *owner)
+{
+}
 
 inline void
 CheckScript(JSScript *script, JSScript *prev)
@@ -871,6 +848,9 @@ CheckScript(JSScript *script, JSScript *prev)
 #endif 
 
 } 
+
+extern JSObject *
+js_NewScriptObject(JSContext *cx, JSScript *script);
 
 
 
@@ -942,5 +922,12 @@ js_CloneScript(JSContext *cx, JSScript *script);
 
 extern JSBool
 js_XDRScript(JSXDRState *xdr, JSScript **scriptp);
+
+inline JSScript *
+JSObject::getScript() const
+{
+    JS_ASSERT(isScript());
+    return static_cast<JSScript *>(getPrivate());
+}
 
 #endif 

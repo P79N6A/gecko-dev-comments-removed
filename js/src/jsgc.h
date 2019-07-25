@@ -45,24 +45,19 @@
 
 #include <setjmp.h>
 
-#include "mozilla/Util.h"
-
-#include "jsalloc.h"
 #include "jstypes.h"
 #include "jsprvtd.h"
 #include "jspubtd.h"
 #include "jsdhash.h"
+#include "jsbit.h"
 #include "jsgcchunk.h"
-#include "jslock.h"
 #include "jsutil.h"
+#include "jsvector.h"
 #include "jsversion.h"
+#include "jsobj.h"
+#include "jsfun.h"
 #include "jsgcstats.h"
 #include "jscell.h"
-
-#include "ds/BitArray.h"
-#include "gc/Statistics.h"
-#include "js/HashTable.h"
-#include "js/Vector.h"
 
 struct JSCompartment;
 
@@ -88,17 +83,11 @@ struct Arena;
 
 
 
-const size_t MAX_BACKGROUND_FINALIZE_KINDS = FINALIZE_LIMIT - FINALIZE_OBJECT_LIMIT / 2;
+const size_t MAX_BACKGROUND_FINALIZE_KINDS = FINALIZE_LIMIT - (FINALIZE_OBJECT_LAST + 1) / 2;
 
 const size_t ArenaShift = 12;
 const size_t ArenaSize = size_t(1) << ArenaShift;
 const size_t ArenaMask = ArenaSize - 1;
-
-
-
-
-
-const static uint32 MaxFreeCommittedArenas = (32 << 20) / ArenaSize;
 
 
 
@@ -370,12 +359,6 @@ struct ArenaHeader {
     friend struct FreeLists;
 
     JSCompartment   *compartment;
-
-    
-
-
-
-
     ArenaHeader     *next;
 
   private:
@@ -426,28 +409,18 @@ struct ArenaHeader {
     inline uintptr_t address() const;
     inline Chunk *chunk() const;
 
-    bool allocated() const {
-        JS_ASSERT(allocKind <= size_t(FINALIZE_LIMIT));
-        return allocKind < size_t(FINALIZE_LIMIT);
-    }
-
-    void init(JSCompartment *comp, AllocKind kind) {
-        JS_ASSERT(!allocated());
-        JS_ASSERT(!hasDelayedMarking);
-        compartment = comp;
-
-        JS_STATIC_ASSERT(FINALIZE_LIMIT <= 255);
-        allocKind = size_t(kind);
-
-        
-        firstFreeSpanOffsets = FreeSpan::FullArenaOffsets;
-    }
-
     void setAsNotAllocated() {
         allocKind = size_t(FINALIZE_LIMIT);
         hasDelayedMarking = 0;
         nextDelayedMarking = 0;
     }
+
+    bool allocated() const {
+        JS_ASSERT(allocKind <= size_t(FINALIZE_LIMIT));
+        return allocKind < size_t(FINALIZE_LIMIT);
+    }
+
+    inline void init(JSCompartment *comp, AllocKind kind);
 
     uintptr_t arenaAddress() const {
         return address();
@@ -566,60 +539,13 @@ struct Arena {
 struct ChunkInfo {
     Chunk           *next;
     Chunk           **prevp;
-
-    
-    ArenaHeader     *freeArenasHead;
-
-    
-
-
-
-
-    uint32          lastDecommittedArenaOffset;
-
-    
-    uint32          numArenasFree;
-
-    
-    uint32          numArenasFreeCommitted;
-
-    
-    uint32          age;
+    ArenaHeader     *emptyArenaListHead;
+    size_t          age;
+    size_t          numFree;
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-const size_t BytesPerArenaWithHeader = ArenaSize + ArenaBitmapBytes;
-const size_t ChunkDecommitBitmapBytes = ChunkSize / ArenaSize / JS_BITS_PER_BYTE;
-const size_t ChunkBytesAvailable = ChunkSize - sizeof(ChunkInfo) - ChunkDecommitBitmapBytes;
-const size_t ArenasPerChunk = ChunkBytesAvailable / BytesPerArenaWithHeader;
+const size_t BytesPerArena = ArenaSize + ArenaBitmapBytes;
+const size_t ArenasPerChunk = (GC_CHUNK_SIZE - sizeof(ChunkInfo)) / BytesPerArena;
 
 
 struct ChunkBitmap {
@@ -685,56 +611,44 @@ struct ChunkBitmap {
 
 JS_STATIC_ASSERT(ArenaBitmapBytes * ArenasPerChunk == sizeof(ChunkBitmap));
 
-typedef BitArray<ArenasPerChunk> PerArenaBitmap;
-
-const size_t ChunkPadSize = ChunkSize
-                            - (sizeof(Arena) * ArenasPerChunk)
-                            - sizeof(ChunkBitmap)
-                            - sizeof(PerArenaBitmap)
-                            - sizeof(ChunkInfo);
-JS_STATIC_ASSERT(ChunkPadSize < BytesPerArenaWithHeader);
-
 
 
 
 
 struct Chunk {
     Arena           arenas[ArenasPerChunk];
-
-    
-    uint8           padding[ChunkPadSize];
-
     ChunkBitmap     bitmap;
-    PerArenaBitmap  decommittedArenas;
     ChunkInfo       info;
 
     static Chunk *fromAddress(uintptr_t addr) {
-        addr &= ~ChunkMask;
+        addr &= ~GC_CHUNK_MASK;
         return reinterpret_cast<Chunk *>(addr);
     }
 
     static bool withinArenasRange(uintptr_t addr) {
-        uintptr_t offset = addr & ChunkMask;
+        uintptr_t offset = addr & GC_CHUNK_MASK;
         return offset < ArenasPerChunk * ArenaSize;
     }
 
     static size_t arenaIndex(uintptr_t addr) {
         JS_ASSERT(withinArenasRange(addr));
-        return (addr & ChunkMask) >> ArenaShift;
+        return (addr & GC_CHUNK_MASK) >> ArenaShift;
     }
 
     uintptr_t address() const {
         uintptr_t addr = reinterpret_cast<uintptr_t>(this);
-        JS_ASSERT(!(addr & ChunkMask));
+        JS_ASSERT(!(addr & GC_CHUNK_MASK));
         return addr;
     }
 
+    void init();
+
     bool unused() const {
-        return info.numArenasFree == ArenasPerChunk;
+        return info.numFree == ArenasPerChunk;
     }
 
-    bool noAvailableArenas() const {
-        return info.numArenasFree == 0;
+    bool hasAvailableArenas() const {
+        return info.numFree > 0;
     }
 
     inline void addToAvailableList(JSCompartment *compartment);
@@ -743,50 +657,10 @@ struct Chunk {
     ArenaHeader *allocateArena(JSCompartment *comp, AllocKind kind);
 
     void releaseArena(ArenaHeader *aheader);
-
-    static Chunk *allocate(JSRuntime *rt);
-    static inline void release(JSRuntime *rt, Chunk *chunk);
-
-  private:
-    inline void init(JSRuntime *rt);
-
-    
-    jsuint findDecommittedArenaOffset();
-    ArenaHeader* fetchNextDecommittedArena();
-
-    
-    inline ArenaHeader* fetchNextFreeArena(JSRuntime *rt);
 };
 
-JS_STATIC_ASSERT(sizeof(Chunk) == ChunkSize);
-
-class ChunkPool {
-    Chunk   *emptyChunkListHead;
-    size_t  emptyCount;
-
-  public:
-    ChunkPool()
-      : emptyChunkListHead(NULL),
-        emptyCount(0) { }
-
-    size_t getEmptyCount() const {
-        return emptyCount;
-    }
-
-    inline bool wantBackgroundAllocation(JSRuntime *rt) const;
-
-    
-    inline Chunk *get(JSRuntime *rt);
-
-    
-    inline void put(JSRuntime *rt, Chunk *chunk);
-
-    
-    void expire(JSRuntime *rt, bool releaseAll);
-
-    
-    JS_FRIEND_API(int64) countDecommittedArenas(JSRuntime *rt);
-};
+JS_STATIC_ASSERT(sizeof(Chunk) <= GC_CHUNK_SIZE);
+JS_STATIC_ASSERT(sizeof(Chunk) + BytesPerArena > GC_CHUNK_SIZE);
 
 inline uintptr_t
 Cell::address() const
@@ -810,7 +684,7 @@ Cell::chunk() const
 {
     uintptr_t addr = uintptr_t(this);
     JS_ASSERT(addr % Cell::CellSize == 0);
-    addr &= ~(ChunkSize - 1);
+    addr &= ~(GC_CHUNK_SIZE - 1);
     return reinterpret_cast<Chunk *>(addr);
 }
 
@@ -827,6 +701,20 @@ Cell::isAligned() const
     return Arena::isAligned(address(), arenaHeader()->getThingSize());
 }
 #endif
+
+inline void
+ArenaHeader::init(JSCompartment *comp, AllocKind kind)
+{
+    JS_ASSERT(!allocated());
+    JS_ASSERT(!hasDelayedMarking);
+    compartment = comp;
+
+    JS_STATIC_ASSERT(FINALIZE_LIMIT <= 255);
+    allocKind = size_t(kind);
+
+    
+    firstFreeSpanOffsets = FreeSpan::FullArenaOffsets;
+}
 
 inline uintptr_t
 ArenaHeader::address() const
@@ -878,7 +766,7 @@ ChunkBitmap::getMarkWordAndMask(const Cell *cell, uint32 color,
                                 uintptr_t **wordp, uintptr_t *maskp)
 {
     JS_ASSERT(cell->chunk() == Chunk::fromAddress(reinterpret_cast<uintptr_t>(this)));
-    size_t bit = (cell->address() & ChunkMask) / Cell::CellSize + color;
+    size_t bit = (cell->address() & GC_CHUNK_MASK) / Cell::CellSize + color;
     JS_ASSERT(bit < ArenaBitmapBits * ArenasPerChunk);
     *maskp = uintptr_t(1) << (bit % JS_BITS_PER_WORD);
     *wordp = &bitmap[bit / JS_BITS_PER_WORD];
@@ -955,6 +843,7 @@ MapAllocToTraceKind(AllocKind thingKind)
         JSTRACE_OBJECT,     
         JSTRACE_SCRIPT,     
         JSTRACE_SHAPE,      
+        JSTRACE_BASE_SHAPE, 
         JSTRACE_TYPE_OBJECT,
 #if JS_HAS_XML_SUPPORT      
         JSTRACE_XML,
@@ -1192,7 +1081,7 @@ struct ArenaLists {
 
     void checkEmptyFreeLists() {
 #ifdef DEBUG
-        for (size_t i = 0; i < mozilla::ArrayLength(freeLists); ++i)
+        for (size_t i = 0; i != JS_ARRAY_LENGTH(freeLists); ++i)
             JS_ASSERT(freeLists[i].isEmpty());
 #endif
     }
@@ -1222,7 +1111,7 @@ struct ArenaLists {
 
 
 
-const size_t INITIAL_CHUNK_CAPACITY = 16 * 1024 * 1024 / ChunkSize;
+const size_t INITIAL_CHUNK_CAPACITY = 16 * 1024 * 1024 / GC_CHUNK_SIZE;
 
 
 const size_t MAX_EMPTY_CHUNK_AGE = 4;
@@ -1313,16 +1202,21 @@ typedef struct JSPtrTable {
 } JSPtrTable;
 
 extern JSBool
+js_RegisterCloseableIterator(JSContext *cx, JSObject *obj);
+
+#ifdef JS_TRACER
+extern JSBool
+js_ReserveObjects(JSContext *cx, size_t nobjects);
+#endif
+
+extern JSBool
 js_LockGCThingRT(JSRuntime *rt, void *thing);
 
 extern void
 js_UnlockGCThingRT(JSRuntime *rt, void *thing);
 
 extern JS_FRIEND_API(bool)
-IsAboutToBeFinalized(JSContext *cx, const js::gc::Cell *thing);
-
-extern bool
-IsAboutToBeFinalized(JSContext *cx, const js::Value &value);
+IsAboutToBeFinalized(JSContext *cx, const void *thing);
 
 extern JS_FRIEND_API(bool)
 js_GCThingIsMarked(void *thing, uintN color);
@@ -1343,11 +1237,11 @@ MarkContext(JSTracer *trc, JSContext *acx);
 
 
 extern void
-TriggerGC(JSRuntime *rt, js::gcstats::Reason reason);
+TriggerGC(JSRuntime *rt);
 
 
 extern void
-TriggerCompartmentGC(JSCompartment *comp, js::gcstats::Reason reason);
+TriggerCompartmentGC(JSCompartment *comp);
 
 extern void
 MaybeGC(JSContext *cx);
@@ -1373,7 +1267,7 @@ typedef enum JSGCInvocationKind {
 
 
 extern void
-js_GC(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind, js::gcstats::Reason r);
+js_GC(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind);
 
 #ifdef JS_THREADSAFE
 
@@ -1395,44 +1289,32 @@ namespace js {
 
 #ifdef JS_THREADSAFE
 
+
+
+
+
+
+
+
+
+
+
 class GCHelperThread {
-    enum State {
-        IDLE,
-        SWEEPING,
-        ALLOCATING,
-        CANCEL_ALLOCATION,
-        SHUTDOWN
-    };
-
-    
-
-
-
-
-
-
-
-
-
     static const size_t FREE_ARRAY_SIZE = size_t(1) << 16;
     static const size_t FREE_ARRAY_LENGTH = FREE_ARRAY_SIZE / sizeof(void *);
 
-    JSRuntime         *const rt;
-    PRThread          *thread;
-    PRCondVar         *wakeup;
-    PRCondVar         *done;
-    volatile State    state;
-
-    JSContext         *context;
-    bool              shrinkFlag;
+    JSContext         *cx;
+    PRThread*         thread;
+    PRCondVar*        wakeup;
+    PRCondVar*        sweepingDone;
+    bool              shutdown;
+    JSGCInvocationKind lastGCKind;
 
     Vector<void **, 16, js::SystemAllocPolicy> freeVector;
     void            **freeCursor;
     void            **freeCursorEnd;
 
     Vector<js::gc::ArenaHeader *, 64, js::SystemAllocPolicy> finalizeVector;
-
-    bool    backgroundAllocation;
 
     friend struct js::gc::ArenaLists;
 
@@ -1447,73 +1329,38 @@ class GCHelperThread {
     }
 
     static void threadMain(void* arg);
-    void threadLoop();
 
-    
+    void threadLoop(JSRuntime *rt);
     void doSweep();
 
   public:
-    GCHelperThread(JSRuntime *rt)
-      : rt(rt),
-        thread(NULL),
+    GCHelperThread()
+      : thread(NULL),
         wakeup(NULL),
-        done(NULL),
-        state(IDLE),
+        sweepingDone(NULL),
+        shutdown(false),
         freeCursor(NULL),
         freeCursorEnd(NULL),
-        backgroundAllocation(true)
-    { }
+        sweeping(false) { }
 
-    bool init();
-    void finish();
-
-    
-    inline void startBackgroundSweep(bool shouldShrink);
+    volatile bool     sweeping;
+    bool init(JSRuntime *rt);
+    void finish(JSRuntime *rt);
 
     
-    void waitBackgroundSweepEnd();
+    void startBackgroundSweep(JSRuntime *rt, JSGCInvocationKind gckind);
 
-    
-    void waitBackgroundSweepOrAllocEnd();
-
-    
-    inline void startBackgroundAllocationIfIdle();
-
-    bool canBackgroundAllocate() const {
-        return backgroundAllocation;
-    }
-
-    void disableBackgroundAllocation() {
-        backgroundAllocation = false;
-    }
-
-    PRThread *getThread() const {
-        return thread;
-    }
-
-    
-
-
-
-    bool sweeping() const {
-        return state == SWEEPING;
-    }
-
-    bool shouldShrink() const {
-        JS_ASSERT(sweeping());
-        return shrinkFlag;
-    }
+    void waitBackgroundSweepEnd(JSRuntime *rt, bool gcUnlocked = true);
 
     void freeLater(void *ptr) {
-        JS_ASSERT(!sweeping());
+        JS_ASSERT(!sweeping);
         if (freeCursor != freeCursorEnd)
             *freeCursor++ = ptr;
         else
             replenishAndFreeLater(ptr);
     }
 
-    
-    bool prepareForBackgroundSweep(JSContext *cx);
+    bool prepareForBackgroundSweep(JSContext *context);
 };
 
 #endif 
@@ -1526,13 +1373,13 @@ struct GCChunkHasher {
 
 
     static HashNumber hash(gc::Chunk *chunk) {
-        JS_ASSERT(!(jsuword(chunk) & gc::ChunkMask));
-        return HashNumber(jsuword(chunk) >> gc::ChunkShift);
+        JS_ASSERT(!(jsuword(chunk) & GC_CHUNK_MASK));
+        return HashNumber(jsuword(chunk) >> GC_CHUNK_SHIFT);
     }
 
     static bool match(gc::Chunk *k, gc::Chunk *l) {
-        JS_ASSERT(!(jsuword(k) & gc::ChunkMask));
-        JS_ASSERT(!(jsuword(l) & gc::ChunkMask));
+        JS_ASSERT(!(jsuword(k) & GC_CHUNK_MASK));
+        JS_ASSERT(!(jsuword(l) & GC_CHUNK_MASK));
         return k == l;
     }
 };
@@ -1668,17 +1515,10 @@ struct GCMarker : public JSTracer {
         return color;
     }
 
-    
-
-
-
-
-
-
-
-    void setMarkColorGray() {
-        JS_ASSERT(color == gc::BLACK);
-        color = gc::GRAY;
+    void setMarkColor(uint32 newColor) {
+        
+        drainMarkStack();
+        color = newColor;
     }
 
     void delayMarkingChildren(const void *thing);
@@ -1693,7 +1533,7 @@ struct GCMarker : public JSTracer {
                largeStack.isEmpty();
     }
 
-    void drainMarkStack();
+    JS_FRIEND_API(void) drainMarkStack();
 
     void pushObject(JSObject *obj) {
         if (!objStack.push(obj))
@@ -1720,7 +1560,6 @@ void
 MarkStackRangeConservatively(JSTracer *trc, Value *begin, Value *end);
 
 typedef void (*IterateCompartmentCallback)(JSContext *cx, void *data, JSCompartment *compartment);
-typedef void (*IterateChunkCallback)(JSContext *cx, void *data, gc::Chunk *chunk);
 typedef void (*IterateArenaCallback)(JSContext *cx, void *data, gc::Arena *arena,
                                      JSGCTraceKind traceKind, size_t thingSize);
 typedef void (*IterateCellCallback)(JSContext *cx, void *data, void *thing,
@@ -1736,12 +1575,6 @@ IterateCompartmentsArenasCells(JSContext *cx, void *data,
                                IterateCompartmentCallback compartmentCallback,
                                IterateArenaCallback arenaCallback,
                                IterateCellCallback cellCallback);
-
-
-
-
-extern JS_FRIEND_API(void)
-IterateChunks(JSContext *cx, void *data, IterateChunkCallback chunkCallback);
 
 
 
@@ -1771,30 +1604,13 @@ NewCompartment(JSContext *cx, JSPrincipals *principals);
 void
 RunDebugGC(JSContext *cx);
 
-const int ZealPokeThreshold = 1;
-const int ZealAllocThreshold = 2;
-const int ZealVerifierThreshold = 4;
+} 
+} 
 
-#ifdef JS_GC_ZEAL
-
-
-void
-VerifyBarriers(JSContext *cx, bool always = false);
-
-#else
-
-static inline void
-VerifyBarriers(JSContext *cx, bool always = false)
+inline JSCompartment *
+JSObject::getCompartment() const
 {
+    return compartment();
 }
-
-#endif
-
-} 
-
-static inline JSCompartment *
-GetObjectCompartment(JSObject *obj) { return reinterpret_cast<js::gc::Cell *>(obj)->compartment(); }
-
-} 
 
 #endif 

@@ -45,23 +45,27 @@
 
 #include <string.h>
 
-#include "jsfriendapi.h"
 #include "jsprvtd.h"
-#include "jsatom.h"
+#include "jsarena.h"
 #include "jsclist.h"
+#include "jsatom.h"
 #include "jsdhash.h"
+#include "jsfun.h"
 #include "jsgc.h"
 #include "jsgcchunk.h"
+#include "jshashtable.h"
+#include "jsinfer.h"
+#include "jsinterp.h"
+#include "jsobj.h"
 #include "jspropertycache.h"
 #include "jspropertytree.h"
+#include "jsstaticcheck.h"
 #include "jsutil.h"
+#include "jsvector.h"
 #include "prmjtime.h"
 
-#include "ds/LifoAlloc.h"
-#include "gc/Statistics.h"
-#include "js/HashTable.h"
-#include "js/Vector.h"
-#include "vm/StackSpace.h"
+#include "vm/Stack.h"
+#include "vm/String.h"
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -70,24 +74,52 @@
 #pragma warning(disable:4355) /* Silence warning about "this" used in base member initializer list */
 #endif
 
+
+namespace nanojit {
+
+class Assembler;
+class CodeAlloc;
+class Fragment;
+template<typename K> struct DefaultHash;
+template<typename K, typename V, typename H> class HashMap;
+template<typename T> class Seq;
+
+}  
+
 JS_BEGIN_EXTERN_C
 struct DtoaState;
 JS_END_EXTERN_C
 
-struct JSSharpObjectMap {
-    jsrefcount  depth;
-    uint32      sharpgen;
-    JSHashTable *table;
-};
-
 namespace js {
+
+
+static const size_t MONITOR_N_GLOBAL_STATES = 4;
+static const size_t FRAGMENT_TABLE_SIZE = 512;
+static const size_t MAX_GLOBAL_SLOTS = 4096;
+static const size_t GLOBAL_SLOTS_BUFFER_SIZE = MAX_GLOBAL_SLOTS + 1;
+
+
+class VMAllocator;
+class FrameInfoCache;
+struct FrameInfo;
+struct VMSideExit;
+struct TreeFragment;
+struct TracerState;
+template<typename T> class Queue;
+typedef Queue<uint16> SlotList;
+class TypeMap;
+class LoopProfile;
+
+#if defined(JS_JIT_SPEW) || defined(DEBUG)
+struct FragPI;
+typedef nanojit::HashMap<uint32, FragPI, nanojit::DefaultHash<uint32> > FragStatsMap;
+#endif
 
 namespace mjit {
 class JaegerCompartment;
 }
 
 class WeakMapBase;
-class InterpreterFrames;
 
 
 
@@ -118,8 +150,6 @@ struct PendingProxyOperation {
 };
 
 struct ThreadData {
-    JSRuntime           *rt;
-
     
 
 
@@ -132,6 +162,25 @@ struct ThreadData {
     unsigned            requestDepth;
 #endif
 
+#ifdef JS_TRACER
+    
+
+
+
+
+
+
+
+    JSCompartment       *onTraceCompartment;
+    JSCompartment       *recordingCompartment;
+    JSCompartment       *profilingCompartment;
+
+    
+    uint32              maxCodeCacheBytes;
+
+    static const uint32 DEFAULT_JIT_CACHE_SIZE = 16 * 1024 * 1024;
+#endif
+
     
     StackSpace          stackSpace;
 
@@ -140,51 +189,6 @@ struct ThreadData {
 
 
     bool                waiveGCQuota;
-
-    
-    static const size_t TEMP_LIFO_ALLOC_PRIMARY_CHUNK_SIZE = 1 << 12;
-    LifoAlloc           tempLifoAlloc;
-
-  private:
-    
-
-
-
-    JSC::ExecutableAllocator    *execAlloc;
-    WTF::BumpPointerAllocator   *bumpAlloc;
-    js::RegExpPrivateCache      *repCache;
-
-    JSC::ExecutableAllocator *createExecutableAllocator(JSContext *cx);
-    WTF::BumpPointerAllocator *createBumpPointerAllocator(JSContext *cx);
-    js::RegExpPrivateCache *createRegExpPrivateCache(JSContext *cx);
-
-  public:
-    JSC::ExecutableAllocator *getOrCreateExecutableAllocator(JSContext *cx) {
-        if (execAlloc)
-            return execAlloc;
-
-        return createExecutableAllocator(cx);
-    }
-
-    WTF::BumpPointerAllocator *getOrCreateBumpPointerAllocator(JSContext *cx) {
-        if (bumpAlloc)
-            return bumpAlloc;
-
-        return createBumpPointerAllocator(cx);
-    }
-
-    js::RegExpPrivateCache *getRegExpPrivateCache() {
-        return repCache;
-    }
-    js::RegExpPrivateCache *getOrCreateRegExpPrivateCache(JSContext *cx) {
-        if (repCache)
-            return repCache;
-
-        return createRegExpPrivateCache(cx);
-    }
-
-    
-    void purgeRegExpPrivateCache();
 
     
 
@@ -210,7 +214,7 @@ struct ThreadData {
     size_t              noGCOrAllocationCheck;
 #endif
 
-    ThreadData(JSRuntime *rt);
+    ThreadData();
     ~ThreadData();
 
     bool init();
@@ -220,17 +224,11 @@ struct ThreadData {
     }
 
     void purge(JSContext *cx) {
-        tempLifoAlloc.freeUnused();
         gsnCache.purge();
 
         
         propertyCache.purge(cx);
     }
-
-#ifdef JS_THREADSAFE
-    void sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf, size_t *normal, size_t *temporary,
-                             size_t *regexpCode, size_t *stackCommitted);
-#endif
 
     
     void triggerOperationCallback(JSRuntime *rt);
@@ -272,13 +270,12 @@ struct JSThread {
     
     js::ThreadData      data;
 
-    JSThread(JSRuntime *rt, void *id)
+    JSThread(void *id)
       : id(id),
-        suspendCount(0),
+        suspendCount(0)
 # ifdef DEBUG
-        checkRequestDepth(0),
+      , checkRequestDepth(0)
 # endif
-        data(rt)
     {
         JS_INIT_CLIST(&contextList);
     }
@@ -291,10 +288,6 @@ struct JSThread {
     bool init() {
         return data.init();
     }
-
-    JS_FRIEND_API(void) sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf, size_t *normal,
-                                            size_t *temporary, size_t *regexpCode,
-                                            size_t *stackCommitted);
 };
 
 #define JS_THREAD_DATA(cx)      (&(cx)->thread()->data)
@@ -346,8 +339,7 @@ typedef js::Vector<JSCompartment *, 0, js::SystemAllocPolicy> CompartmentVector;
 
 }
 
-struct JSRuntime
-{
+struct JSRuntime {
     
     JSCompartment       *atomsCompartment;
 #ifdef JS_THREADSAFE
@@ -359,20 +351,6 @@ struct JSRuntime
 
     
     JSRuntimeState      state;
-
-    
-#ifdef JS_THREADSAFE
-  public:
-    void clearOwnerThread();
-    void setOwnerThread();
-    JS_FRIEND_API(bool) onOwnerThread() const;
-  private:
-    void                *ownerThread_;
-  public:
-#else
-  public:
-    bool onOwnerThread() const { return true; }
-#endif
 
     
     JSContextCallback   cxCallback;
@@ -396,20 +374,6 @@ struct JSRuntime
 
     
 
-
-
-
-
-
-
-
-
-
-
-    uint32              protoHazardShape;
-
-    
-
     
 
 
@@ -426,7 +390,14 @@ struct JSRuntime
 
     js::gc::Chunk       *gcSystemAvailableChunkListHead;
     js::gc::Chunk       *gcUserAvailableChunkListHead;
-    js::gc::ChunkPool   gcChunkPool;
+
+    
+
+
+
+
+    js::gc::Chunk       *gcEmptyChunkListHead;
+    size_t              gcEmptyChunkCount;
 
     js::RootedValueMap  gcRootsHash;
     js::GCLocks         gcLocksHash;
@@ -437,22 +408,14 @@ struct JSRuntime
     size_t              gcMaxBytes;
     size_t              gcMaxMallocBytes;
     uint32              gcEmptyArenaPoolLifespan;
-    
-    volatile uint32     gcNumFreeArenas;
     uint32              gcNumber;
-    js::GCMarker        *gcIncrementalTracer;
-    void                *gcVerifyData;
+    js::GCMarker        *gcMarkingTracer;
     bool                gcChunkAllocationSinceLastGC;
     int64               gcNextFullGCTime;
     int64               gcJitReleaseTime;
     JSGCMode            gcMode;
-    volatile jsuword    gcBarrierFailed;
     volatile jsuword    gcIsNeeded;
     js::WeakMapBase     *gcWeakMapList;
-    js::gcstats::Statistics gcStats;
-
-    
-    js::gcstats::Reason gcTriggerReason;
 
     
     void                *gcMarkStackObjs[js::OBJECT_MARK_STACK_SIZE / sizeof(void *)];
@@ -485,12 +448,8 @@ struct JSRuntime
     bool                gcPoke;
     bool                gcMarkAndSweep;
     bool                gcRunning;
-    bool                gcRegenShapes;
 
     
-
-
-
 
 
 
@@ -518,7 +477,7 @@ struct JSRuntime
 
     bool needZealousGC() {
         if (gcNextScheduled > 0 && --gcNextScheduled == 0) {
-            if (gcZeal() >= js::gc::ZealAllocThreshold && gcZeal() < js::gc::ZealVerifierThreshold)
+            if (gcZeal() >= 2)
                 gcNextScheduled = gcZealFrequency;
             return true;
         }
@@ -530,7 +489,6 @@ struct JSRuntime
 #endif
 
     JSGCCallback        gcCallback;
-    JSGCFinishedCallback gcFinishedCallback;
 
   private:
     
@@ -544,12 +502,8 @@ struct JSRuntime
 
 
 
-
-
-    JSTraceDataOp       gcBlackRootsTraceOp;
-    void                *gcBlackRootsData;
-    JSTraceDataOp       gcGrayRootsTraceOp;
-    void                *gcGrayRootsData;
+    JSTraceDataOp       gcExtraRootsTraceOp;
+    void                *gcExtraRootsData;
 
     
     js::Value           NaNValue;
@@ -569,6 +523,14 @@ struct JSRuntime
 
     
     JSBool              hadOutOfMemory;
+
+#ifdef JS_TRACER
+    
+    bool debuggerInhibitsJIT() const {
+        return (globalDebugHooks.interruptHook ||
+                globalDebugHooks.callHook);
+    }
+#endif
 
     
 
@@ -619,9 +581,6 @@ struct JSRuntime
     const JSStructuredCloneCallbacks *structuredCloneCallbacks;
 
     
-    JSAccumulateTelemetryDataCallback telemetryCallback;
-
-    
 
 
 
@@ -665,21 +624,6 @@ struct JSRuntime
     JSPrincipals *trustedPrincipals() const { return trustedPrincipals_; }
 
     
-
-
-
-
-
-
-
-
-
-
-
-
-    volatile uint32     shapeGen;
-
-    
     JSAtomState         atomState;
 
     
@@ -695,12 +639,48 @@ struct JSRuntime
 
     int32               inOOMReport;
 
+#if defined(MOZ_GCTIMER) || defined(JSGC_TESTPILOT)
+    struct GCData {
+        
+
+
+
+        uint64      firstEnter;
+        bool        firstEnterValid;
+
+        void setFirstEnter(uint64 v) {
+            JS_ASSERT(!firstEnterValid);
+            firstEnter = v;
+            firstEnterValid = true;
+        }
+
+#ifdef JSGC_TESTPILOT
+        bool        infoEnabled;
+
+        bool isTimerEnabled() {
+            return infoEnabled;
+        }
+
+        
+
+
+
+        static const size_t INFO_LIMIT = 64;
+        JSGCInfo    info[INFO_LIMIT];
+        size_t      start;
+        size_t      count;
+#else 
+        bool isTimerEnabled() {
+            return true;
+        }
+#endif
+    } gcData;
+#endif
+
     JSRuntime();
     ~JSRuntime();
 
     bool init(uint32 maxbytes);
-
-    JSRuntime *thisFromCtor() { return this; }
 
     void setGCLastBytes(size_t lastBytes, JSGCInvocationKind gckind);
     void reduceGCTriggerBytes(uint32 amount);
@@ -946,8 +926,6 @@ struct JSContext
     uintN               runOptions;            
 
   public:
-    int32               reportGranularity;  
-
     
     JSLocaleCallbacks   *localeCallbacks;
 
@@ -970,25 +948,15 @@ struct JSContext
 
     inline void setCompartment(JSCompartment *compartment);
 
-#ifdef JS_THREADSAFE
-  private:
-    JSThread            *thread_;
-  public:
-    JSThread *thread() const { return thread_; }
-
-    void setThread(JSThread *thread);
-    static const size_t threadOffset() { return offsetof(JSContext, thread_); }
-#endif
-
     
     js::ContextStack    stack;
 
     
-    inline bool hasfp() const;
-    inline js::StackFrame* fp() const;
-    inline js::StackFrame* maybefp() const;
-    inline js::FrameRegs& regs() const;
-    inline js::FrameRegs* maybeRegs() const;
+    bool hasfp() const                { return stack.hasfp(); }
+    js::StackFrame* fp() const        { return stack.fp(); }
+    js::StackFrame* maybefp() const   { return stack.maybefp(); }
+    js::FrameRegs& regs() const       { return stack.regs(); }
+    js::FrameRegs* maybeRegs() const  { return stack.maybeRegs(); }
 
     
     void resetCompartment();
@@ -996,11 +964,17 @@ struct JSContext
     
     void wrapPendingException();
 
+    
+    JSArenaPool         tempPool;
+
   private:
     
     js::ParseMapPool    *parseMapPool_;
 
   public:
+    
+    JSArenaPool         regExpPool;
+
     
     JSObject            *globalObject;
 
@@ -1038,10 +1012,16 @@ struct JSContext
 
 
 
-    inline bool canSetDefaultVersion() const;
+    bool canSetDefaultVersion() const {
+        return !stack.hasfp() && !hasVersionOverride;
+    }
 
     
-    inline void overrideVersion(JSVersion newVersion);
+    void overrideVersion(JSVersion newVersion) {
+        JS_ASSERT(!canSetDefaultVersion());
+        versionOverride = newVersion;
+        hasVersionOverride = true;
+    }
 
     
     void setDefaultVersion(JSVersion version) {
@@ -1061,7 +1041,14 @@ struct JSContext
 
 
 
-    inline bool maybeOverrideVersion(JSVersion newVersion);
+    bool maybeOverrideVersion(JSVersion newVersion) {
+        if (canSetDefaultVersion()) {
+            setDefaultVersion(newVersion);
+            return false;
+        }
+        overrideVersion(newVersion);
+        return true;
+    }
 
     
 
@@ -1083,7 +1070,21 @@ struct JSContext
 
 
 
-    inline JSVersion findVersion() const;
+    JSVersion findVersion() const {
+        if (hasVersionOverride)
+            return versionOverride;
+
+        if (stack.hasfp()) {
+            
+            js::StackFrame *f = fp();
+            while (f && !f->isScriptFrame())
+                f = f->prev();
+            if (f)
+                return f->script()->getVersion();
+        }
+
+        return defaultVersion;
+    }
 
     void setRunOptions(uintN ropts) {
         JS_ASSERT((ropts & JSRUNOPTION_MASK) == ropts);
@@ -1091,11 +1092,18 @@ struct JSContext
     }
 
     
-    inline void setCompileOptions(uintN newcopts);
+    void setCompileOptions(uintN newcopts) {
+        JS_ASSERT((newcopts & JSCOMPILEOPTION_MASK) == newcopts);
+        if (JS_LIKELY(getCompileOptions() == newcopts))
+            return;
+        JSVersion version = findVersion();
+        JSVersion newVersion = js::OptionFlagsToVersion(newcopts, version);
+        maybeOverrideVersion(newVersion);
+    }
 
     uintN getRunOptions() const { return runOptions; }
-    inline uintN getCompileOptions() const;
-    inline uintN allOptions() const;
+    uintN getCompileOptions() const { return js::VersionFlagsToOptions(findVersion()); }
+    uintN allOptions() const { return getRunOptions() | getCompileOptions(); }
 
     bool hasRunOption(uintN ropt) const {
         JS_ASSERT((ropt & JSRUNOPTION_MASK) == ropt);
@@ -1105,12 +1113,16 @@ struct JSContext
     bool hasStrictOption() const { return hasRunOption(JSOPTION_STRICT); }
     bool hasWErrorOption() const { return hasRunOption(JSOPTION_WERROR); }
     bool hasAtLineOption() const { return hasRunOption(JSOPTION_ATLINE); }
-    bool hasJITHardeningOption() const { return !hasRunOption(JSOPTION_SOFTEN); }
-
-    js::LifoAlloc &tempLifoAlloc() { return JS_THREAD_DATA(this)->tempLifoAlloc; }
-    inline js::LifoAlloc &typeLifoAlloc();
 
 #ifdef JS_THREADSAFE
+  private:
+    JSThread            *thread_;
+  public:
+    JSThread *thread() const { return thread_; }
+
+    void setThread(JSThread *thread);
+    static const size_t threadOffset() { return offsetof(JSContext, thread_); }
+
     unsigned            outstandingRequests;
 
 
@@ -1135,8 +1147,23 @@ struct JSContext
     
     js::Value           iterValue;
 
+#ifdef JS_TRACER
+    
+
+
+
+
+
+
+
+
+
+    bool                 traceJitEnabled;
+#endif
+
 #ifdef JS_METHODJIT
     bool                 methodJitEnabled;
+    bool                 profilingEnabled;
 
     inline js::mjit::JaegerCompartment *jaegerCompartment();
 #endif
@@ -1199,8 +1226,6 @@ struct JSContext
     js::GCHelperThread *gcBackgroundFree;
 #endif
 
-    js::ThreadData *threadData() { return JS_THREAD_DATA(this); }
-
     inline void* malloc_(size_t bytes) {
         return runtime->malloc_(bytes, this);
     }
@@ -1238,8 +1263,14 @@ struct JSContext
 
     void purge();
 
-    
-    inline void assertValidStackDepth(uintN depth);
+#ifdef DEBUG
+    void assertValidStackDepth(uintN depth) {
+        JS_ASSERT(0 <= regs().sp - fp()->base());
+        JS_ASSERT(depth <= uintptr_t(regs().sp - fp()->base()));
+    }
+#else
+    void assertValidStackDepth(uintN ) {}
+#endif
 
     bool isExceptionPending() {
         return throwing;
@@ -1277,8 +1308,6 @@ struct JSContext
 
 
     bool runningWithTrustedPrincipals() const;
-
-    JS_FRIEND_API(size_t) sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf) const;
 
     static inline JSContext *fromLinkField(JSCList *link) {
         JS_ASSERT(link);
@@ -1324,12 +1353,20 @@ class AutoCheckRequestDepth {
 # define CHECK_REQUEST(cx)                                                    \
     JS_ASSERT((cx)->thread());                                                \
     JS_ASSERT((cx)->thread()->data.requestDepth || (cx)->thread() == (cx)->runtime->gcThread); \
-    JS_ASSERT(cx->runtime->onOwnerThread());                                  \
     AutoCheckRequestDepth _autoCheckRequestDepth(cx);
 
 #else
 # define CHECK_REQUEST(cx)          ((void) 0)
+# define CHECK_REQUEST_THREAD(cx)   ((void) 0)
 #endif
+
+static inline JSAtom **
+FrameAtomBase(JSContext *cx, js::StackFrame *fp)
+{
+    return fp->hasImacropc()
+           ? cx->runtime->atomState.commonAtomsStart()
+           : fp->script()->atoms;
+}
 
 struct AutoResolving {
   public:
@@ -1385,7 +1422,15 @@ class AutoGCRooter {
 
     
     inline void trace(JSTracer *trc);
-    void traceAll(JSTracer *trc);
+
+#ifdef __GNUC__
+# pragma GCC visibility push(default)
+#endif
+    friend JS_FRIEND_API(void) MarkContext(JSTracer *trc, JSContext *acx);
+    friend void MarkRuntime(JSTracer *trc);
+#ifdef __GNUC__
+# pragma GCC visibility pop
+#endif
 
   protected:
     AutoGCRooter * const down;
@@ -1649,7 +1694,13 @@ class AutoEnumStateRooter : private AutoGCRooter
         JS_ASSERT(obj);
     }
 
-    ~AutoEnumStateRooter();
+    ~AutoEnumStateRooter() {
+        if (!stateValue.isNull()) {
+            DebugOnly<JSBool> ok =
+                obj->enumerate(context, JSENUMERATE_DESTROY, &stateValue, 0);
+            JS_ASSERT(ok);
+        }
+    }
 
     friend void AutoGCRooter::trace(JSTracer *trc);
 
@@ -1796,6 +1847,28 @@ class AutoKeepAtoms {
     ~AutoKeepAtoms() { JS_UNKEEP_ATOMS(rt); }
 };
 
+class AutoArenaAllocator {
+    JSArenaPool *pool;
+    void        *mark;
+    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
+
+  public:
+    explicit AutoArenaAllocator(JSArenaPool *pool
+                                JS_GUARD_OBJECT_NOTIFIER_PARAM)
+      : pool(pool), mark(JS_ARENA_MARK(pool))
+    {
+        JS_GUARD_OBJECT_NOTIFIER_INIT;
+    }
+    ~AutoArenaAllocator() { JS_ARENA_RELEASE(pool, mark); }
+
+    template <typename T>
+    T *alloc(size_t elems) {
+        void *ptr;
+        JS_ARENA_ALLOCATE(ptr, pool, elems * sizeof(T));
+        return static_cast<T *>(ptr);
+    }
+};
+
 class AutoReleasePtr {
     JSContext   *cx;
     void        *ptr;
@@ -1838,6 +1911,96 @@ class AutoReleaseNullablePtr {
     ~AutoReleaseNullablePtr() { if (ptr) cx->free_(ptr); }
 };
 
+template <class RefCountable>
+class AlreadyIncRefed
+{
+    typedef RefCountable *****ConvertibleToBool;
+
+    RefCountable *obj;
+
+  public:
+    explicit AlreadyIncRefed(RefCountable *obj) : obj(obj) {}
+
+    bool null() const { return obj == NULL; }
+    operator ConvertibleToBool() const { return (ConvertibleToBool)obj; }
+
+    RefCountable *operator->() const { JS_ASSERT(!null()); return obj; }
+    RefCountable &operator*() const { JS_ASSERT(!null()); return *obj; }
+    RefCountable *get() const { return obj; }
+};
+
+template <class RefCountable>
+class NeedsIncRef
+{
+    typedef RefCountable *****ConvertibleToBool;
+
+    RefCountable *obj;
+
+  public:
+    explicit NeedsIncRef(RefCountable *obj) : obj(obj) {}
+
+    bool null() const { return obj == NULL; }
+    operator ConvertibleToBool() const { return (ConvertibleToBool)obj; }
+
+    RefCountable *operator->() const { JS_ASSERT(!null()); return obj; }
+    RefCountable &operator*() const { JS_ASSERT(!null()); return *obj; }
+    RefCountable *get() const { return obj; }
+};
+
+template <class RefCountable>
+class AutoRefCount
+{
+    typedef RefCountable *****ConvertibleToBool;
+
+    JSContext *const cx;
+    RefCountable *obj;
+
+    AutoRefCount(const AutoRefCount &);
+    void operator=(const AutoRefCount &);
+
+  public:
+    explicit AutoRefCount(JSContext *cx)
+      : cx(cx), obj(NULL)
+    {}
+
+    AutoRefCount(JSContext *cx, NeedsIncRef<RefCountable> aobj)
+      : cx(cx), obj(aobj.get())
+    {
+        if (obj)
+            obj->incref(cx);
+    }
+
+    AutoRefCount(JSContext *cx, AlreadyIncRefed<RefCountable> aobj)
+      : cx(cx), obj(aobj.get())
+    {}
+
+    ~AutoRefCount() {
+        if (obj)
+            obj->decref(cx);
+    }
+
+    void reset(NeedsIncRef<RefCountable> aobj) {
+        if (obj)
+            obj->decref(cx);
+        obj = aobj.get();
+        if (obj)
+            obj->incref(cx);
+    }
+
+    void reset(AlreadyIncRefed<RefCountable> aobj) {
+        if (obj)
+            obj->decref(cx);
+        obj = aobj.get();
+    }
+
+    bool null() const { return obj == NULL; }
+    operator ConvertibleToBool() const { return (ConvertibleToBool)obj; }
+
+    RefCountable *operator->() const { JS_ASSERT(!null()); return obj; }
+    RefCountable &operator*() const { JS_ASSERT(!null()); return *obj; }
+    RefCountable *get() const { return obj; }
+};
+
 } 
 
 class JSAutoResolveFlags
@@ -1870,9 +2033,6 @@ js_FinishThreads(JSRuntime *rt);
 
 extern void
 js_PurgeThreads(JSContext *cx);
-
-extern void
-js_PurgeThreads_PostGlobalSweep(JSContext *cx);
 
 namespace js {
 
@@ -2119,7 +2279,16 @@ js_GetCurrentBytecodePC(JSContext* cx);
 extern JSScript *
 js_GetCurrentScript(JSContext* cx);
 
+extern bool
+js_CurrentPCIsInImacro(JSContext *cx);
+
 namespace js {
+
+extern JS_FORCES_STACK JS_FRIEND_API(void)
+LeaveTrace(JSContext *cx);
+
+extern bool
+CanLeaveTrace(JSContext *cx);
 
 #ifdef JS_METHODJIT
 namespace mjit {
@@ -2135,95 +2304,26 @@ enum FrameExpandKind {
     FRAME_EXPAND_ALL = 1
 };
 
-static JS_INLINE JSBool
-js_IsPropertyCacheDisabled(JSContext *cx)
+
+
+
+
+
+
+static JS_FORCES_STACK JS_INLINE js::StackFrame *
+js_GetTopStackFrame(JSContext *cx, FrameExpandKind expand)
 {
-    return cx->runtime->shapeGen >= js::SHAPE_OVERFLOW_BIT;
-}
+    js::LeaveTrace(cx);
 
-static JS_INLINE uint32
-js_RegenerateShapeForGC(JSRuntime *rt)
-{
-    JS_ASSERT(rt->gcRunning);
-    JS_ASSERT(rt->gcRegenShapes);
+#ifdef JS_METHODJIT
+    if (expand)
+        js::mjit::ExpandInlineFrames(cx->compartment);
+#endif
 
-    
-
-
-
-
-    uint32 shape = rt->shapeGen;
-    shape = (shape + 1) | (shape & js::SHAPE_OVERFLOW_BIT);
-    rt->shapeGen = shape;
-    return shape;
+    return cx->maybefp();
 }
 
 namespace js {
-
-
-
-static JS_ALWAYS_INLINE void
-MakeRangeGCSafe(Value *vec, size_t len)
-{
-    PodZero(vec, len);
-}
-
-static JS_ALWAYS_INLINE void
-MakeRangeGCSafe(Value *beg, Value *end)
-{
-    PodZero(beg, end - beg);
-}
-
-static JS_ALWAYS_INLINE void
-MakeRangeGCSafe(jsid *beg, jsid *end)
-{
-    for (jsid *id = beg; id != end; ++id)
-        *id = INT_TO_JSID(0);
-}
-
-static JS_ALWAYS_INLINE void
-MakeRangeGCSafe(jsid *vec, size_t len)
-{
-    MakeRangeGCSafe(vec, vec + len);
-}
-
-static JS_ALWAYS_INLINE void
-MakeRangeGCSafe(const Shape **beg, const Shape **end)
-{
-    PodZero(beg, end - beg);
-}
-
-static JS_ALWAYS_INLINE void
-MakeRangeGCSafe(const Shape **vec, size_t len)
-{
-    PodZero(vec, len);
-}
-
-static JS_ALWAYS_INLINE void
-SetValueRangeToUndefined(Value *beg, Value *end)
-{
-    for (Value *v = beg; v != end; ++v)
-        v->setUndefined();
-}
-
-static JS_ALWAYS_INLINE void
-SetValueRangeToUndefined(Value *vec, size_t len)
-{
-    SetValueRangeToUndefined(vec, vec + len);
-}
-
-static JS_ALWAYS_INLINE void
-SetValueRangeToNull(Value *beg, Value *end)
-{
-    for (Value *v = beg; v != end; ++v)
-        v->setNull();
-}
-
-static JS_ALWAYS_INLINE void
-SetValueRangeToNull(Value *vec, size_t len)
-{
-    SetValueRangeToNull(vec, vec + len);
-}
 
 template<class T>
 class AutoVectorRooter : protected AutoGCRooter
@@ -2351,22 +2451,25 @@ class AutoShapeVector : public AutoVectorRooter<const Shape *>
 
 class AutoValueArray : public AutoGCRooter
 {
-    const js::Value *start_;
+    js::Value *start_;
     unsigned length_;
 
   public:
-    AutoValueArray(JSContext *cx, const js::Value *start, unsigned length
+    AutoValueArray(JSContext *cx, js::Value *start, unsigned length
                    JS_GUARD_OBJECT_NOTIFIER_PARAM)
         : AutoGCRooter(cx, VALARRAY), start_(start), length_(length)
     {
         JS_GUARD_OBJECT_NOTIFIER_INIT;
     }
 
-    const Value *start() const { return start_; }
+    Value *start() const { return start_; }
     unsigned length() const { return length_; }
 
     JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
+
+JSIdArray *
+NewIdArray(JSContext *cx, jsint length);
 
 
 

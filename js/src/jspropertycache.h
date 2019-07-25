@@ -55,95 +55,36 @@ namespace js {
 
 
 enum {
-    PCVCAP_PROTOBITS = 4,
-    PCVCAP_PROTOSIZE = JS_BIT(PCVCAP_PROTOBITS),
-    PCVCAP_PROTOMASK = JS_BITMASK(PCVCAP_PROTOBITS),
+    PCINDEX_PROTOBITS = 4,
+    PCINDEX_PROTOSIZE = JS_BIT(PCINDEX_PROTOBITS),
+    PCINDEX_PROTOMASK = JS_BITMASK(PCINDEX_PROTOBITS),
 
-    PCVCAP_SCOPEBITS = 4,
-    PCVCAP_SCOPESIZE = JS_BIT(PCVCAP_SCOPEBITS),
-    PCVCAP_SCOPEMASK = JS_BITMASK(PCVCAP_SCOPEBITS),
-
-    PCVCAP_TAGBITS = PCVCAP_PROTOBITS + PCVCAP_SCOPEBITS,
-    PCVCAP_TAGMASK = JS_BITMASK(PCVCAP_TAGBITS)
-};
-
-const uint32 SHAPE_OVERFLOW_BIT = JS_BIT(32 - PCVCAP_TAGBITS);
-
-
-
-
-
-
-
-
-
-
-class PCVal
-{
-  private:
-    enum {
-        OBJECT = 0,
-        SLOT = 1,
-        SHAPE = 2,
-        TAG = 3
-    };
-
-    jsuword v;
-
-  public:
-    bool isNull() const { return v == 0; }
-    void setNull() { v = 0; }
-
-    bool isFunObj() const { return (v & TAG) == OBJECT; }
-    JSObject &toFunObj() const {
-        JS_ASSERT(isFunObj());
-        return *reinterpret_cast<JSObject *>(v);
-    }
-    void setFunObj(JSObject &obj) {
-        v = reinterpret_cast<jsuword>(&obj);
-    }
-
-    bool isSlot() const { return v & SLOT; }
-    uint32 toSlot() const { JS_ASSERT(isSlot()); return uint32(v) >> 1; }
-    void setSlot(uint32 slot) { v = (jsuword(slot) << 1) | SLOT; }
-
-    bool isShape() const { return (v & TAG) == SHAPE; }
-    const js::Shape *toShape() const {
-        JS_ASSERT(isShape());
-        return reinterpret_cast<js::Shape *>(v & ~TAG);
-    }
-    void setShape(const js::Shape *shape) {
-        JS_ASSERT(shape);
-        v = reinterpret_cast<jsuword>(shape) | SHAPE;
-    }
+    PCINDEX_SCOPEBITS = 4,
+    PCINDEX_SCOPESIZE = JS_BIT(PCINDEX_SCOPEBITS),
+    PCINDEX_SCOPEMASK = JS_BITMASK(PCINDEX_SCOPEBITS)
 };
 
 struct PropertyCacheEntry
 {
     jsbytecode          *kpc;           
-    jsuword             kshape;         
-    jsuword             vcap;           
-    PCVal               vword;          
+    const Shape         *kshape;        
+    const Shape         *pshape;        
+    const Shape         *prop;          
+    uint16              vindex;         
 
-    bool adding() const { return vcapTag() == 0 && kshape != vshape(); }
-    bool directHit() const { return vcapTag() == 0 && kshape == vshape(); }
 
-    jsuword vcapTag() const { return vcap & PCVCAP_TAGMASK; }
-    uint32 vshape() const { return uint32(vcap >> PCVCAP_TAGBITS); }
-    jsuword scopeIndex() const { return (vcap >> PCVCAP_PROTOBITS) & PCVCAP_SCOPEMASK; }
-    jsuword protoIndex() const { return vcap & PCVCAP_PROTOMASK; }
+    bool directHit() const { return vindex == 0; }
 
-    void assign(jsbytecode *kpc, jsuword kshape, jsuword vshape,
-                uintN scopeIndex, uintN protoIndex, PCVal vword) {
-        JS_ASSERT(kshape < SHAPE_OVERFLOW_BIT);
-        JS_ASSERT(vshape < SHAPE_OVERFLOW_BIT);
-        JS_ASSERT(scopeIndex <= PCVCAP_SCOPEMASK);
-        JS_ASSERT(protoIndex <= PCVCAP_PROTOMASK);
+    void assign(jsbytecode *kpc, const Shape *kshape, const Shape *pshape,
+                const Shape *prop, uintN scopeIndex, uintN protoIndex) {
+        JS_ASSERT(scopeIndex <= PCINDEX_SCOPEMASK);
+        JS_ASSERT(protoIndex <= PCINDEX_PROTOMASK);
 
         this->kpc = kpc;
         this->kshape = kshape;
-        this->vcap = (vshape << PCVCAP_TAGBITS) | (scopeIndex << PCVCAP_PROTOBITS) | protoIndex;
-        this->vword = vword;
+        this->pshape = pshape;
+        this->prop = prop;
+        this->vindex = (scopeIndex << PCINDEX_PROTOBITS) | protoIndex;
     }
 };
 
@@ -212,15 +153,10 @@ class PropertyCache
     }
     
   private:
-    
-
-
-
-
     static inline jsuword
-    hash(jsbytecode *pc, jsuword kshape)
+    hash(jsbytecode *pc, const Shape *kshape)
     {
-        return ((((jsuword(pc) >> SIZE_LOG2) ^ jsuword(pc)) + kshape) & MASK);
+        return (((jsuword(pc) >> SIZE_LOG2) ^ jsuword(pc) ^ ((jsuword)kshape >> 3)) & MASK);
     }
 
     static inline bool matchShape(JSContext *cx, JSObject *obj, uint32 shape);
@@ -258,24 +194,10 @@ class PropertyCache
 
 
 
-
-    JS_ALWAYS_INLINE bool testForInit(JSRuntime *rt, jsbytecode *pc, JSObject *obj,
-                                      const js::Shape **shapep, PropertyCacheEntry **entryp);
-
-    
-
-
-
-
-
-
-
     JS_REQUIRES_STACK PropertyCacheEntry *fill(JSContext *cx, JSObject *obj, uintN scopeIndex,
-                                               JSObject *pobj, const js::Shape *shape,
-                                               JSBool adding = false);
+                                               JSObject *pobj, const js::Shape *shape);
 
     void purge(JSContext *cx);
-    void purgeForScript(JSContext *cx, JSScript *script);
 
     
     void restore(PropertyCacheEntry *entry);
@@ -283,4 +205,4 @@ class PropertyCache
 
 } 
 
-#endif
+#endif 

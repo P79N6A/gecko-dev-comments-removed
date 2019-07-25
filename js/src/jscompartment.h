@@ -53,21 +53,250 @@
 #pragma warning(disable:4251) /* Silence warning about JS_FRIEND_API and data members. */
 #endif
 
+namespace JSC { class ExecutableAllocator; }
+namespace WTF { class BumpPointerAllocator; }
+
 namespace js {
+
+
+typedef HashMap<jsbytecode*,
+                size_t,
+                DefaultHasher<jsbytecode*>,
+                SystemAllocPolicy> RecordAttemptMap;
+
+
+typedef HashMap<jsbytecode*,
+                LoopProfile*,
+                DefaultHasher<jsbytecode*>,
+                SystemAllocPolicy> LoopProfileMap;
+
+class Oracle;
+
+typedef HashSet<JSScript *,
+                DefaultHasher<JSScript *>,
+                SystemAllocPolicy> TracedScriptSet;
 
 typedef HashMap<JSFunction *,
                 JSString *,
                 DefaultHasher<JSFunction *>,
                 SystemAllocPolicy> ToSourceCache;
 
+struct TraceMonitor;
+
+
+struct TracerState
+{
+    JSContext*     cx;                  
+    TraceMonitor*  traceMonitor;        
+    double*        stackBase;           
+    double*        sp;                  
+    double*        eos;                 
+    FrameInfo**    callstackBase;       
+    void*          sor;                 
+    FrameInfo**    rp;                  
+    void*          eor;                 
+    VMSideExit*    lastTreeExitGuard;   
+    VMSideExit*    lastTreeCallGuard;   
+                                        
+    void*          rpAtLastTreeCall;    
+    VMSideExit*    outermostTreeExitGuard; 
+    TreeFragment*  outermostTree;       
+    VMSideExit**   innermostNestedGuardp;
+    VMSideExit*    innermost;
+    uint64         startTime;
+    TracerState*   prev;
+
+    
+    
+    
+    uint32         builtinStatus;
+
+    
+    double*        deepBailSp;
+
+    
+    uintN          nativeVpLen;
+    js::Value*     nativeVp;
+
+    TracerState(JSContext *cx, TraceMonitor *tm, TreeFragment *ti,
+                VMSideExit** innermostNestedGuardp);
+    ~TracerState();
+};
+
+
+
+
+
+
+
+struct TraceNativeStorage
+{
+    
+    static const size_t MAX_NATIVE_STACK_SLOTS  = 4096;
+    static const size_t MAX_CALL_STACK_ENTRIES  = 500;
+
+    double stack_global_buf[MAX_NATIVE_STACK_SLOTS + GLOBAL_SLOTS_BUFFER_SIZE];
+    FrameInfo *callstack_buf[MAX_CALL_STACK_ENTRIES];
+
+    double *stack() { return stack_global_buf; }
+    double *global() { return stack_global_buf + MAX_NATIVE_STACK_SLOTS; }
+    FrameInfo **callstack() { return callstack_buf; }
+};
+
+
+struct GlobalState {
+    JSObject*               globalObj;
+    uint32                  globalShape;
+    SlotList*               globalSlots;
+};
+
+
+
+
+
+
+struct TraceMonitor {
+    
+
+
+
+
+
+
+
+
+
+    JSContext               *tracecx;
+
+    
+
+
+
+
+    js::TracerState     *tracerState;
+    js::VMSideExit      *bailExit;
+
+    
+    unsigned                iterationCounter;
+
+    
+
+
+
+
+    TraceNativeStorage      *storage;
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    VMAllocator*            dataAlloc;
+    VMAllocator*            traceAlloc;
+    VMAllocator*            tempAlloc;
+    nanojit::CodeAlloc*     codeAlloc;
+    nanojit::Assembler*     assembler;
+    FrameInfoCache*         frameCache;
+
+    
+    uintN                   flushEpoch;
+
+    Oracle*                 oracle;
+    TraceRecorder*          recorder;
+
+    
+    LoopProfile*            profile;
+
+    GlobalState             globalStates[MONITOR_N_GLOBAL_STATES];
+    TreeFragment            *vmfragments[FRAGMENT_TABLE_SIZE];
+    RecordAttemptMap*       recordAttempts;
+
+    
+    LoopProfileMap*         loopProfiles;
+
+    
+
+
+
+    uint32                  maxCodeCacheBytes;
+
+    
+
+
+
+
+    JSBool                  needFlush;
+
+    
+    
+    
+    TypeMap*                cachedTempTypeMap;
+
+    
+    TracedScriptSet         tracedScripts;
+
+#ifdef DEBUG
+    
+    nanojit::Seq<nanojit::Fragment*>* branches;
+    uint32                  lastFragID;
+    VMAllocator*            profAlloc;
+    FragStatsMap*           profTab;
+
+    void logFragProfile();
+#endif
+
+    TraceMonitor();
+    ~TraceMonitor();
+
+    bool init(JSRuntime* rt);
+
+    bool ontrace() const {
+        return !!tracecx;
+    }
+
+    
+    void flush();
+
+    
+    void sweep(JSContext *cx);
+
+    
+    void mark(JSTracer *trc);
+
+    bool outOfMemory() const;
+
+    JS_FRIEND_API(void) getCodeAllocStats(size_t &total, size_t &frag_size, size_t &free_size) const;
+    JS_FRIEND_API(size_t) getVMAllocatorsMainSize(JSUsableSizeFun usf) const;
+    JS_FRIEND_API(size_t) getVMAllocatorsReserveSize(JSUsableSizeFun usf) const;
+    JS_FRIEND_API(size_t) getTraceMonitorSize(JSUsableSizeFun usf) const;
+};
+
 namespace mjit {
 class JaegerCompartment;
 }
+}
 
 
-extern Class dummy_class;
-
-} 
+extern JSClass js_dummy_class;
 
 #ifndef JS_EVAL_CACHE_SHIFT
 # define JS_EVAL_CACHE_SHIFT        6
@@ -167,20 +396,6 @@ struct JS_FRIEND_API(JSCompartment) {
 
     js::gc::ArenaLists           arenas;
 
-    bool                         needsBarrier_;
-    js::GCMarker                 *gcIncrementalTracer;
-
-    bool needsBarrier() {
-        return needsBarrier_;
-    }
-
-    js::GCMarker *barrierTracer() {
-        JS_ASSERT(needsBarrier_);
-        if (gcIncrementalTracer)
-            return gcIncrementalTracer;
-        return createBarrierTracer();
-    }
-
     uint32                       gcBytes;
     uint32                       gcTriggerBytes;
     size_t                       gcLastBytes;
@@ -193,13 +408,21 @@ struct JS_FRIEND_API(JSCompartment) {
 
 
 
-    static const size_t TYPE_LIFO_ALLOC_PRIMARY_CHUNK_SIZE = 128 * 1024;
-    js::LifoAlloc                typeLifoAlloc;
+    JSArenaPool                  pool;
     bool                         activeAnalysis;
     bool                         activeInference;
 
     
     js::types::TypeCompartment   types;
+
+#ifdef JS_TRACER
+  private:
+    
+
+
+
+    js::TraceMonitor             *traceMonitor_;
+#endif
 
   public:
     
@@ -232,8 +455,9 @@ struct JS_FRIEND_API(JSCompartment) {
 
     bool ensureJaegerCompartmentExists(JSContext *cx);
 
-    void sizeOfCode(size_t *method, size_t *regexp, size_t *unused) const;
+    void getMjitCodeStats(size_t& method, size_t& regexp, size_t& unused) const;
 #endif
+    WTF::BumpPointerAllocator    *regExpAllocator;
 
     
 
@@ -248,37 +472,49 @@ struct JS_FRIEND_API(JSCompartment) {
     jsrefcount                   liveDictModeNodes;
 #endif
 
-    typedef js::ReadBarriered<js::EmptyShape> BarrieredEmptyShape;
-    typedef js::ReadBarriered<const js::Shape> BarrieredShape;
-
     
 
 
 
-    BarrieredEmptyShape          emptyArgumentsShape;
-    BarrieredEmptyShape          emptyBlockShape;
-    BarrieredEmptyShape          emptyCallShape;
-    BarrieredEmptyShape          emptyDeclEnvShape;
-    BarrieredEmptyShape          emptyEnumeratorShape;
-    BarrieredEmptyShape          emptyWithShape;
-
-    typedef js::HashSet<js::EmptyShape *,
-                        js::DefaultHasher<js::EmptyShape *>,
-                        js::SystemAllocPolicy> EmptyShapeSet;
-
-    EmptyShapeSet                emptyShapes;
+    js::EmptyShape               *emptyArgumentsShape;
+    js::EmptyShape               *emptyBlockShape;
+    js::EmptyShape               *emptyCallShape;
+    js::EmptyShape               *emptyDeclEnvShape;
+    js::EmptyShape               *emptyEnumeratorShape;
+    js::EmptyShape               *emptyWithShape;
 
     
 
 
 
 
+    struct BaseShapeEntry {
+        js::BaseShape *base;
+        js::EmptyShape *empty;
+
+        typedef const js::BaseShape *Lookup;
+
+        static inline js::HashNumber hash(const js::BaseShape *base);
+        static inline bool match(const BaseShapeEntry &key, const js::BaseShape *lookup);
+    };
+
+    typedef js::HashSet<BaseShapeEntry, BaseShapeEntry, js::SystemAllocPolicy> BaseShapeSet;
+
+    BaseShapeSet                 baseShapes;
+
+    void sweepBaseShapeTable(JSContext *cx);
+
+    
 
 
 
 
-    BarrieredShape               initialRegExpShape;
-    BarrieredShape               initialStringShape;
+
+
+
+
+    const js::Shape              *initialRegExpShape;
+    const js::Shape              *initialStringShape;
 
   private:
     enum { DebugFromC = 1, DebugFromJS = 2 };
@@ -303,7 +539,6 @@ struct JS_FRIEND_API(JSCompartment) {
 
     bool wrap(JSContext *cx, js::Value *vp);
     bool wrap(JSContext *cx, JSString **strp);
-    bool wrap(JSContext *cx, js::HeapPtrString *strp);
     bool wrap(JSContext *cx, JSObject **objp);
     bool wrapId(JSContext *cx, jsid *idp);
     bool wrap(JSContext *cx, js::PropertyOp *op);
@@ -312,7 +547,7 @@ struct JS_FRIEND_API(JSCompartment) {
     bool wrap(JSContext *cx, js::AutoIdVector &props);
 
     void markTypes(JSTracer *trc);
-    void sweep(JSContext *cx, bool releaseTypes);
+    void sweep(JSContext *cx, uint32 releaseInterval);
     void purge(JSContext *cx);
 
     void setGCLastBytes(size_t lastBytes, JSGCInvocationKind gckind);
@@ -324,6 +559,13 @@ struct JS_FRIEND_API(JSCompartment) {
     js::MathCache                *mathCache;
 
     js::MathCache *allocMathCache(JSContext *cx);
+
+    typedef js::HashMap<jsbytecode*,
+                        size_t,
+                        js::DefaultHasher<jsbytecode*>,
+                        js::SystemAllocPolicy> BackEdgeMap;
+
+    BackEdgeMap                  backEdgeTable;
 
     
 
@@ -341,6 +583,22 @@ struct JS_FRIEND_API(JSCompartment) {
     js::MathCache *getMathCache(JSContext *cx) {
         return mathCache ? mathCache : allocMathCache(cx);
     }
+
+#ifdef JS_TRACER
+    bool hasTraceMonitor() {
+        return !!traceMonitor_;
+    }
+
+    js::TraceMonitor *allocAndInitTraceMonitor(JSContext *cx);
+
+    js::TraceMonitor *traceMonitor() const {
+        JS_ASSERT(traceMonitor_);
+        return traceMonitor_;
+    }
+#endif
+
+    size_t backEdgeCount(jsbytecode *pc) const;
+    size_t incBackEdgeCount(jsbytecode *pc);
 
     
 
@@ -371,7 +629,7 @@ struct JS_FRIEND_API(JSCompartment) {
 
     js::BreakpointSite *getBreakpointSite(jsbytecode *pc);
     js::BreakpointSite *getOrCreateBreakpointSite(JSContext *cx, JSScript *script, jsbytecode *pc,
-                                                  js::GlobalObject *scriptGlobal);
+                                                  JSObject *scriptObject);
     void clearBreakpointsIn(JSContext *cx, js::Debugger *dbg, JSScript *script, JSObject *handler);
     void clearTraps(JSContext *cx, JSScript *script);
     bool markTrapClosuresIteratively(JSTracer *trc);
@@ -379,13 +637,79 @@ struct JS_FRIEND_API(JSCompartment) {
   private:
     void sweepBreakpoints(JSContext *cx);
 
-    js::GCMarker *createBarrierTracer();
-
   public:
     js::WatchpointMap *watchpointMap;
 };
 
 #define JS_PROPERTY_TREE(cx)    ((cx)->compartment->propertyTree)
+
+
+
+
+
+
+static inline bool
+JS_ON_TRACE(const JSContext *cx)
+{
+#ifdef JS_TRACER
+    if (JS_THREAD_DATA(cx)->onTraceCompartment)
+        return JS_THREAD_DATA(cx)->onTraceCompartment->traceMonitor()->ontrace();
+#endif
+    return false;
+}
+
+#ifdef JS_TRACER
+static inline js::TraceMonitor *
+JS_TRACE_MONITOR_ON_TRACE(JSContext *cx)
+{
+    JS_ASSERT(JS_ON_TRACE(cx));
+    return JS_THREAD_DATA(cx)->onTraceCompartment->traceMonitor();
+}
+
+
+
+
+
+
+static inline js::TraceMonitor *
+JS_TRACE_MONITOR_FROM_CONTEXT(JSContext *cx)
+{
+    return cx->compartment->traceMonitor();
+}
+
+
+
+
+
+static inline js::TraceMonitor *
+JS_TRACE_MONITOR_FROM_CONTEXT_WITH_LAZY_INIT(JSContext *cx)
+{
+    if (!cx->compartment->hasTraceMonitor())
+        return cx->compartment->allocAndInitTraceMonitor(cx);
+        
+    return cx->compartment->traceMonitor();
+}
+#endif
+
+static inline js::TraceRecorder *
+TRACE_RECORDER(JSContext *cx)
+{
+#ifdef JS_TRACER
+    if (JS_THREAD_DATA(cx)->recordingCompartment)
+        return JS_THREAD_DATA(cx)->recordingCompartment->traceMonitor()->recorder;
+#endif
+    return NULL;
+}
+
+static inline js::LoopProfile *
+TRACE_PROFILER(JSContext *cx)
+{
+#ifdef JS_TRACER
+    if (JS_THREAD_DATA(cx)->profilingCompartment)
+        return JS_THREAD_DATA(cx)->profilingCompartment->traceMonitor()->profile;
+#endif
+    return NULL;
+}
 
 namespace js {
 static inline MathCache *
@@ -443,7 +767,7 @@ class SwitchToCompartment : public PreserveCompartment {
         : PreserveCompartment(cx)
     {
         JS_GUARD_OBJECT_NOTIFIER_INIT;
-        cx->setCompartment(target->compartment());
+        cx->setCompartment(target->getCompartment());
     }
 
     JS_DECL_USE_GUARD_OBJECT_NOTIFIER
@@ -465,73 +789,6 @@ class AssertCompartmentUnchanged {
     }
 };
 
-class AutoCompartment
-{
-  public:
-    JSContext * const context;
-    JSCompartment * const origin;
-    JSObject * const target;
-    JSCompartment * const destination;
-  private:
-    Maybe<DummyFrameGuard> frame;
-    bool entered;
-
-  public:
-    AutoCompartment(JSContext *cx, JSObject *target);
-    ~AutoCompartment();
-
-    bool enter();
-    void leave();
-
-  private:
-    
-    AutoCompartment(const AutoCompartment &);
-    AutoCompartment & operator=(const AutoCompartment &);
-};
-
-
-
-
-
-
-class ErrorCopier
-{
-    AutoCompartment &ac;
-    JSObject *scope;
-
-  public:
-    ErrorCopier(AutoCompartment &ac, JSObject *scope) : ac(ac), scope(scope) {
-        JS_ASSERT(scope->compartment() == ac.origin);
-    }
-    ~ErrorCopier();
-};
-
-class CompartmentsIter {
-  private:
-    JSCompartment **it, **end;
-
-  public:
-    CompartmentsIter(JSRuntime *rt) {
-        it = rt->compartments.begin();
-        end = rt->compartments.end();
-    }
-
-    bool done() const { return it == end; }
-
-    void next() {
-        JS_ASSERT(!done());
-        it++;
-    }
-
-    JSCompartment *get() const {
-        JS_ASSERT(!done());
-        return *it;
-    }
-
-    operator JSCompartment *() const { return get(); }
-    JSCompartment *operator->() const { return get(); }
-};
-
-} 
+}
 
 #endif
