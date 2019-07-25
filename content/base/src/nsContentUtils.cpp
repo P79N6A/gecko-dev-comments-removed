@@ -2415,7 +2415,8 @@ nsContentUtils::LoadImage(nsIURI* aURI, nsIDocument* aLoadingDocument,
   NS_PRECONDITION(aLoadingPrincipal, "Must have a principal");
   NS_PRECONDITION(aRequest, "Null out param");
 
-  if (!sImgLoader) {
+  imgILoader* imgLoader = GetImgLoader();
+  if (!imgLoader) {
     
     return NS_OK;
   }
@@ -2444,17 +2445,17 @@ nsContentUtils::LoadImage(nsIURI* aURI, nsIDocument* aLoadingDocument,
 
   
   
-  return sImgLoader->LoadImage(aURI,                 
-                               documentURI,          
-                               aReferrer,            
-                               loadGroup,            
-                               aObserver,            
-                               aLoadingDocument,     
-                               aLoadFlags,           
-                               nsnull,               
-                               nsnull,               
-                               channelPolicy,        
-                               aRequest);
+  return imgLoader->LoadImage(aURI,                 
+                              documentURI,          
+                              aReferrer,            
+                              loadGroup,            
+                              aObserver,            
+                              aLoadingDocument,     
+                              aLoadFlags,           
+                              nsnull,               
+                              nsnull,               
+                              channelPolicy,        
+                              aRequest);
 }
 
 
