@@ -535,6 +535,9 @@ namespace nanojit
     
     extern const LTy retTypes[];
 
+    
+    extern const uint8_t insSizes[];
+
     inline RegisterMask rmask(Register r)
     {
         return RegisterMask(1) << REGNUM(r);
@@ -1040,6 +1043,8 @@ namespace nanojit
             return (void*)immI();
         #endif
         }
+
+        void overwriteWithSkip(LIns* skipTo);
     };
 
     typedef SeqBuilder<LIns*> InsList;
@@ -1583,6 +1588,9 @@ namespace nanojit
         }
         virtual LIns* insComment(const char* str) {
             return out->insComment(str);
+        }
+        virtual LIns* insSkip(LIns* skipTo) {
+            return out->insSkip(skipTo);
         }
 
         
@@ -2175,6 +2183,7 @@ namespace nanojit
             LIns*   insAlloc(int32_t size);
             LIns*   insJtbl(LIns* index, uint32_t size);
             LIns*   insComment(const char* str);
+            LIns*   insSkip(LIns* skipTo);
     };
 
     class LirFilter
@@ -2217,7 +2226,45 @@ namespace nanojit
 
         
         
-        LIns* read();
+        LIns* read()
+        {
+            const uint8_t insReadSizes[] = {
+            
+            
+        #define OP___(op, number, repKind, retType, isCse) \
+                ((number) == LIR_start ? 0 : sizeof(LIns##repKind)),
+        #include "LIRopcode.tbl"
+        #undef OP___
+                0
+            };
+
+            
+            NanoAssert(_ins && !_ins->isop(LIR_skip));
+
+            
+            
+            
+            
+            LIns* ret = _ins;
+            _ins = (LIns*)(uintptr_t(_ins) - insReadSizes[_ins->opcode()]);
+
+            
+            while (_ins->isop(LIR_skip)) {
+                NanoAssert(_ins->prevLIns() != _ins);
+                _ins = _ins->prevLIns();
+            }
+
+            return ret;
+        }
+
+        
+        
+        LIns* peek()
+        {
+            
+            NanoAssert(_ins && !_ins->isop(LIR_skip));
+            return _ins;
+        }
 
         LIns* finalIns() {
             return _finalIns;

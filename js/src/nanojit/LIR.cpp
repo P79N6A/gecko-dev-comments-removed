@@ -60,6 +60,14 @@ namespace nanojit
         LTy_V
     };
 
+    const uint8_t insSizes[] = {
+#define OP___(op, number, repKind, retType, isCse) \
+        sizeof(LIns##repKind),
+#include "LIRopcode.tbl"
+#undef OP___
+        0
+    };
+
     const int8_t isCses[] = {
 #define OP___(op, number, repKind, retType, isCse) \
         isCse,
@@ -384,6 +392,14 @@ namespace nanojit
         return ins1(LIR_comment, (LIns*)str);
     }
 
+    LIns* LirBufWriter::insSkip(LIns* skipTo)
+    {
+        LInsSk* insSk = (LInsSk*)_buf->makeRoom(sizeof(LInsSk));
+        LIns*   ins   = insSk->getLIns();
+        ins->initLInsSk(skipTo);
+        return ins;
+    }
+
     LIns* LirBufWriter::insImmD(double d)
     {
         LInsQorD* insQorD = (LInsQorD*)_buf->makeRoom(sizeof(LInsQorD));
@@ -395,37 +411,6 @@ namespace nanojit
         u.d = d;
         ins->initLInsQorD(LIR_immd, u.q);
         return ins;
-    }
-
-    
-    LIns* LirReader::read()
-    {
-        static const uint8_t insSizes[] = {
-        
-#define OP___(op, number, repKind, retType, isCse) \
-            ((number) == LIR_start ? 0 : sizeof(LIns##repKind)),
-#include "LIRopcode.tbl"
-#undef OP___
-            0
-        };
-
-        
-        NanoAssert(_ins && !_ins->isop(LIR_skip));
-
-        
-        
-        
-        
-        LIns* ret = _ins;
-        _ins = (LIns*)(uintptr_t(_ins) - insSizes[_ins->opcode()]);
-
-        
-        while (_ins->isop(LIR_skip)) {
-            NanoAssert(_ins->prevLIns() != _ins);
-            _ins = _ins->prevLIns();
-        }
-
-        return ret;
     }
 
     LOpcode arithOpcodeD2I(LOpcode op)
@@ -520,6 +505,13 @@ namespace nanojit
         #define OP2OFFSET (offsetof(LInsOp2, ins) - offsetof(LInsOp2, oprnd_2))
         NanoStaticAssert( OP2OFFSET == (offsetof(LInsOp3, ins) - offsetof(LInsOp3, oprnd_2)) );
         NanoStaticAssert( OP2OFFSET == (offsetof(LInsSt,  ins) - offsetof(LInsSt,  oprnd_2)) );
+    }
+
+    void LIns::overwriteWithSkip(LIns* skipTo)
+    {
+        
+        NanoAssert(insSizes[opcode()] >= insSizes[LIR_skip]);
+        initLInsSk(skipTo);
     }
 
     bool insIsS16(LIns* i)
