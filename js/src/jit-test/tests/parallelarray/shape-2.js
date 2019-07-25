@@ -1,3 +1,5 @@
+load(libdir + "eqArrayHelper.js");
+
 function testShape() {
   
   var shape = [];
@@ -7,7 +9,7 @@ function testShape() {
     
     assertEq(p.shape, p.shape);
     assertEq(p.shape !== shape, true);
-    assertEq(p.shape.toString(), shape.toString());
+    assertEqArray(p.shape, shape);
   }
 }
 
