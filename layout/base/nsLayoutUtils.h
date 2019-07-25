@@ -97,6 +97,11 @@ public:
   
 
 
+  static bool GetDisplayPort(nsIContent* aContent, nsRect *aResult);
+
+  
+
+
 
   static nsIAtom* GetChildListNameFor(nsIFrame* aChildFrame);
 
