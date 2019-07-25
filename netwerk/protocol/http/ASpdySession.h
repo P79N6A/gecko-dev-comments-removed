@@ -52,6 +52,10 @@ namespace mozilla { namespace net {
 
 
 
+
+
+
+
 class ASpdySession : public nsAHttpTransaction
 {
 public:
@@ -93,7 +97,8 @@ public:
                                             PRUint8 *result);
 
   enum {
-    SPDY_VERSION_2 = 2
+    SPDY_VERSION_2 = 2,
+    SPDY_VERSION_3 = 3
   };
 
   PRUint8   Version[2];

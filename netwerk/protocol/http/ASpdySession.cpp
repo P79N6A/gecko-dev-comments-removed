@@ -38,8 +38,11 @@
 
 
 #include "nsHttp.h"
+#include "nsHttpHandler.h"
+
 #include "ASpdySession.h"
 #include "SpdySession2.h"
+#include "SpdySession3.h"
 
 #include "mozilla/Telemetry.h"
 
@@ -54,38 +57,44 @@ ASpdySession::NewSpdySession(PRUint32 version,
 {
   
   
-  NS_ABORT_IF_FALSE(version == SpdyInformation::SPDY_VERSION_2,
-                    "Only version 2 implemented");
+  NS_ABORT_IF_FALSE(version == SpdyInformation::SPDY_VERSION_2 ||
+                    version == SpdyInformation::SPDY_VERSION_3,
+                    "Unsupported spdy version");
+
+  
+  
+  
+  
 
   Telemetry::Accumulate(Telemetry::SPDY_VERSION, version);
     
-  return new SpdySession2(aTransaction,
-                          aTransport,
-                          aPriority);
+  if (version == SpdyInformation::SPDY_VERSION_2)
+    return new SpdySession2(aTransaction, aTransport, aPriority);
+
+  return new SpdySession3(aTransaction, aTransport, aPriority);
 }
 
 SpdyInformation::SpdyInformation()
 {
-  Version[0] = SPDY_VERSION_2;
-  VersionString[0] = NS_LITERAL_CSTRING("spdy/2");
-  AlternateProtocolString[0] = NS_LITERAL_CSTRING("443:npn-spdy/2");
+  
+  Version[0] = SPDY_VERSION_3;
+  VersionString[0] = NS_LITERAL_CSTRING("spdy/3");
+  AlternateProtocolString[0] = NS_LITERAL_CSTRING("443:npn-spdy/3");
 
-  Version[1] = 0;
-  VersionString[1] = EmptyCString();
-  AlternateProtocolString[1] = EmptyCString();
+  Version[1] = SPDY_VERSION_2;
+  VersionString[1] = NS_LITERAL_CSTRING("spdy/2");
+  AlternateProtocolString[1] = NS_LITERAL_CSTRING("443:npn-spdy/2");
 }
 
 bool
 SpdyInformation::ProtocolEnabled(PRUint32 index)
 {
-  
   if (index == 0)
-    return true;
+    return gHttpHandler->IsSpdyV3Enabled();
 
-  
   if (index == 1)
-    return false;
-  
+    return gHttpHandler->IsSpdyV2Enabled();
+
   NS_ABORT_IF_FALSE(false, "index out of range");
   return false;
 }

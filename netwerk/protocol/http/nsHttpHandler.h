@@ -87,6 +87,8 @@ public:
     bool           AllowExperiments() { return mTelemetryEnabled && mAllowExperiments; }
 
     bool           IsSpdyEnabled() { return mEnableSpdy; }
+    bool           IsSpdyV2Enabled() { return mSpdyV2; }
+    bool           IsSpdyV3Enabled() { return mSpdyV3; }
     bool           CoalesceSpdy() { return mCoalesceSpdy; }
     bool           UseAlternateProtocol() { return mUseAlternateProtocol; }
     PRUint32       SpdySendingChunkSize() { return mSpdySendingChunkSize; }
@@ -357,6 +359,8 @@ private:
     
     mozilla::net::SpdyInformation mSpdyInfo;
     bool           mEnableSpdy;
+    bool           mSpdyV2;
+    bool           mSpdyV3;
     bool           mCoalesceSpdy;
     bool           mUseAlternateProtocol;
     PRUint32       mSpdySendingChunkSize;
