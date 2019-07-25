@@ -217,7 +217,7 @@ js_Array(JSContext* cx, JSObject* obj, uintN argc, js::Value* argv, js::Value* r
 
 
 JS_FRIEND_API(JSObject *)
-js_NewArrayObjectWithCapacity(JSContext *cx, jsuint capacity, js::Value **vector);
+js_NewArrayObjectWithCapacity(JSContext *cx, jsuint capacity, jsval **vector);
 
 
 
