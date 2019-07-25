@@ -84,9 +84,18 @@ private:
 
 
 
-  inline bool IndexDetermined(nsIContent* aSibling, Element* aChild,
-                              bool aIsOfType, bool aIsFromEnd,
-                              bool aCheckEdgeOnly, PRInt32& aResult);
+
+
+
+
+
+
+
+  inline bool IndexDeterminedFromPreviousSibling(nsIContent* aSibling,
+                                                 Element* aChild,
+                                                 bool aIsOfType,
+                                                 bool aIsFromEnd,
+                                                 PRInt32& aResult);
 
   struct CacheEntry {
     CacheEntry() {

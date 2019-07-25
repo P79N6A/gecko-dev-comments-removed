@@ -69,18 +69,13 @@ nsNthIndexCache::SiblingMatchesElement(nsIContent* aSibling, Element* aElement,
 }
 
 inline bool
-nsNthIndexCache::IndexDetermined(nsIContent* aSibling, Element* aChild,
-                                 bool aIsOfType, bool aIsFromEnd,
-                                 bool aCheckEdgeOnly, PRInt32& aResult)
+nsNthIndexCache::IndexDeterminedFromPreviousSibling(nsIContent* aSibling,
+                                                    Element* aChild,
+                                                    bool aIsOfType,
+                                                    bool aIsFromEnd,
+                                                    PRInt32& aResult)
 {
   if (SiblingMatchesElement(aSibling, aChild, aIsOfType)) {
-    if (aCheckEdgeOnly) {
-      
-      
-      aResult = -1;
-      return true;
-    }
-
     Cache::Ptr siblingEntry = mCache.lookup(aSibling);
     if (siblingEntry) {
       PRInt32 siblingIndex = siblingEntry->value.mNthIndices[aIsOfType][aIsFromEnd];
@@ -91,7 +86,10 @@ nsNthIndexCache::IndexDetermined(nsIContent* aSibling, Element* aChild,
         
         
         
-        aResult = siblingIndex + aResult;
+        
+        NS_ABORT_IF_FALSE(aIsFromEnd == 0 || aIsFromEnd == 1,
+                          "Bogus bool value");
+        aResult = siblingIndex + aResult * (1 - 2 * aIsFromEnd);
         return true;
       }
     }
@@ -130,30 +128,54 @@ nsNthIndexCache::GetNthIndex(Element* aChild, bool aIsOfType,
   }
   
   PRInt32 result = 1;
-  if (aIsFromEnd) {
-    for (nsIContent *cur = aChild->GetNextSibling();
-         cur;
-         cur = cur->GetNextSibling()) {
-      
-      
-      
-      if (SiblingMatchesElement(cur, aChild, aIsOfType)) {
-        if (aCheckEdgeOnly) {
-          
-          
+  if (aCheckEdgeOnly) {
+    
+    
+    if (aIsFromEnd) {
+      for (nsIContent *cur = aChild->GetNextSibling();
+           cur;
+           cur = cur->GetNextSibling()) {
+        if (SiblingMatchesElement(cur, aChild, aIsOfType)) {
           result = -1;
           break;
         }
-        ++result;
+      }
+    } else {
+      for (nsIContent *cur = aChild->GetPreviousSibling();
+           cur;
+           cur = cur->GetPreviousSibling()) {
+        if (SiblingMatchesElement(cur, aChild, aIsOfType)) {
+          result = -1;
+          break;
+        }
       }
     }
   } else {
+    
+    
     for (nsIContent *cur = aChild->GetPreviousSibling();
          cur;
          cur = cur->GetPreviousSibling()) {
-      if (IndexDetermined(cur, aChild, aIsOfType, aIsFromEnd, aCheckEdgeOnly,
-                          result)) {
-        break;
+      if (IndexDeterminedFromPreviousSibling(cur, aChild, aIsOfType,
+                                             aIsFromEnd, result)) {
+        slot = result;
+        return result;
+      }
+    }
+
+    
+    
+    
+    
+    
+    if (aIsFromEnd) {
+      result = 1;
+      for (nsIContent *cur = aChild->GetNextSibling();
+           cur;
+           cur = cur->GetNextSibling()) {
+        if (SiblingMatchesElement(cur, aChild, aIsOfType)) {
+          ++result;
+        }
       }
     }
   }
