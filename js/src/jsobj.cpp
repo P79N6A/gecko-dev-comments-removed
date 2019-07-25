@@ -2122,28 +2122,16 @@ DefinePropertyOnObject(JSContext *cx, JSObject *obj, const PropDesc &desc,
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
                 if (!shape->configurable() &&
-                    (!shape->hasDefaultGetter() || !shape->hasDefaultSetter())) {
+                    (!shape->hasDefaultGetter() || !shape->hasDefaultSetter()) &&
+                    desc.isDataDescriptor() &&
+                    (desc.hasWritable ? desc.writable() : shape->writable()))
+                {
                     return Reject(cx, JSMSG_CANT_REDEFINE_PROP, throwError, desc.id, rval);
                 }
 
-                if (!js_NativeGet(cx, obj, obj2, shape, JSGET_NO_METHOD_BARRIER, &v)) {
-                    
+                if (!js_NativeGet(cx, obj, obj2, shape, JSGET_NO_METHOD_BARRIER, &v))
                     return JS_FALSE;
-                }
             }
 
             if (desc.isDataDescriptor()) {
