@@ -158,6 +158,7 @@ class Profile
 public:
   Profile(int aEntrySize)
     : mWritePos(0)
+    , mLastFlushPos(0)
     , mReadPos(0)
     , mEntrySize(aEntrySize)
   {
@@ -180,6 +181,72 @@ public:
       mEntries[mReadPos] = ProfileEntry();
       mReadPos = (mReadPos + 1) % mEntrySize;
     }
+    
+    
+    if (mWritePos == mLastFlushPos) {
+      mLastFlushPos = (mLastFlushPos + 1) % mEntrySize;
+    }
+  }
+
+  
+  void flush()
+  {
+    mLastFlushPos = mWritePos;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  void erase()
+  {
+    mWritePos = mLastFlushPos;
   }
 
   void ToString(StringBuilder &profile)
@@ -190,8 +257,9 @@ public:
       mSharedLibraryInfo = SharedLibraryInfo::GetInfoForSelf();
     }
 
+    
     int oldReadPos = mReadPos;
-    while (mReadPos != mWritePos) {
+    while (mReadPos != mLastFlushPos) {
       profile.Append(mEntries[mReadPos].TagToString(this).c_str());
       mReadPos = (mReadPos + 1) % mEntrySize;
     }
@@ -206,8 +274,9 @@ public:
       mSharedLibraryInfo = SharedLibraryInfo::GetInfoForSelf();
     }
 
+    
     int oldReadPos = mReadPos;
-    while (mReadPos != mWritePos) {
+    while (mReadPos != mLastFlushPos) {
       string tag = mEntries[mReadPos].TagToString(this);
       fwrite(tag.data(), 1, tag.length(), stream);
       mReadPos = (mReadPos + 1) % mEntrySize;
@@ -224,6 +293,7 @@ private:
   
   ProfileEntry *mEntries;
   int mWritePos; 
+  int mLastFlushPos; 
   int mReadPos;  
   int mEntrySize;
   bool mNeedsSharedLibraryInfo;
@@ -252,6 +322,7 @@ class TableTicker: public Sampler {
   {
     mUseStackWalk = hasFeature(aFeatures, aFeatureCount, "stackwalk");
     mProfile.addTag(ProfileEntry('m', "Start"));
+    
     mJankOnly = hasFeature(aFeatures, aFeatureCount, "jank");
   }
 
@@ -421,6 +492,18 @@ void doSampleStackTrace(Stack *aStack, Profile &aProfile, TickSample *sample)
   }
 }
 
+
+unsigned int sLastSampledEventGeneration = 0;
+
+
+
+
+unsigned int sCurrentEventGeneration = 0;
+
+
+
+
+
 void TableTicker::Tick(TickSample* sample)
 {
   
@@ -431,6 +514,16 @@ void TableTicker::Tick(TickSample* sample)
     marker = mStack->getMarker(i++);
   }
   mStack->mQueueClearMarker = true;
+
+  
+  
+  if (sLastSampledEventGeneration != sCurrentEventGeneration) {
+    
+    
+    
+    mProfile.erase();
+  }
+  sLastSampledEventGeneration = sCurrentEventGeneration;
 
   bool recordSample = true;
   if (mJankOnly) {
@@ -444,17 +537,18 @@ void TableTicker::Tick(TickSample* sample)
     }
   }
 
-  if (recordSample) {
 #if defined(USE_BACKTRACE) || defined(USE_NS_STACKWALK)
-    if (mUseStackWalk) {
-      doBacktrace(mProfile);
-    } else {
-      doSampleStackTrace(mStack, mProfile, sample);
-    }
-#else
+  if (mUseStackWalk) {
+    doBacktrace(mProfile);
+  } else {
     doSampleStackTrace(mStack, mProfile, sample);
-#endif
   }
+#else
+  doSampleStackTrace(mStack, mProfile, sample);
+#endif
+
+  if (recordSample)
+    mProfile.flush();
 
   if (!mJankOnly && !sLastTracerEvent.IsNull() && sample) {
     TimeDuration delta = sample->timestamp - sLastTracerEvent;
@@ -659,6 +753,7 @@ void mozilla_sampler_responsiveness(TimeStamp aTime)
     TimeDuration delta = aTime - sLastTracerEvent;
     sResponsivenessTimes[sResponsivenessLoc++] = delta.ToMilliseconds();
   }
+  sCurrentEventGeneration++;
 
   sLastTracerEvent = aTime;
 }
