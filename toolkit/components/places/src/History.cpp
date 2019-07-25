@@ -523,6 +523,58 @@ private:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+bool
+CanAddURI(nsIURI* aURI,
+          const nsCString& aGUID = EmptyCString(),
+          PRInt64 aPlaceId = 0,
+          mozIVisitInfoCallback* aCallback = NULL)
+{
+  nsNavHistory* navHistory = nsNavHistory::GetHistoryService();
+  NS_ENSURE_TRUE(navHistory, false);
+
+  PRBool canAdd;
+  nsresult rv = navHistory->CanAddURI(aURI, &canAdd);
+  if (NS_SUCCEEDED(rv) && canAdd) {
+    return true;
+  };
+
+  
+  if (aCallback) {
+    
+    
+    
+    NS_ADDREF(aCallback);
+
+    VisitData place(aURI);
+    place.guid = aGUID;
+    place.placeId = aPlaceId;
+    nsCOMPtr<nsIRunnable> event =
+      new NotifyCompletion(aCallback, place, NS_ERROR_INVALID_ARG);
+    (void)NS_DispatchToMainThread(event);
+
+    
+    
+    nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
+    (void)NS_ProxyRelease(mainThread, aCallback, PR_TRUE);
+  }
+
+  return false;
+}
+
+
+
+
 class InsertVisitedURIs : public nsRunnable
 {
 public:
@@ -624,6 +676,13 @@ private:
       if (mPlaces[i].sessionId <= 0) {
         mPlaces[i].sessionId = navHistory->GetNewSessionID();
       }
+
+#ifdef DEBUG
+      nsCOMPtr<nsIURI> uri;
+      (void)NS_NewURI(getter_AddRefs(uri), mPlaces[i].spec);
+      NS_ASSERTION(CanAddURI(uri),
+                   "Passed a VisitData with a URI we cannot add to history!");
+#endif
     }
 
     
@@ -1788,6 +1847,12 @@ History::UpdatePlaces(const jsval& aPlaceInfos,
     }
 
     
+    
+    if (uri && !CanAddURI(uri, guid, placeId, aCallback)) {
+      continue;
+    }
+
+    
     NS_ENSURE_ARG(uri || placeId > 0 || !guid.IsVoid());
 
     
@@ -1868,11 +1933,16 @@ History::UpdatePlaces(const jsval& aPlaceInfos,
     }
   }
 
-  mozIStorageConnection* dbConn = GetDBConn();
-  NS_ENSURE_STATE(dbConn);
+  
+  
+  
+  if (visitData.Length()) {
+    mozIStorageConnection* dbConn = GetDBConn();
+    NS_ENSURE_STATE(dbConn);
 
-  nsresult rv = InsertVisitedURIs::Start(dbConn, visitData, aCallback);
-  NS_ENSURE_SUCCESS(rv, rv);
+    nsresult rv = InsertVisitedURIs::Start(dbConn, visitData, aCallback);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   return NS_OK;
 }
