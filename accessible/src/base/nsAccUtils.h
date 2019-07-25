@@ -225,10 +225,8 @@ public:
 
 
 
-
   static already_AddRefed<nsHyperTextAccessible>
-    GetTextAccessibleFromSelection(nsISelection *aSelection,
-                                   nsINode **aNode = nsnull);
+    GetTextAccessibleFromSelection(nsISelection* aSelection);
 
   
 

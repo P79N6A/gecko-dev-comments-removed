@@ -116,8 +116,18 @@ public:
   nsIntRect GetCaretRect(nsIWidget **aOutWidget);
 
 protected:
-  nsresult NormalSelectionChanged(nsIDOMDocument *aDoc, nsISelection *aSel);
-  nsresult SpellcheckSelectionChanged(nsIDOMDocument *aDoc, nsISelection *aSel);
+  
+
+
+  void NormalSelectionChanged(nsDocAccessible* aDocument,
+                              nsISelection* aSelection);
+
+  
+
+
+
+  void SpellcheckSelectionChanged(nsDocAccessible* aDocument,
+                                  nsISelection* aSelection);
 
   
 
