@@ -47,6 +47,7 @@
 #include "nsFrameLoader.h"
 #include "nsViewportFrame.h"
 
+typedef nsFrameLoader::ViewportConfig ViewportConfig;
 using namespace mozilla::layers;
 
 namespace mozilla {
@@ -68,19 +69,34 @@ AssertInTopLevelChromeDoc(ContainerLayer* aContainer,
 
 static void
 SetTransformFor(ContainerLayer* aContainer, nsIFrame* aContainedFrame,
-                const FrameMetrics& aMetrics,
+                const FrameMetrics& aMetrics, const ViewportConfig& aConfig,
                 nsDisplayListBuilder* aBuilder)
 {
   NS_ABORT_IF_FALSE(aContainer && aContainedFrame, "args must be nonnull");
   AssertInTopLevelChromeDoc(aContainer, aContainedFrame);
 
+  nscoord auPerDevPixel = aContainedFrame->PresContext()->AppUnitsPerDevPixel();
   
-  nsPoint offset = aBuilder->ToReferenceFrame(aContainedFrame->GetParent()) +
-                   aContainedFrame->GetContentRect().TopLeft();
-  nsIntPoint intOffset = offset.ToNearestPixels(
-    aContainedFrame->PresContext()->AppUnitsPerCSSPixel());
+  nsPoint frameOffset =
+    (aBuilder->ToReferenceFrame(aContainedFrame->GetParent()) +
+     aContainedFrame->GetContentRect().TopLeft());
+  nsIntPoint translation = frameOffset.ToNearestPixels(auPerDevPixel);
 
-  aContainer->SetTransform(gfx3DMatrix::Translation(intOffset.x, intOffset.y, 0));
+  
+  
+  
+  
+  
+  
+  nsIntPoint scrollCompensation =
+    (aConfig.mScrollOffset.ToNearestPixels(auPerDevPixel) -
+     aMetrics.mViewportScrollOffset);
+  translation -= scrollCompensation;
+
+  gfxMatrix transform;
+  transform.Translate(gfxPoint(translation.x, translation.y));
+  transform.Scale(aConfig.mXScale, aConfig.mYScale);
+  aContainer->SetTransform(gfx3DMatrix::From2D(transform));
 }
 
 static void
@@ -95,14 +111,14 @@ AssertValidContainerOfShadowTree(ContainerLayer* aContainer,
 }
 
 static Layer*
-RootOf(ContainerLayer* aContainer)
+ShadowRootOf(ContainerLayer* aContainer)
 {
   NS_ABORT_IF_FALSE(aContainer, "need a non-null container");
 
-  Layer* first = aContainer->GetFirstChild();
-  NS_ABORT_IF_FALSE(!first || nsnull == first->GetNextSibling(),
-                    "'root' container may only have 0 or 1 children");
-  return first;
+  Layer* shadowRoot = aContainer->GetFirstChild();
+  NS_ABORT_IF_FALSE(!shadowRoot || nsnull == shadowRoot->GetNextSibling(),
+                    "shadow root container may only have 0 or 1 children");
+  return shadowRoot;
 }
 
 
@@ -173,23 +189,23 @@ RenderFrameParent::BuildLayer(nsDisplayListBuilder* aBuilder,
     return nsnull;
   }
 
-  Layer* containerRoot = mContainer ? RootOf(mContainer) : nsnull;
+  Layer* containerShadowRoot = mContainer ? ShadowRootOf(mContainer) : nsnull;
   ContainerLayer* shadowRoot = GetRootLayer();
   NS_ABORT_IF_FALSE(!shadowRoot || shadowRoot->Manager() == aManager,
                     "retaining manager changed out from under us ... HELP!");
 
-  if (mContainer && shadowRoot != containerRoot) {
+  if (mContainer && shadowRoot != containerShadowRoot) {
     
     
-    if (containerRoot) {
-      mContainer->RemoveChild(containerRoot);
+    if (containerShadowRoot) {
+      mContainer->RemoveChild(containerShadowRoot);
     }
   }
 
   if (!shadowRoot) {
     
     mContainer = nsnull;
-  } else if (shadowRoot != containerRoot) {
+  } else if (shadowRoot != containerShadowRoot) {
     
     if (!mContainer) {
       mContainer = aManager->CreateContainerLayer();
@@ -201,7 +217,10 @@ RenderFrameParent::BuildLayer(nsDisplayListBuilder* aBuilder,
   }
 
   if (mContainer) {
-    SetTransformFor(mContainer, aFrame, shadowRoot->GetFrameMetrics(), aBuilder);
+    SetTransformFor(mContainer, aFrame,
+                    shadowRoot->GetFrameMetrics(),
+                    mFrameLoader->GetViewportConfig(),
+                    aBuilder);
     mContainer->SetClipRect(nsnull);
   }
 
