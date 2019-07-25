@@ -227,9 +227,15 @@ public class AwesomeBarTabs extends TabHost {
             mRefreshTask.execute();
         }
 
-        public void moveToParentFolder() {
+        
+        public boolean moveToParentFolder() {
+            
+            if (mParentStack.size() == 1)
+                return false;
+
             mParentStack.pop();
             refreshCurrentFolder();
+            return true;
         }
 
         public void moveToChildFolder(int folderId, String folderTitle) {
@@ -308,6 +314,16 @@ public class AwesomeBarTabs extends TabHost {
                 }
             }
         }
+    }
+
+    
+    
+    public boolean onBackPressed() {
+        
+        if (!getCurrentTabTag().equals(BOOKMARKS_TAB))
+            return false;
+
+        return mBookmarksAdapter.moveToParentFolder();
     }
 
     private class BookmarksQueryTask extends AsyncTask<Void, Void, Cursor> {

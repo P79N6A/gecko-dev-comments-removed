@@ -163,17 +163,27 @@ public class AwesomeBar extends Activity implements GeckoEventListener {
 
         mText.setOnKeyPreImeListener(new AwesomeBarEditText.OnKeyPreImeListener() {
             public boolean onKeyPreIme(View v, int keyCode, KeyEvent event) {
-                InputMethodManager imm =
-                        (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                
+                if (event.getAction() != KeyEvent.ACTION_DOWN)
+                    return false;
 
-                if (keyCode == KeyEvent.KEYCODE_ENTER && event.getAction() == KeyEvent.ACTION_DOWN) {
+                if (keyCode == KeyEvent.KEYCODE_ENTER) {
                     openUserEnteredAndFinish(mText.getText().toString());
                     return true;
                 }
 
                 
                 
-                if (!imm.isFullscreenMode() && keyCode == KeyEvent.KEYCODE_BACK) {
+                InputMethodManager imm =
+                        (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                if (keyCode == KeyEvent.KEYCODE_BACK && !imm.isFullscreenMode()) {
+                    
+                    
+                    if (mAwesomeTabs.onBackPressed())
+                        return true;
+
+                    
+                    
                     cancelAndFinish();
                     return true;
                 }
