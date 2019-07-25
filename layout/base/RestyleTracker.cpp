@@ -139,7 +139,8 @@ RestyleTracker::ProcessOneRestyle(Element* aElement,
 {
   NS_PRECONDITION((aRestyleHint & eRestyle_LaterSiblings) == 0,
                   "Someone should have handled this before calling us");
-  NS_PRECONDITION(aElement->GetCurrentDoc() == mFrameConstructor->mDocument,
+  NS_PRECONDITION(Document(), "Must have a document");
+  NS_PRECONDITION(aElement->GetCurrentDoc() == Document(),
                   "Element has unexpected document");
 
   nsIFrame* primaryFrame = aElement->GetPrimaryFrame();
@@ -217,7 +218,7 @@ RestyleTracker::ProcessRestyles()
       
       
       
-      if (element->GetCurrentDoc() != mFrameConstructor->mDocument) {
+      if (element->GetCurrentDoc() != Document()) {
         
         
         continue;
@@ -276,7 +277,7 @@ RestyleTracker::ProcessRestyles()
 PRBool
 RestyleTracker::GetRestyleData(Element* aElement, RestyleData* aData)
 {
-  NS_PRECONDITION(aElement->GetCurrentDoc() == mFrameConstructor->mDocument,
+  NS_PRECONDITION(aElement->GetCurrentDoc() == Document(),
                   "Unexpected document; this will lead to incorrect behavior!");
 
   if (!aElement->HasFlag(RestyleBit())) {
