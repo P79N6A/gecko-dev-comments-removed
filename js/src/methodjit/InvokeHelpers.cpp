@@ -78,36 +78,20 @@ FindExceptionHandler(JSContext *cx)
     StackFrame *fp = cx->fp();
     JSScript *script = fp->script();
 
-top:
-    if (cx->isExceptionPending() && JSScript::isValidOffset(script->trynotesOffset)) {
-        
-        unsigned offset = cx->regs().pc - script->main();
+    if (!JSScript::isValidOffset(script->trynotesOffset))
+        return NULL;
 
-        JSTryNoteArray *tnarray = script->trynotes();
-        for (unsigned i = 0; i < tnarray->length; ++i) {
-            JSTryNote *tn = &tnarray->vector[i];
-
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            if (offset - tn->start > tn->length)
-                continue;
-            if (tn->stackDepth > cx->regs().sp - fp->base())
-                continue;
+  error:
+    if (cx->isExceptionPending()) {
+        for (TryNoteIter tni(cx->regs()); !tni.done(); ++tni) {
+            JSTryNote *tn = *tni;
 
             UnwindScope(cx, tn->stackDepth);
+
+            
+
+
+
 
             jsbytecode *pc = script->main() + tn->start + tn->length;
             cx->regs().pc = pc;
@@ -154,10 +138,12 @@ top:
                   bool ok = UnwindIteratorForException(cx, &cx->regs().sp[-1].toObject());
                   cx->regs().sp -= 1;
                   if (!ok)
-                      goto top;
+                      goto error;
                 }
             }
         }
+    } else {
+        UnwindForUncatchableException(cx, cx->regs());
     }
 
     return NULL;
