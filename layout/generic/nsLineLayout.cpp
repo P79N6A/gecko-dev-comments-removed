@@ -743,14 +743,6 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
   printf("\n");
 #endif
 
-  
-  
-  
-  
-  if (GetFlag(LL_GOTLINEBOX) && IsPercentageAware(aFrame)) {
-    mLineBox->DisableResizeReflowOptimization();
-  }
-
   mTextJustificationNumSpaces = 0;
   mTextJustificationNumLetters = 0;
 
@@ -822,6 +814,17 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
     pfd->mOffsets.SizeTo(0, 0, 0, 0);
     
     
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  if (GetFlag(LL_GOTLINEBOX) && IsPercentageAware(aFrame)) {
+    mLineBox->DisableResizeReflowOptimization();
   }
 
   
