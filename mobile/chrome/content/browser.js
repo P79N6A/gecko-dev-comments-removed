@@ -1018,11 +1018,30 @@ var Browser = {
   },
 
   
+  _getZoomRectForElement: function _getZoomRectForElement(element, elementY) {
+    let bv = this._browserView;
+    let oldZoomLevel = bv.getZoomLevel();
+    let zoomLevel = this._getZoomLevelForElement(element);
+    let zoomRatio = oldZoomLevel / zoomLevel;
+
+    
+    
+    
+    let zoomTolerance = (bv.isDefaultZoom()) ? .9 : .6666;
+    if (zoomRatio >= zoomTolerance) {
+      return null;
+    } else {
+      let elRect = this.getBoundingContentRect(element);
+      return this._getZoomRectForPoint(elRect.center().x, elementY, zoomLevel);
+    }
+  },
+
+  
 
 
 
   _getZoomRectForPoint: function _getZoomRectForPoint(x, y, zoomLevel) {
-    let bv = Browser._browserView;
+    let bv = this._browserView;
     let vis = bv.getVisibleRect();
     x = bv.browserToViewport(x);
     y = bv.browserToViewport(y);
@@ -1037,7 +1056,7 @@ var Browser = {
   },
 
   setVisibleRect: function setVisibleRect(rect) {
-    let bv = Browser._browserView;
+    let bv = this._browserView;
     let vis = bv.getVisibleRect();
     let zoomRatio = vis.width / rect.width;
     let zoomLevel = bv.getZoomLevel() * zoomRatio;
@@ -1055,14 +1074,14 @@ var Browser = {
     bv.beginBatchOperation();
 
     
-    Browser.hideSidebars();
-    Browser.hideTitlebar();
+    this.hideSidebars();
+    this.hideTitlebar();
     bv.setZoomLevel(zoomLevel);
 
     
     bv.forceContainerResize();
-    Browser.forceChromeReflow();
-    Browser.contentScrollboxScroller.scrollTo(scrollX, scrollY);
+    this.forceChromeReflow();
+    this.contentScrollboxScroller.scrollTo(scrollX, scrollY);
     bv.onAfterVisibleMove();
 
     
@@ -1074,29 +1093,21 @@ var Browser = {
   },
 
   zoomToPoint: function zoomToPoint(cX, cY) {
-    let [elementX, elementY] = Browser.transformClientToBrowser(cX, cY);
-
-    let element = Browser.elementFromPoint(elementX, elementY);
-    if (!element)
-      return false;
-
+    let [elementX, elementY] = this.transformClientToBrowser(cX, cY);
+    let zoomRect = null;
+    let element = this.elementFromPoint(elementX, elementY);
     let bv = this._browserView;
-    let oldZoomLevel = bv.getZoomLevel();
-    let zoomLevel = this._getZoomLevelForElement(element);
-    let zoomRatio = oldZoomLevel / zoomLevel;
+    if (element)
+      zoomRect = this._getZoomRectForElement(element, elementY);
+    if (!zoomRect && bv.isDefaultZoom())
+      zoomRect = this._getZoomRectForPoint(elementX, elementY, bv.getZoomLevel() * 2);
 
-    
-    
-    
-    let zoomTolerance = (bv.isDefaultZoom()) ? .9 : .6666;
-    if (zoomRatio >= zoomTolerance)
-       return false;
-
-    let elRect = Browser.getBoundingContentRect(element);
-    let zoomRect = this._getZoomRectForPoint(elRect.center().x, elementY, zoomLevel);
-
-    this.setVisibleRect(zoomRect);
-    return true;
+    if (zoomRect) {
+      this.setVisibleRect(zoomRect);
+      return true;
+    } else {
+      return false;
+    }
   },
 
   zoomFromPoint: function zoomFromPoint(cX, cY) {
