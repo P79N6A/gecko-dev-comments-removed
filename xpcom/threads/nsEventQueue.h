@@ -68,17 +68,17 @@ public:
 
   
   bool HasPendingEvent() {
-    return GetEvent(PR_FALSE, nsnull);
+    return GetEvent(false, nsnull);
   }
 
   
   bool GetPendingEvent(nsIRunnable **runnable) {
-    return GetEvent(PR_FALSE, runnable);
+    return GetEvent(false, runnable);
   }
 
   
   bool WaitPendingEvent(nsIRunnable **runnable) {
-    return GetEvent(PR_TRUE, runnable);
+    return GetEvent(true, runnable);
   }
 
   

@@ -124,7 +124,7 @@ nsRefPtrHashtable<KeyClass,RefPtr>::Get
       NS_IF_ADDREF(*pRefPtr);
     }
 
-    return PR_TRUE;
+    return true;
   }
 
   
@@ -132,7 +132,7 @@ nsRefPtrHashtable<KeyClass,RefPtr>::Get
   if (pRefPtr)
     *pRefPtr = nsnull;
 
-  return PR_FALSE;
+  return false;
 }
 
 template<class KeyClass, class RefPtr>
@@ -145,14 +145,14 @@ nsRefPtrHashtable<KeyClass,RefPtr>::GetWeak
   if (ent)
   {
     if (aFound)
-      *aFound = PR_TRUE;
+      *aFound = true;
 
     return ent->mData;
   }
 
   
   if (aFound)
-    *aFound = PR_FALSE;
+    *aFound = false;
   return nsnull;
 }
 
@@ -180,7 +180,7 @@ nsRefPtrHashtableMT<KeyClass,RefPtr>::Get
 
     PR_Unlock(this->mLock);
 
-    return PR_TRUE;
+    return true;
   }
 
   
@@ -190,7 +190,7 @@ nsRefPtrHashtableMT<KeyClass,RefPtr>::Get
 
   PR_Unlock(this->mLock);
 
-  return PR_FALSE;
+  return false;
 }
 
 #endif 

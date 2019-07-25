@@ -6,6 +6,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "xpcprivate.h"
 
 
@@ -20,7 +54,7 @@
 static char*    g_Spaces;
 static int      g_InitState = 0;
 static int      g_Indent = 0;
-static PRLogModuleInfo* g_LogMod = nullptr;
+static PRLogModuleInfo* g_LogMod = nsnull;
 
 static bool Init()
 {
@@ -43,7 +77,7 @@ XPC_Log_Finish()
     if (g_InitState == 1) {
         delete [] g_Spaces;
         
-        g_LogMod = nullptr;
+        g_LogMod = nsnull;
     }
     g_InitState = -1;
 }
@@ -105,14 +139,14 @@ LogSlimWrapperWillMorph(JSContext *cx, JSObject *obj, const char *propname,
             printf(" for %s", propname);
         printf(" (%p, %p)\n", obj,
                static_cast<nsISupports*>(xpc_GetJSPrivate(obj)));
-        xpc_DumpJSStack(cx, false, false, false);
+        xpc_DumpJSStack(cx, JS_FALSE, JS_FALSE, JS_FALSE);
     }
 }
 
 void
 LogSlimWrapperNotCreated(JSContext *cx, nsISupports *obj, const char *reason)
 {
-    char* className = nullptr;
+    char* className = nsnull;
     nsCOMPtr<nsIClassInfo> ci = do_QueryInterface(obj);
     if (ci)
         ci->GetClassDescription(&className);
@@ -121,6 +155,6 @@ LogSlimWrapperNotCreated(JSContext *cx, nsISupports *obj, const char *reason)
     if (className)
         PR_Free(className);
     JSAutoRequest autoRequest(cx);
-    xpc_DumpJSStack(cx, false, false, false);
+    xpc_DumpJSStack(cx, JS_FALSE, JS_FALSE, JS_FALSE);
 }
 #endif

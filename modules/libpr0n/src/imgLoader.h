@@ -112,7 +112,7 @@ public:
   void SetTouchedTime(PRInt32 time)
   {
     mTouchedTime = time;
-    Touch( PR_FALSE);
+    Touch( false);
   }
 
   PRInt32 GetExpiryTime() const

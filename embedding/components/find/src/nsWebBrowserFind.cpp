@@ -91,12 +91,12 @@
 
 
 nsWebBrowserFind::nsWebBrowserFind() :
-    mFindBackwards(PR_FALSE),
-    mWrapFind(PR_FALSE),
-    mEntireWord(PR_FALSE),
-    mMatchCase(PR_FALSE),
-    mSearchSubFrames(PR_TRUE),
-    mSearchParentFrames(PR_TRUE)
+    mFindBackwards(false),
+    mWrapFind(false),
+    mEntireWord(false),
+    mMatchCase(false),
+    mSearchSubFrames(true),
+    mSearchParentFrames(true)
 {
 }
 
@@ -111,7 +111,7 @@ NS_IMPL_ISUPPORTS2(nsWebBrowserFind, nsIWebBrowserFind, nsIWebBrowserFindInFrame
 NS_IMETHODIMP nsWebBrowserFind::FindNext(bool *outDidFind)
 {
     NS_ENSURE_ARG_POINTER(outDidFind);
-    *outDidFind = PR_FALSE;
+    *outDidFind = false;
 
     NS_ENSURE_TRUE(CanFindNext(), NS_ERROR_NOT_INITIALIZED);
 
@@ -153,7 +153,7 @@ NS_IMETHODIMP nsWebBrowserFind::FindNext(bool *outDidFind)
 
     
     
-    rv = SearchInFrame(searchFrame, PR_FALSE, outDidFind);
+    rv = SearchInFrame(searchFrame, false, outDidFind);
     if (NS_FAILED(rv)) return rv;
     if (*outDidFind)
         return OnFind(searchFrame);     
@@ -203,7 +203,7 @@ NS_IMETHODIMP nsWebBrowserFind::FindNext(bool *outDidFind)
 
             
             
-            rv = SearchInFrame(searchFrame, PR_FALSE, outDidFind);
+            rv = SearchInFrame(searchFrame, false, outDidFind);
             if (NS_FAILED(rv)) return rv;
             if (*outDidFind)
                 return OnFind(searchFrame);     
@@ -212,7 +212,7 @@ NS_IMETHODIMP nsWebBrowserFind::FindNext(bool *outDidFind)
         }
 
         if (curItem.get() == startingItem.get())
-            doFind = PR_TRUE;       
+            doFind = true;       
     };
 
     if (!mWrapFind)
@@ -245,7 +245,7 @@ NS_IMETHODIMP nsWebBrowserFind::FindNext(bool *outDidFind)
         {
             
             
-            rv = SearchInFrame(searchFrame, PR_TRUE, outDidFind);
+            rv = SearchInFrame(searchFrame, true, outDidFind);
             if (NS_FAILED(rv)) return rv;
             if (*outDidFind)
                 return OnFind(searchFrame);        
@@ -259,7 +259,7 @@ NS_IMETHODIMP nsWebBrowserFind::FindNext(bool *outDidFind)
 
         
         
-        rv = SearchInFrame(searchFrame, PR_FALSE, outDidFind);
+        rv = SearchInFrame(searchFrame, false, outDidFind);
         if (NS_FAILED(rv)) return rv;
         if (*outDidFind)
             return OnFind(searchFrame);        
@@ -376,13 +376,13 @@ IsInNativeAnonymousSubtree(nsIContent* aContent)
     while (aContent) {
         nsIContent* bindingParent = aContent->GetBindingParent();
         if (bindingParent == aContent) {
-            return PR_TRUE;
+            return true;
         }
 
         aContent = bindingParent;
     }
 
-    return PR_FALSE;
+    return false;
 }
 
 void nsWebBrowserFind::SetSelectionAndScroll(nsIDOMWindow* aWindow,
@@ -711,7 +711,7 @@ nsresult nsWebBrowserFind::SearchInFrame(nsIDOMWindow* aWindow,
     NS_ENSURE_ARG(aWindow);
     NS_ENSURE_ARG_POINTER(aDidFind);
 
-    *aDidFind = PR_FALSE;
+    *aDidFind = false;
 
     nsCOMPtr<nsIDOMDocument> domDoc;    
     nsresult rv = aWindow->GetDocument(getter_AddRefs(domDoc));
@@ -780,13 +780,13 @@ nsresult nsWebBrowserFind::SearchInFrame(nsIDOMWindow* aWindow,
     
     if (!aWrapping)
         rv = GetSearchLimits(searchRange, startPt, endPt, domDoc, sel,
-                             PR_FALSE);
+                             false);
 
     
     
     else
         rv = GetSearchLimits(searchRange, startPt, endPt, domDoc, sel,
-                             PR_TRUE);
+                             true);
 
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -795,7 +795,7 @@ nsresult nsWebBrowserFind::SearchInFrame(nsIDOMWindow* aWindow,
 
     if (NS_SUCCEEDED(rv) && foundRange)
     {
-        *aDidFind = PR_TRUE;
+        *aDidFind = true;
         sel->RemoveAllRanges();
         
         

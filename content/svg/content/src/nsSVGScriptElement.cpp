@@ -37,6 +37,8 @@
 
 
 
+#include "mozilla/Util.h"
+
 #include "nsSVGElement.h"
 #include "nsGkAtoms.h"
 #include "nsIDOMSVGScriptElement.h"
@@ -49,6 +51,7 @@
 #include "nsScriptElement.h"
 #include "nsContentUtils.h"
 
+using namespace mozilla;
 using namespace mozilla::dom;
 
 typedef nsSVGElement nsSVGScriptElementBase;
@@ -110,7 +113,7 @@ protected:
 
 nsSVGElement::StringInfo nsSVGScriptElement::sStringInfo[1] =
 {
-  { &nsGkAtoms::href, kNameSpaceID_XLink, PR_FALSE }
+  { &nsGkAtoms::href, kNameSpaceID_XLink, false }
 };
 
 NS_IMPL_NS_NEW_SVG_ELEMENT_CHECK_PARSER(Script)
@@ -182,7 +185,7 @@ nsSVGScriptElement::GetType(nsAString & aType)
 NS_IMETHODIMP
 nsSVGScriptElement::SetType(const nsAString & aType)
 {
-  return SetAttr(kNameSpaceID_None, nsGkAtoms::type, aType, PR_TRUE); 
+  return SetAttr(kNameSpaceID_None, nsGkAtoms::type, aType, true); 
 }
 
 
@@ -207,7 +210,7 @@ nsSVGScriptElement::GetScriptType(nsAString& type)
 void
 nsSVGScriptElement::GetScriptText(nsAString& text)
 {
-  nsContentUtils::GetNodeTextContent(this, PR_FALSE, text);
+  nsContentUtils::GetNodeTextContent(this, false, text);
 }
 
 void
@@ -223,19 +226,19 @@ nsSVGScriptElement::FreezeUriAsyncDefer()
     return;
   }
 
-  
-  
-  nsAutoString src;
-  mStringAttributes[HREF].GetAnimValue(src, this);
-  
-  if (!src.IsEmpty()) {
+  if (mStringAttributes[HREF].IsExplicitlySet()) {
+    
+    
+    nsAutoString src;
+    mStringAttributes[HREF].GetAnimValue(src, this);
+
     nsCOMPtr<nsIURI> baseURI = GetBaseURI();
     NS_NewURI(getter_AddRefs(mUri), src, nsnull, baseURI);
     
-    mExternal = PR_TRUE;
+    mExternal = true;
   }
   
-  mFrozen = PR_TRUE;
+  mFrozen = true;
 }
 
 
@@ -244,10 +247,7 @@ nsSVGScriptElement::FreezeUriAsyncDefer()
 bool
 nsSVGScriptElement::HasScriptContent()
 {
-  nsAutoString src;
-  mStringAttributes[HREF].GetAnimValue(src, this);
-  
-  return (mFrozen ? mExternal : !src.IsEmpty()) ||
+  return (mFrozen ? mExternal : mStringAttributes[HREF].IsExplicitlySet()) ||
          nsContentUtils::HasNonEmptyTextContent(this);
 }
 
@@ -268,7 +268,7 @@ nsSVGElement::StringAttributesInfo
 nsSVGScriptElement::GetStringInfo()
 {
   return StringAttributesInfo(mStringAttributes, sStringInfo,
-                              NS_ARRAY_LENGTH(sStringInfo));
+                              ArrayLength(sStringInfo));
 }
 
 
@@ -277,7 +277,7 @@ nsSVGScriptElement::GetStringInfo()
 nsresult
 nsSVGScriptElement::DoneAddingChildren(bool aHaveNotified)
 {
-  mDoneAddingChildren = PR_TRUE;
+  mDoneAddingChildren = true;
   nsresult rv = MaybeProcessScript();
   if (!mAlreadyStarted) {
     

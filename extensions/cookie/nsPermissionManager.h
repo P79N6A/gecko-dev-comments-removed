@@ -114,7 +114,7 @@ public:
 
   
   
-  enum { ALLOW_MEMMOVE = PR_FALSE };
+  enum { ALLOW_MEMMOVE = false };
 
   
   inline const nsDependentCString GetHost() const

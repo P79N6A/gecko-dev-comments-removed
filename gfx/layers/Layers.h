@@ -275,7 +275,7 @@ public:
     LAYERS_LAST
   };
 
-  LayerManager() : mDestroyed(PR_FALSE), mSnapEffectiveTransforms(PR_TRUE)
+  LayerManager() : mDestroyed(false), mSnapEffectiveTransforms(true)
   {
     InitLog();
   }
@@ -287,7 +287,7 @@ public:
 
 
 
-  virtual void Destroy() { mDestroyed = PR_TRUE; mUserData.Clear(); }
+  virtual void Destroy() { mDestroyed = true; mUserData.Clear(); }
   bool IsDestroyed() { return mDestroyed; }
 
   virtual ShadowLayerForwarder* AsShadowForwarder()
@@ -454,7 +454,7 @@ public:
     CreateDrawTarget(const mozilla::gfx::IntSize &aSize,
                      mozilla::gfx::SurfaceFormat aFormat);
 
-  virtual bool CanUseCanvasLayerForSize(const gfxIntSize &aSize) { return PR_TRUE; }
+  virtual bool CanUseCanvasLayerForSize(const gfxIntSize &aSize) { return true; }
 
   
 
@@ -664,7 +664,7 @@ public:
     if (mUseClipRect) {
       mClipRect.IntersectRect(mClipRect, aRect);
     } else {
-      mUseClipRect = PR_TRUE;
+      mUseClipRect = true;
       mClipRect = aRect;
     }
     Mutated();
@@ -909,9 +909,9 @@ protected:
     mImplData(aImplData),
     mOpacity(1.0),
     mContentFlags(0),
-    mUseClipRect(PR_FALSE),
-    mUseTileSourceRect(PR_FALSE),
-    mIsFixedPosition(PR_FALSE)
+    mUseClipRect(false),
+    mUseTileSourceRect(false),
+    mIsFixedPosition(false)
     {}
 
   void Mutated() { mManager->Mutated(this); }
@@ -1161,9 +1161,9 @@ protected:
     : Layer(aManager, aImplData),
       mFirstChild(nsnull),
       mLastChild(nsnull),
-      mUseIntermediateSurface(PR_FALSE),
-      mSupportsComponentAlphaChildren(PR_FALSE),
-      mMayHaveReadbackChild(PR_FALSE)
+      mUseIntermediateSurface(false),
+      mSupportsComponentAlphaChildren(false),
+      mMayHaveReadbackChild(false)
   {
     mContentFlags = 0; 
   }
@@ -1243,7 +1243,7 @@ public:
   struct Data {
     Data()
       : mSurface(nsnull), mGLContext(nsnull)
-      , mDrawTarget(nsnull), mGLBufferIsPremultiplied(PR_FALSE)
+      , mDrawTarget(nsnull), mGLBufferIsPremultiplied(false)
     { }
 
     
@@ -1274,7 +1274,7 @@ public:
 
 
 
-  void Updated() { mDirty = PR_TRUE; }
+  void Updated() { mDirty = true; }
 
   
 
@@ -1311,7 +1311,7 @@ protected:
   CanvasLayer(LayerManager* aManager, void* aImplData)
     : Layer(aManager, aImplData),
       mCallback(nsnull), mCallbackData(nsnull), mFilter(gfxPattern::FILTER_GOOD),
-      mDirty(PR_FALSE) {}
+      mDirty(false) {}
 
   virtual nsACString& PrintInfo(nsACString& aTo, const char* aPrefix);
 

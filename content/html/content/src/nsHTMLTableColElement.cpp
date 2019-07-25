@@ -34,6 +34,9 @@
 
 
 
+
+#include "mozilla/Util.h"
+
 #include "nsIDOMHTMLTableColElement.h"
 #include "nsIDOMEventTarget.h"
 #include "nsMappedAttributes.h"
@@ -41,6 +44,8 @@
 #include "nsGkAtoms.h"
 #include "nsStyleConsts.h"
 #include "nsRuleData.h"
+
+using namespace mozilla;
 
 
 
@@ -227,7 +232,7 @@ nsHTMLTableColElement::IsAttributeMapped(const nsIAtom* aAttribute) const
     sCommonAttributeMap,
   };
 
-  return FindAttributeDependence(aAttribute, map, NS_ARRAY_LENGTH(map));
+  return FindAttributeDependence(aAttribute, map, ArrayLength(map));
 }
 
 

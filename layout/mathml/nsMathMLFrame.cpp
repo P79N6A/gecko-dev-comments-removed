@@ -240,12 +240,12 @@ nsMathMLFrame::GetAttribute(nsIContent* aContent,
   
   if (aContent && aContent->GetAttr(kNameSpaceID_None, aAttributeAtom,
                                     aValue)) {
-    return PR_TRUE;
+    return true;
   }
 
   
   if (!aMathMLmstyleFrame) {
-    return PR_FALSE;
+    return false;
   }
 
   nsIFrame* mstyleParent = aMathMLmstyleFrame->GetParent();
@@ -347,7 +347,7 @@ nsMathMLFrame::ParseNamedSpaceValue(nsIFrame*   aMathMLmstyleFrame,
 {
   aCSSValue.Reset();
   aString.CompressWhitespace(); 
-  if (!aString.Length()) return PR_FALSE;
+  if (!aString.Length()) return false;
 
   
   PRInt32 i = 0;
@@ -418,17 +418,17 @@ nsMathMLFrame::ParseNamedSpaceValue(nsIFrame*   aMathMLmstyleFrame,
       if (!value.IsEmpty()) {
         if (ParseNumericValue(value, aCSSValue) &&
             aCSSValue.IsLengthUnit()) {
-          return PR_TRUE;
+          return true;
         }
       }
     }
 
     
     aCSSValue.SetFloatValue(float(i)/float(18), eCSSUnit_EM);
-    return PR_TRUE;
+    return true;
   }
 
-  return PR_FALSE;
+  return false;
 }
 
 

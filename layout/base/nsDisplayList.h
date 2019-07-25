@@ -214,25 +214,25 @@ public:
 
 
 
-  void SetIncludeAllOutOfFlows() { mIncludeAllOutOfFlows = PR_TRUE; }
+  void SetIncludeAllOutOfFlows() { mIncludeAllOutOfFlows = true; }
   bool GetIncludeAllOutOfFlows() const { return mIncludeAllOutOfFlows; }
   
 
 
 
-  void SetSelectedFramesOnly() { mSelectedFramesOnly = PR_TRUE; }
+  void SetSelectedFramesOnly() { mSelectedFramesOnly = true; }
   bool GetSelectedFramesOnly() { return mSelectedFramesOnly; }
   
 
 
 
-  void SetAccurateVisibleRegions() { mAccurateVisibleRegions = PR_TRUE; }
+  void SetAccurateVisibleRegions() { mAccurateVisibleRegions = true; }
   bool GetAccurateVisibleRegions() { return mAccurateVisibleRegions; }
   
 
 
 
-  void IgnorePaintSuppression() { mIgnoreSuppression = PR_TRUE; }
+  void IgnorePaintSuppression() { mIgnoreSuppression = true; }
   
 
 
@@ -303,7 +303,7 @@ public:
 
 
 
-  void SetHasFixedItems() { mHasFixedItems = PR_TRUE; }
+  void SetHasFixedItems() { mHasFixedItems = true; }
   bool GetHasFixedItems() { return mHasFixedItems; }
 
   
@@ -658,7 +658,7 @@ public:
                                    bool* aForceTransparentSurface = nsnull)
   {
     if (aForceTransparentSurface) {
-      *aForceTransparentSurface = PR_FALSE;
+      *aForceTransparentSurface = false;
     }
     return nsRegion();
   }
@@ -677,14 +677,14 @@ public:
 
   virtual bool IsVaryingRelativeToMovingFrame(nsDisplayListBuilder* aBuilder,
                                                 nsIFrame* aFrame)
-  { return PR_FALSE; }
+  { return false; }
   
 
 
 
 
   virtual bool ShouldFixToViewport(nsDisplayListBuilder* aBuilder)
-  { return PR_FALSE; }
+  { return false; }
 
   
 
@@ -769,7 +769,7 @@ public:
 
 
   virtual bool TryMerge(nsDisplayListBuilder* aBuilder, nsDisplayItem* aItem) {
-    return PR_FALSE;
+    return false;
   }
 
   
@@ -779,7 +779,7 @@ public:
 
 
   virtual bool ShouldFlattenAway(nsDisplayListBuilder* aBuilder) {
-    return PR_FALSE;
+    return false;
   }
 
   
@@ -877,12 +877,12 @@ public:
 
 
   nsDisplayList() :
-    mIsOpaque(PR_FALSE)
+    mIsOpaque(false)
   {
     mTop = &mSentinel;
     mSentinel.mAbove = nsnull;
 #ifdef DEBUG
-    mDidComputeVisibility = PR_FALSE;
+    mDidComputeVisibility = false;
 #endif
   }
   ~nsDisplayList() {
@@ -1488,7 +1488,7 @@ public:
   virtual nsRegion GetOpaqueRegion(nsDisplayListBuilder* aBuilder,
                                    bool* aOutTransparentBackground = nsnull) {
     if (aOutTransparentBackground) {
-      *aOutTransparentBackground = PR_FALSE;
+      *aOutTransparentBackground = false;
     }
     nsRegion result;
     if (NS_GET_A(mColor) == 255) {
@@ -1500,7 +1500,7 @@ public:
   virtual bool IsUniform(nsDisplayListBuilder* aBuilder, nscolor* aColor)
   {
     *aColor = mColor;
-    return PR_TRUE;
+    return true;
   }
 
   virtual void Paint(nsDisplayListBuilder* aBuilder, nsRenderingContext* aCtx);
@@ -1685,7 +1685,7 @@ public:
                                    const nsRect& aAllowVisibleRegionExpansion);
   virtual bool TryMerge(nsDisplayListBuilder* aBuilder, nsDisplayItem* aItem) {
     NS_WARNING("This list should already have been flattened!!!");
-    return PR_FALSE;
+    return false;
   }
   NS_DISPLAY_DECL_NAME("WrapList", TYPE_WRAP_LIST)
 
@@ -1796,7 +1796,7 @@ public:
   virtual bool TryMerge(nsDisplayListBuilder* aBuilder, nsDisplayItem* aItem)
   {
     
-    return PR_FALSE;
+    return false;
   }
   NS_DISPLAY_DECL_NAME("OwnLayer", TYPE_OWN_LAYER)
 };

@@ -6,11 +6,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "xpcprivate.h"
-#include "xpcpublic.h"
 #include "XPCWrapper.h"
 
-JSBool XPCThrower::sVerbose = true;
+JSBool XPCThrower::sVerbose = JS_TRUE;
 
 
 void
@@ -19,21 +52,10 @@ XPCThrower::Throw(nsresult rv, JSContext* cx)
     const char* format;
     if (JS_IsExceptionPending(cx))
         return;
-    if (!nsXPCException::NameAndFormatForNSResult(rv, nullptr, &format))
+    if (!nsXPCException::NameAndFormatForNSResult(rv, nsnull, &format))
         format = "";
     BuildAndThrowException(cx, rv, format);
 }
-
-namespace xpc {
-
-bool
-Throw(JSContext *cx, nsresult rv)
-{
-    XPCThrower::Throw(rv, cx);
-    return false;
-}
-
-} 
 
 
 
@@ -44,19 +66,23 @@ Throw(JSContext *cx, nsresult rv)
 JSBool
 XPCThrower::CheckForPendingException(nsresult result, JSContext *cx)
 {
+    nsXPConnect* xpc = nsXPConnect::GetXPConnect();
+    if (!xpc)
+        return JS_FALSE;
+
     nsCOMPtr<nsIException> e;
-    XPCJSRuntime::Get()->GetPendingException(getter_AddRefs(e));
+    xpc->GetPendingException(getter_AddRefs(e));
     if (!e)
-        return false;
-    XPCJSRuntime::Get()->SetPendingException(nullptr);
+        return JS_FALSE;
+    xpc->SetPendingException(nsnull);
 
     nsresult e_result;
     if (NS_FAILED(e->GetResult(&e_result)) || e_result != result)
-        return false;
+        return JS_FALSE;
 
     if (!ThrowExceptionObject(cx, e))
         JS_ReportOutOfMemory(cx);
-    return true;
+    return JS_TRUE;
 }
 
 
@@ -69,7 +95,7 @@ XPCThrower::Throw(nsresult rv, XPCCallContext& ccx)
     if (CheckForPendingException(rv, ccx))
         return;
 
-    if (!nsXPCException::NameAndFormatForNSResult(rv, nullptr, &format))
+    if (!nsXPCException::NameAndFormatForNSResult(rv, nsnull, &format))
         format = "";
 
     sz = (char*) format;
@@ -104,10 +130,10 @@ XPCThrower::ThrowBadResult(nsresult rv, nsresult result, XPCCallContext& ccx)
 
     
 
-    if (!nsXPCException::NameAndFormatForNSResult(rv, nullptr, &format) || !format)
+    if (!nsXPCException::NameAndFormatForNSResult(rv, nsnull, &format) || !format)
         format = "";
 
-    if (nsXPCException::NameAndFormatForNSResult(result, &name, nullptr) && name)
+    if (nsXPCException::NameAndFormatForNSResult(result, &name, nsnull) && name)
         sz = JS_smprintf("%s 0x%x (%s)", format, result, name);
     else
         sz = JS_smprintf("%s 0x%x", format, result);
@@ -123,12 +149,12 @@ XPCThrower::ThrowBadResult(nsresult rv, nsresult result, XPCCallContext& ccx)
 
 
 void
-XPCThrower::ThrowBadParam(nsresult rv, unsigned paramNum, XPCCallContext& ccx)
+XPCThrower::ThrowBadParam(nsresult rv, uintN paramNum, XPCCallContext& ccx)
 {
     char* sz;
     const char* format;
 
-    if (!nsXPCException::NameAndFormatForNSResult(rv, nullptr, &format))
+    if (!nsXPCException::NameAndFormatForNSResult(rv, nsnull, &format))
         format = "";
 
     sz = JS_smprintf("%s arg %d", format, paramNum);
@@ -148,7 +174,7 @@ void
 XPCThrower::Verbosify(XPCCallContext& ccx,
                       char** psz, bool own)
 {
-    char* sz = nullptr;
+    char* sz = nsnull;
 
     if (ccx.HasInterfaceAndMember()) {
         XPCNativeInterface* iface = ccx.GetInterface();
@@ -172,29 +198,30 @@ XPCThrower::Verbosify(XPCCallContext& ccx,
 void
 XPCThrower::BuildAndThrowException(JSContext* cx, nsresult rv, const char* sz)
 {
-    JSBool success = false;
+    JSBool success = JS_FALSE;
 
     
     if (rv == NS_ERROR_XPC_SECURITY_MANAGER_VETO && JS_IsExceptionPending(cx))
         return;
     nsCOMPtr<nsIException> finalException;
     nsCOMPtr<nsIException> defaultException;
-    nsXPCException::NewException(sz, rv, nullptr, nullptr, getter_AddRefs(defaultException));
-
-    nsIExceptionManager * exceptionManager = XPCJSRuntime::Get()->GetExceptionManager();
-    if (exceptionManager) {
-        
-        
-        exceptionManager->GetExceptionFromProvider(rv,
-                                                   defaultException,
-                                                   getter_AddRefs(finalException));
-        
-        
-        if (finalException == nullptr) {
-            finalException = defaultException;
+    nsXPCException::NewException(sz, rv, nsnull, nsnull, getter_AddRefs(defaultException));
+    XPCPerThreadData* tls = XPCPerThreadData::GetData(cx);
+    if (tls) {
+        nsIExceptionManager * exceptionManager = tls->GetExceptionManager();
+        if (exceptionManager) {
+           
+           
+            exceptionManager->GetExceptionFromProvider(rv,
+                                                       defaultException,
+                                                       getter_AddRefs(finalException));
+            
+            
+            if (finalException == nsnull) {
+                finalException = defaultException;
+            }
         }
     }
-
     
     
     if (finalException)
@@ -211,7 +238,22 @@ IsCallerChrome(JSContext* cx)
     nsresult rv;
 
     nsCOMPtr<nsIScriptSecurityManager> secMan;
-    secMan = XPCWrapper::GetSecurityManager();
+    if (XPCPerThreadData::IsMainThread(cx)) {
+        secMan = XPCWrapper::GetSecurityManager();
+    } else {
+        nsXPConnect* xpc = nsXPConnect::GetXPConnect();
+        if (!xpc)
+            return false;
+
+        nsCOMPtr<nsIXPCSecurityManager> xpcSecMan;
+        PRUint16 flags = 0;
+        rv = xpc->GetSecurityManagerForJSContext(cx, getter_AddRefs(xpcSecMan),
+                                                 &flags);
+        if (NS_FAILED(rv) || !xpcSecMan)
+            return false;
+
+        secMan = do_QueryInterface(xpcSecMan);
+    }
 
     if (!secMan)
         return false;
@@ -225,7 +267,7 @@ IsCallerChrome(JSContext* cx)
 JSBool
 XPCThrower::ThrowExceptionObject(JSContext* cx, nsIException* e)
 {
-    JSBool success = false;
+    JSBool success = JS_FALSE;
     if (e) {
         nsCOMPtr<nsIXPCException> xpcEx;
         jsval thrown;
@@ -238,13 +280,13 @@ XPCThrower::ThrowExceptionObject(JSContext* cx, nsIException* e)
             (xpcEx = do_QueryInterface(e)) &&
             NS_SUCCEEDED(xpcEx->StealJSVal(&thrown))) {
             if (!JS_WrapValue(cx, &thrown))
-                return false;
+                return JS_FALSE;
             JS_SetPendingException(cx, thrown);
-            success = true;
+            success = JS_TRUE;
         } else if ((xpc = nsXPConnect::GetXPConnect())) {
             JSObject* glob = JS_GetGlobalForScopeChain(cx);
             if (!glob)
-                return false;
+                return JS_FALSE;
 
             nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
             nsresult rv = xpc->WrapNative(cx, glob, e,
@@ -254,7 +296,7 @@ XPCThrower::ThrowExceptionObject(JSContext* cx, nsIException* e)
                 JSObject* obj;
                 if (NS_SUCCEEDED(holder->GetJSObject(&obj))) {
                     JS_SetPendingException(cx, OBJECT_TO_JSVAL(obj));
-                    success = true;
+                    success = JS_TRUE;
                 }
             }
         }

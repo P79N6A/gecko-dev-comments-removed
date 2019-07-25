@@ -65,7 +65,8 @@ enum PluginSupportState {
   ePluginBlocklisted,  
   ePluginOutdated,     
   ePluginOtherState,   
-  ePluginCrashed
+  ePluginCrashed,
+  ePluginClickToPlay
 };
 
 

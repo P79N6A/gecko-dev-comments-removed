@@ -119,7 +119,7 @@ public:
 
   
   
-  void SetReadOnly() { mReadOnly = PR_TRUE; }
+  void SetReadOnly() { mReadOnly = true; }
 
   
   

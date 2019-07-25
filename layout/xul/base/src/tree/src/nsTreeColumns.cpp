@@ -118,19 +118,19 @@ nsTreeColumn::IsLastVisible(nsTreeBodyFrame* aBodyFrame)
 
   
   if (IsCycler())
-    return PR_FALSE;
+    return false;
 
   
   if (GetFrame()->GetRect().width == 0)
-    return PR_FALSE;
+    return false;
 
   
   for (nsTreeColumn *next = GetNext(); next; next = next->GetNext()) {
     nsIFrame* frame = next->GetFrame();
     if (frame && frame->GetRect().width > 0)
-      return PR_FALSE;
+      return false;
   }
-  return PR_TRUE;
+  return true;
 }
 
 nsresult
@@ -605,7 +605,7 @@ nsTreeColumns::RestoreNaturalOrder()
     nsIContent *child = colsContent->GetChildAt(i);
     nsAutoString ordinal;
     ordinal.AppendInt(i);
-    child->SetAttr(kNameSpaceID_None, nsGkAtoms::ordinal, ordinal, PR_TRUE);
+    child->SetAttr(kNameSpaceID_None, nsGkAtoms::ordinal, ordinal, true);
   }
 
   nsTreeColumns::InvalidateColumns();

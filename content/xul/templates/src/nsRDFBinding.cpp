@@ -66,7 +66,7 @@ RDFBindingSet::AddBinding(nsIAtom* aVar, nsIAtom* aRef, nsIRDFResource* aPredica
         while (binding) { 
             
             if (binding->mSubjectVariable == aVar)
-                newbinding->mHasDependency = PR_TRUE;
+                newbinding->mHasDependency = true;
 
             
             
@@ -108,7 +108,7 @@ RDFBindingSet::SyncAssignments(nsIRDFResource* aSubject,
     bool needSync = false;
     nsCOMPtr<nsIRDFNode>* valuesArray = aBindingValues.ValuesArray();
     if (!valuesArray)
-        return PR_FALSE;
+        return false;
 
     RDFBinding* binding = mFirst;
     PRInt32 count = 0;
@@ -124,13 +124,13 @@ RDFBindingSet::SyncAssignments(nsIRDFResource* aSubject,
             
             if (binding->mSubjectVariable == aMemberVariable) {
                 valuesArray[count] = aTarget;
-                needSync = PR_TRUE;
+                needSync = true;
             }
             else {
                 aResult->GetAssignment(binding->mSubjectVariable, getter_AddRefs(value));
                 if (value == subjectnode) {
                     valuesArray[count] = aTarget;
-                    needSync = PR_TRUE;
+                    needSync = true;
                 }
             }
         }
@@ -284,7 +284,7 @@ nsBindingValues::GetAssignmentFor(nsXULTemplateResultRDF* aResult,
                                        getter_AddRefs(subjectValue));
                 if (subjectValue) {
                     nsCOMPtr<nsIRDFResource> subject = do_QueryInterface(subjectValue);
-                    ds->GetTarget(subject, binding->mPredicate, PR_TRUE, aValue);
+                    ds->GetTarget(subject, binding->mPredicate, true, aValue);
                     if (*aValue)
                         mValues[idx] = *aValue;
                 }

@@ -126,7 +126,7 @@ nsHistory::GetCurrent(nsAString& aCurrent)
   nsCOMPtr<nsIURI>     uri;
 
   
-  sHistory->GetEntryAtIndex(curIndex, PR_FALSE, getter_AddRefs(curEntry));
+  sHistory->GetEntryAtIndex(curIndex, false, getter_AddRefs(curEntry));
   NS_ENSURE_TRUE(curEntry, NS_ERROR_FAILURE);
 
   
@@ -158,7 +158,7 @@ nsHistory::GetPrevious(nsAString& aPrevious)
   nsCOMPtr<nsIURI>     uri;
 
   
-  sHistory->GetEntryAtIndex((curIndex-1), PR_FALSE, getter_AddRefs(prevEntry));
+  sHistory->GetEntryAtIndex((curIndex-1), false, getter_AddRefs(prevEntry));
   NS_ENSURE_TRUE(prevEntry, NS_ERROR_FAILURE);
 
   
@@ -187,7 +187,7 @@ nsHistory::GetNext(nsAString& aNext)
   nsCOMPtr<nsIURI>     uri;
 
   
-  sHistory->GetEntryAtIndex((curIndex+1), PR_FALSE, getter_AddRefs(nextEntry));
+  sHistory->GetEntryAtIndex((curIndex+1), false, getter_AddRefs(nextEntry));
   NS_ENSURE_TRUE(nextEntry, NS_ERROR_FAILURE);
 
   
@@ -308,7 +308,7 @@ nsHistory::PushState(nsIVariant *aData, const nsAString& aTitle,
 
   
   
-  nsresult rv = docShell->AddState(aData, aTitle, aURL, PR_FALSE, aCx);
+  nsresult rv = docShell->AddState(aData, aTitle, aURL, false, aCx);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
@@ -338,7 +338,7 @@ nsHistory::ReplaceState(nsIVariant *aData, const nsAString& aTitle,
 
   
   
-  return docShell->AddState(aData, aTitle, aURL, PR_TRUE, aCx);
+  return docShell->AddState(aData, aTitle, aURL, true, aCx);
 }
 
 NS_IMETHODIMP
@@ -378,7 +378,7 @@ nsHistory::Item(PRUint32 aIndex, nsAString& aReturn)
   nsCOMPtr<nsIHistoryEntry> sh_entry;
   nsCOMPtr<nsIURI> uri;
 
-  rv = session_history->GetEntryAtIndex(aIndex, PR_FALSE,
+  rv = session_history->GetEntryAtIndex(aIndex, false,
                                         getter_AddRefs(sh_entry));
 
   if (sh_entry) {

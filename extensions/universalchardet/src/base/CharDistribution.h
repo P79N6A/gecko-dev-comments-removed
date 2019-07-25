@@ -47,7 +47,7 @@
 class CharDistributionAnalysis
 {
 public:
-  CharDistributionAnalysis() {Reset(PR_FALSE);}
+  CharDistributionAnalysis() {Reset(false);}
 
   
   void HandleData(const char* aBuf, PRUint32 aLen) {}
@@ -78,7 +78,7 @@ public:
   
   void      Reset(bool aIsPreferredLanguage) 
   {
-    mDone = PR_FALSE;
+    mDone = false;
     mTotalChars = 0;
     mFreqChars = 0;
     mDataThreshold = aIsPreferredLanguage ? 0 : MINIMUM_DATA_THRESHOLD;

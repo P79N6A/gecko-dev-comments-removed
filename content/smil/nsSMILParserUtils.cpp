@@ -139,9 +139,9 @@ GetUnsignedIntAndEndParen(const nsAString& aStr, PRUint32& aResult)
 
   
   if (intLen == 0 || start + intLen + 1 != end || *(start + intLen) != ')')
-    return PR_FALSE;
+    return false;
 
-  return PR_TRUE;
+  return true;
 }
 
 inline bool
@@ -150,13 +150,13 @@ ConsumeSubstring(const char*& aStart, const char* aEnd, const char* aSubstring)
   size_t substrLen = PL_strlen(aSubstring);
 
   if (static_cast<size_t>(aEnd - aStart) < substrLen)
-    return PR_FALSE;
+    return false;
 
   bool result = false;
 
   if (PL_strstr(aStart, aSubstring) == aStart) {
     aStart += substrLen;
-    result = PR_TRUE;
+    result = true;
   }
 
   return result;
@@ -176,17 +176,17 @@ ParseClockComponent(const char*& aStart,
 
   
   if (NS_FAILED(rv))
-    return PR_FALSE;
+    return false;
 
   
   size_t len = aStart - begin;
   bool isExp = (PL_strnpbrk(begin, "eE", len) != nsnull);
   if (isExp)
-    return PR_FALSE;
+    return false;
 
   
   if (*(aStart - 1) == '.')
-    return PR_FALSE;
+    return false;
 
   
   aResult = value;
@@ -200,7 +200,7 @@ ParseClockComponent(const char*& aStart,
   aCouldBeSec &= (len >= 2 &&
       (begin[2] == '\0' || begin[2] == '.' || IsSpace(begin[2])));
 
-  return PR_TRUE;
+  return true;
 }
 
 bool
@@ -218,23 +218,23 @@ ParseMetricMultiplicand(const char*& aStart,
     {
       case 'h':
         multiplicand = MSEC_PER_HOUR;
-        result = PR_TRUE;
+        result = true;
         break;
       case 'm':
         if (len >= 2) {
           if (*cur == 's') {
             ++cur;
             multiplicand = 1;
-            result = PR_TRUE;
+            result = true;
           } else if (len >= 3 && *cur++ == 'i' && *cur++ == 'n') {
             multiplicand = MSEC_PER_MIN;
-            result = PR_TRUE;
+            result = true;
           }
         }
         break;
       case 's':
         multiplicand = MSEC_PER_SEC;
-        result = PR_TRUE;
+        result = true;
         break;
     }
   }
@@ -257,7 +257,7 @@ ParseOptionalOffset(const nsAString& aSpec, nsSMILTimeValueSpecParams& aResult)
   if (aSpec.First() != '+' && aSpec.First() != '-')
     return NS_ERROR_FAILURE;
 
-  return nsSMILParserUtils::ParseClockValue(aSpec, &aResult.mOffset, PR_TRUE);
+  return nsSMILParserUtils::ParseClockValue(aSpec, &aResult.mOffset, true);
 }
 
 nsresult
@@ -340,11 +340,11 @@ Unescape(nsAString& aStr)
   while (read != end) {
     NS_ABORT_IF_FALSE(write <= read, "Writing past where we've read");
     if (!escape && *read == '\\') {
-      escape = PR_TRUE;
+      escape = true;
       ++read;
     } else {
       *write++ = *read++;
-      escape = PR_FALSE;
+      escape = false;
     }
   }
 
@@ -371,7 +371,7 @@ ParseElementBaseTimeValueSpec(const nsAString& aSpec,
   
 
   const PRUnichar* tokenStart = aSpec.BeginReading();
-  const PRUnichar* tokenEnd = GetTokenEnd(aSpec, PR_TRUE);
+  const PRUnichar* tokenEnd = GetTokenEnd(aSpec, true);
   nsAutoString token(Substring(tokenStart, tokenEnd));
   Unescape(token);
 
@@ -379,7 +379,7 @@ ParseElementBaseTimeValueSpec(const nsAString& aSpec,
     return NS_ERROR_FAILURE;
 
   
-  if (NS_FAILED(nsContentUtils::CheckQName(token, PR_FALSE)))
+  if (NS_FAILED(nsContentUtils::CheckQName(token, false)))
     return NS_ERROR_FAILURE;
 
   
@@ -387,7 +387,7 @@ ParseElementBaseTimeValueSpec(const nsAString& aSpec,
     result.mDependentElemID = do_GetAtom(token);
 
     tokenStart = ++tokenEnd;
-    tokenEnd = GetTokenEnd(Substring(tokenStart, aSpec.EndReading()), PR_FALSE);
+    tokenEnd = GetTokenEnd(Substring(tokenStart, aSpec.EndReading()), false);
 
     
     
@@ -396,11 +396,11 @@ ParseElementBaseTimeValueSpec(const nsAString& aSpec,
     
     if (rawToken2.Equals(NS_LITERAL_STRING("begin"))) {
       result.mType = nsSMILTimeValueSpecParams::SYNCBASE;
-      result.mSyncBegin = PR_TRUE;
+      result.mSyncBegin = true;
     
     } else if (rawToken2.Equals(NS_LITERAL_STRING("end"))) {
       result.mType = nsSMILTimeValueSpecParams::SYNCBASE;
-      result.mSyncBegin = PR_FALSE;
+      result.mSyncBegin = false;
     
     } else if (StringBeginsWith(rawToken2, REPEAT_PREFIX)) {
       result.mType = nsSMILTimeValueSpecParams::REPEAT;
@@ -414,7 +414,7 @@ ParseElementBaseTimeValueSpec(const nsAString& aSpec,
       Unescape(token2);
       result.mType = nsSMILTimeValueSpecParams::EVENT;
       if (token2.IsEmpty() ||
-          NS_FAILED(nsContentUtils::CheckQName(token2, PR_FALSE)))
+          NS_FAILED(nsContentUtils::CheckQName(token2, false)))
         return NS_ERROR_FAILURE;
       result.mEventSymbol = do_GetAtom(token2);
     }
@@ -573,7 +573,7 @@ public:
       return NS_ERROR_OUT_OF_MEMORY;
     }
     if (tmpPreventCachingOfSandwich) {
-      *mPreventCachingOfSandwich = PR_TRUE;
+      *mPreventCachingOfSandwich = true;
     }
     return NS_OK;
   }
@@ -592,7 +592,7 @@ nsSMILParserUtils::ParseValues(const nsAString& aSpec,
                                bool& aPreventCachingOfSandwich)
 {
   
-  aPreventCachingOfSandwich = PR_FALSE;
+  aPreventCachingOfSandwich = false;
   SMILValueParser valueParser(aSrcElement, &aAttribute,
                               &aValuesArray, &aPreventCachingOfSandwich);
   return ParseValuesGeneric(aSpec, valueParser);
@@ -686,7 +686,7 @@ nsSMILParserUtils::ParseTimeValueSpecParams(const nsAString& aSpec,
 
   
   if (*start == '+' || *start == '-' || NS_IsAsciiDigit(*start)) {
-    rv = ParseClockValue(spec, &aResult.mOffset, PR_TRUE);
+    rv = ParseClockValue(spec, &aResult.mOffset, true);
     if (NS_SUCCEEDED(rv)) {
       aResult.mType = nsSMILTimeValueSpecParams::OFFSET;
     }
@@ -741,7 +741,7 @@ nsSMILParserUtils::ParseClockValue(const nsAString& aSpec,
   bool isIndefinite = false;
 
   if (aIsMedia) {
-    *aIsMedia = PR_FALSE;
+    *aIsMedia = false;
   }
 
   NS_ConvertUTF16toUTF8 spec(aSpec);
@@ -761,13 +761,13 @@ nsSMILParserUtils::ParseClockValue(const nsAString& aSpec,
                && (*start == '+' || *start == '-')) {
       if (sign != 0) {
         
-        isValid = PR_FALSE;
+        isValid = false;
         break;
       }
 
       if (started) {
         
-        isValid = PR_FALSE;
+        isValid = false;
         break;
       }
 
@@ -779,29 +779,29 @@ nsSMILParserUtils::ParseClockValue(const nsAString& aSpec,
 
       if (!ParseClockComponent(start, end, component, numIsReal, numCouldBeMin,
                                numCouldBeSec)) {
-        isValid = PR_FALSE;
+        isValid = false;
         break;
       }
 
-      started = PR_TRUE;
+      started = true;
     } else if (*start == ':') {
       ++colonCount;
 
       
       if (numIsReal) {
-        isValid = PR_FALSE;
+        isValid = false;
         break;
       }
 
       
       if (!started) {
-        isValid = PR_FALSE;
+        isValid = false;
         break;
       }
 
       
       if (colonCount > 2) {
-        isValid = PR_FALSE;
+        isValid = false;
         break;
       }
 
@@ -812,7 +812,7 @@ nsSMILParserUtils::ParseClockValue(const nsAString& aSpec,
       ++start;
     } else if (NS_IS_ALPHA(*start)) {
       if (colonCount > 0) {
-        isValid = PR_FALSE;
+        isValid = false;
         break;
       }
 
@@ -821,34 +821,34 @@ nsSMILParserUtils::ParseClockValue(const nsAString& aSpec,
         
         
         
-        isIndefinite = PR_TRUE;
+        isIndefinite = true;
         if (aResult) {
           aResult->SetIndefinite();
         }
       } else if (aIsMedia && ConsumeSubstring(start, end, "media")) {
-        *aIsMedia = PR_TRUE;
+        *aIsMedia = true;
       } else if (!ParseMetricMultiplicand(start, end, metricMultiplicand)) {
-        isValid = PR_FALSE;
+        isValid = false;
         break;
       }
 
       
       break;
     } else {
-      isValid = PR_FALSE;
+      isValid = false;
       break;
     }
   }
 
   if (!started) {
-    isValid = PR_FALSE;
+    isValid = false;
   }
 
   
   
   SkipBeginWsp(start, end);
   if (start != end) {
-    isValid = PR_FALSE;
+    isValid = false;
   }
 
   
@@ -860,7 +860,7 @@ nsSMILParserUtils::ParseClockValue(const nsAString& aSpec,
   
   
   if (colonCount > 0 && (!prevNumCouldBeMin || !numCouldBeSec)) {
-    isValid = PR_FALSE;
+    isValid = false;
   }
 
   if (isValid) {

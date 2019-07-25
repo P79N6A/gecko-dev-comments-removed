@@ -126,8 +126,8 @@ class Element;
 } 
 
 #define NS_IDOCUMENT_IID      \
-{ 0xd76bcf5f, 0xd02f, 0x459a, \
- { 0xb1, 0x23, 0x8e, 0x2c, 0x9a, 0x0d, 0x84, 0x68 } }
+{ 0x448c396a, 0x013c, 0x47b8, \
+ { 0x95, 0xf4, 0x56, 0x68, 0x0f, 0x5f, 0x12, 0xf8 } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -158,16 +158,16 @@ public:
       mCharacterSet(NS_LITERAL_CSTRING("ISO-8859-1")),
       mNodeInfoManager(nsnull),
       mCompatMode(eCompatibility_FullStandards),
-      mIsInitialDocumentInWindow(PR_FALSE),
-      mMayStartLayout(PR_TRUE),
-      mVisible(PR_TRUE),
-      mRemovedFromDocShell(PR_FALSE),
+      mIsInitialDocumentInWindow(false),
+      mMayStartLayout(true),
+      mVisible(true),
+      mRemovedFromDocShell(false),
       
       
       
       
-      mAllowDNSPrefetch(PR_TRUE),
-      mIsBeingUsedAsImage(PR_FALSE),
+      mAllowDNSPrefetch(true),
+      mIsBeingUsedAsImage(false),
       mPartID(0)
   {
     SetInDocument();
@@ -401,7 +401,7 @@ public:
 
   void SetBidiEnabled()
   {
-    mBidiEnabled = PR_TRUE;
+    mBidiEnabled = true;
   }
   
   
@@ -414,7 +414,7 @@ public:
   
   void SetMathMLEnabled()
   {
-    mMathMLEnabled = PR_TRUE;
+    mMathMLEnabled = true;
   }
 
   
@@ -1226,7 +1226,7 @@ public:
   }
 
   void SetIsBeingUsedAsImage() {
-    mIsBeingUsedAsImage = PR_TRUE;
+    mIsBeingUsedAsImage = true;
   }
 
   bool IsResourceDoc() const {
@@ -1321,17 +1321,17 @@ public:
 
 
 
-  bool IsShowing() { return mIsShowing; }
+  bool IsShowing() const { return mIsShowing; }
   
 
 
 
-  bool IsVisible() { return mVisible; }
+  bool IsVisible() const { return mVisible; }
   
 
 
 
-  bool IsActive() { return mDocumentContainer && !mRemovedFromDocShell; }
+  bool IsActive() const { return mDocumentContainer && !mRemovedFromDocShell; }
 
   void RegisterFreezableElement(nsIContent* aContent);
   bool UnregisterFreezableElement(nsIContent* aContent);
@@ -1392,8 +1392,8 @@ public:
 
 
   bool AllowXULXBL() {
-    return mAllowXULXBL == eTriTrue ? PR_TRUE :
-           mAllowXULXBL == eTriFalse ? PR_FALSE :
+    return mAllowXULXBL == eTriTrue ? true :
+           mAllowXULXBL == eTriFalse ? false :
            InternalAllowXULXBL();
   }
 
@@ -1523,7 +1523,7 @@ public:
   void ScheduleBeforePaintEvent(nsIAnimationFrameListener* aListener);
   void BeforePaintEventFiring()
   {
-    mHavePendingPaint = PR_FALSE;
+    mHavePendingPaint = false;
   }
 
   typedef nsTArray< nsCOMPtr<nsIAnimationFrameListener> > AnimationListenerList;
@@ -1572,6 +1572,8 @@ public:
   };
 #undef DEPRECATED_OPERATION
   void WarnOnceAbout(DeprecatedOperations aOperation);
+
+  virtual void PostVisibilityUpdateEvent() = 0;
 
 private:
   PRUint64 mWarnedAbout;
@@ -1878,7 +1880,8 @@ NS_NewDOMDocument(nsIDOMDocument** aInstancePtrResult,
                   nsIURI* aBaseURI,
                   nsIPrincipal* aPrincipal,
                   bool aLoadedAsData,
-                  nsIScriptGlobalObject* aEventObject);
+                  nsIScriptGlobalObject* aEventObject,
+                  bool aSVGDocument);
 nsresult
 NS_NewPluginDocument(nsIDocument** aInstancePtrResult);
 

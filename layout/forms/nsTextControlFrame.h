@@ -227,7 +227,7 @@ public:
       NS_ASSERTION(aFrame, "Should pass a valid frame");
     }
     void Cancel() {
-      mInited = PR_FALSE;
+      mInited = false;
     }
     void Init() {
       
@@ -239,16 +239,16 @@ public:
       
       mOuterTransaction = mFrame->mNotifyOnInput;
       if (mOuterTransaction)
-        mFrame->mNotifyOnInput = PR_FALSE;
+        mFrame->mNotifyOnInput = false;
 
-      mInited = PR_TRUE;
+      mInited = true;
     }
     ~ValueSetter() {
       if (!mInited)
         return;
 
       if (mOuterTransaction)
-        mFrame->mNotifyOnInput = PR_TRUE;
+        mFrame->mNotifyOnInput = true;
 
       if (mFocusValueInit) {
         
@@ -306,7 +306,7 @@ protected:
         nsCOMPtr<nsIPresShell> shell =
           mFrame->PresContext()->GetPresShell();
         bool observes = shell->ObservesNativeAnonMutationsForPrint();
-        shell->ObserveNativeAnonMutationsForPrint(PR_TRUE);
+        shell->ObserveNativeAnonMutationsForPrint(true);
         
         mFrame->EnsureEditorInitialized();
         shell->ObserveNativeAnonMutationsForPrint(observes);

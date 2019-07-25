@@ -5,11 +5,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef xpcpublic_h
 #define xpcpublic_h
 
 #include "jsapi.h"
-#include "js/MemoryMetrics.h"
 #include "jsclass.h"
 #include "jsfriendapi.h"
 #include "jsgc.h"
@@ -21,26 +52,9 @@
 #include "nsWrapperCache.h"
 #include "nsStringGlue.h"
 #include "nsTArray.h"
-#include "mozilla/dom/DOMJSClass.h"
-#include "nsMathUtils.h"
 
 class nsIPrincipal;
-class nsIXPConnectWrappedJS;
-class nsScriptNameSpaceManager;
-
-#ifndef BAD_TLS_INDEX
-#define BAD_TLS_INDEX ((uint32_t) -1)
-#endif
-
-namespace xpc {
-JSObject *
-TransplantObject(JSContext *cx, JSObject *origobj, JSObject *target);
-
-JSObject *
-TransplantObjectWithWrapper(JSContext *cx,
-                            JSObject *origobj, JSObject *origwrapper,
-                            JSObject *targetobj, JSObject *targetwrapper);
-} 
+struct nsDOMClassInfoData;
 
 nsresult
 xpc_CreateGlobalObject(JSContext *cx, JSClass *clasp,
@@ -54,9 +68,8 @@ xpc_CreateMTGlobalObject(JSContext *cx, JSClass *clasp,
                          JSCompartment **compartment);
 
 #define XPCONNECT_GLOBAL_FLAGS                                                \
-    JSCLASS_DOM_GLOBAL | JSCLASS_XPCONNECT_GLOBAL | JSCLASS_HAS_PRIVATE |     \
-    JSCLASS_PRIVATE_IS_NSISUPPORTS | JSCLASS_IMPLEMENTS_BARRIERS |            \
-    JSCLASS_GLOBAL_FLAGS_WITH_SLOTS(3)
+    JSCLASS_XPCONNECT_GLOBAL | JSCLASS_HAS_PRIVATE |                          \
+    JSCLASS_PRIVATE_IS_NSISUPPORTS | JSCLASS_GLOBAL_FLAGS_WITH_SLOTS(1)
 
 void
 TraceXPCGlobal(JSTracer *trc, JSObject *obj);
@@ -68,17 +81,15 @@ xpc_LocalizeContext(JSContext *cx);
 nsresult
 xpc_MorphSlimWrapper(JSContext *cx, nsISupports *tomorph);
 
-static inline bool IS_WRAPPER_CLASS(js::Class* clazz)
-{
-    return clazz->ext.isWrappedNative;
-}
+#define IS_WRAPPER_CLASS(clazz)                                               \
+    ((clazz)->ext.isWrappedNative)
 
 inline JSBool
 DebugCheckWrapperClass(JSObject* obj)
 {
     NS_ASSERTION(IS_WRAPPER_CLASS(js::GetObjectClass(obj)),
                  "Forgot to check if this is a wrapper?");
-    return true;
+    return JS_TRUE;
 }
 
 
@@ -88,18 +99,10 @@ DebugCheckWrapperClass(JSObject* obj)
 
 
 
-
-
-
-
-
-#define WRAPPER_MULTISLOT 0
-
-
 #define IS_WN_WRAPPER_OBJECT(obj)                                             \
-    (DebugCheckWrapperClass(obj) && !js::GetReservedSlot(obj, WRAPPER_MULTISLOT).isDouble())
+    (DebugCheckWrapperClass(obj) && js::GetReservedSlot(obj, 0).isUndefined())
 #define IS_SLIM_WRAPPER_OBJECT(obj)                                           \
-    (DebugCheckWrapperClass(obj) && js::GetReservedSlot(obj, WRAPPER_MULTISLOT).isDouble())
+    (DebugCheckWrapperClass(obj) && !js::GetReservedSlot(obj, 0).isUndefined())
 
 
 
@@ -126,20 +129,29 @@ xpc_FastGetCachedWrapper(nsWrapperCache *cache, JSObject *scope, jsval *vp)
     if (cache) {
         JSObject* wrapper = cache->GetWrapper();
         NS_ASSERTION(!wrapper ||
-                     !cache->IsDOMBinding() ||
+                     !cache->IsProxy() ||
                      !IS_SLIM_WRAPPER(wrapper),
-                     "Should never have a slim wrapper when IsDOMBinding()");
+                     "Should never have a slim wrapper when IsProxy()");
         if (wrapper &&
             js::GetObjectCompartment(wrapper) == js::GetObjectCompartment(scope) &&
-            (IS_SLIM_WRAPPER(wrapper) || cache->IsDOMBinding() ||
+            (IS_SLIM_WRAPPER(wrapper) ||
              xpc_OkToHandOutWrapper(cache))) {
             *vp = OBJECT_TO_JSVAL(wrapper);
             return wrapper;
         }
     }
 
-    return nullptr;
+    return nsnull;
 }
+
+inline JSObject*
+xpc_FastGetCachedWrapper(nsWrapperCache *cache, JSObject *scope)
+{
+    jsval dummy;
+    return xpc_FastGetCachedWrapper(cache, scope, &dummy);
+}
+
+
 
 
 
@@ -147,8 +159,10 @@ xpc_FastGetCachedWrapper(nsWrapperCache *cache, JSObject *scope, jsval *vp)
 inline JSBool
 xpc_IsGrayGCThing(void *thing)
 {
-    return js::GCThingIsMarkedGray(thing);
+    return js_GCThingIsMarked(thing, js::gc::GRAY);
 }
+
+
 
 
 
@@ -157,220 +171,128 @@ xpc_GCThingIsGrayCCThing(void *thing);
 
 
 extern void
-xpc_UnmarkGrayGCThingRecursive(void *thing, JSGCTraceKind kind);
+xpc_UnmarkGrayObjectRecursive(JSObject* obj);
 
 
 
-inline JSObject *
+inline void
 xpc_UnmarkGrayObject(JSObject *obj)
 {
-    if (obj) {
-        if (xpc_IsGrayGCThing(obj))
-            xpc_UnmarkGrayGCThingRecursive(obj, JSTRACE_OBJECT);
-        else if (js::IsIncrementalBarrierNeededOnObject(obj))
-            js::IncrementalReferenceBarrier(obj);
-    }
-    return obj;
+    if (obj && xpc_IsGrayGCThing(obj))
+        xpc_UnmarkGrayObjectRecursive(obj);
 }
-
-inline JSScript *
-xpc_UnmarkGrayScript(JSScript *script)
-{
-    if (script) {
-        if (xpc_IsGrayGCThing(script))
-            xpc_UnmarkGrayGCThingRecursive(script, JSTRACE_SCRIPT);
-        else if (js::IsIncrementalBarrierNeededOnScript(script))
-            js::IncrementalReferenceBarrier(script);
-    }
-    return script;
-}
-
-inline JSContext *
-xpc_UnmarkGrayContext(JSContext *cx)
-{
-    if (cx) {
-        JSObject *global = JS_GetGlobalObject(cx);
-        xpc_UnmarkGrayObject(global);
-        if (global && JS_IsInRequest(JS_GetRuntime(cx))) {
-            JSObject *scope = JS_GetGlobalForScopeChain(cx);
-            if (scope != global)
-                xpc_UnmarkGrayObject(scope);
-        }
-    }
-    return cx;
-}
-
-#ifdef __cplusplus
-class XPCAutoRequest : public JSAutoRequest {
-public:
-    XPCAutoRequest(JSContext *cx) : JSAutoRequest(cx) {
-        xpc_UnmarkGrayContext(cx);
-    }
-};
-#endif
-
-
-
-extern void
-xpc_MarkInCCGeneration(nsISupports* aVariant, uint32_t aGeneration);
-
-
-extern void
-xpc_TryUnmarkWrappedGrayObject(nsISupports* aWrappedJS);
-
-extern void
-xpc_UnmarkSkippableJSHolders();
-
-
-
-NS_EXPORT_(void)
-xpc_ActivateDebugMode();
 
 class nsIMemoryMultiReporterCallback;
 
-namespace xpc {
+namespace mozilla {
+namespace xpconnect {
+namespace memory {
 
-bool DeferredRelease(nsISupports *obj);
-
-
-bool Base64Encode(JSContext *cx, JS::Value val, JS::Value *out);
-bool Base64Decode(JSContext *cx, JS::Value val, JS::Value *out);
-
-
-
-
-
-
-bool NonVoidStringToJsval(JSContext *cx, nsAString &str, JS::Value *rval);
-inline bool StringToJsval(JSContext *cx, nsAString &str, JS::Value *rval)
+struct CompartmentStats
 {
-    
-    if (str.IsVoid()) {
-        *rval = JSVAL_NULL;
-        return true;
-    }
-    return NonVoidStringToJsval(cx, str, rval);
-}
+    CompartmentStats(JSContext *cx, JSCompartment *c);
 
-nsIPrincipal *GetCompartmentPrincipal(JSCompartment *compartment);
+    nsCString name;
+    PRInt64 gcHeapArenaHeaders;
+    PRInt64 gcHeapArenaPadding;
+    PRInt64 gcHeapArenaUnused;
 
-void DumpJSHeap(FILE* file);
+    PRInt64 gcHeapKinds[JSTRACE_LAST + 1];
 
-void SetLocationForGlobal(JSObject *global, const nsACString& location);
-void SetLocationForGlobal(JSObject *global, nsIURI *locationURI);
+    PRInt64 objectSlots;
+    PRInt64 stringChars;
+    PRInt64 propertyTables;
+    PRInt64 shapeKids;
+    PRInt64 scriptData;
 
+#ifdef JS_METHODJIT
+    PRInt64 mjitCodeMethod;
+    PRInt64 mjitCodeRegexp;
+    PRInt64 mjitCodeUnused;
+    PRInt64 mjitData;
+#endif
+#ifdef JS_TRACER
+    PRInt64 tjitCode;
+    PRInt64 tjitDataAllocatorsMain;
+    PRInt64 tjitDataAllocatorsReserve;
+    PRInt64 tjitDataNonAllocators;
+#endif
+    TypeInferenceMemoryStats typeInferenceMemory;
+};
 
+struct IterateData
+{
+    IterateData()
+      : runtimeObjectSize(0),
+        atomsTableSize(0),
+        stackSize(0),
+        gcHeapChunkTotal(0),
+        gcHeapChunkCleanUnused(0),
+        gcHeapChunkDirtyUnused(0),
+        gcHeapArenaUnused(0),
+        gcHeapChunkAdmin(0),
+        gcHeapUnusedPercentage(0),
+        compartmentStatsVector(),
+        currCompartmentStats(NULL) { }
 
+    PRInt64 runtimeObjectSize;
+    PRInt64 atomsTableSize;
+    PRInt64 stackSize;
+    PRInt64 gcHeapChunkTotal;
+    PRInt64 gcHeapChunkCleanUnused;
+    PRInt64 gcHeapChunkDirtyUnused;
+    PRInt64 gcHeapArenaUnused;
+    PRInt64 gcHeapChunkAdmin;
+    PRInt64 gcHeapUnusedPercentage;
 
+    nsTArray<CompartmentStats> compartmentStatsVector;
+    CompartmentStats *currCompartmentStats;
+};
 
+JSBool
+CollectCompartmentStatsForRuntime(JSRuntime *rt, IterateData *data);
 
-
-
-
-
-
-
-
-
-
-
-
-
-bool
-DOM_DefineQuickStubs(JSContext *cx, JSObject *proto, uint32_t flags,
-                     uint32_t interfaceCount, const nsIID **interfaceArray);
-
-
-
-nsresult
-ReportJSRuntimeExplicitTreeStats(const JS::RuntimeStats &rtStats,
-                                 const nsACString &rtPath,
-                                 nsIMemoryMultiReporterCallback *cb,
-                                 nsISupports *closure, size_t *rtTotal = NULL);
-
-
-
-
-
-
-
-
-
-
-
-JSObject *
-Unwrap(JSContext *cx, JSObject *wrapper, bool stopAtOuter = true);
-
-
-
-
-bool
-Throw(JSContext *cx, nsresult rv);
+void
+ReportJSRuntimeStats(const IterateData &data, const nsACString &pathPrefix,
+                     nsIMemoryMultiReporterCallback *callback,
+                     nsISupports *closure);
 
 } 
+} 
 
-nsCycleCollectionParticipant *
-xpc_JSCompartmentParticipant();
-
-namespace mozilla {
 namespace dom {
+namespace binding {
 
 extern int HandlerFamily;
 inline void* ProxyFamily() { return &HandlerFamily; }
-
-class DOMBaseProxyHandler : public js::BaseProxyHandler {
-protected:
-    DOMBaseProxyHandler(bool aNewDOMProxy) : js::BaseProxyHandler(ProxyFamily()),
-                                             mNewDOMProxy(aNewDOMProxy)
-    {
-    }
-
-public:
-    bool mNewDOMProxy;
-};
-
-inline bool IsNewProxyBinding(js::BaseProxyHandler* handler)
-{
-  MOZ_ASSERT(handler->family() == ProxyFamily());
-  return static_cast<DOMBaseProxyHandler*>(handler)->mNewDOMProxy;
-}
-
-inline bool IsDOMProxy(JSObject *obj)
+inline bool instanceIsProxy(JSObject *obj)
 {
     return js::IsProxy(obj) &&
-           js::GetProxyHandler(obj)->family() == ProxyFamily() &&
-           IsNewProxyBinding(js::GetProxyHandler(obj));
+           js::GetProxyHandler(obj)->family() == ProxyFamily();
+}
+extern JSClass ExpandoClass;
+inline bool isExpandoObject(JSObject *obj)
+{
+    return js::GetObjectJSClass(obj) == &ExpandoClass;
 }
 
-typedef bool
-(*DefineInterface)(JSContext *cx, JSObject *global, bool *enabled);
+enum {
+    JSPROXYSLOT_PROTOSHAPE = 0,
+    JSPROXYSLOT_EXPANDO = 1
+};
 
-typedef bool
-(*PrefEnabled)();
+typedef JSObject*
+(*DefineInterface)(JSContext *cx, XPCWrappedNativeScope *scope, bool *enabled);
 
 extern bool
 DefineStaticJSVals(JSContext *cx);
 void
-Register(nsScriptNameSpaceManager* aNameSpaceManager);
+Register(nsDOMClassInfoData *aData);
 extern bool
 DefineConstructor(JSContext *cx, JSObject *obj, DefineInterface aDefine,
                   nsresult *aResult);
 
-namespace oldproxybindings {
-
-inline bool instanceIsProxy(JSObject *obj)
-{
-    return js::IsProxy(obj) &&
-           js::GetProxyHandler(obj)->family() == ProxyFamily() &&
-           !IsNewProxyBinding(js::GetProxyHandler(obj));
-}
-extern bool
-DefineStaticJSVals(JSContext *cx);
-void
-Register(nsScriptNameSpaceManager* aNameSpaceManager);
-
 } 
-
 } 
 } 
 

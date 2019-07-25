@@ -74,14 +74,14 @@ inline bool nsRegion::nsRectFast::IntersectRect (const nsRect& aRect1, const nsR
   const nscoord xmost = NS_MIN (aRect1.XMost (), aRect2.XMost ());
   x = NS_MAX (aRect1.x, aRect2.x);
   width = xmost - x;
-  if (width <= 0) return PR_FALSE;
+  if (width <= 0) return false;
 
   const nscoord ymost = NS_MIN (aRect1.YMost (), aRect2.YMost ());
   y = NS_MAX (aRect1.y, aRect2.y);
   height = ymost - y;
-  if (height <= 0) return PR_FALSE;
+  if (height <= 0) return false;
 
-  return PR_TRUE;
+  return true;
 }
 
 inline void nsRegion::nsRectFast::UnionRect (const nsRect& aRect1, const nsRect& aRect2)
@@ -534,13 +534,13 @@ void nsRegion::Merge (const nsRegion& aRgn1, const nsRegion& aRgn2)
   {
     RgnRect* TmpRect = new RgnRect (*aRgn1.mRectListHead.next);
     Copy (aRgn2);
-    InsertInPlace (TmpRect, PR_TRUE);
+    InsertInPlace (TmpRect, true);
   } else
   if (aRgn2.mRectCount == 1)            
   {
     RgnRect* TmpRect = new RgnRect (*aRgn2.mRectListHead.next);
     Copy (aRgn1);
-    InsertInPlace (TmpRect, PR_TRUE);
+    InsertInPlace (TmpRect, true);
   } else
   {
     const nsRegion* pCopyRegion, *pInsertRegion;
@@ -829,7 +829,7 @@ nsRegion& nsRegion::Or (const nsRegion& aRegion, const nsRect& aRect)
     if (!aRectFast.Intersects (aRegion.mBoundRect))     
     {
       Copy (aRegion);
-      InsertInPlace (new RgnRect (aRectFast), PR_TRUE);
+      InsertInPlace (new RgnRect (aRectFast), true);
     } else
     {
       
@@ -907,7 +907,7 @@ nsRegion& nsRegion::Xor (const nsRegion& aRegion, const nsRect& aRect)
     if (!aRectFast.Intersects (aRegion.mBoundRect))     
     {
       Copy (aRegion);
-      InsertInPlace (new RgnRect (aRectFast), PR_TRUE);
+      InsertInPlace (new RgnRect (aRectFast), true);
     } else
     {
       
@@ -994,9 +994,9 @@ nsRegion& nsRegion::Sub (const nsRegion& aRegion, const nsRect& aRect)
 bool nsRegion::Contains (const nsRect& aRect) const
 {
   if (aRect.IsEmpty())
-    return PR_TRUE;
+    return true;
   if (IsEmpty())
-    return PR_FALSE;
+    return false;
   if (!IsComplex())
     return mBoundRect.Contains (aRect);
 
@@ -1011,25 +1011,25 @@ bool nsRegion::Contains (const nsRegion& aRgn) const
   nsRegionRectIterator iter(aRgn);
   while (const nsRect* r = iter.Next()) {
     if (!Contains (*r)) {
-      return PR_FALSE;
+      return false;
     }
   }
-  return PR_TRUE;
+  return true;
 }
 
 bool nsRegion::Intersects (const nsRect& aRect) const
 {
   if (aRect.IsEmpty() || IsEmpty())
-    return PR_FALSE;
+    return false;
 
   const RgnRect* r = mRectListHead.next;
   while (r != &mRectListHead)
   {
     if (r->Intersects(aRect))
-      return PR_TRUE;
+      return true;
     r = r->next;
   }
-  return PR_FALSE;
+  return false;
 }
 
 
@@ -1255,17 +1255,17 @@ void nsRegion::SubRect (const nsRectFast& aRect, nsRegion& aResult, nsRegion& aC
 bool nsRegion::IsEqual (const nsRegion& aRegion) const
 {
   if (mRectCount == 0)
-    return (aRegion.mRectCount == 0) ? PR_TRUE : PR_FALSE;
+    return (aRegion.mRectCount == 0) ? true : false;
 
   if (aRegion.mRectCount == 0)
-    return (mRectCount == 0) ? PR_TRUE : PR_FALSE;
+    return (mRectCount == 0) ? true : false;
 
   if (mRectCount == 1 && aRegion.mRectCount == 1) 
     return (mRectListHead.next->IsEqualInterior(*aRegion.mRectListHead.next));
   else                                            
   {
     if (!mBoundRect.IsEqualInterior(aRegion.mBoundRect)) 
-      return PR_FALSE;
+      return false;
     else
     {
       nsRegion TmpRegion;
@@ -1544,9 +1544,9 @@ namespace {
     }
     bool operator<(const SizePair& aOther) const {
       if (mSizeContainingRect < aOther.mSizeContainingRect)
-        return PR_TRUE;
+        return true;
       if (mSizeContainingRect > aOther.mSizeContainingRect)
-        return PR_FALSE;
+        return false;
       return mSize < aOther.mSize;
     }
     bool operator>(const SizePair& aOther) const {

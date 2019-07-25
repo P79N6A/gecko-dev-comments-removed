@@ -5,29 +5,58 @@
 
 
 
-#ifndef __AccessCheck_h__
-#define __AccessCheck_h__
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "jsapi.h"
 #include "jswrapper.h"
-#include "WrapperFactory.h"
 
 class nsIPrincipal;
 
 namespace xpc {
 
+nsIPrincipal *
+GetCompartmentPrincipal(JSCompartment *compartment);
+
 class AccessCheck {
   public:
-    static bool subsumes(JSCompartment *a, JSCompartment *b);
-    static bool wrapperSubsumes(JSObject *wrapper);
+    static bool isSameOrigin(JSCompartment *a, JSCompartment *b);
     static bool isChrome(JSCompartment *compartment);
-    static bool isChrome(JSObject *obj);
-    static bool callerIsChrome();
     static nsIPrincipal *getPrincipal(JSCompartment *compartment);
     static bool isCrossOriginAccessPermitted(JSContext *cx, JSObject *obj, jsid id,
                                              js::Wrapper::Action act);
     static bool isSystemOnlyAccessPermitted(JSContext *cx);
     static bool isLocationObjectSameOrigin(JSContext *cx, JSObject *wrapper);
+    static bool documentDomainMakesSameOrigin(JSContext *cx, JSObject *obj);
 
     static bool needsSystemOnlyWrapper(JSObject *obj);
 
@@ -63,7 +92,9 @@ struct OnlyIfSubjectIsSystem : public Policy {
             return true;
         }
         perm = DenyAccess;
-        JSAutoCompartment ac(cx, wrapper);
+        JSAutoEnterCompartment ac;
+        if (!ac.enter(cx, wrapper))
+            return false;
         AccessCheck::deny(cx, id);
         return false;
     }
@@ -74,15 +105,14 @@ struct OnlyIfSubjectIsSystem : public Policy {
 struct CrossOriginAccessiblePropertiesOnly : public Policy {
     static bool check(JSContext *cx, JSObject *wrapper, jsid id, js::Wrapper::Action act,
                       Permission &perm) {
-        
-        MOZ_ASSERT(!WrapperFactory::IsLocationObject(js::UnwrapObject(wrapper)));
-
         if (AccessCheck::isCrossOriginAccessPermitted(cx, wrapper, id, act)) {
             perm = PermitPropertyAccess;
             return true;
         }
         perm = DenyAccess;
-        JSAutoCompartment ac(cx, wrapper);
+        JSAutoEnterCompartment ac;
+        if (!ac.enter(cx, wrapper))
+            return false;
         AccessCheck::deny(cx, id);
         return false;
     }
@@ -90,45 +120,18 @@ struct CrossOriginAccessiblePropertiesOnly : public Policy {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-struct LocationPolicy : public Policy {
+struct SameOriginOrCrossOriginAccessiblePropertiesOnly : public Policy {
     static bool check(JSContext *cx, JSObject *wrapper, jsid id, js::Wrapper::Action act,
                       Permission &perm) {
-        
-        MOZ_ASSERT(WrapperFactory::IsLocationObject(js::UnwrapObject(wrapper)));
-
-        
-        perm = DenyAccess;
-
-        
-        if (act != js::Wrapper::PUNCTURE &&
-            (AccessCheck::isCrossOriginAccessPermitted(cx, wrapper, id, act) ||
-             AccessCheck::isLocationObjectSameOrigin(cx, wrapper))) {
+        if (AccessCheck::isCrossOriginAccessPermitted(cx, wrapper, id, act) ||
+            AccessCheck::isLocationObjectSameOrigin(cx, wrapper)) {
             perm = PermitPropertyAccess;
             return true;
         }
-
-        JSAutoCompartment ac(cx, wrapper);
+        perm = DenyAccess;
+        JSAutoEnterCompartment ac;
+        if (!ac.enter(cx, wrapper))
+            return false;
         AccessCheck::deny(cx, id);
         return false;
     }
@@ -141,12 +144,4 @@ struct ExposedPropertiesOnly : public Policy {
                       Permission &perm);
 };
 
-
-struct ComponentsObjectPolicy : public Policy {
-    static bool check(JSContext *cx, JSObject *wrapper, jsid id, js::Wrapper::Action act,
-                      Permission &perm);
-};
-
 }
-
-#endif 

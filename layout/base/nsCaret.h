@@ -307,20 +307,20 @@ class StCaretHider
 {
 public:
                StCaretHider(nsCaret* aSelCon)
-               : mWasVisible(PR_FALSE), mCaret(aSelCon)
+               : mWasVisible(false), mCaret(aSelCon)
                {
                  if (mCaret)
                  {
                    mCaret->GetCaretVisible(&mWasVisible);
                    if (mWasVisible)
-                     mCaret->SetCaretVisible(PR_FALSE);
+                     mCaret->SetCaretVisible(false);
                  }
                }
 
                ~StCaretHider()
                {
                  if (mCaret && mWasVisible)
-                   mCaret->SetCaretVisible(PR_TRUE);
+                   mCaret->SetCaretVisible(true);
                  
                }
 

@@ -128,7 +128,7 @@ GetWidthInfo(nsRenderingContext *aRenderingContext,
     
     
     if (unit == eStyleUnit_Coord) {
-        hasSpecifiedWidth = PR_TRUE;
+        hasSpecifiedWidth = true;
         nscoord w = nsLayoutUtils::ComputeWidthValue(aRenderingContext,
                                                      aFrame, 0, 0, 0, width);
         
@@ -235,14 +235,14 @@ static inline CellWidthInfo
 GetCellWidthInfo(nsRenderingContext *aRenderingContext,
                  nsTableCellFrame *aCellFrame)
 {
-    return GetWidthInfo(aRenderingContext, aCellFrame, PR_TRUE);
+    return GetWidthInfo(aRenderingContext, aCellFrame, true);
 }
 
 static inline CellWidthInfo
 GetColWidthInfo(nsRenderingContext *aRenderingContext,
                 nsIFrame *aFrame)
 {
-    return GetWidthInfo(aRenderingContext, aFrame, PR_FALSE);
+    return GetWidthInfo(aRenderingContext, aFrame, false);
 }
 
 
@@ -320,7 +320,7 @@ BasicTableLayoutStrategy::ComputeColumnIntrinsicWidths(nsRenderingContext* aRend
     }
 #ifdef DEBUG_TABLE_STRATEGY
     printf("ComputeColumnIntrinsicWidths single\n");
-    mTableFrame->Dump(PR_FALSE, PR_TRUE, PR_FALSE);
+    mTableFrame->Dump(false, true, false);
 #endif
 
     
@@ -408,7 +408,7 @@ BasicTableLayoutStrategy::ComputeColumnIntrinsicWidths(nsRenderingContext* aRend
 
 #ifdef DEBUG_TABLE_STRATEGY
     printf("ComputeColumnIntrinsicWidths spanning\n");
-    mTableFrame->Dump(PR_FALSE, PR_TRUE, PR_FALSE);
+    mTableFrame->Dump(false, true, false);
 #endif
 }
 
@@ -529,11 +529,11 @@ BasicTableLayoutStrategy::ComputeColumnWidths(const nsHTMLReflowState& aReflowSt
     if (colCount <= 0)
         return; 
 
-    DistributeWidthToColumns(width, 0, colCount, BTLS_FINAL_WIDTH, PR_FALSE);
+    DistributeWidthToColumns(width, 0, colCount, BTLS_FINAL_WIDTH, false);
 
 #ifdef DEBUG_TABLE_STRATEGY
     printf("ComputeColumnWidths final\n");
-    mTableFrame->Dump(PR_FALSE, PR_TRUE, PR_FALSE);
+    mTableFrame->Dump(false, true, false);
 #endif
 }
 

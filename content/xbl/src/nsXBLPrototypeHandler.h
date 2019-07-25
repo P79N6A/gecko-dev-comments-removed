@@ -100,7 +100,7 @@ public:
                                 bool aIgnoreShiftKey = false)
   {
     if (aEventType != mEventName)
-      return PR_FALSE;
+      return false;
 
     return KeyEventMatched(aEvent, aCharCode, aIgnoreShiftKey);
   }
@@ -110,7 +110,7 @@ public:
                                   nsIDOMMouseEvent* aEvent)
   {
     if (aEventType != mEventName)
-      return PR_FALSE;
+      return false;
 
     return MouseEventMatched(aEvent);
   }

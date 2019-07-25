@@ -415,11 +415,11 @@ nsGlyphTable::IsComposite(nsPresContext* aPresContext, nsMathMLChar* aChar)
 {
   
   
-  if (aChar->mParent) return PR_FALSE;
+  if (aChar->mParent) return false;
   
   mCharCache = 0; mGlyphCache.Truncate(); ElementAt(aPresContext, aChar, 0);
   
-  if (4*3 >= mGlyphCache.Length()) return PR_FALSE;
+  if (4*3 >= mGlyphCache.Length()) return false;
   
   return (kSpaceCh == mGlyphCache.CharAt(4*3));
 }
@@ -536,7 +536,7 @@ nsGlyphTableList::Initialize()
   if (!obs)
     return NS_ERROR_FAILURE;
 
-  nsresult rv = obs->AddObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID, PR_FALSE);
+  nsresult rv = obs->AddObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID, false);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
@@ -554,7 +554,7 @@ nsGlyphTableList::Finalize()
   else
     rv = NS_ERROR_FAILURE;
 
-  gInitialized = PR_FALSE;
+  gInitialized = false;
   
   return rv;
 }
@@ -643,7 +643,7 @@ GetFontExtensionPref(PRUnichar aChar,
       extension.AssignLiteral(".parts");
       break;
     default:
-      return PR_FALSE;
+      return false;
   }
 
   
@@ -672,15 +672,15 @@ static bool
 MathFontEnumCallback(const nsString& aFamily, bool aGeneric, void *aData)
 {
   if (!gGlyphTableList->AddGlyphTable(aFamily))
-    return PR_FALSE; 
-  return PR_TRUE; 
+    return false; 
+  return true; 
 }
 
 static nsresult
 InitGlobals(nsPresContext* aPresContext)
 {
   NS_ASSERTION(!gInitialized, "Error -- already initialized");
-  gInitialized = PR_TRUE;
+  gInitialized = true;
 
   
   nsresult rv = NS_ERROR_OUT_OF_MEMORY;
@@ -913,7 +913,7 @@ static bool
 IsSizeBetter(nscoord a, nscoord olda, nscoord b, PRUint32 aHint)
 {
   if (0 == olda)
-    return PR_TRUE;
+    return true;
   if (aHint & (NS_STRETCH_LARGER | NS_STRETCH_LARGEOP))
     return (a >= olda) ? (olda < b) : (a >= b);
   if (aHint & NS_STRETCH_SMALLER)
@@ -1016,7 +1016,7 @@ AddFallbackFonts(nsAString& aFontName, const nsAString& aFallbackFamilies)
 
       nsAutoString family;
       family = Substring(nameStart, p);
-      family.CompressWhitespace(PR_FALSE, PR_TRUE);
+      family.CompressWhitespace(false, true);
 
       PRUint8 generic;
       nsFont::GetGenericID(family, &generic);
@@ -1081,8 +1081,8 @@ public:
       mStretchHint(aStretchHint),
       mBoundingMetrics(aStretchedMetrics),
       mFamilies(aFamilies),
-      mTryVariants(PR_TRUE),
-      mTryParts(PR_TRUE),
+      mTryVariants(true),
+      mTryParts(true),
       mGlyphFound(aGlyphFound) {}
 
   static bool
@@ -1165,7 +1165,7 @@ nsMathMLChar::StretchEnumContext::TryVariants(nsGlyphTable*    aGlyphTable,
 
     if (largeopOnly ||
         IsSizeBetter(charSize, bestSize, mTargetSize, mStretchHint)) {
-      mGlyphFound = PR_TRUE;
+      mGlyphFound = true;
       if (maxWidth) {
         
         
@@ -1180,7 +1180,7 @@ nsMathMLChar::StretchEnumContext::TryVariants(nsGlyphTable*    aGlyphTable,
       }
       else {
         mBoundingMetrics = bm;
-        haveBetter = PR_TRUE;
+        haveBetter = true;
         bestSize = charSize;
         mChar->mGlyphTable = aGlyphTable;
         mChar->mGlyph = ch;
@@ -1215,7 +1215,7 @@ nsMathMLChar::StretchEnumContext::TryParts(nsGlyphTable*    aGlyphTable,
                                            const nsAString& aFamily)
 {
   if (!aGlyphTable->HasPartsOf(mPresContext, mChar))
-    return PR_FALSE; 
+    return false; 
 
   
   if (aGlyphTable->IsComposite(mPresContext, mChar)) {
@@ -1231,14 +1231,14 @@ nsMathMLChar::StretchEnumContext::TryParts(nsGlyphTable*    aGlyphTable,
            NS_SUCCEEDED(rv)? "OK" : "Rejected");
 #endif
     if (NS_FAILED(rv))
-      return PR_FALSE; 
+      return false; 
 
     
     mChar->mGlyph = kNullGlyph; 
-    mGlyphFound = PR_TRUE;
+    mGlyphFound = true;
     mChar->mGlyphTable = aGlyphTable;
     mBoundingMetrics = compositeSize;
-    return PR_TRUE; 
+    return true; 
   }
 
   
@@ -1302,7 +1302,7 @@ nsMathMLChar::StretchEnumContext::TryParts(nsGlyphTable*    aGlyphTable,
     printf("    Font %s Rejected!\n",
            NS_LossyConvertUTF16toASCII(fontName).get());
 #endif
-    return PR_FALSE; 
+    return false; 
   }
 
 #ifdef NOISY_SEARCH
@@ -1358,9 +1358,9 @@ nsMathMLChar::StretchEnumContext::TryParts(nsGlyphTable*    aGlyphTable,
     mBoundingMetrics.leftBearing = 0;
     mBoundingMetrics.rightBearing = computedSize;
   }
-  mGlyphFound = PR_TRUE;
+  mGlyphFound = true;
   if (maxWidth)
-    return PR_FALSE; 
+    return false; 
 
   
   mChar->mGlyph = kNullGlyph; 
@@ -1391,15 +1391,15 @@ nsMathMLChar::StretchEnumContext::ResolverCallback (const nsAString& aFamily,
   if(context->mTryVariants) {
     bool isOK = context->TryVariants(glyphTable, family);
     if (isOK)
-      return PR_FALSE; 
+      return false; 
   }
 
   if(context->mTryParts) {
     bool isOK = context->TryParts(glyphTable, family);
     if (isOK)
-      return PR_FALSE; 
+      return false; 
   }
-  return PR_TRUE;
+  return true;
 }
 
 
@@ -1415,7 +1415,7 @@ nsMathMLChar::StretchEnumContext::EnumCallback(const nsString& aFamily,
     &gGlyphTableList->mUnicodeTable : gGlyphTableList->GetGlyphTableFor(aFamily);
 
   if (context->mTablesTried.Contains(glyphTable))
-    return PR_TRUE; 
+    return true; 
 
   context->mGlyphTable = glyphTable;
 
@@ -1556,7 +1556,7 @@ nsMathMLChar::StretchInternal(nsPresContext*           aPresContext,
     if ((targetSize <= 0) || 
         ((isVertical && charSize >= targetSize) ||
          IsSizeOK(aPresContext, charSize, targetSize, aStretchHint)))
-      done = PR_TRUE;
+      done = true;
   }
 
   
@@ -1578,7 +1578,7 @@ nsMathMLChar::StretchInternal(nsPresContext*           aPresContext,
     StretchEnumContext enumData(this, aPresContext, aRenderingContext,
                                 aStretchDirection, targetSize, aStretchHint,
                                 aDesiredStretchSize, font.name, glyphFound);
-    enumData.mTryParts = PR_FALSE;
+    enumData.mTryParts = false;
 
     done = !font.EnumerateFamilies(StretchEnumContext::EnumCallback, &enumData);
   }
@@ -1591,7 +1591,7 @@ nsMathMLChar::StretchInternal(nsPresContext*           aPresContext,
     StretchEnumContext enumData(this, aPresContext, aRenderingContext,
                                 aStretchDirection, targetSize, aStretchHint,
                                 aDesiredStretchSize, font.name, glyphFound);
-    enumData.mTryVariants = PR_FALSE;
+    enumData.mTryVariants = false;
 
     done = !font.EnumerateFamilies(StretchEnumContext::EnumCallback, &enumData);
   }
@@ -1710,7 +1710,7 @@ nsMathMLChar::Stretch(nsPresContext*           aPresContext,
                    NS_STRETCH_INTEGRAL)),
                "Unexpected stretch flags");
 
-  mDrawNormal = PR_TRUE;
+  mDrawNormal = true;
   mScaleY = mScaleX = 1.0;
   mDirection = aStretchDirection;
   nsresult rv =

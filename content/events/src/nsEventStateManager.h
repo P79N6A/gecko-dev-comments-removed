@@ -192,7 +192,7 @@ public:
   static bool IsHandlingUserInput()
   {
     if (sUserInputEventDepth <= 0) {
-      return PR_FALSE;
+      return false;
     }
     TimeDuration timeout = nsContentUtils::HandlingUserInputTimeout();
     return timeout <= TimeDuration(0) ||
@@ -573,18 +573,18 @@ public:
                                      nsIDocument* aDocument)
     : mIsHandlingUserInput(aIsHandlingUserInput),
       mIsMouseDown(aEvent && aEvent->message == NS_MOUSE_BUTTON_DOWN),
-      mResetFMMouseDownState(PR_FALSE)
+      mResetFMMouseDownState(false)
   {
     if (aIsHandlingUserInput) {
       nsEventStateManager::StartHandlingUserInput();
       if (mIsMouseDown) {
         nsIPresShell::SetCapturingContent(nsnull, 0);
-        nsIPresShell::AllowMouseCapture(PR_TRUE);
+        nsIPresShell::AllowMouseCapture(true);
         if (aDocument && NS_IS_TRUSTED_EVENT(aEvent)) {
           nsFocusManager* fm = nsFocusManager::GetFocusManager();
           if (fm) {
             fm->SetMouseButtonDownHandlingDocument(aDocument);
-            mResetFMMouseDownState = PR_TRUE;
+            mResetFMMouseDownState = true;
           }
         }
       }
@@ -596,7 +596,7 @@ public:
     if (mIsHandlingUserInput) {
       nsEventStateManager::StopHandlingUserInput();
       if (mIsMouseDown) {
-        nsIPresShell::AllowMouseCapture(PR_FALSE);
+        nsIPresShell::AllowMouseCapture(false);
         if (mResetFMMouseDownState) {
           nsFocusManager* fm = nsFocusManager::GetFocusManager();
           if (fm) {

@@ -218,7 +218,7 @@ public:
   nsSafeOptionListMutation(nsIContent* aSelect, nsIContent* aParent,
                            nsIContent* aKid, PRUint32 aIndex, bool aNotify);
   ~nsSafeOptionListMutation();
-  void MutationFailed() { mNeedsRebuild = PR_TRUE; }
+  void MutationFailed() { mNeedsRebuild = true; }
 private:
   static void* operator new(size_t) CPP_THROW_NEW { return 0; }
   static void operator delete(void*, size_t) {}
@@ -562,7 +562,7 @@ protected:
 
   bool IsCombobox() {
     if (HasAttr(kNameSpaceID_None, nsGkAtoms::multiple)) {
-      return PR_FALSE;
+      return false;
     }
 
     PRInt32 size = 1;

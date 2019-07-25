@@ -433,9 +433,9 @@ struct JSParseNode {
             JSParseNode         *tree;  
         } nameset;
         struct {                        
-            JSAtom      *atom;          
-            JSAtom      *atom2;         
-        } apair;
+            js::PropertyName *target;   
+            JSAtom           *data;     
+        } xmlpi;
         jsdouble        dval;           
     } pn_u;
 
@@ -467,7 +467,8 @@ struct JSParseNode {
 #define pn_names        pn_u.nameset.defnMap
 #define pn_tree         pn_u.nameset.tree
 #define pn_dval         pn_u.dval
-#define pn_atom2        pn_u.apair.atom2
+#define pn_pitarget     pn_u.xmlpi.target
+#define pn_pidata       pn_u.xmlpi.data
 
 protected:
     void init(js::TokenKind type, JSOp op, JSParseNodeArity arity) {
@@ -1077,7 +1078,7 @@ struct JSFunctionBoxQueue {
       : vector(NULL), head(0), tail(0), lengthMask(0) { }
 
     bool init(uint32 count) {
-        lengthMask = JS_BITMASK(JS_CeilingLog2(count));
+        lengthMask = JS_BITMASK(JS_CEILING_LOG2W(count));
         vector = (JSFunctionBox **) js::OffTheBooks::malloc_(sizeof(JSFunctionBox) * length());
         return !!vector;
     }
@@ -1258,7 +1259,7 @@ private:
     enum FunctionType { Getter, Setter, Normal };
     bool functionArguments(JSTreeContext &funtc, JSFunctionBox *funbox, JSParseNode **list);
     JSParseNode *functionBody();
-    JSParseNode *functionDef(JSAtom *name, FunctionType type, FunctionSyntaxKind kind);
+    JSParseNode *functionDef(PropertyName *name, FunctionType type, FunctionSyntaxKind kind);
 
     JSParseNode *condition();
     JSParseNode *comprehensionTail(JSParseNode *kid, uintN blockid, bool isGenexp,

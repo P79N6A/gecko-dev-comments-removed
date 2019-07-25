@@ -426,7 +426,7 @@ nsUserFontSet::StartLoad(gfxProxyFontEntry *aProxy,
   } else {
     nsCOMPtr<nsIStreamListener> listener =
       new nsCORSListenerProxy(streamLoader, principal, channel, 
-                              PR_FALSE, &rv);
+                              false, &rv);
     if (NS_FAILED(rv)) {
       fontLoader->DropChannel();  
     }
@@ -452,7 +452,7 @@ nsUserFontSet::UpdateRules(const nsTArray<nsFontFaceRuleContainer>& aRules)
   
   
   if (mLoaders.Count() > 0) {
-    modified = PR_TRUE; 
+    modified = true; 
                         
   }
   mLoaders.EnumerateEntries(DestroyIterator, nsnull);
@@ -474,7 +474,7 @@ nsUserFontSet::UpdateRules(const nsTArray<nsFontFaceRuleContainer>& aRules)
 
   
   if (oldRules.Length() > 0) {
-    modified = PR_TRUE;
+    modified = true;
   }
 
   if (modified) {
@@ -523,7 +523,7 @@ nsUserFontSet::InsertRule(nsCSSFontFaceRule *aRule, PRUint8 aSheetType,
       
       
       if (i > 0) {
-        aFontSetModified = PR_TRUE;
+        aFontSetModified = true;
       }
       return;
     }
@@ -616,12 +616,12 @@ nsUserFontSet::InsertRule(nsCSSFontFaceRule *aRule, PRUint8 aSheetType,
 
       case eCSSUnit_Local_Font:
         val.GetStringValue(face->mLocalName);
-        face->mIsLocal = PR_TRUE;
+        face->mIsLocal = true;
         face->mURI = nsnull;
         face->mFormatFlags = 0;
         break;
       case eCSSUnit_URL:
-        face->mIsLocal = PR_FALSE;
+        face->mIsLocal = false;
         face->mURI = val.GetURLValue();
         NS_ASSERTION(face->mURI, "null url in @font-face rule");
         face->mReferrer = val.GetURLStructValue()->mReferrer;
@@ -681,7 +681,7 @@ nsUserFontSet::InsertRule(nsCSSFontFaceRule *aRule, PRUint8 aSheetType,
       mRules.AppendElement(ruleRec);
     }
     
-    aFontSetModified = PR_TRUE;
+    aFontSetModified = true;
   }
 }
 

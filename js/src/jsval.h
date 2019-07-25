@@ -42,7 +42,7 @@
 
 
 
-#include "jsutil.h"
+#include "js/Utility.h"
 
 JS_BEGIN_EXTERN_C
 

@@ -282,7 +282,7 @@ public:
 
   
   void SetLineIsImpactedByFloat(bool aValue) {
-    NS_ASSERTION((PR_FALSE==aValue || PR_TRUE==aValue), "somebody is playing fast and loose with bools and bits!");
+    NS_ASSERTION((false==aValue || true==aValue), "somebody is playing fast and loose with bools and bits!");
     mFlags.mImpactedByFloat = aValue;
   }
   bool IsImpactedByFloat() const {
@@ -291,7 +291,7 @@ public:
 
   
   void SetLineWrapped(bool aOn) {
-    NS_ASSERTION((PR_FALSE==aOn || PR_TRUE==aOn), "somebody is playing fast and loose with bools and bits!");
+    NS_ASSERTION((false==aOn || true==aOn), "somebody is playing fast and loose with bools and bits!");
     mFlags.mLineWrapped = aOn;
   }
   bool IsLineWrapped() const {
@@ -300,7 +300,7 @@ public:
 
   
   void SetInvalidateTextRuns(bool aOn) {
-    NS_ASSERTION((PR_FALSE==aOn || PR_TRUE==aOn), "somebody is playing fast and loose with bools and bits!");
+    NS_ASSERTION((false==aOn || true==aOn), "somebody is playing fast and loose with bools and bits!");
     mFlags.mInvalidateTextRuns = aOn;
   }
   bool GetInvalidateTextRuns() const {
@@ -309,10 +309,10 @@ public:
 
   
   void DisableResizeReflowOptimization() {
-    mFlags.mResizeReflowOptimizationDisabled = PR_TRUE;
+    mFlags.mResizeReflowOptimizationDisabled = true;
   }
   void EnableResizeReflowOptimization() {
-    mFlags.mResizeReflowOptimizationDisabled = PR_FALSE;
+    mFlags.mResizeReflowOptimizationDisabled = false;
   }
   bool ResizeReflowOptimizationDisabled() const {
     return mFlags.mResizeReflowOptimizationDisabled;
@@ -320,11 +320,11 @@ public:
 
   
   void SetHasBullet() {
-    mFlags.mHasBullet = PR_TRUE;
+    mFlags.mHasBullet = true;
     InvalidateCachedIsEmpty();
   }
   void ClearHasBullet() {
-    mFlags.mHasBullet = PR_FALSE;
+    mFlags.mHasBullet = false;
     InvalidateCachedIsEmpty();
   }
   bool HasBullet() const {
@@ -333,10 +333,10 @@ public:
 
   
   void SetHadFloatPushed() {
-    mFlags.mHadFloatPushed = PR_TRUE;
+    mFlags.mHadFloatPushed = true;
   }
   void ClearHadFloatPushed() {
-    mFlags.mHadFloatPushed = PR_FALSE;
+    mFlags.mHadFloatPushed = false;
   }
   bool HadFloatPushed() const {
     return mFlags.mHadFloatPushed;
@@ -489,7 +489,7 @@ public:
   bool CachedIsEmpty() const;
 
   void InvalidateCachedIsEmpty() {
-    mFlags.mEmptyCacheValid = PR_FALSE;
+    mFlags.mEmptyCacheValid = false;
   }
 
   

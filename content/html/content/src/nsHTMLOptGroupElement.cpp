@@ -135,7 +135,7 @@ NS_IMPL_STRING_ATTR(nsHTMLOptGroupElement, Label, label)
 nsresult
 nsHTMLOptGroupElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
 {
-  aVisitor.mCanHandle = PR_FALSE;
+  aVisitor.mCanHandle = false;
   
   
   if (HasAttr(kNameSpaceID_None, nsGkAtoms::disabled)) {

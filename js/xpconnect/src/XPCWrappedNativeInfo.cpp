@@ -6,9 +6,83 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "xpcprivate.h"
 
 
+
+
+
+
+
+
+JSObject *
+xpc_CloneJSFunction(XPCCallContext &ccx, JSObject *funobj, JSObject *parent)
+{
+    JSObject *clone = JS_CloneFunctionObject(ccx, funobj, parent);
+    if (!clone)
+        return nsnull;
+
+    AUTO_MARK_JSVAL(ccx, OBJECT_TO_JSVAL(clone));
+
+    XPCWrappedNativeScope *scope =
+        XPCWrappedNativeScope::FindInJSObjectScope(ccx, parent);
+
+    if (!scope) {
+        return nsnull;
+    }
+
+    
+    
+    
+    JS_SetPrototype(ccx, clone, scope->GetPrototypeJSFunction());
+
+    
+    jsval ifaceVal, memberVal;
+    if (!JS_GetReservedSlot(ccx, funobj, 0, &ifaceVal) ||
+        !JS_GetReservedSlot(ccx, funobj, 1, &memberVal))
+        return nsnull;
+
+    if (!JS_SetReservedSlot(ccx, clone, 0, ifaceVal) ||
+        !JS_SetReservedSlot(ccx, clone, 1, memberVal))
+        return nsnull;
+
+    return clone;
+}
 
 
 
@@ -20,13 +94,13 @@ XPCNativeMember::GetCallInfo(XPCCallContext& ccx,
                              XPCNativeMember**    pMember)
 {
     funobj = js::UnwrapObject(funobj);
-    jsval ifaceVal = js::GetFunctionNativeReserved(funobj, 0);
-    jsval memberVal = js::GetFunctionNativeReserved(funobj, 1);
+    jsval ifaceVal = js::GetReservedSlot(funobj, 0);
+    jsval memberVal = js::GetReservedSlot(funobj, 1);
 
     *pInterface = (XPCNativeInterface*) JSVAL_TO_PRIVATE(ifaceVal);
     *pMember = (XPCNativeMember*) JSVAL_TO_PRIVATE(memberVal);
 
-    return true;
+    return JS_TRUE;
 }
 
 JSBool
@@ -47,7 +121,7 @@ XPCNativeMember::Resolve(XPCCallContext& ccx, XPCNativeInterface* iface,
     if (IsConstant()) {
         const nsXPTConstant* constant;
         if (NS_FAILED(iface->GetInterfaceInfo()->GetConstant(mIndex, &constant)))
-            return false;
+            return JS_FALSE;
 
         const nsXPTCMiniVariant& mv = *constant->GetValue();
 
@@ -60,28 +134,28 @@ XPCNativeMember::Resolve(XPCCallContext& ccx, XPCNativeInterface* iface,
         jsval resultVal;
 
         if (!XPCConvert::NativeData2JS(ccx, &resultVal, &v.val, v.type,
-                                       nullptr, nullptr))
-            return false;
+                                       nsnull, nsnull))
+            return JS_FALSE;
 
         *vp = resultVal;
 
-        return true;
+        return JS_TRUE;
     }
     
 
     
 
-    int argc;
+    intN argc;
     JSNative callback;
 
     if (IsMethod()) {
         const nsXPTMethodInfo* info;
         if (NS_FAILED(iface->GetInterfaceInfo()->GetMethodInfo(mIndex, &info)))
-            return false;
+            return JS_FALSE;
 
         
-        argc = (int) info->GetParamCount();
-        if (argc && info->GetParam((uint8_t)(argc-1)).IsRetval())
+        argc = (intN) info->GetParamCount();
+        if (argc && info->GetParam((uint8)(argc-1)).IsRetval())
             argc-- ;
 
         callback = XPC_WN_CallMethod;
@@ -90,20 +164,21 @@ XPCNativeMember::Resolve(XPCCallContext& ccx, XPCNativeInterface* iface,
         callback = XPC_WN_GetterSetter;
     }
 
-    JSFunction *fun = js::NewFunctionByIdWithReserved(ccx, callback, argc, 0, parent, GetName());
+    JSFunction *fun = JS_NewFunctionById(ccx, callback, argc, 0, parent, GetName());
     if (!fun)
-        return false;
+        return JS_FALSE;
 
     JSObject* funobj = JS_GetFunctionObject(fun);
     if (!funobj)
-        return false;
+        return JS_FALSE;
 
-    js::SetFunctionNativeReserved(funobj, 0, PRIVATE_TO_JSVAL(iface));
-    js::SetFunctionNativeReserved(funobj, 1, PRIVATE_TO_JSVAL(this));
+    if (!JS_SetReservedSlot(ccx, funobj, 0, PRIVATE_TO_JSVAL(iface))||
+        !JS_SetReservedSlot(ccx, funobj, 1, PRIVATE_TO_JSVAL(this)))
+        return JS_FALSE;
 
     *vp = OBJECT_TO_JSVAL(funobj);
 
-    return true;
+    return JS_TRUE;
 }
 
 
@@ -118,7 +193,7 @@ XPCNativeInterface::GetNewOrUsed(XPCCallContext& ccx, const nsIID* iid)
 
     IID2NativeInterfaceMap* map = rt->GetIID2NativeInterfaceMap();
     if (!map)
-        return nullptr;
+        return nsnull;
 
     {   
         XPCAutoLock lock(rt->GetMapLock());
@@ -131,11 +206,11 @@ XPCNativeInterface::GetNewOrUsed(XPCCallContext& ccx, const nsIID* iid)
     nsCOMPtr<nsIInterfaceInfo> info;
     ccx.GetXPConnect()->GetInfoForIID(iid, getter_AddRefs(info));
     if (!info)
-        return nullptr;
+        return nsnull;
 
     iface = NewInstance(ccx, info);
     if (!iface)
-        return nullptr;
+        return nsnull;
 
     {   
         XPCAutoLock lock(rt->GetMapLock());
@@ -143,7 +218,7 @@ XPCNativeInterface::GetNewOrUsed(XPCCallContext& ccx, const nsIID* iid)
         if (!iface2) {
             NS_ERROR("failed to add our interface!");
             DestroyInstance(iface);
-            iface = nullptr;
+            iface = nsnull;
         } else if (iface2 != iface) {
             DestroyInstance(iface);
             iface = iface2;
@@ -161,13 +236,13 @@ XPCNativeInterface::GetNewOrUsed(XPCCallContext& ccx, nsIInterfaceInfo* info)
 
     const nsIID* iid;
     if (NS_FAILED(info->GetIIDShared(&iid)) || !iid)
-        return nullptr;
+        return nsnull;
 
     XPCJSRuntime* rt = ccx.GetRuntime();
 
     IID2NativeInterfaceMap* map = rt->GetIID2NativeInterfaceMap();
     if (!map)
-        return nullptr;
+        return nsnull;
 
     {   
         XPCAutoLock lock(rt->GetMapLock());
@@ -179,7 +254,7 @@ XPCNativeInterface::GetNewOrUsed(XPCCallContext& ccx, nsIInterfaceInfo* info)
 
     iface = NewInstance(ccx, info);
     if (!iface)
-        return nullptr;
+        return nsnull;
 
     {   
         XPCAutoLock lock(rt->GetMapLock());
@@ -187,7 +262,7 @@ XPCNativeInterface::GetNewOrUsed(XPCCallContext& ccx, nsIInterfaceInfo* info)
         if (!iface2) {
             NS_ERROR("failed to add our interface!");
             DestroyInstance(iface);
-            iface = nullptr;
+            iface = nsnull;
         } else if (iface2 != iface) {
             DestroyInstance(iface);
             iface = iface2;
@@ -203,7 +278,7 @@ XPCNativeInterface::GetNewOrUsed(XPCCallContext& ccx, const char* name)
 {
     nsCOMPtr<nsIInterfaceInfo> info;
     ccx.GetXPConnect()->GetInfoForName(name, getter_AddRefs(info));
-    return info ? GetNewOrUsed(ccx, info) : nullptr;
+    return info ? GetNewOrUsed(ccx, info) : nsnull;
 }
 
 
@@ -219,19 +294,19 @@ XPCNativeInterface*
 XPCNativeInterface::NewInstance(XPCCallContext& ccx,
                                 nsIInterfaceInfo* aInfo)
 {
-    static const uint16_t MAX_LOCAL_MEMBER_COUNT = 16;
+    static const PRUint16 MAX_LOCAL_MEMBER_COUNT = 16;
     XPCNativeMember local_members[MAX_LOCAL_MEMBER_COUNT];
-    XPCNativeInterface* obj = nullptr;
-    XPCNativeMember* members = nullptr;
+    XPCNativeInterface* obj = nsnull;
+    XPCNativeMember* members = nsnull;
 
     int i;
-    JSBool failed = false;
-    uint16_t constCount;
-    uint16_t methodCount;
-    uint16_t totalCount;
-    uint16_t realTotalCount = 0;
+    JSBool failed = JS_FALSE;
+    PRUint16 constCount;
+    PRUint16 methodCount;
+    PRUint16 totalCount;
+    PRUint16 realTotalCount = 0;
     XPCNativeMember* cur;
-    JSString* str = NULL;
+    JSString*  str;
     jsid name;
     jsid interfaceName;
 
@@ -244,11 +319,11 @@ XPCNativeInterface::NewInstance(XPCCallContext& ccx,
 
     bool canScript;
     if (NS_FAILED(aInfo->IsScriptable(&canScript)) || !canScript)
-        return nullptr;
+        return nsnull;
 
     if (NS_FAILED(aInfo->GetMethodCount(&methodCount)) ||
         NS_FAILED(aInfo->GetConstantCount(&constCount)))
-        return nullptr;
+        return nsnull;
 
     
     
@@ -263,7 +338,7 @@ XPCNativeInterface::NewInstance(XPCCallContext& ccx,
     if (totalCount > MAX_LOCAL_MEMBER_COUNT) {
         members = new XPCNativeMember[totalCount];
         if (!members)
-            return nullptr;
+            return nsnull;
     } else {
         members = local_members;
     }
@@ -274,7 +349,7 @@ XPCNativeInterface::NewInstance(XPCCallContext& ccx,
     for (i = 0; i < methodCount; i++) {
         const nsXPTMethodInfo* info;
         if (NS_FAILED(aInfo->GetMethodInfo(i, &info))) {
-            failed = true;
+            failed = JS_TRUE;
             break;
         }
 
@@ -288,7 +363,7 @@ XPCNativeInterface::NewInstance(XPCCallContext& ccx,
         str = JS_InternString(ccx, info->GetName());
         if (!str) {
             NS_ERROR("bad method name");
-            failed = true;
+            failed = JS_TRUE;
             break;
         }
         name = INTERNED_STRING_TO_JSID(ccx, str);
@@ -318,14 +393,14 @@ XPCNativeInterface::NewInstance(XPCCallContext& ccx,
         for (i = 0; i < constCount; i++) {
             const nsXPTConstant* constant;
             if (NS_FAILED(aInfo->GetConstant(i, &constant))) {
-                failed = true;
+                failed = JS_TRUE;
                 break;
             }
 
             str = JS_InternString(ccx, constant->GetName());
             if (!str) {
                 NS_ERROR("bad constant name");
-                failed = true;
+                failed = JS_TRUE;
                 break;
             }
             name = INTERNED_STRING_TO_JSID(ccx, str);
@@ -342,8 +417,8 @@ XPCNativeInterface::NewInstance(XPCCallContext& ccx,
     if (!failed) {
         const char* bytes;
         if (NS_FAILED(aInfo->GetNameShared(&bytes)) || !bytes ||
-            nullptr == (str = JS_InternString(ccx, bytes))) {
-            failed = true;
+            nsnull == (str = JS_InternString(ccx, bytes))) {
+            failed = JS_TRUE;
         }
         interfaceName = INTERNED_STRING_TO_JSID(ccx, str);
     }
@@ -381,14 +456,8 @@ XPCNativeInterface::DestroyInstance(XPCNativeInterface* inst)
     delete [] (char*) inst;
 }
 
-size_t
-XPCNativeInterface::SizeOfIncludingThis(nsMallocSizeOfFun mallocSizeOf)
-{
-    return mallocSizeOf(this);
-}
-
 void
-XPCNativeInterface::DebugDump(int16_t depth)
+XPCNativeInterface::DebugDump(PRInt16 depth)
 {
 #ifdef DEBUG
     depth--;
@@ -413,14 +482,14 @@ XPCNativeSet::GetNewOrUsed(XPCCallContext& ccx, const nsIID* iid)
     AutoMarkingNativeInterfacePtr iface(ccx);
     iface = XPCNativeInterface::GetNewOrUsed(ccx, iid);
     if (!iface)
-        return nullptr;
+        return nsnull;
 
-    XPCNativeSetKey key(nullptr, iface, 0);
+    XPCNativeSetKey key(nsnull, iface, 0);
 
     XPCJSRuntime* rt = ccx.GetRuntime();
     NativeSetMap* map = rt->GetNativeSetMap();
     if (!map)
-        return nullptr;
+        return nsnull;
 
     {   
         XPCAutoLock lock(rt->GetMapLock());
@@ -434,7 +503,7 @@ XPCNativeSet::GetNewOrUsed(XPCCallContext& ccx, const nsIID* iid)
     XPCNativeInterface* temp[] = {iface};
     set = NewInstance(ccx, temp, 1);
     if (!set)
-        return nullptr;
+        return nsnull;
 
     {   
         XPCAutoLock lock(rt->GetMapLock());
@@ -442,7 +511,7 @@ XPCNativeSet::GetNewOrUsed(XPCCallContext& ccx, const nsIID* iid)
         if (!set2) {
             NS_ERROR("failed to add our set!");
             DestroyInstance(set);
-            set = nullptr;
+            set = nsnull;
         } else if (set2 != set) {
             DestroyInstance(set);
             set = set2;
@@ -461,7 +530,7 @@ XPCNativeSet::GetNewOrUsed(XPCCallContext& ccx, nsIClassInfo* classInfo)
 
     ClassInfo2NativeSetMap* map = rt->GetClassInfo2NativeSetMap();
     if (!map)
-        return nullptr;
+        return nsnull;
 
     {   
         XPCAutoLock lock(rt->GetMapLock());
@@ -471,9 +540,9 @@ XPCNativeSet::GetNewOrUsed(XPCCallContext& ccx, nsIClassInfo* classInfo)
     if (set)
         return set;
 
-    nsIID** iidArray = nullptr;
+    nsIID** iidArray = nsnull;
     AutoMarkingNativeInterfacePtrArrayPtr interfaceArray(ccx);
-    uint32_t iidCount = 0;
+    PRUint32 iidCount = 0;
 
     if (NS_FAILED(classInfo->GetInterfaces(&iidCount, &iidArray))) {
         
@@ -481,7 +550,7 @@ XPCNativeSet::GetNewOrUsed(XPCCallContext& ccx, nsIClassInfo* classInfo)
         
 
         
-        iidArray = nullptr;
+        iidArray = nsnull;
         iidCount = 0;
     }
 
@@ -499,9 +568,9 @@ XPCNativeSet::GetNewOrUsed(XPCCallContext& ccx, nsIClassInfo* classInfo)
 
         XPCNativeInterface** currentInterface = interfaceArray;
         nsIID**              currentIID = iidArray;
-        uint16_t             interfaceCount = 0;
+        PRUint16             interfaceCount = 0;
 
-        for (uint32_t i = 0; i < iidCount; i++) {
+        for (PRUint32 i = 0; i < iidCount; i++) {
             nsIID* iid = *(currentIID++);
             if (!iid) {
                 NS_ERROR("Null found in classinfo interface list");
@@ -527,7 +596,7 @@ XPCNativeSet::GetNewOrUsed(XPCCallContext& ccx, nsIClassInfo* classInfo)
                 if (!map2)
                     goto out;
 
-                XPCNativeSetKey key(set, nullptr, 0);
+                XPCNativeSetKey key(set, nsnull, 0);
 
                 {   
                     XPCAutoLock lock(rt->GetMapLock());
@@ -535,7 +604,7 @@ XPCNativeSet::GetNewOrUsed(XPCCallContext& ccx, nsIClassInfo* classInfo)
                     if (!set2) {
                         NS_ERROR("failed to add our set!");
                         DestroyInstance(set);
-                        set = nullptr;
+                        set = nsnull;
                         goto out;
                     }
                     if (set2 != set) {
@@ -588,13 +657,13 @@ XPCNativeSet*
 XPCNativeSet::GetNewOrUsed(XPCCallContext& ccx,
                            XPCNativeSet* otherSet,
                            XPCNativeInterface* newInterface,
-                           uint16_t position)
+                           PRUint16 position)
 {
     AutoMarkingNativeSetPtr set(ccx);
     XPCJSRuntime* rt = ccx.GetRuntime();
     NativeSetMap* map = rt->GetNativeSetMap();
     if (!map)
-        return nullptr;
+        return nsnull;
 
     XPCNativeSetKey key(otherSet, newInterface, position);
 
@@ -612,7 +681,7 @@ XPCNativeSet::GetNewOrUsed(XPCCallContext& ccx,
         set = NewInstance(ccx, &newInterface, 1);
 
     if (!set)
-        return nullptr;
+        return nsnull;
 
     {   
         XPCAutoLock lock(rt->GetMapLock());
@@ -620,7 +689,7 @@ XPCNativeSet::GetNewOrUsed(XPCCallContext& ccx,
         if (!set2) {
             NS_ERROR("failed to add our set!");
             DestroyInstance(set);
-            set = nullptr;
+            set = nsnull;
         } else if (set2 != set) {
             DestroyInstance(set);
             set = set2;
@@ -632,62 +701,14 @@ XPCNativeSet::GetNewOrUsed(XPCCallContext& ccx,
 
 
 XPCNativeSet*
-XPCNativeSet::GetNewOrUsed(XPCCallContext& ccx,
-                           XPCNativeSet* firstSet,
-                           XPCNativeSet* secondSet,
-                           bool preserveFirstSetOrder)
-{
-    
-    uint32_t uniqueCount = firstSet->mInterfaceCount;
-    for (uint32_t i = 0; i < secondSet->mInterfaceCount; ++i) {
-        if (!firstSet->HasInterface(secondSet->mInterfaces[i]))
-            uniqueCount++;
-    }
-
-    
-    
-    if (uniqueCount == firstSet->mInterfaceCount)
-        return firstSet;
-
-    
-    
-    if (!preserveFirstSetOrder && uniqueCount == secondSet->mInterfaceCount)
-        return secondSet;
-
-    
-    
-    
-    
-    
-    
-    
-    XPCNativeSet* currentSet = firstSet;
-    for (uint32_t i = 0; i < secondSet->mInterfaceCount; ++i) {
-        XPCNativeInterface* iface = secondSet->mInterfaces[i];
-        if (!currentSet->HasInterface(iface)) {
-            
-            uint32_t pos = currentSet->mInterfaceCount;
-            currentSet = XPCNativeSet::GetNewOrUsed(ccx, currentSet, iface, pos);
-            if (!currentSet)
-                return nullptr;
-        }
-    }
-
-    
-    MOZ_ASSERT(currentSet->mInterfaceCount == uniqueCount);
-    return currentSet;
-}
-
-
-XPCNativeSet*
 XPCNativeSet::NewInstance(XPCCallContext& ccx,
                           XPCNativeInterface** array,
-                          uint16_t count)
+                          PRUint16 count)
 {
-    XPCNativeSet* obj = nullptr;
+    XPCNativeSet* obj = nsnull;
 
     if (!array || !count)
-        return nullptr;
+        return nsnull;
 
     
     
@@ -695,9 +716,9 @@ XPCNativeSet::NewInstance(XPCCallContext& ccx,
     
 
     XPCNativeInterface* isup = XPCNativeInterface::GetISupports(ccx);
-    uint16_t slots = count+1;
+    PRUint16 slots = count+1;
 
-    uint16_t i;
+    PRUint16 i;
     XPCNativeInterface** pcur;
 
     for (i = 0, pcur = array; i < count; i++, pcur++) {
@@ -718,7 +739,7 @@ XPCNativeSet::NewInstance(XPCCallContext& ccx,
         
         XPCNativeInterface** inp = array;
         XPCNativeInterface** outp = (XPCNativeInterface**) &obj->mInterfaces;
-        uint16_t memberCount = 1;   
+        PRUint16 memberCount = 1;   
 
         *(outp++) = isup;
 
@@ -741,14 +762,14 @@ XPCNativeSet::NewInstance(XPCCallContext& ccx,
 XPCNativeSet*
 XPCNativeSet::NewInstanceMutate(XPCNativeSet*       otherSet,
                                 XPCNativeInterface* newInterface,
-                                uint16_t            position)
+                                PRUint16            position)
 {
-    XPCNativeSet* obj = nullptr;
+    XPCNativeSet* obj = nsnull;
 
     if (!newInterface)
-        return nullptr;
+        return nsnull;
     if (otherSet && position > otherSet->mInterfaceCount)
-        return nullptr;
+        return nsnull;
 
     
     
@@ -767,7 +788,7 @@ XPCNativeSet::NewInstanceMutate(XPCNativeSet*       otherSet,
 
             XPCNativeInterface** src = otherSet->mInterfaces;
             XPCNativeInterface** dest = obj->mInterfaces;
-            for (uint16_t i = 0; i < obj->mInterfaceCount; i++) {
+            for (PRUint16 i = 0; i < obj->mInterfaceCount; i++) {
                 if (i == position)
                     *dest++ = newInterface;
                 else
@@ -791,14 +812,8 @@ XPCNativeSet::DestroyInstance(XPCNativeSet* inst)
     delete [] (char*) inst;
 }
 
-size_t
-XPCNativeSet::SizeOfIncludingThis(nsMallocSizeOfFun mallocSizeOf)
-{
-    return mallocSizeOf(this);
-}
-
 void
-XPCNativeSet::DebugDump(int16_t depth)
+XPCNativeSet::DebugDump(PRInt16 depth)
 {
 #ifdef DEBUG
     depth--;
@@ -807,7 +822,7 @@ XPCNativeSet::DebugDump(int16_t depth)
 
         XPC_LOG_ALWAYS(("mInterfaceCount of %d", mInterfaceCount));
         if (depth) {
-            for (uint16_t i = 0; i < mInterfaceCount; i++)
+            for (PRUint16 i = 0; i < mInterfaceCount; i++)
                 mInterfaces[i]->DebugDump(depth);
         }
         XPC_LOG_ALWAYS(("mMemberCount of %d", mMemberCount));

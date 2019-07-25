@@ -141,7 +141,7 @@ public:
                                    nsIFrame* aFrame,
                                    PRUint8 aWidgetType,
                                     nsRect* aOverflowRect)
-  { return PR_FALSE; }
+  { return false; }
 
   
 

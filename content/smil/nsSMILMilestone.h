@@ -71,7 +71,7 @@ public:
   { }
 
   nsSMILMilestone()
-    : mTime(0), mIsEnd(PR_FALSE)
+    : mTime(0), mIsEnd(false)
   { }
 
   bool operator==(const nsSMILMilestone& aOther) const

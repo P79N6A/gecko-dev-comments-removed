@@ -97,7 +97,7 @@ nsDSURIContentListener::OnStartURIOpen(nsIURI* aURI, bool* aAbortOpen)
     
     
     if (!mDocShell) {
-        *aAbortOpen = PR_TRUE;
+        *aAbortOpen = true;
         return NS_OK;
     }
     
@@ -123,11 +123,11 @@ nsDSURIContentListener::DoContent(const char* aContentType,
     
     
     if (!CheckFrameOptions(request)) {
-        *aAbortProcess = PR_TRUE;
+        *aAbortProcess = true;
         return NS_OK;
     }
 
-    *aAbortProcess = PR_FALSE;
+    *aAbortProcess = false;
 
     
     nsLoadFlags loadFlags = 0;
@@ -195,7 +195,7 @@ nsDSURIContentListener::IsPreferred(const char* aContentType,
     
     
     return CanHandleContent(aContentType,
-                            PR_TRUE,
+                            true,
                             aDesiredContentType,
                             aCanHandle);
 }
@@ -209,7 +209,7 @@ nsDSURIContentListener::CanHandleContent(const char* aContentType,
     NS_PRECONDITION(aCanHandleContent, "Null out param?");
     NS_ENSURE_ARG_POINTER(aDesiredContentType);
 
-    *aCanHandleContent = PR_FALSE;
+    *aCanHandleContent = false;
     *aDesiredContentType = nsnull;
 
     nsresult rv = NS_OK;
@@ -365,7 +365,7 @@ bool nsDSURIContentListener::CheckFrameOptions(nsIRequest* request)
             topDoc = do_GetInterface(curDocShellItem);
             nsCOMPtr<nsIURI> topUri;
             topDoc->NodePrincipal()->GetURI(getter_AddRefs(topUri));
-            rv = ssm->CheckSameOriginURI(uri, topUri, PR_TRUE);
+            rv = ssm->CheckSameOriginURI(uri, topUri, true);
             if (NS_SUCCEEDED(rv))
                 return true;
         }

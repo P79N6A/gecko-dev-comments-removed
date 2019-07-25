@@ -99,7 +99,7 @@ public:
 
   
   void UpdateText() {
-    UpdateText(PR_TRUE);
+    UpdateText(true);
   }
 
 private:
@@ -301,7 +301,7 @@ nsAttributeTextNode::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
 
   
   
-  UpdateText(PR_FALSE);
+  UpdateText(false);
 
   return NS_OK;
 }

@@ -51,7 +51,7 @@ extern const PRUint8 jp2CharContext[83][83];
 class JapaneseContextAnalysis
 {
 public:
-  JapaneseContextAnalysis() {Reset(PR_FALSE);}
+  JapaneseContextAnalysis() {Reset(false);}
 
   void HandleData(const char* aBuf, PRUint32 aLen);
 
@@ -60,7 +60,7 @@ public:
     PRInt32 order;
 
     
-    if (mTotalRel > MAX_REL_THRESHOLD)   mDone = PR_TRUE;
+    if (mTotalRel > MAX_REL_THRESHOLD)   mDone = true;
     if (mDone)       return;
      
     

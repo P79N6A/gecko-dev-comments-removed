@@ -123,7 +123,7 @@ nsRenderingContext::IntersectClip(const nsRect& aRect)
 {
     mThebes->NewPath();
     gfxRect clipRect(GFX_RECT_FROM_TWIPS_RECT(aRect));
-    if (mThebes->UserToDevicePixelSnapped(clipRect, PR_TRUE)) {
+    if (mThebes->UserToDevicePixelSnapped(clipRect, true)) {
         gfxMatrix mat(mThebes->CurrentMatrix());
         mThebes->IdentityMatrix();
         mThebes->Rectangle(clipRect);
@@ -154,7 +154,7 @@ nsRenderingContext::SetClip(const nsIntRegion& aRegion)
     const nsIntRect* rect;
     while ((rect = iter.Next())) {
         mThebes->Rectangle(gfxRect(rect->x, rect->y, rect->width, rect->height),
-                           PR_TRUE);
+                           true);
     }
     mThebes->Clip();
     mThebes->SetMatrix(mat);
@@ -259,7 +259,7 @@ void
 nsRenderingContext::DrawRect(const nsRect& aRect)
 {
     mThebes->NewPath();
-    mThebes->Rectangle(GFX_RECT_FROM_TWIPS_RECT(aRect), PR_TRUE);
+    mThebes->Rectangle(GFX_RECT_FROM_TWIPS_RECT(aRect), true);
     mThebes->Stroke();
 }
 
@@ -305,12 +305,12 @@ ConditionRect(gfxRect& r) {
     
     
     if (r.X() > CAIRO_COORD_MAX || r.Y() > CAIRO_COORD_MAX)
-        return PR_FALSE;
+        return false;
 
     if (r.X() < 0.0) {
         r.width += r.X();
         if (r.width < 0.0)
-            return PR_FALSE;
+            return false;
         r.x = 0.0;
     }
 
@@ -321,7 +321,7 @@ ConditionRect(gfxRect& r) {
     if (r.Y() < 0.0) {
         r.height += r.Y();
         if (r.Height() < 0.0)
-            return PR_FALSE;
+            return false;
 
         r.y = 0.0;
     }
@@ -329,7 +329,7 @@ ConditionRect(gfxRect& r) {
     if (r.YMost() > CAIRO_COORD_MAX) {
         r.height = CAIRO_COORD_MAX - r.Y();
     }
-    return PR_TRUE;
+    return true;
 }
 
 void
@@ -356,13 +356,13 @@ nsRenderingContext::FillRect(const nsRect& aRect)
         mThebes->IdentityMatrix();
         mThebes->NewPath();
 
-        mThebes->Rectangle(r, PR_TRUE);
+        mThebes->Rectangle(r, true);
         mThebes->Fill();
         mThebes->SetMatrix(mat);
     }
 
     mThebes->NewPath();
-    mThebes->Rectangle(r, PR_TRUE);
+    mThebes->Rectangle(r, true);
     mThebes->Fill();
 }
 

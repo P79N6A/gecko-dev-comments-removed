@@ -64,8 +64,8 @@ public:
     mSpecifiedUnitType = aUnitType;
     mAttrEnum = aAttrEnum;
     mCtxType = aCtxType;
-    mIsAnimated = PR_FALSE;
-    mIsBaseSet = PR_FALSE;
+    mIsAnimated = false;
+    mIsBaseSet = false;
   }
 
   nsSVGLength2& operator=(const nsSVGLength2& aLength) {
@@ -193,7 +193,7 @@ private:
       }
 
     NS_IMETHOD SetValueAsString(const nsAString& aValue)
-      { return mVal->SetBaseValueString(aValue, mSVGElement, PR_TRUE); }
+      { return mVal->SetBaseValueString(aValue, mSVGElement, true); }
     NS_IMETHOD GetValueAsString(nsAString& aValue)
       { mVal->GetBaseValueString(aValue); return NS_OK; }
 

@@ -82,7 +82,7 @@ public:
         , mIter(nsnull)
         , mLastIter(nsnull)
         , mIterGenCnt(-1)
-        , mDone(PR_FALSE) {}
+        , mDone(false) {}
 
 private:
     virtual ~nsDNSRecord() {}
@@ -140,7 +140,7 @@ nsDNSRecord::GetNextAddr(PRUint16 port, PRNetAddr *addr)
             
             mIter = nsnull;
             mIterGenCnt = mHostRecord->addr_info_gencnt;
-            startedFresh = PR_TRUE;
+            startedFresh = true;
         }
 
         do {
@@ -162,7 +162,7 @@ nsDNSRecord::GetNextAddr(PRUint16 port, PRNetAddr *addr)
             
         mHostRecord->addr_info_lock.Unlock();
         if (!mIter) {
-            mDone = PR_TRUE;
+            mDone = true;
             return NS_ERROR_NOT_AVAILABLE;
         }
     }
@@ -181,7 +181,7 @@ nsDNSRecord::GetNextAddr(PRUint16 port, PRNetAddr *addr)
             addr->inet.port = port;
         else
             addr->ipv6.port = port;
-        mDone = PR_TRUE; 
+        mDone = true; 
     }
         
     return NS_OK; 
@@ -207,7 +207,7 @@ NS_IMETHODIMP
 nsDNSRecord::HasMore(bool *result)
 {
     if (mDone)
-        *result = PR_FALSE;
+        *result = false;
     else {
         
         
@@ -217,7 +217,7 @@ nsDNSRecord::HasMore(bool *result)
         *result = NS_SUCCEEDED(GetNextAddr(0, &addr));
         mIter = iterCopy; 
         mLastIter = iterLastCopy; 
-        mDone = PR_FALSE;
+        mDone = false;
     }
     return NS_OK;
 }
@@ -228,7 +228,7 @@ nsDNSRecord::Rewind()
     mIter = nsnull;
     mLastIter = nsnull;
     mIterGenCnt = -1;
-    mDone = PR_FALSE;
+    mDone = false;
     return NS_OK;
 }
 
@@ -326,7 +326,7 @@ class nsDNSSyncRequest : public nsResolveHostCallback
 {
 public:
     nsDNSSyncRequest(PRMonitor *mon)
-        : mDone(PR_FALSE)
+        : mDone(false)
         , mStatus(NS_OK)
         , mMonitor(mon) {}
     virtual ~nsDNSSyncRequest() {}
@@ -348,7 +348,7 @@ nsDNSSyncRequest::OnLookupComplete(nsHostResolver *resolver,
 {
     
     PR_EnterMonitor(mMonitor);
-    mDone = PR_TRUE;
+    mDone = true;
     mStatus = status;
     mHostRecord = hostRecord;
     PR_Notify(mMonitor);
@@ -359,7 +359,7 @@ nsDNSSyncRequest::OnLookupComplete(nsHostResolver *resolver,
 
 nsDNSService::nsDNSService()
     : mLock("nsDNSServer.mLock")
-    , mFirstTime(PR_TRUE)
+    , mFirstTime(true)
 {
 }
 
@@ -407,20 +407,20 @@ nsDNSService::Init()
     }
 
     if (mFirstTime) {
-        mFirstTime = PR_FALSE;
+        mFirstTime = false;
 
         
         if (prefs) {
-            prefs->AddObserver(kPrefDnsCacheEntries, this, PR_FALSE);
-            prefs->AddObserver(kPrefDnsCacheExpiration, this, PR_FALSE);
-            prefs->AddObserver(kPrefEnableIDN, this, PR_FALSE);
-            prefs->AddObserver(kPrefIPv4OnlyDomains, this, PR_FALSE);
-            prefs->AddObserver(kPrefDisableIPv6, this, PR_FALSE);
-            prefs->AddObserver(kPrefDisablePrefetch, this, PR_FALSE);
+            prefs->AddObserver(kPrefDnsCacheEntries, this, false);
+            prefs->AddObserver(kPrefDnsCacheExpiration, this, false);
+            prefs->AddObserver(kPrefEnableIDN, this, false);
+            prefs->AddObserver(kPrefIPv4OnlyDomains, this, false);
+            prefs->AddObserver(kPrefDisableIPv6, this, false);
+            prefs->AddObserver(kPrefDisablePrefetch, this, false);
 
             
             
-            prefs->AddObserver("network.proxy.type", this, PR_FALSE);
+            prefs->AddObserver("network.proxy.type", this, false);
         }
     }
 

@@ -108,8 +108,8 @@ class nsHashKey {
 
 
 enum {
-    kHashEnumerateStop      = PR_FALSE,
-    kHashEnumerateNext      = PR_TRUE
+    kHashEnumerateStop      = false,
+    kHashEnumerateNext      = true
 };
 
 typedef bool

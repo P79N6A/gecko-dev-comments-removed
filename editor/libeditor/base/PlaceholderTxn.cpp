@@ -42,10 +42,10 @@
 #include "nsGkAtoms.h"
 
 PlaceholderTxn::PlaceholderTxn() :  EditAggregateTxn(), 
-                                    mAbsorb(PR_TRUE), 
+                                    mAbsorb(true), 
                                     mForwarding(nsnull),
                                     mIMETextTxn(nsnull),
-                                    mCommitted(PR_FALSE),
+                                    mCommitted(false),
                                     mStartSel(nsnull),
                                     mEndSel(),
                                     mEditor(nsnull)
@@ -126,7 +126,7 @@ NS_IMETHODIMP PlaceholderTxn::Merge(nsITransaction *aTransaction, bool *aDidMerg
   NS_ENSURE_TRUE(aDidMerge && aTransaction, NS_ERROR_NULL_POINTER);
 
   
-  *aDidMerge=PR_FALSE;
+  *aDidMerge=false;
     
   if (mForwarding) 
   {
@@ -181,7 +181,7 @@ NS_IMETHODIMP PlaceholderTxn::Merge(nsITransaction *aTransaction, bool *aDidMerg
     {                  
       AppendChild(editTxn);
     }
-    *aDidMerge = PR_TRUE;
+    *aDidMerge = true;
 
 
 
@@ -210,7 +210,7 @@ NS_IMETHODIMP PlaceholderTxn::Merge(nsITransaction *aTransaction, bool *aDidMerg
           plcTxn->StartSelectionEquals(&mEndSel, &isSame);
           if (isSame)
           {
-            mAbsorb = PR_TRUE;  
+            mAbsorb = true;  
             plcTxn->ForwardEndBatchTo(this);
             
             
@@ -218,7 +218,7 @@ NS_IMETHODIMP PlaceholderTxn::Merge(nsITransaction *aTransaction, bool *aDidMerg
             
             
             RememberEndingSelection();
-            *aDidMerge = PR_TRUE;
+            *aDidMerge = true;
           }
         }
       }
@@ -253,7 +253,7 @@ NS_IMETHODIMP PlaceholderTxn::StartSelectionEquals(nsSelectionState *aSelState, 
   NS_ENSURE_TRUE(aResult && aSelState, NS_ERROR_NULL_POINTER);
   if (!mStartSel->IsCollapsed() || !aSelState->IsCollapsed())
   {
-    *aResult = PR_FALSE;
+    *aResult = false;
     return NS_OK;
   }
   *aResult = mStartSel->IsEqual(aSelState);
@@ -262,7 +262,7 @@ NS_IMETHODIMP PlaceholderTxn::StartSelectionEquals(nsSelectionState *aSelState, 
 
 NS_IMETHODIMP PlaceholderTxn::EndPlaceHolderBatch()
 {
-  mAbsorb = PR_FALSE;
+  mAbsorb = false;
   
   if (mForwarding) 
   {
@@ -282,7 +282,7 @@ NS_IMETHODIMP PlaceholderTxn::ForwardEndBatchTo(nsIAbsorbingTransaction *aForwar
 
 NS_IMETHODIMP PlaceholderTxn::Commit()
 {
-  mCommitted = PR_TRUE;
+  mCommitted = true;
   return NS_OK;
 }
 

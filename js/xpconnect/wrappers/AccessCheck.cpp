@@ -5,6 +5,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "mozilla/Util.h"
 
 #include "AccessCheck.h"
@@ -13,11 +45,11 @@
 #include "nsIDOMWindow.h"
 #include "nsIDOMWindowCollection.h"
 #include "nsContentUtils.h"
-#include "nsJSUtils.h"
 
 #include "XPCWrapper.h"
 #include "XrayWrapper.h"
 #include "FilteringWrapper.h"
+#include "WrapperFactory.h"
 
 #include "jsfriendapi.h"
 
@@ -29,12 +61,12 @@ namespace xpc {
 nsIPrincipal *
 GetCompartmentPrincipal(JSCompartment *compartment)
 {
-    return nsJSPrincipals::get(JS_GetCompartmentPrincipals(compartment));
+    JSPrincipals *prin = JS_GetCompartmentPrincipals(compartment);
+    return prin ? static_cast<nsJSPrincipals *>(prin)->nsIPrincipalPtr : nsnull;
 }
 
-
 bool
-AccessCheck::subsumes(JSCompartment *a, JSCompartment *b)
+AccessCheck::isSameOrigin(JSCompartment *a, JSCompartment *b)
 {
     nsIPrincipal *aprin = GetCompartmentPrincipal(a);
     nsIPrincipal *bprin = GetCompartmentPrincipal(b);
@@ -45,47 +77,29 @@ AccessCheck::subsumes(JSCompartment *a, JSCompartment *b)
     if (!aprin || !bprin)
         return true;
 
-    bool subsumes;
-    nsresult rv = aprin->Subsumes(bprin, &subsumes);
-    NS_ENSURE_SUCCESS(rv, false);
+    bool equals;
+    nsresult rv = aprin->EqualsIgnoringDomain(bprin, &equals);
+    if (NS_FAILED(rv)) {
+        NS_ERROR("unable to ask about equality");
+        return false;
+    }
 
-    return subsumes;
-}
-
-
-bool
-AccessCheck::wrapperSubsumes(JSObject *wrapper)
-{
-    MOZ_ASSERT(js::IsWrapper(wrapper));
-    JSObject *wrapped = js::UnwrapObject(wrapper);
-    return AccessCheck::subsumes(js::GetObjectCompartment(wrapper),
-                                 js::GetObjectCompartment(wrapped));
+    return equals;
 }
 
 bool
 AccessCheck::isLocationObjectSameOrigin(JSContext *cx, JSObject *wrapper)
 {
-    
-    MOZ_ASSERT(WrapperFactory::IsLocationObject(js::UnwrapObject(wrapper)));
-
-    
-    
-    
-
-    
     JSObject *obj = js::GetObjectParent(js::UnwrapObject(wrapper));
     if (!js::GetObjectClass(obj)->ext.innerObject) {
-        
         obj = js::UnwrapObject(obj);
         JS_ASSERT(js::GetObjectClass(obj)->ext.innerObject);
     }
-
-    
     obj = JS_ObjectToInnerObject(cx, obj);
-
-    
-    return obj && subsumes(js::GetObjectCompartment(wrapper),
-                           js::GetObjectCompartment(obj));
+    return obj &&
+           (isSameOrigin(js::GetObjectCompartment(wrapper),
+                         js::GetObjectCompartment(obj)) ||
+            documentDomainMakesSameOrigin(cx, obj));
 }
 
 bool
@@ -99,23 +113,6 @@ AccessCheck::isChrome(JSCompartment *compartment)
     bool privileged;
     nsIPrincipal *principal = GetCompartmentPrincipal(compartment);
     return NS_SUCCEEDED(ssm->IsSystemPrincipal(principal, &privileged)) && privileged;
-}
-
-bool
-AccessCheck::isChrome(JSObject *obj)
-{
-    return isChrome(js::GetObjectCompartment(obj));
-}
-
-bool
-AccessCheck::callerIsChrome()
-{
-    nsIScriptSecurityManager *ssm = XPCWrapper::GetSecurityManager();
-    if (!ssm)
-        return false;
-    bool subjectIsSystem;
-    nsresult rv = ssm->SubjectPrincipalIsSystem(&subjectIsSystem);
-    return NS_SUCCEEDED(rv) && subjectIsSystem;
 }
 
 nsIPrincipal *
@@ -138,11 +135,18 @@ static bool
 IsPermitted(const char *name, JSFlatString *prop, bool set)
 {
     size_t propLength;
-    const jschar *propChars =
-        JS_GetInternedStringCharsAndLength(JS_FORGET_STRING_FLATNESS(prop), &propLength);
+    const jschar *propChars = JS_GetInternedStringCharsAndLength(prop, &propLength);
     if (!propLength)
         return false;
     switch (name[0]) {
+        NAME('D', "DOMException",
+             PROP('c', RW("code"))
+             PROP('m', RW("message"))
+             PROP('n', RW("name"))
+             PROP('r', RW("result"))
+             PROP('t', R("toString")))
+        NAME('E', "Error",
+             PROP('m', R("message")))
         NAME('H', "History",
              PROP('b', R("back"))
              PROP('f', R("forward"))
@@ -150,6 +154,8 @@ IsPermitted(const char *name, JSFlatString *prop, bool set)
         NAME('L', "Location",
              PROP('h', W("hash") W("href"))
              PROP('r', R("replace")))
+        NAME('N', "Navigator",
+             PROP('p', RW("preference")))
         NAME('W', "Window",
              PROP('b', R("blur"))
              PROP('c', R("close") R("closed"))
@@ -191,20 +197,91 @@ IsFrameId(JSContext *cx, JSObject *obj, jsid id)
 
     if (JSID_IS_INT(id)) {
         col->Item(JSID_TO_INT(id), getter_AddRefs(domwin));
-    } else if (JSID_IS_STRING(id)) {
+    } else if (JSID_IS_ATOM(id)) {
         nsAutoString str(JS_GetInternedStringChars(JSID_TO_STRING(id)));
         col->NamedItem(str, getter_AddRefs(domwin));
     } else {
         return false;
     }
 
-    return domwin != nullptr;
+    return domwin != nsnull;
 }
 
 static bool
 IsWindow(const char *name)
 {
     return name[0] == 'W' && !strcmp(name, "Window");
+}
+
+static bool
+IsLocation(const char *name)
+{
+    return name[0] == 'L' && !strcmp(name, "Location");
+}
+
+static nsIPrincipal *
+GetPrincipal(JSObject *obj)
+{
+    NS_ASSERTION(!IS_SLIM_WRAPPER(obj), "global object is a slim wrapper?");
+    if (!IS_WN_WRAPPER(obj)) {
+        NS_ASSERTION(!(~js::GetObjectClass(obj)->flags &
+                       (JSCLASS_PRIVATE_IS_NSISUPPORTS | JSCLASS_HAS_PRIVATE)),
+                     "bad object");
+        nsCOMPtr<nsIScriptObjectPrincipal> objPrin =
+            do_QueryInterface((nsISupports*)xpc_GetJSPrivate(obj));
+        NS_ASSERTION(objPrin, "global isn't nsIScriptObjectPrincipal?");
+        return objPrin->GetPrincipal();
+    }
+
+    nsIXPConnect *xpc = nsXPConnect::GetRuntimeInstance()->GetXPConnect();
+    return xpc->GetPrincipal(obj, true);
+}
+
+bool
+AccessCheck::documentDomainMakesSameOrigin(JSContext *cx, JSObject *obj)
+{
+    JSObject *scope = nsnull;
+    JSStackFrame *fp = nsnull;
+    JS_FrameIterator(cx, &fp);
+    if (fp) {
+        while (!JS_IsScriptFrame(cx, fp)) {
+            if (!JS_FrameIterator(cx, &fp))
+                break;
+        }
+
+        if (fp)
+            scope = JS_GetGlobalForFrame(fp);
+    }
+
+    if (!scope)
+        scope = JS_GetGlobalForScopeChain(cx);
+
+    nsIPrincipal *subject;
+    nsIPrincipal *object;
+
+    {
+        JSAutoEnterCompartment ac;
+
+        if (!ac.enter(cx, scope))
+            return false;
+
+        subject = GetPrincipal(scope);
+    }
+
+    if (!subject)
+        return false;
+
+    {
+        JSAutoEnterCompartment ac;
+
+        if (!ac.enter(cx, obj))
+            return false;
+
+        object = GetPrincipal(JS_GetGlobalForObject(cx, obj));
+    }
+
+    bool subsumes;
+    return NS_SUCCEEDED(subject->Subsumes(object, &subsumes)) && subsumes;
 }
 
 bool
@@ -219,11 +296,6 @@ AccessCheck::isCrossOriginAccessPermitted(JSContext *cx, JSObject *wrapper, jsid
 
     JSObject *obj = Wrapper::wrappedObject(wrapper);
 
-    
-    if (act == Wrapper::PUNCTURE) {
-        return false;
-    }
-
     const char *name;
     js::Class *clasp = js::GetObjectClass(obj);
     NS_ASSERTION(Jsvalify(clasp) != &XrayUtils::HolderClass, "shouldn't have a holder here");
@@ -232,12 +304,17 @@ AccessCheck::isCrossOriginAccessPermitted(JSContext *cx, JSObject *wrapper, jsid
     else
         name = clasp->name;
 
-    if (JSID_IS_STRING(id)) {
+    if (JSID_IS_ATOM(id)) {
         if (IsPermitted(name, JSID_TO_FLAT_STRING(id), act == Wrapper::SET))
             return true;
     }
 
     if (IsWindow(name) && IsFrameId(cx, obj, id))
+        return true;
+
+    
+    
+    if (!IsLocation(name) && documentDomainMakesSameOrigin(cx, obj))
         return true;
 
     return (act == Wrapper::SET)
@@ -259,15 +336,18 @@ AccessCheck::isSystemOnlyAccessPermitted(JSContext *cx)
         return false;
     }
 
-    JSScript *script = nullptr;
-    if (fp) {
-      script = JS_GetFrameScript(cx, fp);
-    } else {
-        if (!JS_DescribeScriptedCaller(cx, &script, nullptr)) {
+    if (!fp) {
+        if (!JS_FrameIterator(cx, &fp)) {
             
             
             return true;
         }
+
+        
+        
+        fp = NULL;
+    } else if (!JS_IsScriptFrame(cx, fp)) {
+        fp = NULL;
     }
 
     bool privileged;
@@ -280,13 +360,13 @@ AccessCheck::isSystemOnlyAccessPermitted(JSContext *cx)
     
     static const char prefix[] = "chrome://global/";
     const char *filename;
-    if (script &&
-        (filename = JS_GetScriptFilename(cx, script)) &&
+    if (fp &&
+        (filename = JS_GetScriptFilename(cx, JS_GetFrameScript(cx, fp))) &&
         !strncmp(filename, prefix, ArrayLength(prefix) - 1)) {
         return true;
     }
 
-    return false;
+    return NS_SUCCEEDED(ssm->IsCapabilityEnabled("UniversalXPConnect", &privileged)) && privileged;
 }
 
 bool
@@ -304,14 +384,25 @@ AccessCheck::isScriptAccessOnly(JSContext *cx, JSObject *wrapper)
 {
     JS_ASSERT(js::IsWrapper(wrapper));
 
-    unsigned flags;
-    JSObject *obj = js::UnwrapObject(wrapper, true, &flags);
+    uintN flags;
+    JSObject *obj = js::UnwrapObject(wrapper, &flags);
 
     
     if (flags & WrapperFactory::SCRIPT_ACCESS_ONLY_FLAG) {
         if (flags & WrapperFactory::SOW_FLAG)
             return !isSystemOnlyAccessPermitted(cx);
-        return true;
+
+        if (flags & WrapperFactory::PARTIALLY_TRANSPARENT)
+            return !XrayUtils::IsTransparent(cx, wrapper);
+
+        nsIScriptSecurityManager *ssm = XPCWrapper::GetSecurityManager();
+        if (!ssm)
+            return true;
+
+        
+        bool privileged;
+        return !NS_SUCCEEDED(ssm->IsCapabilityEnabled("UniversalXPConnect", &privileged)) ||
+               !privileged;
     }
 
     
@@ -361,12 +452,25 @@ Deny(JSContext *cx, jsid id, Wrapper::Action act)
     return false;
 }
 
-static bool
-IsInSandbox(JSContext *cx, JSObject *obj)
+bool
+PermitIfUniversalXPConnect(JSContext *cx, jsid id, Wrapper::Action act,
+                           ExposedPropertiesOnly::Permission &perm)
 {
-    JSAutoCompartment ac(cx, obj);
-    JSObject *global = JS_GetGlobalForObject(cx, obj);
-    return !strcmp(js::GetObjectJSClass(global)->name, "Sandbox");
+    
+    
+    nsIScriptSecurityManager *ssm = XPCWrapper::GetSecurityManager();
+    if (!ssm) {
+        return false;
+    }
+    bool privileged;
+    if (NS_SUCCEEDED(ssm->IsCapabilityEnabled("UniversalXPConnect", &privileged)) &&
+        privileged) {
+        perm = ExposedPropertiesOnly::PermitPropertyAccess;
+        return true; 
+    }
+
+    
+    return Deny(cx, id, act);
 }
 
 bool
@@ -381,26 +485,19 @@ ExposedPropertiesOnly::check(JSContext *cx, JSObject *wrapper, jsid id, Wrapper:
     }
 
     perm = DenyAccess;
-    if (act == Wrapper::PUNCTURE)
-        return Deny(cx, id, act);
 
     jsid exposedPropsId = GetRTIdByIndex(cx, XPCJSRuntime::IDX_EXPOSEDPROPS);
 
-    
-    
-    
-    
-    JSAutoCompartment ac(cx, wrappedObject);
-
-    JSBool found = false;
-    if (!JS_HasPropertyById(cx, wrappedObject, exposedPropsId, &found))
+    JSBool found = JS_FALSE;
+    JSAutoEnterCompartment ac;
+    if (!ac.enter(cx, wrappedObject) ||
+        !JS_HasPropertyById(cx, wrappedObject, exposedPropsId, &found))
         return false;
 
     
-    if ((JS_IsArrayObject(cx, wrappedObject) ||
-         JS_IsTypedArrayObject(wrappedObject, cx)) &&
+    if (JS_IsArrayObject(cx, wrappedObject) &&
         ((JSID_IS_INT(id) && JSID_TO_INT(id) >= 0) ||
-         (JSID_IS_STRING(id) && JS_FlatStringEqualsAscii(JSID_TO_FLAT_STRING(id), "length")))) {
+         (JSID_IS_ATOM(id) && JS_FlatStringEqualsAscii(JSID_TO_FLAT_STRING(id), "length")))) {
         perm = PermitPropertyAccess;
         return true; 
     }
@@ -408,28 +505,11 @@ ExposedPropertiesOnly::check(JSContext *cx, JSObject *wrapper, jsid id, Wrapper:
     
     if (!found) {
         
-        JSAutoCompartment wrapperAC(cx, wrapper);
-        
-        
-        if (!JS_ObjectIsFunction(cx, wrappedObject) &&
-            IsInSandbox(cx, wrappedObject))
-        {
-            
-            nsCOMPtr<nsPIDOMWindow> win =
-                do_QueryInterface(nsJSUtils::GetStaticScriptGlobal(cx, wrapper));
-            if (win) {
-                nsCOMPtr<nsIDocument> doc =
-                    do_QueryInterface(win->GetExtantDocument());
-                if (doc) {
-                    doc->WarnOnceAbout(nsIDocument::eNoExposedProps,
-                                        true);
-                }
-            }
-
+        if (!JS_ObjectIsFunction(cx, wrappedObject)) {
             perm = PermitPropertyAccess;
             return true;
         }
-        return Deny(cx, id, act);
+        return PermitIfUniversalXPConnect(cx, id, act, perm); 
     }
 
     if (id == JSID_VOID) {
@@ -438,32 +518,29 @@ ExposedPropertiesOnly::check(JSContext *cx, JSObject *wrapper, jsid id, Wrapper:
         return true;
     }
 
-    JS::Value exposedProps;
+    jsval exposedProps;
     if (!JS_LookupPropertyById(cx, wrappedObject, exposedPropsId, &exposedProps))
         return false;
 
-    if (exposedProps.isNullOrUndefined()) {
-        JSAutoCompartment wrapperAC(cx, wrapper);
-        return Deny(cx, id, act);
+    if (JSVAL_IS_VOID(exposedProps) || JSVAL_IS_NULL(exposedProps)) {
+        return PermitIfUniversalXPConnect(cx, id, act, perm); 
     }
 
-    if (!exposedProps.isObject()) {
+    if (!JSVAL_IS_OBJECT(exposedProps)) {
         JS_ReportError(cx, "__exposedProps__ must be undefined, null, or an Object");
         return false;
     }
 
-    JSObject *hallpass = &exposedProps.toObject();
+    JSObject *hallpass = JSVAL_TO_OBJECT(exposedProps);
 
     Access access = NO_ACCESS;
 
     JSPropertyDescriptor desc;
-    memset(&desc, 0, sizeof(desc));
     if (!JS_GetPropertyDescriptorById(cx, hallpass, id, JSRESOLVE_QUALIFIED, &desc)) {
         return false; 
     }
     if (desc.obj == NULL || !(desc.attrs & JSPROP_ENUMERATE)) {
-        JSAutoCompartment wrapperAC(cx, wrapper);
-        return Deny(cx, id, act);
+        return PermitIfUniversalXPConnect(cx, id, act, perm); 
     }
 
     if (!JSVAL_IS_STRING(desc.value)) {
@@ -508,43 +585,11 @@ ExposedPropertiesOnly::check(JSContext *cx, JSObject *wrapper, jsid id, Wrapper:
 
     if ((act == Wrapper::SET && !(access & WRITE)) ||
         (act != Wrapper::SET && !(access & READ))) {
-        JSAutoCompartment wrapperAC(cx, wrapper);
-        return Deny(cx, id, act);
+        return PermitIfUniversalXPConnect(cx, id, act, perm); 
     }
 
     perm = PermitPropertyAccess;
     return true; 
-}
-
-bool
-ComponentsObjectPolicy::check(JSContext *cx, JSObject *wrapper, jsid id, Wrapper::Action act,
-                              Permission &perm) 
-{
-    perm = DenyAccess;
-    JSAutoCompartment ac(cx, wrapper);
-
-    if (JSID_IS_STRING(id) && act == Wrapper::GET) {
-        JSFlatString *flatId = JSID_TO_FLAT_STRING(id);
-        if (JS_FlatStringEqualsAscii(flatId, "isSuccessCode") ||
-            JS_FlatStringEqualsAscii(flatId, "lookupMethod") ||
-            JS_FlatStringEqualsAscii(flatId, "interfaces") ||
-            JS_FlatStringEqualsAscii(flatId, "interfacesByID") ||
-            JS_FlatStringEqualsAscii(flatId, "results"))
-        {
-            perm = PermitPropertyAccess;
-            return true;
-        }
-    }
-
-    
-    
-    
-    if (xpc::IsUniversalXPConnectEnabled(cx)) {
-        perm = PermitPropertyAccess;
-        return true;
-    }
-
-    return Deny(cx, id, act);
 }
 
 }

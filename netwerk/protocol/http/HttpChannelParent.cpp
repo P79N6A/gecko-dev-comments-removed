@@ -214,14 +214,14 @@ HttpChannelParent::RecvAsyncOpen(const IPC::URI&            aURI,
     
     
     
-    appCacheChan->SetInheritApplicationCache(PR_FALSE);
+    appCacheChan->SetInheritApplicationCache(false);
     if (!appCacheClientID.IsEmpty()) {
       nsCOMPtr<nsIApplicationCache> appCache;
       rv = appCacheService->GetApplicationCache(appCacheClientID,
                                                 getter_AddRefs(appCache));
       if (NS_SUCCEEDED(rv)) {
         appCacheChan->SetApplicationCache(appCache);
-        setChooseApplicationCache = PR_FALSE;
+        setChooseApplicationCache = false;
       }
     }
 
@@ -234,7 +234,7 @@ HttpChannelParent::RecvAsyncOpen(const IPC::URI&            aURI,
                                                            &setChooseApplicationCache);
 
         if (setChooseApplicationCache && NS_SUCCEEDED(rv))
-          appCacheChan->SetChooseApplicationCache(PR_TRUE);
+          appCacheChan->SetChooseApplicationCache(true);
       }
     }
   }
@@ -403,7 +403,7 @@ HttpChannelParent::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
 
   nsCOMPtr<nsIEncodedChannel> encodedChannel = do_QueryInterface(aRequest);
   if (encodedChannel)
-    encodedChannel->SetApplyConversion(PR_FALSE);
+    encodedChannel->SetApplyConversion(false);
 
   
   
@@ -431,7 +431,7 @@ HttpChannelParent::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
                           !!responseHead,
                           headers,
                           isFromCache,
-                          mCacheDescriptor ? PR_TRUE : PR_FALSE,
+                          mCacheDescriptor ? true : false,
                           expirationTime, cachedCharset, secInfoSerialization,
                           httpChan->GetSelfAddr(), httpChan->GetPeerAddr())) 
   {

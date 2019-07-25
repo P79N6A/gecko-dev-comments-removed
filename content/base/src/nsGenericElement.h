@@ -412,12 +412,12 @@ public:
   nsresult InsertBefore(nsIDOMNode* aNewChild, nsIDOMNode* aRefChild,
                         nsIDOMNode** aReturn)
   {
-    return ReplaceOrInsertBefore(PR_FALSE, aNewChild, aRefChild, aReturn);
+    return ReplaceOrInsertBefore(false, aNewChild, aRefChild, aReturn);
   }
   nsresult ReplaceChild(nsIDOMNode* aNewChild, nsIDOMNode* aOldChild,
                         nsIDOMNode** aReturn)
   {
-    return ReplaceOrInsertBefore(PR_TRUE, aNewChild, aOldChild, aReturn);
+    return ReplaceOrInsertBefore(true, aNewChild, aOldChild, aReturn);
   }
   nsresult RemoveChild(nsIDOMNode* aOldChild, nsIDOMNode** aReturn)
   {
@@ -462,7 +462,7 @@ public:
                             bool* aReturn);
   nsresult CloneNode(bool aDeep, nsIDOMNode **aResult)
   {
-    return nsNodeUtils::CloneNodeImpl(this, aDeep, PR_TRUE, aResult);
+    return nsNodeUtils::CloneNodeImpl(this, aDeep, true, aResult);
   }
 
   
@@ -631,7 +631,7 @@ public:
       return NS_ERROR_OUT_OF_MEMORY;
     }
 
-    *aResult = list->Length(PR_TRUE);
+    *aResult = list->Length(true);
 
     return NS_OK;
   }

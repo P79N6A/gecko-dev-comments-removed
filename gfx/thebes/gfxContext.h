@@ -824,7 +824,7 @@ public:
         if (aDisable) {
             mSurface = aContext->CurrentSurface();
             mSubpixelAntialiasingEnabled = mSurface->GetSubpixelAntialiasingEnabled();
-            mSurface->SetSubpixelAntialiasingEnabled(PR_FALSE);
+            mSurface->SetSubpixelAntialiasingEnabled(false);
         }
     }
     ~gfxContextAutoDisableSubpixelAntialiasing()

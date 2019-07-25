@@ -351,22 +351,15 @@ protected:
 
   
 
-    
+  
 
 
+  virtual already_AddRefed<nsFrameSelection> FrameSelection();
+
+  
 
 
-
-
-
-
-
-
-
-  nsresult GetSelections(PRInt16 aType,
-                         nsISelectionController **aSelCon,
-                         nsISelection **aDomSel = nsnull,
-                         nsCOMArray<nsIDOMRange>* aRanges = nsnull);
+  void GetSelectionDOMRanges(PRInt16 aType, nsCOMArray<nsIDOMRange>* aRanges);
 
   nsresult SetSelectionRange(PRInt32 aStartPos, PRInt32 aEndPos);
 

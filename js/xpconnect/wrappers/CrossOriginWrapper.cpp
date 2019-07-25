@@ -47,7 +47,7 @@
 
 namespace xpc {
 
-NoWaiverWrapper::NoWaiverWrapper(uintN flags) : CrossCompartmentWrapper(flags)
+NoWaiverWrapper::NoWaiverWrapper(uintN flags) : js::CrossCompartmentWrapper(flags)
 {
 }
 
@@ -73,7 +73,7 @@ CrossOriginWrapper::getPropertyDescriptor(JSContext *cx, JSObject *wrapper, jsid
 
 bool
 CrossOriginWrapper::getOwnPropertyDescriptor(JSContext *cx, JSObject *wrapper, jsid id,
-                                          bool set, js::PropertyDescriptor *desc)
+                                             bool set, js::PropertyDescriptor *desc)
 {
     return CrossCompartmentWrapper::getOwnPropertyDescriptor(cx, wrapper, id, set, desc) &&
            WrapperFactory::WaiveXrayAndWrap(cx, &desc->value);

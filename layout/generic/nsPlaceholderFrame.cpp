@@ -193,7 +193,7 @@ nsPlaceholderFrame::GetType() const
 nsPlaceholderFrame::CanContinueTextRun() const
 {
   if (!mOutOfFlowFrame) {
-    return PR_FALSE;
+    return false;
   }
   
   

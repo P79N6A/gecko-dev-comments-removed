@@ -348,7 +348,7 @@ nsresult nsBinHexDecoder::ProcessNextChunk(nsIRequest * aRequest, nsISupports * 
   
   if (mState == BINHEX_STATE_START)
   {
-    foundStart = PR_FALSE;
+    foundStart = false;
     
     while (mPosInDataBuffer < numBytesInBuffer)
     {
@@ -361,7 +361,7 @@ nsresult nsBinHexDecoder::ProcessNextChunk(nsIRequest * aRequest, nsISupports * 
         c = mDataBuffer[mPosInDataBuffer++];
         if (c == ':')
         {
-          foundStart = PR_TRUE;
+          foundStart = true;
           break;
         }
       }
@@ -487,7 +487,7 @@ nsBinHexDecoder::OnStartRequest(nsIRequest* request, nsISupports *aCtxt)
   rv = NS_NewPipe(getter_AddRefs(mInputStream), getter_AddRefs(mOutputStream),
                   nsIOService::gDefaultSegmentSize,
                   nsIOService::gDefaultSegmentSize,
-                  PR_TRUE, PR_TRUE);
+                  true, true);
 
   
   return rv;

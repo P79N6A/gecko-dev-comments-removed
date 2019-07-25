@@ -50,8 +50,8 @@ NS_NewControllerCommandTable(nsIControllerCommandTable** aResult);
 
 
 nsControllerCommandTable::nsControllerCommandTable()
-: mCommandsTable(NUM_COMMANDS_BOUNDS, PR_FALSE)
-, mMutable(PR_TRUE)
+: mCommandsTable(NUM_COMMANDS_BOUNDS, false)
+, mMutable(true)
 {
 }
 
@@ -65,7 +65,7 @@ NS_IMPL_ISUPPORTS2(nsControllerCommandTable, nsIControllerCommandTable, nsISuppo
 NS_IMETHODIMP
 nsControllerCommandTable::MakeImmutable(void)
 {
-  mMutable = PR_FALSE;
+  mMutable = false;
   return NS_OK;
 }
 
@@ -122,7 +122,7 @@ nsControllerCommandTable::IsCommandEnabled(const char * aCommandName, nsISupport
 {
   NS_ENSURE_ARG_POINTER(aResult);
 
-  *aResult = PR_FALSE;
+  *aResult = false;
       
   
   nsCOMPtr<nsIControllerCommand> commandHandler;
@@ -163,7 +163,7 @@ nsControllerCommandTable::SupportsCommand(const char * aCommandName, nsISupports
 
   
 
-  *aResult = PR_FALSE;
+  *aResult = false;
   
   
   nsCOMPtr<nsIControllerCommand> commandHandler;

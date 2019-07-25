@@ -60,9 +60,9 @@ using namespace mozilla::dom;
 
 nsSMILAnimationController::nsSMILAnimationController(nsIDocument* aDoc)
   : mAvgTimeBetweenSamples(0),
-    mResampleNeeded(PR_FALSE),
-    mDeferredStartSampling(PR_FALSE),
-    mRunningSample(PR_FALSE),
+    mResampleNeeded(false),
+    mDeferredStartSampling(false),
+    mRunningSample(false),
     mDocument(aDoc)
 {
   NS_ABORT_IF_FALSE(aDoc, "need a non-null document");
@@ -111,7 +111,7 @@ nsSMILAnimationController::Pause(PRUint32 aType)
   nsSMILTimeContainer::Pause(aType);
 
   if (mPauseState) {
-    mDeferredStartSampling = PR_FALSE;
+    mDeferredStartSampling = false;
     StopSampling(GetRefreshDriver());
   }
 }
@@ -201,7 +201,7 @@ nsSMILAnimationController::RegisterAnimationElement(
 {
   mAnimationElementTable.PutEntry(aAnimationElement);
   if (mDeferredStartSampling) {
-    mDeferredStartSampling = PR_FALSE;
+    mDeferredStartSampling = false;
     if (mChildContainerTable.Count()) {
       
       NS_ABORT_IF_FALSE(mAnimationElementTable.Count() == 1,
@@ -331,7 +331,7 @@ nsSMILAnimationController::MaybeStartSampling(nsRefreshDriver* aRefreshDriver)
   if (mAnimationElementTable.Count()) {
     StartSampling(aRefreshDriver);
   } else {
-    mDeferredStartSampling = PR_TRUE;
+    mDeferredStartSampling = true;
   }
 }
 
@@ -383,7 +383,7 @@ DoComposeAttribute(nsSMILCompositor* aCompositor,
 void
 nsSMILAnimationController::DoSample()
 {
-  DoSample(PR_TRUE); 
+  DoSample(true); 
 }
 
 void
@@ -394,10 +394,10 @@ nsSMILAnimationController::DoSample(bool aSkipUnchangedContainers)
     return;
   }
 
-  mResampleNeeded = PR_FALSE;
+  mResampleNeeded = false;
   
   
-  mRunningSample = PR_TRUE;
+  mRunningSample = true;
   mDocument->FlushPendingNotifications(Flush_Style);
 
   
@@ -472,7 +472,7 @@ nsSMILAnimationController::DoSample(bool aSkipUnchangedContainers)
   
   
   currentCompositorTable->EnumerateEntries(DoComposeAttribute, nsnull);
-  mRunningSample = PR_FALSE;
+  mRunningSample = false;
 
   
   mLastCompositorTable = currentCompositorTable.forget();
@@ -502,7 +502,7 @@ nsSMILAnimationController::RewindNeeded(TimeContainerPtrKey* aKey,
 
   nsSMILTimeContainer* container = aKey->GetKey();
   if (container->NeedsRewind()) {
-    *rewindNeeded = PR_TRUE;
+    *rewindNeeded = true;
     return PL_DHASH_STOP;
   }
 
@@ -552,13 +552,13 @@ nsSMILAnimationController::DoMilestoneSamples()
 
   nsSMILTime sampleTime = LL_MININT;
 
-  while (PR_TRUE) {
+  while (true) {
     
     
     
     
     
-    nsSMILMilestone nextMilestone(GetCurrentTime() + 1, PR_TRUE);
+    nsSMILMilestone nextMilestone(GetCurrentTime() + 1, true);
     mChildContainerTable.EnumerateEntries(GetNextMilestone, &nextMilestone);
 
     if (nextMilestone.mTime > GetCurrentTime()) {
@@ -769,7 +769,7 @@ nsSMILAnimationController::GetTargetIdentifierForAnimation(
   Element* targetElem = aAnimElem->GetTargetElementContent();
   if (!targetElem)
     
-    return PR_FALSE;
+    return false;
 
   
   
@@ -779,7 +779,7 @@ nsSMILAnimationController::GetTargetIdentifierForAnimation(
   if (!aAnimElem->GetTargetAttributeName(&attributeNamespaceID,
                                          getter_AddRefs(attributeName)))
     
-    return PR_FALSE;
+    return false;
 
   
   nsSMILTargetAttrType attributeType = aAnimElem->GetTargetAttributeType();
@@ -804,7 +804,7 @@ nsSMILAnimationController::GetTargetIdentifierForAnimation(
   aResult.mAttributeNamespaceID = attributeNamespaceID;
   aResult.mIsCSS = isCSS;
 
-  return PR_TRUE;
+  return true;
 }
 
 

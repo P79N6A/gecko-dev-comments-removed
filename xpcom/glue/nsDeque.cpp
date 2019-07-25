@@ -173,10 +173,10 @@ bool nsDeque::GrowCapacity() {
   PRInt32 theNewSize=mCapacity<<2;
   NS_ASSERTION(theNewSize>mCapacity, "Overflow");
   if (theNewSize<=mCapacity)
-    return PR_FALSE;
+    return false;
   void** temp=(void**)malloc(theNewSize * sizeof(void*));
   if (!temp)
-    return PR_FALSE;
+    return false;
 
   
   
@@ -194,7 +194,7 @@ bool nsDeque::GrowCapacity() {
   mOrigin=0; 
   mData=temp;
 
-  return PR_TRUE;
+  return true;
 }
 
 

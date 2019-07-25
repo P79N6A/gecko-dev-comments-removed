@@ -177,7 +177,7 @@ nsContentAreaDragDrop::GetDragData(nsIDOMWindow* aWindow,
 {
   NS_ENSURE_TRUE(aSelectionTargetNode, NS_ERROR_INVALID_ARG);
 
-  *aCanDrag = PR_TRUE;
+  *aCanDrag = true;
 
   DragDataProducer
     provider(aWindow, aTarget, aSelectionTargetNode, aIsAltKeyPressed);
@@ -306,7 +306,7 @@ DragDataProducer::DragDataProducer(nsIDOMWindow* aWindow,
     mTarget(aTarget),
     mSelectionTargetNode(aSelectionTargetNode),
     mIsAltKeyPressed(aIsAltKeyPressed),
-    mIsAnchor(PR_FALSE)
+    mIsAnchor(false)
 {
 }
 
@@ -446,7 +446,7 @@ DragDataProducer::Produce(nsDOMDataTransfer* aDataTransfer,
     
   
   nsCOMPtr<nsIContent> nodeToSerialize;
-  *aDragSelection = PR_FALSE;
+  *aDragSelection = false;
 
   {
     bool haveSelectedContent = false;
@@ -463,7 +463,7 @@ DragDataProducer::Produce(nsDOMDataTransfer* aDataTransfer,
       
       nsCOMPtr<nsIFormControl> form(do_QueryInterface(mTarget));
       if (form && !mIsAltKeyPressed && form->GetType() != NS_FORM_OBJECT) {
-        *aCanDrag = PR_FALSE;
+        *aCanDrag = false;
         return NS_OK;
       }
 
@@ -484,11 +484,11 @@ DragDataProducer::Produce(nsDOMDataTransfer* aDataTransfer,
       link = do_QueryInterface(selectedImageOrLinkNode);
       if (link && mIsAltKeyPressed) {
         
-        *aCanDrag = PR_FALSE;
+        *aCanDrag = false;
         return NS_OK;
       }
 
-      *aDragSelection = PR_TRUE;
+      *aDragSelection = true;
     } else if (selectedImageOrLinkNode) {
       
       image = do_QueryInterface(selectedImageOrLinkNode);
@@ -501,7 +501,7 @@ DragDataProducer::Produce(nsDOMDataTransfer* aDataTransfer,
       
       parentLink = FindParentLinkNode(draggedNode);
       if (parentLink && mIsAltKeyPressed) {
-        *aCanDrag = PR_FALSE;
+        *aCanDrag = false;
         return NS_OK;
       }
 
@@ -523,7 +523,7 @@ DragDataProducer::Produce(nsDOMDataTransfer* aDataTransfer,
         }
 
         
-        mIsAnchor = PR_TRUE;
+        mIsAnchor = true;
 
         
         GetAnchorURL(draggedNode, mUrlString);
@@ -536,7 +536,7 @@ DragDataProducer::Produce(nsDOMDataTransfer* aDataTransfer,
 
         dragNode = draggedNode;
       } else if (image) {
-        mIsAnchor = PR_TRUE;
+        mIsAnchor = true;
         
         
         
@@ -651,7 +651,7 @@ DragDataProducer::Produce(nsDOMDataTransfer* aDataTransfer,
       }
 
       if (linkNode) {
-        mIsAnchor = PR_TRUE;
+        mIsAnchor = true;
         GetAnchorURL(linkNode, mUrlString);
         dragNode = linkNode;
       }
@@ -816,7 +816,7 @@ DragDataProducer::GetDraggableSelectionData(nsISelection* inSelection,
   NS_ENSURE_ARG_POINTER(outImageOrLinkNode);
 
   *outImageOrLinkNode = nsnull;
-  *outDragSelectedText = PR_FALSE;
+  *outDragSelectedText = false;
 
   bool selectionContainsTarget = false;
 
@@ -824,7 +824,7 @@ DragDataProducer::GetDraggableSelectionData(nsISelection* inSelection,
   inSelection->GetIsCollapsed(&isCollapsed);
   if (!isCollapsed) {
     nsCOMPtr<nsIDOMNode> realTargetNode = do_QueryInterface(inRealTargetNode);
-    inSelection->ContainsNode(realTargetNode, PR_FALSE,
+    inSelection->ContainsNode(realTargetNode, false,
                               &selectionContainsTarget);
 
     if (selectionContainsTarget) {
@@ -870,7 +870,7 @@ DragDataProducer::GetDraggableSelectionData(nsISelection* inSelection,
       GetSelectedLink(inSelection, outImageOrLinkNode);
 
       
-      *outDragSelectedText = PR_TRUE;
+      *outDragSelectedText = true;
     }
   }
 

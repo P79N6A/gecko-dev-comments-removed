@@ -56,7 +56,7 @@
 #include "nsCycleCollectionParticipant.h"
 #include "nsIInputStream.h"
 #include "nsDetectionConfident.h"
-#include "nsHtml5UTF16Buffer.h"
+#include "nsHtml5OwningUTF16Buffer.h"
 #include "nsHtml5TreeOpExecutor.h"
 #include "nsHtml5StreamParser.h"
 #include "nsHtml5AtomTable.h"
@@ -361,13 +361,13 @@ class nsHtml5Parser : public nsIParser,
     
 
 
-    nsRefPtr<nsHtml5UTF16Buffer>  mFirstBuffer;
+    nsRefPtr<nsHtml5OwningUTF16Buffer>  mFirstBuffer;
 
     
 
 
-    nsHtml5UTF16Buffer*           mLastBuffer; 
-                      
+
+    nsHtml5OwningUTF16Buffer* mLastBuffer; 
 
     
 

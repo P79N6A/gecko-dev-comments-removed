@@ -185,7 +185,7 @@ nsXULPopupListener::HandleEvent(nsIDOMEvent* aEvent)
         if (node->NodePrincipal() != system) {
           
           
-          preventDefault = PR_FALSE;
+          preventDefault = false;
         }
       }
     }
@@ -266,7 +266,7 @@ nsXULPopupListener::FireFocusOnTargetContent(nsIDOMNode* aTargetNode)
     
     while (currFrame) {
         PRInt32 tabIndexUnused;
-        if (currFrame->IsFocusable(&tabIndexUnused, PR_TRUE)) {
+        if (currFrame->IsFocusable(&tabIndexUnused, true)) {
           newFocus = currFrame->GetContent();
           nsCOMPtr<nsIDOMElement> domElement(do_QueryInterface(newFocus));
           if (domElement) {
@@ -311,7 +311,7 @@ nsXULPopupListener::ClosePopup()
     
     nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
     if (pm)
-      pm->HidePopup(mPopupContent, PR_FALSE, PR_TRUE, PR_TRUE);
+      pm->HidePopup(mPopupContent, false, true, true);
     mPopupContent = nsnull;  
   }
 } 
@@ -442,7 +442,7 @@ nsXULPopupListener::LaunchPopup(nsIDOMEvent* aEvent, nsIContent* aTargetContent)
        (mPopupContent->HasAttr(kNameSpaceID_None, nsGkAtoms::popupanchor) &&
         mPopupContent->HasAttr(kNameSpaceID_None, nsGkAtoms::popupalign)))) {
     pm->ShowPopup(mPopupContent, content, EmptyString(), 0, 0,
-                  PR_FALSE, PR_TRUE, PR_FALSE, aEvent);
+                  false, true, false, aEvent);
   }
   else {
     PRInt32 xPos = 0, yPos = 0;

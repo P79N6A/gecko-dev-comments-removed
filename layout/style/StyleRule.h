@@ -65,7 +65,7 @@ public:
   ~nsAtomList(void);
 
   
-  nsAtomList* Clone() const { return Clone(PR_TRUE); }
+  nsAtomList* Clone() const { return Clone(true); }
 
   nsCOMPtr<nsIAtom> mAtom;
   nsAtomList*       mNext;
@@ -87,7 +87,7 @@ public:
   ~nsPseudoClassList(void);
 
   
-  nsPseudoClassList* Clone() const { return Clone(PR_TRUE); }
+  nsPseudoClassList* Clone() const { return Clone(true); }
 
   union {
     
@@ -133,7 +133,7 @@ public:
   ~nsAttrSelector(void);
 
   
-  nsAttrSelector* Clone() const { return Clone(PR_TRUE); }
+  nsAttrSelector* Clone() const { return Clone(true); }
 
   nsString        mValue;
   nsAttrSelector* mNext;
@@ -157,7 +157,7 @@ public:
   ~nsCSSSelector(void);
 
   
-  nsCSSSelector* Clone() const { return Clone(PR_TRUE, PR_TRUE); }
+  nsCSSSelector* Clone() const { return Clone(true, true); }
 
   void Reset(void);
   void SetNameSpace(PRInt32 aNameSpace);
@@ -269,7 +269,7 @@ struct nsCSSSelectorList {
   
 
 
-  nsCSSSelectorList* Clone() const { return Clone(PR_TRUE); }
+  nsCSSSelectorList* Clone() const { return Clone(true); }
 
   nsCSSSelector*     mSelectors;
   PRInt32            mWeight;

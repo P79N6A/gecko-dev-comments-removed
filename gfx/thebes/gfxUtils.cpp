@@ -92,7 +92,7 @@ CalculateTables()
         }
     }
 
-    sTablesInitialized = PR_TRUE;
+    sTablesInitialized = true;
 }
 
 void
@@ -277,7 +277,7 @@ CreateSamplingRestrictedDrawable(gfxDrawable* aDrawable,
 
     nsRefPtr<gfxContext> tmpCtx = new gfxContext(temp);
     tmpCtx->SetOperator(OptimalFillOperator());
-    aDrawable->Draw(tmpCtx, needed - needed.TopLeft(), PR_TRUE,
+    aDrawable->Draw(tmpCtx, needed - needed.TopLeft(), true,
                     gfxPattern::FILTER_FAST, gfxMatrix().Translate(needed.TopLeft()));
 
     nsRefPtr<gfxPattern> resultPattern = new gfxPattern(temp);
@@ -297,7 +297,7 @@ struct NS_STACK_CLASS AutoCairoPixmanBugWorkaround
                                  const gfxMatrix& aDeviceSpaceToImageSpace,
                                  const gfxRect&   aFill,
                                  const gfxASurface::gfxSurfaceType& aSurfaceType)
-     : mContext(aContext), mSucceeded(PR_TRUE), mPushedGroup(PR_FALSE)
+     : mContext(aContext), mSucceeded(true), mPushedGroup(false)
     {
         
         if (aSurfaceType == gfxASurface::SurfaceTypeQuartz)
@@ -308,7 +308,7 @@ struct NS_STACK_CLASS AutoCairoPixmanBugWorkaround
             !IsSafeImageTransformComponent(aDeviceSpaceToImageSpace.yx) ||
             !IsSafeImageTransformComponent(aDeviceSpaceToImageSpace.yy)) {
             NS_WARNING("Scaling up too much, bailing out");
-            mSucceeded = PR_FALSE;
+            mSucceeded = false;
             return;
         }
 
@@ -332,7 +332,7 @@ struct NS_STACK_CLASS AutoCairoPixmanBugWorkaround
         mContext->PushGroup(gfxASurface::CONTENT_COLOR_ALPHA);
         mContext->SetOperator(gfxContext::OPERATOR_OVER);
 
-        mPushedGroup = PR_TRUE;
+        mPushedGroup = true;
     }
 
     ~AutoCairoPixmanBugWorkaround()
@@ -410,7 +410,7 @@ gfxUtils::DrawPixelSnapped(gfxContext*      aContext,
         
         
         
-        doTile = PR_FALSE;
+        doTile = false;
     }
 
     gfxContext::GraphicsOperator op = aContext->CurrentOperator();
@@ -463,13 +463,13 @@ ClipToRegionInternal(gfxContext* aContext, const nsIntRegion& aRegion,
  void
 gfxUtils::ClipToRegion(gfxContext* aContext, const nsIntRegion& aRegion)
 {
-  ClipToRegionInternal(aContext, aRegion, PR_FALSE);
+  ClipToRegionInternal(aContext, aRegion, false);
 }
 
  void
 gfxUtils::ClipToRegionSnapped(gfxContext* aContext, const nsIntRegion& aRegion)
 {
-  ClipToRegionInternal(aContext, aRegion, PR_TRUE);
+  ClipToRegionInternal(aContext, aRegion, true);
 }
 
  gfxFloat
@@ -504,13 +504,13 @@ gfxUtils::ClampToScaleFactor(gfxFloat aVal)
  void
 gfxUtils::PathFromRegion(gfxContext* aContext, const nsIntRegion& aRegion)
 {
-  PathFromRegionInternal(aContext, aRegion, PR_FALSE);
+  PathFromRegionInternal(aContext, aRegion, false);
 }
 
  void
 gfxUtils::PathFromRegionSnapped(gfxContext* aContext, const nsIntRegion& aRegion)
 {
-  PathFromRegionInternal(aContext, aRegion, PR_TRUE);
+  PathFromRegionInternal(aContext, aRegion, true);
 }
 
 
@@ -554,7 +554,7 @@ gfxUtils::GetYCbCrToRGBDestFormatAndSize(const PlanarYCbCrImage::Data& aData,
                                         aData.mPicSize.width,
                                         aData.mPicSize.height,
                                         yuvtype)) {
-      prescale = PR_FALSE;
+      prescale = false;
     }
 #else
     
@@ -569,7 +569,7 @@ gfxUtils::GetYCbCrToRGBDestFormatAndSize(const PlanarYCbCrImage::Data& aData,
     
 
     if (aData.mPicX != 0 || aData.mPicY != 0 || yuvtype == gfx::YV24)
-      prescale = PR_FALSE;
+      prescale = false;
   }
   if (!prescale) {
     aSuggestedSize = aData.mPicSize;

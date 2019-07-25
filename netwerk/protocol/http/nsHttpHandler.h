@@ -287,8 +287,8 @@ private:
 
     
     enum {
-        PRIVATE_BROWSING_OFF = PR_FALSE,
-        PRIVATE_BROWSING_ON = PR_TRUE,
+        PRIVATE_BROWSING_OFF = false,
+        PRIVATE_BROWSING_ON = true,
         PRIVATE_BROWSING_UNKNOWN = 2
     } mInPrivateBrowsingMode;
 

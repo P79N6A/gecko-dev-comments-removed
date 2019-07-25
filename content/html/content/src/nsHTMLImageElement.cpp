@@ -34,6 +34,9 @@
 
 
 
+
+#include "mozilla/Util.h"
+
 #include "nsIDOMHTMLImageElement.h"
 #include "nsIDOMEventTarget.h"
 #include "nsGenericHTMLElement.h"
@@ -251,7 +254,7 @@ NS_IMETHODIMP
 nsHTMLImageElement::GetComplete(bool* aComplete)
 {
   NS_PRECONDITION(aComplete, "Null out param!");
-  *aComplete = PR_TRUE;
+  *aComplete = true;
 
   if (!mCurrentRequest) {
     return NS_OK;
@@ -320,7 +323,7 @@ nsHTMLImageElement::SetHeight(PRUint32 aHeight)
   val.AppendInt(aHeight);
 
   return nsGenericHTMLElement::SetAttr(kNameSpaceID_None, nsGkAtoms::height,
-                                       val, PR_TRUE);
+                                       val, true);
 }
 
 NS_IMETHODIMP
@@ -338,7 +341,7 @@ nsHTMLImageElement::SetWidth(PRUint32 aWidth)
   val.AppendInt(aWidth);
 
   return nsGenericHTMLElement::SetAttr(kNameSpaceID_None, nsGkAtoms::width,
-                                       val, PR_TRUE);
+                                       val, true);
 }
 
 bool
@@ -352,13 +355,13 @@ nsHTMLImageElement::ParseAttribute(PRInt32 aNamespaceID,
       return ParseAlignValue(aValue, aResult);
     }
     if (aAttribute == nsGkAtoms::crossorigin) {
-      return aResult.ParseEnumValue(aValue, kCrossOriginTable, PR_FALSE,
+      return aResult.ParseEnumValue(aValue, kCrossOriginTable, false,
                                     
                                     
                                     &kCrossOriginTable[0]);
     }
     if (ParseImageAttribute(aAttribute, aValue, aResult)) {
-      return PR_TRUE;
+      return true;
     }
   }
 
@@ -400,7 +403,7 @@ nsHTMLImageElement::IsAttributeMapped(const nsIAtom* aAttribute) const
     sImageAlignAttributeMap
   };
 
-  return FindAttributeDependence(aAttribute, map, NS_ARRAY_LENGTH(map));
+  return FindAttributeDependence(aAttribute, map, ArrayLength(map));
 }
 
 
@@ -451,9 +454,9 @@ nsHTMLImageElement::IsHTMLFocusable(bool aWithMouse,
       }
       
       
-      *aIsFocusable = PR_FALSE;
+      *aIsFocusable = false;
 
-      return PR_FALSE;
+      return false;
     }
   }
 
@@ -468,7 +471,7 @@ nsHTMLImageElement::IsHTMLFocusable(bool aWithMouse,
 #endif
     (tabIndex >= 0 || HasAttr(kNameSpaceID_None, nsGkAtoms::tabindex));
 
-  return PR_FALSE;
+  return false;
 }
 
 nsresult
@@ -492,16 +495,16 @@ nsHTMLImageElement::SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
     }
 
     
-    mNewRequestsWillNeedAnimationReset = PR_TRUE;
+    mNewRequestsWillNeedAnimationReset = true;
 
     
     
     
     
     
-    LoadImage(aValue, PR_TRUE, aNotify);
+    LoadImage(aValue, true, aNotify);
 
-    mNewRequestsWillNeedAnimationReset = PR_FALSE;
+    mNewRequestsWillNeedAnimationReset = false;
   }
     
   return nsGenericHTMLElement::SetAttr(aNameSpaceID, aName, aPrefix, aValue,
@@ -554,9 +557,9 @@ nsHTMLImageElement::MaybeLoadImage()
   
   nsAutoString uri;
   if (GetAttr(kNameSpaceID_None, nsGkAtoms::src, uri) &&
-      (NS_FAILED(LoadImage(uri, PR_FALSE, PR_TRUE)) ||
+      (NS_FAILED(LoadImage(uri, false, true)) ||
        !LoadingEnabled())) {
-    CancelImageRequests(PR_TRUE);
+    CancelImageRequests(true);
   }
 }
 

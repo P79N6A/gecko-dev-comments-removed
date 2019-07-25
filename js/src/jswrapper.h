@@ -161,6 +161,28 @@ class JS_FRIEND_API(CrossCompartmentWrapper) : public Wrapper
 
 
 
+
+
+
+
+
+template <class Base>
+class JS_FRIEND_API(SecurityWrapper) : public Base
+{
+  public:
+    SecurityWrapper(uintN flags);
+
+    virtual bool nativeCall(JSContext *cx, JSObject *wrapper, Class *clasp, Native native, CallArgs args);
+    virtual bool objectClassIs(JSObject *obj, ESClassValue classValue, JSContext *cx);
+};
+
+typedef SecurityWrapper<Wrapper> SameCompartmentSecurityWrapper;
+typedef SecurityWrapper<CrossCompartmentWrapper> CrossCompartmentSecurityWrapper;
+
+
+
+
+
 class JS_FRIEND_API(ForceFrame)
 {
   public:

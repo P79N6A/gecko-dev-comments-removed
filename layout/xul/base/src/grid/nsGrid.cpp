@@ -128,13 +128,13 @@ nsGrid::nsGrid():mBox(nsnull),
                  mColumns(nsnull), 
                  mRowsBox(nsnull),
                  mColumnsBox(nsnull),
-                 mNeedsRebuild(PR_TRUE),
+                 mNeedsRebuild(true),
                  mRowCount(0),
                  mColumnCount(0),
                  mExtraRowCount(0),
                  mExtraColumnCount(0),
                  mCellMap(nsnull),
-                 mMarkingDirty(PR_FALSE)
+                 mMarkingDirty(false)
 {
     MOZ_COUNT_CTOR(nsGrid);
 }
@@ -157,7 +157,7 @@ nsGrid::NeedsRebuild(nsBoxLayoutState& aState)
     return;
 
   
-  mNeedsRebuild = PR_TRUE;
+  mNeedsRebuild = true;
 
   
   
@@ -181,7 +181,7 @@ nsGrid::RebuildIfNeeded()
   if (!mNeedsRebuild)
     return;
 
-  mNeedsRebuild = PR_FALSE;
+  mNeedsRebuild = false;
 
   
   FindRowsAndColumns(&mRowsBox, &mColumnsBox);
@@ -236,8 +236,8 @@ nsGrid::RebuildIfNeeded()
   }
 
   
-  BuildRows(mRowsBox, rowCount, &mRows, PR_TRUE);
-  BuildRows(mColumnsBox, columnCount, &mColumns, PR_FALSE);
+  BuildRows(mRowsBox, rowCount, &mRows, true);
+  BuildRows(mColumnsBox, columnCount, &mColumns, false);
 
   
   mCellMap = BuildCellMap(rowCount, columnCount);
@@ -246,8 +246,8 @@ nsGrid::RebuildIfNeeded()
   mColumnCount = columnCount;
 
   
-  PopulateCellMap(mRows, mColumns, mRowCount, mColumnCount, PR_TRUE);
-  PopulateCellMap(mColumns, mRows, mColumnCount, mRowCount, PR_FALSE);
+  PopulateCellMap(mRows, mColumns, mRowCount, mColumnCount, true);
+  PopulateCellMap(mColumns, mRows, mColumnCount, mRowCount, false);
 }
 
 void
@@ -369,7 +369,7 @@ nsGrid::BuildRows(nsIBox* aBox, PRInt32 aRowCount, nsGridRow** aRows, bool aIsHo
        row = new nsGridRow[aRowCount];
     } else {
       for (PRInt32 i=0; i < mRowCount; i++)
-        mRows[i].Init(nsnull, PR_FALSE);
+        mRows[i].Init(nsnull, false);
 
       row = mRows;
     }
@@ -379,7 +379,7 @@ nsGrid::BuildRows(nsIBox* aBox, PRInt32 aRowCount, nsGridRow** aRows, bool aIsHo
        row = new nsGridRow[aRowCount];
     } else {
        for (PRInt32 i=0; i < mColumnCount; i++)
-         mColumns[i].Init(nsnull, PR_FALSE);
+         mColumns[i].Init(nsnull, false);
 
        row = mColumns;
     }
@@ -485,7 +485,7 @@ void
 nsGrid::DirtyRows(nsIBox* aRowBox, nsBoxLayoutState& aState)
 {
   
-  mMarkingDirty = PR_TRUE;
+  mMarkingDirty = true;
 
   
   if (aRowBox) {
@@ -494,7 +494,7 @@ nsGrid::DirtyRows(nsIBox* aRowBox, nsBoxLayoutState& aState)
        part->DirtyRows(aRowBox, aState);
   }
 
-  mMarkingDirty = PR_FALSE;
+  mMarkingDirty = false;
 }
 
 nsGridRow*
@@ -1071,14 +1071,14 @@ nsGrid::IsGrid(nsIBox* aBox)
 {
   nsIGridPart* part = GetPartFromBox(aBox);
   if (!part)
-    return PR_FALSE;
+    return false;
 
   nsGridLayout2* grid = part->CastToGridLayout();
 
   if (grid)
-    return PR_TRUE;
+    return true;
 
-  return PR_FALSE;
+  return false;
 }
 
 

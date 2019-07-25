@@ -102,7 +102,7 @@ private:
     struct RemovePidLockFilesExiting {
         RemovePidLockFilesExiting() {}
         ~RemovePidLockFilesExiting() {
-            RemovePidLockFiles(PR_FALSE);
+            RemovePidLockFiles(false);
         }
     };
 

@@ -156,7 +156,7 @@ ContainerEnumeratorImpl::HasMoreElements(bool* aResult)
 
     
     if (mResult) {
-        *aResult = PR_TRUE;
+        *aResult = true;
         return NS_OK;
     }
 
@@ -173,7 +173,7 @@ ContainerEnumeratorImpl::HasMoreElements(bool* aResult)
     PRInt32 max = 0;
 
     nsCOMPtr<nsISimpleEnumerator> targets;
-    rv = mDataSource->GetTargets(mContainer, kRDF_nextVal, PR_TRUE, getter_AddRefs(targets));
+    rv = mDataSource->GetTargets(mContainer, kRDF_nextVal, true, getter_AddRefs(targets));
     if (NS_FAILED(rv)) return rv;
 
     while (1) {
@@ -207,7 +207,7 @@ ContainerEnumeratorImpl::HasMoreElements(bool* aResult)
             rv = gRDFC->IndexToOrdinalResource(mNextIndex, getter_AddRefs(mOrdinalProperty));
             if (NS_FAILED(rv)) return rv;
 
-            rv = mDataSource->GetTargets(mContainer, mOrdinalProperty, PR_TRUE, getter_AddRefs(mCurrent));
+            rv = mDataSource->GetTargets(mContainer, mOrdinalProperty, true, getter_AddRefs(mCurrent));
             if (NS_FAILED(rv)) return rv;
 
             ++mNextIndex;
@@ -233,13 +233,13 @@ ContainerEnumeratorImpl::HasMoreElements(bool* aResult)
             mResult = do_QueryInterface(result, &rv);
             if (NS_FAILED(rv)) return rv;
 
-            *aResult = PR_TRUE;
+            *aResult = true;
             return NS_OK;
         }
     }
 
     
-    *aResult = PR_FALSE;
+    *aResult = false;
     return NS_OK;
 }
 

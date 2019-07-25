@@ -40,6 +40,8 @@
 
 
 
+#include "mozilla/Util.h"
+
 #include "nsContentCID.h"
 #include "nsIDocument.h"
 #include "nsIDOMNodeList.h"
@@ -71,6 +73,7 @@
 #include "pldhash.h"
 #include "rdf.h"
 
+using namespace mozilla;
 using namespace mozilla::dom;
 
 
@@ -397,7 +400,7 @@ NS_NewXULContentBuilder(nsISupports* aOuter, REFNSIID aIID, void** aResult)
 
 nsXULContentBuilder::nsXULContentBuilder()
 {
-  mSortState.initialized = PR_FALSE;
+  mSortState.initialized = false;
 }
 
 void
@@ -413,7 +416,7 @@ nsXULContentBuilder::Uninit(bool aIsFinal)
     mContentSupportMap.Clear();
     mTemplateMap.Clear();
 
-    mSortState.initialized = PR_FALSE;
+    mSortState.initialized = false;
 
     nsXULTemplateBuilder::Uninit(aIsFinal);
 }
@@ -551,8 +554,8 @@ nsXULContentBuilder::BuildContentFromTemplate(nsIContent *aTemplateNode,
             
             
             if (tmplKid->HasAttr(kNameSpaceID_None, nsGkAtoms::uri) && aMatch->IsActive()) {
-                isGenerationElement = PR_TRUE;
-                isUnique = PR_FALSE;
+                isGenerationElement = true;
+                isUnique = false;
             }
         }
 
@@ -584,7 +587,7 @@ nsXULContentBuilder::BuildContentFromTemplate(nsIContent *aTemplateNode,
                 return rv;
 
             if (rv == NS_ELEMENT_WAS_THERE) {
-                realKidAlreadyExisted = PR_TRUE;
+                realKidAlreadyExisted = true;
             }
             else {
                 
@@ -607,7 +610,7 @@ nsXULContentBuilder::BuildContentFromTemplate(nsIContent *aTemplateNode,
             
             
             
-            rv = BuildContentFromTemplate(tmplKid, aResourceNode, realKid, PR_TRUE,
+            rv = BuildContentFromTemplate(tmplKid, aResourceNode, realKid, true,
                                           aIsSelfReference, aChild, aNotify, aMatch,
                                           aContainer, aNewIndexInContainer);
 
@@ -631,12 +634,12 @@ nsXULContentBuilder::BuildContentFromTemplate(nsIContent *aTemplateNode,
             if (NS_FAILED(rv))
                 return rv;
 
-            rv = realKid->SetAttr(kNameSpaceID_None, nsGkAtoms::id, id, PR_FALSE);
+            rv = realKid->SetAttr(kNameSpaceID_None, nsGkAtoms::id, id, false);
             if (NS_FAILED(rv))
                 return rv;
 
             
-            SetContainerAttrs(realKid, aChild, PR_TRUE, PR_FALSE);
+            SetContainerAttrs(realKid, aChild, true, false);
         }
         else if (tag == nsGkAtoms::textnode &&
                  nameSpaceID == kNameSpaceID_XUL) {
@@ -646,7 +649,7 @@ nsXULContentBuilder::BuildContentFromTemplate(nsIContent *aTemplateNode,
             
             
             PRUnichar attrbuf[128];
-            nsFixedString attrValue(attrbuf, NS_ARRAY_LENGTH(attrbuf), 0);
+            nsFixedString attrValue(attrbuf, ArrayLength(attrbuf), 0);
             tmplKid->GetAttr(kNameSpaceID_None, nsGkAtoms::value, attrValue);
             if (!attrValue.IsEmpty()) {
                 nsAutoString value;
@@ -658,7 +661,7 @@ nsXULContentBuilder::BuildContentFromTemplate(nsIContent *aTemplateNode,
                                     mRoot->NodeInfo()->NodeInfoManager());
                 if (NS_FAILED(rv)) return rv;
 
-                content->SetText(value, PR_FALSE);
+                content->SetText(value, false);
 
                 rv = aRealNode->AppendChildTo(content, aNotify);
                 if (NS_FAILED(rv)) return rv;
@@ -674,7 +677,7 @@ nsXULContentBuilder::BuildContentFromTemplate(nsIContent *aTemplateNode,
                 return NS_ERROR_FAILURE;
             }
             nsCOMPtr<nsIDOMNode> clonedNode;
-            tmplTextNode->CloneNode(PR_FALSE, getter_AddRefs(clonedNode));
+            tmplTextNode->CloneNode(false, getter_AddRefs(clonedNode));
             nsCOMPtr<nsIContent> clonedContent = do_QueryInterface(clonedNode);
             if (!clonedContent) {
                 NS_ERROR("failed to clone textnode");
@@ -709,7 +712,7 @@ nsXULContentBuilder::BuildContentFromTemplate(nsIContent *aTemplateNode,
             
             mTemplateMap.Put(realKid, tmplKid);
 
-            rv = CopyAttributesToElement(tmplKid, realKid, aChild, PR_FALSE);
+            rv = CopyAttributesToElement(tmplKid, realKid, aChild, false);
             if (NS_FAILED(rv)) return rv;
 
             
@@ -727,16 +730,16 @@ nsXULContentBuilder::BuildContentFromTemplate(nsIContent *aTemplateNode,
                 
                 
                 
-                rv = BuildContentFromTemplate(tmplKid, aResourceNode, realKid, PR_FALSE,
-                                              PR_FALSE, aChild, PR_FALSE, aMatch,
+                rv = BuildContentFromTemplate(tmplKid, aResourceNode, realKid, false,
+                                              false, aChild, false, aMatch,
                                               nsnull ,
                                               nsnull );
                 if (NS_FAILED(rv)) return rv;
 
                 if (isGenerationElement) {
                     
-                    rv = CreateContainerContents(realKid, aChild, PR_FALSE,
-                                                 PR_FALSE, PR_FALSE);
+                    rv = CreateContainerContents(realKid, aChild, false,
+                                                 false, false);
                     if (NS_FAILED(rv)) return rv;
                 }
             }
@@ -785,7 +788,7 @@ nsXULContentBuilder::CopyAttributesToElement(nsIContent* aTemplateNode,
             
             
             PRUnichar attrbuf[128];
-            nsFixedString attribValue(attrbuf, NS_ARRAY_LENGTH(attrbuf), 0);
+            nsFixedString attribValue(attrbuf, ArrayLength(attrbuf), 0);
             aTemplateNode->GetAttr(attribNameSpaceID, attribName, attribValue);
             if (!attribValue.IsEmpty()) {
                 nsAutoString value;
@@ -871,7 +874,7 @@ nsXULContentBuilder::AddPersistentAttributes(nsIContent* aTemplateNode,
         NS_ENSURE_SUCCESS(rv, rv);
 
         nsCOMPtr<nsIRDFNode> target;
-        rv = mDB->GetTarget(resource, property, PR_TRUE, getter_AddRefs(target));
+        rv = mDB->GetTarget(resource, property, true, getter_AddRefs(target));
         NS_ENSURE_SUCCESS(rv, rv);
 
         if (! target)
@@ -887,7 +890,7 @@ nsXULContentBuilder::AddPersistentAttributes(nsIContent* aTemplateNode,
         NS_ENSURE_SUCCESS(rv, rv);
 
         rv = aRealNode->SetAttr(nameSpaceID, tag, nsDependentString(valueStr),
-                                PR_FALSE);
+                                false);
         NS_ENSURE_SUCCESS(rv, rv);
     }
 
@@ -902,7 +905,7 @@ nsXULContentBuilder::SynchronizeUsingTemplate(nsIContent* aTemplateNode,
     
     
     nsresult rv;
-    rv = CopyAttributesToElement(aTemplateNode, aRealElement, aResult, PR_TRUE);
+    rv = CopyAttributesToElement(aTemplateNode, aRealElement, aResult, true);
     if (NS_FAILED(rv))
         return rv;
 
@@ -923,13 +926,13 @@ nsXULContentBuilder::SynchronizeUsingTemplate(nsIContent* aTemplateNode,
         if (tmplKid->NodeInfo()->Equals(nsGkAtoms::textnode,
                                         kNameSpaceID_XUL)) {
             PRUnichar attrbuf[128];
-            nsFixedString attrValue(attrbuf, NS_ARRAY_LENGTH(attrbuf), 0);
+            nsFixedString attrValue(attrbuf, ArrayLength(attrbuf), 0);
             tmplKid->GetAttr(kNameSpaceID_None, nsGkAtoms::value, attrValue);
             if (!attrValue.IsEmpty()) {
                 nsAutoString value;
                 rv = SubstituteText(aResult, attrValue, value);
                 if (NS_FAILED(rv)) return rv;
-                realKid->SetText(value, PR_TRUE);
+                realKid->SetText(value, true);
             }
         }
 
@@ -953,7 +956,7 @@ nsXULContentBuilder::RemoveMember(nsIContent* aContent)
         
         
         
-        nsresult rv = parent->RemoveChildAt(pos, PR_TRUE);
+        nsresult rv = parent->RemoveChildAt(pos, true);
         if (NS_FAILED(rv)) return rv;
     }
 
@@ -997,7 +1000,7 @@ nsXULContentBuilder::CreateTemplateAndContainerContents(nsIContent* aElement,
 
         if (mRootResult) {
             CreateContainerContents(aElement, mRootResult, aForceCreation,
-                                    PR_FALSE, PR_TRUE);
+                                    false, true);
         }
     }
     else if (!(mFlags & eDontRecurse)) {
@@ -1007,7 +1010,7 @@ nsXULContentBuilder::CreateTemplateAndContainerContents(nsIContent* aElement,
         nsTemplateMatch *match = nsnull;
         if (mContentSupportMap.Get(aElement, &match))
             CreateContainerContents(aElement, match->mResult, aForceCreation,
-                                    PR_FALSE, PR_TRUE);
+                                    false, true);
     }
 
     PR_LOG(gXULTemplateLog, PR_LOG_ALWAYS,
@@ -1089,7 +1092,7 @@ nsXULContentBuilder::CreateContainerContents(nsIContent* aElement,
 
     if (aNotifyAtEnd && container) {
         MOZ_AUTO_DOC_UPDATE(container->GetCurrentDoc(), UPDATE_CONTENT_MODEL,
-                            PR_TRUE);
+                            true);
         nsNodeUtils::ContentAppended(container,
                                      container->GetChildAt(newIndexInContainer),
                                      newIndexInContainer);
@@ -1185,7 +1188,7 @@ nsXULContentBuilder::CreateContainerContentsForQuerySet(nsIContent* aElement,
                     }
 
                     if (existingmatch->IsActive())
-                        generateContent = PR_FALSE;
+                        generateContent = false;
                 }
 
                 prevmatch = existingmatch;
@@ -1200,7 +1203,7 @@ nsXULContentBuilder::CreateContainerContentsForQuerySet(nsIContent* aElement,
                 return rv;
 
             if (mFlags & eLoggingEnabled)
-                OutputMatchToLog(resultid, removematch, PR_FALSE);
+                OutputMatchToLog(resultid, removematch, false);
         }
 
         if (generateContent) {
@@ -1212,7 +1215,7 @@ nsXULContentBuilder::CreateContainerContentsForQuerySet(nsIContent* aElement,
             rv = DetermineMatchedRule(aElement, nextresult, aQuerySet,
                                       &matchedrule, &ruleindex);
             if (NS_FAILED(rv)) {
-                nsTemplateMatch::Destroy(mPool, newmatch, PR_FALSE);
+                nsTemplateMatch::Destroy(mPool, newmatch, false);
                 return rv;
             }
 
@@ -1220,13 +1223,13 @@ nsXULContentBuilder::CreateContainerContentsForQuerySet(nsIContent* aElement,
                 rv = newmatch->RuleMatched(aQuerySet, matchedrule,
                                            ruleindex, nextresult);
                 if (NS_FAILED(rv)) {
-                    nsTemplateMatch::Destroy(mPool, newmatch, PR_FALSE);
+                    nsTemplateMatch::Destroy(mPool, newmatch, false);
                     return rv;
                 }
 
                 
                 nsCOMPtr<nsIContent> action = matchedrule->GetAction();
-                BuildContentFromTemplate(action, aElement, aElement, PR_TRUE,
+                BuildContentFromTemplate(action, aElement, aElement, true,
                                          mRefVariable == matchedrule->GetMemberVariable(),
                                          nextresult, aNotify, newmatch,
                                          aContainer, aNewIndexInContainer);
@@ -1234,19 +1237,19 @@ nsXULContentBuilder::CreateContainerContentsForQuerySet(nsIContent* aElement,
         }
 
         if (mFlags & eLoggingEnabled)
-            OutputMatchToLog(resultid, newmatch, PR_TRUE);
+            OutputMatchToLog(resultid, newmatch, true);
 
         if (prevmatch) {
             prevmatch->mNext = newmatch;
         }
         else if (!mMatchMap.Put(resultid, newmatch)) {
-            nsTemplateMatch::Destroy(mPool, newmatch, PR_TRUE);
+            nsTemplateMatch::Destroy(mPool, newmatch, true);
             return NS_ERROR_OUT_OF_MEMORY;
         }
 
         if (removematch) {
             newmatch->mNext = removematch->mNext;
-            nsTemplateMatch::Destroy(mPool, removematch, PR_TRUE);
+            nsTemplateMatch::Destroy(mPool, removematch, true);
         }
         else {
             newmatch->mNext = existingmatch;
@@ -1296,7 +1299,7 @@ nsXULContentBuilder::IsOpen(nsIContent* aElement)
 {
     
     if (!aElement->IsXUL())
-        return PR_TRUE;
+        return true;
 
     
     nsIAtom *tag = aElement->Tag();
@@ -1307,7 +1310,7 @@ nsXULContentBuilder::IsOpen(nsIContent* aElement)
         tag == nsGkAtoms::treeitem)
         return aElement->AttrValueIs(kNameSpaceID_None, nsGkAtoms::open,
                                      nsGkAtoms::_true, eCaseMatters);
-    return PR_TRUE;
+    return true;
 }
 
 nsresult
@@ -1355,7 +1358,7 @@ nsXULContentBuilder::RemoveGeneratedContent(nsIContent* aElement)
             }
 
             
-            element->RemoveChildAt(i, PR_TRUE);
+            element->RemoveChildAt(i, true);
 
             
             mContentSupportMap.Remove(child);
@@ -1478,7 +1481,7 @@ nsXULContentBuilder::HasGeneratedContent(nsIRDFResource* aResource,
                                          nsIAtom* aTag,
                                          bool* aGenerated)
 {
-    *aGenerated = PR_FALSE;
+    *aGenerated = false;
     NS_ENSURE_TRUE(mRoot, NS_ERROR_NOT_INITIALIZED);
     NS_ENSURE_STATE(mRootResult);
 
@@ -1490,7 +1493,7 @@ nsXULContentBuilder::HasGeneratedContent(nsIRDFResource* aResource,
     
     if (aResource == rootresource) {
         if (!aTag || mRoot->Tag() == aTag)
-            *aGenerated = PR_TRUE;
+            *aGenerated = true;
     }
     else {
         const char* uri;
@@ -1516,7 +1519,7 @@ nsXULContentBuilder::HasGeneratedContent(nsIRDFResource* aResource,
                 if (content == mRoot || mContentSupportMap.Get(content, &match)) {
                     
                     if (!aTag || content->Tag() == aTag) {
-                        *aGenerated = PR_TRUE;
+                        *aGenerated = true;
                         return NS_OK;
                     }
                 }
@@ -1584,7 +1587,7 @@ nsXULContentBuilder::AttributeChanged(nsIDocument* aDocument,
          (aAttribute == nsGkAtoms::sortDirection) ||
          (aAttribute == nsGkAtoms::sortResource) ||
          (aAttribute == nsGkAtoms::sortResource2)))
-        mSortState.initialized = PR_FALSE;
+        mSortState.initialized = false;
 
     
     nsXULTemplateBuilder::AttributeChanged(aDocument, aElement, aNameSpaceID,
@@ -1616,14 +1619,14 @@ nsXULContentBuilder::GetInsertionLocations(nsIXULTemplateResult* aResult,
     nsAutoString ref;
     nsresult rv = aResult->GetBindingFor(mRefVariable, ref);
     if (NS_FAILED(rv))
-        return PR_FALSE;
+        return false;
 
     nsCOMPtr<nsIXULDocument> xuldoc = do_QueryInterface(mRoot->GetDocument());
     if (! xuldoc)
-        return PR_FALSE;
+        return false;
 
     *aLocations = new nsCOMArray<nsIContent>;
-    NS_ENSURE_TRUE(*aLocations, PR_FALSE);
+    NS_ENSURE_TRUE(*aLocations, false);
 
     xuldoc->GetElementsForID(ref, **aLocations);
     PRUint32 count = (*aLocations)->Count();
@@ -1642,7 +1645,7 @@ nsXULContentBuilder::GetInsertionLocations(nsIXULTemplateResult* aResult,
             
             nsXULElement *xulcontent = nsXULElement::FromContent(content);
             if (!xulcontent || xulcontent->GetTemplateGenerated()) {
-                found = PR_TRUE;
+                found = true;
                 continue;
             }
         }
@@ -1681,7 +1684,7 @@ nsXULContentBuilder::ReplaceMatch(nsIXULTemplateResult* aOldResult,
                 return rv;
 
             if (refResult)
-                SetContainerAttrs(content, refResult, PR_FALSE, PR_TRUE);
+                SetContainerAttrs(content, refResult, false, true);
         }
     }
 
@@ -1706,9 +1709,9 @@ nsXULContentBuilder::ReplaceMatch(nsIXULTemplateResult* aOldResult,
 
     if (aNewMatch) {
         nsCOMPtr<nsIContent> action = aNewMatchRule->GetAction();
-        return BuildContentFromTemplate(action, content, content, PR_TRUE,
+        return BuildContentFromTemplate(action, content, content, true,
                                         mRefVariable == aNewMatchRule->GetMemberVariable(),
-                                        aNewMatch->mResult, PR_TRUE, aNewMatch,
+                                        aNewMatch->mResult, true, aNewMatch,
                                         nsnull, nsnull);
     }
 
@@ -1770,7 +1773,7 @@ nsXULContentBuilder::OpenContainer(nsIContent* aElement)
             xuldoc->GetTemplateBuilderFor(content, getter_AddRefs(builder));
             if (builder) {
                 if (builder == this)
-                    rightBuilder = PR_TRUE;
+                    rightBuilder = true;
                 break;
             }
 
@@ -1781,7 +1784,7 @@ nsXULContentBuilder::OpenContainer(nsIContent* aElement)
             return NS_OK;
     }
 
-    CreateTemplateAndContainerContents(aElement, PR_FALSE);
+    CreateTemplateAndContainerContents(aElement, false);
 
     return NS_OK;
 }
@@ -1803,7 +1806,7 @@ nsXULContentBuilder::RebuildAll()
         return NS_OK;
 
     if (mQueriesCompiled)
-        Uninit(PR_FALSE);
+        Uninit(false);
 
     nsresult rv = CompileQueries();
     if (NS_FAILED(rv))
@@ -1818,7 +1821,7 @@ nsXULContentBuilder::RebuildAll()
 
     
     
-    CreateTemplateAndContainerContents(mRoot, PR_FALSE);
+    CreateTemplateAndContainerContents(mRoot, false);
 
     return NS_OK;
 }
@@ -1896,7 +1899,7 @@ nsXULContentBuilder::InsertSortedNode(nsIContent* aContainer,
     
     
     
-    mSortState.isContainerRDFSeq = PR_FALSE;
+    mSortState.isContainerRDFSeq = false;
     if (mSortState.direction == nsSortState_natural) {
         nsCOMPtr<nsISupports> ref;
         nsresult rv = aResult->GetBindingObjectFor(mRefVariable, getter_AddRefs(ref));
@@ -1954,7 +1957,7 @@ nsXULContentBuilder::InsertSortedNode(nsIContent* aContainer,
             
             nsAutoString valueStr;
             valueStr.AppendInt(staticCount);
-            aContainer->SetAttr(kNameSpaceID_None, nsGkAtoms::staticHint, valueStr, PR_FALSE);
+            aContainer->SetAttr(kNameSpaceID_None, nsGkAtoms::staticHint, valueStr, false);
         }
 
         if (staticCount <= 0) {
@@ -1979,18 +1982,18 @@ nsXULContentBuilder::InsertSortedNode(nsIContent* aContainer,
                 rv = CompareResultToNode(aResult, temp, &direction);
                 if (direction < 0) {
                     aContainer->InsertChildAt(aNode, staticCount, aNotify);
-                    childAdded = PR_TRUE;
+                    childAdded = true;
                 } else
-                    mSortState.lastWasFirst = PR_FALSE;
+                    mSortState.lastWasFirst = false;
             } else if (mSortState.lastWasLast) {
                 child = aContainer->GetChildAt(realNumChildren - 1);
                 temp = child;
                 rv = CompareResultToNode(aResult, temp, &direction);
                 if (direction > 0) {
                     aContainer->InsertChildAt(aNode, realNumChildren, aNotify);
-                    childAdded = PR_TRUE;
+                    childAdded = true;
                 } else
-                    mSortState.lastWasLast = PR_FALSE;
+                    mSortState.lastWasLast = false;
             }
 
             PRInt32 left = staticCount + 1, right = realNumChildren, x;
@@ -2006,7 +2009,7 @@ nsXULContentBuilder::InsertSortedNode(nsIContent* aContainer,
                 {
                     PRInt32 thePos = (direction > 0 ? x : x - 1);
                     aContainer->InsertChildAt(aNode, thePos, aNotify);
-                    childAdded = PR_TRUE;
+                    childAdded = true;
 
                     mSortState.lastWasFirst = (thePos == staticCount);
                     mSortState.lastWasLast = (thePos >= realNumChildren);

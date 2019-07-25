@@ -130,7 +130,7 @@ nsInterfaceHashtable<KeyClass,Interface>::Get
       NS_IF_ADDREF(*pInterface);
     }
 
-    return PR_TRUE;
+    return true;
   }
 
   
@@ -138,7 +138,7 @@ nsInterfaceHashtable<KeyClass,Interface>::Get
   if (pInterface)
     *pInterface = nsnull;
 
-  return PR_FALSE;
+  return false;
 }
 
 template<class KeyClass, class Interface>
@@ -163,14 +163,14 @@ nsInterfaceHashtable<KeyClass,Interface>::GetWeak
   if (ent)
   {
     if (aFound)
-      *aFound = PR_TRUE;
+      *aFound = true;
 
     return ent->mData;
   }
 
   
   if (aFound)
-    *aFound = PR_FALSE;
+    *aFound = false;
   return nsnull;
 }
 
@@ -198,7 +198,7 @@ nsInterfaceHashtableMT<KeyClass,Interface>::Get
 
     PR_Unlock(this->mLock);
 
-    return PR_TRUE;
+    return true;
   }
 
   
@@ -208,7 +208,7 @@ nsInterfaceHashtableMT<KeyClass,Interface>::Get
 
   PR_Unlock(this->mLock);
 
-  return PR_FALSE;
+  return false;
 }
 
 #endif 

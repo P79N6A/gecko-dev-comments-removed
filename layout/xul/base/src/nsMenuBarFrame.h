@@ -106,7 +106,7 @@ public:
   nsMenuFrame* ToggleMenuActiveState();
 
   bool IsActiveByKeyboard() { return mActiveByKeyboard; }
-  void SetActiveByKeyboard() { mActiveByKeyboard = PR_TRUE; }
+  void SetActiveByKeyboard() { mActiveByKeyboard = true; }
 
   
   
@@ -123,7 +123,7 @@ public:
   {
     
     if (aFlags & (nsIFrame::eReplacedContainsBlock | nsIFrame::eReplaced))
-      return PR_FALSE;
+      return false;
     return nsBoxFrame::IsFrameOfType(aFlags);
   }
 

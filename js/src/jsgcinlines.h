@@ -1,41 +1,41 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- *
- * ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is SpiderMonkey code.
- *
- * The Initial Developer of the Original Code is
- * Mozilla Corporation.
- * Portions created by the Initial Developer are Copyright (C) 2010
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either of the GNU General Public License Version 2 or later (the "GPL"),
- * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #ifndef jsgcinlines_h___
 #define jsgcinlines_h___
@@ -43,11 +43,11 @@
 #include "jsgc.h"
 #include "jscntxt.h"
 #include "jscompartment.h"
+#include "jslock.h"
 #include "jsscope.h"
 #include "jsxml.h"
 
-#include "jslock.h"
-#include "jstl.h"
+#include "js/TemplateLib.h"
 
 namespace js {
 
@@ -63,22 +63,22 @@ GetGCThingTraceKind(const void *thing)
     return MapAllocToTraceKind(cell->getAllocKind());
 }
 
-/* Capacity for slotsToThingKind */
+
 const size_t SLOTS_TO_THING_KIND_LIMIT = 17;
 
-/* Get the best kind to use when making an object with the given slot count. */
+
 static inline AllocKind
 GetGCObjectKind(size_t numSlots, bool isArray = false)
 {
     extern AllocKind slotsToThingKind[];
 
     if (numSlots >= SLOTS_TO_THING_KIND_LIMIT) {
-        /*
-         * If the object will definitely want more than the maximum number of
-         * fixed slots, use zero fixed slots for arrays and the maximum for
-         * other objects. Arrays do not use their fixed slots anymore when
-         * they have a slots array, while other objects will continue to do so.
-         */
+        
+
+
+
+
+
         return isArray ? FINALIZE_OBJECT0 : FINALIZE_OBJECT16;
     }
     return slotsToThingKind[numSlots];
@@ -107,10 +107,10 @@ GetBackgroundAllocKind(AllocKind kind)
     return (AllocKind) (kind + 1);
 }
 
-/*
- * Try to get the next larger size for an object, keeping BACKGROUND
- * consistent.
- */
+
+
+
+
 static inline bool
 TryIncrementAllocKind(AllocKind *kindp)
 {
@@ -121,11 +121,11 @@ TryIncrementAllocKind(AllocKind *kindp)
     return true;
 }
 
-/* Get the number of fixed slots and initial capacity associated with a kind. */
+
 static inline size_t
 GetGCKindSlots(AllocKind thingKind)
 {
-    /* Using a switch in hopes that thingKind will usually be a compile-time constant. */
+    
     switch (thingKind) {
       case FINALIZE_OBJECT0:
       case FINALIZE_OBJECT0_BACKGROUND:
@@ -154,11 +154,11 @@ GetGCKindSlots(AllocKind thingKind)
 static inline void
 GCPoke(JSContext *cx, Value oldval)
 {
-    /*
-     * Since we're forcing a GC from JS_GC anyway, don't bother wasting cycles
-     * loading oldval.  XXX remove implied force, fix jsinterp.c's "second arg
-     * ignored", etc.
-     */
+    
+
+
+
+
 #if 1
     cx->runtime->gcPoke = JS_TRUE;
 #else
@@ -166,16 +166,16 @@ GCPoke(JSContext *cx, Value oldval)
 #endif
 
 #ifdef JS_GC_ZEAL
-    /* Schedule a GC to happen "soon" after a GC poke. */
+    
     if (cx->runtime->gcZeal())
         cx->runtime->gcNextScheduled = 1;
 #endif
 }
 
-/*
- * Invoke ArenaOp and CellOp on every arena and cell in a compartment which
- * have the specified thing kind.
- */
+
+
+
+
 template <class ArenaOp, class CellOp>
 void
 ForEachArenaAndCell(JSCompartment *compartment, AllocKind thingKind,
@@ -277,11 +277,11 @@ class CellIterUnderGC : public CellIterImpl {
     }
 };
 
-/*
- * When using the iterator outside the GC the caller must ensure that no GC or
- * allocations of GC things are possible and that the background finalization
- * for the given thing kind is not enabled or is done.
- */
+
+
+
+
+
 class CellIter: public CellIterImpl
 {
     ArenaLists *lists;
@@ -319,20 +319,20 @@ class CellIter: public CellIterImpl
     }
 };
 
-/* Signatures for ArenaOp and CellOp above. */
+
 
 inline void EmptyArenaOp(Arena *arena) {}
 inline void EmptyCellOp(Cell *t) {}
 
-} /* namespace gc */
-} /* namespace js */
+} 
+} 
 
-/*
- * Allocates a new GC thing. After a successful allocation the caller must
- * fully initialize the thing before calling any function that can potentially
- * trigger GC. This will ensure that GC tracing never sees junk values stored
- * in the partially initialized thing.
- */
+
+
+
+
+
+
 
 template <typename T>
 inline T *
@@ -390,7 +390,7 @@ js_NewGCFunction(JSContext *cx)
     JSFunction *fun = NewGCThing<JSFunction>(cx, js::gc::FINALIZE_FUNCTION, sizeof(JSFunction));
     if (fun) {
         fun->capacity = JSObject::FUN_CLASS_RESERVED_SLOTS;
-        fun->lastProp = NULL; /* Stops fun from being scanned until initializated. */
+        fun->lastProp = NULL; 
     }
     return fun;
 }
@@ -412,4 +412,4 @@ extern JSXML *
 js_NewGCXML(JSContext *cx);
 #endif
 
-#endif /* jsgcinlines_h___ */
+#endif 

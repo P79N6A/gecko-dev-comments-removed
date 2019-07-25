@@ -85,8 +85,6 @@ using namespace mozilla;
 
 
 
-#define MAX_NON_PRIORITY_REQUESTS 150
-
 #define HighThreadThreshold     MAX_RESOLVER_THREADS_FOR_ANY_PRIORITY
 #define LongIdleTimeoutSeconds  300           // for threads 1 -> HighThreadThreshold
 #define ShortIdleTimeoutSeconds 60            // for threads HighThreadThreshold+1 -> MAX_RESOLVER_THREADS
@@ -157,7 +155,7 @@ public:
     {
         
         if (PR_IntervalToSeconds(PR_IntervalNow() - mLastReset) < 1)
-            return PR_FALSE;
+            return false;
 
         LOG(("calling res_ninit\n"));
 
@@ -184,10 +182,10 @@ nsHostRecord::nsHostRecord(const nsHostKey *key)
     , addr_info_gencnt(0)
     , addr_info(nsnull)
     , addr(nsnull)
-    , negative(PR_FALSE)
-    , resolving(PR_FALSE)
-    , onQueue(PR_FALSE)
-    , usingAnyThread(PR_FALSE)
+    , negative(false)
+    , resolving(false)
+    , onQueue(false)
+    , usingAnyThread(false)
 {
     host = ((char *) this) + sizeof(nsHostRecord);
     memcpy((char *) host, key->host, strlen(key->host) + 1);
@@ -228,11 +226,11 @@ nsHostRecord::Blacklisted(PRNetAddr *aQuery)
 
     
     if (!mBlacklistedItems.Length())
-        return PR_FALSE;
+        return false;
     
     char buf[64];
     if (PR_NetAddrToString(aQuery, buf, sizeof(buf)) != PR_SUCCESS)
-        return PR_FALSE;
+        return false;
 
     nsDependentCString strQuery(buf);
     LOG(("nsHostRecord::Blacklisted() query %s\n", buf));
@@ -240,10 +238,10 @@ nsHostRecord::Blacklisted(PRNetAddr *aQuery)
     for (PRUint32 i = 0; i < mBlacklistedItems.Length(); i++)
         if (mBlacklistedItems.ElementAt(i).Equals(strQuery)) {
             LOG(("nsHostRecord::Blacklisted() %s blacklist confirmed\n", buf));
-            return PR_TRUE;
+            return true;
         }
 
-    return PR_FALSE;
+    return false;
 }
 
 void
@@ -340,7 +338,7 @@ HostDB_InitEntry(PLDHashTable *table,
 {
     nsHostDBEnt *he = static_cast<nsHostDBEnt *>(entry);
     nsHostRecord::Create(static_cast<const nsHostKey *>(key), &he->rec);
-    return PR_TRUE;
+    return true;
 }
 
 static PLDHashTableOps gHostDB_ops =
@@ -377,7 +375,7 @@ nsHostResolver::nsHostResolver(PRUint32 maxCacheEntries,
     , mActiveAnyThreadCount(0)
     , mEvictionQSize(0)
     , mPendingCount(0)
-    , mShutdown(PR_TRUE)
+    , mShutdown(true)
 {
     mCreationTime = PR_Now();
     PR_INIT_CLIST(&mHighQ);
@@ -401,7 +399,7 @@ nsHostResolver::Init()
 
     PL_DHashTableInit(&mDB, &gHostDB_ops, nsnull, sizeof(nsHostDBEnt), 0);
 
-    mShutdown = PR_FALSE;
+    mShutdown = false;
 
 #if defined(HAVE_RES_NINIT)
     
@@ -446,7 +444,7 @@ nsHostResolver::Shutdown()
     {
         MutexAutoLock lock(mLock);
         
-        mShutdown = PR_TRUE;
+        mShutdown = true;
 
         MoveCList(mHighQ, pendingQHigh);
         MoveCList(mMediumQ, pendingQMed);
@@ -731,8 +729,8 @@ nsHostResolver::IssueLookup(nsHostRecord *rec)
         PR_APPEND_LINK(rec, &mLowQ);
     mPendingCount++;
     
-    rec->resolving = PR_TRUE;
-    rec->onQueue = PR_TRUE;
+    rec->resolving = true;
+    rec->onQueue = true;
 
     rv = ConditionallyCreateThread(rec);
     
@@ -751,7 +749,7 @@ nsHostResolver::DeQueue(PRCList &aQ, nsHostRecord **aResult)
     *aResult = static_cast<nsHostRecord *>(aQ.next);
     PR_REMOVE_AND_INIT_LINK(*aResult);
     mPendingCount--;
-    (*aResult)->onQueue = PR_FALSE;
+    (*aResult)->onQueue = false;
 }
 
 bool
@@ -770,22 +768,22 @@ nsHostResolver::GetHostToLookup(nsHostRecord **result)
         
         if (!PR_CLIST_IS_EMPTY(&mHighQ)) {
             DeQueue (mHighQ, result);
-            return PR_TRUE;
+            return true;
         }
 
         if (mActiveAnyThreadCount < HighThreadThreshold) {
             if (!PR_CLIST_IS_EMPTY(&mMediumQ)) {
                 DeQueue (mMediumQ, result);
                 mActiveAnyThreadCount++;
-                (*result)->usingAnyThread = PR_TRUE;
-                return PR_TRUE;
+                (*result)->usingAnyThread = true;
+                return true;
             }
             
             if (!PR_CLIST_IS_EMPTY(&mLowQ)) {
                 DeQueue (mLowQ, result);
                 mActiveAnyThreadCount++;
-                (*result)->usingAnyThread = PR_TRUE;
-                return PR_TRUE;
+                (*result)->usingAnyThread = true;
+                return true;
             }
         }
         
@@ -806,7 +804,7 @@ nsHostResolver::GetHostToLookup(nsHostRecord **result)
         now = PR_IntervalNow();
         
         if ((PRIntervalTime)(now - epoch) >= timeout)
-            timedOut = PR_TRUE;
+            timedOut = true;
         else {
             
             
@@ -818,7 +816,7 @@ nsHostResolver::GetHostToLookup(nsHostRecord **result)
     
     
     mThreadCount--;
-    return PR_FALSE;
+    return false;
 }
 
 void
@@ -848,17 +846,17 @@ nsHostResolver::OnLookupComplete(nsHostRecord *rec, nsresult status, PRAddrInfo 
         rec->expiration = NowInMinutes();
         if (result) {
             rec->expiration += mMaxCacheLifetime;
-            rec->negative = PR_FALSE;
+            rec->negative = false;
         }
         else {
             rec->expiration += 1;                 
-            rec->negative = PR_TRUE;
+            rec->negative = true;
         }
-        rec->resolving = PR_FALSE;
+        rec->resolving = false;
         
         if (rec->usingAnyThread) {
             mActiveAnyThreadCount--;
-            rec->usingAnyThread = PR_FALSE;
+            rec->usingAnyThread = false;
         }
 
         if (rec->addr_info && !mShutdown) {

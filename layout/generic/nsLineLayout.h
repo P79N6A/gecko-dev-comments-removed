@@ -164,7 +164,7 @@ protected:
   void SetFlag(PRUint32 aFlag, bool aValue)
   {
     NS_ASSERTION(aFlag<=LL_LASTFLAG, "bad flag");
-    NS_ASSERTION(aValue==PR_FALSE || aValue==PR_TRUE, "bad value");
+    NS_ASSERTION(aValue==false || aValue==true, "bad value");
     if (aValue) { 
       mFlags |= aFlag;
     }
@@ -260,7 +260,7 @@ public:
   
   
   void SetDirtyNextLine() {
-    SetFlag(LL_DIRTYNEXTLINE, PR_TRUE);
+    SetFlag(LL_DIRTYNEXTLINE, true);
   }
   bool GetDirtyNextLine() {
     return GetFlag(LL_DIRTYNEXTLINE);
@@ -324,7 +324,7 @@ public:
 
 
   void ClearOptionalBreakPosition() {
-    SetFlag(LL_NEEDBACKUP, PR_FALSE);
+    SetFlag(LL_NEEDBACKUP, false);
     mLastOptionalBreakContent = nsnull;
     mLastOptionalBreakContentOffset = -1;
     mLastOptionalBreakPriority = eNoBreak;
@@ -457,7 +457,7 @@ protected:
     {
       NS_ASSERTION(aFlag<=PFD_LASTFLAG, "bad flag");
       NS_ASSERTION(aFlag<=PR_UINT8_MAX, "bad flag");
-      NS_ASSERTION(aValue==PR_FALSE || aValue==PR_TRUE, "bad value");
+      NS_ASSERTION(aValue==false || aValue==true, "bad value");
       if (aValue) { 
         mFlags |= aFlag;
       }

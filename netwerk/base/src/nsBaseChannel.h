@@ -123,7 +123,7 @@ private:
   
   
   virtual bool GetStatusArg(nsresult status, nsString &statusArg) {
-    return PR_FALSE;
+    return false;
   }
 
   
@@ -242,7 +242,7 @@ private:
   
   void CallbacksChanged() {
     mProgressSink = nsnull;
-    mQueriedProgressSink = PR_FALSE;
+    mQueriedProgressSink = false;
     OnCallbacksChanged();
   }
 

@@ -177,18 +177,15 @@ struct DebugOnly
 
     T& operator->() { return value; }
 
-    bool operator<(const T& other) { return value < other; }
-
 #else
     DebugOnly() {}
     DebugOnly(const T&) {}
     DebugOnly& operator=(const T&) { return *this; }
     void operator++(int) {}
     void operator--(int) {}
-    bool operator<(const T&) { return false; }
 #endif
 
-    
+
 
 
 
@@ -418,6 +415,31 @@ PointerRangeSize(T* begin, T* end)
 {
     MOZ_ASSERT(end >= begin);
     return (size_t(end) - size_t(begin)) / sizeof(T);
+}
+
+
+
+
+
+
+
+template<typename T, size_t N>
+size_t
+ArrayLength(T (&arr)[N])
+{
+    return N;
+}
+
+
+
+
+
+
+template<typename T, size_t N>
+T*
+ArrayEnd(T (&arr)[N])
+{
+    return arr + ArrayLength(arr);
 }
 
 } 

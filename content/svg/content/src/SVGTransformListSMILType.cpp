@@ -105,19 +105,19 @@ SVGTransformListSMILType::IsEqual(const nsSMILValue& aLeft,
 
   
   if (leftArr.Length() != rightArr.Length()) {
-    return PR_FALSE;
+    return false;
   }
 
   
   PRUint32 length = leftArr.Length(); 
   for (PRUint32 i = 0; i < length; ++i) {
     if (leftArr[i] != rightArr[i]) {
-      return PR_FALSE;
+      return false;
     }
   }
 
   
-  return PR_TRUE;
+  return true;
 }
 
 nsresult
@@ -370,14 +370,14 @@ SVGTransformListSMILType::AppendTransforms(const SVGTransformList& aList,
   TransformArray& transforms = *static_cast<TransformArray*>(aValue.mU.mPtr);
 
   if (!transforms.SetCapacity(transforms.Length() + aList.Length()))
-    return PR_FALSE;
+    return false;
 
   for (PRUint32 i = 0; i < aList.Length(); ++i) {
     
     
     transforms.AppendElement(SVGTransformSMILData(aList[i]));
   }
-  return PR_TRUE;
+  return true;
 }
 
 
@@ -392,12 +392,12 @@ SVGTransformListSMILType::GetTransforms(const nsSMILValue& aValue,
 
   aTransforms.Clear();
   if (!aTransforms.SetCapacity(smilTransforms.Length()))
-      return PR_FALSE;
+      return false;
 
   for (PRUint32 i = 0; i < smilTransforms.Length(); ++i) {
     
     
     aTransforms.AppendElement(smilTransforms[i].ToSVGTransform());
   }
-  return PR_TRUE;
+  return true;
 }

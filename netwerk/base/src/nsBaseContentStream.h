@@ -94,7 +94,7 @@ public:
   void DispatchCallback(bool async = true);
 
   
-  void DispatchCallbackSync() { DispatchCallback(PR_FALSE); }
+  void DispatchCallbackSync() { DispatchCallback(false); }
 
 protected:
   virtual ~nsBaseContentStream() {}

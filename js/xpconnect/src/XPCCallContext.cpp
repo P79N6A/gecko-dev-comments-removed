@@ -6,26 +6,57 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "xpcprivate.h"
-
-using namespace mozilla;
 
 XPCCallContext::XPCCallContext(XPCContext::LangType callerLanguage,
                                JSContext* cx    ,
                                JSObject* obj    ,
                                JSObject* funobj ,
                                jsid name        ,
-                               unsigned argc       ,
+                               uintN argc       ,
                                jsval *argv      ,
                                jsval *rval      )
     :   mState(INIT_FAILED),
         mXPC(nsXPConnect::GetXPConnect()),
-        mXPCContext(nullptr),
+        mThreadData(nsnull),
+        mXPCContext(nsnull),
         mJSContext(cx),
-        mContextPopRequired(false),
-        mDestroyJSContextInDestructor(false),
+        mContextPopRequired(JS_FALSE),
+        mDestroyJSContextInDestructor(JS_FALSE),
         mCallerLanguage(callerLanguage)
 {
     Init(callerLanguage, callerLanguage == NATIVE_CALLER, obj, funobj,
@@ -41,18 +72,19 @@ XPCCallContext::XPCCallContext(XPCContext::LangType callerLanguage,
                                XPCWrappedNativeTearOff* tearOff)
     :   mState(INIT_FAILED),
         mXPC(nsXPConnect::GetXPConnect()),
-        mXPCContext(nullptr),
+        mThreadData(nsnull),
+        mXPCContext(nsnull),
         mJSContext(cx),
-        mContextPopRequired(false),
-        mDestroyJSContextInDestructor(false),
+        mContextPopRequired(JS_FALSE),
+        mDestroyJSContextInDestructor(JS_FALSE),
         mCallerLanguage(callerLanguage),
         mFlattenedJSObject(flattenedJSObject),
         mWrapper(wrapper),
         mTearOff(tearOff)
 {
-    Init(callerLanguage, callBeginRequest, obj, nullptr,
+    Init(callerLanguage, callBeginRequest, obj, nsnull,
          WRAPPER_PASSED_TO_CONSTRUCTOR, JSID_VOID, NO_ARGS,
-         nullptr, nullptr);
+         nsnull, nsnull);
 }
 
 void
@@ -62,22 +94,27 @@ XPCCallContext::Init(XPCContext::LangType callerLanguage,
                      JSObject* funobj,
                      WrapperInitOptions wrapperInitOptions,
                      jsid name,
-                     unsigned argc,
+                     uintN argc,
                      jsval *argv,
                      jsval *rval)
 {
     if (!mXPC)
         return;
 
-    XPCJSContextStack* stack = XPCJSRuntime::Get()->GetJSContextStack();
+    mThreadData = XPCPerThreadData::GetData(mJSContext);
 
-    if (!stack) {
+    if (!mThreadData)
+        return;
+
+    XPCJSContextStack* stack = mThreadData->GetJSContextStack();
+    JSContext* topJSContext;
+
+    if (!stack || NS_FAILED(stack->Peek(&topJSContext))) {
         
-        mJSContext = nullptr;
+        NS_ASSERTION(!stack, "Bad, Peek failed!");
+        mJSContext = nsnull;
         return;
     }
-
-    JSContext *topJSContext = stack->Peek();
 
     if (!mJSContext) {
         
@@ -88,21 +125,18 @@ XPCCallContext::Init(XPCContext::LangType callerLanguage,
         
         
 
-        if (topJSContext) {
+        if (topJSContext)
             mJSContext = topJSContext;
-        } else {
-            mJSContext = stack->GetSafeJSContext();
-            if (!mJSContext)
-                return;
-        }
+        else if (NS_FAILED(stack->GetSafeJSContext(&mJSContext)) || !mJSContext)
+            return;
     }
 
     if (topJSContext != mJSContext) {
-        if (!stack->Push(mJSContext)) {
+        if (NS_FAILED(stack->Push(mJSContext))) {
             NS_ERROR("bad!");
             return;
         }
-        mContextPopRequired = true;
+        mContextPopRequired = JS_TRUE;
     }
 
     
@@ -117,7 +151,7 @@ XPCCallContext::Init(XPCContext::LangType callerLanguage,
     mPrevCallerLanguage = mXPCContext->SetCallingLangType(mCallerLanguage);
 
     
-    mPrevCallContext = XPCJSRuntime::Get()->SetCallContext(this);
+    mPrevCallContext = mThreadData->SetCallContext(this);
 
     
     
@@ -137,17 +171,19 @@ XPCCallContext::Init(XPCContext::LangType callerLanguage,
 
     mState = HAVE_OBJECT;
 
-    mTearOff = nullptr;
+    mTearOff = nsnull;
     if (wrapperInitOptions == INIT_SHOULD_LOOKUP_WRAPPER) {
         mWrapper = XPCWrappedNative::GetWrappedNativeOfJSObject(mJSContext, obj,
                                                                 funobj,
                                                                 &mFlattenedJSObject,
                                                                 &mTearOff);
         if (mWrapper) {
+            DEBUG_CheckWrapperThreadSafety(mWrapper);
+
             mFlattenedJSObject = mWrapper->GetFlatJSObject();
 
             if (mTearOff)
-                mScriptableInfo = nullptr;
+                mScriptableInfo = nsnull;
             else
                 mScriptableInfo = mWrapper->GetScriptableInfo();
         } else {
@@ -173,27 +209,27 @@ XPCCallContext::SetName(jsid name)
     mName = name;
 
     if (mTearOff) {
-        mSet = nullptr;
+        mSet = nsnull;
         mInterface = mTearOff->GetInterface();
         mMember = mInterface->FindMember(name);
-        mStaticMemberIsLocal = true;
+        mStaticMemberIsLocal = JS_TRUE;
         if (mMember && !mMember->IsConstant())
             mMethodIndex = mMember->GetIndex();
     } else {
-        mSet = mWrapper ? mWrapper->GetSet() : nullptr;
+        mSet = mWrapper ? mWrapper->GetSet() : nsnull;
 
         if (mSet &&
             mSet->FindMember(name, &mMember, &mInterface,
                              mWrapper->HasProto() ?
                              mWrapper->GetProto()->GetSet() :
-                             nullptr,
+                             nsnull,
                              &mStaticMemberIsLocal)) {
             if (mMember && !mMember->IsConstant())
                 mMethodIndex = mMember->GetIndex();
         } else {
-            mMember = nullptr;
-            mInterface = nullptr;
-            mStaticMemberIsLocal = false;
+            mMember = nsnull;
+            mInterface = nsnull;
+            mStaticMemberIsLocal = JS_FALSE;
         }
     }
 
@@ -211,9 +247,9 @@ XPCCallContext::SetCallInfo(XPCNativeInterface* iface, XPCNativeMember* member,
 
     
     if (mTearOff && mTearOff->GetInterface() != iface)
-        mTearOff = nullptr;
+        mTearOff = nsnull;
 
-    mSet = nullptr;
+    mSet = nsnull;
     mInterface = iface;
     mMember = member;
     mMethodIndex = mMember->GetIndex() + (isSetter ? 1 : 0);
@@ -224,23 +260,24 @@ XPCCallContext::SetCallInfo(XPCNativeInterface* iface, XPCNativeMember* member,
 }
 
 void
-XPCCallContext::SetArgsAndResultPtr(unsigned argc,
+XPCCallContext::SetArgsAndResultPtr(uintN argc,
                                     jsval *argv,
                                     jsval *rval)
 {
     CHECK_STATE(HAVE_OBJECT);
 
     if (mState < HAVE_NAME) {
-        mSet = nullptr;
-        mInterface = nullptr;
-        mMember = nullptr;
-        mStaticMemberIsLocal = false;
+        mSet = nsnull;
+        mInterface = nsnull;
+        mMember = nsnull;
+        mStaticMemberIsLocal = JS_FALSE;
     }
 
     mArgc   = argc;
     mArgv   = argv;
     mRetVal = rval;
 
+    mReturnValueWasSet = JS_FALSE;
     mState = HAVE_ARGS;
 }
 
@@ -255,9 +292,9 @@ XPCCallContext::CanCallNow()
         return NS_ERROR_UNEXPECTED;
 
     if (!mTearOff) {
-        mTearOff = mWrapper->FindTearOff(*this, mInterface, false, &rv);
+        mTearOff = mWrapper->FindTearOff(*this, mInterface, JS_FALSE, &rv);
         if (!mTearOff || mTearOff->GetInterface() != mInterface) {
-            mTearOff = nullptr;
+            mTearOff = nsnull;
             return NS_FAILED(rv) ? rv : NS_ERROR_UNEXPECTED;
         }
     }
@@ -276,7 +313,8 @@ XPCCallContext::SystemIsBeingShutDown()
     
     
     NS_WARNING("Shutting Down XPConnect even through there is a live XPCCallContext");
-    mXPCContext = nullptr;
+    mThreadData = nsnull;
+    mXPCContext = nsnull;
     mState = SYSTEM_SHUTDOWN;
     if (mPrevCallContext)
         mPrevCallContext->SystemIsBeingShutDown();
@@ -291,10 +329,14 @@ XPCCallContext::~XPCCallContext()
     if (mXPCContext) {
         mXPCContext->SetCallingLangType(mPrevCallerLanguage);
 
-        DebugOnly<XPCCallContext*> old = XPCJSRuntime::Get()->SetCallContext(mPrevCallContext);
+#ifdef DEBUG
+        XPCCallContext* old = mThreadData->SetCallContext(mPrevCallContext);
         NS_ASSERTION(old == this, "bad pop from per thread data");
+#else
+        (void) mThreadData->SetCallContext(mPrevCallContext);
+#endif
 
-        shouldReleaseXPC = mPrevCallContext == nullptr;
+        shouldReleaseXPC = mPrevCallContext == nsnull;
     }
 
     
@@ -302,11 +344,16 @@ XPCCallContext::~XPCCallContext()
         JS_EndRequest(mJSContext);
 
     if (mContextPopRequired) {
-        XPCJSContextStack* stack = XPCJSRuntime::Get()->GetJSContextStack();
+        XPCJSContextStack* stack = mThreadData->GetJSContextStack();
         NS_ASSERTION(stack, "bad!");
         if (stack) {
-            DebugOnly<JSContext*> poppedCX = stack->Pop();
-            NS_ASSERTION(poppedCX == mJSContext, "bad pop");
+#ifdef DEBUG
+            JSContext* poppedCX;
+            nsresult rv = stack->Pop(&poppedCX);
+            NS_ASSERTION(NS_SUCCEEDED(rv) && poppedCX == mJSContext, "bad pop");
+#else
+            (void) stack->Pop(nsnull);
+#endif
         }
     }
 
@@ -316,7 +363,8 @@ XPCCallContext::~XPCCallContext()
             printf("!xpc - doing deferred destruction of JSContext @ %p\n",
                    mJSContext);
 #endif
-            NS_ASSERTION(!XPCJSRuntime::Get()->GetJSContextStack()->
+            NS_ASSERTION(!mThreadData->GetJSContextStack() ||
+                         !mThreadData->GetJSContextStack()->
                          DEBUG_StackHasJSContext(mJSContext),
                          "JSContext still in threadjscontextstack!");
 
@@ -325,7 +373,7 @@ XPCCallContext::~XPCCallContext()
     }
 
 #ifdef DEBUG
-    for (uint32_t i = 0; i < XPCCCX_STRING_CACHE_SIZE; ++i) {
+    for (PRUint32 i = 0; i < XPCCCX_STRING_CACHE_SIZE; ++i) {
         NS_ASSERTION(!mScratchStrings[i].mInUse, "Uh, string wrapper still in use!");
     }
 #endif
@@ -335,9 +383,9 @@ XPCCallContext::~XPCCallContext()
 }
 
 XPCReadableJSStringWrapper *
-XPCCallContext::NewStringWrapper(const PRUnichar *str, uint32_t len)
+XPCCallContext::NewStringWrapper(const PRUnichar *str, PRUint32 len)
 {
-    for (uint32_t i = 0; i < XPCCCX_STRING_CACHE_SIZE; ++i) {
+    for (PRUint32 i = 0; i < XPCCCX_STRING_CACHE_SIZE; ++i) {
         StringWrapperEntry& ent = mScratchStrings[i];
 
         if (!ent.mInUse) {
@@ -357,7 +405,7 @@ XPCCallContext::NewStringWrapper(const PRUnichar *str, uint32_t len)
 void
 XPCCallContext::DeleteString(nsAString *string)
 {
-    for (uint32_t i = 0; i < XPCCCX_STRING_CACHE_SIZE; ++i) {
+    for (PRUint32 i = 0; i < XPCCCX_STRING_CACHE_SIZE; ++i) {
         StringWrapperEntry& ent = mScratchStrings[i];
         if (string == ent.mString.addr()) {
             
@@ -379,7 +427,7 @@ XPCCallContext::DeleteString(nsAString *string)
 NS_IMETHODIMP
 XPCCallContext::GetCallee(nsISupports * *aCallee)
 {
-    nsISupports* temp = mWrapper ? mWrapper->GetIdentityObject() : nullptr;
+    nsISupports* temp = mWrapper ? mWrapper->GetIdentityObject() : nsnull;
     NS_IF_ADDREF(temp);
     *aCallee = temp;
     return NS_OK;
@@ -387,7 +435,7 @@ XPCCallContext::GetCallee(nsISupports * *aCallee)
 
 
 NS_IMETHODIMP
-XPCCallContext::GetCalleeMethodIndex(uint16_t *aCalleeMethodIndex)
+XPCCallContext::GetCalleeMethodIndex(PRUint16 *aCalleeMethodIndex)
 {
     *aCalleeMethodIndex = mMethodIndex;
     return NS_OK;
@@ -417,7 +465,7 @@ XPCCallContext::GetCalleeInterface(nsIInterfaceInfo * *aCalleeInterface)
 NS_IMETHODIMP
 XPCCallContext::GetCalleeClassInfo(nsIClassInfo * *aCalleeClassInfo)
 {
-    nsIClassInfo* temp = mWrapper ? mWrapper->GetClassInfo() : nullptr;
+    nsIClassInfo* temp = mWrapper ? mWrapper->GetClassInfo() : nsnull;
     NS_IF_ADDREF(temp);
     *aCalleeClassInfo = temp;
     return NS_OK;
@@ -427,16 +475,15 @@ XPCCallContext::GetCalleeClassInfo(nsIClassInfo * *aCalleeClassInfo)
 NS_IMETHODIMP
 XPCCallContext::GetJSContext(JSContext * *aJSContext)
 {
-    JS_AbortIfWrongThread(JS_GetRuntime(mJSContext));
     *aJSContext = mJSContext;
     return NS_OK;
 }
 
 
 NS_IMETHODIMP
-XPCCallContext::GetArgc(uint32_t *aArgc)
+XPCCallContext::GetArgc(PRUint32 *aArgc)
 {
-    *aArgc = (uint32_t) mArgc;
+    *aArgc = (PRUint32) mArgc;
     return NS_OK;
 }
 
@@ -445,6 +492,28 @@ NS_IMETHODIMP
 XPCCallContext::GetArgvPtr(jsval * *aArgvPtr)
 {
     *aArgvPtr = mArgv;
+    return NS_OK;
+}
+
+
+NS_IMETHODIMP
+XPCCallContext::GetRetValPtr(jsval * *aRetValPtr)
+{
+    *aRetValPtr = mRetVal;
+    return NS_OK;
+}
+
+
+NS_IMETHODIMP
+XPCCallContext::GetReturnValueWasSet(bool *aReturnValueWasSet)
+{
+    *aReturnValueWasSet = mReturnValueWasSet;
+    return NS_OK;
+}
+NS_IMETHODIMP
+XPCCallContext::SetReturnValueWasSet(bool aReturnValueWasSet)
+{
+    mReturnValueWasSet = aReturnValueWasSet;
     return NS_OK;
 }
 
@@ -457,7 +526,7 @@ XPCCallContext::GetPreviousCallContext(nsAXPCNativeCallContext **aResult)
 }
 
 NS_IMETHODIMP
-XPCCallContext::GetLanguage(uint16_t *aResult)
+XPCCallContext::GetLanguage(PRUint16 *aResult)
 {
   NS_ENSURE_ARG_POINTER(aResult);
   *aResult = GetCallerLanguage();
@@ -469,9 +538,13 @@ XPCCallContext::GetLanguage(uint16_t *aResult)
 void
 XPCLazyCallContext::AssertContextIsTopOfStack(JSContext* cx)
 {
-    XPCJSContextStack* stack = XPCJSRuntime::Get()->GetJSContextStack();
+    XPCPerThreadData* tls = XPCPerThreadData::GetData(cx);
+    XPCJSContextStack* stack = tls->GetJSContextStack();
 
-    JSContext *topJSContext = stack->Peek();
+    JSContext* topJSContext;
+    nsresult rv = stack->Peek(&topJSContext);
+    NS_ASSERTION(NS_SUCCEEDED(rv), "XPCJSContextStack::Peek failed");
+
     NS_ASSERTION(cx == topJSContext, "wrong context on XPCJSContextStack!");
 }
 #endif

@@ -635,24 +635,6 @@ void nsBuiltinDecoderStateMachine::AudioLoop()
         NS_WARNING("Int overflow calculating audio end time");
         break;
       }
-
-      PRInt64 audioAhead = mAudioEndTime - GetMediaTime();
-      if (audioAhead > AMPLE_AUDIO_USECS &&
-          framesWritten > minWriteFrames)
-      {
-        
-        
-        
-        
-        Wait(AMPLE_AUDIO_USECS / 2);
-        
-        
-        
-        
-        
-        
-        mon.NotifyAll();
-      }
     }
   }
   if (mReader->mAudioQueue.AtEndOfStream() &&

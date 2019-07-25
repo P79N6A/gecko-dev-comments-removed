@@ -161,7 +161,7 @@ PLDHashTableOps nsDiskCacheBindery::ops =
 
 
 nsDiskCacheBindery::nsDiskCacheBindery()
-    : initialized(PR_FALSE)
+    : initialized(false)
 {
 }
 
@@ -188,7 +188,7 @@ nsDiskCacheBindery::Reset()
 {
     if (initialized) {
         PL_DHashTableFinish(&table);
-        initialized = PR_FALSE;
+        initialized = false;
     }
 }
 
@@ -385,7 +385,7 @@ bool
 nsDiskCacheBindery::ActiveBindings()
 {
     NS_ASSERTION(initialized, "nsDiskCacheBindery not initialized");
-    if (!initialized) return PR_FALSE;
+    if (!initialized) return false;
 
     bool    activeBinding = false;
     PL_DHashTableEnumerate(&table, ActiveBinding, &activeBinding);

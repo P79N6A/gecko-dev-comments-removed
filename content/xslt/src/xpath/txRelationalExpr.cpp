@@ -63,7 +63,7 @@ RelationalExpr::compareResults(txIEvalContext* aContext, txAExprResult* aLeft,
         txNodeSet* nodeSet = static_cast<txNodeSet*>(aLeft);
         nsRefPtr<StringResult> strResult;
         rv = aContext->recycler()->getStringResult(getter_AddRefs(strResult));
-        NS_ENSURE_SUCCESS(rv, PR_FALSE);
+        NS_ENSURE_SUCCESS(rv, false);
 
         PRInt32 i;
         for (i = 0; i < nodeSet->size(); ++i) {
@@ -71,11 +71,11 @@ RelationalExpr::compareResults(txIEvalContext* aContext, txAExprResult* aLeft,
             txXPathNodeUtils::appendNodeValue(nodeSet->get(i),
                                               strResult->mValue);
             if (compareResults(aContext, strResult, aRight)) {
-                return PR_TRUE;
+                return true;
             }
         }
 
-        return PR_FALSE;
+        return false;
     }
 
     
@@ -88,7 +88,7 @@ RelationalExpr::compareResults(txIEvalContext* aContext, txAExprResult* aLeft,
         txNodeSet* nodeSet = static_cast<txNodeSet*>(aRight);
         nsRefPtr<StringResult> strResult;
         rv = aContext->recycler()->getStringResult(getter_AddRefs(strResult));
-        NS_ENSURE_SUCCESS(rv, PR_FALSE);
+        NS_ENSURE_SUCCESS(rv, false);
 
         PRInt32 i;
         for (i = 0; i < nodeSet->size(); ++i) {
@@ -96,11 +96,11 @@ RelationalExpr::compareResults(txIEvalContext* aContext, txAExprResult* aLeft,
             txXPathNodeUtils::appendNodeValue(nodeSet->get(i),
                                               strResult->mValue);
             if (compareResults(aContext, aLeft, strResult)) {
-                return PR_TRUE;
+                return true;
             }
         }
 
-        return PR_FALSE;
+        return false;
     }
 
     
@@ -174,7 +174,7 @@ RelationalExpr::compareResults(txIEvalContext* aContext, txAExprResult* aLeft,
         }
     }
 
-    return PR_FALSE;
+    return false;
 }
 
 nsresult

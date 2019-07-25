@@ -104,14 +104,14 @@ nsXULLabelFrame::Init(nsIContent*      aContent,
     return rv;
 
   
-  return RegUnregAccessKey(PR_TRUE);
+  return RegUnregAccessKey(true);
 }
 
 void
 nsXULLabelFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
   
-  RegUnregAccessKey(PR_FALSE);
+  RegUnregAccessKey(false);
   nsBlockFrame::DestroyFrom(aDestructRoot);
 } 
 
@@ -126,7 +126,7 @@ nsXULLabelFrame::AttributeChanged(PRInt32 aNameSpaceID,
   
   
   if (aAttribute == nsGkAtoms::accesskey || aAttribute == nsGkAtoms::control)
-    RegUnregAccessKey(PR_TRUE);
+    RegUnregAccessKey(true);
 
   return rv;
 }

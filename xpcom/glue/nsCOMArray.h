@@ -116,7 +116,7 @@ public:
     
     bool SetCapacity(PRUint32 aCapacity) {
       return aCapacity > 0 ? mArray.SizeTo(static_cast<PRInt32>(aCapacity))
-                           : PR_TRUE;
+                           : true;
     }
 
 private:

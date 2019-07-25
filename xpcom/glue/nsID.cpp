@@ -57,7 +57,7 @@ static const char gIDFormat2[] =
     if(the_char >= '0' && the_char <= '9') the_int_var -= '0'; \
     else if(the_char >= 'a' && the_char <= 'f') the_int_var -= 'a'-10; \
     else if(the_char >= 'A' && the_char <= 'F') the_int_var -= 'A'-10; \
-    else return PR_FALSE
+    else return false
 
 
 
@@ -83,7 +83,7 @@ static const char gIDFormat2[] =
 
 
 
- #define PARSE_HYPHEN(char_pointer)   if(*(char_pointer++) != '-') return PR_FALSE
+ #define PARSE_HYPHEN(char_pointer)   if(*(char_pointer++) != '-') return false
     
 
 
@@ -94,7 +94,7 @@ bool nsID::Parse(const char *aIDStr)
 {
   
   if(!aIDStr) {
-    return PR_FALSE;
+    return false;
   }
 
   bool expectFormat1 = (aIDStr[0] == '{');
@@ -115,7 +115,7 @@ bool nsID::Parse(const char *aIDStr)
     i++;
   }
   
-  return expectFormat1 ? *aIDStr == '}' : PR_TRUE;
+  return expectFormat1 ? *aIDStr == '}' : true;
 }
 
 #ifndef XPCOM_GLUE_AVOID_NSPR

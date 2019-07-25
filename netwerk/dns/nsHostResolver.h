@@ -71,8 +71,20 @@ class nsResolveHostCallback;
         return n;                                                            \
     }
 
+#ifdef ANDROID
+
+
+
+
+#define MAX_RESOLVER_THREADS_FOR_ANY_PRIORITY  0
+#define MAX_RESOLVER_THREADS_FOR_HIGH_PRIORITY 1
+#define MAX_NON_PRIORITY_REQUESTS 0
+#else
 #define MAX_RESOLVER_THREADS_FOR_ANY_PRIORITY  3
 #define MAX_RESOLVER_THREADS_FOR_HIGH_PRIORITY 5
+#define MAX_NON_PRIORITY_REQUESTS 150
+#endif
+
 #define MAX_RESOLVER_THREADS (MAX_RESOLVER_THREADS_FOR_ANY_PRIORITY + \
                               MAX_RESOLVER_THREADS_FOR_HIGH_PRIORITY)
 

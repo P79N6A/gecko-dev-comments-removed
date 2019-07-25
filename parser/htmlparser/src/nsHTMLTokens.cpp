@@ -166,7 +166,7 @@ ConsumeUntil(nsScannerSharedSubstring& aString,
   bool     done = false;
 
   do {
-    result = aScanner.ReadUntil(aString, aEndCondition, PR_FALSE);
+    result = aScanner.ReadUntil(aString, aEndCondition, false);
     if (NS_SUCCEEDED(result)) {
       PRUnichar ch;
       aScanner.Peek(ch);
@@ -190,7 +190,7 @@ ConsumeUntil(nsScannerSharedSubstring& aString,
         aString.writable().Append(PRUnichar('\n'));
         ++aNewlineCount;
       } else {
-        done = PR_TRUE;
+        done = true;
       }
     }
   } while (NS_SUCCEEDED(result) && !done);
@@ -221,32 +221,32 @@ CHTMLToken::~CHTMLToken()
 CStartToken::CStartToken(eHTMLTags aTag)
   : CHTMLToken(aTag)
 {
-  mEmpty = PR_FALSE;
+  mEmpty = false;
   mContainerInfo = eFormUnknown;
 #ifdef DEBUG
-  mAttributed = PR_FALSE;
+  mAttributed = false;
 #endif
 }
 
 CStartToken::CStartToken(const nsAString& aName)
   : CHTMLToken(eHTMLTag_unknown)
 {
-  mEmpty = PR_FALSE;
+  mEmpty = false;
   mContainerInfo = eFormUnknown;
   mTextValue.Assign(aName);
 #ifdef DEBUG
-  mAttributed = PR_FALSE;
+  mAttributed = false;
 #endif
 }
 
 CStartToken::CStartToken(const nsAString& aName, eHTMLTags aTag)
   : CHTMLToken(aTag)
 {
-  mEmpty = PR_FALSE;
+  mEmpty = false;
   mContainerInfo = eFormUnknown;
   mTextValue.Assign(aName);
 #ifdef DEBUG
-  mAttributed = PR_FALSE;
+  mAttributed = false;
 #endif
 }
 
@@ -514,7 +514,7 @@ CTextToken::Consume(PRUnichar aChar, nsScanner& aScanner, PRInt32 aFlag)
   aScanner.SetPosition(++start);
 
   while (NS_OK == result && !done) {
-    result = aScanner.ReadUntil(start, end, theEndCondition, PR_FALSE);
+    result = aScanner.ReadUntil(start, end, theEndCondition, false);
     if (NS_OK == result) {
       result = aScanner.Peek(aChar);
 
@@ -559,7 +559,7 @@ CTextToken::Consume(PRUnichar aChar, nsScanner& aScanner, PRInt32 aFlag)
             break;
         }
       } else {
-        done = PR_TRUE;
+        done = true;
       }
     }
   }
@@ -658,7 +658,7 @@ CTextToken::ConsumeCharacterData(bool aIgnoreComments,
         
         if ((end == endPos && aIgnoreComments) ||
             FindCharInReadable(PRUnichar(kGreaterThan), gtOffset, endPos)) {
-          found = PR_TRUE;
+          found = true;
           theTermStrPos = start;
         }
         break;
@@ -704,8 +704,8 @@ CTextToken::ConsumeCharacterData(bool aIgnoreComments,
       aScanner.SetPosition(ltOffset);
 
       
-      aFlushTokens = PR_TRUE;
-      done = PR_TRUE;
+      aFlushTokens = true;
+      done = true;
     } else {
       
       
@@ -715,10 +715,10 @@ CTextToken::ConsumeCharacterData(bool aIgnoreComments,
           
           
           theCurrOffset = theAltTermStrPos;
-          theLastIteration = PR_TRUE;
+          theLastIteration = true;
         } else {
           
-          done = PR_TRUE; 
+          done = true; 
           result = kFakeEndTag;
           aScanner.BindSubstring(mTextValue, theStartOffset, endPos);
           aScanner.SetPosition(endPos);
@@ -796,7 +796,7 @@ CTextToken::ConsumeParsedCharacterData(bool aDiscardFirstNewline,
   
   do {
     result = ConsumeUntil(theContent, mNewlineCount, aScanner,
-                          theEndCondition, PR_TRUE, PR_FALSE, aFlag);
+                          theEndCondition, true, false, aFlag);
 
     if (aDiscardFirstNewline &&
         (NS_SUCCEEDED(result) || !aScanner.IsIncremental()) &&
@@ -829,11 +829,11 @@ CTextToken::ConsumeParsedCharacterData(bool aDiscardFirstNewline,
         }
       }
     }
-    aDiscardFirstNewline = PR_FALSE;
+    aDiscardFirstNewline = false;
 
     if (NS_FAILED(result)) {
       if (kEOF == result && !aScanner.IsIncremental()) {
-        aFound = PR_TRUE; 
+        aFound = true; 
         result = kFakeEndTag;
 
         if (aConservativeConsume && altEndPos != endPos) {
@@ -841,12 +841,12 @@ CTextToken::ConsumeParsedCharacterData(bool aDiscardFirstNewline,
           
           theContent.writable().Truncate(truncPos);
           mNewlineCount = truncNewlineCount;
-          aScanner.SetPosition(altEndPos, PR_FALSE, PR_TRUE);
+          aScanner.SetPosition(altEndPos, false, true);
         }
         
         mTextValue.Rebind(theContent.str());
       } else {
-        aFound = PR_FALSE;
+        aFound = false;
       }
 
       return result;
@@ -870,14 +870,14 @@ CTextToken::ConsumeParsedCharacterData(bool aDiscardFirstNewline,
         if (end != endPos && (*end == '>'  || *end == ' '  ||
                               *end == '\t' || *end == '\n' ||
                               *end == '\r')) {
-          aFound = PR_TRUE;
+          aFound = true;
           mTextValue.Rebind(theContent.str());
 
           
           
           
           
-          aScanner.SetPosition(currPos, PR_FALSE, PR_TRUE);
+          aScanner.SetPosition(currPos, false, true);
           break;
         }
       }
@@ -985,7 +985,7 @@ CCDATASectionToken::Consume(PRUnichar aChar, nsScanner& aScanner,
   bool      done = false;
 
   while (NS_OK == result && !done) {
-    result = aScanner.ReadUntil(mTextValue, theEndCondition, PR_FALSE);
+    result = aScanner.ReadUntil(mTextValue, theEndCondition, false);
     if (NS_OK == result) {
       result = aScanner.Peek(aChar);
       if (kCR == aChar && NS_OK == result) {
@@ -1022,7 +1022,7 @@ CCDATASectionToken::Consume(PRUnichar aChar, nsScanner& aScanner,
         if (NS_OK == result && kRightSquareBracket == aChar) {
           result = aScanner.GetChar(aChar); 
           mTextValue.Append(aChar);
-          canClose = PR_TRUE;
+          canClose = true;
         }
 
         
@@ -1050,15 +1050,15 @@ CCDATASectionToken::Consume(PRUnichar aChar, nsScanner& aScanner,
           }
         } else {
           nsAutoString dummy; 
-          result = aScanner.ReadUntil(dummy, kGreaterThan, PR_FALSE);
+          result = aScanner.ReadUntil(dummy, kGreaterThan, false);
         }
         if (NS_OK == result &&
             (!inCDATA || (canClose && kGreaterThan == aChar))) {
           result = aScanner.GetChar(aChar); 
-          done = PR_TRUE;
+          done = true;
         }
       } else {
-        done = PR_TRUE;
+        done = true;
       }
     }
   }
@@ -1068,7 +1068,7 @@ CCDATASectionToken::Consume(PRUnichar aChar, nsScanner& aScanner,
     
     
     
-    mInError = PR_TRUE;
+    mInError = true;
     result = NS_OK;
   }
 
@@ -1127,7 +1127,7 @@ CMarkupDeclToken::Consume(PRUnichar aChar, nsScanner& aScanner,
 
   while (NS_OK == result && !done) {
     aScanner.SetPosition(start);
-    result = aScanner.ReadUntil(start, end, theEndCondition, PR_FALSE);
+    result = aScanner.ReadUntil(start, end, theEndCondition, false);
     if (NS_OK == result) {
       result = aScanner.Peek(aChar);
 
@@ -1176,7 +1176,7 @@ CMarkupDeclToken::Consume(PRUnichar aChar, nsScanner& aScanner,
               
               ++start;
               aScanner.SetPosition(start); 
-              done = PR_TRUE;
+              done = true;
             }
             break;
           default:
@@ -1185,14 +1185,14 @@ CMarkupDeclToken::Consume(PRUnichar aChar, nsScanner& aScanner,
         }
         start = end;
       } else {
-        done = PR_TRUE;
+        done = true;
       }
     }
   }
   aScanner.BindSubstring(mTextValue, origin, end);
 
   if (kEOF == result) {
-    mInError = PR_TRUE;
+    mInError = true;
     if (!aScanner.IsIncremental()) {
       
       result = NS_OK;
@@ -1236,7 +1236,7 @@ IsCommentEnd(const nsScannerIterator& aCurrent, const nsScannerIterator& aEnd,
   while (current != aEnd && dashes != 2) {
     if (*current == kGreaterThan) {
       aGt = current;
-      return PR_TRUE;
+      return true;
     }
     if (*current == PRUnichar('-')) {
       ++dashes;
@@ -1246,7 +1246,7 @@ IsCommentEnd(const nsScannerIterator& aCurrent, const nsScannerIterator& aEnd,
     ++current;
   }
 
-  return PR_FALSE;
+  return false;
 }
 
 nsresult
@@ -1326,7 +1326,7 @@ CCommentToken::ConsumeStrictComment(nsScanner& aScanner)
   }
 
   
-  aScanner.SetPosition(lt, PR_FALSE, PR_TRUE);
+  aScanner.SetPosition(lt, false, true);
   return kNotAComment;
 }
 
@@ -1373,7 +1373,7 @@ CCommentToken::ConsumeQuirksComment(nsScanner& aScanner)
         if (current != beginLastMinus && *current == kMinus) { 
           --current;
           if (current != beginLastMinus && *current == kMinus) { 
-            goodComment = PR_TRUE;
+            goodComment = true;
             --current;
           }
         } else if (current != beginLastMinus && *current == '!') {
@@ -1382,11 +1382,11 @@ CCommentToken::ConsumeQuirksComment(nsScanner& aScanner)
             --current;
             if (current != beginLastMinus && *current == kMinus) { 
               --current;
-              goodComment = PR_TRUE;
+              goodComment = true;
             }
           }
         } else if (current == beginLastMinus) {
-          goodComment = PR_TRUE;
+          goodComment = true;
         }
 
         if (goodComment) {
@@ -1467,7 +1467,7 @@ CCommentToken::ConsumeQuirksComment(nsScanner& aScanner)
 
   if (!aScanner.IsIncremental()) {
     
-    aScanner.SetPosition(lt, PR_FALSE, PR_TRUE);
+    aScanner.SetPosition(lt, false, true);
     return kNotAComment;
   }
 
@@ -1486,7 +1486,7 @@ CCommentToken::ConsumeQuirksComment(nsScanner& aScanner)
 nsresult
 CCommentToken::Consume(PRUnichar aChar, nsScanner& aScanner, PRInt32 aFlag)
 {
-  nsresult result = PR_TRUE;
+  nsresult result = true;
 
   if (aFlag & NS_IPARSER_FLAG_STRICT_MODE) {
     
@@ -1589,7 +1589,7 @@ CNewlineToken::Consume(PRUnichar aChar, nsScanner& aScanner, PRInt32 aFlag)
 CAttributeToken::CAttributeToken()
   : CHTMLToken(eHTMLTag_unknown)
 {
-  mHasEqualWithoutValue = PR_FALSE;
+  mHasEqualWithoutValue = false;
 }
 
 
@@ -1599,7 +1599,7 @@ CAttributeToken::CAttributeToken(const nsAString& aName)
   : CHTMLToken(eHTMLTag_unknown)
 {
   mTextValue.writable().Assign(aName);
-  mHasEqualWithoutValue = PR_FALSE;
+  mHasEqualWithoutValue = false;
 }
 
 
@@ -1610,7 +1610,7 @@ CAttributeToken::CAttributeToken(const nsAString& aKey, const nsAString& aName)
 {
   mTextValue.writable().Assign(aName);
   mTextKey.Rebind(aKey);
-  mHasEqualWithoutValue = PR_FALSE;
+  mHasEqualWithoutValue = false;
 }
 
 PRInt32
@@ -1681,7 +1681,7 @@ ConsumeQuotedString(PRUnichar aChar,
   aScanner.CurrentPosition(theOffset);
 
   result = ConsumeUntil(aString, aNewlineCount, aScanner,
-                      *terminateCondition, PR_TRUE, PR_TRUE, aFlag);
+                      *terminateCondition, true, true, aFlag);
 
   if (NS_SUCCEEDED(result)) {
     result = aScanner.GetChar(aChar); 
@@ -1695,9 +1695,9 @@ ConsumeQuotedString(PRUnichar aChar,
     static const nsReadEndCondition
       theAttributeTerminator(kAttributeTerminalChars);
     aString.writable().Truncate(origLen);
-    aScanner.SetPosition(theOffset, PR_FALSE, PR_TRUE);
+    aScanner.SetPosition(theOffset, false, true);
     result = ConsumeUntil(aString, aNewlineCount, aScanner,
-                          theAttributeTerminator, PR_FALSE, PR_TRUE, aFlag);
+                          theAttributeTerminator, false, true, aFlag);
     if (NS_SUCCEEDED(result) && (aFlag & NS_IPARSER_FLAG_VIEW_SOURCE)) {
       
       result = NS_ERROR_HTMLPARSER_UNTERMINATEDSTRINGLITERAL;
@@ -1768,7 +1768,7 @@ CAttributeToken::Consume(PRUnichar aChar, nsScanner& aScanner, PRInt32 aFlag)
     static const nsReadEndCondition theEndCondition(theTerminalsChars);
 
     nsScannerIterator start, end;
-    result = aScanner.ReadUntil(start, end, theEndCondition, PR_FALSE);
+    result = aScanner.ReadUntil(start, end, theEndCondition, false);
 
     if (!(aFlag & NS_IPARSER_FLAG_VIEW_SOURCE)) {
       aScanner.BindSubstring(mTextKey, start, end);
@@ -1820,7 +1820,7 @@ CAttributeToken::Consume(PRUnichar aChar, nsScanner& aScanner, PRInt32 aFlag)
                     } else if (result ==
                                 NS_ERROR_HTMLPARSER_UNTERMINATEDSTRINGLITERAL) {
                       result = NS_OK;
-                      mInError = PR_TRUE;
+                      mInError = true;
                     }
                     
                     
@@ -1829,8 +1829,8 @@ CAttributeToken::Consume(PRUnichar aChar, nsScanner& aScanner, PRInt32 aFlag)
                     
                     
                   } else if (kGreaterThan == aChar) {
-                    mHasEqualWithoutValue = PR_TRUE;
-                    mInError = PR_TRUE;
+                    mHasEqualWithoutValue = true;
+                    mInError = true;
                   } else {
                     static const nsReadEndCondition
                       theAttributeTerminator(kAttributeTerminalChars);
@@ -1839,8 +1839,8 @@ CAttributeToken::Consume(PRUnichar aChar, nsScanner& aScanner, PRInt32 aFlag)
                                    mNewlineCount,
                                    aScanner,
                                    theAttributeTerminator,
-                                   PR_FALSE,
-                                   PR_TRUE,
+                                   false,
+                                   true,
                                    aFlag);
                   }
                 }
@@ -1855,8 +1855,8 @@ CAttributeToken::Consume(PRUnichar aChar, nsScanner& aScanner, PRInt32 aFlag)
                 }
               } else {
                 
-                mHasEqualWithoutValue = PR_TRUE;
-                mInError = PR_TRUE;
+                mHasEqualWithoutValue = true;
+                mInError = true;
               }
             }
           } else {
@@ -1874,7 +1874,7 @@ CAttributeToken::Consume(PRUnichar aChar, nsScanner& aScanner, PRInt32 aFlag)
                 kForwardSlash == aChar) {
               
               if (kForwardSlash != aChar || !(aFlag & NS_IPARSER_FLAG_XML)) {
-                mInError = PR_TRUE;
+                mInError = true;
               }
 
               if (!(aFlag & NS_IPARSER_FLAG_VIEW_SOURCE)) {
@@ -1971,7 +1971,7 @@ CWhitespaceToken::Consume(PRUnichar aChar, nsScanner& aScanner, PRInt32 aFlag)
 
   nsScannerIterator start;
   aScanner.CurrentPosition(start);
-  aScanner.SetPosition(--start, PR_FALSE, PR_TRUE);
+  aScanner.SetPosition(--start, false, true);
 
   bool haveCR;
 
@@ -2277,14 +2277,14 @@ CInstructionToken::Consume(PRUnichar aChar, nsScanner& aScanner, PRInt32 aFlag)
 
   while (NS_OK == result && !done) {
     
-    result = aScanner.ReadUntil(mTextValue, kGreaterThan, PR_FALSE);
+    result = aScanner.ReadUntil(mTextValue, kGreaterThan, false);
     if (NS_SUCCEEDED(result)) {
       
       
       if (!(aFlag & NS_IPARSER_FLAG_XML) ||
           kQuestionMark == mTextValue.Last()) {
         
-        done = PR_TRUE;
+        done = true;
       }
       
       aScanner.GetChar(aChar);
@@ -2294,7 +2294,7 @@ CInstructionToken::Consume(PRUnichar aChar, nsScanner& aScanner, PRInt32 aFlag)
 
   if (kEOF == result && !aScanner.IsIncremental()) {
     
-    mInError = PR_TRUE;
+    mInError = true;
     result = NS_OK;
   }
 
@@ -2345,7 +2345,7 @@ CDoctypeDeclToken::Consume(PRUnichar aChar, nsScanner& aScanner, PRInt32 aFlag)
   aScanner.CurrentPosition(start);
   aScanner.EndReading(end);
 
-  nsresult result = aScanner.ReadUntil(start, end, theEndCondition, PR_FALSE);
+  nsresult result = aScanner.ReadUntil(start, end, theEndCondition, false);
 
   if (NS_SUCCEEDED(result)) {
     PRUnichar ch;
@@ -2358,13 +2358,13 @@ CDoctypeDeclToken::Consume(PRUnichar aChar, nsScanner& aScanner, PRInt32 aFlag)
     } else {
       NS_ASSERTION(kLessThan == ch,
                    "Make sure this doctype decl. is really in error.");
-      mInError = PR_TRUE;
+      mInError = true;
     }
   } else if (!aScanner.IsIncremental()) {
     
     
     
-    mInError = PR_TRUE;
+    mInError = true;
     result = NS_OK;
   }
 

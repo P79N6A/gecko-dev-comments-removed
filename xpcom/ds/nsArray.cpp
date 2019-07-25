@@ -220,11 +220,11 @@ FindElementCallback(void *aElement, void* aClosure)
     
     if (closure->resultIndex >= closure->startIndex &&
         element == closure->targetElement) {
-        return PR_FALSE;    
+        return false;    
     }
     closure->resultIndex++;
 
-    return PR_TRUE;
+    return true;
 }
 
 nsresult

@@ -64,7 +64,7 @@ txErrorExpr::isSensitiveTo(ContextSensitivity aContext)
 {
     
     
-    return PR_TRUE;
+    return true;
 }
 
 #ifdef TX_TO_STRING

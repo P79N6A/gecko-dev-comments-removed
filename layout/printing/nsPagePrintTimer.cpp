@@ -101,7 +101,7 @@ nsPagePrintTimer::Notify(nsITimer *timer)
     if (donePrinting) {
       
       if (mPrintEngine->DonePrintingPages(mPrintObj, NS_OK)) {
-        initNewTimer = PR_FALSE;
+        initNewTimer = false;
       }
     }
 
@@ -113,8 +113,8 @@ nsPagePrintTimer::Notify(nsITimer *timer)
       ++mFiringCount;
       nsresult result = StartTimer(inRange);
       if (NS_FAILED(result)) {
-        donePrinting = PR_TRUE;     
-        mPrintEngine->SetIsPrinting(PR_FALSE);
+        donePrinting = true;     
+        mPrintEngine->SetIsPrinting(false);
       }
     }
   }
@@ -137,7 +137,7 @@ nsresult
 nsPagePrintTimer::Start(nsPrintObject* aPO)
 {
   mPrintObj = aPO;
-  return StartTimer(PR_FALSE);
+  return StartTimer(false);
 }
 
 

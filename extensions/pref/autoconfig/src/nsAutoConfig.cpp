@@ -77,7 +77,7 @@ nsresult nsAutoConfig::Init()
     
 
     nsresult rv;
-    mLoaded = PR_FALSE;
+    mLoaded = false;
     
     
     nsCOMPtr<nsIObserverService> observerService =
@@ -85,7 +85,7 @@ nsresult nsAutoConfig::Init()
     if (NS_FAILED(rv)) 
         return rv;
 
-    rv = observerService->AddObserver(this,"profile-after-change", PR_TRUE);
+    rv = observerService->AddObserver(this,"profile-after-change", true);
     
     return rv;
 }
@@ -175,7 +175,7 @@ nsAutoConfig::OnStopRequest(nsIRequest *request, nsISupports *context,
     
     
     rv = EvaluateAdminConfigScript(mBuf.get(), mBuf.Length(),
-                              nsnull, PR_FALSE,PR_TRUE, PR_FALSE);
+                              nsnull, false,true, false);
     if (NS_SUCCEEDED(rv)) {
 
         
@@ -185,7 +185,7 @@ nsAutoConfig::OnStopRequest(nsIRequest *request, nsISupports *context,
             NS_WARNING("Error writing failover.jsc file");
 
         
-        mLoaded = PR_TRUE;  
+        mLoaded = true;  
 
         return NS_OK;
     }
@@ -342,7 +342,7 @@ nsresult nsAutoConfig::downloadAutoConfig()
     
     
     if (firstTime) {
-        firstTime = PR_FALSE;
+        firstTime = false;
     
         
         
@@ -390,7 +390,7 @@ nsresult nsAutoConfig::readOfflineFile()
 
 
 
-    mLoaded = PR_TRUE; 
+    mLoaded = true; 
 
     bool failCache;
     rv = mPrefBranch->GetBoolPref("autoadmin.failover_to_cached", &failCache);
@@ -408,14 +408,14 @@ nsresult nsAutoConfig::readOfflineFile()
             return rv;
 
         if (!offline) {
-            rv = ios->SetOffline(PR_TRUE);
+            rv = ios->SetOffline(true);
             if (NS_FAILED(rv)) 
                 return rv;
         }
         
         
         
-        rv = mPrefBranch->SetBoolPref("network.online", PR_FALSE);
+        rv = mPrefBranch->SetBoolPref("network.online", false);
         if (NS_FAILED(rv)) 
             return rv;
 
@@ -460,8 +460,8 @@ nsresult nsAutoConfig::evaluateLocalFile(nsIFile *file)
     
     rv = inStr->Read(buf, fs, &amt);
     if (NS_SUCCEEDED(rv)) {
-      EvaluateAdminConfigScript(buf, fs, nsnull, PR_FALSE, 
-                                PR_TRUE, PR_FALSE);
+      EvaluateAdminConfigScript(buf, fs, nsnull, false, 
+                                true, false);
     }
     inStr->Close();
     PR_Free(buf);

@@ -66,7 +66,7 @@ nsSHEntry::nsSHEntry()
   , mID(gEntryID++)
   , mScrollPositionX(0)
   , mScrollPositionY(0)
-  , mURIWasModified(PR_FALSE)
+  , mURIWasModified(false)
 {
   mShared = new nsSHEntryShared();
 }
@@ -92,7 +92,7 @@ ClearParentPtr(nsISHEntry* aEntry, void* )
   if (aEntry) {
     aEntry->SetParent(nsnull);
   }
-  return PR_TRUE;
+  return true;
 }
 
 nsSHEntry::~nsSHEntry()
@@ -393,14 +393,14 @@ nsSHEntry::Create(nsIURI * aURI, const nsAString &aTitle,
   
   
   
-  mShared->mIsFrameNavigation = PR_FALSE;
+  mShared->mIsFrameNavigation = false;
 
   
-  mShared->mSaveLayoutState = PR_TRUE;
+  mShared->mSaveLayoutState = true;
   mShared->mLayoutHistoryState = aLayoutHistoryState;
 
   
-  mShared->mExpired = PR_FALSE;
+  mShared->mExpired = false;
 
   return NS_OK;
 }
@@ -774,7 +774,7 @@ nsSHEntry::IsDynamicallyAdded(bool* aAdded)
 NS_IMETHODIMP
 nsSHEntry::HasDynamicallyAddedChild(bool* aAdded)
 {
-  *aAdded = PR_FALSE;
+  *aAdded = false;
   for (PRInt32 i = 0; i < mChildren.Count(); ++i) {
     nsISHEntry* entry = mChildren[i];
     if (entry) {

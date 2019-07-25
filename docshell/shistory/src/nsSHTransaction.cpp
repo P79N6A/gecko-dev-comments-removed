@@ -44,7 +44,7 @@
 
 
 
-nsSHTransaction::nsSHTransaction() : mPersist(PR_TRUE), mPrev(nsnull) 
+nsSHTransaction::nsSHTransaction() : mPersist(true), mPrev(nsnull) 
 {
 }
 

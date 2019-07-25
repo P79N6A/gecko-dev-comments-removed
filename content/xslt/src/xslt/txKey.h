@@ -102,7 +102,7 @@ struct txIndexedKeyHashEntry : public PLDHashEntryHdr
 {
     txIndexedKeyHashEntry(const void* aKey)
         : mKey(*static_cast<const txIndexedKeyHashKey*>(aKey)),
-          mIndexed(PR_FALSE)
+          mIndexed(false)
     {
     }
 

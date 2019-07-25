@@ -52,7 +52,7 @@ test_HasTransaction()
 
   
   {
-    mozStorageTransaction transaction(db, PR_FALSE);
+    mozStorageTransaction transaction(db, false);
     do_check_true(transaction.HasTransaction());
     (void)transaction.Commit();
     
@@ -61,17 +61,17 @@ test_HasTransaction()
 
   
   {
-    mozStorageTransaction transaction(db, PR_FALSE);
+    mozStorageTransaction transaction(db, false);
     do_check_true(transaction.HasTransaction());
     (void)transaction.Rollback();
     do_check_false(transaction.HasTransaction());
   }
 
   
-  mozStorageTransaction outerTransaction(db, PR_FALSE);
+  mozStorageTransaction outerTransaction(db, false);
   do_check_true(outerTransaction.HasTransaction());
   {
-    mozStorageTransaction innerTransaction(db, PR_FALSE);
+    mozStorageTransaction innerTransaction(db, false);
     do_check_false(innerTransaction.HasTransaction());
   }
 }
@@ -84,7 +84,7 @@ test_Commit()
   
   
   {
-    mozStorageTransaction transaction(db, PR_FALSE);
+    mozStorageTransaction transaction(db, false);
     (void)db->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
       "CREATE TABLE test (id INTEGER PRIMARY KEY)"
     ));
@@ -104,7 +104,7 @@ test_Rollback()
   
   
   {
-    mozStorageTransaction transaction(db, PR_TRUE);
+    mozStorageTransaction transaction(db, true);
     (void)db->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
       "CREATE TABLE test (id INTEGER PRIMARY KEY)"
     ));
@@ -124,7 +124,7 @@ test_AutoCommit()
   
   
   {
-    mozStorageTransaction transaction(db, PR_TRUE);
+    mozStorageTransaction transaction(db, true);
     (void)db->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
       "CREATE TABLE test (id INTEGER PRIMARY KEY)"
     ));
@@ -144,7 +144,7 @@ test_AutoRollback()
   
   
   {
-    mozStorageTransaction transaction(db, PR_FALSE);
+    mozStorageTransaction transaction(db, false);
     (void)db->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
       "CREATE TABLE test (id INTEGER PRIMARY KEY)"
     ));
@@ -163,11 +163,11 @@ test_SetDefaultAction()
   
   
   {
-    mozStorageTransaction transaction(db, PR_TRUE);
+    mozStorageTransaction transaction(db, true);
     (void)db->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
       "CREATE TABLE test1 (id INTEGER PRIMARY KEY)"
     ));
-    transaction.SetDefaultAction(PR_FALSE);
+    transaction.SetDefaultAction(false);
   }
   bool exists = true;
   (void)db->TableExists(NS_LITERAL_CSTRING("test1"), &exists);
@@ -176,13 +176,13 @@ test_SetDefaultAction()
   
   
   {
-    mozStorageTransaction transaction(db, PR_FALSE);
+    mozStorageTransaction transaction(db, false);
     (void)db->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
       "CREATE TABLE test2 (id INTEGER PRIMARY KEY)"
     ));
-    transaction.SetDefaultAction(PR_TRUE);
+    transaction.SetDefaultAction(true);
   }
-  exists = PR_FALSE;
+  exists = false;
   (void)db->TableExists(NS_LITERAL_CSTRING("test2"), &exists);
   do_check_true(exists);
 }
@@ -192,7 +192,7 @@ test_null_database_connection()
 {
   
   
-  mozStorageTransaction transaction(nsnull, PR_FALSE);
+  mozStorageTransaction transaction(nsnull, false);
 
   do_check_false(transaction.HasTransaction());
   do_check_true(NS_SUCCEEDED(transaction.Commit()));

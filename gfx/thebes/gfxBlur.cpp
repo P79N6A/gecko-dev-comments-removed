@@ -69,13 +69,13 @@ gfxAlphaBoxBlur::Init(const gfxRect& aRect,
     if (aDirtyRect) {
         
         
-        mHasDirtyRect = PR_TRUE;
+        mHasDirtyRect = true;
         mDirtyRect = *aDirtyRect;
         gfxRect requiredBlurArea = mDirtyRect.Intersect(rect);
         requiredBlurArea.Inflate(aBlurRadius + aSpreadRadius);
         rect = requiredBlurArea.Intersect(rect);
     } else {
-        mHasDirtyRect = PR_FALSE;
+        mHasDirtyRect = false;
     }
 
     

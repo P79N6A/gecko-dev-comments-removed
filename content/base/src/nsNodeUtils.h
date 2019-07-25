@@ -171,7 +171,7 @@ public:
                         nsCOMArray<nsINode> &aNodesWithProperties,
                         nsIDOMNode **aResult)
   {
-    return CloneAndAdopt(aNode, PR_TRUE, aDeep, aNewNodeInfoManager, nsnull,
+    return CloneAndAdopt(aNode, true, aDeep, aNewNodeInfoManager, nsnull,
                          nsnull, aNodesWithProperties, aResult);
   }
 
@@ -198,7 +198,7 @@ public:
                         JSContext *aCx, JSObject *aNewScope,
                         nsCOMArray<nsINode> &aNodesWithProperties)
   {
-    nsresult rv = CloneAndAdopt(aNode, PR_FALSE, PR_TRUE, aNewNodeInfoManager,
+    nsresult rv = CloneAndAdopt(aNode, false, true, aNewNodeInfoManager,
                                 aCx, aNewScope, aNodesWithProperties,
                                 nsnull);
 

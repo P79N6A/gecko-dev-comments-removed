@@ -130,8 +130,8 @@ nsSimplePageSequenceFrame::nsSimplePageSequenceFrame(nsStyleContext* aContext) :
   mPageData->mPrintOptions = do_GetService(sPrintOptionsContractID, &rv);
 
   
-  SetPageNumberFormat("pagenumber",  "%1$d", PR_TRUE);
-  SetPageNumberFormat("pageofpages", "%1$d of %2$d", PR_FALSE);
+  SetPageNumberFormat("pagenumber",  "%1$d", true);
+  SetPageNumberFormat("pageofpages", "%1$d of %2$d", false);
 }
 
 nsSimplePageSequenceFrame::~nsSimplePageSequenceFrame()
@@ -545,13 +545,13 @@ nsSimplePageSequenceFrame::PrintNextPage()
   nsresult rv = NS_OK;
 
   
-  mPrintThisPage = PR_TRUE;
+  mPrintThisPage = true;
 
   
   
   if (mDoingPageRange) {
     if (mPageNum < mFromPageNum) {
-      mPrintThisPage = PR_FALSE;
+      mPrintThisPage = false;
     } else if (mPageNum > mToPageNum) {
       mPageNum++;
       mCurrentPageFrame = nsnull;
@@ -562,16 +562,16 @@ nsSimplePageSequenceFrame::PrintNextPage()
   
   if (mPageNum & 0x1) {
     if (!printOddPages) {
-      mPrintThisPage = PR_FALSE;  
+      mPrintThisPage = false;  
     }
   } else {
     if (!printEvenPages) {
-      mPrintThisPage = PR_FALSE;  
+      mPrintThisPage = false;  
     }
   }
   
   if (nsIPrintSettings::kRangeSelection == mPrintRangeType) {
-    mPrintThisPage = PR_TRUE;
+    mPrintThisPage = true;
   }
 
   if (mPrintThisPage) {
@@ -632,7 +632,7 @@ nsSimplePageSequenceFrame::PrintNextPage()
         rv = dc->EndPage();
         NS_ENSURE_SUCCESS(rv, rv);
       } else {
-        continuePrinting = PR_FALSE;
+        continuePrinting = false;
       }
     }
   }

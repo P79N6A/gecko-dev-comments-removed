@@ -161,7 +161,7 @@ DiscardingEnabled()
   static bool enabled;
 
   if (!inited) {
-    inited = PR_TRUE;
+    inited = true;
 
     enabled = (PR_GetEnv("MOZ_DISABLE_IMAGE_DISCARD") == nsnull);
   }
@@ -196,16 +196,16 @@ RasterImage::RasterImage(imgStatusTracker* aStatusTracker) :
 #ifdef DEBUG
   mFramesNotified(0),
 #endif
-  mHasSize(PR_FALSE),
-  mDecodeOnDraw(PR_FALSE),
-  mMultipart(PR_FALSE),
-  mDiscardable(PR_FALSE),
-  mHasSourceData(PR_FALSE),
-  mDecoded(PR_FALSE),
-  mHasBeenDecoded(PR_FALSE),
-  mWorkerPending(PR_FALSE),
-  mInDecoder(PR_FALSE),
-  mAnimationFinished(PR_FALSE)
+  mHasSize(false),
+  mDecodeOnDraw(false),
+  mMultipart(false),
+  mDiscardable(false),
+  mHasSourceData(false),
+  mDecoded(false),
+  mHasBeenDecoded(false),
+  mWorkerPending(false),
+  mInDecoder(false),
+  mAnimationFinished(false)
 {
   
   mDiscardTrackerNode.curr = this;
@@ -295,7 +295,7 @@ RasterImage::Init(imgIDecoderObserver *aObserver,
   
   
   if (mSourceDataMimeType.Length() == 0) {
-    mInitialized = PR_TRUE;
+    mInitialized = true;
     return NS_OK;
   }
 
@@ -308,7 +308,7 @@ RasterImage::Init(imgIDecoderObserver *aObserver,
   CONTAINER_ENSURE_SUCCESS(rv);
 
   
-  mInitialized = PR_TRUE;
+  mInitialized = true;
 
   return NS_OK;
 }
@@ -346,8 +346,8 @@ RasterImage::ExtractFrame(PRUint32 aWhichFrame,
   
   img->Init(nsnull, "", "", INIT_FLAG_NONE);
   img->SetSize(aRegion.width, aRegion.height);
-  img->mDecoded = PR_TRUE; 
-  img->mHasBeenDecoded = PR_TRUE;
+  img->mDecoded = true; 
+  img->mHasBeenDecoded = true;
   img->mFrameDecodeFlags = aFlags & DECODE_FLAGS_MASK;
 
   if (img->mFrameDecodeFlags != mFrameDecodeFlags) {
@@ -522,7 +522,7 @@ RasterImage::GetCurrentFrameIsOpaque(bool *aIsOpaque)
 
   
   if (!curframe)
-    *aIsOpaque = PR_FALSE;
+    *aIsOpaque = false;
 
   
   else {
@@ -581,7 +581,7 @@ RasterImage::GetAnimated(bool *aAnimated)
 
   
   if (mAnim) {
-    *aAnimated = PR_TRUE;
+    *aAnimated = true;
     return NS_OK;
   }
 
@@ -591,7 +591,7 @@ RasterImage::GetAnimated(bool *aAnimated)
     return NS_ERROR_NOT_AVAILABLE;
 
   
-  *aAnimated = PR_FALSE;
+  *aAnimated = false;
 
   return NS_OK;
 }
@@ -927,7 +927,7 @@ RasterImage::SetSize(PRInt32 aWidth, PRInt32 aHeight)
 
   
   mSize.SizeTo(aWidth, aHeight);
-  mHasSize = PR_TRUE;
+  mHasSize = true;
 
   return NS_OK;
 }
@@ -1102,8 +1102,8 @@ RasterImage::DecodingComplete()
   
   
   
-  mDecoded = PR_TRUE;
-  mHasBeenDecoded = PR_TRUE;
+  mDecoded = true;
+  mHasBeenDecoded = true;
 
   nsresult rv;
 
@@ -1149,7 +1149,7 @@ RasterImage::StartAnimation()
   if (currentFrame) {
     timeout = currentFrame->GetTimeout();
     if (timeout < 0) { 
-      mAnimationFinished = PR_TRUE;
+      mAnimationFinished = true;
       return NS_ERROR_ABORT;
     }
   }
@@ -1192,7 +1192,7 @@ RasterImage::ResetAnimation()
       !mAnim || mAnim->currentAnimationFrameIndex == 0)
     return NS_OK;
 
-  mAnimationFinished = PR_FALSE;
+  mAnimationFinished = false;
 
   if (mAnimating)
     StopAnimation();
@@ -1213,7 +1213,7 @@ RasterImage::ResetAnimation()
     
     
     
-    mAnimating = PR_TRUE;
+    mAnimating = true;
   }
 
   return NS_OK;
@@ -1261,9 +1261,9 @@ RasterImage::AddSourceData(const char *aBuffer, PRUint32 aCount)
     
     
     nsRefPtr<Decoder> kungFuDeathGrip = mDecoder;
-    mInDecoder = PR_TRUE;
+    mInDecoder = true;
     mDecoder->FlushInvalidations();
-    mInDecoder = PR_FALSE;
+    mInDecoder = false;
   }
 
   
@@ -1329,7 +1329,7 @@ RasterImage::SourceDataComplete()
   
   if (mHasSourceData)
     return NS_OK;
-  mHasSourceData = PR_TRUE;
+  mHasSourceData = true;
 
   
   NS_ABORT_IF_FALSE(!mInDecoder, "Re-entrant call to AddSourceData!");
@@ -1413,8 +1413,8 @@ RasterImage::NewSourceData()
   NS_ABORT_IF_FALSE(mDecoded, "Should be decoded in NewSourceData");
 
   
-  mDecoded = PR_FALSE;
-  mHasSourceData = PR_FALSE;
+  mDecoded = false;
+  mHasSourceData = false;
 
   
   
@@ -1487,7 +1487,7 @@ RasterImage::Notify(nsITimer *timer)
 
       
       if (mAnimationMode == kLoopOnceAnimMode || mLoopCount == 0) {
-        mAnimationFinished = PR_TRUE;
+        mAnimationFinished = true;
         EvaluateAnimation();
         return NS_OK;
       } else {
@@ -1520,7 +1520,7 @@ RasterImage::Notify(nsITimer *timer)
   if (timeout > 0)
     mAnim->timer->SetDelay(timeout);
   else {
-    mAnimationFinished = PR_TRUE;
+    mAnimationFinished = true;
     EvaluateAnimation();
   }
 
@@ -1538,11 +1538,11 @@ RasterImage::Notify(nsITimer *timer)
                               nextFrame, nextFrameIndex))) {
       
       NS_WARNING("RasterImage::Notify(): Composing Frame Failed\n");
-      nextFrame->SetCompositingFailed(PR_TRUE);
+      nextFrame->SetCompositingFailed(true);
       mAnim->currentAnimationFrameIndex = nextFrameIndex;
       return NS_OK;
     } else {
-      nextFrame->SetCompositingFailed(PR_FALSE);
+      nextFrame->SetCompositingFailed(false);
     }
   }
   
@@ -1879,22 +1879,22 @@ RasterImage::CopyFrameImage(imgFrame *aSrcFrame,
   PRUint32 aDataLengthDest;
 
   if (!aSrcFrame || !aDstFrame)
-    return PR_FALSE;
+    return false;
 
   if (NS_FAILED(aDstFrame->LockImageData()))
-    return PR_FALSE;
+    return false;
 
   
   aSrcFrame->GetImageData(&aDataSrc, &aDataLengthSrc);
   aDstFrame->GetImageData(&aDataDest, &aDataLengthDest);
   if (!aDataDest || !aDataSrc || aDataLengthDest != aDataLengthSrc) {
     aDstFrame->UnlockImageData();
-    return PR_FALSE;
+    return false;
   }
   memcpy(aDataDest, aDataSrc, aDataLengthSrc);
   aDstFrame->UnlockImageData();
 
-  return PR_TRUE;
+  return true;
 }
 
 
@@ -1993,7 +1993,7 @@ RasterImage::DrawFrameTo(imgFrame *aSrc,
 
   gfxContext dst(dstSurf);
   dst.Translate(gfxPoint(aSrcRect.x, aSrcRect.y));
-  dst.Rectangle(gfxRect(0, 0, aSrcRect.width, aSrcRect.height), PR_TRUE);
+  dst.Rectangle(gfxRect(0, 0, aSrcRect.width, aSrcRect.height), true);
   
   
   PRInt32 blendMethod = aSrc->GetBlendMethod();
@@ -2036,7 +2036,7 @@ RasterImage::Has(const char *prop, bool *_retval)
 {
   NS_ENSURE_ARG_POINTER(_retval);
   if (!mProperties) {
-    *_retval = PR_FALSE;
+    *_retval = false;
     return NS_OK;
   }
   return mProperties->Has(prop, _retval);
@@ -2083,7 +2083,7 @@ RasterImage::Discard(bool force)
   mFrames.Clear();
 
   
-  mDecoded = PR_FALSE;
+  mDecoded = false;
 
   
   nsCOMPtr<imgIDecoderObserver> observer(do_QueryReferent(mObserver));
@@ -2229,9 +2229,9 @@ RasterImage::ShutdownDecoder(eShutdownIntent aIntent)
   nsRefPtr<Decoder> decoder = mDecoder;
   mDecoder = nsnull;
 
-  mInDecoder = PR_TRUE;
+  mInDecoder = true;
   decoder->Finish();
-  mInDecoder = PR_FALSE;
+  mInDecoder = false;
 
   nsresult decoderStatus = decoder->GetDecoderError();
   if (NS_FAILED(decoderStatus)) {
@@ -2241,7 +2241,7 @@ RasterImage::ShutdownDecoder(eShutdownIntent aIntent)
 
   
   mWorker = nsnull;
-  mWorkerPending = PR_FALSE;
+  mWorkerPending = false;
 
   
   
@@ -2280,9 +2280,9 @@ RasterImage::WriteToDecoder(const char *aBuffer, PRUint32 aCount)
 
   
   nsRefPtr<Decoder> kungFuDeathGrip = mDecoder;
-  mInDecoder = PR_TRUE;
+  mInDecoder = true;
   mDecoder->Write(aBuffer, aCount);
-  mInDecoder = PR_FALSE;
+  mInDecoder = false;
 
   
   
@@ -2442,9 +2442,9 @@ RasterImage::SyncDecode()
   
   
   nsRefPtr<Decoder> kungFuDeathGrip = mDecoder;
-  mInDecoder = PR_TRUE;
+  mInDecoder = true;
   mDecoder->FlushInvalidations();
-  mInDecoder = PR_FALSE;
+  mInDecoder = false;
 
   
   if (mDecoder && IsDecodeFinished()) {
@@ -2639,11 +2639,11 @@ RasterImage::IsDecodeFinished()
   
   if (mDecoder->IsSizeDecode()) {
     if (mHasSize)
-      decodeFinished = PR_TRUE;
+      decodeFinished = true;
   }
   else {
     if (mDecoded)
-      decodeFinished = PR_TRUE;
+      decodeFinished = true;
   }
 
   
@@ -2652,7 +2652,7 @@ RasterImage::IsDecodeFinished()
   
   
   if (mHasSourceData && (mBytesDecoded == mSourceData.Length()))
-    decodeFinished = PR_TRUE;
+    decodeFinished = true;
 
   return decodeFinished;
 }
@@ -2670,7 +2670,7 @@ RasterImage::DoError()
     ShutdownDecoder(eShutdownIntent_Error);
 
   
-  mError = PR_TRUE;
+  mError = true;
 
   
   LOG_CONTAINER_ERROR;
@@ -2696,7 +2696,7 @@ imgDecodeWorker::Run()
                     "Worker active for uninitialized container!");
 
   
-  image->mWorkerPending = PR_FALSE;
+  image->mWorkerPending = false;
 
   
   
@@ -2756,9 +2756,9 @@ imgDecodeWorker::Run()
   
   
   if (!image->mHasBeenDecoded) {
-    image->mInDecoder = PR_TRUE;
+    image->mInDecoder = true;
     image->mDecoder->FlushInvalidations();
-    image->mInDecoder = PR_FALSE;
+    image->mInDecoder = false;
   }
 
   
@@ -2806,7 +2806,7 @@ NS_METHOD imgDecodeWorker::Dispatch()
                     "Trying to queue up worker with one already pending!");
 
   
-  image->mWorkerPending = PR_TRUE;
+  image->mWorkerPending = true;
 
   
   return NS_DispatchToCurrentThread(this);

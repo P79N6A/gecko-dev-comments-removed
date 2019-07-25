@@ -196,14 +196,14 @@ public:
 private:
   NS_IMETHOD Run() {
     ReentrantMonitorAutoEnter mon(mMon);
-    mInitialized = PR_TRUE;
+    mInitialized = true;
     mon.Notify();
     return NS_OK;
   }
 
   nsThreadStartupEvent()
     : mMon("nsThreadStartupEvent.mMon")
-    , mInitialized(PR_FALSE) {
+    , mInitialized(false) {
   }
 
   ReentrantMonitor mMon;
@@ -225,7 +225,7 @@ public:
     : mShutdownContext(ctx) {
   }
   NS_IMETHOD Run() {
-    mShutdownContext->shutdownAck = PR_TRUE;
+    mShutdownContext->shutdownAck = true;
     return NS_OK;
   }
 private:
@@ -260,7 +260,7 @@ nsThread::ThreadFunc(void *arg)
 
   
   nsCOMPtr<nsIRunnable> event;
-  if (!self->GetEvent(PR_TRUE, getter_AddRefs(event))) {
+  if (!self->GetEvent(true, getter_AddRefs(event))) {
     NS_WARNING("failed waiting for thread startup event");
     return;
   }
@@ -276,7 +276,7 @@ nsThread::ThreadFunc(void *arg)
   
   
   
-  while (PR_TRUE) {
+  while (true) {
     {
       MutexAutoLock lock(self->mLock);
       if (!self->mEvents->HasPendingEvent()) {
@@ -284,7 +284,7 @@ nsThread::ThreadFunc(void *arg)
         
         
         
-        self->mEventsAreDoomed = PR_TRUE;
+        self->mEventsAreDoomed = true;
         break;
       }
     }
@@ -314,8 +314,8 @@ nsThread::nsThread()
   , mRunningEvent(0)
   , mStackSize(0)
   , mShutdownContext(nsnull)
-  , mShutdownRequired(PR_FALSE)
-  , mEventsAreDoomed(PR_FALSE)
+  , mShutdownRequired(false)
+  , mEventsAreDoomed(false)
 {
 }
 
@@ -327,8 +327,8 @@ nsThread::nsThread(PRUint32 aStackSize)
   , mRunningEvent(0)
   , mStackSize(aStackSize)
   , mShutdownContext(nsnull)
-  , mShutdownRequired(PR_FALSE)
-  , mEventsAreDoomed(PR_FALSE)
+  , mShutdownRequired(false)
+  , mEventsAreDoomed(false)
 {
 }
 
@@ -345,7 +345,7 @@ nsThread::Init()
  
   NS_ADDREF_THIS();
  
-  mShutdownRequired = PR_TRUE;
+  mShutdownRequired = true;
 
   
   PRThread *thr = PR_CreateThread(PR_USER_THREAD, ThreadFunc, this,
@@ -470,12 +470,12 @@ nsThread::Shutdown()
     MutexAutoLock lock(mLock);
     if (!mShutdownRequired)
       return NS_ERROR_UNEXPECTED;
-    mShutdownRequired = PR_FALSE;
+    mShutdownRequired = false;
   }
 
   nsThreadShutdownContext context;
   context.joiningThread = nsThreadManager::get()->GetCurrentThread();
-  context.shutdownAck = PR_FALSE;
+  context.shutdownAck = false;
 
   
   
@@ -513,7 +513,7 @@ nsThread::HasPendingEvents(bool *result)
 {
   NS_ENSURE_STATE(PR_GetCurrentThread() == mThread);
 
-  *result = mEvents->GetEvent(PR_FALSE, nsnull);
+  *result = mEvents->GetEvent(false, nsnull);
   return NS_OK;
 }
 
@@ -738,7 +738,7 @@ nsThread::PopEventQueue()
   mEvents = mEvents->mNext;
 
   nsCOMPtr<nsIRunnable> event;
-  while (queue->GetEvent(PR_FALSE, getter_AddRefs(event)))
+  while (queue->GetEvent(false, getter_AddRefs(event)))
     mEvents->PutEvent(event);
 
   delete queue;

@@ -37,6 +37,10 @@
 
 
 #include "mozilla/layers/PLayers.h"
+
+
+#include "mozilla/Util.h"
+
 #include "mozilla/layers/ShadowLayers.h"
 
 #include "ThebesLayerBuffer.h"
@@ -147,8 +151,6 @@ ThebesLayerBufferOGL::RenderTo(const nsIntPoint& aOffset,
 
     if (passes == 2) {
       ComponentAlphaTextureLayerProgram *alphaProgram;
-      NS_ASSERTION(!mTexImage->IsRGB() && !mTexImageOnWhite->IsRGB(),
-                   "Only BGR image surported with component alpha (currently!)");
       if (pass == 1) {
         alphaProgram = aManager->GetComponentAlphaPass1LayerProgram();
         gl()->fBlendFuncSeparate(LOCAL_GL_ZERO, LOCAL_GL_ONE_MINUS_SRC_COLOR,
@@ -271,6 +273,18 @@ ThebesLayerBufferOGL::RenderTo(const nsIntPoint& aOffset,
                   tileRegionRect.MoveBy(-currentTileRect.TopLeft());
               }
 
+#ifdef ANDROID
+              
+              
+              
+              gfxMatrix matrix;
+              bool is2D = mLayer->GetEffectiveTransform().Is2D(&matrix);
+              if (is2D && !matrix.HasNonTranslationOrFlip()) {
+                gl()->ApplyFilterToBoundTexture(gfxPattern::FILTER_NEAREST);
+              } else {
+                mTexImage->ApplyFilter();
+              }
+#endif
               program->SetLayerQuadRect(tileScreenRect);
               aManager->BindAndDrawQuadWithTextureRect(program, tileRegionRect,
                                                        tileRect.Size(),
@@ -419,7 +433,7 @@ BasicBufferOGL::BeginPaint(ContentType aContentType,
   bool canReuseBuffer;
   nsIntRect destBufferRect;
 
-  while (PR_TRUE) {
+  while (true) {
     mode = mLayer->GetSurfaceMode();
     contentType = aContentType;
     neededRegion = mLayer->GetVisibleRegion();
@@ -635,7 +649,7 @@ BasicBufferOGL::BeginPaint(ContentType aContentType,
     FillSurface(onBlack, result.mRegionToDraw, nsIntPoint(0,0), gfxRGBA(0.0, 0.0, 0.0, 1.0));
     FillSurface(onWhite, result.mRegionToDraw, nsIntPoint(0,0), gfxRGBA(1.0, 1.0, 1.0, 1.0));
     gfxASurface* surfaces[2] = { onBlack, onWhite };
-    nsRefPtr<gfxTeeSurface> surf = new gfxTeeSurface(surfaces, NS_ARRAY_LENGTH(surfaces));
+    nsRefPtr<gfxTeeSurface> surf = new gfxTeeSurface(surfaces, ArrayLength(surfaces));
 
     
     
@@ -647,7 +661,7 @@ BasicBufferOGL::BeginPaint(ContentType aContentType,
     
     
     
-    surf->SetAllowUseAsSource(PR_FALSE);
+    surf->SetAllowUseAsSource(false);
     result.mContext = new gfxContext(surf);
   } else {
     result.mContext = new gfxContext(mTexImage->BeginUpdate(result.mRegionToDraw));
@@ -697,7 +711,7 @@ ThebesLayerOGL::Destroy()
 {
   if (!mDestroyed) {
     mBuffer = nsnull;
-    mDestroyed = PR_TRUE;
+    mDestroyed = true;
   }
 }
 
@@ -707,7 +721,7 @@ ThebesLayerOGL::CreateSurface()
   NS_ASSERTION(!mBuffer, "buffer already created?");
 
   if (mVisibleRegion.IsEmpty()) {
-    return PR_FALSE;
+    return false;
   }
 
   if (gl()->TextureImageSupportsGetBackingSurface()) {
@@ -716,7 +730,7 @@ ThebesLayerOGL::CreateSurface()
   } else {
     mBuffer = new BasicBufferOGL(this);
   }
-  return PR_TRUE;
+  return true;
 }
 
 void
@@ -836,7 +850,9 @@ ShadowBufferOGL::Upload(gfxASurface* aUpdate, const nsIntRegion& aUpdated,
                         const nsIntRect& aRect, const nsIntPoint& aRotation)
 {
   gfxIntSize size = aUpdate->GetSize();
-  if (GetSize() != nsIntSize(size.width, size.height)) {
+  if (!mTexImage ||
+      GetSize() != nsIntSize(size.width, size.height) ||
+      mTexImage->GetContentType() != aUpdate->GetContentType()) {
     
     
     mTexImage = CreateClampOrRepeatTextureImage(gl(),
@@ -879,30 +895,17 @@ ShadowThebesLayerOGL::~ShadowThebesLayerOGL()
 {}
 
 void
-ShadowThebesLayerOGL::SetFrontBuffer(const OptionalThebesBuffer& aNewFront,
-                                     const nsIntRegion& aValidRegion)
-{
-  if (mDestroyed) {
-    return;
-  }
-
-  if (!mBuffer) {
-    mBuffer = new ShadowBufferOGL(this);
-  }
-
-  NS_ASSERTION(OptionalThebesBuffer::Tnull_t == aNewFront.type(),
-               "Only one system-memory buffer expected");
-}
-
-void
 ShadowThebesLayerOGL::Swap(const ThebesBuffer& aNewFront,
                            const nsIntRegion& aUpdatedRegion,
-                           ThebesBuffer* aNewBack,
+                           OptionalThebesBuffer* aNewBack,
                            nsIntRegion* aNewBackValidRegion,
                            OptionalThebesBuffer* aReadOnlyFront,
                            nsIntRegion* aFrontUpdatedRegion)
 {
-  if (!mDestroyed && mBuffer) {
+  if (!mDestroyed) {
+    if (!mBuffer) {
+      mBuffer = new ShadowBufferOGL(this);
+    }
     nsRefPtr<gfxASurface> surf = ShadowLayerForwarder::OpenDescriptor(aNewFront.buffer());
     mBuffer->Upload(surf, aUpdatedRegion, aNewFront.rect(), aNewFront.rotation());
   }
@@ -929,7 +932,7 @@ void
 ShadowThebesLayerOGL::Destroy()
 {
   if (!mDestroyed) {
-    mDestroyed = PR_TRUE;
+    mDestroyed = true;
     mBuffer = nsnull;
   }
 }

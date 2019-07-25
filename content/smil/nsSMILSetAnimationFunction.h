@@ -79,12 +79,12 @@ protected:
   
   
   NS_OVERRIDE virtual bool IsToAnimation() const {
-    return PR_FALSE;
+    return false;
   }
 
   
   NS_OVERRIDE virtual bool IsValueFixedForSimpleDuration() const {
-    return PR_TRUE;
+    return true;
   }
   NS_OVERRIDE virtual bool               HasAttr(nsIAtom* aAttName) const;
   NS_OVERRIDE virtual const nsAttrValue* GetAttr(nsIAtom* aAttName) const;

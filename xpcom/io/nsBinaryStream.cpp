@@ -271,7 +271,7 @@ NS_IMETHODIMP
 nsBinaryOutputStream::WriteSingleRefObject(nsISupports* aObject)
 {
     return WriteCompoundObject(aObject, NS_GET_IID(nsISupports),
-                               PR_TRUE);
+                               true);
 }
 
 NS_IMETHODIMP
@@ -648,7 +648,7 @@ WriteSegmentToString(nsIInputStream* aStream,
         ++aFromSegment;
         --aCount;
 
-        closure->mHasCarryoverByte = PR_FALSE;
+        closure->mHasCarryoverByte = false;
     }
     
     
@@ -674,7 +674,7 @@ WriteSegmentToString(nsIInputStream* aStream,
         
         
         closure->mCarryoverByte = aFromSegment[aCount - 1];
-        closure->mHasCarryoverByte = PR_TRUE;
+        closure->mHasCarryoverByte = true;
     }
     
     return NS_OK;
@@ -704,7 +704,7 @@ nsBinaryInputStream::ReadString(nsAString& aString)
     
     WriteStringClosure closure;
     closure.mWriteCursor = start.get();
-    closure.mHasCarryoverByte = PR_FALSE;
+    closure.mHasCarryoverByte = false;
     
     rv = ReadSegments(WriteSegmentToString, &closure,
                       length*sizeof(PRUnichar), &bytesRead);

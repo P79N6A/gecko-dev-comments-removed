@@ -42,6 +42,7 @@
 
 
 
+
 #include "nscore.h"
 
 PR_BEGIN_EXTERN_C
@@ -576,6 +577,15 @@ typedef PLDHashOperator
 
 NS_COM_GLUE PRUint32
 PL_DHashTableEnumerate(PLDHashTable *table, PLDHashEnumerator etor, void *arg);
+
+
+
+
+
+
+
+NS_COM_GLUE PRUint64
+PL_DHashTableSizeOf(PLDHashTable *table);
 
 #ifdef DEBUG
 

@@ -213,7 +213,7 @@ gfxSkipCharsIterator::IsOriginalCharSkipped(PRInt32* aRunLength) const
         if (aRunLength) {
             *aRunLength = 0;
         }
-        return PR_TRUE;
+        return true;
     }
   
     bool isSkipped = !IsKeepEntry(listPrefixLength);
@@ -242,14 +242,14 @@ gfxSkipCharsBuilder::FlushRun()
     for (;;) {
         PRUint32 chars = NS_MIN<PRUint32>(255, charCount);
         if (!mBuffer.AppendElement(chars)) {
-            mInErrorState = PR_TRUE;
+            mInErrorState = true;
             return;
         }
         charCount -= chars;
         if (charCount == 0)
             break;
         if (!mBuffer.AppendElement(0)) {
-            mInErrorState = PR_TRUE;
+            mInErrorState = true;
             return;
         }
     }

@@ -62,9 +62,9 @@ nsBaseAppShell::nsBaseAppShell()
   , mSwitchTime(0)
   , mLastNativeEventTime(0)
   , mEventloopNestingState(eEventloopNone)
-  , mRunning(PR_FALSE)
-  , mExiting(PR_FALSE)
-  , mBlockNativeEvent(PR_FALSE)
+  , mRunning(false)
+  , mExiting(false)
+  , mBlockNativeEvent(false)
 {
 }
 
@@ -87,7 +87,7 @@ nsBaseAppShell::Init()
   nsCOMPtr<nsIObserverService> obsSvc =
     mozilla::services::GetObserverService();
   if (obsSvc)
-    obsSvc->AddObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID, PR_FALSE);
+    obsSvc->AddObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID, false);
   return NS_OK;
 }
 
@@ -122,13 +122,13 @@ nsBaseAppShell::NativeEventCallback()
     
     
     
-    mBlockNativeEvent = PR_TRUE;
+    mBlockNativeEvent = true;
   }
 
   ++mEventloopNestingLevel;
   EventloopNestingState prevVal = mEventloopNestingState;
   NS_ProcessPendingEvents(thread, THREAD_EVENT_STARVATION_LIMIT);
-  mProcessedGeckoEvents = PR_TRUE;
+  mProcessedGeckoEvents = true;
   mEventloopNestingState = prevVal;
   mBlockNativeEvent = prevBlockNativeEvent;
 
@@ -182,7 +182,7 @@ NS_IMETHODIMP
 nsBaseAppShell::Run(void)
 {
   NS_ENSURE_STATE(!mRunning);  
-  mRunning = PR_TRUE;
+  mRunning = true;
 
   nsIThread *thread = NS_GetCurrentThread();
 
@@ -190,7 +190,7 @@ nsBaseAppShell::Run(void)
 
   NS_ProcessPendingEvents(thread);
 
-  mRunning = PR_FALSE;
+  mRunning = false;
   return NS_OK;
 }
 
@@ -200,7 +200,7 @@ nsBaseAppShell::Exit(void)
   if (mRunning && !mExiting) {
     MessageLoop::current()->Quit();
   }
-  mExiting = PR_TRUE;
+  mExiting = true;
   return NS_OK;
 }
 
@@ -274,7 +274,7 @@ nsBaseAppShell::OnProcessNextEvent(nsIThreadInternal *thr, bool mayWait,
     
     
     
-    mBlockNativeEvent = PR_FALSE;
+    mBlockNativeEvent = false;
     if (NS_HasPendingEvents(thr))
       OnDispatchedEvent(thr); 
   }
@@ -284,7 +284,7 @@ nsBaseAppShell::OnProcessNextEvent(nsIThreadInternal *thr, bool mayWait,
 
   
   if (mBlockedWait)
-    *mBlockedWait = PR_FALSE;
+    *mBlockedWait = false;
 
   bool *oldBlockedWait = mBlockedWait;
   mBlockedWait = &mayWait;
@@ -295,7 +295,7 @@ nsBaseAppShell::OnProcessNextEvent(nsIThreadInternal *thr, bool mayWait,
   bool needEvent = mayWait;
   
   
-  mProcessedGeckoEvents = PR_FALSE;
+  mProcessedGeckoEvents = false;
 
   if (mFavorPerf <= 0 && start > mSwitchTime + mStarvationDelay) {
     
@@ -303,13 +303,13 @@ nsBaseAppShell::OnProcessNextEvent(nsIThreadInternal *thr, bool mayWait,
     bool keepGoing;
     do {
       mLastNativeEventTime = now;
-      keepGoing = DoProcessNextNativeEvent(PR_FALSE);
+      keepGoing = DoProcessNextNativeEvent(false);
     } while (keepGoing && ((now = PR_IntervalNow()) - start) < limit);
   } else {
     
     if (start - mLastNativeEventTime > limit) {
       mLastNativeEventTime = start;
-      DoProcessNextNativeEvent(PR_FALSE);
+      DoProcessNextNativeEvent(false);
     }
   }
 
@@ -318,7 +318,7 @@ nsBaseAppShell::OnProcessNextEvent(nsIThreadInternal *thr, bool mayWait,
     
     
     if (mExiting)
-      mayWait = PR_FALSE;
+      mayWait = false;
 
     mLastNativeEventTime = PR_IntervalNow();
     if (!DoProcessNextNativeEvent(mayWait) || !mayWait)

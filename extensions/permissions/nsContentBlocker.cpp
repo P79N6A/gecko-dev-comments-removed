@@ -33,6 +33,7 @@
 
 
 
+
 #include "nsContentBlocker.h"
 #include "nsIDocument.h"
 #include "nsIContent.h"
@@ -125,7 +126,7 @@ nsContentBlocker::Init()
   mPrefBranchInternal = do_QueryInterface(prefBranch, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = mPrefBranchInternal->AddObserver("", this, PR_TRUE);
+  rv = mPrefBranchInternal->AddObserver("", this, true);
   PrefChanged(prefBranch, nsnull);
 
   return rv;
@@ -264,10 +265,10 @@ nsContentBlocker::TestPermission(nsIURI *aCurrentURI,
                                  bool *aPermission,
                                  bool *aFromPrefs)
 {
-  *aFromPrefs = PR_FALSE;
+  *aFromPrefs = false;
   
   
-  *aPermission = PR_TRUE;
+  *aPermission = true;
 
   
   
@@ -282,17 +283,17 @@ nsContentBlocker::TestPermission(nsIURI *aCurrentURI,
   
   if (!permission) {
     permission = mBehaviorPref[aContentType - 1];
-    *aFromPrefs = PR_TRUE;
+    *aFromPrefs = true;
   }
 
   
   
   switch (permission) {
   case BEHAVIOR_ACCEPT:
-    *aPermission = PR_TRUE;
+    *aPermission = true;
     break;
   case BEHAVIOR_REJECT:
-    *aPermission = PR_FALSE;
+    *aPermission = false;
     break;
 
   case BEHAVIOR_NOFOREIGN:
@@ -340,7 +341,7 @@ nsContentBlocker::TestPermission(nsIURI *aCurrentURI,
 
     
     if (firstHost.Length() < tail.Length()) {
-      *aPermission = PR_FALSE;
+      *aPermission = false;
       return NS_OK;
     }
     
@@ -353,7 +354,7 @@ nsContentBlocker::TestPermission(nsIURI *aCurrentURI,
     if ((firstHost.Length() > tail.Length() && 
          firstHost.CharAt(firstHost.Length() - tail.Length() - 1) != '.') || 
         !tail.Equals(firstTail)) {
-      *aPermission = PR_FALSE;
+      *aPermission = false;
     }
     break;
   }

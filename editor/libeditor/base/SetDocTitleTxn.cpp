@@ -47,7 +47,7 @@
 
 SetDocTitleTxn::SetDocTitleTxn()
   : EditTxn()
-, mIsTransient(PR_FALSE)
+, mIsTransient(false)
 {
 }
 
@@ -95,7 +95,7 @@ nsresult SetDocTitleTxn::SetDomTitle(const nsAString& aTitle)
 
   
   
-  mIsTransient = PR_TRUE;
+  mIsTransient = true;
 
   nsCOMPtr<nsIDOMNode>titleNode;
   if(titleList)
@@ -129,7 +129,7 @@ nsresult SetDocTitleTxn::SetDomTitle(const nsAString& aTitle)
   }
 
   
-  mIsTransient = PR_FALSE;
+  mIsTransient = false;
 
   
   nsCOMPtr<nsIDOMNodeList> headList;
@@ -153,7 +153,7 @@ nsresult SetDocTitleTxn::SetDomTitle(const nsAString& aTitle)
     NS_ENSURE_TRUE(titleElement, NS_ERROR_FAILURE);
 
     titleNode = do_QueryInterface(titleElement);
-    newTitleNode = PR_TRUE;
+    newTitleNode = true;
 
     
     

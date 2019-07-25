@@ -125,6 +125,16 @@ class nsHtml5TreeOpExecutor : public nsContentSink,
 
     bool                          mCallContinueInterruptedParsingIfEnabled;
 
+    
+
+
+
+
+
+
+
+    bool                          mBroken;
+
   public:
   
     nsHtml5TreeOpExecutor();
@@ -237,12 +247,26 @@ class nsHtml5TreeOpExecutor : public nsContentSink,
 
 
     void EnableFragmentMode(bool aPreventScriptExecution) {
-      mFragmentMode = PR_TRUE;
+      mFragmentMode = true;
       mPreventScriptExecution = aPreventScriptExecution;
     }
     
     bool IsFragmentMode() {
       return mFragmentMode;
+    }
+
+    
+
+
+
+    void MarkAsBroken();
+
+    
+
+
+    inline bool IsBroken() {
+      NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
+      return mBroken;
     }
 
     inline void BeginDocUpdate() {
@@ -270,7 +294,7 @@ class nsHtml5TreeOpExecutor : public nsContentSink,
         sAppendBatchSlotsExamined++;
 #endif
         if (*iter == aParent) {
-          newParent = PR_FALSE;
+          newParent = false;
           break;
         }
       }
@@ -312,7 +336,7 @@ class nsHtml5TreeOpExecutor : public nsContentSink,
       for (;;) {
         nsIContent* parent = aNode->GetParent();
         if (!parent) {
-          return PR_TRUE;
+          return true;
         }
         for (nsHtml5PendingNotification* iter = (nsHtml5PendingNotification*)start; iter < end; ++iter) {
           if (iter->Contains(parent)) {
@@ -381,7 +405,7 @@ class nsHtml5TreeOpExecutor : public nsContentSink,
     }
     
     void StartReadingFromStage() {
-      mReadingFromStage = PR_TRUE;
+      mReadingFromStage = true;
     }
 
     void StreamEnded();

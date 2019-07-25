@@ -97,7 +97,7 @@ NS_IMETHODIMP nsUTF8ToUnicode::Reset()
   mState = 0;     
                   
   mBytes = 1;     
-  mFirst = PR_TRUE;
+  mFirst = true;
 
   return NS_OK;
 
@@ -231,7 +231,7 @@ NS_IMETHODIMP nsUTF8ToUnicode::Convert(const char * aSrc,
     mUcs4 = 0;
     mState = 0;
     mBytes = 1;
-    mFirst = PR_FALSE;
+    mFirst = false;
   }
 
   
@@ -243,7 +243,7 @@ NS_IMETHODIMP nsUTF8ToUnicode::Convert(const char * aSrc,
   
   
   if (mFirst && aSrcLen && (0 == (0x80 & (*aSrc))))
-    mFirst = PR_FALSE;
+    mFirst = false;
 
   for (in = aSrc; ((in < inend) && (out < outend)); ++in) {
     if (0 == mState) {
@@ -349,7 +349,7 @@ NS_IMETHODIMP nsUTF8ToUnicode::Convert(const char * aSrc,
           mUcs4  = 0;
           mState = 0;
           mBytes = 1;
-          mFirst = PR_FALSE;
+          mFirst = false;
         }
       } else {
         

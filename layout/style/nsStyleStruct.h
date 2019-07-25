@@ -554,9 +554,9 @@ struct nsStyleMargin {
   {
     if (mHasCachedMargin) {
       aMargin = mCachedMargin;
-      return PR_TRUE;
+      return true;
     }
-    return PR_FALSE;
+    return false;
   }
 
 protected:
@@ -589,9 +589,9 @@ struct nsStylePadding {
   {
     if (mHasCachedPadding) {
       aPadding = mCachedPadding;
-      return PR_TRUE;
+      return true;
     }
-    return PR_FALSE;
+    return false;
   }
 
 protected:
@@ -607,15 +607,15 @@ struct nsBorderColors {
   nsBorderColors(const nscolor& aColor) : mNext(nsnull), mColor(aColor) {}
   ~nsBorderColors();
 
-  nsBorderColors* Clone() const { return Clone(PR_TRUE); }
+  nsBorderColors* Clone() const { return Clone(true); }
 
   static bool Equal(const nsBorderColors* c1,
                       const nsBorderColors* c2) {
     if (c1 == c2)
-      return PR_TRUE;
+      return true;
     while (c1 && c2) {
       if (c1->mColor != c2->mColor)
-        return PR_FALSE;
+        return false;
       c1 = c1->mNext;
       c2 = c2->mNext;
     }
@@ -638,7 +638,7 @@ struct nsCSSShadowItem {
   bool mHasColor; 
   bool mInset;
 
-  nsCSSShadowItem() : mHasColor(PR_FALSE) {
+  nsCSSShadowItem() : mHasColor(false) {
     MOZ_COUNT_CTOR(nsCSSShadowItem);
   }
   ~nsCSSShadowItem() {
@@ -838,12 +838,12 @@ struct nsStyleBorder {
   void GetBorderColor(mozilla::css::Side aSide, nscolor& aColor,
                       bool& aForeground) const
   {
-    aForeground = PR_FALSE;
+    aForeground = false;
     NS_ASSERTION(aSide <= NS_SIDE_LEFT, "bad side");
     if ((mBorderStyle[aSide] & BORDER_COLOR_SPECIAL) == 0)
       aColor = mBorderColor[aSide];
     else if (mBorderStyle[aSide] & BORDER_COLOR_FOREGROUND)
-      aForeground = PR_TRUE;
+      aForeground = true;
     else
       NS_NOTREACHED("OUTLINE_COLOR_INITIAL should not be set here");
   }
@@ -974,9 +974,9 @@ struct nsStyleOutline {
   {
     if (mHasCachedOutline) {
       aWidth = mCachedOutlineWidth;
-      return PR_TRUE;
+      return true;
     }
-    return PR_FALSE;
+    return false;
   }
 
   PRUint8 GetOutlineStyle(void) const
@@ -995,9 +995,9 @@ struct nsStyleOutline {
   {
     if ((mOutlineStyle & BORDER_COLOR_SPECIAL) == 0) {
       aColor = mOutlineColor;
-      return PR_TRUE;
+      return true;
     }
-    return PR_FALSE;
+    return false;
   }
 
   void SetOutlineColor(nscolor aColor)
@@ -1148,6 +1148,7 @@ struct nsStyleTextOverflowSide {
 };
 
 struct nsStyleTextOverflow {
+  nsStyleTextOverflow() : mLogicalDirections(true) {}
   bool operator==(const nsStyleTextOverflow& aOther) const {
     return mLeft == aOther.mLeft && mRight == aOther.mRight;
   }
@@ -1155,8 +1156,35 @@ struct nsStyleTextOverflow {
     return !(*this == aOther);
   }
 
-  nsStyleTextOverflowSide mLeft;
-  nsStyleTextOverflowSide mRight;
+  
+  const nsStyleTextOverflowSide& GetLeft(PRUint8 aDirection) const {
+    NS_ASSERTION(aDirection == NS_STYLE_DIRECTION_LTR ||
+                 aDirection == NS_STYLE_DIRECTION_RTL, "bad direction");
+    return !mLogicalDirections || aDirection == NS_STYLE_DIRECTION_LTR ?
+             mLeft : mRight;
+  }
+
+  
+  const nsStyleTextOverflowSide& GetRight(PRUint8 aDirection) const {
+    NS_ASSERTION(aDirection == NS_STYLE_DIRECTION_LTR ||
+                 aDirection == NS_STYLE_DIRECTION_RTL, "bad direction");
+    return !mLogicalDirections || aDirection == NS_STYLE_DIRECTION_LTR ?
+             mRight : mLeft;
+  }
+
+  
+  const nsStyleTextOverflowSide* GetFirstValue() const {
+    return mLogicalDirections ? &mRight : &mLeft;
+  }
+
+  
+  const nsStyleTextOverflowSide* GetSecondValue() const {
+    return mLogicalDirections ? nsnull : &mRight;
+  }
+
+  nsStyleTextOverflowSide mLeft;  
+  nsStyleTextOverflowSide mRight; 
+  bool mLogicalDirections;  
 };
 
 struct nsStyleTextReset {
@@ -1187,11 +1215,11 @@ struct nsStyleTextReset {
 
   void GetDecorationColor(nscolor& aColor, bool& aForeground) const
   {
-    aForeground = PR_FALSE;
+    aForeground = false;
     if ((mTextDecorationStyle & BORDER_COLOR_SPECIAL) == 0) {
       aColor = mTextDecorationColor;
     } else if (mTextDecorationStyle & BORDER_COLOR_FOREGROUND) {
-      aForeground = PR_TRUE;
+      aForeground = true;
     } else {
       NS_NOTREACHED("OUTLINE_COLOR_INITIAL should not be set here");
     }

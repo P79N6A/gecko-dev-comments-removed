@@ -680,7 +680,7 @@ class nsTSubstring_CharT
           mFlags &= ~F_VOIDED;
           mData[newTotalLen] = char_type(0);
           mLength = newTotalLen;
-          return PR_TRUE;
+          return true;
         }
         return ReplacePrepInternal(cutStart, cutLength, newLength, newTotalLen);
       }

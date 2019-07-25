@@ -107,7 +107,7 @@ NS_IMETHODIMP EditAggregateTxn::Merge(nsITransaction *aTransaction, bool *aDidMe
 {
   nsresult result=NS_OK;  
   if (aDidMerge)
-    *aDidMerge = PR_FALSE;
+    *aDidMerge = false;
   
   
   if (mChildren.Length() > 0)

@@ -287,7 +287,7 @@ nsFileInputStream::Open(nsIFile* aFile, PRInt32 aIOFlags, PRInt32 aPerm)
         
         
         
-        rv = aFile->Remove(PR_FALSE);
+        rv = aFile->Remove(false);
         if (NS_SUCCEEDED(rv)) {
           
           mBehaviorFlags &= ~DELETE_ON_CLOSE;
@@ -321,7 +321,7 @@ nsFileInputStream::Close()
     nsresult rv = nsFileStream::Close();
     if (NS_FAILED(rv)) return rv;
     if (mFile && (mBehaviorFlags & DELETE_ON_CLOSE)) {
-        rv = mFile->Remove(PR_FALSE);
+        rv = mFile->Remove(false);
         NS_ASSERTION(NS_SUCCEEDED(rv), "failed to delete file");
         
         if (!(mBehaviorFlags & REOPEN_ON_REWIND)) {
@@ -410,7 +410,7 @@ nsFileInputStream::ReadSegments(nsWriteSegmentFun aWriter, void* aClosure,
 NS_IMETHODIMP
 nsFileInputStream::IsNonBlocking(bool *aNonBlocking)
 {
-    *aNonBlocking = PR_FALSE;
+    *aNonBlocking = false;
     return NS_OK;
 }
 
@@ -446,20 +446,20 @@ nsFileInputStream::Read(const IPC::Message *aMsg, void **aIter)
     if (!ReadParam(aMsg, aIter, &path) ||
         !ReadParam(aMsg, aIter, &followLinks) ||
         !ReadParam(aMsg, aIter, &flags))
-        return PR_FALSE;
+        return false;
 
     nsCOMPtr<nsILocalFile> file;
     nsresult rv = NS_NewNativeLocalFile(path, followLinks, getter_AddRefs(file));
     if (NS_FAILED(rv))
-        return PR_FALSE;
+        return false;
 
     
     
     rv = Init(file, -1, -1, flags);
     if (NS_FAILED(rv))
-        return PR_FALSE;
+        return false;
 
-    return PR_TRUE;
+    return true;
 }
 
 void
@@ -690,7 +690,7 @@ nsFileOutputStream::WriteSegments(nsReadSegmentFun reader, void * closure, PRUin
 NS_IMETHODIMP
 nsFileOutputStream::IsNonBlocking(bool *aNonBlocking)
 {
-    *aNonBlocking = PR_FALSE;
+    *aNonBlocking = false;
     return NS_OK;
 }
 
@@ -721,7 +721,7 @@ nsSafeFileOutputStream::DoOpen()
     nsresult rv = file->Exists(&mTargetFileExists);
     if (NS_FAILED(rv)) {
         NS_ERROR("Can't tell if target file exists");
-        mTargetFileExists = PR_TRUE; 
+        mTargetFileExists = true; 
     }
 
     
@@ -733,7 +733,7 @@ nsSafeFileOutputStream::DoOpen()
     if (NS_SUCCEEDED(rv)) {
         nsCOMPtr<nsILocalFile> tempLocal = do_QueryInterface(tempResult);
         if (tempLocal)
-            tempLocal->SetFollowLinks(PR_TRUE);
+            tempLocal->SetFollowLinks(true);
 
         
         tempResult->Normalize();
@@ -770,7 +770,7 @@ nsSafeFileOutputStream::Close()
     
     
     if (mTempFile) {
-        mTempFile->Remove(PR_FALSE);
+        mTempFile->Remove(false);
         mTempFile = nsnull;
     }
 
@@ -810,12 +810,12 @@ nsSafeFileOutputStream::Finish()
                 
                 rv = mTempFile->MoveTo(nsnull, targetFilename);
                 if (NS_FAILED(rv))
-                    mTempFile->Remove(PR_FALSE);
+                    mTempFile->Remove(false);
             }
         }
     }
     else {
-        mTempFile->Remove(PR_FALSE);
+        mTempFile->Remove(false);
 
         
         if (NS_FAILED(mWriteResult))

@@ -4,23 +4,53 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "FilteringWrapper.h"
 #include "AccessCheck.h"
-#include "WaiveXrayWrapper.h"
-#include "ChromeObjectWrapper.h"
+#include "CrossOriginWrapper.h"
 #include "XrayWrapper.h"
 #include "WrapperFactory.h"
 
 #include "XPCWrapper.h"
-
-#include "jsapi.h"
 
 using namespace js;
 
 namespace xpc {
 
 template <typename Base, typename Policy>
-FilteringWrapper<Base, Policy>::FilteringWrapper(unsigned flags) : Base(flags)
+FilteringWrapper<Base, Policy>::FilteringWrapper(uintN flags) : Base(flags)
 {
 }
 
@@ -78,13 +108,13 @@ FilteringWrapper<Base, Policy>::keys(JSContext *cx, JSObject *wrapper, AutoIdVec
 
 template <typename Base, typename Policy>
 bool
-FilteringWrapper<Base, Policy>::iterate(JSContext *cx, JSObject *wrapper, unsigned flags, Value *vp)
+FilteringWrapper<Base, Policy>::iterate(JSContext *cx, JSObject *wrapper, uintN flags, Value *vp)
 {
     
     
     
     
-    return js::BaseProxyHandler::iterate(cx, wrapper, flags, vp);
+    return js::ProxyHandler::iterate(cx, wrapper, flags, vp);
 }
 
 template <typename Base, typename Policy>
@@ -105,42 +135,38 @@ FilteringWrapper<Base, Policy>::enter(JSContext *cx, JSObject *wrapper, jsid id,
 
 #define SOW FilteringWrapper<CrossCompartmentSecurityWrapper, OnlyIfSubjectIsSystem>
 #define SCSOW FilteringWrapper<SameCompartmentSecurityWrapper, OnlyIfSubjectIsSystem>
+#define COW FilteringWrapper<CrossCompartmentSecurityWrapper, ExposedPropertiesOnly>
 #define XOW FilteringWrapper<XrayWrapper<CrossCompartmentSecurityWrapper>, \
                              CrossOriginAccessiblePropertiesOnly>
 #define PXOW   FilteringWrapper<XrayProxy, \
                                 CrossOriginAccessiblePropertiesOnly>
-#define DXOW   FilteringWrapper<XrayDOM, \
-                                CrossOriginAccessiblePropertiesOnly>
 #define NNXOW FilteringWrapper<CrossCompartmentSecurityWrapper, \
                                CrossOriginAccessiblePropertiesOnly>
 #define LW    FilteringWrapper<XrayWrapper<SameCompartmentSecurityWrapper>, \
-                               LocationPolicy>
+                               SameOriginOrCrossOriginAccessiblePropertiesOnly>
 #define XLW   FilteringWrapper<XrayWrapper<CrossCompartmentSecurityWrapper>, \
-                               LocationPolicy>
-#define CW FilteringWrapper<SameCompartmentSecurityWrapper, \
-                            ComponentsObjectPolicy>
-#define XCW FilteringWrapper<CrossCompartmentSecurityWrapper, \
-                            ComponentsObjectPolicy>
+                               SameOriginOrCrossOriginAccessiblePropertiesOnly>
+
 template<> SOW SOW::singleton(WrapperFactory::SCRIPT_ACCESS_ONLY_FLAG |
                               WrapperFactory::SOW_FLAG);
 template<> SCSOW SCSOW::singleton(WrapperFactory::SCRIPT_ACCESS_ONLY_FLAG |
                                   WrapperFactory::SOW_FLAG);
-template<> XOW XOW::singleton(WrapperFactory::SCRIPT_ACCESS_ONLY_FLAG);
-template<> PXOW PXOW::singleton(WrapperFactory::SCRIPT_ACCESS_ONLY_FLAG);
-template<> DXOW DXOW::singleton(WrapperFactory::SCRIPT_ACCESS_ONLY_FLAG);
-template<> NNXOW NNXOW::singleton(WrapperFactory::SCRIPT_ACCESS_ONLY_FLAG);
-template<> LW  LW::singleton(WrapperFactory::SHADOWING_FORBIDDEN);
-template<> XLW XLW::singleton(WrapperFactory::SHADOWING_FORBIDDEN);
-
-template<> CW CW::singleton(0);
-template<> XCW XCW::singleton(0);
+template<> COW COW::singleton(0);
+template<> XOW XOW::singleton(WrapperFactory::SCRIPT_ACCESS_ONLY_FLAG |
+                              WrapperFactory::PARTIALLY_TRANSPARENT);
+template<> PXOW PXOW::singleton(WrapperFactory::SCRIPT_ACCESS_ONLY_FLAG |
+                                WrapperFactory::PARTIALLY_TRANSPARENT);
+template<> NNXOW NNXOW::singleton(WrapperFactory::SCRIPT_ACCESS_ONLY_FLAG |
+                                  WrapperFactory::PARTIALLY_TRANSPARENT);
+template<> LW  LW::singleton(0);
+template<> XLW XLW::singleton(0);
 
 template class SOW;
+template class COW;
 template class XOW;
 template class PXOW;
-template class DXOW;
 template class NNXOW;
 template class LW;
 template class XLW;
-template class ChromeObjectWrapperBase;
+
 }

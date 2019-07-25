@@ -90,7 +90,7 @@ nsLocalHandlerApp::Equals(nsIHandlerApp *aHandlerApp, bool *_retval)
 {
   NS_ENSURE_ARG_POINTER(aHandlerApp);
 
-  *_retval = PR_FALSE;
+  *_retval = false;
 
   
   nsCOMPtr <nsILocalHandlerApp> localHandlerApp = do_QueryInterface(aHandlerApp);
@@ -106,7 +106,7 @@ nsLocalHandlerApp::Equals(nsIHandlerApp *aHandlerApp, bool *_retval)
 
   
   if (!executable && !mExecutable) {
-    *_retval = PR_TRUE;
+    *_retval = true;
     return NS_OK;
   }
 
@@ -154,7 +154,7 @@ nsLocalHandlerApp::LaunchWithIProcess(const nsCString& aArg)
 
   const char *string = aArg.get();
 
-  return process->Run(PR_FALSE, &string, 1);
+  return process->Run(false, &string, 1);
 }
 
 

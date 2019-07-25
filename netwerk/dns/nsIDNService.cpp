@@ -89,10 +89,10 @@ nsresult nsIDNService::Init()
 
   nsCOMPtr<nsIPrefBranch2> prefInternal(do_QueryInterface(prefs));
   if (prefInternal) {
-    prefInternal->AddObserver(NS_NET_PREF_IDNTESTBED, this, PR_TRUE); 
-    prefInternal->AddObserver(NS_NET_PREF_IDNPREFIX, this, PR_TRUE); 
-    prefInternal->AddObserver(NS_NET_PREF_IDNBLACKLIST, this, PR_TRUE);
-    prefInternal->AddObserver(NS_NET_PREF_SHOWPUNYCODE, this, PR_TRUE);
+    prefInternal->AddObserver(NS_NET_PREF_IDNTESTBED, this, true); 
+    prefInternal->AddObserver(NS_NET_PREF_IDNPREFIX, this, true); 
+    prefInternal->AddObserver(NS_NET_PREF_IDNBLACKLIST, this, true);
+    prefInternal->AddObserver(NS_NET_PREF_SHOWPUNYCODE, this, true);
     prefsChanged(prefInternal, nsnull);
   }
 
@@ -147,7 +147,7 @@ nsIDNService::nsIDNService()
   const char kIDNSPrefix[] = "xn--";
   strcpy(mACEPrefix, kIDNSPrefix);
 
-  mMultilingualTestBed = PR_FALSE;
+  mMultilingualTestBed = false;
 
   if (idn_success != idn_nameprep_create(NULL, &mNamePrepHandle))
     mNamePrepHandle = nsnull;
@@ -164,7 +164,7 @@ nsIDNService::~nsIDNService()
 
 NS_IMETHODIMP nsIDNService::ConvertUTF8toACE(const nsACString & input, nsACString & ace)
 {
-  return UTF8toACE(input, ace, PR_TRUE);
+  return UTF8toACE(input, ace, true);
 }
 
 nsresult nsIDNService::UTF8toACE(const nsACString & input, nsACString & ace, bool allowUnassigned)
@@ -219,7 +219,7 @@ nsresult nsIDNService::UTF8toACE(const nsACString & input, nsACString & ace, boo
 
 NS_IMETHODIMP nsIDNService::ConvertACEtoUTF8(const nsACString & input, nsACString & _retval)
 {
-  return ACEtoUTF8(input, _retval, PR_TRUE);
+  return ACEtoUTF8(input, _retval, true);
 }
 
 nsresult nsIDNService::ACEtoUTF8(const nsACString & input, nsACString & _retval,
@@ -310,7 +310,7 @@ NS_IMETHODIMP nsIDNService::Normalize(const nsACString & input, nsACString & out
   while (start != end) {
     len++;
     if (*start++ == PRUnichar('.')) {
-      rv = stringPrep(Substring(inUTF16, offset, len - 1), outLabel, PR_TRUE);
+      rv = stringPrep(Substring(inUTF16, offset, len - 1), outLabel, true);
       NS_ENSURE_SUCCESS(rv, rv);
    
       outUTF16.Append(outLabel);
@@ -320,7 +320,7 @@ NS_IMETHODIMP nsIDNService::Normalize(const nsACString & input, nsACString & out
     }
   }
   if (len) {
-    rv = stringPrep(Substring(inUTF16, offset, len), outLabel, PR_TRUE);
+    rv = stringPrep(Substring(inUTF16, offset, len), outLabel, true);
     NS_ENSURE_SUCCESS(rv, rv);
 
     outUTF16.Append(outLabel);
@@ -351,10 +351,10 @@ NS_IMETHODIMP nsIDNService::ConvertToDisplayIDN(const nsACString & input, bool *
     if (isACE && !mShowPunycode && isInWhitelist(_retval)) {
       
       nsCAutoString temp(_retval);
-      ACEtoUTF8(temp, _retval, PR_FALSE);
+      ACEtoUTF8(temp, _retval, false);
       *_isASCII = IsASCII(_retval);
     } else {
-      *_isASCII = PR_TRUE;
+      *_isASCII = true;
     }
   } else {
     
@@ -364,7 +364,7 @@ NS_IMETHODIMP nsIDNService::ConvertToDisplayIDN(const nsACString & input, bool *
     if (NS_FAILED(rv)) return rv;
 
     if (mShowPunycode && NS_SUCCEEDED(ConvertUTF8toACE(_retval, _retval))) {
-      *_isASCII = PR_TRUE;
+      *_isASCII = true;
       return NS_OK;
     }
 
@@ -373,7 +373,7 @@ NS_IMETHODIMP nsIDNService::ConvertToDisplayIDN(const nsACString & input, bool *
     
     *_isASCII = IsASCII(_retval);
     if (!*_isASCII && !isInWhitelist(_retval)) {
-      *_isASCII = PR_TRUE;
+      *_isASCII = true;
       return ConvertUTF8toACE(_retval, _retval);
     }
   }
@@ -691,15 +691,15 @@ bool nsIDNService::isInWhitelist(const nsACString &host)
     nsCAutoString tld(host);
     
     
-    if (!IsASCII(tld) && NS_FAILED(UTF8toACE(tld, tld, PR_FALSE))) {
-      return PR_FALSE;
+    if (!IsASCII(tld) && NS_FAILED(UTF8toACE(tld, tld, false))) {
+      return false;
     }
 
     
     tld.Trim(".");
     PRInt32 pos = tld.RFind(".");
     if (pos == kNotFound)
-      return PR_FALSE;
+      return false;
 
     tld.Cut(0, pos + 1);
 
@@ -708,6 +708,6 @@ bool nsIDNService::isInWhitelist(const nsACString &host)
       return safe;
   }
 
-  return PR_FALSE;
+  return false;
 }
 

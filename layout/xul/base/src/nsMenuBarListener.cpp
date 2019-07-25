@@ -76,7 +76,7 @@ PRUint32 nsMenuBarListener::mAccessKeyMask = 0;
 bool nsMenuBarListener::mAccessKeyFocuses = false;
 
 nsMenuBarListener::nsMenuBarListener(nsMenuBarFrame* aMenuBar) 
-  :mAccessKeyDown(PR_FALSE), mAccessKeyDownCanceled(PR_FALSE)
+  :mAccessKeyDown(false), mAccessKeyDownCanceled(false)
 {
   mMenuBarFrame = aMenuBar;
 }
@@ -133,7 +133,7 @@ nsMenuBarListener::ToggleMenuActiveState()
   if (pm && closemenu) {
     nsMenuPopupFrame* popupFrame = closemenu->GetPopup();
     if (popupFrame)
-      pm->HidePopup(popupFrame->GetContent(), PR_FALSE, PR_FALSE, PR_TRUE);
+      pm->HidePopup(popupFrame->GetContent(), false, false, true);
   }
 }
 
@@ -177,8 +177,8 @@ nsMenuBarListener::KeyUp(nsIDOMEvent* aKeyEvent)
       }
       ToggleMenuActiveState();
     }
-    mAccessKeyDown = PR_FALSE;
-    mAccessKeyDownCanceled = PR_FALSE;
+    mAccessKeyDown = false;
+    mAccessKeyDownCanceled = false;
 
     bool active = mMenuBarFrame->IsActive();
     if (active) {
@@ -241,7 +241,7 @@ nsMenuBarListener::KeyPress(nsIDOMEvent* aKeyEvent)
 
       
       if (keyCode != (PRUint32)mAccessKey) {
-        mAccessKeyDownCanceled = PR_TRUE;
+        mAccessKeyDownCanceled = true;
       }
 
       if (IsAccessKeyPressed(keyEvent) && hasAccessKeyCandidates) {
@@ -251,12 +251,12 @@ nsMenuBarListener::KeyPress(nsIDOMEvent* aKeyEvent)
         nsMenuFrame* result = mMenuBarFrame->FindMenuWithShortcut(keyEvent);
         if (result) {
           mMenuBarFrame->SetActiveByKeyboard();
-          mMenuBarFrame->SetActive(PR_TRUE);
-          result->OpenMenu(PR_TRUE);
+          mMenuBarFrame->SetActive(true);
+          result->OpenMenu(true);
 
           
           
-          mAccessKeyDown = mAccessKeyDownCanceled = PR_FALSE;
+          mAccessKeyDown = mAccessKeyDownCanceled = false;
 
           aKeyEvent->StopPropagation();
           aKeyEvent->PreventDefault();
@@ -350,14 +350,14 @@ nsMenuBarListener::KeyDown(nsIDOMEvent* aKeyEvent)
       
       
       
-      mAccessKeyDown = PR_TRUE;
+      mAccessKeyDown = true;
     }
     else {
       
       
       
 
-      mAccessKeyDownCanceled = PR_TRUE;
+      mAccessKeyDownCanceled = true;
     }
   }
 
@@ -371,8 +371,8 @@ nsMenuBarListener::Blur(nsIDOMEvent* aEvent)
 {
   if (!mMenuBarFrame->IsMenuOpen() && mMenuBarFrame->IsActive()) {
     ToggleMenuActiveState();
-    mAccessKeyDown = PR_FALSE;
-    mAccessKeyDownCanceled = PR_FALSE;
+    mAccessKeyDown = false;
+    mAccessKeyDownCanceled = false;
   }
   return NS_OK; 
 }
@@ -387,7 +387,7 @@ nsMenuBarListener::MouseDown(nsIDOMEvent* aMouseEvent)
   
   
   if (mAccessKeyDown) {
-    mAccessKeyDownCanceled = PR_TRUE;
+    mAccessKeyDownCanceled = true;
   }
 
   PRUint16 phase = 0;

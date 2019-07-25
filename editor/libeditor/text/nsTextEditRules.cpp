@@ -74,7 +74,7 @@ using namespace mozilla;
 #define CANCEL_OPERATION_IF_READONLY_OR_DISABLED \
   if (IsReadonly() || IsDisabled()) \
   {                     \
-    *aCancel = PR_TRUE; \
+    *aCancel = true; \
     return NS_OK;       \
   };
 
@@ -89,8 +89,8 @@ nsTextEditRules::nsTextEditRules()
 , mPasswordIMEText()
 , mPasswordIMEIndex(0)
 , mActionNesting(0)
-, mLockRulesSniffing(PR_FALSE)
-, mDidExplicitlySetInterline(PR_FALSE)
+, mLockRulesSniffing(false)
+, mDidExplicitlySetInterline(false)
 , mTheAction(0)
 , mLastStart(0)
 , mLastLength(0)
@@ -178,7 +178,7 @@ nsTextEditRules::BeforeEdit(PRInt32 action, nsIEditor::EDirection aDirection)
   if (mLockRulesSniffing) return NS_OK;
   
   nsAutoLockRulesSniffing lockIt(this);
-  mDidExplicitlySetInterline = PR_FALSE;
+  mDidExplicitlySetInterline = false;
   if (!mActionNesting)
   {
     
@@ -250,8 +250,8 @@ nsTextEditRules::WillDoAction(nsISelection *aSelection,
   printf("nsTextEditRules::WillDoAction action= %d", aInfo->action);
 #endif
 
-  *aCancel = PR_FALSE;
-  *aHandled = PR_FALSE;
+  *aCancel = false;
+  *aHandled = false;
 
   
   nsTextRulesInfo *info = static_cast<nsTextRulesInfo*>(aInfo);
@@ -352,7 +352,7 @@ nsTextEditRules::WillInsert(nsISelection *aSelection, bool *aCancel)
   CANCEL_OPERATION_IF_READONLY_OR_DISABLED
 
   
-  *aCancel = PR_FALSE;
+  *aCancel = false;
   
   
   if (mBogusNode)
@@ -378,9 +378,9 @@ nsTextEditRules::WillInsertBreak(nsISelection *aSelection,
 {
   if (!aSelection || !aCancel || !aHandled) { return NS_ERROR_NULL_POINTER; }
   CANCEL_OPERATION_IF_READONLY_OR_DISABLED
-  *aHandled = PR_FALSE;
+  *aHandled = false;
   if (IsSingleLineEditor()) {
-    *aCancel = PR_TRUE;
+    *aCancel = true;
   }
   else 
   {
@@ -393,11 +393,11 @@ nsTextEditRules::WillInsertBreak(nsISelection *aSelection,
                                              aMaxLength, &didTruncate);
     NS_ENSURE_SUCCESS(res, res);
     if (didTruncate) {
-      *aCancel = PR_TRUE;
+      *aCancel = true;
       return NS_OK;
     }
 
-    *aCancel = PR_FALSE;
+    *aCancel = false;
 
     
     bool bCollapsed;
@@ -413,7 +413,7 @@ nsTextEditRules::WillInsertBreak(nsISelection *aSelection,
     NS_ENSURE_SUCCESS(res, res);
     
     
-    *aCancel = PR_FALSE;
+    *aCancel = false;
   
   }
   return NS_OK;
@@ -487,7 +487,7 @@ GetTextNode(nsISelection *selection, nsEditor *editor) {
     
     NS_ENSURE_TRUE(node, nsnull);
     
-    nsNodeIterator iter(node, nsIDOMNodeFilter::SHOW_TEXT, nsnull, PR_TRUE);
+    nsNodeIterator iter(node, nsIDOMNodeFilter::SHOW_TEXT, nsnull, true);
     while (!editor->IsTextNode(selNode)) {
       if (NS_FAILED(res = iter.NextNode(getter_AddRefs(selNode))) || !selNode) {
         return nsnull;
@@ -522,7 +522,7 @@ nsTextEditRules::HandleNewLines(nsString &aString,
   {
   case nsIPlaintextEditor::eNewlinesReplaceWithSpaces:
     
-    aString.Trim(CRLF, PR_FALSE, PR_TRUE);
+    aString.Trim(CRLF, false, true);
     aString.ReplaceChar(CRLF, ' ');
     break;
   case nsIPlaintextEditor::eNewlinesStrip:
@@ -547,7 +547,7 @@ nsTextEditRules::HandleNewLines(nsString &aString,
     }
     break;
   case nsIPlaintextEditor::eNewlinesReplaceWithCommas:
-    aString.Trim(CRLF, PR_TRUE, PR_TRUE);
+    aString.Trim(CRLF, true, true);
     aString.ReplaceChar(CRLF, ',');
     break;
   case nsIPlaintextEditor::eNewlinesStripSurroundingWhitespace:
@@ -572,7 +572,7 @@ nsTextEditRules::HandleNewLines(nsString &aString,
     break;
   case nsIPlaintextEditor::eNewlinesPasteIntact:
     
-    aString.Trim(CRLF, PR_TRUE, PR_TRUE);
+    aString.Trim(CRLF, true, true);
     break;
   }
 }
@@ -595,14 +595,14 @@ nsTextEditRules::WillInsertText(PRInt32          aAction,
     
     
     
-    *aCancel = PR_TRUE;
-    *aHandled = PR_FALSE;
+    *aCancel = true;
+    *aHandled = false;
     return NS_OK;
   }
   
   
-  *aCancel = PR_FALSE;
-  *aHandled = PR_TRUE;
+  *aCancel = false;
+  *aHandled = true;
 
   
   
@@ -613,7 +613,7 @@ nsTextEditRules::WillInsertText(PRInt32          aAction,
   
   
   if (truncated && outString->IsEmpty() && aAction != kInsertTextIME) {
-    *aCancel = PR_TRUE;
+    *aCancel = true;
     return NS_OK;
   }
   
@@ -642,7 +642,7 @@ nsTextEditRules::WillInsertText(PRInt32          aAction,
   NS_ENSURE_SUCCESS(res, res);
   
   
-  *aCancel = PR_FALSE;
+  *aCancel = false;
   
   
   
@@ -768,7 +768,7 @@ nsTextEditRules::WillSetTextProperty(nsISelection *aSelection, bool *aCancel, bo
 
   
   if (IsPlaintextEditor()) {
-    *aCancel = PR_TRUE;
+    *aCancel = true;
   }
   return NS_OK;
 }
@@ -787,7 +787,7 @@ nsTextEditRules::WillRemoveTextProperty(nsISelection *aSelection, bool *aCancel,
 
   
   if (IsPlaintextEditor()) {
-    *aCancel = PR_TRUE;
+    *aCancel = true;
   }
   return NS_OK;
 }
@@ -808,12 +808,12 @@ nsTextEditRules::WillDeleteSelection(nsISelection *aSelection,
   CANCEL_OPERATION_IF_READONLY_OR_DISABLED
 
   
-  *aCancel = PR_FALSE;
-  *aHandled = PR_FALSE;
+  *aCancel = false;
+  *aHandled = false;
   
   
   if (mBogusNode) {
-    *aCancel = PR_TRUE;
+    *aCancel = true;
     return NS_OK;
   }
 
@@ -880,7 +880,7 @@ nsTextEditRules::WillDeleteSelection(nsISelection *aSelection,
   res = mEditor->DeleteSelectionImpl(aCollapsedAction);
   NS_ENSURE_SUCCESS(res, res);
 
-  *aHandled = PR_TRUE;
+  *aHandled = true;
   ASSERT_PASSWORD_LENGTHS_EQUAL()
   return NS_OK;
 }
@@ -916,7 +916,7 @@ nsTextEditRules::DidDeleteSelection(nsISelection *aSelection,
     
     
     nsCOMPtr<nsISelectionPrivate> selPriv = do_QueryInterface(aSelection);
-    if (selPriv) res = selPriv->SetInterlinePosition(PR_TRUE);
+    if (selPriv) res = selPriv->SetInterlinePosition(true);
   }
   return res;
 }
@@ -927,8 +927,8 @@ nsTextEditRules::WillUndo(nsISelection *aSelection, bool *aCancel, bool *aHandle
   if (!aSelection || !aCancel || !aHandled) { return NS_ERROR_NULL_POINTER; }
   CANCEL_OPERATION_IF_READONLY_OR_DISABLED
   
-  *aCancel = PR_FALSE;
-  *aHandled = PR_FALSE;
+  *aCancel = false;
+  *aHandled = false;
   return NS_OK;
 }
 
@@ -965,8 +965,8 @@ nsTextEditRules::WillRedo(nsISelection *aSelection, bool *aCancel, bool *aHandle
   if (!aSelection || !aCancel || !aHandled) { return NS_ERROR_NULL_POINTER; }
   CANCEL_OPERATION_IF_READONLY_OR_DISABLED
   
-  *aCancel = PR_FALSE;
-  *aHandled = PR_FALSE;
+  *aCancel = false;
+  *aHandled = false;
   return NS_OK;
 }
 
@@ -1018,8 +1018,8 @@ nsTextEditRules::WillOutputText(nsISelection *aSelection,
     { return NS_ERROR_NULL_POINTER; }
 
   
-  *aCancel = PR_FALSE;
-  *aHandled = PR_FALSE;
+  *aCancel = false;
+  *aHandled = false;
 
   nsAutoString outputFormat(*aOutputFormat);
   ToLowerCase(outputFormat);
@@ -1028,12 +1028,12 @@ nsTextEditRules::WillOutputText(nsISelection *aSelection,
     if (IsPasswordEditor())
     {
       *aOutString = mPasswordText;
-      *aHandled = PR_TRUE;
+      *aHandled = true;
     }
     else if (mBogusNode)
     { 
       aOutString->Truncate();
-      *aHandled = PR_TRUE;
+      *aHandled = true;
     }
   }
   return NS_OK;
@@ -1098,7 +1098,7 @@ nsTextEditRules::RemoveRedundantTrailingBR()
         
         nsCOMPtr<nsIContent> content = do_QueryInterface(elem);
         content->SetAttr(kNameSpaceID_None, kMOZEditorBogusNodeAttrAtom,
-                         kMOZEditorBogusNodeValue, PR_FALSE);
+                         kMOZEditorBogusNodeValue, false);
       }
     }
   }
@@ -1162,7 +1162,7 @@ nsTextEditRules::CreateBogusNodeIfNeeded(nsISelection *aSelection)
         !mEditor->IsEditable(body) ||
         mEditor->IsEditable(bodyChild))
     {
-      needsBogusContent = PR_FALSE;
+      needsBogusContent = false;
       break;
     }
     nsCOMPtr<nsIDOMNode>temp;
@@ -1184,7 +1184,7 @@ nsTextEditRules::CreateBogusNodeIfNeeded(nsISelection *aSelection)
 
     
     newContent->SetAttr(kNameSpaceID_None, kMOZEditorBogusNodeAttrAtom,
-                        kMOZEditorBogusNodeValue, PR_FALSE);
+                        kMOZEditorBogusNodeValue, false);
     
     
     res = mEditor->InsertNode(mBogusNode, body, 0);
@@ -1209,7 +1209,7 @@ nsTextEditRules::TruncateInsertionIfNeeded(nsISelection *aSelection,
   nsresult res = NS_OK;
   *aOutString = *aInString;
   if (aTruncated) {
-    *aTruncated = PR_FALSE;
+    *aTruncated = false;
   }
   
   if ((-1 != aMaxLength) && IsPlaintextEditor() && !mEditor->IsIMEComposing() )
@@ -1244,7 +1244,7 @@ nsTextEditRules::TruncateInsertionIfNeeded(nsISelection *aSelection,
     {
       aOutString->Truncate();
       if (aTruncated) {
-        *aTruncated = PR_TRUE;
+        *aTruncated = true;
       }
     }
     else
@@ -1254,7 +1254,7 @@ nsTextEditRules::TruncateInsertionIfNeeded(nsISelection *aSelection,
       {
         aOutString->Truncate(aMaxLength - resultingDocLength);
         if (aTruncated) {
-          *aTruncated = PR_TRUE;
+          *aTruncated = true;
         }
       }
     }

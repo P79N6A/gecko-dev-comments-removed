@@ -163,7 +163,7 @@ inline nscoord _nscoordSaturatingMultiply(nscoord aCoord, float aScale,
 
 
 inline nscoord NSCoordSaturatingNonnegativeMultiply(nscoord aCoord, float aScale) {
-  return _nscoordSaturatingMultiply(aCoord, aScale, PR_TRUE);
+  return _nscoordSaturatingMultiply(aCoord, aScale, true);
 }
 
 
@@ -171,7 +171,7 @@ inline nscoord NSCoordSaturatingNonnegativeMultiply(nscoord aCoord, float aScale
 
 
 inline nscoord NSCoordSaturatingMultiply(nscoord aCoord, float aScale) {
-  return _nscoordSaturatingMultiply(aCoord, aScale, PR_FALSE);
+  return _nscoordSaturatingMultiply(aCoord, aScale, false);
 }
 
 inline nscoord NSCoordMultiply(nscoord aCoord, PRInt32 aScale) {

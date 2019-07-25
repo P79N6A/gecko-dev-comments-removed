@@ -39,8 +39,8 @@
 
 nsSMILInterval::nsSMILInterval()
 :
-  mBeginFixed(PR_FALSE),
-  mEndFixed(PR_FALSE)
+  mBeginFixed(false),
+  mEndFixed(false)
 {
 }
 
@@ -48,8 +48,8 @@ nsSMILInterval::nsSMILInterval(const nsSMILInterval& aOther)
 :
   mBegin(aOther.mBegin),
   mEnd(aOther.mEnd),
-  mBeginFixed(PR_FALSE),
-  mEndFixed(PR_FALSE)
+  mBeginFixed(false),
+  mEndFixed(false)
 {
   NS_ABORT_IF_FALSE(aOther.mDependentTimes.IsEmpty(),
       "Attempting to copy-construct an interval with dependent times, "
@@ -142,7 +142,7 @@ nsSMILInterval::FixBegin()
   NS_ABORT_IF_FALSE(mBegin && mEnd,
       "Fixing begin point on un-initialized interval");
   NS_ABORT_IF_FALSE(!mBeginFixed, "Duplicate calls to FixBegin()");
-  mBeginFixed = PR_TRUE;
+  mBeginFixed = true;
   mBegin->AddRefFixedEndpoint();
 }
 
@@ -154,7 +154,7 @@ nsSMILInterval::FixEnd()
   NS_ABORT_IF_FALSE(mBeginFixed,
       "Fixing the end of an interval without a fixed begin");
   NS_ABORT_IF_FALSE(!mEndFixed, "Duplicate calls to FixEnd()");
-  mEndFixed = PR_TRUE;
+  mEndFixed = true;
   mEnd->AddRefFixedEndpoint();
 }
 
@@ -188,10 +188,10 @@ bool
 nsSMILInterval::IsDependencyChainLink() const
 {
   if (!mBegin || !mEnd)
-    return PR_FALSE; 
+    return false; 
 
   if (mDependentTimes.IsEmpty())
-    return PR_FALSE; 
+    return false; 
 
   
   

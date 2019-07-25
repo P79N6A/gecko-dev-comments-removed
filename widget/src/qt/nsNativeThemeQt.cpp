@@ -376,10 +376,10 @@ nsNativeThemeQt::GetWidgetPadding(nsDeviceContext* ,
         aWidgetType == NS_THEME_TEXTFIELD_MULTILINE ||
         aWidgetType == NS_THEME_DROPDOWN) {
         aResult->SizeTo(2, 2, 2, 2);
-        return PR_TRUE;
+        return true;
     }
 
-    return PR_FALSE;
+    return false;
 }
 
 NS_IMETHODIMP
@@ -388,7 +388,7 @@ nsNativeThemeQt::GetMinimumWidgetSize(nsRenderingContext* aContext, nsIFrame* aF
                                       nsIntSize* aResult, bool* aIsOverridable)
 {
     (*aResult).width = (*aResult).height = 0;
-    *aIsOverridable = PR_TRUE;
+    *aIsOverridable = true;
 
     QStyle *s = qApp->style();
 
@@ -596,7 +596,7 @@ nsNativeThemeQt::ThemeSupportsWidget(nsPresContext* aPresContext,
     default:
         break;
     }
-    return PR_FALSE;
+    return false;
 }
 
 bool
@@ -608,7 +608,7 @@ nsNativeThemeQt::WidgetIsContainer(PRUint8 aWidgetType)
 
 
 
-   return PR_TRUE;
+   return true;
 }
 
 bool
@@ -617,16 +617,16 @@ nsNativeThemeQt::ThemeDrawsFocusForWidget(nsPresContext* aPresContext, nsIFrame*
     if (aWidgetType == NS_THEME_DROPDOWN ||
         aWidgetType == NS_THEME_BUTTON || 
         aWidgetType == NS_THEME_TREEVIEW_HEADER_CELL) { 
-        return PR_TRUE;
+        return true;
     }
 
-    return PR_FALSE;
+    return false;
 }
 
 bool
 nsNativeThemeQt::ThemeNeedsComboboxDropmarker()
 {
-    return PR_TRUE;
+    return true;
 }
 
 void

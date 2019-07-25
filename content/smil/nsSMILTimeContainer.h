@@ -176,7 +176,7 @@ public:
 
 
   bool NeedsRewind() const { return mNeedsRewind; }
-  void ClearNeedsRewind() { mNeedsRewind = PR_FALSE; }
+  void ClearNeedsRewind() { mNeedsRewind = false; }
 
   
 
@@ -184,7 +184,7 @@ public:
 
 
   bool IsSeeking() const { return mIsSeeking; }
-  void MarkSeekFinished() { mIsSeeking = PR_FALSE; }
+  void MarkSeekFinished() { mIsSeeking = false; }
 
   
 

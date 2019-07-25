@@ -77,7 +77,7 @@ NS_IMETHODIMP nsIconProtocolHandler::GetDefaultPort(PRInt32 *result)
 NS_IMETHODIMP nsIconProtocolHandler::AllowPort(PRInt32 port, const char *scheme, bool *_retval)
 {
     
-    *_retval = PR_FALSE;
+    *_retval = false;
     return NS_OK;
 }
 

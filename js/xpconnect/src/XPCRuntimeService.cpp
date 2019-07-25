@@ -4,6 +4,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "xpcprivate.h"
 
 #include "mozilla/dom/workers/Workers.h"
@@ -28,36 +63,28 @@ NS_IMPL_THREADSAFE_RELEASE(BackstagePass)
                             nsIXPCScriptable::USE_JSSTUB_FOR_SETPROPERTY   |  \
                             nsIXPCScriptable::DONT_ENUM_STATIC_PROPS       |  \
                             nsIXPCScriptable::DONT_ENUM_QUERY_INTERFACE    |  \
-                            nsIXPCScriptable::IS_GLOBAL_OBJECT             |  \
                             nsIXPCScriptable::DONT_REFLECT_INTERFACE_NAMES
 #include "xpc_map_end.h" 
 
 
 NS_IMETHODIMP
 BackstagePass::NewResolve(nsIXPConnectWrappedNative *wrapper,
-                          JSContext * cx, JSObject * obj_,
-                          jsid id_, uint32_t flags,
-                          JSObject * *objp_, bool *_retval)
+                          JSContext * cx, JSObject * obj,
+                          jsid id, PRUint32 flags,
+                          JSObject * *objp, bool *_retval)
 {
-    JS::RootedObject obj(cx, obj_);
-    JS::RootedId id(cx, id_);
-
     JSBool resolved;
 
     *_retval = !!JS_ResolveStandardClass(cx, obj, id, &resolved);
-    if (!*_retval) {
-        *objp_ = nullptr;
+    if (!*_retval)
         return NS_OK;
-    }
 
     if (resolved) {
-        *objp_ = obj;
+        *objp = obj;
         return NS_OK;
     }
 
-    JS::RootedObject objp(cx, *objp_);
-    *_retval = !!ResolveWorkerClasses(cx, obj, id, flags, &objp);
-    *objp_ = objp;
+    *_retval = !!ResolveWorkerClasses(cx, obj, id, flags, objp);
     return NS_OK;
 }
 
@@ -65,16 +92,16 @@ BackstagePass::NewResolve(nsIXPConnectWrappedNative *wrapper,
 
 
 NS_IMETHODIMP
-BackstagePass::GetInterfaces(uint32_t *aCount, nsIID * **aArray)
+BackstagePass::GetInterfaces(PRUint32 *aCount, nsIID * **aArray)
 {
-    const uint32_t count = 2;
+    const PRUint32 count = 2;
     *aCount = count;
     nsIID **array;
     *aArray = array = static_cast<nsIID**>(nsMemory::Alloc(count * sizeof(nsIID*)));
     if (!array)
         return NS_ERROR_OUT_OF_MEMORY;
 
-    uint32_t index = 0;
+    PRUint32 index = 0;
     nsIID* clone;
 #define PUSH_IID(id)                                                          \
     clone = static_cast<nsIID *>(nsMemory::Clone(&NS_GET_IID( id ),           \
@@ -92,16 +119,16 @@ oom:
     while (index)
         nsMemory::Free(array[--index]);
     nsMemory::Free(array);
-    *aArray = nullptr;
+    *aArray = nsnull;
     return NS_ERROR_OUT_OF_MEMORY;
 }
 
 
 NS_IMETHODIMP
-BackstagePass::GetHelperForLanguage(uint32_t language,
+BackstagePass::GetHelperForLanguage(PRUint32 language,
                                     nsISupports **retval)
 {
-    *retval = nullptr;
+    *retval = nsnull;
     return NS_OK;
 }
 
@@ -109,7 +136,7 @@ BackstagePass::GetHelperForLanguage(uint32_t language,
 NS_IMETHODIMP
 BackstagePass::GetContractID(char * *aContractID)
 {
-    *aContractID = nullptr;
+    *aContractID = nsnull;
     return NS_ERROR_NOT_AVAILABLE;
 }
 
@@ -126,13 +153,13 @@ BackstagePass::GetClassDescription(char * *aClassDescription)
 NS_IMETHODIMP
 BackstagePass::GetClassID(nsCID * *aClassID)
 {
-    *aClassID = nullptr;
+    *aClassID = nsnull;
     return NS_OK;
 }
 
 
 NS_IMETHODIMP
-BackstagePass::GetImplementationLanguage(uint32_t *aImplementationLanguage)
+BackstagePass::GetImplementationLanguage(PRUint32 *aImplementationLanguage)
 {
     *aImplementationLanguage = nsIProgrammingLanguage::CPLUSPLUS;
     return NS_OK;
@@ -140,7 +167,7 @@ BackstagePass::GetImplementationLanguage(uint32_t *aImplementationLanguage)
 
 
 NS_IMETHODIMP
-BackstagePass::GetFlags(uint32_t *aFlags)
+BackstagePass::GetFlags(PRUint32 *aFlags)
 {
     *aFlags = nsIClassInfo::THREADSAFE;
     return NS_OK;

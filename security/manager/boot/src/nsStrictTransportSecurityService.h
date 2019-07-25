@@ -120,7 +120,7 @@ class nsSTSHostEntry : public PLDHashEntryHdr
     }
 
     
-    enum { ALLOW_MEMMOVE = PR_FALSE };
+    enum { ALLOW_MEMMOVE = false };
 };
 
 

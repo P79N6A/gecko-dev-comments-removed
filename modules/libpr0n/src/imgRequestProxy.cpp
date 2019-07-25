@@ -78,12 +78,12 @@ imgRequestProxy::imgRequestProxy() :
   mLoadFlags(nsIRequest::LOAD_NORMAL),
   mLockCount(0),
   mAnimationConsumers(0),
-  mCanceled(PR_FALSE),
-  mIsInLoadGroup(PR_FALSE),
-  mListenerIsStrongRef(PR_FALSE),
-  mDecodeRequested(PR_FALSE),
-  mDeferNotifications(PR_FALSE),
-  mSentStartContainer(PR_FALSE)
+  mCanceled(false),
+  mIsInLoadGroup(false),
+  mListenerIsStrongRef(false),
+  mDecodeRequested(false),
+  mDeferNotifications(false),
+  mSentStartContainer(false)
 {
   
 
@@ -109,7 +109,7 @@ imgRequestProxy::~imgRequestProxy()
 
   if (mOwner) {
     if (!mCanceled) {
-      mCanceled = PR_TRUE;
+      mCanceled = true;
 
       
 
@@ -119,7 +119,7 @@ imgRequestProxy::~imgRequestProxy()
 
 
 
-      mOwner->RemoveProxy(this, NS_OK, PR_FALSE);
+      mOwner->RemoveProxy(this, NS_OK, false);
     }
   }
 }
@@ -139,7 +139,7 @@ nsresult imgRequestProxy::Init(imgRequest* request, nsILoadGroup* aLoadGroup, Im
   
   
   if (mListener) {
-    mListenerIsStrongRef = PR_TRUE;
+    mListenerIsStrongRef = true;
     NS_ADDREF(mListener);
   }
   mLoadGroup = aLoadGroup;
@@ -189,12 +189,12 @@ nsresult imgRequestProxy::ChangeOwner(imgRequest *aNewOwner)
   if (mImage &&
       (mImage->GetStatusTracker().GetImageStatus() &
        imgIRequest::STATUS_FRAME_COMPLETE)) {
-    wasDecoded = PR_TRUE;
+    wasDecoded = true;
   }
 
   
   
-  mOwner->RemoveProxy(this, NS_IMAGELIB_CHANGING_OWNER, PR_FALSE);
+  mOwner->RemoveProxy(this, NS_IMAGELIB_CHANGING_OWNER, false);
 
   
   
@@ -220,7 +220,7 @@ void imgRequestProxy::AddToLoadGroup()
 
   if (!mIsInLoadGroup && mLoadGroup) {
     mLoadGroup->AddRequest(this, nsnull);
-    mIsInLoadGroup = PR_TRUE;
+    mIsInLoadGroup = true;
   }
 }
 
@@ -237,7 +237,7 @@ void imgRequestProxy::RemoveFromLoadGroup(bool releaseLoadGroup)
   nsCOMPtr<imgIRequest> kungFuDeathGrip(this);
 
   mLoadGroup->RemoveRequest(this, nsnull, NS_OK);
-  mIsInLoadGroup = PR_FALSE;
+  mIsInLoadGroup = false;
 
   if (releaseLoadGroup) {
     
@@ -279,7 +279,7 @@ NS_IMETHODIMP imgRequestProxy::Cancel(nsresult status)
 
   LOG_SCOPE(gImgLog, "imgRequestProxy::Cancel");
 
-  mCanceled = PR_TRUE;
+  mCanceled = true;
 
   nsCOMPtr<nsIRunnable> ev = new imgCancelRunnable(this, status);
   return NS_DispatchToCurrentThread(ev);
@@ -291,7 +291,7 @@ imgRequestProxy::DoCancel(nsresult status)
   
   
   if (mOwner)
-    mOwner->RemoveProxy(this, status, PR_FALSE);
+    mOwner->RemoveProxy(this, status, false);
 
   NullOutListener();
 }
@@ -304,16 +304,16 @@ NS_IMETHODIMP imgRequestProxy::CancelAndForgetObserver(nsresult aStatus)
 
   LOG_SCOPE(gImgLog, "imgRequestProxy::CancelAndForgetObserver");
 
-  mCanceled = PR_TRUE;
+  mCanceled = true;
 
   
   bool oldIsInLoadGroup = mIsInLoadGroup;
-  mIsInLoadGroup = PR_FALSE;
+  mIsInLoadGroup = false;
 
   
   
   if (mOwner)
-    mOwner->RemoveProxy(this, aStatus, PR_FALSE);
+    mOwner->RemoveProxy(this, aStatus, false);
 
   mIsInLoadGroup = oldIsInLoadGroup;
 
@@ -336,7 +336,7 @@ imgRequestProxy::RequestDecode()
     return NS_ERROR_FAILURE;
 
   
-  mDecodeRequested = PR_TRUE;
+  mDecodeRequested = true;
 
   
   return mOwner->RequestDecode();
@@ -593,7 +593,7 @@ NS_IMETHODIMP imgRequestProxy::GetHasTransferredData(bool* hasData)
     *hasData = mOwner->HasTransferredData();
   } else {
     
-    *hasData = PR_TRUE;
+    *hasData = true;
   }
   return NS_OK;
 }
@@ -633,7 +633,7 @@ void imgRequestProxy::OnStartContainer(imgIContainer *image)
     
     nsCOMPtr<imgIDecoderObserver> kungFuDeathGrip(mListener);
     mListener->OnStartContainer(this, image);
-    mSentStartContainer = PR_TRUE;
+    mSentStartContainer = true;
   }
 }
 
@@ -758,7 +758,7 @@ void imgRequestProxy::OnStopRequest(bool lastPart)
     
     
     imgIDecoderObserver* obs = mListener;
-    mListenerIsStrongRef = PR_FALSE;
+    mListenerIsStrongRef = false;
     NS_RELEASE(obs);
   }
 }
@@ -773,7 +773,7 @@ void imgRequestProxy::NullOutListener()
     
     nsCOMPtr<imgIDecoderObserver> obs;
     obs.swap(mListener);
-    mListenerIsStrongRef = PR_FALSE;
+    mListenerIsStrongRef = false;
   } else {
     mListener = nsnull;
   }

@@ -124,7 +124,7 @@ nsGfxButtonControlFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements
     return NS_ERROR_OUT_OF_MEMORY;
 
   
-  mTextContent->SetText(label, PR_FALSE);
+  mTextContent->SetText(label, false);
   if (!aElements.AppendElement(mTextContent))
     return NS_ERROR_OUT_OF_MEMORY;
   return NS_OK;
@@ -277,7 +277,7 @@ nsGfxButtonControlFrame::AttributeChanged(PRInt32         aNameSpaceID,
       rv = GetLabel(label);
       NS_ENSURE_SUCCESS(rv, rv);
     
-      mTextContent->SetText(label, PR_TRUE);
+      mTextContent->SetText(label, true);
     } else {
       rv = NS_ERROR_UNEXPECTED;
     }
@@ -292,7 +292,7 @@ nsGfxButtonControlFrame::AttributeChanged(PRInt32         aNameSpaceID,
 bool
 nsGfxButtonControlFrame::IsLeaf() const
 {
-  return PR_TRUE;
+  return true;
 }
 
 nsIFrame*

@@ -77,7 +77,7 @@ SVGAnimatedTransformList::SetBaseValueString(const nsAString& aValue)
     
     domWrapper->InternalBaseValListWillChangeLengthTo(mBaseVal.Length());
   } else {
-    mIsAttrSet = PR_TRUE;
+    mIsAttrSet = true;
   }
   return rv;
 }
@@ -92,7 +92,7 @@ SVGAnimatedTransformList::ClearBaseValue()
     domWrapper->InternalBaseValListWillChangeLengthTo(0);
   }
   mBaseVal.Clear();
-  mIsAttrSet = PR_FALSE;
+  mIsAttrSet = false;
   
 }
 
@@ -200,7 +200,7 @@ SVGAnimatedTransformList::SMILAnimatedTransformList::ValueFromString(
   }
 
   ParseValue(aStr, transformType, aValue);
-  aPreventCachingOfSandwich = PR_FALSE;
+  aPreventCachingOfSandwich = false;
   return aValue.IsNull() ? NS_ERROR_FAILURE : NS_OK;
 }
 

@@ -63,13 +63,13 @@ GetCSSComputedValue(nsIContent* aElem,
     
     
     
-    return PR_FALSE;
+    return false;
   }
 
   nsIPresShell* shell = doc->GetShell();
   if (!shell) {
     NS_WARNING("Unable to look up computed style -- no pres shell");
-    return PR_FALSE;
+    return false;
   }
 
   nsRefPtr<nsComputedDOMStyle> computedStyle;
@@ -79,9 +79,9 @@ GetCSSComputedValue(nsIContent* aElem,
 
   if (NS_SUCCEEDED(rv)) {
     computedStyle->GetPropertyValue(aPropID, aResult);
-    return PR_TRUE;
+    return true;
   }
-  return PR_FALSE;
+  return false;
 }
 
 
@@ -173,7 +173,7 @@ nsSMILCSSProperty::ValueFromString(const nsAString& aStr,
   
   
   if (!aPreventCachingOfSandwich && mPropID == eCSSProperty_display) {
-    aPreventCachingOfSandwich = PR_TRUE;
+    aPreventCachingOfSandwich = true;
   }
 
   return aValue.IsNull() ? NS_ERROR_FAILURE : NS_OK;
@@ -280,7 +280,7 @@ nsSMILCSSProperty::IsPropertyAnimatable(nsCSSProperty aPropID)
     case eCSSProperty_text_rendering:
     case eCSSProperty_visibility:
     case eCSSProperty_word_spacing:
-      return PR_TRUE;
+      return true;
 
     
     
@@ -292,9 +292,9 @@ nsSMILCSSProperty::IsPropertyAnimatable(nsCSSProperty aPropID)
     
     case eCSSProperty_direction:
     case eCSSProperty_unicode_bidi:
-      return PR_FALSE;
+      return false;
 
     default:
-      return PR_FALSE;
+      return false;
   }
 }

@@ -148,7 +148,7 @@ nsAuthSASL::GetNextToken(const void *inToken,
         strcpy(message+4, userbuf.get());
         
         
-        rv = mInnerModule->Wrap((void *) message, messageLen-1, PR_FALSE, 
+        rv = mInnerModule->Wrap((void *) message, messageLen-1, false, 
                                 outToken, outTokenLen);
         nsMemory::Free(message);
         Reset(); 

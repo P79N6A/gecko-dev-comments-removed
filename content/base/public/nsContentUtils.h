@@ -189,6 +189,7 @@ struct nsShortcutCandidate {
 class nsContentUtils
 {
   friend class nsAutoScriptBlockerSuppressNodeRemoved;
+  friend class mozilla::AutoRestore<bool>;
   typedef mozilla::dom::Element Element;
   typedef mozilla::TimeDuration TimeDuration;
 
@@ -1062,14 +1063,18 @@ public:
 
 
 
-  static void ParseFragmentHTML(const nsAString& aSourceBuffer,
-                                nsIContent* aTargetNode,
-                                nsIAtom* aContextLocalName,
-                                PRInt32 aContextNamespace,
-                                bool aQuirks,
-                                bool aPreventScriptExecution);
+
+
+  static nsresult ParseFragmentHTML(const nsAString& aSourceBuffer,
+                                    nsIContent* aTargetNode,
+                                    nsIAtom* aContextLocalName,
+                                    PRInt32 aContextNamespace,
+                                    bool aQuirks,
+                                    bool aPreventScriptExecution);
 
   
+
+
 
 
 
@@ -1101,6 +1106,7 @@ public:
 
 
 
+
   static nsresult CreateDocument(const nsAString& aNamespaceURI, 
                                  const nsAString& aQualifiedName, 
                                  nsIDOMDocumentType* aDoctype,
@@ -1108,6 +1114,7 @@ public:
                                  nsIURI* aBaseURI,
                                  nsIPrincipal* aPrincipal,
                                  nsIScriptGlobalObject* aScriptObject,
+                                 bool aSVGDocument,
                                  nsIDOMDocument** aResult);
 
   
@@ -1265,7 +1272,7 @@ public:
       nsXPCOMCycleCollectionParticipant* participant;
       CallQueryInterface(aScriptObjectHolder, &participant);
       HoldJSObjects(aScriptObjectHolder, participant);
-      aCache->SetPreservingWrapper(PR_TRUE);
+      aCache->SetPreservingWrapper(true);
 #ifdef DEBUG
       
       CheckCCWrapperTraversal(aScriptObjectHolder, aCache);
@@ -1908,6 +1915,11 @@ private:
   static nsHtml5Parser* sHTMLFragmentParser;
   static nsIParser* sXMLFragmentParser;
   static nsIFragmentContentSink* sXMLFragmentSink;
+
+  
+
+
+  static bool sFragmentParsingActive;
 
   static nsString* sShiftText;
   static nsString* sControlText;

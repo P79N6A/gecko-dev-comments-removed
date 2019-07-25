@@ -100,7 +100,7 @@ nsWindowDataSource::Init()
         do_GetService(NS_OBSERVERSERVICE_CONTRACTID, &rv);
     if (NS_SUCCEEDED(rv)) {
         rv = observerService->AddObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID,
-                                          PR_FALSE);
+                                          false);
     }
     return NS_OK;
 }
@@ -179,7 +179,7 @@ nsWindowDataSource::OnWindowTitleChange(nsIXULWindow *window,
 
     
     nsCOMPtr<nsIRDFNode> oldTitleNode;
-    rv = GetTarget(windowResource, kNC_Name, PR_TRUE,
+    rv = GetTarget(windowResource, kNC_Name, true,
                    getter_AddRefs(oldTitleNode));
     
     
@@ -188,7 +188,7 @@ nsWindowDataSource::OnWindowTitleChange(nsIXULWindow *window,
         rv = Change(windowResource, kNC_Name, oldTitleNode, newTitleLiteral);
     else
         
-        rv = Assert(windowResource, kNC_Name, newTitleLiteral, PR_TRUE);
+        rv = Assert(windowResource, kNC_Name, newTitleLiteral, true);
 
     if (rv != NS_RDF_ASSERTION_ACCEPTED)
     {
@@ -237,7 +237,7 @@ nsWindowDataSource::OnCloseWindow(nsIXULWindow *window)
     nsCOMPtr<nsIRDFInt> oldKeyInt;
     
     
-    rv = GetTarget(resource, kNC_KeyIndex, PR_TRUE,
+    rv = GetTarget(resource, kNC_KeyIndex, true,
                    getter_AddRefs(oldKeyNode));
     if (NS_SUCCEEDED(rv) && (rv != NS_RDF_NO_VALUE))
         oldKeyInt = do_QueryInterface(oldKeyNode);
@@ -252,7 +252,7 @@ nsWindowDataSource::OnCloseWindow(nsIXULWindow *window)
         return NS_OK;
             
     
-    mContainer->RemoveElement(resource, PR_TRUE);
+    mContainer->RemoveElement(resource, true);
     
     nsCOMPtr<nsISimpleEnumerator> children;
     rv = mContainer->GetElements(getter_AddRefs(children));
@@ -282,7 +282,7 @@ nsWindowDataSource::OnCloseWindow(nsIXULWindow *window)
         nsCOMPtr<nsIRDFNode> newKeyNode;
         nsCOMPtr<nsIRDFInt> newKeyInt;
 
-        rv = GetTarget(windowResource, kNC_KeyIndex, PR_TRUE,
+        rv = GetTarget(windowResource, kNC_KeyIndex, true,
                        getter_AddRefs(newKeyNode));
         if (NS_SUCCEEDED(rv) && (rv != NS_RDF_NO_VALUE))
             newKeyInt = do_QueryInterface(newKeyNode);
@@ -293,7 +293,7 @@ nsWindowDataSource::OnCloseWindow(nsIXULWindow *window)
         
         
         else if (newKeyInt)
-            Assert(windowResource, kNC_KeyIndex, newKeyInt, PR_TRUE);
+            Assert(windowResource, kNC_KeyIndex, newKeyInt, true);
         
         
         
@@ -324,9 +324,9 @@ findWindow(nsHashKey* aKey, void *aData, void* aClosure)
         closure->resultWindow =
             static_cast<nsIXULWindow*>
                        (thisKey->GetValue());
-        return PR_FALSE;         
+        return false;         
     }
-    return PR_TRUE;
+    return true;
 }
 
 

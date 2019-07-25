@@ -128,13 +128,13 @@ MutationBitForEventType(PRUint32 aEventType)
 PRUint32 nsEventListenerManager::sCreatedCount = 0;
 
 nsEventListenerManager::nsEventListenerManager(nsISupports* aTarget) :
-  mMayHavePaintEventListener(PR_FALSE),
-  mMayHaveMutationListeners(PR_FALSE),
-  mMayHaveCapturingListeners(PR_FALSE),
-  mMayHaveSystemGroupListeners(PR_FALSE),
-  mMayHaveAudioAvailableEventListener(PR_FALSE),
-  mMayHaveTouchEventListener(PR_FALSE),
-  mMayHaveMouseEnterLeaveEventListener(PR_FALSE),
+  mMayHavePaintEventListener(false),
+  mMayHaveMutationListeners(false),
+  mMayHaveCapturingListeners(false),
+  mMayHaveSystemGroupListeners(false),
+  mMayHaveAudioAvailableEventListener(false),
+  mMayHaveTouchEventListener(false),
+  mMayHaveMouseEnterLeaveEventListener(false),
   mNoListenerForEvent(0),
   mTarget(aTarget)
 {
@@ -242,24 +242,24 @@ nsEventListenerManager::AddEventListener(nsIDOMEventListener *aListener,
   ls->mEventType = aType;
   ls->mTypeAtom = aTypeAtom;
   ls->mFlags = aFlags;
-  ls->mHandlerIsString = PR_FALSE;
+  ls->mHandlerIsString = false;
 
   if (aFlags & NS_EVENT_FLAG_SYSTEM_EVENT) {
-    mMayHaveSystemGroupListeners = PR_TRUE;
+    mMayHaveSystemGroupListeners = true;
   }
   if (aFlags & NS_EVENT_FLAG_CAPTURE) {
-    mMayHaveCapturingListeners = PR_TRUE;
+    mMayHaveCapturingListeners = true;
   }
 
   if (aType == NS_AFTERPAINT) {
-    mMayHavePaintEventListener = PR_TRUE;
+    mMayHavePaintEventListener = true;
     nsPIDOMWindow* window = GetInnerWindowForTarget();
     if (window) {
       window->SetHasPaintEventListeners();
     }
 #ifdef MOZ_MEDIA
   } else if (aType == NS_MOZAUDIOAVAILABLE) {
-    mMayHaveAudioAvailableEventListener = PR_TRUE;
+    mMayHaveAudioAvailableEventListener = true;
     nsPIDOMWindow* window = GetInnerWindowForTarget();
     if (window) {
       window->SetHasAudioAvailableEventListeners();
@@ -268,7 +268,7 @@ nsEventListenerManager::AddEventListener(nsIDOMEventListener *aListener,
   } else if (aType >= NS_MUTATION_START && aType <= NS_MUTATION_END) {
     
     
-    mMayHaveMutationListeners = PR_TRUE;
+    mMayHaveMutationListeners = true;
     
     nsPIDOMWindow* window = GetInnerWindowForTarget();
     if (window) {
@@ -290,13 +290,13 @@ nsEventListenerManager::AddEventListener(nsIDOMEventListener *aListener,
               aTypeAtom == nsGkAtoms::ontouchenter ||
               aTypeAtom == nsGkAtoms::ontouchleave ||
               aTypeAtom == nsGkAtoms::ontouchcancel)) {
-    mMayHaveTouchEventListener = PR_TRUE;
+    mMayHaveTouchEventListener = true;
     nsPIDOMWindow* window = GetInnerWindowForTarget();
     if (window)
       window->SetHasTouchEventListeners();
   } else if (aTypeAtom == nsGkAtoms::onmouseenter ||
              aTypeAtom == nsGkAtoms::onmouseleave) {
-    mMayHaveMouseEnterLeaveEventListener = PR_TRUE;
+    mMayHaveMouseEnterLeaveEventListener = true;
     nsPIDOMWindow* window = GetInnerWindowForTarget();
     if (window) {
 #ifdef DEBUG
@@ -547,7 +547,7 @@ nsEventListenerManager::AddScriptEventListener(nsIAtom *aName,
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (!aDeferCompilation) {
-    return CompileEventHandlerInternal(ls, PR_TRUE, &aBody);
+    return CompileEventHandlerInternal(ls, true, &aBody);
   }
 
   return NS_OK;
@@ -590,7 +590,7 @@ nsEventListenerManager::CompileEventHandlerInternal(nsListenerStruct *aListenerS
     result = handlerOwner->GetCompiledEventHandler(aListenerStruct->mTypeAtom,
                                                    handler);
     if (NS_SUCCEEDED(result) && handler) {
-      aListenerStruct->mHandlerIsString = PR_FALSE;
+      aListenerStruct->mHandlerIsString = false;
     } else {
       
       handler.set(nsnull);
@@ -601,7 +601,7 @@ nsEventListenerManager::CompileEventHandlerInternal(nsListenerStruct *aListenerS
     
     
     
-    aListenerStruct->mHandlerIsString = PR_FALSE;
+    aListenerStruct->mHandlerIsString = false;
 
     
     
@@ -771,7 +771,7 @@ nsEventListenerManager::HandleEventInternal(nsPresContext* aPresContext,
     
     
     if (ListenerCanHandle(ls, aEvent)) {
-      hasListener = PR_TRUE;
+      hasListener = true;
       
       
       if ((ls->mFlags & aFlags & ~NS_EVENT_FLAG_SYSTEM_EVENT) &&
@@ -856,12 +856,12 @@ nsEventListenerManager::HasMutationListeners()
       nsListenerStruct* ls = &mListeners.ElementAt(i);
       if (ls->mEventType >= NS_MUTATION_START &&
           ls->mEventType <= NS_MUTATION_END) {
-        return PR_TRUE;
+        return true;
       }
     }
   }
 
-  return PR_FALSE;
+  return false;
 }
 
 PRUint32
@@ -893,10 +893,10 @@ nsEventListenerManager::HasListenersFor(const nsAString& aEventName)
   for (PRUint32 i = 0; i < count; ++i) {
     nsListenerStruct* ls = &mListeners.ElementAt(i);
     if (ls->mTypeAtom == atom) {
-      return PR_TRUE;
+      return true;
     }
   }
-  return PR_FALSE;
+  return false;
 }
 
 bool
@@ -921,7 +921,7 @@ nsEventListenerManager::GetListenerInfo(nsCOMArray<nsIEventListenerInfo>* aList)
     
     if ((ls.mFlags & NS_PRIV_EVENT_FLAG_SCRIPT) && ls.mHandlerIsString) {
       CompileEventHandlerInternal(const_cast<nsListenerStruct*>(&ls),
-                                  PR_TRUE, nsnull);
+                                  true, nsnull);
     }
     const nsDependentSubstring& eventType =
       Substring(nsDependentAtomString(ls.mTypeAtom), 2);
@@ -942,10 +942,10 @@ nsEventListenerManager::HasUnloadListeners()
     nsListenerStruct* ls = &mListeners.ElementAt(i);
     if (ls->mEventType == NS_PAGE_UNLOAD ||
         ls->mEventType == NS_BEFORE_PAGE_UNLOAD) {
-      return PR_TRUE;
+      return true;
     }
   }
-  return PR_FALSE;
+  return false;
 }
 
 nsresult
@@ -994,7 +994,7 @@ nsEventListenerManager::GetJSEventListener(nsIAtom *aEventName, jsval *vp)
   }
     
   if (ls->mHandlerIsString) {
-    CompileEventHandlerInternal(ls, PR_TRUE, nsnull);
+    CompileEventHandlerInternal(ls, true, nsnull);
   }
 
   *vp = OBJECT_TO_JSVAL(static_cast<JSObject*>(listener->GetHandler()));

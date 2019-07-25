@@ -37,16 +37,10 @@
 
 
 
+var EXPORTED_SYMBOLS = [ "Templater" ];
 
-
-var EXPORTED_SYMBOLS = ["Templater"];
-
-const Ci = Components.interfaces;
-const Cu = Components.utils;
-
-Cu.import("resource://gre/modules/Services.jsm");
-
-const Node = Ci.nsIDOMNode;
+Components.utils.import("resource://gre/modules/Services.jsm");
+const Node = Components.interfaces.nsIDOMNode;
 
 
 
@@ -263,9 +257,9 @@ Templater.prototype._processForEachMember = function(member, template, siblingNo
   try {
     this._handleAsync(member, siblingNode, function(reply, node) {
       data[paramName] = reply;
-      if (node.nodeName.toLowerCase() === 'loop') {
-        for (var i = 0; i < node.childNodes.length; i++) {
-          var clone = node.childNodes[i].cloneNode(true);
+      if (template.nodeName.toLowerCase() === 'loop') {
+        for (var i = 0; i < template.childNodes.length; i++) {
+          var clone = template.childNodes[i].cloneNode(true);
           node.parentNode.insertBefore(clone, node);
           this.processNode(clone, data);
         }
@@ -470,4 +464,3 @@ Templater.prototype._handleError = function(message, ex) {
 Templater.prototype._logError = function(message) {
   Services.console.logStringMessage(message);
 };
-

@@ -60,46 +60,6 @@ ThirdPartyUtil::Init()
 
 
 
-
-
-
-
-nsresult
-ThirdPartyUtil::GetBaseDomain(nsIURI* aHostURI,
-                              nsCString& aBaseDomain)
-{
-  
-  
-  nsresult rv = mTLDService->GetBaseDomain(aHostURI, 0, aBaseDomain);
-  if (rv == NS_ERROR_HOST_IS_IP_ADDRESS ||
-      rv == NS_ERROR_INSUFFICIENT_DOMAIN_LEVELS) {
-    
-    
-    
-    rv = aHostURI->GetAsciiHost(aBaseDomain);
-  }
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  if (aBaseDomain.Length() == 1 && aBaseDomain.Last() == '.')
-    return NS_ERROR_INVALID_ARG;
-
-  
-  
-  
-  
-  if (aBaseDomain.IsEmpty()) {
-    bool isFileURI = false;
-    aHostURI->SchemeIs("file", &isFileURI);
-    NS_ENSURE_TRUE(isFileURI, NS_ERROR_INVALID_ARG);
-  }
-
-  return NS_OK;
-}
-
-
-
-
 nsresult
 ThirdPartyUtil::IsThirdPartyInternal(const nsCString& aFirstDomain,
                                      nsIURI* aSecondURI,
@@ -316,3 +276,42 @@ ThirdPartyUtil::IsThirdPartyChannel(nsIChannel* aChannel,
   return IsThirdPartyWindow(ourWin, channelURI, aResult);
 }
 
+
+
+
+
+
+
+
+NS_IMETHODIMP
+ThirdPartyUtil::GetBaseDomain(nsIURI* aHostURI,
+                              nsACString& aBaseDomain)
+{
+  
+  
+  nsresult rv = mTLDService->GetBaseDomain(aHostURI, 0, aBaseDomain);
+  if (rv == NS_ERROR_HOST_IS_IP_ADDRESS ||
+      rv == NS_ERROR_INSUFFICIENT_DOMAIN_LEVELS) {
+    
+    
+    
+    rv = aHostURI->GetAsciiHost(aBaseDomain);
+  }
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  if (aBaseDomain.Length() == 1 && aBaseDomain.Last() == '.')
+    return NS_ERROR_INVALID_ARG;
+
+  
+  
+  
+  
+  if (aBaseDomain.IsEmpty()) {
+    bool isFileURI = false;
+    aHostURI->SchemeIs("file", &isFileURI);
+    NS_ENSURE_TRUE(isFileURI, NS_ERROR_INVALID_ARG);
+  }
+
+  return NS_OK;
+}

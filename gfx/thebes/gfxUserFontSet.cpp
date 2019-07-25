@@ -76,7 +76,7 @@ gfxProxyFontEntry::gfxProxyFontEntry(const nsTArray<gfxFontFaceSrc>& aFontFaceSr
     : gfxFontEntry(NS_LITERAL_STRING("Proxy"), aFamily),
       mLoadingState(NOT_LOADING)
 {
-    mIsProxy = PR_TRUE;
+    mIsProxy = true;
     mSrcList = aFontFaceSrcList;
     mSrcIndex = 0;
     mWeight = aWeight;
@@ -84,7 +84,7 @@ gfxProxyFontEntry::gfxProxyFontEntry(const nsTArray<gfxFontFaceSrc>& aFontFaceSr
     mItalic = (aItalicStyle & (FONT_STYLE_ITALIC | FONT_STYLE_OBLIQUE)) != 0;
     mFeatureSettings.AppendElements(aFeatureSettings);
     mLanguageOverride = aLanguageOverride;
-    mIsUserFont = PR_TRUE;
+    mIsUserFont = true;
 }
 
 gfxProxyFontEntry::~gfxProxyFontEntry()
@@ -187,16 +187,16 @@ gfxUserFontSet::FindFontEntry(const nsAString& aName,
                               bool& aNeedsBold,
                               bool& aWaitForUserFont)
 {
-    aWaitForUserFont = PR_FALSE;
+    aWaitForUserFont = false;
     gfxMixedFontFamily *family = GetFamily(aName);
 
     
     if (!family) {
-        aFoundFamily = PR_FALSE;
+        aFoundFamily = false;
         return nsnull;
     }
 
-    aFoundFamily = PR_TRUE;
+    aFoundFamily = true;
     gfxFontEntry* fe = family->FindFontForStyle(aFontStyle, aNeedsBold);
 
     
@@ -556,7 +556,7 @@ gfxUserFontSet::OnLoadComplete(gfxProxyFontEntry *aProxy,
 #endif
             ReplaceFontEntry(aProxy, fe);
             IncrementGeneration();
-            return PR_TRUE;
+            return true;
         } else {
 #ifdef PR_LOGGING
             if (LOG_ENABLED()) {
@@ -587,7 +587,7 @@ gfxUserFontSet::OnLoadComplete(gfxProxyFontEntry *aProxy,
     
     
     IncrementGeneration();
-    return PR_TRUE;
+    return true;
 }
 
 

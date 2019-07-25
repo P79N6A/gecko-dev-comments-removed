@@ -492,7 +492,7 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
     
     
     if (mLegendSpace != oldSpace && mContentFrame) {
-      reflowContent = PR_TRUE;
+      reflowContent = true;
     }
 
     FinishReflowChild(mLegendFrame, aPresContext, &legendReflowState, 

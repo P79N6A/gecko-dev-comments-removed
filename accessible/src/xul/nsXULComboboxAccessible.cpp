@@ -149,12 +149,12 @@ nsXULComboboxAccessible::GetAllowsAnonChildAccessibles()
     
     
     
-    return PR_TRUE;
+    return true;
   }
 
   
   
-  return PR_FALSE;
+  return false;
 }
 PRUint8
 nsXULComboboxAccessible::ActionCount()

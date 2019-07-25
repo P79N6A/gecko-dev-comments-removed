@@ -123,7 +123,7 @@ nsMIMEInfoWin::LaunchWithFile(nsIFile* aFile)
         
         nsCOMPtr<nsILocalFile> locFile(do_QueryInterface(aFile));
 
-        if (!GetDllLaunchInfo(executable, locFile, args, PR_FALSE))
+        if (!GetDllLaunchInfo(executable, locFile, args, false))
           return NS_ERROR_INVALID_ARG;
 
         WCHAR rundll32Path[MAX_PATH + sizeof(RUNDLL32_EXE) / sizeof(WCHAR) + 1] = {L'\0'};
@@ -334,16 +334,16 @@ bool nsMIMEInfoWin::GetLocalHandlerApp(const nsAString& aCommandHandler,
 {
   nsCOMPtr<nsILocalFile> locfile;
   nsresult rv = 
-    NS_NewLocalFile(aCommandHandler, PR_TRUE, getter_AddRefs(locfile));
+    NS_NewLocalFile(aCommandHandler, true, getter_AddRefs(locfile));
   if (NS_FAILED(rv))
-    return PR_FALSE;
+    return false;
 
   aApp = do_CreateInstance("@mozilla.org/uriloader/local-handler-app;1");
   if (!aApp) 
-    return PR_FALSE;
+    return false;
 
   aApp->SetExecutable(locfile);
-  return PR_TRUE;
+  return true;
 }
 
 
@@ -355,7 +355,7 @@ bool nsMIMEInfoWin::GetAppsVerbCommandHandler(const nsAString& appExeName,
   nsCOMPtr<nsIWindowsRegKey> appKey = 
     do_CreateInstance("@mozilla.org/windows-registry-key;1");
   if (!appKey) 
-    return PR_FALSE; 
+    return false; 
 
   
   nsAutoString applicationsPath;
@@ -366,19 +366,19 @@ bool nsMIMEInfoWin::GetAppsVerbCommandHandler(const nsAString& appExeName,
                              applicationsPath,
                              nsIWindowsRegKey::ACCESS_QUERY_VALUE);
   if (NS_FAILED(rv)) 
-    return PR_FALSE;
+    return false;
 
   
   PRUint32 value;
   if (NS_SUCCEEDED(appKey->ReadIntValue(
       NS_LITERAL_STRING("NoOpenWith"), &value)) &&
       value == 1)
-    return PR_FALSE;
+    return false;
 
   nsAutoString dummy;
   if (NS_SUCCEEDED(appKey->ReadStringValue(
         NS_LITERAL_STRING("NoOpenWith"), dummy)))
-    return PR_FALSE;
+    return false;
 
   appKey->Close();
 
@@ -395,7 +395,7 @@ bool nsMIMEInfoWin::GetAppsVerbCommandHandler(const nsAString& appExeName,
                     applicationsPath,
                     nsIWindowsRegKey::ACCESS_QUERY_VALUE);
   if (NS_FAILED(rv)) 
-    return PR_FALSE;
+    return false;
 
   nsAutoString appFilesystemCommand;
   if (NS_SUCCEEDED(appKey->ReadStringValue(EmptyString(), 
@@ -403,12 +403,12 @@ bool nsMIMEInfoWin::GetAppsVerbCommandHandler(const nsAString& appExeName,
     
     
     if (!nsOSHelperAppService::CleanupCmdHandlerPath(appFilesystemCommand))
-      return PR_FALSE;
+      return false;
     
     applicationPath = appFilesystemCommand;
-    return PR_TRUE;
+    return true;
   }
-  return PR_FALSE;
+  return false;
 }
 
 
@@ -421,11 +421,11 @@ bool nsMIMEInfoWin::GetDllLaunchInfo(nsIFile * aDll,
                                        bool edit)
 {
   if (!aDll || !aFile) 
-    return PR_FALSE;
+    return false;
 
   nsCOMPtr<nsILocalFile> localDll(do_QueryInterface(aDll));
   if (!localDll)
-    return PR_FALSE;
+    return false;
 
   nsString appExeName;
   localDll->GetLeafName(appExeName);
@@ -433,7 +433,7 @@ bool nsMIMEInfoWin::GetDllLaunchInfo(nsIFile * aDll,
   nsCOMPtr<nsIWindowsRegKey> appKey = 
     do_CreateInstance("@mozilla.org/windows-registry-key;1");
   if (!appKey) 
-    return PR_FALSE; 
+    return false; 
 
   
   nsAutoString applicationsPath;
@@ -444,18 +444,18 @@ bool nsMIMEInfoWin::GetDllLaunchInfo(nsIFile * aDll,
                              applicationsPath,
                              nsIWindowsRegKey::ACCESS_QUERY_VALUE);
   if (NS_FAILED(rv))
-    return PR_FALSE;
+    return false;
 
   
   PRUint32 value;
   rv = appKey->ReadIntValue(NS_LITERAL_STRING("NoOpenWith"), &value);
   if (NS_SUCCEEDED(rv) && value == 1)
-    return PR_FALSE;
+    return false;
 
   nsAutoString dummy;
   if (NS_SUCCEEDED(appKey->ReadStringValue(NS_LITERAL_STRING("NoOpenWith"), 
                                            dummy)))
-    return PR_FALSE;
+    return false;
 
   appKey->Close();
 
@@ -471,7 +471,7 @@ bool nsMIMEInfoWin::GetDllLaunchInfo(nsIFile * aDll,
                     applicationsPath,
                     nsIWindowsRegKey::ACCESS_QUERY_VALUE);
   if (NS_FAILED(rv))
-    return PR_FALSE;
+    return false;
 
   nsAutoString appFilesystemCommand;
   if (NS_SUCCEEDED(appKey->ReadStringValue(EmptyString(),
@@ -481,15 +481,15 @@ bool nsMIMEInfoWin::GetDllLaunchInfo(nsIFile * aDll,
       ::ExpandEnvironmentStringsW(appFilesystemCommand.get(),
                                   L"", 0);
     if (bufLength == 0) 
-      return PR_FALSE;
+      return false;
 
     nsAutoArrayPtr<PRUnichar> destination(new PRUnichar[bufLength]);
     if (!destination)
-      return PR_FALSE;
+      return false;
     if (!::ExpandEnvironmentStringsW(appFilesystemCommand.get(),
                                      destination,
                                      bufLength))
-      return PR_FALSE;
+      return false;
 
     appFilesystemCommand = destination;
 
@@ -509,7 +509,7 @@ bool nsMIMEInfoWin::GetDllLaunchInfo(nsIFile * aDll,
     NS_NAMED_LITERAL_STRING(percentOneParam, "%1");
     index = params.Find(percentOneParam);
     if (index == kNotFound) 
-      return PR_FALSE;
+      return false;
 
     nsString target;
     aFile->GetTarget(target);
@@ -517,9 +517,9 @@ bool nsMIMEInfoWin::GetDllLaunchInfo(nsIFile * aDll,
 
     args = params;
 
-    return PR_TRUE;
+    return true;
   }
-  return PR_FALSE;
+  return false;
 }
 
 
@@ -531,7 +531,7 @@ bool nsMIMEInfoWin::GetProgIDVerbCommandHandler(const nsAString& appProgIDName,
   nsCOMPtr<nsIWindowsRegKey> appKey =
     do_CreateInstance("@mozilla.org/windows-registry-key;1");
   if (!appKey) 
-    return PR_FALSE; 
+    return false; 
 
   nsAutoString appProgId(appProgIDName);
 
@@ -545,19 +545,19 @@ bool nsMIMEInfoWin::GetProgIDVerbCommandHandler(const nsAString& appProgIDName,
                              appProgId,
                              nsIWindowsRegKey::ACCESS_QUERY_VALUE);
   if (NS_FAILED(rv))
-    return PR_FALSE;
+    return false;
 
   nsAutoString appFilesystemCommand;
   if (NS_SUCCEEDED(appKey->ReadStringValue(EmptyString(), appFilesystemCommand))) {
     
     
     if (!nsOSHelperAppService::CleanupCmdHandlerPath(appFilesystemCommand))
-      return PR_FALSE;
+      return false;
     
     applicationPath = appFilesystemCommand;
-    return PR_TRUE;
+    return true;
   }
-  return PR_FALSE;
+  return false;
 }
 
 
@@ -583,7 +583,7 @@ void nsMIMEInfoWin::ProcessPath(nsCOMPtr<nsIMutableArray>& appList,
     return;
 
   
-  appList->AppendElement(aApp, PR_FALSE);
+  appList->AppendElement(aApp, false);
   trackList.AppendElement(lower);
 }
 
@@ -599,9 +599,9 @@ static bool IsPathInList(nsAString& appPath,
 
   for (PRUint32 i = 0; i < trackList.Length(); i++) {
     if (tmp.Equals(trackList[i]))
-      return PR_TRUE;
+      return true;
   }
-  return PR_FALSE;
+  return false;
 }
 
 
@@ -644,7 +644,7 @@ nsMIMEInfoWin::GetPossibleLocalHandlers(nsIArray **_retval)
 
   bool extKnown = false;
   if (fileExt.IsEmpty()) {
-    extKnown = PR_TRUE;
+    extKnown = true;
     
     
     
@@ -663,7 +663,7 @@ nsMIMEInfoWin::GetPossibleLocalHandlers(nsIArray **_retval)
         nsAutoString mimeFileExt;
         if (NS_SUCCEEDED(regKey->ReadStringValue(EmptyString(), mimeFileExt))) {
           CopyUTF16toUTF8(mimeFileExt, fileExt);
-          extKnown = PR_FALSE;
+          extKnown = false;
         }
       }
     }
@@ -692,7 +692,7 @@ nsMIMEInfoWin::GetPossibleLocalHandlers(nsIArray **_retval)
           nsAutoString appFilesystemCommand;
           if (GetProgIDVerbCommandHandler(appProgId,
                                           appFilesystemCommand,
-                                          PR_FALSE) &&
+                                          false) &&
               !IsPathInList(appFilesystemCommand, trackList)) {
             ProcessPath(appList, trackList, appFilesystemCommand);
           }
@@ -722,7 +722,7 @@ nsMIMEInfoWin::GetPossibleLocalHandlers(nsIArray **_retval)
           nsAutoString appFilesystemCommand;
           if (!GetAppsVerbCommandHandler(appName,
                                          appFilesystemCommand,
-                                         PR_FALSE) ||
+                                         false) ||
               IsPathInList(appFilesystemCommand, trackList))
             continue;
           ProcessPath(appList, trackList, appFilesystemCommand);
@@ -753,7 +753,7 @@ nsMIMEInfoWin::GetPossibleLocalHandlers(nsIArray **_retval)
           nsAutoString appFilesystemCommand;
           if (!GetProgIDVerbCommandHandler(appProgId,
                                            appFilesystemCommand,
-                                           PR_FALSE) ||
+                                           false) ||
               IsPathInList(appFilesystemCommand, trackList))
             continue;
           ProcessPath(appList, trackList, appFilesystemCommand);
@@ -791,7 +791,7 @@ nsMIMEInfoWin::GetPossibleLocalHandlers(nsIArray **_retval)
           nsAutoString appFilesystemCommand;
           if (!GetAppsVerbCommandHandler(appValue,
                                          appFilesystemCommand,
-                                         PR_FALSE) ||
+                                         false) ||
               IsPathInList(appFilesystemCommand, trackList))
             continue;
           ProcessPath(appList, trackList, appFilesystemCommand);
@@ -824,7 +824,7 @@ nsMIMEInfoWin::GetPossibleLocalHandlers(nsIArray **_retval)
           nsAutoString appFilesystemCommand;
           if (!GetProgIDVerbCommandHandler(appProgId,
                                            appFilesystemCommand,
-                                           PR_FALSE) ||
+                                           false) ||
               IsPathInList(appFilesystemCommand, trackList))
             continue;
           ProcessPath(appList, trackList, appFilesystemCommand);
@@ -866,7 +866,7 @@ nsMIMEInfoWin::GetPossibleLocalHandlers(nsIArray **_retval)
               
               nsAutoString appFilesystemCommand;
               if (!GetAppsVerbCommandHandler(appName, appFilesystemCommand, 
-                                             PR_FALSE) ||
+                                             false) ||
                   IsPathInList(appFilesystemCommand, trackList))
                 continue;
               ProcessPath(appList, trackList, appFilesystemCommand);
@@ -897,7 +897,7 @@ nsMIMEInfoWin::GetPossibleLocalHandlers(nsIArray **_retval)
         
         nsAutoString appFilesystemCommand;
         if (!GetAppsVerbCommandHandler(appName, appFilesystemCommand,
-                                       PR_FALSE) ||
+                                       false) ||
             IsPathInList(appFilesystemCommand, trackList))
           continue;
         ProcessPath(appList, trackList, appFilesystemCommand);
@@ -925,7 +925,7 @@ nsMIMEInfoWin::GetPossibleLocalHandlers(nsIArray **_retval)
         
         nsAutoString appFilesystemCommand;
         if (!GetAppsVerbCommandHandler(appName, appFilesystemCommand,
-                                       PR_FALSE) ||
+                                       false) ||
             IsPathInList(appFilesystemCommand, trackList))
           continue;
         ProcessPath(appList, trackList, appFilesystemCommand);

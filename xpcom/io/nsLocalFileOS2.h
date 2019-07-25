@@ -108,7 +108,7 @@ private:
 
     PRFileInfo64  mFileInfo64;
 
-    void MakeDirty() { mDirty = PR_TRUE; }
+    void MakeDirty() { mDirty = true; }
 
     nsresult Stat();
 

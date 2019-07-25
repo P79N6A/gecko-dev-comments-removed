@@ -153,7 +153,7 @@ class nsCSSScanner {
 
   
   void SetSVGMode(bool aSVGMode) {
-    NS_ASSERTION(aSVGMode == PR_TRUE || aSVGMode == PR_FALSE,
+    NS_ASSERTION(aSVGMode == true || aSVGMode == false,
                  "bad bool value");
     mSVGMode = aSVGMode;
   }

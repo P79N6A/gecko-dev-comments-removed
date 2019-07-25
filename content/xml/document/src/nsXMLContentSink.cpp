@@ -86,7 +86,7 @@
 #include "nsNodeInfoManager.h"
 #include "nsContentCreatorFunctions.h"
 #include "nsIContentPolicy.h"
-#include "nsIDocumentViewer.h"
+#include "nsIContentViewer.h"
 #include "nsContentPolicyUtils.h"
 #include "nsContentErrors.h"
 #include "nsIDOMProcessingInstruction.h"
@@ -132,8 +132,8 @@ NS_NewXMLContentSink(nsIXMLContentSink** aResult,
 }
 
 nsXMLContentSink::nsXMLContentSink()
-  : mConstrainSize(PR_TRUE),
-    mPrettyPrintXML(PR_TRUE)
+  : mConstrainSize(true),
+    mPrettyPrintXML(true)
 {
 }
 
@@ -155,10 +155,10 @@ nsXMLContentSink::Init(nsIDocument* aDoc,
   NS_ENSURE_SUCCESS(rv, rv);
 
   aDoc->AddObserver(this);
-  mIsDocumentObserver = PR_TRUE;
+  mIsDocumentObserver = true;
 
   if (!mDocShell) {
-    mPrettyPrintXML = PR_FALSE;
+    mPrettyPrintXML = false;
   }
   
   mState = eXMLContentSinkState_InProlog;
@@ -209,7 +209,7 @@ nsXMLContentSink::WillBuildModel(nsDTDMode aDTDMode)
     nsCAutoString command;
     mParser->GetCommand(command);
     if (!command.EqualsLiteral("view")) {
-      mPrettyPrintXML = PR_FALSE;
+      mPrettyPrintXML = false;
     }
   }
   
@@ -227,18 +227,18 @@ nsresult
 nsXMLContentSink::MaybePrettyPrint()
 {
   if (!CanStillPrettyPrint()) {
-    mPrettyPrintXML = PR_FALSE;
+    mPrettyPrintXML = false;
 
     return NS_OK;
   }
 
   
   mDocument->RemoveObserver(this);
-  mIsDocumentObserver = PR_FALSE;
+  mIsDocumentObserver = false;
 
   
   if (mCSSLoader) {
-    mCSSLoader->SetEnabled(PR_TRUE);
+    mCSSLoader->SetEnabled(true);
   }
   
   nsCOMPtr<nsXMLPrettyPrinter> printer;
@@ -283,10 +283,10 @@ CheckXSLTParamPI(nsIDOMProcessingInstruction* aPi,
     nsParserUtils::GetQuotedAttributeValue(data, nsGkAtoms::_namespace,
                                            namespaceAttr);
     if (!nsParserUtils::GetQuotedAttributeValue(data, nsGkAtoms::select, select)) {
-      select.SetIsVoid(PR_TRUE);
+      select.SetIsVoid(true);
     }
     if (!nsParserUtils::GetQuotedAttributeValue(data, nsGkAtoms::value, value)) {
-      value.SetIsVoid(PR_TRUE);
+      value.SetIsVoid(true);
     }
     if (!name.IsEmpty()) {
       nsCOMPtr<nsIDOMNode> doc = do_QueryInterface(aDocument);
@@ -303,7 +303,7 @@ nsXMLContentSink::DidBuildModel(bool aTerminated)
   if (mXSLTProcessor) {
     
     mDocument->RemoveObserver(this);
-    mIsDocumentObserver = PR_FALSE;
+    mIsDocumentObserver = false;
 
     
     for (nsIContent* child = mDocument->GetFirstChild();
@@ -342,18 +342,18 @@ nsXMLContentSink::DidBuildModel(bool aTerminated)
       if (mDocument->CSSLoader()->HasPendingLoads() &&
           NS_SUCCEEDED(mDocument->CSSLoader()->AddObserver(this))) {
         
-        startLayout = PR_FALSE;
+        startLayout = false;
       }
     }
     
     if (startLayout) {
-      StartLayout(PR_FALSE);
+      StartLayout(false);
 
       ScrollToRef();
     }
 
     mDocument->RemoveObserver(this);
-    mIsDocumentObserver = PR_FALSE;
+    mIsDocumentObserver = false;
 
     mDocument->EndLoad();
   }
@@ -370,14 +370,13 @@ nsXMLContentSink::OnDocumentCreated(nsIDocument* aResultDocument)
 
   nsCOMPtr<nsIHTMLDocument> htmlDoc = do_QueryInterface(aResultDocument);
   if (htmlDoc) {
-    htmlDoc->SetDocWriteDisabled(PR_TRUE);
+    htmlDoc->SetDocWriteDisabled(true);
   }
 
   nsCOMPtr<nsIContentViewer> contentViewer;
   mDocShell->GetContentViewer(getter_AddRefs(contentViewer));
-  nsCOMPtr<nsIDocumentViewer> docViewer = do_QueryInterface(contentViewer);
-  if (docViewer) {
-    return docViewer->SetDocumentInternal(aResultDocument, PR_TRUE);
+  if (contentViewer) {
+    return contentViewer->SetDocumentInternal(aResultDocument, true);
   }
   return NS_OK;
 }
@@ -397,7 +396,7 @@ nsXMLContentSink::OnTransformDone(nsresult aResult,
   if (NS_FAILED(aResult) && contentViewer) {
     
     if (domDoc) {
-      aResultDocument->SetMayStartLayout(PR_FALSE);
+      aResultDocument->SetMayStartLayout(false);
       
       contentViewer->SetDOMDocument(domDoc);
     }
@@ -416,7 +415,7 @@ nsXMLContentSink::OnTransformDone(nsresult aResult,
     mDocument = aResultDocument;
     nsCOMPtr<nsIHTMLDocument> htmlDoc = do_QueryInterface(mDocument);
     if (htmlDoc) {
-      htmlDoc->SetDocWriteDisabled(PR_FALSE);
+      htmlDoc->SetDocWriteDisabled(false);
     }
   }
 
@@ -437,7 +436,7 @@ nsXMLContentSink::OnTransformDone(nsresult aResult,
   }
 
   
-  StartLayout(PR_FALSE);
+  StartLayout(false);
 
   ScrollToRef();
 
@@ -457,7 +456,7 @@ nsXMLContentSink::StyleSheetLoaded(nsCSSStyleSheet* aSheet,
 
   if (!mDocument->CSSLoader()->HasPendingLoads()) {
     mDocument->CSSLoader()->RemoveObserver(this);
-    StartLayout(PR_FALSE);
+    StartLayout(false);
     ScrollToRef();
   }
 
@@ -493,7 +492,7 @@ nsXMLContentSink::CreateElement(const PRUnichar** aAtts, PRUint32 aAttsCount,
   NS_ASSERTION(aNodeInfo, "can't create element without nodeinfo");
 
   *aResult = nsnull;
-  *aAppendContent = PR_TRUE;
+  *aAppendContent = true;
   nsresult rv = NS_OK;
 
   nsCOMPtr<nsINodeInfo> ni = aNodeInfo;
@@ -508,12 +507,12 @@ nsXMLContentSink::CreateElement(const PRUnichar** aAtts, PRUint32 aAttsCount,
     nsCOMPtr<nsIScriptElement> sele = do_QueryInterface(content);
     sele->SetScriptLineNumber(aLineNumber);
     sele->SetCreatorParser(mParser);
-    mConstrainSize = PR_FALSE;
+    mConstrainSize = false;
   }
 
   
   if (aNodeInfo->NamespaceEquals(kNameSpaceID_XHTML)) {
-    mPrettyPrintHasFactoredElements = PR_TRUE;
+    mPrettyPrintHasFactoredElements = true;
   }
   else {
     
@@ -536,9 +535,9 @@ nsXMLContentSink::CreateElement(const PRUnichar** aAtts, PRUint32 aAttsCount,
       aNodeInfo->Equals(nsGkAtoms::style, kNameSpaceID_SVG)) {
     nsCOMPtr<nsIStyleSheetLinkingElement> ssle(do_QueryInterface(content));
     if (ssle) {
-      ssle->InitStyleLinkElement(PR_FALSE);
+      ssle->InitStyleLinkElement(false);
       if (aFromParser) {
-        ssle->SetEnableUpdates(PR_FALSE);
+        ssle->SetEnableUpdates(false);
       }
       if (!aNodeInfo->Equals(nsGkAtoms::link, kNameSpaceID_XHTML)) {
         ssle->SetLineNumber(aFromParser ? aLineNumber : 0);
@@ -592,7 +591,7 @@ nsXMLContentSink::CloseElement(nsIContent* aContent)
   if (nodeInfo->Equals(nsGkAtoms::script, kNameSpaceID_XHTML)
       || nodeInfo->Equals(nsGkAtoms::script, kNameSpaceID_SVG)
     ) {
-    mConstrainSize = PR_TRUE; 
+    mConstrainSize = true; 
 
     if (mPreventScriptExecution) {
       nsCOMPtr<nsIScriptElement> sele = do_QueryInterface(aContent);
@@ -604,7 +603,7 @@ nsXMLContentSink::CloseElement(nsIContent* aContent)
     
     
     
-    rv = aContent->DoneAddingChildren(PR_TRUE);
+    rv = aContent->DoneAddingChildren(true);
 
     
     
@@ -635,7 +634,7 @@ nsXMLContentSink::CloseElement(nsIContent* aContent)
            nodeInfo->Equals(nsGkAtoms::style, kNameSpaceID_SVG)) {
     nsCOMPtr<nsIStyleSheetLinkingElement> ssle(do_QueryInterface(aContent));
     if (ssle) {
-      ssle->SetEnableUpdates(PR_TRUE);
+      ssle->SetEnableUpdates(true);
       bool willNotify;
       bool isAlternate;
       rv = ssle->UpdateStyleSheet(mFragmentMode ? nsnull : this,
@@ -685,13 +684,13 @@ nsXMLContentSink::AddContentAsLeaf(nsIContent *aContent)
   if ((eXMLContentSinkState_InProlog == mState) ||
       (eXMLContentSinkState_InEpilog == mState)) {
     NS_ASSERTION(mDocument, "Fragments have no prolog or epilog");
-    mDocument->AppendChildTo(aContent, PR_FALSE);
+    mDocument->AppendChildTo(aContent, false);
   }
   else {
     nsCOMPtr<nsIContent> parent = GetCurrentContent();
 
     if (parent) {
-      result = parent->AppendChildTo(aContent, PR_FALSE);
+      result = parent->AppendChildTo(aContent, false);
     }
   }
   return result;
@@ -737,7 +736,7 @@ nsXMLContentSink::ProcessStyleLink(nsIContent* aElement,
                                    const nsSubstring& aMedia)
 {
   nsresult rv = NS_OK;
-  mPrettyPrintXML = PR_FALSE;
+  mPrettyPrintXML = false;
 
   nsCAutoString cmd;
   if (mParser)
@@ -859,7 +858,7 @@ nsXMLContentSink::FlushText(bool aReleaseTextNode)
       mLastTextNode = textContent;
       
       
-      textContent->SetText(mText, mTextLength, PR_FALSE);
+      textContent->SetText(mText, mTextLength, false);
       mLastTextNodeSize += mTextLength;
       mTextLength = 0;
 
@@ -927,7 +926,7 @@ nsXMLContentSink::HaveNotifiedForCurrentContent() const
     nsIContent* parent = stackNode.mContent;
     return stackNode.mNumFlushed == parent->GetChildCount();
   }
-  return PR_TRUE;
+  return true;
 }
 
 void
@@ -949,7 +948,7 @@ nsXMLContentSink::SetDocElement(PRInt32 aNameSpaceID,
                                 nsIContent *aContent)
 {
   if (mDocElement)
-    return PR_FALSE;
+    return false;
 
   
   
@@ -958,13 +957,13 @@ nsXMLContentSink::SetDocElement(PRInt32 aNameSpaceID,
       (aNameSpaceID == kNameSpaceID_XSLT &&
        (aTagName == nsGkAtoms::stylesheet ||
         aTagName == nsGkAtoms::transform))) {
-    mPrettyPrintHasSpecialRoot = PR_TRUE;
+    mPrettyPrintHasSpecialRoot = true;
     if (mPrettyPrintXML) {
       
       
-      mDocument->ScriptLoader()->SetEnabled(PR_FALSE);
+      mDocument->ScriptLoader()->SetEnabled(false);
       if (mCSSLoader) {
-        mCSSLoader->SetEnabled(PR_FALSE);
+        mCSSLoader->SetEnabled(false);
       }
     }        
   }
@@ -975,7 +974,7 @@ nsXMLContentSink::SetDocElement(PRInt32 aNameSpaceID,
   if (NS_FAILED(rv)) {
     
     
-    return PR_FALSE;
+    return false;
   }
 
   if (aTagName == nsGkAtoms::html &&
@@ -983,7 +982,7 @@ nsXMLContentSink::SetDocElement(PRInt32 aNameSpaceID,
     ProcessOfflineManifest(aContent);
   }
 
-  return PR_TRUE;
+  return true;
 }
 
 NS_IMETHODIMP
@@ -994,7 +993,7 @@ nsXMLContentSink::HandleStartElement(const PRUnichar *aName,
                                      PRUint32 aLineNumber)
 {
   return HandleStartElement(aName, aAtts, aAttsCount, aIndex, aLineNumber,
-                            PR_TRUE);
+                            true);
 }
 
 nsresult
@@ -1076,7 +1075,7 @@ nsXMLContentSink::HandleStartElement(const PRUnichar *aName,
     if (!SetDocElement(nameSpaceID, localName, content) && appendContent) {
       NS_ENSURE_TRUE(parent, NS_ERROR_UNEXPECTED);
 
-      parent->AppendChildTo(content, PR_FALSE);
+      parent->AppendChildTo(content, false);
     }
   }
 
@@ -1099,7 +1098,7 @@ nsXMLContentSink::HandleStartElement(const PRUnichar *aName,
   if (content != mDocElement && !mCurrentHead) {
     
     
-    MaybeStartLayout(PR_FALSE);
+    MaybeStartLayout(false);
   }
 
   if (content == mDocElement) {
@@ -1113,7 +1112,7 @@ nsXMLContentSink::HandleStartElement(const PRUnichar *aName,
 NS_IMETHODIMP
 nsXMLContentSink::HandleEndElement(const PRUnichar *aName)
 {
-  return HandleEndElement(aName, PR_TRUE);
+  return HandleEndElement(aName, true);
 }
 
 nsresult
@@ -1163,7 +1162,7 @@ nsXMLContentSink::HandleEndElement(const PRUnichar *aName,
     mState = eXMLContentSinkState_InEpilog;
 
     
-    MaybeStartLayout(PR_FALSE);
+    MaybeStartLayout(false);
   }
 
   PRInt32 stackLen = mContentStack.Length();
@@ -1196,7 +1195,7 @@ nsXMLContentSink::HandleComment(const PRUnichar *aName)
   nsCOMPtr<nsIContent> comment;
   nsresult rv = NS_NewCommentNode(getter_AddRefs(comment), mNodeInfoManager);
   if (comment) {
-    comment->SetText(nsDependentString(aName), PR_FALSE);
+    comment->SetText(nsDependentString(aName), false);
     rv = AddContentAsLeaf(comment);
     DidAddContent();
   }
@@ -1219,7 +1218,7 @@ nsXMLContentSink::HandleCDataSection(const PRUnichar *aData,
   nsCOMPtr<nsIContent> cdata;
   nsresult rv = NS_NewXMLCDATASection(getter_AddRefs(cdata), mNodeInfoManager);
   if (cdata) {
-    cdata->SetText(aData, aLength, PR_FALSE);
+    cdata->SetText(aData, aLength, false);
     rv = AddContentAsLeaf(cdata);
     DidAddContent();
   }
@@ -1257,7 +1256,7 @@ nsXMLContentSink::HandleDoctypeDecl(const nsAString & aSubset,
     nsCOMPtr<nsIURI> uri(do_QueryInterface(aCatalogData));
     if (uri) {
       nsRefPtr<nsCSSStyleSheet> sheet;
-      mCSSLoader->LoadSheetSync(uri, PR_TRUE, PR_TRUE, getter_AddRefs(sheet));
+      mCSSLoader->LoadSheetSync(uri, true, true, getter_AddRefs(sheet));
 
 #ifdef NS_DEBUG
       nsCAutoString uriStr;
@@ -1275,7 +1274,7 @@ nsXMLContentSink::HandleDoctypeDecl(const nsAString & aSubset,
   nsCOMPtr<nsIContent> content = do_QueryInterface(docType);
   NS_ASSERTION(content, "doctype isn't content?");
 
-  rv = mDocument->AppendChildTo(content, PR_FALSE);
+  rv = mDocument->AppendChildTo(content, false);
   DidAddContent();
   return NS_SUCCEEDED(rv) ? DidProcessATokenImpl() : rv;
 }
@@ -1284,7 +1283,7 @@ NS_IMETHODIMP
 nsXMLContentSink::HandleCharacterData(const PRUnichar *aData, 
                                       PRUint32 aLength)
 {
-  return HandleCharacterData(aData, aLength, PR_TRUE);
+  return HandleCharacterData(aData, aLength, true);
 }
 
 nsresult
@@ -1316,9 +1315,9 @@ nsXMLContentSink::HandleProcessingInstruction(const PRUnichar *aTarget,
 
   nsCOMPtr<nsIStyleSheetLinkingElement> ssle(do_QueryInterface(node));
   if (ssle) {
-    ssle->InitStyleLinkElement(PR_FALSE);
-    ssle->SetEnableUpdates(PR_FALSE);
-    mPrettyPrintXML = PR_FALSE;
+    ssle->InitStyleLinkElement(false);
+    ssle->SetEnableUpdates(false);
+    mPrettyPrintXML = false;
   }
 
   rv = AddContentAsLeaf(node);
@@ -1328,7 +1327,7 @@ nsXMLContentSink::HandleProcessingInstruction(const PRUnichar *aTarget,
   if (ssle) {
     
     
-    ssle->SetEnableUpdates(PR_TRUE);
+    ssle->SetEnableUpdates(true);
     bool willNotify;
     bool isAlternate;
     rv = ssle->UpdateStyleSheet(mFragmentMode ? nsnull : this,
@@ -1378,7 +1377,7 @@ nsXMLContentSink::ParsePIData(const nsString &aData, nsString &aHref,
 {
   
   if (!nsParserUtils::GetQuotedAttributeValue(aData, nsGkAtoms::href, aHref)) {
-    return PR_FALSE;
+    return false;
   }
 
   nsParserUtils::GetQuotedAttributeValue(aData, nsGkAtoms::title, aTitle);
@@ -1390,7 +1389,7 @@ nsXMLContentSink::ParsePIData(const nsString &aData, nsString &aHref,
 
   aIsAlternate = alternate.EqualsLiteral("yes");
 
-  return PR_TRUE;
+  return true;
 }
 
 NS_IMETHODIMP
@@ -1413,9 +1412,9 @@ nsXMLContentSink::ReportError(const PRUnichar* aErrorText,
   nsresult rv = NS_OK;
 
   
-  *_retval = PR_TRUE;
+  *_retval = true;
   
-  mPrettyPrintXML = PR_FALSE;
+  mPrettyPrintXML = false;
 
   mState = eXMLContentSinkState_InProlog;
 
@@ -1423,7 +1422,7 @@ nsXMLContentSink::ReportError(const PRUnichar* aErrorText,
 
   
   mDocument->RemoveObserver(this);
-  mIsDocumentObserver = PR_FALSE;
+  mIsDocumentObserver = false;
 
   
   
@@ -1468,10 +1467,10 @@ nsXMLContentSink::ReportError(const PRUnichar* aErrorText,
   parsererror.AppendLiteral("parsererror");
   
   rv = HandleStartElement(parsererror.get(), noAtts, 0, -1, (PRUint32)-1,
-                          PR_FALSE);
+                          false);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = HandleCharacterData(aErrorText, nsCRT::strlen(aErrorText), PR_FALSE);
+  rv = HandleCharacterData(aErrorText, nsCRT::strlen(aErrorText), false);
   NS_ENSURE_SUCCESS(rv, rv);  
   
   nsAutoString sourcetext(errorNs);
@@ -1479,16 +1478,16 @@ nsXMLContentSink::ReportError(const PRUnichar* aErrorText,
   sourcetext.AppendLiteral("sourcetext");
 
   rv = HandleStartElement(sourcetext.get(), noAtts, 0, -1, (PRUint32)-1,
-                          PR_FALSE);
+                          false);
   NS_ENSURE_SUCCESS(rv, rv);
   
-  rv = HandleCharacterData(aSourceText, nsCRT::strlen(aSourceText), PR_FALSE);
+  rv = HandleCharacterData(aSourceText, nsCRT::strlen(aSourceText), false);
   NS_ENSURE_SUCCESS(rv, rv);
   
-  rv = HandleEndElement(sourcetext.get(), PR_FALSE);
+  rv = HandleEndElement(sourcetext.get(), false);
   NS_ENSURE_SUCCESS(rv, rv); 
   
-  rv = HandleEndElement(parsererror.get(), PR_FALSE);
+  rv = HandleEndElement(parsererror.get(), false);
   NS_ENSURE_SUCCESS(rv, rv);
 
   FlushTags();
@@ -1509,7 +1508,7 @@ nsXMLContentSink::AddAttributes(const PRUnichar** aAtts,
 
     
     aContent->SetAttr(nameSpaceID, localName, prefix,
-                      nsDependentString(aAtts[1]), PR_FALSE);
+                      nsDependentString(aAtts[1]), false);
     aAtts += 2;
   }
 
@@ -1582,13 +1581,13 @@ nsXMLContentSink::FlushPendingNotifications(mozFlushType aType)
         FlushTags();
       }
       else {
-        FlushText(PR_FALSE);
+        FlushText(false);
       }
     }
     if (aType >= Flush_InterruptibleLayout) {
       
       
-      MaybeStartLayout(PR_TRUE);
+      MaybeStartLayout(true);
     }
   }
 }
@@ -1605,7 +1604,7 @@ nsXMLContentSink::FlushPendingNotifications(mozFlushType aType)
 nsresult
 nsXMLContentSink::FlushTags()
 {
-  mDeferredFlushTags = PR_FALSE;
+  mDeferredFlushTags = false;
   bool oldBeganUpdate = mBeganUpdate;
   PRUint32 oldUpdates = mUpdatesInNotification;
 
@@ -1613,11 +1612,11 @@ nsXMLContentSink::FlushTags()
   ++mInNotification;
   {
     
-    mozAutoDocUpdate updateBatch(mDocument, UPDATE_CONTENT_MODEL, PR_TRUE);
-    mBeganUpdate = PR_TRUE;
+    mozAutoDocUpdate updateBatch(mDocument, UPDATE_CONTENT_MODEL, true);
+    mBeganUpdate = true;
 
     
-    FlushText(PR_FALSE);
+    FlushText(false);
 
     
     
@@ -1635,7 +1634,7 @@ nsXMLContentSink::FlushTags()
 
       if (!flushed && (mContentStack[stackPos].mNumFlushed < childCount)) {
         NotifyAppend(content, mContentStack[stackPos].mNumFlushed);
-        flushed = PR_TRUE;
+        flushed = true;
       }
 
       mContentStack[stackPos].mNumFlushed = childCount;

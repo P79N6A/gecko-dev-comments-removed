@@ -42,7 +42,7 @@
 #include "nsIDOMHTMLElement.h"
 #include "nsINameSpaceManager.h"  
 #include "nsIFormControl.h"
-#include "nsIDOMNSHTMLFrameElement.h"
+#include "nsIDOMHTMLFrameElement.h"
 #include "nsFrameLoader.h"
 #include "nsGkAtoms.h"
 #include "nsContentCreatorFunctions.h"
@@ -569,14 +569,14 @@ protected:
   void RegAccessKey()
   {
     if (HasFlag(NODE_HAS_ACCESSKEY)) {
-      RegUnRegAccessKey(PR_TRUE);
+      RegUnRegAccessKey(true);
     }
   }
 
   void UnregAccessKey()
   {
     if (HasFlag(NODE_HAS_ACCESSKEY)) {
-      RegUnRegAccessKey(PR_FALSE);
+      RegUnRegAccessKey(false);
     }
   }
 
@@ -869,11 +869,11 @@ public:
   
   virtual bool RestoreState(nsPresState* aState)
   {
-    return PR_FALSE;
+    return false;
   }
   virtual bool AllowDrop()
   {
-    return PR_TRUE;
+    return true;
   }
 
   
@@ -1017,7 +1017,6 @@ PR_STATIC_ASSERT(ELEMENT_TYPE_SPECIFIC_BITS_OFFSET + 1 < 32);
 
 
 class nsGenericHTMLFrameElement : public nsGenericHTMLElement,
-                                  public nsIDOMNSHTMLFrameElement,
                                   public nsIFrameLoaderOwner
 {
 public:
@@ -1033,9 +1032,6 @@ public:
 
   
   NS_IMETHOD QueryInterface(REFNSIID aIID, void** aInstancePtr);
-
-  
-  NS_DECL_NSIDOMNSHTMLFRAMEELEMENT
 
   
   NS_DECL_NSIFRAMELOADEROWNER
@@ -1072,6 +1068,7 @@ protected:
   nsresult EnsureFrameLoader();
   nsresult LoadSrc();
   nsresult GetContentDocument(nsIDOMDocument** aContentDocument);
+  nsresult GetContentWindow(nsIDOMWindow** aContentWindow);
 
   nsRefPtr<nsFrameLoader> mFrameLoader;
   

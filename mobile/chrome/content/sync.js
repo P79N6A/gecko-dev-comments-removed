@@ -40,6 +40,7 @@ let WeaveGlue = {
   setupData: null,
   jpake: null,
   _bundle: null,
+  _loginError: false,
 
   init: function init() {
     if (this._bundle)
@@ -52,7 +53,6 @@ let WeaveGlue = {
 
     this.setupData = { account: "", password: "" , synckey: "", serverURL: "" };
 
-    
     if (Weave.Status.checkSetup() != Weave.CLIENT_NOT_CONFIGURED) {
       
       this._elements.connect.firstChild.disabled = true;
@@ -259,14 +259,8 @@ let WeaveGlue = {
 
   tryConnect: function login() {
     
-    if (Weave.Status.checkSetup() == Weave.CLIENT_NOT_CONFIGURED) {
+    if (this._loginError || Weave.Status.checkSetup() == Weave.CLIENT_NOT_CONFIGURED) {
       this.open();
-      return;
-    }
-
-    
-    if (Weave.Service.isLoggedIn) {
-      this.connect();
       return;
     }
 
@@ -349,6 +343,7 @@ let WeaveGlue = {
       "weave:service:sync:start", "weave:service:sync:finish",
       "weave:service:sync:error", "weave:service:login:start",
       "weave:service:login:finish", "weave:service:login:error",
+      "weave:ui:login:error",
       "weave:service:logout:finish"];
 
     
@@ -403,12 +398,27 @@ let WeaveGlue = {
     let disconnect = this._elements.disconnect;
     let sync = this._elements.sync;
 
-    let loggedIn = Weave.Service.isLoggedIn;
+    
+    if (aTopic == "weave:ui:login:error") {
+      this._loginError = true;
+      connect.setAttribute("desc", Weave.Utils.getErrorString(Weave.Status.login));
+    } else {
+      connect.removeAttribute("desc");
+    }
 
-    connect.collapsed = loggedIn;
-    connected.collapsed = !loggedIn;
+    if (aTopic == "weave:service:login:finish") {
+      this._loginError = false;
+      
+      if (!this.setupData)
+        this.loadSetupData();
+    }
 
-    if (!loggedIn) {
+    let isConfigured = (!this._loginError && Weave.Status.checkSetup() != Weave.CLIENT_NOT_CONFIGURED);
+
+    connect.collapsed = isConfigured;
+    connected.collapsed = !isConfigured;
+
+    if (!isConfigured) {
       connect.setAttribute("title", this._bundle.GetStringFromName("notconnected.label"));
       connect.firstChild.disabled = false;
       details.checked = false;
@@ -446,20 +456,6 @@ let WeaveGlue = {
       let dateStr = this._bundle.formatStringFromName("lastSync2.label", [syncDate], 1);
       sync.setAttribute("title", dateStr);
     }
-
-    
-    if (aTopic == "weave:service:login:error") {
-      if (Weave.Status.login == "service.master_password_locked")
-        Weave.Service.logout();
-      else
-        connect.setAttribute("desc", Weave.Utils.getErrorString(Weave.Status.login));
-    } else {
-      connect.removeAttribute("desc");
-    }
-
-    
-    if (!this.setupData && aTopic == "weave:service:login:finish")
-      this.loadSetupData();
 
     
     if (aTopic =="weave:service:sync:error") {

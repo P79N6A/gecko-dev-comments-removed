@@ -322,14 +322,14 @@ IndexedDatabaseManager::GetOrCreate()
 
     
     nsresult rv = obs->AddObserver(instance, NS_XPCOM_SHUTDOWN_OBSERVER_ID,
-                                   PR_FALSE);
+                                   false);
     NS_ENSURE_SUCCESS(rv, nsnull);
 
     
     
     
     rv = obs->AddObserver(instance, NS_XPCOM_SHUTDOWN_THREADS_OBSERVER_ID,
-                          PR_FALSE);
+                          false);
     NS_ENSURE_SUCCESS(rv, nsnull);
 
     
@@ -1093,7 +1093,7 @@ IndexedDatabaseManager::OriginClearRunnable::Run()
     bool exists;
     rv = directory->Exists(&exists);
     if (NS_SUCCEEDED(rv) && exists) {
-      rv = directory->Remove(PR_TRUE);
+      rv = directory->Remove(true);
     }
   }
   NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "Failed to remove directory!");

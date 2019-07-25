@@ -52,6 +52,8 @@
 #define STATIC_JS_API
 #endif
 
+#include "mozilla/Util.h"
+
 #include "nsComponentManagerUtils.h"
 #include "nsServiceManagerUtils.h"
 #include "nsCOMPtr.h"
@@ -127,7 +129,7 @@ StartProfiling(const char* profileName)
 
     JSBool ok = JS_StartProfiling(profileName);
     gCurrentProfile = profileName;
-    return ok ? PR_TRUE : PR_FALSE;
+    return ok ? true : false;
 }
 
 
@@ -148,7 +150,7 @@ StopProfiling()
 
     const char* profileName = gCurrentProfile;
     gCurrentProfile = 0;
-    return JS_StopProfiling(profileName) ? PR_TRUE : PR_FALSE;
+    return JS_StopProfiling(profileName) ? true : false;
 }
 
 
@@ -192,7 +194,7 @@ class ScopedXPCOM : public nsIDirectoryServiceProvider2
     {
       
       if (mProfD) {
-        if (NS_FAILED(mProfD->Remove(PR_TRUE)))
+        if (NS_FAILED(mProfD->Remove(true)))
           NS_WARNING("Problem removing profile direrctory");
 
         mProfD = nsnull;
@@ -264,7 +266,7 @@ class ScopedXPCOM : public nsIDirectoryServiceProvider2
         nsresult rv = profD->Clone(getter_AddRefs(clone));
         NS_ENSURE_SUCCESS(rv, rv);
 
-        *_persistent = PR_TRUE;
+        *_persistent = true;
         clone.forget(_result);
         return NS_OK;
       }

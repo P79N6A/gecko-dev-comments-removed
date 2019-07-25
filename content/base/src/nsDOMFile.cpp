@@ -419,7 +419,7 @@ nsDOMFileFile::GetType(nsAString &aType)
     }
 
     AppendUTF8toUTF16(mimeType, mContentType);
-    mContentType.SetIsVoid(PR_FALSE);
+    mContentType.SetIsVoid(false);
   }
 
   aType = mContentType;
@@ -488,7 +488,7 @@ nsDOMFileFile::Initialize(nsISupports* aOwner,
     }
 
     nsCOMPtr<nsILocalFile> localFile;
-    rv = NS_NewLocalFile(xpcomStr, PR_FALSE, getter_AddRefs(localFile));
+    rv = NS_NewLocalFile(xpcomStr, false, getter_AddRefs(localFile));
     NS_ENSURE_SUCCESS(rv, rv);
 
     file = do_QueryInterface(localFile);

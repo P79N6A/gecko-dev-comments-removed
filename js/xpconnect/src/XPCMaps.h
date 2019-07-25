@@ -6,10 +6,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef xpcmaps_h___
 #define xpcmaps_h___
-
-#include "js/HashTable.h"
 
 
 
@@ -25,60 +57,57 @@
 
 class JSObject2WrappedJSMap
 {
-    typedef js::HashMap<JSObject*, nsXPCWrappedJS*, js::PointerHasher<JSObject*, 3>,
-                        js::SystemAllocPolicy> Map;
-
 public:
-    static JSObject2WrappedJSMap* newMap(int size) {
-        JSObject2WrappedJSMap* map = new JSObject2WrappedJSMap();
-        if (map && map->mTable.init(size))
-            return map;
-        delete map;
-        return nullptr;
-    }
+    struct Entry : public JSDHashEntryHdr
+    {
+        JSObject*       key;
+        nsXPCWrappedJS* value;
+    };
 
-    inline nsXPCWrappedJS* Find(JSObject* Obj) {
+    static JSObject2WrappedJSMap* newMap(int size);
+
+    inline nsXPCWrappedJS* Find(JSObject* Obj)
+    {
         NS_PRECONDITION(Obj,"bad param");
-        Map::Ptr p = mTable.lookup(Obj);
-        return p ? p->value : nullptr;
+        Entry* entry = (Entry*)
+            JS_DHashTableOperate(mTable, Obj, JS_DHASH_LOOKUP);
+        if (JS_DHASH_ENTRY_IS_FREE(entry))
+            return nsnull;
+        return entry->value;
     }
 
-    inline nsXPCWrappedJS* Add(nsXPCWrappedJS* wrapper) {
+    inline nsXPCWrappedJS* Add(nsXPCWrappedJS* wrapper)
+    {
         NS_PRECONDITION(wrapper,"bad param");
         JSObject* obj = wrapper->GetJSObjectPreserveColor();
-        Map::AddPtr p = mTable.lookupForAdd(obj);
-        if (p)
-            return p->value;
-        return mTable.add(p, obj, wrapper) ? wrapper : nullptr;
+        Entry* entry = (Entry*)
+            JS_DHashTableOperate(mTable, obj, JS_DHASH_ADD);
+        if (!entry)
+            return nsnull;
+        if (entry->key)
+            return entry->value;
+        entry->key = obj;
+        entry->value = wrapper;
+        return wrapper;
     }
 
-    inline void Remove(nsXPCWrappedJS* wrapper) {
+    inline void Remove(nsXPCWrappedJS* wrapper)
+    {
         NS_PRECONDITION(wrapper,"bad param");
-        mTable.remove(wrapper->GetJSObjectPreserveColor());
+        JS_DHashTableOperate(mTable, wrapper->GetJSObjectPreserveColor(),
+                             JS_DHASH_REMOVE);
     }
 
-    inline uint32_t Count() {return mTable.count();}
+    inline uint32 Count() {return mTable->entryCount;}
+    inline uint32 Enumerate(JSDHashEnumerator f, void *arg)
+        {return JS_DHashTableEnumerate(mTable, f, arg);}
 
-    inline void Dump(int16_t depth) {
-        for (Map::Range r = mTable.all(); !r.empty(); r.popFront())
-            r.front().value->DebugDump(depth);
-    }
-
-    void FindDyingJSObjects(nsTArray<nsXPCWrappedJS*>* dying);
-
-    void ShutdownMarker(JSRuntime* rt);
-
-    size_t SizeOfIncludingThis(nsMallocSizeOfFun mallocSizeOf) {
-        size_t n = 0;
-        n += mallocSizeOf(this);
-        n += mTable.sizeOfIncludingThis(mallocSizeOf);
-        return n;
-    }
-
+    ~JSObject2WrappedJSMap();
 private:
-    JSObject2WrappedJSMap() {}
-
-    Map mTable;
+    JSObject2WrappedJSMap();    
+    JSObject2WrappedJSMap(int size);
+private:
+    JSDHashTable *mTable;
 };
 
 
@@ -100,7 +129,7 @@ public:
         Entry* entry = (Entry*)
             JS_DHashTableOperate(mTable, Obj, JS_DHASH_LOOKUP);
         if (JS_DHASH_ENTRY_IS_FREE(entry))
-            return nullptr;
+            return nsnull;
         return entry->value;
     }
 
@@ -111,7 +140,7 @@ public:
         Entry* entry = (Entry*)
             JS_DHashTableOperate(mTable, obj, JS_DHASH_ADD);
         if (!entry)
-            return nullptr;
+            return nsnull;
         if (entry->key)
             return entry->value;
         entry->key = obj;
@@ -132,19 +161,14 @@ public:
         JS_DHashTableOperate(mTable, wrapper->GetIdentityObject(), JS_DHASH_REMOVE);
     }
 
-    inline uint32_t Count() {return mTable->entryCount;}
-    inline uint32_t Enumerate(JSDHashEnumerator f, void *arg)
+    inline uint32 Count() {return mTable->entryCount;}
+    inline uint32 Enumerate(JSDHashEnumerator f, void *arg)
         {return JS_DHashTableEnumerate(mTable, f, arg);}
-
-    size_t SizeOfIncludingThis(nsMallocSizeOfFun mallocSizeOf);
 
     ~Native2WrappedNativeMap();
 private:
     Native2WrappedNativeMap();    
     Native2WrappedNativeMap(int size);
-
-    static size_t SizeOfEntryExcludingThis(JSDHashEntryHdr *hdr, JSMallocSizeOfFun mallocSizeOf, void *);
-
 private:
     JSDHashTable *mTable;
 };
@@ -169,7 +193,7 @@ public:
         Entry* entry = (Entry*)
             JS_DHashTableOperate(mTable, &iid, JS_DHASH_LOOKUP);
         if (JS_DHASH_ENTRY_IS_FREE(entry))
-            return nullptr;
+            return nsnull;
         return entry->value;
     }
 
@@ -180,7 +204,7 @@ public:
         Entry* entry = (Entry*)
             JS_DHashTableOperate(mTable, iid, JS_DHASH_ADD);
         if (!entry)
-            return nullptr;
+            return nsnull;
         if (entry->key)
             return entry->value;
         entry->key = iid;
@@ -194,8 +218,8 @@ public:
         JS_DHashTableOperate(mTable, &clazz->GetIID(), JS_DHASH_REMOVE);
     }
 
-    inline uint32_t Count() {return mTable->entryCount;}
-    inline uint32_t Enumerate(JSDHashEnumerator f, void *arg)
+    inline uint32 Count() {return mTable->entryCount;}
+    inline uint32 Enumerate(JSDHashEnumerator f, void *arg)
         {return JS_DHashTableEnumerate(mTable, f, arg);}
 
     ~IID2WrappedJSClassMap();
@@ -226,7 +250,7 @@ public:
         Entry* entry = (Entry*)
             JS_DHashTableOperate(mTable, &iid, JS_DHASH_LOOKUP);
         if (JS_DHASH_ENTRY_IS_FREE(entry))
-            return nullptr;
+            return nsnull;
         return entry->value;
     }
 
@@ -237,7 +261,7 @@ public:
         Entry* entry = (Entry*)
             JS_DHashTableOperate(mTable, iid, JS_DHASH_ADD);
         if (!entry)
-            return nullptr;
+            return nsnull;
         if (entry->key)
             return entry->value;
         entry->key = iid;
@@ -251,19 +275,14 @@ public:
         JS_DHashTableOperate(mTable, iface->GetIID(), JS_DHASH_REMOVE);
     }
 
-    inline uint32_t Count() {return mTable->entryCount;}
-    inline uint32_t Enumerate(JSDHashEnumerator f, void *arg)
+    inline uint32 Count() {return mTable->entryCount;}
+    inline uint32 Enumerate(JSDHashEnumerator f, void *arg)
         {return JS_DHashTableEnumerate(mTable, f, arg);}
-
-    size_t SizeOfIncludingThis(nsMallocSizeOfFun mallocSizeOf);
 
     ~IID2NativeInterfaceMap();
 private:
     IID2NativeInterfaceMap();    
     IID2NativeInterfaceMap(int size);
-
-    static size_t SizeOfEntryExcludingThis(JSDHashEntryHdr *hdr, JSMallocSizeOfFun mallocSizeOf, void *);
-
 private:
     JSDHashTable *mTable;
 };
@@ -286,7 +305,7 @@ public:
         Entry* entry = (Entry*)
             JS_DHashTableOperate(mTable, info, JS_DHASH_LOOKUP);
         if (JS_DHASH_ENTRY_IS_FREE(entry))
-            return nullptr;
+            return nsnull;
         return entry->value;
     }
 
@@ -296,7 +315,7 @@ public:
         Entry* entry = (Entry*)
             JS_DHashTableOperate(mTable, info, JS_DHASH_ADD);
         if (!entry)
-            return nullptr;
+            return nsnull;
         if (entry->key)
             return entry->value;
         entry->key = info;
@@ -310,15 +329,9 @@ public:
         JS_DHashTableOperate(mTable, info, JS_DHASH_REMOVE);
     }
 
-    inline uint32_t Count() {return mTable->entryCount;}
-    inline uint32_t Enumerate(JSDHashEnumerator f, void *arg)
+    inline uint32 Count() {return mTable->entryCount;}
+    inline uint32 Enumerate(JSDHashEnumerator f, void *arg)
         {return JS_DHashTableEnumerate(mTable, f, arg);}
-
-    
-    
-    
-    
-    size_t ShallowSizeOfIncludingThis(nsMallocSizeOfFun mallocSizeOf);
 
     ~ClassInfo2NativeSetMap();
 private:
@@ -346,7 +359,7 @@ public:
         Entry* entry = (Entry*)
             JS_DHashTableOperate(mTable, info, JS_DHASH_LOOKUP);
         if (JS_DHASH_ENTRY_IS_FREE(entry))
-            return nullptr;
+            return nsnull;
         return entry->value;
     }
 
@@ -356,7 +369,7 @@ public:
         Entry* entry = (Entry*)
             JS_DHashTableOperate(mTable, info, JS_DHASH_ADD);
         if (!entry)
-            return nullptr;
+            return nsnull;
         if (entry->key)
             return entry->value;
         entry->key = info;
@@ -370,19 +383,14 @@ public:
         JS_DHashTableOperate(mTable, info, JS_DHASH_REMOVE);
     }
 
-    inline uint32_t Count() {return mTable->entryCount;}
-    inline uint32_t Enumerate(JSDHashEnumerator f, void *arg)
+    inline uint32 Count() {return mTable->entryCount;}
+    inline uint32 Enumerate(JSDHashEnumerator f, void *arg)
         {return JS_DHashTableEnumerate(mTable, f, arg);}
-
-    size_t SizeOfIncludingThis(nsMallocSizeOfFun mallocSizeOf);
 
     ~ClassInfo2WrappedNativeProtoMap();
 private:
     ClassInfo2WrappedNativeProtoMap();    
     ClassInfo2WrappedNativeProtoMap(int size);
-
-    static size_t SizeOfEntryExcludingThis(JSDHashEntryHdr *hdr, JSMallocSizeOfFun mallocSizeOf, void *);
-
 private:
     JSDHashTable *mTable;
 };
@@ -411,7 +419,7 @@ public:
         Entry* entry = (Entry*)
             JS_DHashTableOperate(mTable, key, JS_DHASH_LOOKUP);
         if (JS_DHASH_ENTRY_IS_FREE(entry))
-            return nullptr;
+            return nsnull;
         return entry->key_value;
     }
 
@@ -422,7 +430,7 @@ public:
         Entry* entry = (Entry*)
             JS_DHashTableOperate(mTable, key, JS_DHASH_ADD);
         if (!entry)
-            return nullptr;
+            return nsnull;
         if (entry->key_value)
             return entry->key_value;
         entry->key_value = set;
@@ -431,7 +439,7 @@ public:
 
     inline XPCNativeSet* Add(XPCNativeSet* set)
     {
-        XPCNativeSetKey key(set, nullptr, 0);
+        XPCNativeSetKey key(set, nsnull, 0);
         return Add(&key, set);
     }
 
@@ -439,23 +447,18 @@ public:
     {
         NS_PRECONDITION(set,"bad param");
 
-        XPCNativeSetKey key(set, nullptr, 0);
+        XPCNativeSetKey key(set, nsnull, 0);
         JS_DHashTableOperate(mTable, &key, JS_DHASH_REMOVE);
     }
 
-    inline uint32_t Count() {return mTable->entryCount;}
-    inline uint32_t Enumerate(JSDHashEnumerator f, void *arg)
+    inline uint32 Count() {return mTable->entryCount;}
+    inline uint32 Enumerate(JSDHashEnumerator f, void *arg)
         {return JS_DHashTableEnumerate(mTable, f, arg);}
-
-    size_t SizeOfIncludingThis(nsMallocSizeOfFun mallocSizeOf);
 
     ~NativeSetMap();
 private:
     NativeSetMap();    
     NativeSetMap(int size);
-
-    static size_t SizeOfEntryExcludingThis(JSDHashEntryHdr *hdr, JSMallocSizeOfFun mallocSizeOf, void *);
-
 private:
     JSDHashTable *mTable;
 };
@@ -488,7 +491,7 @@ public:
         Entry* entry = (Entry*)
             JS_DHashTableOperate(mTable, &iid, JS_DHASH_LOOKUP);
         if (JS_DHASH_ENTRY_IS_FREE(entry))
-            return nullptr;
+            return nsnull;
         return entry->value;
     }
 
@@ -499,7 +502,7 @@ public:
         Entry* entry = (Entry*)
             JS_DHashTableOperate(mTable, &iid, JS_DHASH_ADD);
         if (!entry)
-            return nullptr;
+            return nsnull;
         NS_IF_ADDREF(obj);
         NS_IF_RELEASE(entry->value);
         entry->value = obj;
@@ -512,8 +515,8 @@ public:
         JS_DHashTableOperate(mTable, &iid, JS_DHASH_REMOVE);
     }
 
-    inline uint32_t Count() {return mTable->entryCount;}
-    inline uint32_t Enumerate(JSDHashEnumerator f, void *arg)
+    inline uint32 Count() {return mTable->entryCount;}
+    inline uint32 Enumerate(JSDHashEnumerator f, void *arg)
         {return JS_DHashTableEnumerate(mTable, f, arg);}
 
     ~IID2ThisTranslatorMap();
@@ -546,11 +549,11 @@ public:
 
     static XPCNativeScriptableSharedMap* newMap(int size);
 
-    JSBool GetNewOrUsed(uint32_t flags, char* name, uint32_t interfacesBitmap,
-                        XPCNativeScriptableInfo* si);
+    JSBool GetNewOrUsed(JSUint32 flags, char* name, bool isGlobal,
+                        PRUint32 interfacesBitmap, XPCNativeScriptableInfo* si);
 
-    inline uint32_t Count() {return mTable->entryCount;}
-    inline uint32_t Enumerate(JSDHashEnumerator f, void *arg)
+    inline uint32 Count() {return mTable->entryCount;}
+    inline uint32 Enumerate(JSDHashEnumerator f, void *arg)
         {return JS_DHashTableEnumerate(mTable, f, arg);}
 
     ~XPCNativeScriptableSharedMap();
@@ -574,7 +577,7 @@ public:
         JSDHashEntryStub* entry = (JSDHashEntryStub*)
             JS_DHashTableOperate(mTable, proto, JS_DHASH_ADD);
         if (!entry)
-            return nullptr;
+            return nsnull;
         if (entry->key)
             return (XPCWrappedNativeProto*) entry->key;
         entry->key = proto;
@@ -587,8 +590,8 @@ public:
         JS_DHashTableOperate(mTable, proto, JS_DHASH_REMOVE);
     }
 
-    inline uint32_t Count() {return mTable->entryCount;}
-    inline uint32_t Enumerate(JSDHashEnumerator f, void *arg)
+    inline uint32 Count() {return mTable->entryCount;}
+    inline uint32 Enumerate(JSDHashEnumerator f, void *arg)
         {return JS_DHashTableEnumerate(mTable, f, arg);}
 
     ~XPCWrappedNativeProtoMap();
@@ -599,76 +602,189 @@ private:
     JSDHashTable *mTable;
 };
 
-
-
-class JSObject2JSObjectMap
+class XPCNativeWrapperMap
 {
-    typedef js::HashMap<JSObject *, JSObject *, js::PointerHasher<JSObject *, 3>,
-                        js::SystemAllocPolicy> Map;
-
 public:
-    static JSObject2JSObjectMap* newMap(int size) {
-        JSObject2JSObjectMap* map = new JSObject2JSObjectMap();
-        if (map && map->mTable.init(size))
-            return map;
-        delete map;
-        return nullptr;
+    static XPCNativeWrapperMap* newMap(int size);
+
+    inline JSObject* Add(JSObject* nw)
+    {
+        NS_PRECONDITION(nw,"bad param");
+        JSDHashEntryStub* entry = (JSDHashEntryStub*)
+            JS_DHashTableOperate(mTable, nw, JS_DHASH_ADD);
+        if (!entry)
+            return nsnull;
+        if (entry->key)
+            return (JSObject*) entry->key;
+        entry->key = nw;
+        return nw;
     }
 
-    inline JSObject* Find(JSObject* key) {
-        NS_PRECONDITION(key, "bad param");
-        if (Map::Ptr p = mTable.lookup(key))
-            return p->value;
-        return nullptr;
+    inline void Remove(JSObject* nw)
+    {
+        NS_PRECONDITION(nw,"bad param");
+        JS_DHashTableOperate(mTable, nw, JS_DHASH_REMOVE);
+    }
+
+    inline uint32 Count() {return mTable->entryCount;}
+    inline uint32 Enumerate(JSDHashEnumerator f, void *arg)
+        {return JS_DHashTableEnumerate(mTable, f, arg);}
+
+    ~XPCNativeWrapperMap();
+private:
+    XPCNativeWrapperMap();    
+    XPCNativeWrapperMap(int size);
+private:
+    JSDHashTable *mTable;
+};
+
+class WrappedNative2WrapperMap
+{
+    static struct JSDHashTableOps sOps;
+
+    static void ClearLink(JSDHashTable* table, JSDHashEntryHdr* entry);
+    static void MoveLink(JSDHashTable* table, const JSDHashEntryHdr* from,
+                         JSDHashEntryHdr* to);
+
+public:
+    struct Link : public PRCList
+    {
+        JSObject *obj;
+    };
+
+    struct Entry : public JSDHashEntryHdr
+    {
+        
+        JSObject*         key;
+        Link              value;
+    };
+
+    static WrappedNative2WrapperMap* newMap(int size);
+
+    inline JSObject* Find(JSObject* wrapper)
+    {
+        NS_PRECONDITION(wrapper, "bad param");
+        Entry* entry = (Entry*)
+            JS_DHashTableOperate(mTable, wrapper, JS_DHASH_LOOKUP);
+        if (JS_DHASH_ENTRY_IS_FREE(entry))
+            return nsnull;
+        return entry->value.obj;
     }
 
     
-    inline JSObject* Add(JSObject *key, JSObject *value) {
+    
+    JSObject* Add(WrappedNative2WrapperMap* head,
+                  JSObject* wrappedObject,
+                  JSObject* wrapper);
+
+    
+    Link* FindLink(JSObject* wrappedObject)
+    {
+        Entry* entry = (Entry*)
+            JS_DHashTableOperate(mTable, wrappedObject, JS_DHASH_LOOKUP);
+        if (JS_DHASH_ENTRY_IS_BUSY(entry))
+            return &entry->value;
+        return nsnull;
+    }
+
+    
+    
+    bool AddLink(JSObject* wrappedObject, Link* oldLink);
+
+    inline void Remove(JSObject* wrapper)
+    {
+        NS_PRECONDITION(wrapper,"bad param");
+        JS_DHashTableOperate(mTable, wrapper, JS_DHASH_REMOVE);
+    }
+
+    inline uint32 Count() {return mTable->entryCount;}
+    inline uint32 Enumerate(JSDHashEnumerator f, void *arg)
+        {return JS_DHashTableEnumerate(mTable, f, arg);}
+
+    ~WrappedNative2WrapperMap();
+
+private:
+    WrappedNative2WrapperMap();    
+    WrappedNative2WrapperMap(int size);
+
+private:
+    JSDHashTable *mTable;
+};
+
+class JSObject2JSObjectMap
+{
+    static struct JSDHashTableOps sOps;
+
+public:
+    struct Entry : public JSDHashEntryHdr
+    {
+        JSObject* key;
+        JSObject* value;
+    };
+
+    static JSObject2JSObjectMap* newMap(int size)
+    {
+        JSObject2JSObjectMap* map = new JSObject2JSObjectMap(size);
+        if (map && map->mTable)
+            return map;
+        delete map;
+        return nsnull;
+    }
+
+    inline JSObject* Find(JSObject* key)
+    {
+        NS_PRECONDITION(key, "bad param");
+        Entry* entry = (Entry*)
+            JS_DHashTableOperate(mTable, key, JS_DHASH_LOOKUP);
+        if (JS_DHASH_ENTRY_IS_FREE(entry))
+            return nsnull;
+        return entry->value;
+    }
+
+    
+    inline JSObject* Add(JSObject *key, JSObject *value)
+    {
         NS_PRECONDITION(key,"bad param");
-        Map::AddPtr p = mTable.lookupForAdd(key);
-        if (p)
-            return p->value;
-        if (!mTable.add(p, key, value))
-            return nullptr;
+        Entry* entry = (Entry*)
+            JS_DHashTableOperate(mTable, key, JS_DHASH_ADD);
+        if (!entry)
+            return nsnull;
+        if (entry->key)
+            return entry->value;
+        entry->key = key;
+        entry->value = value;
         return value;
     }
 
-    inline void Remove(JSObject* key) {
+    inline void Remove(JSObject* key)
+    {
         NS_PRECONDITION(key,"bad param");
-        mTable.remove(key);
+        JS_DHashTableOperate(mTable, key, JS_DHASH_REMOVE);
     }
 
-    inline uint32_t Count() { return mTable.count(); }
+    inline uint32 Count() {return mTable->entryCount;}
 
-    void Sweep() {
-        for (Map::Enum e(mTable); !e.empty(); e.popFront()) {
-            if (JS_IsAboutToBeFinalized(e.front().key) || JS_IsAboutToBeFinalized(e.front().value))
-                e.removeFront();
-        }
+    inline uint32 Enumerate(JSDHashEnumerator f, void *arg)
+    {
+        return JS_DHashTableEnumerate(mTable, f, arg);
     }
 
-    void Reparent(JSContext *aCx, JSObject *aNewInner) {
-        for (Map::Enum e(mTable); !e.empty(); e.popFront()) {
-            
-
-
-
-            JSObject *parent = JS_GetParent(e.front().value);
-            JSObject *outer = JS_ObjectToOuterObject(aCx, parent);
-            if (outer) {
-                JSObject *inner = JS_ObjectToInnerObject(aCx, outer);
-                if (inner == aNewInner && inner != parent)
-                    JS_SetParent(aCx, e.front().value, aNewInner);
-            } else {
-                JS_ClearPendingException(aCx);
-            }
-        }
+    ~JSObject2JSObjectMap()
+    {
+        if (mTable)
+            JS_DHashTableDestroy(mTable);
     }
 
 private:
-    JSObject2JSObjectMap() {}
+    JSObject2JSObjectMap(int size)
+    {
+        mTable = JS_NewDHashTable(&sOps, nsnull, sizeof(Entry), size);
+    }
 
-    Map mTable;
+    JSObject2JSObjectMap(); 
+
+private:
+    JSDHashTable *mTable;
 };
 
 #endif 

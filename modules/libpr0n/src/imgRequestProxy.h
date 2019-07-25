@@ -192,7 +192,7 @@ protected:
   void NullOutListener();
 
   void DoRemoveFromLoadGroup() {
-    RemoveFromLoadGroup(PR_TRUE);
+    RemoveFromLoadGroup(true);
   }
 
   

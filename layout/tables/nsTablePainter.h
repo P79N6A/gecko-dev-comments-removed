@@ -124,7 +124,7 @@ class TableBackgroundPainter
 
 
     nsresult PaintRowGroup(nsTableRowGroupFrame* aFrame)
-    { return PaintRowGroup(aFrame, PR_FALSE); }
+    { return PaintRowGroup(aFrame, false); }
 
     
 
@@ -134,7 +134,7 @@ class TableBackgroundPainter
 
 
     nsresult PaintRow(nsTableRowFrame* aFrame)
-    { return PaintRow(aFrame, PR_FALSE); }
+    { return PaintRow(aFrame, false); }
 
   private:
 

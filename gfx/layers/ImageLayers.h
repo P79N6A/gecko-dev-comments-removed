@@ -138,7 +138,7 @@ public:
   ImageContainer() :
     mReentrantMonitor("ImageContainer.mReentrantMonitor"),
     mPaintCount(0),
-    mPreviousImagePainted(PR_FALSE)
+    mPreviousImagePainted(false)
   {}
 
   virtual ~ImageContainer() {}
@@ -278,7 +278,7 @@ public:
       
       
       mPaintCount++;
-      mPreviousImagePainted = PR_TRUE;
+      mPreviousImagePainted = true;
     }
   }
 
@@ -294,7 +294,7 @@ protected:
     mManager(aManager),
     mReentrantMonitor("ImageContainer.mReentrantMonitor"),
     mPaintCount(0),
-    mPreviousImagePainted(PR_FALSE)
+    mPreviousImagePainted(false)
   {}
 
   

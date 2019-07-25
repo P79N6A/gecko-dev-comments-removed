@@ -172,7 +172,6 @@ pref("app.update.url", "https://aus3.mozilla.org/update/3/%PRODUCT%/%VERSION%/%B
 
 
 
-pref("app.update.promptWaitTime", 43200);
 
 pref("app.update.idletime", 60);
 
@@ -1010,6 +1009,9 @@ pref("devtools.scratchpad.enabled", true);
 
 
 pref("devtools.chrome.enabled", false);
+
+
+pref("devtools.gcli.enable", false);
 
 
 
