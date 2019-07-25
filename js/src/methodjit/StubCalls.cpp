@@ -1801,3 +1801,36 @@ stubs::GetUpvar(VMFrame &f, uint32 cookie)
     f.regs.sp[0] = js_GetUpvar(f.cx, staticLevel, cookie);
 }
 
+JSObject * JS_FASTCALL
+stubs::DefLocalFun(VMFrame &f, JSFunction *fun)
+{
+    
+
+
+
+
+
+
+    JS_ASSERT(fun->isInterpreted());
+    JS_ASSERT(!FUN_FLAT_CLOSURE(fun));
+    JSObject *obj = FUN_OBJECT(fun);
+
+    if (FUN_NULL_CLOSURE(fun)) {
+        obj = CloneFunctionObject(f.cx, fun, f.fp->scopeChain);
+        if (!obj)
+            THROWV(NULL);
+    } else {
+        JSObject *parent = js_GetScopeChain(f.cx, f.fp);
+        if (!parent)
+            THROWV(NULL);
+
+        if (obj->getParent() != parent) {
+            obj = CloneFunctionObject(f.cx, fun, parent);
+            if (!obj)
+                THROWV(NULL);
+        }
+    }
+
+    return obj;
+}
+
