@@ -114,17 +114,33 @@ class LDouble : public LInstructionHelper<1, 1, 0>
     }
 };
 
-class LDivI : public LBinaryMath<2>
+
+
+
+
+
+
+
+
+
+class LDivI : public LBinaryMath<3>
 {
   public:
     LIR_HEADER(DivI);
 
     LDivI(const LAllocation &lhs, const LAllocation &rhs,
-          const LDefinition &temp1, const LDefinition &temp2) {
+          const LDefinition &temp1, const LDefinition &temp2
+#if 0
+          , const LDefinition &temp3
+#endif
+) {
         setOperand(0, lhs);
         setOperand(1, rhs);
         setTemp(0, temp1);
         setTemp(1, temp2);
+#if 0
+        setTemp(2, temp3);
+#endif
     }
 
     const LDefinition *remainder() {
