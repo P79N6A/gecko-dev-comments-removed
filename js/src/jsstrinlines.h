@@ -135,6 +135,7 @@ JSString::finalize(JSContext *cx) {
 
 
 
+        cx->runtime->stringMemoryUsed -= length() * 2;
         cx->free(const_cast<jschar *>(flatChars()));
     }
 }
