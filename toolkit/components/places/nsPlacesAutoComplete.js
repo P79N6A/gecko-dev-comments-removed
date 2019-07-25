@@ -785,6 +785,7 @@ nsPlacesAutoComplete.prototype = {
     
     delete this._originalSearchString;
     delete this._currentSearchString;
+    delete this._strippedPrefix;
     delete this._searchTokens;
     delete this._listener;
     delete this._result;
@@ -1380,6 +1381,11 @@ urlInlineComplete.prototype = {
     this._originalSearchString = aSearchString;
     this._currentSearchString =
       fixupSearchText(this._originalSearchString.toLowerCase());
+    
+    
+    this._strippedPrefix = this._originalSearchString.slice(
+      0, this._originalSearchString.length - this._currentSearchString.length
+    ).toLowerCase();
 
     let result = Cc["@mozilla.org/autocomplete/simple-result;1"].
                  createInstance(Ci.nsIAutoCompleteSimpleResult);
@@ -1419,8 +1425,7 @@ urlInlineComplete.prototype = {
 
       if (hasDomainResult) {
         
-        let appendResult = domain.slice(this._currentSearchString.length);
-        result.appendMatch(aSearchString + appendResult, "");
+        result.appendMatch(this._strippedPrefix + domain, "");
 
         this._finishSearch();
         return;
@@ -1493,17 +1498,18 @@ urlInlineComplete.prototype = {
     let url = fixupSearchText(row.getResultByIndex(0));
 
     
-    let appendText = url.slice(this._currentSearchString.length);
-    let separatorIndex = appendText.search(/[\/\?\#]/);
+    let separatorIndex = url.slice(this._currentSearchString.length)
+                            .search(/[\/\?\#]/);
     if (separatorIndex != -1) {
-      if (appendText[separatorIndex] == "/") {
+      separatorIndex += this._currentSearchString.length;
+      if (url[separatorIndex] == "/") {
         separatorIndex++; 
       }
-      appendText = appendText.slice(0, separatorIndex);
+      url = url.slice(0, separatorIndex);
     }
 
     
-    this._result.appendMatch(this._originalSearchString + appendText, "");
+    this._result.appendMatch(this._strippedPrefix + url, "");
 
     
     
