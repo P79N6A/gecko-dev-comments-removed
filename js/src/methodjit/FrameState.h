@@ -649,6 +649,7 @@ class FrameState
     
 
 
+
     inline void learnType(FrameEntry *fe, JSValueType type, bool unsync = true);
     inline void learnType(FrameEntry *fe, JSValueType type, RegisterID payload);
 
