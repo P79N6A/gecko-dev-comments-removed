@@ -249,8 +249,14 @@ Resource.prototype = {
         this._log.trace(action + " body: " + this._data);
 
       
+      
       if (headers["x-weave-backoff"])
-        Observers.notify("weave:service:backoff:interval", parseInt(headers["x-weave-backoff"], 10))
+        Observers.notify("weave:service:backoff:interval",
+                         parseInt(headers["x-weave-backoff"], 10));
+
+      if (success && headers["x-weave-quota-remaining"])
+        Observers.notify("weave:service:quota:remaining",
+                         parseInt(headers["x-weave-quota-remaining"], 10));
     }
     
     catch(ex) {
