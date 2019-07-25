@@ -532,11 +532,8 @@ gfxPlatform::GetSourceSurfaceForSurface(DrawTarget *aTarget, gfxASurface *aSurfa
   if (!srcBuffer) {
     nsRefPtr<gfxImageSurface> imgSurface = aSurface->GetAsImageSurface();
 
-    bool isWin32ImageSurf = false;
-
-    if (imgSurface && aSurface->GetType() != gfxASurface::SurfaceTypeWin32) {
-      isWin32ImageSurf = true;
-    }
+    bool isWin32ImageSurf = imgSurface &&
+                            aSurface->GetType() == gfxASurface::SurfaceTypeWin32;
 
     if (!imgSurface) {
       imgSurface = new gfxImageSurface(aSurface->GetSize(), OptimalFormatForContent(aSurface->GetContentType()));
