@@ -151,16 +151,23 @@
        
 
 
-       releaseWith: function(finalizer) {
+       releaseWith: function releaseWith(finalizer) {
          let parent = this;
          let type = new Type("[auto " + finalizer +"] " + this.name,
            this.implementation,
-           function (value, operation) {
+           function release(value, operation) {
              return ctypes.CDataFinalizer(
                parent.convert_from_c(value, operation),
                finalizer);
            });
          return type;
+       },
+
+       
+
+
+       withName: function withName(name) {
+         return Object.create(this, {name: {value: name}});
        }
      };
 
@@ -177,12 +184,7 @@
        return parseInt(x.toString(), 10);
      };
      let projectLargeUInt = function projectLargeUInt(x) {
-       if (ctypes.UInt64.hi(x)) {
-         throw new Error("Number too large " + x +
-             "(unsigned, hi: " + ctypes.UInt64.hi(x) +
-                 ", lo:" + ctypes.UInt64.lo(x) + ")");
-       }
-       return ctypes.UInt64.lo(x);
+       return parseInt(x.toString(), 10);
      };
      let projectValue = function projectValue(x) {
        if (!(x instanceof ctypes.CData)) {
@@ -479,7 +481,7 @@
 
 
        add_field_at: function add_field_at(offset, name, type) {
-         if (offset === null) {
+         if (offset == null) {
            throw new TypeError("add_field_at requires a non-null offset");
          }
          if (!name) {
