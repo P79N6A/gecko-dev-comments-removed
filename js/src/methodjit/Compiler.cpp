@@ -3295,8 +3295,13 @@ mjit::Compiler::jsop_callprop_str(JSAtom *atom)
     }
 
     
+
+
+
+
+
     JSObject *obj;
-    if (!js_GetClassPrototype(cx, NULL, JSProto_String, &obj))
+    if (!js_GetClassPrototype(cx, &fp->scopeChain(), JSProto_String, &obj))
         return false;
 
     
