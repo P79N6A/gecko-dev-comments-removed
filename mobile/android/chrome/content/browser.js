@@ -3236,6 +3236,12 @@ var FindHelper = {
   },
 
   findAgain: function(aString, aFindBackwards) {
+    
+    if (!this._findInProgress) {
+      this.doFind(aString);
+      return;
+    }
+
     let result = this._find.findAgain(aFindBackwards, false);
     this.handleResult(result);
   },
