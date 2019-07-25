@@ -1157,6 +1157,11 @@ function HUD_SERVICE()
   this.defaultGlobalConsolePrefs = this.storage.defaultGlobalConsolePrefs;
 
   
+  
+  this.onTabClose = this.onTabClose.bind(this);
+  this.onWindowUnload = this.onWindowUnload.bind(this);
+
+  
   var uri = Services.io.newURI(HUD_STYLESHEET_URI, null, null);
   sss.loadAndRegisterSheet(uri, sss.AGENT_SHEET);
 
@@ -1361,10 +1366,15 @@ HUD_SERVICE.prototype =
 
 
 
-  clearDisplay: function HS_clearDisplay(aId)
+
+
+  clearDisplay: function HS_clearDisplay(aHUD)
   {
-    var displayNode = this.getOutputNodeById(aId);
-    var outputNode = displayNode.querySelectorAll(".hud-output-node")[0];
+    if (typeof(aHUD) === "string") {
+      aHUD = this.getOutputNodeById(aHUD);
+    }
+
+    var outputNode = aHUD.querySelector(".hud-output-node");
 
     while (outputNode.firstChild) {
       outputNode.removeChild(outputNode.firstChild);
@@ -1689,16 +1699,27 @@ HUD_SERVICE.prototype =
 
 
 
-  unregisterDisplay: function HS_unregisterDisplay(aId)
+
+
+  unregisterDisplay: function HS_unregisterDisplay(aHUD)
   {
     
     
     
-    HUDService.clearDisplay(aId);
+    HUDService.clearDisplay(aHUD);
+
+    var id, outputNode;
+    if (typeof(aHUD) === "string") {
+      id = aHUD;
+      outputNode = this.mixins.getOutputNodeById(aHUD);
+    }
+    else {
+      id = aHUD.getAttribute("id");
+      outputNode = aHUD;
+    }
 
     
     
-    var outputNode = this.mixins.getOutputNodeById(aId);
     var parent = outputNode.parentNode;
     var splitters = parent.querySelectorAll("splitter");
     var len = splitters.length;
@@ -1711,33 +1732,33 @@ HUD_SERVICE.prototype =
     
     parent.removeChild(outputNode);
 
-    this.windowRegistry[aId].forEach(function(aContentWindow) {
+    this.windowRegistry[id].forEach(function(aContentWindow) {
       if (aContentWindow.wrappedJSObject.console instanceof HUDConsole) {
         delete aContentWindow.wrappedJSObject.console;
       }
     });
 
     
-    delete this._headsUpDisplays[aId];
+    delete this._headsUpDisplays[id];
     
-    this.deleteHeadsUpDisplay(aId);
+    this.deleteHeadsUpDisplay(id);
     
-    this.storage.removeDisplay(aId);
+    this.storage.removeDisplay(id);
     
-    delete this.windowRegistry[aId];
+    delete this.windowRegistry[id];
 
     let displays = this.displays();
 
-    var uri  = this.displayRegistry[aId];
+    var uri  = this.displayRegistry[id];
     var specHudArr = this.uriRegistry[uri];
 
     for (var i = 0; i < specHudArr.length; i++) {
-      if (specHudArr[i] == aId) {
+      if (specHudArr[i] == id) {
         specHudArr.splice(i, 1);
       }
     }
-    delete displays[aId];
-    delete this.displayRegistry[aId];
+    delete displays[id];
+    delete this.displayRegistry[id];
   },
 
   
@@ -1752,17 +1773,6 @@ HUD_SERVICE.prototype =
     }
     
     delete this.storage;
-
-     var xulWindow = aContentWindow.QueryInterface(Ci.nsIInterfaceRequestor)
-       .getInterface(Ci.nsIWebNavigation)
-       .QueryInterface(Ci.nsIDocShellTreeItem)
-       .rootTreeItem
-       .QueryInterface(Ci.nsIInterfaceRequestor)
-       .getInterface(Ci.nsIDOMWindow);
-
-    xulWindow = XPCNativeWrapper.unwrap(xulWindow);
-    var gBrowser = xulWindow.gBrowser;
-    gBrowser.tabContainer.removeEventListener("TabClose", this.onTabClose, false);
   },
 
   
@@ -2651,12 +2661,50 @@ HUD_SERVICE.prototype =
 
 
 
+
+  closeConsoleOnTab: function HS_closeConsoleOnTab(aTab)
+  {
+    let xulDocument = aTab.ownerDocument;
+    let xulWindow = xulDocument.defaultView;
+    let gBrowser = xulWindow.gBrowser;
+    let linkedBrowser = aTab.linkedBrowser;
+    let notificationBox = gBrowser.getNotificationBox(linkedBrowser);
+    let hudId = "hud_" + notificationBox.getAttribute("id");
+    let outputNode = xulDocument.getElementById(hudId);
+    if (outputNode != null) {
+      this.unregisterDisplay(outputNode);
+    }
+  },
+
+  
+
+
+
+
+
   onTabClose: function HS_onTabClose(aEvent)
   {
-    var browser = aEvent.target;
-    var tabId = gBrowser.getNotificationBox(browser).getAttribute("id");
-    var hudId = "hud_" + tabId;
-    this.unregisterDisplay(hudId);
+    this.closeConsoleOnTab(aEvent.target);
+  },
+
+  
+
+
+
+
+
+
+
+  onWindowUnload: function HS_onWindowUnload(aEvent)
+  {
+    let gBrowser = aEvent.target.defaultView.gBrowser;
+    let tabContainer = gBrowser.tabContainer;
+
+    let tab = tabContainer.firstChild;
+    while (tab != null) {
+      this.closeConsoleOnTab(tab);
+      tab = tab.nextSibling;
+    }
   },
 
   
@@ -2688,6 +2736,8 @@ HUD_SERVICE.prototype =
       
       return;
     }
+
+    xulWindow.addEventListener("unload", this.onWindowUnload, false);
 
     let gBrowser = xulWindow.gBrowser;
 
