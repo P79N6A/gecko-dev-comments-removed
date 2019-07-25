@@ -1615,4 +1615,17 @@ public class GeckoAppShell
     public static float[] getCurrentBatteryInformation() {
         return GeckoBatteryManager.getCurrentInformation();
     }
+
+    public static boolean isTablet() {
+        if (android.os.Build.VERSION.SDK_INT >= 9) {
+            Configuration config = GeckoApp.mAppContext.getResources().getConfiguration();
+            
+            
+            
+            if ((config.screenLayout & Configuration.SCREENLAYOUT_SIZE_MASK) >= Configuration.SCREENLAYOUT_SIZE_XLARGE) {
+                return true;
+            }
+        }
+        return false;
+    }
 }
