@@ -444,17 +444,23 @@ public class AwesomeBarTabs extends TabHost {
         setOnTabChangedListener(new TabHost.OnTabChangeListener() {
             @Override
             public void onTabChanged(String tabId) {
+                boolean hideSoftInput = true;
+
                 
                 
                 if (tabId.equals(BOOKMARKS_TAB) && mBookmarksAdapter == null) {
                     new BookmarksQueryTask().execute();
                 } else if (tabId.equals(HISTORY_TAB) && mHistoryAdapter == null) {
                     new HistoryQueryTask().execute();
+                } else {
+                    hideSoftInput = false;
                 }
 
                 
-                View tabView = getCurrentTabView();
-                hideSoftInput(tabView);
+                if (hideSoftInput) {
+                    View tabView = getCurrentTabView();
+                    hideSoftInput(tabView);
+                }
             }
         });
 
