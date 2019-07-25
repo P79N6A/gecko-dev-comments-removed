@@ -212,7 +212,7 @@ FormsTracker.prototype = {
     }
 
     return this.__formDB;
-  }
+  },
 
   
 
@@ -240,7 +240,7 @@ FormsTracker.prototype = {
       return 100;
     else
       return this._score;
-  },
+  }, 
 
   resetScore: function FormsTracker_resetScore() {
     var stmnt = this._formDB.createStatement("SELECT COUNT(fieldname) FROM moz_formhistory");
