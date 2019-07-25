@@ -178,6 +178,17 @@ Enumerate(JSContext *cx, JSObject *obj, JSObject *pobj, jsid id,
 {
     JS_ASSERT_IF(flags & JSITER_OWNONLY, obj == pobj);
 
+    
+
+
+
+
+
+
+
+    if (JS_UNLIKELY(!pobj->getProto() && JSID_IS_ATOM(id, cx->runtime->atomState.protoAtom)))
+        return true;
+
     if (!(flags & JSITER_OWNONLY) || pobj->isProxy() || pobj->getOps()->enumerate) {
         
         IdSet::AddPtr p = ht.lookupForAdd(id);
