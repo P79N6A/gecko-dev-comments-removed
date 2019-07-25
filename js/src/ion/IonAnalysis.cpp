@@ -435,12 +435,51 @@ ion::ReorderBlocks(MIRGraph &graph)
         graph.addBlock(graph.osrBlock());
 
     
+    
+    
+    uint32 loopDepth = 0;
+
+    
+    Vector<MBasicBlock *, 8, IonAllocPolicy> pendingNonLoopBlocks;
+
+    
+    
+    Vector<size_t, 4, IonAllocPolicy> loops;
+
     while (!done.empty()) {
         current = done.popFront();
         current->unmark();
+
+        if (current->isLoopHeader()) {
+            loopDepth = current->loopDepth();
+            if (!loops.append(pendingNonLoopBlocks.length()))
+                return false;
+        }
+
+        if (current->isLoopBackedge() && current->loopDepth() == loopDepth) {
+            loopDepth--;
+            graph.addBlock(current);
+
+            
+            
+            size_t nblocks = pendingNonLoopBlocks.length() - loops.popCopy();
+            for (size_t i = 0; i < nblocks; i++)
+                done.pushFront(pendingNonLoopBlocks.popCopy());
+            continue;
+        } else if (current->loopDepth() < loopDepth) {
+            
+            
+            
+            if (!pendingNonLoopBlocks.append(current))
+                return false;
+            continue;
+        }
+
         graph.addBlock(current);
     }
 
+    JS_ASSERT(loopDepth == 0);
+    JS_ASSERT(pendingNonLoopBlocks.empty());
     JS_ASSERT(graph.numBlocks() == numBlocks);
 
     return true;
