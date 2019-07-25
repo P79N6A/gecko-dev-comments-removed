@@ -155,14 +155,22 @@ gfxSurfaceDrawable::Draw(gfxContext* aContext,
     if (aRepeat) {
         pattern->SetExtend(gfxPattern::EXTEND_REPEAT);
         pattern->SetFilter(aFilter);
-    } else if (aContext->CurrentMatrix().HasNonIntegerTranslation() ||
-               aTransform.HasNonIntegerTranslation()) {
+    } else {
+        gfxPattern::GraphicsFilter filter = aFilter;
+        if (aContext->CurrentMatrix().HasOnlyIntegerTranslation() &&
+            aTransform.HasOnlyIntegerTranslation())
+        {
+          
+          
+          
+          filter = gfxPattern::FILTER_FAST;
+        }
         nsRefPtr<gfxASurface> currentTarget = aContext->CurrentSurface();
         gfxASurface::gfxSurfaceType surfaceType = currentTarget->GetType();
         gfxMatrix deviceSpaceToImageSpace =
             DeviceToImageTransform(aContext, aTransform);
         PreparePatternForUntiledDrawing(pattern, deviceSpaceToImageSpace,
-                                        surfaceType, currentTarget, aFilter);
+                                        surfaceType, currentTarget, filter);
     }
 #ifdef MOZ_GFX_OPTIMIZE_MOBILE
     pattern->SetFilter(gfxPattern::FILTER_FAST); 
