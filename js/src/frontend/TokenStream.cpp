@@ -34,6 +34,7 @@
 #include "frontend/TokenStream.h"
 #include "frontend/TreeContext.h"
 #include "vm/RegExpObject.h"
+#include "vm/StringBuffer.h"
 
 #include "jsscriptinlines.h"
 
@@ -374,26 +375,21 @@ TokenStream::peekChars(int n, jschar *cp)
 }
 
 const jschar *
-TokenStream::TokenBuf::findEOL()
+TokenStream::TokenBuf::findEOLMax(const jschar *p, size_t max)
 {
-    const jschar *tmp = ptr;
-#ifdef DEBUG
-    
+    JS_ASSERT(base <= p && p <= limit);
 
-
-
-
-    if (!tmp)
-        tmp = ptrWhenPoisoned;
-#endif
-
+    size_t n = 0;
     while (true) {
-        if (tmp >= limit)
+        if (p >= limit)
             break;
-        if (TokenBuf::isRawEOLChar(*tmp++))
+        if (n >= max)
             break;
+        if (TokenBuf::isRawEOLChar(*p++))
+            break;
+        n++;
     }
-    return tmp;
+    return p;
 }
 
 bool
@@ -401,8 +397,8 @@ TokenStream::reportCompileErrorNumberVA(ParseNode *pn, unsigned flags, unsigned 
 {
     JSErrorReport report;
     char *message;
-    jschar *linechars;
-    char *linebytes;
+    jschar *windowChars;
+    char *windowBytes;
     bool warning;
     JSBool ok;
     const TokenPos *tp;
@@ -421,8 +417,8 @@ TokenStream::reportCompileErrorNumberVA(ParseNode *pn, unsigned flags, unsigned 
     report.flags = flags;
     report.errorNumber = errorNumber;
     message = NULL;
-    linechars = NULL;
-    linebytes = NULL;
+    windowChars = NULL;
+    windowBytes = NULL;
 
     MUST_FLOW_THROUGH("out");
     ok = js_ExpandErrorArguments(cx, js_GetErrorMessage, NULL,
@@ -450,29 +446,53 @@ TokenStream::reportCompileErrorNumberVA(ParseNode *pn, unsigned flags, unsigned 
 
 
     if (report.lineno == lineno) {
-        size_t linelength = userbuf.findEOL() - linebase;
+        const jschar *tokptr = linebase + tp->begin.index;
 
-        linechars = (jschar *)cx->malloc_((linelength + 1) * sizeof(jschar));
-        if (!linechars) {
+        
+        
+        
+        
+        
+        static const size_t windowRadius = 60;
+
+        
+        const jschar *windowBase = (linebase + windowRadius < tokptr)
+                                 ? tokptr - windowRadius
+                                 : linebase;
+        size_t nTrunc = windowBase - linebase;
+        uint32_t windowIndex = tp->begin.index - nTrunc;
+
+        
+        const jschar *windowLimit = userbuf.findEOLMax(tokptr, windowRadius);
+        size_t windowLength = windowLimit - windowBase;
+        JS_ASSERT(windowLength <= windowRadius * 2);
+
+        
+        StringBuffer windowBuf(cx);
+        if (!windowBuf.append(windowBase, windowLength) || !windowBuf.append((jschar)0)) {
             warning = false;
             goto out;
         }
-        PodCopy(linechars, linebase, linelength);
-        linechars[linelength] = 0;
-        linebytes = DeflateString(cx, linechars, linelength);
-        if (!linebytes) {
+        windowChars = windowBuf.extractWellSized();
+        if (!windowChars) {
+            warning = false;
+            goto out;
+        }
+        windowBytes = DeflateString(cx, windowChars, windowLength);
+        if (!windowBytes) {
             warning = false;
             goto out;
         }
 
         
-        report.linebuf = linebytes;
-        report.uclinebuf = linechars;
+        
+        report.linebuf = windowBytes;
+        report.uclinebuf = windowChars;
 
         
         JS_ASSERT(tp->begin.lineno == tp->end.lineno);
-        report.tokenptr = report.linebuf + tp->begin.index;
-        report.uctokenptr = report.uclinebuf + tp->begin.index;
+        report.tokenptr = report.linebuf + windowIndex;
+        report.uctokenptr = report.uclinebuf + windowIndex;
     }
 
     
@@ -503,10 +523,10 @@ TokenStream::reportCompileErrorNumberVA(ParseNode *pn, unsigned flags, unsigned 
     }
 
   out:
-    if (linebytes)
-        cx->free_(linebytes);
-    if (linechars)
-        cx->free_(linechars);
+    if (windowBytes)
+        cx->free_(windowBytes);
+    if (windowChars)
+        cx->free_(windowChars);
     if (message)
         cx->free_(message);
     if (report.ucmessage)

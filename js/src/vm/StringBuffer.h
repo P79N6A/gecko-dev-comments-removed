@@ -35,7 +35,6 @@ class StringBuffer
     CharBuffer cb;
 
     JSContext *context() const { return cb.allocPolicy().context(); }
-    jschar *extractWellSized();
 
     StringBuffer(const StringBuffer &other) MOZ_DELETE;
     void operator=(const StringBuffer &other) MOZ_DELETE;
@@ -87,6 +86,13 @@ class StringBuffer
 
     
     JSAtom *finishAtom();
+
+    
+
+
+
+
+    jschar *extractWellSized();
 };
 
 inline bool

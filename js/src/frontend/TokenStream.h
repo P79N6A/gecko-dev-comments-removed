@@ -656,7 +656,7 @@ class TokenStream
     class TokenBuf {
       public:
         TokenBuf(const jschar *buf, size_t length)
-          : base(buf), limit(buf + length), ptr(buf), ptrWhenPoisoned(NULL) { }
+          : base(buf), limit(buf + length), ptr(buf) { }
 
         bool hasRawChars() const {
             return ptr < limit;
@@ -709,12 +709,7 @@ class TokenStream
 
 #ifdef DEBUG
         
-
-
-
-
         void poison() {
-            ptrWhenPoisoned = ptr;
             ptr = NULL;
         }
 #endif
@@ -723,13 +718,14 @@ class TokenStream
             return (c == '\n' || c == '\r' || c == LINE_SEPARATOR || c == PARA_SEPARATOR);
         }
 
-        const jschar *findEOL();
+        
+        
+        const jschar *findEOLMax(const jschar *p, size_t max);
 
       private:
         const jschar *base;             
         const jschar *limit;            
         const jschar *ptr;              
-        const jschar *ptrWhenPoisoned;  
     };
 
     TokenKind getTokenInternal();     
