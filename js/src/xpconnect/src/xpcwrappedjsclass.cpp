@@ -54,12 +54,13 @@ NS_IMPL_THREADSAFE_ISUPPORTS1(nsXPCWrappedJSClass, nsIXPCWrappedJSClass)
 
 static uint32 zero_methods_descriptor;
 
-void AutoScriptEvaluate::StartEvaluating(JSErrorReporter errorReporter)
+PRBool AutoScriptEvaluate::StartEvaluating(JSObject *scope, JSErrorReporter errorReporter)
 {
     NS_PRECONDITION(!mEvaluated, "AutoScriptEvaluate::Evaluate should only be called once");
 
-    if(!mJSContext)
-        return;
+    if (!mJSContext)
+        return PR_TRUE;
+
     mEvaluated = PR_TRUE;
     if(!mJSContext->errorReporter)
     {
@@ -69,6 +70,9 @@ void AutoScriptEvaluate::StartEvaluating(JSErrorReporter errorReporter)
     mContextHasThread = JS_GetContextThread(mJSContext);
     if (mContextHasThread)
         JS_BeginRequest(mJSContext);
+
+    if (!mEnterCompartment.enter(mJSContext, scope))
+        return PR_FALSE;
 
     
     
@@ -85,6 +89,8 @@ void AutoScriptEvaluate::StartEvaluating(JSErrorReporter errorReporter)
         mState = JS_SaveExceptionState(mJSContext);
         JS_ClearPendingException(mJSContext);
     }
+
+    return PR_TRUE;
 }
 
 AutoScriptEvaluate::~AutoScriptEvaluate()
@@ -250,10 +256,6 @@ nsXPCWrappedJSClass::CallQueryInterfaceOnJSObject(XPCCallContext& ccx,
     JSBool success = JS_FALSE;
     jsid funid;
     jsval fun;
-    JSAutoEnterCompartment ac;
-
-    if(!ac.enter(cx, jsobj))
-        return nsnull;
 
     
     
@@ -264,6 +266,14 @@ nsXPCWrappedJSClass::CallQueryInterfaceOnJSObject(XPCCallContext& ccx,
     {
         return nsnull;
     }
+
+    
+    AutoScriptEvaluate scriptEval(cx);
+
+    
+    
+    if (!scriptEval.StartEvaluating(jsobj))
+        return nsnull;
 
     
     funid = mRuntime->GetStringID(XPCJSRuntime::IDX_QUERY_INTERFACE);
@@ -289,14 +299,6 @@ nsXPCWrappedJSClass::CallQueryInterfaceOnJSObject(XPCCallContext& ccx,
         if(NS_FAILED(info->IsScriptable(&canScript)) || !canScript)
             return nsnull;
     }
-
-    
-
-    AutoScriptEvaluate scriptEval(cx);
-
-    
-    
-    scriptEval.StartEvaluating();
 
     id = xpc_NewIDObject(cx, jsobj, aIID);
     if(id)
@@ -402,7 +404,8 @@ nsXPCWrappedJSClass::GetNamedPropertyAsVariant(XPCCallContext& ccx,
     nsresult rv = NS_ERROR_FAILURE;
 
     AutoScriptEvaluate scriptEval(cx);
-    scriptEval.StartEvaluating();
+    if (!scriptEval.StartEvaluating(aJSObj))
+        return NS_ERROR_FAILURE;
 
     ok = JS_ValueToId(cx, aName, &id) && 
          GetNamedPropertyAsVariantRaw(ccx, aJSObj, id, aResult, &rv);
@@ -425,7 +428,8 @@ nsXPCWrappedJSClass::BuildPropertyEnumerator(XPCCallContext& ccx,
 
     
     AutoScriptEvaluate scriptEval(cx);
-    scriptEval.StartEvaluating();
+    if (!scriptEval.StartEvaluating(aJSObj))
+        return NS_ERROR_FAILURE;
 
     idArray = JS_Enumerate(cx, aJSObj);
     if(!idArray)
@@ -1306,15 +1310,10 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16 methodIndex,
     }
 
     js::AutoValueVector args(cx);
-    
-    JSAutoEnterCompartment ac;
     AutoScriptEvaluate scriptEval(cx);
     ContextPrincipalGuard principalGuard(ccx);
 
     obj = thisObj = wrapper->GetJSObject();
-
-    if (!ac.enter(ccx, obj))
-        goto pre_call_clean_up;
 
     
     paramCount = info->num_args;
@@ -1324,7 +1323,8 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16 methodIndex,
     if(!cx || !xpcc || !IsReflectable(methodIndex))
         goto pre_call_clean_up;
 
-    scriptEval.StartEvaluating(xpcWrappedJSErrorReporter);
+    if (!scriptEval.StartEvaluating(obj, xpcWrappedJSErrorReporter))
+        goto pre_call_clean_up;
 
     xpcc->SetPendingResult(pending_result);
     xpcc->SetException(nsnull);

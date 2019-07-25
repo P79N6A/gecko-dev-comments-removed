@@ -4030,7 +4030,7 @@ public:
 
 
 
-    void StartEvaluating(JSErrorReporter errorReporter = nsnull);
+    PRBool StartEvaluating(JSObject *scope, JSErrorReporter errorReporter = nsnull);
     
 
 
@@ -4041,6 +4041,7 @@ private:
     PRBool mErrorReporterSet;
     PRBool mEvaluated;
     jsword mContextHasThread;
+    JSAutoEnterCompartment mEnterCompartment;
     MOZILLA_DECL_USE_GUARD_OBJECT_NOTIFIER
 
     
