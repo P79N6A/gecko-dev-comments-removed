@@ -5277,22 +5277,25 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
 
 #ifndef WINCE
     case WM_SYSCOMMAND:
+    {
+      WPARAM filteredWParam = (wParam &0xFFF0);
       
-      if (!sTrimOnMinimize && wParam == SC_MINIMIZE) {
+      if (!sTrimOnMinimize && filteredWParam == SC_MINIMIZE) {
         ::ShowWindow(mWnd, SW_SHOWMINIMIZED);
         result = PR_TRUE;
       }
 
       
       
-      if (wParam == SC_KEYMENU && lParam == VK_SPACE &&
+      if (filteredWParam == SC_KEYMENU && lParam == VK_SPACE &&
           mSizeMode == nsSizeMode_Fullscreen) {
         DisplaySystemMenu(mWnd, mSizeMode, mIsRTL,
                           MOZ_SYSCONTEXT_X_POS,
                           MOZ_SYSCONTEXT_Y_POS);
         result = PR_TRUE;
       }
-      break;
+    }
+    break;
 #endif
 
 
