@@ -815,6 +815,31 @@ struct JSObject : js::gc::Cell {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     static const uint32 JSSLOT_ARGS_DATA = 1;
 
   public:
