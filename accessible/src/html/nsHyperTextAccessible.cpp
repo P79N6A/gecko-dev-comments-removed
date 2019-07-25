@@ -47,6 +47,7 @@
 #include "States.h"
 
 #include "nsIClipboard.h"
+#include "nsContentUtils.h"
 #include "nsFocusManager.h"
 #include "nsIDOMCharacterData.h"
 #include "nsIDOMDocument.h"
@@ -1153,15 +1154,14 @@ nsHyperTextAccessible::GetTextAttributes(bool aIncludeDefAttrs,
   
   nsIFrame *offsetFrame = accAtOffset->GetFrame();
   if (offsetFrame && offsetFrame->GetType() == nsGkAtoms::textFrame) {
-    nsCOMPtr<nsIDOMNode> node = accAtOffset->DOMNode();
-
     PRInt32 nodeOffset = 0;
     nsresult rv = RenderedToContentOffset(offsetFrame, offsetInAcc,
                                           &nodeOffset);
     NS_ENSURE_SUCCESS(rv, rv);
 
     
-    rv = GetSpellTextAttribute(node, nodeOffset, &startOffset, &endOffset,
+    rv = GetSpellTextAttribute(accAtOffset->GetNode(), nodeOffset,
+                               &startOffset, &endOffset,
                                aAttributes ? *aAttributes : nsnull);
     NS_ENSURE_SUCCESS(rv, rv);
   }
@@ -1789,13 +1789,11 @@ nsHyperTextAccessible::GetSelectionDOMRanges(PRInt16 aType,
 
   
   PRUint32 numRanges = aRanges->Length();
-  for (PRUint32 count = 0; count < numRanges; count ++) {
-    bool isCollapsed = false;
-    (*aRanges)[count]->GetCollapsed(&isCollapsed);
-    if (isCollapsed) {
-      aRanges->RemoveElementAt(count);
+  for (PRUint32 idx = 0; idx < numRanges; idx ++) {
+    if ((*aRanges)[idx]->Collapsed()) {
+      aRanges->RemoveElementAt(idx);
       --numRanges;
-      --count;
+      --idx;
     }
   }
 }
@@ -1838,28 +1836,18 @@ nsHyperTextAccessible::GetSelectionBounds(PRInt32 aSelectionNum,
   nsRange* range = ranges[aSelectionNum];
 
   
-  nsCOMPtr<nsIDOMNode> startDOMNode;
-  range->GetStartContainer(getter_AddRefs(startDOMNode));
-  nsCOMPtr<nsINode> startNode(do_QueryInterface(startDOMNode));
-  PRInt32 startOffset = 0;
-  range->GetStartOffset(&startOffset);
+  nsINode* startNode = range->GetStartParent();
+  nsINode* endNode = range->GetEndParent();
+  PRInt32 startOffset = range->StartOffset(), endOffset = range->EndOffset();
 
   
-  nsCOMPtr<nsIDOMNode> endDOMNode;
-  range->GetEndContainer(getter_AddRefs(endDOMNode));
-  nsCOMPtr<nsINode> endNode(do_QueryInterface(endDOMNode));
-  PRInt32 endOffset = 0;
-  range->GetEndOffset(&endOffset);
-
-  PRInt16 rangeCompareResult = 0;
-  nsresult rv = range->CompareBoundaryPoints(nsIDOMRange::START_TO_END, range,
-                                             &rangeCompareResult);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (rangeCompareResult < 0) {
-    
-    
-    startNode.swap(endNode);
+  
+  PRInt32 rangeCompare = nsContentUtils::ComparePoints(endNode, endOffset,
+                                                       startNode, startOffset);
+  if (rangeCompare < 0) {
+    nsINode* tempNode = startNode;
+    startNode = endNode;
+    endNode = tempNode;
     PRInt32 tempOffset = startOffset;
     startOffset = endOffset;
     endOffset = tempOffset;
@@ -2324,25 +2312,17 @@ nsHyperTextAccessible::RangeBoundToHypertextOffset(nsRange *aRange,
                                                    bool aIsStartHTOffset,
                                                    PRInt32 *aHTOffset)
 {
-  nsCOMPtr<nsIDOMNode> DOMNode;
+  nsINode* node = nsnull;
   PRInt32 nodeOffset = 0;
 
-  nsresult rv;
   if (aIsStartBound) {
-    rv = aRange->GetStartContainer(getter_AddRefs(DOMNode));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = aRange->GetStartOffset(&nodeOffset);
-    NS_ENSURE_SUCCESS(rv, rv);
+    node = aRange->GetStartParent();
+    nodeOffset = aRange->StartOffset();
   } else {
-    rv = aRange->GetEndContainer(getter_AddRefs(DOMNode));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = aRange->GetEndOffset(&nodeOffset);
-    NS_ENSURE_SUCCESS(rv, rv);
+    node = aRange->GetEndParent();
+    nodeOffset = aRange->EndOffset();
   }
 
-  nsCOMPtr<nsINode> node(do_QueryInterface(DOMNode));
   nsAccessible *startAcc =
     DOMPointToHypertextOffset(node, nodeOffset, aHTOffset);
 
@@ -2354,7 +2334,7 @@ nsHyperTextAccessible::RangeBoundToHypertextOffset(nsRange *aRange,
 
 
 nsresult
-nsHyperTextAccessible::GetSpellTextAttribute(nsIDOMNode *aNode,
+nsHyperTextAccessible::GetSpellTextAttribute(nsINode* aNode,
                                              PRInt32 aNodeOffset,
                                              PRInt32 *aHTStartOffset,
                                              PRInt32 *aHTEndOffset,
@@ -2367,25 +2347,19 @@ nsHyperTextAccessible::GetSpellTextAttribute(nsIDOMNode *aNode,
   if (!rangeCount)
     return NS_OK;
 
+  nsCOMPtr<nsIDOMNode> DOMNode = do_QueryInterface(aNode);
   for (PRUint32 index = 0; index < rangeCount; index++) {
     nsRange* range = ranges[index];
 
     PRInt16 result;
-    nsresult rv = range->ComparePoint(aNode, aNodeOffset, &result);
+    nsresult rv = range->ComparePoint(DOMNode, aNodeOffset, &result);
     NS_ENSURE_SUCCESS(rv, rv);
     
     
     
     if (result == 0) {
-      nsCOMPtr<nsIDOMNode> end;
-      rv = range->GetEndContainer(getter_AddRefs(end));
-      NS_ENSURE_SUCCESS(rv, rv);
-      PRInt32 endOffset;
-      rv = range->GetEndOffset(&endOffset);
-      NS_ENSURE_SUCCESS(rv, rv);
-      if (aNode == end && aNodeOffset == endOffset) {
+      if (aNode == range->GetEndParent() && aNodeOffset == range->EndOffset())
         result = 1;
-      }
     }
 
     if (result == 1) { 

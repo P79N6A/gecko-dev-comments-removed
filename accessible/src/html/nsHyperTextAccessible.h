@@ -409,7 +409,7 @@ protected:
 
 
 
-  nsresult GetSpellTextAttribute(nsIDOMNode *aNode, PRInt32 aNodeOffset,
+  nsresult GetSpellTextAttribute(nsINode* aNode, PRInt32 aNodeOffset,
                                  PRInt32 *aStartOffset,
                                  PRInt32 *aEndOffset,
                                  nsIPersistentProperties *aAttributes);
