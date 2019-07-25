@@ -438,16 +438,16 @@ Highlighter.prototype = {
     arrowBoxBottom.className = "highlighter-nodeinfobar-arrow";
     arrowBoxBottom.id = "highlighter-nodeinfobar-arrow-bottom";
 
-    let tagNameLabel = this.chromeDoc.createElement("label");
+    let tagNameLabel = this.chromeDoc.createElementNS("http://www.w3.org/1999/xhtml", "span");
     tagNameLabel.id = "highlighter-nodeinfobar-tagname";
-    tagNameLabel.className = "plain";
 
-    let idLabel = this.chromeDoc.createElement("label");
+    let idLabel = this.chromeDoc.createElementNS("http://www.w3.org/1999/xhtml", "span");
     idLabel.id = "highlighter-nodeinfobar-id";
-    idLabel.className = "plain";
 
-    let classesBox = this.chromeDoc.createElement("hbox");
+    let classesBox = this.chromeDoc.createElementNS("http://www.w3.org/1999/xhtml", "span");
     classesBox.id = "highlighter-nodeinfobar-classes";
+    
+    classesBox.textContent = "&nbsp;";
 
     nodeInfobar.appendChild(tagNameLabel);
     nodeInfobar.appendChild(idLabel);
@@ -540,20 +540,9 @@ Highlighter.prototype = {
 
     
     let classes = this.nodeInfo.classesBox;
-    while (classes.hasChildNodes()) {
-      classes.removeChild(classes.firstChild);
-    }
 
-    if (this.node.className) {
-      let fragment = this.chromeDoc.createDocumentFragment();
-      for (let i = 0; i < this.node.classList.length; i++) {
-        let classLabel = this.chromeDoc.createElement("label");
-        classLabel.className = "highlighter-nodeinfobar-class plain";
-        classLabel.textContent = "." + this.node.classList[i];
-        fragment.appendChild(classLabel);
-      }
-      classes.appendChild(fragment);
-    }
+    classes.textContent = this.node.classList.length ?
+                            "." + Array.join(this.node.classList, ".") : "";
   },
 
   
