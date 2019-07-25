@@ -113,6 +113,7 @@ CheckThisClass(JSContext *cx, Value *vp, Class *clasp, const char *fnname)
 
     
     
+    
     if ((clasp->flags & JSCLASS_HAS_PRIVATE) && !thisobj->getPrivate()) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_INCOMPATIBLE_PROTO,
                              clasp->name, fnname, "prototype object");
@@ -1079,6 +1080,7 @@ CheckThisFrame(JSContext *cx, Value *vp, const char *fnname, bool checkLive)
 
     
     
+    
     if (!thisobj->getPrivate()) {
         if (thisobj->getReservedSlot(JSSLOT_DEBUGFRAME_OWNER).isUndefined()) {
             JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_INCOMPATIBLE_PROTO,
@@ -1259,6 +1261,7 @@ DebugObject_checkThis(JSContext *cx, Value *vp, const char *fnname)
         return NULL;
     }
 
+    
     
     
     if (thisobj->getReservedSlot(JSSLOT_DEBUGOBJECT_CCW).isUndefined()) {
