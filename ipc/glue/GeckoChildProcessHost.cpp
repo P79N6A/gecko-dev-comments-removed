@@ -70,11 +70,19 @@
 #endif
 
 #ifdef ANDROID
+#include <sys/system_properties.h>
 #include "APKOpen.h"
 #endif
 
 using mozilla::MonitorAutoEnter;
 using mozilla::ipc::GeckoChildProcessHost;
+
+#ifdef ANDROID
+
+
+
+static const int kMagicAndroidSystemPropFd = 5;
+#endif
 
 template<>
 struct RunnableMethodTraits<GeckoChildProcessHost>
@@ -406,7 +414,22 @@ GeckoChildProcessHost::PerformAsyncLaunch(std::vector<std::string> aExtraOpts, b
   
   if (cacheStr.IsEmpty())
     cacheStr.AppendLiteral("-");
-#endif
+
+  
+  
+  
+  const char *apws = getenv("ANDROID_PROPERTY_WORKSPACE");
+  if (apws) {
+    int fd = atoi(apws);
+    mFileMap.push_back(std::pair<int, int>(fd, kMagicAndroidSystemPropFd));
+
+    char buf[32];
+    char *szptr = strchr(apws, ',');
+
+    snprintf(buf, sizeof(buf), "%d%s", kMagicAndroidSystemPropFd, szptr);
+    newEnvVars["ANDROID_PROPERTY_WORKSPACE"] = buf;
+  }
+#endif  
 
   
   
