@@ -20,6 +20,7 @@ namespace layers {
 
 class CompositorParent;
 class GestureEventListener;
+class ContainerLayer;
 
 
 
@@ -117,8 +118,7 @@ public:
 
 
   bool SampleContentTransformForFrame(const TimeStamp& aSampleTime,
-                                      const FrameMetrics& aFrame,
-                                      Layer* aLayer,
+                                      ContainerLayer* aLayer,
                                       gfx3DMatrix* aNewTransform);
 
   

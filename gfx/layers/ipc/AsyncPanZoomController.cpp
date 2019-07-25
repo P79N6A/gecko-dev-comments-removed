@@ -697,8 +697,7 @@ void AsyncPanZoomController::RequestContentRepaint() {
 }
 
 bool AsyncPanZoomController::SampleContentTransformForFrame(const TimeStamp& aSampleTime,
-                                                            const FrameMetrics& aFrame,
-                                                            Layer* aLayer,
+                                                            ContainerLayer* aLayer,
                                                             gfx3DMatrix* aNewTransform) {
   
   
@@ -716,7 +715,7 @@ bool AsyncPanZoomController::SampleContentTransformForFrame(const TimeStamp& aSa
   nsIntPoint metricsScrollOffset(0, 0);
   nsIntPoint scrollOffset;
   float localScaleX, localScaleY;
-
+  const FrameMetrics& frame = aLayer->GetFrameMetrics();
   {
     MonitorAutoLock mon(mMonitor);
 
@@ -731,8 +730,8 @@ bool AsyncPanZoomController::SampleContentTransformForFrame(const TimeStamp& aSa
     localScaleX = mFrameMetrics.mResolution.width;
     localScaleY = mFrameMetrics.mResolution.height;
 
-    if (aFrame.IsScrollable()) {
-      metricsScrollOffset = aFrame.mViewportScrollOffset;
+    if (frame.IsScrollable()) {
+      metricsScrollOffset = frame.mViewportScrollOffset;
     }
 
     scrollOffset = mFrameMetrics.mViewportScrollOffset;
@@ -748,9 +747,12 @@ bool AsyncPanZoomController::SampleContentTransformForFrame(const TimeStamp& aSa
   
   
   
-  aNewTransform->Scale(1.0f/aLayer->GetXScale(),
-                       1.0f/aLayer->GetYScale(),
+  aNewTransform->Scale(1.0f/aLayer->GetPreXScale(),
+                       1.0f/aLayer->GetPreYScale(),
                        1);
+  aNewTransform->ScalePost(1.0f/aLayer->GetPostXScale(),
+                           1.0f/aLayer->GetPostYScale(),
+                           1);
 
   mLastSampleTime = aSampleTime;
 

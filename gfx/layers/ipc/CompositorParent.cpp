@@ -418,6 +418,16 @@ private:
     gfx3DMatrix m(aContainer->GetTransform());
     m.Translate(gfxPoint3D(-fm.mViewportScrollOffset.x,
                            -fm.mViewportScrollOffset.y, 0));
+
+    
+    
+    
+    m.Scale(1.0f/c->GetPreXScale(),
+            1.0f/c->GetPreYScale(),
+            1);
+    m.ScalePost(1.0f/c->GetPostXScale(),
+                1.0f/c->GetPostYScale(),
+                1);
     aContainer->AsShadowLayer()->SetShadowTransform(m);
   }
 
@@ -522,8 +532,16 @@ CompositorParent::TransformFixedLayers(Layer* aLayer,
     
     
     
-    gfx3DMatrix layerTransform = aLayer->GetBaseTransform();
+    gfx3DMatrix layerTransform = aLayer->GetTransform();
     Translate2D(layerTransform, translation);
+    if (ContainerLayer* c = aLayer->AsContainerLayer()) {
+      layerTransform.Scale(1.0f/c->GetPreXScale(),
+                           1.0f/c->GetPreYScale(),
+                           1);
+    }
+    layerTransform.ScalePost(1.0f/aLayer->GetPostXScale(),
+                             1.0f/aLayer->GetPostYScale(),
+                             1);
     ShadowLayer* shadow = aLayer->AsShadowLayer();
     shadow->SetShadowTransform(layerTransform);
 
@@ -691,8 +709,7 @@ CompositorParent::ApplyAsyncContentTransformToTree(TimeStamp aCurrentFrame,
     gfx3DMatrix newTransform;
     *aWantNextFrame |=
       controller->SampleContentTransformForFrame(aCurrentFrame,
-                                                 container->GetFrameMetrics(),
-                                                 aLayer,
+                                                 container,
                                                  &newTransform);
 
     shadow->SetShadowTransform(newTransform);
@@ -814,9 +831,12 @@ CompositorParent::TransformShadowTree(TimeStamp aCurrentFrame)
     
     
     gfx3DMatrix computedTransform = treeTransform * currentTransform;
-    computedTransform.Scale(1.0f/layer->GetXScale(),
-                            1.0f/layer->GetYScale(),
+    computedTransform.Scale(1.0f/container->GetPreXScale(),
+                            1.0f/container->GetPreYScale(),
                             1);
+    computedTransform.ScalePost(1.0f/container->GetPostXScale(),
+                                1.0f/container->GetPostYScale(),
+                                1);
     shadow->SetShadowTransform(computedTransform);
     TransformFixedLayers(layer, offset, scaleDiff);
   }
