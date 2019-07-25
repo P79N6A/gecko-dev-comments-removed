@@ -729,8 +729,9 @@ nsEditorSpellCheck::UpdateCurrentDictionary()
   }
 
   
+  nsAutoString preferedDict(Preferences::GetLocalizedString("spellchecker.dictionary"));
   if (dictName.IsEmpty()) {
-    dictName.Assign(Preferences::GetLocalizedString("spellchecker.dictionary"));
+    dictName.Assign(preferedDict);
   }
 
   if (dictName.IsEmpty())
@@ -756,26 +757,49 @@ nsEditorSpellCheck::UpdateCurrentDictionary()
     if (NS_FAILED(rv)) {
       
       
-      
+
       nsAutoString langCode;
       PRInt32 dashIdx = dictName.FindChar('-');
       if (dashIdx != -1) {
         langCode.Assign(Substring(dictName, 0, dashIdx));
-        
-        rv = SetCurrentDictionary(langCode);
       } else {
         langCode.Assign(dictName);
       }
+
+      nsDefaultStringComparator comparator;
+
+      
+      
+      if (!preferedDict.IsEmpty() && !dictName.Equals(preferedDict) && 
+          nsStyleUtil::DashMatchCompare(preferedDict, langCode, comparator)) {
+        rv = SetCurrentDictionary(preferedDict);
+      }
+
+      
+      if (NS_FAILED(rv)) {
+        if (!dictName.Equals(langCode) && !preferedDict.Equals(langCode)) {
+          rv = SetCurrentDictionary(preferedDict);
+        }
+      }
+
+      
       if (NS_FAILED(rv)) {
         
         
         nsTArray<nsString> dictList;
         rv = mSpellChecker->GetDictionaryList(&dictList);
         NS_ENSURE_SUCCESS(rv, rv);
-        nsDefaultStringComparator comparator;
         PRInt32 i, count = dictList.Length();
         for (i = 0; i < count; i++) {
           nsAutoString dictStr(dictList.ElementAt(i));
+
+          if (dictStr.Equals(dictName) ||
+              dictStr.Equals(preferedDict) ||
+              dictStr.Equals(langCode)) {
+            
+            continue;
+          }
+
           if (nsStyleUtil::DashMatchCompare(dictStr, langCode, comparator) &&
               NS_SUCCEEDED(SetCurrentDictionary(dictStr))) {
               break;
