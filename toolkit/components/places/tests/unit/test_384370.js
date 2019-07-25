@@ -30,9 +30,6 @@ function run_test() {
   Cu.import("resource://gre/modules/BookmarkHTMLUtils.jsm");
 
   
-  Services.prefs.setIntPref("browser.places.smartBookmarksVersion", -1);
-
-  
   
   var bookmarksFileOld = do_get_file("bookmarks.preplaces.html");
   
@@ -137,11 +134,14 @@ function testCanonicalBookmarks() {
   rootNode.containerOpen = true;
 
   
-  
-  do_check_eq(rootNode.childCount, DEFAULT_BOOKMARKS_ON_MENU + 1);
+  do_check_eq(rootNode.childCount, 3);
 
   
-  var testFolder = rootNode.getChild(DEFAULT_BOOKMARKS_ON_MENU);
+  var testSeparator = rootNode.getChild(1);
+  do_check_eq(testSeparator.type, testSeparator.RESULT_TYPE_SEPARATOR);
+
+  
+  var testFolder = rootNode.getChild(2);
   do_check_eq(testFolder.type, testFolder.RESULT_TYPE_FOLDER);
   do_check_eq(testFolder.title, "test");
 

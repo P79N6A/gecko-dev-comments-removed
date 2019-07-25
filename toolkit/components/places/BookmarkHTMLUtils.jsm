@@ -199,6 +199,23 @@ BookmarkImporter.prototype = {
 
 
 
+
+
+
+  _handleSeparator: function handleSeparator(aElt) {
+    let frame = this._curFrame;
+    try {
+      frame.previousId =
+        PlacesUtils.bookmarks.insertSeparator(frame.containerId,
+                                              PlacesUtils.bookmarks.DEFAULT_INDEX);
+    } catch(e) {}
+  },
+
+  
+
+
+
+
   _handleHead1Begin: function handleHead1Begin(aElt) {
     if (this._frames.length > 1) {
       return;
@@ -516,6 +533,9 @@ BookmarkImporter.prototype = {
         break;
       case "dd":
         this._curFrame.inDescription = true;
+        break;
+      case "hr":
+        this._handleSeparator(aElt);
         break;
     }
   },
