@@ -34,3 +34,5 @@ pref("full-screen-api.enabled", true);
 
 
 pref("general.smoothScroll", true);
+
+pref("plugin.allowed_types", "application/x-shockwave-flash,application/futuresplash");
