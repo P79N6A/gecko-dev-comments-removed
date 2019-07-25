@@ -136,15 +136,12 @@ ScriptErrorReporter(JSContext *cx,
     int i, j, k, n;
     char *prefix = NULL, *tmp;
     const char *ctmp;
-    JSStackFrame * fp = nsnull;
     nsCOMPtr<nsIXPConnect> xpc;
 
     
     
-    while ((fp = JS_FrameIterator(cx, &fp))) {
-        if (JS_IsScriptFrame(cx, fp)) {
-            return;
-        }
+    if (JS_DescribeScriptedCaller(cx, nsnull, nsnull)) {
+        return;
     }
 
     

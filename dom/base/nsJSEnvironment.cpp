@@ -445,11 +445,8 @@ NS_ScriptErrorReporter(JSContext *cx,
   
   
   if (!JSREPORT_IS_WARNING(report->flags)) {
-    JSStackFrame * fp = nsnull;
-    while ((fp = JS_FrameIterator(cx, &fp))) {
-      if (JS_IsScriptFrame(cx, fp)) {
-        return;
-      }
+    if (JS_DescribeScriptedCaller(cx, nsnull, nsnull)) {
+      return;
     }
 
     nsIXPConnect* xpc = nsContentUtils::XPConnect();
