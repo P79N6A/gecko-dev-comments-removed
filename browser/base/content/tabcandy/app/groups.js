@@ -23,6 +23,22 @@ function max(list){ return list.slice().sort(numCmp).reverse()[0]; }
 
 
 
+function dropAcceptFunction(el) {
+  var $el = iQ(el);
+  if($el.hasClass('tab')) {
+    var item = Items.item($el);
+    if(item && (!item.parent || !item.parent.expanded)) {
+      return true;
+    }
+  }           
+          
+  return false;
+}
+
+
+
+
+
 
 
 
@@ -379,7 +395,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
   
   
   reloadBounds: function() {
-    var bb = Utils.getBounds(this.container);
+    var bb = iQ(this.container).bounds();
     
     if(!this.bounds)
       this.bounds = new Rect(0, 0, 0, 0);
@@ -477,6 +493,38 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
 
     this.save();
   },
+  
+  setTrenches: function(rect) {
+
+		var container = this.container;
+
+		if (!this.borderTrenches) {
+			var bT = this.borderTrenches = {};
+			bT.left = Trenches.register(container,"x","border","left");
+			bT.right = Trenches.register(container,"x","border","right");
+			bT.top = Trenches.register(container,"y","border","top");
+			bT.bottom = Trenches.register(container,"y","border","bottom");
+		}
+		var bT = this.borderTrenches;
+		bT.left.setWithRect(rect);
+		bT.right.setWithRect(rect);
+		bT.top.setWithRect(rect);
+		bT.bottom.setWithRect(rect);
+				
+		if (!this.guideTrenches) {
+			var gT = this.guideTrenches = {};
+			gT.left = Trenches.register(container,"x","guide","left");
+			gT.right = Trenches.register(container,"x","guide","right");
+			gT.top = Trenches.register(container,"y","guide","top");
+			gT.bottom = Trenches.register(container,"y","guide","bottom");
+		}
+		var gT = this.guideTrenches;
+		gT.left.setWithRect(rect);
+		gT.right.setWithRect(rect);
+		gT.top.setWithRect(rect);
+		gT.bottom.setWithRect(rect);
+
+  },
     
   
   setZ: function(value) {
@@ -506,7 +554,6 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
     this.removeAll();
     this._sendOnClose();
     Groups.unregister(this);
-		Trenches.unregister(this.container);
     iQ(this.container).fadeOut(function() {
       iQ(this).remove();
       Items.unsquish();
@@ -549,11 +596,9 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
       } else {
         $el = iQ(a);
         item = Items.item($el);
-      }
+      }    
       
       Utils.assert('shouldn\'t already be in another group', !item.parent || item.parent == this);
-  
-			Trenches.unregister(a.container);
   
       if(!dropPos) 
         dropPos = {top:window.innerWidth, left:window.innerHeight};
@@ -1015,17 +1060,21 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
   _addHandlers: function(container) {
     var self = this;
     
-    this.dropOptions.over = function(){
-			if( !self.isNewTabsGroup() )
-				iQ(this).addClass("acceptsDrop");
-		};
-		this.dropOptions.drop = function(event){
-			iQ(this).removeClass("acceptsDrop");
-			self.add( drag.info.$el, {left:event.pageX, top:event.pageY} );
-		};
-    
-    if(!this.locked.bounds)
-      iQ(container).draggable(this.dragOptions);
+    if(!this.locked.bounds) {
+      iQ(container).draggable({
+        cancelClass: 'close name',
+        start: function(e, ui){
+          drag.info = new Drag(this, e);
+        },
+        drag: function(e, ui){
+          drag.info.drag(e, ui);
+        }, 
+        stop: function() {
+          drag.info.stop();
+          drag.info = null;
+        }
+      });
+    }
     
     iQ(container)
       .mousedown(function(e){
@@ -1065,7 +1114,25 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
         self._mouseDown = null;
     });
     
-    iQ(container).droppable(this.dropOptions);
+    iQ(container).droppable({
+      over: function(){
+        if( !self.isNewTabsGroup() )
+          iQ(this).addClass("acceptsDrop");
+      },
+      out: function(){
+        var group = drag.info.item.parent;
+        if(group) {
+          group.remove(drag.info.$el, {dontClose: true});
+        }
+          
+        iQ(this).removeClass("acceptsDrop");
+      },
+      drop: function(event){
+        iQ(this).removeClass("acceptsDrop");
+        self.add( drag.info.$el, {left:event.pageX, top:event.pageY} );
+      },
+      accept: dropAcceptFunction
+    });
   },
 
   
@@ -1079,13 +1146,13 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
         minWidth: 90,
         minHeight: 90,
         start: function(){
-          Trenches.activateOthersTrenches(self.container);
+          window.Trenches.activateOthersTrenches(self.container);
         },
         resize: function(){
           self.reloadBounds();
           var bounds = self.getBounds();
 					
-					var newRect = Trenches.snap(bounds,false);
+					var newRect = window.Trenches.snap(bounds,false);
 					if (newRect) 
 						self.setBounds(bounds,true);
         },
@@ -1093,7 +1160,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
           self.reloadBounds();
           self.setUserSize();
           self.pushAway();
-          Trenches.disactivate();
+          window.Trenches.disactivate();
         } 
       });
     } else {
@@ -1230,6 +1297,77 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
 
 
 window.Groups = {
+  
+  dragOptions: {
+    cancelClass: 'close',
+    start: function(e, ui) {
+      drag.info = new Drag(this, e);
+    },
+    drag: function(e, ui) {
+      drag.info.drag(e, ui);
+    },
+    stop: function() {
+      drag.info.stop();
+      drag.info = null;
+    }
+  },
+  
+  
+  dropOptions: {
+    accept: dropAcceptFunction,
+    drop: function(e){
+      $target = iQ(this);  
+      iQ(this).removeClass("acceptsDrop");
+      var phantom = $target.data("phantomGroup")
+      
+      var group = drag.info.item.parent;
+      if( group == null ){
+        phantom.removeClass("phantom");
+        phantom.removeClass("group-content");
+        var group = new Group([$target, drag.info.$el], {container:phantom});
+      } else 
+        group.add( drag.info.$el );      
+    },
+    over: function(e){
+      var $target = iQ(this);
+
+      function elToRect($el){
+       return new Rect( $el.position().left, $el.position().top, $el.width(), $el.height() );
+      }
+
+      var height = elToRect($target).height * 1.5 + 20;
+      var width = elToRect($target).width * 1.5 + 20;
+      var unionRect = elToRect($target).union( elToRect(drag.info.$el) );
+
+      var newLeft = unionRect.left + unionRect.width/2 - width/2;
+      var newTop = unionRect.top + unionRect.height/2 - height/2;
+
+      iQ(".phantom").remove();
+      var phantom = iQ("<div>")
+        .addClass('group phantom group-content')
+        .css({
+          width: width,
+          height: height,
+          position:"absolute",
+          top: newTop,
+          left: newLeft,
+          zIndex: -99
+        })
+        .appendTo("body")
+        .hide()
+        .fadeIn();
+        
+      $target.data("phantomGroup", phantom);      
+    },
+    out: function(e){      
+      var phantom = iQ(this).data("phantomGroup");
+      if(phantom) { 
+        phantom.fadeOut(function(){
+          iQ(this).remove();
+        });
+      }
+    }
+  }, 
   
   
   init: function() {

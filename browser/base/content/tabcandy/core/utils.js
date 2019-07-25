@@ -545,16 +545,6 @@ var Utils = {
   },
   
   
-  getBounds: function(el) {
-    return new Rect(
-      parseInt(el.style.left) || el.offsetLeft, 
-      parseInt(el.style.top) || el.offsetTop, 
-      el.clientWidth,
-      el.clientHeight
-    );
-  },
-
-  
   isDOMElement: function(object) {
     return (object && typeof(object.nodeType) != 'undefined' ? true : false);
   },

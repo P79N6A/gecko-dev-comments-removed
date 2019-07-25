@@ -18,68 +18,10 @@ window.TabItem = function(container, tab) {
   var $div = iQ(container);
   var self = this;
   
-  $div.data('tabItem', this);
+  $div.data('tabItem', this);    
   $div.data('isDragging', false);
-  
-  
-  this._init(container);
-  
-  
-  
-  this.dropOptions.drop = function(e){
-		$target = iQ(this);  
-		iQ(this).removeClass("acceptsDrop");
-		var phantom = $target.data("phantomGroup")
-		
-		var group = drag.info.item.parent;
-		if( group == null ){
-			phantom.removeClass("phantom");
-			phantom.removeClass("group-content");
-			var group = new Group([$target, drag.info.$el], {container:phantom});
-		} else 
-			group.add( drag.info.$el );      
-	};
-  this.dropOptions.over = function(e){
-		var $target = iQ(this);
-
-		function elToRect($el){
-		 return new Rect( $el.position().left, $el.position().top, $el.width(), $el.height() );
-		}
-
-		var height = elToRect($target).height * 1.5 + 20;
-		var width = elToRect($target).width * 1.5 + 20;
-		var unionRect = elToRect($target).union( elToRect(drag.info.$el) );
-
-		var newLeft = unionRect.left + unionRect.width/2 - width/2;
-		var newTop = unionRect.top + unionRect.height/2 - height/2;
-
-		iQ(".phantom").remove();
-		var phantom = iQ("<div>")
-			.addClass('group phantom group-content')
-			.css({
-				width: width,
-				height: height,
-				position:"absolute",
-				top: newTop,
-				left: newLeft,
-				zIndex: -99
-			})
-			.appendTo("body")
-			.hide()
-			.fadeIn();
-			
-		$target.data("phantomGroup", phantom);      
-	};
-  this.dropOptions.out =  function(e){      
-		var phantom = iQ(this).data("phantomGroup");
-		if(phantom) { 
-			phantom.fadeOut(function(){
-				iQ(this).remove();
-			});
-		}
-	}
-  $div.draggable(this.dragOptions);
-  $div.droppable(this.dropOptions);
+  $div.draggable(window.Groups.dragOptions);
+  $div.droppable(window.Groups.dropOptions);
   
   $div.mousedown(function(e) {
     if(!Utils.isRightClick(e))
@@ -97,10 +39,6 @@ window.TabItem = function(container, tab) {
     else {
       if(!iQ(this).data('isDragging')) 
         self.zoomIn();
-
-
-
-
     }
   });
   
@@ -112,6 +50,15 @@ window.TabItem = function(container, tab) {
     .addClass('expander')
     .appendTo($div);
 
+  this.sizeExtra.x = parseInt($div.css('padding-left')) 
+      + parseInt($div.css('padding-right'));
+
+  this.sizeExtra.y = parseInt($div.css('padding-top')) 
+      + parseInt($div.css('padding-bottom'));
+
+  
+  this._init(container);
+
   this.reconnected = false;
   this._hasBeenDrawn = false;
   this.tab = tab;
@@ -121,7 +68,6 @@ window.TabItem = function(container, tab) {
   var self = this;
   this.tab.mirror.addOnClose(this, function(who, info) {
     TabItems.unregister(self);
-    Trenches.unregister(self.container);
   });   
      
   this.tab.mirror.addSubscriber(this, 'urlChanged', function(who, info) {
@@ -163,21 +109,10 @@ window.TabItem.prototype = iQ.extend(new Item(), {
   },
   
   
-  _getSizeExtra: function() {
-    var $container = iQ(this.container);
-
-    this.sizeExtra.x = parseInt($container.css('padding-left')) 
-        + parseInt($container.css('padding-right'));
-
-    this.sizeExtra.y = parseInt($container.css('padding-top')) 
-        + parseInt($container.css('padding-bottom'));
-
-    return new Point(this.sizeExtra);
-  },
-  
-  
   reloadBounds: function() {
-    var newBounds = Utils.getBounds(this.container);
+    var newBounds = iQ(this.container).bounds();
+    newBounds.width += this.sizeExtra.x;
+    newBounds.height += this.sizeExtra.y;
 
 
 
@@ -205,7 +140,7 @@ window.TabItem.prototype = iQ.extend(new Item(), {
     
     if(!options)
       options = {};
-
+    
     if(this._zoomPrep)
       this.bounds.copy(rect);
     else {
@@ -213,7 +148,6 @@ window.TabItem.prototype = iQ.extend(new Item(), {
       var $title = iQ('.tab-title', $container);
       var $thumb = iQ('.thumb', $container);
       var $close = iQ('.close', $container);
-      var extra = this._getSizeExtra();
       var css = {};
       
       const minFontSize = 8;
@@ -226,7 +160,7 @@ window.TabItem.prototype = iQ.extend(new Item(), {
         css.top = rect.top;
         
       if(rect.width != this.bounds.width) {
-        css.width = rect.width - extra.x;
+        css.width = rect.width - this.sizeExtra.x;
         var scale = css.width / TabItems.tabWidth;
         
         
@@ -235,9 +169,8 @@ window.TabItem.prototype = iQ.extend(new Item(), {
         css.fontSize = minFontSize + (maxFontSize-minFontSize)*(.5+.5*Math.tanh(2*scale-2))
       }
   
-      if(rect.height != this.bounds.height) {
-        css.height = rect.height - extra.y; 
-      }
+      if(rect.height != this.bounds.height) 
+        css.height = rect.height - this.sizeExtra.y; 
         
       if(iQ.isEmptyObject(css) && !options.force)
         return;
@@ -286,9 +219,6 @@ window.TabItem.prototype = iQ.extend(new Item(), {
     
     if(!isRect(this.bounds))
       Utils.trace('TabItem.setBounds: this.bounds is not a real rectangle!', this.bounds);
-		
-    if (this.parent === null)
-			this.setTrenches(rect);
 
     this.save();
   },
@@ -342,22 +272,13 @@ window.TabItem.prototype = iQ.extend(new Item(), {
         aspectRatio: true,
         minWidth: TabItems.minTabWidth,
         minHeight: TabItems.minTabWidth * (TabItems.tabHeight / TabItems.tabWidth),
-        start: function(){
-          Trenches.activateOthersTrenches(self.container);
-        },
         resize: function(){
           self.reloadBounds();
-          var bounds = self.getBounds();
-					
-					var newRect = Trenches.snap(bounds,false,true);
-					if (newRect) 
-						self.setBounds(bounds,true);
         },
         stop: function(){
           self.reloadBounds();
           self.setUserSize();        
           self.pushAway();
-          Trenches.disactivate();
         } 
       });
     } else {
@@ -398,7 +319,6 @@ window.TabItem.prototype = iQ.extend(new Item(), {
       var scale = window.innerWidth/orig.width;
       
       var tab = this.tab;
-      var mirror = tab.mirror;
       
       function onZoomDone(){
         UI.tabBar.show(false);              
