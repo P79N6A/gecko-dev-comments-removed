@@ -474,7 +474,7 @@ let UI = {
 
     gBrowser.updateTitlebar();
 #ifdef XP_MACOSX
-    this._setActiveTitleColor(true);
+    this.setTitlebarColors(true);
 #endif
     let event = document.createEvent("Events");
     event.initEvent("tabviewshown", true, false);
@@ -551,7 +551,7 @@ let UI = {
 
     gBrowser.updateTitlebar();
 #ifdef XP_MACOSX
-    this._setActiveTitleColor(false);
+    this.setTitlebarColors(false);
 #endif
     let event = document.createEvent("Events");
     event.initEvent("tabviewhidden", true, false);
@@ -568,13 +568,21 @@ let UI = {
   
   
   
-  _setActiveTitleColor: function UI__setActiveTitleColor(set) {
+  
+  
+  setTitlebarColors: function UI_setTitlebarColors(colors) {
     
     var mainWindow = gWindow.document.getElementById("main-window");
-    if (set)
+    if (colors === true) {
       mainWindow.setAttribute("activetitlebarcolor", "#C4C4C4");
-    else
+      mainWindow.setAttribute("inactivetitlebarcolor", "#EDEDED");
+    } else if (colors && "active" in colors && "inactive" in colors) {
+      mainWindow.setAttribute("activetitlebarcolor", colors.active);
+      mainWindow.setAttribute("inactivetitlebarcolor", colors.inactive);
+    } else {
       mainWindow.removeAttribute("activetitlebarcolor");
+      mainWindow.removeAttribute("inactivetitlebarcolor");
+    }
   },
 #endif
 
