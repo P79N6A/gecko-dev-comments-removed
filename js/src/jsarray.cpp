@@ -1229,8 +1229,6 @@ Class js::ArrayClass = {
     NULL,           
     NULL,           
     NULL,           
-    NULL,           
-    NULL,           
     array_trace,    
     {
         NULL,       
@@ -1289,8 +1287,6 @@ Class js::SlowArrayClass = {
     JS_ResolveStub,
     JS_ConvertStub,
     NULL,
-    NULL,           
-    NULL,           
     NULL,           
     NULL,           
     NULL,           

@@ -1332,8 +1332,6 @@ Class Debugger::jsclass = {
     NULL,                 
     NULL,                 
     NULL,                 
-    NULL,                 
-    NULL,                 
     Debugger::traceObject
 };
 
@@ -1861,8 +1859,6 @@ Class DebuggerScript_class = {
     JSCLASS_HAS_RESERVED_SLOTS(JSSLOT_DEBUGSCRIPT_COUNT),
     JS_PropertyStub, JS_PropertyStub, JS_PropertyStub, JS_StrictPropertyStub,
     JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub, NULL,
-    NULL,                 
-    NULL,                 
     NULL,                 
     NULL,                 
     NULL,                 
@@ -2969,8 +2965,6 @@ Class DebuggerObject_class = {
     NULL,                 
     NULL,                 
     NULL,                 
-    NULL,                 
-    NULL,                 
     DebuggerObject_trace
 };
 
@@ -3609,8 +3603,6 @@ Class DebuggerEnv_class = {
     JSCLASS_HAS_RESERVED_SLOTS(JSSLOT_DEBUGENV_COUNT),
     JS_PropertyStub, JS_PropertyStub, JS_PropertyStub, JS_StrictPropertyStub,
     JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub, NULL,
-    NULL,                 
-    NULL,                 
     NULL,                 
     NULL,                 
     NULL,                 

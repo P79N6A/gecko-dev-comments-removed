@@ -84,8 +84,6 @@ Class js::RegExpStaticsClass = {
     NULL,                    
     NULL,                    
     NULL,                    
-    NULL,                    
-    NULL,                    
     resc_trace
 };
 

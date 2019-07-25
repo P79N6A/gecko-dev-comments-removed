@@ -173,10 +173,8 @@ const js::Class ObjectWrapperParent::sCPOW_JSClass = {
       ObjectWrapperParent::CPOW_Convert,
       ObjectWrapperParent::CPOW_Finalize,
       nsnull, 
-      nsnull, 
       ObjectWrapperParent::CPOW_Call,
       ObjectWrapperParent::CPOW_Construct,
-      nsnull, 
       ObjectWrapperParent::CPOW_HasInstance,
       nsnull, 
       {

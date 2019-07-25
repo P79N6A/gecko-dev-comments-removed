@@ -928,10 +928,8 @@ enum LineOption {
 inline void
 CurrentScriptFileLineOrigin(JSContext *cx, uintN *linenop, LineOption = NOT_CALLED_FROM_JSOP_EVAL);
 
-}
-
 extern JSScript *
-js_CloneScript(JSContext *cx, JSScript *script);
+CloneScript(JSContext *cx, JSScript *script);
 
 
 
@@ -939,6 +937,8 @@ js_CloneScript(JSContext *cx, JSScript *script);
 
 
 extern JSBool
-js_XDRScript(JSXDRState *xdr, JSScript **scriptp);
+XDRScript(JSXDRState *xdr, JSScript **scriptp);
+
+}
 
 #endif

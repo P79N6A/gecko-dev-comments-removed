@@ -4295,8 +4295,6 @@ static Class prop_iter_class = {
     NULL,           
     NULL,           
     NULL,           
-    NULL,           
-    NULL,           
     prop_iter_trace
 };
 

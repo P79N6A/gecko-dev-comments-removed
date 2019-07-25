@@ -1354,13 +1354,6 @@ typedef JSBool
 
 
 
-typedef JSBool
-(* JSXDRObjectOp)(JSXDRState *xdr, JSObject **objp);
-
-
-
-
-
 
 typedef JSBool
 (* JSHasInstanceOp)(JSContext *cx, JSObject *obj, const jsval *v, JSBool *bp);
@@ -3397,15 +3390,12 @@ struct JSClass {
     JSFinalizeOp        finalize;
 
     
-    JSClassInternal     reserved0;
     JSCheckAccessOp     checkAccess;
     JSNative            call;
     JSNative            construct;
-    JSXDRObjectOp       xdrObject;
     JSHasInstanceOp     hasInstance;
     JSTraceOp           trace;
 
-    JSClassInternal     reserved1;
     void                *reserved[40];
 };
 
@@ -3489,8 +3479,8 @@ struct JSClass {
                                           & JSCLASS_CACHED_PROTO_MASK))
 
 
-#define JSCLASS_NO_INTERNAL_MEMBERS     0,{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
-#define JSCLASS_NO_OPTIONAL_MEMBERS     0,0,0,0,0,0,0,JSCLASS_NO_INTERNAL_MEMBERS
+#define JSCLASS_NO_INTERNAL_MEMBERS     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
+#define JSCLASS_NO_OPTIONAL_MEMBERS     0,0,0,0,0,JSCLASS_NO_INTERNAL_MEMBERS
 
 extern JS_PUBLIC_API(jsint)
 JS_IdArrayLength(JSContext *cx, JSIdArray *ida);

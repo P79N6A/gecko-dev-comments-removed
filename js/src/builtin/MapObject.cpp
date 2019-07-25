@@ -161,8 +161,6 @@ Class MapObject::class_ = {
     NULL,                    
     NULL,                    
     NULL,                    
-    NULL,                    
-    NULL,                    
     mark
 };
 
@@ -308,8 +306,6 @@ Class SetObject::class_ = {
     JS_ResolveStub,
     JS_ConvertStub,
     finalize,
-    NULL,                    
-    NULL,                    
     NULL,                    
     NULL,                    
     NULL,                    

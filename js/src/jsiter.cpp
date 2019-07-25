@@ -104,8 +104,6 @@ Class js::IteratorClass = {
     NULL,                    
     NULL,                    
     NULL,                    
-    NULL,                    
-    NULL,                    
     iterator_trace,
     {
         NULL,                
@@ -126,8 +124,6 @@ Class js::ElementIteratorClass = {
     JS_EnumerateStub,
     JS_ResolveStub,
     JS_ConvertStub,
-    NULL,                    
-    NULL,                    
     NULL,                    
     NULL,                    
     NULL,                    
@@ -1343,8 +1339,6 @@ Class js::StopIterationClass = {
     NULL,                    
     NULL,                    
     NULL,                    
-    NULL,                    
-    NULL,                    
     stopiter_hasInstance
 };
 
@@ -1429,8 +1423,6 @@ Class js::GeneratorClass = {
     JS_ResolveStub,
     JS_ConvertStub,
     generator_finalize,
-    NULL,                    
-    NULL,                    
     NULL,                    
     NULL,                    
     NULL,                    
