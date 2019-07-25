@@ -850,9 +850,10 @@ Execute(JSContext *cx, JSObject *chain, JSScript *script,
 
 
 
+
         initialVarObj = (down == cx->fp)
                         ? down->varobj(cx)
-                        : down->varobj(cx->containingCallStack(down));
+                        : down->varobj(cx->containingSegment(down));
     } else {
         fp->callobj = NULL;
         fp->argsobj = NULL;
@@ -3948,8 +3949,8 @@ BEGIN_CASE(JSOP_GVARINC)
         DO_OP();
     }
     slot = (uint32)lref.toInt32();
-    JS_ASSERT(fp->varobj(cx) == cx->activeCallStack()->getInitialVarObj());
-    JSObject *varobj = cx->activeCallStack()->getInitialVarObj();
+    JS_ASSERT(fp->varobj(cx) == cx->activeSegment()->getInitialVarObj());
+    JSObject *varobj = cx->activeSegment()->getInitialVarObj();
 
     
 
@@ -5309,8 +5310,8 @@ BEGIN_CASE(JSOP_CALLGVAR)
         op = (op == JSOP_GETGVAR) ? JSOP_NAME : JSOP_CALLNAME;
         DO_OP();
     }
-    JS_ASSERT(fp->varobj(cx) == cx->activeCallStack()->getInitialVarObj());
-    JSObject *varobj = cx->activeCallStack()->getInitialVarObj();
+    JS_ASSERT(fp->varobj(cx) == cx->activeSegment()->getInitialVarObj());
+    JSObject *varobj = cx->activeSegment()->getInitialVarObj();
 
     
 
@@ -5330,8 +5331,8 @@ BEGIN_CASE(JSOP_SETGVAR)
     JS_ASSERT(slot < GlobalVarCount(fp));
     METER_SLOT_OP(op, slot);
     const Value &rref = regs.sp[-1];
-    JS_ASSERT(fp->varobj(cx) == cx->activeCallStack()->getInitialVarObj());
-    JSObject *obj = cx->activeCallStack()->getInitialVarObj();
+    JS_ASSERT(fp->varobj(cx) == cx->activeSegment()->getInitialVarObj());
+    JSObject *obj = cx->activeSegment()->getInitialVarObj();
     const Value &lref = fp->slots()[slot];
     if (lref.isNull()) {
         

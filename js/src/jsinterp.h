@@ -190,7 +190,7 @@ struct JSStackFrame
 
 
 
-    JSObject *varobj(js::CallStack *cs) const;
+    JSObject *varobj(js::CallStackSegment *css) const;
 
     
     JSObject *varobj(JSContext *cx) const;
