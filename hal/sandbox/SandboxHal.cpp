@@ -4,12 +4,6 @@
 
 
 
-
-
-
-
-
-
 #include "Hal.h"
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/hal_sandbox/PHalChild.h"
