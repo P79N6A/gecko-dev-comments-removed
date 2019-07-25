@@ -2,9 +2,26 @@
 
 var arr = ['a', 'b', 'c', 'd'];
 var proxy = Proxy.create({
-    iterate: function () {
-        for (var i = 0; i < arr.length; i++)
-            yield arr[i];
+    getPropertyDescriptor: function (name) {
+        if (name == 'iterator') {
+            return {
+                configurable: false,
+                enumerable: false,
+                writeable: false,
+                value:  function () {
+                    for (var i = 0; i < arr.length; i++)
+                        yield arr[i];
+                }
+            };
+        }
+
+        
+        for (var obj = arr; obj; obj = Object.getPrototypeOf(obj)) {
+            var desc = Object.getOwnPropertyDescriptor(obj, name);
+            if (desc)
+                return desc;
+        }
+        return undefined;
     }
 });
 

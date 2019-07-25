@@ -51,8 +51,6 @@ using namespace mozilla;
 using namespace js;
 using namespace js::gc;
 
-static JSObject *iterator_iterator(JSContext *cx, HandleObject obj, JSBool keysonly);
-
 Class js::ElementIteratorClass = {
     "ElementIterator",
     JSCLASS_HAS_RESERVED_SLOTS(ElementIteratorObject::NumSlots),
@@ -73,7 +71,7 @@ Class js::ElementIteratorClass = {
         NULL,                
         NULL,                
         NULL,                
-        iterator_iterator,
+        NULL,                
         NULL                 
     }
 };
@@ -369,17 +367,7 @@ GetCustomIterator(JSContext *cx, HandleObject obj, unsigned flags, Value *vp)
     JS_CHECK_RECURSION(cx, return false);
 
     
-
-
-
-    if (flags == JSITER_FOR_OF) {
-        js_ReportValueErrorFlags(cx, JSREPORT_ERROR, JSMSG_NOT_ITERABLE,
-                                 JSDVG_SEARCH_STACK, ObjectValue(*obj), NULL, NULL, NULL);
-        return false;
-    }
-
-    
-    PropertyName *name = cx->runtime->atomState.iteratorAtom;
+    PropertyName *name = cx->runtime->atomState.iteratorIntrinsicAtom;
     if (!GetMethod(cx, obj, name, 0, vp))
         return false;
 
@@ -602,30 +590,42 @@ UpdateNativeIterator(NativeIterator *ni, JSObject *obj)
 bool
 GetIterator(JSContext *cx, HandleObject obj, unsigned flags, Value *vp)
 {
+    if (flags == JSITER_FOR_OF) {
+        
+        Value method;
+        if (!obj->getProperty(cx, obj, cx->runtime->atomState.iteratorAtom, &method))
+            return false;
+
+        
+        
+        
+        if (!method.isObject() || !method.toObject().isCallable()) {
+            char *bytes = DecompileValueGenerator(cx, JSDVG_SEARCH_STACK, ObjectOrNullValue(obj), NULL);
+            if (!bytes)
+                return false;
+            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_NOT_ITERABLE, bytes);
+            cx->free_(bytes);
+            return false;
+        }
+
+        if (!Invoke(cx, ObjectOrNullValue(obj), method, 0, NULL, vp))
+            return false;
+        return true;
+    }
+
     Vector<Shape *, 8> shapes(cx);
     uint32_t key = 0;
 
     bool keysOnly = (flags == JSITER_ENUMERATE);
 
     if (obj) {
-        
         if (JSIteratorOp op = obj->getClass()->ext.iteratorObject) {
-            
-
-
-
-
-
-
-
-            if (!(obj->getClass()->flags & JSCLASS_FOR_OF_ITERATION) || flags == JSITER_FOR_OF) {
-                JSObject *iterobj = op(cx, obj, !(flags & (JSITER_FOREACH | JSITER_FOR_OF)));
-                if (!iterobj)
-                    return false;
-                vp->setObject(*iterobj);
-                types::MarkIteratorUnknown(cx);
-                return true;
-            }
+            JSObject *iterobj = op(cx, obj, !(flags & JSITER_FOREACH));
+            if (!iterobj)
+                return false;
+            vp->setObject(*iterobj);
+            types::MarkIteratorUnknown(cx);
+            return true;
         }
 
         if (keysOnly) {
@@ -734,12 +734,6 @@ GetIterator(JSContext *cx, HandleObject obj, unsigned flags, Value *vp)
 
 }
 
-static JSObject *
-iterator_iterator(JSContext *cx, HandleObject obj, JSBool keysonly)
-{
-    return obj;
-}
-
 static JSBool
 Iterator(JSContext *cx, unsigned argc, Value *vp)
 {
@@ -795,18 +789,31 @@ iterator_next_impl(JSContext *cx, CallArgs args)
 }
 
 static JSBool
+iterator_iterator(JSContext *cx, unsigned argc, Value *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    args.rval() = args.thisv();
+    return true;
+}
+
+static JSBool
 iterator_next(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     return CallNonGenericMethod(cx, IsIterator, iterator_next_impl, args);
 }
 
-#define JSPROP_ROPERM   (JSPROP_READONLY | JSPROP_PERMANENT)
-
 static JSFunctionSpec iterator_methods[] = {
-    JS_FN(js_next_str,      iterator_next,  0,JSPROP_ROPERM),
+    JS_FN("iterator",  iterator_iterator,   0, 0),
+    JS_FN("next",      iterator_next,       0, 0),
     JS_FS_END
 };
+
+JSObject *
+iterator_iteratorObject(JSContext *cx, HandleObject obj, JSBool keysonly)
+{
+    return obj;
+}
 
 void
 PropertyIteratorObject::trace(JSTracer *trc, JSObject *obj)
@@ -846,7 +853,7 @@ Class PropertyIteratorObject::class_ = {
         NULL,                
         NULL,                
         NULL,                
-        iterator_iterator,
+        iterator_iteratorObject,
         NULL                 
     }
 };
@@ -856,11 +863,7 @@ static JSBool
 CloseGenerator(JSContext *cx, JSObject *genobj);
 #endif
 
-
-
-
-
-JSBool
+bool
 js::ValueToIterator(JSContext *cx, unsigned flags, Value *vp)
 {
     
@@ -1291,7 +1294,7 @@ stopiter_hasInstance(JSContext *cx, HandleObject obj, const Value *v, JSBool *bp
 }
 
 Class js::StopIterationClass = {
-    js_StopIteration_str,
+    "StopIteration",
     JSCLASS_HAS_CACHED_PROTO(JSProto_StopIteration) |
     JSCLASS_FREEZE_PROTO,
     JS_PropertyStub,         
@@ -1406,7 +1409,7 @@ Class js::GeneratorClass = {
         NULL,                
         NULL,                
         NULL,                
-        iterator_iterator,
+        iterator_iteratorObject,
         NULL                 
     }
 };
@@ -1737,11 +1740,14 @@ generator_close(JSContext *cx, unsigned argc, Value *vp)
     return CallNonGenericMethod(cx, IsGenerator, generator_close_impl, args);
 }
 
+#define JSPROP_ROPERM   (JSPROP_READONLY | JSPROP_PERMANENT)
+
 static JSFunctionSpec generator_methods[] = {
-    JS_FN(js_next_str,      generator_next,     0,JSPROP_ROPERM),
-    JS_FN(js_send_str,      generator_send,     1,JSPROP_ROPERM),
-    JS_FN(js_throw_str,     generator_throw,    1,JSPROP_ROPERM),
-    JS_FN(js_close_str,     generator_close,    0,JSPROP_ROPERM),
+    JS_FN("iterator",  iterator_iterator,  0, 0),
+    JS_FN("next",      generator_next,     0,JSPROP_ROPERM),
+    JS_FN("send",      generator_send,     1,JSPROP_ROPERM),
+    JS_FN("throw",     generator_throw,    1,JSPROP_ROPERM),
+    JS_FN("close",     generator_close,    0,JSPROP_ROPERM),
     JS_FS_END
 };
 

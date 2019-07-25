@@ -1,5 +1,7 @@
 
 
+Object.prototype.iterator = Array.prototype.iterator;
+
 var s;
 function g(obj) {
     for (var v of obj)

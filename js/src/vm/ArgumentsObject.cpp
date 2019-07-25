@@ -417,8 +417,7 @@ Class js::NormalArgumentsObjectClass = {
     "Arguments",
     JSCLASS_NEW_RESOLVE | JSCLASS_IMPLEMENTS_BARRIERS |
     JSCLASS_HAS_RESERVED_SLOTS(NormalArgumentsObject::RESERVED_SLOTS) |
-    JSCLASS_HAS_CACHED_PROTO(JSProto_Object) |
-    JSCLASS_FOR_OF_ITERATION,
+    JSCLASS_HAS_CACHED_PROTO(JSProto_Object),
     JS_PropertyStub,         
     args_delProperty,
     JS_PropertyStub,         
@@ -436,7 +435,7 @@ Class js::NormalArgumentsObjectClass = {
         NULL,       
         NULL,       
         NULL,       
-        JS_ElementIteratorStub,
+        NULL,       
         NULL,       
         false,      
     }
@@ -451,8 +450,7 @@ Class js::StrictArgumentsObjectClass = {
     "Arguments",
     JSCLASS_NEW_RESOLVE | JSCLASS_IMPLEMENTS_BARRIERS |
     JSCLASS_HAS_RESERVED_SLOTS(StrictArgumentsObject::RESERVED_SLOTS) |
-    JSCLASS_HAS_CACHED_PROTO(JSProto_Object) |
-    JSCLASS_FOR_OF_ITERATION,
+    JSCLASS_HAS_CACHED_PROTO(JSProto_Object),
     JS_PropertyStub,         
     args_delProperty,
     JS_PropertyStub,         
@@ -470,7 +468,7 @@ Class js::StrictArgumentsObjectClass = {
         NULL,       
         NULL,       
         NULL,       
-        JS_ElementIteratorStub,
+        NULL,       
         NULL,       
         false,      
     }
