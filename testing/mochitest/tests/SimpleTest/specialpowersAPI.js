@@ -546,8 +546,21 @@ SpecialPowersAPI.prototype = {
     }
 
     if (pendingActions.length > 0) {
+      
+      
+      
+      
+      
+      
+      
+      function delayedCallback() {
+        function delayAgain() {
+          content.window.setTimeout(callback, 0);
+        }
+        content.window.setTimeout(delayAgain, 0);
+      }
       this._prefEnvUndoStack.push(cleanupActions);
-      this._pendingPrefs.push([pendingActions, callback]);
+      this._pendingPrefs.push([pendingActions, delayedCallback]);
       this._applyPrefs();
     } else {
       content.window.setTimeout(callback, 0);
@@ -557,7 +570,15 @@ SpecialPowersAPI.prototype = {
   popPrefEnv: function(callback) {
     if (this._prefEnvUndoStack.length > 0) {
       
-      this._pendingPrefs.push([this._prefEnvUndoStack.pop(), callback]);
+      function delayedCallback() {
+        function delayAgain() {
+          content.window.setTimeout(callback, 0);
+        }
+        content.window.setTimeout(delayAgain, 0);
+      }
+      let cb = callback ? delayedCallback : null; 
+      
+      this._pendingPrefs.push([this._prefEnvUndoStack.pop(), cb]);
       this._applyPrefs();
     } else {
       content.window.setTimeout(callback, 0);
