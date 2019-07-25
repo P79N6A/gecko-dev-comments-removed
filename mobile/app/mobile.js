@@ -310,7 +310,6 @@ pref("privacy.item.sessions", true);
 pref("privacy.item.geolocation", true);
 pref("privacy.item.siteSettings", true);
 
-
 pref("plugins.enabled", true);
 
 
@@ -354,3 +353,6 @@ pref("app.support.baseURL", "http://support.mozilla.com/1/%APP%/%VERSION%/%OS%/%
 
 
 pref("security.alternate_certificate_error_page", "certerror");
+
+
+pref("intl.locale.matchOS", true);
