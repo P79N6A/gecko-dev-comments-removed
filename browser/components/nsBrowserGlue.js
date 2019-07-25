@@ -429,20 +429,18 @@ BrowserGlue.prototype = {
 
     
     
+    var win = this.getMostRecentBrowserWindow();
+    var browser = win.gBrowser;
     var changedIDs = AddonManager.getStartupChanges(AddonManager.STARTUP_CHANGE_INSTALLED);
-    if (changedIDs.length > 0) {
-      AddonManager.getAddonsByIDs(changedIDs, function(aAddons) {
-        var win = this.getMostRecentBrowserWindow();
-        var browser = win.gBrowser;
-        aAddons.forEach(function(aAddon) {
-          
-          if (!aAddon.userDisabled || !(aAddon.permissions & AddonManager.PERM_CAN_ENABLE))
-            return;
+    AddonManager.getAddonsByIDs(changedIDs, function(aAddons) {
+      aAddons.forEach(function(aAddon) {
+        
+        if (!aAddon.userDisabled || !(aAddon.permissions & AddonManager.PERM_CAN_ENABLE))
+          return;
 
-          browser.selectedTab = browser.addTab("about:newaddon?id=" + aAddon.id);
-        })
-      });
-    }
+        browser.selectedTab = browser.addTab("about:newaddon?id=" + aAddon.id);
+      })
+    });
 
     let keywordURLUserSet = Services.prefs.prefHasUserValue("keyword.URL");
     Services.telemetry.getHistogramById("FX_KEYWORD_URL_USERSET").add(keywordURLUserSet);
