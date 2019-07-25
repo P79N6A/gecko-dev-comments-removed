@@ -202,6 +202,11 @@ add_test(function test_GsmPDUHelper_calculateUserDataLength() {
   
   test_calc("\\\\\\\\\\\\\\",
             [PDU_DCS_MSG_CODING_7BITS_ALPHABET, 14, 0, 0, 0], [[3, 1], [0, 0]]);
+  
+  
+  
+  test_calc(ESCAPE + ESCAPE + ESCAPE + ESCAPE + ESCAPE + "\\",
+            [PDU_DCS_MSG_CODING_7BITS_ALPHABET, 2, 0, 0, 0], [[3, 0], [0, 0]]);
 
   run_next_test();
 });
