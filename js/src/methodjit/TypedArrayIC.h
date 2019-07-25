@@ -410,6 +410,7 @@ StoreToTypedArray(JSContext *cx, Assembler &masm, js::TypedArray *tarray, T addr
             return false;
 
         PreserveRegisters saveRHS(masm);
+        PreserveRegisters saveLHS(masm);
 
         
         
@@ -441,7 +442,7 @@ StoreToTypedArray(JSContext *cx, Assembler &masm, js::TypedArray *tarray, T addr
             
             
             
-            uint32 allowMask = Registers::TempRegs;
+            uint32 allowMask = Registers::AvailRegs;
             if (singleByte)
                 allowMask &= Registers::SingleByteRegs;
 
@@ -466,8 +467,22 @@ StoreToTypedArray(JSContext *cx, Assembler &masm, js::TypedArray *tarray, T addr
                     
                     
                     
+
                     
-                    saveRHS.preserve(Registers::mask2Regs(vr.typeReg(), vr.dataReg()));
+                    
+                    uint32 vrRegs = Registers::mask2Regs(vr.dataReg(), vr.typeReg());
+                    uint32 lhsMask = vrRegs & Assembler::maskAddress(address);
+
+                    
+                    
+                    uint32 rhsMask = vrRegs & ~lhsMask;
+
+                    
+                    saveRHS.preserve(rhsMask);
+                    saveLHS.preserve(lhsMask);
+
+                    
+                    saveMask &= ~lhsMask;
 
                     
                     masm.swap(vr.typeReg(), vr.dataReg());
@@ -491,6 +506,11 @@ StoreToTypedArray(JSContext *cx, Assembler &masm, js::TypedArray *tarray, T addr
         }
 
         GenConversionForIntArray(masm, tarray, vr, saveMask);
+
+        
+        
+        saveLHS.restore();
+
         if (vr.isConstant())
             StoreToIntArray(masm, tarray, Imm32(vr.value().toInt32()), address);
         else

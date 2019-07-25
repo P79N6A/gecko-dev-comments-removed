@@ -1301,7 +1301,7 @@ mjit::Compiler::jsop_setelem(bool popGuaranteed)
     
     
     
-    ic.volatileMask = frame.regsInUse() & Registers::TempRegs;
+    ic.volatileMask = frame.regsInUse();
 
     
     
