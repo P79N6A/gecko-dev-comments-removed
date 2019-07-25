@@ -134,6 +134,10 @@ public class TabsTray extends LinearLayout
 
         int index = Tabs.getInstance().getIndexOf(tab);
         if (msg == Tabs.TabEvents.ADDED) {
+            if (index == -1) 
+                return;
+            if (index > mTabsAdapter.getCount())
+                index = mTabsAdapter.getCount();
             mTabsAdapter.addTab(index, tab);
             mTabsAdapter.notifyDataSetChanged();
             return;
