@@ -47,9 +47,8 @@
 #include <stdio.h>
 #include "js-config.h"
 #include "jspubtd.h"
+#include "jsutil.h"
 #include "jsval.h"
-
-#include "js/Utility.h"
 
 
 
@@ -663,16 +662,6 @@ class Value
 #endif
     }
 
-#ifndef _MSC_VER
-  
-
-
-
-  private:
-#endif
-
-    jsval_layout data;
-
   private:
     void staticAssertions() {
         JS_STATIC_ASSERT(sizeof(JSValueType) == 1);
@@ -681,6 +670,8 @@ class Value
         JS_STATIC_ASSERT(sizeof(JSWhyMagic) <= 4);
         JS_STATIC_ASSERT(sizeof(Value) == 8);
     }
+
+    jsval_layout data;
 
     friend jsval_layout (::JSVAL_TO_IMPL)(Value);
     friend Value (::IMPL_TO_JSVAL)(jsval_layout l);
@@ -1117,14 +1108,6 @@ typedef JSBool
 
 typedef void
 (* JSErrorReporter)(JSContext *cx, const char *message, JSErrorReport *report);
-
-#ifdef MOZ_TRACE_JSCALLS
-typedef void
-(* JSFunctionCallback)(const JSFunction *fun,
-                       const JSScript *scr,
-                       const JSContext *cx,
-                       int entering);
-#endif
 
 
 
@@ -1658,16 +1641,6 @@ extern JS_PUBLIC_DATA(jsid) JSID_EMPTY;
 
 
 
-
-static JS_ALWAYS_INLINE JSBool
-JSVAL_IS_UNIVERSAL(jsval v)
-{
-    return !JSVAL_IS_GCTHING(v);
-}
-
-
-
-
 #define JSVAL_LOCK(cx,v)        (JSVAL_IS_GCTHING(v)                          \
                                  ? JS_LockGCThing(cx, JSVAL_TO_GCTHING(v))    \
                                  : JS_TRUE)
@@ -1722,17 +1695,6 @@ JSVAL_IS_UNIVERSAL(jsval v)
 
 
 #define JSFUN_GENERIC_NATIVE    JSFUN_LAMBDA
-
-
-
-
-
-
-
-
-
-extern JS_PUBLIC_API(JSBool)
-JS_CallOnce(JSCallOnceType *once, JSInitCallback func);
 
 
 
@@ -2109,9 +2071,6 @@ JS_GetRuntime(JSContext *cx);
 extern JS_PUBLIC_API(JSContext *)
 JS_ContextIterator(JSRuntime *rt, JSContext **iterp);
 
-extern JS_PUBLIC_API(JSContext *)
-JS_ContextIteratorUnlocked(JSRuntime *rt, JSContext **iterp);
-
 extern JS_PUBLIC_API(JSVersion)
 JS_GetVersion(JSContext *cx);
 
@@ -2168,7 +2127,7 @@ JS_StringToVersion(const char *string);
                                                    of the input string */
 
 
-
+#define JSOPTION_JIT            JS_BIT(11)      /* Enable JIT compilation. */
 
 #define JSOPTION_NO_SCRIPT_RVAL JS_BIT(12)      /* A promise to the compiler
                                                    that a null rval out-param
@@ -2181,21 +2140,18 @@ JS_StringToVersion(const char *string);
                                                    embedding. */
 
 #define JSOPTION_METHODJIT      JS_BIT(14)      /* Whole-method JIT. */
-
-
-
+#define JSOPTION_PROFILING      JS_BIT(15)      /* Profiler to make tracer/methodjit choices. */
 #define JSOPTION_METHODJIT_ALWAYS \
                                 JS_BIT(16)      /* Always whole-method JIT,
                                                    don't tune at run-time. */
 #define JSOPTION_PCCOUNT        JS_BIT(17)      
 
 #define JSOPTION_TYPE_INFERENCE JS_BIT(18)      /* Perform type inference. */
-#define JSOPTION_SOFTEN         JS_BIT(19)      /* Disable JIT hardening. */
 
 
 #define JSCOMPILEOPTION_MASK    (JSOPTION_XML)
 
-#define JSRUNOPTION_MASK        (JS_BITMASK(20) & ~JSCOMPILEOPTION_MASK)
+#define JSRUNOPTION_MASK        (JS_BITMASK(19) & ~JSCOMPILEOPTION_MASK)
 #define JSALLOPTION_MASK        (JSCOMPILEOPTION_MASK | JSRUNOPTION_MASK)
 
 extern JS_PUBLIC_API(uint32)
@@ -2253,48 +2209,32 @@ js_TransplantObjectWithWrapper(JSContext *cx,
                                JSObject *targetobj,
                                JSObject *targetwrapper);
 
-extern JS_FRIEND_API(void *)
-js_GetCompartmentPrivate(JSCompartment *compartment);
-
 #ifdef __cplusplus
 JS_END_EXTERN_C
 
 class JS_PUBLIC_API(JSAutoEnterCompartment)
 {
-    
-
-
-
-
-
-
-
-    void* bytes[sizeof(void*) == 4 && MOZ_ALIGNOF(JSUint64) == 8 ? 16 : 13];
-
-    
-
-
-
-
-
-
-
-    enum State {
-        STATE_UNENTERED,
-        STATE_SAME_COMPARTMENT,
-        STATE_OTHER_COMPARTMENT
-    } state;
+    JSCrossCompartmentCall *call;
 
   public:
-    JSAutoEnterCompartment() : state(STATE_UNENTERED) {}
+    JSAutoEnterCompartment() : call(NULL) {}
 
     bool enter(JSContext *cx, JSObject *target);
 
     void enterAndIgnoreErrors(JSContext *cx, JSObject *target);
 
-    bool entered() const { return state != STATE_UNENTERED; }
+    bool entered() const { return call != NULL; }
 
-    ~JSAutoEnterCompartment();
+    ~JSAutoEnterCompartment() {
+        if (call && call != reinterpret_cast<JSCrossCompartmentCall*>(1))
+            JS_LeaveCrossCompartmentCall(call);
+    }
+
+    void swap(JSAutoEnterCompartment &other) {
+        JSCrossCompartmentCall *tmp = call;
+        call = other.call;
+        other.call = tmp;
+    }
 };
 
 JS_BEGIN_EXTERN_C
@@ -2348,6 +2288,9 @@ JS_EnumerateResolvedStandardClasses(JSContext *cx, JSObject *obj,
 extern JS_PUBLIC_API(JSBool)
 JS_GetClassObject(JSContext *cx, JSObject *obj, JSProtoKey key,
                   JSObject **objp);
+
+extern JS_PUBLIC_API(JSObject *)
+JS_GetScopeChain(JSContext *cx);
 
 extern JS_PUBLIC_API(JSObject *)
 JS_GetGlobalForObject(JSContext *cx, JSObject *obj);
@@ -2657,7 +2600,7 @@ JS_UnlockGCThingRT(JSRuntime *rt, void *thing);
 
 
 extern JS_PUBLIC_API(void)
-JS_SetExtraGCRootsTracer(JSRuntime *rt, JSTraceDataOp traceOp, void *data);
+JS_SetExtraGCRoots(JSRuntime *rt, JSTraceDataOp traceOp, void *data);
 
 
 
@@ -2711,7 +2654,6 @@ typedef void
 (* JSTraceCallback)(JSTracer *trc, void *thing, JSGCTraceKind kind);
 
 struct JSTracer {
-    JSRuntime           *runtime;
     JSContext           *context;
     JSTraceCallback     callback;
     JSTraceNamePrinter  debugPrinter;
@@ -2812,7 +2754,6 @@ JS_CallTracer(JSTracer *trc, void *thing, JSGCTraceKind kind);
 
 # define JS_TRACER_INIT(trc, cx_, callback_)                                  \
     JS_BEGIN_MACRO                                                            \
-        (trc)->runtime = (cx_)->runtime;                                      \
         (trc)->context = (cx_);                                               \
         (trc)->callback = (callback_);                                        \
         (trc)->debugPrinter = NULL;                                           \
@@ -2833,9 +2774,6 @@ extern JS_PUBLIC_API(void)
 JS_PrintTraceThingInfo(char *buf, size_t bufsize, JSTracer *trc,
                        void *thing, JSGCTraceKind kind, JSBool includeDetails);
 
-extern JS_PUBLIC_API(const char *)
-JS_GetTraceEdgeName(JSTracer *trc, char *buffer, int bufferSize);
-
 
 
 
@@ -2855,105 +2793,6 @@ extern JS_PUBLIC_API(JSBool)
 JS_DumpHeap(JSContext *cx, FILE *fp, void* startThing, JSGCTraceKind kind,
             void *thingToFind, size_t maxDepth, void *thingToIgnore);
 
-#endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-extern JS_PUBLIC_API(void)
-JS_RegisterReference(void **ref);
-
-extern JS_PUBLIC_API(void)
-JS_ModifyReference(void **ref, void *newval);
-
-extern JS_PUBLIC_API(void)
-JS_UnregisterReference(void **ref);
-
-extern JS_PUBLIC_API(void)
-JS_UnregisterReferenceRT(JSRuntime *rt, void **ref);
-
-
-extern JS_PUBLIC_API(void)
-JS_RegisterValue(jsval *val);
-
-extern JS_PUBLIC_API(void)
-JS_ModifyValue(jsval *val, jsval newval);
-
-extern JS_PUBLIC_API(void)
-JS_UnregisterValue(jsval *val);
-
-extern JS_PUBLIC_API(void)
-JS_UnregisterValueRT(JSRuntime *rt, jsval *val);
-
-extern JS_PUBLIC_API(JSTracer *)
-JS_GetIncrementalGCTracer(JSRuntime *rt);
-
-#ifdef __cplusplus
-JS_END_EXTERN_C
-
-namespace JS {
-
-class HeapPtrObject
-{
-    JSObject *value;
-
-  public:
-    HeapPtrObject() : value(NULL) { JS_RegisterReference((void **) &value); }
-
-    HeapPtrObject(JSObject *obj) : value(obj) { JS_RegisterReference((void **) &value); }
-
-    
-    ~HeapPtrObject() { JS_ASSERT(!value); }
-
-    void finalize(JSRuntime *rt) {
-        JS_UnregisterReferenceRT(rt, (void **) &value);
-        value = NULL;
-    }
-    void finalize(JSContext *cx) { finalize(JS_GetRuntime(cx)); }
-
-    void init(JSObject *obj) { value = obj; }
-
-    JSObject *get() const { return value; }
-
-    HeapPtrObject &operator=(JSObject *obj) {
-        JS_ModifyReference((void **) &value, obj);
-        return *this;
-    }
-
-    JSObject &operator*() const { return *value; }
-    JSObject *operator->() const { return value; }
-    operator JSObject *() const { return value; }
-};
-
-} 
-
-JS_BEGIN_EXTERN_C
 #endif
 
 
@@ -3154,12 +2993,13 @@ struct JSClass {
 #define JSCLASS_NEW_ENUMERATE           (1<<1)  /* has JSNewEnumerateOp hook */
 #define JSCLASS_NEW_RESOLVE             (1<<2)  /* has JSNewResolveOp hook */
 #define JSCLASS_PRIVATE_IS_NSISUPPORTS  (1<<3)  /* private is (nsISupports *) */
-#define JSCLASS_CONCURRENT_FINALIZER    (1<<4)  /* finalize is called on background thread */
-#define JSCLASS_NEW_RESOLVE_GETS_START  (1<<5)  /* JSNewResolveOp gets starting
+#define JSCLASS_NEW_RESOLVE_GETS_START  (1<<4)  /* JSNewResolveOp gets starting
                                                    object in prototype chain
                                                    passed in via *objp in/out
                                                    parameter */
-#define JSCLASS_DOCUMENT_OBSERVER       (1<<6)  
+#define JSCLASS_CONSTRUCT_PROTOTYPE     (1<<5)  
+
+#define JSCLASS_DOCUMENT_OBSERVER       (1<<6)  /* DOM document observer */
 
 
 
@@ -3188,8 +3028,6 @@ struct JSClass {
 #define JSCLASS_FREEZE_PROTO            (1<<(JSCLASS_HIGH_FLAGS_SHIFT+5))
 #define JSCLASS_FREEZE_CTOR             (1<<(JSCLASS_HIGH_FLAGS_SHIFT+6))
 
-#define JSCLASS_XPCONNECT_GLOBAL        (1<<(JSCLASS_HIGH_FLAGS_SHIFT+7))
-
 
 #define JSGLOBAL_FLAGS_CLEARED          0x1
 
@@ -3205,13 +3043,8 @@ struct JSClass {
 
 
 #define JSCLASS_GLOBAL_SLOT_COUNT      (JSProto_LIMIT * 3 + 8)
-#define JSCLASS_GLOBAL_FLAGS_WITH_SLOTS(n)                                    \
-    (JSCLASS_IS_GLOBAL | JSCLASS_HAS_RESERVED_SLOTS(JSCLASS_GLOBAL_SLOT_COUNT + (n)))
 #define JSCLASS_GLOBAL_FLAGS                                                  \
-    JSCLASS_GLOBAL_FLAGS_WITH_SLOTS(0)
-#define JSCLASS_HAS_GLOBAL_FLAG_AND_SLOTS(clasp)                              \
-  (((clasp)->flags & JSCLASS_IS_GLOBAL)                                       \
-   && JSCLASS_RESERVED_SLOTS(clasp) >= JSCLASS_GLOBAL_SLOT_COUNT)
+    (JSCLASS_IS_GLOBAL | JSCLASS_HAS_RESERVED_SLOTS(JSCLASS_GLOBAL_SLOT_COUNT))
 
 
 #define JSCLASS_CACHED_PROTO_SHIFT      (JSCLASS_HIGH_FLAGS_SHIFT + 8)
@@ -3227,11 +3060,10 @@ struct JSClass {
 #define JSCLASS_NO_INTERNAL_MEMBERS     0,{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
 #define JSCLASS_NO_OPTIONAL_MEMBERS     0,0,0,0,0,0,0,JSCLASS_NO_INTERNAL_MEMBERS
 
-extern JS_PUBLIC_API(jsint)
-JS_IdArrayLength(JSContext *cx, JSIdArray *ida);
-
-extern JS_PUBLIC_API(jsid)
-JS_IdArrayGet(JSContext *cx, JSIdArray *ida, jsint index);
+struct JSIdArray {
+    jsint length;
+    jsid  vector[1];    
+};
 
 extern JS_PUBLIC_API(void)
 JS_DestroyIdArray(JSContext *cx, JSIdArray *ida);
@@ -3251,15 +3083,6 @@ JS_IdToValue(JSContext *cx, jsid id, jsval *vp);
 #define JSRESOLVE_DECLARING     0x08    /* var, const, or function prolog op */
 #define JSRESOLVE_CLASSNAME     0x10    /* class name used when constructing */
 #define JSRESOLVE_WITH          0x20    /* resolve inside a with statement */
-
-
-
-
-
-
-
-extern JS_PUBLIC_API(JSBool)
-JS_DefaultValue(JSContext *cx, JSObject *obj, JSType hint, jsval *vp);
 
 extern JS_PUBLIC_API(JSBool)
 JS_PropertyStub(JSContext *cx, JSObject *obj, jsid id, jsval *vp);
@@ -3556,9 +3379,6 @@ extern JS_PUBLIC_API(JSBool)
 JS_GetPropertyByIdDefault(JSContext *cx, JSObject *obj, jsid id, jsval def, jsval *vp);
 
 extern JS_PUBLIC_API(JSBool)
-JS_ForwardGetPropertyTo(JSContext *cx, JSObject *obj, jsid id, JSObject *onBehalfOf, jsval *vp);
-
-extern JS_PUBLIC_API(JSBool)
 JS_GetMethodById(JSContext *cx, JSObject *obj, jsid id, JSObject **objp,
                  jsval *vp);
 
@@ -3689,18 +3509,6 @@ JS_LookupElement(JSContext *cx, JSObject *obj, uint32 index, jsval *vp);
 
 extern JS_PUBLIC_API(JSBool)
 JS_GetElement(JSContext *cx, JSObject *obj, uint32 index, jsval *vp);
-
-extern JS_PUBLIC_API(JSBool)
-JS_ForwardGetElementTo(JSContext *cx, JSObject *obj, uint32 index, JSObject *onBehalfOf, jsval *vp);
-
-
-
-
-
-
-extern JS_PUBLIC_API(JSBool)
-JS_GetElementIfPresent(JSContext *cx, JSObject *obj, uint32 index, JSObject *onBehalfOf,
-                       jsval *vp, JSBool* present);
 
 extern JS_PUBLIC_API(JSBool)
 JS_SetElement(JSContext *cx, JSObject *obj, uint32 index, jsval *vp);
@@ -3869,9 +3677,6 @@ extern JS_PUBLIC_API(JSBool)
 JS_ObjectIsCallable(JSContext *cx, JSObject *obj);
 
 extern JS_PUBLIC_API(JSBool)
-JS_IsNativeFunction(JSObject *funobj, JSNative call);
-
-extern JS_PUBLIC_API(JSBool)
 JS_DefineFunctions(JSContext *cx, JSObject *obj, JSFunctionSpec *fs);
 
 extern JS_PUBLIC_API(JSFunction *)
@@ -3956,7 +3761,7 @@ JS_CompileFileHandleForPrincipalsVersion(JSContext *cx, JSObject *obj,
                                          JSVersion version);
 
 extern JS_PUBLIC_API(JSObject *)
-JS_GetGlobalFromScript(JSScript *script);
+JS_GetObjectFromScript(JSScript *script);
 
 extern JS_PUBLIC_API(JSFunction *)
 JS_CompileFunction(JSContext *cx, JSObject *obj, const char *name,
@@ -4188,23 +3993,6 @@ JS_SaveFrameChain(JSContext *cx);
 
 extern JS_PUBLIC_API(void)
 JS_RestoreFrameChain(JSContext *cx);
-
-#ifdef MOZ_TRACE_JSCALLS
-
-
-
-
-
-
-
-
-
-extern JS_PUBLIC_API(void)
-JS_SetFunctionCallback(JSContext *cx, JSFunctionCallback fcb);
-
-extern JS_PUBLIC_API(JSFunctionCallback)
-JS_GetFunctionCallback(JSContext *cx);
-#endif 
 
 
 
@@ -4833,6 +4621,8 @@ JS_ObjectIsDate(JSContext *cx, JSObject *obj);
 #define JSREG_GLOB      0x02    /* global exec, creates array of matches */
 #define JSREG_MULTILINE 0x04    /* treat ^ and $ as begin and end of line */
 #define JSREG_STICKY    0x08    /* only match starting at lastIndex */
+#define JSREG_FLAT      0x10    /* parse as a flat regexp */
+#define JSREG_NOCOMPILE 0x20    /* do not try to compile to native code */
 
 extern JS_PUBLIC_API(JSObject *)
 JS_NewRegExpObject(JSContext *cx, JSObject *obj, char *bytes, size_t length, uintN flags);
@@ -4959,51 +4749,6 @@ JS_ClearContextThread(JSContext *cx);
 
 
 
-
-
-
-
-
-
-
-extern JS_PUBLIC_API(void)
-JS_AbortIfWrongThread(JSRuntime *rt);
-
-extern JS_PUBLIC_API(void)
-JS_ClearRuntimeThread(JSRuntime *rt);
-
-extern JS_PUBLIC_API(void)
-JS_SetRuntimeThread(JSRuntime *rt);
-
-#ifdef __cplusplus
-JS_END_EXTERN_C
-
-class JSAutoSetRuntimeThread
-{
-    JSRuntime *runtime;
-
-  public:
-    JSAutoSetRuntimeThread(JSRuntime *runtime) : runtime(runtime) {
-        JS_SetRuntimeThread(runtime);
-    }
-
-    ~JSAutoSetRuntimeThread() {
-        JS_ClearRuntimeThread(runtime);
-    }
-};
-
-JS_BEGIN_EXTERN_C
-#endif
-
-
-
-
-
-
-
-
-
-
 static JS_ALWAYS_INLINE JSBool
 JS_IsConstructing(JSContext *cx, const jsval *vp)
 {
@@ -5018,6 +4763,50 @@ JS_IsConstructing(JSContext *cx, const jsval *vp)
 #endif
 
     return JSVAL_IS_MAGIC_IMPL(JSVAL_TO_IMPL(vp[1]));
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static JS_ALWAYS_INLINE JSBool
+JS_IsConstructing_PossiblyWithGivenThisObject(JSContext *cx, const jsval *vp,
+                                              JSObject **maybeThis)
+{
+    jsval_layout l;
+    JSBool isCtor;
+
+#ifdef DEBUG
+    JSObject *callee = JSVAL_TO_OBJECT(JS_CALLEE(cx, vp));
+    if (JS_ObjectIsFunction(cx, callee)) {
+        JSFunction *fun = JS_ValueToFunction(cx, JS_CALLEE(cx, vp));
+        JS_ASSERT((JS_GetFunctionFlags(fun) & JSFUN_CONSTRUCTOR) != 0);
+    } else {
+        JS_ASSERT(JS_GET_CLASS(cx, callee)->construct != NULL);
+    }
+#endif
+
+    isCtor = JSVAL_IS_MAGIC_IMPL(JSVAL_TO_IMPL(vp[1]));
+    if (isCtor)
+        *maybeThis = MAGIC_JSVAL_TO_OBJECT_OR_NULL_IMPL(l);
+    return isCtor;
 }
 
 
@@ -5043,18 +4832,6 @@ JS_SetGCZeal(JSContext *cx, uint8 zeal, uint32 frequency, JSBool compartment);
 extern JS_PUBLIC_API(void)
 JS_ScheduleGC(JSContext *cx, uint32 count, JSBool compartment);
 #endif
-
-
-
-
-extern JS_PUBLIC_API(JSBool)
-JS_IndexToId(JSContext *cx, uint32 index, jsid *id);
-
-
-
-
-extern JS_PUBLIC_API(JSBool)
-JS_IsIdentifier(JSContext *cx, JSString *str, JSBool *isIdentifier);
 
 JS_END_EXTERN_C
 

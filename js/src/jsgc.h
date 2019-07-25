@@ -532,7 +532,7 @@ struct Arena {
     }
 
     template <typename T>
-    bool finalize(JSContext *cx, AllocKind thingKind, size_t thingSize);
+    bool finalize(JSContext *cx, AllocKind thingKind, size_t thingSize, bool background);
 };
 
 
