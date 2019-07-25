@@ -50,7 +50,6 @@
 #include <string.h>
 
 #ifdef __cplusplus
-#include <utility>
 
 
 namespace JS {}
@@ -834,18 +833,7 @@ class MoveRef {
     explicit MoveRef(T &t) : pointer(&t) { }
     T &operator*()  const { return *pointer; }
     T *operator->() const { return  pointer; }
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
-    
-
-
-
-
-    
-
-    operator T&& ()  const { return std::move(*pointer); }
-#else
-    operator T& ()   const { return *pointer; }
-#endif
+    operator T &()  const { return *pointer; }
   private:
     T *pointer;
 };
