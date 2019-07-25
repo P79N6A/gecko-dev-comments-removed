@@ -299,13 +299,6 @@ nsGIOMimeApp::SetAsDefaultForURIScheme(nsACString const& aURIScheme)
   return NS_OK;
 }
 
-nsresult
-nsGIOService::Init()
-{
-  
-  return NS_OK;
-}
-
 NS_IMPL_ISUPPORTS1(nsGIOService, nsIGIOService)
 
 NS_IMETHODIMP
