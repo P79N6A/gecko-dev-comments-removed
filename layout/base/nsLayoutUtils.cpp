@@ -2229,8 +2229,7 @@ nsLayoutUtils::ComputeHeightDependentValue(
   
   
   NS_PRECONDITION(NS_AUTOHEIGHT != aContainingBlockHeight ||
-                  (aCoord.GetUnit() != eStyleUnit_Percent &&
-                   !(aCoord.IsCalcUnit() && aCoord.CalcHasPercent())),
+                  !aCoord.HasPercent(),
                   "unexpected containing block height");
 
   if (aCoord.IsCoordPercentCalcUnit()) {
