@@ -466,16 +466,8 @@ public class PanZoomController
             }
         }
 
-        mX.setFlingState(Axis.FlingStates.PANNING);
-        mY.setFlingState(Axis.FlingStates.PANNING);
-
-        if (!mOverridePanning) {
-            mX.applyEdgeResistance();
-            mY.applyEdgeResistance();
-        }
-        mX.displace();
-        mY.displace();
-
+        mX.setFlingState(Axis.FlingStates.PANNING); mY.setFlingState(Axis.FlingStates.PANNING);
+        mX.displace(); mY.displace();
         updatePosition();
     }
 
@@ -730,8 +722,9 @@ public class PanZoomController
         
         private float getExcess() {
             switch (getOverscroll()) {
-            case MINUS:     return Math.min(-getOrigin(), getPageLength() - getViewportEnd());
-            case PLUS:      return Math.min(getOrigin(), getViewportEnd() - getPageLength());
+            case MINUS:     return -getOrigin();
+            case PLUS:      return getViewportEnd() - getPageLength();
+            case BOTH:      return getViewportEnd() - getPageLength() - getOrigin();
             default:        return 0.0f;
             }
         }
@@ -745,10 +738,12 @@ public class PanZoomController
         }
 
         
-        public void applyEdgeResistance() {
+
+
+
+        public float getEdgeResistance() {
             float excess = getExcess();
-            if (excess > 0.0f)
-                velocity *= SNAP_LIMIT - excess / getViewportLength();
+            return (excess > 0.0f) ? SNAP_LIMIT - excess / getViewportLength() : 1.0f;
         }
 
         
@@ -800,7 +795,7 @@ public class PanZoomController
                 return;
 
             if (mFlingState == FlingStates.PANNING)
-                displacement += lastTouchPos - touchPos;
+                displacement += (lastTouchPos - touchPos) * getEdgeResistance();
             else
                 displacement += velocity;
         }
@@ -865,8 +860,19 @@ public class PanZoomController
         if (mState == PanZoomState.ANIMATED_ZOOM)
             return false;
 
-        float newZoomFactor = mController.getZoomFactor() *
-                              (detector.getCurrentSpan() / detector.getPreviousSpan());
+        float spanRatio = detector.getCurrentSpan() / detector.getPreviousSpan();
+
+        
+
+
+
+        float resistance = Math.min(mX.getEdgeResistance(), mY.getEdgeResistance());
+        if (spanRatio > 1.0f)
+            spanRatio = 1.0f + (spanRatio - 1.0f) * resistance;
+        else
+            spanRatio = 1.0f - (1.0f - spanRatio) * resistance;
+
+        float newZoomFactor = mController.getZoomFactor() * spanRatio;
 
         mController.scrollBy(new PointF(mLastZoomFocus.x - detector.getFocusX(),
                                         mLastZoomFocus.y - detector.getFocusY()));
