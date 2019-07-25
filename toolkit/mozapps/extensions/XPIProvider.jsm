@@ -127,7 +127,7 @@ const TOOLKIT_ID                      = "toolkit@mozilla.org";
 
 const BRANCH_REGEXP                   = /^([^\.]+\.[0-9]+[a-z]*).*/gi;
 
-const DB_SCHEMA                       = 9;
+const DB_SCHEMA                       = 12;
 const REQ_VERSION                     = 2;
 
 #ifdef MOZ_COMPATIBILITY_NIGHTLY
@@ -156,7 +156,7 @@ const DB_METADATA        = ["syncGUID",
                             "applyBackgroundUpdates"];
 const DB_BOOL_METADATA   = ["visible", "active", "userDisabled", "appDisabled",
                             "pendingUninstall", "bootstrap", "skinnable",
-                            "softDisabled", "foreignInstall",
+                            "softDisabled", "isForeignInstall",
                             "hasBinaryComponents", "strictCompatibility"];
 
 
@@ -164,7 +164,7 @@ const DB_BOOL_METADATA   = ["visible", "active", "userDisabled", "appDisabled",
 
 const DB_MIGRATE_METADATA= ["installDate", "userDisabled", "softDisabled",
                             "sourceURI", "applyBackgroundUpdates",
-                            "releaseNotesURI", "foreignInstall", "syncGUID"];
+                            "releaseNotesURI", "isForeignInstall", "syncGUID"];
 
 const BOOTSTRAP_REASONS = {
   APP_STARTUP     : 1,
@@ -2597,6 +2597,11 @@ var XPIProvider = {
 
 
 
+
+
+
+
+
     function addMetadata(aInstallLocation, aId, aAddonState, aMigrateData) {
       LOG("New add-on " + aId + " installed in " + aInstallLocation.name);
 
@@ -2607,17 +2612,20 @@ var XPIProvider = {
       if (aInstallLocation.name in aManifests)
         newAddon = aManifests[aInstallLocation.name][aId];
 
+      
+      
+      let isNewInstall = !aActiveBundles && !aMigrateData;
+ 
+      
+      
+      let isDetectedInstall = isNewInstall && !newAddon;
+
+      
       try {
-        
         if (!newAddon) {
           
           let file = aInstallLocation.getLocationForID(aId);
           newAddon = loadManifestFromFile(file);
-
-          
-          if (newAddon.type != "theme" || newAddon.internalName != XPIProvider.defaultSkin)
-            newAddon.foreignInstall = true;
-
         }
         
         if (newAddon.id != aId)
@@ -2640,15 +2648,10 @@ var XPIProvider = {
       newAddon.visible = !(newAddon.id in visibleAddons);
       newAddon.installDate = aAddonState.mtime;
       newAddon.updateDate = aAddonState.mtime;
+      newAddon.foreignInstall = isDetectedInstall;
 
-      
-      
-      let disablingScopes = Prefs.getIntPref(PREF_EM_AUTO_DISABLED_SCOPES, 0);
-      if (newAddon.foreignInstall && aInstallLocation.scope & disablingScopes)
-        newAddon.userDisabled = true;
-
-      
       if (aMigrateData) {
+        
         LOG("Migrating data from old database");
 
         DB_MIGRATE_METADATA.forEach(function(aProp) {
@@ -2663,6 +2666,10 @@ var XPIProvider = {
 
         
         
+        newAddon.foreignInstall |= aInstallLocation.name != KEY_APP_PROFILE;
+
+        
+        
         
         if (aMigrateData.version == newAddon.version) {
           LOG("Migrating compatibility info");
@@ -2674,6 +2681,18 @@ var XPIProvider = {
         
         applyBlocklistChanges(newAddon, newAddon, aOldAppVersion,
                               aOldPlatformVersion);
+      }
+
+      
+      if (newAddon.type == "theme" && newAddon.internalName == XPIProvider.defaultSkin)
+        newAddon.foreignInstall = false;
+
+      if (isDetectedInstall && newAddon.foreignInstall) {
+        
+        
+        let disablingScopes = Prefs.getIntPref(PREF_EM_AUTO_DISABLED_SCOPES, 0);
+        if (aInstallLocation.scope & disablingScopes)
+          newAddon.userDisabled = true;
       }
 
       if (aActiveBundles) {
@@ -2714,10 +2733,7 @@ var XPIProvider = {
 
       if (newAddon.visible) {
         
-        
-        
-        if (!aMigrateData && (!(aInstallLocation.name in aManifests) ||
-                              !(aId in aManifests[aInstallLocation.name]))) {
+        if (isDetectedInstall) {
           
           
           if (AddonManager.getStartupChanges(AddonManager.STARTUP_CHANGE_UNINSTALLED)
@@ -3948,7 +3964,7 @@ const FIELDS_ADDON = "internal_id, id, syncGUID, location, version, type, " +
                      "appDisabled, pendingUninstall, descriptor, " +
                      "installDate, updateDate, applyBackgroundUpdates, bootstrap, " +
                      "skinnable, size, sourceURI, releaseNotesURI, softDisabled, " +
-                     "foreignInstall, hasBinaryComponents, strictCompatibility";
+                     "isForeignInstall, hasBinaryComponents, strictCompatibility";
 
 
 
@@ -4097,7 +4113,7 @@ var XPIDatabase = {
                             ":descriptor, :installDate, :updateDate, " +
                             ":applyBackgroundUpdates, :bootstrap, :skinnable, " +
                             ":size, :sourceURI, :releaseNotesURI, :softDisabled, " +
-                            ":foreignInstall, :hasBinaryComponents, " +
+                            ":isForeignInstall, :hasBinaryComponents, " +
                             ":strictCompatibility)",
     addAddonMetadata_addon_locale: "INSERT INTO addon_locale VALUES " +
                                    "(:internal_id, :name, :locale)",
@@ -4637,7 +4653,7 @@ var XPIDatabase = {
                                   "bootstrap INTEGER, skinnable INTEGER, " +
                                   "size INTEGER, sourceURI TEXT, " +
                                   "releaseNotesURI TEXT, softDisabled INTEGER, " +
-                                  "foreignInstall INTEGER, " +
+                                  "isForeignInstall INTEGER, " +
                                   "hasBinaryComponents INTEGER, " +
                                   "strictCompatibility INTEGER, " +
                                   "UNIQUE (id, location), " +
@@ -7053,6 +7069,13 @@ AddonInternal.prototype = {
   sourceURI: null,
   releaseNotesURI: null,
   foreignInstall: false,
+
+  get isForeignInstall() {
+    return this.foreignInstall;
+  },
+  set isForeignInstall(aVal) {
+    this.foreignInstall = aVal;
+  },
 
   get selectedLocale() {
     if (this._selectedLocale)
