@@ -33,6 +33,9 @@ PlatformThreadId PlatformThread::CurrentId() {
   
 #if defined(OS_MACOSX)
   return mach_thread_self();
+#elif defined (__OpenBSD__)
+  
+  return (intptr_t)(pthread_self());
 #elif defined(OS_LINUX)
   return syscall(__NR_gettid);
 #endif
