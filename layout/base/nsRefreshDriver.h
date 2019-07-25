@@ -238,6 +238,11 @@ public:
 			   mozFlushType aFlushType);
 #endif
 
+  
+
+
+  static PRInt32 DefaultInterval();
+
 private:
   typedef nsTObserverArray<nsARefreshObserver*> ObserverArray;
   typedef nsTHashtable<nsISupportsHashKey> RequestTable;

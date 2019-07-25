@@ -1341,7 +1341,17 @@ protected:
     nsRootPresContext* mPresContext;
   };
 
+  friend class nsPresContext;
+  void CancelUpdatePluginGeometryTimer()
+  {
+    if (mUpdatePluginGeometryTimer) {
+      mUpdatePluginGeometryTimer->Cancel();
+      mUpdatePluginGeometryTimer = nsnull;
+    }
+  }
+
   nsCOMPtr<nsITimer> mNotifyDidPaintTimer;
+  nsCOMPtr<nsITimer> mUpdatePluginGeometryTimer;
   nsTHashtable<nsPtrHashKey<nsObjectFrame> > mRegisteredPlugins;
   
   
