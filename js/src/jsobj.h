@@ -326,14 +326,6 @@ struct JSObject : public js::ObjectImpl
 
     inline bool isBoundFunction() const;
 
-    
-
-
-
-
-    inline bool isSystem() const;
-    inline bool setSystem(JSContext *cx);
-
     inline bool hasSpecialEquality() const;
 
     inline bool watched() const;
