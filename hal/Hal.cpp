@@ -38,6 +38,8 @@
 
 
 #include "Hal.h"
+#include "HalImpl.h"
+#include "HalSandbox.h"
 #include "mozilla/Util.h"
 #include "nsThreadUtils.h"
 #include "nsXULAppAPI.h"
@@ -261,9 +263,6 @@ UnregisterBatteryObserver(BatteryObserver* aBatteryObserver)
   AssertMainThread();
   sBatteryObservers.RemoveObserver(aBatteryObserver);
 }
-
-
-
 
 void
 GetCurrentBatteryInformation(BatteryInformation* aBatteryInfo)

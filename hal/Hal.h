@@ -40,42 +40,26 @@
 #ifndef mozilla_Hal_h
 #define mozilla_Hal_h 1
 
+#include "mozilla/hal_sandbox/PHal.h"
 #include "base/basictypes.h"
 #include "mozilla/Types.h"
 #include "nsTArray.h"
 #include "prlog.h"
 #include "mozilla/dom/battery/Types.h"
 
-#ifndef MOZ_HAL_NAMESPACE
+
+
+
+
+
+
+
+
+
 
 class nsIDOMWindow;
 
-
-
-namespace mozilla {
-namespace hal {
-
-extern PRLogModuleInfo *sHalLog;
-#define HAL_LOG(msg) PR_LOG(sHalLog, PR_LOG_DEBUG, msg)
-
-class WindowIdentifier;
-
-} 
-} 
-
-
-
-
-
-
-
-
-
-
-
-
-# include "HalImpl.h"
-# include "HalSandbox.h"
+#ifndef MOZ_HAL_NAMESPACE
 # define MOZ_HAL_NAMESPACE hal
 # define MOZ_DEFINED_HAL_NAMESPACE 1
 #endif
@@ -83,10 +67,15 @@ class WindowIdentifier;
 namespace mozilla {
 
 namespace hal {
-class BatteryInformation;
+
+class WindowIdentifier;
+
+extern PRLogModuleInfo *sHalLog;
+#define HAL_LOG(msg) PR_LOG(sHalLog, PR_LOG_DEBUG, msg)
+
 } 
 
-namespace MOZ_HAL_NAMESPACE  {
+namespace MOZ_HAL_NAMESPACE {
 
 
 
@@ -134,24 +123,6 @@ void RegisterBatteryObserver(BatteryObserver* aBatteryObserver);
 
 
 void UnregisterBatteryObserver(BatteryObserver* aBatteryObserver);
-
-
-
-
-
-
-
-
-void EnableBatteryNotifications();
-
-
-
-
-
-
-
-
-void DisableBatteryNotifications();
 
 
 
