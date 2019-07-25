@@ -501,15 +501,7 @@ public:
 
 
 
-
-  uint32_t mMaskClipCount;
-
-  
-
-
-
   nscolor mForcedBackgroundColor;
-
   
 
 
@@ -1682,10 +1674,6 @@ ContainerState::FindThebesLayerFor(nsDisplayItem* aItem,
     thebesLayerData = mThebesLayerDataStack[lowestUsableLayerWithScrolledRoot];
     layer = thebesLayerData->mLayer;
   }
-
-  
-  
-  thebesLayerData->UpdateCommonClipCount(aClip);
 
   thebesLayerData->Accumulate(this, aItem, aVisibleRect, aDrawRect, aClip);
 
@@ -3214,7 +3202,7 @@ FrameLayerBuilder::Clip::RemoveRoundedCorners()
 }
 
 gfxRect
-CalculateBounds(const nsTArray<FrameLayerBuilder::Clip::RoundedRect>& aRects, int32_t A2D)
+CalculateBounds(nsTArray<FrameLayerBuilder::Clip::RoundedRect> aRects, int32_t A2D)
 {
   nsRect bounds = aRects[0].mRect;
   for (uint32_t i = 1; i < aRects.Length(); ++i) {
@@ -3223,36 +3211,16 @@ CalculateBounds(const nsTArray<FrameLayerBuilder::Clip::RoundedRect>& aRects, in
  
   return nsLayoutUtils::RectToGfxRect(bounds, A2D);
 }
-
-static void
-SetClipCount(ThebesDisplayItemLayerUserData* aThebesData,
-             uint32_t aClipCount)
-{
-  if (aThebesData) {
-    aThebesData->mMaskClipCount = aClipCount;
-  }
-}
-
+ 
 void
 ContainerState::SetupMaskLayer(Layer *aLayer, const FrameLayerBuilder::Clip& aClip,
                                uint32_t aRoundedRectClipCount)
 {
   
-  
-  
-  ThebesDisplayItemLayerUserData* thebesData = GetThebesDisplayItemLayerUserData(aLayer);
-  if (thebesData &&
-      aRoundedRectClipCount < thebesData->mMaskClipCount) {
-    ThebesLayer* thebes = aLayer->AsThebesLayer();
-    thebes->InvalidateRegion(thebes->GetValidRegion().GetBounds());
-  }
-
-  
   nsIntRect layerBounds = aLayer->GetVisibleRegion().GetBounds();
   if (aClip.mRoundedClipRects.IsEmpty() ||
-      aRoundedRectClipCount == 0 ||
+      aRoundedRectClipCount <= 0 ||
       layerBounds.IsEmpty()) {
-    SetClipCount(thebesData, 0);
     return;
   }
 
@@ -3270,7 +3238,6 @@ ContainerState::SetupMaskLayer(Layer *aLayer, const FrameLayerBuilder::Clip& aCl
 
   if (*userData == newData) {
     aLayer->SetMaskLayer(maskLayer);
-    SetClipCount(thebesData, aRoundedRectClipCount);
     return;
   }
 
@@ -3296,24 +3263,28 @@ ContainerState::SetupMaskLayer(Layer *aLayer, const FrameLayerBuilder::Clip& aCl
   gfxMatrix imageTransform = maskTransform;
   imageTransform.Scale(mParameters.mXScale, mParameters.mYScale);
 
-  nsAutoPtr<MaskLayerImageCache::MaskLayerImageKey> newKey(
-    new MaskLayerImageCache::MaskLayerImageKey(aLayer->Manager()->GetBackendType()));
-
   
+  nsTArray<MaskLayerImageCache::PixelRoundedRect> roundedRects;
   for (uint32_t i = 0; i < newData.mRoundedClipRects.Length(); ++i) {
-    newKey->mRoundedClipRects.AppendElement(
+    roundedRects.AppendElement(
       MaskLayerImageCache::PixelRoundedRect(newData.mRoundedClipRects[i],
                                             mContainerFrame->PresContext()));
-    newKey->mRoundedClipRects[i].ScaleAndTranslate(imageTransform);
+    roundedRects[i].ScaleAndTranslate(imageTransform);
   }
  
-  const MaskLayerImageCache::MaskLayerImageKey* lookupKey = newKey;
-
   
+  const MaskLayerImageCache::MaskLayerImageKey* key =
+    new MaskLayerImageCache::MaskLayerImageKey(roundedRects, aLayer->Manager()->GetBackendType());
+  const MaskLayerImageCache::MaskLayerImageKey* lookupKey = key;
+
   nsRefPtr<ImageContainer> container =
     GetMaskLayerImageCache()->FindImageFor(&lookupKey);
 
-  if (!container) {
+  if (container) {
+    
+    delete key;
+    key = lookupKey;
+  } else {
     
     nsRefPtr<gfxASurface> surface =
       aLayer->Manager()->CreateOptimalMaskSurface(surfaceSize);
@@ -3321,7 +3292,6 @@ ContainerState::SetupMaskLayer(Layer *aLayer, const FrameLayerBuilder::Clip& aCl
     
     if (!surface || surface->CairoStatus()) {
       NS_WARNING("Could not create surface for mask layer.");
-      SetClipCount(thebesData, 0);
       return;
     }
 
@@ -3344,7 +3314,7 @@ ContainerState::SetupMaskLayer(Layer *aLayer, const FrameLayerBuilder::Clip& aCl
     static_cast<CairoImage*>(image.get())->SetData(data);
     container->SetCurrentImageInTransaction(image);
 
-    GetMaskLayerImageCache()->PutImage(newKey.forget(), container);
+    GetMaskLayerImageCache()->PutImage(key, container);
   }
 
   maskLayer->SetContainer(container);
@@ -3354,10 +3324,9 @@ ContainerState::SetupMaskLayer(Layer *aLayer, const FrameLayerBuilder::Clip& aCl
   userData->mScaleX = newData.mScaleX;
   userData->mScaleY = newData.mScaleY;
   userData->mRoundedClipRects.SwapElements(newData.mRoundedClipRects);
-  userData->mImageKey = lookupKey;
+  userData->mImageKey = key;
 
   aLayer->SetMaskLayer(maskLayer);
-  SetClipCount(thebesData, aRoundedRectClipCount);
   return;
 }
 
