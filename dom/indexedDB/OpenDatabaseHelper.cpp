@@ -746,6 +746,20 @@ OpenDatabaseHelper::DoDatabaseWork()
   }
 
   
+
+  
+  if (!mRequestedVersion) {
+    
+    
+    if (mCurrentVersion == 0) {
+      mRequestedVersion = 1;
+    }
+    else {
+      
+      mRequestedVersion = mCurrentVersion;
+    }
+  }
+
   if (mCurrentVersion > mRequestedVersion) {
     return NS_ERROR_DOM_INDEXEDDB_VERSION_ERR;
   }
