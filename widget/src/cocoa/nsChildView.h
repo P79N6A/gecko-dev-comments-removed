@@ -500,7 +500,9 @@ protected:
   PRPackedBool          mPluginIsCG; 
 
   NP_CGContext          mPluginCGContext;
+#ifndef NP_NO_QUICKDRAW
   NP_Port               mPluginQDPort;
+#endif
   nsIPluginInstanceOwner* mPluginInstanceOwner; 
 
   static PRUint32 sLastInputEventCount;
