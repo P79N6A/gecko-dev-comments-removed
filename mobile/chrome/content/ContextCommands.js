@@ -52,8 +52,16 @@ var ContextCommands = {
   },
 
   saveImage: function cc_saveImage() {
-    let browser = ContextHelper.popupState.target;
-    ContentAreaUtils.saveImageURL(ContextHelper.popupState.mediaURL, null, "SaveImageTitle", false, true, browser.documentURI);
+    let popupState = ContextHelper.popupState;
+    let browser = popupState.target;
+
+    
+    
+    
+    ContentAreaUtils.internalSave(popupState.mediaURL, null, null,
+                                  popupState.contentDisposition,
+                                  popupState.contentType, false, "SaveImageTitle",
+                                  null, browser.documentURI, false, null);
   },
 
   shareLink: function cc_shareLink() {
