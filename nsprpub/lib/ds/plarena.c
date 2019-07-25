@@ -129,7 +129,15 @@ PR_IMPLEMENT(void) PL_InitArenaPool(
     pool->first.base = pool->first.avail = pool->first.limit =
         (PRUword)PL_ARENA_ALIGN(pool, &pool->first + 1);
     pool->current = &pool->first;
-    pool->arenasize = size;                                  
+    
+
+
+
+
+    if (size > sizeof(PLArena) + pool->mask)
+        pool->arenasize = size - (sizeof(PLArena) + pool->mask);
+    else
+        pool->arenasize = size;
 #ifdef PL_ARENAMETER
     memset(&pool->stats, 0, sizeof pool->stats);
     pool->stats.name = strdup(name);

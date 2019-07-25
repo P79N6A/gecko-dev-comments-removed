@@ -46,6 +46,11 @@ typedef struct PLArenaPool      PLArenaPool;
 
 
 
+
+
+
+
+
 PR_EXTERN(void) PL_InitArenaPool(
     PLArenaPool *pool, const char *name, PRUint32 size, PRUint32 align);
 
