@@ -104,6 +104,8 @@ NS_MeanAndStdDev(double n, double sumOfValues, double sumOfSquaredValues,
 
 #include "prlock.h"
 
+
+
 static PRLock* gTraceLock;
 
 #define LOCK_TRACELOG()   PR_Lock(gTraceLock)

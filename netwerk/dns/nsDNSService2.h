@@ -40,7 +40,7 @@
 #include "nsHostResolver.h"
 #include "nsAutoPtr.h"
 #include "nsString.h"
-#include "prlock.h"
+#include "mozilla/Mutex.h"
 
 class nsDNSService : public nsPIDNSService
                    , public nsIObserver
@@ -61,7 +61,7 @@ private:
     nsCOMPtr<nsIIDNService>   mIDN;
 
     
-    PRLock                   *mLock;
+    mozilla::Mutex            mLock;
 
     
     
@@ -69,4 +69,5 @@ private:
     nsAdoptingCString         mIPv4OnlyDomains;
     PRBool                    mDisableIPv6;
     PRBool                    mDisablePrefetch;
+    PRBool                    mFirstTime;
 };

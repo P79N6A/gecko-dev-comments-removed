@@ -90,6 +90,8 @@ TimeStamp::Startup()
   if (gTimeStampLock)
     return NS_OK;
 
+  
+  
   gTimeStampLock = PR_NewLock();
   gRolloverCount = 1;
   gLastNow = 0;

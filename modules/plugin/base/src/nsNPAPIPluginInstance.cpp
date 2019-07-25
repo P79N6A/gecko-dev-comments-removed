@@ -189,10 +189,11 @@ NS_IMETHODIMP nsNPAPIPluginInstance::Stop()
 
   
   
-  EnterAsyncPluginThreadCallLock();
-  mRunning = DESTROYING;
-  mStopTime = TimeStamp::Now();
-  ExitAsyncPluginThreadCallLock();
+  {
+    AsyncCallbackAutoLock lock;
+    mRunning = DESTROYING;
+    mStopTime = TimeStamp::Now();
+  }
 
   OnPluginDestroy(&mNPP);
 

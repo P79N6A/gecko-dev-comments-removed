@@ -45,7 +45,6 @@
 #include "nsIXPConnect.h"
 
 
-#include "nsAutoLock.h"
 #include "nsAXPCNativeCallContext.h"
 #include "nsComponentManagerUtils.h"
 #include "nsContentUtils.h"
@@ -58,6 +57,8 @@
 #include "nsDOMWorkerEvents.h"
 #include "nsDOMWorkerPool.h"
 #include "nsDOMWorkerXHRProxy.h"
+
+using namespace mozilla;
 
 
 
@@ -493,7 +494,7 @@ nsDOMWorkerXHR::Cancel()
   {
     
     
-    nsAutoLock lock(mWorker->Lock());
+    MutexAutoLock lock(mWorker->GetLock());
 
     mCanceled = PR_TRUE;
     mUpload = nsnull;
@@ -829,7 +830,7 @@ nsDOMWorkerXHR::GetUpload(nsIXMLHttpRequestUpload** aUpload)
     return NS_ERROR_ABORT;
   }
 
-  nsAutoLock lock(worker->Lock());
+  MutexAutoLock lock(worker->GetLock());
 
   if (mCanceled) {
     return NS_ERROR_ABORT;

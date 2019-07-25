@@ -48,31 +48,24 @@
 
 #include "nsMemory.h"
 
-#include "nsAutoLock.h"
-
 #include "nsUUIDGenerator.h"
+
+using namespace mozilla;
 
 NS_IMPL_THREADSAFE_ISUPPORTS1(nsUUIDGenerator, nsIUUIDGenerator)
 
 nsUUIDGenerator::nsUUIDGenerator()
-    : mLock(nsnull)
+    : mLock("nsUUIDGenerator.mLock")
 {
 }
 
 nsUUIDGenerator::~nsUUIDGenerator()
 {
-    if (mLock) {
-        nsAutoLock::DestroyLock(mLock);
-    }
 }
 
 nsresult
 nsUUIDGenerator::Init()
 {
-    mLock = nsAutoLock::NewLock("nsUUIDGenerator::mLock");
-
-    NS_ENSURE_TRUE(mLock, NS_ERROR_OUT_OF_MEMORY);
-
     
     
     
@@ -136,7 +129,7 @@ nsUUIDGenerator::GenerateUUIDInPlace(nsID* id)
 {
     
     
-    nsAutoLock lock(mLock);
+    MutexAutoLock lock(mLock);
 
 #if defined(WINCE)
     

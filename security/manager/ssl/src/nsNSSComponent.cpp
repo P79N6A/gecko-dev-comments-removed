@@ -72,7 +72,6 @@
 #include "nsIPrefBranch2.h"
 #include "nsIDateTimeFormat.h"
 #include "nsDateTimeFormatCID.h"
-#include "nsAutoLock.h"
 #include "nsIDOMEvent.h"
 #include "nsIDOMDocument.h"
 #include "nsIDOMDocumentEvent.h"
@@ -132,6 +131,8 @@ extern "C" {
 #include "pkcs12.h"
 #include "p12plcy.h"
 }
+
+using namespace mozilla;
 
 #ifdef PR_LOGGING
 PRLogModuleInfo* gPIPNSSLog = nsnull;
@@ -368,11 +369,12 @@ PRBool EnsureNSSInitialized(EnsureNSSOperator op)
 }
 
 nsNSSComponent::nsNSSComponent()
-  :mNSSInitialized(PR_FALSE), mThreadList(nsnull),
+  :mutex("nsNSSComponent.mutex"),
+   mNSSInitialized(PR_FALSE),
+   mCrlTimerLock("nsNSSComponent.mCrlTimerLock"),
+   mThreadList(nsnull),
    mSSLThread(NULL), mCertVerificationThread(NULL)
 {
-  mutex = nsAutoLock::NewLock("nsNSSComponent::mutex");
-  
 #ifdef PR_LOGGING
   if (!gPIPNSSLog)
     gPIPNSSLog = PR_NewLogModule("pipnss");
@@ -382,7 +384,6 @@ nsNSSComponent::nsNSSComponent()
   crlDownloadTimerOn = PR_FALSE;
   crlsScheduledForDownload = nsnull;
   mTimer = nsnull;
-  mCrlTimerLock = nsnull;
   mObserversRegistered = PR_FALSE;
 
   
@@ -415,13 +416,13 @@ nsNSSComponent::~nsNSSComponent()
   PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("nsNSSComponent::dtor\n"));
 
   if (mUpdateTimerInitialized) {
-    PR_Lock(mCrlTimerLock);
-    if (crlDownloadTimerOn) {
-      mTimer->Cancel();
+    {
+      MutexAutoLock lock(mCrlTimerLock);
+      if (crlDownloadTimerOn) {
+        mTimer->Cancel();
+      }
+      crlDownloadTimerOn = PR_FALSE;
     }
-    crlDownloadTimerOn = PR_FALSE;
-    PR_Unlock(mCrlTimerLock);
-    PR_DestroyLock(mCrlTimerLock);
     if(crlsScheduledForDownload != nsnull){
       crlsScheduledForDownload->Reset();
       delete crlsScheduledForDownload;
@@ -436,11 +437,6 @@ nsNSSComponent::~nsNSSComponent()
   nsSSLIOLayerHelpers::Cleanup();
   --mInstanceCount;
   delete mShutdownObjectList;
-
-  if (mutex) {
-    nsAutoLock::DestroyLock(mutex);
-    mutex = nsnull;
-  }
 
   
   
@@ -1302,9 +1298,10 @@ nsNSSComponent::Notify(nsITimer *timer)
   nsresult rv;
 
   
-  PR_Lock(mCrlTimerLock);
-  crlDownloadTimerOn = PR_FALSE;
-  PR_Unlock(mCrlTimerLock);
+  {
+    MutexAutoLock lock(mCrlTimerLock);
+    crlDownloadTimerOn = PR_FALSE;
+  }
 
   
   rv = DownloadCrlSilently();
@@ -1346,8 +1343,7 @@ nsNSSComponent::DefineNextTimer()
   
   
 
-  
-  PR_Lock(mCrlTimerLock);
+  MutexAutoLock lock(mCrlTimerLock);
 
   if (crlDownloadTimerOn) {
     mTimer->Cancel();
@@ -1357,7 +1353,6 @@ nsNSSComponent::DefineNextTimer()
   
   if(NS_FAILED(rv)){
     
-    PR_Unlock(mCrlTimerLock);
     return NS_OK;
   }
      
@@ -1375,11 +1370,8 @@ nsNSSComponent::DefineNextTimer()
                            interval,
                            nsITimer::TYPE_ONE_SHOT);
   crlDownloadTimerOn = PR_TRUE;
-  
-  PR_Unlock(mCrlTimerLock);
 
   return NS_OK;
-
 }
 
 
@@ -1396,15 +1388,13 @@ nsNSSComponent::StopCRLUpdateTimer()
       delete crlsScheduledForDownload;
       crlsScheduledForDownload = nsnull;
     }
-
-    PR_Lock(mCrlTimerLock);
-    if (crlDownloadTimerOn) {
-      mTimer->Cancel();
+    {
+      MutexAutoLock lock(mCrlTimerLock);
+      if (crlDownloadTimerOn) {
+        mTimer->Cancel();
+      }
+      crlDownloadTimerOn = PR_FALSE;
     }
-    crlDownloadTimerOn = PR_FALSE;
-    PR_Unlock(mCrlTimerLock);
-    PR_DestroyLock(mCrlTimerLock);
-
     mUpdateTimerInitialized = PR_FALSE;
   }
 
@@ -1423,7 +1413,6 @@ nsNSSComponent::InitializeCRLUpdateTimer()
       return rv;
     }
     crlsScheduledForDownload = new nsHashtable(16, PR_TRUE);
-    mCrlTimerLock = PR_NewLock();
     DefineNextTimer();
     mUpdateTimerInitialized = PR_TRUE;  
   } 
@@ -1561,7 +1550,7 @@ nsNSSComponent::InitializeNSS(PRBool showWarningBox)
     which_nss_problem = problem_none;
 
   {
-    nsAutoLock lock(mutex);
+    MutexAutoLock lock(mutex);
 
     
 
@@ -1821,7 +1810,7 @@ nsNSSComponent::ShutdownNSS()
   
   PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("nsNSSComponent::ShutdownNSS\n"));
 
-  nsAutoLock lock(mutex);
+  MutexAutoLock lock(mutex);
   nsresult rv = NS_OK;
 
   if (hashTableCerts) {
@@ -1874,7 +1863,7 @@ nsNSSComponent::Init()
 
   PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("Beginning NSS initialization\n"));
 
-  if (!mutex || !mShutdownObjectList)
+  if (!mShutdownObjectList)
   {
     PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("NSS init, out of memory in constructor\n"));
     return NS_ERROR_OUT_OF_MEMORY;
@@ -2083,7 +2072,7 @@ nsNSSComponent::VerifySignature(const char* aRSABuf, PRUint32 aRSABufLen,
       }
 
       if (!mScriptSecurityManager) {
-        nsAutoLock lock(mutex);
+        MutexAutoLock lock(mutex);
         
         if (!mScriptSecurityManager) {
           mScriptSecurityManager = 
@@ -2138,7 +2127,7 @@ nsNSSComponent::RandomUpdate(void *entropy, PRInt32 bufLen)
   
   
   
-  nsAutoLock lock(mutex);
+  MutexAutoLock lock(mutex);
 
   if (!mNSSInitialized)
       return NS_ERROR_NOT_INITIALIZED;
@@ -2192,7 +2181,7 @@ nsNSSComponent::Observe(nsISupports *aSubject, const char *aTopic,
     PRBool needsInit = PR_TRUE;
 
     {
-      nsAutoLock lock(mutex);
+      MutexAutoLock lock(mutex);
 
       if (mNSSInitialized) {
         
@@ -2448,7 +2437,7 @@ nsNSSComponent::RememberCert(CERTCertificate *cert)
 
   
 
-  nsAutoLock lock(mutex);
+  MutexAutoLock lock(mutex);
 
   if (!hashTableCerts || !cert)
     return NS_OK;
@@ -2524,7 +2513,7 @@ nsNSSComponent::DoProfileBeforeChange(nsISupports* aSubject)
   PRBool needsCleanup = PR_TRUE;
 
   {
-    nsAutoLock lock(mutex);
+    MutexAutoLock lock(mutex);
 
     if (!mNSSInitialized) {
       
@@ -2572,7 +2561,7 @@ nsNSSComponent::GetClientAuthRememberService(nsClientAuthRememberService **cars)
 NS_IMETHODIMP
 nsNSSComponent::IsNSSInitialized(PRBool *initialized)
 {
-  nsAutoLock lock(mutex);
+  MutexAutoLock lock(mutex);
   *initialized = mNSSInitialized;
   return NS_OK;
 }

@@ -40,12 +40,13 @@
 #include "nsSocketTransport2.h"
 #include "nsServerSocket.h"
 #include "nsProxyRelease.h"
-#include "nsAutoLock.h"
 #include "nsAutoPtr.h"
 #include "nsNetError.h"
 #include "nsNetCID.h"
 #include "prnetdb.h"
 #include "prio.h"
+
+using namespace mozilla;
 
 static NS_DEFINE_CID(kSocketTransportServiceCID, NS_SOCKETTRANSPORTSERVICE_CID);
 
@@ -71,7 +72,7 @@ PostEvent(nsServerSocket *s, nsServerSocketFunc func)
 
 
 nsServerSocket::nsServerSocket()
-  : mLock(nsnull)
+  : mLock("nsServerSocket.mLock")
   , mFD(nsnull)
   , mAttached(PR_FALSE)
 {
@@ -90,9 +91,6 @@ nsServerSocket::nsServerSocket()
 nsServerSocket::~nsServerSocket()
 {
   Close(); 
-
-  if (mLock)
-    nsAutoLock::DestroyLock(mLock);
 
   
   nsSocketTransportService *serv = gSocketTransportService;
@@ -246,7 +244,7 @@ nsServerSocket::OnSocketDetached(PRFileDesc *fd)
     
     nsIServerSocketListener *listener = nsnull;
     {
-      nsAutoLock lock(mLock);
+      MutexAutoLock lock(mLock);
       mListener.swap(listener);
     }
     
@@ -289,13 +287,6 @@ NS_IMETHODIMP
 nsServerSocket::InitWithAddress(const PRNetAddr *aAddr, PRInt32 aBackLog)
 {
   NS_ENSURE_TRUE(mFD == nsnull, NS_ERROR_ALREADY_INITIALIZED);
-
-  if (!mLock)
-  {
-    mLock = nsAutoLock::NewLock("nsServerSocket::mLock");
-    if (!mLock)
-      return NS_ERROR_OUT_OF_MEMORY;
-  }
 
   
   
@@ -353,9 +344,8 @@ fail:
 NS_IMETHODIMP
 nsServerSocket::Close()
 {
-  NS_ENSURE_TRUE(mLock, NS_ERROR_NOT_INITIALIZED);
   {
-    nsAutoLock lock(mLock);
+    MutexAutoLock lock(mLock);
     
     
     if (!mListener)
@@ -378,7 +368,7 @@ nsServerSocket::AsyncListen(nsIServerSocketListener *aListener)
   NS_ENSURE_TRUE(mFD, NS_ERROR_NOT_INITIALIZED);
   NS_ENSURE_TRUE(mListener == nsnull, NS_ERROR_IN_PROGRESS);
   {
-    nsAutoLock lock(mLock);
+    MutexAutoLock lock(mLock);
     nsresult rv = NS_GetProxyForObject(NS_PROXY_TO_CURRENT_THREAD,
                                        NS_GET_IID(nsIServerSocketListener),
                                        aListener,

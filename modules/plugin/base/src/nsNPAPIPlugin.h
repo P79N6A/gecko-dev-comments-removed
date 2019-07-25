@@ -383,10 +383,15 @@ OnPluginDestroy(NPP instance);
 void
 OnShutdown();
 
-void
-EnterAsyncPluginThreadCallLock();
-void
-ExitAsyncPluginThreadCallLock();
+
+
+
+
+struct NS_STACK_CLASS AsyncCallbackAutoLock
+{
+  AsyncCallbackAutoLock();
+  ~AsyncCallbackAutoLock();
+};
 
 class NPPStack
 {

@@ -40,6 +40,8 @@
 
 #include "nspr.h"
 #include "nscore.h"
+#include "mozilla/CondVar.h"
+#include "mozilla/Mutex.h"
 
 class nsPSMBackgroundThread
 {
@@ -54,10 +56,10 @@ protected:
   
   
   
-  PRLock *mMutex;
+  mozilla::Mutex mMutex;
 
   
-  PRCondVar *mCond;
+  mozilla::CondVar mCond;
 
   
   PRBool mExitRequested;
