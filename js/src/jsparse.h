@@ -988,6 +988,12 @@ struct JSFunctionBox : public JSObjectBox
 
 
 
+    bool scopeIsExtensible() const;
+
+    
+
+
+
 
 
 
@@ -1112,6 +1118,7 @@ struct Parser : private js::AutoGCRooter
     bool analyzeFunctions(JSTreeContext *tc);
     void cleanFunctionList(JSFunctionBox **funbox);
     bool markFunArgs(JSFunctionBox *funbox);
+    void markExtensibleScopeDescendants(JSFunctionBox *funbox, bool hasExtensibleParent);
     void setFunctionKinds(JSFunctionBox *funbox, uint32 *tcflags);
 
     void trace(JSTracer *trc);
