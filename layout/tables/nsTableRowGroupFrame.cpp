@@ -1236,7 +1236,7 @@ nsTableRowGroupFrame::SplitRowGroup(nsPresContext*           aPresContext,
           UndoContinuedRow(aPresContext, contRow);
           contRow = nsnull;
           nsTableRowFrame* oldLastRowThisPage = lastRowThisPage;
-          lastRowThisPage = firstTruncatedRow;
+          lastRowThisPage = rowBefore;
           aStatus = NS_FRAME_NOT_COMPLETE;
 
           
