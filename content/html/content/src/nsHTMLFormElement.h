@@ -280,6 +280,7 @@ public:
 
 
 
+
   bool CheckValidFormSubmission();
 
   virtual nsXPCClassInfo* GetClassInfo();

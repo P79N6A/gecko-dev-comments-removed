@@ -369,6 +369,7 @@ NS_IMPL_ENUM_ATTR_DEFAULT_VALUE(nsHTMLFormElement, Enctype, enctype,
                                 kFormDefaultEnctype->tag)
 NS_IMPL_ENUM_ATTR_DEFAULT_VALUE(nsHTMLFormElement, Method, method,
                                 kFormDefaultMethod->tag)
+NS_IMPL_BOOL_ATTR(nsHTMLFormElement, NoValidate, novalidate)
 NS_IMPL_STRING_ATTR(nsHTMLFormElement, Name, name)
 NS_IMPL_STRING_ATTR(nsHTMLFormElement, Target, target)
 
@@ -1661,6 +1662,9 @@ nsHTMLFormElement::CheckValidFormSubmission()
 
 
 
+
+  NS_ASSERTION(!HasAttr(kNameSpaceID_None, nsGkAtoms::novalidate),
+               "We shouldn't be there if novalidate is set!");
 
   
   

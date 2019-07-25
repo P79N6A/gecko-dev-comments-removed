@@ -1640,7 +1640,9 @@ nsHTMLInputElement::MaybeSubmitForm(nsPresContext* aPresContext)
     nsMouseEvent event(PR_TRUE, NS_MOUSE_CLICK, nsnull, nsMouseEvent::eReal);
     nsEventStatus status = nsEventStatus_eIgnore;
     shell->HandleDOMEventWithTarget(submitContent, &event, &status);
-  } else if (mForm->HasSingleTextControl() && mForm->CheckValidFormSubmission()) {
+  } else if (mForm->HasSingleTextControl() &&
+             (mForm->HasAttr(kNameSpaceID_None, nsGkAtoms::novalidate) ||
+              mForm->CheckValidFormSubmission())) {
     
     
     
@@ -2433,6 +2435,7 @@ nsHTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
             
             
             if (presShell && (event.message != NS_FORM_SUBMIT ||
+                              mForm->HasAttr(kNameSpaceID_None, nsGkAtoms::novalidate) ||
                               mForm->CheckValidFormSubmission())) {
               
               nsRefPtr<nsHTMLFormElement> form(mForm);
