@@ -1975,9 +1975,8 @@ IMPL_RUNNABLE_ON_MAIN_THREAD_METHOD_BEGIN(Close)
   nsRefPtr<nsWebSocketEstablishedConnection> kungfuDeathGrip = this;
 
   if (mOwner->mReadyState == nsIWebSocket::CONNECTING) {
-    
-    
-    
+    mOwner->SetReadyState(nsIWebSocket::CLOSING);
+    mOwner->SetReadyState(nsIWebSocket::CLOSED);
     Disconnect();
     return;
   }
@@ -2035,13 +2034,6 @@ nsWebSocketEstablishedConnection::ForceClose()
   
   nsRefPtr<nsWebSocketEstablishedConnection> kungfuDeathGrip = this;
 
-  if (mOwner->mReadyState == nsIWebSocket::CONNECTING) {
-    
-    
-    
-    Disconnect();
-    return;
-  }
   mOwner->SetReadyState(nsIWebSocket::CLOSING);
   mOwner->SetReadyState(nsIWebSocket::CLOSED);
   Disconnect();
@@ -3444,12 +3436,6 @@ nsWebSocket::Close()
     nsRefPtr<nsWebSocket> kungfuDeathGrip = this;
 
     mConnection->FailConnection();
-
-    
-    
-    
-    SetReadyState(nsIWebSocket::CLOSING);
-    SetReadyState(nsIWebSocket::CLOSED);
     return NS_OK;
   }
 
