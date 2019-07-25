@@ -8,6 +8,7 @@
 #define _nsDiskCacheBlockFile_h_
 
 #include "nsIFile.h"
+#include "nsDiskCache.h"
 
 
 
@@ -30,9 +31,9 @@ public:
     ~nsDiskCacheBlockFile() { (void) Close(true); }
     
     nsresult  Open( nsIFile *  blockFile, PRUint32  blockSize,
-                    PRUint32  bitMapSize);
+                    PRUint32  bitMapSize, nsDiskCache::CorruptCacheInfo *  corruptInfo);
     nsresult  Close(bool flush);
-    
+
     
 
 

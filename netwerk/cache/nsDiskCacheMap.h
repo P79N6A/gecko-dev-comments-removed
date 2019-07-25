@@ -396,7 +396,8 @@ public:
 
 
 
-    nsresult  Open( nsIFile *  cacheDirectory);
+    nsresult  Open( nsIFile *  cacheDirectory,
+                    nsDiskCache::CorruptCacheInfo *  corruptInfo);
     nsresult  Close(bool flush);
     nsresult  Trim();
 
@@ -478,7 +479,7 @@ private:
     
 
 
-    nsresult    OpenBlockFiles();
+    nsresult    OpenBlockFiles(nsDiskCache::CorruptCacheInfo *  corruptInfo);
     nsresult    CloseBlockFiles(bool flush);
     bool        CacheFilesExist();
 
