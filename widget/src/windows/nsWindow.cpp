@@ -2534,7 +2534,8 @@ void nsWindow::UpdateGlass()
   DWMNCRENDERINGPOLICY policy = DWMNCRP_USEWINDOWSTYLE;
   switch (mTransparencyMode) {
   case eTransparencyBorderlessGlass:
-    {
+    
+    if (margins.cxLeftWidth >= 0) {
       const PRInt32 kGlassMarginAdjustment = 2;
       margins.cxLeftWidth += kGlassMarginAdjustment;
       margins.cyTopHeight += kGlassMarginAdjustment;
