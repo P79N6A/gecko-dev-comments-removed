@@ -341,6 +341,19 @@ public:
   
 
 
+  const nsRegion* GetFinalTransparentRegion() { return mFinalTransparentRegion; }
+  
+
+
+
+  void SetFinalTransparentRegion(const nsRegion& aFinalTransparentRegion)
+  {
+    mFinalTransparentRegion = &aFinalTransparentRegion;
+  }
+
+  
+
+
 
 
   bool ShouldDescendIntoFrame(nsIFrame* aFrame) const {
@@ -422,6 +435,7 @@ private:
   nsAutoTArray<PresShellState,8> mPresShellStates;
   nsAutoTArray<nsIFrame*,100>    mFramesMarkedForDisplay;
   nsDisplayTableItem*            mCurrentTableItem;
+  const nsRegion*                mFinalTransparentRegion;
   Mode                           mMode;
   PRPackedBool                   mBuildCaret;
   PRPackedBool                   mIgnoreSuppression;
@@ -701,6 +715,11 @@ public:
 
 
   virtual PRBool HasText() { return PR_FALSE; }
+
+  
+
+
+  virtual void DisableComponentAlpha() {}
 
 protected:
   friend class nsDisplayList;
