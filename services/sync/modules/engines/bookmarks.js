@@ -432,12 +432,12 @@ BookmarksEngine.prototype = {
     
     
     this._annoSvc.setItemAnnotation(folderNode,
-                                    SERVER_PATH_ANNO
+                                    SERVER_PATH_ANNO,
                                     "",
                                     0,
                                     this._annoSvc.EXPIRE_NEVER);
     this._annoSvc.setItemAnnotation(folderNode,
-                                    SERVER_PATH_ANNO
+                                    OUTGOING_SHARE_ANNO,
                                     "",
                                     0,
                                     this._annoSvc.EXPIRE_NEVER);
@@ -514,7 +514,7 @@ BookmarksEngine.prototype = {
                                       this._annoSvc.EXPIRE_NEVER);
       
       this._annoSvc.setItemAnnotation(newId,
-                                      OUTGOING_SHARED_ANNO
+                                      OUTGOING_SHARED_ANNO,
                                       user,
                                       0,
                                       this._annoSvc.EXPIRE_NEVER);
