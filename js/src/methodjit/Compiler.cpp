@@ -945,7 +945,13 @@ mjit::Compiler::generateMethod()
           END_CASE(JSOP_STRICTNE)
 
           BEGIN_CASE(JSOP_ITER)
-            iter(PC[1]);
+          {
+            prepareStubCall(Uses(1));
+            masm.move(Imm32(PC[1]), Registers::ArgReg1);
+            stubCall(stubs::Iter);
+            frame.pop();
+            frame.pushSynced();
+          }
           END_CASE(JSOP_ITER)
 
           BEGIN_CASE(JSOP_MOREITER)
@@ -955,7 +961,9 @@ mjit::Compiler::generateMethod()
           END_CASE(JSOP_MOREITER)
 
           BEGIN_CASE(JSOP_ENDITER)
-            iterEnd();
+            prepareStubCall(Uses(1));
+            stubCall(stubs::EndIter);
+            frame.pop();
           END_CASE(JSOP_ENDITER)
 
           BEGIN_CASE(JSOP_POP)
@@ -3080,120 +3088,6 @@ mjit::Compiler::jsop_propinc(JSOp op, VoidStubAtom stub, uint32 index)
     PC += JSOP_PROPINC_LENGTH;
 }
 
-void
-mjit::Compiler::iter(uintN flags)
-{
-    FrameEntry *fe = frame.peek(-1);
-
-    
-
-
-
-    if ((flags != JSITER_ENUMERATE) || fe->isNotType(JSVAL_TYPE_OBJECT)) {
-        prepareStubCall(Uses(1));
-        masm.move(Imm32(flags), Registers::ArgReg1);
-        stubCall(stubs::Iter);
-        frame.pop();
-        frame.pushSynced();
-        return;
-    }
-
-    if (!fe->isTypeKnown()) {
-        Jump notObject = frame.testObject(Assembler::NotEqual, fe);
-        stubcc.linkExit(notObject, Uses(1));
-    }
-
-    RegisterID reg = frame.tempRegForData(fe);
-
-    frame.pinReg(reg);
-    RegisterID ioreg = frame.allocReg();  
-    RegisterID nireg = frame.allocReg();  
-    RegisterID T1 = frame.allocReg();
-    RegisterID T2 = frame.allocReg();
-    frame.unpinReg(reg);
-
-    
-
-
-
-    masm.loadPtr(FrameAddress(offsetof(VMFrame, cx)), T1);
-#ifdef JS_THREADSAFE
-    masm.loadPtr(Address(T1, offsetof(JSContext, thread)), T1);
-    masm.loadPtr(Address(T1, offsetof(JSThread, data.lastNativeIterator)), ioreg);
-#else
-    masm.loadPtr(Address(T1, offsetof(JSContext, runtime)), T1);
-    masm.loadPtr(Address(T1, offsetof(JSRuntime, threadData.lastNativeIterator)), ioreg);
-#endif
-
-    
-    Jump nullIterator = masm.branchTest32(Assembler::Zero, ioreg, ioreg);
-    stubcc.linkExit(nullIterator, Uses(1));
-
-    
-    Address privSlot(ioreg, offsetof(JSObject, fslots) + sizeof(Value) * JSSLOT_PRIVATE);
-    masm.loadPayload(privSlot, nireg);
-
-    
-    Address flagsAddr(nireg, offsetof(NativeIterator, flags));
-    masm.load32(flagsAddr, T1);
-    masm.and32(Imm32(JSITER_ACTIVE), T1);
-    Jump activeIterator = masm.branchTest32(Assembler::NonZero, T1, T1);
-    stubcc.linkExit(activeIterator, Uses(1));
-
-    
-    masm.loadShape(reg, T1);
-    masm.loadPtr(Address(nireg, offsetof(NativeIterator, shapes_array)), T2);
-    masm.load32(Address(T2, 0), T2);
-    Jump mismatchedObject = masm.branch32(Assembler::NotEqual, T1, T2);
-    stubcc.linkExit(mismatchedObject, Uses(1));
-
-    
-    masm.loadPtr(Address(reg, offsetof(JSObject, proto)), T1);
-    masm.loadShape(T1, T1);
-    masm.loadPtr(Address(nireg, offsetof(NativeIterator, shapes_array)), T2);
-    masm.load32(Address(T2, sizeof(uint32)), T2);
-    Jump mismatchedProto = masm.branch32(Assembler::NotEqual, T1, T2);
-    stubcc.linkExit(mismatchedProto, Uses(1));
-
-    
-
-
-
-
-
-    masm.loadPtr(Address(reg, offsetof(JSObject, proto)), T1);
-    masm.loadPtr(Address(T1, offsetof(JSObject, proto)), T1);
-    Jump overlongChain = masm.branchPtr(Assembler::NonZero, T1, T1);
-    stubcc.linkExit(overlongChain, Uses(1));
-
-    
-
-    
-    masm.load32(flagsAddr, T1);
-    masm.or32(Imm32(JSITER_ACTIVE), T1);
-    masm.store32(T1, flagsAddr);
-
-    
-    masm.loadPtr(FrameAddress(offsetof(VMFrame, cx)), T1);
-    masm.loadPtr(Address(T1, offsetof(JSContext, enumerators)), T2);
-    masm.storePtr(T2, Address(nireg, offsetof(NativeIterator, next)));
-    masm.storePtr(ioreg, Address(T1, offsetof(JSContext, enumerators)));
-
-    frame.freeReg(nireg);
-    frame.freeReg(T1);
-    frame.freeReg(T2);
-
-    stubcc.leave();
-    stubcc.masm.move(Imm32(flags), Registers::ArgReg1);
-    stubcc.call(stubs::Iter);
-
-    
-    frame.pop();
-    frame.pushTypedPayload(JSVAL_TYPE_OBJECT, ioreg);
-
-    stubcc.rejoin(Changes(1));
-}
-
 
 
 
@@ -3299,60 +3193,6 @@ mjit::Compiler::iterMore()
     stubcc.rejoin(Changes(1));
 
     jumpAndTrace(jFast, target, &j);
-}
-
-void
-mjit::Compiler::iterEnd()
-{
-    FrameEntry *fe= frame.peek(-1);
-    RegisterID reg = frame.tempRegForData(fe);
-
-    frame.pinReg(reg);
-    RegisterID T1 = frame.allocReg();
-    frame.unpinReg(reg);
-
-    
-    masm.loadPtr(Address(reg, offsetof(JSObject, clasp)), T1);
-    Jump notIterator = masm.branchPtr(Assembler::NotEqual, T1, ImmPtr(&js_IteratorClass));
-    stubcc.linkExit(notIterator, Uses(1));
-
-    
-    Address privSlot(reg, offsetof(JSObject, fslots) + sizeof(Value) * JSSLOT_PRIVATE);
-    masm.loadPayload(privSlot, T1);
-
-    RegisterID T2 = frame.allocReg();
-
-    
-    Address flagAddr(T1, offsetof(NativeIterator, flags));
-    masm.loadPtr(flagAddr, T2);
-
-    
-    Jump notEnumerate = masm.branch32(Assembler::NotEqual, T2,
-                                      Imm32(JSITER_ENUMERATE | JSITER_ACTIVE));
-    stubcc.linkExit(notEnumerate, Uses(1));
-
-    
-    masm.and32(Imm32(~JSITER_ACTIVE), T2);
-    masm.storePtr(T2, flagAddr);
-
-    
-    masm.loadPtr(Address(T1, offsetof(NativeIterator, props_array)), T2);
-    masm.storePtr(T2, Address(T1, offsetof(NativeIterator, props_cursor)));
-
-    
-    masm.loadPtr(FrameAddress(offsetof(VMFrame, cx)), T2);
-    masm.loadPtr(Address(T1, offsetof(NativeIterator, next)), T1);
-    masm.storePtr(T1, Address(T2, offsetof(JSContext, enumerators)));
-
-    frame.freeReg(T1);
-    frame.freeReg(T2);
-
-    stubcc.leave();
-    stubcc.call(stubs::EndIter);
-
-    frame.pop();
-
-    stubcc.rejoin(Changes(1));
 }
 
 void
