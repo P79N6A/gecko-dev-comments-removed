@@ -5632,7 +5632,7 @@ mjit::Compiler::jsop_setprop(PropertyName *name, bool popGuaranteed)
 #ifdef JSGC_INCREMENTAL_MJ
     
     if (cx->compartment->needsBarrier() &&
-        (!types || op != JSOP_SETPROP || types->propertyNeedsBarrier(cx, id)))
+        (!types || op == JSOP_SETNAME || types->propertyNeedsBarrier(cx, id)))
     {
         jsop_setprop_slow(name);
         return true;
