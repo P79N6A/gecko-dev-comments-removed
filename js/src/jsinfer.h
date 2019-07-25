@@ -137,6 +137,17 @@ inline jstype GetValueType(JSContext *cx, const Value &val);
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 class TypeConstraint
 {
 public:
@@ -337,6 +348,7 @@ class TypeSet
     
     inline TypeObject *getSingleObject();
 
+    bool intermediate() { return typeFlags & TYPE_FLAG_INTERMEDIATE_SET; }
     void setIntermediate() { JS_ASSERT(!typeFlags); typeFlags = TYPE_FLAG_INTERMEDIATE_SET; }
     void setOwnProperty(bool configurable) {
         typeFlags |= TYPE_FLAG_OWN_PROPERTY;
@@ -362,7 +374,7 @@ class TypeSet
     void addTransformThis(JSContext *cx, JSScript *script, TypeSet *target);
     void addFilterPrimitives(JSContext *cx, JSScript *script,
                              TypeSet *target, bool onlyNullVoid);
-    void addMonitorRead(JSContext *cx, JSScript *script, TypeSet *target);
+    void addSubsetBarrier(JSContext *cx, JSScript *script, const jsbytecode *pc, TypeSet *target);
 
     void addBaseSubset(JSContext *cx, TypeObject *object, TypeSet *target);
     void addCondensed(JSContext *cx, JSScript *script);

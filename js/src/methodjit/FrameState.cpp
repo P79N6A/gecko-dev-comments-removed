@@ -191,7 +191,6 @@ FrameState::takeReg(AnyRegisterID reg)
     } else {
         JS_ASSERT(regstate(reg).fe());
         evictReg(reg);
-        regstate(reg).forget();
     }
 }
 
@@ -246,6 +245,8 @@ FrameState::evictReg(AnyRegisterID reg)
         syncFe(fe);
         fe->data.setMemory();
     }
+
+    regstate(reg).forget();
 }
 
 inline Lifetime *
@@ -259,7 +260,7 @@ FrameState::variableLive(FrameEntry *fe, jsbytecode *pc) const
 }
 
 AnyRegisterID
-FrameState::bestEvictReg(uint32 mask, bool includePinned)
+FrameState::bestEvictReg(uint32 mask, bool includePinned) const
 {
     JS_ASSERT(cx->typeInferenceEnabled());
 
@@ -305,10 +306,6 @@ FrameState::bestEvictReg(uint32 mask, bool includePinned)
         }
 
         
-
-
-
-
         if (fe->isCopied()) {
             if (!fallback.isSet()) {
                 fallback = reg;
@@ -336,15 +333,7 @@ FrameState::bestEvictReg(uint32 mask, bool includePinned)
 
         
         Lifetime *lifetime = variableLive(fe, a->PC);
-        if (!lifetime) {
-            
-
-
-
-            fakeSync(fe);
-            JaegerSpew(JSpew_Regalloc, "result: %s (%s) is dead\n", entryName(fe), reg.name());
-            return reg;
-        }
+        JS_ASSERT(lifetime);
 
         
 
@@ -380,10 +369,63 @@ FrameState::bestEvictReg(uint32 mask, bool includePinned)
     return fallback;
 }
 
+void
+FrameState::evictDeadEntries(bool includePinned)
+{
+    for (uint32 i = 0; i < Registers::TotalAnyRegisters; i++) {
+        AnyRegisterID reg = AnyRegisterID::fromRaw(i);
+
+        
+
+        if (!(Registers::maskReg(reg) & Registers::AvailAnyRegs))
+            continue;
+
+        FrameEntry *fe = includePinned ? regstate(reg).usedBy() : regstate(reg).fe();
+        if (!fe)
+            continue;
+
+        if (fe == a->callee_ || fe >= a->spBase || fe->isCopied() || (a->parent && fe < a->locals))
+            continue;
+
+        Lifetime *lifetime = variableLive(fe, a->PC);
+        if (lifetime)
+            continue;
+
+        
+
+
+
+        if (!fe->type.synced() && fe->isTypeKnown())
+            fe->type.setMemory();
+
+        
+
+
+
+        fakeSync(fe);
+        if (regstate(reg).type() == RematInfo::DATA)
+            fe->data.setMemory();
+        else
+            fe->type.setMemory();
+        forgetReg(reg);
+    }
+}
+
 AnyRegisterID
 FrameState::evictSomeReg(uint32 mask)
 {
+    JS_ASSERT(!freeRegs.hasRegInMask(mask));
+
     if (cx->typeInferenceEnabled()) {
+        evictDeadEntries(false);
+
+        if (freeRegs.hasRegInMask(mask)) {
+            
+            AnyRegisterID reg = freeRegs.takeAnyReg(mask);
+            modifyReg(reg);
+            return reg;
+        }
+
         AnyRegisterID reg = bestEvictReg(mask, false);
         evictReg(reg);
         return reg;
@@ -411,11 +453,13 @@ FrameState::evictSomeReg(uint32 mask)
 
         if (regstate(reg).type() == RematInfo::TYPE && fe->type.synced()) {
             fe->type.setMemory();
-            return fallback.reg();
+            regstate(reg).forget();
+            return reg;
         }
         if (regstate(reg).type() == RematInfo::DATA && fe->data.synced()) {
             fe->data.setMemory();
-            return fallback.reg();
+            regstate(reg).forget();
+            return reg;
         }
     }
 
@@ -1268,7 +1312,8 @@ FrameState::sync(Assembler &masm, Uses uses) const
 
         if (fe->isType(JSVAL_TYPE_DOUBLE)) {
             
-            ensureFeSynced(fe, masm);
+            if (fe->isCopy() || !fe->data.inFPRegister())
+                ensureFeSynced(fe, masm);
             continue;
         }
 
@@ -2647,6 +2692,9 @@ FrameState::allocForBinary(FrameEntry *lhs, FrameEntry *rhs, JSOp op, BinaryAllo
         alloc.resultHasRhs = false;
         goto skip;
     }
+
+    if (cx->typeInferenceEnabled())
+        evictDeadEntries(true);
 
     if (!freeRegs.empty(Registers::AvailRegs)) {
         

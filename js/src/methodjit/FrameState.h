@@ -274,7 +274,12 @@ class FrameState
     
 
 
+
     inline void push(Address address, JSValueType knownType, bool reuseBase = false);
+
+    
+    inline void loadIntoRegisters(Address address, bool reuseBase,
+                                  RegisterID *ptypeReg, RegisterID *pdataReg);
 
     
 
@@ -286,6 +291,9 @@ class FrameState
 
 
 
+
+    inline FPRegisterID storeRegs(int32 depth, RegisterID type, RegisterID data,
+                                  JSValueType knownType);
     inline FPRegisterID pushRegs(RegisterID type, RegisterID data, JSValueType knownType);
 
     
@@ -1003,7 +1011,8 @@ class FrameState
         return regstate_[reg.reg_];
     }
 
-    AnyRegisterID bestEvictReg(uint32 mask, bool includePinned);
+    AnyRegisterID bestEvictReg(uint32 mask, bool includePinned) const;
+    void evictDeadEntries(bool includePinned);
 
     inline analyze::Lifetime * variableLive(FrameEntry *fe, jsbytecode *pc) const;
     inline bool binaryEntryLive(FrameEntry *fe) const;

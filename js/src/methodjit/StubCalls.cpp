@@ -2743,10 +2743,26 @@ template void JS_FASTCALL stubs::DelElem<true>(VMFrame &f);
 template void JS_FASTCALL stubs::DelElem<false>(VMFrame &f);
 
 void JS_FASTCALL
-stubs::UndefinedHelper(VMFrame &f)
+stubs::TypeBarrierHelper(VMFrame &f, uint32 which)
 {
-    f.regs.sp[-1].setUndefined();
-    f.script()->typeMonitor(f.cx, f.pc(), f.regs.sp[-1]);
+    JS_ASSERT(which == 0 || which == 1);
+
+    
+    Value &result = f.regs.sp[-1 - which];
+    result = f.regs.sp[0];
+
+    
+
+
+
+
+
+    if (f.script()->hasAnalysis() && f.script()->analysis(f.cx)->ranInference()) {
+        AutoEnterTypeInference enter(f.cx);
+        f.script()->analysis(f.cx)->pruneTypeBarriers(f.cx, f.pc() - f.script()->code);
+    }
+
+    f.script()->typeMonitor(f.cx, f.pc(), result);
 }
 
 void JS_FASTCALL
