@@ -14,6 +14,7 @@
 #include "nsDebug.h"
 #include "nsError.h"
 #include "nsIFile.h"
+#include "nsITimer.h"
 
 #include "nsDiskCache.h"
 #include "nsDiskCacheBlockFile.h"
@@ -77,6 +78,12 @@ struct nsDiskCacheEntry;
 
 
 #define kPreallocateLimit  1 * 1024 * 1024
+
+
+
+#define kRevalidateCacheTimeout 5000
+#define kRevalidateCacheTimeoutTolerance 10
+#define kRevalidateCacheErrorTimeout 1000
 
 class nsDiskCacheRecord {
 
@@ -378,13 +385,17 @@ public:
      nsDiskCacheMap() : 
         mCacheDirectory(nullptr),
         mMapFD(nullptr),
+        mCleanFD(nullptr),
         mRecordArray(nullptr),
         mBufferSize(0),
         mBuffer(nullptr),
-        mMaxRecordCount(16384) 
+        mMaxRecordCount(16384), 
+        mIsDirtyCacheFlushed(false),
+        mLastInvalidateTime(0)
     { }
 
-    ~nsDiskCacheMap() {
+    ~nsDiskCacheMap()
+    {
         (void) Close(true);
     }
 
@@ -526,18 +537,39 @@ private:
     nsDiskCacheEntry *  CreateDiskCacheEntry(nsDiskCacheBinding *  binding,
                                              PRUint32 * size);
 
+    
+    nsresult InitCacheClean(nsIFile *  cacheDirectory,
+                            nsDiskCache::CorruptCacheInfo *  corruptInfo);
+    
+    nsresult WriteCacheClean(bool clean);
+    
+    nsresult ResetCacheTimer(PRInt32 timeout = kRevalidateCacheTimeout);
+    
+    nsresult InvalidateCache();
+    
+    bool IsCacheInSafeState();
+    
+    
+    nsresult RevalidateCache();
+    
+    static void RevalidateTimerCallback(nsITimer *aTimer, void *arg);
+
 
 
 
 private:
+    nsCOMPtr<nsITimer>      mCleanCacheTimer;
     nsCOMPtr<nsIFile>       mCacheDirectory;
     PRFileDesc *            mMapFD;
+    PRFileDesc *            mCleanFD;
     nsDiskCacheRecord *     mRecordArray;
     nsDiskCacheBlockFile    mBlockFile[kNumBlockFiles];
     PRUint32                mBufferSize;
     char *                  mBuffer;
     nsDiskCacheHeader       mHeader;
     PRInt32                 mMaxRecordCount;
+    bool                    mIsDirtyCacheFlushed;
+    PRIntervalTime          mLastInvalidateTime;
 };
 
 #endif 
