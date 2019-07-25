@@ -741,14 +741,16 @@ void nsDisplayList::HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
       nsTArray<nsIFrame*> *writeFrames = aOutFrames;
       if (item->GetType() == nsDisplayItem::TYPE_TRANSFORM &&
           item->GetUnderlyingFrame()->Preserves3D()) {
-        nsDisplayTransform *transform = static_cast<nsDisplayTransform*>(item);
-        nsPoint point = aRect.TopLeft();
-        
-        if (aRect.width != 1 || aRect.height != 1) {
-          point = aRect.Center();
+        if (outFrames.Length()) {
+          nsDisplayTransform *transform = static_cast<nsDisplayTransform*>(item);
+          nsPoint point = aRect.TopLeft();
+          
+          if (aRect.width != 1 || aRect.height != 1) {
+            point = aRect.Center();
+          }
+          temp.AppendElement(FramesWithDepth(transform->GetHitDepthAtPoint(point)));
+          writeFrames = &temp[temp.Length() - 1].mFrames;
         }
-        temp.AppendElement(FramesWithDepth(transform->GetHitDepthAtPoint(point)));
-        writeFrames = &temp[temp.Length() - 1].mFrames;
       } else {
         
         
