@@ -93,6 +93,11 @@ AnimatedZoom.prototype = {
   updateTo: function(nextRect) {
     let zoomRatio = window.innerWidth / nextRect.width;
     let zoomLevel = getBrowser().scale * zoomRatio;
+    
+    
+    
+    
+    
     getBrowser()._frameLoader.setViewportScale(zoomLevel, zoomLevel);
     getBrowser()._frameLoader.scrollViewportTo(nextRect.left * zoomRatio, nextRect.top * zoomRatio);
   },
