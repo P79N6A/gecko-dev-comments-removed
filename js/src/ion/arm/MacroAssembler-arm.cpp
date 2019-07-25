@@ -219,6 +219,7 @@ MacroAssemblerARM::ma_mov(Imm32 imm, Register dest,
 void
 MacroAssemblerARM::ma_mov(const ImmGCPtr &ptr, Register dest)
 {
+    
     ma_mov(Imm32(ptr.value), dest);
     
 }
@@ -806,24 +807,36 @@ MacroAssemblerARM::ma_b(Label *dest, Assembler::Condition c)
 {
     as_b(dest, c);
 }
-void
-MacroAssemblerARM::ma_b(void *target, Relocation::Kind reloc)
+
+enum RelocBranchStyle {
+    MOVWT,
+    LDR_BX,
+    LDR,
+    MOVW_ADD
+};
+RelocBranchStyle
+b_type()
 {
-    
-    ma_b(target, Always, reloc);
+    return MOVWT;
 }
 void
-MacroAssemblerARM::ma_b(void *target, Assembler::Condition c, Relocation::Kind reloc)
+MacroAssemblerARM::ma_b(void *target, Relocation::Kind reloc, Assembler::Condition c)
 {
     
     
     
     
     uint32 trg = (uint32)target;
-    as_movw(ScratchRegister, Imm16(trg & 0xffff), c);
-    as_movt(ScratchRegister, Imm16(trg >> 16), c);
-    
-    as_bx(ScratchRegister, c);
+    switch (b_type()) {
+      case MOVWT:
+        as_movw(ScratchRegister, Imm16(trg & 0xffff), c);
+        as_movt(ScratchRegister, Imm16(trg >> 16), c);
+        
+        as_bx(ScratchRegister, c);
+        break;
+      default:
+        JS_NOT_REACHED("Other methods of generating tracable jumps NYI");
+    }
 }
 
 

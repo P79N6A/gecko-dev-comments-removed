@@ -263,8 +263,8 @@ class MacroAssemblerARM : public Assembler
     
     void ma_mul(Register src1, Register src2, Register dest);
     void ma_mul(Register src1, Imm32 imm, Register dest);
-    Assembler::Condition ma_check_mul(Register src1, Register src2, Register dest, Condition cond);
-    Assembler::Condition ma_check_mul(Register src1, Imm32 imm, Register dest, Condition cond);
+    Condition ma_check_mul(Register src1, Register src2, Register dest, Condition cond);
+    Condition ma_check_mul(Register src1, Imm32 imm, Register dest, Condition cond);
 
 
     
@@ -302,9 +302,7 @@ class MacroAssemblerARM : public Assembler
     
     void ma_b(Label *dest, Condition c = Always);
 
-    void ma_b(void *target, Relocation::Kind reloc);
-
-    void ma_b(void *target, Condition c, Relocation::Kind reloc);
+    void ma_b(void *target, Relocation::Kind reloc, Condition c = Always);
 
     
     

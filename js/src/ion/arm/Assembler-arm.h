@@ -106,7 +106,8 @@ static const FloatRegister d13 = {FloatRegisters::d13};
 static const FloatRegister d14 = {FloatRegisters::d14};
 static const FloatRegister d15 = {FloatRegisters::d15};
 
-
+class Instruction;
+class InstBranchImm;
 uint32 RM(Register r);
 uint32 RS(Register r);
 uint32 RD(Register r);
@@ -116,6 +117,10 @@ uint32 RN(Register r);
 uint32 maybeRD(Register r);
 uint32 maybeRT(Register r);
 uint32 maybeRN(Register r);
+
+Register toRM (Instruction &i);
+Register toRD (Instruction &i);
+Register toR (Instruction &i);
 
 class VFPRegister;
 uint32 VD(VFPRegister vr);
@@ -198,6 +203,7 @@ class VFPRegister
 
 
 extern VFPRegister NoVFPRegister;
+
 struct ImmTag : public Imm32
 {
     ImmTag(JSValueTag mask)
@@ -752,24 +758,37 @@ class BOffImm
     uint32 encode() {
         return data;
     }
+    int32 decode() {
+        return (data << 8) >> 6;
+    }
+
     BOffImm(int offset) : data (offset >> 2 & 0x00ffffff) {
         JS_ASSERT ((offset & 0x3) == 0);
         JS_ASSERT (offset >= -33554432);
         JS_ASSERT (offset <= 33554428);
     }
+    BOffImm() : data(-1) {}
+    bool isInvalid() {
+        return data == 0x00ffffff;
+    }
+    Instruction *getDest(Instruction *src);
+  private:
+    friend class InstBranchImm;
+    BOffImm(Instruction &inst);
 };
 class Imm16
 {
     uint32 lower : 12;
     uint32 pad : 4;
     uint32 upper : 4;
+    uint32 invalid : 12;
   public:
-    Imm16(uint32 imm)
-        : lower(imm & 0xfff), pad(0), upper((imm>>12) & 0xf)
-    {
-        JS_ASSERT(uint32(lower | (upper << 12)) == imm);
-    }
+    Imm16(uint32 imm);
+    Imm16(Instruction &inst);
     uint32 encode() { return lower | upper << 16; }
+    uint32 decode() { return lower | upper << 12; }
+    Imm16();
+    bool isInvalid () { return invalid; }
 };
 
 
@@ -833,7 +852,6 @@ class Operand
     }
 };
 
-
 class Assembler
 {
   public:
@@ -887,6 +905,7 @@ class Assembler
         VFP_LessThanOrUnordered = LT,
         VFP_LessThan = CC 
     };
+
     Condition getCondition(uint32 inst) {
         return (Condition) (0xf0000000 & inst);
     }
@@ -901,8 +920,8 @@ class Assembler
         return BufferOffset(l->bound());
     }
 
-    uint32 * editSrc (BufferOffset bo) {
-        return (uint32*)(((char*)m_buffer.data()) + bo.getOffset());
+    Instruction * editSrc (BufferOffset bo) {
+        return (Instruction*)(((char*)m_buffer.data()) + bo.getOffset());
     }
     
     
@@ -997,6 +1016,17 @@ public:
 
     
     void trace(JSTracer *trc);
+    void writeRelocation(BufferOffset src) {
+        jumpRelocations_.writeUnsigned(src.getOffset());
+    }
+    void writeDataRelocation(size_t offs) {
+        dataRelocations_.writeUnsigned(offs);
+    }
+    
+    static uint32 * getCF32Target(Instruction *jump);
+    
+    
+    static uint32 * getPtr32Target(Instruction *load, Register *dest = NULL);
 
     bool oom() const;
 
@@ -1245,7 +1275,14 @@ public:
   public:
     static void TraceJumpRelocations(JSTracer *trc, IonCode *code, CompactBufferReader &reader);
     static void TraceDataRelocations(JSTracer *trc, IonCode *code, CompactBufferReader &reader);
+  protected:
+    void addPendingJump(BufferOffset src, void *target, Relocation::Kind kind) {
+        enoughMemory_ &= jumps_.append(RelativePatch(src, target, kind));
+        if (kind == Relocation::CODE)
+            writeRelocation(src);
+    }
 
+  public:
     
     
     void flush() {}
@@ -1255,33 +1292,7 @@ public:
     void executableCopy(uint8 *buffer);
 
     
-    
-    void cvttsd2s(const FloatRegister &src, const Register &dest) {
-    }
 
-    void as_b(void *target, Relocation::Kind reloc) {
-        JS_NOT_REACHED("feature NYI");
-#if 0
-        JmpSrc src = masm.branch();
-        addPendingJump(src, target, reloc);
-#endif
-    }
-    void as_b(Condition cond, void *target, Relocation::Kind reloc) {
-        JS_NOT_REACHED("feature NYI");
-#if 0
-        JmpSrc src = masm.branch(cond);
-        addPendingJump(src, target, reloc);
-#endif
-    }
-#if 0
-    void movsd(const double *dp, const FloatRegister &dest) {
-    }
-    void movsd(AbsoluteLabel *label, const FloatRegister &dest) {
-        JS_ASSERT(!label->bound());
-        
-        
-    }
-#endif
     
     
     void startDataTransferM(LoadStore ls, Register rm,
@@ -1376,6 +1387,182 @@ public:
     void dumpPool();
 }; 
 
+
+
+class Instruction
+{
+    uint32 data;
+  protected:
+    
+    
+    Instruction (uint32 data_) : data(data_ | 0xf0000000) {
+        JS_ASSERT ((data_ & 0xf0000000) == 0);
+    }
+    
+    Instruction (uint32 data_, Assembler::Condition c) : data(data_ | (uint32) c) {
+        JS_ASSERT ((data_ & 0xf0000000) == 0);
+    }
+    
+    
+    
+  public:
+    uint32 encode() {
+        return data;
+    }
+    
+    template <class C>
+    bool is() { return C::isTHIS(*this); }
+
+    
+    template <class C>
+    C *as() { return C::asTHIS(*this); }
+
+    const Instruction & operator=(const Instruction &src) {
+        data = src.data;
+        return *this;
+    }
+    
+    
+    void extractCond(Assembler::Condition *c) {
+        if (data >> 28 != 0xf )
+            *c = (Assembler::Condition)(data & 0xf0000000);
+    }
+    
+    
+    
+    Instruction *next() { return &this[1]; }
+    
+    
+    uint32 *raw() { return (uint32*)this; }
+}; 
+
+JS_STATIC_ASSERT(sizeof(Instruction) == 4);
+
+
+class InstDTR : public Instruction
+{
+  public:
+    enum IsByte_ {
+        IsByte = 0x00400000,
+        IsWord = 0x00000000
+    };
+    static const int IsDTR     = 0x04000000;
+    static const int IsDTRMask = 0x0c000000;
+    InstDTR(LoadStore ls, IsByte_ ib, Index mode, Register rt, DTRAddr addr, Assembler::Condition c) :
+        
+        Instruction(ls | ib | mode | RT(rt) | addr.encode() ,c) {}
+    static bool isTHIS(Instruction &i);
+    static InstDTR *asTHIS(Instruction &i);
+};
+JS_STATIC_ASSERT(sizeof(InstDTR) == sizeof(Instruction));
+
+class InstBranchReg : public Instruction
+{
+  protected:
+    
+    enum BranchTag {
+        IsBX  = 0x012fff10,
+        IsBLX = 0x012fff30
+    };
+    static const uint32 IsBRegMask = 0x0ffffff0;
+    InstBranchReg(BranchTag tag, Register rm, Assembler::Condition c) : Instruction(tag | RM(rm), c) {}
+  public:
+    static bool isTHIS (Instruction &i);
+    static InstBranchReg *asTHIS (Instruction &i);
+    
+    void extractDest(Register *dest);
+    
+    bool checkDest(Register dest);
+};
+JS_STATIC_ASSERT(sizeof(InstBranchReg) == sizeof(Instruction));
+
+
+class InstBranchImm : public Instruction
+{
+  protected:
+    enum BranchTag {
+        IsB   = 0x0a000000,
+        IsBL  = 0x0b000000
+    };
+    static const uint32 IsBImmMask = 0x0f000000;
+
+    InstBranchImm(BranchTag tag, BOffImm off, Assembler::Condition c) :
+        Instruction(tag | off.encode(), c) {}
+  public:
+    static bool isTHIS (Instruction &i);
+    static InstBranchImm *asTHIS (Instruction &i);
+    void extractImm(BOffImm *dest);
+};
+JS_STATIC_ASSERT(sizeof(InstBranchImm) == sizeof(Instruction));
+
+
+class InstBXReg : public InstBranchReg
+{
+  public:
+    static bool isTHIS (Instruction &i);
+    static InstBXReg *asTHIS (Instruction &i);
+};
+class InstBLXReg : public InstBranchReg
+{
+  public:
+    static bool isTHIS (Instruction &i);
+    static InstBLXReg *asTHIS (Instruction &i);
+};
+class InstBImm : public InstBranchImm
+{
+  public:
+    static bool isTHIS (Instruction &i);
+    static InstBImm *asTHIS (Instruction &i);
+    InstBImm(BOffImm off, Assembler::Condition c) : InstBranchImm(IsB, off, c) {};
+};
+class InstBLImm : public InstBranchImm
+{
+  public:
+    static bool isTHIS (Instruction &i);
+    static InstBLImm *asTHIS (Instruction &i);
+    InstBLImm(BOffImm off, Assembler::Condition c) : InstBranchImm(IsBL, off, c) {}
+};
+
+
+
+class InstMovWT : public Instruction
+{
+  protected:
+    enum WT {
+        IsW = 0x03000000,
+        IsT = 0x03400000
+    };
+    static const uint32 IsWTMask = 0x0ff00000;
+    InstMovWT(Register rd, Imm16 imm, WT wt, Assembler::Condition c) :
+        Instruction (RD(rd) | imm.encode() | wt, c) {}
+  public:
+    static bool isTHIS (Instruction &i);
+    static InstMovWT *asTHIS (Instruction &i);
+    void extractImm(Imm16 *dest);
+    void extractDest(Register *dest);
+    bool checkImm(Imm16 dest);
+    bool checkDest(Register dest);
+
+};
+JS_STATIC_ASSERT(sizeof(InstMovWT) == sizeof(Instruction));
+
+class InstMovW : public InstMovWT
+{
+  public:
+    InstMovW (Register rd, Imm16 imm, Assembler::Condition c) :
+        InstMovWT(rd, imm, IsW, c) {}
+    static bool isTHIS (Instruction &i);
+    static InstMovW *asTHIS (Instruction &i);
+};
+
+class InstMovT : public InstMovWT
+{
+  public:
+    InstMovT (Register rd, Imm16 imm, Assembler::Condition c) :
+        InstMovWT(rd, imm, IsT, c) {}
+    static bool isTHIS (Instruction &i);
+    static InstMovT *asTHIS (Instruction &i);
+};
 static const uint32 NumArgRegs = 4;
 
 static inline bool
@@ -1459,4 +1646,4 @@ class DoubleEncoder {
 } 
 } 
 
-#endif 
+#endif
