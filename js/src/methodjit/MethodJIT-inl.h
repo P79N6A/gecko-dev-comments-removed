@@ -76,6 +76,25 @@ CanMethodJIT(JSContext *cx, JSScript *script, StackFrame *fp, CompileRequest req
     return Compile_Okay;
 }
 
+static inline bool
+RecursiveMethodJIT(JSContext *cx, StackFrame *fp)
+{
+    
+
+
+
+
+
+    static const unsigned RECURSIVE_METHODJIT_LIMIT = 10;
+    VMFrame *f = cx->compartment->jaegerCompartment->activeFrame();
+    for (unsigned i = 0; i < RECURSIVE_METHODJIT_LIMIT; i++) {
+        if (!f || f->entryfp != fp)
+            return false;
+        f = f->previous;
+    }
+    return true;
+}
+
 
 
 
@@ -83,7 +102,7 @@ CanMethodJIT(JSContext *cx, JSScript *script, StackFrame *fp, CompileRequest req
 static inline CompileStatus
 CanMethodJITAtBranch(JSContext *cx, JSScript *script, StackFrame *fp, jsbytecode *pc)
 {
-    if (!cx->methodJitEnabled)
+    if (!cx->methodJitEnabled || RecursiveMethodJIT(cx, fp))
         return Compile_Abort;
     JITScriptStatus status = script->getJITStatus(fp->isConstructing());
     if (status == JITScript_Invalid)
