@@ -139,7 +139,7 @@ nsRefreshDriver::RestoreNormalRefresh()
 TimeStamp
 nsRefreshDriver::MostRecentRefresh() const
 {
-  const_cast<nsRefreshDriver*>(this)->EnsureTimerStarted();
+  const_cast<nsRefreshDriver*>(this)->EnsureTimerStarted(false);
 
   return mMostRecentRefresh;
 }
@@ -147,7 +147,7 @@ nsRefreshDriver::MostRecentRefresh() const
 PRInt64
 nsRefreshDriver::MostRecentRefreshEpochTime() const
 {
-  const_cast<nsRefreshDriver*>(this)->EnsureTimerStarted();
+  const_cast<nsRefreshDriver*>(this)->EnsureTimerStarted(false);
 
   return mMostRecentRefreshEpochTime;
 }
@@ -159,7 +159,7 @@ nsRefreshDriver::AddRefreshObserver(nsARefreshObserver *aObserver,
   ObserverArray& array = ArrayFor(aFlushType);
   PRBool success = array.AppendElement(aObserver) != nsnull;
 
-  EnsureTimerStarted();
+  EnsureTimerStarted(false);
 
   return success;
 }
@@ -173,7 +173,7 @@ nsRefreshDriver::RemoveRefreshObserver(nsARefreshObserver *aObserver,
 }
 
 void
-nsRefreshDriver::EnsureTimerStarted()
+nsRefreshDriver::EnsureTimerStarted(bool aAdjustingTimer)
 {
   if (mTimer || mFrozen || !mPresContext) {
     
@@ -181,7 +181,15 @@ nsRefreshDriver::EnsureTimerStarted()
     return;
   }
 
-  UpdateMostRecentRefresh();
+  if (!aAdjustingTimer) {
+    
+    
+    
+    
+    
+    
+    UpdateMostRecentRefresh();
+  }
 
   mTimer = do_CreateInstance(NS_TIMER_CONTRACTID);
   if (!mTimer) {
@@ -395,7 +403,7 @@ nsRefreshDriver::Notify(nsITimer *aTimer)
     
     
     StopTimer();
-    EnsureTimerStarted();
+    EnsureTimerStarted(true);
   }
 
   return NS_OK;
@@ -415,8 +423,12 @@ nsRefreshDriver::Thaw()
   NS_ASSERTION(mFrozen, "Thaw called on an unfrozen refresh driver");
   mFrozen = false;
   if (ObserverCount()) {
+    
+    
+    
+    
     NS_DispatchToCurrentThread(NS_NewRunnableMethod(this, &nsRefreshDriver::DoRefresh));
-    EnsureTimerStarted();
+    EnsureTimerStarted(false);
   }
 }
 
@@ -429,7 +441,7 @@ nsRefreshDriver::SetThrottled(bool aThrottled)
       
       
       StopTimer();
-      EnsureTimerStarted();
+      EnsureTimerStarted(true);
     }
   }
 }
@@ -460,7 +472,7 @@ nsRefreshDriver::ScheduleBeforePaintEvent(nsIDocument* aDocument)
                mBeforePaintTargets.NoIndex,
                "Shouldn't have a paint event posted for this document");
   PRBool appended = mBeforePaintTargets.AppendElement(aDocument) != nsnull;
-  EnsureTimerStarted();
+  EnsureTimerStarted(false);
   return appended;
 }
 
@@ -473,7 +485,7 @@ nsRefreshDriver::ScheduleAnimationFrameListeners(nsIDocument* aDocument)
   mAnimationFrameListenerDocs.AppendElement(aDocument);
   
   
-  EnsureTimerStarted();
+  EnsureTimerStarted(false);
 }
 
 void
