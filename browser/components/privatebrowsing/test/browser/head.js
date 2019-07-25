@@ -9,3 +9,17 @@ registerCleanupFunction(function() {
   } catch(e) {}
 });
 
+
+
+
+
+
+
+
+function waitForClearHistory(aCallback) {
+  Services.obs.addObserver(function observeCH(aSubject, aTopic, aData) {
+    Services.obs.removeObserver(observeCH, PlacesUtils.TOPIC_EXPIRATION_FINISHED);
+    aCallback();
+  }, PlacesUtils.TOPIC_EXPIRATION_FINISHED, false);
+  PlacesUtils.bhistory.removeAllPages();
+}

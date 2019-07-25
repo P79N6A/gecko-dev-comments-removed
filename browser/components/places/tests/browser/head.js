@@ -29,10 +29,51 @@ function openLibrary(callback, aLeftPaneRoot) {
   return library;
 }
 
+
+
+
+
+
+
+
 function waitForClearHistory(aCallback) {
   Services.obs.addObserver(function observeCH(aSubject, aTopic, aData) {
     Services.obs.removeObserver(observeCH, PlacesUtils.TOPIC_EXPIRATION_FINISHED);
     aCallback();
   }, PlacesUtils.TOPIC_EXPIRATION_FINISHED, false);
   PlacesUtils.bhistory.removeAllPages();
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function waitForAsyncUpdates(aCallback, aScope, aArguments)
+{
+  let scope = aScope || this;
+  let args = aArguments || [];
+  let db = PlacesUtils.history.QueryInterface(Ci.nsPIPlacesDatabase)
+                              .DBConnection;
+  db.createAsyncStatement("BEGIN EXCLUSIVE").executeAsync();
+  db.createAsyncStatement("COMMIT").executeAsync({
+    handleResult: function() {},
+    handleError: function() {},
+    handleCompletion: function(aReason)
+    {
+      aCallback.apply(scope, args);
+    }
+  });
 }
