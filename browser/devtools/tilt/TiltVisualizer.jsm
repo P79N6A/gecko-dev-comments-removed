@@ -57,21 +57,21 @@ const INVISIBLE_ELEMENTS = {
 
 const STACK_THICKNESS = 15;
 const WIREFRAME_COLOR = [0, 0, 0, 0.25];
-const INTRO_TRANSITION_DURATION = 50;
-const OUTRO_TRANSITION_DURATION = 40;
+const INTRO_TRANSITION_DURATION = 1000;
+const OUTRO_TRANSITION_DURATION = 800;
 const INITIAL_Z_TRANSLATION = 400;
 const MOVE_INTO_VIEW_ACCURACY = 50;
 
 const MOUSE_CLICK_THRESHOLD = 10;
-const MOUSE_INTRO_DELAY = 10;
+const MOUSE_INTRO_DELAY = 200;
 const ARCBALL_SENSITIVITY = 0.5;
 const ARCBALL_ROTATION_STEP = 0.15;
 const ARCBALL_TRANSLATION_STEP = 35;
 const ARCBALL_ZOOM_STEP = 0.1;
 const ARCBALL_ZOOM_MIN = -3000;
 const ARCBALL_ZOOM_MAX = 500;
-const ARCBALL_RESET_FACTOR = 0.9;
-const ARCBALL_RESET_INTERVAL = 1000 / 60;
+const ARCBALL_RESET_SPHERICAL_FACTOR = 0.1;
+const ARCBALL_RESET_LINEAR_FACTOR = 0.01;
 
 const TILT_CRAFTER = "resource:///modules/devtools/TiltWorkerCrafter.js";
 const TILT_PICKER = "resource:///modules/devtools/TiltWorkerPicker.js";
@@ -83,7 +83,6 @@ Cu.import("resource:///modules/devtools/TiltUtils.jsm");
 Cu.import("resource:///modules/devtools/TiltVisualizerStyle.jsm");
 
 let EXPORTED_SYMBOLS = ["TiltVisualizer"];
-
 
 
 
@@ -121,7 +120,6 @@ function TiltVisualizer(aProperties)
   this.presenter = new TiltVisualizer.Presenter(this.canvas,
     aProperties.chromeWindow,
     aProperties.contentWindow,
-    aProperties.requestAnimationFrame,
     aProperties.notifications,
     aProperties.onError || null,
     aProperties.onLoad || null);
@@ -191,11 +189,8 @@ TiltVisualizer.prototype = {
 
 
 
-
-
 TiltVisualizer.Presenter = function TV_Presenter(
-  aCanvas, aChromeWindow, aContentWindow, aRequestAnimationFrame, aNotifications,
-  onError, onLoad)
+  aCanvas, aChromeWindow, aContentWindow, aNotifications, onError, onLoad)
 {
   
 
@@ -273,12 +268,27 @@ TiltVisualizer.Presenter = function TV_Presenter(
   
 
 
-  this.frames = 0;
+
+  this.time = 0;
 
   
 
 
-  let setup = function TVP_setup()
+
+  this.delta = 0;
+  this.prevFrameTime = 0;
+  this.currFrameTime = 0;
+
+  this.setup();
+  this.loop();
+};
+
+TiltVisualizer.Presenter.prototype = {
+
+  
+
+
+  setup: function TVP_setup()
   {
     let renderer = this.renderer;
     let inspector = this.chromeWindow.InspectorUI;
@@ -301,16 +311,20 @@ TiltVisualizer.Presenter = function TV_Presenter(
       this.transforms.zoom = inspector.highlighter.zoom;
     }
 
+    
+    TiltUtils.bindObjectFunc(this, "^on");
+    TiltUtils.bindObjectFunc(this, "loop");
+
     this.setupTexture();
     this.setupMeshData();
     this.setupEventListeners();
     this.canvas.focus();
-  }.bind(this);
+  },
 
   
 
 
-  let loop = function TVP_loop()
+  loop: function TVP_loop()
   {
     let renderer = this.renderer;
 
@@ -320,7 +334,7 @@ TiltVisualizer.Presenter = function TV_Presenter(
     }
 
     
-    aRequestAnimationFrame(loop);
+    this.chromeWindow.mozRequestAnimationFrame(this.loop);
 
     
     if (this.redraw) {
@@ -330,17 +344,22 @@ TiltVisualizer.Presenter = function TV_Presenter(
 
     
     if ("function" === typeof this.ondraw) {
-      this.ondraw(this.frames);
+      this.ondraw(this.time, this.delta);
     }
 
+    this.handleFrameDelta();
     this.handleKeyframeNotifications();
-  }.bind(this);
+  },
 
-  setup();
-  loop();
-};
+  
 
-TiltVisualizer.Presenter.prototype = {
+
+  handleFrameDelta: function TVP_handleFrameDelta()
+  {
+    this.prevFrameTime = this.currFrameTime;
+    this.currFrameTime = this.chromeWindow.mozAnimationStartTime;
+    this.delta = this.currFrameTime - this.prevFrameTime;
+  },
 
   
 
@@ -365,10 +384,10 @@ TiltVisualizer.Presenter.prototype = {
     let ortho = mat4.ortho(0, w, h, 0, -1000, 1000);
 
     if (!this.isExecutingDestruction) {
-      let f = this.frames / INTRO_TRANSITION_DURATION;
+      let f = this.time / INTRO_TRANSITION_DURATION;
       renderer.lerp(renderer.projMatrix, ortho, f, 8);
     } else {
-      let f = this.frames / OUTRO_TRANSITION_DURATION;
+      let f = this.time / OUTRO_TRANSITION_DURATION;
       renderer.lerp(renderer.projMatrix, ortho, 1 - f, 8);
     }
 
@@ -395,11 +414,11 @@ TiltVisualizer.Presenter.prototype = {
     this.drawHighlight();
 
     
-    if (this.frames < INTRO_TRANSITION_DURATION ||
-        this.frames < OUTRO_TRANSITION_DURATION) {
+    if (this.time < INTRO_TRANSITION_DURATION ||
+        this.time < OUTRO_TRANSITION_DURATION) {
       this.redraw = true;
     }
-    this.frames++;
+    this.time += this.delta;
   },
 
   
@@ -615,9 +634,6 @@ TiltVisualizer.Presenter.prototype = {
 
   setupEventListeners: function TVP_setupEventListeners()
   {
-    
-    TiltUtils.bindObjectFunc(this, "^on");
-
     this.contentWindow.addEventListener("resize", this.onResize, false);
   },
 
@@ -793,8 +809,7 @@ TiltVisualizer.Presenter.prototype = {
     this.highlight.disabled = true;
     this.redraw = true;
 
-    Services.obs.notifyObservers(null,
-      this.NOTIFICATIONS.NODE_REMOVED, null);
+    Services.obs.notifyObservers(null, this.NOTIFICATIONS.NODE_REMOVED, null);
   },
 
   
@@ -909,15 +924,17 @@ TiltVisualizer.Presenter.prototype = {
   handleKeyframeNotifications: function TV_handleKeyframeNotifications()
   {
     if (!TiltVisualizer.Prefs.introTransition && !this.isExecutingDestruction) {
-      this.frames = INTRO_TRANSITION_DURATION;
+      this.time = INTRO_TRANSITION_DURATION;
     }
     if (!TiltVisualizer.Prefs.outroTransition && this.isExecutingDestruction) {
-      this.frames = OUTRO_TRANSITION_DURATION;
+      this.time = OUTRO_TRANSITION_DURATION;
     }
 
-    if (this.frames === INTRO_TRANSITION_DURATION &&
+    if (this.time >= INTRO_TRANSITION_DURATION &&
+       !this.initializationFinished &&
        !this.isExecutingDestruction) {
 
+      this.initializationFinished = true;
       Services.obs.notifyObservers(null, this.NOTIFICATIONS.INITIALIZED, null);
 
       if ("function" === typeof this.onInitializationFinished) {
@@ -925,9 +942,11 @@ TiltVisualizer.Presenter.prototype = {
       }
     }
 
-    if (this.frames === OUTRO_TRANSITION_DURATION &&
+    if (this.time >= OUTRO_TRANSITION_DURATION &&
+       !this.destructionFinished &&
         this.isExecutingDestruction) {
 
+      this.destructionFinished = true;
       Services.obs.notifyObservers(null, this.NOTIFICATIONS.BEFORE_DESTROYED, null);
 
       if ("function" === typeof this.onDestructionFinished) {
@@ -953,8 +972,8 @@ TiltVisualizer.Presenter.prototype = {
       
       
 
-      if (this.frames > OUTRO_TRANSITION_DURATION) {
-        this.frames = 0;
+      if (this.time > OUTRO_TRANSITION_DURATION) {
+        this.time = 0;
         this.redraw = true;
       } else {
         aCallback();
@@ -1052,7 +1071,7 @@ TiltVisualizer.Controller = function TV_Controller(aCanvas, aPresenter)
   this.addEventListeners();
 
   
-  aPresenter.ondraw = this.update;
+  this.presenter.ondraw = this.update;
 };
 
 TiltVisualizer.Controller.prototype = {
@@ -1109,10 +1128,12 @@ TiltVisualizer.Controller.prototype = {
 
 
 
-  update: function TVC_update(aFrames)
+
+
+  update: function TVC_update(aTime, aDelta)
   {
-    this.frames = aFrames;
-    this.coordinates = this.arcball.update();
+    this.time = aTime;
+    this.coordinates = this.arcball.update(aDelta);
 
     this.presenter.setRotation(this.coordinates.rotation);
     this.presenter.setTranslation(this.coordinates.translation);
@@ -1127,7 +1148,7 @@ TiltVisualizer.Controller.prototype = {
     e.preventDefault();
     e.stopPropagation();
 
-    if (this.frames < MOUSE_INTRO_DELAY) {
+    if (this.time < MOUSE_INTRO_DELAY) {
       return;
     }
 
@@ -1147,7 +1168,7 @@ TiltVisualizer.Controller.prototype = {
     e.preventDefault();
     e.stopPropagation();
 
-    if (this.frames < MOUSE_INTRO_DELAY) {
+    if (this.time < MOUSE_INTRO_DELAY) {
       return;
     }
 
@@ -1175,7 +1196,7 @@ TiltVisualizer.Controller.prototype = {
     e.preventDefault();
     e.stopPropagation();
 
-    if (this.frames < MOUSE_INTRO_DELAY) {
+    if (this.time < MOUSE_INTRO_DELAY) {
       return;
     }
 
@@ -1304,6 +1325,7 @@ TiltVisualizer.Controller.prototype = {
     TiltUtils.destroyObject(this.coordinates);
 
     this.removeEventListeners();
+    this.presenter.controller = null;
     this.presenter.ondraw = null;
   }
 };
@@ -1396,7 +1418,10 @@ TiltVisualizer.Arcball.prototype = {
 
 
 
-  update: function TVA_update()
+
+
+
+  update: function TVA_update(aDelta)
   {
     let mousePress = this._mousePress;
     let mouseRelease = this._mouseRelease;
@@ -1560,6 +1585,11 @@ TiltVisualizer.Arcball.prototype = {
     vec3.set([deltaAdditionalTrans[0], deltaAdditionalTrans[1], 0], deltaTrans);
 
     
+    if (this._resetInProgress) {
+      this._nextResetStep(aDelta || 1);
+    }
+
+    
     return {
       rotation: quat4.multiply(deltaRot, currentRot),
       translation: vec3.add(deltaTrans, currentTrans)
@@ -1583,7 +1613,7 @@ TiltVisualizer.Arcball.prototype = {
     this._mousePress[0] = x;
     this._mousePress[1] = y;
     this._mouseButton = aButton;
-    this._cancelResetInterval();
+    this._cancelReset();
     this._save();
 
     
@@ -1659,7 +1689,7 @@ TiltVisualizer.Arcball.prototype = {
 
   zoom: function TVA_zoom(aZoom)
   {
-    this._cancelResetInterval();
+    this._cancelReset();
     this._zoomAmount = TiltMath.clamp(this._zoomAmount - aZoom,
       ARCBALL_ZOOM_MIN, ARCBALL_ZOOM_MAX);
   },
@@ -1673,7 +1703,7 @@ TiltVisualizer.Arcball.prototype = {
 
   keyDown: function TVA_keyDown(aCode)
   {
-    this._cancelResetInterval();
+    this._cancelReset();
     this._keyCode[aCode] = true;
   },
 
@@ -1808,33 +1838,29 @@ TiltVisualizer.Arcball.prototype = {
       this.onResetStart = null;
     }
 
-    let func = this._nextResetIntervalStep.bind(this);
-
     this.cancelMouseEvents();
     this.cancelKeyEvents();
-    this._cancelResetInterval();
+    this._cancelReset();
 
     this._save();
     this._resetFinalTranslation = vec3.create(aFinalTranslation);
     this._resetFinalRotation = quat4.create(aFinalRotation);
-    this._resetInterval =
-      this.chromeWindow.setInterval(func, ARCBALL_RESET_INTERVAL);
+    this._resetInProgress = true;
   },
 
   
 
 
-  _cancelResetInterval: function TVA__cancelResetInterval()
+  _cancelReset: function TVA__cancelReset()
   {
-    if (this._resetInterval) {
-      this.chromeWindow.clearInterval(this._resetInterval);
-
-      this._resetInterval = null;
+    if (this._resetInProgress) {
+      this._resetInProgress = false;
       this._save();
 
       if ("function" === typeof this.onResetFinish) {
         this.onResetFinish();
         this.onResetFinish = null;
+        this.onResetStep = null;
       }
     }
   },
@@ -1842,9 +1868,18 @@ TiltVisualizer.Arcball.prototype = {
   
 
 
-  _nextResetIntervalStep: function TVA__nextResetIntervalStep()
+
+
+
+  _nextResetStep: function TVA__nextResetStep(aDelta)
   {
-    let fDelta = EPSILON * EPSILON;
+    
+    
+    aDelta = TiltMath.clamp(aDelta, 1, 100);
+
+    let fNearZero = EPSILON * EPSILON;
+    let fInterpLin = ARCBALL_RESET_LINEAR_FACTOR * aDelta;
+    let fInterpSph = ARCBALL_RESET_SPHERICAL_FACTOR;
     let fTran = this._resetFinalTranslation;
     let fRot = this._resetFinalRotation;
 
@@ -1852,25 +1887,29 @@ TiltVisualizer.Arcball.prototype = {
     let r = quat4.multiply(quat4.inverse(quat4.create(this._currentRot)), fRot);
 
     
-    vec3.lerp(this._currentTrans, t, ARCBALL_RESET_FACTOR / 4);
-    quat4.slerp(this._currentRot, r, 1 - ARCBALL_RESET_FACTOR);
+    vec3.lerp(this._currentTrans, t, fInterpLin);
+    quat4.slerp(this._currentRot, r, fInterpSph);
 
     
-    vec3.scale(this._additionalTrans, ARCBALL_RESET_FACTOR);
-    vec3.scale(this._additionalRot, ARCBALL_RESET_FACTOR);
-    this._zoomAmount *= ARCBALL_RESET_FACTOR;
+    vec3.scale(this._additionalTrans, fInterpLin);
+    vec3.scale(this._additionalRot, fInterpLin);
+    this._zoomAmount *= fInterpLin;
 
     
-    if (vec3.length(vec3.subtract(this._lastRot, fRot, [])) < fDelta &&
-        vec3.length(vec3.subtract(this._deltaRot, fRot, [])) < fDelta &&
-        vec3.length(vec3.subtract(this._currentRot, fRot, [])) < fDelta &&
-        vec3.length(vec3.subtract(this._lastTrans, fTran, [])) < fDelta &&
-        vec3.length(vec3.subtract(this._deltaTrans, fTran, [])) < fDelta &&
-        vec3.length(vec3.subtract(this._currentTrans, fTran, [])) < fDelta &&
-        vec3.length(this._additionalRot) < fDelta &&
-        vec3.length(this._additionalTrans) < fDelta) {
+    if (vec3.length(vec3.subtract(this._lastRot, fRot, [])) < fNearZero &&
+        vec3.length(vec3.subtract(this._deltaRot, fRot, [])) < fNearZero &&
+        vec3.length(vec3.subtract(this._currentRot, fRot, [])) < fNearZero &&
+        vec3.length(vec3.subtract(this._lastTrans, fTran, [])) < fNearZero &&
+        vec3.length(vec3.subtract(this._deltaTrans, fTran, [])) < fNearZero &&
+        vec3.length(vec3.subtract(this._currentTrans, fTran, [])) < fNearZero &&
+        vec3.length(this._additionalRot) < fNearZero &&
+        vec3.length(this._additionalTrans) < fNearZero) {
 
-      this._cancelResetInterval();
+      this._cancelReset();
+    }
+
+    if ("function" === typeof this.onResetStep) {
+      this.onResetStep();
     }
   },
 
@@ -1929,7 +1968,7 @@ TiltVisualizer.Arcball.prototype = {
 
   finalize: function TVA_finalize()
   {
-    this._cancelResetInterval();
+    this._cancelReset();
   }
 };
 
