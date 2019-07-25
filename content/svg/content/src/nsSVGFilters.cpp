@@ -512,7 +512,7 @@ NS_IMETHODIMP
 nsSVGFEGaussianBlurElement::SetStdDeviation(float stdDeviationX, float stdDeviationY)
 {
   NS_ENSURE_FINITE2(stdDeviationX, stdDeviationY, NS_ERROR_ILLEGAL_VALUE);
-  mNumberPairAttributes[STD_DEV].SetBaseValues(stdDeviationX, stdDeviationY, this, PR_TRUE);
+  mNumberPairAttributes[STD_DEV].SetBaseValues(stdDeviationX, stdDeviationY, this);
   return NS_OK;
 }
 
@@ -1526,10 +1526,10 @@ NS_IMETHODIMP
 nsSVGFECompositeElement::SetK(float k1, float k2, float k3, float k4)
 {
   NS_ENSURE_FINITE4(k1, k2, k3, k4, NS_ERROR_ILLEGAL_VALUE);
-  mNumberAttributes[K1].SetBaseValue(k1, this, PR_TRUE);
-  mNumberAttributes[K2].SetBaseValue(k2, this, PR_TRUE);
-  mNumberAttributes[K3].SetBaseValue(k3, this, PR_TRUE);
-  mNumberAttributes[K4].SetBaseValue(k4, this, PR_TRUE);
+  mNumberAttributes[K1].SetBaseValue(k1, this);
+  mNumberAttributes[K2].SetBaseValue(k2, this);
+  mNumberAttributes[K3].SetBaseValue(k3, this);
+  mNumberAttributes[K4].SetBaseValue(k4, this);
   return NS_OK;
 }
 
@@ -3647,7 +3647,7 @@ NS_IMETHODIMP
 nsSVGFEMorphologyElement::SetRadius(float rx, float ry)
 {
   NS_ENSURE_FINITE2(rx, ry, NS_ERROR_ILLEGAL_VALUE);
-  mNumberPairAttributes[RADIUS].SetBaseValues(rx, ry, this, PR_TRUE);
+  mNumberPairAttributes[RADIUS].SetBaseValues(rx, ry, this);
   return NS_OK;
 }
 
@@ -5343,7 +5343,6 @@ public:
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               nsIContent* aBindingParent,
                               bool aCompileEventHandlers);
-  virtual void UnbindFromTree(bool aDeep, bool aNullParent);
   virtual nsEventStates IntrinsicState() const;
 
   
@@ -5501,9 +5500,6 @@ nsSVGFEImageElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                                                     aCompileEventHandlers);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsImageLoadingContent::BindToTree(aDocument, aParent, aBindingParent,
-                                    aCompileEventHandlers);
-
   if (mStringAttributes[HREF].IsExplicitlySet()) {
     
     
@@ -5514,13 +5510,6 @@ nsSVGFEImageElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   }
 
   return rv;
-}
-
-void
-nsSVGFEImageElement::UnbindFromTree(bool aDeep, bool aNullParent)
-{
-  nsImageLoadingContent::UnbindFromTree(aDeep, aNullParent);
-  nsSVGFEImageElementBase::UnbindFromTree(aDeep, aNullParent);
 }
 
 nsEventStates

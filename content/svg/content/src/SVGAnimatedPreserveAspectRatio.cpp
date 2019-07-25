@@ -226,9 +226,7 @@ ToPreserveAspectRatio(const nsAString &aString,
 
 nsresult
 SVGAnimatedPreserveAspectRatio::SetBaseValueString(
-  const nsAString &aValueAsString,
-  nsSVGElement *aSVGElement,
-  bool aDoSetAttr)
+  const nsAString &aValueAsString, nsSVGElement *aSVGElement)
 {
   SVGPreserveAspectRatio val;
   nsresult res = ToPreserveAspectRatio(aValueAsString, &val);
@@ -247,7 +245,9 @@ SVGAnimatedPreserveAspectRatio::SetBaseValueString(
   }
 #endif
 
-  aSVGElement->DidChangePreserveAspectRatio(aDoSetAttr);
+  
+  
+  
   return NS_OK;
 }
 
