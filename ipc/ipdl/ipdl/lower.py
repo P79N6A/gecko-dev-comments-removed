@@ -1817,9 +1817,13 @@ def _generateCxxStruct(sd):
                         args=[ f.initExpr(oexpr) for f in sd.fields ])
 
     
-    defctor = ConstructorDefn(ConstructorDecl(sd.name))
-    defctor.addstmt(StmtExpr(callinit))
-    struct.addstmts([ defctor, Whitespace.NL ])
+    
+    
+    if len(sd.fields):
+        
+        defctor = ConstructorDefn(ConstructorDecl(sd.name))
+        defctor.addstmt(StmtExpr(callinit))
+        struct.addstmts([ defctor, Whitespace.NL ])
 
     
     valctor = ConstructorDefn(ConstructorDecl(sd.name,
