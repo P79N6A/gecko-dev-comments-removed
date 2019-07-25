@@ -53,7 +53,7 @@
 #include "servicebase.h"
 #include "registrycertificates.h"
 #include "uachelper.h"
-#include "launchwinprocess.h"
+#include "updatehelper.h"
 
 extern BOOL gServiceStopping;
 
@@ -63,8 +63,6 @@ extern BOOL gServiceStopping;
 static const int TIME_TO_WAIT_ON_UPDATER = 15 * 60 * 1000;
 PRUnichar* MakeCommandLine(int argc, PRUnichar **argv);
 BOOL WriteStatusFailure(LPCWSTR updateDirPath, int errorCode);
-BOOL WriteStatusPending(LPCWSTR updateDirPath);
-BOOL StartCallbackApp(int argcTmp, LPWSTR *argvTmp, DWORD callbackSessionID);
 BOOL PathGetSiblingFilePath(LPWSTR destinationBuffer,  LPCWSTR siblingFilePath, 
                             LPCWSTR newFileName);
 
@@ -73,15 +71,6 @@ BOOL PathGetSiblingFilePath(LPWSTR destinationBuffer,  LPCWSTR siblingFilePath,
 const int SERVICE_UPDATER_COULD_NOT_BE_STARTED = 16000;
 const int SERVICE_NOT_ENOUGH_COMMAND_LINE_ARGS = 16001;
 const int SERVICE_UPDATER_SIGN_ERROR = 16002;
-const int SERVICE_CALLBACK_SIGN_ERROR = 16003;
-
-
-
-
-
-
-
-
 
 
 
@@ -97,24 +86,15 @@ StartUpdateProcess(LPCWSTR updaterPath,
                    LPCWSTR workingDir, 
                    int argcTmp,
                    LPWSTR *argvTmp,
-                   BOOL &processStarted,
-                   DWORD callbackSessionID = 0)
+                   BOOL &processStarted)
 {
-  DWORD myProcessID = GetCurrentProcessId();
-  DWORD mySessionID = 0;
-  ProcessIdToSessionId(myProcessID, &mySessionID);
-
   STARTUPINFO si = {0};
   si.cb = sizeof(STARTUPINFO);
   si.lpDesktop = L"winsta0\\Default";
   PROCESS_INFORMATION pi = {0};
 
-  LOG(("Starting process in an elevated session.  Service "
-       "session ID: %d; Requested callback session ID: %d\n", 
-       mySessionID, callbackSessionID));
+  LOG(("Starting update process as the service in session 0."));
 
-  
-  
   
   
   
@@ -151,8 +131,10 @@ StartUpdateProcess(LPCWSTR updaterPath,
 
   
   
+  
+  
   WCHAR envVarString[32];
-  wsprintf(envVarString, L"MOZ_SESSION_ID=%d", callbackSessionID); 
+  wsprintf(envVarString, L"MOZ_USING_SERVICE=1"); 
   _wputenv(envVarString);
   LPVOID environmentBlock = NULL;
   if (!CreateEnvironmentBlock(&environmentBlock, NULL, TRUE)) {
@@ -160,7 +142,7 @@ StartUpdateProcess(LPCWSTR updaterPath,
     environmentBlock = NULL;
   }
   
-  _wputenv(L"MOZ_SESSION_ID=");
+  _wputenv(L"MOZ_USING_SERVICE=");
   processStarted = CreateProcessW(updaterPath, cmdLine, 
                                   NULL, NULL, FALSE, 
                                   CREATE_DEFAULT_ERROR_MODE | 
@@ -210,15 +192,16 @@ StartUpdateProcess(LPCWSTR updaterPath,
     if (updateWasSuccessful && argcTmp > 5) {
       LPCWSTR callbackApplication = argvTmp[5];
       LPCWSTR updateInfoDir = argvTmp[1];
+
       
       
       
       
       
+      
+      
+      LOG(("Launching post update process as the service in session 0."));
       LaunchWinPostProcess(callbackApplication, updateInfoDir, true, NULL);
-      nsAutoHandle userToken(UACHelper::OpenUserToken(callbackSessionID));
-      LaunchWinPostProcess(callbackApplication, 
-                           updateInfoDir, false, userToken);
     }
   }
 
@@ -258,8 +241,9 @@ ProcessWorkItem(LPCWSTR monitoringBasePath,
   
   
   
-  nsAutoHandle serviceRunning(CreateEventW(NULL, TRUE, 
-                                           FALSE, SERVICE_EVENT_NAME));
+  
+  nsAutoHandle serviceRunningEvent(CreateEventW(NULL, TRUE, 
+                                                FALSE, SERVICE_EVENT_NAME));
 
   LOG(("Processing new command meta file: %ls\n", notifyInfo.FileName));
   WCHAR fullMetaUpdateFilePath[MAX_PATH + 1];
@@ -268,7 +252,7 @@ ProcessWorkItem(LPCWSTR monitoringBasePath,
   
   
   if (!PathAppendSafe(fullMetaUpdateFilePath, notifyInfo.FileName)) {
-    
+    SetEvent(serviceRunningEvent);
     return TRUE;
   }
 
@@ -282,11 +266,12 @@ ProcessWorkItem(LPCWSTR monitoringBasePath,
                                          0, NULL));
   if (metaUpdateFile == INVALID_HANDLE_VALUE) {
     LOG(("Could not open command meta file: %ls\n", notifyInfo.FileName));
+    SetEvent(serviceRunningEvent);
     return TRUE;
   }
 
   DWORD fileSize = GetFileSize(metaUpdateFile, NULL);
-  DWORD sessionID = 0, commandID = 0;
+  DWORD commandID = 0;
   
   
   const int kSanityCheckFileSize = 1024 * 64;
@@ -297,6 +282,7 @@ ProcessWorkItem(LPCWSTR monitoringBasePath,
     LOG(("Could not obtain file size or an improper file size was encountered "
          "for command meta file: %ls\n", 
         notifyInfo.FileName));
+    SetEvent(serviceRunningEvent);
     return TRUE;
   }
 
@@ -305,12 +291,6 @@ ProcessWorkItem(LPCWSTR monitoringBasePath,
   DWORD commandIDCount;
   BOOL result = ReadFile(metaUpdateFile, &commandID, 
                          sizeof(DWORD), &commandIDCount, NULL);
-  fileSize -= sizeof(DWORD);
-
-  
-  DWORD sessionIDCount;
-  result |= ReadFile(metaUpdateFile, &sessionID, 
-                     sizeof(DWORD), &sessionIDCount, NULL);
   fileSize -= sizeof(DWORD);
 
   
@@ -346,39 +326,26 @@ ProcessWorkItem(LPCWSTR monitoringBasePath,
   if (!result ||
       commandID != 1 ||
       commandIDCount != sizeof(DWORD) ||
-      sessionIDCount != sizeof(DWORD) ||
       updaterPathCount != MAX_PATH * sizeof(WCHAR) ||
       workingDirectoryCount != MAX_PATH * sizeof(WCHAR) ||
       fileSize != 0) {
     LOG(("Could not read command data for command meta file: %ls\n", 
          notifyInfo.FileName));
+    SetEvent(serviceRunningEvent);
     return TRUE;
   }
   cmdlineBuffer[cmdLineBufferRead] = '\0';
   cmdlineBuffer[cmdLineBufferRead + 1] = '\0';
   WCHAR *cmdlineBufferWide = reinterpret_cast<WCHAR*>(cmdlineBuffer.get());
   LOG(("An update command was detected and is being processed for command meta "
-       "file: %ls\n", 
-      notifyInfo.FileName));
+       "file: %ls\n", notifyInfo.FileName));
 
   int argcTmp = 0;
   LPWSTR* argvTmp = CommandLineToArgvW(cmdlineBufferWide, &argcTmp);
 
   
-  BOOL callbackSignProblem = FALSE;
-#ifndef DISABLE_CALLBACK_AUTHENTICODE_CHECK
-  
-  
-  if (argcTmp > 5) {
-    LPWSTR callbackApplication = argvTmp[5];
-    callbackSignProblem = 
-      !DoesBinaryMatchAllowedCertificates(argvTmp[2], callbackApplication);
-  }
-#endif
-
-    
   BOOL updaterSignProblem = FALSE;
-#ifndef DISABLE_SERVICE_AUTHENTICODE_CHECK
+#ifndef DISABLE_UPDATER_AUTHENTICODE_CHECK
   if (argcTmp > 2) {
     updaterSignProblem = !DoesBinaryMatchAllowedCertificates(argvTmp[2], 
                                                              updaterPath);
@@ -387,18 +354,16 @@ ProcessWorkItem(LPCWSTR monitoringBasePath,
 
   
   
-  if (argcTmp > 2 && !updaterSignProblem && !callbackSignProblem) {
+  if (argcTmp > 2 && !updaterSignProblem) {
     BOOL updateProcessWasStarted = FALSE;
     if (StartUpdateProcess(updaterPath, workingDirectory, 
                            argcTmp, argvTmp,
-                           updateProcessWasStarted,
-                           sessionID)) {
+                           updateProcessWasStarted)) {
       LOG(("updater.exe was launched and run successfully!\n"));
       StartServiceUpdate(argcTmp, argvTmp);
     } else {
-      LOG(("Error running process in session %d.  "
-           "Updating update.status.  Last error: %d\n",
-           sessionID, GetLastError()));
+      LOG(("Error running update process. Updating update.status"
+           " Last error: %d\n", GetLastError()));
 
       
       
@@ -411,10 +376,6 @@ ProcessWorkItem(LPCWSTR monitoringBasePath,
           LOG(("Could not write update.status service update failure."
                "Last error: %d\n", GetLastError()));
         }
-
-        
-        
-        StartCallbackApp(argcTmp, argvTmp, sessionID);
       }
     }
   } else if (argcTmp <= 2) {
@@ -423,25 +384,11 @@ ProcessWorkItem(LPCWSTR monitoringBasePath,
 
     
     
-    
-    
     if (argcTmp != 2 || 
         !WriteStatusFailure(argvTmp[1], 
                             SERVICE_NOT_ENOUGH_COMMAND_LINE_ARGS)) {
       LOG(("Could not write update.status service update failure."
            "Last error: %d\n", GetLastError()));
-    }
-  } else if (callbackSignProblem) {
-    LOG(("Will not run updater nor callback due to callback sign error "
-         "in session %d. Updating update.status.  Last error: %d\n",
-         sessionID, GetLastError()));
-
-    
-    
-    if (!WriteStatusFailure(argvTmp[1], 
-                            SERVICE_CALLBACK_SIGN_ERROR)) {
-      LOG(("Could not write pending state to update.status.  (%d)\n", 
-           GetLastError()));
     }
   } else {
     LOG(("Could not start process due to certificate check error on "
@@ -454,13 +401,9 @@ ProcessWorkItem(LPCWSTR monitoringBasePath,
       LOG(("Could not write pending state to update.status.  (%d)\n", 
            GetLastError()));
     }
-
-    
-    
-    
-    StartCallbackApp(argcTmp, argvTmp, sessionID);
   }
   LocalFree(argvTmp);
+  SetEvent(serviceRunningEvent);
 
   
   return TRUE;
@@ -543,105 +486,4 @@ StartDirectoryChangeMonitor()
   }
 
   return TRUE;
-}
-
-
-
-
-
-
-
-
-
-BOOL
-StartCallbackApp(int argcTmp, LPWSTR *argvTmp, DWORD callbackSessionID) 
-{
-  if (0 == callbackSessionID  && UACHelper::IsVistaOrLater()) {
-    LOG(("Attempted to run callback application in session 0, not allowed.\n"));
-    LOG(("Session 0 is only for services on Vista and up.\n"));
-    return FALSE;
-  }
-
-  if (argcTmp < 5) {
-    LOG(("No callback application specified.\n"));
-    return FALSE;
-  }
-
-  LPWSTR callbackArgs = NULL;
-  LPWSTR callbackDirectory = argvTmp[4];
-  LPWSTR callbackApplication = argvTmp[5];
-  if (argcTmp > 6) {
-    
-    
-    const size_t callbackCommandLineLen = argcTmp - 5;
-    WCHAR **params = new WCHAR*[callbackCommandLineLen];
-    params[0] = callbackApplication;
-    for (size_t i = 1; i < callbackCommandLineLen; ++i) {
-      params[i] = argvTmp[5 + i];
-    }
-    callbackArgs = MakeCommandLine(callbackCommandLineLen, params);
-    delete[] params;
-  }
-
-  if (!callbackApplication) {
-    LOG(("Callback application is NULL.\n"));
-    if (callbackArgs) {
-      free(callbackArgs);
-    }
-    return FALSE;
-  }
-
-  nsAutoHandle unelevatedToken(UACHelper::OpenUserToken(callbackSessionID));
-  if (!unelevatedToken) {
-    LOG(("Could not obtain unelevated token for callback app.\n"));
-    if (callbackArgs) {
-      free(callbackArgs);
-    }
-    return FALSE;
-  }
-
-  
-  
-  LPVOID environmentBlock = NULL;
-  if (!CreateEnvironmentBlock(&environmentBlock, unelevatedToken, TRUE)) {
-    LOG(("Could not create an environment block, setting it to NULL.\n"));
-    environmentBlock = NULL;
-  }
-
-  STARTUPINFOW si = {0};
-  si.cb = sizeof(STARTUPINFOW);
-  si.lpDesktop = L"winsta0\\Default";
-  PROCESS_INFORMATION pi = {0};
-  if (CreateProcessAsUserW(unelevatedToken, 
-                            callbackApplication, 
-                            callbackArgs, 
-                            NULL, NULL, FALSE,
-                            CREATE_DEFAULT_ERROR_MODE |
-#ifdef DEBUG
-                            CREATE_NEW_CONSOLE |
-#endif
-                            CREATE_UNICODE_ENVIRONMENT,
-                            environmentBlock, 
-                            callbackDirectory, 
-                            &si, &pi)) {
-    LOG(("Callback app was run successfully.\n"));
-    CloseHandle(pi.hProcess);
-    CloseHandle(pi.hThread);
-    if (environmentBlock) {
-      DestroyEnvironmentBlock(environmentBlock);
-    }
-    if (callbackArgs) {
-      free(callbackArgs);
-    }
-    return TRUE;
-  } 
-  
-  LOG(("Could not run callback app, last error: %d", GetLastError()));
-  if (environmentBlock) {
-    DestroyEnvironmentBlock(environmentBlock);
-  }
-  if (callbackArgs) {
-    free(callbackArgs);
-  }
-  return FALSE;
 }

@@ -119,7 +119,7 @@ void LaunchMacPostProcess(const char* aAppExe);
 #endif
 
 #ifdef XP_WIN
-#include "launchwinprocess.h"
+#include "updatehelper.h"
 
 
 
@@ -1402,25 +1402,6 @@ LaunchCallbackApp(const NS_tchar *workingDir, int argc, NS_tchar **argv)
   execv(argv[0], argv);
 #elif defined(XP_MACOSX)
   LaunchChild(argc, argv);
-#elif defined(MOZ_MAINTENANCE_SERVICE)
-  
-  
-  
-  
-  DWORD myProcessID = GetCurrentProcessId();
-  DWORD mySessionID = 0;
-  ProcessIdToSessionId(myProcessID, &mySessionID);
-  nsAutoHandle unelevatedToken(NULL);
-  if (mySessionID == 0) {
-    WCHAR *sessionIDStr = _wgetenv(L"MOZ_SESSION_ID");
-    if (sessionIDStr) {
-      
-      int callbackSessionID = _wtoi(sessionIDStr);
-      _wputenv(L"MOZ_SESSION_ID=");
-      unelevatedToken.own(UACHelper::OpenUserToken(callbackSessionID));
-    }
-  }
-  WinLaunchChild(argv[0], argc, argv, unelevatedToken);
 #elif defined(XP_WIN)
   WinLaunchChild(argv[0], argc, argv, NULL);
 #else
@@ -1451,6 +1432,88 @@ WriteStatusFile(int status)
     text = buf;
   }
   fwrite(text, strlen(text), 1, file);
+}
+
+static bool
+WriteStatusApplying()
+{
+  NS_tchar filename[MAXPATHLEN];
+  NS_tsnprintf(filename, sizeof(filename)/sizeof(filename[0]),
+               NS_T("%s/update.status"), gSourcePath);
+
+  AutoFile file = NS_tfopen(filename, NS_T("wb+"));
+  if (file == NULL)
+    return false;
+
+  static const char kApplying[] = "Applying\n";
+  if (fwrite(kApplying, strlen(kApplying), 1, file) != 1)
+    return false;
+
+  return true;
+}
+
+
+
+
+
+
+
+
+
+
+static bool
+IsUpdateStatusPending(bool &isPendingService)
+{
+  bool isPending = false;
+  isPendingService = false;
+  NS_tchar filename[MAXPATHLEN];
+  NS_tsnprintf(filename, sizeof(filename)/sizeof(filename[0]),
+               NS_T("%s/update.status"), gSourcePath);
+
+  AutoFile file = NS_tfopen(filename, NS_T("rb"));
+  if (file == NULL)
+    return false;
+
+  char buf[32] = { 0 };
+  fread(buf, sizeof(buf), 1, file);
+
+  const char kPending[] = "pending";
+  const char kPendingService[] = "pending-service";
+  isPending = strncmp(buf, kPending, 
+                      sizeof(kPending) - 1) == 0;
+
+  isPendingService = strncmp(buf, kPendingService, 
+                             sizeof(kPendingService) - 1) == 0;
+  return isPending;
+}
+
+
+
+
+
+
+
+
+
+static bool
+IsUpdateStatusSucceeded(bool &isSucceeded)
+{
+  isSucceeded = false;
+  NS_tchar filename[MAXPATHLEN];
+  NS_tsnprintf(filename, sizeof(filename)/sizeof(filename[0]),
+               NS_T("%s/update.status"), gSourcePath);
+
+  AutoFile file = NS_tfopen(filename, NS_T("rb"));
+  if (file == NULL)
+    return false;
+
+  char buf[32] = { 0 };
+  fread(buf, sizeof(buf), 1, file);
+
+  const char kSucceeded[] = "succeeded";
+  isSucceeded = strncmp(buf, kSucceeded, 
+                        sizeof(kSucceeded) - 1) == 0;
+  return true;
 }
 
 static void
@@ -1524,6 +1587,23 @@ int NS_main(int argc, NS_tchar **argv)
     return 1;
   }
 
+  
+  gSourcePath = argv[1];
+
+#ifdef XP_WIN
+  bool useService = false;
+  
+  
+#ifdef MOZ_MAINTENANCE_SERVICE
+  IsUpdateStatusPending(useService);
+#endif
+#endif
+
+  if (!WriteStatusApplying()) {
+    LOG(("failed setting status to 'applying'\n"));
+    return 1;
+  }
+
 #ifdef XP_WIN
   
   {
@@ -1566,9 +1646,6 @@ int NS_main(int argc, NS_tchar **argv)
       waitpid(pid, NULL, 0);
 #endif
   }
-
-  
-  gSourcePath = argv[1];
 
   
   
@@ -1634,26 +1711,80 @@ int NS_main(int argc, NS_tchar **argv)
         return 1;
       }
 
-      SHELLEXECUTEINFO sinfo;
-      memset(&sinfo, 0, sizeof(SHELLEXECUTEINFO));
-      sinfo.cbSize       = sizeof(SHELLEXECUTEINFO);
-      sinfo.fMask        = SEE_MASK_FLAG_NO_UI |
-                           SEE_MASK_FLAG_DDEWAIT |
-                           SEE_MASK_NOCLOSEPROCESS;
-      sinfo.hwnd         = NULL;
-      sinfo.lpFile       = argv[0];
-      sinfo.lpParameters = cmdLine;
-      sinfo.lpVerb       = L"runas";
-      sinfo.nShow        = SW_SHOWNORMAL;
+      HANDLE serviceInUseEvent = NULL;
+      if (useService) {
+        
+        
+        
+        serviceInUseEvent = CreateEventW(NULL, TRUE, 
+                                         FALSE, SERVICE_EVENT_NAME);
 
-      bool result = ShellExecuteEx(&sinfo);
-      free(cmdLine);
+        
+        
+        if (!serviceInUseEvent) {
+          useService = false;
+        }
+      }
 
-      if (result) {
-        WaitForSingleObject(sinfo.hProcess, INFINITE);
-        CloseHandle(sinfo.hProcess);
-      } else {
-        WriteStatusFile(ELEVATION_CANCELED);
+      
+      
+      
+      
+      
+
+      
+      
+      if (useService) {
+        
+        
+        useService = WinLaunchServiceCommand(argv[0], argc, argv);
+
+        
+        
+        if (useService) {
+          WaitForSingleObject(serviceInUseEvent, INFINITE);
+          CloseHandle(serviceInUseEvent);
+        }
+      }
+
+      
+      
+      
+      
+      
+      if (useService) {
+        bool updateStatusSucceeded = false;
+        if (IsUpdateStatusSucceeded(updateStatusSucceeded) && 
+            updateStatusSucceeded) {
+          LaunchWinPostProcess(argv[callbackIndex], gSourcePath, false, NULL);
+        }
+      }
+
+      
+      
+      
+      if (!useService) {
+        SHELLEXECUTEINFO sinfo;
+        memset(&sinfo, 0, sizeof(SHELLEXECUTEINFO));
+        sinfo.cbSize       = sizeof(SHELLEXECUTEINFO);
+        sinfo.fMask        = SEE_MASK_FLAG_NO_UI |
+                             SEE_MASK_FLAG_DDEWAIT |
+                             SEE_MASK_NOCLOSEPROCESS;
+        sinfo.hwnd         = NULL;
+        sinfo.lpFile       = argv[0];
+        sinfo.lpParameters = cmdLine;
+        sinfo.lpVerb       = L"runas";
+        sinfo.nShow        = SW_SHOWNORMAL;
+
+        bool result = ShellExecuteEx(&sinfo);
+        free(cmdLine);
+
+        if (result) {
+          WaitForSingleObject(sinfo.hProcess, INFINITE);
+          CloseHandle(sinfo.hProcess);
+        } else {
+          WriteStatusFile(ELEVATION_CANCELED);
+        }
       }
 
       if (argc > callbackIndex) {
@@ -1836,8 +1967,8 @@ int NS_main(int argc, NS_tchar **argv)
       
       
       
-      WCHAR *sessionIDStr = _wgetenv(L"MOZ_SESSION_ID");
-      if (!sessionIDStr) {
+      WCHAR *usingService = _wgetenv(L"MOZ_USING_SERVICE");
+      if (!usingService) {
         if (!LaunchWinPostProcess(argv[2], gSourcePath, false, NULL)) {
           LOG(("NS_main: The post update process could not be launched.\n"));
         }
