@@ -127,6 +127,51 @@ LayoutHelpers = {
 
 
 
+  getRect: function LH_getRect(aNode, aContentWindow) {
+    let frameWin = aNode.ownerDocument.defaultView;
+    let clientRect = aNode.getBoundingClientRect();
+
+    
+    
+    rect = {top: clientRect.top + aContentWindow.pageYOffset,
+            left: clientRect.left + aContentWindow.pageXOffset,
+            width: clientRect.width,
+            height: clientRect.height};
+
+    
+    while (true) {
+
+      
+      if (frameWin.parent === frameWin || !frameWin.frameElement) {
+        break;
+      }
+
+      
+      
+      
+      let frameRect = frameWin.frameElement.getBoundingClientRect();
+
+      let [offsetTop, offsetLeft] =
+        this.getIframeContentOffset(frameWin.frameElement);
+
+      rect.top += frameRect.top + offsetTop;
+      rect.left += frameRect.left + offsetLeft;
+
+      frameWin = frameWin.parent;
+    }
+
+    return rect;
+  },
+
+  
+
+
+
+
+
+
+
+
 
 
 
@@ -134,6 +179,11 @@ LayoutHelpers = {
 
   getIframeContentOffset: function LH_getIframeContentOffset(aIframe) {
     let style = aIframe.contentWindow.getComputedStyle(aIframe, null);
+
+    
+    if (!style) {
+      return [0, 0];
+    }
 
     let paddingTop = parseInt(style.getPropertyValue("padding-top"));
     let paddingLeft = parseInt(style.getPropertyValue("padding-left"));

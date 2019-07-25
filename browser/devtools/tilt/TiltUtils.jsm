@@ -46,6 +46,7 @@ const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource:///modules/devtools/LayoutHelpers.jsm");
 
 let EXPORTED_SYMBOLS = ["TiltUtils"];
 
@@ -413,108 +414,6 @@ TiltUtils.DOM = {
 
 
 
-  getNodeCoordinates: function TUD_getNodeCoordinates(aNode, aContentWindow) {
-    
-    aContentWindow = aContentWindow || {};
-
-    if (aNode.nodeType !== 1) { 
-      return null;
-    }
-
-    let rect = {
-      top: 0,
-      left: 0,
-      width: 0,
-      height: 0
-    };
-
-    
-    let clientRect = aNode.getBoundingClientRect();
-    rect.top = clientRect.top + aContentWindow.pageYOffset;
-    rect.left = clientRect.left + aContentWindow.pageXOffset;
-    rect.width = clientRect.width;
-    rect.height = clientRect.height;
-
-    
-    let frameRect = this.getFrameOffset(
-      aNode.ownerDocument.defaultView.frameElement, aContentWindow);
-
-    if (frameRect) {
-      rect.top += frameRect.top;
-      rect.left += frameRect.left;
-    }
-
-    return rect;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-  getFrameOffset: (function() {
-    let cache = {};
-
-    return function TUD_getFrameOffset(aFrame, aContentWindow) {
-      
-      aContentWindow = aContentWindow || {};
-
-      if (!aFrame) {
-        return null;
-      }
-
-      let id = TiltUtils.getWindowId(aFrame.contentWindow) + "," +
-        aContentWindow.pageXOffset || 0 + "," +
-        aContentWindow.pageYOffset || 0;
-
-      
-      if (cache[id] !== undefined) {
-        return cache[id];
-      }
-
-      let offset = {
-        top: 0,
-        left: 0
-      };
-
-      
-      let frameRect = aFrame.getBoundingClientRect();
-      offset.top = frameRect.top;
-      offset.left = frameRect.left;
-
-      
-      
-      let style = aFrame.contentWindow.getComputedStyle(aFrame, null);
-      if (style) {
-        offset.top +=
-          parseInt(style.getPropertyValue("padding-top")) +
-          parseInt(style.getPropertyValue("border-top-width"));
-        offset.left +=
-          parseInt(style.getPropertyValue("padding-left")) +
-          parseInt(style.getPropertyValue("border-left-width"));
-      }
-
-      return (cache[id] = offset);
-    };
-  }()),
-
-  
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -549,7 +448,7 @@ TiltUtils.DOM = {
         }
 
         
-        let coord = this.getNodeCoordinates(node, aContentWindow);
+        let coord = LayoutHelpers.getRect(node, aContentWindow);
         if (!coord) {
           continue;
         }
