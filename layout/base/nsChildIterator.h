@@ -54,49 +54,73 @@
 class NS_STACK_CLASS ChildIterator
 {
 protected:
-  
-  
-  
-
   nsIContent* mContent;
-  PRUint32 mIndex;
+  
+  
+  
+  union {
+    PRUint32 mIndex;
+    nsIContent* mChild;
+  };
   nsINodeList* mNodes;
 
 public:
   ChildIterator()
-    : mContent(nsnull), mIndex(0), mNodes(nsnull) {}
+    : mContent(nsnull), mChild(0), mNodes(nsnull) {}
 
   ChildIterator(const ChildIterator& aOther)
     : mContent(aOther.mContent),
-      mIndex(aOther.mIndex),
-      mNodes(aOther.mNodes) {}
+      mNodes(aOther.mNodes) {
+    if (XBLInvolved()) {
+      mIndex = aOther.mIndex;
+    } else {
+      mChild = aOther.mChild;
+    }
+  }
 
   ChildIterator& operator=(const ChildIterator& aOther) {
     mContent = aOther.mContent;
-    mIndex = aOther.mIndex;
     mNodes = aOther.mNodes;
+    if (XBLInvolved()) {
+      mIndex = aOther.mIndex;
+    } else {
+      mChild = aOther.mChild;
+    }
     return *this;
   }
 
   ChildIterator& operator++() {
-    ++mIndex;
+    if (XBLInvolved()) {
+      ++mIndex;
+    } else {
+      NS_ASSERTION(mChild, "Walking off end of list?");
+      mChild = mChild->GetNextSibling();
+    }
+
     return *this;
   }
 
   ChildIterator operator++(int) {
     ChildIterator result(*this);
-    ++mIndex;
+    ++(*this);
     return result;
   }
 
   ChildIterator& operator--() {
-    --mIndex;
+    if (XBLInvolved()) {
+      --mIndex;
+    } else if (mChild) {
+      mChild = mChild->GetPreviousSibling();
+      NS_ASSERTION(mChild, "Walking off beginning of list");
+    } else {
+      mChild = mContent->GetLastChild();
+    }
     return *this;
   }
 
   ChildIterator operator--(int) {
     ChildIterator result(*this);
-    --mIndex;
+    --(*this);
     return result;
   }
 
@@ -105,59 +129,46 @@ public:
       return mNodes->GetNodeAt(mIndex);
     }
 
-    return mContent->GetChildAt(mIndex);
+    return mChild;
   }
 
   nsIContent* operator*() const { return get(); }
 
   PRBool operator==(const ChildIterator& aOther) const {
-    return mContent == aOther.mContent && mIndex == aOther.mIndex;
+    if (XBLInvolved()) {
+      return mContent == aOther.mContent && mIndex == aOther.mIndex;
+    }
+
+    return mContent == aOther.mContent && mChild == aOther.mChild;
   }
 
   PRBool operator!=(const ChildIterator& aOther) const {
     return !aOther.operator==(*this);
   }
 
-  PRUint32 position() {
-    return mIndex;
-  }
-
-  void seek(PRUint32 aIndex) {
-    
-    
-    
-    PRUint32 l = length();
-
-    NS_ASSERTION(PRInt32(aIndex) >= 0 && aIndex <= l, "out of bounds");
-
-    
-    if (aIndex > l)
-      aIndex = l;
-
-    mIndex = aIndex;
-  }
-
   void seek(nsIContent* aContent) {
-    PRInt32 index;
     if (XBLInvolved()) {
-      index = mNodes->IndexOf(aContent);
-    } else {
-      index = mContent->IndexOf(aContent);
-    }
-    
-    
-    
-    
-    
-    
-    
-    
-    if (index != -1) {
-      mIndex = index;
+      PRInt32 index = mNodes->IndexOf(aContent);
+      
+      
+      
+      
+      
+      
+      if (index != -1) {
+        mIndex = index;
+      } else {
+        
+        
+        mIndex = length();
+      }
+    } else if (aContent->GetParent() == mContent) {
+      mChild = aContent;
     } else {
       
       
-      mIndex = length();
+      
+      mChild = nsnull;
     }
   }
 
@@ -174,12 +185,9 @@ public:
 
 private:
   PRUint32 length() {
+    NS_PRECONDITION(XBLInvolved(), "Don't call me");
     PRUint32 l;
-    if (XBLInvolved()) {
-      mNodes->GetLength(&l);
-    } else {
-      l = mContent->GetChildCount();
-    }
+    mNodes->GetLength(&l);
     return l;
   }
 };

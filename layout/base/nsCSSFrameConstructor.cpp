@@ -5949,7 +5949,8 @@ nsCSSFrameConstructor::FindPreviousSibling(const ChildIterator& aFirst,
 
   
   
-  while (aIter-- != aFirst) {
+  while (aIter != aFirst) {
+    --aIter;
     nsIFrame* prevSibling =
       FindFrameForContentSibling(*aIter, child, aTargetContentDisplay, PR_TRUE);
 
@@ -6047,30 +6048,21 @@ nsCSSFrameConstructor::GetInsertionPrevSibling(nsIFrame*& aParentFrame,
   ChildIterator first, last;
   ChildIterator::Init(container, &first, &last);
   ChildIterator iter(first);
-  PRBool xblCase = PR_FALSE;
-  if (iter.XBLInvolved() || container != aContainer) {
-    xblCase = PR_TRUE;
+  PRBool xblCase = iter.XBLInvolved() || container != aContainer;
+  if (xblCase || !aChild->IsRootOfAnonymousSubtree()) {
+    
+    
+    
     if (aStartSkipChild) {
       iter.seek(aStartSkipChild);
     } else {
       iter.seek(aChild);
     }
-    
-    
-    
-    
-  } else if (aIndexInContainer != -1) {
-    
-    
-    
-    if (aStartSkipIndexInContainer >= 0) {
-      iter.seek(aStartSkipIndexInContainer);
-      NS_ASSERTION(*iter == aStartSkipChild, "Someone screwed up the indexing");
-    } else {
-      iter.seek(aIndexInContainer);
-      NS_ASSERTION(*iter == aChild, "Someone screwed up the indexing");
-    }
   }
+  
+  
+  
+  
 #ifdef DEBUG
   else {
     NS_WARNING("Someone passed native anonymous content directly into frame "
@@ -6090,12 +6082,8 @@ nsCSSFrameConstructor::GetInsertionPrevSibling(nsIFrame*& aParentFrame,
   else {
     
     if (aEndSkipChild) {
-      if (xblCase) {
-        iter.seek(aEndSkipChild);
-        iter--;
-      } else {
-        iter.seek(aEndSkipIndexInContainer-1);
-      }
+      iter.seek(aEndSkipChild);
+      iter--;
     }
     nsIFrame* nextSibling = FindNextSibling(iter, last, childDisplay);
 
