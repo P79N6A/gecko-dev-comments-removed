@@ -2606,6 +2606,7 @@ Tab.prototype = {
 
   resurrect: function resurrect() {
     let dead = this._browser;
+    let active = this.active;
 
     
     let session = { data: dead.__SS_data, extra: dead.__SS_extdata };
@@ -2618,6 +2619,8 @@ Tab.prototype = {
     
     this._destroyBrowser();
     let browser = this._createBrowser(currentURL, sibling);
+    if (active)
+      this.active = true;
 
     
     browser.__SS_data = session.data;
