@@ -147,7 +147,7 @@ nsScriptElement::ContentInserted(nsIDocument *aDocument,
   MaybeProcessScript();
 }
 
-nsresult
+bool
 nsScriptElement::MaybeProcessScript()
 {
   nsCOMPtr<nsIContent> cont =
@@ -158,7 +158,7 @@ nsScriptElement::MaybeProcessScript()
 
   if (mAlreadyStarted || !mDoneAddingChildren || !cont->IsInDoc() ||
       mMalformed || !HasScriptContent()) {
-    return NS_OK;
+    return false;
   }
 
   FreezeUriAsyncDefer();
@@ -173,21 +173,12 @@ nsScriptElement::MaybeProcessScript()
       nsCOMPtr<nsIDocument> parserDoc = do_QueryInterface(sink->GetTarget());
       if (ownerDoc != parserDoc) {
         
-        return NS_OK;
+        return false;
       }
     }
   }
 
   nsRefPtr<nsScriptLoader> loader = ownerDoc->ScriptLoader();
   nsresult scriptresult = loader->ProcessScriptElement(this);
-
-  
-  
-  
-  if (NS_FAILED(scriptresult) &&
-      scriptresult != NS_ERROR_HTMLPARSER_BLOCK) {
-    scriptresult = NS_OK;
-  }
-
-  return scriptresult;
+  return scriptresult == NS_ERROR_HTMLPARSER_BLOCK;
 }

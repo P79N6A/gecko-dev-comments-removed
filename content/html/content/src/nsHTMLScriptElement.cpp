@@ -122,11 +122,8 @@ public:
 
   virtual nsXPCClassInfo* GetClassInfo();
 protected:
-  bool IsOnloadEventForWindow();
-
   
   virtual bool HasScriptContent();
-  virtual nsresult MaybeProcessScript();
 };
 
 
@@ -319,15 +316,4 @@ nsHTMLScriptElement::HasScriptContent()
 {
   return (mFrozen ? mExternal : HasAttr(kNameSpaceID_None, nsGkAtoms::src)) ||
          nsContentUtils::HasNonEmptyTextContent(this);
-}
-
-nsresult
-nsHTMLScriptElement::MaybeProcessScript()
-{
-  nsresult rv = nsScriptElement::MaybeProcessScript();
-  if (rv == NS_CONTENT_SCRIPT_IS_EVENTHANDLER)
-    
-    rv = NS_OK;
-
-  return rv;
 }
