@@ -607,7 +607,7 @@ nsDocAccessible::GetAccessible(nsINode* aNode) const
   
   
   
-  nsAccessible* parent(accessible->GetCachedParent());
+  nsAccessible* parent(accessible->GetParent());
   if (parent)
     parent->TestChildCache(accessible);
 #endif

@@ -306,7 +306,6 @@ public:
   
 
 
-  nsAccessible* GetCachedParent() const { return mParent; }
   nsAccessible* GetCachedNextSibling() const
   {
     return mParent ?
