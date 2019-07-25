@@ -480,11 +480,6 @@ var FindHelperUI = {
     messageManager.addMessageListener("FindAssist:Hide", this);
 
     
-    
-    
-    this._textbox.addEventListener("text", this, false);
-
-    
     document.getElementById("tabs").addEventListener("TabSelect", this, true);
     Elements.browsers.addEventListener("URLChanged", this, true);
   },
@@ -514,15 +509,6 @@ var FindHelperUI = {
       case "URLChanged":
         if (aEvent.detail && aEvent.target == getBrowser())
           this.hide();
-        break;
-
-      case "text":
-        if (!this._open)
-          return;
-
-        let evt = document.createEvent("Event");
-        evt.initEvent("input", true, false);
-        this._textbox.dispatchEvent(evt);
         break;
     }
   },
@@ -564,8 +550,10 @@ var FindHelperUI = {
     this.updateCommands(aValue);
 
     
-    if (aValue == "")
+    if (aValue == "") {
+      this.status = null;
       return;
+    }
 
     Browser.selectedBrowser.messageManager.sendAsyncMessage("FindAssist:Find", { searchString: aValue });
   },
