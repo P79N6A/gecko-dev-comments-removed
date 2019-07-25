@@ -1854,22 +1854,8 @@ nsHTMLInputElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
 {
   
   aVisitor.mCanHandle = PR_FALSE;
-  if (IsDisabled()) {
+  if (IsElementDisabledForEvents(aVisitor.mEvent->message, GetPrimaryFrame())) {
     return NS_OK;
-  }
-
-  
-  
-  {
-    nsIFrame* frame = GetPrimaryFrame();
-    if (frame) {
-      const nsStyleUserInterface* uiStyle = frame->GetStyleUserInterface();
-
-      if (uiStyle->mUserInput == NS_STYLE_USER_INPUT_NONE ||
-          uiStyle->mUserInput == NS_STYLE_USER_INPUT_DISABLED) {
-        return NS_OK;
-      }
-    }
   }
 
   

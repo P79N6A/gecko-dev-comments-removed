@@ -41,6 +41,7 @@
 #include "nsStyleConsts.h"
 #include "nsIForm.h"
 #include "nsIFormControl.h"
+#include "nsGUIEvent.h"
 #include "nsEventDispatcher.h"
 
 
@@ -109,7 +110,7 @@ nsHTMLFieldSetElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
 {
   
   aVisitor.mCanHandle = PR_FALSE;
-  if (IsDisabled()) {
+  if (IsElementDisabledForEvents(aVisitor.mEvent->message, NULL)) {
     return NS_OK;
   }
 
