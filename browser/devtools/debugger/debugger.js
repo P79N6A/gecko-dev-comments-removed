@@ -437,7 +437,10 @@ var SourceScripts = {
   
 
 
+
+
   onPaused: function SS_onPaused() {
+    this.activeThread.removeListener("paused", this.onPaused);
     this.activeThread.fillScripts();
   },
 
