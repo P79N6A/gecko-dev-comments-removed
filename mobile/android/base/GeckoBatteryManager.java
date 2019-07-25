@@ -8,8 +8,6 @@ package org.mozilla.gecko;
 import java.lang.Math;
 import java.util.Date;
 
-import android.util.Log;
-
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -18,11 +16,12 @@ import android.content.IntentFilter;
 import android.os.BatteryManager;
 import android.os.Build;
 import android.os.SystemClock;
+import android.util.Log;
 
 public class GeckoBatteryManager
   extends BroadcastReceiver
 {
-    private static final String LOGTAG = "GeckoBatteryManager";
+  private static final String LOGTAG = "GeckoBatteryManager";
 
   
   
@@ -53,7 +52,11 @@ public class GeckoBatteryManager
 
   public void unregisterFor(Activity activity) {
       if (isRegistered) {
-          activity.unregisterReceiver(this);
+          try {
+              activity.unregisterReceiver(this);
+          } catch (IllegalArgumentException iae) {
+              Log.e(LOGTAG, "Unregistering receiver failed", iae);
+          }
           isRegistered = false;
       }
   }
