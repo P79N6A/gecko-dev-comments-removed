@@ -2316,9 +2316,9 @@ nsTableFrame::RemoveFrame(nsIAtom*        aListName,
       ResetRowIndices(nsFrameList::Slice(mFrames, nsnull, nsnull));
       nsRect damageArea;
       cellMap->RebuildConsideringCells(nsnull, nsnull, 0, 0, PR_FALSE, damageArea);
-    }
 
-    MatchCellMapToColCache(cellMap);
+      MatchCellMapToColCache(cellMap);
+    }
   }
   
   
