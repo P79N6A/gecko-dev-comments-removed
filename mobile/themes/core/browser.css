@@ -669,6 +669,10 @@ placelabel {
   min-height: 70px; 
 }
 
+placelabel:-moz-locale-dir(rtl) {
+  background: rgb(207,207,207) url(images/arrowup-16.png) no-repeat 2% 50%;
+}
+
 
 placeitem[type="folder"] {
   -moz-box-pack: center;
