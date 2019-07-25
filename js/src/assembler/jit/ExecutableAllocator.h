@@ -42,6 +42,10 @@
 #include <e32std.h>
 #endif
 
+#if WTF_CPU_MIPS && WTF_PLATFORM_LINUX
+#include <sys/cachectl.h>
+#endif
+
 #if WTF_PLATFORM_WINCE
 
 #define CACHE_SYNC_ALL 0x07F
@@ -88,7 +92,6 @@ namespace JSC {
   
   
   class ExecutablePool {
-                       
 private:
     struct Allocation {
         char* pages;
@@ -116,7 +119,6 @@ public:
     
     static ExecutablePool* create(size_t n)
     {
-        
         return new ExecutablePool(n);
     }
 
@@ -141,14 +143,11 @@ public:
     
     ~ExecutablePool()
     {
-        
         Allocation* end = m_pools.end();
-        
         for (Allocation* ptr = m_pools.begin(); ptr != end; ++ptr)
             ExecutablePool::systemRelease(*ptr);
     }
 
-    
     size_t available() const { return (m_pools.length() > 1) ? 0 : m_end - m_freePtr; }
 
 private:
@@ -163,7 +162,7 @@ private:
     char* m_end;
     AllocationList m_pools;
 };
-  
+
 class ExecutableAllocator {
     enum ProtectionSeting { Writable, Executable };
 
@@ -182,7 +181,6 @@ public:
     
     
 
-    
     ExecutablePool* poolForSize(size_t n)
     {
         
@@ -196,20 +194,18 @@ public:
             return ExecutablePool::create(n);
 
         
-        
         ExecutablePool* pool = ExecutablePool::create(JIT_ALLOCATOR_LARGE_ALLOC_SIZE);
-	
+  	    
 
         
         
         if ((pool->available() - n) > m_smallAllocationPool->available()) {
-	    m_smallAllocationPool->release();
+	        m_smallAllocationPool->release();
             m_smallAllocationPool = pool;
-	    pool->addRef();
-	}
-        
+	        pool->addRef();
+	    }
 
-	
+   	    
         return pool;
     }
 
@@ -233,7 +229,33 @@ public:
     static void cacheFlush(void*, size_t)
     {
     }
-#elif WTF_CPU_ARM_THUMB2 && WTF_PLATFORM_IPHONE
+#elif WTF_CPU_MIPS
+    static void cacheFlush(void* code, size_t size)
+    {
+#if WTF_COMPILER_GCC && (GCC_VERSION >= 40300)
+#if WTF_MIPS_ISA_REV(2) && (GCC_VERSION < 40403)
+        int lineSize;
+        asm("rdhwr %0, $1" : "=r" (lineSize));
+        
+        
+        
+        
+        
+        
+        
+        
+        intptr_t start = reinterpret_cast<intptr_t>(code) & (-lineSize);
+        intptr_t end = ((reinterpret_cast<intptr_t>(code) + size - 1) & (-lineSize)) - 1;
+        __builtin___clear_cache(reinterpret_cast<char*>(start), reinterpret_cast<char*>(end));
+#else
+        intptr_t end = reinterpret_cast<intptr_t>(code) + size;
+        __builtin___clear_cache(reinterpret_cast<char*>(code), reinterpret_cast<char*>(end));
+#endif
+#else
+        _flush_cache(reinterpret_cast<char*>(code), size, BCACHE);
+#endif
+    }
+#elif CPU(ARM_THUMB2) && OS(IPHONE_OS)
     static void cacheFlush(void* code, size_t size)
     {
         sys_dcache_flush(code, size);
@@ -260,7 +282,9 @@ public:
     {
         User::IMB_Range(code, static_cast<char*>(code) + size);
     }
-#elif WTF_CPU_ARM_TRADITIONAL && WTF_PLATFORM_LINUX
+#elif WTF_CPU_ARM_TRADITIONAL && WTF_PLATFORM_LINUX && WTF_COMPILER_RVCT
+    static __asm void cacheFlush(void* code, size_t size);
+#elif WTF_CPU_ARM_TRADITIONAL && WTF_PLATFORM_LINUX && WTF_COMPILER_RVCT
     static void cacheFlush(void* code, size_t size)
     {
         asm volatile (
@@ -291,7 +315,6 @@ private:
     static void reprotectRegion(void*, size_t, ProtectionSeting);
 #endif
 
-    
     ExecutablePool* m_smallAllocationPool;
     static void intializePageSize();
 };

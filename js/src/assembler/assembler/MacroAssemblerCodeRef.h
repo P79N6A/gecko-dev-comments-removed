@@ -171,7 +171,6 @@ public:
     {
     }
 
-  
     MacroAssemblerCodeRef(void* code, ExecutablePool* executablePool, size_t size)
         : m_code(code)
         , m_executablePool(executablePool)
@@ -180,7 +179,6 @@ public:
     }
 
     MacroAssemblerCodePtr m_code;
-    
     ExecutablePool* m_executablePool;
     size_t m_size;
 };

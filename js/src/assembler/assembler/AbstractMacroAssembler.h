@@ -64,7 +64,7 @@ public:
         TimesOne,
         TimesTwo,
         TimesFour,
-        TimesEight
+        TimesEight,
     };
 
     
@@ -79,6 +79,17 @@ public:
 
         RegisterID base;
         int32_t offset;
+    };
+
+    struct ExtendedAddress {
+        explicit ExtendedAddress(RegisterID base, intptr_t offset = 0)
+            : base(base)
+            , offset(offset)
+        {
+        }
+        
+        RegisterID base;
+        intptr_t offset;
     };
 
     
@@ -149,7 +160,7 @@ public:
     
     
     struct ImmPtr {
-        explicit ImmPtr(void* value)
+        explicit ImmPtr(const void* value)
             : m_value(value)
         {
         }
@@ -159,7 +170,7 @@ public:
             return reinterpret_cast<intptr_t>(m_value);
         }
 
-        void* m_value;
+        const void* m_value;
     };
 
     
@@ -171,7 +182,7 @@ public:
     struct Imm32 {
         explicit Imm32(int32_t value)
             : m_value(value)
-#if WTF_CPU_ARM
+#if WTF_CPU_ARM || WTF_CPU_MIPS
             , m_isPointer(false)
 #endif
         {
@@ -180,7 +191,7 @@ public:
 #if !WTF_CPU_X86_64
         explicit Imm32(ImmPtr ptr)
             : m_value(ptr.asIntptr())
-#if WTF_CPU_ARM
+#if WTF_CPU_ARM || WTF_CPU_MIPS
             , m_isPointer(true)
 #endif
         {
@@ -188,7 +199,8 @@ public:
 #endif
 
         int32_t m_value;
-#if WTF_CPU_ARM
+#if WTF_CPU_ARM || WTF_CPU_MIPS
+        
         
         
         
@@ -295,7 +307,7 @@ public:
             None = 0x0,
             Linkable = 0x1,
             Near = 0x2,
-            LinkableNear = 0x3
+            LinkableNear = 0x3,
         };
 
         Call()
