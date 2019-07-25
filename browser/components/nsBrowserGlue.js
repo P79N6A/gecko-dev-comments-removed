@@ -309,7 +309,7 @@ BrowserGlue.prototype = {
 
   
   _onProfileShutdown: function BG__onProfileShutdown() {
-#ifdef WINCE
+#if defined(WINCE) && defined(MOZ_UPDATER)
     
     try {
       let um = Cc["@mozilla.org/updates/update-manager;1"].
