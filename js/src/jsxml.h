@@ -256,7 +256,7 @@ extern JSObject *
 js_InitXMLClasses(JSContext *cx, JSObject *obj);
 
 extern JSBool
-js_GetFunctionNamespace(JSContext *cx, const js::Value *vp);
+js_GetFunctionNamespace(JSContext *cx, js::Value *vp);
 
 
 

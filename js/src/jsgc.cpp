@@ -1187,7 +1187,7 @@ js_AddRootRT(JSRuntime *rt, Value *vp, const char *name)
 }
 
 JSBool
-js_AddRootRT(JSRuntime *rt, void **rp, const char *name)
+js_AddGCThingRootRT(JSRuntime *rt, void **rp, const char *name)
 {
     
 
