@@ -128,6 +128,48 @@ public:
         }
         return nsnull;
     }
+
+    static JNIEnv* GetJNIForCompositorThread() {
+        if (NS_LIKELY(sBridge)) {
+            if (sBridge->mCompositorThread) {
+                if ((void*)pthread_self() != sBridge->mCompositorThread) {
+                    __android_log_print(ANDROID_LOG_ERROR, "AndroidBridge", "Non-compositor thread calling GetJNIForCompositorThread!");
+                    NS_ABORT();
+                    return NULL;
+                }
+                return sBridge->mJNIForCompositorThread;
+            }
+
+            
+            
+            
+            MutexAutoLock lock(sBridge->mCompositorJNICreationMutex);
+
+            if (sBridge->mCompositorThread) {
+                
+                
+                __android_log_print(ANDROID_LOG_ERROR, "AndroidBridge", "Two threads called GetJNIForCompositorThread on startup!");
+                NS_ABORT();
+                return NULL;
+            }
+
+            JavaVM *jVm = mozilla::AndroidBridge::GetVM();
+            if (!jVm) {
+                __android_log_print(ANDROID_LOG_ERROR, "AndroidBridge", "Null VM in GetJNIForCompositorThread");
+                return NULL;
+            }
+            JNIEnv* env;
+            if (jVm->AttachCurrentThread(&env, NULL)) {
+                __android_log_print(ANDROID_LOG_ERROR, "AndroidBridge", "Unable to attach to VM in GetJNIForCompositorThread");
+                return NULL;
+            }
+
+            sBridge->mCompositorThread = (void*)pthread_self();
+            sBridge->mJNIForCompositorThread = env;
+            return env;
+        }
+        return NULL;
+    }
     
     static jclass GetGeckoAppShellClass() {
         return sBridge->mGeckoAppShellClass;
@@ -368,6 +410,11 @@ protected:
     
     JNIEnv *mJNIEnv;
     void *mThread;
+
+    
+    JNIEnv *mJNIForCompositorThread;
+    void* mCompositorThread;
+    Mutex mCompositorJNICreationMutex;
 
     
     AndroidGeckoSurfaceView mSurfaceView;
