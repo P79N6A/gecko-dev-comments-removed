@@ -87,27 +87,25 @@ IDManager.prototype = {
 
 
 function Identity(realm, username, password) {
-  this._realm = realm;
-  this._username = username;
+  this.realm     = realm;
+  this.username  = username;
   this._password = password;
 }
 Identity.prototype = {
-  get realm() { return this._realm; },
-  set realm(value) { this._realm = value; },
-
-  get username() { return this._username; },
-  set username(value) { this._username = value; },
-
-  get userHash() { return Utils.sha1(this.username); },
-
-  _privkey: null,
-  get privkey() { return this._privkey; },
-  set privkey(value) { this._privkey = value; },
+  realm   : null,
 
   
-  _pubkey: null,
-  get pubkey() { return this._pubkey; },
-  set pubkey(value) { this._pubkey = value; },
+  privkey        : null,
+  pubkey         : null,
+  passphraseSalt : null,
+  privkeyWrapIV  : null,
+
+  
+  bulkKey : null,
+  bulkIV  : null,
+
+  username : null,
+  get userHash() { return Utils.sha1(this.username); },
 
   _password: null,
   get password() {
