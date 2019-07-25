@@ -2335,10 +2335,6 @@ moz_gtk_tab_paint(GdkDrawable* drawable, GdkRectangle* rect,
 
         if (flags & MOZ_GTK_TAB_BOTTOM) {
             
-            cliprect->height += gap_height - gap_voffset;
-            cliprect->y -= gap_height - gap_voffset;
-
-            
             focusRect.y += gap_voffset;
             focusRect.height -= gap_voffset;
             gtk_paint_extension(style, drawable, GTK_STATE_NORMAL,
@@ -2362,9 +2358,6 @@ moz_gtk_tab_paint(GdkDrawable* drawable, GdkRectangle* rect,
                               3 * gap_height, GTK_POS_BOTTOM,
                               gap_loffset, rect->width);
         } else {
-            
-            cliprect->height += gap_height - gap_voffset;
-
             
             focusRect.height -= gap_voffset;
             gtk_paint_extension(style, drawable, GTK_STATE_NORMAL,
