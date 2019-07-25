@@ -108,6 +108,9 @@ class GeckoSurfaceView
                      mSoftwareBuffer.capacity() < (width * height * 2) ||
                      mWidth != width || mHeight != height)
                 mSoftwareBuffer = ByteBuffer.allocateDirect(width * height * 2);
+            boolean doSyncDraw = GeckoAppShell.sGeckoRunning && m2DMode &&
+                                 mSoftwareBuffer != null;
+            mSyncDraw = doSyncDraw;
 
             mFormat = format;
             mWidth = width;
@@ -119,18 +122,30 @@ class GeckoSurfaceView
             GeckoEvent e = new GeckoEvent(GeckoEvent.SIZE_CHANGED, width, height, -1, -1);
             GeckoAppShell.sendEventToGecko(e);
 
-            if (mSurfaceNeedsRedraw) {
+            if (mSoftwareBuffer != null)
                 GeckoAppShell.scheduleRedraw();
-                mSurfaceNeedsRedraw = false;
-            }
+            if (!doSyncDraw)
+                return;
         } finally {
             mSurfaceLock.unlock();
+        }
+
+        mSoftwareBitmap = Bitmap.createBitmap(mWidth, mHeight, Bitmap.Config.RGB_565);
+        ByteBuffer bb = null;
+        try {
+            bb = mSyncBuf.take();
+        } catch (InterruptedException ie) {
+            Log.e("GeckoAppJava", "Threw exception while getting sync buf: " + ie);
+        }
+        if (bb != null && bb.capacity() == (width * height * 2)) {
+            mSoftwareBitmap.copyPixelsFromBuffer(bb);
+            Canvas c = holder.lockCanvas();
+            c.drawBitmap(mSoftwareBitmap, 0, 0, null);
+            holder.unlockCanvasAndPost(c);
         }
     }
 
     public void surfaceCreated(SurfaceHolder holder) {
-        if (GeckoAppShell.sGeckoRunning)
-            mSurfaceNeedsRedraw = true;
     }
 
     public void surfaceDestroyed(SurfaceHolder holder) {
@@ -140,6 +155,7 @@ class GeckoSurfaceView
     }
 
     public ByteBuffer getSoftwareDrawBuffer() {
+        m2DMode = true;
         return mSoftwareBuffer;
     }
 
@@ -200,17 +216,29 @@ class GeckoSurfaceView
         }
     }
 
-    public void draw2D(ByteBuffer buffer) {
+    public void draw2D(ByteBuffer buffer, int stride) {
         if (GeckoApp.mAppContext.mProgressDialog != null) {
             GeckoApp.mAppContext.mProgressDialog.dismiss();
             GeckoApp.mAppContext.mProgressDialog = null;
         }
+        if (mSyncDraw) {
+            if (stride != (mWidth * 2))
+                return;
+            mSyncDraw = false;
+            try {
+                mSyncBuf.put(buffer);
+            } catch (InterruptedException ie) {
+                Log.e("GeckoAppJava", "Threw exception while getting sync buf: " + ie);
+            }
+            return;
+        }
+
         if (buffer != mSoftwareBuffer)
             return;
         Canvas c = getHolder().lockCanvas();
         if (c == null)
             return;
-        if (buffer != mSoftwareBuffer) {
+        if (buffer != mSoftwareBuffer || stride != (mWidth * 2)) {
             getHolder().unlockCanvasAndPost(c);
             return;
         }
@@ -282,10 +310,13 @@ class GeckoSurfaceView
     boolean mSurfaceValid;
 
     
-    boolean mSurfaceNeedsRedraw;
+    boolean mInDrawing;
 
     
-    boolean mInDrawing;
+    boolean mSyncDraw;
+
+    
+    boolean m2DMode;
 
     
     
@@ -317,4 +348,6 @@ class GeckoSurfaceView
     
     ByteBuffer mSoftwareBuffer;
     Bitmap mSoftwareBitmap;
+
+    final SynchronousQueue<ByteBuffer> mSyncBuf = new SynchronousQueue<ByteBuffer>();
 }

@@ -169,7 +169,7 @@ public:
     int BeginDrawing();
     jobject GetSoftwareDrawBuffer();
     void EndDrawing();
-    void Draw2D(jobject buffer);
+    void Draw2D(jobject buffer, int stride);
 
     
     
