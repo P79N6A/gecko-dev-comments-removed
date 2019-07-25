@@ -384,6 +384,9 @@ nsHttpChannel::DoNotifyListener()
     
     mCallbacks = nsnull;
     mProgressSink = nsnull;
+
+    
+    CleanRedirectCacheChainIfNecessary();
 }
 
 void
@@ -2637,12 +2640,27 @@ nsHttpChannel::CheckCache()
             (buf.IsEmpty() && mRequestHead.PeekHeader(nsHttp::Authorization));
     }
 
-    if (!doValidation) {
-        
-        
-        
-        if (isCachedRedirect && mRequestHead.PeekHeader(nsHttp::Cookie))
+    
+    
+    
+    
+    
+    
+    if (!doValidation && isCachedRedirect) {
+        nsCAutoString cacheKey;
+        GenerateCacheKey(mPostID, cacheKey);
+
+        if (!mRedirectedCachekeys)
+            mRedirectedCachekeys = new nsTArray<nsCString>();
+        else if (mRedirectedCachekeys->Contains(cacheKey))
             doValidation = PR_TRUE;
+
+        LOG(("Redirection-chain %s key %s\n",
+             doValidation ? "contains" : "does not contain", cacheKey.get()));
+
+        
+        if (!doValidation)
+            mRedirectedCachekeys->AppendElement(cacheKey);
     }
 
     mCachedContentIsValid = !doValidation;
@@ -2678,6 +2696,9 @@ nsHttpChannel::CheckCache()
                 mRequestHead.SetHeader(nsHttp::If_None_Match,
                                        nsDependentCString(val));
         }
+
+        
+        CleanRedirectCacheChainIfNecessary();
     }
 
     LOG(("nsHTTPChannel::CheckCache exit [this=%p doValidation=%d]\n", this, doValidation));
@@ -4042,6 +4063,9 @@ nsHttpChannel::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult st
 
     if (mLoadGroup)
         mLoadGroup->RemoveRequest(this, nsnull, status);
+
+    
+    CleanRedirectCacheChainIfNecessary();
 
     mCallbacks = nsnull;
     mProgressSink = nsnull;
