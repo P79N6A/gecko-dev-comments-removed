@@ -62,6 +62,7 @@ class nsIURI;
 class nsCSSFontFaceRule;
 class nsRuleWalker;
 struct RuleProcessorData;
+struct TreeMatchContext;
 
 class nsEmptyStyleRule : public nsIStyleRule
 {
@@ -99,6 +100,11 @@ class nsStyleSet
   already_AddRefed<nsStyleContext>
   ResolveStyleFor(mozilla::dom::Element* aElement,
                   nsStyleContext* aParentContext);
+
+  already_AddRefed<nsStyleContext>
+  ResolveStyleFor(mozilla::dom::Element* aElement,
+                  nsStyleContext* aParentContext,
+                  TreeMatchContext& aTreeMatchContext);
 
   
   
@@ -138,6 +144,11 @@ class nsStyleSet
   ProbePseudoElementStyle(mozilla::dom::Element* aParentElement,
                           nsCSSPseudoElements::Type aType,
                           nsStyleContext* aParentContext);
+  already_AddRefed<nsStyleContext>
+  ProbePseudoElementStyle(mozilla::dom::Element* aParentElement,
+                          nsCSSPseudoElements::Type aType,
+                          nsStyleContext* aParentContext,
+                          TreeMatchContext& aTreeMatchContext);
   
   
   

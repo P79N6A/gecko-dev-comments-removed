@@ -429,12 +429,16 @@ private:
                                 nsIFrame*                      aNewFrame,
                                 PRBool                         aAllowCounters = PR_TRUE);
 
+  
+  
   already_AddRefed<nsStyleContext>
   ResolveStyleContext(nsIFrame*         aParentFrame,
-                      nsIContent*       aContent);
+                      nsIContent*       aContent,
+                      nsFrameConstructorState* aState);
   already_AddRefed<nsStyleContext>
   ResolveStyleContext(nsStyleContext* aParentStyleContext,
-                      nsIContent* aContent);
+                      nsIContent* aContent,
+                      nsFrameConstructorState* aState);
 
   
   
