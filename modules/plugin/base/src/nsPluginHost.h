@@ -76,12 +76,12 @@ class nsIChannel;
 class nsInvalidPluginTag : public nsISupports
 {
 public:
-  nsInvalidPluginTag(const char* aFullPath, PRInt64 aLastModifiedTime = 0);
+  nsInvalidPluginTag(const nsAString& aFullPath, PRInt64 aLastModifiedTime = 0);
   virtual ~nsInvalidPluginTag();
   
   NS_DECL_ISUPPORTS
   
-  nsCString   mFullPath;
+  nsString    mFullPath;
   PRInt64     mLastModifiedTime;
   bool        mSeen;
   
@@ -257,7 +257,7 @@ private:
 
   
   
-  void RemoveCachedPluginsInfo(const char *filePath,
+  void RemoveCachedPluginsInfo(const nsAString& filePath,
                                nsPluginTag **result);
 
   

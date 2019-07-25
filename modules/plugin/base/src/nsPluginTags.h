@@ -79,7 +79,7 @@ public:
   nsPluginTag(const char* aName,
               const char* aDescription,
               const char* aFileName,
-              const char* aFullPath,
+              const nsAString& aFullPath,
               const char* aVersion,
               const char* const* aMimeTypes,
               const char* const* aMimeDescriptions,
@@ -121,7 +121,7 @@ public:
   PRPackedBool  mIsNPRuntimeEnabledJavaPlugin;
   PRPackedBool  mIsFlashPlugin;
   nsCString     mFileName; 
-  nsCString     mFullPath; 
+  nsString      mFullPath;
   nsCString     mVersion;  
   PRInt64       mLastModifiedTime;
 private:

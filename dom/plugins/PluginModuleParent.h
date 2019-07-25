@@ -106,7 +106,7 @@ protected:
     DeallocPPluginInstance(PPluginInstanceParent* aActor);
 
 public:
-    PluginModuleParent(const char* aFilePath);
+    PluginModuleParent(const nsAString& aFilePath);
     virtual ~PluginModuleParent();
 
     NS_OVERRIDE virtual void SetPlugin(nsNPAPIPlugin* plugin)
@@ -122,7 +122,7 @@ public:
 
 
 
-    static PluginLibrary* LoadModule(const char* aFilePath);
+    static PluginLibrary* LoadModule(const nsAString& aFilePath);
 
     const NPNetscapeFuncs* GetNetscapeFuncs() {
         return mNPNIface;
