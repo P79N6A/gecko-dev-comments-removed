@@ -260,7 +260,6 @@ class HashTable : private AllocPolicy
 
   private:
     uint32      hashShift;      
-    uint32      tableCapacity;  
     uint32      entryCount;     
     uint32      gen;            
     uint32      removedCount;   
@@ -268,7 +267,6 @@ class HashTable : private AllocPolicy
 
     void setTableSizeLog2(unsigned sizeLog2) {
         hashShift = sHashBits - sizeLog2;
-        tableCapacity = JS_BIT(sizeLog2);
     }
 
 #ifdef DEBUG
@@ -414,7 +412,7 @@ class HashTable : private AllocPolicy
     ~HashTable()
     {
         if (table)
-            destroyTable(*this, table, tableCapacity);
+            destroyTable(*this, table, capacity());
     }
 
   private:
@@ -427,10 +425,11 @@ class HashTable : private AllocPolicy
     }
 
     bool overloaded() {
-        return entryCount + removedCount >= ((sMaxAlphaFrac * tableCapacity) >> 8);
+        return entryCount + removedCount >= ((sMaxAlphaFrac * capacity()) >> 8);
     }
 
     bool underloaded() {
+        uint32 tableCapacity = capacity();
         return tableCapacity > sMinSize &&
                entryCount <= ((sMinAlphaFrac * tableCapacity) >> 8);
     }
@@ -546,7 +545,7 @@ class HashTable : private AllocPolicy
     {
         
         Entry *oldTable = table;
-        uint32 oldCap = tableCapacity;
+        uint32 oldCap = capacity();
         uint32 newLog2 = sHashBits - hashShift + deltaLog2;
         uint32 newCapacity = JS_BIT(newLog2);
         if (newCapacity > sMaxCapacity) {
@@ -604,8 +603,9 @@ class HashTable : private AllocPolicy
     void clear()
     {
         if (tl::IsPodType<Entry>::result) {
-            memset(table, 0, sizeof(*table) * tableCapacity);
+            memset(table, 0, sizeof(*table) * capacity());
         } else {
+            uint32 tableCapacity = capacity();
             for (Entry *e = table, *end = table + tableCapacity; e != end; ++e)
                 *e = Move(Entry());
         }
@@ -623,7 +623,7 @@ class HashTable : private AllocPolicy
         if (!table)
             return;
         
-        destroyTable(*this, table, tableCapacity);
+        destroyTable(*this, table, capacity());
         table = NULL;
         gen++;
         entryCount = 0;
@@ -634,7 +634,7 @@ class HashTable : private AllocPolicy
     }
 
     Range all() const {
-        return Range(table, table + tableCapacity);
+        return Range(table, table + capacity());
     }
 
     bool empty() const {
@@ -646,7 +646,7 @@ class HashTable : private AllocPolicy
     }
 
     uint32 capacity() const {
-        return tableCapacity;
+        return JS_BIT(sHashBits - hashShift);
     }
 
     uint32 generation() const {
@@ -660,7 +660,7 @@ class HashTable : private AllocPolicy
     size_t sizeOf(JSUsableSizeFun usf, bool countMe) const {
         size_t usable = usf(table) + (countMe ? usf((void*)this) : 0);
         return usable ? usable
-                      : (tableCapacity * sizeof(Entry)) + (countMe ? sizeof(HashTable) : 0);
+                      : (capacity() * sizeof(Entry)) + (countMe ? sizeof(HashTable) : 0);
     }
 
     Ptr lookup(const Lookup &l) const {
@@ -701,7 +701,7 @@ class HashTable : private AllocPolicy
             if (overloaded()) {
                 
                 int deltaLog2;
-                if (removedCount >= (tableCapacity >> 2)) {
+                if (removedCount >= (capacity() >> 2)) {
                     METER(stats.compresses++);
                     deltaLog2 = 0;
                 } else {
