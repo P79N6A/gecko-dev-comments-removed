@@ -345,6 +345,10 @@ var Browser = {
   startup: function() {
     var self = this;
 
+    let needOverride = Util.needHomepageOverride();
+    if (needOverride == "new profile")
+      this.initNewProfile();
+
     let container = document.getElementById("tile-container");
     let bv = this._browserView = new BrowserView(container, Browser.getVisibleRect);
 
@@ -499,7 +503,7 @@ var Browser = {
 
     
     let whereURI = "about:blank";
-    switch (Util.needHomepageOverride()) {
+    switch (needOverride) {
       case "new profile":
         whereURI = "about:firstrun";
         break;
@@ -627,6 +631,44 @@ var Browser = {
       if (nameMatch && !nameMatch.test(plugins[i].name))
         continue;
       plugins[i].disabled = !enabled;
+    }
+  },
+
+  initNewProfile: function initNewProfile() {
+    let sysInfo = Cc["@mozilla.org/system-info;1"].getService(Ci.nsIPropertyBag2);
+    let device = sysInfo.get("device");
+
+#ifdef MOZ_PLATFORM_HILDON
+    
+    
+    
+    if (device == "Nokia N8xx") {
+      gPrefService.setBoolPref("plugins.enabled", false);
+      this.setPluginState(true);
+    }
+#endif
+    
+    let cacheSize = -1;
+    try {
+      cacheSize = gPrefService.getIntPref("tile.cache.size");
+    } catch(e) {}
+
+    if (cacheSize == -1) {
+      switch (device) {
+#ifdef MOZ_PLATFORM_HILDON
+        case "Nokia N900":
+          cacheSize = 26;
+          break;
+        case "Nokia N8xx":
+          
+          cacheSize = 10;
+          break;
+#endif
+        default:
+          
+          cacheSize = 6;
+      }
+      gPrefService.setIntPref("tile.cache.size", cacheSize);
     }
   },
 
