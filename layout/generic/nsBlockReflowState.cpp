@@ -574,6 +574,9 @@ nsBlockReflowState::AddFloat(nsLineLayout*       aLineLayout,
        (aLineLayout->LineIsEmpty() ||
         mBlock->ComputeFloatWidth(*this, floatAvailableSpace, aFloat)
         <= aAvailableWidth))) {
+    nsFloatManager::SavedState floatManagerState;
+    mFloatManager->PushState(&floatManagerState);
+
     
     
     
@@ -599,6 +602,11 @@ nsBlockReflowState::AddFloat(nsLineLayout*       aLineLayout,
       aReflowStatus &= ~NS_FRAME_TRUNCATED;
     }
     else {
+      if (placed) {
+        mFloatManager->PopState(&floatManagerState);
+      } else {
+        mFloatManager->AssertStateMatches(&floatManagerState);
+      }
       if (IsAdjacentWithTop()) {
         
         
