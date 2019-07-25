@@ -3377,8 +3377,12 @@ void gfxFontGroup::ComputeRanges(nsTArray<gfxTextRange>& aRanges,
     }
 
     PRUint32 prevCh = 0;
-    gfxFont *prevFont = nsnull;
     PRUint8 matchType = 0;
+
+    
+    
+    
+    gfxFont *prevFont = GetFontAt(0);
 
     for (PRUint32 i = 0; i < aLength; i++) {
 
