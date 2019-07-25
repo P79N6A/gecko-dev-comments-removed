@@ -60,7 +60,6 @@
 #include "nsIContent.h" 
 
 
-#include "nsIFrame.h"
 #include "nsIPresShell.h"
 #include "nsPresContext.h"
 

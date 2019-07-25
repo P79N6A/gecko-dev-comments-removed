@@ -18,6 +18,7 @@
 #include "nsGridLayout2.h"
 #include "nsGridRow.h"
 #include "nsGridCell.h"
+#include "nsHTMLReflowState.h"
 
 
 
