@@ -485,8 +485,6 @@ nsSVGUtils::GetNearestViewportElement(nsIContent *aContent)
 static gfxMatrix
 GetCTMInternal(nsSVGElement *aElement, bool aScreenCTM, bool aHaveRecursed)
 {
-  nsIDocument* currentDoc = aElement->GetCurrentDoc();
-
   gfxMatrix matrix = aElement->PrependLocalTransformsTo(gfxMatrix(),
     aHaveRecursed ? nsSVGElement::eAllTransforms : nsSVGElement::eUserSpaceToParent);
   nsSVGElement *element = aElement;
@@ -511,18 +509,30 @@ GetCTMInternal(nsSVGElement *aElement, bool aScreenCTM, bool aHaveRecursed)
     
     return gfxMatrix(0.0, 0.0, 0.0, 0.0, 0.0, 0.0); 
   }
+  if (element->Tag() != nsGkAtoms::svg) {
+    
+    return gfxMatrix(0.0, 0.0, 0.0, 0.0, 0.0, 0.0); 
+  }
+  if (element == aElement && !aHaveRecursed) {
+    
+    
+    
+    
+    
+    
+    matrix = aElement->PrependLocalTransformsTo(gfxMatrix());
+  }
   if (!ancestor || !ancestor->IsElement()) {
     return matrix;
   }
   if (ancestor->IsSVG()) {
-    if (element->Tag() != nsGkAtoms::svg) {
-      return gfxMatrix(0.0, 0.0, 0.0, 0.0, 0.0, 0.0); 
-    }
     return
       matrix * GetCTMInternal(static_cast<nsSVGElement*>(ancestor), true, true);
   }
+
   
   
+  nsIDocument* currentDoc = aElement->GetCurrentDoc();
   float x = 0.0f, y = 0.0f;
   if (currentDoc && element->NodeInfo()->Equals(nsGkAtoms::svg, kNameSpaceID_SVG)) {
     nsIPresShell *presShell = currentDoc->GetShell();
