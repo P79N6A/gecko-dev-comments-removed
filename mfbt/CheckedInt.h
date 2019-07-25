@@ -242,22 +242,19 @@ struct MaxValue
 
 
 
-
-
-
 template<typename T>
-inline T
+inline bool
 HasSignBit(T x)
 {
   
   
   
   
-  
-  
-  return T(typename UnsignedType<T>::Type(x)
-              >> PositionOfSignBit<T>::value);
+  return bool(typename UnsignedType<T>::Type(x)
+                >> PositionOfSignBit<T>::value);
 }
+
+
 
 template<typename T>
 inline T
