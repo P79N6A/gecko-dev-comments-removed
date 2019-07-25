@@ -154,6 +154,8 @@ public:
 
   void DeleteAll();
 
+  size_t SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+
 protected:
   
 
@@ -177,6 +179,20 @@ protected:
       } else if (mProperty->mDestructorWithFrame) {
         mProperty->mDestructorWithFrame(aFrame, mValue);
       }
+    }
+
+    size_t SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) {
+      size_t n = 0;
+      
+      
+      
+      
+      
+      if (IsArray()) {
+        nsTArray<PropertyValue>* array = ToArray();
+        n += array->SizeOfExcludingThis(aMallocSizeOf);
+      }
+      return n;
     }
 
     const FramePropertyDescriptor* mProperty;
@@ -216,6 +232,9 @@ protected:
 
   static void DeleteAllForEntry(Entry* aEntry);
   static PLDHashOperator DeleteEnumerator(Entry* aEntry, void* aArg);
+
+  static size_t SizeOfPropertyTableEntryExcludingThis(Entry* aEntry,
+                  nsMallocSizeOfFun aMallocSizeOf, void *);
 
   nsTHashtable<Entry> mEntries;
   nsIFrame* mLastFrame;

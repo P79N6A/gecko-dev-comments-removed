@@ -286,7 +286,7 @@ public:
 
 
   size_t SizeOfExcludingThis(SizeOfEntryExcludingThisFun sizeOfEntryExcludingThis,
-                             nsMallocSizeOfFun mallocSizeOf, void *userArg = NULL)
+                             nsMallocSizeOfFun mallocSizeOf, void *userArg = NULL) const
   {
     if (IsInitialized()) {
       s_SizeOfArgs args = { sizeOfEntryExcludingThis, userArg };
