@@ -247,6 +247,12 @@ nsBrowserAccess.prototype = {
 let gTabIDFactory = 0;
 
 function Tab(aURL) {
+  this.filter = {
+    percentage: 0,
+    requestsFinished: 0,
+    requestsTotal: 0
+  };
+
   this.browser = null;
   this.id = 0;
   this.create(aURL);
@@ -317,36 +323,57 @@ Tab.prototype = {
   },
 
   onStateChange: function(aWebProgress, aRequest, aStateFlags, aStatus) {
-    let browser = BrowserApp.getBrowserForWindow(aWebProgress.DOMWindow);
-    let windowID = aWebProgress.DOMWindow.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils).currentInnerWindowID;
-    
-    let uri = "";
-    if (browser)
-      uri = browser.currentURI.spec;
-
-    let message = {
-      gecko: {
-        type: "onStateChange",
-        tabID: this.id,
-        windowID: windowID,
-        uri: uri,
-        state: aStateFlags
+    if (aStateFlags & Ci.nsIWebProgressListener.STATE_START) {
+      if (aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK) {
+        
+        this.filter = {
+          percentage: 0,
+          requestsFinished: 0,
+          requestsTotal: 0
+        };
       }
-    };
+      if (aStateFlags & Ci.nsIWebProgressListener.STATE_IS_REQUEST)
+        
+        
+        ++this.filter.requestsTotal;
+    }
+    else if (aStateFlags & Ci.nsIWebProgressListener.STATE_STOP) {
+      if (aStateFlags & Ci.nsIWebProgressListener.STATE_IS_REQUEST) {
+        
+        
+        ++this.filter.requestsFinished;
+        this.onProgressChange(aWebProgress, null, 0, 0, this.filter.requestsFinished, this.filter.requestsTotal);
+      }
+    }
 
-    sendMessageToJava(message);
+    if (aStateFlags & Ci.nsIWebProgressListener.STATE_IS_DOCUMENT) {
+      
+      let browser = BrowserApp.getBrowserForWindow(aWebProgress.DOMWindow);
+      let uri = "";
+      if (browser)
+        uri = browser.currentURI.spec;
+  
+      let message = {
+        gecko: {
+          type: "onStateChange",
+          tabID: this.id,
+          uri: uri,
+          state: aStateFlags
+        }
+      };
+  
+      sendMessageToJava(message);
+    }
   },
 
   onLocationChange: function(aWebProgress, aRequest, aLocationURI) {
     let browser = BrowserApp.getBrowserForWindow(aWebProgress.DOMWindow);
     let uri = browser.currentURI.spec;
-    let windowID = aWebProgress.DOMWindow.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils).currentInnerWindowID;
 
     let message = {
       gecko: {
         type: "onLocationChange",
         tabID: this.id,
-        windowID: windowID,
         uri: uri
       }
     };
@@ -355,25 +382,36 @@ Tab.prototype = {
   },
 
   onSecurityChange: function(aBrowser, aWebProgress, aRequest, aState) {
-    dump("progressListener.onSecurityChange");
   },
 
   onProgressChange: function(aWebProgress, aRequest, aCurSelfProgress, aMaxSelfProgress, aCurTotalProgress, aMaxTotalProgress) {
-    let windowID = aWebProgress.DOMWindow.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils).currentInnerWindowID;
-    let message = {
-      gecko: {
-        type: "onProgressChange",
-        tabID: this.id,
-        windowID: windowID,
-        current: aCurTotalProgress,
-        total: aMaxTotalProgress
-      }
-    };
-
-    sendMessageToJava(message);
-  },
-  onStatusChange: function(aBrowser, aWebProgress, aRequest, aStatus, aMessage) {
     
+    if (aCurTotalProgress > aMaxTotalProgress || aMaxTotalProgress <= 0)
+      return;
+
+    
+    if (this.filter.requestsTotal > 1 && aRequest)
+      return;
+
+    
+    let percentage = (aCurTotalProgress * 100) / aMaxTotalProgress;
+    if (percentage > this.filter.percentage + 3) {
+      this.filter.percentage = percentage;
+
+      let message = {
+        gecko: {
+          type: "onProgressChange",
+          tabID: this.id,
+          current: aCurTotalProgress,
+          total: aMaxTotalProgress
+        }
+      };
+  
+      sendMessageToJava(message);
+    }
+  },
+
+  onStatusChange: function(aBrowser, aWebProgress, aRequest, aStatus, aMessage) {
   },
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIWebProgressListener, Ci.nsISupportsWeakReference])
