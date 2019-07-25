@@ -2155,10 +2155,11 @@ namespace nanojit
     class LirBufWriter : public LirWriter
     {
         LirBuffer*              _buf;        
+        const Config&           _config;
 
         public:
-            LirBufWriter(LirBuffer* buf)
-                : LirWriter(0), _buf(buf) {
+            LirBufWriter(LirBuffer* buf, const Config& config)
+                : LirWriter(0), _buf(buf), _config(config) {
             }
 
             
