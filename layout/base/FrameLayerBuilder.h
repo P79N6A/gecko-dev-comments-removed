@@ -278,6 +278,26 @@ public:
     aFrame->Properties().Delete(DisplayItemDataProperty());
   }
 
+  LayerManager* GetRetainingLayerManager() { return mRetainingManager; }
+
+  
+
+
+
+
+
+
+  static PRBool NeedToInvalidateFixedDisplayItem(nsDisplayListBuilder* aBuilder,
+                                                 nsDisplayItem* aItem);
+
+  
+
+
+
+
+
+  static PRBool HasRetainedLayerFor(nsIFrame* aFrame, PRUint32 aDisplayItemKey);
+
   
 
 

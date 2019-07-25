@@ -81,7 +81,9 @@
 #include "nsIPrefService.h"
 #include "nsILookAndFeel.h"
 #include "mozilla/dom/Element.h"
+#include "FrameLayerBuilder.h"
 
+using namespace mozilla;
 using namespace mozilla::dom;
 
 
@@ -1598,9 +1600,8 @@ InvalidateFixedBackgroundFramesFromList(nsDisplayListBuilder* aBuilder,
     nsIFrame* f = item->GetUnderlyingFrame();
     if (f &&
         item->IsVaryingRelativeToMovingFrame(aBuilder, aMovingFrame)) {
-      if (item->IsFixedAndCoveringViewport(aBuilder)) {
+      if (FrameLayerBuilder::NeedToInvalidateFixedDisplayItem(aBuilder, item)) {
         
-      } else {
         f->Invalidate(item->GetVisibleRect() - item->ToReferenceFrame());
       }
     }
