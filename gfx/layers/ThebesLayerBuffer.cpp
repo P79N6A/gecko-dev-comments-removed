@@ -345,6 +345,7 @@ ThebesLayerBuffer::BeginPaint(ThebesLayer* aLayer, ContentType aContentType,
         } else {
           
           
+          destBufferRect = neededRegion.GetBounds();
           bufferDimsChanged = PR_TRUE;
           destBuffer = CreateBuffer(contentType, destBufferDims, bufferFlags);
           if (!destBuffer)
