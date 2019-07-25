@@ -46,8 +46,11 @@ function SP_Pretty_Key(aElemKey) {
 
   if (elemMod.match("accel")) {
     if (navigator.platform.indexOf("Mac") !== -1) {
-      elemString += keysbundle.GetStringFromName("VK_META") +
-                    keysbundle.GetStringFromName("MODIFIER_SEPARATOR");
+      
+      
+      
+      
+      elemString += "Cmd-";
     } else {
       elemString += keysbundle.GetStringFromName("VK_CONTROL") +
                     keysbundle.GetStringFromName("MODIFIER_SEPARATOR");
