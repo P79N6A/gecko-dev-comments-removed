@@ -989,89 +989,77 @@ class GeckoInputConnection
         return mIMEState != IME_STATE_DISABLED;
     }
 
-    public void notifyIME(final int type, final int state) {
-        postToUiThread(new Runnable() {
-            public void run() {
-                View v = getView();
-                if (v == null)
-                    return;
+    public void notifyIME(int type, int state) {
+        View v = getView();
+        if (v == null)
+            return;
 
-                switch (type) {
-                    case NOTIFY_IME_RESETINPUTSTATE:
-                        if (DEBUG) Log.d(LOGTAG, ". . . notifyIME: reset");
+        switch (type) {
+        case NOTIFY_IME_RESETINPUTSTATE:
+            if (DEBUG) Log.d(LOGTAG, ". . . notifyIME: reset");
 
-                        
-                        
-                        resetCompositionState();
+            
+            
+            resetCompositionState();
 
-                        
-                        
-                        
-                        
-                        InputMethodManager imm = getInputMethodManager();
-                        if (imm == null) {
-                            
-                            IMEStateUpdater.resetIME();
-                        } else {
-                            imm.restartInput(v);
-                        }
-
-                        
-                        IMEStateUpdater.enableIME();
-                        break;
-
-                    case NOTIFY_IME_CANCELCOMPOSITION:
-                        if (DEBUG) Log.d(LOGTAG, ". . . notifyIME: cancel");
-                        IMEStateUpdater.resetIME();
-                        break;
-
-                    case NOTIFY_IME_FOCUSCHANGE:
-                        if (DEBUG) Log.d(LOGTAG, ". . . notifyIME: focus");
-                        IMEStateUpdater.resetIME();
-                        break;
-
-                    case NOTIFY_IME_SETOPENSTATE:
-                    default:
-                        if (DEBUG)
-                            throw new IllegalArgumentException("Unexpected NOTIFY_IME=" + type);
-                        break;
-                }
-            }
-        });
-    }
-
-    public void notifyIMEEnabled(final int state, final String typeHint, final String modeHint, final String actionHint) {
-        postToUiThread(new Runnable() {
-            public void run() {
-                View v = getView();
-                if (v == null)
-                    return;
-
+            
+            
+            
+            
+            InputMethodManager imm = getInputMethodManager();
+            if (imm == null) {
                 
-
-                mIMEState = state;
-                mIMETypeHint = (typeHint == null) ? "" : typeHint;
-                mIMEModeHint = (modeHint == null) ? "" : modeHint;
-                mIMEActionHint = (actionHint == null) ? "" : actionHint;
-                IMEStateUpdater.enableIME();
+                IMEStateUpdater.resetIME();
+            } else {
+                imm.restartInput(v);
             }
-        });
+
+            
+            IMEStateUpdater.enableIME();
+            break;
+
+        case NOTIFY_IME_CANCELCOMPOSITION:
+            if (DEBUG) Log.d(LOGTAG, ". . . notifyIME: cancel");
+            IMEStateUpdater.resetIME();
+            break;
+
+        case NOTIFY_IME_FOCUSCHANGE:
+            if (DEBUG) Log.d(LOGTAG, ". . . notifyIME: focus");
+            IMEStateUpdater.resetIME();
+            break;
+
+        case NOTIFY_IME_SETOPENSTATE:
+        default:
+            if (DEBUG)
+                throw new IllegalArgumentException("Unexpected NOTIFY_IME=" + type);
+            break;
+        }
     }
 
-    public final void notifyIMEChange(final String text, final int start, final int end,
-                                      final int newEnd) {
-        postToUiThread(new Runnable() {
-            public void run() {
-                InputMethodManager imm = getInputMethodManager();
-                if (imm == null)
-                    return;
+    public void notifyIMEEnabled(int state, String typeHint, final String modeHint, String actionHint) {
+        View v = getView();
 
-                if (newEnd < 0)
-                    notifySelectionChange(imm, start, end);
-                else
-                    notifyTextChange(imm, text, start, end, newEnd);
-            }
-        });
+        if (v == null)
+            return;
+
+        
+
+        mIMEState = state;
+        mIMETypeHint = (typeHint == null) ? "" : typeHint;
+        mIMEModeHint = (modeHint == null) ? "" : modeHint;
+        mIMEActionHint = (actionHint == null) ? "" : actionHint;
+        IMEStateUpdater.enableIME();
+    }
+
+    public void notifyIMEChange(String text, int start, int end, int newEnd) {
+        InputMethodManager imm = getInputMethodManager();
+        if (imm == null)
+            return;
+
+        if (newEnd < 0)
+            notifySelectionChange(imm, start, end);
+        else
+            notifyTextChange(imm, text, start, end, newEnd);
     }
 
     
@@ -1102,30 +1090,25 @@ class GeckoInputConnection
                 instance = null;
             }
 
-            
-            postToUiThread(new Runnable() {
-                public void run() {
-                    final View v = getView();
-                    if (v == null)
+            final View v = getView();
+            if (v == null)
                         return;
 
-                    final InputMethodManager imm = getInputMethodManager();
-                    if (imm == null)
-                        return;
+            final InputMethodManager imm = getInputMethodManager();
+            if (imm == null)
+                return;
 
-                    if (mReset)
-                        imm.restartInput(v);
+            if (mReset)
+                imm.restartInput(v);
 
-                    if (!mEnable)
-                        return;
+            if (!mEnable)
+                return;
 
-                    if (mIMEState != IME_STATE_DISABLED) {
-                        imm.showSoftInput(v, 0);
-                    } else if (imm.isActive(v)) {
-                        imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
-                    }
-                }
-            });
+            if (mIMEState != IME_STATE_DISABLED) {
+                imm.showSoftInput(v, 0);
+            } else if (imm.isActive(v)) {
+                imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
+            }
         }
     }
 
@@ -1165,12 +1148,6 @@ class GeckoInputConnection
     private static String prettyPrintString(CharSequence s) {
         
         return "\"" + s.toString().replace('\n', UNICODE_CRARR) + "\"";
-    }
-
-    private static void postToUiThread(Runnable runnable) {
-        
-        
-        GeckoApp.mAppContext.mMainHandler.post(runnable);
     }
 
     private static final class Span {
