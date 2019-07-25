@@ -8,12 +8,7 @@ const _Cc = Components.classes;
 const _Ci = Components.interfaces;
 
 
-function do_wait_for_db_close(db) {
-  const ProfD = do_get_profile().QueryInterface(_Ci.nsILocalFile);
-
-  let dbfile = ProfD.clone();
-  dbfile.append(db);
-
+function do_wait_for_db_close(dbfile) {
   
   if (!dbfile.exists())
     return;
@@ -23,26 +18,15 @@ function do_wait_for_db_close(db) {
             mainThread;
 
   
-  let db = null;
-  while (!db) {
+  while (true) {
     
     try {
       db = Services.storage.openUnsharedDatabase(dbfile);
-    }
-    catch (e) {
-      if (thr.hasPendingEvents())
-        thr.processNextEvent(false);
-    }
-  }
-
-  
-  while (db) {
-    
-    try {
-      db.executeSimpleSQL("CREATE TABLE moz_test (id INTEGER PRIMARY KEY)");
-      db.executeSimpleSQL("DROP TABLE moz_test");
+      db.schemaVersion = 0;
+      db.schemaVersion = 2;
       db.close();
       db = null;
+      break;
     }
     catch (e) {
       if (thr.hasPendingEvents())
@@ -52,9 +36,12 @@ function do_wait_for_db_close(db) {
 }
 
 
-function do_reload_profile(observer, cleanse) {
+function do_reload_profile(profile, observer, cleanse) {
+  let dbfile = profile.QueryInterface(_Ci.nsILocalFile).clone();
+  dbfile.append("cookies.sqlite");
+
   observer.observe(null, "profile-before-change", cleanse ? cleanse : "");
-  do_wait_for_db_close("cookies.sqlite");
+  do_wait_for_db_close(dbfile);
   observer.observe(null, "profile-do-change", "");
 }
 
