@@ -268,12 +268,6 @@ RenderFrameParent::BuildLayer(nsDisplayListBuilder* aBuilder,
                                &shadowXScale, &shadowYScale);
     TransformShadowTreeTo(shadowRoot, aVisibleRect,
                           shadowTranslation, shadowXScale, shadowYScale);
-    
-    
-    gfxMatrix transform;
-    transform.Translate(gfxPoint(shadowTranslation.x, shadowTranslation.y));
-    transform.Scale(shadowXScale, shadowYScale);
-    mContainer->SetTransform(gfx3DMatrix::From2D(transform));
     mContainer->SetClipRect(nsnull);
   }
 
