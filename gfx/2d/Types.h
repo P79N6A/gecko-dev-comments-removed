@@ -6,6 +6,23 @@
 #ifndef MOZILLA_GFX_TYPES_H_
 #define MOZILLA_GFX_TYPES_H_
 
+
+
+
+
+
+#if defined(MOZ_GFX) && !defined(HAVE_NULLPTR)
+#ifndef __cplusplus
+# define nullptr ((void*)0)
+#elif defined(__GNUC__)
+# define nullptr __null
+#elif defined(_WIN64)
+# define nullptr 0LL
+#else
+# define nullptr 0L
+#endif
+#endif 
+
 #include "mozilla/StandardInteger.h"
 
 #include <stddef.h>
