@@ -102,8 +102,8 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain, StackFrame *call
 
     SharedContext sc(cx, scopeChain,  NULL,  NULL, StrictModeFromContext(cx));
 
-    TreeContext tc(&parser, &sc, staticLevel,  0);
-    if (!tc.init())
+    ParseContext pc(&parser, &sc, staticLevel,  0);
+    if (!pc.init())
         return NULL;
 
     bool savedCallerFun = options.compileAndGo && callerFrame && callerFrame->isFunctionFrame();
@@ -195,7 +195,7 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain, StackFrame *call
 
         if (!AnalyzeFunctions(&parser))
             return NULL;
-        tc.functionList = NULL;
+        pc.functionList = NULL;
 
         if (!EmitTree(cx, &bce, pn))
             return NULL;
@@ -226,7 +226,7 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain, StackFrame *call
     
     if (callerFrame && callerFrame->isFunctionFrame() && callerFrame->fun()->hasRest()) {
         PropertyName *arguments = cx->runtime->atomState.argumentsAtom;
-        for (AtomDefnRange r = tc.lexdeps->all(); !r.empty(); r.popFront()) {
+        for (AtomDefnRange r = pc.lexdeps->all(); !r.empty(); r.popFront()) {
             if (r.front().key() == arguments) {
                 parser.reportError(NULL, JSMSG_ARGUMENTS_AND_REST);
                 return NULL;
@@ -280,8 +280,8 @@ frontend::CompileFunctionBody(JSContext *cx, HandleFunction fun, CompileOptions 
     fun->setArgCount(formals.length());
 
     unsigned staticLevel = 0;
-    TreeContext funtc(&parser, &funsc, staticLevel,  0);
-    if (!funtc.init())
+    ParseContext funpc(&parser, &funsc, staticLevel,  0);
+    if (!funpc.init())
         return false;
 
     
@@ -326,7 +326,7 @@ frontend::CompileFunctionBody(JSContext *cx, HandleFunction fun, CompileOptions 
     if (!script)
         return false;
 
-    if (!funtc.generateFunctionBindings(cx, &script->bindings))
+    if (!funpc.generateFunctionBindings(cx, &script->bindings))
         return false;
 
     BytecodeEmitter funbce( NULL, &parser, &funsc, script,  NULL,

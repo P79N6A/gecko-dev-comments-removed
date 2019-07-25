@@ -425,12 +425,12 @@ ParseNode::newBinaryOrAppend(ParseNodeKind kind, JSOp op, ParseNode *left, Parse
 
 
 NameNode *
-NameNode::create(ParseNodeKind kind, JSAtom *atom, Parser *parser, TreeContext *tc)
+NameNode::create(ParseNodeKind kind, JSAtom *atom, Parser *parser, ParseContext *pc)
 {
     ParseNode *pn = ParseNode::create(kind, PN_NAME, parser);
     if (pn) {
         pn->pn_atom = atom;
-        ((NameNode *)pn)->initCommon(tc);
+        ((NameNode *)pn)->initCommon(pc);
     }
     return (NameNode *)pn;
 }
@@ -460,9 +460,9 @@ Definition::kindString(Kind kind)
 static ParseNode *
 CloneParseTree(ParseNode *opn, Parser *parser)
 {
-    TreeContext *tc = parser->tc;
+    ParseContext *pc = parser->pc;
 
-    JS_CHECK_RECURSION(tc->sc->context, return NULL);
+    JS_CHECK_RECURSION(pc->sc->context, return NULL);
 
     ParseNode *pn = parser->new_<ParseNode>(opn->getKind(), opn->getOp(), opn->getArity(),
                                             opn->pn_pos);
@@ -477,7 +477,7 @@ CloneParseTree(ParseNode *opn, Parser *parser)
 
       case PN_FUNC:
         NULLCHECK(pn->pn_funbox =
-                  parser->newFunctionBox(opn->pn_funbox->object, pn, tc, opn->pn_funbox->strictModeState));
+                  parser->newFunctionBox(opn->pn_funbox->object, pn, pc, opn->pn_funbox->strictModeState));
         NULLCHECK(pn->pn_body = CloneParseTree(opn->pn_body, parser));
         pn->pn_cookie = opn->pn_cookie;
         pn->pn_dflags = opn->pn_dflags;

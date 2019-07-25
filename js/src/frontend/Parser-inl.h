@@ -14,19 +14,19 @@ namespace js {
 namespace frontend {
 
 inline unsigned
-TreeContext::blockid()
+ParseContext::blockid()
 {
     return topStmt ? topStmt->blockid : bodyid;
 }
 
 inline bool
-TreeContext::atBodyLevel()
+ParseContext::atBodyLevel()
 {
     return !topStmt || topStmt->isFunctionBodyBlock;
 }
 
 inline
-TreeContext::TreeContext(Parser *prs, SharedContext *sc, unsigned staticLevel, uint32_t bodyid)
+ParseContext::ParseContext(Parser *prs, SharedContext *sc, unsigned staticLevel, uint32_t bodyid)
   : sc(sc),
     bodyid(0),           
     blockidGen(bodyid),  
@@ -43,9 +43,9 @@ TreeContext::TreeContext(Parser *prs, SharedContext *sc, unsigned staticLevel, u
     yieldNode(NULL),
     functionList(NULL),
     queuedStrictModeError(NULL),
-    parserTC(&prs->tc),
+    parserPC(&prs->pc),
     lexdeps(prs->context),
-    parent(prs->tc),
+    parent(prs->pc),
     innermostWith(NULL),
     funcStmts(NULL),
     hasReturnExpr(false),
@@ -53,11 +53,11 @@ TreeContext::TreeContext(Parser *prs, SharedContext *sc, unsigned staticLevel, u
     inForInit(false),
     inDeclDestructuring(false)
 {
-    prs->tc = this;
+    prs->pc = this;
 }
 
 inline bool
-TreeContext::init()
+ParseContext::init()
 {
     if (!frontend::GenerateBlockId(this, this->bodyid))
         return false;
@@ -66,19 +66,19 @@ TreeContext::init()
 }
 
 inline void
-TreeContext::setQueuedStrictModeError(CompileError *e)
+ParseContext::setQueuedStrictModeError(CompileError *e)
 {
     JS_ASSERT(!queuedStrictModeError);
     queuedStrictModeError = e;
 }
 
 inline
-TreeContext::~TreeContext()
+ParseContext::~ParseContext()
 {
     
     
-    JS_ASSERT(*parserTC == this);
-    *parserTC = this->parent;
+    JS_ASSERT(*parserPC == this);
+    *parserPC = this->parent;
     sc->context->delete_(funcStmts);
     if (queuedStrictModeError) {
         

@@ -18,7 +18,7 @@
 namespace js {
 namespace frontend {
 
-struct TreeContext;
+struct ParseContext;
 
 
 
@@ -978,9 +978,9 @@ struct FunctionNode : public ParseNode {
 };
 
 struct NameNode : public ParseNode {
-    static NameNode *create(ParseNodeKind kind, JSAtom *atom, Parser *parser, TreeContext *tc);
+    static NameNode *create(ParseNodeKind kind, JSAtom *atom, Parser *parser, ParseContext *pc);
 
-    inline void initCommon(TreeContext *tc);
+    inline void initCommon(ParseContext *pc);
 
 #ifdef DEBUG
     inline void dump(int indent);
