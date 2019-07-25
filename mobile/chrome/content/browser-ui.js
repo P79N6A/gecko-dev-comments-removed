@@ -415,6 +415,9 @@ var BrowserUI = {
       DownloadsView.init();
       PreferencesView.init();
       ConsoleView.init();
+
+      
+      WeaveGlue.init();
     });
 
     FormMessageReceiver.start();
