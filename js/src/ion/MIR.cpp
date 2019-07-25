@@ -632,6 +632,12 @@ MBinaryArithInstruction::infer(const TypeOracle::Binary &b)
         return;
     }
 
+    
+    if (isMod() && b.rval == MIRType_Double) {
+        specialization_ = MIRType_None;
+        return;
+    }
+
     JS_ASSERT(b.rval == MIRType_Int32 || b.rval == MIRType_Double);
     specialization_ = b.rval;
 
