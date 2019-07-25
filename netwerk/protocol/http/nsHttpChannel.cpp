@@ -3651,9 +3651,6 @@ nsHttpChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *context)
     if (mCanceled)
         return mStatus;
 
-    if (mTimingEnabled)
-        mAsyncOpenTime = mozilla::TimeStamp::Now();
-
     rv = NS_CheckPortSafety(mURI);
     if (NS_FAILED(rv))
         return rv;
@@ -3699,6 +3696,12 @@ nsHttpChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *context)
     
     if (mLoadGroup)
         mLoadGroup->AddRequest(this, nsnull);
+
+    
+    
+    
+    if (mTimingEnabled)
+        mAsyncOpenTime = mozilla::TimeStamp::Now();
 
     
     
