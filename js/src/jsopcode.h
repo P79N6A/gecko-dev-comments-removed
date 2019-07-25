@@ -325,22 +325,6 @@ js_DecompileToString(JSContext *cx, const char *name, JSFunction *fun,
 
 
 
-
-
-
-
-
-
-
-
-extern char *
-js_DecompileValueGenerator(JSContext *cx, int spindex, jsval v,
-                           JSString *fallback);
-
-
-
-
-
 extern unsigned
 js_ReconstructStackDepth(JSContext *cx, JSScript *script, jsbytecode *pc);
 
@@ -361,12 +345,20 @@ js_GetVariableBytecodeLength(jsbytecode *pc);
 
 namespace js {
 
-static inline char *
-DecompileValueGenerator(JSContext *cx, int spindex, const Value &v,
-                        JSString *fallback)
-{
-    return js_DecompileValueGenerator(cx, spindex, v, fallback);
-}
+
+
+
+
+
+
+
+
+
+
+
+
+char *
+DecompileValueGenerator(JSContext *cx, int spindex, HandleValue v, HandleString fallback);
 
 
 

@@ -283,5 +283,10 @@ for (var i = 0; i <4; i++) {
     plainText += plainText;
 }
 
+
+
+if (relaxRootChecks)
+  relaxRootChecks();
+
 var md5Output = hex_md5(plainText);
 assertEq(md5Output, "a831e91e0f70eddcb70dc61c6f82f6cd")

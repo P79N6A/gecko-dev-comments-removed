@@ -46,8 +46,8 @@ class StringSegmentRange
 
 
 
-    Vector<JSString *, 32> stack;
-    JSLinearString *cur;
+    AutoStringVector stack;
+    Rooted<JSLinearString*> cur;
 
     bool settle(JSString *str) {
         while (str->isRope()) {
@@ -62,7 +62,7 @@ class StringSegmentRange
 
   public:
     StringSegmentRange(JSContext *cx)
-      : stack(cx), cur(NULL)
+      : stack(cx), cur(cx)
     {}
 
     JS_WARN_UNUSED_RESULT bool init(JSString *str) {

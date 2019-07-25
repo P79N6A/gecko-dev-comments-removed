@@ -1337,24 +1337,26 @@ namespace js {
 
 
 
+
 extern JSObject *
-ToObjectSlow(JSContext *cx, Value *vp);
+ToObjectSlow(JSContext *cx, HandleValue vp, bool reportScanStack);
+
 
 JS_ALWAYS_INLINE JSObject *
-ToObject(JSContext *cx, Value *vp)
+ToObject(JSContext *cx, HandleValue vp)
 {
-    if (vp->isObject())
-        return &vp->toObject();
-    return ToObjectSlow(cx, vp);
+    if (vp.isObject())
+        return &vp.toObject();
+    return ToObjectSlow(cx, vp, false);
 }
 
 
-inline JSObject *
-ValueToObject(JSContext *cx, const Value &v)
+JS_ALWAYS_INLINE JSObject *
+ToObjectFromStack(JSContext *cx, HandleValue vp)
 {
-    if (v.isObject())
-        return &v.toObject();
-    return js_ValueToNonNullObject(cx, v);
+    if (vp.isObject())
+        return &vp.toObject();
+    return ToObjectSlow(cx, vp, true);
 }
 
 } 
