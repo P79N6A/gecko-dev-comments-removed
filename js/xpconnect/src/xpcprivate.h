@@ -1654,10 +1654,10 @@ private:
     
     
     
-    JS::HeapPtrObject                mGlobalJSObject;
+    js::ObjectPtr                    mGlobalJSObject;
 
     
-    JS::HeapPtrObject                mPrototypeJSObject;
+    js::ObjectPtr                    mPrototypeJSObject;
     
     JSObject*                        mPrototypeNoHelper;
 
@@ -2306,6 +2306,12 @@ public:
             mScriptableInfo->Mark();
     }
 
+    void WriteBarrierPre(JSRuntime* rt)
+    {
+        if (js::IsIncrementalBarrierNeeded(rt) && mJSProtoObject)
+            mJSProtoObject.writeBarrierPre(rt);
+    }
+
     
     inline void AutoTrace(JSTracer* trc) {}
 
@@ -2348,7 +2354,7 @@ private:
     }
 
     XPCWrappedNativeScope*   mScope;
-    JS::HeapPtrObject        mJSProtoObject;
+    js::ObjectPtr            mJSProtoObject;
     nsCOMPtr<nsIClassInfo>   mClassInfo;
     PRUint32                 mClassInfoFlags;
     XPCNativeSet*            mSet;
@@ -2737,8 +2743,9 @@ public:
     }
     void SetWrapper(JSObject *obj)
     {
+        js::IncrementalReferenceBarrier(GetWrapperPreserveColor());
         PRWord newval = PRWord(obj) | (mWrapperWord & FLAG_MASK);
-        JS_ModifyReference((void **)&mWrapperWord, (void *)newval);
+        mWrapperWord = newval;
     }
 
     void NoteTearoffs(nsCycleCollectionTraversalCallback& cb);
