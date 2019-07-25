@@ -911,6 +911,10 @@ public class GeckoInputConnection
         return false;
     }
 
+    public boolean isIMEEnabled() {
+        
+        return mIMEState != IME_STATE_DISABLED;
+    }
 
     public void notifyIME(int type, int state) {
 
