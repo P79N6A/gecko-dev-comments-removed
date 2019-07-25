@@ -118,6 +118,25 @@ class LinkedListElement
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 private:
     LinkedListElement* next;
     LinkedListElement* prev;
@@ -200,14 +219,14 @@ private:
     friend class LinkedList<T>;
 
     enum NodeKind {
-        NODE_TYPE_NORMAL,
-        NODE_TYPE_SENTINEL
+        NODE_KIND_NORMAL,
+        NODE_KIND_SENTINEL
     };
 
-    LinkedListElement(NodeKind nodeType)
+    LinkedListElement(NodeKind nodeKind)
         : next(this)
         , prev(this)
-        , isSentinel(nodeType == NODE_TYPE_SENTINEL)
+        , isSentinel(nodeKind == NODE_KIND_SENTINEL)
     {
     }
 
@@ -265,7 +284,7 @@ public:
     LinkedList(const LinkedList<T>& other) MOZ_DELETE;
 
     LinkedList()
-        : sentinel(LinkedListElement<T>::NODE_TYPE_SENTINEL)
+        : sentinel(LinkedListElement<T>::NODE_KIND_SENTINEL)
     {
     }
 
@@ -373,6 +392,9 @@ public:
         }
 
         
+
+
+
         for (LinkedListElement<T>* elem = sentinel.next;
              elem != sentinel;
              elem = elem->next) {
