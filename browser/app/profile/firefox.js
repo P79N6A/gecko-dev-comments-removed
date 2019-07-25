@@ -52,12 +52,30 @@ pref("general.startup.browser", true);
 
 pref("browser.chromeURL","chrome://browser/content/");
 pref("browser.hiddenWindowChromeURL", "chrome://browser/content/hiddenWindow.xul");
+pref("xpinstall.dialog.confirm", "chrome://mozapps/content/xpinstall/xpinstallConfirm.xul");
+pref("xpinstall.dialog.progress.skin", "chrome://mozapps/content/extensions/extensions.xul");
+pref("xpinstall.dialog.progress.chrome", "chrome://mozapps/content/extensions/extensions.xul");
+pref("xpinstall.dialog.progress.type.skin", "Extension:Manager");
+pref("xpinstall.dialog.progress.type.chrome", "Extension:Manager");
 
+
+
+
+
+pref("extensions.ignoreMTimeChanges", false);
 
 pref("extensions.logging.enabled", false);
 
+pref("extensions.hideInstallButton", true);
 
-pref("extensions.webservice.discoverURL", "https://services.addons.mozilla.org/%LOCALE%/%APP%/discovery/%VERSION%/%OS%");
+
+pref("extensions.getAddons.showPane", true);
+pref("extensions.getAddons.browseAddons", "https://addons.mozilla.org/%LOCALE%/%APP%");
+pref("extensions.getAddons.maxResults", 5);
+pref("extensions.getAddons.recommended.browseURL", "https://addons.mozilla.org/%LOCALE%/%APP%/recommended");
+pref("extensions.getAddons.recommended.url", "https://services.addons.mozilla.org/%LOCALE%/%APP%/api/%API_VERSION%/list/featured/all/10/%OS%/%VERSION%");
+pref("extensions.getAddons.search.browseURL", "https://addons.mozilla.org/%LOCALE%/%APP%/search?q=%TERMS%");
+pref("extensions.getAddons.search.url", "https://services.addons.mozilla.org/%LOCALE%/%APP%/api/%API_VERSION%/search/%TERMS%/all/10/%OS%/%VERSION%");
 
 
 pref("extensions.blocklist.enabled", true);
@@ -181,7 +199,7 @@ pref("browser.shell.checkDefaultBrowser", true);
 
 
 pref("browser.startup.page",                1);
-pref("browser.startup.homepage",            "chrome://branding/locale/browserconfig.properties");
+pref("browser.startup.homepage",            "resource:/browserconfig.properties");
 
 pref("browser.enable_automatic_image_resizing", true);
 pref("browser.chrome.site_icons", true);
@@ -222,11 +240,9 @@ pref("browser.urlbar.delay", 50);
 pref("browser.urlbar.restrict.history", "^");
 pref("browser.urlbar.restrict.bookmark", "*");
 pref("browser.urlbar.restrict.tag", "+");
-pref("browser.urlbar.restrict.openpage", "%");
 pref("browser.urlbar.restrict.typed", "~");
 pref("browser.urlbar.match.title", "#");
 pref("browser.urlbar.match.url", "@");
-
 
 
 
@@ -295,6 +311,14 @@ pref("browser.microsummary.updateGenerators", true);
 pref("browser.search.suggest.enabled", true);
 
 pref("browser.sessionhistory.max_entries", 50);
+#ifndef WINCE
+pref("browser.history_expire_days", 180);
+pref("browser.history_expire_days_min", 90);
+#else
+pref("browser.history_expire_days", 90);
+pref("browser.history_expire_days_min", 45);
+#endif
+pref("browser.history_expire_sites", 40000);
 
 
 
@@ -422,6 +446,8 @@ pref("privacy.sanitize.migrateFx3Prefs",    false);
 
 pref("network.proxy.share_proxy_settings",  false); 
 
+pref("network.cookie.cookieBehavior", 0); 
+
 
 pref("intl.accept_languages", "chrome://global/locale/intl.properties");
 pref("intl.charsetmenu.browser.static", "chrome://global/locale/intl.properties");
@@ -533,6 +559,9 @@ pref("accessibility.typeaheadfind", false);
 pref("accessibility.typeaheadfind.timeout", 5000);
 pref("accessibility.typeaheadfind.linksonly", false);
 pref("accessibility.typeaheadfind.flashBar", 1);
+
+
+pref("plugin.default_plugin_disabled", true);
 
 
 pref("pfs.datasource.url", "https://pfs.mozilla.org/plugins/PluginFinderService.php?mimetype=%PLUGIN_MIMETYPE%&appID=%APP_ID%&appVersion=%APP_VERSION%&clientOS=%CLIENT_OS%&chromeLocale=%CHROME_LOCALE%&appRelease=%APP_RELEASE%");
@@ -669,6 +698,7 @@ pref("browser.safebrowsing.dataProvider", 0);
 
 
 pref("browser.safebrowsing.provider.0.name", "Google");
+pref("browser.safebrowsing.provider.0.lookupURL", "http://safebrowsing.clients.google.com/safebrowsing/lookup?sourceid=firefox-antiphish&features=TrustRank&client={moz:client}&appver={moz:version}&");
 pref("browser.safebrowsing.provider.0.keyURL", "https://sb-ssl.google.com/safebrowsing/newkey?client={moz:client}&appver={moz:version}&pver=2.2");
 pref("browser.safebrowsing.provider.0.reportURL", "http://safebrowsing.clients.google.com/safebrowsing/report?");
 pref("browser.safebrowsing.provider.0.gethashURL", "http://safebrowsing.clients.google.com/safebrowsing/gethash?client={moz:client}&appver={moz:version}&pver=2.2");
@@ -755,9 +785,6 @@ pref("browser.sessionstore.max_resumed_crashes", 1);
 pref("accessibility.blockautorefresh", false);
 
 
-pref("places.history.enabled", true);
-
-
 
 
 
@@ -782,7 +809,6 @@ pref("places.frecency.defaultBucketWeight", 10);
 
 
 pref("places.frecency.embedVisitBonus", 0);
-pref("places.frecency.framedLinkVisitBonus", 0);
 pref("places.frecency.linkVisitBonus", 100);
 pref("places.frecency.typedVisitBonus", 2000);
 pref("places.frecency.bookmarkVisitBonus", 75);
@@ -821,6 +847,9 @@ pref("browser.zoom.siteSpecific", true);
 pref("browser.zoom.updateBackgroundTabs", true);
 
 
+pref("editor.singleLine.pasteNewlines", 2);
+
+
 pref("breakpad.reportURL", "http://crash-stats.mozilla.com/report/index/");
 
 
@@ -841,7 +870,6 @@ pref("browser.bookmarks.editDialog.firstEditField", "namePicker");
 
 
 pref("geo.wifi.uri", "https://www.google.com/loc/json");
-pref("geo.wifi.protocol", 0);
 
 #ifdef WINCE
 
@@ -881,22 +909,7 @@ pref("toolbar.customization.usesheet", true);
 pref("toolbar.customization.usesheet", false);
 #endif
 
-
-
-#ifdef XP_MACOSX
-
-
-
-
-pref("dom.ipc.plugins.enabled", false);
-
-pref("dom.ipc.plugins.enabled.flash player.plugin", true);
-pref("dom.ipc.plugins.enabled.javaplugin2_npapi.plugin", true);
-#elifdef MOZ_IPC
 pref("dom.ipc.plugins.enabled", true);
-#else
-pref("dom.ipc.plugins.enabled", false);
-#endif
 
 #ifdef XP_WIN
 #ifndef WINCE
@@ -908,6 +921,5 @@ pref("browser.taskbar.lists.frequent.enabled", true);
 pref("browser.taskbar.lists.recent.enabled", false);
 pref("browser.taskbar.lists.maxListItemCount", 7);
 pref("browser.taskbar.lists.tasks.enabled", true);
-pref("browser.taskbar.lists.refreshInSeconds", 30);
 #endif
 #endif
