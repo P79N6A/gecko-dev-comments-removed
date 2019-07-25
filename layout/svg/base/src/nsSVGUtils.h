@@ -450,15 +450,6 @@ public:
   
 
 
-  static nsRect
-  ToAppPixelRect(nsPresContext *aPresContext,
-                 double xmin, double ymin, double xmax, double ymax);
-  static nsRect
-  ToAppPixelRect(nsPresContext *aPresContext, const gfxRect& rect);
-
-  
-
-
 
 
 
