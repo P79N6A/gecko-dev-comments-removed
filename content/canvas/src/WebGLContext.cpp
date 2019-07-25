@@ -288,14 +288,22 @@ WebGLContext::SetContextOptions(nsIPropertyBag *aOptions)
     if (!aOptions)
         return NS_OK;
 
+    bool defaultNoAlpha =
+        Preferences::GetBool("webgl.default-no-alpha", false);
+
     WebGLContextOptions newOpts;
 
     GetBoolFromPropertyBag(aOptions, "stencil", &newOpts.stencil);
     GetBoolFromPropertyBag(aOptions, "depth", &newOpts.depth);
-    GetBoolFromPropertyBag(aOptions, "alpha", &newOpts.alpha);
     GetBoolFromPropertyBag(aOptions, "premultipliedAlpha", &newOpts.premultipliedAlpha);
     GetBoolFromPropertyBag(aOptions, "antialias", &newOpts.antialias);
     GetBoolFromPropertyBag(aOptions, "preserveDrawingBuffer", &newOpts.preserveDrawingBuffer);
+
+    
+    
+    if (!GetBoolFromPropertyBag(aOptions, "alpha", &newOpts.alpha) && defaultNoAlpha) {
+        newOpts.alpha = false;
+    }
 
     
     newOpts.depth |= newOpts.stencil;
@@ -378,6 +386,8 @@ WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
         Preferences::GetBool("gfx.prefer-mesa-llvmpipe", false);
     bool disabled =
         Preferences::GetBool("webgl.disabled", false);
+    bool prefer16bit =
+        Preferences::GetBool("webgl.prefer-16bpp", false);
 
     ScopedGfxFeatureReporter reporter("WebGL", forceEnabled);
 
@@ -407,14 +417,30 @@ WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
     }
 
     if (!mOptions.alpha) {
-        
-        
-        format.red = 5;
-        format.green = 6;
-        format.blue = 5;
-
         format.alpha = 0;
         format.minAlpha = 0;
+    }
+
+    
+    
+    
+    if (prefer16bit) {
+        
+        
+        
+        
+        
+        if (mOptions.alpha) {
+            format.red = 4;
+            format.green = 4;
+            format.blue = 4;
+            format.alpha = 4;
+        } else {
+            format.red = 5;
+            format.green = 6;
+            format.blue = 5;
+            format.alpha = 0;
+        }
     }
 
     bool forceMSAA =
