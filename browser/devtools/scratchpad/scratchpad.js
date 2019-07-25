@@ -332,21 +332,7 @@ var Scratchpad = {
                                 "Scratchpad", 1);
     }
     catch (ex) {
-      this.openWebConsole();
-
-      let contentWindow = this.gBrowser.selectedBrowser.contentWindow;
-
-      let scriptError = Cc["@mozilla.org/scripterror;1"].
-                        createInstance(Ci.nsIScriptError);
-
-      scriptError.initWithWindowID(ex.message + "\n" + ex.stack, ex.fileName,
-                                   "", ex.lineNumber, 0, scriptError.errorFlag,
-                                   "content javascript",
-                                   this.getInnerWindowId(contentWindow));
-
-      Services.console.logMessage(scriptError);
-
-      error = true;
+      error = ex;
     }
 
     return [error, result];
@@ -368,11 +354,7 @@ var Scratchpad = {
                                 "Scratchpad", 1);
     }
     catch (ex) {
-      Cu.reportError(ex);
-      Cu.reportError(ex.stack);
-      this.openErrorConsole();
-
-      error = true;
+      error = ex;
     }
 
     return [error, result];
@@ -398,11 +380,29 @@ var Scratchpad = {
 
 
 
-  run: function SP_run()
+
+
+  execute: function SP_execute()
   {
     let selection = this.selectedText || this.getText();
     let [error, result] = this.evalForContext(selection);
-    this.deselect();
+    return [selection, error, result];
+  },
+
+  
+
+
+
+  run: function SP_run()
+  {
+    let [selection, error, result] = this.execute();
+
+    if (!error) {
+      this.deselect();
+    } else {
+      this.writeAsErrorComment(error);
+    }
+
     return [selection, error, result];
   },
 
@@ -413,10 +413,13 @@ var Scratchpad = {
 
   inspect: function SP_inspect()
   {
-    let [selection, error, result] = this.run();
+    let [selection, error, result] = this.execute();
 
     if (!error) {
+      this.deselect();
       this.openPropertyPanel(selection, result);
+    } else {
+      this.writeAsErrorComment(error);
     }
   },
 
@@ -428,22 +431,45 @@ var Scratchpad = {
 
   display: function SP_display()
   {
+    let [selectedText, error, result] = this.execute();
+
+    if (!error) {
+      this.writeAsComment(result);
+    } else {
+      this.writeAsErrorComment(error);
+    }
+  },
+
+  
+
+
+
+
+  writeAsComment: function SP_writeAsComment(aValue)
+  {
     let selection = this.getSelectionRange();
     let insertionPoint = selection.start != selection.end ?
                          selection.end : 
                          this.editor.getCharCount(); 
-
-    let [selectedText, error, result] = this.run();
-    if (error) {
-      return;
-    }
-
-    let newComment = "/*\n" + result + "\n*/";
-
+                         
+    let newComment = "/*\n" + aValue + "\n*/";
+    
     this.setText(newComment, insertionPoint, insertionPoint);
 
     
     this.selectRange(insertionPoint, insertionPoint + newComment.length);
+  },
+
+  
+
+
+
+
+  writeAsErrorComment: function SP_writeAsErrorComment(aError)
+  {
+    let newComment = "Exception: " + aError.message + "\n" + aError.stack.substring(0, aError.stack.length - 1);
+    
+    this.writeAsComment(newComment);
   },
 
   
