@@ -91,7 +91,7 @@ class Debugger;
 
 
 
-class GlobalObject : public ::JSObject {
+class GlobalObject : public JSObject {
     GlobalObject(const GlobalObject &other) MOZ_DELETE;
     void operator=(const GlobalObject &other) MOZ_DELETE;
 
@@ -372,11 +372,11 @@ JSObject::isGlobal() const
     return !!(js::GetObjectClass(this)->flags & JSCLASS_IS_GLOBAL);
 }
 
-js::GlobalObject *
+js::GlobalObject &
 JSObject::asGlobal()
 {
     JS_ASSERT(isGlobal());
-    return static_cast<js::GlobalObject *>(this);
+    return *static_cast<js::GlobalObject *>(this);
 }
 
 #endif 

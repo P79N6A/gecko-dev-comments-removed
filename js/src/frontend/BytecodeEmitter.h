@@ -138,7 +138,7 @@ struct StmtInfo {
     ptrdiff_t       continues;      
     union {
         JSAtom      *label;         
-        JSObject    *blockObj;      
+        StaticBlockObject *blockObj;
     };
     StmtInfo        *down;          
     StmtInfo        *downScope;     
@@ -299,7 +299,7 @@ struct TreeContext {
 
     StmtInfo        *topStmt;       
     StmtInfo        *topScopeStmt;  
-    JSObject        *blockChain;    
+    StaticBlockObject *blockChain;  
 
 
     ParseNode       *blockNode;     
@@ -834,7 +834,7 @@ PushStatement(TreeContext *tc, StmtInfo *stmt, StmtType type, ptrdiff_t top);
 
 
 void
-PushBlockScope(TreeContext *tc, StmtInfo *stmt, JSObject *blockObj, ptrdiff_t top);
+PushBlockScope(TreeContext *tc, StmtInfo *stmt, StaticBlockObject &blockObj, ptrdiff_t top);
 
 
 

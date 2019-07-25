@@ -192,9 +192,9 @@ frontend::CompileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
     MUST_FLOW_THROUGH("out");
 
     
-    JSObject *globalObj = scopeChain && scopeChain == scopeChain->getGlobal()
-                        ? scopeChain->getGlobal()
-                        : NULL;
+    JSObject *globalObj = scopeChain && scopeChain == &scopeChain->global()
+                          ? &scopeChain->global()
+                          : NULL;
 
     JS_ASSERT_IF(globalObj, globalObj->isNative());
     JS_ASSERT_IF(globalObj, JSCLASS_HAS_GLOBAL_FLAG_AND_SLOTS(globalObj->getClass()));

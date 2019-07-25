@@ -343,13 +343,20 @@ extern Class WithClass;
 extern Class XMLFilterClass;
 
 class ArgumentsObject;
+class BlockObject;
 class BooleanObject;
+class ClonedBlockObject;
+class DeclEnvObject;
 class GlobalObject;
+class NestedScopeObject;
 class NormalArgumentsObject;
 class NumberObject;
+class ScopeObject;
+class StaticBlockObject;
 class StrictArgumentsObject;
 class StringObject;
 class RegExpObject;
+class WithObject;
 
 
 
@@ -775,10 +782,8 @@ struct JSObject : js::gc::Cell
     inline void nativeSetSlot(uintN slot, const js::Value &value);
     inline void nativeSetSlotWithType(JSContext *cx, const js::Shape *shape, const js::Value &value);
 
-    inline js::Value getReservedSlot(uintN index) const;
+    inline const js::Value &getReservedSlot(uintN index) const;
     inline js::HeapValue &getReservedSlotRef(uintN index);
-
-    
     inline void setReservedSlot(uintN index, const js::Value &v);
 
     
@@ -894,29 +899,13 @@ struct JSObject : js::gc::Cell
     bool setParent(JSContext *cx, JSObject *newParent);
 
     
-    inline JSObject *scopeChain() const;
-
-    inline bool isGlobal() const;
-    inline js::GlobalObject *asGlobal();
-    inline js::GlobalObject *getGlobal() const;
-
-    inline bool isInternalScope() const;
-
-    
-    inline JSObject *internalScopeChain() const;
-    inline bool setInternalScopeChain(JSContext *cx, JSObject *obj);
-    static inline size_t offsetOfInternalScopeChain();
-
-    
 
 
 
 
-    inline JSObject *staticBlockScopeChain() const;
-    inline void setStaticBlockScopeChain(JSObject *obj);
+    inline JSObject *enclosingScope();
 
-    
-    static const uint32_t SCOPE_CHAIN_SLOT = 0;
+    inline js::GlobalObject &global() const;
 
     
 
@@ -980,12 +969,6 @@ struct JSObject : js::gc::Cell
         
         return getFixedSlotOffset(JSSLOT_PRIMITIVE_THIS);
     }
-
-  public:
-    inline js::BooleanObject *asBoolean();
-    inline js::NumberObject *asNumber();
-    inline js::StringObject *asString();
-    inline js::RegExpObject *asRegExp();
 
     
 
@@ -1078,14 +1061,6 @@ struct JSObject : js::gc::Cell
     bool allocateArrayBufferSlots(JSContext *cx, uint32_t size);
     inline uint32_t arrayBufferByteLength();
     inline uint8_t * arrayBufferDataOffset();
-
-  public:
-    inline js::ArgumentsObject *asArguments();
-    inline js::NormalArgumentsObject *asNormalArguments();
-    inline js::StrictArgumentsObject *asStrictArguments();
-
-  public:
-    inline js::CallObject &asCall();
 
   public:
     
@@ -1181,12 +1156,6 @@ struct JSObject : js::gc::Cell
     
 
 
-    inline JSObject *getWithThis() const;
-    inline void setWithThis(JSObject *thisp);
-
-    
-
-
     inline bool isCallable();
 
     inline void finish(JSContext *cx);
@@ -1220,6 +1189,7 @@ struct JSObject : js::gc::Cell
   private:
     js::Shape *getChildProperty(JSContext *cx, js::Shape *parent, js::StackShape &child);
 
+  protected:
     
 
 
@@ -1233,6 +1203,7 @@ struct JSObject : js::gc::Cell
                                    uintN flags, intN shortid, js::Shape **spp,
                                    bool allowDictionary);
 
+  private:
     bool toDictionaryMode(JSContext *cx);
 
     struct TradeGutsReserved;
@@ -1345,52 +1316,105 @@ struct JSObject : js::gc::Cell
 
     bool swap(JSContext *cx, JSObject *other);
 
-    const js::Shape *defineBlockVariable(JSContext *cx, jsid id, intN index, bool *redeclared);
-
-    inline bool isArguments() const;
-    inline bool isArrayBuffer() const;
-    inline bool isNormalArguments() const;
-    inline bool isStrictArguments() const;
-    inline bool isArray() const;
-    inline bool isDenseArray() const;
-    inline bool isSlowArray() const;
-    inline bool isNumber() const;
-    inline bool isBoolean() const;
-    inline bool isString() const;
-    inline bool isPrimitive() const;
-    inline bool isDate() const;
-    inline bool isFunction() const;
-    inline bool isObject() const;
-    inline bool isWith() const;
-    inline bool isBlock() const;
-    inline bool isStaticBlock() const;
-    inline bool isClonedBlock() const;
-    inline bool isCall() const;
-    inline bool isDeclEnv() const;
-    inline bool isRegExp() const;
-    inline bool isScript() const;
-    inline bool isGenerator() const;
-    inline bool isIterator() const;
-    inline bool isStopIteration() const;
-    inline bool isError() const;
-    inline bool isXML() const;
-    inline bool isNamespace() const;
-    inline bool isWeakMap() const;
-    inline bool isFunctionProxy() const;
-    inline bool isProxy() const;
-
-    inline bool isXMLId() const;
-    inline bool isQName() const;
-
-    inline bool isWrapper() const;
-    inline bool isCrossCompartmentWrapper() const;
-
     inline void initArrayClass();
 
     static inline void writeBarrierPre(JSObject *obj);
     static inline void writeBarrierPost(JSObject *obj, void *addr);
     inline void privateWriteBarrierPre(void **oldval);
     inline void privateWriteBarrierPost(void **oldval);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+    inline bool isArguments() const;
+    inline bool isArrayBuffer() const;
+    inline bool isArray() const;
+    inline bool isDate() const;
+    inline bool isDenseArray() const;
+    inline bool isError() const;
+    inline bool isFunction() const;
+    inline bool isGenerator() const;
+    inline bool isGlobal() const;
+    inline bool isIterator() const;
+    inline bool isNamespace() const;
+    inline bool isObject() const;
+    inline bool isQName() const;
+    inline bool isPrimitive() const;
+    inline bool isProxy() const;
+    inline bool isRegExp() const;
+    inline bool isScope() const;
+    inline bool isScript() const;
+    inline bool isSlowArray() const;
+    inline bool isStopIteration() const;
+    inline bool isWeakMap() const;
+    inline bool isXML() const;
+    inline bool isXMLId() const;
+
+    
+    inline bool isBlock() const;
+    inline bool isCall() const;
+    inline bool isDeclEnv() const;
+    inline bool isNestedScope() const;
+    inline bool isWith() const;
+    inline bool isClonedBlock() const;
+    inline bool isStaticBlock() const;
+
+    
+    inline bool isBoolean() const;
+    inline bool isNumber() const;
+    inline bool isString() const;
+
+    
+    inline bool isNormalArguments() const;
+    inline bool isStrictArguments() const;
+
+    
+    inline bool isWrapper() const;
+    inline bool isFunctionProxy() const;
+    inline bool isCrossCompartmentWrapper() const;
+
+    inline js::ArgumentsObject &asArguments();
+    inline js::BlockObject &asBlock();
+    inline js::BooleanObject &asBoolean();
+    inline js::CallObject &asCall();
+    inline js::ClonedBlockObject &asClonedBlock();
+    inline js::DeclEnvObject &asDeclEnv();
+    inline js::GlobalObject &asGlobal();
+    inline js::NestedScopeObject &asNestedScope();
+    inline js::NormalArgumentsObject &asNormalArguments();
+    inline js::NumberObject &asNumber();
+    inline js::RegExpObject &asRegExp();
+    inline js::ScopeObject &asScope();
+    inline js::StrictArgumentsObject &asStrictArguments();
+    inline js::StaticBlockObject &asStaticBlock();
+    inline js::StringObject &asString();
+    inline js::WithObject &asWith();
 
     static inline js::ThingRootKind rootKind() { return js::THING_ROOT_OBJECT; }
 
@@ -1483,66 +1507,6 @@ class ValueArray {
 
     ValueArray(js::Value *v, size_t c) : array(v), length(c) {}
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-static const uint32_t JSSLOT_BLOCK_DEPTH = 1;
-static const uint32_t JSSLOT_BLOCK_FIRST_FREE_SLOT = JSSLOT_BLOCK_DEPTH + 1;
-
-static const uint32_t JSSLOT_WITH_THIS = 2;
-
-#define OBJ_BLOCK_COUNT(cx,obj)                                               \
-    (obj)->propertyCount()
-#define OBJ_BLOCK_DEPTH(cx,obj)                                               \
-    (obj)->getFixedSlot(JSSLOT_BLOCK_DEPTH).toInt32()
-#define OBJ_SET_BLOCK_DEPTH(cx,obj,depth)                                     \
-    (obj)->setFixedSlot(JSSLOT_BLOCK_DEPTH, Value(Int32Value(depth)))
-
-
-
-
-
-
-
-
-
-extern JS_REQUIRES_STACK JSObject *
-js_NewWithObject(JSContext *cx, JSObject *proto, JSObject *parent, jsint depth);
-
-inline JSObject *
-js_UnwrapWithObject(JSContext *cx, JSObject *withobj);
-
-
-
-
-
-
-
-extern JSObject *
-js_NewBlockObject(JSContext *cx);
-
-extern JSObject *
-js_CloneBlockObject(JSContext *cx, JSObject *proto, js::StackFrame *fp);
-
-extern JS_REQUIRES_STACK JSBool
-js_PutBlockObject(JSContext *cx, JSBool normalUnwind);
-
-JSBool
-js_XDRBlockObject(JSXDRState *xdr, JSObject **objp);
 
 
 #define SHARP_BIT       ((jsatomid) 1)
