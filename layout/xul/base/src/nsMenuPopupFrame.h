@@ -298,7 +298,7 @@ public:
   
   
   
-  nsRect GetConstraintRect(nsPoint aAnchorPoint, nsRect& aRootScreenRect);
+  nsRect GetConstraintRect(const nsRect& aAnchorRect, const nsRect& aRootScreenRect);
 
   
   

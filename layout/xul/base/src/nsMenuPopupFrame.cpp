@@ -1157,7 +1157,7 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, PRBool aIsMove)
     hFlip = vFlip = PR_FALSE;
   }
 
-  nsRect screenRect = GetConstraintRect(anchorRect.TopLeft(), rootScreenRect);
+  nsRect screenRect = GetConstraintRect(anchorRect, rootScreenRect);
 
   
   if (!anchorRect.IntersectRect(anchorRect, screenRect)) {
@@ -1235,7 +1235,8 @@ nsMenuPopupFrame::GetCurrentMenuItem()
 }
 
 nsRect
-nsMenuPopupFrame::GetConstraintRect(nsPoint aAnchorPoint, nsRect& aRootScreenRect)
+nsMenuPopupFrame::GetConstraintRect(const nsRect& aAnchorRect,
+                                    const nsRect& aRootScreenRect)
 {
   nsIntRect screenRectPixels;
   nsPresContext* presContext = PresContext();
@@ -1250,10 +1251,12 @@ nsMenuPopupFrame::GetConstraintRect(nsPoint aAnchorPoint, nsRect& aRootScreenRec
     
     
     
-    nsPoint pnt = mInContentShell ? aRootScreenRect.TopLeft() : aAnchorPoint;
-    sm->ScreenForRect(presContext->AppUnitsToDevPixels(pnt.x),
-                      presContext->AppUnitsToDevPixels(pnt.y),
-                      1, 1, getter_AddRefs(screen));
+    nsRect rect = mInContentShell ? aRootScreenRect : aAnchorRect;
+    PRInt32 width = rect.width > 0 ? presContext->AppUnitsToDevPixels(rect.width) : 1;
+    PRInt32 height = rect.height > 0 ? presContext->AppUnitsToDevPixels(rect.height) : 1;
+    sm->ScreenForRect(presContext->AppUnitsToDevPixels(rect.x),
+                      presContext->AppUnitsToDevPixels(rect.y),
+                      width, height, getter_AddRefs(screen));
     if (screen) {
       
       if (mMenuCanOverlapOSBar && !mInContentShell)

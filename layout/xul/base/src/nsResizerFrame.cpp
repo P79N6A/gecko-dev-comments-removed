@@ -227,11 +227,11 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
         }
       }
       else if (menuPopupFrame) {
-        nsPoint framePoint = menuPopupFrame->GetScreenRectInAppUnits().TopLeft();
+        nsRect frameRect = menuPopupFrame->GetScreenRectInAppUnits();
         nsIFrame* rootFrame = aPresContext->PresShell()->FrameManager()->GetRootFrame();
         nsRect rootScreenRect = rootFrame->GetScreenRectInAppUnits();
 
-        nsRect screenRect = menuPopupFrame->GetConstraintRect(framePoint, rootScreenRect);
+        nsRect screenRect = menuPopupFrame->GetConstraintRect(frameRect, rootScreenRect);
         
         
         
