@@ -138,13 +138,9 @@ public:
                                nsRefPtr<nsFrameLoader>& aFirstToSwap,
                                nsRefPtr<nsFrameLoader>& aSecondToSwap);
 
-  
-  void DestroyChild();
-
 #ifdef MOZ_IPC
   mozilla::dom::PIFrameEmbeddingParent* GetChildProcess();
 #endif
-  NS_IMETHOD GetCrossProcessObjectWrapper(nsIVariant** cpow);
 
   nsFrameMessageManager* GetFrameMessageManager() { return mMessageManager; }
 
