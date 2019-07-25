@@ -1,38 +1,38 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is the Mozilla SVG project.
+ *
+ * The Initial Developer of the Original Code is IBM Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 2005
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either of the GNU General Public License Version 2 or later (the "GPL"),
+ * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #include "nsSVGFilterInstance.h"
 #include "nsSVGUtils.h"
@@ -41,7 +41,6 @@
 #include "nsSVGFilterPaintCallback.h"
 #include "nsSVGFilterElement.h"
 #include "nsLayoutUtils.h"
-#include "gfxUtils.h"
 
 static double Square(double aX)
 {
@@ -148,9 +147,9 @@ nsSVGFilterInstance::ComputeFilterPrimitiveSubregion(PrimitiveInfo* aPrimitive)
   if (!fE->HasAttr(kNameSpaceID_None, nsGkAtoms::height))
     region.size.height = defaultFilterSubregion.Height();
 
-  
-  
-  
+  // We currently require filter primitive subregions to be pixel-aligned.
+  // Following the spec, any pixel partially in the region is included
+  // in the region.
   region.RoundOut();
   aPrimitive->mImage.mFilterPrimitiveSubregion = region;
 }
@@ -165,8 +164,8 @@ nsSVGFilterInstance::BuildSources()
   nsIntRect sourceBoundsInt;
   gfxRect sourceBounds = UserSpaceToFilterSpace(mTargetBBox);
   sourceBounds.RoundOut();
-  
-  if (!gfxUtils::GfxRectToIntRect(sourceBounds, &sourceBoundsInt))
+  // Detect possible float->int overflow
+  if (NS_FAILED(nsLayoutUtils::GfxRectToIntRect(sourceBounds, &sourceBoundsInt)))
     return NS_ERROR_FAILURE;
 
   mSourceColorAlpha.mResultBoundingBox = sourceBoundsInt;
@@ -177,8 +176,8 @@ nsSVGFilterInstance::BuildSources()
 nsresult
 nsSVGFilterInstance::BuildPrimitives()
 {
-  
-  
+  // First build mFilterInfo. It's important that we don't change that
+  // array after we start storing pointers to its elements!
   PRUint32 count = mFilterElement->GetChildCount();
   PRUint32 i;
   for (i = 0; i < count; ++i) {
@@ -192,7 +191,7 @@ nsSVGFilterInstance::BuildPrimitives()
     info->mFE = primitive;
   }
 
-  
+  // Now fill in all the links
   nsTHashtable<ImageAnalysisEntry> imageTable;
   imageTable.Init(10);
 
@@ -239,7 +238,7 @@ nsSVGFilterInstance::BuildPrimitives()
       entry->mInfo = info;
     }
     
-    
+    // The last filter primitive is the filter result, so mark it used
     if (i == mPrimitives.Length() - 1) {
       ++info->mImageUsers;
     }
@@ -286,8 +285,8 @@ nsSVGFilterInstance::ComputeNeededBoxes()
   if (mPrimitives.IsEmpty())
     return;
 
-  
-  
+  // In the end, we need whatever the final filter primitive will draw that
+  // intersects the destination dirty area.
   mPrimitives[mPrimitives.Length() - 1].mResultNeededBox.IntersectRect(
     mPrimitives[mPrimitives.Length() - 1].mResultBoundingBox, mDirtyOutputRect);
 
@@ -300,11 +299,11 @@ nsSVGFilterInstance::ComputeNeededBoxes()
     
     info->mFE->ComputeNeededSourceBBoxes(
       info->mResultNeededBox, sourceBBoxes, *this);
-    
+    // Update each source with the rectangle we need
     for (PRUint32 j = 0; j < info->mInputs.Length(); ++j) {
       nsIntRect* r = &info->mInputs[j]->mResultNeededBox;
       r->UnionRect(*r, sourceBBoxes[j]);
-      
+      // Keep everything within the filter effects region
       ClipToFilterSpace(r);
       nsSVGUtils::ClipToGfxRect(r, info->mInputs[j]->mImage.mFilterPrimitiveSubregion);
     }
@@ -337,9 +336,9 @@ nsSVGFilterInstance::BuildSourceImages()
     return NS_ERROR_OUT_OF_MEMORY;
 
   {
-    
-    
-    
+    // Paint to an offscreen surface first, then copy it to an image
+    // surface. This can be faster especially when the stuff we're painting
+    // contains native themes.
     nsRefPtr<gfxASurface> offscreen =
       gfxPlatform::GetPlatform()->CreateOffscreenSurface(
               gfxIntSize(mSurfaceRect.width, mSurfaceRect.height),
@@ -357,20 +356,21 @@ nsSVGFilterInstance::BuildSourceImages()
     r = m.TransformBounds(r);
     r.RoundOut();
     nsIntRect dirty;
-    if (!gfxUtils::GfxRectToIntRect(r, &dirty))
-      return NS_ERROR_FAILURE;
+    nsresult rv = nsLayoutUtils::GfxRectToIntRect(r, &dirty);
+    if (NS_FAILED(rv))
+      return rv;
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    // SVG graphics paint to device space, so we need to set an initial device
+    // space to filter space transform on the gfxContext that SourceGraphic
+    // and SourceAlpha will paint to.
+    //
+    // (In theory it would be better to minimize error by having filtered SVG
+    // graphics temporarily paint to user space when painting the sources and
+    // only set a user space to filter space transform on the gfxContext
+    // (since that would elliminate the transform multiplications from user
+    // space to device space and back again). However, that would make the
+    // code more complex while being hard to get right without introducing
+    // subtle bugs, and in practice it probably makes no real difference.)
     gfxMatrix deviceToFilterSpace = GetFilterSpaceToDeviceSpaceTransform().Invert();
     tmpState.GetGfxContext()->Multiply(deviceToFilterSpace);
     mPaintCallback->Paint(&tmpState, mTargetFrame, &dirty);
@@ -383,7 +383,7 @@ nsSVGFilterInstance::BuildSourceImages()
   if (!mSourceColorAlpha.mResultNeededBox.IsEmpty()) {
     NS_ASSERTION(mSourceColorAlpha.mImageUsers > 0, "Some user must have needed this");
     mSourceColorAlpha.mImage.mImage = sourceColorAlpha;
-    
+    // color model is PREMULTIPLIED SRGB by default.
   }
 
   if (!mSourceAlpha.mResultNeededBox.IsEmpty()) {
@@ -392,9 +392,9 @@ nsSVGFilterInstance::BuildSourceImages()
     mSourceAlpha.mImage.mImage = CreateImage();
     if (!mSourceAlpha.mImage.mImage)
       return NS_ERROR_OUT_OF_MEMORY;
-    
+    // color model is PREMULTIPLIED SRGB by default.
 
-    
+    // Clear the color channel
     const PRUint32* src = reinterpret_cast<PRUint32*>(sourceColorAlpha->Data());
     PRUint32* dest = reinterpret_cast<PRUint32*>(mSourceAlpha.mImage.mImage->Data());
     for (PRInt32 y = 0; y < mSurfaceRect.height; y++) {
@@ -452,14 +452,14 @@ nsSVGFilterInstance::Render(gfxASurface** aOutput)
     return rv;
 
   if (mPrimitives.IsEmpty()) {
-    
+    // Nothing should be rendered.
     return NS_OK;
   }
 
   ComputeResultBoundingBoxes();
   ComputeNeededBoxes();
-  
-  
+  // For now, we make all surface sizes equal to the union of the
+  // bounding boxes needed for each temporary image
   mSurfaceRect = ComputeUnionOfAllNeededBoxes();
 
   rv = BuildSourceImages();
@@ -470,8 +470,8 @@ nsSVGFilterInstance::Render(gfxASurface** aOutput)
     PrimitiveInfo* primitive = &mPrimitives[i];
 
     nsIntRect dataRect;
-    
-    
+    // Since mResultNeededBox is clipped to the filter primitive subregion,
+    // dataRect is also limited to the filter primitive subregion.
     if (!dataRect.IntersectRect(primitive->mResultNeededBox, mSurfaceRect))
       continue;
     dataRect -= mSurfaceRect.TopLeft();
@@ -485,8 +485,8 @@ nsSVGFilterInstance::Render(gfxASurface** aOutput)
       PrimitiveInfo* input = primitive->mInputs[j];
       
       if (!input->mImage.mImage) {
-        
-        
+        // This image data is not really going to be used, but we'd better
+        // have an image object here so the filter primitive doesn't die.
         input->mImage.mImage = CreateImage();
         if (!input->mImage.mImage)
           return NS_ERROR_OUT_OF_MEMORY;
@@ -495,7 +495,7 @@ nsSVGFilterInstance::Render(gfxASurface** aOutput)
       ColorModel desiredColorModel =
         primitive->mFE->GetInputColorModel(this, j, &input->mImage);
       if (j == 0) {
-        
+        // the output colour model is whatever in1 is if there is an in1
         primitive->mImage.mColorModel = desiredColorModel;
       }
       EnsureColorModel(input, desiredColorModel);
@@ -517,14 +517,14 @@ nsSVGFilterInstance::Render(gfxASurface** aOutput)
       --input->mImageUsers;
       NS_ASSERTION(input->mImageUsers >= 0, "Bad mImageUsers tracking");
       if (input->mImageUsers == 0) {
-        
+        // Release the image, it's no longer needed
         input->mImage.mImage = nsnull;
       }
     }
   }
   
   PrimitiveInfo* result = &mPrimitives[mPrimitives.Length() - 1];
-  ColorModel premulSRGB; 
+  ColorModel premulSRGB; // default
   EnsureColorModel(result, premulSRGB);
   gfxImageSurface* surf = nsnull;
   result->mImage.mImage.swap(surf);
@@ -546,7 +546,7 @@ nsSVGFilterInstance::ComputeOutputDirtyRect(nsIntRect* aDirty)
     return rv;
 
   if (mPrimitives.IsEmpty()) {
-    
+    // Nothing should be rendered, so nothing can be dirty.
     return NS_OK;
   }
 
@@ -573,7 +573,7 @@ nsSVGFilterInstance::ComputeSourceNeededRect(nsIntRect* aDirty)
     return rv;
 
   if (mPrimitives.IsEmpty()) {
-    
+    // Nothing should be rendered, so nothing is needed.
     return NS_OK;
   }
 
@@ -596,7 +596,7 @@ nsSVGFilterInstance::ComputeOutputBBox(nsIntRect* aDirty)
     return rv;
 
   if (mPrimitives.IsEmpty()) {
-    
+    // Nothing should be rendered.
     *aDirty = nsIntRect();
     return NS_OK;
   }
