@@ -588,27 +588,49 @@ let Utils = {
       throw 'checkStatus failed';
   },
 
-  digest: function digest(message, hasher) {
-    let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"].
-      createInstance(Ci.nsIScriptableUnicodeConverter);
-    converter.charset = "UTF-8";
+  
 
-    let data = converter.convertToByteArray(message, {});
+
+
+  digestUTF8: function digestUTF8(message, hasher) {
+    let data = this._utf8Converter.convertToByteArray(message, {});
     hasher.update(data, data.length);
-    return hasher.finish(false);
+    let result = hasher.finish(false);
+    if (hasher instanceof Ci.nsICryptoHMAC) {
+      hasher.reset();
+    }
+    return result;
+  },
+
+  
+
+
+
+
+  digestBytes: function digestBytes(message, hasher) {
+    
+    let bytes = [b.charCodeAt() for each (b in message)];
+    hasher.update(bytes, bytes.length);
+    let result = hasher.finish(false);
+    if (hasher instanceof Ci.nsICryptoHMAC) {
+      hasher.reset();
+    }
+    return result;
   },
 
   bytesAsHex: function bytesAsHex(bytes) {
-    
-    return [("0" + byte.charCodeAt().toString(16)).slice(-2)
-            for each (byte in bytes)].join("");
+    let hex = "";
+    for (let i = 0; i < bytes.length; i++) {
+      hex += ("0" + bytes[i].charCodeAt().toString(16)).slice(-2);
+    }
+    return hex;
   },
 
   _sha256: function _sha256(message) {
     let hasher = Cc["@mozilla.org/security/hash;1"].
       createInstance(Ci.nsICryptoHash);
     hasher.init(hasher.SHA256);
-    return Utils.digest(message, hasher);
+    return Utils.digestUTF8(message, hasher);
   },
 
   sha256: function sha256(message) {
@@ -623,7 +645,7 @@ let Utils = {
     let hasher = Cc["@mozilla.org/security/hash;1"].
       createInstance(Ci.nsICryptoHash);
     hasher.init(hasher.SHA1);
-    return Utils.digest(message, hasher);
+    return Utils.digestUTF8(message, hasher);
   },
 
   sha1: function sha1(message) {
@@ -634,6 +656,10 @@ let Utils = {
     return Utils.encodeBase32(Utils._sha1(message));
   },
   
+  sha1Base64: function (message) {
+    return btoa(Utils._sha1(message));
+  },
+
   
 
 
@@ -644,59 +670,31 @@ let Utils = {
   
 
 
-  makeHMACHasher: function makeHMACHasher() {
-    return Cc["@mozilla.org/security/hmac;1"]
-             .createInstance(Ci.nsICryptoHMAC);
+  makeHMACHasher: function makeHMACHasher(type, key) {
+    let hasher = Cc["@mozilla.org/security/hmac;1"]
+                   .createInstance(Ci.nsICryptoHMAC);
+    hasher.init(type, key);
+    return hasher;
   },
 
-  sha1Base64: function (message) {
-    return btoa(Utils._sha1(message));
+  
+
+
+
+
+
+
+  sha1HMACBytes: function sha1HMACBytes(message, key) {
+    let h = Utils.makeHMACHasher(Ci.nsICryptoHMAC.SHA1, key);
+    return Utils.digestBytes(message, h);
   },
-
-  
-
-
-
-
-
-  sha1HMACBytes: function sha1HMACBytes(message, key, hasher) {
-    let h = hasher || this.makeHMACHasher();
-    h.init(h.SHA1, key);
-    
-    
-    let bytes = [b.charCodeAt() for each (b in message)];
-    h.update(bytes, bytes.length);
-    return h.finish(false);
+  sha256HMAC: function sha256HMAC(message, key) {
+    let h = Utils.makeHMACHasher(Ci.nsICryptoHMAC.SHA256, key);
+    return Utils.bytesAsHex(Utils.digestUTF8(message, h));
   },
-  
-  
-
-
-
-
-
-
-  sha256HMAC: function sha256HMAC(message, key, hasher) {
-    let h = hasher || this.makeHMACHasher();
-    h.init(h.SHA256, key);
-    return Utils.bytesAsHex(Utils.digest(message, h));
-  },
-  
-  
-  
-
-
-
-
-
-  sha256HMACBytes: function sha256HMACBytes(message, key, hasher) {
-    let h = hasher || this.makeHMACHasher();
-    h.init(h.SHA256, key);
-
-    
-    let bytes = [b.charCodeAt() for each (b in message)];
-    h.update(bytes, bytes.length);
-    return h.finish(false);
+  sha256HMACBytes: function sha256HMACBytes(message, key) {
+    let h = Utils.makeHMACHasher(Ci.nsICryptoHMAC.SHA256, key);
+    return Utils.digestBytes(message, h);
   },
 
   
@@ -704,13 +702,13 @@ let Utils = {
 
   hkdfExpand: function hkdfExpand(prk, info, len) {
     const BLOCKSIZE = 256 / 8;
-    let h = Utils.makeHMACHasher();
+    let h = Utils.makeHMACHasher(Ci.nsICryptoHMAC.SHA256,
+                                 Utils.makeHMACKey(prk));
     let T = "";
     let Tn = "";
     let iterations = Math.ceil(len/BLOCKSIZE);
     for (let i = 0; i < iterations; i++) {
-      Tn = Utils.sha256HMACBytes(Tn + info + String.fromCharCode(i + 1),
-                                 Utils.makeHMACKey(prk), h);
+      Tn = Utils.digestBytes(Tn + info + String.fromCharCode(i + 1), h);
       T += Tn;
     }
     return T.slice(0, len);
@@ -738,14 +736,13 @@ let Utils = {
   pbkdf2Generate : function pbkdf2Generate(P, S, c, dkLen) {
     
     
-    
     if (!dkLen)
       dkLen = SYNC_KEY_DECODED_LENGTH;
     
     
     const HLEN = 20;
     
-    function F(PK, S, c, i, h) {
+    function F(S, c, i, h) {
     
       function XOR(a, b, isA) {
         if (a.length != b.length) {
@@ -774,9 +771,9 @@ let Utils = {
       I[2] = String.fromCharCode((i >> 8) & 0xff);
       I[3] = String.fromCharCode(i & 0xff);
 
-      U[0] = Utils.sha1HMACBytes(S + I.join(''), PK, h);
+      U[0] = Utils.digestBytes(S + I.join(''), h);
       for (let j = 1; j < c; j++) {
-        U[j] = Utils.sha1HMACBytes(U[j - 1], PK, h);
+        U[j] = Utils.digestBytes(U[j - 1], h);
       }
 
       ret = U[0];
@@ -791,12 +788,11 @@ let Utils = {
     let r = dkLen - ((l - 1) * HLEN);
 
     
-    let PK = Utils.makeHMACKey(P);
-    let h = Utils.makeHMACHasher();
+    let h = Utils.makeHMACHasher(Ci.nsICryptoHMAC.SHA1, Utils.makeHMACKey(P));
     
     T = [];
     for (let i = 0; i < l;) {
-      T[i] = F(PK, S, c, ++i, h);
+      T[i] = F(S, c, ++i, h);
     }
 
     let ret = '';
@@ -1153,10 +1149,7 @@ let Utils = {
     let fos = Cc["@mozilla.org/network/safe-file-output-stream;1"]
                 .createInstance(Ci.nsIFileOutputStream);
     fos.init(file, MODE_WRONLY | MODE_CREATE | MODE_TRUNCATE, PERMS_FILE, 0);
-    let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
-                      .createInstance(Ci.nsIScriptableUnicodeConverter);
-    converter.charset = "UTF-8";
-    let is = converter.convertToInputStream(out);
+    let is = this._utf8Converter.convertToInputStream(out);
     NetUtil.asyncCopy(is, fos, function (result) {
       if (typeof callback == "function") {
         callback.call(that);        
@@ -1289,11 +1282,8 @@ let Utils = {
 
   encodeUTF8: function(str) {
     try {
-      var unicodeConverter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
-                             .createInstance(Ci.nsIScriptableUnicodeConverter);
-      unicodeConverter.charset = "UTF-8";
-      str = unicodeConverter.ConvertFromUnicode(str);
-      return str + unicodeConverter.Finish();
+      str = this._utf8Converter.ConvertFromUnicode(str);
+      return str + this._utf8Converter.Finish();
     } catch(ex) {
       return null;
     }
@@ -1301,11 +1291,8 @@ let Utils = {
 
   decodeUTF8: function(str) {
     try {
-      var unicodeConverter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
-                             .createInstance(Ci.nsIScriptableUnicodeConverter);
-      unicodeConverter.charset = "UTF-8";
-      str = unicodeConverter.ConvertToUnicode(str);
-      return str + unicodeConverter.Finish();
+      str = this._utf8Converter.ConvertToUnicode(str);
+      return str + this._utf8Converter.Finish();
     } catch(ex) {
       return null;
     }
@@ -1645,6 +1632,12 @@ let FakeSvc = {
     isFake: true
   }
 };
+Utils.lazy2(Utils, "_utf8Converter", function() {
+  let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
+                    .createInstance(Ci.nsIScriptableUnicodeConverter);
+  converter.charset = "UTF-8";
+  return converter;
+});
 
 
 
