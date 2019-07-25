@@ -332,7 +332,7 @@ IonCompartment::generateArgumentsRectifier(JSContext *cx)
 
     
     
-    JS_ASSERT(ArgumentsRectifierReg == r8);
+    JS_STATIC_ASSERT(ArgumentsRectifierReg == r8);
 
     
     masm.movq(Operand(rsp, IonJSFrameLayout::offsetOfCalleeToken()), rax);
@@ -529,8 +529,8 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
 
     
     Register cxreg = ArgReg0;
-    masm.movePtr(ImmWord(cx->runtime), cxreg);
-    masm.loadPtr(Address(cxreg, offsetof(JSRuntime, ionJSContext)), cxreg);
+    masm.loadJSContext(cx->runtime, cxreg);
+
     masm.setABIArg(0, cxreg);
 
     size_t argDisp = 0;
@@ -578,8 +578,7 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
         masm.j(Assembler::Zero, &exception);
         break;
       case Type_Bool:
-        masm.testl(eax, eax);
-        masm.j(Assembler::Zero, &exception);
+        masm.branchTest32(Assembler::Zero, eax, eax, &exception);
         break;
       default:
         JS_NOT_REACHED("unknown failure kind");
