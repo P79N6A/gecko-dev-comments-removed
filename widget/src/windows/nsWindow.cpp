@@ -4465,8 +4465,22 @@ nsWindow::IPCWindowProcHandler(UINT& msg, WPARAM& wParam, LPARAM& lParam)
     
     case WM_ACTIVATE:
       if (lParam != 0 && LOWORD(wParam) == WA_ACTIVE &&
-          IsWindow((HWND)lParam))
+          IsWindow((HWND)lParam)) {
+        
+        
+        if ((InSendMessageEx(NULL)&(ISMEX_REPLIED|ISMEX_SEND)) == ISMEX_SEND) {
+          PRUnichar szClass[10];
+          HWND focusWnd = (HWND)lParam;
+          if (IsWindowVisible(focusWnd) &&
+              GetClassNameW(focusWnd, szClass,
+                            sizeof(szClass)/sizeof(PRUnichar)) &&
+              !wcscmp(szClass, L"Edit") &&
+              !IsOurProcessWindow(focusWnd)) {
+            break;
+          }
+        }
         handled = PR_TRUE;
+      }
     break;
     
     case WM_MOUSEWHEEL:
