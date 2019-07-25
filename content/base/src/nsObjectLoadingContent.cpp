@@ -115,6 +115,18 @@ static PRLogModuleInfo* gObjectLog = PR_NewLogModule("objlc");
 
 #include "mozilla/Preferences.h"
 
+static bool gClickToPlayPlugins = false;
+
+static void
+InitPrefCache()
+{
+  static bool initializedPrefCache = false;
+  if (!initializedPrefCache) {
+    mozilla::Preferences::AddBoolVarCache(&gClickToPlayPlugins, "plugins.click_to_play");
+  }
+  initializedPrefCache = true;
+}
+
 class nsAsyncInstantiateEvent : public nsRunnable {
 public:
   nsObjectLoadingContent *mContent;
@@ -546,6 +558,26 @@ bool nsObjectLoadingContent::IsPluginEnabledByExtension(nsIURI* uri, nsCString& 
   return false;
 }
 
+nsresult
+nsObjectLoadingContent::BindToTree(nsIDocument* aDocument, nsIContent* ,
+                                   nsIContent* ,
+                                   bool )
+{
+  if (aDocument) {
+    return aDocument->AddPlugin(this);
+  }
+  return NS_OK;
+}
+
+void
+nsObjectLoadingContent::UnbindFromTree(bool , bool )
+{
+  nsCOMPtr<nsIContent> thisContent = do_QueryInterface(static_cast<nsIObjectLoadingContent*>(this));
+  MOZ_ASSERT(thisContent);
+  nsIDocument* ownerDoc = thisContent->OwnerDoc();
+  ownerDoc->RemovePlugin(this);
+}
+
 nsObjectLoadingContent::nsObjectLoadingContent()
   : mPendingInstantiateEvent(nsnull)
   , mChannel(nsnull)
@@ -554,11 +586,14 @@ nsObjectLoadingContent::nsObjectLoadingContent()
   , mUserDisabled(false)
   , mSuppressed(false)
   , mNetworkCreated(true)
-  
-  , mShouldPlay(!mozilla::Preferences::GetBool("plugins.click_to_play", false))
   , mSrcStreamLoading(false)
   , mFallbackReason(ePluginOtherState)
 {
+  InitPrefCache();
+  
+  mShouldPlay = !gClickToPlayPlugins;
+  
+  mActivated = !gClickToPlayPlugins;
 }
 
 nsObjectLoadingContent::~nsObjectLoadingContent()
@@ -1248,13 +1283,14 @@ nsObjectLoadingContent::LoadObject(nsIURI* aURI,
   
   
   if (mType == eType_Document || mType == eType_Image || mInstanceOwner) {
-    if (mURI && aURI && !aForceLoad) {
+    if (mURI && aURI) {
       bool equal;
       nsresult rv = mURI->Equals(aURI, &equal);
-      if (NS_SUCCEEDED(rv) && equal) {
+      if (NS_SUCCEEDED(rv) && equal && !aForceLoad) {
         
         return NS_OK;
       }
+      StopPluginInstance();
     }
   }
 
@@ -2205,5 +2241,13 @@ nsObjectLoadingContent::PlayPlugin()
     return NS_OK;
 
   mShouldPlay = true;
+  mActivated = true;
   return LoadObject(mURI, true, mContentType, true);
+}
+
+NS_IMETHODIMP
+nsObjectLoadingContent::GetActivated(bool* aActivated)
+{
+  *aActivated = mActivated;
+  return NS_OK;
 }
