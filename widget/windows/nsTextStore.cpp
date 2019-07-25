@@ -1268,20 +1268,13 @@ nsTextStore::InsertTextAtSelection(DWORD dwFlags,
         if (mWindow && !mWindow->Destroyed()) {
           nsTextEvent event(true, NS_TEXT_TEXT, mWindow);
           mWindow->InitEvent(event);
-          if (!cch) {
-            
-            event.theText = NS_LITERAL_STRING(" ");
-            mWindow->DispatchWindowEvent(&event);
-          }
+          event.theText.Assign(pchText, cch);
+          event.theText.ReplaceSubstring(NS_LITERAL_STRING("\r\n"),
+                                         NS_LITERAL_STRING("\n"));
+          mWindow->DispatchWindowEvent(&event);
           if (mWindow && !mWindow->Destroyed()) {
-            event.theText.Assign(pchText, cch);
-            event.theText.ReplaceSubstring(NS_LITERAL_STRING("\r\n"),
-                                           NS_LITERAL_STRING("\n"));
-            mWindow->DispatchWindowEvent(&event);
-            if (mWindow && !mWindow->Destroyed()) {
-              compEvent.message = NS_COMPOSITION_END;
-              mWindow->DispatchWindowEvent(&compEvent);
-            }
+            compEvent.message = NS_COMPOSITION_END;
+            mWindow->DispatchWindowEvent(&compEvent);
           }
         }
       }
@@ -1443,15 +1436,6 @@ nsTextStore::OnEndComposition(ITfCompositionView* pComposition)
   
   nsTextEvent textEvent(true, NS_TEXT_TEXT, mWindow);
   mWindow->InitEvent(textEvent);
-  if (!mCompositionString.Length()) {
-    
-    
-    
-    
-    
-    textEvent.theText = NS_LITERAL_STRING(" ");
-    mWindow->DispatchWindowEvent(&textEvent);
-  }
   textEvent.theText = mCompositionString;
   textEvent.theText.ReplaceSubstring(NS_LITERAL_STRING("\r\n"),
                                      NS_LITERAL_STRING("\n"));
