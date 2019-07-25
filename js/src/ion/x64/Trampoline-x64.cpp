@@ -358,12 +358,28 @@ GenerateBailoutThunk(JSContext *cx, MacroAssembler &masm, uint32 frameClass)
 
     masm.linkExitFrame();
 
+    Label interpret;
     Label exception;
 
     
-    masm.testl(rax, rax);
-    masm.j(Assembler::NonZero, &exception);
+    
+    
+    
+    
 
+    masm.cmpl(rax, Imm32(BAILOUT_RETURN_FATAL_ERROR));
+    masm.j(Assembler::LessThan, &interpret);
+    masm.j(Assembler::Equal, &exception);
+
+    
+    masm.setupUnalignedABICall(1, rdx);
+    masm.setABIArg(0, rax);
+    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, ReflowTypeInfo));
+
+    masm.testl(rax, rax);
+    masm.j(Assembler::Zero, &exception);
+
+    masm.bind(&interpret);
     
     masm.subq(Imm32(sizeof(Value)), rsp);
     masm.movq(rsp, rcx);

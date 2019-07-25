@@ -402,16 +402,34 @@ GenerateBailoutThunk(MacroAssembler &masm, uint32 frameClass)
     }
     masm.bind(&frameFixupDone);
     masm.linkExitFrame();
+
+    Label interpret;
     Label exception;
 
     
-    masm.as_cmp(r0, Imm8(0));
-    masm.as_b(&exception, Assembler::NonZero);
     
-    masm.as_sub(sp, sp, Imm8(sizeof(Value)));
+    
+    
+    
+
+    masm.ma_cmp(r0, Imm32(BAILOUT_RETURN_FATAL_ERROR));
+    masm.ma_b(&interpret, Assembler::LessThan);
+    masm.ma_b(&exception, Assembler::Equal);
+
     
     masm.setupAlignedABICall(1);
+    masm.setABIArg(0, r0);
+    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, ReflowTypeInfo));
+
+    masm.ma_cmp(r0, Imm32(0));
+    masm.ma_b(&exception, Assembler::Equal);
+
+    masm.bind(&interpret);
     
+    masm.as_sub(sp, sp, Imm8(sizeof(Value)));
+
+    
+    masm.setupAlignedABICall(1);
     masm.setABIArg(0, sp);
     masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, ThunkToInterpreter));
 
@@ -422,7 +440,7 @@ GenerateBailoutThunk(MacroAssembler &masm, uint32 frameClass)
 
     
     masm.as_cmp(r0, Imm8(0));
-    masm.as_b(&exception, Assembler::Zero);
+    masm.ma_b(&exception, Assembler::Zero);
     masm.as_dtr(IsLoad, 32, PostIndex, pc, DTRAddr(sp, DtrOffImm(4)));
     masm.bind(&exception);
     masm.handleException();

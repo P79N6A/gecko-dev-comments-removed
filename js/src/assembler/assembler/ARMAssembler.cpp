@@ -316,7 +316,7 @@ void ARMAssembler::dataTransferN(bool isLoad, bool isSigned, int size, RegisterI
     bool posOffset = true;
 
     
-    if (offset == 0x80000000) {
+    if (offset == int32_t(0x80000000)) {
         
         
         moveImm(offset, ARMRegisters::S0);
