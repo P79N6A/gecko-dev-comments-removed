@@ -471,7 +471,10 @@ WidgetStack.prototype = {
 
   
   get viewportVisibleRect () {
-    return this._viewportBounds.intersect(this._viewingRect)
+    let rect = this._viewportBounds.intersect(this._viewingRect);
+    if (!rect)
+        rect = new wsRect(0, 0, 0, 0);
+    return rect;
   },
 
   
