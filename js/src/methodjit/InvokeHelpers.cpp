@@ -1435,13 +1435,19 @@ js_InternalInterpret(void *returnData, void *returnType, void *returnReg, js::VM
 
         if (!CheckStackQuota(f))
             return js_InternalThrow(f);
+
+        SetValueRangeToUndefined(fp->slots(), script->nfixed);
+
         if (fp->fun()->isHeavyweight()) {
             if (!js::CreateFunCallObject(cx, fp))
                 return js_InternalThrow(f);
         }
 
+        
+      }
+
+      case REJOIN_CREATE_CALL_OBJECT: {
         fp->scopeChain();
-        SetValueRangeToUndefined(fp->slots(), script->nfixed);
 
         
         if (!ScriptPrologueOrGeneratorResume(cx, fp, types::UseNewTypeAtEntry(cx, fp)))

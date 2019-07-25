@@ -290,6 +290,9 @@ enum RejoinState {
     REJOIN_CHECK_ARGUMENTS,
 
     
+    REJOIN_CREATE_CALL_OBJECT,
+
+    
 
 
 
