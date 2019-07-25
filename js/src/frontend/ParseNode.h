@@ -1545,6 +1545,7 @@ struct FunctionBox : public ObjectBox
     uint32_t            tcflags;
     bool                inWith:1;               
 
+    bool                inGenexpLambda:1;       
 
     JSFunction *function() const { return (JSFunction *) object; }
 
