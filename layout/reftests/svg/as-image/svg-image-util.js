@@ -110,6 +110,10 @@ function generateSVGAttrsForParams(aViewboxArr, aWidth, aHeight,
     }
     str += "%22";
   }
+
+  
+  str += "%20font-size%3D%22" + "10px" + "%22";
+
   return str;
 }
 
@@ -132,38 +136,47 @@ function generateHostNode(aHostNodeTagName, aUri,
 
 
 function appendSVGArrayWithParams(aSVGParams, aHostNodeTagName) {
-  var rootNode = document.getElementsByTagName("body")[0];
-
   
   
   var hostNodeWidthVals  = [ null, HOST_NODE_WIDTH  ];
   var hostNodeHeightVals = [ null, HOST_NODE_HEIGHT ];
 
   for (var i = 0; i < hostNodeWidthVals.length; i++) {
-    var hostWidth = hostNodeWidthVals[i];
+    var hostNodeWidth = hostNodeWidthVals[i];
     for (var j = 0; j < hostNodeHeightVals.length; j++) {
-      var hostHeight = hostNodeHeightVals[j];
-      for (var k = 0; k < ALIGN_VALS.length; k++) {
-        var alignVal = ALIGN_VALS[k];
+      var hostNodeHeight = hostNodeHeightVals[j];
+      appendSVGSubArrayWithParams(aSVGParams, aHostNodeTagName,
+                                  hostNodeWidth, hostNodeHeight);
+    }
+  }
+}
 
-        
-        var uri = generateSVGDataURI(aSVGParams.viewBox,
-                                     aSVGParams.width, aSVGParams.height,
-                                     alignVal,
-                                     aSVGParams.meetOrSlice);
 
-        
-        var hostNode = generateHostNode(aHostNodeTagName, uri,
-                                        hostWidth, hostHeight);
-        rootNode.appendChild(hostNode);
+function appendSVGSubArrayWithParams(aSVGParams, aHostNodeTagName,
+                                     aHostNodeWidth, aHostNodeHeight) {
+  var rootNode = document.getElementsByTagName("body")[0];
+  for (var k = 0; k < ALIGN_VALS.length; k++) {
+    var alignVal = ALIGN_VALS[k];
+    if (!aSVGParams.meetOrSlice) {
+      alignVal = "none";
+    }
 
-        
-        
-        if (k + 1 == ALIGN_VALS.length / 2 ||
-            k + 1 == ALIGN_VALS.length) {
-          rootNode.appendChild(document.createElement("br"));
-        }
-      }
+    
+    var uri = generateSVGDataURI(aSVGParams.viewBox,
+                                 aSVGParams.width, aSVGParams.height,
+                                 alignVal,
+                                 aSVGParams.meetOrSlice);
+
+    
+    var hostNode = generateHostNode(aHostNodeTagName, uri,
+                                    aHostNodeWidth, aHostNodeHeight);
+    rootNode.appendChild(hostNode);
+
+    
+    
+    if (k + 1 == ALIGN_VALS.length / 2 ||
+        k + 1 == ALIGN_VALS.length) {
+      rootNode.appendChild(document.createElement("br"));
     }
   }
 }
