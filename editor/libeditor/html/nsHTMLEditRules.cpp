@@ -9202,9 +9202,6 @@ nsHTMLEditRules::DocumentModifiedWorker()
     return;
   }
 
-  
-  nsAutoRemovableScriptBlocker scriptBlocker;
-
   nsCOMPtr<nsIHTMLEditor> kungFuDeathGrip(mHTMLEditor);
   nsCOMPtr<nsISelection> selection;
   nsresult res = mHTMLEditor->GetSelection(getter_AddRefs(selection));

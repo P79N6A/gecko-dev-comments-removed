@@ -946,6 +946,34 @@ public:
 
 
 
+  static PRBool HasMutationListeners(nsIDocument* aDocument,
+                                     PRUint32 aType);
+  
+
+
+
+
+
+
+
+
+
+
+
+  static void MaybeFireNodeRemoved(nsINode* aChild, nsINode* aParent,
+                                   nsIDocument* aOwnerDoc);
+
+  
+
+
+
+
+
+
+
+
+
+
 
 
   static nsresult DispatchTrustedEvent(nsIDocument* aDoc,

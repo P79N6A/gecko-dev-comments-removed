@@ -703,14 +703,19 @@ nsGenericHTMLElement::SetInnerHTML(const nsAString& aInnerHTML)
   nsresult rv = NS_OK;
 
   
+  mozAutoSubtreeModified subtree(doc, nsnull);
+
+  FireNodeRemovedForChildren();
+
+  
   
   mozAutoDocUpdate updateBatch(doc, UPDATE_CONTENT_MODEL, PR_TRUE);
 
   
-  mozAutoSubtreeModified subtree(doc, nsnull);
-
   
-  nsContentUtils::SetNodeTextContent(this, EmptyString(), PR_FALSE);
+  for (PRUint32 i = GetChildCount(); i-- != 0; ) {
+    RemoveChildAt(i, PR_TRUE);
+  }
 
   nsCOMPtr<nsIDOMDocumentFragment> df;
 
@@ -742,12 +747,9 @@ nsGenericHTMLElement::SetInnerHTML(const nsAString& aInnerHTML)
 
     
     
-    nsPIDOMWindow* window = nsnull;
     PRInt32 newChildCount = GetChildCount();
-    if (newChildCount &&
-        (((window = doc->GetInnerWindow()) &&
-          window->HasMutationListeners(NS_EVENT_BITS_MUTATION_NODEINSERTED)) ||
-         !window)) {
+    if (newChildCount && nsContentUtils::
+          HasMutationListeners(doc, NS_EVENT_BITS_MUTATION_NODEINSERTED)) {
       nsCOMArray<nsIContent> childNodes;
       NS_ASSERTION(newChildCount - oldChildCount >= 0,
                    "What, some unexpected dom mutation has happened?");
