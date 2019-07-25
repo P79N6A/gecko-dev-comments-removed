@@ -1723,6 +1723,15 @@ extern JSBool
 js_SetNativeAttributes(JSContext *cx, JSObject *obj, js::Shape *shape,
                        uintN attrs);
 
+
+
+
+
+
+
+JS_FRIEND_API(bool)
+js_UnbrandAndClearSlots(JSContext *cx, JSObject *obj);
+
 namespace js {
 
 
