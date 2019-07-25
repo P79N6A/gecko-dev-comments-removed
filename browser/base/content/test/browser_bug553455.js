@@ -71,6 +71,22 @@ function wait_for_install_dialog(aCallback) {
   });
 }
 
+function wait_for_single_notification(aCallback) {
+  function inner_waiter() {
+    info("Waiting for single notification");
+    
+    ok(PopupNotifications.isPanelOpen, "Notification should still be open");
+    if (PopupNotifications.panel.childNodes.length == 2) {
+      executeSoon(inner_waiter);
+      return;
+    }
+
+    aCallback();
+  }
+
+  executeSoon(inner_waiter);
+}
+
 function setup_redirect(aSettings) {
   var url = "https://example.com/browser/toolkit/mozapps/extensions/test/xpinstall/redirect.sjs?mode=setup";
   for (var name in aSettings) {
@@ -438,7 +454,7 @@ function test_localfile() {
     Services.obs.removeObserver(arguments.callee, "addon-install-failed");
 
     
-    executeSoon(function() {
+    wait_for_single_notification(function() {
       let notification = PopupNotifications.panel.childNodes[0];
       is(notification.id, "addon-install-failed-notification", "Should have seen the install fail");
       is(notification.getAttribute("label"),
@@ -798,14 +814,9 @@ function test_failed_security() {
     Services.obs.addObserver(function() {
       Services.obs.removeObserver(arguments.callee, "addon-install-failed");
 
-      function waitForSingleNotification() {
-        
-        ok(PopupNotifications.isPanelOpen, "Notification should still be open");
-        if (PopupNotifications.panel.childNodes.length == 2) {
-          executeSoon(waitForSingleNotification);
-          return;
-        }
-
+      
+      
+      wait_for_single_notification(function() {
         is(PopupNotifications.panel.childNodes.length, 1, "Should be only one notification");
         notification = aPanel.childNodes[0];
         is(notification.id, "addon-install-failed-notification", "Should have seen the install fail");
@@ -813,11 +824,7 @@ function test_failed_security() {
         Services.prefs.setBoolPref(PREF_INSTALL_REQUIREBUILTINCERTS, true);
         wait_for_notification_close(runNextTest);
         gBrowser.removeTab(gBrowser.selectedTab);
-      }
-
-      
-      
-      executeSoon(waitForSingleNotification);
+      });
     }, "addon-install-failed", false);
   });
 
