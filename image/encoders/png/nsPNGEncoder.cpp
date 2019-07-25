@@ -207,10 +207,10 @@ NS_IMETHODIMP nsPNGEncoder::StartImageEncode(PRUint32 aWidth,
 }
 
 
-NS_IMETHODIMP nsPNGEncoder::GetImageBufferSize(PRUint32 *aOutputSize)
+NS_IMETHODIMP nsPNGEncoder::GetImageBufferUsed(PRUint32 *aOutputSize)
 {
   NS_ENSURE_ARG_POINTER(aOutputSize);
-  *aOutputSize = mImageBufferSize;
+  *aOutputSize = mImageBufferUsed;
   return NS_OK;
 }
 

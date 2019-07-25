@@ -222,10 +222,10 @@ NS_IMETHODIMP nsJPEGEncoder::StartImageEncode(PRUint32 aWidth,
 }
 
 
-NS_IMETHODIMP  nsJPEGEncoder::GetImageBufferSize(PRUint32 *aOutputSize)
+NS_IMETHODIMP nsJPEGEncoder::GetImageBufferUsed(PRUint32 *aOutputSize)
 {
   NS_ENSURE_ARG_POINTER(aOutputSize);
-  *aOutputSize = mImageBufferSize;
+  *aOutputSize = mImageBufferUsed;
   return NS_OK;
 }
 
