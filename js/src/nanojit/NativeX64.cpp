@@ -1081,7 +1081,14 @@ namespace nanojit
         Register rr, ra;
         beginOp1Regs(ins, GpRegs, rr, ra);
         NanoAssert(IsGpReg(ra));
-        MOVLR(rr, ra);  
+        
+        
+        
+        
+        
+        
+        if (ra != rr)
+            MOVLR(rr, ra);
         endOpRegs(ins, rr, ra);
     }
 
