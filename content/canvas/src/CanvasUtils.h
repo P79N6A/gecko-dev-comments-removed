@@ -77,9 +77,6 @@ void DoDrawImageSecurityCheck(nsHTMLCanvasElement *aCanvasElement,
                               bool forceWriteOnly,
                               bool CORSUsed);
 
-void LogMessage (const nsCString& errorString);
-void LogMessagef (const char *fmt, ...);
-
 
 
 
