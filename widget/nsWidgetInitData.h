@@ -133,7 +133,8 @@ struct nsWidgetInitData {
       mUnicode(true),
       mRTL(false),
       mNoAutoHide(false),
-      mIsDragPopup(false)
+      mIsDragPopup(false),
+      mIsAnimationSuppressed(false)
   {
   }
 
@@ -148,6 +149,8 @@ struct nsWidgetInitData {
   bool          mRTL;
   bool          mNoAutoHide; 
   bool          mIsDragPopup;  
+  bool          mIsAnimationSuppressed;  
+                                         
 };
 
 #endif 
