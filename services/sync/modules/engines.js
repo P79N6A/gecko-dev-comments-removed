@@ -353,7 +353,7 @@ SyncEngine.prototype = {
       this._lowMemCheck();
       try {
         yield item.decrypt(self.cb, ID.get('WeaveCryptoID').password);
-        if (yield this._reconcile.async(this, self.cb, item)) {
+        if (this._reconcile(item)) {
           count.applied++;
           yield this._applyIncoming.async(this, self.cb, item);
         } else {
@@ -406,33 +406,25 @@ SyncEngine.prototype = {
   
   
   _reconcile: function SyncEngine__reconcile(item) {
-    let self = yield;
-    let ret = true;
-
     
     
     this._log.trace("Reconcile step 1");
     if (item.id in this._tracker.changedIDs) {
       if (this._isEqual(item))
         this._tracker.removeChangedID(item.id);
-      self.done(false);
-      return;
+      return false;
     }
 
     
     
     this._log.trace("Reconcile step 2");
-    if (this._store.itemExists(item.id)) {
-      self.done(!this._isEqual(item));
-      return;
-    }
+    if (this._store.itemExists(item.id))
+      return !this._isEqual(item);
 
     
     this._log.trace("Reconcile step 2.5");
-    if (item.deleted) {
-      self.done(true);
-      return;
-    }
+    if (item.deleted)
+      return true;
 
     
     this._log.trace("Reconcile step 3");
@@ -443,11 +435,11 @@ SyncEngine.prototype = {
         this._tracker.removeChangedID(id);
         this._tracker.removeChangedID(item.id);
         this._store.cache.clear(); 
-        self.done(false);
-        return;
+        return false;
       }
     }
-    self.done(true);
+
+    return true;
   },
 
   

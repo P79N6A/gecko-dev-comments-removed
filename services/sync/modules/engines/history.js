@@ -77,26 +77,20 @@ HistoryEngine.prototype = {
   
   
   _reconcile: function HistEngine__reconcile(item) {
-    let self = yield;
-    let ret = true;
-
     
     
     if (item.id in this._tracker.changedIDs) {
       if (this._isEqual(item))
         this._tracker.removeChangedID(item.id);
-      self.done(false);
-      return;
+      return false;
     }
 
     
-    if (item.deleted) {
-      self.done(false);
-      return;
-    }
+    if (item.deleted)
+      return false;
 
     
-    self.done(true);
+    return true;
   },
 
   _syncFinish: function HistEngine__syncFinish(error) {
