@@ -4026,7 +4026,7 @@ var XULBrowserWindow = {
 
   get statusMeter () {
     delete this.statusMeter;
-    return this.statusMeter = document.getElementById("statusbar-icon");
+    return this.statusMeter = document.getElementById("urlbar-progress");
   },
   get stopCommand () {
     delete this.stopCommand;
@@ -4162,7 +4162,7 @@ var XULBrowserWindow = {
           this._progressCollapseTimer = 0;
         }
         else
-          this.statusMeter.parentNode.collapsed = false;
+          this.statusMeter.collapsed = false;
 
         
         this.stopCommand.removeAttribute("disabled");
@@ -4226,7 +4226,7 @@ var XULBrowserWindow = {
 
         
         this._progressCollapseTimer = setTimeout(function (self) {
-          self.statusMeter.parentNode.collapsed = true;
+          self.statusMeter.collapsed = true;
           self._progressCollapseTimer = 0;
         }, 100, this);
 
