@@ -38,6 +38,24 @@
 
 
 
+
+
+
+function waitForClearHistory(aCallback) {
+  const TOPIC_EXPIRATION_FINISHED = "places-expiration-finished";
+  let observer = {
+    observe: function(aSubject, aTopic, aData) {
+      Services.obs.removeObserver(this, TOPIC_EXPIRATION_FINISHED);
+      aCallback();
+    }
+  };
+  Services.obs.addObserver(observer, TOPIC_EXPIRATION_FINISHED, false);
+
+  let hs = Cc["@mozilla.org/browser/nav-history-service;1"].
+           getService(Ci.nsINavHistoryService);
+  hs.QueryInterface(Ci.nsIBrowserHistory).removeAllPages();
+}
+
 function test() {
   
   let pb = Cc["@mozilla.org/privatebrowsing;1"].
@@ -60,6 +78,7 @@ function test() {
       Services.ww.unregisterNotification(observer);
       let organizer = aSubject.QueryInterface(Ci.nsIDOMWindow);
       SimpleTest.waitForFocus(function() {
+        executeSoon(function() {
           
           let PO = organizer.PlacesOrganizer;
           PO.selectLeftPaneQuery('History');
@@ -86,9 +105,18 @@ function test() {
             
             contextmenu.hidePopup();
             
-            organizer.close();
+            function closeObserver(aSubject, aTopic, aData) {
+              if (aTopic != "domwindowclosed")
+                return;
+              Services.ww.unregisterNotification(closeObserver);
+              SimpleTest.waitForFocus(function() {
+                
+                funcNext();
+              });
+            }
+            Services.ww.registerNotification(closeObserver);
             
-            funcNext();
+            organizer.close();
           }, false);
           
           var x = {}, y = {}, width = {}, height = {};
@@ -96,6 +124,7 @@ function test() {
                                                   x, y, width, height);
           
           EventUtils.synthesizeMouse(tree.body, x + 4, y + 4, {type: "contextmenu"}, organizer);
+        });
       }, organizer);
     }
 
@@ -115,9 +144,7 @@ function test() {
       pb.privateBrowsingEnabled = false;
       testForgetThisSiteVisibility(true, function() {
         
-        history.QueryInterface(Ci.nsIBrowserHistory)
-               .removeAllPages();
-        finish();
+        waitForClearHistory(finish);
       });
     });
   });
