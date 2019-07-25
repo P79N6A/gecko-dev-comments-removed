@@ -554,10 +554,7 @@ ArgSetter(JSContext *cx, JSObject *obj, jsid id, JSBool strict, Value *vp)
     
     
     
-    if (JS_ON_TRACE(cx)) {
-        DeepBail(cx);
-        return false;
-    }
+    LeaveTrace(cx);
 #endif
 
     if (!InstanceOf(cx, obj, &js_ArgumentsClass, NULL))
