@@ -42,76 +42,6 @@ var Cu = Components.utils;
 
 Cu.import("resource://weave/log4moz.js");
 
-if (typeof(atob) == 'undefined') {
-  
-  
-  
-
-  var keyStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
-
-  function btoa(input) {
-     var output = "";
-     var chr1, chr2, chr3;
-     var enc1, enc2, enc3, enc4;
-     var i = 0;
-
-     do {
-        chr1 = input.charCodeAt(i++);
-        chr2 = input.charCodeAt(i++);
-        chr3 = input.charCodeAt(i++);
-
-        enc1 = chr1 >> 2;
-        enc2 = ((chr1 & 3) << 4) | (chr2 >> 4);
-        enc3 = ((chr2 & 15) << 2) | (chr3 >> 6);
-        enc4 = chr3 & 63;
-
-        if (isNaN(chr2)) {
-           enc3 = enc4 = 64;
-        } else if (isNaN(chr3)) {
-           enc4 = 64;
-        }
-
-        output = output + keyStr.charAt(enc1) + keyStr.charAt(enc2) + 
-           keyStr.charAt(enc3) + keyStr.charAt(enc4);
-     } while (i < input.length);
-     
-     return output;
-  }
-
-  function atob(input) {
-     var output = "";
-     var chr1, chr2, chr3;
-     var enc1, enc2, enc3, enc4;
-     var i = 0;
-
-     
-     input = input.replace(/[^A-Za-z0-9\+\/\=]/g, "");
-
-     do {
-        enc1 = keyStr.indexOf(input.charAt(i++));
-        enc2 = keyStr.indexOf(input.charAt(i++));
-        enc3 = keyStr.indexOf(input.charAt(i++));
-        enc4 = keyStr.indexOf(input.charAt(i++));
-
-        chr1 = (enc1 << 2) | (enc2 >> 4);
-        chr2 = ((enc2 & 15) << 4) | (enc3 >> 2);
-        chr3 = ((enc3 & 3) << 6) | enc4;
-
-        output = output + String.fromCharCode(chr1);
-
-        if (enc3 != 64) {
-           output = output + String.fromCharCode(chr2);
-        }
-        if (enc4 != 64) {
-           output = output + String.fromCharCode(chr3);
-        }
-     } while (i < input.length);
-
-     return output;
-  }
-}
-
-
 
 
 
@@ -160,7 +90,7 @@ BaseAuthenticator.prototype = {
     this._errorMsg = "generateResponse() should be overridden by subclass.";
     return false;
  },
- 
+
  verifyProtocolSupport: function( rootElem, protocolName ) {
     
 
@@ -171,7 +101,7 @@ BaseAuthenticator.prototype = {
       this._errorMsg = "Expected stream:stream but got " + rootElem.nodeName;
       return false;
     }
-      
+
     dump( "Got response from server...\n" );
     dump( "ID is " + rootElem.getAttribute( "id" ) + "\n" );
     
@@ -193,7 +123,7 @@ BaseAuthenticator.prototype = {
       this._errorMsg = "Expected stream:features but got " + child.nodeName;
       return false;
     }
-      
+
     var protocolSupported = false;
     var mechanisms = child.getElementsByTagName( "mechanism" );
     for ( var x = 0; x < mechanisms.length; x++ ) {
@@ -201,7 +131,7 @@ BaseAuthenticator.prototype = {
 	      protocolSupported = true;
       }
     }
-      
+
     if ( !protocolSupported ) {
       this._errorMsg = protocolName + " not supported by server!";
       return false;
@@ -241,7 +171,7 @@ Md5DigestAuthenticator.prototype = {
       return "<auth xmlns='urn:ietf:params:xml:ns:xmpp-sasl' mechanism='DIGEST-MD5'/>";
 
     } else if ( this._stepNumber == 1 ) {
-     
+
       
       var challenge = this._unpackChallenge( rootElem.firstChild.nodeValue );
       dump( "Nonce is " + challenge.nonce + "\n" );
@@ -337,7 +267,7 @@ function PlainAuthenticator( ) {
   
 }
 PlainAuthenticator.prototype = {
- 
+
   generateResponse: function( rootElem ) {
     if ( this._stepNumber == 0 ) {
       if ( this.verifyProtocolSupport( rootElem, "PLAIN" ) == false ) {
@@ -385,14 +315,14 @@ PlainAuthenticator.prototype = {
 	      
 	      return this.COMPLETION_CODE;
       }
-      
+
       if ( this._needBinding ) {
         
         
         this._stepNumber = 3;
         return "<iq type='set' id='bind_1'><bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'/></iq>";
-      } 
-      
+      }
+
       this._errorMsg = "Server requested session not binding: can't happen?";
       return false;
     } else if ( this._stepNumber == 3 ) {
