@@ -1,81 +1,45 @@
 
 
 
+function check_bookmark_keyword(aItemId, aKeyword)
+{
+  let keyword = aKeyword ? aKeyword.toLowerCase() : null;
+  do_check_eq(PlacesUtils.bookmarks.getKeywordForBookmark(aItemId),
+              keyword);
+}
 
+function check_uri_keyword(aURI, aKeyword)
+{
+  let keyword = aKeyword ? aKeyword.toLowerCase() : null;
+  do_check_eq(PlacesUtils.bookmarks.getKeywordForURI(aURI),
+              keyword);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-let bs = PlacesUtils.bookmarks;
-let db = DBConn();
-
-function check_keyword(aItemId, aExpectedBookmarkKeyword, aExpectedURIKeyword) {
-  
-  if (aExpectedURIKeyword)
-    aExpectedURIKeyword = aExpectedURIKeyword.toLowerCase();
-  if (aExpectedBookmarkKeyword)
-    aExpectedBookmarkKeyword = aExpectedBookmarkKeyword.toLowerCase();
-
-  if (aItemId) {
-    print("Check keyword for bookmark");
-    do_check_eq(bs.getKeywordForBookmark(aItemId), aExpectedBookmarkKeyword);
-
-    print("Check keyword for uri");
-    let uri = bs.getBookmarkURI(aItemId);
-    do_check_eq(bs.getKeywordForURI(uri), aExpectedURIKeyword);
-
-    print("Check uri for keyword");
+  if (aKeyword) {
     
-    if (aExpectedURIKeyword) {
-      do_check_true(/http:\/\/test[0-9]\.mozilla\.org/.test(bs.getURIForKeyword(aExpectedURIKeyword).spec));
-      
-      do_check_true(/http:\/\/test[0-9]\.mozilla\.org/.test(bs.getURIForKeyword(aExpectedURIKeyword.toUpperCase()).spec));
-    }
+    let re = /http:\/\/test[0-9]\.mozilla\.org/;
+    let url = PlacesUtils.bookmarks.getURIForKeyword(aKeyword).spec;
+    do_check_true(re.test(url));
+    
+    url = PlacesUtils.bookmarks.getURIForKeyword(aKeyword.toUpperCase()).spec
+    do_check_true(re.test(url));
   }
-  else {
-    stmt = db.createStatement(
-      "SELECT id FROM moz_keywords WHERE keyword = :keyword"
-    );
-    stmt.params.keyword = aExpectedBookmarkKeyword;
-    try {
-      do_check_false(stmt.executeStep());
-    } finally {
-      stmt.finalize();
-    }
+}
+
+function check_orphans()
+{
+  stmt = DBConn().createStatement(
+    "SELECT id FROM moz_keywords k WHERE NOT EXISTS ("
+  +    "SELECT id FROM moz_bookmarks WHERE keyword_id = k.id "
+  + ")"
+  );
+  try {
+    do_check_false(stmt.executeStep());
+  } finally {
+    stmt.finalize();
   }
 
   print("Check there are no orphan database entries");
-  let stmt = db.createStatement(
+  let stmt = DBConn().createStatement(
     "SELECT b.id FROM moz_bookmarks b "
   + "LEFT JOIN moz_keywords k ON b.keyword_id = k.id "
   + "WHERE keyword_id NOTNULL AND k.id ISNULL"
@@ -87,54 +51,111 @@ function check_keyword(aItemId, aExpectedBookmarkKeyword, aExpectedURIKeyword) {
   }
 }
 
-function run_test() {
-  print("Check that leyword does not exist");
-  do_check_eq(bs.getURIForKeyword("keyword"), null);
+const URIS = [
+  uri("http://test1.mozilla.org/"),
+  uri("http://test2.mozilla.org/"),
+];
 
-  let folderId = bs.createFolder(PlacesUtils.unfiledBookmarksFolderId,
-                                 "folder", bs.DEFAULT_INDEX);
+add_test(function test_addBookmarkWithKeyword()
+{
+  check_uri_keyword(URIS[0], null);
 
-  print("Add a bookmark with a keyword");
-  let itemId1 = bs.insertBookmark(folderId,
-                                  uri("http://test1.mozilla.org/"),
-                                  bs.DEFAULT_INDEX,
-                                  "test1");
-  check_keyword(itemId1, null, null);
-  bs.setKeywordForBookmark(itemId1, "keyword");
-  check_keyword(itemId1, "keyword", "keyword");
+  let itemId =
+    PlacesUtils.bookmarks.insertBookmark(PlacesUtils.unfiledBookmarksFolderId,
+                                         URIS[0],
+                                         PlacesUtils.bookmarks.DEFAULT_INDEX,
+                                         "test");
+  PlacesUtils.bookmarks.setKeywordForBookmark(itemId, "keyword");
+  check_bookmark_keyword(itemId, "keyword");
+  check_uri_keyword(URIS[0], "keyword");
+
+  waitForAsyncUpdates(function() {
+    check_orphans();
+    run_next_test();
+  });
+});
+
+add_test(function test_addBookmarkToURIHavingKeyword()
+{
+  let itemId =
+    PlacesUtils.bookmarks.insertBookmark(PlacesUtils.unfiledBookmarksFolderId,
+                                         URIS[0],
+                                         PlacesUtils.bookmarks.DEFAULT_INDEX,
+                                         "test");
   
-  check_keyword(itemId1, "kEyWoRd", "kEyWoRd");
+  check_bookmark_keyword(itemId, null);
+  check_uri_keyword(URIS[0], "keyword");
 
-  print("Add another bookmark with the same uri, should not inherit keyword.");
-  let itemId1_bis = bs.insertBookmark(folderId,
-                                      uri("http://test1.mozilla.org/"),
-                                      bs.DEFAULT_INDEX,
-                                      "test1_bis");
+  waitForAsyncUpdates(function() {
+    check_orphans();
+    run_next_test();
+  });
+});
 
-  check_keyword(itemId1_bis, null, "keyword");
+add_test(function test_addSameKeywordToOtherURI()
+{
+  let itemId =
+    PlacesUtils.bookmarks.insertBookmark(PlacesUtils.unfiledBookmarksFolderId,
+                                         URIS[1],
+                                         PlacesUtils.bookmarks.DEFAULT_INDEX,
+                                         "test2");
+  check_bookmark_keyword(itemId, null);
+  check_uri_keyword(URIS[1], null);
+
+  PlacesUtils.bookmarks.setKeywordForBookmark(itemId, "kEyWoRd");
+  check_bookmark_keyword(itemId, "kEyWoRd");
+  check_uri_keyword(URIS[1], "kEyWoRd");
+
   
-  check_keyword(itemId1_bis, null, "kEyWoRd");
+  check_uri_keyword(URIS[0], "kEyWoRd");
+  check_bookmark_keyword(itemId, "keyword");
+  check_uri_keyword(URIS[1], "keyword");
+  check_uri_keyword(URIS[0], "keyword");
 
-  print("Set same keyword on another bookmark with a different uri.");
-  let itemId2 = bs.insertBookmark(folderId,
-                                  uri("http://test2.mozilla.org/"),
-                                  bs.DEFAULT_INDEX,
-                                  "test2");
-  check_keyword(itemId2, null, null);
-  bs.setKeywordForBookmark(itemId2, "kEyWoRd");
-  check_keyword(itemId1, "kEyWoRd", "kEyWoRd");
+  waitForAsyncUpdates(function() {
+    check_orphans();
+    run_next_test();
+  });
+});
+
+add_test(function test_removeBookmarkWithKeyword()
+{
+  let itemId =
+    PlacesUtils.bookmarks.insertBookmark(PlacesUtils.unfiledBookmarksFolderId,
+                                         URIS[1],
+                                         PlacesUtils.bookmarks.DEFAULT_INDEX,
+                                         "test");
+  PlacesUtils.bookmarks.setKeywordForBookmark(itemId, "keyword");
+  check_bookmark_keyword(itemId, "keyword");
+  check_uri_keyword(URIS[1], "keyword");
+
   
-  check_keyword(itemId1, "keyword", "keyword");
-  check_keyword(itemId1_bis, null, "keyword");
-  check_keyword(itemId2, "keyword", "keyword");
+  PlacesUtils.bookmarks.removeItem(itemId);
 
-  print("Remove a bookmark with a keyword, it should not be removed from others");
-  bs.removeItem(itemId2);
-  check_keyword(itemId1, "keyword", "keyword");
+  check_uri_keyword(URIS[1], "keyword");
+  check_uri_keyword(URIS[0], "keyword");
 
-  print("Remove a folder containing bookmarks with keywords");
+  waitForAsyncUpdates(function() {
+    check_orphans();
+    run_next_test();
+  });
+});
+
+add_test(function test_removeFolderWithKeywordedBookmarks()
+{
   
-  bs.removeItem(folderId);
-  check_keyword(null, "keyword");
+  PlacesUtils.bookmarks.removeFolderChildren(PlacesUtils.unfiledBookmarksFolderId);
+
+  check_uri_keyword(URIS[1], null);
+  check_uri_keyword(URIS[0], null);
+
+  waitForAsyncUpdates(function() {
+    check_orphans();
+    run_next_test();
+  });
+});
+
+function run_test()
+{
+  run_next_test();
 }
-
