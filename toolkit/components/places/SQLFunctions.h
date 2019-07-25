@@ -270,6 +270,34 @@ public:
   static nsresult create(mozIStorageConnection *aDBConn);
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+class FixupURLFunction : public mozIStorageFunction
+{
+public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_MOZISTORAGEFUNCTION
+
+  
+
+
+
+
+
+  static nsresult create(mozIStorageConnection *aDBConn);
+};
+
 } 
 } 
 

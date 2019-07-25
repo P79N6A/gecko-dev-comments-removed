@@ -737,6 +737,13 @@ Database::InitSchema(bool* aDatabaseMigrated)
 
       
 
+      if (currentSchemaVersion < 17) {
+        rv = MigrateV17Up();
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+
+      
+
       
 
       rv = UpdateBookmarkRootTitles();
@@ -778,6 +785,12 @@ Database::InitSchema(bool* aDatabaseMigrated)
 
     
     rv = mMainConn->ExecuteSimpleSQL(CREATE_MOZ_INPUTHISTORY);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    rv = mMainConn->ExecuteSimpleSQL(CREATE_MOZ_HOSTS);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = mMainConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_HOSTS_FRECENCYHOST);
     NS_ENSURE_SUCCESS(rv, rv);
 
     
@@ -927,6 +940,8 @@ Database::InitFunctions()
   NS_ENSURE_SUCCESS(rv, rv);
   rv = GenerateGUIDFunction::create(mMainConn);
   NS_ENSURE_SUCCESS(rv, rv);
+  rv = FixupURLFunction::create(mMainConn);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
 }
@@ -939,6 +954,14 @@ Database::InitTempTriggers()
   nsresult rv = mMainConn->ExecuteSimpleSQL(CREATE_HISTORYVISITS_AFTERINSERT_TRIGGER);
   NS_ENSURE_SUCCESS(rv, rv);
   rv = mMainConn->ExecuteSimpleSQL(CREATE_HISTORYVISITS_AFTERDELETE_TRIGGER);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  rv = mMainConn->ExecuteSimpleSQL(CREATE_PLACES_AFTERINSERT_TRIGGER);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = mMainConn->ExecuteSimpleSQL(CREATE_PLACES_AFTERDELETE_TRIGGER);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = mMainConn->ExecuteSimpleSQL(CREATE_PLACES_AFTERUPDATE_TRIGGER);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
@@ -1622,6 +1645,56 @@ Database::MigrateV16Up()
     "SET guid = GENERATE_GUID() "
     "WHERE guid ISNULL "
   ));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
+
+nsresult
+Database::MigrateV17Up()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  bool tableExists = false;
+
+  nsresult rv = mMainConn->TableExists(NS_LITERAL_CSTRING("moz_hosts"), &tableExists);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (!tableExists) {
+    
+    
+    rv = mMainConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+      "DROP INDEX IF EXISTS moz_hostnames_frecencyindex"
+    ));
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = mMainConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+      "DROP TABLE IF EXISTS moz_hostnames"
+    ));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    rv = mMainConn->ExecuteSimpleSQL(CREATE_MOZ_HOSTS);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = mMainConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_HOSTS_FRECENCYHOST);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  
+  nsCOMPtr<mozIStorageAsyncStatement> fillHostsStmt;
+  rv = mMainConn->CreateAsyncStatement(NS_LITERAL_CSTRING(
+    "INSERT OR IGNORE INTO moz_hosts (host, frecency) "
+        "SELECT fixup_url(get_unreversed_host(h.rev_host)) AS host, "
+               "(SELECT MAX(frecency) FROM moz_places "
+                "WHERE rev_host = h.rev_host OR rev_host = h.rev_host || 'www.'"
+               ") AS frecency "
+        "FROM moz_places h "
+        "WHERE LENGTH(h.rev_host) > 1 "
+        "GROUP BY h.rev_host"
+  ), getter_AddRefs(fillHostsStmt));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<mozIStoragePendingStatement> ps;
+  rv = fillHostsStmt->ExecuteAsync(nsnull, getter_AddRefs(ps));
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;

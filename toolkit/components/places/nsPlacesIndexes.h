@@ -140,6 +140,15 @@
 
 
 
+#define CREATE_IDX_MOZ_HOSTS_FRECENCYHOST \
+  CREATE_PLACES_IDX( \
+    "frecencyhostindex", "moz_hosts", "frecency, host", "" \
+  )
+
+
+
+
+
 #define CREATE_IDX_MOZ_ITEMSANNOS_PLACEATTRIBUTE \
   CREATE_PLACES_IDX( \
     "itemattributeindex", "moz_items_annos", "item_id, anno_attribute_id", "UNIQUE" \

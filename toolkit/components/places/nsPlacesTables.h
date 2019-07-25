@@ -162,6 +162,14 @@
   ")" \
 )
 
+#define CREATE_MOZ_HOSTS NS_LITERAL_CSTRING( \
+  "CREATE TABLE moz_hosts (" \
+    "  id INTEGER PRIMARY KEY" \
+    ", host TEXT NOT NULL UNIQUE" \
+    ", frecency INTEGER" \
+  ")" \
+)
+
 
 
 #define CREATE_MOZ_OPENPAGES_TEMP NS_LITERAL_CSTRING( \
