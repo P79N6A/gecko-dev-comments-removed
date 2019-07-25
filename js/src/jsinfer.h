@@ -178,8 +178,7 @@ public:
 
 
 
-
-    virtual void arrayNotPacked(JSContext *cx, bool notDense) {}
+    virtual void newObjectState(JSContext *cx) {}
 
     
 
@@ -210,13 +209,16 @@ public:
 
 
 
+
+
 enum ObjectKind {
     OBJECT_NONE,
     OBJECT_UNKNOWN,
     OBJECT_PACKED_ARRAY,
     OBJECT_DENSE_ARRAY,
     OBJECT_SCRIPTED_FUNCTION,
-    OBJECT_NATIVE_FUNCTION
+    OBJECT_NATIVE_FUNCTION,
+    OBJECT_NO_SPECIAL_EQUALITY
 };
 
 
@@ -311,6 +313,9 @@ struct TypeSet
 
     
     ObjectKind getKnownObjectKind(JSContext *cx, JSScript *script);
+
+    
+    bool hasUnknownProperties(JSContext *cx, JSScript *script);
 
     
     bool knownNonEmpty(JSContext *cx, JSScript *script);
@@ -429,6 +434,9 @@ struct TypeObject
 
     
     bool isPackedArray;
+
+    
+    bool hasSpecialEquality;
 
     TypeObject() {}
 
