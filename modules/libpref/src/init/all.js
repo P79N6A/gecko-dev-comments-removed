@@ -821,7 +821,9 @@ pref("network.websocket.timeout.ping.response", 10);
 
 
 
-pref("network.websocket.extensions.stream-deflate", true);
+
+
+pref("network.websocket.extensions.stream-deflate", false);
 
 
 
@@ -3249,7 +3251,7 @@ pref("image.mem.discardable", true);
 
 
 
-pref("image.mem.decodeondraw", false);
+pref("image.mem.decodeondraw", true);
 
 
 

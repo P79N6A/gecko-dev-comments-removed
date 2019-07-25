@@ -1198,8 +1198,7 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
         if (count != 0) {
             if (!mismatches->append(testObject(Assembler::NotEqual, address)))
                 return false;
-            Registers tempRegs(Registers::AvailRegs);
-            RegisterID reg = tempRegs.takeAnyReg().reg();
+            RegisterID reg = Registers::ArgReg1;
 
             loadPayload(address, reg);
 
