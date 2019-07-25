@@ -514,31 +514,36 @@ var Browser = {
 
     
     
-    if (window.arguments && window.arguments[0] &&
-        window.arguments[0] instanceof Ci.nsICommandLine) {
-      try {
-        var cmdLine = window.arguments[0];
+    if (window.arguments && window.arguments[0]) {
+      if (window.arguments[0] instanceof Ci.nsICommandLine) {
+        try {
+          var cmdLine = window.arguments[0];
 
-        
-        if (cmdLine.length == 1) {
           
-          var uri = cmdLine.getArgument(0);
-          if (uri != "" && uri[0] != '-') {
-            whereURI = cmdLine.resolveURI(uri);
+          if (cmdLine.length == 1) {
+            
+            var uri = cmdLine.getArgument(0);
+            if (uri != "" && uri[0] != '-') {
+              whereURI = cmdLine.resolveURI(uri);
+              if (whereURI)
+                whereURI = whereURI.spec;
+            }
+          }
+
+          
+          var uriFlag = cmdLine.handleFlagWithParam("url", false);
+          if (uriFlag) {
+            whereURI = cmdLine.resolveURI(uriFlag);
             if (whereURI)
               whereURI = whereURI.spec;
           }
-        }
-
+        } catch (e) {}
+      }
+      else {
         
-        var uriFlag = cmdLine.handleFlagWithParam("url", false);
-        if (uriFlag) {
-          whereURI = cmdLine.resolveURI(uriFlag);
-          if (whereURI)
-            whereURI = whereURI.spec;
-        }
-      } catch (e) {}
-    }
+        whereURI = window.arguments[0];
+      }
+    } 
 
     this.addTab(whereURI, true);
 
@@ -1469,7 +1474,8 @@ nsBrowserAccess.prototype = {
       let url = aURI ? aURI.spec : "about:blank";
       let newWindow = openDialog("chrome://browser/content/browser.xul", "_blank",
                                  "all,dialog=no", url, null, null, null);
-      browser = newWindow.Browser.selectedBrowser;
+      
+      return null;
     } else if (aWhere == Ci.nsIBrowserDOMWindow.OPEN_NEWTAB) {
       browser = Browser.addTab("about:blank", true, Browser.selectedTab).browser;
     } else { 
