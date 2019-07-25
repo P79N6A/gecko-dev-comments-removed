@@ -438,10 +438,7 @@ pref("dom.ipc.plugins.enabled", true);
 #endif
 
 pref("plugins.click_to_play", true);
-
-
-
-pref("plugins.use_placeholder", 0);
+pref("plugins.use_placeholder", 1);
 
 
 
