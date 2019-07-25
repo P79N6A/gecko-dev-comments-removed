@@ -499,7 +499,8 @@ Narcissus.interpreter = (function() {
             throw THROW;
 
           case RETURN:
-            x.result = getValue(execute(n.value, x));
+            
+            x.result = n.value ? getValue(execute(n.value, x)) : undefined;
             throw RETURN;
 
           case WITH:
