@@ -565,7 +565,7 @@ nsGenericDOMDataNode::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
     
     
     
-    document->BindingManager()->ChangeDocumentFor(this, document, nsnull);
+    document->BindingManager()->RemovedFromDocument(this, document);
   }
 
   mParentPtrBits = aNullParent ? 0 : mParentPtrBits & ~PARENT_BIT_INDOCUMENT;
