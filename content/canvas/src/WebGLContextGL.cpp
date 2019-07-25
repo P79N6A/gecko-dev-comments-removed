@@ -2158,13 +2158,12 @@ WebGLContext::DOMElementToImageSurface(nsIDOMElement *imageOrCanvas,
             }
         }
     } else if (surf->Format() == gfxASurface::ImageFormatRGB24) {
-        PRUint8* src = surf->Data();
         PRUint8* dst = surf->Data();
 
         
 
         for (int j = 0; j < height; j++) {
-            src = surf->Data() + j * surf->Stride();
+            PRUint8* src = surf->Data() + j * surf->Stride();
             
             for (int i = 0; i < width; i++) {
 #ifdef IS_LITTLE_ENDIAN
