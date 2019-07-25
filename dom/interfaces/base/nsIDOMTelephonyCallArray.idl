@@ -17,12 +17,11 @@
  *
  * The Initial Developer of the Original Code is
  *   The Mozilla Foundation.
- * Portions created by the Initial Developer are Copyright (C) 2011
+ * Portions created by the Initial Developer are Copyright (C) 2012
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
  *   Ben Turner <bent.mozilla@gmail.com> (Original Author)
- *   Philipp von Weitershausen <philipp@weitershausen.de>
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -38,32 +37,15 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-#include "nsIDOMEventTarget.idl"
+#include "nsISupports.idl"
 
-interface nsIDOMEventListener;
 interface nsIDOMTelephonyCall;
-interface nsIDOMTelephonyCallArray;
 
-[scriptable, builtinclass, uuid(047be0d8-a9cd-49aa-8948-2f60ff3a7a18)]
-interface nsIDOMTelephony : nsIDOMEventTarget
+[scriptable, builtinclass, uuid(5a0dfc8f-1bca-4922-82b2-f86721edf72a)]
+interface nsIDOMTelephonyCallArray : nsISupports
 {
-  nsIDOMTelephonyCall dial(in DOMString number);
+  readonly attribute unsigned long length;
 
-  attribute boolean muted;
-  attribute boolean speakerEnabled;
-
-  // The call that is "active", i.e. receives microphone input and tones
-  // generated via startTone.
-  attribute jsval active;
-
-  // Array of all calls that are currently connected.
-  readonly attribute nsIDOMTelephonyCallArray calls;
-
-  void startTone(in DOMString tone);
-  void stopTone();
-  void sendTones(in DOMString tones,
-                 [optional] in unsigned long toneDuration,
-                 [optional] in unsigned long intervalDuration);
-
-  attribute nsIDOMEventListener onincoming;
+  [getter, noscript, notxpcom, nostdcall]
+  nsIDOMTelephonyCall getCallAt(in unsigned long index);
 };
