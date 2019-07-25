@@ -1869,6 +1869,36 @@ Loader::LoadStyleLink(nsIContent* aElement,
   return rv;
 }
 
+static PRBool
+HaveAncestorDataWithURI(SheetLoadData *aData, nsIURI *aURI)
+{
+  if (!aData->mURI) {
+    
+    NS_ABORT_IF_FALSE(!aData->mParentData,
+                      "How does inline style have a parent?");
+    return PR_FALSE;
+  }
+
+  PRBool equal;
+  if (NS_FAILED(aData->mURI->Equals(aURI, &equal)) || equal) {
+    return PR_TRUE;
+  }
+
+  
+  
+  
+  while (aData) {
+    if (aData->mParentData &&
+        HaveAncestorDataWithURI(aData->mParentData, aURI)) {
+      return PR_TRUE;
+    }
+
+    aData = aData->mNext;
+  }
+
+  return PR_FALSE;
+}
+
 nsresult
 Loader::LoadChildSheet(nsCSSStyleSheet* aParentSheet,
                        nsIURI* aURL,
@@ -1923,16 +1953,11 @@ Loader::LoadChildSheet(nsCSSStyleSheet* aParentSheet,
     LOG(("  Have a parent load"));
     parentData = mParsingDatas.ElementAt(count - 1);
     
-    SheetLoadData* data = parentData;
-    while (data && data->mURI) {
-      PRBool equal;
-      if (NS_SUCCEEDED(data->mURI->Equals(aURL, &equal)) && equal) {
-        
-        
-        LOG_ERROR(("  @import cycle detected, dropping load"));
-        return NS_OK;
-      }
-      data = data->mParentData;
+    if (HaveAncestorDataWithURI(parentData, aURL)) {
+      
+      
+      LOG_ERROR(("  @import cycle detected, dropping load"));
+      return NS_OK;
     }
 
     NS_ASSERTION(parentData->mSheet == aParentSheet,
