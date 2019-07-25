@@ -1089,6 +1089,19 @@ public:
     return mDisplayPort;
   }
 
+   
+
+
+
+
+
+
+
+
+  virtual nsresult SetResolution(float aXResolution, float aYResolution) = 0;
+  float GetXResolution() { return mXResolution; }
+  float GetYResolution() { return mYResolution; }
+
   
 
 
@@ -1200,6 +1213,11 @@ protected:
   
   
   nsRect                    mDisplayPort;
+
+  
+  
+  float                     mXResolution;
+  float                     mYResolution;
 
   
   typedef nsPtrHashKey<nsIPresShell> PresShellPtrKey;
