@@ -342,7 +342,7 @@ GDIFontEntry::TestCharacterMap(PRUint32 aCh)
         
         gfxFontStyle fakeStyle;  
         if (mItalic)
-            fakeStyle.style = FONT_STYLE_ITALIC;
+            fakeStyle.style = NS_FONT_STYLE_ITALIC;
         fakeStyle.weight = mWeight * 100;
 
         nsRefPtr<gfxFont> tempFont = FindOrMakeFont(&fakeStyle, false);
@@ -756,7 +756,7 @@ gfxGDIFontList::LookupLocalFont(const gfxProxyFontEntry *aProxyEntry,
     
     gfxFontEntry *fe = GDIFontEntry::CreateFontEntry(lookup->Name(), 
         gfxWindowsFontType(isCFF ? GFX_FONT_TYPE_PS_OPENTYPE : GFX_FONT_TYPE_TRUETYPE) , 
-        PRUint32(aProxyEntry->mItalic ? FONT_STYLE_ITALIC : FONT_STYLE_NORMAL), 
+        PRUint32(aProxyEntry->mItalic ? NS_FONT_STYLE_ITALIC : NS_FONT_STYLE_NORMAL), 
         w, aProxyEntry->mStretch, nsnull);
         
     if (!fe)
@@ -966,7 +966,7 @@ gfxGDIFontList::MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
 
     GDIFontEntry *fe = GDIFontEntry::CreateFontEntry(uniqueName, 
         gfxWindowsFontType(isCFF ? GFX_FONT_TYPE_PS_OPENTYPE : GFX_FONT_TYPE_TRUETYPE) , 
-        PRUint32(aProxyEntry->mItalic ? FONT_STYLE_ITALIC : FONT_STYLE_NORMAL), 
+        PRUint32(aProxyEntry->mItalic ? NS_FONT_STYLE_ITALIC : NS_FONT_STYLE_NORMAL), 
         w, aProxyEntry->mStretch, winUserFontData);
 
     if (!fe)

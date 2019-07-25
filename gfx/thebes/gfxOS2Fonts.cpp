@@ -373,13 +373,13 @@ cairo_font_face_t *gfxOS2Font::CairoFontFace()
         PRUint8 fcProperty;
         
         switch (GetStyle()->style) {
-        case FONT_STYLE_ITALIC:
+        case NS_FONT_STYLE_ITALIC:
             fcProperty = FC_SLANT_ITALIC;
             break;
-        case FONT_STYLE_OBLIQUE:
+        case NS_FONT_STYLE_OBLIQUE:
             fcProperty = FC_SLANT_OBLIQUE;
             break;
-        case FONT_STYLE_NORMAL:
+        case NS_FONT_STYLE_NORMAL:
         default:
             fcProperty = FC_SLANT_ROMAN;
         }
@@ -454,7 +454,7 @@ cairo_scaled_font_t *gfxOS2Font::CairoScaledFont()
     cairo_matrix_t fontMatrix;
     
     if (!mFontEntry->mItalic &&
-        (mStyle.style & (FONT_STYLE_ITALIC | FONT_STYLE_OBLIQUE)))
+        (mStyle.style & (NS_FONT_STYLE_ITALIC | NS_FONT_STYLE_OBLIQUE)))
     {
         const double kSkewFactor = 0.2126; 
         cairo_matrix_init(&fontMatrix, size, 0, -kSkewFactor*size, size, 0, 0);

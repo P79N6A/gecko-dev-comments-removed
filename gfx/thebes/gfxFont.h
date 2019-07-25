@@ -79,15 +79,6 @@ class nsILanguageAtomService;
 
 typedef struct _hb_blob_t hb_blob_t;
 
-
-#define FONT_STYLE_NORMAL              NS_FONT_STYLE_NORMAL
-#define FONT_STYLE_ITALIC              NS_FONT_STYLE_ITALIC
-#define FONT_STYLE_OBLIQUE             NS_FONT_STYLE_OBLIQUE
-
-
-#define FONT_WEIGHT_NORMAL             NS_FONT_WEIGHT_NORMAL
-#define FONT_WEIGHT_BOLD               NS_FONT_WEIGHT_BOLD
-
 #define FONT_MAX_SIZE                  2000.0
 
 #define NO_FONT_LANGUAGE_OVERRIDE      0

@@ -615,11 +615,12 @@ GetSysFontInfo(HDC aHDC, LookAndFeel::FontID anID,
 
   
   aFontStyle.style =
-    (ptrLogFont->lfItalic) ? FONT_STYLE_ITALIC : FONT_STYLE_NORMAL;
+    (ptrLogFont->lfItalic) ? NS_FONT_STYLE_ITALIC : NS_FONT_STYLE_NORMAL;
 
   
   aFontStyle.weight =
-    (ptrLogFont->lfWeight == FW_BOLD ? FONT_WEIGHT_BOLD : FONT_WEIGHT_NORMAL);
+    (ptrLogFont->lfWeight == FW_BOLD ?
+        NS_FONT_WEIGHT_BOLD : NS_FONT_WEIGHT_NORMAL);
 
   
   aFontStyle.stretch = NS_FONT_STRETCH_NORMAL;

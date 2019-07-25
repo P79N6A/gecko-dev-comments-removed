@@ -532,11 +532,11 @@ nsLookAndFeel::GetFont(FontID aID, nsString& aFontName,
   
   NS_NAMED_LITERAL_CSTRING(spcBold, " Bold");
   if ((pos = fontFace.Find(spcBold.get(), false, 0, -1)) > -1) {
-    aFontStyle.weight = FONT_WEIGHT_BOLD;
+    aFontStyle.weight = NS_FONT_WEIGHT_BOLD;
     
     fontFace.Cut(pos, spcBold.Length());
   } else {
-    aFontStyle.weight = FONT_WEIGHT_NORMAL;
+    aFontStyle.weight = NS_FONT_WEIGHT_NORMAL;
   }
 
   
@@ -547,23 +547,23 @@ nsLookAndFeel::GetFont(FontID aID, nsString& aFontName,
   NS_NAMED_LITERAL_CSTRING(spcOblique, " Oblique");
   NS_NAMED_LITERAL_CSTRING(spcObli, " Obli");
   if ((pos = fontFace.Find(spcItalic.get(), false, 0, -1)) > -1) {
-    aFontStyle.style = FONT_STYLE_ITALIC;
+    aFontStyle.style = NS_FONT_STYLE_ITALIC;
     fontFace.Cut(pos, spcItalic.Length());
   } else if ((pos = fontFace.Find(spcOblique.get(), false, 0, -1)) > -1) {
     
     
-    aFontStyle.style = FONT_STYLE_OBLIQUE;
+    aFontStyle.style = NS_FONT_STYLE_OBLIQUE;
     fontFace.Cut(pos, spcOblique.Length());
   } else if ((pos = fontFace.Find(spcObli.get(), false, 0, -1)) > -1) {
     
     
-    aFontStyle.style = FONT_STYLE_OBLIQUE;
+    aFontStyle.style = NS_FONT_STYLE_OBLIQUE;
     
     
     
     fontFace.Cut(pos, fontFace.Length());
   } else {
-    aFontStyle.style = FONT_STYLE_NORMAL;
+    aFontStyle.style = NS_FONT_STYLE_NORMAL;
   }
 
   

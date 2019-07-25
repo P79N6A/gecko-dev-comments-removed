@@ -475,7 +475,7 @@ GetSystemFontInfo(const char *aClassName, nsString *aFontName,
   *aFontName = quote + family + quote;
 
   aFontStyle->systemFont = true;
-  aFontStyle->style = FONT_STYLE_NORMAL;
+  aFontStyle->style = NS_FONT_STYLE_NORMAL;
   aFontStyle->weight = qFont.weight();
   
   aFontStyle->stretch = NS_FONT_STRETCH_NORMAL;
