@@ -208,6 +208,9 @@ private:
   mutable RefPtr<ID2D1RenderTarget> mRT;
 
   
+  RefPtr<IDWriteRenderingParams> mTextRenderingParams;
+
+  
   RefPtr<ID3D10Texture2D> mTempTexture;
   RefPtr<ID3D10RenderTargetView> mRTView;
   RefPtr<ID3D10ShaderResourceView> mSRView;
