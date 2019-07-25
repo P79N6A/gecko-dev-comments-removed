@@ -833,6 +833,19 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame*       aFloat,
   
   
   
+  if (mContentArea.height != NS_UNCONSTRAINEDSIZE &&
+      adjustedAvailableSpace.height == NS_UNCONSTRAINEDSIZE &&
+      (!mReflowState.mFlags.mIsTopOfPage || !IsAdjacentWithTop() ||
+       pushedDown) &&
+      aFloat->GetSize().height + floatMargin.TopBottom() >
+        mContentArea.height - floatY) {
+    mY = saveY;
+    return PR_FALSE;
+  }
+
+  
+  
+  
   
   nsPoint origin(borderPadding.left + floatMargin.left + floatX,
                  borderPadding.top + floatMargin.top + floatY);
