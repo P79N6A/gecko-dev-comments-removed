@@ -140,7 +140,7 @@ public class GeckoAppShell
     public static native void callObserver(String observerKey, String topic, String data);
     public static native void removeObserver(String observerKey);
     public static native void loadGeckoLibsNative(String apkName);
-    public static native void loadSQLiteLibsNative(String apkName, boolean shouldExtract);
+    public static native void loadSQLiteLibsNative(String apkName);
     public static native void onChangeNetworkLinkStatus(String status);
 
     public static void reportJavaCrash(Throwable e) {
@@ -256,15 +256,6 @@ public class GeckoAppShell
 
         File cacheFile = getCacheDir(context);
         putenv("GRE_HOME=" + getGREDir(context).getPath());
-        File[] files = cacheFile.listFiles();
-        if (files != null) {
-            Iterator<File> cacheFiles = Arrays.asList(files).iterator();
-            while (cacheFiles.hasNext()) {
-                File libFile = cacheFiles.next();
-                if (libFile.getName().endsWith(".so"))
-                    libFile.delete();
-            }
-        }
 
         
         String linkerCache = System.getenv("MOZ_LINKER_CACHE");
@@ -356,7 +347,8 @@ public class GeckoAppShell
                 return;
             loadMozGlue();
             
-            loadSQLiteLibsNative(apkName, false);
+            loadLibsSetup(context);
+            loadSQLiteLibsNative(apkName);
             sSQLiteLibsLoaded = true;
         }
     }
