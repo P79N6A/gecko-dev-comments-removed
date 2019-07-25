@@ -140,18 +140,6 @@ public class LayerController implements PanZoomTarget {
     }
 
     
-    public void scrollBy(PointF point) {
-        ViewportMetrics viewportMetrics = new ViewportMetrics(mViewportMetrics);
-        PointF origin = viewportMetrics.getOrigin();
-        origin.offset(point.x, point.y);
-        viewportMetrics.setOrigin(origin);
-        mViewportMetrics = new ImmutableViewportMetrics(viewportMetrics);
-
-        notifyLayerClientOfGeometryChange();
-        mView.requestRender();
-    }
-
-    
     public void setPageRect(RectF rect, RectF cssRect) {
         
         
@@ -195,21 +183,6 @@ public class LayerController implements PanZoomTarget {
             DisplayPortMetrics displayPort = DisplayPortCalculator.calculate(metrics, null);
             mLayerClient.adjustViewport(displayPort);
         }
-    }
-
-    
-
-
-
-    public void scaleWithFocus(float zoomFactor, PointF focus) {
-        ViewportMetrics viewportMetrics = new ViewportMetrics(mViewportMetrics);
-        viewportMetrics.scaleTo(zoomFactor, focus);
-        mViewportMetrics = new ImmutableViewportMetrics(viewportMetrics);
-
-        
-        
-        notifyLayerClientOfGeometryChange();
-        mView.requestRender();
     }
 
     public boolean post(Runnable action) { return mView.post(action); }
