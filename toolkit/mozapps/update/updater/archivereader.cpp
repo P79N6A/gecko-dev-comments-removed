@@ -180,6 +180,8 @@ ArchiveReader::VerifySignature()
 
 
 
+
+
 int
 ArchiveReader::VerifyProductInformation(const char *MARChannelID, 
                                         const char *appVersion)
@@ -198,8 +200,20 @@ ArchiveReader::VerifyProductInformation(const char *MARChannelID,
   
   
   if (MARChannelID && strlen(MARChannelID)) {
-    if (rv == OK && strcmp(MARChannelID, productInfoBlock.MARChannelID)) {
-      rv = MAR_CHANNEL_MISMATCH_ERROR;
+    
+    const char *delimiter = " ,\t";
+    
+    
+    char channelCopy[512] = { 0 };
+    strncpy(channelCopy, MARChannelID, sizeof(channelCopy) - 1);
+    char *channel = strtok(channelCopy, delimiter);
+    rv = MAR_CHANNEL_MISMATCH_ERROR;
+    while(channel) {
+      if (!strcmp(channel, productInfoBlock.MARChannelID)) {
+        rv = OK;
+        break;
+      }
+      channel = strtok(NULL, delimiter);
     }
   }
 

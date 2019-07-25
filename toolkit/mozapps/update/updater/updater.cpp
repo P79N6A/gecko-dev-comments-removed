@@ -1551,7 +1551,7 @@ static int
 ReadMARChannelIDs(const NS_tchar *path, MARChannelStringTable *results)
 {
   const unsigned int kNumStrings = 1;
-  const char *kUpdaterKeys = "MAR_CHANNEL_ID\0";
+  const char *kUpdaterKeys = "ACCEPTED_MAR_CHANNEL_IDS\0";
   char updater_strings[kNumStrings][MAX_TEXT_LEN];
 
   int result = ReadStrings(path, kUpdaterKeys, kNumStrings,
