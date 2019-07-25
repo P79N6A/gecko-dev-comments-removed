@@ -79,6 +79,7 @@ class nsINodeInfo;
 class nsIControllers;
 class nsEventListenerManager;
 class nsIScrollableFrame;
+class nsAttrValueOrString;
 class nsContentList;
 class nsDOMTokenList;
 struct nsRect;
@@ -295,10 +296,12 @@ public:
 
 
 
+
   bool MaybeCheckSameAttrVal(PRInt32 aNamespaceID, nsIAtom* aName,
-                               nsIAtom* aPrefix, const nsAString& aValue,
-                               bool aNotify, nsAutoString* aOldValue,
-                               PRUint8* aModType, bool* aHasListeners);
+                             nsIAtom* aPrefix,
+                             const nsAttrValueOrString& aValue,
+                             bool aNotify, nsAttrValue& aOldValue,
+                             PRUint8* aModType, bool* aHasListeners);
   virtual nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName, nsIAtom* aPrefix,
                            const nsAString& aValue, bool aNotify);
   virtual nsresult SetParsedAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
@@ -623,7 +626,7 @@ public:
     mRefCnt.RemovePurple();
   }
 
-  static bool CanSkip(nsINode* aNode, bool aRemovingAllowed);
+  static bool CanSkip(nsINode* aNode);
   static bool CanSkipInCC(nsINode* aNode);
   static bool CanSkipThis(nsINode* aNode);
   static void MarkNodeChildren(nsINode* aNode);
@@ -656,7 +659,7 @@ protected:
   nsresult SetAttrAndNotify(PRInt32 aNamespaceID,
                             nsIAtom* aName,
                             nsIAtom* aPrefix,
-                            const nsAString& aOldValue,
+                            const nsAttrValue& aOldValue,
                             nsAttrValue& aParsedValue,
                             PRUint8 aModType,
                             bool aFireMutation,

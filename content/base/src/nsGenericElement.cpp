@@ -86,6 +86,7 @@
 #include "nsMutationEvent.h"
 #include "nsNodeUtils.h"
 #include "nsDocument.h"
+#include "nsAttrValueOrString.h"
 #ifdef MOZ_XUL
 #include "nsXULElement.h"
 #endif 
@@ -4634,7 +4635,7 @@ NodeHasActiveFrame(nsIDocument* aCurrentDoc, nsINode* aNode)
 
 
 bool
-nsGenericElement::CanSkip(nsINode* aNode, bool aRemovingAllowed)
+nsGenericElement::CanSkip(nsINode* aNode)
 {
   
   if (nsCCUncollectableMarker::sGeneration == 0) {
@@ -4693,7 +4694,7 @@ nsGenericElement::CanSkip(nsINode* aNode, bool aRemovingAllowed)
       }
       
       
-      if (node->IsPurple() && (node != aNode || aRemovingAllowed)) {
+      if (node->IsPurple() && node != aNode) {
         node->RemovePurple();
       }
       MarkNodeChildren(node);
@@ -4730,8 +4731,7 @@ nsGenericElement::CanSkip(nsINode* aNode, bool aRemovingAllowed)
     nsIContent* n = nodesToClear[i];
     MarkNodeChildren(n);
     
-    
-    if ((n != aNode || aRemovingAllowed) && n->IsPurple()) {
+    if (n != aNode && n->IsPurple()) {
       n->RemovePurple();
     }
   }
@@ -4761,7 +4761,7 @@ nsGenericElement::InitCCCallbacks()
 }
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_BEGIN(nsGenericElement)
-  return nsGenericElement::CanSkip(tmp, aRemovingAllowed);
+  return nsGenericElement::CanSkip(tmp);
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_END
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_BEGIN(nsGenericElement)
@@ -4980,10 +4980,14 @@ nsGenericElement::CopyInnerTo(nsGenericElement* aDst) const
 }
 
 bool
-nsGenericElement::MaybeCheckSameAttrVal(PRInt32 aNamespaceID, nsIAtom* aName,
-                                        nsIAtom* aPrefix, const nsAString& aValue,
-                                        bool aNotify, nsAutoString* aOldValue,
-                                        PRUint8* aModType, bool* aHasListeners)
+nsGenericElement::MaybeCheckSameAttrVal(PRInt32 aNamespaceID,
+                                        nsIAtom* aName,
+                                        nsIAtom* aPrefix,
+                                        const nsAttrValueOrString& aValue,
+                                        bool aNotify,
+                                        nsAttrValue& aOldValue,
+                                        PRUint8* aModType,
+                                        bool* aHasListeners)
 {
   bool modification = false;
   *aHasListeners = aNotify &&
@@ -5001,16 +5005,19 @@ nsGenericElement::MaybeCheckSameAttrVal(PRInt32 aNamespaceID, nsIAtom* aName,
     if (info.mValue) {
       
       
-      bool valueMatches;
       if (*aHasListeners) {
         
-        info.mValue->ToString(*aOldValue);
-        valueMatches = aValue.Equals(*aOldValue);
-      } else {
-        NS_ABORT_IF_FALSE(aNotify,
-                          "Either hasListeners or aNotify should be true.");
-        valueMatches = info.mValue->Equals(aValue, eCaseMatters);
+        
+        
+        
+        
+        
+        
+        
+        
+        aOldValue.SetToSerialized(*info.mValue);
       }
+      bool valueMatches = aValue.EqualsAsStrings(*info.mValue);
       if (valueMatches && aPrefix == info.mName->GetPrefix()) {
         return true;
       }
@@ -5040,10 +5047,11 @@ nsGenericElement::SetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
 
   PRUint8 modType;
   bool hasListeners;
-  nsAutoString oldValue;
+  nsAttrValueOrString value(aValue);
+  nsAttrValue oldValue;
 
-  if (MaybeCheckSameAttrVal(aNamespaceID, aName, aPrefix, aValue, aNotify,
-                            &oldValue, &modType, &hasListeners)) {
+  if (MaybeCheckSameAttrVal(aNamespaceID, aName, aPrefix, value, aNotify,
+                            oldValue, &modType, &hasListeners)) {
     return NS_OK;
   }
 
@@ -5083,19 +5091,18 @@ nsGenericElement::SetParsedAttr(PRInt32 aNamespaceID, nsIAtom* aName,
     return NS_ERROR_FAILURE;
   }
 
-  nsAutoString value;
-  aParsedValue.ToString(value);
 
   PRUint8 modType;
   bool hasListeners;
-  nsAutoString oldValue;
+  nsAttrValueOrString value(aParsedValue);
+  nsAttrValue oldValue;
 
   if (MaybeCheckSameAttrVal(aNamespaceID, aName, aPrefix, value, aNotify,
-                            &oldValue, &modType, &hasListeners)) {
+                            oldValue, &modType, &hasListeners)) {
     return NS_OK;
   }
 
-  nsresult rv = BeforeSetAttr(aNamespaceID, aName, &value, aNotify);
+  nsresult rv = BeforeSetAttr(aNamespaceID, aName, &value.String(), aNotify);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (aNotify) {
@@ -5104,14 +5111,14 @@ nsGenericElement::SetParsedAttr(PRInt32 aNamespaceID, nsIAtom* aName,
 
   return SetAttrAndNotify(aNamespaceID, aName, aPrefix, oldValue,
                           aParsedValue, modType, hasListeners, aNotify,
-                          &value);
+                          &value.String());
 }
 
 nsresult
 nsGenericElement::SetAttrAndNotify(PRInt32 aNamespaceID,
                                    nsIAtom* aName,
                                    nsIAtom* aPrefix,
-                                   const nsAString& aOldValue,
+                                   const nsAttrValue& aOldValue,
                                    nsAttrValue& aParsedValue,
                                    PRUint8 aModType,
                                    bool aFireMutation,
@@ -5183,8 +5190,8 @@ nsGenericElement::SetAttrAndNotify(PRInt32 aNamespaceID,
     if (!newValue.IsEmpty()) {
       mutation.mNewAttrValue = do_GetAtom(newValue);
     }
-    if (!aOldValue.IsEmpty()) {
-      mutation.mPrevAttrValue = do_GetAtom(aOldValue);
+    if (!aOldValue.IsEmptyString()) {
+      mutation.mPrevAttrValue = aOldValue.GetAsAtom();
     }
     mutation.mAttrChange = aModType;
 
