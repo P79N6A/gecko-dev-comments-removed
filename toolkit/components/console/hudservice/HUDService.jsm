@@ -619,6 +619,8 @@ function NetworkPanel(aParent, aHttpActivity)
     flex: "1"
   });
 
+  let self = this;
+
   
   this.panel.addEventListener("popuphidden", function onPopupHide() {
     self.panel.removeEventListener("popuphidden", onPopupHide, false);
@@ -627,10 +629,14 @@ function NetworkPanel(aParent, aHttpActivity)
     self.browser = null;
     self.document = null;
     self.httpActivity = null;
+
+    if (self.linkNode) {
+      self.linkNode._panelOpen = false;
+      self.linkNode = null;
+    }
   }, false);
 
   
-  let self = this;
   this.panel.addEventListener("load", function onLoad() {
     self.panel.removeEventListener("load", onLoad, true)
     self.document = self.browser.contentWindow.document;
@@ -2142,6 +2148,7 @@ HUD_SERVICE.prototype =
     let doc = aNode.ownerDocument;
     let parent = doc.getElementById("mainPopupSet");
     let netPanel = new NetworkPanel(parent, aHttpActivity);
+    netPanel.linkNode = aNode;
 
     let panel = netPanel.panel;
     panel.openPopup(aNode, "after_pointer", 0, 0, false, false);
@@ -2240,9 +2247,23 @@ HUD_SERVICE.prototype =
             
             let linkNode = loggedNode.messageNode;
             linkNode.setAttribute("aria-haspopup", "true");
-            linkNode.onclick = function() {
-              self.openNetworkPanel(linkNode, httpActivity);
-            }
+            linkNode.addEventListener("mousedown", function(aEvent) {
+              this._startX = aEvent.clientX;
+              this._startY = aEvent.clientY;
+            }, false);
+
+            linkNode.addEventListener("click", function(aEvent) {
+              if (aEvent.detail != 1 || aEvent.button != 0 ||
+                  (this._startX != aEvent.clientX &&
+                   this._startY != aEvent.clientY)) {
+                return;
+              }
+
+              if (!this._panelOpen) {
+                self.openNetworkPanel(this, httpActivity);
+                this._panelOpen = true;
+              }
+            }, false);
           }
           else {
             
@@ -4067,8 +4088,10 @@ JSTerm.prototype = {
     buttons.push({
       label: HUDService.getStr("close.button"),
       accesskey: HUDService.getStr("close.accesskey"),
+      class: "jsPropertyPanelCloseButton",
       oncommand: function () {
         propPanel.destroy();
+        aAnchor._panelOpen = false;
       }
     });
 
@@ -4105,9 +4128,24 @@ JSTerm.prototype = {
     node.setAttribute("class", "jsterm-output-line hud-clickable");
     node.setAttribute("aria-haspopup", "true");
     node.setAttribute("crop", "end");
-    node.onclick = function() {
-      self.openPropertyPanel(aEvalString, aOutputObject, node);
-    }
+
+    node.addEventListener("mousedown", function(aEvent) {
+      this._startX = aEvent.clientX;
+      this._startY = aEvent.clientY;
+    }, false);
+
+    node.addEventListener("click", function(aEvent) {
+      if (aEvent.detail != 1 || aEvent.button != 0 ||
+          (this._startX != aEvent.clientX &&
+           this._startY != aEvent.clientY)) {
+        return;
+      }
+
+      if (!this._panelOpen) {
+        self.openPropertyPanel(aEvalString, aOutputObject, this);
+        this._panelOpen = true;
+      }
+    }, false);
 
     
     
