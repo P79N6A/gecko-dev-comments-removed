@@ -246,29 +246,6 @@ nsLoggingSink::AddProcessingInstruction(const nsIParserNode& aNode){
 
 
 
-NS_IMETHODIMP
-nsLoggingSink::AddDocTypeDecl(const nsIParserNode& aNode) {
-
-#ifdef VERBOSE_DEBUG
-  DebugDump("<",aNode.GetText(),(mNodeStackPos)*2);
-#endif
-
-  nsresult theResult=NS_OK;
-
-  
-  if(mSink) {
-    theResult=mSink->AddDocTypeDecl(aNode);
-  }
-  
-  return theResult;
-
-}
-
-
-
-
-
-
 
 
 
