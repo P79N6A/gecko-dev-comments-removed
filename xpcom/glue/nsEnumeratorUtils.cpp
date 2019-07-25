@@ -52,6 +52,7 @@ class EmptyEnumeratorImpl : public nsISimpleEnumerator,
                             public nsIStringEnumerator
 {
 public:
+    EmptyEnumeratorImpl() {}
     
     NS_DECL_ISUPPORTS_INHERITED  
 
