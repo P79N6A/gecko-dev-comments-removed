@@ -2134,9 +2134,18 @@ GLContextProviderEGL::CreateForNativePixmapSurface(gfxASurface* aSurface)
 GLContext *
 GLContextProviderEGL::GetGlobalContext(const ContextFlags)
 {
+
+
 #ifdef MOZ_JAVA_COMPOSITOR
     return nsnull;
 #endif
+
+
+
+#ifdef XP_WIN
+    return nsnull;
+#endif
+
 
     static bool triedToCreateContext = false;
     if (!triedToCreateContext && !gGlobalContext) {
