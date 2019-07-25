@@ -310,9 +310,14 @@ Item.prototype = {
   
   
   pushAway: function Item_pushAway(immediately) {
+    var items = Items.getTopLevelItems();
+
+    
+    if (items.length < 2)
+      return;
+
     var buffer = Math.floor(Items.defaultGutter / 2);
 
-    var items = Items.getTopLevelItems();
     
     items.forEach(function pushAway_setupPushAwayData(item) {
       var data = {};
