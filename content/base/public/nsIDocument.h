@@ -1694,6 +1694,10 @@ protected:
 
   
   
+  PRPackedBool mIsSyntheticDocument;
+
+  
+  
   
   nsCOMPtr<nsIScriptGlobalObject> mScriptGlobalObject;
 
