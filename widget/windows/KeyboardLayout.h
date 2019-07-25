@@ -27,6 +27,7 @@
 #define VK_OEM_CLEAR            0xFE
 
 class nsWindow;
+struct nsModifierKeyState;
 
 namespace mozilla {
 namespace widget {
@@ -162,8 +163,6 @@ class KeyboardLayout
   DeadKeyTableListEntry* mDeadKeyTableListHead;
   PRInt32 mActiveDeadKey;                 
   PRUint8 mDeadKeyShiftState;
-  PRInt32 mLastVirtualKeyIndex;
-  PRUint8 mLastShiftState;
   PRUnichar mChars[5];                    
   PRUint8 mShiftStates[5];
   PRUint8 mNumOfChars;
@@ -191,14 +190,18 @@ public:
   KeyboardLayout();
   ~KeyboardLayout();
 
+  
+
+
+  static PRUint8 GetShiftState(const nsModifierKeyState& aModifierKeyState);
+
   static bool IsPrintableCharKey(PRUint8 aVirtualKey);
   static bool IsNumpadKey(PRUint8 aVirtualKey);
 
-  bool IsDeadKey() const
-  {
-    return (mLastVirtualKeyIndex >= 0) ?
-      mVirtualKeys[mLastVirtualKeyIndex].IsDeadKey(mLastShiftState) : false;
-  }
+  
+
+
+  bool IsDeadKey(PRUint8 aVirtualKey, PRUint8 aShiftState) const;
 
   void LoadLayout(HKL aLayout);
   void OnKeyDown(PRUint8 aVirtualKey);

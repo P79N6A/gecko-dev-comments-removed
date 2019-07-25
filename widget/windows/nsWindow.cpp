@@ -6322,6 +6322,8 @@ LRESULT nsWindow::OnKeyDown(const MSG &aMsg,
       return noDefault;
   }
 
+  PRUint8 currentShiftState = KeyboardLayout::GetShiftState(aModKeyState);
+  bool isDeadKey = gKbdLayout.IsDeadKey(virtualKeyCode, currentShiftState);
   PRUint32 extraFlags = (noDefault ? NS_EVENT_FLAG_NO_DEFAULT : 0);
   MSG msg;
   BOOL gotMsg = aFakeCharMessage ||
@@ -6330,7 +6332,7 @@ LRESULT nsWindow::OnKeyDown(const MSG &aMsg,
   
   if (DOMKeyCode == NS_VK_RETURN || DOMKeyCode == NS_VK_BACK ||
       ((aModKeyState.mIsControlDown || aModKeyState.mIsAltDown)
-       && !gKbdLayout.IsDeadKey() && KeyboardLayout::IsPrintableCharKey(virtualKeyCode)))
+       && !isDeadKey && KeyboardLayout::IsPrintableCharKey(virtualKeyCode)))
   {
     
     
@@ -6405,8 +6407,9 @@ LRESULT nsWindow::OnKeyDown(const MSG &aMsg,
     return PluginHasFocus() && noDefault;
   }
 
-  if (gKbdLayout.IsDeadKey ())
+  if (isDeadKey) {
     return PluginHasFocus() && noDefault;
+  }
 
   PRUint8 shiftStates[5];
   PRUnichar uniChars[5];
