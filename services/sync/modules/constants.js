@@ -121,6 +121,9 @@ SCORE_INCREMENT_MEDIUM:                10,
 SCORE_INCREMENT_XLARGE:                300 + 1, 
 
 
+SCORE_UPDATE_DELAY:                    100,
+
+
 MODE_RDONLY:                           0x01,
 MODE_WRONLY:                           0x02,
 MODE_CREATE:                           0x08,

@@ -46,9 +46,6 @@ const Cr = Components.results;
 const Cu = Components.utils;
 
 
-const IDLE_TIME = 5; 
-
-
 const CLUSTER_BACKOFF = 5 * 60 * 1000; 
 
 
@@ -592,7 +589,8 @@ WeaveSvc.prototype = {
         Status.minimumNextSync = Date.now() + data;
         break;
       case "weave:engine:score:updated":
-        this._handleScoreUpdate();
+        Utils.namedTimer(this._calculateScore, SCORE_UPDATE_DELAY, this,
+                         "_scoreTimer");
         break;
       case "weave:engine:sync:apply-failed":
         
@@ -605,12 +603,6 @@ WeaveSvc.prototype = {
       case "weave:resource:status:401":
         this._handleResource401(subject);
         break;
-      case "idle":
-        this._log.trace("Idle time hit, trying to sync");
-        Svc.Idle.removeIdleObserver(this, this._idleTime);
-        this._idleTime = 0;
-        Utils.nextTick(this.sync, this);
-        break;
       case "nsPref:changed":
         if (this._ignorePrefObserver)
           return;
@@ -618,12 +610,6 @@ WeaveSvc.prototype = {
         this._handleEngineStatusChanged(engine);
         break;
     }
-  },
-
-  _handleScoreUpdate: function WeaveSvc__handleScoreUpdate() {
-    const SCORE_UPDATE_DELAY = 3000;
-    Utils.namedTimer(this._calculateScore, SCORE_UPDATE_DELAY, this,
-                     "_scoreTimer");
   },
 
   _calculateScore: function WeaveSvc_calculateScoreAndDoStuff() {
@@ -1506,13 +1492,6 @@ WeaveSvc.prototype = {
       this._syncTimer.clear();
     if (this._heartbeatTimer)
       this._heartbeatTimer.clear();
-
-    
-    try {
-      Svc.Idle.removeIdleObserver(this, this._idleTime);
-      this._idleTime = 0;
-    }
-    catch(ex) {}
   },
 
   
@@ -1551,25 +1530,18 @@ WeaveSvc.prototype = {
 
 
 
-  syncOnIdle: function WeaveSvc_syncOnIdle(delay) {
-    
+  syncIfMPUnlocked: function syncIfMPUnlocked() {
     
     if (Status.login == MASTER_PASSWORD_LOCKED &&
         Utils.mpLocked()) {
-      this._log.debug("Not syncing on idle: Login status is " + Status.login);
+      this._log.debug("Not initiating sync: Login status is " + Status.login);
 
       
       this._scheduleAtInterval(MASTER_PASSWORD_LOCKED_RETRY_INTERVAL);
-      return false;
+      return;
     }
 
-    if (this._idleTime)
-      return false;
-
-    this._idleTime = delay || IDLE_TIME;
-    this._log.debug("Idle timer created for sync, will sync after " +
-                    this._idleTime + " seconds of inactivity.");
-    Svc.Idle.addIdleObserver(this, this._idleTime);
+    Utils.nextTick(this.sync, this);
   },
 
   
@@ -1588,13 +1560,12 @@ WeaveSvc.prototype = {
 
     
     if (interval <= 0) {
-      if (this.syncOnIdle())
-        this._log.debug("Syncing as soon as we're idle.");
+      this.syncIfMPUnlocked();
       return;
     }
 
     this._log.trace("Next sync in " + Math.ceil(interval / 1000) + " sec.");
-    Utils.namedTimer(this.syncOnIdle, interval, this, "_syncTimer");
+    Utils.namedTimer(this.syncIfMPUnlocked, interval, this, "_syncTimer");
 
     
     this.nextSync = Date.now() + interval;
@@ -1625,7 +1596,7 @@ WeaveSvc.prototype = {
                         " Local timestamp: " + Clients.lastSync);
         if (info.obj["clients"] > Clients.lastSync) {
           this._log.debug("New clients detected, triggering a full sync");
-          this.syncOnIdle();
+          this.syncIfMPUnlocked();
           return;
         }
       }
