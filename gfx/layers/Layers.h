@@ -49,6 +49,8 @@
 #include "gfxColor.h"
 #include "gfxPattern.h"
 
+#include "mozilla/gfx/2D.h"
+
 #if defined(DEBUG) || defined(PR_LOGGING)
 #  include <stdio.h>            
 #  include "prlog.h"
@@ -423,6 +425,15 @@ public:
   virtual already_AddRefed<gfxASurface>
     CreateOptimalSurface(const gfxIntSize &aSize,
                          gfxASurface::gfxImageFormat imageFormat);
+
+  
+
+
+
+  virtual TemporaryRef<mozilla::gfx::DrawTarget>
+    CreateDrawTarget(const mozilla::gfx::IntSize &aSize,
+                     mozilla::gfx::SurfaceFormat aFormat);
+
 
   
 
