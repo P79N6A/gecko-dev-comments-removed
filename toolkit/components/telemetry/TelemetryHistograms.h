@@ -437,6 +437,13 @@ HISTOGRAM_ENUMERATED_VALUES(SAFE_MODE_USAGE, 3, "Whether the user is in safe mod
 
 
 
+HISTOGRAM(NEWTAB_PAGE_ENABLED, 0, 1, 2, BOOLEAN, "New tab page is enabled.")
+HISTOGRAM(NEWTAB_PAGE_PINNED_SITES_COUNT, 1, 9, 10, EXPONENTIAL, "Number of pinned sites on the new tab page.")
+HISTOGRAM(NEWTAB_PAGE_BLOCKED_SITES_COUNT, 1, 100, 10, EXPONENTIAL, "Number of sites blocked from the new tab page.")
+
+
+
+
 #if defined(ANDROID)
 HISTOGRAM(BROWSERPROVIDER_XUL_IMPORT_TIME, 20, 600000, 20, EXPONENTIAL, "Time for the initial conversion of a XUL places database (ms)")
 HISTOGRAM(BROWSERPROVIDER_XUL_IMPORT_BOOKMARKS, 1, 50000, 20, EXPONENTIAL, "Number of bookmarks in the original XUL places database")

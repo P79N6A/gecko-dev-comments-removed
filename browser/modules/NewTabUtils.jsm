@@ -28,6 +28,9 @@ const PREF_NEWTAB_ENABLED = "browser.newtabpage.enabled";
 const HISTORY_RESULTS_LIMIT = 100;
 
 
+const TOPIC_GATHER_TELEMETRY = "gather-telemetry";
+
+
 
 
 let Storage = {
@@ -584,6 +587,47 @@ let Links = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
                                          Ci.nsISupportsWeakReference])
 };
+
+
+
+
+
+let Telemetry = {
+  
+
+
+  init: function Telemetry_init() {
+    Services.obs.addObserver(this, TOPIC_GATHER_TELEMETRY, false);
+  },
+
+  
+
+
+  _collect: function Telemetry_collect() {
+    let probes = [
+      { histogram: "NEWTAB_PAGE_ENABLED",
+        value: AllPages.enabled },
+      { histogram: "NEWTAB_PAGE_PINNED_SITES_COUNT",
+        value: PinnedLinks.links.length },
+      { histogram: "NEWTAB_PAGE_BLOCKED_SITES_COUNT",
+        value: Object.keys(BlockedLinks.links).length }
+    ];
+
+    probes.forEach(function Telemetry_collect_forEach(aProbe) {
+      Services.telemetry.getHistogramById(aProbe.histogram)
+        .add(aProbe.value);
+    });
+  },
+
+  
+
+
+  observe: function Telemetry_observe(aSubject, aTopic, aData) {
+    this._collect();
+  }
+};
+
+Telemetry.init();
 
 
 
