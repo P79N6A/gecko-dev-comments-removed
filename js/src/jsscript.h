@@ -530,7 +530,9 @@ struct JSScript {
     JSPCCounters    pcCounters;
 
   public:
+#ifdef JS_ION
     js::ion::IonScript *ion;          
+#endif
 
 #ifdef JS_METHODJIT
     
