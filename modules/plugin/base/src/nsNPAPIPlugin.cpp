@@ -183,7 +183,7 @@ static NPNetscapeFuncs sBrowserFuncs = {
   _convertpoint,
   NULL, 
   NULL, 
-  NULL  
+  _urlredirectresponse
 };
 
 static PRLock *sPluginThreadAsyncCallLock = nsnull;
@@ -614,10 +614,13 @@ MakeNewNPAPIStreamInternal(NPP npp, const char *relativeURL, const char *target,
   
   
   
-  if (!target)
-    ((nsNPAPIPluginInstance*)inst)->NewNotifyStream(getter_AddRefs(listener),
-                                                    notifyData,
-                                                    PR_FALSE, relativeURL);
+  if (!target) {
+    inst->NewStreamListener(relativeURL, notifyData,
+                            getter_AddRefs(listener));
+    if (listener) {
+      static_cast<nsNPAPIPluginStreamListener*>(listener.get())->SetCallNotify(PR_FALSE);
+    }
+  }
 
   switch (type) {
   case eNPPStreamTypeInternal_Get:
@@ -628,8 +631,7 @@ MakeNewNPAPIStreamInternal(NPP npp, const char *relativeURL, const char *target,
     }
   case eNPPStreamTypeInternal_Post:
     {
-      if (NS_FAILED(pluginHost->PostURL(inst, relativeURL, len, buf, file, target,
-                                listener)))
+      if (NS_FAILED(pluginHost->PostURL(inst, relativeURL, len, buf, file, target, listener)))
         return NPERR_GENERIC_ERROR;
       break;
     }
@@ -639,11 +641,7 @@ MakeNewNPAPIStreamInternal(NPP npp, const char *relativeURL, const char *target,
 
   if (listener) {
     
-    
-    
-    nsNPAPIPluginStreamListener* npAPIPluginStreamListener = 
-      static_cast<nsNPAPIPluginStreamListener*>(listener.get());
-    npAPIPluginStreamListener->SetCallNotify(bDoNotify);
+    static_cast<nsNPAPIPluginStreamListener*>(listener.get())->SetCallNotify(bDoNotify);
   }
 
   return NPERR_NO_ERROR;
@@ -2722,6 +2720,17 @@ _convertpoint(NPP instance, double sourceX, double sourceY, NPCoordinateSpace so
     return PR_FALSE;
 
   return inst->ConvertPoint(sourceX, sourceY, sourceSpace, destX, destY, destSpace);
+}
+
+void NP_CALLBACK
+_urlredirectresponse(NPP instance, void* notifyData, NPBool allow)
+{
+  nsNPAPIPluginInstance *inst = (nsNPAPIPluginInstance *)instance->ndata;
+  if (!inst) {
+    return;
+  }
+
+  inst->URLRedirectResponse(notifyData, allow);
 }
 
 } 

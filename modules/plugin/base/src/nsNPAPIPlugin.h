@@ -364,6 +364,9 @@ _getJavaEnv();
 void* NP_CALLBACK 
 _getJavaPeer(NPP npp);
 
+void NP_CALLBACK
+_urlredirectresponse(NPP instance, void* notifyData, NPBool allow);
+
 } 
 } 
 } 

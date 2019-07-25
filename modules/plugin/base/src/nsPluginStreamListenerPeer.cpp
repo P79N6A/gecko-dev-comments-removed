@@ -278,7 +278,11 @@ nsPluginStreamListenerPeer::~nsPluginStreamListenerPeer()
   PR_LOG(nsPluginLogging::gPluginLog, PLUGIN_LOG_NORMAL,
          ("nsPluginStreamListenerPeer::dtor this=%p, url=%s\n",this, mURLSpec.get()));
 #endif
-  
+
+  if (mPStreamListener) {
+    mPStreamListener->SetStreamListenerPeer(this);
+  }
+
   
   
   if (mFileCacheOutputStream)
@@ -287,7 +291,7 @@ nsPluginStreamListenerPeer::~nsPluginStreamListenerPeer()
   delete mDataForwardToRequest;
 
   if (mPluginInstance)
-    mPluginInstance->BStreamListeners()->RemoveElement(this);
+    mPluginInstance->FileCachedStreamListeners()->RemoveElement(this);
 }
 
 
@@ -309,8 +313,10 @@ nsresult nsPluginStreamListenerPeer::Initialize(nsIURI *aURL,
   mURL = aURL;
   
   mPluginInstance = aInstance;
-  mPStreamListener = aListener;
-  
+
+  mPStreamListener = static_cast<nsNPAPIPluginStreamListener*>(aListener);
+  mPStreamListener->SetStreamListenerPeer(this);
+
   mPendingRequests = requestCount;
   
   mDataForwardToRequest = new nsHashtable(16, PR_FALSE);
@@ -396,9 +402,9 @@ nsPluginStreamListenerPeer::SetupPluginCacheFile(nsIChannel* channel)
   nsTArray< nsRefPtr<nsNPAPIPluginInstance> > *instances = pluginHost->InstanceArray();
   for (PRUint32 i = 0; i < instances->Length(); i++) {
     
-    nsTArray<nsPluginStreamListenerPeer*> *bStreamListeners = instances->ElementAt(i)->BStreamListeners();
-    for (PRInt32 i = bStreamListeners->Length() - 1; i >= 0; --i) {
-      nsPluginStreamListenerPeer *lp = bStreamListeners->ElementAt(i);
+    nsTArray<nsPluginStreamListenerPeer*> *streamListeners = instances->ElementAt(i)->FileCachedStreamListeners();
+    for (PRInt32 i = streamListeners->Length() - 1; i >= 0; --i) {
+      nsPluginStreamListenerPeer *lp = streamListeners->ElementAt(i);
       if (lp && lp->mLocalCachedFileHolder) {
         useExistingCacheFile = lp->UseExistingPluginCacheFile(this);
         if (useExistingCacheFile) {
@@ -455,7 +461,7 @@ nsPluginStreamListenerPeer::SetupPluginCacheFile(nsIChannel* channel)
   }
 
   
-  mPluginInstance->BStreamListeners()->AppendElement(this);
+  mPluginInstance->FileCachedStreamListeners()->AppendElement(this);
 
   return rv;
 }
@@ -1082,15 +1088,18 @@ nsresult nsPluginStreamListenerPeer::SetUpStreamListener(nsIRequest *request,
   
   
   
-  if (!mPStreamListener && mPluginInstance)
-    rv = mPluginInstance->NewStreamToPlugin(getter_AddRefs(mPStreamListener));
-  
-  if (NS_FAILED(rv))
-    return rv;
-  
-  if (!mPStreamListener)
-    return NS_ERROR_NULL_POINTER;
-  
+  nsCOMPtr<nsIPluginStreamListener> streamListener;
+  if (!mPStreamListener && mPluginInstance) {
+    rv = mPluginInstance->NewStreamListener(nsnull, nsnull,
+                                            getter_AddRefs(streamListener));
+    if (NS_FAILED(rv) || !streamListener)
+      return NS_ERROR_FAILURE;
+
+    mPStreamListener = static_cast<nsNPAPIPluginStreamListener*>(streamListener.get());
+  }
+
+  mPStreamListener->SetStreamListenerPeer(this);
+
   PRBool useLocalCache = PR_FALSE;
   
   
@@ -1106,8 +1115,7 @@ nsresult nsPluginStreamListenerPeer::SetUpStreamListener(nsIRequest *request,
     
     
     
-    nsCOMPtr<nsIHTTPHeaderListener> listener =
-    do_QueryInterface(mPStreamListener);
+    nsCOMPtr<nsIHTTPHeaderListener> listener = do_QueryInterface(streamListener);
     if (listener) {
       
       PRUint32 statusNum;
@@ -1233,12 +1241,8 @@ nsPluginStreamListenerPeer::OnFileAvailable(nsIFile* aFile)
 NS_IMETHODIMP
 nsPluginStreamListenerPeer::VisitHeader(const nsACString &header, const nsACString &value)
 {
-  nsCOMPtr<nsIHTTPHeaderListener> listener = do_QueryInterface(mPStreamListener);
-  if (!listener)
-    return NS_ERROR_FAILURE;
-  
-  return listener->NewResponseHeader(PromiseFlatCString(header).get(),
-                                     PromiseFlatCString(value).get());
+  return mPStreamListener->NewResponseHeader(PromiseFlatCString(header).get(),
+                                             PromiseFlatCString(value).get());
 }
 
 nsresult
@@ -1283,7 +1287,17 @@ nsPluginStreamListenerPeer::AsyncOnChannelRedirect(nsIChannel *oldChannel, nsICh
                                                    PRUint32 flags, nsIAsyncVerifyRedirectCallback* callback)
 {
   
+  if (!mPStreamListener) {
+    return NS_ERROR_FAILURE;
+  }
 
+  
+  bool notificationHandled = mPStreamListener->HandleRedirectNotification(oldChannel, newChannel, callback);
+  if (notificationHandled) {
+    return NS_OK;
+  }
+
+  
   nsCOMPtr<nsIHttpChannel> oldHttpChannel(do_QueryInterface(oldChannel));
   if (oldHttpChannel) {
     PRUint32 responseStatus;
@@ -1308,10 +1322,11 @@ nsPluginStreamListenerPeer::AsyncOnChannelRedirect(nsIChannel *oldChannel, nsICh
     }
   }
 
+  
   nsCOMPtr<nsIChannelEventSink> channelEventSink;
   nsresult rv = GetInterfaceGlobal(NS_GET_IID(nsIChannelEventSink), getter_AddRefs(channelEventSink));
   if (NS_FAILED(rv)) {
-    return NS_ERROR_FAILURE;
+    return rv;
   }
 
   return channelEventSink->AsyncOnChannelRedirect(oldChannel, newChannel, flags, callback);

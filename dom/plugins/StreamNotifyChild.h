@@ -69,6 +69,8 @@ public:
 private:
   NS_OVERRIDE virtual bool Recv__delete__(const NPReason& reason);
 
+  bool RecvRedirectNotify(const nsCString& url, const int32_t& status);
+
   
 
 

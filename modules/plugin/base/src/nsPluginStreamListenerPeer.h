@@ -38,6 +38,9 @@
 
 
 
+#ifndef nsPluginStreamListenerPeer_h_
+#define nsPluginStreamListenerPeer_h_
+
 #include "nscore.h"
 #include "nsIFile.h"
 #include "nsIStreamListener.h"
@@ -129,8 +132,8 @@ private:
   nsCOMPtr<nsIURI> mURL;
   nsCString mURLSpec; 
   nsCOMPtr<nsIPluginInstanceOwner> mOwner;
-  nsCOMPtr<nsIPluginStreamListener> mPStreamListener;
-  
+  nsRefPtr<nsNPAPIPluginStreamListener> mPStreamListener;
+
   
   PRPackedBool            mRequestFailed;
   
@@ -165,3 +168,5 @@ public:
   nsWeakPtr               mWeakPtrChannelCallbacks;
   nsWeakPtr               mWeakPtrChannelLoadGroup;
 };
+
+#endif 

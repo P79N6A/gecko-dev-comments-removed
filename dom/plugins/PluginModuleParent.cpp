@@ -396,6 +396,16 @@ PluginModuleParent::SetPluginFuncs(NPPluginFuncs* aFuncs)
     aFuncs->urlnotify = NPP_URLNotify;
     aFuncs->getvalue = NPP_GetValue;
     aFuncs->setvalue = NPP_SetValue;
+    aFuncs->gotfocus = NULL;
+    aFuncs->lostfocus = NULL;
+    aFuncs->urlredirectnotify = NULL;
+
+    
+    bool urlRedirectSupported = false;
+    CallURLRedirectNotifySupported(&urlRedirectSupported);
+    if (urlRedirectSupported) {
+      aFuncs->urlredirectnotify = NPP_URLRedirectNotify;
+    }
 }
 
 NPError
@@ -558,6 +568,17 @@ PluginModuleParent::RecvBackUpXResources(const FileDescriptor& aXSocketFd)
     return true;
 }
 
+void
+PluginModuleParent::NPP_URLRedirectNotify(NPP instance, const char* url,
+                                          int32_t status, void* notifyData)
+{
+  PluginInstanceParent* i = InstCast(instance);
+  if (!i)
+    return;
+
+  i->NPP_URLRedirectNotify(url, status, notifyData);
+}
+
 bool
 PluginModuleParent::AnswerNPN_UserAgent(nsCString* userAgent)
 {
@@ -673,6 +694,7 @@ PluginModuleParent::NP_Initialize(NPNetscapeFuncs* bFuncs, NPPluginFuncs* pFuncs
     }
 
     SetPluginFuncs(pFuncs);
+
     return NS_OK;
 }
 #else
@@ -743,8 +765,18 @@ PluginModuleParent::NP_GetEntryPoints(NPPluginFuncs* pFuncs, NPError* error)
 {
     NS_ASSERTION(pFuncs, "Null pointer!");
 
+    
+    
+    
+    if (!CallNP_GetEntryPoints(error)) {
+        return NS_ERROR_FAILURE;
+    }
+    else if (*error != NPERR_NO_ERROR) {
+        return NS_OK;
+    }
+
     SetPluginFuncs(pFuncs);
-    *error = NPERR_NO_ERROR;
+
     return NS_OK;
 }
 #endif
