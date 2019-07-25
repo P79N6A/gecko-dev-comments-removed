@@ -5921,8 +5921,9 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
 
 
-            wantval = !(cg->flags & (TCF_IN_FUNCTION | TCF_NO_SCRIPT_RVAL));
-            useful = wantval || pn->isDirectivePrologueMember();
+            useful = wantval = !(cg->flags & (TCF_IN_FUNCTION | TCF_NO_SCRIPT_RVAL));
+
+            
             if (!useful) {
                 if (!CheckSideEffects(cx, cg, pn2, &useful))
                     return JS_FALSE;
@@ -5935,14 +5936,21 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
 
             if (!useful &&
-                (!cg->topStmt ||
-                 cg->topStmt->type != STMT_LABEL ||
-                 cg->topStmt->update < CG_OFFSET(cg))) {
-                CG_CURRENT_LINE(cg) = pn2->pn_pos.begin.lineno;
-                if (!ReportCompileErrorNumber(cx, CG_TS(cg), pn2,
-                                              JSREPORT_WARNING | JSREPORT_STRICT,
-                                              JSMSG_USELESS_EXPR)) {
-                    return JS_FALSE;
+                cg->topStmt &&
+                cg->topStmt->type == STMT_LABEL &&
+                cg->topStmt->update >= CG_OFFSET(cg)) {
+                useful = true;
+            }
+
+            if (!useful) {
+                
+                if (!pn->isDirectivePrologueMember()) {
+                    CG_CURRENT_LINE(cg) = pn2->pn_pos.begin.lineno;
+                    if (!ReportCompileErrorNumber(cx, CG_TS(cg), pn2,
+                                                  JSREPORT_WARNING | JSREPORT_STRICT,
+                                                  JSMSG_USELESS_EXPR)) {
+                        return JS_FALSE;
+                    }
                 }
             } else {
                 op = wantval ? JSOP_POPV : JSOP_POP;

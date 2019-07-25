@@ -3368,14 +3368,31 @@ Parser::functionExpr()
 
 
 
+
 bool
 Parser::recognizeDirectivePrologue(JSParseNode *pn, bool *isDirectivePrologueMember)
 {
-    *isDirectivePrologueMember = pn->isDirectivePrologueMember();
+    *isDirectivePrologueMember = pn->isStringExprStatement();
     if (!*isDirectivePrologueMember)
         return true;
-    if (pn->isDirective()) {
-        JSAtom *directive = pn->pn_kid->pn_atom;
+
+    JSParseNode *kid = pn->pn_kid;
+    if (kid->isEscapeFreeStringLiteral()) {
+        
+
+
+
+
+
+
+
+
+
+
+
+        pn->pn_prologue = true;
+
+        JSAtom *directive = kid->pn_atom;
         if (directive == context->runtime->atomState.useStrictAtom) {
             
 

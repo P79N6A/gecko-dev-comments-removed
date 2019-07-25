@@ -285,6 +285,9 @@ JS_BEGIN_EXTERN_C
 
 
 
+
+
+
 typedef enum JSParseNodeArity {
     PN_NULLARY,                         
     PN_UNARY,                           
@@ -377,6 +380,8 @@ struct JSParseNode {
             JSParseNode *kid;
             jsint       num;            
             JSBool      hidden;         
+
+
         } unary;
         struct {                        
             union {
@@ -427,6 +432,7 @@ struct JSParseNode {
 #define pn_kid          pn_u.unary.kid
 #define pn_num          pn_u.unary.num
 #define pn_hidden       pn_u.unary.hidden
+#define pn_prologue     pn_u.unary.hidden
 #define pn_atom         pn_u.name.atom
 #define pn_objbox       pn_u.name.objbox
 #define pn_expr         pn_u.name.expr
@@ -571,7 +577,15 @@ public:
 
 
 
-    bool isDirectivePrologueMember() const {
+
+
+
+
+
+
+
+
+    bool isStringExprStatement() const {
         if (PN_TYPE(this) == js::TOK_SEMI) {
             JS_ASSERT(pn_arity == PN_UNARY);
             JSParseNode *kid = pn_kid;
@@ -584,10 +598,10 @@ public:
 
 
 
-    bool isDirective() const {
-        JS_ASSERT(isDirectivePrologueMember());
-        JSParseNode *kid = pn_kid;
-        JSString *str = ATOM_TO_STRING(kid->pn_atom);
+
+    bool isEscapeFreeStringLiteral() const {
+        JS_ASSERT(pn_type == js::TOK_STRING && !pn_parens);
+        JSString *str = ATOM_TO_STRING(pn_atom);
 
         
 
@@ -597,6 +611,9 @@ public:
         return (pn_pos.begin.lineno == pn_pos.end.lineno &&
                 pn_pos.begin.index + str->length() + 2 == pn_pos.end.index);
     }
+
+    
+    bool isDirectivePrologueMember() const { return pn_prologue; }
 
 #ifdef JS_HAS_GENERATOR_EXPRS
     
