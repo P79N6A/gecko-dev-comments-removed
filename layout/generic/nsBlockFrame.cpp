@@ -308,7 +308,7 @@ nsBlockFrame::~nsBlockFrame()
 void
 nsBlockFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
-  DestroyAbsoluteFrames(aDestructRoot);
+  mAbsoluteContainer.DestroyFrames(this, aDestructRoot);
   
   
   if (mBullet && HaveOutsideBullet()) {
@@ -585,7 +585,10 @@ nsBlockFrame::GetCaretBaseline() const
 nsFrameList
 nsBlockFrame::GetChildList(nsIAtom* aListName) const
 {
-  if (nsnull == aListName) {
+  if (nsGkAtoms::absoluteList == aListName) {
+    return mAbsoluteContainer.GetChildList();
+  }
+  else if (nsnull == aListName) {
     return mFrames;
   }
   else if (aListName == nsGkAtoms::overflowList) {
@@ -617,7 +620,8 @@ nsBlockFrame::GetChildList(nsIAtom* aListName) const
 #define NS_BLOCK_FRAME_OVERFLOW_OOF_LIST_INDEX  (NS_CONTAINER_LIST_COUNT_INCL_OC + 0)
 #define NS_BLOCK_FRAME_FLOAT_LIST_INDEX         (NS_CONTAINER_LIST_COUNT_INCL_OC + 1)
 #define NS_BLOCK_FRAME_BULLET_LIST_INDEX        (NS_CONTAINER_LIST_COUNT_INCL_OC + 2)
-#define NS_BLOCK_FRAME_PUSHED_FLOATS_LIST_INDEX (NS_CONTAINER_LIST_COUNT_INCL_OC + 3)
+#define NS_BLOCK_FRAME_ABSOLUTE_LIST_INDEX      (NS_CONTAINER_LIST_COUNT_INCL_OC + 3)
+#define NS_BLOCK_FRAME_PUSHED_FLOATS_LIST_INDEX (NS_CONTAINER_LIST_COUNT_INCL_OC + 4)
 
 
 nsIAtom*
@@ -633,6 +637,8 @@ nsBlockFrame::GetAdditionalChildListName(PRInt32 aIndex) const
     return nsGkAtoms::bulletList;
   case NS_BLOCK_FRAME_OVERFLOW_OOF_LIST_INDEX:
     return nsGkAtoms::overflowOutOfFlowList;
+  case NS_BLOCK_FRAME_ABSOLUTE_LIST_INDEX:
+    return nsGkAtoms::absoluteList;
   case NS_BLOCK_FRAME_PUSHED_FLOATS_LIST_INDEX:
     return nsGkAtoms::pushedFloatsList;
   default:
@@ -1170,8 +1176,7 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
   
   
   
-  if (HasAbsolutelyPositionedChildren()) {
-    nsAbsoluteContainingBlock* absoluteContainer = GetAbsoluteContainingBlock();
+  if (mAbsoluteContainer.HasAbsoluteFrames()) {
     PRBool haveInterrupt = aPresContext->HasPendingInterrupt();
     if (reflowState->WillReflowAgainForClearance() ||
         haveInterrupt) {
@@ -1182,9 +1187,9 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
       
       
       if (haveInterrupt && (GetStateBits() & NS_FRAME_IS_DIRTY)) {
-        absoluteContainer->MarkAllFramesDirty();
+        mAbsoluteContainer.MarkAllFramesDirty();
       } else {
-        absoluteContainer->MarkSizeDependentFramesDirty();
+        mAbsoluteContainer.MarkSizeDependentFramesDirty();
       }
     } else {
       nsSize containingBlockSize =
@@ -1208,12 +1213,12 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
         !(isRoot && NS_UNCONSTRAINEDSIZE == reflowState->ComputedHeight()) &&
         aMetrics.height != oldSize.height;
 
-      absoluteContainer->Reflow(this, aPresContext, *reflowState,
-                                state.mReflowStatus,
-                                containingBlockSize.width,
-                                containingBlockSize.height, PR_TRUE,
-                                cbWidthChanged, cbHeightChanged,
-                                &aMetrics.mOverflowAreas);
+      rv = mAbsoluteContainer.Reflow(this, aPresContext, *reflowState,
+                                     state.mReflowStatus,
+                                     containingBlockSize.width,
+                                     containingBlockSize.height, PR_TRUE,
+                                     cbWidthChanged, cbHeightChanged,
+                                     &aMetrics.mOverflowAreas);
 
       
     }
@@ -4703,7 +4708,10 @@ nsBlockFrame::AppendFrames(nsIAtom*  aListName,
     return NS_OK;
   }
   if (aListName) {
-    if (nsGkAtoms::floatList == aListName) {
+    if (nsGkAtoms::absoluteList == aListName) {
+      return mAbsoluteContainer.AppendFrames(this, aListName, aFrameList);
+    }
+    else if (nsGkAtoms::floatList == aListName) {
       mFloats.AppendFrames(nsnull, aFrameList);
       return NS_OK;
     }
@@ -4748,7 +4756,11 @@ nsBlockFrame::InsertFrames(nsIAtom*  aListName,
                "inserting after sibling frame with different parent");
 
   if (aListName) {
-    if (nsGkAtoms::floatList == aListName) {
+    if (nsGkAtoms::absoluteList == aListName) {
+      return mAbsoluteContainer.InsertFrames(this, aListName, aPrevFrame,
+                                             aFrameList);
+    }
+    else if (nsGkAtoms::floatList == aListName) {
       mFloats.InsertFrames(this, aPrevFrame, aFrameList);
       return NS_OK;
     }
@@ -5009,6 +5021,10 @@ nsBlockFrame::RemoveFrame(nsIAtom*  aListName,
       MarkSameFloatManagerLinesDirty(this);
     }
   }
+  else if (nsGkAtoms::absoluteList == aListName) {
+    mAbsoluteContainer.RemoveFrame(this, aListName, aOldFrame);
+    return NS_OK;
+  }
   else if (nsGkAtoms::floatList == aListName) {
     
     
@@ -5051,9 +5067,9 @@ nsBlockFrame::DoRemoveOutOfFlowFrame(nsIFrame* aFrame)
   const nsStyleDisplay* display = aFrame->GetStyleDisplay();
   if (display->IsAbsolutelyPositioned()) {
     
-    block->GetAbsoluteContainingBlock()->RemoveFrame(block,
-                                                     nsGkAtoms::absoluteList,
-                                                     aFrame);
+    block->mAbsoluteContainer.RemoveFrame(block,
+                                          nsGkAtoms::absoluteList,
+                                          aFrame);
   }
   else {
     
@@ -6252,6 +6268,8 @@ nsBlockFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   }
 
   aBuilder->MarkFramesForDisplayList(this, mFloats, aDirtyRect);
+  aBuilder->MarkFramesForDisplayList(this, mAbsoluteContainer.GetChildList(),
+                                     aDirtyRect);
 
   
   nsAutoPtr<TextOverflow> textOverflow(
@@ -6515,7 +6533,10 @@ nsBlockFrame::SetInitialChildList(nsIAtom*        aListName,
 {
   nsresult rv = NS_OK;
 
-  if (nsGkAtoms::floatList == aListName) {
+  if (nsGkAtoms::absoluteList == aListName) {
+    mAbsoluteContainer.SetInitialChildList(this, aListName, aChildList);
+  }
+  else if (nsGkAtoms::floatList == aListName) {
     mFloats.SetFrames(aChildList);
   }
   else {

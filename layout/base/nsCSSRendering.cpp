@@ -2545,7 +2545,8 @@ PrepareBackgroundLayer(nsPresContext* aPresContext,
 
   nsIAtom* frameType = aForFrame->GetType();
   nsIFrame* geometryFrame = aForFrame;
-  if (frameType == nsGkAtoms::inlineFrame) {
+  if (frameType == nsGkAtoms::inlineFrame ||
+      frameType == nsGkAtoms::positionedInlineFrame) {
     
     
     

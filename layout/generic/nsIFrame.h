@@ -103,7 +103,6 @@ class gfxSkipChars;
 class gfxSkipCharsIterator;
 class gfxContext;
 class nsLineList_iterator;
-class nsAbsoluteContainingBlock;
 
 struct nsPeekOffsetStruct;
 struct nsPoint;
@@ -285,9 +284,6 @@ typedef PRUint64 nsFrameState;
 
 
 #define NS_FRAME_UPDATE_LAYER_TREE                  NS_FRAME_STATE_BIT(36)
-
-
-#define NS_FRAME_HAS_ABSPOS_CHILDREN                NS_FRAME_STATE_BIT(37)
 
 
 
@@ -578,8 +574,6 @@ protected:
 public:
 
   
-
-
 
 
 
@@ -2707,17 +2701,7 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::EmbeddingLevelProperty()))
       }
     }
   }  
-
   
-
-
-  PRBool IsAbsoluteContainer() const { return !!(mState & NS_FRAME_HAS_ABSPOS_CHILDREN); }
-  PRBool HasAbsolutelyPositionedChildren() const;
-  nsAbsoluteContainingBlock* GetAbsoluteContainingBlock() const;
-  virtual void MarkAsAbsoluteContainingBlock();
-  
-  virtual nsIAtom* GetAbsoluteListName() const { return nsGkAtoms::absoluteList; }
-
 protected:
   
   nsRect           mRect;
@@ -2727,8 +2711,6 @@ protected:
 private:
   nsIFrame*        mNextSibling;  
   nsIFrame*        mPrevSibling;  
-
-  void MarkAbsoluteFramesForDisplayList(nsDisplayListBuilder* aBuilder, const nsRect& aDirtyRect);
 
   static void DestroyPaintedPresShellList(void* propertyValue) {
     nsTArray<nsWeakPtr>* list = static_cast<nsTArray<nsWeakPtr>*>(propertyValue);

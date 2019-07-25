@@ -45,8 +45,10 @@
 
 #include "nsContainerFrame.h"
 #include "nsGkAtoms.h"
+#include "nsAbsoluteContainingBlock.h"
 
 class nsPresContext;
+
 
 
 
@@ -61,6 +63,7 @@ public:
 
   ViewportFrame(nsStyleContext* aContext)
     : nsContainerFrame(aContext)
+    , mFixedContainer(nsGkAtoms::fixedList)
   {}
   virtual ~ViewportFrame() { } 
 
@@ -82,6 +85,10 @@ public:
 
   NS_IMETHOD RemoveFrame(nsIAtom*        aListName,
                          nsIFrame*       aOldFrame);
+
+  virtual nsIAtom* GetAdditionalChildListName(PRInt32 aIndex) const;
+
+  virtual nsFrameList GetChildList(nsIAtom* aListName) const;
 
   NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                               const nsRect&           aDirtyRect,
@@ -111,11 +118,13 @@ public:
   NS_IMETHOD GetFrameName(nsAString& aResult) const;
 #endif
 
-private:
-  virtual nsIAtom* GetAbsoluteListName() const { return nsGkAtoms::fixedList; }
-
 protected:
   nsPoint AdjustReflowStateForScrollbars(nsHTMLReflowState* aReflowState) const;
+
+protected:
+  
+  
+  nsAbsoluteContainingBlock mFixedContainer;
 };
 
 

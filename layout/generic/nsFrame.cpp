@@ -122,7 +122,6 @@
 
 #include "gfxContext.h"
 #include "CSSCalc.h"
-#include "nsAbsoluteContainingBlock.h"
 
 #include "mozilla/Preferences.h"
 
@@ -254,34 +253,6 @@ nsFrame::RootFrameList(nsPresContext* aPresContext, FILE* out, PRInt32 aIndent)
   }
 }
 #endif
-
-static void
-DestroyAbsoluteContainingBlock(void* aPropertyValue)
-{
-  delete static_cast<nsAbsoluteContainingBlock*>(aPropertyValue);
-}
-
-NS_DECLARE_FRAME_PROPERTY(AbsoluteContainingBlockProperty, DestroyAbsoluteContainingBlock)
-
-PRBool
-nsIFrame::HasAbsolutelyPositionedChildren() const {
-  return IsAbsoluteContainer() && GetAbsoluteContainingBlock()->HasAbsoluteFrames();
-}
-
-nsAbsoluteContainingBlock*
-nsIFrame::GetAbsoluteContainingBlock() const {
-  NS_ASSERTION(IsAbsoluteContainer(), "The frame is not marked as an abspos container correctly");
-  nsAbsoluteContainingBlock* absCB = static_cast<nsAbsoluteContainingBlock*>
-    (Properties().Get(AbsoluteContainingBlockProperty()));
-  NS_ASSERTION(absCB, "The frame is marked as an abspos container but doesn't have the property");
-  return absCB;
-}
-
-void
-nsIFrame::MarkAsAbsoluteContainingBlock() {
-  AddStateBits(NS_FRAME_HAS_ABSPOS_CHILDREN);
-  Properties().Set(AbsoluteContainingBlockProperty(), new nsAbsoluteContainingBlock(GetAbsoluteListName()));
-}
 
 void
 NS_MergeReflowStatusInto(nsReflowStatus* aPrimary, nsReflowStatus aSecondary)
@@ -953,23 +924,13 @@ nsIAtom*
 nsFrame::GetAdditionalChildListName(PRInt32 aIndex) const
 {
   NS_PRECONDITION(aIndex >= 0, "invalid index number");
-  
-  
-  if (aIndex == 0) {
-    return GetAbsoluteListName();
-  }
   return nsnull;
 }
 
 nsFrameList
 nsFrame::GetChildList(nsIAtom* aListName) const
 {
-  if (IsAbsoluteContainer() &&
-      aListName == GetAbsoluteListName()) {
-    return GetAbsoluteContainingBlock()->GetChildList();
-  } else {
-    return nsFrameList::EmptyList();
-  }
+  return nsFrameList::EmptyList();
 }
 
 static nsIFrame*
@@ -1489,9 +1450,6 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
       nsSVGIntegrationUtils::GetRequiredSourceForInvalidArea(this, dirtyRect);
   }
 
-  
-  MarkAbsoluteFramesForDisplayList(aBuilder, dirtyRect);
-
   nsDisplayListCollection set;
   nsresult rv;
   {    
@@ -1624,7 +1582,7 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
 
   if (aChild->GetStateBits() & NS_FRAME_TOO_DEEP_IN_FRAME_TREE)
     return NS_OK;
-
+  
   const nsStyleDisplay* disp = aChild->GetStyleDisplay();
   
   PRBool pseudoStackingContext =
@@ -1670,15 +1628,9 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
       dirty.SetEmpty();
     }
     pseudoStackingContext = PR_TRUE;
-  }
-
-  
-  aChild->MarkAbsoluteFramesForDisplayList(aBuilder, dirty);
-
-  if (childType != nsGkAtoms::placeholderFrame &&
-      aBuilder->GetSelectedFramesOnly() &&
-      aChild->IsLeaf() &&
-      !(aChild->GetStateBits() & NS_FRAME_SELECTED_CONTENT)) {
+  } else if (aBuilder->GetSelectedFramesOnly() &&
+             aChild->IsLeaf() &&
+             !(aChild->GetStateBits() & NS_FRAME_SELECTED_CONTENT)) {
     return NS_OK;
   }
 
@@ -1839,15 +1791,6 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
   
   aLists.PositionedDescendants()->AppendToTop(&extraPositionedDescendants);
   return NS_OK;
-}
-
-void
-nsIFrame::MarkAbsoluteFramesForDisplayList(nsDisplayListBuilder* aBuilder,
-                                           const nsRect& aDirtyRect)
-{
-  if (IsAbsoluteContainer()) {
-    aBuilder->MarkFramesForDisplayList(this, GetAbsoluteContainingBlock()->GetChildList(), aDirtyRect);
-  }
 }
 
 void
@@ -3600,7 +3543,6 @@ nsFrame::DidReflow(nsPresContext*           aPresContext,
 {
   NS_FRAME_TRACE_MSG(NS_FRAME_TRACE_CALLS,
                      ("nsFrame::DidReflow: aStatus=%d", aStatus));
-
   if (NS_FRAME_REFLOW_FINISHED == aStatus) {
     mState &= ~(NS_FRAME_IN_REFLOW | NS_FRAME_FIRST_REFLOW | NS_FRAME_IS_DIRTY |
                 NS_FRAME_HAS_DIRTY_CHILDREN);
@@ -3619,55 +3561,6 @@ nsFrame::DidReflow(nsPresContext*           aPresContext,
   }
 
   return NS_OK;
-}
-
-void
-nsFrame::FinishReflowWithAbsoluteFrames(nsPresContext*           aPresContext,
-                                        nsHTMLReflowMetrics&     aDesiredSize,
-                                        const nsHTMLReflowState& aReflowState,
-                                        nsReflowStatus&          aStatus)
-{
-  ReflowAbsoluteFrames(aPresContext, aDesiredSize, aReflowState, aStatus);
-
-  FinishAndStoreOverflow(&aDesiredSize);
-}
-
-void
-nsFrame::DestroyAbsoluteFrames(nsIFrame* aDestructRoot)
-{
-  if (IsAbsoluteContainer()) {
-    GetAbsoluteContainingBlock()->DestroyFrames(this, aDestructRoot);
-  }
-}
-
-void
-nsFrame::ReflowAbsoluteFrames(nsPresContext*           aPresContext,
-                              nsHTMLReflowMetrics&     aDesiredSize,
-                              const nsHTMLReflowState& aReflowState,
-                              nsReflowStatus&          aStatus)
-{
-  if (HasAbsolutelyPositionedChildren()) {
-    nsAbsoluteContainingBlock* absoluteContainer = GetAbsoluteContainingBlock();
-
-    
-    
-
-    
-    nsMargin computedBorder =
-      aReflowState.mComputedBorderPadding - aReflowState.mComputedPadding;
-    nscoord containingBlockWidth =
-      aDesiredSize.width - computedBorder.LeftRight();
-    nscoord containingBlockHeight =
-      aDesiredSize.height - computedBorder.TopBottom();
-
-    nsContainerFrame* container = do_QueryFrame(this);
-    NS_ASSERTION(container, "Abs-pos children only supported on container frames for now");
-
-    absoluteContainer->Reflow(container, aPresContext, aReflowState, aStatus,
-                              containingBlockWidth, containingBlockHeight,
-                              PR_TRUE, PR_TRUE, PR_TRUE, 
-                              &aDesiredSize.mOverflowAreas);
-  }
 }
 
  PRBool
@@ -6270,7 +6163,8 @@ inline PRBool
 IsInlineFrame(nsIFrame *aFrame)
 {
   nsIAtom *type = aFrame->GetType();
-  return type == nsGkAtoms::inlineFrame;
+  return type == nsGkAtoms::inlineFrame ||
+         type == nsGkAtoms::positionedInlineFrame;
 }
 
 void 
@@ -7985,6 +7879,7 @@ void DR_State::InitFrameTypeTable()
   AddFrameTypeInfo(nsGkAtoms::objectFrame,           "obj",       "object");
   AddFrameTypeInfo(nsGkAtoms::pageFrame,             "page",      "page");
   AddFrameTypeInfo(nsGkAtoms::placeholderFrame,      "place",     "placeholder");
+  AddFrameTypeInfo(nsGkAtoms::positionedInlineFrame, "posInline", "positionedInline");
   AddFrameTypeInfo(nsGkAtoms::canvasFrame,           "canvas",    "canvas");
   AddFrameTypeInfo(nsGkAtoms::rootFrame,             "root",      "root");
   AddFrameTypeInfo(nsGkAtoms::scrollFrame,           "scroll",    "scroll");

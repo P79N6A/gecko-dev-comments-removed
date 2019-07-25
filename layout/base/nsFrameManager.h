@@ -124,7 +124,10 @@ public:
   
   NS_HIDDEN_(nsresult) AppendFrames(nsIFrame*       aParentFrame,
                                     nsIAtom*        aListName,
-                                    nsFrameList&    aFrameList);
+                                    nsFrameList&    aFrameList)
+  {
+    return aParentFrame->AppendFrames(aListName, aFrameList);
+  }
 
   NS_HIDDEN_(nsresult) InsertFrames(nsIFrame*       aParentFrame,
                                     nsIAtom*        aListName,
