@@ -74,7 +74,6 @@ function test_processIncoming_error_orderChildren() {
     "/1.0/foo/storage/bookmarks": collection.handler()
   });
 
-
   try {
 
     let folder1_id = Svc.Bookmark.createFolder(
@@ -99,16 +98,18 @@ function test_processIncoming_error_orderChildren() {
       folder1_guid, encryptPayload(folder1_payload));
 
     
+    
     const BOGUS_GUID = "zzzzzzzzzzzz";
-    collection.wbos[BOGUS_GUID] = new ServerWBO(
-      BOGUS_GUID, encryptPayload({
-        id: BOGUS_GUID,
-        type: "folder",
-        title: "Bogus Folder",
-        parentid: null,
-        parentName: null,
-        children: []
-    }));
+    let bogus_record = collection.wbos[BOGUS_GUID]
+      = new ServerWBO(BOGUS_GUID, "I'm a bogus record!");
+    bogus_record.get = function get() {
+      throw "Sync this!";
+    };
+
+    
+    bogus_record.modified = Date.now() / 1000 - 60 * 10;
+    engine.lastSync = Date.now() / 1000 - 60;
+    engine.toFetch = [BOGUS_GUID];
 
     let error;
     try {

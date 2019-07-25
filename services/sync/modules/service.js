@@ -401,6 +401,7 @@ WeaveSvc.prototype = {
     Svc.Obs.add("weave:service:sync:error", this);
     Svc.Obs.add("weave:service:backoff:interval", this);
     Svc.Obs.add("weave:engine:score:updated", this);
+    Svc.Obs.add("weave:engine:sync:apply-failed", this);
     Svc.Obs.add("weave:resource:status:401", this);
     Svc.Prefs.observe("engine.", this);
 
@@ -558,6 +559,14 @@ WeaveSvc.prototype = {
         break;
       case "weave:engine:score:updated":
         this._handleScoreUpdate();
+        break;
+      case "weave:engine:sync:apply-failed":
+        
+        
+        
+        Status.engines = [data, ENGINE_APPLY_FAIL];
+        this._syncError = true;
+        this._log.debug(data + " failed to apply some records.");
         break;
       case "weave:resource:status:401":
         this._handleResource401(subject);

@@ -659,6 +659,298 @@ function test_processIncoming_resume_toFetch() {
 }
 
 
+function test_processIncoming_applyIncomingBatchSize_smaller() {
+  _("Ensure that a number of incoming items less than applyIncomingBatchSize is still applied.");
+  Svc.Prefs.set("clusterURL", "http://localhost:8080/");
+  Svc.Prefs.set("username", "foo");
+
+  
+  const APPLY_BATCH_SIZE = 10;
+  let engine = makeSteamEngine();
+  engine.applyIncomingBatchSize = APPLY_BATCH_SIZE;
+  engine._store._applyIncomingBatch = engine._store.applyIncomingBatch;
+  engine._store.applyIncomingBatch = function (records) {
+    let failed1 = records.shift();
+    let failed2 = records.pop();
+    this._applyIncomingBatch(records);
+    return [failed1.id, failed2.id];
+  };
+
+  
+  let collection = new ServerCollection();
+  for (let i = 0; i < APPLY_BATCH_SIZE - 1; i++) {
+    let id = 'record-no-' + i;
+    let payload = encryptPayload({id: id, denomination: "Record No. " + id});
+    collection.wbos[id] = new ServerWBO(id, payload);
+  }
+
+  let meta_global = Records.set(engine.metaURL, new WBORecord(engine.metaURL));
+  meta_global.payload.engines = {steam: {version: engine.version,
+                                         syncID: engine.syncID}};
+  let server = sync_httpd_setup({
+      "/1.0/foo/storage/steam": collection.handler()
+  });
+  do_test_pending();
+
+  try {
+
+    
+    do_check_eq([id for (id in engine._store.items)].length, 0);
+
+    engine._syncStartup();
+    engine._processIncoming();
+
+    
+    do_check_eq([id for (id in engine._store.items)].length,
+                APPLY_BATCH_SIZE - 1 - 2);
+    do_check_eq(engine.toFetch.length, 2);
+    do_check_eq(engine.toFetch[0], "record-no-0");
+    do_check_eq(engine.toFetch[1], "record-no-8");
+
+  } finally {
+    server.stop(do_test_finished);
+    Svc.Prefs.resetBranch("");
+    Records.clearCache();
+    syncTesting = new SyncTestingInfrastructure(makeSteamEngine);
+  }
+}
+
+
+function test_processIncoming_applyIncomingBatchSize_multiple() {
+  _("Ensure that incoming items are applied according to applyIncomingBatchSize.");
+  Svc.Prefs.set("clusterURL", "http://localhost:8080/");
+  Svc.Prefs.set("username", "foo");
+
+  const APPLY_BATCH_SIZE = 10;
+
+  
+  let engine = makeSteamEngine();
+  engine.applyIncomingBatchSize = APPLY_BATCH_SIZE;
+  let batchCalls = 0;
+  engine._store._applyIncomingBatch = engine._store.applyIncomingBatch;
+  engine._store.applyIncomingBatch = function (records) {
+    batchCalls += 1;
+    do_check_eq(records.length, APPLY_BATCH_SIZE);
+    this._applyIncomingBatch.apply(this, arguments);
+  };
+
+  
+  let collection = new ServerCollection();
+  for (let i = 0; i < APPLY_BATCH_SIZE * 3; i++) {
+    let id = 'record-no-' + i;
+    let payload = encryptPayload({id: id, denomination: "Record No. " + id});
+    collection.wbos[id] = new ServerWBO(id, payload);
+  }
+
+  let meta_global = Records.set(engine.metaURL, new WBORecord(engine.metaURL));
+  meta_global.payload.engines = {steam: {version: engine.version,
+                                         syncID: engine.syncID}};
+  let server = sync_httpd_setup({
+      "/1.0/foo/storage/steam": collection.handler()
+  });
+  do_test_pending();
+
+  try {
+
+    
+    do_check_eq([id for (id in engine._store.items)].length, 0);
+
+    engine._syncStartup();
+    engine._processIncoming();
+
+    
+    do_check_eq(batchCalls, 3);
+    do_check_eq([id for (id in engine._store.items)].length,
+                APPLY_BATCH_SIZE * 3);
+
+  } finally {
+    server.stop(do_test_finished);
+    Svc.Prefs.resetBranch("");
+    Records.clearCache();
+    syncTesting = new SyncTestingInfrastructure(makeSteamEngine);
+  }
+}
+
+
+function test_processIncoming_failed_records() {
+  _("Ensure that failed records from _reconcile and applyIncomingBatch are refetched.");
+  Svc.Prefs.set("clusterURL", "http://localhost:8080/");
+  Svc.Prefs.set("username", "foo");
+
+  
+  
+  Svc.Prefs.set("client.type", "mobile");
+
+  
+  let collection = new ServerCollection();
+  const NUMBER_OF_RECORDS = MOBILE_BATCH_SIZE * 3 + 5;
+  for (var i = 0; i < NUMBER_OF_RECORDS; i++) {
+    let id = 'record-no-' + i;
+    let payload = encryptPayload({id: id, denomination: "Record No. " + id});
+    let wbo = new ServerWBO(id, payload);
+    wbo.modified = Date.now()/1000 + 60 * (i - MOBILE_BATCH_SIZE * 3);
+    collection.wbos[id] = wbo;
+  }
+
+  
+  
+  
+  const BOGUS_RECORDS = ["record-no-" + 42,
+                         "record-no-" + 23,
+                         "record-no-" + (42 + MOBILE_BATCH_SIZE),
+                         "record-no-" + (23 + MOBILE_BATCH_SIZE),
+                         "record-no-" + (42 + MOBILE_BATCH_SIZE * 2),
+                         "record-no-" + (23 + MOBILE_BATCH_SIZE * 2),
+                         "record-no-" + (2 + MOBILE_BATCH_SIZE * 3),
+                         "record-no-" + (1 + MOBILE_BATCH_SIZE * 3)];
+  let engine = makeSteamEngine();
+  engine.applyIncomingBatchSize = MOBILE_BATCH_SIZE;
+
+  engine.__reconcile = engine._reconcile;
+  engine._reconcile = function _reconcile(record) {
+    if (BOGUS_RECORDS.indexOf(record.id) % 2 == 0) {
+      throw "I don't like this record! Baaaaaah!";
+    }
+    return this.__reconcile.apply(this, arguments);
+  };
+  engine._store._applyIncoming = engine._store.applyIncoming;
+  engine._store.applyIncoming = function (record) {
+    if (BOGUS_RECORDS.indexOf(record.id) % 2 == 1) {
+      throw "I don't like this record! Baaaaaah!";
+    }
+    return this._applyIncoming.apply(this, arguments);
+  };
+
+  let meta_global = Records.set(engine.metaURL, new WBORecord(engine.metaURL));
+  meta_global.payload.engines = {steam: {version: engine.version,
+                                         syncID: engine.syncID}};
+  let server = sync_httpd_setup({
+      "/1.0/foo/storage/steam": collection.handler()
+  });
+  do_test_pending();
+
+  try {
+
+    
+    do_check_eq(engine.lastSync, 0);
+    do_check_eq(engine.toFetch.length, 0);
+    do_check_eq([id for (id in engine._store.items)].length, 0);
+
+    let observerSubject;
+    let observerData;
+    Svc.Obs.add("weave:engine:sync:apply-failed",
+                function onApplyFailed(subject, data) {
+      Svc.Obs.remove("weave:engine:sync:apply-failed", onApplyFailed);
+      observerSubject = subject;
+      observerData = data;
+    });
+
+    engine._syncStartup();
+    engine._processIncoming();
+
+    
+    do_check_eq([id for (id in engine._store.items)].length,
+                NUMBER_OF_RECORDS - BOGUS_RECORDS.length);
+
+    
+    do_check_eq(engine.toFetch.length, BOGUS_RECORDS.length);
+    engine.toFetch.sort();
+    BOGUS_RECORDS.sort();
+    for (let i = 0; i < engine.toFetch.length; i++) {
+      do_check_eq(engine.toFetch[i], BOGUS_RECORDS[i]);
+    }
+
+    
+    do_check_eq(observerData, engine.name);
+    do_check_eq(observerSubject.failed, BOGUS_RECORDS.length);
+  } finally {
+    server.stop(do_test_finished);
+    Svc.Prefs.resetBranch("");
+    Records.clearCache();
+    syncTesting = new SyncTestingInfrastructure(makeSteamEngine);
+  }
+}
+
+
+function test_processIncoming_decrypt_failed() {
+  _("Ensure that records failing to decrypt are either replaced or refetched.");
+  Svc.Prefs.set("clusterURL", "http://localhost:8080/");
+  Svc.Prefs.set("username", "foo");
+
+  
+  
+  let collection = new ServerCollection();
+  collection.wbos.flying = new ServerWBO(
+      'flying', encryptPayload({id: 'flying',
+                                denomination: "LNER Class A3 4472"}));
+  collection.wbos.nojson = new ServerWBO("nojson", "This is invalid JSON");
+  collection.wbos.nojson2 = new ServerWBO("nojson2", "This is invalid JSON");
+  collection.wbos.scotsman = new ServerWBO(
+      'scotsman', encryptPayload({id: 'scotsman',
+                                  denomination: "Flying Scotsman"}));
+  collection.wbos.nodecrypt = new ServerWBO("nodecrypt", "Decrypt this!");
+  collection.wbos.nodecrypt2 = new ServerWBO("nodecrypt2", "Decrypt this!");
+
+  
+  Svc.Crypto._decrypt = Svc.Crypto.decrypt;
+  Svc.Crypto.decrypt = function (ciphertext) {
+    if (ciphertext == "Decrypt this!") {
+      throw "Derp! Cipher finalized failed. Im ur crypto destroyin ur recordz.";
+    }
+    return this._decrypt.apply(this, arguments);
+  };
+
+  
+  let engine = makeSteamEngine();
+  engine.enabled = true;
+  engine._store.items = {nojson: "Valid JSON",
+                         nodecrypt: "Valid ciphertext"};
+
+  let meta_global = Records.set(engine.metaURL, new WBORecord(engine.metaURL));
+  meta_global.payload.engines = {steam: {version: engine.version,
+                                         syncID: engine.syncID}};
+  let server = sync_httpd_setup({
+      "/1.0/foo/storage/steam": collection.handler()
+  });
+  do_test_pending();
+
+  try {
+
+    
+    do_check_eq(engine.toFetch.length, 0);
+
+    let observerSubject;
+    let observerData;
+    Svc.Obs.add("weave:engine:sync:apply-failed",
+                function onApplyFailed(subject, data) {
+      Svc.Obs.remove("weave:engine:sync:apply-failed", onApplyFailed);
+      observerSubject = subject;
+      observerData = data;
+    });
+
+    engine.lastSync = collection.wbos.nojson.modified - 1;
+    engine.sync();
+
+    do_check_eq(engine.toFetch.length, 4);
+    do_check_eq(engine.toFetch[0], "nojson");
+    do_check_eq(engine.toFetch[1], "nojson2");
+    do_check_eq(engine.toFetch[2], "nodecrypt");
+    do_check_eq(engine.toFetch[3], "nodecrypt2");
+
+    
+    do_check_eq(observerData, engine.name);
+    do_check_eq(observerSubject.applied, 2);
+    do_check_eq(observerSubject.failed, 4);
+
+  } finally {
+    server.stop(do_test_finished);
+    Svc.Prefs.resetBranch("");
+    Records.clearCache();
+    syncTesting = new SyncTestingInfrastructure(makeSteamEngine);
+  }
+}
+
+
 function test_uploadOutgoing_toEmptyServer() {
   _("SyncEngine._uploadOutgoing uploads new records to server");
 
@@ -1128,6 +1420,10 @@ function run_test() {
   test_processIncoming_mobile_batchSize();
   test_processIncoming_store_toFetch();
   test_processIncoming_resume_toFetch();
+  test_processIncoming_applyIncomingBatchSize_smaller();
+  test_processIncoming_applyIncomingBatchSize_multiple();
+  test_processIncoming_failed_records();
+  test_processIncoming_decrypt_failed();
   test_uploadOutgoing_toEmptyServer();
   test_uploadOutgoing_failed();
   test_uploadOutgoing_MAX_UPLOAD_RECORDS();

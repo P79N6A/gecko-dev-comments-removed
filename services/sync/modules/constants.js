@@ -89,6 +89,9 @@ MASTER_PASSWORD_LOCKED_RETRY_INTERVAL: 15 * 60 * 1000,
 MOBILE_BATCH_SIZE:                     50,
 
 
+DEFAULT_STORE_BATCH_SIZE:              1,
+
+
 SINGLE_USER_THRESHOLD:                 1000,
 MULTI_DESKTOP_THRESHOLD:               500,
 MULTI_MOBILE_THRESHOLD:                100,
@@ -151,6 +154,7 @@ RESPONSE_OVER_QUOTA:                   "14",
 ENGINE_UPLOAD_FAIL:                    "error.engine.reason.record_upload_fail",
 ENGINE_DOWNLOAD_FAIL:                  "error.engine.reason.record_download_fail",
 ENGINE_UNKNOWN_FAIL:                   "error.engine.reason.unknown_fail",
+ENGINE_APPLY_FAIL:                     "error.engine.reason.apply_fail",
 ENGINE_METARECORD_DOWNLOAD_FAIL:       "error.engine.reason.metarecord_download_fail",
 ENGINE_METARECORD_UPLOAD_FAIL:         "error.engine.reason.metarecord_upload_fail",
 
