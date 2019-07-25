@@ -40,7 +40,7 @@
 #include "nsIDOMSVGGElement.h"
 #include "nsGkAtoms.h"
 #include "nsIDOMDocument.h"
-#include "nsIDOMSVGSVGElement.h"
+#include "nsSVGSVGElement.h"
 #include "nsIDOMSVGSymbolElement.h"
 #include "nsIDocument.h"
 #include "nsIPresShell.h"
@@ -289,18 +289,14 @@ nsSVGUseElement::CreateAnonymousContent()
     return nsnull;
 
   
-  if (!HasValidDimensions())
-    return nsnull;
-
-  
 
   
   if (nsContentUtils::ContentIsDescendantOf(this, targetContent))
     return nsnull;
 
   
-  if (this->GetParent() && mOriginal) {
-    for (nsCOMPtr<nsIContent> content = this->GetParent();
+  if (GetParent() && mOriginal) {
+    for (nsCOMPtr<nsIContent> content = GetParent();
          content;
          content = content->GetParent()) {
       nsCOMPtr<nsIDOMSVGUseElement> useElement = do_QueryInterface(content);
@@ -407,43 +403,43 @@ nsSVGUseElement::DestroyAnonymousContent()
 
 
 
-bool nsSVGUseElement::HasValidDimensions()
-{
-  nsSVGSVGElement *ctx = GetCtx();
-
-  return (!mLengthAttributes[WIDTH].IsExplicitlySet() ||
-           mLengthAttributes[WIDTH].GetAnimValue(ctx) > 0) &&
-         (!mLengthAttributes[HEIGHT].IsExplicitlySet() || 
-           mLengthAttributes[HEIGHT].GetAnimValue(ctx) > 0);
-}
-
 void
-nsSVGUseElement::SyncWidthHeight(nsIAtom* aName)
+nsSVGUseElement::SyncWidthOrHeight(nsIAtom* aName)
 {
   NS_ASSERTION(aName == nsGkAtoms::width || aName == nsGkAtoms::height,
                "The clue is in the function name");
 
-  if (HasValidDimensions() == !mClone) {
-    TriggerReclone();
+  if (!mClone) {
     return;
   }
 
-  if (mClone) {
-    nsCOMPtr<nsIDOMSVGSymbolElement> symbol = do_QueryInterface(mClone);
-    nsCOMPtr<nsIDOMSVGSVGElement>    svg    = do_QueryInterface(mClone);
+  nsCOMPtr<nsIDOMSVGSymbolElement> symbol = do_QueryInterface(mClone);
+  nsCOMPtr<nsIDOMSVGSVGElement>    svg    = do_QueryInterface(mClone);
 
-    if (symbol || svg) {
-      PRUint32 index = *sLengthInfo[WIDTH].mName == aName ? WIDTH : HEIGHT;
-      if (mLengthAttributes[index].IsExplicitlySet()) {
-        static_cast<nsSVGElement*>(mClone.get())->
-          SetLength(aName, mLengthAttributes[index]);
-      } else {
-        
-        
-        
-        TriggerReclone();
-      }
+  if (symbol || svg) {
+    nsSVGElement *target = static_cast<nsSVGElement*>(mClone.get());
+    PRUint32 index = *sLengthInfo[WIDTH].mName == aName ? WIDTH : HEIGHT;
+
+    if (mLengthAttributes[index].IsExplicitlySet()) {
+      target->SetLength(aName, mLengthAttributes[index]);
+      return;
     }
+    if (svg) {
+      
+      
+      
+      nsSVGSVGElement* svgElement =
+        static_cast<nsSVGSVGElement*>(mSource.get());
+      svgElement->SyncWidthOrHeight(aName, target);
+      return;
+    }
+    
+    
+    nsSVGLength2 length;
+    length.Init(nsSVGUtils::XY, 0xff,
+                100, nsIDOMSVGLength::SVG_LENGTHTYPE_PERCENTAGE);
+    target->SetLength(aName, length);
+    return;
   }
 }
 
@@ -509,6 +505,15 @@ nsSVGUseElement::PrependLocalTransformsTo(const gfxMatrix &aMatrix,
   }
   NS_ABORT_IF_FALSE(aWhich == eAllTransforms, "Unknown TransformTypes");
   return toUserSpace * fromUserSpace;
+}
+
+ bool
+nsSVGUseElement::HasValidDimensions() const
+{
+  return (!mLengthAttributes[WIDTH].IsExplicitlySet() ||
+           mLengthAttributes[WIDTH].GetAnimValInSpecifiedUnits() > 0) &&
+         (!mLengthAttributes[HEIGHT].IsExplicitlySet() || 
+           mLengthAttributes[HEIGHT].GetAnimValInSpecifiedUnits() > 0);
 }
 
 nsSVGElement::LengthAttributesInfo

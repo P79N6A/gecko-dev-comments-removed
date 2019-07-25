@@ -71,6 +71,7 @@ public:
   
   virtual gfxMatrix PrependLocalTransformsTo(const gfxMatrix &aMatrix,
                       TransformTypes aWhich = eAllTransforms) const;
+  virtual bool HasValidDimensions() const;
 
   
   NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* name) const;
