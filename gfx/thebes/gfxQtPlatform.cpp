@@ -570,14 +570,13 @@ gfxQtPlatform::SetPrefFontEntries(const nsCString& aKey, nsTArray<nsRefPtr<gfxFo
 {
     mPrefFonts.Put(aKey, array);
 }
+
 #endif
 
-void
-gfxQtPlatform::InitDisplayCaps()
+PRInt32
+gfxQtPlatform::GetDPI()
 {
     QDesktopWidget* rootWindow = qApp->desktop();
-    sDPI = rootWindow->logicalDpiY(); 
-    if (sDPI <= 0)
-        sDPI = 96; 
+    PRInt32 dpi = rootWindow->logicalDpiY(); 
+    return dpi <= 0 ? 96 : dpi;
 }
-
