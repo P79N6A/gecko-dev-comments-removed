@@ -350,9 +350,13 @@ static CaptionButtonPadding buttonData[3] = {
 
 
 
-static const PRInt32 kProgressVistaOverlayWidth = 120;
+static const PRInt32 kProgressHorizontalVistaOverlaySize = 120;
 
-static const PRInt32 kProgressXPOverlayWidth = 55;
+static const PRInt32 kProgressHorizontalXPOverlaySize = 55;
+
+static const PRInt32 kProgressVerticalOverlaySize = 45;
+
+static const PRInt32 kProgressVerticalIndeterminateOverlaySize = 60;
 
 static const double kProgressDeterminedVistaSpeed = 0.225;
 
@@ -672,17 +676,24 @@ nsNativeThemeWin::GetThemePartAndState(nsIFrame* aFrame, PRUint8 aWidgetType,
       return NS_OK;
     }
     case NS_THEME_PROGRESSBAR: {
-      aPart = PP_BAR;
+      aPart = IsVerticalProgress(aFrame) ? PP_BARVERT : PP_BAR;
       aState = TS_NORMAL;
       return NS_OK;
     }
     case NS_THEME_PROGRESSBAR_CHUNK: {
       nsIFrame* stateFrame = aFrame->GetParent();
       nsEventStates eventStates = GetContentState(stateFrame, aWidgetType);
-      
-      
-      aPart = IsIndeterminateProgress(stateFrame, eventStates)
-                ? -1 : nsUXThemeData::sIsVistaOrLater ? PP_FILL : PP_CHUNK;
+
+      if (IsIndeterminateProgress(stateFrame, eventStates)) {
+        
+        
+        aPart = -1;
+      } else if (IsVerticalProgress(stateFrame)) {
+        aPart = nsUXThemeData::sIsVistaOrLater ? PP_FILLVERT : PP_CHUNKVERT;
+      } else {
+        aPart = nsUXThemeData::sIsVistaOrLater ? PP_FILL : PP_CHUNK;
+      }
+
       aState = TS_NORMAL;
       return NS_OK;
     }
@@ -1567,43 +1578,75 @@ RENDER_AGAIN:
     nsIFrame* stateFrame = aFrame->GetParent();
     nsEventStates eventStates = GetContentState(stateFrame, aWidgetType);
     bool indeterminate = IsIndeterminateProgress(stateFrame, eventStates);
+    bool vertical = IsVerticalProgress(stateFrame);
 
     if (indeterminate || nsUXThemeData::sIsVistaOrLater) {
       if (!QueueAnimatedContentForRefresh(aFrame->GetContent(), 60)) {
         NS_WARNING("unable to animate progress widget!");
       }
 
-      const PRInt32 overlayWidth = nsUXThemeData::sIsVistaOrLater
-                                     ? kProgressVistaOverlayWidth
-                                     : kProgressXPOverlayWidth;
+      
+
+
+
+
+
+      PRInt32 overlaySize;
+      if (nsUXThemeData::sIsVistaOrLater) {
+        if (vertical) {
+          overlaySize = indeterminate ? kProgressVerticalIndeterminateOverlaySize
+                                      : kProgressVerticalOverlaySize;
+        } else {
+          overlaySize = kProgressHorizontalVistaOverlaySize;
+        }
+      } else {
+        overlaySize = kProgressHorizontalXPOverlaySize;
+      }
+
       const double pixelsPerMillisecond = indeterminate
                                             ? kProgressIndeterminateSpeed
                                             : kProgressDeterminedVistaSpeed;
       const PRInt32 delay = indeterminate ? kProgressIndeterminateDelay
                                           : kProgressDeterminedVistaDelay;
 
-      const PRInt32 frameWidth = widgetRect.right - widgetRect.left;
-      const PRInt32 animationWidth = frameWidth + overlayWidth +
+      const PRInt32 frameSize = vertical ? widgetRect.bottom - widgetRect.top
+                                         : widgetRect.right - widgetRect.left;
+      const PRInt32 animationSize = frameSize + overlaySize +
                                      static_cast<PRInt32>(pixelsPerMillisecond * delay);
-      const double interval = animationWidth / pixelsPerMillisecond;
+      const double interval = animationSize / pixelsPerMillisecond;
       
       double tempValue;
       double ratio = modf(PR_IntervalToMilliseconds(PR_IntervalNow())/interval,
                           &tempValue);
       
       
-      if (IsFrameRTL(aFrame)) {
+      if (!vertical && IsFrameRTL(aFrame)) {
         ratio = 1.0 - ratio;
       }
-      PRInt32 dx = static_cast<PRInt32>(animationWidth * ratio) - overlayWidth;
+      PRInt32 dx = static_cast<PRInt32>(animationSize * ratio) - overlaySize;
 
       RECT overlayRect = widgetRect;
-      overlayRect.left += dx;
-      overlayRect.right = overlayRect.left + overlayWidth;
-      nsUXThemeData::drawThemeBG(theme, hdc,
-                                 nsUXThemeData::sIsVistaOrLater ? PP_MOVEOVERLAY
-                                                                : PP_CHUNK,
-                                 state, &overlayRect, &clipRect);
+      if (vertical) {
+        overlayRect.bottom -= dx;
+        overlayRect.top = overlayRect.bottom - overlaySize;
+      } else {
+        overlayRect.left += dx;
+        overlayRect.right = overlayRect.left + overlaySize;
+      }
+
+      PRInt32 overlayPart;
+      if (vertical) {
+        if (nsUXThemeData::sIsVistaOrLater) {
+          overlayPart = indeterminate ? PP_MOVEOVERLAY : PP_MOVEOVERLAYVERT;
+        } else {
+          overlayPart = PP_CHUNKVERT;
+        }
+      } else {
+        overlayPart = nsUXThemeData::sIsVistaOrLater ? PP_MOVEOVERLAY : PP_CHUNK;
+      }
+
+      nsUXThemeData::drawThemeBG(theme, hdc, overlayPart, state, &overlayRect,
+                                 &clipRect);
     }
   }
 
