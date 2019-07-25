@@ -109,6 +109,11 @@ enum FlipStyle {
 #define POPUPALIGNMENT_BOTTOMLEFT 2
 #define POPUPALIGNMENT_BOTTOMRIGHT -2
 
+#define POPUPALIGNMENT_LEFTCENTER 16
+#define POPUPALIGNMENT_RIGHTCENTER 17
+#define POPUPALIGNMENT_TOPCENTER 18
+#define POPUPALIGNMENT_BOTTOMCENTER 19
+
 #define INC_TYP_INTERVAL  1000  // 1s. If the interval between two keypresses is shorter than this, 
                                 
 
@@ -354,7 +359,7 @@ protected:
   
   
   
-  nsPoint AdjustPositionForAnchorAlign(const nsRect& anchorRect,
+  nsPoint AdjustPositionForAnchorAlign(nsRect& anchorRect,
                                        FlipStyle& aHFlip, FlipStyle& aVFlip);
 
   
