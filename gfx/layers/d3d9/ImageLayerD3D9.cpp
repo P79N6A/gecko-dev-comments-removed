@@ -622,10 +622,6 @@ CairoImageD3D9::SetData(const CairoImage::Data &aData)
   mSize = aData.mSize;
   mCachedSurface = aData.mSurface;
   mTexture = NULL;
-
-  
-  
-  (void) GetOrCreateTexture();
 }
 
 IDirect3DTexture9*
