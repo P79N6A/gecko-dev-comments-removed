@@ -918,15 +918,16 @@ ThreadActor.prototype = {
 
 
   onNewScript: function TA_onNewScript(aScript, aGlobal) {
-    this._addScript(aScript);
-    
-    this.conn.send({
-      from: this.actorID,
-      type: "newScript",
-      url: aScript.url,
-      startLine: aScript.startLine,
-      lineCount: aScript.lineCount
-    });
+    if (this._addScript(aScript)) {
+      
+      this.conn.send({
+        from: this.actorID,
+        type: "newScript",
+        url: aScript.url,
+        startLine: aScript.startLine,
+        lineCount: aScript.lineCount
+      });
+    }
   },
 
   
@@ -935,14 +936,15 @@ ThreadActor.prototype = {
 
 
 
+
   _addScript: function TA__addScript(aScript) {
     
     if (aScript.url.indexOf("chrome://") == 0) {
-      return;
+      return false;
     }
     
     if (aScript.url.indexOf("about:") == 0) {
-      return;
+      return false;
     }
     
     
@@ -965,6 +967,7 @@ ThreadActor.prototype = {
         }
       }
     }
+    return true;
   }
 
 };
