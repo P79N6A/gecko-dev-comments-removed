@@ -1148,7 +1148,7 @@ nsHyperTextAccessible::GetTextAttributes(bool aIncludeDefAttrs,
   
   nsIFrame *offsetFrame = accAtOffset->GetFrame();
   if (offsetFrame && offsetFrame->GetType() == nsGkAtoms::textFrame) {
-    nsCOMPtr<nsIDOMNode> node = accAtOffset->DOMNode();
+    nsCOMPtr<nsIDOMNode> node = accAtOffset->GetDOMNode();
 
     PRInt32 nodeOffset = 0;
     nsresult rv = RenderedToContentOffset(offsetFrame, offsetInAcc,
@@ -2255,8 +2255,10 @@ nsHyperTextAccessible::GetDOMPointByFrameOffset(nsIFrame *aFrame,
   if (!aFrame) {
     
     
+    nsCOMPtr<nsIAccessNode> accessNode(do_QueryInterface(aAccessible));
+
     nsCOMPtr<nsIDOMNode> DOMNode;
-    aAccessible->GetDOMNode(getter_AddRefs(DOMNode));
+    accessNode->GetDOMNode(getter_AddRefs(DOMNode));
     nsCOMPtr<nsIContent> content(do_QueryInterface(DOMNode));
     NS_ENSURE_STATE(content);
 

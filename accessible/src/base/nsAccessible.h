@@ -132,17 +132,6 @@ public:
   
 
 
-  inline already_AddRefed<nsIDOMNode> DOMNode() const
-  {
-    nsIDOMNode *DOMNode = nsnull;
-    if (GetNode())
-      CallQueryInterface(GetNode(), &DOMNode);
-    return DOMNode;
-  }
-
-  
-
-
   nsresult GetARIAName(nsAString& aName);
 
   
