@@ -63,8 +63,8 @@
 
 
 #if defined(EVENT_DEBUG_OUTPUT)
-#define SHOW_REPEAT_EVENTS      PR_TRUE
-#define SHOW_MOUSEMOVE_EVENTS   PR_FALSE
+#define SHOW_REPEAT_EVENTS      true
+#define SHOW_MOUSEMOVE_EVENTS   false
 #endif 
 
 #if defined(POPUP_ROLLUP_DEBUG_OUTPUT) || defined(EVENT_DEBUG_OUTPUT) || 1

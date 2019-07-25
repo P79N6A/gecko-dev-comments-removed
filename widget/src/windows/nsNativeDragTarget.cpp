@@ -64,7 +64,7 @@ nsNativeDragTarget::nsNativeDragTarget(nsIWidget * aWnd)
   : m_cRef(0), 
     mEffectsAllowed(DROPEFFECT_MOVE | DROPEFFECT_COPY | DROPEFFECT_LINK),
     mEffectsPreferred(DROPEFFECT_NONE),
-    mTookOwnRef(PR_FALSE), mWindow(aWnd), mDropTargetHelper(nsnull)
+    mTookOwnRef(false), mWindow(aWnd), mDropTargetHelper(nsnull)
 {
   mHWnd = (HWND)mWindow->GetNativeData(NS_NATIVE_WINDOW);
 
@@ -187,7 +187,7 @@ void
 nsNativeDragTarget::DispatchDragDropEvent(PRUint32 aEventType, POINTL aPT)
 {
   nsEventStatus status;
-  nsDragEvent event(PR_TRUE, aEventType, mWindow);
+  nsDragEvent event(true, aEventType, mWindow);
 
   nsWindow * win = static_cast<nsWindow *>(mWindow);
   win->InitEvent(event);
@@ -207,7 +207,7 @@ nsNativeDragTarget::DispatchDragDropEvent(PRUint32 aEventType, POINTL aPT)
 
   event.isShift   = IsKeyDown(NS_VK_SHIFT);
   event.isControl = IsKeyDown(NS_VK_CONTROL);
-  event.isMeta    = PR_FALSE;
+  event.isMeta    = false;
   event.isAlt     = IsKeyDown(NS_VK_ALT);
   event.inputSource = static_cast<nsBaseDragService*>(mDragService)->GetInputSource();
 
@@ -247,7 +247,7 @@ nsNativeDragTarget::ProcessDrag(PRUint32     aEventType,
   }
 
   
-  currSession->SetCanDrop(PR_FALSE);
+  currSession->SetCanDrop(false);
 }
 
 
@@ -273,7 +273,7 @@ nsNativeDragTarget::DragEnter(LPDATAOBJECT pIDataSource,
   
   NS_ASSERTION(!mTookOwnRef, "own ref already taken!");
   this->AddRef();
-  mTookOwnRef = PR_TRUE;
+  mTookOwnRef = true;
 
   
   
@@ -382,7 +382,7 @@ nsNativeDragTarget::DragLeave()
       
       
       
-      mDragService->EndDragSession(PR_FALSE);
+      mDragService->EndDragSession(false);
     }
   }
 
@@ -390,7 +390,7 @@ nsNativeDragTarget::DragLeave()
   NS_ASSERTION(mTookOwnRef, "want to release own ref, but not taken!");
   if (mTookOwnRef) {
     this->Release();
-    mTookOwnRef = PR_FALSE;
+    mTookOwnRef = false;
   }
 
   return S_OK;
@@ -405,10 +405,10 @@ nsNativeDragTarget::DragCancel()
       mDropTargetHelper->DragLeave();
     }
     if (mDragService) {
-      mDragService->EndDragSession(PR_FALSE);
+      mDragService->EndDragSession(false);
     }
     this->Release(); 
-    mTookOwnRef = PR_FALSE;
+    mTookOwnRef = false;
   }
 }
 
@@ -466,13 +466,13 @@ nsNativeDragTarget::Drop(LPDATAOBJECT pData,
   cpos.x = GET_X_LPARAM(pos);
   cpos.y = GET_Y_LPARAM(pos);
   winDragService->SetDragEndPoint(nsIntPoint(cpos.x, cpos.y));
-  serv->EndDragSession(PR_TRUE);
+  serv->EndDragSession(true);
 
   
   NS_ASSERTION(mTookOwnRef, "want to release own ref, but not taken!");
   if (mTookOwnRef) {
     this->Release();
-    mTookOwnRef = PR_FALSE;
+    mTookOwnRef = false;
   }
 
   return S_OK;
