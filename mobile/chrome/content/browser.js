@@ -655,7 +655,7 @@ var Browser = {
     if (aBringFront)
       this.selectedTab = newTab;
 
-    let getAttention = (!aBringFront || params.getAttention);
+    let getAttention = ("getAttention" in params ? params.getAttention : !aBringFront);
     let event = document.createEvent("UIEvents");
     event.initUIEvent("TabOpen", true, false, window, getAttention);
     newTab.chromeTab.dispatchEvent(event);
@@ -2119,6 +2119,11 @@ var ContentCrashObserver = {
       event.lastTab = null;
       Browser.selectedTab.chromeTab.dispatchEvent(event);
     } else {
+      
+      
+      if (Browser.tabs.length == 1)
+        Browser.addTab(Browser.getHomePage(), false, null, { getAttention: false });
+
       
       
       Browser.closeTab(Browser.selectedTab);
