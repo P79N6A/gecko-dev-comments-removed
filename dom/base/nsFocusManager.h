@@ -57,6 +57,7 @@ struct nsDelayedBlurOrFocusEvent;
 
 
 class nsFocusManager : public nsIFocusManager,
+                       public nsIFocusManager_MOZILLA_2_0_BRANCH,
                        public nsIObserver,
                        public nsSupportsWeakReference
 {
@@ -66,6 +67,7 @@ public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_NSIOBSERVER
   NS_DECL_NSIFOCUSMANAGER
+  NS_DECL_NSIFOCUSMANAGER_MOZILLA_2_0_BRANCH
 
   
   static nsresult Init();
@@ -146,7 +148,9 @@ protected:
 
 
 
-  void SetFocusInner(nsIContent* aNewContent, PRInt32 aFlags, PRBool aFocusChanged);
+
+  void SetFocusInner(nsIContent* aNewContent, PRInt32 aFlags,
+                     PRBool aFocusChanged, PRBool aAdjustWidget);
 
   
 
@@ -217,11 +221,16 @@ protected:
 
 
 
+
+
   PRBool Blur(nsPIDOMWindow* aWindowToClear,
               nsPIDOMWindow* aAncestorWindowToFocus,
-              PRBool aIsLeavingDocument);
+              PRBool aIsLeavingDocument,
+              PRBool aAdjustWidget);
 
   
+
+
 
 
 
@@ -250,7 +259,8 @@ protected:
              PRUint32 aFlags,
              PRBool aIsNewDocument,
              PRBool aFocusChanged,
-             PRBool aWindowRaised);
+             PRBool aWindowRaised,
+             PRBool aAdjustWidget);
 
   
 

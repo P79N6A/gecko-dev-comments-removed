@@ -361,7 +361,7 @@ NS_IMETHODIMP nsFocusManager::SetFocusedWindow(nsIDOMWindow* aWindowToFocus)
   if (frameContent) {
     
     
-    SetFocusInner(frameContent, 0, PR_FALSE);
+    SetFocusInner(frameContent, 0, PR_FALSE, PR_TRUE);
   }
   else {
     
@@ -424,7 +424,7 @@ nsFocusManager::SetFocus(nsIDOMElement* aElement, PRUint32 aFlags)
   nsCOMPtr<nsIContent> newFocus = do_QueryInterface(aElement);
   NS_ENSURE_ARG(newFocus);
 
-  SetFocusInner(newFocus, aFlags, PR_TRUE);
+  SetFocusInner(newFocus, aFlags, PR_TRUE, PR_TRUE);
 
   return NS_OK;
 }
@@ -488,7 +488,7 @@ nsFocusManager::MoveFocus(nsIDOMWindow* aWindow, nsIDOMElement* aStartElement,
     
     
     
-    SetFocusInner(newFocus, aFlags, aType != MOVEFOCUS_CARET);
+    SetFocusInner(newFocus, aFlags, aType != MOVEFOCUS_CARET, PR_TRUE);
     CallQueryInterface(newFocus, aElement);
   }
   else if (aType == MOVEFOCUS_ROOT || aType == MOVEFOCUS_CARET) {
@@ -521,11 +521,11 @@ nsFocusManager::ClearFocus(nsIDOMWindow* aWindow)
 
   if (IsSameOrAncestor(window, mFocusedWindow)) {
     PRBool isAncestor = (window != mFocusedWindow);
-    if (Blur(window, nsnull, isAncestor)) {
+    if (Blur(window, nsnull, isAncestor, PR_TRUE)) {
       
       
       if (isAncestor)
-        Focus(window, nsnull, 0, PR_TRUE, PR_FALSE, PR_FALSE);
+        Focus(window, nsnull, 0, PR_TRUE, PR_FALSE, PR_FALSE, PR_TRUE);
     }
   }
   else {
@@ -696,7 +696,7 @@ nsFocusManager::WindowRaised(nsIDOMWindow* aWindow)
     frameSelection->SetMouseDownState(PR_FALSE);
   }
 
-  Focus(currentWindow, currentFocus, 0, PR_TRUE, PR_FALSE, PR_TRUE);
+  Focus(currentWindow, currentFocus, 0, PR_TRUE, PR_FALSE, PR_TRUE, PR_TRUE);
 
   return NS_OK;
 }
@@ -749,7 +749,7 @@ nsFocusManager::WindowLowered(nsIDOMWindow* aWindow)
   mActiveWindow = nsnull;
 
   if (mFocusedWindow)
-    Blur(nsnull, nsnull, PR_TRUE);
+    Blur(nsnull, nsnull, PR_TRUE, PR_TRUE);
 
   mWindowBeingLowered = nsnull;
 
@@ -839,7 +839,7 @@ nsFocusManager::WindowShown(nsIDOMWindow* aWindow, PRBool aNeedsFocus)
     nsCOMPtr<nsIContent> currentFocus =
       GetFocusedDescendant(window, PR_TRUE, getter_AddRefs(currentWindow));
     if (currentWindow)
-      Focus(currentWindow, currentFocus, 0, PR_TRUE, PR_FALSE, PR_FALSE);
+      Focus(currentWindow, currentFocus, 0, PR_TRUE, PR_FALSE, PR_FALSE, PR_TRUE);
   }
   else {
     
@@ -979,6 +979,14 @@ nsFocusManager::FireDelayedEvents(nsIDocument* aDocument)
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsFocusManager::FocusPlugin(nsIContent* aContent)
+{
+  NS_ENSURE_ARG(aContent);
+  SetFocusInner(aContent, 0, PR_TRUE, PR_FALSE);
+  return NS_OK;
+}
+
 
 void
 nsFocusManager::EnsureCurrentWidgetFocused()
@@ -1006,7 +1014,7 @@ nsFocusManager::EnsureCurrentWidgetFocused()
 
 void
 nsFocusManager::SetFocusInner(nsIContent* aNewContent, PRInt32 aFlags,
-                              PRBool aFocusChanged)
+                              PRBool aFocusChanged, PRBool aAdjustWidget)
 {
   
   nsCOMPtr<nsIContent> contentToFocus = CheckIfFocusable(aNewContent, aFlags);
@@ -1160,12 +1168,12 @@ nsFocusManager::SetFocusInner(nsIContent* aNewContent, PRInt32 aFlags,
         commonAncestor = GetCommonAncestor(newWindow, mFocusedWindow);
 
       if (!Blur(currentIsSameOrAncestor ? mFocusedWindow.get() : nsnull,
-                commonAncestor, !isElementInFocusedWindow))
+                commonAncestor, !isElementInFocusedWindow, aAdjustWidget))
         return;
     }
 
     Focus(newWindow, contentToFocus, aFlags, !isElementInFocusedWindow,
-          aFocusChanged, PR_FALSE);
+          aFocusChanged, PR_FALSE, aAdjustWidget);
   }
   else {
     
@@ -1396,7 +1404,8 @@ nsFocusManager::CheckIfFocusable(nsIContent* aContent, PRUint32 aFlags)
 PRBool
 nsFocusManager::Blur(nsPIDOMWindow* aWindowToClear,
                      nsPIDOMWindow* aAncestorWindowToFocus,
-                     PRBool aIsLeavingDocument)
+                     PRBool aIsLeavingDocument,
+                     PRBool aAdjustWidgets)
 {
   
   nsCOMPtr<nsIContent> content = mFocusedContent;
@@ -1469,7 +1478,7 @@ nsFocusManager::Blur(nsPIDOMWindow* aWindowToClear,
     
     
     
-    if (mActiveWindow) {
+    if (mActiveWindow && aAdjustWidgets) {
       nsIFrame* contentFrame = content->GetPrimaryFrame();
       nsIObjectFrame* objectFrame = do_QueryFrame(contentFrame);
       if (objectFrame) {
@@ -1558,7 +1567,8 @@ nsFocusManager::Focus(nsPIDOMWindow* aWindow,
                       PRUint32 aFlags,
                       PRBool aIsNewDocument,
                       PRBool aFocusChanged,
-                      PRBool aWindowRaised)
+                      PRBool aWindowRaised,
+                      PRBool aAdjustWidgets)
 {
   if (!aWindow)
     return;
@@ -1627,12 +1637,23 @@ nsFocusManager::Focus(nsPIDOMWindow* aWindow,
   mFocusedWindow = aWindow;
 
   
-  nsIViewManager* vm = presShell->GetViewManager();
-  if (vm) {
-    nsCOMPtr<nsIWidget> widget;
-    vm->GetRootWidget(getter_AddRefs(widget));
-    if (widget)
-      widget->SetFocus(PR_FALSE);
+  
+  
+  nsCOMPtr<nsIWidget> objectFrameWidget;
+  if (aContent) {
+    nsIFrame* contentFrame = aContent->GetPrimaryFrame();
+    nsIObjectFrame* objectFrame = do_QueryFrame(contentFrame);
+    if (objectFrame)
+      objectFrameWidget = objectFrame->GetWidget();
+  }
+  if (aAdjustWidgets && !objectFrameWidget) {
+    nsIViewManager* vm = presShell->GetViewManager();
+    if (vm) {
+      nsCOMPtr<nsIWidget> widget;
+      vm->GetRootWidget(getter_AddRefs(widget));
+      if (widget)
+        widget->SetFocus(PR_FALSE);
+    }
   }
 
   
@@ -1674,14 +1695,9 @@ nsFocusManager::Focus(nsPIDOMWindow* aWindow,
       
       
       
-      if (presShell->GetDocument() == aContent->GetDocument()) {
-        nsIFrame* contentFrame = aContent->GetPrimaryFrame();
-        nsIObjectFrame* objectFrame = do_QueryFrame(contentFrame);
-        if (objectFrame) {
-          nsIWidget* widget = objectFrame->GetWidget();
-          if (widget)
-            widget->SetFocus(PR_FALSE);
-        }
+      if (aAdjustWidgets && presShell->GetDocument() == aContent->GetDocument()) {
+        if (objectFrameWidget)
+          objectFrameWidget->SetFocus(PR_FALSE);
       }
 
       nsIMEStateManager::OnChangeFocus(presContext, aContent);
@@ -1708,6 +1724,20 @@ nsFocusManager::Focus(nsPIDOMWindow* aWindow,
     }
   }
   else {
+    
+    
+    
+    if (aAdjustWidgets && objectFrameWidget &&
+        mFocusedWindow == aWindow && mFocusedContent == nsnull) {
+      nsIViewManager* vm = presShell->GetViewManager();
+      if (vm) {
+        nsCOMPtr<nsIWidget> widget;
+        vm->GetRootWidget(getter_AddRefs(widget));
+        if (widget)
+          widget->SetFocus(PR_FALSE);
+      }
+    }
+
     nsPresContext* presContext = presShell->GetPresContext();
     nsIMEStateManager::OnTextStateBlur(presContext, nsnull);
     nsIMEStateManager::OnChangeFocus(presContext, nsnull);
@@ -2473,7 +2503,7 @@ nsFocusManager::DetermineElementToMoveFocus(nsPIDOMWindow* aWindow,
       if (tookFocus) {
         nsCOMPtr<nsPIDOMWindow> window = do_GetInterface(docShell);
         if (window->GetFocusedNode() == mFocusedContent)
-          Blur(mFocusedWindow, nsnull, PR_TRUE);
+          Blur(mFocusedWindow, nsnull, PR_TRUE, PR_TRUE);
         else
           window->SetFocusedNode(nsnull);
         return NS_OK;

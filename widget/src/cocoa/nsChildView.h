@@ -236,6 +236,10 @@ extern "C" long TSMProcessRawKeyEvent(EventRef carbonEvent);
 
 
 
+- (BOOL)isInFailingLeftClickThrough;
+
+
+
 
 
 
@@ -409,6 +413,8 @@ public:
 
   void PaintQD();
 
+  nsCocoaWindow*    GetXULWindowWidget();
+
   NS_IMETHOD        ReparentNativeWidget(nsIWidget* aNewParent);
 protected:
 
@@ -420,7 +426,6 @@ protected:
   
   virtual NSView*   CreateCocoaView(NSRect inFrame);
   void              TearDownView();
-  nsCocoaWindow*    GetXULWindowWidget();
 
   virtual already_AddRefed<nsIWidget>
   AllocateChildPopupWidget()
