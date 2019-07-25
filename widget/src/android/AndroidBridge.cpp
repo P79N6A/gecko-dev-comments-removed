@@ -84,7 +84,7 @@ AndroidBridge::ConstructBridge(JNIEnv *jEnv,
 
 
 
-    putenv(strdup("NSS_DISABLE_UNLOAD=1"));
+    putenv("NSS_DISABLE_UNLOAD=1"); 
 
     sBridge = new AndroidBridge();
     if (!sBridge->Init(jEnv, jGeckoAppShellClass)) {
