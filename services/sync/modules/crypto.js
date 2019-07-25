@@ -46,6 +46,8 @@ Cu.import("resource://weave/log4moz.js");
 Cu.import("resource://weave/constants.js");
 Cu.import("resource://weave/util.js");
 
+Function.prototype.async = generatorAsync;
+
 function WeaveCrypto() {
   this._init();
 }
@@ -60,14 +62,14 @@ WeaveCrypto.prototype = {
     return this.__os;
   },
 
-  __xxxtea: {},
-  __xxxteaLoaded: false,
-  get _xxxtea() {
-    if (!this.__xxxteaLoaded) {
-      Cu.import("resource://weave/xxxtea.js", this.__xxxtea);
-      this.__xxxteaLoaded = true;
+  __xxtea: {},
+  __xxteaLoaded: false,
+  get _xxtea() {
+    if (!this.__xxteaLoaded) {
+      Cu.import("resource://weave/xxtea.js", this.__xxtea);
+      this.__xxteaLoaded = true;
     }
-    return this.__xxxtea;
+    return this.__xxtea;
   },
 
   get defaultAlgorithm() {
@@ -108,12 +110,13 @@ WeaveCrypto.prototype = {
       case "none":
         this._log.info("Encryption disabled");
         break;
-      case "XXXTEA":
+      case "XXTEA":
+      case "XXXTEA": 
         this._log.info("Using encryption algorithm: " + data);
         break;
       default:
 	this._log.warn("Unknown encryption algorithm, resetting");
-	branch.setCharPref("extensions.weave.encryption", "XXXTEA");
+	branch.setCharPref("extensions.weave.encryption", "XXTEA");
 	return; 
       }
       
@@ -126,59 +129,85 @@ WeaveCrypto.prototype = {
 
   
 
-  PBEencrypt: function Crypto_PBEencrypt(data, identity, algorithm) {
-    if (!algorithm)
-      algorithm = this.defaultAlgorithm;
+  PBEencrypt: function Crypto_PBEencrypt(onComplete, data, identity, algorithm) {
+    let [self, cont] = yield;
+    let listener = new EventListener(cont);
+    let timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+    let ret;
 
-    if (algorithm == "none") 
-      return data;
-
-    let out;
     try {
-      this._log.debug("Encrypting data");
+      if (!algorithm)
+        algorithm = this.defaultAlgorithm;
 
       switch (algorithm) {
-      case "XXXTEA":
-        out = this._xxxtea.encrypt(data, identity.password);
+      case "none":
+        ret = data;
+      case "XXTEA":
+      case "XXXTEA": 
+        this._log.debug("Encrypting data");
+        let gen = this._xxtea.encrypt(data, identity.password);
+        ret = gen.next();
+        while (typeof(ret) == "object") {
+          timer.initWithCallback(listener, 0, timer.TYPE_ONE_SHOT);
+          yield; 
+          ret = gen.next();
+        }
+        gen.close();
+        this._log.debug("Done encrypting data");
         break;
       default:
         throw "Unknown encryption algorithm: " + algorithm;
       }
 
-      this._log.debug("Done encrypting data");
-
     } catch (e) {
-      this._log.error("Data encryption failed: " + e);
-      throw 'encrypt failed';
+      this._log.error("Exception caught: " + (e.message? e.message : e));
+
+    } finally {
+      timer = null;
+      generatorDone(this, self, onComplete, ret);
+      yield; 
     }
-    return out;
+    this._log.warn("generator not properly closed");
   },
 
-  PBEdecrypt: function Crypto_PBEdecrypt(data, identity, algorithm) {
-    if (!algorithm)
-      algorithm = this.defaultAlgorithm;
+  PBEdecrypt: function Crypto_PBEdecrypt(onComplete, data, identity, algorithm) {
+    let [self, cont] = yield;
+    let listener = new EventListener(cont);
+    let timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+    let ret;
 
-    if (algorithm == "none") 
-      return data;
-
-    let out;
     try {
-      this._log.debug("Decrypting data");
+      if (!algorithm)
+        algorithm = this.defaultAlgorithm;
 
       switch (algorithm) {
-      case "XXXTEA":
-        out = this._xxxtea.decrypt(data, identity.password);
+      case "none":
+        ret = data;
+      case "XXTEA":
+      case "XXXTEA": 
+        this._log.debug("Decrypting data");
+        let gen = this._xxtea.decrypt(data, identity.password);
+        ret = gen.next();
+        while (typeof(ret) == "object") {
+          timer.initWithCallback(listener, 0, timer.TYPE_ONE_SHOT);
+          yield; 
+          ret = gen.next();
+        }
+        gen.close();
+        this._log.debug("Done decrypting data");
         break;
       default:
         throw "Unknown encryption algorithm: " + algorithm;
       }
 
-      this._log.debug("Done decrypting data");
-
     } catch (e) {
-      this._log.error("Data decryption failed: " + e);
-      throw 'decrypt failed';
+      this._log.error("Exception caught: " + (e.message? e.message : e));
+
+    } finally {
+      timer = null;
+      generatorDone(this, self, onComplete, ret);
+      yield; 
     }
-    return out;
+    this._log.warn("generator not properly closed");
   }
 };
