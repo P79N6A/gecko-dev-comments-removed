@@ -103,16 +103,6 @@ const PSEUDO_CLASSES = [":hover", ":active", ":focus"];
 
 
 
-
-
-
-
-
-
-
-
-
-
 function Highlighter(aWindow)
 {
   this.chromeWin = aWindow;
@@ -134,28 +124,26 @@ Highlighter.prototype = {
     this.highlighterContainer = this.chromeDoc.createElement("stack");
     this.highlighterContainer.id = "highlighter-container";
 
-    this.outline = this.chromeDoc.createElement("box");
-    this.outline.id = "highlighter-outline";
-
-    let outlineContainer = this.chromeDoc.createElement("box");
-    outlineContainer.appendChild(this.outline);
-    outlineContainer.id = "highlighter-outline-container";
+    this.veilContainer = this.chromeDoc.createElement("vbox");
+    this.veilContainer.id = "highlighter-veil-container";
 
     
     
     let controlsBox = this.chromeDoc.createElement("box");
     controlsBox.id = "highlighter-controls";
-    this.highlighterContainer.appendChild(outlineContainer);
+    this.highlighterContainer.appendChild(this.veilContainer);
     this.highlighterContainer.appendChild(controlsBox);
 
     stack.appendChild(this.highlighterContainer);
 
-    this.showOutline();
+    
+    
+    this.buildVeil(this.veilContainer);
+    this.showVeil();
 
     this.buildInfobar(controlsBox);
 
     this.transitionDisabler = null;
-    this.pageEventsMuter = null;
 
     this.computeZoomFactor();
     this.unlock();
@@ -171,12 +159,15 @@ Highlighter.prototype = {
     this.detachPageListeners();
 
     this.chromeWin.clearTimeout(this.transitionDisabler);
-    this.chromeWin.clearTimeout(this.pageEventsMuter);
     this.boundCloseEventHandler = null;
     this._contentRect = null;
     this._highlightRect = null;
     this._highlighting = false;
-    this.outline = null;
+    this.veilTopBox = null;
+    this.veilLeftBox = null;
+    this.veilMiddleBox = null;
+    this.veilTransparentBox = null;
+    this.veilContainer = null;
     this.node = null;
     this.nodeInfo = null;
     this.highlighterContainer.parentNode.removeChild(this.highlighterContainer);
@@ -277,9 +268,8 @@ Highlighter.prototype = {
 
   show: function() {
     if (!this.hidden) return;
-    this.showOutline();
-    this.showInfobar();
-    this.computeZoomFactor();
+    this.veilContainer.removeAttribute("hidden");
+    this.nodeInfo.container.removeAttribute("hidden");
     this.attachPageListeners();
     this.invalidateSize();
     this.hidden = false;
@@ -290,8 +280,8 @@ Highlighter.prototype = {
 
   hide: function() {
     if (this.hidden) return;
-    this.hideOutline();
-    this.hideInfobar();
+    this.veilContainer.setAttribute("hidden", "true");
+    this.nodeInfo.container.setAttribute("hidden", "true");
     this.detachPageListeners();
     this.hidden = true;
   },
@@ -310,7 +300,7 @@ Highlighter.prototype = {
 
   lock: function() {
     if (this.locked === true) return;
-    this.outline.setAttribute("locked", "true");
+    this.veilContainer.setAttribute("locked", "true");
     this.nodeInfo.container.setAttribute("locked", "true");
     this.detachMouseListeners();
     this.locked = true;
@@ -323,11 +313,10 @@ Highlighter.prototype = {
 
   unlock: function() {
     if (this.locked === false) return;
-    this.outline.removeAttribute("locked");
+    this.veilContainer.removeAttribute("locked");
     this.nodeInfo.container.removeAttribute("locked");
     this.attachMouseListeners();
     this.locked = false;
-    this.showOutline();
     this.emitEvent("unlocked");
   },
 
@@ -354,34 +343,86 @@ Highlighter.prototype = {
   
 
 
-   hideInfobar: function Highlighter_hideInfobar() {
-     this.nodeInfo.container.setAttribute("force-transitions", "true");
-     this.nodeInfo.container.setAttribute("hidden", "true");
+   hideVeil: function Highlighter_hideVeil() {
+     this.veilContainer.removeAttribute("dim");
    },
 
   
 
 
-   showInfobar: function Highlighter_showInfobar() {
-     this.nodeInfo.container.removeAttribute("hidden");
-     this.moveInfobar();
-     this.nodeInfo.container.removeAttribute("force-transitions");
+   showVeil: function Highlighter_showVeil() {
+     this.veilContainer.setAttribute("dim", "true");
    },
+
+   
+
+
+    hideInfobar: function Highlighter_hideInfobar() {
+      this.nodeInfo.container.setAttribute("hidden", "true");
+    },
+
+   
+
+
+    showInfobar: function Highlighter_showInfobar() {
+      this.nodeInfo.container.removeAttribute("hidden");
+      this.moveInfobar();
+    },
 
   
 
 
-   hideOutline: function Highlighter_hideOutline() {
-     this.outline.setAttribute("hidden", "true");
-   },
-
-  
 
 
-   showOutline: function Highlighter_showOutline() {
-     if (this._highlighting)
-       this.outline.removeAttribute("hidden");
-   },
+
+
+
+
+
+
+
+
+
+
+
+  buildVeil: function Highlighter_buildVeil(aParent)
+  {
+    
+    
+
+    this.veilTopBox = this.chromeDoc.createElement("box");
+    this.veilTopBox.id = "highlighter-veil-topbox";
+    this.veilTopBox.className = "highlighter-veil";
+
+    this.veilMiddleBox = this.chromeDoc.createElement("hbox");
+    this.veilMiddleBox.id = "highlighter-veil-middlebox";
+
+    this.veilLeftBox = this.chromeDoc.createElement("box");
+    this.veilLeftBox.id = "highlighter-veil-leftbox";
+    this.veilLeftBox.className = "highlighter-veil";
+
+    this.veilTransparentBox = this.chromeDoc.createElement("box");
+    this.veilTransparentBox.id = "highlighter-veil-transparentbox";
+
+    
+    
+
+    let veilRightBox = this.chromeDoc.createElement("box");
+    veilRightBox.id = "highlighter-veil-rightbox";
+    veilRightBox.className = "highlighter-veil";
+
+    let veilBottomBox = this.chromeDoc.createElement("box");
+    veilBottomBox.id = "highlighter-veil-bottombox";
+    veilBottomBox.className = "highlighter-veil";
+
+    this.veilMiddleBox.appendChild(this.veilLeftBox);
+    this.veilMiddleBox.appendChild(this.veilTransparentBox);
+    this.veilMiddleBox.appendChild(veilRightBox);
+
+    aParent.appendChild(this.veilTopBox);
+    aParent.appendChild(this.veilMiddleBox);
+    aParent.appendChild(veilBottomBox);
+  },
 
   
 
@@ -563,15 +604,14 @@ Highlighter.prototype = {
     if (aRectScaled.left >= 0 && aRectScaled.top >= 0 &&
         aRectScaled.width > 0 && aRectScaled.height > 0) {
 
-      this.showOutline();
+      this.veilTransparentBox.style.visibility = "visible";
 
       
       
-      let top = "top:" + aRectScaled.top + "px;";
-      let left = "left:" + aRectScaled.left + "px;";
-      let width = "width:" + aRectScaled.width + "px;";
-      let height = "height:" + aRectScaled.height + "px;";
-      this.outline.setAttribute("style", top + left + width + height);
+      this.veilTopBox.style.height = aRectScaled.top + "px";
+      this.veilLeftBox.style.width = aRectScaled.left + "px";
+      this.veilMiddleBox.style.height = aRectScaled.height + "px";
+      this.veilTransparentBox.style.width = aRectScaled.width + "px";
 
       this._highlighting = true;
     } else {
@@ -590,7 +630,9 @@ Highlighter.prototype = {
   unhighlight: function Highlighter_unhighlight()
   {
     this._highlighting = false;
-    this.hideOutline();
+    this.veilMiddleBox.style.height = 0;
+    this.veilTransparentBox.style.width = 0;
+    this.veilTransparentBox.style.visibility = "hidden";
   },
 
   
@@ -784,7 +826,6 @@ Highlighter.prototype = {
         this.handleClick(aEvent);
         break;
       case "mousemove":
-        this.brieflyIgnorePageEvents();
         this.handleMouseMove(aEvent);
         break;
       case "resize":
@@ -810,46 +851,18 @@ Highlighter.prototype = {
 
   brieflyDisableTransitions: function Highlighter_brieflyDisableTransitions()
   {
-    if (this.transitionDisabler) {
-      this.chromeWin.clearTimeout(this.transitionDisabler);
-    } else {
-      this.outline.setAttribute("disable-transitions", "true");
-      this.nodeInfo.container.setAttribute("disable-transitions", "true");
-    }
-    this.transitionDisabler =
-      this.chromeWin.setTimeout(function() {
-        this.outline.removeAttribute("disable-transitions");
-        this.nodeInfo.container.removeAttribute("disable-transitions");
-        this.transitionDisabler = null;
-      }.bind(this), 500);
-  },
-
-  
-
-
-  brieflyIgnorePageEvents: function Highlighter_brieflyIgnorePageEvents()
-  {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    if (this.pageEventsMuter) {
-      this.chromeWin.clearTimeout(this.pageEventsMuter);
-    } else {
-      this.detachPageListeners();
-    }
-    this.pageEventsMuter =
-      this.chromeWin.setTimeout(function() {
-        this.attachPageListeners();
-        
-        this.computeZoomFactor();
-        this.pageEventsMuter = null;
-      }.bind(this), 500);
+   if (this.transitionDisabler) {
+     this.chromeWin.clearTimeout(this.transitionDisabler);
+   } else {
+     this.veilContainer.setAttribute("disable-transitions", "true");
+     this.nodeInfo.container.setAttribute("disable-transitions", "true");
+   }
+   this.transitionDisabler =
+     this.chromeWin.setTimeout(function() {
+       this.veilContainer.removeAttribute("disable-transitions");
+       this.nodeInfo.container.removeAttribute("disable-transitions");
+       this.transitionDisabler = null;
+     }.bind(this), 500);
   },
 
   
@@ -898,7 +911,8 @@ XPCOMUtils.defineLazyGetter(this, "DOMUtils", function () {
   return Cc["@mozilla.org/inspector/dom-utils;1"].getService(Ci.inIDOMUtils)
 });
 
-XPCOMUtils.defineLazyGetter(Highlighter.prototype, "strings", function () {
+XPCOMUtils.defineLazyGetter(Highlighter.prototype, "strings",
+  function () {
     return Services.strings.createBundle(
             "chrome://browser/locale/devtools/inspector.properties");
-});
+  });
