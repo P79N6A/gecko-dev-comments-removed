@@ -830,13 +830,20 @@ var AddonManagerInternal = {
     });
   },
 
+  
+
+
+
+
+
+
+
   _addNotificationListeners: function()
   {
     const svc = Cc["@mozilla.org/observer-service;1"]
                   .getService(Ci.nsIObserverService);
     function notify(msg, extension)
     {
-      WARN("notifying observers of extension"+ msg);
       let bag = Cc["@mozilla.org/hash-property-bag;1"]
                   .createInstance(Ci.nsIWritablePropertyBag2);
       bag.setPropertyAsAString("id", extension.id);
