@@ -1216,6 +1216,23 @@ pref("layout.css.devPixelsPerPx", "1.0");
 pref("layout.scrollbar.side", 0);
 
 
+
+
+pref("layout.frame_rate", -1);
+
+
+
+
+
+
+
+
+
+
+
+pref("layout.frame_rate.precise", false);
+
+
 pref("capability.policy.default.SOAPCall.invokeVerifySourceHeader", "allAccess");
 
 
