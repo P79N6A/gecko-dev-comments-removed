@@ -380,6 +380,12 @@ SyncEngine.prototype = {
 
   
   _processIncoming: function SyncEngine__processIncoming() {
+    
+    if (this.lastModified <= this.lastSync) {
+      this._log.debug("Nothing new from the server to process");
+      return;
+    }
+
     this._log.debug("Downloading & applying server changes");
 
     
