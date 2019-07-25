@@ -71,6 +71,7 @@
 #include "nsXPCOMCIDInternal.h"
 #include "pratom.h"
 #include "prthread.h"
+#include "mozilla/Preferences.h"
 
 
 #include "nsDOMWorker.h"
@@ -1593,7 +1594,7 @@ nsDOMThreadService::PrefCallback(const char* aPrefName,
     
     
     PRUint32 timeoutMS =
-      nsContentUtils::GetIntPref(aPrefName, gWorkerCloseHandlerTimeoutMS);
+      Preferences::GetUint(aPrefName, gWorkerCloseHandlerTimeoutMS);
 
     
     

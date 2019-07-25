@@ -123,7 +123,7 @@ void nsMenuBarListener::InitAccessKey()
 #endif
 
   
-  mAccessKey = nsContentUtils::GetIntPref("ui.key.menuAccessKey", mAccessKey);
+  mAccessKey = Preferences::GetInt("ui.key.menuAccessKey", mAccessKey);
   if (mAccessKey == nsIDOMKeyEvent::DOM_VK_SHIFT)
     mAccessKeyMask = MODIFIER_SHIFT;
   else if (mAccessKey == nsIDOMKeyEvent::DOM_VK_CONTROL)

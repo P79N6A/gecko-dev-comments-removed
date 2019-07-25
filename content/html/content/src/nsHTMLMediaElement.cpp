@@ -857,10 +857,12 @@ void nsHTMLMediaElement::UpdatePreloadAction()
     
     const nsAttrValue* val = mAttrsAndChildren.GetAttr(nsGkAtoms::preload,
                                                        kNameSpaceID_None);
-    PRUint32 preloadDefault = nsContentUtils::GetIntPref("media.preload.default",
-                            nsHTMLMediaElement::PRELOAD_ATTR_METADATA);
-    PRUint32 preloadAuto = nsContentUtils::GetIntPref("media.preload.auto",
-                            nsHTMLMediaElement::PRELOAD_ENOUGH);
+    PRUint32 preloadDefault =
+      Preferences::GetInt("media.preload.default",
+                          nsHTMLMediaElement::PRELOAD_ATTR_METADATA);
+    PRUint32 preloadAuto =
+      Preferences::GetInt("media.preload.auto",
+                          nsHTMLMediaElement::PRELOAD_ENOUGH);
     if (!val) {
       
       

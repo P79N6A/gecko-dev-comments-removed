@@ -899,8 +899,7 @@ nsGenericHTMLElement::GetSpellcheck(PRBool* aSpellcheck)
   
   
   
-  PRInt32 spellcheckLevel =
-    nsContentUtils::GetIntPref("layout.spellcheckDefault", 1);
+  PRInt32 spellcheckLevel = Preferences::GetInt("layout.spellcheckDefault", 1);
   if (spellcheckLevel == 2) {           
     *aSpellcheck = PR_TRUE;             
   }

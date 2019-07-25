@@ -1639,9 +1639,10 @@ static eNormalLineHeightControl GetNormalLineHeightCalcControl(void)
   if (sNormalLineHeightControl == eUninitialized) {
     
     
-    sNormalLineHeightControl =
-      static_cast<eNormalLineHeightControl>
-                 (nsContentUtils::GetIntPref("browser.display.normal_lineheight_calc_control", eNoExternalLeading));
+    PRInt32 val =
+      Preferences::GetInt("browser.display.normal_lineheight_calc_control",
+                          eNoExternalLeading);
+    sNormalLineHeightControl = static_cast<eNormalLineHeightControl>(val);
   }
   return sNormalLineHeightControl;
 }
