@@ -1472,7 +1472,10 @@ nsDocAccessible::NotifyOfCachingEnd(nsAccessible* aAccessible)
         
         
         nsAccessible* container = GetContainerAccessible(content);
-        container->UpdateChildren();
+        NS_ASSERTION(container,
+                     "Got a referenced element that is not in document!");
+        if (container)
+          container->UpdateChildren();
       }
     }
     mInvalidationList.Clear();
