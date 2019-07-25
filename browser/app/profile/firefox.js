@@ -799,7 +799,7 @@ pref("browser.sessionstore.max_resumed_crashes", 1);
 
 
 
-pref("browser.sessionstore.restore_on_demand", false);
+pref("browser.sessionstore.restore_on_demand", true);
 
 pref("browser.sessionstore.restore_hidden_tabs", false);
 
