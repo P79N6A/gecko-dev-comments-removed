@@ -4170,9 +4170,7 @@ mjit::Compiler::jsop_getprop(JSAtom *atom, JSValueType knownType,
     FrameEntry *top = frame.peek(-1);
 
     
-    if (top->isTypeKnown() && top->getKnownType() != JSVAL_TYPE_OBJECT) {
-        JS_ASSERT_IF(atom == cx->runtime->atomState.lengthAtom,
-                     top->getKnownType() != JSVAL_TYPE_STRING);
+    if (top->isNotType(JSVAL_TYPE_OBJECT)) {
         jsop_getprop_slow(atom, usePropCache);
         return true;
     }
