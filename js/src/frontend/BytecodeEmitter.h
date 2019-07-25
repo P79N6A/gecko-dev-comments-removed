@@ -927,8 +927,6 @@ EmitFunctionScript(JSContext *cx, BytecodeEmitter *bce, ParseNode *body);
 
 
 
-
-
 enum SrcNoteType {
     SRC_NULL        = 0,        
     SRC_IF          = 1,        
@@ -976,7 +974,7 @@ enum SrcNoteType {
     SRC_SWITCHBREAK = 18,       
     SRC_FUNCDEF     = 19,       
     SRC_CATCH       = 20,       
-    SRC_EXTENDED    = 21,       
+                                
     SRC_NEWLINE     = 22,       
     SRC_SETLINE     = 23,       
     SRC_XDELTA      = 24        
