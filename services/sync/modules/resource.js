@@ -35,7 +35,8 @@
 
 
 
-const EXPORTED_SYMBOLS = ["Resource"];
+
+const EXPORTED_SYMBOLS = ["Resource", "AsyncResource"];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -53,20 +54,35 @@ Cu.import("resource://services-sync/util.js");
 
 
 
-function Resource(uri) {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function AsyncResource(uri) {
   this._log = Log4Moz.repository.getLogger(this._logName);
   this._log.level =
     Log4Moz.Level[Utils.prefs.getCharPref("log.logger.network.resources")];
   this.uri = uri;
   this._headers = {};
+  this._onComplete = Utils.bind2(this, this._onComplete);
 }
-Resource.prototype = {
+AsyncResource.prototype = {
   _logName: "Net.Resource",
-
-  
-  
-  
-  serverTime: null,
 
   
   
@@ -165,14 +181,9 @@ Resource.prototype = {
 
   _onProgress: function Res__onProgress(channel) {},
 
-  
-  
-  
-  
-  
-  _request: function Res__request(action, data) {
-    let iter = 0;
-    let channel = this._createRequest();
+  _doRequest: function _doRequest(action, data, callback) {
+    this._callback = callback;
+    let channel = this._channel = this._createRequest();
 
     if ("undefined" != typeof(data))
       this._data = data;
@@ -200,29 +211,21 @@ Resource.prototype = {
 
     
     
-    let [chanOpen, chanCb] = Sync.withCb(channel.asyncOpen, channel);
-    let listener = new ChannelListener(chanCb, this._onProgress, this._log);
+    let listener = new ChannelListener(this._onComplete, this._onProgress,
+                                       this._log);
     channel.requestMethod = action;
+    channel.asyncOpen(listener, null);
+  },
 
-    
-    try {
-      this._data = chanOpen(listener, null);
+  _onComplete: function _onComplete(error, data) {
+    if (error) {
+      this._callback(error);
+      return;
     }
-    catch(ex) {
-      
-      let error = Error(ex.message);
-      let chanStack = [];
-      if (ex.stack)
-        chanStack = ex.stack.trim().split(/\n/).slice(1);
-      let requestStack = error.stack.split(/\n/).slice(1);
 
-      
-      for (let i = 0; i <= 1; i++)
-        requestStack[i] = requestStack[i].replace(/\(".*"\)@/, "(...)@");
-
-      error.stack = chanStack.concat(requestStack).join("\n");
-      throw error;
-    }
+    this._data = data;
+    let channel = this._channel;
+    let action = channel.requestMethod;
 
     
     let headers = {};
@@ -240,13 +243,13 @@ Resource.prototype = {
 
       
       let mesg = [action, success ? "success" : "fail", status,
-        channel.URI.spec].join(" ");
+                  channel.URI.spec].join(" ");
       if (mesg.length > 200)
         mesg = mesg.substr(0, 200) + "â€¦";
       this._log.debug(mesg);
       
       if (this._log.level <= Log4Moz.Level.Trace)
-        this._log.trace(action + " body: " + this._data);
+        this._log.trace(action + " body: " + data);
 
       
       
@@ -263,7 +266,7 @@ Resource.prototype = {
       this._log.debug(action + " cached: " + status);
     }
 
-    let ret = new String(this._data);
+    let ret = new String(data);
     ret.headers = headers;
     ret.status = status;
     ret.success = success;
@@ -284,14 +287,88 @@ Resource.prototype = {
       
       if (subject.newUri != "") {
         this.uri = subject.newUri;
-        return this._request.apply(this, arguments);
+        this._doRequest(action, this._data, this._callback);
+        return;
       }
     }
 
-    return ret;
+    this._callback(null, ret);
   },
 
+  get: function get(callback) {
+    this._doRequest("GET", undefined, callback);
+  },
+
+  put: function put(data, callback) {
+    if (typeof data == "function")
+      [data, callback] = [undefined, data];
+    this._doRequest("PUT", data, callback);
+  },
+
+  post: function post(data, callback) {
+    if (typeof data == "function")
+      [data, callback] = [undefined, data];
+    this._doRequest("POST", data, callback);
+  },
+
+  delete: function delete(callback) {
+    this._doRequest("DELETE", undefined, callback);
+  }
+};
+
+
+
+
+
+
+
+
+
+function Resource(uri) {
+  AsyncResource.call(this, uri);
+}
+Resource.prototype = {
+
+  __proto__: AsyncResource.prototype,
+
   
+  
+  
+  serverTime: null,
+
+  
+  
+  
+  
+  
+  _request: function Res__request(action, data) {
+    let [doRequest, cb] = Sync.withCb(this._doRequest, this);
+    function callback(error, ret) {
+      if (error)
+        cb.throw(error);
+      cb(ret);
+    }
+
+    
+    try {
+      return doRequest(action, data, callback);
+    } catch(ex) {
+      
+      let error = Error(ex.message);
+      let chanStack = [];
+      if (ex.stack)
+        chanStack = ex.stack.trim().split(/\n/).slice(1);
+      let requestStack = error.stack.split(/\n/).slice(1);
+
+      
+      for (let i = 0; i <= 1; i++)
+        requestStack[i] = requestStack[i].replace(/\(".*"\)@/, "(...)@");
+
+      error.stack = chanStack.concat(requestStack).join("\n");
+      throw error;
+    }
+  },
+
   
   
   
@@ -357,10 +434,12 @@ ChannelListener.prototype = {
       this._data = null;
 
     
-    if (!Components.isSuccessCode(status))
-      this._onComplete.throw(Error(Components.Exception("", status).name));
+    if (!Components.isSuccessCode(status)) {
+      this._onComplete(Error(Components.Exception("", status).name));
+      return;
+    }
 
-    this._onComplete(this._data);
+    this._onComplete(null, this._data);
   },
 
   onDataAvailable: function Channel_onDataAvail(req, cb, stream, off, count) {
@@ -384,7 +463,7 @@ ChannelListener.prototype = {
     
     this.onStopRequest = function() {};
     this.onDataAvailable = function() {};
-    this._onComplete.throw(Error("Aborting due to channel inactivity."));
+    this._onComplete(Error("Aborting due to channel inactivity."));
   }
 };
 
