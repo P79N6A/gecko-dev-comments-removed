@@ -341,6 +341,14 @@ protected:
     
 
 
+
+
+    void CancelApplyingUserPrefsFromOverflowDelta(
+                                    mozilla::widget::WheelEvent* aEvent);
+
+    
+
+
     enum Action
     {
       ACTION_NONE = 0,
