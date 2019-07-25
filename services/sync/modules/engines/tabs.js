@@ -45,15 +45,12 @@ const TAB_TIME_ATTR = "weave.tabEngine.lastUsed.timeStamp";
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://weave/util.js");
-Cu.import("resource://weave/async.js");
 Cu.import("resource://weave/engines.js");
 Cu.import("resource://weave/stores.js");
 Cu.import("resource://weave/trackers.js");
 Cu.import("resource://weave/constants.js");
 Cu.import("resource://weave/type_records/tabs.js");
 Cu.import("resource://weave/engines/clientData.js");
-
-Function.prototype.async = Async.sugar;
 
 function TabEngine() {
   this._init();
@@ -77,7 +74,6 @@ TabEngine.prototype = {
   },
 
   _resetClient: function TabEngine__resetClient() {
-    let self = yield;
     this.resetLastSync();
     this._store.wipe();
   },
@@ -200,12 +196,16 @@ TabStore.prototype = {
     while (enumerator.hasMoreElements()) {
       let window = enumerator.getNext();
       let tabContainer = window.getBrowser().tabContainer;
-
-      
-      for each (let tab in Array.slice(tabContainer.childNodes)) {
-        if (!(tab instanceof Ci.nsIDOMNode))
+      for each (let tabChild in tabContainer.childNodes) {
+        if (!tabChild) {
+          this._log.warn("Undefined item in tabContainer.childNodes.");
           continue;
-
+        }
+        if (!tabChild.QueryInterface)
+          continue;
+        let tab = tabChild.QueryInterface(Ci.nsIDOMNode);
+        if (!tab)
+          continue;
         let tabState = JSON.parse(this._sessionStore.getTabState(tab));
 	
 	if (tabState.entries.length == 0)
@@ -376,24 +376,14 @@ TabTracker.prototype = {
     }
   },
 
-  _getBrowser: function TabTracker__getBrowser(window) {
-    
-    if (typeof window.getBrowser != "function")
-      return null;
-
-    
-    let browser = window.getBrowser();
-    if (browser == null || typeof browser.tabContainer != "object")
-      return null;
-
-    return browser;
-  },
-
   _registerListenersForWindow: function TabTracker__registerListen(window) {
-    let browser = this._getBrowser(window);
-    if (browser == null)
+    if (! window.getBrowser) {
       return;
-
+    }
+    let browser = window.getBrowser();
+    if (! browser.tabContainer) {
+      return;
+    }
     
     
     let container = browser.tabContainer;
@@ -403,10 +393,13 @@ TabTracker.prototype = {
   },
 
   _unRegisterListenersForWindow: function TabTracker__unregister(window) {
-    let browser = this._getBrowser(window);
-    if (browser == null)
+    if (! window.getBrowser) {
       return;
-
+    }
+    let browser = window.getBrowser();
+    if (! browser.tabContainer) {
+      return;
+    }
     let container = browser.tabContainer;
     container.removeEventListener("TabOpen", this.onTabOpened, false);
     container.removeEventListener("TabClose", this.onTabClosed, false);

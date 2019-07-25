@@ -46,11 +46,8 @@ Cu.import("resource://weave/util.js");
 Cu.import("resource://weave/engines.js");
 Cu.import("resource://weave/stores.js");
 Cu.import("resource://weave/trackers.js");
-Cu.import("resource://weave/async.js");
 Cu.import("resource://weave/ext/Observers.js");
 Cu.import("resource://weave/type_records/passwords.js");
-
-Function.prototype.async = Async.sugar;
 
 function PasswordEngine() {
   this._init();
@@ -112,10 +109,10 @@ PasswordStore.prototype = {
     
     let logins = Svc.Login.searchLogins({}, prop);
     if (logins.length > 0) {
-      this._log.debug(logins.length + " items matching " + id + " found.");
+      this._log.info(logins.length + " items matching " + id + " found.");
       return logins[0];
     } else {
-      this._log.trace("No items matching " + id + " found. Ignoring");
+      this._log.warn("No items matching " + id + " found. Ignoring");
     }
     return false;
   },
@@ -137,11 +134,11 @@ PasswordStore.prototype = {
 
     let oldLogin = this._getLoginFromGUID(oldID);
     if (!oldLogin) {
-      this._log.trace("Can't change item ID: item doesn't exist");
+      this._log.warn("Can't change item ID: item doesn't exist");
       return;
     }
     if (this._getLoginFromGUID(newID)) {
-      this._log.trace("Can't change item ID: new ID already in use");
+      this._log.warn("Can't change item ID: new ID already in use");
       return;
     }
 
