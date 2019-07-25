@@ -35,7 +35,6 @@
 
 
 
-
 #if defined(_M_IX86) || defined(_M_X64) || defined(__i386__) || defined(__i386) || defined(__amd64__)
 
 
