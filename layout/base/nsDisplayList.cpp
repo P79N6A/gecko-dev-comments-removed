@@ -2007,6 +2007,11 @@ nsDisplayScrollLayer::TryMerge(nsDisplayListBuilder* aBuilder,
     reinterpret_cast<void*>(GetScrollLayerCount() - 1));
 
   mList.AppendToBottom(&other->mList);
+  
+  
+  
+  
+  mFrame = other->mFrame;
   return true;
 }
 
