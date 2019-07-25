@@ -1936,11 +1936,11 @@ Tab.prototype = {
         
         let overlay = plugin.ownerDocument.getAnonymousElementByAttribute(plugin, "class", "mainBox");
         if (!overlay || PluginHelper.isTooSmall(plugin, overlay)) {
-          if (overlay)
-            overlay.style.visibility = "hidden";
           if (this.loadEventProcessed && !this.clickToPlayPluginDoorhangerShown)
             PluginHelper.showDoorHanger(this);
-          return;
+
+          if (!overlay)
+            return;
         }
 
         
