@@ -66,6 +66,21 @@ public:
   
 
 
+  static bool MaybeStartWindowEmulation();
+
+  
+
+
+  static void ShutdownWindowEmulation();
+
+  
+
+
+  static bool IsWindowEmulationStarted();
+
+  
+
+
   static void RegisterNativeWindow(LPCWSTR aWindowClass);
 
   
@@ -88,7 +103,7 @@ public:
   
 
 
-  static bool IsWindowEmulationEnabled(LPCWSTR kModuleHandle = 0);
+  static bool IsWindowEmulationFor(LPCWSTR kModuleHandle);
 
   
 

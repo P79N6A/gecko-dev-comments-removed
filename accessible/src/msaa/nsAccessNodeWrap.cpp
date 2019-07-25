@@ -616,12 +616,7 @@ void nsAccessNodeWrap::InitAccessibility()
 
   DoATSpecificProcessing();
 
-  
-  
-  if (nsWinUtils::IsWindowEmulationEnabled()) {
-    nsWinUtils::RegisterNativeWindow(kClassNameTabContent);
-    sHWNDCache.Init(4);
-  }
+  nsWinUtils::MaybeStartWindowEmulation();
 
   nsAccessNode::InitXPAccessibility();
 }
@@ -631,10 +626,7 @@ void nsAccessNodeWrap::ShutdownAccessibility()
   NS_IF_RELEASE(gTextEvent);
   ::DestroyCaret();
 
-  
-  
-  if (nsWinUtils::IsWindowEmulationEnabled())
-    ::UnregisterClassW(kClassNameTabContent, GetModuleHandle(NULL));
+  nsWinUtils::ShutdownWindowEmulation();
 
   nsAccessNode::ShutdownXPAccessibility();
 }

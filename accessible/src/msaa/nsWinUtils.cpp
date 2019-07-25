@@ -99,6 +99,34 @@ nsWinUtils::ConvertToIA2Array(nsIArray *aGeckoArray, IUnknown ***aIA2Array,
   return S_OK;
 }
 
+bool
+nsWinUtils::MaybeStartWindowEmulation()
+{
+  
+  
+  if (IsWindowEmulationFor(0)) {
+    RegisterNativeWindow(kClassNameTabContent);
+    nsAccessNodeWrap::sHWNDCache.Init(4);
+    return true;
+  }
+  return false;
+}
+
+void
+nsWinUtils::ShutdownWindowEmulation()
+{
+  
+  
+  if (IsWindowEmulationFor(0))
+    ::UnregisterClassW(kClassNameTabContent, GetModuleHandle(NULL));
+}
+
+bool
+nsWinUtils::IsWindowEmulationStarted()
+{
+  return nsAccessNodeWrap::sHWNDCache.IsInitialized();
+}
+
 void
 nsWinUtils::RegisterNativeWindow(LPCWSTR aWindowClass)
 {
@@ -146,7 +174,7 @@ nsWinUtils::HideNativeWindow(HWND aWnd)
 }
 
 bool
-nsWinUtils::IsWindowEmulationEnabled(LPCWSTR kModuleHandle)
+nsWinUtils::IsWindowEmulationFor(LPCWSTR kModuleHandle)
 {
   return kModuleHandle ? ::GetModuleHandleW(kModuleHandle) :
     ::GetModuleHandleW(kJAWSModuleHandle) ||
