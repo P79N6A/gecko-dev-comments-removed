@@ -349,7 +349,7 @@ protected:
       ACTION_ZOOM,
       ACTION_LAST = ACTION_ZOOM
     };
-    Action GetActionFor(nsMouseScrollEvent* aEvent);
+    Action ComputeActionFor(mozilla::widget::WheelEvent* aEvent);
 
     
 
@@ -382,7 +382,7 @@ protected:
 
 
 
-    Index GetIndexFor(nsMouseEvent_base* aEvent);
+    Index GetIndexFor(mozilla::widget::WheelEvent* aEvent);
 
     
 
@@ -496,13 +496,6 @@ protected:
   nsresult GetMarkupDocumentViewer(nsIMarkupDocumentViewer** aMv);
   nsresult ChangeTextSize(PRInt32 change);
   nsresult ChangeFullZoom(PRInt32 change);
-  
-
-
-
-
-
-  PRInt32 ComputeWheelActionFor(nsMouseScrollEvent* aMouseEvent);
 
   
 
