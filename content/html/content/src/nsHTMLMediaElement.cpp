@@ -538,6 +538,7 @@ void nsHTMLMediaElement::AbortExistingLoads()
   mIsLoadingFromSourceChildren = false;
   mSuspendedAfterFirstFrame = false;
   mAllowSuspendAfterFirstFrame = true;
+  mHaveQueuedSelectResource = false;
   mLoadIsSuspended = false;
   mSourcePointer = nsnull;
 
@@ -625,11 +626,11 @@ void nsHTMLMediaElement::QueueLoadFromSourceTask()
 void nsHTMLMediaElement::QueueSelectResourceTask()
 {
   
-  if (mIsRunningSelectResource)
+  if (mHaveQueuedSelectResource)
     return;
-  mIsRunningSelectResource = true;
+  mHaveQueuedSelectResource = true;
   mNetworkState = nsIDOMHTMLMediaElement::NETWORK_NO_SOURCE;
-  AsyncAwaitStableState(this, &nsHTMLMediaElement::SelectResource);
+  AsyncAwaitStableState(this, &nsHTMLMediaElement::SelectResourceWrapper);
 }
 
 
@@ -658,6 +659,13 @@ static bool HasSourceChildren(nsIContent *aElement)
   return false;
 }
 
+void nsHTMLMediaElement::SelectResourceWrapper()
+{
+  SelectResource();
+  mIsRunningSelectResource = false;
+  mHaveQueuedSelectResource = false;
+}
+
 void nsHTMLMediaElement::SelectResource()
 {
   if (!HasAttr(kNameSpaceID_None, nsGkAtoms::src) && !HasSourceChildren(this)) {
@@ -666,7 +674,6 @@ void nsHTMLMediaElement::SelectResource()
     mNetworkState = nsIDOMHTMLMediaElement::NETWORK_EMPTY;
     
     ChangeDelayLoadStatus(false);
-    mIsRunningSelectResource = false;
     return;
   }
 
@@ -676,6 +683,12 @@ void nsHTMLMediaElement::SelectResource()
   
   
   DispatchAsyncEvent(NS_LITERAL_STRING("loadstart"));
+
+  
+  
+  
+  UpdatePreloadAction();
+  mIsRunningSelectResource = true;
 
   
   nsAutoString src;
@@ -691,13 +704,11 @@ void nsHTMLMediaElement::SelectResource()
         
         
         SuspendLoad();
-        mIsRunningSelectResource = false;
         return;
       }
 
       rv = LoadResource();
       if (NS_SUCCEEDED(rv)) {
-        mIsRunningSelectResource = false;
         return;
       }
     } else {
@@ -710,7 +721,6 @@ void nsHTMLMediaElement::SelectResource()
     mIsLoadingFromSourceChildren = true;
     LoadFromSourceChildren();
   }
-  mIsRunningSelectResource = false;
 }
 
 void nsHTMLMediaElement::NotifyLoadError()
@@ -1441,6 +1451,7 @@ nsHTMLMediaElement::nsHTMLMediaElement(already_AddRefed<nsINodeInfo> aNodeInfo)
     mIsLoadingFromSourceChildren(false),
     mDelayingLoadEvent(false),
     mIsRunningSelectResource(false),
+    mHaveQueuedSelectResource(false),
     mSuspendedAfterFirstFrame(false),
     mAllowSuspendAfterFirstFrame(true),
     mHasPlayedOrSeeked(false),

@@ -460,6 +460,12 @@ protected:
 
 
 
+  void SelectResourceWrapper();
+
+  
+
+
+
   void QueueSelectResourceTask();
 
   
@@ -738,6 +744,9 @@ protected:
   
   
   bool mIsRunningSelectResource;
+
+  
+  bool mHaveQueuedSelectResource;
 
   
   
