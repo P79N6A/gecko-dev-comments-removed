@@ -140,7 +140,7 @@ nsHttpChannel::Init(nsIURI *uri,
 
 
 nsresult
-nsHttpChannel::Connect(bool firstTime)
+nsHttpChannel::Connect()
 {
     nsresult rv;
 
@@ -190,65 +190,67 @@ nsHttpChannel::Connect(bool firstTime)
         return NS_ERROR_UNKNOWN_HOST;
 
     
-    if (firstTime) {
+    SpeculativeConnect();
 
-        
-        SpeculativeConnect();
+    
+    bool offline = gIOService->IsOffline();
+    if (offline)
+        mLoadFlags |= LOAD_ONLY_FROM_CACHE;
+    else if (PL_strcmp(mConnectionInfo->ProxyType(), "unknown") == 0)
+        return ResolveProxy();  
 
-        
-        bool offline = gIOService->IsOffline();
-        if (offline)
-            mLoadFlags |= LOAD_ONLY_FROM_CACHE;
-        else if (PL_strcmp(mConnectionInfo->ProxyType(), "unknown") == 0)
-            return ResolveProxy();  
-
-        
-        if (mResuming && (mLoadFlags & LOAD_ONLY_FROM_CACHE)) {
-            LOG(("Resuming from cache is not supported yet"));
-            return NS_ERROR_DOCUMENT_NOT_CACHED;
-        }
-
-        
-        rv = OpenCacheEntry();
-
-        
-        if (mOnCacheEntryAvailableCallback) {
-            NS_ASSERTION(NS_SUCCEEDED(rv), "Unexpected state");
-            return NS_OK;
-        }
-
-        if (NS_FAILED(rv)) {
-            LOG(("OpenCacheEntry failed [rv=%x]\n", rv));
-            
-            
-            if (mLoadFlags & LOAD_ONLY_FROM_CACHE) {
-                
-                
-                if (!mFallbackChannel && !mFallbackKey.IsEmpty()) {
-                    return AsyncCall(&nsHttpChannel::HandleAsyncFallback);
-                }
-                return NS_ERROR_DOCUMENT_NOT_CACHED;
-            }
-            
-        }
-
-        
-        
-        if (mCacheForOfflineUse) {
-            rv = OpenOfflineCacheEntryForWriting();
-            if (NS_FAILED(rv)) return rv;
-
-            if (mOnCacheEntryAvailableCallback)
-                return NS_OK;
-        }
+    
+    if (mResuming && (mLoadFlags & LOAD_ONLY_FROM_CACHE)) {
+        LOG(("Resuming from cache is not supported yet"));
+        return NS_ERROR_DOCUMENT_NOT_CACHED;
     }
 
+    
+    rv = OpenCacheEntry();
+
+    
+    if (mOnCacheEntryAvailableCallback) {
+        NS_ASSERTION(NS_SUCCEEDED(rv), "Unexpected state");
+        return NS_OK;
+    }
+
+    if (NS_FAILED(rv)) {
+        LOG(("OpenCacheEntry failed [rv=%x]\n", rv));
+        
+        
+        if (mLoadFlags & LOAD_ONLY_FROM_CACHE) {
+            
+            
+            if (!mFallbackChannel && !mFallbackKey.IsEmpty()) {
+                return AsyncCall(&nsHttpChannel::HandleAsyncFallback);
+            }
+            return NS_ERROR_DOCUMENT_NOT_CACHED;
+        }
+        
+    }
+
+    
+    
+    if (mCacheForOfflineUse) {
+        rv = OpenOfflineCacheEntryForWriting();
+        if (NS_FAILED(rv)) return rv;
+
+        if (mOnCacheEntryAvailableCallback)
+            return NS_OK;
+    }
+
+    return ContinueConnect();
+}
+
+nsresult
+nsHttpChannel::ContinueConnect()
+{
     
     if (mCacheEntry) {
         
         
         
-        rv = CheckCache();
+        nsresult rv = CheckCache();
         if (NS_FAILED(rv))
             NS_WARNING("cache check failed");
 
@@ -305,7 +307,7 @@ nsHttpChannel::Connect(bool firstTime)
     }
 
     
-    rv = SetupTransaction();
+    nsresult rv = SetupTransaction();
     if (NS_FAILED(rv)) return rv;
 
     rv = gHttpHandler->InitiateTransaction(mTransaction, mPriority);
@@ -5022,7 +5024,7 @@ nsHttpChannel::OnCacheEntryAvailableInternal(nsICacheEntryDescriptor *entry,
             return rv;
     }
 
-    return Connect(false);
+    return ContinueConnect();
 }
 
 NS_IMETHODIMP
