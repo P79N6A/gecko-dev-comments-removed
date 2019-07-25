@@ -3063,8 +3063,11 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
   
   
   
-  if (GetKeyState(VK_SHIFT) & 0x8000)
+  
+  if (GetKeyState(VK_SHIFT) & 0x8000 &&
+      !(GetKeyState(VK_CONTROL) & 0x8000) && !(GetKeyState(VK_MENU) & 0x8000)) {
     gSafeMode = PR_TRUE;
+  }
 #endif
 
 #ifdef XP_MACOSX
