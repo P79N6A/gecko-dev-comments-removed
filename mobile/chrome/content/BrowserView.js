@@ -533,10 +533,15 @@ BrowserView.prototype = {
 
   
   handlePageScroll: function handlePageScroll(aEvent) {
-    if (aEvent.target != this._browser.contentDocument)
+    if (aEvent.target != this._browser.contentDocument || this._ignorePageScroll)
       return;
     
     Browser.scrollContentToBrowser();
+  },
+
+  _ignorePageScroll: false,
+  ignorePageScroll: function ignorePageScroll(aIgnoreScroll) {
+    this._ignorePageScroll = aIgnoreScroll;
   },
 
   handleMozScrolledAreaChanged: function handleMozScrolledAreaChanged(ev) {
