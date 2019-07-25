@@ -3873,8 +3873,8 @@ ReadSourceFromFilename(JSContext *cx, const char *filename, jschar **src, PRUint
 
   
   
-  const char *arrow = strstr(filename, " -> ");
-  if (arrow)
+  const char *arrow;
+  while ((arrow = strstr(filename, " -> ")))
     filename = arrow + strlen(" -> ");
 
   
