@@ -52,6 +52,8 @@
 #include "nsWeakReference.h"
 
 class nsIFile;
+class nsCString;
+class nsString;
 
 namespace mozilla {
 
@@ -73,7 +75,96 @@ public:
   virtual ~Preferences();
 
   nsresult Init();
-                           
+
+  
+
+
+  static Preferences* GetInstance();
+
+  
+
+
+  static void Shutdown();
+
+  
+
+
+
+  static nsIPrefService* GetService() { return sPreferences; }
+
+  
+
+
+
+  static nsIPrefBranch2* GetRootBranch()
+  {
+    return sPreferences ? sPreferences->mRootBranch.get() : nsnull;
+  }
+
+  
+
+
+
+  static PRBool GetBool(const char* aPref, PRBool aDefault = PR_FALSE)
+  {
+    PRBool result = aDefault;
+    GetBool(aPref, &result);
+    return result;
+  }
+
+  static PRInt32 GetInt(const char* aPref, PRInt32 aDefault = 0)
+  {
+    PRInt32 result = aDefault;
+    GetInt(aPref, &result);
+    return result;
+  }
+
+  
+
+
+
+
+
+
+  static nsresult GetBool(const char* aPref, PRBool* aResult);
+  static nsresult GetInt(const char* aPref, PRInt32* aResult);
+
+  
+
+
+
+
+
+
+  static nsresult GetChar(const char* aPref, nsCString* aResult);
+  static nsresult GetChar(const char* aPref, nsString* aResult);
+  static nsresult GetLocalizedString(const char* aPref, nsString* aResult);
+
+  
+
+
+  static nsresult SetBool(const char* aPref, PRBool aValue);
+  static nsresult SetInt(const char* aPref, PRInt32 aValue);
+  static nsresult SetChar(const char* aPref, const char* aValue);
+  static nsresult SetChar(const char* aPref, const nsCString &aValue);
+  static nsresult SetChar(const char* aPref, const PRUnichar* aValue);
+  static nsresult SetChar(const char* aPref, const nsString &aValue);
+
+  
+
+
+  static nsresult ClearUser(const char* aPref);
+
+  
+
+
+
+
+
+  static nsresult AddStrongObserver(nsIObserver* aObserver, const char* aPref);
+  static nsresult AddWeakObserver(nsIObserver* aObserver, const char* aPref);
+  static nsresult RemoveObserver(nsIObserver* aObserver, const char* aPref);
+
 protected:
   nsresult NotifyServiceObservers(const char *aSubject);
   nsresult UseDefaultPrefFile();
@@ -87,6 +178,14 @@ protected:
 private:
   nsCOMPtr<nsIPrefBranch2> mRootBranch;
   nsCOMPtr<nsIFile>        mCurrentFile;
+
+  static Preferences*      sPreferences;
+  static PRBool            sShutdown;
+
+  
+
+
+  static PRBool InitStaticMembers();
 };
 
 } 
