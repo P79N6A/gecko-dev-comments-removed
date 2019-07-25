@@ -6,6 +6,7 @@
 "use strict";
 
 const PROPERTY_VIEW_FLASH_DURATION = 400; 
+const BREAKPOINT_LINE_TOOLTIP_MAX_SIZE = 1000;
 
 
 
@@ -22,7 +23,7 @@ let DebuggerView = {
 
 
   initializePanes: function DV_initializePanes() {
-    let stackframes = document.getElementById("stackframes");
+    let stackframes = document.getElementById("stackframes+breakpoints");
     stackframes.setAttribute("width", Prefs.stackframesWidth);
 
     let variables = document.getElementById("variables");
@@ -51,7 +52,7 @@ let DebuggerView = {
 
 
   destroyPanes: function DV_destroyPanes() {
-    let stackframes = document.getElementById("stackframes");
+    let stackframes = document.getElementById("stackframes+breakpoints");
     Prefs.stackframesWidth = stackframes.getAttribute("width");
 
     let variables = document.getElementById("variables");
@@ -807,6 +808,7 @@ StackFramesView.prototype = {
     window.addEventListener("resize", this._onFramesScroll, false);
 
     this._frames = frames;
+    this.emptyText();
   },
 
   
@@ -840,6 +842,545 @@ StackFramesView.prototype = {
 
 
 
+function BreakpointsView() {
+  this._onBreakpointClick = this._onBreakpointClick.bind(this);
+  this._onBreakpointCheckboxChange = this._onBreakpointCheckboxChange.bind(this);
+}
+
+BreakpointsView.prototype = {
+
+  
+
+
+  empty: function DVB_empty() {
+    let firstChild;
+    while (firstChild = this._breakpoints.firstChild) {
+      this._destroyContextMenu(firstChild);
+      this._breakpoints.removeChild(firstChild);
+    }
+  },
+
+  
+
+
+
+  emptyText: function DVB_emptyText() {
+    
+    this.empty();
+
+    let item = document.createElement("label");
+
+    
+    item.className = "list-item empty";
+    item.setAttribute("value", L10N.getStr("emptyBreakpointsText"));
+
+    this._breakpoints.appendChild(item);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  getBreakpoint: function DVB_getBreakpoint(aUrl, aLine) {
+    return this._breakpoints.getElementsByAttribute("location", aUrl + ":" + aLine)[0];
+  },
+
+  
+
+
+
+
+
+
+  removeBreakpoint: function DVB_removeBreakpoint(aId) {
+    let breakpoint = document.getElementById("breakpoint-" + aId);
+
+    
+    if (!breakpoint) {
+      return;
+    }
+    this._destroyContextMenu(breakpoint);
+    this._breakpoints.removeChild(breakpoint);
+
+    if (!this.count) {
+      this.emptyText();
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  addBreakpoint: function DVB_addBreakpoint(aId, aLineInfo, aLineText, aUrl, aLine) {
+    
+    if (document.getElementById("breakpoint-" + aId)) {
+      return null;
+    }
+    
+    if (!this.count) {
+      this.empty();
+    }
+
+    
+    let breakpoint = this.getBreakpoint(aUrl, aLine);
+    if (breakpoint) {
+      breakpoint.id = "breakpoint-" + aId;
+      breakpoint.breakpointActor = aId;
+      breakpoint.getElementsByTagName("checkbox")[0].setAttribute("checked", "true");
+      return;
+    }
+
+    breakpoint = document.createElement("box");
+    let bkpCheckbox = document.createElement("checkbox");
+    let bkpLineInfo = document.createElement("label");
+    let bkpLineText = document.createElement("label");
+
+    
+    breakpoint.id = "breakpoint-" + aId;
+    breakpoint.className = "dbg-breakpoint list-item";
+    breakpoint.setAttribute("location", aUrl + ":" + aLine);
+    breakpoint.breakpointUrl = aUrl;
+    breakpoint.breakpointLine = aLine;
+    breakpoint.breakpointActor = aId;
+
+    aLineInfo = aLineInfo.trim();
+    aLineText = aLineText.trim();
+
+    
+    bkpCheckbox.setAttribute("checked", "true");
+    bkpCheckbox.addEventListener("click", this._onBreakpointCheckboxChange, false);
+
+    
+    bkpLineInfo.className = "dbg-breakpoint-info plain";
+    bkpLineText.className = "dbg-breakpoint-text plain";
+    bkpLineInfo.setAttribute("value", aLineInfo);
+    bkpLineText.setAttribute("value", aLineText);
+    bkpLineInfo.setAttribute("crop", "end");
+    bkpLineText.setAttribute("crop", "end");
+    bkpLineText.setAttribute("tooltiptext", aLineText.substr(0, BREAKPOINT_LINE_TOOLTIP_MAX_SIZE));
+
+    
+    let menupopupId = this._createContextMenu(breakpoint);
+    breakpoint.setAttribute("contextmenu", menupopupId);
+
+    let state = document.createElement("vbox");
+    state.className = "state";
+    state.appendChild(bkpCheckbox);
+
+    let content = document.createElement("vbox");
+    content.className = "content";
+    content.setAttribute("flex", "1");
+    content.appendChild(bkpLineInfo);
+    content.appendChild(bkpLineText);
+
+    breakpoint.appendChild(state);
+    breakpoint.appendChild(content);
+
+    this._breakpoints.appendChild(breakpoint);
+
+    
+    return breakpoint;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  enableBreakpoint:
+  function DVB_enableBreakpoint(aTarget, aCallback, aNoCheckboxUpdate) {
+    let { breakpointUrl: url, breakpointLine: line } = aTarget;
+    let breakpoint = DebuggerController.Breakpoints.getBreakpoint(url, line)
+
+    if (!breakpoint) {
+      if (!aNoCheckboxUpdate) {
+        aTarget.getElementsByTagName("checkbox")[0].setAttribute("checked", "true");
+      }
+      DebuggerController.Breakpoints.
+        addBreakpoint({ url: url, line: line }, aCallback);
+
+      return true;
+    }
+    return false;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  disableBreakpoint:
+  function DVB_disableBreakpoint(aTarget, aCallback, aNoCheckboxUpdate) {
+    let { breakpointUrl: url, breakpointLine: line } = aTarget;
+    let breakpoint = DebuggerController.Breakpoints.getBreakpoint(url, line)
+
+    if (breakpoint) {
+      if (!aNoCheckboxUpdate) {
+        aTarget.getElementsByTagName("checkbox")[0].removeAttribute("checked");
+      }
+      DebuggerController.Breakpoints.
+        removeBreakpoint(breakpoint, aCallback, false, true);
+
+      return true;
+    }
+    return false;
+  },
+
+  
+
+
+  get count() {
+    return this._breakpoints.getElementsByClassName("dbg-breakpoint").length;
+  },
+
+  
+
+
+
+
+
+  _iterate: function DVB_iterate(aCallback) {
+    Array.forEach(Array.slice(this._breakpoints.childNodes), aCallback);
+  },
+
+  
+
+
+
+  _getBreakpointTarget: function DVB__getBreakpointTarget(aEvent) {
+    let target = aEvent.target;
+
+    while (target) {
+      if (target.breakpointActor) {
+        return target;
+      }
+      target = target.parentNode;
+    }
+  },
+
+  
+
+
+  _onBreakpointClick: function DVB__onBreakpointClick(aEvent) {
+    let target = this._getBreakpointTarget(aEvent);
+    let { breakpointUrl: url, breakpointLine: line } = target;
+
+    DebuggerController.StackFrames.updateEditorToLocation(url, line, 0, 0, 1);
+  },
+
+  
+
+
+  _onBreakpointCheckboxChange: function DVB__onBreakpointCheckboxChange(aEvent) {
+    aEvent.stopPropagation();
+
+    let target = this._getBreakpointTarget(aEvent);
+    let { breakpointUrl: url, breakpointLine: line } = target;
+
+    if (aEvent.target.getAttribute("checked") === "true") {
+      this.disableBreakpoint(target, null, true);
+    } else {
+      this.enableBreakpoint(target, null, true);
+    }
+  },
+
+  
+
+
+
+
+
+  _onEnableSelf: function DVB__onEnableSelf(aTarget) {
+    if (!aTarget) {
+      return;
+    }
+    if (this.enableBreakpoint(aTarget)) {
+      aTarget.enableSelf.menuitem.setAttribute("hidden", "true");
+      aTarget.disableSelf.menuitem.removeAttribute("hidden");
+    }
+  },
+
+  
+
+
+
+
+
+  _onDisableSelf: function DVB__onDisableSelf(aTarget) {
+    if (!aTarget) {
+      return;
+    }
+    if (this.disableBreakpoint(aTarget)) {
+      aTarget.enableSelf.menuitem.removeAttribute("hidden");
+      aTarget.disableSelf.menuitem.setAttribute("hidden", "true");
+    }
+  },
+
+  
+
+
+
+
+
+  _onDeleteSelf: function DVB__onDeleteSelf(aTarget) {
+    let { breakpointUrl: url, breakpointLine: line } = aTarget;
+    let breakpoint = DebuggerController.Breakpoints.getBreakpoint(url, line)
+
+    if (aTarget) {
+      this.removeBreakpoint(aTarget.breakpointActor);
+    }
+    if (breakpoint) {
+      DebuggerController.Breakpoints.removeBreakpoint(breakpoint);
+    }
+  },
+
+  
+
+
+
+
+
+  _onEnableOthers: function DVB__onEnableOthers(aTarget) {
+    this._iterate(function(element) {
+      if (element !== aTarget) {
+        this._onEnableSelf(element);
+      }
+    }.bind(this));
+  },
+
+  
+
+
+
+
+
+  _onDisableOthers: function DVB__onDisableOthers(aTarget) {
+    this._iterate(function(element) {
+      if (element !== aTarget) {
+        this._onDisableSelf(element);
+      }
+    }.bind(this));
+  },
+
+  
+
+
+
+
+
+  _onDeleteOthers: function DVB__onDeleteOthers(aTarget) {
+    this._iterate(function(element) {
+      if (element !== aTarget) {
+        this._onDeleteSelf(element);
+      }
+    }.bind(this));
+  },
+
+  
+
+
+
+
+
+  _onEnableAll: function DVB__onEnableAll(aTarget) {
+    this._onEnableOthers(aTarget);
+    this._onEnableSelf(aTarget);
+  },
+
+  
+
+
+
+
+
+  _onDisableAll: function DVB__onDisableAll(aTarget) {
+    this._onDisableOthers(aTarget);
+    this._onDisableSelf(aTarget);
+  },
+
+  
+
+
+
+
+
+  _onDeleteAll: function DVB__onDeleteAll(aTarget) {
+    this._onDeleteOthers(aTarget);
+    this._onDeleteSelf(aTarget);
+  },
+
+  
+
+
+  _breakpoints: null,
+
+  
+
+
+
+
+
+
+
+  _createContextMenu: function DVB_createContextMenu(aBreakpoint) {
+    let commandsetId = "breakpointMenuCommands-" + aBreakpoint.id;
+    let menupopupId = "breakpointContextMenu-" + aBreakpoint.id;
+
+    let commandsset = document.createElement("commandsset");
+    commandsset.setAttribute("id", commandsetId);
+
+    let menupopup = document.createElement("menupopup");
+    menupopup.setAttribute("id", menupopupId);
+
+    
+
+
+
+
+
+
+
+
+    function createMenuItem(aName, aHiddenFlag) {
+      let menuitem = document.createElement("menuitem");
+      let command = document.createElement("command");
+
+      let func = this["_on" + aName.charAt(0).toUpperCase() + aName.slice(1)];
+      let label = L10N.getStr("breakpointMenuItem." + aName);
+
+      let prefix = "bp-cMenu-";
+      let commandId = prefix + aName + "-" + aBreakpoint.id + "-command";
+      let menuitemId = prefix + aName + "-" + aBreakpoint.id + "-menuitem";
+
+      command.setAttribute("id", commandId);
+      command.setAttribute("label", label);
+      command.addEventListener("command", func.bind(this, aBreakpoint), true);
+
+      menuitem.setAttribute("id", menuitemId);
+      menuitem.setAttribute("command", commandId);
+      menuitem.setAttribute("hidden", aHiddenFlag);
+
+      commandsset.appendChild(command);
+      menupopup.appendChild(menuitem);
+
+      aBreakpoint[aName] = {
+        menuitem: menuitem,
+        command: command
+      };
+    }
+
+    
+
+
+
+    function createMenuSeparator() {
+      let menuseparator = document.createElement("menuseparator");
+      menupopup.appendChild(menuseparator);
+    }
+
+    createMenuItem.call(this, "enableSelf", true);
+    createMenuItem.call(this, "disableSelf");
+    createMenuItem.call(this, "deleteSelf");
+    createMenuSeparator();
+    createMenuItem.call(this, "enableOthers");
+    createMenuItem.call(this, "disableOthers");
+    createMenuItem.call(this, "deleteOthers");
+    createMenuSeparator();
+    createMenuItem.call(this, "enableAll");
+    createMenuItem.call(this, "disableAll");
+    createMenuSeparator();
+    createMenuItem.call(this, "deleteAll");
+
+    let popupset = document.getElementById("debugger-popups");
+    popupset.appendChild(menupopup);
+    document.documentElement.appendChild(commandsset);
+
+    return menupopupId;
+  },
+
+  
+
+
+
+
+
+  _destroyContextMenu: function DVB__destroyContextMenu(aBreakpoint) {
+    let commandsetId = "breakpointMenuCommands-" + aBreakpoint.id;
+    let menupopupId = "breakpointContextMenu-" + aBreakpoint.id;
+
+    let commandset = document.getElementById(commandsetId);
+    let menupopup = document.getElementById(menupopupId);
+
+    if (commandset) {
+      commandset.parentNode.removeChild(commandset);
+    }
+    if (menupopup) {
+      menupopup.parentNode.removeChild(menupopup);
+    }
+  },
+
+  
+
+
+  initialize: function DVB_initialize() {
+    let breakpoints = document.getElementById("breakpoints");
+    breakpoints.addEventListener("click", this._onBreakpointClick, false);
+
+    this._breakpoints = breakpoints;
+    this.emptyText();
+  },
+
+  
+
+
+  destroy: function DVB_destroy() {
+    let breakpoints = this._breakpoints;
+    breakpoints.removeEventListener("click", this._onBreakpointClick, false);
+
+    this._breakpoints = null;
+  }
+};
+
+
+
+
 function PropertiesView() {
   this.addScope = this._addScope.bind(this);
   this._addVar = this._addVar.bind(this);
@@ -847,6 +1388,7 @@ function PropertiesView() {
 }
 
 PropertiesView.prototype = {
+
   
 
 
@@ -1923,9 +2465,10 @@ PropertiesView.prototype = {
 
 
   initialize: function DVP_initialize() {
-    this.createHierarchyStore();
-
     this._vars = document.getElementById("variables");
+
+    this.emptyText();
+    this.createHierarchyStore();
   },
 
   
@@ -1943,6 +2486,7 @@ PropertiesView.prototype = {
 
 DebuggerView.Scripts = new ScriptsView();
 DebuggerView.StackFrames = new StackFramesView();
+DebuggerView.Breakpoints = new BreakpointsView();
 DebuggerView.Properties = new PropertiesView();
 
 

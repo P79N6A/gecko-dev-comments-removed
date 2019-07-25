@@ -52,6 +52,7 @@ let DebuggerController = {
     DebuggerView.initializePanes();
     DebuggerView.initializeEditor();
     DebuggerView.StackFrames.initialize();
+    DebuggerView.Breakpoints.initialize();
     DebuggerView.Properties.initialize();
     DebuggerView.Scripts.initialize();
     DebuggerView.showCloseButton(!this._isRemoteDebugger && !this._isChromeDebugger);
@@ -75,6 +76,7 @@ let DebuggerController = {
     DebuggerView.destroyEditor();
     DebuggerView.Scripts.destroy();
     DebuggerView.StackFrames.destroy();
+    DebuggerView.Breakpoints.destroy();
     DebuggerView.Properties.destroy();
 
     DebuggerController.Breakpoints.destroy();
@@ -395,8 +397,6 @@ StackFrames.prototype = {
   connect: function SF_connect(aCallback) {
     window.addEventListener("Debugger:FetchedVariables", this._onFetchedVars, false);
 
-    this._onFramesCleared();
-
     this.activeThread.addListener("paused", this._onPaused);
     this.activeThread.addListener("resumed", this._onResume);
     this.activeThread.addListener("framesadded", this._onFrames);
@@ -506,12 +506,47 @@ StackFrames.prototype = {
     let line = frame.where.line;
     let editor = DebuggerView.editor;
 
-    
-    if (DebuggerView.Scripts.isSelected(url) && line) {
-      editor.setDebugLocation(line - 1);
-    } else {
-      editor.setDebugLocation(-1);
+    this.updateEditorToLocation(url, line, true);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  updateEditorToLocation:
+  function SF_updateEditorToLocation(aUrl, aLine, aNoSwitch, aNoCaretFlag, aNoDebugFlag) {
+    let editor = DebuggerView.editor;
+
+    function set() {
+      if (!aNoCaretFlag) {
+        editor.setCaretPosition(aLine - 1);
+      }
+      if (!aNoDebugFlag) {
+        editor.setDebugLocation(aLine - 1);
+      }
     }
+
+    
+    if (DebuggerView.Scripts.isSelected(aUrl)) {
+      return set();
+    }
+    if (!aNoSwitch && DebuggerView.Scripts.contains(aUrl)) {
+      DebuggerView.Scripts.selectScript(aUrl);
+      return set();
+    }
+    editor.setCaretPosition(-1);
+    editor.setDebugLocation(-1);
   },
 
   
@@ -550,20 +585,9 @@ StackFrames.prototype = {
 
     let url = frame.where.url;
     let line = frame.where.line;
-    let editor = DebuggerView.editor;
 
     
-    if (DebuggerView.Scripts.isSelected(url) && line) {
-      editor.setCaretPosition(line - 1);
-      editor.setDebugLocation(line - 1);
-    }
-    else if (DebuggerView.Scripts.contains(url)) {
-      DebuggerView.Scripts.selectScript(url);
-      editor.setCaretPosition(line - 1);
-    }
-    else {
-      editor.setDebugLocation(-1);
-    }
+    this.updateEditorToLocation(url, line);
 
     
     DebuggerView.Properties.createHierarchyStore();
@@ -755,7 +779,7 @@ StackFrames.prototype = {
 
   _addFrame: function SF__addFrame(aFrame) {
     let depth = aFrame.depth;
-    let label = DebuggerController.SourceScripts._getScriptLabel(aFrame.where.url);
+    let label = DebuggerController.SourceScripts.getScriptLabel(aFrame.where.url);
 
     let startText = this._getFrameTitle(aFrame);
     let endText = label + ":" + aFrame.where.line;
@@ -882,10 +906,12 @@ SourceScripts.prototype = {
     }
 
     this._addScript({ url: aPacket.url, startLine: aPacket.startLine }, true);
+
     
-    for each (let bp in DebuggerController.Breakpoints.store) {
-      if (bp.location.url == aPacket.url) {
-        DebuggerController.Breakpoints.displayBreakpoint(bp.location);
+    
+    for each (let breakpoint in DebuggerController.Breakpoints.store) {
+      if (breakpoint.location.url == aPacket.url) {
+        DebuggerController.Breakpoints.displayBreakpoint(breakpoint);
       }
     }
   },
@@ -898,6 +924,7 @@ SourceScripts.prototype = {
       this._addScript(script, false);
     }
     DebuggerView.Scripts.commitScripts();
+    DebuggerController.Breakpoints.updatePaneBreakpoints();
   },
 
   
@@ -905,6 +932,7 @@ SourceScripts.prototype = {
 
   _onScriptsCleared: function SS__onScriptsCleared() {
     DebuggerView.Scripts.empty();
+    DebuggerView.Breakpoints.emptyText();
   },
 
   
@@ -967,7 +995,7 @@ SourceScripts.prototype = {
 
 
 
-  _trimURL: function SS__trimURL(aUrl, aLabel, aSeq) {
+  _trimUrl: function SS__trimUrl(aUrl, aLabel, aSeq) {
     if (!(aUrl instanceof Ci.nsIURL)) {
       try {
         
@@ -1012,7 +1040,7 @@ SourceScripts.prototype = {
     if (aSeq === 1) {
       let query = aUrl.query;
       if (query) {
-        return this._trimURL(aUrl, aLabel + "?" + query, aSeq + 1);
+        return this._trimUrl(aUrl, aLabel + "?" + query, aSeq + 1);
       }
       aSeq++;
     }
@@ -1020,7 +1048,7 @@ SourceScripts.prototype = {
     if (aSeq === 2) {
       let ref = aUrl.ref;
       if (ref) {
-        return this._trimURL(aUrl, aLabel + "#" + aUrl.ref, aSeq + 1);
+        return this._trimUrl(aUrl, aLabel + "#" + aUrl.ref, aSeq + 1);
       }
       aSeq++;
     }
@@ -1028,7 +1056,7 @@ SourceScripts.prototype = {
     if (aSeq === 3) {
       let dir = aUrl.directory;
       if (dir) {
-        return this._trimURL(aUrl, dir.replace(/^\//, "") + aLabel, aSeq + 1);
+        return this._trimUrl(aUrl, dir.replace(/^\//, "") + aLabel, aSeq + 1);
       }
       aSeq++;
     }
@@ -1036,13 +1064,13 @@ SourceScripts.prototype = {
     if (aSeq === 4) {
       let host = aUrl.hostPort;
       if (host) {
-        return this._trimURL(aUrl, host + "/" + aLabel, aSeq + 1);
+        return this._trimUrl(aUrl, host + "/" + aLabel, aSeq + 1);
       }
       aSeq++;
     }
     
     if (aSeq === 5) {
-      return this._trimURL(aUrl, aUrl.specIgnoringRef, aSeq + 1);
+      return this._trimUrl(aUrl, aUrl.specIgnoringRef, aSeq + 1);
     }
     
     return aUrl.spec;
@@ -1059,8 +1087,8 @@ SourceScripts.prototype = {
 
 
 
-  _getScriptLabel: function SS__getScriptLabel(aUrl, aHref) {
-    return this._labelsCache[aUrl] || (this._labelsCache[aUrl] = this._trimURL(aUrl));
+  getScriptLabel: function SS_getScriptLabel(aUrl, aHref) {
+    return this._labelsCache[aUrl] || (this._labelsCache[aUrl] = this._trimUrl(aUrl));
   },
 
   
@@ -1081,7 +1109,7 @@ SourceScripts.prototype = {
 
   _addScript: function SS__addScript(aScript, aForceFlag) {
     DebuggerView.Scripts.addScript(
-      this._getScriptLabel(aScript.url), aScript, aForceFlag);
+      this.getScriptLabel(aScript.url), aScript, aForceFlag);
   },
 
   
@@ -1231,6 +1259,23 @@ SourceScripts.prototype = {
     element.setUserData("sourceScript", script, null);
 
     this.showScript(script, aOptions);
+  },
+
+  
+
+
+
+
+
+
+
+
+  getLineText: function SS_getLineText(aLine) {
+    let editor = DebuggerView.editor;
+    let line = aLine || editor.getCaretPosition().line;
+    let start = editor.getLineStart(line);
+    let end = editor.getLineEnd(line);
+    return editor.getText(start, end);
   },
 
   
@@ -1399,6 +1444,27 @@ Breakpoints.prototype = {
 
 
 
+  updatePaneBreakpoints: function BP_updatePaneBreakpoints() {
+    let url = DebuggerView.Scripts.selected;
+    if (!url) {
+      return;
+    }
+
+    this._skipEditorBreakpointChange = true;
+    for each (let breakpoint in this.store) {
+      if (DebuggerView.Scripts.contains(breakpoint.location.url)) {
+        this.displayBreakpoint(breakpoint, true);
+      }
+    }
+    this._skipEditorBreakpointChange = false;
+  },
+
+  
+
+
+
+
+
 
 
 
@@ -1414,7 +1480,7 @@ Breakpoints.prototype = {
 
 
   addBreakpoint:
-  function BP_addBreakpoint(aLocation, aCallback, aNoEditorUpdate) {
+  function BP_addBreakpoint(aLocation, aCallback, aNoEditorUpdate, aNoPaneUpdate) {
     let breakpoint = this.getBreakpoint(aLocation.url, aLocation.line);
     if (breakpoint) {
       aCallback && aCallback(breakpoint);
@@ -1423,7 +1489,7 @@ Breakpoints.prototype = {
 
     this.activeThread.setBreakpoint(aLocation, function(aResponse, aBpClient) {
       this.store[aBpClient.actor] = aBpClient;
-      this.displayBreakpoint(aLocation, aNoEditorUpdate);
+      this.displayBreakpoint(aBpClient, aNoEditorUpdate, aNoPaneUpdate);
       aCallback && aCallback(aBpClient, aResponse.error);
     }.bind(this));
   },
@@ -1439,15 +1505,28 @@ Breakpoints.prototype = {
 
 
 
-
-  displayBreakpoint: function BP_displayBreakpoint(aLocation, aNoEditorUpdate) {
+  displayBreakpoint:
+  function BP_displayBreakpoint(aBreakpoint, aNoEditorUpdate, aNoPaneUpdate) {
     if (!aNoEditorUpdate) {
       let url = DebuggerView.Scripts.selected;
-      if (url == aLocation.url) {
+      if (url == aBreakpoint.location.url) {
         this._skipEditorBreakpointChange = true;
-        this.editor.addBreakpoint(aLocation.line - 1);
+        this.editor.addBreakpoint(aBreakpoint.location.line - 1);
         this._skipEditorBreakpointChange = false;
       }
+    }
+    if (!aNoPaneUpdate) {
+      let { url: url, line: line } = aBreakpoint.location;
+
+      if (!aBreakpoint.lineText || !aBreakpoint.lineInfo) {
+        let scripts = DebuggerController.SourceScripts;
+        aBreakpoint.lineText = scripts.getLineText(line - 1);
+        aBreakpoint.lineInfo = scripts.getScriptLabel(url) + ":" + line;
+      }
+      DebuggerView.Breakpoints.addBreakpoint(
+        aBreakpoint.actor,
+        aBreakpoint.lineInfo,
+        aBreakpoint.lineText, url, line);
     }
   },
 
@@ -1464,8 +1543,10 @@ Breakpoints.prototype = {
 
 
 
+
+
   removeBreakpoint:
-  function BP_removeBreakpoint(aBreakpoint, aCallback, aNoEditorUpdate) {
+  function BP_removeBreakpoint(aBreakpoint, aCallback, aNoEditorUpdate, aNoPaneUpdate) {
     if (!(aBreakpoint.actor in this.store)) {
       aCallback && aCallback(aBreakpoint.location);
       return;
@@ -1481,6 +1562,9 @@ Breakpoints.prototype = {
           this.editor.removeBreakpoint(aBreakpoint.location.line - 1);
           this._skipEditorBreakpointChange = false;
         }
+      }
+      if (!aNoPaneUpdate) {
+        DebuggerView.Breakpoints.removeBreakpoint(aBreakpoint.actor);
       }
 
       aCallback && aCallback(aBreakpoint.location);
