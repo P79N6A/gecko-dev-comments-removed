@@ -775,7 +775,9 @@ public:
   NS_DECL_NSIDOMDOCUMENTXBL
 
   
-  NS_DECL_NSIDOMEVENTTARGET
+  virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor);
+  virtual nsIEventListenerManager*
+    GetListenerManager(PRBool aCreateIfNotFound);
 
   
   NS_DECL_NSIDOM3EVENTTARGET

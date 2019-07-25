@@ -49,7 +49,6 @@
 #include "mozilla/dom/Element.h"
 #include "nsIDOMElement.h"
 #include "nsIDOMDocumentFragment.h"
-#include "nsIDOMEventTarget.h"
 #include "nsIDOM3EventTarget.h"
 #include "nsIDOMNSElement.h"
 #include "nsILinkHandler.h"
@@ -303,8 +302,6 @@ public:
   friend class nsNSElementTearoff;
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-
-  NS_DECL_NSIDOMEVENTTARGET
 
   
 
@@ -588,12 +585,6 @@ public:
   
 
 
-  static nsresult doPreHandleEvent(nsIContent* aContent,
-                                   nsEventChainPreVisitor& aVisitor);
-
-  
-
-
 
 
 
@@ -611,6 +602,7 @@ public:
 
 
 
+  using nsIContent::DispatchEvent;
   static nsresult DispatchEvent(nsPresContext* aPresContext,
                                 nsEvent* aEvent,
                                 nsIContent* aTarget,

@@ -80,7 +80,7 @@ public:
   
   NS_DECL_NSIDOM3ATTR
 
-  NS_DECL_NSIDOMEVENTTARGET
+  virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor);
 
   
   void SetMap(nsDOMAttributeMap *aMap);
