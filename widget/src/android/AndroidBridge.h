@@ -208,6 +208,8 @@ public:
 
     void GetSystemColors(AndroidSystemColors *aColors);
 
+    void GetIconForExtension(const nsACString& aFileExt, PRUint32 aIconSize, PRUint8 * const aBuf);
+
     struct AutoLocalJNIFrame {
         AutoLocalJNIFrame(int nEntries = 128) : mEntries(nEntries) {
             
@@ -313,6 +315,7 @@ protected:
     jmethodID jSetSelectedLocale;
     jmethodID jScanMedia;
     jmethodID jGetSystemColors;
+    jmethodID jGetIconForExtension;
 
     
     jclass jEGLSurfaceImplClass;
