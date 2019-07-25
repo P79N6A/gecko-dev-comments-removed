@@ -54,23 +54,26 @@ using namespace js;
 JSObject *
 js_InitObjectClass(JSContext *cx, JSObject *obj)
 {
-    JSObject *proto = js_InitClass(cx, obj, NULL, &ObjectClass, js_Object, 1,
-                                   object_props, object_methods, NULL, object_static_methods);
-    if (!proto)
-        return NULL;
+    JS_ASSERT(obj->isNative());
 
-    
-    proto->getNewType(cx, NULL,  true);
+    GlobalObject *global = obj->asGlobal();
+    if (!global->functionObjectClassesInitialized()) {
+        if (!global->initFunctionAndObjectClasses(cx))
+            return NULL;
+    }
 
-    
-    jsid id = ATOM_TO_JSID(cx->runtime->atomState.evalAtom);
-    JSObject *evalobj = js_DefineFunction(cx, obj, id, eval, 1, JSFUN_STUB_GSOPS);
-    if (!evalobj)
-        return NULL;
-    if (obj->isGlobal())
-        obj->asGlobal()->setOriginalEval(evalobj);
+    return global->getObjectPrototype();
+}
 
-    return proto;
+JSObject *
+js_InitFunctionClass(JSContext *cx, JSObject *obj)
+{
+    JS_ASSERT(obj->isNative());
+
+    GlobalObject *global = obj->asGlobal();
+    return global->functionObjectClassesInitialized()
+           ? global->getFunctionPrototype()
+           : global->initFunctionAndObjectClasses(cx);
 }
 
 static JSBool
@@ -81,105 +84,167 @@ ThrowTypeError(JSContext *cx, uintN argc, Value *vp)
     return false;
 }
 
+namespace js {
+
 JSObject *
-js_InitFunctionClass(JSContext *cx, JSObject *obj)
+GlobalObject::initFunctionAndObjectClasses(JSContext *cx)
 {
-    JSObject *proto = js_InitClass(cx, obj, NULL, &FunctionClass, Function, 1,
-                                   NULL, function_methods, NULL, NULL);
-    if (!proto)
-        return NULL;
+    JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
+    JS_ASSERT(isNative());
 
     
 
 
 
 
-    proto->getNewType(cx, NULL,  true);
-
-    JSFunction *fun = js_NewFunction(cx, proto, NULL, 0, JSFUN_INTERPRETED, obj, NULL);
-    if (!fun)
-        return NULL;
-    fun->flags |= JSFUN_PROTOTYPE;
-
-    JSScript *script = JSScript::NewScript(cx, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, JSVERSION_DEFAULT);
-    if (!script)
-        return NULL;
-    script->noScriptRval = true;
-    script->code[0] = JSOP_STOP;
-    script->code[1] = SRC_NULL;
-    fun->u.i.script = script;
-    fun->getType(cx)->interpretedFunction = fun;
-    script->hasFunction = true;
-    script->setOwnerObject(fun);
-    js_CallNewScriptHook(cx, script, fun);
-
-    if (obj->isGlobal()) {
-        
-        JSFunction *throwTypeError = js_NewFunction(cx, NULL, ThrowTypeError, 0, 0, obj, NULL);
-        if (!throwTypeError)
-            return NULL;
-
-        obj->asGlobal()->setThrowTypeError(throwTypeError);
-    }
-
-    return proto;
-}
-
-JSObject *
-js_InitFunctionAndObjectClasses(JSContext *cx, JSObject *obj)
-{
-    JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
+    
 
     
     if (!cx->globalObject)
-        JS_SetGlobalObject(cx, obj);
+        JS_SetGlobalObject(cx, this);
 
     
-    JSAtom **classAtoms = cx->runtime->atomState.classAtoms;
-    AutoResolving resolving1(cx, obj, ATOM_TO_JSID(classAtoms[JSProto_Function]));
-    AutoResolving resolving2(cx, obj, ATOM_TO_JSID(classAtoms[JSProto_Object]));
 
-    
-    JSObject *fun_proto;
-    if (!js_GetClassPrototype(cx, obj, JSProto_Function, &fun_proto))
+
+
+    JSObject *objectProto = NewNonFunction<WithProto::Given>(cx, &ObjectClass, NULL, this);
+    if (!objectProto || !objectProto->setSingletonType(cx))
         return NULL;
-    if (!fun_proto) {
-        fun_proto = js_InitFunctionClass(cx, obj);
-        if (!fun_proto)
+    types::TypeObject *objectType = objectProto->getNewType(cx, NULL,  true);
+    if (!objectType || !objectType->getEmptyShape(cx, &ObjectClass, gc::FINALIZE_OBJECT0))
+        return NULL;
+
+    
+    JSFunction *functionProto;
+    {
+        JSObject *proto = NewObject<WithProto::Given>(cx, &FunctionClass, objectProto, this);
+        if (!proto || !proto->setSingletonType(cx))
             return NULL;
-    } else {
-        JSObject *ctor = JS_GetConstructor(cx, fun_proto);
-        if (!ctor)
+        types::TypeObject *functionType = proto->getNewType(cx, NULL,  true);
+        if (!functionType || !functionType->getEmptyShape(cx, &FunctionClass, gc::FINALIZE_OBJECT0))
             return NULL;
-        if (!obj->defineProperty(cx, ATOM_TO_JSID(CLASS_ATOM(cx, Function)),
-                                 ObjectValue(*ctor), 0, 0, 0)) {
+
+        
+
+
+
+        functionProto = js_NewFunction(cx, proto, NULL, 0, JSFUN_INTERPRETED, this, NULL);
+        if (!functionProto)
             return NULL;
-        }
+        JS_ASSERT(proto == functionProto);
+        functionProto->flags |= JSFUN_PROTOTYPE;
+
+        JSScript *script =
+            JSScript::NewScript(cx, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, JSVERSION_DEFAULT);
+        if (!script)
+            return NULL;
+        script->noScriptRval = true;
+        script->code[0] = JSOP_STOP;
+        script->code[1] = SRC_NULL;
+        functionProto->u.i.script = script;
+        functionProto->getType(cx)->interpretedFunction = functionProto;
+        script->hasFunction = true;
+        script->setOwnerObject(functionProto);
     }
 
     
-    JSObject *obj_proto;
-    if (!js_GetClassPrototype(cx, obj, JSProto_Object, &obj_proto))
+    jsid objectId = ATOM_TO_JSID(CLASS_ATOM(cx, Object));
+    JSFunction *objectCtor;
+    {
+        JSObject *ctor = NewObject<WithProto::Given>(cx, &FunctionClass, functionProto, this);
+        if (!ctor)
+            return NULL;
+        objectCtor = js_NewFunction(cx, ctor, js_Object, 1, JSFUN_CONSTRUCTOR, this,
+                                    JSID_TO_ATOM(objectId));
+        if (!objectCtor)
+            return NULL;
+        JS_ASSERT(ctor == objectCtor);
+
+        objectCtor->setConstructorClass(&ObjectClass);
+    }
+
+    
+
+
+
+    setObjectClassDetails(objectCtor, objectProto);
+
+    
+    jsid functionId = ATOM_TO_JSID(CLASS_ATOM(cx, Function));
+    JSFunction *functionCtor;
+    {
+        JSObject *ctor =
+            NewObject<WithProto::Given>(cx, &FunctionClass, functionProto, this);
+        if (!ctor)
+            return NULL;
+        functionCtor = js_NewFunction(cx, ctor, Function, 1, JSFUN_CONSTRUCTOR, this,
+                                      JSID_TO_ATOM(functionId));
+        if (!functionCtor)
+            return NULL;
+        JS_ASSERT(ctor == functionCtor);
+
+        functionCtor->setConstructorClass(&FunctionClass);
+    }
+
+    
+
+
+
+    setFunctionClassDetails(functionCtor, functionProto);
+
+    
+
+
+
+    if (!LinkConstructorAndPrototype(cx, objectCtor, objectProto) ||
+        !DefinePropertiesAndBrand(cx, objectProto, object_props, object_methods) ||
+        !DefinePropertiesAndBrand(cx, objectCtor, NULL, object_static_methods) ||
+        !LinkConstructorAndPrototype(cx, functionCtor, functionProto) ||
+        !DefinePropertiesAndBrand(cx, functionProto, NULL, function_methods) ||
+        !DefinePropertiesAndBrand(cx, functionCtor, NULL, NULL))
+    {
         return NULL;
-    if (!obj_proto)
-        obj_proto = js_InitObjectClass(cx, obj);
-    if (!obj_proto)
+    }
+
+    
+    if (!addDataProperty(cx, objectId, JSProto_Object + JSProto_LIMIT * 2, 0))
+        return false;
+    if (!addDataProperty(cx, functionId, JSProto_Function + JSProto_LIMIT * 2, 0))
+        return false;
+
+    
+
+    
+    jsid id = ATOM_TO_JSID(cx->runtime->atomState.evalAtom);
+    JSObject *evalobj = js_DefineFunction(cx, this, id, eval, 1, JSFUN_STUB_GSOPS);
+    if (!evalobj)
         return NULL;
+    setOriginalEval(evalobj);
+
+    
+    JSFunction *throwTypeError = js_NewFunction(cx, NULL, ThrowTypeError, 0, 0, this, NULL);
+    if (!throwTypeError)
+        return NULL;
+    setThrowTypeError(throwTypeError);
 
     
 
 
 
 
-    if (fun_proto->shouldSplicePrototype(cx) && !fun_proto->splicePrototype(cx, obj_proto))
-        return NULL;
-    if (obj->shouldSplicePrototype(cx) && !obj->splicePrototype(cx, obj_proto))
+
+
+
+    if (shouldSplicePrototype(cx) && !splicePrototype(cx, objectProto))
         return NULL;
 
-    return fun_proto;
+    
+
+
+
+    js_CallNewScriptHook(cx, functionProto->script(), functionProto);
+    return functionProto;
 }
-
-namespace js {
 
 GlobalObject *
 GlobalObject::create(JSContext *cx, Class *clasp)
@@ -219,7 +284,7 @@ GlobalObject::initStandardClasses(JSContext *cx)
         return false;
     }
 
-    if (!js_InitFunctionAndObjectClasses(cx, this))
+    if (!initFunctionAndObjectClasses(cx))
         return false;
 
     
@@ -256,6 +321,14 @@ GlobalObject::clear(JSContext *cx)
 
     
     setSlot(RUNTIME_CODEGEN_ENABLED, UndefinedValue());
+
+    
+
+
+
+
+    setSlot(EVAL, UndefinedValue());
+    setSlot(THROWTYPEERROR, UndefinedValue());
 
     
 
