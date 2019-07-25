@@ -38,7 +38,6 @@
 
 
 
-
 #include "mozilla/net/HttpChannelParent.h"
 #include "mozilla/dom/TabParent.h"
 #include "mozilla/net/NeckoParent.h"
@@ -512,7 +511,7 @@ NS_IMETHODIMP
 HttpChannelParent::Delete()
 {
   if (!mIPCClosed)
-    SendDeleteSelf();
+    unused << SendDeleteSelf();
 
   return NS_OK;
 }
