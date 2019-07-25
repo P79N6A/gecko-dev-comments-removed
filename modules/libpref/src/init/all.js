@@ -2288,6 +2288,8 @@ pref("print.print_extra_margin", 90);
 
 pref("ui.panel.default_level_parent", false);
 
+pref("ui.plugin.cancel_composition_at_input_source_changed", false);
+
 pref("mousewheel.system_scroll_override_on_root_content.enabled", false);
 
 # XP_MACOSX
