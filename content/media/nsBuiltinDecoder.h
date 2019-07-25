@@ -535,6 +535,10 @@ public:
   void DecodeError();
 
   
+  
+  nsresult StartStateMachineThread();
+
+  
 
 
 

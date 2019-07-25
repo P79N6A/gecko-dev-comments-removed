@@ -54,6 +54,20 @@ class nsIStreamListener;
 class nsTimeRanges;
 
 
+class ShutdownThreadEvent : public nsRunnable 
+{
+public:
+  ShutdownThreadEvent(nsIThread* aThread) : mThread(aThread) {}
+  ~ShutdownThreadEvent() {}
+  NS_IMETHOD Run() {
+    mThread->Shutdown();
+    return NS_OK;
+  }
+private:
+  nsCOMPtr<nsIThread> mThread;
+};
+
+
 
 
 class nsMediaDecoder : public nsIObserver

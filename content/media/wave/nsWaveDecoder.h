@@ -259,6 +259,10 @@ private:
   void DecodeError();
 
   
+  
+  nsresult StartStateMachineThread();
+
+  
   float mInitialVolume;
 
   
