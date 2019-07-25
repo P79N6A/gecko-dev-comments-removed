@@ -192,12 +192,6 @@ IsWindow(const char *name)
     return name[0] == 'W' && !strcmp(name, "Window");
 }
 
-static bool
-IsLocation(const char *name)
-{
-    return name[0] == 'L' && !strcmp(name, "Location");
-}
-
 static nsIPrincipal *
 GetPrincipal(JSObject *obj)
 {
@@ -217,8 +211,35 @@ GetPrincipal(JSObject *obj)
 }
 
 bool
-AccessCheck::documentDomainMakesSameOrigin(JSContext *cx, JSObject *obj)
+AccessCheck::isCrossOriginAccessPermitted(JSContext *cx, JSObject *wrapper, jsid id,
+                                          JSWrapper::Action act)
 {
+    if (!XPCWrapper::GetSecurityManager())
+        return true;
+
+    if (act == JSWrapper::CALL)
+        return true;
+
+    JSObject *obj = JSWrapper::wrappedObject(wrapper);
+
+    const char *name;
+    js::Class *clasp = obj->getClass();
+    NS_ASSERTION(Jsvalify(clasp) != &XrayUtils::HolderClass, "shouldn't have a holder here");
+    if (clasp->ext.innerObject)
+        name = "Window";
+    else
+        name = clasp->name;
+
+    if (JSID_IS_ATOM(id)) {
+        JSString *str = ATOM_TO_STRING(JSID_TO_ATOM(id));
+        const char *prop = JS_GetStringBytes(str);
+        if (IsPermitted(name, prop, act == JSWrapper::SET))
+            return true;
+    }
+
+    if (IsWindow(name) && IsFrameId(cx, obj, id))
+        return true;
+
     JSObject *scope = nsnull;
     JSStackFrame *fp = nsnull;
     JS_FrameIterator(cx, &fp);
@@ -257,42 +278,7 @@ AccessCheck::documentDomainMakesSameOrigin(JSContext *cx, JSObject *obj)
     }
 
     PRBool subsumes;
-    return NS_SUCCEEDED(subject->Subsumes(object, &subsumes)) && subsumes;
-}
-
-bool
-AccessCheck::isCrossOriginAccessPermitted(JSContext *cx, JSObject *wrapper, jsid id,
-                                          JSWrapper::Action act)
-{
-    if (!XPCWrapper::GetSecurityManager())
-        return true;
-
-    if (act == JSWrapper::CALL)
-        return true;
-
-    JSObject *obj = JSWrapper::wrappedObject(wrapper);
-
-    const char *name;
-    js::Class *clasp = obj->getClass();
-    NS_ASSERTION(Jsvalify(clasp) != &XrayUtils::HolderClass, "shouldn't have a holder here");
-    if (clasp->ext.innerObject)
-        name = "Window";
-    else
-        name = clasp->name;
-
-    if (JSID_IS_ATOM(id)) {
-        JSString *str = ATOM_TO_STRING(JSID_TO_ATOM(id));
-        const char *prop = JS_GetStringBytes(str);
-        if (IsPermitted(name, prop, act == JSWrapper::SET))
-            return true;
-    }
-
-    if (IsWindow(name) && IsFrameId(cx, obj, id))
-        return true;
-
-    
-    
-    if (!IsLocation(name) && documentDomainMakesSameOrigin(cx, obj))
+    if (NS_SUCCEEDED(subject->Subsumes(object, &subsumes)) && subsumes)
         return true;
 
     return (act == JSWrapper::SET)
