@@ -275,6 +275,8 @@ AddonsStore.prototype = {
   
   _syncableTypes: ["extension", "theme"],
 
+  _extensionsPrefs: new Preferences("extensions."),
+
   get reconciler() {
     return this.engine._reconciler;
   },
@@ -540,6 +542,7 @@ AddonsStore.prototype = {
     
     
     
+    
 
     
     
@@ -565,6 +568,12 @@ AddonsStore.prototype = {
     
     if (addon.foreignInstall) {
       this._log.debug(addon.id + " not syncable: is foreign install.");
+      return false;
+    }
+
+    
+    if (this._extensionsPrefs.get("hotfix.id", null) == addon.id) {
+      this._log.debug(addon.id + " not syncable: is a hotfix.");
       return false;
     }
 

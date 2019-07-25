@@ -367,6 +367,48 @@ add_test(function test_addon_syncability() {
   run_next_test();
 });
 
+add_test(function test_ignore_hotfixes() {
+  _("Ensure that hotfix extensions are ignored.");
+
+  Svc.Prefs.set("addons.ignoreRepositoryChecking", true);
+
+  
+  
+  let prefs = new Preferences("extensions.");
+
+  let addon = installAddon("test_bootstrap1_1");
+  do_check_true(store.isAddonSyncable(addon));
+
+  let dummy = {};
+  const KEYS = ["id", "syncGUID", "type", "scope", "foreignInstall"];
+  for each (let k in KEYS) {
+    dummy[k] = addon[k];
+  }
+
+  
+  do_check_true(store.isAddonSyncable(dummy));
+
+  prefs.set("hotfix.id", dummy.id);
+  do_check_false(store.isAddonSyncable(dummy));
+
+  
+  let prefSvc = Cc["@mozilla.org/preferences-service;1"]
+                .getService(Ci.nsIPrefService)
+                .getBranch("extensions.");
+  
+  prefSvc.deleteBranch("hotfix.id");
+  prefSvc.setIntPref("hotfix.id", 0xdeadbeef);
+
+  do_check_true(store.isAddonSyncable(dummy));
+
+  uninstallAddon(addon);
+
+  Svc.Prefs.reset("addons.ignoreRepositoryChecking");
+  prefs.reset("hotfix.id");
+
+  run_next_test();
+});
+
 add_test(function test_ignore_untrusted_source_uris() {
   _("Ensures that source URIs from insecure schemes are rejected.");
 
