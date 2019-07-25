@@ -6,6 +6,10 @@ Components.utils.import("resource://gre/modules/NetUtil.jsm");
 
 
 
+const MAX_INSTALL_TIME = 10000;
+
+
+
 const PREF_GENERAL_SKINS_SELECTEDSKIN = "general.skins.selectedSkin";
 
 Components.utils.import("resource://gre/modules/LightweightThemeManager.jsm");
@@ -278,9 +282,11 @@ function run_test_3() {
     do_check_eq(p1.installDate.getTime(), p1.updateDate.getTime());
 
     
-    
-    
-    do_check_true((Date.now() - p1.installDate.getTime()) < 5000);
+    let difference = Date.now() - p1.installDate.getTime();
+    if (difference > MAX_INSTALL_TIME)
+      do_throw("Add-on was installed " + difference + "ms ago");
+    else if (difference < 0)
+      do_throw("Add-on was installed " + difference + "ms in the future");
 
     AddonManager.getAddonsByTypes(["theme"], function(addons) {
       let seen = false;
@@ -347,9 +353,11 @@ function run_test_4() {
     do_check_eq(p2.installDate.getTime(), p2.updateDate.getTime());
 
     
-    
-    
-    do_check_true((Date.now() - p2.installDate.getTime()) < 5000);
+    let difference = Date.now() - p2.installDate.getTime();
+    if (difference > MAX_INSTALL_TIME)
+      do_throw("Add-on was installed " + difference + "ms ago");
+    else if (difference < 0)
+      do_throw("Add-on was installed " + difference + "ms in the future");
 
     do_check_neq(null, p1);
     do_check_false(p1.appDisabled);
