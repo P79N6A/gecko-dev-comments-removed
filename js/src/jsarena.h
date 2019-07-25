@@ -65,8 +65,7 @@ struct JSArena {
 struct JSArenaPool {
     JSArena     first;          
     JSArena     *current;       
-    size_t      netsize;        
-
+    size_t      arenasize;      
     jsuword     mask;           
 };
 
