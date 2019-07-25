@@ -368,6 +368,18 @@ WeaveSvc.prototype = {
     finally { DAV.defaultPrefix = prefix; }
   },
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   _getKeypair : function WeaveSvc__getKeypair(id, createIfNecessary) {
     let self = yield;
 
