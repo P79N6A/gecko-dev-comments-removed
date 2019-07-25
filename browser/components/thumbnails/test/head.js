@@ -117,50 +117,22 @@ function checkThumbnailColor(aURL, aRed, aGreen, aBlue, aMessage) {
   let width = 100, height = 100;
   let thumb = PageThumbs.getThumbnailURL(aURL, width, height);
 
-  getXULDocument(function (aDocument) {
-    let htmlns = "http://www.w3.org/1999/xhtml";
-    let img = aDocument.createElementNS(htmlns, "img");
-    img.setAttribute("src", thumb);
+  let htmlns = "http://www.w3.org/1999/xhtml";
+  let img = document.createElementNS(htmlns, "img");
+  img.setAttribute("src", thumb);
 
-    whenLoaded(img, function () {
-      let canvas = aDocument.createElementNS(htmlns, "canvas");
-      canvas.setAttribute("width", width);
-      canvas.setAttribute("height", height);
+  whenLoaded(img, function () {
+    let canvas = document.createElementNS(htmlns, "canvas");
+    canvas.setAttribute("width", width);
+    canvas.setAttribute("height", height);
 
-      
-      let ctx = canvas.getContext("2d");
-      ctx.drawImage(img, 0, 0, width, height);
-      checkCanvasColor(ctx, aRed, aGreen, aBlue, aMessage);
+    
+    let ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0, width, height);
+    checkCanvasColor(ctx, aRed, aGreen, aBlue, aMessage);
 
-      next();
-    });
+    next();
   });
-}
-
-
-
-
-
-
-function getXULDocument(aCallback) {
-  let hiddenWindow = Services.appShell.hiddenDOMWindow;
-  let doc = cachedXULDocument || hiddenWindow.document;
-
-  if (doc instanceof XULDocument) {
-    aCallback(cachedXULDocument = doc);
-    return;
-  }
-
-  let iframe = doc.createElement("iframe");
-  iframe.setAttribute("src", "chrome://global/content/mozilla.xhtml");
-
-  iframe.addEventListener("DOMContentLoaded", function onLoad() {
-    iframe.removeEventListener("DOMContentLoaded", onLoad, false);
-    aCallback(cachedXULDocument = iframe.contentDocument);
-  }, false);
-
-  doc.body.appendChild(iframe);
-  registerCleanupFunction(function () { doc.body.removeChild(iframe); });
 }
 
 
