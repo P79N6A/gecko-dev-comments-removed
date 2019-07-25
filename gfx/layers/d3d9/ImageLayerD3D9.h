@@ -100,7 +100,7 @@ class THEBES_API PlanarYCbCrImageD3D9 : public PlanarYCbCrImage,
                                         public ImageD3D9
 {
 public:
-  PlanarYCbCrImageD3D9(LayerManagerD3D9 *aManager);
+  PlanarYCbCrImageD3D9();
   ~PlanarYCbCrImageD3D9() {}
 
   virtual void SetData(const Data &aData);
@@ -109,7 +109,7 @@ public:
 
 
 
-  void AllocateTextures();
+  void AllocateTextures(IDirect3DDevice9 *aDevice);
   
 
 
