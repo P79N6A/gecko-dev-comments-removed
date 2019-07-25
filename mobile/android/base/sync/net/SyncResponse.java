@@ -150,7 +150,7 @@ public class SyncResponse {
   
 
 
-  public int retryAfter() throws NumberFormatException {
+  public int retryAfterInSeconds() throws NumberFormatException {
     if (!this.hasHeader(HEADER_RETRY_AFTER)) {
       return -1;
     }
@@ -178,8 +178,37 @@ public class SyncResponse {
     }
   }
 
-  public int weaveBackoff() throws NumberFormatException {
+  
+
+
+
+  public int weaveBackoffInSeconds() throws NumberFormatException {
     return this.getIntegerHeader("x-weave-backoff");
+  }
+
+  
+
+
+
+  public int totalBackoffInMilliseconds() {
+    int retryAfterInSeconds = -1;
+    try {
+      retryAfterInSeconds = retryAfterInSeconds();
+    } catch (NumberFormatException e) {
+    }
+
+    int weaveBackoffInSeconds = -1;
+    try {
+      weaveBackoffInSeconds = weaveBackoffInSeconds();
+    } catch (NumberFormatException e) {
+    }
+
+    int totalBackoff = Math.max(retryAfterInSeconds, weaveBackoffInSeconds);
+    if (totalBackoff < 0) {
+      return -1;
+    } else {
+      return 1000 * totalBackoff;
+    }
   }
 
   
