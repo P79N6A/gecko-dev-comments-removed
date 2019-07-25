@@ -1196,7 +1196,6 @@ public:
 
 
   virtual nsresult SetResolution(float aXResolution, float aYResolution) = 0;
-  gfxSize GetResolution() { return gfxSize(mXResolution, mYResolution); }
   float GetXResolution() { return mXResolution; }
   float GetYResolution() { return mYResolution; }
 
