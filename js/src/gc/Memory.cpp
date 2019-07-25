@@ -5,6 +5,8 @@
 
 
 
+#include "mozilla/Assertions.h"
+
 #include "jstypes.h"
 
 #include "js/Utility.h"
@@ -24,7 +26,8 @@ InitMemorySubsystem()
 {
     SYSTEM_INFO sysinfo;
     GetSystemInfo(&sysinfo);
-    JS_OPT_ASSERT(sysinfo.dwPageSize == PageSize);
+    if (sysinfo.dwPageSize != PageSize)
+        MOZ_CRASH();
     AllocationGranularity = sysinfo.dwAllocationGranularity;
 }
 
@@ -299,7 +302,8 @@ GetPageFaultCount()
 void
 InitMemorySubsystem()
 {
-    JS_OPT_ASSERT(size_t(sysconf(_SC_PAGESIZE)) == PageSize);
+    if (size_t(sysconf(_SC_PAGESIZE)) != PageSize)
+        MOZ_CRASH();
 }
 
 void *

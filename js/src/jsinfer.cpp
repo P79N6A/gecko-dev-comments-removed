@@ -322,10 +322,8 @@ types::TypeFailure(JSContext *cx, const char *fmt, ...)
     
     cx->compartment->types.print(cx, true);
 
-    
-    MOZ_Assert(msgbuf, __FILE__, __LINE__);
-
-    *((volatile int *)NULL) = 0;  
+    MOZ_ReportAssertionFailure(msgbuf, __FILE__, __LINE__);
+    MOZ_CRASH();
 }
 
 

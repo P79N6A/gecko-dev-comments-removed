@@ -105,22 +105,31 @@
 extern "C" {
 #endif
 
-#if defined(WIN32)
-   
-
-
-
-#  define MOZ_CRASH() \
-     do { \
-       *((volatile int*) NULL) = 123; \
-       exit(3); \
-     } while (0)
-#elif defined(ANDROID)
-   
 
 
 
 
+
+
+
+
+
+
+#ifdef WIN32
+#  ifdef __cplusplus
+#    define MOZ_CRASH() \
+       do { \
+         *((volatile int*) NULL) = 123; \
+         ::exit(3); \
+       } while (0)
+#  else
+#    define MOZ_CRASH() \
+       do { \
+         *((volatile int*) NULL) = 123; \
+         exit(3); \
+       } while (0)
+#  endif
+#else
 #  ifdef __cplusplus
 #    define MOZ_CRASH() \
        do { \
@@ -134,20 +143,18 @@ extern "C" {
          abort(); \
        } while (0)
 #  endif
-#else
-#  define MOZ_CRASH() \
-     do { \
-       *((volatile int*) NULL) = 123; \
-       raise(SIGABRT);  /* In case above statement gets nixed by the optimizer. */ \
-     } while (0)
 #endif
 
 
-extern MFBT_API(void)
-MOZ_Assert(const char* s, const char* file, int ln);
+
+
+
+
+
+
 
 static MOZ_ALWAYS_INLINE void
-MOZ_OutputAssertMessage(const char* s, const char *file, int ln)
+MOZ_ReportAssertionFailure(const char* s, const char* file, int ln)
 {
 #ifdef ANDROID
   __android_log_print(ANDROID_LOG_FATAL, "MOZ_Assert",
@@ -199,7 +206,7 @@ MOZ_OutputAssertMessage(const char* s, const char *file, int ln)
 #  define MOZ_ASSERT_HELPER1(expr) \
      do { \
        if (!(expr)) { \
-         MOZ_OutputAssertMessage(#expr, __FILE__, __LINE__); \
+         MOZ_ReportAssertionFailure(#expr, __FILE__, __LINE__); \
          MOZ_CRASH(); \
        } \
      } while (0)
@@ -207,7 +214,7 @@ MOZ_OutputAssertMessage(const char* s, const char *file, int ln)
 #  define MOZ_ASSERT_HELPER2(expr, explain) \
      do { \
        if (!(expr)) { \
-         MOZ_OutputAssertMessage(#expr " (" explain ")", __FILE__, __LINE__); \
+         MOZ_ReportAssertionFailure(#expr " (" explain ")", __FILE__, __LINE__); \
          MOZ_CRASH(); \
        } \
      } while (0)
@@ -263,14 +270,33 @@ MOZ_OutputAssertMessage(const char* s, const char *file, int ln)
 
 
 
+
+
 #if defined(__clang__)
 #  define MOZ_NOT_REACHED_MARKER() __builtin_unreachable()
 #elif defined(__GNUC__)
+   
+
+
+
+
 #  if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 5)
 #    define MOZ_NOT_REACHED_MARKER() __builtin_unreachable()
+#  else
+#    ifdef __cplusplus
+#      define MOZ_NOT_REACHED_MARKER() ::abort()
+#    else
+#      define MOZ_NOT_REACHED_MARKER() abort()
+#    endif
 #  endif
 #elif defined(_MSC_VER)
 #  define MOZ_NOT_REACHED_MARKER() __assume(0)
+#else
+#  ifdef __cplusplus
+#    define MOZ_NOT_REACHED_MARKER() ::abort()
+#  else
+#    define MOZ_NOT_REACHED_MARKER() abort()
+#  endif
 #endif
 
 
@@ -290,39 +316,14 @@ MOZ_OutputAssertMessage(const char* s, const char *file, int ln)
 
 
 
-#if defined(MOZ_NOT_REACHED_MARKER)
-#  if defined(DEBUG)
-#    define MOZ_NOT_REACHED(reason)  do { \
-                                       MOZ_Assert(reason, __FILE__, __LINE__); \
-                                       MOZ_NOT_REACHED_MARKER();        \
-                                     } while (0)
-#  else
-#    define MOZ_NOT_REACHED(reason)  MOZ_NOT_REACHED_MARKER()
-#  endif
+#if defined(DEBUG)
+#  define MOZ_NOT_REACHED(reason) \
+     do { \
+       MOZ_ASSERT(false, reason); \
+       MOZ_NOT_REACHED_MARKER(); \
+     } while (0)
 #else
-#  if defined(__GNUC__)
-     
-
-
-
-
-
-
-
-
-#    define MOZ_GETASMPREFIX2(X) #X
-#    define MOZ_GETASMPREFIX(X) MOZ_GETASMPREFIX2(X)
-#    define MOZ_ASMPREFIX MOZ_GETASMPREFIX(__USER_LABEL_PREFIX__)
-     extern MOZ_NORETURN MFBT_API(void)
-     MOZ_ASSERT_NR(const char* s, const char* file, int ln) \
-       asm (MOZ_ASMPREFIX "MOZ_Assert");
-
-#    define MOZ_NOT_REACHED(reason)    MOZ_ASSERT_NR(reason, __FILE__, __LINE__)
-#  elif defined(DEBUG)
-#    define MOZ_NOT_REACHED(reason)    MOZ_Assert(reason, __FILE__, __LINE__)
-#  else
-#    define MOZ_NOT_REACHED(reason)    ((void)0)
-#  endif
+#  define MOZ_NOT_REACHED(reason)  MOZ_NOT_REACHED_MARKER()
 #endif
 
 
