@@ -17,7 +17,7 @@ namespace power {
 
 NS_IMPL_ISUPPORTS1(PowerManagerService, nsIPowerManagerService)
 
- nsRefPtr<PowerManagerService> PowerManagerService::sSingleton;
+ StaticRefPtr<PowerManagerService> PowerManagerService::sSingleton;
 
  already_AddRefed<nsIPowerManagerService>
 PowerManagerService::GetInstance()

@@ -138,7 +138,7 @@ DiscardingEnabled()
 namespace mozilla {
 namespace image {
 
- nsRefPtr<RasterImage::DecodeWorker> RasterImage::DecodeWorker::sSingleton;
+ StaticRefPtr<RasterImage::DecodeWorker> RasterImage::DecodeWorker::sSingleton;
 
 #ifndef DEBUG
 NS_IMPL_ISUPPORTS3(RasterImage, imgIContainer, nsIProperties,
