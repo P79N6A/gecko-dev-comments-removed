@@ -595,8 +595,7 @@ nsHttpTransaction::Close(nsresult reason)
         return;
     }
 
-    if (mTimings.responseEnd.IsNull())
-        mTimings.responseEnd = mozilla::TimeStamp::Now();
+    mTimings.responseEnd = mozilla::TimeStamp::Now();
 
     if (mActivityDistributor) {
         
@@ -1128,8 +1127,6 @@ nsHttpTransaction::HandleContent(char *buf,
         
         mTransactionDone = PR_TRUE;
         mResponseIsComplete = PR_TRUE;
-
-        mTimings.responseEnd = mozilla::TimeStamp::Now();
 
         
         if (mActivityDistributor)
