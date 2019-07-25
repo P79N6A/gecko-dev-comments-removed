@@ -178,16 +178,14 @@ JSProxyHandler::set(JSContext *cx, JSObject *proxy, JSObject *receiver, jsid id,
             desc.getter = PropertyStub;
         if (!desc.setter)
             desc.setter = PropertyStub;
-        
-    } else {
-        
-        desc.getter = desc.setter = NULL;
+        return defineProperty(cx, receiver, id, &desc);
     }
 
     desc.obj = receiver;
     desc.value = *vp;
     desc.attrs = JSPROP_ENUMERATE;
     desc.shortid = 0;
+    desc.getter = desc.setter = NULL; 
     return defineProperty(cx, receiver, id, &desc);
 }
 
