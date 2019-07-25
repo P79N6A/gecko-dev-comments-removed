@@ -824,7 +824,7 @@ mjit::Compiler::generatePrologue()
                                                    StackFrame::OVERFLOW_ARGS |
                                                    StackFrame::HAS_ARGS_OBJ));
             masm.storePtr(ImmPtr((void *)(size_t) script->function()->nargs),
-                          Address(JSFrameReg, StackFrame::offsetOfArgs()));
+                          Address(JSFrameReg, StackFrame::offsetOfNumActual()));
             hasArgs.linkTo(masm.label(), &masm);
         }
 
@@ -4529,10 +4529,9 @@ mjit::Compiler::jsop_getprop(PropertyName *name, JSValueType knownType,
 
 
 
-
         if (types->isLazyArguments(cx)) {
             frame.pop();
-            frame.pushWord(Address(JSFrameReg, StackFrame::offsetOfArgs()), JSVAL_TYPE_INT32);
+            frame.pushWord(Address(JSFrameReg, StackFrame::offsetOfNumActual()), JSVAL_TYPE_INT32);
             if (script->pcCounters)
                 bumpPropCounter(PC, OpcodeCounts::PROP_DEFINITE);
             return true;
