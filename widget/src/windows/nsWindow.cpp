@@ -680,6 +680,10 @@ NS_METHOD nsWindow::Destroy()
   mLayerManager = nsnull;
 
   
+
+  mD2DWindowSurface = nsnull;
+
+  
   
   
   
