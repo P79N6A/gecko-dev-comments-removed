@@ -70,7 +70,6 @@ function ContentSecurityPolicy() {
 
   this._requestHeaders = []; 
   this._request = "";
-  this._docRequest = null;
   CSPdebug("CSP POLICY INITED TO 'allow *'");
 }
 
@@ -201,7 +200,6 @@ ContentSecurityPolicy.prototype = {
     }
 
     this._request = aChannel.requestMethod + " " + aChannel.URI.asciiSpec;
-    this._docRequest = aChannel;
 
     
     
@@ -246,9 +244,7 @@ ContentSecurityPolicy.prototype = {
     
     
     var newpolicy = CSPRep.fromString(aPolicy,
-                                      selfURI.scheme + "://" + selfURI.hostPort,
-                                      this._docRequest,
-                                      this);
+                                      selfURI.scheme + "://" + selfURI.hostPort);
 
     
     var intersect = this._policy.intersectWith(newpolicy);

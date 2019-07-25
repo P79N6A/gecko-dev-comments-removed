@@ -119,57 +119,6 @@ function CSPdebug(aMsg) {
 }
 
 
-function CSPPolicyURIListener(policyURI, docRequest, csp) {
-  this._policyURI = policyURI;    
-  this._docRequest = docRequest;  
-  this._csp = csp;                
-  this._policy = "";              
-  this._wrapper = null;           
-  this._docURI = docRequest.QueryInterface(Components.interfaces.nsIChannel)
-                 .originalURI;    
-}
-
-CSPPolicyURIListener.prototype = {
-
-  QueryInterface: function(iid) {
-    if (iid.equals(Components.interfaces.nsIStreamListener) ||
-        iid.equals(Components.interfaces.nsIRequestObserver) ||
-        iid.equals(Components.interfaces.nsISupports))
-      return this;
-    throw Components.results.NS_ERROR_NO_INTERFACE;
-  },
-
-  onStartRequest:
-  function(request, context) {},
-
-  onDataAvailable:
-  function(request, context, inputStream, offset, count) {
-    if (this._wrapper == null) {
-      this._wrapper = Components.classes["@mozilla.org/scriptableinputstream;1"]
-                      .createInstance(Components.interfaces.nsIScriptableInputStream);
-      this._wrapper.init(inputStream);
-    }
-    
-    this._policy += this._wrapper.read(count);
-  },
-
-  onStopRequest:
-  function(request, context, status) {
-    if (Components.isSuccessCode(status)) {
-      
-      
-      this._csp.refinePolicy(this._policy, this._docURI, this._docRequest);
-    }
-    else {
-      
-      this._csp.refinePolicy("allow 'none'", null, this._docURI, this._docRequest);
-    }
-    
-    this._docRequest.resume();
-  }
-};
-
-
 
 
 
@@ -216,12 +165,7 @@ CSPRep.OPTIONS_DIRECTIVE = "options";
 
 
 
-
-
-
-
-
-CSPRep.fromString = function(aStr, self, docRequest, csp) {
+CSPRep.fromString = function(aStr, self) {
   var SD = CSPRep.SRC_DIRECTIVES;
   var UD = CSPRep.URI_DIRECTIVES;
   var aCSPR = new CSPRep();
@@ -340,12 +284,6 @@ CSPRep.fromString = function(aStr, self, docRequest, csp) {
         CSPError("policy-uri directive can only appear alone");
         return CSPRep.fromString("allow 'none'");
       }
-      
-      
-      if (!docRequest || !csp) {
-        CSPError("The policy-uri cannot be fetched without a parent request and a CSP.");
-        return CSPRep.fromString("allow 'none'");
-      }
 
       var uri = '';
       try {
@@ -371,25 +309,31 @@ CSPRep.fromString = function(aStr, self, docRequest, csp) {
         }
       }
 
+      var req = Components.classes["@mozilla.org/xmlextras/xmlhttprequest;1"]  
+                  .createInstance(Components.interfaces.nsIXMLHttpRequest);  
+
       
-      try {
-        docRequest.suspend();
-        var chan = gIoService.newChannel(uri.asciiSpec, null, null);
-        
-        
-        chan.loadFlags |= Components.interfaces.nsIChannel.LOAD_ANONYMOUS;
-        chan.asyncOpen(new CSPPolicyURIListener(uri, docRequest, csp), null);
-      }
-      catch (e) {
-        
-        docRequest.resume();
-        CSPError("Error fetching policy-uri: " + e);
-        return CSPRep.fromString("allow 'none'");
-      }
+      req.onerror = CSPError;
 
       
       
-      return CSPRep.fromString("allow *");
+      
+      req.open("GET", uri.asciiSpec, false);
+
+      
+      
+      
+      req.channel.loadFlags |= Components.interfaces.nsIChannel.LOAD_ANONYMOUS;
+
+      req.send(null);
+      if (req.status == 200) {
+        aCSPR = CSPRep.fromString(req.responseText, self);
+        
+        aCSPR._directives[UD.POLICY_URI] = dirvalue;
+        return aCSPR;
+      }
+      CSPError("Error fetching policy URI: server response was " + req.status);
+      return CSPRep.fromString("allow 'none'");
     }
 
     
