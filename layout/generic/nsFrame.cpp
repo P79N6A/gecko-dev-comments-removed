@@ -2306,11 +2306,20 @@ nsFrame::HandlePress(nsPresContext* aPresContext,
     
     
     if (captureMouse) {
+      
+      
+      
+      NS_ASSERTION(nsIPresShell::GetCapturingContent() != nsnull,
+                   "Someone must have captured mouse event already");
       nsIScrollableFrame* scrollableFrame =
         FindNearestScrollableFrameForSelection(this);
-      nsIFrame* frame = do_QueryFrame(scrollableFrame);
-      nsIPresShell::SetCapturingContent(frame->GetContent(),
-                                        CAPTURE_IGNOREALLOWED);
+      if (scrollableFrame) {
+        nsIFrame* frame = do_QueryFrame(scrollableFrame);
+        nsIContent* contentToCaptureForTableSelection =
+          GetContentToCaptureForSelection(frame->GetContent());
+        nsIPresShell::SetCapturingContent(contentToCaptureForTableSelection,
+                                          CAPTURE_IGNOREALLOWED);
+      }
     }
     fs->SetMouseDownState(PR_TRUE);
     return fs->HandleTableSelection(parentContent, contentOffset, target, me);
