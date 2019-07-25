@@ -101,7 +101,6 @@ public:
 
   
   nsresult RemoveProxy(imgRequestProxy *proxy, nsresult aStatus, PRBool aNotify);
-  nsresult NotifyProxyListener(imgRequestProxy *proxy);
 
   void SniffMimeType(const char *buf, PRUint32 len);
 
@@ -114,8 +113,6 @@ public:
   
   
   void CancelAndAbort(nsresult aStatus);
-
-  nsresult GetImage(imgIContainer **aImage);
 
   
   
@@ -146,7 +143,6 @@ private:
   void Cancel(nsresult aStatus);
   nsresult GetURI(nsIURI **aURI);
   nsresult GetKeyURI(nsIURI **aURI);
-  nsresult GetPrincipal(nsIPrincipal **aPrincipal);
   nsresult GetSecurityInfo(nsISupports **aSecurityInfo);
   void RemoveFromCache();
   inline const char *GetMimeType() const {
@@ -233,7 +229,6 @@ private:
 
   PRPackedBool mIsMultiPartChannel : 1;
   PRPackedBool mLoading : 1;
-  PRPackedBool mHadLastPart : 1;
   PRPackedBool mGotData : 1;
   PRPackedBool mIsInCache : 1;
 };

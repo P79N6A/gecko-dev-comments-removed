@@ -667,8 +667,11 @@ nsresult imgLoader::CreateNewProxyForRequest(imgRequest *aRequest, nsILoadGroup 
 
   proxyRequest->SetLoadFlags(aLoadFlags);
 
+  nsCOMPtr<nsIURI> uri;
+  aRequest->GetURI(getter_AddRefs(uri));
+
   
-  nsresult rv = proxyRequest->Init(aRequest, aLoadGroup, aObserver);
+  nsresult rv = proxyRequest->Init(aRequest, aLoadGroup, uri, aObserver);
   if (NS_FAILED(rv)) {
     NS_RELEASE(proxyRequest);
     return rv;
@@ -1674,7 +1677,7 @@ NS_IMETHODIMP imgLoader::LoadImage(nsIURI *aURI,
     
     proxy->AddToLoadGroup();
 
-    request->NotifyProxyListener(proxy);
+    proxy->NotifyListener();
 
     return rv;
   }
@@ -1793,7 +1796,7 @@ NS_IMETHODIMP imgLoader::LoadImageWithChannel(nsIChannel *channel, imgIDecoderOb
 
   rv = CreateNewProxyForRequest(request, loadGroup, aObserver,
                                 requestFlags, nsnull, _retval);
-  request->NotifyProxyListener(static_cast<imgRequestProxy*>(*_retval));
+  static_cast<imgRequestProxy*>(*_retval)->NotifyListener();
 
   return rv;
 }
@@ -2013,7 +2016,7 @@ NS_IMETHODIMP imgCacheValidator::OnStartRequest(nsIRequest *aRequest, nsISupport
       PRUint32 count = mProxies.Count();
       for (PRInt32 i = count-1; i>=0; i--) {
         imgRequestProxy *proxy = static_cast<imgRequestProxy *>(mProxies[i]);
-        mRequest->NotifyProxyListener(proxy);
+        proxy->NotifyListener();
       }
 
       mRequest->SetLoadId(mContext);
@@ -2073,7 +2076,7 @@ NS_IMETHODIMP imgCacheValidator::OnStartRequest(nsIRequest *aRequest, nsISupport
   for (PRInt32 i = count-1; i>=0; i--) {
     imgRequestProxy *proxy = static_cast<imgRequestProxy *>(mProxies[i]);
     proxy->ChangeOwner(request);
-    request->NotifyProxyListener(proxy);
+    proxy->NotifyListener();
   }
 
   NS_RELEASE(request);
