@@ -1009,12 +1009,13 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
   }
 
   nsRoleMapEntry *roleMapEntry = nsAccUtils::GetRoleMapEntry(aNode);
-  if (roleMapEntry && !nsCRT::strcmp(roleMapEntry->roleString, "presentation") &&
-      !content->IsFocusable()) { 
+  if (roleMapEntry && !nsCRT::strcmp(roleMapEntry->roleString, "presentation")) {
     
     
-    
-    return nsnull;
+    if (content->IsFocusable())
+      roleMapEntry = nsnull;
+    else
+      return nsnull;
   }
 
   if (weakFrame.IsAlive() && !newAcc && isHTML) {  
