@@ -478,10 +478,22 @@ gfxUtils::DrawPixelSnapped(gfxContext*      aContext,
 
     aFilter = ReduceResamplingFilter(aFilter, aImageRect.Width(), aImageRect.Height(), aSourceRect.Width(), aSourceRect.Height());
 
+    gfxMatrix userSpaceToImageSpace = aUserSpaceToImageSpace;
+
     
     
     
-#ifndef MOZ_GFX_OPTIMIZE_MOBILE
+#ifdef MOZ_GFX_OPTIMIZE_MOBILE
+    
+    
+    
+    
+    
+    if (doTile && (userSpaceToImageSpace.y0 > 16384.0 || userSpaceToImageSpace.x0 > 16384.0)) {
+        userSpaceToImageSpace.x0 = fmod(userSpaceToImageSpace.x0, aImageRect.width);
+        userSpaceToImageSpace.y0 = fmod(userSpaceToImageSpace.y0, aImageRect.height);
+    }
+#else
     
     
     
@@ -511,7 +523,7 @@ gfxUtils::DrawPixelSnapped(gfxContext*      aContext,
         aContext->SetOperator(OptimalFillOperator());
     }
 
-    drawable->Draw(aContext, aFill, doTile, aFilter, aUserSpaceToImageSpace);
+    drawable->Draw(aContext, aFill, doTile, aFilter, userSpaceToImageSpace);
 
     aContext->SetOperator(op);
 }
