@@ -14,6 +14,7 @@
 #include "nsWeakPtr.h"
 #include "nsVariant.h"
 #include "nsContentUtils.h"
+#include "nsDOMMemoryReporter.h"
 #include "nsEventDispatcher.h"
 #include "nsContentUtils.h"
 #include "nsAsyncDOMEvent.h"
@@ -29,10 +30,9 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsGenericHTMLFrameElement,
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_INTERFACE_TABLE_HEAD(nsGenericHTMLFrameElement)
-  NS_INTERFACE_TABLE_INHERITED4(nsGenericHTMLFrameElement,
+  NS_INTERFACE_TABLE_INHERITED3(nsGenericHTMLFrameElement,
                                 nsIFrameLoaderOwner,
                                 nsIDOMMozBrowserFrame,
-                                nsIMozBrowserFrame,
                                 nsIWebProgressListener)
   NS_INTERFACE_TABLE_TO_MAP_SEGUE_CYCLE_COLLECTION(nsGenericHTMLFrameElement)
 NS_INTERFACE_MAP_END_INHERITING(nsGenericHTMLElement)
@@ -269,6 +269,16 @@ nsGenericHTMLFrameElement::IsHTMLFocusable(bool aWithMouse,
   return false;
 }
 
+PRInt64
+nsGenericHTMLFrameElement::SizeOf() const
+{
+  PRInt64 size = MemoryReporter::GetBasicSize<nsGenericHTMLFrameElement,
+                                              nsGenericHTMLElement>(this);
+  
+  size += mFrameLoader ? sizeof(*mFrameLoader.get()) : 0;
+  return size;
+}
+
 NS_IMETHODIMP
 nsGenericHTMLFrameElement::GetMozbrowser(bool *aValue)
 {
@@ -299,7 +309,7 @@ nsGenericHTMLFrameElement::MaybeEnsureBrowserFrameListenersRegistered()
 
   
   
-  if (!GetReallyIsBrowser()) {
+  if (!BrowserFrameSecurityCheck()) {
     return;
   }
 
@@ -352,7 +362,7 @@ nsGenericHTMLFrameElement::MaybeEnsureBrowserFrameListenersRegistered()
 
 
 bool
-nsGenericHTMLFrameElement::GetReallyIsBrowser()
+nsGenericHTMLFrameElement::BrowserFrameSecurityCheck()
 {
   
   if (!Preferences::GetBool("dom.mozBrowserFramesEnabled")) {
@@ -379,13 +389,6 @@ nsGenericHTMLFrameElement::GetReallyIsBrowser()
   return true;
 }
 
-NS_IMETHODIMP
-nsGenericHTMLFrameElement::GetReallyIsBrowser(bool *aResult)
-{
-  *aResult = GetReallyIsBrowser();
-  return NS_OK;
-}
-
 
 
 
@@ -407,7 +410,7 @@ nsGenericHTMLFrameElement::MaybeFireBrowserEvent(
   MOZ_ASSERT_IF(aEventType.EqualsLiteral("event"),
                 aValue.IsEmpty());
 
-  if (!GetReallyIsBrowser()) {
+  if (!BrowserFrameSecurityCheck()) {
     return NS_OK;
   }
 

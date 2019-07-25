@@ -51,9 +51,10 @@
 #include "nsContentUtils.h"
 #include "nsReadableUtils.h"
 #include "prprf.h"
-#include "mozilla/HashFunctions.h"
 
-using namespace mozilla;
+namespace css = mozilla::css;
+
+using mozilla::SVGAttrValueWrapper;
 
 #define MISC_STR_PTR(_cont) \
   reinterpret_cast<void*>((_cont)->mStringBits & NS_ATTRVALUE_POINTERVALUE_MASK)
@@ -391,7 +392,7 @@ nsAttrValue::SetTo(const nsSVGLength2& aValue, const nsAString* aSerialized)
 }
 
 void
-nsAttrValue::SetTo(const SVGLengthList& aValue,
+nsAttrValue::SetTo(const mozilla::SVGLengthList& aValue,
                    const nsAString* aSerialized)
 {
   
@@ -403,7 +404,7 @@ nsAttrValue::SetTo(const SVGLengthList& aValue,
 }
 
 void
-nsAttrValue::SetTo(const SVGNumberList& aValue,
+nsAttrValue::SetTo(const mozilla::SVGNumberList& aValue,
                    const nsAString* aSerialized)
 {
   
@@ -421,7 +422,7 @@ nsAttrValue::SetTo(const nsSVGNumberPair& aValue, const nsAString* aSerialized)
 }
 
 void
-nsAttrValue::SetTo(const SVGPathData& aValue,
+nsAttrValue::SetTo(const mozilla::SVGPathData& aValue,
                    const nsAString* aSerialized)
 {
   
@@ -433,7 +434,7 @@ nsAttrValue::SetTo(const SVGPathData& aValue,
 }
 
 void
-nsAttrValue::SetTo(const SVGPointList& aValue,
+nsAttrValue::SetTo(const mozilla::SVGPointList& aValue,
                    const nsAString* aSerialized)
 {
   
@@ -445,14 +446,14 @@ nsAttrValue::SetTo(const SVGPointList& aValue,
 }
 
 void
-nsAttrValue::SetTo(const SVGAnimatedPreserveAspectRatio& aValue,
+nsAttrValue::SetTo(const mozilla::SVGAnimatedPreserveAspectRatio& aValue,
                    const nsAString* aSerialized)
 {
   SetSVGType(eSVGPreserveAspectRatio, &aValue, aSerialized);
 }
 
 void
-nsAttrValue::SetTo(const SVGStringList& aValue,
+nsAttrValue::SetTo(const mozilla::SVGStringList& aValue,
                    const nsAString* aSerialized)
 {
   
@@ -464,7 +465,7 @@ nsAttrValue::SetTo(const SVGStringList& aValue,
 }
 
 void
-nsAttrValue::SetTo(const SVGTransformList& aValue,
+nsAttrValue::SetTo(const mozilla::SVGTransformList& aValue,
                    const nsAString* aSerialized)
 {
   
@@ -713,7 +714,7 @@ nsAttrValue::GetEnumString(nsAString& aResult, bool aRealTag) const
     if (table->value == val) {
       aResult.AssignASCII(table->tag);
       if (!aRealTag && allEnumBits & NS_ATTRVALUE_ENUMTABLE_VALUE_NEEDS_TO_UPPER) {
-        nsContentUtils::ASCIIToUpper(aResult);
+        ToUpperCase(aResult);
       }
       return;
     }
@@ -763,7 +764,7 @@ nsAttrValue::HashValue() const
       nsStringBuffer* str = static_cast<nsStringBuffer*>(GetPtr());
       if (str) {
         PRUint32 len = str->StorageSize()/sizeof(PRUnichar) - 1;
-        return HashString(static_cast<PRUnichar*>(str->Data()), len);
+        return nsCRT::HashCode(static_cast<PRUnichar*>(str->Data()), len);
       }
 
       return 0;
@@ -811,14 +812,14 @@ nsAttrValue::HashValue() const
     }
     case eAtomArray:
     {
-      PRUint32 hash = 0;
+      PRUint32 retval = 0;
       PRUint32 count = cont->mAtomArray->Length();
       for (nsCOMPtr<nsIAtom> *cur = cont->mAtomArray->Elements(),
                              *end = cur + count;
            cur != end; ++cur) {
-        hash = AddToHash(hash, cur->get());
+        retval ^= NS_PTR_TO_INT32(cur->get());
       }
-      return hash;
+      return retval;
     }
     case eDoubleValue:
     {
@@ -1315,7 +1316,7 @@ nsAttrValue::ParseEnumValue(const nsAString& aValue,
       if (!equals) {
         nsAutoString tag;
         tag.AssignASCII(tableEntry->tag);
-        nsContentUtils::ASCIIToUpper(tag);
+        ToUpperCase(tag);
         if ((equals = tag.Equals(aValue))) {
           value |= NS_ATTRVALUE_ENUMTABLE_VALUE_NEEDS_TO_UPPER;
         }
@@ -1766,43 +1767,52 @@ nsAttrValue::StringToInteger(const nsAString& aValue, bool* aStrict,
   return value;
 }
 
-size_t
-nsAttrValue::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+PRInt64
+nsAttrValue::SizeOf() const
 {
-  size_t n = 0;
+  PRInt64 size = sizeof(*this);
 
   switch (BaseType()) {
     case eStringBase:
     {
+      
+      
       nsStringBuffer* str = static_cast<nsStringBuffer*>(GetPtr());
-      n += str ? str->SizeOfIncludingThisIfUnshared(aMallocSizeOf) : 0;
+      size += str ? str->StorageSize() : 0;
       break;
     }
     case eOtherBase:
     {
       MiscContainer* container = GetMiscContainer();
+
       if (!container) {
         break;
       }
-      n += aMallocSizeOf(container);
+
+      size += sizeof(*container);
 
       void* otherPtr = MISC_STR_PTR(container);
       
       
       if (otherPtr &&
           static_cast<ValueBaseType>(container->mStringBits & NS_ATTRVALUE_BASETYPE_MASK) == eStringBase) {
+        
+        
         nsStringBuffer* str = static_cast<nsStringBuffer*>(otherPtr);
-        n += str ? str->SizeOfIncludingThisIfUnshared(aMallocSizeOf) : 0;
+        size += str ? str->StorageSize() : 0;
       }
 
+      
+      
       if (Type() == eCSSStyleRule && container->mCSSStyleRule) {
         
-        
-        
+        size += sizeof(*container->mCSSStyleRule);
       } else if (Type() == eAtomArray && container->mAtomArray) {
+        size += sizeof(container->mAtomArray) + sizeof(nsTArrayHeader);
+        size += container->mAtomArray->Capacity() * sizeof(nsCOMPtr<nsIAtom>);
         
-        n += container->mAtomArray->SizeOfIncludingThis(aMallocSizeOf);
       }
+
       break;
     }
     case eAtomBase:    
@@ -1810,6 +1820,6 @@ nsAttrValue::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
       break;
   }
 
-  return n;
+  return size;
 }
 

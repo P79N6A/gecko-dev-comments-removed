@@ -40,6 +40,8 @@
 #include "nsGkAtoms.h"
 #include "nsIDocument.h"
 #include "nsContentUtils.h"
+#include "nsDOMMemoryReporter.h"
+
 
 class nsXMLCDATASection : public nsGenericDOMDataNode,
                           public nsIDOMCDATASection
@@ -59,6 +61,10 @@ public:
 
   
   NS_FORWARD_NSIDOMTEXT(nsGenericDOMDataNode::)
+
+  
+  NS_DECL_AND_IMPL_DOM_MEMORY_REPORTER_SIZEOF(nsXMLCDATASection,
+                                              nsGenericDOMDataNode)
 
   
   

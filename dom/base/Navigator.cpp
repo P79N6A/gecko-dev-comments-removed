@@ -70,8 +70,6 @@
 #include "mozilla/Telemetry.h"
 #include "BatteryManager.h"
 #include "PowerManager.h"
-#include "nsIDOMWakeLock.h"
-#include "nsIPowerManagerService.h"
 #include "SmsManager.h"
 #include "nsISmsService.h"
 #include "mozilla/Hal.h"
@@ -174,10 +172,7 @@ Navigator::Invalidate()
     mBatteryManager = nsnull;
   }
 
-  if (mPowerManager) {
-    mPowerManager->Shutdown();
-    mPowerManager = nsnull;
-  }
+  mPowerManager = nsnull;
 
   if (mSmsManager) {
     mSmsManager->Shutdown();
@@ -567,13 +562,6 @@ Navigator::JavaEnabled(bool* aReturn)
   return NS_OK;
 }
 
-NS_IMETHODIMP
-Navigator::TaintEnabled(bool *aReturn)
-{
-  *aReturn = false;
-  return NS_OK;
-}
-
 void
 Navigator::RefreshMIMEArray()
 {
@@ -929,9 +917,13 @@ NS_IMETHODIMP Navigator::GetMozNotification(nsIDOMDesktopNotificationCenter** aR
   }
 
   nsCOMPtr<nsPIDOMWindow> win(do_QueryReferent(mWindow));
-  NS_ENSURE_TRUE(win && win->GetDocShell(), NS_ERROR_FAILURE);
+  nsCOMPtr<nsIScriptGlobalObject> sgo(do_QueryInterface(win));
+  NS_ENSURE_TRUE(sgo && win->GetDocShell(), NS_ERROR_FAILURE);
 
-  mNotification = new nsDesktopNotificationCenter(win);
+  nsIScriptContext* scx = sgo->GetContext();
+  NS_ENSURE_TRUE(scx, NS_ERROR_FAILURE);
+
+  mNotification = new nsDesktopNotificationCenter(win, scx);
 
   NS_ADDREF(*aRetVal = mNotification);
   return NS_OK;
@@ -948,10 +940,14 @@ Navigator::GetMozBattery(nsIDOMMozBatteryManager** aBattery)
     *aBattery = nsnull;
 
     nsCOMPtr<nsPIDOMWindow> win(do_QueryReferent(mWindow));
-    NS_ENSURE_TRUE(win->GetDocShell(), NS_OK);
+    nsCOMPtr<nsIScriptGlobalObject> sgo(do_QueryInterface(win));
+    NS_ENSURE_TRUE(sgo && win->GetDocShell(), NS_OK);
+
+    nsIScriptContext* scx = sgo->GetContext();
+    NS_ENSURE_TRUE(scx, NS_OK);
 
     mBatteryManager = new battery::BatteryManager();
-    mBatteryManager->Init(win);
+    mBatteryManager->Init(win, scx);
   }
 
   NS_ADDREF(*aBattery = mBatteryManager);
@@ -962,36 +958,13 @@ Navigator::GetMozBattery(nsIDOMMozBatteryManager** aBattery)
 NS_IMETHODIMP
 Navigator::GetMozPower(nsIDOMMozPowerManager** aPower)
 {
-  *aPower = nsnull;
-
   if (!mPowerManager) {
-    nsCOMPtr<nsPIDOMWindow> win = do_QueryReferent(mWindow);
-    NS_ENSURE_TRUE(win, NS_OK);
-
     mPowerManager = new power::PowerManager();
-    mPowerManager->Init(win);
   }
 
-  nsCOMPtr<nsIDOMMozPowerManager> power =
-    do_QueryInterface(NS_ISUPPORTS_CAST(nsIDOMMozPowerManager*, mPowerManager));
-  power.forget(aPower);
+  NS_ADDREF(*aPower = mPowerManager);
 
   return NS_OK;
-}
-
-NS_IMETHODIMP
-Navigator::RequestWakeLock(const nsAString &aTopic, nsIDOMMozWakeLock **aWakeLock)
-{
-  *aWakeLock = nsnull;
-
-  nsCOMPtr<nsPIDOMWindow> win = do_QueryReferent(mWindow);
-  NS_ENSURE_TRUE(win, NS_OK);
-
-  nsCOMPtr<nsIPowerManagerService> pmService =
-    do_GetService(POWERMANAGERSERVICE_CONTRACTID);
-  NS_ENSURE_TRUE(pmService, NS_OK);
-
-  return pmService->NewWakeLock(aTopic, win, aWakeLock);
 }
 
 
@@ -1082,8 +1055,14 @@ Navigator::GetMozSms(nsIDOMMozSmsManager** aSmsManager)
     nsCOMPtr<nsPIDOMWindow> window = do_QueryReferent(mWindow);
     NS_ENSURE_TRUE(window && window->GetDocShell(), NS_OK);
 
+    nsCOMPtr<nsIScriptGlobalObject> sgo = do_QueryInterface(window);
+    NS_ENSURE_TRUE(sgo, NS_OK);
+
+    nsIScriptContext* scx = sgo->GetContext();
+    NS_ENSURE_TRUE(scx, NS_OK);
+
     mSmsManager = new sms::SmsManager();
-    mSmsManager->Init(window);
+    mSmsManager->Init(window, scx);
   }
 
   NS_ADDREF(*aSmsManager = mSmsManager);
@@ -1132,8 +1111,14 @@ Navigator::GetMozConnection(nsIDOMMozConnection** aConnection)
     nsCOMPtr<nsPIDOMWindow> window = do_QueryReferent(mWindow);
     NS_ENSURE_TRUE(window && window->GetDocShell(), NS_OK);
 
+    nsCOMPtr<nsIScriptGlobalObject> sgo = do_QueryInterface(window);
+    NS_ENSURE_TRUE(sgo, NS_OK);
+
+    nsIScriptContext* scx = sgo->GetContext();
+    NS_ENSURE_TRUE(scx, NS_OK);
+
     mConnection = new network::Connection();
-    mConnection->Init(window);
+    mConnection->Init(window, scx);
   }
 
   NS_ADDREF(*aConnection = mConnection);
@@ -1164,17 +1149,21 @@ Navigator::GetMozBluetooth(nsIDOMBluetoothAdapter** aBluetooth)
 }
 #endif 
 
-size_t
-Navigator::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+PRInt64
+Navigator::SizeOf() const
 {
-  size_t n = aMallocSizeOf(this);
+  PRInt64 size = sizeof(*this);
 
   
+  size += mMimeTypes ? sizeof(*mMimeTypes.get()) : 0;
   
+  size += mPlugins ? sizeof(*mPlugins.get()) : 0;
   
+  size += mGeolocation ? sizeof(*mGeolocation.get()) : 0;
   
+  size += mNotification ? sizeof(*mNotification.get()) : 0;
 
-  return n;
+  return size;
 }
 
 void

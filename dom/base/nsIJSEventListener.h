@@ -99,30 +99,7 @@ public:
   
   virtual void SetHandler(JSObject *aHandler) = 0;
 
-  
-  
-  
-  
-  
-  virtual size_t SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
-  {
-    return 0;
-
-    
-    
-    
-    
-    
-    
-    
-    
-  }
-
-  virtual size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const
-  {
-    return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
-  }
-
+  virtual PRInt64 SizeOf() const = 0;
 protected:
   virtual ~nsIJSEventListener()
   {

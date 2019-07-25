@@ -120,24 +120,17 @@ nsresult nsPluginNativeWindowGtk2::CallSetWindow(nsRefPtr<nsNPAPIPluginInstance>
       if (!mSocketWidget) {
         nsresult rv;
 
-        
-        
-        
-        
-        
-        
-        
-        int needsXEmbed = 0;
-        rv = aPluginInstance->GetValueFromPlugin(NPPVpluginNeedsXEmbed, &needsXEmbed);
+        bool needXEmbed = false;
+        rv = aPluginInstance->GetValueFromPlugin(NPPVpluginNeedsXEmbed, &needXEmbed);
         
         if (NS_FAILED(rv)) {
-          needsXEmbed = 0;
+          needXEmbed = false;
         }
 #ifdef DEBUG
-        printf("nsPluginNativeWindowGtk2: NPPVpluginNeedsXEmbed=%d\n", needsXEmbed);
+        printf("nsPluginNativeWindowGtk2: NPPVpluginNeedsXEmbed=%d\n", needXEmbed);
 #endif
 
-        if (needsXEmbed) {
+        if (needXEmbed) {
           rv = CreateXEmbedWindow();
         }
         else {

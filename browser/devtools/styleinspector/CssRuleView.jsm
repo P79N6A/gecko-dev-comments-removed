@@ -38,7 +38,6 @@
 
 
 
-
 "use strict";
 
 const Cc = Components.classes;
@@ -104,13 +103,6 @@ function ElementStyle(aElement, aStore)
 {
   this.element = aElement;
   this.store = aStore || {};
-
-  
-  
-  if (!("userProperties" in this.store)) {
-    this.store.userProperties = new UserProperties();
-  }
-
   if (this.store.disabled) {
     this.store.disabled = aStore.disabled;
   } else {
@@ -357,20 +349,10 @@ function Rule(aElementStyle, aOptions)
   this.style = aOptions.style || this.domRule.style;
   this.selectorText = aOptions.selectorText || this.domRule.selectorText;
   this.inherited = aOptions.inherited || null;
-
-  if (this.domRule) {
-    let parentRule = this.domRule.parentRule;
-    if (parentRule && parentRule.type == Ci.nsIDOMCSSRule.MEDIA_RULE) {
-      this.mediaText = parentRule.media.mediaText;
-    }
-  }
-
   this._getTextProperties();
 }
 
 Rule.prototype = {
-  mediaText: "",
-
   get title()
   {
     if (this._title) {
@@ -391,7 +373,7 @@ Rule.prototype = {
                                                            args, args.length);
     }
 
-    return this._title + (this.mediaText ? " @media " + this.mediaText : "");
+    return this._title;
   },
 
   
@@ -440,7 +422,6 @@ Rule.prototype = {
   applyProperties: function Rule_applyProperties()
   {
     let disabledProps = [];
-    let store = this.elementStyle.store;
 
     for each (let prop in this.textProps) {
       if (!prop.enabled) {
@@ -452,11 +433,10 @@ Rule.prototype = {
         continue;
       }
 
-      store.userProperties.setProperty(this.style, prop.name, prop.value);
-
       this.style.setProperty(prop.name, prop.value, prop.priority);
       
       
+      prop.value = this.style.getPropertyValue(prop.name);
       prop.priority = this.style.getPropertyPriority(prop.name);
       prop.updateComputed();
     }
@@ -539,7 +519,6 @@ Rule.prototype = {
   _getTextProperties: function Rule_getTextProperties()
   {
     this.textProps = [];
-    let store = this.elementStyle.store;
     let lines = this.style.cssText.match(CSS_LINE_RE);
     for each (let line in lines) {
       let matches = CSS_PROP_RE.exec(line);
@@ -551,8 +530,8 @@ Rule.prototype = {
           !this.elementStyle.domUtils.isInheritedProperty(name)) {
         continue;
       }
-      let value = store.userProperties.getProperty(this.style, name, matches[2]);
-      let prop = new TextProperty(this, name, value, matches[3] || "");
+
+      let prop = new TextProperty(this, name, matches[2], matches[3] || "");
       this.textProps.push(prop);
     }
 
@@ -563,8 +542,8 @@ Rule.prototype = {
     }
 
     for each (let prop in disabledProps) {
-      let value = store.userProperties.getProperty(this.style, prop.name, prop.value);
-      let textProp = new TextProperty(this, prop.name, value, prop.priority);
+      let textProp = new TextProperty(this, prop.name,
+                                      prop.value, prop.priority);
       textProp.enabled = false;
       this.textProps.push(textProp);
     }
@@ -733,26 +712,8 @@ CssRuleView.prototype = {
     }.bind(this);
 
     this._createEditors();
-
-    
-    
-    
-    
-    
-    
-    
-    
-    this._focusBackstop = createChild(this.element, "div", {
-      tabindex: 0,
-    });
-    this._backstopHandler = function() {
-      
-      
-      moveFocus(this.doc.defaultView, FOCUS_FORWARD);
-    }.bind(this);
-    this._focusBackstop.addEventListener("focus", this._backstopHandler, false);
   },
-
+  
   
 
 
@@ -781,12 +742,6 @@ CssRuleView.prototype = {
     this._clearRules();
     this._viewedElement = null;
     this._elementStyle = null;
-
-    if (this._focusBackstop) {
-      this._focusBackstop.removeEventListener("focus", this._backstopHandler, false);
-      this._backstopHandler = null;
-      this._focusBackstop = null;
-    }
   },
 
   
@@ -808,7 +763,7 @@ CssRuleView.prototype = {
     for each (let rule in this._elementStyle.rules) {
       
       
-      let editor = new RuleEditor(this, rule);
+      let editor = new RuleEditor(this.doc, rule);
       this.element.appendChild(editor.element);
     }
   },
@@ -823,11 +778,9 @@ CssRuleView.prototype = {
 
 
 
-
-function RuleEditor(aRuleView, aRule)
+function RuleEditor(aDoc, aRule)
 {
-  this.ruleView = aRuleView;
-  this.doc = this.ruleView.doc;
+  this.doc = aDoc;
   this.rule = aRule;
 
   this._onNewProperty = this._onNewProperty.bind(this);
@@ -872,6 +825,7 @@ RuleEditor.prototype = {
 
     this.openBrace = createChild(header, "span", {
       class: "ruleview-ruleopen",
+      tabindex: "0",
       textContent: " {"
     });
 
@@ -896,16 +850,8 @@ RuleEditor.prototype = {
 
     
     
-    this.closeBrace.addEventListener("focus", function(aEvent) {
-      if (!this.ruleView._selectionMode) {
-        this.newProperty();
-      }
-    }.bind(this), true);
-    this.closeBrace.addEventListener("mousedown", function(aEvent) {
-      aEvent.preventDefault();
-    }.bind(this), true);
-    this.closeBrace.addEventListener("click", function(aEvent) {
-      this.closeBrace.focus();
+    this.closeBrace.addEventListener("focus", function() {
+      this.newProperty();
     }.bind(this), true);
   },
 
@@ -1047,12 +993,6 @@ TextPropertyEditor.prototype = {
 
     appendText(this.element, ";");
 
-    this.warning = createChild(this.element, "div", {
-      hidden: "",
-      class: "ruleview-warning",
-      title: CssLogic.l10n("rule.warning.title"),
-    });
-
     
     
     this.computed = createChild(this.element, "ul", {
@@ -1088,7 +1028,6 @@ TextPropertyEditor.prototype = {
       val += " !" + this.prop.priority;
     }
     this.valueSpan.textContent = val;
-    this.warning.hidden = this._validate();
 
     
     this._updateComputed();
@@ -1224,23 +1163,6 @@ TextPropertyEditor.prototype = {
       this.prop.setValue(this.committed.value, this.committed.priority);
     }
   },
-
-  
-
-
-
-
-
-  _validate: function TextPropertyEditor_validate()
-  {
-    let name = this.prop.name;
-    let value = this.prop.value;
-    let style = this.doc.createElementNS(HTML_NS, "div").style;
-
-    style.setProperty(name, value, null);
-
-    return !!style.getPropertyValue(name);
-  },
 };
 
 
@@ -1271,21 +1193,6 @@ function editableField(aOptions)
 {
   aOptions.element.addEventListener("focus", function() {
     new InplaceEditor(aOptions);
-  }, false);
-
-  
-  
-  aOptions.element.addEventListener("mousedown", function(evt) {
-    evt.preventDefault();
-  }, false);
-  aOptions.element.addEventListener("click", function(evt) {
-    let win = this.ownerDocument.defaultView;
-    let selection = win.getSelection();
-    if (selection.isCollapsed) {
-      aOptions.element.focus();
-    } else {
-      selection.removeAllRanges();
-    }
   }, false);
 }
 var _editableField = editableField;
@@ -1472,61 +1379,6 @@ InplaceEditor.prototype = {
       this.change(this.input.value.trim());
     }
   }
-};
-
-
-
-
-
-function UserProperties()
-{
-  this.weakMap = new WeakMap();
-}
-
-UserProperties.prototype = {
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  getProperty: function UP_getProperty(aStyle, aName, aDefault) {
-    let entry = this.weakMap.get(aStyle, null);
-
-    if (entry && aName in entry) {
-      return entry[aName];
-    }
-    return typeof aDefault != "undefined" ? aDefault : null;
-
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  setProperty: function UP_setProperty(aStyle, aName, aValue) {
-    let entry = this.weakMap.get(aStyle, null);
-    if (entry) {
-      entry[aName] = aValue;
-    } else {
-      let props = {};
-      props[aName] = aValue;
-      this.weakMap.set(aStyle, props);
-    }
-  },
 };
 
 

@@ -49,7 +49,7 @@
 #include "nsDOMError.h"
 #include "nsDOMString.h"
 #include "jspubtd.h"
-#include "nsWindowMemoryReporter.h"
+#include "nsDOMMemoryReporter.h"
 #include "nsIVariant.h"
 #include "nsGkAtoms.h"
 
@@ -176,13 +176,10 @@ enum {
   NODE_HANDLING_CLICK          = 0x00040000U,
 
   
-  NODE_HAS_RELEVANT_HOVER_RULES = 0x00080000U,
-
   
   
   
-  
-  NODE_SCRIPT_TYPE_OFFSET =               20,
+  NODE_SCRIPT_TYPE_OFFSET =               19,
 
   NODE_SCRIPT_TYPE_SIZE =                  2,
 
@@ -305,39 +302,7 @@ class nsINode : public nsIDOMEventTarget,
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_INODE_IID)
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  NS_DECL_SIZEOF_EXCLUDING_THIS
-
-  
-  
-  
-  
-  
-  virtual size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const {
-    return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
-  }
+  NS_DECL_DOM_MEMORY_REPORTER_SIZEOF
 
   friend class nsNodeUtils;
   friend class nsNodeWeakReference;
@@ -1366,7 +1331,6 @@ protected:
 public:
   
   virtual nsXPCClassInfo* GetClassInfo() = 0;
-
 protected:
 
   

@@ -152,14 +152,13 @@
 #include "prprf.h"
 
 #include "nsSVGFeatures.h"
+#include "nsDOMMemoryReporter.h"
 #include "nsWrapperCacheInlines.h"
 #include "nsCycleCollector.h"
 #include "xpcpublic.h"
 #include "xpcprivate.h"
 #include "nsLayoutStatics.h"
 #include "mozilla/Telemetry.h"
-
-#include "mozilla/CORSMode.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -1982,7 +1981,7 @@ nsGenericElement::GetChildrenList()
   return slots->mChildrenList;
 }
 
-nsDOMTokenList*
+nsIDOMDOMTokenList*
 nsGenericElement::GetClassList(nsresult *aResult)
 {
   *aResult = NS_ERROR_OUT_OF_MEMORY;
@@ -2314,7 +2313,7 @@ nsGenericElement::GetClientRects(nsIDOMClientRectList** aResult)
 {
   *aResult = nsnull;
 
-  nsRefPtr<nsClientRectList> rectList = new nsClientRectList(this);
+  nsRefPtr<nsClientRectList> rectList = new nsClientRectList();
 
   nsIFrame* frame = GetPrimaryFrame(Flush_Layout);
   if (!frame) {
@@ -2470,9 +2469,6 @@ nsGenericElement::nsDOMSlots::Traverse(nsCycleCollectionTraversalCallback &cb, b
 
   NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "mSlots->mChildrenList");
   cb.NoteXPCOMChild(NS_ISUPPORTS_CAST(nsIDOMNodeList*, mChildrenList));
-
-  NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "mSlots->mClassList");
-  cb.NoteXPCOMChild(mClassList.get());
 }
 
 void
@@ -2487,10 +2483,6 @@ nsGenericElement::nsDOMSlots::Unlink(bool aIsXUL)
   if (aIsXUL)
     NS_IF_RELEASE(mControllers);
   mChildrenList = nsnull;
-  if (mClassList) {
-    mClassList->DropReference();
-    mClassList = nsnull;
-  }
 }
 
 nsGenericElement::nsGenericElement(already_AddRefed<nsINodeInfo> aNodeInfo)
@@ -2738,9 +2730,6 @@ nsGenericElement::RemoveAttribute(const nsAString& aName)
   const nsAttrName* name = InternalGetExistingAttrNameFromQName(aName);
 
   if (!name) {
-    
-    
-    
     return NS_OK;
   }
 
@@ -2856,15 +2845,14 @@ nsGenericElement::GetAttributeNS(const nsAString& aNamespaceURI,
 
   if (nsid == kNameSpaceID_Unknown) {
     
-    SetDOMStringToNull(aReturn);
+
+    aReturn.Truncate();
+
     return NS_OK;
   }
 
   nsCOMPtr<nsIAtom> name = do_GetAtom(aLocalName);
-  bool hasAttr = GetAttr(nsid, name, aReturn);
-  if (!hasAttr) {
-    SetDOMStringToNull(aReturn);
-  }
+  GetAttr(nsid, name, aReturn);
 
   return NS_OK;
 }
@@ -2896,8 +2884,7 @@ nsGenericElement::RemoveAttributeNS(const nsAString& aNamespaceURI,
 
   if (nsid == kNameSpaceID_Unknown) {
     
-    
-    
+
     return NS_OK;
   }
 
@@ -6210,74 +6197,29 @@ nsGenericElement::MozMatchesSelector(const nsAString& aSelector, bool* aReturn)
   return rv;
 }
 
-size_t
-nsINode::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+PRInt64
+nsINode::SizeOf() const
 {
-  size_t n = 0;
+  PRInt64 size = sizeof(*this);
+
   nsEventListenerManager* elm =
     const_cast<nsINode*>(this)->GetListenerManager(false);
   if (elm) {
-    n += elm->SizeOfIncludingThis(aMallocSizeOf);
+    size += elm->SizeOf();
   }
 
-  
-  
-  
-  
-  
-  
-  
-  
-  return n;
+  return size;
 }
 
-size_t
-nsGenericElement::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+PRInt64
+nsGenericElement::SizeOf() const
 {
-  return Element::SizeOfExcludingThis(aMallocSizeOf) +
-         mAttrsAndChildren.SizeOfExcludingThis(aMallocSizeOf);
-}
+  PRInt64 size = MemoryReporter::GetBasicSize<nsGenericElement, Element>(this);
 
-static const nsAttrValue::EnumTable kCORSAttributeTable[] = {
-  
-  
-  { "anonymous",       CORS_ANONYMOUS       },
-  { "use-credentials", CORS_USE_CREDENTIALS },
-  { 0 }
-};
+  size -= sizeof(mAttrsAndChildren);
+  size += mAttrsAndChildren.SizeOf();
 
- void
-nsGenericElement::ParseCORSValue(const nsAString& aValue,
-                                 nsAttrValue& aResult)
-{
-  DebugOnly<bool> success =
-    aResult.ParseEnumValue(aValue, kCORSAttributeTable, false,
-                           
-                           
-                           &kCORSAttributeTable[0]);
-  MOZ_ASSERT(success);
-}
-
- CORSMode
-nsGenericElement::StringToCORSMode(const nsAString& aValue)
-{
-  if (aValue.IsVoid()) {
-    return CORS_NONE;
-  }
-
-  nsAttrValue val;
-  nsGenericElement::ParseCORSValue(aValue, val);
-  return CORSMode(val.GetEnumValue());
-}
-
- CORSMode
-nsGenericElement::AttrValueToCORSMode(const nsAttrValue* aValue)
-{
-  if (!aValue) {
-    return CORS_NONE;
-  }
-
-  return CORSMode(aValue->GetEnumValue());
+  return size;
 }
 
 #define EVENT(name_, id_, type_, struct_)                                    \

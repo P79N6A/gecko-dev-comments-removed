@@ -67,6 +67,7 @@
 #include "nsIWeakReferenceUtils.h"
 #include "nsCSSRendering.h"
 #include "prprf.h"
+#include "nsContentPolicyUtils.h"
 #include "nsIDOMDocument.h"
 #include "nsAutoPtr.h"
 #include "nsEventStateManager.h"
@@ -2357,16 +2358,6 @@ nsPresContext::CheckForInterrupt(nsIFrame* aFrame)
   return mHasPendingInterrupt;
 }
 
-size_t
-nsPresContext::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
-{
-  return mPropertyTable.SizeOfExcludingThis(aMallocSizeOf);
-         mLangGroupFontPrefs.SizeOfExcludingThis(aMallocSizeOf);
-
-  
-  
-}
-
 bool
 nsPresContext::IsRootContentDocument()
 {
@@ -2796,20 +2787,3 @@ nsRootPresContext::FlushWillPaintObservers()
     observers[i]->Run();
   }
 }
-
-size_t
-nsRootPresContext::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
-{
-  return nsPresContext::SizeOfExcludingThis(aMallocSizeOf);
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-}
-

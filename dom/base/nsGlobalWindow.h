@@ -134,15 +134,13 @@ class nsGlobalWindow;
 class nsDummyJavaPluginOwner;
 class PostMessageEvent;
 class nsRunnable;
-class nsDOMEventTargetHelper;
+
 class nsDOMOfflineResourceList;
 class nsDOMMozURLProperty;
 
 #ifdef MOZ_DISABLE_DOMCRYPTO
 class nsIDOMCrypto;
 #endif
-
-class nsWindowSizes;
 
 namespace mozilla {
 namespace dom {
@@ -426,16 +424,6 @@ public:
     return FromSupports(wrapper->Native());
   }
 
-  
-
-
-
-
-  nsresult GetTop(nsIDOMWindow **aWindow)
-  {
-    return nsIDOMWindow::GetTop(aWindow);
-  }
-
   inline nsGlobalWindow *GetTop()
   {
     nsCOMPtr<nsIDOMWindow> top;
@@ -588,21 +576,16 @@ public:
     return sWindowsById;
   }
 
-  void SizeOfIncludingThis(nsWindowSizes* aWindowSizes) const;
+  PRInt64 SizeOf() const;
+  size_t SizeOfStyleSheets(nsMallocSizeOfFun aMallocSizeOf) const;
 
   void UnmarkGrayTimers();
-
-  void AddEventTargetObject(nsDOMEventTargetHelper* aObject);
-  void RemoveEventTargetObject(nsDOMEventTargetHelper* aObject);
 private:
   
   void EnableDeviceMotionUpdates();
 
   
   void DisableDeviceMotionUpdates();
-
-  
-  nsresult GetTopImpl(nsIDOMWindow **aWindow, bool aScriptable);
 
 protected:
   friend class HashchangeCallback;
@@ -1014,11 +997,10 @@ protected:
 
   nsRefPtr<nsDOMMozURLProperty> mURLProperty;
 
-  nsTHashtable<nsPtrHashKey<nsDOMEventTargetHelper> > mEventTargetObjects;
-
   friend class nsDOMScriptableHelper;
   friend class nsDOMWindowUtils;
   friend class PostMessageEvent;
+  static nsIDOMStorageList* sGlobalStorageList;
 
   static WindowByIdTable* sWindowsById;
   static bool sWarnedAboutWindowInternal;

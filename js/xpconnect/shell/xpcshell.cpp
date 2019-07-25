@@ -81,7 +81,6 @@
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
 #include "nsIXPCSecurityManager.h"
-#include "nsJSPrincipals.h"
 #include "xpcpublic.h"
 #ifdef XP_MACOSX
 #include "xpcshellMacUtils.h"
@@ -168,8 +167,8 @@ GetLocationProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
     
     return false;
 #else
-    JSScript *script;
-    JS_DescribeScriptedCaller(cx, &script, NULL);
+    JSStackFrame *fp = JS_GetScriptedCaller(cx, NULL);
+    JSScript *script = JS_GetFrameScript(cx, fp);
     const char *filename = JS_GetScriptFilename(cx, script);
 
     if (filename) {
@@ -645,12 +644,10 @@ DumpHeap(JSContext *cx, unsigned argc, jsval *vp)
         }
     }
 
-    ok = JS_DumpHeap(JS_GetRuntime(cx), dumpFile, startThing, startTraceKind, thingToFind,
+    ok = JS_DumpHeap(cx, dumpFile, startThing, startTraceKind, thingToFind,
                      maxDepth, thingToIgnore);
     if (dumpFile != gOutFile)
         fclose(dumpFile);
-    if (!ok)
-        JS_ReportOutOfMemory(cx);
     return ok;
 
   not_traceable_arg:
@@ -1740,12 +1737,10 @@ GetCurrentWorkingDirectory(nsAString& workingDirectory)
 }
 
 static JSPrincipals *
-FindObjectPrincipals(JSObject *obj)
+FindObjectPrincipals(JSContext *cx, JSObject *obj)
 {
     return gJSPrincipals;
 }
-
-static JSSecurityCallbacks shellSecurityCallbacks;
 
 int
 main(int argc, char **argv, char **envp)
@@ -1908,8 +1903,10 @@ main(int argc, char **argv, char **envp)
                     fprintf(gErrFile, "+++ Failed to obtain SystemPrincipal from ScriptSecurityManager service.\n");
                 } else {
                     
-                    gJSPrincipals = nsJSPrincipals::get(systemprincipal);
-                    JS_HoldPrincipals(gJSPrincipals);
+                    rv = systemprincipal->GetJSPrincipals(cx, &gJSPrincipals);
+                    if (NS_FAILED(rv)) {
+                        fprintf(gErrFile, "+++ Failed to obtain JS principals from SystemPrincipal.\n");
+                    }
                     secman->SetSystemPrincipal(systemprincipal);
                 }
             } else {
@@ -1917,11 +1914,10 @@ main(int argc, char **argv, char **envp)
             }
         }
 
-        const JSSecurityCallbacks *scb = JS_GetSecurityCallbacks(rt);
-        NS_ASSERTION(scb, "We are assuming that nsScriptSecurityManager::Init() has been run");
-        shellSecurityCallbacks = *scb;
-        shellSecurityCallbacks.findObjectPrincipals = FindObjectPrincipals;
-        JS_SetSecurityCallbacks(rt, &shellSecurityCallbacks);
+        JSSecurityCallbacks *cb = JS_GetRuntimeSecurityCallbacks(rt);
+        NS_ASSERTION(cb, "We are assuming that nsScriptSecurityManager::Init() has been run");
+        NS_ASSERTION(!cb->findObjectPrincipals, "Your pigeon is in my hole!");
+        cb->findObjectPrincipals = FindObjectPrincipals;
 
 #ifdef TEST_TranslateThis
         nsCOMPtr<nsIXPCFunctionThisTranslator>
@@ -1950,7 +1946,9 @@ main(int argc, char **argv, char **envp)
 
         nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
         rv = xpc->InitClassesWithNewWrappedGlobal(cx, backstagePass,
+                                                  NS_GET_IID(nsISupports),
                                                   systemprincipal,
+                                                  nsnull,
                                                   nsIXPConnect::
                                                   FLAG_SYSTEM_GLOBAL_OBJECT,
                                                   getter_AddRefs(holder));
@@ -2011,7 +2009,7 @@ main(int argc, char **argv, char **envp)
             xpc->WrapJS(cx, glob, NS_GET_IID(nsIJSContextStack),
                         (void**) getter_AddRefs(bogus));
 #endif
-            JS_DropPrincipals(rt, gJSPrincipals);
+            JSPRINCIPALS_DROP(cx, gJSPrincipals);
             JS_ClearScope(cx, glob);
             JS_GC(cx);
             JSContext *oldcx;

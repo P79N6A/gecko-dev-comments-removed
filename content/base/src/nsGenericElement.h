@@ -65,7 +65,6 @@
 #include "nsDOMClassInfoID.h" 
 #include "nsIDOMTouchEvent.h"
 #include "nsIInlineEventHandlers.h"
-#include "mozilla/CORSMode.h"
 
 #include "nsISMILAttr.h"
 
@@ -248,7 +247,7 @@ public:
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
 
-  NS_DECL_SIZEOF_EXCLUDING_THIS
+  NS_DECL_DOM_MEMORY_REPORTER_SIZEOF
 
   
 
@@ -598,7 +597,7 @@ public:
   nsIContent* GetLastElementChild();
   nsIContent* GetPreviousElementSibling();
   nsIContent* GetNextElementSibling();
-  nsDOMTokenList* GetClassList(nsresult *aResult);
+  nsIDOMDOMTokenList* GetClassList(nsresult *aResult);
   bool MozMatchesSelector(const nsAString& aSelector, nsresult* aResult);
 
   
@@ -641,25 +640,6 @@ public:
                            void *aData);
   static void MarkUserDataHandler(void* aObject, nsIAtom* aKey, void* aChild,
                                   void* aData);
-
-  
-
-
-
-
-  static void ParseCORSValue(const nsAString& aValue, nsAttrValue& aResult);
-
-  
-
-
-  static mozilla::CORSMode StringToCORSMode(const nsAString& aValue);
-  
-  
-
-
-
-  static mozilla::CORSMode AttrValueToCORSMode(const nsAttrValue* aValue);
-
 protected:
   
 

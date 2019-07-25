@@ -245,7 +245,7 @@ class nsAutoTObserverArray : protected nsTObserverArray_base {
 
     
     
-    size_t SizeOfExcludingThis(nsMallocSizeOfFun mallocSizeOf) const {
+    size_t SizeOfExcludingThis(nsMallocSizeOfFun mallocSizeOf) {
       return mArray.SizeOfExcludingThis(mallocSizeOf);
     }
 

@@ -143,6 +143,12 @@ class Bytecode
     bool accessGetter: 1;    
 
     
+
+
+
+    bool switchSharesPending : 1;
+
+    
     uint32_t stackDepth;
 
   private:
@@ -1207,7 +1213,8 @@ class ScriptAnalysis
     void checkPendingValue(JSContext *cx, const SSAValue &v, uint32_t slot,
                            Vector<SlotValue> *pending);
     void checkBranchTarget(JSContext *cx, uint32_t targetOffset, Vector<uint32_t> &branchTargets,
-                           SSAValueInfo *values, uint32_t stackDepth);
+                           SSAValueInfo *values, uint32_t stackDepth,
+                           Vector<SlotValue> **ppending = NULL, uint32_t *ppendingOffset = NULL);
     void checkExceptionTarget(JSContext *cx, uint32_t catchOffset,
                               Vector<uint32_t> &exceptionTargets);
     void mergeBranchTarget(JSContext *cx, SSAValueInfo &value, uint32_t slot,

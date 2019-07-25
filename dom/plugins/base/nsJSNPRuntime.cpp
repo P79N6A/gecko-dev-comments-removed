@@ -56,12 +56,10 @@
 #include "prmem.h"
 #include "nsIContent.h"
 #include "nsIPluginInstanceOwner.h"
-#include "mozilla/HashFunctions.h"
 
 #define NPRUNTIME_JSCLASS_NAME "NPObject JS wrapper class"
 
 using namespace mozilla::plugins::parent;
-using namespace mozilla;
 
 #include "mozilla/plugins/PluginScriptableObjectParent.h"
 using mozilla::plugins::PluginScriptableObjectParent;
@@ -222,8 +220,8 @@ static JSClass sNPObjectMemberClass =
 static void
 OnWrapperDestroyed();
 
-static void
-DelayedReleaseGCCallback(JSRuntime* rt, JSGCStatus status)
+static JSBool
+DelayedReleaseGCCallback(JSContext* cx, JSGCStatus status)
 {
   if (JSGC_END == status) {
     
@@ -240,6 +238,7 @@ DelayedReleaseGCCallback(JSRuntime* rt, JSGCStatus status)
       }
     }
   }
+  return JS_TRUE;
 }
 
 static void
@@ -459,7 +458,7 @@ JSValToNPVariant(NPP npp, JSContext *cx, jsval val, NPVariant *variant)
       INT32_TO_NPVARIANT(JSVAL_TO_INT(val), *variant);
     } else if (JSVAL_IS_DOUBLE(val)) {
       double d = JSVAL_TO_DOUBLE(val);
-      int i;
+      jsint i;
       if (JS_DoubleIsInt32(d, &i)) {
         INT32_TO_NPVARIANT(i, *variant);
       } else {
@@ -1024,7 +1023,8 @@ static PLDHashNumber
 JSObjWrapperHash(PLDHashTable *table, const void *key)
 {
   const nsJSObjWrapperKey *e = static_cast<const nsJSObjWrapperKey *>(key);
-  return HashGeneric(e->mJSObj, e->mNpp);
+
+  return (PLDHashNumber)((PRWord)e->mJSObj ^ (PRWord)e->mNpp) >> 2;
 }
 
 static bool

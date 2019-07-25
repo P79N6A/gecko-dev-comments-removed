@@ -82,6 +82,7 @@
 #include "nsCrossSiteListenerProxy.h"
 #include "nsHTMLDNSPrefetch.h"
 #include "nsHtml5Module.h"
+#include "nsCrossSiteListenerProxy.h"
 #include "nsFocusManager.h"
 #include "nsFrameList.h"
 #include "nsListControlFrame.h"
@@ -123,7 +124,7 @@
 
 #include "nsHyphenationManager.h"
 #include "nsEditorSpellCheck.h"
-#include "nsWindowMemoryReporter.h"
+#include "nsDOMMemoryReporter.h"
 
 extern void NS_ShutdownChainItemPool();
 
@@ -268,7 +269,7 @@ nsLayoutStatics::Initialize()
 
   NS_SealStaticAtomTable();
 
-  nsWindowMemoryReporter::Init();
+  nsDOMMemoryMultiReporter::Init();
 
   return NS_OK;
 }

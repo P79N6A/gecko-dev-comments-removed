@@ -40,6 +40,8 @@
 
 #include "mozilla/Util.h"
 
+#include "nsICharsetAlias.h"
+
 #include "nsCOMPtr.h"
 #include "nsXPIDLString.h"
 #include "nsPrintfCString.h"
@@ -100,6 +102,7 @@
 #include "nsFrameSelection.h"
 #include "nsISelectionPrivate.h"
 
+#include "nsICharsetAlias.h"
 #include "nsContentUtils.h"
 #include "nsJSUtils.h"
 #include "nsIDocumentEncoder.h" 
@@ -1358,7 +1361,7 @@ nsHTMLDocument::Open(const nsAString& aContentTypeOrUrl,
   contentType.AssignLiteral("text/html");
   if (aOptionalArgCount > 0) {
     nsAutoString type;
-    nsContentUtils::ASCIIToLower(aContentTypeOrUrl, type);
+    ToLowerCase(aContentTypeOrUrl, type);
     nsCAutoString actualType, dummy;
     NS_ParseContentType(NS_ConvertUTF16toUTF8(type), actualType, dummy);
     if (!actualType.EqualsLiteral("text/html") &&
@@ -3445,23 +3448,4 @@ nsHTMLDocument::RemovedFromDocShell()
 {
   mEditingState = eOff;
   nsDocument::RemovedFromDocShell();
-}
-
- void
-nsHTMLDocument::DocSizeOfExcludingThis(nsWindowSizes* aWindowSizes) const
-{
-  nsDocument::DocSizeOfExcludingThis(aWindowSizes);
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
 }

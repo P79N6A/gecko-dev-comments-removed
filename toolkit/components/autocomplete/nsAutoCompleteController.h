@@ -74,11 +74,9 @@ protected:
   nsresult OpenPopup();
   nsresult ClosePopup();
 
-  nsresult StartSearch(PRUint16 aSearchType);
-
-  nsresult BeforeSearches();
-  nsresult StartSearches();
-  void AfterSearches();
+  nsresult StartSearch();
+  
+  nsresult StartSearchTimer();
   nsresult ClearSearchTimer();
 
   nsresult ProcessResult(PRInt32 aSearchIndex, nsIAutoCompleteResult *aResult);
@@ -113,14 +111,8 @@ protected:
 
   nsCOMArray<nsIAutoCompleteSearch> mSearches;
   nsCOMArray<nsIAutoCompleteResult> mResults;
-  
-  
   nsTArray<PRUint32> mMatchCounts;
   
-  
-  
-  nsCOMArray<nsIAutoCompleteResult> mResultCache;
-
   nsCOMPtr<nsITimer> mTimer;
   nsCOMPtr<nsITreeSelection> mSelection;
   nsCOMPtr<nsITreeBoxObject> mTree;
@@ -129,18 +121,12 @@ protected:
   bool mDefaultIndexCompleted;
   bool mBackspaced;
   bool mPopupClosedByCompositionStart;
-  enum CompositionState {
-    eCompositionState_None,
-    eCompositionState_Composing,
-    eCompositionState_Committing
-  };
-  CompositionState mCompositionState;
+  bool mIsIMEComposing;
+  bool mIgnoreHandleText;
   PRUint16 mSearchStatus;
   PRUint32 mRowCount;
   PRUint32 mSearchesOngoing;
-  PRUint32 mSearchesFailed;
   bool mFirstSearchResult;
-  PRUint32 mImmediateSearchesCount;
 };
 
 #endif 

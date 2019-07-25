@@ -51,6 +51,7 @@
 #include "nsIDocument.h"
 #include "nsPresContext.h"
 #include "nsHTMLDNSPrefetch.h"
+#include "nsDOMMemoryReporter.h"
 
 using namespace mozilla::dom;
 
@@ -97,7 +98,9 @@ public:
   NS_DECL_NSIDOMHTMLANCHORELEMENT  
 
   
-  NS_DECL_SIZEOF_EXCLUDING_THIS
+  
+  NS_DECL_AND_IMPL_DOM_MEMORY_REPORTER_SIZEOF(nsHTMLAnchorElement,
+                                              nsGenericHTMLElement)
 
   
   NS_IMETHOD LinkAdded() { return NS_OK; }
@@ -518,12 +521,5 @@ nsEventStates
 nsHTMLAnchorElement::IntrinsicState() const
 {
   return Link::LinkState() | nsGenericHTMLElement::IntrinsicState();
-}
-
-size_t
-nsHTMLAnchorElement::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
-{
-  return nsGenericHTMLElement::SizeOfExcludingThis(aMallocSizeOf) +
-         Link::SizeOfExcludingThis(aMallocSizeOf);
 }
 

@@ -67,6 +67,7 @@
 #include "nsTArray.h"
 #include "nsIScrollableFrame.h"
 #include "nsCCUncollectableMarker.h"
+#include "nsISelectionListener.h"
 #include "nsIContentIterator.h"
 #include "nsIDocumentEncoder.h"
 
@@ -96,6 +97,7 @@ static NS_DEFINE_CID(kFrameTraversalCID, NS_FRAMETRAVERSAL_CID);
 #include "nsITimer.h"
 #include "nsIServiceManager.h"
 #include "nsFrameManager.h"
+#include "nsIScrollableFrame.h"
 
 #include "nsIDOMDocument.h"
 #include "nsIDocument.h"
@@ -5692,23 +5694,24 @@ nsTypedSelection::NotifySelectionListeners()
   if (!mFrameSelection)
     return NS_OK;
  
-  if (mFrameSelection->GetBatching()) {
+  if (mFrameSelection->GetBatching()){
     mFrameSelection->SetDirty();
     return NS_OK;
   }
+  PRInt32 cnt = mSelectionListeners.Count();
   nsCOMArray<nsISelectionListener> selectionListeners(mSelectionListeners);
-  PRInt32 cnt = selectionListeners.Count();
-  if (cnt != mSelectionListeners.Count()) {
-    return NS_ERROR_OUT_OF_MEMORY;  
-  }
+  
   nsCOMPtr<nsIDOMDocument> domdoc;
   nsCOMPtr<nsIPresShell> shell;
   nsresult rv = GetPresShell(getter_AddRefs(shell));
   if (NS_SUCCEEDED(rv) && shell)
     domdoc = do_QueryInterface(shell->GetDocument());
   short reason = mFrameSelection->PopReason();
-  for (PRInt32 i = 0; i < cnt; i++) {
-    selectionListeners[i]->NotifySelectionChanged(domdoc, this, reason);
+  for (PRInt32 i = 0; i < cnt; i++)
+  {
+    nsISelectionListener* thisListener = selectionListeners[i];
+    if (thisListener)
+      thisListener->NotifySelectionChanged(domdoc, this, reason);
   }
   return NS_OK;
 }

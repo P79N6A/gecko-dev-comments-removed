@@ -69,6 +69,7 @@
 #include "nsIBaseWindow.h"
 #include "nsThemeConstants.h"
 #include "nsCSSFrameConstructor.h"
+#include "nsThemeConstants.h"
 #include "mozilla/dom/Element.h"
 
 #ifdef NS_DEBUG
@@ -273,7 +274,7 @@ nsContainerFrame::DestroyFrom(nsIFrame* aDestructRoot)
 
 
 
-const nsFrameList&
+nsFrameList
 nsContainerFrame::GetChildList(ChildListID aListID) const
 {
   

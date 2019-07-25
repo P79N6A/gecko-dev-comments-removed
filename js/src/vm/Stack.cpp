@@ -261,18 +261,17 @@ StackFrame::mark(JSTracer *trc)
 
 
 
-    if (flags_ & HAS_SCOPECHAIN)
-        gc::MarkObjectUnbarriered(trc, &scopeChain_, "scope chain");
+    gc::MarkObjectUnbarriered(trc, &scopeChain(), "scope chain");
     if (isDummyFrame())
         return;
     if (hasArgsObj())
-        gc::MarkObjectUnbarriered(trc, &argsObj_, "arguments");
+        gc::MarkObjectUnbarriered(trc, &argsObj(), "arguments");
     if (isFunctionFrame()) {
-        gc::MarkObjectUnbarriered(trc, &exec.fun, "fun");
+        gc::MarkObjectUnbarriered(trc, fun(), "fun");
         if (isEvalFrame())
-            gc::MarkScriptUnbarriered(trc, &u.evalScript, "eval script");
+            gc::MarkScriptUnbarriered(trc, script(), "eval script");
     } else {
-        gc::MarkScriptUnbarriered(trc, &exec.script, "script");
+        gc::MarkScriptUnbarriered(trc, script(), "script");
     }
     if (IS_GC_MARKING_TRACER(trc))
         script()->compartment()->active = true;
@@ -737,7 +736,7 @@ ContextStack::pushInvokeArgs(JSContext *cx, unsigned argc, InvokeArgsGuard *iag)
     if (!firstUnused)
         return false;
 
-    MakeRangeGCSafe(firstUnused, nvars);
+    MakeRangeGCSafe(firstUnused, argc);
 
     ImplicitCast<CallArgs>(*iag) = CallArgsFromVp(argc, firstUnused);
 
@@ -978,7 +977,6 @@ StackIter::poisonRegs()
 {
     sp_ = (Value *)0xbad;
     pc_ = (jsbytecode *)0xbad;
-    script_ = (JSScript *)0xbad;
 }
 
 void
@@ -1020,8 +1018,6 @@ StackIter::popFrame()
             JS_ASSERT(oldfp->isDummyFrame());
             sp_ = (Value *)oldfp;
         }
-
-        script_ = fp_->maybeScript();
     } else {
         poisonRegs();
     }
@@ -1047,8 +1043,6 @@ StackIter::settleOnNewSegment()
     if (FrameRegs *regs = seg_->maybeRegs()) {
         sp_ = regs->sp;
         pc_ = regs->pc;
-        if (fp_)
-            script_ = fp_->maybeScript();
     } else {
         poisonRegs();
     }

@@ -6,8 +6,8 @@
 
 
 
-const TAB_URL = EXAMPLE_URL + "browser_dbg_script-switching.html";
-
+const TAB_URL = "http://example.com/browser/browser/devtools/debugger/" +
+                "test/browser_dbg_script-switching.html";
 let tempScope = {};
 Cu.import("resource:///modules/source-editor.jsm", tempScope);
 let SourceEditor = tempScope.SourceEditor;
@@ -68,22 +68,14 @@ function testSelectLine() {
                "The correct line is selected.");
 
             gDebugger.StackFrames.activeThread.resume(function() {
-              closeDebuggerAndFinish(gTab);
+              removeTab(gTab);
+              finish();
             });
           });
         });
 
         
-        let stackframes = gDebugger.document.getElementById("stackframes");
-        stackframes.scrollTop = stackframes.scrollHeight;
-
-        
-        let frames = gDebugger.DebuggerView.Stackframes._frames;
-        is(frames.querySelectorAll(".dbg-stackframe").length, 4,
-          "Should have four frames.");
-
         let element = gDebugger.document.getElementById("stackframe-3");
-        isnot(element, null, "Found the third stack frame.");
         EventUtils.synthesizeMouseAtCenter(element, {}, gDebugger);
       });
     }}, 0);
@@ -91,11 +83,3 @@ function testSelectLine() {
 
   gDebuggee.firstCall();
 }
-
-registerCleanupFunction(function() {
-  removeTab(gTab);
-  gPane = null;
-  gTab = null;
-  gDebuggee = null;
-  gDebugger = null;
-});

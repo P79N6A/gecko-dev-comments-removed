@@ -86,7 +86,7 @@ struct JSSharpInfo {
 typedef js::HashMap<JSObject *, JSSharpInfo> JSSharpTable;
 
 struct JSSharpObjectMap {
-    unsigned     depth;
+    jsrefcount   depth;
     uint32_t     sharpgen;
     JSSharpTable table;
 
@@ -293,7 +293,7 @@ struct JSRuntime : js::RuntimeFriendFields
 
     js::RootedValueMap  gcRootsHash;
     js::GCLocks         gcLocksHash;
-    unsigned            gcKeepAtoms;
+    jsrefcount          gcKeepAtoms;
     size_t              gcBytes;
     size_t              gcMaxBytes;
     size_t              gcMaxMallocBytes;
@@ -304,7 +304,7 @@ struct JSRuntime : js::RuntimeFriendFields
 
 
     volatile uint32_t   gcNumArenasFreeCommitted;
-    js::GCMarker        gcMarker;
+    js::FullGCMarker    gcMarker;
     void                *gcVerifyData;
     bool                gcChunkAllocationSinceLastGC;
     int64_t             gcNextFullGCTime;
@@ -419,7 +419,6 @@ struct JSRuntime : js::RuntimeFriendFields
     int                 gcZealFrequency;
     int                 gcNextScheduled;
     bool                gcDebugCompartmentGC;
-    bool                gcDeterministicOnly;
 
     int gcZeal() { return gcZeal_; }
 
@@ -438,7 +437,6 @@ struct JSRuntime : js::RuntimeFriendFields
 
     JSGCCallback        gcCallback;
     js::GCSliceCallback gcSliceCallback;
-    JSFinalizeCallback  gcFinalizeCallback;
 
   private:
     
@@ -509,8 +507,11 @@ struct JSRuntime : js::RuntimeFriendFields
 
     uint32_t            debuggerMutations;
 
-    const JSSecurityCallbacks *securityCallbacks;
-    JSDestroyPrincipalsOp destroyPrincipals;
+    
+
+
+
+    JSSecurityCallbacks *securityCallbacks;
 
     
     const JSStructuredCloneCallbacks *structuredCloneCallbacks;
@@ -683,7 +684,7 @@ struct JSRuntime : js::RuntimeFriendFields
 
     JS_FRIEND_API(void *) onOutOfMemory(void *p, size_t nbytes, JSContext *cx);
 
-    void triggerOperationCallback();
+    JS_FRIEND_API(void) triggerOperationCallback();
 
     void setJitHardening(bool enabled);
     bool getJitHardening() const {
@@ -827,11 +828,11 @@ struct JSContext : js::ContextFriendFields
     bool                hasVersionOverride;
 
     
-    JSBool              throwing;            
-    js::Value           exception;           
+    JSBool              throwing;           
+    js::Value           exception;          
 
     
-    unsigned            runOptions;          
+    unsigned               runOptions;            
 
   public:
     int32_t             reportGranularity;  
@@ -842,7 +843,10 @@ struct JSContext : js::ContextFriendFields
     js::AutoResolving   *resolvingList;
 
     
-    bool                generatingError;
+
+
+
+    bool        generatingError;
 
     
     JSCompartment       *compartment;
@@ -1006,6 +1010,9 @@ struct JSContext : js::ContextFriendFields
 #endif
 
 #endif 
+
+    
+    JSSecurityCallbacks *securityCallbacks;
 
     
     unsigned               resolveFlags;
@@ -1241,45 +1248,6 @@ class AutoXMLRooter : private AutoGCRooter {
 # define JS_UNLOCK_GC(rt)
 #endif
 
-class AutoLockGC
-{
-  public:
-    explicit AutoLockGC(JSRuntime *rt = NULL
-                        MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-      : runtime(rt)
-    {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-        
-#ifdef JS_THREADSAFE
-        if (rt)
-            JS_LOCK_GC(rt);
-#endif
-    }
-
-    ~AutoLockGC()
-    {
-#ifdef JS_THREADSAFE
-        if (runtime)
-            JS_UNLOCK_GC(runtime);
-#endif
-    }
-
-    bool locked() const {
-        return !!runtime;
-    }
-
-    void lock(JSRuntime *rt) {
-        JS_ASSERT(rt);
-        JS_ASSERT(!runtime);
-        runtime = rt;
-        JS_LOCK_GC(rt);
-    }
-
-  private:
-    JSRuntime *runtime;
-    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
-};
-
 class AutoUnlockGC {
   private:
     JSRuntime *rt;
@@ -1449,14 +1417,6 @@ js_ExpandErrorArguments(JSContext *cx, JSErrorCallback callback,
                         bool charArgs, va_list ap);
 #endif
 
-namespace js {
-
-
-extern void
-ReportUsageError(JSContext *cx, JSObject *callee, const char *msg);
-
-} 
-
 extern void
 js_ReportOutOfMemory(JSContext *cx);
 
@@ -1531,6 +1491,14 @@ js_InvokeOperationCallback(JSContext *cx);
 
 extern JSBool
 js_HandleExecutionInterrupt(JSContext *cx);
+
+
+
+
+
+
+extern js::StackFrame *
+js_GetScriptedCaller(JSContext *cx, js::StackFrame *fp);
 
 extern jsbytecode*
 js_GetCurrentBytecodePC(JSContext* cx);

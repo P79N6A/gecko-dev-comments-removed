@@ -89,9 +89,9 @@
 #include "jsobjinlines.h"
 #include "jsscopeinlines.h"
 #include "jsscriptinlines.h"
+#include "jsstrinlines.h"
 
 #include "vm/MethodGuard-inl.h"
-#include "vm/StringBuffer-inl.h"
 
 #if JS_HAS_XML_SUPPORT
 #include "jsxml.h"
@@ -214,7 +214,7 @@ MarkSharpObjects(JSContext *cx, JSObject *obj, JSIdArray **idap, JSSharpInfo *va
             return false;
 
         bool ok = true;
-        for (int i = 0, length = ida->length; i < length; i++) {
+        for (jsint i = 0, length = ida->length; i < length; i++) {
             jsid id = ida->vector[i];
             JSObject *obj2;
             JSProperty *prop;
@@ -486,7 +486,7 @@ obj_toSource(JSContext *cx, unsigned argc, Value *vp)
 
     val = localroot + 2;
 
-    for (int i = 0; i < ida->length; i++) {
+    for (jsint i = 0; i < ida->length; i++) {
         
         jsid id = ida->vector[i];
         JSLinearString *idstr;
@@ -789,15 +789,15 @@ EvalCacheLookup(JSContext *cx, JSLinearString *str, StackFrame *caller, unsigned
 
     JSVersion version = cx->findVersion();
     JSScript *script;
-    JSSubsumePrincipalsOp subsume = cx->runtime->securityCallbacks->subsumePrincipals;
     while ((script = *scriptp) != NULL) {
         if (script->savedCallerFun &&
             script->staticLevel == staticLevel &&
             script->getVersion() == version &&
             !script->hasSingletons &&
-            (!subsume || script->principals == principals ||
-             (subsume(principals, script->principals) &&
-              subsume(script->principals, principals)))) {
+            (script->principals == principals ||
+             (principals && script->principals &&
+              principals->subsume(principals, script->principals) &&
+              script->principals->subsume(script->principals, principals)))) {
             
 
 
@@ -1163,14 +1163,12 @@ obj_watch_handler(JSContext *cx, JSObject *obj, jsid id, jsval old,
                   jsval *nvp, void *closure)
 {
     JSObject *callable = (JSObject *) closure;
-    if (JSSubsumePrincipalsOp subsume = cx->runtime->securityCallbacks->subsumePrincipals) {
-        if (JSPrincipals *watcher = callable->principals(cx)) {
-            if (JSObject *scopeChain = cx->stack.currentScriptedScopeChain()) {
-                if (JSPrincipals *subject = scopeChain->principals(cx)) {
-                    if (!subsume(watcher, subject)) {
-                        
-                        return true;
-                    }
+    if (JSPrincipals *watcher = callable->principals(cx)) {
+        if (JSObject *scopeChain = cx->stack.currentScriptedScopeChain()) {
+            if (JSPrincipals *subject = scopeChain->principals(cx)) {
+                if (!watcher->subsume(watcher, subject)) {
+                    
+                    return JS_TRUE;
                 }
             }
         }
@@ -1190,16 +1188,16 @@ obj_watch(JSContext *cx, unsigned argc, Value *vp)
 {
     if (argc <= 1) {
         js_ReportMissingArg(cx, *vp, 1);
-        return false;
+        return JS_FALSE;
     }
 
     JSObject *callable = js_ValueToCallableObject(cx, &vp[3], 0);
     if (!callable)
-        return false;
+        return JS_FALSE;
 
     jsid propid;
     if (!ValueToId(cx, vp[2], &propid))
-        return false;
+        return JS_FALSE;
 
     JSObject *obj = ToObject(cx, &vp[1]);
     if (!obj)
@@ -1208,12 +1206,14 @@ obj_watch(JSContext *cx, unsigned argc, Value *vp)
     Value tmp;
     unsigned attrs;
     if (!CheckAccess(cx, obj, propid, JSACC_WATCH, &tmp, &attrs))
-        return false;
+        return JS_FALSE;
 
     vp->setUndefined();
 
+    if (attrs & JSPROP_READONLY)
+        return JS_TRUE;
     if (obj->isDenseArray() && !obj->makeDenseArraySlow(cx))
-        return false;
+        return JS_FALSE;
     return JS_SetWatchPoint(cx, obj, propid, obj_watch_handler, callable);
 }
 
@@ -1227,7 +1227,7 @@ obj_unwatch(JSContext *cx, unsigned argc, Value *vp)
     jsid id;
     if (argc != 0) {
         if (!ValueToId(cx, vp[2], &id))
-            return false;
+            return JS_FALSE;
     } else {
         id = JSID_VOID;
     }
@@ -2196,7 +2196,7 @@ DefinePropertyOnArray(JSContext *cx, JSObject *obj, const jsid &id, const PropDe
     if (obj->isDenseArray() && !obj->makeDenseArraySlow(cx))
         return JS_FALSE;
 
-    uint32_t oldLen = obj->getArrayLength();
+    jsuint oldLen = obj->getArrayLength();
 
     if (JSID_IS_ATOM(id, cx->runtime->atomState.lengthAtom)) {
         
@@ -2366,19 +2366,18 @@ obj_create(JSContext *cx, unsigned argc, Value *vp)
     if (argc == 0) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_MORE_ARGS_NEEDED,
                              "Object.create", "0", "s");
-        return false;
+        return JS_FALSE;
     }
 
-    CallArgs args = CallArgsFromVp(argc, vp);
-    const Value &v = args[0];
+    const Value &v = vp[2];
     if (!v.isObjectOrNull()) {
         char *bytes = DecompileValueGenerator(cx, JSDVG_SEARCH_STACK, v, NULL);
         if (!bytes)
-            return false;
+            return JS_FALSE;
         JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_UNEXPECTED_TYPE,
                              bytes, "not an object or null");
         JS_free(cx, bytes);
-        return false;
+        return JS_FALSE;
     }
 
     JSObject *proto = v.toObjectOrNull();
@@ -2391,27 +2390,27 @@ obj_create(JSContext *cx, unsigned argc, Value *vp)
 
 
 
-    JSObject *obj = NewObjectWithGivenProto(cx, &ObjectClass, proto, &args.callee().global());
+    JSObject *obj = NewObjectWithGivenProto(cx, &ObjectClass, proto, &vp->toObject().global());
     if (!obj)
-        return false;
+        return JS_FALSE;
+    vp->setObject(*obj); 
 
     
     MarkTypeObjectUnknownProperties(cx, obj->type());
 
     
-    if (args.hasDefined(1)) {
-        if (args[1].isPrimitive()) {
+    if (argc > 1 && !vp[3].isUndefined()) {
+        if (vp[3].isPrimitive()) {
             JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_NOT_NONNULL_OBJECT);
-            return false;
+            return JS_FALSE;
         }
 
-        if (!DefineProperties(cx, obj, &args[1].toObject()))
-            return false;
+        if (!DefineProperties(cx, obj, &vp[3].toObject()))
+            return JS_FALSE;
     }
 
     
-    args.rval().setObject(*obj);
-    return true;
+    return JS_TRUE;
 }
 
 static JSBool
@@ -5883,7 +5882,10 @@ CheckAccess(JSContext *cx, JSObject *obj, jsid id, JSAccessMode mode,
     JSBool writing;
     JSObject *pobj;
     JSProperty *prop;
+    Class *clasp;
     const Shape *shape;
+    JSSecurityCallbacks *callbacks;
+    JSCheckAccessOp check;
 
     while (JS_UNLIKELY(obj->isWith()))
         obj = obj->getProto();
@@ -5947,9 +5949,12 @@ CheckAccess(JSContext *cx, JSObject *obj, jsid id, JSAccessMode mode,
 
 
 
-    JSCheckAccessOp check = pobj->getClass()->checkAccess;
-    if (!check)
-        check = cx->runtime->securityCallbacks->checkObjectAccess;
+    clasp = pobj->getClass();
+    check = clasp->checkAccess;
+    if (!check) {
+        callbacks = JS_GetSecurityCallbacks(cx);
+        check = callbacks ? callbacks->checkObjectAccess : NULL;
+    }
     return !check || check(cx, pobj, id, mode, vp);
 }
 

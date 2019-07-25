@@ -43,7 +43,6 @@
 #include "nsAutoCompleteController.h"
 #include "nsAutoCompleteSimpleResult.h"
 
-#include "nsAutoPtr.h"
 #include "nsNetCID.h"
 #include "nsIIOService.h"
 #include "nsToolkitCompsCID.h"
@@ -81,13 +80,12 @@ nsAutoCompleteController::nsAutoCompleteController() :
   mDefaultIndexCompleted(false),
   mBackspaced(false),
   mPopupClosedByCompositionStart(false),
-  mCompositionState(eCompositionState_None),
+  mIsIMEComposing(false),
+  mIgnoreHandleText(false),
   mSearchStatus(nsAutoCompleteController::STATUS_NONE),
   mRowCount(0),
   mSearchesOngoing(0),
-  mSearchesFailed(0),
-  mFirstSearchResult(false),
-  mImmediateSearchesCount(0)
+  mFirstSearchResult(false)
 {
 }
 
@@ -163,7 +161,6 @@ nsAutoCompleteController::SetInput(nsIAutoCompleteInput *aInput)
   mResults.SetCapacity(searchCount);
   mSearches.SetCapacity(searchCount);
   mMatchCounts.SetLength(searchCount);
-  mImmediateSearchesCount = 0;
 
   const char *searchCID = kAutoCompleteSearchCID;
 
@@ -176,17 +173,8 @@ nsAutoCompleteController::SetInput(nsIAutoCompleteInput *aInput)
 
     
     nsCOMPtr<nsIAutoCompleteSearch> search = do_GetService(cid.get());
-    if (search) {
+    if (search)
       mSearches.AppendObject(search);
-
-      
-      PRUint16 searchType = nsIAutoCompleteSearchDescriptor::SEARCH_TYPE_DELAYED;
-      nsCOMPtr<nsIAutoCompleteSearchDescriptor> searchDesc =
-        do_QueryInterface(search);
-      if (searchDesc && NS_SUCCEEDED(searchDesc->GetSearchType(&searchType)) &&
-          searchType == nsIAutoCompleteSearchDescriptor::SEARCH_TYPE_IMMEDIATE)
-        mImmediateSearchesCount++;
-    }
   }
 
   return NS_OK;
@@ -196,7 +184,7 @@ NS_IMETHODIMP
 nsAutoCompleteController::StartSearch(const nsAString &aSearchString)
 {
   mSearchString = aSearchString;
-  StartSearches();
+  StartSearchTimer();
   return NS_OK;
 }
 
@@ -204,21 +192,8 @@ NS_IMETHODIMP
 nsAutoCompleteController::HandleText()
 {
   
-  
-  
-  
-  
-  
-  if (mCompositionState == eCompositionState_Composing) {
+  if (mIsIMEComposing) {
     return NS_OK;
-  }
-
-  bool handlingCompositionCommit =
-    (mCompositionState == eCompositionState_Committing);
-  bool popupClosedByCompositionStart = mPopupClosedByCompositionStart;
-  if (handlingCompositionCommit) {
-    mCompositionState = eCompositionState_None;
-    mPopupClosedByCompositionStart = false;
   }
 
   if (!mInput) {
@@ -236,6 +211,22 @@ nsAutoCompleteController::HandleText()
   input->GetTextValue(newValue);
 
   
+  
+  
+  
+  
+  
+  
+  
+  
+  if (mIgnoreHandleText) {
+    mIgnoreHandleText = false;
+    if (newValue.Equals(mSearchString))
+      return NS_OK;
+    NS_ERROR("Now is after composition end event. But the value was changed.");
+  }
+
+  
   StopSearch();
 
   if (!mInput) {
@@ -250,13 +241,8 @@ nsAutoCompleteController::HandleText()
   NS_ENSURE_TRUE(!disabled, NS_OK);
 
   
-  
-  
-  
-  if (!handlingCompositionCommit && newValue.Length() > 0 &&
-      newValue.Equals(mSearchString)) {
+  if (newValue.Length() > 0 && newValue.Equals(mSearchString))
     return NS_OK;
-  }
 
   
   if (newValue.Length() < mSearchString.Length() &&
@@ -272,18 +258,11 @@ nsAutoCompleteController::HandleText()
 
   
   if (newValue.Length() == 0) {
-    
-    
-    if (popupClosedByCompositionStart && handlingCompositionCommit) {
-      bool cancel;
-      HandleKeyNavigation(nsIDOMKeyEvent::DOM_VK_DOWN, &cancel);
-      return NS_OK;
-    }
     ClosePopup();
     return NS_OK;
   }
 
-  StartSearches();
+  StartSearchTimer();
 
   return NS_OK;
 }
@@ -337,10 +316,10 @@ nsAutoCompleteController::HandleEscape(bool *_retval)
 NS_IMETHODIMP
 nsAutoCompleteController::HandleStartComposition()
 {
-  NS_ENSURE_TRUE(mCompositionState != eCompositionState_Composing, NS_OK);
+  NS_ENSURE_TRUE(!mIsIMEComposing, NS_OK);
 
   mPopupClosedByCompositionStart = false;
-  mCompositionState = eCompositionState_Composing;
+  mIsIMEComposing = true;
 
   if (!mInput)
     return NS_OK;
@@ -369,14 +348,29 @@ nsAutoCompleteController::HandleStartComposition()
 NS_IMETHODIMP
 nsAutoCompleteController::HandleEndComposition()
 {
-  NS_ENSURE_TRUE(mCompositionState == eCompositionState_Composing, NS_OK);
+  NS_ENSURE_TRUE(mIsIMEComposing, NS_OK);
 
+  mIsIMEComposing = false;
+  bool forceOpenPopup = mPopupClosedByCompositionStart;
+  mPopupClosedByCompositionStart = false;
+
+  if (!mInput)
+    return NS_OK;
+
+  nsAutoString value;
+  mInput->GetTextValue(value);
+  SetSearchString(EmptyString());
+  if (!value.IsEmpty()) {
+    
+    HandleText();
+  } else if (forceOpenPopup) {
+    bool cancel;
+    HandleKeyNavigation(nsIDOMKeyEvent::DOM_VK_DOWN, &cancel);
+  }
   
   
-  
-  
-  
-  mCompositionState = eCompositionState_Committing;
+  mIgnoreHandleText = true;
+
   return NS_OK;
 }
 
@@ -494,7 +488,7 @@ nsAutoCompleteController::HandleKeyNavigation(PRUint32 aKey, bool *_retval)
             return NS_OK;
           }
 
-          StartSearches();
+          StartSearchTimer();
         }
       }
     }
@@ -733,16 +727,7 @@ NS_IMETHODIMP
 nsAutoCompleteController::Notify(nsITimer *timer)
 {
   mTimer = nsnull;
-
-  if (mImmediateSearchesCount == 0) {
-    
-    
-    nsresult rv = BeforeSearches();
-    if (NS_FAILED(rv))
-      return rv;
-  }
-  StartSearch(nsIAutoCompleteSearchDescriptor::SEARCH_TYPE_DELAYED);
-  AfterSearches();
+  StartSearch();
   return NS_OK;
 }
 
@@ -1017,50 +1002,31 @@ nsAutoCompleteController::ClosePopup()
 }
 
 nsresult
-nsAutoCompleteController::BeforeSearches()
+nsAutoCompleteController::StartSearch()
 {
   NS_ENSURE_STATE(mInput);
-
+  nsCOMPtr<nsIAutoCompleteInput> input(mInput);
   mSearchStatus = nsIAutoCompleteController::STATUS_SEARCHING;
   mDefaultIndexCompleted = false;
 
   
   
-  
-  if (!mResultCache.AppendObjects(mResults)) {
+  nsCOMArray<nsIAutoCompleteResult> resultCache;
+  if (!resultCache.AppendObjects(mResults)) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  mSearchesOngoing = mSearches.Count();
-  mSearchesFailed = 0;
+  PRUint32 count = mSearches.Count();
+  mSearchesOngoing = count;
   mFirstSearchResult = true;
 
   
-  mInput->OnSearchBegin();
+  input->OnSearchBegin();
 
-  return NS_OK;
-}
-
-nsresult
-nsAutoCompleteController::StartSearch(PRUint16 aSearchType)
-{
-  NS_ENSURE_STATE(mInput);
-  nsCOMPtr<nsIAutoCompleteInput> input = mInput;
-
-  for (PRInt32 i = 0; i < mSearches.Count(); ++i) {
+  PRUint32 searchesFailed = 0;
+  for (PRUint32 i = 0; i < count; ++i) {
     nsCOMPtr<nsIAutoCompleteSearch> search = mSearches[i];
-
-    
-    
-    PRUint16 searchType = nsIAutoCompleteSearchDescriptor::SEARCH_TYPE_DELAYED;
-    nsCOMPtr<nsIAutoCompleteSearchDescriptor> searchDesc =
-      do_QueryInterface(search);
-    if (searchDesc)
-      searchDesc->GetSearchType(&searchType);
-    if (searchType != aSearchType)
-      continue;
-
-    nsIAutoCompleteResult *result = mResultCache.SafeObjectAt(i);
+    nsIAutoCompleteResult *result = resultCache.SafeObjectAt(i);
 
     if (result) {
       PRUint16 searchResult;
@@ -1078,7 +1044,7 @@ nsAutoCompleteController::StartSearch(PRUint16 aSearchType)
 
     rv = search->StartSearch(mSearchString, searchParam, result, static_cast<nsIAutoCompleteObserver *>(this));
     if (NS_FAILED(rv)) {
-      ++mSearchesFailed;
+      ++searchesFailed;
       --mSearchesOngoing;
     }
     
@@ -1092,15 +1058,10 @@ nsAutoCompleteController::StartSearch(PRUint16 aSearchType)
     }
   }
 
-  return NS_OK;
-}
-
-void
-nsAutoCompleteController::AfterSearches()
-{
-  mResultCache.Clear();
-  if (mSearchesFailed == mSearches.Count())
+  if (searchesFailed == count)
     PostSearchCleanup();
+
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -1126,7 +1087,7 @@ nsAutoCompleteController::StopSearch()
 }
 
 nsresult
-nsAutoCompleteController::StartSearches()
+nsAutoCompleteController::StartSearchTimer()
 {
   
   
@@ -1134,37 +1095,9 @@ nsAutoCompleteController::StartSearches()
   if (mTimer || !mInput)
     return NS_OK;
 
-  
   PRUint32 timeout;
   mInput->GetTimeout(&timeout);
 
-  PRUint32 immediateSearchesCount = mImmediateSearchesCount;
-  if (timeout == 0) {
-    
-    immediateSearchesCount = mSearches.Count();
-  }
-
-  if (immediateSearchesCount > 0) {
-    nsresult rv = BeforeSearches();
-    if (NS_FAILED(rv))
-      return rv;
-    StartSearch(nsIAutoCompleteSearchDescriptor::SEARCH_TYPE_IMMEDIATE);
-
-    if (mSearches.Count() == immediateSearchesCount) {
-      
-      
-      
-      StartSearch(nsIAutoCompleteSearchDescriptor::SEARCH_TYPE_DELAYED);
-
-      
-      AfterSearches();
-      return NS_OK;
-    }
-  }
-
-  MOZ_ASSERT(timeout > 0, "Trying to delay searches with a 0 timeout!");
-
-  
   nsresult rv;
   mTimer = do_CreateInstance("@mozilla.org/timer;1", &rv);
   if (NS_FAILED(rv))

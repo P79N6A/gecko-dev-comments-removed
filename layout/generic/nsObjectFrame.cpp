@@ -98,6 +98,7 @@
 #include "nsIImageLoadingContent.h"
 #include "nsIObjectLoadingContent.h"
 #include "nsPIDOMWindow.h"
+#include "nsIDOMElement.h"
 #include "nsContentUtils.h"
 #include "nsDisplayList.h"
 #include "nsAttrName.h"
@@ -351,9 +352,6 @@ nsObjectFrame::DestroyFrom(nsIFrame* aDestructRoot)
     mBackgroundSink->Destroy();
   }
 
-  if (mInstanceOwner) {
-    mInstanceOwner->SetFrame(nsnull);
-  }
   SetInstanceOwner(nsnull);
 
   nsObjectFrameSuper::DestroyFrom(aDestructRoot);
@@ -1192,7 +1190,8 @@ nsObjectFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     }
 
     nsRefPtr<ImageContainer> container = GetImageContainer();
-    if (container && container->HasCurrentImage() || !isVisible ||
+    nsRefPtr<Image> currentImage = container ? container->GetCurrentImage() : nsnull;
+    if (!currentImage || !isVisible ||
         container->GetCurrentSize() != gfxIntSize(window->width, window->height)) {
       mInstanceOwner->NotifyPaintWaiter(aBuilder);
     }
@@ -1549,13 +1548,7 @@ nsObjectFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
     return nsnull;
   }
 
-  gfxIntSize size;
-  
-  if (mInstanceOwner->UseAsyncRendering()) {
-    size = container->GetCurrentSize();
-  } else {
-    size = gfxIntSize(window->width, window->height);
-  }
+  gfxIntSize size = container->GetCurrentSize();
 
   nsRect area = GetContentRectRelativeToSelf() + aItem->ToReferenceFrame();
   gfxRect r = nsLayoutUtils::RectToGfxRect(area, PresContext()->AppUnitsPerDevPixel());
@@ -1578,9 +1571,6 @@ nsObjectFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
     ImageLayer* imglayer = static_cast<ImageLayer*>(layer.get());
     UpdateImageLayer(r);
 
-    if (!mInstanceOwner->UseAsyncRendering()) {
-      imglayer->SetScaleToSize(size, ImageLayer::SCALE_STRETCH);
-    }
     imglayer->SetContainer(container);
     gfxPattern::GraphicsFilter filter =
       nsLayoutUtils::GetGraphicsFilterForFrame(this);

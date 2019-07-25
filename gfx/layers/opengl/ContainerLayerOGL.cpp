@@ -256,14 +256,6 @@ ContainerRender(Container* aContainer,
 
   if (needsFramebuffer) {
     
-#ifdef MOZ_DUMP_PAINTING
-    if (gfxUtils::sDumpPainting) {
-      nsRefPtr<gfxImageSurface> surf = 
-        aContainer->gl()->GetTexImage(containerSurface, true, aManager->GetFBOLayerProgramType());
-
-      WriteSnapshotToDumpFile(aContainer, surf);
-    }
-#endif
     
     
     aContainer->gl()->PopViewportRect();

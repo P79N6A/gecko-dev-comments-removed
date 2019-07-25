@@ -8,20 +8,23 @@ let Ci = Components.interfaces, Cc = Components.classes, Cu = Components.utils;
 
 Cu.import("resource://gre/modules/Services.jsm")
 Cu.import("resource://gre/modules/AddonManager.jsm");
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 let gStringBundle = Services.strings.createBundle("chrome://browser/locale/aboutAddons.properties");
 
-XPCOMUtils.defineLazyGetter(window, "gChromeWin", function()
-  window.QueryInterface(Ci.nsIInterfaceRequestor)
-    .getInterface(Ci.nsIWebNavigation)
-    .QueryInterface(Ci.nsIDocShellTreeItem)
-    .rootTreeItem
-    .QueryInterface(Ci.nsIInterfaceRequestor)
-    .getInterface(Ci.nsIDOMWindow)
-    .QueryInterface(Ci.nsIDOMChromeWindow));
-
-XPCOMUtils.defineLazyGetter(window, "SelectHelper", function() gChromeWin.SelectHelper);
+let gChromeWin = null;
+function getChromeWin() {
+  if (!gChromeWin) {
+    gChromeWin = window
+                .QueryInterface(Ci.nsIInterfaceRequestor)
+                .getInterface(Ci.nsIWebNavigation)
+                .QueryInterface(Ci.nsIDocShellTreeItem)
+                .rootTreeItem
+                .QueryInterface(Ci.nsIInterfaceRequestor)
+                .getInterface(Ci.nsIDOMWindow)
+                .QueryInterface(Ci.nsIDOMChromeWindow);
+  }
+  return gChromeWin;
+}
 
 function init() {
   window.addEventListener("popstate", onPopState, false);
@@ -41,7 +44,7 @@ function openLink(aElement) {
   try {
     let formatter = Cc["@mozilla.org/toolkit/URLFormatterService;1"].getService(Ci.nsIURLFormatter);
     let url = formatter.formatURLPref(aElement.getAttribute("pref"));
-    let BrowserApp = gChromeWin.BrowserApp;
+    let BrowserApp = getChromeWin().BrowserApp;
     BrowserApp.addTab(url, { selected: true, parentId: BrowserApp.selectedTab.id });
   } catch (ex) {}
 }
@@ -208,22 +211,6 @@ var Addons = {
   },
 
   showDetails: function showDetails(aListItem) {
-    
-    
-    
-    function stripTextNodes(aNode) {
-      var text = "";
-      for (var i = 0; i < aNode.childNodes.length; i++) {
-        if (aNode.childNodes[i].nodeType != document.ELEMENT_NODE) {
-          text += aNode.childNodes[i].textContent;
-          aNode.removeChild(aNode.childNodes[i--]);
-        } else {
-          text += stripTextNodes(aNode.childNodes[i]);
-        }
-      }
-      return text;
-    }
-
     let detailItem = document.querySelector("#addons-details > .addon-item");
     detailItem.setAttribute("isDisabled", aListItem.getAttribute("isDisabled"));
     detailItem.setAttribute("opType", aListItem.getAttribute("opType"));
@@ -263,15 +250,18 @@ var Addons = {
       xhr.open("GET", optionsURL, false);
       xhr.send();
       if (xhr.responseXML) {
-        
-        let settings = xhr.responseXML.querySelectorAll(":root > setting");
-        for (let i = 0; i < settings.length; i++) {
-          var setting = settings[i];
-          var desc = stripTextNodes(setting).trim();
-          if (!setting.hasAttribute("desc"))
-            setting.setAttribute("desc", desc);
-          box.appendChild(setting);
+        let currentNode;
+        let nodeIterator = xhr.responseXML.createNodeIterator(xhr.responseXML, NodeFilter.SHOW_TEXT, null, false);
+        while (currentNode = nodeIterator.nextNode()) {
+          let trimmed = currentNode.nodeValue.replace(/^\s\s*/, "").replace(/\s\s*$/, "");
+          if (!trimmed.length)
+            currentNode.parentNode.removeChild(currentNode);
         }
+
+        
+        let prefs = xhr.responseXML.querySelectorAll(":root > setting");
+        for (let i = 0; i < prefs.length; i++)
+          box.appendChild(prefs.item(i));
 
 
 

@@ -123,7 +123,6 @@ class nsXMLEventsManager;
 class nsHTMLStyleSheet;
 class nsHTMLCSSStyleSheet;
 class nsDOMNavigationTiming;
-class nsWindowSizes;
 
 
 
@@ -238,7 +237,8 @@ public:
     static KeyTypePointer KeyToPointer(KeyType& aKey) { return &aKey; }
     static PLDHashNumber HashKey(KeyTypePointer aKey)
     {
-      return mozilla::HashGeneric(aKey->mCallback, aKey->mData);
+      return (NS_PTR_TO_INT32(aKey->mCallback) >> 2) ^
+             (NS_PTR_TO_INT32(aKey->mData));
     }
     enum { ALLOW_MEMMOVE = true };
     
@@ -505,8 +505,7 @@ public:
   typedef mozilla::dom::Element Element;
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-
-  NS_DECL_SIZEOF_EXCLUDING_THIS
+  NS_DECL_DOM_MEMORY_REPORTER_SIZEOF
 
   using nsINode::GetScriptTypeID;
 
@@ -991,8 +990,7 @@ public:
   
   virtual void PostVisibilityUpdateEvent();
 
-  virtual void DocSizeOfExcludingThis(nsWindowSizes* aWindowSizes) const;
-  
+  virtual size_t SizeOfStyleSheets(nsMallocSizeOfFun aMallocSizeOf) const;
 
 protected:
   friend class nsNodeUtils;

@@ -166,9 +166,13 @@ static const char sPrintOptionsContractID[]         = "@mozilla.org/gfx/printset
 #include "nsIWindowWatcher.h"
 
 
+#include "nsPrintEngine.h"
 #include "nsPagePrintTimer.h"
 
 #endif 
+
+
+#include "nsIDocument.h"
 
 
 #include "nsIDOMEventTarget.h"
@@ -186,6 +190,9 @@ static const char sPrintOptionsContractID[]         = "@mozilla.org/gfx/printset
 
 #include "prenv.h"
 #include <stdio.h>
+
+
+#include "nsGfxCIID.h"
 
 #include "nsObserverService.h"
 
@@ -1282,7 +1289,7 @@ DocumentViewerImpl::PageHide(bool aIsUnload)
 
   if (aIsUnload) {
     
-    nsJSContext::PokeGC(js::gcreason::PAGE_HIDE, NS_GC_DELAY * 2);
+    nsJSContext::PokeGC(js::gcreason::PAGE_HIDE);
 
     
     NS_ENSURE_STATE(mDocument);

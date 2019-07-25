@@ -426,9 +426,9 @@ js::VectorToIdArray(JSContext *cx, AutoIdVector &props, JSIdArray **idap)
     if (!ida)
         return false;
 
-    ida->length = static_cast<int>(len);
+    ida->length = static_cast<jsint>(len);
     jsid *v = props.begin();
-    for (int i = 0; i < ida->length; i++)
+    for (jsint i = 0; i < ida->length; i++)
         ida->vector[i].init(v[i]);
     *idap = ida;
     return true;
@@ -876,12 +876,14 @@ static JSBool
 CloseGenerator(JSContext *cx, JSObject *genobj);
 #endif
 
+namespace js {
+
 
 
 
 
 JSBool
-js::ValueToIterator(JSContext *cx, unsigned flags, Value *vp)
+ValueToIterator(JSContext *cx, unsigned flags, Value *vp)
 {
     
     JS_ASSERT_IF(flags & JSITER_KEYVALUE, flags & JSITER_FOREACH);
@@ -920,7 +922,7 @@ js::ValueToIterator(JSContext *cx, unsigned flags, Value *vp)
 }
 
 bool
-js::CloseIterator(JSContext *cx, JSObject *obj)
+CloseIterator(JSContext *cx, JSObject *obj)
 {
     cx->iterValue.setMagic(JS_NO_ITER_VALUE);
 
@@ -951,7 +953,7 @@ js::CloseIterator(JSContext *cx, JSObject *obj)
 }
 
 bool
-js::UnwindIteratorForException(JSContext *cx, JSObject *obj)
+UnwindIteratorForException(JSContext *cx, JSObject *obj)
 {
     Value v = cx->getPendingException();
     cx->clearPendingException();
@@ -961,17 +963,7 @@ js::UnwindIteratorForException(JSContext *cx, JSObject *obj)
     return true;
 }
 
-void
-js::UnwindIteratorForUncatchableException(JSContext *cx, JSObject *obj)
-{
-    if (obj->isIterator()) {
-        NativeIterator *ni = obj->getNativeIterator();
-        if (ni->flags & JSITER_ENUMERATE) {
-            JS_ASSERT(cx->enumerators == obj);
-            cx->enumerators = ni->next;
-        }
-    }
-}
+} 
 
 
 
@@ -1165,8 +1157,45 @@ ElementIteratorObject::iteratorNext(JSContext *cx, Value *vp)
     }
 
     JS_ASSERT(i + 1 > i);
-    if (!obj->getElement(cx, obj, i, vp))
-        goto error;
+
+    
+    if (obj->isDenseArray()) {
+        *vp = obj->getDenseArrayElement(i);
+        if (vp->isMagic(JS_ARRAY_HOLE))
+            vp->setUndefined();
+    } else {
+        
+        jsid id;
+        if (i < uint32_t(INT32_MAX) && INT_FITS_IN_JSID(i)) {
+            id = INT_TO_JSID(i);
+        } else {
+            Value v = DoubleValue(i);
+            if (!js_ValueToStringId(cx, v, &id))
+                goto error;
+        }
+
+        
+        bool has;
+        if (obj->isProxy()) {
+            
+            if (!Proxy::hasOwn(cx, obj, id, &has))
+                goto error;
+        } else {
+            JSObject *obj2;
+            JSProperty *prop;
+            if (!js_HasOwnProperty(cx, obj->getOps()->lookupGeneric, obj, id, &obj2, &prop))
+                goto error;
+            has = !!prop;
+        }
+
+        
+        if (has) {
+            if (!obj->getElement(cx, obj, i, vp))
+                goto error;
+        } else {
+            vp->setUndefined();
+        }
+    }
 
     
     setIndex(i + 1);
@@ -1282,7 +1311,7 @@ js_IteratorNext(JSContext *cx, JSObject *iterobj, Value *rval)
                 return true;
 
             JSString *str;
-            int i;
+            jsint i;
             if (rval->isInt32() && StaticStrings::hasInt(i = rval->toInt32())) {
                 str = cx->runtime->staticStrings.getInt(i);
             } else {
@@ -1655,7 +1684,7 @@ generator_op(JSContext *cx, Native native, JSGeneratorOp op, Value *vp, unsigned
             break;
 
           case JSGENOP_SEND:
-            if (args.hasDefined(0)) {
+            if (args.length() >= 1 && !args[0].isUndefined()) {
                 js_ReportValueError(cx, JSMSG_BAD_GENERATOR_SEND,
                                     JSDVG_SEARCH_STACK, args[0], NULL);
                 return false;

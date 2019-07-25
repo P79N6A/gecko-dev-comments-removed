@@ -77,18 +77,10 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 
-const RX_UNIVERSAL_SELECTOR = /\s*\*\s*/g;
-const RX_NOT = /:not\((.*?)\)/g;
-const RX_PSEUDO_CLASS_OR_ELT = /(:[\w-]+\().*?\)/g;
-const RX_CONNECTORS = /\s*[\s>+~]\s*/g;
-const RX_ID = /\s*#\w+\s*/g;
-const RX_CLASS_OR_ATTRIBUTE = /\s*(?:\.\w+|\[.+?\])\s*/g;
-const RX_PSEUDO = /\s*:?:([\w-]+)(\(?\)?)\s*/g;
-
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-var EXPORTED_SYMBOLS = ["CssLogic", "CssSelector"];
+var EXPORTED_SYMBOLS = ["CssLogic"];
 
 function CssLogic()
 {
@@ -927,8 +919,7 @@ CssLogic.shortSource = function CssLogic_shortSource(aSheet)
     return url.query;
   }
 
-  let dataUrl = aSheet.href.match(/^(data:[^,]*),/);
-  return dataUrl ? dataUrl[1] : aSheet.href;
+  return aSheet.href;
 }
 
 
@@ -1199,19 +1190,11 @@ function CssRule(aCssSheet, aDomRule, aElement)
   this._cssSheet = aCssSheet;
   this._domRule = aDomRule;
 
-  let parentRule = aDomRule.parentRule;
-  if (parentRule && parentRule.type == Ci.nsIDOMCSSRule.MEDIA_RULE) {
-    this.mediaText = parentRule.media.mediaText;
-  }
-
   if (this._cssSheet) {
     
     this._selectors = null;
     this.line = this._cssSheet._cssLogic.domUtils.getRuleLine(this._domRule);
     this.source = this._cssSheet.shortSource + ":" + this.line;
-    if (this.mediaText) {
-      this.source += " @media " + this.mediaText;
-    }
     this.href = this._cssSheet.href;
     this.contentRule = this._cssSheet.contentSheet;
   } else if (aElement) {
@@ -1226,13 +1209,6 @@ function CssRule(aCssSheet, aDomRule, aElement)
 
 CssRule.prototype = {
   _passId: null,
-
-  mediaText: "",
-
-  get isMediaRule()
-  {
-    return !!this.mediaText;
-  },
 
   
 
@@ -1459,31 +1435,6 @@ CssSelector.prototype = {
 
 
 
-  get pseudoElements()
-  {
-    if (!CssSelector._pseudoElements) {
-      let pseudos = CssSelector._pseudoElements = new Set();
-      pseudos.add("after");
-      pseudos.add("before");
-      pseudos.add("first-letter");
-      pseudos.add("first-line");
-      pseudos.add("selection");
-      pseudos.add("-moz-focus-inner");
-      pseudos.add("-moz-focus-outer");
-      pseudos.add("-moz-list-bullet");
-      pseudos.add("-moz-list-number");
-      pseudos.add("-moz-math-anonymous");
-      pseudos.add("-moz-math-stretchy");
-      pseudos.add("-moz-progress-bar");
-      pseudos.add("-moz-selection");
-    }
-    return CssSelector._pseudoElements;
-  },
-
-  
-
-
-
 
 
 
@@ -1495,58 +1446,37 @@ CssSelector.prototype = {
       return this._specificity;
     }
 
-    let specificity = {
-      ids: 0,
-      classes: 0,
-      tags: 0
-    };
+    let specificity = {};
 
-    let text = this.text;
+    specificity.ids = 0;
+    specificity.classes = 0;
+    specificity.tags = 0;
 
+    
+    
     if (!this.elementStyle) {
-      
-      
-      text = text.replace(RX_UNIVERSAL_SELECTOR, "");
-
-      
-      
-      text = text.replace(RX_NOT, " $1");
-
-      
-      text = text.replace(RX_PSEUDO_CLASS_OR_ELT, " $1)");
-
-      
-      text = text.replace(RX_CONNECTORS, " ");
-
-      text.split(/\s/).forEach(function(aSimple) {
+      this.text.split(/[ >+]/).forEach(function(aSimple) {
         
-        aSimple = aSimple.replace(RX_ID, function() {
-          specificity.ids++;
-          return "";
-        });
-
+        if (!aSimple) {
+          return;
+        }
         
-        aSimple = aSimple.replace(RX_CLASS_OR_ATTRIBUTE, function() {
-          specificity.classes++;
-          return "";
-        });
-
-        aSimple = aSimple.replace(RX_PSEUDO, function(aDummy, aPseudoName) {
-          if (this.pseudoElements.has(aPseudoName)) {
-            
-            specificity.tags++;
-          } else {
-            
-            specificity.classes++;
-          }
-          return "";
-        }.bind(this));
-
-        if (aSimple) {
+        
+        specificity.ids += (aSimple.match(/#/g) || []).length;
+        
+        specificity.classes += (aSimple.match(/\./g) || []).length;
+        specificity.classes += (aSimple.match(/\[/g) || []).length;
+        
+        specificity.tags += (aSimple.match(/:/g) || []).length;
+        
+        
+        let tag = aSimple.split(/[#.[:]/)[0];
+        if (tag && tag != "*") {
           specificity.tags++;
         }
       }, this);
     }
+
     this._specificity = specificity;
 
     return this._specificity;

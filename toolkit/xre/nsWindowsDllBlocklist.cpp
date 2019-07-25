@@ -139,9 +139,6 @@ static DllBlockInfo sWindowsDllBlocklist[] = {
   {"roboform.dll", MAKE_VERSION(7,6,1,0)},
 
   
-  {"bexternal.dll", ALL_VERSIONS},
-
-  
   { "mozdllblockingtest.dll", ALL_VERSIONS },
   { "mozdllblockingtest_versioned.dll", 0x0000000400000000ULL },
 
@@ -281,32 +278,6 @@ private:
 CRITICAL_SECTION ReentrancySentinel::sLock;
 std::map<DWORD, const char*>* ReentrancySentinel::sThreadMap;
 
-static
-wchar_t* getFullPath (PWCHAR filePath, wchar_t* fname)
-{
-  
-  
-  
-  
-  PWCHAR sanitizedFilePath = (intptr_t(filePath) < 1024) ? NULL : filePath;
-
-  
-  DWORD pathlen = SearchPathW(sanitizedFilePath, fname, L".dll", 0, NULL, NULL);
-  if (pathlen == 0) {
-    return nsnull;
-  }
-
-  wchar_t* full_fname = new wchar_t[pathlen+1];
-  if (!full_fname) {
-    
-    return nsnull;
-  }
-
-  
-  SearchPathW(sanitizedFilePath, fname, L".dll", pathlen+1, full_fname, NULL);
-  return full_fname;
-}
-
 static NTSTATUS NTAPI
 patched_LdrLoadDll (PWCHAR filePath, PULONG flags, PUNICODE_STRING moduleFileName, PHANDLE handle)
 {
@@ -318,7 +289,29 @@ patched_LdrLoadDll (PWCHAR filePath, PULONG flags, PUNICODE_STRING moduleFileNam
 
   int len = moduleFileName->Length / 2;
   wchar_t *fname = moduleFileName->Buffer;
-  nsAutoArrayPtr<wchar_t> full_fname;
+
+  
+  
+  
+  
+  PWCHAR sanitizedFilePath = (intptr_t(filePath) < 1024) ? NULL : filePath;
+
+  
+  DWORD pathlen = SearchPathW(sanitizedFilePath, fname, L".dll", 0, NULL, NULL);
+  if (pathlen == 0) {
+    
+    printf_stderr("LdrLoadDll: Blocking load of '%s' (SearchPathW didn't find it?)\n", dllName);
+    return STATUS_DLL_NOT_FOUND;
+  }
+
+  nsAutoArrayPtr<wchar_t> full_fname(new wchar_t[pathlen+1]);
+  if (!full_fname) {
+    
+    return STATUS_DLL_NOT_FOUND;
+  }
+
+  
+  SearchPathW(sanitizedFilePath, fname, L".dll", pathlen+1, full_fname, NULL);
 
   
   
@@ -400,13 +393,6 @@ patched_LdrLoadDll (PWCHAR filePath, PULONG flags, PUNICODE_STRING moduleFileNam
         goto continue_loading;
       }
 
-      full_fname = getFullPath(filePath, fname);
-      if (!full_fname) {
-        
-        printf_stderr("LdrLoadDll: Blocking load of '%s' (SearchPathW didn't find it?)\n", dllName);
-        return STATUS_DLL_NOT_FOUND;
-      }
-
       DWORD zero;
       DWORD infoSize = GetFileVersionInfoSizeW(full_fname, &zero);
 
@@ -447,13 +433,6 @@ continue_loading:
 
   if (gInXPCOMLoadOnMainThread && NS_IsMainThread()) {
     
-    full_fname = getFullPath(filePath, fname);
-    if (!full_fname) {
-      
-      printf_stderr("LdrLoadDll: Blocking load of '%s' (SearchPathW didn't find it?)\n", dllName);
-      return STATUS_DLL_NOT_FOUND;
-    }
-
     if (!CheckASLR(full_fname)) {
       printf_stderr("LdrLoadDll: Blocking load of '%s'.  XPCOM components must support ASLR.\n", dllName);
       return STATUS_DLL_NOT_FOUND;

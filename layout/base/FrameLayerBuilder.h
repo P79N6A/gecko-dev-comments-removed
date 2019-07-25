@@ -249,7 +249,7 @@ public:
 
 
 
-  void DumpRetainedLayerTree(FILE* aFile = stdout);
+  void DumpRetainedLayerTree();
 #endif
 
   

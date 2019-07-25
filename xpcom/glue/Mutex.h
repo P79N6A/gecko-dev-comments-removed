@@ -165,8 +165,7 @@ private:
 
 
  
-template<typename T>
-class NS_COM_GLUE NS_STACK_CLASS BaseAutoLock
+class NS_COM_GLUE NS_STACK_CLASS MutexAutoLock
 {
 public:
     
@@ -177,7 +176,7 @@ public:
 
 
 
-    BaseAutoLock(T& aLock MOZ_GUARD_OBJECT_NOTIFIER_PARAM) :
+    MutexAutoLock(mozilla::Mutex& aLock MOZ_GUARD_OBJECT_NOTIFIER_PARAM) :
         mLock(&aLock)
     {
         MOZ_GUARD_OBJECT_NOTIFIER_INIT;
@@ -185,22 +184,21 @@ public:
         mLock->Lock();
     }
     
-    ~BaseAutoLock(void) {
+    ~MutexAutoLock(void) {
         mLock->Unlock();
     }
  
 private:
-    BaseAutoLock();
-    BaseAutoLock(BaseAutoLock&);
-    BaseAutoLock& operator=(BaseAutoLock&);
+    MutexAutoLock();
+    MutexAutoLock(MutexAutoLock&);
+    MutexAutoLock& operator=(MutexAutoLock&);
     static void* operator new(size_t) CPP_THROW_NEW;
     static void operator delete(void*);
 
-    T* mLock;
+    mozilla::Mutex* mLock;
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
-typedef BaseAutoLock<Mutex> MutexAutoLock;
 
 
 
@@ -209,11 +207,10 @@ typedef BaseAutoLock<Mutex> MutexAutoLock;
 
 
  
-template<typename T>
-class NS_COM_GLUE NS_STACK_CLASS BaseAutoUnlock 
+class NS_COM_GLUE NS_STACK_CLASS MutexAutoUnlock 
 {
 public:
-    BaseAutoUnlock(T& aLock MOZ_GUARD_OBJECT_NOTIFIER_PARAM) :
+    MutexAutoUnlock(mozilla::Mutex& aLock MOZ_GUARD_OBJECT_NOTIFIER_PARAM) :
         mLock(&aLock)
     {
         MOZ_GUARD_OBJECT_NOTIFIER_INIT;
@@ -221,23 +218,22 @@ public:
         mLock->Unlock();
     }
 
-    ~BaseAutoUnlock() 
+    ~MutexAutoUnlock() 
     {
         mLock->Lock();
     }
 
 private:
-    BaseAutoUnlock();
-    BaseAutoUnlock(BaseAutoUnlock&);
-    BaseAutoUnlock& operator =(BaseAutoUnlock&);
+    MutexAutoUnlock();
+    MutexAutoUnlock(MutexAutoUnlock&);
+    MutexAutoUnlock& operator =(MutexAutoUnlock&);
     static void* operator new(size_t) CPP_THROW_NEW;
     static void operator delete(void*);
      
-    T* mLock;
+    mozilla::Mutex* mLock;
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
-typedef BaseAutoUnlock<Mutex> MutexAutoUnlock;
 
 } 
 

@@ -62,12 +62,11 @@ const MEM_HISTOGRAMS = {
   "explicit": "MEMORY_EXPLICIT",
   "resident": "MEMORY_RESIDENT",
   "storage-sqlite": "MEMORY_STORAGE_SQLITE",
-  "images-content-used-uncompressed":
+  "explicit/images/content/used/uncompressed":
     "MEMORY_IMAGES_CONTENT_USED_UNCOMPRESSED",
   "heap-allocated": "MEMORY_HEAP_ALLOCATED",
   "page-faults-hard": "PAGE_FAULTS_HARD",
   "low-memory-events-virtual": "LOW_MEMORY_EVENTS_VIRTUAL",
-  "low-memory-events-commit-space": "LOW_MEMORY_EVENTS_COMMIT_SPACE",
   "low-memory-events-physical": "LOW_MEMORY_EVENTS_PHYSICAL"
 };
 
@@ -240,7 +239,8 @@ TelemetryPing.prototype = {
     return retgram;
   },
 
-  getHistograms: function getHistograms(hls) {
+  getHistograms: function getHistograms() {
+    let hls = Telemetry.histogramSnapshots;
     let info = Telemetry.registeredHistograms;
     let ret = {};
 
@@ -294,8 +294,7 @@ TelemetryPing.prototype = {
       appName: ai.name,
       appBuildID: ai.appBuildID,
       appUpdateChannel: getUpdateChannel(),
-      platformBuildID: ai.platformBuildID,
-      locale: getLocale()
+      platformBuildID: ai.platformBuildID
     };
 
     
@@ -453,7 +452,6 @@ TelemetryPing.prototype = {
       payloadObj.simpleMeasurements = getSimpleMeasurements();
       payloadObj.histograms = this.getHistograms(Telemetry.histogramSnapshots);
       payloadObj.slowSQL = Telemetry.slowSQL;
-      payloadObj.chromeHangs = Telemetry.chromeHangs;
       payloadObj.addonHistograms = this.getAddonHistograms();
     }
     if (Object.keys(this._slowSQLStartup.mainThread).length
@@ -636,11 +634,7 @@ TelemetryPing.prototype = {
 
   uninstall: function uninstall() {
     this.detachObservers()
-    try {
-      Services.obs.removeObserver(this, "sessionstore-windows-restored");
-    } catch (e) {
-      
-    }
+    Services.obs.removeObserver(this, "sessionstore-windows-restored");
     Services.obs.removeObserver(this, "profile-before-change");
     Services.obs.removeObserver(this, "private-browsing");
     Services.obs.removeObserver(this, "quit-application-granted");
@@ -680,9 +674,6 @@ TelemetryPing.prototype = {
       }
       break;
     case "sessionstore-windows-restored":
-      Services.obs.removeObserver(this, "sessionstore-windows-restored");
-      
-    case "test-gather-startup":
       this.gatherStartupInformation();
       break;
     case "idle-daily":

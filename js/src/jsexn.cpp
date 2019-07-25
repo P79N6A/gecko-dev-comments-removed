@@ -68,10 +68,10 @@
 
 #include "jsinferinlines.h"
 #include "jsobjinlines.h"
+#include "jsstrinlines.h"
 
 #include "vm/Stack-inl.h"
 #include "vm/String-inl.h"
-#include "vm/StringBuffer-inl.h"
 
 using namespace mozilla;
 using namespace js;
@@ -304,7 +304,8 @@ InitExnPrivate(JSContext *cx, JSObject *exnObject, JSString *message,
     JS_ASSERT(exnObject->isError());
     JS_ASSERT(!exnObject->getPrivate());
 
-    JSCheckAccessOp checkAccess = cx->runtime->securityCallbacks->checkObjectAccess;
+    JSSecurityCallbacks *callbacks = JS_GetSecurityCallbacks(cx);
+    JSCheckAccessOp checkAccess = callbacks ? callbacks->checkObjectAccess : NULL;
 
     Vector<JSStackTraceElem> frames(cx);
     Vector<Value> values(cx);
@@ -442,7 +443,7 @@ SetExnPrivate(JSContext *cx, JSObject *exnObject, JSExnPrivate *priv)
     JS_ASSERT(exnObject->isError());
     if (JSErrorReport *report = priv->errorReport) {
         if (JSPrincipals *prin = report->originPrincipals)
-            JS_HoldPrincipals(prin);
+            JSPRINCIPALS_HOLD(cx, prin);
     }
     exnObject->setPrivate(priv);
 }
@@ -454,7 +455,7 @@ exn_finalize(JSContext *cx, JSObject *obj)
         if (JSErrorReport *report = priv->errorReport) {
             
             if (JSPrincipals *prin = report->originPrincipals)
-                JS_DropPrincipals(cx->runtime, prin);
+                JSPRINCIPALS_DROP(cx, prin);
             cx->free_(report);
         }
         cx->free_(priv);
@@ -745,7 +746,7 @@ Exception(JSContext *cx, unsigned argc, Value *vp)
 
     
     JSString *message;
-    if (args.hasDefined(0)) {
+    if (args.length() != 0 && !args[0].isUndefined()) {
         message = ToString(cx, args[0]);
         if (!message)
             return false;
@@ -1074,6 +1075,7 @@ js_ErrorToException(JSContext *cx, const char *message, JSErrorReport *reportp,
     const JSErrorFormatString *errorString;
     JSExnType exn;
     jsval tv[4];
+    JSBool ok;
     JSObject *errProto, *errObject;
     JSString *messageStr, *filenameStr;
 
@@ -1082,7 +1084,7 @@ js_ErrorToException(JSContext *cx, const char *message, JSErrorReport *reportp,
 
     JS_ASSERT(reportp);
     if (JSREPORT_IS_WARNING(reportp->flags))
-        return false;
+        return JS_FALSE;
 
     
     errorNumber = (JSErrNum) reportp->errorNumber;
@@ -1105,12 +1107,19 @@ js_ErrorToException(JSContext *cx, const char *message, JSErrorReport *reportp,
 
 
     if (exn == JSEXN_NONE)
-        return false;
+        return JS_FALSE;
 
     
+
+
+
+
+
     if (cx->generatingError)
-        return false;
-    AutoScopedAssign<bool> asa(&cx->generatingError, true);
+        return JS_FALSE;
+
+    MUST_FLOW_THROUGH("out");
+    cx->generatingError = JS_TRUE;
 
     
     PodArrayZero(tv);
@@ -1121,32 +1130,45 @@ js_ErrorToException(JSContext *cx, const char *message, JSErrorReport *reportp,
 
 
 
-    if (!js_GetClassPrototype(cx, NULL, GetExceptionProtoKey(exn), &errProto))
-        return false;
+    ok = js_GetClassPrototype(cx, NULL, GetExceptionProtoKey(exn), &errProto);
+    if (!ok)
+        goto out;
     tv[0] = OBJECT_TO_JSVAL(errProto);
 
-    if (!(errObject = NewObjectWithGivenProto(cx, &ErrorClass, errProto, NULL)))
-        return false;
+    errObject = NewObjectWithGivenProto(cx, &ErrorClass, errProto, NULL);
+    if (!errObject) {
+        ok = JS_FALSE;
+        goto out;
+    }
     tv[1] = OBJECT_TO_JSVAL(errObject);
 
-    if (!(messageStr = JS_NewStringCopyZ(cx, message)))
-        return false;
+    messageStr = JS_NewStringCopyZ(cx, message);
+    if (!messageStr) {
+        ok = JS_FALSE;
+        goto out;
+    }
     tv[2] = STRING_TO_JSVAL(messageStr);
 
-    if (!(filenameStr = JS_NewStringCopyZ(cx, reportp->filename)))
-        return false;
+    filenameStr = JS_NewStringCopyZ(cx, reportp->filename);
+    if (!filenameStr) {
+        ok = JS_FALSE;
+        goto out;
+    }
     tv[3] = STRING_TO_JSVAL(filenameStr);
 
-    if (!InitExnPrivate(cx, errObject, messageStr, filenameStr,
-                        reportp->lineno, reportp, exn)) {
-        return false;
-    }
+    ok = InitExnPrivate(cx, errObject, messageStr, filenameStr,
+                        reportp->lineno, reportp, exn);
+    if (!ok)
+        goto out;
 
     JS_SetPendingException(cx, OBJECT_TO_JSVAL(errObject));
 
     
     reportp->flags |= JSREPORT_EXCEPTION;
-    return true;
+
+out:
+    cx->generatingError = JS_FALSE;
+    return ok;
 }
 
 JSBool

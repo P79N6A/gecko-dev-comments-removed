@@ -132,9 +132,6 @@ public class DoorHangerPopup extends PopupWindow {
             return;
         }
 
-        if (!mInflated)
-            init();
-
         
         for (int i = 0; i < mContent.getChildCount(); i++) {
             DoorHanger dh = (DoorHanger) mContent.getChildAt(i);

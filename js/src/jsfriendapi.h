@@ -166,26 +166,13 @@ JS_WrapPropertyDescriptor(JSContext *cx, js::PropertyDescriptor *desc);
 extern JS_FRIEND_API(JSBool)
 JS_EnumerateState(JSContext *cx, JSObject *obj, JSIterateOp enum_op, js::Value *statep, jsid *idp);
 
-struct JSFunctionSpecWithHelp {
-    const char      *name;
-    JSNative        call;
-    uint16_t        nargs;
-    uint16_t        flags;
-    const char      *usage;
-    const char      *help;
-};
-
-#define JS_FN_HELP(name,call,nargs,flags,usage,help)                          \
-    {name, call, nargs, (flags) | JSPROP_ENUMERATE | JSFUN_STUB_GSOPS, usage, help}
-
-extern JS_FRIEND_API(bool)
-JS_DefineFunctionsWithHelp(JSContext *cx, JSObject *obj, const JSFunctionSpecWithHelp *fs);
-
 #endif
 
 JS_END_EXTERN_C
 
 #ifdef __cplusplus
+
+struct PRLock;
 
 namespace js {
 
@@ -234,7 +221,7 @@ typedef bool
 
 
 extern JS_FRIEND_API(void)
-DumpHeapComplete(JSRuntime *rt, FILE *fp);
+DumpHeapComplete(JSContext *cx, FILE *fp);
 
 #endif
 
@@ -511,7 +498,7 @@ JS_FRIEND_API(bool)
 GetPropertyNames(JSContext *cx, JSObject *obj, unsigned flags, js::AutoIdVector *props);
 
 JS_FRIEND_API(bool)
-StringIsArrayIndex(JSLinearString *str, uint32_t *indexp);
+StringIsArrayIndex(JSLinearString *str, jsuint *indexp);
 
 JS_FRIEND_API(void)
 SetPreserveWrapperCallback(JSRuntime *rt, PreserveWrapperCallback callback);
@@ -532,15 +519,15 @@ IsObjectInContextCompartment(const JSObject *obj, const JSContext *cx);
 #define JSITER_FOR_OF     0x20  /* harmony for-of loop */
 
 inline uintptr_t
-GetNativeStackLimit(const JSRuntime *rt)
+GetContextStackLimit(const JSContext *cx)
 {
-    return RuntimeFriendFields::get(rt)->nativeStackLimit;
+    return RuntimeFriendFields::get(GetRuntime(cx))->nativeStackLimit;
 }
 
 #define JS_CHECK_RECURSION(cx, onerror)                                         \
     JS_BEGIN_MACRO                                                              \
         int stackDummy_;                                                        \
-        if (!JS_CHECK_STACK_SIZE(js::GetNativeStackLimit(js::GetRuntime(cx)), &stackDummy_)) { \
+        if (!JS_CHECK_STACK_SIZE(js::GetContextStackLimit(cx), &stackDummy_)) { \
             js_ReportOverRecursed(cx);                                          \
             onerror;                                                            \
         }                                                                       \
@@ -571,6 +558,9 @@ GetOwnerThread(const JSContext *cx);
 JS_FRIEND_API(unsigned)
 GetContextOutstandingRequests(const JSContext *cx);
 
+JS_FRIEND_API(PRLock *)
+GetRuntimeGCLock(const JSRuntime *rt);
+
 class JS_FRIEND_API(AutoSkipConservativeScan)
 {
   public:
@@ -597,8 +587,40 @@ typedef void
 
 
 
+
 JS_FRIEND_API(void)
 SetActivityCallback(JSRuntime *rt, ActivityCallback cb, void *arg);
+
+class JS_FRIEND_API(AutoLockGC)
+{
+  public:
+    explicit AutoLockGC(JSRuntime *rt = NULL
+                        MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+      : runtime(rt)
+    {
+        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+        if (rt)
+            LockGC(rt);
+    }
+
+    ~AutoLockGC()
+    {
+        if (runtime)
+            UnlockGC(runtime);
+    }
+
+    bool locked() const {
+        return !!runtime;
+    }
+    void lock(JSRuntime *rt);
+
+  private:
+    static void LockGC(JSRuntime *rt);
+    static void UnlockGC(JSRuntime *rt);
+
+    JSRuntime *runtime;
+    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+};
 
 extern JS_FRIEND_API(const JSStructuredCloneCallbacks *)
 GetContextStructuredCloneCallbacks(JSContext *cx);
@@ -614,6 +636,10 @@ CallContextDebugHandler(JSContext *cx, JSScript *script, jsbytecode *bc, Value *
 
 extern JS_FRIEND_API(bool)
 IsContextRunningJS(JSContext *cx);
+
+
+extern JS_FRIEND_API(void)
+TriggerOperationCallback(JSRuntime *rt);
 
 class SystemAllocPolicy;
 typedef Vector<JSCompartment*, 0, SystemAllocPolicy> CompartmentVector;
@@ -632,7 +658,7 @@ SizeOfJSContext();
     D(LAST_DITCH)                               \
     D(TOO_MUCH_MALLOC)                          \
     D(ALLOC_TRIGGER)                            \
-    D(DEBUG_GC)                                 \
+    D(UNUSED1) /* was CHUNK */                  \
     D(UNUSED2) /* was SHAPE */                  \
     D(UNUSED3) /* was REFILL */                 \
                                                 \
@@ -699,14 +725,12 @@ enum GCProgress {
     GC_CYCLE_END
 };
 
-struct JS_FRIEND_API(GCDescription) {
+struct GCDescription {
+    const char *logMessage;
     bool isCompartment;
 
-    GCDescription(bool isCompartment)
-      : isCompartment(isCompartment) {}
-
-    jschar *formatMessage(JSRuntime *rt) const;
-    jschar *formatJSON(JSRuntime *rt) const;
+    GCDescription(const char *msg, bool isCompartment)
+      : logMessage(msg), isCompartment(isCompartment) {}
 };
 
 typedef void
@@ -783,9 +807,6 @@ class ObjectPtr
     JSObject *operator->() const { return value; }
     operator JSObject *() const { return value; }
 };
-
-extern JS_FRIEND_API(JSObject *)
-GetTestingFunctions(JSContext *cx);
 
 } 
 

@@ -67,7 +67,6 @@
 #include "nsIXPCScriptable.h"
 
 #include "nsJSUtils.h"
-#include "nsJSPrincipals.h"
 #include "nsThreadUtils.h"
 #include "nsXULAppAPI.h"
 
@@ -508,12 +507,10 @@ DumpHeap(JSContext *cx,
         }
     }
 
-    ok = JS_DumpHeap(JS_GetRuntime(cx), dumpFile, startThing, startTraceKind, thingToFind,
+    ok = JS_DumpHeap(cx, dumpFile, startThing, startTraceKind, thingToFind,
                      maxDepth, thingToIgnore);
     if (dumpFile != stdout)
         fclose(dumpFile);
-    if (!ok)
-        JS_ReportOutOfMemory(cx);
     return ok;
 
   not_traceable_arg:
@@ -1059,7 +1056,7 @@ XPCShellEnvironment::~XPCShellEnvironment()
         mCxStack = nsnull;
 
         if (mJSPrincipals) {
-            JS_DropPrincipals(JS_GetRuntime(mCx), mJSPrincipals);
+            JSPRINCIPALS_DROP(mCx, mJSPrincipals);
         }
 
         JSRuntime* rt = gOldContextCallback ? JS_GetRuntime(mCx) : NULL;
@@ -1141,8 +1138,10 @@ XPCShellEnvironment::Init()
             fprintf(stderr, "+++ Failed to obtain SystemPrincipal from ScriptSecurityManager service.\n");
         } else {
             
-            mJSPrincipals = nsJSPrincipals::get(principal);
-            JS_HoldPrincipals(mJSPrincipals);
+            rv = principal->GetJSPrincipals(cx, &mJSPrincipals);
+            if (NS_FAILED(rv)) {
+                fprintf(stderr, "+++ Failed to obtain JS principals from SystemPrincipal.\n");
+            }
             secman->SetSystemPrincipal(principal);
         }
     } else {
@@ -1168,7 +1167,9 @@ XPCShellEnvironment::Init()
 
     nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
     rv = xpc->InitClassesWithNewWrappedGlobal(cx, backstagePass,
+                                              NS_GET_IID(nsISupports),
                                               principal,
+                                              nsnull,
                                               nsIXPConnect::
                                                   FLAG_SYSTEM_GLOBAL_OBJECT,
                                               getter_AddRefs(holder));

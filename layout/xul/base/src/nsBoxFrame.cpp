@@ -97,6 +97,7 @@
 #include "mozilla/Preferences.h"
 
 
+#include "nsIDocument.h"
 #include "nsIURI.h"
 
 using namespace mozilla;
@@ -758,8 +759,6 @@ nsBoxFrame::Reflow(nsPresContext*          aPresContext,
   }
 #endif
 
-  ReflowAbsoluteFrames(aPresContext, aDesiredSize, aReflowState, aStatus);
-
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
   return NS_OK;
 }
@@ -936,35 +935,6 @@ nsBoxFrame::DoLayout(nsBoxLayoutState& aState)
 
   aState.SetLayoutFlags(oldFlags);
 
-  if (HasAbsolutelyPositionedChildren()) {
-    
-    nsHTMLReflowState reflowState(aState.PresContext(), this,
-                                  aState.GetRenderingContext(),
-                                  nsSize(mRect.width, NS_UNCONSTRAINEDSIZE));
-
-    
-    nsHTMLReflowMetrics desiredSize;
-    desiredSize.width  = mRect.width;
-    desiredSize.height = mRect.height;
-
-    
-    nscoord ascent = mRect.height;
-
-    
-    
-    if (!(mState & NS_STATE_IS_ROOT)) {
-      ascent = GetBoxAscent(aState);
-    }
-    desiredSize.ascent = ascent;
-    desiredSize.mOverflowAreas = GetOverflowAreas();
-
-    
-    
-    nsReflowStatus reflowStatus = NS_FRAME_COMPLETE;
-    ReflowAbsoluteFrames(aState.PresContext(), desiredSize,
-                         reflowState, reflowStatus);
-  }
-
   return rv;
 }
 
@@ -976,8 +946,6 @@ nsBoxFrame::DestroyFrom(nsIFrame* aDestructRoot)
 
   
   SetLayoutManager(nsnull);
-
-  DestroyAbsoluteFrames(aDestructRoot);
 
   nsContainerFrame::DestroyFrom(aDestructRoot);
 } 

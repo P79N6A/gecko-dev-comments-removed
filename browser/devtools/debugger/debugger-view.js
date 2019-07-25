@@ -36,7 +36,6 @@
 
 
 
-
 "use strict";
 
 const Cu = Components.utils;
@@ -158,28 +157,28 @@ DebuggerView.Stackframes = {
 
 
 
-  addFrame: function DVF_addFrame(aDepth, aFrameNameText, aFrameDetailsText) {
+  addFrame: function DVF_addFrame(aDepth, aFrameIdText, aFrameNameText) {
     
     if (document.getElementById("stackframe-" + aDepth)) {
       return null;
     }
 
     let frame = document.createElement("div");
+    let frameId = document.createElement("span");
     let frameName = document.createElement("span");
-    let frameDetails = document.createElement("span");
 
     
     frame.id = "stackframe-" + aDepth;
     frame.className = "dbg-stackframe list-item";
 
     
+    frameId.className = "dbg-stackframe-id";
     frameName.className = "dbg-stackframe-name";
-    frameDetails.className = "dbg-stackframe-details";
+    frameId.appendChild(document.createTextNode(aFrameIdText));
     frameName.appendChild(document.createTextNode(aFrameNameText));
-    frameDetails.appendChild(document.createTextNode(aFrameDetailsText));
 
+    frame.appendChild(frameId);
     frame.appendChild(frameName);
-    frame.appendChild(frameDetails);
 
     this._frames.appendChild(frame);
 
@@ -200,6 +199,7 @@ DebuggerView.Stackframes = {
 
     
     if (!frame) {
+      dump("The frame list item wasn't found in the stackframes container.");
       return;
     }
 
@@ -356,6 +356,7 @@ DebuggerView.Properties = {
 
     
     if (!element) {
+      dump("The debugger scope container wasn't created properly: " + aId);
       return null;
     }
 
@@ -397,6 +398,7 @@ DebuggerView.Properties = {
 
     
     if (!element) {
+      dump("The debugger variable container wasn't created properly: " + aId);
       return null;
     }
 
@@ -464,6 +466,7 @@ DebuggerView.Properties = {
 
     
     if (!info) {
+      dump("Could not set the grip for the corresponding variable: " + aVar.id);
       return null;
     }
 
@@ -566,6 +569,7 @@ DebuggerView.Properties = {
 
     
     if (!element) {
+      dump("The debugger property container wasn't created properly.");
       return null;
     }
 
@@ -706,9 +710,11 @@ DebuggerView.Properties = {
   _createPropertyElement: function DVP__createPropertyElement(aName, aId, aClass, aParent) {
     
     if (document.getElementById(aId)) {
+      dump("Duplicating a property element id is not allowed.");
       return null;
     }
     if (!aParent) {
+      dump("A property element must have a valid parent node specified.");
       return null;
     }
 
@@ -1069,24 +1075,8 @@ DebuggerView.Scripts = {
 
 
 
-
   contains: function DVS_contains(aUrl) {
     if (this._scripts.getElementsByAttribute("value", aUrl).length > 0) {
-      return true;
-    }
-    return false;
-  },
-
-  
-
-
-
-
-
-
-
-  containsLabel: function DVS_containsLabel(aLabel) {
-    if (this._scripts.getElementsByAttribute("label", aLabel).length > 0) {
       return true;
     }
     return false;
@@ -1119,15 +1109,6 @@ DebuggerView.Scripts = {
         break;
       }
     }
-  },
-
-   
-
-
-
-   get selected() {
-    return this._scripts.selectedItem ?
-           this._scripts.selectedItem.value : null;
    },
 
   
@@ -1142,16 +1123,16 @@ DebuggerView.Scripts = {
 
 
 
-  addScript: function DVS_addScript(aLabel, aScript) {
+
+
+  addScript: function DVS_addScript(aUrl, aSource, aScriptNameText) {
     
-    if (this.containsLabel(aLabel)) {
+    if (this.contains(aUrl)) {
       return null;
     }
 
-    let script = this._scripts.appendItem(aLabel, aScript.url);
-    script.setAttribute("tooltiptext", aScript.url);
-    script.setUserData("sourceScript", aScript, null);
-
+    let script = this._scripts.appendItem(aScriptNameText || aUrl, aUrl);
+    script.setUserData("sourceScript", aSource, null);
     this._scripts.selectedItem = script;
     return script;
   },

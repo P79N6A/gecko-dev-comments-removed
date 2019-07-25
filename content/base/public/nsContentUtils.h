@@ -422,8 +422,8 @@ public:
   
 
 
-  static bool IsFirstLetterPunctuation(PRUint32 aChar);
-  static bool IsFirstLetterPunctuationAt(const nsTextFragment* aFrag, PRUint32 aOffset);
+  static bool IsPunctuationMark(PRUint32 aChar);
+  static bool IsPunctuationMarkAt(const nsTextFragment* aFrag, PRUint32 aOffset);
  
   
 
@@ -440,16 +440,6 @@ public:
 
 
   static bool IsHTMLWhitespace(PRUnichar aChar);
-
-  
-
-
-  static bool IsHTMLBlock(nsIAtom* aLocalName);
-
-  
-
-
-  static bool IsHTMLVoid(nsIAtom* aLocalName);
 
   
 
@@ -848,22 +838,11 @@ public:
 
 
 
-private:
   static nsresult FormatLocalizedString(PropertiesFile aFile,
                                         const char* aKey,
-                                        const PRUnichar** aParams,
+                                        const PRUnichar **aParams,
                                         PRUint32 aParamsLength,
                                         nsXPIDLString& aResult);
-  
-public:
-  template<PRUint32 N>
-  static nsresult FormatLocalizedString(PropertiesFile aFile,
-                                        const char* aKey,
-                                        const PRUnichar* (&aParams)[N],
-                                        nsXPIDLString& aResult)
-  {
-    return FormatLocalizedString(aFile, aKey, aParams, N, aResult);
-  }
 
   
 
@@ -1619,43 +1598,7 @@ public:
 
 
   static bool EqualsIgnoreASCIICase(const nsAString& aStr1,
-                                    const nsAString& aStr2);
-
-  
-
-
-
-
-
-
-  static bool EqualsLiteralIgnoreASCIICase(const nsAString& aStr1,
-                                           const char* aStr2,
-                                           const PRUint32 len);
-#ifdef NS_DISABLE_LITERAL_TEMPLATE
-  static inline bool
-  EqualsLiteralIgnoreASCIICase(const nsAString& aStr1,
-                               const char* aStr2)
-  {
-    PRUint32 len = strlen(aStr2);
-    return EqualsLiteralIgnoreASCIICase(aStr1, aStr2, len);
-  }
-#else
-  template<int N>
-  static inline bool
-  EqualsLiteralIgnoreASCIICase(const nsAString& aStr1,
-                               const char (&aStr2)[N])
-  {
-    return EqualsLiteralIgnoreASCIICase(aStr1, aStr2, N-1);
-  }
-  template<int N>
-  static inline bool
-  EqualsLiteralIgnoreASCIICase(const nsAString& aStr1,
-                               char (&aStr2)[N])
-  {
-    const char* s = aStr2;
-    return EqualsLiteralIgnoreASCIICase(aStr1, s, N-1);
-  }
-#endif
+                                      const nsAString& aStr2);
 
   
 
