@@ -38,6 +38,7 @@
 
 
 
+
 let Ci = Components.interfaces;
 
 const kBrowserFormZoomLevelMin = 1.0;
@@ -616,8 +617,12 @@ BrowserView.prototype = {
       pageZoom = 1;
 
     let metaData = Util.getViewportMetadata(browser);
+    if (metaData.minScale)
+      pageZoom = Math.max(metaData.minScale, pageZoom);
+    if (metaData.maxScale)
+      pageZoom = Math.min(metaData.maxScale, pageZoom);
     if (metaData.scale)
-      return Math.max(metaData.scale, pageZoom);
+      pageZoom = Math.max(metaData.scale, pageZoom);
 
     return pageZoom;
   },

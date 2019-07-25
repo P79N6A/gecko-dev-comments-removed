@@ -1,8 +1,63 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 let testURL_blank = "chrome://mochikit/content/browser/mobile/chrome/browser_blank_01.html";
-let testURL_vport_01 = "chrome://mochikit/content/browser/mobile/chrome/browser_viewport_01.html";
-let testURL_vport_02 = "chrome://mochikit/content/browser/mobile/chrome/browser_viewport_02.html";
+let testURL = function testURL(n) {
+  return "chrome://mochikit/content/browser/mobile/chrome/browser_viewport_" +
+         (n<10 ? "0" : "") + n + ".html";
+}
+let deviceWidth = {};
 
 let working_tab;
+let isLoading = function() { return !working_tab.isLoading(); };
+
+let testData = [
+  { width: undefined,   scale: undefined },
+  { width: deviceWidth, scale: 1 },
+  { width: 320,         scale: 1 },
+  { width: undefined,   scale: 1 },
+  { width: 200,         scale: undefined },
+  { width: 2000,        minScale: 0.75 },
+  { width: 100,         maxScale: 2 }
+];
 
 
 
@@ -10,105 +65,76 @@ function test() {
   
   waitForExplicitFinish();
 
-  
-  working_tab = Browser.addTab(testURL_blank, true);
+  working_tab = Browser.addTab("", true);
   ok(working_tab, "Tab Opened");
-
-  
-  waitFor(load_first_blank, function() { return working_tab.isLoading() == false; });
+  startTest(0);
 }
 
-function load_first_blank() {
-  
-  var uri = working_tab.browser.currentURI.spec;
-  is(uri, testURL_blank, "URL Matches newly created Tab");
-
-  
-  ok(working_tab.browser.classList.contains("browser"), "Normal 'browser' class");
-  let style = window.getComputedStyle(working_tab.browser, null);
-  is(style.width, "800px", "Normal 'browser' width is 800 pixels");
-
-  
-  BrowserUI.goToURI(testURL_vport_01);
-
-  
-  waitFor(load_first_viewport, function() { return working_tab.isLoading() == false; });
-}
-
-function load_first_viewport() {
-  
-  var uri = working_tab.browser.currentURI.spec;
-  is(uri, testURL_vport_01, "URL Matches newly created Tab");
-
-  
-  ok(working_tab.browser.classList.contains("browser-viewport"), "Viewport 'browser-viewport' class");
-  let style = window.getComputedStyle(working_tab.browser, null);
-  is(style.width, window.innerWidth + "px", "Viewport device-width is equal to window.innerWidth");
-
-  is(Browser._browserView.getZoomLevel(), 1, "Viewport scale=1");
-
-  
+function startTest(n) {
   BrowserUI.goToURI(testURL_blank);
-
-  
-  waitFor(load_second_blank, function() { return working_tab.isLoading() == false; });
+  waitFor(verifyBlank(n), isLoading);
 }
 
-function load_second_blank() {
-  
-  var uri = working_tab.browser.currentURI.spec;
-  is(uri, testURL_blank, "URL Matches newly created Tab");
+function verifyBlank(n) {
+  return function() {
+    
+    var uri = working_tab.browser.currentURI.spec;
+    is(uri, testURL_blank, "URL Matches newly created Tab "+n);
 
-  
-  ok(working_tab.browser.classList.contains("browser"), "Normal 'browser' class");
-  let style = window.getComputedStyle(working_tab.browser, null);
-  is(style.width, "800px", "Normal 'browser' width is 800 pixels");
+    
+    ok(working_tab.browser.classList.contains("browser"), "Normal 'browser' class");
+    let style = window.getComputedStyle(working_tab.browser, null);
+    is(style.width, "800px", "Normal 'browser' width is 800 pixels");
 
-  
-  BrowserUI.goToURI(testURL_vport_02);
-
-  
-  waitFor(load_second_viewport, function() { return working_tab.isLoading() == false; });
+    loadTest(n);
+  }
 }
 
-function load_second_viewport() {
-  
-  var uri = working_tab.browser.currentURI.spec;
-  is(uri, testURL_vport_02, "URL Matches newly created Tab");
-
-  
-  ok(working_tab.browser.classList.contains("browser-viewport"), "Viewport 'browser-viewport' class");
-  let style = window.getComputedStyle(working_tab.browser, null);
-  let expectedWidth = Math.max(320, window.innerWidth);
-  is(style.width, expectedWidth+"px", "Viewport width is at least 320"); 
-
-  is(Browser._browserView.getZoomLevel(), 1, "Viewport scale=1");
-
-  
-  BrowserUI.goToURI(testURL_blank);
-
-  
-  waitFor(load_third_blank, function() { return working_tab.isLoading() == false; });
+function loadTest(n) {
+  BrowserUI.goToURI(testURL(n));
+  waitFor(verifyTest(n), isLoading);
 }
 
-function load_third_blank() {
-  
-  var uri = working_tab.browser.currentURI.spec;
-  is(uri, testURL_blank, "URL Matches newly created Tab");
+function verifyTest(n) {
+  return function() {
+    let data = testData[n];
 
-  
-  ok(working_tab.browser.classList.contains("browser"), "Normal 'browser' class");
-  let style = window.getComputedStyle(working_tab.browser, null);
-  is(style.width, "800px", "Normal 'browser' width is 800 pixels");
+    
+    var uri = working_tab.browser.currentURI.spec;
+    is(uri, testURL(n), "URL Matches newly created Tab "+n);
 
-  
-  test_close();
+    
+    let width = data.width || (data.scale ? window.innerWidth : 800);
+    if (width == deviceWidth) {
+      width = window.innerWidth;
+      ok(working_tab.browser.classList.contains("browser-viewport"), "Viewport 'browser-viewport' class");
+    }
+
+    let scale = data.scale || window.innerWidth / width;
+    let minScale = data.minScale || 0.2;
+    let maxScale = data.maxScale || 4;
+
+    scale = Math.min(scale, maxScale);
+    scale = Math.max(scale, minScale);
+
+    
+    if (width * scale < window.innerWidth)
+      width = window.innerWidth / scale;
+
+    let style = window.getComputedStyle(working_tab.browser, null);
+    is(style.width, width + "px", "Viewport width="+width);
+
+    is(Browser._browserView.getZoomLevel(), scale, "Viewport scale="+scale);
+
+    finishTest(n);
+  }
 }
 
-function test_close() {
-  
-  Browser.closeTab(working_tab);
-
-  
-  finish();
+function finishTest(n) {
+  if (n+1 < testData.length) {
+    startTest(n+1);
+  } else {
+    Browser.closeTab(working_tab);
+    finish();
+  }
 }
