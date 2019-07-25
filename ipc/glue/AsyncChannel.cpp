@@ -121,8 +121,7 @@ AsyncChannel::Open(Transport* aTransport, MessageLoop* aIOLoop)
     if(!aIOLoop) {
         
         needOpen = false;
-        aIOLoop = BrowserProcessSubThread
-                  ::GetMessageLoop(BrowserProcessSubThread::IO);
+        aIOLoop = XRE_GetIOMessageLoop();
         
         
         mChannelState = ChannelConnected;

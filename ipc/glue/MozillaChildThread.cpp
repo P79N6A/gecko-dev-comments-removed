@@ -65,6 +65,7 @@ MozillaChildThread::Init()
   
   ::CoInitialize(NULL);
 #endif
+  
 
   
   
