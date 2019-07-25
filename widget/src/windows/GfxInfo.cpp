@@ -620,9 +620,29 @@ static const PRUint32 deviceFamilyIntelGMAX4500HD[] = {
 };
 
 
-static const PRUint32 deviceFamilyNvidia6200TurboCache[] = {
+static const PRUint32 deviceFamilyNvidiaBlockD3D9Layers[] = {
+    0x00f3, 
+    0x0146, 
+    0x014f, 
     0x0161, 
     0x0162, 
+    0x0163, 
+    0x0164, 
+    0x0167, 
+    0x0168, 
+    0x0169, 
+    0x0221, 
+    0x0222, 
+    0x0240, 
+    0x0241, 
+    0x0242, 
+    0x0244, 
+    0x0245, 
+    0x0247, 
+    0x03d0, 
+    0x03d1, 
+    0x03d2, 
+    0x03d5, 
     0
 };
 
@@ -648,8 +668,10 @@ static const GfxDriverInfo gDriverInfo[] = {
     DRIVER_LESS_THAN, V(8,17,12,5721), "257.21" ),
 
   
+
+
   GfxDriverInfo( DRIVER_OS_ALL,
-    vendorNVIDIA, (GfxDeviceFamily) deviceFamilyNvidia6200TurboCache,
+    vendorNVIDIA, (GfxDeviceFamily) deviceFamilyNvidiaBlockD3D9Layers,
     nsIGfxInfo::FEATURE_DIRECT3D_9_LAYERS, nsIGfxInfo::FEATURE_BLOCKED_DEVICE,
     DRIVER_LESS_THAN, allDriverVersions ),
 
