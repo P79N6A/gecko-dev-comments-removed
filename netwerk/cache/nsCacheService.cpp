@@ -84,6 +84,8 @@
 
 #define DISK_CACHE_ENABLE_PREF      "browser.cache.disk.enable"
 #define DISK_CACHE_DIR_PREF         "browser.cache.disk.parent_directory"
+#define DISK_CACHE_SMART_SIZE_FIRST_RUN_PREF "browser.cache.disk.smart_size.first_run"
+#define DISK_CACHE_SMART_SIZE_ENABLED_PREF  "browser.cache.disk.smart_size.enabled"
 #define DISK_CACHE_CAPACITY_PREF    "browser.cache.disk.capacity"
 #define DISK_CACHE_MAX_ENTRY_SIZE_PREF "browser.cache.disk.max_entry_size"
 #define DISK_CACHE_CAPACITY         256000
@@ -106,6 +108,7 @@ static const char * observerList[] = {
 static const char * prefList[] = { 
 #ifdef NECKO_DISK_CACHE
     DISK_CACHE_ENABLE_PREF,
+    DISK_CACHE_SMART_SIZE_ENABLED_PREF,
     DISK_CACHE_CAPACITY_PREF,
     DISK_CACHE_DIR_PREF,
 #endif
@@ -152,6 +155,10 @@ public:
     
     PRBool          MemoryCacheEnabled();
     PRInt32         MemoryCacheCapacity();
+
+private:
+    bool                    PermittedToSmartSize(nsIPrefBranch*, PRBool firstRun);
+    PRUint32                GetSmartCacheSize(void);
 
 private:
     PRBool                  mHaveProfile;
@@ -302,6 +309,27 @@ nsCacheProfilePrefObserver::Observe(nsISupports *     subject,
             if (NS_FAILED(rv))  return rv;
             mDiskCacheCapacity = PR_MAX(0, capacity);
             nsCacheService::SetDiskCacheCapacity(mDiskCacheCapacity);
+       
+        
+        } else if (!strcmp(DISK_CACHE_SMART_SIZE_ENABLED_PREF, data.get())) {
+            
+            PRBool smartSizeEnabled;
+            rv = branch->GetBoolPref(DISK_CACHE_SMART_SIZE_ENABLED_PREF,
+                                     &smartSizeEnabled);
+            if (NS_FAILED(rv)) return rv;
+            PRInt32 newCapacity = 0;
+            if (smartSizeEnabled) {
+              
+              newCapacity = GetSmartCacheSize() / 1024;
+            } else {
+              
+              rv = branch->GetIntPref(DISK_CACHE_CAPACITY_PREF, &newCapacity);
+              if (NS_FAILED(rv)) return rv;
+            } 
+            
+            mDiskCacheCapacity = PR_MAX(0, newCapacity);
+            nsCacheService::SetDiskCacheCapacity(mDiskCacheCapacity);
+               
 #if 0            
         } else if (!strcmp(DISK_CACHE_DIR_PREF, data.get())) {
             
@@ -399,6 +427,104 @@ nsCacheProfilePrefObserver::Observe(nsISupports *     subject,
 }
 
 
+ 
+
+
+
+
+
+
+
+
+
+
+PRUint32
+nsCacheProfilePrefObserver::GetSmartCacheSize(void) {
+  
+  const PRInt32 BASE_LINE = 250 * 1024 * 1024;
+  const PRInt32 MIN_SIZE = 50 * 1024 * 1024;
+  const PRInt32 MAX_SIZE = 1024 * 1024 * 1024;
+  
+  nsresult rv;
+  nsCOMPtr<nsIFile> profileDirectory;
+  rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR,
+                              getter_AddRefs(profileDirectory));
+  if (NS_FAILED(rv)) { 
+    return BASE_LINE;
+  }
+  nsCOMPtr<nsILocalFile> diskHandle = do_QueryInterface(profileDirectory);
+  PRInt64 bytesAvailable;
+  diskHandle->GetDiskSpaceAvailable(&bytesAvailable);
+  
+  
+
+ 
+  if (bytesAvailable < BASE_LINE * 2) {
+    return PR_MAX(MIN_SIZE, bytesAvailable * 4 / 10);
+  }
+  
+  
+
+
+  if (bytesAvailable < static_cast<PRInt64>(BASE_LINE) * 10) {
+    return BASE_LINE;
+  }
+
+  
+
+
+  if (bytesAvailable < static_cast<PRInt64>(BASE_LINE) * 20) {
+    return bytesAvailable / 10;
+  }
+
+  
+
+
+  if (bytesAvailable < static_cast<PRInt64>(BASE_LINE) * 200 ) {
+    return BASE_LINE * 5 / 2;
+  }
+
+  
+
+
+  if (bytesAvailable < static_cast<PRInt64>(BASE_LINE) * 300) {
+    return BASE_LINE / 5 * 16;  
+  }
+  
+  
+
+
+  return MAX_SIZE;
+}
+
+
+
+
+
+bool
+nsCacheProfilePrefObserver::PermittedToSmartSize(nsIPrefBranch* branch, PRBool
+                                                 firstRun)
+{
+  nsresult rv;
+  
+  if (firstRun) {
+    
+    PRBool userSet;
+    rv = branch->PrefHasUserValue(DISK_CACHE_CAPACITY_PREF, &userSet);
+    if (NS_FAILED(rv)) userSet = PR_TRUE;
+    if (userSet) {
+      branch->SetBoolPref(DISK_CACHE_SMART_SIZE_ENABLED_PREF, PR_FALSE);
+      return false;
+    }
+  }
+  PRBool smartSizeEnabled; 
+  rv = branch->GetBoolPref(DISK_CACHE_SMART_SIZE_ENABLED_PREF,
+                           &smartSizeEnabled);
+  if (NS_FAILED(rv)) return false;
+  return !!smartSizeEnabled;
+}
+
+
 nsresult
 nsCacheProfilePrefObserver::ReadPrefs(nsIPrefBranch* branch)
 {
@@ -455,6 +581,27 @@ nsCacheProfilePrefObserver::ReadPrefs(nsIPrefBranch* branch)
         }
         if (directory)
             mDiskCacheParentDirectory = do_QueryInterface(directory, &rv);
+    }
+    if (mDiskCacheParentDirectory) {
+      PRBool firstSmartSizeRun;
+      rv = branch->GetBoolPref(DISK_CACHE_SMART_SIZE_FIRST_RUN_PREF, &firstSmartSizeRun); 
+      if (NS_FAILED(rv)) firstSmartSizeRun = PR_FALSE;
+      if (PermittedToSmartSize(branch, firstSmartSizeRun)) {
+        
+        mDiskCacheCapacity = nsCacheProfilePrefObserver::GetSmartCacheSize() /
+                             1024; 
+        if (firstSmartSizeRun) {
+          
+          rv = branch->SetBoolPref(DISK_CACHE_SMART_SIZE_FIRST_RUN_PREF, PR_FALSE);
+          if (NS_FAILED(rv)) 
+            NS_WARNING("Failed setting first_run pref in ReadPrefs.");
+        
+          
+          rv = branch->SetIntPref(DISK_CACHE_CAPACITY_PREF, mDiskCacheCapacity);
+          if (NS_FAILED(rv)) 
+            NS_WARNING("Failed setting disk.capacity pref in ReadPrefs.");
+        }
+      }
     }
 #endif 
 
