@@ -2671,14 +2671,15 @@ nsEventStateManager::ComputeWheelActionFor(nsMouseScrollEvent* aMouseEvent,
       
       action = -1;
     }
-  } else if (aMouseEvent->scrollFlags & nsMouseScrollEvent::kHasPixels) {
-    if (aUseSystemSettings ||
-        action == MOUSE_SCROLL_N_LINES || action == MOUSE_SCROLL_PAGE ||
-        (aMouseEvent->scrollFlags & nsMouseScrollEvent::kIsMomentum)) {
-      
-      
-      action = -1;
-    }
+  } else if (((aMouseEvent->scrollFlags & nsMouseScrollEvent::kHasPixels) &&
+              (aUseSystemSettings ||
+               action == MOUSE_SCROLL_N_LINES || action == MOUSE_SCROLL_PAGE)) ||
+             ((aMouseEvent->scrollFlags & nsMouseScrollEvent::kIsMomentum) &&
+              (action == MOUSE_SCROLL_HISTORY || action == MOUSE_SCROLL_ZOOM))) {
+    
+    
+    
+    action = -1;
   }
 
   return action;
