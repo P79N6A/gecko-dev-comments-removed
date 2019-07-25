@@ -2,9 +2,6 @@
 
 
 
-%filter substitution
-%include defines.inc
-
 body {
   font-family: "OpenSansRegular","Droid Sans",sans-serif;
 }
@@ -24,7 +21,7 @@ body {
 
 .toolbar {
   font-family: "Droid Sans",helvetica,arial,clean,sans-serif;
-  -moz-transition-property: visibility opacity;
+  -moz-transition-property: visibility, opacity;
   -moz-transition-duration: 0.7s;
   visibility: visible;
   opacity: 1.0;
@@ -39,7 +36,7 @@ body {
 }
 
 .toolbar-hidden {
-  -moz-transition-property: visibility opacity;
+  -moz-transition-property: visibility, opacity;
   -moz-transition-duration: 0.7s;
   visibility: hidden;
   opacity: 0.0;
