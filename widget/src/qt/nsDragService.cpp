@@ -51,7 +51,6 @@ NS_IMPL_QUERY_INTERFACE2(nsDragService, nsIDragService, nsIDragSession )
 nsDragService::nsDragService() : mDrag(NULL)
 {
     
-        
     
     
     mHiddenWidget = new QWidget();
@@ -93,13 +92,13 @@ nsDragService::SetupDragSession(
     aTransferables->Count(&itemCount);
     if (0 == itemCount)
     {
-        qDebug("No items to drag?");
+        NS_WARNING("No items to drag?");
         return NS_ERROR_FAILURE;
     }
 
     if (1 != itemCount)
     {
-        qDebug("Dragging more than one item, cannot do (yet?)");
+        NS_WARNING("Dragging more than one item, cannot do (yet?)");
         return NS_ERROR_NOT_IMPLEMENTED;
     }
 
@@ -233,8 +232,7 @@ nsDragService::InvokeDragSessionWithImage(
         
         
         
-        
-        qDebug("Support for drag image not implemented");
+        NS_WARNING("Support for drag image not implemented");
     }
 
     return ExecuteDrag();
