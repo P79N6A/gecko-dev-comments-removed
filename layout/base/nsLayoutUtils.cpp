@@ -1008,14 +1008,15 @@ gfx3DMatrix
 nsLayoutUtils::ChangeMatrixBasis(const gfxPoint3D &aOrigin,
                                  const gfx3DMatrix &aMatrix)
 {
-  
-
-
-  gfx3DMatrix worldToOrigin = gfx3DMatrix::Translation(-aOrigin);
-  gfx3DMatrix originToWorld = gfx3DMatrix::Translation(aOrigin);
+  gfx3DMatrix result = aMatrix;
 
   
-  return worldToOrigin * aMatrix * originToWorld;
+  result.Translate(-aOrigin);
+
+  
+  result.TranslatePost(aOrigin);
+
+  return result; 
 }
 
 
