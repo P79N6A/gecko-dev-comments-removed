@@ -85,6 +85,8 @@ public:
 
   
   nsrefcnt GetRefCount() { return mRefCnt; }
+
+  size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
 };
 
 
@@ -108,14 +110,18 @@ public:
 
   virtual bool IsPermanent();
 
+  
+  
+
   void* operator new(size_t size, AtomImpl* aAtom) CPP_THROW_NEW;
   void* operator new(size_t size) CPP_THROW_NEW
   {
     return ::operator new(size);
   }
-
 };
 
 void NS_PurgeAtomTable();
+
+size_t NS_SizeOfAtomTableIncludingThis(nsMallocSizeOfFun aMallocSizeOf);
 
 #endif
