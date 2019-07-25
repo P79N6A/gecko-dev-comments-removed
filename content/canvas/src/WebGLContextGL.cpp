@@ -324,6 +324,9 @@ NS_IMETHODIMP WebGLContext::BlendFunc(WebGLenum sfactor, WebGLenum dfactor)
         !ValidateBlendFuncDstEnum(dfactor, "blendFunc: dfactor"))
         return NS_OK;
 
+    if (!ValidateBlendFuncEnumsCompatibility(sfactor, dfactor, "blendFuncSeparate: srcRGB and dstRGB"))
+        return NS_OK;
+
     MakeContextCurrent();
     gl->fBlendFunc(sfactor, dfactor);
     return NS_OK;
@@ -337,6 +340,11 @@ WebGLContext::BlendFuncSeparate(WebGLenum srcRGB, WebGLenum dstRGB,
         !ValidateBlendFuncSrcEnum(srcAlpha, "blendFuncSeparate: srcAlpha") ||
         !ValidateBlendFuncDstEnum(dstRGB, "blendFuncSeparate: dstRGB") ||
         !ValidateBlendFuncDstEnum(dstAlpha, "blendFuncSeparate: dstAlpha"))
+        return NS_OK;
+
+    
+    
+    if (!ValidateBlendFuncEnumsCompatibility(srcRGB, dstRGB, "blendFuncSeparate: srcRGB and dstRGB"))
         return NS_OK;
 
     MakeContextCurrent();
