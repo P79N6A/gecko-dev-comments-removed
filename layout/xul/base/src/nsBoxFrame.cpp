@@ -2150,7 +2150,7 @@ void nsDisplayXULEventRedirector::HitTest(nsDisplayListBuilder* aBuilder,
   nsTArray<nsIFrame*> outFrames;
   mList.HitTest(aBuilder, aRect, aState, &outFrames);
 
-  PRUint32 originalLength = aOutFrames->Length();
+  PRBool topMostAdded = PR_FALSE;
   PRUint32 localLength = outFrames.Length();
 
   for (PRUint32 i = 0; i < localLength; i++) {
@@ -2162,12 +2162,20 @@ void nsDisplayXULEventRedirector::HitTest(nsDisplayListBuilder* aBuilder,
                                nsGkAtoms::_true, eCaseMatters)) {
         
         aOutFrames->AppendElement(outFrames.ElementAt(i));
+        topMostAdded = PR_TRUE;
       }
+    }
+
+    
+    
+    if (!topMostAdded) {
+      topMostAdded = PR_TRUE;
+      aOutFrames->AppendElement(mTargetFrame);
     }
 
   }
   
-  if (aOutFrames->Length() == originalLength) {
+  if (localLength == 0) {
     aOutFrames->AppendElement(mTargetFrame);
   }
 }
