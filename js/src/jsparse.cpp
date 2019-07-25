@@ -1814,6 +1814,15 @@ BindDestructuringArg(JSContext *cx, BindData *data, JSAtom *atom,
 
 
 
+
+
+
+
+
+
+
+
+
     pn->pn_op = JSOP_SETLOCAL;
     pn->pn_dflags |= PND_BOUND;
 

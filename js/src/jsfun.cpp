@@ -3147,6 +3147,7 @@ JSFunction::addLocal(JSContext *cx, JSAtom *atom, JSLocalKind kind)
 
     jsid id;
     if (!atom) {
+        
         JS_ASSERT(kind == JSLOCAL_ARG);
         id = INT_TO_JSID(nargs);
     } else {
