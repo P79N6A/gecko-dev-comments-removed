@@ -41,7 +41,7 @@
 const EXPORTED_SYMBOLS = ["SplitView"];
 
 
-const LANDSCAPE_MEDIA_QUERY = "(min-aspect-ratio: 5/3)";
+const LANDSCAPE_MEDIA_QUERY = "(min-width: 551px)";
 
 const BINDING_USERDATA = "splitview-binding";
 
