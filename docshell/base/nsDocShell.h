@@ -732,6 +732,10 @@ protected:
     nsCOMPtr<nsISHEntry>       mOSHE;
     
     
+    
+    
+    
+    
     nsCOMPtr<nsISHEntry>       mLSHE;
 
     
