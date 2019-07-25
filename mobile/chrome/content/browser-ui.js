@@ -1270,7 +1270,6 @@ var BrowserUI = {
         } else if (!Weave.Service.isLoggedIn && !Services.prefs.getBoolPref("browser.sync.enabled")) {
           
           document.getElementById("remotetabs-button").removeAttribute("checked");
-          this.activePanel = null;
 
           BrowserUI.showPanel("prefs-container");
           let prefsBox = document.getElementById("prefs-list");
