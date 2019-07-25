@@ -184,14 +184,14 @@ public:
   
   PRBool HasAudio() const {
     mDecoder->GetMonitor().AssertCurrentThreadIn();
-    return mReader->GetInfo().mHasAudio;
+    return mInfo.mHasAudio;
   }
 
   
   
   PRBool HasVideo() const {
     mDecoder->GetMonitor().AssertCurrentThreadIn();
-    return mReader->GetInfo().mHasVideo;
+    return mInfo.mHasVideo;
   }
 
   
@@ -312,9 +312,10 @@ protected:
 
   
   
-  void RenderVideoFrame(VideoData* aData,
-                        TimeStamp aTarget);
-
+  
+  void RenderVideoFrame(VideoData* aData, TimeStamp aTarget, 
+                        nsIntSize aDisplaySize, float aAspectRatio);
+ 
   
   
   
@@ -524,6 +525,10 @@ private:
   
   
   nsAudioAvailableEventManager mEventManager;
+
+  
+  
+  nsVideoInfo mInfo;
 };
 
 #endif

@@ -414,6 +414,7 @@ private:
 class nsBuiltinDecoderReader : public nsRunnable {
 public:
   typedef mozilla::Monitor Monitor;
+  typedef mozilla::MonitorAutoEnter MonitorAutoEnter;
 
   nsBuiltinDecoderReader(nsBuiltinDecoder* aDecoder);
   ~nsBuiltinDecoderReader();
@@ -443,7 +444,7 @@ public:
   
   
   
-  virtual nsresult ReadMetadata() = 0;
+  virtual nsresult ReadMetadata(nsVideoInfo* aInfo) = 0;
 
   
   
@@ -462,11 +463,6 @@ public:
                         PRInt64 aStartTime,
                         PRInt64 aEndTime,
                         PRInt64 aCurrentTime) = 0;
-
-  
-  const nsVideoInfo& GetInfo() {
-    return mInfo;
-  }
 
   
   MediaQueue<SoundData> mAudioQueue;
@@ -520,6 +516,7 @@ protected:
   
   PRInt64 mDataOffset;
 
+  
   
   nsVideoInfo mInfo;
 };
