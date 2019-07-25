@@ -1152,8 +1152,8 @@ nsAttrValue::ParseColor(const nsAString& aString, nsIDocument* aDocument)
   
   
   if (colorStr.First() == '#') {
-    colorStr.Cut(0, 1);
-    if (NS_HexToRGB(colorStr, &color)) {
+    nsDependentString withoutHash(colorStr.get() + 1, colorStr.Length() - 1);
+    if (NS_HexToRGB(withoutHash, &color)) {
       SetColorValue(color, aString);
       return PR_TRUE;
     }
