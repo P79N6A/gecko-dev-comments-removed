@@ -171,9 +171,8 @@ struct JSXML {
     void                *domnode;       
     JSXML               *parent;
     JSObject            *name;
-    
-    size_t              xml_class;      
-    size_t              xml_flags;      
+    uint32              xml_class;      
+    uint32              xml_flags;      
     union {
         JSXMLListVar    list;
         JSXMLElemVar    elem;

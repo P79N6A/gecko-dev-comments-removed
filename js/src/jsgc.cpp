@@ -1095,6 +1095,8 @@ ConservativeGCStackMarker::dumpConservativeRoots()
 }
 #endif 
 
+static const jsuword JSID_PAYLOAD_MASK = (jsuword)~(jsuword)JSID_TYPE_MASK;
+
 void
 ConservativeGCStackMarker::markWord(jsuword w)
 {
@@ -1117,15 +1119,18 @@ ConservativeGCStackMarker::markWord(jsuword w)
 
 
 
-
-#if JS_BITS_PER_WORD == 32
+    JS_STATIC_ASSERT(JSID_TYPE_STRING == 0 && JSID_TYPE_OBJECT == 4);
     if (w & 0x3)
         RETURN(lowbitset);
-    jsuword payload = w;
+
+    
+
+
+
+#if JS_BITS_PER_WORD == 32
+    jsuword payload = w & JSID_PAYLOAD_MASK;
 #elif JS_BITS_PER_WORD == 64
-    if (w & 0x7)
-        RETURN(lowbitset);
-    jsuword payload = w & JSVAL_PAYLOAD_MASK;
+    jsuword payload = w & JSID_PAYLOAD_MASK & JSVAL_PAYLOAD_MASK;
 #endif
 
     jsuword chunk = payload & ~GC_CHUNK_MASK;
