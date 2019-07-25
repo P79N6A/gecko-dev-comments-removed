@@ -179,7 +179,7 @@ public:
 
   
   static already_AddRefed<nsXMLHttpRequest>
-  _Constructor(nsISupports* aGlobal, ErrorResult& aRv)
+  Constructor(nsISupports* aGlobal, ErrorResult& aRv)
   {
     nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(aGlobal);
     nsCOMPtr<nsIScriptObjectPrincipal> principal = do_QueryInterface(aGlobal);
