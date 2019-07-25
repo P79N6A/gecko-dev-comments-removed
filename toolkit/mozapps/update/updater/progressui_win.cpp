@@ -44,18 +44,10 @@
 #include <process.h>
 #include <io.h>
 
-#ifdef WINCE_WINDOWS_MOBILE
-#include <aygshell.h>
-#endif
-
 #include "resource.h"
 #include "progressui.h"
 #include "readstrings.h"
 #include "errors.h"
-
-#ifdef WINCE
-#include "updater_wince.h"
-#endif
 
 #define TIMER_ID 1
 #define TIMER_INTERVAL 100
@@ -184,88 +176,6 @@ InitDialog(HWND hDlg)
 
   
   
-  
-  
-  
-  
-#ifdef WINCE
-#ifdef WINCE_WINDOWS_MOBILE
-  RECT rcDlgInner1, rcDlgInner2, rcInfoOuter1, rcInfoOuter2;
-  
-  
-  
-  GetClientRect(hDlg, &rcDlgInner1);
-  GetWindowRect(hWndInfo, &rcInfoOuter1);
-
-  
-  SHINITDLGINFO shidi;
-  shidi.dwMask = SHIDIM_FLAGS;
-  shidi.dwFlags = SHIDIF_SIZEDLGFULLSCREEN;
-  shidi.hDlg = hDlg;
-  SHInitDialog(&shidi);
-  if (!SHInitDialog(&shidi))
-    return;
-
-  
-  SHDoneButton(hDlg, SHDB_HIDE);
-
-  GetClientRect(hDlg, &rcDlgInner2);
-  GetWindowRect(hWndInfo, &rcInfoOuter2);
-  textSize.left = 0;
-  
-  
-  
-  
-  textSize.right = (rcInfoOuter2.right - rcInfoOuter2.left) + \
-                   (rcDlgInner2.right - rcDlgInner1.right) + \
-                   (rcInfoOuter1.left - rcInfoOuter2.left);
-#else
-  RECT rcWorkArea, rcInfoOuter1;
-  GetWindowRect(hWndInfo, &rcInfoOuter1);
-  SystemParametersInfo(SPI_GETWORKAREA, NULL, &rcWorkArea, NULL);
-  textSize.left = 0;
-  
-  
-  textSize.right = (rcWorkArea.right - rcWorkArea.left) - \
-                   (rcInfoOuter1.left + rcInfoOuter1.right);
-#endif
-  
-  
-  if (DrawText(hDCInfo, szwInfo, -1, &textSize,
-               DT_CALCRECT | DT_NOCLIP | DT_WORDBREAK)) {
-    GetClientRect(hWndInfo, &infoSize);
-    SIZE extra;
-    
-    
-    
-    extra.cx = (textSize.right - textSize.left) - \
-               (infoSize.right - infoSize.left);
-    extra.cy = (textSize.bottom - textSize.top) - \
-               (infoSize.bottom - infoSize.top);
-    
-    
-    
-    
-    extra.cx += 2;
-
-    RESIZE_WINDOW(hWndInfo, extra.cx, extra.cy);
-    RESIZE_WINDOW(hWndPro, extra.cx, 0);
-
-#ifdef WINCE_WINDOWS_MOBILE
-    
-    
-    
-    MOVE_WINDOW(hWndInfo, -1, 0);
-    MOVE_WINDOW(hWndPro, -1, extra.cy);
-#else
-    RESIZE_WINDOW(hDlg, extra.cx, extra.cy);
-    MOVE_WINDOW(hWndPro, 0, extra.cy);
-#endif
-  }
-
-#else
-  
-  
   if (DrawText(hDCInfo, szwInfo, -1, &textSize,
                DT_CALCRECT | DT_NOCLIP | DT_SINGLELINE)) {
     GetClientRect(hWndInfo, &infoSize);
@@ -288,17 +198,11 @@ InitDialog(HWND hDlg)
       MOVE_WINDOW(hWndPro, 0, extra.cy);
     }
   }
-#endif
 
   if (hOldFont)
     SelectObject(hDCInfo, hOldFont);
 
   ReleaseDC(hWndInfo, hDCInfo);
-
-  
-#ifndef WINCE_WINDOWS_MOBILE
-  CenterDialog(hDlg);  
-#endif
 
   SetTimer(hDlg, TIMER_ID, TIMER_INTERVAL, NULL);
 }
