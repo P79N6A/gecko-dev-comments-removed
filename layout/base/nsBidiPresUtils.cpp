@@ -634,7 +634,7 @@ nsBidiPresUtils::InitLogicalArray(nsIFrame*       aCurrentFrame)
     if (nsGkAtoms::placeholderFrame == childFrame->GetType()) {
       nsIFrame* realFrame =
         nsPlaceholderFrame::GetRealFrameForPlaceholder(childFrame);
-      if (realFrame->IsFrameOfType(nsIFrame::eBidiInlineContainer)) {
+      if (realFrame->GetType() == nsGkAtoms::letterFrame) {
         frame = realFrame;
       }
     }
@@ -843,8 +843,10 @@ nsBidiPresUtils::GetFrameEmbeddingLevel(nsIFrame* aFrame)
 {
   nsIFrame* firstLeaf = aFrame;
   while (!IsBidiLeaf(firstLeaf)) {
-    firstLeaf = 
-      nsPlaceholderFrame::GetRealFrameFor(firstLeaf->GetFirstChild(nsnull));
+    nsIFrame* firstChild = firstLeaf->GetFirstChild(nsnull);
+    nsIFrame* realFrame = nsPlaceholderFrame::GetRealFrameFor(firstChild);
+    firstLeaf = (realFrame->GetType() == nsGkAtoms::letterFrame) ?
+                 realFrame : firstChild;
   }
   return NS_GET_EMBEDDING_LEVEL(firstLeaf);
 }
