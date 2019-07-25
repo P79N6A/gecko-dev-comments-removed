@@ -2246,8 +2246,10 @@ Tab.prototype = {
     
     
     
+    
+    
     let sameDocument = (aFlags & Ci.nsIWebProgressListener.LOCATION_CHANGE_SAME_DOCUMENT) != 0 ||
-                       ((this.browser.lastURI != null) && fixedURI.equals(this.browser.lastURI));
+                       ((this.browser.lastURI != null) && fixedURI.equals(this.browser.lastURI) && !fixedURI.equals(aLocationURI));
     this.browser.lastURI = fixedURI;
 
     
