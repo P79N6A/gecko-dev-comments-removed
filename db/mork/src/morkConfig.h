@@ -50,8 +50,6 @@
 
 
 
-
-
 #ifdef XP_MACOSX
 #define MORK_MAC 1
 #endif

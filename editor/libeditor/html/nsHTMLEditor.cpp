@@ -1393,12 +1393,6 @@ PRBool nsHTMLEditor::IsModifiable()
   return !IsReadonly();
 }
 
-#ifdef XP_MAC
-#pragma mark -
-#pragma mark  nsIHTMLEditor methods 
-#pragma mark -
-#endif
-
 NS_IMETHODIMP
 nsHTMLEditor::UpdateBaseURL()
 {
@@ -3484,11 +3478,6 @@ nsHTMLEditor::GetLinkedObjects(nsISupportsArray** aNodeList)
   return NS_OK;
 }
 
-#ifdef XP_MAC
-#pragma mark -
-#pragma mark  nsIEditorStyleSheets methods 
-#pragma mark -
-#endif
 
 NS_IMETHODIMP
 nsHTMLEditor::AddStyleSheet(const nsAString &aURL)
@@ -3810,12 +3799,6 @@ nsHTMLEditor::GetEmbeddedObjects(nsISupportsArray** aNodeList)
 }
 
 
-#ifdef XP_MAC
-#pragma mark -
-#pragma mark  nsIEditor overrides 
-#pragma mark -
-#endif
-
 NS_IMETHODIMP nsHTMLEditor::DeleteNode(nsIDOMNode * aNode)
 {
   
@@ -3862,12 +3845,6 @@ NS_IMETHODIMP nsHTMLEditor::InsertTextImpl(const nsAString& aStringToInsert,
 
   return nsEditor::InsertTextImpl(aStringToInsert, aInOutNode, aInOutOffset, aDoc);
 }
-
-#ifdef XP_MAC
-#pragma mark -
-#pragma mark  nsStubMutationObserver overrides 
-#pragma mark -
-#endif
 
 void
 nsHTMLEditor::ContentAppended(nsIDocument *aDocument, nsIContent* aContainer,
@@ -3922,11 +3899,6 @@ nsHTMLEditor::ContentRemoved(nsIDocument *aDocument, nsIContent* aContainer,
   }
 }
 
-#ifdef XP_MAC
-#pragma mark -
-#pragma mark  support utils
-#pragma mark -
-#endif
 
 
 
@@ -4071,12 +4043,6 @@ nsHTMLEditor::DebugUnitTests(PRInt32 *outNumTests, PRInt32 *outNumTestsFailed)
 #endif
 }
 
-#ifdef XP_MAC
-#pragma mark -
-#pragma mark  StyleSheet utils 
-#pragma mark -
-#endif
-
 
 NS_IMETHODIMP 
 nsHTMLEditor::StyleSheetLoaded(nsCSSStyleSheet* aSheet, PRBool aWasAlternate,
@@ -4113,12 +4079,6 @@ nsHTMLEditor::StyleSheetLoaded(nsCSSStyleSheet* aSheet, PRBool aWasAlternate,
 
   return NS_OK;
 }
-
-#ifdef XP_MAC
-#pragma mark -
-#pragma mark  nsEditor overrides 
-#pragma mark -
-#endif
 
 
 
@@ -4265,12 +4225,6 @@ nsHTMLEditor::SelectAll()
 }
 
 
-#ifdef XP_MAC
-#pragma mark -
-#pragma mark  Random methods 
-#pragma mark -
-#endif
-
 
 
 void nsHTMLEditor::IsTextPropertySetByContent(nsIDOMNode        *aNode,
@@ -4340,9 +4294,6 @@ void nsHTMLEditor::IsTextPropertySetByContent(nsIDOMNode        *aNode,
   }
 }
 
-#ifdef XP_MAC
-#pragma mark -
-#endif
 
 
 
@@ -4447,9 +4398,6 @@ nsHTMLEditor::GetEnclosingTable(nsIDOMNode *aNode)
   return tbl;
 }
 
-#ifdef XP_MAC
-#pragma mark -
-#endif
 
 #ifdef PRE_NODE_IN_BODY
 nsCOMPtr<nsIDOMElement> nsHTMLEditor::FindPreElement()
@@ -4552,9 +4500,6 @@ nsHTMLEditor::SetSelectionAtDocumentStart(nsISelection *aSelection)
   return aSelection->Collapse(rootElement,0);
 }
 
-#ifdef XP_MAC
-#pragma mark -
-#endif
 
 
 

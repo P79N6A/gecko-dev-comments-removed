@@ -260,11 +260,6 @@ nsPrimitiveHelpers :: ConvertPlatformPlainTextToUnicode ( const char* inText, PR
 } 
 
 
-#ifdef XP_MAC
-#pragma mark -
-#endif
-
-
 
 
 

@@ -1027,11 +1027,6 @@ nsDocShellTreeOwner::GetOwnerRequestor()
 }
 
 
-#ifdef XP_MAC
-#pragma mark -
-#endif
-
-
 
 
 
@@ -1649,12 +1644,6 @@ ChromeTooltipListener::sAutoHideCallback(nsITimer *aTimer, void* aListener)
   
   
 } 
-
-
-
-#ifdef XP_MAC
-#pragma mark -
-#endif
 
 
 NS_IMPL_ADDREF(ChromeContextMenuListener)

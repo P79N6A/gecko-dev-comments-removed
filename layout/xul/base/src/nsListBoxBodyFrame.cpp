@@ -80,10 +80,6 @@
 
 
 
-#ifdef XP_MAC
-#pragma mark -
-#endif
-
 
 
 #define USER_TIME_THRESHOLD 150000

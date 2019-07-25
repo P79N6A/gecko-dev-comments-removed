@@ -418,12 +418,6 @@ nsPlaintextEditor::HandleKeyPressEvent(nsIDOMKeyEvent* aKeyEvent)
   return TypedText(str, eTypedText);
 }
 
-#ifdef XP_MAC
-#pragma mark -
-#pragma mark  nsIHTMLEditor methods 
-#pragma mark -
-#endif
-
 
 
 
@@ -1207,12 +1201,6 @@ nsPlaintextEditor::SetNewlineHandling(PRInt32 aNewlineHandling)
   return NS_OK;
 }
 
-#ifdef XP_MAC
-#pragma mark -
-#pragma mark  nsIEditor overrides 
-#pragma mark -
-#endif
-
 NS_IMETHODIMP 
 nsPlaintextEditor::Undo(PRUint32 aCount)
 {
@@ -1457,13 +1445,6 @@ nsPlaintextEditor::OutputToStream(nsIOutputStream* aOutputStream,
   return encoder->EncodeToStream(aOutputStream);
 }
 
-
-#ifdef XP_MAC
-#pragma mark -
-#pragma mark  nsIEditorMailSupport overrides 
-#pragma mark -
-#endif
-
 NS_IMETHODIMP
 nsPlaintextEditor::InsertTextWithQuotations(const nsAString &aStringToInsert)
 {
@@ -1673,13 +1654,6 @@ nsPlaintextEditor::GetEmbeddedObjects(nsISupportsArray** aNodeList)
 }
 
 
-#ifdef XP_MAC
-#pragma mark -
-#pragma mark  nsEditor overrides 
-#pragma mark -
-#endif
-
-
 
 
 NS_IMETHODIMP
@@ -1740,13 +1714,6 @@ nsPlaintextEditor::GetPIDOMEventTarget()
   return mEventTarget.get();
 }
 
-
-
-#ifdef XP_MAC
-#pragma mark -
-#pragma mark  Random methods 
-#pragma mark -
-#endif
 
 nsresult
 nsPlaintextEditor::SetAttributeOrEquivalent(nsIDOMElement * aElement,

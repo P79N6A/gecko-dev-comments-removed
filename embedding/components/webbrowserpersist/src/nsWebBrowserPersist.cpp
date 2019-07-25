@@ -215,12 +215,7 @@ struct CleanupData
 
 
 
-
-#ifdef XP_MAC
-const PRUint32 kDefaultMaxFilenameLength = 31;
-#else
 const PRUint32 kDefaultMaxFilenameLength = 64;
-#endif
 
 
 const PRUint32 kDefaultPersistFlags = 

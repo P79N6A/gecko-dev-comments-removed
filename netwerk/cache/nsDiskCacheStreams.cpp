@@ -58,9 +58,6 @@
 
 
 
-#ifdef XP_MAC
-#pragma mark nsDiskCacheInputStream
-#endif
 class nsDiskCacheInputStream : public nsIInputStream {
 
 public:
@@ -193,10 +190,6 @@ nsDiskCacheInputStream::IsNonBlocking(PRBool * nonBlocking)
 
 
 
-#ifdef XP_MAC
-#pragma mark -
-#pragma mark nsDiskCacheOutputStream
-#endif
 class nsDiskCacheOutputStream : public nsIOutputStream
                               , public nsIDiskCacheStreamInternal
 {
@@ -304,11 +297,6 @@ nsDiskCacheOutputStream::IsNonBlocking(PRBool * nonBlocking)
 
 
 
-
-#ifdef XP_MAC
-#pragma mark -
-#pragma mark nsDiskCacheStreamIO
-#endif
 
 NS_IMPL_THREADSAFE_ISUPPORTS0(nsDiskCacheStreamIO)
 

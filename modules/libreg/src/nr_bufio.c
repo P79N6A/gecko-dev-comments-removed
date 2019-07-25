@@ -208,7 +208,7 @@ BufioFile*  bufio_Open(const char* name, const char* mode)
         switch (errno)
         {
             
-#if defined(XP_MAC) || defined(XP_MACOSX)
+#if defined(XP_MACOSX)
             case fnfErr:
 #else
             case ENOENT:
@@ -217,7 +217,7 @@ BufioFile*  bufio_Open(const char* name, const char* mode)
                 break;
 
             
-#if defined(XP_MAC) || defined(XP_MACOSX)
+#if defined(XP_MACOSX)
             case opWrErr:
 #else
             case EACCES:
