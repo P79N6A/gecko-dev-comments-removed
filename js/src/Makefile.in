@@ -329,12 +329,6 @@ include $(topsrcdir)/config/config.mk
 
 EXTRA_DSO_LDOPTS += $(NSPR_LIBS)
 
-ifdef MOZ_MEMORY
-ifeq ($(OS_ARCH),SunOS)
-EXTRA_DSO_LDOPTS += $(call EXPAND_LIBNAME_PATH,jemalloc,$(DIST)/lib)
-endif
-endif
-
 ifndef BUILD_OPT
 MOCHAFILE	= 1
 endif
@@ -379,8 +373,8 @@ ifdef JS_HAS_CTYPES
 export::
 		$(call SUBMAKE,,ctypes/libffi)
 
-clean::
-		$(call SUBMAKE,clean,ctypes/libffi)
+distclean clean::
+		$(call SUBMAKE,$@,ctypes/libffi)
 endif
 
 ifdef MOZ_SYNC_BUILD_FILES
