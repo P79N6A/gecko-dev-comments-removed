@@ -978,7 +978,6 @@ struct SourceCompressionToken;
 struct ScriptSource
 {
     friend class SourceCompressorThread;
-    ScriptSource *next;
   private:
     union {
         
@@ -987,10 +986,9 @@ struct ScriptSource
         jschar *source;
         unsigned char *compressed;
     } data;
+    uint32_t refs;
     uint32_t length_;
     uint32_t compressedLength_;
-    bool marked:1;
-    bool onRuntime_:1;
     bool argumentsNotIncluded_:1;
 #ifdef DEBUG
     bool ready_:1;
@@ -998,11 +996,9 @@ struct ScriptSource
 
   public:
     ScriptSource()
-      : next(NULL),
+      : refs(0),
         length_(0),
         compressedLength_(0),
-        marked(false),
-        onRuntime_(false),
         argumentsNotIncluded_(false)
 #ifdef DEBUG
        ,ready_(true)
@@ -1010,15 +1006,18 @@ struct ScriptSource
     {
         data.source = NULL;
     }
+    void incref() { refs++; }
+    void decref(JSRuntime *rt) {
+        JS_ASSERT(refs != 0);
+        if (--refs == 0)
+            destroy(rt);
+    }
     bool setSourceCopy(JSContext *cx,
                        const jschar *src,
                        uint32_t length,
                        bool argumentsNotIncluded,
                        SourceCompressionToken *tok);
     void setSource(const jschar *src, uint32_t length);
-    void attachToRuntime(JSRuntime *rt);
-    void mark() { marked = true; }
-    bool onRuntime() const { return onRuntime_; }
 #ifdef DEBUG
     bool ready() const { return ready_; }
 #endif
@@ -1035,15 +1034,29 @@ struct ScriptSource
     size_t sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf);
 
     
-    static void sweep(JSRuntime *rt);
-
-    
     template <XDRMode mode>
     bool performXDR(XDRState<mode> *xdr);
 
   private:
     void destroy(JSRuntime *rt);
     bool compressed() { return compressedLength_ != 0; }
+};
+
+class ScriptSourceHolder
+{
+    JSRuntime *rt;
+    ScriptSource *ss;
+  public:
+    ScriptSourceHolder(JSRuntime *rt, ScriptSource *ss)
+      : rt(rt),
+        ss(ss)
+    {
+        ss->incref();
+    }
+    ~ScriptSourceHolder()
+    {
+        ss->decref(rt);
+    }
 };
 
 #ifdef JS_THREADSAFE
