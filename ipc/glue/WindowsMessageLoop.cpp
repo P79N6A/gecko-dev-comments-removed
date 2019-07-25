@@ -604,10 +604,10 @@ SyncChannel::WaitForNotify()
 {
   mMutex.AssertCurrentThreadOwns();
 
-  MutexAutoUnlock unlock(mMutex);
-
   
   Init();
+
+  MutexAutoUnlock unlock(mMutex);
 
   if (++gEventLoopDepth == 1) {
     NS_ASSERTION(!gNeuteredWindows, "Should only set this once!");
@@ -712,10 +712,10 @@ RPCChannel::WaitForNotify()
 {
   mMutex.AssertCurrentThreadOwns();
 
-  MutexAutoUnlock unlock(mMutex);
-
   
   Init();
+
+  MutexAutoUnlock unlock(mMutex);
 
   
   
