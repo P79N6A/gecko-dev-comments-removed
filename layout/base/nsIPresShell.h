@@ -954,6 +954,16 @@ public:
     return mObservesMutationsForPrint;
   }
 
+  void SetIsActive(PRBool aIsActive)
+  {
+    mIsActive = aIsActive;
+  }
+
+  PRBool IsActive()
+  {
+    return mIsActive;
+  }
+
   
 
   static CapturingContentInfo gCaptureInfo;
@@ -1083,6 +1093,7 @@ protected:
   PRPackedBool              mIsReflowing;
   PRPackedBool              mPaintingSuppressed;  
   PRPackedBool              mIsThemeSupportDisabled;  
+  PRPackedBool              mIsActive;
 
 #ifdef ACCESSIBILITY
   

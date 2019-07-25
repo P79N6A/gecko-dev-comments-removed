@@ -108,6 +108,7 @@ nsWebBrowser::nsWebBrowser() : mDocShellTreeOwner(nsnull),
    mContentType(typeContentWrapper),
    mActivating(PR_FALSE),
    mShouldEnableHistory(PR_TRUE),
+   mIsActive(PR_TRUE),
    mParentNativeWindow(nsnull),
    mProgressListener(nsnull),
    mBackgroundColor(0),
@@ -417,6 +418,23 @@ NS_IMETHODIMP nsWebBrowser::GetContentDOMWindow(nsIDOMWindow **_retval)
     *_retval = retval;
     NS_ADDREF(*_retval);
     return rv;
+}
+
+NS_IMETHODIMP nsWebBrowser::GetIsActive(PRBool *rv)
+{
+  *rv = mIsActive;
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsWebBrowser::SetIsActive(PRBool aIsActive)
+{
+  
+  mIsActive = aIsActive;
+
+  
+  if (mDocShell)
+    return mDocShell->SetIsActive(aIsActive);
+  return NS_OK;
 }
 
 
@@ -1631,6 +1649,12 @@ NS_IMETHODIMP nsWebBrowser::SetDocShell(nsIDocShell* aDocShell)
          
          
          mDocShell->SetAllowDNSPrefetch(PR_FALSE);
+
+         
+         
+         
+         
+         mDocShell->SetIsActive(mIsActive);
      }
      else
      {

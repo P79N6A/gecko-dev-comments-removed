@@ -703,6 +703,7 @@ nsDocShell::nsDocShell():
     mAllowAuth(PR_TRUE),
     mAllowKeywordFixup(PR_FALSE),
     mIsOffScreenBrowser(PR_FALSE),
+    mIsActive(PR_TRUE),
     mFiredUnloadEvent(PR_FALSE),
     mEODForCurrentDocument(PR_FALSE),
     mURIResultedInDocument(PR_FALSE),
@@ -2495,6 +2496,10 @@ nsDocShell::SetDocLoaderParent(nsDocLoader * aParent)
         if (NS_SUCCEEDED(parentAsDocShell->GetAllowImages(&value)))
         {
             SetAllowImages(value);
+        }
+        if (NS_SUCCEEDED(parentAsDocShell->GetIsActive(&value)))
+        {
+            SetIsActive(value);
         }
         if (NS_FAILED(parentAsDocShell->GetAllowDNSPrefetch(&value))) {
             value = PR_FALSE;
@@ -4616,6 +4621,40 @@ nsDocShell::GetIsOffScreenBrowser(PRBool *aIsOffScreen)
 {
     *aIsOffScreen = mIsOffScreenBrowser;
     return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDocShell::SetIsActive(PRBool aIsActive)
+{
+  
+  if (mItemType == nsIDocShellTreeItem::typeChrome)
+    return NS_ERROR_INVALID_ARG;
+
+  
+  mIsActive = aIsActive;
+
+  
+  nsCOMPtr<nsIPresShell> pshell;
+  GetPresShell(getter_AddRefs(pshell));
+  if (pshell)
+    pshell->SetIsActive(aIsActive);
+
+  
+  PRInt32 n = mChildList.Count();
+  for (PRInt32 i = 0; i < n; ++i) {
+      nsCOMPtr<nsIDocShell> docshell = do_QueryInterface(ChildAt(i));
+      if (docshell)
+        docshell->SetIsActive(aIsActive);
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDocShell::GetIsActive(PRBool *aIsActive)
+{
+  *aIsActive = mIsActive;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -6909,6 +6948,9 @@ nsDocShell::RestoreFromHistory()
 
         PRBool allowDNSPrefetch;
         childShell->GetAllowDNSPrefetch(&allowDNSPrefetch);
+
+        
+        
         
         AddChild(childItem);
 

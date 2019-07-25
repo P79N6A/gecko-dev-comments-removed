@@ -1362,6 +1362,9 @@ public:
   static PRInt64 SizeOfBidiMemoryReporter(void *) {
     return EstimateShellsMemory(LiveShellBidiSizeEnumerator);
   }
+
+protected:
+  void QueryIsActive();
 };
 
 class nsAutoCauseReflowNotifier
@@ -1595,6 +1598,7 @@ PresShell::PresShell()
 #endif
   mSelectionFlags = nsISelectionDisplay::DISPLAY_TEXT | nsISelectionDisplay::DISPLAY_IMAGES;
   mIsThemeSupportDisabled = PR_FALSE;
+  mIsActive = PR_TRUE;
 #ifdef DEBUG
   mPresArenaAllocCount = 0;
 #endif
@@ -1800,6 +1804,9 @@ PresShell::Init(nsIDocument* aDocument,
     }
   }
 #endif 
+
+  
+  QueryIsActive();
 
   return NS_OK;
 }
@@ -7306,6 +7313,10 @@ PresShell::Thaw()
     mDocument->EnumerateSubDocuments(ThawSubDocument, nsnull);
 
   UnsuppressPainting();
+
+  
+  
+  QueryIsActive();
 }
 
 void
@@ -8942,4 +8953,17 @@ void nsIPresShell::ReleaseStatics()
   NS_ASSERTION(sLiveShells, "ReleaseStatics called without Initialize!");
   delete sLiveShells;
   sLiveShells = nsnull;
+}
+
+
+void PresShell::QueryIsActive()
+{
+  nsCOMPtr<nsISupports> container = mPresContext->GetContainer();
+  nsCOMPtr<nsIDocShell> docshell(do_QueryInterface(container));
+  if (docshell) {
+    PRBool isActive;
+    nsresult rv = docshell->GetIsActive(&isActive);
+    if (NS_SUCCEEDED(rv))
+      SetIsActive(isActive);
+  }
 }

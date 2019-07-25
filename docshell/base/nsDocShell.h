@@ -787,6 +787,7 @@ protected:
     PRPackedBool               mAllowAuth;
     PRPackedBool               mAllowKeywordFixup;
     PRPackedBool               mIsOffScreenBrowser;
+    PRPackedBool               mIsActive;
 
     
     
