@@ -1841,7 +1841,7 @@ let GroupItems = {
         return false;
       });
 
-      if (otherTab) {
+      if (otherTab && otherTab.tabItem) {
         
         
         if (otherTab.tabItem.parent) {
