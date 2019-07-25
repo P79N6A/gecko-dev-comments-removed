@@ -1792,19 +1792,25 @@ panel[dimmed="true"] {
 
 
 
-
-#status-bar {
-  margin-top: .3em;
+#addon-bar {
+  padding: 0;
+  min-height: 20px;
 }
 
-
+#status-bar {
+  min-height: 0;
+}
 
 #status-bar > statusbarpanel {
   border-width: 0;
   -moz-appearance: none;
 }
 
-
 #addonbar-closebutton {
   list-style-image: url("moz-icon://stock/gtk-close?size=menu");
+}
+
+#addonbar-closebutton > .toolbarbutton-icon {
+  margin-top: -2px;
+  margin-bottom: -2px;
 }

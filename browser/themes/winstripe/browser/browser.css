@@ -2189,26 +2189,24 @@ panel[dimmed="true"] {
 
 
 
-
-
-
-#status-bar {
-  margin-top: .3em;
-  border-width: 0;
-  -moz-appearance: none;
+#addon-bar {
+  min-height: 20px;
 }
 
-
+#status-bar {
+  border: none;
+  -moz-appearance: none;
+  min-height: 0;
+}
 
 #status-bar > statusbarpanel {
   border-width: 0;
   -moz-appearance: none;
 }
 
-
 #addonbar-closebutton {
   border: none;
-  padding: 3px 5px;
+  padding: 0 5px;
   list-style-image: url("chrome://global/skin/icons/close.png");
   -moz-appearance: none;
   -moz-image-region: rect(0, 16px, 16px, 0);
