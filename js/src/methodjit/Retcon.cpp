@@ -143,7 +143,7 @@ Recompiler::recompile()
     }
 
     
-    for (VMFrame *f = cx->jaegerCompartment()->activeFrame();
+    for (VMFrame *f = JS_METHODJIT_DATA(cx).activeFrame;
          f != NULL;
          f = f->previous) {
 
