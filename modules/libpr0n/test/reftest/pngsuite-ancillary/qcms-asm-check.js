@@ -10,7 +10,7 @@ function check_qcms_has_assembly()
         return true;
     }
 
-    if (navigator.platform == "Win32" || navigator.platform == "OS/2") {
+    if (navigator.platform.indexOf("Win") == 0 || navigator.platform == "OS/2") {
         
         
         return true;
