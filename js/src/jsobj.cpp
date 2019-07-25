@@ -6623,6 +6623,5 @@ IsSaneThisObject(JSObject &obj)
 }
 #endif
 
-}  
+#endif 
 
-#endif
