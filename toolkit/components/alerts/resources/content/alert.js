@@ -48,7 +48,8 @@ var gSlideIncrement = 1;
 var gSlideTime = 10;
 var gOpenTime = 3000; 
 var gOrigin = 0; 
-
+var gDisableSlideEffect = false;
+ 
 var gAlertListener = null;
 var gAlertTextClickable = false;
 var gAlertCookie = "";
@@ -92,20 +93,14 @@ function prefillAlertInfo()
 
 function onAlertLoad()
 {
-  
-  try 
-  {
-    var prefService = Components.classes["@mozilla.org/preferences-service;1"].getService();
-    prefService = prefService.QueryInterface(Components.interfaces.nsIPrefService);
-    var prefBranch = prefService.getBranch(null);
-    gSlideIncrement = prefBranch.getIntPref("alerts.slideIncrement");
-    gSlideTime = prefBranch.getIntPref("alerts.slideIncrementTime");
-    gOpenTime = prefBranch.getIntPref("alerts.totalOpenTime");
-  }
-  catch (ex)
-  {
-  }
-
+  var prefService = Components.classes["@mozilla.org/preferences-service;1"].getService();
+  prefService = prefService.QueryInterface(Components.interfaces.nsIPrefService);
+  var prefBranch = prefService.getBranch(null);
+  gSlideIncrement = prefBranch.getIntPref("alerts.slideIncrement");
+  gSlideTime = prefBranch.getIntPref("alerts.slideIncrementTime");
+  gOpenTime = prefBranch.getIntPref("alerts.totalOpenTime");
+  gDisableSlideEffect = prefBranch.getBoolPref("alerts.disableSlidingEffect");
+ 
   
   
   
@@ -170,6 +165,9 @@ function animate(step)
 {
   gCurrentSize += step;
 
+  if (gFinalSize < gCurrentSize)
+    gCurrentSize = gFinalSize;
+
   if (gOrigin & NS_ALERT_HORIZONTAL)
   {
     if (!(gOrigin & NS_ALERT_LEFT))
@@ -188,7 +186,10 @@ function animateAlert()
 {
   if (gCurrentSize < gFinalSize)
   {
-    animate(gSlideIncrement);
+    if (gDisableSlideEffect)
+      animate(gFinalSize); 
+    else
+      animate(gSlideIncrement);
     setTimeout(animateAlert, gSlideTime);
   }
   else
@@ -197,7 +198,7 @@ function animateAlert()
 
 function animateCloseAlert()
 {
-  if (gCurrentSize > 1)
+  if (gCurrentSize > 1 && !gDisableSlideEffect)
   {
     animate(-gSlideIncrement);
     setTimeout(animateCloseAlert, gSlideTime);
