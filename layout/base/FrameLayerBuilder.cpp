@@ -809,7 +809,8 @@ FrameLayerBuilder::UpdateDisplayItemDataForFrame(DisplayItemDataEntry* aEntry,
   FrameProperties props = f->Properties();
   DisplayItemDataEntry* newDisplayItems =
     builder ? builder->mNewDisplayItemData.GetEntry(f) : nullptr;
-  if (!newDisplayItems || newDisplayItems->mData.IsEmpty()) {
+  if (!newDisplayItems || (newDisplayItems->mData.IsEmpty() &&
+                           !newDisplayItems->mIsMergedFrame)) {
     
     if (newDisplayItems) {
       builder->mNewDisplayItemData.RawRemoveEntry(newDisplayItems);
@@ -828,6 +829,7 @@ FrameLayerBuilder::UpdateDisplayItemDataForFrame(DisplayItemDataEntry* aEntry,
   
   aEntry->mData.SwapElements(newDisplayItems->mData);
   aEntry->mInvalidRegion.swap(newDisplayItems->mInvalidRegion);
+  aEntry->mIsMergedFrame = newDisplayItems->mIsMergedFrame;
   
   
   SetAndClearInvalidRegion(aEntry);
@@ -856,6 +858,7 @@ FrameLayerBuilder::StoreNewDisplayItemData(DisplayItemDataEntry* aEntry,
                "mFramesWithLayers out of sync");
 
   newEntry->mData.SwapElements(aEntry->mData);
+  newEntry->mIsMergedFrame = aEntry->mIsMergedFrame;
   props.Set(LayerManagerDataProperty(), data);
   return PL_DHASH_REMOVE;
 }
@@ -2375,6 +2378,10 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
           
           
           entry->mInvalidRegion = thebesLayerInvalidRegion;
+
+          
+          
+          entry->mIsMergedFrame = true;
         }
         ApplyThebesLayerInvalidation(aBuilder, mergedFrame, nullptr, state,
                                      &currentOffset, transformItem);
