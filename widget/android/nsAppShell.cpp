@@ -517,6 +517,11 @@ void
 nsAppShell::PostEvent(AndroidGeckoEvent *ae)
 {
     {
+        
+        
+        
+        bool allowCoalescingNextViewport = false;
+
         MutexAutoLock lock(mQueueLock);
         EVLOG("nsAppShell::PostEvent %p %d", ae, ae->Type());
         switch (ae->Type()) {
@@ -586,6 +591,9 @@ nsAppShell::PostEvent(AndroidGeckoEvent *ae)
             } else {
                 mQueuedDrawEvent = ae;
             }
+
+            allowCoalescingNextViewport = true;
+
             mEventQueue.AppendElement(ae);
             break;
 
@@ -600,6 +608,7 @@ nsAppShell::PostEvent(AndroidGeckoEvent *ae)
             
             
             mAllowCoalescingNextDraw = false;
+            allowCoalescingNextViewport = true;
 
             mEventQueue.AppendElement(ae);
             break;
@@ -620,10 +629,20 @@ nsAppShell::PostEvent(AndroidGeckoEvent *ae)
             mEventQueue.AppendElement(ae);
             break;
 
+        case AndroidGeckoEvent::NATIVE_POKE:
+            allowCoalescingNextViewport = true;
+            
+
         default:
             mEventQueue.AppendElement(ae);
             break;
         }
+
+        
+        
+        
+        if (!allowCoalescingNextViewport)
+            mQueuedViewportEvent = nsnull;
     }
     NotifyNativeEvent();
 }
