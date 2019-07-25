@@ -45,7 +45,7 @@ nsAccDocManager::GetDocAccessible(nsIDocument *aDocument)
     return nullptr;
 
   
-  nsAccessNode::GetApplicationAccessible()->EnsureChildren();
+  ApplicationAcc()->EnsureChildren();
 
   DocAccessible* docAcc = mDocAccessibleCache.GetWeak(aDocument);
   if (docAcc)
@@ -393,7 +393,7 @@ nsAccDocManager::CreateDocOrRootAccessible(nsIDocument* aDocument)
 
   
   if (isRootDoc) {
-    Accessible* appAcc = nsAccessNode::GetApplicationAccessible();
+    Accessible* appAcc = ApplicationAcc();
     if (!appAcc->AppendChild(docAcc)) {
       docAcc->Shutdown();
       return nullptr;
