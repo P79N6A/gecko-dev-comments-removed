@@ -7,12 +7,10 @@
 #define DeleteRangeTxn_h__
 
 #include "EditAggregateTxn.h"
-#include "nsIDOMNode.h"
-#include "nsIDOMRange.h"
+#include "nsRange.h"
 #include "nsEditor.h"
 #include "nsCOMPtr.h"
 
-class nsIDOMRange;
 class nsRangeUpdater;
 
 
@@ -25,9 +23,9 @@ public:
 
 
 
-  NS_IMETHOD Init(nsEditor *aEditor,
-                  nsIDOMRange *aRange,
-                  nsRangeUpdater *aRangeUpdater);
+  nsresult Init(nsEditor* aEditor,
+                nsRange* aRange,
+                nsRangeUpdater* aRangeUpdater);
 
   DeleteRangeTxn();
 
@@ -40,32 +38,32 @@ public:
 
 protected:
 
-  NS_IMETHOD CreateTxnsToDeleteBetween(nsIDOMNode *aStartParent, 
-                                             PRUint32    aStartOffset, 
-                                             PRUint32    aEndOffset);
+  nsresult CreateTxnsToDeleteBetween(nsINode* aNode,
+                                     PRInt32 aStartOffset,
+                                     PRInt32 aEndOffset);
 
-  NS_IMETHOD CreateTxnsToDeleteNodesBetween();
+  nsresult CreateTxnsToDeleteNodesBetween();
 
-  NS_IMETHOD CreateTxnsToDeleteContent(nsIDOMNode *aParent, 
-                                             PRUint32 aOffset, 
-                                             nsIEditor::EDirection aAction);
-  
+  nsresult CreateTxnsToDeleteContent(nsINode* aParent,
+                                     PRInt32 aOffset,
+                                     nsIEditor::EDirection aAction);
+
 protected:
-  
-  
-  nsCOMPtr<nsIDOMRange> mRange;			
 
   
-  nsCOMPtr<nsIDOMNode> mStartParent;
+  nsRefPtr<nsRange> mRange;
+
+  
+  nsCOMPtr<nsINode> mStartParent;
 
   
   PRInt32 mStartOffset;
 
   
-  nsCOMPtr<nsIDOMNode> mEndParent;
+  nsCOMPtr<nsINode> mEndParent;
 
   
-  nsCOMPtr<nsIDOMNode> mCommonParent;
+  nsCOMPtr<nsINode> mCommonParent;
 
   
   PRInt32 mEndOffset;
@@ -74,7 +72,7 @@ protected:
   nsEditor* mEditor;
 
   
-  nsRangeUpdater *mRangeUpdater;
+  nsRangeUpdater* mRangeUpdater;
 };
 
 #endif
