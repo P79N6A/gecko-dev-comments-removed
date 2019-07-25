@@ -119,18 +119,6 @@ public final class RectUtils {
 
 
 
-    public static RectF restrict(RectF rect, RectF dest) {
-        float width = Math.min(rect.width(), dest.width());
-        float height = Math.min(rect.height(), dest.height());
-        float x = Math.max(dest.left, Math.min(dest.right-width, rect.left));
-        float y = Math.max(dest.top, Math.min(dest.bottom-height, rect.top));
-        return new RectF(x, y, x+width, y+height);
-    }
-
-    
-
-
-
     public static RectF interpolate(RectF from, RectF to, float t) {
         return new RectF(FloatUtils.interpolate(from.left, to.left, t),
                          FloatUtils.interpolate(from.top, to.top, t),
