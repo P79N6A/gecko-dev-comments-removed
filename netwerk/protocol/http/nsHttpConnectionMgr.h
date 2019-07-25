@@ -137,9 +137,6 @@ public:
     
     nsresult ProcessPendingQ(nsHttpConnectionInfo *);
 
-    
-    void GetConnection(nsHttpConnectionInfo *, PRUint8 caps,
-                       nsHttpConnection **);
 private:
     virtual ~nsHttpConnectionMgr();
 
@@ -209,10 +206,10 @@ private:
     
 
     static PRIntn ProcessOneTransactionCB(nsHashKey *, void *, void *);
-
+    static PRIntn PurgeOneIdleConnectionCB(nsHashKey *, void *, void *);
     static PRIntn PruneDeadConnectionsCB(nsHashKey *, void *, void *);
     static PRIntn ShutdownPassCB(nsHashKey *, void *, void *);
-    static PRIntn PurgeExcessIdleConnectionsCB(nsHashKey *, void *, void *);
+
     PRBool   ProcessPendingQForEntry(nsConnectionEntry *);
     PRBool   AtActiveConnectionLimit(nsConnectionEntry *, PRUint8 caps);
     void     GetConnection(nsConnectionEntry *, PRUint8 caps, nsHttpConnection **);

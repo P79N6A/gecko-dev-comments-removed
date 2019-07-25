@@ -1778,20 +1778,9 @@ nsSocketTransport::GetSecurityCallbacks(nsIInterfaceRequestor **callbacks)
 NS_IMETHODIMP
 nsSocketTransport::SetSecurityCallbacks(nsIInterfaceRequestor *callbacks)
 {
-    nsCOMPtr<nsISupports> secinfo;
-    {
-        nsAutoLock lock(mLock);
-        mCallbacks = callbacks;
-        SOCKET_LOG(("Reset callbacks for secinfo=%p callbacks=%p\n", mSecInfo.get(), mCallbacks.get()));
-
-        secinfo = mSecInfo;
-    }
-
+    nsAutoLock lock(mLock);
+    mCallbacks = callbacks;
     
-    nsCOMPtr<nsISSLSocketControl> secCtrl(do_QueryInterface(secinfo));
-    if (secCtrl)
-        secCtrl->SetNotificationCallbacks(callbacks);
-
     return NS_OK;
 }
 
