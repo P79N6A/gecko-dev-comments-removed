@@ -84,6 +84,9 @@ public:
   
   
   virtual nsresult Init();
+  
+  
+  NS_IMETHOD_(void) GetData() { }
 
 protected:
 
