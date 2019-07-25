@@ -121,26 +121,22 @@ public:
 
 
 
-
-  NS_IMETHOD  UpdateView(nsIView *aView, PRUint32 aUpdateFlags) = 0;
-
-  
-
-
-
-
-
-
-
-  NS_IMETHOD  UpdateViewNoSuppression(nsIView *aView, const nsRect &aRect,
-                                      PRUint32 aUpdateFlags) = 0;
+  NS_IMETHOD  UpdateView(nsIView *aView) = 0;
 
   
 
 
 
 
-  NS_IMETHOD  UpdateAllViews(PRUint32 aUpdateFlags) = 0;
+
+
+  NS_IMETHOD  UpdateViewNoSuppression(nsIView *aView, const nsRect &aRect) = 0;
+
+  
+
+
+
+  NS_IMETHOD  UpdateAllViews() = 0;
 
   
 
@@ -303,21 +299,10 @@ public:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-    void EndUpdateViewBatch(PRUint32 aUpdateFlags) {
+    void EndUpdateViewBatch() {
       if (!mRootVM)
         return;
-      mRootVM->EndUpdateViewBatch(aUpdateFlags);
+      mRootVM->EndUpdateViewBatch();
       mRootVM = nsnull;
     }
 
@@ -332,7 +317,7 @@ private:
   friend class UpdateViewBatch;
 
   virtual nsIViewManager* BeginUpdateViewBatch(void) = 0;
-  NS_IMETHOD EndUpdateViewBatch(PRUint32 aUpdateFlags) = 0;
+  NS_IMETHOD EndUpdateViewBatch() = 0;
 
 public:
   
@@ -366,22 +351,5 @@ public:
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIViewManager, NS_IVIEWMANAGER_IID)
-
-
-
-
-
-
-#define NS_VMREFRESH_NO_SYNC            0
-
-
-
-
-
-#define NS_VMREFRESH_DEFERRED           0x0001
-
-
-
-#define NS_VMREFRESH_IMMEDIATE          0x0002
 
 #endif  

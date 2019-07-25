@@ -1555,8 +1555,7 @@ DocumentViewerImpl::Destroy()
           
           
           vm->UpdateViewNoSuppression(rootView,
-            rootView->GetBounds() - rootView->GetPosition(),
-            NS_VMREFRESH_NO_SYNC);
+            rootView->GetBounds() - rootView->GetPosition());
 
           nsIView *rootViewParent = rootView->GetParent();
           if (rootViewParent) {
@@ -2827,7 +2826,7 @@ DocumentViewerImpl::SetTextZoom(float aTextZoom)
   
   mDocument->EnumerateExternalResources(SetExtResourceTextZoom, &ZoomInfo);
 
-  batch.EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
+  batch.EndUpdateViewBatch();
   
   return NS_OK;
 }
@@ -2868,7 +2867,7 @@ DocumentViewerImpl::SetMinFontSize(PRInt32 aMinFontSize)
   mDocument->EnumerateExternalResources(SetExtResourceMinFontSize,
                                         NS_INT32_TO_PTR(aMinFontSize));
 
-  batch.EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
+  batch.EndUpdateViewBatch();
   
   return NS_OK;
 }
@@ -2911,7 +2910,7 @@ DocumentViewerImpl::SetFullZoom(float aFullZoom)
       nsRect rect(nsPoint(0, 0), rootFrame->GetSize());
       rootFrame->Invalidate(rect);
     }
-    batch.EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
+    batch.EndUpdateViewBatch();
     return NS_OK;
   }
 #endif
@@ -2931,7 +2930,7 @@ DocumentViewerImpl::SetFullZoom(float aFullZoom)
   
   mDocument->EnumerateExternalResources(SetExtResourceFullZoom, &ZoomInfo);
 
-  batch.EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
+  batch.EndUpdateViewBatch();
 
   return NS_OK;
 }

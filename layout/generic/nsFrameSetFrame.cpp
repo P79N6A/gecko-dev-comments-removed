@@ -1533,19 +1533,6 @@ nsHTMLFramesetFrame::MouseDrag(nsPresContext* aPresContext,
   ENSURE_TRUE(weakFrame.IsAlive());
   if (change != 0) {
     mDrag.Reset(mDragger->mVertical, mDragger->mPrevNeighbor, change, this);
-    nsIFrame* parentFrame = GetParent();
-    if (!parentFrame) {
-      return;
-    }
-
-    
-    nsIViewManager* vm = aPresContext->GetPresShell()->GetViewManager();
-    if (vm) {
-      nsIView* root = vm->GetRootView();
-      if (root) {
-        vm->UpdateView(root, NS_VMREFRESH_IMMEDIATE);
-      }
-    }
   }
 }  
 
