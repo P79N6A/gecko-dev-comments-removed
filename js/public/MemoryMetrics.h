@@ -163,8 +163,7 @@ struct RuntimeStats
     RuntimeStats(JSMallocSizeOfFun mallocSizeOf)
       : runtime()
       , gcHeapChunkTotal(0)
-      , gcHeapChunkCleanDecommitted(0)
-      , gcHeapChunkDirtyDecommitted(0)
+      , gcHeapDecommittedArenas(0)
       , gcHeapUnusedChunks(0)
       , gcHeapUnusedArenas(0)
       , gcHeapUnusedGcThings(0)
@@ -194,10 +193,13 @@ struct RuntimeStats
     
     
     
+    
+    
+    
+    
 
     size_t gcHeapChunkTotal;
-    size_t gcHeapChunkCleanDecommitted;
-    size_t gcHeapChunkDirtyDecommitted;
+    size_t gcHeapDecommittedArenas;
     size_t gcHeapUnusedChunks;
     size_t gcHeapUnusedArenas;
     size_t gcHeapUnusedGcThings;
