@@ -46,6 +46,9 @@
 #else
 #include <vorbis/codec.h>
 #endif
+#ifdef MOZ_OPUS
+#include <opus/opus.h>
+#endif
 #include <nsDeque.h>
 #include <nsTArray.h>
 #include <nsClassHashtable.h>
@@ -101,8 +104,9 @@ public:
   enum CodecType {
     TYPE_VORBIS=0,
     TYPE_THEORA=1,
-    TYPE_SKELETON=2,
-    TYPE_UNKNOWN=3
+    TYPE_OPUS=2,
+    TYPE_SKELETON=3,
+    TYPE_UNKNOWN=4
   };
 
   virtual ~nsOggCodecState();
@@ -317,6 +321,42 @@ private:
   
   void ReconstructTheoraGranulepos();
 
+};
+
+class nsOpusState : public nsOggCodecState {
+#ifdef MOZ_OPUS
+public:
+  nsOpusState(ogg_page* aBosPage);
+  virtual ~nsOpusState();
+
+  CodecType GetType() { return TYPE_OPUS; }
+  bool DecodeHeader(ogg_packet* aPacket);
+  PRInt64 Time(PRInt64 granulepos);
+  bool Init();
+  nsresult Reset();
+  bool IsHeader(ogg_packet* aPacket);
+  nsresult PageIn(ogg_page* aPage);
+
+  
+  int mRate;        
+  int mNominalRate; 
+  int mChannels;    
+  int mPreSkip;     
+  float mGain;      
+  int mChannelMapping; 
+  int mStreams;     
+
+  OpusDecoder *mDecoder;
+
+private:
+
+  
+  
+  
+  
+  
+  void ReconstructGranulepos();
+#endif 
 };
 
 
