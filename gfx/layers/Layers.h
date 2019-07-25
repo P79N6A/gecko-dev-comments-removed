@@ -723,6 +723,12 @@ public:
     Mutated();
   }
 
+  
+
+
+
+
+
   void SetIsFixedPosition(bool aFixedPosition) { mIsFixedPosition = aFixedPosition; }
 
   
