@@ -591,17 +591,18 @@ public:
                        nsIFrame *aFrame);
 
   enum BBoxFlags {
-    eBBoxIncludeFill          = 1 << 0,
-    eBBoxIgnoreFillIfNone     = 1 << 1,
-    eBBoxIncludeStroke        = 1 << 2,
-    eBBoxIgnoreStrokeIfNone   = 1 << 3,
-    eBBoxIncludeMarkers       = 1 << 4
+    eBBoxIncludeFill           = 1 << 0,
+    eBBoxIncludeFillGeometry   = 1 << 1,
+    eBBoxIncludeStroke         = 1 << 2,
+    eBBoxIncludeStrokeGeometry = 1 << 3,
+    eBBoxIncludeMarkers        = 1 << 4
   };
   
 
 
 
-  static gfxRect GetBBox(nsIFrame *aFrame, PRUint32 aFlags = eBBoxIncludeFill);
+  static gfxRect GetBBox(nsIFrame *aFrame,
+                         PRUint32 aFlags = eBBoxIncludeFillGeometry);
 
   
 
