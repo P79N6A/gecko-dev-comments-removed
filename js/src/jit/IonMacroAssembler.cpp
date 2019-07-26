@@ -162,6 +162,14 @@ MacroAssembler::guardObjectType(Register obj, const TypeSet *types,
     if (hasTypeObjects) {
         
         
+        
+        
+        if (lastBranch.isInitialized())
+            lastBranch.emit(*this);
+        lastBranch = BranchGCPtr();
+
+        
+        
         loadPtr(Address(obj, JSObject::offsetOfType()), scratch);
 
         for (unsigned i = 0; i < count; i++) {
