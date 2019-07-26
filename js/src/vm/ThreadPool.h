@@ -24,6 +24,10 @@ namespace js {
 
 class ThreadPool;
 
+namespace gc {
+struct ForkJoinNurseryChunk;
+}
+
 
 
 
@@ -174,10 +178,9 @@ class ThreadPool : public Monitor
     
     ParallelJob *job_;
 
-#ifdef DEBUG
     
     JSRuntime *const runtime_;
-
+#ifdef DEBUG
     
     mozilla::Atomic<uint32_t, mozilla::ReleaseAcquire> stolenSlices_;
 #endif
@@ -250,6 +253,80 @@ class ThreadPool : public Monitor
 
     
     void abortJob();
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    gc::ForkJoinNurseryChunk *getChunk();
+
+    
+    
+    void putFreeChunk(gc::ForkJoinNurseryChunk *mem);
+
+    
+    
+    
+    
+    
+    
+    void pruneChunkCache();
+
+  private:
+    
+    
+    static const int32_t secondsBeforePrune = 10;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    PRLock *chunkLock_;
+
+    
+    int32_t timeOfLastAllocation_;
+
+    
+    
+    struct ChunkFreeList {
+        ChunkFreeList *next;
+    };
+
+    
+    ChunkFreeList *freeChunks_;
+
+    
+    
+    void poisonChunk(gc::ForkJoinNurseryChunk *c);
+
+    
+    
+    
+    
+    void clearChunkCache();
 };
 
 } 
