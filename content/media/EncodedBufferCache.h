@@ -47,7 +47,7 @@ private:
   
   PRFileDesc* mFD;
   
-  Mutex mMutex;;
+  Mutex mMutex;
   
   uint64_t mDataSize;
   

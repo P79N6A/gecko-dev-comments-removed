@@ -113,26 +113,12 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
         moveValue(val, dest.typeReg(), dest.payloadReg());
     }
     void moveValue(const ValueOperand &src, const ValueOperand &dest) {
-        Register s0 = src.typeReg(), d0 = dest.typeReg(),
-                 s1 = src.payloadReg(), d1 = dest.payloadReg();
-
-        
-        
-        if (s1 == d0) {
-            if (s0 == d1) {
-                
-                xchgl(d0, d1);
-                return;
-            }
-            
-            mozilla::Swap(s0, s1);
-            mozilla::Swap(d0, d1);
-        }
-
-        if (s0 != d0)
-            movl(s0, d0);
-        if (s1 != d1)
-            movl(s1, d1);
+        JS_ASSERT(src.typeReg() != dest.payloadReg());
+        JS_ASSERT(src.payloadReg() != dest.typeReg());
+        if (src.typeReg() != dest.typeReg())
+            movl(src.typeReg(), dest.typeReg());
+        if (src.payloadReg() != dest.payloadReg())
+            movl(src.payloadReg(), dest.payloadReg());
     }
 
     
