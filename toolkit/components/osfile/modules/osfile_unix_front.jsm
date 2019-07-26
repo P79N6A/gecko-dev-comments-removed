@@ -94,7 +94,7 @@
 
 
 
-     File.prototype._read = function _read(buffer, nbytes, options) {
+     File.prototype._read = function _read(buffer, nbytes, options = {}) {
       
       
        if (typeof(UnixFile.posix_fadvise) === 'function' &&
@@ -120,7 +120,7 @@
 
 
 
-     File.prototype._write = function _write(buffer, nbytes, options) {
+     File.prototype._write = function _write(buffer, nbytes, options = {}) {
        return throw_on_negative("write",
          UnixFile.write(this.fd, buffer, nbytes)
        );
@@ -434,6 +434,9 @@
 
 
 
+
+
+
        let pump;
 
        
@@ -550,7 +553,11 @@
            } else {
              dest = File.open(destPath, {trunc:true});
            }
-           result = pump(source, dest, options);
+           if (options.unixUserland) {
+             result = pump_userland(source, dest, options);
+           } else {
+             result = pump(source, dest, options);
+           }
          } catch (x) {
            if (dest) {
              dest.close();
