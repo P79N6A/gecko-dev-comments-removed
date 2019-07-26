@@ -19,7 +19,6 @@
 #include "xpcprivate.h"
 #include "WorkerPrivate.h"
 #include "nsGlobalWindow.h"
-#include "WorkerScope.h"
 
 namespace mozilla {
 namespace dom {
@@ -66,7 +65,6 @@ CallbackObject::CallSetup::CallSetup(JS::Handle<JSObject*> aCallback,
   
   JSObject* realCallback = js::UncheckedUnwrap(aCallback);
   JSContext* cx = nullptr;
-  nsIGlobalObject* globalObject = nullptr;
 
   if (mIsMainThread) {
     
@@ -87,20 +85,16 @@ CallbackObject::CallSetup::CallSetup(JS::Handle<JSObject*> aCallback,
                              
                              
                              : nsContentUtils::GetSafeJSContext();
-      globalObject = win;
     } else {
       
-      JSObject* glob = js::GetGlobalForObjectCrossCompartment(realCallback);
-      globalObject = xpc::GetNativeForGlobal(glob);
-      MOZ_ASSERT(globalObject);
       cx = nsContentUtils::GetSafeJSContext();
     }
+
+    
+    mCxPusher.Push(cx);
   } else {
     cx = workers::GetCurrentThreadJSContext();
-    globalObject = workers::GetCurrentThreadWorkerPrivate()->GlobalScope();
   }
-
-  mAutoEntryScript.construct(globalObject, mIsMainThread, cx);
 
   
   
@@ -125,10 +119,6 @@ CallbackObject::CallSetup::CallSetup(JS::Handle<JSObject*> aCallback,
     }
   }
 
-  
-  
-  
-  
   
   mAc.construct(cx, aCallback);
 
@@ -204,7 +194,14 @@ CallbackObject::CallSetup::~CallSetup()
   
   mAc.destroyIfConstructed();
 
-  mAutoEntryScript.destroyIfConstructed();
+  
+  
+  
+  
+  
+
+  
+  mCxPusher.Pop();
 
   
   
