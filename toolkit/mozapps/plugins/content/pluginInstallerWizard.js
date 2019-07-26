@@ -5,9 +5,7 @@
 function nsPluginInstallerWizard(){
 
   
-  this.mPluginRequestArray = new Object();
-  
-  this.mPluginRequestArrayLength = 0;
+  this.mPluginRequests = new Map();
 
   
   
@@ -35,11 +33,8 @@ function nsPluginInstallerWizard(){
   
 
   if ("arguments" in window) {
-    for (var item in window.arguments[0].plugins){
-      this.mPluginRequestArray[window.arguments[0].plugins[item].mimetype] =
-        new nsPluginRequest(window.arguments[0].plugins[item]);
-
-      this.mPluginRequestArrayLength++;
+    for (let [mimetype, pluginInfo] of window.arguments[0].plugins){
+      this.mPluginRequests.set(mimetype, new nsPluginRequest(pluginInfo));
     }
 
     this.mBrowser = window.arguments[0].browser;
@@ -58,8 +53,8 @@ nsPluginInstallerWizard.prototype.getPluginData = function (){
   
   var rdfUpdater = new nsRDFItemUpdater(this.getOS(), this.getChromeLocale());
 
-  for (var item in this.mPluginRequestArray) {
-    rdfUpdater.checkForPlugin(this.mPluginRequestArray[item]);
+  for (let [mimetype, pluginRequest] of this.mPluginRequests) {
+    rdfUpdater.checkForPlugin(pluginRequest);
   }
 }
 
@@ -83,9 +78,9 @@ nsPluginInstallerWizard.prototype.pluginInfoReceived = function (aPluginRequestI
     progressMeter.setAttribute("mode", "determined");
 
   progressMeter.setAttribute("value",
-      ((this.WSPluginCounter / this.mPluginRequestArrayLength) * 100) + "%");
+      ((this.WSPluginCounter / this.mPluginRequests.size()) * 100) + "%");
 
-  if (this.WSPluginCounter == this.mPluginRequestArrayLength) {
+  if (this.WSPluginCounter == this.mPluginRequests.size()) {
     
     if (this.mPluginInfoArrayLength == 0) {
       this.advancePage("lastpage");
@@ -465,8 +460,8 @@ nsPluginInstallerWizard.prototype.showPluginResults = function (){
       
       var manualUrl;
       if ((myPluginItem.error || (!myPluginItem.XPILocation && !myPluginItem.InstallerLocation)) &&
-          (myPluginItem.manualInstallationURL || this.mPluginRequestArray[myPluginItem.requestedMimetype].pluginsPage)){
-        manualUrl = myPluginItem.manualInstallationURL ? myPluginItem.manualInstallationURL : this.mPluginRequestArray[myPluginItem.requestedMimetype].pluginsPage;
+          (myPluginItem.manualInstallationURL || this.mPluginRequests.get(myPluginItem.requestedMimetype).pluginsPage)){
+        manualUrl = myPluginItem.manualInstallationURL ? myPluginItem.manualInstallationURL : this.mPluginRequests.get(myPluginItem.requestedMimetype).pluginsPage;
       }
 
       this.addPluginResultRow(
