@@ -3749,3 +3749,9 @@ pref("dom.mozApps.maxLocalId", 1000);
 
 
 pref("dom.mozApps.runUpdate", true);
+
+
+
+
+
+pref("network.activity.blipIntervalMilliseconds", 0);
