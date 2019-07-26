@@ -13,4 +13,8 @@ function run_test() {
     let value = sysInfo.getProperty(aPropertyName);
     do_check_true(!!value);
   });
+
+  
+  print("Testing property: umask")
+  do_check_eq(typeof sysInfo.getProperty("umask"), "number");
 }
