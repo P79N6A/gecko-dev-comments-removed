@@ -19,14 +19,10 @@
 #include "vm/Runtime.h"
 #include "vm/Shape.h"
 #include "vm/WrapperObject.h"
-#include "vm/String.h"
 
 #include "jsobjinlines.h"
 
 using mozilla::DebugOnly;
-using mozilla::Move;
-using mozilla::MoveRef;
-using mozilla::PodEqual;
 
 using namespace js;
 
@@ -35,118 +31,11 @@ using JS::ObjectPrivateVisitor;
 using JS::ZoneStats;
 using JS::CompartmentStats;
 
-namespace js {
-
 JS_FRIEND_API(size_t)
-MemoryReportingSundriesThreshold()
+js::MemoryReportingSundriesThreshold()
 {
     return 8 * 1024;
 }
-
- HashNumber
-StringHashPolicy::hash(const Lookup &l)
-{
-    const jschar *chars = l->maybeChars();
-    ScopedJSFreePtr<jschar> ownedChars;
-    if (!chars) {
-        if (!l->getCharsNonDestructive( NULL, ownedChars))
-            MOZ_CRASH("oom");
-        chars = ownedChars;
-    }
-
-    return mozilla::HashString(chars, l->length());
-}
-
- bool
-StringHashPolicy::match(const JSString *const &k, const Lookup &l)
-{
-    
-    if (k->length() != l->length())
-        return false;
-
-    const jschar *c1 = k->maybeChars();
-    ScopedJSFreePtr<jschar> ownedChars1;
-    if (!c1) {
-        if (!k->getCharsNonDestructive( NULL, ownedChars1))
-            MOZ_CRASH("oom");
-        c1 = ownedChars1;
-    }
-
-    const jschar *c2 = l->maybeChars();
-    ScopedJSFreePtr<jschar> ownedChars2;
-    if (!c2) {
-        if (!l->getCharsNonDestructive( NULL, ownedChars2))
-            MOZ_CRASH("oom");
-        c2 = ownedChars2;
-    }
-
-    return PodEqual(c1, c2, k->length());
-}
-
-} 
-
-namespace JS
-{
-
-NotableStringInfo::NotableStringInfo()
-    : bufferSize(0),
-      buffer(0)
-{}
-
-NotableStringInfo::NotableStringInfo(JSString *str, const StringInfo &info)
-    : StringInfo(info)
-{
-    bufferSize = Min(str->length() + 1, size_t(4096));
-    buffer = js_pod_malloc<char>(bufferSize);
-    if (!buffer) {
-        MOZ_CRASH("oom");
-    }
-
-    const jschar* chars = str->maybeChars();
-    ScopedJSFreePtr<jschar> ownedChars;
-    if (!chars) {
-        if (!str->getCharsNonDestructive( NULL, ownedChars))
-            MOZ_CRASH("oom");
-        chars = ownedChars;
-    }
-
-    
-    
-    
-    PutEscapedString(buffer, bufferSize, chars, str->length(),  0);
-}
-
-NotableStringInfo::NotableStringInfo(const NotableStringInfo& info)
-    : StringInfo(info),
-      bufferSize(info.bufferSize)
-{
-    buffer = js_pod_malloc<char>(bufferSize);
-    if (!buffer)
-        MOZ_CRASH("oom");
-
-    strcpy(buffer, info.buffer);
-}
-
-NotableStringInfo::NotableStringInfo(MoveRef<NotableStringInfo> info)
-    : StringInfo(info)
-{
-    buffer = info->buffer;
-    info->buffer = NULL;
-}
-
-NotableStringInfo &NotableStringInfo::operator=(MoveRef<NotableStringInfo> info)
-{
-    this->~NotableStringInfo();
-    new (this) NotableStringInfo(info);
-    return *this;
-}
-
-NotableStringInfo::~NotableStringInfo()
-{
-    js_free(buffer);
-}
-
-} 
 
 typedef HashSet<ScriptSource *, DefaultHasher<ScriptSource *>, SystemAllocPolicy> SourceSet;
 
@@ -312,25 +201,23 @@ StatsCellCallback(JSRuntime *rt, void *data, void *thing, JSGCTraceKind traceKin
       case JSTRACE_STRING: {
         JSString *str = static_cast<JSString *>(thing);
 
-        size_t strCharsSize = str->sizeOfExcludingThis(rtStats->mallocSizeOf_);
-        MOZ_ASSERT_IF(str->isShort(), strCharsSize == 0);
+        size_t strSize = str->sizeOfExcludingThis(rtStats->mallocSizeOf_);
 
-        size_t shortStringThingSize = str->isShort() ? thingSize : 0;
-        size_t normalStringThingSize = !str->isShort() ? thingSize : 0;
-
-        ZoneStats::StringsHashMap::AddPtr p = zStats->strings.lookupForAdd(str);
-        if (!p) {
-            JS::StringInfo info(str->length(), shortStringThingSize,
-                                normalStringThingSize, strCharsSize);
-            zStats->strings.add(p, str, info);
+        
+        
+        if (strSize >= JS::HugeStringInfo::MinSize() && zStats->hugeStrings.growBy(1)) {
+            zStats->gcHeapStringsNormal += thingSize;
+            JS::HugeStringInfo &info = zStats->hugeStrings.back();
+            info.length = str->length();
+            info.size = strSize;
+            PutEscapedString(info.buffer, sizeof(info.buffer), &str->asLinear(), 0);
+        } else if (str->isShort()) {
+            MOZ_ASSERT(strSize == 0);
+            zStats->gcHeapStringsShort += thingSize;
         } else {
-            p->value.add(shortStringThingSize, normalStringThingSize, strCharsSize);
+            zStats->gcHeapStringsNormal += thingSize;
+            zStats->stringCharsNonHuge += strSize;
         }
-
-        zStats->gcHeapStringsShort += shortStringThingSize;
-        zStats->gcHeapStringsNormal += normalStringThingSize;
-        zStats->stringCharsNonNotable += strCharsSize;
-
         break;
       }
 
@@ -413,44 +300,6 @@ StatsCellCallback(JSRuntime *rt, void *data, void *thing, JSGCTraceKind traceKin
     zStats->gcHeapUnusedGcThings -= thingSize;
 }
 
-static void
-FindNotableStrings(ZoneStats &zStats)
-{
-    using namespace JS;
-
-    
-    
-    
-    MOZ_ASSERT(zStats.notableStrings.empty());
-
-    for (ZoneStats::StringsHashMap::Range r = zStats.strings.all(); !r.empty(); r.popFront()) {
-
-        JSString *str = r.front().key;
-        StringInfo &info = r.front().value;
-
-        
-        
-        if (info.totalSizeOf() < NotableStringInfo::notableSize() ||
-            !zStats.notableStrings.growBy(1))
-            continue;
-
-        zStats.notableStrings.back() = Move(NotableStringInfo(str, info));
-
-        
-        
-        MOZ_ASSERT(zStats.gcHeapStringsShort >= info.sizeOfShortStringGCThings);
-        MOZ_ASSERT(zStats.gcHeapStringsNormal >= info.sizeOfNormalStringGCThings);
-        MOZ_ASSERT(zStats.stringCharsNonNotable >= info.sizeOfAllStringChars);
-        zStats.gcHeapStringsShort -= info.sizeOfShortStringGCThings;
-        zStats.gcHeapStringsNormal -= info.sizeOfNormalStringGCThings;
-        zStats.stringCharsNonNotable -= info.sizeOfAllStringChars;
-    }
-
-    
-    
-    zStats.strings.clear();
-}
-
 JS_PUBLIC_API(bool)
 JS::CollectRuntimeStats(JSRuntime *rt, RuntimeStats *rtStats, ObjectPrivateVisitor *opv)
 {
@@ -491,13 +340,7 @@ JS::CollectRuntimeStats(JSRuntime *rt, RuntimeStats *rtStats, ObjectPrivateVisit
 #ifdef DEBUG
         totalArenaSize += zStats.gcHeapArenaAdmin + zStats.gcHeapUnusedGcThings;
 #endif
-
-        
-        
-        FindNotableStrings(zStats);
     }
-
-    FindNotableStrings(rtStats->zTotals);
 
     for (size_t i = 0; i < rtStats->compartmentStatsVector.length(); i++) {
         CompartmentStats &cStats = rtStats->compartmentStatsVector[i];

@@ -11,14 +11,12 @@
 
 
 #include "mozilla/MemoryReporting.h"
-#include "mozilla/PodOperations.h"
 
 #include <string.h>
 
 #include "jsalloc.h"
 #include "jspubtd.h"
 
-#include "js/HashTable.h"
 #include "js/Utility.h"
 #include "js/Vector.h"
 
@@ -34,58 +32,6 @@ namespace js {
 
 
 JS_FRIEND_API(size_t) MemoryReportingSundriesThreshold();
-
-struct StringHashPolicy
-{
-    typedef JSString *Lookup;
-    static HashNumber hash(const Lookup &l);
-    static bool match(const JSString *const &k, const Lookup &l);
-};
-
-struct ZoneStatsPod
-{
-    ZoneStatsPod() {
-        mozilla::PodZero(this);
-    }
-
-    void add(const ZoneStatsPod &other) {
-        #define ADD(x)  this->x += other.x
-
-        ADD(gcHeapArenaAdmin);
-        ADD(gcHeapUnusedGcThings);
-
-        ADD(gcHeapStringsNormal);
-        ADD(gcHeapStringsShort);
-        ADD(gcHeapLazyScripts);
-        ADD(gcHeapTypeObjects);
-        ADD(gcHeapIonCodes);
-
-        ADD(stringCharsNonNotable);
-        ADD(lazyScripts);
-        ADD(typeObjects);
-        ADD(typePool);
-
-        #undef ADD
-    }
-
-    
-    void   *extra;
-
-    size_t gcHeapArenaAdmin;
-    size_t gcHeapUnusedGcThings;
-
-    size_t gcHeapStringsNormal;
-    size_t gcHeapStringsShort;
-
-    size_t gcHeapLazyScripts;
-    size_t gcHeapTypeObjects;
-    size_t gcHeapIonCodes;
-
-    size_t stringCharsNonNotable;
-    size_t lazyScripts;
-    size_t typeObjects;
-    size_t typePool;
-};
 
 } 
 
@@ -159,84 +105,24 @@ struct CodeSizes
 
 
 
-
-
-struct StringInfo
+struct HugeStringInfo
 {
-    StringInfo()
-      : length(0), numCopies(0), sizeOfShortStringGCThings(0),
-        sizeOfNormalStringGCThings(0), sizeOfAllStringChars(0)
-    {}
-
-    StringInfo(size_t length, size_t shorts, size_t normals, size_t chars)
-      : length(length),
-        numCopies(1),
-        sizeOfShortStringGCThings(shorts),
-        sizeOfNormalStringGCThings(normals),
-        sizeOfAllStringChars(chars)
-    {}
-
-    void add(size_t shorts, size_t normals, size_t chars) {
-        sizeOfShortStringGCThings += shorts;
-        sizeOfNormalStringGCThings += normals;
-        sizeOfAllStringChars += chars;
-        numCopies++;
-    }
-
-    void add(const StringInfo& info) {
-        MOZ_ASSERT(length == info.length);
-
-        sizeOfShortStringGCThings += info.sizeOfShortStringGCThings;
-        sizeOfNormalStringGCThings += info.sizeOfNormalStringGCThings;
-        sizeOfAllStringChars += info.sizeOfAllStringChars;
-        numCopies += info.numCopies;
-    }
-
-    size_t totalSizeOf() const {
-        return sizeOfShortStringGCThings + sizeOfNormalStringGCThings + sizeOfAllStringChars;
-    }
-
-    size_t totalGCThingSizeOf() const {
-        return sizeOfShortStringGCThings + sizeOfNormalStringGCThings;
-    }
-
-    
-    size_t length;
-
-    
-    size_t numCopies;
-
-    
-    size_t sizeOfShortStringGCThings;
-    size_t sizeOfNormalStringGCThings;
-    size_t sizeOfAllStringChars;
-};
-
-
-
-
-
-
-
-struct NotableStringInfo : public StringInfo
-{
-    NotableStringInfo();
-    NotableStringInfo(JSString *str, const StringInfo &info);
-    NotableStringInfo(const NotableStringInfo& info);
-    NotableStringInfo(mozilla::MoveRef<NotableStringInfo> info);
-    NotableStringInfo &operator=(mozilla::MoveRef<NotableStringInfo> info);
-    ~NotableStringInfo();
+    HugeStringInfo() : length(0), size(0) { memset(&buffer, 0, sizeof(buffer)); }
 
     
     
-    static size_t notableSize() {
+    static size_t MinSize() {
         return js::MemoryReportingSundriesThreshold();
     }
 
     
     
-    size_t bufferSize;
-    char *buffer;
+    size_t length;
+    size_t size;
+
+    
+    
+    char buffer[32];
 };
 
 
@@ -260,46 +146,84 @@ struct RuntimeSizes
     CodeSizes code;
 };
 
-struct ZoneStats : js::ZoneStatsPod
+struct ZoneStats
 {
-    ZoneStats() {
-        strings.init();
-    }
-
-    ZoneStats(mozilla::MoveRef<ZoneStats> other)
-        : ZoneStatsPod(other),
-          strings(mozilla::Move(other->strings)),
-          notableStrings(mozilla::Move(other->notableStrings))
+    ZoneStats()
+      : extra(NULL),
+        gcHeapArenaAdmin(0),
+        gcHeapUnusedGcThings(0),
+        gcHeapStringsNormal(0),
+        gcHeapStringsShort(0),
+        gcHeapLazyScripts(0),
+        gcHeapTypeObjects(0),
+        gcHeapIonCodes(0),
+        stringCharsNonHuge(0),
+        lazyScripts(0),
+        typeObjects(0),
+        typePool(0),
+        hugeStrings()
     {}
 
-    
-    
-    
-    
-    
-    void add(const ZoneStats &other) {
-        ZoneStatsPod::add(other);
-
-        MOZ_ASSERT(notableStrings.empty());
-        MOZ_ASSERT(other.notableStrings.empty());
-
-        for (StringsHashMap::Range r = other.strings.all(); !r.empty(); r.popFront()) {
-            StringsHashMap::AddPtr p = strings.lookupForAdd(r.front().key);
-            if (p) {
-                
-                p->value.add(r.front().value);
-            } else {
-                
-                strings.add(p, r.front().key, r.front().value);
-            }
-        }
+    ZoneStats(const ZoneStats &other)
+      : extra(other.extra),
+        gcHeapArenaAdmin(other.gcHeapArenaAdmin),
+        gcHeapUnusedGcThings(other.gcHeapUnusedGcThings),
+        gcHeapStringsNormal(other.gcHeapStringsNormal),
+        gcHeapStringsShort(other.gcHeapStringsShort),
+        gcHeapLazyScripts(other.gcHeapLazyScripts),
+        gcHeapTypeObjects(other.gcHeapTypeObjects),
+        gcHeapIonCodes(other.gcHeapIonCodes),
+        stringCharsNonHuge(other.stringCharsNonHuge),
+        lazyScripts(other.lazyScripts),
+        typeObjects(other.typeObjects),
+        typePool(other.typePool),
+        hugeStrings()
+    {
+        hugeStrings.appendAll(other.hugeStrings);
     }
 
-    typedef js::HashMap<JSString*, StringInfo, js::StringHashPolicy, js::SystemAllocPolicy>
-        StringsHashMap;
+    
+    void add(ZoneStats &other) {
+        #define ADD(x)  this->x += other.x
 
-    StringsHashMap strings;
-    js::Vector<NotableStringInfo, 0, js::SystemAllocPolicy> notableStrings;
+        ADD(gcHeapArenaAdmin);
+        ADD(gcHeapUnusedGcThings);
+
+        ADD(gcHeapStringsNormal);
+        ADD(gcHeapStringsShort);
+        ADD(gcHeapLazyScripts);
+        ADD(gcHeapTypeObjects);
+        ADD(gcHeapIonCodes);
+
+        ADD(stringCharsNonHuge);
+        ADD(lazyScripts);
+        ADD(typeObjects);
+        ADD(typePool);
+
+        #undef ADD
+
+        hugeStrings.appendAll(other.hugeStrings);
+    }
+
+    
+    void   *extra;
+
+    size_t gcHeapArenaAdmin;
+    size_t gcHeapUnusedGcThings;
+
+    size_t gcHeapStringsNormal;
+    size_t gcHeapStringsShort;
+
+    size_t gcHeapLazyScripts;
+    size_t gcHeapTypeObjects;
+    size_t gcHeapIonCodes;
+
+    size_t stringCharsNonHuge;
+    size_t lazyScripts;
+    size_t typeObjects;
+    size_t typePool;
+
+    js::Vector<HugeStringInfo, 0, js::SystemAllocPolicy> hugeStrings;
 
     
     
