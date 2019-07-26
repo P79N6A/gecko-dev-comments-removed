@@ -7,6 +7,10 @@
 
 
 function run_test() {
+  if (oldDownloadManagerDisabled()) {
+    return;
+  }
+
   
   Services.prefs.setIntPref("network.cookie.cookieBehavior", 0);
 

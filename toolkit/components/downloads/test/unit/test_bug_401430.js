@@ -76,6 +76,10 @@ function checkRecentDocsFor(aFileName) {
 var httpserv = null;
 function run_test()
 {
+  if (oldDownloadManagerDisabled()) {
+    return;
+  }
+
   
   
   var httpPH = Cc["@mozilla.org/network/protocol;1?name=http"].

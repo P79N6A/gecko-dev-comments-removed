@@ -10,6 +10,10 @@ const dm = Cc["@mozilla.org/download-manager;1"].getService(nsIDownloadManager);
 
 function run_test()
 {
+  if (oldDownloadManagerDisabled()) {
+    return;
+  }
+
   
   do_test_pending();
 

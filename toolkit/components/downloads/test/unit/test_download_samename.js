@@ -145,6 +145,10 @@ let tests = [
 ];
 
 function run_test() {
+  if (oldDownloadManagerDisabled()) {
+    return;
+  }
+
   
   DownloadListener.init();
   Services.prefs.setBoolPref("browser.download.manager.showWhenStarting", false);
