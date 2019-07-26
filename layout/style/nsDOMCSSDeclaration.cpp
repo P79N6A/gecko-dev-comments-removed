@@ -6,10 +6,12 @@
 
 
 #include "nsDOMCSSDeclaration.h"
+
 #include "nsCSSParser.h"
 #include "nsCSSStyleSheet.h"
 #include "mozilla/css/Rule.h"
 #include "mozilla/css/Declaration.h"
+#include "mozilla/dom/CSS2PropertiesBinding.h"
 #include "nsCSSProps.h"
 #include "nsCOMPtr.h"
 #include "mozAutoDocUpdate.h"
@@ -18,6 +20,12 @@ using namespace mozilla;
 
 nsDOMCSSDeclaration::~nsDOMCSSDeclaration()
 {
+}
+
+ JSObject*
+nsDOMCSSDeclaration::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+{
+  return dom::CSS2PropertiesBinding::Wrap(aCx, aScope, this);
 }
 
 NS_INTERFACE_TABLE_HEAD(nsDOMCSSDeclaration)
