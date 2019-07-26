@@ -132,10 +132,10 @@ public:
 
 
 
+
   bool ProgressiveUpdateCallback(bool aHasPendingNewThebesContent,
-                                 gfx::Rect& aViewport,
-                                 float& aScaleX,
-                                 float& aScaleY,
+                                 ScreenRect& aCompositionBounds,
+                                 CSSToScreenScale& aZoom,
                                  bool aDrawingCritical);
 
 #ifdef DEBUG

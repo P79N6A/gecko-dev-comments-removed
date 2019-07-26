@@ -126,8 +126,6 @@ ThebesLayerComposite::RenderLayer(const nsIntRect& aClipRect)
 
   TiledLayerProperties tiledLayerProps;
   if (mRequiresTiledProperties) {
-    
-    
     tiledLayerProps.mVisibleRegion = visibleRegion;
     tiledLayerProps.mEffectiveResolution = GetEffectiveResolution();
     tiledLayerProps.mValidRegion = mValidRegion;
@@ -171,22 +169,17 @@ ThebesLayerComposite::CleanupResources()
   mBuffer = nullptr;
 }
 
-gfxSize
+CSSToScreenScale
 ThebesLayerComposite::GetEffectiveResolution()
 {
-  
-  
-  
-  
-  
-  gfxSize resolution(1, 1);
   for (ContainerLayer* parent = GetParent(); parent; parent = parent->GetParent()) {
     const FrameMetrics& metrics = parent->GetFrameMetrics();
-    resolution.width *= metrics.mResolution.scale;
-    resolution.height *= metrics.mResolution.scale;
+    if (metrics.mScrollId != FrameMetrics::NULL_SCROLL_ID) {
+      return metrics.mZoom;
+    }
   }
 
-  return resolution;
+  return CSSToScreenScale(1.0);
 }
 
 nsACString&

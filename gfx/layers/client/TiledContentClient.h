@@ -104,14 +104,65 @@ struct BasicTiledLayerTile {
 
 
 struct BasicTiledLayerPaintData {
-  CSSPoint mScrollOffset;
-  CSSPoint mLastScrollOffset;
-  gfx3DMatrix mTransformScreenToLayer;
-  nsIntRect mLayerCriticalDisplayPort;
-  gfxSize mResolution;
-  nsIntRect mCompositionBounds;
+  
+
+
+
+  ScreenPoint mScrollOffset;
+
+  
+
+
+
+
+  ScreenPoint mLastScrollOffset;
+
+  
+
+
+
+  gfx3DMatrix mTransformScreenToLayout;
+
+  
+
+
+
+
+
+
+
+  nsIntRect mLayoutCriticalDisplayPort;
+
+  
+
+
+
+  CSSToScreenScale mResolution;
+
+  
+
+
+
+
+  LayoutDeviceRect mCompositionBounds;
+
+  
+
+
+
+
   uint16_t mLowPrecisionPaintCount;
+
+  
+
+
   bool mFirstPaint : 1;
+
+  
+
+
+
+
   bool mPaintFinished : 1;
 };
 
@@ -180,8 +231,8 @@ public:
     }
   }
 
-  const gfxSize& GetFrameResolution() { return mFrameResolution; }
-  void SetFrameResolution(const gfxSize& aResolution) { mFrameResolution = aResolution; }
+  const CSSToScreenScale& GetFrameResolution() { return mFrameResolution; }
+  void SetFrameResolution(const CSSToScreenScale& aResolution) { mFrameResolution = aResolution; }
 
   bool HasFormatChanged() const;
 
@@ -234,7 +285,7 @@ private:
   ClientLayerManager* mManager;
   LayerManager::DrawThebesLayerCallback mCallback;
   void* mCallbackData;
-  gfxSize mFrameResolution;
+  CSSToScreenScale mFrameResolution;
   bool mLastPaintOpaque;
 
   

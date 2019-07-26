@@ -24,6 +24,7 @@
 #include "nsCOMPtr.h"                   
 #include "nsRegion.h"                   
 #include "nscore.h"                     
+#include "Units.h"                      
 
 class gfxImageSurface;
 struct nsIntPoint;
@@ -41,7 +42,7 @@ struct TiledLayerProperties
 {
   nsIntRegion mVisibleRegion;
   nsIntRegion mValidRegion;
-  gfxSize mEffectiveResolution;
+  CSSToScreenScale mEffectiveResolution;
 };
 
 class Layer;
