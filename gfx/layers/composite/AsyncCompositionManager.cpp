@@ -561,7 +561,7 @@ AsyncCompositionManager::ApplyAsyncContentTransformToTree(TimeStamp aCurrentFram
   }
 
   if (container->GetScrollbarDirection() != Layer::NONE) {
-    ApplyAsyncTransformToScrollbar(container);
+    ApplyAsyncTransformToScrollbar(aCurrentFrame, container);
   }
   return appliedTransform;
 }
@@ -580,8 +580,103 @@ LayerHasNonContainerDescendants(ContainerLayer* aContainer)
   return false;
 }
 
+static bool
+LayerIsContainerForScrollbarTarget(Layer* aTarget, ContainerLayer* aScrollbar)
+{
+  if (!aTarget->AsContainerLayer()) {
+    return false;
+  }
+  AsyncPanZoomController* apzc = aTarget->AsContainerLayer()->GetAsyncPanZoomController();
+  if (!apzc) {
+    return false;
+  }
+  const FrameMetrics& metrics = aTarget->AsContainerLayer()->GetFrameMetrics();
+  if (metrics.GetScrollId() != aScrollbar->GetScrollbarTargetContainerId()) {
+    return false;
+  }
+  return true;
+}
+
+static void
+ApplyAsyncTransformToScrollbarForContent(TimeStamp aCurrentFrame, ContainerLayer* aScrollbar,
+                                         Layer* aContent, bool aScrollbarIsChild)
+{
+  ContainerLayer* content = aContent->AsContainerLayer();
+  if (!LayerHasNonContainerDescendants(content)) {
+    return;
+  }
+
+  const FrameMetrics& metrics = content->GetFrameMetrics();
+  AsyncPanZoomController* apzc = content->GetAsyncPanZoomController();
+
+  if (aScrollbarIsChild) {
+    
+    
+    
+    
+    
+    
+    ViewTransform treeTransform;
+    ScreenPoint scrollOffset;
+    apzc->SampleContentTransformForFrame(aCurrentFrame, &treeTransform, scrollOffset);
+  }
+
+  gfx3DMatrix asyncTransform = gfx3DMatrix(apzc->GetCurrentAsyncTransform());
+  gfx3DMatrix nontransientTransform = apzc->GetNontransientAsyncTransform();
+  gfx3DMatrix transientTransform = asyncTransform * nontransientTransform.Inverse();
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  Matrix4x4 scrollbarTransform;
+  if (aScrollbar->GetScrollbarDirection() == Layer::VERTICAL) {
+    float scale = metrics.CalculateCompositedSizeInCssPixels().height / metrics.mScrollableRect.height;
+    scrollbarTransform = scrollbarTransform * Matrix4x4().Scale(1.f, 1.f / transientTransform.GetYScale(), 1.f);
+    scrollbarTransform = scrollbarTransform * Matrix4x4().Translate(0, -transientTransform._42 * scale, 0);
+  }
+  if (aScrollbar->GetScrollbarDirection() == Layer::HORIZONTAL) {
+    float scale = metrics.CalculateCompositedSizeInCssPixels().width / metrics.mScrollableRect.width;
+    scrollbarTransform = scrollbarTransform * Matrix4x4().Scale(1.f / transientTransform.GetXScale(), 1.f, 1.f);
+    scrollbarTransform = scrollbarTransform * Matrix4x4().Translate(-transientTransform._41 * scale, 0, 0);
+  }
+
+  Matrix4x4 transform = scrollbarTransform * aScrollbar->GetTransform();
+
+  if (aScrollbarIsChild) {
+    
+    
+    
+    
+    
+    Matrix4x4 targetUntransform;
+    ToMatrix4x4(transientTransform.Inverse(), targetUntransform);
+    transform = transform * targetUntransform;
+  }
+
+  
+  
+  
+  transform.Scale(1.0f/aScrollbar->GetPreXScale(),
+                  1.0f/aScrollbar->GetPreYScale(),
+                  1);
+  transform = transform * Matrix4x4().Scale(1.0f/aScrollbar->GetPostXScale(),
+                                            1.0f/aScrollbar->GetPostYScale(),
+                                            1);
+  aScrollbar->AsLayerComposite()->SetShadowTransform(transform);
+}
+
 void
-AsyncCompositionManager::ApplyAsyncTransformToScrollbar(ContainerLayer* aLayer)
+AsyncCompositionManager::ApplyAsyncTransformToScrollbar(TimeStamp aCurrentFrame, ContainerLayer* aLayer)
 {
   
   
@@ -598,50 +693,17 @@ AsyncCompositionManager::ApplyAsyncTransformToScrollbar(ContainerLayer* aLayer)
   for (Layer* scrollTarget = aLayer->GetPrevSibling();
        scrollTarget;
        scrollTarget = scrollTarget->GetPrevSibling()) {
-    if (!scrollTarget->AsContainerLayer()) {
-      continue;
-    }
-    AsyncPanZoomController* apzc = scrollTarget->AsContainerLayer()->GetAsyncPanZoomController();
-    if (!apzc) {
-      continue;
-    }
-    const FrameMetrics& metrics = scrollTarget->AsContainerLayer()->GetFrameMetrics();
-    if (metrics.GetScrollId() != aLayer->GetScrollbarTargetContainerId()) {
-      continue;
-    }
-    if (!LayerHasNonContainerDescendants(scrollTarget->AsContainerLayer())) {
+    if (LayerIsContainerForScrollbarTarget(scrollTarget, aLayer)) {
+      
+      ApplyAsyncTransformToScrollbarForContent(aCurrentFrame, aLayer, scrollTarget, false);
       return;
     }
+  }
 
-    gfx3DMatrix asyncTransform = gfx3DMatrix(apzc->GetCurrentAsyncTransform());
-    gfx3DMatrix nontransientTransform = apzc->GetNontransientAsyncTransform();
-    gfx3DMatrix transientTransform = asyncTransform * nontransientTransform.Inverse();
-
-    Matrix4x4 scrollbarTransform;
-    if (aLayer->GetScrollbarDirection() == Layer::VERTICAL) {
-      float scale = metrics.CalculateCompositedSizeInCssPixels().height / metrics.mScrollableRect.height;
-      scrollbarTransform = scrollbarTransform * Matrix4x4().Scale(1.f, 1.f / transientTransform.GetYScale(), 1.f);
-      scrollbarTransform = scrollbarTransform * Matrix4x4().Translate(0, -transientTransform._42 * scale, 0);
-    }
-    if (aLayer->GetScrollbarDirection() == Layer::HORIZONTAL) {
-      float scale = metrics.CalculateCompositedSizeInCssPixels().width / metrics.mScrollableRect.width;
-      scrollbarTransform = scrollbarTransform * Matrix4x4().Scale(1.f / transientTransform.GetXScale(), 1.f, 1.f);
-      scrollbarTransform = scrollbarTransform * Matrix4x4().Translate(-transientTransform._41 * scale, 0, 0);
-    }
-
-    Matrix4x4 transform = scrollbarTransform * aLayer->GetTransform();
-    
-    
-    
-    transform.Scale(1.0f/aLayer->GetPreXScale(),
-                    1.0f/aLayer->GetPreYScale(),
-                    1);
-    transform = transform * Matrix4x4().Scale(1.0f/aLayer->GetPostXScale(),
-                                              1.0f/aLayer->GetPostYScale(),
-                                              1);
-    aLayer->AsLayerComposite()->SetShadowTransform(transform);
-
-    return;
+  
+  Layer* scrollTarget = aLayer->GetParent();
+  if (scrollTarget && LayerIsContainerForScrollbarTarget(scrollTarget, aLayer)) {
+    ApplyAsyncTransformToScrollbarForContent(aCurrentFrame, aLayer, scrollTarget, true);
   }
 }
 
