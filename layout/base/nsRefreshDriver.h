@@ -148,10 +148,7 @@ public:
   
 
 
-  void ScheduleViewManagerFlush() {
-    mViewManagerFlushIsPending = true;
-    EnsureTimerStarted(false);
-  }
+  void ScheduleViewManagerFlush();
   void RevokeViewManagerFlush() {
     mViewManagerFlushIsPending = false;
   }
