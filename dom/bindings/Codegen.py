@@ -1028,7 +1028,7 @@ class CGHeaders(CGWrapper):
                 headerSet.add(self.getDeclarationFilename(unrolled.inner))
             elif unrolled.isCallback():
                 
-                headerSet.add(self.getDeclarationFilename(t.unroll()))
+                headerSet.add(self.getDeclarationFilename(unrolled))
             elif unrolled.isFloat() and not unrolled.isUnrestricted():
                 
                 bindingHeaders.add("mozilla/FloatingPoint.h")
@@ -1038,6 +1038,14 @@ class CGHeaders(CGWrapper):
                 declareIncludes.add(filename)
             elif unrolled.isPrimitive():
                 bindingHeaders.add("mozilla/dom/PrimitiveConversions.h")
+            elif unrolled.isMozMap():
+                if dictionary or jsImplementedDescriptors:
+                    declareIncludes.add("mozilla/dom/MozMap.h")
+                else:
+                    bindingHeaders.add("mozilla/dom/MozMap.h")
+                
+                
+                addHeadersForType((t.inner, descriptor, dictionary))
 
         map(addHeadersForType,
             getAllTypes(descriptors + callbackDescriptors, dictionaries,
@@ -1153,6 +1161,8 @@ def UnionTypes(descriptors, dictionaries, callbacks, config):
         assert not descriptor or not dictionary
 
         t = t.unroll()
+        while t.isMozMap():
+            t = t.inner.unroll()
         if not t.isUnion():
             continue
         name = str(t)
@@ -1163,10 +1173,10 @@ def UnionTypes(descriptors, dictionaries, callbacks, config):
             owningUnionStructs[name] = CGUnionStruct(t, providers[0],
                                                      ownsMembers=True)
 
-            for f in t.flatMemberTypes:
-                f = f.unroll()
+            def addHeadersForType(f):
                 if f.nullable():
                     headers.add("mozilla/dom/Nullable.h")
+                f = f.unroll()
                 if f.isInterface():
                     if f.isSpiderMonkeyInterface():
                         headers.add("jsfriendapi.h")
@@ -1202,6 +1212,14 @@ def UnionTypes(descriptors, dictionaries, callbacks, config):
                     
                     
                     headers.add(CGHeaders.getDeclarationFilename(f))
+                elif f.isMozMap():
+                    headers.add("mozilla/dom/MozMap.h")
+                    
+                    addHeadersForType(f.inner)
+
+            for f in t.flatMemberTypes:
+                assert not f.nullable()
+                addHeadersForType(f)
 
     return (headers, implheaders, declarations,
             CGList(SortedDictValues(unionStructs) +
@@ -1230,7 +1248,7 @@ def UnionConversions(descriptors, dictionaries, callbacks, config):
         if name not in unionConversions:
             providers = getRelevantProviders(descriptor, config)
             unionConversions[name] = CGUnionConversionStruct(t, providers[0])
-            for f in t.flatMemberTypes:
+            def addHeadersForType(f, providers):
                 f = f.unroll()
                 if f.isInterface():
                     if f.isSpiderMonkeyInterface():
@@ -1257,6 +1275,13 @@ def UnionConversions(descriptors, dictionaries, callbacks, config):
                     headers.add(CGHeaders.getDeclarationFilename(f.inner))
                 elif f.isPrimitive():
                     headers.add("mozilla/dom/PrimitiveConversions.h")
+                elif f.isMozMap():
+                    headers.add("mozilla/dom/MozMap.h")
+                    
+                    addHeadersForType(f.inner, providers)
+
+            for f in t.flatMemberTypes:
+                addHeadersForType(f, providers)
 
     return (headers,
             CGWrapper(CGList(SortedDictValues(unionConversions), "\n"),
@@ -10955,6 +10980,8 @@ class CGForwardDeclarations(CGWrapper):
                 
                 builder.addInMozillaDom(CGUnionStruct.unionTypeName(t, False))
                 builder.addInMozillaDom(CGUnionStruct.unionTypeName(t, True))
+            elif t.isMozMap():
+                forwardDeclareForType(t.inner, workerness)
             
             
 
@@ -11058,6 +11085,8 @@ class CGBindingRoot(CGThing):
         def checkForXPConnectImpls(typeInfo):
             type, _, _ = typeInfo
             type = type.unroll()
+            while type.isMozMap():
+                type = type.inner.unroll()
             if not type.isInterface() or not type.isGeckoInterface():
                 return False
             try:
