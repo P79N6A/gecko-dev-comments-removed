@@ -1127,6 +1127,15 @@ protected:
 
     
     
+    int32_t mMinInUseAttribArrayLength;
+
+    inline void InvalidateCachedMinInUseAttribArrayLength()
+    {
+        mMinInUseAttribArrayLength = -1;
+    }
+
+    
+    
     
     
     enum ContextStatus {
