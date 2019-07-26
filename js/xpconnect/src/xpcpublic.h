@@ -439,6 +439,14 @@ GetJunkScopeGlobal();
 
 
 
+
+JSObject *
+GetCompilationScope();
+
+
+
+
+
 nsGlobalWindow*
 WindowOrNull(JSObject *aObj);
 
