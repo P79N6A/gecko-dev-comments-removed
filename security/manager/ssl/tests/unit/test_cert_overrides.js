@@ -40,12 +40,12 @@ function check_telemetry() {
                     .getHistogramById("SSL_CERT_ERROR_OVERRIDES")
                     .snapshot();
   do_check_eq(histogram.counts[ 0], 0);
-  do_check_eq(histogram.counts[ 2], 6 + 1); 
-  do_check_eq(histogram.counts[ 3], 0 + 1); 
+  do_check_eq(histogram.counts[ 2], 7 + 1); 
+  do_check_eq(histogram.counts[ 3], 0 + 2); 
   do_check_eq(histogram.counts[ 4], 0 + 4); 
   do_check_eq(histogram.counts[ 5], 0 + 1); 
   do_check_eq(histogram.counts[ 6], 0 + 1); 
-  do_check_eq(histogram.counts[ 7], 0);     
+  do_check_eq(histogram.counts[ 7], 0 + 1); 
   do_check_eq(histogram.counts[ 8], 2 + 2); 
   do_check_eq(histogram.counts[ 9], 4 + 4); 
   do_check_eq(histogram.counts[10], 5 + 5); 
@@ -115,16 +115,38 @@ function add_simple_tests(useInsanity) {
                          getXPCOMStatusFromNSS(SSL_ERROR_BAD_CERT_DOMAIN));
 
   
-  add_connection_test("inadequatekeyusage.example.com",
-                      getXPCOMStatusFromNSS(SEC_ERROR_INADEQUATE_KEY_USAGE),
-                      null,
-                      function (securityInfo) {
-                        
-                        
-                        
-                        securityInfo.QueryInterface(Ci.nsISSLStatusProvider);
-                        do_check_eq(securityInfo.SSLStatus, null);
-                      });
+  
+  
+  
+  
+  
+  
+  
+  
+  add_cert_override_test("selfsigned-inadequateEKU.example.com",
+                         Ci.nsICertOverrideService.ERROR_UNTRUSTED,
+                         getXPCOMStatusFromNSS(
+                            useInsanity ? SEC_ERROR_UNKNOWN_ISSUER
+                                        : SEC_ERROR_CA_CERT_INVALID));
+
+  
+  
+  if (useInsanity) {
+    add_connection_test("inadequatekeyusage.example.com",
+                        getXPCOMStatusFromNSS(SEC_ERROR_INADEQUATE_KEY_USAGE),
+                        null,
+                        function (securityInfo) {
+                          
+                          
+                          
+                          securityInfo.QueryInterface(Ci.nsISSLStatusProvider);
+                          do_check_eq(securityInfo.SSLStatus, null);
+                        });
+  } else {
+    add_cert_override_test("inadequatekeyusage.example.com",
+                           Ci.nsICertOverrideService.ERROR_UNTRUSTED,
+                           getXPCOMStatusFromNSS(SEC_ERROR_INADEQUATE_KEY_USAGE));
+  }
 }
 
 function add_combo_tests(useInsanity) {
