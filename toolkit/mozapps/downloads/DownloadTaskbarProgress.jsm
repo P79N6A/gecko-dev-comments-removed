@@ -207,11 +207,11 @@ var DownloadTaskbarProgressUpdater =
   _totalSize: 0,
   _totalTransferred: 0,
 
-  
-  
   _shouldSetState: function DTPU_shouldSetState()
   {
 #ifdef XP_WIN
+    
+    
     return this._activeWindowIsDownloadWindow ||
            (this._taskbarState == Ci.nsITaskbarProgress.STATE_NORMAL ||
             this._taskbarState == Ci.nsITaskbarProgress.STATE_INDETERMINATE);
