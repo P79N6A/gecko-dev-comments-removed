@@ -31,6 +31,9 @@ public interface TelemetryContract {
         public static final String PANEL_SET_DEFAULT = "setdefault.1";
 
         
+        public static final String SHARE = "share.1";
+
+        
         public static final String SANITIZE = "sanitize.1";
     }
 
@@ -39,6 +42,12 @@ public interface TelemetryContract {
 
 
     public interface Method {
+        
+        public static final String LIST = "list";
+
+        
+        public static final String BUTTON = "button";
+
         
         public static final String DIALOG = "dialog";
     }
