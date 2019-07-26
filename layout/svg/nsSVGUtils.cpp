@@ -646,14 +646,14 @@ nsSVGUtils::GetUserToCanvasTM(nsIFrame *aFrame, uint32_t aFor)
   nsISVGChildFrame* svgFrame = do_QueryFrame(aFrame);
   NS_ASSERTION(svgFrame, "bad frame");
 
-  gfx::Matrix tm;
+  gfxMatrix tm;
   if (svgFrame) {
     nsSVGElement *content = static_cast<nsSVGElement*>(aFrame->GetContent());
     tm = content->PrependLocalTransformsTo(
-                    gfx::ToMatrix(GetCanvasTM(aFrame->GetParent(), aFor)),
+                    GetCanvasTM(aFrame->GetParent(), aFor),
                     nsSVGElement::eUserSpaceToParent);
   }
-  return ThebesMatrix(tm);
+  return tm;
 }
 
 void 
@@ -1187,7 +1187,7 @@ nsSVGUtils::GetBBox(nsIFrame *aFrame, uint32_t aFlags)
         !static_cast<const nsSVGElement*>(content)->HasValidDimensions()) {
       return bbox;
     }
-    gfx::Matrix matrix;
+    gfxMatrix matrix;
     if (aFrame->GetType() == nsGkAtoms::svgForeignObjectFrame) {
       
       
@@ -1197,7 +1197,7 @@ nsSVGUtils::GetBBox(nsIFrame *aFrame, uint32_t aFlags)
       matrix = element->PrependLocalTransformsTo(matrix,
                           nsSVGElement::eChildToUserSpace);
     }
-    return svg->GetBBoxContribution(ThebesMatrix(matrix), aFlags).ToThebesRect();
+    return svg->GetBBoxContribution(matrix, aFlags).ToThebesRect();
   }
   return nsSVGIntegrationUtils::GetSVGBBoxForNonSVGFrame(aFrame);
 }
@@ -1799,13 +1799,14 @@ nsSVGUtils::GetSVGGlyphExtents(Element* aElement,
     return false;
   }
 
-  gfx::Matrix transform = gfx::ToMatrix(aSVGToAppSpace);
+  gfxMatrix transform(aSVGToAppSpace);
   nsIContent* content = frame->GetContent();
   if (content->IsSVG()) {
-    transform = static_cast<nsSVGElement*>(content)->PrependLocalTransformsTo(transform);
+    transform = static_cast<nsSVGElement*>(content)->
+                  PrependLocalTransformsTo(aSVGToAppSpace);
   }
 
-  *aResult = svgFrame->GetBBoxContribution(ThebesMatrix(transform),
+  *aResult = svgFrame->GetBBoxContribution(transform,
     nsSVGUtils::eBBoxIncludeFill | nsSVGUtils::eBBoxIncludeFillGeometry |
     nsSVGUtils::eBBoxIncludeStroke | nsSVGUtils::eBBoxIncludeStrokeGeometry |
     nsSVGUtils::eBBoxIncludeMarkers).ToThebesRect();

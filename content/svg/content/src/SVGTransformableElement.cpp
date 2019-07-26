@@ -85,14 +85,14 @@ SVGTransformableElement::IsEventAttributeName(nsIAtom* aName)
 
 
 
-gfx::Matrix
-SVGTransformableElement::PrependLocalTransformsTo(const gfx::Matrix &aMatrix,
+gfxMatrix
+SVGTransformableElement::PrependLocalTransformsTo(const gfxMatrix &aMatrix,
                                                   TransformTypes aWhich) const
 {
   NS_ABORT_IF_FALSE(aWhich != eChildToUserSpace || aMatrix.IsIdentity(),
                     "Skipping eUserSpaceToParent transforms makes no sense");
 
-  gfx::Matrix result(aMatrix);
+  gfxMatrix result(aMatrix);
 
   if (aWhich == eChildToUserSpace) {
     
@@ -109,30 +109,30 @@ SVGTransformableElement::PrependLocalTransformsTo(const gfx::Matrix &aMatrix,
   
   
   if (mAnimateMotionTransform) {
-    result = *mAnimateMotionTransform * result;
+    result.PreMultiply(*mAnimateMotionTransform);
   }
 
   if (mTransforms) {
-    result = gfx::ToMatrix(mTransforms->GetAnimValue().GetConsolidationMatrix()) * result;
+    result.PreMultiply(mTransforms->GetAnimValue().GetConsolidationMatrix());
   }
 
   return result;
 }
 
-const gfx::Matrix*
+const gfxMatrix*
 SVGTransformableElement::GetAnimateMotionTransform() const
 {
   return mAnimateMotionTransform.get();
 }
 
 void
-SVGTransformableElement::SetAnimateMotionTransform(const gfx::Matrix* aMatrix)
+SVGTransformableElement::SetAnimateMotionTransform(const gfxMatrix* aMatrix)
 {
   if ((!aMatrix && !mAnimateMotionTransform) ||
       (aMatrix && mAnimateMotionTransform && *aMatrix == *mAnimateMotionTransform)) {
     return;
   }
-  mAnimateMotionTransform = aMatrix ? new gfx::Matrix(*aMatrix) : nullptr;
+  mAnimateMotionTransform = aMatrix ? new gfxMatrix(*aMatrix) : nullptr;
   DidAnimateTransformList();
   nsIFrame* frame = GetPrimaryFrame();
   if (frame) {

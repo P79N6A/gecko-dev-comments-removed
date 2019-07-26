@@ -18,7 +18,6 @@
 #include "SVGAnimationElement.h"
 #include "SVGAnimatedPreserveAspectRatio.h"
 #include "nsContentUtils.h"
-#include "gfx2DGlue.h"
 #include "mozilla/gfx/2D.h"
 
 using namespace mozilla;
@@ -181,7 +180,7 @@ SVGContentUtils::GetNearestViewportElement(nsIContent *aContent)
 static gfxMatrix
 GetCTMInternal(nsSVGElement *aElement, bool aScreenCTM, bool aHaveRecursed)
 {
-  gfx::Matrix matrix = aElement->PrependLocalTransformsTo(gfx::Matrix(),
+  gfxMatrix matrix = aElement->PrependLocalTransformsTo(gfxMatrix(),
     aHaveRecursed ? nsSVGElement::eAllTransforms : nsSVGElement::eUserSpaceToParent);
   nsSVGElement *element = aElement;
   nsIContent *ancestor = aElement->GetFlattenedTreeParent();
@@ -189,7 +188,7 @@ GetCTMInternal(nsSVGElement *aElement, bool aScreenCTM, bool aHaveRecursed)
   while (ancestor && ancestor->IsSVG() &&
                      ancestor->Tag() != nsGkAtoms::foreignObject) {
     element = static_cast<nsSVGElement*>(ancestor);
-    matrix *= element->PrependLocalTransformsTo(gfx::Matrix()); 
+    matrix *= element->PrependLocalTransformsTo(gfxMatrix()); 
     if (!aScreenCTM && SVGContentUtils::EstablishesViewport(element)) {
       if (!element->NodeInfo()->Equals(nsGkAtoms::svg, kNameSpaceID_SVG) &&
           !element->NodeInfo()->Equals(nsGkAtoms::symbol, kNameSpaceID_SVG)) {
@@ -197,7 +196,7 @@ GetCTMInternal(nsSVGElement *aElement, bool aScreenCTM, bool aHaveRecursed)
         return gfxMatrix(0.0, 0.0, 0.0, 0.0, 0.0, 0.0); 
       }
       
-      return ThebesMatrix(matrix);
+      return matrix;
     }
     ancestor = ancestor->GetFlattenedTreeParent();
   }
@@ -216,14 +215,14 @@ GetCTMInternal(nsSVGElement *aElement, bool aScreenCTM, bool aHaveRecursed)
     
     
     
-    matrix = aElement->PrependLocalTransformsTo(gfx::Matrix());
+    matrix = aElement->PrependLocalTransformsTo(gfxMatrix());
   }
   if (!ancestor || !ancestor->IsElement()) {
-    return ThebesMatrix(matrix);
+    return matrix;
   }
   if (ancestor->IsSVG()) {
     return
-      ThebesMatrix(matrix) * GetCTMInternal(static_cast<nsSVGElement*>(ancestor), true, true);
+      matrix * GetCTMInternal(static_cast<nsSVGElement*>(ancestor), true, true);
   }
 
   
@@ -242,7 +241,7 @@ GetCTMInternal(nsSVGElement *aElement, bool aScreenCTM, bool aHaveRecursed)
       }
     }
   }
-  return ThebesMatrix(matrix * gfx::Matrix().Translate(x, y));
+  return matrix * gfxMatrix().Translate(gfxPoint(x, y));
 }
 
 gfxMatrix
