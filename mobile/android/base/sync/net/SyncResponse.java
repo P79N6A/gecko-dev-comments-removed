@@ -4,9 +4,11 @@
 
 package org.mozilla.gecko.sync.net;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.Reader;
 import java.util.Scanner;
 
 import org.json.simple.parser.ParseException;
@@ -67,43 +69,27 @@ public class SyncResponse {
 
 
 
-  public Object jsonBody() throws IllegalStateException, IOException,
-                          ParseException {
-    if (body != null) {
-      
-      return ExtendedJSONObject.parse(body);
-    }
-
-    HttpEntity entity = this.response.getEntity();
-    if (entity == null) {
-      return null;
-    }
-    InputStream content = entity.getContent();
-    try {
-      return ExtendedJSONObject.parse(content);
-    } finally {
-      content.close();
-    }
-  }
-
-  
-
-
-
-
-
-
-
-
 
   public ExtendedJSONObject jsonObjectBody() throws IllegalStateException,
                                             IOException, ParseException,
                                             NonObjectJSONException {
-    Object body = this.jsonBody();
-    if (body instanceof ExtendedJSONObject) {
-      return (ExtendedJSONObject) body;
+    if (body != null) {
+      
+      return ExtendedJSONObject.parseJSONObject(body);
     }
-    throw new NonObjectJSONException(body);
+
+    HttpEntity entity = this.response.getEntity();
+    if (entity == null) {
+      throw new IOException("no entity");
+    }
+
+    InputStream content = entity.getContent();
+    try {
+      Reader in = new BufferedReader(new InputStreamReader(content, "UTF-8"));
+      return ExtendedJSONObject.parseJSONObject(in);
+    } finally {
+      content.close();
+    }
   }
 
   private boolean hasHeader(String h) {

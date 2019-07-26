@@ -5,8 +5,6 @@
 package org.mozilla.gecko.sync;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.StringReader;
 import java.util.Map;
@@ -28,26 +26,28 @@ public class ExtendedJSONObject {
 
   public JSONObject object;
 
-  private static Object processParseOutput(Object parseOutput) {
-    if (parseOutput instanceof JSONObject) {
-      return new ExtendedJSONObject((JSONObject) parseOutput);
-    } else {
-      return parseOutput;
-    }
+  
+
+
+
+
+
+
+
+  protected static JSONParser getJSONParser() {
+    return new JSONParser();
   }
 
-  public static Object parse(String string) throws IOException, ParseException {
-    return processParseOutput(new JSONParser().parse(string));
-  }
+  
 
-  public static Object parse(InputStreamReader reader) throws IOException, ParseException {
-    return processParseOutput(new JSONParser().parse(reader));
 
-  }
 
-  public static Object parse(InputStream stream) throws IOException, ParseException {
-    InputStreamReader reader = new InputStreamReader(stream, "UTF-8");
-    return ExtendedJSONObject.parse(reader);
+
+
+
+
+  protected static Object parseRaw(Reader in) throws ParseException, IOException {
+    return getJSONParser().parse(in);
   }
 
   
@@ -59,11 +59,97 @@ public class ExtendedJSONObject {
 
 
 
+  protected static Object parseRaw(String input) throws ParseException {
+    return getJSONParser().parse(input);
+  }
+
+  
+
+
+
+
+
+
+
+  public static JSONArray parseJSONArray(Reader in)
+      throws IOException, ParseException, NonArrayJSONException {
+    Object o = parseRaw(in);
+
+    if (o == null) {
+      return null;
+    }
+
+    if (o instanceof JSONArray) {
+      return (JSONArray) o;
+    }
+
+    throw new NonArrayJSONException(o);
+  }
+
+  
+
+
+
+
+
+
+
+
+
+  public static JSONArray parseJSONArray(String jsonString)
+      throws IOException, ParseException, NonArrayJSONException {
+    Object o = parseRaw(jsonString);
+
+    if (o == null) {
+      return null;
+    }
+
+    if (o instanceof JSONArray) {
+      return (JSONArray) o;
+    }
+
+    throw new NonArrayJSONException(o);
+  }
+
+  
+
+
+
+
+
+
+
+  public static ExtendedJSONObject parseJSONObject(Reader in)
+      throws IOException, ParseException, NonObjectJSONException {
+    return new ExtendedJSONObject(in);
+  }
+
+  
+
+
+
+
+
+
+
+
+
   public static ExtendedJSONObject parseJSONObject(String jsonString)
-                                                                     throws IOException,
-                                                                     ParseException,
-                                                                     NonObjectJSONException {
+      throws IOException, ParseException, NonObjectJSONException {
     return new ExtendedJSONObject(jsonString);
+  }
+
+  
+
+
+
+
+
+
+
+  public static ExtendedJSONObject parseUTF8AsJSONObject(byte[] in)
+      throws ParseException, NonObjectJSONException, IOException {
+    return parseJSONObject(new String(in, "UTF-8"));
   }
 
   public ExtendedJSONObject() {
@@ -74,18 +160,22 @@ public class ExtendedJSONObject {
     this.object = o;
   }
 
-  public ExtendedJSONObject(String jsonString) throws IOException, ParseException, NonObjectJSONException {
-    if (jsonString == null) {
+  public ExtendedJSONObject(Reader in) throws IOException, ParseException, NonObjectJSONException {
+    if (in == null) {
       this.object = new JSONObject();
       return;
     }
-    Reader in = new StringReader(jsonString);
-    Object obj = new JSONParser().parse(in);
+
+    Object obj = parseRaw(in);
     if (obj instanceof JSONObject) {
       this.object = ((JSONObject) obj);
     } else {
       throw new NonObjectJSONException(obj);
     }
+  }
+
+  public ExtendedJSONObject(String jsonString) throws IOException, ParseException, NonObjectJSONException {
+    this(jsonString == null ? null : new StringReader(jsonString));
   }
 
   
@@ -115,7 +205,7 @@ public class ExtendedJSONObject {
       return (Integer) val;
     }
     if (val instanceof Long) {
-      return new Integer(((Long) val).intValue());
+      return Integer.valueOf(((Long) val).intValue());
     }
     if (val instanceof String) {
       return Integer.parseInt((String) val, 10);
@@ -135,11 +225,11 @@ public class ExtendedJSONObject {
     
     if (val instanceof Double) {
       double millis = ((Double) val).doubleValue() * 1000;
-      return new Double(millis).longValue();
+      return Double.valueOf(millis).longValue();
     }
     if (val instanceof Float) {
       double millis = ((Float) val).doubleValue() * 1000;
-      return new Double(millis).longValue();
+      return Double.valueOf(millis).longValue();
     }
     if (val instanceof Number) {
       
@@ -191,28 +281,6 @@ public class ExtendedJSONObject {
       return new ExtendedJSONObject((JSONObject) o);
     }
     throw new NonObjectJSONException(o);
-  }
-
-  public ExtendedJSONObject clone() {
-    return new ExtendedJSONObject((JSONObject) this.object.clone());
-  }
-
-  
-
-
-
-
-
-
-
-
-
-
-  public ExtendedJSONObject getJSONObject(String key) throws IOException,
-                                                     ParseException,
-                                                     NonObjectJSONException {
-    String val = (String) this.object.get(key);
-    return ExtendedJSONObject.parseJSONObject(val);
   }
 
   @SuppressWarnings("unchecked")
