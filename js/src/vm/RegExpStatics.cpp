@@ -74,9 +74,14 @@ RegExpStatics::executeLazy(JSContext *cx)
     if (!pendingLazyEvaluation)
         return true;
 
-    JS_ASSERT(regexp.initialized());
+    JS_ASSERT(lazySource);
     JS_ASSERT(matchesInput);
-    JS_ASSERT(lastIndex != size_t(-1));
+    JS_ASSERT(lazyIndex != size_t(-1));
+
+    
+    RegExpGuard g(cx);
+    if (!cx->compartment->regExps.get(cx, lazySource, lazyFlags, &g))
+        return false;
 
     
 
@@ -87,7 +92,7 @@ RegExpStatics::executeLazy(JSContext *cx)
     StableCharPtr chars(matchesInput->chars(), length);
 
     
-    RegExpRunStatus status = regexp->execute(cx, chars, length, &this->lastIndex, this->matches);
+    RegExpRunStatus status = g->execute(cx, chars, length, &this->lazyIndex, this->matches);
     if (status == RegExpRunStatus_Error)
         return false;
 
@@ -99,8 +104,8 @@ RegExpStatics::executeLazy(JSContext *cx)
 
     
     pendingLazyEvaluation = false;
-    regexp.release();
-    lastIndex = size_t(-1);
+    lazySource = NULL;
+    lazyIndex = size_t(-1);
 
     return true;
 }

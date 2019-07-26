@@ -109,6 +109,7 @@ CloneRegExpObject(JSContext *cx, JSObject *obj, JSObject *proto);
 class RegExpShared
 {
     friend class RegExpCompartment;
+    friend class RegExpStatics;
     friend class RegExpGuard;
 
     typedef frontend::TokenStream TokenStream;
@@ -156,7 +157,6 @@ class RegExpShared
     void trace(JSTracer *trc) {
         MarkStringUnbarriered(trc, &source, "regexpshared source");
     }
-    inline void writeBarrierPre();
 
     
     static inline bool isJITRuntimeEnabled(JSContext *cx);
@@ -226,34 +226,6 @@ class RegExpGuard
   public:
     inline void init(RegExpShared &re);
     inline void release();
-
-    bool initialized() const { return !!re_; }
-    RegExpShared *re() const { JS_ASSERT(initialized()); return re_; }
-    RegExpShared *operator->() { return re(); }
-    RegExpShared &operator*() { return *re(); }
-};
-
-
-class RegExpHeapGuard
-{
-    RegExpShared *re_;
-
-    RegExpHeapGuard(const RegExpGuard &) MOZ_DELETE;
-    void operator=(const RegExpHeapGuard &) MOZ_DELETE;
-
-  public:
-    RegExpHeapGuard() : re_(NULL) { }
-    inline RegExpHeapGuard(RegExpShared &re);
-    inline ~RegExpHeapGuard();
-
-  public:
-    inline void init(RegExpShared &re);
-    inline void release();
-
-    void trace(JSTracer *trc) {
-        if (initialized())
-            re_->trace(trc);
-    }
 
     bool initialized() const { return !!re_; }
     RegExpShared *re() const { JS_ASSERT(initialized()); return re_; }
