@@ -740,12 +740,15 @@ pref("javascript.options.strict",           false);
 #ifdef DEBUG
 pref("javascript.options.strict.debug",     true);
 #endif
-pref("javascript.options.baselinejit",      true);
-pref("javascript.options.ion",              true);
+pref("javascript.options.baselinejit.content", true);
+pref("javascript.options.baselinejit.chrome",  true);
+pref("javascript.options.ion.content",      true);
+pref("javascript.options.ion.chrome",       true);
 pref("javascript.options.asmjs",            true);
 pref("javascript.options.parallel_parsing", true);
 pref("javascript.options.ion.parallel_compilation", true);
-pref("javascript.options.typeinference",    true);
+pref("javascript.options.typeinference.content", true);
+pref("javascript.options.typeinference.chrome", true);
 
 
 
@@ -4152,7 +4155,7 @@ pref("social.enabled", false);
 pref("social.whitelist", "https://mozsocial.cliqz.com,https://now.msn.com,https://mixi.jp");
 
 
-pref("social.directories", "https://addons.mozilla.org");
+pref("social.directories", "https://activations.mozilla.org");
 
 
 
