@@ -242,6 +242,8 @@ AtomizeAndTakeOwnership(ExclusiveContext *cx, jschar *tbchars, size_t length, In
         return s;
     }
 
+    AutoLockForExclusiveAccess lock(cx);
+
     
 
 
@@ -258,7 +260,7 @@ AtomizeAndTakeOwnership(ExclusiveContext *cx, jschar *tbchars, size_t length, In
         return atom;
     }
 
-    AutoCompartment ac(cx, cx->asJSContext()->runtime()->atomsCompartment);
+    AutoCompartment ac(cx, cx->atomsCompartment());
 
     JSFlatString *flat = js_NewString<CanGC>(cx, tbchars, length);
     if (!flat) {
@@ -293,6 +295,8 @@ AtomizeAndCopyChars(ExclusiveContext *cx, const jschar *tbchars, size_t length, 
 
 
 
+    AutoLockForExclusiveAccess lock(cx);
+
     AtomSet& atoms = cx->atoms();
     AtomSet::AddPtr p = atoms.lookupForAdd(AtomHasher::Lookup(tbchars, length));
     SkipRoot skipHash(cx, &p); 
@@ -302,7 +306,7 @@ AtomizeAndCopyChars(ExclusiveContext *cx, const jschar *tbchars, size_t length, 
         return atom;
     }
 
-    AutoCompartment ac(cx, cx->asJSContext()->runtime()->atomsCompartment);
+    AutoCompartment ac(cx, cx->atomsCompartment());
 
     JSFlatString *flat = js_NewStringCopyN<allowGC>(cx, tbchars, length);
     if (!flat)
@@ -330,6 +334,8 @@ js::AtomizeString(ExclusiveContext *cx, JSString *str,
         
         if (ib != InternAtom || js::StaticStrings::isStatic(&atom))
             return &atom;
+
+        AutoLockForExclusiveAccess lock(cx);
 
         AtomSet::Ptr p = cx->atoms().lookup(AtomHasher::Lookup(&atom));
         JS_ASSERT(p); 

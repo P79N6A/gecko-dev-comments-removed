@@ -263,6 +263,7 @@ js::DestroyContext(JSContext *cx, DestroyContextMode mode)
         
         for (CompartmentsIter c(rt); !c.done(); c.next())
             CancelOffThreadIonCompile(c, NULL);
+        WaitForOffThreadParsingToFinish(rt);
 
         
         FinishCommonNames(rt);
@@ -1034,7 +1035,8 @@ js_HandleExecutionInterrupt(JSContext *cx)
 js::ThreadSafeContext::ThreadSafeContext(JSRuntime *rt, PerThreadData *pt, ContextKind kind)
   : ContextFriendFields(rt),
     contextKind_(kind),
-    perThreadData(pt)
+    perThreadData(pt),
+    allocator_(NULL)
 { }
 
 bool
@@ -1058,7 +1060,6 @@ JSContext::JSContext(JSRuntime *rt)
     reportGranularity(JS_DEFAULT_JITREPORT_GRANULARITY),
     resolvingList(NULL),
     generatingError(false),
-    enterCompartmentDepth_(0),
     savedFrameChains_(),
     defaultCompartmentObject_(NULL),
     cycleDetectorSet(MOZ_THIS_IN_INITIALIZER_LIST()),

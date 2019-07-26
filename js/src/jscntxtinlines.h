@@ -13,6 +13,7 @@
 #include "jsfriendapi.h"
 #include "jsgc.h"
 #include "jsiter.h"
+#include "jsworkers.h"
 
 #include "builtin/Object.h" 
 #include "frontend/ParseMaps.h"
@@ -375,6 +376,69 @@ ExclusiveContext::dtoaCache()
     return compartment_->dtoaCache;
 }
 
+inline void
+ExclusiveContext::maybePause() const
+{
+#ifdef JS_WORKER_THREADS
+    if (workerThread && runtime_->workerThreadState->shouldPause) {
+        AutoLockWorkerThreadState lock(runtime_);
+        workerThread->pause();
+    }
+#endif
+}
+
+class AutoLockForExclusiveAccess
+{
+#ifdef JS_THREADSAFE
+    JSRuntime *runtime;
+
+    void init(JSRuntime *rt) {
+        runtime = rt;
+        if (runtime->numExclusiveThreads) {
+            PR_Lock(runtime->exclusiveAccessLock);
+#ifdef DEBUG
+            runtime->exclusiveAccessOwner = PR_GetCurrentThread();
+#endif
+        } else {
+            JS_ASSERT(!runtime->mainThreadHasExclusiveAccess);
+            runtime->mainThreadHasExclusiveAccess = true;
+        }
+    }
+
+  public:
+    AutoLockForExclusiveAccess(ExclusiveContext *cx MOZ_GUARD_OBJECT_NOTIFIER_PARAM) {
+        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+        init(cx->runtime_);
+    }
+    AutoLockForExclusiveAccess(JSRuntime *rt MOZ_GUARD_OBJECT_NOTIFIER_PARAM) {
+        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+        init(rt);
+    }
+    ~AutoLockForExclusiveAccess() {
+        if (runtime->numExclusiveThreads) {
+            JS_ASSERT(runtime->exclusiveAccessOwner == PR_GetCurrentThread());
+#ifdef DEBUG
+            runtime->exclusiveAccessOwner = NULL;
+#endif
+            PR_Unlock(runtime->exclusiveAccessLock);
+        } else {
+            JS_ASSERT(runtime->mainThreadHasExclusiveAccess);
+            runtime->mainThreadHasExclusiveAccess = false;
+        }
+    }
+#else 
+  public:
+    AutoLockForExclusiveAccess(ExclusiveContext *cx MOZ_GUARD_OBJECT_NOTIFIER_PARAM) {
+        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+    }
+    AutoLockForExclusiveAccess(JSRuntime *rt MOZ_GUARD_OBJECT_NOTIFIER_PARAM) {
+        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+    }
+#endif 
+
+    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+};
+
 }  
 
 inline js::LifoAlloc &
@@ -411,53 +475,63 @@ JSContext::setDefaultCompartmentObjectIfUnset(JSObject *obj)
 }
 
 inline void
-JSContext::enterCompartment(JSCompartment *c)
+js::ExclusiveContext::enterCompartment(JSCompartment *c)
 {
     enterCompartmentDepth_++;
     c->enter();
     setCompartment(c);
-    if (throwing)
-        wrapPendingException();
+
+    if (JSContext *cx = maybeJSContext()) {
+        if (cx->throwing)
+            cx->wrapPendingException();
+    }
 }
 
 inline void
-JSContext::leaveCompartment(JSCompartment *oldCompartment)
+js::ExclusiveContext::leaveCompartment(JSCompartment *oldCompartment)
 {
     JS_ASSERT(hasEnteredCompartment());
     enterCompartmentDepth_--;
 
     
     
-    JSCompartment *startingCompartment = compartment();
+    JSCompartment *startingCompartment = compartment_;
     setCompartment(oldCompartment);
     startingCompartment->leave();
 
-    if (throwing && oldCompartment)
-        wrapPendingException();
+    if (JSContext *cx = maybeJSContext()) {
+        if (cx->throwing && oldCompartment)
+            cx->wrapPendingException();
+    }
 }
 
 inline void
-JSContext::setCompartment(JSCompartment *comp)
+js::ExclusiveContext::setCompartment(JSCompartment *comp)
 {
+    
+    JS_ASSERT_IF(!isJSContext() && comp != runtime_->atomsCompartment,
+                 comp->zone()->usedByExclusiveThread);
+
+    
+    JS_ASSERT_IF(isJSContext() && comp,
+                 !comp->zone()->usedByExclusiveThread);
+
+    
+    JS_ASSERT_IF(comp == runtime_->atomsCompartment,
+                 runtime_->currentThreadHasExclusiveAccess());
+
+    
+    JS_ASSERT_IF(comp && comp != runtime_->atomsCompartment,
+                 comp->zone() != runtime_->atomsCompartment->zone());
+
     
     
     JS_ASSERT_IF(compartment_, compartment_->hasBeenEntered());
     JS_ASSERT_IF(comp, comp->hasBeenEntered());
+
     compartment_ = comp;
     zone_ = comp ? comp->zone() : NULL;
     allocator_ = zone_ ? &zone_->allocator : NULL;
-}
-
-inline void
-js::ExclusiveContext::privateSetCompartment(JSCompartment *comp)
-{
-    if (isJSContext()) {
-        asJSContext()->setCompartment(comp);
-    } else {
-        compartment_ = comp;
-        if (zone_ != comp->zone())
-            MOZ_CRASH();
-    }
 }
 
 inline JSScript *
@@ -516,4 +590,4 @@ JSParallelNativeThreadSafeWrapper(js::ForkJoinSlice *slice, unsigned argc, JS::V
     return threadSafeNative(slice, argc, vp) ? js::TP_SUCCESS : js::TP_FATAL;
 }
 
-#endif 
+#endif

@@ -447,7 +447,8 @@ namespace js {
 
 
 
-class PerThreadData : public js::PerThreadDataFriendFields
+class PerThreadData : public PerThreadDataFriendFields,
+                      public mozilla::LinkedListElement<PerThreadData>
 {
     
 
@@ -556,6 +557,8 @@ class PerThreadData : public js::PerThreadDataFriendFields
     ~PerThreadData();
 
     bool init();
+    void addToThreadList();
+    void removeFromThreadList();
 
     bool associatedWith(const JSRuntime *rt) { return runtime_ == rt; }
 };
@@ -640,6 +643,8 @@ class MarkingValidator;
 
 typedef Vector<JS::Zone *, 1, SystemAllocPolicy> ZoneVector;
 
+class AutoLockForExclusiveAccess;
+
 } 
 
 struct JSRuntime : public JS::shadow::Runtime,
@@ -655,7 +660,13 @@ struct JSRuntime : public JS::shadow::Runtime,
 
 
 
-    js::PerThreadData   mainThread;
+    js::PerThreadData mainThread;
+
+    
+
+
+
+    mozilla::LinkedList<js::PerThreadData> threadList;
 
     
 
@@ -707,6 +718,37 @@ struct JSRuntime : public JS::shadow::Runtime,
     bool currentThreadOwnsOperationCallbackLock() {
 #if defined(JS_THREADSAFE) && defined(DEBUG)
         return operationCallbackOwner == PR_GetCurrentThread();
+#else
+        return true;
+#endif
+    }
+
+#ifdef JS_THREADSAFE
+  private:
+    
+
+
+
+
+
+
+
+    PRLock *exclusiveAccessLock;
+    mozilla::DebugOnly<PRThread *> exclusiveAccessOwner;
+    mozilla::DebugOnly<bool> mainThreadHasExclusiveAccess;
+
+    
+    size_t numExclusiveThreads;
+
+    friend class js::AutoLockForExclusiveAccess;
+
+  public:
+#endif 
+
+    bool currentThreadHasExclusiveAccess() {
+#if defined(JS_THREADSAFE) && defined(DEBUG)
+        return (!numExclusiveThreads && mainThreadHasExclusiveAccess) ||
+            exclusiveAccessOwner == PR_GetCurrentThread();
 #else
         return true;
 #endif
@@ -1712,6 +1754,38 @@ class RuntimeAllocPolicy
     void *realloc_(void *p, size_t bytes) { return runtime->realloc_(p, bytes); }
     void free_(void *p) { js_free(p); }
     void reportAllocOverflow() const {}
+};
+
+
+
+
+class ThreadDataIter {
+    PerThreadData *iter;
+
+public:
+    explicit inline ThreadDataIter(JSRuntime *rt);
+
+    bool done() const {
+        return !iter;
+    }
+
+    void next() {
+        JS_ASSERT(!done());
+        iter = iter->getNext();
+    }
+
+    PerThreadData *get() const {
+        JS_ASSERT(!done());
+        return iter;
+    }
+
+    operator PerThreadData *() const {
+        return get();
+    }
+
+    PerThreadData *operator ->() const {
+        return get();
+    }
 };
 
 } 

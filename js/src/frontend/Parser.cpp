@@ -2223,6 +2223,8 @@ Parser<ParseHandler>::functionArgsAndBodyGeneric(Node pn, HandleFunction fun, Fu
     
     
 
+    context->maybePause();
+
     Node prelude = null();
     bool hasRest;
     if (!functionArguments(kind, &prelude, pn, hasRest))

@@ -15,15 +15,15 @@
 namespace js {
 
  inline void
-ArrayObject::setLength(JSContext *cx, Handle<ArrayObject*> arr, uint32_t length)
+ArrayObject::setLength(ExclusiveContext *cx, Handle<ArrayObject*> arr, uint32_t length)
 {
     JS_ASSERT(arr->lengthIsWritable());
 
     if (length > INT32_MAX) {
         
-        js::types::MarkTypeObjectFlags(cx, arr, js::types::OBJECT_FLAG_LENGTH_OVERFLOW);
-        jsid lengthId = js::NameToId(cx->names().length);
-        js::types::AddTypePropertyId(cx, arr, lengthId, js::types::Type::DoubleType());
+        types::MarkTypeObjectFlags(cx, arr, types::OBJECT_FLAG_LENGTH_OVERFLOW);
+        jsid lengthId = NameToId(cx->names().length);
+        types::AddTypePropertyId(cx, arr, lengthId, types::Type::DoubleType());
     }
 
     arr->getElementsHeader()->length = length;

@@ -186,7 +186,10 @@ struct Zone : private JS::shadow::Zone,
 
     void scheduleGC() {
         JS_ASSERT(!rt->isHeapBusy());
-        gcScheduled = true;
+
+        
+        if (!usedByExclusiveThread)
+            gcScheduled = true;
     }
 
     void unscheduleGC() {
@@ -234,6 +237,9 @@ struct Zone : private JS::shadow::Zone,
     double                       gcHeapGrowthFactor;
 
     bool                         isSystem;
+
+    
+    bool usedByExclusiveThread;
 
     
 

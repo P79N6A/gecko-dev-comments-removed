@@ -30,10 +30,11 @@ namespace ion {
 }
 
 #if defined(JS_THREADSAFE) && defined(JS_ION)
-# define JS_PARALLEL_COMPILATION
+# define JS_WORKER_THREADS
 
 struct WorkerThread;
 struct AsmJSParallelTask;
+struct ParseTask;
 
 
 class WorkerThreadState
@@ -43,23 +44,35 @@ class WorkerThreadState
     WorkerThread *threads;
     size_t numThreads;
 
+    
+
+
+
+    volatile size_t shouldPause;
+
+    
+    uint32_t numPaused;
+
     enum CondVar {
         MAIN,
         WORKER
     };
 
     
-    js::Vector<ion::IonBuilder*, 0, SystemAllocPolicy> ionWorklist;
+    Vector<ion::IonBuilder*, 0, SystemAllocPolicy> ionWorklist;
 
     
-    js::Vector<AsmJSParallelTask*, 0, SystemAllocPolicy> asmJSWorklist;
+    Vector<AsmJSParallelTask*, 0, SystemAllocPolicy> asmJSWorklist;
 
     
 
 
 
 
-    js::Vector<AsmJSParallelTask*, 0, SystemAllocPolicy> asmJSFinishedList;
+    Vector<AsmJSParallelTask*, 0, SystemAllocPolicy> asmJSFinishedList;
+
+    
+    Vector<ParseTask*, 0, SystemAllocPolicy> parseWorklist, parseFinishedList;
 
     WorkerThreadState() { mozilla::PodZero(this); }
     ~WorkerThreadState();
@@ -152,10 +165,19 @@ struct WorkerThread
     
     AsmJSParallelTask *asmData;
 
+    
+    ParseTask *parseTask;
+
+    bool idle() const {
+        return !ionBuilder && !asmData && !parseTask;
+    }
+
+    void pause();
     void destroy();
 
     void handleAsmJSWorkload(WorkerThreadState &state);
     void handleIonWorkload(WorkerThreadState &state);
+    void handleParseWorkload(WorkerThreadState &state);
 
     static void ThreadMain(void *arg);
     void threadLoop();
@@ -166,7 +188,7 @@ struct WorkerThread
 inline bool
 OffThreadCompilationEnabled(JSContext *cx)
 {
-#ifdef JS_PARALLEL_COMPILATION
+#ifdef JS_WORKER_THREADSj
     return ion::js_IonOptions.parallelCompilation
         && cx->runtime()->useHelperThreads()
         && cx->runtime()->helperThreadCount() != 0;
@@ -179,7 +201,7 @@ OffThreadCompilationEnabled(JSContext *cx)
 
 
 bool
-EnsureParallelCompilationInitialized(JSRuntime *rt);
+EnsureWorkerThreadsInitialized(JSRuntime *rt);
 
 
 bool
@@ -199,6 +221,18 @@ StartOffThreadIonCompile(JSContext *cx, ion::IonBuilder *builder);
 void
 CancelOffThreadIonCompile(JSCompartment *compartment, JSScript *script);
 
+
+
+
+
+bool
+StartOffThreadParseScript(JSContext *cx, const CompileOptions &options,
+                          const jschar *chars, size_t length);
+
+
+void
+WaitForOffThreadParsingToFinish(JSRuntime *rt);
+
 class AutoLockWorkerThreadState
 {
     JSRuntime *rt;
@@ -211,7 +245,7 @@ class AutoLockWorkerThreadState
       : rt(rt)
     {
         MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-#ifdef JS_PARALLEL_COMPILATION
+#ifdef JS_WORKER_THREADS
         JS_ASSERT(rt->workerThreadState);
         rt->workerThreadState->lock();
 #else
@@ -221,7 +255,7 @@ class AutoLockWorkerThreadState
 
     ~AutoLockWorkerThreadState()
     {
-#ifdef JS_PARALLEL_COMPILATION
+#ifdef JS_WORKER_THREADS
         rt->workerThreadState->unlock();
 #endif
     }
@@ -239,7 +273,7 @@ class AutoUnlockWorkerThreadState
       : rt(rt)
     {
         MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-#ifdef JS_PARALLEL_COMPILATION
+#ifdef JS_WORKER_THREADS
         JS_ASSERT(rt->workerThreadState);
         rt->workerThreadState->unlock();
 #else
@@ -249,10 +283,46 @@ class AutoUnlockWorkerThreadState
 
     ~AutoUnlockWorkerThreadState()
     {
-#ifdef JS_PARALLEL_COMPILATION
+#ifdef JS_WORKER_THREADS
         rt->workerThreadState->lock();
 #endif
     }
+};
+
+
+class AutoPauseWorkersForGC
+{
+    JSRuntime *runtime;
+    bool needsUnpause;
+    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+
+  public:
+    AutoPauseWorkersForGC(JSRuntime *rt MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
+    ~AutoPauseWorkersForGC();
+};
+
+
+void
+PauseOffThreadParsing();
+
+
+void
+ResumeOffThreadParsing();
+
+struct ParseTask
+{
+    JSRuntime *runtime;
+    ExclusiveContext *cx;
+    CompileOptions options;
+    const jschar *chars;
+    size_t length;
+    LifoAlloc alloc;
+
+    JSScript *script;
+
+    ParseTask(JSRuntime *rt, ExclusiveContext *cx, const CompileOptions &options,
+              const jschar *chars, size_t length);
+    ~ParseTask();
 };
 
 } 

@@ -140,6 +140,7 @@ class DtoaCache;
 
 
 
+
 struct ThreadSafeContext : ContextFriendFields,
                            public MallocProvider<ThreadSafeContext>
 {
@@ -279,22 +280,64 @@ struct ThreadSafeContext : ContextFriendFields,
     }
 };
 
+struct WorkerThread;
+
 class ExclusiveContext : public ThreadSafeContext
 {
     friend class gc::ArenaLists;
     friend class CompartmentChecker;
-    friend class AutoEnterAtomsCompartment;
+    friend class AutoCompartment;
+    friend class AutoLockForExclusiveAccess;
     friend struct StackBaseShape;
     friend void JSScript::initCompartmentAndPrincipals(ExclusiveContext *cx,
                                                        const JS::CompileOptions &options);
 
-    inline void privateSetCompartment(JSCompartment *comp);
+    
+    WorkerThread *workerThread;
 
   public:
 
     ExclusiveContext(JSRuntime *rt, PerThreadData *pt, ContextKind kind)
-      : ThreadSafeContext(rt, pt, kind)
+      : ThreadSafeContext(rt, pt, kind),
+        workerThread(NULL),
+        enterCompartmentDepth_(0)
     {}
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  protected:
+    unsigned            enterCompartmentDepth_;
+    inline void setCompartment(JSCompartment *comp);
+  public:
+    bool hasEnteredCompartment() const {
+        return enterCompartmentDepth_ > 0;
+    }
+#ifdef DEBUG
+    unsigned getEnterCompartmentDepth() const {
+        return enterCompartmentDepth_;
+    }
+#endif
+
+    inline void enterCompartment(JSCompartment *c);
+    inline void leaveCompartment(JSCompartment *oldCompartment);
+
+    void setWorkerThread(WorkerThread *workerThread);
+
+    
+    inline void maybePause() const;
 
     inline bool typeInferenceEnabled() const;
 
@@ -314,17 +357,22 @@ class ExclusiveContext : public ThreadSafeContext
     
 
     frontend::ParseMapPool &parseMapPool() {
-        runtime_->assertValidThread();
+        JS_ASSERT(runtime_->currentThreadHasExclusiveAccess());
         return runtime_->parseMapPool;
     }
 
     AtomSet &atoms() {
-        runtime_->assertValidThread();
+        JS_ASSERT(runtime_->currentThreadHasExclusiveAccess());
         return runtime_->atoms;
     }
 
+    JSCompartment *atomsCompartment() {
+        JS_ASSERT(runtime_->currentThreadHasExclusiveAccess());
+        return runtime_->atomsCompartment;
+    }
+
     ScriptDataTable &scriptDataTable() {
-        runtime_->assertValidThread();
+        JS_ASSERT(runtime_->currentThreadHasExclusiveAccess());
         return runtime_->scriptDataTable;
     }
 };
@@ -353,6 +401,8 @@ struct JSContext : public js::ExclusiveContext,
     }
     js::PerThreadData &mainThread() const { return runtime()->mainThread; }
 
+    friend class js::ExclusiveContext;
+
   private:
     
     bool                throwing;            
@@ -368,38 +418,6 @@ struct JSContext : public js::ExclusiveContext,
 
     
     bool                generatingError;
-
-    inline void setCompartment(JSCompartment *comp);
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  private:
-    unsigned            enterCompartmentDepth_;
-  public:
-    bool hasEnteredCompartment() const {
-        return enterCompartmentDepth_ > 0;
-    }
-#ifdef DEBUG
-    unsigned getEnterCompartmentDepth() const {
-        return enterCompartmentDepth_;
-    }
-#endif
-
-    inline void enterCompartment(JSCompartment *c);
-    inline void leaveCompartment(JSCompartment *oldCompartment);
 
     
   private:

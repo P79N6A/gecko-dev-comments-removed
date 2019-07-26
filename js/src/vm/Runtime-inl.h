@@ -13,6 +13,7 @@
 #include "jsfriendapi.h"
 #include "jsgc.h"
 #include "jsiter.h"
+#include "jsworkers.h"
 
 #include "builtin/Object.h" 
 #include "frontend/ParseMaps.h"
@@ -74,6 +75,17 @@ NewObjectCache::newObjectFromHit(JSContext *cx, EntryIndex entry_, js::gc::Initi
     }
 
     return NULL;
+}
+
+inline
+ThreadDataIter::ThreadDataIter(JSRuntime *rt)
+{
+#ifdef JS_WORKER_THREADS
+    
+    
+    JS_ASSERT_IF(rt->workerThreadState, rt->workerThreadState->shouldPause);
+#endif
+    iter = rt->threadList.getFirst();
 }
 
 }  
