@@ -205,8 +205,6 @@ SPSProfiler::pop()
 const char*
 SPSProfiler::allocProfileString(JSContext *cx, JSScript *script, JSFunction *maybeFun)
 {
-    
-    
     DebugOnly<uint64_t> gcBefore = cx->runtime()->gcNumber;
     StringBuffer buf(cx);
     bool hasAtom = maybeFun != NULL && maybeFun->displayAtom() != NULL;
