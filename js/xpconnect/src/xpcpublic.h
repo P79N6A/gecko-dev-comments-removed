@@ -407,6 +407,20 @@ Throw(JSContext *cx, nsresult rv);
 
 nsIGlobalObject *
 GetNativeForGlobal(JSObject *global);
+
+
+
+
+
+
+
+
+
+
+
+
+JSObject *
+GetJunkScope();
 } 
 
 nsCycleCollectionParticipant *
