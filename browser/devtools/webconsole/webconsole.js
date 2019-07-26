@@ -31,8 +31,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "AutocompletePopup",
 XPCOMUtils.defineLazyModuleGetter(this, "WebConsoleUtils",
                                   "resource://gre/modules/devtools/WebConsoleUtils.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "Promise",
-                                  "resource://gre/modules/commonjs/sdk/core/promise.js");
+XPCOMUtils.defineLazyModuleGetter(this, "promise",
+                                  "resource://gre/modules/commonjs/sdk/core/promise.js", "Promise");
 
 XPCOMUtils.defineLazyModuleGetter(this, "VariablesView",
                                   "resource:///modules/devtools/VariablesView.jsm");
@@ -367,7 +367,7 @@ WebConsoleFrame.prototype = {
 
   getSaveRequestAndResponseBodies:
   function WCF_getSaveRequestAndResponseBodies() {
-    let deferred = Promise.defer();
+    let deferred = promise.defer();
     let toGet = [
       "NetworkMonitor.saveRequestAndResponseBodies"
     ];
@@ -394,7 +394,7 @@ WebConsoleFrame.prototype = {
 
   setSaveRequestAndResponseBodies:
   function WCF_setSaveRequestAndResponseBodies(aValue) {
-    let deferred = Promise.defer();
+    let deferred = promise.defer();
     let newValue = !!aValue;
     let toSet = {
       "NetworkMonitor.saveRequestAndResponseBodies": newValue,
@@ -447,7 +447,7 @@ WebConsoleFrame.prototype = {
       return this._initDefer.promise;
     }
 
-    this._initDefer = Promise.defer();
+    this._initDefer = promise.defer();
     this.proxy = new WebConsoleConnectionProxy(this, this.owner.target);
 
     this.proxy.connect().then(() => { 
@@ -2736,7 +2736,7 @@ WebConsoleFrame.prototype = {
       return this._destroyer.promise;
     }
 
-    this._destroyer = Promise.defer();
+    this._destroyer = promise.defer();
 
     this._repeatNodes = {};
     this._outputQueue = [];
@@ -3139,7 +3139,7 @@ JSTerm.prototype = {
 
   requestEvaluation: function JST_requestEvaluation(aString, aOptions = {})
   {
-    let deferred = Promise.defer();
+    let deferred = promise.defer();
 
     function onResult(aResponse) {
       if (!aResponse.error) {
@@ -3238,10 +3238,10 @@ JSTerm.prototype = {
       return view;
     };
 
-    let promise;
+    let openPromise;
     if (aOptions.targetElement) {
-      let deferred = Promise.defer();
-      promise = deferred.promise;
+      let deferred = promise.defer();
+      openPromise = deferred.promise;
       let document = aOptions.targetElement.ownerDocument;
       let iframe = document.createElement("iframe");
 
@@ -3258,10 +3258,10 @@ JSTerm.prototype = {
       if (!this.sidebar) {
         this._createSidebar();
       }
-      promise = this._addVariablesViewSidebarTab();
+      openPromise = this._addVariablesViewSidebarTab();
     }
 
-    return promise.then(onContainerReady);
+    return openPromise.then(onContainerReady);
   },
 
   
@@ -3287,7 +3287,7 @@ JSTerm.prototype = {
 
   _addVariablesViewSidebarTab: function JST__addVariablesViewSidebarTab()
   {
-    let deferred = Promise.defer();
+    let deferred = promise.defer();
 
     let onTabReady = () => {
       let window = this.sidebar.getWindowForTab("variablesview");
@@ -4671,15 +4671,15 @@ WebConsoleConnectionProxy.prototype = {
       return this._connectDefer.promise;
     }
 
-    this._connectDefer = Promise.defer();
+    this._connectDefer = promise.defer();
 
     let timeout = Services.prefs.getIntPref(PREF_CONNECTION_TIMEOUT);
     this._connectTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
     this._connectTimer.initWithCallback(this._connectionTimeout,
                                         timeout, Ci.nsITimer.TYPE_ONE_SHOT);
 
-    let promise = this._connectDefer.promise;
-    promise.then(function _onSucess() {
+    let connPromise = this._connectDefer.promise;
+    connPromise.then(function _onSucess() {
       this._connectTimer.cancel();
       this._connectTimer = null;
     }.bind(this), function _onFailure() {
@@ -4705,7 +4705,7 @@ WebConsoleConnectionProxy.prototype = {
     }
     this._attachConsole();
 
-    return promise;
+    return connPromise;
   },
 
   
@@ -4968,7 +4968,7 @@ WebConsoleConnectionProxy.prototype = {
       return this._disconnecter.promise;
     }
 
-    this._disconnecter = Promise.defer();
+    this._disconnecter = promise.defer();
 
     if (!this.client) {
       this._disconnecter.resolve(null);

@@ -14,7 +14,7 @@ Cu.import("resource://gre/modules/devtools/Loader.jsm", tempScope);
 let TargetFactory = tempScope.devtools.TargetFactory;
 Components.utils.import("resource://gre/modules/devtools/Console.jsm", tempScope);
 let console = tempScope.console;
-let Promise = Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js", {}).Promise;
+let promise = Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js", {}).Promise;
 
 
 let gPendingOutputTest = 0;
@@ -442,7 +442,7 @@ function findVariableViewProperties(aView, aRules, aOptions)
     
     let returnResults = onAllRulesMatched.bind(null, aRules);
 
-    return Promise.all(outstanding).then(lastStep).then(returnResults);
+    return promise.all(outstanding).then(lastStep).then(returnResults);
   }
 
   function onMatch(aProp, aRule, aMatched)
@@ -466,10 +466,10 @@ function findVariableViewProperties(aView, aRules, aOptions)
   {
     let rule = aRules.shift();
     if (!rule) {
-      return Promise.resolve(null);
+      return promise.resolve(null);
     }
 
-    let deferred = Promise.defer();
+    let deferred = promise.defer();
     let expandOptions = {
       rootVariable: aView,
       expandTo: rule.name,
@@ -486,7 +486,7 @@ function findVariableViewProperties(aView, aRules, aOptions)
         rule.name = name;
       });
     }, function onFailure() {
-      return Promise.resolve(null);
+      return promise.resolve(null);
     }).then(processExpandRules.bind(null, aRules)).then(function() {
       deferred.resolve(null);
     });
@@ -534,7 +534,7 @@ function findVariableViewProperties(aView, aRules, aOptions)
 function matchVariablesViewProperty(aProp, aRule, aOptions)
 {
   function resolve(aResult) {
-    return Promise.resolve(aResult);
+    return promise.resolve(aResult);
   }
 
   if (aRule.name) {
@@ -590,9 +590,9 @@ function matchVariablesViewProperty(aProp, aRule, aOptions)
     }));
   }
 
-  outstanding.push(Promise.resolve(true));
+  outstanding.push(promise.resolve(true));
 
-  return Promise.all(outstanding).then(function _onMatchDone(aResults) {
+  return promise.all(outstanding).then(function _onMatchDone(aResults) {
     let ruleMatched = aResults.indexOf(false) == -1;
     return resolve(ruleMatched);
   });
@@ -613,10 +613,10 @@ function matchVariablesViewProperty(aProp, aRule, aOptions)
 function isVariableViewPropertyIterator(aProp, aWebConsole)
 {
   if (aProp.displayValue == "Iterator") {
-    return Promise.resolve(true);
+    return promise.resolve(true);
   }
 
-  let deferred = Promise.defer();
+  let deferred = promise.defer();
 
   variablesViewExpandTo({
     rootVariable: aProp,
@@ -654,16 +654,16 @@ function variablesViewExpandTo(aOptions)
   let root = aOptions.rootVariable;
   let expandTo = aOptions.expandTo.split(".");
   let jsterm = (aOptions.webconsole || {}).jsterm;
-  let lastDeferred = Promise.defer();
+  let lastDeferred = promise.defer();
 
   function fetch(aProp)
   {
     if (!aProp.onexpand) {
       ok(false, "property " + aProp.name + " cannot be expanded: !onexpand");
-      return Promise.reject(aProp);
+      return promise.reject(aProp);
     }
 
-    let deferred = Promise.defer();
+    let deferred = promise.defer();
 
     if (aProp._fetched || !jsterm) {
       executeSoon(function() {
@@ -792,7 +792,7 @@ function openDebugger(aOptions = {})
     aOptions.tab = gBrowser.selectedTab;
   }
 
-  let deferred = Promise.defer();
+  let deferred = promise.defer();
 
   let target = TargetFactory.forTab(aOptions.tab);
   let toolbox = gDevTools.getToolbox(target);
@@ -904,7 +904,7 @@ function waitForMessages(aOptions)
   let rules = WebConsoleUtils.cloneObject(aOptions.messages, true);
   let rulesMatched = 0;
   let listenerAdded = false;
-  let deferred = Promise.defer();
+  let deferred = promise.defer();
 
   function checkText(aRule, aText)
   {

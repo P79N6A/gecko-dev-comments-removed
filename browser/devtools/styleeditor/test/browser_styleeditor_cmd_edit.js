@@ -1,14 +1,14 @@
-/* Any copyright is dedicated to the Public Domain.
- * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-// Tests that the edit command works
+
+
+
 
 const TEST_URI = "http://example.com/browser/browser/devtools/styleeditor/" +
                  "test/browser_styleeditor_cmd_edit.html";
 
 
 function test() {
-  let windowClosed = Promise.defer();
+  let windowClosed = promise.defer();
 
   helpers.addTabWithToolbar(TEST_URI, function(options) {
     return helpers.audit(options, [
@@ -156,13 +156,13 @@ function test() {
         },
       },
       {
-        // Bug 759853
+        
         skipIf: true,
         name: "edit exec",
         setup: function() {
           var windowListener = {
             onOpenWindow: function(win) {
-              // Wait for the window to finish loading
+              
               let win = win.QueryInterface(Ci.nsIInterfaceRequestor)
                       .getInterface(Ci.nsIDOMWindowInternal || Ci.nsIDOMWindow);
               win.addEventListener("load", function onLoad() {

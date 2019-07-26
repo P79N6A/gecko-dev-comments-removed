@@ -37,7 +37,7 @@ function test() {
 
     
       .then(function () {
-        let deferred = Promise.defer();
+        let deferred = promise.defer();
         target.once("navigate", function () deferred.resolve());
         gBrowser.loadURI(URL_2);
         return deferred.promise;

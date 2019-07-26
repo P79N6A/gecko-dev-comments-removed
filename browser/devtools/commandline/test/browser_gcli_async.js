@@ -1,15 +1,15 @@
-/*
- * Copyright 2009-2011 Mozilla Foundation and contributors
- * Licensed under the New BSD license. See LICENSE.txt or:
- * http://opensource.org/licenses/BSD-3-Clause
- */
 
-// define(function(require, exports, module) {
 
-// <INJECTED SOURCE:START>
 
-// THIS FILE IS GENERATED FROM SOURCE IN THE GCLI PROJECT
-// DO NOT EDIT IT DIRECTLY
+
+
+
+
+
+
+
+
+
 
 var exports = {};
 
@@ -21,17 +21,17 @@ function test() {
   }).then(finish);
 }
 
-// <INJECTED SOURCE:END>
+
 
 'use strict';
 
-// var helpers = require('gclitest/helpers');
+
 var canon = require('gcli/canon');
-var Promise = require('util/promise');
+var promise = require('util/promise');
 
 exports.testBasic = function(options) {
   var getData = function() {
-    var deferred = Promise.defer();
+    var deferred = promise.defer();
 
     var resolve = function() {
       deferred.resolve([
@@ -166,4 +166,4 @@ exports.testBasic = function(options) {
 };
 
 
-// });
+

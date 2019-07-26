@@ -10,8 +10,8 @@ const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "Promise",
-    "resource://gre/modules/commonjs/sdk/core/promise.js");
+XPCOMUtils.defineLazyModuleGetter(this, "promise",
+    "resource://gre/modules/commonjs/sdk/core/promise.js", "Promise");
 
 XPCOMUtils.defineLazyModuleGetter(this, "HUDService",
     "resource:///modules/HUDService.jsm");
@@ -44,7 +44,7 @@ WebConsolePanel.prototype = {
     iframe.className = "web-console-frame";
 
     
-    let deferredIframe = Promise.defer();
+    let deferredIframe = promise.defer();
     let win, doc;
     if ((win = iframe.contentWindow) &&
         (doc = win.document) &&
@@ -64,7 +64,7 @@ WebConsolePanel.prototype = {
       promiseTarget = this.target.makeRemote();
     }
     else {
-      promiseTarget = Promise.resolve(this.target);
+      promiseTarget = promise.resolve(this.target);
     }
 
     

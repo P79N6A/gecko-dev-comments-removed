@@ -30,8 +30,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "DebuggerClient",
 XPCOMUtils.defineLazyModuleGetter(this, "WebConsoleUtils",
     "resource://gre/modules/devtools/WebConsoleUtils.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "Promise",
-    "resource://gre/modules/commonjs/sdk/core/promise.js");
+XPCOMUtils.defineLazyModuleGetter(this, "promise",
+    "resource://gre/modules/commonjs/sdk/core/promise.js", "Promise");
 
 XPCOMUtils.defineLazyModuleGetter(this, "Heritage",
     "resource:///modules/devtools/ViewHelpers.jsm");
@@ -473,7 +473,7 @@ WebConsole.prototype = {
 
     delete HUDService.hudReferences[this.hudId];
 
-    this._destroyer = Promise.defer();
+    this._destroyer = promise.defer();
 
     let popupset = this.mainPopupSet;
     let panels = popupset.querySelectorAll("panel[hudId=" + this.hudId + "]");
@@ -587,7 +587,7 @@ BrowserConsole.prototype = Heritage.extend(WebConsole.prototype,
 
     this._telemetry.toolClosed("browserconsole");
 
-    this._bc_destroyer = Promise.defer();
+    this._bc_destroyer = promise.defer();
 
     let chromeWindow = this.chromeWindow;
     this.$destroy().then(() =>
@@ -661,11 +661,11 @@ var HeadsUpDisplayUICommands = {
       return this._browserConsoleDefer.promise;
     }
 
-    this._browserConsoleDefer = Promise.defer();
+    this._browserConsoleDefer = promise.defer();
 
     function connect()
     {
-      let deferred = Promise.defer();
+      let deferred = promise.defer();
 
       if (!DebuggerServer.initialized) {
         DebuggerServer.init();
@@ -707,7 +707,7 @@ var HeadsUpDisplayUICommands = {
     {
       target = aTarget;
 
-      let deferred = Promise.defer();
+      let deferred = promise.defer();
 
       let win = Services.ww.openWindow(null, devtools.Tools.webConsole.url, "_blank",
                                        BROWSER_CONSOLE_WINDOW_FEATURES, null);

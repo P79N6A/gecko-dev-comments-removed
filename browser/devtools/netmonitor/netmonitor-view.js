@@ -170,7 +170,7 @@ let NetMonitorView = {
       return this._editorPromises.get(aId);
     }
 
-    let deferred = Promise.defer();
+    let deferred = promise.defer();
     this._editorPromises.set(aId, deferred.promise);
 
     

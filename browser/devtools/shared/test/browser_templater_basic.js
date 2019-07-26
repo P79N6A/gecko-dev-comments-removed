@@ -9,7 +9,7 @@
 
 
 
-var Promise = Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js", {}).Promise;
+var promise = Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js", {}).Promise;
 var template = Cu.import("resource://gre/modules/devtools/Templater.jsm", {}).template;
 
 const TEST_URI = "http://example.com/browser/browser/devtools/shared/test/browser_templater_basic.html";
@@ -280,7 +280,7 @@ var tests = [
 ];
 
 function delayReply(data) {
-  var d = Promise.defer();
+  var d = promise.defer();
   executeSoon(function() {
     d.resolve(data);
   });

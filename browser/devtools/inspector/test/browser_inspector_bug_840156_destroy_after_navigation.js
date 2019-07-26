@@ -1,7 +1,7 @@
 
 
 
-let Promise = devtools.require("sdk/core/promise");
+let promise = devtools.require("sdk/core/promise");
 let Toolbox = devtools.Toolbox;
 let TargetFactory = devtools.TargetFactory;
 
@@ -16,7 +16,7 @@ function test() {
   
   let tab = gBrowser.selectedTab = gBrowser.addTab();
   let target = TargetFactory.forTab(gBrowser.selectedTab);
-  let deferred = Promise.defer();
+  let deferred = promise.defer();
   let browser = gBrowser.getBrowserForTab(tab);
   function onTabLoad() {
     browser.removeEventListener("load", onTabLoad, true);
@@ -35,7 +35,7 @@ function test() {
 
   
     .then(function () {
-      let deferred = Promise.defer();
+      let deferred = promise.defer();
       target.once("navigate", function () deferred.resolve());
       browser.loadURI(URL_2);
       return deferred.promise;
