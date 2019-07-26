@@ -236,6 +236,16 @@ public:
     
     
   }
+
+  bool IsComposing() const
+  {
+    for (uint32_t i = 0; i < rangeCount; i++) {
+      if (rangeArray[i].IsClause()) {
+        return true;
+      }
+    }
+    return false;
+  }
 };
 
 

@@ -73,6 +73,18 @@ public:
 
   uint32_t OffsetOfTargetClause() const { return mCompositionTargetOffset; }
 
+  
+
+
+
+  bool IsComposing() const { return mIsComposing; }
+
+  
+
+
+
+  void EditorWillHandleTextEvent(const WidgetTextEvent* aTextEvent);
+
 private:
   
   
@@ -97,6 +109,9 @@ private:
 
   
   bool mIsSynthesizedForTests;
+
+  
+  bool mIsComposing;
 
   
   TextComposition() {}

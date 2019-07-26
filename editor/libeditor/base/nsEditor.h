@@ -600,8 +600,10 @@ public:
   nsINode* GetFirstEditableNode(nsINode* aRoot);
 
   int32_t GetIMEBufferLength();
-  bool IsIMEComposing();    
-  void SetIsIMEComposing(); 
+  
+
+
+  bool IsIMEComposing() const;
 
   
   static nsresult GetTagString(nsIDOMNode *aNode, nsAString& outString);
@@ -863,8 +865,6 @@ protected:
   EDirection        mDirection;          
   int8_t            mDocDirtyState;      
   uint8_t           mSpellcheckCheckboxState; 
-
-  bool mIsIMEComposing;   
 
   bool mShouldTxnSetSelection;  
   bool mDidPreDestroy;    

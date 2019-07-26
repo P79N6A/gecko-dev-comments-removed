@@ -4,6 +4,7 @@
 
 
 
+#include "TextComposition.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Selection.h"
@@ -848,16 +849,17 @@ nsPlaintextEditor::UpdateIMEComposition(nsIDOMEvent* aDOMTextEvent)
 
   nsRefPtr<nsCaret> caretP = ps->GetCaret();
 
-  
-  
   nsCOMPtr<nsIPrivateTextEvent> privateTextEvent =
     do_QueryInterface(aDOMTextEvent);
   NS_ENSURE_TRUE(privateTextEvent, NS_ERROR_INVALID_ARG);
-  mIMETextRangeList = privateTextEvent->GetInputRange();
-  NS_ABORT_IF_FALSE(mIMETextRangeList, "mIMETextRangeList must not be nullptr");
 
   
-  SetIsIMEComposing();
+  mComposition->EditorWillHandleTextEvent(widgetTextEvent);
+
+  
+  
+  mIMETextRangeList = privateTextEvent->GetInputRange();
+  NS_ABORT_IF_FALSE(mIMETextRangeList, "mIMETextRangeList must not be nullptr");
 
   {
     nsAutoPlaceHolderBatch batch(this, nsGkAtoms::IMETxnName);
@@ -875,7 +877,7 @@ nsPlaintextEditor::UpdateIMEComposition(nsIDOMEvent* aDOMTextEvent)
   
   
   
-  if (mIsIMEComposing) {
+  if (IsIMEComposing()) {
     NotifyEditorObservers();
   }
 
