@@ -504,7 +504,8 @@ nsFrameLoader::ReallyStartLoadingInternal()
   
   bool tmpState = mNeedsAsyncDestroy;
   mNeedsAsyncDestroy = true;
-  rv = mDocShell->LoadURI(mURIToLoad, loadInfo, flags, false);
+  nsCOMPtr<nsIURI> uriToLoad = mURIToLoad;
+  rv = mDocShell->LoadURI(uriToLoad, loadInfo, flags, false);
   mNeedsAsyncDestroy = tmpState;
   mURIToLoad = nullptr;
   NS_ENSURE_SUCCESS(rv, rv);
