@@ -4,20 +4,20 @@
 
 
 
-#ifndef mozilla_dom_telephony_voicemail_h__
-#define mozilla_dom_telephony_voicemail_h__
-
-#include "TelephonyCommon.h"
+#ifndef mozilla_dom_voicemail_voicemail_h__
+#define mozilla_dom_voicemail_voicemail_h__
 
 #include "nsDOMEvent.h"
 #include "nsDOMEventTargetHelper.h"
-#include "nsIDOMVoicemail.h"
+#include "nsIDOMMozVoicemail.h"
 #include "nsIRadioInterfaceLayer.h"
 
+class nsPIDOMWindow;
 class nsIRILContentHelper;
 class nsIDOMMozVoicemailStatus;
 
-BEGIN_TELEPHONY_NAMESPACE
+namespace mozilla {
+namespace dom {
 
 class Voicemail : public nsDOMEventTargetHelper,
                   public nsIDOMMozVoicemail
@@ -54,6 +54,10 @@ private:
   };
 };
 
-END_TELEPHONY_NAMESPACE
+} 
+} 
+
+nsresult
+NS_NewVoicemail(nsPIDOMWindow* aWindow, nsIDOMMozVoicemail** aVoicemail);
 
 #endif 

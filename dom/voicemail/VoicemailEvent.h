@@ -3,17 +3,16 @@
 
 
 
-#ifndef mozilla_dom_telephony_VoicemailEvent_h__
-#define mozilla_dom_telephony_VoicemailEvent_h__
+#ifndef mozilla_dom_voicemail_VoicemailEvent_h__
+#define mozilla_dom_voicemail_VoicemailEvent_h__
 
-#include "TelephonyCommon.h"
-
-#include "nsIDOMVoicemailEvent.h"
+#include "nsIDOMMozVoicemailEvent.h"
 #include "nsDOMEvent.h"
 
 class nsIDOMMozVoicemailStatus;
 
-BEGIN_TELEPHONY_NAMESPACE
+namespace mozilla {
+namespace dom {
 
 class VoicemailEvent : public nsIDOMMozVoicemailEvent,
                        public nsDOMEvent
@@ -37,6 +36,7 @@ private:
   nsCOMPtr<nsIDOMMozVoicemailStatus> mStatus;
 };
 
-END_TELEPHONY_NAMESPACE
+} 
+} 
 
 #endif 
