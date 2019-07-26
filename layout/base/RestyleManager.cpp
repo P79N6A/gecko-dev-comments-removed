@@ -389,8 +389,8 @@ RestyleManager::RecomputePosition(nsIFrame* aFrame)
   
   
   
-  nsRefPtr<nsRenderingContext> rc = aFrame->PresContext()->GetPresShell()->
-    GetReferenceRenderingContext();
+  nsRefPtr<nsRenderingContext> rc =
+    aFrame->PresContext()->PresShell()->CreateReferenceRenderingContext();
 
   
   

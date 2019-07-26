@@ -540,12 +540,8 @@ nsSVGForeignObjectFrame::DoReflow()
     return;
 
   
-  nsIPresShell* presShell = presContext->PresShell();
-  NS_ASSERTION(presShell, "null presShell");
   nsRefPtr<nsRenderingContext> renderingContext =
-    presShell->GetReferenceRenderingContext();
-  if (!renderingContext)
-    return;
+    presContext->PresShell()->CreateReferenceRenderingContext();
 
   mInReflow = true;
 

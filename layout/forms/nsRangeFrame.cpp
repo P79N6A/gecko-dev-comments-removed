@@ -515,7 +515,7 @@ nsRangeFrame::GetValueAtEventPoint(WidgetGUIEvent* aEvent)
     
     nsPresContext *presContext = PresContext();
     nsRefPtr<nsRenderingContext> tmpCtx =
-      presContext->PresShell()->GetReferenceRenderingContext();
+      presContext->PresShell()->CreateReferenceRenderingContext();
     bool notUsedCanOverride;
     nsIntSize size;
     presContext->GetTheme()->

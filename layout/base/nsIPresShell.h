@@ -135,8 +135,8 @@ typedef struct CapturingContentInfo {
 
 
 #define NS_IPRESSHELL_IID \
-{ 0xbccc1c01, 0x5123, 0x4f49, \
-  {0x95, 0x72, 0xc0, 0xbf, 0x50, 0x6b, 0x64, 0x18}}
+{ 0x61e60df7, 0x128a, 0x4cdd, \
+  {0xa6, 0x84, 0x5f, 0x0b, 0xd2, 0xce, 0xb6, 0x1f}}
 
 
 #define VERIFY_REFLOW_ON                    0x01
@@ -567,7 +567,7 @@ public:
 
 
 
-  virtual already_AddRefed<nsRenderingContext> GetReferenceRenderingContext() = 0;
+  virtual already_AddRefed<nsRenderingContext> CreateReferenceRenderingContext() = 0;
 
   
 
