@@ -60,10 +60,10 @@ DownloadsUI.prototype = {
   
   
 
-  show: function DUI_show(aWindowContext, aID, aReason, aUsePrivateUI)
+  show: function DUI_show(aWindowContext, aDownload, aReason, aUsePrivateUI)
   {
     if (DownloadsCommon.useToolkitUI) {
-      this._toolkitUI.show(aWindowContext, aID, aReason, aUsePrivateUI);
+      this._toolkitUI.show(aWindowContext, aDownload, aReason, aUsePrivateUI);
       return;
     }
 
@@ -76,19 +76,19 @@ DownloadsUI.prototype = {
       let browserWin = gBrowserGlue.getMostRecentBrowserWindow();
 
       if (!browserWin || browserWin.windowState == kMinimized) {
-        this._showDownloadManagerUI(aWindowContext, aID, aReason, aUsePrivateUI);
+        this._showDownloadManagerUI(aWindowContext, aUsePrivateUI);
       }
       else {
         
         
         browserWin.DownloadsButton.checkIsVisible(function(isVisible) {
           if (!isVisible) {
-            this._showDownloadManagerUI(aWindowContext, aID, aReason, aUsePrivateUI);
+            this._showDownloadManagerUI(aWindowContext, aUsePrivateUI);
           }
         }.bind(this));
       }
     } else {
-      this._showDownloadManagerUI(aWindowContext, aID, aReason, aUsePrivateUI);
+      this._showDownloadManagerUI(aWindowContext, aUsePrivateUI);
     }
   },
 
@@ -112,7 +112,7 @@ DownloadsUI.prototype = {
 
 
   _showDownloadManagerUI:
-  function DUI_showDownloadManagerUI(aWindowContext, aID, aReason, aUsePrivateUI)
+  function DUI_showDownloadManagerUI(aWindowContext, aUsePrivateUI)
   {
     
     

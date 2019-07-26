@@ -24,7 +24,7 @@ nsDownloadManagerUI.prototype = {
   
   
 
-  show: function show(aWindowContext, aID, aReason, aUsePrivateUI)
+  show: function show(aWindowContext, aDownload, aReason, aUsePrivateUI)
   {
     if (!aReason)
       aReason = Ci.nsIDownloadManagerUI.REASON_USER_INTERACTED;
@@ -52,15 +52,7 @@ nsDownloadManagerUI.prototype = {
 
     
     var params = Cc["@mozilla.org/array;1"].createInstance(Ci.nsIMutableArray);
-
-    
-    var download = null;
-    try {
-      let dm = Cc["@mozilla.org/download-manager;1"].
-               getService(Ci.nsIDownloadManager);
-      download = dm.getDownload(aID);
-    } catch (ex) {}
-    params.appendElement(download, false);
+    params.appendElement(aDownload, false);
 
     
     let reason = Cc["@mozilla.org/supports-PRInt16;1"].
