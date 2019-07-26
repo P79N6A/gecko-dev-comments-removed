@@ -13,12 +13,13 @@
 #include <io.h>
 #include <fcntl.h>
 #elif defined(XP_UNIX)
-#include <sys/time.h>
 #include <sys/resource.h>
+#include <time.h>
 #include <unistd.h>
 #endif
 
 #ifdef XP_MACOSX
+#include <mach/mach_time.h>
 #include "MacQuirks.h"
 #endif
 
@@ -388,25 +389,80 @@ static int do_main(int argc, char* argv[], nsIFile *xreDirectory)
   return 255;
 }
 
-
-static PRTime _PR_Now()
-{
 #ifdef XP_WIN
-  MOZ_STATIC_ASSERT(sizeof(PRTime) == sizeof(FILETIME), "PRTime must have the same size as FILETIME");
-  FILETIME ft;
-  GetSystemTimeAsFileTime(&ft);
-  PRTime now;
-  CopyMemory(&now, &ft, sizeof(PRTime));
-#ifdef __GNUC__
-  return (now - 116444736000000000LL) / 10LL;
-#else
-  return (now - 116444736000000000i64) / 10i64;
+
+
+
+
+
+static DWORD sLastGTCResult = 0;
+
+
+
+
+
+static DWORD sLastGTCRollover = 0;
+
+
+
+
+
+
+
+
+static ULONGLONG WINAPI
+MozGetTickCount64()
+{
+  DWORD GTC = ::GetTickCount();
+
+  
+
+  if ((sLastGTCResult > GTC) && ((sLastGTCResult - GTC) > (1UL << 30)))
+    ++sLastGTCRollover;
+
+  sLastGTCResult = GTC;
+  return (ULONGLONG)sLastGTCRollover << 32 | sLastGTCResult;
+}
+
+typedef ULONGLONG (WINAPI* GetTickCount64_t)();
+static GetTickCount64_t sGetTickCount64 = nullptr;
+
 #endif
 
-#else
-  struct timeval tm;
-  gettimeofday(&tm, 0);
-  return (((PRTime)tm.tv_sec * 1000000LL) + (PRTime)tm.tv_usec);
+
+
+
+
+static uint64_t
+TimeStamp_Now()
+{
+#ifdef XP_WIN
+  LARGE_INTEGER freq;
+  ::QueryPerformanceFrequency(&freq);
+
+  HMODULE kernelDLL = GetModuleHandleW(L"kernel32.dll");
+  sGetTickCount64 = reinterpret_cast<GetTickCount64_t>
+    (GetProcAddress(kernelDLL, "GetTickCount64"));
+
+  if (!sGetTickCount64) {
+    
+
+    sGetTickCount64 = MozGetTickCount64;
+  }
+
+  return sGetTickCount64() * freq.QuadPart;
+#elif defined(XP_MACOSX)
+  return mach_absolute_time();
+#elif defined(HAVE_CLOCK_MONOTONIC)
+  struct timespec ts;
+  int rv = clock_gettime(CLOCK_MONOTONIC, &ts);
+
+  if (rv != 0) {
+    return 0;
+  }
+
+  uint64_t baseNs = (uint64_t)ts.tv_sec * 1000000000;
+  return baseNs + (uint64_t)ts.tv_nsec;
 #endif
 }
 
@@ -528,7 +584,7 @@ int main(int argc, char* argv[])
 #ifdef DEBUG_delay_start_metro
   Sleep(5000);
 #endif
-  PRTime start = _PR_Now();
+  uint64_t start = TimeStamp_Now();
 
 #ifdef XP_MACOSX
   TriggerQuirks();
