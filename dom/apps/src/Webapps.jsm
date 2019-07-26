@@ -1630,7 +1630,7 @@ this.DOMApplicationRegistry = {
 
     
     
-    if (this._appId(app.origin) !== null) {
+    if (this._appId(app.origin) !== null && this._isLaunchable(app.origin)) {
       sendError("REINSTALL_FORBIDDEN");
       return;
     }
