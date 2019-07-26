@@ -135,9 +135,6 @@ var StarUI = {
       "chrome://browser/content/places/editBookmarkOverlay.xul",
       (function (aSubject, aTopic, aData) {
         
-        retrieveToolbarIconsizesFromTheme();
-
-        
         
         let header = this._element("editBookmarkPanelHeader");
         let rows = this._element("editBookmarkPanelGrid").lastChild;

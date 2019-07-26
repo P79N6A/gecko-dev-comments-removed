@@ -136,7 +136,8 @@ const DownloadsPanel = {
 
     
     
-    DownloadsCommon.initializeAllDataLinks();
+    
+    Services.downloads;
 
     
     
@@ -146,8 +147,6 @@ const DownloadsPanel = {
       DownloadsViewController.initialize();
       DownloadsCommon.log("Attaching DownloadsView...");
       DownloadsCommon.getData(window).addView(DownloadsView);
-      DownloadsCommon.getSummary(window, DownloadsView.kItemCountLimit)
-                     .addView(DownloadsSummary);
       DownloadsCommon.log("DownloadsView attached - the panel for this window",
                           "should now see download items come in.");
       DownloadsPanel._attachEventListeners();
@@ -176,8 +175,6 @@ const DownloadsPanel = {
 
     DownloadsViewController.terminate();
     DownloadsCommon.getData(window).removeView(DownloadsView);
-    DownloadsCommon.getSummary(window, DownloadsView.kItemCountLimit)
-                   .removeView(DownloadsSummary);
     this._unattachEventListeners();
 
     this._state = this.kStateUninitialized;
@@ -192,17 +189,10 @@ const DownloadsPanel = {
   
 
 
-
   get panel()
   {
-    
-    
-    let downloadsPanel = document.getElementById("downloadsPanel");
-    if (!downloadsPanel)
-      return null;
-
     delete this.panel;
-    return this.panel = downloadsPanel;
+    return this.panel = document.getElementById("downloadsPanel");
   },
 
   
@@ -641,11 +631,6 @@ const DownloadsOverlayLoader = {
       this._overlayLoading = false;
       this._loadedOverlays[aOverlay] = true;
 
-      
-      
-      
-      retrieveToolbarIconsizesFromTheme();
-
       this.processPendingRequests();
     }
 
@@ -782,6 +767,26 @@ const DownloadsView = {
     
     
     DownloadsPanel.onViewLoadCompleted();
+  },
+
+  
+
+
+
+
+  onDataInvalidated: function DV_onDataInvalidated()
+  {
+    DownloadsCommon.log("Downloads data has been invalidated. Cleaning up",
+                        "DownloadsView.");
+
+    DownloadsPanel.terminate();
+
+    
+    let emptyView = this.richListBox.cloneNode(false);
+    this.richListBox.parentNode.replaceChild(emptyView, this.richListBox);
+    this.richListBox = emptyView;
+    this._viewItems = {};
+    this._dataItems = [];
   },
 
   
@@ -1334,7 +1339,11 @@ const DownloadsViewController = {
   {
     
     if (aCommand == "downloadsCmd_clearList") {
-      return DownloadsCommon.getData(window).canRemoveFinished;
+      if (PrivateBrowsingUtils.isWindowPrivate(window)) {
+        return Services.downloads.canCleanUpPrivate;
+      } else {
+        return Services.downloads.canCleanUp;
+      }
     }
 
     
@@ -1381,7 +1390,11 @@ const DownloadsViewController = {
   commands: {
     downloadsCmd_clearList: function DVC_downloadsCmd_clearList()
     {
-      DownloadsCommon.getData(window).removeFinished();
+      if (PrivateBrowsingUtils.isWindowPrivate(window)) {
+        Services.downloads.cleanUpPrivate();
+      } else {
+        Services.downloads.cleanUp();
+      }
     }
   }
 };
@@ -1461,8 +1474,7 @@ DownloadsViewItemController.prototype = {
 
     downloadsCmd_open: function DVIC_downloadsCmd_open()
     {
-      this.dataItem.openLocalFile();
-
+      this.dataItem.openLocalFile(window);
       
       
       
@@ -1555,8 +1567,10 @@ const DownloadsSummary = {
     }
     if (aActive) {
       DownloadsCommon.getSummary(window, DownloadsView.kItemCountLimit)
-                     .refreshView(this);
+                     .addView(this);
     } else {
+      DownloadsCommon.getSummary(window, DownloadsView.kItemCountLimit)
+                     .removeView(this);
       DownloadsFooter.showingSummary = false;
     }
 

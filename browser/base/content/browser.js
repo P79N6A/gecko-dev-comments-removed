@@ -952,7 +952,6 @@ var gBrowserInit = {
     CombinedStopReload.init();
     gPrivateBrowsingUI.init();
     TabsInTitlebar.init();
-    retrieveToolbarIconsizesFromTheme();
 
     
     this._boundDelayedStartup = this._delayedStartup.bind(this, uriToLoad, mustLoadSidebar);
@@ -3302,29 +3301,6 @@ function BrowserToolboxCustomizeDone(aToolboxChanged) {
 function BrowserToolboxCustomizeChange(aType) {
   gHomeButton.updatePersonalToolbarStyle();
   BookmarksMenuButton.customizeChange();
-}
-
-
-
-
-function retrieveToolbarIconsizesFromTheme() {
-  function retrieveToolbarIconsize(aToolbar) {
-    if (aToolbar.localName != "toolbar")
-      return;
-
-    
-    
-    
-    
-    let counterReset = getComputedStyle(aToolbar).counterReset;
-    if (counterReset == "smallicons 0")
-      aToolbar.setAttribute("iconsize", "small");
-    else if (counterReset == "largeicons 0")
-      aToolbar.setAttribute("iconsize", "large");
-  }
-
-  Array.forEach(gNavToolbox.childNodes, retrieveToolbarIconsize);
-  gNavToolbox.externalToolbars.forEach(retrieveToolbarIconsize);
 }
 
 
