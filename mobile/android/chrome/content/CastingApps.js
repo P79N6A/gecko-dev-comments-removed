@@ -12,9 +12,9 @@ var CastingApps = {
     }
 
     
-    SimpleServiceDiscovery.registerTarget("roku:ecp", function(aService, aApp) {
+    SimpleServiceDiscovery.registerTarget("roku:ecp", function(aService) {
       Cu.import("resource://gre/modules/RokuApp.jsm");
-      return new RokuApp(aService, "FirefoxTest");
+      return new RokuApp(aService);
     });
 
     
@@ -361,7 +361,7 @@ var CastingApps = {
         return;
 
       
-      let app = SimpleServiceDiscovery.findAppForService(aService, "video-sharing");
+      let app = SimpleServiceDiscovery.findAppForService(aService);
       if (!app)
         return;
 
