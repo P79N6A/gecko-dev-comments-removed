@@ -1114,7 +1114,6 @@ GCRuntime::GCRuntime(JSRuntime *rt) :
     sliceCallback(nullptr),
     mallocBytes(0),
     mallocGCTriggered(false),
-    scriptAndCountsVector(nullptr),
 #ifdef DEBUG
     inUnsafeRegion(0),
 #endif
@@ -5372,105 +5371,6 @@ js::ReleaseAllJITCode(FreeOp *fop)
         zone->jitZone()->optimizedStubSpace()->free();
     }
 #endif
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-static void
-ReleaseScriptCounts(FreeOp *fop)
-{
-    JSRuntime *rt = fop->runtime();
-    JS_ASSERT(rt->gc.scriptAndCountsVector);
-
-    ScriptAndCountsVector &vec = *rt->gc.scriptAndCountsVector;
-
-    for (size_t i = 0; i < vec.length(); i++)
-        vec[i].scriptCounts.destroy(fop);
-
-    fop->delete_(rt->gc.scriptAndCountsVector);
-    rt->gc.scriptAndCountsVector = nullptr;
-}
-
-JS_FRIEND_API(void)
-js::StartPCCountProfiling(JSContext *cx)
-{
-    JSRuntime *rt = cx->runtime();
-
-    if (rt->profilingScripts)
-        return;
-
-    if (rt->gc.scriptAndCountsVector)
-        ReleaseScriptCounts(rt->defaultFreeOp());
-
-    ReleaseAllJITCode(rt->defaultFreeOp());
-
-    rt->profilingScripts = true;
-}
-
-JS_FRIEND_API(void)
-js::StopPCCountProfiling(JSContext *cx)
-{
-    JSRuntime *rt = cx->runtime();
-
-    if (!rt->profilingScripts)
-        return;
-    JS_ASSERT(!rt->gc.scriptAndCountsVector);
-
-    ReleaseAllJITCode(rt->defaultFreeOp());
-
-    ScriptAndCountsVector *vec = cx->new_<ScriptAndCountsVector>(SystemAllocPolicy());
-    if (!vec)
-        return;
-
-    for (ZonesIter zone(rt, SkipAtoms); !zone.done(); zone.next()) {
-        for (ZoneCellIter i(zone, FINALIZE_SCRIPT); !i.done(); i.next()) {
-            JSScript *script = i.get<JSScript>();
-            if (script->hasScriptCounts() && script->types) {
-                ScriptAndCounts sac;
-                sac.script = script;
-                sac.scriptCounts.set(script->releaseScriptCounts());
-                if (!vec->append(sac))
-                    sac.scriptCounts.destroy(rt->defaultFreeOp());
-            }
-        }
-    }
-
-    rt->profilingScripts = false;
-    rt->gc.scriptAndCountsVector = vec;
-}
-
-JS_FRIEND_API(void)
-js::PurgePCCounts(JSContext *cx)
-{
-    JSRuntime *rt = cx->runtime();
-
-    if (!rt->gc.scriptAndCountsVector)
-        return;
-    JS_ASSERT(!rt->profilingScripts);
-
-    ReleaseScriptCounts(rt->defaultFreeOp());
 }
 
 void
