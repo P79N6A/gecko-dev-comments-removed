@@ -1683,6 +1683,17 @@ public:
     Mutated();
   }
 
+  void SetBackgroundColor(const gfxRGBA& aColor)
+  {
+    if (mBackgroundColor == aColor) {
+      return;
+    }
+
+    MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) BackgroundColor", this));
+    mBackgroundColor = aColor;
+    Mutated();
+  }
+
   virtual void FillSpecificAttributes(SpecificLayerAttributes& aAttrs);
 
   void SortChildrenBy3DZOrder(nsTArray<Layer*>& aArray);
@@ -1700,6 +1711,8 @@ public:
   float GetPreYScale() const { return mPreYScale; }
   float GetInheritedXScale() const { return mInheritedXScale; }
   float GetInheritedYScale() const { return mInheritedYScale; }
+  
+  gfxRGBA GetBackgroundColor() const { return mBackgroundColor; }
 
   MOZ_LAYER_DECL_NAME("ContainerLayer", TYPE_CONTAINER)
 
@@ -1786,6 +1799,10 @@ protected:
   
   float mInheritedXScale;
   float mInheritedYScale;
+  
+  
+  
+  gfxRGBA mBackgroundColor;
   bool mUseIntermediateSurface;
   bool mSupportsComponentAlphaChildren;
   bool mMayHaveReadbackChild;

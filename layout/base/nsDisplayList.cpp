@@ -739,7 +739,6 @@ static void RecordFrameMetrics(nsIFrame* aForFrame,
   metrics.mCompositionBounds = RoundedToInt(LayoutDeviceRect::FromAppUnits(compositionBounds, auPerDevPixel)
                                             * layoutToParentLayerScale);
 
-
   
   
   
@@ -748,8 +747,9 @@ static void RecordFrameMetrics(nsIFrame* aForFrame,
   
   
   
-  bool isRootContentDocRootScrollFrame = presContext->IsRootContentDocument()
-                                      && aScrollFrame == presShell->GetRootScrollFrame();
+  bool isRootScrollFrame = aScrollFrame == presShell->GetRootScrollFrame();
+  bool isRootContentDocRootScrollFrame = isRootScrollFrame
+                                      && presContext->IsRootContentDocument();
   if (isRootContentDocRootScrollFrame) {
     if (nsIFrame* rootFrame = presShell->GetRootFrame()) {
       if (nsView* view = rootFrame->GetView()) {
@@ -818,6 +818,18 @@ static void RecordFrameMetrics(nsIFrame* aForFrame,
   }
 
   aRoot->SetFrameMetrics(metrics);
+
+  
+  
+  if (aScrollFrame) {
+    
+    
+    nsIFrame* backgroundFrame = isRootScrollFrame ? presShell->GetRootFrame() : aScrollFrame;
+    nsStyleContext* backgroundStyle;
+    if (nsCSSRendering::FindBackground(backgroundFrame, &backgroundStyle)) {
+      aRoot->SetBackgroundColor(backgroundStyle->StyleBackground()->mBackgroundColor);
+    }
+  }
 }
 
 nsDisplayListBuilder::~nsDisplayListBuilder() {
