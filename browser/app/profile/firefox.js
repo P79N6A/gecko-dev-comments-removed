@@ -194,7 +194,6 @@ pref("extensions.update.background.url", "https://versioncheck-bg.addons.mozilla
 pref("extensions.update.interval", 86400);  
                                             
 
-pref("extensions.getMoreThemesURL", "https://addons.mozilla.org/%LOCALE%/firefox/getpersonas");
 pref("extensions.dss.enabled", false);          
 pref("extensions.dss.switchPending", false);    
                                                 
