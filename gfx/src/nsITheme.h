@@ -153,9 +153,7 @@ public:
   
 
 
-  virtual bool ThemeDrawsFocusForWidget(nsPresContext* aPresContext,
-                                          nsIFrame* aFrame,
-                                          uint8_t aWidgetType)=0;
+  virtual bool ThemeDrawsFocusForWidget(uint8_t aWidgetType)=0;
   
   
 
