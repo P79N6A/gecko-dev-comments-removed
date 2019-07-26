@@ -8,8 +8,6 @@
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 
-const ENSURE_SELECTION_VISIBLE_DELAY = 50; 
-
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
 Cu.import("resource:///modules/devtools/shared/event-emitter.js");
@@ -137,7 +135,7 @@ SideMenuWidget.prototype = {
     let element = item.insertSelfAt(aIndex);
 
     if (this.maintainSelectionVisible) {
-      this.ensureSelectionIsVisible({ withGroup: true, delayed: true });
+      this.ensureElementIsVisible(this.selectedItem);
     }
     if (maintainScrollAtBottom) {
       this._list.scrollTop = this._list.scrollHeight;
@@ -228,17 +226,7 @@ SideMenuWidget.prototype = {
       }
     }
 
-    
-    
-    this.ensureSelectionIsVisible({ delayed: true });
-  },
-
-  
-
-
-
-  ensureSelectionIsVisible: function(aFlags) {
-    this.ensureElementIsVisible(this.selectedItem, aFlags);
+    this.ensureElementIsVisible(this.selectedItem);
   },
 
   
@@ -247,31 +235,14 @@ SideMenuWidget.prototype = {
 
 
 
-
-
-
-
-  ensureElementIsVisible: function(aElement, aFlags = {}) {
+  ensureElementIsVisible: function(aElement) {
     if (!aElement) {
       return;
     }
 
-    if (aFlags.delayed) {
-      delete aFlags.delayed;
-      this.window.clearTimeout(this._ensureVisibleTimeout);
-      this._ensureVisibleTimeout = this.window.setTimeout(() => {
-        this.ensureElementIsVisible(aElement, aFlags);
-      }, ENSURE_SELECTION_VISIBLE_DELAY);
-      return;
-    }
-
-    if (aFlags.withGroup) {
-      let groupList = aElement.parentNode;
-      let groupContainer = groupList.parentNode;
-      groupContainer.scrollIntoView(true); 
-    }
-
+    
     this._boxObject.ensureElementIsVisible(aElement);
+    this._boxObject.scrollBy(-aElement.clientWidth, 0);
   },
 
   
