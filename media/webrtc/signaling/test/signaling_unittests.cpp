@@ -1027,7 +1027,7 @@ void CreateAnswer(sipcc::MediaConstraints& constraints, std::string offer,
   
   
   void CloseSendStreams() {
-    static_cast<Fake_AudioStreamSource*>(
+    static_cast<Fake_MediaStream*>(
         domMediaStream_->GetStream())->StopStream();
   }
 
