@@ -28,7 +28,7 @@ function RemoteWebProgress(browser)
   this._browser = browser;
   this._isDocumentLoading = false;
   this._DOMWindow = null;
-  this._isTopLevel = true;
+  this._isTopLevel = null;
   this._progressListeners = [];
 }
 
@@ -59,7 +59,15 @@ RemoteWebProgress.prototype = {
   get isLoadingDocument() { return this._isDocumentLoading },
   get DOMWindow() { return this._DOMWindow; },
   get DOMWindowID() { return 0; },
-  get isTopLevel() { return this._isTopLevel; },
+  get isTopLevel() {
+    
+    
+    
+    
+    
+    
+    return this._isTopLevel === null ? true : this._isTopLevel;
+  },
 
   addProgressListener: function WP_AddProgressListener (aListener) {
     let listener = aListener.QueryInterface(Ci.nsIWebProgressListener);
@@ -124,5 +132,7 @@ RemoteWebProgress.prototype = {
       }
       break;
     }
+
+    this._isTopLevel = null;
   }
 };
