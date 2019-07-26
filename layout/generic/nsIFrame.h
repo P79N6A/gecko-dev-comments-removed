@@ -3026,7 +3026,7 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::ParagraphDepthProperty()))
 
 
 
-  virtual nsIContent* GetPseudoElementContent(nsCSSPseudoElements::Type aType);
+  virtual mozilla::dom::Element* GetPseudoElement(nsCSSPseudoElements::Type aType);
 
 protected:
   

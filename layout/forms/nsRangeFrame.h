@@ -24,6 +24,8 @@ class nsRangeFrame : public nsContainerFrame,
   nsRangeFrame(nsStyleContext* aContext);
   virtual ~nsRangeFrame();
 
+  typedef mozilla::dom::Element Element;
+
 public:
   NS_DECL_QUERYFRAME_TARGET(nsRangeFrame)
   NS_DECL_QUERYFRAME
@@ -122,11 +124,11 @@ public:
 
   void UpdateForValueChange();
 
-  virtual nsIContent* GetPseudoElementContent(nsCSSPseudoElements::Type aType) MOZ_OVERRIDE;
+  virtual Element* GetPseudoElement(nsCSSPseudoElements::Type aType) MOZ_OVERRIDE;
 
 private:
 
-  nsresult MakeAnonymousDiv(nsIContent** aResult,
+  nsresult MakeAnonymousDiv(Element** aResult,
                             nsCSSPseudoElements::Type aPseudoType,
                             nsTArray<ContentInfo>& aElements);
 
@@ -145,7 +147,7 @@ private:
 
 
 
-  nsCOMPtr<nsIContent> mTrackDiv;
+  nsCOMPtr<Element> mTrackDiv;
 
   
 
@@ -153,13 +155,13 @@ private:
 
 
 
-  nsCOMPtr<nsIContent> mProgressDiv;
+  nsCOMPtr<Element> mProgressDiv;
 
   
 
 
 
-  nsCOMPtr<nsIContent> mThumbDiv;
+  nsCOMPtr<Element> mThumbDiv;
 };
 
 #endif

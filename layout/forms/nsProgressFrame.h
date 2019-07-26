@@ -16,6 +16,8 @@ class nsBaseContentList;
 class nsProgressFrame : public nsContainerFrame,
                         public nsIAnonymousContentCreator
 {
+  typedef mozilla::dom::Element Element;
+
 public:
   NS_DECL_QUERYFRAME_TARGET(nsProgressFrame)
   NS_DECL_QUERYFRAME
@@ -71,7 +73,7 @@ public:
 
   bool ShouldUseNativeStyle() const;
 
-  virtual nsIContent* GetPseudoElementContent(nsCSSPseudoElements::Type aType) MOZ_OVERRIDE;
+  virtual Element* GetPseudoElement(nsCSSPseudoElements::Type aType) MOZ_OVERRIDE;
 
 protected:
   
@@ -84,7 +86,7 @@ protected:
 
 
 
-  nsCOMPtr<nsIContent> mBarDiv;
+  nsCOMPtr<Element> mBarDiv;
 };
 
 #endif

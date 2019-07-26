@@ -1961,6 +1961,12 @@ public:
   }
 
   
+
+
+
+  already_AddRefed<Element> CreateHTMLElement(nsIAtom* aTag);
+
+  
   nsIGlobalObject* GetParentObject() const
   {
     return GetScopeObject();
