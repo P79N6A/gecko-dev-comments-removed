@@ -183,12 +183,20 @@ ThreadStackHelper::FillStackBuffer() {
   
   const volatile StackEntry* entry = mPseudoStack->mStack;
   const volatile StackEntry* end = entry + mPseudoStack->stackSize();
+  
+  const char* prevLabel = nullptr;
   for (; reservedSize-- && entry != end; entry++) {
     
 
-    if (!entry->isCopyLabel()) {
-      mStackBuffer.infallibleAppend(entry->label());
+    if (entry->isCopyLabel()) {
+      continue;
     }
+    const char* const label = entry->label();
+    if (label == prevLabel) {
+      continue;
+    }
+    mStackBuffer.infallibleAppend(label);
+    prevLabel = label;
   }
   
   mMaxStackSize += (end - entry);
