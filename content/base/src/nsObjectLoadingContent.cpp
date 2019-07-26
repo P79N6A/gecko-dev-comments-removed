@@ -2399,6 +2399,14 @@ nsObjectLoadingContent::UnloadObject(bool aResetState)
 
   mScriptRequested = false;
 
+  if (!mInstanceOwner) {
+    
+    
+    
+    TeardownProtoChain();
+    mIsStopping = false;
+  }
+
   
   StopPluginInstance();
 }
@@ -2786,9 +2794,17 @@ nsObjectLoadingContent::DoStopPlugin(nsPluginInstanceOwner* aInstanceOwner,
     NS_ASSERTION(pluginHost, "No plugin host?");
     pluginHost->StopPluginInstance(inst);
   }
-  TeardownProtoChain();
+
   aInstanceOwner->Destroy();
 
+  
+  
+  if (!mIsStopping) {
+    LOG(("OBJLC [%p]: Re-entered in plugin teardown", this));
+    return;
+  }
+
+  TeardownProtoChain();
   mIsStopping = false;
 }
 
