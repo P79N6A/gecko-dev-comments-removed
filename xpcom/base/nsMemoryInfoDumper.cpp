@@ -31,7 +31,6 @@
 #endif
 
 #ifdef ANDROID
-#include <sys/types.h>
 #include <sys/stat.h>
 #endif
 
@@ -505,18 +504,20 @@ nsMemoryInfoDumper::DumpMemoryReportsToFileImpl(
   rv = tmpFile->AppendNative(NS_LITERAL_CSTRING("incomplete-") + filename);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
-  
-#ifdef ANDROID
-    
-    
-    mode_t mask = umask(0);
-#endif
-    rv = tmpFile->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0644);
-#ifdef ANDROID
-    umask(mask);
-#endif
+  rv = tmpFile->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0644);
   NS_ENSURE_SUCCESS(rv, rv);
+#ifdef ANDROID
+  {
+    
+    
+    
+    nsAutoCString path;
+    rv = tmpFile->GetNativePath(path);
+    if (NS_SUCCEEDED(rv)) {
+      chmod(PromiseFlatCString(path).get(), 0644);
+    }
+  }
+#endif
 
   nsRefPtr<nsGZFileWriter> writer = new nsGZFileWriter();
   rv = writer->Init(tmpFile);
