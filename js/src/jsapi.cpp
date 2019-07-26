@@ -1095,7 +1095,7 @@ JS_TransplantObject(JSContext *cx, HandleObject origobj, HandleObject target)
         
         
         
-        newIdentity = &p->value.toObject();
+        newIdentity = &p->value().toObject();
 
         
         

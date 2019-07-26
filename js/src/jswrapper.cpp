@@ -893,7 +893,7 @@ js::NukeCrossCompartmentWrappers(JSContext* cx,
         for (JSCompartment::WrapperEnum e(c); !e.empty(); e.popFront()) {
             
             
-            const CrossCompartmentKey &k = e.front().key;
+            const CrossCompartmentKey &k = e.front().key();
             if (k.kind != CrossCompartmentKey::ObjectWrapper)
                 continue;
 
@@ -941,7 +941,7 @@ js::RemapWrapper(JSContext *cx, JSObject *wobjArg, JSObject *newTargetArg)
     
     
     WrapperMap::Ptr p = wcompartment->lookupWrapper(origv);
-    JS_ASSERT(&p->value.unsafeGet()->toObject() == wobj);
+    JS_ASSERT(&p->value().unsafeGet()->toObject() == wobj);
     wcompartment->removeWrapper(p);
 
     
@@ -1025,7 +1025,7 @@ js::RecomputeWrappers(JSContext *cx, const CompartmentFilter &sourceFilter,
         
         for (JSCompartment::WrapperEnum e(c); !e.empty(); e.popFront()) {
             
-            const CrossCompartmentKey &k = e.front().key;
+            const CrossCompartmentKey &k = e.front().key();
             if (k.kind != CrossCompartmentKey::ObjectWrapper)
                 continue;
 

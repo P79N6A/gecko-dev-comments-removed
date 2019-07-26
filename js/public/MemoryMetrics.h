@@ -343,13 +343,13 @@ struct ZoneStats : js::ZoneStatsPod
         MOZ_ASSERT(other.notableStrings.empty());
 
         for (StringsHashMap::Range r = other.strings.all(); !r.empty(); r.popFront()) {
-            StringsHashMap::AddPtr p = strings.lookupForAdd(r.front().key);
+            StringsHashMap::AddPtr p = strings.lookupForAdd(r.front().key());
             if (p) {
                 
-                p->value.add(r.front().value);
+                p->value().add(r.front().value());
             } else {
                 
-                strings.add(p, r.front().key, r.front().value);
+                strings.add(p, r.front().key(), r.front().value());
             }
         }
     }

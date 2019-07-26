@@ -1377,7 +1377,7 @@ FindDominatingBoundsCheck(BoundsCheckMap &checks, MBoundsCheck *check, size_t in
     
     HashNumber hash = BoundsCheckHashIgnoreOffset(check);
     BoundsCheckMap::Ptr p = checks.lookup(hash);
-    if (!p || index > p->value.validUntil) {
+    if (!p || index > p->value().validUntil) {
         
         BoundsCheckInfo info;
         info.check = check;
@@ -1389,7 +1389,7 @@ FindDominatingBoundsCheck(BoundsCheckMap &checks, MBoundsCheck *check, size_t in
         return check;
     }
 
-    return p->value.check;
+    return p->value().check;
 }
 
 

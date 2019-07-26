@@ -1015,10 +1015,10 @@ nsJSObjWrapper::GetNewOrUsed(NPP npp, JSContext *cx, JS::Handle<JSObject*> obj)
   JSObjWrapperTable::AddPtr p = sJSObjWrappers.lookupForAdd(key);
 
   if (p) {
-    MOZ_ASSERT(p->value);
+    MOZ_ASSERT(p->value());
     
 
-    return _retainobject(p->value);
+    return _retainobject(p->value());
   }
 
   
@@ -1873,7 +1873,7 @@ nsJSNPRuntime::OnPluginDestroy(NPP npp)
 {
   if (sJSObjWrappers.initialized()) {
     for (JSObjWrapperTable::Enum e(sJSObjWrappers); !e.empty(); e.popFront()) {
-      nsJSObjWrapper *npobj = e.front().value;
+      nsJSObjWrapper *npobj = e.front().value();
       MOZ_ASSERT(npobj->_class == &nsJSObjWrapper::sJSObjWrapperNPClass);
       if (npobj->mNpp == npp) {
         npobj->ClearJSObject();
