@@ -4683,7 +4683,8 @@ IonBuilder::createThisScripted(MDefinition *callee)
     
     MInstruction *getProto;
     if (!invalidatedIdempotentCache()) {
-        MGetPropertyCache *getPropCache = MGetPropertyCache::New(alloc(), callee, names().prototype);
+        MGetPropertyCache *getPropCache = MGetPropertyCache::New(alloc(), callee, names().prototype,
+                                                                  false);
         getPropCache->setIdempotent();
         getProto = getPropCache;
     } else {
@@ -8612,8 +8613,19 @@ IonBuilder::getPropTryCache(bool *emitted, PropertyName *name,
             return true;
     }
 
+    if (accessGetter)
+        barrier = true;
+
+    if (needsToMonitorMissingProperties(types))
+        barrier = true;
+
+    
+    
+    if (!barrier)
+        barrier = PropertyReadOnPrototypeNeedsTypeBarrier(constraints(), obj, name, types);
+
     current->pop();
-    MGetPropertyCache *load = MGetPropertyCache::New(alloc(), obj, name);
+    MGetPropertyCache *load = MGetPropertyCache::New(alloc(), obj, name, barrier);
 
     
     
@@ -8642,17 +8654,6 @@ IonBuilder::getPropTryCache(bool *emitted, PropertyName *name,
 
     if (load->isEffectful() && !resumeAfter(load))
         return false;
-
-    if (accessGetter)
-        barrier = true;
-
-    if (needsToMonitorMissingProperties(types))
-        barrier = true;
-
-    
-    
-    if (!barrier)
-        barrier = PropertyReadOnPrototypeNeedsTypeBarrier(constraints(), obj, name, types);
 
     MIRType rvalType = MIRTypeFromValueType(types->getKnownTypeTag());
     if (barrier || IsNullOrUndefined(rvalType))
