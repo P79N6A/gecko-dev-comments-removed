@@ -194,6 +194,7 @@ const PREF_PERSISTLOG = "devtools.webconsole.persistlog";
 
 
 
+
 function WebConsoleFrame(aWebConsoleOwner)
 {
   this.owner = aWebConsoleOwner;
@@ -483,6 +484,8 @@ WebConsoleFrame.prototype = {
     this._commandController = new CommandController(this);
     this.window.controllers.insertControllerAt(0, this._commandController);
 
+    this._contextMenuHandler = new ConsoleContextMenu(this);
+
     let doc = this.document;
 
     this.filterBox = doc.querySelector(".hud-filter-box");
@@ -625,6 +628,12 @@ WebConsoleFrame.prototype = {
       
       let jslog = this.document.querySelector("menuitem[prefKey=jslog]");
       jslog.hidden = true;
+    }
+
+    if (Services.appinfo.OS == "Darwin") {
+      let net = this.document.querySelector("toolbarbutton[category=net]");
+      let accesskey = net.getAttribute("accesskeyMacOSX");
+      net.setAttribute("accesskey", accesskey);
     }
   },
 
@@ -2752,6 +2761,10 @@ WebConsoleFrame.prototype = {
     if (this.jsterm) {
       this.jsterm.destroy();
       this.jsterm = null;
+    }
+    if (this._contextMenuHandler) {
+      this._contextMenuHandler.destroy();
+      this._contextMenuHandler = null;
     }
 
     this._commandController = null;
@@ -5063,40 +5076,35 @@ function gSequenceId()
 gSequenceId.n = 0;
 
 
-function goUpdateConsoleCommands() {
-  goUpdateCommand("consoleCmd_openURL");
-  goUpdateCommand("consoleCmd_copyURL");
+
+
+
+
+
+
+
+
+
+
+
+function ConsoleContextMenu(aOwner)
+{
+  this.owner = aOwner;
+  this.popup = this.owner.document.getElementById("output-contextmenu");
+  this.build = this.build.bind(this);
+  this.popup.addEventListener("popupshowing", this.build);
 }
 
-
-
-
-
-
-
-const CONTEXTMENU_ID = "output-contextmenu";
-
-
-
-
-let ConsoleContextMenu = {
+ConsoleContextMenu.prototype = {
   
-
-
 
 
   build: function CCM_build(aEvent)
   {
-    let popup = aEvent.target;
-    if (popup.id !== CONTEXTMENU_ID) {
-      return;
-    }
-
-    let view = document.querySelector(".hud-output-node");
+    let view = this.owner.outputNode;
     let metadata = this.getSelectionMetadata(view);
 
-    for (let i = 0, l = popup.childNodes.length; i < l; ++i) {
-      let element = popup.childNodes[i];
+    for (let element of this.popup.children) {
       element.hidden = this.shouldHideMenuItem(element, metadata);
     }
   },
@@ -5173,4 +5181,15 @@ let ConsoleContextMenu = {
 
     return shouldHide;
   },
+
+  
+
+
+  destroy: function CCM_destroy()
+  {
+    this.popup.removeEventListener("popupshowing", this.build);
+    this.popup = null;
+    this.owner = null;
+  },
 };
+

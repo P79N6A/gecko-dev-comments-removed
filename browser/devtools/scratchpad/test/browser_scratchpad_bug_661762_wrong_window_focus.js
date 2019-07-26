@@ -2,10 +2,6 @@
 
 
 
-let tempScope = {};
-Cu.import("resource:///modules/HUDService.jsm", tempScope);
-let HUDService = tempScope.HUDService;
-
 function test()
 {
   waitForExplicitFinish();
@@ -43,7 +39,7 @@ function test()
         Services.obs.
           addObserver(onWebConsoleOpen, "web-console-created", false);
 
-        HUDService.consoleUI.toggleHUD();
+        HUDService.toggleWebConsole();
       });
     });
   }, true);

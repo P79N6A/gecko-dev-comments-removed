@@ -3,8 +3,6 @@
 
 
 
-let HUDService = (Cu.import("resource:///modules/HUDService.jsm", {})).HUDService;
-
 const TEST_URI = "data:text/html;charset=utf-8,cmd-calllog-chrome";
 
 let tests = {};
@@ -56,7 +54,7 @@ tests.testCallLogExec = function(options) {
 
     subject.QueryInterface(Ci.nsISupportsString);
     let hud = HUDService.getHudReferenceById(subject.data);
-    ok(hud.hudId in HUDService.hudReferences, "console open");
+    ok(hud, "console open");
 
     helpers.audit(options, [
       {

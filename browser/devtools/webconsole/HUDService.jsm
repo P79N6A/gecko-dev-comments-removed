@@ -53,25 +53,31 @@ this.EXPORTED_SYMBOLS = ["HUDService"];
 
 function HUD_SERVICE()
 {
-  this.hudReferences = {};
+  this.consoles = new Map();
+  this.lastFinishedRequest = { callback: null };
 }
 
 HUD_SERVICE.prototype =
 {
-  
-
-
-
-  hudReferences: null,
+  _browserConsoleID: null,
+  _browserConsoleDefer: null,
 
   
 
 
 
+  consoles: null,
 
-  get consoleUI() {
-    return HeadsUpDisplayUICommands;
-  },
+  
+
+
+
+
+
+
+
+
+  lastFinishedRequest: null,
 
   
 
@@ -100,7 +106,7 @@ HUD_SERVICE.prototype =
   function HS_openWebConsole(aTarget, aIframeWindow, aChromeWindow)
   {
     let hud = new WebConsole(aTarget, aIframeWindow, aChromeWindow);
-    this.hudReferences[hud.hudId] = hud;
+    this.consoles.set(hud.hudId, hud);
     return hud.init();
   },
 
@@ -122,7 +128,7 @@ HUD_SERVICE.prototype =
   function HS_openBrowserConsole(aTarget, aIframeWindow, aChromeWindow)
   {
     let hud = new BrowserConsole(aTarget, aIframeWindow, aChromeWindow);
-    this.hudReferences[hud.hudId] = hud;
+    this.consoles.set(hud.hudId, hud);
     return hud.init();
   },
 
@@ -134,7 +140,7 @@ HUD_SERVICE.prototype =
 
   getHudByWindow: function HS_getHudByWindow(aContentWindow)
   {
-    for each (let hud in this.hudReferences) {
+    for (let [hudId, hud] of this.consoles) {
       let target = hud.target;
       if (target && target.tab && target.window === aContentWindow) {
         return hud;
@@ -149,22 +155,9 @@ HUD_SERVICE.prototype =
 
 
 
-
-  getHudIdByWindow: function HS_getHudIdByWindow(aContentWindow)
-  {
-    let hud = this.getHudByWindow(aContentWindow);
-    return hud ? hud.hudId : null;
-  },
-
-  
-
-
-
-
-
   getHudReferenceById: function HS_getHudReferenceById(aId)
   {
-    return aId in this.hudReferences ? this.hudReferences[aId] : null;
+    return this.consoles.get(aId);
   },
 
   
@@ -174,7 +167,135 @@ HUD_SERVICE.prototype =
 
 
 
-  lastFinishedRequestCallback: null,
+  toggleWebConsole: function HS_toggleWebConsole()
+  {
+    let window = this.currentContext();
+    let target = devtools.TargetFactory.forTab(window.gBrowser.selectedTab);
+    let toolbox = gDevTools.getToolbox(target);
+
+    return toolbox && toolbox.currentToolId == "webconsole" ?
+        toolbox.destroy() :
+        gDevTools.showToolbox(target, "webconsole");
+  },
+
+  
+
+
+
+
+
+
+  getOpenWebConsole: function HS_getOpenWebConsole()
+  {
+    let tab = this.currentContext().gBrowser.selectedTab;
+    if (!tab || !devtools.TargetFactory.isKnownTab(tab)) {
+      return null;
+    }
+    let target = devtools.TargetFactory.forTab(tab);
+    let toolbox = gDevTools.getToolbox(target);
+    let panel = toolbox ? toolbox.getPanel("webconsole") : null;
+    return panel ? panel.hud : null;
+  },
+
+  
+
+
+  toggleBrowserConsole: function HS_toggleBrowserConsole()
+  {
+    if (this._browserConsoleID) {
+      let hud = this.getHudReferenceById(this._browserConsoleID);
+      return hud.destroy();
+    }
+
+    if (this._browserConsoleDefer) {
+      return this._browserConsoleDefer.promise;
+    }
+
+    this._browserConsoleDefer = promise.defer();
+
+    function connect()
+    {
+      let deferred = promise.defer();
+
+      if (!DebuggerServer.initialized) {
+        DebuggerServer.init();
+        DebuggerServer.addBrowserActors();
+      }
+
+      let client = new DebuggerClient(DebuggerServer.connectPipe());
+      client.connect(() =>
+        client.listTabs((aResponse) => {
+          
+          let globals = JSON.parse(JSON.stringify(aResponse));
+          delete globals.tabs;
+          delete globals.selected;
+          
+          
+          if (Object.keys(globals).length > 1) {
+            deferred.resolve({ form: globals, client: client, chrome: true });
+          } else {
+            deferred.reject("Global console not found!");
+          }
+        }));
+
+      return deferred.promise;
+    }
+
+    let target;
+    function getTarget(aConnection)
+    {
+      let options = {
+        form: aConnection.form,
+        client: aConnection.client,
+        chrome: true,
+      };
+
+      return devtools.TargetFactory.forRemoteTab(options);
+    }
+
+    function openWindow(aTarget)
+    {
+      target = aTarget;
+
+      let deferred = promise.defer();
+
+      let win = Services.ww.openWindow(null, devtools.Tools.webConsole.url, "_blank",
+                                       BROWSER_CONSOLE_WINDOW_FEATURES, null);
+      win.addEventListener("DOMContentLoaded", function onLoad() {
+        win.removeEventListener("DOMContentLoaded", onLoad);
+
+        
+        let root = win.document.documentElement;
+        root.setAttribute("title", root.getAttribute("browserConsoleTitle"));
+
+        deferred.resolve(win);
+      });
+
+      return deferred.promise;
+    }
+
+    connect().then(getTarget).then(openWindow).then((aWindow) =>
+      this.openBrowserConsole(target, aWindow, aWindow)
+        .then((aBrowserConsole) => {
+          this._browserConsoleID = aBrowserConsole.hudId;
+          this._browserConsoleDefer.resolve(aBrowserConsole);
+          this._browserConsoleDefer = null;
+        }));
+
+    return this._browserConsoleDefer.promise;
+  },
+
+  
+
+
+
+
+
+
+  getBrowserConsole: function HS_getBrowserConsole()
+  {
+    return this.getHudReferenceById(this._browserConsoleID);
+  },
 };
 
 
@@ -228,7 +349,8 @@ WebConsole.prototype = {
 
 
 
-  get lastFinishedRequestCallback() HUDService.lastFinishedRequestCallback,
+
+  get lastFinishedRequestCallback() HUDService.lastFinishedRequest.callback,
 
   
 
@@ -471,7 +593,7 @@ WebConsole.prototype = {
       return this._destroyer.promise;
     }
 
-    delete HUDService.hudReferences[this.hudId];
+    HUDService.consoles.delete(this.hudId);
 
     this._destroyer = promise.defer();
 
@@ -592,7 +714,7 @@ BrowserConsole.prototype = Heritage.extend(WebConsole.prototype,
     let chromeWindow = this.chromeWindow;
     this.$destroy().then(() =>
       this.target.client.close(() => {
-        HeadsUpDisplayUICommands._browserConsoleID = null;
+        HUDService._browserConsoleID = null;
         chromeWindow.close();
         this._bc_destroyer.resolve(null);
       }));
@@ -601,144 +723,4 @@ BrowserConsole.prototype = Heritage.extend(WebConsole.prototype,
   },
 });
 
-
-
-
-
-
-var HeadsUpDisplayUICommands = {
-  _browserConsoleID: null,
-  _browserConsoleDefer: null,
-
-  
-
-
-
-
-
-
-  toggleHUD: function UIC_toggleHUD()
-  {
-    let window = HUDService.currentContext();
-    let target = devtools.TargetFactory.forTab(window.gBrowser.selectedTab);
-    let toolbox = gDevTools.getToolbox(target);
-
-    return toolbox && toolbox.currentToolId == "webconsole" ?
-        toolbox.destroy() :
-        gDevTools.showToolbox(target, "webconsole");
-  },
-
-  
-
-
-
-
-
-
-  getOpenHUD: function UIC_getOpenHUD()
-  {
-    let tab = HUDService.currentContext().gBrowser.selectedTab;
-    if (!tab || !devtools.TargetFactory.isKnownTab(tab)) {
-      return null;
-    }
-    let target = devtools.TargetFactory.forTab(tab);
-    let toolbox = gDevTools.getToolbox(target);
-    let panel = toolbox ? toolbox.getPanel("webconsole") : null;
-    return panel ? panel.hud : null;
-  },
-
-  
-
-
-  toggleBrowserConsole: function UIC_toggleBrowserConsole()
-  {
-    if (this._browserConsoleID) {
-      let hud = HUDService.getHudReferenceById(this._browserConsoleID);
-      return hud.destroy();
-    }
-
-    if (this._browserConsoleDefer) {
-      return this._browserConsoleDefer.promise;
-    }
-
-    this._browserConsoleDefer = promise.defer();
-
-    function connect()
-    {
-      let deferred = promise.defer();
-
-      if (!DebuggerServer.initialized) {
-        DebuggerServer.init();
-        DebuggerServer.addBrowserActors();
-      }
-
-      let client = new DebuggerClient(DebuggerServer.connectPipe());
-      client.connect(() =>
-        client.listTabs((aResponse) => {
-          
-          let globals = JSON.parse(JSON.stringify(aResponse));
-          delete globals.tabs;
-          delete globals.selected;
-          
-          
-          if (Object.keys(globals).length > 1) {
-            deferred.resolve({ form: globals, client: client, chrome: true });
-          } else {
-            deferred.reject("Global console not found!");
-          }
-        }));
-
-      return deferred.promise;
-    }
-
-    let target;
-    function getTarget(aConnection)
-    {
-      let options = {
-        form: aConnection.form,
-        client: aConnection.client,
-        chrome: true,
-      };
-
-      return devtools.TargetFactory.forRemoteTab(options);
-    }
-
-    function openWindow(aTarget)
-    {
-      target = aTarget;
-
-      let deferred = promise.defer();
-
-      let win = Services.ww.openWindow(null, devtools.Tools.webConsole.url, "_blank",
-                                       BROWSER_CONSOLE_WINDOW_FEATURES, null);
-      win.addEventListener("DOMContentLoaded", function onLoad() {
-        win.removeEventListener("DOMContentLoaded", onLoad);
-
-        
-        let root = win.document.documentElement;
-        root.setAttribute("title", root.getAttribute("browserConsoleTitle"));
-
-        deferred.resolve(win);
-      });
-
-      return deferred.promise;
-    }
-
-    connect().then(getTarget).then(openWindow).then((aWindow) =>
-      HUDService.openBrowserConsole(target, aWindow, aWindow)
-        .then((aBrowserConsole) => {
-          this._browserConsoleID = aBrowserConsole.hudId;
-          this._browserConsoleDefer.resolve(aBrowserConsole);
-          this._browserConsoleDefer = null;
-        }));
-
-    return this._browserConsoleDefer.promise;
-  },
-
-  get browserConsole() {
-    return HUDService.getHudReferenceById(this._browserConsoleID);
-  },
-};
-
 const HUDService = new HUD_SERVICE();
-
