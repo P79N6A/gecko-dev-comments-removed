@@ -20,6 +20,7 @@
 #include "nsIFile.h"
 #include "nsIFilePicker.h"
 #include "nsIContentPrefService2.h"
+#include "mozilla/Decimal.h"
 
 class nsDOMFileList;
 class nsIFilePicker;
@@ -154,7 +155,7 @@ public:
   void StartRangeThumbDrag(nsGUIEvent* aEvent);
   void FinishRangeThumbDrag(nsGUIEvent* aEvent = nullptr);
   void CancelRangeThumbDrag(bool aIsForUserEvent = true);
-  void SetValueOfRangeForUserEvent(double aValue);
+  void SetValueOfRangeForUserEvent(Decimal aValue);
 
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               nsIContent* aBindingParent,
@@ -319,7 +320,7 @@ public:
 
 
 
-  double GetValueAsDouble() const;
+  Decimal GetValueAsDecimal() const;
 
   
 
@@ -329,7 +330,7 @@ public:
 
 
 
-  double GetMinimum() const;
+  Decimal GetMinimum() const;
 
   
 
@@ -339,7 +340,7 @@ public:
 
 
 
-  double GetMaximum() const;
+  Decimal GetMaximum() const;
 
   
 
@@ -579,7 +580,7 @@ public:
 
   double ValueAsNumber() const
   {
-    return DoesValueAsNumberApply() ? GetValueAsDouble()
+    return DoesValueAsNumberApply() ? GetValueAsDecimal().toDouble()
                                     : MOZ_DOUBLE_NaN();
   }
 
@@ -608,7 +609,7 @@ public:
 
 
 
-  double GetStep() const;
+  Decimal GetStep() const;
 
   void GetValidationMessage(nsAString& aValidationMessage, ErrorResult& aRv);
 
@@ -955,7 +956,7 @@ protected:
 
 
 
-  bool ConvertStringToNumber(nsAString& aValue, double& aResultValue) const;
+  bool ConvertStringToNumber(nsAString& aValue, Decimal& aResultValue) const;
 
   
 
@@ -968,7 +969,7 @@ protected:
 
 
 
-  bool ConvertNumberToString(double aValue, nsAString& aResultString) const;
+  bool ConvertNumberToString(Decimal aValue, nsAString& aResultString) const;
 
   
 
@@ -1021,7 +1022,7 @@ protected:
 
 
 
-  void SetValue(double aValue);
+  void SetValue(Decimal aValue);
 
   
 
@@ -1033,7 +1034,7 @@ protected:
 
 
 
-  double GetStepScaleFactor() const;
+  Decimal GetStepScaleFactor() const;
 
   
 
@@ -1041,13 +1042,13 @@ protected:
 
 
 
-  double GetStepBase() const;
+  Decimal GetStepBase() const;
 
   
 
 
 
-  double GetDefaultStep() const;
+  Decimal GetDefaultStep() const;
 
   
 
@@ -1123,22 +1124,22 @@ protected:
 
 
 
-  double mRangeThumbDragStartValue;
+  Decimal mRangeThumbDragStartValue;
 
   
-  static const double kStepScaleFactorDate;
-  static const double kStepScaleFactorNumberRange;
-  static const double kStepScaleFactorTime;
+  static const Decimal kStepScaleFactorDate;
+  static const Decimal kStepScaleFactorNumberRange;
+  static const Decimal kStepScaleFactorTime;
 
   
-  static const double kDefaultStepBase;
+  static const Decimal kDefaultStepBase;
 
   
-  static const double kDefaultStep;
-  static const double kDefaultStepTime;
+  static const Decimal kDefaultStep;
+  static const Decimal kDefaultStepTime;
 
   
-  static const double kStepAny;
+  static const Decimal kStepAny;
 
   
 
