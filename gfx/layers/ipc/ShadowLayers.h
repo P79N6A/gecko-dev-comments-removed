@@ -348,7 +348,7 @@ public:
 
 
   bool HasShadowManager() const { return !!mShadowManager; }
-  PLayerTransactionChild* GetShadowManager() const { return mShadowManager; }
+  PLayerTransactionChild* GetShadowManager() const { return mShadowManager.get(); }
 
   virtual void WindowOverlayChanged() { mWindowOverlayChanged = true; }
 
@@ -421,7 +421,7 @@ protected:
   void CheckSurfaceDescriptor(const SurfaceDescriptor* aDescriptor) const {}
 #endif
 
-  PLayerTransactionChild* mShadowManager;
+  RefPtr<PLayerTransactionChild> mShadowManager;
 
 #ifdef MOZ_HAVE_SURFACEDESCRIPTORGRALLOC
   
