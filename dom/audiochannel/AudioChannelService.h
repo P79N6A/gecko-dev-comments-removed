@@ -53,6 +53,12 @@ public:
 
   virtual bool GetMuted(AudioChannelType aType, bool aElementHidden);
 
+  
+
+
+
+  virtual bool ContentChannelIsActive();
+
 protected:
   void Notify();
 
