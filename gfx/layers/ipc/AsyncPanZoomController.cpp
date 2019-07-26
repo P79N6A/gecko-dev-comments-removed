@@ -192,6 +192,14 @@ AsyncPanZoomController::~AsyncPanZoomController() {
 
 }
 
+void
+AsyncPanZoomController::Destroy()
+{
+  
+  mGeckoContentController = nullptr;
+  mGestureEventListener = nullptr;
+}
+
 float
 AsyncPanZoomController::GetTouchStartTolerance()
 {

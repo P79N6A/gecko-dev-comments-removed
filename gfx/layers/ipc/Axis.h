@@ -183,7 +183,7 @@ protected:
   
   
   int32_t mAcceleration;
-  nsRefPtr<AsyncPanZoomController> mAsyncPanZoomController;
+  AsyncPanZoomController* mAsyncPanZoomController;
 };
 
 class AxisX : public Axis {

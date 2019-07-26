@@ -82,6 +82,12 @@ public:
 
 
 
+  void Destroy();
+
+  
+
+
+
 
 
   nsEventStatus ReceiveInputEvent(const InputData& aEvent);

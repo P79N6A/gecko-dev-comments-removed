@@ -802,6 +802,7 @@ RenderFrameParent::ActorDestroy(ActorDestroyReason why)
       
       
       mContentController->ClearRenderFrame();
+      mPanZoomController->Destroy();
     }
   }
 
