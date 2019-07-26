@@ -26,7 +26,9 @@ namespace mozilla {
 namespace dom {
 
 class ContentParent;
+class ContentChild;
 struct StructuredCloneData;
+class ClonedMessageData;
 
 namespace ipc {
 
@@ -76,6 +78,14 @@ public:
   {
     return false;
   }
+
+protected:
+  bool BuildClonedMessageDataForParent(ContentParent* aParent,
+				       const StructuredCloneData& aData,
+				       ClonedMessageData& aClonedData);
+  bool BuildClonedMessageDataForChild(ContentChild* aChild,
+				      const StructuredCloneData& aData,
+				      ClonedMessageData& aClonedData);
 };
 
 } 
