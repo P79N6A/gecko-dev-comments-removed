@@ -1200,7 +1200,6 @@ FramePointerStackWalk(NS_WalkStackCallback aCallback, uint32_t aSkipFrames,
     bp += 2;
 #endif
     if (IsCriticalAddress(pc)) {
-      printf("Aborting stack trace, PC is critical\n");
       return NS_ERROR_UNEXPECTED;
     }
     if (--skip < 0) {
@@ -1277,7 +1276,6 @@ unwind_callback(struct _Unwind_Context* context, void* closure)
   void* pc = reinterpret_cast<void*>(_Unwind_GetIP(context));
   
   if (IsCriticalAddress(pc)) {
-    printf("Aborting stack trace, PC is critical\n");
     info->isCriticalAbort = true;
     
     
