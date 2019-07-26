@@ -24,6 +24,11 @@ this.EXPORTED_SYMBOLS = [ "console" ];
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "Services",
+                                  "resource://gre/modules/Services.jsm");
+
+let gTimerRegistry = new Map();
+
 
 
 
@@ -266,9 +271,9 @@ function parseStack(aStack) {
     let at = line.lastIndexOf("@");
     let posn = line.substring(at + 1);
     trace.push({
-      file: posn.split(":")[0],
-      line: posn.split(":")[1],
-      call: line.substring(0, at)
+      filename: posn.split(":")[0],
+      lineNumber: posn.split(":")[1],
+      functionName: line.substring(0, at)
     });
   });
   return trace;
@@ -284,17 +289,24 @@ function parseStack(aStack) {
 
 
 
-function getStack(aFrame) {
+
+
+
+function getStack(aFrame, aMaxDepth = 0) {
   if (!aFrame) {
     aFrame = Components.stack.caller;
   }
   let trace = [];
   while (aFrame) {
     trace.push({
-      file: aFrame.filename,
-      line: aFrame.lineNumber,
-      call: aFrame.name
+      filename: aFrame.filename,
+      lineNumber: aFrame.lineNumber,
+      functionName: aFrame.name,
+      language: aFrame.language,
     });
+    if (aMaxDepth == trace.length) {
+      break;
+    }
     aFrame = aFrame.caller;
   }
   return trace;
@@ -311,11 +323,50 @@ function getStack(aFrame) {
 function formatTrace(aTrace) {
   let reply = "";
   aTrace.forEach(function(frame) {
-    reply += fmt(frame.file, 20, 20, { truncate: "start" }) + " " +
-             fmt(frame.line, 5, 5) + " " +
-             fmt(frame.call, 75, 75) + "\n";
+    reply += fmt(frame.filename, 20, 20, { truncate: "start" }) + " " +
+             fmt(frame.lineNumber, 5, 5) + " " +
+             fmt(frame.functionName, 75, 75) + "\n";
   });
   return reply;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function startTimer(aName, aTimestamp) {
+  let key = aName.toString();
+  if (!gTimerRegistry.has(key)) {
+    gTimerRegistry.set(key, aTimestamp || Date.now());
+  }
+  return { name: aName, started: gTimerRegistry.get(key) };
+}
+
+
+
+
+
+
+
+
+
+
+
+
+function stopTimer(aName, aTimestamp) {
+  let key = aName.toString();
+  let duration = (aTimestamp || Date.now()) - gTimerRegistry.get(key);
+  gTimerRegistry.delete(key);
+  return { name: aName, duration: duration };
 }
 
 
@@ -332,6 +383,8 @@ function formatTrace(aTrace) {
 function createDumper(aLevel) {
   return function() {
     let args = Array.prototype.slice.call(arguments, 0);
+    let frame = getStack(Components.stack.caller, 1)[0];
+    sendConsoleAPIMessage(aLevel, frame, args);
     let data = args.map(function(arg) {
       return stringify(arg);
     });
@@ -354,10 +407,70 @@ function createMultiLineDumper(aLevel) {
   return function() {
     dump("console." + aLevel + ": \n");
     let args = Array.prototype.slice.call(arguments, 0);
+    let frame = getStack(Components.stack.caller, 1)[0];
+    sendConsoleAPIMessage(aLevel, frame, args);
     args.forEach(function(arg) {
       dump(log(arg));
     });
   };
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function sendConsoleAPIMessage(aLevel, aFrame, aArgs, aOptions = {})
+{
+  let consoleEvent = {
+    ID: aFrame.filename,
+    level: aLevel,
+    filename: aFrame.filename,
+    lineNumber: aFrame.lineNumber,
+    functionName: aFrame.functionName,
+    timeStamp: Date.now(),
+    arguments: aArgs,
+  };
+
+  consoleEvent.wrappedJSObject = consoleEvent;
+
+  switch (aLevel) {
+    case "trace":
+      consoleEvent.stacktrace = aOptions.stacktrace;
+      break;
+    case "time":
+    case "timeEnd":
+      consoleEvent.timer = aOptions.timer;
+      break;
+    case "group":
+    case "groupCollapsed":
+    case "groupEnd":
+      try {
+        consoleEvent.groupName = Array.prototype.join.call(aArgs, " ");
+      }
+      catch (ex) {
+        Cu.reportError(ex);
+        Cu.reportError(ex.stack);
+        return;
+      }
+      break;
+  }
+
+  Services.obs.notifyObservers(consoleEvent, "console-api-log-event", null);
 }
 
 
@@ -373,13 +486,32 @@ this.console = {
   error: createMultiLineDumper("error"),
 
   trace: function Console_trace() {
+    let args = Array.prototype.slice.call(arguments, 0);
     let trace = getStack(Components.stack.caller);
-    dump(formatTrace(trace) + "\n");
+    sendConsoleAPIMessage("trace", trace[0], args,
+                          { stacktrace: trace });
+    dump("console.trace:\n" + formatTrace(trace) + "\n");
   },
   clear: function Console_clear() {},
 
   dir: createMultiLineDumper("dir"),
   dirxml: createMultiLineDumper("dirxml"),
   group: createDumper("group"),
-  groupEnd: createDumper("groupEnd")
+  groupEnd: createDumper("groupEnd"),
+
+  time: function Console_time() {
+    let args = Array.prototype.slice.call(arguments, 0);
+    let frame = getStack(Components.stack.caller, 1)[0];
+    let timer = startTimer(args[0]);
+    sendConsoleAPIMessage("time", frame, args, { timer: timer });
+    dump("console.time: '" + timer.name + "' @ " + (new Date()) + "\n");
+  },
+
+  timeEnd: function Console_timeEnd() {
+    let args = Array.prototype.slice.call(arguments, 0);
+    let frame = getStack(Components.stack.caller, 1)[0];
+    let timer = stopTimer(args[0]);
+    sendConsoleAPIMessage("timeEnd", frame, args, { timer: timer });
+    dump("console.timeEnd: '" + timer.name + "' " + timer.duration + "ms\n");
+  },
 };
