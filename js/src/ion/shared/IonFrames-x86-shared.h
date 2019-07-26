@@ -141,6 +141,7 @@ class IonExitFooterFrame
 };
 
 class IonNativeExitFrameLayout;
+class IonOOLNativeGetterExitFrameLayout;
 class IonDOMExitFrameLayout;
 
 class IonExitFrameLayout : public IonCommonFrameLayout
@@ -189,6 +190,11 @@ class IonExitFrameLayout : public IonCommonFrameLayout
         JS_ASSERT(isNativeExit());
         return reinterpret_cast<IonNativeExitFrameLayout *>(footer());
     }
+    inline IonOOLNativeGetterExitFrameLayout *oolNativeGetterExit() {
+        
+        JS_ASSERT(footer()->ionCode() == ION_FRAME_OOL_NATIVE_GETTER);
+        return reinterpret_cast<IonOOLNativeGetterExitFrameLayout *>(footer());
+    }
     inline IonDOMExitFrameLayout *DOMExit() {
         JS_ASSERT(isDomExit());
         return reinterpret_cast<IonDOMExitFrameLayout *>(footer());
@@ -220,6 +226,37 @@ class IonNativeExitFrameLayout
     }
     inline uintptr_t argc() const {
         return argc_;
+    }
+};
+
+class IonOOLNativeGetterExitFrameLayout
+{
+    IonExitFooterFrame footer_;
+    IonExitFrameLayout exit_;
+
+    
+    
+    uint32_t loCalleeResult_;
+    uint32_t hiCalleeResult_;
+
+    
+    uint32_t loThisResult_;
+    uint32_t hiThisResult_;
+
+  public:
+    static inline size_t Size() {
+        return sizeof(IonOOLNativeGetterExitFrameLayout);
+    }
+
+    static size_t offsetOfResult() {
+        return offsetof(IonOOLNativeGetterExitFrameLayout, loCalleeResult_);
+    }
+
+    inline Value *vp() {
+        return reinterpret_cast<Value*>(&loCalleeResult_);
+    }
+    inline uintptr_t argc() const {
+        return 0;
     }
 };
 

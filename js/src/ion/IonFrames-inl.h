@@ -82,11 +82,20 @@ IonFrameIterator::frameSize() const
 
 
 inline JSScript *
-GetTopIonJSScript(JSContext *cx)
+GetTopIonJSScript(JSContext *cx, const SafepointIndex **safepointIndexOut, void **returnAddrOut)
 {
     IonFrameIterator iter(cx->runtime->ionTop);
     JS_ASSERT(iter.type() == IonFrame_Exit);
     ++iter;
+
+    
+    if (safepointIndexOut)
+        *safepointIndexOut = iter.safepoint();
+
+    JS_ASSERT(iter.returnAddressToFp() != NULL);
+    if (returnAddrOut)
+        *returnAddrOut = (void *) iter.returnAddressToFp();
+
     JS_ASSERT(iter.type() == IonFrame_JS);
     IonJSFrameLayout *frame = static_cast<IonJSFrameLayout*>(iter.current());
     switch (GetCalleeTokenTag(frame->calleeToken())) {
