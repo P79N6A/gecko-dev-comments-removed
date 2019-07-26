@@ -3863,6 +3863,14 @@ pref("browser.zoom.reflowZoom.reflowTextOnPageLoad", true);
 
 
 
+
+
+
+
+pref("browser.zoom.reflowZoom.minFontSizeTwips", 120);
+
+
+
 pref("image.cache.size", 5242880);
 
 
