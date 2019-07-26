@@ -365,11 +365,21 @@ ViewHelpers.L10N.prototype = {
     if (aNumber == (aNumber | 0)) {
       return aNumber;
     }
+    if (isNaN(aNumber) || aNumber == null) {
+      return "0";
+    }
     
     
     
     
     let localized = aNumber.toLocaleString(); 
+
+    
+    
+    if (!localized.match(/[^\d]/)) {
+      return localized;
+    }
+
     let padded = localized + new Array(aDecimals).join("0"); 
     let match = padded.match("([^]*?\\d{" + aDecimals + "})\\d*$");
     return match.pop();
