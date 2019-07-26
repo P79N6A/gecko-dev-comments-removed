@@ -10,7 +10,8 @@
 
 #include "mozilla/Attributes.h"
 #include "nsContainerFrame.h"
-#include "nsLineLayout.h"
+
+class nsLineLayout;
 
 
 
