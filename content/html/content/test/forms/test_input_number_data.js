@@ -16,6 +16,15 @@ var tests = [
     langTag: "de", inputWithGrouping: "123.456,78",
     inputWithoutGrouping: "123456,78", value: 123456.78
   },
+  
+  
+  
+  
+  
+  { desc: "German (test 2)",
+    langTag: "de", inputWithGrouping: "123.456",
+    inputWithoutGrouping: "123456", value: 123456
+  },
   { desc: "Hebrew",
     langTag: "he", inputWithGrouping: "123,456.78",
     inputWithoutGrouping: "123456.78", value: 123456.78
