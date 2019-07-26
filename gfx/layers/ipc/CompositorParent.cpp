@@ -663,7 +663,9 @@ SetShadowProperties(Layer* aLayer)
   
   LayerComposite* layerComposite = aLayer->AsLayerComposite();
   
-  layerComposite->SetShadowTransform(aLayer->GetBaseTransform());
+  gfx3DMatrix matrix;
+  To3DMatrix(aLayer->GetBaseTransform(), matrix);
+  layerComposite->SetShadowTransform(matrix);
   layerComposite->SetShadowTransformSetByAnimation(false);
   layerComposite->SetShadowVisibleRegion(aLayer->GetVisibleRegion());
   layerComposite->SetShadowClipRect(aLayer->GetClipRect());

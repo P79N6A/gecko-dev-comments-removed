@@ -11,7 +11,6 @@
 #include <sys/types.h>                  
 #include "FrameMetrics.h"               
 #include "Units.h"                      
-#include "gfx3DMatrix.h"                
 #include "gfxContext.h"                 
 #include "gfxTypes.h"
 #include "gfxColor.h"                   
@@ -889,13 +888,11 @@ public:
     NS_ASSERTION(!aMatrix.IsSingular(),
                  "Shouldn't be trying to draw with a singular matrix!");
     mPendingTransform = nullptr;
-    gfx3DMatrix transform;
-    gfx::To3DMatrix(aMatrix, transform);
-    if (mTransform == transform) {
+    if (mTransform == aMatrix) {
       return;
     }
     MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) BaseTransform", this));
-    mTransform = transform;
+    mTransform = aMatrix;
     Mutated();
   }
 
@@ -909,9 +906,7 @@ public:
 
   void SetBaseTransformForNextTransaction(const gfx::Matrix4x4& aMatrix)
   {
-    gfx3DMatrix matrix;
-    gfx::To3DMatrix(aMatrix, matrix);
-    mPendingTransform = new gfx3DMatrix(matrix);
+    mPendingTransform = new gfx::Matrix4x4(aMatrix);
   }
 
   void SetPostScale(float aXScale, float aYScale)
@@ -1051,7 +1046,7 @@ public:
   virtual Layer* GetFirstChild() const { return nullptr; }
   virtual Layer* GetLastChild() const { return nullptr; }
   const gfx::Matrix4x4 GetTransform() const;
-  const gfx3DMatrix& GetBaseTransform() const { return mTransform; }
+  const gfx::Matrix4x4& GetBaseTransform() const { return mTransform; }
   float GetPostXScale() const { return mPostXScale; }
   float GetPostYScale() const { return mPostYScale; }
   bool GetIsFixedPosition() { return mIsFixedPosition; }
@@ -1402,11 +1397,11 @@ protected:
   gfx::UserData mUserData;
   nsIntRegion mVisibleRegion;
   EventRegions mEventRegions;
-  gfx3DMatrix mTransform;
+  gfx::Matrix4x4 mTransform;
   
   
   
-  nsAutoPtr<gfx3DMatrix> mPendingTransform;
+  nsAutoPtr<gfx::Matrix4x4> mPendingTransform;
   float mPostXScale;
   float mPostYScale;
   gfx::Matrix4x4 mEffectiveTransform;

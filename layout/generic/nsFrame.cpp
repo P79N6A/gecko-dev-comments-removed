@@ -4834,7 +4834,8 @@ nsIFrame::TryUpdateTransformOnly()
     
     return false;
   }
-  gfxMatrix transform, previousTransform;
+  gfxMatrix transform;
+  gfx::Matrix previousTransform;
   
   
   
@@ -4845,10 +4846,10 @@ nsIFrame::TryUpdateTransformOnly()
  static const gfx::Float kError = 0.0001f;
   if (!transform3d.Is2D(&transform) ||
       !layer->GetBaseTransform().Is2D(&previousTransform) ||
-      !gfx::FuzzyEqual(transform.xx, previousTransform.xx, kError) ||
-      !gfx::FuzzyEqual(transform.yy, previousTransform.yy, kError) ||
-      !gfx::FuzzyEqual(transform.xy, previousTransform.xy, kError) ||
-      !gfx::FuzzyEqual(transform.yx, previousTransform.yx, kError)) {
+      !gfx::FuzzyEqual(transform.xx, previousTransform._11, kError) ||
+      !gfx::FuzzyEqual(transform.yy, previousTransform._22, kError) ||
+      !gfx::FuzzyEqual(transform.xy, previousTransform._21, kError) ||
+      !gfx::FuzzyEqual(transform.yx, previousTransform._12, kError)) {
     return false;
   }
   gfx::Matrix4x4 matrix;
