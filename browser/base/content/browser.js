@@ -1245,6 +1245,12 @@ var gBrowserInit = {
 #endif
 #endif
 
+    if (gMultiProcessBrowser) {
+      
+      
+      document.getElementById("cmd_handleBackspace").setAttribute("disabled", true);
+    }
+
     SessionStore.promiseInitialized.then(() => {
       
       if (SessionStore.canRestoreLastSession &&
