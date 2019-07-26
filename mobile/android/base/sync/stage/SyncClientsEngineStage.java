@@ -319,7 +319,9 @@ public class SyncClientsEngineStage extends AbstractSessionManagingSyncStage {
     
     boolean enabledThisSync = session.isEngineLocallyEnabled(STAGE_NAME);
     if (!enabledThisSync) {
+      
       Logger.debug(LOG_TAG, "Stage " + STAGE_NAME + " disabled just for this sync.");
+      Logger.info(LOG_TAG, "Skipping stage " + STAGE_NAME + ".");
       session.advance();
       return;
     }
