@@ -6610,12 +6610,38 @@ IonBuilder::jsop_getelem_typed(int arrayType)
         
         
         
+        
+        bool needsBarrier = true;
+        switch (arrayType) {
+          case TypedArray::TYPE_INT8:
+          case TypedArray::TYPE_UINT8:
+          case TypedArray::TYPE_UINT8_CLAMPED:
+          case TypedArray::TYPE_INT16:
+          case TypedArray::TYPE_UINT16:
+          case TypedArray::TYPE_INT32:
+          case TypedArray::TYPE_UINT32:
+            if (types->hasType(types::Type::Int32Type()))
+                needsBarrier = false;
+            break;
+          case TypedArray::TYPE_FLOAT32:
+          case TypedArray::TYPE_FLOAT64:
+            if (allowDouble)
+                needsBarrier = false;
+            break;
+          default:
+            JS_NOT_REACHED("Unknown typed array type");
+            return false;
+        }
+
+        
+        
+        
         MLoadTypedArrayElementHole *load =
             MLoadTypedArrayElementHole::New(obj, id, arrayType, allowDouble);
         current->add(load);
         current->push(load);
 
-        return resumeAfter(load) && pushTypeBarrier(load, types, false);
+        return resumeAfter(load) && pushTypeBarrier(load, types, needsBarrier);
     }
 }
 
