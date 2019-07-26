@@ -117,6 +117,7 @@ class IonFrameIterator
     bool isScripted() const {
         return type_ == IonFrame_JS;
     }
+    bool isNative() const;
     bool isEntry() const {
         return type_ == IonFrame_Entry;
     }
@@ -129,6 +130,7 @@ class IonFrameIterator
     JSFunction *maybeCallee() const;
     unsigned numActualArgs() const;
     JSScript *script() const;
+    Value *nativeVp() const;
 
     
     

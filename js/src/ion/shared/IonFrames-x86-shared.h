@@ -156,6 +156,11 @@ class IonExitFooterFrame
 
 class IonExitFrameLayout : public IonCommonFrameLayout
 {
+    inline uint8 *top() {
+        uint8 *sp = reinterpret_cast<uint8 *>(this);
+        return sp + IonExitFrameLayout::Size();
+    }
+
   public:
     static inline size_t Size() {
         return sizeof(IonExitFrameLayout);
@@ -173,8 +178,13 @@ class IonExitFrameLayout : public IonCommonFrameLayout
     
     
     inline uint8 *argBase() {
-        uint8 *sp = reinterpret_cast<uint8 *>(this);
-        return sp + IonExitFrameLayout::Size();
+        JS_ASSERT(footer()->ionCode() != NULL);
+        return top();
+    }
+    inline Value *nativeVp() {
+        
+        JS_ASSERT(footer()->ionCode() == NULL);
+        return reinterpret_cast<Value *>(top());
     }
 };
 

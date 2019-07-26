@@ -2129,9 +2129,8 @@ DumpStack(JSContext *cx, unsigned argc, Value *vp)
         return false;
 
     StackIter iter(cx);
-	
-	
-    
+
+    JS_ASSERT(iter.isNativeCall() && iter.callee()->native() == DumpStack);
 
     ++iter;
 
