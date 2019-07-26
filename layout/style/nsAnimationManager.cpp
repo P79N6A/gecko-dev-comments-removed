@@ -233,9 +233,6 @@ ElementAnimations::GetEventsAt(TimeStamp aRefreshTime,
     ComputedTiming computedTiming =
       ElementAnimation::GetComputedTimingAt(elapsedDuration, anim->mTiming);
 
-    
-    
-    
     switch (computedTiming.mPhase) {
       case ComputedTiming::AnimationPhase_Before:
         
@@ -262,6 +259,18 @@ ElementAnimations::GetEventsAt(TimeStamp aRefreshTime,
         break;
 
       case ComputedTiming::AnimationPhase_After:
+        
+        
+        if (anim->mLastNotification ==
+            ElementAnimation::LAST_NOTIFICATION_NONE) {
+          
+          
+          
+          anim->mLastNotification = 0;
+          AnimationEventInfo ei(mElement, anim->mName, NS_ANIMATION_START,
+                                elapsedDuration, PseudoElement());
+          aEventsToDispatch.AppendElement(ei);
+        }
         
         if (anim->mLastNotification !=
             ElementAnimation::LAST_NOTIFICATION_END) {
