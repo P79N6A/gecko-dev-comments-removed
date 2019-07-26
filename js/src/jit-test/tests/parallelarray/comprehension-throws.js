@@ -22,5 +22,4 @@ function buildComprehension() {
   }, RangeError);
 }
 
-
-
+buildComprehension();

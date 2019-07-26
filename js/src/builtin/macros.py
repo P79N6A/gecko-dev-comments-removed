@@ -215,26 +215,6 @@ macro OVERRIDE_SUBJECT(override) = ((override)[(override).length - 1]);
 macro OVERRIDE_CAPTURE(override, index) = ((override)[(index)]);
 
 
-macro TRY_PARALLEL(MODE) = ((!MODE || MODE.mode === "par"));
-macro ASSERT_SEQUENTIAL_IS_OK(MODE) = do { if (MODE) AssertSequentialIsOK(MODE) } while(false);
-
-
-
-
-const CHUNK_SHIFT = 5;
-const CHUNK_SIZE = 32;
-
-
-macro SLICE_INFO(START, END) = START, END, START, 0;
-macro SLICE_START(ID) = ((ID << 2) + 0);
-macro SLICE_END(ID) =   ((ID << 2) + 1);
-macro SLICE_POS(ID) =   ((ID << 2) + 2);
-
-
-macro ARRAY_PUSH(ARRAY, ELEMENT) = callFunction(std_Array_push, ARRAY, ELEMENT);
-macro ARRAY_SLICE(ARRAY, ELEMENT) = callFunction(std_Array_slice, ARRAY, ELEMENT);
-
-
 
 const IS_ACCESSOR_INDEX = 0;
 const VALUE_INDEX = 1;

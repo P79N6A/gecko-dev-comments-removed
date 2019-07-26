@@ -6,7 +6,6 @@ function testScanThrows() {
     var p = new ParallelArray([]);
     p.scan(function (v, p) { return v*p; });
   }, Error);
-
   
   assertThrowsInstanceOf(function () {
     var p = new ParallelArray([1]);
@@ -14,5 +13,4 @@ function testScanThrows() {
   }, TypeError);
 }
 
-
-
+testScanThrows();

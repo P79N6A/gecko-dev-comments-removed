@@ -437,7 +437,6 @@ JSBool ObjectEmulatesUndefined(RawObject obj);
 bool IteratorMore(JSContext *cx, HandleObject obj, JSBool *res);
 
 
-JSObject *NewInitParallelArray(JSContext *cx, HandleObject templateObj);
 JSObject *NewInitArray(JSContext *cx, uint32_t count, types::TypeObject *type);
 JSObject *NewInitObject(JSContext *cx, HandleObject templateObject);
 
