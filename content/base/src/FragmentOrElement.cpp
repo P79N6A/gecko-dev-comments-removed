@@ -2599,7 +2599,8 @@ Serialize(FragmentOrElement* aRoot, bool aDescendentsOnly, nsAString& aOut)
 
       
       
-      if (current->NodeType() == nsIDOMNode::DOCUMENT_FRAGMENT_NODE) {
+      if (current != aRoot &&
+          current->NodeType() == nsIDOMNode::DOCUMENT_FRAGMENT_NODE) {
         DocumentFragment* frag = static_cast<DocumentFragment*>(current);
         nsIContent* fragHost = frag->GetHost();
         if (fragHost && nsNodeUtils::IsTemplateElement(fragHost)) {
