@@ -4,7 +4,7 @@
 
 
 
-#include "mozilla/dom/CallbackFunction.h"
+#include "mozilla/dom/CallbackObject.h"
 #include "jsfriendapi.h"
 #include "nsIScriptGlobalObject.h"
 #include "nsIXPConnect.h"
@@ -16,39 +16,41 @@
 namespace mozilla {
 namespace dom {
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(CallbackFunction)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(CallbackObject)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-NS_IMPL_CYCLE_COLLECTING_ADDREF(CallbackFunction)
-NS_IMPL_CYCLE_COLLECTING_RELEASE(CallbackFunction)
+NS_IMPL_CYCLE_COLLECTING_ADDREF(CallbackObject)
+NS_IMPL_CYCLE_COLLECTING_RELEASE(CallbackObject)
 
-NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(CallbackFunction)
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(CallbackObject)
   tmp->DropCallback();
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(CallbackFunction)
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(CallbackObject)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
-NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(CallbackFunction)
-  NS_IMPL_CYCLE_COLLECTION_TRACE_JS_MEMBER_CALLBACK(mCallable)
+NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(CallbackObject)
+  NS_IMPL_CYCLE_COLLECTION_TRACE_JS_MEMBER_CALLBACK(mCallback)
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
-CallbackFunction::CallSetup::CallSetup(JSObject* const aCallable)
+CallbackObject::CallSetup::CallSetup(JSObject* const aCallback)
   : mCx(nullptr)
 {
-  xpc_UnmarkGrayObject(aCallable);
+  xpc_UnmarkGrayObject(aCallback);
 
   
   
   
+  
+  
 
   
-  JSObject* realCallable = js::UnwrapObject(aCallable);
+  JSObject* realCallback = js::UnwrapObject(aCallback);
 
   
   JSContext* cx = nullptr;
   nsIScriptContext* ctx = nullptr;
-  nsIScriptGlobalObject* sgo = nsJSUtils::GetStaticScriptGlobal(realCallable);
+  nsIScriptGlobalObject* sgo = nsJSUtils::GetStaticScriptGlobal(realCallback);
   if (sgo) {
     
     
@@ -101,7 +103,7 @@ CallbackFunction::CallSetup::CallSetup(JSObject* const aCallable)
   
   
   nsresult rv = nsContentUtils::GetSecurityManager()->
-    CheckFunctionAccess(cx, js::UnwrapObject(aCallable), nullptr);
+    CheckFunctionAccess(cx, js::UnwrapObject(aCallback), nullptr);
 
   
   
@@ -117,13 +119,13 @@ CallbackFunction::CallSetup::CallSetup(JSObject* const aCallable)
   }
 
   
-  mAc.construct(cx, aCallable);
+  mAc.construct(cx, aCallback);
 
   
   mCx = cx;
 }
 
-CallbackFunction::CallSetup::~CallSetup()
+CallbackObject::CallSetup::~CallSetup()
 {
   
   
