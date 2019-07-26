@@ -144,6 +144,16 @@ IsBackgroundPriority(ProcessPriority aPriority)
 
 
 
+
+
+
+
+
+
+
+
+
+
 class ProcessPriorityManager MOZ_FINAL
   : public nsIObserver
   , public nsIDOMEventListener
@@ -249,10 +259,16 @@ ProcessPriorityManager::Init()
 
   
   
+  
+  
+  
+  
+  
   nsCOMPtr<nsIObserverService> os = services::GetObserverService();
   os->AddObserver(this, "content-document-global-created",  false);
   os->AddObserver(this, "inner-window-destroyed",  false);
   os->AddObserver(this, "audio-channel-agent-changed",  false);
+  os->AddObserver(this, "process-priority:reset-now",  false);
 }
 
 NS_IMETHODIMP
@@ -266,6 +282,9 @@ ProcessPriorityManager::Observe(
   } else if (!strcmp(aTopic, "inner-window-destroyed") ||
              !strcmp(aTopic, "audio-channel-agent-changed")) {
     ResetPriority();
+  } else if (!strcmp(aTopic, "process-priority:reset-now")) {
+    LOG("Got process-priority:reset-now notification.");
+    ResetPriorityNow();
   } else {
     MOZ_ASSERT(false);
   }
@@ -356,28 +375,31 @@ ProcessPriorityManager::ComputeIsInForeground()
 
   bool allHidden = true;
   for (uint32_t i = 0; i < mWindows.Length(); i++) {
-    nsCOMPtr<nsIDOMWindow> window = do_QueryReferent(mWindows[i]);
+    nsCOMPtr<nsPIDOMWindow> window = do_QueryReferent(mWindows[i]);
     if (!window) {
       mWindows.RemoveElementAt(i);
       i--;
       continue;
     }
 
-    nsCOMPtr<nsIDOMDocument> doc;
-    window->GetDocument(getter_AddRefs(doc));
-    if (!doc) {
+    nsCOMPtr<nsIDocShell> docshell = do_GetInterface(window);
+    if (!docshell) {
       continue;
     }
 
-    bool hidden = false;
-    doc->GetHidden(&hidden);
+    bool isActive = false;
+    docshell->GetIsActive(&isActive);
+
 #ifdef DEBUG
-    nsAutoString spec;
-    doc->GetDocumentURI(spec);
-    LOG("Document at %s has visibility %d.", NS_ConvertUTF16toUTF8(spec).get(), !hidden);
+    nsAutoCString spec;
+    nsCOMPtr<nsIURI> uri = window->GetDocumentURI();
+    if (uri) {
+      uri->GetSpec(spec);
+    }
+    LOG("Docshell at %s has visibility %d.", spec.get(), isActive);
 #endif
 
-    allHidden = allHidden && hidden;
+    allHidden = allHidden && !isActive;
 
     
     
@@ -466,6 +488,7 @@ ProcessPriorityManager::TemporarilySetIsForeground()
   LOG("TemporarilySetIsForeground");
   SetIsForeground();
 
+  
   
   
   
