@@ -28,18 +28,6 @@ function do_run_test() {
   let profile = do_get_profile();
 
   
-  try {
-    Services.pb;
-  } catch (e) {
-    finish_test();
-    return;
-  }
-
-  
-  Services.prefs.setBoolPref("browser.privatebrowsing.keep_current_session",
-    true);
-
-  
   Services.prefs.setIntPref("network.cookie.cookieBehavior", 0);
 
   
@@ -126,4 +114,3 @@ function do_run_test() {
 
   finish_test();
 }
-
