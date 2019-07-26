@@ -12,6 +12,7 @@
 #include "nsTHashtable.h"
 #include "nsHashKeys.h"
 #include "nsRefPtrHashtable.h"
+#include "nsInterfaceHashtable.h"
 
 
 
@@ -339,7 +340,6 @@ public:
 
   
   nsPIDOMWindow* GetPrivateParent();
-
   
   void ReallyCloseWindow();
 
@@ -1007,6 +1007,8 @@ public:
   void NotifyDefaultButtonLoaded(mozilla::dom::Element& aDefaultButton,
                                  mozilla::ErrorResult& aError);
   nsIMessageBroadcaster* GetMessageManager(mozilla::ErrorResult& aError);
+  nsIMessageBroadcaster* GetGroupMessageManager(const nsAString& aGroup,
+                                                mozilla::ErrorResult& aError);
   void BeginWindowMove(mozilla::dom::Event& aMouseDownEvent,
                        mozilla::dom::Element* aPanel,
                        mozilla::ErrorResult& aError);
@@ -1622,16 +1624,32 @@ public:
   NS_DECL_NSIDOMCHROMEWINDOW
 
   nsGlobalChromeWindow(nsGlobalWindow *aOuterWindow)
-    : nsGlobalWindow(aOuterWindow)
+    : nsGlobalWindow(aOuterWindow),
+      mGroupMessageManagers(1)
   {
     mIsChrome = true;
     mCleanMessageManager = true;
+  }
+
+  static PLDHashOperator
+  DisconnectGroupMessageManager(const nsAString& aKey,
+                                nsIMessageBroadcaster* aMM,
+                                void* aUserArg)
+  {
+    if (aMM) {
+      static_cast<nsFrameMessageManager*>(aMM)->Disconnect();
+    }
+    return PL_DHASH_NEXT;
   }
 
   ~nsGlobalChromeWindow()
   {
     NS_ABORT_IF_FALSE(mCleanMessageManager,
                       "chrome windows may always disconnect the msg manager");
+
+    mGroupMessageManagers.EnumerateRead(DisconnectGroupMessageManager, nullptr);
+    mGroupMessageManagers.Clear();
+
     if (mMessageManager) {
       static_cast<nsFrameMessageManager *>(
         mMessageManager.get())->Disconnect();
@@ -1653,10 +1671,12 @@ public:
   using nsGlobalWindow::Restore;
   using nsGlobalWindow::NotifyDefaultButtonLoaded;
   using nsGlobalWindow::GetMessageManager;
+  using nsGlobalWindow::GetGroupMessageManager;
   using nsGlobalWindow::BeginWindowMove;
 
   nsCOMPtr<nsIBrowserDOMWindow> mBrowserDOMWindow;
   nsCOMPtr<nsIMessageBroadcaster> mMessageManager;
+  nsInterfaceHashtable<nsStringHashKey, nsIMessageBroadcaster> mGroupMessageManagers;
 };
 
 
