@@ -1,4 +1,9 @@
 
+
+
+
+"use strict";
+
 const { utils: Cu } = Components;
 const DISABLED_TOOLS = "devtools.toolbox.disabledTools";
 Cu.import("resource://gre/modules/Services.jsm");

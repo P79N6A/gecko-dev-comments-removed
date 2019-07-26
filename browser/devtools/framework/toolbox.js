@@ -5,7 +5,7 @@
 "use strict";
 
 const {Cc, Ci, Cu} = require("chrome");
-
+const MAX_ORDINAL = 99;
 let Promise = require("sdk/core/promise");
 let EventEmitter = require("devtools/shared/event-emitter");
 
@@ -360,6 +360,10 @@ Toolbox.prototype = {
     radio.id = "toolbox-tab-" + id;
     radio.setAttribute("flex", "1");
     radio.setAttribute("toolid", id);
+    if (toolDefinition.ordinal == undefined || toolDefinition.ordinal < 0) {
+      toolDefinition.ordinal = MAX_ORDINAL;
+    }
+    radio.setAttribute("ordinal", toolDefinition.ordinal);
     radio.setAttribute("tooltiptext", toolDefinition.tooltip);
 
     radio.addEventListener("command", function(id) {
@@ -382,8 +386,24 @@ Toolbox.prototype = {
     vbox.id = "toolbox-panel-" + id;
 
     radio.appendChild(label);
-    tabs.appendChild(radio);
-    deck.appendChild(vbox);
+
+    
+    if (tabs.childNodes.length == 0 ||
+        +tabs.lastChild.getAttribute("ordinal") <= toolDefinition.ordinal) {
+      tabs.appendChild(radio);
+      deck.appendChild(vbox);
+    }
+    
+    else {
+      Array.some(tabs.childNodes, (node, i) => {
+        if (+node.getAttribute("ordinal") > toolDefinition.ordinal) {
+          tabs.insertBefore(radio, node);
+          deck.insertBefore(vbox, deck.childNodes[i + 1]);
+          
+          return true;
+        }
+      });
+    }
 
     this._addKeysToWindow();
   },
