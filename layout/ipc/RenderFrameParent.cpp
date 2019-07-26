@@ -658,13 +658,15 @@ RenderFrameParent::BuildLayer(nsDisplayListBuilder* aBuilder,
                     mContainer->Manager() == aManager,
                     "retaining manager changed out from under us ... HELP!");
 
-  if (mContainer && mContainer->Manager() != aManager) {
+  if (IsTempLayerManager(aManager) ||
+      (mContainer && mContainer->Manager() != aManager)) {
     
     
     
     
     
     
+    NS_WARNING("Remote iframe not rendered");
     return nullptr;
   }
 
