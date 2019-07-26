@@ -11,6 +11,15 @@
 
 class nsParserBase;
 
+
+
+
+
+
+
+
+
+
 class nsHtml5OplessBuilder : public nsHtml5DocumentBuilder
 {
 public:
