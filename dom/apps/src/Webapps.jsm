@@ -1160,40 +1160,47 @@ this.DOMApplicationRegistry = {
         updateManifest: aManifest
       }
       DOMApplicationRegistry._saveApps(function() {
-        DOMApplicationRegistry.broadcastMessage("Webapps:CheckForUpdate:Return:OK", aData);
+        DOMApplicationRegistry.broadcastMessage("Webapps:CheckForUpdate:Return:OK",
+                                                aData);
         delete aData.app.updateManifest;
       });
     }
 
-    function updateHostedApp(aManifest) {
+    
+    
+    
+    
+    
+    
+    function updateHostedApp(aOldManifest, aNewManifest) {
       debug("updateHostedApp " + aData.manifestURL);
-      let id = this._appId(app.origin);
 
       
       if (id in this._manifestCache) {
         delete this._manifestCache[id];
       }
 
-      
-      this.notifyAppsRegistryStart();
+      let manifest;
+      if (aNewManifest) {
+        
+        this.notifyAppsRegistryStart();
 #ifdef MOZ_SYS_MSG
-      this._readManifests([{ id: id }], (function unregisterManifest(aResult) {
-        this._unregisterActivities(aResult[0].manifest, app);
-        this._registerSystemMessages(aManifest, app);
-        this._registerActivities(aManifest, app, true);
-      }).bind(this));
+        this._unregisterActivities(aOldManifest, app);
+        this._registerSystemMessages(aNewManifest, app);
+        this._registerActivities(aNewManifest, app, true);
 #else
-      
-      this.notifyAppsRegistryReady();
+        
+        this.notifyAppsRegistryReady();
 #endif
-
-      
-      let dir = FileUtils.getDir(DIRECTORY_NAME, ["webapps", id], true, true);
-      let manFile = dir.clone();
-      manFile.append("manifest.webapp");
-      this._writeFile(manFile, JSON.stringify(aManifest), function() { });
-
-      let manifest = new ManifestHelper(aManifest, app.origin);
+        
+        let dir = FileUtils.getDir(DIRECTORY_NAME, ["webapps", id], true, true);
+        let manFile = dir.clone();
+        manFile.append("manifest.webapp");
+        this._writeFile(manFile, JSON.stringify(aNewManifest), function() { });
+        manifest = new ManifestHelper(aNewManifest, app.origin);
+      } else {
+        manifest = new ManifestHelper(aOldManifest, app.origin);
+      }
 
       app.installState = "installed";
       app.downloading = false;
@@ -1201,8 +1208,8 @@ this.DOMApplicationRegistry = {
       app.readyToApplyDownload = false;
       app.downloadAvailable = !!manifest.appcache_path;
 
-      app.name = aManifest.name;
-      app.csp = aManifest.csp || "";
+      app.name = manifest.name;
+      app.csp = manifest.csp || "";
       app.updateTime = Date.now();
 
       
@@ -1210,7 +1217,7 @@ this.DOMApplicationRegistry = {
 
       this._saveApps(function() {
         aData.app = app;
-        app.manifest = aManifest;
+        app.manifest = aNewManifest || aOldManifest;
         if (!manifest.appcache_path) {
           aData.event = "downloadapplied";
           DOMApplicationRegistry.broadcastMessage("Webapps:CheckForUpdate:Return:OK",
@@ -1223,6 +1230,7 @@ this.DOMApplicationRegistry = {
               aData.event =
                 aTopic == "offline-cache-update-available" ? "downloadavailable"
                                                            : "downloadapplied";
+              aData.app.downloadAvailable = (aTopic == "downloadavailable");
               DOMApplicationRegistry.broadcastMessage("Webapps:CheckForUpdate:Return:OK",
                                                       aData);
             }
@@ -1234,12 +1242,14 @@ this.DOMApplicationRegistry = {
       });
 
       
-      PermissionsInstaller.installPermissions({ manifest: aManifest,
+      PermissionsInstaller.installPermissions({ manifest: aNewManifest || aOldManifest,
                                                 origin: app.origin,
                                                 manifestURL: aData.manifestURL },
                                               true);
     }
 
+    
+    
     
     let onlyCheckAppCache = false;
 
@@ -1257,7 +1267,6 @@ this.DOMApplicationRegistry = {
       }
 
       
-      let id = this._appId(app.origin);
       this._readManifests([{ id: id }], function(aResult) {
         let manifest = aResult[0].manifest;
         if (!manifest.appcache_path) {
@@ -1266,14 +1275,21 @@ this.DOMApplicationRegistry = {
           return;
         }
 
+        app.installState = "installed";
+        app.downloading = false;
+        app.downloadSize = 0;
+        app.readyToApplyDownload = false;
+        app.updateTime = Date.now();
+
         debug("Checking only appcache for " + aData.manifestURL);
         
         
         let updateObserver = {
           observe: function(aSubject, aTopic, aObsData) {
-            debug("appcache result: " + aTopic);
             if (aData.event == "offline-cache-update-available") {
               aData.event = "downloadavailable";
+              app.downloadAvailable = true;
+              aData.app = app;
               DOMApplicationRegistry.broadcastMessage("Webapps:CheckForUpdate:Return:OK",
                                                       aData);
             } else {
@@ -1285,7 +1301,6 @@ this.DOMApplicationRegistry = {
         updateSvc.checkForUpdate(Services.io.newURI(aData.manifestURL, null, null),
                                  app.localId, false, updateObserver);
       });
-
       return;
     }
 
@@ -1311,27 +1326,40 @@ this.DOMApplicationRegistry = {
         }
         if (!AppsUtils.checkManifest(manifest)) {
           sendError("INVALID_MANIFEST");
+          return;
         } else if (!AppsUtils.checkInstallAllowed(manifest, app.installOrigin)) {
           sendError("INSTALL_FROM_DENIED");
+          return;
         } else {
           app.etag = xhr.getResponseHeader("Etag");
           app.lastCheckedUpdate = Date.now();
           if (app.origin.startsWith("app://")) {
             updatePackagedApp.call(this, manifest);
           } else {
-            updateHostedApp.call(this, manifest);
+            this._readManifests([{ id: id }], (function(aResult) {
+              updateHostedApp.call(this, aResult[0].manifest, manifest);
+            }).bind(this));
           }
         }
-        this._saveApps();
       } else if (xhr.status == 304) {
         
-        app.lastCheckedUpdate = Date.now();
-        aData.event = "downloadapplied";
-        aData.app = {
-          lastCheckedUpdate: app.lastCheckedUpdate
+        if (app.origin.startsWith("app://")) {
+          
+          
+          app.lastCheckedUpdate = Date.now();
+          aData.event = "downloadapplied";
+          aData.app = {
+            lastCheckedUpdate: app.lastCheckedUpdate
+          }
+          aMm.sendAsyncMessage("Webapps:CheckForUpdate:Return:OK", aData);
+          this._saveApps();
+        } else {
+          
+          
+          this._readManifests([{ id: id }], (function(aResult) {
+            updateHostedApp.call(this, aResult[0].manifest, null);
+          }).bind(this));
         }
-        aMm.sendAsyncMessage("Webapps:CheckForUpdate:Return:OK", aData);
-        this._saveApps();
       } else {
         sendError("MANIFEST_URL_ERROR");
       }
