@@ -81,13 +81,24 @@ onconnect = function(e) {
         break;
       case "social.initialize":
         
+        
+        
         apiPort = port;
-        let profile = {
-          portrait: "https://example.com/portrait.jpg",
-          userName: "trickster",
-          displayName: "Kuma Lisa",
-          profileURL: "http://en.wikipedia.org/wiki/Kuma_Lisa"
-        };
+        let profile;
+        if (location.href.indexOf("https://test1.example.com") == 0) {
+          profile = {
+            portrait: "https://test1.example.com/portrait.jpg",
+            userName: "tester",
+            displayName: "Test1 User",
+          };
+        } else {
+          profile = {
+            portrait: "https://example.com/portrait.jpg",
+            userName: "trickster",
+            displayName: "Kuma Lisa",
+            profileURL: "http://en.wikipedia.org/wiki/Kuma_Lisa"
+          };
+        }
         port.postMessage({topic: "social.user-profile", data: profile});
         break;
       case "test-ambient-notification":

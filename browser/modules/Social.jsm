@@ -18,28 +18,115 @@ XPCOMUtils.defineLazyModuleGetter(this, "SocialService",
 
 this.Social = {
   lastEventReceived: 0,
-  provider: null,
+  providers: null,
   _disabledForSafeMode: false,
+
+  get _currentProviderPref() {
+    try {
+      return Services.prefs.getComplexValue("social.provider.current",
+                                            Ci.nsISupportsString).data;
+    } catch (ex) {}
+    return null;
+  },
+  set _currentProviderPref(val) {
+    let string = Cc["@mozilla.org/supports-string;1"].
+                 createInstance(Ci.nsISupportsString);
+    string.data = val;
+    Services.prefs.setComplexValue("social.provider.current",
+                                   Ci.nsISupportsString, string);
+  },
+
+  _provider: null,
+  get provider() {
+    return this._provider;
+  },
+  set provider(val) {
+    
+    this._setProvider(val, true);
+  },
+
+  
+  
+  _setProvider: function (provider, notify) {
+    if (this._provider == provider)
+      return;
+
+    if (provider && !provider.active)
+      throw new Error("Social.provider cannot be set to an inactive provider.");
+
+    
+    
+    if (this._provider)
+      this._provider.enabled = false;
+
+    this._provider = provider;
+
+    if (this._provider) {
+      if (this.enabled)
+        this._provider.enabled = true;
+      this._currentProviderPref = this._provider.origin;
+    } else {
+      Services.prefs.clearUserPref("social.provider.current");
+    }
+
+    if (notify) {
+      let origin = this._provider && this._provider.origin;
+      Services.obs.notifyObservers(null, "social:provider-set", origin);
+    }
+  },
+
   init: function Social_init(callback) {
     this._disabledForSafeMode = Services.appinfo.inSafeMode && this.enabled;
 
-    if (this.provider) {
+    if (this.providers) {
       schedule(callback);
       return;
     }
 
-    if (!this._addedPrivateBrowsingObserver) {
+    if (!this._addedObservers) {
       Services.obs.addObserver(this, "private-browsing", false);
-      this._addedPrivateBrowsingObserver = true;
+      Services.obs.addObserver(this, "social:pref-changed", false);
+      this._addedObservers = true;
     }
 
     
-    
     SocialService.getProviderList(function (providers) {
-      if (providers.length)
-        this.provider = providers[0];
+      
+      
+      this._updateProviderCache(providers, false);
       callback();
     }.bind(this));
+
+    
+    SocialService.registerProviderListener(function providerListener(topic, data) {
+      
+      if (topic == "provider-added" || topic == "provider-removed")
+        this._updateProviderCache(data, true);
+    }.bind(this));
+  },
+
+  
+  _updateProviderCache: function (providers, notifyProviderChange) {
+    this.providers = providers;
+
+    
+    let currentProviderPref = this._currentProviderPref;
+    let currentProvider;
+    if (this._currentProviderPref) {
+      currentProvider = this._getProviderFromOrigin(this._currentProviderPref);
+    } else {
+      
+      
+      
+      try {
+        let active = Services.prefs.getBoolPref("social.active");
+        if (active) {
+          Services.prefs.clearUserPref("social.active");
+          currentProvider = providers[0];
+        }
+      } catch(ex) {}
+    }
+    this._setProvider(currentProvider, notifyProviderChange);
   },
 
   observe: function(aSubject, aTopic, aData) {
@@ -56,6 +143,11 @@ this.Social = {
         this.enabled = false;
         this.enabled = this._enabledBeforePrivateBrowsing;
       }
+    } else if (aTopic == "social:pref-changed") {
+      
+      
+      if (this.provider)
+        this.provider.enabled = this.enabled;
     }
   },
 
@@ -64,9 +156,6 @@ this.Social = {
   },
 
   set enabled(val) {
-    if (!val) {
-      delete this.errorState;
-    }
     SocialService.enabled = val;
   },
   get enabled() {
@@ -74,11 +163,7 @@ this.Social = {
   },
 
   get active() {
-    return Services.prefs.getBoolPref("social.active");
-  },
-  set active(val) {
-    this.enabled = !!val;
-    Services.prefs.setBoolPref("social.active", !!val);
+    return this.provider && this.providers.some(function (p) p.active);
   },
 
   toggle: function Social_toggle() {
@@ -94,6 +179,52 @@ this.Social = {
   toggleNotifications: function SocialNotifications_toggle() {
     let prefValue = Services.prefs.getBoolPref("social.toast-notifications.enabled");
     Services.prefs.setBoolPref("social.toast-notifications.enabled", !prefValue);
+  },
+
+  haveLoggedInUser: function () {
+    return !!(this.provider && this.provider.profile && this.provider.profile.userName);
+  },
+
+  setProviderByOrigin: function (origin) {
+    this.provider = this._getProviderFromOrigin(origin);
+  },
+
+  _getProviderFromOrigin: function (origin) {
+    for (let p of this.providers) {
+      if (p.origin == origin) {
+        return p;
+      }
+    }
+    return null;
+  },
+
+  
+  activateFromOrigin: function (origin) {
+    let provider = this._getProviderFromOrigin(origin);
+    if (provider) {
+      
+      if (provider == this.provider && provider.active)
+        return null;
+
+      provider.active = true;
+      this.provider = provider;
+      Social.enabled = true;
+    }
+    return provider;
+  },
+
+  deactivateFromOrigin: function (origin, oldOrigin) {
+    let provider = this._getProviderFromOrigin(origin);
+    if (provider && provider == this.provider) {
+      this.provider.active = false;
+      
+      
+      this.provider = this._getProviderFromOrigin(oldOrigin);
+      if (!this.provider)
+        this.provider = this.providers.filter(function (p) p.active)[0];
+      if (!this.provider) 
+        this.enabled = false;
+    }
   },
 
   

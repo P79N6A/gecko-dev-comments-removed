@@ -113,50 +113,60 @@ function getTestPlugin() {
 function runSocialTestWithProvider(manifest, callback) {
   let SocialService = Cu.import("resource://gre/modules/SocialService.jsm", {}).SocialService;
 
+  let manifests = Array.isArray(manifest) ? manifest : [manifest];
+
   
   registerCleanupFunction(function () {
-    for (let what of ['sidebarURL', 'workerURL', 'iconURL']) {
-      if (manifest[what]) {
-        ensureSocialUrlNotRemembered(manifest[what]);
+    manifests.forEach(function (m) {
+      for (let what of ['sidebarURL', 'workerURL', 'iconURL']) {
+        if (m[what]) {
+          ensureSocialUrlNotRemembered(m[what]);
+        }
       }
-    }
+    });
   });
 
-  info("runSocialTestWithProvider: " + manifest.toSource());
+  info("runSocialTestWithProvider: " + manifests.toSource());
 
-  let oldProvider;
-  SocialService.addProvider(manifest, function(provider) {
-    info("runSocialTestWithProvider: provider added");
-    oldProvider = Social.provider;
-    Social.provider = provider;
+  let providersAdded = 0;
+  let firstProvider;
+  manifests.forEach(function (m) {
+    SocialService.addProvider(m, function(provider) {
+      provider.active = true;
 
-    
-    Services.prefs.setBoolPref("social.enabled", true);
-    Services.prefs.setBoolPref("social.active", true);
+      providersAdded++;
+      info("runSocialTestWithProvider: provider added");
 
-    
-    
-    SocialUI._providerReady();
-
-    registerCleanupFunction(function () {
       
-      
-      
-      
-      try {
-        SocialService.removeProvider(provider.origin, finish);
-      } catch (ex) {
-        ;
+      if (provider.origin == manifests[0].origin) {
+        firstProvider = provider;
       }
-      Social.provider = oldProvider;
-      Services.prefs.clearUserPref("social.enabled");
-      Services.prefs.clearUserPref("social.active");
-    });
 
-    function finishSocialTest() {
-      SocialService.removeProvider(provider.origin, finish);
-    }
-    callback(finishSocialTest);
+      
+      
+      if (providersAdded == manifests.length) {
+        
+        Social.provider = firstProvider;
+        Social.enabled = true;
+
+        registerCleanupFunction(function () {
+          
+          
+          
+          
+          manifests.forEach(function (m) {
+            try {
+              SocialService.removeProvider(m.origin, finish);
+            } catch (ex) {}
+          });
+          Services.prefs.clearUserPref("social.enabled");
+        });
+        function finishSocialTest() {
+          SocialService.removeProvider(provider.origin, finish);
+        }
+        callback(finishSocialTest);
+      }
+    });
   });
 }
 

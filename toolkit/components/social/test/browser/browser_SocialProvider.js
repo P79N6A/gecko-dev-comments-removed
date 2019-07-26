@@ -14,6 +14,9 @@ function test() {
   ensureSocialEnabled();
 
   SocialService.addProvider(manifest, function (provider) {
+    
+    provider.enabled = true;
+
     ok(provider.enabled, "provider is initially enabled");
     let port = provider.getWorkerPort();
     ok(port, "should be able to get a port from enabled provider");

@@ -58,8 +58,13 @@ function doTest(finishcb) {
   });
 
   
-  info("Toggling sidebar off");
-  Social.toggleSidebar();
+  waitForCondition(function () {
+    return document.getElementById("social-sidebar-browser").docShellIsActive;
+  }, function () {
+    
+    info("Toggling sidebar off");
+    Social.toggleSidebar();
+  });
 }
 
 
