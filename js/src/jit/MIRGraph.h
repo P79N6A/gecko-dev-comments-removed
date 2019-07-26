@@ -80,6 +80,8 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     static MBasicBlock *NewAbortPar(MIRGraph &graph, CompileInfo &info,
                                     MBasicBlock *pred, jsbytecode *entryPc,
                                     MResumePoint *resumePoint);
+    static MBasicBlock *NewAsmJS(MIRGraph &graph, CompileInfo &info,
+                                 MBasicBlock *pred, Kind kind);
 
     bool dominates(MBasicBlock *other);
 
@@ -196,6 +198,7 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     
     
     AbortReason setBackedge(MBasicBlock *block);
+    bool setBackedgeAsmJS(MBasicBlock *block);
 
     
     

@@ -159,6 +159,8 @@ MBasicBlock *
 MBasicBlock::New(MIRGraph &graph, CompileInfo &info,
                  MBasicBlock *pred, jsbytecode *entryPc, Kind kind)
 {
+    JS_ASSERT(entryPc != NULL);
+
     MBasicBlock *block = new MBasicBlock(graph, info, entryPc, kind);
     if (!block->init())
         return NULL;
@@ -212,7 +214,9 @@ MBasicBlock::NewPendingLoopHeader(MIRGraph &graph, CompileInfo &info,
 MBasicBlock *
 MBasicBlock::NewSplitEdge(MIRGraph &graph, CompileInfo &info, MBasicBlock *pred)
 {
-    return MBasicBlock::New(graph, info, pred, pred->pc(), SPLIT_EDGE);
+    return pred->pc()
+           ? MBasicBlock::New(graph, info, pred, pred->pc(), SPLIT_EDGE)
+           : MBasicBlock::NewAsmJS(graph, info, pred, SPLIT_EDGE);
 }
 
 MBasicBlock *
@@ -232,6 +236,40 @@ MBasicBlock::NewAbortPar(MIRGraph &graph, CompileInfo &info,
         return NULL;
 
     block->end(new MAbortPar());
+    return block;
+}
+
+MBasicBlock *
+MBasicBlock::NewAsmJS(MIRGraph &graph, CompileInfo &info, MBasicBlock *pred, Kind kind)
+{
+    MBasicBlock *block = new MBasicBlock(graph, info,  NULL, kind);
+    if (!block->init())
+        return NULL;
+
+    if (pred) {
+        block->stackPosition_ = pred->stackPosition_;
+
+        if (block->kind_ == PENDING_LOOP_HEADER) {
+            for (size_t i = 0; i < block->stackPosition_; i++) {
+                MDefinition *predSlot = pred->getSlot(i);
+
+                JS_ASSERT(predSlot->type() != MIRType_Value);
+                MPhi *phi = MPhi::New(i, predSlot->type());
+
+                JS_ALWAYS_TRUE(phi->reserveLength(2));
+                phi->addInput(predSlot);
+
+                block->addPhi(phi);
+                block->setSlot(i, phi);
+            }
+        } else {
+            block->copySlots(pred);
+        }
+
+        if (!block->predecessors_.append(pred))
+            return NULL;
+    }
+
     return block;
 }
 
@@ -291,27 +329,23 @@ MBasicBlock::inherit(MBasicBlock *pred, uint32_t popped)
         stackPosition_ -= popped;
         if (kind_ != PENDING_LOOP_HEADER)
             copySlots(pred);
-    } else if (pc()) {
+    } else {
         uint32_t stackDepth = info().script()->analysis()->getCode(pc()).stackDepth;
         stackPosition_ = info().firstStackSlot() + stackDepth;
         JS_ASSERT(stackPosition_ >= popped);
         stackPosition_ -= popped;
-    } else {
-        stackPosition_ = info().firstStackSlot();
     }
 
     JS_ASSERT(info_.nslots() >= stackPosition_);
     JS_ASSERT(!entryResumePoint_);
 
-    if (pc()) {
-        
-        MResumePoint *callerResumePoint = pred ? pred->callerResumePoint() : NULL;
+    
+    MResumePoint *callerResumePoint = pred ? pred->callerResumePoint() : NULL;
 
-        
-        entryResumePoint_ = new MResumePoint(this, pc(), callerResumePoint, MResumePoint::ResumeAt);
-        if (!entryResumePoint_->init())
-            return false;
-    }
+    
+    entryResumePoint_ = new MResumePoint(this, pc(), callerResumePoint, MResumePoint::ResumeAt);
+    if (!entryResumePoint_->init())
+        return false;
 
     if (pred) {
         if (!predecessors_.append(pred))
@@ -324,14 +358,13 @@ MBasicBlock::inherit(MBasicBlock *pred, uint32_t popped)
                     return false;
                 addPhi(phi);
                 setSlot(i, phi);
-                if (entryResumePoint())
-                    entryResumePoint()->setOperand(i, phi);
+                entryResumePoint()->setOperand(i, phi);
             }
-        } else if (entryResumePoint()) {
+        } else {
             for (size_t i = 0; i < stackDepth(); i++)
                 entryResumePoint()->setOperand(i, getSlot(i));
         }
-    } else if (entryResumePoint()) {
+    } else {
         
 
 
@@ -796,7 +829,11 @@ MBasicBlock::addPredecessorPopN(MBasicBlock *pred, uint32_t popped)
                     return false;
             } else {
                 
-                MPhi *phi = MPhi::New(i);
+                MPhi *phi;
+                if (mine->type() == other->type())
+                    phi = MPhi::New(i, mine->type());
+                else
+                    phi = MPhi::New(i);
                 addPhi(phi);
 
                 
@@ -859,7 +896,7 @@ MBasicBlock::setBackedge(MBasicBlock *pred)
     
     JS_ASSERT(lastIns_);
     JS_ASSERT(pred->lastIns_);
-    JS_ASSERT_IF(entryResumePoint(), pred->stackDepth() == entryResumePoint()->stackDepth());
+    JS_ASSERT(pred->stackDepth() == entryResumePoint()->stackDepth());
 
     
     JS_ASSERT(kind_ == PENDING_LOOP_HEADER);
@@ -909,6 +946,53 @@ MBasicBlock::setBackedge(MBasicBlock *pred)
         return AbortReason_Alloc;
 
     return AbortReason_NoAbort;
+}
+
+bool
+MBasicBlock::setBackedgeAsmJS(MBasicBlock *pred)
+{
+    
+    JS_ASSERT(lastIns_);
+    JS_ASSERT(pred->lastIns_);
+    JS_ASSERT(stackDepth() == pred->stackDepth());
+
+    
+    JS_ASSERT(kind_ == PENDING_LOOP_HEADER);
+
+    
+    for (MPhiIterator phi = phisBegin(); phi != phisEnd(); phi++) {
+        MPhi *entryDef = *phi;
+        MDefinition *exitDef = pred->getSlot(entryDef->slot());
+
+        
+        JS_ASSERT(entryDef->block() == this);
+
+        
+        JS_ASSERT(entryDef->type() == exitDef->type());
+        JS_ASSERT(entryDef->type() != MIRType_Value);
+
+        if (entryDef == exitDef) {
+            
+            
+            
+            
+            
+            
+            
+            exitDef = entryDef->getOperand(0);
+        }
+
+        
+        entryDef->addInput(exitDef);
+
+        JS_ASSERT(entryDef->slot() < pred->stackDepth());
+        setSlot(entryDef->slot(), entryDef);
+    }
+
+    
+    kind_ = LOOP_HEADER;
+
+    return predecessors_.append(pred);
 }
 
 void
