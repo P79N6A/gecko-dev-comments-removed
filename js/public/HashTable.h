@@ -340,8 +340,7 @@ class HashTable : private AllocPolicy
 
     MOZ_WARN_UNUSED_RESULT bool init(uint32_t length)
     {
-        
-        JS_ASSERT(table == NULL);
+        JS_ASSERT(!initialized());
 
         
 
