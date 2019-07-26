@@ -1381,6 +1381,9 @@ nsXULPopupManager::FirePopupHidingEvent(nsIContent* aPopup,
       
       
       
+      
+      
+#ifndef MOZ_WIDGET_GTK
       if (!aNextPopup && aPopup->HasAttr(kNameSpaceID_None, nsGkAtoms::animate) &&
           popupFrame->StyleDisplay()->mTransitionPropertyCount > 0) {
         nsAutoString animate;
@@ -1397,6 +1400,7 @@ nsXULPopupManager::FirePopupHidingEvent(nsIContent* aPopup,
           return;
         }
       }
+#endif
 
       HidePopupCallback(aPopup, popupFrame, aNextPopup, aLastPopup,
                         aPopupType, aDeselectMenu);
