@@ -1297,7 +1297,6 @@ public:
 
 
   bool ComputeVisibilityForSublist(nsDisplayListBuilder* aBuilder,
-                                   nsDisplayItem* aForItem,
                                    nsRegion* aVisibleRegion,
                                    const nsRect& aListVisibleBounds,
                                    const nsRect& aAllowVisibleRegionExpansion);
