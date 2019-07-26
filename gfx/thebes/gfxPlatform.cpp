@@ -107,7 +107,6 @@ static eCMSMode gCMSMode = eCMSMode_Off;
 static int gCMSIntent = -2;
 
 static void ShutdownCMS();
-static void MigratePrefs();
 
 #include "mozilla/gfx/2D.h"
 using namespace mozilla::gfx;
@@ -325,11 +324,7 @@ gfxPlatform::Init()
     gEverInitialized = true;
 
     
-    MigratePrefs();
-
-    
-    
-    gfxPrefs::One();
+    gfxPrefs::GetSingleton();
 
     gGfxPlatformPrefsLock = new Mutex("gfxPlatform::gGfxPlatformPrefsLock");
 
@@ -506,7 +501,7 @@ gfxPlatform::Shutdown()
 
     delete gGfxPlatformPrefsLock;
 
-    gfxPrefs::Destroy();
+    gfxPrefs::DestroySingleton();
 
     delete gPlatform;
     gPlatform = nullptr;
@@ -1747,21 +1742,6 @@ static void ShutdownCMS()
     gCMSIntent = -2;
     gCMSMode = eCMSMode_Off;
     gCMSInitialized = false;
-}
-
-static void MigratePrefs()
-{
-    
-
-
-
-
-    if (Preferences::HasUserValue(GFX_PREF_CMS_ENABLED_OBSOLETE)) {
-        if (Preferences::GetBool(GFX_PREF_CMS_ENABLED_OBSOLETE, false)) {
-            Preferences::SetInt(GFX_PREF_CMS_MODE, static_cast<int32_t>(eCMSMode_All));
-        }
-        Preferences::ClearUser(GFX_PREF_CMS_ENABLED_OBSOLETE);
-    }
 }
 
 
