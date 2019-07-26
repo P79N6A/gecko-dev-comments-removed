@@ -40,6 +40,7 @@ let WebAudioGraphView = {
   initialize: function() {
     this._onGraphNodeClick = this._onGraphNodeClick.bind(this);
     this.draw = debounce(this.draw.bind(this), GRAPH_DEBOUNCE_TIMER);
+    $('#graph-target').addEventListener('click', this._onGraphNodeClick, false);
   },
 
   
@@ -49,6 +50,7 @@ let WebAudioGraphView = {
     if (this._zoomBinding) {
       this._zoomBinding.on("zoom", null);
     }
+    $('#graph-target').removeEventListener('click', this._onGraphNodeClick, false);
   },
 
   
@@ -140,7 +142,7 @@ let WebAudioGraphView = {
       let svgNodes = oldDrawNodes(graph, root);
       svgNodes.attr("class", (n) => {
         let node = graph.node(n);
-        return "type-" + node.label;
+        return "audionode type-" + node.label;
       });
       svgNodes.attr("data-id", (n) => {
         let node = graph.node(n);
@@ -217,9 +219,13 @@ let WebAudioGraphView = {
 
 
 
-
-  _onGraphNodeClick: function (node) {
-    WebAudioParamView.focusNode(node.id);
+  _onGraphNodeClick: function (e) {
+    let node = findGraphNodeParent(e.target);
+    
+    
+    if (!node)
+      return;
+    WebAudioParamView.focusNode(node.getAttribute('data-id'));
   }
 };
 
@@ -370,3 +376,19 @@ let WebAudioParamView = {
 
   })
 };
+
+
+
+
+
+
+
+function findGraphNodeParent (el) {
+  while (!el.classList.contains("nodes")) {
+    if (el.classList.contains("audionode"))
+      return el;
+    else
+      el = el.parentNode;
+  }
+  return null;
+}
