@@ -1230,15 +1230,15 @@ CodeGenerator::visitCheckOverRecursedFailure(CheckOverRecursedFailure *ool)
     
 
     typedef bool (*pf)(JSContext *);
-    static const VMFunction ReportOverRecursedInfo =
-        FunctionInfo<pf>(ReportOverRecursed);
+    static const VMFunction CheckOverRecursedInfo =
+        FunctionInfo<pf>(CheckOverRecursed);
 
     
     
     
     saveLive(ool->lir());
 
-    if (!callVM(ReportOverRecursedInfo, ool->lir()))
+    if (!callVM(CheckOverRecursedInfo, ool->lir()))
         return false;
 
     restoreLive(ool->lir());

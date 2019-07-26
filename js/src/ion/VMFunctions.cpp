@@ -91,17 +91,26 @@ NewGCThing(JSContext *cx, gc::AllocKind allocKind, size_t thingSize)
 }
 
 bool
-ReportOverRecursed(JSContext *cx)
+CheckOverRecursed(JSContext *cx)
 {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     JS_CHECK_RECURSION(cx, return false);
 
     if (cx->runtime->interrupt)
         return InterruptCheck(cx);
 
-    js_ReportOverRecursed(cx);
-
-    
-    return false;
+    return true;
 }
 
 bool
