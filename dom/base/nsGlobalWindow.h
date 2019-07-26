@@ -385,6 +385,7 @@ public:
   virtual NS_HIDDEN_(void) RefreshCompartmentPrincipal();
   virtual NS_HIDDEN_(nsresult) SetFullScreenInternal(bool aIsFullScreen, bool aRequireTrust);
   virtual NS_HIDDEN_(bool) IsPartOfApp();
+  virtual NS_HIDDEN_(bool) IsInAppOrigin();
 
   
   NS_DECL_NSIDOMSTORAGEINDEXEDDB
@@ -977,6 +978,9 @@ protected:
   
   
   TriState               mIsApp : 2;
+
+  
+  nsCOMPtr<nsIPrincipal>        mAppPrincipal;
 
   nsCOMPtr<nsIScriptContext>    mContext;
   nsWeakPtr                     mOpener;

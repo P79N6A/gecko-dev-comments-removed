@@ -994,8 +994,7 @@ nsPlaintextEditor::SetWrapWidth(PRInt32 aWrapColumn)
 
   
   nsAutoString styleValue;
-  nsresult res = rootElement->GetAttr(kNameSpaceID_None, nsGkAtoms::style, styleValue);
-  NS_ENSURE_SUCCESS(res, res);
+  rootElement->GetAttr(kNameSpaceID_None, nsGkAtoms::style, styleValue);
 
   
   CutStyle("white-space", styleValue);

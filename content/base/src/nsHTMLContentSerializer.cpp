@@ -1,14 +1,14 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 sw=2 et tw=80: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/*
- * nsIContentSerializer implementation that can be used with an
- * nsIDocumentEncoder to convert an HTML (not XHTML!) DOM to an HTML
- * string that could be parsed into more or less the original DOM.
- */
+
+
+
+
+
+
+
+
+
+
 
 #include "nsHTMLContentSerializer.h"
 
@@ -93,7 +93,7 @@ nsHTMLContentSerializer::SerializeHTMLAttributes(nsIContent* aContent,
     PRInt32 namespaceID = name->NamespaceID();
     nsIAtom* attrName = name->LocalName();
 
-    // Filter out any attribute starting with [-|_]moz
+    
     nsDependentAtomString attrNameStr(attrName);
     if (StringBeginsWith(attrNameStr, NS_LITERAL_STRING("_moz")) ||
         StringBeginsWith(attrNameStr, NS_LITERAL_STRING("-moz"))) {
@@ -101,10 +101,10 @@ nsHTMLContentSerializer::SerializeHTMLAttributes(nsIContent* aContent,
     }
     aContent->GetAttr(namespaceID, attrName, valueStr);
 
-    // 
-    // Filter out special case of <br type="_moz"> or <br _moz*>,
-    // used by the editor.  Bug 16988.  Yuck.
-    //
+    
+    
+    
+    
     if (aTagName == nsGkAtoms::br && aNamespace == kNameSpaceID_XHTML &&
         attrName == nsGkAtoms::type && namespaceID == kNameSpaceID_None &&
         StringBeginsWith(valueStr, _mozStr)) {
@@ -114,7 +114,7 @@ nsHTMLContentSerializer::SerializeHTMLAttributes(nsIContent* aContent,
     if (mIsCopying && mIsFirstChildOfOL &&
         aTagName == nsGkAtoms::li && aNamespace == kNameSpaceID_XHTML &&
         attrName == nsGkAtoms::value && namespaceID == kNameSpaceID_None){
-      // This is handled separately in SerializeLIValueAttribute()
+      
       continue;
     }
     bool isJS = IsJavaScript(aContent, attrName, namespaceID, valueStr);
@@ -123,12 +123,12 @@ nsHTMLContentSerializer::SerializeHTMLAttributes(nsIContent* aContent,
           (namespaceID == kNameSpaceID_None ||
            namespaceID == kNameSpaceID_XLink)) ||
          (attrName == nsGkAtoms::src && namespaceID == kNameSpaceID_None))) {
-      // Make all links absolute when converting only the selection:
+      
       if (mFlags & nsIDocumentEncoder::OutputAbsoluteLinks) {
-        // Would be nice to handle OBJECT and APPLET tags,
-        // but that gets more complicated since we have to
-        // search the tag list for CODEBASE as well.
-        // For now, just leave them relative.
+        
+        
+        
+        
         nsCOMPtr<nsIURI> uri = aContent->GetBaseURI();
         if (uri) {
           nsAutoString absURI;
@@ -138,7 +138,7 @@ nsHTMLContentSerializer::SerializeHTMLAttributes(nsIContent* aContent,
           }
         }
       }
-      // Need to escape URI.
+      
       nsAutoString tempURI(valueStr);
       if (!isJS && NS_FAILED(EscapeURI(aContent, tempURI, valueStr)))
         valueStr = tempURI;
@@ -147,8 +147,8 @@ nsHTMLContentSerializer::SerializeHTMLAttributes(nsIContent* aContent,
     if (mRewriteEncodingDeclaration && aTagName == nsGkAtoms::meta &&
         aNamespace == kNameSpaceID_XHTML && attrName == nsGkAtoms::content
         && namespaceID == kNameSpaceID_None) {
-      // If we're serializing a <meta http-equiv="content-type">,
-      // use the proper value, rather than what's in the document.
+      
+      
       nsAutoString header;
       aContent->GetAttr(kNameSpaceID_None, nsGkAtoms::httpEquiv, header);
       if (header.LowerCaseEqualsLiteral("content-type")) {
@@ -165,7 +165,7 @@ nsHTMLContentSerializer::SerializeHTMLAttributes(nsIContent* aContent,
       prefix.Assign(NS_LITERAL_STRING("xlink"));
     }
 
-    // Expand shorthand attribute.
+    
     if (aNamespace == kNameSpaceID_XHTML &&
         namespaceID == kNameSpaceID_None &&
         IsShorthandAttr(attrName, aTagName) &&
@@ -217,8 +217,8 @@ nsHTMLContentSerializer::AppendElementStart(Element* aElement,
   else {
     MaybeAddNewlineForRootNode(aStr);
   }
-  // Always reset to avoid false newlines in case MaybeAddNewlineForRootNode wasn't
-  // called
+  
+  
   mAddNewlineForRootNode = false;
   
   AppendToString(kLessThan, aStr);
@@ -227,25 +227,25 @@ nsHTMLContentSerializer::AppendElementStart(Element* aElement,
 
   MaybeEnterInPreContent(content);
 
-  // for block elements, we increase the indentation
+  
   if ((mDoFormat || forceFormat) && !mPreLevel && !mDoRaw)
     IncrIndentation(name);
 
-  // Need to keep track of OL and LI elements in order to get ordinal number 
-  // for the LI.
+  
+  
   if (mIsCopying && name == nsGkAtoms::ol && ns == kNameSpaceID_XHTML){
-    // We are copying and current node is an OL;
-    // Store its start attribute value in olState->startVal.
+    
+    
     nsAutoString start;
     PRInt32 startAttrVal = 0;
 
     aElement->GetAttr(kNameSpaceID_None, nsGkAtoms::start, start);
     if (!start.IsEmpty()){
-      PRInt32 rv = 0;
+      nsresult rv = NS_OK;
       startAttrVal = start.ToInteger(&rv);
-      //If OL has "start" attribute, first LI element has to start with that value
-      //Therefore subtracting 1 as all the LI elements are incrementing it before using it;
-      //In failure of ToInteger(), default StartAttrValue to 0.
+      
+      
+      
       if (NS_SUCCEEDED(rv))
         startAttrVal--; 
       else
@@ -257,13 +257,13 @@ nsHTMLContentSerializer::AppendElementStart(Element* aElement,
   if (mIsCopying && name == nsGkAtoms::li && ns == kNameSpaceID_XHTML) {
     mIsFirstChildOfOL = IsFirstChildOfOL(aOriginalElement);
     if (mIsFirstChildOfOL){
-      // If OL is parent of this LI, serialize attributes in different manner.
+      
       SerializeLIValueAttribute(aElement, aStr);
     }
   }
 
-  // Even LI passed above have to go through this 
-  // for serializing attributes other than "value".
+  
+  
   nsAutoString dummyPrefix;
   SerializeHTMLAttributes(content,
                           aOriginalElement,
@@ -323,17 +323,17 @@ nsHTMLContentSerializer::AppendElementEnd(Element* aElement,
     nsCOMPtr<nsIScriptElement> script = do_QueryInterface(aElement);
 
     if (script && script->IsMalformed()) {
-      // We're looking at a malformed script tag. This means that the end tag
-      // was missing in the source. Imitate that here by not serializing the end
-      // tag.
+      
+      
+      
       --mPreLevel;
       return NS_OK;
     }
   }
   else if (mIsCopying && name == nsGkAtoms::ol && ns == kNameSpaceID_XHTML) {
     NS_ASSERTION((!mOLStateStack.IsEmpty()), "Cannot have an empty OL Stack");
-    /* Though at this point we must always have an state to be deleted as all 
-    the OL opening tags are supposed to push an olState object to the stack*/
+    
+
     if (!mOLStateStack.IsEmpty()) {
       mOLStateStack.RemoveElementAt(mOLStateStack.Length() -1);
     }
@@ -443,8 +443,8 @@ PRUint32 FindNextBasicEntity(const nsAString& aStr,
                              const char** aEntity)
 {
   for (; aIndex < aLen; ++aIndex) {
-    // for each character in this chunk, check if it
-    // needs to be replaced
+    
+    
     PRUnichar val = aStr[aIndex];
     if (val <= kValNBSP && aEntityTable[val]) {
       *aEntity = aEntityTable[val];
@@ -501,7 +501,7 @@ nsHTMLContentSerializer::AppendAndTranslateEntities(const nsAString& aStr,
     nsReadingIterator<PRUnichar> done_reading;
     aStr.EndReading(done_reading);
 
-    // for each chunk of |aString|...
+    
     PRUint32 advanceLength = 0;
     nsReadingIterator<PRUnichar> iter;
 
@@ -512,8 +512,8 @@ nsHTMLContentSerializer::AppendAndTranslateEntities(const nsAString& aStr,
          iter != done_reading;
          iter.advance(PRInt32(advanceLength))) {
       PRUint32 fragmentLength = iter.size_forward();
-      PRUint32 lengthReplaced = 0; // the number of UTF-16 codepoints
-                                    //  replaced by a particular entity
+      PRUint32 lengthReplaced = 0; 
+                                    
       const PRUnichar* c = iter.get();
       const PRUnichar* fragmentStart = c;
       const PRUnichar* fragmentEnd = c + fragmentLength;
@@ -522,8 +522,8 @@ nsHTMLContentSerializer::AppendAndTranslateEntities(const nsAString& aStr,
       char* fullEntityText = nullptr;
 
       advanceLength = 0;
-      // for each character in this chunk, check if it
-      // needs to be replaced
+      
+      
       for (; c < fragmentEnd; c++, advanceLength++) {
         PRUnichar val = *c;
         if (val <= kValNBSP && entityTable[val]) {
@@ -577,7 +577,7 @@ nsHTMLContentSerializer::AppendAndTranslateEntities(const nsAString& aStr,
         aOutputStr.AppendASCII(fullConstEntityText);
         ++advanceLength;
       }
-      // if it comes from nsIEntityConverter, it already has '&' and ';'
+      
       else if (fullEntityText) {
         AppendASCIItoUTF16(fullEntityText, aOutputStr);
         nsMemory::Free(fullEntityText);

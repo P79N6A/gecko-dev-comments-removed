@@ -7488,7 +7488,7 @@ PresShell::DoReflow(nsIFrame* target, bool aInterruptible)
                                              target->GetView(),
                                              boundsRelativeToTarget);
   nsContainerFrame::SyncWindowProperties(mPresContext, target,
-                                         target->GetView());
+                                         target->GetView(), rcx);
 
   target->DidReflow(mPresContext, nullptr, NS_FRAME_REFLOW_FINISHED);
   if (target == rootFrame && size.height == NS_UNCONSTRAINEDSIZE) {
@@ -7692,8 +7692,9 @@ ReResolveMenusAndTrees(nsIFrame *aFrame, void *aClosure)
   
   
   
-  if (aFrame && aFrame->GetType() == nsGkAtoms::menuFrame)
-    (static_cast<nsMenuFrame *>(aFrame))->CloseMenu(true);
+  nsMenuFrame* menu = do_QueryFrame(aFrame);
+  if (menu)
+    menu->CloseMenu(true);
   return true;
 }
 

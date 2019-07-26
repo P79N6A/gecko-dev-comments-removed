@@ -4422,7 +4422,7 @@ nsXULDocument::InsertElement(nsIContent* aParent, nsIContent* aChild,
         if (!posStr.IsEmpty()) {
             nsresult rv;
             
-            PRInt32 pos = posStr.ToInteger(reinterpret_cast<PRInt32*>(&rv));
+            PRInt32 pos = posStr.ToInteger(&rv);
             
             
             

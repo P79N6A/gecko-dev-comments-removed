@@ -36,7 +36,7 @@ nsChannelClassifier::Start(nsIChannel *aChannel)
 {
     
     
-    PRUint32 status;
+    nsresult status;
     aChannel->GetStatus(&status);
     if (NS_FAILED(status))
         return NS_OK;

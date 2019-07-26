@@ -1044,9 +1044,9 @@ NS_IMETHODIMP imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctx
             if (NS_FAILED(rv)) {
               
               rv = nsMemory::HeapMinimize(true);
-              rv |= rasterImage->SetSourceSizeHint(sizeHint);
+              nsresult rv2 = rasterImage->SetSourceSizeHint(sizeHint);
               
-              if (NS_FAILED(rv)) {
+              if (NS_FAILED(rv) || NS_FAILED(rv2)) {
                 NS_WARNING("About to hit OOM in imagelib!");
               }
             }

@@ -22,7 +22,7 @@
 #include "nsWidgetInitData.h"
 #include "nsTArray.h"
 #include "nsXULAppAPI.h"
-#include "LayersBackend.h"
+#include "LayersTypes.h"
 
 
 class   nsFontMetrics;
@@ -162,7 +162,6 @@ enum nsTopLevelWidgetZPlacement {
   eZPlacementBelow,       
   eZPlacementTop          
 };
-
 
 
 
@@ -351,6 +350,27 @@ struct InputContextAction {
   }
 };
 
+
+
+
+
+struct SizeConstraints {
+  SizeConstraints()
+    : mMaxSize(NS_MAXSIZE, NS_MAXSIZE)
+  {
+  }
+
+  SizeConstraints(nsIntSize aMinSize,
+                  nsIntSize aMaxSize)
+  : mMinSize(aMinSize),
+    mMaxSize(aMaxSize)
+  {
+  }
+
+  nsIntSize mMinSize;
+  nsIntSize mMaxSize;
+};
+
 } 
 } 
 
@@ -369,6 +389,7 @@ class nsIWidget : public nsISupports {
     typedef mozilla::widget::IMEState IMEState;
     typedef mozilla::widget::InputContext InputContext;
     typedef mozilla::widget::InputContextAction InputContextAction;
+    typedef mozilla::widget::SizeConstraints SizeConstraints;
 
     
     struct ThemeGeometry {
@@ -665,11 +686,13 @@ class nsIWidget : public nsISupports {
 
 
 
+
     NS_IMETHOD Resize(PRInt32 aWidth,
                       PRInt32 aHeight,
                       bool     aRepaint) = 0;
 
     
+
 
 
 
@@ -1587,6 +1610,26 @@ class nsIWidget : public nsISupports {
         GetBounds(bounds);
         return bounds;
     }
+
+    
+
+
+
+
+
+
+
+
+
+
+    virtual void SetSizeConstraints(const SizeConstraints& aConstraints) = 0;
+
+    
+
+
+
+
+    virtual const SizeConstraints& GetSizeConstraints() const = 0;
 
 protected:
 

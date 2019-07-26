@@ -418,7 +418,9 @@ public:
   
   
   
-  virtual nsresult ReadMetadata(nsVideoInfo* aInfo) = 0;
+  
+  virtual nsresult ReadMetadata(nsVideoInfo* aInfo,
+                                nsHTMLMediaElement::MetadataTags** aTags) = 0;
 
   
   

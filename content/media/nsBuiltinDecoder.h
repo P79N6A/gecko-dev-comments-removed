@@ -579,7 +579,8 @@ public:
   
   void MetadataLoaded(PRUint32 aChannels,
                       PRUint32 aRate,
-                      bool aHasAudio);
+                      bool aHasAudio,
+                      const nsHTMLMediaElement::MetadataTags* aTags);
 
   
   

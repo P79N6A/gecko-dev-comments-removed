@@ -15,6 +15,8 @@
 
 #include "js/Utility.h"
 
+#include "zlib.h"
+
 
 struct JSContext;
 
@@ -357,14 +359,32 @@ ClearAllBitArrayElements(size_t *array, size_t length)
         array[i] = 0;
 }
 
-#if USE_ZLIB
-
-
-
-
-
-bool TryCompressString(const unsigned char *inp, size_t inplen,
-                       unsigned char *out, size_t *outlen);
+#ifdef USE_ZLIB
+class Compressor
+{
+    
+    static const size_t CHUNKSIZE = 2048;
+    z_stream zs;
+    const unsigned char *inp;
+    size_t inplen;
+  public:
+    Compressor(const unsigned char *inp, size_t inplen, unsigned char *out)
+        : inp(inp),
+        inplen(inplen)
+    {
+        JS_ASSERT(inplen > 0);
+        zs.opaque = NULL;
+        zs.next_in = (Bytef *)inp;
+        zs.avail_in = 0;
+        zs.next_out = out;
+        zs.avail_out = inplen;
+    }
+    bool init();
+    
+    bool compressMore();
+    
+    size_t finish();
+};
 
 
 

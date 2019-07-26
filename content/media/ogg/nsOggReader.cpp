@@ -151,13 +151,43 @@ void nsOggReader::BuildSerialList(nsTArray<PRUint32>& aTracks)
   }
 }
 
-nsresult nsOggReader::ReadMetadata(nsVideoInfo* aInfo)
+static
+nsHTMLMediaElement::MetadataTags* TagsFromVorbisComment(vorbis_comment *vc)
+{
+  nsHTMLMediaElement::MetadataTags* tags;
+  int i;
+
+  tags = new nsHTMLMediaElement::MetadataTags;
+  tags->Init();
+  for (i = 0; i < vc->comments; i++) {
+    char *comment = vc->user_comments[i];
+    char *div = (char*)memchr(comment, '=', vc->comment_lengths[i]);
+    if (!div) {
+      LOG(PR_LOG_DEBUG, ("Invalid vorbis comment: no separator"));
+      continue;
+    }
+    
+    nsCString key = nsCString(comment, div-comment);
+    PRUint32 value_length = vc->comment_lengths[i] - (div-comment);
+    
+    nsCString value = nsCString(div + 1, value_length);
+    tags->Put(key, value);
+  }
+
+  return tags;
+}
+
+nsresult nsOggReader::ReadMetadata(nsVideoInfo* aInfo,
+                                   nsHTMLMediaElement::MetadataTags** aTags)
 {
   NS_ASSERTION(mDecoder->OnDecodeThread(), "Should be on decode thread.");
 
   
   
   
+
+  NS_ASSERTION(aTags, "Called with null MetadataTags**.");
+  *aTags = nullptr;
 
   ogg_page page;
   nsAutoTArray<nsOggCodecState*,4> bitstreams;
@@ -283,6 +313,7 @@ nsresult nsOggReader::ReadMetadata(nsVideoInfo* aInfo)
     memcpy(&mVorbisInfo, &mVorbisState->mInfo, sizeof(mVorbisInfo));
     mVorbisInfo.codec_setup = NULL;
     mVorbisSerial = mVorbisState->mSerial;
+    *aTags = TagsFromVorbisComment(&mVorbisState->mComment);
   } else {
     memset(&mVorbisInfo, 0, sizeof(mVorbisInfo));
   }
@@ -1623,7 +1654,10 @@ nsresult nsOggReader::GetBuffered(nsTimeRanges* aBuffered, PRInt64 aStartTime)
       else {
         
         
-        return PAGE_SYNC_ERROR;
+        
+        
+        
+        return (nsresult)PAGE_SYNC_ERROR;
       }
     }
 

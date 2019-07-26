@@ -379,19 +379,19 @@ nsFindContentIterator::SetupInnerIterator(nsIContent* aContent)
 
     
     
-    nsresult res;
+    nsresult res1, res2;
     nsCOMPtr<nsIDOMNode> outerNode(do_QueryInterface(aContent));
     if (!mFindBackward) { 
       
-      res = outerRange->SetEnd(mEndNode, mEndOffset);
-      res |= outerRange->SetStartAfter(outerNode);
+      res1 = outerRange->SetEnd(mEndNode, mEndOffset);
+      res2 = outerRange->SetStartAfter(outerNode);
     }
     else { 
       
-      res = outerRange->SetStart(mStartNode, mStartOffset);
-      res |= outerRange->SetEndBefore(outerNode);
+      res1 = outerRange->SetStart(mStartNode, mStartOffset);
+      res2 = outerRange->SetEndBefore(outerNode);
     }
-    if (NS_FAILED(res)) {
+    if (NS_FAILED(res1) || NS_FAILED(res2)) {
       
       
       outerRange->Collapse(true);

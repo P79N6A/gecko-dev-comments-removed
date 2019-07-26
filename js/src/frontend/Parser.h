@@ -42,6 +42,8 @@ struct Parser : private AutoGCRooter
 
     TreeContext         *tc;            
 
+    SourceCompressionToken *sct;        
+
     
     AutoKeepAtoms       keepAtoms;
 

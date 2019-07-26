@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim:set ts=2 sw=2 sts=2 et cindent: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 #include "nsError.h"
 #include "nsBuiltinDecoder.h"
 #include "MediaResource.h"
@@ -14,8 +14,8 @@
 
 using namespace mozilla;
 
-// Un-comment to enable logging of seek bisections.
-//#define SEEK_LOGGING
+
+
 
 #ifdef PR_LOGGING
 extern PRLogModuleInfo* gBuiltinDecoderLog;
@@ -30,27 +30,27 @@ extern PRLogModuleInfo* gBuiltinDecoderLog;
 #define SEEK_LOG(type, msg)
 #endif
 
-// Magic values that identify RIFF chunks we're interested in.
+
 static const PRUint32 RIFF_CHUNK_MAGIC = 0x52494646;
 static const PRUint32 WAVE_CHUNK_MAGIC = 0x57415645;
 static const PRUint32 FRMT_CHUNK_MAGIC = 0x666d7420;
 static const PRUint32 DATA_CHUNK_MAGIC = 0x64617461;
 
-// Size of RIFF chunk header.  4 byte chunk header type and 4 byte size field.
+
 static const PRUint16 RIFF_CHUNK_HEADER_SIZE = 8;
 
-// Size of RIFF header.  RIFF chunk and 4 byte RIFF type.
+
 static const PRUint16 RIFF_INITIAL_SIZE = RIFF_CHUNK_HEADER_SIZE + 4;
 
-// Size of required part of format chunk.  Actual format chunks may be
-// extended (for non-PCM encodings), but we skip any extended data.
+
+
 static const PRUint16 WAVE_FORMAT_CHUNK_SIZE = 16;
 
-// PCM encoding type from format chunk.  Linear PCM is the only encoding
-// supported by nsAudioStream.
+
+
 static const PRUint16 WAVE_FORMAT_ENCODING_PCM = 1;
 
-// Maximum number of channels supported
+
 static const PRUint8 MAX_CHANNELS = 2;
 
 namespace {
@@ -119,7 +119,8 @@ nsresult nsWaveReader::Init(nsBuiltinDecoderReader* aCloneDonor)
   return NS_OK;
 }
 
-nsresult nsWaveReader::ReadMetadata(nsVideoInfo* aInfo)
+nsresult nsWaveReader::ReadMetadata(nsVideoInfo* aInfo,
+                                    nsHTMLMediaElement::MetadataTags** aTags)
 {
   NS_ASSERTION(mDecoder->OnDecodeThread(), "Should be on decode thread.");
 
@@ -134,6 +135,8 @@ nsresult nsWaveReader::ReadMetadata(nsVideoInfo* aInfo)
   mInfo.mAudioChannels = mChannels;
 
   *aInfo = mInfo;
+
+  *aTags = nullptr;
 
   ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
 
@@ -168,7 +171,7 @@ bool nsWaveReader::DecodeAudioData()
     return false;
   }
 
-  // convert data to samples
+  
   const char* d = dataBuffer.get();
   AudioDataValue* s = sampleBuffer.get();
   for (int i = 0; i < frames; ++i) {
@@ -245,13 +248,13 @@ nsresult nsWaveReader::GetBuffered(nsTimeRanges* aBuffered, PRInt64 aStartTime)
   PRInt64 startOffset = mDecoder->GetResource()->GetNextCachedData(mWavePCMOffset);
   while (startOffset >= 0) {
     PRInt64 endOffset = mDecoder->GetResource()->GetCachedDataEnd(startOffset);
-    // Bytes [startOffset..endOffset] are cached.
+    
     NS_ASSERTION(startOffset >= mWavePCMOffset, "Integer underflow in GetBuffered");
     NS_ASSERTION(endOffset >= mWavePCMOffset, "Integer underflow in GetBuffered");
 
-    // We need to round the buffered ranges' times to microseconds so that they
-    // have the same precision as the currentTime and duration attribute on 
-    // the media element.
+    
+    
+    
     aBuffered->Add(RoundToUsecs(BytesToTime(startOffset - mWavePCMOffset)),
                    RoundToUsecs(BytesToTime(endOffset - mWavePCMOffset)));
     startOffset = mDecoder->GetResource()->GetNextCachedData(endOffset);
@@ -303,7 +306,7 @@ nsWaveReader::LoadRIFFChunk()
     return false;
   }
 
-  // Skip over RIFF size field.
+  
   p += 4;
 
   if (ReadUint32BE(&p) != WAVE_CHUNK_MAGIC) {
@@ -338,7 +341,7 @@ nsWaveReader::ScanForwardUntil(PRUint32 aWantedChunk, PRUint32* aChunkSize)
       return true;
     }
 
-    // RIFF chunks are two-byte aligned, so round up if necessary.
+    
     chunkSize += chunkSize % 2;
 
     static const unsigned int MAX_CHUNK_SIZE = 1 << 16;
@@ -361,12 +364,12 @@ nsWaveReader::LoadFormatChunk()
   char waveFormat[WAVE_FORMAT_CHUNK_SIZE];
   const char* p = waveFormat;
 
-  // RIFF chunks are always word (two byte) aligned.
+  
   NS_ABORT_IF_FALSE(mDecoder->GetResource()->Tell() % 2 == 0,
                     "LoadFormatChunk called with unaligned resource");
 
-  // The "format" chunk may not directly follow the "riff" chunk, so skip
-  // over any intermediate chunks.
+  
+  
   if (!ScanForwardUntil(FRMT_CHUNK_MAGIC, &fmtSize)) {
     return false;
   }
@@ -389,18 +392,18 @@ nsWaveReader::LoadFormatChunk()
   channels = ReadUint16LE(&p);
   rate = ReadUint32LE(&p);
 
-  // Skip over average bytes per second field.
+  
   p += 4;
 
   frameSize = ReadUint16LE(&p);
 
   sampleFormat = ReadUint16LE(&p);
 
-  // PCM encoded WAVEs are not expected to have an extended "format" chunk,
-  // but I have found WAVEs that have a extended "format" chunk with an
-  // extension size of 0 bytes.  Be polite and handle this rather than
-  // considering the file invalid.  This code skips any extension of the
-  // "format" chunk.
+  
+  
+  
+  
+  
   if (fmtSize > WAVE_FORMAT_CHUNK_SIZE) {
     char extLength[2];
     const char* p = extLength;
@@ -426,13 +429,13 @@ nsWaveReader::LoadFormatChunk()
     }
   }
 
-  // RIFF chunks are always word (two byte) aligned.
+  
   NS_ABORT_IF_FALSE(mDecoder->GetResource()->Tell() % 2 == 0,
                     "LoadFormatChunk left resource unaligned");
 
-  // Make sure metadata is fairly sane.  The rate check is fairly arbitrary,
-  // but the channels check is intentionally limited to mono or stereo
-  // because that's what the audio backend currently supports.
+  
+  
+  
   if (rate < 100 || rate > 96000 ||
       channels < 1 || channels > MAX_CHANNELS ||
       (frameSize != 1 && frameSize != 2 && frameSize != 4) ||
@@ -456,12 +459,12 @@ nsWaveReader::LoadFormatChunk()
 bool
 nsWaveReader::FindDataOffset()
 {
-  // RIFF chunks are always word (two byte) aligned.
+  
   NS_ABORT_IF_FALSE(mDecoder->GetResource()->Tell() % 2 == 0,
                     "FindDataOffset called with unaligned resource");
 
-  // The "data" chunk may not directly follow the "format" chunk, so skip
-  // over any intermediate chunks.
+  
+  
   PRUint32 length;
   if (!ScanForwardUntil(DATA_CHUNK_MAGIC, &length)) {
     return false;
@@ -504,9 +507,9 @@ PRInt64
 nsWaveReader::GetDataLength()
 {
   PRInt64 length = mWaveLength;
-  // If the decoder has a valid content length, and it's shorter than the
-  // expected length of the PCM data, calculate the playback duration from
-  // the content length rather than the expected PCM data length.
+  
+  
+  
   PRInt64 streamLength = mDecoder->GetResource()->GetLength();
   if (streamLength >= 0) {
     PRInt64 dataLength = NS_MAX<PRInt64>(0, streamLength - mWavePCMOffset);

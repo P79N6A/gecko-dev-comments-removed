@@ -22,6 +22,8 @@
 
 #include "nsGkAtoms.h"
 #include "nsIIdleServiceInternal.h"
+#include "nsIRunnable.h"
+#include "nsThreadUtils.h"
 
 #ifdef MOZ_LOGGING
 
@@ -328,7 +330,7 @@ private:
     nsCOMPtr<nsIIdleServiceInternal> mIdleService;
 
     bool         mIsTransparent;
- 
+
     
     
     void   InitDragEvent         (nsMouseEvent &aEvent);

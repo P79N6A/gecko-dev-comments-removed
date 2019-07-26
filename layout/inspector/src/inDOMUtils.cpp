@@ -267,7 +267,8 @@ inDOMUtils::SetContentState(nsIDOMElement *aElement, nsEventStates::InternalType
     nsCOMPtr<nsIContent> content;
     content = do_QueryInterface(aElement);
 
-    return esm->SetContentState(content, nsEventStates(aState));
+    
+    return (nsresult)esm->SetContentState(content, nsEventStates(aState));
   }
 
   return NS_ERROR_FAILURE;

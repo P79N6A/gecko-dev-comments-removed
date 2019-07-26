@@ -16,8 +16,13 @@
 #include "nsITimer.h"
 #include "nsTArray.h"
 #include "nsIAnonymousContentCreator.h"
-#include "Layers.h"
-#include "ImageLayers.h"
+
+namespace mozilla {
+namespace layers {
+class Layer;
+class LayerManager;
+}
+}
 
 class nsPresContext;
 class nsDisplayItem;
@@ -108,10 +113,10 @@ protected:
   virtual ~nsVideoFrame();
 
   nsMargin mBorderPadding;
-  
+
   
   nsCOMPtr<nsIContent> mVideoControls;
-  
+
   
   nsCOMPtr<nsIContent> mPosterImage;
 };

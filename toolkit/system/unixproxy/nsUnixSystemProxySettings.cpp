@@ -122,7 +122,7 @@ IsInNoProxyList(const nsACString& aHost, PRInt32 aPort, const char* noProxyVal)
       ++colon;
       nsDependentCSubstring portStr(colon, last);
       nsCAutoString portStr2(portStr); 
-      PRInt32 err;
+      nsresult err;
       port = portStr2.ToInteger(&err);
       if (NS_FAILED(err)) {
         port = -2; 
@@ -341,7 +341,7 @@ static bool HostIgnoredByProxy(const nsACString& aIgnore,
     ++slash;
     nsDependentCSubstring maskStr(slash, end);
     nsCAutoString maskStr2(maskStr);
-    PRInt32 err;
+    nsresult err;
     mask = maskStr2.ToInteger(&err);
     if (err != 0) {
       mask = 128;

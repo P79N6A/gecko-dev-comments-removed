@@ -307,13 +307,6 @@ public:
   
   
   
-  nsIFrame* GetFrameOfTypeForContent(nsIContent* aContent,
-                                     nsIAtom* aFrameType,
-                                     bool aShouldFlush);
-
-  
-  
-  
   
   
   
@@ -604,9 +597,6 @@ public:
 protected:
   nsXULPopupManager();
   ~nsXULPopupManager();
-
-  
-  nsMenuFrame* GetMenuFrameForContent(nsIContent* aContent);
 
   
   nsMenuPopupFrame* GetPopupFrameForContent(nsIContent* aContent, bool aShouldFlush);

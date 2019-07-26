@@ -98,7 +98,10 @@ nsURIChecker::CheckStatus()
             PRUint32 loadFlags;
 
             rv  = lastChannel->GetOriginalURI(getter_AddRefs(uri));
-            rv |= lastChannel->GetLoadFlags(&loadFlags);
+            nsresult tmp = lastChannel->GetLoadFlags(&loadFlags);
+            if (NS_FAILED(tmp)) {
+              rv = tmp;
+            }
 
             
             

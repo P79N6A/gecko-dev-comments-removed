@@ -11,34 +11,25 @@
 #include "nsISupports.h"
 #include "nsColor.h"
 #include "nsCoord.h"
-#include "nsAString.h"
 #include "nsCOMPtr.h"
 #include "nsIPresShell.h"
 #include "nsRect.h"
 #include "nsDeviceContext.h"
 #include "nsFont.h"
-#include "nsIWeakReference.h"
-#include "nsITheme.h"
-#include "nsILanguageAtomService.h"
 #include "nsIObserver.h"
 #include "nsITimer.h"
 #include "nsCRT.h"
-#include "nsIPrintSettings.h"
 #include "FramePropertyTable.h"
 #include "nsGkAtoms.h"
-#include "nsIDocument.h"
 #include "nsRefPtrHashtable.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsChangeHint.h"
 
 #include "gfxRect.h"
-#include "nsRegion.h"
 #include "nsTArray.h"
 #include "nsAutoPtr.h"
-#include "nsThreadUtils.h"
 #include "nsIWidget.h"
 #include "mozilla/TimeStamp.h"
-#include "nsIContent.h"
 #include "prclist.h"
 
 class nsImageLoader;
@@ -50,6 +41,12 @@ struct nsRect;
 
 class imgIRequest;
 
+class nsAString;
+class nsIPrintSettings;
+class nsIDocument;
+class nsILanguageAtomService;
+class nsITheme;
+class nsIContent;
 class nsFontMetrics;
 class nsIFrame;
 class nsFrameManager;
@@ -59,7 +56,6 @@ class nsIAtom;
 class nsEventStateManager;
 class nsIURI;
 class nsICSSPseudoComparator;
-class nsIAtom;
 struct nsStyleBackground;
 struct nsStyleBorder;
 class nsIRunnable;
@@ -202,7 +198,7 @@ public:
   nsStyleSet* StyleSet() { return GetPresShell()->StyleSet(); }
 
   nsFrameManager* FrameManager()
-    { return GetPresShell()->FrameManager(); } 
+    { return GetPresShell()->FrameManager(); }
 
   nsTransitionManager* TransitionManager() { return mTransitionManager; }
   nsAnimationManager* AnimationManager() { return mAnimationManager; }
@@ -241,9 +237,8 @@ public:
 
 
 
-  nsCompatibility CompatibilityMode() const {
-    return Document()->GetCompatibilityMode();
-  }
+  nsCompatibility CompatibilityMode() const;
+
   
 
 
@@ -675,13 +670,13 @@ public:
 
 
 
-  virtual bool BidiEnabledExternal() const { return BidiEnabledInternal(); }
-  bool BidiEnabledInternal() const { return Document()->GetBidiEnabled(); }
 #ifdef _IMPL_NS_LAYOUT
   bool BidiEnabled() const { return BidiEnabledInternal(); }
 #else
   bool BidiEnabled() const { return BidiEnabledExternal(); }
 #endif
+  virtual bool BidiEnabledExternal() const;
+  bool BidiEnabledInternal() const;
 
   
 
@@ -728,7 +723,7 @@ public:
 
 
 
-  
+
   NS_HIDDEN_(PRUint32) GetBidi() const;
 #endif 
 
@@ -929,14 +924,7 @@ public:
 
 
 
-  nsIFrame* GetPrimaryFrameFor(nsIContent* aContent) {
-    NS_PRECONDITION(aContent, "Don't do that");
-    if (GetPresShell() &&
-        GetPresShell()->GetDocument() == aContent->GetCurrentDoc()) {
-      return aContent->GetPrimaryFrame();
-    }
-    return nullptr;
-  }
+  nsIFrame* GetPrimaryFrameFor(nsIContent* aContent);
 
   void NotifyDestroyingFrame(nsIFrame* aFrame)
   {
@@ -1082,16 +1070,16 @@ protected:
   
   
   
-  
+
   nsPresContextType     mType;
   nsIPresShell*         mShell;         
   nsCOMPtr<nsIDocument> mDocument;
-  nsDeviceContext*     mDeviceContext; 
-                                        
-                                        
-                                        
-                                        
-  nsEventStateManager* mEventManager;   
+  nsRefPtr<nsDeviceContext> mDeviceContext; 
+                                            
+                                            
+                                            
+                                            
+  nsRefPtr<nsEventStateManager> mEventManager;
   nsRefPtr<nsRefreshDriver> mRefreshDriver;
   nsRefPtr<nsTransitionManager> mTransitionManager;
   nsRefPtr<nsAnimationManager> mAnimationManager;
@@ -1105,7 +1093,7 @@ protected:
   
   
   
-  nsIAtom*              mLanguage;      
+  nsCOMPtr<nsIAtom>     mLanguage;
 
 public:
   
@@ -1144,7 +1132,7 @@ protected:
 
   
   nsUserFontSet*        mUserFontSet;
-  
+
   nsRect                mVisibleArea;
   nsSize                mPageSize;
   float                 mPageScale;

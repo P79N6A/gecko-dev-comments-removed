@@ -272,7 +272,7 @@ nsCertOverrideService::Read()
     if (portIndex == kNotFound)
       continue; 
 
-    PRInt32 portParseError;
+    nsresult portParseError;
     nsCAutoString portString(Substring(host, portIndex+1));
     port = portString.ToInteger(&portParseError);
     if (portParseError)

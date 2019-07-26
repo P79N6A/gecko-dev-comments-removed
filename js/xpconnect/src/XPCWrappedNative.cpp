@@ -1451,6 +1451,27 @@ private:
 };
 
 
+class AutoClonePrivateGuard NS_STACK_CLASS {
+public:
+    AutoClonePrivateGuard(JSObject *aOld, JSObject *aNew)
+        : mOldReflector(aOld), mNewReflector(aNew)
+    {
+        MOZ_ASSERT(JS_GetPrivate(aOld) == JS_GetPrivate(aNew));
+    }
+
+    ~AutoClonePrivateGuard()
+    {
+        if (JS_GetPrivate(mOldReflector)) {
+            JS_SetPrivate(mNewReflector, nullptr);
+        }
+    }
+
+private:
+    JSObject* mOldReflector;
+    JSObject* mNewReflector;
+};
+
+
 nsresult
 XPCWrappedNative::ReparentWrapperIfFound(XPCCallContext& ccx,
                                          XPCWrappedNativeScope* aOldScope,
@@ -1540,10 +1561,66 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCCallContext& ccx,
         }
 
         if (wrapper) {
-            Native2WrappedNativeMap* oldMap = aOldScope->GetWrappedNativeMap();
-            Native2WrappedNativeMap* newMap = aNewScope->GetWrappedNativeMap();
 
+            
+            
+            
+            
+            
+
+            JSObject *newobj = JS_CloneObject(ccx, flat,
+                                              newProto->GetJSProtoObject(),
+                                              aNewParent);
+            if (!newobj)
+                return NS_ERROR_FAILURE;
+
+            
+            
+            
+            
+            
+            
+            
+            JSObject *propertyHolder;
+            {
+                AutoClonePrivateGuard cloneGuard(flat, newobj);
+
+                propertyHolder = JS_NewObjectWithGivenProto(ccx, NULL, NULL, aNewParent);
+                if (!propertyHolder)
+                    return NS_ERROR_OUT_OF_MEMORY;
+                if (!JS_CopyPropertiesFrom(ccx, propertyHolder, flat))
+                    return NS_ERROR_FAILURE;
+
+                
+                
+                SetExpandoChain(newobj, nullptr);
+                if (!XrayUtils::CloneExpandoChain(ccx, newobj, flat))
+                    return NS_ERROR_FAILURE;
+
+                
+                
+                
+                
+                
+                
+                JS_SetPrivate(flat, nullptr);
+            }
+
+            
+            
+            
+            {
+                JSAutoEnterCompartment innerAC;
+                if (!innerAC.enter(ccx, aOldScope->GetGlobalJSObject()) ||
+                    !wrapper->GetSameCompartmentSecurityWrapper(ccx))
+                    return NS_ERROR_FAILURE;
+            }
+
+            
+            
             {   
+                Native2WrappedNativeMap* oldMap = aOldScope->GetWrappedNativeMap();
+                Native2WrappedNativeMap* newMap = aNewScope->GetWrappedNativeMap();
                 XPCAutoLock lock(aOldScope->GetRuntime()->GetMapLock());
 
                 oldMap->Remove(wrapper);
@@ -1573,46 +1650,9 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCCallContext& ccx,
                 NS_ASSERTION(!newMap->Find(wrapper->GetIdentityObject()),
                              "wrapper already in new scope!");
 
-                (void) newMap->Add(wrapper);
+                if (!newMap->Add(wrapper))
+                    MOZ_CRASH();
             }
-
-            JSObject *newobj = JS_CloneObject(ccx, flat,
-                                              newProto->GetJSProtoObject(),
-                                              aNewParent);
-            if (!newobj)
-                return NS_ERROR_FAILURE;
-
-            JSObject *propertyHolder =
-                JS_NewObjectWithGivenProto(ccx, NULL, NULL, aNewParent);
-            if (!propertyHolder || !JS_CopyPropertiesFrom(ccx, propertyHolder, flat))
-                return NS_ERROR_OUT_OF_MEMORY;
-
-            
-            
-            SetExpandoChain(newobj, nullptr);
-            if (!XrayUtils::CloneExpandoChain(ccx, newobj, flat))
-                return NS_ERROR_FAILURE;
-
-            
-            
-            
-            {
-                JSAutoEnterCompartment innerAC;
-                if (!innerAC.enter(ccx, aOldScope->GetGlobalJSObject()) ||
-                    !wrapper->GetSameCompartmentSecurityWrapper(ccx))
-                    return NS_ERROR_FAILURE;
-            }
-
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            JS_SetPrivate(flat, nullptr);
 
             JSObject *ww = wrapper->GetWrapper();
             if (ww) {
@@ -1622,41 +1662,37 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCCallContext& ccx,
                 if (xpc::WrapperFactory::IsLocationObject(flat)) {
                     newwrapper = xpc::WrapperFactory::WrapLocationObject(ccx, newobj);
                     if (!newwrapper)
-                        return NS_ERROR_FAILURE;
+                        MOZ_CRASH();
                 } else {
                     NS_ASSERTION(wrapper->NeedsSOW(), "weird wrapper wrapper");
                     newwrapper = xpc::WrapperFactory::WrapSOWObject(ccx, newobj);
                     if (!newwrapper)
-                        return NS_ERROR_FAILURE;
+                        MOZ_CRASH();
                 }
 
                 
                 ww = xpc::TransplantObjectWithWrapper(ccx, flat, ww, newobj,
                                                       newwrapper);
                 if (!ww)
-                    return NS_ERROR_FAILURE;
+                    MOZ_CRASH();
 
                 flat = newobj;
                 wrapper->SetWrapper(ww);
             } else {
                 flat = xpc::TransplantObject(ccx, flat, newobj);
                 if (!flat)
-                    return NS_ERROR_FAILURE;
+                    MOZ_CRASH();
             }
 
             wrapper->mFlatJSObject = flat;
             if (cache)
                 cache->SetWrapper(flat);
             if (!JS_CopyPropertiesFrom(ccx, flat, propertyHolder))
-                return NS_ERROR_FAILURE;
+                MOZ_CRASH();
         } else {
             SetSlimWrapperProto(flat, newProto.get());
-            if (!JS_SetPrototype(ccx, flat, newProto->GetJSProtoObject())) {
-                
-                SetSlimWrapperProto(flat, nullptr);
-                NS_ERROR("JS_SetPrototype failed");
-                return NS_ERROR_FAILURE;
-            }
+            if (!JS_SetPrototype(ccx, flat, newProto->GetJSProtoObject()))
+                MOZ_CRASH(); 
         }
 
         
@@ -1669,13 +1705,13 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCCallContext& ccx,
 
     if (aNewParent) {
         if (!JS_SetParent(ccx, flat, aNewParent))
-            return NS_ERROR_FAILURE;
+            MOZ_CRASH();
 
         JSObject *nw;
         if (wrapper &&
             (nw = wrapper->GetWrapper()) &&
             !JS_SetParent(ccx, nw, JS_GetGlobalForObject(ccx, aNewParent))) {
-            return NS_ERROR_FAILURE;
+            MOZ_CRASH();
         }
     }
 
@@ -2228,7 +2264,7 @@ XPCWrappedNative::GetSameCompartmentSecurityWrapper(JSContext *cx)
 
 
 
-static JSBool Throw(unsigned errNum, XPCCallContext& ccx)
+static JSBool Throw(nsresult errNum, XPCCallContext& ccx)
 {
     XPCThrower::Throw(errNum, ccx);
     return false;
@@ -2676,7 +2712,7 @@ CallMethodHelper::QueryInterfaceFastPath() const
     }
 
     jsval v = JSVAL_NULL;
-    unsigned err;
+    nsresult err;
     JSBool success =
         XPCConvert::NativeData2JS(mCallContext, &v, &qiresult,
                                   nsXPTType::T_INTERFACE_IS,
@@ -2842,7 +2878,7 @@ CallMethodHelper::ConvertIndependentParam(uint8_t i)
         return false;
     }
 
-    unsigned err;
+    nsresult err;
     if (!XPCConvert::JSData2Native(mCallContext, &dp->val, src, type,
                                    true, &param_iid, &err)) {
         ThrowBadParam(err, i, mCallContext);
@@ -2940,7 +2976,7 @@ CallMethodHelper::ConvertDependentParam(uint8_t i)
         !GetInterfaceTypeFromParam(i, datum_type, &param_iid))
         return false;
 
-    unsigned err;
+    nsresult err;
 
     if (isArray || isSizedString) {
         if (!GetArraySizeFromParam(i, &array_count))

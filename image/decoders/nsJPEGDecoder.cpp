@@ -189,7 +189,9 @@ nsJPEGDecoder::WriteInternal(const char *aBuffer, PRUint32 aCount)
 
   
   nsresult error_code;
-  if ((error_code = setjmp(mErr.setjmp_buffer)) != 0) {
+  
+  
+  if ((error_code = (nsresult)setjmp(mErr.setjmp_buffer)) != 0) {
     if (error_code == NS_ERROR_FAILURE) {
       PostDataError();
       

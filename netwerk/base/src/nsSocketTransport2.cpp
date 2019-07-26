@@ -130,7 +130,9 @@ IsNSSErrorCode(PRErrorCode code)
 static nsresult
 GetXPCOMFromNSSError(PRErrorCode code)
 {
-    return NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_SECURITY, -1 * code);
+    
+    return (nsresult)NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_SECURITY,
+                                               -1 * code);
 }
 
 static nsresult

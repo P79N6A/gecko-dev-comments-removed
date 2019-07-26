@@ -29,6 +29,7 @@
 #include "mozilla/dom/Element.h"
 #include "nsContentErrors.h"
 
+using namespace mozilla;
 
 
 
@@ -157,10 +158,7 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
       
       nsMenuPopupFrame* menuPopupFrame = nullptr;
       if (contentToResize) {
-        nsIFrame* frameToResize = contentToResize->GetPrimaryFrame();
-        if (frameToResize && frameToResize->GetType() == nsGkAtoms::menuPopupFrame) {
-          menuPopupFrame = static_cast<nsMenuPopupFrame *>(frameToResize);
-        }
+        menuPopupFrame = do_QueryFrame(contentToResize->GetPrimaryFrame());
       }
 
       
@@ -189,8 +187,19 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
       }
 
       nsIntRect rect = mMouseDownRect;
-      AdjustDimensions(&rect.x, &rect.width, mouseMove.x, direction.mHorizontal);
-      AdjustDimensions(&rect.y, &rect.height, mouseMove.y, direction.mVertical);
+
+      
+      widget::SizeConstraints sizeConstraints;
+      if (window) {
+        nsCOMPtr<nsIWidget> widget;
+        window->GetMainWidget(getter_AddRefs(widget));
+        sizeConstraints = widget->GetSizeConstraints();
+      }
+
+      AdjustDimensions(&rect.x, &rect.width, sizeConstraints.mMinSize.width,
+                       sizeConstraints.mMaxSize.width, mouseMove.x, direction.mHorizontal);
+      AdjustDimensions(&rect.y, &rect.height, sizeConstraints.mMinSize.height,
+                       sizeConstraints.mMaxSize.height, mouseMove.y, direction.mVertical);
 
       
       
@@ -252,6 +261,10 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
         ResizeContent(contentToResize, direction, sizeInfo, &originalSizeInfo);
         MaybePersistOriginalSize(contentToResize, originalSizeInfo);
 
+        
+        
+        
+        
         if (weakFrame.IsAlive() &&
             (oldRect.x != rect.x || oldRect.y != rect.y) &&
             (!menuPopupFrame->IsAnchored() ||
@@ -284,8 +297,8 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
       nsIContent* contentToResize =
         GetContentToResize(presShell, getter_AddRefs(window));
       if (contentToResize) {
-        nsIFrame* frameToResize = contentToResize->GetPrimaryFrame();
-        if (frameToResize && frameToResize->GetType() == nsGkAtoms::menuPopupFrame)
+        nsMenuPopupFrame* menuPopupFrame = do_QueryFrame(contentToResize->GetPrimaryFrame());
+        if (menuPopupFrame)
           break; 
                  
 
@@ -316,8 +329,9 @@ nsResizerFrame::GetContentToResize(nsIPresShell* aPresShell, nsIBaseWindow** aWi
     
     nsIFrame* popup = GetParent();
     while (popup) {
-      if (popup->GetType() == nsGkAtoms::menuPopupFrame) {
-        return popup->GetContent();
+      nsMenuPopupFrame* popupFrame = do_QueryFrame(popup);
+      if (popupFrame) {
+        return popupFrame->GetContent();
       }
       popup = popup->GetParent();
     }
@@ -367,25 +381,25 @@ nsResizerFrame::GetContentToResize(nsIPresShell* aPresShell, nsIBaseWindow** aWi
   return aPresShell->GetDocument()->GetElementById(elementid);
 }
 
-
-
-
 void
 nsResizerFrame::AdjustDimensions(PRInt32* aPos, PRInt32* aSize,
+                                 PRInt32 aMinSize, PRInt32 aMaxSize,
                                  PRInt32 aMovement, PRInt8 aResizerDirection)
 {
-  switch(aResizerDirection)
-  {
-    case -1:
-      
-      *aPos+= aMovement;
-      
-    case 1:
-      *aSize+= aResizerDirection*aMovement;
-      
-      if (*aSize < 1)
-        *aSize = 1;
-  }
+  PRInt32 oldSize = *aSize;
+
+  *aSize += aResizerDirection * aMovement;
+  
+  if (*aSize < 1)
+    *aSize = 1;
+
+  
+  *aSize = NS_MAX(aMinSize, NS_MIN(aMaxSize, *aSize));
+
+  
+  
+  if (aResizerDirection == -1)
+    *aPos += oldSize - *aSize;
 }
 
  void

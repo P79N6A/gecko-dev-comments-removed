@@ -648,12 +648,6 @@ const gFormSubmitObserver = {
     this.panel = document.getElementById('invalid-form-popup');
   },
 
-  panelIsOpen: function()
-  {
-    return this.panel && this.panel.state != "hiding" &&
-           this.panel.state != "closed";
-  },
-
   notifyInvalidSubmit : function (aFormElement, aInvalidElements)
   {
     
@@ -1251,7 +1245,8 @@ var gBrowserInit = {
     gDelayedStartupTimeoutId = null;
 
 #ifdef MOZ_SAFE_BROWSING
-    SafeBrowsing.init();
+    
+    setTimeout(function() { SafeBrowsing.init(); }, 2000);
 #endif
 
     Services.obs.addObserver(gSessionHistoryObserver, "browser:purge-session-history", false);
@@ -3949,7 +3944,7 @@ var XULBrowserWindow = {
     this._hostChanged = true;
 
     
-    if (gFormSubmitObserver.panelIsOpen()) {
+    if (gFormSubmitObserver.panel) {
       gFormSubmitObserver.panel.hidePopup();
     }
 

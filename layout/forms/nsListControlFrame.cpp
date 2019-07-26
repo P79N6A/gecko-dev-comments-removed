@@ -1572,7 +1572,7 @@ nsListControlFrame::GetFormProperty(nsIAtom* aName, nsAString& aValue) const
   
   if (nsGkAtoms::selected == aName) {
     nsAutoString val(aValue);
-    PRInt32 error = 0;
+    nsresult error = NS_OK;
     bool selected = false;
     PRInt32 indx = val.ToInteger(&error, 10); 
     if (error == 0)

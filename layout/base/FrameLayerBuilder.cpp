@@ -944,6 +944,7 @@ ContainerState::CreateOrRecycleColorLayer()
     
     layer->SetClipRect(nullptr);
     layer->SetMaskLayer(nullptr);
+    layer->SetScale(1.0f, 1.0f);
   } else {
     
     layer = mManager->CreateColorLayer();
@@ -967,6 +968,7 @@ ContainerState::CreateOrRecycleImageLayer()
     
     layer->SetClipRect(nullptr);
     layer->SetMaskLayer(nullptr);
+    layer->SetScale(1.0f, 1.0f);
   } else {
     
     layer = mManager->CreateImageLayer();
@@ -1058,6 +1060,7 @@ ContainerState::CreateOrRecycleThebesLayer(nsIFrame* aActiveScrolledRoot)
     
     layer->SetClipRect(nullptr);
     layer->SetMaskLayer(nullptr);
+    layer->SetScale(1.0f, 1.0f);
 
     data = static_cast<ThebesDisplayItemLayerUserData*>
         (layer->GetUserData(&gThebesDisplayItemLayerUserData));
@@ -1111,7 +1114,8 @@ ContainerState::CreateOrRecycleThebesLayer(nsIFrame* aActiveScrolledRoot)
                        RoundToMatchResidual(scaledOffset.y, data->mActiveScrolledRootPosition.y));
   gfxMatrix matrix;
   matrix.Translate(gfxPoint(pixOffset.x, pixOffset.y));
-  layer->SetTransform(gfx3DMatrix::From2D(matrix));
+  layer->SetBaseTransform(gfx3DMatrix::From2D(matrix));
+  layer->SetScale(1.0f, 1.0f);
 
   
 #ifndef MOZ_JAVA_COMPOSITOR
@@ -1266,7 +1270,7 @@ ContainerState::PopThebesLayerData()
       
       gfx3DMatrix transform = imageLayer->GetTransform()*
         gfx3DMatrix::ScalingMatrix(mParameters.mXScale, mParameters.mYScale, 1.0f);
-      imageLayer->SetTransform(transform);
+      imageLayer->SetBaseTransform(transform);
       if (data->mItemClip.mHaveClipRect) {
         nsIntRect clip = ScaleToNearestPixels(data->mItemClip.mClipRect);
         imageLayer->IntersectClipRect(clip);
@@ -1278,7 +1282,8 @@ ContainerState::PopThebesLayerData()
       colorLayer->SetColor(data->mSolidColor);
 
       
-      colorLayer->SetTransform(data->mLayer->GetTransform());
+      colorLayer->SetBaseTransform(data->mLayer->GetBaseTransform());
+      colorLayer->SetScale(data->mLayer->GetXScale(), data->mLayer->GetYScale());
       
       
       
@@ -1777,7 +1782,7 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
         
         gfx3DMatrix transform = ownLayer->GetTransform()*
             gfx3DMatrix::ScalingMatrix(mParameters.mXScale, mParameters.mYScale, 1.0f);
-        ownLayer->SetTransform(transform);
+        ownLayer->SetBaseTransform(transform);
       }
 
       ownLayer->SetIsFixedPosition(
@@ -2123,7 +2128,7 @@ ChooseScaleAndSetTransform(FrameLayerBuilder* aLayerBuilder,
 
   
   transform = gfx3DMatrix::ScalingMatrix(1.0/scale.width, 1.0/scale.height, 1.0)*transform;
-  aLayer->SetTransform(transform);
+  aLayer->SetBaseTransform(transform);
 
   FrameLayerBuilder::ContainerParameters
     result(scale.width, scale.height, aIncomingScale);
@@ -3129,7 +3134,7 @@ ContainerState::SetupMaskLayer(Layer *aLayer, const FrameLayerBuilder::Clip& aCl
   }
 
   maskLayer->SetContainer(container);
-  maskLayer->SetTransform(gfx3DMatrix::From2D(maskTransform.Invert()));
+  maskLayer->SetBaseTransform(gfx3DMatrix::From2D(maskTransform.Invert()));
 
   
   userData->mScaleX = newData.mScaleX;

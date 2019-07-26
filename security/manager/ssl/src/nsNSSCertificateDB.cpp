@@ -1696,11 +1696,12 @@ NS_IMETHODIMP nsNSSCertificateDB::AddCertFromBase64(const char *aBase64, const c
   nsNSSCertTrust trust;
 
   
-  nsresult rv = CERT_DecodeTrustString(trust.GetTrust(), (char *) aTrust);
-  NS_ENSURE_SUCCESS(rv, rv); 
+  SECStatus stat = CERT_DecodeTrustString(trust.GetTrust(),
+    (char *) aTrust);
+  NS_ENSURE_STATE(stat == SECSuccess); 
 
 
-  rv = ConstructX509FromBase64(aBase64, getter_AddRefs(newCert));
+  nsresult rv = ConstructX509FromBase64(aBase64, getter_AddRefs(newCert));
   NS_ENSURE_SUCCESS(rv, rv);
 
   SECItem der;
