@@ -39,6 +39,8 @@ class CompositableClient;
 class PlanarYCbCrImage;
 class PlanarYCbCrData;
 class Image;
+class PTextureChild;
+class TextureChild;
 
 
 
@@ -200,6 +202,17 @@ public:
 
 
 
+  static PTextureChild* CreateIPDLActor();
+  static bool DestroyIPDLActor(PTextureChild* actor);
+
+  
+
+
+
+
+
+
+
 
 
   void SetID(uint64_t aID)
@@ -269,6 +282,21 @@ public:
   
   virtual void OnActorDestroy() {}
 
+  
+
+
+
+
+  bool InitIPDLActor(CompositableForwarder* aForwarder);
+
+  
+
+
+
+
+
+  PTextureChild* GetIPDLActor();
+
 private:
   Atomic<int> mRefCount;
 
@@ -290,6 +318,7 @@ protected:
     mFlags |= aFlags;
   }
 
+  TextureChild* mActor;
   uint64_t mID;
   TextureFlags mFlags;
   bool mShared;

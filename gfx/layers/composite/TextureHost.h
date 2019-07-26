@@ -46,8 +46,9 @@ class TextureSourceOGL;
 class TextureSourceD3D9;
 class TextureSourceD3D11;
 class TextureSourceBasic;
-class TextureParent;
 class DataTextureSource;
+class PTextureParent;
+class TextureParent;
 
 
 
@@ -370,6 +371,27 @@ public:
   void AddFlag(TextureFlags aFlag) { mFlags |= aFlag; }
 
   TextureFlags GetFlags() { return mFlags; }
+
+  
+
+
+
+
+
+
+
+  static PTextureParent* CreateIPDLActor(ISurfaceAllocator* aAllocator);
+  static bool DestroyIPDLActor(PTextureParent* actor);
+
+  
+
+
+  static bool SendDeleteIPDLActor(PTextureParent* actor);
+
+  
+
+
+  static TextureHost* AsTextureHost(PTextureParent* actor);
 
   
 

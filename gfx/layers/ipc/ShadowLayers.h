@@ -149,6 +149,8 @@ public:
 
   void Connect(CompositableClient* aCompositable);
 
+  virtual PTextureChild* CreateEmptyTextureChild() MOZ_OVERRIDE;
+
   virtual void CreatedSingleBuffer(CompositableClient* aCompositable,
                                    const SurfaceDescriptor& aDescriptor,
                                    const TextureInfo& aTextureInfo,
@@ -304,19 +306,6 @@ public:
 
   void UpdatePictureRect(CompositableClient* aCompositable,
                          const nsIntRect& aRect);
-
-  
-
-
-  virtual bool AddTexture(CompositableClient* aCompositable,
-                          TextureClient* aClient) MOZ_OVERRIDE;
-
-  
-
-
-  virtual void RemoveTexture(CompositableClient* aCompositable,
-                             uint64_t aTextureID,
-                             TextureFlags aFlags) MOZ_OVERRIDE;
 
   
 

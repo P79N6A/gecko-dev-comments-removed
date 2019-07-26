@@ -19,6 +19,7 @@
 #include "mozilla/layers/ShadowLayers.h"  
 #include "mozilla/layers/SharedPlanarYCbCrImage.h"
 #include "mozilla/layers/YCbCrImageDataSerializer.h"
+#include "mozilla/layers/PTextureChild.h"
 #include "nsDebug.h"                    
 #include "nsTraceRefcnt.h"              
 #include "ImageContainer.h"             
@@ -37,6 +38,47 @@ using namespace mozilla::gfx;
 
 namespace mozilla {
 namespace layers {
+
+class TextureChild : public PTextureChild
+{
+public:
+
+};
+
+
+PTextureChild*
+TextureClient::CreateIPDLActor()
+{
+  return new TextureChild();
+}
+
+
+bool
+TextureClient::DestroyIPDLActor(PTextureChild* actor)
+{
+  delete actor;
+  return true;
+}
+
+bool
+TextureClient::InitIPDLActor(CompositableForwarder* aForwarder)
+{
+  MOZ_ASSERT(!mActor);
+  SurfaceDescriptor desc;
+  if (!ToSurfaceDescriptor(desc)) {
+    return false;
+  }
+
+  mActor = static_cast<TextureChild*>(aForwarder->CreateEmptyTextureChild());
+  mShared = true;
+  return mActor->SendInit(desc, GetFlags());
+}
+
+PTextureChild*
+TextureClient::GetIPDLActor()
+{
+  return mActor;
+}
 
 class ShmemTextureClientData : public TextureClientData
 {
@@ -112,6 +154,7 @@ ShmemTextureClient::DropTextureData()
 
 TextureClient::TextureClient(TextureFlags aFlags)
   : mRefCount(0)
+  , mActor(nullptr)
   , mID(0)
   , mFlags(aFlags)
   , mShared(false)

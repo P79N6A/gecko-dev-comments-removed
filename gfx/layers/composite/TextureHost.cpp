@@ -18,11 +18,61 @@
 #include "nsAString.h"
 #include "nsAutoPtr.h"                  
 #include "nsPrintfCString.h"            
+#include "mozilla/layers/PTextureParent.h"
 
 struct nsIntPoint;
 
 namespace mozilla {
 namespace layers {
+
+
+
+
+
+class TextureParent : public PTextureParent
+{
+public:
+  TextureParent(ISurfaceAllocator* aAllocator);
+
+  ~TextureParent();
+
+  bool RecvInit(const SurfaceDescriptor& aSharedData,
+                const TextureFlags& aFlags) MOZ_OVERRIDE;
+
+  TextureHost* GetTextureHost() { return mTextureHost; }
+
+  ISurfaceAllocator* mAllocator;
+  RefPtr<TextureHost> mTextureHost;
+};
+
+
+PTextureParent*
+TextureHost::CreateIPDLActor(ISurfaceAllocator* aAllocator)
+{
+  return new TextureParent(aAllocator);
+}
+
+
+bool
+TextureHost::DestroyIPDLActor(PTextureParent* actor)
+{
+  delete actor;
+  return true;
+}
+
+
+bool
+TextureHost::SendDeleteIPDLActor(PTextureParent* actor)
+{
+  return PTextureParent::Send__delete__(actor);
+}
+
+
+TextureHost*
+TextureHost::AsTextureHost(PTextureParent* actor)
+{
+  return actor? static_cast<TextureParent*>(actor)->mTextureHost : nullptr;
+}
 
 
 TemporaryRef<DeprecatedTextureHost> CreateDeprecatedTextureHostOGL(SurfaceDescriptorType aDescriptorType,
@@ -574,6 +624,29 @@ MemoryTextureHost::DeallocateSharedData()
 uint8_t* MemoryTextureHost::GetBuffer()
 {
   return mBuffer;
+}
+
+TextureParent::TextureParent(ISurfaceAllocator* aAllocator)
+: mAllocator(aAllocator)
+{
+  MOZ_COUNT_CTOR(TextureParent);
+}
+
+TextureParent::~TextureParent()
+{
+  MOZ_COUNT_DTOR(TextureParent);
+  mTextureHost = nullptr;
+}
+
+bool
+TextureParent::RecvInit(const SurfaceDescriptor& aSharedData,
+                        const TextureFlags& aFlags)
+{
+  mTextureHost = TextureHost::Create(0, 
+                                     aSharedData,
+                                     mAllocator,
+                                     aFlags);
+  return !!mTextureHost;
 }
 
 } 
