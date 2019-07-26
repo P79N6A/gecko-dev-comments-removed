@@ -5060,8 +5060,8 @@ var ViewportHandler = {
 
     let widthStr = windowUtils.getDocumentMetadata("viewport-width");
     let heightStr = windowUtils.getDocumentMetadata("viewport-height");
-    let width = this.clamp(parseInt(widthStr), kViewportMinWidth, kViewportMaxWidth);
-    let height = this.clamp(parseInt(heightStr), kViewportMinHeight, kViewportMaxHeight);
+    let width = this.clamp(parseInt(widthStr), kViewportMinWidth, kViewportMaxWidth) || 0;
+    let height = this.clamp(parseInt(heightStr), kViewportMinHeight, kViewportMaxHeight) || 0;
 
     
     
