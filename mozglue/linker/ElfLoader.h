@@ -44,6 +44,19 @@ extern "C" {
 
   typedef int (*dl_phdr_cb)(struct dl_phdr_info *, size_t, void *);
   int __wrap_dl_iterate_phdr(dl_phdr_cb callback, void *data);
+
+
+
+
+MFBT_API size_t
+__dl_get_mappable_length(void *handle);
+
+MFBT_API void *
+__dl_mmap(void *handle, void *addr, size_t length, off_t offset);
+
+MFBT_API void
+__dl_munmap(void *handle, void *addr, size_t length);
+
 }
 
 
@@ -66,6 +79,9 @@ template <> inline RefCounted<LibHandle>::~RefCounted()
 } 
 
 
+class Mappable;
+
+
 
 
 
@@ -77,7 +93,7 @@ public:
 
 
   LibHandle(const char *path)
-  : directRefCnt(0), path(path ? strdup(path) : NULL) { }
+  : directRefCnt(0), path(path ? strdup(path) : NULL), mappable(NULL) { }
 
   
 
@@ -147,7 +163,30 @@ public:
     return directRefCnt;
   }
 
+  
+
+
+
+  size_t GetMappableLength() const;
+
+  
+
+
+
+  void *MappableMMap(void *addr, size_t length, off_t offset) const;
+
+  
+
+
+
+  void MappableMUnmap(void *addr, size_t length) const;
+
 protected:
+  
+
+
+  virtual Mappable *GetMappable() const = 0;
+
   
 
 
@@ -160,6 +199,9 @@ protected:
 private:
   int directRefCnt;
   char *path;
+
+  
+  mutable Mappable *mappable;
 };
 
 
@@ -212,6 +254,8 @@ public:
   virtual bool Contains(void *addr) const { return false;  }
 
 protected:
+  virtual Mappable *GetMappable() const;
+
   
 
 
@@ -313,6 +357,14 @@ public:
 
 
   mozilla::TemporaryRef<LibHandle> GetHandleByPtr(void *addr);
+
+  
+
+
+
+
+
+  static Mappable *GetMappableFromPath(const char *path);
 
 protected:
   

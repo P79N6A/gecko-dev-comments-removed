@@ -39,6 +39,10 @@ public:
   virtual void *GetSymbolPtr(const char *symbol) const;
   virtual bool Contains(void *addr) const;
 
+protected:
+  virtual Mappable *GetMappable() const;
+
+public:
   
 
 
