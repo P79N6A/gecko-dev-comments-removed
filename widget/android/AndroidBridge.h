@@ -311,6 +311,9 @@ public:
     
     jobject GetGlobalContextRef(void);
 
+    
+    jobject GetContext(void);
+
     void UnlockBitmap(jobject bitmap);
 
     bool UnlockProfile();
