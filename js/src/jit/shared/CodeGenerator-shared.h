@@ -153,7 +153,7 @@ class CodeGeneratorShared : public LInstructionVisitor
     
     inline int32_t ArgToStackOffset(int32_t slot) const {
         return masm.framePushed() +
-               (gen->compilingAsmJS() ? AsmJSSizeOfRetAddr : sizeof(IonJSFrameLayout)) +
+               (gen->compilingAsmJS() ? AsmJSFrameSize : sizeof(IonJSFrameLayout)) +
                slot;
     }
 

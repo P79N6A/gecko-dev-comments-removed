@@ -419,7 +419,7 @@ class MacroAssemblerMIPSCompat : public MacroAssemblerMIPS
     void appendCallSite(const CallSiteDesc &desc) {
         
         
-        enoughMemory_ &= append(CallSite(desc, currentOffset(), framePushed_ + sizeof(void*)));
+        enoughMemory_ &= append(CallSite(desc, currentOffset(), framePushed_ + AsmJSFrameSize));
     }
 
     void call(const CallSiteDesc &desc, const Register reg) {

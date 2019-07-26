@@ -116,7 +116,7 @@ static const uint32_t CodeAlignment = 8;
 
 
 
-static const uint32_t AsmJSSizeOfRetAddr = sizeof(void*);
+static const uint32_t AsmJSFrameSize = sizeof(void*);
 
 struct ImmTag : public Imm32
 {
