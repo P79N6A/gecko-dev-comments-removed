@@ -45,7 +45,6 @@
 #include "nsIURI.h"
 #include "nsIWebProgress.h"
 #include "nsCWebBrowser.h"
-#include "nsIProfileChangeStatus.h"
 
 
 #include "nsComponentManagerUtils.h"
