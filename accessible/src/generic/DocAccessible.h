@@ -6,7 +6,6 @@
 #ifndef mozilla_a11y_DocAccessible_h__
 #define mozilla_a11y_DocAccessible_h__
 
-#include "nsIAccessibleCursorable.h"
 #include "nsIAccessibleDocument.h"
 #include "nsIAccessiblePivot.h"
 
@@ -45,7 +44,6 @@ class DocAccessible : public HyperTextAccessibleWrap,
                       public nsIObserver,
                       public nsIScrollPositionListener,
                       public nsSupportsWeakReference,
-                      public nsIAccessibleCursorable,
                       public nsIAccessiblePivotObserver
 {
   NS_DECL_ISUPPORTS_INHERITED
@@ -54,8 +52,6 @@ class DocAccessible : public HyperTextAccessibleWrap,
   NS_DECL_NSIACCESSIBLEDOCUMENT
 
   NS_DECL_NSIOBSERVER
-
-  NS_DECL_NSIACCESSIBLECURSORABLE
 
   NS_DECL_NSIACCESSIBLEPIVOTOBSERVER
 
@@ -493,10 +489,7 @@ protected:
     eScrollInitialized = 1 << 0,
 
     
-    eCursorable = 1 << 1,
-
-    
-    eTabDocument = 1 << 2
+    eTabDocument = 1 << 1
   };
 
   
