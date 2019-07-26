@@ -15,6 +15,11 @@ var gPrivacyPane = {
   
 
 
+  _shouldPromptForRestart: true,
+
+  
+
+
 
   init: function ()
   {
@@ -130,7 +135,8 @@ var gPrivacyPane = {
     let pref = document.getElementById("browser.privatebrowsing.autostart");
     switch (document.getElementById("historyMode").value) {
     case "remember":
-      pref.value = false;
+      if (pref.value)
+        pref.value = false;
 
       
       let rememberHistoryCheckbox = document.getElementById("rememberHistory");
@@ -149,7 +155,8 @@ var gPrivacyPane = {
       document.getElementById("privacy.sanitize.sanitizeOnShutdown").value = false;
       break;
     case "dontremember":
-      pref.value = true;
+      if (!pref.value)
+        pref.value = true;
       break;
     }
   },
@@ -222,12 +229,54 @@ var gPrivacyPane = {
 
     observe: function PPP_observe(aSubject, aTopic, aData)
     {
+#ifdef MOZ_PER_WINDOW_PRIVATE_BROWSING
+      if (!gPrivacyPane._shouldPromptForRestart) {
+        
+        gPrivacyPane._shouldPromptForRestart = true;
+        return;
+      }
+
+      const Cc = Components.classes, Ci = Components.interfaces;
+      let pref = document.getElementById("browser.privatebrowsing.autostart");
+      let brandName = document.getElementById("bundleBrand").getString("brandShortName");
+      let bundle = document.getElementById("bundlePreferences");
+      let msg = bundle.getFormattedString(pref.value ?
+                                          "featureEnableRequiresRestart" : "featureDisableRequiresRestart",
+                                          [brandName]);
+      let title = bundle.getFormattedString("shouldRestartTitle", [brandName]);
+      let prompts = Cc["@mozilla.org/embedcomp/prompt-service;1"].getService(Ci.nsIPromptService);
+      let shouldProceed = prompts.confirm(window, title, msg)
+      if (shouldProceed) {
+        let cancelQuit = Cc["@mozilla.org/supports-PRBool;1"]
+                           .createInstance(Ci.nsISupportsPRBool);
+        Services.obs.notifyObservers(cancelQuit, "quit-application-requested",
+                                     "restart");
+        shouldProceed = !cancelQuit.data;
+
+        if (shouldProceed) {
+          let appStartup = Cc["@mozilla.org/toolkit/app-startup;1"]
+                             .getService(Ci.nsIAppStartup);
+          appStartup.quit(Ci.nsIAppStartup.eAttemptQuit |  Ci.nsIAppStartup.eRestart);
+          return;
+        }
+      }
+      gPrivacyPane._shouldPromptForRestart = false;
+      pref.value = !pref.value;
+
+      let mode = document.getElementById("historyMode");
+      if (mode.value != "custom") {
+        mode.selectedIndex = pref.value ? 1 : 0;
+        mode.doCommand();
+      } else {
+        let rememberHistoryCheckbox = document.getElementById("rememberHistory");
+        rememberHistory.checked = pref.value;
+      }
+#else
       
       let prefValue = document.getElementById("browser.privatebrowsing.autostart").value;
       let keepCurrentSession = document.getElementById("browser.privatebrowsing.keep_current_session");
       keepCurrentSession.value = true;
 
-#ifndef MOZ_PER_WINDOW_PRIVATE_BROWSING
       let privateBrowsingService = Components.classes["@mozilla.org/privatebrowsing;1"].
         getService(Components.interfaces.nsIPrivateBrowsingService);
 
@@ -236,9 +285,9 @@ var gPrivacyPane = {
       if (prefValue && privateBrowsingService.privateBrowsingEnabled)
         privateBrowsingService.privateBrowsingEnabled = false;
       privateBrowsingService.privateBrowsingEnabled = prefValue;
-#endif
 
       keepCurrentSession.reset();
+#endif
     }
   },
 
