@@ -822,7 +822,15 @@ WebappsActor.prototype = {
           
           deferred.resolve(null);
         }
-        this._appActorsMap.delete(mm);
+        let actor = this._appActorsMap.get(mm);
+        if (actor) {
+          
+          
+          
+          this.conn.send({ from: actor.actor,
+                           type: "tabDetached" });
+          this._appActorsMap.delete(mm);
+        }
       }
     }).bind(this);
     Services.obs.addObserver(onMessageManagerDisconnect,
