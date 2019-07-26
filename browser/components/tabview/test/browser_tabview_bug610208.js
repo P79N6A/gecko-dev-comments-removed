@@ -2,6 +2,7 @@
 
 
 function test() {
+  requestLongerTimeout(4);
   let cw;
   let win;
   let groupItem;
