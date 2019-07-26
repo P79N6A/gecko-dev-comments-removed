@@ -1937,9 +1937,11 @@ bool AsyncPanZoomController::SampleContentTransformForFrame(const TimeStamp& aSa
     aScrollOffset = mFrameMetrics.GetScrollOffset() * mFrameMetrics.GetZoom();
     *aNewTransform = GetCurrentAsyncTransform();
 
-    
-    
-    ApplyOverscrollEffect(aNewTransform);
+    if (IsOverscrolled()) {
+      
+      
+      ApplyOverscrollEffect(aNewTransform);
+    }
 
     LogRendertraceRect(GetGuid(), "viewport", "red",
       CSSRect(mFrameMetrics.GetScrollOffset(),
