@@ -8,6 +8,8 @@
 #define nsMemoryReporterManager_h__
 
 #include "nsIMemoryReporter.h"
+#include "nsITimer.h"
+#include "nsServiceManagerUtils.h"
 #include "mozilla/Mutex.h"
 #include "nsTHashtable.h"
 #include "nsHashKeys.h"
@@ -140,6 +142,10 @@ public:
     AmountFns() { mozilla::PodZero(this); }
   };
   AmountFns mAmountFns;
+
+  
+  
+  static int64_t ResidentFast();
 
   
   struct SizeOfTabFns
