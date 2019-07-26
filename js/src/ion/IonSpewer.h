@@ -1,9 +1,9 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=4 sw=4 et tw=99:
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
+
 
 #ifndef jsion_ion_spewer_h__
 #define jsion_ion_spewer_h__
@@ -18,7 +18,7 @@
 namespace js {
 namespace ion {
 
-// New channels may be added below.
+
 #define IONSPEW_CHANNEL_LIST(_)             \
     /* Used to abort SSA construction */    \
     _(Abort)                                \
@@ -52,6 +52,8 @@ namespace ion {
     _(Safepoints)                           \
     /* Debug info about Pools*/             \
     _(Pools)                                \
+    /* Calls to js::ion::Trace() */         \
+    _(Trace)                                \
     /* Debug info about the I$ */           \
     _(CacheFlush)                           \
                                             \
@@ -81,8 +83,8 @@ enum IonSpewChannel {
 };
 
 
-// The IonSpewer is only available on debug builds.
-// None of the global functions have effect on non-debug builds.
+
+
 static const int NULL_ID = -1;
 
 #ifdef DEBUG
@@ -101,7 +103,7 @@ class IonSpewer
       : graph(NULL), function(NullPtr()), inited_(false)
     { }
 
-    // File output is terminated safely upon destruction.
+    
     ~IonSpewer();
 
     bool init();
@@ -170,7 +172,7 @@ static inline void DisableChannel(IonSpewChannel)
 static inline void EnableIonDebugLogging()
 { }
 
-#endif /* DEBUG */
+#endif 
 
 template <IonSpewChannel Channel>
 class AutoDisableSpew
@@ -193,8 +195,8 @@ class AutoDisableSpew
     }
 };
 
-} /* ion */
-} /* js */
+} 
+} 
 
-#endif /* jsion_ion_spewer_h__ */
+#endif 
 

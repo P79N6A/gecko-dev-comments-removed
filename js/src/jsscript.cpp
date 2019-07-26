@@ -536,7 +536,7 @@ js::XDRScript(XDRState<mode> *xdr, HandleObject enclosingScope, HandleScript enc
     if (mode == XDR_DECODE) {
         
         JSVersion version_ = JSVersion(version & JS_BITMASK(16));
-        JS_ASSERT((version_ & VersionFlags::FULL_MASK) == unsigned(version_));
+        JS_ASSERT((version_ & VersionFlags::MASK) == unsigned(version_));
 
         
         
@@ -771,7 +771,7 @@ js::XDRScript(XDRState<mode> *xdr, HandleObject enclosingScope, HandleScript enc
     }
 
     if (mode == XDR_DECODE) {
-        if (cx->hasRunOption(JSOPTION_PCCOUNT))
+        if (cx->hasOption(JSOPTION_PCCOUNT))
             (void) script->initScriptCounts(cx);
         scriptp.set(script);
     }
@@ -1054,7 +1054,6 @@ void
 SourceCompressorThread::compress(SourceCompressionToken *sct)
 {
     if (tok)
-        
         
         
         waitOnCompression(tok);
@@ -1817,7 +1816,7 @@ JSScript::fullyInitFromEmitter(JSContext *cx, Handle<JSScript*> script, Bytecode
 
 
 
-    if (cx->hasRunOption(JSOPTION_PCCOUNT))
+    if (cx->hasOption(JSOPTION_PCCOUNT))
         (void) script->initScriptCounts(cx);
 
     for (unsigned i = 0, n = script->bindings.numArgs(); i < n; ++i) {
@@ -2318,7 +2317,7 @@ js::CloneScript(JSContext *cx, HandleObject enclosingScope, HandleFunction fun, 
 
 
 
-    if (cx->hasRunOption(JSOPTION_PCCOUNT))
+    if (cx->hasOption(JSOPTION_PCCOUNT))
         (void) dst->initScriptCounts(cx);
 
     if (nconsts != 0) {

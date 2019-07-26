@@ -1,9 +1,9 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=4 sw=4 et tw=99:
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
+
 
 #ifdef DEBUG
 
@@ -21,7 +21,7 @@
 using namespace js;
 using namespace js::ion;
 
-// IonSpewer singleton.
+
 static IonSpewer ionspewer;
 
 static bool LoggingChecked = false;
@@ -40,7 +40,7 @@ FilterContainsLocation(const char *filename, const size_t line = size_t(-1))
 {
     static const char *filter = getenv("IONFILTER");
 
-    // If there is no filter we accept all outputs.
+    
     if (!filter || !filter[0])
         return true;
 
@@ -134,7 +134,7 @@ IonSpewer::beginFunction(MIRGraph *graph, HandleScript function)
 
     if (!FilterContainsLocation(function->filename, function->lineno)) {
         JS_ASSERT(!this->graph);
-        // filter out logs during the compilation.
+        
         filteredOutCompilations++;
         return;
     }
@@ -236,6 +236,7 @@ ion::CheckLogging()
             "  pools      Literal Pools (ARM only for now)\n"
             "  cacheflush Instruction Cache flushes (ARM only for now)\n"
             "  logs       C1 and JSON visualization logging\n"
+            "  trace      Generate calls to js::ion::Trace() for effectful instructions\n"
             "  all        Everything\n"
             "\n"
             "  bl-aborts  Baseline compiler abort messages\n"
@@ -249,7 +250,7 @@ ion::CheckLogging()
             "\n"
         );
         exit(0);
-        /*NOTREACHED*/
+        
     }
     if (ContainsFlag(env, "aborts"))
         EnableChannel(IonSpew_Abort);
@@ -287,6 +288,8 @@ ion::CheckLogging()
         EnableChannel(IonSpew_CacheFlush);
     if (ContainsFlag(env, "logs"))
         EnableIonDebugLogging();
+    if (ContainsFlag(env, "trace"))
+        EnableChannel(IonSpew_Trace);
     if (ContainsFlag(env, "all"))
         LoggingBits = uint32_t(-1);
 
@@ -411,5 +414,5 @@ ion::DisableChannel(IonSpewChannel channel)
     LoggingBits &= ~(1 << uint32_t(channel));
 }
 
-#endif /* DEBUG */
+#endif 
 

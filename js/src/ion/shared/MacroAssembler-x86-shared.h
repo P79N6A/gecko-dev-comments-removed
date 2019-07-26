@@ -111,6 +111,9 @@ class MacroAssemblerX86Shared : public Assembler
     void sub32(Imm32 imm, Register dest) {
         subl(imm, dest);
     }
+    void xor32(Imm32 imm, Register dest) {
+        xorl(imm, dest);
+    }
 
     void branch32(Condition cond, const Address &lhs, const Register &rhs, Label *label) {
         cmpl(Operand(lhs), rhs);
@@ -138,6 +141,10 @@ class MacroAssemblerX86Shared : public Assembler
     }
     void branchTest32(Condition cond, const Address &address, Imm32 imm, Label *label) {
         testl(Operand(address), imm);
+        j(cond, label);
+    }
+    void branchTestBool(Condition cond, const Register &lhs, const Register &rhs, Label *label) {
+        testb(lhs, rhs);
         j(cond, label);
     }
 
@@ -391,6 +398,40 @@ class MacroAssemblerX86Shared : public Assembler
             return false;
         }
         return true;
+    }
+
+    void emitSet(Assembler::Condition cond, const Register &dest,
+                 Assembler::NaNCond ifNaN = Assembler::NaN_Unexpected) {
+        if (GeneralRegisterSet(Registers::SingleByteRegs).has(dest)) {
+            
+            
+            setCC(cond, dest);
+            movzxbl(dest, dest);
+
+            if (ifNaN != Assembler::NaN_Unexpected) {
+                Label noNaN;
+                j(Assembler::NoParity, &noNaN);
+                if (ifNaN == Assembler::NaN_IsTrue)
+                    movl(Imm32(1), dest);
+                else
+                    xorl(dest, dest);
+                bind(&noNaN);
+            }
+        } else {
+            Label end;
+            Label ifFalse;
+
+            if (ifNaN == Assembler::NaN_IsFalse)
+                j(Assembler::Parity, &ifFalse);
+            movl(Imm32(1), dest);
+            j(cond, &end);
+            if (ifNaN == Assembler::NaN_IsTrue)
+                j(Assembler::Parity, &end);
+            bind(&ifFalse);
+            xorl(dest, dest);
+
+            bind(&end);
+        }
     }
 
     

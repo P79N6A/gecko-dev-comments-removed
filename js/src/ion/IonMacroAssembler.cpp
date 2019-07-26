@@ -336,6 +336,60 @@ MacroAssembler::newGCThing(const Register &result,
 }
 
 void
+MacroAssembler::parNewGCThing(const Register &result,
+                              const Register &threadContextReg,
+                              const Register &tempReg1,
+                              const Register &tempReg2,
+                              JSObject *templateObject,
+                              Label *fail)
+{
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    gc::AllocKind allocKind = templateObject->getAllocKind();
+    uint32_t thingSize = (uint32_t)gc::Arena::thingSize(allocKind);
+
+    
+    
+    loadPtr(Address(threadContextReg, offsetof(js::ForkJoinSlice, allocator)),
+            tempReg1);
+
+    
+    
+    uint32_t offset = (offsetof(Allocator, arenas) +
+                       js::gc::ArenaLists::getFreeListOffset(allocKind));
+    addPtr(Imm32(offset), tempReg1);
+
+    
+    
+    loadPtr(Address(tempReg1, offsetof(gc::FreeSpan, first)), tempReg2);
+
+    
+    
+    branchPtr(Assembler::BelowOrEqual,
+              Address(tempReg1, offsetof(gc::FreeSpan, last)),
+              tempReg2,
+              fail);
+
+    
+    
+    
+    movePtr(tempReg2, result);
+    addPtr(Imm32(thingSize), tempReg2);
+
+    
+    
+    storePtr(tempReg2, Address(tempReg1, offsetof(gc::FreeSpan, first)));
+}
+
+void
 MacroAssembler::initGCThing(const Register &obj, JSObject *templateObject)
 {
     
@@ -379,6 +433,55 @@ MacroAssembler::initGCThing(const Register &obj, JSObject *templateObject)
         storePtr(ImmWord(templateObject->getPrivate()),
                  Address(obj, JSObject::getPrivateDataOffset(nfixed)));
     }
+}
+
+void
+MacroAssembler::compareStrings(JSOp op, Register left, Register right, Register result,
+                               Register temp, Label *fail)
+{
+    JS_ASSERT(IsEqualityOp(op));
+
+    Label done;
+    Label notPointerEqual;
+    
+    branchPtr(Assembler::NotEqual, left, right, &notPointerEqual);
+    move32(Imm32(op == JSOP_EQ || op == JSOP_STRICTEQ), result);
+    jump(&done);
+
+    bind(&notPointerEqual);
+    loadPtr(Address(left, JSString::offsetOfLengthAndFlags()), result);
+    loadPtr(Address(right, JSString::offsetOfLengthAndFlags()), temp);
+
+    Label notAtom;
+    
+    Imm32 atomBit(JSString::ATOM_BIT);
+    branchTest32(Assembler::Zero, result, atomBit, &notAtom);
+    branchTest32(Assembler::Zero, temp, atomBit, &notAtom);
+
+    cmpPtr(left, right);
+    emitSet(JSOpToCondition(op), result);
+    jump(&done);
+
+    bind(&notAtom);
+    
+    rshiftPtr(Imm32(JSString::LENGTH_SHIFT), result);
+    rshiftPtr(Imm32(JSString::LENGTH_SHIFT), temp);
+    branchPtr(Assembler::Equal, result, temp, fail);
+    move32(Imm32(op == JSOP_NE || op == JSOP_STRICTNE), result);
+
+    bind(&done);
+}
+
+void
+MacroAssembler::parCheckInterruptFlags(const Register &tempReg,
+                                       Label *fail)
+{
+    JSCompartment *compartment = GetIonContext()->compartment;
+
+    void *interrupt = (void*)&compartment->rt->interrupt;
+    movePtr(ImmWord(interrupt), tempReg);
+    load32(Address(tempReg, 0), tempReg);
+    branchTest32(Assembler::NonZero, tempReg, tempReg, fail);
 }
 
 void

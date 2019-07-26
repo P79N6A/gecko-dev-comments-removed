@@ -240,6 +240,8 @@ ConvertFrames(JSContext *cx, IonActivation *activation, IonBailoutIterator &it)
 #ifdef DEBUG
     
     
+    
+    
     if (it.script()->ion == it.ionScript()) {
         IonSpew(IonSpew_Bailouts, " Current script use count is %u",
                 it.script()->getUseCount());
@@ -307,6 +309,8 @@ ConvertFrames(JSContext *cx, IonActivation *activation, IonBailoutIterator &it)
         if (!fp)
             return BAILOUT_RETURN_OVERRECURSED;
     }
+
+    fp->clearRunningInIon();
 
     jsbytecode *bailoutPc = fp->script()->code + iter.pcOffset();
     br->setBailoutPc(bailoutPc);
@@ -643,7 +647,6 @@ ion::ThunkToInterpreter(Value *vp)
     
     
     {
-        br->entryfp()->clearRunningInIon();
         ScriptFrameIter iter(cx);
         StackFrame *fp = NULL;
         Rooted<JSScript*> script(cx);
