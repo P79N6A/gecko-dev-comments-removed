@@ -2008,32 +2008,38 @@ nsHttpChannel::EnsureAssocReq()
 
 
 
-nsresult
-nsHttpChannel::MaybeSetupByteRangeRequest(int64_t partialLen, int64_t contentLength)
+bool
+nsHttpChannel::IsResumable(int64_t partialLen, int64_t contentLength,
+                           bool ignoreMissingPartialLen) const
 {
-    nsresult rv = NS_OK;
-
     bool hasContentEncoding =
         mCachedResponseHead->PeekHeader(nsHttp::Content_Encoding)
         != nullptr;
 
+    return (partialLen < contentLength) &&
+           (partialLen > 0 || ignoreMissingPartialLen) &&
+           !hasContentEncoding &&
+           mCachedResponseHead->IsResumable() &&
+           !mCustomConditionalRequest &&
+           !mCachedResponseHead->NoStore();
+}
+
+nsresult
+nsHttpChannel::MaybeSetupByteRangeRequest(int64_t partialLen, int64_t contentLength)
+{
     
     mIsPartialRequest = false;
 
-    if ((partialLen < contentLength) &&
-         partialLen > 0 &&
-         !hasContentEncoding &&
-         mCachedResponseHead->IsResumable() &&
-         !mCustomConditionalRequest &&
-         !mCachedResponseHead->NoStore()) {
+    if (!IsResumable(partialLen, contentLength))
+      return NS_OK;
+
+    
+    
+    nsresult rv = SetupByteRangeRequest(partialLen);
+    if (NS_FAILED(rv)) {
         
-        
-        rv = SetupByteRangeRequest(partialLen);
-        if (NS_FAILED(rv)) {
-            
-            mRequestHead.ClearHeader(nsHttp::Range);
-            mRequestHead.ClearHeader(nsHttp::If_Range);
-        }
+        mRequestHead.ClearHeader(nsHttp::Range);
+        mRequestHead.ClearHeader(nsHttp::If_Range);
     }
 
     return rv;
@@ -2723,6 +2729,8 @@ nsHttpChannel::OnCacheEntryCheck(nsICacheEntry* entry, nsIApplicationCache* appC
         return rv;
     }
 
+    bool wantCompleteEntry = false;
+
     if (method != nsHttp::Head && !isCachedRedirect) {
         
         
@@ -2741,11 +2749,21 @@ nsHttpChannel::OnCacheEntryCheck(nsICacheEntry* entry, nsIApplicationCache* appC
             if (mLoadFlags & LOAD_BYPASS_LOCAL_CACHE_IF_BUSY) {
                 LOG(("  not interested in the entry, "
                      "LOAD_BYPASS_LOCAL_CACHE_IF_BUSY specified"));
+
                 *aResult = ENTRY_NOT_WANTED;
                 return NS_OK;
             }
 
-            mConcurentCacheAccess = 1;
+            
+            if (!IsResumable(size, contentLength, true)) {
+                LOG(("  wait for entry completion, "
+                     "response is not resumable"));
+
+                wantCompleteEntry = true;
+            }
+            else {
+                mConcurentCacheAccess = 1;
+            }
         }
         else if (contentLength != int64_t(-1) && contentLength != size) {
             LOG(("Cached data size does not match the Content-Length header "
@@ -2952,6 +2970,8 @@ nsHttpChannel::OnCacheEntryCheck(nsICacheEntry* entry, nsIApplicationCache* appC
 
     if (mDidReval)
         *aResult = ENTRY_NEEDS_REVALIDATION;
+    else if (wantCompleteEntry)
+        *aResult = RECHECK_AFTER_WRITE_FINISHED;
     else
         *aResult = ENTRY_WANTED;
 
@@ -3047,10 +3067,16 @@ nsHttpChannel::OnNormalCacheEntryAvailable(nsICacheEntry *aEntry,
 {
     mCacheEntriesToWaitFor &= ~WAIT_FOR_CACHE_ENTRY;
 
-    if ((mLoadFlags & LOAD_ONLY_FROM_CACHE) && (NS_FAILED(aEntryStatus) || aNew)) {
+    if (NS_FAILED(aEntryStatus) || aNew) {
         
         
-        return NS_ERROR_DOCUMENT_NOT_CACHED;
+        mCachedContentIsValid = false;
+
+        if (mLoadFlags & LOAD_ONLY_FROM_CACHE) {
+            
+            
+            return NS_ERROR_DOCUMENT_NOT_CACHED;
+        }
     }
 
     if (NS_SUCCEEDED(aEntryStatus)) {
