@@ -135,6 +135,79 @@ namespace ion {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class MOZ_STACK_CLASS CallArgsList : public JS::CallArgs
+{
+    friend class StackSegment;
+    CallArgsList *prev_;
+    bool active_;
+  protected:
+    CallArgsList() : prev_(NULL), active_(false) {}
+  public:
+    friend CallArgsList CallArgsListFromVp(unsigned, Value *, CallArgsList *);
+    friend CallArgsList CallArgsListFromArgv(unsigned, Value *, CallArgsList *);
+    CallArgsList *prev() const { return prev_; }
+    bool active() const { return active_; }
+    void setActive() { active_ = true; }
+    void setInactive() { active_ = false; }
+};
+
+JS_ALWAYS_INLINE CallArgsList
+CallArgsListFromArgv(unsigned argc, Value *argv, CallArgsList *prev)
+{
+    CallArgsList args;
+#ifdef DEBUG
+    args.usedRval_ = false;
+#endif
+    args.argv_ = argv;
+    args.argc_ = argc;
+    args.prev_ = prev;
+    args.active_ = false;
+    return args;
+}
+
+JS_ALWAYS_INLINE CallArgsList
+CallArgsListFromVp(unsigned argc, Value *vp, CallArgsList *prev)
+{
+    return CallArgsListFromArgv(argc, vp + 2, prev);
+}
+
+
+
 enum MaybeCheckAliasing { CHECK_ALIASING = true, DONT_CHECK_ALIASING = false };
 
 
@@ -1316,7 +1389,7 @@ class StackSegment
     FrameRegs *regs_;
 
     
-    Value *invokeArgsEnd_;
+    CallArgsList *calls_;
 
 #if JS_BITS_PER_WORD == 32
     
@@ -1331,12 +1404,13 @@ class StackSegment
     StackSegment(JSContext *cx,
                  StackSegment *prevInContext,
                  StackSegment *prevInMemory,
-                 FrameRegs *regs)
+                 FrameRegs *regs,
+                 CallArgsList *calls)
       : cx_(cx),
         prevInContext_(prevInContext),
         prevInMemory_(prevInMemory),
         regs_(regs),
-        invokeArgsEnd_(NULL)
+        calls_(calls)
     {}
 
     
@@ -1368,6 +1442,23 @@ class StackSegment
         return regs_ ? regs_->pc : NULL;
     }
 
+    CallArgsList &calls() const {
+        JS_ASSERT(calls_);
+        return *calls_;
+    }
+
+    CallArgsList *maybeCalls() const {
+        return calls_;
+    }
+
+    Value *callArgv() const {
+        return calls_->array();
+    }
+
+    Value *maybeCallArgv() const {
+        return calls_ ? calls_->array() : NULL;
+    }
+
     JSContext *cx() const {
         return cx_;
     }
@@ -1385,11 +1476,12 @@ class StackSegment
     }
 
     bool isEmpty() const {
-        return !regs_;
+        return !calls_ && !regs_;
     }
 
     bool contains(const StackFrame *fp) const;
     bool contains(const FrameRegs *regs) const;
+    bool contains(const CallArgsList *call) const;
 
     StackFrame *computeNextFrame(const StackFrame *fp, size_t maxDepth) const;
 
@@ -1397,17 +1489,9 @@ class StackSegment
 
     FrameRegs *pushRegs(FrameRegs &regs);
     void popRegs(FrameRegs *regs);
-
-    Value *invokeArgsEnd() const {
-        return invokeArgsEnd_;
-    }
-    void pushInvokeArgsEnd(Value *end, Value **prev) {
-        *prev = invokeArgsEnd_;
-        invokeArgsEnd_ = end;
-    }
-    void popInvokeArgsEnd(Value *prev) {
-        invokeArgsEnd_ = prev;
-    }
+    void pushCall(CallArgsList &callList);
+    void pointAtCall(CallArgsList &callList);
+    void popCall();
 
     
 
@@ -1715,15 +1799,14 @@ class ContextStack
 
 
 
-class InvokeArgsGuard : public JS::CallArgs
+class InvokeArgsGuard : public CallArgsList
 {
     friend class ContextStack;
     ContextStack *stack_;
-    Value *prevInvokeArgsEnd_;
     bool pushedSeg_;
     void setPushed(ContextStack &stack) { JS_ASSERT(!pushed()); stack_ = &stack; }
   public:
-    InvokeArgsGuard() : CallArgs(), stack_(NULL), prevInvokeArgsEnd_(NULL), pushedSeg_(false) {}
+    InvokeArgsGuard() : CallArgsList(), stack_(NULL), pushedSeg_(false) {}
     ~InvokeArgsGuard() { if (pushed()) stack_->popInvokeArgs(*this); }
     bool pushed() const { return !!stack_; }
     void pop() { stack_->popInvokeArgs(*this); stack_ = NULL; }
@@ -1805,7 +1888,7 @@ class StackIter
 {
   public:
     enum SavedOption { STOP_AT_SAVED, GO_THROUGH_SAVED };
-    enum State { DONE, SCRIPTED, ION };
+    enum State { DONE, SCRIPTED, NATIVE, ION };
 
     
 
@@ -1820,9 +1903,13 @@ class StackIter
         State        state_;
 
         StackFrame   *fp_;
+        CallArgsList *calls_;
 
         StackSegment *seg_;
         jsbytecode   *pc_;
+        CallArgs      args_;
+
+        bool          poppedCallDuringSettle_;
 
 #ifdef JS_ION
         ion::IonActivationIterator ionActivations_;
@@ -1844,6 +1931,7 @@ class StackIter
 
     void poisonRegs();
     void popFrame();
+    void popCall();
 #ifdef JS_ION
     void nextIonFrame();
     void popIonFrame();
@@ -1869,8 +1957,18 @@ class StackIter
 
     JSCompartment *compartment() const;
 
-    JSScript *script() const {
+    bool poppedCallDuringSettle() const { return data_.poppedCallDuringSettle_; }
+
+    bool isScript() const {
         JS_ASSERT(!done());
+#ifdef JS_ION
+        if (data_.state_ == ION)
+            return data_.ionFrames_.isScripted();
+#endif
+        return data_.state_ == SCRIPTED;
+    }
+    JSScript *script() const {
+        JS_ASSERT(isScript());
         if (data_.state_ == SCRIPTED)
             return interpFrame()->script();
 #ifdef JS_ION
@@ -1903,6 +2001,15 @@ class StackIter
 #endif
     }
 
+    bool isNativeCall() const {
+        JS_ASSERT(!done());
+#ifdef JS_ION
+        if (data_.state_ == ION)
+            return data_.ionFrames_.isNative();
+#endif
+        return data_.state_ == NATIVE;
+    }
+
     bool isFunctionFrame() const;
     bool isGlobalFrame() const;
     bool isEvalFrame() const;
@@ -1920,9 +2027,9 @@ class StackIter
 
 
 
-    StackFrame *interpFrame() const { JS_ASSERT(data_.state_ == SCRIPTED); return data_.fp_; }
+    StackFrame *interpFrame() const { JS_ASSERT(isScript() && !isIon()); return data_.fp_; }
 
-    jsbytecode *pc() const { JS_ASSERT(!done()); return data_.pc_; }
+    jsbytecode *pc() const { JS_ASSERT(isScript()); return data_.pc_; }
     void        updatePcQuadratic();
     JSFunction *callee() const;
     Value       calleev() const;
@@ -1951,6 +2058,8 @@ class StackIter
     size_t      numFrameSlots() const;
     Value       frameSlotValue(size_t index) const;
 
+    CallArgs nativeArgs() const { JS_ASSERT(isNativeCall()); return data_.args_; }
+
     template <class Op>
     inline void ionForEachCanonicalActualArg(JSContext *cx, Op op);
 };
@@ -1958,20 +2067,27 @@ class StackIter
 
 class ScriptFrameIter : public StackIter
 {
+    void settle() {
+        while (!done() && !isScript())
+            StackIter::operator++();
+    }
+
   public:
     ScriptFrameIter(JSContext *cx, StackIter::SavedOption opt = StackIter::STOP_AT_SAVED)
-      : StackIter(cx, opt) { }
+      : StackIter(cx, opt) { settle(); }
 
     ScriptFrameIter(const StackIter::Data &data)
       : StackIter(data)
     {}
+
+    ScriptFrameIter &operator++() { StackIter::operator++(); settle(); return *this; }
 };
 
 
 class NonBuiltinScriptFrameIter : public StackIter
 {
     void settle() {
-        while (!done() && script()->selfHosted)
+        while (!done() && (!isScript() || script()->selfHosted))
             StackIter::operator++();
     }
 

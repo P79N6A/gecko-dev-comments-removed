@@ -119,8 +119,22 @@ ValueToCallable(JSContext *cx, const Value &vp, int numToSkip = -1,
 
 
 
+
 extern bool
-Invoke(JSContext *cx, CallArgs args, MaybeConstruct construct = NO_CONSTRUCT);
+InvokeKernel(JSContext *cx, CallArgs args, MaybeConstruct construct = NO_CONSTRUCT);
+
+
+
+
+
+inline bool
+Invoke(JSContext *cx, InvokeArgsGuard &args, MaybeConstruct construct = NO_CONSTRUCT)
+{
+    args.setActive();
+    bool ok = InvokeKernel(cx, args, construct);
+    args.setInactive();
+    return ok;
+}
 
 
 
@@ -144,7 +158,17 @@ InvokeGetterOrSetter(JSContext *cx, JSObject *obj, const Value &fval, unsigned a
 
 
 extern bool
-InvokeConstructor(JSContext *cx, CallArgs args);
+InvokeConstructorKernel(JSContext *cx, CallArgs args);
+
+
+inline bool
+InvokeConstructor(JSContext *cx, InvokeArgsGuard &args)
+{
+    args.setActive();
+    bool ok = InvokeConstructorKernel(cx, ImplicitCast<CallArgs>(args));
+    args.setInactive();
+    return ok;
+}
 
 
 extern bool

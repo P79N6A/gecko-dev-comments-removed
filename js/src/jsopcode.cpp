@@ -1628,6 +1628,8 @@ DecompileArgumentFromStack(JSContext *cx, int formalIndex, char **res)
 
 
     StackIter frameIter(cx);
+    while (!frameIter.done() && !frameIter.isScript())
+        ++frameIter;
     JS_ASSERT(!frameIter.done());
 
     
@@ -1635,7 +1637,9 @@ DecompileArgumentFromStack(JSContext *cx, int formalIndex, char **res)
 
 
     ++frameIter;
-    if (frameIter.done())
+
+    
+    if (frameIter.done() || !frameIter.isScript())
         return true;
 
     RootedScript script(cx, frameIter.script());
