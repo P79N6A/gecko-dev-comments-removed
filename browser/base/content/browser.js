@@ -1035,6 +1035,7 @@ var gBrowserInit = {
     IndexedDBPromptHelper.init();
     gFormSubmitObserver.init();
     gRemoteTabsUI.init();
+    gPageStyleMenu.init();
 
     
     
@@ -1091,12 +1092,9 @@ var gBrowserInit = {
     if (!getBoolPref("ui.click_hold_context_menus", false))
       SetClickAndHoldHandlers();
 
-    
-    if (!gMultiProcessBrowser) {
-      let NP = {};
-      Cu.import("resource:///modules/NetworkPrioritizer.jsm", NP);
-      NP.trackBrowserWindow(window);
-    }
+    let NP = {};
+    Cu.import("resource:///modules/NetworkPrioritizer.jsm", NP);
+    NP.trackBrowserWindow(window);
 
     PlacesToolbarHelper.init();
 
@@ -3502,15 +3500,17 @@ var XULBrowserWindow = {
     const nsIWebProgressListener = Ci.nsIWebProgressListener;
     const nsIChannel = Ci.nsIChannel;
 
+    let browser = gBrowser.selectedBrowser;
+
     if (aStateFlags & nsIWebProgressListener.STATE_START &&
         aStateFlags & nsIWebProgressListener.STATE_IS_NETWORK) {
 
       if (aRequest && aWebProgress.isTopLevel) {
         
-        gBrowser.selectedBrowser.feeds = null;
+        browser.feeds = null;
 
         
-        gBrowser.selectedBrowser.engines = null;
+        browser.engines = null;
       }
 
       this.isBusy = true;
@@ -3551,7 +3551,7 @@ var XULBrowserWindow = {
         this.setDefaultStatus(msg);
 
         
-        if (!gMultiProcessBrowser && content.document && mimeTypeIsTextBased(content.document.contentType))
+        if (browser.documentContentType && mimeTypeIsTextBased(browser.documentContentType))
           this.isImage.removeAttribute('disabled');
         else
           this.isImage.setAttribute('disabled', 'true');
@@ -3595,8 +3595,10 @@ var XULBrowserWindow = {
       }
     }
 
+    let browser = gBrowser.selectedBrowser;
+
     
-    if (!gMultiProcessBrowser && content.document && mimeTypeIsTextBased(content.document.contentType))
+    if (browser.documentContentType && mimeTypeIsTextBased(browser.documentContentType))
       this.isImage.removeAttribute('disabled');
     else
       this.isImage.setAttribute('disabled', 'true');
@@ -3610,7 +3612,6 @@ var XULBrowserWindow = {
     
     
 
-    var browser = gBrowser.selectedBrowser;
     if (aWebProgress.isTopLevel) {
       if ((location == "about:blank" && (gMultiProcessBrowser || !content.opener)) ||
           location == "") {  
@@ -5204,39 +5205,54 @@ function charsetLoadListener() {
 
 var gPageStyleMenu = {
 
-  _getAllStyleSheets: function (frameset) {
-    var styleSheetsArray = Array.slice(frameset.document.styleSheets);
-    for (let i = 0; i < frameset.frames.length; i++) {
-      let frameSheets = this._getAllStyleSheets(frameset.frames[i]);
-      styleSheetsArray = styleSheetsArray.concat(frameSheets);
+  
+  
+  
+  
+  _pageStyleSyncHandlers: new WeakMap(),
+
+  init: function() {
+    let mm = window.messageManager;
+    mm.addMessageListener("PageStyle:SetSyncHandler", (msg) => {
+      this._pageStyleSyncHandlers.set(msg.target.permanentKey, msg.objects.syncHandler);
+    });
+  },
+
+  getAllStyleSheets: function () {
+    let handler = this._pageStyleSyncHandlers.get(gBrowser.selectedBrowser.permanentKey);
+    try {
+      return handler.getAllStyleSheets();
+    } catch (ex) {
+      
+      return [];
     }
-    return styleSheetsArray;
+  },
+
+  _getStyleSheetInfo: function (browser) {
+    let handler = this._pageStyleSyncHandlers.get(gBrowser.selectedBrowser.permanentKey);
+    try {
+      return handler.getStyleSheetInfo();
+    } catch (ex) {
+      
+      return {styleSheets: [], authorStyleDisabled: false, preferredStyleSheetSet: true};
+    }
   },
 
   fillPopup: function (menuPopup) {
+    let styleSheetInfo = this._getStyleSheetInfo(gBrowser.selectedBrowser);
     var noStyle = menuPopup.firstChild;
     var persistentOnly = noStyle.nextSibling;
     var sep = persistentOnly.nextSibling;
     while (sep.nextSibling)
       menuPopup.removeChild(sep.nextSibling);
 
-    var styleSheets = this._getAllStyleSheets(window.content);
+    let styleSheets = styleSheetInfo.styleSheets;
     var currentStyleSheets = {};
-    var styleDisabled = getMarkupDocumentViewer().authorStyleDisabled;
+    var styleDisabled = styleSheetInfo.authorStyleDisabled;
     var haveAltSheets = false;
     var altStyleSelected = false;
 
     for (let currentStyleSheet of styleSheets) {
-      if (!currentStyleSheet.title)
-        continue;
-
-      
-      if (currentStyleSheet.media.length > 0) {
-        let mediaQueryList = currentStyleSheet.media.mediaText;
-        if (!window.content.matchMedia(mediaQueryList).matches)
-          continue;
-      }
-
       if (!currentStyleSheet.disabled)
         altStyleSelected = true;
 
@@ -5262,51 +5278,29 @@ var gPageStyleMenu = {
 
     noStyle.setAttribute("checked", styleDisabled);
     persistentOnly.setAttribute("checked", !altStyleSelected && !styleDisabled);
-    persistentOnly.hidden = (window.content.document.preferredStyleSheetSet) ? haveAltSheets : false;
+    persistentOnly.hidden = styleSheetInfo.preferredStyleSheetSet ? haveAltSheets : false;
     sep.hidden = (noStyle.hidden && persistentOnly.hidden) || !haveAltSheets;
   },
 
-  _stylesheetInFrame: function (frame, title) {
-    return Array.some(frame.document.styleSheets,
-                      function (stylesheet) stylesheet.title == title);
-  },
-
-  _stylesheetSwitchFrame: function (frame, title) {
-    var docStyleSheets = frame.document.styleSheets;
-
-    for (let i = 0; i < docStyleSheets.length; ++i) {
-      let docStyleSheet = docStyleSheets[i];
-
-      if (docStyleSheet.title)
-        docStyleSheet.disabled = (docStyleSheet.title != title);
-      else if (docStyleSheet.disabled)
-        docStyleSheet.disabled = false;
-    }
-  },
-
-  _stylesheetSwitchAll: function (frameset, title) {
-    if (!title || this._stylesheetInFrame(frameset, title))
-      this._stylesheetSwitchFrame(frameset, title);
-
-    for (let i = 0; i < frameset.frames.length; i++)
-      this._stylesheetSwitchAll(frameset.frames[i], title);
-  },
-
-  switchStyleSheet: function (title, contentWindow) {
-    getMarkupDocumentViewer().authorStyleDisabled = false;
-    this._stylesheetSwitchAll(contentWindow || content, title);
+  switchStyleSheet: function (title) {
+    let mm = gBrowser.selectedBrowser.messageManager;
+    mm.sendAsyncMessage("PageStyle:Switch", {title: title});
   },
 
   disableStyle: function () {
-    getMarkupDocumentViewer().authorStyleDisabled = true;
+    let mm = gBrowser.selectedBrowser.messageManager;
+    mm.sendAsyncMessage("PageStyle:Disable");
   },
 };
 
 
-var getAllStyleSheets   = gPageStyleMenu._getAllStyleSheets.bind(gPageStyleMenu);
+var getAllStyleSheets   = gPageStyleMenu.getAllStyleSheets.bind(gPageStyleMenu);
 var stylesheetFillPopup = gPageStyleMenu.fillPopup.bind(gPageStyleMenu);
 function stylesheetSwitchAll(contentWindow, title) {
-  gPageStyleMenu.switchStyleSheet(title, contentWindow);
+  
+  
+  
+  gPageStyleMenu.switchStyleSheet(title);
 }
 function setStyleDisabled(disabled) {
   if (disabled)
