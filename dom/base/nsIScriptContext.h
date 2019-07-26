@@ -28,8 +28,8 @@ class nsIDOMWindow;
 class nsIURI;
 
 #define NS_ISCRIPTCONTEXT_IID \
-{ 0xef0c91ce, 0x14f6, 0x41c9, \
-  { 0xa5, 0x77, 0xa6, 0xeb, 0xdc, 0x6d, 0x44, 0x7b } }
+{ 0x76d14525, 0x68ff, 0x4f43, \
+  { 0xb1, 0x92, 0x9e, 0x67, 0x28, 0xaa, 0xaf, 0x19 } }
 
 
 
@@ -209,11 +209,6 @@ public:
 
   virtual bool GetProcessingScriptTag() = 0;
   virtual void SetProcessingScriptTag(bool aResult) = 0;
-
-  
-
-
-  virtual bool GetExecutingScript() = 0;
 
   
 
