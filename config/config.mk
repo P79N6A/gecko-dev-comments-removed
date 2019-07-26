@@ -87,12 +87,20 @@ endif
 CONFIG_TOOLS	= $(MOZ_BUILD_ROOT)/config
 AUTOCONF_TOOLS	= $(topsrcdir)/build/autoconf
 
+ifeq ($(OS_ARCH),QNX)
+ifeq ($(OS_TARGET),NTO)
+LD		:= qcc -Vgcc_ntox86 -nostdlib
+else
+LD		:= $(CC)
+endif
+endif
+
 #
 # Strip off the excessively long version numbers on these platforms,
 # but save the version to allow multiple versions of the same base
 # platform to be built in the same tree.
 #
-ifneq (,$(filter FreeBSD HP-UX Linux NetBSD OpenBSD SunOS,$(OS_ARCH)))
+ifneq (,$(filter FreeBSD HP-UX Linux NetBSD OpenBSD OSF1 SunOS,$(OS_ARCH)))
 OS_RELEASE	:= $(basename $(OS_RELEASE))
 
 # Allow the user to ignore the OS_VERSION, which is usually irrelevant.
@@ -112,28 +120,18 @@ FINAL_LINK_COMP_NAMES = $(DEPTH)/config/final-link-comp-names
 MOZ_UNICHARUTIL_LIBS = $(LIBXUL_DIST)/lib/$(LIB_PREFIX)unicharutil_s.$(LIB_SUFFIX)
 MOZ_WIDGET_SUPPORT_LIBS    = $(DIST)/lib/$(LIB_PREFIX)widgetsupport_s.$(LIB_SUFFIX)
 
-ifdef _MSC_VER
-ifdef .PYMAKE
-PYCOMMANDPATH += $(topsrcdir)/build
-CC_WRAPPER ?= %cl InvokeClWithDependencyGeneration
-CXX_WRAPPER ?= %cl InvokeClWithDependencyGeneration
-else
-CC_WRAPPER ?= $(PYTHON) -O $(topsrcdir)/build/cl.py
-CXX_WRAPPER ?= $(PYTHON) -O $(topsrcdir)/build/cl.py
-endif # .PYMAKE
-endif # _MSC_VER
-
 CC := $(CC_WRAPPER) $(CC)
 CXX := $(CXX_WRAPPER) $(CXX)
 MKDIR ?= mkdir
 SLEEP ?= sleep
 TOUCH ?= touch
 
-ifdef .PYMAKE
-PYCOMMANDPATH += $(topsrcdir)/config
-endif
-
+ifndef .PYMAKE
 PYTHON_PATH = $(PYTHON) $(topsrcdir)/config/pythonpath.py
+else
+PYCOMMANDPATH += $(topsrcdir)/config
+PYTHON_PATH = %pythonpath main
+endif
 
 # determine debug-related options
 _DEBUG_ASFLAGS :=
@@ -564,7 +562,6 @@ ifdef MACOSX_DEPLOYMENT_TARGET
 export MACOSX_DEPLOYMENT_TARGET
 PBBUILD_SETTINGS += MACOSX_DEPLOYMENT_TARGET="$(MACOSX_DEPLOYMENT_TARGET)"
 endif # MACOSX_DEPLOYMENT_TARGET
-
 ifdef MOZ_OPTIMIZE
 ifeq (2,$(MOZ_OPTIMIZE))
 # Only override project defaults if the config specified explicit settings
@@ -573,10 +570,13 @@ endif # MOZ_OPTIMIZE=2
 endif # MOZ_OPTIMIZE
 endif # OS_ARCH=Darwin
 
-ifdef MOZ_USING_CCACHE
-ifdef CLANG_CXX
-export CCACHE_CPP2=1
-endif
+
+ifdef MOZ_NATIVE_MAKEDEPEND
+MKDEPEND_DIR =
+MKDEPEND = $(MOZ_NATIVE_MAKEDEPEND)
+else
+MKDEPEND_DIR = $(CONFIG_TOOLS)/mkdepend
+MKDEPEND = $(MKDEPEND_DIR)/mkdepend$(BIN_SUFFIX)
 endif
 
 # Set link flags according to whether we want a console.
@@ -624,7 +624,7 @@ endif
 
 ######################################################################
 
-GARBAGE		+= $(DEPENDENCIES) core $(wildcard core.[0-9]*) $(wildcard *.err) $(wildcard *.pure) $(wildcard *_pure_*.o) Templates.DB
+GARBAGE		+= $(DEPENDENCIES) $(MKDEPENDENCIES) $(MKDEPENDENCIES).bak core $(wildcard core.[0-9]*) $(wildcard *.err) $(wildcard *.pure) $(wildcard *_pure_*.o) Templates.DB
 
 ifeq ($(OS_ARCH),Darwin)
 ifndef NSDISTMODE
@@ -633,34 +633,19 @@ endif
 PWD := $(CURDIR)
 endif
 
-NSINSTALL_PY := $(PYTHON) $(call core_abspath,$(topsrcdir)/config/nsinstall.py)
-# For Pymake, wherever we use nsinstall.py we're also going to try to make it
-# a native command where possible. Since native commands can't be used outside
-# of single-line commands, we continue to provide INSTALL for general use.
-# Single-line commands should be switched over to install_cmd.
-NSINSTALL_NATIVECMD := %nsinstall nsinstall
-
 ifdef NSINSTALL_BIN
 NSINSTALL = $(NSINSTALL_BIN)
 else
 ifeq (OS2,$(CROSS_COMPILE)$(OS_ARCH))
 NSINSTALL = $(MOZ_TOOLS_DIR)/nsinstall
 else
-ifeq ($(HOST_OS_ARCH),WINNT)
-NSINSTALL = $(NSINSTALL_PY)
-else
 NSINSTALL = $(CONFIG_TOOLS)/nsinstall$(HOST_BIN_SUFFIX)
-endif # WINNT
 endif # OS2
 endif # NSINSTALL_BIN
 
 
 ifeq (,$(CROSS_COMPILE)$(filter-out WINNT OS2, $(OS_ARCH)))
-INSTALL = $(NSINSTALL) -t
-ifdef .PYMAKE
-install_cmd = $(NSINSTALL_NATIVECMD) -t $(1)
-endif # .PYMAKE
-
+INSTALL		= $(NSINSTALL)
 else
 
 # This isn't laid out as conditional directives so that NSDISTMODE can be
@@ -669,13 +654,16 @@ INSTALL         = $(if $(filter copy, $(NSDISTMODE)), $(NSINSTALL) -t, $(if $(fi
 
 endif # WINNT/OS2
 
-# The default for install_cmd is simply INSTALL
-install_cmd ?= $(INSTALL) $(1)
-
 # Use nsinstall in copy mode to install files on the system
 SYSINSTALL	= $(NSINSTALL) -t
-# This isn't necessarily true, just here
-sysinstall_cmd = install_cmd
+
+# Directory nsinstall. Windows and OS/2 nsinstall can't recursively copy
+# directories.
+ifneq (,$(filter WINNT os2-emx,$(HOST_OS_ARCH)))
+DIR_INSTALL = $(PYTHON) $(topsrcdir)/config/nsinstall.py
+else
+DIR_INSTALL = $(INSTALL)
+endif # WINNT/OS2
 
 #
 # Localization build automation
@@ -747,9 +735,6 @@ endif
 OPTIMIZE_JARS_CMD = $(PYTHON) $(call core_abspath,$(topsrcdir)/config/optimizejars.py)
 
 CREATE_PRECOMPLETE_CMD = $(PYTHON) $(call core_abspath,$(topsrcdir)/config/createprecomplete.py)
-
-# MDDEPDIR is the subdirectory where dependency files are stored
-MDDEPDIR := .deps
 
 EXPAND_LIBS_EXEC = $(PYTHON) $(topsrcdir)/config/pythonpath.py -I$(DEPTH)/config $(topsrcdir)/config/expandlibs_exec.py $(if $@,--depend $(MDDEPDIR)/$(@F).pp --target $@)
 EXPAND_LIBS_GEN = $(PYTHON) $(topsrcdir)/config/pythonpath.py -I$(DEPTH)/config $(topsrcdir)/config/expandlibs_gen.py $(if $@,--depend $(MDDEPDIR)/$(@F).pp)

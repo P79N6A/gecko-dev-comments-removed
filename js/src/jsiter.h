@@ -316,6 +316,13 @@ struct JSGenerator
 
 extern JSObject *
 js_NewGenerator(JSContext *cx);
+
+namespace js {
+
+bool
+GeneratorHasMarkableFrame(JSGenerator *gen);
+
+} 
 #endif
 
 extern JSObject *

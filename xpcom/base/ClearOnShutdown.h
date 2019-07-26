@@ -30,10 +30,6 @@
 
 
 
-
-
-
-
 namespace mozilla {
 namespace ClearOnShutdown_Internal {
 

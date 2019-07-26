@@ -21,12 +21,6 @@
 class nsIDocShellTreeItem;
 class nsPIDOMWindow;
 
-namespace mozilla {
-namespace dom {
-  class TabParent;
-}
-}
-
 struct nsDelayedBlurOrFocusEvent;
 
 
@@ -413,12 +407,6 @@ protected:
                               nsIDocument* aDocument,
                               bool aIsForDocNavigation,
                               bool aCheckVisibility);
-
-  
-
-
-
-  mozilla::dom::TabParent* GetRemoteForContent(nsIContent* aContent);
 
   
 

@@ -1366,8 +1366,8 @@ GeneratorWriteBarrierPre(JSContext *cx, JSGenerator *gen)
 
 
 
-static bool
-GeneratorHasMarkableFrame(JSGenerator *gen)
+bool
+js::GeneratorHasMarkableFrame(JSGenerator *gen)
 {
     return gen->state == JSGEN_NEWBORN || gen->state == JSGEN_OPEN;
 }
@@ -1476,8 +1476,8 @@ js_NewGenerator(JSContext *cx)
 
     
     gen->regs.rebaseFromTo(stackRegs, *genfp);
-    genfp->copyFrameAndValues<HeapValue, Value, StackFrame::DoPostBarrier>(
-                              cx, genvp, stackfp, stackvp, stackRegs.sp);
+    genfp->copyFrameAndValues<StackFrame::DoPostBarrier>(cx, (Value *)genvp, stackfp,
+                                                         stackvp, stackRegs.sp);
 
     obj->setPrivate(gen);
     return obj;

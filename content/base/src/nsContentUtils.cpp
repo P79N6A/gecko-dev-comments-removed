@@ -6253,6 +6253,12 @@ nsContentUtils::IsSubDocumentTabbable(nsIContent* aContent)
 
   
   
+  if (nsEventStateManager::IsRemoteTarget(aContent)) {
+    return true;
+  }
+
+  
+  
   nsIDocument* subDoc = doc->GetSubDocumentFor(aContent);
   if (!subDoc) {
     return false;

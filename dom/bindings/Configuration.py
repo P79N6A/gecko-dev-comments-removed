@@ -127,104 +127,28 @@ class Descriptor(DescriptorProvider):
         self.interface = interface
 
         
-        ifaceName = self.interface.identifier.name
-        if self.interface.isExternal() or self.interface.isCallback():
-            if self.workers:
-                nativeTypeDefault = "JSObject"
-            else:
-                nativeTypeDefault = "nsIDOM" + ifaceName
-        else:
-            if self.workers:
-                nativeTypeDefault = "mozilla::dom::workers::" + ifaceName
-            else:
-                nativeTypeDefault = "mozilla::dom::" + ifaceName
-
-        self.nativeType = desc.get('nativeType', nativeTypeDefault)
+        self.nativeType = desc['nativeType']
         self.hasInstanceInterface = desc.get('hasInstanceInterface', None)
 
-        
-        if self.nativeType == "JSObject":
-            headerDefault = "jsapi.h"
-        else:
-            headerDefault = self.nativeType
-            headerDefault = headerDefault.replace("::", "/") + ".h"
+        headerDefault = self.nativeType
+        headerDefault = headerDefault.replace("::", "/") + ".h"
         self.headerFile = desc.get('headerFile', headerDefault)
 
-        if self.interface.isCallback() or self.interface.isExternal():
-            if 'castable' in desc:
-                raise TypeError("%s is external or callback but has a castable "
-                                "setting" % self.interface.identifier.name)
-            self.castable = False
-        else:
-            self.castable = desc.get('castable', True)
+        castableDefault = not self.interface.isCallback()
+        self.castable = desc.get('castable', castableDefault)
 
         self.notflattened = desc.get('notflattened', False)
         self.register = desc.get('register', True)
 
-        self.hasXPConnectImpls = desc.get('hasXPConnectImpls', False)
-
         
         
-        self.concrete = desc.get('concrete', not self.interface.isExternal())
+        self.concrete = desc.get('concrete', True)
         if self.concrete:
-            self.proxy = False
-            operations = {
-                'IndexedGetter': None,
-                'IndexedSetter': None,
-                'IndexedCreator': None,
-                'IndexedDeleter': None,
-                'NamedGetter': None,
-                'NamedSetter': None,
-                'NamedCreator': None,
-                'NamedDeleter': None,
-                'Stringifier': None
-            }
             iface = self.interface
             while iface:
-                for m in iface.members:
-                    if not m.isMethod():
-                        continue
-
-                    def addOperation(operation, m):
-                        if not operations[operation]:
-                            operations[operation] = m
-                    def addIndexedOrNamedOperation(operation, m):
-                        self.proxy = True
-                        if m.isIndexed():
-                            operation = 'Indexed' + operation
-                        else:
-                            assert m.isNamed()
-                            operation = 'Named' + operation
-                        addOperation(operation, m)
-                        
-                    if m.isStringifier():
-                        addOperation('Stringifier', m)
-                    else:
-                        if m.isGetter():
-                            addIndexedOrNamedOperation('Getter', m)
-                        if m.isSetter():
-                            addIndexedOrNamedOperation('Setter', m)
-                        if m.isCreator():
-                            addIndexedOrNamedOperation('Creator', m)
-                        if m.isDeleter():
-                            addIndexedOrNamedOperation('Deleter', m)
-                            raise TypeError("deleter specified on %s but we "
-                                            "don't support deleters yet" %
-                                            self.interface.identifier.name)
-
                 iface.setUserData('hasConcreteDescendant', True)
                 iface = iface.parent
 
-            if self.proxy:
-                self.operations = operations
-                iface = self.interface
-                while iface:
-                    iface.setUserData('hasProxyDescendant', True)
-                    iface = iface.parent
-
-        if self.interface.isExternal() and 'prefable' in desc:
-            raise TypeError("%s is external but has a prefable setting" %
-                            self.interface.identifier.name)
         self.prefable = desc.get('prefable', False)
 
         self.nativeIsISupports = not self.workers
@@ -256,16 +180,10 @@ class Descriptor(DescriptorProvider):
             elif isinstance(config, list):
                 add('all', config, attribute)
             else:
-                assert isinstance(config, str)
-                if config == '*':
-                    iface = self.interface
-                    while iface:
-                        add('all', map(lambda m: m.name, iface.members), attribute)
-                        iface = iface.parent
-                else:
-                    add('all', [config], attribute)
+                assert isinstance(config, string)
+                add('all', [config], attribute)
 
-        for attribute in ['implicitJSContext', 'resultNotAddRefed']:
+        for attribute in ['infallible', 'implicitJSContext', 'resultNotAddRefed']:
             addExtendedAttribute(attribute, desc.get(attribute, {}))
 
         self.binaryNames = desc.get('binaryNames', {})
@@ -290,34 +208,11 @@ class Descriptor(DescriptorProvider):
         return self.interface.hasInterfaceObject() or self.interface.hasInterfacePrototypeObject()
 
     def getExtendedAttributes(self, member, getter=False, setter=False):
-        def ensureValidThrowsExtendedAttribute(attr):
-            assert(attr is None or attr is True or len(attr) == 1)
-            if (attr is not None and attr is not True and
-                'Workers' not in attr and 'MainThread' not in attr):
-                raise TypeError("Unknown value for 'Throws': " + attr[0])
-
-        def maybeAppendInfallibleToAttrs(attrs, throws):
-            ensureValidThrowsExtendedAttribute(throws)
-            if (throws is None or
-                (throws is not True and
-                 ('Workers' not in throws or not self.workers) and
-                 ('MainThread' not in throws or self.workers))):
-                attrs.append("infallible")
-
         name = member.identifier.name
         if member.isMethod():
-            attrs = self.extendedAttributes['all'].get(name, [])
-            throws = member.getExtendedAttribute("Throws")
-            maybeAppendInfallibleToAttrs(attrs, throws)
-            return attrs
+            return self.extendedAttributes['all'].get(name, [])
 
         assert member.isAttr()
         assert bool(getter) != bool(setter)
         key = 'getterOnly' if getter else 'setterOnly'
-        attrs = self.extendedAttributes['all'].get(name, []) + self.extendedAttributes[key].get(name, [])
-        throws = member.getExtendedAttribute("Throws")
-        if throws is None:
-            throwsAttr = "GetterThrows" if getter else "SetterThrows"
-            throws = member.getExtendedAttribute(throwsAttr)
-        maybeAppendInfallibleToAttrs(attrs, throws)
-        return attrs
+        return self.extendedAttributes['all'].get(name, []) + self.extendedAttributes[key].get(name, [])

@@ -8,7 +8,6 @@ const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://webapprt/modules/WebappRT.jsm");
 
 function CommandLineHandler() {}
 
@@ -18,50 +17,16 @@ CommandLineHandler.prototype = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsICommandLineHandler]),
 
   handle: function handle(cmdLine) {
-    let args = Cc["@mozilla.org/hash-property-bag;1"].
-               createInstance(Ci.nsIWritablePropertyBag);
-    let inTestMode = this._handleTestMode(cmdLine, args);
-
-    if (inTestMode) {
-      
-      Services.ww.openWindow(null,
-                             "chrome://webapprt/content/mochitest.xul",
-                             "_blank",
-                             "chrome,dialog=no",
-                             args);
-    } else {
-      args.setProperty("url", WebappRT.launchURI.spec);
-      Services.ww.openWindow(null,
-                             "chrome://webapprt/content/webapp.xul",
-                             "_blank",
-                             "chrome,dialog=no,resizable,scrollbars,centerscreen",
-                             args);
-    }
-  },
-
-  _handleTestMode: function _handleTestMode(cmdLine, args) {
     
-    let idx = cmdLine.findFlag("test-mode", true);
-    if (idx < 0)
-      return false;
-    let url;
-    let urlIdx = idx + 1;
-    if (urlIdx < cmdLine.length) {
-      let potentialURL = cmdLine.getArgument(urlIdx);
-      if (potentialURL && potentialURL[0] != "-") {
-        try {
-          url = Services.io.newURI(potentialURL, null, null);
-        } catch (err) {
-          throw Components.Exception(
-            "-test-mode argument is not a valid URL: " + potentialURL,
-            Components.results.NS_ERROR_INVALID_ARG);
-        }
-        cmdLine.removeArguments(urlIdx, urlIdx);
-        args.setProperty("url", url.spec);
-      }
-    }
-    cmdLine.removeArguments(idx, idx);
-    return true;
+    Services.ww.openWindow(null,
+                           "chrome://webapprt/content/webapp.xul",
+                           "_blank",
+                           "chrome,dialog=no,resizable,scrollbars",
+                           []);
+
+    
+    Cu.import("resource://webapprt/modules/WebappsHandler.jsm");
+    WebappsHandler.init();
   },
 
   helpInfo : "",
@@ -69,3 +34,40 @@ CommandLineHandler.prototype = {
 
 let components = [CommandLineHandler];
 let NSGetFactory = XPCOMUtils.generateNSGetFactory(components);
+
+
+
+
+
+
+
+
+
+
+try {
+  
+  Cu.import("resource://gre/modules/Webapps.jsm");
+
+  
+  if (!Services.prefs.getBoolPref("webapprt.firstrun")) {
+    Cu.import("resource://webapprt/modules/WebappRT.jsm");
+    let uri = Services.io.newURI(WebappRT.config.app.origin, null, null);
+
+    
+    Services.perms.add(uri, "pin-app", Ci.nsIPermissionManager.ALLOW_ACTION);
+    Services.perms.add(uri, "offline-app",
+                       Ci.nsIPermissionManager.ALLOW_ACTION);
+
+    Services.perms.add(uri, "indexedDB", Ci.nsIPermissionManager.ALLOW_ACTION);
+    Services.perms.add(uri, "indexedDB-unlimited",
+                       Ci.nsIPermissionManager.ALLOW_ACTION);
+
+    
+    
+    Services.prefs.setBoolPref("webapprt.firstrun", true);
+  }
+} catch(ex) {
+#ifdef MOZ_DEBUG
+  dump(ex + "\n");
+#endif
+}

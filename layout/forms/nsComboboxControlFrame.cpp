@@ -115,7 +115,7 @@ NS_IMPL_ISUPPORTS1(nsComboButtonListener,
                    nsIDOMEventListener)
 
 
-nsComboboxControlFrame * nsComboboxControlFrame::mFocused = nsnull;
+nsComboboxControlFrame* nsComboboxControlFrame::sFocused = nsnull;
 
 nsIFrame*
 NS_NewComboboxControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, PRUint32 aStateFlags)
@@ -278,19 +278,18 @@ static PRInt32 gReflowInx = -1;
 
 
 nsComboboxControlFrame::nsComboboxControlFrame(nsStyleContext* aContext)
-  : nsBlockFrame(aContext),
-    mDisplayWidth(0)
+  : nsBlockFrame(aContext)
+  , mDisplayFrame(nsnull)
+  , mButtonFrame(nsnull)
+  , mDropdownFrame(nsnull)
+  , mListControlFrame(nsnull)
+  , mDisplayWidth(0)
+  , mRecentSelectedIndex(NS_SKIP_NOTIFY_INDEX)
+  , mDisplayedIndex(-1)
+  , mDroppedDown(false)
+  , mInRedisplayText(false)
+  , mDelayedShowDropDown(false)
 {
-  mListControlFrame            = nsnull;
-  mDroppedDown                 = false;
-  mDisplayFrame                = nsnull;
-  mButtonFrame                 = nsnull;
-  mDropdownFrame               = nsnull;
-
-  mInRedisplayText = false;
-
-  mRecentSelectedIndex = NS_SKIP_NOTIFY_INDEX;
-
   REFLOW_COUNTER_INIT()
 }
 
@@ -324,15 +323,22 @@ nsComboboxControlFrame::CreateAccessible()
 }
 #endif
 
-void 
+void
 nsComboboxControlFrame::SetFocus(bool aOn, bool aRepaint)
 {
   nsWeakFrame weakFrame(this);
   if (aOn) {
     nsListControlFrame::ComboboxFocusSet();
-    mFocused = this;
+    sFocused = this;
+    if (mDelayedShowDropDown) {
+      ShowDropDown(true); 
+      if (!weakFrame.IsAlive()) {
+        return;
+      }
+    }
   } else {
-    mFocused = nsnull;
+    sFocused = nsnull;
+    mDelayedShowDropDown = false;
     if (mDroppedDown) {
       mListControlFrame->ComboboxFinish(mDisplayedIndex); 
       if (!weakFrame.IsAlive()) {
@@ -442,6 +448,44 @@ nsComboboxControlFrame::ShowList(bool aShowList)
   return weakFrame.IsAlive();
 }
 
+class nsResizeDropdownAtFinalPosition
+  : public nsIReflowCallback, public nsRunnable
+{
+public:
+  nsResizeDropdownAtFinalPosition(nsComboboxControlFrame* aFrame)
+    : mFrame(aFrame)
+  {
+    MOZ_COUNT_CTOR(nsResizeDropdownAtFinalPosition);
+  }
+  ~nsResizeDropdownAtFinalPosition()
+  {
+    MOZ_COUNT_DTOR(nsResizeDropdownAtFinalPosition);
+  }
+
+  virtual bool ReflowFinished()
+  {
+    Run();
+    NS_RELEASE_THIS();
+    return false;
+  }
+
+  virtual void ReflowCallbackCanceled()
+  {
+    NS_RELEASE_THIS();
+  }
+
+  NS_IMETHODIMP Run()
+  {
+    if (mFrame.IsAlive()) {
+      static_cast<nsComboboxControlFrame*>(mFrame.GetFrame())->
+        AbsolutelyPositionDropDown();
+    }
+    return NS_OK;
+  }
+
+  nsWeakFrame mFrame;
+};
+
 nsresult
 nsComboboxControlFrame::ReflowDropdown(nsPresContext*  aPresContext, 
                                        const nsHTMLReflowState& aReflowState)
@@ -535,49 +579,166 @@ nsComboboxControlFrame::GetCSSTransformTranslation()
   return translation;
 }
 
+class nsAsyncRollup : public nsRunnable
+{
+public:
+  nsAsyncRollup(nsComboboxControlFrame* aFrame) : mFrame(aFrame) {}
+  NS_IMETHODIMP Run()
+  {
+    if (mFrame.IsAlive()) {
+      static_cast<nsComboboxControlFrame*>(mFrame.GetFrame())
+        ->RollupFromList();
+    }
+    return NS_OK;
+  }
+  nsWeakFrame mFrame;
+};
+
+class nsAsyncResize : public nsRunnable
+{
+public:
+  nsAsyncResize(nsComboboxControlFrame* aFrame) : mFrame(aFrame) {}
+  NS_IMETHODIMP Run()
+  {
+    if (mFrame.IsAlive()) {
+      nsComboboxControlFrame* combo =
+        static_cast<nsComboboxControlFrame*>(mFrame.GetFrame());
+      static_cast<nsListControlFrame*>(combo->mDropdownFrame)->
+        SetSuppressScrollbarUpdate(true);
+      nsCOMPtr<nsIPresShell> shell = mFrame->PresContext()->PresShell();
+      shell->FrameNeedsReflow(combo->mDropdownFrame, nsIPresShell::eResize,
+                              NS_FRAME_IS_DIRTY);
+      shell->FlushPendingNotifications(Flush_Layout);
+      if (mFrame.IsAlive()) {
+        combo = static_cast<nsComboboxControlFrame*>(mFrame.GetFrame());
+        static_cast<nsListControlFrame*>(combo->mDropdownFrame)->
+          SetSuppressScrollbarUpdate(false);
+        if (combo->mDelayedShowDropDown) {
+          combo->ShowDropDown(true);
+        }
+      }
+    }
+    return NS_OK;
+  }
+  nsWeakFrame mFrame;
+};
+
 void
+nsComboboxControlFrame::GetAvailableDropdownSpace(nscoord* aAbove,
+                                                  nscoord* aBelow,
+                                                  nsPoint* aTranslation)
+{
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+  *aTranslation = GetCSSTransformTranslation();
+  *aAbove = 0;
+  *aBelow = 0;
+  
+  nsRect thisScreenRect = GetScreenRectInAppUnits();
+  nsRect screen = nsFormControlFrame::GetUsableScreenRect(PresContext());
+  nscoord dropdownY = thisScreenRect.YMost() + aTranslation->y;
+
+  nscoord minY;
+  if (!PresContext()->IsChrome()) {
+    nsIFrame* root = PresContext()->PresShell()->GetRootFrame();
+    minY = root->GetScreenRectInAppUnits().y;
+    if (dropdownY < root->GetScreenRectInAppUnits().y) {
+      
+      return;
+    }
+  } else {
+    minY = screen.y;
+  }
+  
+  nscoord below = screen.YMost() - dropdownY;
+  nscoord above = thisScreenRect.y + aTranslation->y - minY;
+
+  
+  
+  if (above >= below) {
+    nsListControlFrame* lcf = static_cast<nsListControlFrame*>(mDropdownFrame);
+    nscoord rowHeight = lcf->GetHeightOfARow();
+    if (above < below + rowHeight) {
+      above -= rowHeight;
+    }
+  }
+
+  *aBelow = below;
+  *aAbove = above;
+}
+
+nsComboboxControlFrame::DropDownPositionState
 nsComboboxControlFrame::AbsolutelyPositionDropDown()
 {
-   
-   
-   
-
-   
-   
-   
-   
-   
-   
-
-  
-  
-  
-  nsPoint translation = GetCSSTransformTranslation();
-
-   
-   
-  nscoord dropdownYOffset = GetRect().height;
-  nsSize dropdownSize = mDropdownFrame->GetSize();
-
-  nsRect screen = nsFormControlFrame::GetUsableScreenRect(PresContext());
-
-  
-  if ((GetScreenRectInAppUnits() + translation).YMost() + dropdownSize.height > screen.YMost()) {
+  nsPoint translation;
+  nscoord above, below;
+  GetAvailableDropdownSpace(&above, &below, &translation);
+  if (above <= 0 && below <= 0) {
     
-    dropdownYOffset = - (dropdownSize.height);
+    nsIView* view = mDropdownFrame->GetView();
+    view->GetViewManager()->SetViewVisibility(view, nsViewVisibility_kHide);
+    NS_DispatchToCurrentThread(new nsAsyncRollup(this));
+    return eDropDownPositionSuppressed;
   }
 
-  nsPoint dropdownPosition;
-  const nsStyleVisibility* vis = GetStyleVisibility();
-  if (vis->mDirection == NS_STYLE_DIRECTION_RTL) {
+  nsSize dropdownSize = mDropdownFrame->GetSize();
+  nscoord height = NS_MAX(above, below);
+  nsListControlFrame* lcf = static_cast<nsListControlFrame*>(mDropdownFrame);
+  if (height < dropdownSize.height) {
+    if (lcf->GetNumDisplayRows() > 1) {
+      
+      
+      NS_DispatchToCurrentThread(new nsAsyncResize(this));
+      return eDropDownPositionPendingResize;
+    }
+  } else if (height > (dropdownSize.height + lcf->GetHeightOfARow() * 1.5) &&
+             lcf->GetDropdownCanGrow()) {
+    
+    
+    
+    
+    NS_DispatchToCurrentThread(new nsAsyncResize(this));
+    return eDropDownPositionPendingResize;
+  }
+
+  
+  
+  bool b = dropdownSize.height <= below || below >= above;
+  nsPoint dropdownPosition(0, b ? GetRect().height : -dropdownSize.height);
+  if (GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL) {
     
     dropdownPosition.x = GetRect().width - dropdownSize.width;
-  } else {
-    dropdownPosition.x = 0;
   }
-  dropdownPosition.y = dropdownYOffset; 
-
   mDropdownFrame->SetPosition(dropdownPosition + translation);
+  nsContainerFrame::PositionFrameView(mDropdownFrame);
+  return eDropDownPositionFinal;
+}
+
+void
+nsComboboxControlFrame::NotifyGeometryChange()
+{
+  
+  
+  
+  if (IsDroppedDown() &&
+      !(GetStateBits() & NS_FRAME_IS_DIRTY) &&
+      !mDelayedShowDropDown) {
+    
+    
+    nsRefPtr<nsResizeDropdownAtFinalPosition> resize =
+      new nsResizeDropdownAtFinalPosition(this);
+    NS_DispatchToCurrentThread(resize);
+  }
 }
 
 
@@ -705,6 +866,13 @@ nsComboboxControlFrame::Reflow(nsPresContext*          aPresContext,
 
   
   ReflowDropdown(aPresContext, aReflowState);
+  nsRefPtr<nsResizeDropdownAtFinalPosition> resize =
+    new nsResizeDropdownAtFinalPosition(this);
+  if (NS_SUCCEEDED(aPresContext->PresShell()->PostReflowCallback(resize))) {
+    
+    
+    resize.forget();
+  }
 
   
   
@@ -793,16 +961,25 @@ nsComboboxControlFrame::GetFrameName(nsAString& aResult) const
 void
 nsComboboxControlFrame::ShowDropDown(bool aDoDropDown) 
 {
+  mDelayedShowDropDown = false;
   nsEventStates eventStates = mContent->AsElement()->State();
-  if (eventStates.HasState(NS_EVENT_STATE_DISABLED)) {
+  if (aDoDropDown && eventStates.HasState(NS_EVENT_STATE_DISABLED)) {
     return;
   }
 
   if (!mDroppedDown && aDoDropDown) {
-    if (mListControlFrame) {
-      mListControlFrame->SyncViewWithFrame();
+    if (sFocused == this) {
+      DropDownPositionState state = AbsolutelyPositionDropDown();
+      if (state == eDropDownPositionFinal) {
+        ShowList(aDoDropDown); 
+      } else if (state == eDropDownPositionPendingResize) {
+        
+        mDelayedShowDropDown = true;
+      }
+    } else {
+      
+      mDelayedShowDropDown = true;
     }
-    ShowList(aDoDropDown); 
   } else if (mDroppedDown && !aDoDropDown) {
     ShowList(aDoDropDown); 
   }
@@ -1435,7 +1612,7 @@ void nsComboboxControlFrame::PaintFocus(nsRenderingContext& aRenderingContext,
 {
   
   nsEventStates eventStates = mContent->AsElement()->State();
-  if (eventStates.HasState(NS_EVENT_STATE_DISABLED) || mFocused != this)
+  if (eventStates.HasState(NS_EVENT_STATE_DISABLED) || sFocused != this)
     return;
 
   aRenderingContext.PushState();

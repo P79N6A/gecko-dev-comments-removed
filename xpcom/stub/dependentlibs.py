@@ -9,7 +9,6 @@ upon that are in the same directory.
 from optparse import OptionParser
 import os
 import re
-import fnmatch
 import subprocess
 import sys
 
@@ -17,32 +16,13 @@ TOOLCHAIN_PREFIX = ''
 
 def dependentlibs_dumpbin(lib):
     '''Returns the list of dependencies declared in the given DLL'''
-    try:
-        proc = subprocess.Popen(['dumpbin', '-dependents', lib], stdout = subprocess.PIPE)
-    except OSError:
-        
-        return dependentlibs_mingw_objdump(lib)
+    proc = subprocess.Popen(['dumpbin', '-imports', lib], stdout = subprocess.PIPE)
     deps = []
     for line in proc.stdout:
         
         match = re.match('    (\S+)', line)
         if match:
              deps.append(match.group(1))
-        elif len(deps):
-             
-             
-             
-             break
-    proc.wait()
-    return deps
-
-def dependentlibs_mingw_objdump(lib):
-    proc = subprocess.Popen(['objdump', '-x', lib], stdout = subprocess.PIPE)
-    deps = []
-    for line in proc.stdout:
-        match = re.match('\tDLL Name: (\S+)', line)
-        if match:
-            deps.append(match.group(1))
     proc.wait()
     return deps
 
@@ -115,7 +95,7 @@ def main():
     ext = os.path.splitext(lib)[1]
     if ext == '.dll':
         func = dependentlibs_dumpbin
-    elif ext == '.so' or fnmatch.fnmatch(lib, '*.so.*'):
+    elif ext == '.so':
         func = dependentlibs_readelf
     elif ext == '.dylib':
         func = dependentlibs_otool
