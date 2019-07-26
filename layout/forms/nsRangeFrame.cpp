@@ -378,6 +378,34 @@ nsRangeFrame::GetValueAtEventPoint(nsGUIEvent* aEvent)
   return minimum + (double(contentPoint.x) / double(contentRect.width)) * range;
 }
 
+void
+nsRangeFrame::UpdateThumbPositionForValueChange()
+{
+  if (NS_SUBTREE_DIRTY(this)) {
+    return; 
+  }
+  nsIFrame* thumbFrame = mThumbDiv->GetPrimaryFrame();
+  if (!thumbFrame) {
+    return; 
+  }
+  
+  double fraction = GetValueAsFractionOfRange();
+  nsRect contentRect = GetContentRectRelativeToSelf();
+  nsMargin borderAndPadding = GetUsedBorderAndPadding();
+  nsSize thumbSize = thumbFrame->GetSize();
+  nsPoint newPosition(borderAndPadding.left, borderAndPadding.top);
+  if (IsHorizontal()) {
+    newPosition += nsPoint(NSToCoordRound(fraction * contentRect.width) -
+                             thumbSize.width/2,
+                           (contentRect.height - thumbSize.height)/2);
+  } else {
+    newPosition += nsPoint((contentRect.width - thumbSize.width)/2,
+                           NSToCoordRound(fraction * contentRect.height) -
+                             thumbSize.height/2);
+  }
+  thumbFrame->SetPosition(newPosition);
+  SchedulePaint();
+}
 
 NS_IMETHODIMP
 nsRangeFrame::AttributeChanged(int32_t  aNameSpaceID,
@@ -392,18 +420,22 @@ nsRangeFrame::AttributeChanged(int32_t  aNameSpaceID,
        aAttribute == nsGkAtoms::min ||
        aAttribute == nsGkAtoms::max ||
        aAttribute == nsGkAtoms::step)) {
-    nsIFrame* trackFrame = mTrackDiv->GetPrimaryFrame();
-    if (trackFrame) { 
-      PresContext()->PresShell()->FrameNeedsReflow(trackFrame,
-                                                   nsIPresShell::eResize,
-                                                   NS_FRAME_IS_DIRTY);
-    }
-
-    nsIFrame* thumbFrame = mThumbDiv->GetPrimaryFrame();
-    if (thumbFrame) { 
-      PresContext()->PresShell()->FrameNeedsReflow(thumbFrame,
-                                                   nsIPresShell::eResize,
-                                                   NS_FRAME_IS_DIRTY);
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    MOZ_ASSERT(mContent->IsHTML(nsGkAtoms::input), "bad cast");
+    bool typeIsRange = static_cast<nsHTMLInputElement*>(mContent)->GetType() ==
+                         NS_FORM_INPUT_RANGE;
+    MOZ_ASSERT(typeIsRange || aAttribute == nsGkAtoms::value, "why?");
+    if (typeIsRange) {
+      UpdateThumbPositionForValueChange();
     }
   }
 
