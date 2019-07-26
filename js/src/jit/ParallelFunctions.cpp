@@ -8,6 +8,7 @@
 
 #include "builtin/TypedObject.h"
 #include "jit/arm/Simulator-arm.h"
+#include "jit/mips/Simulator-mips.h"
 #include "vm/ArrayObject.h"
 
 #include "jsgcinlines.h"
@@ -190,7 +191,7 @@ jit::CheckOverRecursedPar(ForkJoinContext *cx)
     
     
 
-#ifdef JS_ARM_SIMULATOR
+#if defined(JS_ARM_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
     if (Simulator::Current()->overRecursed()) {
         cx->bailoutRecord->setCause(ParallelBailoutOverRecursed);
         return false;

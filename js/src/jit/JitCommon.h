@@ -9,9 +9,13 @@
 
 
 
-#ifdef JS_ARM_SIMULATOR
+#if defined(JS_ARM_SIMULATOR)
 #include "jit/arm/Simulator-arm.h"
+#elif defined(JS_MIPS_SIMULATOR)
+#include "jit/mips/Simulator-mips.h"
+#endif
 
+#if defined(JS_ARM_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
 
 #define CALL_GENERATED_CODE(entry, p0, p1, p2, p3, p4, p5, p6, p7)     \
     (js::jit::Simulator::Current()->call(                              \

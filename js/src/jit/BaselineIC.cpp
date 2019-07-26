@@ -8806,7 +8806,7 @@ ICCall_Native::Compiler::generateStubCode(MacroAssembler &masm)
     masm.passABIArg(argcReg);
     masm.passABIArg(vpReg);
 
-#ifdef JS_ARM_SIMULATOR
+#if defined(JS_ARM_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
     
     
     
@@ -10191,7 +10191,7 @@ ICCall_Native::ICCall_Native(JitCode *stubCode, ICStub *firstMonitorStub,
     templateObject_(templateObject),
     pcOffset_(pcOffset)
 {
-#ifdef JS_ARM_SIMULATOR
+#if defined(JS_ARM_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
     
     
     

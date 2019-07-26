@@ -337,7 +337,7 @@ HandleSimulatorInterrupt(JSRuntime *rt, AsmJSActivation *activation, void *fault
     
     
 
-#ifdef JS_ARM_SIMULATOR
+#if defined(JS_ARM_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
     const AsmJSModule &module = activation->module();
     if (module.containsPC((void *)rt->mainThread.simulator()->get_pc()) &&
         module.containsPC(faultingAddress))
