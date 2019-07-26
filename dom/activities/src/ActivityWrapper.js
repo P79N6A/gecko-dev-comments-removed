@@ -42,10 +42,9 @@ ActivityWrapper.prototype = {
     handler.wrappedJSObject._id = aMessage.id;
 
     
-   handler.wrappedJSObject._options = Cu.cloneInto({
-     name: aMessage.payload.name,
-     data: Cu.cloneInto(aMessage.payload.data, aWindow),
-   }, aWindow);
+    var options = handler.wrappedJSObject._options;
+    options.wrappedJSObject._name = aMessage.payload.name;
+    options.wrappedJSObject._data = Cu.cloneInto(aMessage.payload.data, aWindow);
 
     
     
