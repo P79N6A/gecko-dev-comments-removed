@@ -751,9 +751,10 @@ function RadioInterface(options) {
   
   
   
+  
   this.apnSettings = {
-      byType: {},
-      byAPN: {}
+    byType: {},
+    byApn: {}
   };
 
   this.rilContext = {
@@ -1547,7 +1548,7 @@ RadioInterface.prototype = {
 
   powerOffRadioSafely: function powerOffRadioSafely() {
     let dataDisconnecting = false;
-    for each (let apnSetting in this.apnSettings.byAPN) {
+    for each (let apnSetting in this.apnSettings.byApn) {
       for each (let type in apnSetting.types) {
         if (this.getDataCallStateByType(type) ==
             RIL.GECKO_NETWORK_STATE_CONNECTED) {
@@ -1576,15 +1577,14 @@ RadioInterface.prototype = {
 
 
 
-
   updateApnSettings: function updateApnSettings(allApnSettings) {
-    let thisSimApnSettings = allApnSettings[this.clientId];
-    if (!thisSimApnSettings) {
+    let simApnSettings = allApnSettings[this.clientId];
+    if (!simApnSettings) {
       return;
     }
 
     
-    for each (let apnSetting in this.apnSettings.byAPN) {
+    for each (let apnSetting in this.apnSettings.byApn) {
       
       for each (let type in apnSetting.types) {
         if (this.getDataCallStateByType(type) ==
@@ -1598,32 +1598,39 @@ RadioInterface.prototype = {
       this.unregisterDataCallCallback(apnSetting.iface);
       delete apnSetting.iface;
     }
-    this.apnSettings.byAPN = {};
+    this.apnSettings.byApn = {};
     this.apnSettings.byType = {};
 
     
-    for (let apnIndex = 0; thisSimApnSettings[apnIndex]; apnIndex++) {
-      let inputApnSetting = thisSimApnSettings[apnIndex];
+    for (let i = 0; simApnSettings[i]; i++) {
+      let inputApnSetting = simApnSettings[i];
       if (!this.validateApnSetting(inputApnSetting)) {
         continue;
       }
 
       
       
-      let apnKey = inputApnSetting.apn + (inputApnSetting.user || '') +
+      let apnKey = inputApnSetting.apn +
+                   (inputApnSetting.user || '') +
                    (inputApnSetting.password || '');
-      if (!this.apnSettings.byAPN[apnKey]) {
-        this.apnSettings.byAPN[apnKey] = {};
-        this.apnSettings.byAPN[apnKey] = inputApnSetting;
-        this.apnSettings.byAPN[apnKey].iface =
-          new RILNetworkInterface(this, this.apnSettings.byAPN[apnKey]);
+
+      if (!this.apnSettings.byApn[apnKey]) {
+        this.apnSettings.byApn[apnKey] = inputApnSetting;
       } else {
-        this.apnSettings.byAPN[apnKey].types.push(inputApnSetting.types);
+        this.apnSettings.byApn[apnKey].types =
+          this.apnSettings.byApn[apnKey].types.concat(inputApnSetting.types);
       }
+
+      
+      
       for each (let type in inputApnSetting.types) {
-        this.apnSettings.byType[type] = {};
-        this.apnSettings.byType[type] = this.apnSettings.byAPN[apnKey];
+        this.apnSettings.byType[type] = this.apnSettings.byApn[apnKey];
       }
+    }
+
+    
+    for each (let apnSetting in this.apnSettings.byApn) {
+      apnSetting.iface = new RILNetworkInterface(this, apnSetting);
     }
   },
 
@@ -2000,7 +2007,7 @@ RadioInterface.prototype = {
     if (datacall.state == RIL.GECKO_NETWORK_STATE_UNKNOWN &&
         this._changingRadioPower) {
       let anyDataConnected = false;
-      for each (let apnSetting in this.apnSettings.byAPN) {
+      for each (let apnSetting in this.apnSettings.byApn) {
         for each (let type in apnSetting.types) {
           if (this.getDataCallStateByType(type) == RIL.GECKO_NETWORK_STATE_CONNECTED) {
             anyDataConnected = true;
@@ -2230,7 +2237,7 @@ RadioInterface.prototype = {
         this._releaseSmsHandledWakeLock();
 
         
-        for each (let apnSetting in this.apnSettings.byAPN) {
+        for each (let apnSetting in this.apnSettings.byApn) {
           if (apnSetting.iface) {
             apnSetting.iface.shutdown();
           }
@@ -2420,7 +2427,7 @@ RadioInterface.prototype = {
     this.dataCallSettings.roamingEnabled = false;
     this.apnSettings = {
       byType: {},
-      byAPN: {},
+      byApn: {},
     };
   },
 
