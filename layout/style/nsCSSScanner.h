@@ -178,13 +178,12 @@ class nsCSSScanner {
   }
 
   
-  void ClearSeenBadToken() {
-    mSeenBadToken = false;
-  }
+  void ClearSeenBadToken() { mSeenBadToken = false; }
+  bool SeenBadToken() const { return mSeenBadToken; }
 
-  bool SeenBadToken() const {
-    return mSeenBadToken;
-  }
+  
+  void ClearSeenVariableReference() { mSeenVariableReference = false; }
+  bool SeenVariableReference() const { return mSeenVariableReference; }
 
   
   
@@ -319,6 +318,7 @@ protected:
   bool mSVGMode;
   bool mRecording;
   bool mSeenBadToken;
+  bool mSeenVariableReference;
 };
 
 #endif 
