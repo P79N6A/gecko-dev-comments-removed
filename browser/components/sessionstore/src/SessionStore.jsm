@@ -3007,6 +3007,10 @@ let SessionStoreInternal = {
       delete this._statesToRestore[aWindow.__SS_restoreID];
       delete aWindow.__SS_restoreID;
       delete this._windows[aWindow.__SSi]._restoring;
+
+      
+      
+      this._dirtyWindows[aWindow.__SSi] = true;
     }
 
     if (aTabs.length == 0) {
