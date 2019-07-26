@@ -23,7 +23,7 @@ namespace dom {
 struct WebAudioUtils {
   
   
-  static const uint32_t MaxChannelCount = 10000;
+  static const uint32_t MaxChannelCount = 32;
 
   static bool FuzzyEqual(float v1, float v2)
   {
