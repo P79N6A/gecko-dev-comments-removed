@@ -1,13 +1,13 @@
 
 
 
-const TEST_URI = "data:text/html;charset=utf-8,<p>browser_telemetry_buttonsandsidebar.js</p>";
+const TEST_URI = "data:text/html;charset=utf-8,<p>browser_telemetry_button_paintflashing.js</p>";
 
 
 
 const TOOL_DELAY = 200;
 
-let {Promise: promise} = Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js", {});
+let promise = Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js", {}).Promise;
 let {Services} = Cu.import("resource://gre/modules/Services.jsm", {});
 
 let require = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools.require;
@@ -24,53 +24,33 @@ function init() {
 
       this.telemetryInfo[histogramId].push(value);
     }
-  }
+  };
 
-  testButtons();
+  testButton("command-button-paintflashing");
 }
 
-function testButtons() {
-  info("Testing buttons");
+function testButton(id) {
+  info("Testing " + id);
 
   let target = TargetFactory.forTab(gBrowser.selectedTab);
 
   gDevTools.showToolbox(target, "inspector").then(function(toolbox) {
-    let container = toolbox.doc.getElementById("toolbox-buttons");
-    let buttons = container.getElementsByTagName("toolbarbutton");
+    info("inspector opened");
 
-    
-    buttons = Array.prototype.slice.call(buttons);
+    let button = toolbox.doc.querySelector("#" + id);
+    ok(button, "Captain, we have the button");
 
-    (function testButton() {
-      let button = buttons.pop();
-
-      if (button) {
-        info("Clicking button " + button.id);
-        button.click();
-        delayedClicks(button, 3).then(function(button) {
-          if (buttons.length == 0) {
-            
-            let wins = Services.wm.getEnumerator("devtools:scratchpad");
-            while (wins.hasMoreElements()) {
-              let win = wins.getNext();
-              info("Closing scratchpad window");
-              win.close();
-            }
-
-            testSidebar();
-          } else {
-            setTimeout(testButton, TOOL_DELAY);
-          }
-        });
-      }
-    })();
-  }).then(null, reportError);
+    delayedClicks(button, 4).then(function() {
+      checkResults("_PAINTFLASHING_");
+    });
+  }).then(null, console.error);
 }
 
 function delayedClicks(node, clicks) {
   let deferred = promise.defer();
   let clicked = 0;
 
+  
   setTimeout(function delayedClick() {
     info("Clicking button " + node.id);
     node.click();
@@ -86,37 +66,13 @@ function delayedClicks(node, clicks) {
   return deferred.promise;
 }
 
-function testSidebar() {
-  info("Testing sidebar");
-
-  let target = TargetFactory.forTab(gBrowser.selectedTab);
-
-  gDevTools.showToolbox(target, "inspector").then(function(toolbox) {
-    let inspector = toolbox.getCurrentPanel();
-    let sidebarTools = ["ruleview", "computedview", "fontinspector", "layoutview"];
-
-    
-    sidebarTools.push.apply(sidebarTools, sidebarTools);
-
-    setTimeout(function selectSidebarTab() {
-      let tool = sidebarTools.pop();
-      if (tool) {
-        inspector.sidebar.select(tool);
-        setTimeout(function() {
-          setTimeout(selectSidebarTab, TOOL_DELAY);
-        }, TOOL_DELAY);
-      } else {
-        checkResults();
-      }
-    }, TOOL_DELAY);
-  });
-}
-
-function checkResults() {
+function checkResults(histIdFocus) {
   let result = Telemetry.prototype.telemetryInfo;
 
   for (let [histId, value] of Iterator(result)) {
-    if (histId.startsWith("DEVTOOLS_INSPECTOR_")) {
+    if (histId.startsWith("DEVTOOLS_INSPECTOR_") ||
+        !histId.contains(histIdFocus)) {
+      
       
       
       continue;
@@ -144,14 +100,6 @@ function checkResults() {
     }
   }
 
-  finishUp();
-}
-
-function reportError(error) {
-  let stack = "    " + error.stack.replace(/\n?.*?@/g, "\n    JS frame :: ");
-
-  ok(false, "ERROR: " + error + " at " + error.fileName + ":" +
-            error.lineNumber + "\n\nStack trace:" + stack);
   finishUp();
 }
 
