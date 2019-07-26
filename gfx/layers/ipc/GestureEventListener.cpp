@@ -20,7 +20,7 @@ namespace layers {
 
 
 
-static const int MAX_TAP_TIME = 300;
+static const uint32_t MAX_TAP_TIME = 300;
 
 
 
