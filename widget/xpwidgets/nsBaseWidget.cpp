@@ -111,7 +111,6 @@ nsBaseWidget::nsBaseWidget()
 , mAttachedWidgetListener(nullptr)
 , mContext(nullptr)
 , mCursor(eCursor_standard)
-, mWindowType(eWindowType_child)
 , mBorderStyle(eBorderStyle_none)
 , mUseLayersAcceleration(false)
 , mForceLayersAcceleration(false)
@@ -121,7 +120,6 @@ nsBaseWidget::nsBaseWidget()
 , mBounds(0,0,0,0)
 , mOriginalBounds(nullptr)
 , mClipRectCount(0)
-, mZIndex(0)
 , mSizeMode(nsSizeMode_Normal)
 , mPopupLevel(ePopupLevelTop)
 , mPopupType(ePopupTypeAny)
@@ -532,7 +530,7 @@ void nsBaseWidget::RemoveChild(nsIWidget* aChild)
 
 
 
-NS_IMETHODIMP nsBaseWidget::SetZIndex(int32_t aZIndex)
+void nsBaseWidget::SetZIndex(int32_t aZIndex)
 {
   
   
@@ -547,25 +545,23 @@ NS_IMETHODIMP nsBaseWidget::SetZIndex(int32_t aZIndex)
     
     nsIWidget* sib = parent->GetFirstChild();
     for ( ; sib; sib = sib->GetNextSibling()) {
-      int32_t childZIndex;
-      if (NS_SUCCEEDED(sib->GetZIndex(&childZIndex))) {
-        if (aZIndex < childZIndex) {
+      int32_t childZIndex = GetZIndex();
+      if (aZIndex < childZIndex) {
+        
+        nsIWidget* prev = sib->GetPrevSibling();
+        mNextSibling = sib;
+        mPrevSibling = prev;
+        sib->SetPrevSibling(this);
+        if (prev) {
+          prev->SetNextSibling(this);
+        } else {
+          NS_ASSERTION(sib == parent->mFirstChild, "Broken child list");
           
-          nsIWidget* prev = sib->GetPrevSibling();
-          mNextSibling = sib;
-          mPrevSibling = prev;
-          sib->SetPrevSibling(this);
-          if (prev) {
-            prev->SetNextSibling(this);
-          } else {
-            NS_ASSERTION(sib == parent->mFirstChild, "Broken child list");
-            
-            
-            parent->mFirstChild = this;
-          }
-          PlaceBehind(eZPlacementBelow, sib, false);
-          break;
+          
+          parent->mFirstChild = this;
         }
+        PlaceBehind(eZPlacementBelow, sib, false);
+        break;
       }
     }
     
@@ -573,18 +569,6 @@ NS_IMETHODIMP nsBaseWidget::SetZIndex(int32_t aZIndex)
       parent->AddChild(this);
     }
   }
-  return NS_OK;
-}
-
-
-
-
-
-
-NS_IMETHODIMP nsBaseWidget::GetZIndex(int32_t* aZIndex)
-{
-  *aZIndex = mZIndex;
-  return NS_OK;
 }
 
 
@@ -622,48 +606,6 @@ NS_IMETHODIMP nsBaseWidget::SetSizeMode(int32_t aMode)
 
 
 
-nscolor nsBaseWidget::GetForegroundColor(void)
-{
-  return mForeground;
-}
-
-
-
-
-
-
-NS_METHOD nsBaseWidget::SetForegroundColor(const nscolor &aColor)
-{
-  mForeground = aColor;
-  return NS_OK;
-}
-
-
-
-
-
-
-nscolor nsBaseWidget::GetBackgroundColor(void)
-{
-  return mBackground;
-}
-
-
-
-
-
-
-NS_METHOD nsBaseWidget::SetBackgroundColor(const nscolor &aColor)
-{
-  mBackground = aColor;
-  return NS_OK;
-}
-
-
-
-
-
-
 nsCursor nsBaseWidget::GetCursor()
 {
   return mCursor;
@@ -679,17 +621,6 @@ NS_IMETHODIMP nsBaseWidget::SetCursor(imgIContainer* aCursor,
                                       uint32_t aHotspotX, uint32_t aHotspotY)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-
-
-
-
-
-NS_IMETHODIMP nsBaseWidget::GetWindowType(nsWindowType& aWindowType)
-{
-  aWindowType = mWindowType;
-  return NS_OK;
 }
 
 

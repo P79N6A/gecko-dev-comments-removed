@@ -872,12 +872,8 @@ nsMenuPopupFrame::GetRootViewForPopup(nsIFrame* aStartFrame)
     
     
     nsIWidget* widget = view->GetWidget();
-    if (widget) {
-      nsWindowType wtype;
-      widget->GetWindowType(wtype);
-      if (wtype == eWindowType_popup) {
-        return view;
-      }
+    if (widget && widget->WindowType() == eWindowType_popup) {
+      return view;
     }
 
     nsView* temp = view->GetParent();

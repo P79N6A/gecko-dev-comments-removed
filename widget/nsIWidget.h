@@ -100,8 +100,8 @@ typedef void* nsNativeWidget;
 #endif
 
 #define NS_IWIDGET_IID \
-{ 0x5d94f2d, 0x5456, 0x4436, \
-  { 0xa7, 0x2f, 0x25, 0x6f, 0x47, 0xb0, 0xb5, 0x94 } }
+{ 0x8e081187, 0xf123, 0x4572, \
+  { 0x82, 0xc6, 0x4c, 0xcd, 0xc2, 0x0e, 0xbd, 0xf9 } }
 
 
 
@@ -622,6 +622,9 @@ class nsIWidget : public nsISupports {
       : mLastChild(nullptr)
       , mPrevSibling(nullptr)
       , mOnDestroyCalled(false)
+      , mWindowType(eWindowType_child)
+      , mZIndex(0)
+
     {
       ClearNativeTouchSequence();
     }
@@ -1004,12 +1007,15 @@ class nsIWidget : public nsISupports {
     
 
 
-    NS_IMETHOD SetZIndex(int32_t aZIndex) = 0;
+    virtual void SetZIndex(int32_t aZIndex) = 0;
 
     
 
 
-    NS_IMETHOD GetZIndex(int32_t* aZIndex) = 0;
+    int32_t GetZIndex()
+    {
+      return mZIndex;
+    }
 
     
 
@@ -1125,34 +1131,8 @@ class nsIWidget : public nsISupports {
 
 
 
-    virtual nscolor GetForegroundColor(void) = 0;
 
-    
-
-
-
-
-
-
-    NS_IMETHOD SetForegroundColor(const nscolor &aColor) = 0;
-
-    
-
-
-
-
-
-
-    virtual nscolor GetBackgroundColor(void) = 0;
-
-    
-
-
-
-
-
-
-    NS_IMETHOD SetBackgroundColor(const nscolor &aColor) = 0;
+    virtual void SetBackgroundColor(const nscolor &aColor) { }
 
     
 
@@ -1185,9 +1165,7 @@ class nsIWidget : public nsISupports {
     
 
 
-
-
-    NS_IMETHOD GetWindowType(nsWindowType& aWindowType) = 0;
+    nsWindowType WindowType() { return mWindowType; }
 
     
 
@@ -2048,6 +2026,8 @@ protected:
     nsIWidget* mPrevSibling;
     
     bool mOnDestroyCalled;
+    nsWindowType mWindowType;
+    int32_t mZIndex;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIWidget, NS_IWIDGET_IID)
