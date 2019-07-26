@@ -5,14 +5,19 @@
 #ifndef mozilla_dom_textdecoder_h_
 #define mozilla_dom_textdecoder_h_
 
-#include "mozilla/dom/TextDecoderBase.h"
+#include "mozilla/dom/NonRefcountedDOMObject.h"
 #include "mozilla/dom/TextDecoderBinding.h"
+#include "mozilla/dom/TypedArray.h"
+#include "nsIUnicodeDecoder.h"
 
 namespace mozilla {
+
+class ErrorResult;
+
 namespace dom {
 
 class TextDecoder MOZ_FINAL
-  : public NonRefcountedDOMObject, public TextDecoderBase
+  : public NonRefcountedDOMObject
 {
 public:
   
@@ -31,12 +36,15 @@ public:
   }
 
   TextDecoder()
+    : mFatal(false)
   {
+    MOZ_COUNT_CTOR(TextDecoder);
   }
 
-  virtual
   ~TextDecoder()
-  {}
+  {
+    MOZ_COUNT_DTOR(TextDecoder);
+  }
 
   JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope,
                        bool* aTookOwnership)
@@ -50,25 +58,65 @@ public:
     return nullptr;
   }
 
+  
+
+
+
+
+
+
+
+
+
+  void Init(const nsAString& aEncoding, const bool aFatal, ErrorResult& aRv);
+
+  
+
+
+
+
+  void GetEncoding(nsAString& aEncoding);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  void Decode(const char* aInput, const int32_t aLength,
+              const bool aStream, nsAString& aOutDecodedString,
+              ErrorResult& aRv);
+
   void Decode(nsAString& aOutDecodedString,
               ErrorResult& aRv) {
-    TextDecoderBase::Decode(nullptr, 0, false,
-                            aOutDecodedString, aRv);
+    Decode(nullptr, 0, false, aOutDecodedString, aRv);
   }
 
   void Decode(const ArrayBufferView& aView,
               const TextDecodeOptions& aOptions,
               nsAString& aOutDecodedString,
               ErrorResult& aRv) {
-    TextDecoderBase::Decode(reinterpret_cast<char*>(aView.Data()),
-                            aView.Length(), aOptions.mStream,
-                            aOutDecodedString, aRv);
+    Decode(reinterpret_cast<char*>(aView.Data()), aView.Length(),
+           aOptions.mStream, aOutDecodedString, aRv);
   }
 
 private:
+  nsCString mEncoding;
+  nsCOMPtr<nsIUnicodeDecoder> mDecoder;
+  bool mFatal;
 };
 
 } 
 } 
 
-#endif
+#endif 
