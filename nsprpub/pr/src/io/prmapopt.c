@@ -33,11 +33,6 @@
 
 #include "primpl.h"
 
-#if defined(NEXTSTEP)
-
-#include <netinet/in_systm.h>  
-#endif
-
 #ifdef HAVE_NETINET_TCP_H
 #include <netinet/tcp.h>  
 #endif
@@ -359,14 +354,8 @@ PRStatus PR_CALLBACK _PR_SocketSetSocketOption(PRFileDesc *fd, const PRSocketOpt
 #error "SO_LINGER is not defined"
 #endif
 
-
-
-
-
-#if !defined(NCR)
 #if !defined(TCP_NODELAY)
 #error "TCP_NODELAY is not defined"
-#endif
 #endif
 
 
