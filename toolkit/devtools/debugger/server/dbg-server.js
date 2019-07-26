@@ -55,7 +55,7 @@ loadSubScript.call(this, "chrome://global/content/devtools/dbg-transport.js");
 
 const ServerSocket = CC("@mozilla.org/network/server-socket;1",
                         "nsIServerSocket",
-                        "init");
+                        "initSpecialConnection");
 
 
 
@@ -212,14 +212,14 @@ var DebuggerServer = {
       return true;
     }
 
-    let localOnly = false;
+    let flags = Ci.nsIServerSocket.KeepWhenOffline;
     
     if (Services.prefs.getBoolPref("devtools.debugger.force-local")) {
-      localOnly = true;
+      flags |= Ci.nsIServerSocket.LoopbackOnly;
     }
 
     try {
-      let socket = new ServerSocket(aPort, localOnly, 4);
+      let socket = new ServerSocket(aPort, flags, 4);
       socket.asyncListen(this);
       this._listener = socket;
     } catch (e) {
