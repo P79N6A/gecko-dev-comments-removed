@@ -21,6 +21,9 @@
 
 #include "nsCycleCollectionParticipant.h"
 
+
+#undef CompareString
+
 #define TO_ICONTAINER(_node)                                                  \
     static_cast<nsINavHistoryContainerResultNode*>(_node)                      
 

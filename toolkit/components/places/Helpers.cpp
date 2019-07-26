@@ -229,10 +229,16 @@ Base64urlEncode(const uint8_t* aBytes,
 }
 
 #ifdef XP_WIN
+} 
+} 
+
 
 
 #include <windows.h>
 #include <wincrypt.h>
+
+namespace mozilla {
+namespace places {
 #endif
 
 static
