@@ -69,8 +69,6 @@ var ignoreCallees = {
     "js::Class.trace" : true,
     "js::Class.finalize" : true,
     "JSRuntime.destroyPrincipals" : true,
-    "nsISupports.AddRef" : true,
-    "nsISupports.Release" : true, 
     "nsIGlobalObject.GetGlobalJSObject" : true, 
     "nsAXPCNativeCallContext.GetJSContext" : true,
     "js::jit::MDefinition.op" : true, 
