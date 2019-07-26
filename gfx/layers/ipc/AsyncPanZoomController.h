@@ -455,6 +455,12 @@ protected:
 
 
 
+  void ScheduleContentRepaint(FrameMetrics &aFrameMetrics);
+
+  
+
+
+
 
 
   bool DoFling(const TimeDuration& aDelta);
