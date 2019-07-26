@@ -16,6 +16,7 @@ from mozpack.files import (
     JarFinder,
     ManifestFile,
     MinifiedProperties,
+    PreprocessedFile,
     XPTFile,
 )
 from mozpack.mozjar import (
@@ -327,6 +328,128 @@ class TestAbsoluteSymlinkFile(TestWithTmpDir):
         link = os.readlink(dest)
         self.assertEqual(link, source)
 
+class TestPreprocessedFile(TestWithTmpDir):
+    def test_preprocess(self):
+        '''
+        Test that copying the file invokes the preprocessor
+        '''
+        src = self.tmppath('src')
+        dest = self.tmppath('dest')
+
+        with open(src, 'wb') as tmp:
+            tmp.write('#ifdef FOO\ntest\n#endif')
+
+        f = PreprocessedFile(src, depfile_path=None, marker='#', defines={'FOO': True})
+        self.assertTrue(f.copy(dest))
+
+        self.assertEqual('test\n', open(dest, 'rb').read())
+
+    def test_preprocess_file_no_write(self):
+        '''
+        Test various conditions where PreprocessedFile.copy is expected not to
+        write in the destination file.
+        '''
+        src = self.tmppath('src')
+        dest = self.tmppath('dest')
+        depfile = self.tmppath('depfile')
+
+        with open(src, 'wb') as tmp:
+            tmp.write('#ifdef FOO\ntest\n#endif')
+
+        
+        f = PreprocessedFile(src, depfile_path=depfile, marker='#', defines={'FOO': True})
+        self.assertTrue(f.copy(dest))
+
+        
+        self.assertFalse(f.copy(DestNoWrite(dest)))
+        self.assertEqual('test\n', open(dest, 'rb').read())
+
+        
+        
+        with open(src, 'wb') as tmp:
+            tmp.write('#ifdef FOO\nfooo\n#endif')
+        time = os.path.getmtime(dest) - 1
+        os.utime(src, (time, time))
+        self.assertFalse(f.copy(DestNoWrite(dest)))
+        self.assertEqual('test\n', open(dest, 'rb').read())
+
+        
+        self.assertTrue(f.copy(dest, skip_if_older=False))
+        self.assertEqual('fooo\n', open(dest, 'rb').read())
+
+    def test_preprocess_file_dependencies(self):
+        '''
+        Test that the preprocess runs if the dependencies of the source change
+        '''
+        src = self.tmppath('src')
+        dest = self.tmppath('dest')
+        incl = self.tmppath('incl')
+        deps = self.tmppath('src.pp')
+
+        with open(src, 'wb') as tmp:
+            tmp.write('#ifdef FOO\ntest\n#endif')
+
+        with open(incl, 'wb') as tmp:
+            tmp.write('foo bar')
+
+        
+        f = PreprocessedFile(src, depfile_path=deps, marker='#', defines={'FOO': True})
+        self.assertTrue(f.copy(dest))
+
+        
+        with open(src, 'wb') as tmp:
+            tmp.write('#include incl\n')
+        time = os.path.getmtime(dest) + 1
+        os.utime(src, (time, time))
+        self.assertTrue(f.copy(dest))
+        self.assertEqual('foo bar', open(dest, 'rb').read())
+
+        
+        
+        
+        with open(incl, 'wb') as tmp:
+            tmp.write('quux')
+        time = os.path.getmtime(dest) + 1
+        os.utime(incl, (time, time))
+        self.assertTrue(f.copy(dest))
+        self.assertEqual('quux', open(dest, 'rb').read())
+
+        
+        
+        
+        time = os.path.getmtime(incl) + 1
+        os.utime(dest, (time, time))
+        self.assertFalse(f.copy(DestNoWrite(dest)))
+
+    def test_replace_symlink(self):
+        '''
+        Test that if the destination exists, and is a symlink, the target of
+        the symlink is not overwritten by the preprocessor output.
+        '''
+        if not self.symlink_supported:
+            return
+
+        source = self.tmppath('source')
+        dest = self.tmppath('dest')
+        pp_source = self.tmppath('pp_in')
+        deps = self.tmppath('deps')
+
+        with open(source, 'a'):
+            pass
+
+        os.symlink(source, dest)
+        self.assertTrue(os.path.islink(dest))
+
+        with open(pp_source, 'wb') as tmp:
+            tmp.write('#define FOO\nPREPROCESSED')
+
+        f = PreprocessedFile(pp_source, depfile_path=deps, marker='#',
+            defines={'FOO': True})
+        self.assertTrue(f.copy(dest))
+
+        self.assertEqual('PREPROCESSED', open(dest, 'rb').read())
+        self.assertFalse(os.path.islink(dest))
+        self.assertEqual('', open(source, 'rb').read())
 
 class TestExistingFile(TestWithTmpDir):
     def test_required_missing_dest(self):
