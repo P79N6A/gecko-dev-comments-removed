@@ -1,10 +1,11 @@
 
 
 var g = newGlobal('new-compartment');
-var dbg = new Debugger(g);
+var dbg = new Debugger();
+var gw = dbg.addDebuggee(g);
 
 function script(f) {
-    return dbg.addDebuggee(f).script;
+    return gw.makeDebuggeeValue(f).script;
 }
 
 function arrayIsOnly(array, element) {
