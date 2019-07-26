@@ -63,7 +63,7 @@
 
 
 
-
+#define SK_ENABLE_INST_COUNT 0
 
 
 
