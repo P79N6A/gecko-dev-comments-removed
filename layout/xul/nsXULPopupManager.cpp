@@ -1471,13 +1471,9 @@ nsXULPopupManager::MayShowPopup(nsMenuPopupFrame* aPopup)
   if (!baseWin)
     return false;
 
-  int32_t type = -1;
-  if (NS_FAILED(dsti->GetItemType(&type)))
-    return false;
-
   
   
-  if (type != nsIDocShellTreeItem::typeChrome) {
+  if (dsti->ItemType() != nsIDocShellTreeItem::typeChrome) {
     
     nsCOMPtr<nsIDocShellTreeItem> root;
     dsti->GetRootTreeItem(getter_AddRefs(root));
