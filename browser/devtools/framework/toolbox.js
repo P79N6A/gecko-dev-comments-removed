@@ -371,7 +371,15 @@ Toolbox.prototype = {
 
     if (toolDefinition.icon) {
       let image = this.doc.createElement("image");
-      image.setAttribute("src", toolDefinition.icon);
+      image.className = "default-icon";
+      image.setAttribute("src",
+                         toolDefinition.icon || toolDefinition.highlightedicon);
+      radio.appendChild(image);
+      
+      image = this.doc.createElement("image");
+      image.className = "highlighted-icon";
+      image.setAttribute("src",
+                         toolDefinition.highlightedicon || toolDefinition.icon);
       radio.appendChild(image);
     }
 
@@ -526,6 +534,28 @@ Toolbox.prototype = {
       this.emit(id + "-selected", panel);
       return panel;
     });
+  },
+
+  
+
+
+
+
+
+  highlightTool: function TBOX_highlightTool(id) {
+    let tab = this.doc.getElementById("toolbox-tab-" + id);
+    tab && tab.classList.add("highlighted");
+  },
+
+  
+
+
+
+
+
+  unhighlightTool: function TBOX_unhighlightTool(id) {
+    let tab = this.doc.getElementById("toolbox-tab-" + id);
+    tab && tab.classList.remove("highlighted");
   },
 
   
