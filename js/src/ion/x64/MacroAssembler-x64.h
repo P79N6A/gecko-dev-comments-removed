@@ -826,6 +826,11 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         cvtsq2sd(src, dest);
     }
 
+    void inc64(AbsoluteAddress dest) {
+        mov(ImmWord(dest.addr), ScratchReg);
+        addPtr(Imm32(1), Address(ScratchReg, 0));
+    }
+
     
     
     

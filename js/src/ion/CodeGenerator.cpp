@@ -1384,13 +1384,86 @@ CodeGenerator::visitCheckOverRecursedFailure(CheckOverRecursedFailure *ool)
     return true;
 }
 
+IonScriptCounts *
+CodeGenerator::maybeCreateScriptCounts()
+{
+    
+    
+    JSContext *cx = GetIonContext()->cx;
+    if (!cx)
+        return NULL;
+
+    IonScriptCounts *counts = NULL;
+
+    CompileInfo *outerInfo = &gen->info();
+    RawScript script = outerInfo->script();
+
+    if (cx->runtime->profilingScripts && !script->hasScriptCounts) {
+        if (!script->initScriptCounts(cx))
+            return NULL;
+    }
+
+    if (!script->hasScriptCounts)
+        return NULL;
+
+    counts = js_new<IonScriptCounts>();
+    if (!counts || !counts->init(graph.numBlocks())) {
+        js_delete(counts);
+        return NULL;
+    }
+
+    script->addIonCounts(counts);
+
+    for (size_t i = 0; i < graph.numBlocks(); i++) {
+        MBasicBlock *block = graph.getBlock(i)->mir();
+
+        
+        
+        
+        MResumePoint *resume = block->entryResumePoint();
+        while (resume->caller())
+            resume = resume->caller();
+        uint32 offset = resume->pc() - script->code;
+        JS_ASSERT(offset < script->length);
+
+        if (!counts->block(i).init(block->id(), offset, block->numSuccessors()))
+            return NULL;
+        for (size_t j = 0; j < block->numSuccessors(); j++)
+            counts->block(i).setSuccessor(j, block->getSuccessor(j)->id());
+    }
+
+    return counts;
+}
+
 bool
 CodeGenerator::generateBody()
 {
+    IonScriptCounts *counts = maybeCreateScriptCounts();
+
     for (size_t i = 0; i < graph.numBlocks(); i++) {
         current = graph.getBlock(i);
-        for (LInstructionIterator iter = current->begin(); iter != current->end(); iter++) {
+
+        LInstructionIterator iter = current->begin();
+
+        
+        
+        if (!iter->accept(this))
+            return false;
+        iter++;
+
+        mozilla::Maybe<Sprinter> printer;
+        if (counts) {
+            masm.inc64(AbsoluteAddress(counts->block(i).addressOfHitCount()));
+            printer.construct(GetIonContext()->cx);
+            if (!printer.ref().init())
+                return false;
+        }
+
+        for (; iter != current->end(); iter++) {
             IonSpew(IonSpew_Codegen, "instruction %s", iter->opName());
+            if (counts)
+                printer.ref().printf("[%s]\n", iter->opName());
+
             if (iter->safepoint() && pushedArgumentSlots_.length()) {
                 if (!markArgumentSlots(iter->safepoint()))
                     return false;
@@ -1401,6 +1474,9 @@ CodeGenerator::generateBody()
         }
         if (masm.oom())
             return false;
+
+        if (counts)
+            counts->block(i).setCode(printer.ref().string());
     }
 
     JS_ASSERT(pushedArgumentSlots_.empty());
