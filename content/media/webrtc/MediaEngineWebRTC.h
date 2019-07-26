@@ -170,6 +170,7 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   void OnHardwareStateChange(HardwareState aState);
+  void GetRotation();
   bool OnNewPreviewFrame(layers::Image* aImage, uint32_t aWidth, uint32_t aHeight);
   void OnUserError(UserContext aContext, nsresult aError);
   void OnTakePictureComplete(uint8_t* aData, uint32_t aLength, const nsAString& aMimeType);
@@ -212,9 +213,12 @@ private:
 
   
 #ifdef MOZ_B2G_CAMERA
-  nsRefPtr<ICameraControl> mCameraControl;
   mozilla::ReentrantMonitor mCallbackMonitor; 
+  
+  nsRefPtr<ICameraControl> mCameraControl;
   nsRefPtr<nsIDOMFile> mLastCapture;
+
+  
   int mRotation;
   int mCameraAngle; 
   bool mBackCamera;
