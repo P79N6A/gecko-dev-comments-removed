@@ -121,10 +121,10 @@ MarkMessageManagers()
       tabMM->MarkForCC();
       
       
-      void* cb = static_cast<nsFrameMessageManager*>(tabMM.get())->
-        GetCallbackData();
-      nsFrameLoader* fl = static_cast<nsFrameLoader*>(cb);
-      if (fl) {
+      mozilla::dom::ipc::MessageManagerCallback* cb =
+        static_cast<nsFrameMessageManager*>(tabMM.get())->GetCallback();
+      if (cb) {
+        nsFrameLoader* fl = static_cast<nsFrameLoader*>(cb);
         nsIDOMEventTarget* et = fl->GetTabChildGlobalAsEventTarget();
         if (!et) {
           continue;
