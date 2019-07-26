@@ -59,15 +59,14 @@ InlineFrameIterator::forEachCanonicalActualArg(Op op, unsigned start, unsigned c
 
     unsigned nformal = callee()->nargs;
     unsigned formalEnd = end;
-    if (!more() && end > nformal) {
+    if (!more() && end > nformal)
         formalEnd = nformal;
-    } else {
+    else
         
         
         
         
         JS_ASSERT(end <= nformal);
-    }
 
     SnapshotIterator s(si_);
 
