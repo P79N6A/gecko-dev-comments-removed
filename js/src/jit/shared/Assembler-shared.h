@@ -169,13 +169,27 @@ struct ImmMaybeNurseryPtr : public ImmGCPtr
 struct AbsoluteAddress {
     void *addr;
 
-    explicit AbsoluteAddress(void *addr)
-      : addr(addr)
+    explicit AbsoluteAddress(const void *addr)
+      : addr(const_cast<void*>(addr))
     { }
 
     AbsoluteAddress offset(ptrdiff_t delta) {
         return AbsoluteAddress(((uint8_t *) addr) + delta);
     }
+};
+
+
+
+
+struct PatchedAbsoluteAddress {
+    void *addr;
+
+    explicit PatchedAbsoluteAddress()
+      : addr(NULL)
+    { }
+    explicit PatchedAbsoluteAddress(const void *addr)
+      : addr(const_cast<void*>(addr))
+    { }
 };
 
 
