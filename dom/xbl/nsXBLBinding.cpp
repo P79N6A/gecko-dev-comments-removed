@@ -954,7 +954,7 @@ nsXBLBinding::DoInitJSClass(JSContext *cx, JS::Handle<JSObject*> global,
       
       
       JS::Rooted<jsid> parent_proto_id(cx);
-      if (!::JS_GetObjectId(cx, parent_proto, parent_proto_id.address())) {
+      if (!::JS_GetObjectId(cx, parent_proto, &parent_proto_id)) {
         
         return NS_ERROR_OUT_OF_MEMORY;
       }
