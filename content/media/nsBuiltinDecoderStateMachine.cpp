@@ -3,12 +3,12 @@
 
 
 
+#include "nsBuiltinDecoderStateMachine.h"
 #include <limits>
 #include "nsAudioStream.h"
 #include "nsTArray.h"
 #include "nsBuiltinDecoder.h"
 #include "nsBuiltinDecoderReader.h"
-#include "nsBuiltinDecoderStateMachine.h"
 #include "mozilla/mozalloc.h"
 #include "VideoUtils.h"
 #include "nsTimeRanges.h"
