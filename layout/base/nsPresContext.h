@@ -217,6 +217,12 @@ public:
 
 
 
+  nsIWidget* GetRootWidget();
+
+  
+
+
+
 
   nsRootPresContext* GetRootPresContext();
   nsRootPresContext* GetDisplayRootPresContext();
