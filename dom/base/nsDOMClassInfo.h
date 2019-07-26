@@ -274,12 +274,15 @@ protected:
 };
 
 
+
 inline
 const nsQueryInterface
 do_QueryWrappedNative(nsIXPConnectWrappedNative *wrapper, JSObject *obj)
 {
   return nsQueryInterface(nsDOMClassInfo::GetNative(wrapper, obj));
 }
+
+
 
 inline
 const nsQueryInterfaceWithError
