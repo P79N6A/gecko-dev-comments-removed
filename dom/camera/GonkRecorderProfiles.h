@@ -86,7 +86,7 @@ public:
 
 
 
-  void SetSupportedResolutions(const nsTArray<dom::CameraSize>& aSizes)
+  void SetSupportedResolutions(const nsTArray<idl::CameraSize>& aSizes)
     { mSupportedSizes = aSizes; }
 
   
@@ -104,7 +104,7 @@ public:
 protected:
   virtual ~GonkRecorderProfileManager();
 
-  nsTArray<dom::CameraSize> mSupportedSizes;
+  nsTArray<idl::CameraSize> mSupportedSizes;
 };
 
 }; 
