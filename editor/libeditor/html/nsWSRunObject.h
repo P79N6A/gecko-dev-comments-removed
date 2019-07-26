@@ -234,6 +234,7 @@ class MOZ_STACK_CLASS nsWSRunObject
     
     
     
+    
     nsresult DeleteWSForward();
 
     
