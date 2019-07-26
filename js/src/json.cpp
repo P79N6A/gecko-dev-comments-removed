@@ -671,11 +671,11 @@ Walk(JSContext *cx, HandleObject holder, HandleId name, HandleValue reviver, Mut
     if (val.isObject()) {
         RootedObject obj(cx, &val.toObject());
 
-        
-        JS_ASSERT(!obj->is<ProxyObject>());
-        if (obj->is<ArrayObject>()) {
+        if (ObjectClassIs(obj, ESClass_Array, cx)) {
             
-            uint32_t length = obj->as<ArrayObject>().length();
+            uint32_t length;
+            if (!GetLengthProperty(cx, obj, &length))
+                return false;
 
             
             RootedId id(cx);
@@ -695,11 +695,10 @@ Walk(JSContext *cx, HandleObject holder, HandleId name, HandleValue reviver, Mut
                         return false;
                 } else {
                     
-                    if (!DefineNativeProperty(cx, obj, id, newElement, JS_PropertyStub,
-                                              JS_StrictPropertyStub, JSPROP_ENUMERATE, 0, 0))
-                    {
+                    
+                    
+                    if (!JSObject::defineGeneric(cx, obj, id, newElement))
                         return false;
-                    }
                 }
             }
         } else {
@@ -724,12 +723,10 @@ Walk(JSContext *cx, HandleObject holder, HandleId name, HandleValue reviver, Mut
                         return false;
                 } else {
                     
-                    JS_ASSERT(obj->isNative());
-                    if (!DefineNativeProperty(cx, obj, id, newElement, JS_PropertyStub,
-                                              JS_StrictPropertyStub, JSPROP_ENUMERATE, 0, 0))
-                    {
+                    
+                    
+                    if (!JSObject::defineGeneric(cx, obj, id, newElement))
                         return false;
-                    }
                 }
             }
         }
