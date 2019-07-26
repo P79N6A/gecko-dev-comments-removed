@@ -55,9 +55,10 @@ function run_test() {
     populate();
 
     
-    validate();
-  
-    promiseAsyncUpdates().then(function testJsonExport() {
+    Task.spawn(function() {
+      yield validate();
+      yield promiseAsyncUpdates();
+      
       
       
       try {
@@ -73,10 +74,11 @@ function run_test() {
       LOG("imported json");
 
       
-      validate();
+      yield validate();
       LOG("validated import");
   
-      promiseAsyncUpdates().then(do_test_finished);
+      yield promiseAsyncUpdates();
+      do_test_finished();
     });
   }
 }
@@ -114,7 +116,7 @@ function populate() {
 }
 
 function validate() {
-  testCanonicalBookmarks(PlacesUtils.bookmarks.bookmarksMenuFolder);
+  yield testCanonicalBookmarks();
   testToolbarFolder();
   testUnfiledBookmarks();
   testTags();
@@ -125,7 +127,7 @@ function validate() {
 function testCanonicalBookmarks() {
   
   var query = PlacesUtils.history.getNewQuery();
-  query.setFolders([PlacesUtils.bookmarks.bookmarksMenuFolder], 1);
+  query.setFolders([PlacesUtils.bookmarksMenuFolderId], 1);
   var result = PlacesUtils.history.executeQuery(query, PlacesUtils.history.getNewQueryOptions());
   var rootNode = result.root;
   rootNode.containerOpen = true;
@@ -189,7 +191,7 @@ function testCanonicalBookmarks() {
 
   
   var testURI = PlacesUtils._uri(testBookmark1.uri);
-  do_check_eq("ISO-8859-1", PlacesUtils.history.getCharsetForURI(testURI));
+  do_check_eq("ISO-8859-1", (yield PlacesUtils.getCharsetForURI(testURI)));
 
   
   do_check_true(PlacesUtils.annotations.itemHasAnnotation(testBookmark1.itemId,
@@ -205,7 +207,7 @@ function testCanonicalBookmarks() {
 
 function testToolbarFolder() {
   var query = PlacesUtils.history.getNewQuery();
-  query.setFolders([PlacesUtils.bookmarks.toolbarFolder], 1);
+  query.setFolders([PlacesUtils.toolbarFolderId], 1);
   var result = PlacesUtils.history.executeQuery(query, PlacesUtils.history.getNewQueryOptions());
 
   var toolbar = result.root;
@@ -243,7 +245,7 @@ function testToolbarFolder() {
 
 function testUnfiledBookmarks() {
   var query = PlacesUtils.history.getNewQuery();
-  query.setFolders([PlacesUtils.bookmarks.unfiledBookmarksFolder], 1);
+  query.setFolders([PlacesUtils.unfiledBookmarksFolderId], 1);
   var result = PlacesUtils.history.executeQuery(query, PlacesUtils.history.getNewQueryOptions());
   var rootNode = result.root;
   rootNode.containerOpen = true;

@@ -44,7 +44,7 @@ add_task(function test_corrupt_file() {
                                          true);
 
   
-  yield database_check();
+  yield Task.spawn(database_check);
 });
 
 add_task(function test_corrupt_database() {
@@ -66,7 +66,7 @@ add_task(function test_corrupt_database() {
   
   remove_all_bookmarks();
   yield BookmarkHTMLUtils.importFromFile(bookmarksFile, true);
-  yield database_check();
+  yield Task.spawn(database_check);
 });
 
 
@@ -129,7 +129,8 @@ function database_check() {
               as.getItemAnnotation(testBookmark1.itemId, POST_DATA_ANNO));
   
   var testURI = uri(testBookmark1.uri);
-  do_check_eq("ISO-8859-1", hs.getCharsetForURI(testURI));
+  do_check_eq((yield PlacesUtils.getCharsetForURI(testURI)), "ISO-8859-1");
+
   
   do_check_true(as.itemHasAnnotation(testBookmark1.itemId,
                                           DESCRIPTION_ANNO));
@@ -147,7 +148,7 @@ function database_check() {
   var toolbar = result.root;
   toolbar.containerOpen = true;
   do_check_eq(toolbar.childCount, 3);
-  
+
   
   var livemark = toolbar.getChild(1);
   
@@ -175,7 +176,6 @@ function database_check() {
   unfiledBookmarks.containerOpen = false;
 
   
-  let deferred = Promise.defer();
   icos.getFaviconDataForPage(uri(TEST_FAVICON_PAGE_URL),
     function DC_onComplete(aURI, aDataLen, aData, aMimeType) {
       
@@ -184,7 +184,6 @@ function database_check() {
       
       
       do_check_eq(TEST_FAVICON_DATA_SIZE, aDataLen);
-      deferred.resolve();
-    });
-  return deferred.promise;
+    }
+  );
 }
