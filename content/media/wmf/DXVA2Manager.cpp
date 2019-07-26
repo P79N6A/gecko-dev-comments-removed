@@ -169,11 +169,23 @@ D3D9DXVA2Manager::CopyToImage(IMFSample* aSample,
 }
 
 
+
+static uint32_t sDXVAVideosCount = 0;
+
+
 DXVA2Manager*
 DXVA2Manager::Create()
 {
   MOZ_ASSERT(NS_IsMainThread());
   HRESULT hr;
+
+  
+  
+  const uint32_t dxvaLimit =
+    Preferences::GetInt("media.windows-media-foundation.max-dxva-videos", 8);
+  if (sDXVAVideosCount == dxvaLimit) {
+    return nullptr;
+  }
 
   nsAutoPtr<D3D9DXVA2Manager> d3d9Manager(new D3D9DXVA2Manager());
   hr = d3d9Manager->Init();
@@ -189,11 +201,13 @@ DXVA2Manager::DXVA2Manager()
   : mLock("DXVA2Manager")
 {
   MOZ_ASSERT(NS_IsMainThread());
+  ++sDXVAVideosCount;
 }
 
 DXVA2Manager::~DXVA2Manager()
 {
   MOZ_ASSERT(NS_IsMainThread());
+  --sDXVAVideosCount;
 }
 
 } 
