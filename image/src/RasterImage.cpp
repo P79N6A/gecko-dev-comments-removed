@@ -2796,7 +2796,7 @@ RasterImage::RequestDecodeCore(RequestDecodeType aDecodeType)
   if (mDecoder &&
       (mDecoder->IsSizeDecode() || mDecoder->GetDecodeFlags() != mFrameDecodeFlags))
   {
-    rv = ShutdownDecoder(eShutdownIntent_Interrupted);
+    rv = ShutdownDecoder(eShutdownIntent_NotNeeded);
     CONTAINER_ENSURE_SUCCESS(rv);
   }
 
@@ -2855,7 +2855,7 @@ RasterImage::SyncDecode()
   if (mDecoder &&
       (mDecoder->IsSizeDecode() || mDecoder->GetDecodeFlags() != mFrameDecodeFlags))
   {
-    rv = ShutdownDecoder(eShutdownIntent_Interrupted);
+    rv = ShutdownDecoder(eShutdownIntent_NotNeeded);
     CONTAINER_ENSURE_SUCCESS(rv);
   }
 
@@ -3162,7 +3162,7 @@ RasterImage::UnlockImage()
     PR_LOG(GetCompressedImageAccountingLog(), PR_LOG_DEBUG,
            ("RasterImage[0x%p] canceling decode because image "
             "is now unlocked.", this));
-    ShutdownDecoder(eShutdownIntent_Interrupted);
+    ShutdownDecoder(eShutdownIntent_NotNeeded);
     ForceDiscard();
     return NS_OK;
   }
