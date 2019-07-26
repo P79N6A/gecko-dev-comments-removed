@@ -16,6 +16,8 @@ public interface PanZoomTarget {
 
     public void setAnimationTarget(ImmutableViewportMetrics viewport);
     public void setViewportMetrics(ImmutableViewportMetrics viewport);
+    public void scrollBy(float dx, float dy);
+    public void panZoomStopped();
     
     public void forceRedraw();
 
