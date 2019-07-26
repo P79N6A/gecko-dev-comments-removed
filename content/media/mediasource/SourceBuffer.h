@@ -109,6 +109,9 @@ public:
   
   void Evict(double aStart, double aEnd);
 
+  
+  bool ContainsTime(double aTime);
+
 private:
   SourceBuffer(MediaSource* aMediaSource, const nsACString& aType);
 

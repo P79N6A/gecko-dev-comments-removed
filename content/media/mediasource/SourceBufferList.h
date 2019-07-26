@@ -77,6 +77,9 @@ public:
   
   void Evict(double aStart, double aEnd);
 
+  
+  bool ContainsTime(double aTime);
+
 private:
   friend class AsyncEventRunner<SourceBufferList>;
   void DispatchSimpleEvent(const char* aName);
