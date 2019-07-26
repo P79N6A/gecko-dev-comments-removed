@@ -882,9 +882,9 @@ GetShellFolderPath(int folder, nsAString& _retval)
 
   nsresult rv = NS_OK;
 
-  LPITEMIDLIST pItemIDList = NULL;
+  LPITEMIDLIST pItemIDList = nullptr;
 
-  if (SUCCEEDED(SHGetSpecialFolderLocation(NULL, folder, &pItemIDList)) &&
+  if (SUCCEEDED(SHGetSpecialFolderLocation(nullptr, folder, &pItemIDList)) &&
       SHGetPathFromIDListW(pItemIDList, buf)) {
     
     
@@ -919,8 +919,8 @@ GetRegWindowsAppDataFolder(bool aLocal, nsAString& _retval)
   }
 
   DWORD type, size;
-  res = RegQueryValueExW(key, (aLocal ? L"Local AppData" : L"AppData"), NULL,
-                         &type, NULL, &size);
+  res = RegQueryValueExW(key, (aLocal ? L"Local AppData" : L"AppData"),
+                         nullptr, &type, nullptr, &size);
   
   
   if (res != ERROR_SUCCESS || type != REG_SZ || size == 0 || size % 2 != 0) {
@@ -941,8 +941,8 @@ GetRegWindowsAppDataFolder(bool aLocal, nsAString& _retval)
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  res = RegQueryValueExW(key, (aLocal ? L"Local AppData" : L"AppData"), NULL,
-                         NULL, (LPBYTE) begin.get(), &size);
+  res = RegQueryValueExW(key, (aLocal ? L"Local AppData" : L"AppData"),
+                         nullptr, nullptr, (LPBYTE) begin.get(), &size);
   ::RegCloseKey(key);
   if (res != ERROR_SUCCESS) {
     _retval.SetLength(0);
@@ -964,7 +964,7 @@ GetCachedHash(HKEY rootKey, const nsAString &regPath, const nsAString &path,
 
   wchar_t cachedHashRaw[512];
   DWORD bufferSize = sizeof(cachedHashRaw);
-  LONG result = RegQueryValueExW(baseKey, path.BeginReading(), 0, NULL,
+  LONG result = RegQueryValueExW(baseKey, path.BeginReading(), 0, nullptr,
                                  (LPBYTE)cachedHashRaw, &bufferSize);
   RegCloseKey(baseKey);
   if (result == ERROR_SUCCESS) {

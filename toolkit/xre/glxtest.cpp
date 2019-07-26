@@ -139,12 +139,12 @@ static void glxtest()
     fatal_error("glXGetProcAddress couldn't find required functions");
   }
   
-  Display *dpy = XOpenDisplay(NULL);
+  Display *dpy = XOpenDisplay(nullptr);
   if (!dpy)
     fatal_error("Unable to open a connection to the X server");
   
   
-  if (!glXQueryExtension(dpy, NULL, NULL))
+  if (!glXQueryExtension(dpy, nullptr, nullptr))
     fatal_error("GLX extension missing");
 
   XSetErrorHandler(x_error_handler);
@@ -174,7 +174,7 @@ static void glxtest()
                        CWBorderPixel | CWColormap, &swa);
 
   
-  GLXContext context = glXCreateContext(dpy, vInfo, NULL, True);
+  GLXContext context = glXCreateContext(dpy, vInfo, nullptr, True);
   glXMakeCurrent(dpy, window, context);
 
   
@@ -202,7 +202,7 @@ static void glxtest()
   
   
   
-  glXMakeCurrent(dpy, None, NULL); 
+  glXMakeCurrent(dpy, None, nullptr); 
   glXDestroyContext(dpy, context);
   XDestroyWindow(dpy, window);
   XFreeColormap(dpy, swa.colormap);

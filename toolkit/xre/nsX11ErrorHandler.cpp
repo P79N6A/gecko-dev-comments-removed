@@ -36,7 +36,7 @@ X11Error(Display *display, XErrorEvent *event) {
     
     
     
-    Display *tmpDisplay = XOpenDisplay(NULL);
+    Display *tmpDisplay = XOpenDisplay(nullptr);
     if (tmpDisplay) {
       int nExts;
       char** extNames = XListExtensions(tmpDisplay, &nExts);

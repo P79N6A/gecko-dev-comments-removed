@@ -39,10 +39,10 @@ ParseVP(char *part, VersionPart &result)
   char *dot;
 
   result.numA = 0;
-  result.strB = NULL;
+  result.strB = nullptr;
   result.strBlen = 0;
   result.numC = 0;
-  result.extraD = NULL;
+  result.extraD = nullptr;
 
   if (!part)
     return part;
@@ -60,7 +60,7 @@ ParseVP(char *part, VersionPart &result)
   }
 
   if (!*result.strB) {
-    result.strB = NULL;
+    result.strB = nullptr;
     result.strBlen = 0;
   }
   else {
@@ -81,7 +81,7 @@ ParseVP(char *part, VersionPart &result)
 
   result.numC = strtol(numstart, &result.extraD, 10);
   if (!*result.extraD)
-    result.extraD = NULL;
+    result.extraD = nullptr;
       }
     }
   }
@@ -90,7 +90,7 @@ ParseVP(char *part, VersionPart &result)
     ++dot;
 
     if (!*dot)
-      dot = NULL;
+      dot = nullptr;
   }
 
   return dot;
@@ -215,7 +215,7 @@ TriggerQuirks()
   char release[sizeof("10.7.99")];
   size_t len = sizeof(release);
   
-  int ret = sysctl(mib, 2, release, &len, NULL, 0);
+  int ret = sysctl(mib, 2, release, &len, nullptr, 0);
   
   
   

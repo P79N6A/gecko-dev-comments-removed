@@ -394,7 +394,7 @@ XRE_InitChildProcess(int aArgc,
   
   
   if (0 != strcmp("false", crashReporterArg) && 
-      !XRE_SetRemoteExceptionHandler(NULL)) {
+      !XRE_SetRemoteExceptionHandler(nullptr)) {
     
     NS_WARNING("Could not setup crash reporting\n");
   }
@@ -407,7 +407,7 @@ XRE_InitChildProcess(int aArgc,
   gArgc = aArgc;
 
 #if defined(MOZ_WIDGET_GTK)
-  g_thread_init(NULL);
+  g_thread_init(nullptr);
 #endif
 
 #if defined(MOZ_WIDGET_QT)
