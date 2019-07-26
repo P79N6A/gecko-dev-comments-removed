@@ -26,7 +26,7 @@ class RelocationOverlay
     friend class MinorCollectionTracer;
 
     
-    const static uintptr_t Relocated = uintptr_t(0xbad0bad1);
+    static const uintptr_t Relocated = uintptr_t(0xbad0bad1);
 
     
     uintptr_t magic_;

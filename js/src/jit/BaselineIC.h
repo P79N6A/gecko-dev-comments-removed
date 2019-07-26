@@ -5358,7 +5358,7 @@ class ICCall_ScriptedApplyArray : public ICMonitoredStub
     
     
     
-    const static uint32_t MAX_ARGS_ARRAY_LENGTH = 16;
+    static const uint32_t MAX_ARGS_ARRAY_LENGTH = 16;
 
   protected:
     uint32_t pcOffset_;

@@ -72,10 +72,10 @@ typedef HashSet<void *, PointerHasher<void *, 3>, SystemAllocPolicy> EdgeSet;
 class StoreBuffer
 {
     
-    const static size_t ChunkSize = 1 << 16; 
+    static const size_t ChunkSize = 1 << 16; 
 
     
-    const static size_t MinAvailableSize = (size_t)(ChunkSize * 1.0 / 8.0);
+    static const size_t MinAvailableSize = (size_t)(ChunkSize * 1.0 / 8.0);
 
     
 
