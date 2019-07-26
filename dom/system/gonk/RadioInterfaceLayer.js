@@ -2043,7 +2043,23 @@ RadioInterfaceLayer.prototype = {
 
       septet = langShiftTable.indexOf(c);
       if (septet < 0) {
-        return -1;
+        if (!strict7BitEncoding) {
+          return -1;
+        }
+
+        
+        
+        c = '*';
+        if (langTable.indexOf(c) >= 0) {
+          length++;
+        } else if (langShiftTable.indexOf(c) >= 0) {
+          length += 2;
+        } else {
+          
+          return -1;
+        }
+
+        continue;
       }
 
       
@@ -2253,15 +2269,23 @@ RadioInterfaceLayer.prototype = {
         inc = 1;
       } else {
         septet = langShiftTable.indexOf(c);
-        if (septet < 0) {
-          throw new Error("Given text cannot be encoded with GSM 7-bit Alphabet!");
-        }
-
         if (septet == RIL.PDU_NL_RESERVED_CONTROL) {
           continue;
         }
 
         inc = 2;
+        if (septet < 0) {
+          if (!strict7BitEncoding) {
+            throw new Error("Given text cannot be encoded with GSM 7-bit Alphabet!");
+          }
+
+          
+          
+          c = '*';
+          if (langTable.indexOf(c) >= 0) {
+            inc = 1;
+          }
+        }
       }
 
       if ((len + inc) > segmentSeptets) {
