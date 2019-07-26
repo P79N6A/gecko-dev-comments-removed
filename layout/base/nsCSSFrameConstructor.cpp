@@ -7728,8 +7728,8 @@ DoApplyRenderingChangeToTree(nsIFrame* aFrame,
           !(aFrame->GetStateBits() & NS_STATE_IS_OUTER_SVG)) {
         if (aChange & nsChangeHint_UpdateEffects) {
           needInvalidatingPaint = true;
+          nsSVGEffects::InvalidateRenderingObservers(aFrame);
           
-          nsSVGUtils::InvalidateBounds(aFrame, false);
           nsSVGUtils::ScheduleReflowSVG(aFrame);
         } else {
           needInvalidatingPaint = true;

@@ -290,7 +290,7 @@ nsSVGGlyphFrame::CharacterDataChanged(CharacterDataChangeInfo* aInfo)
     
     
     
-    nsSVGUtils::InvalidateBounds(this);
+    nsSVGEffects::InvalidateRenderingObservers(this);
   }
 
   return NS_OK;
