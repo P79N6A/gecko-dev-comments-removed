@@ -11,13 +11,13 @@ from abc import (
 
 import errno
 import os
-import sys
 import time
 
 from contextlib import contextmanager
 
 from mach.mixin.logging import LoggingMixin
 
+from ..pythonutil import iter_modules_in_path
 from ..util import FileAvoidWrite
 from ..frontend.data import (
     ReaderSummary,
@@ -137,25 +137,8 @@ class BuildBackend(LoggingMixin):
 
         
         
-        for name, module in sys.modules.items():
-            if not module or not name.startswith('mozbuild'):
-                continue
-
-            p = module.__file__
-
-            
-            
-            
-            
-            
-            
-            
-            if p.endswith('.pyc'):
-                p = p[0:-1]
-
-            assert os.path.exists(p)
-
-            self.backend_input_files.add((os.path.abspath(p)))
+        self.backend_input_files |= set(iter_modules_in_path(environment.topsrcdir))
+        self.backend_input_files |= set(iter_modules_in_path(environment.topobjdir))
 
         self._environments = {}
         self._environments[environment.topobjdir] = environment
