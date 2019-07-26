@@ -153,7 +153,7 @@ public:
 
   
   
-  virtual nsIURI* URI() const { return nullptr; }
+  nsIURI* URI() const { return mURI; }
   
   
   
@@ -227,7 +227,7 @@ public:
   
   
   
-  virtual void MoveLoadsToBackground() {}
+  void MoveLoadsToBackground();
   
   
   virtual void EnsureCacheUpToDate() {}
@@ -307,21 +307,15 @@ public:
 
 
   virtual nsresult GetCachedRanges(nsTArray<MediaByteRange>& aRanges) = 0;
-};
-
-class BaseMediaResource : public MediaResource {
-public:
-  virtual nsIURI* URI() const { return mURI; }
-  virtual void MoveLoadsToBackground();
 
 protected:
-  BaseMediaResource(MediaDecoder* aDecoder, nsIChannel* aChannel, nsIURI* aURI) :
+  MediaResource(MediaDecoder* aDecoder, nsIChannel* aChannel, nsIURI* aURI) :
     mDecoder(aDecoder),
     mChannel(aChannel),
     mURI(aURI),
     mLoadInBackground(false)
   {
-    MOZ_COUNT_CTOR(BaseMediaResource);
+    MOZ_COUNT_CTOR(MediaResource);
   }
 
   
@@ -355,7 +349,7 @@ protected:
 
 
 
-class ChannelMediaResource : public BaseMediaResource
+class ChannelMediaResource : public MediaResource
 {
 public:
   ChannelMediaResource(MediaDecoder* aDecoder, nsIChannel* aChannel, nsIURI* aURI);
