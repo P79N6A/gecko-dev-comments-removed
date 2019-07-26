@@ -4,8 +4,6 @@
 
 
 
-var args
-
 var XPInstallConfirm = {};
 
 XPInstallConfirm.init = function XPInstallConfirm_init()
@@ -15,9 +13,12 @@ XPInstallConfirm.init = function XPInstallConfirm_init()
   var _focused;
   var _timeout;
 
+  
+  XPInstallConfirm._installOK = false;
+
   var bundle = document.getElementById("xpinstallConfirmStrings");
 
-  args = window.arguments[0].wrappedJSObject;
+  let args = window.arguments[0].wrappedJSObject;
 
   var _installCountdownLength = 5;
   try {
@@ -122,6 +123,17 @@ XPInstallConfirm.init = function XPInstallConfirm_init()
     document.removeEventListener("focus", myfocus, true);
     document.removeEventListener("blur", myblur, true);
     window.removeEventListener("unload", myUnload, false);
+
+    
+    
+    if (XPInstallConfirm._installOK) {
+      for (let install of args.installs)
+        install.install();
+    }
+    else {
+      for (let install of args.installs)
+        install.cancel();
+    }
   }
 
   if (_installCountdownLength > 0) {
@@ -142,14 +154,14 @@ XPInstallConfirm.onOK = function XPInstallConfirm_onOk()
     getService(Components.interfaces.nsITelemetry).
     getHistogramById("SECURITY_UI").
     add(Components.interfaces.nsISecurityUITelemetry.WARNING_CONFIRM_ADDON_INSTALL_CLICK_THROUGH);
-  for (let install of args.installs)
-    install.install();
+  
+  XPInstallConfirm._installOK = true;
   return true;
 }
 
 XPInstallConfirm.onCancel = function XPInstallConfirm_onCancel()
 {
-  for (let install of args.installs)
-    install.cancel();
+  
+  XPInstallConfirm._installOK = false;
   return true;
 }
