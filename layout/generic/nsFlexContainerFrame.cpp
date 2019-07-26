@@ -370,6 +370,20 @@ public:
 
   
   
+  void SetFlexBaseSizeAndMainSize(nscoord aNewFlexBaseSize)
+  {
+    MOZ_ASSERT(!mIsFrozen,
+               "flex base size shouldn't change after we're frozen");
+    mFlexBaseSize = aNewFlexBaseSize;
+
+    
+    
+    
+    mMainSize = NS_CSS_MINMAX(mFlexBaseSize, mMainMinSize, mMainMaxSize);
+  }
+
+  
+  
 
   
   void SetMainSize(nscoord aNewMainSize)
@@ -463,7 +477,7 @@ protected:
   const nsMargin mBorderPadding;
   nsMargin mMargin; 
 
-  const nscoord mFlexBaseSize;
+  nscoord mFlexBaseSize;
 
   const nscoord mMainMinSize;
   const nscoord mMainMaxSize;
@@ -847,14 +861,10 @@ FlexItem::FlexItem(nsIFrame* aChildFrame,
     mFlexShrink(aFlexShrink),
     mBorderPadding(aBorderPadding),
     mMargin(aMargin),
-    mFlexBaseSize(aFlexBaseSize),
     mMainMinSize(aMainMinSize),
     mMainMaxSize(aMainMaxSize),
     mCrossMinSize(aCrossMinSize),
     mCrossMaxSize(aCrossMaxSize),
-    
-    
-    mMainSize(NS_CSS_MINMAX(aFlexBaseSize, aMainMinSize, aMainMaxSize)),
     mMainPosn(0),
     mCrossSize(0),
     mCrossPosn(0),
@@ -868,6 +878,8 @@ FlexItem::FlexItem(nsIFrame* aChildFrame,
     mAlignSelf(aChildFrame->StylePosition()->mAlignSelf)
 {
   MOZ_ASSERT(aChildFrame, "expecting a non-null child frame");
+
+  SetFlexBaseSizeAndMainSize(aFlexBaseSize);
 
   
   
