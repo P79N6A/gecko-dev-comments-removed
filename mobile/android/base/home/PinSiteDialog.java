@@ -27,6 +27,7 @@ import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.Toast;
 
 
 
@@ -109,11 +110,16 @@ class PinSiteDialog extends DialogFragment {
 
                 
                 
-                final String text = mSearch.getText().toString();
-                final String url = TopSitesPanel.encodeUserEnteredUrl(text);
-                mOnSiteSelectedListener.onSiteSelected(url, text);
+                final String text = mSearch.getText().toString().trim();
+                if (!TextUtils.isEmpty(text)) {
+                    final String url = TopSitesPanel.encodeUserEnteredUrl(text);
+                    mOnSiteSelectedListener.onSiteSelected(url, text);
+                    dismiss();
+                } else {
+                    
+                    Toast.makeText(getActivity(), R.string.home_top_sites_edit_empty_toast, Toast.LENGTH_SHORT).show();;
+                }
 
-                dismiss();
                 return true;
             }
         });
