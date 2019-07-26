@@ -149,14 +149,16 @@ const BackgroundPageThumbs = {
     
     
     
-    let width = {};
-    let height = {};
+    let [swidth, sheight] = [{}, {}];
     Cc["@mozilla.org/gfx/screenmanager;1"].
       getService(Ci.nsIScreenManager).
       primaryScreen.
-      GetRectDisplayPix({}, {}, width, height);
-    browser.style.width = width.value + "px";
-    browser.style.height = height.value + "px";
+      GetRectDisplayPix({}, {}, swidth, sheight);
+    let bwidth = Math.min(1024, swidth.value);
+    
+    
+    browser.style.width = bwidth + "px";
+    browser.style.height = (bwidth * sheight.value / swidth.value) + "px";
 
     this._parentWin.document.documentElement.appendChild(browser);
 
