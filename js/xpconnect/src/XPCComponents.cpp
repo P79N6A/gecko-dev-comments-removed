@@ -2624,70 +2624,6 @@ nsXPCComponents_Utils::GetSandbox(nsIXPCComponents_utils_Sandbox **aSandbox)
 
 
 NS_IMETHODIMP
-nsXPCComponents_Utils::LookupMethod(const JS::Value& object,
-                                    const JS::Value& name,
-                                    JSContext *cx,
-                                    JS::Value *retval)
-{
-    
-    if (!object.isObject())
-        return NS_ERROR_XPC_BAD_CONVERT_JS;
-    JS::RootedObject obj(cx, &object.toObject());
-
-    
-    if (!JSVAL_IS_STRING(name))
-        return NS_ERROR_XPC_BAD_CONVERT_JS;
-    JSString *methodName = name.toString();
-    RootedId methodId(cx, INTERNED_STRING_TO_JSID(cx, JS_InternJSString(cx, methodName)));
-
-    
-    
-    
-    obj = js::CheckedUnwrap(obj);
-    if (!obj) {
-        JS_ReportError(cx, "Permission denied to unwrap object");
-        return NS_ERROR_XPC_BAD_CONVERT_JS;
-    }
-    {
-        
-        JSAutoCompartment ac(cx, obj);
-
-        
-        
-        JSObject *xray = WrapperFactory::WrapForSameCompartmentXray(cx, obj);
-        if (!xray)
-            return NS_ERROR_XPC_BAD_CONVERT_JS;
-
-        
-        *retval = UndefinedValue();
-        Rooted<JSPropertyDescriptor> desc(cx);
-        if (!JS_GetPropertyDescriptorById(cx, xray, methodId, 0, &desc))
-            return NS_ERROR_FAILURE;
-
-        
-        
-        JSObject *methodObj = desc.value().isObject() ? &desc.value().toObject() : NULL;
-        if (!methodObj && desc.hasGetterObject())
-            methodObj = desc.getterObject();
-
-        
-        
-        if (methodObj && JS_ObjectIsCallable(cx, methodObj))
-            methodObj = JS_BindCallable(cx, methodObj, obj);
-
-        
-        *retval = methodObj ? ObjectValue(*methodObj) : UndefinedValue();
-    }
-
-    
-    if (!JS_WrapValue(cx, retval))
-        return NS_ERROR_FAILURE;;
-
-    return NS_OK;
-}
-
-
-NS_IMETHODIMP
 nsXPCComponents_Utils::ReportError(const JS::Value &errorArg, JSContext *cx)
 {
     RootedValue error(cx, errorArg);
@@ -3240,7 +3176,7 @@ nsXPCComponents_Utils::CanCreateWrapper(const nsIID * iid, char **_retval)
 NS_IMETHODIMP
 nsXPCComponents_Utils::CanCallMethod(const nsIID * iid, const PRUnichar *methodName, char **_retval)
 {
-    static const char* const allowed[] = { "lookupMethod", "evalInSandbox", nullptr };
+    static const char* const allowed[] = { "evalInSandbox", nullptr };
     *_retval = CheckAccessList(methodName, allowed);
     return NS_OK;
 }
@@ -3707,23 +3643,6 @@ nsXPCComponents::AttachComponentsObject(JSContext* aCx,
 }
 
 
-NS_IMETHODIMP
-nsXPCComponents::LookupMethod(const JS::Value& object,
-                              const JS::Value& name,
-                              JSContext *cx,
-                              JS::Value *retval)
-{
-    NS_WARNING("Components.lookupMethod deprecated, use Components.utils.lookupMethod");
-
-    nsCOMPtr<nsIXPCComponents_Utils> utils;
-    nsresult rv = GetUtils(getter_AddRefs(utils));
-    if (NS_FAILED(rv))
-        return rv;
-
-    return utils->LookupMethod(object, name, cx, retval);
-}
-
-
 NS_IMETHODIMP nsXPCComponents::ReportError(const JS::Value &error, JSContext *cx)
 {
     NS_WARNING("Components.reportError deprecated, use Components.utils.reportError");
@@ -3749,7 +3668,7 @@ nsXPCComponents::CanCreateWrapper(const nsIID * iid, char **_retval)
 NS_IMETHODIMP
 nsXPCComponents::CanCallMethod(const nsIID * iid, const PRUnichar *methodName, char **_retval)
 {
-    static const char* const allowed[] = { "isSuccessCode", "lookupMethod", nullptr };
+    static const char* const allowed[] = { "isSuccessCode", nullptr };
     *_retval = CheckAccessList(methodName, allowed);
     return NS_OK;
 }
