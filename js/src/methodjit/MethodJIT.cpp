@@ -1659,6 +1659,11 @@ JITChunk::trace(JSTracer *trc)
         
         MarkObjectUnbarriered(trc, &rootedTemplates_[i], "jitchunk_template");
     }
+
+    
+    RegExpShared **rootedRegExps_ = rootedRegExps();
+    for (size_t i = 0; i < nRootedRegExps; i++)
+        rootedRegExps_[i]->trace(trc);
 }
 
 void

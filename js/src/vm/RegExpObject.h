@@ -124,7 +124,7 @@ class RegExpShared
 
 
 
-    JSAtom *           source;
+    HeapPtrAtom        source;
     RegExpFlag         flags;
     unsigned           parenCount;
 
@@ -148,6 +148,8 @@ class RegExpShared
   public:
     RegExpShared(JSRuntime *rt, JSAtom *source, RegExpFlag flags);
     ~RegExpShared();
+
+    void trace(JSTracer *trc);
 
     
     static inline bool isJITRuntimeEnabled(JSContext *cx);
@@ -198,22 +200,41 @@ class RegExpShared
 class RegExpGuard
 {
     RegExpShared *re_;
+
+    
+
+
+
+
+    RootedAtom source_;
+
     RegExpGuard(const RegExpGuard &) MOZ_DELETE;
     void operator=(const RegExpGuard &) MOZ_DELETE;
+
   public:
-    RegExpGuard() : re_(NULL) {}
-    RegExpGuard(RegExpShared &re) : re_(&re) {
+    RegExpGuard(JSContext *cx)
+      : re_(NULL), source_(cx)
+    { }
+
+    RegExpGuard(JSContext *cx, RegExpShared &re)
+      : re_(&re), source_(cx, re.source)
+    {
         re_->incRef();
     }
-    void init(RegExpShared &re) {
-        JS_ASSERT(!re_);
-        re_ = &re;
-        re_->incRef();
-    }
+
     ~RegExpGuard() {
         if (re_)
             re_->decRef();
     }
+
+  public:
+    void init(RegExpShared &re) {
+        JS_ASSERT(!re_);
+        re_ = &re;
+        re_->incRef();
+        source_ = re.source;
+    }
+
     bool initialized() const { return !!re_; }
     RegExpShared *re() const { JS_ASSERT(initialized()); return re_; }
     RegExpShared *operator->() { return re(); }

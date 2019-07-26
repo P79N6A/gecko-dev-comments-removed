@@ -7014,7 +7014,7 @@ mjit::Compiler::jsop_regexp()
 
 
 
-    RegExpGuard g;
+    RegExpGuard g(cx);
     if (!reobj->getShared(cx, &g))
         return false;
 
