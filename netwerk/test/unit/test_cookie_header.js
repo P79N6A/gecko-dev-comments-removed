@@ -1,4 +1,4 @@
-
+// This file tests bug 250375
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -6,6 +6,13 @@ const Cu = Components.utils;
 const Cr = Components.results;
 
 Cu.import("resource://testing-common/httpd.js");
+Cu.import("resource://gre/modules/Services.jsm");
+
+function inChildProcess() {
+  return Cc["@mozilla.org/xre/app-info;1"]
+           .getService(Ci.nsIXULRuntime)
+           .processType != Ci.nsIXULRuntime.PROCESS_TYPE_DEFAULT;  
+}
 
 function check_request_header(chan, name, value) {
   var chanValue;
@@ -61,6 +68,10 @@ function makeChan() {
 var httpserv = null;
 
 function run_test() {
+  // Allow all cookies if the pref service is available in this process.
+  if (!inChildProcess())
+    Services.prefs.setIntPref("network.cookie.cookieBehavior", 0);
+
   httpserv = new HttpServer();
   httpserv.start(4444);
 
@@ -82,8 +93,8 @@ function run_test_continued() {
   cookServ.setCookieString(chan.URI, null, cookie2, chan);
   chan.setRequestHeader("Cookie", cookieVal, false);
 
-  
-  
+  // We expect that the setRequestHeader overrides the
+  // automatically-added one, so insert cookie2 in front
   cookieVal = cookie2 + "; " + cookieVal;
 
   listener._iteration++;

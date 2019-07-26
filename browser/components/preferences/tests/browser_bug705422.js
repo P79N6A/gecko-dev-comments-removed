@@ -2,7 +2,12 @@
 
 
 function test() {
-    waitForExplicitFinish();
+  waitForExplicitFinish();
+  
+  SpecialPowers.pushPrefEnv({"set": [["network.cookie.cookieBehavior", 0]]}, initTest);
+}
+
+function initTest() {
     const searchTerm = "example";
     const dummyTerm = "elpmaxe";
 

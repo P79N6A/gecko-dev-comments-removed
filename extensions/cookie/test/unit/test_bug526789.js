@@ -9,6 +9,9 @@ function run_test() {
   cm.removeAll();
 
   
+  Services.prefs.setIntPref("network.cookie.cookieBehavior", 0);
+
+  
   
   cm.add("baz.com", "/", "foo", "bar", false, false, true, expiry);
   do_check_eq(cm.countCookiesFromHost("baz.com"), 1);

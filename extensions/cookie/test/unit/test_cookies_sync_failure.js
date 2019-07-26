@@ -39,6 +39,9 @@ function do_run_test() {
   this.profile = do_get_profile();
 
   
+  Services.prefs.setIntPref("network.cookie.cookieBehavior", 0);
+
+  
   this.cookieFile = profile.clone();
   cookieFile.append("cookies.sqlite");
   this.backupFile = profile.clone();

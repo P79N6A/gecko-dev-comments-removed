@@ -1286,7 +1286,13 @@ pref("network.proxy.socks_remote_dns",      false);
 pref("network.proxy.no_proxies_on",         "localhost, 127.0.0.1");
 pref("network.proxy.failover_timeout",      1800); 
 pref("network.online",                      true); 
+pref("network.cookie.cookieBehavior",       3); 
+#ifdef ANDROID
 pref("network.cookie.cookieBehavior",       0); 
+#endif
+#ifdef MOZ_WIDGET_GONK
+pref("network.cookie.cookieBehavior",       0); 
+#endif
 pref("network.cookie.thirdparty.sessionOnly", false);
 pref("network.cookie.lifetimePolicy",       0); 
 pref("network.cookie.alwaysAcceptSessionCookies", false);

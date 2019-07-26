@@ -51,6 +51,16 @@ function run_test() {
   Services.cookies.removeAll();
 
   
+  Services.prefs.setIntPref("network.cookie.cookieBehavior", 3);
+  do_set_cookies(uri1, channel1, true, [0, 1, 2, 3]);
+  Services.cookies.removeAll();
+  do_set_cookies(uri1, channel2, true, [0, 0, 0, 0]);
+  Services.cookies.removeAll();
+  do_set_single_http_cookie(uri1, channel1, 1);
+  do_set_cookies(uri1, channel2, true, [2, 3, 4, 5]);
+  Services.cookies.removeAll();
+
+  
   Services.prefs.setIntPref("network.cookie.cookieBehavior", 0);
   var kPermissionType = "cookie";
   var ALLOW_FIRST_PARTY_ONLY = 9;
@@ -70,6 +80,68 @@ function run_test() {
   do_set_cookies(uri2, channel2, true, [0, 1, 1, 2]);
   Services.cookies.removeAll();
   do_set_cookies(uri1, channel2, true, [0, 0, 0, 0]);
+  Services.cookies.removeAll();
+
+  
+  Services.prefs.setIntPref("network.cookie.cookieBehavior", 3);
+  do_set_cookies(uri1, channel1, true, [0, 1, 1, 2]);
+  Services.cookies.removeAll();
+  
+  
+  do_set_cookies(uri2, channel2, true, [0, 1, 2, 3]);
+  Services.cookies.removeAll();
+  do_set_single_http_cookie(uri2, channel2, 1);
+  do_set_cookies(uri2, channel2, true, [2, 3, 4, 5]);
+  Services.cookies.removeAll();
+  do_set_cookies(uri1, channel2, true, [0, 0, 0, 0]);
+  Services.cookies.removeAll();
+  do_set_single_http_cookie(uri1, channel1, 1);
+  do_set_cookies(uri1, channel2, true, [1, 1, 1, 1]);
+  Services.cookies.removeAll();
+
+  
+  Services.prefs.setIntPref("network.cookie.cookieBehavior", 0);
+  var kPermissionType = "cookie";
+  var LIMIT_THIRD_PARTY = 10;
+  
+  Services.permissions.add(uri1, kPermissionType, LIMIT_THIRD_PARTY);
+  do_set_cookies(uri1, channel1, true, [0, 1, 2, 3]);
+  Services.cookies.removeAll();
+  do_set_cookies(uri1, channel2, true, [0, 0, 0, 0]);
+  Services.cookies.removeAll();
+  do_set_single_http_cookie(uri1, channel1, 1);
+  do_set_cookies(uri1, channel2, true, [2, 3, 4, 5]);
+  Services.cookies.removeAll();
+
+  
+  Services.prefs.setIntPref("network.cookie.cookieBehavior", 1);
+  do_set_cookies(uri1, channel1, true, [0, 1, 2, 3]);
+  Services.cookies.removeAll();
+  
+  
+  do_set_cookies(uri2, channel2, true, [0, 1, 1, 2]);
+  Services.cookies.removeAll();
+  do_set_cookies(uri1, channel2, true, [0, 0, 0, 0]);
+  Services.cookies.removeAll();
+  do_set_single_http_cookie(uri1, channel1, 1);
+  do_set_cookies(uri1, channel2, true, [2, 3, 4, 5]);
+  Services.cookies.removeAll();
+
+  
+  Services.prefs.setIntPref("network.cookie.cookieBehavior", 3);
+  do_set_cookies(uri1, channel1, true, [0, 1, 2, 3]);
+  Services.cookies.removeAll();
+  
+  
+  do_set_cookies(uri2, channel2, true, [0, 1, 2, 3]);
+  Services.cookies.removeAll();
+  do_set_single_http_cookie(uri2, channel2, 1);
+  do_set_cookies(uri2, channel2, true, [2, 3, 4, 5]);
+  Services.cookies.removeAll();
+  do_set_cookies(uri1, channel2, true, [0, 0, 0, 0]);
+  Services.cookies.removeAll();
+  do_set_single_http_cookie(uri1, channel1, 1);
+  do_set_cookies(uri1, channel2, true, [2, 3, 4, 5]);
   Services.cookies.removeAll();
 }
 

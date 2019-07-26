@@ -66,6 +66,10 @@ function setHandler(metadata, response) {
 }
 
 function run_test() {
+  
+  if (!inChildProcess())
+    Services.prefs.setIntPref("network.cookie.cookieBehavior", 0);
+
   httpserver = new HttpServer();
   httpserver.registerPathHandler("/set", setHandler);
   httpserver.registerPathHandler("/present", presentHandler);

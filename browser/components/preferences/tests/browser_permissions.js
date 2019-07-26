@@ -164,6 +164,9 @@ var tests = [
 
   function test_all_sites_permission() {
     
+    Services.prefs.setIntPref("network.cookie.cookieBehavior", 0);
+  
+    
     is(Services.prefs.getIntPref("network.cookie.cookieBehavior"), PERM_UNKNOWN,
        "network.cookie.cookieBehavior is expected default");
 

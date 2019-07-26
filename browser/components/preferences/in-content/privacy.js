@@ -180,7 +180,7 @@ var gPrivacyPane = {
       document.getElementById("browser.formfill.enable").value = true;
 
       
-      document.getElementById("network.cookie.cookieBehavior").value = 0;
+      document.getElementById("network.cookie.cookieBehavior").value = 3;
       
       document.getElementById("network.cookie.lifetimePolicy").value = 0;
 
@@ -373,6 +373,7 @@ var gPrivacyPane = {
 
 
 
+
   
 
 
@@ -381,23 +382,18 @@ var gPrivacyPane = {
   readAcceptCookies: function ()
   {
     var pref = document.getElementById("network.cookie.cookieBehavior");
-    var acceptThirdParty = document.getElementById("acceptThirdParty");
+    var acceptThirdPartyLabel = document.getElementById("acceptThirdPartyLabel");
+    var acceptThirdPartyMenu = document.getElementById("acceptThirdPartyMenu");
     var keepUntil = document.getElementById("keepUntil");
     var menu = document.getElementById("keepCookiesUntil");
 
     
     var acceptCookies = (pref.value != 2);
 
-    acceptThirdParty.disabled = !acceptCookies;
+    acceptThirdPartyLabel.disabled = acceptThirdPartyMenu.disabled = !acceptCookies;
     keepUntil.disabled = menu.disabled = this._autoStartPrivateBrowsing || !acceptCookies;
-
+    
     return acceptCookies;
-  },
-
-  readAcceptThirdPartyCookies: function ()
-  {
-    var pref = document.getElementById("network.cookie.cookieBehavior");
-    return pref.value == 0;
   },
 
   
@@ -407,20 +403,50 @@ var gPrivacyPane = {
   writeAcceptCookies: function ()
   {
     var accept = document.getElementById("acceptCookies");
-    var acceptThirdParty = document.getElementById("acceptThirdParty");
+    var acceptThirdPartyMenu = document.getElementById("acceptThirdPartyMenu");
 
     
     if (accept.checked)
-      acceptThirdParty.checked = true;
+      acceptThirdPartyMenu.selectedIndex = 1;
 
-    return accept.checked ? (acceptThirdParty.checked ? 0 : 1) : 2;
+    return accept.checked ? 3 : 2;
   },
+  
+  
 
+
+  readAcceptThirdPartyCookies: function ()
+  {
+    var pref = document.getElementById("network.cookie.cookieBehavior");
+    switch (pref.value)
+    {
+      case 0:
+        return "always";
+      case 1:
+        return "never";
+      case 2:
+        return "never";
+      case 3:
+        return "visited";
+      default:
+        return undefined;
+    }
+  },
+  
   writeAcceptThirdPartyCookies: function ()
   {
-    var accept = document.getElementById("acceptCookies");
-    var acceptThirdParty = document.getElementById("acceptThirdParty");
-    return accept.checked ? (acceptThirdParty.checked ? 0 : 1) : 2;
+    var accept = document.getElementById("acceptThirdPartyMenu").selectedItem;
+    switch (accept.value)
+    {
+      case "always":
+        return 0;
+      case "visited":
+        return 3;
+      case "never":
+        return 1;
+      default:
+        return undefined;
+    }
   },
 
   

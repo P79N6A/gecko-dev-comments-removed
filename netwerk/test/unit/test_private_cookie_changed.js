@@ -1,6 +1,6 @@
-
-
-
+/* Any copyright is dedicated to the Public Domain.
+ * http://creativecommons.org/publicdomain/zero/1.0/
+ */
 Components.utils.import("resource://gre/modules/Services.jsm");
 Components.utils.import("resource://gre/modules/NetUtil.jsm");
 const Cc = Components.classes;
@@ -15,6 +15,9 @@ function makeChan(uri, isPrivate) {
 }
 
 function run_test() {
+  // Allow all cookies.
+  Services.prefs.setIntPref("network.cookie.cookieBehavior", 0);
+  
   let publicNotifications = 0;
   let privateNotifications = 0;
   Services.obs.addObserver(function() {publicNotifications++;}, "cookie-changed", false);

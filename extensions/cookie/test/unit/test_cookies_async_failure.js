@@ -37,6 +37,9 @@ function do_run_test() {
   this.profile = do_get_profile();
 
   
+  Services.prefs.setIntPref("network.cookie.cookieBehavior", 0);
+
+  
   do_check_false(do_get_cookie_file(profile).exists());
   do_check_false(do_get_backup_file(profile).exists());
 

@@ -106,6 +106,13 @@ function do_load_profile(generator) {
 
 
 
+function do_set_single_http_cookie(uri, channel, expected) {
+  Services.cookies.setCookieStringFromHttp(uri, null, null, "foo=bar", null, channel);
+  do_check_eq(Services.cookiemgr.countCookiesFromHost(uri.host), expected);
+}
+
+
+
 function do_set_cookies(uri, channel, session, expected) {
   let suffix = session ? "" : "; max-age=1000";
 
