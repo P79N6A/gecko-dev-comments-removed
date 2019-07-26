@@ -53,7 +53,7 @@ public:
 
 
 
-  void AttachIOSurface(mozilla::RefPtr<MacIOSurface> aSurface);
+  void AttachIOSurface(MacIOSurface *aSurface);
   IOSurfaceID GetIOSurfaceID();
   
   
