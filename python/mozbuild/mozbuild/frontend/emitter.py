@@ -171,6 +171,10 @@ class TreeMetadataEmitter(LoggingMixin):
             if sandbox[moz]:
                 passthru.variables[mak] = sandbox[moz]
 
+        
+        if sandbox['NO_VISIBILITY_FLAGS']:
+            passthru.variables['VISIBILITY_FLAGS'] = ''
+
         varmap = dict(
             ASFILES=('SOURCES', ('.s', '.asm')),
             CSRCS=('SOURCES', '.c'),
