@@ -939,14 +939,23 @@ nsJSObjWrapper::NP_Construct(NPObject *npobj, const NPVariant *args,
 
 
 
+
+
+
 static void
 JSObjWrapperKeyMarkCallback(JSTracer *trc, void *key, void *data) {
   JSObject *obj = static_cast<JSObject*>(key);
-  nsJSObjWrapper* wrapper = static_cast<nsJSObjWrapper*>(data);
+  NPP npp = static_cast<NPP>(data);
+  if (!sJSObjWrappers.initialized())
+    return;
+
   JSObject *prior = obj;
-  JS_CallObjectTracer(trc, &obj, "sJSObjWrappers key object");
-  NPP npp = wrapper->mNpp;
   nsJSObjWrapperKey oldKey(prior, npp);
+  JSObjWrapperTable::Ptr p = sJSObjWrappers.lookup(oldKey);
+  if (!p)
+    return;
+
+  JS_CallObjectTracer(trc, &obj, "sJSObjWrappers key object");
   nsJSObjWrapperKey newKey(obj, npp);
   sJSObjWrappers.rekeyIfMoved(oldKey, newKey);
 }
@@ -1048,7 +1057,7 @@ nsJSObjWrapper::GetNewOrUsed(NPP npp, JSContext *cx, JS::Handle<JSObject*> obj)
   }
 
   
-  JS_StoreObjectPostBarrierCallback(cx, JSObjWrapperKeyMarkCallback, obj, wrapper);
+  JS_StoreObjectPostBarrierCallback(cx, JSObjWrapperKeyMarkCallback, obj, wrapper->mNpp);
 
   return wrapper;
 }
