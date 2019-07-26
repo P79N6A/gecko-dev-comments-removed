@@ -20,9 +20,11 @@
 
 package org.mozilla.gecko.widget;
 
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.ResolveInfo;
 import android.database.DataSetObservable;
 import android.os.AsyncTask;
@@ -47,6 +49,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -255,7 +258,7 @@ public class ActivityChooserModel extends DataSetObservable {
     
 
 
-    
+    private final DataModelPackageMonitor mPackageMonitor = new DataModelPackageMonitor();
 
     
 
@@ -374,7 +377,7 @@ public class ActivityChooserModel extends DataSetObservable {
         
 
 
-        
+        mPackageMonitor.register(mContext);
     }
 
     
@@ -506,7 +509,7 @@ public class ActivityChooserModel extends DataSetObservable {
 
             HistoricalRecord historicalRecord = new HistoricalRecord(chosenName,
                     System.currentTimeMillis(), DEFAULT_HISTORICAL_RECORD_WEIGHT);
-            addHisoricalRecord(historicalRecord);
+            addHistoricalRecord(historicalRecord);
 
             return choiceIntent;
         }
@@ -573,7 +576,7 @@ public class ActivityChooserModel extends DataSetObservable {
                     newDefaultActivity.resolveInfo.activityInfo.name);
             HistoricalRecord historicalRecord = new HistoricalRecord(defaultName,
                     System.currentTimeMillis(), weight);
-            addHisoricalRecord(historicalRecord);
+            addHistoricalRecord(historicalRecord);
         }
     }
 
@@ -689,7 +692,7 @@ public class ActivityChooserModel extends DataSetObservable {
         
 
 
-        
+        mPackageMonitor.unregister();
     }
 
     
@@ -771,7 +774,7 @@ public class ActivityChooserModel extends DataSetObservable {
 
 
 
-    private boolean addHisoricalRecord(HistoricalRecord historicalRecord) {
+    private boolean addHistoricalRecord(HistoricalRecord historicalRecord) {
         final boolean added = mHistoricalRecords.add(historicalRecord);
         if (added) {
             mHistoricalRecordsChanged = true;
@@ -781,6 +784,33 @@ public class ActivityChooserModel extends DataSetObservable {
             notifyChanged();
         }
         return added;
+    }
+
+    
+
+
+
+
+
+    private boolean removeHistoricalRecordsForPackage(final String pkg) {
+        boolean removed = false;
+
+        for (Iterator<HistoricalRecord> i = mHistoricalRecords.iterator(); i.hasNext();) {
+            final HistoricalRecord record = i.next();
+            if (record.activity.getPackageName().equals(pkg)) {
+                removed = mHistoricalRecords.remove(record);
+            }
+        }
+
+        if (removed) {
+            mHistoricalRecordsChanged = true;
+            pruneExcessiveHistoricalRecordsIfNeeded();
+            persistHistoricalDataIfNeeded();
+            sortActivitiesIfNeeded();
+            notifyChanged();
+        }
+
+        return removed;
     }
 
     
@@ -1153,14 +1183,43 @@ public class ActivityChooserModel extends DataSetObservable {
     
 
 
-    
+    private static final String LOGTAG = "GeckoActivityChooserModel";
+    private final class DataModelPackageMonitor extends BroadcastReceiver {
+        private Context mContext;
 
+        public DataModelPackageMonitor() { }
 
+        public void register(Context context) {
+            mContext = context;
 
+            String[] intents = new String[] {
+                Intent.ACTION_PACKAGE_REMOVED,
+                Intent.ACTION_PACKAGE_ADDED,
+                Intent.ACTION_PACKAGE_CHANGED
+            };
 
+            for (String intent : intents) {
+                IntentFilter removeFilter = new IntentFilter(intent);
+                removeFilter.addDataScheme("package");
+                context.registerReceiver(this, removeFilter);
+            }
+        }
 
+        public void unregister() {
+            mContext.unregisterReceiver(this);
+            mContext = null;
+        }
 
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (Intent.ACTION_PACKAGE_REMOVED.equals(action)) {
+                String packageName = intent.getData().getSchemeSpecificPart();
+                removeHistoricalRecordsForPackage(packageName);
+            }
 
-
+            mReloadActivities = true;
+        }
+    }
 }
 
