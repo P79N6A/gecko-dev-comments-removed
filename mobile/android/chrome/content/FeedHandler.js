@@ -73,7 +73,7 @@ var FeedHandler = {
       let feedIndex = -1;
       if (feeds.length > 1) {
         let p = new Prompt({
-          window: browser.contentWindow,
+          window: browser.contentWindow
         }).setSingleChoiceItems(feeds.map(function(feed) {
           return { label: feed.title || feed.href }
         })).show((function(data) {
@@ -91,29 +91,28 @@ var FeedHandler = {
   },
 
   loadFeed: function fh_loadFeed(aFeed, aBrowser) {
-      let feedURL = aFeed.href;
+    let feedURL = aFeed.href;
 
-      
-      let handlers = this.getContentHandlers(this.TYPE_MAYBE_FEED);
-      if (handlers.length == 0)
+    
+    let handlers = this.getContentHandlers(this.TYPE_MAYBE_FEED);
+    if (handlers.length == 0)
+      return;
+
+    
+    let p = new Prompt({
+      window: aBrowser.contentWindow
+    }).setSingleChoiceItems(handlers.map(function(handler) {
+      return { label: handler.name };
+    })).show(function(data) {
+      if (data.button == -1)
         return;
 
       
-      let p = new Prompt({
-        window: aBrowser.contentWindow
-      }).setSingleChoiceItems(handlers.map(function(handler) {
-        return { label: handler.name };
-      })).show(function(data) {
-        if (data.button == -1)
-          return;
+      let readerURL = handlers[data.button].uri;
+      readerURL = readerURL.replace(/%s/gi, encodeURIComponent(feedURL));
 
-        
-        let readerURL = handlers[data.button].uri;
-        readerURL = readerURL.replace(/%s/gi, encodeURIComponent(feedURL));
-
-        
-        BrowserApp.addTab(readerURL, { parentId: BrowserApp.selectedTab.id });
-      });
-
+      
+      BrowserApp.addTab(readerURL, { parentId: BrowserApp.selectedTab.id });
+    });
   }
 };
