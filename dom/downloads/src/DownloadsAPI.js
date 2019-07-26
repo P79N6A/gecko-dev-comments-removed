@@ -206,9 +206,9 @@ function DOMDownloadImpl() {
   this.path = null;
   this.state = "stopped";
   this.contentType = null;
-  this.error = null;
 
   
+  this._error = null;
   this._startTime = new Date();
 
   
@@ -245,6 +245,14 @@ DOMDownloadImpl.prototype = {
 
   get onstatechange() {
     return this.__DOM_IMPL__.getEventHandler("onstatechange");
+  },
+
+  get error() {
+    return this._error;
+  },
+
+  set error(aError) {
+    this._error = aError;
   },
 
   get startTime() {
