@@ -25,6 +25,8 @@
 using namespace js;
 using namespace js::ion;
 
+namespace {
+
 
 
 class TypeWrapper {
@@ -57,6 +59,8 @@ class TypeWrapper {
         return NULL;
     }
 };
+
+} 
 
 template <typename Source, typename TypeSet> void
 MacroAssembler::guardTypeSet(const Source &address, const TypeSet *types,

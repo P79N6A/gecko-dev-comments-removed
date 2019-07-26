@@ -382,6 +382,8 @@ ParseVarStatement(AsmJSParser &parser, ParseNode **var)
 
 
 
+namespace {
+
 
 class Type
 {
@@ -478,6 +480,8 @@ class Type
     }
 };
 
+} 
+
 
 
 class RetType
@@ -526,6 +530,9 @@ class RetType
     bool operator==(RetType rhs) const { return which_ == rhs.which_; }
     bool operator!=(RetType rhs) const { return which_ != rhs.which_; }
 };
+
+namespace {
+
 
 
 
@@ -592,6 +599,8 @@ class VarType
     bool operator==(VarType rhs) const { return which_ == rhs.which_; }
     bool operator!=(VarType rhs) const { return which_ != rhs.which_; }
 };
+
+} 
 
 
 static inline bool
@@ -692,6 +701,8 @@ bool operator!=(const Signature &lhs, const Signature &rhs)
 
 
 
+namespace {
+
 
 
 
@@ -743,6 +754,8 @@ class NumLit
         return v_;
     }
 };
+
+} 
 
 
 
@@ -891,6 +904,9 @@ TypedArrayStoreType(ArrayBufferView::ViewType viewType)
 
 typedef Vector<PropertyName*,1> LabelVector;
 typedef Vector<MBasicBlock*,8> BlockVector;
+
+namespace {
+
 
 
 
@@ -1624,7 +1640,11 @@ class MOZ_STACK_CLASS ModuleCompiler
     }
 };
 
+} 
 
+
+
+namespace {
 
 
 
@@ -2536,6 +2556,8 @@ class FunctionCompiler
         return true;
     }
 };
+
+} 
 
 
 

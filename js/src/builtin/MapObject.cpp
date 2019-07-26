@@ -852,6 +852,8 @@ HashableValue::mark(JSTracer *trc) const
 
 
 
+namespace {
+
 class MapIteratorObject : public JSObject
 {
   public:
@@ -870,6 +872,8 @@ class MapIteratorObject : public JSObject
     static bool next_impl(JSContext *cx, CallArgs args);
     static bool next(JSContext *cx, unsigned argc, Value *vp);
 };
+
+} 
 
 Class MapIteratorObject::class_ = {
     "Map Iterator",
@@ -1415,6 +1419,8 @@ js_InitMapClass(JSContext *cx, HandleObject obj)
 
 
 
+namespace {
+
 class SetIteratorObject : public JSObject
 {
   public:
@@ -1433,6 +1439,8 @@ class SetIteratorObject : public JSObject
     static bool next_impl(JSContext *cx, CallArgs args);
     static bool next(JSContext *cx, unsigned argc, Value *vp);
 };
+
+} 
 
 Class SetIteratorObject::class_ = {
     "Set Iterator",

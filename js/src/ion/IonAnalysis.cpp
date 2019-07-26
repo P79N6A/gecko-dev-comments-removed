@@ -348,6 +348,8 @@ ion::EliminatePhis(MIRGenerator *mir, MIRGraph &graph,
     return true;
 }
 
+namespace {
+
 
 
 
@@ -393,6 +395,8 @@ class TypeAnalyzer
 
     bool analyze();
 };
+
+} 
 
 
 static MIRType

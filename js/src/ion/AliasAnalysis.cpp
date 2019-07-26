@@ -19,6 +19,8 @@ using namespace js::ion;
 
 using mozilla::Array;
 
+namespace {
+
 
 class AliasSetIterator
 {
@@ -50,6 +52,8 @@ class AliasSetIterator
         return pos;
     }
 };
+
+} 
 
 AliasAnalysis::AliasAnalysis(MIRGenerator *mir, MIRGraph &graph)
   : mir(mir),

@@ -1543,6 +1543,8 @@ str_trimRight(JSContext *cx, unsigned argc, Value *vp)
 
 
 
+namespace {
+
 
 class FlatMatch
 {
@@ -1564,6 +1566,8 @@ class FlatMatch
 
     int32_t match() const { return match_; }
 };
+
+} 
 
 static inline bool
 IsRegExpMetaChar(jschar c)
@@ -1588,6 +1592,8 @@ HasRegExpMetaChars(const jschar *chars, size_t length)
     }
     return false;
 }
+
+namespace {
 
 
 
@@ -1734,6 +1740,8 @@ class StringRegExpGuard
 
     RegExpShared &regExp() { return *re_; }
 };
+
+} 
 
 static bool
 DoMatchLocal(JSContext *cx, CallArgs args, RegExpStatics *res, Handle<JSLinearString*> input,
@@ -2810,6 +2818,8 @@ js::str_replace(JSContext *cx, unsigned argc, Value *vp)
     return BuildFlatReplacement(cx, rdata.str, rdata.repstr, *fm, &args);
 }
 
+namespace {
+
 class SplitMatchResult {
     size_t endIndex_;
     size_t length_;
@@ -2835,6 +2845,8 @@ class SplitMatchResult {
         endIndex_ = endIndex;
     }
 };
+
+} 
 
 template<class Matcher>
 static JSObject *
@@ -2964,6 +2976,8 @@ SplitHelper(JSContext *cx, Handle<JSLinearString*> str, uint32_t limit, const Ma
     return NewDenseCopiedArray(cx, splits.length(), splits.begin());
 }
 
+namespace {
+
 
 
 
@@ -3031,6 +3045,8 @@ class SplitStringMatcher
         return true;
     }
 };
+
+} 
 
 
 bool
