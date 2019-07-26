@@ -1687,10 +1687,6 @@ class ContextStack
                                  BailoutFrameGuard *bfg);
 
     
-    StackFrame *pushBailoutFrame(JSContext *cx, JSScript *script, JSObject &scopeChain,
-                                 const Value &thisv, BailoutFrameGuard *efg);
-
-    
 
 
 

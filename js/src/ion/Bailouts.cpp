@@ -251,18 +251,9 @@ ConvertFrames(JSContext *cx, IonActivation *activation, IonBailoutIterator &it)
         fp = cx->fp();
         cx->regs().sp = fp->base();
     } else {
-        if (it.maybeCallee()) {
-            
-            fp = cx->stack.pushBailoutFrame(cx, *it.callee(), it.script(), br->frameGuard());
-        } else {
-            
-            
-            
-            
-            HandleObject prevScopeChain = cx->fp()->scopeChain();
-            Value thisv = cx->fp()->thisValue();
-            fp = cx->stack.pushBailoutFrame(cx, it.script(), *prevScopeChain, thisv, br->frameGuard());
-        }
+        
+        
+        fp = cx->stack.pushBailoutFrame(cx, *it.callee(), it.script(), br->frameGuard());
     }
 
     if (!fp)
