@@ -788,3 +788,17 @@ pref("browser.ui.linkify.phone", false);
 
 
 pref("snav.enabled", true);
+
+
+
+
+pref("browser.snippets.updateUrl", "https://snippets.mozilla.com/json/%SNIPPETS_VERSION%/%NAME%/%VERSION%/%APPBUILDID%/%BUILD_TARGET%/%LOCALE%/%CHANNEL%/%OS_VERSION%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%/");
+
+
+pref("browser.snippets.updateInterval", 86400);
+
+
+pref("browser.snippets.geoUrl", "https://geo.mozilla.org/country.json");
+
+
+pref("browser.snippets.enabled", false);
