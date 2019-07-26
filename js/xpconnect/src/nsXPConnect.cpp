@@ -1463,12 +1463,14 @@ nsXPConnect::GetWrappedNativeOfNativeObject(JSContext * aJSContext,
 }
 
 
+
+
+
 NS_IMETHODIMP
 nsXPConnect::ReparentWrappedNativeIfFound(JSContext * aJSContext,
                                           JSObject * aScope,
                                           JSObject * aNewParent,
-                                          nsISupports *aCOMObj,
-                                          nsIXPConnectJSObjectHolder **_retval)
+                                          nsISupports *aCOMObj)
 {
     XPCCallContext ccx(NATIVE_CALLER, aJSContext);
     if (!ccx.IsValid())
@@ -1480,8 +1482,8 @@ nsXPConnect::ReparentWrappedNativeIfFound(JSContext * aJSContext,
         return UnexpectedFailure(NS_ERROR_FAILURE);
 
     return XPCWrappedNative::
-        ReparentWrapperIfFound(ccx, scope, scope2, aNewParent, aCOMObj,
-                               (XPCWrappedNative**) _retval);
+        ReparentWrapperIfFound(ccx, scope, scope2, aNewParent,
+                               aCOMObj);
 }
 
 static JSDHashOperator
