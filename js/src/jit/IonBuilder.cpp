@@ -2179,6 +2179,18 @@ IonBuilder::processDoWhileCondEnd(CFGState &state)
         return ControlStatus_Error;
 
     
+    if (vins->isConstant()) {
+        MConstant *cte = vins->toConstant();
+        if (cte->value().isBoolean() && !cte->value().toBoolean()) {
+            current->end(MGoto::New(alloc(), successor));
+            current = nullptr;
+
+            state.loop.successor = successor;
+            return processBrokenLoop(state);
+        }
+    }
+
+    
     MTest *test = MTest::New(alloc(), vins, state.loop.entry, successor);
     current->end(test);
     return finishLoop(state, successor);
