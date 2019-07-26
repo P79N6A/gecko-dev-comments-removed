@@ -292,7 +292,7 @@ public:
 
 
   SurfacePattern(SourceSurface *aSourceSurface, ExtendMode aExtendMode,
-                 const Matrix &aMatrix = Matrix(), Filter aFilter = FILTER_LINEAR)
+                 const Matrix &aMatrix = Matrix(), Filter aFilter = FILTER_GOOD)
     : mSurface(aSourceSurface)
     , mExtendMode(aExtendMode)
     , mFilter(aFilter)
