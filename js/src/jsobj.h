@@ -1536,6 +1536,11 @@ CheckAccess(JSContext *cx, JSObject *obj, HandleId id, JSAccessMode mode,
 extern bool
 IsDelegate(JSContext *cx, HandleObject obj, const Value &v, bool *result);
 
+
+
+extern bool
+IsDelegateOfObject(JSContext *cx, HandleObject protoObj, JSObject* obj, bool *result);
+
 bool
 GetObjectElementOperationPure(ThreadSafeContext *cx, JSObject *obj, const Value &prop, Value *vp);
 

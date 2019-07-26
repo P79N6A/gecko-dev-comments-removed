@@ -7430,7 +7430,7 @@ CodeGenerator::visitInstanceOfV(LInstanceOfV *ins)
 static bool
 IsDelegateObject(JSContext *cx, HandleObject protoObj, HandleObject obj, bool *res)
 {
-    return IsDelegate(cx, protoObj, ObjectValue(*obj), res);
+    return IsDelegateOfObject(cx, protoObj, obj, res);
 }
 
 typedef bool (*IsDelegateObjectFn)(JSContext *, HandleObject, HandleObject, bool *);
