@@ -31,7 +31,9 @@ function test() {
         window = newTabBrowser.contentWindow;
 
     
-    window.addEventListener("documentload", function() {runTests(document, window, finish);}, false, true);
+    window.addEventListener("documentload", function() {
+      runTests(document, window, finish);
+    }, false, true);
   }, true);
 }
 
