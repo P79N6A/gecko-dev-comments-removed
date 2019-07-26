@@ -1009,6 +1009,11 @@ InplaceEditor.prototype = {
 
   _maybeSuggestCompletion: function(aNoAutoInsert) {
     
+    if (!this.input) {
+      return;
+    }
+    let preTimeoutQuery = this.input.value;
+    
     
     
     this.doc.defaultView.setTimeout(() => {
@@ -1019,15 +1024,26 @@ InplaceEditor.prototype = {
       if (this.contentType == CONTENT_TYPES.PLAIN_TEXT) {
         return;
       }
-
+      if (!this.input) {
+        return;
+      }
       let input = this.input;
       
-      if (!input) {
+      if (input.value.length - preTimeoutQuery.length > 1) {
         return;
       }
       let query = input.value.slice(0, input.selectionStart);
       let startCheckQuery = query;
       if (query == null) {
+        return;
+      }
+      
+      
+      if (input.selectionStart == input.selectionEnd &&
+          input.selectionStart < input.value.length &&
+          input.value.slice(input.selectionStart)[0] != " ") {
+        
+        this.emit("after-suggest", "nothing to autocomplete");
         return;
       }
       let list = [];
