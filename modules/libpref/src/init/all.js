@@ -1755,11 +1755,22 @@ pref("dom.ipc.plugins.parentTimeoutSecs", 0);
 
 
 pref("dom.ipc.plugins.processLaunchTimeoutSecs", 45);
+#ifdef XP_WIN
+
+
+pref("dom.ipc.plugins.hangUITimeoutSecs", 5);
+
+pref("dom.ipc.plugins.hangUIMinDisplaySecs", 10);
+#endif
 #else
 
 pref("dom.ipc.plugins.timeoutSecs", 0);
 pref("dom.ipc.plugins.processLaunchTimeoutSecs", 0);
 pref("dom.ipc.plugins.parentTimeoutSecs", 0);
+#ifdef XP_WIN
+pref("dom.ipc.plugins.hangUITimeoutSecs", 0);
+pref("dom.ipc.plugins.hangUIMinDisplaySecs", 0);
+#endif
 #endif
 
 #ifdef XP_WIN
@@ -3927,8 +3938,3 @@ pref("dom.placeholder.show_on_focus", true);
 pref("wap.UAProf.url", "");
 pref("wap.UAProf.tagname", "x-wap-profile");
 
-
-
-
-
-pref("ui.touch_activation.delay_ms", 50);
