@@ -1481,9 +1481,14 @@ ObjectActor.prototype = {
 
 
   grip: function OA_grip() {
-    let g = { "type": "object",
-              "class": this.obj.class,
-              "actor": this.actorID };
+    let g = {
+      "type": "object",
+      "class": this.obj.class,
+      "actor": this.actorID,
+      "extensible": this.obj.isExtensible(),
+      "frozen": this.obj.isFrozen(),
+      "sealed": this.obj.isSealed()
+    };
 
     
     if (this.obj.class === "Function") {
