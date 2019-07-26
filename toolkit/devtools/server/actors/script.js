@@ -2655,6 +2655,189 @@ SourceActor.prototype.requestTypes = {
 
 
 
+function isObject(aValue) {
+  const type = typeof aValue;
+  return type == "object" ? aValue !== null : type == "function";
+}
+
+
+
+
+
+
+
+
+
+function hasSafeGetter(aDesc) {
+  let fn = aDesc.get;
+  return fn && fn.callable && fn.class == "Function" && fn.script === undefined;
+}
+
+
+
+
+
+
+
+
+
+
+
+function getProperty(aObj, aKey) {
+  try {
+    do {
+      const desc = aObj.getOwnPropertyDescriptor(aKey);
+      if (desc) {
+        if ("value" in desc) {
+          return desc.value
+        }
+        
+        return hasSafeGetter(desc) ? desc.get.call(aObj) : undefined;
+      }
+      aObj = aObj.proto;
+    } while (aObj);
+  } catch (e) {
+    
+    DevToolsUtils.reportException("getProperty", e);
+  }
+  return undefined;
+}
+
+
+
+
+
+
+
+
+
+
+function createBuiltinStringifier(aCtor) {
+  return aObj => aCtor.prototype.toString.call(aObj.unsafeDereference());
+}
+
+
+
+
+
+
+
+
+
+function errorStringify(aObj) {
+  let name = getProperty(aObj, "name");
+  if (name === "" || name === undefined) {
+    name = aObj.class;
+  } else if (isObject(name)) {
+    name = stringify(name);
+  }
+
+  let message = getProperty(aObj, "message");
+  if (isObject(message)) {
+    message = stringify(message);
+  }
+
+  if (message === "" || message === undefined) {
+    return name;
+  }
+  return name + ": " + message;
+}
+
+
+
+
+
+
+
+
+
+function stringify(aObj) {
+  if (Cu.isDeadWrapper(aObj)) {
+    const error = new Error("Dead object encountered.");
+    DevToolsUtils.reportException("stringify", error);
+    return "<dead object>";
+  }
+  const stringifier = stringifiers[aObj.class] || stringifiers.Object;
+  return stringifier(aObj);
+}
+
+
+let seen = null;
+
+let stringifiers = {
+  Error: errorStringify,
+  EvalError: errorStringify,
+  RangeError: errorStringify,
+  ReferenceError: errorStringify,
+  SyntaxError: errorStringify,
+  TypeError: errorStringify,
+  URIError: errorStringify,
+  Boolean: createBuiltinStringifier(Boolean),
+  Function: createBuiltinStringifier(Function),
+  Number: createBuiltinStringifier(Number),
+  RegExp: createBuiltinStringifier(RegExp),
+  String: createBuiltinStringifier(String),
+  Object: obj => "[object " + obj.class + "]",
+  Array: obj => {
+    
+    
+    const topLevel = !seen;
+    if (topLevel) {
+      seen = new Set();
+    } else if (seen.has(obj)) {
+      return "";
+    }
+
+    seen.add(obj);
+
+    const len = getProperty(obj, "length");
+    let string = "";
+
+    
+    
+    
+    if (typeof len == "number" && len > 0) {
+      for (let i = 0; i < len; i++) {
+        const desc = obj.getOwnPropertyDescriptor(i);
+        if (desc) {
+          const { value } = desc;
+          if (value != null) {
+            string += isObject(value) ? stringify(value) : value;
+          }
+        }
+
+        if (i < len - 1) {
+          string += ",";
+        }
+      }
+    }
+
+    if (topLevel) {
+      seen = null;
+    }
+
+    return string;
+  },
+  DOMException: obj => {
+    const message = getProperty(obj, "message") || "<no message>";
+    const result = (+getProperty(obj, "result")).toString(16);
+    const code = getProperty(obj, "code");
+    const name = getProperty(obj, "name") || "<unknown>";
+
+    return '[Exception... "' + message + '" ' +
+           'code: "' + code +'" ' +
+           'nsresult: "0x' + result + ' (' + name + ')"]';
+  }
+};
+
+
+
+
+
+
+
+
+
 function ObjectActor(aObj, aThreadActor)
 {
   this.obj = aObj;
@@ -2883,9 +3066,7 @@ ObjectActor.prototype = {
         continue;
       }
 
-      let fn = desc.get;
-      if (fn && fn.callable && fn.class == "Function" &&
-          fn.script === undefined) {
+      if (hasSafeGetter(desc)) {
         getters.add(name);
       }
     }
@@ -2929,34 +3110,9 @@ ObjectActor.prototype = {
 
 
   onDisplayString: function (aRequest) {
-    let toString;
-    try {
-      
-      let obj = this.obj;
-      do {
-        let desc = obj.getOwnPropertyDescriptor("toString");
-        if (desc) {
-          toString = desc.value;
-          break;
-        }
-        obj = obj.proto;
-      } while ((obj));
-    } catch (e) {
-      dumpn(e);
-    }
-
-    let result = null;
-    if (toString && toString.callable) {
-      
-      let ret = toString.call(this.obj).return;
-      if (typeof ret == "string") {
-        
-        result = ret;
-      }
-    }
-
+    const string = stringify(this.obj);
     return { from: this.actorID,
-             displayString: this.threadActor.createValueGrip(result) };
+             displayString: this.threadActor.createValueGrip(string) };
   },
 
   
