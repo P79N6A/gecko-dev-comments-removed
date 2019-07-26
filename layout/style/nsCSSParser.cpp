@@ -5086,8 +5086,13 @@ CSSParserImpl::ParseVariant(nsCSSValue& aValue,
           aValue.SetInheritValue();
           return true;
         }
-        else if (eCSSKeyword_initial == keyword) { 
+        else if (eCSSKeyword_initial == keyword) {
           aValue.SetInitialValue();
+          return true;
+        }
+        else if (eCSSKeyword_unset == keyword &&
+                 nsLayoutUtils::UnsetValueEnabled()) {
+          aValue.SetUnsetValue();
           return true;
         }
       }
@@ -5260,7 +5265,9 @@ CSSParserImpl::ParseVariant(nsCSSValue& aValue,
       (eCSSToken_Ident == tk->mType) &&
       ((aVariantMask & VARIANT_IDENTIFIER) != 0 ||
        !(tk->mIdent.LowerCaseEqualsLiteral("inherit") ||
-         tk->mIdent.LowerCaseEqualsLiteral("initial")))) {
+         tk->mIdent.LowerCaseEqualsLiteral("initial") ||
+         (tk->mIdent.LowerCaseEqualsLiteral("unset") &&
+          nsLayoutUtils::UnsetValueEnabled())))) {
     aValue.SetStringValue(tk->mIdent, eCSSUnit_Ident);
     return true;
   }
@@ -6081,6 +6088,12 @@ CSSParserImpl::ParseChoice(nsCSSValue aValues[],
         }
         found = ((1 << aNumIDs) - 1);
       }
+      else if (eCSSUnit_Unset == aValues[0].GetUnit()) { 
+        for (loop = 1; loop < aNumIDs; loop++) {
+          aValues[loop].SetUnsetValue();
+        }
+        found = ((1 << aNumIDs) - 1);
+      }
     }
     else {  
       for (loop = 0; loop < aNumIDs; loop++) {
@@ -6089,6 +6102,10 @@ CSSParserImpl::ParseChoice(nsCSSValue aValues[],
           break;
         }
         else if (eCSSUnit_Initial == aValues[loop].GetUnit()) {
+          found = -1;
+          break;
+        }
+        else if (eCSSUnit_Unset == aValues[loop].GetUnit()) {
           found = -1;
           break;
         }
@@ -6129,7 +6146,9 @@ CSSParserImpl::ParseBoxProperties(const nsCSSProperty aPropIDs[])
   if (1 < count) { 
     NS_FOR_CSS_SIDES (index) {
       nsCSSUnit unit = (result.*(nsCSSRect::sides[index])).GetUnit();
-      if (eCSSUnit_Inherit == unit || eCSSUnit_Initial == unit) {
+      if (eCSSUnit_Inherit == unit ||
+          eCSSUnit_Initial == unit ||
+          eCSSUnit_Unset == unit) {
         return false;
       }
     }
@@ -6214,7 +6233,8 @@ CSSParserImpl::ParseBoxCornerRadius(nsCSSProperty aPropID)
 
   
   if (dimenX.GetUnit() != eCSSUnit_Inherit &&
-      dimenX.GetUnit() != eCSSUnit_Initial) {
+      dimenX.GetUnit() != eCSSUnit_Initial &&
+      dimenX.GetUnit() != eCSSUnit_Unset) {
     ParseNonNegativeVariant(dimenY, VARIANT_LP | VARIANT_CALC, nullptr);
   }
 
@@ -6264,7 +6284,9 @@ CSSParserImpl::ParseBoxCornerRadii(const nsCSSProperty aPropIDs[])
   
   if (countX > 1 || countY > 0) {
     nsCSSUnit unit = dimenX.mTop.GetUnit();
-    if (eCSSUnit_Inherit == unit || eCSSUnit_Initial == unit)
+    if (eCSSUnit_Inherit == unit ||
+        eCSSUnit_Initial == unit ||
+        eCSSUnit_Unset == unit)
       return false;
   }
 
@@ -6741,6 +6763,7 @@ CSSParserImpl::ParseFontDescriptorValue(nsCSSFontDesc aDescID,
     return (ParseFontWeight(aValue) &&
             aValue.GetUnit() != eCSSUnit_Inherit &&
             aValue.GetUnit() != eCSSUnit_Initial &&
+            aValue.GetUnit() != eCSSUnit_Unset &&
             (aValue.GetUnit() != eCSSUnit_Enumerated ||
              (aValue.GetIntValue() != NS_STYLE_FONT_WEIGHT_BOLDER &&
               aValue.GetIntValue() != NS_STYLE_FONT_WEIGHT_LIGHTER)));
@@ -6929,7 +6952,8 @@ CSSParserImpl::ParseBackgroundItem(CSSParserImpl::BackgroundParseState& aState)
       nsCSSKeyword keyword = nsCSSKeywords::LookupKeyword(mToken.mIdent);
       int32_t dummy;
       if (keyword == eCSSKeyword_inherit ||
-          keyword == eCSSKeyword_initial) {
+          keyword == eCSSKeyword_initial ||
+          keyword == eCSSKeyword_unset) {
         return false;
       } else if (keyword == eCSSKeyword_none) {
         if (haveImage)
@@ -7220,6 +7244,7 @@ CSSParserImpl::ParseBackgroundPosition()
 
 
 
+
 bool CSSParserImpl::ParseBoxPositionValues(nsCSSValuePair &aOut,
                                            bool aAcceptsInherit,
                                            bool aAllowExplicitCenter)
@@ -7231,7 +7256,8 @@ bool CSSParserImpl::ParseBoxPositionValues(nsCSSValuePair &aOut,
     (aAcceptsInherit ? VARIANT_INHERIT : 0) | VARIANT_LP | VARIANT_CALC;
   if (ParseVariant(xValue, variantMask, nullptr)) {
     if (eCSSUnit_Inherit == xValue.GetUnit() ||
-        eCSSUnit_Initial == xValue.GetUnit()) {  
+        eCSSUnit_Initial == xValue.GetUnit() ||
+        eCSSUnit_Unset == xValue.GetUnit()) {  
       yValue = xValue;
       return true;
     }
@@ -7628,6 +7654,7 @@ CSSParserImpl::ParseBorderImageSlice(bool aAcceptsInherit,
 
   if (aAcceptsInherit && ParseVariant(value, VARIANT_INHERIT, nullptr)) {
     
+    
     AppendValue(eCSSProperty_border_image_slice, value);
     return true;
   }
@@ -7676,6 +7703,7 @@ CSSParserImpl::ParseBorderImageWidth(bool aAcceptsInherit)
 
   if (aAcceptsInherit && ParseVariant(value, VARIANT_INHERIT, nullptr)) {
     
+    
     AppendValue(eCSSProperty_border_image_width, value);
     return true;
   }
@@ -7697,6 +7725,7 @@ CSSParserImpl::ParseBorderImageOutset(bool aAcceptsInherit)
 
   if (aAcceptsInherit && ParseVariant(value, VARIANT_INHERIT, nullptr)) {
     
+    
     AppendValue(eCSSProperty_border_image_outset, value);
     return true;
   }
@@ -7715,6 +7744,7 @@ CSSParserImpl::ParseBorderImageRepeat(bool aAcceptsInherit)
 {
   nsCSSValue value;
   if (aAcceptsInherit && ParseVariant(value, VARIANT_INHERIT, nullptr)) {
+    
     
     AppendValue(eCSSProperty_border_image_repeat, value);
     return true;
@@ -7919,6 +7949,7 @@ CSSParserImpl::ParseBorderSide(const nsCSSProperty aPropIDs[],
     switch (values[0].GetUnit()) {
     case eCSSUnit_Inherit:
     case eCSSUnit_Initial:
+    case eCSSUnit_Unset:
       extraValue = values[0];
       
       AppendValue(eCSSProperty_border_image_source, extraValue);
@@ -8330,6 +8361,15 @@ CSSParserImpl::ParseRect(nsCSSProperty aPropID)
         }
         val.SetInitialValue();
         break;
+      case eCSSKeyword_unset:
+        if (nsLayoutUtils::UnsetValueEnabled()) {
+          if (!ExpectEndProperty()) {
+            return false;
+          }
+          val.SetUnsetValue();
+          break;
+        }
+        
       default:
         UngetToken();
         return false;
@@ -8444,6 +8484,7 @@ CSSParserImpl::ParseContent()
   nsCSSValue value;
   if (ParseVariant(value, VARIANT_HMK | VARIANT_NONE,
                    kContentSolitaryKWs)) {
+    
     
     if (!ExpectEndProperty()) {
       return false;
@@ -8562,7 +8603,8 @@ CSSParserImpl::ParseFont()
   if (ParseVariant(family, VARIANT_HK, nsCSSProps::kFontKTable)) {
     if (ExpectEndProperty()) {
       if (eCSSUnit_Inherit == family.GetUnit() ||
-          eCSSUnit_Initial == family.GetUnit()) {
+          eCSSUnit_Initial == family.GetUnit() ||
+          eCSSUnit_Unset == family.GetUnit()) {
         AppendValue(eCSSProperty__x_system_font, nsCSSValue(eCSSUnit_None));
         AppendValue(eCSSProperty_font_family, family);
         AppendValue(eCSSProperty_font_style, family);
@@ -8618,8 +8660,10 @@ CSSParserImpl::ParseFont()
   const int32_t numProps = 3;
   nsCSSValue  values[numProps];
   int32_t found = ParseChoice(values, fontIDs, numProps);
-  if ((found < 0) || (eCSSUnit_Inherit == values[0].GetUnit()) ||
-      (eCSSUnit_Initial == values[0].GetUnit())) { 
+  if (found < 0 ||
+      eCSSUnit_Inherit == values[0].GetUnit() ||
+      eCSSUnit_Initial == values[0].GetUnit() ||
+      eCSSUnit_Unset == values[0].GetUnit()) { 
     return false;
   }
   if ((found & 1) == 0) {
@@ -8658,7 +8702,9 @@ CSSParserImpl::ParseFont()
   
   nsAutoParseCompoundProperty compound(this);
   if (ParseFamily(family)) {
-    if ((eCSSUnit_Inherit != family.GetUnit()) && (eCSSUnit_Initial != family.GetUnit()) &&
+    if (eCSSUnit_Inherit != family.GetUnit() &&
+        eCSSUnit_Initial != family.GetUnit() &&
+        eCSSUnit_Unset != family.GetUnit() &&
         ExpectEndProperty()) {
       AppendValue(eCSSProperty__x_system_font, nsCSSValue(eCSSUnit_None));
       AppendValue(eCSSProperty_font_family, family);
@@ -8707,7 +8753,8 @@ CSSParserImpl::ParseFontSynthesis(nsCSSValue& aValue)
   
   if (eCSSUnit_None == aValue.GetUnit() ||
       eCSSUnit_Initial == aValue.GetUnit() ||
-      eCSSUnit_Inherit == aValue.GetUnit())
+      eCSSUnit_Inherit == aValue.GetUnit() ||
+      eCSSUnit_Unset == aValue.GetUnit())
   {
     return true;
   }
@@ -8860,7 +8907,8 @@ CSSParserImpl::ParseBitmaskValues(nsCSSValue& aValue,
   
   if (eCSSUnit_Normal == aValue.GetUnit() ||
       eCSSUnit_Initial == aValue.GetUnit() ||
-      eCSSUnit_Inherit == aValue.GetUnit())
+      eCSSUnit_Inherit == aValue.GetUnit() ||
+      eCSSUnit_Unset == aValue.GetUnit())
   {
     return true;
   }
@@ -9048,6 +9096,11 @@ CSSParserImpl::ParseFamily(nsCSSValue& aValue)
       aValue.SetInitialValue();
       return true;
     }
+    if (keyword == eCSSKeyword_unset &&
+        nsLayoutUtils::UnsetValueEnabled()) {
+      aValue.SetUnsetValue();
+      return true;
+    }
     if (keyword == eCSSKeyword__moz_use_system_font &&
         !IsParsingCompoundProperty()) {
       aValue.SetSystemFontValue();
@@ -9075,6 +9128,11 @@ CSSParserImpl::ParseFamily(nsCSSValue& aValue)
         case eCSSKeyword_default:
         case eCSSKeyword__moz_use_system_font:
           return false;
+        case eCSSKeyword_unset:
+          if (nsLayoutUtils::UnsetValueEnabled()) {
+            return false;
+          }
+          
         default:
           break;
       }
@@ -10113,9 +10171,10 @@ bool CSSParserImpl::ParseTransformOrigin(bool aPerspective)
   
   
   if (position.mXValue.GetUnit() == eCSSUnit_Inherit ||
-      position.mXValue.GetUnit() == eCSSUnit_Initial) {
+      position.mXValue.GetUnit() == eCSSUnit_Initial ||
+      position.mXValue.GetUnit() == eCSSUnit_Unset) {
     NS_ABORT_IF_FALSE(position.mXValue == position.mYValue,
-                      "inherit/initial only half?");
+                      "inherit/initial/unset only half?");
     AppendValue(prop, position.mXValue);
   } else {
     nsCSSValue value;
@@ -10340,7 +10399,9 @@ CSSParserImpl::ParseTransitionProperty()
         
         if (str.LowerCaseEqualsLiteral("none") ||
             str.LowerCaseEqualsLiteral("inherit") ||
-            str.LowerCaseEqualsLiteral("initial")) {
+            str.LowerCaseEqualsLiteral("initial") ||
+            (str.LowerCaseEqualsLiteral("unset") &&
+             nsLayoutUtils::UnsetValueEnabled())) {
           return false;
         }
       }
@@ -10594,8 +10655,6 @@ CSSParserImpl::ParseTransition()
   
   
   
-  
-  
   {
     NS_ABORT_IF_FALSE(kTransitionProperties[3] ==
                         eCSSProperty_transition_property,
@@ -10616,7 +10675,10 @@ CSSParserImpl::ParseTransition()
       }
       if (val.GetUnit() == eCSSUnit_Ident) {
         nsDependentString str(val.GetStringBufferValue());
-        if (str.EqualsLiteral("inherit") || str.EqualsLiteral("initial")) {
+        if (str.EqualsLiteral("inherit") ||
+            str.EqualsLiteral("initial") ||
+            (str.EqualsLiteral("unset") &&
+             nsLayoutUtils::UnsetValueEnabled())) {
           return false;
         }
       }
