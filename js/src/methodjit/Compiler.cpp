@@ -1008,6 +1008,19 @@ mjit::CanMethodJIT(JSContext *cx, JSScript *script, jsbytecode *pc,
     unsigned chunkIndex = jit->chunkIndex(pc);
     ChunkDescriptor &desc = jit->chunkDescriptor(chunkIndex);
 
+    if (jit->mustDestroyEntryChunk) {
+        
+        
+        
+        JS_ASSERT(jit->nchunks == 1);
+        jit->mustDestroyEntryChunk = false;
+
+        if (desc.chunk) {
+            jit->destroyChunk(cx->runtime->defaultFreeOp(), chunkIndex,  false);
+            return Compile_Skipped;
+        }
+    }
+
     if (desc.chunk)
         return Compile_Okay;
 

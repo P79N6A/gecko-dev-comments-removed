@@ -779,6 +779,13 @@ struct JITScript
 
     JSC::ExecutablePool *shimPool;
 
+    
+
+
+
+
+    bool mustDestroyEntryChunk;
+
 #ifdef JS_MONOIC
     
     JSC::CodeLocationLabel argsCheckStub;
@@ -829,6 +836,8 @@ struct JITScript
 
     void trace(JSTracer *trc);
     void purgeCaches();
+
+    void disableScriptEntry();
 };
 
 
