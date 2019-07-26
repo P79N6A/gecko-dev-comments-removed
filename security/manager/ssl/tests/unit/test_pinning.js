@@ -54,7 +54,7 @@ function test_strict() {
   
   
   add_connection_test("test-mode.pinning.example.com", Cr.NS_OK);
-};
+}
 
 function test_mitm() {
   
@@ -89,7 +89,7 @@ function test_disabled() {
   add_connection_test("exclude-subdomains.pinning.example.com", Cr.NS_OK);
   add_connection_test("sub.exclude-subdomains.pinning.example.com", Cr.NS_OK);
   add_connection_test("test-mode.pinning.example.com", Cr.NS_OK);
-};
+}
 
 function check_pinning_telemetry() {
   let service = Cc["@mozilla.org/base/telemetry;1"].getService(Ci.nsITelemetry);
@@ -103,6 +103,15 @@ function check_pinning_telemetry() {
   do_check_eq(prod_histogram.counts[1], 3); 
   do_check_eq(test_histogram.counts[0], 1); 
   do_check_eq(test_histogram.counts[1], 0); 
+
+  let moz_prod_histogram = service.getHistogramById("CERT_PINNING_MOZ_RESULTS")
+                             .snapshot();
+  let moz_test_histogram =
+    service.getHistogramById("CERT_PINNING_MOZ_TEST_RESULTS").snapshot();
+  do_check_eq(moz_prod_histogram.counts[0], 0); 
+  do_check_eq(moz_prod_histogram.counts[1], 0); 
+  do_check_eq(moz_test_histogram.counts[0], 0); 
+  do_check_eq(moz_test_histogram.counts[1], 0); 
 
   run_next_test();
 }
