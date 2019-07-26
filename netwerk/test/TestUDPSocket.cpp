@@ -322,7 +322,7 @@ main(int32_t argc, char *argv[])
   if (NS_WARN_IF(!timer)) {
     return -1;
   }
-  nsCOMPtr<MulticastTimerCallback> timerCb = new MulticastTimerCallback();
+  nsRefPtr<MulticastTimerCallback> timerCb = new MulticastTimerCallback();
 
   
   

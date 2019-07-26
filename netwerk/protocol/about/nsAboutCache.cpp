@@ -171,7 +171,7 @@ nsAboutCache::VisitNextStorage()
     
     
     
-    nsCOMPtr<nsRunnableMethod<nsAboutCache> > event =
+    nsCOMPtr<nsIRunnable> event =
         NS_NewRunnableMethod(this, &nsAboutCache::FireVisitStorage);
     return NS_DispatchToMainThread(event);
 }

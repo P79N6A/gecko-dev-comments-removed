@@ -298,6 +298,13 @@ MaybeTestPBackground()
 #endif
 }
 
+
+template<>
+struct nsIConsoleService::COMTypeInfo<nsConsoleService, void> {
+  static const nsIID kIID NS_HIDDEN;
+};
+const nsIID nsIConsoleService::COMTypeInfo<nsConsoleService, void>::kIID = NS_ICONSOLESERVICE_IID;
+
 namespace mozilla {
 namespace dom {
 

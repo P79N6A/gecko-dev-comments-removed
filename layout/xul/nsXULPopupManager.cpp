@@ -1394,7 +1394,7 @@ nsXULPopupManager::FirePopupHidingEvent(nsIContent* aPopup,
         
         if (!animate.EqualsLiteral("false") &&
             (!animate.EqualsLiteral("cancel") || aIsRollup)) {
-          nsCOMPtr<TransitionEnder> ender = new TransitionEnder(aPopup, aDeselectMenu);
+          nsRefPtr<TransitionEnder> ender = new TransitionEnder(aPopup, aDeselectMenu);
           aPopup->AddSystemEventListener(NS_LITERAL_STRING("transitionend"),
                                          ender, false, false);
           return;
