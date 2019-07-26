@@ -20,6 +20,7 @@
 #include "base/tracked.h"               
 #include "gfxContext.h"                 
 #include "gfxPlatform.h"                
+#include "gfxPrefs.h"                   
 #include "ipc/ShadowLayersManager.h"    
 #include "mozilla/AutoRestore.h"        
 #include "mozilla/DebugOnly.h"          
@@ -552,10 +553,10 @@ static const int32_t kDefaultFrameRate = 60;
 static int32_t
 CalculateCompositionFrameRate()
 {
-  int32_t compositionFrameRatePref = gfxPlatform::GetPrefLayersCompositionFrameRate();
+  int32_t compositionFrameRatePref = gfxPrefs::LayersCompositionFrameRate();
   if (compositionFrameRatePref < 0) {
     
-    int32_t layoutFrameRatePref = gfxPlatform::GetPrefLayoutFrameRate();
+    int32_t layoutFrameRatePref = gfxPrefs::LayoutFrameRate();
     if (layoutFrameRatePref < 0) {
       
       
@@ -671,7 +672,7 @@ CompositorParent::CompositeToTarget(DrawTarget* aTarget)
 #endif
 
   
-  if (gfxPlatform::GetPrefLayersCompositionFrameRate() == 0) {
+  if (gfxPrefs::LayersCompositionFrameRate() == 0) {
     
     ScheduleComposition();
   }
@@ -728,7 +729,7 @@ CompositorParent::ShadowLayersUpdated(LayerTransactionParent* aLayerTree,
       mForceCompositionTask->Cancel();
     }
     mForceCompositionTask = NewRunnableMethod(this, &CompositorParent::ForceComposition);
-    ScheduleTask(mForceCompositionTask, gfxPlatform::GetPlatform()->GetOrientationSyncMillis());
+    ScheduleTask(mForceCompositionTask, gfxPrefs::OrientationSyncMillis());
   }
 
   
