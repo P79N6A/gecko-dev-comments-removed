@@ -140,7 +140,7 @@ MNewStringObject::templateObj() const {
 
 CodeGenerator::CodeGenerator(MIRGenerator *gen, LIRGraph *graph, MacroAssembler *masm)
   : CodeGeneratorSpecific(gen, graph, masm),
-    unassociatedScriptCounts_(NULL)
+    unassociatedScriptCounts_(nullptr)
 {
 }
 
@@ -189,8 +189,8 @@ CodeGenerator::visitValueToInt32(LValueToInt32 *lir)
             stringRejoin = oolString->rejoin();
         } else {
             stringReg = InvalidReg;
-            stringEntry = NULL;
-            stringRejoin = NULL;
+            stringEntry = nullptr;
+            stringRejoin = nullptr;
         }
 
         masm.truncateValueToInt32(operand, input, stringEntry, stringRejoin, oolDouble->entry(),
@@ -404,13 +404,13 @@ class OutOfLineTestObject : public OutOfLineCodeBase<CodeGenerator>
     Label *ifFalsy_;
 
 #ifdef DEBUG
-    bool initialized() { return ifTruthy_ != NULL; }
+    bool initialized() { return ifTruthy_ != nullptr; }
 #endif
 
   public:
     OutOfLineTestObject()
 #ifdef DEBUG
-      : ifTruthy_(NULL), ifFalsy_(NULL)
+      : ifTruthy_(nullptr), ifFalsy_(nullptr)
 #endif
     { }
 
@@ -563,7 +563,7 @@ CodeGenerator::visitTestOAndBranch(LTestOAndBranch *lir)
 bool
 CodeGenerator::visitTestVAndBranch(LTestVAndBranch *lir)
 {
-    OutOfLineTestObject *ool = NULL;
+    OutOfLineTestObject *ool = nullptr;
     if (lir->mir()->operandMightEmulateUndefined()) {
         ool = new OutOfLineTestObject();
         if (!addOutOfLineCode(ool))
@@ -2604,20 +2604,20 @@ CodeGenerator::maybeCreateScriptCounts()
     
     JSContext *cx = GetIonContext()->cx;
     if (!cx || !cx->runtime()->profilingScripts)
-        return NULL;
+        return nullptr;
 
-    IonScriptCounts *counts = NULL;
+    IonScriptCounts *counts = nullptr;
 
     CompileInfo *outerInfo = &gen->info();
     JSScript *script = outerInfo->script();
 
     if (script && !script->hasScriptCounts && !script->initScriptCounts(cx))
-        return NULL;
+        return nullptr;
 
     counts = js_new<IonScriptCounts>();
     if (!counts || !counts->init(graph.numBlocks())) {
         js_delete(counts);
-        return NULL;
+        return nullptr;
     }
 
     if (script)
@@ -2639,7 +2639,7 @@ CodeGenerator::maybeCreateScriptCounts()
         }
 
         if (!counts->block(i).init(block->id(), offset, block->numSuccessors()))
-            return NULL;
+            return nullptr;
         for (size_t j = 0; j < block->numSuccessors(); j++)
             counts->block(i).setSuccessor(j, block->getSuccessor(j)->id());
     }
@@ -2673,7 +2673,7 @@ struct ScriptCountBlockState
     ScriptCountBlockState(IonBlockCounts *block, MacroAssembler *masm)
       : block(*block), masm(*masm),
         printer(GetIonContext()->cx),
-        instructionBytes(0), spillBytes(0), last(NULL), lastLength(0)
+        instructionBytes(0), spillBytes(0), last(nullptr), lastLength(0)
     {
     }
 
@@ -2710,7 +2710,7 @@ struct ScriptCountBlockState
 
     ~ScriptCountBlockState()
     {
-        masm.setPrinter(NULL);
+        masm.setPrinter(nullptr);
 
         if (last)
             *last += masm.size() - lastLength;
@@ -2875,7 +2875,8 @@ CodeGenerator::visitNewArrayCallVM(LNewArray *lir)
     saveLive(lir);
 
     JSObject *templateObject = lir->mir()->templateObject();
-    types::TypeObject *type = templateObject->hasSingletonType() ? NULL : templateObject->type();
+    types::TypeObject *type =
+        templateObject->hasSingletonType() ? nullptr : templateObject->type();
 
     pushArg(ImmGCPtr(type));
     pushArg(Imm32(lir->mir()->count()));
@@ -3135,15 +3136,15 @@ CodeGenerator::visitNewCallObject(LNewCallObject *lir)
         ool = oolCallVM(NewCallObjectInfo, lir,
                         (ArgList(), ImmGCPtr(lir->mir()->block()->info().script()),
                                     ImmGCPtr(templateObj->lastProperty()),
-                                    ImmGCPtr(templateObj->hasLazyType() ? NULL : templateObj->type()),
+                                    ImmGCPtr(templateObj->hasLazyType() ? nullptr : templateObj->type()),
                                     ToRegister(lir->slots())),
                         StoreRegisterTo(obj));
     } else {
         ool = oolCallVM(NewCallObjectInfo, lir,
                         (ArgList(), ImmGCPtr(lir->mir()->block()->info().script()),
                                     ImmGCPtr(templateObj->lastProperty()),
-                                    ImmGCPtr(templateObj->hasLazyType() ? NULL : templateObj->type()),
-                                    ImmPtr(NULL)),
+                                    ImmGCPtr(templateObj->hasLazyType() ? nullptr : templateObj->type()),
+                                    ImmPtr(nullptr)),
                         StoreRegisterTo(obj));
     }
     if (!ool)
@@ -3763,7 +3764,7 @@ CodeGenerator::visitMathFunctionD(LMathFunctionD *ins)
 
 #   define MAYBE_CACHED(fcn) (mathCache ? (void*)fcn ## _impl : (void*)fcn ## _uncached)
 
-    void *funptr = NULL;
+    void *funptr = nullptr;
     switch (ins->mir()->function()) {
       case MMathFunction::Log:
         funptr = JS_FUNC_TO_DATA_PTR(void *, MAYBE_CACHED(js::math_log));
@@ -3927,7 +3928,7 @@ CodeGenerator::emitCompareS(LInstruction *lir, JSOp op, Register left, Register 
 {
     JS_ASSERT(lir->isCompareS() || lir->isCompareStrictS());
 
-    OutOfLineCode *ool = NULL;
+    OutOfLineCode *ool = nullptr;
 
     if (op == JSOP_EQ || op == JSOP_STRICTEQ) {
         ool = oolCallVM(StringsEqualInfo, lir, (ArgList(), left, right),  StoreRegisterTo(output));
@@ -4064,7 +4065,7 @@ CodeGenerator::visitIsNullOrLikeUndefined(LIsNullOrLikeUndefined *lir)
                    lir->mir()->operandMightEmulateUndefined(),
                    "Operands which can't emulate undefined should have been folded");
 
-        OutOfLineTestObjectWithLabels *ool = NULL;
+        OutOfLineTestObjectWithLabels *ool = nullptr;
         Maybe<Label> label1, label2;
         Label *nullOrLikeUndefined;
         Label *notNullOrLikeUndefined;
@@ -4152,7 +4153,7 @@ CodeGenerator::visitIsNullOrLikeUndefinedAndBranch(LIsNullOrLikeUndefinedAndBran
                    lir->mir()->operandMightEmulateUndefined(),
                    "Operands which can't emulate undefined should have been folded");
 
-        OutOfLineTestObject *ool = NULL;
+        OutOfLineTestObject *ool = nullptr;
         if (lir->mir()->operandMightEmulateUndefined()) {
             ool = new OutOfLineTestObject();
             if (!addOutOfLineCode(ool))
@@ -4484,7 +4485,7 @@ IonCompartment::generateStringConcatStub(JSContext *cx, ExecutionMode mode)
     masm.pop(temp1);
 
     masm.bind(&failure);
-    masm.movePtr(ImmPtr(NULL), output);
+    masm.movePtr(ImmPtr(nullptr), output);
     masm.ret();
 
     Linker linker(masm);
@@ -4607,7 +4608,7 @@ CodeGenerator::visitNotV(LNotV *lir)
     Label *ifTruthy;
     Label *ifFalsy;
 
-    OutOfLineTestObjectWithLabels *ool = NULL;
+    OutOfLineTestObjectWithLabels *ool = nullptr;
     if (lir->mir()->operandMightEmulateUndefined()) {
         ool = new OutOfLineTestObjectWithLabels();
         if (!addOutOfLineCode(ool))
@@ -5211,7 +5212,7 @@ CodeGenerator::visitArrayConcat(LArrayConcat *lir)
     masm.jump(&call);
     {
         masm.bind(&fail);
-        masm.movePtr(ImmPtr(NULL), temp1);
+        masm.movePtr(ImmPtr(nullptr), temp1);
     }
     masm.bind(&call);
 
@@ -5440,8 +5441,8 @@ CodeGenerator::visitIteratorEnd(LIteratorEnd *lir)
     masm.storePtr(prev, Address(next, NativeIterator::offsetOfPrev()));
     masm.storePtr(next, Address(prev, NativeIterator::offsetOfNext()));
 #ifdef DEBUG
-    masm.storePtr(ImmPtr(NULL), Address(temp1, NativeIterator::offsetOfNext()));
-    masm.storePtr(ImmPtr(NULL), Address(temp1, NativeIterator::offsetOfPrev()));
+    masm.storePtr(ImmPtr(nullptr), Address(temp1, NativeIterator::offsetOfNext()));
+    masm.storePtr(ImmPtr(nullptr), Address(temp1, NativeIterator::offsetOfPrev()));
 #endif
 
     masm.bind(ool->rejoin());
@@ -5545,7 +5546,7 @@ CodeGenerator::visitRest(LRest *lir)
     masm.jump(&joinAlloc);
     {
         masm.bind(&failAlloc);
-        masm.movePtr(ImmPtr(NULL), temp2);
+        masm.movePtr(ImmPtr(nullptr), temp2);
     }
     masm.bind(&joinAlloc);
 
@@ -6515,7 +6516,7 @@ CodeGenerator::visitTypeOfV(LTypeOfV *lir)
     JSRuntime *rt = GetIonContext()->runtime;
     Label done;
 
-    OutOfLineTypeOfV *ool = NULL;
+    OutOfLineTypeOfV *ool = nullptr;
     if (lir->mir()->inputMaybeCallableOrEmulatesUndefined()) {
         
         
@@ -6870,8 +6871,8 @@ CodeGenerator::visitClampVToUint8(LClampVToUint8 *lir)
         stringEntry = oolString->entry();
         stringRejoin = oolString->rejoin();
     } else {
-        stringEntry = NULL;
-        stringRejoin = NULL;
+        stringEntry = nullptr;
+        stringRejoin = nullptr;
     }
 
     Label fails;
@@ -6911,7 +6912,7 @@ CodeGenerator::visitInArray(LInArray *lir)
     
     Label falseBranch, done, trueBranch;
 
-    OutOfLineCode *ool = NULL;
+    OutOfLineCode *ool = nullptr;
     Label* failedInitLength = &falseBranch;
 
     if (lir->index()->isConstant()) {
@@ -7323,7 +7324,7 @@ CodeGenerator::visitIsCallable(LIsCallable *ins)
     masm.jump(&done);
 
     masm.bind(&notFunction);
-    masm.cmpPtr(Address(output, offsetof(js::Class, call)), ImmPtr(NULL));
+    masm.cmpPtr(Address(output, offsetof(js::Class, call)), ImmPtr(nullptr));
     masm.emitSet(Assembler::NonZero, output);
     masm.bind(&done);
 

@@ -250,7 +250,7 @@ struct BaselineScript
     void copyPCMappingIndexEntries(const PCMappingIndexEntry *entries);
 
     void copyPCMappingEntries(const CompactBufferWriter &entries);
-    uint8_t *nativeCodeForPC(JSScript *script, jsbytecode *pc, PCMappingSlotInfo *slotInfo = NULL);
+    uint8_t *nativeCodeForPC(JSScript *script, jsbytecode *pc, PCMappingSlotInfo *slotInfo = nullptr);
     jsbytecode *pcForReturnOffset(JSScript *script, uint32_t nativeOffset);
     jsbytecode *pcForReturnAddress(JSScript *script, uint8_t *nativeAddress);
 
@@ -341,7 +341,7 @@ struct BaselineBailoutInfo
 uint32_t
 BailoutIonToBaseline(JSContext *cx, JitActivation *activation, IonBailoutIterator &iter,
                      bool invalidate, BaselineBailoutInfo **bailoutInfo,
-                     const ExceptionBailoutInfo *exceptionInfo = NULL);
+                     const ExceptionBailoutInfo *exceptionInfo = nullptr);
 
 
 
