@@ -168,7 +168,7 @@ protected:
   
   
   
-  imgStatusTracker& GetStatusTracker() const;
+  virtual imgStatusTracker& GetStatusTracker() const;
 
   nsITimedChannel* TimedChannel()
   {
@@ -192,9 +192,6 @@ private:
   
   
   nsRefPtr<imgRequest> mOwner;
-
-  
-  imgStatusTracker* mStatusTracker;
 
   
   nsCOMPtr<nsIURI> mURI;
@@ -240,6 +237,7 @@ public:
   };
 
   NS_IMETHOD GetImagePrincipal(nsIPrincipal** aPrincipal);
+  virtual imgStatusTracker& GetStatusTracker() const MOZ_OVERRIDE;
 
 protected:
   

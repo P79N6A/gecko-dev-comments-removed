@@ -12,11 +12,281 @@
 #include "Image.h"
 #include "ImageLogging.h"
 #include "RasterImage.h"
+#include "nsIObserverService.h"
 
 #include "mozilla/Util.h"
 #include "mozilla/Assertions.h"
+#include "mozilla/Services.h"
 
 using namespace mozilla::image;
+
+NS_IMPL_ISUPPORTS3(imgStatusTrackerObserver,
+                   imgIDecoderObserver,
+                   imgIContainerObserver,
+                   nsISupportsWeakReference)
+
+
+
+
+
+
+NS_IMETHODIMP imgStatusTrackerObserver::FrameChanged(imgIRequest *request,
+                                                     imgIContainer *container,
+                                                     const nsIntRect *dirtyRect)
+{
+  LOG_SCOPE(gImgLog, "imgStatusTrackerObserver::FrameChanged");
+  NS_ABORT_IF_FALSE(mTracker->GetImage(),
+                    "FrameChanged callback before we've created our image");
+
+  mTracker->RecordFrameChanged(container, dirtyRect);
+
+  nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mTracker->GetConsumers());
+  while (iter.HasMore()) {
+    mTracker->SendFrameChanged(iter.GetNext(), container, dirtyRect);
+  }
+
+  return NS_OK;
+}
+
+
+
+
+NS_IMETHODIMP imgStatusTrackerObserver::OnStartDecode(imgIRequest *request)
+{
+  LOG_SCOPE(gImgLog, "imgStatusTrackerObserver::OnStartDecode");
+  NS_ABORT_IF_FALSE(mTracker->GetImage(),
+                    "OnStartDecode callback before we've created our image");
+
+
+  mTracker->RecordStartDecode();
+
+  nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mTracker->GetConsumers());
+  while (iter.HasMore()) {
+    mTracker->SendStartDecode(iter.GetNext());
+  }
+
+  if (!mTracker->GetRequest()->GetMultipart()) {
+    MOZ_ASSERT(!mTracker->mBlockingOnload);
+    mTracker->mBlockingOnload = true;
+
+    mTracker->RecordBlockOnload();
+
+    nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mTracker->GetConsumers());
+    while (iter.HasMore()) {
+      mTracker->SendBlockOnload(iter.GetNext());
+    }
+  }
+
+  
+
+
+
+
+  mTracker->GetRequest()->ResetCacheEntry();
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP imgStatusTrackerObserver::OnStartRequest(imgIRequest *aRequest)
+{
+  NS_NOTREACHED("imgRequest(imgIDecoderObserver)::OnStartRequest");
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP imgStatusTrackerObserver::OnStartContainer(imgIRequest *request, imgIContainer *image)
+{
+  LOG_SCOPE(gImgLog, "imgStatusTrackerObserver::OnStartContainer");
+
+  NS_ASSERTION(image, "imgStatusTrackerObserver::OnStartContainer called with a null image!");
+  if (!image) return NS_ERROR_UNEXPECTED;
+
+  NS_ABORT_IF_FALSE(mTracker->GetImage(),
+                    "OnStartContainer callback before we've created our image");
+  NS_ABORT_IF_FALSE(image == mTracker->GetImage(),
+                    "OnStartContainer callback from an image we don't own");
+  mTracker->RecordStartContainer(image);
+
+  nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mTracker->GetConsumers());
+  while (iter.HasMore()) {
+    mTracker->SendStartContainer(iter.GetNext(), image);
+  }
+
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP imgStatusTrackerObserver::OnStartFrame(imgIRequest *request,
+                                       uint32_t frame)
+{
+  LOG_SCOPE(gImgLog, "imgStatusTrackerObserver::OnStartFrame");
+  NS_ABORT_IF_FALSE(mTracker->GetImage(),
+                    "OnStartFrame callback before we've created our image");
+
+  mTracker->RecordStartFrame(frame);
+
+  nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mTracker->GetConsumers());
+  while (iter.HasMore()) {
+    mTracker->SendStartFrame(iter.GetNext(), frame);
+  }
+
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP imgStatusTrackerObserver::OnDataAvailable(imgIRequest *request,
+                                          bool aCurrentFrame,
+                                          const nsIntRect * rect)
+{
+  LOG_SCOPE(gImgLog, "imgStatusTrackerObserver::OnDataAvailable");
+  NS_ABORT_IF_FALSE(mTracker->GetImage(),
+                    "OnDataAvailable callback before we've created our image");
+
+  mTracker->RecordDataAvailable(aCurrentFrame, rect);
+
+  nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mTracker->GetConsumers());
+  while (iter.HasMore()) {
+    mTracker->SendDataAvailable(iter.GetNext(), aCurrentFrame, rect);
+  }
+
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP imgStatusTrackerObserver::OnStopFrame(imgIRequest *request,
+                                      uint32_t frame)
+{
+  LOG_SCOPE(gImgLog, "imgStatusTrackerObserver::OnStopFrame");
+  NS_ABORT_IF_FALSE(mTracker->GetImage(),
+                    "OnStopFrame callback before we've created our image");
+
+  mTracker->RecordStopFrame(frame);
+
+  nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mTracker->GetConsumers());
+  while (iter.HasMore()) {
+    mTracker->SendStopFrame(iter.GetNext(), frame);
+  }
+
+  mTracker->MaybeUnblockOnload();
+
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP imgStatusTrackerObserver::OnStopContainer(imgIRequest *request,
+                                          imgIContainer *image)
+{
+  LOG_SCOPE(gImgLog, "imgStatusTrackerObserver::OnStopContainer");
+  NS_ABORT_IF_FALSE(mTracker->GetImage(),
+                    "OnDataContainer callback before we've created our image");
+
+  mTracker->RecordStopContainer(image);
+
+  nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mTracker->GetConsumers());
+  while (iter.HasMore()) {
+    mTracker->SendStopContainer(iter.GetNext(), image);
+  }
+
+  
+  
+  
+  
+  
+  
+  mTracker->MaybeUnblockOnload();
+
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP imgStatusTrackerObserver::OnStopDecode(imgIRequest *aRequest,
+                                       nsresult aStatus,
+                                       const PRUnichar *aStatusArg)
+{
+  LOG_SCOPE(gImgLog, "imgStatusTrackerObserver::OnStopDecode");
+  NS_ABORT_IF_FALSE(mTracker->GetImage(),
+                    "OnDataDecode callback before we've created our image");
+
+  
+  
+  mTracker->GetRequest()->UpdateCacheEntrySize();
+
+  mTracker->RecordStopDecode(aStatus, aStatusArg);
+
+  nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mTracker->GetConsumers());
+  while (iter.HasMore()) {
+    mTracker->SendStopDecode(iter.GetNext(), aStatus, aStatusArg);
+  }
+
+  if (NS_FAILED(aStatus)) {
+    
+    
+
+    nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
+    if (os) {
+      nsCOMPtr<nsIURI> uri;
+      mTracker->GetRequest()->GetURI(getter_AddRefs(uri));
+      os->NotifyObservers(uri, "net:failed-to-process-uri-content", nullptr);
+    }
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP imgStatusTrackerObserver::OnStopRequest(imgIRequest *aRequest,
+                                        bool aLastPart)
+{
+  NS_NOTREACHED("imgRequest(imgIDecoderObserver)::OnStopRequest");
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP imgStatusTrackerObserver::OnDiscard(imgIRequest *aRequest)
+{
+  NS_ABORT_IF_FALSE(mTracker->GetImage(),
+                    "OnDiscard callback before we've created our image");
+
+  mTracker->RecordDiscard();
+
+  
+  mTracker->GetRequest()->UpdateCacheEntrySize();
+
+  nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mTracker->GetConsumers());
+  while (iter.HasMore()) {
+    mTracker->SendDiscard(iter.GetNext());
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP imgStatusTrackerObserver::OnImageIsAnimated(imgIRequest *aRequest)
+{
+  NS_ABORT_IF_FALSE(mTracker->GetImage(),
+                    "OnImageIsAnimated callback before we've created our image");
+  mTracker->RecordImageIsAnimated();
+
+  nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mTracker->GetConsumers());
+  while (iter.HasMore()) {
+    mTracker->SendImageIsAnimated(iter.GetNext());
+  }
+
+  return NS_OK;
+}
+
+
 
 static nsresult
 GetResultFromImageStatus(uint32_t aStatus)
@@ -33,7 +303,9 @@ imgStatusTracker::imgStatusTracker(Image* aImage, imgRequest* aRequest)
     mRequest(aRequest),
     mState(0),
     mImageStatus(imgIRequest::STATUS_NONE),
-    mHadLastPart(false)
+    mHadLastPart(false),
+    mBlockingOnload(false),
+    mTrackerObserver(new imgStatusTrackerObserver(this))
 {}
 
 imgStatusTracker::imgStatusTracker(const imgStatusTracker& aOther)
@@ -41,7 +313,8 @@ imgStatusTracker::imgStatusTracker(const imgStatusTracker& aOther)
     mRequest(aOther.mRequest),
     mState(aOther.mState),
     mImageStatus(aOther.mImageStatus),
-    mHadLastPart(aOther.mHadLastPart)
+    mHadLastPart(aOther.mHadLastPart),
+    mBlockingOnload(aOther.mBlockingOnload)
     
     
     
@@ -568,5 +841,22 @@ imgStatusTracker::SendUnblockOnload(imgRequestProxy* aProxy)
 {
   if (!aProxy->NotificationsDeferred()) {
     aProxy->UnblockOnload();
+  }
+}
+
+void
+imgStatusTracker::MaybeUnblockOnload()
+{
+  if (!mBlockingOnload) {
+    return;
+  }
+
+  mBlockingOnload = false;
+
+  RecordUnblockOnload();
+
+  nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mConsumers);
+  while (iter.HasMore()) {
+    SendUnblockOnload(iter.GetNext());
   }
 }

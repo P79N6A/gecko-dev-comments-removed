@@ -71,10 +71,8 @@ InitPrefCaches()
 PRLogModuleInfo *gImgLog = PR_NewLogModule("imgRequest");
 #endif
 
-NS_IMPL_ISUPPORTS8(imgRequest,
-                   imgIDecoderObserver, imgIContainerObserver,
+NS_IMPL_ISUPPORTS5(imgRequest,
                    nsIStreamListener, nsIRequestObserver,
-                   nsISupportsWeakReference,
                    nsIChannelEventSink,
                    nsIInterfaceRequestor,
                    nsIAsyncVerifyRedirectCallback)
@@ -90,7 +88,6 @@ imgRequest::imgRequest(imgLoader* aLoader)
  , mIsMultiPartChannel(false)
  , mGotData(false)
  , mIsInCache(false)
- , mBlockingOnload(false)
  , mResniffMimeType(false)
 {
   
@@ -173,6 +170,13 @@ void imgRequest::SetCacheEntry(imgCacheEntry *entry)
 bool imgRequest::HasCacheEntry() const
 {
   return mCacheEntry != nullptr;
+}
+
+void imgRequest::ResetCacheEntry()
+{
+  if (HasCacheEntry()) {
+    mCacheEntry->SetDataSize(0);
+  }
 }
 
 void imgRequest::AddProxy(imgRequestProxy *proxy)
@@ -270,16 +274,7 @@ void imgRequest::Cancel(nsresult aStatus)
 
   imgStatusTracker& statusTracker = GetStatusTracker();
 
-  if (mBlockingOnload) {
-    mBlockingOnload = false;
-
-    statusTracker.RecordUnblockOnload();
-
-    nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(GetStatusTracker().GetConsumers());
-    while (iter.HasMore()) {
-      statusTracker.SendUnblockOnload(iter.GetNext());
-    }
-  }
+  statusTracker.MaybeUnblockOnload();
 
   statusTracker.RecordCancel();
 
@@ -473,289 +468,6 @@ imgRequest::StartDecoding()
 
   
   mDecodeRequested = true;
-
-  return NS_OK;
-}
-
-
-
-
-
-
-
-
-NS_IMETHODIMP imgRequest::FrameChanged(imgIRequest *request,
-                                       imgIContainer *container,
-                                       const nsIntRect *dirtyRect)
-{
-  LOG_SCOPE(gImgLog, "imgRequest::FrameChanged");
-  NS_ABORT_IF_FALSE(mImage,
-                    "FrameChanged callback before we've created our image");
-
-  mImage->GetStatusTracker().RecordFrameChanged(container, dirtyRect);
-
-  nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(GetStatusTracker().GetConsumers());
-  while (iter.HasMore()) {
-    mImage->GetStatusTracker().SendFrameChanged(iter.GetNext(), container, dirtyRect);
-  }
-
-  return NS_OK;
-}
-
-
-
-
-NS_IMETHODIMP imgRequest::OnStartDecode(imgIRequest *request)
-{
-  LOG_SCOPE(gImgLog, "imgRequest::OnStartDecode");
-  NS_ABORT_IF_FALSE(mImage,
-                    "OnStartDecode callback before we've created our image");
-
-
-  imgStatusTracker& tracker = mImage->GetStatusTracker();
-  tracker.RecordStartDecode();
-
-  nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(GetStatusTracker().GetConsumers());
-  while (iter.HasMore()) {
-    tracker.SendStartDecode(iter.GetNext());
-  }
-
-  if (!mIsMultiPartChannel) {
-    MOZ_ASSERT(!mBlockingOnload);
-    mBlockingOnload = true;
-
-    tracker.RecordBlockOnload();
-
-    nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(GetStatusTracker().GetConsumers());
-    while (iter.HasMore()) {
-      tracker.SendBlockOnload(iter.GetNext());
-    }
-  }
-
-  
-
-
-
-
-  if (mCacheEntry)
-    mCacheEntry->SetDataSize(0);
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP imgRequest::OnStartRequest(imgIRequest *aRequest)
-{
-  NS_NOTREACHED("imgRequest(imgIDecoderObserver)::OnStartRequest");
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP imgRequest::OnStartContainer(imgIRequest *request, imgIContainer *image)
-{
-  LOG_SCOPE(gImgLog, "imgRequest::OnStartContainer");
-
-  NS_ASSERTION(image, "imgRequest::OnStartContainer called with a null image!");
-  if (!image) return NS_ERROR_UNEXPECTED;
-
-  NS_ABORT_IF_FALSE(mImage,
-                    "OnStartContainer callback before we've created our image");
-  NS_ABORT_IF_FALSE(image == mImage,
-                    "OnStartContainer callback from an image we don't own");
-  mImage->GetStatusTracker().RecordStartContainer(image);
-
-  nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(GetStatusTracker().GetConsumers());
-  while (iter.HasMore()) {
-    mImage->GetStatusTracker().SendStartContainer(iter.GetNext(), image);
-  }
-
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP imgRequest::OnStartFrame(imgIRequest *request,
-                                       uint32_t frame)
-{
-  LOG_SCOPE(gImgLog, "imgRequest::OnStartFrame");
-  NS_ABORT_IF_FALSE(mImage,
-                    "OnStartFrame callback before we've created our image");
-
-  mImage->GetStatusTracker().RecordStartFrame(frame);
-
-  nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(GetStatusTracker().GetConsumers());
-  while (iter.HasMore()) {
-    mImage->GetStatusTracker().SendStartFrame(iter.GetNext(), frame);
-  }
-
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP imgRequest::OnDataAvailable(imgIRequest *request,
-                                          bool aCurrentFrame,
-                                          const nsIntRect * rect)
-{
-  LOG_SCOPE(gImgLog, "imgRequest::OnDataAvailable");
-  NS_ABORT_IF_FALSE(mImage,
-                    "OnDataAvailable callback before we've created our image");
-
-  mImage->GetStatusTracker().RecordDataAvailable(aCurrentFrame, rect);
-
-  nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(GetStatusTracker().GetConsumers());
-  while (iter.HasMore()) {
-    mImage->GetStatusTracker().SendDataAvailable(iter.GetNext(), aCurrentFrame, rect);
-  }
-
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP imgRequest::OnStopFrame(imgIRequest *request,
-                                      uint32_t frame)
-{
-  LOG_SCOPE(gImgLog, "imgRequest::OnStopFrame");
-  NS_ABORT_IF_FALSE(mImage,
-                    "OnStopFrame callback before we've created our image");
-
-  imgStatusTracker& tracker = mImage->GetStatusTracker();
-  tracker.RecordStopFrame(frame);
-
-  nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(GetStatusTracker().GetConsumers());
-  while (iter.HasMore()) {
-    tracker.SendStopFrame(iter.GetNext(), frame);
-  }
-
-  if (mBlockingOnload) {
-    mBlockingOnload = false;
-
-    tracker.RecordUnblockOnload();
-
-    nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(GetStatusTracker().GetConsumers());
-    while (iter.HasMore()) {
-      tracker.SendUnblockOnload(iter.GetNext());
-    }
-  }
-
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP imgRequest::OnStopContainer(imgIRequest *request,
-                                          imgIContainer *image)
-{
-  LOG_SCOPE(gImgLog, "imgRequest::OnStopContainer");
-  NS_ABORT_IF_FALSE(mImage,
-                    "OnDataContainer callback before we've created our image");
-
-  imgStatusTracker& tracker = mImage->GetStatusTracker();
-  tracker.RecordStopContainer(image);
-
-  nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(GetStatusTracker().GetConsumers());
-  while (iter.HasMore()) {
-    tracker.SendStopContainer(iter.GetNext(), image);
-  }
-
-  
-  
-  
-  
-  
-  
-  if (mBlockingOnload) {
-    mBlockingOnload = false;
-
-    tracker.RecordUnblockOnload();
-
-    nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(GetStatusTracker().GetConsumers());
-    while (iter.HasMore()) {
-      tracker.SendUnblockOnload(iter.GetNext());
-    }
-  }
-
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP imgRequest::OnStopDecode(imgIRequest *aRequest,
-                                       nsresult aStatus,
-                                       const PRUnichar *aStatusArg)
-{
-  LOG_SCOPE(gImgLog, "imgRequest::OnStopDecode");
-  NS_ABORT_IF_FALSE(mImage,
-                    "OnDataDecode callback before we've created our image");
-
-  
-  
-  UpdateCacheEntrySize();
-
-  mImage->GetStatusTracker().RecordStopDecode(aStatus, aStatusArg);
-
-  nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(GetStatusTracker().GetConsumers());
-  while (iter.HasMore()) {
-    mImage->GetStatusTracker().SendStopDecode(iter.GetNext(), aStatus,
-                                              aStatusArg);
-  }
-
-  if (NS_FAILED(aStatus)) {
-    
-    
-
-    nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
-    if (os)
-      os->NotifyObservers(mURI, "net:failed-to-process-uri-content", nullptr);
-  }
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP imgRequest::OnStopRequest(imgIRequest *aRequest,
-                                        bool aLastPart)
-{
-  NS_NOTREACHED("imgRequest(imgIDecoderObserver)::OnStopRequest");
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP imgRequest::OnDiscard(imgIRequest *aRequest)
-{
-  NS_ABORT_IF_FALSE(mImage,
-                    "OnDiscard callback before we've created our image");
-
-  mImage->GetStatusTracker().RecordDiscard();
-
-  
-  UpdateCacheEntrySize();
-
-  nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(GetStatusTracker().GetConsumers());
-  while (iter.HasMore()) {
-    mImage->GetStatusTracker().SendDiscard(iter.GetNext());
-  }
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP imgRequest::OnImageIsAnimated(imgIRequest *aRequest)
-{
-  NS_ABORT_IF_FALSE(mImage,
-                    "OnImageIsAnimated callback before we've created our image");
-  mImage->GetStatusTracker().RecordImageIsAnimated();
-
-  nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(GetStatusTracker().GetConsumers());
-  while (iter.HasMore()) {
-    mImage->GetStatusTracker().SendImageIsAnimated(iter.GetNext());
-  }
 
   return NS_OK;
 }
@@ -1082,7 +794,8 @@ imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctxt,
       
       
       
-      rv = mImage->Init(this, mContentType.get(), uriString.get(), imageFlags);
+      rv = mImage->Init(GetStatusTracker().GetDecoderObserver(),
+                        mContentType.get(), uriString.get(), imageFlags);
 
       
       
