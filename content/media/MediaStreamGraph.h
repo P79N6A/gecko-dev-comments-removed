@@ -739,7 +739,6 @@ public:
 
 
 
-
   void FinishWithLockHeld();
   void Finish()
     {
