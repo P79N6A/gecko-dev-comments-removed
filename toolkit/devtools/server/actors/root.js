@@ -146,8 +146,6 @@ function CommonAppendExtraActors(aObject) {
 
 
 
-
-
 function RootActor(aConnection, aParameters) {
   this.conn = aConnection;
   this._parameters = aParameters;
@@ -221,45 +219,47 @@ RootActor.prototype = {
     let newActorPool = new ActorPool(this.conn);
     let tabActorList = [];
     let selected;
-    for (let tabActor of tabList) {
-      if (tabActor.selected) {
-        selected = tabActorList.length;
+    return tabList.getList().then((tabActors) => {
+      for (let tabActor of tabActors) {
+        if (tabActor.selected) {
+          selected = tabActorList.length;
+        }
+        tabActor.parentID = this.actorID;
+        newActorPool.addActor(tabActor);
+        tabActorList.push(tabActor);
       }
-      tabActor.parentID = this.actorID;
-      newActorPool.addActor(tabActor);
-      tabActorList.push(tabActor);
-    }
 
-    
-    this._createExtraActors(this._parameters.globalActorFactories, newActorPool);
+      
+      this._createExtraActors(this._parameters.globalActorFactories, newActorPool);
 
-    
+      
 
 
 
-    if (this._tabActorPool) {
-      this.conn.removeActorPool(this._tabActorPool);
-    }
-    this._tabActorPool = newActorPool;
-    this.conn.addActorPool(this._tabActorPool);
+      if (this._tabActorPool) {
+        this.conn.removeActorPool(this._tabActorPool);
+      }
+      this._tabActorPool = newActorPool;
+      this.conn.addActorPool(this._tabActorPool);
 
-    let reply = {
-      "from": this.actorID,
-      "selected": selected || 0,
-      "tabs": [actor.grip() for (actor of tabActorList)],
-    };
+      let reply = {
+        "from": this.actorID,
+        "selected": selected || 0,
+        "tabs": [actor.grip() for (actor of tabActorList)],
+      };
 
-    
-    this._appendExtraActors(reply);
+      
+      this._appendExtraActors(reply);
 
-    
+      
 
 
 
 
-    tabList.onListChanged = this._onTabListChanged;
+      tabList.onListChanged = this._onTabListChanged;
 
-    return reply;
+      return reply;
+    });
   },
 
   onTabListChanged: function () {
