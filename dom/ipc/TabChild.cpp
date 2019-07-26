@@ -661,7 +661,7 @@ TabChild::HandlePossibleViewportChange()
 
   
   
-  ProcessUpdateFrame(metrics);
+  mLastRootMetrics = ProcessUpdateFrame(metrics);
 
   if (viewportInfo.IsZoomAllowed() && scrollIdentifiersValid) {
     
@@ -1477,7 +1477,8 @@ TabChild::RecvUpdateFrame(const FrameMetrics& aFrameMetrics)
   if (aFrameMetrics.mIsRoot) {
     nsCOMPtr<nsIDOMWindowUtils> utils(GetDOMWindowUtils());
     if (APZCCallbackHelper::HasValidPresShellId(utils, aFrameMetrics)) {
-      return ProcessUpdateFrame(aFrameMetrics);
+      mLastRootMetrics = ProcessUpdateFrame(aFrameMetrics);
+      return true;
     }
   } else {
     
@@ -1494,7 +1495,8 @@ TabChild::RecvUpdateFrame(const FrameMetrics& aFrameMetrics)
   
   
   
-  return ProcessUpdateFrame(mLastRootMetrics);
+  mLastRootMetrics = ProcessUpdateFrame(mLastRootMetrics);
+  return true;
 }
 
 bool
@@ -1505,11 +1507,11 @@ TabChild::RecvAcknowledgeScrollUpdate(const ViewID& aScrollId,
   return true;
 }
 
-bool
+FrameMetrics
 TabChild::ProcessUpdateFrame(const FrameMetrics& aFrameMetrics)
   {
     if (!mGlobal || !mTabChildGlobal) {
-        return true;
+        return aFrameMetrics;
     }
 
     nsCOMPtr<nsIDOMWindowUtils> utils(GetDOMWindowUtils());
@@ -1549,10 +1551,7 @@ TabChild::ProcessUpdateFrame(const FrameMetrics& aFrameMetrics)
     data.AppendLiteral(" }");
 
     DispatchMessageManagerMessage(NS_LITERAL_STRING("Viewport:Change"), data);
-
-    mLastRootMetrics = newMetrics;
-
-    return true;
+    return newMetrics;
 }
 
 bool

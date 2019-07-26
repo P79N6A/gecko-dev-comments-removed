@@ -417,7 +417,7 @@ private:
     bool InitRenderingState();
     void DestroyWindow();
     void SetProcessNameToAppName();
-    bool ProcessUpdateFrame(const mozilla::layers::FrameMetrics& aFrameMetrics);
+    FrameMetrics ProcessUpdateFrame(const FrameMetrics& aFrameMetrics);
 
     
     void DoFakeShow();
