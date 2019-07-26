@@ -2436,7 +2436,6 @@ function Parameter(paramSpec, command, groupName) {
   this.name = this.paramSpec.name;
   this.type = this.paramSpec.type;
   this.groupName = groupName;
-  this.defaultValue = this.paramSpec.defaultValue;
 
   if (!this.name) {
     throw new Error('In ' + this.command.name +
@@ -2453,22 +2452,20 @@ function Parameter(paramSpec, command, groupName) {
 
   
   
-  if (this.type instanceof BooleanType) {
-    if (this.defaultValue !== undefined) {
-      throw new Error('In ' + this.command.name + '/' + this.name +
-                      ': boolean parameters can not have a defaultValue.' +
-                      ' Ignoring');
-    }
-    this.defaultValue = false;
+  if (this.type instanceof BooleanType &&
+      this.paramSpec.defaultValue !== undefined) {
+    throw new Error('In ' + this.command.name + '/' + this.name +
+                    ': boolean parameters can not have a defaultValue.' +
+                    ' Ignoring');
   }
 
   
   
   
   
-  if (this.defaultValue != null) {
+  if (this._defaultValue != null) {
     try {
-      var defaultText = this.type.stringify(this.defaultValue);
+      var defaultText = this.type.stringify(this.paramSpec.defaultValue);
       var defaultConversion = this.type.parseString(defaultText);
       if (defaultConversion.getStatus() !== Status.VALID) {
         throw new Error('In ' + this.command.name + '/' + this.name +
@@ -2484,17 +2481,28 @@ function Parameter(paramSpec, command, groupName) {
 
   
   
-  if (this.defaultValue === undefined) {
-    this.defaultValue = this.type.getBlank().value;
-  }
-
-  
-  
-  if (!this.isPositionalAllowed && this.defaultValue === undefined) {
+  if (!this.isPositionalAllowed && this.paramSpec.defaultValue === undefined &&
+      this.type.getBlank == null && !(this.type instanceof BooleanType)) {
     throw new Error('In ' + this.command.name + '/' + this.name +
                     ': Missing defaultValue for optional parameter.');
   }
 }
+
+
+
+
+Object.defineProperty(Parameter.prototype, 'defaultValue', {
+  get: function() {
+    if (!('_defaultValue' in this)) {
+      this._defaultValue = (this.paramSpec.defaultValue !== undefined) ?
+          this.paramSpec.defaultValue :
+          this.type.getBlank().value;
+    }
+
+    return this._defaultValue;
+  },
+  enumerable : true
+});
 
 
 
@@ -4686,24 +4694,6 @@ imports.XPCOMUtils.defineLazyGetter(imports, 'supportsString', function() {
 var util = require('gcli/util');
 var types = require('gcli/types');
 
-var allSettings = [];
-
-
-
-
-exports.startup = function() {
-  imports.prefBranch.getChildList('').forEach(function(name) {
-    allSettings.push(new Setting(name));
-  }.bind(this));
-  allSettings.sort(function(s1, s2) {
-    return s1.name.localeCompare(s2.name);
-  }.bind(this));
-};
-
-exports.shutdown = function() {
-  allSettings = [];
-};
-
 
 
 
@@ -4827,11 +4817,73 @@ Setting.prototype.setDefault = function() {
 
 
 
-exports.getAll = function(filter) {
-  if (filter == null) {
-    return allSettings;
+
+var settingsAll = [];
+
+
+
+
+var settingsMap = new Map();
+
+
+
+
+var hasReadSystem = false;
+
+
+
+
+function reset() {
+  settingsMap = new Map();
+  settingsAll = [];
+  hasReadSystem = false;
+}
+
+
+
+
+exports.startup = function() {
+  reset();
+};
+
+exports.shutdown = function() {
+  reset();
+};
+
+
+
+
+
+function readSystem() {
+  if (hasReadSystem) {
+    return;
   }
-  return allSettings.filter(function(setting) {
+
+  imports.prefBranch.getChildList('').forEach(function(name) {
+    var setting = new Setting(name);
+    settingsAll.push(setting);
+    settingsMap.set(name, setting);
+  });
+
+  settingsAll.sort(function(s1, s2) {
+    return s1.name.localeCompare(s2.name);
+  });
+
+  hasReadSystem = true;
+}
+
+
+
+
+
+exports.getAll = function(filter) {
+  readSystem();
+
+  if (filter == null) {
+    return settingsAll;
+  }
+
+  return settingsAll.filter(function(setting) {
     return setting.name.indexOf(filter) !== -1;
   });
 };
@@ -4841,12 +4893,19 @@ exports.getAll = function(filter) {
 
 exports.addSetting = function(prefSpec) {
   var setting = new Setting(prefSpec);
-  for (var i = 0; i < allSettings.length; i++) {
-    if (allSettings[i].name === setting.name) {
-      allSettings[i] = setting;
+
+  if (settingsMap.has(setting.name)) {
+    
+    for (var i = 0; i < settingsAll.length; i++) {
+      if (settingsAll[i].name === setting.name) {
+        settingsAll[i] = setting;
+      }
     }
   }
+
+  settingsMap.set(setting.name, setting);
   exports.onChange({ added: setting.name });
+
   return setting;
 };
 
@@ -4860,15 +4919,20 @@ exports.addSetting = function(prefSpec) {
 
 
 exports.getSetting = function(name) {
-  var found = undefined;
-  allSettings.some(function(setting) {
-    if (setting.name === name) {
-      found = setting;
-      return true;
-    }
-    return false;
-  });
-  return found;
+  
+  
+  var found = settingsMap.get(name);
+  if (found) {
+    return found;
+  }
+
+  if (hasReadSystem) {
+    return undefined;
+  }
+  else {
+    readSystem();
+    return settingsMap.get(name);
+  }
 };
 
 
@@ -4879,8 +4943,7 @@ exports.onChange = util.createEvent('Settings.onChange');
 
 
 
-exports.removeSetting = function(nameOrSpec) {
-};
+exports.removeSetting = function() { };
 
 
 });

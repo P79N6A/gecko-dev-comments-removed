@@ -44,7 +44,7 @@ BottomHost.prototype = {
   
 
 
-  open: function BH_open() {
+  create: function BH_create() {
     let deferred = Promise.defer();
 
     let gBrowser = this.hostTab.ownerDocument.defaultView.gBrowser;
@@ -54,7 +54,7 @@ BottomHost.prototype = {
     this._splitter.setAttribute("class", "devtools-horizontal-splitter");
 
     this.frame = ownerDocument.createElement("iframe");
-    this.frame.id = "devtools-toolbox-bottom-iframe";
+    this.frame.className = "devtools-toolbox-bottom-iframe";
     this.frame.height = Services.prefs.getIntPref(this.heightPref);
 
     this._nbox = gBrowser.getNotificationBox(this.hostTab.linkedBrowser);
@@ -112,7 +112,7 @@ SidebarHost.prototype = {
   
 
 
-  open: function RH_open() {
+  create: function SH_create() {
     let deferred = Promise.defer();
 
     let gBrowser = this.hostTab.ownerDocument.defaultView.gBrowser;
@@ -122,7 +122,7 @@ SidebarHost.prototype = {
     this._splitter.setAttribute("class", "devtools-side-splitter");
 
     this.frame = ownerDocument.createElement("iframe");
-    this.frame.id = "devtools-toolbox-side-iframe";
+    this.frame.className = "devtools-toolbox-side-iframe";
     this.frame.width = Services.prefs.getIntPref(this.widthPref);
 
     this._sidebar = gBrowser.getSidebarContainer(this.hostTab.linkedBrowser);
@@ -147,7 +147,7 @@ SidebarHost.prototype = {
   
 
 
-  destroy: function RH_destroy() {
+  destroy: function SH_destroy() {
     if (!this._destroyed) {
       this._destroyed = true;
 
@@ -177,7 +177,7 @@ WindowHost.prototype = {
   
 
 
-  open: function WH_open() {
+  create: function WH_create() {
     let deferred = Promise.defer();
 
     let flags = "chrome,centerscreen,resizable,dialog=no";
