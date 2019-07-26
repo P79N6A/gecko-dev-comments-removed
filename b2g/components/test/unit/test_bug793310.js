@@ -5,7 +5,10 @@ function run_test() {
   Components.utils.import("resource:///modules/TelURIParser.jsm")
 
   
-   do_check_eq(TelURIParser.parseURI('tel', 'tel:+1234'), '+1234');
+  do_check_eq(TelURIParser.parseURI('tel', 'tel:+1234'), '+1234');
+
+  
+  do_check_eq(TelURIParser.parseURI('tel', 'tel:+123 456 789'), '+123 456 789');
 
   
   do_check_eq(TelURIParser.parseURI('tel', 'tel:+1234_123'), '+1234');
