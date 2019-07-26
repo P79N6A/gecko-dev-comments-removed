@@ -4,9 +4,13 @@
 
 "use strict";
 
-Components.utils.import("resource://gre/modules/osfile.jsm");
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/ctypes.jsm");
+const Cu = Components.utils;
+
+Cu.import("resource://gre/modules/osfile.jsm", this);
+Cu.import("resource://gre/modules/Services.jsm", this);
+Cu.import("resource://gre/modules/ctypes.jsm", this);
+Cu.import("resource://testing-common/AppData.jsm", this);
+
 
 function run_test() {
   run_next_test();
@@ -22,9 +26,32 @@ function compare_paths(ospath, key) {
     do_check_true(!!ospath);
     do_check_eq(ospath, file.path);
   } else {
+    do_print("WARNING: " + key + " is not defined. Test may not be testing anything!");
     do_check_false(!!ospath);
   }
 }
+
+
+
+add_task(function* test_before_after_profile() {
+  do_check_null(OS.Constants.Path.profileDir);
+  do_check_null(OS.Constants.Path.localProfileDir);
+  do_check_null(OS.Constants.Path.userApplicationDataDir);
+
+  do_get_profile();
+  do_check_true(!!OS.Constants.Path.profileDir);
+  do_check_true(!!OS.Constants.Path.localProfileDir);
+
+  
+  
+  
+  do_check_null(OS.Constants.Path.userApplicationDataDir);
+
+  yield makeFakeAppDir();
+  do_check_true(!!OS.Constants.Path.userApplicationDataDir);
+
+  
+});
 
 
 add_task(function() {
