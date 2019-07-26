@@ -1124,7 +1124,7 @@ BrowserGlue.prototype = {
       
       if (importBookmarks && !restoreDefaultBookmarks && !importBookmarksHTML) {
         
-        lastBackupFile = yield PlacesBackups.getMostRecentBackup("json");
+        lastBackupFile = yield PlacesBackups.getMostRecentBackup();
         if (lastBackupFile) {
           
           yield BookmarkJSONUtils.importFromFile(lastBackupFile, true);

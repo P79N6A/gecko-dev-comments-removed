@@ -258,17 +258,13 @@ this.PlacesBackups = {
 
 
 
-
-
-
-  getMostRecent: function PB_getMostRecent(aFileExt) {
+  getMostRecent: function PB_getMostRecent() {
     Deprecated.warning(
       "PlacesBackups.getMostRecent is deprecated and will be removed in a future version",
       "https://bugzilla.mozilla.org/show_bug.cgi?id=859695");
 
-    let fileExt = aFileExt || "(json|html)";
     for (let i = 0; i < this._entries.length; i++) {
-      let rx = new RegExp("\." + fileExt + "$");
+      let rx = new RegExp("\.json$");
       if (this._entries[i].leafName.match(rx))
         return this._entries[i];
     }
@@ -281,15 +277,11 @@ this.PlacesBackups = {
 
 
 
-
-
-
-   getMostRecentBackup: function PB_getMostRecentBackup(aFileExt) {
+   getMostRecentBackup: function PB_getMostRecentBackup() {
      return Task.spawn(function* () {
-       let fileExt = aFileExt || "(json|html)";
        let entries = yield this.getBackupFiles();
        for (let entry of entries) {
-         let rx = new RegExp("\." + fileExt + "$");
+         let rx = new RegExp("\.json$");
          if (OS.Path.basename(entry).match(rx)) {
            return entry;
          }
@@ -334,7 +326,7 @@ this.PlacesBackups = {
         
         
         
-        let mostRecentBackupFile = yield this.getMostRecentBackup("json");
+        let mostRecentBackupFile = yield this.getMostRecentBackup();
         if (!mostRecentBackupFile ||
             hash != getHashFromFilename(OS.Path.basename(mostRecentBackupFile))) {
           let name = this.getFilenameForDate();
