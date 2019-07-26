@@ -676,7 +676,9 @@ jsd_DestroyScriptHookProc(
 {
     JSDScript* jsdscript = NULL;
     JSDContext* jsdc = (JSDContext*) callerdata;
-    JS::RootedScript script(jsdc->dumbContext, script_);
+    
+    
+    JS::RootedScript script(jsdc->jsrt, script_);
     JSD_ScriptHookProc      hook;
     void*                   hookData;
 
