@@ -423,14 +423,27 @@ nsSVGOuterSVGFrame::Reflow(nsPresContext*           aPresContext,
 
   uint32_t changeBits = 0;
   if (newViewportSize != oldViewportSize) {
-    if (oldViewportSize.width <= 0.0f || oldViewportSize.height <= 0.0f) {
-      
-      
-      
-      
-      
-      
-      
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (svgElem->HasViewBoxRect() || svgElem->ShouldSynthesizeViewBox()) {
       nsIFrame* anonChild = GetFirstPrincipalChild();
       anonChild->AddStateBits(NS_FRAME_IS_DIRTY);
       for (nsIFrame* child = anonChild->GetFirstPrincipalChild(); child;
