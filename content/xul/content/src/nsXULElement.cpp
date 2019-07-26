@@ -2383,8 +2383,7 @@ nsXULPrototypeScript::Serialize(nsIObjectOutputStream* aStream,
     rv = aStream->Write32(mLangVersion);
     if (NS_FAILED(rv)) return rv;
     
-    rv = context->Serialize(aStream,
-                            JS::Handle<JSScript*>::fromMarkedLocation(&mScriptObject));
+    rv = context->Serialize(aStream, mScriptObject);
     if (NS_FAILED(rv)) return rv;
 
     return NS_OK;

@@ -67,7 +67,7 @@ private:
   
   nsCString mFileName;
   uint32_t mLineNo;
-  nsTArray<JS::Value> mArgs;
+  nsTArray<JS::Heap<JS::Value> > mArgs;
 
   
   JSFlatString *mExpr;
@@ -299,7 +299,8 @@ nsJSScriptTimeoutHandler::Init(nsGlobalWindow *aWindow, bool *aIsInterval,
     
     
     uint32_t argCount = std::max(argc, 2u) - 2;
-    FallibleTArray<JS::Value> args;
+
+    FallibleTArray<JS::Heap<JS::Value> > args;
     if (!args.SetCapacity(argCount)) {
       
       return NS_ERROR_OUT_OF_MEMORY;
