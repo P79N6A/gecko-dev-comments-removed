@@ -783,26 +783,6 @@ var BrowserUI = {
     onEvent: function(aEventName) {}
   },
 
-  _urlbarClicked: function _urlbarClicked(aEvent) {
-    let touchEvent = aEvent.mozInputSource == Ci.nsIDOMMouseEvent.MOZ_SOURCE_TOUCH;
-
-    
-    if (Elements.urlbarState.getAttribute("mode") != "edit") {
-      this._editURI(true);
-      if (touchEvent) {
-        SelectionHelperUI.attachEditSession(ChromeSelectionHandler,
-                                            aEvent.clientX, aEvent.clientY);
-      }
-      return;
-    }
-
-    
-    if (touchEvent) {
-      SelectionHelperUI.attachToCaret(ChromeSelectionHandler,
-                                      aEvent.clientX, aEvent.clientY);
-    }
-  },
-
   _editURI: function _editURI(aShouldDismiss) {
     this._edit.focus();
     this._edit.select();
