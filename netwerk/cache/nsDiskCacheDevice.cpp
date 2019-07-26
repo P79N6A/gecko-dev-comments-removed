@@ -23,7 +23,6 @@
 
 #endif
 
-#include "prtypes.h"
 #include "prthread.h"
 #include "prbit.h"
 

@@ -5,7 +5,6 @@
 
 
 #include <string.h>
-#include "prtypes.h"
 #include "prmem.h"
 #include "prprf.h"
 #include "plstr.h"
