@@ -229,7 +229,8 @@ private:
 
   already_AddRefed<Accessible>
     CreateHTMLAccessibleByMarkup(nsIFrame* aFrame, nsIContent* aContent,
-                                 DocAccessible* aDoc);
+                                 DocAccessible* aDoc,
+                                 bool aIsLegalPartOfHTMLTable);
 
   
 

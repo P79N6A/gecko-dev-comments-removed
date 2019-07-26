@@ -1007,8 +1007,6 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
   }
 
   if (weakFrame.IsAlive() && !newAcc && isHTML) {  
-    bool tryTagNameOrFrame = true;
-
     nsIAtom *frameType = weakFrame.GetFrame()->GetType();
 
     bool partOfHTMLTable =
@@ -1016,6 +1014,7 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
       frameType == nsGkAtoms::tableCellFrame ||
       frameType == nsGkAtoms::tableRowGroupFrame ||
       frameType == nsGkAtoms::tableRowFrame;
+    bool legalPartOfHTMLTable = partOfHTMLTable;
 
     if (partOfHTMLTable) {
       
@@ -1057,26 +1056,26 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
           }
 
           
-          tryTagNameOrFrame = false;
+          legalPartOfHTMLTable = false;
           break;
         }
 
         if (tableContent->Tag() == nsGkAtoms::table) {
           
           
-          tryTagNameOrFrame = false;
+          legalPartOfHTMLTable = false;
           break;
         }
       }
 
       if (!tableContent)
-        tryTagNameOrFrame = false;
+        legalPartOfHTMLTable = false;
     }
 
     if (roleMapEntry) {
       
       
-      if ((!partOfHTMLTable || !tryTagNameOrFrame) &&
+      if ((!partOfHTMLTable || !legalPartOfHTMLTable) &&
           frameType != nsGkAtoms::tableOuterFrame) {
 
         if (roleMapEntry->role == roles::TABLE ||
@@ -1091,16 +1090,16 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
       }
     }
 
-    if (!newAcc && tryTagNameOrFrame) {
+    if (!newAcc) {
       
       
       
       
       
       newAcc = CreateHTMLAccessibleByMarkup(weakFrame.GetFrame(), content,
-                                            docAcc);
+                                            docAcc, legalPartOfHTMLTable);
 
-      if (!newAcc) {
+      if (!newAcc && (!partOfHTMLTable || legalPartOfHTMLTable)) {
         
         
         
@@ -1553,8 +1552,20 @@ nsAccessibilityService::CreateAccessibleByType(nsIContent* aContent,
 already_AddRefed<Accessible>
 nsAccessibilityService::CreateHTMLAccessibleByMarkup(nsIFrame* aFrame,
                                                      nsIContent* aContent,
-                                                     DocAccessible* aDoc)
+                                                     DocAccessible* aDoc,
+                                                     bool aIsLegalPartOfHTMLTable)
 {
+  if (aIsLegalPartOfHTMLTable) {
+    if (nsCoreUtils::IsHTMLTableHeader(aContent)) {
+      Accessible* accessible =
+        new HTMLTableHeaderCellAccessibleWrap(aContent, aDoc);
+      NS_IF_ADDREF(accessible);
+      return accessible;
+    }
+
+    return nullptr;
+  }
+
   
   nsIAtom* tag = aContent->Tag();
   if (tag == nsGkAtoms::figcaption) {
@@ -1631,12 +1642,6 @@ nsAccessibilityService::CreateHTMLAccessibleByMarkup(nsIFrame* aFrame,
       tag == nsGkAtoms::h6 ||
       tag == nsGkAtoms::q) {
     Accessible* accessible = new HyperTextAccessibleWrap(aContent, aDoc);
-    NS_IF_ADDREF(accessible);
-    return accessible;
-  }
-
-  if (nsCoreUtils::IsHTMLTableHeader(aContent)) {
-    Accessible* accessible = new HTMLTableHeaderCellAccessibleWrap(aContent, aDoc);
     NS_IF_ADDREF(accessible);
     return accessible;
   }
