@@ -1311,6 +1311,22 @@ OptionLong(const char* aArg, const char* aOptionName, long aMin, long aMax,
 
 static const size_t gMaxSampleBelowSize = 100 * 1000 * 1000;    
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static const size_t gDefaultSampleBelowSize = 4093;
+
 static void
 BadArg(const char* aArg)
 {
@@ -1324,8 +1340,9 @@ BadArg(const char* aArg)
   StatusMsg("  enables it with non-default options.\n");
   StatusMsg("\n");
   StatusMsg("The following options are allowed;  defaults are shown in [].\n");
-  StatusMsg("  --sample-below=<1..%d> Sample blocks smaller than this [1]\n",
-            int(gMaxSampleBelowSize));
+  StatusMsg("  --sample-below=<1..%d> Sample blocks smaller than this [%d]\n"
+            "                         (prime numbers recommended).\n",
+            int(gMaxSampleBelowSize), int(gDefaultSampleBelowSize));
   StatusMsg("  --mode=<normal|test|stress>   Which mode to run in? [normal]\n");
   StatusMsg("\n");
   exit(1);
@@ -1344,7 +1361,7 @@ Init(const malloc_table_t* aMallocTable)
 
   
   gMode = Normal;
-  gSampleBelowSize = 1;
+  gSampleBelowSize = gDefaultSampleBelowSize;
 
   
   
@@ -1737,7 +1754,8 @@ Dump(Writer aWriter)
   size_t totalUsableSize = unreportedUsableSize + reportedUsableSize;
 
   WriteTitle("Invocation\n");
-  W("$DMD = '%s'\n\n", gDMDEnvVar);
+  W("$DMD = '%s'\n", gDMDEnvVar);
+  W("Sample-below size = %lld\n\n", (long long)(gSampleBelowSize));
 
   PrintSortedGroups(aWriter, "Double-reported", "double-reported",
                     *gDoubleReportBlockGroupTable, kNoSize, kNoSize);
@@ -1806,6 +1824,9 @@ static void
 RunTestMode(FILE* fp)
 {
   Writer writer(FpWrite, fp);
+
+  
+  gSampleBelowSize = 1;
 
   
   Dump(writer);
