@@ -1504,7 +1504,8 @@ enum StringificationBehavior {
 
 
 static inline bool
-ConvertJSValueToString(JSContext* cx, const JS::Value& v, JS::Value* pval,
+ConvertJSValueToString(JSContext* cx, JS::Handle<JS::Value> v,
+                       JS::MutableHandle<JS::Value> pval,
                        StringificationBehavior nullBehavior,
                        StringificationBehavior undefinedBehavior,
                        FakeDependentString& result)
@@ -1535,7 +1536,7 @@ ConvertJSValueToString(JSContext* cx, const JS::Value& v, JS::Value* pval,
     if (!s) {
       return false;
     }
-    pval->setString(s);  
+    pval.set(JS::StringValue(s));  
   }
 
   size_t len;
