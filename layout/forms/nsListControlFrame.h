@@ -321,7 +321,6 @@ protected:
 
   
   nsresult GetSizeAttribute(uint32_t *aSize);
-  nsIContent* GetOptionFromContent(nsIContent *aContent);
 
   
 
@@ -338,7 +337,6 @@ protected:
   already_AddRefed<nsIContent> GetOptionContent(int32_t aIndex) const;
 
   bool     CheckIfAllFramesHere();
-  int32_t  GetIndexFromContent(nsIContent *aContent);
   bool     IsLeftButton(nsIDOMEvent* aMouseEvent);
 
   
