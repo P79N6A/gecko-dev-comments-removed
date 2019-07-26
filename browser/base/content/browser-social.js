@@ -28,8 +28,12 @@ let SocialUI = {
   },
 
   showProfile: function SocialUI_showProfile() {
-    if (Social.provider)
+    if (this.haveLoggedInUser())
       openUILinkIn(Social.provider.profile.profileURL, "tab");
+    else {
+      
+      openUILinkIn(Social.provider.origin, "tab");
+    }
   },
 
   observe: function SocialUI_observe(subject, topic, data) {
