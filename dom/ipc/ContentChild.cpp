@@ -54,6 +54,7 @@
 #include "nsHashPropertyBag.h"
 #include "nsLayoutStylesheetCache.h"
 #include "nsIJSRuntimeService.h"
+#include "nsThreadManager.h"
 
 #include "IHistory.h"
 #include "nsNetUtil.h"
@@ -339,6 +340,14 @@ ContentChild::Init(MessageLoop* aIOLoop,
 #endif
 
     NS_ASSERTION(!sSingleton, "only one ContentChild per child");
+
+    
+    
+    
+    nsresult rv = nsThreadManager::get()->Init();
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+        return false;
+    }
 
     Open(aChannel, aParentHandle, aIOLoop);
     sSingleton = this;
