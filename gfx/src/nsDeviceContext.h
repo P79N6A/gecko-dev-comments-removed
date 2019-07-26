@@ -171,10 +171,10 @@ public:
 
 
 
-    nsresult BeginDocument(PRUnichar  *aTitle,
-                           PRUnichar  *aPrintToFileName,
-                           int32_t     aStartPage,
-                           int32_t     aEndPage);
+    nsresult BeginDocument(const nsAString& aTitle,
+                           PRUnichar*       aPrintToFileName,
+                           int32_t          aStartPage,
+                           int32_t          aEndPage);
 
     
 

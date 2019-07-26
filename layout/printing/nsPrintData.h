@@ -41,15 +41,6 @@ public:
 
   typedef enum {eIsPrinting, eIsPrintPreview } ePrintDataType;
 
-  
-  
-  enum eDocTitleDefault {
-    eDocTitleDefNone,
-    eDocTitleDefBlank,
-    eDocTitleDefURLDoc
-  };
-
-
   nsPrintData(ePrintDataType aType);
   ~nsPrintData(); 
 

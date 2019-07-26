@@ -35,10 +35,10 @@ public:
 
 
 
-  NS_IMETHOD StartPrint(nsPresContext*  aPresContext,
+  NS_IMETHOD StartPrint(nsPresContext*    aPresContext,
                         nsIPrintSettings* aPrintOptions,
-                        PRUnichar* aDocTitle,
-                        PRUnichar* aDocURL) = 0;
+                        const nsAString&  aDocTitle,
+                        const nsAString&  aDocURL) = 0;
 
   NS_IMETHOD PrePrintNextPage(nsITimerCallback* aCallback, bool* aDone) = 0;
   NS_IMETHOD PrintNextPage() = 0;
