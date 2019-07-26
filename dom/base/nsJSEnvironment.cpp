@@ -1985,6 +1985,7 @@ struct CycleCollectorStats
   void Clear()
   {
     mBeginSliceTime = TimeStamp();
+    mEndSliceTime = TimeStamp();
     mBeginTime = TimeStamp();
     mMaxGCDuration = 0;
     mRanSyncForgetSkippable = false;
@@ -2005,7 +2006,8 @@ struct CycleCollectorStats
       return;
     }
 
-    uint32_t sliceTime = TimeUntilNow(mBeginSliceTime);
+    mEndSliceTime = TimeStamp::Now();
+    uint32_t sliceTime = TimeBetween(mBeginSliceTime, mEndSliceTime);
     mMaxSliceTime = std::max(mMaxSliceTime, sliceTime);
     mTotalSliceTime += sliceTime;
     mBeginSliceTime = TimeStamp();
@@ -2016,6 +2018,9 @@ struct CycleCollectorStats
 
   
   TimeStamp mBeginSliceTime;
+
+  
+  TimeStamp mEndSliceTime;
 
   
   TimeStamp mBeginTime;
@@ -2046,22 +2051,6 @@ struct CycleCollectorStats
 };
 
 CycleCollectorStats gCCStats;
-
-static int64_t
-ICCSliceTime()
-{
-  
-  if (!sIncrementalCC) {
-    return -1;
-  }
-
-  
-  if (TimeUntilNow(gCCStats.mBeginTime) >= kMaxICCDuration) {
-    return -1;
-  }
-
-  return kICCSliceBudget;
-}
 
 void
 CycleCollectorStats::PrepareForCycleCollectionSlice(int32_t aExtraForgetSkippableCalls)
@@ -2132,10 +2121,29 @@ nsJSContext::RunCycleCollectorSlice()
 
   PROFILER_LABEL("CC", "RunCycleCollectorSlice");
 
-  
-  
   gCCStats.PrepareForCycleCollectionSlice();
-  nsCycleCollector_collectSlice(ICCSliceTime());
+
+  
+  
+  int64_t sliceBudget = -1;
+
+  if (sIncrementalCC) {
+    if (gCCStats.mBeginTime.IsNull()) {
+      
+      sliceBudget = kICCSliceBudget;
+    } else {
+      TimeStamp now = TimeStamp::Now();
+
+      
+      if (TimeBetween(gCCStats.mBeginTime, now) < kMaxICCDuration) {
+        float sliceMultiplier = std::max(TimeBetween(gCCStats.mEndSliceTime, now) / (float)kICCIntersliceDelay, 1.0f);
+        sliceBudget = kICCSliceBudget * sliceMultiplier;
+      }
+    }
+  }
+
+  nsCycleCollector_collectSlice(sliceBudget);
+
   gCCStats.FinishCycleCollectionSlice();
 }
 
