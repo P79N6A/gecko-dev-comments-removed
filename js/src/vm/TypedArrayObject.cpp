@@ -3618,8 +3618,8 @@ IMPL_TYPED_ARRAY_COMBINED_UNWRAPPERS(Float64, double, double)
     NULL,                    /* finalize */                                    \
     NULL,                    /* checkAccess */                                 \
     NULL,                    /* call        */                                 \
-    NULL,                    /* construct   */                                 \
     NULL,                    /* hasInstance */                                 \
+    NULL,                    /* construct   */                                 \
     ArrayBufferViewObject::trace, /* trace  */                                 \
     {                                                                          \
         NULL,       /* outerObject */                                          \
