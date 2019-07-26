@@ -6,39 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include <windows.h>
 #include <wmistr.h>
 #include <evntrace.h>
@@ -50,8 +17,15 @@ namespace mozilla {
 namespace probes {
 
 #if defined(MOZ_LOGGING)
-static PRLogModuleInfo *gProbeLog = PR_NewLogModule("SysProbe");
-#define LOG(x)  PR_LOG(gProbeLog, PR_LOG_DEBUG, x)
+static PRLogModuleInfo *
+GetProbeLog()
+{
+  static PRLogModuleInfo *sLog;
+  if (!sLog)
+    sLog = PR_NewLogModule("SysProbe");
+  return sLog;
+}
+#define LOG(x)  PR_LOG(GetProbeLog(), PR_LOG_DEBUG, x)
 #else
 #define LOG(x)
 #endif
@@ -132,10 +106,10 @@ ProbeManager::~ProbeManager()
 
 ProbeManager::ProbeManager(const nsCID &aApplicationUID,
                            const nsACString &aApplicationName)
-  : mSessionHandle(NULL)
-  , mRegistrationHandle(NULL)
-  , mApplicationUID(aApplicationUID)
+  : mApplicationUID(aApplicationUID)
   , mApplicationName(aApplicationName)
+  , mSessionHandle(0)
+  , mRegistrationHandle(0)
 {
 #if defined(MOZ_LOGGING)
   char cidStr[NSID_LENGTH];
@@ -153,10 +127,10 @@ ProbeManager::ProbeManager(const nsCID &aApplicationUID,
 
 
 ULONG WINAPI ControlCallback(
-                             __in  WMIDPREQUESTCODE RequestCode,
-                             __in  PVOID Context,
-                             __in  ULONG *Reserved,
-                             __in  PVOID Buffer
+                             WMIDPREQUESTCODE RequestCode,
+                             PVOID Context,
+                             ULONG *Reserved,
+                             PVOID Buffer
                              )
 {
   ProbeManager* context = (ProbeManager*)Context;
@@ -185,7 +159,7 @@ ULONG WINAPI ControlCallback(
 
   case WMI_DISABLE_EVENTS:
     context->mIsActive      = false;
-    context->mSessionHandle = NULL;
+    context->mSessionHandle = 0;
     LOG(("Probes: ControlCallback deactivated"));
     return ERROR_SUCCESS;
 
@@ -246,9 +220,9 @@ nsresult ProbeManager::StartSession(nsTArray<nsRefPtr<Probe>> &aProbes)
 nsresult ProbeManager::StopSession()
 {
   LOG(("Probes: Stopping measures"));
-  if (mSessionHandle != NULL) {
+  if (mSessionHandle != 0) {
     ULONG result = UnregisterTraceGuids(mSessionHandle);
-    mSessionHandle = NULL;
+    mSessionHandle = 0;
     if (result != ERROR_SUCCESS) {
       return NS_ERROR_INVALID_ARG;
     }

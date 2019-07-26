@@ -68,8 +68,15 @@ HasStableTSC()
 
 
 
-  PRLogModuleInfo* timeStampLog = PR_NewLogModule("TimeStampWindows");
-  #define LOG(x)  PR_LOG(timeStampLog, PR_LOG_DEBUG, x)
+static PRLogModuleInfo*
+GetTimeStampLog()
+{
+  static PRLogModuleInfo *sLog;
+  if (!sLog)
+    sLog = PR_NewLogModule("TimeStampWindows");
+  return sLog;
+}
+  #define LOG(x)  PR_LOG(GetTimeStampLog(), PR_LOG_DEBUG, x)
 #else
   #define LOG(x)
 #endif 

@@ -36,9 +36,16 @@
 
 
 
-static PRLogModuleInfo* sLog = PR_NewLogModule("nsStorageStream");
+static PRLogModuleInfo*
+GetStorageStreamLog()
+{
+    static PRLogModuleInfo *sLog;
+    if (!sLog)
+        sLog = PR_NewLogModule("nsStorageStream");
+    return sLog;
+}
 #endif
-#define LOG(args) PR_LOG(sLog, PR_LOG_DEBUG, args)
+#define LOG(args) PR_LOG(GetStorageStreamLog(), PR_LOG_DEBUG, args)
 
 nsStorageStream::nsStorageStream()
     : mSegmentedBuffer(0), mSegmentSize(0), mWriteInProgress(false),
