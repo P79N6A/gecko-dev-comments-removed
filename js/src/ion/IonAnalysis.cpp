@@ -1436,7 +1436,7 @@ ion::UnsplitEdges(LIRGraph *lir)
         
         
         if (mirBlock->numPredecessors() == 0 || mirBlock->numSuccessors() != 1 ||
-            !mirBlock->resumePointsEmpty() || !mirBlock->begin()->isGoto())
+            !mirBlock->begin()->isGoto())
         {
             continue;
         }
