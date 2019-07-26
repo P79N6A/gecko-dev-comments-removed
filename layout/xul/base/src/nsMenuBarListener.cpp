@@ -166,7 +166,7 @@ nsMenuBarListener::KeyPress(nsIDOMEvent* aKeyEvent)
   
   if (aKeyEvent) {
     bool eventHandled = false;
-    aKeyEvent->GetPreventDefault(&eventHandled);
+    aKeyEvent->GetDefaultPrevented(&eventHandled);
     if (eventHandled) {
       return NS_OK;       
     }
@@ -188,7 +188,7 @@ nsMenuBarListener::KeyPress(nsIDOMEvent* aKeyEvent)
   if (mAccessKey)
   {
     bool preventDefault;
-    aKeyEvent->GetPreventDefault(&preventDefault);
+    aKeyEvent->GetDefaultPrevented(&preventDefault);
     if (!preventDefault) {
       nsCOMPtr<nsIDOMKeyEvent> keyEvent = do_QueryInterface(aKeyEvent);
       uint32_t keyCode, charCode;

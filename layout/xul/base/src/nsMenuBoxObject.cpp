@@ -87,7 +87,7 @@ NS_IMETHODIMP nsMenuBoxObject::HandleKeyPress(nsIDOMKeyEvent* aKeyEvent, bool* a
 
   
   bool eventHandled = false;
-  aKeyEvent->GetPreventDefault(&eventHandled);
+  aKeyEvent->GetDefaultPrevented(&eventHandled);
   if (eventHandled)
     return NS_OK;
 

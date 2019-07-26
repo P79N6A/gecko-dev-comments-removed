@@ -417,7 +417,7 @@ nsXBLPrototypeHandler::DispatchXBLCommand(EventTarget* aTarget, nsIDOMEvent* aEv
   if (aEvent) {
     
     bool preventDefault = false;
-    aEvent->GetPreventDefault(&preventDefault);
+    aEvent->GetDefaultPrevented(&preventDefault);
     if (preventDefault) {
       return NS_OK;
     }
