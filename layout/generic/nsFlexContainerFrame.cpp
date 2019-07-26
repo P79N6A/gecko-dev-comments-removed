@@ -8,6 +8,7 @@
 
 
 #include "nsFlexContainerFrame.h"
+#include "nsDisplayList.h"
 #include "nsLayoutUtils.h"
 #include "nsPresContext.h"
 #include "nsStyleContext.h"
@@ -980,8 +981,11 @@ nsFlexContainerFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   nsresult rv = DisplayBorderBackgroundOutline(aBuilder, aLists);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  
+  
+  nsDisplayListSet childLists(aLists, aLists.BlockBorderBackgrounds());
   for (nsFrameList::Enumerator e(mFrames); !e.AtEnd(); e.Next()) {
-    rv = BuildDisplayListForChild(aBuilder, e.get(), aDirtyRect, aLists,
+    rv = BuildDisplayListForChild(aBuilder, e.get(), aDirtyRect, childLists,
                                   GetDisplayFlagsForFlexItem(e.get()));
     NS_ENSURE_SUCCESS(rv, rv);
   }
