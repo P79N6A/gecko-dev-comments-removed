@@ -2,12 +2,15 @@
 
 
 
+let Scope = {};
+Cu.import("resource://gre/modules/Task.jsm", Scope);
+Cu.import("resource://gre/modules/Promise.jsm", Scope);
+let {Task, Promise} = Scope;
 
 
 
 
 
-let tab;
 
 
 
@@ -17,69 +20,67 @@ let tab;
 
 const URI_TO_LOAD = "about:mozilla";
 
+function waitForLoadStarted(aTab) {
+  let deferred = Promise.defer();
+  waitForContentMessage(aTab.linkedBrowser,
+    "SessionStore:loadStart",
+    1000,
+    deferred.resolve);
+  return deferred.promise;
+}
+
+function waitForTabLoaded(aTab) {
+  let deferred = Promise.defer();
+  whenBrowserLoaded(aTab.linkedBrowser, deferred.resolve);
+  return deferred.promise;
+}
+
+function waitForTabClosed() {
+  let deferred = Promise.defer();
+  let observer = function() {
+    gBrowser.tabContainer.removeEventListener("TabClose", observer, true);
+    deferred.resolve();
+  };
+  gBrowser.tabContainer.addEventListener("TabClose", observer, true);
+  return deferred.promise;
+}
+
 function test() {
   waitForExplicitFinish();
 
-  gBrowser.addTabsProgressListener(tabsListener);
+  Task.spawn(function() {
+    try {
+      
+      let tab = gBrowser.addTab("about:blank");
+      yield waitForTabLoaded(tab);
 
-  tab = gBrowser.addTab();
+      
+      ss.getBrowserState();
 
-  tab.linkedBrowser.addEventListener("load", firstOnLoad, true);
+      is(gBrowser.tabs[1], tab, "newly created tab should exist by now");
+      ok(tab.linkedBrowser.__SS_data, "newly created tab should be in save state");
 
-  gBrowser.tabContainer.addEventListener("TabClose", onTabClose, true);
-}
+      
+      tab.linkedBrowser.loadURI(URI_TO_LOAD);
+      let loaded = yield waitForLoadStarted(tab);
+      ok(loaded, "Load started");
 
-function firstOnLoad(aEvent) {
-  tab.linkedBrowser.removeEventListener("load", firstOnLoad, true);
-
-  let uri = aEvent.target.location;
-  is(uri, "about:blank", "first load should be for about:blank");
-
-  
-  ss.getBrowserState();
-
-  is(gBrowser.tabs[1], tab, "newly created tab should exist by now");
-  ok(tab.linkedBrowser.__SS_data, "newly created tab should be in save state");
-
-  tab.linkedBrowser.loadURI(URI_TO_LOAD);
-}
-
-let tabsListener = {
-  onLocationChange: function onLocationChange(aBrowser) {
-    gBrowser.removeTabsProgressListener(tabsListener);
-
-    is(aBrowser.currentURI.spec, URI_TO_LOAD,
-       "should occur after about:blank load and be loading next page");
-
-    
-    
-    executeSoon(function() {
+      let tabClosing = waitForTabClosed();
       gBrowser.removeTab(tab);
-    });
-  }
-};
+      info("Now waiting for TabClose to close");
+      yield tabClosing;
 
-function onTabClose(aEvent) {
-  gBrowser.tabContainer.removeEventListener("TabClose", onTabClose, true);
+      
+      tab = ss.undoCloseTab(window, 0);
+      yield waitForTabLoaded(tab);
+      is(tab.linkedBrowser.currentURI.spec, URI_TO_LOAD, "loading proceeded as expected");
 
-  is(tab.linkedBrowser.currentURI.spec, URI_TO_LOAD,
-     "should only remove when loading page");
+      gBrowser.removeTab(tab);
 
-  executeSoon(function() {
-    tab = ss.undoCloseTab(window, 0);
-    tab.linkedBrowser.addEventListener("load", secondOnLoad, true);
+      executeSoon(finish);
+    } catch (ex) {
+      ok(false, ex);
+      info(ex.stack);
+    }
   });
-}
-
-function secondOnLoad(aEvent) {
-  let uri = aEvent.target.location;
-  is(uri, URI_TO_LOAD, "should load page from undoCloseTab");
-  done();
-}
-
-function done() {
-  tab.linkedBrowser.removeEventListener("load", secondOnLoad, true);
-  gBrowser.removeTab(tab);
-
-  executeSoon(finish);
 }
