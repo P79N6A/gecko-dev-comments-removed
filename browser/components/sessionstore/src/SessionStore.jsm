@@ -131,6 +131,11 @@ XPCOMUtils.defineLazyModuleGetter(this, "TabStateCache",
 XPCOMUtils.defineLazyModuleGetter(this, "Utils",
   "resource:///modules/sessionstore/Utils.jsm");
 
+#ifdef MOZ_CRASHREPORTER
+XPCOMUtils.defineLazyServiceGetter(this, "CrashReporter",
+  "@mozilla.org/xre/app-info;1", "nsICrashReporter");
+#endif
+
 
 
 
@@ -1295,6 +1300,8 @@ let SessionStoreInternal = {
     if (!aNoNotification) {
       this.saveStateDelayed(aWindow);
     }
+
+    this._updateCrashReportURL(aWindow);
   },
 
   
@@ -1396,6 +1403,9 @@ let SessionStoreInternal = {
 
     delete aBrowser.__SS_data;
     this.saveStateDelayed(aWindow);
+
+    
+    this._updateCrashReportURL(aWindow);
   },
 
   
@@ -1414,6 +1424,9 @@ let SessionStoreInternal = {
       if (tab.linkedBrowser.__SS_restoreState &&
           tab.linkedBrowser.__SS_restoreState == TAB_STATE_NEEDS_RESTORE)
         this.restoreTabContent(tab);
+
+      
+      this._updateCrashReportURL(aWindow);
     }
   },
 
@@ -3051,6 +3064,29 @@ let SessionStoreInternal = {
 
   _getURIFromString: function ssi_getURIFromString(aString) {
     return Services.io.newURI(aString, null, null);
+  },
+
+  
+
+
+  _updateCrashReportURL: function ssi_updateCrashReportURL(aWindow) {
+#ifdef MOZ_CRASHREPORTER
+    try {
+      var currentURI = aWindow.gBrowser.currentURI.clone();
+      
+      try {
+        currentURI.userPass = "";
+      }
+      catch (ex) { } 
+
+      CrashReporter.annotateCrashReport("URL", currentURI.spec);
+    }
+    catch (ex) {
+      
+      if (ex.result != Components.results.NS_ERROR_NOT_INITIALIZED)
+        debug(ex);
+    }
+#endif
   },
 
   
