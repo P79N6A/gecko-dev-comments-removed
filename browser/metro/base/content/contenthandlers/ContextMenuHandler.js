@@ -18,10 +18,6 @@ var ContextMenuHandler = {
     
     
     addMessageListener("Browser:ContextCommand", this, false);
-    
-    
-    
-    addMessageListener("Browser:InvokeContextAtPoint", this, false);
 
     this.popupNode = null;
   },
