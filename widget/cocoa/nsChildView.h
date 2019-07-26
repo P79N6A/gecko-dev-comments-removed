@@ -396,6 +396,10 @@ public:
   
   CGFloat                 BackingScaleFactor();
 
+  
+  
+  void                    BackingScaleFactorChanged();
+
   virtual double          GetDefaultScale();
 
   NS_IMETHOD              Invalidate(const nsIntRect &aRect);

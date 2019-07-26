@@ -196,7 +196,7 @@ pref("media.video-queue.default-size", 10);
 
 
 
-pref("gfx.hidpi.enabled", 1);
+pref("gfx.hidpi.enabled", 2);
 #endif
 
 

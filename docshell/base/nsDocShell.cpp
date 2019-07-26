@@ -5007,6 +5007,13 @@ NS_IMETHODIMP
 nsDocShell::GetPositionAndSize(int32_t * x, int32_t * y, int32_t * cx,
                                int32_t * cy)
 {
+    if (mParentWidget) {
+        
+        nsIntRect r;
+        mParentWidget->GetClientBounds(r);
+        SetPositionAndSize(mBounds.x, mBounds.y, r.width, r.height, false);
+    }
+
     
     
     if (cx || cy) {
