@@ -352,6 +352,10 @@ pref("browser.download.panel.shown", false);
 
 pref("browser.download.panel.firstSessionCompleted", false);
 
+#ifndef XP_MACOSX
+pref("browser.helperApps.deleteTempFileOnExit", true);
+#endif
+
 
 pref("browser.search.searchEnginesURL",      "https://addons.mozilla.org/%LOCALE%/firefox/search-engines/");
 
