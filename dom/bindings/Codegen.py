@@ -6669,21 +6669,46 @@ class CGProxyNamedOperation(CGProxySpecialOperation):
     """
     def __init__(self, descriptor, name, value=None):
         CGProxySpecialOperation.__init__(self, descriptor, name)
-        if value is None:
-            value = "js::IdToValue(id)"
         self.value = value
     def define(self):
         
         argName = self.arguments[0].identifier.name
-        return (("JS::Rooted<JS::Value> nameVal(cx, %s);\n"
-                 "FakeDependentString %s;\n"
-                 "if (!ConvertJSValueToString(cx, nameVal, &nameVal,\n"
-                 "                            eStringify, eStringify, %s)) {\n"
-                 "  return false;\n"
-                 "}\n"
+        if argName == "id":
+            
+            idDecl = "JS::Rooted<jsid> id_(cx, id);\n"
+            idName = "id_"
+        else:
+            idDecl = ""
+            idName = "id"
+        unwrapString = (
+            "if (!ConvertJSValueToString(cx, nameVal, &nameVal,\n"
+            "                            eStringify, eStringify, %s)) {\n"
+            "  return false;\n"
+            "}" % argName)
+        if self.value is None:
+            
+            
+            unwrapString = CGIfElseWrapper(
+                ("MOZ_LIKELY(JSID_IS_ATOM(%s))" % idName),
+                CGGeneric(
+                    "%s.SetData(js::GetAtomChars(JSID_TO_ATOM(%s)), js::GetAtomLength(JSID_TO_ATOM(%s)));" % (argName, idName, idName)),
+                CGGeneric(("nameVal = js::IdToValue(%s);\n" % idName) +
+                          unwrapString)).define()
+        else:
+            unwrapString = ("nameVal = %s;\n" % self.value) + unwrapString
+
+        
+        
+        
+        
+        return ("JS::Rooted<JS::Value> nameVal(cx);\n" +
+                idDecl +
+                ("FakeDependentString %s;\n" % argName) +
+                unwrapString +
+                ("\n"
                  "\n"
                  "%s* self = UnwrapProxy(proxy);\n" %
-                 (self.value, argName, argName, self.descriptor.nativeType)) +
+                 self.descriptor.nativeType) +
                 CGProxySpecialOperation.define(self))
 
 class CGProxyNamedGetter(CGProxyNamedOperation):
