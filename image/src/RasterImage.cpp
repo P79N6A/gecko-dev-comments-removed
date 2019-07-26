@@ -249,6 +249,8 @@ public:
 
     bool success = false;
     if (dstLocked) {
+      if (DiscardingEnabled())
+        dstFrame->SetDiscardable();
       success = NS_SUCCEEDED(dstFrame->UnlockImageData());
 
       dstLocked = false;
@@ -2563,7 +2565,7 @@ RasterImage::ScalingDone(ScaleRequest* request, ScaleStatus status)
   }
 }
 
-void
+bool
 RasterImage::DrawWithPreDownscaleIfNeeded(imgFrame *aFrame,
                                           gfxContext *aContext,
                                           GraphicsFilter aFilter,
@@ -2579,8 +2581,9 @@ RasterImage::DrawWithPreDownscaleIfNeeded(imgFrame *aFrame,
   imageSpaceToUserSpace.Invert();
   gfx::Size scale = ToSize(imageSpaceToUserSpace.ScaleFactors(true));
   nsIntRect subimage = aSubimage;
+  nsRefPtr<gfxASurface> surf;
 
-  if (CanScale(aFilter, scale, aFlags)) {
+  if (CanScale(aFilter, scale, aFlags) && !frame->IsSinglePixel()) {
     
     
     
@@ -2589,20 +2592,34 @@ RasterImage::DrawWithPreDownscaleIfNeeded(imgFrame *aFrame,
     
     
     
+    bool needScaleReq;
     if (mScaleResult.status == SCALE_DONE && mScaleResult.scale == scale) {
-      frame = mScaleResult.frame;
-      userSpaceToImageSpace.Multiply(gfxMatrix().Scale(scale.width, scale.height));
+      
+      mScaleResult.frame->GetSurface(getter_AddRefs(surf));
+      needScaleReq = !surf;
+      if (surf) {
+        frame = mScaleResult.frame;
+        userSpaceToImageSpace.Multiply(gfxMatrix().Scale(scale.width,
+                                                         scale.height));
 
-      
-      
-      
-      subimage.ScaleRoundOut(scale.width, scale.height);
+        
+        
+        
+        subimage.ScaleRoundOut(scale.width, scale.height);
+      }
+    } else {
+      needScaleReq = !(mScaleResult.status == SCALE_PENDING &&
+                       mScaleResult.scale == scale);
     }
 
     
     
-    else if (!(mScaleResult.status == SCALE_PENDING && mScaleResult.scale == scale) &&
-             mLockCount == 1) {
+    if (needScaleReq && mLockCount == 1) {
+      if (NS_FAILED(frame->LockImageData())) {
+        frame->UnlockImageData();
+        return false;
+      }
+
       
       if (mScaleRequest) {
         mScaleRequest->stopped = true;
@@ -2617,6 +2634,7 @@ RasterImage::DrawWithPreDownscaleIfNeeded(imgFrame *aFrame,
 
         sScaleWorkerThread->Dispatch(runner, NS_DISPATCH_NORMAL);
       }
+      frame->UnlockImageData();
     }
   }
 
@@ -2625,8 +2643,8 @@ RasterImage::DrawWithPreDownscaleIfNeeded(imgFrame *aFrame,
                       mSize.height - framerect.YMost(),
                       framerect.x);
 
-  frame->Draw(aContext, aFilter, userSpaceToImageSpace, aFill, padding, subimage,
-              aFlags);
+  return frame->Draw(aContext, aFilter, userSpaceToImageSpace,
+                     aFill, padding, subimage, aFlags);
 }
 
 
@@ -2718,18 +2736,15 @@ RasterImage::Draw(gfxContext *aContext,
     return NS_OK; 
   }
 
-  nsRefPtr<gfxASurface> surf;
-  if (!frame->IsSinglePixel()) {
-    frame->GetSurface(getter_AddRefs(surf));
-    if (!surf) {
-      
-      ForceDiscard();
-      WantDecodedFrames();
-      return NS_OK;
-    }
+  bool drawn = DrawWithPreDownscaleIfNeeded(frame, aContext, aFilter,
+                                            aUserSpaceToImageSpace, aFill,
+                                            aSubimage, aFlags);
+  if (!drawn) {
+    
+    ForceDiscard();
+    WantDecodedFrames();
+    return NS_OK;
   }
-
-  DrawWithPreDownscaleIfNeeded(frame, aContext, aFilter, aUserSpaceToImageSpace, aFill, aSubimage, aFlags);
 
   if (mDecoded && !mDrawStartTime.IsNull()) {
       TimeDuration drawLatency = TimeStamp::Now() - mDrawStartTime;
