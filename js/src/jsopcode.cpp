@@ -1640,11 +1640,7 @@ DecompileArgumentFromStack(JSContext *cx, int formalIndex, char **res)
     ++frameIter;
 
     
-
-
-
-
-    if (frameIter.done() || frameIter.poppedCallDuringSettle() || !frameIter.isScript())
+    if (frameIter.done() || !frameIter.isScript())
         return true;
 
     RootedScript script(cx, frameIter.script());
@@ -1657,6 +1653,10 @@ DecompileArgumentFromStack(JSContext *cx, int formalIndex, char **res)
     JS_ASSERT(script->code <= current && current < script->code + script->length);
 
     if (current < script->main())
+        return true;
+
+    
+    if (JSOp(*current) != JSOP_CALL || formalIndex >= GET_ARGC(current))
         return true;
 
     PCStack pcStack;
