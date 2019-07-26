@@ -2188,6 +2188,48 @@ TreatAsRemoteXUL(nsIPrincipal* aPrincipal)
          !Preferences::GetBool("dom.use_xbl_scopes_for_remote_xul", false);
 }
 
+static bool
+EnablePrivilege(JSContext* cx, unsigned argc, JS::Value* vp)
+{
+  Telemetry::Accumulate(Telemetry::ENABLE_PRIVILEGE_EVER_CALLED, true);
+  return xpc::EnableUniversalXPConnect(cx);
+}
+
+static const JSFunctionSpec EnablePrivilegeSpec[] = {
+  JS_FS("enablePrivilege", EnablePrivilege, 1, 0),
+  JS_FS_END
+};
+
+static bool
+InitializeLegacyNetscapeObject(JSContext* aCx, JS::Handle<JSObject*> aGlobal)
+{
+  JSAutoCompartment ac(aCx, aGlobal);
+
+  
+  JS::Rooted<JSObject*> obj(aCx);
+  obj = JS_DefineObject(aCx, aGlobal, "netscape", nullptr);
+  NS_ENSURE_TRUE(obj, false);
+
+  obj = JS_DefineObject(aCx, obj, "security", nullptr);
+  NS_ENSURE_TRUE(obj, false);
+
+  
+  
+  
+  
+  
+  
+  if (!Preferences::GetBool("security.turn_off_all_security_so_that_viruses_can_take_over_this_computer")) {
+    return true;
+  }
+
+  
+  obj = JS_DefineObject(aCx, obj, "PrivilegeManager", nullptr);
+  NS_ENSURE_TRUE(obj, false);
+
+  return JS_DefineFunctions(aCx, obj, EnablePrivilegeSpec);
+}
+
 
 
 
@@ -2250,6 +2292,10 @@ CreateNativeGlobalForInner(JSContext* aCx,
   
   
   xpc::SetLocationForGlobal(aGlobal, aURI);
+
+  if (!InitializeLegacyNetscapeObject(aCx, aGlobal)) {
+    return NS_ERROR_FAILURE;
+  }
 
   return NS_OK;
 }
