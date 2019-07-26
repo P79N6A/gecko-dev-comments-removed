@@ -367,6 +367,9 @@ struct JSCompartment : public js::gc::GraphNodeBase
     
     JSObject                     *gcLiveArrayBuffers;
 
+    
+    js::WeakMapBase              *gcWeakMapList;
+
   private:
     
 

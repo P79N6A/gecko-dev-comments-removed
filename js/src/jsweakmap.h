@@ -10,7 +10,7 @@
 
 #include "jsapi.h"
 #include "jsfriendapi.h"
-#include "jscntxt.h"
+#include "jscompartment.h"
 #include "jsobj.h"
 
 #include "gc/Marking.h"
@@ -41,8 +41,8 @@ typedef Vector<WeakMapBase *, 0, SystemAllocPolicy> WeakMapVector;
 
 class WeakMapBase {
   public:
-    WeakMapBase(JSObject *memOf) : memberOf(memOf), next(WeakMapNotInList) { }
-    virtual ~WeakMapBase() { }
+    WeakMapBase(JSObject *memOf, JSCompartment *c);
+    virtual ~WeakMapBase();
 
     void trace(JSTracer *tracer) {
         if (IS_GC_MARKING_TRACER(tracer)) {
@@ -55,9 +55,8 @@ class WeakMapBase {
             
             
             if (next == WeakMapNotInList) {
-                JSRuntime *rt = tracer->runtime;
-                next = rt->gcWeakMapList;
-                rt->gcWeakMapList = this;
+                next = compartment->gcWeakMapList;
+                compartment->gcWeakMapList = this;
             }
         } else {
             
@@ -75,11 +74,11 @@ class WeakMapBase {
     
     
     
-    static bool markAllIteratively(JSTracer *tracer);
+    static bool markCompartmentIteratively(JSCompartment *c, JSTracer *tracer);
 
     
     
-    static void sweepAll(JSTracer *tracer);
+    static void sweepCompartment(JSCompartment *c);
 
     
     static void traceAllMappings(WeakMapTracer *tracer);
@@ -87,25 +86,30 @@ class WeakMapBase {
     void check() { JS_ASSERT(next == WeakMapNotInList); }
 
     
-    static void resetWeakMapList(JSRuntime *rt);
+    static void resetCompartmentWeakMapList(JSCompartment *c);
 
     
-    static bool saveWeakMapList(JSRuntime *rt, WeakMapVector &vector);
-    static void restoreWeakMapList(JSRuntime *rt, WeakMapVector &vector);
+    static bool saveCompartmentWeakMapList(JSCompartment *c, WeakMapVector &vector);
 
     
-    static void removeWeakMapFromList(JSRuntime *rt, WeakMapBase *weakmap);
+    static void restoreCompartmentWeakMapLists(WeakMapVector &vector);
+
+    
+    static void removeWeakMapFromList(WeakMapBase *weakmap);
 
   protected:
     
     
     virtual void nonMarkingTrace(JSTracer *tracer) = 0;
     virtual bool markIteratively(JSTracer *tracer) = 0;
-    virtual void sweep(JSTracer *tracer) = 0;
+    virtual void sweep() = 0;
     virtual void traceMappings(WeakMapTracer *tracer) = 0;
 
     
     JSObject *memberOf;
+
+    
+    JSCompartment *compartment;
 
   private:
     
@@ -125,8 +129,8 @@ class WeakMap : public HashMap<Key, Value, HashPolicy, RuntimeAllocPolicy>, publ
     typedef typename Base::Enum Enum;
     typedef typename Base::Range Range;
 
-    explicit WeakMap(JSRuntime *rt, JSObject *memOf=NULL) : Base(rt), WeakMapBase(memOf) { }
-    explicit WeakMap(JSContext *cx, JSObject *memOf=NULL) : Base(cx), WeakMapBase(memOf) { }
+    explicit WeakMap(JSContext *cx, JSObject *memOf=NULL)
+        : Base(cx), WeakMapBase(memOf, cx->compartment) { }
 
   private:
     bool markValue(JSTracer *trc, Value *x) {
@@ -180,7 +184,7 @@ class WeakMap : public HashMap<Key, Value, HashPolicy, RuntimeAllocPolicy>, publ
         return markedAny;
     }
 
-    void sweep(JSTracer *trc) {
+    void sweep() {
         
         for (Enum e(*this); !e.empty(); e.popFront()) {
             Key k(e.front().key);

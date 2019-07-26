@@ -3384,9 +3384,6 @@ BeginMarkPhase(JSRuntime *rt)
     rt->gcStartNumber = rt->gcNumber;
 
     
-    WeakMapBase::resetWeakMapList(rt);
-
-    
 
 
 
@@ -3406,9 +3403,13 @@ BeginMarkPhase(JSRuntime *rt)
     gcstats::AutoPhase ap1(rt->gcStats, gcstats::PHASE_MARK);
     gcstats::AutoPhase ap2(rt->gcStats, gcstats::PHASE_MARK_ROOTS);
 
-    
-    for (GCCompartmentsIter c(rt); !c.done(); c.next())
+    for (GCCompartmentsIter c(rt); !c.done(); c.next()) {
+        
         c->arenas.unmarkAll();
+
+        
+        WeakMapBase::resetCompartmentWeakMapList(c);
+    }
 
     MarkRuntime(gcmarker);
 
@@ -3466,6 +3467,16 @@ BeginMarkPhase(JSRuntime *rt)
     rt->gcFoundBlackGrayEdges = false;
 }
 
+bool
+MarkWeakMapsIteratively(JSRuntime *rt)
+{
+    bool markedAny = false;
+    GCMarker *gcmarker = &rt->gcMarker;
+    for (GCCompartmentGroupIter c(rt); !c.done(); c.next())
+        markedAny |= WeakMapBase::markCompartmentIteratively(c, gcmarker);
+    return markedAny;
+}
+
 void
 MarkWeakReferences(JSRuntime *rt, gcstats::Phase phase)
 {
@@ -3475,7 +3486,7 @@ MarkWeakReferences(JSRuntime *rt, gcstats::Phase phase)
     gcstats::AutoPhase ap(rt->gcStats, phase);
 
     while (WatchpointMap::markAllIteratively(gcmarker) ||
-           WeakMapBase::markAllIteratively(gcmarker) ||
+           MarkWeakMapsIteratively(rt) ||
            Debugger::markAllIteratively(gcmarker))
     {
         SliceBudget budget;
@@ -3539,8 +3550,12 @@ ValidateIncrementalMarking(JSRuntime *rt)
 
     
     WeakMapVector weakmaps;
-    if (!WeakMapBase::saveWeakMapList(rt, weakmaps))
-        return;
+    for (GCCompartmentsIter c(rt); !c.done(); c.next()) {
+        if (!WeakMapBase::saveCompartmentWeakMapList(c, weakmaps))
+            return;
+    }
+    for (GCCompartmentsIter c(rt); !c.done(); c.next())
+        WeakMapBase::resetCompartmentWeakMapList(c);
 
     
 
@@ -3550,9 +3565,6 @@ ValidateIncrementalMarking(JSRuntime *rt)
     
     js::gc::State state = rt->gcIncrementalState;
     rt->gcIncrementalState = MARK_ROOTS;
-
-    
-    WeakMapBase::resetWeakMapList(rt);
 
     JS_ASSERT(gcmarker->isDrained());
     gcmarker->reset();
@@ -3616,8 +3628,9 @@ ValidateIncrementalMarking(JSRuntime *rt)
     }
 
     
-    WeakMapBase::resetWeakMapList(rt);
-    WeakMapBase::restoreWeakMapList(rt, weakmaps);
+    for (GCCompartmentsIter c(rt); !c.done(); c.next())
+        WeakMapBase::resetCompartmentWeakMapList(c);
+    WeakMapBase::restoreCompartmentWeakMapLists(weakmaps);
 
     rt->gcIncrementalState = state;
 }
@@ -3932,9 +3945,6 @@ BeginSweepingCompartmentGroup(JSRuntime *rt)
         gcstats::AutoPhase ap(rt->gcStats, gcstats::PHASE_SWEEP_ATOMS);
         SweepAtoms(rt);
     }
-
-    
-    WeakMapBase::sweepAll(&rt->gcMarker);
 
     
     for (GCCompartmentGroupIter c(rt); !c.done(); c.next())
