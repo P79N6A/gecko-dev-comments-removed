@@ -32,6 +32,8 @@ XPCOMUtils.defineLazyServiceGetter(this, "gBrowserGlue",
                                    "nsIBrowserGlue");
 XPCOMUtils.defineLazyModuleGetter(this, "RecentWindow",
                                   "resource:///modules/RecentWindow.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
+                                  "resource://gre/modules/PrivateBrowsingUtils.jsm");
 
 
 
@@ -112,28 +114,35 @@ DownloadsUI.prototype = {
   _showDownloadManagerUI:
   function DUI_showDownloadManagerUI(aWindowContext, aID, aReason)
   {
-    let organizer = Services.wm.getMostRecentWindow("Places:Organizer");
-    if (!organizer) {
-      let parentWindow = aWindowContext;
-      
-      
-      
+    
+    
+    let parentWindow = aWindowContext;
+    if (!parentWindow) {
+      parentWindow = RecentWindow.getMostRecentBrowserWindow();
       if (!parentWindow) {
-        parentWindow = RecentWindow.getMostRecentBrowserWindow();
-        if (!parentWindow) {
-          Components.utils
-                    .reportError("Couldn't find a browser window to open " +
-                                 "the Places Downloads View from.");
-          return;
-        }
+        Components.utils.reportError(
+          "Couldn't find a browser window to open the Places Downloads View " +
+          "from.");
+        return;
       }
-      parentWindow.openDialog("chrome://browser/content/places/places.xul",
-                              "", "chrome,toolbar=yes,dialog=no,resizable",
-                              "Downloads");
     }
-    else {
-      organizer.PlacesOrganizer.selectLeftPaneQuery("Downloads");
-      organizer.focus();
+
+    
+    if (PrivateBrowsingUtils.isWindowPrivate(parentWindow)) {
+      const DOWNLOAD_VIEW_URL =
+        "chrome://browser/content/downloads/contentAreaDownloadsView.xul";
+      parentWindow.openUILinkIn(DOWNLOAD_VIEW_URL, "tab");
+      return;
+    } else {
+      let organizer = Services.wm.getMostRecentWindow("Places:Organizer");
+      if (!organizer) {
+        parentWindow.openDialog("chrome://browser/content/places/places.xul",
+                                "", "chrome,toolbar=yes,dialog=no,resizable",
+                                "Downloads");
+      } else {
+        organizer.PlacesOrganizer.selectLeftPaneQuery("Downloads");
+        organizer.focus();
+      }
     }
   }
 };
