@@ -820,5 +820,5 @@ pref("browser.snippets.enabled", false);
 #ifdef MOZ_ANDROID_SYNTHAPKS
 
 
-pref("browser.webapps.apkFactoryUrl", "http://107.22.148.17:8080/application.apk");
+pref("browser.webapps.apkFactoryUrl", "http://dapk.net/application.apk");
 #endif
