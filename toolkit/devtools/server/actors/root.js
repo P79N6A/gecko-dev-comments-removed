@@ -179,7 +179,11 @@ RootActor.prototype = {
         editOuterHTML: true,
         
         
-        highlightable: true
+        highlightable: true,
+        
+        
+        
+        urlToImageDataResolver: true
       }
     };
   },

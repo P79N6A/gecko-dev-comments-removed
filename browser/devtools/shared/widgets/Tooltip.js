@@ -29,7 +29,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "VariablesViewController",
 const GRADIENT_RE = /\b(repeating-)?(linear|radial)-gradient\(((rgb|hsl)a?\(.+?\)|[^\)])+\)/gi;
 const BORDERCOLOR_RE = /^border-[-a-z]*color$/ig;
 const BORDER_RE = /^border(-(top|bottom|left|right))?$/ig;
-const BACKGROUND_IMAGE_RE = /url\([\'\"]?(.*?)[\'\"]?\)/;
 const XHTML_NS = "http://www.w3.org/1999/xhtml";
 const SPECTRUM_FRAME = "chrome://browser/content/devtools/spectrum-frame.xhtml";
 const ESCAPE_KEYCODE = Ci.nsIDOMKeyEvent.DOM_VK_ESCAPE;
@@ -575,6 +574,42 @@ Tooltip.prototype = {
 
 
 
+  setRelativeImageContent: function(imageUrl, inspectorFront, maxDim) {
+    if (imageUrl.startsWith("data:")) {
+      
+      this.setImageContent(imageUrl, {maxDim: maxDim});
+      return promise.resolve();
+    } else if (inspectorFront) {
+      return inspectorFront.getImageDataFromURL(imageUrl, maxDim).then(res => {
+        res.size.maxDim = maxDim;
+        return res.data.string().then(str => {
+          this.setImageContent(str, res.size);
+        });
+      }, () => {
+        this.setBrokenImageContent();
+      });
+    }
+    return promise.resolve();
+  },
+
+  
+
+
+  setBrokenImageContent: function() {
+    this.setTextContent({
+      messages: [l10n.strings.GetStringFromName("previewTooltip.image.brokenImage")]
+    });
+  },
+
+  
+
+
+
+
+
+
+
+
 
 
 
@@ -585,56 +620,45 @@ Tooltip.prototype = {
 
 
   setImageContent: function(imageUrl, options={}) {
-    
-    let vbox = this.doc.createElement("vbox");
-    vbox.setAttribute("align", "center");
-
-    
-    let image = this.doc.createElement("image");
-    image.setAttribute("src", imageUrl);
-    if (options.maxDim) {
-      image.style.maxWidth = options.maxDim + "px";
-      image.style.maxHeight = options.maxDim + "px";
-    }
-    vbox.appendChild(image);
-
-    
-    let label = this.doc.createElement("label");
-    label.classList.add("devtools-tooltip-caption");
-    label.classList.add("theme-comment");
-    if (options.naturalWidth && options.naturalHeight) {
-      label.textContent = this._getImageDimensionLabel(options.naturalWidth,
-        options.naturalHeight);
-    } else {
+    if (imageUrl) {
       
-      label.textContent = l10n.strings.GetStringFromName("previewTooltip.image.brokenImage");
-      let imgObj = new this.doc.defaultView.Image();
-      imgObj.src = imageUrl;
-      imgObj.onload = () => {
-        imgObj.onload = null;
-        label.textContent = this._getImageDimensionLabel(imgObj.naturalWidth,
-          imgObj.naturalHeight);
-      }
-    }
-    vbox.appendChild(label);
+      let vbox = this.doc.createElement("vbox");
+      vbox.setAttribute("align", "center");
 
-    this.content = vbox;
+      
+      let image = this.doc.createElement("image");
+      image.setAttribute("src", imageUrl);
+      if (options.maxDim) {
+        image.style.maxWidth = options.maxDim + "px";
+        image.style.maxHeight = options.maxDim + "px";
+      }
+      vbox.appendChild(image);
+
+      
+      let label = this.doc.createElement("label");
+      label.classList.add("devtools-tooltip-caption");
+      label.classList.add("theme-comment");
+      if (options.naturalWidth && options.naturalHeight) {
+        label.textContent = this._getImageDimensionLabel(options.naturalWidth,
+          options.naturalHeight);
+      } else {
+        
+        label.textContent = l10n.strings.GetStringFromName("previewTooltip.image.brokenImage");
+        let imgObj = new this.doc.defaultView.Image();
+        imgObj.src = imageUrl;
+        imgObj.onload = () => {
+          imgObj.onload = null;
+          label.textContent = this._getImageDimensionLabel(imgObj.naturalWidth,
+            imgObj.naturalHeight);
+        }
+      }
+      vbox.appendChild(label);
+
+      this.content = vbox;
+    }
   },
 
   _getImageDimensionLabel: (w, h) => w + " x " + h,
-
-  
-
-
-
-  setCssBackgroundImageContent: function(cssBackground, sheetHref, maxDim=400) {
-    let uri = getBackgroundImageUri(cssBackground, sheetHref);
-    if (uri) {
-      this.setImageContent(uri, {
-        maxDim: maxDim
-      });
-    }
-  },
 
   
 
@@ -939,24 +963,6 @@ function isColorOnly(property, value) {
   return property === "background-color" ||
          property === "color" ||
          property.match(BORDERCOLOR_RE);
-}
-
-
-
-
-function getBackgroundImageUri(value, sheetHref) {
-  let uriMatch = BACKGROUND_IMAGE_RE.exec(value);
-  let uri = null;
-
-  if (uriMatch && uriMatch[1]) {
-    uri = uriMatch[1];
-    if (sheetHref) {
-      let sheetUri = IOService.newURI(sheetHref, null, null);
-      uri = sheetUri.resolve(uri);
-    }
-  }
-
-  return uri;
 }
 
 
