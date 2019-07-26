@@ -5451,26 +5451,32 @@ class CGMethodCall(CGThing):
         allowedArgCounts = method.allowedArgCounts
 
         argCountCases = []
-        for argCount in allowedArgCounts:
+        for (argCountIdx, argCount) in enumerate(allowedArgCounts):
             possibleSignatures = method.signaturesForArgCount(argCount)
+
+            
+            
+            
+            if argCountIdx+1 < len(allowedArgCounts):
+                nextPossibleSignatures = \
+                    method.signaturesForArgCount(allowedArgCounts[argCountIdx+1])
+            else:
+                nextPossibleSignatures = None
+            if possibleSignatures == nextPossibleSignatures:
+                
+                
+                
+                assert (len(possibleSignatures) == 1 or
+                        (method.distinguishingIndexForArgCount(argCount) ==
+                         method.distinguishingIndexForArgCount(allowedArgCounts[argCountIdx+1])))
+                argCountCases.append(CGCase(str(argCount), None, True))
+                continue
+
             if len(possibleSignatures) == 1:
                 
                 signature = possibleSignatures[0]
-
-                
-                
-                
-                
-                
-                if (len(signature[1]) > argCount and
-                    signature[1][argCount].optional and
-                    (argCount+1) in allowedArgCounts and
-                    len(method.signaturesForArgCount(argCount+1)) == 1):
-                    argCountCases.append(
-                        CGCase(str(argCount), None, True))
-                else:
-                    argCountCases.append(
-                        CGCase(str(argCount), getPerSignatureCall(signature)))
+                argCountCases.append(
+                    CGCase(str(argCount), getPerSignatureCall(signature)))
                 continue
 
             distinguishingIndex = method.distinguishingIndexForArgCount(argCount)
