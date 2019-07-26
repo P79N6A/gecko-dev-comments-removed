@@ -1949,6 +1949,8 @@ def typeIsSequenceOrHasSequenceMember(type):
     return False
 
 
+
+
 def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                                     isDefinitelyObject=False,
                                     isMember=False,
@@ -2807,6 +2809,12 @@ for (uint32_t i = 0; i < length; ++i) {
                     "}" % (selfRef, val, exceptionCodeIndented.define()))
 
         return (template, declType, None, False)
+
+    if type.isVoid():
+        assert not isOptional
+        
+        
+        return ("", None, None, False)
 
     if not type.isPrimitive():
         raise TypeError("Need conversion for argument type '%s'" % str(type))
@@ -6623,13 +6631,22 @@ class CGNativeMember(ClassMethod):
 
     def getRetvalInfo(self, type, isMember):
         """
-        Returns a tuple: The first element is the type declaration for the
-        retval, the second is a default value that can be used on error returns.
+        Returns a tuple:
+
+        The first element is the type declaration for the retval
+
+        The second element is a default value that can be used on error returns.
         For cases whose behavior depends on isMember, the second element will be
         None if isMember is true.
+
+        The third element is a template for actually returning a value stored in
+        "${declName}" and "${holderName}".  This means actually returning it if
+        we're not outparam, else assigning to the "retval" outparam.  If
+        isMember is true, this can be None, since in that case the caller will
+        never examine this value.
         """
         if type.isVoid():
-            return "void", ""
+            return "void", "", ""
         if type.isPrimitive() and type.tag() in builtinNames:
             result = CGGeneric(builtinNames[type.tag()])
             defaultReturnArg = "0"
@@ -6637,20 +6654,23 @@ class CGNativeMember(ClassMethod):
                 result = CGWrapper(result, pre="Nullable<", post=">")
                 defaultReturnArg = ""
             return (result.define(),
-                    "%s(%s)" % (result.define(), defaultReturnArg))
+                    "%s(%s)" % (result.define(), defaultReturnArg),
+                    "return ${declName};")
         if type.isString():
             if isMember:
-                return "nsString", None
+                
+                return "nsString", None, None
             
-            return "void", ""
+            return "void", "", "retval = ${declName};"
         if type.isEnum():
             if type.nullable():
                 raise TypeError("We don't support nullable enum return values")
             typeName = type.inner.identifier.name
-            return typeName, "%s(0)" % typeName
+            return typeName, "%s(0)" % typeName, "return ${declName};"
         if type.isGeckoInterface():
+            iface = type.unroll().inner;
             nativeType = self.descriptor.getDescriptor(
-                type.unroll().inner.identifier.name).nativeType
+                iface.identifier.name).nativeType
             
             nativeType = nativeType.split("::")
             if nativeType[0] == "mozilla":
@@ -6672,19 +6692,67 @@ class CGNativeMember(ClassMethod):
                                    post=">")
             else:
                 result = CGWrapper(result, post="*")
-            return result.define(), "nullptr"
+            if iface.isExternal():
+                
+                
+                
+                returnCode = "return ${holderName}.forget();"
+            elif iface.isCallback():
+                
+                
+                returnCode = "return ${declName}.forget();"
+            elif type.nullable():
+                
+                returnCode = ("NS_IF_ADDREF(${declName});\n"
+                              "return ${declName};")
+            else:
+                
+                returnCode = ("NS_ADDREF(${declName}.Ptr());\n"
+                              "return ${declName}.Ptr();")
+            return result.define(), "nullptr", returnCode
         if type.isCallback():
+            if type.nullable():
+                returnCode = "return ${declName};"
+            else:
+                returnCode = "return ${declName}.Ptr();"
             
             
-            return "JSObject*", "nullptr"
+            return "JSObject*", "nullptr", returnCode
         if type.isAny():
-            return "JS::Value", "JS::UndefinedValue()"
-        if type.isObject() or type.isSpiderMonkeyInterface():
-            return "JSObject*", "nullptr"
+            return "JS::Value", "JS::UndefinedValue()", "return ${declName};"
+        if type.isObject():
+            if type.nullable():
+                returnCode = "return ${declName};"
+            else:
+                returnCode = "return ${declName}.Ptr();"
+            return "JSObject*", "nullptr", returnCode
+        if type.isSpiderMonkeyInterface():
+            if type.nullable():
+                returnCode = "return ${declName} ? ${declName}->Obj() : nullptr;"
+            else:
+                returnCode = ("return static_cast<%s&>(${declName}).Obj();" % type.name)
+            return "JSObject*", "nullptr", returnCode
         if type.isSequence():
             assert not isMember
             
-            return "void", ""
+            
+            
+            
+            
+            
+            
+            
+            if not type.unroll().isPrimitive():
+                return "void", ""
+            if type.nullable():
+                returnCode = ("if (${declName}.IsNull()) {\n"
+                              "  retval.SetNull();\n"
+                              "} else {\n"
+                              "  retval.SetValue() = ${declName}.Value();\n"
+                              "}")
+            else:
+                returnCode = "retval = ${declName};"
+            return "void", "", returnCode
         raise TypeError("Don't know how to declare return value for %s" %
                         type)
 
@@ -7129,6 +7197,13 @@ class CallCallback(CGNativeMember):
                 return False
             def isAttr(self):
                 return False
+            def getExtendedAttribute(self, name):
+                
+                
+                
+                if name == "Creator":
+                    return True
+                return None
         CGNativeMember.__init__(self, descriptorProvider, FakeMember(),
                                 "Call", (self.retvalType, args),
                                 extendedAttrs={},
@@ -7141,7 +7216,8 @@ class CallCallback(CGNativeMember):
     def getImpl(self):
         replacements = {
             "errorReturn" : self.getDefaultRetval(),
-            "argCount": self.argCount
+            "argCount": self.argCount,
+            "returnResult": self.getResultConversion()
             }
         if self.argCount > 0:
             replacements["argvDecl"] = string.Template(
@@ -7160,7 +7236,27 @@ class CallCallback(CGNativeMember):
             "  aRv.Throw(NS_ERROR_UNEXPECTED);\n"
             "  return${errorReturn};\n"
             "}\n"
-            "return${errorReturn};").substitute(replacements)
+            "${returnResult}").substitute(replacements)
+
+    def getResultConversion(self):
+        replacements = {
+            "val": "rval",
+            "valPtr": "&rval",
+            "holderName" : "rvalHolder",
+            "declName" : "rvalDecl"
+            }
+        exceptionCode=("aRv.Throw(NS_ERROR_UNEXPECTED);\n"
+                       "return%s;" % self.getDefaultRetval())
+
+        convertType = instantiateJSToNativeConversionTemplate(
+            getJSToNativeConversionTemplate(self.retvalType,
+                                            self.descriptor,
+                                            exceptionCode=exceptionCode),
+            replacements)
+        assignRetval = string.Template(
+            self.getRetvalInfo(self.retvalType,
+                               False)[2]).substitute(replacements)
+        return convertType.define() + "\n" + assignRetval
 
     def getDefaultRetval(self):
         default = self.getRetvalInfo(self.retvalType, False)[1]
