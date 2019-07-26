@@ -2,8 +2,7 @@
 
 
 
-#include "jsclass.h"
-
+#include "js/Class.h"
 #include "jsapi-tests/tests.h"
 
 int count = 0;
