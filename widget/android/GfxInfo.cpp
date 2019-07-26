@@ -470,19 +470,19 @@ GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
         
         
         
-        
-        
-        
-        
-        
 
         bool isBlocklisted =
-          cModel.Equals("SAMSUNG-SPH-L710", nsCaseInsensitiveCStringComparator()) ||
-          cModel.Equals("SAMSUNG-SGH-T999", nsCaseInsensitiveCStringComparator()) ||
-          cModel.Equals("SAMSUNG-SCH-I535", nsCaseInsensitiveCStringComparator()) ||
-          cModel.Equals("SAMSUNG-GT-I8190", nsCaseInsensitiveCStringComparator()) ||
-          cModel.Equals("SAMSUNG-SGH-I747M", nsCaseInsensitiveCStringComparator()) ||
-          cModel.Equals("SAMSUNG-SGH-I747", nsCaseInsensitiveCStringComparator()) ||
+          cModel.Find("SCH-I535", true) ||
+          cModel.Find("SGH-I747", true) ||
+          cModel.Find("SGH-T999", true) ||
+          cModel.Find("SPH-L710", true) ||
+          cModel.Find("GT-I8190", true) ||
+          cModel.Find("GT-P3100", true) ||
+          cModel.Find("GT-P3110", true) ||
+          cModel.Find("GT-P3113", true) ||
+          cModel.Find("GT-P5100", true) ||
+          cModel.Find("GT-P5110", true) ||
+          cModel.Find("GT-P5113", true) ||
           cManufacturer.Equals("Sony", nsCaseInsensitiveCStringComparator());
 
         if (isBlocklisted) {
