@@ -103,11 +103,58 @@ loop.panel = (function(_, mozL10n) {
   });
 
   var PanelRouter = loop.shared.router.BaseRouter.extend({
+    
+
+
+
+    document: undefined,
+
     routes: {
       "": "home"
     },
 
+    initialize: function(options) {
+      options = options || {};
+      if (!options.document) {
+        throw new Error("missing required document");
+      }
+      this.document = options.document;
+
+      this._registerVisibilityChangeEvent();
+
+      this.on("panel:open panel:closed", this.reset, this);
+    },
+
+    
+
+
+
+
+
+
+
+
+    _registerVisibilityChangeEvent: function() {
+      this.document.addEventListener("visibilitychange", function(event) {
+        this.trigger(event.currentTarget.hidden ? "panel:closed"
+                                                : "panel:open");
+      }.bind(this));
+    },
+
+    
+
+
     home: function() {
+      this.reset();
+    },
+
+    
+
+
+    reset: function() {
+      
+      this._notifier.clear();
+      
       this.loadView(new PanelView({notifier: this._notifier}));
     }
   });
@@ -117,6 +164,7 @@ loop.panel = (function(_, mozL10n) {
 
   function init() {
     router = new PanelRouter({
+      document: document,
       notifier: new sharedViews.NotificationListView({el: "#messages"})
     });
     Backbone.history.start();
