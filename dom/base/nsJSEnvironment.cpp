@@ -1657,8 +1657,10 @@ nsJSContext::InitClasses(JS::Handle<JSObject*> aGlobalObj)
 #endif
 
 #ifdef MOZ_DMD
-  
-  ::JS_DefineFunctions(cx, aGlobalObj, DMDFunctions);
+  if (nsContentUtils::IsCallerChrome()) {
+    
+    ::JS_DefineFunctions(cx, aGlobalObj, DMDFunctions);
+  }
 #endif
 
 #ifdef MOZ_JPROF
