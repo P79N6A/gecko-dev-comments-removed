@@ -2179,22 +2179,6 @@ Object.defineProperties(window, {
 
 
 
-
-
-
-
-function getSDKModuleName(url) {
-  let match = (url || "").match(/^resource:\/\/gre\/modules\/commonjs\/(.*)/);
-  if (match) {
-    return match[1];
-  }
-  return null;
-}
-
-
-
-
-
 function dumpn(str) {
   if (wantLogging) {
     dump("DBG-FRONTEND: " + str + "\n");

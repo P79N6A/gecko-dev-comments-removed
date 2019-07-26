@@ -73,6 +73,11 @@ SideMenuWidget.prototype = {
   
 
 
+  groupSortPredicate: function(a, b) a.localeCompare(b),
+
+  
+
+
 
 
 
@@ -342,7 +347,7 @@ SideMenuWidget.prototype = {
     });
 
     this._groupsByName.set(aName, group);
-    group.insertSelfAt(this.sortedGroups ? group.findExpectedIndexForSelf() : -1);
+    group.insertSelfAt(this.sortedGroups ? group.findExpectedIndexForSelf(this.groupSortPredicate) : -1);
 
     return group;
   },
@@ -484,14 +489,14 @@ SideMenuGroup.prototype = {
 
 
 
-  findExpectedIndexForSelf: function() {
+  findExpectedIndexForSelf: function(sortPredicate) {
     let identifier = this.identifier;
     let groupsArray = this._orderedGroupElementsArray;
 
     for (let group of groupsArray) {
       let name = group.getAttribute("name");
-      if (name > identifier && 
-         !name.contains(identifier)) { 
+      if (sortPredicate(name, identifier) > 0 && 
+          !name.contains(identifier)) { 
         return groupsArray.indexOf(group);
       }
     }
