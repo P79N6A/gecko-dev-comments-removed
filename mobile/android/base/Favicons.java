@@ -6,6 +6,7 @@
 package org.mozilla.gecko;
 
 import org.mozilla.gecko.db.BrowserDB;
+import org.mozilla.gecko.util.GeckoBackgroundThread;
 import org.mozilla.gecko.util.GeckoJarReader;
 
 import org.apache.http.HttpEntity;
@@ -205,17 +206,20 @@ public class Favicons {
         }
 
         
-        private void saveFaviconToDb(Bitmap favicon) {
+        private void saveFaviconToDb(final Bitmap favicon) {
             if (!mPersist) {
                 return;
             }
 
             
             
-            synchronized(Favicons.this) {
-                ContentResolver resolver = mContext.getContentResolver();
-                BrowserDB.updateFaviconForUrl(resolver, mPageUrl, favicon, mFaviconUrl);
-            }
+            
+            GeckoBackgroundThread.post(new Runnable() {
+                public void run() {
+                    ContentResolver resolver = mContext.getContentResolver();
+                    BrowserDB.updateFaviconForUrl(resolver, mPageUrl, favicon, mFaviconUrl);
+                }
+            });
         }
 
         
