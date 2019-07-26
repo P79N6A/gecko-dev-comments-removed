@@ -272,11 +272,6 @@ DocManager::HandleEvent(nsIDOMEvent* aEvent)
 #endif
 
     
-    
-    if (document->IsInitialDocument())
-      return NS_OK;
-
-    
 
     
     
@@ -371,9 +366,7 @@ DocAccessible*
 DocManager::CreateDocOrRootAccessible(nsIDocument* aDocument)
 {
   
-  
-  if (aDocument->IsInitialDocument() ||
-      !aDocument->IsVisibleConsideringAncestors() ||
+  if (!aDocument->IsVisibleConsideringAncestors() ||
       aDocument->IsResourceDoc() || !aDocument->IsActive())
     return nullptr;
 
