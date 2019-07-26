@@ -215,7 +215,12 @@ enum punycode_status punycode_decode(
   
   
 
-  for (b = j = 0;  j < input_length;  ++j) if (delim(input[j])) b = j;
+  for (b = 0, j = input_length - 1 ;  j > 0;  --j) {
+    if (delim(input[j])) {
+      b = j;
+      break;
+    }
+  }
   if (b > max_out) return punycode_big_output;
 
   for (j = 0;  j < b;  ++j) {
