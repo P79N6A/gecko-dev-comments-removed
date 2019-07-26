@@ -19,6 +19,7 @@
 #include "nsIChromeRegistry.h"          
 #include "nsIContent.h"                 
 #include "nsIContentPrefService.h"      
+#include "nsIContentPrefService2.h"     
 #include "nsIDOMDocument.h"             
 #include "nsIDOMElement.h"              
 #include "nsIDOMRange.h"                
@@ -62,34 +63,11 @@ class UpdateDictionnaryHolder {
 
 #define CPS_PREF_NAME NS_LITERAL_STRING("spellcheck.lang")
 
-class LastDictionary MOZ_FINAL {
-public:
-  
 
 
 
-  NS_IMETHOD StoreCurrentDictionary(nsIEditor* aEditor, const nsAString& aDictionary);
-
-  
-
-
-  NS_IMETHOD FetchLastDictionary(nsIEditor* aEditor, nsAString& aDictionary);
-
-  
-
-
-  NS_IMETHOD ClearCurrentDictionary(nsIEditor* aEditor);
-
-  
-
-
-
-  static nsresult GetDocumentURI(nsIEditor* aEditor, nsIURI * *aURI);
-};
-
-
-nsresult
-LastDictionary::GetDocumentURI(nsIEditor* aEditor, nsIURI * *aURI)
+static nsresult
+GetDocumentURI(nsIEditor* aEditor, nsIURI * *aURI)
 {
   NS_ENSURE_ARG_POINTER(aEditor);
   NS_ENSURE_ARG_POINTER(aURI);
@@ -124,8 +102,55 @@ GetLoadContext(nsIEditor* aEditor)
   return loadContext.forget();
 }
 
+
+
+
+
+class DictionaryFetcher MOZ_FINAL : public nsIContentPrefCallback2
+{
+public:
+  NS_DECL_ISUPPORTS
+
+  DictionaryFetcher(nsEditorSpellCheck* aSpellCheck,
+                    nsIEditorSpellCheckCallback* aCallback,
+                    uint32_t aGroup)
+    : mCallback(aCallback), mGroup(aGroup), mSpellCheck(aSpellCheck) {}
+
+  NS_IMETHOD Fetch(nsIEditor* aEditor);
+
+  NS_IMETHOD HandleResult(nsIContentPref* aPref)
+  {
+    nsCOMPtr<nsIVariant> value;
+    nsresult rv = aPref->GetValue(getter_AddRefs(value));
+    NS_ENSURE_SUCCESS(rv, rv);
+    value->GetAsAString(mDictionary);
+    return NS_OK;
+  }
+
+  NS_IMETHOD HandleCompletion(uint16_t reason)
+  {
+    mSpellCheck->DictionaryFetched(this);
+    return NS_OK;
+  }
+
+  NS_IMETHOD HandleError(nsresult error)
+  {
+    return NS_OK;
+  }
+
+  nsCOMPtr<nsIEditorSpellCheckCallback> mCallback;
+  uint32_t mGroup;
+  nsString mRootContentLang;
+  nsString mRootDocContentLang;
+  nsString mDictionary;
+
+private:
+  nsCOMPtr<nsEditorSpellCheck> mSpellCheck;
+};
+NS_IMPL_ISUPPORTS1(DictionaryFetcher, nsIContentPrefCallback2)
+
 NS_IMETHODIMP
-LastDictionary::FetchLastDictionary(nsIEditor* aEditor, nsAString& aDictionary)
+DictionaryFetcher::Fetch(nsIEditor* aEditor)
 {
   NS_ENSURE_ARG_POINTER(aEditor);
 
@@ -135,29 +160,28 @@ LastDictionary::FetchLastDictionary(nsIEditor* aEditor, nsAString& aDictionary)
   rv = GetDocumentURI(aEditor, getter_AddRefs(docUri));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsIContentPrefService> contentPrefService =
+  nsAutoCString docUriSpec;
+  rv = docUri->GetSpec(docUriSpec);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIContentPrefService2> contentPrefService =
     do_GetService(NS_CONTENT_PREF_SERVICE_CONTRACTID);
   NS_ENSURE_TRUE(contentPrefService, NS_ERROR_NOT_AVAILABLE);
 
-  nsCOMPtr<nsIWritableVariant> uri = do_CreateInstance(NS_VARIANT_CONTRACTID);
-  NS_ENSURE_TRUE(uri, NS_ERROR_OUT_OF_MEMORY);
-  uri->SetAsISupports(docUri);
-
   nsCOMPtr<nsILoadContext> loadContext = GetLoadContext(aEditor);
-  bool hasPref;
-  if (NS_SUCCEEDED(contentPrefService->HasPref(uri, CPS_PREF_NAME, loadContext, &hasPref)) && hasPref) {
-    nsCOMPtr<nsIVariant> pref;
-    contentPrefService->GetPref(uri, CPS_PREF_NAME, loadContext, nullptr, getter_AddRefs(pref));
-    pref->GetAsAString(aDictionary);
-  } else {
-    aDictionary.Truncate();
-  }
+  rv = contentPrefService->GetByDomainAndName(NS_ConvertUTF8toUTF16(docUriSpec),
+                                              CPS_PREF_NAME, loadContext,
+                                              this);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
 }
 
-NS_IMETHODIMP
-LastDictionary::StoreCurrentDictionary(nsIEditor* aEditor, const nsAString& aDictionary)
+
+
+
+static nsresult
+StoreCurrentDictionary(nsIEditor* aEditor, const nsAString& aDictionary)
 {
   NS_ENSURE_ARG_POINTER(aEditor);
 
@@ -167,24 +191,29 @@ LastDictionary::StoreCurrentDictionary(nsIEditor* aEditor, const nsAString& aDic
   rv = GetDocumentURI(aEditor, getter_AddRefs(docUri));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsIWritableVariant> uri = do_CreateInstance(NS_VARIANT_CONTRACTID);
-  NS_ENSURE_TRUE(uri, NS_ERROR_OUT_OF_MEMORY);
-  uri->SetAsISupports(docUri);
+  nsAutoCString docUriSpec;
+  rv = docUri->GetSpec(docUriSpec);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIWritableVariant> prefValue = do_CreateInstance(NS_VARIANT_CONTRACTID);
   NS_ENSURE_TRUE(prefValue, NS_ERROR_OUT_OF_MEMORY);
   prefValue->SetAsAString(aDictionary);
 
-  nsCOMPtr<nsIContentPrefService> contentPrefService =
+  nsCOMPtr<nsIContentPrefService2> contentPrefService =
     do_GetService(NS_CONTENT_PREF_SERVICE_CONTRACTID);
   NS_ENSURE_TRUE(contentPrefService, NS_ERROR_NOT_INITIALIZED);
 
   nsCOMPtr<nsILoadContext> loadContext = GetLoadContext(aEditor);
-  return contentPrefService->SetPref(uri, CPS_PREF_NAME, prefValue, loadContext);
+  return contentPrefService->Set(NS_ConvertUTF8toUTF16(docUriSpec),
+                                 CPS_PREF_NAME, prefValue, loadContext,
+                                 nullptr);
 }
 
-NS_IMETHODIMP
-LastDictionary::ClearCurrentDictionary(nsIEditor* aEditor)
+
+
+
+static nsresult
+ClearCurrentDictionary(nsIEditor* aEditor)
 {
   NS_ENSURE_ARG_POINTER(aEditor);
 
@@ -194,19 +223,18 @@ LastDictionary::ClearCurrentDictionary(nsIEditor* aEditor)
   rv = GetDocumentURI(aEditor, getter_AddRefs(docUri));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsIWritableVariant> uri = do_CreateInstance(NS_VARIANT_CONTRACTID);
-  NS_ENSURE_TRUE(uri, NS_ERROR_OUT_OF_MEMORY);
-  uri->SetAsISupports(docUri);
+  nsAutoCString docUriSpec;
+  rv = docUri->GetSpec(docUriSpec);
+  NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsIContentPrefService> contentPrefService =
+  nsCOMPtr<nsIContentPrefService2> contentPrefService =
     do_GetService(NS_CONTENT_PREF_SERVICE_CONTRACTID);
   NS_ENSURE_TRUE(contentPrefService, NS_ERROR_NOT_INITIALIZED);
 
   nsCOMPtr<nsILoadContext> loadContext = GetLoadContext(aEditor);
-  return contentPrefService->RemovePref(uri, CPS_PREF_NAME, loadContext);
+  return contentPrefService->RemoveByDomainAndName(
+    NS_ConvertUTF8toUTF16(docUriSpec), CPS_PREF_NAME, loadContext, nullptr);
 }
-
-LastDictionary* nsEditorSpellCheck::gDictionaryStore = nullptr;
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(nsEditorSpellCheck)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(nsEditorSpellCheck)
@@ -226,6 +254,7 @@ nsEditorSpellCheck::nsEditorSpellCheck()
   : mSuggestedWordIndex(0)
   , mDictionaryIndex(0)
   , mEditor(nullptr)
+  , mDictionaryFetcherGroup(0)
   , mUpdateDictionaryRunning(false)
 {
 }
@@ -261,18 +290,38 @@ nsEditorSpellCheck::CanSpellCheck(bool* _retval)
   return NS_OK;
 }
 
+
+class CallbackCaller MOZ_FINAL : public nsRunnable
+{
+public:
+  explicit CallbackCaller(nsIEditorSpellCheckCallback* aCallback)
+    : mCallback(aCallback) {}
+
+  ~CallbackCaller()
+  {
+    Run();
+  }
+
+  NS_IMETHOD Run()
+  {
+    if (mCallback) {
+      mCallback->EditorSpellCheckDone();
+      mCallback = nullptr;
+    }
+    return NS_OK;
+  }
+
+private:
+  nsCOMPtr<nsIEditorSpellCheckCallback> mCallback;
+};
+
 NS_IMETHODIMP    
-nsEditorSpellCheck::InitSpellChecker(nsIEditor* aEditor, bool aEnableSelectionChecking)
+nsEditorSpellCheck::InitSpellChecker(nsIEditor* aEditor, bool aEnableSelectionChecking, nsIEditorSpellCheckCallback* aCallback)
 {
   NS_ENSURE_TRUE(aEditor, NS_ERROR_NULL_POINTER);
   mEditor = aEditor;
 
   nsresult rv;
-
-  if (!gDictionaryStore) {
-    gDictionaryStore = new LastDictionary();
-  }
-
 
   
   nsCOMPtr<nsITextServicesDocument>tsDoc =
@@ -345,7 +394,17 @@ nsEditorSpellCheck::InitSpellChecker(nsIEditor* aEditor, bool aEnableSelectionCh
 
   
   
-  UpdateCurrentDictionary();
+  rv = UpdateCurrentDictionary(aCallback);
+  if (NS_FAILED(rv) && aCallback) {
+    
+    
+    
+    nsRefPtr<CallbackCaller> caller = new CallbackCaller(aCallback);
+    NS_ENSURE_STATE(caller);
+    rv = NS_DispatchToMainThread(caller);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
   return NS_OK;
 }
 
@@ -529,7 +588,13 @@ nsEditorSpellCheck::SetCurrentDictionary(const nsAString& aDictionary)
 
   nsRefPtr<nsEditorSpellCheck> kungFuDeathGrip = this;
 
+  
+  
+  
   if (!mUpdateDictionaryRunning) {
+
+    
+    mDictionaryFetcherGroup++;
 
     nsDefaultStringComparator comparator;
     nsAutoString langCode;
@@ -543,11 +608,11 @@ nsEditorSpellCheck::SetCurrentDictionary(const nsAString& aDictionary)
     if (mPreferredLang.IsEmpty() || !nsStyleUtil::DashMatchCompare(mPreferredLang, langCode, comparator)) {
       
       
-      gDictionaryStore->StoreCurrentDictionary(mEditor, aDictionary);
+      StoreCurrentDictionary(mEditor, aDictionary);
     } else {
       
       
-      gDictionaryStore->ClearCurrentDictionary(mEditor);
+      ClearCurrentDictionary(mEditor);
     }
 
     
@@ -613,13 +678,11 @@ nsEditorSpellCheck::DeleteSuggestedWordList()
 }
 
 NS_IMETHODIMP
-nsEditorSpellCheck::UpdateCurrentDictionary()
+nsEditorSpellCheck::UpdateCurrentDictionary(nsIEditorSpellCheckCallback* aCallback)
 {
   nsresult rv;
 
   nsRefPtr<nsEditorSpellCheck> kungFuDeathGrip = this;
-
-  UpdateDictionnaryHolder holder(this);
 
   
   nsCOMPtr<nsIContent> rootContent;
@@ -634,27 +697,53 @@ nsEditorSpellCheck::UpdateCurrentDictionary()
   }
   NS_ENSURE_TRUE(rootContent, NS_ERROR_FAILURE);
 
-  mPreferredLang.Truncate();
-  rootContent->GetLang(mPreferredLang);
+  DictionaryFetcher* fetcher = new DictionaryFetcher(this, aCallback,
+                                                     mDictionaryFetcherGroup);
+  rootContent->GetLang(fetcher->mRootContentLang);
+  nsCOMPtr<nsIDocument> doc = rootContent->GetCurrentDoc();
+  NS_ENSURE_STATE(doc);
+  doc->GetContentLanguage(fetcher->mRootDocContentLang);
+
+  rv = fetcher->Fetch(mEditor);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
+
+nsresult
+nsEditorSpellCheck::DictionaryFetched(DictionaryFetcher* aFetcher)
+{
+  nsRefPtr<nsEditorSpellCheck> kungFuDeathGrip = this;
+
+  nsresult rv = NS_OK;
 
   
+  
+  CallbackCaller callbackCaller(aFetcher->mCallback);
+  UpdateDictionnaryHolder holder(this);
+
+  if (aFetcher->mGroup < mDictionaryFetcherGroup) {
+    
+    
+    return NS_OK;
+  }
+
+  mPreferredLang.Assign(aFetcher->mRootContentLang);
 
   
   
   nsAutoString dictName;
-  rv = gDictionaryStore->FetchLastDictionary(mEditor, dictName);
-  if (NS_SUCCEEDED(rv) && !dictName.IsEmpty()) {
+  dictName.Assign(aFetcher->mDictionary);
+  if (!dictName.IsEmpty()) {
     if (NS_FAILED(SetCurrentDictionary(dictName))) { 
       
-      gDictionaryStore->ClearCurrentDictionary(mEditor);
+      ClearCurrentDictionary(mEditor);
     }
     return NS_OK;
   }
 
   if (mPreferredLang.IsEmpty()) {
-    nsCOMPtr<nsIDocument> doc = rootContent->GetCurrentDoc();
-    NS_ENSURE_TRUE(doc, NS_ERROR_FAILURE);
-    doc->GetContentLanguage(mPreferredLang);
+    mPreferredLang.Assign(aFetcher->mRootDocContentLang);
   }
 
   
@@ -780,9 +869,4 @@ nsEditorSpellCheck::UpdateCurrentDictionary()
   DeleteSuggestedWordList();
 
   return NS_OK;
-}
-
-void 
-nsEditorSpellCheck::ShutDown() {
-  delete gDictionaryStore;
 }

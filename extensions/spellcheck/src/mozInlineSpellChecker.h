@@ -28,6 +28,9 @@ class nsIDOMMouseEventListener;
 class mozInlineSpellWordUtil;
 class mozInlineSpellChecker;
 class mozInlineSpellResume;
+class InitEditorSpellCheckCallback;
+class UpdateCurrentDictionaryCallback;
+class mozInlineSpellResume;
 
 class mozInlineSpellStatus
 {
@@ -120,6 +123,10 @@ class mozInlineSpellChecker : public nsIInlineSpellChecker,
 {
 private:
   friend class mozInlineSpellStatus;
+  friend class InitEditorSpellCheckCallback;
+  friend class UpdateCurrentDictionaryCallback;
+  friend class AutoChangeNumPendingSpellChecks;
+  friend class mozInlineSpellResume;
 
   
   enum SpellCheckingState { SpellCheck_Uninitialized = -1,
@@ -129,6 +136,7 @@ private:
 
   nsWeakPtr mEditor; 
   nsCOMPtr<nsIEditorSpellCheck> mSpellCheck;
+  nsCOMPtr<nsIEditorSpellCheck> mPendingSpellCheck;
   nsCOMPtr<nsIDOMTreeWalker> mTreeWalker;
   nsCOMPtr<mozISpellI18NUtil> mConverter;
 
@@ -149,11 +157,32 @@ private:
 
   
   
+  
+  
+  int32_t mNumPendingSpellChecks;
+
+  
+  int32_t mNumPendingUpdateCurrentDictionary;
+
+  
+  
+  
+  uint32_t mDisabledAsyncToken;
+
+  
+  
+  nsCOMPtr<InitEditorSpellCheckCallback> mPendingInitEditorSpellCheckCallback;
+
+  
+  
   bool mNeedsCheckAfterNavigation;
 
   
   
   bool mFullSpellCheckScheduled;
+
+  
+  nsString mPreviousDictionary;
 
 public:
 
@@ -228,6 +257,18 @@ public:
   nsresult SaveCurrentSelectionPosition();
 
   nsresult ResumeCheck(mozInlineSpellStatus* aStatus);
+
+protected:
+
+  
+  nsresult EditorSpellCheckInited();
+  nsresult CurrentDictionaryUpdated();
+
+  
+  
+  void ChangeNumPendingSpellChecks(int32_t aDelta,
+                                   nsIEditor* aEditor = nullptr);
+  void NotifyObservers(const char* aTopic, nsIEditor* aEditor);
 };
 
 #endif 
