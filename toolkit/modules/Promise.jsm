@@ -116,6 +116,10 @@ const N_HANDLERS = Name("handlers");
 
 
 
+const ERRORS_TO_REPORT = ["EvalError", "RangeError", "ReferenceError", "TypeError"];
+
+
+
 
 
 
@@ -572,6 +576,26 @@ Handler.prototype = {
         nextStatus = STATUS_RESOLVED;
       }
     } catch (ex) {
+
+      
+
+      if (ex && typeof ex == "object" && "name" in ex &&
+          ERRORS_TO_REPORT.indexOf(ex.name) != -1) {
+
+        
+        
+        
+        
+        
+
+        dump("A coding exception was thrown in a Promise " +
+             ((nextStatus == STATUS_RESOLVED) ? "resolution":"rejection") +
+             " callback.\n");
+        dump("Full message: " + ex + "\n");
+        dump("See https://developer.mozilla.org/Mozilla/JavaScript_code_modules/Promise.jsm/Promise\n");
+        dump("Full stack: " + (("stack" in ex)?ex.stack:"not available") + "\n");
+      }
+
       
       nextStatus = STATUS_REJECTED;
       nextValue = ex;

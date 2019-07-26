@@ -99,6 +99,10 @@ Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js");
 
 
 
+const ERRORS_TO_REPORT = ["EvalError", "RangeError", "ReferenceError", "TypeError"];
+
+
+
 
 
 
@@ -226,6 +230,21 @@ TaskImpl.prototype = {
       this.deferred.resolve();
     } catch (ex) {
       
+
+      if (ex && typeof ex == "object" && "name" in ex &&
+          ERRORS_TO_REPORT.indexOf(ex.name) != -1) {
+
+        
+        
+        
+        
+        
+
+        dump("A coding exception was thrown and uncaught in a Task.\n");
+        dump("Full message: " + ex + "\n");
+        dump("Full stack: " + (("stack" in ex)?ex.stack:"not available") + "\n");
+      }
+
       this.deferred.reject(ex);
     }
   }
