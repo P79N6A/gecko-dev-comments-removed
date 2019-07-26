@@ -907,7 +907,7 @@ public:
 
 
 
-  nsPIDOMWindow* GetInnerWindow()
+  nsPIDOMWindow* GetInnerWindow() const
   {
     return mRemovedFromDocShell ? nullptr : mWindow;
   }
@@ -1612,6 +1612,9 @@ public:
   bool IsVisibleConsideringAncestors() const;
 
   
+
+
+
 
 
 
