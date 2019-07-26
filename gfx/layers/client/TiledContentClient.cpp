@@ -126,8 +126,6 @@ TiledContentClient::UseTiledLayerBuffer(TiledBufferType aType)
 }
 
 SharedFrameMetricsHelper::SharedFrameMetricsHelper()
-  : mLastProgressiveUpdateWasLowPrecision(false)
-  , mProgressiveUpdateWasInDanger(false)
 {
   MOZ_COUNT_CTOR(SharedFrameMetricsHelper);
 }
@@ -177,17 +175,6 @@ SharedFrameMetricsHelper::UpdateFromCompositorFrameMetrics(
 
   
   
-  if (aLowPrecision && !mLastProgressiveUpdateWasLowPrecision) {
-    
-    if (!mProgressiveUpdateWasInDanger) {
-      return true;
-    }
-    mProgressiveUpdateWasInDanger = false;
-  }
-  mLastProgressiveUpdateWasLowPrecision = aLowPrecision;
-
-  
-  
   if (!FuzzyEquals(compositorMetrics.GetZoom().scale, contentMetrics.GetZoom().scale)) {
     return true;
   }
@@ -205,23 +192,20 @@ SharedFrameMetricsHelper::UpdateFromCompositorFrameMetrics(
     return false;
   }
 
+  bool scrollUpdatePending = contentMetrics.GetScrollOffsetUpdated() &&
+      contentMetrics.GetScrollGeneration() != compositorMetrics.GetScrollGeneration();
   
   
-  if (!aLowPrecision && !mProgressiveUpdateWasInDanger) {
-    bool scrollUpdatePending = contentMetrics.GetScrollOffsetUpdated() &&
-        contentMetrics.GetScrollGeneration() != compositorMetrics.GetScrollGeneration();
-    
-    
-    
-    
-    
-    
-    
-    
-    if (!scrollUpdatePending && AboutToCheckerboard(contentMetrics, compositorMetrics)) {
-      mProgressiveUpdateWasInDanger = true;
-      return true;
-    }
+  
+  
+  
+  
+  
+  
+  if (!aLowPrecision && !scrollUpdatePending && AboutToCheckerboard(contentMetrics, compositorMetrics)) {
+    TILING_PRLOG_OBJ(("TILING: Checkerboard abort content %s\n", tmpstr.get()), contentMetrics);
+    TILING_PRLOG_OBJ(("TILING: Checkerboard abort compositor %s\n", tmpstr.get()), compositorMetrics);
+    return true;
   }
 
   
