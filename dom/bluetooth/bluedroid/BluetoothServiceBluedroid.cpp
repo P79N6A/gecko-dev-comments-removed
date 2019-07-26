@@ -205,7 +205,22 @@ ClassToIcon(uint32_t aClass, nsAString& aRetIcon)
       }
       break;
   }
+
+  if (aRetIcon.IsEmpty()) {
+    if (HAS_AUDIO(aClass)) {
+      
+
+
+
+
+
+      aRetIcon.AssignLiteral("audio-card");
+    } else {
+      BT_LOGR("No icon to match class: %x", aClass);
+    }
+  }
 }
+
 static ControlPlayStatus
 PlayStatusStringToControlPlayStatus(const nsAString& aPlayStatus)
 {
