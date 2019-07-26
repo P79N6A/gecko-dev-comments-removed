@@ -28,6 +28,10 @@ XPCOMUtils.defineLazyGetter(this, "SL", function () {
   return SL;
 });
 
+XPCOMUtils.defineLazyServiceGetter(this, "gSystemMessenger",
+                                   "@mozilla.org/system-message-internal;1",
+                                   "nsISystemMessagesInternal");
+
 
 
 
@@ -98,7 +102,10 @@ this.WapPushManager = {
       };
     }
 
-    
+    gSystemMessenger.broadcastMessage("wappush-received", {
+      contentType:    msg.contentType,
+      content:        msg.content
+    });
   },
 
   
