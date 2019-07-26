@@ -22,6 +22,7 @@
 #include "mozilla/GuardObjects.h"
 #include "mozilla/LinkedList.h"
 #include "mozilla/StandardInteger.h"
+#include "mozilla/StaticMutex.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/dom/DOMError.h"
 #include "mozilla/dom/indexedDB/FileInfo.h"
@@ -343,6 +344,10 @@ protected:
   bool mStoredFile;
 };
 
+
+
+
+
 class nsDOMMemoryFile : public nsDOMFile
 {
 public:
@@ -394,6 +399,8 @@ protected:
       : mData(aMemoryBuffer)
       , mLength(aLength)
     {
+      mozilla::StaticMutexAutoLock lock(sDataOwnerMutex);
+
       if (!sDataOwners) {
         sDataOwners = new mozilla::LinkedList<DataOwner>();
         EnsureMemoryReporterRegistered();
@@ -402,6 +409,8 @@ protected:
     }
 
     ~DataOwner() {
+      mozilla::StaticMutexAutoLock lock(sDataOwnerMutex);
+
       remove();
       if (sDataOwners->isEmpty()) {
         
@@ -413,8 +422,13 @@ protected:
 
     static void EnsureMemoryReporterRegistered();
 
-    static bool sMemoryReporterRegistered;
+    
+    
+    
+    static mozilla::StaticMutex sDataOwnerMutex;
     static mozilla::StaticAutoPtr<mozilla::LinkedList<DataOwner> > sDataOwners;
+    static bool sMemoryReporterRegistered;
+
     void* mData;
     uint64_t mLength;
   };
