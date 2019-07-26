@@ -122,12 +122,10 @@ CallbackObject::CallSetup::CallSetup(JS::Handle<JSObject*> aCallback,
     
     
     
-    
-    nsresult rv = nsContentUtils::GetSecurityManager()->
-      CheckFunctionAccess(cx, js::UncheckedUnwrap(aCallback), nullptr);
+    bool allowed = nsContentUtils::GetSecurityManager()->
+      ScriptAllowed(js::GetGlobalForObjectCrossCompartment(js::UncheckedUnwrap(aCallback)));
 
-    if (NS_FAILED(rv)) {
-      
+    if (!allowed) {
       return;
     }
   }

@@ -329,11 +329,11 @@ nsXBLProtoImplAnonymousMethod::Execute(nsIContent* aBoundElement)
   
 
   
-  rv = nsContentUtils::GetSecurityManager()->CheckFunctionAccess(cx, method,
-                                                                 thisObject);
+  bool scriptAllowed = nsContentUtils::GetSecurityManager()->
+                         ScriptAllowed(js::GetGlobalForObjectCrossCompartment(method));
 
   bool ok = true;
-  if (NS_SUCCEEDED(rv)) {
+  if (scriptAllowed) {
     JS::Rooted<JS::Value> retval(cx);
     ok = ::JS_CallFunctionValue(cx, thisObject, OBJECT_TO_JSVAL(method),
                                 0 , nullptr , retval.address());

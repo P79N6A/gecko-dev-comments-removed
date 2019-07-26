@@ -1602,49 +1602,6 @@ nsScriptSecurityManager::CheckLoadURIStrWithPrincipal(nsIPrincipal* aPrincipal,
     return rv;
 }
 
-NS_IMETHODIMP
-nsScriptSecurityManager::CheckFunctionAccess(JSContext *aCx, void *aFunObj,
-                                             void *aTargetObj)
-{
-    
-    nsresult rv;
-    JS::Rooted<JSObject*> rootedFunObj(aCx, static_cast<JSObject*>(aFunObj));
-    nsIPrincipal* subject = doGetObjectPrincipal(rootedFunObj);
-    if (!subject)
-        return NS_ERROR_FAILURE;
-
-    if (subject == mSystemPrincipal)
-        
-        return NS_OK;
-
-    
-    
-
-    if (!ScriptAllowed(js::GetGlobalForObjectCrossCompartment(rootedFunObj)))
-        return NS_ERROR_DOM_SECURITY_ERR;
-
-    if (!aTargetObj) {
-        
-        return NS_OK;
-    }
-
-    
-
-
-    JS::Rooted<JSObject*> obj(aCx, (JSObject*)aTargetObj);
-    nsIPrincipal* object = doGetObjectPrincipal(obj);
-
-    if (!object)
-        return NS_ERROR_FAILURE;
-
-    bool subsumes;
-    rv = subject->Subsumes(object, &subsumes);
-    if (NS_SUCCEEDED(rv) && !subsumes) {
-        rv = NS_ERROR_DOM_PROP_ACCESS_DENIED;
-    }
-    return rv;
-}
-
 nsresult
 nsScriptSecurityManager::CanExecuteScripts(JSContext* cx,
                                            nsIPrincipal *aPrincipal,
