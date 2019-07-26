@@ -45,6 +45,7 @@
 #include "nsISMILAttr.h"
 #include "nsClientRect.h"
 #include "nsIDOMDOMTokenList.h"
+#include "nsEvent.h"
 
 class nsIDOMEventListener;
 class nsIFrame;
@@ -723,11 +724,14 @@ public:
 
 
 
+
+
+
   static nsresult DispatchClickEvent(nsPresContext* aPresContext,
                                      nsInputEvent* aSourceEvent,
                                      nsIContent* aTarget,
                                      bool aFullDispatch,
-                                     uint32_t aFlags,
+                                     const mozilla::widget::EventFlags* aFlags,
                                      nsEventStatus* aStatus);
 
   

@@ -147,7 +147,7 @@ nsHTMLLabelElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
       aVisitor.mEventStatus == nsEventStatus_eConsumeNoDefault ||
       !aVisitor.mPresContext ||
       
-      (aVisitor.mEvent->flags & NS_EVENT_FLAG_PREVENT_MULTIPLE_ACTIONS)) {
+      aVisitor.mEvent->mFlags.mMultipleActionsPrevented) {
     return NS_OK;
   }
 
@@ -220,13 +220,15 @@ nsHTMLLabelElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
           nsEventStatus status = aVisitor.mEventStatus;
           
           
+          widget::EventFlags eventFlags;
+          eventFlags.Clear();
+          eventFlags.mMultipleActionsPrevented = true;
           DispatchClickEvent(aVisitor.mPresContext,
                              static_cast<nsInputEvent*>(aVisitor.mEvent),
-                             content, false,
-                             NS_EVENT_FLAG_PREVENT_MULTIPLE_ACTIONS, &status);
+                             content, false, &eventFlags, &status);
           
           
-          aVisitor.mEvent->flags |= NS_EVENT_FLAG_PREVENT_MULTIPLE_ACTIONS;
+          aVisitor.mEvent->mFlags.mMultipleActionsPrevented = true;
         }
         break;
     }
