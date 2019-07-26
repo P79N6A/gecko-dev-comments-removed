@@ -183,5 +183,49 @@ this.Downloads = {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+  getSystemDownloadsDirectory: function D_getSystemDownloadsDirectory() {
+    return DownloadIntegration.getSystemDownloadsDirectory();
+  },
+
+  
+
+
+
+
+
+
+  getUserDownloadsDirectory: function D_getUserDownloadsDirectory() {
+    return DownloadIntegration.getUserDownloadsDirectory();
+  },
+
+  
+
+
+
+
+
+
+
+
+  getTemporaryDownloadsDirectory: function D_getTemporaryDownloadsDirectory() {
+    return DownloadIntegration.getTemporaryDownloadsDirectory();
+  },
+
+  
+
+
+
+
   Error: DownloadError,
 };
