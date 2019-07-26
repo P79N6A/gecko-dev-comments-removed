@@ -14,102 +14,98 @@
 
 
 
-function createRootActor(connection) {
-  return new DeviceRootActor(connection);
-}
 
 
 
 
 
 
-
-
-
-
-function DeviceRootActor(connection) {
-  BrowserRootActor.call(this, connection);
-  this.browser = Services.wm.getMostRecentWindow('navigator:browser');
-}
-
-DeviceRootActor.prototype = new BrowserRootActor();
-
-
-
-
-DeviceRootActor.prototype.disconnect = function DRA_disconnect() {
-  this._extraActors = null;
-  let actor = this._tabActors.get(this.browser);
-  if (actor) {
-    actor.exit();
-  }
-};
-
-
-
-
-
-
-DeviceRootActor.prototype.onListTabs = function DRA_onListTabs() {
-  let actorPool = new ActorPool(this.conn);
-
+function createRootActor(connection)
+{
+  let parameters = {
 #ifndef MOZ_WIDGET_GONK
-  let actor = this._tabActors.get(this.browser);
-  if (!actor) {
-    actor = new DeviceTabActor(this.conn, this.browser);
-    
-    actor.parentID = this.actorID;
-    this._tabActors.set(this.browser, actor);
-  }
-  actorPool.addActor(actor);
-#endif
-
-  this._createExtraActors(DebuggerServer.globalActorFactories, actorPool);
-
-  
-  
-  if (this._tabActorPool) {
-    this.conn.removeActorPool(this._tabActorPool);
-  }
-  this._tabActorPool = actorPool;
-  this.conn.addActorPool(this._tabActorPool);
-
-  let response = {
-    'from': 'root',
-    'selected': 0,
-#ifndef MOZ_WIDGET_GONK
-    'tabs': [actor.grip()]
+    tabList: new ContentTabList(connection),
 #else
-    'tabs': []
+    tabList: [],
 #endif
+    globalActorFactories: DebuggerServer.globalActorFactories,
+    onShutdown: sendShutdownEvent
   };
-  this._appendExtraActors(response);
-  return response;
+  let root = new RootActor(connection, parameters);
+  root.applicationType = "operating-system";
+  return root;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+function ContentTabList(connection)
+{
+  BrowserTabList.call(this, connection);
+}
+
+ContentTabList.prototype = Object.create(BrowserTabList.prototype);
+
+ContentTabList.prototype.constructor = ContentTabList;
+
+ContentTabList.prototype.iterator = function() {
+  let browser = Services.wm.getMostRecentWindow('navigator:browser');
+  
+  let actor = this._actorByBrowser.get(browser);
+  if (!actor) {
+    actor = new ContentTabActor(this._connection, browser);
+    this._actorByBrowser.set(browser, actor);
+    actor.selected = true;
+  }
+
+  yield actor;
 };
 
-
-
-
-DeviceRootActor.prototype.requestTypes = {
-  'listTabs': DeviceRootActor.prototype.onListTabs
-};
+ContentTabList.prototype.onCloseWindow = makeInfallible(function(aWindow) {
+  
 
 
 
 
+  Services.tm.currentThread.dispatch(makeInfallible(() => {
+    
+
+
+
+    for (let [browser, actor] of this._actorByBrowser) {
+      this._handleActorClose(actor, browser);
+    }
+  }, "ContentTabList.prototype.onCloseWindow's delayed body"), 0);
+}, "ContentTabList.prototype.onCloseWindow");
 
 
 
 
 
 
-function DeviceTabActor(connection, browser) {
+
+
+
+
+
+function ContentTabActor(connection, browser)
+{
   BrowserTabActor.call(this, connection, browser);
 }
 
-DeviceTabActor.prototype = new BrowserTabActor();
+ContentTabActor.prototype.constructor = ContentTabActor;
 
-Object.defineProperty(DeviceTabActor.prototype, "title", {
+ContentTabActor.prototype = Object.create(BrowserTabActor.prototype);
+
+Object.defineProperty(ContentTabActor.prototype, "title", {
   get: function() {
     return this.browser.title;
   },
@@ -117,7 +113,7 @@ Object.defineProperty(DeviceTabActor.prototype, "title", {
   configurable: false
 });
 
-Object.defineProperty(DeviceTabActor.prototype, "url", {
+Object.defineProperty(ContentTabActor.prototype, "url", {
   get: function() {
     return this.browser.document.documentURI;
   },
@@ -125,7 +121,7 @@ Object.defineProperty(DeviceTabActor.prototype, "url", {
   configurable: false
 });
 
-Object.defineProperty(DeviceTabActor.prototype, "contentWindow", {
+Object.defineProperty(ContentTabActor.prototype, "contentWindow", {
   get: function() {
     return this.browser;
   },
