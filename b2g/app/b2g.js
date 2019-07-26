@@ -816,6 +816,9 @@ pref("network.sntp.port", 123);
 pref("network.sntp.timeout", 30); 
 
 
+pref("dom.promise.enabled", false);
+
+
 #ifdef RELEASE_BUILD
 pref("dom.datastore.enabled", false);
 #else
@@ -884,3 +887,7 @@ pref("apz.asyncscroll.throttle", 40);
 
 
 pref("gfx.canvas.willReadFrequently.enable", true);
+
+
+
+pref("browser.autofocus", false);
