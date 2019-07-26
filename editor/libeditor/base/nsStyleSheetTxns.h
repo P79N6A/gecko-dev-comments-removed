@@ -1,28 +1,28 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef nsStylesheetTxns_h__
 #define nsStylesheetTxns_h__
 
-#include "EditTxn.h"                    
-#include "nsAutoPtr.h"                  
-#include "mozilla/CSSStyleSheet.h"      
+#include "EditTxn.h"                    // for EditTxn, NS_DECL_EDITTXN
+#include "nsAutoPtr.h"                  // for nsRefPtr
+#include "mozilla/CSSStyleSheet.h"      // for mozilla::CSSStyleSheet
 #include "nsCycleCollectionParticipant.h"
-#include "nsID.h"                       
-#include "nsISupportsImpl.h"            
-#include "nscore.h"                     
+#include "nsID.h"                       // for REFNSIID
+#include "nsISupportsImpl.h"            // for CSSStyleSheet::Release
+#include "nscore.h"                     // for NS_IMETHOD
 
 class nsIEditor;
 
 class AddStyleSheetTxn : public EditTxn
 {
 public:
-  
-
-
-
+  /** Initialize the transaction.
+    * @param aEditor the object providing core editing operations
+    * @param aSheet   the stylesheet to add
+    */
   NS_IMETHOD Init(nsIEditor* aEditor,
                   mozilla::CSSStyleSheet* aSheet);
 
@@ -35,8 +35,8 @@ public:
 
 protected:
 
-  nsIEditor* mEditor;                      
-  nsRefPtr<mozilla::CSSStyleSheet> mSheet; 
+  nsIEditor* mEditor;                      // the editor that created this transaction
+  nsRefPtr<mozilla::CSSStyleSheet> mSheet; // the style sheet to add
 
 };
 
@@ -44,10 +44,10 @@ protected:
 class RemoveStyleSheetTxn : public EditTxn
 {
 public:
-  
-
-
-
+  /** Initialize the transaction.
+    * @param aEditor the object providing core editing operations
+    * @param aSheet   the stylesheet to remove
+    */
   NS_IMETHOD Init(nsIEditor* aEditor,
                   mozilla::CSSStyleSheet* aSheet);
 
@@ -60,10 +60,10 @@ public:
 
 protected:
 
-  nsIEditor* mEditor;                      
-  nsRefPtr<mozilla::CSSStyleSheet> mSheet; 
+  nsIEditor* mEditor;                      // the editor that created this transaction
+  nsRefPtr<mozilla::CSSStyleSheet> mSheet; // the style sheet to remove
 
 };
 
 
-#endif 
+#endif /* nsStylesheetTxns_h__ */

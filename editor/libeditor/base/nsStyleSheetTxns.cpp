@@ -1,20 +1,20 @@
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 
-
-
-
-
-#include <stddef.h>                     
+#include <stddef.h>                     // for nullptr
 
 #include "nsAString.h"
-#include "nsCOMPtr.h"                   
-#include "mozilla/CSSStyleSheet.h"      
-#include "nsDebug.h"                    
-#include "nsError.h"                    
-#include "nsIDOMDocument.h"             
-#include "nsIDocument.h"                
-#include "nsIDocumentObserver.h"        
-#include "nsIEditor.h"                  
+#include "nsCOMPtr.h"                   // for nsCOMPtr, do_QueryInterface, etc
+#include "mozilla/CSSStyleSheet.h"      // for mozilla::CSSStyleSheet
+#include "nsDebug.h"                    // for NS_ENSURE_TRUE
+#include "nsError.h"                    // for NS_OK, etc
+#include "nsIDOMDocument.h"             // for nsIDOMDocument
+#include "nsIDocument.h"                // for nsIDocument
+#include "nsIDocumentObserver.h"        // for UPDATE_STYLE
+#include "nsIEditor.h"                  // for nsIEditor
 #include "nsStyleSheetTxns.h"
 
 using namespace mozilla;
