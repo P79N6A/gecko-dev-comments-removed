@@ -230,10 +230,10 @@ namespace FilterWrappers {
 
 
 
-class FilterCachedColorModels
+class FilterCachedColorModels : public RefCounted<FilterCachedColorModels>
 {
 public:
-  NS_INLINE_DECL_REFCOUNTING(FilterCachedColorModels)
+  MOZ_DECLARE_REFCOUNTED_TYPENAME(FilterCachedColorModels)
   
   
   FilterCachedColorModels(DrawTarget* aDT,
