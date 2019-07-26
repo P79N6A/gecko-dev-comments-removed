@@ -444,11 +444,10 @@ pref("browser.tabs.loadDivertedInBackground", false);
 pref("browser.tabs.loadBookmarksInBackground", false);
 pref("browser.tabs.tabClipWidth", 140);
 pref("browser.tabs.animate", true);
-pref("browser.tabs.onTop", true);
-#ifdef XP_WIN
-pref("browser.tabs.drawInTitlebar", true);
-#else
+#ifdef UNIX_BUT_NOT_MAC
 pref("browser.tabs.drawInTitlebar", false);
+#else
+pref("browser.tabs.drawInTitlebar", true);
 #endif
 
 
@@ -1081,7 +1080,7 @@ pref("devtools.commands.dir", "");
 
 
 pref("devtools.appmanager.enabled", true);
-pref("devtools.appmanager.firstrun", true);
+pref("devtools.appmanager.lastTab", "help");
 pref("devtools.appmanager.manifestEditor.enabled", false);
 
 
@@ -1320,6 +1319,9 @@ pref("security.mixed_content.block_active_content", true);
 
 
 
+pref("firefox.accounts.remoteUrl", "https://accounts.dev.lcip.org/flow");
+
+
 pref("plain_text.wrap_long_lines", true);
 
 
@@ -1334,5 +1336,4 @@ pref("geo.wifi.uri", "https://www.googleapis.com/geolocation/v1/geolocate?key=%G
 pref("network.disable.ipc.security", true);
 
 
-
-pref("firefox.accounts.remoteUrl", "https://accounts.dev.lcip.org/flow");
+pref("browser.uiCustomization.debug", false);
