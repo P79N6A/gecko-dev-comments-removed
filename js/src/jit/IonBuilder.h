@@ -718,7 +718,10 @@ class IonBuilder : public MIRGenerator
     InliningStatus inlineAssertFloat32(CallInfo &callInfo);
 
     
-    InliningStatus inlineNativeCall(CallInfo &callInfo, JSNative native);
+    InliningStatus inlineBoundFunction(CallInfo &callInfo, JSFunction *target);
+
+    
+    InliningStatus inlineNativeCall(CallInfo &callInfo, JSFunction *target);
     bool inlineScriptedCall(CallInfo &callInfo, JSFunction *target);
     InliningStatus inlineSingleCall(CallInfo &callInfo, JSFunction *target);
 

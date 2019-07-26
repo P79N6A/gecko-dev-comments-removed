@@ -4288,7 +4288,7 @@ IonBuilder::inlineSingleCall(CallInfo &callInfo, JSFunction *target)
 {
     
     if (target->isNative())
-        return inlineNativeCall(callInfo, target->native());
+        return inlineNativeCall(callInfo, target);
 
     if (!inlineScriptedCall(callInfo, target))
         return InliningStatus_Error;
