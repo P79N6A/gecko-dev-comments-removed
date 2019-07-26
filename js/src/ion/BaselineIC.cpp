@@ -551,7 +551,8 @@ EnsureCanEnterIon(JSContext *cx, ICUseCount_Fallback *stub, BaselineFrame *frame
     if (stat != Method_Compiled) {
         
         
-        script->resetUseCount();
+        if (stat == Method_CantCompile)
+            script->resetUseCount();
         return true;
     }
 
