@@ -654,17 +654,7 @@ js_ReportOutOfMemory(JSContext *cx)
 
 
 
-
-
     cx->clearPendingException();
-    if (onError) {
-        JSDebugErrorHook hook = cx->runtime->debugHooks.debugErrorHook;
-        if (hook &&
-            !hook(cx, msg, &report, cx->runtime->debugHooks.debugErrorHookData)) {
-            onError = NULL;
-        }
-    }
-
     if (onError) {
         AutoAtomicIncrement incr(&cx->runtime->inOOMReport);
         onError(cx, msg, &report);
