@@ -5,11 +5,6 @@
 #define NS_HTML5_TREE_BUILDER_HANDLE_ARRAY_LENGTH 512
 
   private:
-    nsHtml5OplessBuilder*                  mBuilder;
-    
-    
-    
-    
     nsHtml5Highlighter*                    mViewSource;
     nsTArray<nsHtml5TreeOperation>         mOpQueue;
     nsTArray<nsHtml5SpeculativeLoad>       mSpeculativeLoadQueue;
@@ -18,6 +13,7 @@
     int32_t                                mHandlesUsed;
     nsTArray<nsAutoArrayPtr<nsIContent*> > mOldHandles;
     nsHtml5TreeOpStage*                    mSpeculativeLoadStage;
+    nsIContent**                           mDeepTreeSurrogateParent;
     bool                                   mCurrentHtmlScriptIsAsyncOrDefer;
     bool                                   mPreventScriptExecution;
 #ifdef DEBUG
@@ -30,9 +26,9 @@
 
     void documentMode(nsHtml5DocumentMode m);
 
-    nsIContentHandle* getDocumentFragmentForTemplate(nsIContentHandle* aTemplate);
+    nsIContent** getDocumentFragmentForTemplate(nsIContent** aTemplate);
 
-    nsIContentHandle* getFormPointerForContext(nsIContentHandle* aContext);
+    nsIContent** getFormPointerForContext(nsIContent** aContext);
 
     
 
@@ -57,22 +53,14 @@
 
 
 
-    nsIContentHandle* AllocateContentHandle();
+    nsIContent** AllocateContentHandle();
     
     void accumulateCharactersForced(const char16_t* aBuf, int32_t aStart, int32_t aLength)
     {
       accumulateCharacters(aBuf, aStart, aLength);
     }
 
-    void MarkAsBrokenAndRequestSuspension(nsresult aRv)
-    {
-      mBuilder->MarkAsBroken(aRv);
-      requestSuspension();
-    }
-
   public:
-
-    nsHtml5TreeBuilder(nsHtml5OplessBuilder* aBuilder);
 
     nsHtml5TreeBuilder(nsAHtml5TreeOpSink* aOpSink,
                        nsHtml5TreeOpStage* aStage);
@@ -87,13 +75,11 @@
 
     bool HasScript();
     
-    void SetOpSink(nsAHtml5TreeOpSink* aOpSink)
-    {
+    void SetOpSink(nsAHtml5TreeOpSink* aOpSink) {
       mOpSink = aOpSink;
     }
 
-    void ClearOps()
-    {
+    void ClearOps() {
       mOpQueue.Clear();
     }
     
@@ -117,14 +103,8 @@
 
     void DropHandles();
 
-    void SetPreventScriptExecution(bool aPrevent)
-    {
+    void SetPreventScriptExecution(bool aPrevent) {
       mPreventScriptExecution = aPrevent;
-    }
-
-    bool HasBuilder()
-    {
-      return mBuilder;
     }
 
     void EnableViewSource(nsHtml5Highlighter* aHighlighter);
