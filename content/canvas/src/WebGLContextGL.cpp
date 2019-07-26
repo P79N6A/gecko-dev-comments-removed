@@ -3674,16 +3674,25 @@ GLenum WebGLContext::CheckedTexImage2D(GLenum target,
                         type != imageInfo.Type();
     }
 
+    
+    GLenum realType = type;
+    if (realType == LOCAL_GL_HALF_FLOAT_OES && !gl->IsGLES2()) {
+        realType = LOCAL_GL_HALF_FLOAT;
+    }
+
     if (sizeMayChange) {
         UpdateWebGLErrorAndClearGLError();
-        gl->fTexImage2D(target, level, internalFormat, width, height, border, format, type, data);
+
+        gl->fTexImage2D(target, level, internalFormat, width, height, border, format, realType, data);
+
         GLenum error = LOCAL_GL_NO_ERROR;
         UpdateWebGLErrorAndClearGLError(&error);
         return error;
-    } else {
-        gl->fTexImage2D(target, level, internalFormat, width, height, border, format, type, data);
-        return LOCAL_GL_NO_ERROR;
     }
+
+    gl->fTexImage2D(target, level, internalFormat, width, height, border, format, realType, data);
+
+    return LOCAL_GL_NO_ERROR;
 }
 
 void
@@ -3972,13 +3981,19 @@ WebGLContext::TexSubImage2D_base(GLenum target, GLint level,
     
     size_t dstStride = RoundedToNextMultipleOf(dstPlainRowSize, mPixelStoreUnpackAlignment).value();
 
+    
+    GLenum realType = type;
+    if (realType == LOCAL_GL_HALF_FLOAT_OES && !gl->IsGLES2()) {
+        realType = LOCAL_GL_HALF_FLOAT;
+    }
+
     if (actualSrcFormat == dstFormat &&
         srcPremultiplied == mPixelStorePremultiplyAlpha &&
         srcStride == dstStride &&
         !mPixelStoreFlipY)
     {
         
-        gl->fTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pixels);
+        gl->fTexSubImage2D(target, level, xoffset, yoffset, width, height, format, realType, pixels);
     }
     else
     {
@@ -3989,7 +4004,7 @@ WebGLContext::TexSubImage2D_base(GLenum target, GLint level,
                     actualSrcFormat, srcPremultiplied,
                     dstFormat, mPixelStorePremultiplyAlpha, dstTexelSize);
 
-        gl->fTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, convertedData);
+        gl->fTexSubImage2D(target, level, xoffset, yoffset, width, height, format, realType, convertedData);
     }
 }
 

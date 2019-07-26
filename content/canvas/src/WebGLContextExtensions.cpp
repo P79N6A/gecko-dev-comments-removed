@@ -88,7 +88,11 @@ bool WebGLContext::IsExtensionSupported(WebGLExtensionID ext) const
         case OES_texture_float_linear:
             return gl->IsSupported(GLFeature::texture_float_linear);
         case OES_texture_half_float:
-            return gl->IsExtensionSupported(GLContext::OES_texture_half_float);
+            
+            
+            
+            return gl->IsExtensionSupported(GLContext::OES_texture_half_float) ||
+                   gl->IsSupported(GLFeature::texture_half_float);
         case OES_vertex_array_object:
             return WebGLExtensionVertexArray::IsSupported(this);
         case EXT_texture_filter_anisotropic:
