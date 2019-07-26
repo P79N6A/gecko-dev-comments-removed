@@ -1577,7 +1577,7 @@ TrackPropertiesForSingletonScopes(JSContext *cx, JSScript *script, BaselineFrame
     
     
     
-    JSObject *environment = script->function() ? script->function()->environment() : NULL;
+    JSObject *environment = script->function() ? script->function()->environment() : nullptr;
 
     while (environment && !environment->is<GlobalObject>()) {
         if (environment->is<CallObject>() && environment->hasSingletonType())

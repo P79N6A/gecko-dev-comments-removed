@@ -370,7 +370,7 @@ class MutexBase
 public:
   MutexBase()
   {
-    pthread_mutex_init(&mMutex, NULL);
+    pthread_mutex_init(&mMutex, nullptr);
   }
 
   void Lock()
