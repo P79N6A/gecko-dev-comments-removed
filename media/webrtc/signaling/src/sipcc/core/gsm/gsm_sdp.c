@@ -4545,7 +4545,7 @@ gsmsdp_add_rtcp_fb (int level, sdp_t *sdp_p,
     for (pt_index = 1; pt_index <= num_pts; pt_index++) {
         pt_codec = sdp_get_media_payload_type (sdp_p, level, pt_index,
                                                &indicator);
-        if ((pt_codec & 0xFF) == codec) {
+        if (codec == RTP_NONE || (pt_codec & 0xFF) == codec) {
             int pt = GET_DYN_PAYLOAD_TYPE_VALUE(pt_codec);
 
             
@@ -4665,7 +4665,11 @@ gsmsdp_negotiate_rtcp_fb (cc_sdp_t *cc_sdp_p,
 
 
         switch (codec) {
+            
             case RTP_VP8:
+            case RTP_H263:
+            case RTP_H264_P0:
+            case RTP_H264_P1:
             case RTP_I420:
                 fb_types &=
                   sdp_rtcp_fb_nack_to_bitmap(SDP_RTCP_FB_NACK_BASIC) |
@@ -4674,6 +4678,7 @@ gsmsdp_negotiate_rtcp_fb (cc_sdp_t *cc_sdp_p,
                 break;
             default:
                 fb_types = 0;
+                break;
         }
 
         
@@ -5719,7 +5724,7 @@ gsmsdp_add_media_line (fsmdef_dcb_t *dcb_p, const cc_media_cap_t *media_cap,
 
           
           if (media_cap->type == SDP_MEDIA_VIDEO) {
-              gsmsdp_add_rtcp_fb (level, dcb_p->sdp->src_sdp, RTP_VP8,
+              gsmsdp_add_rtcp_fb (level, dcb_p->sdp->src_sdp, RTP_NONE, 
                   sdp_rtcp_fb_nack_to_bitmap(SDP_RTCP_FB_NACK_BASIC) |
                   sdp_rtcp_fb_nack_to_bitmap(SDP_RTCP_FB_NACK_PLI) |
                   sdp_rtcp_fb_ccm_to_bitmap(SDP_RTCP_FB_CCM_FIR));
