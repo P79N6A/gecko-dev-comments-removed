@@ -1885,6 +1885,20 @@ XrayWrapper<Base, Traits>::construct(JSContext *cx, HandleObject wrapper, const 
     return Traits::construct(cx, wrapper, args, Base::singleton);
 }
 
+template <typename Base, typename Traits>
+bool
+XrayWrapper<Base, Traits>::defaultValue(JSContext *cx, HandleObject wrapper,
+                                        JSType hint, MutableHandleValue vp)
+{
+    
+    
+    
+    
+    
+    return js::DefaultValue(cx, wrapper, hint, vp);
+}
+
+
 
 
 
