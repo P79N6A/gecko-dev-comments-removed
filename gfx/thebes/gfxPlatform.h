@@ -181,6 +181,14 @@ public:
     virtual already_AddRefed<gfxASurface> OptimizeImage(gfxImageSurface *aSurface,
                                                         gfxASurface::gfxImageFormat format);
 
+    
+
+
+
+
+
+
+
     virtual mozilla::RefPtr<mozilla::gfx::DrawTarget>
       CreateDrawTargetForSurface(gfxASurface *aSurface, const mozilla::gfx::IntSize& aSize);
 
@@ -236,6 +244,12 @@ public:
 
 
 
+
+
+
+
+
+
     bool SupportsAzureContent() {
       return GetContentBackend() != mozilla::gfx::BACKEND_NONE;
     }
@@ -248,6 +262,10 @@ public:
 
 
     bool SupportsAzureContentForDrawTarget(mozilla::gfx::DrawTarget* aTarget);
+
+    bool SupportsAzureContentForType(mozilla::gfx::BackendType aType) {
+      return (1 << aType) & mContentBackendBitmask;
+    }
 
     virtual bool UseAcceleratedSkiaCanvas();
 

@@ -257,6 +257,8 @@ public:
               gfxASurface* aMask, const gfxMatrix* aMaskTransform);
 
 protected:
+  
+  bool IsAzureBuffer();
 
   already_AddRefed<gfxASurface>
   SetBuffer(gfxASurface* aBuffer,
