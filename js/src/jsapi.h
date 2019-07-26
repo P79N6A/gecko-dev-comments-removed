@@ -1769,6 +1769,9 @@ JS_GetClassPrototype(JSContext *cx, JSProtoKey key, JSObject **objp);
 extern JS_PUBLIC_API(JSProtoKey)
 JS_IdentifyClassPrototype(JSContext *cx, JSObject *obj);
 
+extern JS_PUBLIC_API(JSProtoKey)
+JS_IdToProtoKey(JSContext *cx, JS::HandleId id);
+
 
 
 
