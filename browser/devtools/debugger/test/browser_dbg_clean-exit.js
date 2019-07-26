@@ -5,39 +5,35 @@
 
 
 
-var gPane = null;
-var gTab = null;
-var gDebugger = null;
+let gTab, gDebuggee, gPanel, gDebugger;
 
-const DEBUGGER_TAB_URL = EXAMPLE_URL + "browser_dbg_debuggerstatement.html";
+const TAB_URL = EXAMPLE_URL + "doc_inline-debugger-statement.html";
 
 function test() {
-  debug_tab_pane(DEBUGGER_TAB_URL, function(aTab, aDebuggee, aPane) {
+  initDebugger(TAB_URL).then(([aTab, aDebuggee, aPanel]) => {
     gTab = aTab;
-    gPane = aPane;
-    gDebugger = gPane.panelWin;
+    gDebuggee = aDebuggee;
+    gPanel = aPanel;
+    gDebugger = gPanel.panelWin;
 
     testCleanExit();
   });
 }
 
 function testCleanExit() {
-  gDebugger.DebuggerController.activeThread.addOneTimeListener("framesadded", function() {
-    Services.tm.currentThread.dispatch({ run: function() {
+  waitForSourceAndCaretAndScopes(gPanel, ".html", 16).then(() => {
+    is(gDebugger.gThreadClient.paused, true,
+      "Should be paused after the debugger statement.");
 
-      is(gDebugger.DebuggerController.activeThread.paused, true,
-        "Should be paused after the debugger statement.");
-
-      closeDebuggerAndFinish();
-    }}, 0);
+    closeDebuggerAndFinish(gPanel, { whilePaused: true });
   });
 
-  gTab.linkedBrowser.contentWindow.wrappedJSObject.runDebuggerStatement();
+  gDebuggee.runDebuggerStatement();
 }
 
 registerCleanupFunction(function() {
-  removeTab(gTab);
-  gPane = null;
   gTab = null;
+  gDebuggee = null;
+  gPanel = null;
   gDebugger = null;
 });
