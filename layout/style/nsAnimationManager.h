@@ -128,7 +128,7 @@ struct ElementAnimations MOZ_FINAL
   typedef mozilla::TimeDuration TimeDuration;
 
   ElementAnimations(mozilla::dom::Element *aElement, nsIAtom *aElementProperty,
-                    nsAnimationManager *aAnimationManager);
+                    nsAnimationManager *aAnimationManager, TimeStamp aNow);
 
   
   
@@ -275,6 +275,9 @@ public:
                                           nsCSSPseudoElements::Type aPseudoType,
                                           bool aCreateIfNeeded);
 
+  
+  void UpdateAllThrottledStyles();
+
 protected:
   virtual void ElementDataRemoved() MOZ_OVERRIDE
   {
@@ -297,6 +300,14 @@ private:
                     float aToKey, nsStyleContext* aToContext);
   nsIStyleRule* GetAnimationRule(mozilla::dom::Element* aElement,
                                  nsCSSPseudoElements::Type aPseudoType);
+
+  
+  
+  
+  void UpdateThrottledStylesForSubtree(nsIContent* aContent,
+                                       nsStyleContext* aParentStyle,
+                                       nsStyleChangeList &aChangeList);
+  void UpdateAllThrottledStylesInternal();
 
   
   void DoDispatchEvents();

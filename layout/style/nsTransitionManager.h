@@ -91,11 +91,6 @@ struct ElementTransitions MOZ_FINAL
 
   
   nsTArray<ElementPropertyTransition> mPropertyTransitions;
-
-  
-  
-  
-  mozilla::TimeStamp mFlushGeneration;
 };
 
 
@@ -203,6 +198,10 @@ public:
   
   void UpdateAllThrottledStyles();
 
+  ElementTransitions* GetElementTransitions(mozilla::dom::Element *aElement,
+                                          nsCSSPseudoElements::Type aPseudoType,
+                                          bool aCreateIfNeeded);
+
 protected:
   virtual void ElementDataRemoved() MOZ_OVERRIDE;
   virtual void AddElementData(mozilla::css::CommonElementAnimationData* aData) MOZ_OVERRIDE;
@@ -216,24 +215,15 @@ private:
                                   nsStyleContext *aNewStyleContext,
                                   bool *aStartedAny,
                                   nsCSSPropertySet *aWhichStarted);
-  ElementTransitions* GetElementTransitions(mozilla::dom::Element *aElement,
-                                            nsCSSPseudoElements::Type aPseudoType,
-                                            bool aCreateIfNeeded);
   void WalkTransitionRule(ElementDependentRuleProcessorData* aData,
                           nsCSSPseudoElements::Type aPseudoType);
-
   
   
   
   void UpdateThrottledStylesForSubtree(nsIContent* aContent,
                                        nsStyleContext* aParentStyle,
                                        nsStyleChangeList &aChangeList);
-  
-  
-  
-  nsStyleContext* UpdateThrottledStyle(mozilla::dom::Element* aElement,
-                                       nsStyleContext* aParentStyle,
-                                       nsStyleChangeList &aChangeList);
+  void UpdateAllThrottledStylesInternal();
 };
 
 #endif 
