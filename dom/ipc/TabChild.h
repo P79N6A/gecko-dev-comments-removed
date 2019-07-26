@@ -415,7 +415,6 @@ private:
     void DestroyWindow();
     void SetProcessNameToAppName();
     bool ProcessUpdateFrame(const mozilla::layers::FrameMetrics& aFrameMetrics);
-    bool ProcessUpdateSubframe(nsIContent* aContent, const FrameMetrics& aMetrics);
 
     
     void DoFakeShow();
