@@ -14,6 +14,7 @@
 #include "nsIDOMSVGAnimationElement.h"
 #include "nsSMILTimedElement.h"
 
+using namespace mozilla;
 using namespace mozilla::dom;
 
 
@@ -366,14 +367,8 @@ nsSMILAnimationController::DoSample(bool aSkipUnchangedContainers)
   mResampleNeeded = false;
   
   
+  AutoRestore<bool> autoRestoreRunningSample(mRunningSample);
   mRunningSample = true;
-  nsCOMPtr<nsIDocument> kungFuDeathGrip(mDocument);  
-  mDocument->FlushPendingNotifications(Flush_Style);
-
-  
-  
-  
-  
   
   
   
@@ -442,12 +437,25 @@ nsSMILAnimationController::DoSample(bool aSkipUnchangedContainers)
   }
 
   
+  if (currentCompositorTable->Count() == 0) {
+    mLastCompositorTable = nullptr;
+    return;
+  }
+
+  nsCOMPtr<nsIDocument> kungFuDeathGrip(mDocument);  
+  mDocument->FlushPendingNotifications(Flush_Style);
+
+  
+  
+  
+  
+
+  
   
   
   
   
   currentCompositorTable->EnumerateEntries(DoComposeAttribute, nullptr);
-  mRunningSample = false;
 
   
   mLastCompositorTable = currentCompositorTable.forget();
