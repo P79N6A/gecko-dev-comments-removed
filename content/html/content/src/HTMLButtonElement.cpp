@@ -259,7 +259,8 @@ HTMLButtonElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
         {
           
           
-          nsKeyEvent * keyEvent = (nsKeyEvent *)aVisitor.mEvent;
+          WidgetKeyboardEvent* keyEvent =
+            static_cast<WidgetKeyboardEvent*>(aVisitor.mEvent);
           if ((keyEvent->keyCode == NS_VK_RETURN &&
                NS_KEY_PRESS == aVisitor.mEvent->message) ||
               (keyEvent->keyCode == NS_VK_SPACE &&

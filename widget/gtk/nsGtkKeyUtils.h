@@ -113,7 +113,8 @@ public:
 
 
 
-    static void InitKeyEvent(nsKeyEvent& aKeyEvent, GdkEventKey* aGdkKeyEvent);
+    static void InitKeyEvent(WidgetKeyboardEvent& aKeyEvent,
+                             GdkEventKey* aGdkKeyEvent);
 
     
 
@@ -292,7 +293,8 @@ protected:
 
 
 
-    void InitKeypressEvent(nsKeyEvent& aKeyEvent, GdkEventKey* aGdkKeyEvent);
+    void InitKeypressEvent(WidgetKeyboardEvent& aKeyEvent,
+                           GdkEventKey* aGdkKeyEvent);
 };
 
 } 

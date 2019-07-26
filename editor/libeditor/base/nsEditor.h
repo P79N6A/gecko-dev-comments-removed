@@ -405,7 +405,7 @@ protected:
 
   bool GetDesiredSpellCheckState();
 
-  nsKeyEvent* GetNativeKeyEvent(nsIDOMKeyEvent* aDOMKeyEvent);
+  mozilla::WidgetKeyboardEvent* GetNativeKeyEvent(nsIDOMKeyEvent* aDOMKeyEvent);
 
   bool CanEnableSpellCheck()
   {

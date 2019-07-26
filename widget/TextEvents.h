@@ -534,7 +534,6 @@ public:
 } 
 
 
-typedef mozilla::WidgetKeyboardEvent     nsKeyEvent;
 typedef mozilla::TextRangeStyle          nsTextRangeStyle;
 typedef mozilla::TextRange               nsTextRange;
 typedef mozilla::TextRangeArray          nsTextRangeArray;

@@ -214,7 +214,7 @@ public:
 
 
 
-  void InitKeyEvent(NSEvent *aNativeKeyEvent, nsKeyEvent& aKeyEvent,
+  void InitKeyEvent(NSEvent *aNativeKeyEvent, WidgetKeyboardEvent& aKeyEvent,
                     const nsAString *aInsertString = nullptr);
 
   
@@ -285,7 +285,7 @@ protected:
 
   void InitKeyPressEvent(NSEvent *aNativeKeyEvent,
                          PRUnichar aInsertChar,
-                         nsKeyEvent& aKeyEvent,
+                         WidgetKeyboardEvent& aKeyEvent,
                          UInt32 aKbType);
 
   bool GetBoolProperty(const CFStringRef aKey);
@@ -363,7 +363,7 @@ public:
 
 
 
-  void InitKeyEvent(NSEvent *aNativeKeyEvent, nsKeyEvent& aKeyEvent,
+  void InitKeyEvent(NSEvent *aNativeKeyEvent, WidgetKeyboardEvent& aKeyEvent,
                     const nsAString *aInsertString = nullptr);
 
   
@@ -384,7 +384,7 @@ public:
 
 
 
-  NS_IMETHOD AttachNativeKeyEvent(nsKeyEvent& aKeyEvent);
+  NS_IMETHOD AttachNativeKeyEvent(WidgetKeyboardEvent& aKeyEvent);
 
   
 
@@ -636,7 +636,7 @@ protected:
 
 
 
-  static bool IsNormalCharInputtingEvent(const nsKeyEvent& aKeyEvent);
+  static bool IsNormalCharInputtingEvent(const WidgetKeyboardEvent& aKeyEvent);
 
   
 

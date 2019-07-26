@@ -1391,8 +1391,9 @@ public:
 
 
 
-  static void GetAccessKeyCandidates(nsKeyEvent* aNativeKeyEvent,
-                                     nsTArray<uint32_t>& aCandidates);
+  static void GetAccessKeyCandidates(
+                mozilla::WidgetKeyboardEvent* aNativeKeyEvent,
+                nsTArray<uint32_t>& aCandidates);
 
   
 

@@ -475,7 +475,7 @@ Element::GetStyledFrame()
 }
 
 nsIScrollableFrame*
-Element::GetScrollFrame(nsIFrame **aStyledFrame, bool aFlushLayout)
+Element::GetScrollFrame(nsIFrame **aStyledFrame)
 {
   
   if (IsSVG()) {
@@ -485,11 +485,7 @@ Element::GetScrollFrame(nsIFrame **aStyledFrame, bool aFlushLayout)
     return nullptr;
   }
 
-  
-  nsIFrame* frame = GetPrimaryFrame(aFlushLayout ? Flush_Layout : Flush_None);
-  if (frame) {
-    frame = nsLayoutUtils::GetStyleFrame(frame);
-  }
+  nsIFrame* frame = GetStyledFrame();
 
   if (aStyledFrame) {
     *aStyledFrame = frame;
@@ -545,28 +541,6 @@ Element::ScrollIntoView(bool aTop)
                                      nsIPresShell::SCROLL_ALWAYS),
                                    nsIPresShell::ScrollAxis(),
                                    nsIPresShell::SCROLL_OVERFLOW_HIDDEN);
-}
-
-bool
-Element::ScrollByNoFlush(int32_t aDx, int32_t aDy)
-{
-  nsIScrollableFrame* sf = GetScrollFrame(nullptr, false);
-  if (!sf) {
-    return false;
-  }
-
-  nsWeakFrame weakRef(sf->GetScrolledFrame());
-
-  CSSIntPoint before = sf->GetScrollPositionCSSPixels();
-  sf->ScrollToCSSPixelsApproximate(CSSIntPoint(before.x + aDx, before.y + aDy));
-
-  
-  if (!weakRef.IsAlive()) {
-    return false;
-  }
-
-  CSSIntPoint after = sf->GetScrollPositionCSSPixels();
-  return (before != after);
 }
 
 static nsSize GetScrollRectSizeForOverflowVisibleFrame(nsIFrame* aFrame)
@@ -1476,9 +1450,7 @@ Element::GetPrimaryFrame(mozFlushType aType)
 
   
   
-  if (aType != Flush_None) {
-    doc->FlushPendingNotifications(aType);
-  }
+  doc->FlushPendingNotifications(aType);
 
   return GetPrimaryFrame();
 }
@@ -2283,7 +2255,8 @@ Element::PostHandleEventForLinks(nsEventChainPostVisitor& aVisitor)
   case NS_KEY_PRESS:
     {
       if (aVisitor.mEvent->eventStructType == NS_KEY_EVENT) {
-        nsKeyEvent* keyEvent = static_cast<nsKeyEvent*>(aVisitor.mEvent);
+        WidgetKeyboardEvent* keyEvent =
+          static_cast<WidgetKeyboardEvent*>(aVisitor.mEvent);
         if (keyEvent->keyCode == NS_VK_RETURN) {
           nsEventStatus status = nsEventStatus_eIgnore;
           rv = DispatchClickEvent(aVisitor.mPresContext, keyEvent, this,

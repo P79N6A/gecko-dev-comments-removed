@@ -426,9 +426,9 @@ private:
   
 
 
-  void InitKeyEvent(nsKeyEvent& aKeyEvent,
+  void InitKeyEvent(WidgetKeyboardEvent& aKeyEvent,
                     const ModifierKeyState& aModKeyState) const;
-  void InitKeyEvent(nsKeyEvent& aKeyEvent) const
+  void InitKeyEvent(WidgetKeyboardEvent& aKeyEvent) const
   {
     InitKeyEvent(aKeyEvent, mModKeyState);
   }
@@ -437,7 +437,7 @@ private:
 
 
 
-  bool DispatchKeyEvent(nsKeyEvent& aKeyEvent,
+  bool DispatchKeyEvent(WidgetKeyboardEvent& aKeyEvent,
                         const MSG* aMsgSentToPlugin = nullptr) const;
 
   
