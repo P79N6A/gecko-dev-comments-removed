@@ -836,10 +836,12 @@ nsFlexContainerFrame::GenerateFlexItemForChild(
         aAxisTracker.GetCrossComponent(widgetMinSize));
 
     
-    widgetMainMinSize -=
-      aAxisTracker.GetMarginSizeInMainAxis(childRS.ComputedPhysicalBorderPadding());
-    widgetCrossMinSize -=
-      aAxisTracker.GetMarginSizeInCrossAxis(childRS.ComputedPhysicalBorderPadding());
+    
+    nsMargin& bp = childRS.ComputedPhysicalBorderPadding();
+    widgetMainMinSize = std::max(widgetMainMinSize -
+                                 aAxisTracker.GetMarginSizeInMainAxis(bp), 0);
+    widgetCrossMinSize = std::max(widgetCrossMinSize -
+                                  aAxisTracker.GetMarginSizeInCrossAxis(bp), 0);
 
     if (!canOverride) {
       
