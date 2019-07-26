@@ -32,8 +32,7 @@ public:
       mMountPoint(aMountPoint),
       mState(aState),
       mMountGeneration(aMountGeneration),
-      mMountLocked(false),
-      mIsFake(false)
+      mMountLocked(false)
   {
   }
 
@@ -43,8 +42,7 @@ public:
     : mName(aName),
       mState(STATE_INIT),
       mMountGeneration(-1),
-      mMountLocked(true),  
-      mIsFake(false)
+      mMountLocked(true)  
   {
   }
 
@@ -74,16 +72,11 @@ private:
   void UpdateMountLock(const nsAString& aMountLockState);
   void UpdateMountLock(bool aMountLocked);
 
-  bool IsFake() const                 { return mIsFake; }
-  void SetIsFake(bool aIsFake)        { mIsFake = aIsFake; }
-  void SetState(int32_t aState);
-
   nsString mName;
   nsString mMountPoint;
   int32_t  mState;
   int32_t  mMountGeneration;
   bool     mMountLocked;
-  bool     mIsFake;
 };
 
 } 
