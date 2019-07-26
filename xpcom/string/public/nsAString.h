@@ -4,6 +4,7 @@
 
 
 
+
 #ifndef nsAString_h___
 #define nsAString_h___
 

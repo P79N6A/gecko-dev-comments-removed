@@ -13,6 +13,7 @@
 
 
 
+
 #define DEFINE_VK_INTERNAL(aKeyName) \
   NS_DEFINE_VK(VK##aKeyName, nsIDOMKeyEvent::DOM_VK##aKeyName)
 

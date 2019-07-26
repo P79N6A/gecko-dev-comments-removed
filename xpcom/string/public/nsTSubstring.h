@@ -5,7 +5,6 @@
 
 
 
-
 #include "mozilla/MemoryReporting.h"
 
 #ifndef MOZILLA_INTERNAL_API

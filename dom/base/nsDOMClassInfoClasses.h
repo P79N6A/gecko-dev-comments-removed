@@ -3,6 +3,7 @@
 
 
 
+
 DOMCI_CLASS(Window)
 DOMCI_CLASS(Location)
 DOMCI_CLASS(DOMPrototype)
