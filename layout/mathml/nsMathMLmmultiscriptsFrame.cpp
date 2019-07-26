@@ -550,8 +550,10 @@ nsMathMLmmultiscriptsFrame::PlaceMultiScript(nsPresContext*      aPresContext,
     else
       count = 0;
     childFrame = prescriptsFrame;
+    bool isPreScript = true;
     do {
       if (!childFrame) { 
+        isPreScript = false;
         
         childFrame = baseFrame;
         dy = aDesiredSize.ascent - baseSize.ascent;
@@ -578,28 +580,35 @@ nsMathMLmmultiscriptsFrame::PlaceMultiScript(nsPresContext*      aPresContext,
           if (supScriptFrame)
             GetReflowAndBoundingMetricsFor(supScriptFrame, supScriptSize, bmSupScript);
 
-          
           width = std::max(subScriptSize.width, supScriptSize.width);
 
           if (subScriptFrame) {
+            nscoord x = dx;
+            
+            
+            if (isPreScript)
+              x += width - subScriptSize.width;
             dy = aDesiredSize.ascent - subScriptSize.ascent +
               maxSubScriptShift;
             FinishReflowChild (subScriptFrame, aPresContext, nullptr,
                                subScriptSize,
                                aFrame->MirrorIfRTL(aDesiredSize.width,
                                                    subScriptSize.width,
-                                                   dx + (width-subScriptSize.width)/2),
+                                                   x),
                                dy, 0);
           }
 
           if (supScriptFrame) {
+            nscoord x = dx;
+            if (isPreScript)
+              x += width - supScriptSize.width;
             dy = aDesiredSize.ascent - supScriptSize.ascent -
               maxSupScriptShift;
             FinishReflowChild (supScriptFrame, aPresContext, nullptr,
                                supScriptSize,
                                aFrame->MirrorIfRTL(aDesiredSize.width,
                                                    supScriptSize.width,
-                                                   dx + (width-supScriptSize.width)/2),
+                                                   x),
                                dy, 0);
           }
           dx += width + aScriptSpace;
