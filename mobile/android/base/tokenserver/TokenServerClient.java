@@ -29,6 +29,7 @@ import org.mozilla.gecko.tokenserver.TokenServerException.TokenServerMalformedRe
 import org.mozilla.gecko.tokenserver.TokenServerException.TokenServerMalformedResponseException;
 import org.mozilla.gecko.tokenserver.TokenServerException.TokenServerUnknownServiceException;
 
+import ch.boye.httpclientandroidlib.Header;
 import ch.boye.httpclientandroidlib.HttpHeaders;
 import ch.boye.httpclientandroidlib.HttpResponse;
 import ch.boye.httpclientandroidlib.client.ClientProtocolException;
@@ -93,6 +94,28 @@ public class TokenServerClient {
     });
   }
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  protected void notifyBackoff(final TokenServerClientDelegate delegate, final int backoffSeconds) {
+    executor.execute(new Runnable() {
+      @Override
+      public void run() {
+        delegate.handleBackoff(backoffSeconds);
+      }
+    });
+  }
+
   protected void invokeHandleError(final TokenServerClientDelegate delegate, final Exception e) {
     executor.execute(new Runnable() {
       @Override
@@ -102,17 +125,21 @@ public class TokenServerClient {
     });
   }
 
-  public TokenServerToken processResponse(HttpResponse response)
-      throws TokenServerException {
-    SyncResponse res = new SyncResponse(response);
+  public TokenServerToken processResponse(SyncResponse res) throws TokenServerException {
     int statusCode = res.getStatusCode();
 
     Logger.debug(LOG_TAG, "Got token response with status code " + statusCode + ".");
 
     
     
-    String contentType = response.getEntity().getContentType().getValue();
-    if (!contentType.equals("application/json") && !contentType.startsWith("application/json;")) {
+    final Header contentType = res.getContentType();
+    if (contentType == null) {
+      throw new TokenServerMalformedResponseException(null, "Non-JSON response Content-Type.");
+    }
+
+    final String type = contentType.getValue();
+    if (!type.equals("application/json") &&
+        !type.startsWith("application/json;")) {
       Logger.warn(LOG_TAG, "Got non-JSON response with Content-Type " +
           contentType + ". Misconfigured server?");
       throw new TokenServerMalformedResponseException(null, "Non-JSON response Content-Type.");
@@ -230,10 +257,21 @@ public class TokenServerClient {
 
     @Override
     public void handleHttpResponse(HttpResponse response) {
+      
       SkewHandler skewHandler = SkewHandler.getSkewHandlerForResource(resource);
       skewHandler.updateSkew(response, System.currentTimeMillis());
+
+      
+      
+      SyncResponse res = new SyncResponse(response);
+      final boolean includeRetryAfter = res.getStatusCode() == 503;
+      int backoffInSeconds = res.totalBackoffInSeconds(includeRetryAfter);
+      if (backoffInSeconds > -1) {
+        client.notifyBackoff(delegate, backoffInSeconds);
+      }
+
       try {
-        TokenServerToken token = client.processResponse(response);
+        TokenServerToken token = client.processResponse(res);
         client.invokeHandleSuccess(delegate, token);
       } catch (TokenServerException e) {
         client.invokeHandleFailure(delegate, e);

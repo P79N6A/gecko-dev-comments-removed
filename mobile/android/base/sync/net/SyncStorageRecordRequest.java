@@ -33,6 +33,7 @@ import org.mozilla.gecko.sync.ThreadPool;
 
 
 
+
 public class SyncStorageRecordRequest extends SyncStorageRequest {
 
   public class SyncStorageRecordResourceDelegate extends SyncStorageResourceDelegate {

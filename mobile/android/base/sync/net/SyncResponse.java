@@ -49,6 +49,20 @@ public class SyncResponse {
     return this.getStatusCode() == 200;
   }
 
+  
+
+
+
+
+
+  public Header getContentType() {
+    HttpEntity entity = this.response.getEntity();
+    if (entity == null) {
+      return null;
+    }
+    return entity.getContentType();
+  }
+
   private String body = null;
   public String body() throws IllegalStateException, IOException {
     if (body != null) {
@@ -149,6 +163,14 @@ public class SyncResponse {
 
 
 
+  public int backoffInSeconds() throws NumberFormatException {
+    return this.getIntegerHeader("x-backoff");
+  }
+
+  
+
+
+
   public int weaveBackoffInSeconds() throws NumberFormatException {
     return this.getIntegerHeader("x-weave-backoff");
   }
@@ -157,11 +179,18 @@ public class SyncResponse {
 
 
 
-  public long totalBackoffInMilliseconds() {
+
+
+
+
+
+  public int totalBackoffInSeconds(boolean includeRetryAfter) {
     int retryAfterInSeconds = -1;
-    try {
-      retryAfterInSeconds = retryAfterInSeconds();
-    } catch (NumberFormatException e) {
+    if (includeRetryAfter) {
+      try {
+        retryAfterInSeconds = retryAfterInSeconds();
+      } catch (NumberFormatException e) {
+      }
     }
 
     int weaveBackoffInSeconds = -1;
@@ -170,7 +199,26 @@ public class SyncResponse {
     } catch (NumberFormatException e) {
     }
 
-    long totalBackoff = (long) Math.max(retryAfterInSeconds, weaveBackoffInSeconds);
+    int backoffInSeconds = -1;
+    try {
+      backoffInSeconds = backoffInSeconds();
+    } catch (NumberFormatException e) {
+    }
+
+    int totalBackoff = Math.max(retryAfterInSeconds, Math.max(backoffInSeconds, weaveBackoffInSeconds));
+    if (totalBackoff < 0) {
+      return -1;
+    } else {
+      return totalBackoff;
+    }
+  }
+
+  
+
+
+
+  public long totalBackoffInMilliseconds() {
+    long totalBackoff = totalBackoffInSeconds(true);
     if (totalBackoff < 0) {
       return -1;
     } else {
