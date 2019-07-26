@@ -1507,6 +1507,10 @@ JSObject *
 NewObjectWithType(JSContext *cx, HandleTypeObject type, JSObject *parent, gc::AllocKind kind);
 
 
+bool
+NewObjectScriptedCall(JSContext *cx, MutableHandleObject obj);
+
+
 static inline JSObject *
 CopyInitializerObject(JSContext *cx, HandleObject baseobj)
 {
