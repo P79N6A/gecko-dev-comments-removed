@@ -11,8 +11,6 @@
 
 
 
-
-
 #include <string.h>
 
 #include "jsalloc.h"
@@ -21,11 +19,31 @@
 #include "js/Utility.h"
 #include "js/Vector.h"
 
+namespace js {
+
+
+
+
+
+
+
+
+JS_FRIEND_API(size_t) MemoryReportingSundriesThreshold();
+
+} 
+
 namespace JS {
 
 
 struct TypeInferenceSizes
 {
+    TypeInferenceSizes()
+      : scripts(0)
+      , objects(0)
+      , tables(0)
+      , temporary(0)
+    {}
+
     size_t scripts;
     size_t objects;
     size_t tables;
@@ -37,6 +55,34 @@ struct TypeInferenceSizes
         this->tables    += sizes.tables;
         this->temporary += sizes.temporary;
     }
+};
+
+
+
+struct HugeStringInfo
+{
+    HugeStringInfo()
+      : length(0)
+      , size(0)
+    {
+        memset(&buffer, 0, sizeof(buffer));
+    }
+
+    
+    
+    static size_t MinSize()
+    {
+      return js::MemoryReportingSundriesThreshold();
+    }
+
+    
+    
+    size_t length;
+    size_t size;
+
+    
+    
+    char buffer[32];
 };
 
 
@@ -78,8 +124,77 @@ struct RuntimeSizes
 
 struct CompartmentStats
 {
-    CompartmentStats() {
-        memset(this, 0, sizeof(*this));
+    CompartmentStats()
+      : extra1(0)
+      , extra2(0)
+      , gcHeapArenaAdmin(0)
+      , gcHeapUnusedGcThings(0)
+      , gcHeapObjectsNonFunction(0)
+      , gcHeapObjectsFunction(0)
+      , gcHeapStrings(0)
+      , gcHeapShapesTree(0)
+      , gcHeapShapesDict(0)
+      , gcHeapShapesBase(0)
+      , gcHeapScripts(0)
+      , gcHeapTypeObjects(0)
+      , gcHeapIonCodes(0)
+#if JS_HAS_XML_SUPPORT
+      , gcHeapXML(0)
+#endif
+      , objectSlots(0)
+      , objectElements(0)
+      , objectMisc(0)
+      , objectPrivate(0)
+      , nonHugeStringChars(0)
+      , shapesExtraTreeTables(0)
+      , shapesExtraDictTables(0)
+      , shapesExtraTreeShapeKids(0)
+      , shapesCompartmentTables(0)
+      , scriptData(0)
+      , jaegerData(0)
+      , ionData(0)
+      , compartmentObject(0)
+      , crossCompartmentWrappers(0)
+      , regexpCompartment(0)
+      , debuggeesSet(0)
+    {}
+
+    CompartmentStats(const CompartmentStats &other)
+      : extra1(other.extra1)
+      , extra2(other.extra2)
+      , gcHeapArenaAdmin(other.gcHeapArenaAdmin)
+      , gcHeapUnusedGcThings(other.gcHeapUnusedGcThings)
+      , gcHeapObjectsNonFunction(other.gcHeapObjectsNonFunction)
+      , gcHeapObjectsFunction(other.gcHeapObjectsFunction)
+      , gcHeapStrings(other.gcHeapStrings)
+      , gcHeapShapesTree(other.gcHeapShapesTree)
+      , gcHeapShapesDict(other.gcHeapShapesDict)
+      , gcHeapShapesBase(other.gcHeapShapesBase)
+      , gcHeapScripts(other.gcHeapScripts)
+      , gcHeapTypeObjects(other.gcHeapTypeObjects)
+      , gcHeapIonCodes(other.gcHeapIonCodes)
+#if JS_HAS_XML_SUPPORT
+      , gcHeapXML(other.gcHeapXML)
+#endif
+      , objectSlots(other.objectSlots)
+      , objectElements(other.objectElements)
+      , objectMisc(other.objectMisc)
+      , objectPrivate(other.objectPrivate)
+      , nonHugeStringChars(other.nonHugeStringChars)
+      , shapesExtraTreeTables(other.shapesExtraTreeTables)
+      , shapesExtraDictTables(other.shapesExtraDictTables)
+      , shapesExtraTreeShapeKids(other.shapesExtraTreeShapeKids)
+      , shapesCompartmentTables(other.shapesCompartmentTables)
+      , scriptData(other.scriptData)
+      , jaegerData(other.jaegerData)
+      , ionData(other.ionData)
+      , compartmentObject(other.compartmentObject)
+      , crossCompartmentWrappers(other.crossCompartmentWrappers)
+      , regexpCompartment(other.regexpCompartment)
+      , debuggeesSet(other.debuggeesSet)
+      , typeInferenceSizes(other.typeInferenceSizes)
+    {
+      hugeStrings.append(other.hugeStrings);
     }
 
     
@@ -108,7 +223,7 @@ struct CompartmentStats
     size_t objectElements;
     size_t objectMisc;
     size_t objectPrivate;
-    size_t stringChars;
+    size_t nonHugeStringChars;
     size_t shapesExtraTreeTables;
     size_t shapesExtraDictTables;
     size_t shapesExtraTreeShapeKids;
@@ -122,9 +237,11 @@ struct CompartmentStats
     size_t debuggeesSet;
 
     TypeInferenceSizes typeInferenceSizes;
+    js::Vector<HugeStringInfo, 0, js::SystemAllocPolicy> hugeStrings;
 
     
-    void add(CompartmentStats &cStats) {
+    void add(CompartmentStats &cStats)
+    {
         #define ADD(x)  this->x += cStats.x
 
         ADD(gcHeapArenaAdmin);
@@ -147,7 +264,7 @@ struct CompartmentStats
         ADD(objectElements);
         ADD(objectMisc);
         ADD(objectPrivate);
-        ADD(stringChars);
+        ADD(nonHugeStringChars);
         ADD(shapesExtraTreeTables);
         ADD(shapesExtraDictTables);
         ADD(shapesExtraTreeShapeKids);
@@ -163,6 +280,7 @@ struct CompartmentStats
         #undef ADD
 
         typeInferenceSizes.add(cStats.typeInferenceSizes);
+        hugeStrings.append(cStats.hugeStrings);
     }
 
     

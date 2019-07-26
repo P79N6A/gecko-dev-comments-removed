@@ -237,7 +237,9 @@ CollectWindowReports(nsGlobalWindow *aWindow,
   
   
   
-  static const size_t FRAME_SUNDRIES_THRESHOLD = 8192;
+  const size_t FRAME_SUNDRIES_THRESHOLD =
+    js::MemoryReportingSundriesThreshold();
+
   size_t frameSundriesSize = 0;
 #define FRAME_ID(classname)                                             \
   {                                                                     \

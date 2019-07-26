@@ -21,6 +21,15 @@
 
 #include "ion/IonCode.h"
 
+namespace js {
+
+size_t MemoryReportingSundriesThreshold()
+{
+    return 8 * 1024;
+}
+
+} 
+
 #ifdef JS_THREADSAFE
 
 namespace JS {
@@ -156,7 +165,19 @@ StatsCellCallback(JSRuntime *rt, void *data, void *thing, JSGCTraceKind traceKin
     {
         JSString *str = static_cast<JSString *>(thing);
         cStats->gcHeapStrings += thingSize;
-        cStats->stringChars += str->sizeOfExcludingThis(rtStats->mallocSizeOf);
+
+        size_t strSize = str->sizeOfExcludingThis(rtStats->mallocSizeOf);
+
+        
+        
+        if (strSize >= HugeStringInfo::MinSize() && cStats->hugeStrings.growBy(1)) {
+            HugeStringInfo &info = cStats->hugeStrings.back();
+            info.length = str->length();
+            info.size = str->sizeOfExcludingThis(rtStats->mallocSizeOf);
+            PutEscapedString(info.buffer, sizeof(info.buffer), &str->asLinear(), 0);
+        } else {
+          cStats->nonHugeStringChars += strSize;
+        }
         break;
     }
     case JSTRACE_SHAPE:
