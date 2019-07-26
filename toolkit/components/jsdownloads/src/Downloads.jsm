@@ -31,6 +31,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "DownloadIntegration",
                                   "resource://gre/modules/DownloadIntegration.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "DownloadList",
                                   "resource://gre/modules/DownloadList.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "DownloadSummary",
+                                  "resource://gre/modules/DownloadList.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "DownloadUIHelper",
                                   "resource://gre/modules/DownloadUIHelper.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Promise",
@@ -163,35 +165,78 @@ this.Downloads = {
 
   getList: function (aType)
   {
+    if (!this._promiseListsInitialized) {
+      this._promiseListsInitialized = Task.spawn(function () {
+        let publicList = new DownloadList();
+        let privateList = new DownloadList();
+        let combinedList = new DownloadCombinedList(publicList, privateList);
+
+        try {
+          yield DownloadIntegration.addListObservers(publicList, false);
+          yield DownloadIntegration.addListObservers(privateList, true);
+          yield DownloadIntegration.initializePublicDownloadList(publicList);
+        } catch (ex) {
+          Cu.reportError(ex);
+        }
+
+        let publicSummary = yield this.getSummary(Downloads.PUBLIC);
+        let privateSummary = yield this.getSummary(Downloads.PRIVATE);
+        let combinedSummary = yield this.getSummary(Downloads.ALL);
+        
+        publicSummary.bindToList(publicList);
+        privateSummary.bindToList(privateList);
+        combinedSummary.bindToList(combinedList);
+
+        this._lists[Downloads.PUBLIC] = publicList;
+        this._lists[Downloads.PRIVATE] = privateList;
+        this._lists[Downloads.ALL] = combinedList;
+      }.bind(this));
+    }
+
+    return this._promiseListsInitialized.then(() => this._lists[aType]);
+  },
+
+  
+
+
+
+  _promiseListsInitialized: null,
+
+  
+
+
+
+
+  _lists: {},
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  getSummary: function (aType)
+  {
     if (aType != Downloads.PUBLIC && aType != Downloads.PRIVATE &&
         aType != Downloads.ALL) {
       throw new Error("Invalid aType argument.");
     }
 
-    if (!(aType in this._listPromises)) {
-      this._listPromises[aType] = Task.spawn(function () {
-        let list;
-        if (aType == Downloads.ALL) {
-          list = new DownloadCombinedList(
-                       (yield this.getList(Downloads.PUBLIC)),
-                       (yield this.getList(Downloads.PRIVATE)));
-        } else {
-          list = new DownloadList();
-          try {
-            yield DownloadIntegration.addListObservers(
-                                        list, aType == Downloads.PRIVATE);
-            if (aType == Downloads.PUBLIC) {
-              yield DownloadIntegration.initializePublicDownloadList(list);
-            }
-          } catch (ex) {
-            Cu.reportError(ex);
-          }
-        }
-        throw new Task.Result(list);
-      }.bind(this));
+    if (!(aType in this._summaries)) {
+      this._summaries[aType] = new DownloadSummary();
     }
 
-    return this._listPromises[aType];
+    return Promise.resolve(this._summaries[aType]);
   },
 
   
@@ -199,7 +244,7 @@ this.Downloads = {
 
 
 
-  _listPromises: {},
+  _summaries: {},
 
   
 
