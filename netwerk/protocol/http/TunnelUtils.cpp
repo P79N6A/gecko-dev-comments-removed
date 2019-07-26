@@ -200,15 +200,19 @@ TLSFilterTransaction::OnReadSegment(const char *aData,
 
   uint32_t amt = 0;
   if (mEncryptedTextUsed) {
+    
+    
+    
     rv = mSegmentReader->CommitToSegmentSize(mEncryptedTextUsed, mForce);
+    if (rv != NS_BASE_STREAM_WOULD_BLOCK) {
+      rv = mSegmentReader->OnReadSegment(mEncryptedText, mEncryptedTextUsed, &amt);
+    }
+
     if (rv == NS_BASE_STREAM_WOULD_BLOCK) {
       
       Connection()->TransactionHasDataToWrite(this);
       return NS_OK;
-    }
-
-    rv = mSegmentReader->OnReadSegment(mEncryptedText, mEncryptedTextUsed, &amt);
-    if (NS_FAILED(rv)) {
+    } else if (NS_FAILED(rv)) {
       return rv;
     }
   }
@@ -220,7 +224,6 @@ TLSFilterTransaction::OnReadSegment(const char *aData,
   } else {
     memmove(mEncryptedText, mEncryptedText + amt, mEncryptedTextUsed - amt);
     mEncryptedTextUsed -= amt;
-    return NS_OK;
   }
   return NS_OK;
 }
