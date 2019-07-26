@@ -2651,18 +2651,11 @@ SetElementIC::attachDenseElement(JSContext *cx, IonScript *ion, JSObject *obj, c
     masm.branchTestInt32(Assembler::NotEqual, indexVal, &failures);
 
     
-    Register scratch = temp();
-    Register index = masm.extractInt32(indexVal, scratch);
-    Register elements = scratch;
+    Register index = masm.extractInt32(indexVal, temp0());
 
     {
         
-        if (scratch == index) {
-            masm.push(object());
-            elements = object();
-        }
-
-        
+        Register elements = temp1();
         masm.loadPtr(Address(object(), JSObject::offsetOfElements()), elements);
 
         
@@ -2707,18 +2700,11 @@ SetElementIC::attachDenseElement(JSContext *cx, IonScript *ion, JSObject *obj, c
         
         masm.bind(&storeElem);
         masm.storeConstantOrRegister(value(), target);
-
-        if (elements == object())
-            masm.pop(object());
     }
     attacher.jumpRejoin(masm);
 
     
-    {
-        masm.bind(&outOfBounds);
-        if (elements == object())
-            masm.pop(object());
-    }
+    masm.bind(&outOfBounds);
     masm.bind(&failures);
     attacher.jumpNextStub(masm);
 
