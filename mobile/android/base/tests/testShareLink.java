@@ -23,7 +23,7 @@ import java.util.List;
 
 
 
-public class testShareLink extends BaseTest {
+public class testShareLink extends AboutHomeTest {
     String url;
     String urlTitle = "Big Link";
 
@@ -36,6 +36,9 @@ public class testShareLink extends BaseTest {
         url = getAbsoluteUrl("/robocop/robocop_big_link.html");
         ArrayList<String> shareOptions;
         blockForGeckoReady();
+
+        
+        openAboutHomeTab(AboutHomeTabs.READING_LIST);
 
         inputAndLoadUrl(url);
         verifyPageTitle(urlTitle); 
@@ -66,6 +69,71 @@ public class testShareLink extends BaseTest {
         float left = mDriver.getGeckoLeft() + mDriver.getGeckoWidth() / 2;
         mSolo.clickLongOnScreen(left, top);
         verifySharePopup("Share Link",shareOptions,"Link");
+
+        
+        openAboutHomeTab(AboutHomeTabs.BOOKMARKS);
+
+        final ListView bookmarksList = findListViewWithTag("bookmarks");
+        mAsserter.is(waitForNonEmptyListToLoad(bookmarksList), true, "list is properly loaded");
+
+        int headerViewsCount = bookmarksList.getHeaderViewsCount();
+        View bookmarksItem = bookmarksList.getChildAt(headerViewsCount);
+        if (bookmarksItem == null) {
+            mAsserter.dumpLog("no child at index " + headerViewsCount + "; waiting for one...");
+            Condition listWaitCondition = new Condition() {
+                @Override
+                public boolean isSatisfied() {
+                    if (bookmarksList.getChildAt(bookmarksList.getHeaderViewsCount()) == null)
+                        return false;
+                    return true;
+                }
+            };
+            waitForCondition(listWaitCondition, MAX_WAIT_MS);
+            headerViewsCount = bookmarksList.getHeaderViewsCount();
+            bookmarksItem = bookmarksList.getChildAt(headerViewsCount);
+        }
+
+        mSolo.clickLongOnView(bookmarksItem);
+        verifySharePopup(shareOptions,"bookmarks");
+
+        
+        
+        inputAndLoadUrl(getAbsoluteUrl("/robocop/robocop_blank_01.html"));
+        inputAndLoadUrl(getAbsoluteUrl("/robocop/robocop_blank_02.html"));
+        inputAndLoadUrl(getAbsoluteUrl("/robocop/robocop_blank_03.html"));
+        inputAndLoadUrl(getAbsoluteUrl("/robocop/robocop_blank_04.html"));
+        if (mDevice.type.equals("tablet")) {
+            
+            inputAndLoadUrl(getAbsoluteUrl("/robocop/robocop_blank_05.html"));
+            inputAndLoadUrl(getAbsoluteUrl("/robocop/robocop_boxes.html"));
+            inputAndLoadUrl(getAbsoluteUrl("/robocop/robocop_search.html"));
+            inputAndLoadUrl(getAbsoluteUrl("/robocop/robocop_text_page.html"));
+        }
+
+        
+        openAboutHomeTab(AboutHomeTabs.TOP_SITES);
+
+        
+        int width = mDriver.getGeckoWidth();
+        int height = mDriver.getGeckoHeight();
+        mActions.drag(width / 2, width / 2, height - 10, height / 2);
+
+        ListView topSitesList = findListViewWithTag("top_sites");
+        mAsserter.is(waitForNonEmptyListToLoad(topSitesList), true, "list is properly loaded");
+        View mostVisitedItem = topSitesList.getChildAt(topSitesList.getHeaderViewsCount());
+        mSolo.clickLongOnView(mostVisitedItem);
+        verifySharePopup(shareOptions,"top_sites");
+
+        
+        openAboutHomeTab(AboutHomeTabs.MOST_RECENT);
+
+        ListView mostRecentList = findListViewWithTag("most_recent");
+        mAsserter.is(waitForNonEmptyListToLoad(mostRecentList), true, "list is properly loaded");
+
+        
+        View mostRecentItem = mostRecentList.getChildAt(mostRecentList.getHeaderViewsCount() + 1);
+        mSolo.clickLongOnView(mostRecentItem);
+        verifySharePopup(shareOptions,"most recent");
     }
 
     public void verifySharePopup(ArrayList<String> shareOptions, String openedFrom) {
