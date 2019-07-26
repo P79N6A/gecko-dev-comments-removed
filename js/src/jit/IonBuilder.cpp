@@ -6303,9 +6303,14 @@ IonBuilder::setStaticName(JSObject *staticObject, PropertyName *name)
     
     
     MIRType slotType = MIRType_None;
-    JSValueType knownType = property.knownTypeTag(constraints());
-    if (knownType != JSVAL_TYPE_UNKNOWN)
-        slotType = MIRTypeFromValueType(knownType);
+    {
+        Shape *shape = staticObject->nativeLookup(cx, id);
+        if (!shape || !shape->hasSlot() || !staticObject->getSlot(shape->slot()).isUndefined()) {
+            JSValueType knownType = property.knownTypeTag(constraints());
+            if (knownType != JSVAL_TYPE_UNKNOWN)
+                slotType = MIRTypeFromValueType(knownType);
+        }
+    }
 
     bool needsBarrier = property.needsBarrier(constraints());
     return storeSlot(obj, property.maybeTypes()->definiteSlot(), NumFixedSlots(staticObject),
