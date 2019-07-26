@@ -28,14 +28,17 @@ function testClosingAfterCompletion(hud) {
 
   
   inputNode.focus();
-  EventUtils.synthesizeKey("k", { accelKey: true, shiftKey: true });
 
-  
-  
-  executeSoon(function() {
+  gDevTools.once("toolbox-destroyed", function() {
     browser.removeEventListener("error", errorListener, false);
     is(errorWhileClosing, false, "no error while closing the WebConsole");
     finishTest();
   });
+
+  if (Services.appinfo.OS == "Darwin") {
+    EventUtils.synthesizeKey("k", { accelKey: true, altKey: true });
+  } else {
+    EventUtils.synthesizeKey("k", { accelKey: true, shiftKey: true });
+  }
 }
 
