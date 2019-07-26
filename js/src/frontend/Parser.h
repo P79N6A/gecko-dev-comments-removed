@@ -64,8 +64,19 @@ struct GenericParseContext
     
     bool parsingWith:1;
 
-    inline GenericParseContext(GenericParseContext *parent, SharedContext *sc);
+    GenericParseContext(GenericParseContext *parent, SharedContext *sc)
+      : parent(parent),
+        sc(sc),
+        funHasReturnExpr(false),
+        funHasReturnVoid(false),
+        parsingForInit(false),
+        parsingWith(parent ? parent->parsingWith : false)
+    {}
 };
+
+template <typename ParseHandler>
+bool
+GenerateBlockId(ParseContext<ParseHandler> *pc, uint32_t &blockid);
 
 
 
@@ -217,14 +228,51 @@ struct ParseContext : public GenericParseContext
     
     bool            funBecameStrict:1;
 
-    inline ParseContext(Parser<ParseHandler> *prs, GenericParseContext *parent,
-                        SharedContext *sc, unsigned staticLevel, uint32_t bodyid);
-    inline ~ParseContext();
+    ParseContext(Parser<ParseHandler> *prs, GenericParseContext *parent,
+                 SharedContext *sc, unsigned staticLevel, uint32_t bodyid)
+      : GenericParseContext(parent, sc),
+        bodyid(0),           
+        blockidGen(bodyid),  
+        topStmt(NULL),
+        topScopeStmt(NULL),
+        blockChain(prs->context),
+        staticLevel(staticLevel),
+        parenDepth(0),
+        yieldCount(0),
+        blockNode(ParseHandler::null()),
+        decls_(prs->context),
+        args_(prs->context),
+        vars_(prs->context),
+        yieldOffset(0),
+        parserPC(&prs->pc),
+        oldpc(prs->pc),
+        lexdeps(prs->context),
+        funcStmts(NULL),
+        innerFunctions(prs->context),
+        inDeclDestructuring(false),
+        funBecameStrict(false)
+    {
+        prs->pc = this;
+    }
 
-    inline bool init();
+    ~ParseContext() {
+        
+        
+        JS_ASSERT(*parserPC == this);
+        *parserPC = this->oldpc;
+        js_delete(funcStmts);
+    }
+
+    inline bool init()
+{
+    if (!frontend::GenerateBlockId(this, this->bodyid))
+        return false;
+
+    return decls_.init() && lexdeps.ensureMap(sc->context);
+}
 
     InBlockBool inBlock() const { return InBlockBool(!topStmt || topStmt->type == STMT_BLOCK); }
-    unsigned blockid();
+    unsigned blockid() { return topStmt ? topStmt->blockid : bodyid; }
 
     
     
@@ -233,16 +281,12 @@ struct ParseContext : public GenericParseContext
     
     
     
-    bool atBodyLevel();
+    bool atBodyLevel() { return !topStmt; }
 
     inline bool useAsmOrInsideUseAsm() const {
         return sc->isFunctionBox() && sc->asFunctionBox()->useAsmOrInsideUseAsm();
     }
 };
-
-template <typename ParseHandler>
-bool
-GenerateBlockId(ParseContext<ParseHandler> *pc, uint32_t &blockid);
 
 template <typename ParseHandler>
 struct BindData;
