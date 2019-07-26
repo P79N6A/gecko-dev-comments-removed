@@ -802,9 +802,19 @@ nsresult SetExceptionHandler(nsIFile* aXREDirectory,
   if (gExceptionHandler)
     return NS_ERROR_ALREADY_INITIALIZED;
 
+#if defined(MOZ_DEBUG)
+  
+  
+  const char *envvar = PR_GetEnv("MOZ_CRASHREPORTER");
+  if ((!envvar || !*envvar) && !force)
+    return NS_OK;
+#else
+  
+  
   const char *envvar = PR_GetEnv("MOZ_CRASHREPORTER_DISABLE");
   if (envvar && *envvar && !force)
     return NS_OK;
+#endif
 
 #if defined(MOZ_WIDGET_GONK)
   doReport = false;
