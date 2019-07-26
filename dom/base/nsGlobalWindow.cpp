@@ -7607,23 +7607,11 @@ nsGlobalWindow::CallerInnerWindow()
     }
   }
   JSAutoCompartment ac(cx, scope);
-
-  
-  
-  
-  
-  nsISupports* native =
-    nsContentUtils::XPConnect()->GetNativeOfWrapper(cx, scope);
-  if (!native)
-    return nullptr;
-
-  
-  
-  
-  nsCOMPtr<nsPIDOMWindow> win = do_QueryInterface(native);
+  nsGlobalWindow* win = xpc::WindowOrNull(scope);
+     
   if (!win)
     return GetCurrentInnerWindowInternal();
-  return static_cast<nsGlobalWindow*>(win.get());
+  return win;
 }
 
 
