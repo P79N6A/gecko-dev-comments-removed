@@ -493,12 +493,6 @@ gfxPlatform::Shutdown()
     mozilla::gl::GLContextProviderEGL::Shutdown();
 #endif
 
-    
-    
-    ImageBridgeChild::ShutDown();
-
-    CompositorParent::ShutDown();
-
     delete gGfxPlatformPrefsLock;
 
     gfxPrefs::DestroySingleton();
