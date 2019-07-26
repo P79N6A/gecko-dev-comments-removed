@@ -145,6 +145,12 @@ public:
     return &mKeyHandlers;
   }
 
+private:
+  nsresult Read(nsIObjectInputStream* aStream,
+                nsXBLDocumentInfo* aDocInfo,
+                nsIDocument* aDocument,
+                uint8_t aFlags);
+
   
 
 
@@ -154,10 +160,11 @@ public:
 
 
 
-  nsresult Read(nsIObjectInputStream* aStream,
-                nsXBLDocumentInfo* aDocInfo,
-                nsIDocument* aDocument,
-                uint8_t aFlags);
+public:
+  static nsresult ReadNewBinding(nsIObjectInputStream* aStream,
+                                 nsXBLDocumentInfo* aDocInfo,
+                                 nsIDocument* aDocument,
+                                 uint8_t aFlags);
 
   
 

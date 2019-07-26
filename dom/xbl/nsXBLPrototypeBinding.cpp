@@ -1039,6 +1039,23 @@ nsXBLPrototypeBinding::Read(nsIObjectInputStream* aStream,
   return NS_OK;
 }
 
+
+nsresult
+nsXBLPrototypeBinding::ReadNewBinding(nsIObjectInputStream* aStream,
+                                      nsXBLDocumentInfo* aDocInfo,
+                                      nsIDocument* aDocument,
+                                      uint8_t aFlags)
+{
+  
+  
+  nsXBLPrototypeBinding* binding = new nsXBLPrototypeBinding();
+  nsresult rv = binding->Read(aStream, aDocInfo, aDocument, aFlags);
+  if (NS_FAILED(rv)) {
+    delete binding;
+  }
+  return rv;
+}
+
 static PLDHashOperator
 WriteInterfaceID(const nsIID& aKey, nsIContent* aData, void* aClosure)
 {
