@@ -53,6 +53,17 @@ function ThreadActor(aHooks, aGlobal)
 
   this._scripts = {};
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  this._protoChains = new Map();
+
   this.findGlobals = this.globalManager.findGlobals.bind(this);
   this.onNewGlobal = this.globalManager.onNewGlobal.bind(this);
 }
@@ -182,6 +193,7 @@ ThreadActor.prototype = {
 
     this._state = "exited";
 
+    this._protoChains.clear();
     this.clearDebuggees();
 
     if (!this.dbg) {
@@ -1223,6 +1235,51 @@ ThreadActor.prototype = {
       }
     }
     return true;
+  },
+
+  
+
+
+
+
+
+
+
+  _findProtoChain: function TA__findProtoChain(aObject) {
+    if (this._protoChains.has(aObject)) {
+      return this._protoChains.get(aObject);
+    }
+    for (let [obj, chain] of this._protoChains) {
+      if (chain.indexOf(aObject) != -1) {
+        return chain;
+      }
+    }
+    return null;
+  },
+
+  
+
+
+
+
+
+
+
+
+  _removeFromProtoChain:function TA__removeFromProtoChain(aObject) {
+    let retval = false;
+    if (this._protoChains.has(aObject)) {
+      this._protoChains.delete(aObject);
+      retval = true;
+    }
+    for (let [obj, chain] of this._protoChains) {
+      let index = chain.indexOf(aObject);
+      if (index != -1) {
+        chain.splice(index);
+        retval = true;
+      }
+    }
+    return retval;
   }
 
 };
@@ -1532,6 +1589,11 @@ update(ObjectActor.prototype, {
   release: function OA_release() {
     this.registeredPool.objectActors.delete(this.obj);
     this.registeredPool.removeActor(this);
+    this.disconnect();
+  },
+
+  disconnect: function OA_disconnect() {
+    this.threadActor._removeFromProtoChain(this.obj);
   },
 
   
@@ -1556,17 +1618,27 @@ update(ObjectActor.prototype, {
 
   onPrototypeAndProperties:
   PauseScopedActor.withPaused(function OA_onPrototypeAndProperties(aRequest) {
-    let ownProperties = {};
-    for each (let name in this.obj.getOwnPropertyNames()) {
-      try {
-        let desc = this.obj.getOwnPropertyDescriptor(name);
-        ownProperties[name] = this._propertyDescriptor(desc);
-      } catch (e if e.name == "NS_ERROR_XPC_BAD_OP_ON_WN_PROTO") {
-        
-        
-        dumpn("Error while getting the property descriptor for " + name +
-              ": " + e.name);
+    if (this.obj.proto) {
+      
+      
+      
+      
+      
+      
+      let chain = this.threadActor._findProtoChain(this.obj);
+      if (!chain) {
+        chain = [];
+        this.threadActor._protoChains.set(this.obj, chain);
+        chain.push(this.obj);
       }
+      if (chain.indexOf(this.obj.proto) == -1) {
+        chain.push(this.obj.proto);
+      }
+    }
+
+    let ownProperties = {};
+    for (let name of this.obj.getOwnPropertyNames()) {
+      ownProperties[name] = this._propertyDescriptor(name);
     }
     return { from: this.actorID,
              prototype: this.threadActor.createValueGrip(this.obj.proto),
@@ -1597,9 +1669,8 @@ update(ObjectActor.prototype, {
                message: "no property name was specified" };
     }
 
-    let desc = this.obj.getOwnPropertyDescriptor(aRequest.name);
     return { from: this.actorID,
-             descriptor: this._propertyDescriptor(desc) };
+             descriptor: this._propertyDescriptor(aRequest.name) };
   }),
 
   
@@ -1609,18 +1680,77 @@ update(ObjectActor.prototype, {
 
 
 
-  _propertyDescriptor: function OA_propertyDescriptor(aObject) {
-    let descriptor = {};
-    descriptor.configurable = aObject.configurable;
-    descriptor.enumerable = aObject.enumerable;
-    if (aObject.value !== undefined) {
-      descriptor.writable = aObject.writable;
-      descriptor.value = this.threadActor.createValueGrip(aObject.value);
-    } else {
-      descriptor.get = this.threadActor.createValueGrip(aObject.get);
-      descriptor.set = this.threadActor.createValueGrip(aObject.set);
+  _propertyDescriptor: function OA_propertyDescriptor(aName) {
+    let desc;
+    try {
+      desc = this.obj.getOwnPropertyDescriptor(aName);
+    } catch (e) {
+      
+      
+      
+      return {
+        configurable: false,
+        writable: false,
+        enumerable: false,
+        value: e.name
+      };
     }
-    return descriptor;
+
+    let retval = {
+      configurable: desc.configurable,
+      enumerable: desc.enumerable
+    };
+
+    if (desc.value !== undefined) {
+      retval.writable = desc.writable;
+      retval.value = this.threadActor.createValueGrip(desc.value);
+    } else {
+
+      if ("get" in desc) {
+        let fn = desc.get;
+        if (fn && fn.callable && fn.class == "Function" &&
+            fn.script === undefined) {
+          
+          
+          let rv, chain = this.threadActor._findProtoChain(this.obj);
+          let index = chain.indexOf(this.obj);
+          for (let i = index; i >= 0; i--) {
+            
+            
+            rv = fn.call(chain[i]);
+            
+            
+            if (rv && !("throw" in rv)) {
+              
+              
+              if ("return" in rv) {
+                retval.value = this.threadActor.createValueGrip(rv.return);
+              } else if ("yield" in rv) {
+                retval.value = this.threadActor.createValueGrip(rv.yield);
+              }
+              break;
+            }
+          }
+
+          
+          
+          if (!("value" in retval)) {
+            retval.get = this.threadActor.createValueGrip(fn);
+          }
+        } else {
+          
+          
+          retval.get = this.threadActor.createValueGrip(fn);
+        }
+      }
+
+      
+      
+      if ("set" in desc && !("value" in retval)) {
+        retval.set = this.threadActor.createValueGrip(desc.set);
+      }
+    }
+    return retval;
   },
 
   
