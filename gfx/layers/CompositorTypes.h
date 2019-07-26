@@ -11,6 +11,9 @@
 #include "LayersTypes.h"                
 #include "nsXULAppAPI.h"                
 
+#include "mozilla/TypedEnum.h"
+#include "mozilla/TypedEnumBits.h"
+
 namespace mozilla {
 namespace layers {
 
@@ -25,65 +28,66 @@ const SurfaceDescriptorType SURFACEDESCRIPTOR_UNKNOWN = 0;
 
 
 
-typedef uint32_t TextureFlags;
+MOZ_BEGIN_ENUM_CLASS(TextureFlags)
+  
+  USE_NEAREST_FILTER = 1 << 0,
+  
+  NEEDS_Y_FLIP       = 1 << 1,
+  
+  
+  DISALLOW_BIGIMAGE  = 1 << 2,
+  
+  ALLOW_REPEAT       = 1 << 3,
+  
+  NEW_TILE           = 1 << 4,
+  
+  COMPONENT_ALPHA    = 1 << 5,
+  
+  
+  
+  
+  
+  
+  
+  RB_SWAPPED         = 1 << 6,
 
-const TextureFlags TEXTURE_USE_NEAREST_FILTER = 1 << 0;
-
-const TextureFlags TEXTURE_NEEDS_Y_FLIP       = 1 << 1;
-
-
-const TextureFlags TEXTURE_DISALLOW_BIGIMAGE  = 1 << 2;
-
-const TextureFlags TEXTURE_ALLOW_REPEAT       = 1 << 3;
-
-const TextureFlags TEXTURE_NEW_TILE           = 1 << 4;
-
-const TextureFlags TEXTURE_COMPONENT_ALPHA    = 1 << 5;
-
-
-
-
-
-
-
-const TextureFlags TEXTURE_RB_SWAPPED         = 1 << 6;
-
-const TextureFlags TEXTURE_FRONT              = 1 << 12;
-
-const TextureFlags TEXTURE_ON_WHITE           = 1 << 13;
- 
-const TextureFlags TEXTURE_ON_BLACK           = 1 << 14;
-
-const TextureFlags TEXTURE_TILE               = 1 << 15;
-
-const TextureFlags TEXTURE_RECYCLE            = 1 << 16;
-
-
-const TextureFlags TEXTURE_COPY_PREVIOUS      = 1 << 24;
-
-
-
-
-
-const TextureFlags TEXTURE_DEALLOCATE_CLIENT  = 1 << 25;
-
-
-
-const TextureFlags TEXTURE_IMMUTABLE          = 1 << 27;
-
-
-
-const TextureFlags TEXTURE_IMMEDIATE_UPLOAD   = 1 << 28;
-
-
-
-const TextureFlags TEXTURE_DOUBLE_BUFFERED    = 1 << 29;
-
-
-const TextureFlags TEXTURE_ALLOC_FALLBACK     = 1 << 31;
-
-
-const TextureFlags TEXTURE_FLAGS_DEFAULT = TEXTURE_FRONT;
+  FRONT              = 1 << 12,
+  
+  ON_WHITE           = 1 << 13,
+  
+  ON_BLACK           = 1 << 14,
+  
+  TILE               = 1 << 15,
+  
+  RECYCLE            = 1 << 16,
+  
+  
+  COPY_PREVIOUS      = 1 << 24,
+  
+  
+  
+  
+  
+  DEALLOCATE_CLIENT  = 1 << 25,
+  
+  
+  
+  IMMUTABLE          = 1 << 27,
+  
+  
+  
+  IMMEDIATE_UPLOAD   = 1 << 28,
+  
+  
+  
+  DOUBLE_BUFFERED    = 1 << 29,
+  
+  
+  ALLOC_FALLBACK     = 1 << 31,
+  
+  DEFAULT = FRONT
+MOZ_END_ENUM_CLASS(TextureFlags)
+MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(TextureFlags)
 
 static inline bool
 TextureRequiresLocking(TextureFlags aFlags)
@@ -220,7 +224,7 @@ struct TextureInfo
 {
   CompositableType mCompositableType;
   uint32_t mDeprecatedTextureHostFlags;
-  uint32_t mTextureFlags;
+  TextureFlags mTextureFlags;
 
   TextureInfo()
     : mCompositableType(BUFFER_UNKNOWN)
