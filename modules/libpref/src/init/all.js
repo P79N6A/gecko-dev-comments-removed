@@ -1941,6 +1941,13 @@ pref("layout.display-list.dump", false);
 pref("layout.frame_rate.precise", false);
 
 
+#ifdef RELEASE_BUILD
+pref("dom.animations-api.core.enabled", false);
+#else
+pref("dom.animations-api.core.enabled", true);
+#endif
+
+
 pref("capability.policy.default.SOAPCall.invokeVerifySourceHeader", "allAccess");
 
 
