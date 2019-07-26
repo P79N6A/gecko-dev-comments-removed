@@ -156,7 +156,6 @@
 #include "nsWindowRoot.h"
 #include "nsNetCID.h"
 #include "nsIArray.h"
-#include "nsIScriptRuntime.h"
 
 
 #include "nsIDOMXULDocument.h"
@@ -1774,6 +1773,8 @@ nsGlobalWindow::UnmarkGrayTimers()
 
 
 
+static NS_DEFINE_CID(kDOMScriptObjectFactoryCID, NS_DOM_SCRIPT_OBJECT_FACTORY_CID);
+
 nsresult
 nsGlobalWindow::EnsureScriptEnvironment()
 {
@@ -1786,22 +1787,22 @@ nsGlobalWindow::EnsureScriptEnvironment()
   NS_ASSERTION(!GetCurrentInnerWindowInternal(),
                "mJSObject is null, but we have an inner window?");
 
-  nsCOMPtr<nsIScriptRuntime> scriptRuntime;
-  nsresult rv = NS_GetJSRuntime(getter_AddRefs(scriptRuntime));
-  NS_ENSURE_SUCCESS(rv, rv);
+  
+  
+  nsCOMPtr<nsIDOMScriptObjectFactory> factory = do_GetService(kDOMScriptObjectFactoryCID);
+  NS_ENSURE_TRUE(factory, NS_ERROR_FAILURE);
 
   
   
   
-  nsCOMPtr<nsIScriptContext> context =
-    scriptRuntime->CreateContext(!IsFrame(), this);
+  nsCOMPtr<nsIScriptContext> context = new nsJSContext(nsJSRuntime::sRuntime, !IsFrame(), this);
 
   NS_ASSERTION(!mContext, "Will overwrite mContext!");
 
   
   context->WillInitializeContext();
 
-  rv = context->InitContext();
+  nsresult rv = context->InitContext();
   NS_ENSURE_SUCCESS(rv, rv);
 
   mContext = context;
