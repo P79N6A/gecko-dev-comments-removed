@@ -153,12 +153,12 @@ NotableStringInfo &NotableStringInfo::operator=(MoveRef<NotableStringInfo> info)
 
 typedef HashSet<ScriptSource *, DefaultHasher<ScriptSource *>, SystemAllocPolicy> SourceSet;
 
-struct IteratorClosure
+struct StatsClosure
 {
     RuntimeStats *rtStats;
     ObjectPrivateVisitor *opv;
     SourceSet seenSources;
-    IteratorClosure(RuntimeStats *rt, ObjectPrivateVisitor *v) : rtStats(rt), opv(v) {}
+    StatsClosure(RuntimeStats *rt, ObjectPrivateVisitor *v) : rtStats(rt), opv(v) {}
     bool init() {
         return seenSources.init();
     }
@@ -217,7 +217,7 @@ static void
 StatsCompartmentCallback(JSRuntime *rt, void *data, JSCompartment *compartment)
 {
     
-    RuntimeStats *rtStats = static_cast<IteratorClosure *>(data)->rtStats;
+    RuntimeStats *rtStats = static_cast<StatsClosure *>(data)->rtStats;
 
     
     MOZ_ALWAYS_TRUE(rtStats->compartmentStatsVector.growBy(1));
@@ -241,7 +241,7 @@ static void
 StatsZoneCallback(JSRuntime *rt, void *data, Zone *zone)
 {
     
-    RuntimeStats *rtStats = static_cast<IteratorClosure *>(data)->rtStats;
+    RuntimeStats *rtStats = static_cast<StatsClosure *>(data)->rtStats;
 
     
     MOZ_ALWAYS_TRUE(rtStats->zoneStatsVector.growBy(1));
@@ -257,7 +257,7 @@ static void
 StatsArenaCallback(JSRuntime *rt, void *data, gc::Arena *arena,
                    JSGCTraceKind traceKind, size_t thingSize)
 {
-    RuntimeStats *rtStats = static_cast<IteratorClosure *>(data)->rtStats;
+    RuntimeStats *rtStats = static_cast<StatsClosure *>(data)->rtStats;
 
     
     
@@ -281,7 +281,7 @@ static void
 StatsCellCallback(JSRuntime *rt, void *data, void *thing, JSGCTraceKind traceKind,
                   size_t thingSize)
 {
-    IteratorClosure *closure = static_cast<IteratorClosure *>(data);
+    StatsClosure *closure = static_cast<StatsClosure *>(data);
     RuntimeStats *rtStats = closure->rtStats;
     ZoneStats *zStats = rtStats->currZoneStats;
     switch (traceKind) {
@@ -473,7 +473,7 @@ JS::CollectRuntimeStats(JSRuntime *rt, RuntimeStats *rtStats, ObjectPrivateVisit
                   DecommittedArenasChunkCallback);
 
     
-    IteratorClosure closure(rtStats, opv);
+    StatsClosure closure(rtStats, opv);
     if (!closure.init())
         return false;
     rtStats->runtime.scriptSources = 0;
