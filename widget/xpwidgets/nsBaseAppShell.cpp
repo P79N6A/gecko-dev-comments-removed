@@ -14,7 +14,7 @@
 
 
 
-#define THREAD_EVENT_STARVATION_LIMIT PR_MillisecondsToInterval(20)
+#define THREAD_EVENT_STARVATION_LIMIT PR_MillisecondsToInterval(10)
 
 NS_IMPL_ISUPPORTS3(nsBaseAppShell, nsIAppShell, nsIThreadObserver, nsIObserver)
 
@@ -246,8 +246,9 @@ nsBaseAppShell::OnProcessNextEvent(nsIThreadInternal *thr, bool mayWait,
   
   
   mProcessedGeckoEvents = false;
-
-  DoProcessNextNativeEvent(false, recursionDepth);
+  PRIntervalTime start = PR_IntervalNow();
+  while (DoProcessNextNativeEvent(false, recursionDepth) &&
+         (PR_IntervalNow() - start) < THREAD_EVENT_STARVATION_LIMIT);
 
   while (!NS_HasPendingEvents(thr) && !mProcessedGeckoEvents) {
     
