@@ -16,6 +16,8 @@
 #include "nsString.h"
 #include "nsTHashtable.h"
 #include "nsHashKeys.h"
+#include "nsIObserverService.h"
+#include "nsProxyRelease.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/Attributes.h"
 
@@ -51,12 +53,14 @@ private:
     
     
     
-    nsAdoptingCString         mIPv4OnlyDomains;
-    bool                      mDisableIPv6;
-    bool                      mDisablePrefetch;
-    bool                      mFirstTime;
-    bool                      mOffline;
-    nsTHashtable<nsCStringHashKey> mLocalDomains;
+    nsAdoptingCString                         mIPv4OnlyDomains;
+    bool                                      mDisableIPv6;
+    bool                                      mDisablePrefetch;
+    bool                                      mFirstTime;
+    bool                                      mOffline;
+    bool                                      mNotifyResolution;
+    nsMainThreadPtrHandle<nsIObserverService> mObserverService;
+    nsTHashtable<nsCStringHashKey>            mLocalDomains;
 };
 
 #endif 
