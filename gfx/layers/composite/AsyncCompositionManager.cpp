@@ -434,8 +434,14 @@ AsyncCompositionManager::TransformScrollableLayer(Layer* aLayer, const gfx3DMatr
 
   gfx::Margin fixedLayerMargins(0, 0, 0, 0);
   ScreenPoint offset(0, 0);
-  ScreenPoint userScroll(0, 0);
-  CSSToScreenScale userZoom;
+
+  
+  
+  
+  
+  
+  CSSToScreenScale userZoom(metrics.mDevPixelsPerCSSPixel.scale * metrics.mResolution.scale);
+  ScreenPoint userScroll = metrics.mScrollOffset * userZoom;
   SyncViewportInfo(displayPort, geckoZoom, mLayersUpdated,
                    userScroll, userZoom, fixedLayerMargins,
                    offset);
