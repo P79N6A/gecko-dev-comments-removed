@@ -6925,6 +6925,12 @@ let gPrivateBrowsingUI = {
       return;
     }
 
+#ifdef XP_MACOSX
+    if (!PrivateBrowsingUtils.permanentPrivateBrowsing) {
+      document.documentElement.setAttribute("drawintitlebar", true);
+    }
+#endif
+
     
     
     document.getElementById("Tools:Sanitize").setAttribute("disabled", "true");
@@ -6936,7 +6942,8 @@ let gPrivateBrowsingUI = {
         docElement.getAttribute("title_privatebrowsing"));
       docElement.setAttribute("titlemodifier",
         docElement.getAttribute("titlemodifier_privatebrowsing"));
-      docElement.setAttribute("privatebrowsingmode", "temporary");
+      docElement.setAttribute("privatebrowsingmode",
+        PrivateBrowsingUtils.permanentPrivateBrowsing ? "permanent" : "temporary");
       gBrowser.updateTitlebar();
     }
 
