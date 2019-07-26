@@ -544,7 +544,10 @@ AudioContext::Shutdown()
 {
   mIsShutDown = true;
 
-  Suspend();
+  
+  
+  
+  Mute();
 
   mDecoder.Shutdown();
 
