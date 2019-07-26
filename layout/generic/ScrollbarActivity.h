@@ -100,7 +100,7 @@ protected:
                                bool* aStoredHoverState);
 
   void SetIsActive(bool aNewActive);
-  void SetIsFading(bool aNewFading);
+  bool SetIsFading(bool aNewFading); 
 
   void BeginFade();
   void EndFade();
