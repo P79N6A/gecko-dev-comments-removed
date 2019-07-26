@@ -1637,24 +1637,8 @@ nsScriptSecurityManager::CanExecuteScripts(JSContext* cx,
         if (!sgo) {
             return NS_ERROR_FAILURE;
         }
-
-        
-        
-        nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(sgo);
-        nsCOMPtr<nsIDocShell> docshell;
-        nsresult rv;
-        if (window) {
-            docshell = window->GetDocShell();
-        }
-
-        if (docshell) {
-          rv = docshell->GetCanExecuteScripts(result);
-          if (NS_FAILED(rv)) return rv;
-          if (!*result) return NS_OK;
-        }
     }
 
-    
     
     
     

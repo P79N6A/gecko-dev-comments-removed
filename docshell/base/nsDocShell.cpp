@@ -762,6 +762,7 @@ nsDocShell::nsDocShell():
     mUseGlobalHistory(false),
     mInPrivateBrowsing(false),
     mDeviceSizeIsPageSize(false),
+    mCanExecuteScripts(false),
     mFiredUnloadEvent(false),
     mEODForCurrentDocument(false),
     mURIResultedInDocument(false),
@@ -2084,6 +2085,7 @@ NS_IMETHODIMP
 nsDocShell::SetAllowJavascript(bool aAllowJavascript)
 {
     mAllowJavascript = aAllowJavascript;
+    RecomputeCanExecuteScripts();
     return NS_OK;
 }
 
@@ -2817,6 +2819,48 @@ nsDocShell::GetParentDocshell()
     return docshell.forget().downcast<nsDocShell>();
 }
 
+void
+nsDocShell::RecomputeCanExecuteScripts()
+{
+    bool old = mCanExecuteScripts;
+    nsRefPtr<nsDocShell> parent = GetParentDocshell();
+
+    
+    
+    
+    if (!mTreeOwner) {
+        mCanExecuteScripts = false;
+    
+    } else if (!mAllowJavascript) {
+        mCanExecuteScripts = false;
+    
+    } else if (parent) {
+        mCanExecuteScripts = parent->mCanExecuteScripts;
+    
+    
+    } else {
+        mCanExecuteScripts = true;
+    }
+
+    
+    
+    
+    if (mScriptGlobal && mScriptGlobal->GetGlobalJSObject()) {
+        xpc::Scriptability& scriptability =
+          xpc::Scriptability::Get(mScriptGlobal->GetGlobalJSObject());
+        scriptability.SetDocShellAllowsScript(mCanExecuteScripts);
+    }
+
+    
+    
+    if (old != mCanExecuteScripts) {
+        nsTObserverArray<nsDocLoader*>::ForwardIterator iter(mChildList);
+        while (iter.HasMore()) {
+            static_cast<nsDocShell*>(iter.GetNext())->RecomputeCanExecuteScripts();
+        }
+    }
+}
+
 nsresult
 nsDocShell::SetDocLoaderParent(nsDocLoader * aParent)
 {
@@ -2886,6 +2930,10 @@ nsDocShell::SetDocLoaderParent(nsDocLoader * aParent)
     nsCOMPtr<nsIURIContentListener> parentURIListener(do_GetInterface(parent));
     if (parentURIListener)
         mContentListener->SetParentContentListener(parentURIListener);
+
+    
+    RecomputeCanExecuteScripts();
+
     return NS_OK;
 }
 
@@ -3439,6 +3487,16 @@ nsDocShell::SetTreeOwner(nsIDocShellTreeOwner * aTreeOwner)
         if (childType == mItemType)
             child->SetTreeOwner(aTreeOwner);
     }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    RecomputeCanExecuteScripts();
 
     return NS_OK;
 }
@@ -12651,20 +12709,7 @@ unsigned long nsDocShell::gNumberOfDocShells = 0;
 NS_IMETHODIMP
 nsDocShell::GetCanExecuteScripts(bool *aResult)
 {
-  NS_ENSURE_ARG_POINTER(aResult);
-  *aResult = false; 
-
-  nsRefPtr<nsDocShell> docshell = this;
-  do {
-      nsresult rv = docshell->GetAllowJavascript(aResult);
-      if (NS_FAILED(rv)) return rv;
-      if (!*aResult) {
-          return NS_OK;
-      }
-
-      docshell = docshell->GetParentDocshell();
-  } while (docshell);
-
+  *aResult = mCanExecuteScripts;
   return NS_OK;
 }
 

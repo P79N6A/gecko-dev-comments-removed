@@ -42,6 +42,7 @@ public:
 
     void Block();
     void Unblock();
+    void SetDocShellAllowsScript(bool aAllowed);
 
     static Scriptability& Get(JSObject *aScope);
 
@@ -51,6 +52,10 @@ private:
     
     
     uint32_t mScriptBlocks;
+
+    
+    
+    bool mDocShellAllowsScript;
 };
 
 JSObject *

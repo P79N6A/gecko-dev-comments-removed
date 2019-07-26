@@ -2062,6 +2062,9 @@ WindowStateHolder::WindowStateHolder(nsGlobalWindow *aWindow,
   mInnerWindowHolder = aHolder;
 
   aWindow->SuspendTimeouts();
+
+  
+  xpc::Scriptability::Get(aWindow->mJSObject).SetDocShellAllowsScript(false);
 }
 
 WindowStateHolder::~WindowStateHolder()
@@ -2459,6 +2462,10 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
 
     
     JSAutoCompartment ac(cx, mJSObject);
+
+    
+    bool allow = GetDocShell()->GetCanExecuteScripts();
+    xpc::Scriptability::Get(mJSObject).SetDocShellAllowsScript(allow);
 
     
     

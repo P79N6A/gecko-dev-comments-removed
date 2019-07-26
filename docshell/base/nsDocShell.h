@@ -816,6 +816,12 @@ protected:
     
     
     
+    bool                       mCanExecuteScripts;
+    void RecomputeCanExecuteScripts();
+
+    
+    
+    
     bool                       mFiredUnloadEvent;
 
     
