@@ -97,6 +97,9 @@ RefTestCmdLineHandler.prototype =
     branch.setIntPref("urlclassifier.updateinterval", 172800);
     
     branch.setBoolPref("image.high_quality_downscaling.enabled", false);
+    
+    
+    branch.setBoolPref("security.fileuri.strict_origin_policy", false);
 
     var wwatch = Components.classes["@mozilla.org/embedcomp/window-watcher;1"]
                            .getService(nsIWindowWatcher);
