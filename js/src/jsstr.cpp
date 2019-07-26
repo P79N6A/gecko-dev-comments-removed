@@ -2005,6 +2005,8 @@ class RopeBuilder {
     }
 };
 
+namespace {
+
 struct ReplaceData
 {
     ReplaceData(JSContext *cx)
@@ -2028,6 +2030,8 @@ struct ReplaceData
     FastInvokeGuard    fig;            
     StringBuffer       sb;             
 };
+
+} 
 
 static bool
 ReplaceRegExp(JSContext *cx, RegExpStatics *res, ReplaceData &rdata);
