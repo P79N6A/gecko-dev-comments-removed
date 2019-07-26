@@ -450,6 +450,20 @@ input[type="file"] > button[type="button"] {
 }
 
 
+input[type="color"] > div,
+input[type="color"]::-moz-color-swatch {
+  border-width: 0px;
+  width: 100%;
+  height: 100%;
+  min-width: 50px;
+  min-height: 1em;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+  display: block;
+}
+
+
 
 input[type="file"]:-moz-dir(rtl) > xul|label {
   -moz-padding-start: 0px;

@@ -133,7 +133,8 @@ class nsStyleSet
   already_AddRefed<nsStyleContext>
   ResolvePseudoElementStyle(mozilla::dom::Element* aParentElement,
                             nsCSSPseudoElements::Type aType,
-                            nsStyleContext* aParentContext);
+                            nsStyleContext* aParentContext,
+                            mozilla::dom::Element* aPseudoElement = nullptr);
 
   
   
@@ -146,7 +147,8 @@ class nsStyleSet
   ProbePseudoElementStyle(mozilla::dom::Element* aParentElement,
                           nsCSSPseudoElements::Type aType,
                           nsStyleContext* aParentContext,
-                          TreeMatchContext& aTreeMatchContext);
+                          TreeMatchContext& aTreeMatchContext,
+                          mozilla::dom::Element* aPseudoElement = nullptr);
 
   
   

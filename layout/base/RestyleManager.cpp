@@ -2333,6 +2333,11 @@ ElementRestyler::RestyleSelf(nsIFrame* aSelf, nsRestyleHint aRestyleHint)
           
           newContext = oldContext;
         }
+      } else if (nsCSSPseudoElements::PseudoElementSupportsStyleAttribute(pseudoTag)) {
+        newContext = styleSet->ResolvePseudoElementStyle(element,
+                                                         pseudoType,
+                                                         parentContext,
+                                                         aSelf->GetContent()->AsElement());
       } else {
         
         

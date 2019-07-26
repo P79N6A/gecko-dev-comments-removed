@@ -84,6 +84,18 @@ nsHTMLCSSStyleSheet::RulesMatching(ElementRuleProcessorData* aData)
  void
 nsHTMLCSSStyleSheet::RulesMatching(PseudoElementRuleProcessorData* aData)
 {
+  if (nsCSSPseudoElements::PseudoElementSupportsStyleAttribute(aData->mPseudoType)) {
+    MOZ_ASSERT(aData->mPseudoElement,
+        "If pseudo element is supposed to support style attribute, it must "
+        "have a pseudo element set");
+
+    
+    css::StyleRule* rule = aData->mPseudoElement->GetInlineStyleRule();
+    if (rule) {
+      rule->RuleMatched();
+      aData->mRuleWalker->Forward(rule);
+    }
+  }
 }
 
  void
