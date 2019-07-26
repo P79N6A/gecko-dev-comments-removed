@@ -372,10 +372,6 @@ let SessionStoreInternal = {
 
   
   
-  _disabledForMultiProcess: false,
-
-  
-  
   _promiseReadyForInitialization: null,
 
   
@@ -402,12 +398,6 @@ let SessionStoreInternal = {
   init: function () {
     if (this._initialized) {
       throw new Error("SessionStore.init() must only be called once!");
-    }
-
-    this._disabledForMultiProcess = Services.appinfo.browserTabsRemote;
-    if (this._disabledForMultiProcess) {
-      this._deferredInitialized.resolve();
-      return;
     }
 
     TelemetryTimestamps.add("sessionRestoreInitialized");
@@ -726,9 +716,6 @@ let SessionStoreInternal = {
 
 
   handleEvent: function ssi_handleEvent(aEvent) {
-    if (this._disabledForMultiProcess)
-      return;
-
     var win = aEvent.currentTarget.ownerDocument.defaultView;
     let browser;
     switch (aEvent.type) {
@@ -1805,10 +1792,6 @@ let SessionStoreInternal = {
   },
 
   getWindowValue: function ssi_getWindowValue(aWindow, aKey) {
-    if (this._disabledForMultiProcess) {
-      return "";
-    }
-
     if ("__SSi" in aWindow) {
       var data = this._windows[aWindow.__SSi].extData || {};
       return data[aKey] || "";
