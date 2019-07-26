@@ -114,6 +114,15 @@ CompositorOGL::CreateContext()
   }
 #endif
 
+  
+  if (!context && PR_GetEnv("MOZ_LAYERS_PREFER_OFFSCREEN")) {
+    SurfaceCaps caps = SurfaceCaps::ForRGB();
+    caps.preserve = false;
+    caps.bpp16 = gfxPlatform::GetPlatform()->GetOffscreenFormat() == gfxImageFormat::RGB16_565;
+    context = GLContextProvider::CreateOffscreen(gfxIntSize(mSurfaceSize.width,
+                                                            mSurfaceSize.height), caps);
+  }
+
   if (!context)
     context = gl::GLContextProvider::CreateForWindow(mWidget);
 
@@ -571,9 +580,15 @@ CompositorOGL::PrepareViewport(const gfx::IntSize& aSize,
   
   
   Matrix viewMatrix;
-  viewMatrix.Translate(-1.0, 1.0);
-  viewMatrix.Scale(2.0f / float(aSize.width), 2.0f / float(aSize.height));
-  viewMatrix.Scale(1.0f, -1.0f);
+  if (mGLContext->IsOffscreen()) {
+    
+    viewMatrix.Translate(-1.0, -1.0);
+    viewMatrix.Scale(2.0f / float(aSize.width), 2.0f / float(aSize.height));
+  } else {
+    viewMatrix.Translate(-1.0, 1.0);
+    viewMatrix.Scale(2.0f / float(aSize.width), 2.0f / float(aSize.height));
+    viewMatrix.Scale(1.0f, -1.0f);
+  }
 
   viewMatrix = aWorldTransform * viewMatrix;
 
