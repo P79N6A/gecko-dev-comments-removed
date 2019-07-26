@@ -19,6 +19,68 @@ this.EXPORTED_SYMBOLS = ["DeferredSave"];
 
 const DEFAULT_SAVE_DELAY_MS = 50;
 
+Cu.import("resource://gre/modules/Log.jsm");
+
+
+const DEFERREDSAVE_PARENT_LOGGER_ID = "DeferredSave";
+let parentLogger = Log.repository.getLogger(DEFERREDSAVE_PARENT_LOGGER_ID);
+parentLogger.level = Log.Level.Warn;
+let formatter = new Log.BasicFormatter();
+
+
+parentLogger.addAppender(new Log.ConsoleAppender(formatter));
+
+
+parentLogger.addAppender(new Log.DumpAppender(formatter));
+
+
+
+
+
+
+
+
+Cu.import("resource://gre/modules/Services.jsm");
+
+const PREF_LOGGING_ENABLED = "extensions.logging.enabled";
+const NS_PREFBRANCH_PREFCHANGE_TOPIC_ID = "nsPref:changed";
+
+
+
+
+
+
+var PrefObserver = {
+ init: function PrefObserver_init() {
+   Services.prefs.addObserver(PREF_LOGGING_ENABLED, this, false);
+   Services.obs.addObserver(this, "xpcom-shutdown", false);
+   this.observe(null, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID, PREF_LOGGING_ENABLED);
+ },
+
+ observe: function PrefObserver_observe(aSubject, aTopic, aData) {
+   if (aTopic == "xpcom-shutdown") {
+     Services.prefs.removeObserver(PREF_LOGGING_ENABLED, this);
+     Services.obs.removeObserver(this, "xpcom-shutdown");
+   }
+   else if (aTopic == NS_PREFBRANCH_PREFCHANGE_TOPIC_ID) {
+     let debugLogEnabled = false;
+     try {
+       debugLogEnabled = Services.prefs.getBoolPref(PREF_LOGGING_ENABLED);
+     }
+     catch (e) {
+     }
+     if (debugLogEnabled) {
+       parentLogger.level = Log.Level.Debug;
+     }
+     else {
+       parentLogger.level = Log.Level.Warn;
+     }
+   }
+ }
+};
+
+PrefObserver.init();
+
 
 
 
@@ -43,9 +105,10 @@ const DEFAULT_SAVE_DELAY_MS = 50;
 
 this.DeferredSave = function (aPath, aDataProvider, aDelay) {
   
+  
   let leafName = OS.Path.basename(aPath);
-  Cu.import("resource://gre/modules/addons/AddonLogging.jsm");
-  LogManager.getLogger("DeferredSave/" + leafName, this);
+  let logger_id = DEFERREDSAVE_PARENT_LOGGER_ID + "." + leafName;
+  this.logger = Log.repository.getLogger(logger_id);
 
   
   
@@ -105,7 +168,7 @@ this.DeferredSave.prototype = {
       return;
     }
 
-    this.LOG("Starting timer");
+      this.logger.debug("Starting timer");
     if (!this._timer)
       this._timer = MakeTimer();
     this._timer.initWithCallback(() => this._deferredSave(),
@@ -118,10 +181,10 @@ this.DeferredSave.prototype = {
 
 
   saveChanges: function() {
-    this.LOG("Save changes");
+      this.logger.debug("Save changes");
     if (!this._pending) {
       if (this.writeInProgress) {
-        this.LOG("Data changed while write in progress");
+          this.logger.debug("Data changed while write in progress");
         this.overlappedSaves++;
       }
       this._pending = Promise.defer();
@@ -145,7 +208,7 @@ this.DeferredSave.prototype = {
       toSave = this._dataProvider();
     }
     catch(e) {
-      this.ERROR("Deferred save dataProvider failed", e);
+        this.logger.error("Deferred save dataProvider failed", e);
       writing.then(null, error => {})
         .then(count => {
           pending.reject(e);
@@ -155,7 +218,7 @@ this.DeferredSave.prototype = {
 
     writing.then(null, error => {return 0;})
     .then(count => {
-      this.LOG("Starting write");
+        this.logger.debug("Starting write");
       this.totalSaves++;
       this.writeInProgress = true;
 
@@ -164,13 +227,13 @@ this.DeferredSave.prototype = {
         result => {
           this._lastError = null;
           this.writeInProgress = false;
-          this.LOG("Write succeeded");
+              this.logger.debug("Write succeeded");
           pending.resolve(result);
         },
         error => {
           this._lastError = error;
           this.writeInProgress = false;
-          this.WARN("Write failed", error);
+              this.logger.warn("Write failed", error);
           pending.reject(error);
         });
     });
@@ -198,7 +261,7 @@ this.DeferredSave.prototype = {
     
     
     if (this._pending) {
-      this.LOG("Flush called while data is dirty");
+        this.logger.debug("Flush called while data is dirty");
       if (this._timer) {
         this._timer.cancel();
         this._timer = null;
@@ -208,4 +271,4 @@ this.DeferredSave.prototype = {
 
     return this._writing;
   }
-}
+};
