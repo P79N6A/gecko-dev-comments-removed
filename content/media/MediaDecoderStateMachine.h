@@ -147,7 +147,7 @@ public:
   
   
   
-  void SetEndTime(int64_t aEndTime);
+  void SetMediaEndTime(int64_t aEndTime);
 
   
   

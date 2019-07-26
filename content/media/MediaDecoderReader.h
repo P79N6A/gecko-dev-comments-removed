@@ -18,7 +18,7 @@
 
 namespace mozilla {
 
-class MediaDecoder;
+class AbstractMediaDecoder;
 
 
 class nsVideoInfo {
@@ -355,7 +355,7 @@ private:
 
 class MediaDecoderReader {
 public:
-  MediaDecoderReader(MediaDecoder* aDecoder);
+  MediaDecoderReader(AbstractMediaDecoder* aDecoder);
   virtual ~MediaDecoderReader();
 
   NS_INLINE_DECL_REFCOUNTING(MediaDecoderReader)
@@ -464,7 +464,7 @@ public:
   virtual MediaQueue<VideoData>& VideoQueue() { return mVideoQueue; }
 
   
-  MediaDecoder* GetDecoder() {
+  AbstractMediaDecoder* GetDecoder() {
     return mDecoder;
   }
 
@@ -488,7 +488,7 @@ protected:
   nsresult DecodeToTarget(int64_t aTarget);
 
   
-  MediaDecoder* mDecoder;
+  AbstractMediaDecoder* mDecoder;
 
   
   nsVideoInfo mInfo;

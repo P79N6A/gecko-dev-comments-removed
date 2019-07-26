@@ -75,7 +75,7 @@ PageSync(MediaResource* aResource,
 
 static const int PAGE_STEP = 8192;
 
-OggReader::OggReader(MediaDecoder* aDecoder)
+OggReader::OggReader(AbstractMediaDecoder* aDecoder)
   : MediaDecoderReader(aDecoder),
     mTheoraState(nullptr),
     mVorbisState(nullptr),
@@ -325,7 +325,7 @@ nsresult OggReader::ReadMetadata(nsVideoInfo* aInfo,
       int64_t duration = 0;
       if (NS_SUCCEEDED(mSkeletonState->GetDuration(tracks, duration))) {
         ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-        mDecoder->GetStateMachine()->SetDuration(duration);
+        mDecoder->SetMediaDuration(duration);
         LOG(PR_LOG_DEBUG, ("Got duration from Skeleton index %lld", duration));
       }
     }
@@ -335,10 +335,10 @@ nsresult OggReader::ReadMetadata(nsVideoInfo* aInfo,
     ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
 
     MediaResource* resource = mDecoder->GetResource();
-    if (mDecoder->GetStateMachine()->GetDuration() == -1 &&
-        !mDecoder->GetStateMachine()->IsShutdown() &&
+    if (mDecoder->GetMediaDuration() == -1 &&
+        !mDecoder->IsShutdown() &&
         resource->GetLength() >= 0 &&
-        mDecoder->GetStateMachine()->IsSeekable())
+        mDecoder->IsMediaSeekable())
     {
       
       
@@ -353,7 +353,7 @@ nsresult OggReader::ReadMetadata(nsVideoInfo* aInfo,
         endTime = RangeEndTime(length);
       }
       if (endTime != -1) {
-        mDecoder->GetStateMachine()->SetEndTime(endTime);
+        mDecoder->SetMediaEndTime(endTime);
         LOG(PR_LOG_DEBUG, ("Got Ogg duration from seeking to end %lld", endTime));
       }
       mDecoder->GetResource()->EndSeekingForMetadata();
@@ -669,7 +669,7 @@ bool OggReader::DecodeVideoFrame(bool &aKeyframeSkip,
   
   
   uint32_t parsed = 0, decoded = 0;
-  MediaDecoder::AutoNotifyDecoded autoNotify(mDecoder, parsed, decoded);
+  AbstractMediaDecoder::AutoNotifyDecoded autoNotify(mDecoder, parsed, decoded);
 
   
   ogg_packet* packet = 0;
@@ -1136,7 +1136,7 @@ nsresult OggReader::SeekInBufferedRange(int64_t aTarget,
       eof = !DecodeVideoFrame(skip, 0);
       {
         ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-        if (mDecoder->GetStateMachine()->IsShutdown()) {
+        if (mDecoder->IsShutdown()) {
           return NS_ERROR_FAILURE;
         }
       }
@@ -1608,7 +1608,7 @@ nsresult OggReader::GetBuffered(nsTimeRanges* aBuffered, int64_t aStartTime)
   int64_t durationUs = 0;
   {
     ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-    durationUs = mDecoder->GetStateMachine()->GetDuration();
+    durationUs = mDecoder->GetMediaDuration();
   }
   GetEstimatedBufferedTimeRanges(stream, durationUs, aBuffered);
   

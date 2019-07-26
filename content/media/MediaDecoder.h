@@ -193,6 +193,7 @@
 #include "MediaStreamGraph.h"
 #include "MediaDecoderOwner.h"
 #include "AudioChannelCommon.h"
+#include "AbstractMediaDecoder.h"
 
 class nsIStreamListener;
 class nsTimeRanges;
@@ -227,7 +228,8 @@ static inline bool IsCurrentThread(nsIThread* aThread) {
   return NS_GetCurrentThread() == aThread;
 }
 
-class MediaDecoder : public nsIObserver
+class MediaDecoder : public nsIObserver,
+                     public AbstractMediaDecoder
 {
 public:
   typedef mozilla::layers::Image Image;
@@ -288,7 +290,10 @@ public:
 
   
   
-  virtual MediaResource* GetResource() { return mResource; }
+  MediaResource* GetResource() const MOZ_FINAL MOZ_OVERRIDE
+  {
+    return mResource;
+  }
 
   
   virtual already_AddRefed<nsIPrincipal> GetCurrentPrincipal();
@@ -436,6 +441,9 @@ public:
   virtual double GetDuration();
 
   
+  int64_t GetMediaDuration() MOZ_FINAL MOZ_OVERRIDE;
+
+  
   
   
   
@@ -473,7 +481,9 @@ public:
 
   
   
-  void NotifyBytesConsumed(int64_t aBytes);
+  void NotifyBytesConsumed(int64_t aBytes) MOZ_FINAL MOZ_OVERRIDE;
+
+  int64_t GetEndMediaTime() const MOZ_FINAL MOZ_OVERRIDE;
 
   
   
@@ -488,18 +498,24 @@ public:
   
   virtual void SetDuration(double aDuration);
 
+  void SetMediaDuration(int64_t aDuration) MOZ_FINAL MOZ_OVERRIDE;
+
   
   virtual void SetSeekable(bool aSeekable);
 
   
   virtual bool IsSeekable();
+  bool IsMediaSeekable() MOZ_FINAL MOZ_OVERRIDE;
 
   
   virtual nsresult GetSeekable(nsTimeRanges* aSeekable);
 
   
   
-  virtual void SetEndTime(double aTime);
+  virtual void SetFragmentEndTime(double aTime);
+
+  
+  void SetMediaEndTime(int64_t aTime) MOZ_FINAL MOZ_OVERRIDE;
 
   
   void Invalidate();
@@ -539,13 +555,16 @@ public:
   
   void DurationChanged();
 
-  virtual bool OnStateMachineThread() const;
+  bool OnStateMachineThread() const MOZ_OVERRIDE;
 
-  virtual bool OnDecodeThread() const;
+  bool OnDecodeThread() const MOZ_OVERRIDE;
 
   
   
-  virtual ReentrantMonitor& GetReentrantMonitor();
+  ReentrantMonitor& GetReentrantMonitor() MOZ_OVERRIDE;
+
+  
+  bool IsShutdown() const MOZ_FINAL MOZ_OVERRIDE;
 
   
   
@@ -556,8 +575,11 @@ public:
   virtual int64_t VideoQueueMemoryInUse();
   virtual int64_t AudioQueueMemoryInUse();
 
-  VideoFrameContainer* GetVideoFrameContainer() { return mVideoFrameContainer; }
-  virtual mozilla::layers::ImageContainer* GetImageContainer();
+  VideoFrameContainer* GetVideoFrameContainer() MOZ_FINAL MOZ_OVERRIDE
+  {
+    return mVideoFrameContainer;
+  }
+  mozilla::layers::ImageContainer* GetImageContainer() MOZ_OVERRIDE;
 
   
   
@@ -603,7 +625,7 @@ public:
   
   
   
-  void UpdatePlaybackPosition(int64_t aTime);
+  void UpdatePlaybackPosition(int64_t aTime) MOZ_FINAL MOZ_OVERRIDE;
 
   void SetAudioChannelType(AudioChannelType aType) { mAudioChannelType = aType; }
   AudioChannelType GetAudioChannelType() { return mAudioChannelType; }
@@ -620,7 +642,7 @@ public:
 
   
   
-  virtual void OnReadMetadataCompleted() { }
+  void OnReadMetadataCompleted() MOZ_OVERRIDE { }
 
   
   
@@ -673,7 +695,7 @@ public:
   void UpdatePlaybackOffset(int64_t aOffset);
 
   
-  MediaDecoderStateMachine* GetStateMachine();
+  MediaDecoderStateMachine* GetStateMachine() const;
 
   
   virtual void ReleaseStateMachine();
@@ -824,23 +846,14 @@ public:
   };
 
   
-  
-  
-  class AutoNotifyDecoded {
-  public:
-    AutoNotifyDecoded(MediaDecoder* aDecoder, uint32_t& aParsed, uint32_t& aDecoded)
-      : mDecoder(aDecoder), mParsed(aParsed), mDecoded(aDecoded) {}
-    ~AutoNotifyDecoded() {
-      mDecoder->GetFrameStatistics().NotifyDecodedFrames(mParsed, mDecoded);
-    }
-  private:
-    MediaDecoder* mDecoder;
-    uint32_t& mParsed;
-    uint32_t& mDecoded;
-  };
+  FrameStatistics& GetFrameStatistics() { return mFrameStats; }
 
   
-  FrameStatistics& GetFrameStatistics() { return mFrameStats; }
+  
+  virtual void NotifyDecodedFrames(uint32_t aParsed, uint32_t aDecoded) MOZ_FINAL MOZ_OVERRIDE
+  {
+    GetFrameStatistics().NotifyDecodedFrames(aParsed, aDecoded);
+  }
 
   
 
