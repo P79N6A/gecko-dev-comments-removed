@@ -44,11 +44,7 @@
 #define MIN_AVAILABLE_BYTES_PER_CHUNKED_GROWTH 524288000 // 500 MiB
 
 
-
-#define MAX_CACHE_SIZE_BYTES 4194304 // 4 MiB
-
-
-#define DEFAULT_CACHE_SIZE_PAGES 2000
+#define MAX_CACHE_SIZE_KIBIBYTES 2048 // 2 MiB
 
 #ifdef PR_LOGGING
 PRLogModuleInfo* gStorageLog = nullptr;
@@ -577,25 +573,12 @@ Connection::initializeInternal(nsIFile* aDatabaseFile)
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  sqlite3_stmt *stmt;
-  NS_NAMED_LITERAL_CSTRING(pragma_page_size,
-                           MOZ_STORAGE_UNIQUIFY_QUERY_STR "PRAGMA page_size");
-  int srv = prepareStatement(pragma_page_size, &stmt);
-  if (srv == SQLITE_OK) {
-    if (SQLITE_ROW == stepStatement(stmt)) {
-      pageSize = ::sqlite3_column_int64(stmt, 0);
-    }
-    (void)::sqlite3_finalize(stmt);
-  }
-
-  
   
   
   nsAutoCString cacheSizeQuery(MOZ_STORAGE_UNIQUIFY_QUERY_STR
                                "PRAGMA cache_size = ");
-  cacheSizeQuery.AppendInt(std::min(DEFAULT_CACHE_SIZE_PAGES,
-                                  int32_t(MAX_CACHE_SIZE_BYTES / pageSize)));
-  srv = executeSql(cacheSizeQuery.get());
+  cacheSizeQuery.AppendInt(-MAX_CACHE_SIZE_KIBIBYTES);
+  int srv = executeSql(cacheSizeQuery.get());
   if (srv != SQLITE_OK) {
     ::sqlite3_close(mDBConn);
     mDBConn = nullptr;

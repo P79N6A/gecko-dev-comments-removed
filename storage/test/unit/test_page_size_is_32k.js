@@ -5,7 +5,7 @@
 
 
 const kExpectedPageSize = 32768; 
-const kExpectedCacheSize = 128; 
+const kExpectedCacheSize = -2048; 
 
 function check_size(db)
 {
