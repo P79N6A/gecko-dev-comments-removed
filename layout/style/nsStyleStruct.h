@@ -1693,7 +1693,8 @@ struct nsStyleDisplay {
   }
 
   
-  bool HasTransform() const {
+
+  bool HasTransformStyle() const {
     return mSpecifiedTransform != nullptr || 
            mTransformStyle == NS_STYLE_TRANSFORM_STYLE_PRESERVE_3D ||
            mBackfaceVisibility == NS_STYLE_BACKFACE_VISIBILITY_HIDDEN;
@@ -1709,6 +1710,9 @@ struct nsStyleDisplay {
   inline bool IsPositioned(const nsIFrame* aFrame) const;
   inline bool IsRelativelyPositioned(const nsIFrame* aFrame) const;
   inline bool IsAbsolutelyPositioned(const nsIFrame* aFrame) const;
+  
+
+  inline bool HasTransform(const nsIFrame* aFrame) const;
 };
 
 struct nsStyleTable {

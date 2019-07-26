@@ -2224,7 +2224,7 @@ nsChangeHint nsStyleDisplay::CalcDifference(const nsStyleDisplay& aOther) const
   
 
 
-  if (HasTransform() != aOther.HasTransform()) {
+  if (HasTransformStyle() != aOther.HasTransformStyle()) {
     
     
     
@@ -2232,7 +2232,7 @@ nsChangeHint nsStyleDisplay::CalcDifference(const nsStyleDisplay& aOther) const
                           NS_CombineHint(nsChangeHint_UpdateOverflow,
                                          nsChangeHint_RepaintFrame)));
   }
-  else if (HasTransform()) {
+  else if (HasTransformStyle()) {
     
 
 
