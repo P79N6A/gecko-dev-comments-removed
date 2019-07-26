@@ -770,6 +770,9 @@ pref("dom.forms.number", true);
 pref("dom.forms.color", true);
 
 
+pref("dom.forms.autocomplete.experimental", false);
+
+
 pref("dom.sysmsg.enabled", false);
 
 

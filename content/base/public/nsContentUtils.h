@@ -2027,6 +2027,22 @@ public:
 
   static bool IsAutocompleteEnabled(nsIDOMHTMLInputElement* aInput);
 
+  enum AutocompleteAttrState MOZ_ENUM_TYPE(uint8_t)
+  {
+    eAutocompleteAttrState_Unknown = 1,
+    eAutocompleteAttrState_Invalid,
+    eAutocompleteAttrState_Valid,
+  };
+  
+
+
+
+
+
+
+  static AutocompleteAttrState SerializeAutocompleteAttribute(const nsAttrValue* aAttr,
+                                                          nsAString& aResult);
+
   
 
 
@@ -2166,6 +2182,9 @@ private:
   static void* AllocClassMatchingInfo(nsINode* aRootNode,
                                       const nsString* aClasses);
 
+  static AutocompleteAttrState InternalSerializeAutocompleteAttribute(const nsAttrValue* aAttrVal,
+                                                                  nsAString& aResult);
+
   static nsIXPConnect *sXPConnect;
 
   static nsIScriptSecurityManager *sSecurityManager;
@@ -2225,6 +2244,7 @@ private:
   static uint32_t sHandlingInputTimeout;
   static bool sIsPerformanceTimingEnabled;
   static bool sIsResourceTimingEnabled;
+  static bool sIsExperimentalAutocompleteEnabled;
 
   static nsHtml5StringParser* sHTMLFragmentParser;
   static nsIParser* sXMLFragmentParser;

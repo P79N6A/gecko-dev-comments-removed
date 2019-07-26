@@ -237,6 +237,7 @@ bool nsContentUtils::sTrustedFullScreenOnly = true;
 bool nsContentUtils::sFullscreenApiIsContentOnly = false;
 bool nsContentUtils::sIsPerformanceTimingEnabled = false;
 bool nsContentUtils::sIsResourceTimingEnabled = false;
+bool nsContentUtils::sIsExperimentalAutocompleteEnabled = false;
 
 uint32_t nsContentUtils::sHandlingInputTimeout = 1000;
 
@@ -248,6 +249,161 @@ bool nsContentUtils::sFragmentParsingActive = false;
 #if !(defined(DEBUG) || defined(MOZ_ENABLE_JS_DUMP))
 bool nsContentUtils::sDOMWindowDumpEnabled;
 #endif
+
+
+enum AutocompleteFieldName
+{
+  eAutocompleteFieldName_OFF,
+  eAutocompleteFieldName_ON,
+
+  
+  eAutocompleteFieldName_NAME,
+  
+  eAutocompleteFieldName_GIVEN_NAME,
+  eAutocompleteFieldName_ADDITIONAL_NAME,
+  eAutocompleteFieldName_FAMILY_NAME,
+  
+  
+  
+
+  
+  eAutocompleteFieldName_USERNAME,
+  eAutocompleteFieldName_NEW_PASSWORD,
+  eAutocompleteFieldName_CURRENT_PASSWORD,
+
+  
+  eAutocompleteFieldName_ORGANIZATION,
+  eAutocompleteFieldName_STREET_ADDRESS,
+  eAutocompleteFieldName_ADDRESS_LINE1,
+  eAutocompleteFieldName_ADDRESS_LINE2,
+  eAutocompleteFieldName_ADDRESS_LINE3,
+  eAutocompleteFieldName_ADDRESS_LEVEL4,
+  eAutocompleteFieldName_ADDRESS_LEVEL3,
+  eAutocompleteFieldName_ADDRESS_LEVEL2,
+  eAutocompleteFieldName_ADDRESS_LEVEL1,
+  eAutocompleteFieldName_COUNTRY,
+  eAutocompleteFieldName_COUNTRY_NAME,
+  eAutocompleteFieldName_POSTAL_CODE,
+
+  
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+
+
+
+
+  
+  eAutocompleteFieldName_TEL,
+  eAutocompleteFieldName_TEL_COUNTRY_CODE,
+  eAutocompleteFieldName_TEL_NATIONAL,
+  eAutocompleteFieldName_TEL_AREA_CODE,
+  eAutocompleteFieldName_TEL_LOCAL,
+  eAutocompleteFieldName_TEL_LOCAL_PREFIX,
+  eAutocompleteFieldName_TEL_LOCAL_SUFFIX,
+  eAutocompleteFieldName_TEL_EXTENSION,
+  eAutocompleteFieldName_EMAIL,
+  
+
+  eAutocompleteFieldName_last, 
+};
+
+enum AutocompleteFieldHint
+{
+  eAutocompleteFieldHint_SHIPPING,
+  eAutocompleteFieldHint_BILLING,
+  eAutocompleteFieldHint_last, 
+};
+
+enum AutocompleteFieldContactHint
+{
+  eAutocompleteFieldContactHint_HOME,
+  eAutocompleteFieldContactHint_WORK,
+  eAutocompleteFieldContactHint_MOBILE,
+  eAutocompleteFieldContactHint_FAX,
+  
+  eAutocompleteFieldContactHint_last, 
+};
+
+enum AutocompleteCategory
+{
+  eAutocompleteCategory_NORMAL,
+  eAutocompleteCategory_CONTACT,
+};
+
+static const nsAttrValue::EnumTable kAutocompleteFieldNameTable[] = {
+  { "off", eAutocompleteFieldName_OFF },
+  { "on", eAutocompleteFieldName_ON },
+
+  { "name", eAutocompleteFieldName_NAME },
+  { "given-name", eAutocompleteFieldName_GIVEN_NAME },
+  { "additional-name", eAutocompleteFieldName_ADDITIONAL_NAME },
+  { "family-name", eAutocompleteFieldName_FAMILY_NAME },
+
+  { "username", eAutocompleteFieldName_USERNAME },
+  { "new-password", eAutocompleteFieldName_NEW_PASSWORD },
+  { "current-password", eAutocompleteFieldName_CURRENT_PASSWORD },
+
+  { "organization", eAutocompleteFieldName_ORGANIZATION },
+  { "street-address", eAutocompleteFieldName_STREET_ADDRESS },
+  { "address-line1", eAutocompleteFieldName_ADDRESS_LINE1 },
+  { "address-line2", eAutocompleteFieldName_ADDRESS_LINE2 },
+  { "address-line3", eAutocompleteFieldName_ADDRESS_LINE3 },
+  { "address-level4", eAutocompleteFieldName_ADDRESS_LEVEL4 },
+  { "address-level3", eAutocompleteFieldName_ADDRESS_LEVEL3 },
+  { "address-level2", eAutocompleteFieldName_ADDRESS_LEVEL2 },
+  { "address-level1", eAutocompleteFieldName_ADDRESS_LEVEL1 },
+  { "country", eAutocompleteFieldName_COUNTRY },
+  { "country-name", eAutocompleteFieldName_COUNTRY_NAME },
+  { "postal-code", eAutocompleteFieldName_POSTAL_CODE },
+  { 0 }
+};
+
+static const nsAttrValue::EnumTable kAutocompleteContactFieldNameTable[] = {
+  { "tel", eAutocompleteFieldName_TEL },
+  { "tel-country-code", eAutocompleteFieldName_TEL_COUNTRY_CODE },
+  { "tel-national", eAutocompleteFieldName_TEL_NATIONAL },
+  { "tel-area-code", eAutocompleteFieldName_TEL_AREA_CODE },
+  { "tel-local", eAutocompleteFieldName_TEL_LOCAL },
+  { "tel-local-prefix", eAutocompleteFieldName_TEL_LOCAL_PREFIX },
+  { "tel-local-suffix", eAutocompleteFieldName_TEL_LOCAL_SUFFIX },
+  { "tel-extension", eAutocompleteFieldName_TEL_EXTENSION },
+
+  { "email", eAutocompleteFieldName_EMAIL },
+  { 0 }
+};
+
+static const nsAttrValue::EnumTable kAutocompleteFieldHintTable[] = {
+  { "shipping", eAutocompleteFieldHint_SHIPPING },
+  { "billing", eAutocompleteFieldHint_BILLING },
+  { 0 }
+};
+
+static const nsAttrValue::EnumTable kAutocompleteContactFieldHintTable[] = {
+  { "home", eAutocompleteFieldContactHint_HOME },
+  { "work", eAutocompleteFieldContactHint_WORK },
+  { "mobile", eAutocompleteFieldContactHint_MOBILE },
+  { "fax", eAutocompleteFieldContactHint_FAX },
+  { 0 }
+};
 
 namespace {
 
@@ -368,6 +524,12 @@ nsContentUtils::Init()
     return NS_OK;
   }
 
+  
+  MOZ_ASSERT(eAutocompleteFieldName_last == ArrayLength(kAutocompleteFieldNameTable)
+             + ArrayLength(kAutocompleteContactFieldNameTable) - 2);
+  MOZ_ASSERT(eAutocompleteFieldHint_last == ArrayLength(kAutocompleteFieldHintTable) - 1);
+  MOZ_ASSERT(eAutocompleteFieldContactHint_last == ArrayLength(kAutocompleteContactFieldHintTable) - 1);
+
   sNameSpaceManager = nsNameSpaceManager::GetInstance();
   NS_ENSURE_TRUE(sNameSpaceManager, NS_ERROR_OUT_OF_MEMORY);
 
@@ -439,6 +601,9 @@ nsContentUtils::Init()
 
   Preferences::AddBoolVarCache(&sIsResourceTimingEnabled,
                                "dom.enable_resource_timing", true);
+
+  Preferences::AddBoolVarCache(&sIsExperimentalAutocompleteEnabled,
+                               "dom.forms.autocomplete.experimental", false);
 
   Preferences::AddUintVarCache(&sHandlingInputTimeout,
                                "dom.event.handling-user-input-time-limit",
@@ -685,7 +850,122 @@ nsContentUtils::IsAutocompleteEnabled(nsIDOMHTMLInputElement* aInput)
     form->GetAutocomplete(autocomplete);
   }
 
-  return autocomplete.EqualsLiteral("on");
+  return !autocomplete.EqualsLiteral("off");
+}
+
+nsContentUtils::AutocompleteAttrState
+nsContentUtils::SerializeAutocompleteAttribute(const nsAttrValue* aAttr,
+                                           nsAString& aResult)
+{
+  AutocompleteAttrState state = InternalSerializeAutocompleteAttribute(aAttr, aResult);
+  if (state == eAutocompleteAttrState_Valid) {
+    ASCIIToLower(aResult);
+  } else {
+    aResult.Truncate();
+  }
+  return state;
+}
+
+
+
+
+
+
+nsContentUtils::AutocompleteAttrState
+nsContentUtils::InternalSerializeAutocompleteAttribute(const nsAttrValue* aAttrVal,
+                                                   nsAString& aResult)
+{
+  
+  if (!aAttrVal) {
+    return eAutocompleteAttrState_Invalid;
+  }
+
+  uint32_t numTokens = aAttrVal->GetAtomCount();
+  if (!numTokens) {
+    return eAutocompleteAttrState_Invalid;
+  }
+
+  uint32_t index = numTokens - 1;
+  nsString tokenString = nsDependentAtomString(aAttrVal->AtomAt(index));
+  AutocompleteCategory category;
+  nsAttrValue enumValue;
+
+  bool result = enumValue.ParseEnumValue(tokenString, kAutocompleteFieldNameTable, false);
+  if (result) {
+    
+    if (enumValue.Equals(NS_LITERAL_STRING("off"), eIgnoreCase) ||
+        enumValue.Equals(NS_LITERAL_STRING("on"), eIgnoreCase)) {
+      if (numTokens > 1) {
+        return eAutocompleteAttrState_Invalid;
+      }
+      enumValue.ToString(aResult);
+      return eAutocompleteAttrState_Valid;
+    }
+
+    
+    if (!sIsExperimentalAutocompleteEnabled) {
+      return eAutocompleteAttrState_Invalid;
+    }
+
+    
+    if (numTokens > 2) {
+      return eAutocompleteAttrState_Invalid;
+    }
+    category = eAutocompleteCategory_NORMAL;
+  } else { 
+    
+    if (!sIsExperimentalAutocompleteEnabled) {
+      return eAutocompleteAttrState_Invalid;
+    }
+
+    result = enumValue.ParseEnumValue(tokenString, kAutocompleteContactFieldNameTable, false);
+    if (!result || numTokens > 3) {
+      return eAutocompleteAttrState_Invalid;
+    }
+
+    category = eAutocompleteCategory_CONTACT;
+  }
+
+  enumValue.ToString(aResult);
+
+  
+  if (numTokens == 1) {
+    return eAutocompleteAttrState_Valid;
+  }
+
+  --index;
+  tokenString = nsDependentAtomString(aAttrVal->AtomAt(index));
+
+  if (category == eAutocompleteCategory_CONTACT) {
+    nsAttrValue contactFieldHint;
+    result = contactFieldHint.ParseEnumValue(tokenString, kAutocompleteContactFieldHintTable, false);
+    if (result) {
+      aResult.Insert(' ', 0);
+      nsAutoString contactFieldHintString;
+      contactFieldHint.ToString(contactFieldHintString);
+      aResult.Insert(contactFieldHintString, 0);
+      if (index == 0) {
+        return eAutocompleteAttrState_Valid;
+      }
+      --index;
+      tokenString = nsDependentAtomString(aAttrVal->AtomAt(index));
+    }
+  }
+
+  
+  nsAttrValue fieldHint;
+  if (fieldHint.ParseEnumValue(tokenString, kAutocompleteFieldHintTable, false)) {
+    aResult.Insert(' ', 0);
+    nsString fieldHintString;
+    fieldHint.ToString(fieldHintString);
+    aResult.Insert(fieldHintString, 0);
+    if (index == 0) {
+      return eAutocompleteAttrState_Valid;
+    }
+    --index;
+  }
+
+  return eAutocompleteAttrState_Invalid;
 }
 
 #define SKIP_WHITESPACE(iter, end_iter, end_res)                 \
