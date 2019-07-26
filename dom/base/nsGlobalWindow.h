@@ -342,7 +342,7 @@ public:
 
   
   virtual nsIScriptContext *GetContext();
-  JSObject *FastGetGlobalJSObject()
+  JSObject *FastGetGlobalJSObject() const
   {
     return mJSObject;
   }
