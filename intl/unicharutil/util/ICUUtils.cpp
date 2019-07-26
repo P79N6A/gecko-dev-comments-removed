@@ -108,6 +108,10 @@ ICUUtils::LocalizeNumber(double aValue,
                                             langTag.get(), nullptr, &status));
     unum_setAttribute(format, UNUM_GROUPING_USED,
                       LocaleNumberGroupingIsEnabled());
+    
+    
+    
+    unum_setAttribute(format, UNUM_MAX_FRACTION_DIGITS, 16);
     int32_t length = unum_formatDouble(format, aValue, buffer, kBufferSize,
                                        nullptr, &status);
     NS_ASSERTION(length < kBufferSize &&
