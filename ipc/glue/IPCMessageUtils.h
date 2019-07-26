@@ -581,7 +581,7 @@ struct ParamTraits<mozilla::SerializedStructuredCloneBuffer>
         return false;
       }
     } else {
-      aResult->data = NULL;
+      aResult->data = nullptr;
     }
 
     return true;

@@ -98,8 +98,8 @@ nsTArray<HWND>* gNeuteredWindows = nullptr;
 typedef nsTArray<nsAutoPtr<DeferredMessage> > DeferredMessageArray;
 DeferredMessageArray* gDeferredMessages = nullptr;
 
-HHOOK gDeferredGetMsgHook = NULL;
-HHOOK gDeferredCallWndProcHook = NULL;
+HHOOK gDeferredGetMsgHook = nullptr;
+HHOOK gDeferredCallWndProcHook = nullptr;
 
 DWORD gUIThreadId = 0;
 
@@ -141,7 +141,7 @@ DeferredMessageHook(int nCode,
   }
 
   
-  return CallNextHookEx(NULL, nCode, wParam, lParam);
+  return CallNextHookEx(nullptr, nCode, wParam, lParam);
 }
 
 void
@@ -152,9 +152,9 @@ ScheduleDeferredMessageRun()
     NS_ASSERTION(gDeferredMessages->Length(), "No deferred messages?!");
 
     gDeferredGetMsgHook = ::SetWindowsHookEx(WH_GETMESSAGE, DeferredMessageHook,
-                                             NULL, gUIThreadId);
+                                             nullptr, gUIThreadId);
     gDeferredCallWndProcHook = ::SetWindowsHookEx(WH_CALLWNDPROC,
-                                                  DeferredMessageHook, NULL,
+                                                  DeferredMessageHook, nullptr,
                                                   gUIThreadId);
     NS_ASSERTION(gDeferredGetMsgHook && gDeferredCallWndProcHook,
                  "Failed to set hooks!");
@@ -508,7 +508,7 @@ CallWindowProcedureHook(int nCode,
       }
     }
   }
-  return CallNextHookEx(NULL, nCode, wParam, lParam);
+  return CallNextHookEx(nullptr, nCode, wParam, lParam);
 }
 
 inline void
@@ -618,7 +618,7 @@ RPCChannel::SyncStackFrame::~SyncStackFrame()
   if (!mStaticPrev) {
     NS_ASSERTION(gNeuteredWindows, "Bad pointer!");
     delete gNeuteredWindows;
-    gNeuteredWindows = NULL;
+    gNeuteredWindows = nullptr;
   }
 }
 
@@ -687,7 +687,7 @@ RPCChannel::SpinInternalEventLoop()
     }
 
     
-    if (PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE)) {
+    if (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE)) {
       
       
       if (msg.message == WM_QUIT) {
@@ -737,7 +737,7 @@ SyncChannel::WaitForNotify()
 
     
     
-    timerId = SetTimer(NULL, 0, mTimeoutMs, NULL);
+    timerId = SetTimer(nullptr, 0, mTimeoutMs, nullptr);
     NS_ASSERTION(timerId, "SetTimer failed!");
   }
 
@@ -747,7 +747,7 @@ SyncChannel::WaitForNotify()
 
   SyncChannel::SetIsPumpingMessages(true);
   HHOOK windowHook = SetWindowsHookEx(WH_CALLWNDPROC, CallWindowProcedureHook,
-                                      NULL, gUIThreadId);
+                                      nullptr, gUIThreadId);
   NS_ASSERTION(windowHook, "Failed to set hook!");
 
   {
@@ -806,7 +806,7 @@ SyncChannel::WaitForNotify()
       
       
       
-      if (!PeekMessageW(&msg, NULL, 0, 0, PM_NOREMOVE) &&
+      if (!PeekMessageW(&msg, nullptr, 0, 0, PM_NOREMOVE) &&
           !haveSentMessagesPending) {
         
         SwitchToThread();
@@ -828,7 +828,7 @@ SyncChannel::WaitForNotify()
   ScheduleDeferredMessageRun();
 
   if (timerId) {
-    KillTimer(NULL, timerId);
+    KillTimer(nullptr, timerId);
   }
 
   SyncChannel::SetIsPumpingMessages(false);
@@ -863,7 +863,7 @@ RPCChannel::WaitForNotify()
   
   
   
-  HHOOK windowHook = NULL;
+  HHOOK windowHook = nullptr;
 
   while (1) {
     NS_ASSERTION((!!windowHook) == SyncChannel::IsPumpingMessages(),
@@ -872,10 +872,10 @@ RPCChannel::WaitForNotify()
     if (mTopFrame->mSpinNestedEvents) {
       if (windowHook) {
         UnhookWindowsHookEx(windowHook);
-        windowHook = NULL;
+        windowHook = nullptr;
 
         if (timerId) {
-          KillTimer(NULL, timerId);
+          KillTimer(nullptr, timerId);
           timerId = 0;
         }
 
@@ -899,14 +899,14 @@ RPCChannel::WaitForNotify()
     if (!windowHook) {
       SyncChannel::SetIsPumpingMessages(true);
       windowHook = SetWindowsHookEx(WH_CALLWNDPROC, CallWindowProcedureHook,
-                                    NULL, gUIThreadId);
+                                    nullptr, gUIThreadId);
       NS_ASSERTION(windowHook, "Failed to set hook!");
 
       NS_ASSERTION(!timerId, "Timer already initialized?");
 
       if (mTimeoutMs != kNoTimeout) {
         InitTimeoutData(&timeoutData, mTimeoutMs);
-        timerId = SetTimer(NULL, 0, mTimeoutMs, NULL);
+        timerId = SetTimer(nullptr, 0, mTimeoutMs, nullptr);
         NS_ASSERTION(timerId, "SetTimer failed!");
       }
     }
@@ -945,7 +945,7 @@ RPCChannel::WaitForNotify()
 
     
     
-    if (!PeekMessageW(&msg, NULL, 0, 0, PM_NOREMOVE) &&
+    if (!PeekMessageW(&msg, nullptr, 0, 0, PM_NOREMOVE) &&
         !haveSentMessagesPending) {
       
       SwitchToThread();
@@ -967,7 +967,7 @@ RPCChannel::WaitForNotify()
     ScheduleDeferredMessageRun();
 
     if (timerId) {
-      KillTimer(NULL, timerId);
+      KillTimer(nullptr, timerId);
     }
   }
 
@@ -1017,7 +1017,7 @@ DeferredRedrawMessage::Run()
 #ifdef DEBUG
   BOOL ret =
 #endif
-  RedrawWindow(hWnd, NULL, NULL, flags);
+  RedrawWindow(hWnd, nullptr, nullptr, flags);
   NS_ASSERTION(ret, "RedrawWindow failed!");
 }
 
@@ -1060,7 +1060,7 @@ DeferredSettingChangeMessage::DeferredSettingChangeMessage(HWND aHWnd,
     lParam = reinterpret_cast<LPARAM>(lParamString);
   }
   else {
-    lParamString = NULL;
+    lParamString = nullptr;
     lParam = 0;
   }
 }
@@ -1085,7 +1085,7 @@ DeferredWindowPosMessage::DeferredWindowPosMessage(HWND aHWnd,
     else {
       RECT* arg = reinterpret_cast<RECT*>(aLParam);
       windowPos.hwnd = aHWnd;
-      windowPos.hwndInsertAfter = NULL;
+      windowPos.hwndInsertAfter = nullptr;
       windowPos.x = arg->left;
       windowPos.y = arg->top;
       windowPos.cx = arg->right - arg->left;
@@ -1163,7 +1163,7 @@ DeferredCopyDataMessage::DeferredCopyDataMessage(HWND aHWnd,
     }
   }
   else {
-    copyData.lpData = NULL;
+    copyData.lpData = nullptr;
   }
 
   lParam = reinterpret_cast<LPARAM>(&copyData);

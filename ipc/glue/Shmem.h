@@ -130,7 +130,7 @@ public:
   bool
   IsWritable() const
   {
-    return mSegment != NULL;
+    return mSegment != nullptr;
   }
 
   
@@ -138,7 +138,7 @@ public:
   bool
   IsReadable() const
   {
-    return mSegment != NULL;
+    return mSegment != nullptr;
   }
 
   
