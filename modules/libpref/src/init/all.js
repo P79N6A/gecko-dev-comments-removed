@@ -566,6 +566,9 @@ pref("devtools.debugger.prompt-connection", true);
 pref("devtools.debugger.forbid-certified-apps", true);
 
 
+pref("devtools.debugger.addon-enabled", false);
+
+
 pref("devtools.defaultColorUnit", "hex");
 
 
