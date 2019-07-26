@@ -64,6 +64,12 @@ nsCSSProps::kParserVariantTable[eCSSProperty_COUNT_no_shorthands] = {
 #define VAR_PREFIX_LENGTH 4
 
 
+
+
+
+#define GRID_TEMPLATE_MAX_REPETITIONS 10000
+
+
 #define MASK_END_VALUE  (-1)
 
 MOZ_BEGIN_ENUM_CLASS(CSSParseResult, int32_t)
@@ -657,6 +663,7 @@ protected:
   
   
   CSSParseResult ParseGridLineNames(nsCSSValue& aValue);
+  bool ParseGridLineNameListRepeat(nsCSSValueList** aTailPtr);
   bool ParseOptionalLineNameListAfterSubgrid(nsCSSValue& aValue);
   bool ParseGridTrackBreadth(nsCSSValue& aValue);
   CSSParseResult ParseGridTrackSize(nsCSSValue& aValue);
@@ -7007,6 +7014,59 @@ CSSParserImpl::ParseGridLineNames(nsCSSValue& aValue)
 }
 
 
+
+
+
+bool
+CSSParserImpl::ParseGridLineNameListRepeat(nsCSSValueList** aTailPtr)
+{
+  if (!(GetToken(true) &&
+        mToken.mType == eCSSToken_Number &&
+        mToken.mIntegerValid &&
+        mToken.mInteger > 0)) {
+    SkipUntil(')');
+    return false;
+  }
+  int32_t repetitions = std::min(mToken.mInteger,
+                                 GRID_TEMPLATE_MAX_REPETITIONS);
+  if (!ExpectSymbol(',', true)) {
+    SkipUntil(')');
+    return false;
+  }
+
+  
+  nsCSSValueList* tail = *aTailPtr;
+  do {
+    tail->mNext = new nsCSSValueList;
+    tail = tail->mNext;
+    if (ParseGridLineNames(tail->mValue) != CSSParseResult::Ok) {
+      SkipUntil(')');
+      return false;
+    }
+  } while (!ExpectSymbol(')', true));
+  nsCSSValueList* firstRepeatedItem = (*aTailPtr)->mNext;
+  nsCSSValueList* lastRepeatedItem = tail;
+
+  
+  
+  MOZ_ASSERT(repetitions > 0, "Should have only accepted positive integers");
+  while (--repetitions) {
+    nsCSSValueList* repeatedItem = firstRepeatedItem;
+    for (;;) {
+      tail->mNext = new nsCSSValueList;
+      tail = tail->mNext;
+      tail->mValue = repeatedItem->mValue;
+      if (repeatedItem == lastRepeatedItem) {
+        break;
+      }
+      repeatedItem = repeatedItem->mNext;
+    }
+  }
+  *aTailPtr = tail;
+  return true;
+}
+
+
 bool
 CSSParserImpl::ParseOptionalLineNameListAfterSubgrid(nsCSSValue& aValue)
 {
@@ -7015,17 +7075,31 @@ CSSParserImpl::ParseOptionalLineNameListAfterSubgrid(nsCSSValue& aValue)
   item->mValue.SetIntValue(NS_STYLE_GRID_TEMPLATE_SUBGRID,
                            eCSSUnit_Enumerated);
   for (;;) {
-    nsCSSValue lineNames;
-    CSSParseResult result = ParseGridLineNames(lineNames);
-    if (result == CSSParseResult::NotFound) {
+    
+    if (!GetToken(true)) {
       return true;
     }
-    if (result == CSSParseResult::Error) {
-      return false;
+    if (mToken.mType == eCSSToken_Function &&
+        mToken.mIdent.LowerCaseEqualsLiteral("repeat")) {
+      if (!ParseGridLineNameListRepeat(&item)) {
+        return false;
+      }
+    } else {
+      UngetToken();
+
+      
+      nsCSSValue lineNames;
+      CSSParseResult result = ParseGridLineNames(lineNames);
+      if (result == CSSParseResult::NotFound) {
+        return true;
+      }
+      if (result == CSSParseResult::Error) {
+        return false;
+      }
+      item->mNext = new nsCSSValueList;
+      item = item->mNext;
+      item->mValue = lineNames;
     }
-    item->mNext = new nsCSSValueList;
-    item = item->mNext;
-    item->mValue = lineNames;
   }
 }
 
