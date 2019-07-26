@@ -256,14 +256,14 @@ let AllPages = {
 
 
 
-  observe: function AllPages_observe() {
+  observe: function AllPages_observe(aSubject, aTopic, aData) {
+    if (aTopic == "nsPref:changed") {
+      
+      this._enabled = null;
+    }
     
-    this._enabled = null;
-
-    let args = Array.slice(arguments);
-
     this._pages.forEach(function (aPage) {
-      aPage.observe.apply(aPage, args);
+      aPage.observe(aSubject, aTopic, aData);
     }, this);
   },
 
@@ -273,6 +273,7 @@ let AllPages = {
 
   _addObserver: function AllPages_addObserver() {
     Services.prefs.addObserver(PREF_NEWTAB_ENABLED, this, true);
+    Services.obs.addObserver(this, "page-thumbnail:create", true);
     this._addObserver = function () {};
   },
 
