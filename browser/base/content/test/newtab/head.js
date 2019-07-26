@@ -6,16 +6,19 @@ const PREF_NEWTAB_ENABLED = "browser.newtabpage.enabled";
 Services.prefs.setBoolPref(PREF_NEWTAB_ENABLED, true);
 
 let tmp = {};
+Cu.import("resource://gre/modules/Promise.jsm", tmp);
 Cu.import("resource://gre/modules/NewTabUtils.jsm", tmp);
 Cc["@mozilla.org/moz/jssubscript-loader;1"]
   .getService(Ci.mozIJSSubScriptLoader)
   .loadSubScript("chrome://browser/content/sanitize.js", tmp);
-
-let {NewTabUtils, Sanitizer} = tmp;
+let {Promise, NewTabUtils, Sanitizer} = tmp;
 
 let uri = Services.io.newURI("about:newtab", null, null);
 let principal = Services.scriptSecurityManager.getNoAppCodebasePrincipal(uri);
 
+let isMac = ("nsILocalFileMac" in Ci);
+let isLinux = ("@mozilla.org/gnome-gconf-service;1" in Cc);
+let isWindows = ("@mozilla.org/windows-registry-key;1" in Cc);
 let gWindow = window;
 
 registerCleanupFunction(function () {
@@ -309,22 +312,162 @@ function unpinCell(aIndex) {
 
 
 
-function simulateDrop(aDropIndex, aDragIndex) {
-  let draggedSite;
-  let {gDrag: drag, gDrop: drop} = getContentWindow();
-  let event = createDragEvent("drop", "http://example.com/#99\nblank");
+function simulateDrop(aSourceIndex, aDestIndex) {
+  let src = getCell(aSourceIndex).site.node;
+  let dest = getCell(aDestIndex).node;
 
-  if (typeof aDragIndex != "undefined")
-    draggedSite = getCell(aDragIndex).site;
+  
+  
+  startAndCompleteDragOperation(src, dest, whenPagesUpdated);
+}
 
-  if (draggedSite)
-    drag.start(draggedSite, event);
 
-  whenPagesUpdated();
-  drop.drop(getCell(aDropIndex), event);
 
-  if (draggedSite)
-    drag.end(draggedSite);
+
+
+
+
+function simulateExternalDrop(aDestIndex) {
+  let dest = getCell(aDestIndex).node;
+
+  
+  createExternalDropIframe().then(iframe => {
+    let link = iframe.contentDocument.getElementById("link");
+
+    
+    startAndCompleteDragOperation(link, dest, () => {
+      
+      
+      whenPagesUpdated(() => {
+        
+        iframe.remove();
+        
+        TestRunner.next();
+      });
+    });
+  });
+}
+
+
+
+
+
+
+
+function startAndCompleteDragOperation(aSource, aDest, aCallback) {
+  
+  synthesizeNativeMouseLDown(aSource);
+
+  
+  let offset = 0;
+  let interval = setInterval(() => {
+    synthesizeNativeMouseDrag(aSource, offset += 5);
+  }, 10);
+
+  
+  
+  aSource.addEventListener("dragstart", function onDragStart() {
+    aSource.removeEventListener("dragstart", onDragStart);
+    clearInterval(interval);
+
+    
+    synthesizeNativeMouseMove(aDest);
+  });
+
+  
+  aDest.addEventListener("dragenter", function onDragEnter() {
+    aDest.removeEventListener("dragenter", onDragEnter);
+
+    
+    synthesizeNativeMouseLUp(aDest);
+    aCallback();
+  });
+}
+
+
+
+
+
+
+function createExternalDropIframe() {
+  const url = "data:text/html;charset=utf-8," +
+              "<a id='link' href='http://example.com/%2399'>link</a>";
+
+  let deferred = Promise.defer();
+  let doc = getContentDocument();
+  let iframe = doc.createElement("iframe");
+  iframe.setAttribute("src", url);
+  iframe.style.width = "50px";
+  iframe.style.height = "50px";
+
+  let margin = doc.getElementById("newtab-margin-top");
+  margin.appendChild(iframe);
+
+  iframe.addEventListener("load", function onLoad() {
+    iframe.removeEventListener("load", onLoad);
+    executeSoon(() => deferred.resolve(iframe));
+  });
+
+  return deferred.promise;
+}
+
+
+
+
+
+function synthesizeNativeMouseLDown(aElement) {
+  if (isLinux) {
+    let win = aElement.ownerDocument.defaultView;
+    EventUtils.synthesizeMouseAtCenter(aElement, {type: "mousedown"}, win);
+  } else {
+    let msg = isWindows ? 2 : 1;
+    synthesizeNativeMouseEvent(aElement, msg);
+  }
+}
+
+
+
+
+
+function synthesizeNativeMouseLUp(aElement) {
+  let msg = isWindows ? 4 : (isMac ? 2 : 7);
+  synthesizeNativeMouseEvent(aElement, msg);
+}
+
+
+
+
+
+
+function synthesizeNativeMouseDrag(aElement, aOffsetX) {
+  let msg = isMac ? 6 : 1;
+  synthesizeNativeMouseEvent(aElement, msg, aOffsetX);
+}
+
+
+
+
+
+function synthesizeNativeMouseMove(aElement) {
+  let msg = isMac ? 5 : 1;
+  synthesizeNativeMouseEvent(aElement, msg);
+}
+
+
+
+
+
+
+
+function synthesizeNativeMouseEvent(aElement, aMsg, aOffsetX = 0, aOffsetY = 0) {
+  let rect = aElement.getBoundingClientRect();
+  let win = aElement.ownerDocument.defaultView;
+  let x = aOffsetX + win.mozInnerScreenX + rect.left + rect.width / 2;
+  let y = aOffsetY + win.mozInnerScreenY + rect.top + rect.height / 2;
+
+  win.QueryInterface(Ci.nsIInterfaceRequestor)
+     .getInterface(Ci.nsIDOMWindowUtils)
+     .sendNativeMouseEvent(x, y, aMsg, 0, null);
 }
 
 
