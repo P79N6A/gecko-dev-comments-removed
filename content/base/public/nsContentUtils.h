@@ -2262,6 +2262,43 @@ public:
   }
 };
 
+namespace mozilla {
+
+
+
+
+
+
+class NS_STACK_CLASS AutoJSContext {
+public:
+  AutoJSContext(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM);
+  operator JSContext*();
+
+protected:
+  AutoJSContext(bool aSafe MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
+
+private:
+  
+  
+  
+  void Init(bool aSafe MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
+
+  JSContext* mCx;
+  nsCxPusher mPusher;
+  MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+};
+
+
+
+
+
+class NS_STACK_CLASS SafeAutoJSContext : public AutoJSContext {
+public:
+  SafeAutoJSContext(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM);
+};
+
+} 
+
 #define NS_INTERFACE_MAP_ENTRY_TEAROFF(_interface, _allocator)                \
   if (aIID.Equals(NS_GET_IID(_interface))) {                                  \
     foundInterface = static_cast<_interface *>(_allocator);                   \
