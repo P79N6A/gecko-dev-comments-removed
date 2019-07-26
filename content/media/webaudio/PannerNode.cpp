@@ -444,8 +444,11 @@ PannerNodeEngine::ComputeConeGain()
   ThreeDPoint sourceToListener = mListenerPosition - mPosition;
   sourceToListener.Normalize();
 
+  ThreeDPoint normalizedSourceOrientation = mOrientation;
+  normalizedSourceOrientation.Normalize();
+
   
-  double dotProduct = sourceToListener.DotProduct(mOrientation);
+  double dotProduct = sourceToListener.DotProduct(normalizedSourceOrientation);
   double angle = 180 * acos(dotProduct) / M_PI;
   double absAngle = fabs(angle);
 
