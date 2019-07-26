@@ -87,8 +87,8 @@ this.startup = function(window) {
     if (window.document && window.document.getElementById("content")) {
       deferredWindowLoad.resolve();
     } else {
-      window.addEventListener("load", function onLoad() {
-        window.removeEventListener("load", onLoad, false);
+      window.addEventListener("DOMContentLoaded", function onLoad() {
+        window.removeEventListener("DOMContentLoaded", onLoad, false);
         deferredWindowLoad.resolve();
       });
     }
@@ -96,12 +96,8 @@ this.startup = function(window) {
     
     yield DOMApplicationRegistry.registryStarted;
 
-    
-    let appID = Ci.nsIScriptSecurityManager.NO_APP_ID;
     let manifestURL = WebappRT.config.app.manifestURL;
     if (manifestURL) {
-      appID = DOMApplicationRegistry.getAppLocalIdByManifestURL(manifestURL);
-
       
       
       
@@ -129,7 +125,15 @@ this.startup = function(window) {
     let appBrowser = window.document.getElementById("content");
 
     
-    appBrowser.docShell.setIsApp(appID);
+    appBrowser.docShell.setIsApp(WebappRT.appID);
     appBrowser.setAttribute("src", WebappRT.launchURI);
+
+    if (WebappRT.config.app.manifest.fullscreen) {
+      appBrowser.addEventListener("load", function onLoad() {
+        appBrowser.removeEventListener("load", onLoad, true);
+        appBrowser.contentDocument.
+          documentElement.mozRequestFullScreen();
+      }, true);
+    }
   }).then(null, Cu.reportError.bind(Cu));
 }
