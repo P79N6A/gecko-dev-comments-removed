@@ -251,8 +251,12 @@ void NS_MakeRandomString(char *aBuf, int32_t aBufLen)
 {
   
   
-  double fpTime = double(PR_Now());
-  srand((unsigned int)(fpTime * 1e-6 + 0.5));   
+  static unsigned int seed = 0;
+  if (seed == 0) {
+    double fpTime = double(PR_Now());
+    seed = (unsigned int)(fpTime * 1e-6 + 0.5); 
+    srand(seed);
+  }
 
   int32_t i;
   for (i=0;i<aBufLen;i++) {
