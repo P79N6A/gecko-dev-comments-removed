@@ -59,13 +59,25 @@ loop.shared.Client = (function($) {
 
 
 
-    _failureHandler: function(cb, jqXHR, testStatus, errorThrown) {
-      var error = "Unknown error.";
-      if (jqXHR && jqXHR.responseJSON && jqXHR.responseJSON.error) {
-        error = jqXHR.responseJSON.error;
+    _failureHandler: function(cb, jqXHR, textStatus, errorThrown) {
+      var error = "Unknown error.",
+          jsonRes = jqXHR && jqXHR.responseJSON || {};
+      
+      
+      
+      
+      
+      
+      
+      if (jsonRes.status === "errors" && Array.isArray(jsonRes.errors)) {
+        error = "Details: " + jsonRes.errors.map(function(err) {
+          return Object.keys(err).map(function(field) {
+            return field + ": " + err[field];
+          }).join(", ");
+        }).join("; ");
       }
-      var message = "HTTP error " + jqXHR.status + ": " +
-        errorThrown + "; " + error;
+      var message = "HTTP " + jqXHR.status + " " + errorThrown +
+          "; " + error;
       console.error(message);
       cb(new Error(message));
     },
