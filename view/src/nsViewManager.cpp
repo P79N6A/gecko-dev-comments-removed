@@ -52,10 +52,8 @@ using namespace mozilla::layers;
 
 #undef DEBUG_MOUSE_LOCATION
 
-int32_t nsViewManager::mVMCount = 0;
 
-
-nsVoidArray* nsViewManager::gViewManagers = nullptr;
+nsTArray<nsViewManager*>* nsViewManager::gViewManagers = nullptr;
 uint32_t nsViewManager::gLastUserEventTime = 0;
 
 nsViewManager::nsViewManager()
@@ -63,14 +61,11 @@ nsViewManager::nsViewManager()
 {
   mRootViewManager = this;
   if (gViewManagers == nullptr) {
-    NS_ASSERTION(mVMCount == 0, "View Manager count is incorrect");
     
-    gViewManagers = new nsVoidArray;
+    gViewManagers = new nsTArray<nsViewManager*>;
   }
  
   gViewManagers->AppendElement(this);
-
-  ++mVMCount;
 
   
   
@@ -91,20 +86,17 @@ nsViewManager::~nsViewManager()
     NS_RELEASE(mRootViewManager);
   }
 
-  NS_ASSERTION((mVMCount > 0), "underflow of viewmanagers");
-  --mVMCount;
+  NS_ASSERTION(gViewManagers != nullptr, "About to use null gViewManagers");
 
 #ifdef DEBUG
   bool removed =
 #endif
     gViewManagers->RemoveElement(this);
-  NS_ASSERTION(removed, "Viewmanager instance not was not in the global list of viewmanagers");
+  NS_ASSERTION(removed, "Viewmanager instance was not in the global list of viewmanagers");
 
-  if (0 == mVMCount) {
+  if (gViewManagers->IsEmpty()) {
     
     
-   
-    NS_ASSERTION(gViewManagers != nullptr, "About to delete null gViewManagers");
     delete gViewManagers;
     gViewManagers = nullptr;
   }
@@ -1102,8 +1094,8 @@ nsViewManager::CallWillPaintOnObservers()
   NS_PRECONDITION(IsRootVM(), "Must be root VM for this to be called!");
 
   int32_t index;
-  for (index = 0; index < mVMCount; index++) {
-    nsViewManager* vm = (nsViewManager*)gViewManagers->ElementAt(index);
+  for (index = 0; index < gViewManagers->Length(); index++) {
+    nsViewManager* vm = gViewManagers->ElementAt(index);
     if (vm->RootViewManager() == this) {
       
       if (vm->mRootView && vm->mRootView->IsEffectivelyVisible()) {
