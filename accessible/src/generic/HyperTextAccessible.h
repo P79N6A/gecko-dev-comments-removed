@@ -60,12 +60,12 @@ public:
   
 
   
-  static nsresult ContentToRenderedOffset(nsIFrame *aFrame, int32_t aContentOffset,
-                                          uint32_t *aRenderedOffset);
+  nsresult ContentToRenderedOffset(nsIFrame *aFrame, int32_t aContentOffset,
+                                   uint32_t *aRenderedOffset);
   
   
-  static nsresult RenderedToContentOffset(nsIFrame *aFrame, uint32_t aRenderedOffset,
-                                          int32_t *aContentOffset);
+  nsresult RenderedToContentOffset(nsIFrame *aFrame, uint32_t aRenderedOffset,
+                                   int32_t *aContentOffset);
 
   
   
