@@ -161,18 +161,14 @@ Sanitizer.prototype = {
     history: {
       clear: function ()
       {
-        PlacesUtils.history.removeAllPages();
-
         try {
           Services.obs.notifyObservers(null, "browser:purge-session-history", "");
         }
-        catch (e) { }
-
-        
-        try {
-          Services.prefs.clearUserPref("general.open_location.last_url");
+        catch (e) {
+          Components.utils.reportError("Failed to notify observers of "
+                                     + "browser:purge-session-history: "
+                                     + e);
         }
-        catch (e) { }
       },
 
       get canClear()
