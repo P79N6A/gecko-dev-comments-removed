@@ -6,10 +6,9 @@
 
 
 add_task(function() {
-  ok(CustomizableUI.inDefaultState, "Should be in the default state when we start");
   let personalbar = document.getElementById(CustomizableUI.AREA_BOOKMARKS);
   setToolbarVisibility(personalbar, true);
-  ok(!CustomizableUI.inDefaultState, "Making the bookmarks toolbar visible takes it out of the default state");
+  ok(CustomizableUI.inDefaultState, "Should be in the default state when we start");
 
   let navbar = document.getElementById(CustomizableUI.AREA_NAVBAR);
   let personalbar = document.getElementById(CustomizableUI.AREA_BOOKMARKS);

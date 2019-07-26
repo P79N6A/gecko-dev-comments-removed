@@ -170,7 +170,7 @@ let CustomizableUIInternal = {
       anchor: "PanelUI-menu-button",
       type: CustomizableUI.TYPE_MENU_PANEL,
       defaultPlacements: panelPlacements
-    }, true);
+    });
     PanelWideWidgetTracker.init();
 
     this.registerArea(CustomizableUI.AREA_NAVBAR, {
@@ -185,29 +185,16 @@ let CustomizableUIInternal = {
         "downloads-button",
         "home-button",
         "social-share-button",
-      ],
-      defaultCollapsed: false,
-    }, true);
+      ]
+    });
 #ifndef XP_MACOSX
     this.registerArea(CustomizableUI.AREA_MENUBAR, {
       legacy: true,
       type: CustomizableUI.TYPE_TOOLBAR,
       defaultPlacements: [
         "menubar-items",
-      ],
-      get defaultCollapsed() {
-#ifdef MENUBAR_CAN_AUTOHIDE
-#if defined(MOZ_WIDGET_GTK) || defined(MOZ_WIDGET_QT)
-        return true;
-#endif
-#else
-        
-        
-        return Services.appinfo.OS == "WINNT" &&
-               Services.sysinfo.getProperty("version") != "5.1";
-#endif
-      }
-    }, true);
+      ]
+    });
 #endif
     this.registerArea(CustomizableUI.AREA_TABSTRIP, {
       legacy: true,
@@ -217,24 +204,21 @@ let CustomizableUIInternal = {
         "new-tab-button",
         "alltabs-button",
         "tabs-closebutton",
-      ],
-      defaultCollapsed: false,
-    }, true);
+      ]
+    });
     this.registerArea(CustomizableUI.AREA_BOOKMARKS, {
       legacy: true,
       type: CustomizableUI.TYPE_TOOLBAR,
       defaultPlacements: [
         "personal-bookmarks",
-      ],
-      defaultCollapsed: true,
-    }, true);
+      ]
+    });
 
     this.registerArea(CustomizableUI.AREA_ADDONBAR, {
       type: CustomizableUI.TYPE_TOOLBAR,
       legacy: true,
-      defaultPlacements: ["addonbar-closebutton", "status-bar"],
-      defaultCollapsed: false,
-    }, true);
+      defaultPlacements: ["addonbar-closebutton", "status-bar"]
+    });
   },
 
   _defineBuiltInWidgets: function() {
@@ -270,7 +254,7 @@ let CustomizableUIInternal = {
     return wrapper;
   },
 
-  registerArea: function(aName, aProperties, aInternalCaller) {
+  registerArea: function(aName, aProperties) {
     if (typeof aName != "string" || !/^[a-z0-9-_]{1,}$/i.test(aName)) {
       throw new Error("Invalid area name");
     }
@@ -289,16 +273,6 @@ let CustomizableUIInternal = {
     
     if (!props.has("type")) {
       props.set("type", CustomizableUI.TYPE_TOOLBAR);
-    }
-    if (props.get("type") == CustomizableUI.TYPE_TOOLBAR) {
-      if (!aInternalCaller && props.has("defaultCollapsed")) {
-        throw new Error("defaultCollapsed is only allowed for default toolbars.")
-      }
-      if (!props.has("defaultCollapsed")) {
-        props.set("defaultCollapsed", true);
-      }
-    } else if (props.has("defaultCollapsed")) {
-      throw new Error("defaultCollapsed only applies for TYPE_TOOLBAR areas.");
     }
     
     let allTypes = [CustomizableUI.TYPE_TOOLBAR, CustomizableUI.TYPE_MENU_PANEL];
@@ -2067,13 +2041,6 @@ let CustomizableUIInternal = {
       let placements = gPlacements.get(areaId);
       for (let areaNode of areaNodes) {
         this.buildArea(areaId, placements, areaNode);
-
-        let area = gAreas.get(areaId);
-        if (area.get("type") == CustomizableUI.TYPE_TOOLBAR) {
-          let defaultCollapsed = area.get("defaultCollapsed");
-          let win = areaNode.ownerDocument.defaultView;
-          win.setToolbarVisibility(areaNode, !defaultCollapsed);
-        }
       }
     }
     gResetting = false;
@@ -2195,16 +2162,6 @@ let CustomizableUIInternal = {
             let itemNode = container.getElementsByAttribute("id", item)[0];
             return itemNode && removableOrDefault(itemNode || item);
           });
-        }
-
-        if (props.get("type") == CustomizableUI.TYPE_TOOLBAR) {
-          let attribute = container.getAttribute("type") == "menubar" ? "autohide" : "collapsed";
-          let collapsed = container.getAttribute(attribute) == "true";
-          let defaultCollapsed = props.get("defaultCollapsed");
-          if (collapsed != defaultCollapsed) {
-            LOG("Found " + areaId + " had non-default toolbar visibility (expected " + defaultCollapsed + ", was " + collapsed + ")");
-            return false;
-          }
         }
       }
       LOG("Checking default state for " + areaId + ":\n" + currentPlacements.join(",") +
@@ -2387,8 +2344,6 @@ this.CustomizableUI = {
   },
 
   
-
-
 
 
 
@@ -2782,16 +2737,6 @@ this.CustomizableUI = {
   getAreaType: function(aArea) {
     let area = gAreas.get(aArea);
     return area ? area.get("type") : null;
-  },
-  
-
-
-
-
-
-  isToolbarDefaultCollapsed: function(aArea) {
-    let area = gAreas.get(aArea);
-    return area ? area.get("defaultCollapsed") : null;
   },
   
 
