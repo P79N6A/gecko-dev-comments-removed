@@ -58,7 +58,7 @@ gTests.push({
     yield promise;
 
     
-    ok(ContextMenuUI._menuPopup._visible, "is visible");
+    ok(ContextMenuUI._menuPopup.visible, "is visible");
 
     
     checkContextUIMenuItemVisibility(["context-copy",
@@ -91,7 +91,7 @@ gTests.push({
     yield promise;
 
     
-    ok(ContextMenuUI._menuPopup._visible, "is visible");
+    ok(ContextMenuUI._menuPopup.visible, "is visible");
 
     
     checkContextUIMenuItemVisibility(["context-copy",
@@ -113,7 +113,7 @@ gTests.push({
     yield promise;
 
     
-    ok(ContextMenuUI._menuPopup._visible, "is visible");
+    ok(ContextMenuUI._menuPopup.visible, "is visible");
 
     
     checkContextUIMenuItemVisibility(["context-open-in-new-tab",
@@ -135,7 +135,7 @@ gTests.push({
     yield promise;
 
     
-    ok(ContextMenuUI._menuPopup._visible, "is visible");
+    ok(ContextMenuUI._menuPopup.visible, "is visible");
 
     checkContextUIMenuItemVisibility(["context-select",
                                       "context-select-all"]);
@@ -159,7 +159,7 @@ gTests.push({
     yield promise;
 
     
-    ok(ContextMenuUI._menuPopup._visible, "is visible");
+    ok(ContextMenuUI._menuPopup.visible, "is visible");
 
     checkContextUIMenuItemVisibility(["context-cut",
                                       "context-copy"]);
@@ -191,7 +191,7 @@ gTests.push({
     yield promise;
 
     
-    ok(ContextMenuUI._menuPopup._visible, "is visible");
+    ok(ContextMenuUI._menuPopup.visible, "is visible");
 
     
     checkContextUIMenuItemVisibility(["context-cut",
@@ -212,7 +212,7 @@ gTests.push({
     yield promise;
 
     
-    ok(ContextMenuUI._menuPopup._visible, "is visible");
+    ok(ContextMenuUI._menuPopup.visible, "is visible");
 
     
     checkContextUIMenuItemVisibility(["context-cut",
@@ -236,7 +236,7 @@ gTests.push({
     yield promise;
 
     
-    ok(ContextMenuUI._menuPopup._visible, "is visible");
+    ok(ContextMenuUI._menuPopup.visible, "is visible");
 
     checkContextUIMenuItemVisibility(["context-cut",
                                       "context-copy"]);
@@ -272,7 +272,7 @@ gTests.push({
     yield promise;
 
     
-    ok(ContextMenuUI._menuPopup._visible, "is visible");
+    ok(ContextMenuUI._menuPopup.visible, "is visible");
 
     
     checkContextUIMenuItemVisibility(["context-paste"]);
@@ -295,7 +295,7 @@ gTests.push({
     yield promise;
 
     
-    ok(!ContextMenuUI._menuPopup._visible, "is visible");
+    ok(!ContextMenuUI._menuPopup.visible, "is visible");
 
     
     yield hideContextUI();
@@ -336,7 +336,7 @@ gTests.push({
     yield promise;
 
     
-    ok(ContextMenuUI._menuPopup._visible, "is visible");
+    ok(ContextMenuUI._menuPopup.visible, "is visible");
 
     let notificationBox = Browser.getNotificationBox();
     let notification = notificationBox.getNotificationWithValue("popup-blocked");
@@ -465,7 +465,7 @@ gTests.push({
     let promise = waitForEvent(document, "popupshown");
     sendContextMenuClickToWindow(win, 20, 20);
     yield promise;
-    ok(ContextMenuUI._menuPopup._visible, "is visible");
+    ok(ContextMenuUI._menuPopup.visible, "is visible");
 
     let menuItem = document.getElementById("context-copy-image");
     ok(menuItem, "menu item exists");
@@ -486,7 +486,7 @@ gTests.push({
     promise = waitForEvent(document, "popupshown");
     sendContextMenuClickToWindow(win, 30, 30);
     yield promise;
-    ok(ContextMenuUI._menuPopup._visible, "is visible");
+    ok(ContextMenuUI._menuPopup.visible, "is visible");
 
     menuItem = document.getElementById("context-copy-image-loc");
     ok(menuItem, "menu item exists");
@@ -519,7 +519,7 @@ gTests.push({
     promise = waitForEvent(document, "popupshown");
     sendContextMenuClickToWindow(win, 40, 40);
     yield promise;
-    ok(ContextMenuUI._menuPopup._visible, "is visible");
+    ok(ContextMenuUI._menuPopup.visible, "is visible");
 
     menuItem = document.getElementById("context-open-image-tab");
     ok(menuItem, "menu item exists");
@@ -564,7 +564,7 @@ gTests.push({
     yield promise;
 
     
-    ok(ContextMenuUI._menuPopup._visible, "is visible");
+    ok(ContextMenuUI._menuPopup.visible, "is visible");
 
     checkContextMenuPositionRange(ContextMenuUI._panel, 265, 280, 175, 190);
 
@@ -579,7 +579,7 @@ gTests.push({
     yield promise;
 
     
-    ok(ContextMenuUI._menuPopup._visible, "is visible");
+    ok(ContextMenuUI._menuPopup.visible, "is visible");
 
     checkContextMenuPositionRange(ContextMenuUI._panel, 265, 280, 95, 110);
 
@@ -594,7 +594,7 @@ gTests.push({
     yield promise;
 
     
-    ok(ContextMenuUI._menuPopup._visible, "is visible");
+    ok(ContextMenuUI._menuPopup.visible, "is visible");
 
     checkContextMenuPositionRange(ContextMenuUI._panel, 295, 310, 540, 555);
 
@@ -609,7 +609,7 @@ gTests.push({
     yield promise;
 
     
-    ok(ContextMenuUI._menuPopup._visible, "is visible");
+    ok(ContextMenuUI._menuPopup.visible, "is visible");
 
     checkContextMenuPositionRange(ContextMenuUI._panel, 295, 310, 340, 355);
 
@@ -624,14 +624,85 @@ gTests.push({
     yield promise;
 
     
-    ok(ContextMenuUI._menuPopup._visible, "is visible");
+    ok(ContextMenuUI._menuPopup.visible, "is visible");
 
     checkContextMenuPositionRange(ContextMenuUI._panel, 265, 280, 110, 125);
 
     promise = waitForEvent(document, "popuphidden");
     ContextMenuUI.hide();
     yield promise;
+
+    Browser.closeTab(Browser.selectedTab, { forceClose: true });
   }
+});
+
+function reopenSetUp() {
+  info(chromeRoot + "browser_context_menu_tests_04.html");
+  yield addTab(chromeRoot + "browser_context_menu_tests_04.html");
+
+  
+  
+  
+  try {
+    yield waitForCondition(() => ContextUI.isVisible);
+    ContextUI.dismiss();
+  } catch(e) {}
+}
+
+function reopenTearDown() {
+  let promise = waitForEvent(document, "popuphidden")
+  ContextMenuUI.hide();
+  yield promise;
+  ok(!ContextMenuUI._menuPopup.visible, "popup is actually hidden");
+
+  Browser.closeTab(Browser.selectedTab, { forceClose: true });
+}
+
+function getReopenTest(aElementInputFn, aWindowInputFn) {
+  return function () {
+    let win = Browser.selectedTab.browser.contentWindow;
+    let panel = ContextMenuUI._menuPopup._panel;
+
+    let link1 = win.document.getElementById("text1-link");
+    let link2 = win.document.getElementById("text2-link");
+
+    
+    let showpromise = waitForEvent(panel, "popupshown");
+    aElementInputFn(win, link1);
+
+    ok((yield showpromise), "popupshown event fired");
+    ok(ContextMenuUI._menuPopup.visible, "initial popup is visible");
+
+    
+    let hidepromise = waitForEvent(panel, "popuphidden");
+    showpromise = waitForEvent(panel, "popupshown");
+    aElementInputFn(win, link2);
+
+    ok((yield hidepromise), "popuphidden event fired");
+    ok((yield showpromise), "popupshown event fired");
+    ok(ContextMenuUI._menuPopup.visible, "popup is still visible");
+
+    
+    hidepromise = waitForEvent(panel, "popuphidden")
+    aWindowInputFn(win, 10, 10);
+
+    ok((yield hidepromise), "popuphidden event fired");
+    ok(!ContextMenuUI._menuPopup.visible, "popup is no longer visible");
+  }
+}
+
+gTests.push({
+  desc: "bug 856264 - mouse - context menu should reopen on other links",
+  setUp: reopenSetUp,
+  tearDown: reopenTearDown,
+  run: getReopenTest(sendContextMenuMouseClickToElement, sendMouseClick)
+});
+
+gTests.push({
+  desc: "bug 856264 - touch - context menu should reopen on other links",
+  setUp: reopenSetUp,
+  tearDown: reopenTearDown,
+  run: getReopenTest(sendContextMenuClickToElement, sendTap)
 });
 
 function test() {
