@@ -174,7 +174,10 @@ public:
 };
 
 PannerNode::PannerNode(AudioContext* aContext)
-  : AudioNode(aContext)
+  : AudioNode(aContext,
+              2,
+              ChannelCountMode::Clamped_max,
+              ChannelInterpretation::Speakers)
   
   , mPanningModel(PanningModelTypeValues::HRTF)
   , mDistanceModel(DistanceModelTypeValues::Inverse)

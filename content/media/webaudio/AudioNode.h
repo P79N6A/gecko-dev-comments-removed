@@ -8,6 +8,7 @@
 #define AudioNode_h_
 
 #include "nsDOMEventTargetHelper.h"
+#include "mozilla/dom/AudioNodeBinding.h"
 #include "nsCycleCollectionParticipant.h"
 #include "mozilla/Attributes.h"
 #include "EnableWebAudioCheck.h"
@@ -78,7 +79,10 @@ protected:
   virtual ~AudioNode();
 
 public:
-  explicit AudioNode(AudioContext* aContext);
+  AudioNode(AudioContext* aContext,
+            uint32_t aChannelCount,
+            ChannelCountMode aChannelCountMode,
+            ChannelInterpretation aChannelInterpretation);
 
   
   virtual void DestroyMediaStream();
@@ -118,6 +122,28 @@ public:
   
   virtual uint32_t NumberOfInputs() const { return 1; }
   virtual uint32_t NumberOfOutputs() const { return 1; }
+
+  uint32_t ChannelCount() const { return mChannelCount; }
+  void SetChannelCount(uint32_t aChannelCount)
+  {
+    mChannelCount = aChannelCount;
+  }
+  ChannelCountMode ChannelCountModeValue() const
+  {
+    return mChannelCountMode;
+  }
+  void SetChannelCountModeValue(ChannelCountMode aMode)
+  {
+    mChannelCountMode = aMode;
+  }
+  ChannelInterpretation ChannelInterpretationValue() const
+  {
+    return mChannelInterpretation;
+  }
+  void SetChannelInterpretationValue(ChannelInterpretation aMode)
+  {
+    mChannelInterpretation = aMode;
+  }
 
   struct InputNode {
     ~InputNode()
@@ -174,6 +200,9 @@ private:
   
   
   nsTArray<nsRefPtr<AudioNode> > mOutputNodes;
+  uint32_t mChannelCount;
+  ChannelCountMode mChannelCountMode;
+  ChannelInterpretation mChannelInterpretation;
 };
 
 }
