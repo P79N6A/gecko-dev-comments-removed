@@ -182,6 +182,9 @@ var gPlayTests = [
   { name:"small-shot.m4a", type:"audio/mp4", duration:0.29 },
   { name:"small-shot.mp3", type:"audio/mpeg", duration:0.27 },
   { name:"owl.mp3", type:"audio/mpeg", duration:3.29 },
+  
+  
+  { name:"owl-funny-id3.mp3", type:"audio/mpeg", duration:3.29 },
 
   
   { name:"bogus.duh", type:"bogus/duh", duration:Number.NaN }

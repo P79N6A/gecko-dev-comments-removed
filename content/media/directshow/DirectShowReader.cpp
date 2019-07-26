@@ -167,6 +167,7 @@ DirectShowReader::ReadMetadata(VideoInfo* aInfo,
   mInfo.mHasVideo = false;
 
   *aInfo = mInfo;
+  
   *aTags = nullptr;
 
   

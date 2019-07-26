@@ -8,6 +8,7 @@
 #include "MediaResource.h"
 #include "mozilla/RefPtr.h"
 #include "DirectShowUtils.h"
+#include "prlog.h"
 
 using namespace mozilla::media;
 
@@ -64,6 +65,49 @@ public:
 
 
 
+class MediaResourcePartition {
+public:
+  MediaResourcePartition(MediaResource* aResource,
+                         int64_t aDataStart)
+    : mResource(aResource),
+      mDataOffset(aDataStart)
+  {}
+
+  int64_t GetLength() {
+    int64_t len = mResource->GetLength();
+    if (len == -1) {
+      return len;
+    }
+    return std::max<int64_t>(0, len - mDataOffset);
+  }
+  nsresult ReadAt(int64_t aOffset, char* aBuffer,
+                  uint32_t aCount, uint32_t* aBytes)
+  {
+    return mResource->ReadAt(aOffset + mDataOffset,
+                             aBuffer,
+                             aCount,
+                             aBytes);
+  }
+  int64_t GetCachedDataEnd() {
+    int64_t tell = mResource->Tell();
+    int64_t dataEnd = mResource->GetCachedDataEnd(tell) - mDataOffset;
+    return dataEnd;
+  }
+private:
+  
+  RefPtr<MediaResource> mResource;
+  int64_t mDataOffset;
+};
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -81,7 +125,8 @@ public:
 
   OutputPin(MediaResource* aMediaResource,
             SourceFilter* aParent,
-            CriticalSection& aFilterLock);
+            CriticalSection& aFilterLock,
+            int64_t aMP3DataStart);
   virtual ~OutputPin();
 
   
@@ -154,8 +199,7 @@ private:
   
   SourceFilter* mParentSource;
 
-  
-  RefPtr<MediaResource> mResource;
+  MediaResourcePartition mResource;
 
   
   
@@ -178,7 +222,8 @@ private:
 
 OutputPin::OutputPin(MediaResource* aResource,
                      SourceFilter* aParent,
-                     CriticalSection& aFilterLock)
+                     CriticalSection& aFilterLock,
+                     int64_t aMP3DataStart)
   : BasePin(static_cast<BaseFilter*>(aParent),
             &aFilterLock,
             L"MozillaOutputPin",
@@ -186,14 +231,13 @@ OutputPin::OutputPin(MediaResource* aResource,
     mPinLock(aFilterLock),
     mSignal(&mPinLock),
     mParentSource(aParent),
-    mResource(aResource),
+    mResource(aResource, aMP3DataStart),
     mFlushCount(0),
     mBytesConsumed(0),
     mQueriedForAsyncReader(false)
 {
   MOZ_COUNT_CTOR(OutputPin);
   LOG("OutputPin::OutputPin()");
-  mResource->Seek(nsISeekableStream::NS_SEEK_SET, 0);
 }
 
 OutputPin::~OutputPin()
@@ -466,7 +510,7 @@ OutputPin::SyncReadAligned(IMediaSample* aSample)
 
   
   
-  int64_t streamLength = mResource->GetLength();
+  int64_t streamLength = mResource.GetLength();
   if (streamLength != -1) {
     
     
@@ -512,10 +556,10 @@ OutputPin::SyncRead(LONGLONG aPosition,
     BYTE* readBuffer = aBuffer + totalBytesRead;
     uint32_t bytesRead = 0;
     LONG length = aLength - totalBytesRead;
-    nsresult rv = mResource->ReadAt(aPosition + totalBytesRead,
-                                    reinterpret_cast<char*>(readBuffer),
-                                    length,
-                                    &bytesRead);
+    nsresult rv = mResource.ReadAt(aPosition + totalBytesRead,
+                                   reinterpret_cast<char*>(readBuffer),
+                                   length,
+                                   &bytesRead);
     if (NS_FAILED(rv)) {
       return E_FAIL;
     }
@@ -535,7 +579,7 @@ STDMETHODIMP
 OutputPin::Length(LONGLONG* aTotal, LONGLONG* aAvailable)
 {
   HRESULT hr = S_OK;
-  int64_t length = mResource->GetLength();
+  int64_t length = mResource.GetLength();
   if (length == -1) {
     hr = VFW_S_ESTIMATED;
     
@@ -544,7 +588,7 @@ OutputPin::Length(LONGLONG* aTotal, LONGLONG* aAvailable)
     *aTotal = length;
   }
   if (aAvailable) {
-    *aAvailable = mResource->GetCachedDataEnd(mResource->Tell());
+    *aAvailable = mResource.GetCachedDataEnd();
   }
 
   LOG("OutputPin::Length() len=%lld avail=%lld", *aTotal, *aAvailable);
@@ -615,14 +659,82 @@ SourceFilter::GetMediaType() const
   return &mMediaType;
 }
 
+
+static nsresult
+GetID3TagLength(MediaResource* aResource,
+                int64_t aStartOffset,
+                int32_t* aLength)
+{
+  MOZ_ASSERT(aLength);
+  char header[10];
+  uint32_t totalBytesRead = 0;
+  while (totalBytesRead < 10) {
+    uint32_t bytesRead = 0;
+    nsresult rv = aResource->ReadAt(aStartOffset + totalBytesRead,
+                                    header+totalBytesRead,
+                                    10-totalBytesRead,
+                                    &bytesRead);
+    NS_ENSURE_SUCCESS(rv, rv);
+    if (bytesRead == 0) {
+      
+      return NS_ERROR_FAILURE;
+    }
+    totalBytesRead += bytesRead;
+  }
+  if (strncmp("ID3", header, 3)) {
+    
+    *aLength = 0;
+    return NS_OK;
+  }
+
+  int32_t id3Length =
+    10 +
+    (int32_t(0x7f & header[6]) << 21) +
+    (int32_t(0x7f & header[7]) << 14) +
+    (int32_t(0x7f & header[8]) << 7) +
+     int32_t(0x7f & header[9]);
+
+  *aLength = id3Length;
+  return NS_OK;
+}
+
+
+
+
+static nsresult
+GetMP3DataOffset(MediaResource* aResource, int64_t* aOutOffset)
+{
+  nsresult rv;
+  int64_t id3TagsEndOffset = 0;
+  int32_t length = 0;
+  do {
+    rv = GetID3TagLength(aResource, id3TagsEndOffset, &length);
+    NS_ENSURE_SUCCESS(rv, rv);
+    if (length > 0) {
+      id3TagsEndOffset += length;
+    }
+  } while (length > 0);
+  *aOutOffset = id3TagsEndOffset;
+  return NS_OK;
+}
+
 nsresult
 SourceFilter::Init(MediaResource* aResource)
 {
   LOG("SourceFilter::Init()");
 
+  
+  
+  
+  
+  int64_t mp3DataOffset = 0;
+  nsresult rv = GetMP3DataOffset(aResource, &mp3DataOffset);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   mOutputPin = new OutputPin(aResource,
                              this,
-                             mLock);
+                             mLock,
+                             mp3DataOffset);
   NS_ENSURE_TRUE(mOutputPin != nullptr, NS_ERROR_FAILURE);
 
   return NS_OK;
