@@ -155,6 +155,10 @@ protected:
 
   android::MediaProfiles*   mMediaProfiles;
   nsRefPtr<android::GonkRecorder> mRecorder;
+  
+  
+  
+  ReentrantMonitor          mRecorderMonitor;
 
   
   nsRefPtr<GonkRecorderProfileManager> mProfileManager;
