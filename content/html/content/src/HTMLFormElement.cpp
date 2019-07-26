@@ -328,14 +328,12 @@ NS_IMPL_RELEASE_INHERITED(HTMLFormElement, Element)
 
 
 NS_INTERFACE_TABLE_HEAD_CYCLE_COLLECTION_INHERITED(HTMLFormElement)
-  NS_HTML_CONTENT_INTERFACES(nsGenericHTMLElement)
   NS_INTERFACE_TABLE_INHERITED4(HTMLFormElement,
                                 nsIDOMHTMLFormElement,
                                 nsIForm,
                                 nsIWebProgressListener,
                                 nsIRadioGroupContainer)
-  NS_INTERFACE_TABLE_TO_MAP_SEGUE
-NS_ELEMENT_INTERFACE_MAP_END
+NS_INTERFACE_TABLE_TAIL_INHERITING(nsGenericHTMLElement)
 
 
 
@@ -1860,12 +1858,11 @@ HTMLFormElement::CheckFormValidity(nsIMutableArray* aInvalidElements) const
   
   
   for (uint32_t i = 0; i < len; ++i) {
-    static_cast<nsGenericHTMLElement*>(sortedControls[i])->AddRef();
+    sortedControls[i]->AddRef();
   }
 
   for (uint32_t i = 0; i < len; ++i) {
-    nsCOMPtr<nsIConstraintValidation> cvElmt =
-      do_QueryInterface((nsGenericHTMLElement*)sortedControls[i]);
+    nsCOMPtr<nsIConstraintValidation> cvElmt = do_QueryObject(sortedControls[i]);
     if (cvElmt && cvElmt->IsCandidateForConstraintValidation() &&
         !cvElmt->IsValid()) {
       ret = false;
@@ -1878,7 +1875,7 @@ HTMLFormElement::CheckFormValidity(nsIMutableArray* aInvalidElements) const
       
       
       if (defaultAction && aInvalidElements) {
-        aInvalidElements->AppendElement((nsGenericHTMLElement*)sortedControls[i],
+        aInvalidElements->AppendElement(ToSupports(sortedControls[i]),
                                         false);
       }
     }

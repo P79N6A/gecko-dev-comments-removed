@@ -150,12 +150,10 @@ NS_IMPL_RELEASE_INHERITED(HTMLSelectElement, Element)
 
 
 NS_INTERFACE_TABLE_HEAD_CYCLE_COLLECTION_INHERITED(HTMLSelectElement)
-  NS_HTML_CONTENT_INTERFACES(nsGenericHTMLFormElementWithState)
   NS_INTERFACE_TABLE_INHERITED2(HTMLSelectElement,
                                 nsIDOMHTMLSelectElement,
                                 nsIConstraintValidation)
-  NS_INTERFACE_TABLE_TO_MAP_SEGUE
-NS_ELEMENT_INTERFACE_MAP_END
+NS_INTERFACE_TABLE_TAIL_INHERITING(nsGenericHTMLFormElementWithState)
 
 
 
@@ -609,13 +607,13 @@ HTMLSelectElement::Add(nsGenericHTMLElement& aElement,
                        ErrorResult& aError)
 {
   if (!aBefore) {
-    nsGenericHTMLElement::AppendChild(aElement, aError);
+    Element::AppendChild(aElement, aError);
     return;
   }
 
   
   
-  nsINode* parent = aBefore->GetParentNode();
+  nsINode* parent = aBefore->Element::GetParentNode();
   if (!parent || !nsContentUtils::ContentIsDescendantOf(parent, this)) {
     
     

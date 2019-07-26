@@ -50,15 +50,6 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  NS_FORWARD_NSIDOMNODE_TO_NSINODE
-
-  
-  NS_FORWARD_NSIDOMELEMENT_TO_GENERIC
-
-  
-  NS_FORWARD_NSIDOMHTMLELEMENT_TO_GENERIC
-
-  
   NS_DECL_NSIDOMHTMLBODYELEMENT
 
   
@@ -141,7 +132,6 @@ public:
   NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const MOZ_OVERRIDE;
   virtual already_AddRefed<nsIEditor> GetAssociatedEditor() MOZ_OVERRIDE;
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const MOZ_OVERRIDE;
-  virtual nsIDOMNode* AsDOMNode() MOZ_OVERRIDE { return this; }
 
   virtual bool IsEventAttributeName(nsIAtom* aName) MOZ_OVERRIDE;
 

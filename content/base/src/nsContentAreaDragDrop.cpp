@@ -52,6 +52,9 @@
 #include "imgIRequest.h"
 #include "nsDOMDataTransfer.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/dom/HTMLAreaElement.h"
+
+using mozilla::dom::HTMLAreaElement;
 
 class MOZ_STACK_CLASS DragDataProducer
 {
@@ -505,10 +508,11 @@ DragDataProducer::Produce(nsDOMDataTransfer* aDataTransfer,
 
       if (area) {
         
-        area->GetAttribute(NS_LITERAL_STRING("alt"), mTitleString);
+        HTMLAreaElement* areaElem = static_cast<HTMLAreaElement*>(area.get());
+        areaElem->GetAttribute(NS_LITERAL_STRING("alt"), mTitleString);
         if (mTitleString.IsEmpty()) {
           
-          area->GetAttribute(NS_LITERAL_STRING("href"), mTitleString);
+          areaElem->GetAttribute(NS_LITERAL_STRING("href"), mTitleString);
         }
 
         

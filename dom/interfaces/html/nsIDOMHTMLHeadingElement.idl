@@ -6,8 +6,8 @@
 #include "nsIDOMHTMLElement.idl"
 
 /**
- * The nsIDOMHTMLTableCaptionElement interface is the interface to a
- * [X]HTML caption element.
+ * The nsIDOMHTMLHeadingElement interface is the interface to a
+ * [X]HTML h1, h2, h3, ... element.
  *
  * This interface is trying to follow the DOM Level 2 HTML specification:
  * http://www.w3.org/TR/DOM-Level-2-HTML/
@@ -16,8 +16,8 @@
  * http://www.whatwg.org/specs/web-apps/current-work/
  */
 
-[scriptable, builtinclass, uuid(78f0635b-44d2-4d5c-87de-29d54df6aed6)]
-interface nsIDOMHTMLTableCaptionElement : nsISupports
+[scriptable, uuid(a40b92f7-9da7-4c9f-8a0c-cf5b9e28bb30)]
+interface nsIDOMHTMLHeadingElement : nsISupports
 {
            attribute DOMString        align;
 };

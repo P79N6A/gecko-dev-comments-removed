@@ -117,7 +117,7 @@ protected:
   nsRefPtrHashtable<nsStringHashKey, PropertyNodeList> mNamedItemEntries;
 
   
-  nsCOMPtr<nsGenericHTMLElement> mRoot;
+  nsRefPtr<nsGenericHTMLElement> mRoot;
 
   
   nsCOMPtr<nsIDocument> mDoc;

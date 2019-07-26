@@ -31,15 +31,6 @@ public:
   
   NS_DECL_ISUPPORTS_INHERITED
 
-  
-  NS_FORWARD_NSIDOMNODE_TO_NSINODE
-
-  
-  NS_FORWARD_NSIDOMELEMENT_TO_GENERIC
-
-  
-  NS_FORWARD_NSIDOMHTMLELEMENT_TO_GENERIC
-
   virtual int32_t TabIndexDefault() MOZ_OVERRIDE;
 
   
@@ -89,11 +80,6 @@ public:
 
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED_NO_UNLINK(HTMLSharedObjectElement,
                                                      nsGenericHTMLElement)
-
-  virtual nsIDOMNode* AsDOMNode() MOZ_OVERRIDE
-  {
-    return static_cast<nsIDOMHTMLAppletElement*>(this);
-  }
 
   
   void GetAlign(DOMString& aValue)

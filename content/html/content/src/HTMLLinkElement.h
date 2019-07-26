@@ -34,15 +34,6 @@ public:
                                            nsGenericHTMLElement)
 
   
-  NS_FORWARD_NSIDOMNODE_TO_NSINODE
-
-  
-  NS_FORWARD_NSIDOMELEMENT_TO_GENERIC
-
-  
-  NS_FORWARD_NSIDOMHTMLELEMENT_TO_GENERIC
-
-  
   NS_DECL_NSIDOMHTMLLINKELEMENT
 
   
@@ -58,7 +49,6 @@ public:
 
   
   virtual nsresult Clone(nsINodeInfo* aNodeInfo, nsINode** aResult) const MOZ_OVERRIDE;
-  virtual nsIDOMNode* AsDOMNode() MOZ_OVERRIDE { return this; }
   virtual JSObject* WrapNode(JSContext* aCx,
                              JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
 

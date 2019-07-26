@@ -46,15 +46,6 @@ public:
   
   NS_DECL_ISUPPORTS_INHERITED
 
-  
-  NS_FORWARD_NSIDOMNODE_TO_NSINODE
-
-  
-  NS_FORWARD_NSIDOMELEMENT_TO_GENERIC
-
-  
-  NS_FORWARD_NSIDOMHTMLELEMENT_TO_GENERIC
-
   virtual int32_t TabIndexDefault() MOZ_OVERRIDE;
 
   
@@ -148,8 +139,6 @@ public:
 
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(HTMLTextAreaElement,
                                            nsGenericHTMLFormElementWithState)
-
-  virtual nsIDOMNode* AsDOMNode() MOZ_OVERRIDE { return this; }
 
   
   bool     IsTooLong();

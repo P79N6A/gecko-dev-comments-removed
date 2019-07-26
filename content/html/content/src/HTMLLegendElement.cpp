@@ -19,17 +19,6 @@ HTMLLegendElement::~HTMLLegendElement()
 {
 }
 
-
-NS_IMPL_ADDREF_INHERITED(HTMLLegendElement, Element)
-NS_IMPL_RELEASE_INHERITED(HTMLLegendElement, Element)
-
-
-
-NS_INTERFACE_MAP_BEGIN(HTMLLegendElement)
-  NS_HTML_CONTENT_INTERFACES(nsGenericHTMLElement)
-NS_ELEMENT_INTERFACE_MAP_END
-
-
 NS_IMPL_ELEMENT_CLONE(HTMLLegendElement)
 
 

@@ -30,17 +30,10 @@ public:
   
   NS_DECL_ISUPPORTS_INHERITED
 
-  
-  NS_FORWARD_NSIDOMNODE_TO_NSINODE
-
-  
-  NS_FORWARD_NSIDOMELEMENT_TO_GENERIC
-
-  
-  NS_FORWARD_NSIDOMHTMLELEMENT_TO_GENERIC
-
+  using nsGenericHTMLElement::GetInnerHTML;
   virtual void GetInnerHTML(nsAString& aInnerHTML,
                             mozilla::ErrorResult& aError) MOZ_OVERRIDE;
+  using nsGenericHTMLElement::SetInnerHTML;
   virtual void SetInnerHTML(const nsAString& aInnerHTML,
                             mozilla::ErrorResult& aError) MOZ_OVERRIDE;
 
@@ -68,8 +61,6 @@ public:
   
   virtual nsresult AfterSetAttr(int32_t aNamespaceID, nsIAtom* aName,
                                 const nsAttrValue* aValue, bool aNotify) MOZ_OVERRIDE;
-
-  virtual nsIDOMNode* AsDOMNode() MOZ_OVERRIDE { return this; }
 
   
   void SetText(const nsAString& aValue, ErrorResult& rv);

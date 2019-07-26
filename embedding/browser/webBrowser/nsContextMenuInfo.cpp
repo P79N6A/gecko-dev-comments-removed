@@ -33,6 +33,7 @@
 
 
 
+
 NS_IMPL_ISUPPORTS1(nsContextMenuInfo, nsIContextMenuInfo)
 
 nsContextMenuInfo::nsContextMenuInfo()
@@ -225,8 +226,9 @@ nsContextMenuInfo::GetBackgroundImageRequest(nsIDOMNode *aDOMNode, imgRequestPro
   
   nsCOMPtr<nsIDOMHTMLHtmlElement> htmlElement = do_QueryInterface(domNode);
   if (htmlElement) {
+    nsCOMPtr<nsIDOMHTMLElement> element = do_QueryInterface(domNode);
     nsAutoString nameSpace;
-    htmlElement->GetNamespaceURI(nameSpace);
+    element->GetNamespaceURI(nameSpace);
     if (nameSpace.IsEmpty()) {
       nsresult rv = GetBackgroundImageRequestInternal(domNode, aRequest);
       if (NS_SUCCEEDED(rv) && *aRequest)

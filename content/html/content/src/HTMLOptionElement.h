@@ -37,15 +37,6 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  NS_FORWARD_NSIDOMNODE_TO_NSINODE
-
-  
-  NS_FORWARD_NSIDOMELEMENT_TO_GENERIC
-
-  
-  NS_FORWARD_NSIDOMHTMLELEMENT_TO_GENERIC
-
-  
   using mozilla::dom::Element::SetText;
   using mozilla::dom::Element::GetText;
   NS_DECL_NSIDOMHTMLOPTIONELEMENT
@@ -74,8 +65,6 @@ public:
   virtual nsresult Clone(nsINodeInfo* aNodeInfo, nsINode** aResult) const MOZ_OVERRIDE;
 
   nsresult CopyInnerTo(mozilla::dom::Element* aDest);
-
-  virtual nsIDOMNode* AsDOMNode() MOZ_OVERRIDE { return this; }
 
   virtual bool IsDisabled() const MOZ_OVERRIDE {
     return HasAttr(kNameSpaceID_None, nsGkAtoms::disabled);
