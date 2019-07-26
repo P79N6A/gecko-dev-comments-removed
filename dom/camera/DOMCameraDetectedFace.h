@@ -9,63 +9,12 @@
 #include "nsCycleCollectionParticipant.h"
 #include "nsWrapperCache.h"
 #include "mozilla/dom/DOMRect.h"
+#include "mozilla/dom/DOMPoint.h"
 #include "ICameraControl.h"
 
 namespace mozilla {
 
 namespace dom {
-
-class DOMCameraPoint MOZ_FINAL : public nsISupports
-                               , public nsWrapperCache
-{
-public:
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMCameraPoint)
-
-  
-  
-  
-  
-  
-  static bool HasSupport(JSContext* aCx, JSObject* aGlobal);
-
-  DOMCameraPoint(nsISupports* aParent, const ICameraControl::Point& aPoint)
-    : mParent(aParent)
-    , mX(aPoint.x)
-    , mY(aPoint.y)
-  {
-    SetIsDOMBinding();
-  }
-
-  void
-  SetPoint(int32_t aX, int32_t aY)
-  {
-    mX = aX;
-    mY = aY;
-  }
-
-  int32_t X() { return mX; }
-  int32_t Y() { return mY; }
-
-  void SetX(int32_t aX) { mX = aX; }
-  void SetY(int32_t aY) { mY = aY; }
-
-  nsISupports*
-  GetParentObject() const
-  {
-    MOZ_ASSERT(mParent);
-    return mParent;
-  }
-
-  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
-
-protected:
-  virtual ~DOMCameraPoint() { }
-
-  nsCOMPtr<nsISupports> mParent;
-  int32_t mX;
-  int32_t mY;
-};
 
 class DOMCameraDetectedFace MOZ_FINAL : public nsISupports
                                       , public nsWrapperCache
@@ -91,9 +40,9 @@ public:
 
   dom::DOMRect* Bounds()        { return mBounds; }
 
-  DOMCameraPoint* GetLeftEye()  { return mLeftEye; }
-  DOMCameraPoint* GetRightEye() { return mRightEye; }
-  DOMCameraPoint* GetMouth()    { return mMouth; }
+  dom::DOMPoint* GetLeftEye()  { return mLeftEye; }
+  dom::DOMPoint* GetRightEye() { return mRightEye; }
+  dom::DOMPoint* GetMouth()    { return mMouth; }
 
   nsISupports*
   GetParentObject() const
@@ -114,9 +63,9 @@ protected:
 
   nsRefPtr<dom::DOMRect> mBounds;
 
-  nsRefPtr<DOMCameraPoint> mLeftEye;
-  nsRefPtr<DOMCameraPoint> mRightEye;
-  nsRefPtr<DOMCameraPoint> mMouth;
+  nsRefPtr<dom::DOMPoint> mLeftEye;
+  nsRefPtr<dom::DOMPoint> mRightEye;
+  nsRefPtr<dom::DOMPoint> mMouth;
 };
 
 } 
