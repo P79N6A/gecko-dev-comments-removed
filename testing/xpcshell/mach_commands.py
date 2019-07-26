@@ -119,6 +119,9 @@ class XPCShellRunner(MozbuildObject):
 
         tests_dir = os.path.join(self.topobjdir, '_tests', 'xpcshell')
         modules_dir = os.path.join(self.topobjdir, '_tests', 'modules')
+        
+        
+        verbose_output = test_path is not None or (manifest and len(manifest.test_paths())==1)
 
         args = {
             'xpcshell': os.path.join(self.bindir, 'xpcshell'),
@@ -140,7 +143,7 @@ class XPCShellRunner(MozbuildObject):
             'debuggerArgs': debuggerArgs,
             'debuggerInteractive': debuggerInteractive,
             'on_message': (lambda obj, msg: xpcshell.log.info(msg.decode('utf-8', 'replace'))) \
-                            if test_path is not None else None,
+                            if verbose_output else None,
         }
 
         if manifest is not None:
