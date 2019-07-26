@@ -26,7 +26,14 @@ namespace {
 
 class MemoryPressureRunnable : public nsRunnable
 {
+  const char *mTopic;
+  const PRUnichar *mData;
 public:
+  MemoryPressureRunnable(const char *aTopic, const PRUnichar *aData) :
+    mTopic(aTopic), mData(aData)
+  {
+  }
+
   NS_IMETHOD Run()
   {
     MOZ_ASSERT(NS_IsMainThread());
@@ -34,14 +41,19 @@ public:
 
     nsCOMPtr<nsIObserverService> os = services::GetObserverService();
     if (os) {
-      
-      
-      os->NotifyObservers(nullptr, "memory-pressure",
-                          NS_LITERAL_STRING("low-memory-no-forward").get());
+      os->NotifyObservers(nullptr, mTopic, mData);
     }
     return NS_OK;
   }
 };
+
+static void
+Dispatch(const char *aTopic, const PRUnichar *aData)
+{
+  nsRefPtr<MemoryPressureRunnable> memoryPressureRunnable =
+    new MemoryPressureRunnable(aTopic, aData);
+  NS_DispatchToMainThread(memoryPressureRunnable);
+}
 
 
 
@@ -172,10 +184,14 @@ public:
       
       
 
-      nsRefPtr<MemoryPressureRunnable> memoryPressureRunnable =
-        new MemoryPressureRunnable();
-      NS_DispatchToMainThread(memoryPressureRunnable);
+      
+      
+      Dispatch("memory-pressure",
+               NS_LITERAL_STRING("low-memory-no-forward").get());
 
+      
+      
+      
       
       
       
@@ -201,7 +217,13 @@ public:
         LOG("Checking to see if memory pressure is over.");
         rv = CheckForMemoryPressure(lowMemFd, &memoryPressure);
         NS_ENSURE_SUCCESS(rv, rv);
-      } while (memoryPressure);
+
+        if (memoryPressure) {
+          Dispatch("memory-pressure",
+                   NS_LITERAL_STRING("low-memory-ongoing-no-forward").get());
+          continue;
+        }
+      } while (false);
 
       LOG("Memory pressure is over.");
     }

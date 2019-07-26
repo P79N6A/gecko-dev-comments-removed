@@ -52,10 +52,7 @@ this.ConsoleAPIStorage = {
       this.clearEvents(innerWindowID);
     }
     else if (aTopic == "memory-pressure") {
-      
-      if (aData.startsWith("low-memory")) {
-        this.clearEvents();
-      }
+      this.clearEvents();
     }
   },
 
