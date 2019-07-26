@@ -1282,7 +1282,11 @@ js_TransplantObjectWithWrapper(JSContext *cx,
         
         
         
-        RootedObject reflectorGuts(cx, NewDeadProxyObject(cx, JS_GetGlobalForObject(cx, origobj)));
+        ProxyOptions options;
+        if (!IsBackgroundFinalized(origobj->tenuredGetAllocKind()))
+            options.setForceForegroundFinalization(true);
+        RootedObject reflectorGuts(cx, NewDeadProxyObject(cx, JS_GetGlobalForObject(cx, origobj),
+                                                          options));
         if (!reflectorGuts || !JSObject::swap(cx, origobj, reflectorGuts))
             MOZ_CRASH();
 
