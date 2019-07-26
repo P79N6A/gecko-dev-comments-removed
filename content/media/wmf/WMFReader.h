@@ -109,7 +109,6 @@ private:
 
   bool mHasAudio;
   bool mHasVideo;
-  bool mCanSeek;
   bool mUseHwAccel;
 
   

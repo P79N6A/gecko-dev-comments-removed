@@ -315,6 +315,27 @@ var gSeekTests = [
   { name:"bogus.duh", type:"bogus/duh", duration:123 }
 ];
 
+function IsWindows8OrLater() {
+  var re = /Windows NT (\d.\d)/;
+  var winver = navigator.userAgent.match(re);
+  return winver && winver.length == 2 && parseFloat(winver[1]) >= 6.2;
+}
+
+
+
+var gUnseekableTests = [
+  { name:"no-cues.webm", type:"video/webm" },
+  { name:"bogus.duh", type:"bogus/duh"}
+];
+
+
+if (navigator.userAgent.indexOf("Windows") == -1 ||
+    IsWindows8OrLater()) {
+  gUnseekableTests = gUnseekableTests.concat([
+    { name:"big-buck-bunny-unseekable.mp4", type:"video/mp4" }
+  ]);
+}
+
 
 var gAudioTests = [
   { name:"r11025_s16_c1.wav", type:"audio/x-wav", duration:1.0 },
