@@ -11853,13 +11853,16 @@ nsGlobalWindow::RunTimeoutHandler(nsTimeout* aTimeout,
     uint32_t lineNo = 0;
     handler->GetLocation(&filename, &lineNo);
 
-    AutoPushJSContext cx(aScx->GetNativeContext());
-    JS::CompileOptions options(cx);
+    
+    
+    AutoEntryScript entryScript(this, true, aScx->GetNativeContext());
+    JS::CompileOptions options(entryScript.cx());
     options.setFileAndLine(filename, lineNo)
            .setVersion(JSVERSION_DEFAULT);
-    JS::Rooted<JSObject*> global(cx, FastGetGlobalJSObject());
-    aScx->EvaluateString(nsDependentString(script), global,
-                         options,  false, nullptr);
+    JS::Rooted<JSObject*> global(entryScript.cx(), FastGetGlobalJSObject());
+    nsJSUtils::EvaluateOptions evalOptions;
+    nsJSUtils::EvaluateString(entryScript.cx(), nsDependentString(script),
+                              global, options, evalOptions, nullptr);
   } else {
     
     nsCOMPtr<nsISupports> me(static_cast<nsIDOMWindow *>(this));
