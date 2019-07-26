@@ -47,6 +47,9 @@ function makeMessageObject(aRpCaller) {
   
   options.loggedInUser = aRpCaller.loggedInUser;
 
+  
+  options._internal = aRpCaller._internal;
+
   Object.keys(aRpCaller).forEach(function(option) {
     
     
@@ -63,7 +66,6 @@ function makeMessageObject(aRpCaller) {
     throw new Error(err);
   }
 
-  dump("message object is: " + JSON.stringify(options) + "\n");
   return options;
 }
 
@@ -128,7 +130,6 @@ IDService.prototype = {
 
   watch: function watch(aRpCaller) {
     
-    dump("RP - watch: " + JSON.stringify(aRpCaller) + "\n");
     this._rpFlows[aRpCaller.id] = aRpCaller;
 
     let options = makeMessageObject(aRpCaller);
@@ -177,14 +178,14 @@ IDService.prototype = {
 
 
 
-  doLogin: function doLogin(aRpCallerId, aAssertion) {
+  doLogin: function doLogin(aRpCallerId, aAssertion, aInternalParams) {
     let rp = this._rpFlows[aRpCallerId];
     if (!rp) {
       dump("WARNING: doLogin found no rp to go with callerId " + aRpCallerId + "\n");
       return;
     }
 
-    rp.doLogin(aAssertion);
+    rp.doLogin(aAssertion, aInternalParams);
   },
 
   doLogout: function doLogout(aRpCallerId) {

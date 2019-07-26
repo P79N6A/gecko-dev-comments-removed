@@ -32,6 +32,8 @@ nsDOMIdentity.prototype = {
     watch: 'r',
     request: 'r',
     logout: 'r',
+    get: 'r',
+    getVerifiedEmail: 'r',
 
     
     beginProvisioning: 'r',
@@ -51,7 +53,6 @@ nsDOMIdentity.prototype = {
 
 
   watch: function nsDOMIdentity_watch(aOptions) {
-    this._log("watch");
     if (this._rpWatcher) {
       throw new Error("navigator.id.watch was already called");
     }
@@ -111,7 +112,10 @@ nsDOMIdentity.prototype = {
                            .getInterface(Ci.nsIDOMWindowUtils);
 
     
-    if (!util.isHandlingUserInput) {
+    
+    
+    
+    if (!util.isHandlingUserInput && !aOptions._internal) {
       return;
     }
 
@@ -164,6 +168,70 @@ nsDOMIdentity.prototype = {
     this._rpCalls++;
     let message = this.DOMIdentityMessage();
     this._identityInternal._mm.sendAsyncMessage("Identity:RP:Logout", message);
+  },
+
+  
+
+
+
+  get: function nsDOMIdentity_get(aCallback, aOptions) {
+    var opts = {};
+    aOptions = aOptions || {};
+
+    
+    
+    
+    
+    this._rpWatcher = null;
+
+    
+    
+    
+    opts._internal = true;
+
+    opts.privacyPolicy = aOptions.privacyPolicy || undefined;
+    opts.termsOfService = aOptions.termsOfService || undefined;
+    opts.privacyURL = aOptions.privacyURL || undefined;
+    opts.tosURL = aOptions.tosURL || undefined;
+    opts.siteName = aOptions.siteName || undefined;
+    opts.siteLogo = aOptions.siteLogo || undefined;
+
+    if (checkDeprecated(aOptions, "silent")) {
+      
+      
+      
+      
+      if (aCallback) {
+        setTimeout(function() { aCallback(null); }, 0);
+      }
+      return;
+    }
+
+    
+    var self = this;
+    this.watch({
+      oncancel: function get_oncancel() {
+        if (aCallback) {
+          aCallback(null);
+          aCallback = null;
+        }
+      },
+      onlogin: function get_onlogin(assertion, internalParams) {
+        if (assertion && aCallback && internalParams && !internalParams.silent) {
+          aCallback(assertion);
+          aCallback = null;
+        }
+      },
+      onlogout: function get_onlogout() {},
+      onready: function get_onready() {
+        self.request(opts);
+      }
+    });
+  },
+
+  getVerifiedEmail: function nsDOMIdentity_getVerifiedEmail(aCallback) {
+    Cu.reportError("WARNING: getVerifiedEmail has been deprecated");
+    this.get(aCallback, {});
   },
 
   
@@ -324,16 +392,22 @@ nsDOMIdentity.prototype = {
       case "Identity:RP:Watch:OnLogin":
         
         if (!this._rpWatcher) {
+          dump("WARNING: Received OnLogin message, but there is no RP watcher\n");
           return;
         }
 
         if (this._rpWatcher.onlogin) {
-          this._rpWatcher.onlogin(msg.assertion);
+          if (this._rpWatcher._internal) {
+            this._rpWatcher.onlogin(msg.assertion, msg._internalParams);
+          } else {
+            this._rpWatcher.onlogin(msg.assertion);
+          }
         }
         break;
       case "Identity:RP:Watch:OnLogout":
         
         if (!this._rpWatcher) {
+          dump("WARNING: Received OnLogout message, but there is no RP watcher\n");
           return;
         }
 
@@ -344,6 +418,7 @@ nsDOMIdentity.prototype = {
       case "Identity:RP:Watch:OnReady":
         
         if (!this._rpWatcher) {
+          dump("WARNING: Received OnReady message, but there is no RP watcher\n");
           return;
         }
 
@@ -354,6 +429,7 @@ nsDOMIdentity.prototype = {
       case "Identity:RP:Request:OnCancel":
         
         if (!this._rpWatcher) {
+          dump("WARNING: Received OnCancel message, but there is no RP watcher\n");
           return;
         }
 
@@ -432,7 +508,6 @@ nsDOMIdentity.prototype = {
     
     message.origin = this._origin;
 
-    dump("nsDOM message: " + JSON.stringify(message) + "\n");
     return message;
   },
 
