@@ -22,7 +22,10 @@
 "use strict";
 
 var mozPhoneNumberService = window.navigator.mozPhoneNumberService;
-ise(mozPhoneNumberService, undefined, "mozPhoneNumberService should not be accessible");
+if (mozPhoneNumberService) {
+  is(mozPhoneNumberService.fuzzyMatch, undefined, "Fuzzy Match should not be accesible");
+  is(mozPhoneNumberService.normalize, undefined, "Normalize should not be accessible");
+}
 </script>
 </pre>
 </body>

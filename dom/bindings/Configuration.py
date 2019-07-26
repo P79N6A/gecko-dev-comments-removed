@@ -420,34 +420,6 @@ class Descriptor(DescriptorProvider):
         if '__stringifier' not in self.binaryNames:
             self.binaryNames["__stringifier"] = "Stringify"
 
-
-        if not self.interface.isExternal():
-            self.permissions = dict()
-
-            
-            def addPermissions(ifaceOrMember):
-                checkPermissions = ifaceOrMember.getExtendedAttribute("CheckPermissions")
-                if checkPermissions is None:
-                    return None
-
-                
-                assert(len(checkPermissions) is 1)
-                assert(checkPermissions[0] is not None)
-                checkPermissions = checkPermissions[0]
-                permissionsList = checkPermissions.split()
-                if len(permissionsList) == 0:
-                    raise TypeError("Need at least one permission name for CheckPermissions")
-
-                permissionsList = tuple(sorted(set(permissionsList)))
-                return self.permissions.setdefault(permissionsList, len(self.permissions))
-
-            self.checkPermissionsIndex = addPermissions(self.interface)
-            self.checkPermissionsIndicesForMembers = dict()
-            for m in self.interface.members:
-                permissionsIndex = addPermissions(m)
-                if permissionsIndex is not None:
-                    self.checkPermissionsIndicesForMembers[m.identifier.name] = permissionsIndex
-
         
         self.prototypeChain = []
         parent = interface
@@ -524,8 +496,7 @@ class Descriptor(DescriptorProvider):
         return (self.interface.getExtendedAttribute("Pref") or
                 self.interface.getExtendedAttribute("ChromeOnly") or
                 self.interface.getExtendedAttribute("Func") or
-                self.interface.getExtendedAttribute("AvailableIn") or
-                self.interface.getExtendedAttribute("CheckPermissions"))
+                self.interface.getExtendedAttribute("AvailableIn"))
 
     def needsXrayResolveHooks(self):
         """

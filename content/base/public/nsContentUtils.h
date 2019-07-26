@@ -1838,6 +1838,11 @@ public:
   
 
 
+  static bool IsIdleObserverAPIEnabled() { return sIsIdleObserverAPIEnabled; }
+
+  
+
+
   static bool IsPerformanceTimingEnabled()
   {
     return sIsPerformanceTimingEnabled;
@@ -2223,6 +2228,7 @@ private:
   static bool sTrustedFullScreenOnly;
   static bool sFullscreenApiIsContentOnly;
   static uint32_t sHandlingInputTimeout;
+  static bool sIsIdleObserverAPIEnabled;
   static bool sIsPerformanceTimingEnabled;
   static bool sIsResourceTimingEnabled;
 
