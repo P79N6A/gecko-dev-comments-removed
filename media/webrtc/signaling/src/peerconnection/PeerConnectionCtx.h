@@ -80,6 +80,13 @@ class PeerConnectionCtx : public CSF::CC_Observer {
   friend class PeerConnectionWrapper;
   friend class mozilla::dom::WebrtcGlobalInformation;
 
+#ifdef MOZILLA_INTERNAL_API
+  
+  
+  mozilla::dom::Sequence<mozilla::dom::RTCStatsReportInternal>
+    mStatsForClosedPeerConnections;
+#endif
+
  private:
   
   std::map<const std::string, PeerConnectionImpl *> mPeerConnections;
