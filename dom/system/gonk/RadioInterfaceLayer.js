@@ -1800,7 +1800,7 @@ RadioInterfaceLayer.prototype = {
     
     if (message.mcc && message.mnc) {
       try {
-        services.prefs.setCharPref("ril.lastKnownHomeNetwork",
+        Services.prefs.setCharPref("ril.lastKnownHomeNetwork",
                                    message.mcc + "-" + message.mnc);
       } catch (e) {}
     }
