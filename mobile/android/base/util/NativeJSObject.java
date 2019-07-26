@@ -77,6 +77,40 @@ public class NativeJSObject
 
 
 
+    public native boolean[] getBooleanArray(String name);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    public native boolean[] optBooleanArray(String name, boolean[] fallback);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
     public native Bundle getBundle(String name);
 
     
@@ -96,6 +130,40 @@ public class NativeJSObject
 
 
     public native Bundle optBundle(String name, Bundle fallback);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    public native Bundle[] getBundleArray(String name);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    public native Bundle[] optBundleArray(String name, Bundle[] fallback);
 
     
 
@@ -145,6 +213,40 @@ public class NativeJSObject
 
 
 
+    public native double[] getDoubleArray(String name);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    public native double[] optDoubleArray(String name, double[] fallback);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
     public native int getInt(String name);
 
     
@@ -164,6 +266,40 @@ public class NativeJSObject
 
 
     public native int optInt(String name, int fallback);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    public native int[] getIntArray(String name);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    public native int[] optIntArray(String name, int[] fallback);
 
     
 
@@ -213,6 +349,40 @@ public class NativeJSObject
 
 
 
+    public native NativeJSObject[] getObjectArray(String name);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    public native NativeJSObject[] optObjectArray(String name, NativeJSObject[] fallback);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
     public native String getString(String name);
 
     
@@ -232,6 +402,40 @@ public class NativeJSObject
 
 
     public native String optString(String name, String fallback);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    public native String[] getStringArray(String name);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    public native String[] optStringArray(String name, String[] fallback);
 
     
 
