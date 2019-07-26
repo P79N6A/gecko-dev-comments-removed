@@ -1275,7 +1275,7 @@ InlineFrameIteratorMaybeGC<allowGC>::findNextFrame()
 
         si_.nextFrame();
 
-        callee_ = funval.toObject().toFunction();
+        callee_ = &funval.toObject().as<JSFunction>();
 
         
         

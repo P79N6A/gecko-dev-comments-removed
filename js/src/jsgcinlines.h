@@ -73,7 +73,7 @@ GetGCObjectKind(size_t numSlots)
 static inline AllocKind
 GetGCObjectKind(Class *clasp)
 {
-    if (clasp == &FunctionClass)
+    if (clasp == FunctionClassPtr)
         return JSFunction::FinalizeKind;
     uint32_t nslots = JSCLASS_RESERVED_SLOTS(clasp);
     if (clasp->flags & JSCLASS_HAS_PRIVATE)
@@ -171,7 +171,7 @@ GetGCKindSlots(AllocKind thingKind, Class *clasp)
 
 
 
-    if (clasp == &FunctionClass)
+    if (clasp == FunctionClassPtr)
         nslots = 0;
 
     return nslots;

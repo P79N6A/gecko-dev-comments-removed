@@ -538,7 +538,7 @@ CycleCollectedJSRuntime::DescribeGCThing(bool aIsMarked, void* aThing,
     
     if (DescribeCustomObjects(obj, clasp, name)) {
       
-    } else if (clasp == &js::FunctionClass) {
+    } else if (js::IsFunctionObject(obj)) {
       JSFunction* fun = JS_GetObjectFunction(obj);
       JSString* str = JS_GetFunctionDisplayId(fun);
       if (str) {

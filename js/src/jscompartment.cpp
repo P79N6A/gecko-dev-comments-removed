@@ -613,7 +613,7 @@ AddInnerLazyFunctionsFromScript(JSScript *script, AutoObjectVector &lazyFunction
     ObjectArray *objects = script->objects();
     for (size_t i = script->innerObjectsStart(); i < objects->length; i++) {
         JSObject *obj = objects->vector[i];
-        if (obj->isFunction() && obj->toFunction()->isInterpretedLazy()) {
+        if (obj->is<JSFunction>() && obj->as<JSFunction>().isInterpretedLazy()) {
             if (!lazyFunctions.append(obj))
                 return false;
         }
@@ -631,8 +631,8 @@ CreateLazyScriptsForCompartment(JSContext *cx)
     
     for (gc::CellIter i(cx->zone(), JSFunction::FinalizeKind); !i.done(); i.next()) {
         JSObject *obj = i.get<JSObject>();
-        if (obj->compartment() == cx->compartment() && obj->isFunction()) {
-            JSFunction *fun = obj->toFunction();
+        if (obj->compartment() == cx->compartment() && obj->is<JSFunction>()) {
+            JSFunction *fun = &obj->as<JSFunction>();
             if (fun->isInterpretedLazy()) {
                 LazyScript *lazy = fun->lazyScriptOrNull();
                 if (lazy && lazy->sourceObject() && !lazy->maybeScript()) {
@@ -647,7 +647,7 @@ CreateLazyScriptsForCompartment(JSContext *cx)
     
     
     for (size_t i = 0; i < lazyFunctions.length(); i++) {
-        JSFunction *fun = lazyFunctions[i]->toFunction();
+        JSFunction *fun = &lazyFunctions[i]->as<JSFunction>();
 
         
         
@@ -664,8 +664,8 @@ CreateLazyScriptsForCompartment(JSContext *cx)
     
     for (gc::CellIter i(cx->zone(), JSFunction::FinalizeKind); !i.done(); i.next()) {
         JSObject *obj = i.get<JSObject>();
-        if (obj->compartment() == cx->compartment() && obj->isFunction()) {
-            JSFunction *fun = obj->toFunction();
+        if (obj->compartment() == cx->compartment() && obj->is<JSFunction>()) {
+            JSFunction *fun = &obj->as<JSFunction>();
             if (fun->isInterpretedLazy()) {
                 LazyScript *lazy = fun->lazyScriptOrNull();
                 if (lazy && lazy->maybeScript())

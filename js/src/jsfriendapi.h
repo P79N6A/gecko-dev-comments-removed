@@ -378,7 +378,10 @@ struct Atom {
 
 } 
 
-extern JS_FRIEND_DATA(js::Class) FunctionClass;
+
+
+extern JS_FRIEND_DATA(js::Class*) FunctionClassPtr;
+
 extern JS_FRIEND_DATA(js::Class) FunctionProxyClass;
 extern JS_FRIEND_DATA(js::Class) OuterWindowProxyClass;
 extern JS_FRIEND_DATA(js::Class) ObjectProxyClass;
@@ -405,6 +408,9 @@ inline bool
 IsOuterObject(JSObject *obj) {
     return !!GetObjectClass(obj)->ext.innerObject;
 }
+
+JS_FRIEND_API(bool)
+IsFunctionObject(JSObject *obj);
 
 JS_FRIEND_API(bool)
 IsScopeObject(JSObject *obj);
@@ -1571,7 +1577,7 @@ struct JSJitInfo {
 static JS_ALWAYS_INLINE const JSJitInfo *
 FUNCTION_VALUE_TO_JITINFO(const JS::Value& v)
 {
-    JS_ASSERT(js::GetObjectClass(&v.toObject()) == &js::FunctionClass);
+    JS_ASSERT(js::GetObjectClass(&v.toObject()) == js::FunctionClassPtr);
     return reinterpret_cast<js::shadow::Function *>(&v.toObject())->jitinfo;
 }
 
