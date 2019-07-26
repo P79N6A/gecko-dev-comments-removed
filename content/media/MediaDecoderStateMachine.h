@@ -511,11 +511,6 @@ private:
 
   
   
-  
-  void StopDecodeThread();
-
-  
-  
   void StopAudioThread();
 
   
@@ -555,12 +550,25 @@ private:
   
   
   
-  nsresult EnqueueDecodeTask();
+   
+   
+  nsresult EnsureAudioDecodeTaskQueued();
 
   
   
   
+  
+  nsresult EnsureVideoDecodeTaskQueued();
+
+  
+  
   nsresult EnqueueDecodeSeekTask();
+
+  
+  
+  
+  
+  void CheckIfDecodeComplete();
 
   
   
@@ -817,6 +825,14 @@ private:
 
   
   
+  bool mDispatchedAudioDecodeTask;
+
+  
+  
+  bool mDispatchedVideoDecodeTask;
+
+  
+  
   
   
   bool mSkipToNextKeyFrame;
@@ -853,10 +869,6 @@ private:
   
   
   bool mGotDurationFromMetaData;
-
-  
-  
-  bool mStopDecodeThread;
 
   
   
