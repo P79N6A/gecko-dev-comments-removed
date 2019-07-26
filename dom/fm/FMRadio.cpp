@@ -121,10 +121,6 @@ NS_IMETHODIMP FMRadio::Enable(nsIFMRadioSettings *settings)
   bool canPlay;
   mAudioChannelAgent->SetVisibilityState(!mHidden);
   mAudioChannelAgent->StartPlaying(&canPlay);
-  
-  
-  
-  CanPlayChanged(canPlay);
 
   settings->GetUpperLimit(&upperLimit);
   settings->GetLowerLimit(&lowerLimit);
@@ -141,6 +137,12 @@ NS_IMETHODIMP FMRadio::Enable(nsIFMRadioSettings *settings)
   NS_ENSURE_TRUE(audioManager, NS_OK);
 
   audioManager->SetFmRadioAudioEnabled(true);
+  
+  
+  
+  
+  
+  CanPlayChanged(canPlay);
 
   return NS_OK;
 }
