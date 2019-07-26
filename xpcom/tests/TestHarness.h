@@ -81,57 +81,6 @@ void passed(const char* msg, ...)
 
 
 
-
-static const char* gCurrentProfile;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-inline bool
-StartProfiling(const char* profileName)
-{
-    NS_ASSERTION(profileName, "need a name for this profile");
-    NS_PRECONDITION(!gCurrentProfile, "started a new profile before stopping another");
-
-    JSBool ok = JS_StartProfiling(profileName);
-    gCurrentProfile = profileName;
-    return ok ? true : false;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-inline bool
-StopProfiling()
-{
-    NS_PRECONDITION(gCurrentProfile, "tried to stop profile before starting one");
-
-    const char* profileName = gCurrentProfile;
-    gCurrentProfile = 0;
-    return JS_StopProfiling(profileName) ? true : false;
-}
-
-
-
 class ScopedLogging
 {
 public:
