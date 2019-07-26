@@ -693,14 +693,6 @@ public:
   
 
 
-  bool IsInputDerivedEvent() const;
-  
-
-
-  bool IsMouseDerivedEvent() const;
-  
-
-
   bool IsQueryContentEvent() const;
   
 
