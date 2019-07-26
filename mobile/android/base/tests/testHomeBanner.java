@@ -42,13 +42,11 @@ public class testHomeBanner extends UITest {
 
 
     private void addBannerTest() {
-        addBannerMessage();
-
         
         Actions.EventExpecter eventExpecter = getActions().expectGeckoEvent("TestHomeBanner:MessageShown");
+        addBannerMessage();
         NavigationHelper.enterAndLoadUrl("about:home");
-        
-        
+        eventExpecter.blockForEvent();
 
         
         mAboutHome.assertBannerText(TEXT);
