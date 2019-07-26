@@ -17,33 +17,24 @@ namespace mozilla {
 namespace dom {
 namespace sms {
 
-class SmsRequestChild;
 class SmsRequestParent;
 class MessageReply;
-class ThreadListItem;
 
 
 
 class SmsRequestForwarder : public nsISmsRequest
 {
-  friend class SmsRequestChild;
-
-public:
-  NS_DECL_ISUPPORTS
   NS_FORWARD_NSISMSREQUEST(mRealRequest->)
+
+  NS_DECL_ISUPPORTS
 
   SmsRequestForwarder(nsISmsRequest* aRealRequest) {
     mRealRequest = aRealRequest;
   }
-
-private:
   virtual
   ~SmsRequestForwarder() {}
 
-  nsISmsRequest* GetRealRequest() {
-    return mRealRequest;
-  }
-
+private:
   nsCOMPtr<nsISmsRequest> mRealRequest;
 };
 
@@ -74,9 +65,6 @@ public:
   void SetActorDied() {
     mParentAlive = false;
   }
-
-  void
-  NotifyThreadList(const InfallibleTArray<ThreadListItem>& aItems);
 
 private:
   SmsRequest() MOZ_DELETE;
@@ -111,11 +99,6 @@ private:
 
 
   void SetSuccess(nsIDOMMozSmsCursor* aCursor);
-
-  
-
-
-  void SetSuccess(const jsval& aVal);
 
   
 
