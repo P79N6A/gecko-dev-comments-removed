@@ -166,6 +166,8 @@ var gPlayTests = [
 
   
   { name:"detodos.opus", type:"audio/ogg; codecs=opus", duration:2.9135 },
+  
+  { name:"detodos.webm", type:"audio/webm; codecs=opus", duration:2.9135 },
 
   
   { name:"test-1-mono.opus", type:"audio/ogg; codecs=opus", duration:1.044 },
