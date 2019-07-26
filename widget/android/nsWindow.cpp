@@ -1766,6 +1766,19 @@ nsWindow::OnIMEEvent(AndroidGeckoEvent *ae)
     if (ae->Action() == AndroidGeckoEvent::IME_ACKNOWLEDGE_FOCUS) {
         MOZ_ASSERT(mIMEMaskEventsCount > 0);
         mIMEMaskEventsCount--;
+        if (!mIMEMaskEventsCount) {
+            
+            
+            mIMETextChanges.Clear();
+            mIMESelectionChanged = false;
+            
+            
+            
+            
+            OnIMETextChange(0, INT32_MAX / 2, INT32_MAX / 2);
+            FlushIMEChanges();
+        }
+        AndroidBridge::NotifyIME(AndroidBridge::NOTIFY_IME_REPLY_EVENT, 0);
         return;
     }
     if (mIMEMaskEventsCount > 0) {
@@ -2069,16 +2082,7 @@ nsWindow::OnIMEFocusChange(bool aFocus)
 {
     ALOGIME("IME: OnIMEFocusChange: f=%d", aFocus);
 
-    if (aFocus) {
-        mIMETextChanges.Clear();
-        mIMESelectionChanged = false;
-        
-        
-        
-        
-        OnIMETextChange(0, INT32_MAX / 2, INT32_MAX / 2);
-        FlushIMEChanges();
-    } else {
+    if (!aFocus) {
         
         
         

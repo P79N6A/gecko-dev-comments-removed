@@ -107,6 +107,8 @@ final class GeckoEditable
         static final int TYPE_SET_SPAN = 3;
         
         static final int TYPE_REMOVE_SPAN = 4;
+        
+        static final int TYPE_ACKNOWLEDGE_FOCUS = 5;
 
         final int mType;
         int mStart;
@@ -173,7 +175,8 @@ final class GeckoEditable
             }
             
 
-            if (action.mType != Action.TYPE_EVENT) {
+            if (action.mType != Action.TYPE_EVENT &&
+                action.mType != Action.TYPE_ACKNOWLEDGE_FOCUS) {
                 action.mShouldUpdate = mUpdateGecko;
             }
             if (mActions.isEmpty()) {
@@ -195,6 +198,10 @@ final class GeckoEditable
             case Action.TYPE_REPLACE_TEXT:
                 GeckoAppShell.sendEventToGecko(GeckoEvent.createIMEReplaceEvent(
                         action.mStart, action.mEnd, action.mSequence.toString()));
+                break;
+            case Action.TYPE_ACKNOWLEDGE_FOCUS:
+                GeckoAppShell.sendEventToGecko(GeckoEvent.createIMEEvent(
+                        GeckoEvent.IME_ACKNOWLEDGE_FOCUS));
                 break;
             }
             ++mUIUpdateSeqno;
@@ -525,18 +532,19 @@ final class GeckoEditable
         }
         geckoPostToUI(new Runnable() {
             public void run() {
-                
-                mActionQueue.syncWithGecko();
                 if (type == NOTIFY_IME_FOCUSCHANGE) {
                     if (state == IME_FOCUS_STATE_BLUR) {
                         mFocused = false;
                     } else {
                         mFocused = true;
                         
-                        GeckoAppShell.sendEventToGecko(GeckoEvent.createIMEEvent(
-                                GeckoEvent.IME_ACKNOWLEDGE_FOCUS));
+                        mActionQueue.offer(new Action(Action.TYPE_ACKNOWLEDGE_FOCUS));
                     }
                 }
+                
+                
+                
+                mActionQueue.syncWithGecko();
                 mListener.notifyIME(type, state);
             }
         });
