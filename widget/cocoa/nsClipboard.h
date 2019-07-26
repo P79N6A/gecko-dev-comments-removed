@@ -23,6 +23,7 @@ public:
   
   NS_IMETHOD HasDataMatchingFlavors(const char** aFlavorList, uint32_t aLength,
                                     int32_t aWhichClipboard, bool *_retval);
+  NS_IMETHOD SupportsFindClipboard(bool *_retval);
 
   
   static NSDictionary* PasteboardDictFromTransferable(nsITransferable *aTransferable);
@@ -37,7 +38,12 @@ protected:
   NS_IMETHOD GetNativeClipboardData(nsITransferable * aTransferable, int32_t aWhichClipboard);
   
 private:
-  int mChangeCount; 
+  
+  
+  int mChangeCountGeneral;
+  
+  
+  int mChangeCountFind;
 
 };
 

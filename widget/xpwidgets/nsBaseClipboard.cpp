@@ -22,6 +22,7 @@ nsBaseClipboard::~nsBaseClipboard()
 {
   EmptyClipboard(kSelectionClipboard);
   EmptyClipboard(kGlobalClipboard);
+  EmptyClipboard(kFindClipboard);
 }
 
 NS_IMPL_ISUPPORTS1(nsBaseClipboard, nsIClipboard)
@@ -39,7 +40,9 @@ NS_IMETHODIMP nsBaseClipboard::SetData(nsITransferable * aTransferable, nsIClipb
     return NS_OK;
   bool selectClipPresent;
   SupportsSelectionClipboard(&selectClipPresent);
-  if ( !selectClipPresent && aWhichClipboard != kGlobalClipboard )
+  bool findClipPresent;
+  SupportsFindClipboard(&findClipPresent);
+  if ( !selectClipPresent && !findClipPresent && aWhichClipboard != kGlobalClipboard )
     return NS_ERROR_FAILURE;
 
   mEmptyingForSetData = true;
@@ -75,10 +78,12 @@ NS_IMETHODIMP nsBaseClipboard::SetData(nsITransferable * aTransferable, nsIClipb
 NS_IMETHODIMP nsBaseClipboard::GetData(nsITransferable * aTransferable, int32_t aWhichClipboard)
 {
   NS_ASSERTION ( aTransferable, "clipboard given a null transferable" );
-  
+
   bool selectClipPresent;
   SupportsSelectionClipboard(&selectClipPresent);
-  if ( !selectClipPresent && aWhichClipboard != kGlobalClipboard )
+  bool findClipPresent;
+  SupportsFindClipboard(&findClipPresent);
+  if ( !selectClipPresent && !findClipPresent && aWhichClipboard != kGlobalClipboard )
     return NS_ERROR_FAILURE;
 
   if ( aTransferable )
@@ -91,7 +96,9 @@ NS_IMETHODIMP nsBaseClipboard::EmptyClipboard(int32_t aWhichClipboard)
 {
   bool selectClipPresent;
   SupportsSelectionClipboard(&selectClipPresent);
-  if ( !selectClipPresent && aWhichClipboard != kGlobalClipboard )
+  bool findClipPresent;
+  SupportsFindClipboard(&findClipPresent);
+  if ( !selectClipPresent && !findClipPresent && aWhichClipboard != kGlobalClipboard )
     return NS_ERROR_FAILURE;
 
   if (mIgnoreEmptyNotification)
@@ -119,6 +126,13 @@ nsBaseClipboard::HasDataMatchingFlavors(const char** aFlavorList,
 
 NS_IMETHODIMP
 nsBaseClipboard::SupportsSelectionClipboard(bool* _retval)
+{
+  *_retval = false;   
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsBaseClipboard::SupportsFindClipboard(bool* _retval)
 {
   *_retval = false;   
   return NS_OK;
