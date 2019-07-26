@@ -71,7 +71,6 @@ public:
     , mDisplayPort(0, 0, 0, 0)
     , mCriticalDisplayPort(0, 0, 0, 0)
     , mViewport(0, 0, 0, 0)
-    , mScrollOffset(0, 0)
     , mScrollId(NULL_SCROLL_ID)
     , mScrollableRect(0, 0, 0, 0)
     , mResolution(1)
@@ -83,6 +82,7 @@ public:
     , mMayHaveTouchListeners(false)
     , mIsRoot(false)
     , mHasScrollgrab(false)
+    , mScrollOffset(0, 0)
     , mUpdateScrollOffset(false)
     , mScrollGeneration(0)
   {}
@@ -97,7 +97,6 @@ public:
            mDisplayPort.IsEqualEdges(aOther.mDisplayPort) &&
            mCriticalDisplayPort.IsEqualEdges(aOther.mCriticalDisplayPort) &&
            mViewport.IsEqualEdges(aOther.mViewport) &&
-           mScrollOffset == aOther.mScrollOffset &&
            mScrollId == aOther.mScrollId &&
            mScrollableRect.IsEqualEdges(aOther.mScrollableRect) &&
            mResolution == aOther.mResolution &&
@@ -106,6 +105,7 @@ public:
            mMayHaveTouchListeners == aOther.mMayHaveTouchListeners &&
            mPresShellId == aOther.mPresShellId &&
            mIsRoot == aOther.mIsRoot &&
+           mScrollOffset == aOther.mScrollOffset &&
            mHasScrollgrab == aOther.mHasScrollgrab &&
            mUpdateScrollOffset == aOther.mUpdateScrollOffset;
   }
@@ -139,7 +139,7 @@ public:
 
   LayerPoint GetScrollOffsetInLayerPixels() const
   {
-    return mScrollOffset * LayersPixelsPerCSSPixel();
+    return GetScrollOffset() * LayersPixelsPerCSSPixel();
   }
 
   LayoutDeviceToParentLayerScale GetParentResolution() const
@@ -192,6 +192,11 @@ public:
   CSSIntRect CalculateCompositedRectInCssPixels() const
   {
     return gfx::RoundedIn(mCompositionBounds / GetZoomToParent());
+  }
+
+  void ScrollBy(const CSSPoint& aPoint)
+  {
+    mScrollOffset += aPoint;
   }
 
   
@@ -259,23 +264,6 @@ public:
   CSSRect mViewport;
 
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  CSSPoint mScrollOffset;
-
-  
   ViewID mScrollId;
 
   
@@ -340,6 +328,16 @@ public:
   bool mHasScrollgrab;
 
 public:
+  void SetScrollOffset(const CSSPoint& aScrollOffset)
+  {
+    mScrollOffset = aScrollOffset;
+  }
+
+  const CSSPoint& GetScrollOffset() const
+  {
+    return mScrollOffset;
+  }
+
   void SetScrollOffsetUpdated(uint32_t aScrollGeneration)
   {
     mUpdateScrollOffset = true;
@@ -369,6 +367,23 @@ public:
 private:
   
   
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  CSSPoint mScrollOffset;
 
   
   

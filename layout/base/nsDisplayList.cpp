@@ -682,7 +682,7 @@ static void RecordFrameMetrics(nsIFrame* aForFrame,
     contentBounds.width += scrollableFrame->GetScrollPortRect().width;
     contentBounds.height += scrollableFrame->GetScrollPortRect().height;
     metrics.mScrollableRect = CSSRect::FromAppUnits(contentBounds);
-    metrics.mScrollOffset = CSSPoint::FromAppUnits(scrollPosition);
+    metrics.SetScrollOffset(CSSPoint::FromAppUnits(scrollPosition));
 
     
     
