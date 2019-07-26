@@ -241,16 +241,14 @@ pref("gfx.canvas.azure.enabled", true);
 
 
 pref("gfx.canvas.azure.backends", "direct2d,cairo");
+pref("gfx.content.azure.backend", "direct2d");
 pref("gfx.content.azure.enabled", true);
 #else
 #ifdef XP_MACOSX
 pref("gfx.canvas.azure.backends", "cg");
 #else
-#ifdef ANDROID
 pref("gfx.canvas.azure.backends", "cairo");
-#else
-pref("gfx.canvas.azure.backends", "cairo");
-#endif
+pref("gfx.content.azure.backend", "cairo");
 #endif
 #endif
 
