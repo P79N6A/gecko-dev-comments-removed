@@ -1470,9 +1470,9 @@ let CustomizableUIInternal = {
 
   isWidgetRemovable: function(aWidgetId) {
     let provider = this.getWidgetProvider(aWidgetId);
+
     if (provider == CustomizableUI.PROVIDER_API) {
-      
-      return true;
+      return gPalette.get(aWidgetId).removable;
     }
 
     if (provider == CustomizableUI.PROVIDER_XUL) {
