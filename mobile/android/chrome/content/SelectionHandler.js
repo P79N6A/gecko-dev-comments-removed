@@ -179,6 +179,12 @@ var SelectionHandler = {
     if ((aReason & Ci.nsISelectionListener.COLLAPSETOSTART_REASON) ||
         (aReason & Ci.nsISelectionListener.COLLAPSETOEND_REASON)) {
       this._closeSelection();
+      return;
+    }
+
+    
+    if (!aSelection.toString()) {
+      this._closeSelection();
     }
   },
 
@@ -476,7 +482,8 @@ var SelectionHandler = {
       if (selection) {
         
         selection.QueryInterface(Ci.nsISelectionPrivate).removeSelectionListener(this);
-        selection.removeAllRanges();
+        
+        selection.collapseToStart();
       }
     }
 
