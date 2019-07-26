@@ -504,16 +504,6 @@ AsyncPanZoomController::AsyncPanZoomController(uint64_t aLayersId,
 }
 
 AsyncPanZoomController::~AsyncPanZoomController() {
-  PCompositorParent* compositor = GetSharedFrameMetricsCompositor();
-
-  
-  if (compositor && mSharedFrameMetricsBuffer) {
-    unused << compositor->SendReleaseSharedCompositorFrameMetrics(mFrameMetrics.GetScrollId(), mAPZCId);
-  }
-
-  delete mSharedFrameMetricsBuffer;
-  delete mSharedLock;
-
   MOZ_COUNT_DTOR(AsyncPanZoomController);
 }
 
@@ -558,6 +548,20 @@ AsyncPanZoomController::Destroy()
   mLastChild = nullptr;
   mParent = nullptr;
   mTreeManager = nullptr;
+
+  PCompositorParent* compositor = GetSharedFrameMetricsCompositor();
+  
+  if (compositor && mSharedFrameMetricsBuffer) {
+    unused << compositor->SendReleaseSharedCompositorFrameMetrics(mFrameMetrics.GetScrollId(), mAPZCId);
+  }
+
+  { 
+    ReentrantMonitorAutoEnter lock(mMonitor);
+    delete mSharedFrameMetricsBuffer;
+    mSharedFrameMetricsBuffer = nullptr;
+    delete mSharedLock;
+    mSharedLock = nullptr;
+  }
 }
 
 bool
