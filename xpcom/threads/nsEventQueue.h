@@ -23,8 +23,7 @@ public:
   
   
   
-  
-  bool PutEvent(nsIRunnable *event);
+  void PutEvent(nsIRunnable *event);
 
   
   
@@ -42,11 +41,6 @@ public:
   
   bool GetPendingEvent(nsIRunnable **runnable) {
     return GetEvent(false, runnable);
-  }
-
-  
-  bool WaitPendingEvent(nsIRunnable **runnable) {
-    return GetEvent(true, runnable);
   }
 
   
@@ -73,7 +67,7 @@ private:
                 "sizeof(Page) should be a power of two to avoid heap slop.");
 
   static Page *NewPage() {
-    return static_cast<Page *>(calloc(1, sizeof(Page)));
+    return static_cast<Page *>(moz_xcalloc(1, sizeof(Page)));
   }
 
   static void FreePage(Page *p) {
