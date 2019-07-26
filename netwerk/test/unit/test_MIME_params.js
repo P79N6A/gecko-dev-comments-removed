@@ -266,11 +266,11 @@ var tests = [
   
   ["attachment; filename==?ISO-8859-1?Q?foo-=E4.html?=",
    "attachment", "foo-\u00e4.html",
-   "attachment", "=?ISO-8859-1?Q?foo-=E4.html?="],
+   ],
 
   ["attachment; filename=\"=?ISO-8859-1?Q?foo-=E4.html?=\"",
    "attachment", "foo-\u00e4.html",
-   "attachment", "=?ISO-8859-1?Q?foo-=E4.html?="],
+   ],
 
   
   ["attachment; filename=\"=?ISO-8859-1?Q?foo-=E4.html?=\"; filename*=UTF-8''5987",
