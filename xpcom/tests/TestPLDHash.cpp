@@ -99,7 +99,8 @@ static bool test_pldhash_grow_to_max_capacity()
   }
 
   
-  return numInserted == PL_DHASH_MAX_SIZE - (PL_DHASH_MAX_SIZE >> 2);
+  
+  return numInserted == PL_DHASH_MAX_SIZE - (PL_DHASH_MAX_SIZE >> 5);
 }
 
 

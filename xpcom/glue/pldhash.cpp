@@ -242,8 +242,15 @@ PL_DHashTableInit(PLDHashTable *table, const PLDHashTableOps *ops, void *data,
 
 
 
+
+
+
+
 static inline uint32_t MaxLoad(uint32_t size) {
     return size - (size >> 2);  
+}
+static inline uint32_t MaxLoadOnGrowthFailure(uint32_t size) {
+    return size - (size >> 5);  
 }
 static inline uint32_t MinLoad(uint32_t size) {
     return size >> 2;           
@@ -560,7 +567,14 @@ PL_DHashTableOperate(PLDHashTable *table, const void *key, PLDHashOperator op)
             }
 
             
-            if (!ChangeTable(table, deltaLog2)) {
+
+
+
+
+            if (!ChangeTable(table, deltaLog2) &&
+                table->entryCount + table->removedCount >=
+                    MaxLoadOnGrowthFailure(size))
+            {
                 METER(table->stats.addFailures++);
                 entry = nullptr;
                 break;
