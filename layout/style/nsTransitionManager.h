@@ -12,6 +12,7 @@
 #include "mozilla/MemoryReporting.h"
 #include "AnimationCommon.h"
 #include "nsCSSPseudoElements.h"
+#include "nsAnimationManager.h"
 
 class nsStyleContext;
 class nsPresContext;
@@ -23,20 +24,11 @@ struct ElementDependentRuleProcessorData;
 
 
 
-struct ElementPropertyTransition
+struct ElementPropertyTransition : public ElementAnimation
 {
   ElementPropertyTransition() 
     : mIsRunningOnCompositor(false)
   {}
-
-  nsCSSProperty mProperty;
-  nsStyleAnimation::Value mStartValue, mEndValue;
-  mozilla::TimeStamp mStartTime;
-  mozilla::TimeDuration mDelay;
-
-  
-  mozilla::TimeDuration mDuration;
-  mozilla::css::ComputedTimingFunction mTimingFunction;
 
   
   

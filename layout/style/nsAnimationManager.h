@@ -103,7 +103,10 @@ struct ElementAnimation
     return (IsPaused() ? mPauseStart : aTime) - mStartTime - mDelay;
   }
 
-  mozilla::TimeStamp mStartTime; 
+  
+  
+  
+  mozilla::TimeStamp mStartTime;
   mozilla::TimeStamp mPauseStart;
   mozilla::TimeDuration mDelay;
   mozilla::TimeDuration mIterationDuration;
