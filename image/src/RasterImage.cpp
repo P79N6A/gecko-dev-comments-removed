@@ -1589,10 +1589,11 @@ RasterImage::AddSourceData(const char *aBuffer, uint32_t aCount)
   
   
   if (!StoringSourceData() && mHasSize) {
-    mDecoder->SetSynchronous(true);
-    rv = WriteToDecoder(aBuffer, aCount);
-    mDecoder->SetSynchronous(false);
-    CONTAINER_ENSURE_SUCCESS(rv);
+    {
+      AutoSetSyncDecode syncDecode(mDecoder);
+      rv = WriteToDecoder(aBuffer, aCount);
+      CONTAINER_ENSURE_SUCCESS(rv);
+    }
 
     
     
@@ -1961,7 +1962,7 @@ RasterImage::StoringSourceData() const {
 
 
 nsresult
-RasterImage::InitDecoder(bool aDoSizeDecode, bool aIsSynchronous )
+RasterImage::InitDecoder(bool aDoSizeDecode)
 {
   
   NS_ABORT_IF_FALSE(!mDecoder, "Calling InitDecoder() while already decoding!");
@@ -2026,7 +2027,6 @@ RasterImage::InitDecoder(bool aDoSizeDecode, bool aIsSynchronous )
   mDecoder->SetObserver(mDecodeRequest->mStatusTracker->GetDecoderObserver());
   mDecoder->SetSizeDecode(aDoSizeDecode);
   mDecoder->SetDecodeFlags(mFrameDecodeFlags);
-  mDecoder->SetSynchronous(aIsSynchronous);
   if (!aDoSizeDecode) {
     
     
@@ -2313,14 +2313,8 @@ RasterImage::RequestDecodeCore(RequestDecodeType aDecodeType)
   
   if (!mDecoded && !mInDecoder && mHasSourceData && aDecodeType == SYNCHRONOUS_NOTIFY_AND_SOME_DECODE) {
     PROFILER_LABEL_PRINTF("RasterImage", "DecodeABitOf", "%s", GetURIString().get());
-    mDecoder->SetSynchronous(true);
-
+    AutoSetSyncDecode syncDecode(mDecoder);
     DecodePool::Singleton()->DecodeABitOf(this);
-
-    
-    if (mDecoder) {
-      mDecoder->SetSynchronous(false);
-    }
     return NS_OK;
   }
 
@@ -2398,15 +2392,17 @@ RasterImage::SyncDecode()
 
   
   if (!mDecoder) {
-    rv = InitDecoder( false,  true);
+    rv = InitDecoder( false);
     CONTAINER_ENSURE_SUCCESS(rv);
-  } else {
-    mDecoder->SetSynchronous(true);
   }
 
-  
-  rv = DecodeSomeData(mSourceData.Length() - mBytesDecoded);
-  CONTAINER_ENSURE_SUCCESS(rv);
+  {
+    AutoSetSyncDecode syncDecode(mDecoder);
+
+    
+    rv = DecodeSomeData(mSourceData.Length() - mBytesDecoded);
+    CONTAINER_ENSURE_SUCCESS(rv);
+  }
 
   
   
@@ -2419,11 +2415,9 @@ RasterImage::SyncDecode()
 
   rv = FinishedSomeDecoding();
   CONTAINER_ENSURE_SUCCESS(rv);
-
+  
+  
   if (mDecoder) {
-    mDecoder->SetSynchronous(false);
-
-    
     DecodePool::Singleton()->RequestDecode(this);
   }
 

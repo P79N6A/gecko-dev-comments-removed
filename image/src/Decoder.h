@@ -94,11 +94,6 @@ public:
     mSizeDecode = aSizeDecode;
   }
 
-  void SetSynchronous(bool aSynchronous)
-  {
-    mSynchronous = aSynchronous;
-  }
-
   bool IsSynchronous() const
   {
     return mSynchronous;
@@ -246,6 +241,17 @@ protected:
   bool mDataError;
 
 private:
+  
+  
+  
+  
+  void SetSynchronous(bool aSynchronous)
+  {
+    mSynchronous = aSynchronous;
+  }
+
+  friend class AutoSetSyncDecode;
+
   uint32_t mFrameCount; 
 
   nsIntRect mInvalidRect; 
@@ -283,6 +289,34 @@ private:
   bool mInFrame;
   bool mIsAnimated;
   bool mSynchronous;
+};
+
+
+
+
+
+
+class AutoSetSyncDecode
+{
+public:
+  AutoSetSyncDecode(Decoder* aDecoder)
+    : mDecoder(aDecoder)
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+    MOZ_ASSERT(mDecoder);
+
+    mOriginalValue = mDecoder->IsSynchronous();
+    mDecoder->SetSynchronous(true);
+  }
+
+  ~AutoSetSyncDecode()
+  {
+    mDecoder->SetSynchronous(mOriginalValue);
+  }
+
+private:
+  nsRefPtr<Decoder> mDecoder;
+  bool              mOriginalValue;
 };
 
 } 
