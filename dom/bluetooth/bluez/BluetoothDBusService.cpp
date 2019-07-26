@@ -331,6 +331,7 @@ static int sConnectedDeviceCount = 0;
 
 
 
+static StaticAutoPtr<Monitor> sGetPropertyMonitor;
 static StaticAutoPtr<Monitor> sStopBluetoothMonitor;
 
 
@@ -367,12 +368,14 @@ DispatchToBtThread(nsIRunnable* aRunnable)
 
 BluetoothDBusService::BluetoothDBusService()
 {
+  sGetPropertyMonitor = new Monitor("BluetoothService.sGetPropertyMonitor");
   sStopBluetoothMonitor = new Monitor("BluetoothService.sStopBluetoothMonitor");
 }
 
 BluetoothDBusService::~BluetoothDBusService()
 {
   sStopBluetoothMonitor = nullptr;
+  sGetPropertyMonitor = nullptr;
 }
 
 static bool
@@ -811,6 +814,14 @@ GetProperty(DBusMessageIter aIter, const Properties* aPropertyTypes,
             int aPropertyTypeLen, int* aPropIndex,
             InfallibleTArray<BluetoothNamedValue>& aProperties)
 {
+  
+
+
+
+
+
+  MonitorAutoLock lock(*sGetPropertyMonitor);
+
   DBusMessageIter prop_val, array_val_iter;
   char* property = nullptr;
   uint32_t array_type;
