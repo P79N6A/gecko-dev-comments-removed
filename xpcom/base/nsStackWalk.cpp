@@ -200,7 +200,7 @@ extern HANDLE hStackWalkMutex;
 
 bool EnsureSymInitialized();
 
-bool EnsureImageHlpInitialized();
+bool EnsureWalkThreadReady();
 
 struct WalkStackData {
   uint32_t skipFrames;
@@ -251,38 +251,59 @@ void PrintError(const char *prefix)
 }
 
 bool
-EnsureImageHlpInitialized()
+EnsureWalkThreadReady()
 {
-    static bool gInitialized = false;
+    static bool walkThreadReady = false;
+    static HANDLE stackWalkThread = nullptr;
+    static HANDLE readyEvent = nullptr;
 
-    if (gInitialized)
-        return gInitialized;
+    if (walkThreadReady)
+        return walkThreadReady;
+
+    if (stackWalkThread == nullptr) {
+        readyEvent = ::CreateEvent(nullptr, FALSE ,
+                                   FALSE ,
+                                   nullptr);
+        if (readyEvent == nullptr) {
+            PrintError("CreateEvent");
+            return false;
+        }
+
+        unsigned int threadID;
+        stackWalkThread = (HANDLE)
+            _beginthreadex(nullptr, 0, WalkStackThread, (void*)readyEvent,
+                           0, &threadID);
+        if (stackWalkThread == nullptr) {
+            PrintError("CreateThread");
+            ::CloseHandle(readyEvent);
+            readyEvent = nullptr;
+            return false;
+        }
+        gStackWalkThread = threadID;
+        ::CloseHandle(stackWalkThread);
+    }
+
+    MOZ_ASSERT((stackWalkThread != nullptr && readyEvent != nullptr) ||
+               (stackWalkThread == nullptr && readyEvent == nullptr));
 
     
     
-    
-    
-    
-    HANDLE readyEvent = ::CreateEvent(nullptr, FALSE ,
-                            FALSE , nullptr);
-    unsigned int threadID;
-    HANDLE hStackWalkThread = (HANDLE)
-      _beginthreadex(nullptr, 0, WalkStackThread, (void*)readyEvent,
-                     0, &threadID);
-    gStackWalkThread = threadID;
-    if (hStackWalkThread == nullptr) {
-        PrintError("CreateThread");
+    DWORD waitRet = ::WaitForSingleObject(readyEvent, 1000);
+    if (waitRet == WAIT_TIMEOUT) {
+        
+        
+        
+        
         return false;
     }
-    ::CloseHandle(hStackWalkThread);
-
-    
-    ::WaitForSingleObject(readyEvent, INFINITE);
     ::CloseHandle(readyEvent);
+    stackWalkThread = nullptr;
+    readyEvent = nullptr;
+
 
     ::InitializeCriticalSection(&gDbgHelpCS);
 
-    return gInitialized = true;
+    return walkThreadReady = true;
 }
 
 void
@@ -471,7 +492,7 @@ NS_StackWalk(NS_WalkStackCallback aCallback, uint32_t aSkipFrames,
     DWORD walkerReturn;
     struct WalkStackData data;
 
-    if (!EnsureImageHlpInitialized())
+    if (!EnsureWalkThreadReady())
         return NS_ERROR_FAILURE;
 
     HANDLE targetThread = ::GetCurrentThread();
@@ -703,7 +724,7 @@ EnsureSymInitialized()
     if (gInitialized)
         return gInitialized;
 
-    if (!EnsureImageHlpInitialized())
+    if (!EnsureWalkThreadReady())
         return false;
 
     SymSetOptions(SYMOPT_LOAD_LINES | SYMOPT_UNDNAME);
