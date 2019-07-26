@@ -2,6 +2,7 @@
 
 
 
+#include "mozilla/Assertions.h"
 #include "cpr_types.h"
 #include "cpr_stdlib.h"
 #include "cpr_stdio.h"
@@ -593,11 +594,19 @@ fim_process_event (void *data, boolean cac_passed)
 
 
     icb = call_chn->next_icb;
-    while (done != TRUE) {
+    MOZ_ASSERT(icb);
+    while (icb && !done) {
         
 
 
         cb_hdr = (fim_cb_hdr_t *) (icb->cb);
+
+        MOZ_ASSERT(cb_hdr);
+        if (!cb_hdr) {
+            done = TRUE;
+            break;
+        }
+
         event.data  = cb_hdr;
         event.state = cb_hdr->state;
         event.event = event_id;
