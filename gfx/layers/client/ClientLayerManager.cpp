@@ -296,6 +296,7 @@ ClientLayerManager::DidComposite(uint64_t aTransactionId)
   if (listener) {
     listener->DidCompositeWindow();
   }
+  mTransactionIdAllocator->NotifyTransactionCompleted(aTransactionId);
 }
 
 void
@@ -421,7 +422,7 @@ ClientLayerManager::ForwardTransaction(bool aScheduleComposite)
 {
   mPhase = PHASE_FORWARD;
 
-  uint64_t pendingTransactionId = 1;
+  uint64_t pendingTransactionId = mTransactionIdAllocator->GetTransactionId();
 
   
   bool sent;
@@ -480,6 +481,12 @@ ClientLayerManager::ForwardTransaction(bool aScheduleComposite)
 
     if (sent) {
       mNeedsComposite = false;
+    }
+    if (!sent || mForwarder->GetShadowManager()->HasNoCompositor()) {
+      
+      
+      
+      mTransactionIdAllocator->RevokeTransactionId(pendingTransactionId);
     }
   } else if (HasShadowManager()) {
     NS_WARNING("failed to forward Layers transaction");
