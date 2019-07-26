@@ -36,12 +36,32 @@ public:
     CLOSE,
     BUILD_OR_UPDATE_INDEX,
     EVICT,
-    LAST_LEVEL
+    LAST_LEVEL,
+
+    
+    
+    
+    XPCOM_LEVEL
   };
 
   nsresult Init();
   nsresult Dispatch(nsIRunnable* aRunnable, uint32_t aLevel);
   bool IsCurrentThread();
+
+  
+
+
+
+
+
+
+
+
+  static bool YieldAndRerun()
+  {
+    return sSelf ? sSelf->YieldInternal() : false;
+  }
+
   nsresult Shutdown();
   already_AddRefed<nsIEventTarget> Target();
 
@@ -54,14 +74,19 @@ private:
   void ThreadFunc();
   void LoopOneLevel(uint32_t aLevel);
   bool EventsPending(uint32_t aLastLevel = LAST_LEVEL);
+  bool YieldInternal();
+
+  static CacheIOThread* sSelf;
 
   mozilla::Monitor mMonitor;
   PRThread* mThread;
   nsCOMPtr<nsIThread> mXPCOMThread;
   uint32_t mLowestLevelWaiting;
+  uint32_t mCurrentlyExecutingLevel;
   nsTArray<nsRefPtr<nsIRunnable> > mEventQueue[LAST_LEVEL];
 
   bool mHasXPCOMEvents;
+  bool mRerunCurrentEvent;
   bool mShutdown;
 };
 
