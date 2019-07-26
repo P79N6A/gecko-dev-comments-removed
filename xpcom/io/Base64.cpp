@@ -163,7 +163,8 @@ EncodeInputStream(nsIInputStream *aInputStream,
 
   if (!aCount) {
     rv = aInputStream->Available(&count64);
-    NS_ENSURE_SUCCESS(rv, rv);
+    if (NS_WARN_IF(NS_FAILED(rv)))
+      return rv;
     
     
     aCount = (uint32_t)count64;
