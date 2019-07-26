@@ -707,10 +707,10 @@ public:
 
 class StackTrace
 {
-  static const uint32_t MaxDepth = 24;
+  static const uint32_t MaxFrames = 24;
 
   uint32_t mLength;             
-  void* mPcs[MaxDepth];         
+  void* mPcs[MaxFrames];        
 
 public:
   StackTrace() : mLength(0) {}
@@ -751,13 +751,9 @@ private:
   static void StackWalkCallback(void* aPc, void* aSp, void* aClosure)
   {
     StackTrace* st = (StackTrace*) aClosure;
-
-    
-    
-    if (st->mLength < MaxDepth) {
-      st->mPcs[st->mLength] = aPc;
-      st->mLength++;
-    }
+    MOZ_ASSERT(st->mLength < MaxFrames);
+    st->mPcs[st->mLength] = aPc;
+    st->mLength++;
   }
 
   static int QsortCmp(const void* aA, const void* aB)
@@ -778,7 +774,7 @@ void
 StackTrace::Print(const Writer& aWriter, LocationService* aLocService) const
 {
   if (mLength == 0) {
-    W("   (empty)\n");
+    W("   (empty)\n");  
     return;
   }
 
@@ -800,17 +796,33 @@ StackTrace::Get(Thread* aT)
   
   
   
+  nsresult rv;
   StackTrace tmp;
   {
     AutoUnlockState unlock;
+    uint32_t skipFrames = 2;
+    rv = NS_StackWalk(StackWalkCallback, skipFrames, MaxFrames, &tmp, 0,
+                      nullptr);
+  }
+
+  if (rv == NS_OK) {
+    
+  } else if (rv == NS_ERROR_NOT_IMPLEMENTED || rv == NS_ERROR_FAILURE) {
+    tmp.mLength = 0;
+  } else if (rv == NS_ERROR_UNEXPECTED) {
     
     
     
-    uint32_t skip = 2;
-    nsresult rv = NS_StackWalk(StackWalkCallback, skip, &tmp, 0, nullptr);
-    if (NS_FAILED(rv) || tmp.mLength == 0) {
-      tmp.mLength = 0;
-    }
+    
+    
+    
+    
+    
+    
+    
+    MOZ_CRASH();
+  } else {
+    MOZ_CRASH();  
   }
 
   StackTraceTable::AddPtr p = gStackTraceTable->lookupForAdd(&tmp);
@@ -1670,7 +1682,8 @@ Init(const malloc_table_t* aMallocTable)
   
   
   
-  (void)NS_StackWalk(NopStackWalkCallback, 0, nullptr, 0, nullptr);
+  (void)NS_StackWalk(NopStackWalkCallback,  0,
+                      1, nullptr, 0, nullptr);
 #endif
 
   gStateLock = InfallibleAllocPolicy::new_<Mutex>();

@@ -914,7 +914,7 @@ stack_callback(void *pc, void *sp, void *closure)
 
 
 static callsite *
-backtrace(tm_thread *t, int skip, int *immediate_abort)
+backtrace(tm_thread *t, int skipFrames, int *immediate_abort)
 {
     callsite *site;
     stack_buffer_info *info = &t->backtrace_buf;
@@ -929,7 +929,8 @@ backtrace(tm_thread *t, int skip, int *immediate_abort)
         
 
         info->entries = 0;
-        rv = NS_StackWalk(stack_callback, skip, info, 0, NULL);
+        rv = NS_StackWalk(stack_callback, skipFrames,  0, info,
+                          0, NULL);
         *immediate_abort = rv == NS_ERROR_UNEXPECTED;
         if (rv == NS_ERROR_UNEXPECTED || info->entries == 0) {
             t->suppress_tracing--;
@@ -962,9 +963,13 @@ backtrace(tm_thread *t, int skip, int *immediate_abort)
 
 
         
-        
+
+
+
+
         info->entries = 0;
-        rv = NS_StackWalk(stack_callback, skip, info, 0, NULL);
+        rv = NS_StackWalk(stack_callback, skipFrames,  0, info,
+                          0, NULL);
         *immediate_abort = rv == NS_ERROR_UNEXPECTED;
         if (rv == NS_ERROR_UNEXPECTED || info->entries == 0) {
             t->suppress_tracing--;
@@ -988,7 +993,8 @@ backtrace(tm_thread *t, int skip, int *immediate_abort)
 
             
             info->entries = 0;
-            NS_StackWalk(stack_callback, skip, info, 0, NULL);
+            NS_StackWalk(stack_callback, skipFrames,  0, info,
+                         0, NULL);
 
             
             PR_ASSERT(info->entries * 2 == new_stack_buffer_size);

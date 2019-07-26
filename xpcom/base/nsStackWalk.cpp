@@ -102,7 +102,8 @@ my_malloc_logger(uint32_t type, uintptr_t arg1, uintptr_t arg2, uintptr_t arg3,
   
   const char *name = OnSnowLeopardOrLater() ? "new_sem_from_pool" :
     "pthread_cond_wait$UNIX2003";
-  NS_StackWalk(stack_callback, 0, const_cast<char*>(name), 0, nullptr);
+  NS_StackWalk(stack_callback,  0,  0,
+               const_cast<char*>(name), 0, nullptr);
 }
 
 
@@ -216,6 +217,7 @@ struct WalkStackData {
   void **pcs;
   uint32_t pc_size;
   uint32_t pc_count;
+  uint32_t pc_max;
   void **sps;
   uint32_t sp_size;
   uint32_t sp_count;
@@ -393,6 +395,9 @@ WalkStackMain64(struct WalkStackData* data)
             data->sps[data->sp_count] = (void*)spaddr;
         ++data->sp_count;
 
+        if (data->pc_max != 0 && data->pc_count == data->pc_max)
+            break;
+
         if (frame64.AddrReturn.Offset == 0)
             break;
     }
@@ -462,7 +467,8 @@ WalkStackThread(void* aData)
 
 EXPORT_XPCOM_API(nsresult)
 NS_StackWalk(NS_WalkStackCallback aCallback, uint32_t aSkipFrames,
-             void *aClosure, uintptr_t aThread, void *aPlatformData)
+             uint32_t aMaxFrames, void *aClosure, uintptr_t aThread,
+             void *aPlatformData)
 {
     StackWalkInitCriticalAddress();
     static HANDLE myProcess = NULL;
@@ -471,7 +477,7 @@ NS_StackWalk(NS_WalkStackCallback aCallback, uint32_t aSkipFrames,
     struct WalkStackData data;
 
     if (!EnsureImageHlpInitialized())
-        return NS_OK;
+        return NS_ERROR_FAILURE;
 
     HANDLE targetThread = ::GetCurrentThread();
     data.walkCallingThread = true;
@@ -517,10 +523,11 @@ NS_StackWalk(NS_WalkStackCallback aCallback, uint32_t aSkipFrames,
     data.pcs = local_pcs;
     data.pc_count = 0;
     data.pc_size = ArrayLength(local_pcs);
+    data.pc_max = aMaxFrames;
     void *local_sps[1024];
     data.sps = local_sps;
     data.sp_count = 0;
-    data.sp_size = ArrayLength(local_pcs);
+    data.sp_size = ArrayLength(local_sps);
     data.platformData = aPlatformData;
 
     if (aThread) {
@@ -572,7 +579,7 @@ NS_StackWalk(NS_WalkStackCallback aCallback, uint32_t aSkipFrames,
     for (uint32_t i = 0; i < data.pc_count; ++i)
         (*aCallback)(data.pcs[i], data.sps[i], aClosure);
 
-    return NS_OK;
+    return data.pc_count == 0 ? NS_ERROR_FAILURE : NS_OK;
 }
 
 
@@ -898,6 +905,8 @@ struct bucket {
 struct my_user_args {
     NS_WalkStackCallback callback;
     uint32_t skipFrames;
+    uint32_t maxFrames;
+    uint32_t numFrames;
     void *closure;
 };
 
@@ -931,7 +940,7 @@ myinit()
 
 
 static int
-load_address(void * pc, void * arg )
+load_address(void * pc, void * arg)
 {
     static struct bucket table[2048];
     static mutex_t lock;
@@ -949,15 +958,19 @@ load_address(void * pc, void * arg )
         ptr = ptr->next;
     }
 
+    int stop = 0;
     if (ptr->next) {
         mutex_unlock(&lock);
     } else {
         (args->callback)(pc, args->closure);
+        args->numFrames++;
+        if (args->maxFrames != 0 && args->numFrames == args->maxFrames)
+          stop = 1;   
 
         ptr->next = newbucket(pc);
         mutex_unlock(&lock);
     }
-    return 0;
+    return stop;
 }
 
 
@@ -1020,7 +1033,8 @@ cs_operate(int (*operate_func)(void *, void *, void *), void * usrarg)
 
 EXPORT_XPCOM_API(nsresult)
 NS_StackWalk(NS_WalkStackCallback aCallback, uint32_t aSkipFrames,
-             void *aClosure, uintptr_t aThread, void *aPlatformData)
+             uint32_t aMaxFrames, void *aClosure, uintptr_t aThread,
+             void *aPlatformData)
 {
     MOZ_ASSERT(!aThread);
     MOZ_ASSERT(!aPlatformData);
@@ -1033,9 +1047,11 @@ NS_StackWalk(NS_WalkStackCallback aCallback, uint32_t aSkipFrames,
 
     args.callback = aCallback;
     args.skipFrames = aSkipFrames; 
+    args.maxFrames = aMaxFrames;
+    args.numFrames = 0;
     args.closure = aClosure;
     cs_operate(load_address, &args);
-    return NS_OK;
+    return args.numFrames == 0 ? NS_ERROR_FAILURE : NS_OK;
 }
 
 EXPORT_XPCOM_API(nsresult)
@@ -1100,11 +1116,13 @@ extern void *__libc_stack_end;
 namespace mozilla {
 nsresult
 FramePointerStackWalk(NS_WalkStackCallback aCallback, uint32_t aSkipFrames,
-                      void *aClosure, void **bp, void *aStackEnd)
+                      uint32_t aMaxFrames, void *aClosure, void **bp,
+                      void *aStackEnd)
 {
   
 
-  int skip = aSkipFrames;
+  int32_t skip = aSkipFrames;
+  uint32_t numFrames = 0;
   while (1) {
     void **next = (void**)*bp;
     
@@ -1136,10 +1154,13 @@ FramePointerStackWalk(NS_WalkStackCallback aCallback, uint32_t aSkipFrames,
       
       
       (*aCallback)(pc, bp, aClosure);
+      numFrames++;
+      if (aMaxFrames != 0 && numFrames == aMaxFrames)
+        break;
     }
     bp = next;
   }
-  return NS_OK;
+  return numFrames == 0 ? NS_ERROR_FAILURE : NS_OK;
 }
 
 }
@@ -1149,7 +1170,8 @@ FramePointerStackWalk(NS_WalkStackCallback aCallback, uint32_t aSkipFrames,
 
 EXPORT_XPCOM_API(nsresult)
 NS_StackWalk(NS_WalkStackCallback aCallback, uint32_t aSkipFrames,
-             void *aClosure, uintptr_t aThread, void *aPlatformData)
+             uint32_t aMaxFrames, void *aClosure, uintptr_t aThread,
+             void *aPlatformData)
 {
   MOZ_ASSERT(!aThread);
   MOZ_ASSERT(!aPlatformData);
@@ -1172,7 +1194,7 @@ NS_StackWalk(NS_WalkStackCallback aCallback, uint32_t aSkipFrames,
 #else
   stackEnd = reinterpret_cast<void*>(-1);
 #endif
-  return FramePointerStackWalk(aCallback, aSkipFrames,
+  return FramePointerStackWalk(aCallback, aSkipFrames, aMaxFrames,
                                aClosure, bp, stackEnd);
 
 }
@@ -1188,6 +1210,9 @@ NS_StackWalk(NS_WalkStackCallback aCallback, uint32_t aSkipFrames,
 struct unwind_info {
     NS_WalkStackCallback callback;
     int skip;
+    int maxFrames;
+    int numFrames;
+    bool isCriticalAbort;
     void *closure;
 };
 
@@ -1199,19 +1224,27 @@ unwind_callback (struct _Unwind_Context *context, void *closure)
     
     if (IsCriticalAddress(pc)) {
         printf("Aborting stack trace, PC is critical\n");
+        info->isCriticalAbort = true;
         
-
-
+        
+        
         return _URC_FOREIGN_EXCEPTION_CAUGHT;
     }
-    if (--info->skip < 0)
+    if (--info->skip < 0) {
         (*info->callback)(pc, NULL, info->closure);
+        info->numFrames++;
+        if (info->maxFrames != 0 && info->numFrames == info->maxFrames) {
+            
+            return _URC_FOREIGN_EXCEPTION_CAUGHT;
+        }
+    }
     return _URC_NO_REASON;
 }
 
 EXPORT_XPCOM_API(nsresult)
 NS_StackWalk(NS_WalkStackCallback aCallback, uint32_t aSkipFrames,
-             void *aClosure, uintptr_t aThread, void *aPlatformData)
+             uint32_t aMaxFrames, void *aClosure, uintptr_t aThread,
+             void *aPlatformData)
 {
     MOZ_ASSERT(!aThread);
     MOZ_ASSERT(!aPlatformData);
@@ -1219,21 +1252,24 @@ NS_StackWalk(NS_WalkStackCallback aCallback, uint32_t aSkipFrames,
     unwind_info info;
     info.callback = aCallback;
     info.skip = aSkipFrames + 1;
+    info.maxFrames = aMaxFrames;
+    info.numFrames = 0;
+    info.isCriticalAbort = false;
     info.closure = aClosure;
 
-    _Unwind_Reason_Code t = _Unwind_Backtrace(unwind_callback, &info);
-#if defined(ANDROID) && defined(__arm__)
+    (void)_Unwind_Backtrace(unwind_callback, &info);
+
     
     
     
     
     
     
-#else
-    if (t != _URC_END_OF_STACK)
+    
+    
+    if (info.isCriticalAbort)
         return NS_ERROR_UNEXPECTED;
-#endif
-    return NS_OK;
+    return info.numFrames == 0 ? NS_ERROR_FAILURE : NS_OK;
 }
 
 #endif
@@ -1300,7 +1336,8 @@ NS_FormatCodeAddressDetails(void *aPC, const nsCodeAddressDetails *aDetails,
 
 EXPORT_XPCOM_API(nsresult)
 NS_StackWalk(NS_WalkStackCallback aCallback, uint32_t aSkipFrames,
-             void *aClosure, uintptr_t aThread, void *aPlatformData)
+             uint32_t aMaxFrames, void *aClosure, uintptr_t aThread,
+             void *aPlatformData)
 {
     MOZ_ASSERT(!aThread);
     MOZ_ASSERT(!aPlatformData);
