@@ -212,7 +212,7 @@ bool ParseFormat4(ots::OpenTypeFile *file, int platform, int encoding,
   
   
   
-  for (unsigned i = 1; i < segcount; ++i) {
+  for (unsigned i = 0; i < segcount; ++i) {
     for (unsigned cp = ranges[i].start_range; cp <= ranges[i].end_range; ++cp) {
       const uint16_t code_point = cp;
       if (ranges[i].id_range_offset == 0) {

@@ -394,7 +394,12 @@ bool ParseCoverageFormat2(const uint8_t *data, size_t length,
         !subtable.ReadU16(&start_coverage_index)) {
       return OTS_FAILURE();
     }
-    if (start > end || (last_end && start <= last_end)) {
+
+    
+    
+    
+    
+    if (start > end || (last_end && start < last_end)) {
       OTS_WARNING("glyph range is overlapping.");
       return OTS_FAILURE();
     }
