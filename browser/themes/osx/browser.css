@@ -2506,11 +2506,6 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
   opacity: .7;
 }
 
-.tabbrowser-tab:not([pinned]):not([fadein]) {
-  transition: min-width 200ms ease-out ,
-              max-width 230ms ease-out ;
-}
-
 .tabbrowser-tab,
 .tabs-newtab-button {
   font: message-box;
