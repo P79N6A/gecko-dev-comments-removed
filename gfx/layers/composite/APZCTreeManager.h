@@ -155,6 +155,11 @@ public:
 
 
 
+
+
+
+
+
   nsEventStatus ReceiveInputEvent(const nsInputEvent& aEvent,
                                   nsInputEvent* aOutEvent);
 
@@ -282,6 +287,10 @@ private:
   AsyncPanZoomController* GetAPZCAtPoint(AsyncPanZoomController* aApzc, const gfxPoint& aHitTestPoint);
   AsyncPanZoomController* CommonAncestor(AsyncPanZoomController* aApzc1, AsyncPanZoomController* aApzc2);
   AsyncPanZoomController* RootAPZCForLayersId(AsyncPanZoomController* aApzc);
+  AsyncPanZoomController* GetTouchInputBlockAPZC(const nsTouchEvent& aEvent, ScreenPoint aPoint);
+  nsEventStatus ProcessTouchEvent(const nsTouchEvent& touchEvent, nsTouchEvent* aOutEvent);
+  nsEventStatus ProcessMouseEvent(const nsMouseEvent& mouseEvent, nsMouseEvent* aOutEvent);
+  nsEventStatus ProcessEvent(const nsInputEvent& inputEvent, nsInputEvent* aOutEvent);
 
   
 
