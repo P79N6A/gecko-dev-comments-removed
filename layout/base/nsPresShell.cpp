@@ -5851,6 +5851,8 @@ PresShell::Paint(nsView*        aViewToPaint,
     mIsFirstPaint = false;
   }
 
+  layerManager->BeginTransaction();
+
   if (frame && isRetainingManager) {
     
     
@@ -5858,14 +5860,12 @@ PresShell::Paint(nsView*        aViewToPaint,
     
     
     
+
     if (!(aFlags & PAINT_LAYERS)) {
-      layerManager->BeginTransaction();
       if (layerManager->EndEmptyTransaction()) {
         return;
       }
       NS_WARNING("Must complete empty transaction when compositing!");
-    } else {
-      layerManager->BeginTransaction();
     }
 
     if (!(frame->GetStateBits() & NS_FRAME_UPDATE_LAYER_TREE) &&
@@ -5908,8 +5908,6 @@ PresShell::Paint(nsView*        aViewToPaint,
       }
     }
     frame->RemoveStateBits(NS_FRAME_UPDATE_LAYER_TREE);
-  } else {
-    layerManager->BeginTransaction();
   }
   if (frame) {
     frame->ClearPresShellsFromLastPaint();
