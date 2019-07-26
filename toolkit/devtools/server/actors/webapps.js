@@ -185,7 +185,8 @@ WebappsActor.prototype = {
         }
       });
       
-      aDir.remove(true);
+      if (aDir.exists())
+        aDir.remove(true);
     });
   },
 
