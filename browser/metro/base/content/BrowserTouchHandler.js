@@ -27,7 +27,7 @@ const BrowserTouchHandler = {
                         target: aMessage.target };
     
     if (!InputSourceHelper.isPrecise) {
-      if (SelectionHelperUI.isActive()) {
+      if (SelectionHelperUI.isActive) {
         
         if (aMessage.json.types.indexOf("selected-text") != -1) {
           
