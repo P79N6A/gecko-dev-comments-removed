@@ -51,6 +51,13 @@ public:
 
   virtual bool GetMuted(AudioChannelType aType, bool aElementHidden);
 
+  
+
+
+#ifdef MOZ_WIDGET_GONK
+  void SetPhoneInCall(bool aActive);
+#endif
+
 protected:
   void Notify();
 
