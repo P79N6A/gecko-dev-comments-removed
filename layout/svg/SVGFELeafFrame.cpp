@@ -47,8 +47,6 @@ public:
   }
 #endif
 
-  virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext);
-
   
 
 
@@ -73,13 +71,6 @@ NS_NewSVGFELeafFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 }
 
 NS_IMPL_FRAMEARENA_HELPERS(SVGFELeafFrame)
-
- void
-SVGFELeafFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
-{
-  SVGFELeafFrameBase::DidSetStyleContext(aOldStyleContext);
-  nsSVGEffects::InvalidateRenderingObservers(this);
-}
 
 #ifdef DEBUG
 void
