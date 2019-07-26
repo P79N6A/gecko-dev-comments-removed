@@ -20,7 +20,7 @@ namespace layers {
 
 
 bool
-ISurfaceAllocator::PlatformAllocSurfaceDescriptor(const gfxIntSize&,
+ISurfaceAllocator::PlatformAllocSurfaceDescriptor(const gfx::IntSize&,
                                                   gfxContentType,
                                                   uint32_t,
                                                   SurfaceDescriptor*)

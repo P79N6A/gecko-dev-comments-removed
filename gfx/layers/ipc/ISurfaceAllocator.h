@@ -9,9 +9,9 @@
 #include <stddef.h>                     
 #include <stdint.h>                     
 #include "gfxTypes.h"
-#include "gfxPoint.h"                   
 #include "mozilla/ipc/SharedMemory.h"   
 #include "mozilla/WeakPtr.h"
+#include "mozilla/gfx/Point.h"
 
 
 
@@ -96,15 +96,15 @@ ISurfaceAllocator() {}
   virtual void DeallocShmem(ipc::Shmem& aShmem) = 0;
 
   
-  virtual bool AllocSharedImageSurface(const gfxIntSize& aSize,
+  virtual bool AllocSharedImageSurface(const gfx::IntSize& aSize,
                                        gfxContentType aContent,
                                        gfxSharedImageSurface** aBuffer);
-  virtual bool AllocSurfaceDescriptor(const gfxIntSize& aSize,
+  virtual bool AllocSurfaceDescriptor(const gfx::IntSize& aSize,
                                       gfxContentType aContent,
                                       SurfaceDescriptor* aBuffer);
 
   
-  virtual bool AllocSurfaceDescriptorWithCaps(const gfxIntSize& aSize,
+  virtual bool AllocSurfaceDescriptorWithCaps(const gfx::IntSize& aSize,
                                               gfxContentType aContent,
                                               uint32_t aCaps,
                                               SurfaceDescriptor* aBuffer);
@@ -112,7 +112,7 @@ ISurfaceAllocator() {}
   virtual void DestroySharedSurface(SurfaceDescriptor* aSurface);
 
   
-  virtual PGrallocBufferChild* AllocGrallocBuffer(const gfxIntSize& aSize,
+  virtual PGrallocBufferChild* AllocGrallocBuffer(const gfx::IntSize& aSize,
                                                   uint32_t aFormat,
                                                   uint32_t aUsage,
                                                   MaybeMagicGrallocBufferHandle* aHandle)
@@ -124,7 +124,7 @@ protected:
   
   virtual bool IsOnCompositorSide() const = 0;
   static bool PlatformDestroySharedSurface(SurfaceDescriptor* aSurface);
-  virtual bool PlatformAllocSurfaceDescriptor(const gfxIntSize& aSize,
+  virtual bool PlatformAllocSurfaceDescriptor(const gfx::IntSize& aSize,
                                               gfxContentType aContent,
                                               uint32_t aCaps,
                                               SurfaceDescriptor* aBuffer);
