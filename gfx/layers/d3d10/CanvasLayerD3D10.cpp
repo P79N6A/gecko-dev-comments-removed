@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include "CanvasLayerD3D10.h"
 
@@ -72,8 +72,8 @@ CanvasLayerD3D10::Initialize(const Data& aData)
       return;
     } 
     
-    // XXX we should store mDrawTarget and use it directly in UpdateSurface,
-    // bypassing Thebes
+    
+    
     mSurface = gfxPlatform::GetPlatform()->GetThebesSurfaceForDrawTarget(mDrawTarget);
   } else {
     NS_ERROR("CanvasLayer created without mSurface, mDrawTarget or mGLContext?");
@@ -95,7 +95,7 @@ CanvasLayerD3D10::Initialize(const Data& aData)
 
   mIsD2DTexture = false;
 
-  // Create a texture in case we need to readback.
+  
   CD3D10_TEXTURE2D_DESC desc(DXGI_FORMAT_B8G8R8A8_UNORM, mBounds.width, mBounds.height, 1, 1);
   desc.Usage = D3D10_USAGE_DYNAMIC;
   desc.CPUAccessFlags = D3D10_CPU_ACCESS_WRITE;
@@ -137,7 +137,7 @@ CanvasLayerD3D10::UpdateSurface()
       }
       case SharedSurfaceType::Basic: {
         SharedSurface_Basic* shareSurf = SharedSurface_Basic::Cast(surf);
-        // WebGL reads entire surface.
+        
         D3D10_MAPPED_TEXTURE2D map;
 
         HRESULT hr = mTexture->Map(0, D3D10_MAP_WRITE_DISCARD, 0, &map);
@@ -148,7 +148,7 @@ CanvasLayerD3D10::UpdateSurface()
         }
 
         gfxImageSurface* frameData = shareSurf->GetData();
-        // Scope for gfxContext, so it's destroyed before Unmap.
+        
         {
           nsRefPtr<gfxImageSurface> mapSurf = 
               new gfxImageSurface((uint8_t*)map.pData,
@@ -170,7 +170,7 @@ CanvasLayerD3D10::UpdateSurface()
       }
 
       default:
-        MOZ_NOT_REACHED("Unhandled SharedSurfaceType.");
+        MOZ_CRASH("Unhandled SharedSurfaceType.");
         return;
     }
   } else if (mSurface) {
@@ -264,5 +264,5 @@ CanvasLayerD3D10::RenderLayer()
   }
 }
 
-} /* namespace layers */
-} /* namespace mozilla */
+} 
+} 

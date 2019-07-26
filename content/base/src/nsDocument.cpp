@@ -8475,7 +8475,7 @@ nsDocument::MaybePreLoadImage(nsIURI* uri, const nsAString &aCrossOriginAttr)
     break;
   default:
     
-    MOZ_NOT_REACHED("Unknown CORS mode!");
+    MOZ_CRASH("Unknown CORS mode!");
   }
 
   
@@ -11148,7 +11148,7 @@ nsDocument::SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const
   
   
   
-  MOZ_NOT_REACHED("nsDocument::SizeOfExcludingThis");
+  MOZ_CRASH("nsDocument::SizeOfExcludingThis");
   return 0;
 }
 

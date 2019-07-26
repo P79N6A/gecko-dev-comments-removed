@@ -74,7 +74,7 @@ public:
   
   virtual void OnFileCanWriteWithoutBlocking(int aFd)
   {
-    MOZ_NOT_REACHED("Must not write to fanotify fd");
+    MOZ_CRASH("Must not write to fanotify fd");
     MOZ_CRASH();
   }
 

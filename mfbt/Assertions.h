@@ -366,7 +366,7 @@ __declspec(noreturn) __inline void MOZ_NoReturn() {}
 
 
 #if defined(__clang__)
-#  define MOZ_NOT_REACHED_MARKER() __builtin_unreachable()
+#  define MOZ_CRASH_MARKER() __builtin_unreachable()
 #elif defined(__GNUC__)
    
 
@@ -374,21 +374,21 @@ __declspec(noreturn) __inline void MOZ_NoReturn() {}
 
 
 #  if MOZ_GCC_VERSION_AT_LEAST(4, 5, 0)
-#    define MOZ_NOT_REACHED_MARKER() __builtin_unreachable()
+#    define MOZ_CRASH_MARKER() __builtin_unreachable()
 #  else
 #    ifdef __cplusplus
-#      define MOZ_NOT_REACHED_MARKER() ::abort()
+#      define MOZ_CRASH_MARKER() ::abort()
 #    else
-#      define MOZ_NOT_REACHED_MARKER() abort()
+#      define MOZ_CRASH_MARKER() abort()
 #    endif
 #  endif
 #elif defined(_MSC_VER)
-#  define MOZ_NOT_REACHED_MARKER() __assume(0)
+#  define MOZ_CRASH_MARKER() __assume(0)
 #else
 #  ifdef __cplusplus
-#    define MOZ_NOT_REACHED_MARKER() ::abort()
+#    define MOZ_CRASH_MARKER() ::abort()
 #  else
-#    define MOZ_NOT_REACHED_MARKER() abort()
+#    define MOZ_CRASH_MARKER() abort()
 #  endif
 #endif
 
@@ -410,13 +410,13 @@ __declspec(noreturn) __inline void MOZ_NoReturn() {}
 
 
 #if defined(DEBUG)
-#  define MOZ_NOT_REACHED(reason) \
+#  define MOZ_CRASH(reason) \
      do { \
        MOZ_ASSERT(false, reason); \
-       MOZ_NOT_REACHED_MARKER(); \
+       MOZ_CRASH_MARKER(); \
      } while (0)
 #else
-#  define MOZ_NOT_REACHED(reason)  MOZ_NOT_REACHED_MARKER()
+#  define MOZ_CRASH(reason)  MOZ_CRASH_MARKER()
 #endif
 
 
