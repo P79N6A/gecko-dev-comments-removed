@@ -282,8 +282,18 @@ EnableUniversalXPConnect(JSContext *cx)
 
     
     
-    return js::RecomputeWrappers(cx, js::SingleCompartment(compartment),
-                                 js::AllCompartments());
+    bool ok = js::RecomputeWrappers(cx, js::SingleCompartment(compartment),
+                                    js::AllCompartments());
+    NS_ENSURE_TRUE(ok, false);
+
+    
+    
+    
+    XPCWrappedNativeScope *scope = priv->scope;
+    if (!scope)
+        return true;
+    XPCCallContext ccx(NATIVE_CALLER, cx);
+    return nsXPCComponents::AttachComponentsObject(ccx, scope);
 }
 
 }
