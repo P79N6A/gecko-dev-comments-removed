@@ -10,11 +10,12 @@
 #include "nsCOMPtr.h"
 #include "nsAString.h"
 
-namespace mozilla
-{
+namespace mozilla {
 
+class AbstractMediaDecoder;
 class MediaDecoder;
 class MediaDecoderOwner;
+class MediaDecoderReader;
 
 enum CanPlayStatus {
   CANPLAY_NO,
@@ -83,6 +84,11 @@ public:
   
   static already_AddRefed<MediaDecoder> CreateDecoder(const nsACString& aType,
                                                       MediaDecoderOwner* aOwner);
+
+  
+  
+  static MediaDecoderReader* CreateReader(const nsACString& aType,
+                                          AbstractMediaDecoder* aDecoder);
 
   
   
