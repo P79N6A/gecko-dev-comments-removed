@@ -9,7 +9,6 @@
 #include <stddef.h>                     
 #include <stdint.h>                     
 #include "ImageTypes.h"                 
-#include "gfxPoint.h"                   
 #include "mozilla/Attributes.h"         
 #include "mozilla/RefPtr.h"             
 #include "mozilla/gfx/Point.h"          
@@ -58,12 +57,12 @@ public:
   
 
 
-  gfxIntSize GetYSize();
+  gfx::IntSize GetYSize();
 
   
 
 
-  gfxIntSize GetCbCrSize();
+  gfx::IntSize GetCbCrSize();
 
   
 
@@ -105,8 +104,6 @@ public:
 
   static size_t ComputeMinBufferSize(const gfx::IntSize& aYSize,
                                      const gfx::IntSize& aCbCrSize);
-  static size_t ComputeMinBufferSize(const gfxIntSize& aYSize,
-                                     const gfxIntSize& aCbCrSize);
   static size_t ComputeMinBufferSize(uint32_t aSize);
 
   
@@ -123,14 +120,10 @@ public:
   void InitializeBufferInfo(const gfx::IntSize& aYSize,
                             const gfx::IntSize& aCbCrSize,
                             StereoMode aStereoMode);
-  void InitializeBufferInfo(const gfxIntSize& aYSize,
-                            const gfxIntSize& aCbCrSize,
-                            StereoMode aStereoMode);
-
   bool CopyData(const uint8_t* aYData,
                 const uint8_t* aCbData, const uint8_t* aCrData,
-                gfxIntSize aYSize, uint32_t aYStride,
-                gfxIntSize aCbCrSize, uint32_t aCbCrStride,
+                gfx::IntSize aYSize, uint32_t aYStride,
+                gfx::IntSize aCbCrSize, uint32_t aCbCrStride,
                 uint32_t aYSkip, uint32_t aCbCrSkip);
 };
 
