@@ -246,6 +246,22 @@ function getDistributionPrefValue(aPrefName) {
 
 
 
+
+
+function parseRegExp(aStr) {
+  let lastSlash = aStr.lastIndexOf("/");
+  let pattern = aStr.slice(1, lastSlash);
+  let flags = aStr.slice(lastSlash + 1);
+  return new RegExp(pattern, flags);
+}
+
+
+
+
+
+
+
+
 function Blocklist() {
   let os = getObserverService();
   os.addObserver(this, "xpcom-shutdown", false);
@@ -342,16 +358,29 @@ Blocklist.prototype = {
     if (!toolkitVersion)
       toolkitVersion = gApp.platformVersion;
 
-    var blItem = addonEntries[id];
+    var blItem = this._findMatchingAddonEntry(addonEntries, id);
     if (!blItem)
       return Ci.nsIBlocklistService.STATE_NOT_BLOCKED;
 
-    for (let currentblItem of blItem) {
+    for (let currentblItem of blItem.versions) {
       if (currentblItem.includesItem(version, appVersion, toolkitVersion))
         return currentblItem.severity >= gBlocklistLevel ? Ci.nsIBlocklistService.STATE_BLOCKED :
                                                        Ci.nsIBlocklistService.STATE_SOFTBLOCKED;
     }
     return Ci.nsIBlocklistService.STATE_NOT_BLOCKED;
+  },
+
+  _findMatchingAddonEntry: function Blocklist_findMatchingAddonEntry(aAddonEntries,
+                                                                     aId) {
+    for (let entry of aAddonEntries) {
+      if (entry.id instanceof RegExp) {
+        if (entry.id.test(aId))
+          return entry;
+      } else if (entry.id == aId) {
+        return entry;
+      }
+    }
+    return null;
   },
 
   
@@ -362,7 +391,7 @@ Blocklist.prototype = {
     if (!this._addonEntries)
       this._loadBlocklist();
 
-    let blItem = this._addonEntries[id];
+    let blItem = this._findMatchingAddonEntry(this._addonEntries, id);
     if (!blItem || !blItem.blockID)
       return null;
 
@@ -516,8 +545,8 @@ Blocklist.prototype = {
 
     var oldAddonEntries = this._addonEntries;
     var oldPluginEntries = this._pluginEntries;
-    this._addonEntries = { };
-    this._pluginEntries = { };
+    this._addonEntries = [];
+    this._pluginEntries = [];
     this._loadBlocklistFromFile(FileUtils.getFile(KEY_PROFILEDIR,
                                                   [FILE_BLOCKLIST]));
 
@@ -551,8 +580,8 @@ Blocklist.prototype = {
 
 
   _loadBlocklist: function Blocklist_loadBlocklist() {
-    this._addonEntries = { };
-    this._pluginEntries = { };
+    this._addonEntries = [];
+    this._pluginEntries = [];
     var profFile = FileUtils.getFile(KEY_PROFILEDIR, [FILE_BLOCKLIST]);
     if (profFile.exists()) {
       this._loadBlocklistFromFile(profFile);
@@ -688,23 +717,35 @@ Blocklist.prototype = {
     if (!matchesOSABI(blocklistElement))
       return;
 
+    let blockEntry = {
+      id: null,
+      versions: [],
+      blockID: null
+    };
+
     var versionNodes = blocklistElement.childNodes;
     var id = blocklistElement.getAttribute("id");
-    result[id] = [];
+    
+    if (id.startsWith("/"))
+      id = parseRegExp(id);
+    blockEntry.id = id;
+
     for (var x = 0; x < versionNodes.length; ++x) {
       var versionRangeElement = versionNodes.item(x);
       if (!(versionRangeElement instanceof Ci.nsIDOMElement) ||
           versionRangeElement.localName != "versionRange")
         continue;
 
-      result[id].push(new BlocklistItemData(versionRangeElement));
+      blockEntry.versions.push(new BlocklistItemData(versionRangeElement));
     }
     
     
-    if (result[id].length == 0)
-      result[id].push(new BlocklistItemData(null));
+    if (blockEntry.versions.length == 0)
+      blockEntry.versions.push(new BlocklistItemData(null));
 
-    result[id].blockID = blocklistElement.getAttribute("blockID");
+    blockEntry.blockID = blocklistElement.getAttribute("blockID");
+
+    result.push(blockEntry);
   },
 
   _handlePluginItemNode: function Blocklist_handlePluginItemNode(blocklistElement, result) {
