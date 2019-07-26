@@ -190,6 +190,13 @@ class CodeGeneratorShared : public LInstructionVisitor
     
     bool markOsiPoint(LOsiPoint *ins, uint32 *returnPointOffset);
 
+    
+    
+    
+    
+    
+    void ensureOsiSpace();
+
     bool emitTruncateDouble(const FloatRegister &src, const Register &dest);
 
     void emitPreBarrier(Register base, const LAllocation *index, MIRType type);

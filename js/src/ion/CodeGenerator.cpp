@@ -3141,6 +3141,13 @@ CodeGenerator::visitCache(LInstruction *ins)
     if (!addOutOfLineCode(ool))
         return false;
 
+#if 0
+    
+    
+    
+    
+#endif
+
     CodeOffsetJump jump = masm.jumpWithPatch(ool->repatchEntry());
     CodeOffsetLabel label = masm.labelForPatch();
     masm.bind(ool->rejoin());
@@ -3944,6 +3951,10 @@ CodeGenerator::emitInstanceOf(LInstruction *ins, Register rhs)
     OutOfLineCache *ool = new OutOfLineCache(ins);
     if (!addOutOfLineCode(ool))
         return false;
+
+    
+    
+    ensureOsiSpace();
 
     CodeOffsetJump jump = masm.jumpWithPatch(ool->repatchEntry());
     CodeOffsetLabel label = masm.labelForPatch();
