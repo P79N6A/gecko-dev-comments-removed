@@ -233,6 +233,9 @@ nsNavHistoryResultNode::OnRemoving()
 
 
 
+
+
+
 nsNavHistoryResult*
 nsNavHistoryResultNode::GetResult()
 {
@@ -240,12 +243,11 @@ nsNavHistoryResultNode::GetResult()
   do {
     if (node->IsContainer()) {
       nsNavHistoryContainerResultNode* container = TO_CONTAINER(node);
-      NS_ASSERTION(container->mResult, "Containers must have valid results");
       return container->mResult;
     }
     node = node->mParent;
   } while (node);
-  NS_NOTREACHED("No container node found in hierarchy!");
+  MOZ_ASSERT(false, "No container node found in hierarchy!");
   return nullptr;
 }
 
@@ -369,6 +371,7 @@ nsNavHistoryContainerResultNode::OnRemoving()
   for (int32_t i = 0; i < mChildren.Count(); ++i)
     mChildren[i]->OnRemoving();
   mChildren.Clear();
+  mResult = nullptr;
 }
 
 
@@ -691,7 +694,7 @@ nsNavHistoryContainerResultNode::GetSortType()
   if (mResult)
     return mResult->mSortingMode;
 
-  NS_NOTREACHED("We should always have a result");
+  
   return nsINavHistoryQueryOptions::SORT_BY_NONE;
 }
 
@@ -708,8 +711,6 @@ nsNavHistoryContainerResultNode::GetSortingAnnotation(nsACString& aAnnotation)
     mParent->GetSortingAnnotation(aAnnotation);
   else if (mResult)
     aAnnotation.Assign(mResult->mSortingAnnotation);
-  else
-    NS_NOTREACHED("We should always have a result");
 }
 
 
@@ -2051,6 +2052,7 @@ nsNavHistoryQueryResultNode::OnRemoving()
 {
   nsNavHistoryResultNode::OnRemoving();
   ClearChildren(true);
+  mResult = nullptr;
 }
 
 
@@ -2282,7 +2284,7 @@ nsNavHistoryQueryResultNode::FillChildren()
 
   uint16_t sortType = GetSortType();
 
-  if (mResult->mNeedsToApplySortingMode) {
+  if (mResult && mResult->mNeedsToApplySortingMode) {
     
     
     mResult->SetSortingMode(mResult->mSortingMode);
@@ -2456,7 +2458,7 @@ nsNavHistoryQueryResultNode::GetSortType()
   if (mResult)
     return mResult->mSortingMode;
 
-  NS_NOTREACHED("We should always have a result");
+  
   return nsINavHistoryQueryOptions::SORT_BY_NONE;
 }
 
@@ -2470,8 +2472,6 @@ nsNavHistoryQueryResultNode::GetSortingAnnotation(nsACString& aAnnotation) {
   else if (mResult) {
     aAnnotation.Assign(mResult->mSortingAnnotation);
   }
-  else
-    NS_NOTREACHED("We should always have a result");
 }
 
 void
@@ -3157,6 +3157,7 @@ nsNavHistoryFolderResultNode::OnRemoving()
 {
   nsNavHistoryResultNode::OnRemoving();
   ClearChildren(true);
+  mResult = nullptr;
 }
 
 
@@ -3368,7 +3369,7 @@ nsNavHistoryFolderResultNode::OnChildrenFilled()
   
   FillStats();
 
-  if (mResult->mNeedsToApplySortingMode) {
+  if (mResult && mResult->mNeedsToApplySortingMode) {
     
     
     mResult->SetSortingMode(mResult->mSortingMode);
