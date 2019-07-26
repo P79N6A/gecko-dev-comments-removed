@@ -167,7 +167,6 @@ var gCloseWindowTimeoutCounter = 0;
 
 
 
-var gAppUpdateChannel;    
 var gAppUpdateEnabled;    
 var gAppUpdateURLDefault; 
 var gAppUpdateURL;        
@@ -308,6 +307,12 @@ function finishTestDefault() {
   if (gTimeoutTimer) {
     gTimeoutTimer.cancel();
     gTimeoutTimer = null;
+  }
+
+  if (gChannel) {
+    debugDump("channel = " + gChannel);
+    gChannel = null;
+    gPrefRoot.removeObserver(PREF_APP_UPDATE_CHANNEL, observer);
   }
 
   verifyTestsRan();
@@ -791,9 +796,6 @@ function verifyTestsRan() {
 
 
 function setupPrefs() {
-  gAppUpdateChannel = gDefaultPrefBranch.getCharPref(PREF_APP_UPDATE_CHANNEL);
-  setUpdateChannel();
-
   if (DEBUG_AUS_TEST) {
     Services.prefs.setBoolPref(PREF_APP_UPDATE_LOG, true)
   }
@@ -834,10 +836,6 @@ function resetPrefs() {
 
   if (gAppUpdateURLDefault) {
     gDefaultPrefBranch.setCharPref(PREF_APP_UPDATE_URL, gAppUpdateURLDefault);
-  }
-
-  if (gAppUpdateChannel !== undefined) {
-    setUpdateChannel(gAppUpdateChannel);
   }
 
   if (gAppUpdateEnabled !== undefined) {

@@ -125,6 +125,7 @@ function getLocalUpdatesXMLString(aUpdates) {
 
 
 
+
 function getLocalUpdateString(aPatches, aType, aName, aDisplayVersion,
                               aAppVersion, aPlatformVersion, aBuildID,
                               aDetailsURL, aBillboardURL, aLicenseURL,
@@ -138,7 +139,8 @@ function getLocalUpdateString(aPatches, aType, aName, aDisplayVersion,
   let statusText = aStatusText ? aStatusText : "Install Pending";
   let isCompleteUpdate =
     typeof(aIsCompleteUpdate) == "string" ? aIsCompleteUpdate : "true";
-  let channel = aChannel ? aChannel : "test_channel";
+  let channel = aChannel ? aChannel
+                         : gDefaultPrefBranch.getCharPref(PREF_APP_UPDATE_CHANNEL);
   let foregroundDownload =
     typeof(aForegroundDownload) == "string" ? aForegroundDownload : "true";
   let previousAppVersion = aPreviousAppVersion ? "previousAppVersion=\"" +

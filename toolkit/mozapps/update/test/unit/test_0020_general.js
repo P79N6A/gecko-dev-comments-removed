@@ -13,7 +13,7 @@ function run_test() {
   do_register_cleanup(end_test);
   removeUpdateDirsAndFiles();
   setUpdateURLOverride();
-  setUpdateChannel();
+  setUpdateChannel("test_channel");
   
   overrideXHR(callHandleEvent);
   standardInit();
