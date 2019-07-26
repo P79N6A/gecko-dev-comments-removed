@@ -142,7 +142,6 @@ TabChild::PreloadSlowThings()
         NS_LITERAL_STRING("chrome://global/content/preload.js"));
 
     nsCOMPtr<nsIDocShell> docShell = do_GetInterface(tab->mWebNav);
-    nsCOMPtr<nsIPresShell> presShell;
     if (nsIPresShell* presShell = docShell->GetPresShell()) {
         
         
