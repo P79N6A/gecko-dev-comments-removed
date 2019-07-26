@@ -1201,9 +1201,9 @@ const STACKFRAMES_WIDTH = "devtools.debugger.ui.stackframes-width";
 const VARIABLES_WIDTH = "devtools.debugger.ui.variables-width";
 const PANES_VISIBLE_ON_STARTUP = "devtools.debugger.ui.panes-visible-on-startup";
 const NON_ENUM_VISIBLE = "devtools.debugger.ui.non-enum-visible";
-const REMOTE_AUTO_CONNECT = "devtools.debugger.remote-autoconnect";
 const REMOTE_HOST = "devtools.debugger.remote-host";
 const REMOTE_PORT = "devtools.debugger.remote-port";
+const REMOTE_AUTO_CONNECT = "devtools.debugger.remote-autoconnect";
 const REMOTE_CONNECTION_RETRIES = "devtools.debugger.remote-connection-retries";
 const REMOTE_TIMEOUT = "devtools.debugger.remote-timeout";
 
@@ -1255,28 +1255,6 @@ let Prefs = {
 
 
 
-
-  get remoteAutoConnect() {
-    if (this._autoConnect === undefined) {
-      this._autoConnect = Services.prefs.getBoolPref(REMOTE_AUTO_CONNECT);
-    }
-    return this._autoConnect;
-  },
-
-  
-
-
-
-
-  set remoteAutoConnect(value) {
-    Services.prefs.setBoolPref(REMOTE_AUTO_CONNECT, value);
-    this._autoConnect = value;
-  },
-
-  
-
-
-
   get panesVisibleOnStartup() {
     if (this._panesVisible === undefined) {
       this._panesVisible = Services.prefs.getBoolPref(PANES_VISIBLE_ON_STARTUP);
@@ -1313,24 +1291,70 @@ let Prefs = {
   set nonEnumVisible(value) {
     Services.prefs.setBoolPref(NON_ENUM_VISIBLE, value);
     this._nonEnumVisible = value;
+  },
+
+  
+
+
+
+  get remoteHost() {
+    if (this._remoteHost === undefined) {
+      this._remoteHost = Services.prefs.getCharPref(REMOTE_HOST);
+    }
+    return this._remoteHost;
+  },
+
+  
+
+
+
+  set remoteHost(value) {
+    Services.prefs.setCharPref(REMOTE_HOST, value);
+    this._remoteHost = value;
+  },
+
+  
+
+
+
+  get remotePort() {
+    if (this._remotePort === undefined) {
+      this._remotePort = Services.prefs.getIntPref(REMOTE_PORT);
+    }
+    return this._remotePort;
+  },
+
+  
+
+
+
+  set remotePort(value) {
+    Services.prefs.setIntPref(REMOTE_PORT, value);
+    this._remotePort = value;
+  },
+
+  
+
+
+
+
+  get remoteAutoConnect() {
+    if (this._autoConnect === undefined) {
+      this._autoConnect = Services.prefs.getBoolPref(REMOTE_AUTO_CONNECT);
+    }
+    return this._autoConnect;
+  },
+
+  
+
+
+
+
+  set remoteAutoConnect(value) {
+    Services.prefs.setBoolPref(REMOTE_AUTO_CONNECT, value);
+    this._autoConnect = value;
   }
 };
-
-
-
-
-
-XPCOMUtils.defineLazyGetter(Prefs, "remoteHost", function() {
-  return Services.prefs.getCharPref(REMOTE_HOST);
-});
-
-
-
-
-
-XPCOMUtils.defineLazyGetter(Prefs, "remotePort", function() {
-  return Services.prefs.getIntPref(REMOTE_PORT);
-});
 
 
 
