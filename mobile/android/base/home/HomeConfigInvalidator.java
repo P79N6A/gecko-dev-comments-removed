@@ -104,7 +104,7 @@ public class HomeConfigInvalidator implements GeckoEventListener {
         try {
             if (event.equals(EVENT_HOMEPANELS_INSTALL)) {
                 Log.d(LOGTAG, EVENT_HOMEPANELS_INSTALL);
-                handlePanelInstall(createPanelConfigFromMessage(message));
+                handlePanelInstall(createPanelConfigFromMessage(message), InvalidationMode.DELAYED);
             } else if (event.equals(EVENT_HOMEPANELS_UNINSTALL)) {
                 Log.d(LOGTAG, EVENT_HOMEPANELS_UNINSTALL);
                 final String panelId = message.getString(JSON_KEY_PANEL_ID);
@@ -128,18 +128,21 @@ public class HomeConfigInvalidator implements GeckoEventListener {
 
 
 
+
+
     public void installPanel(PanelConfig panelConfig) {
-        handlePanelInstall(panelConfig);
+        Log.d(LOGTAG, "installPanel: " + panelConfig.getTitle());
+        handlePanelInstall(panelConfig, InvalidationMode.IMMEDIATE);
     }
 
     
 
 
-    private void handlePanelInstall(PanelConfig panelConfig) {
+    private void handlePanelInstall(PanelConfig panelConfig, InvalidationMode mode) {
         mPendingChanges.offer(new ConfigChange(ChangeType.INSTALL, panelConfig));
         Log.d(LOGTAG, "handlePanelInstall: " + mPendingChanges.size());
 
-        scheduleInvalidation(InvalidationMode.DELAYED);
+        scheduleInvalidation(mode);
     }
 
     

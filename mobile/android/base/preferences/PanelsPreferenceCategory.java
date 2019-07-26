@@ -69,6 +69,21 @@ public class PanelsPreferenceCategory extends CustomListCategory {
         mLoadTask.execute();
     }
 
+    
+
+
+    public void refresh() {
+        
+        
+        int prefCount = getPreferenceCount();
+        while (prefCount > 1) {
+            removePreference(getPreference(1));
+            prefCount--;
+        }
+
+        loadHomeConfig();
+    }
+
     private void displayHomeConfig(HomeConfig.State configState) {
         for (PanelConfig panelConfig : configState) {
             
