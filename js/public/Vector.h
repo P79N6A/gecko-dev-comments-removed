@@ -407,6 +407,9 @@ class Vector : private AllocPolicy
     void clearAndFree();
 
     
+    bool canAppendWithoutRealloc(size_t needed) const;
+
+    
 
 
 
@@ -770,6 +773,13 @@ Vector<T,N,AP>::clearAndFree()
 #ifdef DEBUG
     mReserved = 0;
 #endif
+}
+
+template <class T, size_t N, class AP>
+inline bool
+Vector<T,N,AP>::canAppendWithoutRealloc(size_t needed) const
+{
+    return mLength + needed <= mCapacity;
 }
 
 template <class T, size_t N, class AP>
