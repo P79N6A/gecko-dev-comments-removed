@@ -602,7 +602,7 @@ public:
     mTotalInnerHypotheticalMainSize(0),
     mTotalOuterHypotheticalMainSize(0),
     mLineCrossSize(0),
-    mBaselineOffsetFromCrossStart(nscoord_MIN)
+    mBaselineOffset(nscoord_MIN)
   {}
 
   
@@ -674,10 +674,16 @@ public:
   }
 
   
-  
-  
-  nscoord GetBaselineOffsetFromCrossStart() const {
-    return mBaselineOffsetFromCrossStart;
+
+
+
+
+
+
+
+
+  nscoord GetBaselineOffset() const {
+    return mBaselineOffset;
   }
 
   
@@ -709,7 +715,7 @@ private:
   nscoord mTotalInnerHypotheticalMainSize;
   nscoord mTotalOuterHypotheticalMainSize;
   nscoord mLineCrossSize;
-  nscoord mBaselineOffsetFromCrossStart;
+  nscoord mBaselineOffset;
 };
 
 
@@ -2175,7 +2181,9 @@ FlexLine::ComputeCrossSizeAndBaseline(const FlexboxAxisTracker& aAxisTracker)
   
   
   
-  mBaselineOffsetFromCrossStart = crossStartToFurthestBaseline;
+  
+  mBaselineOffset = aAxisTracker.AreAxesInternallyReversed() ?
+    crossEndToFurthestBaseline : crossStartToFurthestBaseline;
 
   
   
@@ -2301,17 +2309,33 @@ SingleLineCrossAxisPositionTracker::
         (aLine.GetLineCrossSize() - aItem.GetOuterCrossSize(mAxis)) / 2;
       break;
     case NS_STYLE_ALIGN_ITEMS_BASELINE: {
-      nscoord lineBaselineOffset =
-        aLine.GetBaselineOffsetFromCrossStart();
+      
+      
+      
       nscoord itemBaselineOffset =
         aItem.GetBaselineOffsetFromOuterCrossEdge(mAxis,
-                                                  eAxisEdge_Start);
+          aAxisTracker.AreAxesInternallyReversed() ?
+          eAxisEdge_End : eAxisEdge_Start);
 
-      MOZ_ASSERT(lineBaselineOffset >= itemBaselineOffset,
-                 "failed at finding largest baseline offset");
+      nscoord lineBaselineOffset = aLine.GetBaselineOffset();
+
+      NS_ASSERTION(lineBaselineOffset >= itemBaselineOffset,
+                   "failed at finding largest baseline offset");
 
       
-      mPosition += (lineBaselineOffset - itemBaselineOffset);
+      
+      nscoord baselineDiff = lineBaselineOffset - itemBaselineOffset;
+
+      if (aAxisTracker.AreAxesInternallyReversed()) {
+        
+        mPosition += aLine.GetLineCrossSize() - aItem.GetOuterCrossSize(mAxis);
+        
+        mPosition -= baselineDiff;
+      } else {
+        
+        
+        mPosition += baselineDiff;
+      }
       break;
     }
     default:
@@ -3045,7 +3069,7 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
   
   nscoord flexContainerAscent;
   nscoord firstLineBaselineOffset =
-    lines.getFirst()->GetBaselineOffsetFromCrossStart();
+    lines.getFirst()->GetBaselineOffset();
   if (firstLineBaselineOffset == nscoord_MIN) {
     
     
