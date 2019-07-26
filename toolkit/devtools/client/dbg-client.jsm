@@ -548,11 +548,26 @@ DebuggerClient.prototype = {
         return true;
       }
 
-      this._activeRequests.set(request.to, request.onResponse);
+      this.expectReply(request.to, request.onResponse);
       this._transport.send(request.request);
 
       return false;
     });
+  },
+
+  
+
+
+
+
+
+
+
+  expectReply: function(aActor, aHandler) {
+    if (this._activeRequests.has(aActor)) {
+      throw Error("clashing handlers for next reply from " + uneval(aActor));
+    }
+    this._activeRequests.set(aActor, aHandler);
   },
 
   
