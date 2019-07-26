@@ -69,7 +69,13 @@ private:
                       nsACString& aResponseStr)
   {
     mResponseCode = aResponseCode;
+#ifdef ANDROID_VERSION >= 17
+    
+    
+    mResponseStr = Substring(aResponseStr, 2);
+#else
     mResponseStr = aResponseStr;
+#endif
     if (mResponseCode >= ResponseCode::CommandOkay) {
       
       mPending = false;
@@ -120,7 +126,13 @@ public:
 
   void SetCmd(const nsACString& aCommand)
   {
-    mCmd = aCommand;
+    mCmd.Truncate();
+#ifdef ANDROID_VERSION >= 17
+    
+    
+    mCmd = "0 ";
+#endif
+    mCmd.Append(aCommand);
     
     
     mCmd.Append('\0');
