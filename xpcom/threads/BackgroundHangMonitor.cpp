@@ -96,14 +96,14 @@ public:
 
 
 
-class BackgroundHangThread : public RefCounted<BackgroundHangThread>
-                           , public LinkedListElement<BackgroundHangThread>
+class BackgroundHangThread : public LinkedListElement<BackgroundHangThread>
 {
 private:
   static ThreadLocal<BackgroundHangThread*> sTlsKey;
 
   BackgroundHangThread(const BackgroundHangThread&);
   BackgroundHangThread& operator=(const BackgroundHangThread&);
+  ~BackgroundHangThread();
 
   
 
@@ -112,7 +112,7 @@ private:
   const PRThread* mThreadID;
 
 public:
-  MOZ_DECLARE_REFCOUNTED_TYPENAME(BackgroundHangThread)
+  NS_INLINE_DECL_REFCOUNTING(BackgroundHangThread)
   static BackgroundHangThread* FindThread();
 
   static void Startup()
@@ -144,7 +144,6 @@ public:
   BackgroundHangThread(const char* aName,
                        uint32_t aTimeoutMs,
                        uint32_t aMaxTimeoutMs);
-  ~BackgroundHangThread();
 
   
   void ReportHang(PRIntervalTime aHangTime);
