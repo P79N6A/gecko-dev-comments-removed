@@ -52,7 +52,7 @@ public:
   
   
   
-  imgStatusTracker(mozilla::image::Image* aImage);
+  imgStatusTracker(mozilla::image::Image* aImage, imgRequest* aRequest);
   imgStatusTracker(const imgStatusTracker& aOther);
 
   
@@ -167,6 +167,10 @@ public:
   void RecordUnblockOnload();
   void SendUnblockOnload(imgRequestProxy* aProxy);
 
+  
+  inline mozilla::image::Image* GetImage() const { return mImage; };
+  inline imgRequest* GetRequest() const { return mRequest; };
+
 private:
   friend class imgStatusNotifyRunnable;
   friend class imgRequestNotifyRunnable;
@@ -176,6 +180,7 @@ private:
   
   
   mozilla::image::Image* mImage;
+  imgRequest* mRequest;
   uint32_t mState;
   uint32_t mImageStatus;
   bool mHadLastPart;
