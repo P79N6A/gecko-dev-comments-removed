@@ -272,22 +272,20 @@ AsyncPanZoomController::ReceiveInputEvent(const nsInputEvent& aEvent,
     for (uint32_t i = 0; i < touches.Length(); ++i) {
       nsIDOMTouch* touch = touches[i];
       if (touch) {
-        CSSPoint refCSSPoint = WidgetSpaceToCompensatedViewportSpace(
+        CSSPoint refPoint = WidgetSpaceToCompensatedViewportSpace(
           ScreenPoint::FromUnknownPoint(gfx::Point(
             touch->mRefPoint.x, touch->mRefPoint.y)),
           currentResolution);
-        LayoutDevicePoint refPoint = refCSSPoint * mFrameMetrics.mDevPixelsPerCSSPixel;
         touch->mRefPoint = nsIntPoint(refPoint.x, refPoint.y);
       }
     }
     break;
   }
   default: {
-    CSSPoint refCSSPoint = WidgetSpaceToCompensatedViewportSpace(
+    CSSPoint refPoint = WidgetSpaceToCompensatedViewportSpace(
       ScreenPoint::FromUnknownPoint(gfx::Point(
         aOutEvent->refPoint.x, aOutEvent->refPoint.y)),
       currentResolution);
-    LayoutDevicePoint refPoint = refCSSPoint * mFrameMetrics.mDevPixelsPerCSSPixel;
     aOutEvent->refPoint = nsIntPoint(refPoint.x, refPoint.y);
     break;
   }
@@ -1380,9 +1378,24 @@ void AsyncPanZoomController::ContentReceivedTouch(bool aPreventDefault) {
   }
 }
 
-void AsyncPanZoomController::SetState(PanZoomState aState) {
-  MonitorAutoLock monitor(mMonitor);
-  mState = aState;
+void AsyncPanZoomController::SetState(PanZoomState aNewState) {
+
+  PanZoomState oldState;
+
+  
+  {
+    MonitorAutoLock monitor(mMonitor);
+    oldState = mState;
+    mState = aNewState;
+  }
+
+  if (mGeckoContentController) {
+    if (oldState == PANNING && aNewState != PANNING) {
+      mGeckoContentController->HandlePanEnd();
+    } else if (oldState != PANNING && aNewState == PANNING) {
+      mGeckoContentController->HandlePanBegin();
+    }
+  }
 }
 
 void AsyncPanZoomController::TimeoutTouchListeners() {

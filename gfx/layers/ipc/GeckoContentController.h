@@ -60,6 +60,17 @@ public:
 
   virtual void PostDelayedTask(Task* aTask, int aDelayMs) = 0;
 
+
+  
+
+
+  virtual void HandlePanBegin() {}
+
+  
+
+
+  virtual void HandlePanEnd() {}
+
   GeckoContentController() {}
   virtual ~GeckoContentController() {}
 };
