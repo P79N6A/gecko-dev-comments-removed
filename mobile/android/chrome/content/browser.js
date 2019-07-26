@@ -1717,6 +1717,10 @@ var NativeWindow = {
 
 
     show: function(aMessage, aValue, aButtons, aTabID, aOptions) {
+      if (aButtons == null) {
+        aButtons = [];
+      }
+
       aButtons.forEach((function(aButton) {
         this._callbacks[this._callbacksId] = { cb: aButton.callback, prompt: this._promptId };
         aButton.callback = this._callbacksId;
