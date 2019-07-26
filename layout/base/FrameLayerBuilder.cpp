@@ -2183,6 +2183,10 @@ ChooseScaleAndSetTransform(FrameLayerBuilder* aLayerBuilder,
   if (aTransform) {
     
     transform = (*aTransform)*transform;
+    
+    
+    
+    transform.NudgeToIntegers();
   } 
   if (aContainerFrame && aState == LAYER_INACTIVE) {
     
