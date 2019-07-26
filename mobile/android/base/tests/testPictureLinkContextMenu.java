@@ -10,7 +10,7 @@ public class testPictureLinkContextMenu extends ContentContextMenuTest {
     private static final String tabs [] = { "Image", "Link" };
     private static final String photoMenuItems [] = { "Copy Image Location", "Share Image", "Set Image As", "Save Image" };
     private static final String linkMenuItems [] = { "Open Link in New Tab", "Open Link in Private Tab", "Copy Link", "Share Link", "Bookmark Link"};
-    private static final String linkTitle = "^Link$";
+    private static final String imageTitle = "^Image$";
 
     public void testPictureLinkContextMenu() {
         blockForGeckoReady();
@@ -20,21 +20,19 @@ public class testPictureLinkContextMenu extends ContentContextMenuTest {
         loadAndPaint(PICTURE_PAGE_URL);
         verifyPageTitle(PICTURE_PAGE_TITLE);
 
+        switchTabs(imageTitle);
         verifyContextMenuItems(photoMenuItems);
         verifyTabs(tabs);
+        switchTabs(imageTitle);
         verifyCopyOption(photoMenuItems[0], "Firefox.jpg"); 
+        switchTabs(imageTitle);
         verifyShareOption(photoMenuItems[1], PICTURE_PAGE_TITLE); 
 
-        switchTabs(linkTitle);
         verifyContextMenuItems(linkMenuItems);
         openTabFromContextMenu(linkMenuItems[0],2); 
-        switchTabs(linkTitle);
         openTabFromContextMenu(linkMenuItems[1],2); 
-        switchTabs(linkTitle);
         verifyCopyOption(linkMenuItems[2], BLANK_PAGE_URL); 
-        switchTabs(linkTitle);
         verifyShareOption(linkMenuItems[3], PICTURE_PAGE_TITLE); 
-        switchTabs(linkTitle);
         verifyBookmarkLinkOption(linkMenuItems[4],BLANK_PAGE_URL); 
     }
 

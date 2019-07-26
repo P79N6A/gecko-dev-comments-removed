@@ -2102,6 +2102,11 @@ var NativeWindow = {
       else this._targetRef = null;
     },
 
+    get defaultContext() {
+      delete this.defaultContext;
+      return this.defaultContext = Strings.browser.GetStringFromName("browser.menu.context.default");
+    },
+
     
 
 
@@ -2183,7 +2188,7 @@ var NativeWindow = {
       } catch(ex) { }
 
       
-      return Strings.browser.GetStringFromName("browser.menu.context.default");
+      return this.defaultContext;
     },
 
     
@@ -2338,7 +2343,8 @@ var NativeWindow = {
 
     _reformatList: function(target) {
       let contexts = Object.keys(this.menus);
-      if (contexts.length == 1) {
+
+      if (contexts.length === 1) {
         
         return this._reformatMenuItems(target, this.menus[contexts[0]]);
       }
@@ -2357,12 +2363,24 @@ var NativeWindow = {
 
     _reformatListAsTabs: function(target, menus) {
       let itemArray = [];
-      for (let context in menus) {
+
+      
+      let contexts = Object.keys(this.menus);
+      contexts.sort((context1, context2) => {
+        if (context1 === this.defaultContext) {
+          return -1;
+        } else if (context2 === this.defaultContext) {
+          return 1;
+        }
+        return 0;
+      });
+
+      contexts.forEach(context => {
         itemArray.push({
           label: context,
           items: this._reformatMenuItems(target, menus[context])
         });
-      }
+      });
 
       return itemArray;
     },
@@ -8386,8 +8404,10 @@ HTMLContextMenuItem.prototype = Object.create(ContextMenuItem.prototype, {
           }
 
           var items = NativeWindow.contextmenus._getHTMLContextMenuItemsForMenu(elt, target);
+          
+          var context = NativeWindow.contextmenus._getContextType(target);
           if (items.length > 0) {
-            NativeWindow.contextmenus._addMenuItems(items, "link");
+            NativeWindow.contextmenus._addMenuItems(items, context);
           }
 
         } catch(ex) {
