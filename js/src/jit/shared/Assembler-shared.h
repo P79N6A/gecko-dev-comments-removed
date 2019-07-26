@@ -112,6 +112,21 @@ IsCompilingAsmJS()
     IonContext *ictx = MaybeGetIonContext();
     return ictx && ictx->compartment == nullptr;
 }
+
+static inline bool
+CanUsePointerImmediates()
+{
+    if (!IsCompilingAsmJS())
+        return true;
+
+    
+    
+    IonContext *ictx = MaybeGetIonContext();
+    if (ictx && ictx->runtime->profilingScripts())
+        return true;
+
+    return false;
+}
 #endif
 
 
@@ -123,42 +138,42 @@ struct ImmPtr
     {
         
         
-        JS_ASSERT(!IsCompilingAsmJS());
+        JS_ASSERT(CanUsePointerImmediates());
     }
 
     template <class R>
     explicit ImmPtr(R (*pf)())
       : value(JS_FUNC_TO_DATA_PTR(void *, pf))
     {
-        JS_ASSERT(!IsCompilingAsmJS());
+        JS_ASSERT(CanUsePointerImmediates());
     }
 
     template <class R, class A1>
     explicit ImmPtr(R (*pf)(A1))
       : value(JS_FUNC_TO_DATA_PTR(void *, pf))
     {
-        JS_ASSERT(!IsCompilingAsmJS());
+        JS_ASSERT(CanUsePointerImmediates());
     }
 
     template <class R, class A1, class A2>
     explicit ImmPtr(R (*pf)(A1, A2))
       : value(JS_FUNC_TO_DATA_PTR(void *, pf))
     {
-        JS_ASSERT(!IsCompilingAsmJS());
+        JS_ASSERT(CanUsePointerImmediates());
     }
 
     template <class R, class A1, class A2, class A3>
     explicit ImmPtr(R (*pf)(A1, A2, A3))
       : value(JS_FUNC_TO_DATA_PTR(void *, pf))
     {
-        JS_ASSERT(!IsCompilingAsmJS());
+        JS_ASSERT(CanUsePointerImmediates());
     }
 
     template <class R, class A1, class A2, class A3, class A4>
     explicit ImmPtr(R (*pf)(A1, A2, A3, A4))
       : value(JS_FUNC_TO_DATA_PTR(void *, pf))
     {
-        JS_ASSERT(!IsCompilingAsmJS());
+        JS_ASSERT(CanUsePointerImmediates());
     }
 
 };
@@ -217,8 +232,7 @@ struct AbsoluteAddress
     explicit AbsoluteAddress(const void *addr)
       : addr(const_cast<void*>(addr))
     {
-        
-        JS_ASSERT(!IsCompilingAsmJS());
+        JS_ASSERT(CanUsePointerImmediates());
     }
 
     AbsoluteAddress offset(ptrdiff_t delta) {

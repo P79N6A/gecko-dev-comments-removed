@@ -1267,6 +1267,13 @@ js::StoreAsmJSModuleInCache(AsmJSParser &parser,
                             const AsmJSModule &module,
                             ExclusiveContext *cx)
 {
+    
+    
+    
+    
+    if (module.numFunctionCounts())
+        return false;
+
     MachineId machineId;
     if (!machineId.extractCurrentState(cx))
         return false;
