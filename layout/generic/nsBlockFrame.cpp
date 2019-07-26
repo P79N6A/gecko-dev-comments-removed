@@ -892,10 +892,12 @@ CalculateContainingBlockSizeForAbsolutes(const nsHTMLReflowState& aReflowState,
 
     
     
+    
     const nsHTMLReflowState* aLastRS = &aReflowState;
     const nsHTMLReflowState* lastButOneRS = &aReflowState;
     while (aLastRS->parentReflowState &&
-           aLastRS->parentReflowState->frame->GetContent() == frame->GetContent()) {
+           aLastRS->parentReflowState->frame->GetContent() == frame->GetContent() &&
+           aLastRS->parentReflowState->frame->GetType() != nsGkAtoms::fieldSetFrame) {
       lastButOneRS = aLastRS;
       aLastRS = aLastRS->parentReflowState;
     }
