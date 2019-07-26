@@ -3469,6 +3469,7 @@ JSTerm.prototype = {
   _updateVariablesView: function JST__updateVariablesView(aOptions)
   {
     let view = aOptions.view;
+    view.createHierarchy();
     view.empty();
 
     
@@ -3518,21 +3519,17 @@ JSTerm.prototype = {
 
 
 
-
-
-  _variablesViewEvaluate:
-  function JST__variablesViewEvaluate(aOptions, aVar, aValue)
+  _variablesViewEvaluate: function JST__variablesViewEvaluate(aOptions, aString)
   {
     let updater = this._updateVariablesView.bind(this, aOptions);
     let onEval = this._silentEvalCallback.bind(this, updater);
-    let string = aVar.evaluationMacro(aVar, aValue);
 
     let evalOptions = {
       frame: this.SELECTED_FRAME,
       bindObjectActor: aOptions.objectActor.actor,
     };
 
-    this.requestEvaluation(string, evalOptions).then(onEval, onEval);
+    this.requestEvaluation(aString, evalOptions).then(onEval, onEval);
   },
 
   
@@ -4447,6 +4444,7 @@ var Utils = {
       case "Invalid HSTS Headers":
       case "Insecure Password Field":
       case "SSL":
+      case "CORS":
         return CATEGORY_SECURITY;
 
       default:
