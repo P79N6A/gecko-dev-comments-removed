@@ -18,7 +18,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "RecentWindow",
 XPCOMUtils.defineLazyModuleGetter(this, "CustomizableUI",
   "resource:///modules/CustomizableUI.jsm");
 
-XPCOMUtils.defineLazyGetter(this, "DEFAULT_TOOLBAR_PLACEMENTS", function() {
+XPCOMUtils.defineLazyGetter(this, "DEFAULT_AREA_PLACEMENTS", function() {
   let result = {
     "PanelUI-contents": [
       "edit-controls",
@@ -74,6 +74,10 @@ XPCOMUtils.defineLazyGetter(this, "DEFAULT_TOOLBAR_PLACEMENTS", function() {
   return result;
 });
 
+XPCOMUtils.defineLazyGetter(this, "DEFAULT_AREAS", function() {
+  return Object.keys(DEFAULT_AREA_PLACEMENTS);
+});
+
 XPCOMUtils.defineLazyGetter(this, "PALETTE_ITEMS", function() {
   let result = [
     "open-file-button",
@@ -84,7 +88,7 @@ XPCOMUtils.defineLazyGetter(this, "PALETTE_ITEMS", function() {
     "tabview-button",
   ];
 
-  let panelPlacements = DEFAULT_TOOLBAR_PLACEMENTS["PanelUI-contents"];
+  let panelPlacements = DEFAULT_AREA_PLACEMENTS["PanelUI-contents"];
   if (panelPlacements.indexOf("characterencoding-button") == -1) {
     result.push("characterencoding-button");
   }
@@ -94,7 +98,7 @@ XPCOMUtils.defineLazyGetter(this, "PALETTE_ITEMS", function() {
 
 XPCOMUtils.defineLazyGetter(this, "DEFAULT_ITEMS", function() {
   let result = [];
-  for (let [, buttons] of Iterator(DEFAULT_TOOLBAR_PLACEMENTS)) {
+  for (let [, buttons] of Iterator(DEFAULT_AREA_PLACEMENTS)) {
     result = result.concat(buttons);
   }
   return result;
@@ -398,8 +402,8 @@ this.BrowserUITelemetry = {
           
           
           
-          if (Array.isArray(DEFAULT_TOOLBAR_PLACEMENTS[areaID]) &&
-              DEFAULT_TOOLBAR_PLACEMENTS[areaID].indexOf(item) != -1) {
+          if (Array.isArray(DEFAULT_AREA_PLACEMENTS[areaID]) &&
+              DEFAULT_AREA_PLACEMENTS[areaID].indexOf(item) != -1) {
             
             defaultKept.push(item);
           } else {
@@ -424,6 +428,16 @@ this.BrowserUITelemetry = {
     result.defaultMoved = defaultMoved;
     result.nondefaultAdded = nondefaultAdded;
     result.defaultRemoved = defaultRemoved;
+
+    
+    let addonToolbars = 0;
+    let toolbars = document.querySelectorAll("toolbar[customizable=true]");
+    for (let toolbar of toolbars) {
+      if (DEFAULT_AREAS.indexOf(toolbar.id) == -1) {
+        addonToolbars++;
+      }
+    }
+    result.addonToolbars = addonToolbars;
 
     
     let winEnumerator = Services.wm.getEnumerator("navigator:browser");
