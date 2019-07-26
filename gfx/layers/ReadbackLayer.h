@@ -170,9 +170,7 @@ protected:
     mBackgroundColor(gfxRGBA(0,0,0,0))
   {}
 
-  
-  
-  virtual nsACString& PrintInfo(nsACString& aTo, const char* aPrefix);
+  virtual void PrintInfo(std::stringstream& aStream, const char* aPrefix);
 
   uint64_t mSequenceCounter;
   nsAutoPtr<ReadbackSink> mSink;
