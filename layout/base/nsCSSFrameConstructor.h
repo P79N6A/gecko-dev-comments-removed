@@ -19,7 +19,6 @@
 #include "nsCounterManager.h"
 #include "nsHashKeys.h"
 #include "nsThreadUtils.h"
-#include "nsPageContentFrame.h"
 #include "nsCSSPseudoElements.h"
 #include "RestyleTracker.h"
 #include "nsIAnonymousContentCreator.h"
@@ -382,6 +381,8 @@ public:
   
   nsIFrame* GetDocElementContainingBlock()
     { return mDocElementContainingBlock; }
+
+  void SetPromoteReflowsToReframeRoot(bool aPromote) { mPromoteReflowsToReframeRoot = aPromote; }
 
 private:
   struct FrameConstructionItem;
@@ -1885,6 +1886,8 @@ private:
   bool                mObservingRefreshDriver : 1;
   
   bool                mInStyleRefresh : 1;
+  
+  bool                mPromoteReflowsToReframeRoot : 1;
   uint32_t            mHoverGeneration;
   nsChangeHint        mRebuildAllExtraHint;
 
