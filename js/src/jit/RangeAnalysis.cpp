@@ -377,6 +377,14 @@ Range::intersect(const Range *lhs, const Range *rhs, bool *emptyRange)
     
     
     
+    if (newHasInt32LowerBound && newHasInt32UpperBound && newExponent == IncludesInfinityAndNaN)
+        return nullptr;
+
+    
+    
+    
+    
+    
     
     
     
