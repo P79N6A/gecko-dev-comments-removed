@@ -369,6 +369,13 @@ WebContentConverterRegistrar.prototype = {
   function WCCR_registerProtocolHandler(aProtocol, aURIString, aTitle, aContentWindow) {
     LOG("registerProtocolHandler(" + aProtocol + "," + aURIString + "," + aTitle + ")");
 
+    var uri = this._checkAndGetURI(aURIString, aContentWindow);
+
+    
+    if (this._protocolHandlerRegistered(aProtocol, uri.spec)) {
+      return;
+    }
+
     var browserWindow = this._getBrowserWindowForContentWindow(aContentWindow);    
     if (PrivateBrowsingUtils.isWindowPrivate(browserWindow)) {
       
@@ -406,25 +413,18 @@ WebContentConverterRegistrar.prototype = {
       throw("Not allowed to register a protocol handler for " + aProtocol);
     }
 
-    var uri = this._checkAndGetURI(aURIString, aContentWindow);
+    
+    var message = this._getFormattedString("addProtocolHandler",
+                                           [aTitle, uri.host, aProtocol]);
 
-    var buttons, message;
-    if (this._protocolHandlerRegistered(aProtocol, uri.spec))
-      message = this._getFormattedString("protocolHandlerRegistered",
-                                         [aTitle, aProtocol]);
-    else {
-      
-      message = this._getFormattedString("addProtocolHandler",
-                                         [aTitle, uri.host, aProtocol]);
+    var notificationIcon = uri.prePath + "/favicon.ico";
+    var notificationValue = "Protocol Registration: " + aProtocol;
+    var addButton = {
+      label: this._getString("addProtocolHandlerAddButton"),
+      accessKey: this._getString("addHandlerAddButtonAccesskey"),
+      protocolInfo: { protocol: aProtocol, uri: uri.spec, name: aTitle },
 
-      var notificationIcon = uri.prePath + "/favicon.ico";
-      var notificationValue = "Protocol Registration: " + aProtocol;
-      var addButton = {
-        label: this._getString("addProtocolHandlerAddButton"),
-        accessKey: this._getString("addHandlerAddButtonAccesskey"),
-        protocolInfo: { protocol: aProtocol, uri: uri.spec, name: aTitle },
-
-        callback:
+      callback:
         function WCCR_addProtocolHandlerButtonCallback(aNotification, aButtonInfo) {
           var protocol = aButtonInfo.protocolInfo.protocol;
           var uri      = aButtonInfo.protocolInfo.uri;
@@ -450,11 +450,8 @@ WebContentConverterRegistrar.prototype = {
                    getService(Ci.nsIHandlerService);
           hs.store(handlerInfo);
         }
-      };
-      buttons = [addButton];
-    }
-
-
+    };
+    var buttons;
     var browserElement = this._getBrowserForContentWindow(browserWindow, aContentWindow);
     var notificationBox = browserWindow.getBrowser().getNotificationBox(browserElement);
     notificationBox.appendNotification(message,
