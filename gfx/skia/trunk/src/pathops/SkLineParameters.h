@@ -4,6 +4,10 @@
 
 
 
+
+#ifndef SkLineParameters_DEFINED
+#define SkLineParameters_DEFINED
+
 #include "SkPathOpsCubic.h"
 #include "SkPathOpsLine.h"
 #include "SkPathOpsQuad.h"
@@ -169,3 +173,5 @@ private:
     double b;
     double c;
 };
+
+#endif
