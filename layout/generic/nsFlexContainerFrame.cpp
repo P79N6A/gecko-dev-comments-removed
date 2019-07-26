@@ -1680,20 +1680,20 @@ FlexLine::ResolveFlexibleLengths(nscoord aFlexContainerMainSize)
       
       
       
-      float runningFlexWeightSum = 0.0f;
+      float flexWeightSum = 0.0f;
       float largestFlexWeight = 0.0f;
       uint32_t numItemsWithLargestFlexWeight = 0;
       for (FlexItem* item = mItems.getFirst(); item; item = item->getNext()) {
         float curFlexWeight = item->GetFlexWeightToUse(isUsingFlexGrow);
         MOZ_ASSERT(curFlexWeight >= 0.0f, "weights are non-negative");
 
-        runningFlexWeightSum += curFlexWeight;
-        if (NS_finite(runningFlexWeightSum)) {
+        flexWeightSum += curFlexWeight;
+        if (NS_finite(flexWeightSum)) {
           if (curFlexWeight == 0.0f) {
             item->SetShareOfFlexWeightSoFar(0.0f);
           } else {
             item->SetShareOfFlexWeightSoFar(curFlexWeight /
-                                            runningFlexWeightSum);
+                                            flexWeightSum);
           }
         } 
           
@@ -1709,7 +1709,7 @@ FlexLine::ResolveFlexibleLengths(nscoord aFlexContainerMainSize)
         }
       }
 
-      if (runningFlexWeightSum != 0.0f) { 
+      if (flexWeightSum != 0.0f) { 
         PR_LOG(GetFlexContainerLog(), PR_LOG_DEBUG,
                (" Distributing available space:"));
         
@@ -1722,7 +1722,7 @@ FlexLine::ResolveFlexibleLengths(nscoord aFlexContainerMainSize)
             
             
             nscoord sizeDelta = 0;
-            if (NS_finite(runningFlexWeightSum)) {
+            if (NS_finite(flexWeightSum)) {
               float myShareOfRemainingSpace =
                 item->GetShareOfFlexWeightSoFar();
 
