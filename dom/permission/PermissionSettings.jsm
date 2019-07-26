@@ -16,7 +16,6 @@ this.EXPORTED_SYMBOLS = ["PermissionSettingsModule"];
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/PermissionsTable.jsm");
 
 XPCOMUtils.defineLazyServiceGetter(this, "ppmm",
                                    "@mozilla.org/parentprocessmessagemanager;1",
@@ -44,36 +43,7 @@ this.PermissionSettingsModule = {
     Services.obs.addObserver(this, "profile-before-change", false);
   },
 
-
-  _isChangeAllowed: function(aPrincipal, aPermName, aAction) {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    let perm =
-      permissionManager.testExactPermissionFromPrincipal(aPrincipal,aPermName);
-    let isExplicit = isExplicitInPermissionsTable(aPermName, aPrincipal.appStatus);
-    
-    return (aAction !== "unknown") &&
-           (perm !== Ci.nsIPermissionManager.UNKNOWN_ACTION) &&
-           isExplicit;
-  },
-
   addPermission: function addPermission(aData, aCallbacks) {
-
-    this._internalAddPermission(aData, true, aCallbacks);
-
-  },
-
-
-  _internalAddPermission: function _internalAddPermission(aData, aAllowAllChanges, aCallbacks) {
     let uri = Services.io.newURI(aData.origin, null, null);
     let appID = appsService.getAppLocalIdByManifestURL(aData.manifestURL);
     let principal = secMan.getAppCodebasePrincipal(uri, appID, aData.browserFlag);
@@ -97,16 +67,8 @@ this.PermissionSettingsModule = {
         dump("Unsupported PermisionSettings Action: " + aData.value +"\n");
         action = Ci.nsIPermissionManager.UNKNOWN_ACTION;
     }
-
-    if (aAllowAllChanges ||
-        this._isChangeAllowed(principal, aData.type, aData.value)) {
-      debug("add: " + aData.origin + " " + appID + " " + action);
-      permissionManager.addFromPrincipal(principal, aData.type, action);
-      return true;
-    } else {
-      debug("add Failure: " + aData.origin + " " + appID + " " + action);
-      return false; 
-    }
+    debug("add: " + aData.origin + " " + appID + " " + action);
+    permissionManager.addFromPrincipal(principal, aData.type, action);
   },
 
   getPermission: function getPermission(aPermName, aManifestURL, aOrigin, aBrowserFlag) {
@@ -146,22 +108,12 @@ this.PermissionSettingsModule = {
     let result;
     switch (aMessage.name) {
       case "PermissionSettings:AddPermission":
-        let success = false;
-        let errorMsg = 
-              " from a content process with no 'permissions' privileges.";
-        if (mm.assertPermission("permissions")) {
-          success = this._internalAddPermission(msg, false);
-          if (!success) { 
-            
-            mm.assertPermission("permissions-modify-implicit");
-            errorMsg = " had an implicit permission change. Child process killed.";
-          }
-        }
-
-        if (!success) {
-          Cu.reportError("PermissionSettings message " + msg.name + errorMsg);
+        if (!aMessage.target.assertPermission("permissions")) {
+          Cu.reportError("PermissionSettings message " + msg.name +
+                         " from a content process with no 'permissions' privileges.");
           return null;
         }
+        this.addPermission(msg);
         break;
     }
   }
