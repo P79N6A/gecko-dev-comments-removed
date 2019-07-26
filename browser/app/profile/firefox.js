@@ -1275,9 +1275,6 @@ pref("devtools.hud.loglimit.exception", 200);
 pref("devtools.hud.loglimit.console", 200);
 
 
-pref("devtools.eyedropper.zoom", 6);
-
-
 
 
 

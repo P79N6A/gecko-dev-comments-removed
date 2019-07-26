@@ -91,7 +91,9 @@ function testPickingNewColor() {
   let cPicker = ruleView.colorPicker;
 
   cPicker.tooltip.once("shown", () => {
-    simulateColorChange(cPicker, [1, 1, 1, 1]).then(() => {
+    simulateColorChange(cPicker, [1, 1, 1, 1]);
+
+    executeSoon(() => {
       is(swatchEl.style.backgroundColor, "rgb(1, 1, 1)",
         "The color swatch's background was updated");
       is(colorEl.textContent, "rgba(1, 1, 1, 1)",
@@ -112,7 +114,7 @@ function simulateColorChange(colorPicker, newRgba) {
   
   
   
-  return colorPicker.spectrum.then(spectrum => {
+  colorPicker.spectrum.then(spectrum => {
     spectrum.rgb = newRgba;
     spectrum.updateUI();
     spectrum.onChange();
