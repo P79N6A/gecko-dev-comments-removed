@@ -242,22 +242,7 @@ CodeGeneratorARM::bailoutFrom(Label *label, LSnapshot *snapshot)
     
     JS_ASSERT_IF(frameClass_ != FrameSizeClass::None(),
                  frameClass_.frameSize() == masm.framePushed());
-    
-    
-    
-    
-    
-    
-    
-#if 0
-    if (assignBailoutId(snapshot)) {
-        uint8_t *code = deoptTable_->raw() + snapshot->bailoutId() * BAILOUT_TABLE_ENTRY_SIZE;
-        masm.retarget(label, code, Relocation::HARDCODED);
-        return true;
-    }
-#endif
-    
-    
+
     
     OutOfLineBailout *ool = new(alloc()) OutOfLineBailout(snapshot, masm.framePushed());
     if (!addOutOfLineCode(ool)) {
@@ -1661,14 +1646,6 @@ CodeGeneratorARM::visitNotD(LNotD *ins)
         masm.ma_mov(Imm32(0), dest);
         masm.ma_mov(Imm32(1), dest, NoSetCond, Assembler::Equal);
         masm.ma_mov(Imm32(1), dest, NoSetCond, Assembler::Overflow);
-#if 0
-        masm.as_vmrs(ToRegister(dest));
-        
-        
-        masm.ma_and(Imm32(0x50000000), dest, dest, Assembler::SetCond);
-        
-        masm.ma_mov(Imm32(1), dest, NoSetCond, Assembler::NotEqual);
-#endif
     }
     return true;
 }
@@ -1698,14 +1675,6 @@ CodeGeneratorARM::visitNotF(LNotF *ins)
         masm.ma_mov(Imm32(0), dest);
         masm.ma_mov(Imm32(1), dest, NoSetCond, Assembler::Equal);
         masm.ma_mov(Imm32(1), dest, NoSetCond, Assembler::Overflow);
-#if 0
-        masm.as_vmrs(ToRegister(dest));
-        
-        
-        masm.ma_and(Imm32(0x50000000), dest, dest, Assembler::SetCond);
-        
-        masm.ma_mov(Imm32(1), dest, NoSetCond, Assembler::NotEqual);
-#endif
     }
     return true;
 }

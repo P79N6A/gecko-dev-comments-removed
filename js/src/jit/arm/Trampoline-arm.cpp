@@ -148,18 +148,6 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
     masm.loadPtr(slot_vp, r10);
     masm.unboxInt32(Address(r10, 0), r10);
 
-#if 0
-    
-    
-    
-    
-    
-    
-    
-    aasm->as_sub(sp, sp, Imm8(4));
-    aasm->as_orr(sp, sp, Imm8(4));
-#endif
-
     
     aasm->as_sub(r4, sp, O2RegImmShift(r1, LSL, 3)); 
     
