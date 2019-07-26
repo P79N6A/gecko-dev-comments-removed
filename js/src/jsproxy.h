@@ -140,11 +140,17 @@ class JS_FRIEND_API(BaseProxyHandler)
 
 
 
-    enum Action {
-        GET,
-        SET,
-        CALL
-    };
+
+
+
+
+
+    typedef uint32_t Action;
+    static const Action VOID = 0x00;
+    static const Action GET  = 0x01;
+    static const Action SET  = 0x02;
+    static const Action CALL = 0x04;
+
     virtual bool enter(JSContext *cx, HandleObject wrapper, HandleId id, Action act,
                        bool *bp);
 
@@ -462,7 +468,7 @@ class JS_FRIEND_API(AutoEnterPolicy)
     {
         allow = handler->hasSecurityPolicy() ? handler->enter(cx, wrapper, id, act, &rv)
                                              : true;
-        recordEnter(cx, wrapper, id);
+        recordEnter(cx, wrapper, id, act);
         
         
         
@@ -481,6 +487,7 @@ class JS_FRIEND_API(AutoEnterPolicy)
     AutoEnterPolicy()
 #ifdef JS_DEBUG
         : context(nullptr)
+        , enteredAction(BaseProxyHandler::VOID)
 #endif
         {};
     void reportErrorIfExceptionIsNotPending(JSContext *cx, jsid id);
@@ -491,16 +498,18 @@ class JS_FRIEND_API(AutoEnterPolicy)
     JSContext *context;
     mozilla::Maybe<HandleObject> enteredProxy;
     mozilla::Maybe<HandleId> enteredId;
+    Action                   enteredAction;
+
     
     
     
     AutoEnterPolicy *prev;
-    void recordEnter(JSContext *cx, HandleObject proxy, HandleId id);
+    void recordEnter(JSContext *cx, HandleObject proxy, HandleId id, Action act);
     void recordLeave();
 
-    friend JS_FRIEND_API(void) assertEnteredPolicy(JSContext *cx, JSObject *proxy, jsid id);
+    friend JS_FRIEND_API(void) assertEnteredPolicy(JSContext *cx, JSObject *proxy, jsid id, Action act);
 #else
-    inline void recordEnter(JSContext *cx, JSObject *proxy, jsid id) {}
+    inline void recordEnter(JSContext *cx, JSObject *proxy, jsid id, Action act) {}
     inline void recordLeave() {}
 #endif
 
@@ -509,16 +518,30 @@ class JS_FRIEND_API(AutoEnterPolicy)
 #ifdef JS_DEBUG
 class JS_FRIEND_API(AutoWaivePolicy) : public AutoEnterPolicy {
 public:
-    AutoWaivePolicy(JSContext *cx, HandleObject proxy, HandleId id)
+    AutoWaivePolicy(JSContext *cx, HandleObject proxy, HandleId id,
+                    BaseProxyHandler::Action act)
     {
         allow = true;
-        recordEnter(cx, proxy, id);
+        recordEnter(cx, proxy, id, act);
     }
 };
 #else
 class JS_FRIEND_API(AutoWaivePolicy) {
-    public: AutoWaivePolicy(JSContext *cx, HandleObject proxy, HandleId id) {};
+  public:
+    AutoWaivePolicy(JSContext *cx, HandleObject proxy, HandleId id,
+                    BaseProxyHandler::Action act)
+    {}
 };
+#endif
+
+#ifdef JS_DEBUG
+extern JS_FRIEND_API(void)
+assertEnteredPolicy(JSContext *cx, JSObject *obj, jsid id,
+                    BaseProxyHandler::Action act);
+#else
+inline void assertEnteredPolicy(JSContext *cx, JSObject *obj, jsid id,
+                                BaseProxyHandler::Action act)
+{};
 #endif
 
 } 
