@@ -146,7 +146,13 @@ static int gAsyncScrollThrottleTime = 100;
 
 
 
+
 static int gAsyncScrollTimeout = 300;
+
+
+
+
+static bool gAsyncZoomDisabled = false;
 
 static TimeStamp sFrameTime;
 
@@ -185,6 +191,7 @@ AsyncPanZoomController::InitializeGlobalState()
   Preferences::AddFloatVarCache(&gYStationarySizeMultiplier, "gfx.azpc.y_stationary_size_multiplier", gYStationarySizeMultiplier);
   Preferences::AddIntVarCache(&gAsyncScrollThrottleTime, "apzc.asyncscroll.throttle", gAsyncScrollThrottleTime);
   Preferences::AddIntVarCache(&gAsyncScrollTimeout, "apzc.asyncscroll.timeout", gAsyncScrollTimeout);
+  Preferences::AddBoolVarCache(&gAsyncZoomDisabled, "apzc.asynczoom.disabled", gAsyncZoomDisabled);
 
   gComputedTimingFunction = new ComputedTimingFunction();
   gComputedTimingFunction->Init(
@@ -220,6 +227,9 @@ AsyncPanZoomController::AsyncPanZoomController(uint64_t aLayersId,
 
   if (aGestures == USE_GESTURE_DETECTOR) {
     mGestureEventListener = new GestureEventListener(this);
+  }
+  if (gAsyncZoomDisabled) {
+    mAllowZoom = false;
   }
 }
 
@@ -1363,6 +1373,9 @@ void AsyncPanZoomController::SetZoomAndResolution(const CSSToScreenScale& aZoom)
 void AsyncPanZoomController::UpdateZoomConstraints(bool aAllowZoom,
                                                    const CSSToScreenScale& aMinZoom,
                                                    const CSSToScreenScale& aMaxZoom) {
+  if (gAsyncZoomDisabled) {
+    return;
+  }
   mAllowZoom = aAllowZoom;
   mMinZoom = (MIN_ZOOM > aMinZoom ? MIN_ZOOM : aMinZoom);
   mMaxZoom = (MAX_ZOOM > aMaxZoom ? aMaxZoom : MAX_ZOOM);
