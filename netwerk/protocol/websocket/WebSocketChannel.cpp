@@ -213,6 +213,10 @@ public:
         if (outIndex)
           *outIndex = i;
         result = fail;
+        
+        
+        
+        break;
       } else if (fail->IsExpired(rightNow)) {
         mEntries.RemoveElementAt(i);
         delete fail;
