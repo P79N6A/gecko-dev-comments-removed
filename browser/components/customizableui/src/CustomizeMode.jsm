@@ -76,6 +76,13 @@ CustomizeMode.prototype = {
       return;
     }
 
+    
+    
+    if (this.browser.selectedBrowser.currentURI.spec != kAboutURI) {
+      this.window.switchToTabHavingURI(kAboutURI, true);
+      return;
+    }
+
     this.dispatchToolboxEvent("beforecustomization");
 
     let window = this.window;
@@ -84,11 +91,6 @@ CustomizeMode.prototype = {
     let customizer = document.getElementById("customization-container");
     customizer.hidden = false;
 
-    
-    
-    if (this.browser.selectedBrowser.currentURI.spec != kAboutURI) {
-      this.window.switchToTabHavingURI(kAboutURI, true);
-    }
 
     CustomizableUI.addListener(this);
 
