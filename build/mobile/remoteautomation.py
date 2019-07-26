@@ -99,9 +99,11 @@ class RemoteAutomation(Automation):
 
     def deleteANRs(self):
         
+        
         traces = "/data/anr/traces.txt"
         try:
-            self._devicemanager.shellCheckOutput(['rm', traces], root=True)
+            self._devicemanager.shellCheckOutput(['echo', '', '>', traces], root=True)
+            self._devicemanager.shellCheckOutput(['chmod', '666', traces], root=True)
         except DMError:
             print "Error deleting %s" % traces
             pass
