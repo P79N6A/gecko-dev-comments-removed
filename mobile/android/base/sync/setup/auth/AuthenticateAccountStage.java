@@ -102,7 +102,7 @@ public class AuthenticateAccountStage implements AuthenticatorStage {
         
         httpRequest = request;
         client.log.enableDebug(true);
-        request.setHeader(new BasicHeader("User-Agent", GlobalConstants.USER_AGENT));
+        request.setHeader(new BasicHeader("User-Agent", GlobalConstants.SYNC_USER_AGENT));
         
         try {
           URI authServerUri = new URI(authRequestUrl);
