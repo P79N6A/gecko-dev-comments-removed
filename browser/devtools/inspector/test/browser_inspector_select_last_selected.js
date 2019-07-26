@@ -30,23 +30,39 @@ function test() {
   }
 
   function endTests() {
-    toolbox.destroy();
-    toolbox = inspector = page1 = page2 = null;
-    gBrowser.removeCurrentTab();
-    finish();
+    executeSoon(() => {
+      toolbox.destroy();
+      toolbox = inspector = page1 = page2 = null;
+      gBrowser.removeCurrentTab();
+      finish();
+    });
   }
 
-  function testReSelectingAnElement(id, callback) {
+  function loadPageAnd(page, callback) {
+    inspector.once("markuploaded", () => {
+      executeSoon(callback);
+    });
+
+    if (page) {
+      content.location = page;
+    } else {
+      content.location.reload();
+    }
+  }
+
+  function reloadAndReselect(id, callback) {
     let div = content.document.getElementById(id);
-    inspector.selection.setNode(div);
+
     inspector.once("inspector-updated", () => {
       is(inspector.selection.node, div);
-      inspector.once("markuploaded", () => {
+
+      loadPageAnd(false, () => {
         is(inspector.selection.node.id, id, "Node re-selected after reload");
-        callback();
+        executeSoon(callback);
       });
-      content.location.reload();
     });
+
+    inspector.selection.setNode(div);
   }
 
   
@@ -54,10 +70,10 @@ function test() {
   {
     
     
-    testReSelectingAnElement("id1", () => {
-      testReSelectingAnElement("id2", () => {
-        testReSelectingAnElement("id3", () => {
-          testReSelectingAnElement("id4", testBodySelectedOnNavigate);
+    reloadAndReselect("id1", () => {
+      reloadAndReselect("id2", () => {
+        reloadAndReselect("id3", () => {
+          reloadAndReselect("id4", testBodySelectedOnNavigate);
         });
       });
     });
@@ -68,15 +84,16 @@ function test() {
   function testBodySelectedOnNavigate() {
     
     
-    inspector.once("markuploaded", () => {
-      is(
-        inspector.selection.node.tagName.toLowerCase(),
-        "body",
-        "Node not found, selecting body"
-      );
-      testSameNodeSelectedOnNavigateAwayAndBack();
+    loadPageAnd(page2, () => {
+      executeSoon(() => {
+        is(
+          inspector.selection.node.tagName.toLowerCase(),
+          "body",
+          "Node not found, body selected"
+        );
+        executeSoon(testSameNodeSelectedOnNavigateAwayAndBack);
+      });
     });
-    content.location = page2;
   }
 
   
@@ -85,19 +102,25 @@ function test() {
     
     let id = "id5";
     let div = content.document.getElementById(id);
-    inspector.selection.setNode(div);
+
     inspector.once("inspector-updated", () => {
       is(inspector.selection.node.id, id);
-      
-      inspector.once("markuploaded", () => {
+
+      executeSoon(() => {
         
-        inspector.once("markuploaded", () => {
-          is(inspector.selection.node.id, id, "Node re-selected after navigation");
-          endTests();
+        loadPageAnd(page1, () => {
+
+          executeSoon(() => {
+            
+            loadPageAnd(page2, () => {
+              is(inspector.selection.node.id, id, "Node re-selected after navigation");
+              executeSoon(endTests);
+            });
+          });
         });
-        content.location = page2;
       });
-      content.location = page1;
     });
+
+    inspector.selection.setNode(div);
   }
 }
