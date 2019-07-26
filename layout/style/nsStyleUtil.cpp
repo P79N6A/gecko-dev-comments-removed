@@ -10,7 +10,6 @@
 #include "nsCSSProps.h"
 #include "nsRuleNode.h"
 #include "nsROCSSPrimitiveValue.h"
-#include "nsIContentPolicy.h"
 #include "nsIContentSecurityPolicy.h"
 #include "nsIURI.h"
 
@@ -442,8 +441,7 @@ nsStyleUtil::IsSignificantChild(nsIContent* aChild, bool aTextIsSignificant,
 }
 
  bool
-nsStyleUtil::CSPAllowsInlineStyle(nsIContent* aContent,
-                                  nsIPrincipal* aPrincipal,
+nsStyleUtil::CSPAllowsInlineStyle(nsIPrincipal* aPrincipal,
                                   nsIURI* aSourceURI,
                                   uint32_t aLineNumber,
                                   const nsSubstring& aStyleText,
@@ -455,10 +453,6 @@ nsStyleUtil::CSPAllowsInlineStyle(nsIContent* aContent,
     *aRv = NS_OK;
   }
 
-  MOZ_ASSERT(!aContent || aContent->Tag() == nsGkAtoms::style,
-      "aContent passed to CSPAllowsInlineStyle "
-      "for an element that is not <style>");
-
   nsCOMPtr<nsIContentSecurityPolicy> csp;
   rv = aPrincipal->GetCsp(getter_AddRefs(csp));
 
@@ -469,38 +463,13 @@ nsStyleUtil::CSPAllowsInlineStyle(nsIContent* aContent,
   }
 
   if (csp) {
+    bool inlineOK = true;
     bool reportViolation;
-    bool allowInlineStyle = true;
-    rv = csp->GetAllowsInlineStyle(&reportViolation, &allowInlineStyle);
+    rv = csp->GetAllowsInlineStyle(&reportViolation, &inlineOK);
     if (NS_FAILED(rv)) {
       if (aRv)
         *aRv = rv;
       return false;
-    }
-
-    bool foundNonce = false;
-    nsAutoString nonce;
-    
-    
-    if (!allowInlineStyle) {
-      
-      foundNonce = !!aContent &&
-        aContent->GetAttr(kNameSpaceID_None, nsGkAtoms::nonce, nonce);
-      if (foundNonce) {
-        
-        
-        
-        
-        
-        
-        rv = csp->GetAllowsNonce(nonce, nsIContentPolicy::TYPE_STYLESHEET,
-                                 &reportViolation, &allowInlineStyle);
-        if (NS_FAILED(rv)) {
-          if (aRv)
-            *aRv = rv;
-          return false;
-        }
-      }
     }
 
     if (reportViolation) {
@@ -512,23 +481,18 @@ nsStyleUtil::CSPAllowsInlineStyle(nsIContent* aContent,
       
       if (styleText.Length() > 40) {
         styleText.Truncate(40);
-        styleText.AppendLiteral("...");
+        styleText.Append(NS_LITERAL_STRING("..."));
       }
 
-      
-      
-      unsigned short violationType = foundNonce ?
-        nsIContentSecurityPolicy::VIOLATION_TYPE_NONCE_STYLE :
-        nsIContentSecurityPolicy::VIOLATION_TYPE_INLINE_STYLE;
-      csp->LogViolationDetails(violationType, NS_ConvertUTF8toUTF16(asciiSpec),
-                               styleText, aLineNumber, nonce);
+      csp->LogViolationDetails(nsIContentSecurityPolicy::VIOLATION_TYPE_INLINE_STYLE,
+                               NS_ConvertUTF8toUTF16(asciiSpec),
+                               aStyleText,
+                               aLineNumber);
     }
 
-    if (!allowInlineStyle) {
-      NS_ASSERTION(reportViolation,
-          "CSP blocked inline style but is not reporting a violation");
-      
-      return false;
+    if (!inlineOK) {
+        
+        return false;
     }
   }
   
