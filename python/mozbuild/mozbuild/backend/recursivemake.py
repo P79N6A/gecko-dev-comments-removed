@@ -396,11 +396,17 @@ class RecursiveMakeBackend(CommonBackend):
                 subdirs.dirs + subdirs.tests + subdirs.tools
 
         
-        
         def other_filter(current, subdirs):
             if current == 'subtiers/precompile':
                 return None, [], []
-            return export_filter(current, subdirs)
+            all_subdirs = subdirs.parallel + subdirs.dirs + \
+                          subdirs.tests + subdirs.tools
+            
+            
+            if current.startswith('subtiers/') and all_subdirs and \
+                    all_subdirs[0].startswith('subtiers/'):
+                return current, [], all_subdirs
+            return current, all_subdirs, []
 
         
         def libs_filter(current, subdirs):
