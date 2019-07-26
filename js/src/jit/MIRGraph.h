@@ -474,6 +474,7 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     void dumpStack(FILE *fp);
 
     void dump(FILE *fp);
+    void dump();
 
     
     
@@ -683,6 +684,7 @@ class MIRGraph
     MDefinition *forkJoinSlice();
 
     void dump(FILE *fp);
+    void dump();
 };
 
 class MDefinitionIterator

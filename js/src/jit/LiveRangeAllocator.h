@@ -380,6 +380,12 @@ class LiveInterval
 #ifdef DEBUG
     void validateRanges();
 #endif
+
+    
+    
+    const char *rangesToString() const;
+
+    void dump();
 };
 
 
