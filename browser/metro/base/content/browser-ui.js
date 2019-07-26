@@ -1304,7 +1304,7 @@ var SettingsCharm = {
     });
     
     this.addEntry({
-        label: Strings.browser.GetStringFromName("syncCharm"),
+        label: Strings.brand.GetStringFromName("syncBrandShortName"),
         onselected: function() FlyoutPanelsUI.show('SyncFlyoutPanel')
     });
     
