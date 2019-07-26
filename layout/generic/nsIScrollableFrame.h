@@ -31,6 +31,8 @@ class nsIFrame;
 
 class nsIScrollableFrame : public nsIScrollbarOwner {
 public:
+  typedef mozilla::CSSIntPoint CSSIntPoint;
+
   NS_DECL_QUERYFRAME_TARGET(nsIScrollableFrame)
 
   
@@ -156,7 +158,7 @@ public:
 
 
 
-  virtual void ScrollToCSSPixels(const mozilla::CSSIntPoint& aScrollPosition) = 0;
+  virtual void ScrollToCSSPixels(const CSSIntPoint& aScrollPosition) = 0;
   
 
 
@@ -171,7 +173,7 @@ public:
 
 
 
-  virtual nsIntPoint GetScrollPositionCSSPixels() = 0;
+  virtual CSSIntPoint GetScrollPositionCSSPixels() = 0;
   
 
 
