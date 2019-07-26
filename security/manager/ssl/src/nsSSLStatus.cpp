@@ -7,6 +7,7 @@
 #include "nsSSLStatus.h"
 #include "plstr.h"
 #include "nsIClassInfoImpl.h"
+#include "nsIIdentityInfo.h"
 #include "nsIProgrammingLanguage.h"
 #include "nsIObjectOutputStream.h"
 #include "nsIObjectInputStream.h"
@@ -86,6 +87,39 @@ nsSSLStatus::GetIsUntrusted(bool* _result)
   *_result = mHaveCertErrorBits && mIsUntrusted;
 
   return NS_OK;
+}
+
+NS_IMETHODIMP
+nsSSLStatus::GetIsExtendedValidation(bool* aIsEV)
+{
+  NS_ENSURE_ARG_POINTER(aIsEV);
+  *aIsEV = false;
+
+#ifdef NSS_NO_LIBPKIX
+  return NS_OK;
+#else
+  nsCOMPtr<nsIX509Cert> cert = mServerCert;
+  nsresult rv;
+  nsCOMPtr<nsIIdentityInfo> idinfo = do_QueryInterface(cert, &rv);
+
+  
+  
+  
+  
+  
+  if (!idinfo) {
+    NS_ERROR("nsSSLStatus has null mServerCert or was called in the content "
+             "process");
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  
+  if (mHaveCertErrorBits) {
+    return NS_OK;
+  }
+
+  return idinfo->GetIsExtendedValidation(aIsEV);
+#endif
 }
 
 NS_IMETHODIMP
