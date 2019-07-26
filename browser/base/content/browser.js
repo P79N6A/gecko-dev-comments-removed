@@ -2182,7 +2182,8 @@ function losslessDecodeURI(aURI) {
 
   
   
-  value = value.replace(/[\v\x0c\x1c\x1d\x1e\x1f\u2028\u2029\ufffc]/g,
+  
+  value = value.replace(/[\u0000-\u001f\u007f-\u00a0\u2028\u2029\ufffc]/g,
                         encodeURIComponent);
 
   
@@ -2285,6 +2286,9 @@ let BrowserOnClick = {
     else if (gMultiProcessBrowser &&
              ownerDoc.documentURI.toLowerCase() == "about:newtab") {
       this.onE10sAboutNewTab(aEvent, ownerDoc);
+    }
+    else if (ownerDoc.documentURI.startsWith("about:tabcrashed")) {
+      this.onAboutTabCrashed(aEvent, ownerDoc);
     }
   },
 
@@ -2418,6 +2422,22 @@ let BrowserOnClick = {
     }
   },
 
+  
+
+
+
+  onAboutTabCrashed: function(aEvent, aOwnerDoc) {
+    let isTopFrame = (aOwnerDoc.defaultView.parent === aOwnerDoc.defaultView);
+    if (!isTopFrame) {
+      return;
+    }
+
+    let button = aEvent.originalTarget;
+    if (button.id == "tryAgain") {
+      openUILinkIn(button.getAttribute("url"), "current");
+    }
+  },
+
   ignoreWarningButton: function BrowserOnClick_ignoreWarningButton(aIsMalware) {
     
     
@@ -2527,6 +2547,16 @@ function getWebNavigation()
 }
 
 function BrowserReloadWithFlags(reloadFlags) {
+  let url = gBrowser.currentURI.spec;
+  if (gBrowser._updateBrowserRemoteness(gBrowser.selectedBrowser,
+                                        gBrowser._shouldBrowserBeRemote(url))) {
+    
+    
+    
+    gBrowser.loadURIWithFlags(url, reloadFlags);
+    return;
+  }
+
   
 
 
