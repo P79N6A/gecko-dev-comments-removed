@@ -252,12 +252,12 @@ InflateString(ThreadSafeContext *cx, const char *bytes, size_t *length);
 
 
 
-
-
-
-extern bool
-InflateStringToBuffer(JSContext *maybecx, const char *bytes, size_t length,
-                      jschar *chars, size_t *charsLength);
+inline void
+InflateStringToBuffer(const char *src, size_t srclen, jschar *dst)
+{
+    for (size_t i = 0; i < srclen; i++)
+        dst[i] = (unsigned char) src[i];
+}
 
 
 
