@@ -264,6 +264,12 @@ struct JSCompartment
     void sweepCallsiteClones();
 
     
+
+
+
+    js::ReadBarriered<js::ScriptSourceObject> selfHostingScriptSource;
+
+    
     unsigned                     gcIndex;
 
     

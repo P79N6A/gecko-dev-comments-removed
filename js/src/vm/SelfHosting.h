@@ -17,16 +17,11 @@ namespace js {
 
 
 
-
-
-
-extern const JSWrapObjectCallbacks SelfHostingWrapObjectCallbacks;
-
-
-
-
-
 bool IsSelfHostedFunctionWithName(JSFunction *fun, JSAtom *name);
+
+
+void
+FillSelfHostingCompileOptions(JS::CompileOptions &options);
 
 } 
 
