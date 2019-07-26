@@ -1113,6 +1113,33 @@ BluetoothHfpManager::ConvertToBthfCallState(int aCallState)
   return state;
 }
 
+bool
+BluetoothHfpManager::IsTransitionState(uint16_t aCallState, bool aIsConference)
+{
+  
+
+
+
+
+
+
+
+
+  if (!aIsConference) {
+    switch (aCallState) {
+      case nsITelephonyProvider::CALL_STATE_CONNECTED:
+        return (GetNumberOfCalls(aCallState) > 1);
+      case nsITelephonyProvider::CALL_STATE_HELD:
+        return (GetNumberOfCalls(aCallState) > 1 ||
+                FindFirstCall(nsITelephonyProvider::CALL_STATE_INCOMING));
+      default:
+        break;
+    }
+  }
+
+  return false;
+}
+
 void
 BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
                                             uint16_t aCallState,
@@ -1145,7 +1172,10 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
   mCurrentCallArray[aCallIndex].Set(aNumber, aIsOutgoing);
 
   
-  UpdatePhoneCIND(aCallIndex);
+  
+  if (!IsTransitionState(aCallState, aIsConference)) {
+    UpdatePhoneCIND(aCallIndex);
+  }
 
   switch (aCallState) {
     case nsITelephonyProvider::CALL_STATE_DIALING:
