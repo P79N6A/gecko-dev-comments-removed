@@ -52,7 +52,7 @@ nsNSSCertCache::CacheAllCerts()
 
   if (newList) {
     MutexAutoLock lock(mutex);
-    mCertList = new nsNSSCertList(newList, true); 
+    mCertList = new nsNSSCertList(newList, locker);
   }
   
   return NS_OK;

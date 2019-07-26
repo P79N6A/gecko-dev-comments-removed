@@ -1639,7 +1639,7 @@ nsNSSCertificateDB::GetCerts(nsIX509CertList **_retval)
 
   
   
-  nssCertList = new nsNSSCertList(certList, true);
+  nssCertList = new nsNSSCertList(certList, locker);
 
   *_retval = nssCertList;
   NS_ADDREF(*_retval);
