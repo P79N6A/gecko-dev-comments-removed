@@ -13,12 +13,8 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/FileUtils.jsm");
 Cu.import("resource://gre/modules/NetUtil.jsm");
 Cu.import("resource://gre/modules/osfile.jsm");
-Cu.import("resource://gre/modules/WebappOSUtils.jsm");
-Cu.import("resource://gre/modules/AppsUtils.jsm");
 
 this.WebappsInstaller = {
-  shell: null,
-
   
 
 
@@ -26,70 +22,41 @@ this.WebappsInstaller = {
 
 
 
+  install: function(aData) {
 
-  init: function(aData) {
-#ifdef XP_WIN
-    this.shell = new WinNativeApp(aData);
-#elifdef XP_MACOSX
-    this.shell = new MacNativeApp(aData);
-#elifdef XP_UNIX
-    this.shell = new LinuxNativeApp(aData);
-#else
-    return null;
-#endif
-
-    try {
-      if (Services.prefs.getBoolPref("browser.mozApps.installer.dry_run")) {
-        return this.shell;
-      }
-    } catch (ex) {}
-
-    try {
-      this.shell.createAppProfile();
-    } catch (ex) {
-      Cu.reportError("Error installing app: " + ex);
-      return null;
-    }
-
-    return this.shell;
-  },
-
-  
-
-
-
-
-
-
-
-  install: function(aData, aManifest) {
     try {
       if (Services.prefs.getBoolPref("browser.mozApps.installer.dry_run")) {
         return true;
       }
     } catch (ex) {}
 
-    this.shell.init(aData, aManifest);
+#ifdef XP_WIN
+    let shell = new WinNativeApp(aData);
+#elifdef XP_MACOSX
+    let shell = new MacNativeApp(aData);
+#elifdef XP_UNIX
+    let shell = new LinuxNativeApp(aData);
+#else
+    return false;
+#endif
 
     try {
-      this.shell.install();
+      shell.install();
     } catch (ex) {
       Cu.reportError("Error installing app: " + ex);
-      return false;
+      return null;
     }
 
     let data = {
-      "installDir": this.shell.installDir.path,
-      "app": {
-        "manifest": aManifest,
-        "origin": aData.app.origin
-      }
+      "installDir": shell.installDir.path,
+      "app": aData.app
     };
     Services.obs.notifyObservers(null, "webapp-installed", JSON.stringify(data));
 
-    return true;
+    return shell;
   }
 }
+
 
 
 
@@ -102,90 +69,67 @@ this.WebappsInstaller = {
 
 
 function NativeApp(aData) {
-  this.uniqueName = WebappOSUtils.getUniqueName(aData.app);
+  let app = this.app = aData.app;
 
-  let jsonManifest = aData.isPackage ? aData.app.updateManifest : aData.app.manifest;
-  let manifest = new ManifestHelper(jsonManifest, aData.app.origin);
+  let origin = Services.io.newURI(app.origin, null, null);
 
-  this.appName = sanitize(manifest.name);
+  if (app.manifest.launch_path) {
+    this.launchURI = Services.io.newURI(origin.resolve(app.manifest.launch_path),
+                                        null, null);
+  } else {
+    this.launchURI = origin.clone();
+  }
+
+  let biggestIcon = getBiggestIconURL(app.manifest.icons);
+  try {
+    let iconURI = Services.io.newURI(biggestIcon, null, null);
+    if (iconURI.scheme == "data") {
+      this.iconURI = iconURI;
+    }
+  } catch (ex) {}
+
+  if (!this.iconURI) {
+    try {
+      this.iconURI = Services.io.newURI(origin.resolve(biggestIcon), null, null);
+    }
+    catch (ex) {}
+  }
+
+  this.appName = sanitize(app.manifest.name);
   this.appNameAsFilename = stripStringForFilename(this.appName);
-}
 
-NativeApp.prototype = {
-  uniqueName: null,
-  appName: null,
-  appNameAsFilename: null,
-  iconURI: null,
-  developerName: null,
-  shortDescription: null,
-  categories: null,
-  webappJson: null,
-  runtimeFolder: null,
+  if(app.manifest.developer && app.manifest.developer.name) {
+    let devName = app.manifest.developer.name.substr(0, 128);
+    devName = sanitize(devName);
+    if (devName) {
+      this.developerName = devName;
+    }
+  }
+
+  let shortDesc = this.appName;
+  if (app.manifest.description) {
+    let firstLine = app.manifest.description.split("\n")[0];
+    shortDesc = firstLine.length <= 256
+                ? firstLine
+                : firstLine.substr(0, 253) + "...";
+  }
+  this.shortDescription = sanitize(shortDesc);
 
   
+  
+  this.registryFolder = Services.dirsvc.get("ProfD", Ci.nsIFile);
 
+  this.webappJson = {
+    "registryDir": this.registryFolder.path,
+    "app": app
+  };
 
-
-
-
-
-
-  init: function(aData, aManifest) {
-    let manifest = new ManifestHelper(aManifest, aData.app.origin);
-
-    let origin = Services.io.newURI(aData.app.origin, null, null);
-
-    let biggestIcon = getBiggestIconURL(manifest.icons);
-    try {
-      let iconURI = Services.io.newURI(biggestIcon, null, null);
-      if (iconURI.scheme == "data") {
-        this.iconURI = iconURI;
-      }
-    } catch (ex) {}
-
-    if (!this.iconURI) {
-      try {
-        this.iconURI = Services.io.newURI(origin.resolve(biggestIcon), null, null);
-      }
-      catch (ex) {}
-    }
-
-    if (manifest.developer && manifest.developer.name) {
-      let devName = sanitize(manifest.developer.name.substr(0, 128));
-      if (devName) {
-        this.developerName = devName;
-      }
-    }
-
-    if (manifest.description) {
-      let firstLine = manifest.description.split("\n")[0];
-      let shortDesc = firstLine.length <= 256
-                      ? firstLine
-                      : firstLine.substr(0, 253) + "â€¦";
-      this.shortDescription = sanitize(shortDesc);
-    } else {
-      this.shortDescription = this.appName;
-    }
-
-    this.categories = aData.app.categories.slice(0);
-
-    
-    
-    let registryFolder = Services.dirsvc.get("ProfD", Ci.nsIFile);
-
-    this.webappJson = {
-      "registryDir": registryFolder.path,
-      "app": {
-        "manifest": aManifest,
-        "origin": aData.app.origin
-      }
-    };
-
-    this.runtimeFolder = Services.dirsvc.get("GreD", Ci.nsIFile);
-  }
-};
+  this.runtimeFolder = Services.dirsvc.get("GreD", Ci.nsIFile);
+}
 
 #ifdef XP_WIN
+
+
 
 
 
@@ -220,18 +164,21 @@ function WinNativeApp(aData) {
 }
 
 WinNativeApp.prototype = {
-  __proto__: NativeApp.prototype,
-
   
 
 
 
   install: function() {
+    
+    this._removeInstallation(true);
+
     try {
+      this._createDirectoryStructure();
       this._copyPrebuiltFiles();
       this._createConfigFiles();
       this._createShortcutFiles();
       this._writeSystemKeys();
+      this._createAppProfile();
     } catch (ex) {
       this._removeInstallation(false);
       throw(ex);
@@ -253,8 +200,17 @@ WinNativeApp.prototype = {
     }
 
     
+    
+    
+    
     this.installDir = Services.dirsvc.get("AppData", Ci.nsIFile);
-    this.installDir.append(this.uniqueName);
+    let installDirLeaf = this.launchURI.scheme
+                       + ";"
+                       + this.launchURI.host;
+    if (this.launchURI.port != -1) {
+      installDirLeaf += ";" + this.launchURI.port;
+    }
+    this.installDir.append(installDirLeaf);
 
     this.webapprt = this.installDir.clone();
     this.webapprt.append(this.appNameAsFilename + ".exe");
@@ -277,12 +233,8 @@ WinNativeApp.prototype = {
     this.iconFile.append("default");
     this.iconFile.append("default.ico");
 
-    this.uninstallSubkeyStr = this.uniqueName;
-
-    
-    this._removeInstallation(true);
-
-    this._createDirectoryStructure();
+    this.uninstallSubkeyStr = this.launchURI.scheme + "://" +
+                              this.launchURI.hostPort;
   },
 
   
@@ -331,17 +283,15 @@ WinNativeApp.prototype = {
 
 
   _createDirectoryStructure: function() {
-    if (!this.installDir.exists()) {
+    if (!this.installDir.exists())
       this.installDir.create(Ci.nsIFile.DIRECTORY_TYPE, 0755);
-    }
-
     this.uninstallDir.create(Ci.nsIFile.DIRECTORY_TYPE, 0755);
   },
 
   
 
 
-  createAppProfile: function() {
+  _createAppProfile: function() {
     let profSvc = Cc["@mozilla.org/toolkit/profile-service;1"]
                     .getService(Ci.nsIToolkitProfileService);
 
@@ -517,8 +467,6 @@ function MacNativeApp(aData) {
 }
 
 MacNativeApp.prototype = {
-  __proto__: NativeApp.prototype,
-
   _init: function() {
     this.appSupportDir = Services.dirsvc.get("ULibDir", Ci.nsILocalFile);
     this.appSupportDir.append("Application Support");
@@ -530,8 +478,13 @@ MacNativeApp.prototype = {
     }
 
     
+    
+    
+    
     this.appProfileDir = this.appSupportDir.clone();
-    this.appProfileDir.append(this.uniqueName);
+    this.appProfileDir.append(this.launchURI.host + ";" +
+                              this.launchURI.scheme + ";" +
+                              this.launchURI.port);
 
     this.installDir = Services.dirsvc.get("TmpD", Ci.nsILocalFile);
     this.installDir.append(this.appNameAsFilename + ".app");
@@ -548,17 +501,15 @@ MacNativeApp.prototype = {
 
     this.iconFile = this.resourcesDir.clone();
     this.iconFile.append("appicon.icns");
-
-    
-    this._removeInstallation(true);
-
-    this._createDirectoryStructure();
   },
 
   install: function() {
+    this._removeInstallation(true);
     try {
+      this._createDirectoryStructure();
       this._copyPrebuiltFiles();
       this._createConfigFiles();
+      this._createAppProfile();
     } catch (ex) {
       this._removeInstallation(false);
       throw(ex);
@@ -578,16 +529,15 @@ MacNativeApp.prototype = {
   },
 
   _createDirectoryStructure: function() {
-    if (!this.appProfileDir.exists()) {
+    if (!this.appProfileDir.exists())
       this.appProfileDir.create(Ci.nsIFile.DIRECTORY_TYPE, 0755);
-    }
 
     this.contentsDir.create(Ci.nsIFile.DIRECTORY_TYPE, 0755);
     this.macOSDir.create(Ci.nsIFile.DIRECTORY_TYPE, 0755);
     this.resourcesDir.create(Ci.nsIFile.DIRECTORY_TYPE, 0755);
   },
 
-  createAppProfile: function() {
+  _createAppProfile: function() {
     let profSvc = Cc["@mozilla.org/toolkit/profile-service;1"]
                     .getService(Ci.nsIToolkitProfileService);
 
@@ -635,7 +585,7 @@ MacNativeApp.prototype = {
     <key>CFBundleIconFile</key>\n\
     <string>appicon</string>\n\
     <key>CFBundleIdentifier</key>\n\
-    <string>' + escapeXML(this.uniqueName) + '</string>\n\
+    <string>' + escapeXML(this.launchURI.prePath) + '</string>\n\
     <key>CFBundleInfoDictionaryVersion</key>\n\
     <string>6.0</string>\n\
     <key>CFBundleName</key>\n\
@@ -719,11 +669,15 @@ function LinuxNativeApp(aData) {
 }
 
 LinuxNativeApp.prototype = {
-  __proto__: NativeApp.prototype,
-
   _init: function() {
     
     
+    
+    
+
+    this.uniqueName = this.launchURI.scheme + ";" + this.launchURI.host;
+    if (this.launchURI.port != -1)
+      this.uniqueName += ";" + this.launchURI.port;
 
     this.installDir = Services.dirsvc.get("Home", Ci.nsIFile);
     this.installDir.append("." + this.uniqueName);
@@ -756,17 +710,16 @@ LinuxNativeApp.prototype = {
 
     this.desktopINI.append("applications");
     this.desktopINI.append("owa-" + this.uniqueName + ".desktop");
-
-    
-    this._removeInstallation(true);
-
-    this._createDirectoryStructure();
   },
 
   install: function() {
+    this._removeInstallation(true);
+
     try {
+      this._createDirectoryStructure();
       this._copyPrebuiltFiles();
       this._createConfigFiles();
+      this._createAppProfile();
     } catch (ex) {
       this._removeInstallation(false);
       throw(ex);
@@ -801,7 +754,7 @@ LinuxNativeApp.prototype = {
     webapprtPre.copyTo(this.installDir, this.webapprt.leafName);
   },
 
-  createAppProfile: function() {
+  _createAppProfile: function() {
     let profSvc = Cc["@mozilla.org/toolkit/profile-service;1"]
                     .getService(Ci.nsIToolkitProfileService);
 
@@ -842,7 +795,7 @@ LinuxNativeApp.prototype = {
 
     
     let categories = "";
-    for (let category of this.categories) {
+    for (let category of this.app.categories) {
       let catLower = category.toLowerCase();
       if (catLower in translations) {
         categories += translations[catLower] + ";";

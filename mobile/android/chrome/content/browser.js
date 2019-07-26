@@ -6722,9 +6722,10 @@ var WebappsUI = {
   doInstall: function doInstall(aData) {
     let jsonManifest = aData.isPackage ? aData.app.updateManifest : aData.app.manifest;
     let manifest = new ManifestHelper(jsonManifest, aData.app.origin);
+    let name = manifest.name ? manifest.name : manifest.fullLaunchPath();
     let showPrompt = true;
 
-    if (!showPrompt || Services.prompt.confirm(null, Strings.browser.GetStringFromName("webapps.installTitle"), manifest.name + "\n" + aData.app.origin)) {
+    if (!showPrompt || Services.prompt.confirm(null, Strings.browser.GetStringFromName("webapps.installTitle"), name + "\n" + aData.app.origin)) {
       
       let origin = aData.app.origin;
       let profilePath = sendMessageToJava({
@@ -6736,12 +6737,10 @@ var WebappsUI = {
       if (profilePath) {
         let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
         file.initWithPath(profilePath);
-
+  
         let self = this;
         DOMApplicationRegistry.confirmInstall(aData, false, file, null,
-          function (aManifest) {
-            let localeManifest = new ManifestHelper(aManifest, aData.app.origin);
-
+          function (manifest) {
             
             
             self.makeBase64Icon(self.getBiggestIcon(manifest.icons, Services.io.newURI(aData.app.origin, null, null)),
@@ -6761,7 +6760,7 @@ var WebappsUI = {
                   
                   sendMessageToJava({
                     type: "WebApps:PostInstall",
-                    name: localeManifest.name,
+                    name: manifest.name,
                     manifestURL: aData.app.manifestURL,
                     originalOrigin: origin,
                     origin: aData.app.origin,
@@ -6771,7 +6770,7 @@ var WebappsUI = {
                     
                     let message = Strings.browser.GetStringFromName("webapps.alertSuccess");
                     let alerts = Cc["@mozilla.org/alerts-service;1"].getService(Ci.nsIAlertsService);
-                    alerts.showAlertNotification("drawable://alert_app", localeManifest.name, message, true, "", {
+                    alerts.showAlertNotification("drawable://alert_app", manifest.name, message, true, "", {
                       observe: function () {
                         self.openURL(aData.app.manifestURL, aData.app.origin);
                       }
@@ -6780,7 +6779,7 @@ var WebappsUI = {
                 } catch(ex) {
                   console.log(ex);
                 }
-                self.writeDefaultPrefs(file, localeManifest);
+                self.writeDefaultPrefs(file, manifest);
               }
             );
           }

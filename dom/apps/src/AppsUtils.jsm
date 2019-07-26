@@ -482,30 +482,6 @@ this.AppsUtils = {
 
     
     return true;
-  },
-
-  
-  computeHash: function(aString) {
-    let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
-                      .createInstance(Ci.nsIScriptableUnicodeConverter);
-    converter.charset = "UTF-8";
-    let result = {};
-    
-    let data = converter.convertToByteArray(aString, result);
-
-    let hasher = Cc["@mozilla.org/security/hash;1"]
-                   .createInstance(Ci.nsICryptoHash);
-    hasher.init(hasher.MD5);
-    hasher.update(data, data.length);
-    
-    let hash = hasher.finish(false);
-
-    function toHexString(charCode) {
-      return ("0" + charCode.toString(16)).slice(-2);
-    }
-
-    
-    return [toHexString(hash.charCodeAt(i)) for (i in hash)].join("");
   }
 }
 
