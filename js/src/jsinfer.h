@@ -323,15 +323,6 @@ enum {
 
 
 
-    TYPE_FLAG_PROPAGATED_PROPERTY = 0x00080000,
-
-    
-    TYPE_FLAG_OWN_PROPERTY        = 0x00100000,
-
-    
-
-
-
 
     TYPE_FLAG_CONFIGURED_PROPERTY = 0x00200000,
 
@@ -472,8 +463,8 @@ class TypeSet
         return !!(baseFlags() & flags);
     }
 
-    bool ownProperty(bool configurable) const {
-        return flags & (configurable ? TYPE_FLAG_CONFIGURED_PROPERTY : TYPE_FLAG_OWN_PROPERTY);
+    bool configuredProperty() const {
+        return flags & TYPE_FLAG_CONFIGURED_PROPERTY;
     }
     bool definiteProperty() const { return flags & TYPE_FLAG_DEFINITE_PROPERTY; }
     unsigned definiteSlot() const {
@@ -491,7 +482,7 @@ class TypeSet
     inline void addType(ExclusiveContext *cx, Type type);
 
     
-    inline void setOwnProperty(ExclusiveContext *cx, bool configured);
+    inline void setConfiguredProperty(ExclusiveContext *cx);
 
     
 
@@ -507,18 +498,13 @@ class TypeSet
     
     inline const Class *getObjectClass(unsigned i) const;
 
-    void setOwnProperty(bool configurable) {
-        flags |= TYPE_FLAG_OWN_PROPERTY;
-        if (configurable)
-            flags |= TYPE_FLAG_CONFIGURED_PROPERTY;
+    void setConfiguredProperty() {
+        flags |= TYPE_FLAG_CONFIGURED_PROPERTY;
     }
     void setDefinite(unsigned slot) {
         JS_ASSERT(slot <= (TYPE_FLAG_DEFINITE_MASK >> TYPE_FLAG_DEFINITE_SHIFT));
         flags |= TYPE_FLAG_DEFINITE_PROPERTY | (slot << TYPE_FLAG_DEFINITE_SHIFT);
     }
-
-    bool hasPropagatedProperty() { return !!(flags & TYPE_FLAG_PROPAGATED_PROPERTY); }
-    void setPropagatedProperty() { flags |= TYPE_FLAG_PROPAGATED_PROPERTY; }
 
     bool isStackSet() {
         return flags & TYPE_FLAG_STACK_SET;
@@ -561,18 +547,12 @@ class StackTypeSet : public TypeSet
 {
   public:
     StackTypeSet() { flags |= TYPE_FLAG_STACK_SET; }
-
-    
-    void addSubset(JSContext *cx, StackTypeSet *target);
 };
 
 class HeapTypeSet : public TypeSet
 {
   public:
     HeapTypeSet() { flags |= TYPE_FLAG_HEAP_SET; }
-
-    
-    void addSubset(JSContext *cx, HeapTypeSet *target);
 
     
     void addFreeze(JSContext *cx);
@@ -594,7 +574,7 @@ class HeapTypeSet : public TypeSet
 
 
 
-    bool isOwnProperty(JSContext *cx, TypeObject *object, bool configurable);
+    bool isConfiguredProperty(JSContext *cx, TypeObject *object);
 
     
     bool knownNonEmpty(JSContext *cx);
@@ -757,91 +737,6 @@ struct TypeResult
 
 
 inline bool isInlinableCall(jsbytecode *pc);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-struct TypeBarrier
-{
-    
-    TypeBarrier *next;
-
-    
-    TypeSet *target;
-
-    
-
-
-
-    Type type;
-
-    
-
-
-
-    JSObject *singleton;
-    jsid singletonId;
-
-    TypeBarrier(TypeSet *target, Type type, JSObject *singleton, jsid singletonId)
-        : next(NULL), target(target), type(type),
-          singleton(singleton), singletonId(singletonId)
-    {}
-};
 
 
 struct Property
@@ -1109,9 +1004,7 @@ struct TypeObject : gc::BarrieredCell<TypeObject>
 
 
 
-
-
-    inline HeapTypeSet *getProperty(ExclusiveContext *cx, jsid id, bool own);
+    inline HeapTypeSet *getProperty(ExclusiveContext *cx, jsid id);
 
     
     inline HeapTypeSet *maybeGetProperty(ExclusiveContext *cx, jsid id);
@@ -1178,7 +1071,6 @@ struct TypeObject : gc::BarrieredCell<TypeObject>
     void clearAddendum(ExclusiveContext *cx);
     void clearNewScriptAddendum(ExclusiveContext *cx);
     void clearTypedObjectAddendum(ExclusiveContext *cx);
-    void getFromPrototypes(JSContext *cx, jsid id, HeapTypeSet *types, bool force = false);
 
     void print();
 
