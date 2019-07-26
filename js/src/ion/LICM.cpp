@@ -16,6 +16,65 @@
 using namespace js;
 using namespace js::ion;
 
+namespace {
+
+typedef Vector<MBasicBlock*, 1, IonAllocPolicy> BlockQueue;
+typedef Vector<MInstruction*, 1, IonAllocPolicy> InstructionQueue;
+
+class Loop
+{
+    MIRGenerator *mir;
+
+  public:
+    
+    enum LoopReturn {
+        LoopReturn_Success,
+        LoopReturn_Error, 
+        LoopReturn_Skip   
+    };
+
+  public:
+    
+    Loop(MIRGenerator *mir, MBasicBlock *footer);
+
+    
+    LoopReturn init();
+
+    
+    bool optimize();
+
+  private:
+    
+    MBasicBlock *header_;
+
+    
+    
+    MBasicBlock* preLoop_;
+
+    bool hoistInstructions(InstructionQueue &toHoist);
+
+    
+    bool isInLoop(MDefinition *ins);
+    bool isBeforeLoop(MDefinition *ins);
+    bool isLoopInvariant(MInstruction *ins);
+    bool isLoopInvariant(MDefinition *ins);
+
+    
+    
+    bool checkHotness(MBasicBlock *block);
+
+    
+    InstructionQueue worklist_;
+    bool insertInWorklist(MInstruction *ins);
+    MInstruction* popFromWorklist();
+
+    inline bool isHoistable(const MDefinition *ins) const {
+        return ins->isMovable() && !ins->isEffectful() && !ins->neverHoist();
+    }
+};
+
+} 
+
 LICM::LICM(MIRGenerator *mir, MIRGraph &graph)
   : mir(mir), graph(graph)
 {
