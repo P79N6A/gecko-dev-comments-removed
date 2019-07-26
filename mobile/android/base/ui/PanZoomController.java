@@ -259,8 +259,8 @@ public class PanZoomController
     public void pageRectUpdated() {
         if (mState == PanZoomState.NOTHING) {
             synchronized (mTarget.getLock()) {
-                ViewportMetrics validated = getValidViewportMetrics();
-                if (! getMutableMetrics().fuzzyEquals(validated)) {
+                ImmutableViewportMetrics validated = getValidViewportMetrics();
+                if (!getMetrics().fuzzyEquals(validated)) {
                     
                     
                     mTarget.setViewportMetrics(validated);
@@ -491,7 +491,7 @@ public class PanZoomController
         origin.offset(point.x, point.y);
         viewportMetrics.setOrigin(origin);
 
-        mTarget.setViewportMetrics(viewportMetrics);
+        mTarget.setViewportMetrics(new ImmutableViewportMetrics(viewportMetrics));
     }
 
     private void fling() {
@@ -507,10 +507,10 @@ public class PanZoomController
     }
 
     
-    private void bounce(ViewportMetrics metrics) {
+    private void bounce(ImmutableViewportMetrics metrics) {
         stopAnimationTimer();
 
-        ViewportMetrics bounceStartMetrics = getMutableMetrics();
+        ImmutableViewportMetrics bounceStartMetrics = getMetrics();
         if (bounceStartMetrics.fuzzyEquals(metrics)) {
             setState(PanZoomState.NOTHING);
             return;
@@ -625,9 +625,9 @@ public class PanZoomController
         private ImmutableViewportMetrics mBounceStartMetrics;
         private ImmutableViewportMetrics mBounceEndMetrics;
 
-        BounceRunnable(ViewportMetrics startMetrics, ViewportMetrics endMetrics) {
-            mBounceStartMetrics = new ImmutableViewportMetrics(startMetrics);
-            mBounceEndMetrics = new ImmutableViewportMetrics(endMetrics);
+        BounceRunnable(ImmutableViewportMetrics startMetrics, ImmutableViewportMetrics endMetrics) {
+            mBounceStartMetrics = startMetrics;
+            mBounceEndMetrics = endMetrics;
         }
 
         protected void animateFrame() {
@@ -658,7 +658,7 @@ public class PanZoomController
             synchronized (mTarget.getLock()) {
                 float t = easeOut(mBounceFrame * Axis.MS_PER_FRAME / 256f);
                 ImmutableViewportMetrics newMetrics = mBounceStartMetrics.interpolate(mBounceEndMetrics, t);
-                mTarget.setViewportMetrics(new ViewportMetrics(newMetrics));
+                mTarget.setViewportMetrics(newMetrics);
                 mBounceFrame++;
             }
         }
@@ -666,7 +666,7 @@ public class PanZoomController
         
         private void finishBounce() {
             synchronized (mTarget.getLock()) {
-                mTarget.setViewportMetrics(new ViewportMetrics(mBounceEndMetrics));
+                mTarget.setViewportMetrics(mBounceEndMetrics);
                 mBounceFrame = -1;
             }
         }
@@ -731,11 +731,11 @@ public class PanZoomController
     }
 
     
-    private ViewportMetrics getValidViewportMetrics() {
+    private ImmutableViewportMetrics getValidViewportMetrics() {
         return getValidViewportMetrics(getMutableMetrics());
     }
 
-    private ViewportMetrics getValidViewportMetrics(ViewportMetrics viewportMetrics) {
+    private ImmutableViewportMetrics getValidViewportMetrics(ViewportMetrics viewportMetrics) {
         
         float zoomFactor = viewportMetrics.getZoomFactor();
         RectF pageRect = viewportMetrics.getPageRect();
@@ -791,7 +791,7 @@ public class PanZoomController
         
         viewportMetrics.setViewport(viewportMetrics.getClampedViewport());
 
-        return viewportMetrics;
+        return new ImmutableViewportMetrics(viewportMetrics);
     }
 
     private class AxisX extends Axis {
@@ -937,7 +937,7 @@ public class PanZoomController
     private void scaleWithFocus(float zoomFactor, PointF focus) {
         ViewportMetrics viewportMetrics = getMutableMetrics();
         viewportMetrics.scaleTo(zoomFactor, focus);
-        mTarget.setViewportMetrics(viewportMetrics);
+        mTarget.setViewportMetrics(new ImmutableViewportMetrics(viewportMetrics));
     }
 
     public boolean getRedrawHint() {
@@ -1049,9 +1049,9 @@ public class PanZoomController
 
         
         
-        finalMetrics = getValidViewportMetrics(finalMetrics);
+        ImmutableViewportMetrics finalValidMetrics = getValidViewportMetrics(finalMetrics);
 
-        bounce(finalMetrics);
+        bounce(finalValidMetrics);
         return true;
     }
 

@@ -336,7 +336,7 @@ public class GeckoLayerClient
                     mGeckoViewport = newMetrics;
                 }
             });
-            setViewportMetrics(newMetrics, type == ViewportMessageType.UPDATE);
+            setViewportMetrics(new ImmutableViewportMetrics(newMetrics), type == ViewportMessageType.UPDATE);
             mDisplayPort = DisplayPortCalculator.calculate(getViewportMetrics(), null);
         }
         return mDisplayPort;
@@ -483,7 +483,7 @@ public class GeckoLayerClient
                     mGeckoViewport = currentMetrics;
                 }
             });
-            setViewportMetrics(currentMetrics);
+            setViewportMetrics(new ImmutableViewportMetrics(currentMetrics));
 
             Tab tab = Tabs.getInstance().getSelectedTab();
             mView.setCheckerboardColor(tab.getCheckerboardColor());
@@ -662,13 +662,12 @@ public class GeckoLayerClient
     }
 
     
-    public void setAnimationTarget(ViewportMetrics viewport) {
+    public void setAnimationTarget(ImmutableViewportMetrics metrics) {
         if (mGeckoIsReady) {
             
             
             
             
-            ImmutableViewportMetrics metrics = new ImmutableViewportMetrics(viewport);
             DisplayPortMetrics displayPort = DisplayPortCalculator.calculate(metrics, null);
             adjustViewport(displayPort);
         }
@@ -677,12 +676,12 @@ public class GeckoLayerClient
     
 
 
-    public void setViewportMetrics(ViewportMetrics viewport) {
-        setViewportMetrics(viewport, true);
+    public void setViewportMetrics(ImmutableViewportMetrics metrics) {
+        setViewportMetrics(metrics, true);
     }
 
-    private void setViewportMetrics(ViewportMetrics viewport, boolean notifyGecko) {
-        mViewportMetrics = new ImmutableViewportMetrics(viewport);
+    private void setViewportMetrics(ImmutableViewportMetrics metrics, boolean notifyGecko) {
+        mViewportMetrics = metrics;
         mView.requestRender();
         if (notifyGecko && mGeckoIsReady) {
             geometryChanged();
