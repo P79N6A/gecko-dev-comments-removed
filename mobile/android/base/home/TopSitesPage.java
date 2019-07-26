@@ -515,6 +515,7 @@ public class TopSitesPage extends HomeFragment {
 
     public class TopSitesGridAdapter extends CursorAdapter {
         
+        
         private Map<String, Bitmap> mThumbnails;
 
         public TopSitesGridAdapter(Context context, Cursor cursor) {

@@ -2033,6 +2033,8 @@ public class BrowserProvider extends ContentProvider {
     }
 
     private void cleanupSomeDeletedRecords(Uri fromUri, Uri targetUri, String tableName) {
+        Log.d(LOGTAG, "Cleaning up deleted records from " + tableName);
+
         
         
         
@@ -2090,6 +2092,7 @@ public class BrowserProvider extends ContentProvider {
 
 
     private void expireHistory(final SQLiteDatabase db, final int retain, final long keepAfter) {
+        Log.d(LOGTAG, "Expiring history.");
         final long rows = DatabaseUtils.queryNumEntries(db, TABLE_HISTORY);
 
         if (retain >= rows) {
@@ -2125,6 +2128,7 @@ public class BrowserProvider extends ContentProvider {
 
 
     private void expireThumbnails(final SQLiteDatabase db) {
+        Log.d(LOGTAG, "Expiring thumbnails.");
         final String sortOrder = BrowserContract.getFrecencySortOrder(true, false);
         final String sql = "DELETE FROM " + TABLE_THUMBNAILS +
                            " WHERE " + Thumbnails.URL + " NOT IN ( " +
