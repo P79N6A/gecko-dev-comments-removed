@@ -205,6 +205,12 @@ typedef NSInteger NSEventGestureAxis;
 #endif 
 #endif 
 
+#if !defined(MAC_OS_X_VERSION_10_8) || MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_8
+enum {
+  NSEventPhaseMayBegin    = 0x1 << 5
+};
+#endif 
+
 
 
 @interface NSEvent (ScrollPhase)
@@ -251,6 +257,11 @@ typedef NSInteger NSEventGestureAxis;
   NSMutableArray* mPendingDirtyRects;
   BOOL mPendingFullDisplay;
   BOOL mPendingDisplay;
+
+  
+  
+  
+  BOOL mExpectingWheelStop;
 
   
   
@@ -354,6 +365,8 @@ typedef NSInteger NSEventGestureAxis;
 - (void)smartMagnifyWithEvent:(NSEvent *)anEvent;
 - (void)rotateWithEvent:(NSEvent *)anEvent;
 - (void)endGestureWithEvent:(NSEvent *)anEvent;
+
+- (void)scrollWheel:(NSEvent *)anEvent;
 
 
 + (BOOL)isLionSmartMagnifyEvent:(NSEvent*)anEvent;

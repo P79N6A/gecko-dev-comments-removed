@@ -23,6 +23,13 @@ public:
 
 
   virtual nsIFrame* GetScrollbarBox(bool aVertical) = 0;
+
+  
+
+
+
+  virtual void ScrollbarActivityStarted() const = 0;
+  virtual void ScrollbarActivityStopped() const = 0;
 };
 
 #endif
