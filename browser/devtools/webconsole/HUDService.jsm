@@ -533,23 +533,7 @@ WebConsole.prototype = {
 
 
 
-
-
-
-  _messageListeners: ["WebConsole:Initialized", "WebConsole:NetworkActivity",
-    "WebConsole:FileActivity", "WebConsole:LocationChange"],
-
-  
-
-
-
   consolePanel: null,
-
-  
-
-
-
-  contentLocation: "",
 
   
 
@@ -621,7 +605,6 @@ WebConsole.prototype = {
 
     this.iframeWindow = this.iframe.contentWindow.wrappedJSObject;
     this.ui = new this.iframeWindow.WebConsoleFrame(this, position);
-    this._setupMessageManager();
   },
 
   
@@ -766,8 +749,8 @@ WebConsole.prototype = {
 
   getPanelTitle: function WC_getPanelTitle()
   {
-    return l10n.getFormatStr("webConsoleWindowTitleAndURL",
-                             [this.contentLocation]);
+    let url = this.ui ? this.ui.contentLocation : "";
+    return l10n.getFormatStr("webConsoleWindowTitleAndURL", [url]);
   },
 
   positions: {
@@ -998,9 +981,9 @@ WebConsole.prototype = {
 
 
 
-  onLocationChange: function WC_onLocationChange(aMessage)
+
+  onLocationChange: function WC_onLocationChange(aURI, aTitle)
   {
-    this.contentLocation = aMessage.location;
     if (this.consolePanel) {
       this.consolePanel.label = this.getPanelTitle();
     }
@@ -1036,12 +1019,6 @@ WebConsole.prototype = {
 
   destroy: function WC_destroy(aOnDestroy)
   {
-    this.sendMessageToContent("WebConsole:Destroy", {});
-
-    this._messageListeners.forEach(function(aName) {
-      this.messageManager.removeMessageListener(aName, this.ui);
-    }, this);
-
     
     
     this.consoleWindowUnregisterOnHide = false;
