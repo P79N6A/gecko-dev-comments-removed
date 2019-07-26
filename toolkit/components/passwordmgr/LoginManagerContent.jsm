@@ -13,8 +13,7 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/PrivateBrowsingUtils.jsm");
 
-var gEnabled = false, gDebug = false, gAutofillForms = true; 
-var gUseDOMFormHasPassword = false; 
+var gEnabled = false, gDebug = false; 
 
 function log(...pieces) {
     function generateLogMessage(args) {
@@ -71,8 +70,6 @@ var observer = {
     onPrefChange : function() {
         gDebug = Services.prefs.getBoolPref("signon.debug");
         gEnabled = Services.prefs.getBoolPref("signon.rememberSignons");
-        gAutofillForms = Services.prefs.getBoolPref("signon.autofillForms");
-        gUseDOMFormHasPassword = Services.prefs.getBoolPref("signon.useDOMFormHasPassword");
     },
 };
 
@@ -95,10 +92,6 @@ var LoginManagerContent = {
     },
 
     onContentLoaded : function (event) {
-      
-      if (gUseDOMFormHasPassword)
-          return;
-
       if (!event.isTrusted)
           return;
 
@@ -112,64 +105,6 @@ var LoginManagerContent = {
           return;
 
       this._fillDocument(domDoc);
-    },
-
-
-    onFormPassword: function (event) {
-      
-      if (!gUseDOMFormHasPassword)
-          return;
-
-      if (!event.isTrusted)
-          return;
-
-      if (!gEnabled)
-          return;
-
-      let form = event.target;
-      let doc = form.ownerDocument;
-
-      log("onFormPassword for", doc.documentURI);
-
-      
-      let formOrigin = LoginUtils._getPasswordOrigin(doc.documentURI);
-      if (!Services.logins.countLogins(formOrigin, "", null))
-          return;
-
-      
-      
-      if (Services.logins.uiBusy) {
-        log("deferring onFormPassword for", doc.documentURI);
-        let self = this;
-        let observer = {
-            QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver, Ci.nsISupportsWeakReference]),
-
-            observe: function (subject, topic, data) {
-                log("Got deferred onFormPassword notification:", topic);
-                
-                Services.obs.removeObserver(this, "passwordmgr-crypto-login");
-                Services.obs.removeObserver(this, "passwordmgr-crypto-loginCanceled");
-                if (topic == "passwordmgr-crypto-loginCanceled")
-                    return;
-                self.onFormPassword(event);
-            },
-            handleEvent : function (event) {
-                
-            }
-        };
-        
-        
-        
-        
-        Services.obs.addObserver(observer, "passwordmgr-crypto-login", true);
-        Services.obs.addObserver(observer, "passwordmgr-crypto-loginCanceled", true);
-        form.addEventListener("mozCleverClosureHack", observer);
-        return;
-      }
-
-      let autofillForm = gAutofillForms && !PrivateBrowsingUtils.isWindowPrivate(doc.defaultView);
-
-      this._fillForm(form, autofillForm, false, false, null);
     },
 
 
@@ -602,7 +537,8 @@ var LoginManagerContent = {
 
         log("fillDocument processing", forms.length, "forms on", doc.documentURI);
 
-        var autofillForm = gAutofillForms && !PrivateBrowsingUtils.isWindowPrivate(doc.defaultView);
+        var autofillForm = !PrivateBrowsingUtils.isWindowPrivate(doc.defaultView) &&
+                           Services.prefs.getBoolPref("signon.autofillForms");
         var previousActionOrigin = null;
         var foundLogins = null;
 
