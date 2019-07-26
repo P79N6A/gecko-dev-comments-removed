@@ -43,7 +43,7 @@ typedef JSObject *(*ReadStructuredCloneOp)(JSContext *cx, JSStructuredCloneReade
 
 
 typedef bool (*WriteStructuredCloneOp)(JSContext *cx, JSStructuredCloneWriter *w,
-                                         JS::Handle<JSObject*> obj, void *closure);
+                                         JS::HandleObject obj, void *closure);
 
 
 

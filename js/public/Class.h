@@ -152,8 +152,8 @@ typedef JS::Handle<SpecialId> HandleSpecialId;
 
 
 typedef bool
-(* JSPropertyOp)(JSContext *cx, JS::Handle<JSObject*> obj, JS::Handle<jsid> id,
-                 JS::MutableHandle<JS::Value> vp);
+(* JSPropertyOp)(JSContext *cx, JS::HandleObject obj, JS::HandleId id,
+                 JS::MutableHandleValue vp);
 
 
 
@@ -161,8 +161,8 @@ typedef bool
 
 
 typedef bool
-(* JSStrictPropertyOp)(JSContext *cx, JS::Handle<JSObject*> obj, JS::Handle<jsid> id,
-                       bool strict, JS::MutableHandle<JS::Value> vp);
+(* JSStrictPropertyOp)(JSContext *cx, JS::HandleObject obj, JS::HandleId id,
+                       bool strict, JS::MutableHandleValue vp);
 
 
 
@@ -178,7 +178,7 @@ typedef bool
 
 
 typedef bool
-(* JSDeletePropertyOp)(JSContext *cx, JS::Handle<JSObject*> obj, JS::Handle<jsid> id,
+(* JSDeletePropertyOp)(JSContext *cx, JS::HandleObject obj, JS::HandleId id,
                        bool *succeeded);
 
 
@@ -212,26 +212,13 @@ typedef bool
 
 
 typedef bool
-(* JSNewEnumerateOp)(JSContext *cx, JS::Handle<JSObject*> obj, JSIterateOp enum_op,
-                     JS::MutableHandle<JS::Value> statep, JS::MutableHandle<jsid> idp);
+(* JSNewEnumerateOp)(JSContext *cx, JS::HandleObject obj, JSIterateOp enum_op,
+                     JS::MutableHandleValue statep, JS::MutableHandleId idp);
 
 
 
 typedef bool
-(* JSEnumerateOp)(JSContext *cx, JS::Handle<JSObject*> obj);
-
-
-
-
-
-
-
-
-
-
-
-typedef bool
-(* JSResolveOp)(JSContext *cx, JS::Handle<JSObject*> obj, JS::Handle<jsid> id);
+(* JSEnumerateOp)(JSContext *cx, JS::HandleObject obj);
 
 
 
@@ -244,14 +231,27 @@ typedef bool
 
 
 typedef bool
-(* JSNewResolveOp)(JSContext *cx, JS::Handle<JSObject*> obj, JS::Handle<jsid> id, unsigned flags,
-                   JS::MutableHandle<JSObject*> objp);
+(* JSResolveOp)(JSContext *cx, JS::HandleObject obj, JS::HandleId id);
+
+
+
+
+
+
+
+
 
 
 
 typedef bool
-(* JSConvertOp)(JSContext *cx, JS::Handle<JSObject*> obj, JSType type,
-                JS::MutableHandle<JS::Value> vp);
+(* JSNewResolveOp)(JSContext *cx, JS::HandleObject obj, JS::HandleId id, unsigned flags,
+                   JS::MutableHandleObject objp);
+
+
+
+typedef bool
+(* JSConvertOp)(JSContext *cx, JS::HandleObject obj, JSType type,
+                JS::MutableHandleValue vp);
 
 
 
@@ -269,8 +269,8 @@ struct JSStringFinalizer {
 
 
 typedef bool
-(* JSCheckAccessOp)(JSContext *cx, JS::Handle<JSObject*> obj, JS::Handle<jsid> id,
-                    JSAccessMode mode, JS::MutableHandle<JS::Value> vp);
+(* JSCheckAccessOp)(JSContext *cx, JS::HandleObject obj, JS::HandleId id,
+                    JSAccessMode mode, JS::MutableHandleValue vp);
 
 
 
@@ -282,7 +282,7 @@ typedef bool
 
 
 typedef bool
-(* JSHasInstanceOp)(JSContext *cx, JS::Handle<JSObject*> obj, JS::MutableHandle<JS::Value> vp,
+(* JSHasInstanceOp)(JSContext *cx, JS::HandleObject obj, JS::MutableHandleValue vp,
                     bool *bp);
 
 
@@ -303,7 +303,7 @@ typedef void
 
 
 typedef JSObject *
-(* JSObjectOp)(JSContext *cx, JS::Handle<JSObject*> obj);
+(* JSObjectOp)(JSContext *cx, JS::HandleObject obj);
 
 
 
