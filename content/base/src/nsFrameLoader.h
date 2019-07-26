@@ -356,12 +356,11 @@ private:
   NS_HIDDEN_(void) GetURL(nsString& aURL);
 
   
-  NS_HIDDEN_(nsIntSize) GetSubDocumentSize(const nsIFrame *aIFrame);
   nsresult GetWindowDimensions(nsRect& aRect);
 
   
   
-  NS_HIDDEN_(nsresult) UpdateBaseWindowPositionAndSize(nsIFrame *aIFrame);
+  NS_HIDDEN_(nsresult) UpdateBaseWindowPositionAndSize(nsSubDocumentFrame *aIFrame);
   nsresult CheckURILoad(nsIURI* aURI);
   void FireErrorEvent();
   nsresult ReallyStartLoadingInternal();
@@ -370,7 +369,8 @@ private:
   bool TryRemoteBrowser();
 
   
-  bool ShowRemoteFrame(const nsIntSize& size);
+  bool ShowRemoteFrame(const nsIntSize& size,
+                       nsSubDocumentFrame *aFrame = nullptr);
 
   bool AddTreeItemToTreeOwner(nsIDocShellTreeItem* aItem,
                               nsIDocShellTreeOwner* aOwner,

@@ -89,6 +89,7 @@ public:
   void EndSwapDocShells(nsIFrame* aOther);
   nsView* EnsureInnerView();
   nsIFrame* GetSubdocumentRootFrame();
+  nsIntSize GetSubdocumentSize();
 
   
   virtual bool ReflowFinished() MOZ_OVERRIDE;
