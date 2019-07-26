@@ -626,6 +626,9 @@ class StackTypeSet : public TypeSet
     bool isDOMClass();
 
     
+    bool maybeCallable();
+
+    
     JSObject *getSingleton();
 
     
