@@ -1397,43 +1397,6 @@ XPCWrappedNative::SystemIsBeingShutDown()
 
 
 
-
-
-
-
-
-
-
-
-class AutoWrapperChanger NS_STACK_CLASS {
-public:
-    AutoWrapperChanger() : mCache(nullptr)
-                         , mCOMObj(nullptr)
-                         , mPreservedWrapper(nullptr)
-    {}
-
-    void init(nsISupports* aCOMObj, nsWrapperCache* aWrapperCache) {
-        mCOMObj = aCOMObj;
-        mCache = aWrapperCache;
-        if (mCache->PreservingWrapper()) {
-            mPreservedWrapper = mCache->GetWrapper();
-            MOZ_ASSERT(mPreservedWrapper);
-            nsContentUtils::ReleaseWrapper(mCOMObj, mCache);
-        }
-    }
-
-    ~AutoWrapperChanger() {
-        if (mPreservedWrapper)
-            nsContentUtils::PreserveWrapper(mCOMObj, mCache);
-    }
-
-private:
-    nsWrapperCache* mCache;
-    nsISupports* mCOMObj;
-    JSObject* mPreservedWrapper;
-};
-
-
 class AutoClonePrivateGuard NS_STACK_CLASS {
 public:
     AutoClonePrivateGuard(JSObject *aOld, JSObject *aNew)
@@ -1472,16 +1435,10 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCCallContext& ccx,
     nsresult rv;
 
     nsRefPtr<XPCWrappedNative> wrapper;
-    AutoWrapperChanger wrapperChanger;
     JSObject *flat = nullptr;
     nsWrapperCache* cache = nullptr;
     CallQueryInterface(aCOMObj, &cache);
     if (cache) {
-
-        
-        
-        wrapperChanger.init(aCOMObj, cache);
-
         flat = cache->GetWrapper();
         if (flat && !IS_SLIM_WRAPPER_OBJECT(flat)) {
             wrapper = static_cast<XPCWrappedNative*>(xpc_GetJSPrivate(flat));
@@ -1666,8 +1623,12 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCCallContext& ccx,
             }
 
             wrapper->mFlatJSObject = flat;
-            if (cache)
+            if (cache) {
+                bool preserving = cache->PreservingWrapper();
+                cache->SetPreservingWrapper(false);
                 cache->SetWrapper(flat);
+                cache->SetPreservingWrapper(preserving);
+            }
             if (!JS_CopyPropertiesFrom(ccx, flat, propertyHolder))
                 MOZ_CRASH();
         } else {
