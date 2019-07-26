@@ -5252,6 +5252,7 @@ static const JSJitInfo dom_x_getterinfo = {
     true,     
     false,    
     false,    
+    false,    
     0         
 };
 
@@ -5266,6 +5267,7 @@ static const JSJitInfo dom_x_setterinfo = {
     false,    
     false,    
     false,    
+    false,    
     0         
 };
 
@@ -5276,6 +5278,7 @@ static const JSJitInfo doFoo_methodinfo = {
     JSJitInfo::Method,
     JSJitInfo::AliasEverything, 
     JSVAL_TYPE_UNKNOWN, 
+    false,    
     false,    
     false,    
     false,    

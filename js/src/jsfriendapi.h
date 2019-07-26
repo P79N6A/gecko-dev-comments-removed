@@ -1880,11 +1880,17 @@ struct JSJitInfo {
 
 
     
-    uint32_t isInSlot : 1;     
+    uint32_t isAlwaysInSlot : 1; 
+
+
+    uint32_t isLazilyCachedInSlot : 1; 
+
+
 
     uint32_t isTypedMethod : 1; 
 
-    uint32_t slotIndex : 12;   
+    uint32_t slotIndex : 11;   
+
 
 };
 
@@ -1943,7 +1949,7 @@ inline int CheckIsParallelNative(JSParallelNative parallelNative);
 
 #define JS_JITINFO_NATIVE_PARALLEL(infoName, parallelOp)                \
     const JSJitInfo infoName =                                          \
-        {{JS_CAST_PARALLEL_NATIVE_TO(parallelOp, JSJitGetterOp)},0,0,JSJitInfo::ParallelNative,JSJitInfo::AliasEverything,JSVAL_TYPE_MISSING,false,false,false,false,0}
+        {{JS_CAST_PARALLEL_NATIVE_TO(parallelOp, JSJitGetterOp)},0,0,JSJitInfo::ParallelNative,JSJitInfo::AliasEverything,JSVAL_TYPE_MISSING,false,false,false,false,false,0}
 
 #define JS_JITINFO_NATIVE_PARALLEL_THREADSAFE(infoName, wrapperName, serialOp) \
     bool wrapperName##_ParallelNativeThreadSafeWrapper(js::ForkJoinContext *cx, unsigned argc, \
