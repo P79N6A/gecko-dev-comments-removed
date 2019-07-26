@@ -81,7 +81,25 @@ void ArcToBezier(T* aSink, const Point &aOrigin, float aRadius, float aStartAngl
   }
 }
 
-}
-}
+
+
+
+
+
+
+
+
+
+
+
+
+void AppendRoundedRectToPath(PathBuilder* aPathBuilder,
+                             const Rect& aRect,
+                             
+                             const Size(& aCornerRadii)[4],
+                             bool aDrawClockwise = true);
+
+} 
+} 
 
 #endif 
