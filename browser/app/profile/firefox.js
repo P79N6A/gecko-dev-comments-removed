@@ -1048,6 +1048,9 @@ pref("devtools.debugger.ui.variables-only-enum-visible", false);
 pref("devtools.debugger.ui.variables-searchbox-visible", false);
 
 
+pref("devtools.profiler.enabled", true);
+
+
 pref("devtools.tilt.enabled", true);
 pref("devtools.tilt.intro_transition", true);
 pref("devtools.tilt.outro_transition", true);
