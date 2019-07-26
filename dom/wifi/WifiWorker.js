@@ -740,7 +740,7 @@ var WifiManager = (function() {
     }
 
     retryTimer = null;
-    notify("supplicantfailed");
+    notify("supplicantlost", { success: false });
   }
 
   manager.connectionDropped = function(callback) {
@@ -891,7 +891,7 @@ var WifiManager = (function() {
       
       
       if (eventData.indexOf("connection closed") !== -1) {
-        notify("supplicantlost");
+        notify("supplicantlost", { success: true });
         return false;
       }
 
@@ -901,7 +901,7 @@ var WifiManager = (function() {
         return true;
 
       notifyStateChange({ state: "DISCONNECTED", BSSID: null, id: -1 });
-      notify("supplicantlost");
+      notify("supplicantlost", { success: true });
       return false;
     }
     if (eventData.indexOf("CTRL-EVENT-DISCONNECTED") === 0) {
@@ -1767,7 +1767,6 @@ function WifiWorker() {
   WifiManager.onsupplicantconnection = function() {
     debug("Connected to supplicant");
     WifiManager.enabled = true;
-    self._updateWifiSetting(true);
     WifiManager.getMacAddress(function (mac) {
       self.macAddress = mac;
       debug("Got mac: " + mac);
@@ -1803,25 +1802,14 @@ function WifiWorker() {
 
   WifiManager.onsupplicantlost = function() {
     WifiManager.enabled = WifiManager.supplicantStarted = false;
-    self._updateWifiSetting(false);
     WifiManager.state = "UNINITIALIZED";
     debug("Supplicant died!");
 
     
-    self._notifyAfterStateChange(true, false);
+    self._notifyAfterStateChange(this.success, false);
 
     
     self._fireEvent("wifiDown", {});
-  };
-
-  WifiManager.onsupplicantfailed = function() {
-    WifiManager.enabled = WifiManager.supplicantStarted = false;
-    self._updateWifiSetting(false);
-    WifiManager.state = "UNINITIALIZED";
-    debug("Couldn't connect to supplicant");
-
-    
-    self._notifyAfterStateChange(false, false);
   };
 
   WifiManager.onpasswordmaybeincorrect = function() {
@@ -2866,18 +2854,6 @@ WifiWorker.prototype = {
         this.setWifiApEnabled(data, this.nextRequest.bind(this));
       }).bind(this));
     }
-  },
-
-  _updateWifiSetting: function(enabled) {
-    
-    
-    
-    
-    
-    
-    
-    gSettingsService.createLock().set(
-      "wifi.enabled", enabled, null, "fromInternalSetting");
   },
 
   
