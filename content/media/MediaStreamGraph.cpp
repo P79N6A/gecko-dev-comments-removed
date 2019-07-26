@@ -27,7 +27,6 @@
 #include "GeckoProfiler.h"
 #include "mozilla/unused.h"
 #include "speex/speex_resampler.h"
-#include "AudioOutputObserver.h"
 
 using namespace mozilla::layers;
 using namespace mozilla::dom;
@@ -584,13 +583,6 @@ static void AudioMixerCallback(AudioDataValue* aMixedBuffer,
                                uint32_t aFrames)
 {
   
-  if (aFrames > 0 && aChannels > 0) {
-    
-    if (gFarendObserver) {
-      gFarendObserver->InsertFarEnd(aMixedBuffer, aFrames, false,
-                                    IdealAudioRate(), aChannels, aFormat);
-    }
-  }
 }
 
 void
