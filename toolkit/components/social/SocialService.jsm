@@ -368,6 +368,8 @@ SocialProvider.prototype = {
 
   
   updateUserProfile: function(profile) {
+    if (!profile)
+      profile = {};
     this.profile = profile;
 
     
