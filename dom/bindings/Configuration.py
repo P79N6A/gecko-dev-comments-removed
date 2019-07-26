@@ -458,7 +458,7 @@ class Descriptor(DescriptorProvider):
         """
         return (self.interface.isExternal() or self.concrete or
             self.interface.getExtendedAttribute("PrefControlled") or
-            not all(m.isConst() for m in self.interface.members))
+            self.interface.hasInterfacePrototypeObject())
 
 
 def getTypesFromDescriptor(descriptor):

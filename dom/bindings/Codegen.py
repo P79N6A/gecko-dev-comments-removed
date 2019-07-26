@@ -1296,7 +1296,7 @@ class MethodDefiner(PropertyDefiner):
         
 
         
-        if not descriptor.interface.isCallback() or static:
+        if descriptor.interface.hasInterfacePrototypeObject() or static:
             methods = [m for m in descriptor.interface.members if
                        m.isMethod() and m.isStatic() == static and
                        not m.isIdentifierLess()]
@@ -1384,7 +1384,7 @@ class AttrDefiner(PropertyDefiner):
         PropertyDefiner.__init__(self, descriptor, name)
         self.name = name
         
-        if not descriptor.interface.isCallback() or static:
+        if descriptor.interface.hasInterfacePrototypeObject() or static:
             attributes = [m for m in descriptor.interface.members if
                           m.isAttr() and m.isStatic() == static and
                           m.isUnforgeable() == unforgeable]
