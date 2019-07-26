@@ -89,6 +89,9 @@ ScaleFrameImage(imgFrame *aSrcFrame, imgFrame *aDstFrame,
 }
 #endif 
 
+
+#include "sampler.h"
+
 using namespace mozilla;
 using namespace mozilla::image;
 using namespace mozilla::layers;
@@ -2583,6 +2586,7 @@ RasterImage::RequestDecode()
   
   
   if (!mDecoded && !mInDecoder && mHasSourceData) {
+    SAMPLE_LABEL_PRINTF("RasterImage", "DecodeABitOf", "%s", GetURIString());
     DecodeWorker::Singleton()->DecodeABitOf(this);
     return NS_OK;
   }
@@ -2600,6 +2604,8 @@ nsresult
 RasterImage::SyncDecode()
 {
   nsresult rv;
+
+  SAMPLE_LABEL_PRINTF("RasterImage", "SyncDecode", "%s", GetURIString());;
 
   
   if (mDecoded)
