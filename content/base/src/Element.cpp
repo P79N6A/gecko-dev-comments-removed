@@ -1289,13 +1289,26 @@ Element::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                NODE_NEEDS_FRAME | NODE_DESCENDANTS_NEED_FRAMES |
                
                ELEMENT_ALL_RESTYLE_FLAGS);
-
-    
-    SetIsElementInStyleScope(mParent->IsElementInStyleScope());
   } else if (!HasFlag(NODE_IS_IN_SHADOW_TREE)) {
     
     
     SetSubtreeRootPointer(aParent->SubtreeRoot());
+  }
+
+  
+  if (mParent->IsContent()) {
+    nsIContent* parent;
+    ShadowRoot* shadowRootParent = ShadowRoot::FromNode(mParent);
+    if (shadowRootParent) {
+      parent = shadowRootParent->GetHost();
+    } else {
+      parent = mParent->AsContent();
+    }
+
+    bool inStyleScope = parent->IsElementInStyleScope();
+
+    SetIsElementInStyleScope(inStyleScope);
+    SetIsElementInStyleScopeFlagOnShadowTree(inStyleScope);
   }
 
   

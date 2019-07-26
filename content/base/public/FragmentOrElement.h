@@ -34,6 +34,12 @@ class nsDOMStringMap;
 class nsINodeInfo;
 class nsIURI;
 
+namespace mozilla {
+namespace dom {
+class Element;
+}
+}
+
 
 
 
@@ -230,6 +236,14 @@ public:
     return Children()->Length();
   }
 
+  
+
+
+
+
+
+  void SetIsElementInStyleScopeFlagOnSubtree(bool aInStyleScope);
+
 public:
   
 
@@ -414,6 +428,14 @@ protected:
   {
     return static_cast<nsDOMSlots*>(GetExistingSlots());
   }
+
+  
+
+
+
+
+
+  void SetIsElementInStyleScopeFlagOnShadowTree(bool aInStyleScope);
 
   friend class ::ContentUnbinder;
   
