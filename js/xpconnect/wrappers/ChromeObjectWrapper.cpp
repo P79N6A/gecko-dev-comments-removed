@@ -72,7 +72,6 @@ ChromeObjectWrapper::has(JSContext *cx, JSObject *wrapper, jsid id, bool *bp)
     
     MOZ_ASSERT(js::IsObjectInContextCompartment(wrapper, cx));
     JSPropertyDescriptor desc;
-    memset(&desc, 0, sizeof(desc));
     if (!JS_GetPropertyDescriptorById(cx, wrapperProto, id, 0, &desc))
         return false;
     *bp = !!desc.obj;
@@ -87,7 +86,6 @@ ChromeObjectWrapper::get(JSContext *cx, JSObject *wrapper, JSObject *receiver,
     
     
     JSPropertyDescriptor desc;
-    memset(&desc, 0, sizeof(desc));
     if (!ChromeObjectWrapperBase::getPropertyDescriptor(cx, wrapper, id, false,
                                                         &desc)) {
         return false;
