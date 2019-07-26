@@ -16,6 +16,9 @@
 
 BEGIN_FILE_NAMESPACE
 
+
+
+
 class ArchiveZipFile : public nsDOMFileCC
 {
 public:

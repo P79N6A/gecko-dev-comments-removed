@@ -19,6 +19,8 @@ BEGIN_FILE_NAMESPACE
 
 
 
+
+
 class ArchiveItem : public nsISupports
 {
 public:
@@ -28,11 +30,11 @@ public:
   virtual ~ArchiveItem();
 
   
-  virtual nsCString GetType();
-  virtual void SetType(const nsCString& aType);
+  nsCString GetType();
+  void SetType(const nsCString& aType);
 
   
-  virtual nsCString GetFilename() = 0;
+  virtual nsresult GetFilename(nsString& aFilename) = 0;
 
   
   virtual nsIDOMFile* File(ArchiveReader* aArchiveReader) = 0;
@@ -40,6 +42,8 @@ public:
 protected:
   nsCString mType;
 };
+
+
 
 
 

@@ -40,11 +40,11 @@ ArchiveReader::Initialize(nsISupports* aOwner,
                           uint32_t aArgc,
                           JS::Value* aArgv)
 {
-  NS_ENSURE_TRUE(aArgc > 0, NS_ERROR_UNEXPECTED);
+  NS_ENSURE_TRUE(aArgc == 1 || aArgc == 2, NS_ERROR_INVALID_ARG);
 
   
   if (!aArgv[0].isObject()) {
-    return NS_ERROR_UNEXPECTED; 
+    return NS_ERROR_INVALID_ARG; 
   }
 
   JSObject* obj = &aArgv[0].toObject();
@@ -52,15 +52,21 @@ ArchiveReader::Initialize(nsISupports* aOwner,
   nsCOMPtr<nsIDOMBlob> blob;
   blob = do_QueryInterface(nsContentUtils::XPConnect()->GetNativeOfWrapper(aCx, obj));
   if (!blob) {
-    return NS_ERROR_UNEXPECTED;
+    return NS_ERROR_INVALID_ARG;
   }
 
-  mBlob = blob;
+  
+  if (aArgc > 1) {
+    nsresult rv = mOptions.Init(aCx, &aArgv[1]);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   mWindow = do_QueryInterface(aOwner);
   if (!mWindow) {
     return NS_ERROR_UNEXPECTED;
   }
+
+  mBlob = blob;
 
   return NS_OK;
 }
@@ -122,7 +128,7 @@ ArchiveReader::OpenArchive()
   nsRefPtr<ArchiveReaderEvent> event;
 
   
-  event = new ArchiveReaderZipEvent(this);
+  event = new ArchiveReaderZipEvent(this, mOptions);
   rv = target->Dispatch(event, NS_DISPATCH_NORMAL);
   NS_ENSURE_SUCCESS(rv, rv);
 
