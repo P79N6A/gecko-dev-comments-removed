@@ -7,7 +7,7 @@
 
 #include "nsFrameMessageManager.h"
 
-#include "AppProcessPermissions.h"
+#include "AppProcessChecker.h"
 #include "ContentChild.h"
 #include "ContentParent.h"
 #include "nsContentUtils.h"
@@ -1016,16 +1016,6 @@ nsFrameScriptExecutor::Traverse(nsFrameScriptExecutor *tmp,
   if (xpc) {
     NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "mCx");
     xpc->NoteJSContext(tmp->mCx, cb);
-  }
-}
-
-
-void
-nsFrameScriptExecutor::Unlink(nsFrameScriptExecutor* aTmp)
-{
-  if (aTmp->mCx) {
-    JSAutoRequest ar(aTmp->mCx);
-    JS_SetGlobalObject(aTmp->mCx, nullptr);
   }
 }
 
