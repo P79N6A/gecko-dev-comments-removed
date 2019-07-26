@@ -106,8 +106,9 @@ public:
       
       
       FinishOnGraphThread();
+    } else {
+      mBuffer.AdvanceKnownTracksTime(GraphTimeToStreamTime(aTo));
     }
-    mBuffer.AdvanceKnownTracksTime(GraphTimeToStreamTime(aTo));
     if (allHaveCurrentData) {
       
       mHasCurrentData = true;
