@@ -546,10 +546,12 @@ ThreadActor.prototype = {
         if (!this._scripts[url][i]) {
           continue;
         }
+
         let script = {
           url: url,
           startLine: i,
-          lineCount: this._scripts[url][i].lineCount
+          lineCount: this._scripts[url][i].lineCount,
+          source: this.sourceGrip(this._scripts[url][i], this)
         };
         scripts.push(script);
       }
@@ -783,11 +785,14 @@ ThreadActor.prototype = {
 
 
 
-  createValueGrip: function TA_createValueGrip(aValue) {
+  createValueGrip: function TA_createValueGrip(aValue, aPool=false) {
+    if (!aPool) {
+      aPool = this._pausePool;
+    }
     let type = typeof(aValue);
 
     if (type === "string" && this._stringIsLong(aValue)) {
-      return this.longStringGrip(aValue, this._pausePool);
+      return this.longStringGrip(aValue, aPool);
     }
 
     if (type === "boolean" || type === "string" || type === "number") {
@@ -803,7 +808,7 @@ ThreadActor.prototype = {
     }
 
     if (typeof(aValue) === "object") {
-      return this.pauseObjectGrip(aValue);
+      return this.objectGrip(aValue, aPool);
     }
 
     dbg_assert(false, "Failed to provide a grip for: " + aValue);
@@ -932,6 +937,26 @@ ThreadActor.prototype = {
 
   
 
+
+  sourceGrip: function TA_sourceGrip(aScript) {
+    
+    
+    if (!this.threadLifetimePool.sourceActors) {
+      this.threadLifetimePool.sourceActors = {};
+    }
+
+    if (this.threadLifetimePool.sourceActors[aScript.url]) {
+      return this.threadLifetimePool.sourceActors[aScript.url].grip();
+    }
+
+    let actor = new SourceActor(aScript, this);
+    this.threadLifetimePool.addActor(actor);
+    this.threadLifetimePool.sourceActors[aScript.url] = actor;
+    return actor.grip();
+  },
+
+  
+
   
 
 
@@ -999,7 +1024,8 @@ ThreadActor.prototype = {
         type: "newScript",
         url: aScript.url,
         startLine: aScript.startLine,
-        lineCount: aScript.lineCount
+        lineCount: aScript.lineCount,
+        source: this.sourceGrip(aScript, this)
       });
     }
   },
@@ -1149,6 +1175,172 @@ function update(aTarget, aNewAttrs) {
     }
   }
 }
+
+
+
+
+
+
+
+
+
+
+function SourceActor(aScript, aThreadActor) {
+  this._threadActor = aThreadActor;
+  this._script = aScript;
+}
+
+SourceActor.prototype = {
+  constructor: SourceActor,
+  actorPrefix: "source",
+
+  get threadActor() { return this._threadActor; },
+
+  grip: function SA_grip() {
+    return this.actorID;
+  },
+
+  disconnect: function LSA_disconnect() {
+    if (this.registeredPool && this.registeredPool.sourceActors) {
+      delete this.registeredPool.sourceActors[this.actorID];
+    }
+  },
+
+  
+
+
+  onSource: function SA_onSource(aRequest) {
+    this
+      ._loadSource()
+      .chainPromise(function(aSource) {
+        return this._threadActor.createValueGrip(
+          aSource, this.threadActor.threadLifetimePool);
+      }.bind(this))
+      .chainPromise(function (aSourceGrip) {
+        return {
+          from: this.actorID,
+          source: aSourceGrip
+        };
+      }.bind(this))
+      .trap(function (aError) {
+        return {
+          "from": this.actorID,
+          "error": "loadSourceError",
+          "message": "Could not load the source for " + this._script.url + "."
+        };
+      }.bind(this))
+      .chainPromise(function (aPacket) {
+        this.conn.send(aPacket);
+      }.bind(this));
+  },
+
+  
+
+
+
+
+
+
+
+
+  _convertToUnicode: function SS__convertToUnicode(aString, aCharset) {
+    
+    let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
+        .createInstance(Ci.nsIScriptableUnicodeConverter);
+
+    try {
+      converter.charset = aCharset || "UTF-8";
+      return converter.ConvertToUnicode(aString);
+    } catch(e) {
+      return aString;
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  _loadSource: function SA__loadSource() {
+    let promise = new Promise();
+    let url = this._script.url;
+    let scheme;
+    try {
+      scheme = Services.io.extractScheme(url);
+    } catch (e) {
+      
+      
+      
+      let prefix = "file://";
+      if ("nsILocalFileWin" in Ci && url instanceof Ci.nsILocalFileWin) {
+        prefix += '/'
+      }
+      url = prefix + url;
+      scheme = Services.io.extractScheme(url);
+    }
+
+    switch (scheme) {
+      case "file":
+      case "chrome":
+      case "resource":
+        try {
+          NetUtil.asyncFetch(url, function onFetch(aStream, aStatus) {
+            if (!Components.isSuccessCode(aStatus)) {
+              promise.reject(new Error("Request failed"));
+              return;
+            }
+
+            let source = NetUtil.readInputStreamToString(aStream, aStream.available());
+            promise.resolve(this._convertToUnicode(source));
+            aStream.close();
+          }.bind(this));
+        } catch (ex) {
+          promise.reject(new Error("Request failed"));
+        }
+        break;
+
+      default:
+        let channel = Services.io.newChannel(url, null, null);
+        let chunks = [];
+        let streamListener = {
+          onStartRequest: function(aRequest, aContext, aStatusCode) {
+            if (!Components.isSuccessCode(aStatusCode)) {
+              promise.reject("Request failed");
+            }
+          },
+          onDataAvailable: function(aRequest, aContext, aStream, aOffset, aCount) {
+            chunks.push(NetUtil.readInputStreamToString(aStream, aCount));
+          },
+          onStopRequest: function(aRequest, aContext, aStatusCode) {
+            if (!Components.isSuccessCode(aStatusCode)) {
+              promise.reject("Request failed");
+              return;
+            }
+
+            promise.resolve(this._convertToUnicode(chunks.join(""),
+                                                   channel.contentCharset));
+          }.bind(this)
+        };
+
+        channel.loadFlags = channel.LOAD_FROM_CACHE;
+        channel.asyncOpen(streamListener, null);
+        break;
+    }
+
+    return promise;
+  }
+
+};
+
+SourceActor.prototype.requestTypes = {
+  "source": SourceActor.prototype.onSource
+};
 
 
 

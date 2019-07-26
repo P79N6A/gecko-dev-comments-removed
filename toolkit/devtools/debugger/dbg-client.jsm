@@ -943,6 +943,14 @@ ThreadClient.prototype = {
     aPacket.type === ThreadStateTypes.detached && this._clearThreadGrips();
     this._client._eventsEnabled && this.notify(aPacket.type, aPacket);
   },
+
+  
+
+
+  source: function TC_source(aActor) {
+    return new SourceClient(this._client, aActor);
+  }
+
 };
 
 eventSource(ThreadClient.prototype);
@@ -1081,6 +1089,32 @@ LongStringClient.prototype = {
                    type: "substring",
                    start: aStart,
                    end: aEnd };
+    this._client.request(packet, aCallback);
+  }
+};
+
+
+
+
+
+
+
+
+
+function SourceClient(aClient, aActor) {
+  this._actor = aActor;
+  this._client = aClient;
+}
+
+SourceClient.prototype = {
+  
+
+
+  source: function SC_source(aCallback) {
+    let packet = {
+      to: this._actor,
+      type: "source"
+    };
     this._client.request(packet, aCallback);
   }
 };

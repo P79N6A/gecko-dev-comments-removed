@@ -35,8 +35,9 @@ function test_simple_listscripts()
       
       do_check_true(!!script);
       do_check_eq(script.url, path);
-      do_check_eq(script.startLine, 46);
+      do_check_eq(script.startLine, gDebuggee.line0);
       do_check_eq(script.lineCount, 4);
+      do_check_true(!!script.source);
       gThreadClient.resume(function () {
         finishClient(gClient);
       });
