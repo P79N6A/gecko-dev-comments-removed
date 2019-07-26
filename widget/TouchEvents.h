@@ -151,7 +151,4 @@ public:
 
 } 
 
-
-typedef mozilla::WidgetGestureNotifyEvent nsGestureNotifyEvent;
-
 #endif 

@@ -655,7 +655,8 @@ protected:
 
 
 
-  void DecideGestureEvent(nsGestureNotifyEvent* aEvent, nsIFrame* targetFrame);
+  void DecideGestureEvent(mozilla::WidgetGestureNotifyEvent* aEvent,
+                          nsIFrame* targetFrame);
 
   
   void BeginTrackingDragGesture ( nsPresContext* aPresContext, nsMouseEvent* inDownEvent,
