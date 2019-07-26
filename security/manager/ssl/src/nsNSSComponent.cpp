@@ -819,22 +819,6 @@ nsNSSComponent::InitializePIPNSSBundle()
   return rv;
 }
 
-nsresult
-nsNSSComponent::RegisterPSMContentListener()
-{
-  
-
-  nsresult rv = NS_OK;
-  if (!mPSMContentListener) {
-    nsCOMPtr<nsIURILoader> dispatcher(do_GetService(NS_URI_LOADER_CONTRACTID));
-    if (dispatcher) {
-      mPSMContentListener = do_CreateInstance(NS_PSMCONTENTLISTEN_CONTRACTID);
-      rv = dispatcher->RegisterContentListener(mPSMContentListener);
-    }
-  }
-  return rv;
-}
-
 
 typedef struct {
   const char* pref;
@@ -1396,8 +1380,6 @@ nsNSSComponent::Init()
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  RegisterPSMContentListener();
-
   nsCOMPtr<nsIEntropyCollector> ec
       = do_GetService(NS_ENTROPYCOLLECTOR_CONTRACTID);
 
@@ -1626,14 +1608,6 @@ nsNSSComponent::Observe(nsISupports *aSubject, const char *aTopic,
     PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("nsNSSComponent: XPCom shutdown observed\n"));
 
     
-
-    if (mPSMContentListener) {
-      nsCOMPtr<nsIURILoader> dispatcher(do_GetService(NS_URI_LOADER_CONTRACTID));
-      if (dispatcher) {
-        dispatcher->UnRegisterContentListener(mPSMContentListener);
-      }
-      mPSMContentListener = nullptr;
-    }
 
     nsCOMPtr<nsIEntropyCollector> ec
         = do_GetService(NS_ENTROPYCOLLECTOR_CONTRACTID);
