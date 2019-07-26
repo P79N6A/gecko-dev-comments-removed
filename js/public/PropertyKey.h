@@ -6,8 +6,8 @@
 
 
 
-#ifndef js_PropertyKey_h___
-#define js_PropertyKey_h___
+#ifndef js_PropertyKey_h
+#define js_PropertyKey_h
 
 #include "mozilla/Attributes.h"
 

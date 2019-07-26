@@ -3,8 +3,8 @@
 
 
 
-#ifndef COMPONENTS_JSDEBUGGER_H
-#define COMPONENTS_JSDEBUGGER_H
+#ifndef JSDebugger_h
+#define JSDebugger_h
 
 #include "IJSDebugger.h"
 #include "mozilla/Attributes.h"
@@ -27,4 +27,4 @@ private:
 }
 }
 
-#endif
+#endif 

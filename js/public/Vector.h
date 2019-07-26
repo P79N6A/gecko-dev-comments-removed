@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsvector_h_
-#define jsvector_h_
+#ifndef js_Vector_h
+#define js_Vector_h
 
 #include "mozilla/Attributes.h"
 #include "mozilla/TypeTraits.h"

@@ -6,8 +6,8 @@
 
 
 
-#ifndef js_Value_h___
-#define js_Value_h___
+#ifndef js_Value_h
+#define js_Value_h
 
 #include "mozilla/Attributes.h"
 #include "mozilla/FloatingPoint.h"

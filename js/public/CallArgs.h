@@ -26,8 +26,8 @@
 
 
 
-#ifndef js_CallArgs_h___
-#define js_CallArgs_h___
+#ifndef js_CallArgs_h
+#define js_CallArgs_h
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"

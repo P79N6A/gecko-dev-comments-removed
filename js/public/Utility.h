@@ -4,8 +4,8 @@
 
 
 
-#ifndef js_utility_h__
-#define js_utility_h__
+#ifndef js_Utility_h
+#define js_Utility_h
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"

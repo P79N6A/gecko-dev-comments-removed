@@ -4,8 +4,8 @@
 
 
 
-#ifndef js_heap_api_h___
-#define js_heap_api_h___
+#ifndef js_HeapAPI_h
+#define js_HeapAPI_h
 
 #include "jspubtd.h"
 

@@ -4,8 +4,8 @@
 
 
 
-#ifndef mozilla_jsipc_ObjectWrapperParent_h__
-#define mozilla_jsipc_ObjectWrapperParent_h__
+#ifndef mozilla_jsipc_ObjectWrapperParent_h
+#define mozilla_jsipc_ObjectWrapperParent_h
 
 #include "mozilla/jsipc/PObjectWrapperParent.h"
 #include "jsapi.h"
@@ -142,4 +142,4 @@ public:
 
 }}
 
-#endif
+#endif 

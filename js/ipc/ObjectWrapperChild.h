@@ -4,8 +4,8 @@
 
 
 
-#ifndef mozilla_jsipc_ObjectWrapperChild_h__
-#define mozilla_jsipc_ObjectWrapperChild_h__
+#ifndef mozilla_jsipc_ObjectWrapperChild_h
+#define mozilla_jsipc_ObjectWrapperChild_h
 
 #include "mozilla/jsipc/PObjectWrapperChild.h"
 
@@ -90,4 +90,4 @@ protected:
 
 }}
   
-#endif
+#endif 

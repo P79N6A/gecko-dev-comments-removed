@@ -4,8 +4,8 @@
 
 
 
-#ifndef js_template_lib_h__
-#define js_template_lib_h__
+#ifndef js_TemplateLib_h
+#define js_TemplateLib_h
 
 #include "jstypes.h"
 

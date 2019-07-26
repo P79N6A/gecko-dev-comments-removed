@@ -4,8 +4,8 @@
 
 
 
-#ifndef js_HashTable_h__
-#define js_HashTable_h__
+#ifndef js_HashTable_h
+#define js_HashTable_h
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
@@ -1465,4 +1465,3 @@ class HashTable : private AllocPolicy
 }  
 
 #endif  
-

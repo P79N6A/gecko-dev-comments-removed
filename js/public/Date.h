@@ -3,8 +3,8 @@
 
 
 
-#ifndef js_Date_h___
-#define js_Date_h___
+#ifndef js_Date_h
+#define js_Date_h
 
 #include "jstypes.h"
 

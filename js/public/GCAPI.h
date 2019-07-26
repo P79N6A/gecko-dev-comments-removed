@@ -4,8 +4,8 @@
 
 
 
-#ifndef js_gc_api_h___
-#define js_gc_api_h___
+#ifndef js_GCAPI_h
+#define js_GCAPI_h
 
 #include "HeapAPI.h"
 

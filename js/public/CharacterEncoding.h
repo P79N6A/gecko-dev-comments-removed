@@ -4,8 +4,8 @@
 
 
 
-#ifndef js_CharacterEncoding_h___
-#define js_CharacterEncoding_h___
+#ifndef js_CharacterEncoding_h
+#define js_CharacterEncoding_h
 
 #include "mozilla/Range.h"
 

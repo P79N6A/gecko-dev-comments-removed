@@ -10,8 +10,8 @@
 
 
 
-#ifndef js_RequiredDefines_h___
-#define js_RequiredDefines_h___
+#ifndef js_RequiredDefines_h
+#define js_RequiredDefines_h
 
 
 

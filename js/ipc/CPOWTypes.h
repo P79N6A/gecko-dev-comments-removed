@@ -4,8 +4,8 @@
 
 
 
-#ifndef mozilla_jsipc_ContextWrapperTypes_h__
-#define mozilla_jsipc_ContextWrapperTypes_h__
+#ifndef mozilla_jsipc_CPOWTypes_h
+#define mozilla_jsipc_CPOWTypes_h
 
 #include "jsapi.h"
 #include "jspubtd.h"
@@ -61,4 +61,4 @@ template <> struct ParamTraits<JSType> : public mozilla::jsipc::CPOWConvertible<
 #define JSVAL_TO_CSTR(CX, V) ((char*)0)
 #endif
 
-#endif
+#endif 

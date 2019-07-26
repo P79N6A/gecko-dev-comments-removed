@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsgc_root_h__
-#define jsgc_root_h__
+#ifndef js_RootingAPI_h
+#define js_RootingAPI_h
 
 #include "mozilla/GuardObjects.h"
 #include "mozilla/TypeTraits.h"

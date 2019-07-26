@@ -4,8 +4,8 @@
 
 
 
-#ifndef mozilla_jsipc_ContextWrapperChild_h__
-#define mozilla_jsipc_ContextWrapperChild_h__
+#ifndef mozilla_jsipc_ContextWrapperChild_h
+#define mozilla_jsipc_ContextWrapperChild_h
 
 #include "mozilla/jsipc/PContextWrapperChild.h"
 #include "mozilla/jsipc/ObjectWrapperChild.h"
@@ -77,4 +77,4 @@ private:
 
 }}
 
-#endif
+#endif 
