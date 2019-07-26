@@ -5001,6 +5001,16 @@ JS_DefineFunctions(JSContext *cx, JSObject *objArg, JSFunctionSpec *fs)
             fun->setExtendedSlot(0, PrivateValue(fs));
         }
 
+        
+
+
+
+
+
+
+        if (fs->selfHostedName && cx->runtime->isSelfHostedGlobal(cx->global()))
+            return JS_TRUE;
+
         fun = js_DefineFunction(cx, obj, id, fs->call.op, fs->nargs, flags, fs->selfHostedName);
         if (!fun)
             return JS_FALSE;
