@@ -31,7 +31,7 @@ let ShortcutUtils = {
 
 
 
-  prettifyShortcut: function(aElemKey, aAllowCloverleaf) {
+  prettifyShortcut: function(aElemKey, aNoCloverLeaf) {
     let elemString = "";
     let elemMod = aElemKey.getAttribute("modifiers");
 
@@ -39,7 +39,7 @@ let ShortcutUtils = {
       if (Services.appinfo.OS == "Darwin") {
         
         
-        if (!aAllowCloverleaf) {
+        if (aNoCloverLeaf) {
           elemString += "Cmd-";
         } else {
           elemString += PlatformKeys.GetStringFromName("VK_META") +
