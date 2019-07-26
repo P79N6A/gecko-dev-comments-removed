@@ -720,7 +720,7 @@ pref("dom.min_background_timeout_value", 1000);
 pref("dom.xbl_scopes", true);
 
 
-pref("dom.omit_components_in_content", false);
+pref("dom.omit_components_in_content", true);
 
 
 pref("dom.experimental_forms", false);
