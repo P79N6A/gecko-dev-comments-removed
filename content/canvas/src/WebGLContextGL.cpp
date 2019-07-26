@@ -2319,15 +2319,15 @@ WebGLContext::ReadPixels(GLint x, GLint y, GLsizei width,
     MakeContextCurrent();
 
     if (mBoundFramebuffer) {
+        
+        if (!mBoundFramebuffer->CheckAndInitializeAttachments())
+            return ErrorInvalidFramebufferOperation("readPixels: incomplete framebuffer");
+
         GLenum readPlaneBits = LOCAL_GL_COLOR_BUFFER_BIT;
         if (!mBoundFramebuffer->HasCompletePlanes(readPlaneBits)) {
             return ErrorInvalidOperation("readPixels: Read source attachment doesn't have the"
                                          " correct color/depth/stencil type.");
         }
-
-        
-        if (!mBoundFramebuffer->CheckAndInitializeAttachments())
-            return ErrorInvalidFramebufferOperation("readPixels: incomplete framebuffer");
     }
     
 
