@@ -18,13 +18,13 @@ static const char* sDiscardTimeoutPref = "image.mem.min_discard_timeout_ms";
  nsCOMPtr<nsITimer> DiscardTracker::sTimer;
  bool DiscardTracker::sInitialized = false;
  bool DiscardTracker::sTimerOn = false;
- Atomic<int32_t> DiscardTracker::sDiscardRunnablePending(0);
+ Atomic<bool> DiscardTracker::sDiscardRunnablePending(false);
  int64_t DiscardTracker::sCurrentDecodedImageBytes = 0;
  uint32_t DiscardTracker::sMinDiscardTimeoutMs = 10000;
  uint32_t DiscardTracker::sMaxDecodedImageKB = 42 * 1024;
  PRLock * DiscardTracker::sAllocationLock = nullptr;
  mozilla::Mutex* DiscardTracker::sNodeListMutex = nullptr;
- Atomic<uint32_t> DiscardTracker::sShutdown(0);
+ Atomic<bool> DiscardTracker::sShutdown(false);
 
 
 
@@ -33,7 +33,7 @@ static const char* sDiscardTimeoutPref = "image.mem.min_discard_timeout_ms";
 NS_IMETHODIMP
 DiscardTracker::DiscardRunnable::Run()
 {
-  sDiscardRunnablePending = 0;
+  sDiscardRunnablePending = false;
 
   DiscardTracker::DiscardNow();
   return NS_OK;
@@ -303,7 +303,7 @@ DiscardTracker::MaybeDiscardSoon()
   if (sCurrentDecodedImageBytes > sMaxDecodedImageKB * 1024 &&
       !sDiscardableImages.isEmpty()) {
     
-    if (!sDiscardRunnablePending.exchange(1)) {
+    if (!sDiscardRunnablePending.exchange(true)) {
       nsRefPtr<DiscardRunnable> runnable = new DiscardRunnable();
       NS_DispatchToMainThread(runnable);
     }
