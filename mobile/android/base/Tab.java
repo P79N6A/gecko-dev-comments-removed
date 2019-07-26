@@ -627,6 +627,12 @@ public class Tab {
         final String uri = message.getString("uri");
         final String oldUrl = getURL();
         mEnteringReaderMode = ReaderModeUtils.isEnteringReaderMode(oldUrl, uri);
+
+        if (TextUtils.equals(oldUrl, uri)) {
+            Log.d(LOGTAG, "Ignoring location change event: URIs are the same.");
+            return;
+        }
+
         updateURL(uri);
         updateUserSearch(message.getString("userSearch"));
 
@@ -639,7 +645,13 @@ public class Tab {
         }
 
         setContentType(message.getString("contentType"));
+
+        
+        
+        
+        
         clearFavicon();
+
         setHasFeeds(false);
         updateTitle(null);
         updateIdentityData(null);

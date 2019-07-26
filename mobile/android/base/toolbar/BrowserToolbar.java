@@ -536,6 +536,7 @@ public class BrowserToolbar extends GeckoRelativeLayout
 
     @Override
     public void onTabChanged(Tab tab, Tabs.TabEvents msg, Object data) {
+        Log.d(LOGTAG, "onTabChanged: " + msg);
         final Tabs tabs = Tabs.getInstance();
 
         
@@ -587,7 +588,12 @@ public class BrowserToolbar extends GeckoRelativeLayout
                 case LOCATION_CHANGE:
                     
                     
-                    refresh();
+                    
+                    
+                    final String oldURL = (String) data;
+                    if (!TextUtils.equals(oldURL, tab.getURL())) {
+                        refresh();
+                    }
                     break;
 
                 case CLOSED:
@@ -763,8 +769,9 @@ public class BrowserToolbar extends GeckoRelativeLayout
             Log.i(LOGTAG, "zerdatime " + SystemClock.uptimeMillis() + " - Throbber start");
         } else {
             Tab selectedTab = Tabs.getInstance().getSelectedTab();
-            if (selectedTab != null)
+            if (selectedTab != null) {
                 setFavicon(selectedTab.getFavicon());
+            }
 
             if (mSpinnerVisible) {
                 setPageActionVisibility(false);
@@ -1587,6 +1594,7 @@ public class BrowserToolbar extends GeckoRelativeLayout
 
     @Override
     public void handleMessage(String event, JSONObject message) {
+        Log.d(LOGTAG, "handleMessage: " + event);
         if (event.equals("Reader:Click")) {
             Tab tab = Tabs.getInstance().getSelectedTab();
             if (tab != null) {
@@ -1597,7 +1605,6 @@ public class BrowserToolbar extends GeckoRelativeLayout
             if (tab != null) {
                 tab.addToReadingList();
             }
-        }
     }
 
     @Override
