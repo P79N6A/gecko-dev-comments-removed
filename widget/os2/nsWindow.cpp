@@ -1191,6 +1191,7 @@ NS_METHOD nsWindow::SetCursor(nsCursor aCursor)
       break;
 
     case eCursor_standard:
+    case eCursor_context_menu: 
       newPointer = WinQuerySysPointer(HWND_DESKTOP, SPTR_ARROW, FALSE);
       break;
 
@@ -1248,10 +1249,6 @@ NS_METHOD nsWindow::SetCursor(nsCursor aCursor)
 
     case eCursor_spinning:
       newPointer = sPtrArray[IDC_ARROWWAIT-IDC_BASE];
-      break;
-
-    case eCursor_context_menu:
-      
       break;
 
     case eCursor_zoom_in:
