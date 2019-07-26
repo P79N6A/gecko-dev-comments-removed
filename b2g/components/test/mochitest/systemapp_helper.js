@@ -8,6 +8,7 @@ Services.scriptloader.loadSubScript("resource://gre/modules/SystemAppProxy.jsm",
 const { SystemAppProxy } = scope;
 
 let frame;
+let customEventTarget;
 
 let index = -1;
 function next() {
@@ -47,6 +48,10 @@ function listener(event) {
   } else if (n == 4) {
     assert.equal(event.type, "mozChromeEvent");
     assert.equal(event.detail.name, "fourth");
+  } else if (n == 5) {
+    assert.equal(event.type, "mozChromeEvent");
+    assert.equal(event.detail.name, "fifth");
+    assert.equal(event.target, customEventTarget);
 
     next(); 
   } else {
@@ -78,6 +83,8 @@ let steps = [
     let doc = win.document;
     frame = doc.createElement("iframe");
     doc.documentElement.appendChild(frame);
+
+    customEventTarget = frame.contentDocument.body;
 
     
     
@@ -118,6 +125,7 @@ let steps = [
     
     SystemAppProxy._sendCustomEvent("custom", { name: "third" });
     SystemAppProxy.dispatchEvent({ name: "fourth" });
+    SystemAppProxy._sendCustomEvent("custom", { name: "fifth" }, false, customEventTarget);
     
   },
 
