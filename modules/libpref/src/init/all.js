@@ -122,6 +122,13 @@ pref("dom.gamepad.non_standard_events.enabled", true);
 #endif
 
 
+#ifdef RELEASE_BUILD
+pref("dom.webcrypto.enabled", false);
+#else
+pref("dom.webcrypto.enabled", true);
+#endif
+
+
 pref("dom.undo_manager.enabled", false);
 
 
@@ -3725,6 +3732,8 @@ pref("layers.draw-tile-borders", false);
 pref("layers.draw-bigimage-borders", false);
 pref("layers.frame-counter", false);
 pref("layers.enable-tiles", false);
+pref("layers.tile-width", 256);
+pref("layers.tile-height", 256);
 
 pref("layers.max-active", -1);
 
