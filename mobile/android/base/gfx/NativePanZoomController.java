@@ -1,7 +1,7 @@
-/* -*- Mode: Java; c-basic-offset: 4; tab-width: 20; indent-tabs-mode: nil; -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 package org.mozilla.gecko.gfx;
 
@@ -48,26 +48,26 @@ class NativePanZoomController implements PanZoomController, GeckoEventListener {
     }
 
     public boolean onMotionEvent(MotionEvent event) {
-        // FIXME implement this
+        
         return false;
     }
 
     public boolean onKeyEvent(KeyEvent event) {
-        // FIXME implement this
+        
         return false;
     }
 
     public PointF getVelocityVector() {
-        // FIXME implement this
+        
         return new PointF(0, 0);
     }
 
     public void pageRectUpdated() {
-        // no-op in APZC, I think
+        
     }
 
     public void abortPanning() {
-        // no-op in APZC, I think
+        
     }
 
     public native void abortAnimation();
@@ -104,4 +104,7 @@ class NativePanZoomController implements PanZoomController, GeckoEventListener {
     }
 
     public native void updateScrollOffset(float cssX, float cssY);
+
+    public void setOverscrollHandler(final Overscroll listener) {
+    }
 }
