@@ -112,10 +112,6 @@ typedef enum nsCharType nsCharType;
 
 
 
-
-
-
-
 #define IBMBIDI_TEXTDIRECTION_STR       "bidi.direction"
 #define IBMBIDI_TEXTTYPE_STR            "bidi.texttype"
 #define IBMBIDI_NUMERAL_STR             "bidi.numeral"

@@ -133,9 +133,7 @@ typedef bool (*DeferredFinalizeFunction)(uint32_t slice, void* data);
 
 } 
 
-#ifdef IBMBIDI
 class nsIBidiKeyboard;
-#endif
 
 extern const char kLoadAsData[];
 
@@ -461,10 +459,8 @@ public:
     return sIOService;
   }
 
-#ifdef IBMBIDI
   static nsIBidiKeyboard* GetBidiKeyboard();
-#endif
-  
+
   
 
 
@@ -2205,9 +2201,7 @@ private:
   static nsILineBreaker* sLineBreaker;
   static nsIWordBreaker* sWordBreaker;
 
-#ifdef IBMBIDI
   static nsIBidiKeyboard* sBidiKeyboard;
-#endif
 
   static bool sInitialized;
   static uint32_t sScriptBlockerCount;

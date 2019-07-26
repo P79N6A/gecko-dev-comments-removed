@@ -3,8 +3,6 @@
 
 
 
-#ifdef IBMBIDI
-
 #include "nsBidiPresUtils.h"
 #include "nsGkAtoms.h"
 #include "nsPresContext.h"
@@ -2245,4 +2243,3 @@ nsBidiPresUtils::BidiLevelFromStyle(nsStyleContext* aStyleContext)
 
   return NSBIDI_LTR;
 }
-#endif

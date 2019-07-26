@@ -201,11 +201,7 @@ protected:
     bool          UpdateCaretRects(nsIFrame* aFrame, int32_t aFrameOffset);
     nsRect        GetHookRect()
     {
-#ifdef IBMBIDI
       return mHookRect;
-#else
-      return nsRect();
-#endif
     }
     void          ToggleDrawnStatus() { mDrawn = !mDrawn; }
 
@@ -244,12 +240,10 @@ protected:
 
     bool                  mIgnoreUserModify;
 
-#ifdef IBMBIDI
     bool                  mKeyboardRTL;       
     bool                  mBidiUI;            
     nsRect                mHookRect;          
     uint8_t               mLastBidiLevel;     
-#endif
     nsRect                mCaretRect;         
 
     nsCOMPtr<nsIContent>  mLastContent;       

@@ -13,9 +13,7 @@
 #include "nsLayoutUtils.h" 
 #include "nsSimplePageSequenceFrame.h" 
 #include "nsTextFormatter.h" 
-#ifdef IBMBIDI
 #include "nsBidiUtils.h"
-#endif
 #include "nsIPrintSettings.h"
 
 #include "prlog.h"

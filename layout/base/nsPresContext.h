@@ -37,10 +37,7 @@
 #include "nsThreadUtils.h"
 #include "ScrollbarStyles.h"
 
-#ifdef IBMBIDI
 class nsBidiPresUtils;
-#endif 
-
 class nsAString;
 class nsIPrintSettings;
 class nsDocShell;
@@ -692,7 +689,6 @@ public:
   bool StyleUpdateForAllAnimationsIsUpToDate();
   void TickLastStyleUpdateForAllAnimations();
 
-#ifdef IBMBIDI
   
 
 
@@ -755,7 +751,6 @@ public:
 
 
   NS_HIDDEN_(uint32_t) GetBidi() const;
-#endif 
 
   
 

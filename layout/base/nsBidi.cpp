@@ -3,7 +3,6 @@
 
 
 
-#ifdef IBMBIDI
 
 #include "nsBidi.h"
 #include "nsUnicodeProperties.h"
@@ -2217,5 +2216,4 @@ nsresult nsBidi::WriteReverse(const char16_t *aSrc, int32_t aSrcLength, char16_t
   }
   return NS_OK;
 }
-#endif 
 #endif 

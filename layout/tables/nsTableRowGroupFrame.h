@@ -245,7 +245,6 @@ public:
                          bool* aXIsBeforeFirstFrame,
                          bool* aXIsAfterLastFrame) MOZ_OVERRIDE;
 
-#ifdef IBMBIDI
    
 
 
@@ -258,7 +257,6 @@ public:
                             bool                     *aIsReordered,
                             nsIFrame                 **aFirstVisual,
                             nsIFrame                 **aLastVisual) MOZ_OVERRIDE;
-#endif
 
   
 

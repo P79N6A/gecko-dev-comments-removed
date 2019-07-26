@@ -93,14 +93,12 @@ public:
   
   NS_IMETHOD GetNextSiblingOnLine(nsIFrame*& aFrame, int32_t aLineNumber) = 0;
 
-#ifdef IBMBIDI
   
   
   NS_IMETHOD CheckLineOrder(int32_t                  aLine,
                             bool                     *aIsReordered,
                             nsIFrame                 **aFirstVisual,
                             nsIFrame                 **aLastVisual) = 0;
-#endif
 };
 
 class nsAutoLineIterator

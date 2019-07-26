@@ -24,9 +24,7 @@ class nsTableOuterFrame;
 { 0x3c6ae2d0, 0x4cf1, 0x44a1, \
   { 0x9e, 0x9d, 0x24, 0x11, 0x86, 0x7f, 0x19, 0xc6 } }
 
-#ifdef IBMBIDI 
 #define BIDI_LEVEL_UNDEFINED 0x80
-#endif
 
 
 
@@ -411,8 +409,7 @@ public:
 
   void SetHint(HINT aHintRight) { mHint = aHintRight; }
   HINT GetHint() const { return mHint; }
-  
-#ifdef IBMBIDI
+
   
 
 
@@ -426,7 +423,6 @@ public:
 
 
   virtual void UndefineCaretBidiLevel();
-#endif
 
   
 
@@ -705,9 +701,7 @@ private:
   int16_t mDisplaySelection; 
 
   HINT  mHint;   
-#ifdef IBMBIDI
   uint8_t mCaretBidiLevel;
-#endif
 
   int32_t mDesiredX;
   uint32_t mDelayedMouseEventClickCount;

@@ -269,7 +269,6 @@ public:
   inline void AppendIfNonempty(nsTArray<mozilla::layout::FrameChildList>* aLists,
                                mozilla::layout::FrameChildListID aListID) const;
 
-#ifdef IBMBIDI
   
 
 
@@ -281,7 +280,6 @@ public:
 
 
   nsIFrame* GetNextVisualFor(nsIFrame* aFrame) const;
-#endif 
 
 #ifdef DEBUG_FRAME_DUMP
   void List(FILE* out) const;

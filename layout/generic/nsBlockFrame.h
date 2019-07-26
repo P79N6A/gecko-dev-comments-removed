@@ -434,7 +434,6 @@ protected:
 
   void AddFrames(nsFrameList& aFrameList, nsIFrame* aPrevSibling);
 
-#ifdef IBMBIDI
   
 
 
@@ -449,7 +448,6 @@ protected:
 
 
   bool IsVisualFormControl(nsPresContext* aPresContext);
-#endif
 
 public:
   
