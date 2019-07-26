@@ -13,6 +13,7 @@ let {Cc, Ci, Cu} = require("chrome");
 let {Promise: promise} = require("resource://gre/modules/Promise.jsm");
 let EventEmitter = require("devtools/toolkit/event-emitter");
 let Telemetry = require("devtools/shared/telemetry");
+let {getHighlighterUtils} = require("devtools/framework/toolbox-highlighter-utils");
 let HUDService = require("devtools/webconsole/hudservice");
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -68,7 +69,7 @@ function Toolbox(target, selectedTool, hostType, hostOptions) {
   this._refreshHostTitle = this._refreshHostTitle.bind(this);
   this._splitConsoleOnKeypress = this._splitConsoleOnKeypress.bind(this)
   this.destroy = this.destroy.bind(this);
-  this.highlighterUtils = new ToolboxHighlighterUtils(this);
+  this.highlighterUtils = getHighlighterUtils(this);
   this._highlighterReady = this._highlighterReady.bind(this);
   this._highlighterHidden = this._highlighterHidden.bind(this);
 
@@ -188,12 +189,10 @@ Toolbox.prototype = {
 
 
 
+
+
   get highlighter() {
-    if (this.highlighterUtils.isRemoteHighlightable) {
-      return this._highlighter;
-    } else {
-      return null;
-    }
+    return this._highlighter;
   },
 
   
@@ -579,6 +578,18 @@ Toolbox.prototype = {
 
     this._togglePicker = this.highlighterUtils.togglePicker.bind(this.highlighterUtils);
     this._pickerButton.addEventListener("command", this._togglePicker, false);
+  },
+
+  
+
+
+
+  set pickerButtonChecked(isChecked) {
+    if (isChecked) {
+      this._pickerButton.setAttribute("checked", "true");
+    } else {
+      this._pickerButton.removeAttribute("checked");
+    }
   },
 
   
@@ -1142,12 +1153,11 @@ Toolbox.prototype = {
         this._walker = yield this._inspector.getWalker();
         this._selection = new Selection(this._walker);
 
-        if (this.highlighterUtils.isRemoteHighlightable) {
-          let autohide = !gDevTools.testing;
-
+        if (this.highlighterUtils.isRemoteHighlightable()) {
           this.walker.on("highlighter-ready", this._highlighterReady);
           this.walker.on("highlighter-hide", this._highlighterHidden);
 
+          let autohide = !gDevTools.testing;
           this._highlighter = yield this._inspector.getHighlighter(autohide);
         }
       }.bind(this));
@@ -1277,6 +1287,7 @@ Toolbox.prototype = {
       }
       let target = this._target;
       this._target = null;
+      this.highlighterUtils.release();
       target.off("close", this.destroy);
       return target.destroy();
     }).then(() => {
@@ -1294,202 +1305,5 @@ Toolbox.prototype = {
 
   _highlighterHidden: function() {
     this.emit("highlighter-hide");
-  },
-};
-
-
-
-
-
-
-function ToolboxHighlighterUtils(toolbox) {
-  this.toolbox = toolbox;
-  this._onPickerNodeHovered = this._onPickerNodeHovered.bind(this);
-  this._onPickerNodePicked = this._onPickerNodePicked.bind(this);
-  this.stopPicker = this.stopPicker.bind(this);
-}
-
-ToolboxHighlighterUtils.prototype = {
-  
-
-
-  get isRemoteHighlightable() {
-    return this.toolbox._target.client.traits.highlightable;
-  },
-
-  
-
-
-  togglePicker: function() {
-    if (this._isPicking) {
-      return this.stopPicker();
-    } else {
-      return this.startPicker();
-    }
-  },
-
-  _onPickerNodeHovered: function(res) {
-    this.toolbox.emit("picker-node-hovered", res.node);
-  },
-
-  _onPickerNodePicked: function(res) {
-    this.toolbox.selection.setNodeFront(res.node, "picker-node-picked");
-    this.stopPicker();
-  },
-
-  
-
-
-
-
-
-
-
-
-  startPicker: function() {
-    if (this._isPicking) {
-      return promise.resolve();
-    }
-
-    let deferred = promise.defer();
-
-    let done = () => {
-      this._isPicking = true;
-      this.toolbox.emit("picker-started");
-      this.toolbox.on("select", this.stopPicker);
-      deferred.resolve();
-    };
-
-    promise.all([
-      this.toolbox.initInspector(),
-      this.toolbox.selectTool("inspector")
-    ]).then(() => {
-      this.toolbox._pickerButton.setAttribute("checked", "true");
-
-      if (this.isRemoteHighlightable) {
-        this.toolbox.walker.on("picker-node-hovered", this._onPickerNodeHovered);
-        this.toolbox.walker.on("picker-node-picked", this._onPickerNodePicked);
-
-        this.toolbox.highlighter.pick().then(done);
-      } else {
-        return this.toolbox.walker.pick().then(node => {
-          this.toolbox.selection.setNodeFront(node, "picker-node-picked").then(() => {
-            this.stopPicker();
-            done();
-          });
-        });
-      }
-    });
-
-    return deferred.promise;
-  },
-
-  
-
-
-
-
-  stopPicker: function() {
-    if (!this._isPicking) {
-      return promise.resolve();
-    }
-
-    let deferred = promise.defer();
-
-    let done = () => {
-      this.toolbox.emit("picker-stopped");
-      this.toolbox.off("select", this.stopPicker);
-      deferred.resolve();
-    };
-
-    this.toolbox.initInspector().then(() => {
-      this._isPicking = false;
-      this.toolbox._pickerButton.removeAttribute("checked");
-      if (this.isRemoteHighlightable) {
-        this.toolbox.highlighter.cancelPick().then(done);
-        this.toolbox.walker.off("picker-node-hovered", this._onPickerNodeHovered);
-        this.toolbox.walker.off("picker-node-picked", this._onPickerNodePicked);
-      } else {
-        this.toolbox.walker.cancelPick().then(done);
-      }
-    });
-
-    return deferred.promise;
-  },
-
-  
-
-
-
-
-
-  highlightNodeFront: function(nodeFront, options={}) {
-    let deferred = promise.defer();
-
-    
-    if (this.isRemoteHighlightable) {
-      this.toolbox.initInspector().then(() => {
-        this.toolbox.highlighter.showBoxModel(nodeFront, options).then(() => {
-          this.toolbox.emit("node-highlight", nodeFront);
-          deferred.resolve(nodeFront);
-        });
-      });
-    }
-    
-    
-    else {
-      this.toolbox.walker.highlight(nodeFront).then(() => {
-        this.toolbox.emit("node-highlight", nodeFront);
-        deferred.resolve(nodeFront);
-      });
-    }
-
-    return deferred.promise;
-  },
-
-  
-
-
-
-
-
-
-
-  highlightDomValueGrip: function(valueGrip, options={}) {
-    return this._translateGripToNodeFront(valueGrip).then(nodeFront => {
-      if (nodeFront) {
-        return this.highlightNodeFront(nodeFront, options);
-      } else {
-        return promise.reject();
-      }
-    });
-  },
-
-  _translateGripToNodeFront: function(grip) {
-    return this.toolbox.initInspector().then(() => {
-      return this.toolbox.walker.getNodeActorFromObjectActor(grip.actor);
-    });
-  },
-
-  
-
-
-
-  unhighlight: function(forceHide=false) {
-    let unhighlightPromise;
-    forceHide = forceHide || !gDevTools.testing;
-
-    if (forceHide && this.isRemoteHighlightable && this.toolbox.highlighter) {
-      
-      unhighlightPromise = this.toolbox.highlighter.hideBoxModel();
-    } else {
-      
-      
-      unhighlightPromise = promise.resolve();
-    }
-
-    return unhighlightPromise.then(() => {
-      this.toolbox.emit("node-unhighlight");
-    });
   }
 };

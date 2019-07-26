@@ -32,9 +32,11 @@ LayoutHelpers.prototype = {
 
 
 
+
+
   getAdjustedQuads: function(node, region) {
-    if (!node) {
-      return;
+    if (!node || !node.getBoxQuads) {
+      return null;
     }
 
     let [quads] = node.getBoxQuads({
@@ -42,10 +44,10 @@ LayoutHelpers.prototype = {
     });
 
     if (!quads) {
-      return;
+      return null;
     }
 
-    let [xOffset, yOffset] = this._getNodeOffsets(node);
+    let [xOffset, yOffset] = this.getFrameOffsets(node);
     let scale = this.calculateScale(node);
 
     return {
@@ -86,6 +88,12 @@ LayoutHelpers.prototype = {
     };
   },
 
+  
+
+
+
+
+
   calculateScale: function(node) {
     let win = node.ownerDocument.defaultView;
     let winUtils = win.QueryInterface(Ci.nsIInterfaceRequestor)
@@ -102,7 +110,9 @@ LayoutHelpers.prototype = {
 
 
 
-  getRect: function LH_getRect(aNode, aContentWindow) {
+
+
+  getRect: function(aNode, aContentWindow) {
     let frameWin = aNode.ownerDocument.defaultView;
     let clientRect = aNode.getBoundingClientRect();
 
@@ -115,7 +125,6 @@ LayoutHelpers.prototype = {
 
     
     while (true) {
-
       
       if (this.isTopLevelWindow(frameWin)) {
         break;
@@ -157,7 +166,7 @@ LayoutHelpers.prototype = {
 
 
 
-  getIframeContentOffset: function LH_getIframeContentOffset(aIframe) {
+  getIframeContentOffset: function(aIframe) {
     let style = aIframe.contentWindow.getComputedStyle(aIframe, null);
 
     
@@ -183,7 +192,9 @@ LayoutHelpers.prototype = {
 
 
 
-  getElementFromPoint: function LH_elementFromPoint(aDocument, aX, aY) {
+
+
+  getElementFromPoint: function(aDocument, aX, aY) {
     let node = aDocument.elementFromPoint(aX, aY);
     if (node && node.contentDocument) {
       if (node instanceof Ci.nsIDOMHTMLIFrameElement) {
@@ -212,6 +223,8 @@ LayoutHelpers.prototype = {
   },
 
   
+
+
 
 
 
@@ -295,8 +308,8 @@ LayoutHelpers.prototype = {
 
 
 
-  isNodeConnected: function LH_isNodeConnected(aNode)
-  {
+
+  isNodeConnected: function(aNode) {
     try {
       let connected = (aNode.ownerDocument && aNode.ownerDocument.defaultView &&
                       !(aNode.compareDocumentPosition(aNode.ownerDocument.documentElement) &
@@ -311,7 +324,10 @@ LayoutHelpers.prototype = {
   
 
 
-  isTopLevelWindow: function LH_isTopLevelWindow(win) {
+
+
+
+  isTopLevelWindow: function(win) {
     let docShell = win.QueryInterface(Ci.nsIInterfaceRequestor)
                    .getInterface(Ci.nsIWebNavigation)
                    .QueryInterface(Ci.nsIDocShell);
@@ -320,6 +336,9 @@ LayoutHelpers.prototype = {
   },
 
   
+
+
+
 
 
   isIncludedInTopLevelWindow: function LH_isIncludedInTopLevelWindow(win) {
@@ -338,7 +357,10 @@ LayoutHelpers.prototype = {
   
 
 
-  getParentWindow: function LH_getParentWindow(win) {
+
+
+
+  getParentWindow: function(win) {
     if (this.isTopLevelWindow(win)) {
       return null;
     }
@@ -361,7 +383,9 @@ LayoutHelpers.prototype = {
 
 
 
-  getFrameElement: function LH_getFrameElement(win) {
+
+
+  getFrameElement: function(win) {
     if (this.isTopLevelWindow(win)) {
       return null;
     }
@@ -379,7 +403,9 @@ LayoutHelpers.prototype = {
 
 
 
-  _getNodeOffsets: function(node) {
+
+
+  getFrameOffsets: function(node) {
     let xOffset = 0;
     let yOffset = 0;
     let frameWin = node.ownerDocument.defaultView;
@@ -412,4 +438,61 @@ LayoutHelpers.prototype = {
 
     return [xOffset * scale, yOffset * scale];
   },
+
+  
+
+
+
+
+
+
+
+  getNodeBounds: function(node) {
+    if (!node) {
+      return;
+    }
+
+    let scale = this.calculateScale(node);
+
+    
+    let offsetLeft = 0;
+    let offsetTop = 0;
+    let el = node;
+    while (el && el.parentNode) {
+      offsetLeft += el.offsetLeft;
+      offsetTop += el.offsetTop;
+      el = el.offsetParent;
+    }
+
+    
+    let el = node;
+    while (el && el.parentNode) {
+      if (el.scrollTop) {
+        offsetTop -= el.scrollTop;
+      }
+      if (el.scrollLeft) {
+        offsetLeft -= el.scrollLeft;
+      }
+      el = el.parentNode;
+    }
+
+    
+    let [xOffset, yOffset] = this.getFrameOffsets(node);
+    xOffset += offsetLeft;
+    yOffset += offsetTop;
+
+    xOffset *= scale;
+    yOffset *= scale;
+
+    
+    let width = node.offsetWidth * scale;
+    let height = node.offsetHeight * scale;
+
+    return {
+      p1: {x: xOffset, y: yOffset},
+      p2: {x: xOffset + width, y: yOffset},
+      p3: {x: xOffset + width, y: yOffset + height},
+      p4: {x: xOffset, y: yOffset + height}
+    };
+  }
 };

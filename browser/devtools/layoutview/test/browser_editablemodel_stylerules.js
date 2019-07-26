@@ -24,8 +24,7 @@ let test = asyncTest(function*() {
   let {toolbox, inspector, view} = yield openLayoutView();
 
   yield runTests(inspector, view);
-  
-  
+  yield destroyToolbox(inspector);
 });
 
 addTest("Test that entering units works",

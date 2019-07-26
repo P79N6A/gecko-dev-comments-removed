@@ -1,9 +1,9 @@
-/* Any copyright is dedicated to the Public Domain.
-   http://creativecommons.org/publicdomain/zero/1.0/ */
 
-// Tests that the developer toolbar works properly
 
-const TEST_URI = "http://example.com/browser/browser/devtools/shared/test/browser_toolbar_basic.html";
+
+
+
+const TEST_URI = TEST_URI_ROOT + "browser_toolbar_basic.html";
 
 function test() {
   addTab(TEST_URI, function(browser, tab) {

@@ -12,7 +12,6 @@ const {Spectrum} = require("devtools/shared/widgets/Spectrum");
 const EventEmitter = require("devtools/toolkit/event-emitter");
 const {colorUtils} = require("devtools/css-color");
 const Heritage = require("sdk/core/heritage");
-const {CSSTransformPreviewer} = require("devtools/shared/widgets/CSSTransformPreviewer");
 const {Eyedropper} = require("devtools/eyedropper/eyedropper");
 
 Cu.import("resource://gre/modules/Services.jsm");
@@ -736,45 +735,6 @@ Tooltip.prototype = {
 
     return def.promise;
   },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-  setCssTransformContent: Task.async(function*(transform, pageStyle, node) {
-    if (!transform) {
-      throw "Missing transform";
-    }
-
-    
-    
-    let styles = yield pageStyle.getComputed(node, {
-      filter: "user",
-      markMatched: false,
-      onlyMatched: false
-    });
-
-    let origin = styles["transform-origin"].value;
-    let width = parseInt(styles["width"].value);
-    let height = parseInt(styles["height"].value);
-
-    let root = this.doc.createElementNS(XHTML_NS, "div");
-    let previewer = new CSSTransformPreviewer(root);
-    this.content = root;
-    if (!previewer.preview(transform, origin, width, height)) {
-      throw "Invalid transform";
-    }
-  }),
 
   
 

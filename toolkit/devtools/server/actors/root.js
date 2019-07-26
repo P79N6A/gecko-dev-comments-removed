@@ -106,6 +106,12 @@ RootActor.prototype = {
     highlightable: true,
     
     
+    customHighlighters: [
+      "BoxModelHighlighter",
+      "CssTransformHighlighter"
+    ],
+    
+    
     
     urlToImageDataResolver: true,
     networkMonitor: true,

@@ -61,7 +61,11 @@ const events = require("sdk/event/core");
 const {Unknown} = require("sdk/platform/xpcom");
 const {Class} = require("sdk/core/heritage");
 const {PageStyleActor} = require("devtools/server/actors/styles");
-const {HighlighterActor} = require("devtools/server/actors/highlighter");
+const {
+  HighlighterActor,
+  CustomHighlighterActor,
+  HIGHLIGHTER_CLASSES
+} = require("devtools/server/actors/highlighter");
 const {getLayoutChangesObserver, releaseLayoutChangesObserver} =
   require("devtools/server/actors/layout");
 
@@ -2601,6 +2605,19 @@ var InspectorActor = protocol.ActorClass({
     }
   }),
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
   getHighlighter: method(function (autohide) {
     if (this._highlighterPromise) {
       return this._highlighterPromise;
@@ -2611,9 +2628,37 @@ var InspectorActor = protocol.ActorClass({
     });
     return this._highlighterPromise;
   }, {
-    request: { autohide: Arg(0, "boolean") },
+    request: {
+      autohide: Arg(0, "boolean")
+    },
     response: {
       highligter: RetVal("highlighter")
+    }
+  }),
+
+  
+
+
+
+
+
+
+
+
+
+
+  getHighlighterByType: method(function (typeName) {
+    if (HIGHLIGHTER_CLASSES[typeName]) {
+      return CustomHighlighterActor(this, typeName);
+    } else {
+      return null;
+    }
+  }, {
+    request: {
+      typeName: Arg(0)
+    },
+    response: {
+      highlighter: RetVal("nullable:customhighlighter")
     }
   }),
 

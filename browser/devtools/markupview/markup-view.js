@@ -175,9 +175,25 @@ MarkupView.prototype = {
     this._hoveredNode = null;
   },
 
+  
+
+
+
+
+
+
+
   _showBoxModel: function(nodeFront, options={}) {
-    this._inspector.toolbox.highlighterUtils.highlightNodeFront(nodeFront, options);
+    return this._inspector.toolbox.highlighterUtils.highlightNodeFront(nodeFront, options);
   },
+
+  
+
+
+
+
+
+
 
   _hideBoxModel: function(forceHide) {
     return this._inspector.toolbox.highlighterUtils.unhighlight(forceHide);
