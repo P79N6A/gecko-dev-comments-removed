@@ -121,8 +121,8 @@ protected:
     SingleLineCrossAxisPositionTracker& aLineCrossAxisPosnTracker,
     FlexItem& aItem);
 
-  bool    mChildrenHaveBeenReordered; 
-                                      
+  bool mChildrenHaveBeenReordered; 
+                                   
 };
 
 #endif 

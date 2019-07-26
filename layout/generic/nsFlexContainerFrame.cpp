@@ -1943,7 +1943,7 @@ FlexboxAxisTracker::FlexboxAxisTracker(nsFlexContainerFrame* aFlexContainerFrame
   } else {
     mCrossAxis = blockDimension;
   }
-      
+
   
   
   MOZ_ASSERT(IsAxisHorizontal(mMainAxis) != IsAxisHorizontal(mCrossAxis),
