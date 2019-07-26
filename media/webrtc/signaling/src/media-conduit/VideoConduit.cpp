@@ -5,6 +5,9 @@
 #include "CSFLog.h"
 #include "nspr.h"
 
+
+#include "ccsdp.h"
+
 #include "VideoConduit.h"
 #include "AudioConduit.h"
 #include "webrtc/video_engine/include/vie_errors.h"
@@ -245,22 +248,6 @@ MediaConduitErrorCode WebrtcVideoConduit::Init()
                 mPtrViEBase->LastError());
     return kMediaConduitRTCPStatusError;
   }
-  
-  if(mPtrRTP->SetKeyFrameRequestMethod(mChannel,
-                                    webrtc::kViEKeyFrameRequestPliRtcp) != 0)
-  {
-    CSFLogError(logTag,  "%s KeyFrameRequest Failed %d ", __FUNCTION__,
-                mPtrViEBase->LastError());
-    return kMediaConduitKeyFrameRequestError;
-  }
-  
-  
-  if (mPtrRTP->SetNACKStatus(mChannel, true) != 0)
-  {
-    CSFLogError(logTag,  "%s NACKStatus Failed %d ", __FUNCTION__,
-                mPtrViEBase->LastError());
-    return kMediaConduitNACKStatusError;
-  }
   CSFLogError(logTag, "%s Initialization Done", __FUNCTION__);
   return kMediaConduitNoError;
 }
@@ -418,6 +405,16 @@ WebrtcVideoConduit::ConfigureSendMediaCodec(const VideoCodecConfig* codecConfig)
   mSendingWidth = 0;
   mSendingHeight = 0;
 
+  if(codecConfig->RtcpFbIsSet(SDP_RTCP_FB_NACK_BASIC)) {
+    CSFLogDebug(logTag, "Enabling NACK (send) for video stream\n");
+    if (mPtrRTP->SetNACKStatus(mChannel, true) != 0)
+    {
+      CSFLogError(logTag,  "%s NACKStatus Failed %d ", __FUNCTION__,
+                  mPtrViEBase->LastError());
+      return kMediaConduitNACKStatusError;
+    }
+  }
+
   if(mPtrViEBase->StartSend(mChannel) == -1)
   {
     CSFLogError(logTag, "%s Start Send Error %d ", __FUNCTION__,
@@ -428,8 +425,7 @@ WebrtcVideoConduit::ConfigureSendMediaCodec(const VideoCodecConfig* codecConfig)
   
   delete mCurSendCodecConfig;
 
-  mCurSendCodecConfig = new VideoCodecConfig(codecConfig->mType,
-                                             codecConfig->mName);
+  mCurSendCodecConfig = new VideoCodecConfig(*codecConfig);
 
   mPtrRTP->SetRembStatus(mChannel, true, false);
 
@@ -472,6 +468,9 @@ WebrtcVideoConduit::ConfigureRecvMediaCodecs(
     return kMediaConduitMalformedArgument;
   }
 
+  webrtc::ViEKeyFrameRequestMethod kf_request = webrtc::kViEKeyFrameRequestNone;
+  bool use_nack_basic = false;
+
   
   
   
@@ -483,7 +482,25 @@ WebrtcVideoConduit::ConfigureRecvMediaCodecs(
       return condError;
     }
 
+    
+    
+    if (codecConfigList[i]->RtcpFbIsSet(SDP_RTCP_FB_NACK_PLI))
+    {
+      kf_request = webrtc::kViEKeyFrameRequestPliRtcp;
+    } else if(kf_request == webrtc::kViEKeyFrameRequestNone &&
+              codecConfigList[i]->RtcpFbIsSet(SDP_RTCP_FB_CCM_FIR))
+    {
+      kf_request = webrtc::kViEKeyFrameRequestFirRtcp;
+    }
+
+    
+    if(codecConfigList[i]->RtcpFbIsSet(SDP_RTCP_FB_NACK_BASIC))
+    {
+      use_nack_basic = true;
+    }
+
     webrtc::VideoCodec  video_codec;
+
     mEngineReceiving = false;
     memset(&video_codec, 0, sizeof(webrtc::VideoCodec));
     
@@ -521,6 +538,51 @@ WebrtcVideoConduit::ConfigureRecvMediaCodecs(
   {
     CSFLogError(logTag, "%s Setting Receive Codec Failed ", __FUNCTION__);
     return kMediaConduitInvalidReceiveCodec;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  if (kf_request != webrtc::kViEKeyFrameRequestNone)
+  {
+    CSFLogDebug(logTag, "Enabling %s frame requests for video stream\n",
+                (kf_request == webrtc::kViEKeyFrameRequestPliRtcp ?
+                 "PLI" : "FIR"));
+    if(mPtrRTP->SetKeyFrameRequestMethod(mChannel, kf_request) != 0)
+    {
+      CSFLogError(logTag,  "%s KeyFrameRequest Failed %d ", __FUNCTION__,
+                  mPtrViEBase->LastError());
+      return kMediaConduitKeyFrameRequestError;
+    }
+  }
+
+  if(use_nack_basic)
+  {
+    CSFLogDebug(logTag, "Enabling NACK (recv) for video stream\n");
+    if (mPtrRTP->SetNACKStatus(mChannel, true) != 0)
+    {
+      CSFLogError(logTag,  "%s NACKStatus Failed %d ", __FUNCTION__,
+                  mPtrViEBase->LastError());
+      return kMediaConduitNACKStatusError;
+    }
   }
 
   
@@ -789,8 +851,7 @@ WebrtcVideoConduit::CodecConfigToWebRTCCodec(const VideoCodecConfig* codecInfo,
 bool
 WebrtcVideoConduit::CopyCodecToDB(const VideoCodecConfig* codecInfo)
 {
-  VideoCodecConfig* cdcConfig = new VideoCodecConfig(codecInfo->mType,
-                                                     codecInfo->mName);
+  VideoCodecConfig* cdcConfig = new VideoCodecConfig(*codecInfo);
   mRecvCodecList.push_back(cdcConfig);
   return true;
 }
