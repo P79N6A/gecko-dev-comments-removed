@@ -17,8 +17,6 @@
 
 namespace mozilla {
 
- SVGPathSegListSMILType SVGPathSegListSMILType::sSingleton;
-
 
 
 
@@ -36,7 +34,7 @@ SVGPathSegListSMILType::Destroy(nsSMILValue& aValue) const
   NS_PRECONDITION(aValue.mType == this, "Unexpected SMIL value type");
   delete static_cast<SVGPathDataAndOwner*>(aValue.mU.mPtr);
   aValue.mU.mPtr = nullptr;
-  aValue.mType = &nsSMILNullType::sSingleton;
+  aValue.mType = nsSMILNullType::Singleton();
 }
 
 nsresult

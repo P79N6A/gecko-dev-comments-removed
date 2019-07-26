@@ -15,7 +15,12 @@ class SMILEnumType : public nsISMILType
 {
 public:
   
-  static SMILEnumType sSingleton;
+  static SMILEnumType*
+  Singleton()
+  {
+    static SMILEnumType sSingleton;
+    return &sSingleton;
+  }
 
 protected:
   
