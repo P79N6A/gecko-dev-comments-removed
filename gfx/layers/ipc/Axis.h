@@ -170,6 +170,11 @@ public:
 
   bool ScaleWillOverscrollBothSides(float aScale);
 
+  
+
+
+  bool HasRoomToPan() const;
+
   float GetOrigin() const;
   float GetCompositionLength() const;
   float GetPageStart() const;

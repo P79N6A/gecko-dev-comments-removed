@@ -271,6 +271,13 @@ public:
 
   bool FlushRepaintsForOverscrollHandoffChain();
 
+  
+
+
+
+
+  bool CanBePanned(AsyncPanZoomController* aApzc);
+
 protected:
   
   virtual ~APZCTreeManager();
