@@ -16,6 +16,7 @@ var SelectionHandler = {
   
   _cache: null,
   _activeType: 0, 
+  _ignoreSelectionChanges: false, 
 
   
   get _contentWindow() {
@@ -102,9 +103,11 @@ var SelectionHandler = {
       }
       case "TextSelection:Move": {
         let data = JSON.parse(aData);
-        if (this._activeType == this.TYPE_SELECTION)
+        if (this._activeType == this.TYPE_SELECTION) {
+          
+          this._ignoreSelectionChanges = true;
           this._moveSelection(data.handleType == this.HANDLE_TYPE_START, data.x, data.y);
-        else if (this._activeType == this.TYPE_CURSOR) {
+        } else if (this._activeType == this.TYPE_CURSOR) {
           
           this._sendMouseEvents(data.x, data.y);
 
@@ -116,6 +119,8 @@ var SelectionHandler = {
       case "TextSelection:Position": {
         if (this._activeType == this.TYPE_SELECTION) {
           
+          this._ignoreSelectionChanges = true;
+          
           let isStartHandle = JSON.parse(aData).handleType == this.HANDLE_TYPE_START;
           let selectionReversed = this._updateCacheForSelection(isStartHandle);
           if (selectionReversed) {
@@ -126,6 +131,8 @@ var SelectionHandler = {
             selection.collapse(selection.focusNode, selection.focusOffset);
             selection.extend(anchorNode, anchorOffset);
           }
+          
+          this._ignoreSelectionChanges = false;
         }
         this._positionHandles();
         break;
@@ -179,6 +186,11 @@ var SelectionHandler = {
   },
 
   notifySelectionChanged: function sh_notifySelectionChanged(aDocument, aSelection, aReason) {
+    
+    if (this._ignoreSelectionChanges) {
+      return;
+    }
+
     
     if ((aReason & Ci.nsISelectionListener.COLLAPSETOSTART_REASON) ||
         (aReason & Ci.nsISelectionListener.COLLAPSETOEND_REASON)) {
@@ -508,6 +520,7 @@ var SelectionHandler = {
     this._targetElement = null;
     this._isRTL = false;
     this._cache = null;
+    this._ignoreSelectionChanges = false;
   },
 
   _getViewOffset: function sh_getViewOffset() {
