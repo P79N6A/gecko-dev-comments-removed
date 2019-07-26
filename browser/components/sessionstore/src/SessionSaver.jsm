@@ -23,6 +23,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "SessionStore",
   "resource:///modules/sessionstore/SessionStore.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "SessionFile",
   "resource:///modules/sessionstore/SessionFile.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
+  "resource://gre/modules/PrivateBrowsingUtils.jsm");
 
 
 XPCOMUtils.defineLazyGetter(this, "gInterval", function () {
@@ -191,6 +193,14 @@ let SessionSaverInternal = {
   _saveState: function (forceUpdateAllWindows = false) {
     
     this.cancel();
+
+    if (PrivateBrowsingUtils.permanentPrivateBrowsing) {
+      
+      
+
+      this.updateLastSaveTime();
+      return Promise.resolve();
+    }
 
     stopWatchStart("COLLECT_DATA_MS", "COLLECT_DATA_LONGEST_OP_MS");
     let state = SessionStore.getCurrentState(forceUpdateAllWindows);
