@@ -48,6 +48,8 @@ class HTMLFormElement : public nsGenericHTMLElement,
                         public nsIForm,
                         public nsIRadioGroupContainer
 {
+  friend class nsFormControlList;
+
 public:
   HTMLFormElement(already_AddRefed<nsINodeInfo> aNodeInfo);
   virtual ~HTMLFormElement();
@@ -131,8 +133,8 @@ public:
 
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const MOZ_OVERRIDE;
 
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(HTMLFormElement,
-                                           nsGenericHTMLElement)
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(HTMLFormElement,
+                                                         nsGenericHTMLElement)
 
   
 
@@ -315,7 +317,107 @@ public:
   already_AddRefed<nsISupports>
   FindNamedItem(const nsAString& aName, nsWrapperCache** aCache);
 
+  
+
+  void GetAcceptCharset(DOMString& aValue)
+  {
+    GetHTMLAttr(nsGkAtoms::acceptcharset, aValue);
+  }
+
+  void SetAcceptCharset(const nsAString& aValue, ErrorResult& aRv)
+  {
+    SetHTMLAttr(nsGkAtoms::acceptcharset, aValue, aRv);
+  }
+
+  
+  void SetAction(const nsAString& aValue, ErrorResult& aRv)
+  {
+    SetHTMLAttr(nsGkAtoms::action, aValue, aRv);
+  }
+
+  
+  void SetAutocomplete(const nsAString& aValue, ErrorResult& aRv)
+  {
+    SetHTMLAttr(nsGkAtoms::autocomplete, aValue, aRv);
+  }
+
+  
+  void SetEnctype(const nsAString& aValue, ErrorResult& aRv)
+  {
+    SetHTMLAttr(nsGkAtoms::enctype, aValue, aRv);
+  }
+
+  
+  void SetEncoding(const nsAString& aValue, ErrorResult& aRv)
+  {
+    SetEnctype(aValue, aRv);
+  }
+
+  
+  void SetMethod(const nsAString& aValue, ErrorResult& aRv)
+  {
+    SetHTMLAttr(nsGkAtoms::method, aValue, aRv);
+  }
+
+  void GetName(DOMString& aValue)
+  {
+    GetHTMLAttr(nsGkAtoms::name, aValue);
+  }
+
+  void SetName(const nsAString& aValue, ErrorResult& aRv)
+  {
+    SetHTMLAttr(nsGkAtoms::name, aValue, aRv);
+  }
+
+  bool NoValidate() const
+  {
+    return GetBoolAttr(nsGkAtoms::novalidate);
+  }
+
+  void SetNoValidate(bool aValue, ErrorResult& aRv)
+  {
+    SetHTMLBoolAttr(nsGkAtoms::novalidate, aValue, aRv);
+  }
+
+  void GetTarget(DOMString& aValue)
+  {
+    GetHTMLAttr(nsGkAtoms::target, aValue);
+  }
+
+  void SetTarget(const nsAString& aValue, ErrorResult& aRv)
+  {
+    SetHTMLAttr(nsGkAtoms::target, aValue, aRv);
+  }
+
+  
+  
+  nsIHTMLCollection* Elements();
+
+  int32_t Length();
+
+  void Submit(ErrorResult& aRv);
+
+  
+
+  bool CheckValidity()
+  {
+    return CheckFormValidity(nullptr);
+  }
+
+  Element*
+  IndexedGetter(uint32_t aIndex, bool &aFound);
+
+  already_AddRefed<nsISupports>
+  NamedGetter(const nsAString& aName, bool &aFound);
+
+  void GetSupportedNames(nsTArray<nsString >& aRetval);
+
+  js::ExpandoAndGeneration mExpandoAndGeneration;
+
 protected:
+  virtual JSObject* WrapNode(JSContext* aCx,
+                             JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+
   void PostPasswordEvent();
   void EventHandled() { mFormPasswordEvent = nullptr; }
 
@@ -380,7 +482,7 @@ protected:
 
 
 
-  nsresult BuildSubmission(nsFormSubmission** aFormSubmission, 
+  nsresult BuildSubmission(nsFormSubmission** aFormSubmission,
                            nsEvent* aEvent);
   
 
@@ -429,6 +531,16 @@ protected:
 
   
   void AddToPastNamesMap(const nsAString& aName, nsISupports* aChild);
+
+  nsresult
+  AddElementToTableInternal(
+    nsInterfaceHashtable<nsStringHashKey,nsISupports>& aTable,
+    nsIContent* aChild, const nsAString& aName);
+
+  nsresult
+  RemoveElementFromTableInternal(
+    nsInterfaceHashtable<nsStringHashKey,nsISupports>& aTable,
+    nsIContent* aChild, const nsAString& aName);
 
 public:
   

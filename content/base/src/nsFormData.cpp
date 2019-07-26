@@ -109,13 +109,13 @@ nsFormData::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
 
  already_AddRefed<nsFormData>
 nsFormData::Constructor(const GlobalObject& aGlobal,
-                        const Optional<HTMLFormElement*>& aFormElement,
+                        const Optional<NonNull<HTMLFormElement> >& aFormElement,
                         ErrorResult& aRv)
 {
   nsRefPtr<nsFormData> formData = new nsFormData(aGlobal.Get());
   if (aFormElement.WasPassed()) {
-    MOZ_ASSERT(aFormElement.Value());
-    aRv = aFormElement.Value()->WalkFormElements(formData);
+    
+    aRv = aFormElement.Value().get()->WalkFormElements(formData);
   }
   return formData.forget();
 }
