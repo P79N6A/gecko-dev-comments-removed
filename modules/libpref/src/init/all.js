@@ -1814,6 +1814,14 @@ pref("layout.css.vertical-text.enabled", false);
 
 
 
+#ifdef XP_MACOSX
+pref("layout.css.osx-font-smoothing.enabled", true);
+#else
+pref("layout.css.osx-font-smoothing.enabled", false);
+#endif
+
+
+
 
 
 
