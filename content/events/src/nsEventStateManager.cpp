@@ -3314,6 +3314,9 @@ nsEventStateManager::PostHandleEvent(nsPresContext* aPresContext,
       widget::WheelEvent* wheelEvent = static_cast<widget::WheelEvent*>(aEvent);
       switch (WheelPrefs::GetInstance()->ComputeActionFor(wheelEvent)) {
         case WheelPrefs::ACTION_SCROLL: {
+          if (!wheelEvent->deltaX && !wheelEvent->deltaY) {
+            break;
+          }
           
           
           nsIScrollableFrame* scrollTarget =
@@ -3330,15 +3333,34 @@ nsEventStateManager::PostHandleEvent(nsPresContext* aPresContext,
           }
           break;
         }
-        case WheelPrefs::ACTION_HISTORY:
-          DoScrollHistory(wheelEvent->GetPreferredIntDelta());
+        case WheelPrefs::ACTION_HISTORY: {
+          
+          
+          int32_t intDelta = wheelEvent->GetPreferredIntDelta();
+          if (!intDelta) {
+            break;
+          }
+          DoScrollHistory(intDelta);
           break;
-
-        case WheelPrefs::ACTION_ZOOM:
-          DoScrollZoom(aTargetFrame, wheelEvent->GetPreferredIntDelta());
+        }
+        case WheelPrefs::ACTION_ZOOM: {
+          
+          
+          int32_t intDelta = wheelEvent->GetPreferredIntDelta();
+          if (!intDelta) {
+            break;
+          }
+          DoScrollZoom(aTargetFrame, intDelta);
           break;
-
+        }
+        case WheelPrefs::ACTION_NONE:
         default:
+          
+          
+          wheelEvent->overflowDeltaX = wheelEvent->deltaX;
+          wheelEvent->overflowDeltaY = wheelEvent->deltaY;
+          WheelPrefs::GetInstance()->
+            CancelApplyingUserPrefsFromOverflowDelta(wheelEvent);
           break;
       }
       *aStatus = nsEventStatus_eConsumeNoDefault;
@@ -5529,10 +5551,6 @@ nsEventStateManager::WheelPrefs::CancelApplyingUserPrefsFromOverflowDelta(
 nsEventStateManager::WheelPrefs::Action
 nsEventStateManager::WheelPrefs::ComputeActionFor(widget::WheelEvent* aEvent)
 {
-  if (!aEvent->deltaX && !aEvent->deltaY) {
-    return ACTION_NONE;
-  }
-
   Index index = GetIndexFor(aEvent);
   Init(index);
 
@@ -5552,9 +5570,7 @@ nsEventStateManager::WheelPrefs::ComputeActionFor(widget::WheelEvent* aEvent)
                                                        ACTION_NONE;
   }
 
-  
-  
-  return !aEvent->GetPreferredIntDelta() ? ACTION_NONE : actions[index];
+  return actions[index];
 }
 
 bool
