@@ -283,6 +283,17 @@ const PanelUI = {
   
 
 
+  onCharsetCustomizeCommand: function() {
+    this.hide();
+    window.openDialog("chrome://global/content/customizeCharset.xul",
+                      "PrefWindow",
+                      "chrome,modal=yes,resizable=yes",
+                      "browser");
+  },
+
+  
+
+
 
   beginBatchUpdate: function() {
     this._ensureEventListenersAdded();
