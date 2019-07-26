@@ -13,7 +13,7 @@ class nsSMILValue;
 
 namespace mozilla {
 
-class SVGTransform;
+class nsSVGTransform;
 class SVGTransformList;
 class SVGTransformSMILData;
 
@@ -111,7 +111,7 @@ public:
   static bool AppendTransforms(const SVGTransformList& aList,
                                  nsSMILValue& aValue);
   static bool GetTransforms(const nsSMILValue& aValue,
-                              FallibleTArray<SVGTransform>& aTransforms);
+                              FallibleTArray<nsSVGTransform>& aTransforms);
 
 
 private:

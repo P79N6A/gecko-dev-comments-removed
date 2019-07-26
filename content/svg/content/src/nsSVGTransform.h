@@ -24,11 +24,11 @@ static const unsigned short SVG_TRANSFORM_SKEWY = 6;
 
 
 
-class SVGTransform
+class nsSVGTransform
 {
 public:
   
-  SVGTransform()
+  nsSVGTransform()
     : mMatrix() 
     , mAngle(0.f)
     , mOriginX(0.f)
@@ -36,7 +36,7 @@ public:
     , mType(SVG_TRANSFORM_MATRIX)
   { }
 
-  SVGTransform(const gfxMatrix& aMatrix)
+  nsSVGTransform(const gfxMatrix& aMatrix)
     : mMatrix(aMatrix)
     , mAngle(0.f)
     , mOriginX(0.f)
@@ -44,7 +44,7 @@ public:
     , mType(SVG_TRANSFORM_MATRIX)
   { }
 
-  bool operator==(const SVGTransform& rhs) const {
+  bool operator==(const nsSVGTransform& rhs) const {
     return mType == rhs.mType &&
       MatricesEqual(mMatrix, rhs.mMatrix) &&
       mAngle == rhs.mAngle &&
@@ -149,8 +149,8 @@ public:
   }
 
   
-  SVGTransformSMILData(const SVGTransform& aTransform);
-  SVGTransform ToSVGTransform() const;
+  SVGTransformSMILData(const nsSVGTransform& aTransform);
+  nsSVGTransform ToSVGTransform() const;
 
   bool operator==(const SVGTransformSMILData& aOther) const
   {

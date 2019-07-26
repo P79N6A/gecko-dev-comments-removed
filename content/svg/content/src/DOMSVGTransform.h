@@ -12,7 +12,7 @@
 #include "nsCycleCollectionParticipant.h"
 #include "nsDebug.h"
 #include "nsID.h"
-#include "SVGTransform.h"
+#include "nsSVGTransform.h"
 #include "nsWrapperCache.h"
 #include "mozilla/Attributes.h"
 
@@ -57,7 +57,7 @@ public:
   
 
 
-  explicit DOMSVGTransform(const SVGTransform &aMatrix);
+  explicit DOMSVGTransform(const nsSVGTransform &aMatrix);
 
   ~DOMSVGTransform();
 
@@ -113,7 +113,7 @@ public:
 
   void RemovingFromList();
 
-  SVGTransform ToSVGTransform() const {
+  nsSVGTransform ToSVGTransform() const {
     return Transform();
   }
 
@@ -150,17 +150,17 @@ private:
 
 
 
-  SVGTransform& InternalItem();
-  const SVGTransform& InternalItem() const;
+  nsSVGTransform& InternalItem();
+  const nsSVGTransform& InternalItem() const;
 
 #ifdef DEBUG
   bool IndexIsValid();
 #endif
 
-  const SVGTransform& Transform() const {
+  const nsSVGTransform& Transform() const {
     return HasOwner() ? InternalItem() : *mTransform;
   }
-  SVGTransform& Transform() {
+  nsSVGTransform& Transform() {
     return HasOwner() ? InternalItem() : *mTransform;
   }
   inline nsAttrValue NotifyElementWillChange();
@@ -180,7 +180,7 @@ private:
   
   
   
-  nsAutoPtr<SVGTransform> mTransform;
+  nsAutoPtr<nsSVGTransform> mTransform;
 };
 
 nsAttrValue
