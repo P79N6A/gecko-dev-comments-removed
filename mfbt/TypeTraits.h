@@ -182,6 +182,38 @@ template<typename T> struct IsPod<T*>       : TrueType {};
 
 
 
+template<typename T>
+struct IsSigned
+  : IntegralConstant<bool, IsArithmetic<T>::value && T(-1) < T(0)>
+{};
+
+
+
+
+
+
+
+
+
+
+
+
+template<typename T>
+struct IsUnsigned
+  : IntegralConstant<bool, IsArithmetic<T>::value && T(0) < T(-1)>
+{};
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
