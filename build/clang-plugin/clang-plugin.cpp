@@ -36,7 +36,14 @@ private:
     void noteInferred(QualType T, DiagnosticsEngine &Diag);
   };
 
+  class NonHeapClassChecker : public MatchFinder::MatchCallback {
+  public:
+    virtual void run(const MatchFinder::MatchResult &Result);
+    void noteInferred(QualType T, DiagnosticsEngine &Diag);
+  };
+
   StackClassChecker stackClassChecker;
+  NonHeapClassChecker nonheapClassChecker;
   MatchFinder astMatcher;
 };
 
@@ -116,57 +123,89 @@ public:
   }
 };
 
-DenseMap<const CXXRecordDecl *, const Decl *> stackClassCauses;
 
-bool isStackClass(QualType T);
 
-bool isStackClass(CXXRecordDecl *D) {
+
+
+
+enum ClassAllocationNature {
+  RegularClass = 0,
+  NonHeapClass = 1,
+  StackClass = 2
+};
+
+
+
+DenseMap<const CXXRecordDecl *,
+  std::pair<const Decl *, ClassAllocationNature> > inferredAllocCauses;
+
+ClassAllocationNature getClassAttrs(QualType T);
+
+ClassAllocationNature getClassAttrs(CXXRecordDecl *D) {
   
   
   if (!D->hasDefinition())
-    return false;
+    return RegularClass;
   D = D->getDefinition();
   
   if (MozChecker::hasCustomAnnotation(D, "moz_stack_class"))
-    return true;
+    return StackClass;
 
   
-  DenseMap<const CXXRecordDecl *, const Decl *>::iterator it =
-    stackClassCauses.find(D);
-  if (it != stackClassCauses.end()) {
-    
-    return it->second != NULL;
+  DenseMap<const CXXRecordDecl *,
+    std::pair<const Decl *, ClassAllocationNature> >::iterator it =
+    inferredAllocCauses.find(D);
+  if (it != inferredAllocCauses.end()) {
+    return it->second.second;
   }
 
   
+  
+  ClassAllocationNature type = RegularClass;
+  if (MozChecker::hasCustomAnnotation(D, "moz_nonheap_class")) {
+    type = NonHeapClass;
+  }
+  inferredAllocCauses.insert(std::make_pair(D,
+    std::make_pair((const Decl *)0, type)));
+
+  
+  
+  
   for (CXXRecordDecl::base_class_iterator base = D->bases_begin(),
        e = D->bases_end(); base != e; ++base) {
-    if (isStackClass(base->getType())) {
-      stackClassCauses.insert(std::make_pair(D,
-        base->getType()->getAsCXXRecordDecl()));
-      return true;
+    ClassAllocationNature super = getClassAttrs(base->getType());
+    if (super == StackClass) {
+      inferredAllocCauses[D] = std::make_pair(
+        base->getType()->getAsCXXRecordDecl(), StackClass);
+      return StackClass;
+    } else if (super == NonHeapClass) {
+      inferredAllocCauses[D] = std::make_pair(
+        base->getType()->getAsCXXRecordDecl(), NonHeapClass);
+      type = NonHeapClass;
     }
   }
 
   
   for (RecordDecl::field_iterator field = D->field_begin(), e = D->field_end();
        field != e; ++field) {
-    if (isStackClass(field->getType())) {
-      stackClassCauses.insert(std::make_pair(D, *field));
-      return true;
+    ClassAllocationNature fieldType = getClassAttrs(field->getType());
+    if (fieldType == StackClass) {
+      inferredAllocCauses[D] = std::make_pair(*field, StackClass);
+      return StackClass;
+    } else if (fieldType == NonHeapClass) {
+      inferredAllocCauses[D] = std::make_pair(*field, NonHeapClass);
+      type = NonHeapClass;
     }
   }
 
-  
-  stackClassCauses.insert(std::make_pair(D, (const Decl*)0));
-  return false;
+  return type;
 }
 
-bool isStackClass(QualType T) {
+ClassAllocationNature getClassAttrs(QualType T) {
   while (const ArrayType *arrTy = T->getAsArrayTypeUnsafe())
     T = arrTy->getElementType();
   CXXRecordDecl *clazz = T->getAsCXXRecordDecl();
-  return clazz && isStackClass(clazz);
+  return clazz ? getClassAttrs(clazz) : RegularClass;
 }
 
 }
@@ -177,7 +216,13 @@ namespace ast_matchers {
 
 
 AST_MATCHER(QualType, stackClassAggregate) {
-  return isStackClass(Node);
+  return getClassAttrs(Node) == StackClass;
+}
+
+
+
+AST_MATCHER(QualType, nonheapClassAggregate) {
+  return getClassAttrs(Node) == NonHeapClass;
 }
 }
 }
@@ -193,6 +238,11 @@ DiagnosticsMatcher::DiagnosticsMatcher() {
   astMatcher.addMatcher(newExpr(hasType(pointerType(
       pointee(stackClassAggregate())
     ))).bind("node"), &stackClassChecker);
+  
+  
+  astMatcher.addMatcher(newExpr(hasType(pointerType(
+      pointee(nonheapClassAggregate())
+    ))).bind("node"), &nonheapClassChecker);
 }
 
 void DiagnosticsMatcher::StackClassChecker::run(
@@ -235,7 +285,49 @@ void DiagnosticsMatcher::StackClassChecker::noteInferred(QualType T,
   if (MozChecker::hasCustomAnnotation(clazz, "moz_stack_class"))
     return;
 
-  const Decl *cause = stackClassCauses[clazz];
+  const Decl *cause = inferredAllocCauses[clazz].first;
+  if (const CXXRecordDecl *CRD = dyn_cast<CXXRecordDecl>(cause)) {
+    Diag.Report(clazz->getLocation(), inheritsID) << T << CRD->getDeclName();
+  } else if (const FieldDecl *FD = dyn_cast<FieldDecl>(cause)) {
+    Diag.Report(FD->getLocation(), memberID) << T << FD << FD->getType();
+  }
+  
+  
+  noteInferred(cast<ValueDecl>(cause)->getType(), Diag);
+}
+
+void DiagnosticsMatcher::NonHeapClassChecker::run(
+    const MatchFinder::MatchResult &Result) {
+  DiagnosticsEngine &Diag = Result.Context->getDiagnostics();
+  unsigned stackID = Diag.getDiagnosticIDs()->getCustomDiagID(
+    DiagnosticIDs::Error, "variable of type %0 is not valid on the heap");
+  const CXXNewExpr *expr = Result.Nodes.getNodeAs<CXXNewExpr>("node");
+  
+  if (expr->getNumPlacementArgs() > 0)
+    return;
+  Diag.Report(expr->getStartLoc(), stackID) << expr->getAllocatedType();
+  noteInferred(expr->getAllocatedType(), Diag);
+}
+
+void DiagnosticsMatcher::NonHeapClassChecker::noteInferred(QualType T,
+    DiagnosticsEngine &Diag) {
+  unsigned inheritsID = Diag.getDiagnosticIDs()->getCustomDiagID(
+    DiagnosticIDs::Note,
+    "%0 is a non-heap class because it inherits from a non-heap class %1");
+  unsigned memberID = Diag.getDiagnosticIDs()->getCustomDiagID(
+    DiagnosticIDs::Note,
+    "%0 is a non-heap class because member %1 is a non-heap class %2");
+
+  
+  while (const ArrayType *arrTy = T->getAsArrayTypeUnsafe())
+    T = arrTy->getElementType();
+  CXXRecordDecl *clazz = T->getAsCXXRecordDecl();
+
+  
+  if (MozChecker::hasCustomAnnotation(clazz, "moz_nonheap_class"))
+    return;
+
+  const Decl *cause = inferredAllocCauses[clazz].first;
   if (const CXXRecordDecl *CRD = dyn_cast<CXXRecordDecl>(cause)) {
     Diag.Report(clazz->getLocation(), inheritsID) << T << CRD->getDeclName();
   } else if (const FieldDecl *FD = dyn_cast<FieldDecl>(cause)) {

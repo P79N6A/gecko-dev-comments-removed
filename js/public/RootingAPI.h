@@ -241,7 +241,7 @@ class Heap : public js::HeapBase<T>
 
 
 template <typename T>
-class MOZ_STACK_CLASS Handle : public js::HandleBase<T>
+class MOZ_NONHEAP_CLASS Handle : public js::HandleBase<T>
 {
     friend class MutableHandle<T>;
 
