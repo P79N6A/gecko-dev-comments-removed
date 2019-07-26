@@ -24,6 +24,11 @@
 
 #define realloc(_, __) moz_realloc(_, __)
 
+
+
+
+
+#undef strdup
 #define strdup(_) moz_strdup(_)
 
 #if defined(HAVE_STRNDUP)
