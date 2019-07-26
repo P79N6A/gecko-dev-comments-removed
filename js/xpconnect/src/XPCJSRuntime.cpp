@@ -995,11 +995,15 @@ class Watchdog
 class WatchdogManager : public nsIObserver
 {
   public:
+
     NS_DECL_ISUPPORTS
     WatchdogManager(XPCJSRuntime *aRuntime) : mRuntime(aRuntime)
                                             , mRuntimeState(RUNTIME_INACTIVE)
-                                            , mTimeAtLastRuntimeStateChange(PR_Now())
     {
+        
+        PodArrayZero(mTimestamps);
+        mTimestamps[TimestampRuntimeStateChange] = PR_Now();
+
         
         RefreshWatchdog();
 
@@ -1029,12 +1033,13 @@ class WatchdogManager : public nsIObserver
     RecordRuntimeActivity(bool active)
     {
         
+        MOZ_ASSERT(NS_IsMainThread());
         Maybe<AutoLockWatchdog> lock;
         if (mWatchdog)
             lock.construct(mWatchdog);
 
         
-        mTimeAtLastRuntimeStateChange = PR_Now();
+        mTimestamps[TimestampRuntimeStateChange] = PR_Now();
         mRuntimeState = active ? RUNTIME_ACTIVE : RUNTIME_INACTIVE;
 
         
@@ -1045,7 +1050,26 @@ class WatchdogManager : public nsIObserver
     bool IsRuntimeActive() { return mRuntimeState == RUNTIME_ACTIVE; }
     PRTime TimeSinceLastRuntimeStateChange()
     {
-        return PR_Now() - mTimeAtLastRuntimeStateChange;
+        return PR_Now() - GetTimestamp(TimestampRuntimeStateChange);
+    }
+
+    
+    
+    void RecordTimestamp(WatchdogTimestampCategory aCategory)
+    {
+        
+        Maybe<AutoLockWatchdog> maybeLock;
+        if (NS_IsMainThread() && mWatchdog)
+            maybeLock.construct(mWatchdog);
+        mTimestamps[aCategory] = PR_Now();
+    }
+    PRTime GetTimestamp(WatchdogTimestampCategory aCategory)
+    {
+        
+        Maybe<AutoLockWatchdog> maybeLock;
+        if (NS_IsMainThread() && mWatchdog)
+            maybeLock.construct(mWatchdog);
+        return mTimestamps[aCategory];
     }
 
     XPCJSRuntime* Runtime() { return mRuntime; }
@@ -1081,7 +1105,7 @@ class WatchdogManager : public nsIObserver
     nsAutoPtr<Watchdog> mWatchdog;
 
     enum { RUNTIME_ACTIVE, RUNTIME_INACTIVE } mRuntimeState;
-    PRTime mTimeAtLastRuntimeStateChange;
+    PRTime mTimestamps[TimestampCount];
 };
 
 NS_IMPL_ISUPPORTS1(WatchdogManager, nsIObserver)
@@ -1116,8 +1140,13 @@ WatchdogMain(void *arg)
         {
             self->Sleep(PR_TicksPerSecond());
         } else {
+            manager->RecordTimestamp(TimestampWatchdogHibernateStart);
             self->Hibernate();
+            manager->RecordTimestamp(TimestampWatchdogHibernateStop);
         }
+
+        
+        manager->RecordTimestamp(TimestampWatchdogWakeup);
 
         
         
@@ -1131,6 +1160,12 @@ WatchdogMain(void *arg)
 
     
     self->Finished();
+}
+
+PRTime
+XPCJSRuntime::GetWatchdogTimestamp(WatchdogTimestampCategory aCategory)
+{
+    return mWatchdogManager->GetTimestamp(aCategory);
 }
 
 
