@@ -103,14 +103,13 @@ class DOMSVGLengthList;
 
 
 
-class DOMSVGAnimatedLengthList MOZ_FINAL : public nsISupports,
-                                           public nsWrapperCache
+class DOMSVGAnimatedLengthList MOZ_FINAL : public nsWrapperCache
 {
   friend class DOMSVGLengthList;
 
 public:
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMSVGAnimatedLengthList)
+  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(DOMSVGAnimatedLengthList)
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(DOMSVGAnimatedLengthList)
 
   
 
