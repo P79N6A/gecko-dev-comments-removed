@@ -706,7 +706,7 @@ Walk(JSContext *cx, HandleObject holder, HandleId name, HandleValue reviver, Mut
         JS_ASSERT(!obj->isProxy());
         if (obj->is<ArrayObject>()) {
             
-            uint32_t length = obj->getArrayLength();
+            uint32_t length = obj->as<ArrayObject>().length();
 
             
             RootedId id(cx);

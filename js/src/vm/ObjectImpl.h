@@ -937,6 +937,7 @@ ElementsHeader::asArrayBufferElements()
     return *static_cast<ArrayBufferElementsHeader *>(this);
 }
 
+class ArrayObject;
 class ArrayBufferObject;
 
 
@@ -948,8 +949,8 @@ class ArrayBufferObject;
 
 
 extern bool
-ArraySetLength(JSContext *cx, HandleObject obj, HandleId id, unsigned attrs, HandleValue value,
-               bool setterIsStrict);
+ArraySetLength(JSContext *cx, Handle<ArrayObject*> obj, HandleId id, unsigned attrs,
+               HandleValue value, bool setterIsStrict);
 
 
 
@@ -1035,12 +1036,13 @@ class ObjectElements
   private:
     friend class ::JSObject;
     friend class ObjectImpl;
+    friend class ArrayObject;
     friend class ArrayBufferObject;
     friend class Nursery;
 
     friend bool
-    ArraySetLength(JSContext *cx, HandleObject obj, HandleId id, unsigned attrs, HandleValue value,
-                   bool setterIsStrict);
+    ArraySetLength(JSContext *cx, Handle<ArrayObject*> obj, HandleId id, unsigned attrs,
+                   HandleValue value, bool setterIsStrict);
 
     
     uint32_t flags;
@@ -1201,8 +1203,8 @@ class ObjectImpl : public gc::Cell
     HeapSlot *elements;  
 
     friend bool
-    ArraySetLength(JSContext *cx, HandleObject obj, HandleId id, unsigned attrs, HandleValue value,
-                   bool setterIsStrict);
+    ArraySetLength(JSContext *cx, Handle<ArrayObject*> obj, HandleId id, unsigned attrs,
+                   HandleValue value, bool setterIsStrict);
 
   private:
     static void staticAsserts() {

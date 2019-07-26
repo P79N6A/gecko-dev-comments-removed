@@ -41,13 +41,15 @@ js_InitContextBusyArrayTable(JSContext *cx);
 
 namespace js {
 
+class ArrayObject;
 
-extern JSObject * JS_FASTCALL
+
+extern ArrayObject * JS_FASTCALL
 NewDenseEmptyArray(JSContext *cx, JSObject *proto = NULL,
                    NewObjectKind newKind = GenericObject);
 
 
-extern JSObject * JS_FASTCALL
+extern ArrayObject * JS_FASTCALL
 NewDenseAllocatedArray(JSContext *cx, uint32_t length, JSObject *proto = NULL,
                        NewObjectKind newKind = GenericObject);
 
@@ -55,16 +57,16 @@ NewDenseAllocatedArray(JSContext *cx, uint32_t length, JSObject *proto = NULL,
 
 
 
-extern JSObject * JS_FASTCALL
+extern ArrayObject * JS_FASTCALL
 NewDenseUnallocatedArray(JSContext *cx, uint32_t length, JSObject *proto = NULL,
                          NewObjectKind newKind = GenericObject);
 
 
-extern JSObject *
+extern ArrayObject *
 NewDenseCopiedArray(JSContext *cx, uint32_t length, HandleObject src, uint32_t elementOffset, JSObject *proto = NULL);
 
 
-extern JSObject *
+extern ArrayObject *
 NewDenseCopiedArray(JSContext *cx, uint32_t length, const Value *values, JSObject *proto = NULL,
                     NewObjectKind newKind = GenericObject);
 
@@ -117,7 +119,8 @@ extern JSBool
 array_concat(JSContext *cx, unsigned argc, js::Value *vp);
 
 extern bool
-array_concat_dense(JSContext *cx, HandleObject obj1, HandleObject obj2, HandleObject result);
+array_concat_dense(JSContext *cx, Handle<ArrayObject*> arr1, Handle<ArrayObject*> arr2,
+                   Handle<ArrayObject*> result);
 
 extern void
 ArrayShiftMoveElements(JSObject *obj);
