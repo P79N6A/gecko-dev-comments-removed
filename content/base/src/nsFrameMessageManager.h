@@ -292,7 +292,7 @@ protected:
   { MOZ_COUNT_CTOR(nsFrameScriptExecutor); }
   ~nsFrameScriptExecutor()
   { MOZ_COUNT_DTOR(nsFrameScriptExecutor); }
-  void DidCreateCx();
+  void DidCreateGlobal();
   
   void DestroyCx();
   void LoadFrameScriptInternal(const nsAString& aURL);
