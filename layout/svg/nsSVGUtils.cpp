@@ -889,6 +889,8 @@ nsSVGUtils::GetBBox(nsIFrame *aFrame, uint32_t aFlags)
       
       
       
+      
+      
       NS_ABORT_IF_FALSE(content->IsSVG(), "bad cast");
       nsSVGElement *element = static_cast<nsSVGElement*>(content);
       matrix = element->PrependLocalTransformsTo(matrix,
@@ -897,6 +899,35 @@ nsSVGUtils::GetBBox(nsIFrame *aFrame, uint32_t aFlags)
     return svg->GetBBoxContribution(ToMatrix(matrix), aFlags).ToThebesRect();
   }
   return nsSVGIntegrationUtils::GetSVGBBoxForNonSVGFrame(aFrame);
+}
+
+gfxPoint
+nsSVGUtils::FrameSpaceInCSSPxToUserSpaceOffset(nsIFrame *aFrame)
+{
+  if (!(aFrame->GetStateBits() & NS_FRAME_SVG_LAYOUT)) {
+    
+    
+    return gfxPoint();
+  }
+
+  
+  if (aFrame->IsFrameOfType(nsIFrame::eSVGGeometry) ||
+      aFrame->IsSVGText()) {
+    return nsLayoutUtils::RectToGfxRect(aFrame->GetRect(),
+                                         nsPresContext::AppUnitsPerCSSPixel()).TopLeft();
+  }
+
+  
+  
+  if (aFrame->GetType() == nsGkAtoms::svgForeignObjectFrame) {
+    gfxMatrix transform = static_cast<nsSVGElement*>(aFrame->GetContent())->
+        PrependLocalTransformsTo(gfxMatrix(),
+                                 nsSVGElement::eChildToUserSpace);
+    NS_ASSERTION(!transform.HasNonTranslation(), "we're relying on this being an offset-only transform");
+    return transform.GetTranslation();
+  }
+
+  return gfxPoint();
 }
 
 gfxRect

@@ -413,6 +413,16 @@ public:
 
 
 
+  static gfxPoint FrameSpaceInCSSPxToUserSpaceOffset(nsIFrame *aFrame);
+
+  
+
+
+
+
+
+
+
 
 
 
