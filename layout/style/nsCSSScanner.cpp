@@ -535,7 +535,13 @@ nsCSSScanner::GatherEscape(nsString& aOutput, bool aInString)
   int32_t ch = Peek(1);
   if (ch < 0) {
     
-    return false;
+    
+    
+    Advance();
+    if (!aInString) {
+      aOutput.Append(0xFFFD);
+    }
+    return true;
   }
   if (IsVertSpace(ch)) {
     if (aInString) {
