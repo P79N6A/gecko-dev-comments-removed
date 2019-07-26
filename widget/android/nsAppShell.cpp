@@ -312,7 +312,14 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
         mozilla::hal::SensorType type = (mozilla::hal::SensorType) curEvent->Flags();
 
         switch (type) {
+          
+          
+          
           case hal::SENSOR_ORIENTATION:
+            values.AppendElement(360 -curEvent->X());
+            values.AppendElement(-curEvent->Y()); 
+            values.AppendElement(-curEvent->Z());
+            break;
           case hal::SENSOR_LINEAR_ACCELERATION:
           case hal::SENSOR_ACCELERATION:
           case hal::SENSOR_GYROSCOPE:

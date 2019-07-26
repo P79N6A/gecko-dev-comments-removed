@@ -186,6 +186,14 @@ PollSensors()
       if (buffer[i].type == SENSOR_TYPE_MAGNETIC_FIELD)
         continue;
 
+      
+      
+      if (buffer[i].type == SENSOR_TYPE_ORIENTATION) {
+        buffer[i].orientation.azimuth = 360 - buffer[i].orientation.azimuth;
+        buffer[i].orientation.pitch = -buffer[i].orientation.pitch;
+        buffer[i].orientation.roll = -buffer[i].orientation.roll;
+      }
+
       if (HardwareSensorToHalSensor(buffer[i].type) == SENSOR_UNKNOWN) {
         
         int index;
