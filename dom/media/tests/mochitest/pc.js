@@ -247,18 +247,9 @@ var commandsPeerConnection = [
     }
   ],
   [
-    'PC_CHECK_INITIAL_SIGNALINGSTATE',
-    function (test) {
-      is(test.pcLocal.signalingState,"stable", "Initial local signalingState is stable");
-      is(test.pcRemote.signalingState,"stable", "Initial remote signalingState is stable");
-      test.next();
-    }
-  ],
-  [
     'PC_LOCAL_CREATE_OFFER',
     function (test) {
       test.pcLocal.createOffer(function () {
-        is(test.pcLocal.signalingState, "stable", "Local create offer does not change signaling state");
         test.next();
       });
     }
@@ -266,24 +257,23 @@ var commandsPeerConnection = [
   [
     'PC_LOCAL_SET_LOCAL_DESCRIPTION',
     function (test) {
-      test.expectStateChange(test.pcLocal, "have-local-offer", test);
-      test.pcLocal.setLocalDescription(test.pcLocal._last_offer,
-        test.checkStateInCallback(test.pcLocal, "have-local-offer", test));
+      test.pcLocal.setLocalDescription(test.pcLocal._last_offer, function () {
+        test.next();
+      });
     }
   ],
   [
     'PC_REMOTE_SET_REMOTE_DESCRIPTION',
     function (test) {
-      test.expectStateChange(test.pcRemote, "have-remote-offer", test);
-      test.pcRemote.setRemoteDescription(test.pcLocal._last_offer,
-        test.checkStateInCallback(test.pcRemote, "have-remote-offer", test));
+      test.pcRemote.setRemoteDescription(test.pcLocal._last_offer, function () {
+        test.next();
+      });
     }
   ],
   [
     'PC_REMOTE_CREATE_ANSWER',
     function (test) {
       test.pcRemote.createAnswer(function () {
-        is(test.pcRemote.signalingState, "have-remote-offer", "Remote create offer does not change signaling state");
         test.next();
       });
     }
@@ -291,17 +281,17 @@ var commandsPeerConnection = [
   [
     'PC_LOCAL_SET_REMOTE_DESCRIPTION',
     function (test) {
-      test.expectStateChange(test.pcLocal, "stable", test);
-      test.pcLocal.setRemoteDescription(test.pcRemote._last_answer,
-        test.checkStateInCallback(test.pcLocal, "stable", test));
+      test.pcLocal.setRemoteDescription(test.pcRemote._last_answer, function () {
+        test.next();
+      });
     }
   ],
   [
     'PC_REMOTE_SET_LOCAL_DESCRIPTION',
     function (test) {
-      test.expectStateChange(test.pcRemote, "stable", test);
-      test.pcRemote.setLocalDescription(test.pcRemote._last_answer,
-        test.checkStateInCallback(test.pcRemote, "stable", test));
+      test.pcRemote.setLocalDescription(test.pcRemote._last_answer, function () {
+        test.next();
+      });
     }
   ],
   [
@@ -414,64 +404,6 @@ PeerConnectionTest.prototype.teardown = function PCT_teardown() {
 
 
 
-
-
-
-
-
-PeerConnectionTest.prototype.expectStateChange =
-function PCT_expectStateChange(pcw, state, test) {
-  pcw.signalingChangeEvent = false;
-  pcw._pc.onsignalingstatechange = function() {
-    pcw._pc.onsignalingstatechange = unexpectedCallbackAndFinish(new Error);
-    is(pcw._pc.signalingState, state, pcw.label + ": State is " + state + " in onsignalingstatechange");
-    pcw.signalingChangeEvent = true;
-    if (pcw.commandSuccess) {
-      test.next();
-    } else {
-      info("Waiting for success callback...");
-    }
-  };
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-PeerConnectionTest.prototype.checkStateInCallback =
-function PCT_checkStateInCallback(pcw, state, test) {
-  pcw.commandSuccess = false;
-  return function() {
-    pcw.commandSuccess = true;
-    is(pcw.signalingState, state, pcw.label + ": State is " + state + " in success callback");
-    if (pcw.signalingChangeEvent) {
-      test.next();
-    } else {
-      info("Waiting for signalingstatechange event...");
-    }
-  };
-}
-
-
-
-
-
-
-
-
-
-
-
 function PeerConnectionWrapper(label, configuration) {
   this.configuration = configuration;
   this.label = label;
@@ -488,9 +420,6 @@ function PeerConnectionWrapper(label, configuration) {
     
     self.attachMedia(event.stream, 'video', 'remote');
   };
-
-  
-  this._pc.onsignalingstatechange = unexpectedCallbackAndFinish(new Error);
 }
 
 PeerConnectionWrapper.prototype = {
@@ -531,15 +460,6 @@ PeerConnectionWrapper.prototype = {
 
   set remoteDescription(desc) {
     this._pc.remoteDescription = desc;
-  },
-
-  
-
-
-
-
-  get signalingState() {
-    return this._pc.signalingState;
   },
 
   
@@ -659,87 +579,12 @@ PeerConnectionWrapper.prototype = {
 
 
 
-
-  setLocalDescriptionAndFail : function PCW_setLocalDescriptionAndFail(desc, onFailure) {
-    var self = this;
-    this._pc.setLocalDescription(desc,
-      unexpectedSuccessCallbackAndFinish(new Error, "setLocalDescription should have failed."),
-      function (err) {
-        info("As expected, failed to set the local description for " + self.label);
-        onFailure(err);
-    });
-  },
-
-  
-
-
-
-
-
-
-
   setRemoteDescription : function PCW_setRemoteDescription(desc, onSuccess) {
     var self = this;
     this._pc.setRemoteDescription(desc, function () {
       info("Successfully set remote description for " + self.label);
       onSuccess();
     }, unexpectedCallbackAndFinish(new Error));
-  },
-
-  
-
-
-
-
-
-
-
-
-  setRemoteDescriptionAndFail : function PCW_setRemoteDescriptionAndFail(desc, onFailure) {
-    var self = this;
-    this._pc.setRemoteDescription(desc,
-      unexpectedSuccessCallbackAndFinish(new Error, "setRemoteDescription should have failed."),
-      function (err) {
-        info("As expected, failed to set the remote description for " + self.label);
-        onFailure(err);
-    });
-  },
-
-  
-
-
-
-
-
-
-
-  addIceCandidate : function PCW_addIceCandidate(candidate, onSuccess) {
-    var self = this;
-
-    this._pc.addIceCandidate(candidate, function () {
-      info("Successfully added an ICE candidate to " + self.label);
-      onSuccess();
-    }, unexpectedCallbackAndFinish(new Error));
-  },
-
-  
-
-
-
-
-
-
-
-
-  addIceCandidateAndFail : function PCW_addIceCandidateAndFail(candidate, onFailure) {
-    var self = this;
-
-    this._pc.addIceCandidate(candidate,
-      unexpectedSuccessCallbackAndFinish(new Error, "addIceCandidate should have failed."),
-      function (err) {
-        info("As expected, failed to add an ICE candidate to " + self.label);
-        onFailure(err);
-    }) ;
   },
 
   
