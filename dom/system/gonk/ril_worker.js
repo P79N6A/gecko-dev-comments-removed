@@ -2608,6 +2608,13 @@ let RIL = {
           destinationId: STK_DEVICE_ID_SIM
         };
         break;
+      case STK_EVENT_TYPE_LANGUAGE_SELECTION:
+        command.deviceId = {
+          sourceId: STK_DEVICE_ID_ME,
+          destinationId: STK_DEVICE_ID_SIM
+        };
+        command.language = command.event.language;
+        break;
     }
     this.sendICCEnvelopeCommand(command);
   },
@@ -2727,6 +2734,11 @@ let RIL = {
     
     if (options.timerValue != null) {
         ComprehensionTlvHelper.writeTimerValueTlv(options.timerValue, true);
+    }
+
+    
+    if (options.language) {
+      ComprehensionTlvHelper.writeLanguageTlv(options.language);
     }
 
     
