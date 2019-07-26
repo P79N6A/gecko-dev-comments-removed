@@ -994,6 +994,7 @@ nsContainerFrame::PositionChildViews(nsIFrame* aFrame)
   
   
   
+  
   ChildListIterator lists(aFrame);
   for (; !lists.IsDone(); lists.Next()) {
     if (lists.CurrentID() == kPopupList) {

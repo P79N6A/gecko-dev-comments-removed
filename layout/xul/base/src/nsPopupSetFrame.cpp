@@ -82,15 +82,28 @@ nsPopupSetFrame::SetInitialChildList(ChildListID     aListID,
                                      nsFrameList&    aChildList)
 {
   if (aListID == kPopupList) {
-    
-    
-    
-    
-    
+    NS_ASSERTION(mPopupList.IsEmpty(),
+                 "SetInitialChildList on non-empty child list");
     AddPopupFrameList(aChildList);
     return NS_OK;
   }
   return nsBoxFrame::SetInitialChildList(aListID, aChildList);
+}
+
+const nsFrameList&
+nsPopupSetFrame::GetChildList(ChildListID aListID) const
+{
+  if (kPopupList == aListID) {
+    return mPopupList;
+  }
+  return nsBoxFrame::GetChildList(aListID);
+}
+
+void
+nsPopupSetFrame::GetChildLists(nsTArray<ChildList>* aLists) const
+{
+  nsBoxFrame::GetChildLists(aLists);
+  mPopupList.AppendIfNonempty(aLists, kPopupList);
 }
 
 void
@@ -145,61 +158,3 @@ nsPopupSetFrame::AddPopupFrameList(nsFrameList& aPopupFrameList)
 #endif
   mPopupList.InsertFrames(nullptr, nullptr, aPopupFrameList);
 }
-
-#ifdef DEBUG
-void
-nsPopupSetFrame::List(FILE* out, int32_t aIndent, uint32_t aFlags) const
-{
-  ListGeneric(out, aIndent, aFlags);
-
-  
-  bool outputOneList = false;
-  ChildListIterator lists(this);
-  for (; !lists.IsDone(); lists.Next()) {
-    if (outputOneList) {
-      IndentBy(out, aIndent);
-    }
-    outputOneList = true;
-    fprintf(out, "%s<\n", mozilla::layout::ChildListName(lists.CurrentID()));
-    nsFrameList::Enumerator childFrames(lists.CurrentList());
-    for (; !childFrames.AtEnd(); childFrames.Next()) {
-      nsIFrame* kid = childFrames.get();
-      
-      NS_ASSERTION(kid->GetParent() == this, "bad parent frame pointer");
-
-      
-      kid->List(out, aIndent + 1, aFlags);
-    }
-    IndentBy(out, aIndent);
-    fputs(">\n", out);
-  }
-
-  
-  
-
-  if (!mPopupList.IsEmpty()) {
-    fputs("<\n", out);
-    ++aIndent;
-    IndentBy(out, aIndent);
-    fputs(mozilla::layout::ChildListName(kPopupList), out);
-    fputs(" for ", out);
-    ListTag(out);
-    fputs(" <\n", out);
-    ++aIndent;
-    for (nsFrameList::Enumerator e(mPopupList); !e.AtEnd(); e.Next()) {
-      e.get()->List(out, aIndent, aFlags);
-    }
-    --aIndent;
-    IndentBy(out, aIndent);
-    fputs(">\n", out);
-    --aIndent;
-    IndentBy(out, aIndent);
-    fputs(">\n", out);
-    outputOneList = true;
-  }
-
-  if (!outputOneList) {
-    fputs("<>\n", out);
-  }
-}
-#endif
