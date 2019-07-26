@@ -252,11 +252,11 @@ let Downloads = {
   },
 
   _getDownloadSize: function dl_getDownloadSize(aSize) {
-    let displaySize = DownloadUtils.convertByteUnits(aSize);
-    if (displaySize[0] > 0) 
-      return displaySize.join("");
-    else
-      return gStrings.GetStringFromName("downloadState.unknownSize");
+    if (aSize > 0) {
+      let displaySize = DownloadUtils.convertByteUnits(aSize);
+      return displaySize.join(""); 
+    }
+    return gStrings.GetStringFromName("downloadState.unknownSize");
   },
 
   
