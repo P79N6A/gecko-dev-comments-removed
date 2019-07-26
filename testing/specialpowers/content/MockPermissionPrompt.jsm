@@ -2,7 +2,7 @@
 
 
 
-var EXPORTED_SYMBOLS = ["MockPermissionPrompt"];
+this.EXPORTED_SYMBOLS = ["MockPermissionPrompt"];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
