@@ -36,6 +36,7 @@
 #include "prclist.h"
 #include "nsThreadUtils.h"
 #include "ScrollbarStyles.h"
+#include "nsIMessageManager.h"
 
 class nsBidiPresUtils;
 class nsAString;
@@ -783,6 +784,12 @@ public:
 
 
   NS_HIDDEN_(void) UIResolutionChanged();
+
+  
+
+
+
+  NS_HIDDEN_(void) NotifyUIResolutionChanged(nsIMessageBroadcaster* aManager);
 
   
 

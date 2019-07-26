@@ -431,7 +431,7 @@ nsFrameMessageManager::LoadFrameScript(const nsAString& aURL,
   aRunInGlobalScope = true;
 
   if (aAllowDelayedLoad) {
-    if (IsGlobal() || IsWindowLevel()) {
+    if (IsGlobal() || IsBroadcaster()) {
       
       mPendingScripts.AppendElement(aURL);
       mPendingScriptsGlobalStates.AppendElement(aRunInGlobalScope);
@@ -481,7 +481,7 @@ nsFrameMessageManager::GetDelayedFrameScripts(JSContext* aCx, JS::MutableHandle<
 {
   
   
-  if (!IsGlobal() && !IsWindowLevel()) {
+  if (!IsGlobal() && !IsBroadcaster()) {
     NS_WARNING("Cannot retrieve list of pending frame scripts for frame"
                "message managers as it may be incomplete");
     return NS_ERROR_NOT_IMPLEMENTED;
@@ -590,7 +590,7 @@ nsFrameMessageManager::SendMessage(const nsAString& aMessageName,
                                    bool aIsSync)
 {
   NS_ASSERTION(!IsGlobal(), "Should not call SendSyncMessage in chrome");
-  NS_ASSERTION(!IsWindowLevel(), "Should not call SendSyncMessage in chrome");
+  NS_ASSERTION(!IsBroadcaster(), "Should not call SendSyncMessage in chrome");
   NS_ASSERTION(!mParentManager, "Should not have parent manager in content!");
 
   aRetval.setUndefined();
@@ -1099,19 +1099,26 @@ nsFrameMessageManager::AddChildManager(nsFrameMessageManager* aManager)
 
   nsRefPtr<nsFrameMessageManager> kungfuDeathGrip = this;
   nsRefPtr<nsFrameMessageManager> kungfuDeathGrip2 = aManager;
+
+  LoadPendingScripts(this, aManager);
+}
+
+void
+nsFrameMessageManager::LoadPendingScripts(nsFrameMessageManager* aManager,
+                                          nsFrameMessageManager* aChildMM)
+{
   
   
   
-  if (mParentManager) {
-    nsRefPtr<nsFrameMessageManager> globalMM = mParentManager;
-    for (uint32_t i = 0; i < globalMM->mPendingScripts.Length(); ++i) {
-      aManager->LoadFrameScript(globalMM->mPendingScripts[i], false,
-                                globalMM->mPendingScriptsGlobalStates[i]);
-    }
+  
+  if (aManager->mParentManager) {
+    LoadPendingScripts(aManager->mParentManager, aChildMM);
   }
-  for (uint32_t i = 0; i < mPendingScripts.Length(); ++i) {
-    aManager->LoadFrameScript(mPendingScripts[i], false,
-                              mPendingScriptsGlobalStates[i]);
+
+  for (uint32_t i = 0; i < aManager->mPendingScripts.Length(); ++i) {
+    aChildMM->LoadFrameScript(aManager->mPendingScripts[i],
+                              false,
+                              aManager->mPendingScriptsGlobalStates[i]);
   }
 }
 

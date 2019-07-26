@@ -176,7 +176,7 @@ public:
     
     
     
-    if (mParentManager && (mCallback || IsWindowLevel())) {
+    if (mParentManager && (mCallback || IsBroadcaster())) {
       mParentManager->AddChildManager(this);
     }
     if (mOwnsCallback) {
@@ -258,7 +258,7 @@ public:
     mParentManager = aParent;
   }
   bool IsGlobal() { return mGlobal; }
-  bool IsWindowLevel() { return mParentManager && mParentManager->IsGlobal(); }
+  bool IsBroadcaster() { return mIsBroadcaster; }
 
   static nsFrameMessageManager* GetParentProcessManager()
   {
@@ -296,6 +296,9 @@ protected:
   nsFrameMessageManager* mParentManager;
   nsTArray<nsString> mPendingScripts;
   nsTArray<bool> mPendingScriptsGlobalStates;
+
+  void LoadPendingScripts(nsFrameMessageManager* aManager,
+                          nsFrameMessageManager* aChildMM);
 public:
   static nsFrameMessageManager* sParentProcessManager;
   static nsFrameMessageManager* sChildProcessManager;
