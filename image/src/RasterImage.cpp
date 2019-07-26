@@ -2944,14 +2944,17 @@ RasterImage::CanQualityScale(const gfxSize& scale)
 
 bool
 RasterImage::CanScale(gfxPattern::GraphicsFilter aFilter,
-                      gfxSize aScale)
+                      gfxSize aScale, uint32_t aFlags)
 {
 
 #ifdef MOZ_ENABLE_SKIA
   
   
+  
+  
   if (gHQDownscaling && aFilter == gfxPattern::FILTER_GOOD &&
-      !mAnim && mDecoded && !mMultipart && CanQualityScale(aScale)) {
+      !mAnim && mDecoded && !mMultipart && CanQualityScale(aScale) &&
+      (aFlags & imgIContainer::FLAG_HIGH_QUALITY_SCALING)) {
     gfxFloat factor = gHQDownscalingMinFactor / 1000.0;
 
     return (aScale.width < factor || aScale.height < factor);
@@ -3007,7 +3010,8 @@ RasterImage::DrawWithPreDownscaleIfNeeded(imgFrame *aFrame,
                                           gfxPattern::GraphicsFilter aFilter,
                                           const gfxMatrix &aUserSpaceToImageSpace,
                                           const gfxRect &aFill,
-                                          const nsIntRect &aSubimage)
+                                          const nsIntRect &aSubimage,
+                                          uint32_t aFlags)
 {
   imgFrame *frame = aFrame;
   nsIntRect framerect = frame->GetRect();
@@ -3017,7 +3021,7 @@ RasterImage::DrawWithPreDownscaleIfNeeded(imgFrame *aFrame,
   gfxSize scale = imageSpaceToUserSpace.ScaleFactors(true);
   nsIntRect subimage = aSubimage;
 
-  if (CanScale(aFilter, scale)) {
+  if (CanScale(aFilter, scale, aFlags)) {
     
     
     
@@ -3150,7 +3154,7 @@ RasterImage::Draw(gfxContext *aContext,
     return NS_OK; 
   }
 
-  DrawWithPreDownscaleIfNeeded(frame, aContext, aFilter, aUserSpaceToImageSpace, aFill, aSubimage);
+  DrawWithPreDownscaleIfNeeded(frame, aContext, aFilter, aUserSpaceToImageSpace, aFill, aSubimage, aFlags);
 
   if (mDecoded && !mDrawStartTime.IsNull()) {
       TimeDuration drawLatency = TimeStamp::Now() - mDrawStartTime;
