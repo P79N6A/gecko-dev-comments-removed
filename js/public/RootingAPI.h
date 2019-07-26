@@ -183,8 +183,6 @@ struct JS_PUBLIC_API(NullPtr)
 
 
 
-
-
 template <typename T>
 class Heap : public js::HeapBase<T>
 {
@@ -255,6 +253,117 @@ class Heap : public js::HeapBase<T>
     }
 
     T ptr;
+};
+
+#ifdef DEBUG
+
+
+
+
+extern JS_FRIEND_API(void)
+AssertGCThingMustBeTenured(JSObject* obj);
+#else
+inline void
+AssertGCThingMustBeTenured(JSObject *obj) {}
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template <typename T>
+class TenuredHeap : public js::HeapBase<T>
+{
+  public:
+    TenuredHeap() : bits(0) {
+        MOZ_STATIC_ASSERT(sizeof(T) == sizeof(TenuredHeap<T>),
+                          "TenuredHeap<T> must be binary compatible with T.");
+    }
+    explicit TenuredHeap(T p) : bits(0) { setPtr(p); }
+    explicit TenuredHeap(const TenuredHeap<T> &p) : bits(0) { setPtr(p.ptr); }
+
+    bool operator==(const TenuredHeap<T> &other) { return bits == other.bits; }
+    bool operator!=(const TenuredHeap<T> &other) { return bits != other.bits; }
+
+    void setPtr(T newPtr) {
+        JS_ASSERT((reinterpret_cast<uintptr_t>(newPtr) & flagsMask) == 0);
+        JS_ASSERT(!js::GCMethods<T>::poisoned(newPtr));
+        if (newPtr)
+            AssertGCThingMustBeTenured(newPtr);
+        bits = (bits & flagsMask) | reinterpret_cast<uintptr_t>(newPtr);
+    }
+
+    void setFlags(uintptr_t flagsToSet) {
+        JS_ASSERT((flagsToSet & ~flagsMask) == 0);
+        bits |= flagsToSet;
+    }
+
+    void unsetFlags(uintptr_t flagsToUnset) {
+        JS_ASSERT((flagsToUnset & ~flagsMask) == 0);
+        bits &= ~flagsToUnset;
+    }
+
+    bool hasFlag(uintptr_t flag) const {
+        JS_ASSERT((flag & ~flagsMask) == 0);
+        return (bits & flag) != 0;
+    }
+
+    T getPtr() const { return reinterpret_cast<T>(bits & ~flagsMask); }
+    uintptr_t getFlags() const { return bits & flagsMask; }
+
+    operator T() const { return getPtr(); }
+    T operator->() const { return getPtr(); }
+
+    TenuredHeap<T> &operator=(T p) {
+        setPtr(p);
+        return *this;
+    }
+
+    
+
+
+
+    void setToCrashOnTouch() {
+        bits = (bits & flagsMask) | crashOnTouchPointer;
+    }
+
+    bool isSetToCrashOnTouch() {
+        return (bits & ~flagsMask) == crashOnTouchPointer;
+    }
+
+  private:
+    enum {
+        maskBits = 3,
+        flagsMask = (1 << maskBits) - 1,
+        crashOnTouchPointer = 1 << maskBits
+    };
+
+    uintptr_t bits;
 };
 
 

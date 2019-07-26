@@ -1225,7 +1225,9 @@ protected:
 
   
   nsCOMPtr<nsIPrincipal> mDocumentPrincipal;
-  JSObject* mJSObject;
+
+  
+  JS::TenuredHeap<JSObject*> mJSObject;
 
   typedef nsCOMArray<nsIDOMStorageEvent> nsDOMStorageEventArray;
   nsDOMStorageEventArray mPendingStorageEvents;

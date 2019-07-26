@@ -1385,6 +1385,8 @@ public:
                         js::SystemAllocPolicy> DOMExpandoSet;
 
     bool RegisterDOMExpandoObject(JSObject *expando) {
+        
+        JS::AssertGCThingMustBeTenured(expando);
         if (!mDOMExpandoSet) {
             mDOMExpandoSet = new DOMExpandoSet();
             mDOMExpandoSet->init(8);
@@ -2259,7 +2261,7 @@ public:
     nsIPrincipal* GetObjectPrincipal() const;
 
     JSBool
-    IsValid() const {return nullptr != mFlatJSObject;}
+    IsValid() const { return mFlatJSObject.hasFlag(FLAT_JS_OBJECT_VALID); }
 
 #define XPC_SCOPE_WORD(s)   (intptr_t(s))
 #define XPC_SCOPE_MASK      (intptr_t(0x3))
@@ -2309,8 +2311,7 @@ public:
 
     JSObject*
     GetFlatJSObject() const
-        {if (mFlatJSObject != INVALID_OBJECT)
-             xpc_UnmarkGrayObject(mFlatJSObject);
+        {xpc_UnmarkGrayObject(mFlatJSObject);
          return mFlatJSObject;}
 
     
@@ -2443,8 +2444,7 @@ public:
         else
             GetScope()->TraceSelf(trc);
         TraceWrapper(trc);
-        if (mFlatJSObject && mFlatJSObject != INVALID_OBJECT &&
-            JS_IsGlobalObject(mFlatJSObject))
+        if (mFlatJSObject && JS_IsGlobalObject(mFlatJSObject))
         {
             TraceXPCGlobal(trc, mFlatJSObject);
         }
@@ -2460,9 +2460,9 @@ public:
         
         
         
-        if (mFlatJSObject && mFlatJSObject != INVALID_OBJECT) {
-            JS_CallObjectTracer(trc, &mFlatJSObject,
-                                "XPCWrappedNative::mFlatJSObject");
+        if (mFlatJSObject) {
+            JS_CallTenuredObjectTracer(trc, &mFlatJSObject,
+                                       "XPCWrappedNative::mFlatJSObject");
         }
     }
 
@@ -2490,13 +2490,12 @@ public:
 
     JSBool HasExternalReference() const {return mRefCnt > 1;}
 
-    JSBool NeedsSOW() { return !!(mWrapperWord & NEEDS_SOW); }
-    void SetNeedsSOW() { mWrapperWord |= NEEDS_SOW; }
-    JSBool NeedsCOW() { return !!(mWrapperWord & NEEDS_COW); }
-    void SetNeedsCOW() { mWrapperWord |= NEEDS_COW; }
+    JSBool NeedsSOW() { return mWrapper.hasFlag(WRAPPER_NEEDS_SOW); }
+    void SetNeedsSOW() { mWrapper.setFlags(WRAPPER_NEEDS_SOW); }
+    JSBool NeedsCOW() { return mWrapper.hasFlag(WRAPPER_NEEDS_COW); }
+    void SetNeedsCOW() { mWrapper.setFlags(WRAPPER_NEEDS_COW); }
 
-    JSObject* GetWrapperPreserveColor() const
-        {return (JSObject*)(mWrapperWord & (size_t)~(size_t)FLAG_MASK);}
+    JSObject* GetWrapperPreserveColor() const { return mWrapper.getPtr(); }
 
     JSObject* GetWrapper()
     {
@@ -2511,14 +2510,12 @@ public:
     void SetWrapper(JSObject *obj)
     {
         JS::IncrementalObjectBarrier(GetWrapperPreserveColor());
-        intptr_t newval = intptr_t(obj) | (mWrapperWord & FLAG_MASK);
-        mWrapperWord = newval;
+        mWrapper.setPtr(obj);
     }
 
     void TraceWrapper(JSTracer *trc)
     {
-        JS_CallMaskedObjectTracer(trc, reinterpret_cast<uintptr_t *>(&mWrapperWord),
-                                  (uintptr_t)FLAG_MASK, "XPCWrappedNative::mWrapper");
+        JS_CallTenuredObjectTracer(trc, &mWrapper, "XPCWrappedNative::mWrapper");
     }
 
     
@@ -2550,9 +2547,12 @@ protected:
 
 private:
     enum {
-        NEEDS_SOW = JS_BIT(0),
-        NEEDS_COW = JS_BIT(1),
-        FLAG_MASK = JS_BITMASK(3)
+        
+        WRAPPER_NEEDS_SOW = JS_BIT(0),
+        WRAPPER_NEEDS_COW = JS_BIT(1),
+
+        
+        FLAT_JS_OBJECT_VALID = JS_BIT(0)
     };
 
 private:
@@ -2581,10 +2581,10 @@ private:
         XPCWrappedNativeProto*   mMaybeProto;
     };
     XPCNativeSet*                mSet;
-    JSObject*                    mFlatJSObject;
+    JS::TenuredHeap<JSObject*>   mFlatJSObject;
     XPCNativeScriptableInfo*     mScriptableInfo;
     XPCWrappedNativeTearOffChunk mFirstChunk;
-    intptr_t                     mWrapperWord;
+    JS::TenuredHeap<JSObject*>   mWrapper;
 };
 
 
