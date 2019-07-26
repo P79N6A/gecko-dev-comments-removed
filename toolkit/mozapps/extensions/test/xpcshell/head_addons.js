@@ -18,7 +18,7 @@ const PREF_GETADDONS_BYIDS_PERFORMANCE   = "extensions.getAddons.getWithPerforma
 
 const TIMEOUT_MS = 900000;
 
-Components.utils.import("resource://gre/modules/AddonRepository.jsm");
+Components.utils.import("resource://gre/modules/addons/AddonRepository.jsm");
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/FileUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
@@ -445,13 +445,13 @@ function shutdownManager() {
 
   
   
-  let XPIscope = Components.utils.import("resource://gre/modules/XPIProvider.jsm");
+  let XPIscope = Components.utils.import("resource://gre/modules/addons/XPIProvider.jsm");
   
   
   gXPISaveError = XPIscope.XPIProvider._shutdownError;
   do_print("gXPISaveError set to: " + gXPISaveError);
   AddonManagerPrivate.unregisterProvider(XPIscope.XPIProvider);
-  Components.utils.unload("resource://gre/modules/XPIProvider.jsm");
+  Components.utils.unload("resource://gre/modules/addons/XPIProvider.jsm");
 }
 
 function loadAddonsList() {

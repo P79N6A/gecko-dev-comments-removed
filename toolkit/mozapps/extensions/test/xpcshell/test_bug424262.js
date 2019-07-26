@@ -2,7 +2,7 @@
 
 
 
-Components.utils.import("resource://gre/modules/AddonRepository.jsm");
+Components.utils.import("resource://gre/modules/addons/AddonRepository.jsm");
 
 const PREF_GETADDONS_GETRECOMMENDED = "extensions.getAddons.recommended.url";
 

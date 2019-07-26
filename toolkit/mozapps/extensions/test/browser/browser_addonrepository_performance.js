@@ -5,7 +5,7 @@
 
 
 let tmp = {};
-Components.utils.import("resource://gre/modules/AddonRepository.jsm", tmp);
+Components.utils.import("resource://gre/modules/addons/AddonRepository.jsm", tmp);
 let AddonRepository = tmp.AddonRepository;
 
 var gTelemetry = Cc["@mozilla.org/base/telemetry;1"].getService(Ci.nsITelemetry);
