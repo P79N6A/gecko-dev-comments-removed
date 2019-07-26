@@ -643,8 +643,6 @@ js_ErrorToException(JSContext *cx, const char *message, JSErrorReport *reportp,
                     JSErrorCallback callback, void *userRef)
 {
     
-
-
     JS_ASSERT(reportp);
     if (JSREPORT_IS_WARNING(reportp->flags))
         return false;
@@ -660,9 +658,7 @@ js_ErrorToException(JSContext *cx, const char *message, JSErrorReport *reportp,
     MOZ_ASSERT(exnType < JSEXN_LIMIT);
 
     
-
-
-
+    
     if (exnType == JSEXN_NONE)
         return false;
 
@@ -671,32 +667,33 @@ js_ErrorToException(JSContext *cx, const char *message, JSErrorReport *reportp,
         return false;
     AutoScopedAssign<bool> asa(&cx->generatingError, true);
 
+    
     RootedString messageStr(cx, reportp->ucmessage ? JS_NewUCStringCopyZ(cx, reportp->ucmessage)
                                                    : JS_NewStringCopyZ(cx, message));
     if (!messageStr)
-        return false;
+        return cx->isExceptionPending();
 
     RootedString fileName(cx, JS_NewStringCopyZ(cx, reportp->filename));
     if (!fileName)
-        return false;
+        return cx->isExceptionPending();
 
     uint32_t lineNumber = reportp->lineno;
     uint32_t columnNumber = reportp->column;
 
     RootedString stack(cx, ComputeStackString(cx));
     if (!stack)
-        return false;
+        return cx->isExceptionPending();
 
     js::ScopedJSFreePtr<JSErrorReport> report(CopyErrorReport(cx, reportp));
     if (!report)
-        return false;
+        return cx->isExceptionPending();
 
     RootedObject errObject(cx, ErrorObject::create(cx, exnType, stack, fileName,
-                                                   lineNumber, columnNumber, &report,
-                                                   messageStr));
+                                                   lineNumber, columnNumber, &report, messageStr));
     if (!errObject)
-        return false;
+        return cx->isExceptionPending();
 
+    
     RootedValue errValue(cx, ObjectValue(*errObject));
     JS_SetPendingException(cx, errValue);
 
