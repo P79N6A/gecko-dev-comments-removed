@@ -189,13 +189,14 @@ public:
 
   Mark GetMark() const { return Mark(input); }
 
-  void GetSECItem(SECItemType type, const Mark& mark,  SECItem& item)
+  bool GetSECItem(SECItemType type, const Mark& mark,  SECItem& item)
   {
     PR_ASSERT(mark.mMark < input);
     item.type = type;
     item.data = const_cast<uint8_t*>(mark.mMark);
     
     item.len = input - mark.mMark;
+    return true;
   }
 
 private:
