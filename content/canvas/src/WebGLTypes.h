@@ -97,6 +97,8 @@ MOZ_END_ENUM_CLASS(WebGLImageDataStatus)
 
 MOZ_BEGIN_ENUM_CLASS(WebGLTexelFormat, int)
     
+    None,
+    
     
     BadFormat,
     
