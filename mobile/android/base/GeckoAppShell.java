@@ -10,18 +10,19 @@ import org.mozilla.gecko.gfx.BitmapUtils;
 import org.mozilla.gecko.gfx.GeckoLayerClient;
 import org.mozilla.gecko.gfx.LayerView;
 import org.mozilla.gecko.gfx.PanZoomController;
-import org.mozilla.gecko.mozglue.JNITarget;
+import org.mozilla.gecko.mozglue.GeckoLoader;
 import org.mozilla.gecko.mozglue.generatorannotations.OptionalGeneratedParameter;
 import org.mozilla.gecko.mozglue.generatorannotations.WrapElementForJNI;
-import org.mozilla.gecko.prompts.PromptService;
-import org.mozilla.gecko.mozglue.GeckoLoader;
+import org.mozilla.gecko.mozglue.JNITarget;
 import org.mozilla.gecko.mozglue.RobocopTarget;
+import org.mozilla.gecko.prompts.PromptService;
 import org.mozilla.gecko.util.ActivityResultHandler;
 import org.mozilla.gecko.util.EventDispatcher;
 import org.mozilla.gecko.util.GeckoEventListener;
 import org.mozilla.gecko.util.HardwareUtils;
 import org.mozilla.gecko.util.ProxySelector;
 import org.mozilla.gecko.util.ThreadUtils;
+import org.mozilla.gecko.webapp.Allocator;
 import org.mozilla.gecko.webapp.InstallListener;
 
 import org.json.JSONException;
@@ -718,34 +719,11 @@ public class GeckoAppShell
         gRestartScheduled = true;
     }
 
-    
-    public static File preInstallWebApp(String aTitle, String aURI, String aOrigin) {
-        int index = WebAppAllocator.getInstance(getContext()).findAndAllocateIndex(aOrigin, aTitle, (String) null);
-        GeckoProfile profile = GeckoProfile.get(getContext(), "webapp" + index);
-        return profile.getDir();
-    }
-
-    
-    public static void postInstallWebApp(String aTitle, String aURI, String aOrigin, String aIconURL, String aOriginalOrigin) {
-        WebAppAllocator allocator = WebAppAllocator.getInstance(getContext());
-        int index = allocator.getIndexForApp(aOriginalOrigin);
-        assert index != -1 && aIconURL != null;
-        allocator.updateAppAllocation(aOrigin, index, BitmapUtils.getBitmapFromDataURI(aIconURL));
-        createShortcut(aTitle, aURI, aOrigin, aIconURL, "webapp");
-    }
-
-    
-    public static void postInstallWebApp(String aPackageName, String aOrigin) {
-        org.mozilla.gecko.webapp.WebAppAllocator allocator = org.mozilla.gecko.webapp.WebAppAllocator.getInstance(getContext());
-        int index = allocator.findOrAllocatePackage(aPackageName);
-        allocator.putOrigin(index, aOrigin);
-    }
-
     public static Intent getWebAppIntent(String aURI, String aOrigin, String aTitle, Bitmap aIcon) {
         Intent intent;
 
         if (AppConstants.MOZ_ANDROID_SYNTHAPKS) {
-            org.mozilla.gecko.webapp.WebAppAllocator slots = org.mozilla.gecko.webapp.WebAppAllocator.getInstance(getContext());
+            Allocator slots = Allocator.getInstance(getContext());
             int index = slots.getIndexForOrigin(aOrigin);
 
             if (index == -1) {
@@ -869,45 +847,6 @@ public class GeckoAppShell
 
                 intent.setAction("com.android.launcher.action.UNINSTALL_SHORTCUT");
                 getContext().sendBroadcast(intent);
-            }
-        });
-    }
-
-    public static void uninstallWebApp(final String uniqueURI) {
-        
-        
-        
-        ThreadUtils.postToBackgroundThread(new Runnable() {
-            @Override
-            public void run() {
-                int index;
-                if (AppConstants.MOZ_ANDROID_SYNTHAPKS) {
-                    index = org.mozilla.gecko.webapp.WebAppAllocator.getInstance(getContext()).releaseIndexForApp(uniqueURI);
-                } else {
-                    index = WebAppAllocator.getInstance(getContext()).releaseIndexForApp(uniqueURI);
-                }
-
-                
-                if (index == -1)
-                    return;
-
-                
-                String targetProcessName = getContext().getPackageName();
-                targetProcessName = targetProcessName + ":" + targetProcessName + ".WebApp" + index;
-
-                ActivityManager am = (ActivityManager) getContext().getSystemService(Context.ACTIVITY_SERVICE);
-                List<ActivityManager.RunningAppProcessInfo> procs = am.getRunningAppProcesses();
-                if (procs != null) {
-                    for (ActivityManager.RunningAppProcessInfo proc : procs) {
-                        if (proc.processName.equals(targetProcessName)) {
-                            android.os.Process.killProcess(proc.pid);
-                            break;
-                        }
-                    }
-                }
-
-                
-                GeckoProfile.removeProfile(getContext(), "webapp" + index);
             }
         });
     }
@@ -2739,54 +2678,4 @@ public class GeckoAppShell
         return "DIRECT";
     }
 
-    public static void installApk(final Activity context, String filePath, String data) {
-        
-        JSONObject argsObj = null;
-
-        
-        
-        String manifestUrl = null;
-        try {
-            argsObj = new JSONObject(data);
-            manifestUrl = argsObj.getJSONObject("app").getString("manifestURL");
-        } catch (JSONException e) {
-            Log.e(LOGTAG, "can't get manifest URL from JSON data", e);
-            
-            return;
-        }
-
-        
-        
-        final InstallListener receiver = new InstallListener(manifestUrl, argsObj);
-
-        
-        IntentFilter filter = new IntentFilter(Intent.ACTION_PACKAGE_ADDED);
-        filter.addDataScheme("package");
-        context.registerReceiver(receiver, filter);
-
-        
-        File file = new File(filePath);
-        Intent intent = new Intent(Intent.ACTION_VIEW);
-        intent.setDataAndType(Uri.fromFile(file), "application/vnd.android.package-archive");
-
-        sActivityHelper.startIntentForActivity(context, intent, new ActivityResultHandler() {
-            @Override
-            public void onActivityResult(int resultCode, Intent data) {
-                
-                
-                if (resultCode == Activity.RESULT_CANCELED) {
-                    try {
-                        context.unregisterReceiver(receiver);
-                        receiver.cleanup();
-                    } catch (java.lang.IllegalArgumentException e) {
-                        
-                        
-                        
-                        
-                        Log.e(LOGTAG, "error unregistering install receiver: ", e);
-                    }
-                }
-            }
-        });
-    }
 }
