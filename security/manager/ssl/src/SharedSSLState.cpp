@@ -27,8 +27,8 @@ using mozilla::unused;
 
 namespace {
 
-static Atomic<int32_t> sCertOverrideSvcExists(0);
-static Atomic<int32_t> sCertDBExists(0);
+static Atomic<bool> sCertOverrideSvcExists(false);
+static Atomic<bool> sCertDBExists(false);
 
 class MainThreadClearer : public SyncRunnableBase
 {
@@ -40,9 +40,9 @@ public:
     
     
 
-    bool certOverrideSvcExists = (bool)sCertOverrideSvcExists.exchange(0);
+    bool certOverrideSvcExists = sCertOverrideSvcExists.exchange(false);
     if (certOverrideSvcExists) {
-      sCertOverrideSvcExists = 1;
+      sCertOverrideSvcExists = true;
       nsCOMPtr<nsICertOverrideService> icos = do_GetService(NS_CERTOVERRIDE_CONTRACTID);
       if (icos) {
         icos->ClearValidityOverride(
@@ -51,9 +51,9 @@ public:
       }
     }
 
-    bool certDBExists = (bool)sCertDBExists.exchange(0);
+    bool certDBExists = sCertDBExists.exchange(false);
     if (certDBExists) {
-      sCertDBExists = 1;
+      sCertDBExists = true;
       nsCOMPtr<nsIX509CertDB> certdb = do_GetService(NS_X509CERTDB_CONTRACTID);
       if (certdb) {
         nsCOMPtr<nsIRecentBadCerts> badCerts;
@@ -206,13 +206,13 @@ SharedSSLState::GlobalCleanup()
  void
 SharedSSLState::NoteCertOverrideServiceInstantiated()
 {
-  sCertOverrideSvcExists = 1;
+  sCertOverrideSvcExists = true;
 }
 
  void
 SharedSSLState::NoteCertDBServiceInstantiated()
 {
-  sCertDBExists = 1;
+  sCertDBExists = true;
 }
 
 void
