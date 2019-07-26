@@ -639,7 +639,7 @@ VibrateWindowListener::HandleEvent(nsIDOMEvent* aEvent)
 
   bool hidden = true;
   if (doc) {
-    doc->GetMozHidden(&hidden);
+    doc->GetHidden(&hidden);
   }
 
   if (hidden) {
@@ -737,7 +737,7 @@ Navigator::Vibrate(const jsval& aPattern, JSContext* cx)
   NS_ENSURE_TRUE(domDoc, NS_ERROR_FAILURE);
 
   bool hidden = true;
-  domDoc->GetMozHidden(&hidden);
+  domDoc->GetHidden(&hidden);
   if (hidden) {
     
     return NS_OK;
