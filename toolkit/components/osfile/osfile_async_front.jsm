@@ -54,20 +54,42 @@ Components.utils.import("resource://gre/modules/osfile/_PromiseWorker.jsm", this
 
 Components.utils.import("resource://gre/modules/Services.jsm", this);
 
+LOG("Checking profileDir", OS.Constants.Path);
 
 
 
-if (!("profileDir" in OS.Constants.Path) || !("localProfileDir" in OS.Constants.Path)) {
-  let observer = function observer() {
-    Services.obs.removeObserver(observer, "profile-do-change");
+if (!("profileDir" in OS.Constants.Path)) {
+  Object.defineProperty(OS.Constants.Path, "profileDir", {
+    get: function() {
+      let path = undefined;
+      try {
+        path = Services.dirsvc.get("ProfD", Components.interfaces.nsIFile).path;
+        delete OS.Constants.Path.profileDir;
+        OS.Constants.Path.profileDir = path;
+      } catch (ex) {
+        
+      }
+      return path;
+    }
+  });
+}
 
-    let profileDir = Services.dirsvc.get("ProfD", Components.interfaces.nsIFile).path;
-    OS.Constants.Path.profileDir = profileDir;
+LOG("Checking localProfileDir");
 
-    let localProfileDir = Services.dirsvc.get("ProfLD", Components.interfaces.nsIFile).path;
-    OS.Constants.Path.localProfileDir = localProfileDir;
-  };
-  Services.obs.addObserver(observer, "profile-do-change", false);
+if (!("localProfileDir" in OS.Constants.Path)) {
+  Object.defineProperty(OS.Constants.Path, "localProfileDir", {
+    get: function() {
+      let path = undefined;
+      try {
+        path = Services.dirsvc.get("ProfLD", Components.interfaces.nsIFile).path;
+        delete OS.Constants.Path.localProfileDir;
+        OS.Constants.Path.localProfileDir = path;
+      } catch (ex) {
+        
+      }
+      return path;
+    }
+  });
 }
 
 
