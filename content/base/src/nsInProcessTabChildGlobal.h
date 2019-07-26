@@ -161,7 +161,6 @@ protected:
   nsCOMPtr<nsIDocShell> mDocShell;
   bool mInitialized;
   bool mLoadingScript;
-  bool mDelayedDisconnect;
 
   
   
