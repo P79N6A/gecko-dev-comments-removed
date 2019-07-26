@@ -483,6 +483,14 @@ pref("app.update.interval", 86400);
 pref("app.update.download.backgroundInterval", 0);
 
 
+pref("app.update.socket.retryTimeout", 30000);
+
+
+
+
+pref("app.update.socket.maxErrors", 20);
+
+
 
 pref("app.update.log", true);
 #else
