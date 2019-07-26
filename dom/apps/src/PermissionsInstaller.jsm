@@ -358,10 +358,8 @@ this.expandPermissions = function expandPermissions(aPermName, aAccess) {
 let AllPossiblePermissions = [];
 for (let permName in PermissionsTable) {
   if (PermissionsTable[permName].access) {
-    for each (let access in PermissionsTable[permName].access) {
-      AllPossiblePermissions =
-        AllPossiblePermissions.concat(expandPermissions(permName, access));
-    }
+    AllPossiblePermissions =
+      AllPossiblePermissions.concat(expandPermissions(permName, READWRITE));
   } else {
     AllPossiblePermissions =
       AllPossiblePermissions.concat(expandPermissions(permName));
