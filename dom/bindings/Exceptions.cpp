@@ -18,26 +18,6 @@
 #include "WorkerPrivate.h"
 #include "nsContentUtils.h"
 
-namespace {
-
-
-
-bool
-IsCallerChrome()
-{
-  nsCOMPtr<nsIScriptSecurityManager> secMan;
-  secMan = XPCWrapper::GetSecurityManager();
-
-  if (!secMan) {
-    return false;
-  }
-
-  bool isChrome;
-  return NS_SUCCEEDED(secMan->SubjectPrincipalIsSystem(&isChrome)) && isChrome;
-}
-
-} 
-
 namespace mozilla {
 namespace dom {
 
@@ -80,7 +60,7 @@ ThrowExceptionObject(JSContext* aCx, Exception* aException)
   
   
   
-  if (NS_IsMainThread() && !IsCallerChrome() &&
+  if (NS_IsMainThread() && !nsContentUtils::IsCallerChrome() &&
       aException->StealJSVal(thrown.address())) {
     if (!JS_WrapValue(aCx, &thrown)) {
       return false;
@@ -173,14 +153,8 @@ GetCurrentJSStack()
   JSContext* cx = nullptr;
 
   if (NS_IsMainThread()) {
-    
-    
-    if (nsContentUtils::XPConnect()) {
-      cx = nsContentUtils::XPConnect()->GetCurrentJSContext();
-    } else {
-      nsCOMPtr<nsIXPConnect> xpc = do_GetService(nsIXPConnect::GetCID());
-      cx = xpc->GetCurrentJSContext();
-    }
+    MOZ_ASSERT(nsContentUtils::XPConnect());
+    cx = nsContentUtils::GetCurrentJSContext();
   } else {
     cx = workers::GetCurrentThreadJSContext();
   }
