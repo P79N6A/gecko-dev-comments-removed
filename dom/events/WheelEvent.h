@@ -43,10 +43,16 @@ public:
     return WheelEventBinding::Wrap(aCx, aScope, this);
   }
 
+  
+  
+  
   double DeltaX();
   double DeltaY();
   double DeltaZ();
   uint32_t DeltaMode();
+
+private:
+  int32_t mAppUnitsPerDevPixel;
 };
 
 } 
