@@ -3706,6 +3706,9 @@ pref("dom.battery.enabled", true);
 pref("dom.sms.enabled", false);
 
 
+pref("dom.sms.strict7BitEncoding", false);
+
+
 pref("dom.mozContacts.enabled", false);
 
 

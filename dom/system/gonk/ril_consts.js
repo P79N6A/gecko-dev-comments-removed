@@ -1649,6 +1649,18 @@ const PDU_MWI_STORE_TYPE_BIT     = 0x80;
 const PDU_MWI_STORE_TYPE_DISCARD = 0x00;
 const PDU_MWI_STORE_TYPE_STORE   = 0x80;
 
+const GSM_SMS_STRICT_7BIT_CHARMAP = {
+  "\u00C1": "\u0041", 
+  "\u00E1": "\u0061", 
+  "\u00CD": "\u0049", 
+  "\u00ED": "\u0069", 
+  "\u00D3": "\u004F", 
+  "\u00F3": "\u006F", 
+  "\u00DA": "\u0055", 
+  "\u00FA": "\u0075", 
+  "\u00E7": "\u00C7"  
+};
+
 const RADIOTECH_FAMILY_3GPP = 1;  
 const RADIOTECH_FAMILY_3GPP2 = 2; 
 
