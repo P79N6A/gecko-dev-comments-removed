@@ -141,6 +141,11 @@ var shell = {
    },
 
   start: function shell_start() {
+    
+    
+    
+    let cookies = Cc["@mozilla.org/cookieService;1"];
+
     try {
       let cr = Cc["@mozilla.org/xre/app-info;1"]
                  .getService(Ci.nsICrashReporter);
