@@ -158,12 +158,11 @@ this.AppsUtils = {
       return false;
 
     function isAbsolute(uri) {
-      try {
-        Services.io.newURI(uri, null, null);
-      } catch (e if e.result == Cr.NS_ERROR_MALFORMED_URI) {
-        return false;
-      }
-      return true;
+      
+      let foo = Services.io.newURI("http://foo", null, null);
+      let bar = Services.io.newURI("http://bar", null, null);
+      return Services.io.newURI(uri, null, foo).prePath != foo.prePath ||
+             Services.io.newURI(uri, null, bar).prePath != bar.prePath;
     }
 
     
