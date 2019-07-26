@@ -183,8 +183,17 @@ FrameWorker.prototype = {
     
     let worker = this;
 
-    workerWindow.addEventListener("load", function loadListener() {
-      workerWindow.removeEventListener("load", loadListener);
+    workerWindow.addEventListener("DOMContentLoaded", function loadListener() {
+      workerWindow.removeEventListener("DOMContentLoaded", loadListener);
+
+      
+      let scriptText = workerWindow.document.body.textContent.trim();
+      if (!scriptText) {
+        Cu.reportError("FrameWorker: Empty worker script received");
+        Services.obs.notifyObservers(null, "social:frameworker-error", worker.url);
+        return;
+      }
+
       
       
       try {
@@ -193,6 +202,8 @@ FrameWorker.prototype = {
       }
       catch (e) {
         Cu.reportError("FrameWorker: Error injecting port code into content side of the worker: " + e + "\n" + e.stack);
+        Services.obs.notifyObservers(null, "social:frameworker-error", worker.url);
+        return;
       }
 
       
@@ -201,16 +212,18 @@ FrameWorker.prototype = {
       }
       catch (e) {
         Cu.reportError("FrameWorker: Error setting up event listener for chrome side of the worker: " + e + "\n" + e.stack);
+        Services.obs.notifyObservers(null, "social:frameworker-error", worker.url);
+        return;
       }
 
       
       try {
-        let scriptText = workerWindow.document.body.textContent;
         Cu.evalInSandbox(scriptText, sandbox, "1.8", workerWindow.location.href, 1);
       } catch (e) {
         Cu.reportError("FrameWorker: Error evaluating worker script for " + worker.name + ": " + e + "; " +
             (e.lineNumber ? ("Line #" + e.lineNumber) : "") +
             (e.stack ? ("\n" + e.stack) : ""));
+        Services.obs.notifyObservers(null, "social:frameworker-error", worker.url);
         return;
       }
 
@@ -341,7 +354,11 @@ function initClientMessageHandler(worker, workerWindow) {
     }
     switch (data.portTopic) {
       
-
+      case "port-connection-error":
+        
+        
+        Services.obs.notifyObservers(null, "social:frameworker-error", worker.url);
+        break;
       case "port-close":
         
         port = worker.ports[portid];

@@ -65,7 +65,14 @@ function __initWorkerMessageHandler() {
         port = new WorkerPort(portid);
         ports[portid] = port;
         
-        onconnect({ports: [port]});
+        try {
+          onconnect({ports: [port]});
+        } catch(e) {
+          
+          
+          port._postControlMessage("port-connection-error", JSON.stringify(e.toString()));
+          throw e;
+        }
         break;
 
       case "port-close":
