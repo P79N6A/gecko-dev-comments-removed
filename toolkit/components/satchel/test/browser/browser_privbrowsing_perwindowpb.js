@@ -2,8 +2,6 @@
 
 
 
-let FormHistory = (Components.utils.import("resource://gre/modules/FormHistory.jsm", {})).FormHistory;
-
 
 function test() {
   
@@ -11,40 +9,23 @@ function test() {
   let windowsToClose = [];
   let testURI =
     "http://example.com/tests/toolkit/components/satchel/test/subtst_privbrowsing.html";
+  let formHistory = Cc["@mozilla.org/satchel/form-history;1"].
+    getService(Ci.nsIFormHistory2);
 
   function doTest(aIsPrivateMode, aShouldValueExist, aWindow, aCallback) {
     aWindow.gBrowser.selectedBrowser.addEventListener("load", function onLoad() {
       aWindow.gBrowser.selectedBrowser.removeEventListener("load", onLoad, true);
-
-      let checks = 0;
-      function doneCheck() {
-        checks++;
-        if (checks == 2) {
-          executeSoon(aCallback);
-        }
-      }
 
       
       
       
       aWindow.gBrowser.selectedBrowser.addEventListener("load", function onLoad() {
         aWindow.gBrowser.selectedBrowser.removeEventListener("load", onLoad, true);
-        doneCheck();
+        executeSoon(aCallback);
       }, true);
 
-      let count = 0;
-      FormHistory.count({ fieldname: "field", value: "value" },
-        { handleResult: function(result) {
-            count = result;
-          },
-          handleError: function (error) {
-            do_throw("Error occurred searching form history: " + error);
-          },
-          handleCompletion: function(num) {
-            is(count >= 1, aShouldValueExist, "Checking value exists in form history");
-            doneCheck();
-          }
-        });
+      is(formHistory.entryExists("field", "value"), aShouldValueExist,
+        "Checking value exists in form history");
     }, true);
 
     aWindow.gBrowser.selectedBrowser.loadURI(testURI);
