@@ -1250,9 +1250,14 @@ pref("network.dns.ipv4OnlyDomains", "");
 pref("network.dns.disableIPv6", false);
 
 
+pref("network.dnsCacheEntries", 400);
 
 
-pref("network.dnsCacheExpirationGracePeriod", 2592000);
+pref("network.dnsCacheExpiration", 60);
+
+
+
+pref("network.dnsCacheExpirationGracePeriod", 60);
 
 
 pref("network.dns.disablePrefetch", false);
