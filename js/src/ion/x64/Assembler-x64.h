@@ -559,6 +559,15 @@ class Assembler : public AssemblerX86Shared
     }
 
     
+    
+    CodeOffsetLabel toggledCall(IonCode *target, bool enabled) {
+        CodeOffsetLabel offset(size());
+        JmpSrc src = enabled ? masm.call() : masm.cmp_eax();
+        addPendingJump(src, target->raw(), Relocation::IONCODE);
+        return offset;
+    }
+
+    
     using AssemblerX86Shared::call;
 
     void cvttsd2sq(const FloatRegister &src, const Register &dest) {

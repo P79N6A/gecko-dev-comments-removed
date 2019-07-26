@@ -371,6 +371,15 @@ class Assembler : public AssemblerX86Shared
 
     
     
+    CodeOffsetLabel toggledCall(IonCode *target, bool enabled) {
+        CodeOffsetLabel offset(size());
+        JmpSrc src = enabled ? masm.call() : masm.cmp_eax();
+        addPendingJump(src, target->raw(), Relocation::IONCODE);
+        return offset;
+    }
+
+    
+    
     void retarget(Label *label, void *target, Relocation::Kind reloc) {
         JSC::MacroAssembler::Label jsclabel;
         if (label->used()) {
