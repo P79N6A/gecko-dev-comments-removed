@@ -10,6 +10,7 @@
 
 #include "mozilla/dom/TextTrack.h"
 #include "mozilla/dom/TextTrackList.h"
+#include "mozilla/dom/TextTrackCueList.h"
 
 namespace mozilla {
 namespace dom {
@@ -33,6 +34,9 @@ public:
   void RemoveTextTrack(TextTrack* aTextTrack, bool aPendingListOnly);
   void DidSeek();
 
+  void AddCue(TextTrackCue& aCue);
+  void AddCues(TextTrack* aTextTrack);
+
   
   
   void Update(double aTime);
@@ -49,6 +53,8 @@ private:
   nsRefPtr<TextTrackList> mTextTracks;
   
   nsRefPtr<TextTrackList> mPendingTextTracks;
+  
+  nsRefPtr<TextTrackCueList> mNewCues;
 };
 
 } 
