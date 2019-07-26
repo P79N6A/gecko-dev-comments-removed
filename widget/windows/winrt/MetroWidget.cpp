@@ -718,7 +718,9 @@ MetroWidget::WindowProcedure(HWND aWnd, UINT aMsg, WPARAM aWParam, LPARAM aLPara
     if (aLParam && !wcsicmp(L"ConvertibleSlateMode", (wchar_t*)aLParam)) {
       
       
-      if (GetSystemMetrics(SM_CONVERTIBLESLATEMODE) != 0) {
+      if (GetSystemMetrics(SM_CONVERTIBLESLATEMODE) != 0 &&
+          Preferences::GetBool("browser.shell.metro-auto-switch-enabled",
+                               false)) {
         nsCOMPtr<nsIAppStartup> appStartup(do_GetService(NS_APPSTARTUP_CONTRACTID));
         if (appStartup) {
           appStartup->Quit(nsIAppStartup::eForceQuit | nsIAppStartup::eRestart);
