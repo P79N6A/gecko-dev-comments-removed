@@ -1166,15 +1166,33 @@ nsLayoutUtils::GetActiveScrolledRootFor(nsIFrame* aFrame,
                                         const nsIFrame* aStopAtAncestor)
 {
   nsIFrame* f = aFrame;
+  nsIFrame* stickyFrame = nullptr;
   while (f != aStopAtAncestor) {
     if (IsPopup(f))
       break;
     nsIFrame* parent = GetCrossDocParentFrame(f);
     if (!parent)
       break;
+    
+    
+    
+    if (f->StyleDisplay()->mPosition == NS_STYLE_POSITION_STICKY &&
+        !stickyFrame) {
+      stickyFrame = f;
+    }
     nsIScrollableFrame* sf = do_QueryFrame(parent);
-    if (sf && sf->IsScrollingActive() && sf->GetScrolledFrame() == f)
-      break;
+    if (sf) {
+      if (sf->IsScrollingActive() && sf->GetScrolledFrame() == f) {
+        
+        
+        if (stickyFrame) {
+          return stickyFrame;
+        }
+        return f;
+      } else {
+        stickyFrame = nullptr;
+      }
+    }
     f = parent;
   }
   return f;
