@@ -75,7 +75,7 @@ this._SessionFile = {
 
 
   writeLoadStateOnceAfterStartup: function (aLoadState) {
-    return SessionFileInternal.writeLoadStateOnceAfterStartup(aLoadState);
+    SessionFileInternal.writeLoadStateOnceAfterStartup(aLoadState);
   },
   
 
@@ -95,7 +95,7 @@ this._SessionFile = {
 
 
   wipe: function () {
-    return SessionFileInternal.wipe();
+    SessionFileInternal.wipe();
   }
 };
 
@@ -231,7 +231,7 @@ let SessionFileInternal = {
   },
 
   writeLoadStateOnceAfterStartup: function (aLoadState) {
-    return SessionWorker.post("writeLoadStateOnceAfterStartup", [aLoadState]).then(msg => {
+    SessionWorker.post("writeLoadStateOnceAfterStartup", [aLoadState]).then(msg => {
       this._recordTelemetry(msg.telemetry);
       return msg;
     });
@@ -246,7 +246,7 @@ let SessionFileInternal = {
   },
 
   wipe: function () {
-    return SessionWorker.post("wipe");
+    SessionWorker.post("wipe");
   },
 
   _recordTelemetry: function(telemetry) {
