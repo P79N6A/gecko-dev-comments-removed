@@ -105,11 +105,7 @@ public:
   
 
 
-
-
-  nsISupports *GetDocumentAllResult(const nsAString& aID,
-                                    nsWrapperCache **aCache,
-                                    nsresult *aResult);
+  nsContentList* GetDocumentAllList(const nsAString& aID, nsresult* aResult);
   mozilla::dom::HTMLAllCollection* All();
   JSObject* GetAll(JSContext* aCx, mozilla::ErrorResult& aRv);
 

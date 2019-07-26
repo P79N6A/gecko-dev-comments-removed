@@ -135,7 +135,24 @@ HTMLAllCollection::GetNamedItem(const nsAString& aID,
                                 nsWrapperCache** aCache,
                                 nsresult* aResult)
 {
-  return mDocument->GetDocumentAllResult(aID, aCache, aResult);
+  nsContentList* docAllList = mDocument->GetDocumentAllList(aID, aResult);
+  if (!docAllList) {
+    return nullptr;
+  }
+
+  
+  
+  
+
+  nsIContent* cont = docAllList->Item(1, true);
+  if (cont) {
+    *aCache = docAllList;
+    return static_cast<nsINodeList*>(docAllList);
+  }
+
+  
+  *aCache = cont = docAllList->Item(0, true);
+  return cont;
 }
 
 } 

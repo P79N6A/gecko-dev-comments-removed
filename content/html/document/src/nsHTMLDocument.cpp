@@ -2591,12 +2591,9 @@ DocAllResultMatch(nsIContent* aContent, int32_t aNamespaceID, nsIAtom* aAtom,
 }
 
 
-nsISupports*
-nsHTMLDocument::GetDocumentAllResult(const nsAString& aID,
-                                     nsWrapperCache** aCache,
-                                     nsresult *aResult)
+nsContentList*
+nsHTMLDocument::GetDocumentAllList(const nsAString& aID, nsresult *aResult)
 {
-  *aCache = nullptr;
   *aResult = NS_OK;
 
   nsIdentifierMapEntry *entry = mIdentifierMap.PutEntry(aID);
@@ -2620,20 +2617,7 @@ nsHTMLDocument::GetDocumentAllResult(const nsAString& aID,
     entry->SetDocAllList(docAllList);
   }
 
-  
-  
-  
-
-  nsIContent* cont = docAllList->Item(1, true);
-  if (cont) {
-    *aCache = docAllList;
-    return static_cast<nsINodeList*>(docAllList);
-  }
-
-  
-  *aCache = cont = docAllList->Item(0, true);
-
-  return cont;
+  return docAllList;
 }
 
 HTMLAllCollection*
