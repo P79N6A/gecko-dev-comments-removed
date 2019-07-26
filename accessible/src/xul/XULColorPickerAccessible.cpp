@@ -11,7 +11,6 @@
 #include "DocAccessible.h"
 #include "Role.h"
 #include "States.h"
-#include "TreeWalker.h"
 
 #include "nsIDOMElement.h"
 #include "nsMenuPopupFrame.h"
@@ -136,24 +135,8 @@ XULColorPickerAccessible::AreItemsOperable() const
 
 
 
-void
-XULColorPickerAccessible::CacheChildren()
+bool
+XULColorPickerAccessible::IsAcceptableChild(Accessible* aPossibleChild) const
 {
-  NS_ENSURE_TRUE_VOID(mDoc);
-
-  TreeWalker walker(this, mContent);
-
-  Accessible* child = nullptr;
-  while ((child = walker.NextChild())) {
-    uint32_t role = child->Role();
-
-    
-    if (role == roles::ALERT) {
-      AppendChild(child);
-      return;
-    }
-
-    
-    Document()->UnbindFromDocument(child);
-  }
+  return roles::ALERT == aPossibleChild->Role();
 }

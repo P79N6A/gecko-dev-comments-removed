@@ -274,7 +274,7 @@ public:
 
 
 
-  bool BindToDocument(Accessible* aAccessible, nsRoleMapEntry* aRoleMapEntry);
+  void BindToDocument(Accessible* aAccessible, nsRoleMapEntry* aRoleMapEntry);
 
   
 

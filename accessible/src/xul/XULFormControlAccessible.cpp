@@ -160,11 +160,8 @@ XULButtonAccessible::ContainerWidget() const
   return nullptr;
 }
 
-
-
-
-void
-XULButtonAccessible::CacheChildren()
+bool
+XULButtonAccessible::IsAcceptableChild(Accessible* aPossibleChild) const
 {
   
   
@@ -172,41 +169,20 @@ XULButtonAccessible::CacheChildren()
 
   
   
+  roles::Role role = aPossibleChild->Role();
 
-  bool isMenuButton = mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::type,
-                                            nsGkAtoms::menuButton, eCaseMatters);
+  
+  if (role == roles::MENUPOPUP)
+    return true;
 
-  Accessible* menupopup = nullptr;
-  Accessible* button = nullptr;
+  
+  
+  if (role != roles::PUSHBUTTON ||
+      aPossibleChild->GetContent()->Tag() == nsGkAtoms::dropMarker)
+    return false;
 
-  TreeWalker walker(this, mContent);
-
-  Accessible* child = nullptr;
-  while ((child = walker.NextChild())) {
-    roles::Role role = child->Role();
-
-    if (role == roles::MENUPOPUP) {
-      
-      menupopup = child;
-
-    } else if (isMenuButton && role == roles::PUSHBUTTON) {
-      
-      
-      button = child;
-      break;
-
-    } else {
-      
-      Document()->UnbindFromDocument(child);
-    }
-  }
-
-  if (!menupopup)
-    return;
-
-  AppendChild(menupopup);
-  if (button)
-    AppendChild(button);
+  return mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::type,
+                               nsGkAtoms::menuButton, eCaseMatters);
 }
 
 

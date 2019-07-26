@@ -436,6 +436,11 @@ public:
   
 
 
+  virtual bool IsAcceptableChild(Accessible* aPossibleChild) const { return true; }
+
+  
+
+
 
 
 
