@@ -373,14 +373,12 @@ ISurfaceAllocator::PlatformAllocSurfaceDescriptor(const gfxIntSize& aSize,
 #endif
 
   
-
-
-
-
-  gfxIntSize allocSize = aSize;
-  allocSize.width = std::max(aSize.width, 32);
-  allocSize.height = std::max(aSize.height, 32);
-
+  
+  
+  
+  if (aSize.width < 64) {
+    return false;
+  }
   PROFILER_LABEL("ShadowLayerForwarder", "PlatformAllocSurfaceDescriptor");
   
   
@@ -389,7 +387,7 @@ ISurfaceAllocator::PlatformAllocSurfaceDescriptor(const gfxIntSize& aSize,
   bool defaultRBSwap;
 
   if (aCaps & USING_GL_RENDERING_ONLY) {
-    gc = AllocGrallocBuffer(allocSize,
+    gc = AllocGrallocBuffer(aSize,
                             PixelFormatForContentType(aContent),
                             GraphicBuffer::USAGE_HW_RENDER |
                             GraphicBuffer::USAGE_HW_TEXTURE,
@@ -398,7 +396,7 @@ ISurfaceAllocator::PlatformAllocSurfaceDescriptor(const gfxIntSize& aSize,
     
     defaultRBSwap = false;
   } else {
-    gc = AllocGrallocBuffer(allocSize,
+    gc = AllocGrallocBuffer(aSize,
                             PixelFormatForContentType(aContent),
                             GraphicBuffer::USAGE_SW_READ_OFTEN |
                             GraphicBuffer::USAGE_SW_WRITE_OFTEN |
@@ -422,7 +420,7 @@ ISurfaceAllocator::PlatformAllocSurfaceDescriptor(const gfxIntSize& aSize,
   GrallocBufferActor* gba = static_cast<GrallocBufferActor*>(gc);
   gba->InitFromHandle(handle.get_MagicGrallocBufferHandle());
 
-  *aBuffer = SurfaceDescriptorGralloc(nullptr, gc, allocSize,
+  *aBuffer = SurfaceDescriptorGralloc(nullptr, gc, aSize,
                                        false,
                                       defaultRBSwap);
   return true;
