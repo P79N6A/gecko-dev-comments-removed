@@ -9,17 +9,16 @@
 
 
 
-#include "mozilla/Util.h"
-
-#include "nsCSSRuleProcessor.h"
-#include "nsRuleProcessorData.h"
-#include <algorithm>
-
 #define PL_ARENA_CONST_ALIGN_MASK 7
+
+
 
 #define NS_CASCADEENUMDATA_ARENA_BLOCK_SIZE (4096)
 #include "plarena.h"
 
+#include "nsCSSRuleProcessor.h"
+#include "nsRuleProcessorData.h"
+#include <algorithm>
 #include "nsCRT.h"
 #include "nsIAtom.h"
 #include "pldhash.h"
@@ -60,6 +59,7 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/Likely.h"
+#include "mozilla/Util.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;

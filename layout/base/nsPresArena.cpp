@@ -7,13 +7,20 @@
 
 
 
+
+
+
+
+#define ALIGN_SHIFT 3
+#define PL_ARENA_CONST_ALIGN_MASK ((uintptr_t(1) << ALIGN_SHIFT) - 1)
+#include "plarena.h"
+
+
+
 #include "nsPresArena.h"
 #include "nsCRT.h"
 #include "nsDebug.h"
-#include "nsTArray.h"
-#include "nsTHashtable.h"
 #include "prinit.h"
-#include "prlog.h"
 #include "nsArenaMemoryStats.h"
 #include "nsCOMPtr.h"
 #include "nsServiceManagerUtils.h"
@@ -22,17 +29,6 @@
 #ifdef MOZ_CRASHREPORTER
 #include "nsICrashReporter.h"
 #endif
-
-#include "mozilla/StandardInteger.h"
-#include "mozilla/MemoryChecking.h"
-
-
-
-
-
-#define ALIGN_SHIFT 3
-#define PL_ARENA_CONST_ALIGN_MASK ((uintptr_t(1) << ALIGN_SHIFT) - 1)
-#include "plarena.h"
 
 #ifdef _WIN32
 # include <windows.h>
@@ -239,277 +235,226 @@ ARENA_POISON_init()
   return PR_SUCCESS;
 }
 
-
-
-
-namespace {
-
-class FreeList : public PLDHashEntryHdr
+nsPresArena::nsPresArena()
 {
-public:
-  typedef uint32_t KeyType;
-  nsTArray<void *> mEntries;
-  size_t mEntrySize;
-  size_t mEntriesEverAllocated;
-
-  typedef const void* KeyTypePointer;
-  KeyTypePointer mKey;
-
-  FreeList(KeyTypePointer aKey)
-  : mEntrySize(0), mEntriesEverAllocated(0), mKey(aKey) {}
-  
-
-  bool KeyEquals(KeyTypePointer const aKey) const
-  { return mKey == aKey; }
-
-  static KeyTypePointer KeyToPointer(KeyType aKey)
-  { return NS_INT32_TO_PTR(aKey); }
-
-  static PLDHashNumber HashKey(KeyTypePointer aKey)
-  { return NS_PTR_TO_INT32(aKey); }
-
-  enum { ALLOW_MEMMOVE = false };
-};
-
+  mFreeLists.Init();
+  PL_INIT_ARENA_POOL(&mPool, "PresArena", ARENA_PAGE_SIZE);
+  PR_CallOnce(&ARENA_POISON_guard, ARENA_POISON_init);
 }
 
-struct nsPresArena::State {
-  nsTHashtable<FreeList> mFreeLists;
-  PLArenaPool mPool;
-
-  State()
-  {
-    mFreeLists.Init();
-    PL_INIT_ARENA_POOL(&mPool, "PresArena", ARENA_PAGE_SIZE);
-    PR_CallOnce(&ARENA_POISON_guard, ARENA_POISON_init);
-  }
-
+nsPresArena::~nsPresArena()
+{
 #if defined(MOZ_HAVE_MEM_CHECKS)
-  static PLDHashOperator UnpoisonFreeList(FreeList* aEntry, void*)
-  {
-    nsTArray<void*>::index_type len;
-    while ((len = aEntry->mEntries.Length())) {
-      void* result = aEntry->mEntries.ElementAt(len - 1);
-      aEntry->mEntries.RemoveElementAt(len - 1);
-      MOZ_MAKE_MEM_UNDEFINED(result, aEntry->mEntrySize);
-    }
-    return PL_DHASH_NEXT;
-  }
+  mFreeLists.EnumerateEntries(UnpoisonFreeList, nullptr);
 #endif
+  PL_FinishArenaPool(&mPool);
+}
 
-  ~State()
-  {
-#if defined(MOZ_HAVE_MEM_CHECKS)
-    mFreeLists.EnumerateEntries(UnpoisonFreeList, nullptr);
-#endif
-    PL_FinishArenaPool(&mPool);
+void*
+nsPresArena::Allocate(uint32_t aCode, size_t aSize)
+{
+  NS_ABORT_IF_FALSE(aSize > 0, "PresArena cannot allocate zero bytes");
+
+  
+  aSize = PL_ARENA_ALIGN(&mPool, aSize);
+
+  
+  
+  FreeList* list = mFreeLists.PutEntry(aCode);
+
+  nsTArray<void*>::index_type len = list->mEntries.Length();
+  if (list->mEntrySize == 0) {
+    NS_ABORT_IF_FALSE(len == 0, "list with entries but no recorded size");
+    list->mEntrySize = aSize;
+  } else {
+    NS_ABORT_IF_FALSE(list->mEntrySize == aSize,
+                      "different sizes for same object type code");
   }
 
-  void* Allocate(uint32_t aCode, size_t aSize)
-  {
-    NS_ABORT_IF_FALSE(aSize > 0, "PresArena cannot allocate zero bytes");
-
+  void* result;
+  if (len > 0) {
     
-    aSize = PL_ARENA_ALIGN(&mPool, aSize);
-
-    
-    
-    FreeList* list = mFreeLists.PutEntry(aCode);
-
-    nsTArray<void*>::index_type len = list->mEntries.Length();
-    if (list->mEntrySize == 0) {
-      NS_ABORT_IF_FALSE(len == 0, "list with entries but no recorded size");
-      list->mEntrySize = aSize;
-    } else {
-      NS_ABORT_IF_FALSE(list->mEntrySize == aSize,
-                        "different sizes for same object type code");
-    }
-
-    void* result;
-    if (len > 0) {
-      
-      result = list->mEntries.ElementAt(len - 1);
-      list->mEntries.RemoveElementAt(len - 1);
+    result = list->mEntries.ElementAt(len - 1);
+    list->mEntries.RemoveElementAt(len - 1);
 #if defined(DEBUG)
-      {
-        MOZ_MAKE_MEM_DEFINED(result, list->mEntrySize);
-        char* p = reinterpret_cast<char*>(result);
-        char* limit = p + list->mEntrySize;
-        for (; p < limit; p += sizeof(uintptr_t)) {
-          uintptr_t val = *reinterpret_cast<uintptr_t*>(p);
-          NS_ABORT_IF_FALSE(val == ARENA_POISON,
-                            nsPrintfCString("PresArena: poison overwritten; "
-                                            "wanted %.16llx "
-                                            "found %.16llx "
-                                            "errors in bits %.16llx",
-                                            uint64_t(ARENA_POISON),
-                                            uint64_t(val),
-                                            uint64_t(ARENA_POISON ^ val)
-                                            ).get());
-        }
+    {
+      MOZ_MAKE_MEM_DEFINED(result, list->mEntrySize);
+      char* p = reinterpret_cast<char*>(result);
+      char* limit = p + list->mEntrySize;
+      for (; p < limit; p += sizeof(uintptr_t)) {
+        uintptr_t val = *reinterpret_cast<uintptr_t*>(p);
+        NS_ABORT_IF_FALSE(val == ARENA_POISON,
+                          nsPrintfCString("PresArena: poison overwritten; "
+                                          "wanted %.16llx "
+                                          "found %.16llx "
+                                          "errors in bits %.16llx",
+                                          uint64_t(ARENA_POISON),
+                                          uint64_t(val),
+                                          uint64_t(ARENA_POISON ^ val)
+                                          ).get());
       }
+    }
 #endif
-      MOZ_MAKE_MEM_UNDEFINED(result, list->mEntrySize);
-      return result;
-    }
-
-    
-    list->mEntriesEverAllocated++;
-    PL_ARENA_ALLOCATE(result, &mPool, aSize);
-    if (!result) {
-      NS_RUNTIMEABORT("out of memory");
-    }
+    MOZ_MAKE_MEM_UNDEFINED(result, list->mEntrySize);
     return result;
   }
 
-  void Free(uint32_t aCode, void* aPtr)
-  {
-    
-    FreeList* list = mFreeLists.GetEntry(aCode);
-    NS_ABORT_IF_FALSE(list, "no free list for pres arena object");
-    NS_ABORT_IF_FALSE(list->mEntrySize > 0, "PresArena cannot free zero bytes");
+  
+  list->mEntriesEverAllocated++;
+  PL_ARENA_ALLOCATE(result, &mPool, aSize);
+  if (!result) {
+    NS_RUNTIMEABORT("out of memory");
+  }
+  return result;
+}
 
-    char* p = reinterpret_cast<char*>(aPtr);
-    char* limit = p + list->mEntrySize;
-    for (; p < limit; p += sizeof(uintptr_t)) {
-      *reinterpret_cast<uintptr_t*>(p) = ARENA_POISON;
-    }
+void
+nsPresArena::Free(uint32_t aCode, void* aPtr)
+{
+  
+  FreeList* list = mFreeLists.GetEntry(aCode);
+  NS_ABORT_IF_FALSE(list, "no free list for pres arena object");
+  NS_ABORT_IF_FALSE(list->mEntrySize > 0, "PresArena cannot free zero bytes");
 
-    MOZ_MAKE_MEM_NOACCESS(aPtr, list->mEntrySize);
-    list->mEntries.AppendElement(aPtr);
+  char* p = reinterpret_cast<char*>(aPtr);
+  char* limit = p + list->mEntrySize;
+  for (; p < limit; p += sizeof(uintptr_t)) {
+    *reinterpret_cast<uintptr_t*>(p) = ARENA_POISON;
   }
 
-  static size_t SizeOfFreeListEntryExcludingThis(FreeList* aEntry,
-                                                 nsMallocSizeOfFun aMallocSizeOf,
-                                                 void *)
-  {
-    return aEntry->mEntries.SizeOfExcludingThis(aMallocSizeOf);
+  MOZ_MAKE_MEM_NOACCESS(aPtr, list->mEntrySize);
+  list->mEntries.AppendElement(aPtr);
+}
+
+ size_t
+nsPresArena::SizeOfFreeListEntryExcludingThis(
+  FreeList* aEntry, nsMallocSizeOfFun aMallocSizeOf, void*)
+{
+  return aEntry->mEntries.SizeOfExcludingThis(aMallocSizeOf);
+}
+
+size_t
+nsPresArena::SizeOfIncludingThisFromMalloc(nsMallocSizeOfFun aMallocSizeOf) const
+{
+  size_t n = aMallocSizeOf(this);
+  n += PL_SizeOfArenaPoolExcludingPool(&mPool, aMallocSizeOf);
+  n += mFreeLists.SizeOfExcludingThis(SizeOfFreeListEntryExcludingThis,
+                                      aMallocSizeOf);
+  return n;
+}
+
+struct EnumerateData {
+  nsArenaMemoryStats* stats;
+  size_t total;
+};
+
+#if defined(MOZ_HAVE_MEM_CHECKS)
+ PLDHashOperator
+nsPresArena::UnpoisonFreeList(FreeList* aEntry, void*)
+{
+  nsTArray<void*>::index_type len;
+  while ((len = aEntry->mEntries.Length())) {
+    void* result = aEntry->mEntries.ElementAt(len - 1);
+    aEntry->mEntries.RemoveElementAt(len - 1);
+    MOZ_MAKE_MEM_UNDEFINED(result, aEntry->mEntrySize);
   }
+  return PL_DHASH_NEXT;
+}
+#endif
 
-  size_t SizeOfIncludingThisFromMalloc(nsMallocSizeOfFun aMallocSizeOf) const
-  {
-    size_t n = aMallocSizeOf(this);
-    n += PL_SizeOfArenaPoolExcludingPool(&mPool, aMallocSizeOf);
-    n += mFreeLists.SizeOfExcludingThis(SizeOfFreeListEntryExcludingThis,
-                                        aMallocSizeOf);
-    return n;
-  }
+ PLDHashOperator
+nsPresArena::FreeListEnumerator(FreeList* aEntry, void* aData)
+{
+  EnumerateData* data = static_cast<EnumerateData*>(aData);
+  
+  
+  
+  
+  
+  size_t totalSize = aEntry->mEntrySize * aEntry->mEntriesEverAllocated;
+  size_t* p;
 
-  struct EnumerateData {
-    nsArenaMemoryStats* stats;
-    size_t total;
-  };
-
-  static PLDHashOperator FreeListEnumerator(FreeList* aEntry, void* aData)
-  {
-    EnumerateData* data = static_cast<EnumerateData*>(aData);
-    
-    
-    
-    
-    
-    size_t totalSize = aEntry->mEntrySize * aEntry->mEntriesEverAllocated;
-    size_t* p;
-
-    switch (NS_PTR_TO_INT32(aEntry->mKey)) {
-#define FRAME_ID(classname)                                        \
-      case nsQueryFrame::classname##_id:                           \
-        p = &data->stats->FRAME_ID_STAT_FIELD(classname);          \
-        break;
+  switch (NS_PTR_TO_INT32(aEntry->mKey)) {
+#define FRAME_ID(classname)                                      \
+    case nsQueryFrame::classname##_id:                           \
+      p = &data->stats->FRAME_ID_STAT_FIELD(classname);          \
+      break;
 #include "nsFrameIdList.h"
 #undef FRAME_ID
-    case nsLineBox_id:
-      p = &data->stats->mLineBoxes;
-      break;
-    case nsRuleNode_id:
-      p = &data->stats->mRuleNodes;
-      break;
-    case nsStyleContext_id:
-      p = &data->stats->mStyleContexts;
-      break;
-    default:
-      return PL_DHASH_NEXT;
-    }
-
-    *p += totalSize;
-    data->total += totalSize;
-
+  case nsLineBox_id:
+    p = &data->stats->mLineBoxes;
+    break;
+  case nsRuleNode_id:
+    p = &data->stats->mRuleNodes;
+    break;
+  case nsStyleContext_id:
+    p = &data->stats->mStyleContexts;
+    break;
+  default:
     return PL_DHASH_NEXT;
   }
 
-  void SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf,
-                           nsArenaMemoryStats* aArenaStats)
-  {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+  *p += totalSize;
+  data->total += totalSize;
 
-    size_t mallocSize = SizeOfIncludingThisFromMalloc(aMallocSizeOf);
-    EnumerateData data = { aArenaStats, 0 };
-    mFreeLists.EnumerateEntries(FreeListEnumerator, &data);
-    aArenaStats->mOther = mallocSize - data.total;
-  }
-};
+  return PL_DHASH_NEXT;
+}
 
 void
 nsPresArena::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf,
                                  nsArenaMemoryStats* aArenaStats)
 {
-  mState->SizeOfIncludingThis(aMallocSizeOf, aArenaStats);
-}
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
-
-nsPresArena::nsPresArena()
-  : mState(new nsPresArena::State())
-{}
-
-nsPresArena::~nsPresArena()
-{
-  delete mState;
+  size_t mallocSize = SizeOfIncludingThisFromMalloc(aMallocSizeOf);
+  EnumerateData data = { aArenaStats, 0 };
+  mFreeLists.EnumerateEntries(FreeListEnumerator, &data);
+  aArenaStats->mOther = mallocSize - data.total;
 }
 
 void*
 nsPresArena::AllocateBySize(size_t aSize)
 {
-  return mState->Allocate(uint32_t(aSize) | uint32_t(NON_OBJECT_MARKER),
-                          aSize);
+  return Allocate(uint32_t(aSize) | uint32_t(NON_OBJECT_MARKER), aSize);
 }
 
 void
 nsPresArena::FreeBySize(size_t aSize, void* aPtr)
 {
-  mState->Free(uint32_t(aSize) | uint32_t(NON_OBJECT_MARKER), aPtr);
+  Free(uint32_t(aSize) | uint32_t(NON_OBJECT_MARKER), aPtr);
 }
 
 void*
 nsPresArena::AllocateByFrameID(nsQueryFrame::FrameIID aID, size_t aSize)
 {
-  return mState->Allocate(aID, aSize);
+  return Allocate(aID, aSize);
 }
 
 void
 nsPresArena::FreeByFrameID(nsQueryFrame::FrameIID aID, void* aPtr)
 {
-  mState->Free(aID, aPtr);
+  Free(aID, aPtr);
 }
 
 void*
 nsPresArena::AllocateByObjectID(ObjectID aID, size_t aSize)
 {
-  return mState->Allocate(aID, aSize);
+  return Allocate(aID, aSize);
 }
 
 void
 nsPresArena::FreeByObjectID(ObjectID aID, void* aPtr)
 {
-  mState->Free(aID, aPtr);
+  Free(aID, aPtr);
 }
 
  uintptr_t
