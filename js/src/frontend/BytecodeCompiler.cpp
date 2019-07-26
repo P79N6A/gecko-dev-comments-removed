@@ -355,7 +355,9 @@ frontend::CompileScript(ExclusiveContext *cx, LifoAlloc *alloc, HandleObject sco
         if (!FoldConstants(cx, &pn, &parser))
             return nullptr;
 
-        if (!NameFunctions(cx, pn))
+        
+        
+        if (cx->isJSContext() && !NameFunctions(cx->asJSContext(), pn))
             return nullptr;
 
         if (!EmitTree(cx, &bce, pn))

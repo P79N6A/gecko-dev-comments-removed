@@ -23,7 +23,7 @@ class NameResolver
 {
     static const size_t MaxParents = 100;
 
-    ExclusiveContext *cx;
+    JSContext *cx;
     size_t nparents;                
     ParseNode *parents[MaxParents]; 
     StringBuffer *buf;              
@@ -262,7 +262,7 @@ class NameResolver
     }
 
   public:
-    explicit NameResolver(ExclusiveContext *cx) : cx(cx), nparents(0), buf(nullptr) {}
+    explicit NameResolver(JSContext *cx) : cx(cx), nparents(0), buf(nullptr) {}
 
     
 
@@ -331,7 +331,7 @@ class NameResolver
 } 
 
 bool
-frontend::NameFunctions(ExclusiveContext *cx, ParseNode *pn)
+frontend::NameFunctions(JSContext *cx, ParseNode *pn)
 {
     NameResolver nr(cx);
     nr.resolve(pn);
