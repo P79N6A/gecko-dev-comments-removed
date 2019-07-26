@@ -204,6 +204,19 @@ public:
 
   bool GetPreventDefault() const;
 
+  
+
+
+
+
+
+  void PreventDefaultInternal(bool aCalledByDefaultHandler);
+
+  bool IsMainThreadEvent()
+  {
+    return mIsMainThreadEvent;
+  }
+
 protected:
 
   
@@ -215,14 +228,6 @@ protected:
 
 
   bool IsChrome(JSContext* aCx) const;
-
-  
-
-
-
-
-
-  void PreventDefaultInternal(bool aCalledByDefaultHandler);
 
   mozilla::WidgetEvent*       mEvent;
   nsRefPtr<nsPresContext>     mPresContext;
