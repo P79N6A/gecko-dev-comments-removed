@@ -2738,7 +2738,12 @@ Http2Session::OnWriteSegment(char *buf,
       
       
       
-      ChangeDownstreamState(DISCARDING_DATA_FRAME_PADDING);
+      if (mInputFrameDataSize != mInputFrameDataRead) {
+        
+        
+        
+        ChangeDownstreamState(DISCARDING_DATA_FRAME_PADDING);
+      }
       uint32_t paddingRead = mPaddingLength - (mInputFrameDataSize - mInputFrameDataRead);
       LOG3(("Http2Session::OnWriteSegment %p stream 0x%X len=%d read=%d "
             "crossed from HTTP data into padding (%d of %d) countWritten=%d",
