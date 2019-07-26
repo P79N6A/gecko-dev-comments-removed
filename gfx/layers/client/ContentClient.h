@@ -226,7 +226,7 @@ protected:
   RefPtr<TextureClient> mTextureClient;
   
   
-  nsTArray<RefPtr<TextureClient>> mOldTextures;
+  nsTArray<RefPtr<TextureClient> > mOldTextures;
 
   TextureInfo mTextureInfo;
   bool mIsNewBuffer;
