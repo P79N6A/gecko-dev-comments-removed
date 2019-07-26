@@ -816,18 +816,17 @@ class GeckoInputConnection
     }
 
     @Override
-    public void notifyIMEEnabled(final int state, final String typeHint,
-                                 final String modeHint, final String actionHint) {
+    public void notifyIMEEnabled(int state, String typeHint, String modeHint, String actionHint) {
         
         
         
         if (typeHint != null &&
-            (typeHint.equals("date") ||
-             typeHint.equals("time") ||
-             (Build.VERSION.SDK_INT > 10 && (typeHint.equals("datetime") ||
-                                             typeHint.equals("month") ||
-                                             typeHint.equals("week") ||
-                                             typeHint.equals("datetime-local"))))) {
+            (typeHint.equalsIgnoreCase("date") ||
+             typeHint.equalsIgnoreCase("time") ||
+             (Build.VERSION.SDK_INT >= 11 && (typeHint.equalsIgnoreCase("datetime") ||
+                                              typeHint.equalsIgnoreCase("month") ||
+                                              typeHint.equalsIgnoreCase("week") ||
+                                              typeHint.equalsIgnoreCase("datetime-local"))))) {
             mIMEState = IME_STATE_DISABLED;
             return;
         }
