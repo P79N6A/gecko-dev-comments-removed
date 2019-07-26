@@ -225,6 +225,14 @@ ThrowDOMExceptionForNSResult(JSContext* aCx, nsresult aNSResult);
 
 } 
 
+
+
+
+
+
+extern bool
+GetterOnlyJSNative(JSContext* aCx, unsigned aArgc, JS::Value* aVp);
+
 END_WORKERS_NAMESPACE
 
 #endif 
