@@ -39,7 +39,12 @@ class ErrorResult {
 public:
   ErrorResult() {
     mResult = NS_OK;
+
 #ifdef DEBUG
+    
+    
+    
+    mMessage = nullptr;
     mMightHaveUnreportedJSException = false;
 #endif
   }
