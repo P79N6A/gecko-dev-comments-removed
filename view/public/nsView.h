@@ -20,7 +20,6 @@
 #include "nsIWidgetListener.h"
 #include <stdio.h>
 
-class nsIViewManager;
 class nsViewManager;
 class nsIWidget;
 class nsIFrame;
@@ -75,8 +74,8 @@ public:
 
 
 
-  nsIViewManager* GetViewManager() const
-  { return reinterpret_cast<nsIViewManager*>(mViewManager); }
+  nsViewManager* GetViewManager() const
+  { return reinterpret_cast<nsViewManager*>(mViewManager); }
   nsViewManager* GetViewManagerInternal() const { return mViewManager; }
 
   
@@ -460,13 +459,13 @@ private:
   
   void InvalidateHierarchy(nsViewManager *aViewManagerParent);
 
-  nsViewManager     *mViewManager;
+  nsViewManager    *mViewManager;
   nsView           *mParent;
-  nsIWidget         *mWindow;
+  nsIWidget        *mWindow;
   nsView           *mNextSibling;
   nsView           *mFirstChild;
-  nsIFrame          *mFrame;
-  nsRegion          *mDirtyRegion;
+  nsIFrame         *mFrame;
+  nsRegion         *mDirtyRegion;
   int32_t           mZIndex;
   nsViewVisibility  mVis;
   

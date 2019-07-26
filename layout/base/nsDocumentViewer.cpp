@@ -42,7 +42,7 @@
 
 #include "nsViewsCID.h"
 #include "nsIDeviceContextSpec.h"
-#include "nsIViewManager.h"
+#include "nsViewManager.h"
 #include "nsView.h"
 
 #include "nsIPageSequenceFrame.h"
@@ -379,7 +379,7 @@ protected:
   
   nsIPresShell* GetPresShell();
   nsPresContext* GetPresContext();
-  nsIViewManager* GetViewManager();
+  nsViewManager* GetViewManager();
 
   void DetachFromTopLevelWidget();
 
@@ -397,7 +397,7 @@ protected:
   
   nsCOMPtr<nsIDocument>    mDocument;
   nsCOMPtr<nsIWidget>      mWindow;      
-  nsCOMPtr<nsIViewManager> mViewManager;
+  nsCOMPtr<nsViewManager> mViewManager;
   nsRefPtr<nsPresContext>  mPresContext;
   nsCOMPtr<nsIPresShell>   mPresShell;
 
@@ -1399,7 +1399,7 @@ nsDocumentViewer::Open(nsISupports *aState, nsISHEntry *aSHEntry)
     
     DetachFromTopLevelWidget();
 
-    nsIViewManager *vm = GetViewManager();
+    nsViewManager *vm = GetViewManager();
     NS_ABORT_IF_FALSE(vm, "no view manager");
     nsView* v = vm->GetRootView();
     NS_ABORT_IF_FALSE(v, "no root view");
@@ -1546,7 +1546,7 @@ nsDocumentViewer::Destroy()
 
     
     if (mPresShell) {
-      nsIViewManager *vm = mPresShell->GetViewManager();
+      nsViewManager *vm = mPresShell->GetViewManager();
       if (vm) {
         nsView *rootView = vm->GetRootView();
 
@@ -1559,7 +1559,7 @@ nsDocumentViewer::Destroy()
 
           nsView *rootViewParent = rootView->GetParent();
           if (rootViewParent) {
-            nsIViewManager *parentVM = rootViewParent->GetViewManager();
+            nsViewManager *parentVM = rootViewParent->GetViewManager();
             if (parentVM) {
               parentVM->RemoveChild(rootView);
             }
@@ -1806,7 +1806,7 @@ nsDocumentViewer::GetPresContext()
   return mPresContext;
 }
 
-nsIViewManager*
+nsViewManager*
 nsDocumentViewer::GetViewManager()
 {
   return mViewManager;
@@ -4388,7 +4388,7 @@ nsDocumentViewer::InitializeForPrintPreview()
 }
 
 void
-nsDocumentViewer::SetPrintPreviewPresentation(nsIViewManager* aViewManager,
+nsDocumentViewer::SetPrintPreviewPresentation(nsViewManager* aViewManager,
                                                 nsPresContext* aPresContext,
                                                 nsIPresShell* aPresShell)
 {
