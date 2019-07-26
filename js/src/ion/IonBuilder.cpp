@@ -3579,24 +3579,27 @@ IonBuilder::createThisScriptedSingleton(HandleFunction target, HandleObject prot
 MDefinition *
 IonBuilder::createThis(HandleFunction target, MDefinition *callee)
 {
+    
+    if (!target)
+        return createThisScripted(callee);
+
+    
     if (target->isNative()) {
         if (!target->isNativeConstructor())
             return NULL;
         return createThisNative();
     }
 
-    MDefinition *createThis = NULL;
+    
     RootedObject proto(cx, getSingletonPrototype(target));
+    if (proto) {
+        MDefinition *createThis = createThisScriptedSingleton(target, proto, callee);
+        if (createThis)
+            return createThis;
+    }
 
     
-    if (proto)
-        createThis = createThisScriptedSingleton(target, proto, callee);
-
-    
-    if (!createThis)
-        createThis = createThisScripted(callee);
-
-    return createThis;
+    return createThisScripted(callee);
 }
 
 bool
@@ -3798,7 +3801,7 @@ IonBuilder::makeCallHelper(HandleFunction target, uint32 argc, bool constructing
     MPassArg *thisArg = current->pop()->toPassArg();
 
     
-    if (constructing && target) {
+    if (constructing) {
         MDefinition *callee = current->peek(-1);
         MDefinition *create = createThis(target, callee);
         if (!create) {
