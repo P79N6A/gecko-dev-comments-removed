@@ -87,14 +87,14 @@ public:
 
 
 
-  bool EnsureTextureClient(TextureClientType aType);
+  bool EnsureDeprecatedTextureClient(DeprecatedTextureClientType aType);
 
   virtual void Updated();
 
   virtual void SetDescriptorFromReply(TextureIdentifier aTextureId,
                                       const SurfaceDescriptor& aDescriptor) MOZ_OVERRIDE
   {
-    mTextureClient->SetDescriptorFromReply(aDescriptor);
+    mDeprecatedTextureClient->SetDescriptorFromReply(aDescriptor);
   }
 
   virtual TextureInfo GetTextureInfo() const MOZ_OVERRIDE
@@ -103,7 +103,7 @@ public:
   }
 
 private:
-  RefPtr<TextureClient> mTextureClient;
+  RefPtr<DeprecatedTextureClient> mDeprecatedTextureClient;
   TextureInfo mTextureInfo;
 };
 

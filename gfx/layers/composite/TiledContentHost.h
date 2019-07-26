@@ -23,41 +23,41 @@ public:
   
   
   TiledTexture()
-    : mTextureHost(nullptr)
+    : mDeprecatedTextureHost(nullptr)
   {}
 
   
-  TiledTexture(TextureHost* aTextureHost)
-    : mTextureHost(aTextureHost)
+  TiledTexture(DeprecatedTextureHost* aDeprecatedTextureHost)
+    : mDeprecatedTextureHost(aDeprecatedTextureHost)
   {}
 
   TiledTexture(const TiledTexture& o) {
-    mTextureHost = o.mTextureHost;
+    mDeprecatedTextureHost = o.mDeprecatedTextureHost;
   }
   TiledTexture& operator=(const TiledTexture& o) {
     if (this == &o) {
       return *this;
     }
-    mTextureHost = o.mTextureHost;
+    mDeprecatedTextureHost = o.mDeprecatedTextureHost;
     return *this;
   }
 
   void Validate(gfxReusableSurfaceWrapper* aReusableSurface, Compositor* aCompositor, uint16_t aSize);
 
   bool operator== (const TiledTexture& o) const {
-    if (!mTextureHost || !o.mTextureHost) {
-      return mTextureHost == o.mTextureHost;
+    if (!mDeprecatedTextureHost || !o.mDeprecatedTextureHost) {
+      return mDeprecatedTextureHost == o.mDeprecatedTextureHost;
     }
-    return *mTextureHost == *o.mTextureHost;
+    return *mDeprecatedTextureHost == *o.mDeprecatedTextureHost;
   }
   bool operator!= (const TiledTexture& o) const {
-    if (!mTextureHost || !o.mTextureHost) {
-      return mTextureHost != o.mTextureHost;
+    if (!mDeprecatedTextureHost || !o.mDeprecatedTextureHost) {
+      return mDeprecatedTextureHost != o.mDeprecatedTextureHost;
     }
-    return *mTextureHost != *o.mTextureHost;
+    return *mDeprecatedTextureHost != *o.mDeprecatedTextureHost;
   }
 
-  RefPtr<TextureHost> mTextureHost;
+  RefPtr<DeprecatedTextureHost> mDeprecatedTextureHost;
 };
 
 class TiledLayerBufferComposite
@@ -185,7 +185,7 @@ public:
 
   virtual TiledLayerComposer* AsTiledLayerComposer() MOZ_OVERRIDE { return this; }
 
-  virtual void EnsureTextureHost(TextureIdentifier aTextureId,
+  virtual void EnsureDeprecatedTextureHost(TextureIdentifier aTextureId,
                                  const SurfaceDescriptor& aSurface,
                                  ISurfaceAllocator* aAllocator,
                                  const TextureInfo& aTextureInfo) MOZ_OVERRIDE

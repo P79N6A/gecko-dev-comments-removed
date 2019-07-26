@@ -48,14 +48,16 @@ class CompositableForwarder;
 
 
 
-class TextureClient : public RefCounted<TextureClient>
+
+
+class DeprecatedTextureClient : public RefCounted<DeprecatedTextureClient>
 {
 public:
   typedef gl::SharedTextureHandle SharedTextureHandle;
   typedef gl::GLContext GLContext;
   typedef gl::TextureImage TextureImage;
 
-  virtual ~TextureClient();
+  virtual ~DeprecatedTextureClient();
 
   
 
@@ -69,7 +71,7 @@ public:
     return mTextureInfo;
   }
 
-  virtual bool SupportsType(TextureClientType aType) { return false; }
+  virtual bool SupportsType(DeprecatedTextureClientType aType) { return false; }
 
   
 
@@ -140,7 +142,7 @@ public:
   virtual gfxASurface::gfxContentType GetContentType() = 0;
 
 protected:
-  TextureClient(CompositableForwarder* aForwarder,
+  DeprecatedTextureClient(CompositableForwarder* aForwarder,
                 const TextureInfo& aTextureInfo);
 
   CompositableForwarder* mForwarder;
@@ -151,13 +153,13 @@ protected:
   AccessMode mAccessMode;
 };
 
-class TextureClientShmem : public TextureClient
+class DeprecatedTextureClientShmem : public DeprecatedTextureClient
 {
 public:
-  TextureClientShmem(CompositableForwarder* aForwarder, const TextureInfo& aTextureInfo);
-  ~TextureClientShmem() { ReleaseResources(); }
+  DeprecatedTextureClientShmem(CompositableForwarder* aForwarder, const TextureInfo& aTextureInfo);
+  ~DeprecatedTextureClientShmem() { ReleaseResources(); }
 
-  virtual bool SupportsType(TextureClientType aType) MOZ_OVERRIDE
+  virtual bool SupportsType(DeprecatedTextureClientType aType) MOZ_OVERRIDE
   {
     return aType == TEXTURE_SHMEM || aType == TEXTURE_CONTENT;
   }
@@ -181,15 +183,15 @@ private:
   friend class CompositingFactory;
 };
 
-class TextureClientShmemYCbCr : public TextureClient
+class DeprecatedTextureClientShmemYCbCr : public DeprecatedTextureClient
 {
 public:
-  TextureClientShmemYCbCr(CompositableForwarder* aForwarder, const TextureInfo& aTextureInfo)
-    : TextureClient(aForwarder, aTextureInfo)
+  DeprecatedTextureClientShmemYCbCr(CompositableForwarder* aForwarder, const TextureInfo& aTextureInfo)
+    : DeprecatedTextureClient(aForwarder, aTextureInfo)
   { }
-  ~TextureClientShmemYCbCr() { ReleaseResources(); }
+  ~DeprecatedTextureClientShmemYCbCr() { ReleaseResources(); }
 
-  virtual bool SupportsType(TextureClientType aType) MOZ_OVERRIDE { return aType == TEXTURE_YCBCR; }
+  virtual bool SupportsType(DeprecatedTextureClientType aType) MOZ_OVERRIDE { return aType == TEXTURE_YCBCR; }
   void EnsureAllocated(gfx::IntSize aSize, gfxASurface::gfxContentType aType) MOZ_OVERRIDE;
   virtual void SetDescriptorFromReply(const SurfaceDescriptor& aDescriptor) MOZ_OVERRIDE;
   virtual void SetDescriptor(const SurfaceDescriptor& aDescriptor) MOZ_OVERRIDE;
@@ -197,13 +199,13 @@ public:
   virtual gfxASurface::gfxContentType GetContentType() MOZ_OVERRIDE { return gfxASurface::CONTENT_COLOR_ALPHA; }
 };
 
-class TextureClientTile : public TextureClient
+class DeprecatedTextureClientTile : public DeprecatedTextureClient
 {
 public:
-  TextureClientTile(const TextureClientTile& aOther);
-  TextureClientTile(CompositableForwarder* aForwarder,
+  DeprecatedTextureClientTile(const DeprecatedTextureClientTile& aOther);
+  DeprecatedTextureClientTile(CompositableForwarder* aForwarder,
                     const TextureInfo& aTextureInfo);
-  ~TextureClientTile();
+  ~DeprecatedTextureClientTile();
 
   virtual void EnsureAllocated(gfx::IntSize aSize,
                                gfxASurface::gfxContentType aType) MOZ_OVERRIDE;
@@ -234,21 +236,12 @@ private:
 
 
 
-
-
-
-
-
-
-
-
-
-class AutoLockTextureClient
+class AutoLockDeprecatedTextureClient
 {
 public:
-  AutoLockTextureClient(TextureClient* aTexture)
+  AutoLockDeprecatedTextureClient(DeprecatedTextureClient* aTexture)
   {
-    mTextureClient = aTexture;
+    mDeprecatedTextureClient = aTexture;
     mDescriptor = aTexture->LockSurfaceDescriptor();
   }
 
@@ -257,34 +250,34 @@ public:
     return mDescriptor;
   }
 
-  virtual ~AutoLockTextureClient()
+  virtual ~AutoLockDeprecatedTextureClient()
   {
-    mTextureClient->Unlock();
+    mDeprecatedTextureClient->Unlock();
   }
 protected:
-  TextureClient* mTextureClient;
+  DeprecatedTextureClient* mDeprecatedTextureClient;
   SurfaceDescriptor* mDescriptor;
 };
 
 
 
 
-class AutoLockYCbCrClient : public AutoLockTextureClient
+class AutoLockYCbCrClient : public AutoLockDeprecatedTextureClient
 {
 public:
-  AutoLockYCbCrClient(TextureClient* aTexture) : AutoLockTextureClient(aTexture) {}
+  AutoLockYCbCrClient(DeprecatedTextureClient* aTexture) : AutoLockDeprecatedTextureClient(aTexture) {}
   bool Update(PlanarYCbCrImage* aImage);
 protected:
-  bool EnsureTextureClient(PlanarYCbCrImage* aImage);
+  bool EnsureDeprecatedTextureClient(PlanarYCbCrImage* aImage);
 };
 
 
 
 
-class AutoLockShmemClient : public AutoLockTextureClient
+class AutoLockShmemClient : public AutoLockDeprecatedTextureClient
 {
 public:
-  AutoLockShmemClient(TextureClient* aTexture) : AutoLockTextureClient(aTexture) {}
+  AutoLockShmemClient(DeprecatedTextureClient* aTexture) : AutoLockDeprecatedTextureClient(aTexture) {}
   bool Update(Image* aImage, uint32_t aContentFlags, gfxPattern* pat);
 };
 

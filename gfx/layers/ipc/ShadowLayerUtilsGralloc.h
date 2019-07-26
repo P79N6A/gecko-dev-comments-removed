@@ -87,7 +87,7 @@ public:
 
   
   
-  void SetTextureHost(TextureHost* aTextureHost);
+  void SetDeprecatedTextureHost(DeprecatedTextureHost* aDeprecatedTextureHost);
 
 private:
   GrallocBufferActor();
@@ -102,7 +102,7 @@ private:
 
   
   
-  TextureHost* mTextureHost;
+  DeprecatedTextureHost* mDeprecatedTextureHost;
 
   friend class ISurfaceAllocator;
 };

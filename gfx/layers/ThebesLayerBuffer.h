@@ -286,7 +286,7 @@ protected:
 
 
 
-  void SetBufferProvider(TextureClient* aClient)
+  void SetBufferProvider(DeprecatedTextureClient* aClient)
   {
     
     
@@ -299,7 +299,7 @@ protected:
     } 
   }
   
-  void SetBufferProviderOnWhite(TextureClient* aClient)
+  void SetBufferProviderOnWhite(DeprecatedTextureClient* aClient)
   {
     
     
@@ -350,8 +350,8 @@ protected:
 
 
 
-  TextureClient* mBufferProvider;
-  TextureClient* mBufferProviderOnWhite;
+  DeprecatedTextureClient* mBufferProvider;
+  DeprecatedTextureClient* mBufferProviderOnWhite;
 
   BufferSizePolicy      mBufferSizePolicy;
 };

@@ -150,7 +150,9 @@ public:
 
 
 
-class TextureHost : public TextureSource
+
+
+class DeprecatedTextureHost : public TextureSource
 {
 public:
   
@@ -161,12 +163,12 @@ public:
 
 
 
-  static TemporaryRef<TextureHost> CreateTextureHost(SurfaceDescriptorType aDescriptorType,
-                                                     uint32_t aTextureHostFlags,
+  static TemporaryRef<DeprecatedTextureHost> CreateDeprecatedTextureHost(SurfaceDescriptorType aDescriptorType,
+                                                     uint32_t aDeprecatedTextureHostFlags,
                                                      uint32_t aTextureFlags);
 
-  TextureHost();
-  virtual ~TextureHost();
+  DeprecatedTextureHost();
+  virtual ~DeprecatedTextureHost();
 
   virtual gfx::SurfaceFormat GetFormat() const { return mFormat; }
 
@@ -229,11 +231,11 @@ public:
     return mDeAllocator;
   }
 
-  bool operator== (const TextureHost& o) const
+  bool operator== (const DeprecatedTextureHost& o) const
   {
     return GetIdentifier() == o.GetIdentifier();
   }
-  bool operator!= (const TextureHost& o) const
+  bool operator!= (const DeprecatedTextureHost& o) const
   {
     return GetIdentifier() != o.GetIdentifier();
   }
@@ -258,7 +260,7 @@ public:
 
   virtual void EnsureBuffer(const nsIntSize& aSize, gfxASurface::gfxContentType aType)
   {
-    NS_RUNTIMEABORT("TextureHost doesn't support EnsureBuffer");
+    NS_RUNTIMEABORT("DeprecatedTextureHost doesn't support EnsureBuffer");
   }
 
   
@@ -270,10 +272,10 @@ public:
 
 
   virtual void CopyTo(const nsIntRect& aSourceRect,
-                      TextureHost *aDest,
+                      DeprecatedTextureHost *aDest,
                       const nsIntRect& aDestRect)
   {
-    NS_RUNTIMEABORT("TextureHost doesn't support CopyTo");
+    NS_RUNTIMEABORT("DeprecatedTextureHost doesn't support CopyTo");
   }
 
 
@@ -347,29 +349,29 @@ protected:
   ISurfaceAllocator* mDeAllocator;
 };
 
-class AutoLockTextureHost
+class AutoLockDeprecatedTextureHost
 {
 public:
-  AutoLockTextureHost(TextureHost* aHost)
-    : mTextureHost(aHost)
+  AutoLockDeprecatedTextureHost(DeprecatedTextureHost* aHost)
+    : mDeprecatedTextureHost(aHost)
     , mIsValid(true)
   {
-    if (mTextureHost) {
-      mIsValid = mTextureHost->Lock();
+    if (mDeprecatedTextureHost) {
+      mIsValid = mDeprecatedTextureHost->Lock();
     }
   }
 
-  ~AutoLockTextureHost()
+  ~AutoLockDeprecatedTextureHost()
   {
-    if (mTextureHost && mIsValid) {
-      mTextureHost->Unlock();
+    if (mDeprecatedTextureHost && mIsValid) {
+      mDeprecatedTextureHost->Unlock();
     }
   }
 
   bool IsValid() { return mIsValid; }
 
 private:
-  TextureHost *mTextureHost;
+  DeprecatedTextureHost *mDeprecatedTextureHost;
   bool mIsValid;
 };
 

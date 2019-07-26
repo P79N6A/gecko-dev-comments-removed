@@ -45,7 +45,7 @@ const TextureFlags OwnByClient        = 0x80;
 
 
 
-enum TextureClientType
+enum DeprecatedTextureClientType
 {
   TEXTURE_CONTENT,            
   TEXTURE_SHMEM,              
@@ -77,7 +77,7 @@ enum CompositableType
 
 
 
-enum TextureHostFlags
+enum DeprecatedTextureHostFlags
 {
   TEXTURE_HOST_DEFAULT = 0,       
                                   
@@ -126,25 +126,25 @@ const TextureIdentifier TextureOnWhiteBack = 4;
 struct TextureInfo
 {
   CompositableType mCompositableType;
-  uint32_t mTextureHostFlags;
+  uint32_t mDeprecatedTextureHostFlags;
   uint32_t mTextureFlags;
 
   TextureInfo()
     : mCompositableType(BUFFER_UNKNOWN)
-    , mTextureHostFlags(0)
+    , mDeprecatedTextureHostFlags(0)
     , mTextureFlags(0)
   {}
 
   TextureInfo(CompositableType aType)
     : mCompositableType(aType)
-    , mTextureHostFlags(0)
+    , mDeprecatedTextureHostFlags(0)
     , mTextureFlags(0)
   {}
 
   bool operator==(const TextureInfo& aOther) const
   {
     return mCompositableType == aOther.mCompositableType &&
-           mTextureHostFlags == aOther.mTextureHostFlags &&
+           mDeprecatedTextureHostFlags == aOther.mDeprecatedTextureHostFlags &&
            mTextureFlags == aOther.mTextureFlags;
   }
 };

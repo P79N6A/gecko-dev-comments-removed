@@ -172,7 +172,7 @@ public:
   ContentClientRemoteBuffer(CompositableForwarder* aForwarder)
     : ContentClientRemote(aForwarder)
     , ThebesLayerBuffer(ContainsVisibleBounds)
-    , mTextureClient(nullptr)
+    , mDeprecatedTextureClient(nullptr)
     , mIsNewBuffer(false)
     , mFrontAndBackBufferDiffer(false)
     , mContentType(gfxASurface::CONTENT_COLOR_ALPHA)
@@ -241,9 +241,9 @@ protected:
                                        bool aDidSelfCopy);
 
   
-  void BuildTextureClients(ContentType aType,
-                           const nsIntRect& aRect,
-                           uint32_t aFlags);
+  void BuildDeprecatedTextureClients(ContentType aType,
+                                     const nsIntRect& aRect,
+                                     uint32_t aFlags);
 
   
   
@@ -253,11 +253,11 @@ protected:
   
   virtual void LockFrontBuffer() {}
 
-  RefPtr<TextureClient> mTextureClient;
-  RefPtr<TextureClient> mTextureClientOnWhite;
+  RefPtr<DeprecatedTextureClient> mDeprecatedTextureClient;
+  RefPtr<DeprecatedTextureClient> mDeprecatedTextureClientOnWhite;
   
   
-  nsTArray<RefPtr<TextureClient> > mOldTextures;
+  nsTArray<RefPtr<DeprecatedTextureClient> > mOldTextures;
 
   TextureInfo mTextureInfo;
   bool mIsNewBuffer;
@@ -300,8 +300,8 @@ private:
   void UpdateDestinationFrom(const RotatedBuffer& aSource,
                              const nsIntRegion& aUpdateRegion);
 
-  RefPtr<TextureClient> mFrontClient;
-  RefPtr<TextureClient> mFrontClientOnWhite;
+  RefPtr<DeprecatedTextureClient> mFrontClient;
+  RefPtr<DeprecatedTextureClient> mFrontClientOnWhite;
   nsIntRegion mFrontUpdatedRegion;
   nsIntRect mFrontBufferRect;
   nsIntPoint mFrontBufferRotation;

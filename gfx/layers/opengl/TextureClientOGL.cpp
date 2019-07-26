@@ -11,15 +11,15 @@ using namespace mozilla::gl;
 namespace mozilla {
 namespace layers {
 
-TextureClientSharedOGL::TextureClientSharedOGL(CompositableForwarder* aForwarder,
+DeprecatedTextureClientSharedOGL::DeprecatedTextureClientSharedOGL(CompositableForwarder* aForwarder,
                                                const TextureInfo& aTextureInfo)
-  : TextureClient(aForwarder, aTextureInfo)
+  : DeprecatedTextureClient(aForwarder, aTextureInfo)
   , mGL(nullptr)
 {
 }
 
 void
-TextureClientSharedOGL::ReleaseResources()
+DeprecatedTextureClientSharedOGL::ReleaseResources()
 {
   if (!IsSurfaceDescriptorValid(mDescriptor)) {
     return;
@@ -31,7 +31,7 @@ TextureClientSharedOGL::ReleaseResources()
 }
 
 void
-TextureClientSharedOGL::EnsureAllocated(gfx::IntSize aSize,
+DeprecatedTextureClientSharedOGL::EnsureAllocated(gfx::IntSize aSize,
                                         gfxASurface::gfxContentType aContentType)
 {
   mSize = aSize;

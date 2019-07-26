@@ -79,7 +79,7 @@ public:
 
   virtual LayerRenderState GetRenderState() MOZ_OVERRIDE
   {
-    LayerRenderState result = mTextureHost->GetRenderState();
+    LayerRenderState result = mDeprecatedTextureHost->GetRenderState();
 
     if (mBufferRotation != nsIntPoint()) {
       result.mFlags |= LAYER_RENDER_STATE_BUFFER_ROTATION;
@@ -93,7 +93,7 @@ public:
 #ifdef MOZ_DUMP_PAINTING
   virtual already_AddRefed<gfxImageSurface> GetAsSurface()
   {
-    return mTextureHost->GetAsSurface();
+    return mDeprecatedTextureHost->GetAsSurface();
   }
 #endif
 
@@ -101,7 +101,7 @@ public:
                     const char* aPrefix="",
                     bool aDumpHtml=false) MOZ_OVERRIDE;
 
-  virtual TextureHost* GetTextureHost() MOZ_OVERRIDE;
+  virtual DeprecatedTextureHost* GetDeprecatedTextureHost() MOZ_OVERRIDE;
 
   virtual void SetPaintWillResample(bool aResample) { mPaintWillResample = aResample; }
   
@@ -123,13 +123,13 @@ protected:
 
   nsIntRect mBufferRect;
   nsIntPoint mBufferRotation;
-  RefPtr<TextureHost> mTextureHost;
-  RefPtr<TextureHost> mTextureHostOnWhite;
+  RefPtr<DeprecatedTextureHost> mDeprecatedTextureHost;
+  RefPtr<DeprecatedTextureHost> mDeprecatedTextureHostOnWhite;
   
   
   
-  RefPtr<TextureHost> mNewFrontHost;
-  RefPtr<TextureHost> mNewFrontHostOnWhite;
+  RefPtr<DeprecatedTextureHost> mNewFrontHost;
+  RefPtr<DeprecatedTextureHost> mNewFrontHostOnWhite;
   bool mPaintWillResample;
   bool mInitialised;
 };
@@ -153,7 +153,7 @@ public:
                             const nsIntRegion& aOldValidRegionBack,
                             nsIntRegion* aUpdatedRegionBack);
 
-  virtual void EnsureTextureHost(TextureIdentifier aTextureId,
+  virtual void EnsureDeprecatedTextureHost(TextureIdentifier aTextureId,
                                  const SurfaceDescriptor& aSurface,
                                  ISurfaceAllocator* aAllocator,
                                  const TextureInfo& aTextureInfo) MOZ_OVERRIDE;
@@ -171,8 +171,8 @@ protected:
   
   
   
-  RefPtr<TextureHost> mBackHost;
-  RefPtr<TextureHost> mBackHostOnWhite;
+  RefPtr<DeprecatedTextureHost> mBackHost;
+  RefPtr<DeprecatedTextureHost> mBackHostOnWhite;
 };
 
 
@@ -194,7 +194,7 @@ public:
                             const nsIntRegion& aOldValidRegionBack,
                             nsIntRegion* aUpdatedRegionBack);
 
-  virtual void EnsureTextureHost(TextureIdentifier aTextureId,
+  virtual void EnsureDeprecatedTextureHost(TextureIdentifier aTextureId,
                                  const SurfaceDescriptor& aSurface,
                                  ISurfaceAllocator* aAllocator,
                                  const TextureInfo& aTextureInfo) MOZ_OVERRIDE;
@@ -225,11 +225,11 @@ public:
 
   virtual CompositableType GetType() { return BUFFER_CONTENT; }
 
-  virtual void EnsureTextureHostIncremental(ISurfaceAllocator* aAllocator,
+  virtual void EnsureDeprecatedTextureHostIncremental(ISurfaceAllocator* aAllocator,
                                             const TextureInfo& aTextureInfo,
                                             const nsIntRect& aBufferRect) MOZ_OVERRIDE;
 
-  virtual void EnsureTextureHost(TextureIdentifier aTextureId,
+  virtual void EnsureDeprecatedTextureHost(TextureIdentifier aTextureId,
                                  const SurfaceDescriptor& aSurface,
                                  ISurfaceAllocator* aAllocator,
                                  const TextureInfo& aTextureInfo)
@@ -270,8 +270,8 @@ public:
 
   virtual void DestroyTextures()
   {
-    mTextureHost = nullptr;
-    mTextureHostOnWhite = nullptr;
+    mDeprecatedTextureHost = nullptr;
+    mDeprecatedTextureHostOnWhite = nullptr;
     mUpdateList.Clear();
   }
 
