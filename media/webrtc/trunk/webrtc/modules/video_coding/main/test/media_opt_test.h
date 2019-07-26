@@ -15,12 +15,12 @@
 
 #include <string>
 
-#include "receiver_tests.h"  
-#include "rtp_rtcp.h"
-#include "test_callbacks.h"
-#include "test_util.h"
-#include "video_coding.h"
-#include "video_source.h"
+#include "webrtc/modules/rtp_rtcp/interface/rtp_rtcp.h"
+#include "webrtc/modules/video_coding/main/interface/video_coding.h"
+#include "webrtc/modules/video_coding/main/test/receiver_tests.h"  
+#include "webrtc/modules/video_coding/main/test/test_callbacks.h"
+#include "webrtc/modules/video_coding/main/test/test_util.h"
+#include "webrtc/modules/video_coding/main/test/video_source.h"
 
 
 
@@ -53,6 +53,7 @@ public:
 private:
 
     webrtc::VideoCodingModule*       _vcm;
+    webrtc::RtpReceiver*             rtp_receiver_;
     webrtc::RtpRtcp*                 _rtp;
     webrtc::RTPSendCompleteCallback* _outgoingTransport;
     RtpDataCallback*                 _dataCallback;

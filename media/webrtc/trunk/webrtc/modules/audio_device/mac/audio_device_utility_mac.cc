@@ -8,10 +8,9 @@
 
 
 
-#include "audio_device_utility_mac.h"
-#include "audio_device_config.h"    
-#include "critical_section_wrapper.h"
-#include "trace.h"
+#include "webrtc/modules/audio_device/mac/audio_device_utility_mac.h"
+#include "webrtc/system_wrappers/interface/critical_section_wrapper.h"
+#include "webrtc/system_wrappers/interface/trace.h"
 
 namespace webrtc
 {
@@ -50,4 +49,4 @@ int32_t AudioDeviceUtilityMac::Init()
     return 0;
 }
 
-} 
+}  

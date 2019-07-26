@@ -23,8 +23,6 @@ namespace webrtc {
 
 class VideoEncoder;
 
-namespace newapi {
-
 struct SendStreamState;
 
 
@@ -81,13 +79,14 @@ class VideoSendStream {
           encoder(NULL),
           internal_source(false),
           target_delay_ms(0),
+          pacing(false),
           stats_callback(NULL),
           start_state(NULL) {}
     VideoCodec codec;
 
     struct Rtp {
-      Rtp() : mode(kRtcpReducedSize), max_packet_size(0) {}
-      RtcpMode mode;
+      Rtp() : mode(newapi::kRtcpReducedSize), max_packet_size(0) {}
+      newapi::RtcpMode mode;
 
       std::vector<uint32_t> ssrcs;
 
@@ -139,6 +138,10 @@ class VideoSendStream {
     int target_delay_ms;
 
     
+    
+    bool pacing;
+
+    
     StatsCallback* stats_callback;
 
     
@@ -163,7 +166,6 @@ class VideoSendStream {
   virtual ~VideoSendStream() {}
 };
 
-}  
 }  
 
 #endif  

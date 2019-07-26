@@ -8,16 +8,23 @@
 
 
 
-#ifndef WEBRTC_MODULES_VIDEO_CODING_SESSION_INFO_H_
-#define WEBRTC_MODULES_VIDEO_CODING_SESSION_INFO_H_
+#ifndef WEBRTC_MODULES_VIDEO_CODING_MAIN_SOURCE_SESSION_INFO_H_
+#define WEBRTC_MODULES_VIDEO_CODING_MAIN_SOURCE_SESSION_INFO_H_
 
 #include <list>
 
-#include "modules/interface/module_common_types.h"
-#include "modules/video_coding/main/source/packet.h"
-#include "typedefs.h"  
+#include "webrtc/modules/interface/module_common_types.h"
+#include "webrtc/modules/video_coding/main/interface/video_coding.h"
+#include "webrtc/modules/video_coding/main/source/packet.h"
+#include "webrtc/typedefs.h"
 
 namespace webrtc {
+
+
+struct FrameData {
+  int rtt_ms;
+  float rolling_average_packets_per_frame;
+};
 
 class VCMSessionInfo {
  public:
@@ -41,8 +48,8 @@ class VCMSessionInfo {
   void Reset();
   int InsertPacket(const VCMPacket& packet,
                    uint8_t* frame_buffer,
-                   bool enable_decodable_state,
-                   int rtt_ms);
+                   VCMDecodeErrorMode enable_decodable_state,
+                   const FrameData& frame_data);
   bool complete() const;
   bool decodable() const;
 
@@ -58,7 +65,15 @@ class VCMSessionInfo {
   
   
   int MakeDecodable();
+
+  
+  
+  
+  
+  void SetNotDecodableIfIncomplete();
+
   int SessionLength() const;
+  int NumPackets() const;
   bool HaveFirstPacket() const;
   bool HaveLastPacket() const;
   bool session_nack() const;
@@ -72,8 +87,6 @@ class VCMSessionInfo {
   bool LayerSync() const;
   int Tl0PicId() const;
   bool NonReference() const;
-  void SetPreviousFrameLoss() { previous_frame_loss_ = true; }
-  bool PreviousFrameLoss() const { return previous_frame_loss_; }
 
   
   
@@ -94,8 +107,7 @@ class VCMSessionInfo {
   
   
   
-  PacketIterator FindNextPartitionBeginning(PacketIterator it,
-                                            int* packets_skipped) const;
+  PacketIterator FindNextPartitionBeginning(PacketIterator it) const;
 
   
   
@@ -114,7 +126,21 @@ class VCMSessionInfo {
 
   
   
-  void UpdateDecodableSession(int rtt_ms);
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  void UpdateDecodableSession(const FrameData& frame_data);
 
   
   bool session_nack_;
@@ -126,8 +152,14 @@ class VCMSessionInfo {
   PacketList packets_;
   int empty_seq_num_low_;
   int empty_seq_num_high_;
+
   
-  int packets_not_decodable_;
+  
+  
+  
+  
+  int first_packet_seq_num_;
+  int last_packet_seq_num_;
 };
 
 }  

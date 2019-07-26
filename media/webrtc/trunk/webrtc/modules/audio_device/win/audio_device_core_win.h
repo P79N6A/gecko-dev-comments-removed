@@ -13,19 +13,19 @@
 
 #if (_MSC_VER >= 1400)  
 
-#include "audio_device_generic.h"
+#include "webrtc/modules/audio_device/audio_device_generic.h"
 
 #include <wmcodecdsp.h>      
                              
 #include <Audioclient.h>     
 #include <Audiopolicy.h>
+#include <Mmdeviceapi.h>     
 #include <avrt.h>            
 #include <endpointvolume.h>
 #include <mediaobj.h>        
-#include <Mmdeviceapi.h>     
 
-#include "critical_section_wrapper.h"
-#include "scoped_refptr.h"
+#include "webrtc/system_wrappers/interface/critical_section_wrapper.h"
+#include "webrtc/system_wrappers/interface/scoped_refptr.h"
 
 
 #pragma comment( lib, "avrt.lib" )

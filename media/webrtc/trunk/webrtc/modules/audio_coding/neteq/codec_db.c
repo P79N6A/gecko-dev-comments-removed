@@ -217,6 +217,15 @@ int WebRtcNetEQ_DbAdd(CodecDbInst_t *inst, enum WebRtcNetEQDecoder codec,
         
         switch (codec_fs)
         {
+            case 8000:
+            CNGpos = 0;
+            
+
+
+
+
+            overwriteCNGcodec = !insertCNGcodec;
+            break;
 #ifdef NETEQ_WIDEBAND
             case 16000:
             CNGpos = 1;
@@ -232,15 +241,9 @@ int WebRtcNetEQ_DbAdd(CodecDbInst_t *inst, enum WebRtcNetEQDecoder codec,
             CNGpos = 3;
             break;
 #endif
-            default: 
-                CNGpos = 0;
-                
-
-
-
-
-                overwriteCNGcodec = !insertCNGcodec;
-                break;
+            default:
+            
+            return CODEC_DB_UNSUPPORTED_CODEC;
         }
 
         

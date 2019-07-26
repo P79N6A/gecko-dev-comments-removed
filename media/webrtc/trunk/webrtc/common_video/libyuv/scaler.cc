@@ -55,7 +55,6 @@ int Scaler::Scale(const I420VideoFrame& src_frame,
 
   
   
-
   dst_frame->CreateEmptyFrame(dst_width_, dst_height_,
                               dst_width_, (dst_width_ + 1) / 2,
                               (dst_width_ + 1) / 2);
@@ -76,7 +75,6 @@ int Scaler::Scale(const I420VideoFrame& src_frame,
                            dst_width_, dst_height_,
                            libyuv::FilterMode(method_));
 }
-
 
 bool Scaler::SupportedVideoType(VideoType src_video_type,
                                 VideoType dst_video_type) {

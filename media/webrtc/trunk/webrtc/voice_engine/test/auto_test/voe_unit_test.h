@@ -67,5 +67,5 @@ class VoEUnitTest : public Encryption {
   int _extChannel;
 };
 
-} 
+}  
 #endif 

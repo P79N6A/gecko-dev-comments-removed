@@ -174,6 +174,6 @@ private:
 
 };
 
-} 
+}  
 
 #endif 

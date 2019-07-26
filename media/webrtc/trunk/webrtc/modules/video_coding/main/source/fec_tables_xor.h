@@ -6476,6 +6476,6 @@ static const unsigned char kCodeRateXORTable[kSizeCodeRateXORTable] = {
 
 };
 
-} 
+}  
 
 #endif 

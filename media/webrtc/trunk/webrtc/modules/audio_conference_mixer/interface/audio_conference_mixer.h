@@ -80,6 +80,6 @@ public:
 protected:
     AudioConferenceMixer() {}
 };
-} 
+}  
 
 #endif

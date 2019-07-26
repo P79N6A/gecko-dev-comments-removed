@@ -8,11 +8,11 @@
 
 
 
-#include "audio_mixer_manager_win.h"
-#include "trace.h"
+#include "webrtc/modules/audio_device/win/audio_mixer_manager_win.h"
+#include "webrtc/system_wrappers/interface/trace.h"
 
+#include <assert.h>      
 #include <strsafe.h>    
-#include <cassert>      
 
 #ifdef _WIN32
 

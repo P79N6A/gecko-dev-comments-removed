@@ -8,8 +8,8 @@
 
 
 
-#include "packet.h"
-#include "module_common_types.h"
+#include "webrtc/modules/interface/module_common_types.h"
+#include "webrtc/modules/video_coding/main/source/packet.h"
 
 #include <assert.h>
 
@@ -94,7 +94,7 @@ void VCMPacket::CopyCodecSpecifics(const RTPVideoHeader& videoHeader)
 {
     switch(videoHeader.codec)
     {
-        case kRTPVideoVP8:
+        case kRtpVideoVp8:
             {
                 
                 
@@ -109,11 +109,6 @@ void VCMPacket::CopyCodecSpecifics(const RTPVideoHeader& videoHeader)
                     completeNALU = kNaluIncomplete;
 
                 codec = kVideoCodecVP8;
-                break;
-            }
-        case kRTPVideoI420:
-            {
-                codec = kVideoCodecI420;
                 break;
             }
         default:

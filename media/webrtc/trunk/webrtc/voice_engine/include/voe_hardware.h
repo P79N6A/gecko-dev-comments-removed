@@ -136,6 +136,6 @@ protected:
     virtual ~VoEHardware() {}
 };
 
-} 
+}  
 
 #endif  

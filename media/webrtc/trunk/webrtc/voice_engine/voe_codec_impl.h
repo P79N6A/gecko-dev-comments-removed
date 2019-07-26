@@ -92,6 +92,6 @@ private:
     voe::SharedData* _shared;
 };
 
-} 
+}  
 
 #endif  

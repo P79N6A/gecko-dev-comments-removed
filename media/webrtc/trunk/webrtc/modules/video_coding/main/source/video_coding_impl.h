@@ -11,7 +11,7 @@
 #ifndef WEBRTC_MODULES_VIDEO_CODING_VIDEO_CODING_IMPL_H_
 #define WEBRTC_MODULES_VIDEO_CODING_VIDEO_CODING_IMPL_H_
 
-#include "modules/video_coding/main/interface/video_coding.h"
+#include "webrtc/modules/video_coding/main/interface/video_coding.h"
 
 #include <vector>
 
@@ -26,306 +26,194 @@
 #include "webrtc/system_wrappers/interface/clock.h"
 #include "webrtc/system_wrappers/interface/critical_section_wrapper.h"
 
-namespace webrtc
-{
+namespace webrtc {
+namespace vcm {
 
-class VCMProcessTimer
-{
-public:
-    VCMProcessTimer(uint32_t periodMs, Clock* clock)
-        : _clock(clock),
-          _periodMs(periodMs),
-          _latestMs(_clock->TimeInMilliseconds()) {}
-    uint32_t Period() const;
-    uint32_t TimeUntilProcess() const;
-    void Processed();
+class VCMProcessTimer {
+ public:
+  VCMProcessTimer(uint32_t periodMs, Clock* clock)
+      : _clock(clock),
+        _periodMs(periodMs),
+        _latestMs(_clock->TimeInMilliseconds()) {}
+  uint32_t Period() const;
+  uint32_t TimeUntilProcess() const;
+  void Processed();
 
-private:
-    Clock*                _clock;
-    uint32_t        _periodMs;
-    int64_t         _latestMs;
+ private:
+  Clock* _clock;
+  uint32_t _periodMs;
+  int64_t _latestMs;
 };
 
-enum VCMKeyRequestMode
-{
+class VideoSender {
+ public:
+  typedef VideoCodingModule::SenderNackMode SenderNackMode;
+
+  VideoSender(const int32_t id, Clock* clock);
+  ~VideoSender();
+
+  int32_t InitializeSender();
+
+  
+  int32_t RegisterSendCodec(const VideoCodec* sendCodec,
+                            uint32_t numberOfCores,
+                            uint32_t maxPayloadSize);
+
+  int32_t SendCodec(VideoCodec* currentSendCodec) const;
+  VideoCodecType SendCodec() const;
+  int32_t RegisterExternalEncoder(VideoEncoder* externalEncoder,
+                                  uint8_t payloadType,
+                                  bool internalSource);
+
+  int32_t CodecConfigParameters(uint8_t* buffer, int32_t size);
+  int Bitrate(unsigned int* bitrate) const;
+  int FrameRate(unsigned int* framerate) const;
+
+  int32_t SetChannelParameters(uint32_t target_bitrate,  
+                               uint8_t lossRate,
+                               uint32_t rtt);
+
+  int32_t RegisterTransportCallback(VCMPacketizationCallback* transport);
+  int32_t RegisterSendStatisticsCallback(VCMSendStatisticsCallback* sendStats);
+  int32_t RegisterVideoQMCallback(VCMQMSettingsCallback* videoQMSettings);
+  int32_t RegisterProtectionCallback(VCMProtectionCallback* protection);
+  int32_t SetVideoProtection(VCMVideoProtection videoProtection, bool enable);
+
+  int32_t AddVideoFrame(const I420VideoFrame& videoFrame,
+                        const VideoContentMetrics* _contentMetrics,
+                        const CodecSpecificInfo* codecSpecificInfo);
+
+  int32_t IntraFrameRequest(int stream_index);
+  int32_t EnableFrameDropper(bool enable);
+  int32_t SentFrameCount(VCMFrameCount* frameCount) const;
+
+  int SetSenderNackMode(SenderNackMode mode);
+  int SetSenderReferenceSelection(bool enable);
+  int SetSenderFEC(bool enable);
+  int SetSenderKeyFramePeriod(int periodMs);
+
+  int StartDebugRecording(const char* file_name_utf8);
+  int StopDebugRecording();
+
+  int32_t TimeUntilNextProcess();
+  int32_t Process();
+
+ private:
+  int32_t _id;
+  Clock* clock_;
+
+  scoped_ptr<CriticalSectionWrapper> process_crit_sect_;
+  CriticalSectionWrapper* _sendCritSect;
+  VCMGenericEncoder* _encoder;
+  VCMEncodedFrameCallback _encodedFrameCallback;
+  std::vector<FrameType> _nextFrameTypes;
+  media_optimization::MediaOptimization _mediaOpt;
+  VCMSendStatisticsCallback* _sendStatsCallback;
+  FILE* _encoderInputFile;
+  VCMCodecDataBase _codecDataBase;
+  bool frame_dropper_enabled_;
+  VCMProcessTimer _sendStatsTimer;
+};
+
+class VideoReceiver {
+ public:
+  typedef VideoCodingModule::ReceiverRobustness ReceiverRobustness;
+
+  VideoReceiver(const int32_t id, Clock* clock, EventFactory* event_factory);
+  ~VideoReceiver();
+
+  int32_t InitializeReceiver();
+  int32_t RegisterReceiveCodec(const VideoCodec* receiveCodec,
+                               int32_t numberOfCores,
+                               bool requireKeyFrame);
+
+  int32_t RegisterExternalDecoder(VideoDecoder* externalDecoder,
+                                  uint8_t payloadType,
+                                  bool internalRenderTiming);
+  int32_t RegisterReceiveCallback(VCMReceiveCallback* receiveCallback);
+  int32_t RegisterReceiveStatisticsCallback(
+      VCMReceiveStatisticsCallback* receiveStats);
+  int32_t RegisterFrameTypeCallback(VCMFrameTypeCallback* frameTypeCallback);
+  int32_t RegisterPacketRequestCallback(VCMPacketRequestCallback* callback);
+  int RegisterRenderBufferSizeCallback(VCMRenderBufferSizeCallback* callback);
+
+  int32_t Decode(uint16_t maxWaitTimeMs);
+  int32_t DecodeDualFrame(uint16_t maxWaitTimeMs);
+  int32_t ResetDecoder();
+
+  int32_t ReceiveCodec(VideoCodec* currentReceiveCodec) const;
+  VideoCodecType ReceiveCodec() const;
+
+  int32_t IncomingPacket(const uint8_t* incomingPayload,
+                         uint32_t payloadLength,
+                         const WebRtcRTPHeader& rtpInfo);
+  int32_t SetMinimumPlayoutDelay(uint32_t minPlayoutDelayMs);
+  int32_t SetRenderDelay(uint32_t timeMS);
+  int32_t Delay() const;
+  int32_t ReceivedFrameCount(VCMFrameCount* frameCount) const;
+  uint32_t DiscardedPackets() const;
+
+  int SetReceiverRobustnessMode(ReceiverRobustness robustnessMode,
+                                VCMDecodeErrorMode errorMode);
+  void SetNackSettings(size_t max_nack_list_size,
+                       int max_packet_age_to_nack,
+                       int max_incomplete_time_ms);
+
+  void SetDecodeErrorMode(VCMDecodeErrorMode decode_error_mode);
+  int SetMinReceiverDelay(int desired_delay_ms);
+
+  int32_t SetReceiveChannelParameters(uint32_t rtt);
+  int32_t SetVideoProtection(VCMVideoProtection videoProtection, bool enable);
+
+  int32_t TimeUntilNextProcess();
+  int32_t Process();
+
+ protected:
+  int32_t Decode(const webrtc::VCMEncodedFrame& frame);
+  int32_t RequestKeyFrame();
+  int32_t RequestSliceLossIndication(const uint64_t pictureID) const;
+  int32_t NackList(uint16_t* nackList, uint16_t* size);
+
+ private:
+  enum VCMKeyRequestMode {
     kKeyOnError,    
     kKeyOnKeyLoss,  
                     
     kKeyOnLoss,     
                     
-};
-
-class VideoCodingModuleImpl : public VideoCodingModule
-{
-public:
-    VideoCodingModuleImpl(const int32_t id, Clock* clock,
-                          EventFactory* event_factory, bool owns_event_factory);
-
-    virtual ~VideoCodingModuleImpl();
-
-    int32_t Id() const;
-
-    
-    virtual int32_t ChangeUniqueId(const int32_t id);
-
-    
-    
-    virtual int32_t TimeUntilNextProcess();
-
-    virtual int32_t Process();
-
-    
-
-
-
-    
-    virtual int32_t InitializeSender();
-
-    
-    virtual int32_t RegisterSendCodec(const VideoCodec* sendCodec,
-                                            uint32_t numberOfCores,
-                                            uint32_t maxPayloadSize);
-
-    
-    virtual int32_t SendCodec(VideoCodec* currentSendCodec) const;
-
-    
-    virtual VideoCodecType SendCodec() const;
-
-    
-    virtual int32_t RegisterExternalEncoder(VideoEncoder* externalEncoder,
-                                                  uint8_t payloadType,
-                                                  bool internalSource = false);
-
-    
-    virtual int32_t CodecConfigParameters(uint8_t* buffer,
-                                                int32_t size);
-
-    
-    virtual int Bitrate(unsigned int* bitrate) const;
-
-    
-    virtual int FrameRate(unsigned int* framerate) const;
-
-    
-    virtual int32_t SetChannelParameters(
-        uint32_t target_bitrate,  
-        uint8_t lossRate,
-        uint32_t rtt);
-
-    
-    virtual int32_t SetReceiveChannelParameters(uint32_t rtt);
-
-    
-    
-    virtual int32_t RegisterTransportCallback(
-        VCMPacketizationCallback* transport);
-
-    
-    
-    
-    virtual int32_t RegisterSendStatisticsCallback(
-        VCMSendStatisticsCallback* sendStats);
-
-    
-    
-    virtual int32_t RegisterVideoQMCallback(
-        VCMQMSettingsCallback* videoQMSettings);
-
-    
-    
-    virtual int32_t RegisterProtectionCallback(
-        VCMProtectionCallback* protection);
-
-    
-   virtual int32_t SetVideoProtection(VCMVideoProtection videoProtection,
-                                            bool enable);
-
-    
-    virtual int32_t AddVideoFrame(
-        const I420VideoFrame& videoFrame,
-        const VideoContentMetrics* _contentMetrics = NULL,
-        const CodecSpecificInfo* codecSpecificInfo = NULL);
-
-    virtual int32_t IntraFrameRequest(int stream_index);
-
-    
-    virtual int32_t EnableFrameDropper(bool enable);
-
-    
-    virtual int32_t SentFrameCount(VCMFrameCount& frameCount) const;
-
-    
-
-
-
-    
-    virtual int32_t InitializeReceiver();
-
-    
-    virtual int32_t RegisterReceiveCodec(const VideoCodec* receiveCodec,
-                                               int32_t numberOfCores,
-                                               bool requireKeyFrame = false);
-
-    
-    
-    virtual int32_t RegisterExternalDecoder(VideoDecoder* externalDecoder,
-                                                  uint8_t payloadType,
-                                                  bool internalRenderTiming);
-
-    
-    
-    virtual int32_t RegisterReceiveCallback(
-        VCMReceiveCallback* receiveCallback);
-
-    
-    
-    
-    virtual int32_t RegisterReceiveStatisticsCallback(
-        VCMReceiveStatisticsCallback* receiveStats);
-
-    
-    virtual int32_t RegisterFrameTypeCallback(
-        VCMFrameTypeCallback* frameTypeCallback);
-
-    
-    virtual int32_t RegisterFrameStorageCallback(
-        VCMFrameStorageCallback* frameStorageCallback);
-
-    
-    virtual int32_t RegisterPacketRequestCallback(
-        VCMPacketRequestCallback* callback);
-
-    
-    virtual int RegisterRenderBufferSizeCallback(
-        VCMRenderBufferSizeCallback* callback);
-
-    
-    
-    virtual int32_t Decode(uint16_t maxWaitTimeMs = 200);
-
-    
-    
-    virtual int32_t DecodeDualFrame(uint16_t maxWaitTimeMs = 200);
-
-    
-    virtual int32_t ResetDecoder();
-
-    
-    virtual int32_t ReceiveCodec(VideoCodec* currentReceiveCodec) const;
-
-    
-    virtual VideoCodecType ReceiveCodec() const;
-
-    
-    virtual int32_t IncomingPacket(const uint8_t* incomingPayload,
-                                         uint32_t payloadLength,
-                                         const WebRtcRTPHeader& rtpInfo);
-
-    
-    
-    virtual int32_t DecodeFromStorage(
-        const EncodedVideoData& frameFromStorage);
-
-    
-    
-    
-    virtual int32_t SetMinimumPlayoutDelay(
-        uint32_t minPlayoutDelayMs);
-
-    
-    virtual int32_t SetRenderDelay(uint32_t timeMS);
-
-    
-    virtual int32_t Delay() const;
-
-    
-    virtual int32_t ReceivedFrameCount(VCMFrameCount& frameCount) const;
-
-    
-    virtual uint32_t DiscardedPackets() const;
-
-
-    
-
-    
-    virtual int SetSenderNackMode(SenderNackMode mode);
-
-    
-    virtual int SetSenderReferenceSelection(bool enable);
-
-    
-    virtual int SetSenderFEC(bool enable);
-
-    
-    virtual int SetSenderKeyFramePeriod(int periodMs);
-
-    
-    virtual int SetReceiverRobustnessMode(ReceiverRobustness robustnessMode,
-                                          DecodeErrors errorMode);
-
-    virtual void SetNackSettings(size_t max_nack_list_size,
-                                 int max_packet_age_to_nack,
-                                 int max_incomplete_time_ms);
-
-    
-    virtual int SetMinReceiverDelay(int desired_delay_ms);
-
-    
-    virtual int StartDebugRecording(const char* file_name_utf8);
-
-    
-    virtual int StopDebugRecording();
-
-protected:
-    int32_t Decode(const webrtc::VCMEncodedFrame& frame);
-    int32_t RequestKeyFrame();
-    int32_t RequestSliceLossIndication(
-        const uint64_t pictureID) const;
-    int32_t NackList(uint16_t* nackList, uint16_t& size);
-
-private:
-    int32_t                       _id;
-    Clock*                              clock_;
-    CriticalSectionWrapper*             _receiveCritSect;
-    bool                                _receiverInited;
-    VCMTiming                           _timing;
-    VCMTiming                           _dualTiming;
-    VCMReceiver                         _receiver;
-    VCMReceiver                         _dualReceiver;
-    VCMDecodedFrameCallback             _decodedFrameCallback;
-    VCMDecodedFrameCallback             _dualDecodedFrameCallback;
-    VCMFrameTypeCallback*               _frameTypeCallback;
-    VCMFrameStorageCallback*            _frameStorageCallback;
-    VCMReceiveStatisticsCallback*       _receiveStatsCallback;
-    VCMPacketRequestCallback*           _packetRequestCallback;
-    VCMRenderBufferSizeCallback*        render_buffer_callback_;
-    VCMGenericDecoder*                  _decoder;
-    VCMGenericDecoder*                  _dualDecoder;
+  };
+
+  int32_t _id;
+  Clock* clock_;
+  scoped_ptr<CriticalSectionWrapper> process_crit_sect_;
+  CriticalSectionWrapper* _receiveCritSect;
+  bool _receiverInited;
+  VCMTiming _timing;
+  VCMTiming _dualTiming;
+  VCMReceiver _receiver;
+  VCMReceiver _dualReceiver;
+  VCMDecodedFrameCallback _decodedFrameCallback;
+  VCMDecodedFrameCallback _dualDecodedFrameCallback;
+  VCMFrameTypeCallback* _frameTypeCallback;
+  VCMReceiveStatisticsCallback* _receiveStatsCallback;
+  VCMPacketRequestCallback* _packetRequestCallback;
+  VCMRenderBufferSizeCallback* render_buffer_callback_;
+  VCMGenericDecoder* _decoder;
+  VCMGenericDecoder* _dualDecoder;
 #ifdef DEBUG_DECODER_BIT_STREAM
-    FILE*                               _bitStreamBeforeDecoder;
+  FILE* _bitStreamBeforeDecoder;
 #endif
-    VCMFrameBuffer                      _frameFromFile;
-    VCMKeyRequestMode                   _keyRequestMode;
-    bool                                _scheduleKeyRequest;
-    size_t                              max_nack_list_size_;
+  VCMFrameBuffer _frameFromFile;
+  VCMKeyRequestMode _keyRequestMode;
+  bool _scheduleKeyRequest;
+  size_t max_nack_list_size_;
 
-    CriticalSectionWrapper*             _sendCritSect; 
-    VCMGenericEncoder*                  _encoder;
-    VCMEncodedFrameCallback             _encodedFrameCallback;
-    std::vector<FrameType>              _nextFrameTypes;
-    media_optimization::VCMMediaOptimization _mediaOpt;
-    VideoCodecType                      _sendCodecType;
-    VCMSendStatisticsCallback*          _sendStatsCallback;
-    FILE*                               _encoderInputFile;
-    VCMCodecDataBase                    _codecDataBase;
-    VCMProcessTimer                     _receiveStatsTimer;
-    VCMProcessTimer                     _sendStatsTimer;
-    VCMProcessTimer                     _retransmissionTimer;
-    VCMProcessTimer                     _keyRequestTimer;
-    EventFactory*                       event_factory_;
-    bool                                owns_event_factory_;
-    bool                                frame_dropper_enabled_;
+  VCMCodecDataBase _codecDataBase;
+  VCMProcessTimer _receiveStatsTimer;
+  VCMProcessTimer _retransmissionTimer;
+  VCMProcessTimer _keyRequestTimer;
 };
-} 
-#endif 
+
+}  
+}  
+#endif

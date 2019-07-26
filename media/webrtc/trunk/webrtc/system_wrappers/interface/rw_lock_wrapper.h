@@ -63,6 +63,6 @@ class WriteLockScoped {
   RWLockWrapper& rw_lock_;
 };
 
-} 
+}  
 
 #endif  

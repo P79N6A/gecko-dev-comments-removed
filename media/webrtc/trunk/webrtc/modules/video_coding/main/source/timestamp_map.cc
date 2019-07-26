@@ -8,9 +8,9 @@
 
 
 
-#include "timestamp_map.h"
-#include <stdlib.h>
 #include <assert.h>
+#include <stdlib.h>
+#include "webrtc/modules/video_coding/main/source/timestamp_map.h"
 
 namespace webrtc {
 

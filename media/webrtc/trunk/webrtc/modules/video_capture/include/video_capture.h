@@ -152,5 +152,5 @@ protected:
   virtual ~VideoCaptureModule() {};
 };
 
-} 
+}  
 #endif  

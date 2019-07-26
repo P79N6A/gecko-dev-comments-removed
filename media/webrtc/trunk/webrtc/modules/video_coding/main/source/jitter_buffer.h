@@ -11,11 +11,13 @@
 #ifndef WEBRTC_MODULES_VIDEO_CODING_MAIN_SOURCE_JITTER_BUFFER_H_
 #define WEBRTC_MODULES_VIDEO_CODING_MAIN_SOURCE_JITTER_BUFFER_H_
 
+#include <list>
 #include <map>
 #include <set>
 #include <vector>
 
 #include "webrtc/modules/interface/module_common_types.h"
+#include "webrtc/modules/video_coding/main/interface/video_coding.h"
 #include "webrtc/modules/video_coding/main/interface/video_coding_defines.h"
 #include "webrtc/modules/video_coding/main/source/decoding_state.h"
 #include "webrtc/modules/video_coding/main/source/inter_frame_delay.h"
@@ -40,6 +42,8 @@ class VCMFrameBuffer;
 class VCMPacket;
 class VCMEncodedFrame;
 
+typedef std::list<VCMFrameBuffer*> UnorderedFrameList;
+
 struct VCMJitterSample {
   VCMJitterSample() : timestamp(0), frame_size(0), latest_packet_time(-1) {}
   uint32_t timestamp;
@@ -55,16 +59,19 @@ class TimestampLessThan {
   }
 };
 
-class FrameList :
-  public std::map<uint32_t, VCMFrameBuffer*, TimestampLessThan> {
+class FrameList
+    : public std::map<uint32_t, VCMFrameBuffer*, TimestampLessThan> {
  public:
   void InsertFrame(VCMFrameBuffer* frame);
   VCMFrameBuffer* FindFrame(uint32_t timestamp) const;
   VCMFrameBuffer* PopFrame(uint32_t timestamp);
   VCMFrameBuffer* Front() const;
   VCMFrameBuffer* Back() const;
-  int RecycleFramesUntilKeyFrame(FrameList::iterator* key_frame_it);
-  int CleanUpOldOrEmptyFrames(VCMDecodingState* decoding_state);
+  int RecycleFramesUntilKeyFrame(FrameList::iterator* key_frame_it,
+      UnorderedFrameList* free_frames);
+  int CleanUpOldOrEmptyFrames(VCMDecodingState* decoding_state,
+      UnorderedFrameList* free_frames);
+  void Reset(UnorderedFrameList* free_frames);
 };
 
 class VCMJitterBuffer {
@@ -144,10 +151,6 @@ class VCMJitterBuffer {
                                   bool* retransmitted);
 
   
-  
-  void SetMaxJitterEstimate(bool enable);
-
-  
   uint32_t EstimatedJitterMs();
 
   
@@ -173,9 +176,10 @@ class VCMJitterBuffer {
   uint16_t* GetNackList(uint16_t* nack_list_size, bool* request_key_frame);
 
   
-  void DecodeWithErrors(bool enable) {decode_with_errors_ = enable;}
+  
+  void SetDecodeErrorMode(VCMDecodeErrorMode error_mode);
   int64_t LastDecodedTimestamp() const;
-  bool decode_with_errors() const {return decode_with_errors_;}
+  VCMDecodeErrorMode decode_error_mode() const {return decode_error_mode_;}
 
   
   
@@ -195,6 +199,8 @@ class VCMJitterBuffer {
   
   
   VCMFrameBufferEnum GetFrame(const VCMPacket& packet, VCMFrameBuffer** frame);
+  void CopyFrames(FrameList* to_list, const FrameList& from_list);
+  void CopyFrames(FrameList* to_list, const FrameList& from_list, int* index);
   
   
   bool IsContinuousInState(const VCMFrameBuffer& frame,
@@ -231,23 +237,23 @@ class VCMJitterBuffer {
 
   
   
+  bool TryToIncreaseJitterBufferSize();
+
+  
+  
   bool RecycleFramesUntilKeyFrame();
 
   
   
-  void UpdateFrameState(VCMFrameBuffer* frame);
+  
+  void CountFrame(const VCMFrameBuffer& frame);
+
+  
+  void UpdateAveragePacketsPerFrame(int current_number_packets_);
 
   
   
   void CleanUpOldOrEmptyFrames();
-
-  
-  
-  
-  
-  
-  
-  void VerifyAndSetPreviousFrameLost(VCMFrameBuffer* frame);
 
   
   bool IsPacketRetransmitted(const VCMPacket& packet) const;
@@ -284,13 +290,13 @@ class VCMJitterBuffer {
   int max_number_of_frames_;
   
   VCMFrameBuffer* frame_buffers_[kMaxNumberOfFrames];
+  UnorderedFrameList free_frames_;
   FrameList decodable_frames_;
   FrameList incomplete_frames_;
   VCMDecodingState last_decoded_state_;
   bool first_packet_since_reset_;
 
   
-  int num_not_decodable_packets_;
   
   unsigned int receive_statistics_[4];
   
@@ -327,7 +333,12 @@ class VCMJitterBuffer {
   int max_packet_age_to_nack_;  
   int max_incomplete_time_ms_;
 
-  bool decode_with_errors_;
+  VCMDecodeErrorMode decode_error_mode_;
+  
+  float average_packets_per_frame_;
+  
+  
+  int frame_counter_;
   DISALLOW_COPY_AND_ASSIGN(VCMJitterBuffer);
 };
 }  

@@ -163,6 +163,6 @@ int32_t MemoryPoolImpl<MemoryType>::CreateMemory(
     }
     return 0;
 }
-} 
+}  
 
 #endif 

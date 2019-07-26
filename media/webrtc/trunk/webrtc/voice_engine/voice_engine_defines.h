@@ -28,9 +28,6 @@
 namespace webrtc {
 
 
-enum { kVoiceEngineMaxNumChannels = 100 };
-
-
 enum { kMinVolumeLevel = 0 };
 enum { kMaxVolumeLevel = 255 };
 
@@ -123,7 +120,7 @@ enum { kVoiceEngineMinRtpExtensionId = 1 };
 
 enum { kVoiceEngineMaxRtpExtensionId = 14 };
 
-} 
+}  
 
 
 
@@ -138,12 +135,6 @@ enum { kVoiceEngineMaxRtpExtensionId = 14 };
     
 #define WEBRTC_VOICE_ENGINE_RX_NS_DEFAULT_MODE NoiseSuppression::kModerate
     
-
-
-
-#define STR_CASE_CMP(x,y) ::_stricmp(x,y)
-
-#define STR_NCASE_CMP(x,y,n) ::_strnicmp(x,y,n)
 
 
 
@@ -218,7 +209,7 @@ inline int VoEChannelId(int moduleId)
     return (int) (moduleId & 0xffff);
 }
 
-} 
+}  
 
 
 
@@ -227,6 +218,8 @@ inline int VoEChannelId(int moduleId)
 
 
 #if defined(_WIN32)
+
+  #include <windows.h>
 
   #pragma comment( lib, "winmm.lib" )
 
@@ -237,13 +230,6 @@ inline int VoEChannelId(int moduleId)
 
 
 
-
-  #include <windows.h>
-
-  
-  #define STR_CASE_CMP(x,y) ::_stricmp(x,y)
-  
-  #define STR_NCASE_CMP(x,y,n) ::_strnicmp(x,y,n)
 
 
   #define WEBRTC_VOICE_ENGINE_DEFAULT_DEVICE \
@@ -314,18 +300,9 @@ inline int VoEChannelId(int moduleId)
 
   
   #undef WEBRTC_CODEC_ISAC
-  
-  
-  
-  
-  #undef WEBRTC_CONFERENCING
-  #undef WEBRTC_TYPING_DETECTION
+  #undef WEBRTC_VOE_EXTERNAL_REC_AND_PLAYOUT
 
-  
-  
-  
-  #define ANDROID_NOT_SUPPORTED(stat)
-
+  #define ANDROID_NOT_SUPPORTED(stat) NOT_SUPPORTED(stat)
 
 #else 
 
@@ -344,11 +321,9 @@ inline int VoEChannelId(int moduleId)
 
 
 
-#if defined(WEBRTC_BSD) || defined(WEBRTC_MAC)
+#ifdef WEBRTC_MAC
 
-#if !defined(WEBRTC_BSD)
 #include <AudioUnit/AudioUnit.h>
-#endif
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -364,14 +339,13 @@ inline int VoEChannelId(int moduleId)
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
-#if !defined(WEBRTC_BSD) && !defined(WEBRTC_IOS)
+#if !defined(WEBRTC_IOS)
   #include <CoreServices/CoreServices.h>
   #include <CoreAudio/CoreAudio.h>
   #include <AudioToolbox/DefaultAudioOutput.h>
   #include <AudioToolbox/AudioConverter.h>
   #include <CoreAudio/HostTime.h>
 #endif
-
 
 #define DWORD unsigned long int
 #define WINAPI

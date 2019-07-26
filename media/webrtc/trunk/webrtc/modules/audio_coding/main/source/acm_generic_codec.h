@@ -12,7 +12,7 @@
 #define WEBRTC_MODULES_AUDIO_CODING_MAIN_SOURCE_ACM_GENERIC_CODEC_H_
 
 #include "webrtc/modules/audio_coding/main/interface/audio_coding_module_typedefs.h"
-#include "webrtc/modules/audio_coding/main/source/acm_common_defs.h"
+#include "webrtc/modules/audio_coding/main/acm2/acm_common_defs.h"
 #include "webrtc/modules/audio_coding/neteq/interface/webrtc_neteq.h"
 #include "webrtc/system_wrappers/interface/rw_lock_wrapper.h"
 #include "webrtc/system_wrappers/interface/trace.h"
@@ -27,6 +27,9 @@ namespace webrtc {
 
 
 struct CodecInst;
+
+namespace acm1 {
+
 class ACMNetEQ;
 
 class ACMGenericCodec {
@@ -392,9 +395,9 @@ class ACMGenericCodec {
   
   
   
-  int16_t SetVAD(const bool enable_dtx = true,
-                 const bool enable_vad = false,
-                 const ACMVADMode mode = VADNormal);
+  int16_t SetVAD(bool* enable_dtx,
+                 bool* enable_vad,
+                 ACMVADMode* mode);
 
   
   
@@ -594,9 +597,7 @@ class ACMGenericCodec {
   
   
   
-  virtual int16_t UpdateDecoderSampFreq(int16_t ) {
-    return 0;
-  }
+  virtual int16_t UpdateDecoderSampFreq(int16_t );
 
   
   
@@ -747,9 +748,7 @@ class ACMGenericCodec {
   
   
   
-  virtual bool IsTrueStereoCodec() {
-    return false;
-  }
+  virtual bool IsTrueStereoCodec();
 
   
   
@@ -886,9 +885,9 @@ class ACMGenericCodec {
   
   
   
-  int16_t SetVADSafe(const bool enable_dtx = true,
-                     const bool enable_vad = false,
-                     const ACMVADMode mode = VADNormal);
+  int16_t SetVADSafe(bool* enable_dtx,
+                     bool* enable_vad,
+                     ACMVADMode* mode);
 
   
   
@@ -1148,9 +1147,7 @@ class ACMGenericCodec {
   
   
   
-  virtual void CurrentRate(int32_t& ) {
-    return;
-  }
+  virtual void CurrentRate(int32_t& );
 
   virtual void SaveDecoderParamSafe(const WebRtcACMCodecParams* codec_params);
 
@@ -1218,6 +1215,8 @@ class ACMGenericCodec {
   bool is_audio_buff_fresh_;
   uint32_t unique_id_;
 };
+
+}  
 
 }  
 

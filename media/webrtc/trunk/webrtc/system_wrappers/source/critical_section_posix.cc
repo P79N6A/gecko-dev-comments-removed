@@ -39,4 +39,4 @@ CriticalSectionPosix::Leave() {
   (void) pthread_mutex_unlock(&mutex_);
 }
 
-} 
+}  

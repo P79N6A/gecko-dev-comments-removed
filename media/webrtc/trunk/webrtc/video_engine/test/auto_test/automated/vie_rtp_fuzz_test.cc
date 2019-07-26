@@ -8,7 +8,7 @@
 
 
 
-#include <ctime>
+#include <time.h>
 
 #include "gflags/gflags.h"
 #include "testing/gtest/include/gtest/gtest.h"
@@ -65,7 +65,7 @@ protected:
     if (FLAGS_rtp_fuzz_test_rand_seed != 0) {
       return FLAGS_rtp_fuzz_test_rand_seed;
     }
-    return std::time(NULL);
+    return time(NULL);
   }
 
   

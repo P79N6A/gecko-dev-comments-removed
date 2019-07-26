@@ -41,6 +41,48 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #define _USE_MATH_DEFINES
 
 #include "webrtc/common_audio/resampler/sinc_resampler.h"
@@ -48,8 +90,9 @@
 #include "webrtc/system_wrappers/interface/cpu_features_wrapper.h"
 #include "webrtc/typedefs.h"
 
-#include <cmath>
-#include <cstring>
+#include <math.h>
+#include <string.h>
+
 #include <limits>
 
 namespace webrtc {
@@ -70,49 +113,49 @@ static double SincScaleFactor(double io_ratio) {
   return sinc_scale_factor;
 }
 
-SincResampler::SincResampler(double io_sample_rate_ratio,
-                             SincResamplerCallback* read_cb,
-                             int block_size)
-    : io_sample_rate_ratio_(io_sample_rate_ratio),
-      virtual_source_idx_(0),
-      buffer_primed_(false),
-      read_cb_(read_cb),
-      block_size_(block_size),
-      buffer_size_(block_size_ + kKernelSize),
-      
-      kernel_storage_(static_cast<float*>(
-          AlignedMalloc(sizeof(float) * kKernelStorageSize, 16))),
-      kernel_pre_sinc_storage_(static_cast<float*>(
-          AlignedMalloc(sizeof(float) * kKernelStorageSize, 16))),
-      kernel_window_storage_(static_cast<float*>(
-          AlignedMalloc(sizeof(float) * kKernelStorageSize, 16))),
-      input_buffer_(static_cast<float*>(
-          AlignedMalloc(sizeof(float) * buffer_size_, 16))),
-#if defined(WEBRTC_ARCH_X86_FAMILY) && !defined(__SSE__)
-      convolve_proc_(WebRtc_GetCPUInfo(kSSE2) ? Convolve_SSE : Convolve_C),
-#elif defined(WEBRTC_ARCH_ARM_V7) && !defined(WEBRTC_ARCH_ARM_NEON)
-      convolve_proc_(WebRtc_GetCPUFeaturesARM() & kCPUFeatureNEON ?
-                     Convolve_NEON : Convolve_C),
-#endif
-      
-      r0_(input_buffer_.get() + kKernelSize / 2),
-      r1_(input_buffer_.get()),
-      r2_(r0_),
-      r3_(r0_ + block_size_ - kKernelSize / 2),
-      r4_(r0_ + block_size_),
-      r5_(r0_ + kKernelSize / 2) {
-  Initialize();
-  InitializeKernel();
+
+
+#if defined(WEBRTC_ARCH_X86_FAMILY) && !defined(WEBRTC_IOS)
+#if defined(__SSE__)
+#define CONVOLVE_FUNC Convolve_SSE
+void SincResampler::InitializeCPUSpecificFeatures() {}
+#else
+
+
+
+#define CONVOLVE_FUNC convolve_proc_
+
+void SincResampler::InitializeCPUSpecificFeatures() {
+  convolve_proc_ = WebRtc_GetCPUInfo(kSSE2) ? Convolve_SSE : Convolve_C;
 }
+#endif
+#elif defined(WEBRTC_ARCH_ARM_V7)
+#if defined(WEBRTC_ARCH_ARM_NEON)
+#define CONVOLVE_FUNC Convolve_NEON
+void SincResampler::InitializeCPUSpecificFeatures() {}
+#else
+
+
+#define CONVOLVE_FUNC convolve_proc_
+
+void SincResampler::InitializeCPUSpecificFeatures() {
+  convolve_proc_ = WebRtc_GetCPUFeaturesARM() & kCPUFeatureNEON ?
+      Convolve_NEON : Convolve_C;
+}
+#endif
+#else
+
+#define CONVOLVE_FUNC Convolve_C
+void SincResampler::InitializeCPUSpecificFeatures() {}
+#endif
 
 SincResampler::SincResampler(double io_sample_rate_ratio,
+                             int request_frames,
                              SincResamplerCallback* read_cb)
     : io_sample_rate_ratio_(io_sample_rate_ratio),
-      virtual_source_idx_(0),
-      buffer_primed_(false),
       read_cb_(read_cb),
-      block_size_(kDefaultBlockSize),
-      buffer_size_(kDefaultBufferSize),
+      request_frames_(request_frames),
+      input_buffer_size_(request_frames_ + kKernelSize),
       
       kernel_storage_(static_cast<float*>(
           AlignedMalloc(sizeof(float) * kKernelStorageSize, 16))),
@@ -121,45 +164,19 @@ SincResampler::SincResampler(double io_sample_rate_ratio,
       kernel_window_storage_(static_cast<float*>(
           AlignedMalloc(sizeof(float) * kKernelStorageSize, 16))),
       input_buffer_(static_cast<float*>(
-          AlignedMalloc(sizeof(float) * buffer_size_, 16))),
-#if defined(WEBRTC_ARCH_X86_FAMILY) && !defined(__SSE__)
-      convolve_proc_(WebRtc_GetCPUInfo(kSSE2) ? Convolve_SSE : Convolve_C),
-#elif defined(WEBRTC_ARCH_ARM_V7) && !defined(WEBRTC_ARCH_ARM_NEON)
-      convolve_proc_(WebRtc_GetCPUFeaturesARM() & kCPUFeatureNEON ?
-                     Convolve_NEON : Convolve_C),
+          AlignedMalloc(sizeof(float) * input_buffer_size_, 16))),
+#if defined(WEBRTC_RESAMPLER_CPU_DETECTION)
+      convolve_proc_(NULL),
 #endif
-      
-      r0_(input_buffer_.get() + kKernelSize / 2),
       r1_(input_buffer_.get()),
-      r2_(r0_),
-      r3_(r0_ + block_size_ - kKernelSize / 2),
-      r4_(r0_ + block_size_),
-      r5_(r0_ + kKernelSize / 2) {
-  Initialize();
-  InitializeKernel();
-}
-
-SincResampler::~SincResampler() {}
-
-void SincResampler::Initialize() {
-  
-  
-  
-  COMPILE_ASSERT(kKernelSize % 32 == 0);
+      r2_(input_buffer_.get() + kKernelSize / 2) {
+#if defined(WEBRTC_RESAMPLER_CPU_DETECTION)
+  InitializeCPUSpecificFeatures();
+  assert(convolve_proc_);
+#endif
+  assert(request_frames_ > 0);
+  Flush();
   assert(block_size_ > kKernelSize);
-  
-  
-  assert(r0_ == r2_);
-  
-  assert(r1_ == input_buffer_.get());
-  
-  assert(r2_ - r1_ == r5_ - r2_);
-  
-  assert(r4_ - r3_ == r5_ - r0_);
-  
-  assert(r4_ + (r4_ - r3_) == r1_ + buffer_size_);
-  
-  assert(r5_ + block_size_ == r1_ + buffer_size_);
 
   memset(kernel_storage_.get(), 0,
          sizeof(*kernel_storage_.get()) * kKernelStorageSize);
@@ -167,7 +184,26 @@ void SincResampler::Initialize() {
          sizeof(*kernel_pre_sinc_storage_.get()) * kKernelStorageSize);
   memset(kernel_window_storage_.get(), 0,
          sizeof(*kernel_window_storage_.get()) * kKernelStorageSize);
-  memset(input_buffer_.get(), 0, sizeof(*input_buffer_.get()) * buffer_size_);
+
+  InitializeKernel();
+}
+
+SincResampler::~SincResampler() {}
+
+void SincResampler::UpdateRegions(bool second_load) {
+  
+  
+  r0_ = input_buffer_.get() + (second_load ? kKernelSize : kKernelSize / 2);
+  r3_ = r0_ + request_frames_ - kKernelSize;
+  r4_ = r0_ + request_frames_ - kKernelSize / 2;
+  block_size_ = r4_ - r2_;
+
+  
+  assert(r1_ == input_buffer_.get());
+  
+  assert(r2_ - r1_ == r4_ - r3_);
+  
+  assert(r2_ < r3_);
 }
 
 void SincResampler::InitializeKernel() {
@@ -234,67 +270,59 @@ void SincResampler::SetRatio(double io_sample_rate_ratio) {
   }
 }
 
-
-#if defined(WEBRTC_ARCH_X86_FAMILY)
-#if defined(__SSE__)
-#define CONVOLVE_FUNC Convolve_SSE
-#else
-
-
-#define CONVOLVE_FUNC convolve_proc_
-#endif
-#elif defined(WEBRTC_ARCH_ARM_V7)
-#if defined(WEBRTC_ARCH_ARM_NEON)
-#define CONVOLVE_FUNC Convolve_NEON
-#else
-
-#define CONVOLVE_FUNC convolve_proc_
-#endif
-#else
-
-#define CONVOLVE_FUNC Convolve_C
-#endif
-
-void SincResampler::Resample(float* destination, int frames) {
+void SincResampler::Resample(int frames, float* destination) {
   int remaining_frames = frames;
 
   
-  if (!buffer_primed_) {
-    read_cb_->Run(r0_, block_size_ + kKernelSize / 2);
+  if (!buffer_primed_ && remaining_frames) {
+    read_cb_->Run(request_frames_, r0_);
     buffer_primed_ = true;
   }
 
   
+  
+  const double current_io_ratio = io_sample_rate_ratio_;
+  const float* const kernel_ptr = kernel_storage_.get();
   while (remaining_frames) {
-    while (virtual_source_idx_ < block_size_) {
-      
-      
-      int source_idx = static_cast<int>(virtual_source_idx_);
-      double subsample_remainder = virtual_source_idx_ - source_idx;
-
-      double virtual_offset_idx = subsample_remainder * kKernelOffsetCount;
-      int offset_idx = static_cast<int>(virtual_offset_idx);
-
-      
-      
-      float* k1 = kernel_storage_.get() + offset_idx * kKernelSize;
-      float* k2 = k1 + kKernelSize;
+    
+    
+    
+    
+    
+    for (int i = ceil((block_size_ - virtual_source_idx_) / current_io_ratio);
+         i > 0; --i) {
+      assert(virtual_source_idx_ < block_size_);
 
       
       
-      assert((reinterpret_cast<uintptr_t>(k1) & 0x0F) == 0u);
-      assert((reinterpret_cast<uintptr_t>(k2) & 0x0F) == 0u);
+      const int source_idx = virtual_source_idx_;
+      const double subsample_remainder = virtual_source_idx_ - source_idx;
+
+      const double virtual_offset_idx =
+          subsample_remainder * kKernelOffsetCount;
+      const int offset_idx = virtual_offset_idx;
 
       
-      float* input_ptr = r1_ + source_idx;
+      
+      const float* const k1 = kernel_ptr + offset_idx * kKernelSize;
+      const float* const k2 = k1 + kKernelSize;
 
       
-      double kernel_interpolation_factor = virtual_offset_idx - offset_idx;
+      
+      assert(0u == (reinterpret_cast<uintptr_t>(k1) & 0x0F));
+      assert(0u == (reinterpret_cast<uintptr_t>(k2) & 0x0F));
+
+      
+      const float* const input_ptr = r1_ + source_idx;
+
+      
+      const double kernel_interpolation_factor =
+          virtual_offset_idx - offset_idx;
       *destination++ = CONVOLVE_FUNC(
           input_ptr, k1, k2, kernel_interpolation_factor);
 
       
-      virtual_source_idx_ += io_sample_rate_ratio_;
+      virtual_source_idx_ += current_io_ratio;
 
       if (!--remaining_frames)
         return;
@@ -305,29 +333,29 @@ void SincResampler::Resample(float* destination, int frames) {
 
     
     
-    memcpy(r1_, r3_, sizeof(*input_buffer_.get()) * (kKernelSize / 2));
-    memcpy(r2_, r4_, sizeof(*input_buffer_.get()) * (kKernelSize / 2));
+    memcpy(r1_, r3_, sizeof(*input_buffer_.get()) * kKernelSize);
 
     
+    if (r0_ == r2_)
+      UpdateRegions(true);
+
     
-    read_cb_->Run(r5_, block_size_);
+    read_cb_->Run(request_frames_, r0_);
   }
 }
 
 #undef CONVOLVE_FUNC
 
-int SincResampler::ChunkSize() {
+int SincResampler::ChunkSize() const {
   return block_size_ / io_sample_rate_ratio_;
-}
-
-int SincResampler::BlockSize() {
-  return block_size_;
 }
 
 void SincResampler::Flush() {
   virtual_source_idx_ = 0;
   buffer_primed_ = false;
-  memset(input_buffer_.get(), 0, sizeof(*input_buffer_.get()) * buffer_size_);
+  memset(input_buffer_.get(), 0,
+         sizeof(*input_buffer_.get()) * input_buffer_size_);
+  UpdateRegions(false);
 }
 
 float SincResampler::Convolve_C(const float* input_ptr, const float* k1,

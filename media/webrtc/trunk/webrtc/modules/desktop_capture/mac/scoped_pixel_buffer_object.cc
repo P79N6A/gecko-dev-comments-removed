@@ -52,4 +52,4 @@ void ScopedPixelBufferObject::Release() {
   }
 }
 
-} 
+}  

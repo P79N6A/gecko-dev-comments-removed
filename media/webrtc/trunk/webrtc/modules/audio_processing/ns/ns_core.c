@@ -276,7 +276,7 @@ void WebRtcNs_NoiseEstimation(NSinst_t* inst, float* magn, float* noise) {
         inst->density[offset + i] = ((float)inst->counter[s] * inst->density[offset
             + i] + (float)1.0 / ((float)2.0 * WIDTH)) / (float)(inst->counter[s] + 1);
       }
-    } 
+    }  
 
     if (inst->counter[s] >= END_STARTUP_LONG) {
       inst->counter[s] = 0;
@@ -288,7 +288,7 @@ void WebRtcNs_NoiseEstimation(NSinst_t* inst, float* magn, float* noise) {
     }
 
     inst->counter[s]++;
-  } 
+  }  
 
   
   if (inst->updates < END_STARTUP_LONG) {
@@ -522,7 +522,7 @@ void WebRtcNs_FeatureParameterExtraction(NSinst_t* inst, int flag) {
         inst->histSpecDiff[i] = 0;
       }
     }
-  } 
+  }  
 }
 
 
@@ -855,7 +855,7 @@ int WebRtcNs_ProcessCore(NSinst_t* inst,
           }
           outFrameHB[i] = (short)dTmp;
         }
-      } 
+      }  
       
       return 0;
     }
@@ -1006,14 +1006,14 @@ int WebRtcNs_ProcessCore(NSinst_t* inst,
       snrLocPrior[i] = DD_PR_SNR * previousEstimateStsa[i] + ((float)1.0 - DD_PR_SNR)
                        * snrLocPost[i];
       
-    } 
+    }  
 #ifdef PROCESS_FLOW_1
     for (i = 0; i < inst->magnLen; i++) {
       
       tmpFloat1 = inst->overdrive + snrLocPrior[i];
       tmpFloat2 = (float)snrLocPrior[i] / tmpFloat1;
       theFilter[i] = (float)tmpFloat2;
-    } 
+    }  
 #endif
     
 
@@ -1085,7 +1085,7 @@ int WebRtcNs_ProcessCore(NSinst_t* inst,
           noise[i] = noiseUpdateTmp;
         }
       }
-    } 
+    }  
     
 
     
@@ -1105,7 +1105,7 @@ int WebRtcNs_ProcessCore(NSinst_t* inst,
       tmpFloat1 = inst->overdrive + snrPrior;
       tmpFloat2 = (float)snrPrior / tmpFloat1;
       theFilter[i] = (float)tmpFloat2;
-    } 
+    }  
     
 #endif
 #endif
@@ -1204,7 +1204,7 @@ int WebRtcNs_ProcessCore(NSinst_t* inst,
         factor = (float)1.0 / gain;
       }
 #endif
-    } 
+    }  
 
     
     for (i = 0; i < inst->anaLen; i++) {
@@ -1227,7 +1227,7 @@ int WebRtcNs_ProcessCore(NSinst_t* inst,
         inst->outBuf[i] = fout[i + inst->blockLen10ms];
       }
     }
-  } 
+  }  
   else {
     for (i = 0; i < inst->blockLen10ms; i++) {
       fout[i] = inst->outBuf[i];
@@ -1297,7 +1297,7 @@ int WebRtcNs_ProcessCore(NSinst_t* inst,
       }
       outFrameHB[i] = (short)dTmp;
     }
-  } 
+  }  
   
 
   return 0;

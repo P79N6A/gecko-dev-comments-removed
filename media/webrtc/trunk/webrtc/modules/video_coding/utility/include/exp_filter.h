@@ -53,6 +53,6 @@ private:
     const float    _max;
 }; 
 
-} 
+}  
 
 #endif 

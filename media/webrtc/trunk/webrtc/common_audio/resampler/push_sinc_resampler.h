@@ -25,7 +25,7 @@ class PushSincResampler : public SincResamplerCallback {
   
   
   
-  PushSincResampler(int src_block_size, int dst_block_size);
+  PushSincResampler(int source_frames, int destination_frames);
   virtual ~PushSincResampler();
 
   
@@ -33,17 +33,25 @@ class PushSincResampler : public SincResamplerCallback {
   
   
   
-  int Resample(const int16_t* source, int source_length,
+  int Resample(const int16_t* source, int source_frames,
                int16_t* destination, int destination_capacity);
 
   
-  virtual void Run(float* destination, int frames);
+  virtual void Run(int frames, float* destination) OVERRIDE;
+
+  SincResampler* get_resampler_for_testing() { return resampler_.get(); }
 
  private:
   scoped_ptr<SincResampler> resampler_;
   scoped_array<float> float_buffer_;
   const int16_t* source_ptr_;
-  const int dst_size_;
+  const int destination_frames_;
+
+  
+  bool first_pass_;
+
+  
+  int source_available_;
 
   DISALLOW_COPY_AND_ASSIGN(PushSincResampler);
 };

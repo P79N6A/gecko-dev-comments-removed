@@ -40,6 +40,6 @@ protected:
     virtual ~VoENetEqStats() {}
 };
 
-}   
+}  
 
 #endif    

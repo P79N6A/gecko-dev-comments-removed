@@ -8,8 +8,8 @@
 
 
 
-#ifndef WEBRTC_COMMON_H
-#define WEBRTC_COMMON_H
+#ifndef WEBRTC_COMMON_H_
+#define WEBRTC_COMMON_H_
 
 #include <map>
 
@@ -116,5 +116,7 @@ void Config::Set(T* value) {
   delete it;
   it = new Option<T>(value);
 }
+
 }  
+
 #endif  

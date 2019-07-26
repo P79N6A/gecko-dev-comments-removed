@@ -8,7 +8,7 @@
 
 
 
-#include <cassert>
+#include <assert.h>
 #include <stdio.h>
 
 #include "webrtc/voice_engine/statistics.h"

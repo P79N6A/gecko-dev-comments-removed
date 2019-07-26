@@ -41,6 +41,19 @@ class EventFactoryImpl : public EventFactory {
   }
 };
 
+
+enum VCMDecodeErrorMode {
+  kNoErrors,                
+                            
+  kSelectiveErrors,         
+                            
+                            
+                            
+  kWithErrors               
+                            
+                            
+};
+
 class VideoCodingModule : public Module
 {
 public:
@@ -56,11 +69,6 @@ public:
         kSoftNack,
         kDualDecoder,
         kReferenceSelection
-    };
-
-    enum DecodeErrors {
-        kNoDecodeErrors,
-        kAllowDecodeErrors
     };
 
     static VideoCodingModule* Create(const int32_t id);
@@ -257,7 +265,7 @@ public:
     
     
     virtual int32_t SetVideoProtection(VCMVideoProtection videoProtection,
-                                             bool enable) = 0;
+                                       bool enable) = 0;
 
     
     
@@ -324,8 +332,8 @@ public:
     
     
     virtual int32_t RegisterReceiveCodec(const VideoCodec* receiveCodec,
-                                               int32_t numberOfCores,
-                                               bool requireKeyFrame = false) = 0;
+                                         int32_t numberOfCores,
+                                         bool requireKeyFrame = false) = 0;
 
     
     
@@ -389,18 +397,6 @@ public:
     
     
     
-    
-    virtual int32_t RegisterFrameStorageCallback(
-                             VCMFrameStorageCallback* frameStorageCallback) = 0;
-
-    
-    
-    
-    
-    
-    
-    
-    
     virtual int32_t RegisterPacketRequestCallback(
                                         VCMPacketRequestCallback* callback) = 0;
 
@@ -426,17 +422,6 @@ public:
     
     
     virtual int32_t DecodeDualFrame(uint16_t maxWaitTimeMs = 200) = 0;
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    virtual int32_t DecodeFromStorage(const EncodedVideoData& frameFromStorage) = 0;
 
     
     
@@ -566,7 +551,14 @@ public:
     
     
     virtual int SetReceiverRobustnessMode(ReceiverRobustness robustnessMode,
-                                          DecodeErrors errorMode) = 0;
+                                          VCMDecodeErrorMode errorMode) = 0;
+
+    
+    
+    
+    
+    
+    virtual void SetDecodeErrorMode(VCMDecodeErrorMode decode_error_mode) = 0;
 
     
     
@@ -589,6 +581,6 @@ public:
     virtual int StopDebugRecording() = 0;
 };
 
-} 
+}  
 
 #endif

@@ -48,6 +48,11 @@ LogMessage::LogMessage(const char* file, int line, LoggingSeverity sev)
   print_stream_ << "(" << DescribeFile(file) << ":" << line << "): ";
 }
 
+bool LogMessage::Loggable(LoggingSeverity sev) {
+  
+  return WebRtcSeverity(sev) & Trace::level_filter() ? true : false;
+}
+
 LogMessage::~LogMessage() {
   const std::string& str = print_stream_.str();
   WEBRTC_TRACE(WebRtcSeverity(severity_), kTraceUndefined, 0, str.c_str());

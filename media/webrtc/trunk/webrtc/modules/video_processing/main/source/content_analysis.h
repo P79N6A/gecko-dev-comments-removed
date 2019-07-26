@@ -87,6 +87,6 @@ private:
 
 }; 
 
-} 
+}  
 
 #endif

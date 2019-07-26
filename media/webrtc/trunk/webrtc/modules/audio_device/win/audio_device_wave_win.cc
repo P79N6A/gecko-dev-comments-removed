@@ -8,18 +8,18 @@
 
 
 
-#include "audio_device_utility.h"
-#include "audio_device_wave_win.h"
-#include "audio_device_config.h"
+#include "webrtc/modules/audio_device/audio_device_config.h"
+#include "webrtc/modules/audio_device/audio_device_utility.h"
+#include "webrtc/modules/audio_device/win/audio_device_wave_win.h"
 
-#include "trace.h"
-#include "thread_wrapper.h"
-#include "event_wrapper.h"
+#include "webrtc/system_wrappers/interface/event_wrapper.h"
+#include "webrtc/system_wrappers/interface/thread_wrapper.h"
+#include "webrtc/system_wrappers/interface/trace.h"
 
 #include <windows.h>
 #include <objbase.h>    
 #include <strsafe.h>    
-#include <cassert>
+#include <assert.h>
 
 
 #ifndef WAVE_MAPPED_DEFAULT_COMMUNICATION_DEVICE
@@ -231,8 +231,8 @@ int32_t AudioDeviceWindowsWave::Init()
     }
 
     const char* threadName = "webrtc_audio_module_thread";
-    _ptrThread = ThreadWrapper::CreateThread(ThreadFunc, 
-                                             this, 
+    _ptrThread = ThreadWrapper::CreateThread(ThreadFunc,
+                                             this,
                                              kRealtimePriority,
                                              threadName);
     if (_ptrThread == NULL)
@@ -364,7 +364,7 @@ int32_t AudioDeviceWindowsWave::Terminate()
         return -1;
     }
     _critSect.Enter();
-    WEBRTC_TRACE(kTraceInfo, kTraceAudioDevice, _id, 
+    WEBRTC_TRACE(kTraceInfo, kTraceAudioDevice, _id,
         "  volume getter thread is now closed");
 
     SetEvent(_hShutdownSetVolumeEvent);
@@ -417,7 +417,7 @@ DWORD AudioDeviceWindowsWave::DoGetCaptureVolumeThread()
 
     while (1)
     {
-        DWORD waitResult = WaitForSingleObject(waitObject, 
+        DWORD waitResult = WaitForSingleObject(waitObject,
                                                GET_MIC_VOLUME_INTERVAL_MS);
         switch (waitResult)
         {
@@ -440,7 +440,7 @@ DWORD AudioDeviceWindowsWave::DoGetCaptureVolumeThread()
                 _critSect.Enter();
                 if (_ptrAudioBuffer)
                 {
-                    _ptrAudioBuffer->SetCurrentMicLevel(currentMicLevel);				
+                    _ptrAudioBuffer->SetCurrentMicLevel(currentMicLevel);
                 }
                 _critSect.Leave();
             }
@@ -472,11 +472,11 @@ DWORD AudioDeviceWindowsWave::DoSetCaptureVolumeThread()
         _critSect.Leave();
 
         if (SetMicrophoneVolume(newMicLevel) == -1)
-        {   
+        {
             WEBRTC_TRACE(kTraceWarning, kTraceAudioDevice, _id,
                 "  the required modification of the microphone volume failed");
         }
-    }      
+    }
     return 0;
 }
 
@@ -2809,7 +2809,6 @@ int32_t AudioDeviceWindowsWave::GetPlayoutBufferDelay(uint32_t& writtenSamples, 
 
     
     msecInPlayoutBuffer = ((writtenSamples - playedSamples)/nSamplesPerMs);
-    
 
     playedDifference = (long) (_playedSamplesOld - playedSamples);
 
@@ -3833,4 +3832,3 @@ bool AudioDeviceWindowsWave::KeyPressed() const{
   return (key_down > 0);
 }
 }  
-

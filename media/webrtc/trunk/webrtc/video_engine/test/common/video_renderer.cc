@@ -7,9 +7,7 @@
 
 
 
-
 #include "webrtc/video_engine/test/common/video_renderer.h"
-
 
 
 
@@ -23,13 +21,15 @@ class NullRenderer : public VideoRenderer {
                            int time_to_render_ms) OVERRIDE {}
 };
 
-VideoRenderer* VideoRenderer::Create(const char* window_title, size_t width,
+VideoRenderer* VideoRenderer::Create(const char* window_title,
+                                     size_t width,
                                      size_t height) {
   VideoRenderer* renderer = CreatePlatformRenderer(window_title, width, height);
   if (renderer != NULL) {
     
     return renderer;
   }
+
   return new NullRenderer();
 }
 }  

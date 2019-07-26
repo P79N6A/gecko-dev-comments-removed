@@ -320,6 +320,13 @@ int WebRtcNetEQ_SetMinimumDelay(void *inst, int minimum_delay_ms);
 
 
 
+
+int WebRtcNetEQ_SetMaximumDelay(void *inst, int maximum_delay_ms);
+
+
+
+
+
 int WebRtcNetEQ_GetRequiredDelayMs(const void* inst);
 
 #ifdef __cplusplus

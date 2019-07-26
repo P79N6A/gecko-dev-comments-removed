@@ -8,7 +8,7 @@
 
 
 
-#include <cassert>
+#include <assert.h>
 
 #include "webrtc/common_types.h"
 #include "webrtc/modules/rtp_rtcp/source/rtp_header_extension.h"
@@ -178,4 +178,4 @@ void RtpHeaderExtensionMap::GetCopy(RtpHeaderExtensionMap* map) const {
     it++;
   }
 }
-} 
+}  

@@ -68,7 +68,9 @@ TEST_F(HardwareTest, GetCpuLoadReturnsErrorOnNonWindowsPlatform) {
 }
 #endif
 
-TEST_F(HardwareTest, BuiltInWasapiAECWorksForAudioWindowsCoreAudioLayer) {
+
+TEST_F(HardwareTest,
+       DISABLED_ON_WIN(BuiltInWasapiAECWorksForAudioWindowsCoreAudioLayer)) {
 #ifdef WEBRTC_IOS
   
   EXPECT_EQ(0, voe_hardware_->ResetAudioDevice());

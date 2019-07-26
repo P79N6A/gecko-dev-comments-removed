@@ -15,9 +15,15 @@
 
 namespace webrtc {
 
+
+static const float kFastConvergeMultiplier = 0.4f;
+static const float kNormalConvergeMultiplier = 0.2f;
+
 enum { kMaxNumberOfFrames     = 300 };
 enum { kStartNumberOfFrames   = 6 };
 enum { kMaxVideoDelayMs       = 10000 };
+enum { kPacketsPerFrameMultiplier = 5 };
+enum { kFastConvergeThreshold = 5};
 
 enum VCMJitterBufferEnum {
   kMaxConsecutiveOldFrames        = 60,
@@ -28,6 +34,7 @@ enum VCMJitterBufferEnum {
 };
 
 enum VCMFrameBufferEnum {
+  kOutOfBoundsPacket    = -7,
   kNotInitialized       = -6,
   kOldPacket            = -5,
   kGeneralError         = -4,
@@ -36,18 +43,15 @@ enum VCMFrameBufferEnum {
   kSizeError            = -1,
   kNoError              = 0,
   kIncomplete           = 1,    
-  kFirstPacket          = 2,
   kCompleteSession      = 3,    
   kDecodableSession     = 4,    
   kDuplicatePacket      = 5     
 };
 
 enum VCMFrameBufferStateEnum {
-  kStateFree,               
   kStateEmpty,              
   kStateIncomplete,         
   kStateComplete,           
-  kStateDecoding,           
   kStateDecodable           
 };
 

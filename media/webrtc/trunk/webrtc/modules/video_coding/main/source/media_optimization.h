@@ -8,18 +8,20 @@
 
 
 
-#ifndef WEBRTC_MODULES_VIDEO_CODING_MEDIA_OPTIMIZATION_H_
-#define WEBRTC_MODULES_VIDEO_CODING_MEDIA_OPTIMIZATION_H_
-
-#include "module_common_types.h"
-#include "video_coding.h"
-#include "trace.h"
-#include "media_opt_util.h"
-#include "qm_select.h"
+#ifndef WEBRTC_MODULES_VIDEO_CODING_MAIN_SOURCE_MEDIA_OPTIMIZATION_H_
+#define WEBRTC_MODULES_VIDEO_CODING_MAIN_SOURCE_MEDIA_OPTIMIZATION_H_
 
 #include <list>
 
+#include "webrtc/modules/interface/module_common_types.h"
+#include "webrtc/modules/video_coding/main/interface/video_coding.h"
+#include "webrtc/modules/video_coding/main/source/media_opt_util.h"
+#include "webrtc/modules/video_coding/main/source/qm_select.h"
+#include "webrtc/system_wrappers/interface/scoped_ptr.h"
+#include "webrtc/system_wrappers/interface/trace.h"
+
 namespace webrtc {
+
 
 class Clock;
 class FrameDropper;
@@ -27,12 +29,17 @@ class VCMContentMetricsProcessing;
 
 namespace media_optimization {
 
-enum { kBitrateMaxFrameSamples = 60 };
-enum { kBitrateAverageWinMs    = 1000 };
+enum {
+  kBitrateMaxFrameSamples = 60
+};
+enum {
+  kBitrateAverageWinMs = 1000
+};
 
-struct VCMEncodedFrameSample {
-  VCMEncodedFrameSample(int size_bytes, uint32_t timestamp,
-                        int64_t time_complete_ms)
+struct EncodedFrameSample {
+  EncodedFrameSample(int size_bytes,
+                     uint32_t timestamp,
+                     int64_t time_complete_ms)
       : size_bytes(size_bytes),
         timestamp(timestamp),
         time_complete_ms(time_complete_ms) {}
@@ -42,181 +49,141 @@ struct VCMEncodedFrameSample {
   int64_t time_complete_ms;
 };
 
-class VCMMediaOptimization
-{
-public:
-    VCMMediaOptimization(int32_t id, Clock* clock);
-    ~VCMMediaOptimization(void);
-    
-
-
-    int32_t Reset();
-    
-
-
-
-
-
-
-
-    uint32_t SetTargetRates(uint32_t target_bitrate,
-                                  uint8_t &fractionLost,
-                                  uint32_t roundTripTimeMs);
-
-    
-
-
-    int32_t SetEncodingData(VideoCodecType sendCodecType,
-                                  int32_t maxBitRate,
-                                  uint32_t frameRate,
-                                  uint32_t bitRate,
-                                  uint16_t width,
-                                  uint16_t height,
-                                  int numTemporalLayers);
-    
-
-
-    void EnableProtectionMethod(bool enable, VCMProtectionMethodEnum method);
-    
-
-
-    bool IsProtectionMethodEnabled(VCMProtectionMethodEnum method);
-    
-
-
-    void SetMtu(int32_t mtu);
-    
-
-
-    uint32_t InputFrameRate();
-
-    
-
-
-    uint32_t SentFrameRate();
-    
-
-
-    uint32_t SentBitRate();
-    
-
-
-    int32_t MaxBitRate();
-    
-
-
-    int32_t UpdateWithEncodedData(int encodedLength,
-                                        uint32_t timestamp,
-                                        FrameType encodedFrameType);
-    
-
-
-
-    int32_t RegisterProtectionCallback(VCMProtectionCallback*
-                                             protectionCallback);
-    
-
-
-    int32_t RegisterVideoQMCallback(VCMQMSettingsCallback* videoQMSettings);
-    void EnableFrameDropper(bool enable);
-
-    bool DropFrame();
-
-      
-
-
-    int32_t SentFrameCount(VCMFrameCount &frameCount) const;
-
-    
-
-
-    void UpdateIncomingFrameRate();
-
-    
-
-
-    void UpdateContentData(const VideoContentMetrics* contentMetrics);
-
-    
-
-
-    int32_t SelectQuality();
-
-private:
-    typedef std::list<VCMEncodedFrameSample> FrameSampleList;
-
-    
-
-
-    int UpdateProtectionCallback(VCMProtectionMethod *selected_method,
-                                 uint32_t* total_video_rate_bps,
-                                 uint32_t* nack_overhead_rate_bps,
-                                 uint32_t* fec_overhead_rate_bps);
-
-    void PurgeOldFrameSamples(int64_t now_ms);
-    void UpdateSentBitrate(int64_t nowMs);
-    void UpdateSentFramerate();
-
-    
-
-
-
-    bool QMUpdate(VCMResolutionScale* qm);
-    
-
-
-
-    bool CheckStatusForQMchange();
-
-    void ProcessIncomingFrameRate(int64_t now);
-
-    enum { kFrameCountHistorySize = 90};
-    enum { kFrameHistoryWinMs = 2000};
-
-    int32_t                     _id;
-    Clock*                            _clock;
-    int32_t                     _maxBitRate;
-    VideoCodecType                    _sendCodecType;
-    uint16_t                    _codecWidth;
-    uint16_t                    _codecHeight;
-    float                             _userFrameRate;
-
-    FrameDropper*                     _frameDropper;
-    VCMLossProtectionLogic*           _lossProtLogic;
-    uint8_t                     _fractionLost;
-
-
-    uint32_t                    _sendStatistics[4];
-    uint32_t                    _sendStatisticsZeroEncode;
-    int32_t                     _maxPayloadSize;
-    uint32_t                    _targetBitRate;
-
-    float                             _incomingFrameRate;
-    int64_t                     _incomingFrameTimes[kFrameCountHistorySize];
-
-    bool                              _enableQm;
-
-    VCMProtectionCallback*            _videoProtectionCallback;
-    VCMQMSettingsCallback*            _videoQMSettingsCallback;
-
-    std::list<VCMEncodedFrameSample>  _encodedFrameSamples;
-    uint32_t                          _avgSentBitRateBps;
-    uint32_t                          _avgSentFramerate;
-
-    uint32_t                    _keyFrameCnt;
-    uint32_t                    _deltaFrameCnt;
-
-    VCMContentMetricsProcessing*      _content;
-    VCMQmResolution*                  _qmResolution;
-
-    int64_t                     _lastQMUpdateTime;
-    int64_t                     _lastChangeTime; 
-    int                               _numLayers;
-
-
-}; 
+class MediaOptimization {
+ public:
+  MediaOptimization(int32_t id, Clock* clock);
+  ~MediaOptimization(void);
+
+  
+  int32_t Reset();
+
+  
+  
+  
+  
+  
+  
+  uint32_t SetTargetRates(uint32_t target_bitrate,
+                          uint8_t fraction_lost,
+                          uint32_t round_trip_time_ms);
+
+  
+  int32_t SetEncodingData(VideoCodecType send_codec_type,
+                          int32_t max_bit_rate,
+                          uint32_t frame_rate,
+                          uint32_t bit_rate,
+                          uint16_t width,
+                          uint16_t height,
+                          int num_temporal_layers);
+
+  
+  void EnableProtectionMethod(bool enable, VCMProtectionMethodEnum method);
+
+  
+  bool IsProtectionMethodEnabled(VCMProtectionMethodEnum method);
+
+  
+  uint32_t InputFrameRate();
+
+  
+  uint32_t SentFrameRate();
+
+  
+  uint32_t SentBitRate();
+
+  
+  int32_t UpdateWithEncodedData(int encoded_length,
+                                uint32_t timestamp,
+                                FrameType encoded_frame_type);
+
+  
+  
+  int32_t RegisterProtectionCallback(
+      VCMProtectionCallback* protection_callback);
+
+  
+  int32_t RegisterVideoQMCallback(VCMQMSettingsCallback* video_qmsettings);
+
+  void EnableFrameDropper(bool enable);
+
+  bool DropFrame();
+
+  
+  int32_t SentFrameCount(VCMFrameCount* frame_count) const;
+
+  
+  void UpdateIncomingFrameRate();
+
+  
+  void UpdateContentData(const VideoContentMetrics* content_metrics);
+
+  
+  int32_t SelectQuality();
+
+  
+  int32_t max_bit_rate() const { return max_bit_rate_; }
+  void set_max_payload_size(int32_t mtu) { max_payload_size_ = mtu; }
+
+ private:
+  typedef std::list<EncodedFrameSample> FrameSampleList;
+  enum {
+    kFrameCountHistorySize = 90
+  };
+  enum {
+    kFrameHistoryWinMs = 2000
+  };
+
+  
+  int UpdateProtectionCallback(VCMProtectionMethod* selected_method,
+                               uint32_t* total_video_rate_bps,
+                               uint32_t* nack_overhead_rate_bps,
+                               uint32_t* fec_overhead_rate_bps);
+
+  void PurgeOldFrameSamples(int64_t now_ms);
+  void UpdateSentBitrate(int64_t now_ms);
+  void UpdateSentFramerate();
+
+  
+  
+  bool QMUpdate(VCMResolutionScale* qm);
+
+  
+  bool CheckStatusForQMchange();
+
+  void ProcessIncomingFrameRate(int64_t now);
+
+  int32_t id_;
+  Clock* clock_;
+  int32_t max_bit_rate_;
+  VideoCodecType send_codec_type_;
+  uint16_t codec_width_;
+  uint16_t codec_height_;
+  float user_frame_rate_;
+  scoped_ptr<FrameDropper> frame_dropper_;
+  scoped_ptr<VCMLossProtectionLogic> loss_prot_logic_;
+  uint8_t fraction_lost_;
+  uint32_t send_statistics_[4];
+  uint32_t send_statistics_zero_encode_;
+  int32_t max_payload_size_;
+  uint32_t target_bit_rate_;
+  float incoming_frame_rate_;
+  int64_t incoming_frame_times_[kFrameCountHistorySize];
+  bool enable_qm_;
+  VCMProtectionCallback* video_protection_callback_;
+  VCMQMSettingsCallback* video_qmsettings_callback_;
+  std::list<EncodedFrameSample> encoded_frame_samples_;
+  uint32_t avg_sent_bit_rate_bps_;
+  uint32_t avg_sent_framerate_;
+  uint32_t key_frame_cnt_;
+  uint32_t delta_frame_cnt_;
+  scoped_ptr<VCMContentMetricsProcessing> content_;
+  scoped_ptr<VCMQmResolution> qm_resolution_;
+  int64_t last_qm_update_time_;
+  int64_t last_change_time_;  
+  int num_layers_;
+};  
 
 }  
 }  
 
-#endif 
+#endif  

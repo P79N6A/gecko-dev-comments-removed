@@ -8,10 +8,10 @@
 
 
 
-#ifndef WEBRTC_COMMON_TYPES_H
-#define WEBRTC_COMMON_TYPES_H
+#ifndef WEBRTC_COMMON_TYPES_H_
+#define WEBRTC_COMMON_TYPES_H_
 
-#include "typedefs.h"
+#include "webrtc/typedefs.h"
 
 #if defined(_MSC_VER)
 
@@ -32,6 +32,16 @@
 #endif
 
 #define RTP_PAYLOAD_NAME_SIZE 32
+
+#if defined(WEBRTC_WIN)
+
+#define STR_CASE_CMP(s1, s2) ::_stricmp(s1, s2)
+
+#define STR_NCASE_CMP(s1, s2, n) ::_strnicmp(s1, s2, n)
+#else
+#define STR_CASE_CMP(s1, s2) ::strcasecmp(s1, s2)
+#define STR_NCASE_CMP(s1, s2, n) ::strncasecmp(s1, s2, n)
+#endif
 
 namespace webrtc {
 
@@ -227,7 +237,7 @@ struct CodecInst
     int plfreq;
     int pacsize;
     int channels;
-    int rate;
+    int rate;  
 };
 
 enum FrameType
@@ -331,7 +341,7 @@ enum NsModes
     kNsLowSuppression,  
     kNsModerateSuppression,
     kNsHighSuppression,
-    kNsVeryHighSuppression     
+    kNsVeryHighSuppression,     
 };
 
 enum AgcModes                  
@@ -356,7 +366,7 @@ enum EcModes
     kEcDefault,                
     kEcConference,             
     kEcAec,                    
-    kEcAecm                    
+    kEcAecm,                   
 };
 
 
@@ -408,7 +418,7 @@ enum NetEqModes
     kNetEqFax = 2,
     
     
-    kNetEqOff = 3
+    kNetEqOff = 3,
 };
 
 enum OnHoldModes            
@@ -422,7 +432,7 @@ enum AmrMode
 {
     kRfc3267BwEfficient = 0,
     kRfc3267OctetAligned = 1,
-    kRfc3267FileStorage = 2
+    kRfc3267FileStorage = 2,
 };
 
 
@@ -525,9 +535,9 @@ struct SimulcastStream
     unsigned short      width;
     unsigned short      height;
     unsigned char       numberOfTemporalLayers;
-    unsigned int        maxBitrate;
-    unsigned int        targetBitrate;
-    unsigned int        minBitrate;
+    unsigned int        maxBitrate;  
+    unsigned int        targetBitrate;  
+    unsigned int        minBitrate;  
     unsigned int        qpMax; 
 };
 
@@ -546,9 +556,9 @@ struct VideoCodec
     unsigned short      width;
     unsigned short      height;
 
-    unsigned int        startBitrate;
-    unsigned int        maxBitrate;
-    unsigned int        minBitrate;
+    unsigned int        startBitrate;  
+    unsigned int        maxBitrate;  
+    unsigned int        minBitrate;  
     unsigned char       maxFramerate;
 
     VideoCodecUnion     codecSpecific;
@@ -590,5 +600,8 @@ struct OverUseDetectorOptions {
   double initial_var_noise;
   double initial_threshold;
 };
+
 }  
+
 #endif  
+

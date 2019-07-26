@@ -11,7 +11,8 @@
 #ifndef WEBRTC_MODULES_AUDIO_CODING_NETEQ4_INTERFACE_NETEQ_H_
 #define WEBRTC_MODULES_AUDIO_CODING_NETEQ4_INTERFACE_NETEQ_H_
 
-#include <cstring>  
+#include <string.h>  
+
 #include <vector>
 
 #include "webrtc/modules/audio_coding/neteq4/interface/audio_decoder.h"
@@ -64,6 +65,12 @@ enum NetEqPlayoutMode {
   kPlayoutStreaming
 };
 
+enum NetEqBackgroundNoiseMode {
+  kBgnOn,
+  kBgnFade,
+  kBgnOff
+};
+
 
 class NetEq {
  public:
@@ -97,7 +104,8 @@ class NetEq {
     kDecodedTooMuch,
     kFrameSplitError,
     kRedundancySplitError,
-    kPacketBufferCorruption
+    kPacketBufferCorruption,
+    kOversizePacket
   };
 
   static const int kMaxNumPacketsInBuffer = 240;  
@@ -152,7 +160,19 @@ class NetEq {
   
   
   
-  virtual bool SetExtraDelay(int extra_delay_ms) = 0;
+  
+  virtual bool SetMinimumDelay(int delay_ms) = 0;
+
+  
+  
+  
+  virtual bool SetMaximumDelay(int delay_ms) = 0;
+
+  
+  
+  
+  
+  virtual int LeastRequiredDelayMs() const = 0;
 
   
   virtual int SetTargetDelay() = 0;
@@ -162,9 +182,6 @@ class NetEq {
 
   
   virtual int CurrentDelay() = 0;
-
-  
-  virtual int EnableDtmf() = 0;
 
   
   virtual void SetPlayoutMode(NetEqPlayoutMode mode) = 0;
@@ -215,6 +232,24 @@ class NetEq {
 
   
   virtual void FlushBuffers() = 0;
+
+  
+  virtual void PacketBufferStatistics(int* current_num_packets,
+                                      int* max_num_packets,
+                                      int* current_memory_size_bytes,
+                                      int* max_memory_size_bytes) const = 0;
+
+  
+  
+  virtual int DecodedRtpInfo(int* sequence_number, uint32_t* timestamp) = 0;
+
+  
+  virtual int InsertSyncPacket(const WebRtcRTPHeader& rtp_header,
+                               uint32_t receive_timestamp) = 0;
+
+  virtual void SetBackgroundNoiseMode(NetEqBackgroundNoiseMode mode) = 0;
+
+  virtual NetEqBackgroundNoiseMode BackgroundNoiseMode() const = 0;
 
  protected:
   NetEq() {}

@@ -8,13 +8,14 @@
 
 
 
-#include <cmath>
+#include <math.h>
 
 #include "testing/gmock/include/gmock/gmock.h"
 #include "testing/gtest/include/gtest/gtest.h"
 #include "webrtc/common_audio/resampler/push_sinc_resampler.h"
 #include "webrtc/common_audio/resampler/sinusoidal_linear_chirp_source.h"
 #include "webrtc/system_wrappers/interface/scoped_ptr.h"
+#include "webrtc/system_wrappers/interface/tick_util.h"
 #include "webrtc/typedefs.h"
 
 namespace webrtc {
@@ -38,6 +39,59 @@ class PushSincResamplerTest
   double rms_error_;
   double low_freq_error_;
 };
+
+class ZeroSource : public SincResamplerCallback {
+ public:
+  void Run(int frames, float* destination) {
+    memset(destination, 0, sizeof(float) * frames);
+  }
+};
+
+
+
+TEST_P(PushSincResamplerTest, DISABLED_ResampleBenchmark) {
+  const int input_samples = input_rate_ / 100;
+  const int output_samples = output_rate_ / 100;
+  const int kResampleIterations = 200000;
+
+  
+  ZeroSource resampler_source;
+
+  scoped_array<float> resampled_destination(new float[output_samples]);
+  scoped_array<float> source(new float[input_samples]);
+  scoped_array<int16_t> source_int(new int16_t[input_samples]);
+  scoped_array<int16_t> destination_int(new int16_t[output_samples]);
+
+  resampler_source.Run(input_samples, source.get());
+  for (int i = 0; i < input_samples; ++i) {
+    source_int[i] = static_cast<int16_t>(floor(32767 * source[i] + 0.5));
+  }
+
+  printf("Benchmarking %d iterations of %d Hz -> %d Hz:\n",
+         kResampleIterations, input_rate_, output_rate_);
+  const double io_ratio = input_rate_ / static_cast<double>(output_rate_);
+  SincResampler sinc_resampler(io_ratio, SincResampler::kDefaultRequestSize,
+                               &resampler_source);
+  TickTime start = TickTime::Now();
+  for (int i = 0; i < kResampleIterations; ++i) {
+    sinc_resampler.Resample(output_samples, resampled_destination.get());
+  }
+  double total_time_sinc_us = (TickTime::Now() - start).Microseconds();
+  printf("SincResampler took %.2f us per frame.\n",
+         total_time_sinc_us / kResampleIterations);
+
+  PushSincResampler resampler(input_samples, output_samples);
+  start = TickTime::Now();
+  for (int i = 0; i < kResampleIterations; ++i) {
+    EXPECT_EQ(output_samples,
+              resampler.Resample(source_int.get(), input_samples,
+                                 destination_int.get(), output_samples));
+  }
+  double total_time_us = (TickTime::Now() - start).Microseconds();
+  printf("PushSincResampler took %.2f us per frame; which is a %.1f%% overhead "
+         "on SincResampler.\n\n", total_time_us / kResampleIterations,
+         (total_time_us - total_time_sinc_us) / total_time_sinc_us * 100);
+}
 
 
 TEST_P(PushSincResamplerTest, Resample) {
@@ -70,10 +124,19 @@ TEST_P(PushSincResamplerTest, Resample) {
   
   
   
-  resampler_source.Run(source.get(), input_samples);
+  
+  
+  
+  const int output_delay_samples = output_block_size -
+      resampler.get_resampler_for_testing()->ChunkSize();
+
+  
+  
+  
+  resampler_source.Run(input_samples, source.get());
   for (int i = 0; i < kNumBlocks; ++i) {
     for (int j = 0; j < input_block_size; ++j) {
-      source_int[j] = static_cast<int16_t>(std::floor(32767 *
+      source_int[j] = static_cast<int16_t>(floor(32767 *
           source[i * input_block_size + j] + 0.5));
     }
     EXPECT_EQ(output_block_size,
@@ -86,17 +149,9 @@ TEST_P(PushSincResamplerTest, Resample) {
   }
 
   
-  
-  
-  
-  
-  
-  static const int kInputKernelDelaySamples = 16;
-  double output_delay_samples = static_cast<double>(output_rate_)
-      / input_rate_ * kInputKernelDelaySamples;
   SinusoidalLinearChirpSource pure_source(
       output_rate_, output_samples, input_nyquist_freq, output_delay_samples);
-  pure_source.Run(pure_destination.get(), output_samples);
+  pure_source.Run(output_samples, pure_destination.get());
 
   
   
@@ -216,17 +271,17 @@ INSTANTIATE_TEST_CASE_P(
         std::tr1::make_tuple(8000, 16000, kResamplingRMSError, -70.30),
         std::tr1::make_tuple(16000, 16000, kResamplingRMSError, -75.51),
         std::tr1::make_tuple(32000, 16000, -18.48, -28.59),
-        std::tr1::make_tuple(44100, 16000, -19.59, -19.77),
-        std::tr1::make_tuple(48000, 16000, -20.01, -18.11),
-        std::tr1::make_tuple(96000, 16000, -20.95, -10.99),
+        std::tr1::make_tuple(44100, 16000, -19.30, -19.67),
+        std::tr1::make_tuple(48000, 16000, -19.81, -18.11),
+        std::tr1::make_tuple(96000, 16000, -20.95, -10.96),
 
         
         std::tr1::make_tuple(8000, 32000, kResamplingRMSError, -70.30),
         std::tr1::make_tuple(16000, 32000, kResamplingRMSError, -75.51),
         std::tr1::make_tuple(32000, 32000, kResamplingRMSError, -75.56),
-        std::tr1::make_tuple(44100, 32000, -16.52, -51.10),
-        std::tr1::make_tuple(48000, 32000, -16.90, -44.17),
-        std::tr1::make_tuple(96000, 32000, -19.80, -18.05),
+        std::tr1::make_tuple(44100, 32000, -16.44, -51.10),
+        std::tr1::make_tuple(48000, 32000, -16.90, -44.03),
+        std::tr1::make_tuple(96000, 32000, -19.61, -18.04),
         std::tr1::make_tuple(192000, 32000, -21.02, -10.94)));
 
 }  

@@ -11,6 +11,8 @@
 #ifndef WEBRTC_ENGINE_CONFIGURATIONS_H_
 #define WEBRTC_ENGINE_CONFIGURATIONS_H_
 
+#include "webrtc/typedefs.h"
+
 
 
 
@@ -33,11 +35,13 @@
 #define WEBRTC_CODEC_AVT
 
 
+#define WEBRTC_CODEC_PCM16
+
+
 
 #if !defined(WEBRTC_CHROMIUM_BUILD) && !defined(WEBRTC_MOZILLA_BUILD)
 #define WEBRTC_CODEC_ILBC
 #define WEBRTC_CODEC_G722
-#define WEBRTC_CODEC_PCM16
 #define WEBRTC_CODEC_RED
 #endif  
 
@@ -61,7 +65,7 @@
 #define WEBRTC_VOICE_ENGINE_NR
 #define WEBRTC_VOE_EXTERNAL_REC_AND_PLAYOUT
 
-#ifndef WEBRTC_CHROMIUM_BUILD
+#if !defined(WEBRTC_ANDROID) && !defined(WEBRTC_IOS)
 #define WEBRTC_VOICE_ENGINE_TYPING_DETECTION
 #endif
 

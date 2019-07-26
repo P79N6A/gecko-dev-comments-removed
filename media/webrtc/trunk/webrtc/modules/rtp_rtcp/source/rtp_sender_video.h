@@ -137,6 +137,6 @@ private:
     
     Bitrate                   _videoBitrate;
 };
-} 
+}  
 
 #endif 

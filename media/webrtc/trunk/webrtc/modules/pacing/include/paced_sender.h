@@ -70,7 +70,9 @@ class PacedSender : public Module {
   
   
   
-  void UpdateBitrate(int target_bitrate_kbps, int pad_up_to_bitrate_kbps);
+  void UpdateBitrate(int target_bitrate_kbps,
+                     int max_padding_bitrate_kbps,
+                     int pad_up_to_bitrate_kbps);
 
   
   
@@ -85,10 +87,10 @@ class PacedSender : public Module {
 
   
   
-  virtual int32_t TimeUntilNextProcess();
+  virtual int32_t TimeUntilNextProcess() OVERRIDE;
 
   
-  virtual int32_t Process();
+  virtual int32_t Process() OVERRIDE;
 
  private:
   

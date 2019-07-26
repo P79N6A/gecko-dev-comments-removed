@@ -67,22 +67,18 @@ int ViEAutoTestAndroid::RunAutotest(int testSelection, int subTestSelection,
           break;
 
         case 6: 
-          vieAutoTest.ViEFileStandardTest();
-          break;
-
-        case 7: 
           vieAutoTest.ViEImageProcessStandardTest();
           break;
 
-        case 8: 
+        case 7: 
           vieAutoTest.ViENetworkStandardTest();
           break;
 
-        case 9: 
+        case 8: 
           vieAutoTest.ViERenderStandardTest();
           break;
 
-        case 10: 
+        case 9: 
           vieAutoTest.ViERtpRtcpStandardTest();
           break;
 
@@ -110,25 +106,21 @@ int ViEAutoTestAndroid::RunAutotest(int testSelection, int subTestSelection,
           break;
 
         case 6: 
-          vieAutoTest.ViEFileAPITest();
-          break;
-
-        case 7: 
           vieAutoTest.ViEImageProcessAPITest();
           break;
 
-        case 8: 
+        case 7: 
           vieAutoTest.ViENetworkAPITest();
           break;
 
-        case 9: 
+        case 8: 
           vieAutoTest.ViERenderAPITest();
           break;
 
-        case 10: 
+        case 9: 
           vieAutoTest.ViERtpRtcpAPITest();
           break;
-        case 11:
+        case 10:
           break;
 
         default:
@@ -155,18 +147,14 @@ int ViEAutoTestAndroid::RunAutotest(int testSelection, int subTestSelection,
           break;
 
         case 6: 
-          vieAutoTest.ViEFileExtendedTest();
-          break;
-
-        case 7: 
           vieAutoTest.ViEImageProcessExtendedTest();
           break;
 
-        case 8: 
+        case 7: 
           vieAutoTest.ViERenderExtendedTest();
           break;
 
-        case 9: 
+        case 8: 
           vieAutoTest.ViERtpRtcpExtendedTest();
           break;
 

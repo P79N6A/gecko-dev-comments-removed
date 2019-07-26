@@ -61,8 +61,14 @@ public:
 
 
     int32_t DemuxAndMix();
+    
+    
+    void DemuxAndMix(const int voe_channels[], int number_of_voe_channels);
 
     int32_t EncodeAndSend();
+    
+    
+    void EncodeAndSend(const int voe_channels[], int number_of_voe_channels);
 
     uint32_t CaptureLevel() const;
 
@@ -211,7 +217,8 @@ private:
     int32_t _timeActive;
     int32_t _timeSinceLastTyping;
     int32_t _penaltyCounter;
-    bool _typingNoiseWarning;
+    bool _typingNoiseWarningPending;
+    bool _typingNoiseDetected;
 
     
     int _timeWindow; 

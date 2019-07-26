@@ -11,12 +11,10 @@
 #ifndef WEBRTC_MODULES_VIDEO_CAPTURE_MAIN_SOURCE_WINDOWS_DEVICE_INFO_DS_H_
 #define WEBRTC_MODULES_VIDEO_CAPTURE_MAIN_SOURCE_WINDOWS_DEVICE_INFO_DS_H_
 
-#include "../video_capture_impl.h"
-#include "../device_info_impl.h"
+#include "webrtc/modules/video_capture/device_info_impl.h"
+#include "webrtc/modules/video_capture/video_capture_impl.h"
 
 #include <Dshow.h>
-#include "map_wrapper.h"
-
 
 namespace webrtc
 {
@@ -103,6 +101,6 @@ private:
     bool _CoUninitializeIsRequired;
 
 };
-} 
-} 
+}  
+}  
 #endif 

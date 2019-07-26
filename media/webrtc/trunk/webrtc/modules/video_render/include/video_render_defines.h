@@ -12,9 +12,9 @@
 #define WEBRTC_MODULES_VIDEO_RENDER_MAIN_INTERFACE_VIDEO_RENDER_DEFINES_H_
 
 
-#include "common_types.h"
-#include "common_video/interface/i420_video_frame.h"
-#include "modules/interface/module_common_types.h"
+#include "webrtc/common_types.h"
+#include "webrtc/common_video/interface/i420_video_frame.h"
+#include "webrtc/modules/interface/module_common_types.h"
 
 namespace webrtc
 {
@@ -30,7 +30,7 @@ enum VideoRenderType
     kRenderWindows = 1, 
     kRenderCocoa = 2, 
     kRenderCarbon = 3,
-    kRenderiPhone = 4, 
+    kRenderiOS = 4, 
     kRenderAndroid = 5, 
     kRenderX11 = 6, 
     kRenderDefault
@@ -88,6 +88,6 @@ enum Rotation
     kRotation270 = 3
 };
 
-} 
+}  
 
 #endif  

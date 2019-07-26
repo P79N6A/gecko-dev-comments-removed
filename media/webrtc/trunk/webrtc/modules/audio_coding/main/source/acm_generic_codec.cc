@@ -16,11 +16,13 @@
 #include "webrtc/common_audio/vad/include/webrtc_vad.h"
 #include "webrtc/modules/audio_coding/codecs/cng/include/webrtc_cng.h"
 #include "webrtc/modules/audio_coding/main/source/acm_codec_database.h"
-#include "webrtc/modules/audio_coding/main/source/acm_common_defs.h"
+#include "webrtc/modules/audio_coding/main/acm2/acm_common_defs.h"
 #include "webrtc/modules/audio_coding/main/source/acm_neteq.h"
 #include "webrtc/system_wrappers/interface/trace.h"
 
 namespace webrtc {
+
+namespace acm1 {
 
 
 enum {
@@ -303,8 +305,7 @@ int16_t ACMGenericCodec::Encode(uint8_t* bitstream,
 
         
         *bitstream_len_byte = 0;
-        bool done = false;
-        while (!done) {
+        do {
           status = InternalEncode(&bitstream[*bitstream_len_byte],
                                   &tmp_bitstream_len_byte);
           *bitstream_len_byte += tmp_bitstream_len_byte;
@@ -323,12 +324,7 @@ int16_t ACMGenericCodec::Encode(uint8_t* bitstream,
             
             break;
           }
-
-          
-          
-          
-          done = in_audio_ix_read_ >= frame_len_smpl_;
-        }
+        } while (in_audio_ix_read_ < frame_len_smpl_ * num_channels_);
       }
       if (status >= 0) {
         *encoding_type = (vad_label_[0] == 1) ? kActiveNormalEncoded :
@@ -497,7 +493,11 @@ int16_t ACMGenericCodec::ResetEncoderSafe() {
   DisableVAD();
 
   
-  return SetVADSafe(enable_dtx, enable_vad, mode);
+  int status = SetVADSafe(&enable_dtx, &enable_vad, &mode);
+  dtx_enabled_ = enable_dtx;
+  vad_enabled_ = enable_vad;
+  vad_mode_ = mode;
+  return status;
 }
 
 int16_t ACMGenericCodec::InternalResetEncoder() {
@@ -585,8 +585,8 @@ int16_t ACMGenericCodec::InitEncoderSafe(WebRtcACMCodecParams* codec_params,
     }
     is_audio_buff_fresh_ = true;
   }
-  status = SetVADSafe(codec_params->enable_dtx, codec_params->enable_vad,
-                      codec_params->vad_mode);
+  status = SetVADSafe(&codec_params->enable_dtx, &codec_params->enable_vad,
+                      &codec_params->vad_mode);
 
   return status;
 }
@@ -595,6 +595,10 @@ int16_t ACMGenericCodec::InitEncoderSafe(WebRtcACMCodecParams* codec_params,
 
 bool ACMGenericCodec::CanChangeEncodingParam(CodecInst& ) {
   return true;
+}
+
+void ACMGenericCodec::CurrentRate(int32_t& ) {
+  return;
 }
 
 int16_t ACMGenericCodec::InitDecoder(WebRtcACMCodecParams* codec_params,
@@ -858,70 +862,76 @@ uint32_t ACMGenericCodec::EarliestTimestamp() const {
   return in_timestamp_[0];
 }
 
-int16_t ACMGenericCodec::SetVAD(const bool enable_dtx,
-                                const bool enable_vad,
-                                const ACMVADMode mode) {
+int16_t ACMGenericCodec::SetVAD(bool* enable_dtx, bool* enable_vad,
+                                ACMVADMode* mode) {
   WriteLockScoped cs(codec_wrapper_lock_);
   return SetVADSafe(enable_dtx, enable_vad, mode);
 }
 
-int16_t ACMGenericCodec::SetVADSafe(const bool enable_dtx,
-                                    const bool enable_vad,
-                                    const ACMVADMode mode) {
-  if (enable_dtx) {
+int16_t ACMGenericCodec::SetVADSafe(bool* enable_dtx, bool* enable_vad,
+                                    ACMVADMode* mode) {
+  if (!STR_CASE_CMP(encoder_params_.codec_inst.plname, "OPUS") ||
+      encoder_params_.codec_inst.channels == 2 ) {
+    
+    
+    DisableDTX();
+    DisableVAD();
+    *enable_dtx = false;
+    *enable_vad = false;
+    return 0;
+  }
+
+  if (*enable_dtx) {
     
     if (!STR_CASE_CMP(encoder_params_.codec_inst.plname, "G729")
         && !has_internal_dtx_) {
       if (ACMGenericCodec::EnableDTX() < 0) {
         WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceAudioCoding, unique_id_,
                      "SetVADSafe: error in enable DTX");
+        *enable_dtx = false;
+        *enable_vad = vad_enabled_;
         return -1;
       }
     } else {
       if (EnableDTX() < 0) {
         WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceAudioCoding, unique_id_,
                      "SetVADSafe: error in enable DTX");
+        *enable_dtx = false;
+        *enable_vad = vad_enabled_;
         return -1;
       }
     }
 
-    if (has_internal_dtx_) {
+    
+    
+    
+    
+    if (!has_internal_dtx_) {
       
-      
-      
-      vad_mode_ = mode;
-      return (enable_vad) ? EnableVAD(mode) : DisableVAD();
-    } else {
-      
-      
-      if (EnableVAD(mode) < 0) {
-        
-        if (!vad_enabled_) {
-          DisableDTX();
-        }
-        WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceAudioCoding, unique_id_,
-                     "SetVADSafe: error in enable VAD");
-        return -1;
-      }
-
-      
-      
-      if (enable_vad == false) {
-        return 1;
-      } else {
-        return 0;
-      }
+      *enable_vad = true;
     }
   } else {
     
     if (!STR_CASE_CMP(encoder_params_.codec_inst.plname, "G729")
         && !has_internal_dtx_) {
       ACMGenericCodec::DisableDTX();
+      *enable_dtx = false;
     } else {
       DisableDTX();
+      *enable_dtx = false;
     }
-    return (enable_vad) ? EnableVAD(mode) : DisableVAD();
   }
+
+  int16_t status = (*enable_vad) ? EnableVAD(*mode) : DisableVAD();
+  if (status < 0) {
+    
+    WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceAudioCoding, unique_id_,
+    "SetVADSafe: error in enable VAD");
+    DisableDTX();
+    *enable_dtx = false;
+    *enable_vad = false;
+  }
+  return status;
 }
 
 int16_t ACMGenericCodec::EnableDTX() {
@@ -1165,6 +1175,10 @@ bool ACMGenericCodec::IsAudioBufferFresh() const {
   return is_audio_buff_fresh_;
 }
 
+int16_t ACMGenericCodec::UpdateDecoderSampFreq(int16_t ) {
+  return 0;
+}
+
 
 int16_t ACMGenericCodec::EncoderSampFreq(uint16_t& samp_freq_hz) {
   int32_t f;
@@ -1236,5 +1250,9 @@ int16_t ACMGenericCodec::REDPayloadISAC(const int32_t ,
                "Error: REDPayloadISAC is an iSAC specific function");
   return -1;
 }
+
+bool ACMGenericCodec::IsTrueStereoCodec() { return false; }
+
+}  
 
 }  

@@ -10,7 +10,7 @@
 
 #include <math.h>
 
-#include "gtest/gtest.h"
+#include "testing/gtest/include/gtest/gtest.h"
 
 #include "webrtc/modules/video_coding/codecs/interface/video_codec_interface.h"
 #include "webrtc/modules/video_coding/codecs/test/packet_manipulator.h"
@@ -21,6 +21,7 @@
 #include "webrtc/test/testsupport/fileutils.h"
 #include "webrtc/test/testsupport/frame_reader.h"
 #include "webrtc/test/testsupport/frame_writer.h"
+#include "webrtc/test/testsupport/gtest_disable.h"
 #include "webrtc/test/testsupport/metrics/video_metrics.h"
 #include "webrtc/test/testsupport/packet_reader.h"
 #include "webrtc/typedefs.h"
@@ -557,7 +558,8 @@ void SetRateControlMetrics(RateControlMetrics* rc_metrics,
 
 
 
-TEST_F(VideoProcessorIntegrationTest, ProcessZeroPacketLoss) {
+TEST_F(VideoProcessorIntegrationTest,
+       DISABLED_ON_ANDROID(ProcessZeroPacketLoss)) {
   
   RateProfile rate_profile;
   SetRateProfilePars(&rate_profile, 0, 500, 30, 0);
@@ -580,7 +582,8 @@ TEST_F(VideoProcessorIntegrationTest, ProcessZeroPacketLoss) {
 
 
 
-TEST_F(VideoProcessorIntegrationTest, Process5PercentPacketLoss) {
+TEST_F(VideoProcessorIntegrationTest,
+       DISABLED_ON_ANDROID(Process5PercentPacketLoss)) {
   
   RateProfile rate_profile;
   SetRateProfilePars(&rate_profile, 0, 500, 30, 0);
@@ -603,7 +606,8 @@ TEST_F(VideoProcessorIntegrationTest, Process5PercentPacketLoss) {
 
 
 
-TEST_F(VideoProcessorIntegrationTest, Process10PercentPacketLoss) {
+TEST_F(VideoProcessorIntegrationTest,
+       DISABLED_ON_ANDROID(Process10PercentPacketLoss)) {
   
   RateProfile rate_profile;
   SetRateProfilePars(&rate_profile, 0, 500, 30, 0);
@@ -628,7 +632,8 @@ TEST_F(VideoProcessorIntegrationTest, Process10PercentPacketLoss) {
 
 
 
-TEST_F(VideoProcessorIntegrationTest, ProcessNoLossChangeBitRate) {
+TEST_F(VideoProcessorIntegrationTest,
+       DISABLED_ON_ANDROID(ProcessNoLossChangeBitRate)) {
   
   RateProfile rate_profile;
   SetRateProfilePars(&rate_profile, 0, 200, 30, 0);
@@ -660,7 +665,8 @@ TEST_F(VideoProcessorIntegrationTest, ProcessNoLossChangeBitRate) {
 
 
 
-TEST_F(VideoProcessorIntegrationTest, ProcessNoLossChangeFrameRateFrameDrop) {
+TEST_F(VideoProcessorIntegrationTest,
+       DISABLED_ON_ANDROID(ProcessNoLossChangeFrameRateFrameDrop)) {
   config_.networking_config.packet_loss_probability = 0;
   
   RateProfile rate_profile;
@@ -692,7 +698,8 @@ TEST_F(VideoProcessorIntegrationTest, ProcessNoLossChangeFrameRateFrameDrop) {
 
 
 
-TEST_F(VideoProcessorIntegrationTest, ProcessNoLossSpatialResizeFrameDrop) {
+TEST_F(VideoProcessorIntegrationTest,
+       DISABLED_ON_ANDROID(ProcessNoLossSpatialResizeFrameDrop)) {
   config_.networking_config.packet_loss_probability = 0;
   
   RateProfile rate_profile;
@@ -724,7 +731,8 @@ TEST_F(VideoProcessorIntegrationTest, ProcessNoLossSpatialResizeFrameDrop) {
 
 
 
-TEST_F(VideoProcessorIntegrationTest, ProcessNoLossTemporalLayers) {
+TEST_F(VideoProcessorIntegrationTest,
+       DISABLED_ON_ANDROID(ProcessNoLossTemporalLayers)) {
   config_.networking_config.packet_loss_probability = 0;
   
   RateProfile rate_profile;

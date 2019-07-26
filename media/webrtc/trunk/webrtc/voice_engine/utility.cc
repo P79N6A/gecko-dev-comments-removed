@@ -120,6 +120,6 @@ void Utility::ScaleWithSat(int16_t vector[], float scale,
     }
 }
 
-} 
+}  
 
-} 
+}  

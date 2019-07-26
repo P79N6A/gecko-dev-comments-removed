@@ -56,6 +56,6 @@ class CriticalSectionScoped {
   CriticalSectionWrapper* ptr_crit_sec_;
 };
 
-} 
+}  
 
 #endif  

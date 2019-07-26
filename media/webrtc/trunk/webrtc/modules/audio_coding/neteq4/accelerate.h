@@ -42,23 +42,23 @@ class Accelerate : public TimeStretch {
   
   
   ReturnCodes Process(const int16_t* input,
-                      int input_length,
+                      size_t input_length,
                       AudioMultiVector<int16_t>* output,
                       int16_t* length_change_samples);
 
  protected:
   
   
-  virtual void SetParametersForPassiveSpeech(int len,
+  virtual void SetParametersForPassiveSpeech(size_t len,
                                              int16_t* best_correlation,
-                                             int* peak_index) const;
+                                             int* peak_index) const OVERRIDE;
 
   
   
   virtual ReturnCodes CheckCriteriaAndStretch(
-      const int16_t* input, int input_length, size_t peak_index,
+      const int16_t* input, size_t input_length, size_t peak_index,
       int16_t best_correlation, bool active_speech,
-      AudioMultiVector<int16_t>* output) const;
+      AudioMultiVector<int16_t>* output) const OVERRIDE;
 
  private:
   DISALLOW_COPY_AND_ASSIGN(Accelerate);

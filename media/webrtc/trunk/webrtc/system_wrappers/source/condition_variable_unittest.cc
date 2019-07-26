@@ -177,6 +177,10 @@ class CondVarTest : public ::testing::Test {
 
 
 
+#if !defined(THREAD_SANITIZER)
+
+
+
 TEST_F(CondVarTest, InitFunctionsWork) {
   
 }
@@ -190,6 +194,8 @@ TEST_F(CondVarTest, PassBatonMultipleTimes) {
   }
   EXPECT_EQ(2 * kNumberOfRounds, baton_.PassCount());
 }
+
+#endif 
 
 }  
 

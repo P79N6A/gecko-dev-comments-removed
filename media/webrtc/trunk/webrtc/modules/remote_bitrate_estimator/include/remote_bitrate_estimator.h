@@ -44,14 +44,6 @@ class RemoteBitrateEstimator : public CallStatsObserver, public Module {
   
   
   
-  virtual void IncomingRtcp(unsigned int ssrc, uint32_t ntp_secs,
-                            uint32_t ntp_frac, uint32_t rtp_timestamp) = 0;
-
-  
-  
-  
-  
-  
   
   virtual void IncomingPacket(int64_t arrival_time_ms,
                               int payload_size,
@@ -83,16 +75,6 @@ struct RemoteBitrateEstimatorFactory {
 struct AbsoluteSendTimeRemoteBitrateEstimatorFactory {
   AbsoluteSendTimeRemoteBitrateEstimatorFactory() {}
   virtual ~AbsoluteSendTimeRemoteBitrateEstimatorFactory() {}
-
-  virtual RemoteBitrateEstimator* Create(
-      RemoteBitrateObserver* observer,
-      Clock* clock) const;
-};
-
-struct MultiStreamRemoteBitrateEstimatorFactory
-    : RemoteBitrateEstimatorFactory {
-  MultiStreamRemoteBitrateEstimatorFactory() {}
-  virtual ~MultiStreamRemoteBitrateEstimatorFactory() {}
 
   virtual RemoteBitrateEstimator* Create(
       RemoteBitrateObserver* observer,

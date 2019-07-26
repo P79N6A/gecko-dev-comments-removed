@@ -12,7 +12,7 @@
 
 #include "webrtc/modules/audio_coding/neteq4/buffer_level_filter.h"
 
-#include <cmath>  
+#include <math.h>  
 
 #include "gtest/gtest.h"
 

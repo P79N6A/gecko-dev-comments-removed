@@ -678,11 +678,6 @@ int WebRtcNetEQ_GetDefaultCodecSettings(const enum WebRtcNetEQDecoder *codecID,
             codecBytes = 15300; 
             codecBuffers = 30;  
         }
-        else if (codecID[i] == kDecoderOpus)
-        {
-            codecBytes = 15300; 
-            codecBuffers = 30;  
-        }
         else if ((codecID[i] == kDecoderPCM16B) ||
             (codecID[i] == kDecoderPCM16B_2ch))
         {

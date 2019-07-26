@@ -15,8 +15,6 @@ namespace webrtc {
 
 class I420VideoFrame;
 
-namespace newapi {
-
 class VideoRenderer {
  public:
   
@@ -28,7 +26,6 @@ class VideoRenderer {
  protected:
   virtual ~VideoRenderer() {}
 };
-}  
 }  
 
 #endif  

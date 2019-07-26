@@ -65,18 +65,15 @@ class DecoderDatabase {
   
   static const uint8_t kRtpPayloadTypeError = 0xFF;
 
-  DecoderDatabase()
-      : active_decoder_(-1),
-        active_cng_decoder_(-1) {
-  }
+  DecoderDatabase();
 
-  virtual ~DecoderDatabase() {}
+  virtual ~DecoderDatabase();
 
   
-  virtual bool Empty() const { return decoders_.empty(); }
+  virtual bool Empty() const;
 
   
-  virtual int Size() const { return decoders_.size(); }
+  virtual int Size() const;
 
   
   

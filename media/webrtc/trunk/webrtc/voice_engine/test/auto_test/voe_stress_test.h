@@ -44,6 +44,6 @@ class VoEStressTest {
   ThreadWrapper* _ptrExtraApiThread;
 };
 
-} 
+}  
 
 #endif 

@@ -55,6 +55,6 @@ class EventWrapper {
   virtual bool StopTimer() = 0;
 
 };
-} 
+}  
 
 #endif  

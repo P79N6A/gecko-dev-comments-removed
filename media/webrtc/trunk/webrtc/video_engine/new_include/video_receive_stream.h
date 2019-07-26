@@ -24,8 +24,6 @@ namespace webrtc {
 
 class VideoDecoder;
 
-namespace newapi {
-
 
 
 struct ExternalVideoDecoder {
@@ -163,7 +161,6 @@ class VideoReceiveStream {
   virtual ~VideoReceiveStream() {}
 };
 
-}  
 }  
 
 #endif  

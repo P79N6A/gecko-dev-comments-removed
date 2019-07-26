@@ -8,10 +8,10 @@
 
 
 
-#include "modules/video_coding/codecs/test/stats.h"
+#include "webrtc/modules/video_coding/codecs/test/stats.h"
 
-#include "gtest/gtest.h"
-#include "typedefs.h"
+#include "testing/gtest/include/gtest/gtest.h"
+#include "webrtc/typedefs.h"
 
 namespace webrtc {
 namespace test {

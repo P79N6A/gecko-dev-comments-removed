@@ -16,7 +16,7 @@
 
 
 
-#include "typedefs.h"
+#include "webrtc/typedefs.h"
 
 namespace webrtc {
 
@@ -225,4 +225,3 @@ const float kSpatialErrVertVsHoriz = 0.1f;
 }  
 
 #endif  
-

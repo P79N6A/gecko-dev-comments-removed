@@ -12,9 +12,9 @@
 #define WEBRTC_VIDEO_ENGINE_NEW_INCLUDE_CONFIG_H_
 
 #include <string>
+#include <vector>
 
 namespace webrtc {
-namespace newapi {
 
 struct RtpStatistics {
   RtpStatistics()
@@ -29,12 +29,14 @@ struct RtpStatistics {
   std::string c_name;
 };
 
+namespace newapi {
 
 
 enum RtcpMode {
   kRtcpCompound,
   kRtcpReducedSize
 };
+}  
 
 
 struct NackConfig {
@@ -59,9 +61,9 @@ struct FecConfig {
 
 
 struct RtxConfig {
-  RtxConfig() : ssrc(0), rtx_payload_type(0), video_payload_type(0) {}
+  RtxConfig() : rtx_payload_type(0), video_payload_type(0) {}
   
-  uint32_t ssrc;
+  std::vector<uint32_t> ssrcs;
 
   
   int rtx_payload_type;
@@ -72,12 +74,11 @@ struct RtxConfig {
 
 
 struct RtpExtension {
-  RtpExtension() : id(0) {}
+  RtpExtension(const char* name, int id) : name(name), id(id) {}
   
   std::string name;
   int id;
 };
-}  
 }  
 
 #endif  

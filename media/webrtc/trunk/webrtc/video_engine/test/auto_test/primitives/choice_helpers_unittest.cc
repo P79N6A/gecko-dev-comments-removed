@@ -8,7 +8,7 @@
 
 
 
-#include <cstdio>
+#include <stdio.h>
 
 #include "testing/gtest/include/gtest/gtest.h"
 #include "webrtc/video_engine/test/auto_test/primitives/choice_helpers.h"

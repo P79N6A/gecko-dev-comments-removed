@@ -130,7 +130,7 @@ class Expand {
   
   
   
-  int16_t Correlation(const int16_t* input, int16_t input_length,
+  int16_t Correlation(const int16_t* input, size_t input_length,
                       int16_t* output, int16_t* output_scale) const;
 
   void UpdateLagIndex();

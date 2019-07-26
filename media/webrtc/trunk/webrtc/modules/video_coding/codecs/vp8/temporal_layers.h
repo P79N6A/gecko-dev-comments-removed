@@ -24,6 +24,13 @@ struct CodecSpecificInfoVP8;
 
 class TemporalLayers {
  public:
+  struct Factory {
+    Factory() {}
+    virtual ~Factory() {}
+    virtual TemporalLayers* Create(int temporal_layers,
+                                   uint8_t initial_tl0_pic_idx) const;
+  };
+
   virtual ~TemporalLayers() {}
 
   
@@ -44,4 +51,3 @@ class TemporalLayers {
 
 }  
 #endif  
-

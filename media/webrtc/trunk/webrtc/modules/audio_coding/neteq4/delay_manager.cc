@@ -34,7 +34,9 @@ DelayManager::DelayManager(int max_packets_in_buffer,
       streaming_mode_(false),
       last_seq_no_(0),
       last_timestamp_(0),
-      extra_delay_ms_(0),
+      minimum_delay_ms_(0),
+      least_required_delay_ms_(target_level_),
+      maximum_delay_ms_(target_level_),
       iat_cumulative_sum_(0),
       max_iat_cumulative_sum_(0),
       max_timer_ms_(0),
@@ -42,6 +44,12 @@ DelayManager::DelayManager(int max_packets_in_buffer,
       last_pack_cng_or_dtmf_(1) {
   assert(peak_detector);  
   Reset();
+}
+
+DelayManager::~DelayManager() {}
+
+const DelayManager::IATVector& DelayManager::iat_vector() const {
+  return iat_vector_;
 }
 
 
@@ -219,14 +227,27 @@ void DelayManager::UpdateHistogram(size_t iat_packets) {
 
 
 
+
+
 void DelayManager::LimitTargetLevel() {
-  int max_buffer_len = max_packets_in_buffer_;
-  if (extra_delay_ms_ > 0 && packet_len_ms_ > 0) {
-    max_buffer_len -= extra_delay_ms_ / packet_len_ms_;
-    max_buffer_len = std::max(max_buffer_len, 1);  
+  least_required_delay_ms_ = (target_level_ * packet_len_ms_) >> 8;
+
+  if (packet_len_ms_ > 0 && minimum_delay_ms_ > 0) {
+    int minimum_delay_packet_q8 =  (minimum_delay_ms_ << 8) / packet_len_ms_;
+    target_level_ = std::max(target_level_, minimum_delay_packet_q8);
   }
-  max_buffer_len = (3 * (max_buffer_len << 8)) / 4;  
-  target_level_ = std::min(target_level_, max_buffer_len);
+
+  if (maximum_delay_ms_ > 0 && packet_len_ms_ > 0) {
+    int maximum_delay_packet_q8 = (maximum_delay_ms_ << 8) / packet_len_ms_;
+    target_level_ = std::min(target_level_, maximum_delay_packet_q8);
+  }
+
+  
+  int max_buffer_packets_q8 = (3 * (max_packets_in_buffer_ << 8)) / 4;
+  target_level_ = std::min(target_level_, max_buffer_packets_q8);
+
+  
+  target_level_ = std::max(target_level_, 1 << 8);
 }
 
 int DelayManager::CalculateTargetLevel(int iat_packets) {
@@ -256,14 +277,13 @@ int DelayManager::CalculateTargetLevel(int iat_packets) {
   } while ((sum > limit_probability) && (index < iat_vector_.size() - 1));
 
   
-  int target_level = index;
-  base_target_level_ = index;
+  int target_level = static_cast<int>(index);
+  base_target_level_ = static_cast<int>(index);
 
   
   bool delay_peak_found = peak_detector_.Update(iat_packets, target_level);
   if (delay_peak_found) {
-    target_level = std::max(static_cast<int>(target_level),
-                            peak_detector_.MaxPeakHeight());
+    target_level = std::max(target_level, peak_detector_.MaxPeakHeight());
   }
 
   
@@ -301,8 +321,12 @@ void DelayManager::Reset() {
 
 int DelayManager::AverageIAT() const {
   int32_t sum_q24 = 0;
+  
+  
+  
+  const int iat_vec_size = static_cast<int>(iat_vector_.size());
   assert(iat_vector_.size() == 65);  
-  for (size_t i = 0; i < iat_vector_.size(); ++i) {
+  for (int i = 0; i < iat_vec_size; ++i) {
     
     sum_q24 += (iat_vector_[i] >> 6) * i;
   }
@@ -323,6 +347,11 @@ void DelayManager::UpdateCounters(int elapsed_time_ms) {
   max_timer_ms_ += elapsed_time_ms;
 }
 
+void DelayManager::ResetPacketIatCount() { packet_iat_count_ms_ = 0; }
+
+
+
+
 void DelayManager::BufferLimits(int* lower_limit, int* higher_limit) const {
   if (!lower_limit || !higher_limit) {
     LOG_F(LS_ERROR) << "NULL pointers supplied as input";
@@ -330,29 +359,20 @@ void DelayManager::BufferLimits(int* lower_limit, int* higher_limit) const {
     return;
   }
 
-  int extra_delay_packets_q8 = 0;
   int window_20ms = 0x7FFF;  
   if (packet_len_ms_ > 0) {
-    extra_delay_packets_q8 = (extra_delay_ms_ << 8) / packet_len_ms_;
     window_20ms = (20 << 8) / packet_len_ms_;
   }
+
+  
+  *lower_limit = (target_level_ * 3) / 4;
   
   
-  *lower_limit = (target_level_ * 3) / 4 + extra_delay_packets_q8;
-  
-  
-  *higher_limit = std::max(target_level_ + extra_delay_packets_q8,
-                           *lower_limit + window_20ms);
+  *higher_limit = std::max(target_level_, *lower_limit + window_20ms);
 }
 
 int DelayManager::TargetLevel() const {
-  if (packet_len_ms_ > 0) {
-    
-    return target_level_ + (extra_delay_ms_ << 8) / packet_len_ms_;
-  } else {
-    
-    return target_level_;
-  }
+  return target_level_;
 }
 
 void DelayManager::LastDecoderType(NetEqDecoder decoder_type) {
@@ -365,5 +385,45 @@ void DelayManager::LastDecoderType(NetEqDecoder decoder_type) {
   } else if (last_pack_cng_or_dtmf_ != 0) {
     last_pack_cng_or_dtmf_ = -1;
   }
+}
+
+bool DelayManager::SetMinimumDelay(int delay_ms) {
+  
+  
+  
+  if ((maximum_delay_ms_ > 0 && delay_ms > maximum_delay_ms_) ||
+      (packet_len_ms_ > 0 &&
+          delay_ms > 3 * max_packets_in_buffer_ * packet_len_ms_ / 4)) {
+    return false;
+  }
+  minimum_delay_ms_ = delay_ms;
+  return true;
+}
+
+bool DelayManager::SetMaximumDelay(int delay_ms) {
+  if (delay_ms == 0) {
+    
+    maximum_delay_ms_ = 0;
+    return true;
+  } else if (delay_ms < minimum_delay_ms_ || delay_ms < packet_len_ms_) {
+    
+    return false;
+  }
+  maximum_delay_ms_ = delay_ms;
+  return true;
+}
+
+int DelayManager::least_required_delay_ms() const {
+  return least_required_delay_ms_;
+}
+
+int DelayManager::base_target_level() const { return base_target_level_; }
+void DelayManager::set_streaming_mode(bool value) { streaming_mode_ = value; }
+int DelayManager::last_pack_cng_or_dtmf() const {
+  return last_pack_cng_or_dtmf_;
+}
+
+void DelayManager::set_last_pack_cng_or_dtmf(int value) {
+  last_pack_cng_or_dtmf_ = value;
 }
 }  

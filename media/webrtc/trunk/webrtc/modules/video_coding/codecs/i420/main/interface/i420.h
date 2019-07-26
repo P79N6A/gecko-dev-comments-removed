@@ -38,7 +38,7 @@ class I420Encoder : public VideoEncoder {
 
   virtual int InitEncode(const VideoCodec* codecSettings,
                          int ,
-                         uint32_t );
+                         uint32_t ) OVERRIDE;
 
 
 
@@ -50,9 +50,10 @@ class I420Encoder : public VideoEncoder {
 
 
 
-  virtual int Encode(const I420VideoFrame& inputImage,
-                     const CodecSpecificInfo* ,
-                     const std::vector<VideoFrameType>* );
+  virtual int Encode(
+      const I420VideoFrame& inputImage,
+      const CodecSpecificInfo* ,
+      const std::vector<VideoFrameType>* ) OVERRIDE;
 
 
 
@@ -60,22 +61,26 @@ class I420Encoder : public VideoEncoder {
 
 
 
-  virtual int RegisterEncodeCompleteCallback(EncodedImageCallback* callback);
+  virtual int RegisterEncodeCompleteCallback(
+      EncodedImageCallback* callback) OVERRIDE;
 
 
 
 
-  virtual int Release();
+  virtual int Release() OVERRIDE;
 
-  virtual int SetRates(uint32_t , uint32_t ) {
+  virtual int SetRates(uint32_t ,
+                       uint32_t ) OVERRIDE {
     return WEBRTC_VIDEO_CODEC_OK;
   }
 
-  virtual int SetChannelParameters(uint32_t , int ) {
+  virtual int SetChannelParameters(uint32_t ,
+                                   int ) OVERRIDE {
     return WEBRTC_VIDEO_CODEC_OK;
   }
 
-  virtual int CodecConfigParameters(uint8_t* , int ) {
+  virtual int CodecConfigParameters(uint8_t* ,
+                                    int ) OVERRIDE {
     return WEBRTC_VIDEO_CODEC_OK;
   }
 
@@ -100,10 +105,10 @@ class I420Decoder : public VideoDecoder {
 
 
   virtual int InitDecode(const VideoCodec* codecSettings,
-                         int );
+                         int ) OVERRIDE;
 
   virtual int SetCodecConfigParameters(const uint8_t* ,
-                                       int ) {
+                                       int ) OVERRIDE {
     return WEBRTC_VIDEO_CODEC_OK;
   }
 
@@ -123,7 +128,7 @@ class I420Decoder : public VideoDecoder {
                      bool missingFrames,
                      const RTPFragmentationHeader* ,
                      const CodecSpecificInfo* ,
-                     int64_t );
+                     int64_t ) OVERRIDE;
 
 
 
@@ -131,23 +136,25 @@ class I420Decoder : public VideoDecoder {
 
 
 
-  virtual int RegisterDecodeCompleteCallback(DecodedImageCallback* callback);
+  virtual int RegisterDecodeCompleteCallback(
+      DecodedImageCallback* callback) OVERRIDE;
 
 
 
 
 
-  virtual int Release();
+  virtual int Release() OVERRIDE;
 
 
 
 
 
-  virtual int Reset();
+  virtual int Reset() OVERRIDE;
 
  private:
-  static const uint8_t* ExtractHeader(const uint8_t* buffer, uint16_t* width,
-                               uint16_t* height);
+  static const uint8_t* ExtractHeader(const uint8_t* buffer,
+                                      uint16_t* width,
+                                      uint16_t* height);
 
   I420VideoFrame              _decodedImage;
   int                         _width;

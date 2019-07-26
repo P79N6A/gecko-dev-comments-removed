@@ -26,9 +26,8 @@
 #define WEBRTC_SYSTEM_WRAPPERS_INTERFACE_SCOPED_PTR_H_
 
 #include <assert.h>            
+#include <stddef.h>             
 #include <stdlib.h>            
-
-#include <cstddef>             
 
 #ifdef _WIN32
 namespace std { using ::ptrdiff_t; };
@@ -149,7 +148,7 @@ class scoped_array {
     }
   }
 
-  T& operator[](std::ptrdiff_t i) const {
+  T& operator[](ptrdiff_t i) const {
     assert(ptr != NULL);
     assert(i >= 0);
     return ptr[i];
@@ -253,6 +252,6 @@ void swap(scoped_ptr_malloc<T,FF>& a, scoped_ptr_malloc<T,FF>& b) {
   a.swap(b);
 }
 
-} 
+}  
 
 #endif  

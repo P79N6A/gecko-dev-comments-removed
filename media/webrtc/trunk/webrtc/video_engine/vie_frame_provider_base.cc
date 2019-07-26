@@ -56,7 +56,7 @@ void ViEFrameProviderBase::DeliverFrame(
 
   
   if (frame_callbacks_.size() > 0) {
-    if (frame_callbacks_.size() == 1) {
+    if (frame_callbacks_.size() == 1 || video_frame->native_handle() != NULL) {
       
       frame_callbacks_.front()->DeliverFrame(id_, video_frame, num_csrcs, CSRC);
     } else {

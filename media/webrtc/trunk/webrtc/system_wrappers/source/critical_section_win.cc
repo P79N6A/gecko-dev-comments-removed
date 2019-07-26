@@ -30,4 +30,4 @@ CriticalSectionWindows::Leave() {
   LeaveCriticalSection(&crit);
 }
 
-} 
+}  

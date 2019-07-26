@@ -20,6 +20,13 @@
 #include "webrtc/test/testsupport/gtest_prod_util.h"
 #include "webrtc/typedefs.h"
 
+#if (defined(WEBRTC_ARCH_X86_FAMILY) && !defined(WEBRTC_IOS) &&  \
+        !defined(__SSE__)) ||  \
+    (defined(WEBRTC_ARCH_ARM_V7) && !defined(WEBRTC_ARCH_ARM_NEON))
+
+#define WEBRTC_RESAMPLER_CPU_DETECTION
+#endif
+
 namespace webrtc {
 
 
@@ -28,7 +35,7 @@ namespace webrtc {
 class SincResamplerCallback {
  public:
   virtual ~SincResamplerCallback() {}
-  virtual void Run(float* destination, int frames) = 0;
+  virtual void Run(int frames, float* destination) = 0;
 };
 
 
@@ -42,41 +49,34 @@ class SincResampler {
 
     
     
-    
-    kDefaultBlockSize = 512,
+    kDefaultRequestSize = 512,
 
     
     
     
     kKernelOffsetCount = 32,
     kKernelStorageSize = kKernelSize * (kKernelOffsetCount + 1),
-
-    
-    kDefaultBufferSize = kDefaultBlockSize + kKernelSize,
   };
 
   
   
   
   
+  
+  
   SincResampler(double io_sample_rate_ratio,
+                int request_frames,
                 SincResamplerCallback* read_cb);
-  SincResampler(double io_sample_rate_ratio,
-                SincResamplerCallback* read_cb,
-                int block_size);
   virtual ~SincResampler();
 
   
-  void Resample(float* destination, int frames);
+  void Resample(int frames, float* destination);
 
   
   
-  int ChunkSize();
+  int ChunkSize() const;
 
-  
-  
-  
-  int BlockSize();
+  int request_frames() const { return request_frames_; }
 
   
   
@@ -96,8 +96,14 @@ class SincResampler {
   FRIEND_TEST_ALL_PREFIXES(SincResamplerTest, Convolve);
   FRIEND_TEST_ALL_PREFIXES(SincResamplerTest, ConvolveBenchmark);
 
-  void Initialize();
   void InitializeKernel();
+  void UpdateRegions(bool second_load);
+
+  
+  
+  
+  
+  void InitializeCPUSpecificFeatures();
 
   
   
@@ -129,10 +135,13 @@ class SincResampler {
   SincResamplerCallback* read_cb_;
 
   
+  const int request_frames_;
+
+  
   int block_size_;
 
   
-  int buffer_size_;
+  const int input_buffer_size_;
 
   
   
@@ -145,21 +154,22 @@ class SincResampler {
   scoped_ptr_malloc<float, AlignedFree> input_buffer_;
 
   
-#if (defined(WEBRTC_ARCH_X86_FAMILY) && !defined(__SSE__)) ||  \
-    (defined(WEBRTC_ARCH_ARM_V7) && !defined(WEBRTC_ARCH_ARM_NEON))
+  
+  
+  
+#if defined(WEBRTC_RESAMPLER_CPU_DETECTION)
   typedef float (*ConvolveProc)(const float*, const float*, const float*,
                                 double);
-  const ConvolveProc convolve_proc_;
+  ConvolveProc convolve_proc_;
 #endif
 
   
   
-  float* const r0_;
+  float* r0_;
   float* const r1_;
   float* const r2_;
-  float* const r3_;
-  float* const r4_;
-  float* const r5_;
+  float* r3_;
+  float* r4_;
 
   DISALLOW_COPY_AND_ASSIGN(SincResampler);
 };

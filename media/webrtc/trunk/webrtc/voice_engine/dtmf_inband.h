@@ -82,6 +82,6 @@ private:
     uint32_t _delaySinceLastToneMS; 
 };
 
-}   
+}  
 
 #endif

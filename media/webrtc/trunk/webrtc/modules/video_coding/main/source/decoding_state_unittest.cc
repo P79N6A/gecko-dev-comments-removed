@@ -10,15 +10,14 @@
 
 #include <string.h>
 
-#include "modules/video_coding/main/source/decoding_state.h"
-#include "modules/video_coding/main/source/frame_buffer.h"
-#include "gtest/gtest.h"
-#include "modules/video_coding/main/source/jitter_buffer_common.h"
-#include "modules/interface/module_common_types.h"
-#include "modules/video_coding/main/source/packet.h"
+#include "testing/gtest/include/gtest/gtest.h"
+#include "webrtc/modules/interface/module_common_types.h"
+#include "webrtc/modules/video_coding/main/source/decoding_state.h"
+#include "webrtc/modules/video_coding/main/source/frame_buffer.h"
+#include "webrtc/modules/video_coding/main/source/jitter_buffer_common.h"
+#include "webrtc/modules/video_coding/main/source/packet.h"
 
 namespace webrtc {
-
 
 TEST(TestDecodingState, Sanity) {
   VCMDecodingState dec_state;
@@ -32,135 +31,127 @@ TEST(TestDecodingState, FrameContinuity) {
   
   VCMFrameBuffer frame;
   VCMFrameBuffer frame_key;
-  frame.SetState(kStateEmpty);
-  frame_key.SetState(kStateEmpty);
   VCMPacket* packet = new VCMPacket();
-  packet->isFirstPacket = 1;
+  packet->isFirstPacket = true;
   packet->timestamp = 1;
   packet->seqNum = 0xffff;
   packet->frameType = kVideoFrameDelta;
-  packet->codecSpecificHeader.codec = kRTPVideoVP8;
+  packet->codecSpecificHeader.codec = kRtpVideoVp8;
   packet->codecSpecificHeader.codecHeader.VP8.pictureId = 0x007F;
-  frame.InsertPacket(*packet, 0, false, 0);
+  FrameData frame_data;
+  frame_data.rtt_ms = 0;
+  frame_data.rolling_average_packets_per_frame = -1;
+  EXPECT_LE(0, frame.InsertPacket(*packet, 0, kNoErrors, frame_data));
   
   dec_state.Reset();
   EXPECT_FALSE(dec_state.ContinuousFrame(&frame));
   packet->frameType = kVideoFrameKey;
-  frame_key.InsertPacket(*packet, 0, false, 0);
+  EXPECT_LE(0, frame_key.InsertPacket(*packet, 0, kNoErrors, frame_data));
   EXPECT_TRUE(dec_state.ContinuousFrame(&frame_key));
   dec_state.SetState(&frame);
   frame.Reset();
   packet->frameType = kVideoFrameDelta;
   
+  packet->isFirstPacket = false;
   packet->codecSpecificHeader.codecHeader.VP8.pictureId = 0x0002;
-  frame.InsertPacket(*packet, 0, false, 0);
+  EXPECT_LE(0, frame.InsertPacket(*packet, 0, kNoErrors, frame_data));
   EXPECT_FALSE(dec_state.ContinuousFrame(&frame));
   frame.Reset();
-  frame.SetState(kStateEmpty);
   packet->codecSpecificHeader.codecHeader.VP8.pictureId = 0;
   packet->seqNum = 10;
-  frame.InsertPacket(*packet, 0, false, 0);
+  EXPECT_LE(0, frame.InsertPacket(*packet, 0, kNoErrors, frame_data));
   EXPECT_TRUE(dec_state.ContinuousFrame(&frame));
 
   
   packet->codecSpecificHeader.codecHeader.VP8.pictureId = kNoPictureId;
   frame.Reset();
-  frame.SetState(kStateEmpty);
   packet->seqNum = dec_state.sequence_num() - 1u;
-  frame.InsertPacket(*packet, 0, false, 0);
+  EXPECT_LE(0, frame.InsertPacket(*packet, 0, kNoErrors, frame_data));
   EXPECT_FALSE(dec_state.ContinuousFrame(&frame));
   frame.Reset();
-  frame.SetState(kStateEmpty);
   packet->seqNum = dec_state.sequence_num() + 1u;
-  frame.InsertPacket(*packet, 0, false, 0);
+  EXPECT_LE(0, frame.InsertPacket(*packet, 0, kNoErrors, frame_data));
   
   packet->seqNum++;
-  frame.InsertPacket(*packet, 0, false, 0);
+  EXPECT_LE(0, frame.InsertPacket(*packet, 0, kNoErrors, frame_data));
   
-  EXPECT_EQ(dec_state.sequence_num(), 0xffff);
+  EXPECT_LE(dec_state.sequence_num(), 0xffff);
   EXPECT_TRUE(dec_state.ContinuousFrame(&frame));
   dec_state.SetState(&frame);
 
   
   dec_state.Reset();
   frame.Reset();
-  frame.SetState(kStateEmpty);
   packet->codecSpecificHeader.codecHeader.VP8.tl0PicIdx = 0;
   packet->codecSpecificHeader.codecHeader.VP8.temporalIdx = 0;
   packet->codecSpecificHeader.codecHeader.VP8.pictureId = 0;
   packet->seqNum = 1;
   packet->timestamp = 1;
   EXPECT_TRUE(dec_state.full_sync());
-  frame.InsertPacket(*packet, 0, false, 0);
+  EXPECT_LE(0, frame.InsertPacket(*packet, 0, kNoErrors, frame_data));
   dec_state.SetState(&frame);
   EXPECT_TRUE(dec_state.full_sync());
   frame.Reset();
-  frame.SetState(kStateEmpty);
   
   packet->codecSpecificHeader.codecHeader.VP8.tl0PicIdx = 0;
   packet->codecSpecificHeader.codecHeader.VP8.temporalIdx = 1;
   packet->codecSpecificHeader.codecHeader.VP8.pictureId = 1;
   packet->seqNum = 2;
   packet->timestamp = 2;
-  frame.InsertPacket(*packet, 0, false, 0);
+  EXPECT_LE(0, frame.InsertPacket(*packet, 0, kNoErrors, frame_data));
   EXPECT_TRUE(dec_state.ContinuousFrame(&frame));
   dec_state.SetState(&frame);
   EXPECT_TRUE(dec_state.full_sync());
   frame.Reset();
-  frame.SetState(kStateEmpty);
   
   packet->codecSpecificHeader.codecHeader.VP8.tl0PicIdx = 0;
   packet->codecSpecificHeader.codecHeader.VP8.temporalIdx = 3;
   packet->codecSpecificHeader.codecHeader.VP8.pictureId = 3;
   packet->seqNum = 4;
   packet->timestamp = 4;
-  frame.InsertPacket(*packet, 0, false, 0);
+  EXPECT_LE(0, frame.InsertPacket(*packet, 0, kNoErrors, frame_data));
   EXPECT_FALSE(dec_state.ContinuousFrame(&frame));
   
   frame.Reset();
-  frame.SetState(kStateEmpty);
   packet->codecSpecificHeader.codecHeader.VP8.tl0PicIdx = 1;
   packet->codecSpecificHeader.codecHeader.VP8.temporalIdx = 2;
   packet->codecSpecificHeader.codecHeader.VP8.pictureId = 4;
   packet->seqNum = 5;
   packet->timestamp = 5;
-  frame.InsertPacket(*packet, 0, false, 0);
+  EXPECT_LE(0, frame.InsertPacket(*packet, 0, kNoErrors, frame_data));
   
   
   EXPECT_FALSE(dec_state.ContinuousFrame(&frame));
   EXPECT_TRUE(dec_state.full_sync());
   
   frame.Reset();
-  frame.SetState(kStateEmpty);
   packet->codecSpecificHeader.codecHeader.VP8.tl0PicIdx = 1;
   packet->codecSpecificHeader.codecHeader.VP8.temporalIdx = 0;
   packet->codecSpecificHeader.codecHeader.VP8.pictureId = 5;
   packet->seqNum = 6;
   packet->timestamp = 6;
-  frame.InsertPacket(*packet, 0, false, 0);
+  EXPECT_LE(0, frame.InsertPacket(*packet, 0, kNoErrors, frame_data));
   EXPECT_TRUE(dec_state.ContinuousFrame(&frame));
   dec_state.SetState(&frame);
   EXPECT_FALSE(dec_state.full_sync());
 
   
   frame.Reset();
-  frame.SetState(kStateEmpty);
   packet->codecSpecificHeader.codecHeader.VP8.tl0PicIdx = 0x00FF;
   packet->codecSpecificHeader.codecHeader.VP8.temporalIdx = 0;
   packet->codecSpecificHeader.codecHeader.VP8.pictureId = 6;
   packet->seqNum = 7;
   packet->timestamp = 7;
-  frame.InsertPacket(*packet, 0, false, 0);
+  EXPECT_LE(0, frame.InsertPacket(*packet, 0, kNoErrors, frame_data));
   dec_state.SetState(&frame);
   EXPECT_FALSE(dec_state.full_sync());
   frame.Reset();
-  frame.SetState(kStateEmpty);
   packet->codecSpecificHeader.codecHeader.VP8.tl0PicIdx = 0x0000;
   packet->codecSpecificHeader.codecHeader.VP8.temporalIdx = 0;
   packet->codecSpecificHeader.codecHeader.VP8.pictureId = 7;
   packet->seqNum = 8;
   packet->timestamp = 8;
-  frame.InsertPacket(*packet, 0, false, 0);
+  EXPECT_LE(0, frame.InsertPacket(*packet, 0, kNoErrors, frame_data));
   EXPECT_TRUE(dec_state.ContinuousFrame(&frame));
   
   dec_state.SetState(&frame);
@@ -173,12 +164,14 @@ TEST(TestDecodingState, UpdateOldPacket) {
   
   
   VCMFrameBuffer frame;
-  frame.SetState(kStateEmpty);
   VCMPacket* packet = new VCMPacket();
   packet->timestamp = 1;
   packet->seqNum = 1;
   packet->frameType = kVideoFrameDelta;
-  frame.InsertPacket(*packet, 0, false, 0);
+  FrameData frame_data;
+  frame_data.rtt_ms = 0;
+  frame_data.rolling_average_packets_per_frame = -1;
+  EXPECT_LE(0, frame.InsertPacket(*packet, 0, kNoErrors, frame_data));
   dec_state.SetState(&frame);
   EXPECT_EQ(dec_state.sequence_num(), 1);
   
@@ -221,56 +214,54 @@ TEST(TestDecodingState, MultiLayerBehavior) {
   VCMFrameBuffer frame;
   VCMPacket* packet = new VCMPacket();
   packet->frameType = kVideoFrameDelta;
-  packet->codecSpecificHeader.codec = kRTPVideoVP8;
-  frame.SetState(kStateEmpty);
+  packet->codecSpecificHeader.codec = kRtpVideoVp8;
   packet->timestamp = 0;
   packet->seqNum = 0;
   packet->codecSpecificHeader.codecHeader.VP8.tl0PicIdx = 0;
   packet->codecSpecificHeader.codecHeader.VP8.temporalIdx = 0;
   packet->codecSpecificHeader.codecHeader.VP8.pictureId = 0;
-  frame.InsertPacket(*packet, 0, false, 0);
+  FrameData frame_data;
+  frame_data.rtt_ms = 0;
+  frame_data.rolling_average_packets_per_frame = -1;
+  EXPECT_LE(0, frame.InsertPacket(*packet, 0, kNoErrors, frame_data));
   dec_state.SetState(&frame);
   
   frame.Reset();
-  frame.SetState(kStateEmpty);
   packet->timestamp = 1;
   packet->seqNum = 1;
   packet->codecSpecificHeader.codecHeader.VP8.tl0PicIdx = 0;
   packet->codecSpecificHeader.codecHeader.VP8.temporalIdx = 1;
   packet->codecSpecificHeader.codecHeader.VP8.pictureId = 1;
-  frame.InsertPacket(*packet, 0, false, 0);
+  EXPECT_LE(0, frame.InsertPacket(*packet, 0, kNoErrors, frame_data));
   EXPECT_TRUE(dec_state.ContinuousFrame(&frame));
   dec_state.SetState(&frame);
   EXPECT_TRUE(dec_state.full_sync());
   
   
   frame.Reset();
-  frame.SetState(kStateEmpty);
   packet->timestamp = 3;
   packet->seqNum = 3;
   packet->codecSpecificHeader.codecHeader.VP8.tl0PicIdx = 0;
   packet->codecSpecificHeader.codecHeader.VP8.temporalIdx = 3;
   packet->codecSpecificHeader.codecHeader.VP8.pictureId = 3;
-  frame.InsertPacket(*packet, 0, false, 0);
+  EXPECT_LE(0, frame.InsertPacket(*packet, 0, kNoErrors, frame_data));
   EXPECT_FALSE(dec_state.ContinuousFrame(&frame));
   dec_state.SetState(&frame);
   EXPECT_FALSE(dec_state.full_sync());
   
   frame.Reset();
-  frame.SetState(kStateEmpty);
   packet->timestamp = 4;
   packet->seqNum = 4;
   packet->codecSpecificHeader.codecHeader.VP8.tl0PicIdx = 1;
   packet->codecSpecificHeader.codecHeader.VP8.temporalIdx = 0;
   packet->codecSpecificHeader.codecHeader.VP8.pictureId = 4;
-  frame.InsertPacket(*packet, 0, false, 0);
+  EXPECT_LE(0, frame.InsertPacket(*packet, 0, kNoErrors, frame_data));
   EXPECT_TRUE(dec_state.ContinuousFrame(&frame));
   dec_state.SetState(&frame);
   EXPECT_FALSE(dec_state.full_sync());
   
   
   frame.Reset();
-  frame.SetState(kStateEmpty);
   packet->frameType = kVideoFrameKey;
   packet->isFirstPacket = 1;
   packet->timestamp = 5;
@@ -278,25 +269,23 @@ TEST(TestDecodingState, MultiLayerBehavior) {
   packet->codecSpecificHeader.codecHeader.VP8.tl0PicIdx = 2;
   packet->codecSpecificHeader.codecHeader.VP8.temporalIdx = 0;
   packet->codecSpecificHeader.codecHeader.VP8.pictureId = 5;
-  frame.InsertPacket(*packet, 0, false, 0);
+  EXPECT_LE(0, frame.InsertPacket(*packet, 0, kNoErrors, frame_data));
   EXPECT_TRUE(dec_state.ContinuousFrame(&frame));
   dec_state.SetState(&frame);
   EXPECT_TRUE(dec_state.full_sync());
   
   
   frame.Reset();
-  frame.SetState(kStateEmpty);
   packet->frameType = kVideoFrameDelta;
   packet->timestamp = 6;
   packet->seqNum = 6;
   packet->codecSpecificHeader.codecHeader.VP8.tl0PicIdx = 3;
   packet->codecSpecificHeader.codecHeader.VP8.temporalIdx = 0;
   packet->codecSpecificHeader.codecHeader.VP8.pictureId = 6;
-  frame.InsertPacket(*packet, 0, false, 0);
+  EXPECT_LE(0, frame.InsertPacket(*packet, 0, kNoErrors, frame_data));
   EXPECT_TRUE(dec_state.ContinuousFrame(&frame));
   EXPECT_TRUE(dec_state.full_sync());
   frame.Reset();
-  frame.SetState(kStateEmpty);
   packet->frameType = kVideoFrameDelta;
   packet->isFirstPacket = 1;
   packet->timestamp = 8;
@@ -304,7 +293,7 @@ TEST(TestDecodingState, MultiLayerBehavior) {
   packet->codecSpecificHeader.codecHeader.VP8.tl0PicIdx = 4;
   packet->codecSpecificHeader.codecHeader.VP8.temporalIdx = 0;
   packet->codecSpecificHeader.codecHeader.VP8.pictureId = 8;
-  frame.InsertPacket(*packet, 0, false, 0);
+  EXPECT_LE(0, frame.InsertPacket(*packet, 0, kNoErrors, frame_data));
   EXPECT_FALSE(dec_state.ContinuousFrame(&frame));
   EXPECT_TRUE(dec_state.full_sync());
   dec_state.SetState(&frame);
@@ -312,7 +301,6 @@ TEST(TestDecodingState, MultiLayerBehavior) {
 
   
   frame.Reset();
-  frame.SetState(kStateEmpty);
   packet->frameType = kVideoFrameDelta;
   packet->isFirstPacket = 1;
   packet->timestamp = 9;
@@ -321,7 +309,7 @@ TEST(TestDecodingState, MultiLayerBehavior) {
   packet->codecSpecificHeader.codecHeader.VP8.temporalIdx = 2;
   packet->codecSpecificHeader.codecHeader.VP8.pictureId = 9;
   packet->codecSpecificHeader.codecHeader.VP8.layerSync = true;
-  frame.InsertPacket(*packet, 0, false, 0);
+  EXPECT_LE(0, frame.InsertPacket(*packet, 0, kNoErrors, frame_data));
   dec_state.SetState(&frame);
   EXPECT_TRUE(dec_state.full_sync());
 
@@ -333,7 +321,6 @@ TEST(TestDecodingState, MultiLayerBehavior) {
   
   frame.Reset();
   dec_state.Reset();
-  frame.SetState(kStateEmpty);
   packet->frameType = kVideoFrameDelta;
   packet->isFirstPacket = 1;
   packet->markerBit = 1;
@@ -343,12 +330,11 @@ TEST(TestDecodingState, MultiLayerBehavior) {
   packet->codecSpecificHeader.codecHeader.VP8.temporalIdx = 0;
   packet->codecSpecificHeader.codecHeader.VP8.pictureId = 0;
   packet->codecSpecificHeader.codecHeader.VP8.layerSync = false;
-  frame.InsertPacket(*packet, 0, false, 0);
+  EXPECT_LE(0, frame.InsertPacket(*packet, 0, kNoErrors, frame_data));
   dec_state.SetState(&frame);
   EXPECT_TRUE(dec_state.full_sync());
   
   frame.Reset();
-  frame.SetState(kStateEmpty);
   packet->frameType = kVideoFrameDelta;
   packet->isFirstPacket = 1;
   packet->markerBit = 0;
@@ -358,11 +344,10 @@ TEST(TestDecodingState, MultiLayerBehavior) {
   packet->codecSpecificHeader.codecHeader.VP8.temporalIdx = 2;
   packet->codecSpecificHeader.codecHeader.VP8.pictureId = 1;
   packet->codecSpecificHeader.codecHeader.VP8.layerSync = true;
-  frame.InsertPacket(*packet, 0, false, 0);
+  EXPECT_LE(0, frame.InsertPacket(*packet, 0, kNoErrors, frame_data));
   EXPECT_TRUE(dec_state.ContinuousFrame(&frame));
   
   frame.Reset();
-  frame.SetState(kStateEmpty);
   packet->frameType = kVideoFrameDelta;
   packet->isFirstPacket = 1;
   packet->markerBit = 1;
@@ -372,7 +357,7 @@ TEST(TestDecodingState, MultiLayerBehavior) {
   packet->codecSpecificHeader.codecHeader.VP8.temporalIdx = 1;
   packet->codecSpecificHeader.codecHeader.VP8.pictureId = 2;
   packet->codecSpecificHeader.codecHeader.VP8.layerSync = true;
-  frame.InsertPacket(*packet, 0, false, 0);
+  EXPECT_LE(0, frame.InsertPacket(*packet, 0, kNoErrors, frame_data));
   EXPECT_FALSE(dec_state.ContinuousFrame(&frame));
   EXPECT_TRUE(dec_state.full_sync());
 
@@ -384,28 +369,29 @@ TEST(TestDecodingState, DiscontinuousPicIdContinuousSeqNum) {
   VCMFrameBuffer frame;
   VCMPacket packet;
   frame.Reset();
-  frame.SetState(kStateEmpty);
   packet.frameType = kVideoFrameKey;
-  packet.codecSpecificHeader.codec = kRTPVideoVP8;
+  packet.codecSpecificHeader.codec = kRtpVideoVp8;
   packet.timestamp = 0;
   packet.seqNum = 0;
   packet.codecSpecificHeader.codecHeader.VP8.tl0PicIdx = 0;
   packet.codecSpecificHeader.codecHeader.VP8.temporalIdx = 0;
   packet.codecSpecificHeader.codecHeader.VP8.pictureId = 0;
-  frame.InsertPacket(packet, 0, false, 0);
+  FrameData frame_data;
+  frame_data.rtt_ms = 0;
+  frame_data.rolling_average_packets_per_frame = -1;
+  EXPECT_LE(0, frame.InsertPacket(packet, 0, kNoErrors, frame_data));
   dec_state.SetState(&frame);
   EXPECT_TRUE(dec_state.full_sync());
 
   
   
   frame.Reset();
-  frame.SetState(kStateEmpty);
   packet.frameType = kVideoFrameDelta;
   packet.timestamp += 3000;
   ++packet.seqNum;
   packet.codecSpecificHeader.codecHeader.VP8.temporalIdx = 1;
   packet.codecSpecificHeader.codecHeader.VP8.pictureId = 2;
-  frame.InsertPacket(packet, 0, false, 0);
+  EXPECT_LE(0, frame.InsertPacket(packet, 0, kNoErrors, frame_data));
   EXPECT_FALSE(dec_state.ContinuousFrame(&frame));
   dec_state.SetState(&frame);
   EXPECT_FALSE(dec_state.full_sync());
@@ -416,17 +402,19 @@ TEST(TestDecodingState, OldInput) {
   
   
   VCMFrameBuffer frame;
-  frame.SetState(kStateEmpty);
   VCMPacket* packet = new VCMPacket();
   packet->timestamp = 10;
   packet->seqNum = 1;
-  frame.InsertPacket(*packet, 0, false, 0);
+  FrameData frame_data;
+  frame_data.rtt_ms = 0;
+  frame_data.rolling_average_packets_per_frame = -1;
+  EXPECT_LE(0, frame.InsertPacket(*packet, 0, kNoErrors, frame_data));
   dec_state.SetState(&frame);
   packet->timestamp = 9;
   EXPECT_TRUE(dec_state.IsOldPacket(packet));
   
   frame.Reset();
-  frame.InsertPacket(*packet, 0, false, 0);
+  frame.InsertPacket(*packet, 0, kNoErrors, frame_data);
   EXPECT_TRUE(dec_state.IsOldFrame(&frame));
 
 

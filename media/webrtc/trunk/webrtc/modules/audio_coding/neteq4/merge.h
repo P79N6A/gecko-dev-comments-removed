@@ -51,7 +51,7 @@ class Merge {
   
   
   
-  int Process(int16_t* input, int input_length,
+  int Process(int16_t* input, size_t input_length,
               int16_t* external_mute_factor_array,
               AudioMultiVector<int16_t>* output);
 

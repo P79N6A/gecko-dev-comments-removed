@@ -36,10 +36,12 @@ class TraceToStderr : public TraceCallback {
   
   
   
-  virtual void SetTimeSeconds(float time) { time_seconds_ = time; }
+  virtual void SetTimeSeconds(float time);
 
   
-  virtual void Print(TraceLevel level, const char* msg_array, int length);
+  virtual void Print(TraceLevel level,
+                     const char* msg_array,
+                     int length) OVERRIDE;
 
  private:
   bool override_time_;

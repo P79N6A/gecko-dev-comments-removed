@@ -126,5 +126,5 @@ private:
     VideoX11Render* _ptrX11Render;
 };
 
-} 
+}  
 #endif  

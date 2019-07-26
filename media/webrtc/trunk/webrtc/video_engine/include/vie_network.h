@@ -32,24 +32,6 @@ enum ViEPacketTimeout {
   PacketReceived = 1
 };
 
-
-
-
-
-class WEBRTC_DLLEXPORT ViENetworkObserver {
- public:
-  
-  
-  virtual void OnPeriodicDeadOrAlive(const int video_channel,
-                                     const bool alive) = 0;
-
-  
-  virtual void PacketTimeout(const int video_channel,
-                             const ViEPacketTimeout timeout) = 0;
- protected:
-  virtual ~ViENetworkObserver() {}
-};
-
 class WEBRTC_DLLEXPORT ViENetwork {
  public:
   
@@ -95,27 +77,6 @@ class WEBRTC_DLLEXPORT ViENetwork {
   
   
   virtual int SetMTU(int video_channel, unsigned int mtu) = 0;
-
-  
-  
-  virtual int SetPacketTimeoutNotification(const int video_channel,
-                                           bool enable,
-                                           int timeout_seconds) = 0;
-
-  
-  
-  virtual int RegisterObserver(const int video_channel,
-                               ViENetworkObserver& observer) = 0;
-
-  
-  virtual int DeregisterObserver(const int video_channel) = 0;
-
-  
-  
-  virtual int SetPeriodicDeadOrAliveStatus(
-      const int video_channel,
-      const bool enable,
-      const unsigned int sample_time_seconds = KDefaultSampleTimeSeconds) = 0;
 
  protected:
   ViENetwork() {}

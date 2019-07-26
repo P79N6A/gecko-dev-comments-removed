@@ -26,6 +26,20 @@ namespace webrtc {
 class Config;
 class VoiceEngine;
 
+
+
+class CpuOveruseObserver {
+ public:
+  
+  virtual void OveruseDetected() = 0;
+  
+  virtual void NormalUsage() = 0;
+
+ protected:
+  virtual ~CpuOveruseObserver() {}
+};
+
+
 class WEBRTC_DLLEXPORT VideoEngine {
  public:
   
@@ -95,6 +109,12 @@ class WEBRTC_DLLEXPORT ViEBase {
 
   
   virtual int DeleteChannel(const int video_channel) = 0;
+
+  
+  
+  
+  virtual int RegisterCpuOveruseObserver(int channel,
+                                         CpuOveruseObserver* observer) = 0;
 
   
   

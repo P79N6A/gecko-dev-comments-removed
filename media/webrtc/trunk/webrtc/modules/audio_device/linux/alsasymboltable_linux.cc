@@ -25,7 +25,7 @@
 
 
 
-#include "alsasymboltable_linux.h"
+#include "webrtc/modules/audio_device/linux/alsasymboltable_linux.h"
 
 namespace webrtc_adm_linux_alsa {
 

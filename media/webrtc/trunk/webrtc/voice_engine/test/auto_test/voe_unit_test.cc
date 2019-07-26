@@ -210,8 +210,8 @@ int VoEUnitTest::DoTest() {
         
         printf("Invalid selection! (Test code error)\n");
         assert(false);
-    } 
-  } 
+    }  
+  }  
 
   return ret;
 }
@@ -1083,4 +1083,4 @@ int VoEUnitTest::MixerTest() {
   return 0;
 }
 
-} 
+}  

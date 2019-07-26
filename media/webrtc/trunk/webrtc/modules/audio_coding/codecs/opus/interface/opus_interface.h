@@ -127,8 +127,15 @@ int16_t WebRtcOpus_DecodeSlave(OpusDecInst* inst, const int16_t* encoded,
 
 
 
+
+
+
 int16_t WebRtcOpus_DecodePlc(OpusDecInst* inst, int16_t* decoded,
                              int16_t number_of_lost_frames);
+int16_t WebRtcOpus_DecodePlcMaster(OpusDecInst* inst, int16_t* decoded,
+                                   int16_t number_of_lost_frames);
+int16_t WebRtcOpus_DecodePlcSlave(OpusDecInst* inst, int16_t* decoded,
+                                  int16_t number_of_lost_frames);
 
 
 

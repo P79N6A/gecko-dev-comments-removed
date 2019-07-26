@@ -8,11 +8,11 @@
 
 
 
-#include "video_source.h"
+#include "webrtc/modules/video_coding/main/test/video_source.h"
 
-#include <cassert>
+#include <assert.h>
 
-#include "testsupport/fileutils.h"
+#include "webrtc/test/testsupport/fileutils.h"
 
 VideoSource::VideoSource()
 :

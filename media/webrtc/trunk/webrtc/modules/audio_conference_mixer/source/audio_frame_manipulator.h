@@ -21,6 +21,6 @@ void CalculateEnergy(AudioFrame& audioFrame);
 void RampIn(AudioFrame& audioFrame);
 void RampOut(AudioFrame& audioFrame);
 
-} 
+}  
 
 #endif 

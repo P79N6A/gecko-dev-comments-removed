@@ -73,6 +73,6 @@ class FileWrapper : public InStream, public OutStream {
   virtual int Rewind() = 0;
 };
 
-} 
+}  
 
 #endif  

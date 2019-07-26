@@ -48,6 +48,7 @@ class DesktopRegion {
   
   struct Row {
     Row(int32_t top, int32_t bottom);
+    ~Row();
 
     int32_t top;
     int32_t bottom;
@@ -119,6 +120,12 @@ class DesktopRegion {
   void IntersectWith(const DesktopRect& rect);
 
   
+  void Subtract(const DesktopRegion& region);
+
+  
+  void Subtract(const DesktopRect& rect);
+
+  
   void Translate(int32_t dx, int32_t dy);
 
   void Swap(DesktopRegion* region);
@@ -139,6 +146,10 @@ class DesktopRegion {
   static void IntersectRows(const RowSpanSet& set1,
                             const RowSpanSet& set2,
                             RowSpanSet* output);
+
+  static void SubtractRows(const RowSpanSet& set_a,
+                           const RowSpanSet& set_b,
+                           RowSpanSet* output);
 
   
   

@@ -14,7 +14,7 @@
 
 #define _USE_MATH_DEFINES
 
-#include <cmath>
+#include <math.h>
 
 #include "testing/gmock/include/gmock/gmock.h"
 #include "testing/gtest/include/gtest/gtest.h"
@@ -36,18 +36,18 @@ static const double kKernelInterpolationFactor = 0.5;
 
 class MockSource : public SincResamplerCallback {
  public:
-  MOCK_METHOD2(Run, void(float* destination, int frames));
+  MOCK_METHOD2(Run, void(int frames, float* destination));
 };
 
 ACTION(ClearBuffer) {
-  memset(arg0, 0, arg1 * sizeof(float));
+  memset(arg1, 0, arg0 * sizeof(float));
 }
 
 ACTION(FillBuffer) {
   
   
   
-  memset(arg0, 64, arg1 * sizeof(float));
+  memset(arg1, 64, arg0 * sizeof(float));
 }
 
 
@@ -57,7 +57,8 @@ TEST(SincResamplerTest, ChunkedResample) {
 
   
   
-  SincResampler resampler(kSampleRateRatio, &mock_source);
+  SincResampler resampler(kSampleRateRatio, SincResampler::kDefaultRequestSize,
+                          &mock_source);
 
   static const int kChunks = 2;
   int max_chunk_size = resampler.ChunkSize() * kChunks;
@@ -66,25 +67,26 @@ TEST(SincResamplerTest, ChunkedResample) {
   
   EXPECT_CALL(mock_source, Run(_, _))
       .Times(1).WillOnce(ClearBuffer());
-  resampler.Resample(resampled_destination.get(), resampler.ChunkSize());
+  resampler.Resample(resampler.ChunkSize(), resampled_destination.get());
 
   
   testing::Mock::VerifyAndClear(&mock_source);
   EXPECT_CALL(mock_source, Run(_, _))
       .Times(kChunks).WillRepeatedly(ClearBuffer());
-  resampler.Resample(resampled_destination.get(), max_chunk_size);
+  resampler.Resample(max_chunk_size, resampled_destination.get());
 }
 
 
 TEST(SincResamplerTest, Flush) {
   MockSource mock_source;
-  SincResampler resampler(kSampleRateRatio, &mock_source);
+  SincResampler resampler(kSampleRateRatio, SincResampler::kDefaultRequestSize,
+                          &mock_source);
   scoped_array<float> resampled_destination(new float[resampler.ChunkSize()]);
 
   
   EXPECT_CALL(mock_source, Run(_, _))
       .Times(1).WillOnce(FillBuffer());
-  resampler.Resample(resampled_destination.get(), resampler.ChunkSize() / 2);
+  resampler.Resample(resampler.ChunkSize() / 2, resampled_destination.get());
   ASSERT_NE(resampled_destination[0], 0);
 
   
@@ -92,10 +94,24 @@ TEST(SincResamplerTest, Flush) {
   testing::Mock::VerifyAndClear(&mock_source);
   EXPECT_CALL(mock_source, Run(_, _))
       .Times(1).WillOnce(ClearBuffer());
-  resampler.Resample(resampled_destination.get(), resampler.ChunkSize() / 2);
+  resampler.Resample(resampler.ChunkSize() / 2, resampled_destination.get());
   for (int i = 0; i < resampler.ChunkSize() / 2; ++i)
     ASSERT_FLOAT_EQ(resampled_destination[i], 0);
 }
+
+
+TEST(SincResamplerTest, DISABLED_SetRatioBench) {
+  MockSource mock_source;
+  SincResampler resampler(kSampleRateRatio, SincResampler::kDefaultRequestSize,
+                          &mock_source);
+
+  TickTime start = TickTime::Now();
+  for (int i = 1; i < 10000; ++i)
+    resampler.SetRatio(1.0 / i);
+  double total_time_c_us = (TickTime::Now() - start).Microseconds();
+  printf("SetRatio() took %.2fms.\n", total_time_c_us / 1000);
+}
+
 
 
 #if defined(WEBRTC_ARCH_X86_FAMILY)
@@ -117,7 +133,8 @@ TEST(SincResamplerTest, Convolve) {
 
   
   MockSource mock_source;
-  SincResampler resampler(kSampleRateRatio, &mock_source);
+  SincResampler resampler(kSampleRateRatio, SincResampler::kDefaultRequestSize,
+                          &mock_source);
 
   
   
@@ -150,7 +167,8 @@ TEST(SincResamplerTest, Convolve) {
 TEST(SincResamplerTest, ConvolveBenchmark) {
   
   MockSource mock_source;
-  SincResampler resampler(kSampleRateRatio, &mock_source);
+  SincResampler resampler(kSampleRateRatio, SincResampler::kDefaultRequestSize,
+                          &mock_source);
 
   
   
@@ -243,9 +261,8 @@ TEST_P(SincResamplerTest, Resample) {
       input_rate_, input_samples, input_nyquist_freq, 0);
 
   const double io_ratio = input_rate_ / static_cast<double>(output_rate_);
-  SincResampler resampler(
-      io_ratio,
-      &resampler_source);
+  SincResampler resampler(io_ratio, SincResampler::kDefaultRequestSize,
+                          &resampler_source);
 
   
   
@@ -265,12 +282,12 @@ TEST_P(SincResamplerTest, Resample) {
   scoped_array<float> pure_destination(new float[output_samples]);
 
   
-  resampler.Resample(resampled_destination.get(), output_samples);
+  resampler.Resample(output_samples, resampled_destination.get());
 
   
   SinusoidalLinearChirpSource pure_source(
       output_rate_, output_samples, input_nyquist_freq, 0);
-  pure_source.Run(pure_destination.get(), output_samples);
+  pure_source.Run(output_samples, pure_destination.get());
 
   
   

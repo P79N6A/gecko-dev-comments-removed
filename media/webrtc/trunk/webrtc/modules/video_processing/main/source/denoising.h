@@ -40,7 +40,7 @@ private:
     int               _denoiseFrameCnt;   
 };
 
-} 
+}  
 
 #endif 
   

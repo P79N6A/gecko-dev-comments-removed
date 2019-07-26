@@ -10,9 +10,9 @@
 
 #include "webrtc/modules/rtp_rtcp/source/rtcp_utility.h"
 
-#include <cassert>
-#include <cmath>   
-#include <cstring> 
+#include <assert.h>
+#include <math.h>   
+#include <string.h> 
 
 namespace webrtc {
 
@@ -1524,4 +1524,4 @@ RTCPUtility::RTCPPacketIterator::Current()
 
     return &_header;
 }
-} 
+}  

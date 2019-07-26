@@ -11,7 +11,7 @@
 #ifndef WEBRTC_VOICE_ENGINE_CHANNEL_H
 #define WEBRTC_VOICE_ENGINE_CHANNEL_H
 
-#include "webrtc/common_audio/resampler/include/resampler.h"
+#include "webrtc/common_audio/resampler/include/push_resampler.h"
 #include "webrtc/common_types.h"
 #include "webrtc/modules/audio_coding/main/interface/audio_coding_module.h"
 #include "webrtc/modules/audio_conference_mixer/interface/audio_conference_mixer_defines.h"
@@ -33,25 +33,31 @@
 #include "webrtc/voice_engine/include/voe_dtmf.h"
 #endif
 
-namespace webrtc
-{
-class CriticalSectionWrapper;
-class ProcessThread;
+namespace webrtc {
+
 class AudioDeviceModule;
-class RtpRtcp;
+class Config;
+class CriticalSectionWrapper;
 class FileWrapper;
+class ProcessThread;
+class ReceiveStatistics;
 class RtpDump;
-class VoiceEngineObserver;
+class RTPPayloadRegistry;
+class RtpReceiver;
+class RTPReceiverAudio;
+class RtpRtcp;
+class TelephoneEventHandler;
 class VoEMediaProcess;
-class VoERTPObserver;
 class VoERTCPObserver;
+class VoERTPObserver;
+class VoiceEngineObserver;
 
 struct CallStatistics;
 struct ReportBlock;
 struct SenderInfo;
 
-namespace voe
-{
+namespace voe {
+
 class Statistics;
 class TransmitMixer;
 class OutputMixer;
@@ -71,12 +77,12 @@ class Channel:
 public:
     enum {KNumSocketThreads = 1};
     enum {KNumberOfSocketBuffers = 8};
-public:
     virtual ~Channel();
     static int32_t CreateChannel(Channel*& channel,
                                  int32_t channelId,
-                                 uint32_t instanceId);
-    Channel(int32_t channelId, uint32_t instanceId);
+                                 uint32_t instanceId,
+                                 const Config& config);
+    Channel(int32_t channelId, uint32_t instanceId, const Config& config);
     int32_t Init();
     int32_t SetEngineInformation(
         Statistics& engineStatistics,
@@ -88,7 +94,6 @@ public:
         CriticalSectionWrapper* callbackCritSect);
     int32_t UpdateLocalTimeStamp();
 
-public:
     
 
     
@@ -133,12 +138,6 @@ public:
     int32_t DeRegisterExternalTransport();
     int32_t ReceivedRTPPacket(const int8_t* data, int32_t length);
     int32_t ReceivedRTCPPacket(const int8_t* data, int32_t length);
-    int32_t SetPacketTimeoutNotification(bool enable, int timeoutSeconds);
-    int32_t GetPacketTimeoutNotification(bool& enabled, int& timeoutSeconds);
-    int32_t RegisterDeadOrAliveObserver(VoEConnectionObserver& observer);
-    int32_t DeRegisterDeadOrAliveObserver();
-    int32_t SetPeriodicDeadOrAliveStatus(bool enable, int sampleTimeSeconds);
-    int32_t GetPeriodicDeadOrAliveStatus(bool& enabled, int& sampleTimeSeconds);
 
     
     int StartPlayingFileLocally(const char* fileName, bool loop,
@@ -215,7 +214,7 @@ public:
     int SetInitSequenceNumber(short sequenceNumber);
 
     
-    int GetRtpRtcp(RtpRtcp* &rtpRtcpModule) const;
+    int GetRtpRtcp(RtpRtcp** rtpRtcpModule, RtpReceiver** rtp_receiver) const;
 
     
     int RegisterExternalEncryption(Encryption& encryption);
@@ -287,7 +286,6 @@ public:
                              unsigned short payloadSize);
     uint32_t LastRemoteTimeStamp() { return _lastRemoteTimeStamp; }
 
-public:
     
     int32_t SendData(FrameType frameType,
                      uint8_t payloadType,
@@ -298,16 +296,15 @@ public:
     
     int32_t InFrameType(int16_t frameType);
 
-public:
     int32_t OnRxVadDetected(int vadDecision);
 
-public:
     
     int32_t OnReceivedPayloadData(const uint8_t* payloadData,
                                   uint16_t payloadSize,
                                   const WebRtcRTPHeader* rtpHeader);
 
-public:
+    bool OnRecoveredPacket(const uint8_t* packet, int packet_length);
+
     
     int32_t OnInitializeDecoder(
             int32_t id,
@@ -325,12 +322,13 @@ public:
                                RTPAliveType alive);
 
     void OnIncomingSSRCChanged(int32_t id,
-                               uint32_t SSRC);
+                               uint32_t ssrc);
 
     void OnIncomingCSRCChanged(int32_t id,
                                uint32_t CSRC, bool added);
 
-public:
+    void ResetStatistics(uint32_t ssrc);
+
     
     void OnApplicationDataReceived(int32_t id,
                                    uint8_t subType,
@@ -338,7 +336,6 @@ public:
                                    uint16_t length,
                                    const uint8_t* data);
 
-public:
     
     void OnReceivedTelephoneEvent(int32_t id,
                                   uint8_t event,
@@ -349,21 +346,17 @@ public:
                               uint16_t lengthMs,
                               uint8_t volume);
 
-public:
     
     int SendPacket(int , const void *data, int len);
     int SendRTCPPacket(int , const void *data, int len);
 
-public:
     
     int32_t GetAudioFrame(int32_t id, AudioFrame& audioFrame);
     int32_t NeededFrequency(int32_t id);
 
-public:
     
     void OnPeriodicProcess();
 
-public:
     
     void PlayNotification(int32_t id,
                           uint32_t durationMs);
@@ -372,7 +365,6 @@ public:
     void PlayFileEnded(int32_t id);
     void RecordFileEnded(int32_t id);
 
-public:
     uint32_t InstanceId() const
     {
         return _instanceId;
@@ -422,10 +414,24 @@ public:
         return _outputAudioLevel.Level();
     }
     uint32_t Demultiplex(const AudioFrame& audioFrame);
+    
+    
+    
+    void Demultiplex(const int16_t* audio_data,
+                     int sample_rate,
+                     int number_of_frames,
+                     int number_of_channels);
     uint32_t PrepareEncodeAndSend(int mixingFrequency);
     uint32_t EncodeAndSend();
 
 private:
+    bool ReceivePacket(const uint8_t* packet, int packet_length,
+                       const RTPHeader& header, bool in_order);
+    bool HandleEncapsulation(const uint8_t* packet,
+                             int packet_length,
+                             const RTPHeader& header);
+    bool IsPacketInOrder(const RTPHeader& header) const;
+    bool IsPacketRetransmitted(const RTPHeader& header) const;
     int ResendPackets(const uint16_t* sequence_numbers, int length);
     int InsertInbandDtmfTone();
     int32_t MixOrReplaceAudioWithFile(int mixingFrequency);
@@ -438,22 +444,27 @@ private:
     int ApmProcessRx(AudioFrame& audioFrame);
 
     int SetRedPayloadType(int red_payload_type);
-private:
+
     CriticalSectionWrapper& _fileCritSect;
     CriticalSectionWrapper& _callbackCritSect;
     uint32_t _instanceId;
     int32_t _channelId;
 
-private:
     scoped_ptr<RtpHeaderParser> rtp_header_parser_;
+    scoped_ptr<RTPPayloadRegistry> rtp_payload_registry_;
+    scoped_ptr<ReceiveStatistics> rtp_receive_statistics_;
+    scoped_ptr<RtpReceiver> rtp_receiver_;
+    TelephoneEventHandler* telephone_event_handler_;
     scoped_ptr<RtpRtcp> _rtpRtcpModule;
-    AudioCodingModule& _audioCodingModule;
+    scoped_ptr<AudioCodingModule> audio_coding_;
     RtpDump& _rtpDumpIn;
     RtpDump& _rtpDumpOut;
-private:
     AudioLevel _outputAudioLevel;
     bool _externalTransport;
     AudioFrame _audioFrame;
+    scoped_array<int16_t> mono_recording_audio_;
+    
+    PushResampler input_resampler_;
     uint8_t _audioLevel_dBov;
     FilePlayer* _inputFilePlayerPtr;
     FilePlayer* _outputFilePlayerPtr;
@@ -480,8 +491,9 @@ private:
     uint32_t playout_timestamp_rtcp_;
     uint32_t playout_delay_ms_;
     uint32_t _numberOfDiscardedPackets;
+    uint16_t send_sequence_number_;
+    uint8_t restored_packet_[kVoiceEngineMaxIpPacketSizeBytes];
 
- private:
     
     Statistics* _engineStatisticsPtr;
     OutputMixer* _outputMixerPtr;
@@ -492,14 +504,13 @@ private:
     CriticalSectionWrapper* _callbackCritSectPtr; 
     Transport* _transportPtr; 
     Encryption* _encryptionPtr; 
-    scoped_ptr<AudioProcessing> _rtpAudioProc;
-    AudioProcessing* _rxAudioProcessingModulePtr; 
+    scoped_ptr<AudioProcessing> rtp_audioproc_;
+    scoped_ptr<AudioProcessing> rx_audioproc_; 
     VoERxVadCallback* _rxVadObserverPtr;
     int32_t _oldVadDecision;
     int32_t _sendFrameType; 
     VoERTPObserver* _rtpObserverPtr;
     VoERTCPObserver* _rtcpObserverPtr;
-private:
     
     bool _outputIsOnHold;
     bool _externalPlayout;
@@ -549,10 +560,10 @@ private:
     bool _rxApmIsEnabled;
     bool _rxAgcIsEnabled;
     bool _rxNsIsEnabled;
+    bool restored_packet_in_use_;
 };
 
-} 
-
-} 
+}  
+}  
 
 #endif

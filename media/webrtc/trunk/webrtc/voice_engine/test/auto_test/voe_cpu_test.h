@@ -26,6 +26,6 @@ class VoECpuTest {
   VoETestManager& _mgr;
 };
 
-} 
+}  
 
 #endif 

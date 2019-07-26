@@ -76,13 +76,13 @@ TEST(ParseVP8Test, BasicHeader) {
   payload[0] = 0x14;  
   payload[1] = 0x01;  
 
-  RTPPayloadParser rtpPayloadParser(kRtpVp8Video, payload, 4, 0);
+  RTPPayloadParser rtpPayloadParser(kRtpVideoVp8, payload, 4, 0);
 
   RTPPayload parsedPacket;
   ASSERT_TRUE(rtpPayloadParser.Parse(parsedPacket));
 
   EXPECT_EQ(ModuleRTPUtility::kPFrame, parsedPacket.frameType);
-  EXPECT_EQ(kRtpVp8Video, parsedPacket.type);
+  EXPECT_EQ(kRtpVideoVp8, parsedPacket.type);
 
   VerifyBasicHeader(parsedPacket.info.VP8, 0 , 1 , 4 );
   VerifyExtensions(parsedPacket.info.VP8, 0 , 0 , 0 , 0 );
@@ -97,13 +97,13 @@ TEST(ParseVP8Test, PictureID) {
   payload[1] = 0x80;
   payload[2] = 17;
 
-  RTPPayloadParser rtpPayloadParser(kRtpVp8Video, payload, 10, 0);
+  RTPPayloadParser rtpPayloadParser(kRtpVideoVp8, payload, 10, 0);
 
   RTPPayload parsedPacket;
   ASSERT_TRUE(rtpPayloadParser.Parse(parsedPacket));
 
   EXPECT_EQ(ModuleRTPUtility::kPFrame, parsedPacket.frameType);
-  EXPECT_EQ(kRtpVp8Video, parsedPacket.type);
+  EXPECT_EQ(kRtpVideoVp8, parsedPacket.type);
 
   VerifyBasicHeader(parsedPacket.info.VP8, 1 , 0 , 0 );
   VerifyExtensions(parsedPacket.info.VP8, 1 , 0 , 0 , 0 );
@@ -117,7 +117,7 @@ TEST(ParseVP8Test, PictureID) {
   
   payload[2] = 0x80 | 17;
   payload[3] = 17;
-  RTPPayloadParser rtpPayloadParser2(kRtpVp8Video, payload, 10, 0);
+  RTPPayloadParser rtpPayloadParser2(kRtpVideoVp8, payload, 10, 0);
 
   ASSERT_TRUE(rtpPayloadParser2.Parse(parsedPacket));
 
@@ -136,13 +136,13 @@ TEST(ParseVP8Test, Tl0PicIdx) {
   payload[1] = 0x40;
   payload[2] = 17;
 
-  RTPPayloadParser rtpPayloadParser(kRtpVp8Video, payload, 13, 0);
+  RTPPayloadParser rtpPayloadParser(kRtpVideoVp8, payload, 13, 0);
 
   RTPPayload parsedPacket;
   ASSERT_TRUE(rtpPayloadParser.Parse(parsedPacket));
 
   EXPECT_EQ(ModuleRTPUtility::kIFrame, parsedPacket.frameType);
-  EXPECT_EQ(kRtpVp8Video, parsedPacket.type);
+  EXPECT_EQ(kRtpVideoVp8, parsedPacket.type);
 
   VerifyBasicHeader(parsedPacket.info.VP8, 0 , 1 , 0 );
   VerifyExtensions(parsedPacket.info.VP8, 0 , 1 , 0 , 0 );
@@ -159,13 +159,13 @@ TEST(ParseVP8Test, TIDAndLayerSync) {
   payload[1] = 0x20;
   payload[2] = 0x80;  
 
-  RTPPayloadParser rtpPayloadParser(kRtpVp8Video, payload, 10, 0);
+  RTPPayloadParser rtpPayloadParser(kRtpVideoVp8, payload, 10, 0);
 
   RTPPayload parsedPacket;
   ASSERT_TRUE(rtpPayloadParser.Parse(parsedPacket));
 
   EXPECT_EQ(ModuleRTPUtility::kPFrame, parsedPacket.frameType);
-  EXPECT_EQ(kRtpVp8Video, parsedPacket.type);
+  EXPECT_EQ(kRtpVideoVp8, parsedPacket.type);
 
   VerifyBasicHeader(parsedPacket.info.VP8, 0 , 0 , 8 );
   VerifyExtensions(parsedPacket.info.VP8, 0 , 0 , 1 , 0 );
@@ -183,13 +183,13 @@ TEST(ParseVP8Test, KeyIdx) {
   payload[1] = 0x10;  
   payload[2] = 0x11;  
 
-  RTPPayloadParser rtpPayloadParser(kRtpVp8Video, payload, 10, 0);
+  RTPPayloadParser rtpPayloadParser(kRtpVideoVp8, payload, 10, 0);
 
   RTPPayload parsedPacket;
   ASSERT_TRUE(rtpPayloadParser.Parse(parsedPacket));
 
   EXPECT_EQ(ModuleRTPUtility::kPFrame, parsedPacket.frameType);
-  EXPECT_EQ(kRtpVp8Video, parsedPacket.type);
+  EXPECT_EQ(kRtpVideoVp8, parsedPacket.type);
 
   VerifyBasicHeader(parsedPacket.info.VP8, 0 , 0 , 8 );
   VerifyExtensions(parsedPacket.info.VP8, 0 , 0 , 0 , 1 );
@@ -209,13 +209,13 @@ TEST(ParseVP8Test, MultipleExtensions) {
   payload[4] = 42;           
   payload[5] = 0x40 | 0x20 | 0x11;  
 
-  RTPPayloadParser rtpPayloadParser(kRtpVp8Video, payload, 10, 0);
+  RTPPayloadParser rtpPayloadParser(kRtpVideoVp8, payload, 10, 0);
 
   RTPPayload parsedPacket;
   ASSERT_TRUE(rtpPayloadParser.Parse(parsedPacket));
 
   EXPECT_EQ(ModuleRTPUtility::kPFrame, parsedPacket.frameType);
-  EXPECT_EQ(kRtpVp8Video, parsedPacket.type);
+  EXPECT_EQ(kRtpVideoVp8, parsedPacket.type);
 
   VerifyBasicHeader(parsedPacket.info.VP8, 0 , 0 , 8 );
   VerifyExtensions(parsedPacket.info.VP8, 1 , 1 , 1 , 1 );
@@ -236,7 +236,7 @@ TEST(ParseVP8Test, TooShortHeader) {
   payload[2] = 0x80 | 17;  
   payload[3] = 17;  
 
-  RTPPayloadParser rtpPayloadParser(kRtpVp8Video, payload, 4, 0);
+  RTPPayloadParser rtpPayloadParser(kRtpVideoVp8, payload, 4, 0);
 
   RTPPayload parsedPacket;
   EXPECT_FALSE(rtpPayloadParser.Parse(parsedPacket));
@@ -258,13 +258,13 @@ TEST(ParseVP8Test, TestWithPacketizer) {
   ASSERT_EQ(0, packetizer.NextPacket(packet, &send_bytes, &last));
   ASSERT_TRUE(last);
 
-  RTPPayloadParser rtpPayloadParser(kRtpVp8Video, packet, send_bytes, 0);
+  RTPPayloadParser rtpPayloadParser(kRtpVideoVp8, packet, send_bytes, 0);
 
   RTPPayload parsedPacket;
   ASSERT_TRUE(rtpPayloadParser.Parse(parsedPacket));
 
   EXPECT_EQ(ModuleRTPUtility::kIFrame, parsedPacket.frameType);
-  EXPECT_EQ(kRtpVp8Video, parsedPacket.type);
+  EXPECT_EQ(kRtpVideoVp8, parsedPacket.type);
 
   VerifyBasicHeader(parsedPacket.info.VP8,
                     inputHeader.nonReference ,

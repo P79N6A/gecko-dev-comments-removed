@@ -204,4 +204,4 @@ int ListWrapper::Erase(ListItem* item) {
   return 0;
 }
 
-} 
+}  

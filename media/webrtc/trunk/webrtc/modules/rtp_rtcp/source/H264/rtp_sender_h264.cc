@@ -466,7 +466,7 @@ RTPSenderH264::SendH264_STAP_A(const FrameType frameType,
         }
     }
     return 0;
-} 
+}  
 
 
 int32_t
@@ -660,7 +660,7 @@ RTPSenderH264::SendH264_STAP_A_PACSI(const FrameType frameType,
         }
     }
     return 0;
-} 
+}  
 
 int32_t
 RTPSenderH264::SendH264_FU_A(const FrameType frameType,
@@ -1277,4 +1277,4 @@ RTPSenderH264::SendH264(const FrameType frameType,
     }
     return 0;
 }
-} 
+}  

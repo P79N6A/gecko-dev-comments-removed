@@ -20,6 +20,8 @@
 
 namespace webrtc {
 
+class DesktopFrame;
+
 
 
 class XServerPixelBuffer {
@@ -31,12 +33,12 @@ class XServerPixelBuffer {
 
   
   
-  
-  
-  void Init(Display* display, const DesktopSize& screen_size);
+  bool Init(Display* display, Window window);
+
+  bool is_initialized() { return window_ != 0; }
 
   
-  static DesktopSize GetRootWindowSize(Display* display);
+  const DesktopSize& window_size() { return window_size_; }
 
   
   
@@ -49,27 +51,24 @@ class XServerPixelBuffer {
   
   
   
-  
-  
-  
-  uint8_t* CaptureRect(const DesktopRect& rect);
-
-  
-  
-  int GetStride() const;
-  int GetDepth() const;
-  int GetBitsPerPixel() const;
-  int GetRedMask() const;
-  int GetBlueMask() const;
-  int GetGreenMask() const;
+  void CaptureRect(const DesktopRect& rect, DesktopFrame* frame);
 
  private:
-  void InitShm(int screen);
+  void InitShm(const XWindowAttributes& attributes);
   bool InitPixmaps(int depth);
 
+  
+  
+  void FastBlit(uint8_t* image,
+                const DesktopRect& rect,
+                DesktopFrame* frame);
+  void SlowBlit(uint8_t* image,
+                const DesktopRect& rect,
+                DesktopFrame* frame);
+
   Display* display_;
-  Window root_window_;
-  DesktopSize root_window_size_;
+  Window window_;
+  DesktopSize window_size_;
   XImage* x_image_;
   XShmSegmentInfo* shm_segment_info_;
   Pixmap shm_pixmap_;

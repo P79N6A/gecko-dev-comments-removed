@@ -79,8 +79,8 @@ int VoEStressTest::DoTest() {
         
         printf("Invalid selection! (Test code error)\n");
         assert(false);
-    } 
-  } 
+    }  
+  }  
 
   return 0;
 }
@@ -226,7 +226,7 @@ int VoEStressTest::CreateDeleteChannelsTest() {
   
 
   
-  const int maxChannels = base->MaxNumOfChannels();
+  const int maxChannels = 100;
   VALIDATE_STRESS(maxChannels < 1); 
   bool* channelState = new bool[maxChannels];
   memset(channelState, 0, maxChannels * sizeof(bool));
@@ -409,4 +409,4 @@ bool VoEStressTest::ProcessExtraApi() {
   return true;
 }
 
-} 
+}  

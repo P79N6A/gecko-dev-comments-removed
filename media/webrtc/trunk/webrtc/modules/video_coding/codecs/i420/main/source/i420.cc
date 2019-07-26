@@ -8,12 +8,12 @@
 
 
 
-#include "modules/video_coding/codecs/i420/main/interface/i420.h"
+#include "webrtc/modules/video_coding/codecs/i420/main/interface/i420.h"
 
-#include <string>
 #include <limits>
+#include <string>
 
-#include "common_video/libyuv/include/webrtc_libyuv.h"
+#include "webrtc/common_video/libyuv/include/webrtc_libyuv.h"
 
 namespace webrtc {
 

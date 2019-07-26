@@ -469,5 +469,5 @@ class VoEExtendedTest : public VoiceEngineObserver,
   bool _sending[32];
 };
 
-} 
+}  
 #endif 

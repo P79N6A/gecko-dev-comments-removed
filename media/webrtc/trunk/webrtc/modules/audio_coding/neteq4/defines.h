@@ -47,5 +47,11 @@ enum Modes {
   kModeUndefined = -1
 };
 
+#ifdef NETEQ4_VERBOSE_LOGGING
+#define NETEQ_LOG_VERBOSE LOG(LS_VERBOSE)
+#else
+#define NETEQ_LOG_VERBOSE while(false)LOG(LS_VERBOSE)
+#endif
+
 }  
 #endif  

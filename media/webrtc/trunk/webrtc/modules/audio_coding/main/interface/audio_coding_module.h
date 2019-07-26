@@ -76,7 +76,6 @@ class ACMVQMonCallback {
 class AudioCodingModule: public Module {
  protected:
   AudioCodingModule() {}
-  virtual ~AudioCodingModule() {}
 
  public:
   
@@ -86,23 +85,13 @@ class AudioCodingModule: public Module {
   
   
   
-  static AudioCodingModule* Create(const int32_t id);
-  static AudioCodingModule* Create(const int32_t id, Clock* clock);
-
-  static void Destroy(AudioCodingModule* module);
-
-  
-  
-  
+  static AudioCodingModule* Create(int id);
+  static AudioCodingModule* Create(int id, Clock* clock);
+  virtual ~AudioCodingModule() {};
 
   
   
   
-  
-  
-  
-  
-  static uint8_t NumberOfCodecs();
 
   
   
@@ -111,15 +100,7 @@ class AudioCodingModule: public Module {
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  static int32_t Codec(uint8_t list_id, CodecInst* codec);
+  static int NumberOfCodecs();
 
   
   
@@ -136,11 +117,28 @@ class AudioCodingModule: public Module {
   
   
   
+  static int Codec(int list_id, CodecInst* codec);
+
   
   
   
   
-  static int32_t Codec(const char* payload_name, CodecInst* codec,
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  static int Codec(const char* payload_name, CodecInst* codec,
                        int sampling_freq_hz, int channels);
 
   
@@ -159,7 +157,7 @@ class AudioCodingModule: public Module {
   
   
   
-  static int32_t Codec(const char* payload_name, int sampling_freq_hz,
+  static int Codec(const char* payload_name, int sampling_freq_hz,
                              int channels);
 
   
@@ -581,8 +579,8 @@ class AudioCodingModule: public Module {
   
   
   
-  virtual int32_t UnregisterReceiveCodec(
-      const int16_t payload_type) = 0;
+  virtual int UnregisterReceiveCodec(
+      uint8_t payload_type) = 0;
 
   
   
@@ -666,7 +664,12 @@ class AudioCodingModule: public Module {
   
   
   
-  virtual int LeastRequiredDelayMs() const = 0;
+  
+  
+  
+  
+  
+  virtual int SetMaximumPlayoutDelay(int time_ms) = 0;
 
   
   
@@ -674,22 +677,7 @@ class AudioCodingModule: public Module {
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  virtual int32_t
-      RegisterIncomingMessagesCallback(
-          AudioCodingFeedback* in_message_callback,
-          const ACMCountries cpt = ACMDisableCountryDetection) = 0;
+  virtual int LeastRequiredDelayMs() const = 0;
 
   
   
@@ -715,39 +703,6 @@ class AudioCodingModule: public Module {
   
   
   virtual bool DtmfPlayoutStatus() const = 0;
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  virtual int32_t SetBackgroundNoiseMode(
-      const ACMBackgroundNoiseMode mode) = 0;
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  virtual int32_t BackgroundNoiseMode(ACMBackgroundNoiseMode* mode) = 0;
 
   
   
@@ -841,39 +796,6 @@ class AudioCodingModule: public Module {
   
   
   
-  
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  virtual int16_t SetReceiveVADMode(const ACMVADMode mode) = 0;
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  virtual ACMVADMode ReceiveVADMode() const = 0;
-
-  
-  
-  
 
   
   
@@ -890,8 +812,7 @@ class AudioCodingModule: public Module {
   
   
   
-  virtual int32_t SetISACMaxRate(
-      const uint32_t max_rate_bps) = 0;
+  virtual int SetISACMaxRate(int max_rate_bps) = 0;
 
   
   
@@ -908,8 +829,7 @@ class AudioCodingModule: public Module {
   
   
   
-  virtual int32_t SetISACMaxPayloadSize(
-      const uint16_t max_payload_len_bytes) = 0;
+  virtual int SetISACMaxPayloadSize(int max_payload_len_bytes) = 0;
 
   
   
@@ -936,14 +856,15 @@ class AudioCodingModule: public Module {
   
   
   virtual int32_t ConfigISACBandwidthEstimator(
-      const uint8_t init_frame_size_ms,
-      const uint16_t init_rate_bps,
-      const bool enforce_frame_size = false) = 0;
+      int init_frame_size_ms,
+      int init_rate_bps,
+      bool enforce_frame_size = false) = 0;
 
   
   
   
 
+  
   
   
   
@@ -956,7 +877,7 @@ class AudioCodingModule: public Module {
   
   
   virtual int32_t NetworkStatistics(
-      ACMNetworkStatistics* network_statistics) const = 0;
+      ACMNetworkStatistics* network_statistics) = 0;
 
   
   
@@ -1001,6 +922,20 @@ class AudioCodingModule: public Module {
   
   
   virtual std::vector<uint16_t> GetNackList(int round_trip_time_ms) const = 0;
+};
+
+struct AudioCodingModuleFactory {
+  AudioCodingModuleFactory() {}
+  virtual ~AudioCodingModuleFactory() {}
+
+  virtual AudioCodingModule* Create(int id) const;
+};
+
+struct NewAudioCodingModuleFactory : AudioCodingModuleFactory {
+  NewAudioCodingModuleFactory() {}
+  virtual ~NewAudioCodingModuleFactory() {}
+
+  virtual AudioCodingModule* Create(int id) const;
 };
 
 }  

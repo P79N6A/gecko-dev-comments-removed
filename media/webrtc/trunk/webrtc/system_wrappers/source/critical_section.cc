@@ -25,4 +25,4 @@ CriticalSectionWrapper* CriticalSectionWrapper::CreateCriticalSection() {
 #endif
 }
 
-} 
+}  

@@ -22,7 +22,6 @@
 #include "webrtc/video_engine/include/vie_capture.h"
 #include "webrtc/video_engine/include/vie_codec.h"
 #include "webrtc/video_engine/include/vie_errors.h"
-#include "webrtc/video_engine/include/vie_file.h"
 #include "webrtc/video_engine/include/vie_network.h"
 #include "webrtc/video_engine/include/vie_render.h"
 #include "webrtc/video_engine/include/vie_rtp_rtcp.h"
@@ -88,11 +87,6 @@ public:
     void ViEEncryptionStandardTest();
     void ViEEncryptionExtendedTest();
     void ViEEncryptionAPITest();
-
-    
-    void ViEFileStandardTest();
-    void ViEFileExtendedTest();
-    void ViEFileAPITest();
 
     
     void ViEImageProcessStandardTest();

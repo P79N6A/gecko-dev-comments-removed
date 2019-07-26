@@ -194,6 +194,6 @@ MemoryPoolItem<MemoryType>* MemoryPoolImpl<MemoryType>::CreateMemory()
     ++_createdMemory;
     return returnValue;
 }
-} 
+}  
 
 #endif 

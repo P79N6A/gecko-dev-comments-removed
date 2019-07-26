@@ -55,24 +55,14 @@ TEST_F(RemoteBitrateEstimatorSingleTest, CapacityDropOneStreamWrap) {
 
 
 
-TEST_F(RemoteBitrateEstimatorSingleTest, CapacityDropOneStreamWrapAlign) {
-  align_streams_ = true;
-  CapacityDropTestHelper(1, true, 956214, 367);
-}
-
-
-
-
-TEST_F(RemoteBitrateEstimatorSingleTest, CapacityDropTwoStreamsWrapAlign) {
-  align_streams_ = true;
+TEST_F(RemoteBitrateEstimatorSingleTest, CapacityDropTwoStreamsWrap) {
   CapacityDropTestHelper(2, true, 927088, 267);
 }
 
 
 
 
-TEST_F(RemoteBitrateEstimatorSingleTest, CapacityDropThreeStreamsWrapAlign) {
-  align_streams_ = true;
+TEST_F(RemoteBitrateEstimatorSingleTest, CapacityDropThreeStreamsWrap) {
   CapacityDropTestHelper(3, true, 920944, 333);
 }
 

@@ -37,6 +37,6 @@ class ConditionVariableWrapper {
   virtual void WakeAll() = 0;
 };
 
-} 
+}  
 
 #endif  

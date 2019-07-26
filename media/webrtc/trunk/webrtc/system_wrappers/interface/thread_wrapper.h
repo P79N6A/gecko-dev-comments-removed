@@ -78,9 +78,7 @@ class ThreadWrapper {
   
   
   virtual bool SetAffinity(const int* processor_numbers,
-                           const unsigned int amount_of_processors) {
-    return false;
-  }
+                           const unsigned int amount_of_processors);
 
   
   
@@ -89,6 +87,6 @@ class ThreadWrapper {
   virtual bool Stop() = 0;
 };
 
-} 
+}  
 
 #endif

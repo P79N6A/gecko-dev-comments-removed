@@ -291,7 +291,7 @@ void WebRtcNsx_NoiseEstimationNeon(NsxInst_t* inst,
       __asm__("vbit %q0, %q1, %q2"::
               "w"(tmp16x8_1), "w"(tmp16x8_0), "w"(tmp16x8_4));
       vst1q_s16(&inst->noiseEstDensity[offset + i], tmp16x8_1);
-    } 
+    }  
 
     
     
@@ -348,7 +348,7 @@ void WebRtcNsx_NoiseEstimationNeon(NsxInst_t* inst,
     }
     inst->noiseEstCounter[s]++;
 
-  } 
+  }  
 
   
   if (inst->blockIndex < END_STARTUP_LONG) {

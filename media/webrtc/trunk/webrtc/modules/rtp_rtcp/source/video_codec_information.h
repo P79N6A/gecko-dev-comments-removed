@@ -23,6 +23,6 @@ public:
     virtual RtpVideoCodecTypes Type() = 0;
     virtual ~VideoCodecInformation(){};
 };
-} 
+}  
 
 #endif 

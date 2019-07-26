@@ -11,7 +11,7 @@
 #ifndef WEBRTC_MODULES_AUDIO_CODING_NETEQ4_DSP_HELPER_H_
 #define WEBRTC_MODULES_AUDIO_CODING_NETEQ4_DSP_HELPER_H_
 
-#include <cstring>  
+#include <string.h>  
 
 #include "webrtc/modules/audio_coding/neteq4/audio_multi_vector.h"
 #include "webrtc/system_wrappers/interface/constructor_magic.h"
@@ -103,25 +103,25 @@ class DspHelper {
   
   
   static void CrossFade(const int16_t* input1, const int16_t* input2,
-                        int length, int16_t* mix_factor,
+                        size_t length, int16_t* mix_factor,
                         int16_t factor_decrement, int16_t* output);
 
   
   
   
-  static void UnmuteSignal(const int16_t* input, int length, int16_t* factor,
+  static void UnmuteSignal(const int16_t* input, size_t length, int16_t* factor,
                            int16_t increment, int16_t* output);
 
   
   
-  static void MuteSignal(int16_t* signal, int16_t mute_slope, int length);
+  static void MuteSignal(int16_t* signal, int16_t mute_slope, size_t length);
 
   
   
   
   
   
-  static int DownsampleTo4kHz(const int16_t* input, int input_length,
+  static int DownsampleTo4kHz(const int16_t* input, size_t input_length,
                               int output_length, int input_rate_hz,
                               bool compensate_delay, int16_t* output);
 

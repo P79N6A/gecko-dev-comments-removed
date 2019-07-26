@@ -55,17 +55,17 @@ class SimulatedClock : public Clock {
 
   
   
-  virtual int64_t TimeInMilliseconds();
+  virtual int64_t TimeInMilliseconds() OVERRIDE;
 
   
   
-  virtual int64_t TimeInMicroseconds();
+  virtual int64_t TimeInMicroseconds() OVERRIDE;
 
   
-  virtual void CurrentNtp(uint32_t& seconds, uint32_t& fractions);
+  virtual void CurrentNtp(uint32_t& seconds, uint32_t& fractions) OVERRIDE;
 
   
-  virtual int64_t CurrentNtpInMilliseconds();
+  virtual int64_t CurrentNtpInMilliseconds() OVERRIDE;
 
   
   

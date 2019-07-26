@@ -87,8 +87,6 @@ enum ViEErrors {
   kViENetworkSendCodecNotSet,            
   kViENetworkServiceTypeNotSupported,    
   kViENetworkNotSupported,               
-  kViENetworkObserverAlreadyRegistered,  
-  kViENetworkObserverNotRegistered,      
   kViENetworkUnknownError,               
 
   

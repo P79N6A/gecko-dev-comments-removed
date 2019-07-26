@@ -60,6 +60,6 @@ private:
 
 };
 
-} 
+}  
 
 #endif

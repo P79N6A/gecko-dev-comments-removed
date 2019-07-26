@@ -10,11 +10,13 @@
 
 #include "webrtc/test/testsupport/fileutils.h"
 
-#include <cstdio>
+#include <stdio.h>
+
 #include <list>
 #include <string>
 
 #include "testing/gtest/include/gtest/gtest.h"
+#include "webrtc/test/testsupport/gtest_disable.h"
 
 #ifdef WIN32
 #define chdir _chdir
@@ -110,7 +112,7 @@ TEST_F(FileUtilsTest, OutputPathFromUnchangedWorkingDir) {
 
 
 
-TEST_F(FileUtilsTest, OutputPathFromRootWorkingDir) {
+TEST_F(FileUtilsTest, DISABLED_ON_ANDROID(OutputPathFromRootWorkingDir)) {
   ASSERT_EQ(0, chdir(kPathDelimiter));
   ASSERT_EQ("./", webrtc::test::OutputPath());
 }
@@ -119,9 +121,9 @@ TEST_F(FileUtilsTest, OutputPathFromRootWorkingDir) {
 TEST_F(FileUtilsTest, CreateDirectory) {
   std::string directory = "fileutils-unittest-empty-dir";
   
-  std::remove(directory.c_str());
+  remove(directory.c_str());
   ASSERT_TRUE(webrtc::test::CreateDirectory(directory));
-  std::remove(directory.c_str());
+  remove(directory.c_str());
 }
 
 TEST_F(FileUtilsTest, WorkingDirReturnsValue) {

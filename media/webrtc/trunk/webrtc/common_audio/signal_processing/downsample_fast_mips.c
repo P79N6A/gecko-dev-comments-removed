@@ -167,4 +167,3 @@ int WebRtcSpl_DownsampleFast_mips(const int16_t* data_in,
 #endif  
   return 0;
 }
-

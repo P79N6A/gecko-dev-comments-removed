@@ -171,6 +171,12 @@ class WEBRTC_DLLEXPORT ViECodec {
   virtual int WaitForFirstKeyFrame(const int video_channel,
                                    const bool wait) = 0;
 
+  
+  virtual int StartDebugRecording(int video_channel,
+                                  const char* file_name_utf8) = 0;
+  
+  virtual int StopDebugRecording(int video_channel) = 0;
+
  protected:
   ViECodec() {}
   virtual ~ViECodec() {}

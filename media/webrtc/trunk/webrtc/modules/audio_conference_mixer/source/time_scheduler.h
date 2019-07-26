@@ -42,6 +42,6 @@ private:
     int64_t  _periodicityInTicks;
     uint32_t _missedPeriods;
 };
-} 
+}  
 
 #endif 

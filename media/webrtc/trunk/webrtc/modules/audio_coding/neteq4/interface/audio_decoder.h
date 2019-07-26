@@ -81,16 +81,14 @@ class AudioDecoder {
   
   
   virtual int DecodeRedundant(const uint8_t* encoded, size_t encoded_len,
-                              int16_t* decoded, SpeechType* speech_type) {
-    return Decode(encoded, encoded_len, decoded, speech_type);
-  }
+                              int16_t* decoded, SpeechType* speech_type);
 
   
-  virtual bool HasDecodePlc() const { return false; }
+  virtual bool HasDecodePlc() const;
 
   
   
-  virtual int DecodePlc(int num_frames, int16_t* decoded) { return -1; }
+  virtual int DecodePlc(int num_frames, int16_t* decoded);
 
   
   virtual int Init() = 0;
@@ -100,19 +98,17 @@ class AudioDecoder {
                              size_t payload_len,
                              uint16_t rtp_sequence_number,
                              uint32_t rtp_timestamp,
-                             uint32_t arrival_timestamp) { return 0; }
+                             uint32_t arrival_timestamp);
 
   
-  virtual int ErrorCode() { return 0; }
+  virtual int ErrorCode();
 
   
   
   
-  virtual int PacketDuration(const uint8_t* encoded, size_t encoded_len) {
-    return kNotImplemented;
-  }
+  virtual int PacketDuration(const uint8_t* encoded, size_t encoded_len);
 
-  virtual NetEqDecoder codec_type() const { return codec_type_; }
+  virtual NetEqDecoder codec_type() const;
 
   
   void* state() { return state_; }

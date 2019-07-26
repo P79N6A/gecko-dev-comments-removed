@@ -19,8 +19,9 @@
 namespace webrtc {
 
 class PacedSender;
+class ReceiveStatistics;
 class RemoteBitrateEstimator;
-class RemoteBitrateObserver;
+class RtpReceiver;
 class Transport;
 
 class RtpRtcp : public Module {
@@ -57,8 +58,7 @@ class RtpRtcp : public Module {
     bool audio;
     Clock* clock;
     RtpRtcp* default_module;
-    RtpData* incoming_data;
-    RtpFeedback* incoming_messages;
+    ReceiveStatistics* receive_statistics;
     Transport* outgoing_transport;
     RtcpFeedback* rtcp_feedback;
     RtcpIntraFrameObserver* intra_frame_callback;
@@ -68,6 +68,7 @@ class RtpRtcp : public Module {
     RemoteBitrateEstimator* remote_bitrate_estimator;
     PacedSender* paced_sender;
   };
+
   
 
 
@@ -81,173 +82,10 @@ class RtpRtcp : public Module {
 
 
 
-    
-
-
-
-
-
-
-
-    virtual int32_t SetPacketTimeout(
-        const uint32_t RTPtimeoutMS,
-        const uint32_t RTCPtimeoutMS) = 0;
-
-    
-
-
-
-
-
-
-
-
-    virtual int32_t SetPeriodicDeadOrAliveStatus(
-        const bool enable,
-        const uint8_t sampleTimeSeconds) = 0;
-
-    
-
-
-
-
-
-
-
-
-    virtual int32_t PeriodicDeadOrAliveStatus(
-        bool& enable,
-        uint8_t& sampleTimeSeconds) = 0;
-
-    
-
-
-
-
-    virtual int32_t RegisterReceivePayload(
-        const CodecInst& voiceCodec) = 0;
-
-    
-
-
-
-
-    virtual int32_t RegisterReceivePayload(
-        const VideoCodec& videoCodec) = 0;
-
-    
-
-
-
-
-    virtual int32_t ReceivePayloadType(
-        const CodecInst& voiceCodec,
-        int8_t* plType) = 0;
-
-    
-
-
-
-
-    virtual int32_t ReceivePayloadType(
-        const VideoCodec& videoCodec,
-        int8_t* plType) = 0;
-
-    
-
-
-
-
-
-
-    virtual int32_t DeRegisterReceivePayload(
-        const int8_t payloadType) = 0;
-
-    
-
-
-    virtual uint32_t RemoteTimestamp() const = 0;
-
-    
-
-
-    virtual int64_t LocalTimeOfRemoteTimeStamp() const = 0;
-
-    
-
-
-
-
-
-
-    virtual int32_t EstimatedRemoteTimeStamp(
-        uint32_t& timestamp) const = 0;
-
-    
-
-
-    virtual uint32_t RemoteSSRC() const = 0;
-
-    
-
-
-
-
-
-
-    virtual int32_t RemoteCSRCs(
-        uint32_t arrOfCSRC[kRtpCsrcSize]) const  = 0;
-
-    
-
-
-
-
-
-
-    virtual int32_t SSRCFilter(uint32_t& allowedSSRC) const = 0;
-
-    
-
-
-
-
-
-
-    virtual int32_t SetSSRCFilter(const bool enable,
-                                  const uint32_t allowedSSRC) = 0;
-
-    
-
-
-    virtual int32_t SetRTXReceiveStatus(bool enable, uint32_t SSRC) = 0;
-
-    
-    
-    virtual void SetRtxReceivePayloadType(int payload_type) = 0;
-
-    
-
-
-    virtual int32_t RTXReceiveStatus(bool* enable,
-                                     uint32_t* SSRC,
-                                     int* payloadType) const = 0;
-
-    
-
-
-
-
-
-
-
-
-    virtual int32_t IncomingRtpPacket(const uint8_t* incomingPacket,
-                                      const uint16_t packetLength,
-                                      const RTPHeader& parsed_rtp_header) = 0;
-
     virtual int32_t IncomingRtcpPacket(const uint8_t* incoming_packet,
                                        uint16_t incoming_packet_length) = 0;
+
+    virtual void SetRemoteSSRC(const uint32_t ssrc) = 0;
 
     
 
@@ -613,32 +451,6 @@ class RtpRtcp : public Module {
 
 
 
-    virtual int32_t ResetStatisticsRTP() = 0;
-
-    
-
-
-
-
-    virtual int32_t StatisticsRTP(
-        uint8_t* fraction_lost,  
-        uint32_t* cum_lost,      
-        uint32_t* ext_max,       
-        uint32_t* jitter,
-        uint32_t* max_jitter = NULL) const = 0;
-
-    
-
-
-
-
-    virtual int32_t ResetReceiveDataCountersRTP() = 0;
-
-    
-
-
-
-
     virtual int32_t ResetSendDataCountersRTP() = 0;
 
     
@@ -648,9 +460,7 @@ class RtpRtcp : public Module {
 
     virtual int32_t DataCountersRTP(
         uint32_t* bytesSent,
-        uint32_t* packetsSent,
-        uint32_t* bytesReceived,
-        uint32_t* packetsReceived) const = 0;
+        uint32_t* packetsSent) const = 0;
     
 
 
@@ -731,18 +541,6 @@ class RtpRtcp : public Module {
     
 
 
-    virtual NACKMethod NACK() const  = 0;
-
-    
-
-
-
-
-
-
-
-    virtual int32_t SetNACKStatus(const NACKMethod method,
-                                  int max_reordering_threshold) = 0;
 
     
 
@@ -783,6 +581,9 @@ class RtpRtcp : public Module {
         const uint16_t numberToStore) = 0;
 
     
+    virtual bool StorePackets() const = 0;
+
+    
 
 
 
@@ -796,19 +597,6 @@ class RtpRtcp : public Module {
 
     virtual int32_t SetAudioPacketSize(
         const uint16_t packetSizeSamples) = 0;
-
-    
-
-
-
-
-    virtual int SetTelephoneEventForwardToDecoder(bool forwardToDecoder) = 0;
-
-    
-
-
-
-    virtual bool TelephoneEventForwardToDecoder() const = 0;
 
     
 
@@ -891,7 +679,8 @@ class RtpRtcp : public Module {
     
 
 
-    virtual void SetTargetSendBitrate(const uint32_t bitrate) = 0;
+    virtual void SetTargetSendBitrate(
+        const std::vector<uint32_t>& stream_bitrates) = 0;
 
     
 
@@ -932,5 +721,5 @@ class RtpRtcp : public Module {
 
     virtual int32_t RequestKeyFrame() = 0;
 };
-} 
+}  
 #endif 

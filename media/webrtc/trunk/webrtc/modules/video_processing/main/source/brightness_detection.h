@@ -39,6 +39,6 @@ private:
     uint32_t _frameCntDark;
 };
 
-} 
+}  
 
 #endif 

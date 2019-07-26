@@ -14,6 +14,8 @@
 
 namespace webrtc {
 
+namespace acm1 {
+
 ACMDTMFDetection::ACMDTMFDetection() {}
 
 ACMDTMFDetection::~ACMDTMFDetection() {}
@@ -34,5 +36,7 @@ int16_t ACMDTMFDetection::Detect(
     int16_t& ) {
   return -1;
 }
+
+}  
 
 }  

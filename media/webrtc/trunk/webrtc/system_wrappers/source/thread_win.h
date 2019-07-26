@@ -60,6 +60,6 @@ class ThreadWindows : public ThreadWrapper {
 
 };
 
-} 
+}  
 
 #endif  

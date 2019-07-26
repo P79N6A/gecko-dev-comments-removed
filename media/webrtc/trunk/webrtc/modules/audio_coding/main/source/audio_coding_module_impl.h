@@ -15,6 +15,7 @@
 
 #include "webrtc/common_types.h"
 #include "webrtc/engine_configurations.h"
+#include "webrtc/modules/audio_coding/main/interface/audio_coding_module.h"
 #include "webrtc/modules/audio_coding/main/source/acm_codec_database.h"
 #include "webrtc/modules/audio_coding/main/source/acm_neteq.h"
 #include "webrtc/modules/audio_coding/main/source/acm_resampler.h"
@@ -22,11 +23,16 @@
 
 namespace webrtc {
 
-class ACMDTMFDetection;
-class ACMGenericCodec;
+struct WebRtcACMAudioBuff;
+struct WebRtcACMCodecParams;
 class CriticalSectionWrapper;
 class RWLockWrapper;
 class Clock;
+
+namespace acm1 {
+
+class ACMDTMFDetection;
+class ACMGenericCodec;
 class Nack;
 
 class AudioCodingModuleImpl : public AudioCodingModule {
@@ -88,22 +94,10 @@ class AudioCodingModuleImpl : public AudioCodingModule {
 
   
   
-  int32_t RegisterTransportCallback(
-      AudioPacketizationCallback* transport);
-
-  
-  
-  int32_t RegisterIncomingMessagesCallback(
-      AudioCodingFeedback* incoming_message, const ACMCountries cpt);
+  int32_t RegisterTransportCallback(AudioPacketizationCallback* transport);
 
   
   int32_t Add10MsData(const AudioFrame& audio_frame);
-
-  
-  int32_t SetBackgroundNoiseMode(const ACMBackgroundNoiseMode mode);
-
-  
-  int32_t BackgroundNoiseMode(ACMBackgroundNoiseMode* mode);
 
   
   
@@ -121,20 +115,13 @@ class AudioCodingModuleImpl : public AudioCodingModule {
   
   
 
-  int32_t SetVAD(const bool enable_dtx = true,
-                 const bool enable_vad = false,
-                 const ACMVADMode mode = VADNormal);
+  int32_t SetVAD(bool enable_dtx = true,
+                 bool enable_vad = false,
+                 ACMVADMode mode = VADNormal);
 
-  int32_t VAD(bool* dtx_enabled, bool* vad_enabled,
-              ACMVADMode* mode) const;
+  int32_t VAD(bool* dtx_enabled, bool* vad_enabled, ACMVADMode* mode) const;
 
   int32_t RegisterVADCallback(ACMVADCallback* vad_callback);
-
-  
-  ACMVADMode ReceiveVADMode() const;
-
-  
-  int16_t SetReceiveVADMode(const ACMVADMode mode);
 
   
   
@@ -177,6 +164,9 @@ class AudioCodingModuleImpl : public AudioCodingModule {
 
   
   
+  int SetMaximumPlayoutDelay(int time_ms);
+
+  
   
   
   
@@ -213,7 +203,7 @@ class AudioCodingModuleImpl : public AudioCodingModule {
   
   
 
-  int32_t NetworkStatistics(ACMNetworkStatistics* statistics) const;
+  int32_t NetworkStatistics(ACMNetworkStatistics* statistics);
 
   void DestructEncoderInst(void* inst);
 
@@ -236,16 +226,16 @@ class AudioCodingModuleImpl : public AudioCodingModule {
 
   int32_t IsInternalDTXReplacedWithWebRtc(bool* uses_webrtc_dtx);
 
-  int32_t SetISACMaxRate(const uint32_t max_bit_per_sec);
+  int SetISACMaxRate(int max_bit_per_sec);
 
-  int32_t SetISACMaxPayloadSize(const uint16_t max_size_bytes);
+  int SetISACMaxPayloadSize(int max_size_bytes);
 
   int32_t ConfigISACBandwidthEstimator(
-      const uint8_t frame_size_ms,
-      const uint16_t rate_bit_per_sec,
-      const bool enforce_frame_size = false);
+      int frame_size_ms,
+      int rate_bit_per_sec,
+      bool enforce_frame_size = false);
 
-  int32_t UnregisterReceiveCodec(const int16_t payload_type);
+  int UnregisterReceiveCodec(uint8_t payload_type);
 
   std::vector<uint16_t> GetNackList(int round_trip_time_ms) const;
 
@@ -450,6 +440,8 @@ class AudioCodingModuleImpl : public AudioCodingModule {
   scoped_ptr<Nack> nack_;
   bool nack_enabled_;
 };
+
+}  
 
 }  
 

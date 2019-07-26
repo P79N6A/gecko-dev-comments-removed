@@ -24,6 +24,6 @@ class CpuInfo {
   static uint32_t number_of_cores_;
 };
 
-} 
+}  
 
 #endif 

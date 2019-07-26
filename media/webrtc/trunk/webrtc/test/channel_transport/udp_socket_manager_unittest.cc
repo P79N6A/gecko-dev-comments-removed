@@ -23,6 +23,10 @@
 namespace webrtc {
 namespace test {
 
+
+
+#if !defined(THREAD_SANITIZER)
+
 TEST(UdpSocketManager, CreateCallsInitAndDoesNotLeakMemory) {
   int32_t id = 42;
   uint8_t threads = 1;
@@ -79,6 +83,8 @@ TEST(UdpSocketManager, UnremovedSocketsGetCollectedAtManagerDeletion) {
   UdpSocketManager::Return();
 #endif
 }
+
+#endif 
 
 }  
 }  

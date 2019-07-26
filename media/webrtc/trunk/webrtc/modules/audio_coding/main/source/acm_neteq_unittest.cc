@@ -24,6 +24,8 @@
 
 namespace webrtc {
 
+namespace acm1 {
+
 class AcmNetEqTest : public ::testing::Test {
  protected:
   static const size_t kMaxPayloadLen = 5760;  
@@ -145,5 +147,7 @@ TEST_F(AcmNetEqTest, TestZeroLengthWaitingTimesVector) {
   EXPECT_EQ(-1, stats.meanWaitingTimeMs);
   EXPECT_EQ(-1, stats.medianWaitingTimeMs);
 }
+
+}  
 
 }  

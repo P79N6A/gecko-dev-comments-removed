@@ -23,6 +23,7 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.hardware.Camera;
+import android.hardware.Camera.CameraInfo;
 import android.hardware.SensorManager;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
@@ -189,6 +190,10 @@ public class WebRTCDemo extends TabActivity implements IViEAndroidCallback,
     private WakeLock wakeLock;
 
     private boolean usingFrontCamera = true;
+    
+    
+    
+    private int[] cameraOrientations = new int[] { -1, -1 };
 
     private String[] mVideoCodecsStrings = null;
     private String[] mVideoCodecsSizeStrings = { "176x144", "320x240",
@@ -209,14 +214,31 @@ public class WebRTCDemo extends TabActivity implements IViEAndroidCallback,
 
     
     
+    private void populateCameraOrientations() {
+        CameraInfo info = new CameraInfo();
+        for (int i = 0; i < Camera.getNumberOfCameras(); ++i) {
+            Camera.getCameraInfo(i, info);
+            if (cameraOrientations[info.facing] != -1) {
+                continue;
+            }
+            cameraOrientations[info.facing] = info.orientation;
+        }
+    }
+
+    
+    private static int facingOf(boolean usingFrontCamera) {
+        return usingFrontCamera ? CameraInfo.CAMERA_FACING_FRONT
+                : CameraInfo.CAMERA_FACING_BACK;
+    }
+
+    
+    
     
     
     
     
     public void compensateCameraRotation() {
-        Camera.CameraInfo info = new Camera.CameraInfo();
-        Camera.getCameraInfo(usingFrontCamera ? 1 : 0, info);
-        int cameraOrientation = info.orientation;
+        int cameraOrientation = cameraOrientations[facingOf(usingFrontCamera)];
         
         
         int cameraRotation = roundRotation(currentDeviceOrientation);
@@ -244,8 +266,9 @@ public class WebRTCDemo extends TabActivity implements IViEAndroidCallback,
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        
-        setRequestedOrientation (ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+
+        populateCameraOrientations();
 
         PowerManager pm = (PowerManager) this.getSystemService(
             Context.POWER_SERVICE);
@@ -487,7 +510,11 @@ public class WebRTCDemo extends TabActivity implements IViEAndroidCallback,
         }
 
         btSwitchCamera = (Button) findViewById(R.id.btSwitchCamera);
-        btSwitchCamera.setOnClickListener(this);
+        if (cameraOrientations[0] != -1 && cameraOrientations[1] != -1) {
+            btSwitchCamera.setOnClickListener(this);
+        } else {
+            btSwitchCamera.setEnabled(false);
+        }
         btStartStopCall = (Button) findViewById(R.id.btStartStopCall);
         btStartStopCall.setOnClickListener(this);
         findViewById(R.id.btExit).setOnClickListener(this);

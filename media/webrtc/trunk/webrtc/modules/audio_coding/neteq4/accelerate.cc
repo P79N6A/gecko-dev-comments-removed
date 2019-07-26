@@ -16,13 +16,13 @@ namespace webrtc {
 
 Accelerate::ReturnCodes Accelerate::Process(
     const int16_t* input,
-    int input_length,
+    size_t input_length,
     AudioMultiVector<int16_t>* output,
     int16_t* length_change_samples) {
   
   static const int k15ms = 120;  
-  if (num_channels_ == 0 ||
-      input_length / num_channels_ < (2 * k15ms - 1) * fs_mult_) {
+  if (num_channels_ == 0 || static_cast<int>(input_length) / num_channels_ <
+      (2 * k15ms - 1) * fs_mult_) {
     
     
     output->PushBackInterleaved(input, input_length);
@@ -32,7 +32,7 @@ Accelerate::ReturnCodes Accelerate::Process(
                               length_change_samples);
 }
 
-void Accelerate::SetParametersForPassiveSpeech(int ,
+void Accelerate::SetParametersForPassiveSpeech(size_t ,
                                                int16_t* best_correlation,
                                                int* ) const {
   
@@ -41,7 +41,7 @@ void Accelerate::SetParametersForPassiveSpeech(int ,
 }
 
 Accelerate::ReturnCodes Accelerate::CheckCriteriaAndStretch(
-    const int16_t* input, int input_length, size_t peak_index,
+    const int16_t* input, size_t input_length, size_t peak_index,
     int16_t best_correlation, bool active_speech,
     AudioMultiVector<int16_t>* output) const {
   

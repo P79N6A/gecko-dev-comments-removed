@@ -8,9 +8,10 @@
 
 
 
+#include <stdio.h>
+#include <string.h>
+
 #include <algorithm>
-#include <cstdio>
-#include <cstring>
 
 #include "webrtc/system_wrappers/interface/sort.h"
 #include "webrtc/system_wrappers/interface/tick_util.h"

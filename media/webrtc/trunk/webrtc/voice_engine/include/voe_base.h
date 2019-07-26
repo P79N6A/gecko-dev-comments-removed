@@ -40,6 +40,7 @@ namespace webrtc {
 
 class AudioDeviceModule;
 class AudioProcessing;
+class Config;
 
 const int kVoEDefault = -1;
 
@@ -63,6 +64,7 @@ public:
     
     
     static VoiceEngine* Create();
+    static VoiceEngine* Create(const Config& config);
 
     
     
@@ -82,7 +84,6 @@ public:
     
     static int SetTraceCallback(TraceCallback* callback);
 
-    static int SetAndroidObjects(void* javaVM, void* context);
     static int SetAndroidObjects(void* javaVM, void* env, void* context);
 
 protected:
@@ -130,9 +131,6 @@ public:
 
     
     virtual int Terminate() = 0;
-
-    
-    virtual int MaxNumOfChannels() = 0;
 
     
     virtual int CreateChannel() = 0;
@@ -187,6 +185,6 @@ protected:
     virtual ~VoEBase() {}
 };
 
-} 
+}  
 
 #endif  

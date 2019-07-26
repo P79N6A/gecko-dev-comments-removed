@@ -496,7 +496,7 @@ int run_auto_test(TestType test_type, ExtendedSelection ext_selection) {
         xtend.TestPassed("VolumeControl");
       }
       api_manager.GetExtendedMenuSelection(ext_selection);
-    } 
+    }  
   } else if (test_type == Stress) {
     VoEStressTest stressTest(test_manager);
     result = stressTest.DoTest();
@@ -524,7 +524,7 @@ int run_auto_test(TestType test_type, ExtendedSelection ext_selection) {
 
   return 0;
 }
-} 
+}  
 
 int RunInManualMode() {
   using namespace voetest;

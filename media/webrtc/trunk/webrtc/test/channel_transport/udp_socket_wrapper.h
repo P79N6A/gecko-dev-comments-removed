@@ -62,8 +62,7 @@ public:
 
     
     virtual bool StartReceiving();
-    virtual inline bool StartReceiving(const uint32_t )
-    {return StartReceiving();}
+    virtual bool StartReceiving(const uint32_t );
     
     virtual bool StopReceiving();
 
@@ -77,7 +76,7 @@ public:
     virtual int32_t SetTOS(const int32_t serviceType) = 0;
 
     
-    virtual int32_t SetPCP(const int32_t ) {return -1;}
+    virtual int32_t SetPCP(const int32_t );
 
     
     virtual int32_t SendTo(const int8_t* buf, int32_t len,
@@ -95,7 +94,7 @@ public:
                         const SocketAddress &stRemName,
                         int32_t overrideDSCP = 0) = 0;
 
-    virtual uint32_t ReceiveBuffers() {return 0;};
+    virtual uint32_t ReceiveBuffers();
 
 protected:
     

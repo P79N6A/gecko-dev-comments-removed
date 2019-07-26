@@ -27,9 +27,6 @@ class RemoteBitrateEstimatorSingleStream : public RemoteBitrateEstimator {
                                      Clock* clock);
   virtual ~RemoteBitrateEstimatorSingleStream() {}
 
-  virtual void IncomingRtcp(unsigned int ssrc, uint32_t ntp_secs,
-                            uint32_t ntp_frac, uint32_t rtp_timestamp) {}
-
   
   
   
@@ -37,24 +34,24 @@ class RemoteBitrateEstimatorSingleStream : public RemoteBitrateEstimator {
   
   virtual void IncomingPacket(int64_t arrival_time_ms,
                               int payload_size,
-                              const RTPHeader& header);
+                              const RTPHeader& header) OVERRIDE;
 
   
   
-  virtual int32_t Process();
-  virtual int32_t TimeUntilNextProcess();
+  virtual int32_t Process() OVERRIDE;
+  virtual int32_t TimeUntilNextProcess() OVERRIDE;
   
   
-  virtual void OnRttUpdate(uint32_t rtt);
+  virtual void OnRttUpdate(uint32_t rtt) OVERRIDE;
 
   
-  virtual void RemoveStream(unsigned int ssrc);
+  virtual void RemoveStream(unsigned int ssrc) OVERRIDE;
 
   
   
   
   virtual bool LatestEstimate(std::vector<unsigned int>* ssrcs,
-                              unsigned int* bitrate_bps) const;
+                              unsigned int* bitrate_bps) const OVERRIDE;
 
  private:
   typedef std::map<unsigned int, OveruseDetector> SsrcOveruseDetectorMap;

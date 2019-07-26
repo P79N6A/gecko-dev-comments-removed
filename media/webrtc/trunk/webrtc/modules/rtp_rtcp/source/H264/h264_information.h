@@ -165,6 +165,6 @@ private:
     uint32_t          _remLength;
     H264Info          _info;
 };
-} 
+}  
 
 #endif 

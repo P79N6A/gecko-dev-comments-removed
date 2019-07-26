@@ -8,7 +8,8 @@
 
 
 
-#include <cstdlib>  
+#include <stdlib.h>  
+
 #include "webrtc/modules/video_processing/main/source/color_enhancement.h"
 #include "webrtc/modules/video_processing/main/source/color_enhancement_private.h"
 #include "webrtc/system_wrappers/interface/trace.h"
@@ -59,6 +60,6 @@ namespace VideoProcessing
         return VPM_OK;
     }
 
-} 
+}  
 
-} 
+}  

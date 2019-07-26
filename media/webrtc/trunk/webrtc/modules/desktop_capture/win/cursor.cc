@@ -75,18 +75,20 @@ void AddCursorOutline(int width, int height, uint32_t* data) {
 }
 
 
-uint32_t AlphaMul(uint32_t pixel) {
+
+void AlphaMul(uint32_t* data, int width, int height) {
   COMPILE_ASSERT(sizeof(uint32_t) == kBytesPerPixel);
 
-  RGBQUAD from = *reinterpret_cast<RGBQUAD*>(&pixel);
-  RGBQUAD to = {
-    (static_cast<uint16_t>(from.rgbBlue) * from.rgbReserved) / 0xff,
-    (static_cast<uint16_t>(from.rgbGreen) * from.rgbReserved) / 0xff,
-    (static_cast<uint16_t>(from.rgbRed) * from.rgbReserved) / 0xff,
-    from.rgbReserved
-  };
-
-  return *reinterpret_cast<uint32_t*>(&to);
+  for (uint32_t* data_end = data + width * height; data != data_end; ++data) {
+    RGBQUAD* from = reinterpret_cast<RGBQUAD*>(data);
+    RGBQUAD* to = reinterpret_cast<RGBQUAD*>(data);
+    to->rgbBlue =
+        (static_cast<uint16_t>(from->rgbBlue) * from->rgbReserved) / 0xff;
+    to->rgbGreen =
+        (static_cast<uint16_t>(from->rgbGreen) * from->rgbReserved) / 0xff;
+    to->rgbRed =
+        (static_cast<uint16_t>(from->rgbRed) * from->rgbReserved) / 0xff;
+  }
 }
 
 
@@ -243,6 +245,10 @@ MouseCursorShape* CreateMouseCursorShapeFromCursor(HDC dc, HCURSOR cursor) {
       AddCursorOutline(width, height, color_plane);
     }
   }
+
+  
+  
+  AlphaMul(color_plane, width, height);
 
   scoped_ptr<MouseCursorShape> result(new MouseCursorShape());
   result->data.assign(reinterpret_cast<char*>(color_plane),

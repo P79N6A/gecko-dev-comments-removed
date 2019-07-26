@@ -10,8 +10,9 @@
 
 #include "webrtc/common_video/plane.h"
 
+#include <string.h>  
+
 #include <algorithm>  
-#include <cstring>  
 
 namespace webrtc {
 

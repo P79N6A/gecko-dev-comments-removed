@@ -36,6 +36,6 @@ class ScopedPixelBufferObject {
   DISALLOW_COPY_AND_ASSIGN(ScopedPixelBufferObject);
 };
 
-} 
+}  
 
 #endif 

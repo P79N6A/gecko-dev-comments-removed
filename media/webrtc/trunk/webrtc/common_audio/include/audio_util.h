@@ -16,6 +16,20 @@
 namespace webrtc {
 
 
+static inline float ClampInt16(float value) {
+  const float kMaxInt16 = 32767.f;
+  const float kMinInt16 = -32768.f;
+  return value < kMinInt16 ? kMinInt16 :
+      (value > kMaxInt16 ? kMaxInt16 : value);
+}
+
+
+
+static inline int16_t RoundToInt16(float value) {
+  return static_cast<int16_t>(value < 0.f ? value - 0.5f : value + 0.5f);
+}
+
+
 
 
 

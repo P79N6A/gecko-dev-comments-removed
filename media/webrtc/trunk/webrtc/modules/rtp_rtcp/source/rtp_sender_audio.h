@@ -121,6 +121,6 @@ private:
     uint8_t     _audioLevelIndicationID;
     uint8_t     _audioLevel_dBov;
 };
-} 
+}  
 
 #endif 

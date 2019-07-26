@@ -11,7 +11,7 @@
 #ifndef WEBRTC_MODULES_AUDIO_CODING_NETEQ4_RANDOM_VECTOR_H_
 #define WEBRTC_MODULES_AUDIO_CODING_NETEQ4_RANDOM_VECTOR_H_
 
-#include <cstring>  
+#include <string.h>  
 
 #include "webrtc/system_wrappers/interface/constructor_magic.h"
 #include "webrtc/typedefs.h"

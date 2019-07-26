@@ -172,17 +172,6 @@ double I420PSNR(const I420VideoFrame* ref_frame,
 
 double I420SSIM(const I420VideoFrame* ref_frame,
                 const I420VideoFrame* test_frame);
-
-
-
-
-double I420PSNR(const uint8_t* ref_frame,
-                const uint8_t* test_frame,
-                int width, int height);
-
-double I420SSIM(const uint8_t* ref_frame,
-                const uint8_t* test_frame,
-                int width, int height);
 }
 
 #endif  

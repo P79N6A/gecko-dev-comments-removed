@@ -22,6 +22,8 @@
 
 namespace webrtc {
 
+namespace acm1 {
+
 
 class ACMCodecDB {
  public:
@@ -103,7 +105,9 @@ class ACMCodecDB {
     , kCNNB
     , kCNWB
     , kCNSWB
+#ifdef ENABLE_48000_HZ
     , kCNFB
+#endif
 #ifdef WEBRTC_CODEC_AVT
     , kAVT
 #endif
@@ -324,6 +328,8 @@ class ACMCodecDB {
   static const CodecSettings codec_settings_[kMaxNumCodecs];
   static const WebRtcNetEQDecoder neteq_decoders_[kMaxNumCodecs];
 };
+
+}  
 
 }  
 

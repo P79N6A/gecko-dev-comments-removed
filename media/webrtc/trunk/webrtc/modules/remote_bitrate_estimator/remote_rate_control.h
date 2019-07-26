@@ -75,6 +75,6 @@ class RemoteRateControl {
   float beta_;
   unsigned int rtt_;
 };
-} 
+}  
 
 #endif 

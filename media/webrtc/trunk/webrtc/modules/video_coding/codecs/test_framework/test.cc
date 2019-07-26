@@ -8,13 +8,14 @@
 
 
 
-#include "test.h"
+#include "webrtc/modules/video_coding/codecs/test_framework/test.h"
 
-#include <cstring>
+#include <string.h>
+
 #include <iostream>
 
-#include "testsupport/metrics/video_metrics.h"
-#include "common_video/libyuv/include/webrtc_libyuv.h"
+#include "webrtc/common_video/libyuv/include/webrtc_libyuv.h"
+#include "webrtc/test/testsupport/metrics/video_metrics.h"
 
 using namespace webrtc;
 
@@ -31,7 +32,7 @@ _description(description)
 {
     memset(&_inst, 0, sizeof(_inst));
     unsigned int seed = static_cast<unsigned int>(0);
-    std::srand(seed);
+    srand(seed);
 }
 
 CodecTest::CodecTest(std::string name, std::string description,
@@ -46,7 +47,7 @@ _description(description)
 {
     memset(&_inst, 0, sizeof(_inst));
     unsigned int seed = static_cast<unsigned int>(0);
-    std::srand(seed);
+    srand(seed);
 }
 
 void

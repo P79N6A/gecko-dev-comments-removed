@@ -43,16 +43,11 @@ class ForwardErrorCorrection {
     virtual ~Packet() {}
 
     
-    virtual int32_t AddRef() { return ++ref_count_; }
+    virtual int32_t AddRef();
 
     
     
-    virtual int32_t Release() {
-      int32_t ref_count;
-      ref_count = --ref_count_;
-      if (ref_count == 0) delete this;
-      return ref_count;
-    }
+    virtual int32_t Release();
 
     uint16_t length;               
     uint8_t data[IP_PACKET_SIZE];  
@@ -90,6 +85,9 @@ class ForwardErrorCorrection {
   
   class ReceivedPacket : public SortablePacket {
    public:
+    ReceivedPacket();
+    ~ReceivedPacket();
+
     uint32_t ssrc;  
                     
     bool is_fec;    
@@ -102,6 +100,9 @@ class ForwardErrorCorrection {
   
   class RecoveredPacket : public SortablePacket {
    public:
+    RecoveredPacket();
+    ~RecoveredPacket();
+
     bool was_recovered;  
                          
                          
@@ -308,5 +309,5 @@ class ForwardErrorCorrection {
   FecPacketList fec_packet_list_;
   bool fec_packet_received_;
 };
-}       
+}  
 #endif  

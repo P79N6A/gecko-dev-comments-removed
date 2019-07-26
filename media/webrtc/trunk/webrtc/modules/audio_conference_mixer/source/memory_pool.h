@@ -117,6 +117,6 @@ int32_t MemoryPool<MemoryType>::PushMemory(MemoryType*& memory)
     }
     return _ptrImpl->PushMemory(memory);
 }
-} 
+}  
 
 #endif 

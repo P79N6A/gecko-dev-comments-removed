@@ -64,6 +64,6 @@ public:
     bool                        _completeFrame;
 };
 
-} 
+}  
 
 #endif 

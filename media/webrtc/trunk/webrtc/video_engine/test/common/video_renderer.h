@@ -16,8 +16,7 @@
 
 namespace webrtc {
 namespace test {
-
-class VideoRenderer : public newapi::VideoRenderer {
+class VideoRenderer : public webrtc::VideoRenderer {
  public:
   
   

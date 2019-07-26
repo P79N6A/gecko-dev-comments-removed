@@ -15,8 +15,6 @@ namespace webrtc {
 
 class I420VideoFrame;
 
-namespace newapi {
-
 struct EncodedFrame;
 
 class I420FrameCallback {
@@ -36,7 +34,6 @@ class EncodedFrameObserver {
  protected:
   virtual ~EncodedFrameObserver() {}
 };
-}  
 }  
 
 #endif  

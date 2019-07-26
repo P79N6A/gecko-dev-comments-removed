@@ -11,7 +11,8 @@
 #ifndef WEBRTC_MODULES_AUDIO_CODING_NETEQ4_AUDIO_MULTI_VECTOR_H_
 #define WEBRTC_MODULES_AUDIO_CODING_NETEQ4_AUDIO_MULTI_VECTOR_H_
 
-#include <cstring>  
+#include <string.h>  
+
 #include <vector>
 
 #include "webrtc/modules/audio_coding/neteq4/audio_vector.h"

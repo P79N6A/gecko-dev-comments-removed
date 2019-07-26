@@ -147,6 +147,6 @@ protected:
     virtual ~VoECodec() {}
 };
 
-} 
+}  
 
 #endif  

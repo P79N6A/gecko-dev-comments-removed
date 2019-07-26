@@ -30,6 +30,6 @@ IPin* GetInputPin(IBaseFilter* filter);
 IPin* GetOutputPin(IBaseFilter* filter, REFGUID Category);
 BOOL PinMatchesCategory(IPin *pPin, REFGUID Category);
 
-} 
-} 
+}  
+}  
 #endif 

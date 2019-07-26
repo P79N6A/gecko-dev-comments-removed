@@ -229,6 +229,6 @@ class VoETestManager {
   ResourceManager        resource_manager_;
 };
 
-} 
+}  
 
 #endif 

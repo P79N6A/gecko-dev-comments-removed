@@ -8,9 +8,9 @@
 
 
 
-#include <cassert>
+#include <assert.h>
 
-#include "audio_device_utility.h"
+#include "webrtc/modules/audio_device/audio_device_utility.h"
 
 #if defined(_WIN32)
 
@@ -46,17 +46,17 @@ bool AudioDeviceUtility::StringCompare(
 
 }  
 
-#elif defined(WEBRTC_LINUX) || defined(WEBRTC_BSD) || defined(WEBRTC_MAC)
+#elif defined(WEBRTC_LINUX) || defined(WEBRTC_MAC)
 
 
 
 
 
-#include <sys/time.h>   
-#include <time.h>       
-#include <string.h>     
 #include <stdio.h>      
+#include <string.h>     
+#include <sys/time.h>   
 #include <termios.h>    
+#include <time.h>       
 
 #include <unistd.h>
 
@@ -110,5 +110,3 @@ bool AudioDeviceUtility::StringCompare(
 }  
 
 #endif  
-
-

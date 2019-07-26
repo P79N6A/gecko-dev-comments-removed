@@ -12,11 +12,10 @@
 
 
 
-
 #ifndef WEBRTC_SYSTEM_WRAPPERS_INTERFACE_ATOMIC32_H_
 #define WEBRTC_SYSTEM_WRAPPERS_INTERFACE_ATOMIC32_H_
 
-#include <cstddef>
+#include <stddef.h>
 
 #include "webrtc/common_types.h"
 #include "webrtc/system_wrappers/interface/constructor_magic.h"
@@ -42,7 +41,9 @@ class Atomic32 {
   
   
   bool CompareExchange(int32_t new_value, int32_t compare_value);
-  int32_t Value() const;
+  int32_t Value() {
+    return *this += 0;
+  }
 
  private:
   

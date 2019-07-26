@@ -33,6 +33,6 @@ class CriticalSectionWindows : public CriticalSectionWrapper {
   friend class ConditionVariableNativeWin;
 };
 
-} 
+}  
 
 #endif  

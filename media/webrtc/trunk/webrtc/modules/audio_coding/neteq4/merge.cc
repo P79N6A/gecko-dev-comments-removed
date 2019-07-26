@@ -11,9 +11,9 @@
 #include "webrtc/modules/audio_coding/neteq4/merge.h"
 
 #include <assert.h>
+#include <string.h>  
 
 #include <algorithm>  
-#include <cstring>  
 
 #include "webrtc/common_audio/signal_processing/include/signal_processing_library.h"
 #include "webrtc/modules/audio_coding/neteq4/audio_multi_vector.h"
@@ -23,7 +23,7 @@
 
 namespace webrtc {
 
-int Merge::Process(int16_t* input, int input_length,
+int Merge::Process(int16_t* input, size_t input_length,
                    int16_t* external_mute_factor_array,
                    AudioMultiVector<int16_t>* output) {
   
@@ -49,10 +49,9 @@ int Merge::Process(int16_t* input, int input_length,
     int16_t* input_channel = &input_vector[channel][0];
     int16_t* expanded_channel = &expanded_[channel][0];
     int16_t expanded_max, input_max;
-    int16_t new_mute_factor = SignalScaling(input_channel,
-                                            input_length_per_channel,
-                                            expanded_channel, &expanded_max,
-                                            &input_max);
+    int16_t new_mute_factor = SignalScaling(
+        input_channel, static_cast<int>(input_length_per_channel),
+        expanded_channel, &expanded_max, &input_max);
 
     
     
@@ -70,15 +69,13 @@ int Merge::Process(int16_t* input, int input_length,
       
       
       
-      Downsample(input_channel, input_length_per_channel, expanded_channel,
-                 expanded_length);
+      Downsample(input_channel, static_cast<int>(input_length_per_channel),
+                 expanded_channel, expanded_length);
 
       
-      best_correlation_index = CorrelateAndPeakSearch(expanded_max,
-                                                      input_max,
-                                                      old_length,
-                                                      input_length_per_channel,
-                                                      expand_period);
+      best_correlation_index = CorrelateAndPeakSearch(
+          expanded_max, input_max, old_length,
+          static_cast<int>(input_length_per_channel), expand_period);
     }
 
     static const int kTempDataSize = 3600;
@@ -139,12 +136,12 @@ int Merge::Process(int16_t* input, int input_length,
 
   
   
-  return output_length - old_length;
+  return static_cast<int>(output_length) - old_length;
 }
 
 int Merge::GetExpandedSignal(int* old_length, int* expand_period) {
   
-  *old_length = sync_buffer_->FutureLength();
+  *old_length = static_cast<int>(sync_buffer_->FutureLength());
   
   assert(*old_length >= static_cast<int>(expand_->overlap_length()));
   
@@ -167,7 +164,8 @@ int Merge::GetExpandedSignal(int* old_length, int* expand_period) {
 
   AudioMultiVector<int16_t> expanded_temp(num_channels_);
   expand_->Process(&expanded_temp);
-  *expand_period = expanded_temp.Size();  
+  *expand_period = static_cast<int>(expanded_temp.Size());  
+                                                            
 
   expanded_.Clear();
   
@@ -325,7 +323,8 @@ int16_t Merge::CorrelateAndPeakSearch(int16_t expanded_max, int16_t input_max,
   
   
   
-  int start_index = timestamps_per_call_ + expand_->overlap_length();
+  int start_index = timestamps_per_call_ +
+      static_cast<int>(expand_->overlap_length());
   start_index = std::max(start_position, start_index);
   start_index = std::max(start_index - input_length, 0);
   
@@ -333,7 +332,7 @@ int16_t Merge::CorrelateAndPeakSearch(int16_t expanded_max, int16_t input_max,
 
   
   
-  int16_t modified_stop_pos =
+  int modified_stop_pos =
       std::min(stop_position_downsamp,
                kMaxCorrelationLength + kPadLength - start_index_downsamp);
   int best_correlation_index;

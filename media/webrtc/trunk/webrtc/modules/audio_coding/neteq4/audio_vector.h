@@ -11,7 +11,8 @@
 #ifndef WEBRTC_MODULES_AUDIO_CODING_NETEQ4_AUDIO_VECTOR_H_
 #define WEBRTC_MODULES_AUDIO_CODING_NETEQ4_AUDIO_VECTOR_H_
 
-#include <cstring>  
+#include <string.h>  
+
 #include <vector>
 
 #include "webrtc/system_wrappers/interface/constructor_magic.h"

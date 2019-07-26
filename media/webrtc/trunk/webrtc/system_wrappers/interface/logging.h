@@ -76,6 +76,7 @@ class LogMessage {
   LogMessage(const char* file, int line, LoggingSeverity sev);
   ~LogMessage();
 
+  static bool Loggable(LoggingSeverity sev);
   std::ostream& stream() { return print_stream_; }
 
  private:
@@ -108,12 +109,19 @@ class LogMessageVoidify {
   void operator&(std::ostream&) { }
 };
 
+#define LOG_SEVERITY_PRECONDITION(sev) \
+  !(webrtc::LogMessage::Loggable(sev)) \
+    ? (void) 0 \
+    : webrtc::LogMessageVoidify() &
+
 #define LOG(sev) \
+  LOG_SEVERITY_PRECONDITION(webrtc::sev) \
     webrtc::LogMessage(__FILE__, __LINE__, webrtc::sev).stream()
 
 
 
 #define LOG_V(sev) \
+  LOG_SEVERITY_PRECONDITION(sev) \
     webrtc::LogMessage(__FILE__, __LINE__, sev).stream()
 
 

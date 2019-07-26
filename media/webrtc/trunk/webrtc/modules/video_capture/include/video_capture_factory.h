@@ -44,6 +44,6 @@ class VideoCaptureFactory {
   ~VideoCaptureFactory();
 };
 
-} 
+}  
 
 #endif  

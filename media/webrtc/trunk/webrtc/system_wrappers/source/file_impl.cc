@@ -248,4 +248,4 @@ int FileWrapperImpl::FlushImpl() {
   return -1;
 }
 
-} 
+}  

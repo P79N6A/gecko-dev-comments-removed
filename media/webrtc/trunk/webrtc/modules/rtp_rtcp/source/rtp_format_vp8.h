@@ -62,6 +62,8 @@ class RtpFormatVp8 {
                const RTPVideoHeaderVP8& hdr_info,
                int max_payload_len);
 
+  ~RtpFormatVp8();
+
   
   
   

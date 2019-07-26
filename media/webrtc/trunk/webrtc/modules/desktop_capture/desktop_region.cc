@@ -10,8 +10,9 @@
 
 #include "webrtc/modules/desktop_capture/desktop_region.h"
 
+#include <assert.h>
+
 #include <algorithm>
-#include <cassert>
 
 namespace webrtc {
 
@@ -22,6 +23,8 @@ DesktopRegion::RowSpan::RowSpan(int32_t left, int32_t right)
 DesktopRegion::Row::Row(int32_t top, int32_t bottom)
     : top(top), bottom(bottom) {
 }
+
+DesktopRegion::Row::~Row() {}
 
 DesktopRegion::DesktopRegion() {}
 
@@ -131,7 +134,7 @@ void DesktopRegion::AddRect(const DesktopRect& rect) {
     MergeWithPrecedingRow(row);
 
     
-    row++;
+    ++row;
   }
 
   if (row != rows_.end())
@@ -269,6 +272,101 @@ void DesktopRegion::IntersectWith(const DesktopRect& rect) {
   IntersectWith(region);
 }
 
+void DesktopRegion::Subtract(const DesktopRegion& region) {
+  if (region.rows_.empty())
+    return;
+
+  
+  Rows::const_iterator row_b = region.rows_.begin();
+
+  
+  int top = row_b->second->top;
+
+  
+  
+  Rows::iterator row_a = rows_.upper_bound(top);
+
+  
+  
+  while (row_a != rows_.end() && row_b != region.rows_.end()) {
+    
+    if (row_a->second->bottom <= top) {
+      
+      
+      MergeWithPrecedingRow(row_a);
+      ++row_a;
+      continue;
+    }
+
+    if (top > row_a->second->top) {
+      
+      
+      
+      assert(top <= row_a->second->bottom);
+      Rows::iterator new_row = rows_.insert(
+          row_a, Rows::value_type(top, new Row(row_a->second->top, top)));
+      row_a->second->top = top;
+      new_row->second->spans = row_a->second->spans;
+    } else if (top < row_a->second->top) {
+      
+      
+      top = row_a->second->top;
+      if (top >= row_b->second->bottom) {
+        ++row_b;
+        if (row_b != region.rows_.end())
+          top = row_b->second->top;
+        continue;
+      }
+    }
+
+    if (row_b->second->bottom < row_a->second->bottom) {
+      
+      
+      
+      int bottom = row_b->second->bottom;
+      Rows::iterator new_row =
+          rows_.insert(row_a, Rows::value_type(bottom, new Row(top, bottom)));
+      row_a->second->top = bottom;
+      new_row->second->spans = row_a->second->spans;
+      row_a = new_row;
+    }
+
+    
+    
+    RowSpanSet new_spans;
+    SubtractRows(row_a->second->spans, row_b->second->spans, &new_spans);
+    new_spans.swap(row_a->second->spans);
+    top = row_a->second->bottom;
+
+    if (top >= row_b->second->bottom) {
+      ++row_b;
+      if (row_b != region.rows_.end())
+        top = row_b->second->top;
+    }
+
+    
+    
+    if (row_a->second->spans.empty()) {
+      Rows::iterator row_to_delete = row_a;
+      ++row_a;
+      delete row_to_delete->second;
+      rows_.erase(row_to_delete);
+    } else {
+      MergeWithPrecedingRow(row_a);
+      ++row_a;
+    }
+  }
+
+  if (row_a != rows_.end())
+    MergeWithPrecedingRow(row_a);
+}
+
+void DesktopRegion::Subtract(const DesktopRect& rect) {
+  DesktopRegion region;
+  region.AddRect(rect);
+  Subtract(region);
+}
+
 void DesktopRegion::Translate(int32_t dx, int32_t dy) {
   Rows new_rows;
 
@@ -365,6 +463,41 @@ bool DesktopRegion::IsSpanInRow(const Row& row, const RowSpan& span) {
       std::lower_bound(row.spans.begin(), row.spans.end(), span.left,
                        CompareSpanLeft);
   return it != row.spans.end() && *it == span;
+}
+
+
+void DesktopRegion::SubtractRows(const RowSpanSet& set_a,
+                                 const RowSpanSet& set_b,
+                                 RowSpanSet* output) {
+  assert(!set_a.empty() && !set_b.empty());
+
+  RowSpanSet::const_iterator it_b = set_b.begin();
+
+  
+  
+  for (RowSpanSet::const_iterator it_a = set_a.begin(); it_a != set_a.end();
+       ++it_a) {
+    
+    if (it_b == set_b.end() || it_a->right < it_b->left) {
+      output->push_back(*it_a);
+      continue;
+    }
+
+    
+    int pos = it_a->left;
+    while (it_b != set_b.end() && it_b->left < it_a->right) {
+      if (it_b->left > pos)
+        output->push_back(RowSpan(pos, it_b->left));
+      if (it_b->right > pos) {
+        pos = it_b->right;
+        if (pos >= it_a->right)
+          break;
+      }
+      ++it_b;
+    }
+    if (pos < it_a->right)
+      output->push_back(RowSpan(pos, it_a->right));
+  }
 }
 
 DesktopRegion::Iterator::Iterator(const DesktopRegion& region)

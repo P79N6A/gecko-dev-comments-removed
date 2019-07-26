@@ -11,7 +11,7 @@
 #ifndef WEBRTC_AUDIO_DEVICE_AUDIO_DEVICE_DEFINES_H
 #define WEBRTC_AUDIO_DEVICE_AUDIO_DEVICE_DEFINES_H
 
-#include "typedefs.h"
+#include "webrtc/typedefs.h"
 
 namespace webrtc {
 
@@ -71,6 +71,32 @@ public:
                                      const uint32_t samplesPerSec,
                                      void* audioSamples,
                                      uint32_t& nSamplesOut) = 0;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    virtual int OnDataAvailable(const int voe_channels[],
+                                int number_of_voe_channels,
+                                const int16_t* audio_data,
+                                int sample_rate,
+                                int number_of_channels,
+                                int number_of_frames,
+                                int audio_delay_milliseconds,
+                                int current_volume,
+                                bool key_pressed,
+                                bool need_audio_processing) { return 0; }
 
 protected:
     virtual ~AudioTransport() {}

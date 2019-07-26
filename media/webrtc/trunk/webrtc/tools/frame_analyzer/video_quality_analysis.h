@@ -21,6 +21,11 @@ namespace webrtc {
 namespace test {
 
 struct AnalysisResult {
+  AnalysisResult() {}
+  AnalysisResult(int frame_number, double psnr_value, double ssim_value)
+      : frame_number(frame_number),
+        psnr_value(psnr_value),
+        ssim_value(ssim_value) {}
   int frame_number;
   double psnr_value;
   double ssim_value;
@@ -58,10 +63,14 @@ double CalculateMetrics(VideoAnalysisMetricsType video_metrics_type,
                         int width, int height);
 
 
-void PrintAnalysisResults(ResultsContainer* results);
 
 
-void PrintMaxRepeatedAndSkippedFrames(const char* stats_file_name);
+void PrintAnalysisResults(const std::string& label, ResultsContainer* results);
+
+
+
+void PrintMaxRepeatedAndSkippedFrames(const std::string& label,
+                                      const std::string& stats_file_name);
 
 
 bool GetNextStatsLine(FILE* stats_file, char* line);

@@ -39,7 +39,13 @@ class WEBRTC_DLLEXPORT ExternalRenderer {
                            
                            uint32_t time_stamp,
                            
-                           int64_t render_time) = 0;
+                           int64_t render_time,
+                           
+                           void* handle) = 0;
+
+  
+  
+  virtual bool IsTextureSupported() = 0;
 
  protected:
   virtual ~ExternalRenderer() {}

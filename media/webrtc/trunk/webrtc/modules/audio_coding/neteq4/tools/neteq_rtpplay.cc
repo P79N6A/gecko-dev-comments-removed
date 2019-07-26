@@ -8,9 +8,10 @@
 
 
 
+#include <assert.h>
+#include <stdio.h>
+
 #include <algorithm>
-#include <cassert>
-#include <cstdio>
 #include <iostream>
 #include <string>
 
@@ -144,13 +145,12 @@ int main(int argc, char* argv[]) {
   webrtc::Trace::CreateTrace();
   webrtc::Trace::SetTraceFile((webrtc::test::OutputPath() +
       "neteq_trace.txt").c_str());
-  webrtc::Trace::SetLevelFilter(webrtc::kTraceAll);
+  webrtc::Trace::set_level_filter(webrtc::kTraceAll);
 
   
   int sample_rate_hz = 16000;
   NetEq* neteq = NetEq::Create(sample_rate_hz);
   RegisterPayloadTypes(neteq);
-  neteq->EnableDtmf();
 
   
   NETEQTEST_RTPpacket *rtp;

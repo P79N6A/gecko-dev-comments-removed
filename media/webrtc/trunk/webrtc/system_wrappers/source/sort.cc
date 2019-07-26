@@ -15,12 +15,13 @@
 
 #include "webrtc/system_wrappers/interface/sort.h"
 
-#include <cassert>
-#include <cstring>  
+#include <assert.h>
+#include <string.h>  
+
 #include <new>      
 
 #ifdef NO_STL
-#include <cstdlib>      
+#include <stdlib.h>      
 #else
 #include <algorithm>    
 #include <vector>
@@ -483,4 +484,4 @@ int32_t KeySort(void* data, void* key, uint32_t num_of_elements,
 #endif
 }
 
-} 
+}  

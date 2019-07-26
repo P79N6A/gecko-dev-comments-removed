@@ -14,23 +14,24 @@
 #include "webrtc/modules/rtp_rtcp/interface/rtp_rtcp.h"
 #include "webrtc/modules/rtp_rtcp/interface/rtp_rtcp_defines.h"
 #include "webrtc/modules/rtp_rtcp/source/rtp_utility.h"
+#include "webrtc/system_wrappers/interface/critical_section_wrapper.h"
+#include "webrtc/system_wrappers/interface/scoped_ptr.h"
 #include "webrtc/typedefs.h"
 
 namespace webrtc {
+
+class TelephoneEventHandler;
 
 
 
 class RTPReceiverStrategy {
  public:
-  
-  
-  
-  
-  
-  
-  
-  
-  RTPReceiverStrategy(RtpData* data_callback);
+  static RTPReceiverStrategy* CreateVideoStrategy(int32_t id,
+                                                  RtpData* data_callback);
+  static RTPReceiverStrategy* CreateAudioStrategy(
+      int32_t id, RtpData* data_callback,
+      RtpAudioFeedback* incoming_messages_callback);
+
   virtual ~RTPReceiverStrategy() {}
 
   
@@ -39,21 +40,22 @@ class RTPReceiverStrategy {
   
   
   
-  virtual int32_t ParseRtpPacket(
-    WebRtcRTPHeader* rtp_header,
-    const ModuleRTPUtility::PayloadUnion& specific_payload,
-    const bool is_red,
-    const uint8_t* packet,
-    const uint16_t packet_length,
-    const int64_t timestamp_ms,
-    const bool is_first_packet) = 0;
+  virtual int32_t ParseRtpPacket(WebRtcRTPHeader* rtp_header,
+                                 const PayloadUnion& specific_payload,
+                                 bool is_red,
+                                 const uint8_t* payload,
+                                 uint16_t payload_length,
+                                 int64_t timestamp_ms,
+                                 bool is_first_packet) = 0;
+
+  virtual TelephoneEventHandler* GetTelephoneEventHandler() = 0;
 
   
-  virtual int32_t GetFrequencyHz() const = 0;
+  virtual int GetPayloadTypeFrequency() const = 0;
 
   
   virtual RTPAliveType ProcessDeadOrAlive(
-    uint16_t last_payload_length) const = 0;
+      uint16_t last_payload_length) const = 0;
 
   
   
@@ -63,40 +65,45 @@ class RTPReceiverStrategy {
   
   virtual int32_t OnNewPayloadTypeCreated(
       const char payloadName[RTP_PAYLOAD_NAME_SIZE],
-      const int8_t payloadType,
-      const uint32_t frequency) = 0;
+      int8_t payloadType,
+      uint32_t frequency) = 0;
 
   
   virtual int32_t InvokeOnInitializeDecoder(
-    RtpFeedback* callback,
-    const int32_t id,
-    const int8_t payload_type,
-    const char payload_name[RTP_PAYLOAD_NAME_SIZE],
-    const ModuleRTPUtility::PayloadUnion& specific_payload) const = 0;
+      RtpFeedback* callback,
+      int32_t id,
+      int8_t payload_type,
+      const char payload_name[RTP_PAYLOAD_NAME_SIZE],
+      const PayloadUnion& specific_payload) const = 0;
 
   
   
-  virtual void CheckPayloadChanged(
-    const int8_t payload_type,
-    ModuleRTPUtility::PayloadUnion* specific_payload,
-    bool* should_reset_statistics,
-    bool* should_discard_changes) {
-    
-    *should_discard_changes = false;
-    *should_reset_statistics = false;
-  }
+  virtual void CheckPayloadChanged(int8_t payload_type,
+                                   PayloadUnion* specific_payload,
+                                   bool* should_reset_statistics,
+                                   bool* should_discard_changes);
+
+  virtual int Energy(uint8_t array_of_energy[kRtpCsrcSize]) const;
 
   
-  void GetLastMediaSpecificPayload(
-    ModuleRTPUtility::PayloadUnion* payload) const;
-  void SetLastMediaSpecificPayload(
-    const ModuleRTPUtility::PayloadUnion& payload);
+  void GetLastMediaSpecificPayload(PayloadUnion* payload) const;
+  void SetLastMediaSpecificPayload(const PayloadUnion& payload);
 
  protected:
-  ModuleRTPUtility::PayloadUnion last_payload_;
+  
+  
+  
+  
+  
+  
+  
+  
+  RTPReceiverStrategy(RtpData* data_callback);
+
+  scoped_ptr<CriticalSectionWrapper> crit_sect_;
+  PayloadUnion last_payload_;
   RtpData* data_callback_;
 };
-
 }  
 
 #endif  

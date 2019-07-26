@@ -31,6 +31,6 @@ struct DelayValues
     DelayValue delayValues[NoOfDelayValues];
 };
 
-} 
-} 
+}  
+}  
 #endif 

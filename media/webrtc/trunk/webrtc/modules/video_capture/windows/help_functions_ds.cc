@@ -12,7 +12,7 @@
                        
                        
 
-#include "help_functions_ds.h"
+#include "webrtc/modules/video_capture/windows/help_functions_ds.h"
 
 #include <cguid.h>
 
@@ -115,6 +115,5 @@ BOOL PinMatchesCategory(IPin *pPin, REFGUID Category)
     }
     return bFound;
 }
-} 
-} 
-
+}  
+}  

@@ -48,10 +48,10 @@ class Trace {
   
   
   
-  static int32_t SetLevelFilter(const uint32_t filter);
+  static void set_level_filter(uint32_t filter) { level_filter_ = filter; }
 
   
-  static int32_t LevelFilter(uint32_t& filter);
+  static uint32_t level_filter() { return level_filter_; }
 
   
   
@@ -81,6 +81,9 @@ class Trace {
                   const TraceModule module,
                   const int32_t id,
                   const char* msg, ...);
+
+ private:
+  static uint32_t level_filter_;
 };
 
 }  

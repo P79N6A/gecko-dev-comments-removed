@@ -91,6 +91,6 @@ private:
     float           _max_time_drops;
 }; 
 
-} 
+}  
 
 #endif 

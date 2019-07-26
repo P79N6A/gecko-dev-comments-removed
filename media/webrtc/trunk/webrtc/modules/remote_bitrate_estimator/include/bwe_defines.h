@@ -52,6 +52,6 @@ public:
     uint32_t      _incomingBitRate;
     double              _noiseVar;
 };
-} 
+}  
 
 #endif 

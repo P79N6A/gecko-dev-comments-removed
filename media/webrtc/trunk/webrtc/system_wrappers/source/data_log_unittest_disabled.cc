@@ -10,7 +10,7 @@
 
 #include "webrtc/system_wrappers/interface/data_log.h"
 
-#include <cstdio>
+#include <stdio.h>
 
 #include "testing/gtest/include/gtest/gtest.h"
 
@@ -44,7 +44,7 @@ TEST(TestDataLogDisabled, VerifyLoggingWorks) {
 
 TEST(TestDataLogDisabled, EnsureNoFileIsWritten) {
   
-  std::remove(kDataLogFileName);
+  remove(kDataLogFileName);
   ASSERT_EQ(0, DataLog::CreateLog());
   
   

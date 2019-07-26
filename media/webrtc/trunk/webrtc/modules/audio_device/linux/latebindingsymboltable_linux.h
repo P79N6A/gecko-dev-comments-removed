@@ -32,8 +32,8 @@
 #include <stddef.h>  
 #include <string.h>
 
-#include "constructor_magic.h"
-#include "trace.h"
+#include "webrtc/system_wrappers/interface/constructor_magic.h"
+#include "webrtc/system_wrappers/interface/trace.h"
 
 
 
@@ -42,7 +42,7 @@
 
 namespace webrtc_adm_linux {
 
-#if defined(WEBRTC_LINUX) || defined(WEBRTC_BSD)
+#ifdef WEBRTC_LINUX
 typedef void *DllHandle;
 
 const DllHandle kInvalidDllHandle = NULL;

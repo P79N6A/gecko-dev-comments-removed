@@ -60,9 +60,6 @@ enum { kViEMaxSrtpTagAuthNullLength = 12 };
 enum { kViEMaxSrtpKeyAuthNullLength = 256 };
 
 
-enum { kViEMaxFilePlayers = 3 };
-
-
 enum { kViEMaxMtu = 1500 };
 enum { kViESocketThreads = 1 };
 enum { kViENumReceiveSocketBuffers = 500 };
@@ -87,8 +84,6 @@ enum {
   kViEChannelIdMax = 0xFF,
   kViECaptureIdBase = 0x1001,
   kViECaptureIdMax = 0x10FF,
-  kViEFileIdBase = 0x2000,
-  kViEFileIdMax = 0x200F,
   kViEDummyChannelId = 0xFFFF
 };
 

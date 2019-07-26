@@ -33,11 +33,7 @@ class PostDecodeVad {
         vad_instance_(NULL) {
   }
 
-  virtual ~PostDecodeVad() {
-    if (vad_instance_) {
-      WebRtcVad_Free(vad_instance_);
-    }
-  }
+  virtual ~PostDecodeVad();
 
   
   void Enable();
@@ -50,7 +46,7 @@ class PostDecodeVad {
 
   
   
-  void Update(int16_t* signal, size_t length,
+  void Update(int16_t* signal, int length,
               AudioDecoder::SpeechType speech_type, bool sid_frame, int fs_hz);
 
   

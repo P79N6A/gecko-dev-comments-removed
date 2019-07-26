@@ -11,6 +11,8 @@
 #ifndef WEBRTC_MODULES_AUDIO_CONFERENCE_MIXER_SOURCE_AUDIO_CONFERENCE_MIXER_IMPL_H_
 #define WEBRTC_MODULES_AUDIO_CONFERENCE_MIXER_SOURCE_AUDIO_CONFERENCE_MIXER_IMPL_H_
 
+#include <map>
+
 #include "webrtc/engine_configurations.h"
 #include "webrtc/modules/audio_conference_mixer/interface/audio_conference_mixer.h"
 #include "webrtc/modules/audio_conference_mixer/source/level_indicator.h"
@@ -99,9 +101,11 @@ private:
     
     
     
-    void UpdateToMix(ListWrapper& mixList, ListWrapper& rampOutList,
-                     MapWrapper& mixParticipantList,
-                     uint32_t& maxAudioFrameCounter);
+    void UpdateToMix(
+        ListWrapper& mixList,
+        ListWrapper& rampOutList,
+        std::map<int, MixerParticipant*>* mixParticipantList,
+        uint32_t& maxAudioFrameCounter);
 
     
     
@@ -113,7 +117,8 @@ private:
 
     
     
-    void UpdateMixedStatus(MapWrapper& mixedParticipantsList);
+    void UpdateMixedStatus(
+        std::map<int, MixerParticipant*>& mixedParticipantsList);
 
     
     void ClearAudioFrameList(ListWrapper& audioFrameList);
@@ -203,6 +208,6 @@ private:
     
     scoped_ptr<AudioProcessing> _limiter;
 };
-} 
+}  
 
 #endif

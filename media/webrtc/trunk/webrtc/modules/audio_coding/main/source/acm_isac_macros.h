@@ -15,6 +15,8 @@
 
 namespace webrtc {
 
+namespace acm1 {
+
 #ifdef WEBRTC_CODEC_ISAC
 #define ACM_ISAC_CREATE            WebRtcIsac_Create
 #define ACM_ISAC_FREE              WebRtcIsac_Free
@@ -66,6 +68,8 @@ namespace webrtc {
 #define ACM_ISAC_GETENCSAMPRATE    ACMISACFixGetEncSampRate  // local Impl
 #define ACM_ISAC_GETDECSAMPRATE    ACMISACFixGetDecSampRate  // local Impl
 #endif
+
+}  
 
 }  
 

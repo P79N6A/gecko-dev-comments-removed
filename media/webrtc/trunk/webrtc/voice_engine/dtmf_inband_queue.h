@@ -45,6 +45,6 @@ private:
     uint8_t _DtmfLevel[kDtmfInbandMax];
 };
 
-}   
+}  
 
 #endif

@@ -38,6 +38,6 @@ enum VideoFrameResampling
     kBox,                 
 };
 
-} 
+}  
 
 #endif

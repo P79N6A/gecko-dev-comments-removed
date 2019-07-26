@@ -21,6 +21,7 @@
 namespace webrtc {
 
 using ::testing::Return;
+using ::testing::_;
 
 class DelayManagerTest : public ::testing::Test {
  protected:
@@ -193,9 +194,7 @@ TEST_F(DelayManagerTest, UpdatePeakFound) {
   EXPECT_EQ(5 << 8, higher);
 }
 
-TEST_F(DelayManagerTest, ExtraDelay) {
-  const int kExtraDelayMs = 200;
-  dm_->set_extra_delay_ms(kExtraDelayMs);
+TEST_F(DelayManagerTest, TargetDelay) {
   SetPacketAudioLength(kFrameSizeMs);
   
   InsertNextPacket();
@@ -208,16 +207,74 @@ TEST_F(DelayManagerTest, ExtraDelay) {
   EXPECT_CALL(detector_, Update(1, 1))
       .WillOnce(Return(false));
   InsertNextPacket();
-  const int kExpectedTarget = 1 + kExtraDelayMs / kFrameSizeMs;
+  const int kExpectedTarget = 1;
   EXPECT_EQ(kExpectedTarget << 8, dm_->TargetLevel());  
   EXPECT_EQ(1, dm_->base_target_level());
   int lower, higher;
   dm_->BufferLimits(&lower, &higher);
   
   
-  
-  EXPECT_EQ((1 << 8) * 3 / 4 + (kExtraDelayMs << 8) / kFrameSizeMs, lower);
+  EXPECT_EQ((1 << 8) * 3 / 4, lower);
   EXPECT_EQ(lower + (20 << 8) / kFrameSizeMs, higher);
+}
+
+TEST_F(DelayManagerTest, MaxAndRequiredDelay) {
+  const int kExpectedTarget = 5;
+  const int kTimeIncrement = kExpectedTarget * kFrameSizeMs;
+  SetPacketAudioLength(kFrameSizeMs);
+  
+  InsertNextPacket();
+  
+  
+  
+  EXPECT_CALL(detector_, Update(kExpectedTarget, _))
+      .WillRepeatedly(Return(true));
+  EXPECT_CALL(detector_, MaxPeakHeight())
+      .WillRepeatedly(Return(kExpectedTarget));
+  IncreaseTime(kTimeIncrement);
+  InsertNextPacket();
+
+  
+  EXPECT_EQ(kExpectedTarget << 8, dm_->TargetLevel());
+
+  int kMaxDelayPackets = kExpectedTarget - 2;
+  int kMaxDelayMs = kMaxDelayPackets * kFrameSizeMs;
+  EXPECT_TRUE(dm_->SetMaximumDelay(kMaxDelayMs));
+  IncreaseTime(kTimeIncrement);
+  InsertNextPacket();
+  EXPECT_EQ(kExpectedTarget * kFrameSizeMs, dm_->least_required_delay_ms());
+  EXPECT_EQ(kMaxDelayPackets << 8, dm_->TargetLevel());
+
+  
+  EXPECT_FALSE(dm_->SetMaximumDelay(kFrameSizeMs - 1));
+}
+
+TEST_F(DelayManagerTest, MinAndRequiredDelay) {
+  const int kExpectedTarget = 5;
+  const int kTimeIncrement = kExpectedTarget * kFrameSizeMs;
+  SetPacketAudioLength(kFrameSizeMs);
+  
+  InsertNextPacket();
+  
+  
+  
+  EXPECT_CALL(detector_, Update(kExpectedTarget, _))
+      .WillRepeatedly(Return(true));
+  EXPECT_CALL(detector_, MaxPeakHeight())
+      .WillRepeatedly(Return(kExpectedTarget));
+  IncreaseTime(kTimeIncrement);
+  InsertNextPacket();
+
+  
+  EXPECT_EQ(kExpectedTarget << 8, dm_->TargetLevel());
+
+  int kMinDelayPackets = kExpectedTarget + 2;
+  int kMinDelayMs = kMinDelayPackets * kFrameSizeMs;
+  dm_->SetMinimumDelay(kMinDelayMs);
+  IncreaseTime(kTimeIncrement);
+  InsertNextPacket();
+  EXPECT_EQ(kExpectedTarget * kFrameSizeMs, dm_->least_required_delay_ms());
+  EXPECT_EQ(kMinDelayPackets << 8, dm_->TargetLevel());
 }
 
 TEST_F(DelayManagerTest, Failures) {
@@ -226,6 +283,15 @@ TEST_F(DelayManagerTest, Failures) {
   
   EXPECT_EQ(-1, dm_->SetPacketAudioLength(0));
   EXPECT_EQ(-1, dm_->SetPacketAudioLength(-1));
+
+  
+  EXPECT_TRUE(dm_->SetMaximumDelay(10));
+  EXPECT_FALSE(dm_->SetMinimumDelay(20));
+
+  
+  EXPECT_TRUE(dm_->SetMaximumDelay(100));
+  EXPECT_TRUE(dm_->SetMinimumDelay(80));
+  EXPECT_FALSE(dm_->SetMaximumDelay(60));
 }
 
 }  

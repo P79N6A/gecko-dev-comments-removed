@@ -10,579 +10,499 @@
 
 #include "webrtc/modules/video_coding/main/source/media_optimization.h"
 
-#include "webrtc/modules/video_coding/utility/include/frame_dropper.h"
 #include "webrtc/modules/video_coding/main/source/content_metrics_processing.h"
 #include "webrtc/modules/video_coding/main/source/qm_select.h"
+#include "webrtc/modules/video_coding/utility/include/frame_dropper.h"
 #include "webrtc/system_wrappers/interface/clock.h"
 
 namespace webrtc {
 namespace media_optimization {
 
-VCMMediaOptimization::VCMMediaOptimization(int32_t id,
-                                           Clock* clock):
-_id(id),
-_clock(clock),
-_maxBitRate(0),
-_sendCodecType(kVideoCodecUnknown),
-_codecWidth(0),
-_codecHeight(0),
-_userFrameRate(0),
-_fractionLost(0),
-_sendStatisticsZeroEncode(0),
-_maxPayloadSize(1460),
-_targetBitRate(0),
-_incomingFrameRate(0),
-_enableQm(false),
-_videoProtectionCallback(NULL),
-_videoQMSettingsCallback(NULL),
-_encodedFrameSamples(),
-_avgSentBitRateBps(0),
-_avgSentFramerate(0),
-_keyFrameCnt(0),
-_deltaFrameCnt(0),
-_lastQMUpdateTime(0),
-_lastChangeTime(0),
-_numLayers(0)
-{
-    memset(_sendStatistics, 0, sizeof(_sendStatistics));
-    memset(_incomingFrameTimes, -1, sizeof(_incomingFrameTimes));
-
-    _frameDropper  = new FrameDropper;
-    _lossProtLogic = new VCMLossProtectionLogic(_clock->TimeInMilliseconds());
-    _content = new VCMContentMetricsProcessing();
-    _qmResolution = new VCMQmResolution();
+MediaOptimization::MediaOptimization(int32_t id, Clock* clock)
+    : id_(id),
+      clock_(clock),
+      max_bit_rate_(0),
+      send_codec_type_(kVideoCodecUnknown),
+      codec_width_(0),
+      codec_height_(0),
+      user_frame_rate_(0),
+      frame_dropper_(new FrameDropper),
+      loss_prot_logic_(
+          new VCMLossProtectionLogic(clock_->TimeInMilliseconds())),
+      fraction_lost_(0),
+      send_statistics_zero_encode_(0),
+      max_payload_size_(1460),
+      target_bit_rate_(0),
+      incoming_frame_rate_(0),
+      enable_qm_(false),
+      video_protection_callback_(NULL),
+      video_qmsettings_callback_(NULL),
+      encoded_frame_samples_(),
+      avg_sent_bit_rate_bps_(0),
+      avg_sent_framerate_(0),
+      key_frame_cnt_(0),
+      delta_frame_cnt_(0),
+      content_(new VCMContentMetricsProcessing()),
+      qm_resolution_(new VCMQmResolution()),
+      last_qm_update_time_(0),
+      last_change_time_(0),
+      num_layers_(0) {
+  memset(send_statistics_, 0, sizeof(send_statistics_));
+  memset(incoming_frame_times_, -1, sizeof(incoming_frame_times_));
 }
 
-VCMMediaOptimization::~VCMMediaOptimization(void)
-{
-    _lossProtLogic->Release();
-    delete _lossProtLogic;
-    delete _frameDropper;
-    delete _content;
-    delete _qmResolution;
+MediaOptimization::~MediaOptimization(void) {
+  loss_prot_logic_->Release();
 }
 
-int32_t
-VCMMediaOptimization::Reset()
-{
-    memset(_incomingFrameTimes, -1, sizeof(_incomingFrameTimes));
-    _incomingFrameRate = 0.0;
-    _frameDropper->Reset();
-    _lossProtLogic->Reset(_clock->TimeInMilliseconds());
-    _frameDropper->SetRates(0, 0);
-    _content->Reset();
-    _qmResolution->Reset();
-    _lossProtLogic->UpdateFrameRate(_incomingFrameRate);
-    _lossProtLogic->Reset(_clock->TimeInMilliseconds());
-    _sendStatisticsZeroEncode = 0;
-    _targetBitRate = 0;
-    _codecWidth = 0;
-    _codecHeight = 0;
-    _userFrameRate = 0;
-    _keyFrameCnt = 0;
-    _deltaFrameCnt = 0;
-    _lastQMUpdateTime = 0;
-    _lastChangeTime = 0;
-    _encodedFrameSamples.clear();
-    _avgSentBitRateBps = 0;
-    _numLayers = 1;
-    return VCM_OK;
+int32_t MediaOptimization::Reset() {
+  memset(incoming_frame_times_, -1, sizeof(incoming_frame_times_));
+  incoming_frame_rate_ = 0.0;
+  frame_dropper_->Reset();
+  loss_prot_logic_->Reset(clock_->TimeInMilliseconds());
+  frame_dropper_->SetRates(0, 0);
+  content_->Reset();
+  qm_resolution_->Reset();
+  loss_prot_logic_->UpdateFrameRate(incoming_frame_rate_);
+  loss_prot_logic_->Reset(clock_->TimeInMilliseconds());
+  send_statistics_zero_encode_ = 0;
+  target_bit_rate_ = 0;
+  codec_width_ = 0;
+  codec_height_ = 0;
+  user_frame_rate_ = 0;
+  key_frame_cnt_ = 0;
+  delta_frame_cnt_ = 0;
+  last_qm_update_time_ = 0;
+  last_change_time_ = 0;
+  encoded_frame_samples_.clear();
+  avg_sent_bit_rate_bps_ = 0;
+  num_layers_ = 1;
+  return VCM_OK;
 }
 
-uint32_t
-VCMMediaOptimization::SetTargetRates(uint32_t target_bitrate,
-                                     uint8_t &fractionLost,
-                                     uint32_t roundTripTimeMs)
-{
+uint32_t MediaOptimization::SetTargetRates(uint32_t target_bitrate,
+                                           uint8_t fraction_lost,
+                                           uint32_t round_trip_time_ms) {
+  
+  
+  if (max_bit_rate_ > 0 &&
+      target_bitrate > static_cast<uint32_t>(max_bit_rate_)) {
+    target_bitrate = max_bit_rate_;
+  }
+  VCMProtectionMethod* selected_method = loss_prot_logic_->SelectedMethod();
+  float target_bitrate_kbps = static_cast<float>(target_bitrate) / 1000.0f;
+  loss_prot_logic_->UpdateBitRate(target_bitrate_kbps);
+  loss_prot_logic_->UpdateRtt(round_trip_time_ms);
+  loss_prot_logic_->UpdateResidualPacketLoss(static_cast<float>(fraction_lost));
+
+  
+  float actual_frame_rate = SentFrameRate();
+
+  
+  if (actual_frame_rate < 1.0) {
+    actual_frame_rate = 1.0;
+  }
+
+  
+  
+  loss_prot_logic_->UpdateFrameRate(actual_frame_rate);
+
+  fraction_lost_ = fraction_lost;
+
+  
+  
+  
+  
+  FilterPacketLossMode filter_mode = kMaxFilter;
+  uint8_t packet_loss_enc = loss_prot_logic_->FilteredLoss(
+      clock_->TimeInMilliseconds(), filter_mode, fraction_lost);
+
+  
+  loss_prot_logic_->UpdateFilteredLossPr(packet_loss_enc);
+
+  
+  uint32_t protection_overhead_bps = 0;
+
+  
+  float sent_video_rate_kbps = 0.0f;
+  if (selected_method) {
     
-    
-    if (_maxBitRate > 0 &&
-        target_bitrate > static_cast<uint32_t>(_maxBitRate)) {
-      target_bitrate = _maxBitRate;
-    }
-    VCMProtectionMethod *selectedMethod = _lossProtLogic->SelectedMethod();
-    float target_bitrate_kbps = static_cast<float>(target_bitrate) / 1000.0f;
-    _lossProtLogic->UpdateBitRate(target_bitrate_kbps);
-    _lossProtLogic->UpdateRtt(roundTripTimeMs);
-    _lossProtLogic->UpdateResidualPacketLoss(static_cast<float>(fractionLost));
+    selected_method->UpdateContentMetrics(content_->ShortTermAvgData());
 
     
-    float actualFrameRate = SentFrameRate();
+    
+    
+    loss_prot_logic_->UpdateMethod();
 
     
-    if (actualFrameRate  < 1.0)
-    {
-        actualFrameRate = 1.0;
-    }
-
-    
-    
-    _lossProtLogic->UpdateFrameRate(actualFrameRate);
-
-    _fractionLost = fractionLost;
-
+    uint32_t sent_video_rate_bps = 0;
+    uint32_t sent_nack_rate_bps = 0;
+    uint32_t sent_fec_rate_bps = 0;
     
     
     
+    UpdateProtectionCallback(selected_method,
+                             &sent_video_rate_bps,
+                             &sent_nack_rate_bps,
+                             &sent_fec_rate_bps);
+    uint32_t sent_total_rate_bps =
+        sent_video_rate_bps + sent_nack_rate_bps + sent_fec_rate_bps;
     
-    FilterPacketLossMode filter_mode = kMaxFilter;
-    uint8_t packetLossEnc = _lossProtLogic->FilteredLoss(
-        _clock->TimeInMilliseconds(), filter_mode, fractionLost);
-
     
-    _lossProtLogic->UpdateFilteredLossPr(packetLossEnc);
-
-    
-    uint32_t protection_overhead_bps = 0;
-
-    
-    float sent_video_rate_kbps = 0.0f;
-    if (selectedMethod)
-    {
-        
-        selectedMethod->UpdateContentMetrics(_content->ShortTermAvgData());
-
-        
-        
-        
-        _lossProtLogic->UpdateMethod();
-
-        
-        uint32_t sent_video_rate_bps = 0;
-        uint32_t sent_nack_rate_bps = 0;
-        uint32_t sent_fec_rate_bps = 0;
-        
-        
-        
-        UpdateProtectionCallback(selectedMethod,
-                                 &sent_video_rate_bps,
-                                 &sent_nack_rate_bps,
-                                 &sent_fec_rate_bps);
-        uint32_t sent_total_rate_bps = sent_video_rate_bps +
-            sent_nack_rate_bps + sent_fec_rate_bps;
-        
-        
-        if (sent_total_rate_bps > 0) {
-          protection_overhead_bps = static_cast<uint32_t>(target_bitrate *
+    if (sent_total_rate_bps > 0) {
+      protection_overhead_bps = static_cast<uint32_t>(
+          target_bitrate *
               static_cast<double>(sent_nack_rate_bps + sent_fec_rate_bps) /
-              sent_total_rate_bps + 0.5);
-        }
-        
-        if (protection_overhead_bps > target_bitrate / 2)
-          protection_overhead_bps = target_bitrate / 2;
-
-        
-        
-        packetLossEnc = selectedMethod->RequiredPacketLossER();
-        sent_video_rate_kbps =
-            static_cast<float>(sent_video_rate_bps) / 1000.0f;
+              sent_total_rate_bps +
+          0.5);
     }
+    
+    if (protection_overhead_bps > target_bitrate / 2)
+      protection_overhead_bps = target_bitrate / 2;
 
     
-    _targetBitRate = target_bitrate - protection_overhead_bps;
-
     
-    float target_video_bitrate_kbps =
-        static_cast<float>(_targetBitRate) / 1000.0f;
-    _frameDropper->SetRates(target_video_bitrate_kbps, _incomingFrameRate);
+    packet_loss_enc = selected_method->RequiredPacketLossER();
+    sent_video_rate_kbps = static_cast<float>(sent_video_rate_bps) / 1000.0f;
+  }
 
-    if (_enableQm)
-    {
-        
-        _qmResolution->UpdateRates(target_video_bitrate_kbps,
-                                   sent_video_rate_kbps, _incomingFrameRate,
-                                   _fractionLost);
-        
-        bool selectQM = CheckStatusForQMchange();
-        if (selectQM)
-        {
-            SelectQuality();
-        }
-        
-        _content->ResetShortTermAvgData();
+  
+  target_bit_rate_ = target_bitrate - protection_overhead_bps;
+
+  
+  float target_video_bitrate_kbps =
+      static_cast<float>(target_bit_rate_) / 1000.0f;
+  frame_dropper_->SetRates(target_video_bitrate_kbps, incoming_frame_rate_);
+
+  if (enable_qm_) {
+    
+    qm_resolution_->UpdateRates(target_video_bitrate_kbps,
+                                sent_video_rate_kbps,
+                                incoming_frame_rate_,
+                                fraction_lost_);
+    
+    bool select_qm = CheckStatusForQMchange();
+    if (select_qm) {
+      SelectQuality();
     }
+    
+    content_->ResetShortTermAvgData();
+  }
 
-    return _targetBitRate;
+  return target_bit_rate_;
 }
 
-int VCMMediaOptimization::UpdateProtectionCallback(
-    VCMProtectionMethod *selected_method,
+int32_t MediaOptimization::SetEncodingData(VideoCodecType send_codec_type,
+                                           int32_t max_bit_rate,
+                                           uint32_t frame_rate,
+                                           uint32_t target_bitrate,
+                                           uint16_t width,
+                                           uint16_t height,
+                                           int num_layers) {
+  
+  
+  
+  
+  last_change_time_ = clock_->TimeInMilliseconds();
+  content_->Reset();
+  content_->UpdateFrameRate(frame_rate);
+
+  max_bit_rate_ = max_bit_rate;
+  send_codec_type_ = send_codec_type;
+  target_bit_rate_ = target_bitrate;
+  float target_bitrate_kbps = static_cast<float>(target_bitrate) / 1000.0f;
+  loss_prot_logic_->UpdateBitRate(target_bitrate_kbps);
+  loss_prot_logic_->UpdateFrameRate(static_cast<float>(frame_rate));
+  loss_prot_logic_->UpdateFrameSize(width, height);
+  loss_prot_logic_->UpdateNumLayers(num_layers);
+  frame_dropper_->Reset();
+  frame_dropper_->SetRates(target_bitrate_kbps, static_cast<float>(frame_rate));
+  user_frame_rate_ = static_cast<float>(frame_rate);
+  codec_width_ = width;
+  codec_height_ = height;
+  num_layers_ = (num_layers <= 1) ? 1 : num_layers;  
+  int32_t ret = VCM_OK;
+  ret = qm_resolution_->Initialize(target_bitrate_kbps,
+                                   user_frame_rate_,
+                                   codec_width_,
+                                   codec_height_,
+                                   num_layers_);
+  return ret;
+}
+
+void MediaOptimization::EnableProtectionMethod(bool enable,
+                                               VCMProtectionMethodEnum method) {
+  bool updated = false;
+  if (enable) {
+    updated = loss_prot_logic_->SetMethod(method);
+  } else {
+    loss_prot_logic_->RemoveMethod(method);
+  }
+  if (updated) {
+    loss_prot_logic_->UpdateMethod();
+  }
+}
+
+bool MediaOptimization::IsProtectionMethodEnabled(
+    VCMProtectionMethodEnum method) {
+  return (loss_prot_logic_->SelectedType() == method);
+}
+
+uint32_t MediaOptimization::InputFrameRate() {
+  ProcessIncomingFrameRate(clock_->TimeInMilliseconds());
+  return uint32_t(incoming_frame_rate_ + 0.5f);
+}
+
+uint32_t MediaOptimization::SentFrameRate() {
+  PurgeOldFrameSamples(clock_->TimeInMilliseconds());
+  UpdateSentFramerate();
+  return avg_sent_framerate_;
+}
+
+uint32_t MediaOptimization::SentBitRate() {
+  const int64_t now_ms = clock_->TimeInMilliseconds();
+  PurgeOldFrameSamples(now_ms);
+  UpdateSentBitrate(now_ms);
+  return avg_sent_bit_rate_bps_;
+}
+
+int32_t MediaOptimization::UpdateWithEncodedData(int encoded_length,
+                                                 uint32_t timestamp,
+                                                 FrameType encoded_frame_type) {
+  const int64_t now_ms = clock_->TimeInMilliseconds();
+  PurgeOldFrameSamples(now_ms);
+  if (encoded_frame_samples_.size() > 0 &&
+      encoded_frame_samples_.back().timestamp == timestamp) {
+    
+    
+    
+    encoded_frame_samples_.back().size_bytes += encoded_length;
+    encoded_frame_samples_.back().time_complete_ms = now_ms;
+  } else {
+    encoded_frame_samples_.push_back(
+        EncodedFrameSample(encoded_length, timestamp, now_ms));
+  }
+  UpdateSentBitrate(now_ms);
+  UpdateSentFramerate();
+  if (encoded_length > 0) {
+    const bool delta_frame = (encoded_frame_type != kVideoFrameKey &&
+                              encoded_frame_type != kVideoFrameGolden);
+
+    frame_dropper_->Fill(encoded_length, delta_frame);
+    if (max_payload_size_ > 0 && encoded_length > 0) {
+      const float min_packets_per_frame =
+          encoded_length / static_cast<float>(max_payload_size_);
+      if (delta_frame) {
+        loss_prot_logic_->UpdatePacketsPerFrame(min_packets_per_frame,
+                                                clock_->TimeInMilliseconds());
+      } else {
+        loss_prot_logic_->UpdatePacketsPerFrameKey(
+            min_packets_per_frame, clock_->TimeInMilliseconds());
+      }
+
+      if (enable_qm_) {
+        
+        qm_resolution_->UpdateEncodedSize(encoded_length, encoded_frame_type);
+      }
+    }
+    if (!delta_frame && encoded_length > 0) {
+      loss_prot_logic_->UpdateKeyFrameSize(static_cast<float>(encoded_length));
+    }
+
+    
+    if (delta_frame) {
+      delta_frame_cnt_++;
+    } else {
+      key_frame_cnt_++;
+    }
+  }
+
+  return VCM_OK;
+}
+
+int32_t MediaOptimization::RegisterProtectionCallback(
+    VCMProtectionCallback* protection_callback) {
+  video_protection_callback_ = protection_callback;
+  return VCM_OK;
+}
+
+int32_t MediaOptimization::RegisterVideoQMCallback(
+    VCMQMSettingsCallback* video_qmsettings) {
+  video_qmsettings_callback_ = video_qmsettings;
+  
+  if (video_qmsettings_callback_ != NULL) {
+    enable_qm_ = true;
+  } else {
+    enable_qm_ = false;
+  }
+  return VCM_OK;
+}
+
+void MediaOptimization::EnableFrameDropper(bool enable) {
+  frame_dropper_->Enable(enable);
+}
+
+bool MediaOptimization::DropFrame() {
+  
+  frame_dropper_->Leak((uint32_t)(InputFrameRate() + 0.5f));
+
+  return frame_dropper_->DropFrame();
+}
+
+int32_t MediaOptimization::SentFrameCount(VCMFrameCount* frame_count) const {
+  frame_count->numDeltaFrames = delta_frame_cnt_;
+  frame_count->numKeyFrames = key_frame_cnt_;
+  return VCM_OK;
+}
+
+void MediaOptimization::UpdateIncomingFrameRate() {
+  int64_t now = clock_->TimeInMilliseconds();
+  if (incoming_frame_times_[0] == 0) {
+    
+  } else {
+    
+    for (int32_t i = (kFrameCountHistorySize - 2); i >= 0; i--) {
+      incoming_frame_times_[i + 1] = incoming_frame_times_[i];
+    }
+  }
+  incoming_frame_times_[0] = now;
+  ProcessIncomingFrameRate(now);
+}
+
+void MediaOptimization::UpdateContentData(
+    const VideoContentMetrics* content_metrics) {
+  
+  if (content_metrics == NULL) {
+    
+    enable_qm_ = false;
+    qm_resolution_->Reset();
+  } else {
+    content_->UpdateContentData(content_metrics);
+  }
+}
+
+int32_t MediaOptimization::SelectQuality() {
+  
+  qm_resolution_->ResetQM();
+
+  
+  qm_resolution_->UpdateContent(content_->LongTermAvgData());
+
+  
+  VCMResolutionScale* qm = NULL;
+  int32_t ret = qm_resolution_->SelectResolution(&qm);
+  if (ret < 0) {
+    return ret;
+  }
+
+  
+  QMUpdate(qm);
+
+  
+  qm_resolution_->ResetRates();
+
+  
+  last_qm_update_time_ = clock_->TimeInMilliseconds();
+
+  
+  content_->Reset();
+
+  return VCM_OK;
+}
+
+
+
+int MediaOptimization::UpdateProtectionCallback(
+    VCMProtectionMethod* selected_method,
     uint32_t* video_rate_bps,
     uint32_t* nack_overhead_rate_bps,
-    uint32_t* fec_overhead_rate_bps)
-{
-    if (!_videoProtectionCallback)
-    {
-        return VCM_OK;
-    }
-    FecProtectionParams delta_fec_params;
-    FecProtectionParams key_fec_params;
-    
-    key_fec_params.fec_rate = selected_method->RequiredProtectionFactorK();
+    uint32_t* fec_overhead_rate_bps) {
+  if (!video_protection_callback_) {
+    return VCM_OK;
+  }
+  FecProtectionParams delta_fec_params;
+  FecProtectionParams key_fec_params;
+  
+  key_fec_params.fec_rate = selected_method->RequiredProtectionFactorK();
 
-    
-    delta_fec_params.fec_rate =
-        selected_method->RequiredProtectionFactorD();
+  
+  delta_fec_params.fec_rate = selected_method->RequiredProtectionFactorD();
 
-    
-    key_fec_params.use_uep_protection =
-        selected_method->RequiredUepProtectionK();
+  
+  key_fec_params.use_uep_protection = selected_method->RequiredUepProtectionK();
 
-    
-    delta_fec_params.use_uep_protection =
-        selected_method->RequiredUepProtectionD();
+  
+  delta_fec_params.use_uep_protection =
+      selected_method->RequiredUepProtectionD();
 
-    
-    
-    delta_fec_params.max_fec_frames = selected_method->MaxFramesFec();
-    key_fec_params.max_fec_frames = selected_method->MaxFramesFec();
+  
+  
+  delta_fec_params.max_fec_frames = selected_method->MaxFramesFec();
+  key_fec_params.max_fec_frames = selected_method->MaxFramesFec();
 
-    
-    
-    
-    
-    delta_fec_params.fec_mask_type = kFecMaskRandom;
-    key_fec_params.fec_mask_type = kFecMaskRandom;
+  
+  
+  
+  
+  delta_fec_params.fec_mask_type = kFecMaskRandom;
+  key_fec_params.fec_mask_type = kFecMaskRandom;
 
-    
-    return _videoProtectionCallback->ProtectionRequest(&delta_fec_params,
+  
+  return video_protection_callback_->ProtectionRequest(&delta_fec_params,
                                                        &key_fec_params,
                                                        video_rate_bps,
                                                        nack_overhead_rate_bps,
                                                        fec_overhead_rate_bps);
 }
 
-bool
-VCMMediaOptimization::DropFrame()
-{
-    
-    _frameDropper->Leak((uint32_t)(InputFrameRate() + 0.5f));
-
-    return _frameDropper->DropFrame();
-}
-
-int32_t
-VCMMediaOptimization::SentFrameCount(VCMFrameCount &frameCount) const
-{
-    frameCount.numDeltaFrames = _deltaFrameCnt;
-    frameCount.numKeyFrames = _keyFrameCnt;
-    return VCM_OK;
-}
-
-int32_t
-VCMMediaOptimization::SetEncodingData(VideoCodecType sendCodecType,
-                                      int32_t maxBitRate,
-                                      uint32_t frameRate,
-                                      uint32_t target_bitrate,
-                                      uint16_t width,
-                                      uint16_t height,
-                                      int numLayers)
-{
-    
-    
-    
-    
-    _lastChangeTime = _clock->TimeInMilliseconds();
-    _content->Reset();
-    _content->UpdateFrameRate(frameRate);
-
-    _maxBitRate = maxBitRate;
-    _sendCodecType = sendCodecType;
-    _targetBitRate = target_bitrate;
-    float target_bitrate_kbps = static_cast<float>(target_bitrate) / 1000.0f;
-    _lossProtLogic->UpdateBitRate(target_bitrate_kbps);
-    _lossProtLogic->UpdateFrameRate(static_cast<float>(frameRate));
-    _lossProtLogic->UpdateFrameSize(width, height);
-    _lossProtLogic->UpdateNumLayers(numLayers);
-    _frameDropper->Reset();
-    _frameDropper->SetRates(target_bitrate_kbps, static_cast<float>(frameRate));
-    _userFrameRate = static_cast<float>(frameRate);
-    _codecWidth = width;
-    _codecHeight = height;
-    _numLayers = (numLayers <= 1) ? 1 : numLayers;  
-    int32_t ret = VCM_OK;
-    ret = _qmResolution->Initialize(target_bitrate_kbps, _userFrameRate,
-                                    _codecWidth, _codecHeight, _numLayers);
-    return ret;
-}
-
-int32_t
-VCMMediaOptimization::RegisterProtectionCallback(VCMProtectionCallback*
-                                                 protectionCallback)
-{
-    _videoProtectionCallback = protectionCallback;
-    return VCM_OK;
-
-}
-
-void
-VCMMediaOptimization::EnableFrameDropper(bool enable)
-{
-    _frameDropper->Enable(enable);
-}
-
-void
-VCMMediaOptimization::EnableProtectionMethod(bool enable,
-                                             VCMProtectionMethodEnum method)
-{
-    bool updated = false;
-    if (enable)
-    {
-        updated = _lossProtLogic->SetMethod(method);
-    }
-    else
-    {
-        _lossProtLogic->RemoveMethod(method);
-    }
-    if (updated)
-    {
-        _lossProtLogic->UpdateMethod();
-    }
-}
-
-bool
-VCMMediaOptimization::IsProtectionMethodEnabled(VCMProtectionMethodEnum method)
-{
-    return (_lossProtLogic->SelectedType() == method);
-}
-
-void
-VCMMediaOptimization::SetMtu(int32_t mtu)
-{
-    _maxPayloadSize = mtu;
-}
-
-uint32_t
-VCMMediaOptimization::SentFrameRate()
-{
-  PurgeOldFrameSamples(_clock->TimeInMilliseconds());
-  UpdateSentFramerate();
-  return _avgSentFramerate;
-}
-
-uint32_t
-VCMMediaOptimization::SentBitRate()
-{
-    const int64_t now_ms = _clock->TimeInMilliseconds();
-    PurgeOldFrameSamples(now_ms);
-    UpdateSentBitrate(now_ms);
-    return _avgSentBitRateBps;
-}
-
-int32_t
-VCMMediaOptimization::MaxBitRate()
-{
-    return _maxBitRate;
-}
-
-int32_t
-VCMMediaOptimization::UpdateWithEncodedData(int encodedLength,
-                                            uint32_t timestamp,
-                                            FrameType encodedFrameType)
-{
-    const int64_t now_ms = _clock->TimeInMilliseconds();
-    PurgeOldFrameSamples(now_ms);
-    if (_encodedFrameSamples.size() > 0 &&
-        _encodedFrameSamples.back().timestamp == timestamp) {
-        
-        
-        
-        _encodedFrameSamples.back().size_bytes += encodedLength;
-        _encodedFrameSamples.back().time_complete_ms = now_ms;
-    } else {
-        _encodedFrameSamples.push_back(VCMEncodedFrameSample(
-            encodedLength, timestamp, now_ms));
-    }
-    UpdateSentBitrate(now_ms);
-    UpdateSentFramerate();
-    if(encodedLength > 0)
-    {
-        const bool deltaFrame = (encodedFrameType != kVideoFrameKey &&
-                                 encodedFrameType != kVideoFrameGolden);
-
-        _frameDropper->Fill(encodedLength, deltaFrame);
-        if (_maxPayloadSize > 0 && encodedLength > 0)
-        {
-            const float minPacketsPerFrame = encodedLength /
-                                             static_cast<float>(_maxPayloadSize);
-            if (deltaFrame)
-            {
-                _lossProtLogic->UpdatePacketsPerFrame(
-                    minPacketsPerFrame, _clock->TimeInMilliseconds());
-            }
-            else
-            {
-                _lossProtLogic->UpdatePacketsPerFrameKey(
-                    minPacketsPerFrame, _clock->TimeInMilliseconds());
-            }
-
-            if (_enableQm)
-            {
-                
-                _qmResolution->UpdateEncodedSize(encodedLength,
-                                                 encodedFrameType);
-            }
-        }
-        if (!deltaFrame && encodedLength > 0)
-        {
-            _lossProtLogic->UpdateKeyFrameSize(static_cast<float>(encodedLength));
-        }
-
-        
-        if (deltaFrame)
-        {
-            _deltaFrameCnt++;
-        }
-        else
-        {
-            _keyFrameCnt++;
-        }
-
-    }
-
-     return VCM_OK;
-
-}
-
-void VCMMediaOptimization::PurgeOldFrameSamples(int64_t now_ms) {
-  while (!_encodedFrameSamples.empty()) {
-    if (now_ms - _encodedFrameSamples.front().time_complete_ms >
+void MediaOptimization::PurgeOldFrameSamples(int64_t now_ms) {
+  while (!encoded_frame_samples_.empty()) {
+    if (now_ms - encoded_frame_samples_.front().time_complete_ms >
         kBitrateAverageWinMs) {
-      _encodedFrameSamples.pop_front();
+      encoded_frame_samples_.pop_front();
     } else {
       break;
     }
   }
 }
 
-void VCMMediaOptimization::UpdateSentBitrate(int64_t now_ms) {
-  if (_encodedFrameSamples.empty()) {
-    _avgSentBitRateBps = 0;
+void MediaOptimization::UpdateSentBitrate(int64_t now_ms) {
+  if (encoded_frame_samples_.empty()) {
+    avg_sent_bit_rate_bps_ = 0;
     return;
   }
   int framesize_sum = 0;
-  for (FrameSampleList::iterator it = _encodedFrameSamples.begin();
-       it != _encodedFrameSamples.end(); ++it) {
+  for (FrameSampleList::iterator it = encoded_frame_samples_.begin();
+       it != encoded_frame_samples_.end();
+       ++it) {
     framesize_sum += it->size_bytes;
   }
   float denom = static_cast<float>(
-      now_ms - _encodedFrameSamples.front().time_complete_ms);
+      now_ms - encoded_frame_samples_.front().time_complete_ms);
   if (denom >= 1.0f) {
-    _avgSentBitRateBps = static_cast<uint32_t>(framesize_sum * 8 * 1000 /
-                                               denom + 0.5f);
+    avg_sent_bit_rate_bps_ =
+        static_cast<uint32_t>(framesize_sum * 8 * 1000 / denom + 0.5f);
   } else {
-    _avgSentBitRateBps = framesize_sum * 8;
+    avg_sent_bit_rate_bps_ = framesize_sum * 8;
   }
 }
 
-void VCMMediaOptimization::UpdateSentFramerate() {
-  if (_encodedFrameSamples.size() <= 1) {
-    _avgSentFramerate = _encodedFrameSamples.size();
+void MediaOptimization::UpdateSentFramerate() {
+  if (encoded_frame_samples_.size() <= 1) {
+    avg_sent_framerate_ = encoded_frame_samples_.size();
     return;
   }
-  int denom = _encodedFrameSamples.back().timestamp -
-      _encodedFrameSamples.front().timestamp;
+  int denom = encoded_frame_samples_.back().timestamp -
+              encoded_frame_samples_.front().timestamp;
   if (denom > 0) {
-    _avgSentFramerate = (90000 * (_encodedFrameSamples.size() - 1) + denom / 2)
-        / denom;
+    avg_sent_framerate_ =
+        (90000 * (encoded_frame_samples_.size() - 1) + denom / 2) / denom;
   } else {
-    _avgSentFramerate = _encodedFrameSamples.size();
+    avg_sent_framerate_ = encoded_frame_samples_.size();
   }
 }
 
-int32_t
-VCMMediaOptimization::RegisterVideoQMCallback(VCMQMSettingsCallback*
-                                              videoQMSettings)
-{
-    _videoQMSettingsCallback = videoQMSettings;
-    
-    if (_videoQMSettingsCallback != NULL)
-    {
-        _enableQm = true;
-    }
-    else
-    {
-        _enableQm = false;
-    }
-    return VCM_OK;
-}
-
-void
-VCMMediaOptimization::UpdateContentData(const VideoContentMetrics*
-                                        contentMetrics)
-{
-    
-    if (contentMetrics == NULL)
-    {
-         
-         _enableQm = false;
-         _qmResolution->Reset();
-    }
-    else
-    {
-        _content->UpdateContentData(contentMetrics);
-    }
-}
-
-int32_t
-VCMMediaOptimization::SelectQuality()
-{
-    
-    _qmResolution->ResetQM();
-
-    
-    _qmResolution->UpdateContent(_content->LongTermAvgData());
-
-    
-    VCMResolutionScale* qm = NULL;
-    int32_t ret = _qmResolution->SelectResolution(&qm);
-    if (ret < 0)
-    {
-        return ret;
-    }
-
-    
-    QMUpdate(qm);
-
-    
-    _qmResolution->ResetRates();
-
-    
-    _lastQMUpdateTime = _clock->TimeInMilliseconds();
-
-    
-    _content->Reset();
-
-    return VCM_OK;
-}
-
-
-
-
-
-
-bool
-VCMMediaOptimization::CheckStatusForQMchange()
-{
-
-    bool status  = true;
-
-    
-    
-    
-    
-    int64_t now = _clock->TimeInMilliseconds();
-    if ((now - _lastQMUpdateTime) < kQmMinIntervalMs ||
-        (now  - _lastChangeTime) <  kQmMinIntervalMs)
-    {
-        status = false;
-    }
-
-    return status;
-
-}
-
-bool VCMMediaOptimization::QMUpdate(VCMResolutionScale* qm) {
+bool MediaOptimization::QMUpdate(VCMResolutionScale* qm) {
   
   if (!qm->change_resolution_spatial && !qm->change_resolution_temporal) {
     return false;
@@ -590,20 +510,24 @@ bool VCMMediaOptimization::QMUpdate(VCMResolutionScale* qm) {
 
   
   if (qm->change_resolution_temporal) {
-    _incomingFrameRate = qm->frame_rate;
+    incoming_frame_rate_ = qm->frame_rate;
     
-    memset(_incomingFrameTimes, -1, sizeof(_incomingFrameTimes));
+    memset(incoming_frame_times_, -1, sizeof(incoming_frame_times_));
   }
 
   
   if (qm->change_resolution_spatial) {
-    _codecWidth = qm->codec_width;
-    _codecHeight = qm->codec_height;
+    codec_width_ = qm->codec_width;
+    codec_height_ = qm->codec_height;
   }
 
-  WEBRTC_TRACE(webrtc::kTraceDebug, webrtc::kTraceVideoCoding, _id,
+  WEBRTC_TRACE(webrtc::kTraceDebug,
+               webrtc::kTraceVideoCoding,
+               id_,
                "Resolution change from QM select: W = %d, H = %d, FR = %f",
-               qm->codec_width, qm->codec_height, qm->frame_rate);
+               qm->codec_width,
+               qm->codec_height,
+               qm->frame_rate);
 
   
   
@@ -611,68 +535,53 @@ bool VCMMediaOptimization::QMUpdate(VCMResolutionScale* qm) {
   
   
   
-  _videoQMSettingsCallback->SetVideoQMSettings(qm->frame_rate,
-                                               _codecWidth,
-                                               _codecHeight);
-  _content->UpdateFrameRate(qm->frame_rate);
-  _qmResolution->UpdateCodecParameters(qm->frame_rate, _codecWidth,
-                                       _codecHeight);
+  video_qmsettings_callback_->SetVideoQMSettings(
+      qm->frame_rate, codec_width_, codec_height_);
+  content_->UpdateFrameRate(qm->frame_rate);
+  qm_resolution_->UpdateCodecParameters(
+      qm->frame_rate, codec_width_, codec_height_);
   return true;
 }
 
-void
-VCMMediaOptimization::UpdateIncomingFrameRate()
-{
-    int64_t now = _clock->TimeInMilliseconds();
-    if (_incomingFrameTimes[0] == 0)
-    {
-        
-    } else
-    {
-        
-        for(int32_t i = (kFrameCountHistorySize - 2); i >= 0 ; i--)
-        {
-            _incomingFrameTimes[i+1] = _incomingFrameTimes[i];
-        }
-    }
-    _incomingFrameTimes[0] = now;
-    ProcessIncomingFrameRate(now);
+
+
+
+bool MediaOptimization::CheckStatusForQMchange() {
+  bool status = true;
+
+  
+  
+  
+  
+  int64_t now = clock_->TimeInMilliseconds();
+  if ((now - last_qm_update_time_) < kQmMinIntervalMs ||
+      (now - last_change_time_) < kQmMinIntervalMs) {
+    status = false;
+  }
+
+  return status;
 }
 
 
-void
-VCMMediaOptimization::ProcessIncomingFrameRate(int64_t now)
-{
-    int32_t num = 0;
-    int32_t nrOfFrames = 0;
-    for (num = 1; num < (kFrameCountHistorySize - 1); num++)
-    {
-        if (_incomingFrameTimes[num] <= 0 ||
-            
-            now - _incomingFrameTimes[num] > kFrameHistoryWinMs)
-        {
-            break;
-        } else
-        {
-            nrOfFrames++;
-        }
+void MediaOptimization::ProcessIncomingFrameRate(int64_t now) {
+  int32_t num = 0;
+  int32_t nr_of_frames = 0;
+  for (num = 1; num < (kFrameCountHistorySize - 1); ++num) {
+    if (incoming_frame_times_[num] <= 0 ||
+        
+        now - incoming_frame_times_[num] > kFrameHistoryWinMs) {
+      break;
+    } else {
+      nr_of_frames++;
     }
-    if (num > 1)
-    {
-        const int64_t diff = now - _incomingFrameTimes[num-1];
-        _incomingFrameRate = 1.0;
-        if(diff >0)
-        {
-            _incomingFrameRate = nrOfFrames * 1000.0f / static_cast<float>(diff);
-        }
+  }
+  if (num > 1) {
+    const int64_t diff = now - incoming_frame_times_[num - 1];
+    incoming_frame_rate_ = 1.0;
+    if (diff > 0) {
+      incoming_frame_rate_ = nr_of_frames * 1000.0f / static_cast<float>(diff);
     }
-}
-
-uint32_t
-VCMMediaOptimization::InputFrameRate()
-{
-    ProcessIncomingFrameRate(_clock->TimeInMilliseconds());
-    return uint32_t (_incomingFrameRate + 0.5f);
+  }
 }
 
 }  

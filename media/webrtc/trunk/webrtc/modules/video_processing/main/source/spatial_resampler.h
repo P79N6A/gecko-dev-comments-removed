@@ -62,6 +62,6 @@ private:
   Scaler                      _scaler;
 };
 
-} 
+}  
 
 #endif

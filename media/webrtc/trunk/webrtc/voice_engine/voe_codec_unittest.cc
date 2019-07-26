@@ -13,6 +13,7 @@
 #include "testing/gtest/include/gtest/gtest.h"
 #include "webrtc/modules/audio_device/include/fake_audio_device.h"
 #include "webrtc/system_wrappers/interface/scoped_ptr.h"
+#include "webrtc/test/testsupport/gtest_disable.h"
 #include "webrtc/voice_engine/include/voe_base.h"
 #include "webrtc/voice_engine/include/voe_hardware.h"
 #include "webrtc/voice_engine/voice_engine_defines.h"
@@ -101,14 +102,16 @@ class VoECodecTest : public ::testing::Test {
 };
 
 
-TEST_F(VoECodecTest, DualStreamSetSecondaryBeforePrimaryFails) {
+TEST_F(VoECodecTest,
+       DISABLED_ON_ANDROID(DualStreamSetSecondaryBeforePrimaryFails)) {
   
   EXPECT_EQ(-1, voe_codec_->SetSecondarySendCodec(channel_, valid_secondary_,
                                                   red_payload_type_));
   red_payload_type_ = 1;
 }
 
-TEST_F(VoECodecTest, DualStreamRegisterWithWrongInputsFails) {
+TEST_F(VoECodecTest,
+       DISABLED_ON_ANDROID(DualStreamRegisterWithWrongInputsFails)) {
   
   EXPECT_EQ(0, voe_codec_->SetSendCodec(channel_, primary_));
 
@@ -125,7 +128,7 @@ TEST_F(VoECodecTest, DualStreamRegisterWithWrongInputsFails) {
                                                   red_payload_type_));
 }
 
-TEST_F(VoECodecTest, DualStreamGetSecodaryEncoder) {
+TEST_F(VoECodecTest, DISABLED_ON_ANDROID(DualStreamGetSecodaryEncoder)) {
   
   EXPECT_EQ(0, voe_codec_->SetSendCodec(channel_, primary_));
 
@@ -149,7 +152,7 @@ TEST_F(VoECodecTest, DualStreamGetSecodaryEncoder) {
   EXPECT_EQ(0, STR_CASE_CMP(valid_secondary_.plname, my_codec.plname));
 }
 
-TEST_F(VoECodecTest, DualStreamRemoveSecondaryCodec) {
+TEST_F(VoECodecTest, DISABLED_ON_ANDROID(DualStreamRemoveSecondaryCodec)) {
   
   EXPECT_EQ(0, voe_codec_->SetSendCodec(channel_, primary_));
 

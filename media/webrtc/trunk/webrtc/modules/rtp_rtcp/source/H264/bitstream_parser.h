@@ -41,6 +41,6 @@ private:
     uint32_t _byteOffset;
     uint8_t  _bitOffset;
 };
-} 
+}  
 
 #endif 

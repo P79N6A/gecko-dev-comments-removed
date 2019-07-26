@@ -122,6 +122,6 @@ const uint16_t VCMNackFecTable[100] = {
 
 };
 
-} 
+}  
 
 #endif 

@@ -15,10 +15,10 @@
 #ifndef VPM_DEFLICKERING_H
 #define VPM_DEFLICKERING_H
 
+#include <string.h>  
+
 #include "webrtc/modules/video_processing/main/interface/video_processing.h"
 #include "webrtc/typedefs.h"
-
-#include <cstring>  
 
 namespace webrtc {
 
@@ -60,6 +60,6 @@ private:
     uint8_t _quantHistUW8[kFrameHistorySize][kNumQuants];
 };
 
-} 
+}  
 
 #endif 

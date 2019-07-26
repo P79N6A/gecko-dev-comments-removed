@@ -49,5 +49,5 @@ enum ExtendedSelection {
 
 int runAutoTest(TestType testType, ExtendedSelection extendedSel);
 
-} 
+}  
 #endif 

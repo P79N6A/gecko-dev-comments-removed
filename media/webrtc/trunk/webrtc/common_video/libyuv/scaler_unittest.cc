@@ -15,6 +15,7 @@
 #include "webrtc/common_video/libyuv/include/scaler.h"
 #include "webrtc/system_wrappers/interface/tick_util.h"
 #include "webrtc/test/testsupport/fileutils.h"
+#include "webrtc/test/testsupport/gtest_disable.h"
 
 namespace webrtc {
 
@@ -28,9 +29,6 @@ class TestScaler : public ::testing::Test {
                      FILE* source_file, std::string out_name,
                      int src_width, int src_height,
                      int dst_width, int dst_height);
-
-  
-
   
   
   
@@ -117,7 +115,7 @@ TEST_F(TestScaler, ScaleSendingBufferTooSmall) {
 }
 
 
-TEST_F(TestScaler, PointScaleTest) {
+TEST_F(TestScaler, DISABLED_ON_ANDROID(PointScaleTest)) {
   double avg_psnr;
   FILE* source_file2;
   ScaleMethod method = kScalePoint;
@@ -204,7 +202,7 @@ TEST_F(TestScaler, PointScaleTest) {
   ASSERT_EQ(0, fclose(source_file2));
 }
 
-TEST_F(TestScaler, BiLinearScaleTest) {
+TEST_F(TestScaler, DISABLED_ON_ANDROID(BiLinearScaleTest)) {
   double avg_psnr;
   FILE* source_file2;
   ScaleMethod method = kScaleBilinear;
@@ -298,7 +296,7 @@ TEST_F(TestScaler, BiLinearScaleTest) {
   ASSERT_EQ(0, fclose(source_file2));
 }
 
-TEST_F(TestScaler, BoxScaleTest) {
+TEST_F(TestScaler, DISABLED_ON_ANDROID(BoxScaleTest)) {
   double avg_psnr;
   FILE* source_file2;
   ScaleMethod method = kScaleBox;
@@ -400,6 +398,7 @@ double TestScaler::ComputeAvgSequencePSNR(FILE* input_file,
 
   int frame_count = 0;
   double avg_psnr = 0;
+  I420VideoFrame in_frame, out_frame;
   while (feof(input_file) == 0) {
     if ((size_t)required_size !=
         fread(input_buffer, 1, required_size, input_file)) {
@@ -410,7 +409,9 @@ double TestScaler::ComputeAvgSequencePSNR(FILE* input_file,
       break;
     }
     frame_count++;
-    double psnr = I420PSNR(input_buffer, output_buffer, width, height);
+    ConvertFromI420(in_frame, kI420, 0, input_buffer);
+    ConvertFromI420(out_frame, kI420, 0, output_buffer);
+    double psnr = I420PSNR(&in_frame, &out_frame);
     avg_psnr += psnr;
   }
   avg_psnr = avg_psnr / frame_count;

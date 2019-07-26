@@ -91,6 +91,9 @@ typedef struct
 
     int minimum_delay_ms; 
 
+    int maximum_delay_ms; 
+
+
     int required_delay_q8; 
 
 
@@ -121,7 +124,6 @@ typedef struct
     int16_t cSumIatQ8; 
     int16_t maxCSumIatQ8; 
     uint32_t maxCSumUpdateTimer;
-
 } AutomodeInst_t;
 
 

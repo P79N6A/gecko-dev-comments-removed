@@ -8,18 +8,15 @@
 
 
 
-#include <cstdio>
-#include <cstdlib>
+#include <stdio.h>
+#include <stdlib.h>
+
 #include <map>
 #include <string>
 #include <vector>
 
 #include "webrtc/tools/frame_analyzer/video_quality_analysis.h"
 #include "webrtc/tools/simple_command_line_parser.h"
-
-
-
-
 
 
 
@@ -51,6 +48,8 @@ int main(int argc, char** argv) {
       "  - width(int): The width of the reference and test files. Default: -1\n"
       "  - height(int): The height of the reference and test files. "
       " Default: -1\n"
+      "  - label(string): The label to use for the perf output."
+      " Default: MY_TEST\n"
       "  - stats_file(string): The full name of the file containing the stats"
       " after decoding of the received YUV video. Default: stats.txt\n"
       "  - reference_file(string): The reference YUV file to compare against."
@@ -66,6 +65,7 @@ int main(int argc, char** argv) {
 
   parser.SetFlag("width", "-1");
   parser.SetFlag("height", "-1");
+  parser.SetFlag("label", "MY_TEST");
   parser.SetFlag("stats_file", "stats.txt");
   parser.SetFlag("reference_file", "ref.yuv");
   parser.SetFlag("test_file", "test.yuv");
@@ -92,7 +92,8 @@ int main(int argc, char** argv) {
                             parser.GetFlag("stats_file").c_str(), width, height,
                             &results);
 
-  webrtc::test::PrintAnalysisResults(&results);
-  webrtc::test::PrintMaxRepeatedAndSkippedFrames(
-      parser.GetFlag("stats_file").c_str());
+  std::string label = parser.GetFlag("label");
+  webrtc::test::PrintAnalysisResults(label, &results);
+  webrtc::test::PrintMaxRepeatedAndSkippedFrames(label,
+                                                 parser.GetFlag("stats_file"));
 }

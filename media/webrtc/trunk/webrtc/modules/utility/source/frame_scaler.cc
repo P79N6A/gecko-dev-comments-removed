@@ -8,12 +8,12 @@
 
 
 
-#include "modules/utility/source/frame_scaler.h"
+#include "webrtc/modules/utility/source/frame_scaler.h"
 
 #ifdef WEBRTC_MODULE_UTILITY_VIDEO
 
-#include "common_video/libyuv/include/scaler.h"
-#include "system_wrappers/interface/trace.h"
+#include "webrtc/common_video/libyuv/include/scaler.h"
+#include "webrtc/system_wrappers/interface/trace.h"
 
 namespace webrtc {
 

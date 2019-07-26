@@ -11,12 +11,12 @@
 
 
 
-#include "typedefs.h"
 #include "stdio.h"
+#include "typedefs.h"
 #include "webrtc_neteq.h" 
-#include <string.h>
+#include <assert.h>
 #include <stdlib.h>
-#include <cassert>
+#include <string.h>
 
 #ifdef WIN32
 #include <winsock2.h>
@@ -1571,7 +1571,7 @@ int NetEQTest_init_coders(enum WebRtcNetEQDecoder coder, int enc_frameSize, int 
         if (ok != 0) {
             return(ok);
         }
-    } 
+    }  
 
     return(0);
 }			
@@ -1974,7 +1974,7 @@ int NetEQTest_encode(int coder, int16_t *indata, int frameLen, unsigned char * e
         encoded += cdlen;
         totalLen += cdlen;
 
-    } 
+    }  
 
 	first_cng=1;
 	return(totalLen);

@@ -10,13 +10,59 @@
 
 #include "webrtc/modules/desktop_capture/window_capturer.h"
 
-#include <cassert>
+#include <assert.h>
+#include <ApplicationServices/ApplicationServices.h>
+#include <CoreFoundation/CoreFoundation.h>
 
 #include "webrtc/modules/desktop_capture/desktop_frame.h"
+#include "webrtc/system_wrappers/interface/logging.h"
 
 namespace webrtc {
 
 namespace {
+
+bool CFStringRefToUtf8(const CFStringRef string, std::string* str_utf8) {
+  assert(string);
+  assert(str_utf8);
+  CFIndex length = CFStringGetLength(string);
+  size_t max_length_utf8 =
+      CFStringGetMaximumSizeForEncoding(length, kCFStringEncodingUTF8);
+  str_utf8->resize(max_length_utf8);
+  CFIndex used_bytes;
+  int result = CFStringGetBytes(
+      string, CFRangeMake(0, length), kCFStringEncodingUTF8, 0, false,
+      reinterpret_cast<UInt8*>(&*str_utf8->begin()), max_length_utf8,
+      &used_bytes);
+  if (result != length) {
+    str_utf8->clear();
+    return false;
+  }
+  str_utf8->resize(used_bytes);
+  return true;
+}
+
+
+class CFDataDesktopFrame : public DesktopFrame {
+ public:
+  
+  
+  
+  
+  
+  
+  
+  CFDataDesktopFrame(DesktopSize size, int stride, CFDataRef cf_data)
+      : DesktopFrame(size, stride,
+                     const_cast<uint8_t*>(CFDataGetBytePtr(cf_data)), NULL),
+        cf_data_(cf_data) {
+  }
+  virtual ~CFDataDesktopFrame() {
+    CFRelease(cf_data_);
+  }
+
+ private:
+  CFDataRef cf_data_;
+};
 
 class WindowCapturerMac : public WindowCapturer {
  public:
@@ -33,12 +79,14 @@ class WindowCapturerMac : public WindowCapturer {
 
  private:
   Callback* callback_;
+  CGWindowID window_id_;
 
   DISALLOW_COPY_AND_ASSIGN(WindowCapturerMac);
 };
 
 WindowCapturerMac::WindowCapturerMac()
-    : callback_(NULL) {
+    : callback_(NULL),
+      window_id_(0) {
 }
 
 WindowCapturerMac::~WindowCapturerMac() {
@@ -46,12 +94,66 @@ WindowCapturerMac::~WindowCapturerMac() {
 
 bool WindowCapturerMac::GetWindowList(WindowList* windows) {
   
-  return false;
+  CFArrayRef window_array = CGWindowListCopyWindowInfo(
+      kCGWindowListOptionOnScreenOnly | kCGWindowListExcludeDesktopElements,
+      kCGNullWindowID);
+  if (!window_array)
+    return false;
+
+  
+  
+  CFIndex count = CFArrayGetCount(window_array);
+  for (CFIndex i = 0; i < count; ++i) {
+    CFDictionaryRef window = reinterpret_cast<CFDictionaryRef>(
+        CFArrayGetValueAtIndex(window_array, i));
+    CFStringRef window_title = reinterpret_cast<CFStringRef>(
+        CFDictionaryGetValue(window, kCGWindowName));
+    CFNumberRef window_id = reinterpret_cast<CFNumberRef>(
+        CFDictionaryGetValue(window, kCGWindowNumber));
+    CFNumberRef window_layer = reinterpret_cast<CFNumberRef>(
+        CFDictionaryGetValue(window, kCGWindowLayer));
+    if (window_title && window_id && window_layer) {
+      
+      int layer;
+      CFNumberGetValue(window_layer, kCFNumberIntType, &layer);
+      if (layer != 0)
+        continue;
+
+      int id;
+      CFNumberGetValue(window_id, kCFNumberIntType, &id);
+      WindowCapturer::Window window;
+      window.id = id;
+      if (!CFStringRefToUtf8(window_title, &(window.title)) ||
+          window.title.empty()) {
+        continue;
+      }
+      windows->push_back(window);
+    }
+  }
+
+  CFRelease(window_array);
+  return true;
 }
 
 bool WindowCapturerMac::SelectWindow(WindowId id) {
   
-  return false;
+  CGWindowID ids[1];
+  ids[0] = id;
+  CFArrayRef window_id_array =
+      CFArrayCreate(NULL, reinterpret_cast<const void **>(&ids), 1, NULL);
+  CFArrayRef window_array =
+      CGWindowListCreateDescriptionFromArray(window_id_array);
+  int results_count = window_array ? CFArrayGetCount(window_array) : 0;
+  CFRelease(window_id_array);
+  CFRelease(window_array);
+
+  if (results_count == 0) {
+    
+    return false;
+  }
+
+  window_id_ = id;
+  return true;
 }
 
 void WindowCapturerMac::Start(Callback* callback) {
@@ -62,8 +164,33 @@ void WindowCapturerMac::Start(Callback* callback) {
 }
 
 void WindowCapturerMac::Capture(const DesktopRegion& region) {
-  
-  callback_->OnCaptureCompleted(NULL);
+  CGImageRef window_image = CGWindowListCreateImage(
+      CGRectNull, kCGWindowListOptionIncludingWindow,
+      window_id_, kCGWindowImageBoundsIgnoreFraming);
+
+  if (!window_image) {
+    CFRelease(window_image);
+    callback_->OnCaptureCompleted(NULL);
+    return;
+  }
+
+  int bits_per_pixel = CGImageGetBitsPerPixel(window_image);
+  if (bits_per_pixel != 32) {
+    LOG(LS_ERROR) << "Unsupported window image depth: " << bits_per_pixel;
+    CFRelease(window_image);
+    callback_->OnCaptureCompleted(NULL);
+    return;
+  }
+
+  int width = CGImageGetWidth(window_image);
+  int height = CGImageGetHeight(window_image);
+  CGDataProviderRef provider = CGImageGetDataProvider(window_image);
+  DesktopFrame* frame = new CFDataDesktopFrame(
+      DesktopSize(width, height), CGImageGetBytesPerRow(window_image),
+      CGDataProviderCopyData(provider));
+  CFRelease(window_image);
+
+  callback_->OnCaptureCompleted(frame);
 }
 
 }  

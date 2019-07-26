@@ -27,6 +27,7 @@
 namespace webrtc {
 
 
+class Accelerate;
 class BackgroundNoise;
 class BufferLevelFilter;
 class ComfortNoise;
@@ -38,9 +39,12 @@ class DelayPeakDetector;
 class DtmfBuffer;
 class DtmfToneGenerator;
 class Expand;
+class Merge;
+class Normal;
 class PacketBuffer;
 class PayloadSplitter;
 class PostDecodeVad;
+class PreemptiveExpand;
 class RandomVector;
 class SyncBuffer;
 class TimestampScaler;
@@ -102,19 +106,17 @@ class NetEqImpl : public webrtc::NetEq {
   
   virtual int RemovePayloadType(uint8_t rtp_payload_type);
 
-  
-  
-  
-  virtual bool SetExtraDelay(int extra_delay_ms);
+  virtual bool SetMinimumDelay(int delay_ms);
+
+  virtual bool SetMaximumDelay(int delay_ms);
+
+  virtual int LeastRequiredDelayMs() const;
 
   virtual int SetTargetDelay() { return kNotImplemented; }
 
   virtual int TargetDelay() { return kNotImplemented; }
 
   virtual int CurrentDelay() { return kNotImplemented; }
-
-  
-  virtual int EnableDtmf();
 
   
   virtual void SetPlayoutMode(NetEqPlayoutMode mode);
@@ -163,6 +165,22 @@ class NetEqImpl : public webrtc::NetEq {
 
   
   virtual void FlushBuffers();
+
+  virtual void PacketBufferStatistics(int* current_num_packets,
+                                      int* max_num_packets,
+                                      int* current_memory_size_bytes,
+                                      int* max_memory_size_bytes) const;
+
+  
+  
+  virtual int DecodedRtpInfo(int* sequence_number, uint32_t* timestamp);
+
+  virtual int InsertSyncPacket(const WebRtcRTPHeader& rtp_header,
+                                 uint32_t receive_timestamp);
+
+  virtual void SetBackgroundNoiseMode(NetEqBackgroundNoiseMode mode);
+
+  virtual NetEqBackgroundNoiseMode BackgroundNoiseMode() const;
 
  private:
   static const int kOutputSizeMs = 10;
@@ -215,49 +233,42 @@ class NetEqImpl : public webrtc::NetEq {
 
   
   void DoNormal(const int16_t* decoded_buffer, size_t decoded_length,
-                AudioDecoder::SpeechType speech_type, bool play_dtmf,
-                AudioMultiVector<int16_t>* algorithm_buffer);
+                AudioDecoder::SpeechType speech_type, bool play_dtmf);
 
   
   void DoMerge(int16_t* decoded_buffer, size_t decoded_length,
-               AudioDecoder::SpeechType speech_type, bool play_dtmf,
-               AudioMultiVector<int16_t>* algorithm_buffer);
+               AudioDecoder::SpeechType speech_type, bool play_dtmf);
 
   
-  int DoExpand(bool play_dtmf, AudioMultiVector<int16_t>* algorithm_buffer);
+  int DoExpand(bool play_dtmf);
 
   
   
   int DoAccelerate(int16_t* decoded_buffer, size_t decoded_length,
-                   AudioDecoder::SpeechType speech_type, bool play_dtmf,
-                   AudioMultiVector<int16_t>* algorithm_buffer);
+                   AudioDecoder::SpeechType speech_type, bool play_dtmf);
 
   
   
   int DoPreemptiveExpand(int16_t* decoded_buffer, size_t decoded_length,
-                         AudioDecoder::SpeechType speech_type, bool play_dtmf,
-                         AudioMultiVector<int16_t>* algorithm_buffer);
+                         AudioDecoder::SpeechType speech_type, bool play_dtmf);
 
   
   
   
   
-  int DoRfc3389Cng(PacketList* packet_list, bool play_dtmf,
-                   AudioMultiVector<int16_t>* algorithm_buffer);
+  int DoRfc3389Cng(PacketList* packet_list, bool play_dtmf);
 
   
   
-  void DoCodecInternalCng(AudioMultiVector<int16_t>* algorithm_buffer);
+  void DoCodecInternalCng();
 
   
-  int DoDtmf(const DtmfEvent& dtmf_event, bool* play_dtmf,
-             AudioMultiVector<int16_t>* algorithm_buffer);
+  int DoDtmf(const DtmfEvent& dtmf_event, bool* play_dtmf);
 
   
   
   
-  void DoAlternativePlc(bool increase_timestamp,
-                        AudioMultiVector<int16_t>* algorithm_buffer);
+  void DoAlternativePlc(bool increase_timestamp);
 
   
   int DtmfOverdub(const DtmfEvent& dtmf_event, size_t num_channels,
@@ -277,7 +288,7 @@ class NetEqImpl : public webrtc::NetEq {
   
   NetEqOutputType LastOutputType();
 
-  BackgroundNoise* background_noise_;
+  scoped_ptr<BackgroundNoise> background_noise_;
   scoped_ptr<BufferLevelFilter> buffer_level_filter_;
   scoped_ptr<DecoderDatabase> decoder_database_;
   scoped_ptr<DelayManager> delay_manager_;
@@ -289,10 +300,15 @@ class NetEqImpl : public webrtc::NetEq {
   scoped_ptr<TimestampScaler> timestamp_scaler_;
   scoped_ptr<DecisionLogic> decision_logic_;
   scoped_ptr<PostDecodeVad> vad_;
-  SyncBuffer* sync_buffer_;
-  Expand* expand_;
+  scoped_ptr<AudioMultiVector<int16_t> > algorithm_buffer_;
+  scoped_ptr<SyncBuffer> sync_buffer_;
+  scoped_ptr<Expand> expand_;
+  scoped_ptr<Normal> normal_;
+  scoped_ptr<Merge> merge_;
+  scoped_ptr<Accelerate> accelerate_;
+  scoped_ptr<PreemptiveExpand> preemptive_expand_;
   RandomVector random_vector_;
-  ComfortNoise* comfort_noise_;
+  scoped_ptr<ComfortNoise> comfort_noise_;
   Rtcp rtcp_;
   StatisticsCalculator stats_;
   int fs_hz_;
@@ -311,10 +327,19 @@ class NetEqImpl : public webrtc::NetEq {
   uint8_t current_cng_rtp_payload_type_;
   uint32_t ssrc_;
   bool first_packet_;
-  bool dtmf_enabled_;
   int error_code_;  
   int decoder_error_code_;
-  CriticalSectionWrapper* crit_sect_;
+  scoped_ptr<CriticalSectionWrapper> crit_sect_;
+
+  
+  
+  
+  
+  
+  
+  
+  int decoded_packet_sequence_number_;
+  uint32_t decoded_packet_timestamp_;
 
   DISALLOW_COPY_AND_ASSIGN(NetEqImpl);
 };

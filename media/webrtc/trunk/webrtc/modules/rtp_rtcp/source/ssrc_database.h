@@ -57,6 +57,6 @@ private:
 
     CriticalSectionWrapper* _critSect;
 };
-} 
+}  
 
 #endif 

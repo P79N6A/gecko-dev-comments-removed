@@ -8,8 +8,8 @@
 
 
 
-#include "../video_capture_impl.h"
-#include "ref_count.h"
+#include "webrtc/modules/video_capture/video_capture_impl.h"
+#include "webrtc/system_wrappers/interface/ref_count.h"
 
 namespace webrtc {
 

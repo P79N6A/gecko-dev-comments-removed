@@ -32,6 +32,6 @@ private:
     uint32_t _count;
     uint32_t _currentLevel;
 };
-} 
+}  
 
 #endif

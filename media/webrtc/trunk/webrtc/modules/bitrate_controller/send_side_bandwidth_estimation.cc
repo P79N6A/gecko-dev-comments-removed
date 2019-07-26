@@ -8,11 +8,11 @@
 
 
 
-#include "modules/bitrate_controller/send_side_bandwidth_estimation.h"
+#include "webrtc/modules/bitrate_controller/send_side_bandwidth_estimation.h"
 
 #include <math.h>  
 
-#include "system_wrappers/interface/trace.h"
+#include "webrtc/system_wrappers/interface/trace.h"
 
 namespace webrtc {
 
