@@ -56,6 +56,7 @@ class MetroWidget : public nsWindowBase,
   typedef ABI::Windows::UI::Core::ICharacterReceivedEventArgs ICharacterReceivedEventArgs;
   typedef mozilla::widget::winrt::FrameworkView FrameworkView;
   typedef mozilla::widget::winrt::APZController APZController;
+  typedef mozilla::layers::ScrollableLayerGuid ScrollableLayerGuid;
 
   static LRESULT CALLBACK
   StaticWindowProcedure(HWND aWnd, UINT aMsg, WPARAM aWParan, LPARAM aLParam);
@@ -199,14 +200,18 @@ public:
   virtual nsTransparencyMode GetTransparencyMode();
 
   
-  void ApzContentConsumingTouch();
-  void ApzContentIgnoringTouch();
-  nsEventStatus ApzReceiveInputEvent(mozilla::WidgetInputEvent* aEvent);
+
+  
+  bool ApzHitTest(mozilla::ScreenPoint& pt);
+  
+  void ApzContentConsumingTouch(const ScrollableLayerGuid& aGuid);
+  void ApzContentIgnoringTouch(const ScrollableLayerGuid& aGuid);
+  
+  nsEventStatus ApzReceiveInputEvent(mozilla::WidgetInputEvent* aEvent,
+                                     ScrollableLayerGuid* aOutTargetGuid);
   nsEventStatus ApzReceiveInputEvent(mozilla::WidgetInputEvent* aInEvent,
+                                     ScrollableLayerGuid* aOutTargetGuid,
                                      mozilla::WidgetInputEvent* aOutEvent);
-  bool HitTestAPZC(mozilla::ScreenPoint& pt);
-  nsresult RequestContentScroll();
-  void RequestContentRepaintImplMainThread();
 
 protected:
   friend class FrameworkView;
