@@ -4,18 +4,16 @@
 
 
 
+#include "vm/Debugger.h"
+
 #include <limits.h>
 
-#include "vm/Debugger.h"
 #include "jsapi.h"
 #include "jscntxt.h"
+#include "jscompartment.h"
 #include "jsnum.h"
 #include "jsobj.h"
 #include "jswrapper.h"
-#include "jsgcinlines.h"
-#include "jsobjinlines.h"
-#include "jsopcodeinlines.h"
-#include "jscompartment.h"
 
 #include "frontend/BytecodeCompiler.h"
 #include "frontend/BytecodeEmitter.h"
@@ -23,6 +21,9 @@
 #include "ion/BaselineJIT.h"
 #include "js/Vector.h"
 
+#include "jsgcinlines.h"
+#include "jsobjinlines.h"
+#include "jsopcodeinlines.h"
 #include "gc/FindSCCs-inl.h"
 #include "vm/Interpreter-inl.h"
 #include "vm/Stack-inl.h"
