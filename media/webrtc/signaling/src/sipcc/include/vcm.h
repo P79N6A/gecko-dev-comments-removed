@@ -186,6 +186,8 @@ typedef struct
       int width;
       int height;
       uint32_t rtcp_fb_types;
+      uint32_t max_fs; 
+      uint32_t max_fr; 
     } video;
   };
 
@@ -1046,6 +1048,10 @@ int vcmOnSdpParseError(const char *peercconnection, const char *message);
 
 
 int vcmDisableRtcpComponent(const char *peerconnection, int level);
+
+short vcmGetVideoMaxFs(uint16_t codec, int32_t *max_fs);
+
+short vcmGetVideoMaxFr(uint16_t codec, int32_t *max_fs);
 
 
 #ifdef __cplusplus

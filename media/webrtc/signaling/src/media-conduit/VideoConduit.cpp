@@ -16,6 +16,9 @@
 #include "AndroidJNIWrapper.h"
 #endif
 
+#include <algorithm>
+#include <math.h>
+
 namespace mozilla {
 
 static const char* logTag ="WebrtcVideoSessionConduit";
@@ -618,6 +621,71 @@ WebrtcVideoConduit::SelectSendResolution(unsigned short width,
 
   
   
+  if (mCurSendCodecConfig && mCurSendCodecConfig->mMaxFrameSize)
+  {
+    unsigned int cur_fs, max_width, max_height, mb_width, mb_height, mb_max;
+
+    mb_width = (width + 15) >> 4;
+    mb_height = (height + 15) >> 4;
+
+    cur_fs = mb_width * mb_height;
+
+    
+    if (cur_fs > mCurSendCodecConfig->mMaxFrameSize)
+    {
+      double scale_ratio;
+
+      scale_ratio = sqrt((double) mCurSendCodecConfig->mMaxFrameSize /
+                         (double) cur_fs);
+
+      mb_width = mb_width * scale_ratio;
+      mb_height = mb_height * scale_ratio;
+
+      
+      if (mb_width == 0) {
+        mb_width = 1;
+        mb_height = std::min(mb_height, mCurSendCodecConfig->mMaxFrameSize);
+      }
+      if (mb_height == 0) {
+        mb_height = 1;
+        mb_width = std::min(mb_width, mCurSendCodecConfig->mMaxFrameSize);
+      }
+    }
+
+    
+    mb_max = (unsigned) sqrt(8 * (double) mCurSendCodecConfig->mMaxFrameSize);
+
+    max_width = 16 * std::min(mb_width, mb_max);
+    max_height = 16 * std::min(mb_height, mb_max);
+
+    if (width * max_height > max_width * height)
+    {
+      if (width > max_width)
+      {
+        
+        
+        height = max_width * height / width + 1;
+        width = max_width;
+      }
+    }
+    else
+    {
+      if (height > max_height)
+      {
+        
+        
+        width = max_height * width / height + 1;
+        height = max_height;
+      }
+    }
+
+    
+    width = std::max(width & ~1, 2);
+    height = std::max(height & ~1, 2);
+  }
+
+  
+  
   if (mSendingWidth != width || mSendingHeight != height)
   {
     
@@ -850,6 +918,10 @@ WebrtcVideoConduit::CodecConfigToWebRTCCodec(const VideoCodecConfig* codecInfo,
 {
   cinst.plType  = codecInfo->mType;
   
+  if (codecInfo->mMaxFrameRate > 0)
+  {
+    cinst.maxFramerate = codecInfo->mMaxFrameRate;
+  }
   cinst.minBitrate = 200;
   cinst.startBitrate = 300;
   cinst.maxBitrate = 2000;
@@ -892,8 +964,10 @@ WebrtcVideoConduit::CheckCodecsForMatch(const VideoCodecConfig* curCodecConfig,
     return false;
   }
 
-  if(curCodecConfig->mType   == codecInfo->mType &&
-     curCodecConfig->mName.compare(codecInfo->mName) == 0)
+  if(curCodecConfig->mType  == codecInfo->mType &&
+     curCodecConfig->mName.compare(codecInfo->mName) == 0 &&
+     curCodecConfig->mMaxFrameSize == codecInfo->mMaxFrameSize &&
+     curCodecConfig->mMaxFrameRate == codecInfo->mMaxFrameRate)
   {
     return true;
   }
@@ -947,6 +1021,8 @@ WebrtcVideoConduit::DumpCodecDB() const
   {
     CSFLogDebug(logTag,"Payload Name: %s", mRecvCodecList[i]->mName.c_str());
     CSFLogDebug(logTag,"Payload Type: %d", mRecvCodecList[i]->mType);
+    CSFLogDebug(logTag,"Payload Max Frame Size: %d", mRecvCodecList[i]->mMaxFrameSize);
+    CSFLogDebug(logTag,"Payload Max Frame Rate: %d", mRecvCodecList[i]->mMaxFrameRate);
   }
 }
 
