@@ -2534,7 +2534,7 @@ let SessionStoreInternal = {
       
       let activePageData = tabData.entries[activeIndex] || null;
       let uri = activePageData ? activePageData.url || null : null;
-      tabbrowser.updateBrowserRemoteness(browser, uri);
+      tabbrowser.updateBrowserRemotenessByURL(browser, uri);
 
       
       

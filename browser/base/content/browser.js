@@ -757,13 +757,6 @@ var gBrowserInit = {
 
     var mustLoadSidebar = false;
 
-    if (!gMultiProcessBrowser) {
-      
-      Cc["@mozilla.org/eventlistenerservice;1"]
-        .getService(Ci.nsIEventListenerService)
-        .addSystemEventListener(gBrowser, "click", contentAreaClick, true);
-    }
-
     gBrowser.addEventListener("DOMUpdatePageReport", gPopupBlockerObserver, false);
 
     
@@ -801,6 +794,15 @@ var gBrowserInit = {
           .XULBrowserWindow = window.XULBrowserWindow;
     window.QueryInterface(Ci.nsIDOMChromeWindow).browserDOMWindow =
       new nsBrowserAccess();
+
+    if (!gMultiProcessBrowser) {
+      
+      Cc["@mozilla.org/eventlistenerservice;1"]
+        .getService(Ci.nsIEventListenerService)
+        .addSystemEventListener(gBrowser, "click", contentAreaClick, true);
+    } else {
+      gBrowser.updateBrowserRemoteness(gBrowser.mCurrentBrowser, true);
+    }
 
     
     gBrowser.addProgressListener(window.XULBrowserWindow);
@@ -2623,7 +2625,7 @@ function getWebNavigation()
 
 function BrowserReloadWithFlags(reloadFlags) {
   let url = gBrowser.currentURI.spec;
-  if (gBrowser.updateBrowserRemoteness(gBrowser.selectedBrowser, url)) {
+  if (gBrowser.updateBrowserRemotenessByURL(gBrowser.selectedBrowser, url)) {
     
     
     
