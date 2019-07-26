@@ -189,8 +189,9 @@ MarkupView.prototype = {
 
 
 
-  _showBoxModel: function(nodeFront) {
-    return this._inspector.toolbox.highlighterUtils.highlightNodeFront(nodeFront);
+
+  _showBoxModel: function(nodeFront, options={}) {
+    return this._inspector.toolbox.highlighterUtils.highlightNodeFront(nodeFront, options);
   },
 
   
@@ -206,7 +207,7 @@ MarkupView.prototype = {
   },
 
   _briefBoxModelTimer: null,
-  _brieflyShowBoxModel: function(nodeFront) {
+  _brieflyShowBoxModel: function(nodeFront, options) {
     let win = this._frame.contentWindow;
 
     if (this._briefBoxModelTimer) {
@@ -214,7 +215,7 @@ MarkupView.prototype = {
       this._briefBoxModelTimer = null;
     }
 
-    this._showBoxModel(nodeFront);
+    this._showBoxModel(nodeFront, options);
 
     this._briefBoxModelTimer = this._frame.contentWindow.setTimeout(() => {
       this._hideBoxModel();
@@ -319,7 +320,7 @@ MarkupView.prototype = {
     let done = this._inspector.updating("markup-view");
     if (selection.isNode()) {
       if (this._shouldNewSelectionBeHighlighted()) {
-        this._brieflyShowBoxModel(selection.nodeFront);
+        this._brieflyShowBoxModel(selection.nodeFront, {});
       }
 
       this.showNode(selection.nodeFront, true).then(() => {
