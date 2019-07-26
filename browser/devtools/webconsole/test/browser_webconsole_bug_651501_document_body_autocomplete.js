@@ -38,9 +38,7 @@ function consoleOpened(aHud) {
     
     
     
-    let props = WCU.inspectObject(content.wrappedJSObject.document.body,
-                                  function() { });
-    is(popup.itemCount, 14 + props.length, "popup.itemCount is correct");
+    ok(popup.itemCount >= 14, "popup.itemCount is correct");
 
     popup._panel.addEventListener("popuphidden", autocompletePopupHidden, false);
 

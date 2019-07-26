@@ -166,6 +166,31 @@ this.WebConsoleUtils = {
 
 
 
+
+
+  getWindowByOuterId: function WCU_getWindowByOuterId(aOuterId, aHintWindow)
+  {
+    let someWindow = aHintWindow || Services.wm.getMostRecentWindow(null);
+    let content = null;
+
+    if (someWindow) {
+      let windowUtils = someWindow.QueryInterface(Ci.nsIInterfaceRequestor).
+                                   getInterface(Ci.nsIDOMWindowUtils);
+      content = windowUtils.getOuterWindowWithId(aOuterId);
+    }
+
+    return content;
+  },
+
+  
+
+
+
+
+
+
+
+
   abbreviateSourceURL: function WCU_abbreviateSourceURL(aSourceURL)
   {
     
@@ -186,143 +211,6 @@ this.WebConsoleUtils = {
     }
 
     return aSourceURL;
-  },
-
-  
-
-
-
-
-
-
-
-  formatResult: function WCU_formatResult(aResult)
-  {
-    let output = "";
-    let type = this.getResultType(aResult);
-
-    switch (type) {
-      case "string":
-        output = this.formatResultString(aResult);
-        break;
-      case "boolean":
-      case "date":
-      case "error":
-      case "number":
-      case "regexp":
-        try {
-          output = aResult + "";
-        }
-        catch (ex) {
-          output = ex;
-        }
-        break;
-      case "null":
-      case "undefined":
-        output = type;
-        break;
-      default:
-        try {
-          if (aResult.toSource) {
-            output = aResult.toSource();
-          }
-          if (!output || output == "({})") {
-            output = aResult + "";
-          }
-        }
-        catch (ex) {
-          output = ex;
-        }
-        break;
-    }
-
-    return output + "";
-  },
-
-  
-
-
-
-
-
-
-
-  formatResultString: function WCU_formatResultString(aString)
-  {
-    function isControlCode(c) {
-      
-      
-      
-      
-      return (c <= 0x1F) || (0x7F <= c && c <= 0xA0);
-    }
-
-    function replaceFn(aMatch, aType, aHex) {
-      
-      let c = parseInt(aHex, 16);
-      return isControlCode(c) ? aMatch : String.fromCharCode(c);
-    }
-
-    let output = uneval(aString).replace(/\\(x)([0-9a-fA-F]{2})/g, replaceFn)
-                 .replace(/\\(u)([0-9a-fA-F]{4})/g, replaceFn);
-
-    return output;
-  },
-
-  
-
-
-
-
-
-
-
-  isObjectInspectable: function WCU_isObjectInspectable(aObject)
-  {
-    let isEnumerable = false;
-
-    
-    if (this.isIteratorOrGenerator(aObject)) {
-      return false;
-    }
-
-    try {
-      for (let p in aObject) {
-        isEnumerable = true;
-        break;
-      }
-    }
-    catch (ex) {
-      
-    }
-
-    return isEnumerable && typeof(aObject) != "string";
-  },
-
-  
-
-
-
-
-
-
-
-
-  getResultType: function WCU_getResultType(aResult)
-  {
-    let type = aResult === null ? "null" : typeof aResult;
-    try {
-      if (type == "object" && aResult.constructor && aResult.constructor.name) {
-        type = aResult.constructor.name + "";
-      }
-    }
-    catch (ex) {
-      
-      
-      
-    }
-
-    return type.toLowerCase();
   },
 
   
@@ -446,133 +334,6 @@ this.WebConsoleUtils = {
 
 
 
-
-
-
-
-  inspectObject: function WCU_inspectObject(aObject, aObjectWrapper)
-  {
-    let properties = [];
-    let isDOMDocument = aObject instanceof Ci.nsIDOMDocument;
-    let deprecated = ["width", "height", "inputEncoding"];
-
-    for (let name in aObject) {
-      
-      if (isDOMDocument && deprecated.indexOf(name) > -1) {
-        continue;
-      }
-
-      properties.push(this.inspectObjectProperty(aObject, name, aObjectWrapper));
-    }
-
-    return properties.sort(this.propertiesSort);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  inspectObjectProperty:
-  function WCU_inspectObjectProperty(aObject, aProperty, aObjectWrapper)
-  {
-    let descriptor = this.getPropertyDescriptor(aObject, aProperty) || {};
-
-    let result = { name: aProperty };
-    result.configurable = descriptor.configurable;
-    result.enumerable = descriptor.enumerable;
-    result.writable = descriptor.writable;
-    if (descriptor.value !== undefined) {
-      result.value = this.createValueGrip(descriptor.value, aObjectWrapper);
-    }
-    else if (descriptor.get) {
-      let gotValue = false;
-      if (this.isNativeFunction(descriptor.get)) {
-        try {
-          result.value = this.createValueGrip(aObject[aProperty], aObjectWrapper);
-          gotValue = true;
-        } catch (e) {}
-      }
-      if (!gotValue) {
-        result.get = this.createValueGrip(descriptor.get, aObjectWrapper);
-        result.set = this.createValueGrip(descriptor.set, aObjectWrapper);
-      }
-    }
-
-    
-    
-    if (result.value === undefined && result.get === undefined) {
-      try {
-        result.value = this.createValueGrip(aObject[aProperty], aObjectWrapper);
-      }
-      catch (ex) {
-        
-        
-      }
-    }
-
-    return result;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  getObjectGrip: function WCU_getObjectGrip(aObject)
-  {
-    let className = null;
-    let type = typeof aObject;
-
-    let result = {
-      "type": type,
-      "className": this.getObjectClassName(aObject),
-      "displayString": this.formatResult(aObject),
-      "inspectable": this.isObjectInspectable(aObject),
-    };
-
-    if (type == "function") {
-      result.functionName = this.getFunctionName(aObject);
-      result.functionArguments = this.getFunctionArguments(aObject);
-    }
-
-    return result;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
   createValueGrip: function WCU_createValueGrip(aValue, aObjectWrapper)
   {
     let type = typeof(aValue);
@@ -669,45 +430,6 @@ this.WebConsoleUtils = {
 
 
 
-
-
-
-  objectActorGripToString: function WCU_objectActorGripToString(aGrip, aFormatString)
-  {
-    
-    
-    
-    
-
-    let type = typeof(aGrip);
-    if (type == "string" ||
-        (aGrip && type == "object" && aGrip.type == "longString")) {
-      let str = type == "string" ? aGrip : aGrip.initial;
-      if (aFormatString) {
-        return this.formatResultString(str);
-      }
-      return str;
-    }
-
-    if (aGrip && type == "object") {
-      if (aGrip.displayString && typeof aGrip.displayString == "object" &&
-          aGrip.displayString.type == "longString") {
-        return aGrip.displayString.initial;
-      }
-      return aGrip.displayString || aGrip.className || aGrip.type || type;
-    }
-
-    return aGrip + "";
-  },
-
-  
-
-
-
-
-
-
-
   getFunctionName: function WCF_getFunctionName(aFunction)
   {
     let name = null;
@@ -732,28 +454,6 @@ this.WebConsoleUtils = {
       catch (ex) { }
     }
     return name;
-  },
-
-  
-
-
-
-
-
-
-
-  getFunctionArguments: function WCF_getFunctionArguments(aFunction)
-  {
-    let args = [];
-    try {
-      let str = (aFunction.toString() || aFunction.toSource()) + "";
-      let argsString = (str.match(REGEX_MATCH_FUNCTION_ARGS) || [])[1];
-      if (argsString) {
-        args = argsString.split(/\s*,\s*/);
-      }
-    }
-    catch (ex) { }
-    return args;
   },
 
   
@@ -794,49 +494,6 @@ this.WebConsoleUtils = {
     catch (ex) { }
 
     return className;
-  },
-
-  
-
-
-
-
-
-
-
-  getPropertyPanelValue: function WCU_getPropertyPanelValue(aActor)
-  {
-    if (aActor.get) {
-      return "Getter";
-    }
-
-    let val = aActor.value;
-    if (typeof val == "string") {
-      return this.formatResultString(val);
-    }
-
-    if (typeof val != "object" || !val) {
-      return val;
-    }
-
-    if (val.type == "longString") {
-      return this.formatResultString(val.initial) + "\u2026";
-    }
-
-    if (val.type == "function" && val.functionName) {
-      return "function " + val.functionName + "(" +
-             val.functionArguments.join(", ") + ")";
-    }
-    if (val.type == "object" && val.className) {
-      return val.className;
-    }
-
-    if (val.displayString && typeof val.displayString == "object" &&
-        val.displayString.type == "longString") {
-      return val.displayString.initial;
-    }
-
-    return val.displayString || val.type;
   },
 
   
@@ -1306,7 +963,8 @@ PageErrorListener.prototype =
       }
 
       let errorWindow =
-        Services.wm.getOuterWindowWithId(aScriptError.outerWindowID);
+        WebConsoleUtils.getWindowByOuterId(aScriptError.outerWindowID,
+                                           this.window);
       if (!errorWindow || errorWindow.top != this.window) {
         return;
       }
@@ -1445,7 +1103,8 @@ ConsoleAPIListener.prototype =
 
     let apiMessage = aMessage.wrappedJSObject;
     if (this.window) {
-      let msgWindow = Services.wm.getOuterWindowWithId(apiMessage.ID);
+      let msgWindow = WebConsoleUtils.getWindowByOuterId(apiMessage.ID,
+                                                         this.window);
       if (!msgWindow || msgWindow.top != this.window) {
         
         return;
@@ -1634,23 +1293,6 @@ this.JSTermHelpers = function JSTermHelpers(aOwner)
   aOwner.sandbox.help = function JSTH_help()
   {
     aOwner.helperResult = { type: "help" };
-  };
-
-  
-
-
-
-
-
-  aOwner.sandbox.inspect = function JSTH_inspect(aObject)
-  {
-    let dbgObj = aOwner.makeDebuggeeValue(aObject);
-    let grip = aOwner.createValueGrip(dbgObj);
-    aOwner.helperResult = {
-      type: "inspectObject",
-      input: aOwner.evalInput,
-      object: grip,
-    };
   };
 
   
