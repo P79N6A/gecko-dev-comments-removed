@@ -560,10 +560,11 @@ void RTSPSource::onDisconnected(const sp<AMessage> &msg) {
     if (mListener) {
       
       
-      mListener->OnDisconnected(0, NS_ERROR_NOT_CONNECTED);
+      mListener->OnDisconnected(0, NS_ERROR_NET_TIMEOUT);
     }
     mAudioTrack = NULL;
     mVideoTrack = NULL;
+    mTracks.clear();
 }
 
 void RTSPSource::finishDisconnectIfPossible() {

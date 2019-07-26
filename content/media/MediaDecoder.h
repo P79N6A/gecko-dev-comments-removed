@@ -249,6 +249,9 @@ public:
 
   
   
+  virtual void ResetConnectionState();
+  
+  
   virtual MediaDecoder* Clone() = 0;
   
   

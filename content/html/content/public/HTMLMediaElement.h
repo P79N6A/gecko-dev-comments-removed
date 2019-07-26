@@ -370,6 +370,10 @@ public:
   }
 
   
+  
+  void ResetConnectionState() MOZ_FINAL MOZ_OVERRIDE;
+
+  
   void SetPreload(const nsAString& aValue, ErrorResult& aRv)
   {
     SetHTMLAttr(nsGkAtoms::preload, aValue, aRv);

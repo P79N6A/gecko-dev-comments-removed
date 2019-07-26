@@ -139,6 +139,10 @@ public:
   
   
   virtual VideoFrameContainer* GetVideoFrameContainer() = 0;
+
+  
+  
+  virtual void ResetConnectionState() = 0;
 };
 
 }

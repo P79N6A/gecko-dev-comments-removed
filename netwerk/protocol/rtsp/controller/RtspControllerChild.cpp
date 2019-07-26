@@ -110,23 +110,20 @@ RtspControllerChild::RecvOnConnected(
                        const uint8_t& index,
                        const InfallibleTArray<RtspMetadataParam>& metaArray)
 {
-  uint32_t tracks;
-
   
   nsRefPtr<RtspMetaData> meta = new RtspMetaData();
   nsresult rv = meta->DeserializeRtspMetaData(metaArray);
   NS_ENSURE_SUCCESS(rv, true);
-  meta->GetTotalTracks(&tracks);
-  if (tracks <= 0) {
-    LOG(("RtspControllerChild::RecvOnConnected invalid tracks %d", tracks));
+  meta->GetTotalTracks(&mTotalTracks);
+  if (mTotalTracks <= 0) {
+    LOG(("RtspControllerChild::RecvOnConnected invalid tracks %d", mTotalTracks));
     
-    tracks = kRtspTotalTracks;
+    mTotalTracks = kRtspTotalTracks;
   }
-  mTotalTracks = tracks;
   AddMetaData(meta.forget());
 
   
-  if ((index + 1) == tracks) {
+  if ((index + 1) == mTotalTracks) {
     
     if (mListener) {
       mListener->OnConnected(index, nullptr);
