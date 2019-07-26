@@ -3985,6 +3985,9 @@ pref("network.buffer.cache.size",  32768);
 pref("notification.feature.enabled", false);
 
 
+pref("dom.webnotifications.enabled", true);
+
+
 pref("alerts.disableSlidingEffect", false);
 
 
