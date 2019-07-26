@@ -7,6 +7,7 @@
 #include "nsIDOMSVGDocument.h"
 #include "nsSVGSVGElement.h"
 #include "nsSVGViewElement.h"
+#include "SVGAnimatedTransformList.h"
 
 using namespace mozilla;
 
@@ -91,6 +92,13 @@ SVGFragmentIdentifier::RestoreOldZoomAndPan(nsSVGSVGElement *root)
   }
 }
 
+void 
+SVGFragmentIdentifier::ClearTransform(nsSVGSVGElement *root)
+{
+  root->mFragmentIdentifierTransform = nullptr;
+  root->InvalidateTransformNotifyFrame();
+}
+
 bool
 SVGFragmentIdentifier::ProcessSVGViewSpec(const nsAString &aViewSpec,
                                           nsSVGSVGElement *root)
@@ -106,6 +114,7 @@ SVGFragmentIdentifier::ProcessSVGViewSpec(const nsAString &aViewSpec,
   
   bool viewBoxFound = false;
   bool preserveAspectRatioFound = false;
+  bool transformFound = false;
   bool zoomAndPanFound = false;
 
   
@@ -144,6 +153,19 @@ SVGFragmentIdentifier::ProcessSVGViewSpec(const nsAString &aViewSpec,
         return false;
       }
       preserveAspectRatioFound = true;
+    } else if (IsMatchingParameter(token, NS_LITERAL_STRING("transform"))) {
+      SVGAnimatedTransformList transforms;
+      if (transformFound ||
+          NS_FAILED(transforms.SetBaseValueString(params))) {
+        return false;
+      }
+      if (!root->mFragmentIdentifierTransform) {
+        root->mFragmentIdentifierTransform = new gfxMatrix();
+      }
+      *root->mFragmentIdentifierTransform =
+        transforms.GetBaseValue().GetConsolidationMatrix();
+      root->InvalidateTransformNotifyFrame();
+      transformFound = true;
     } else if (IsMatchingParameter(token, NS_LITERAL_STRING("zoomAndPan"))) {
       if (zoomAndPanFound) {
         return false;
@@ -178,6 +200,9 @@ SVGFragmentIdentifier::ProcessSVGViewSpec(const nsAString &aViewSpec,
   if (root->mUseCurrentView) {
     
     
+    if (!transformFound) {
+      ClearTransform(root);
+    }
     if (!viewBoxFound) {
       RestoreOldViewBox(root);
     }
@@ -233,6 +258,7 @@ SVGFragmentIdentifier::ProcessFragmentIdentifier(nsIDocument *aDocument,
   rootElement->ClearPreserveAspectRatioProperty();
   RestoreOldZoomAndPan(rootElement);
   rootElement->ClearZoomAndPanProperty();
+  ClearTransform(rootElement);
   if (wasOverridden) {
     rootElement->InvalidateTransformNotifyFrame();
   }

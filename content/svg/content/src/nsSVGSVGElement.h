@@ -351,6 +351,7 @@ private:
   nsSVGViewBox                   mViewBox;
   SVGAnimatedPreserveAspectRatio mPreserveAspectRatio;
 
+  nsAutoPtr<gfxMatrix>           mFragmentIdentifierTransform;
   nsAutoPtr<nsString>            mCurrentViewID;
 
   
