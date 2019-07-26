@@ -49,15 +49,7 @@ public:
     
     virtual gfxFont* CopyWithAntialiasOption(AntialiasOption anAAOption);
 
-    
-    
-    virtual bool ProvidesGetGlyph() const {
-        return !mFontEntry->HasCmapTable();
-    }
-
-    virtual uint32_t GetGlyph(uint32_t aUnicode, uint32_t aVarSelector);
-
-    virtual bool ProvidesGlyphWidths() const { return true; }
+    virtual bool ProvidesGlyphWidths() { return true; }
 
     
     virtual int32_t GetGlyphWidth(gfxContext *aCtx, uint16_t aGID);
@@ -70,6 +62,8 @@ public:
     virtual FontType GetType() const { return FONT_TYPE_GDI; }
 
 protected:
+    virtual void CreatePlatformShaper();
+
     
     virtual bool ShapeText(gfxContext      *aContext,
                            const char16_t *aText,
@@ -86,6 +80,10 @@ protected:
     
     void FillLogFont(LOGFONTW& aLogFont, gfxFloat aSize, bool aUseGDIFakeItalic);
 
+    
+    
+    nsAutoPtr<gfxFontShaper>   mUniscribeShaper;
+
     HFONT                 mFont;
     cairo_font_face_t    *mFontFace;
 
@@ -93,9 +91,6 @@ protected:
     uint32_t              mSpaceGlyph;
 
     bool                  mNeedsBold;
-
-    
-    nsAutoPtr<nsDataHashtable<nsUint32HashKey,uint32_t> > mGlyphIDs;
 
     
     nsAutoPtr<nsDataHashtable<nsUint32HashKey,int32_t> > mGlyphWidths;

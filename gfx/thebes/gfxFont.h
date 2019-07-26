@@ -1952,7 +1952,7 @@ protected:
     
     
     
-    virtual bool ProvidesGlyphWidths() const {
+    virtual bool ProvidesGlyphWidths() {
         return false;
     }
 

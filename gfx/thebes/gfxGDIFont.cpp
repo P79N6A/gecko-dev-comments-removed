@@ -8,6 +8,8 @@
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/WindowsVersion.h"
 
+#include "gfxGDIShaper.h"
+#include "gfxUniscribeShaper.h"
 #include "gfxHarfBuzzShaper.h"
 #include <algorithm>
 #include "gfxGraphiteShaper.h"
@@ -54,7 +56,9 @@ gfxGDIFont::gfxGDIFont(GDIFontEntry *aFontEntry,
     if (FontCanSupportGraphite()) {
         mGraphiteShaper = new gfxGraphiteShaper(this);
     }
-    mHarfBuzzShaper = new gfxHarfBuzzShaper(this);
+    if (FontCanSupportHarfBuzz()) {
+        mHarfBuzzShaper = new gfxHarfBuzzShaper(this);
+    }
 }
 
 gfxGDIFont::~gfxGDIFont()
@@ -71,11 +75,40 @@ gfxGDIFont::~gfxGDIFont()
     delete mMetrics;
 }
 
+void
+gfxGDIFont::CreatePlatformShaper()
+{
+    mPlatformShaper = new gfxGDIShaper(this);
+}
+
 gfxFont*
 gfxGDIFont::CopyWithAntialiasOption(AntialiasOption anAAOption)
 {
     return new gfxGDIFont(static_cast<GDIFontEntry*>(mFontEntry.get()),
                           &mStyle, mNeedsBold, anAAOption);
+}
+
+static bool
+UseUniscribe(gfxShapedText *aShapedText,
+             char16ptr_t aText,
+             uint32_t aLength)
+{
+    uint32_t flags = aShapedText->Flags();
+    bool useGDI;
+
+    bool isXP = !IsVistaOrLater();
+
+    
+    
+
+    useGDI = isXP &&
+             (flags &
+               (gfxTextRunFactory::TEXT_OPTIMIZE_SPEED | 
+                gfxTextRunFactory::TEXT_IS_RTL)
+             ) == gfxTextRunFactory::TEXT_OPTIMIZE_SPEED;
+
+    return !useGDI ||
+        ScriptIsComplex(aText, aLength, SIC_COMPLEX) == S_OK;
 }
 
 bool
@@ -95,6 +128,8 @@ gfxGDIFont::ShapeText(gfxContext      *aContext,
         return false;
     }
 
+    bool ok = false;
+
     
     
     
@@ -103,8 +138,83 @@ gfxGDIFont::ShapeText(gfxContext      *aContext,
         return false;
     }
 
-    return gfxFont::ShapeText(aContext, aText, aOffset, aLength, aScript,
-                              aShapedText, aPreferPlatformShaping);
+    if (mGraphiteShaper && gfxPlatform::GetPlatform()->UseGraphiteShaping()) {
+        ok = mGraphiteShaper->ShapeText(aContext, aText,
+                                        aOffset, aLength,
+                                        aScript, aShapedText);
+    }
+
+    if (!ok && mHarfBuzzShaper) {
+        if (gfxPlatform::GetPlatform()->UseHarfBuzzForScript(aScript) ||
+            (!IsVistaOrLater() &&
+             ScriptShapingType(aScript) == SHAPING_INDIC &&
+             !Preferences::GetBool("gfx.font_rendering.winxp-indic-uniscribe",
+                                   false))) {
+            ok = mHarfBuzzShaper->ShapeText(aContext, aText, aOffset, aLength,
+                                            aScript, aShapedText);
+        }
+    }
+
+    if (!ok) {
+        GDIFontEntry *fe = static_cast<GDIFontEntry*>(GetFontEntry());
+        bool preferUniscribe =
+            (!fe->IsTrueType() || fe->IsSymbolFont()) && !fe->mForceGDI;
+
+        if (preferUniscribe || UseUniscribe(aShapedText, aText, aLength)) {
+            
+            if (!mUniscribeShaper) {
+                mUniscribeShaper = new gfxUniscribeShaper(this);
+            }
+
+            ok = mUniscribeShaper->ShapeText(aContext, aText, aOffset, aLength,
+                                             aScript, aShapedText);
+            if (!ok) {
+                
+                if (!mPlatformShaper) {
+                    CreatePlatformShaper();
+                }
+
+                ok = mPlatformShaper->ShapeText(aContext, aText, aOffset,
+                                                aLength, aScript, aShapedText);
+            }
+        } else {
+            
+            if (!mPlatformShaper) {
+                CreatePlatformShaper();
+            }
+
+            ok = mPlatformShaper->ShapeText(aContext, aText, aOffset, aLength,
+                                            aScript, aShapedText);
+            if (!ok) {
+                
+                if (!mUniscribeShaper) {
+                    mUniscribeShaper = new gfxUniscribeShaper(this);
+                }
+
+                
+                ok = mUniscribeShaper->ShapeText(aContext, aText,
+                                                 aOffset, aLength,
+                                                 aScript, aShapedText);
+            }
+        }
+
+#if DEBUG
+        if (!ok) {
+            NS_ConvertUTF16toUTF8 name(GetName());
+            char msg[256];
+
+            sprintf(msg, 
+                    "text shaping with both uniscribe and GDI failed for"
+                    " font: %s",
+                    name.get());
+            NS_WARNING(msg);
+        }
+#endif
+    }
+
+    PostShapingFixup(aContext, aText, aOffset, aLength, aShapedText);
+
+    return ok;
 }
 
 const gfxFont::Metrics&
@@ -425,42 +535,6 @@ gfxGDIFont::FillLogFont(LOGFONTW& aLogFont, gfxFloat aSize,
     if (aUseGDIFakeItalic) {
         aLogFont.lfItalic = 1;
     }
-}
-
-uint32_t
-gfxGDIFont::GetGlyph(uint32_t aUnicode, uint32_t aVarSelector)
-{
-    
-
-    
-    
-    
-    if (aUnicode > 0xffff || aVarSelector) {
-        return 0;
-    }
-
-    if (!mGlyphIDs) {
-        mGlyphIDs = new nsDataHashtable<nsUint32HashKey,uint32_t>(128);
-    }
-
-    uint32_t gid;
-    if (mGlyphIDs->Get(aUnicode, &gid)) {
-        return gid;
-    }
-
-    AutoDC dc;
-    AutoSelectFont fs(dc.GetDC(), GetHFONT());
-
-    wchar_t ch = aUnicode;
-    WORD glyph;
-    DWORD ret = GetGlyphIndicesW(dc.GetDC(), &ch, 1, &glyph,
-                                 GGI_MARK_NONEXISTING_GLYPHS);
-    if (ret == GDI_ERROR || glyph == 0xFFFF) {
-        return 0;
-    }
-
-    mGlyphIDs->Put(aUnicode, glyph);
-    return glyph;
 }
 
 int32_t
