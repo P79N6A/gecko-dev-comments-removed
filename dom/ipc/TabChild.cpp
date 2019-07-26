@@ -621,12 +621,8 @@ TabChild::HandlePossibleViewportChange()
     
     metrics, gfx::Point(0.0f, 0.0f), gfx::Point(0.0f, 0.0f), 0.0);
   CSSToScreenScale resolution = AsyncPanZoomController::CalculateResolution(metrics);
-  
-  
-  gfxFloat hysteresis =
-    gfxFloat(oldBrowserWidth) / gfxFloat(oldScreenWidth);
-  metrics.mResolution = gfxSize(resolution.scale * hysteresis,
-                                resolution.scale * hysteresis);
+  metrics.mResolution = gfxSize(resolution.scale / metrics.mDevPixelsPerCSSPixel,
+                                resolution.scale / metrics.mDevPixelsPerCSSPixel);
   utils->SetResolution(metrics.mResolution.width, metrics.mResolution.height);
 
   
