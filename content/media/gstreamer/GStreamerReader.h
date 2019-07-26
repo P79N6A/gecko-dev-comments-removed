@@ -179,7 +179,15 @@ private:
   nsresult ParseMP3Headers();
 
   
+  
+  int64_t GetDataLength();
+
+  
   MP3FrameParser mMP3FrameParser;
+
+  
+  
+  uint64_t mDataOffset;
 
   
   
