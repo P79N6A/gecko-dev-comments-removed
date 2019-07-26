@@ -19,10 +19,10 @@ Components.utils.import("resource://services-sync/main.js");
 
 
 
-function RemoteTabsView(aSet, aSetUIAccess) {
+function RemoteTabsView(aSet, aSetUIAccessList) {
   this._set = aSet;
   this._set.controller = this;
-  this._uiAccessElement = aSetUIAccess;
+  this._uiAccessElements = aSetUIAccessList;
 
   
   
@@ -38,7 +38,7 @@ function RemoteTabsView(aSet, aSetUIAccess) {
 
 RemoteTabsView.prototype = {
   _set: null,
-  _uiAccessElement: null,
+  _uiAccessElements: [],
 
   handleItemClick: function tabview_handleItemClick(aItem) {
     let url = aItem.getAttribute("value");
@@ -57,7 +57,9 @@ RemoteTabsView.prototype = {
   },
 
   setUIAccessVisible: function setUIAccessVisible(aVisible) {
-    this._uiAccessElement.hidden = !aVisible;
+    for (let elem of this._uiAccessElements) {
+      elem.hidden = !aVisible;
+    }
   },
 
   populateGrid: function populateGrid() {
@@ -108,7 +110,8 @@ let RemoteTabsStartView = {
 
   init: function init() {
     let vbox = document.getElementById("start-remotetabs");
-    this._view = new RemoteTabsView(this._grid, vbox);
+    let uiList = [vbox];
+    this._view = new RemoteTabsView(this._grid, uiList);
   },
 
   uninit: function uninit() {
@@ -129,7 +132,9 @@ let RemoteTabsPanelView = {
   init: function init() {
     
     let menuEntry = document.getElementById("menuitem-remotetabs");
-    this._view = new RemoteTabsView(this._grid, menuEntry);
+    let snappedEntry = document.getElementById("snappedRemoteTabsLabel");
+    let uiList = [menuEntry, snappedEntry];
+    this._view = new RemoteTabsView(this._grid, uiList);
   },
 
   show: function show() {
