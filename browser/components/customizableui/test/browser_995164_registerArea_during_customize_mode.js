@@ -85,7 +85,13 @@ add_task(function*() {
   ok(otherTB.querySelector("#sync-button"), "Sync button is on other toolbar, too.");
 
   let wasInformedCorrectlyOfAreaDisappearing = false;
-  let windowClosed = null;
+  
+  
+  
+  
+  
+  
+  let windowCloseDeferred = Promise.defer();
   listener = {
     onAreaNodeUnregistered: function(aArea, aNode, aReason) {
       if (aArea == TOOLBARID) {
@@ -96,8 +102,7 @@ add_task(function*() {
     },
     onWindowClosed: function(aWindow) {
       if (aWindow == otherWin) {
-        info("Got window closed notification for correct window.");
-        windowClosed = aWindow;
+        windowCloseDeferred.resolve(aWindow);
       } else {
         info("Other window was closed!");
         info("Other window title: " + (aWindow.document && aWindow.document.title));
@@ -106,7 +111,8 @@ add_task(function*() {
     },
   };
   CustomizableUI.addListener(listener);
-  yield promiseWindowClosed(otherWin);
+  otherWin.close();
+  let windowClosed = yield windowCloseDeferred.promise;
 
   is(windowClosed, otherWin, "Window should have sent onWindowClosed notification.");
   ok(wasInformedCorrectlyOfAreaDisappearing, "Should be told about window closing.");
