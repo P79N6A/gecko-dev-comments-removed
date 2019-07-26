@@ -256,3 +256,246 @@ function runOMTATest(aTestFunction, aOnSkip) {
     });
   }
 })();
+
+
+
+
+
+
+
+const RunningOn = {
+  MainThread: 0,
+  Compositor: 1,
+  Either: 2,
+  TodoMainThread: 3
+};
+
+const ExpectComparisonTo = {
+  Pass: 1,
+  Fail: 2
+};
+
+(function() {
+  window.omta_todo_is = function(elem, property, expected, runningOn, desc) {
+    return omta_is_approx(elem, property, expected, 0, runningOn, desc,
+                          ExpectComparisonTo.Fail);
+  };
+
+  window.omta_is = function(elem, property, expected, runningOn, desc) {
+    return omta_is_approx(elem, property, expected, 0, runningOn, desc);
+  };
+
+  
+  
+  window.omta_is_approx = function(elem, property, expected, tolerance,
+                                   runningOn, desc, expectedComparisonResult) {
+    
+    const omtaProperties = [ "transform", "opacity" ];
+    if (omtaProperties.indexOf(property) === -1) {
+      ok(false, property + " is not an OMTA property");
+      return;
+    }
+    var isTransform = property == "transform";
+    var normalize = isTransform ? convertTo3dMatrix : parseFloat;
+    var compare = isTransform ?
+                  matricesRoughlyEqual :
+                  function(a, b, error) { return Math.abs(a - b) <= error; };
+    var normalizedToString = isTransform ?
+                             convert3dMatrixToString :
+                             JSON.stringify;
+
+    
+    var compositorStr =
+      SpecialPowers.DOMWindowUtils.getOMTAStyle(elem, property);
+    var computedStr = window.getComputedStyle(elem)[property];
+
+    
+    var expectedValue = normalize(expected);
+    if (expectedValue === null) {
+      ok(false, desc + ": test author should provide a valid 'expected' value" +
+                " - got " + expected.toString());
+      return;
+    }
+
+    
+    var actualStr;
+    switch (runningOn) {
+      case RunningOn.Either:
+        runningOn = compositorStr !== "" ?
+                    RunningOn.Compositor :
+                    RunningOn.MainThread;
+        actualStr = compositorStr !== "" ? compositorStr : computedStr;
+        break;
+
+      case RunningOn.Compositor:
+        if (compositorStr === "") {
+          ok(false, desc + ": should be animating on compositor");
+          return;
+        }
+        actualStr = compositorStr;
+        break;
+
+      case RunningOn.TodoMainThread:
+        todo(compositorStr === "",
+             desc + ": should NOT be animating on compositor");
+        actualStr = compositorStr === "" ? computedStr : compositorStr;
+        break;
+
+      default:
+        if (compositorStr !== "") {
+          ok(false, desc + ": should NOT be animating on compositor");
+          return;
+        }
+        actualStr = computedStr;
+        break;
+    }
+
+    var okOrTodo = expectedComparisonResult == ExpectComparisonTo.Fail ?
+                   todo :
+                   ok;
+
+    
+    var actualValue = normalize(actualStr);
+    if (actualValue === null) {
+      ok(false, desc + ": should return a valid result - got " + actualStr);
+      return;
+    }
+    okOrTodo(compare(expectedValue, actualValue, tolerance),
+             desc + " - got " + actualStr + ", expected " +
+             normalizedToString(expectedValue));
+
+    
+    
+    if (actualStr === compositorStr) {
+      var computedValue = normalize(computedStr);
+      if (computedValue === null) {
+        ok(false, desc + ": test framework should parse computed style" +
+                  " - got " + computedStr);
+        return;
+      }
+      okOrTodo(compare(computedValue, actualValue, 0),
+               desc + ": OMTA style and computed style should be equal" +
+               " - OMTA " + actualStr + ", computed " + computedStr);
+    }
+  };
+
+  function matricesRoughlyEqual(a, b, tolerance) {
+    tolerance = tolerance || 0.00011;
+    for (var i = 0; i < 4; i++) {
+      for (var j = 0; j < 4; j++) {
+        var diff = Math.abs(a[i][j] - b[i][j]);
+        if (diff > tolerance || isNaN(diff))
+          return false;
+      }
+    }
+    return true;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  function convertTo3dMatrix(matrixLike) {
+    if (typeof(matrixLike) == "string") {
+      return convertStringTo3dMatrix(matrixLike);
+    } else if (Array.isArray(matrixLike)) {
+      return convertArrayTo3dMatrix(matrixLike);
+    } else if (typeof(matrixLike) == "object") {
+      return convertObjectTo3dMatrix(matrixLike);
+    } else {
+      return null;
+    }
+  }
+
+  
+  
+  function convertStringTo3dMatrix(str) {
+    if (str == "none")
+      return convertArrayTo3dMatrix([1, 0, 0, 1, 0, 0]);
+    var result = str.match("^matrix(3d)?\\(");
+    if (result === null)
+      return null;
+
+    return convertArrayTo3dMatrix(
+        str.substring(result[0].length, str.length-1)
+           .split(",")
+           .map(function(component) {
+             return Number(component);
+           })
+      );
+  }
+
+  
+  
+  
+  function convertArrayTo3dMatrix(array) {
+    if (array.length == 6) {
+      return convertObjectTo3dMatrix(
+        { a: array[0], b: array[1],
+          c: array[2], d: array[3],
+          e: array[4], f: array[5] } );
+    } else if (array.length == 16) {
+      return [
+        array.slice(0, 3),
+        array.slice(4, 7),
+        array.slice(8, 11),
+        array.slice(12, 15)
+      ];
+    } else {
+      return null;
+    }
+  }
+
+  
+  
+  function convertObjectTo3dMatrix(obj) {
+    return [
+      [
+        obj.a || obj.sx || obj.m11 || 1,
+        obj.b || obj.m12 || 0,
+        obj.m13 || 0,
+        obj.m14 || 0
+      ], [
+        obj.c || obj.m21 || 0,
+        obj.d || obj.sy || obj.m22 || 1,
+        obj.m23 || 0,
+        obj.m24 || 0
+      ], [
+        obj.m31 || 0,
+        obj.m32 || 0,
+        obj.sz || obj.m33 || 1,
+        obj.m34 || 0
+      ], [
+        obj.e || obj.tx || obj.m41 || 0,
+        obj.f || obj.ty || obj.m42 || 0,
+        obj.tz || obj.m43 || 0,
+        obj.m44 || 1
+      ]
+    ];
+  }
+
+  function convert3dMatrixToString(matrix) {
+    if (is2d(matrix)) {
+      return "matrix(" +
+             [ matrix[0][0], matrix[0][1],
+               matrix[1][0], matrix[1][1],
+               matrix[3][0], matrix[3][1] ].join(", ") + ")";
+    } else {
+      return "matrix3d(" +
+              matrix.reduce(function(outer, inner) {
+                  return outer.concat(inner);
+              }).join(", ") + ")";
+    }
+  }
+
+  function is2d(matrix) {
+    return matrix[0][2] === 0 && matrix[0][3] === 0 &&
+           matrix[1][2] === 0 && matrix[1][3] === 0 &&
+           matrix[2][0] === 0 && matrix[2][1] === 0 &&
+           matrix[2][2] === 1 && matrix[2][3] === 0 &&
+           matrix[3][2] === 0 && matrix[3][3] === 1;
+  }
+})();
