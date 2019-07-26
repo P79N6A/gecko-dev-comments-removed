@@ -64,6 +64,10 @@ BaselineInspector::expectedResultType(jsbytecode *pc)
 {
     
     
+
+    if (!hasBaselineScript())
+        return MIRType_None;
+
     const ICEntry &entry = icEntryFromPC(pc);
 
     ICStub *stub = entry.firstStub();
