@@ -50,16 +50,6 @@ public:
     mPannerNode = aPannerNode;
   }
 
-  void JSBindingFinalized()
-  {
-    
-    
-    if (!mStartCalled) {
-      SetProduceOwnOutput(false);
-    }
-    AudioNode::JSBindingFinalized();
-  }
-
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(AudioBufferSourceNode, AudioNode)
 
@@ -126,13 +116,14 @@ public:
 
 private:
   static void SendPlaybackRateToStream(AudioNode* aNode);
-  nsRefPtr<AudioBuffer> mBuffer;
   double mLoopStart;
   double mLoopEnd;
-  bool mLoop;
-  bool mStartCalled;
+  nsRefPtr<AudioBuffer> mBuffer;
   nsRefPtr<AudioParam> mPlaybackRate;
   PannerNode* mPannerNode;
+  SelfReference<AudioBufferSourceNode> mPlayingRef; 
+  bool mLoop;
+  bool mStartCalled;
 };
 
 }

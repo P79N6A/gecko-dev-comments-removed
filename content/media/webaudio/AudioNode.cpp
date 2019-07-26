@@ -13,44 +13,36 @@
 namespace mozilla {
 namespace dom {
 
-inline void
-ImplCycleCollectionTraverse(nsCycleCollectionTraversalCallback& aCallback,
-                            AudioNode::InputNode& aField,
-                            const char* aName,
-                            unsigned aFlags)
-{
-  CycleCollectionNoteChild(aCallback, aField.mInputNode.get(), aName, aFlags);
-}
-
-inline void
-ImplCycleCollectionUnlink(nsCycleCollectionTraversalCallback& aCallback,
-                          AudioNode::InputNode& aField,
-                          const char* aName,
-                          unsigned aFlags)
-{
-  aField.mInputNode = nullptr;
-}
-
-NS_IMPL_CYCLE_COLLECTION_3(AudioNode, mContext, mInputNodes, mOutputNodes)
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(AudioNode)
+  tmp->DisconnectFromGraph();
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mContext)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mOutputNodes)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(AudioNode)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mContext)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mOutputNodes)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
+NS_IMPL_CYCLE_COLLECTION_TRACE_WRAPPERCACHE(AudioNode)
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(AudioNode)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(AudioNode)
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(AudioNode)
+  NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
 AudioNode::AudioNode(AudioContext* aContext)
   : mContext(aContext)
-  , mJSBindingFinalized(false)
-  , mCanProduceOwnOutput(false)
-  , mOutputEnded(false)
 {
   MOZ_ASSERT(aContext);
+  SetIsDOMBinding();
 }
 
 AudioNode::~AudioNode()
 {
-  DestroyMediaStream();
+  DisconnectFromGraph();
   MOZ_ASSERT(mInputNodes.IsEmpty());
   MOZ_ASSERT(mOutputNodes.IsEmpty());
 }
@@ -81,21 +73,8 @@ FindIndexOfNodeWithPorts(const nsTArray<AudioNode::InputNode>& aInputNodes, cons
 }
 
 void
-AudioNode::UpdateOutputEnded()
+AudioNode::DisconnectFromGraph()
 {
-  if (mOutputEnded) {
-    
-    return;
-  }
-  if (mCanProduceOwnOutput ||
-      !mInputNodes.IsEmpty() ||
-      (!mJSBindingFinalized && NumberOfInputs() > 0)) {
-    
-    return;
-  }
-
-  mOutputEnded = true;
-
   
   
   nsRefPtr<AudioNode> kungFuDeathGrip = this;
@@ -106,9 +85,8 @@ AudioNode::UpdateOutputEnded()
   
   while (!mInputNodes.IsEmpty()) {
     uint32_t i = mInputNodes.Length() - 1;
-    nsRefPtr<AudioNode> input = mInputNodes[i].mInputNode.forget();
+    nsRefPtr<AudioNode> input = mInputNodes[i].mInputNode;
     mInputNodes.RemoveElementAt(i);
-    NS_ASSERTION(mOutputNodes.Contains(this), "input/output inconsistency");
     input->mOutputNodes.RemoveElement(this);
   }
 
@@ -117,12 +95,9 @@ AudioNode::UpdateOutputEnded()
     nsRefPtr<AudioNode> output = mOutputNodes[i].forget();
     mOutputNodes.RemoveElementAt(i);
     uint32_t inputIndex = FindIndexOfNode(output->mInputNodes, this);
-    NS_ASSERTION(inputIndex != nsTArray<AudioNode::InputNode>::NoIndex, "input/output inconsistency");
     
     
     output->mInputNodes.RemoveElementAt(inputIndex);
-
-    output->UpdateOutputEnded();
   }
 
   DestroyMediaStream();
@@ -143,11 +118,6 @@ AudioNode::Connect(AudioNode& aDestination, uint32_t aOutput,
     return;
   }
 
-  if (IsOutputEnded() || aDestination.IsOutputEnded()) {
-    
-    
-    return;
-  }
   if (FindIndexOfNodeWithPorts(aDestination.mInputNodes, this, aInput, aOutput) !=
       nsTArray<AudioNode::InputNode>::NoIndex) {
     
@@ -156,9 +126,6 @@ AudioNode::Connect(AudioNode& aDestination, uint32_t aOutput,
 
   
   
-
-  
-  nsRefPtr<AudioNode> kungFuDeathGrip = this;
 
   mOutputNodes.AppendElement(&aDestination);
   InputNode* input = aDestination.mInputNodes.AppendElement();
@@ -219,10 +186,6 @@ AudioNode::Disconnect(uint32_t aOutput, ErrorResult& aRv)
     return;
   }
 
-  
-  
-  nsAutoTArray<nsRefPtr<AudioNode>,4> outputsToUpdate;
-
   for (int32_t i = mOutputNodes.Length() - 1; i >= 0; --i) {
     AudioNode* dest = mOutputNodes[i];
     for (int32_t j = dest->mInputNodes.Length() - 1; j >= 0; --j) {
@@ -232,15 +195,10 @@ AudioNode::Disconnect(uint32_t aOutput, ErrorResult& aRv)
         
         
         
-        *outputsToUpdate.AppendElement() = mOutputNodes[i].forget();
         mOutputNodes.RemoveElementAt(i);
         break;
       }
     }
-  }
-
-  for (uint32_t i = 0; i < outputsToUpdate.Length(); ++i) {
-    outputsToUpdate[i]->UpdateOutputEnded();
   }
 
   

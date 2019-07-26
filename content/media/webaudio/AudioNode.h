@@ -7,6 +7,7 @@
 #ifndef AudioNode_h_
 #define AudioNode_h_
 
+#include "nsWrapperCache.h"
 #include "nsCycleCollectionParticipant.h"
 #include "mozilla/Attributes.h"
 #include "EnableWebAudioCheck.h"
@@ -26,11 +27,35 @@ namespace dom {
 
 struct ThreeDPoint;
 
+template<class T>
+class SelfReference {
+public:
+  SelfReference() : mHeld(false) {}
+  ~SelfReference()
+  {
+    NS_ASSERTION(!mHeld, "Forgot to drop the self reference?");
+  }
 
+  void Take(T* t)
+  {
+    if (!mHeld) {
+      mHeld = true;
+      t->AddRef();
+    }
+  }
+  void Drop(T* t)
+  {
+    if (mHeld) {
+      mHeld = false;
+      t->Release();
+    }
+  }
 
+  operator bool() const { return mHeld; }
 
-
-
+private:
+  bool mHeld;
+};
 
 
 
@@ -46,6 +71,7 @@ struct ThreeDPoint;
 
 
 class AudioNode : public nsISupports,
+                  public nsWrapperCache,
                   public EnableWebAudioCheck
 {
 public:
@@ -71,14 +97,7 @@ public:
   }
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_CLASS(AudioNode)
-
-  void JSBindingFinalized()
-  {
-    NS_ASSERTION(!mJSBindingFinalized, "JS binding already finalized");
-    mJSBindingFinalized = true;
-    UpdateOutputEnded();
-  }
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(AudioNode)
 
   virtual AudioBufferSourceNode* AsAudioBufferSourceNode() {
     return nullptr;
@@ -105,10 +124,6 @@ public:
   virtual uint32_t NumberOfInputs() const { return 1; }
   virtual uint32_t NumberOfOutputs() const { return 1; }
 
-  
-  void UpdateOutputEnded();
-  bool IsOutputEnded() const { return mOutputEnded; }
-
   struct InputNode {
     ~InputNode()
     {
@@ -118,8 +133,7 @@ public:
     }
 
     
-    
-    nsRefPtr<AudioNode> mInputNode;
+    AudioNode* mInputNode;
     nsRefPtr<MediaInputPort> mStreamPort;
     
     uint32_t mInputPort;
@@ -129,20 +143,14 @@ public:
 
   MediaStream* Stream() { return mStream; }
 
-  
-  
-  void SetProduceOwnOutput(bool aCanProduceOwnOutput)
-  {
-    mCanProduceOwnOutput = aCanProduceOwnOutput;
-    if (!aCanProduceOwnOutput) {
-      UpdateOutputEnded();
-    }
-  }
-
   const nsTArray<InputNode>& InputNodes() const
   {
     return mInputNodes;
   }
+
+private:
+  
+  void DisconnectFromGraph();
 
 protected:
   static void Callback(AudioNode* aNode) {  }
@@ -171,15 +179,6 @@ private:
   
   
   nsTArray<nsRefPtr<AudioNode> > mOutputNodes;
-  
-  
-  bool mJSBindingFinalized;
-  
-  
-  bool mCanProduceOwnOutput;
-  
-  
-  bool mOutputEnded;
 };
 
 }
