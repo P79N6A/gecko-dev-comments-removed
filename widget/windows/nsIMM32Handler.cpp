@@ -240,6 +240,21 @@ nsIMM32Handler::CancelComposition(nsWindow* aWindow, bool aForce)
   }
 }
 
+
+void
+nsIMM32Handler::OnUpdateComposition(nsWindow* aWindow)
+{
+  NS_ENSURE_TRUE_VOID(gIMM32Handler);
+ 
+  if (aWindow->PluginHasFocus()) {
+    return;
+  }
+
+  nsIMEContext IMEContext(aWindow->GetWindowHandle());
+  gIMM32Handler->SetIMERelatedWindowsPos(aWindow, IMEContext);
+}
+
+
  bool
 nsIMM32Handler::ProcessInputLangChangeMessage(nsWindow* aWindow,
                                               WPARAM wParam,
@@ -948,8 +963,6 @@ nsIMM32Handler::HandleStartComposition(nsWindow* aWindow,
   aWindow->InitEvent(event, &point);
   aWindow->DispatchWindowEvent(&event);
 
-  SetIMERelatedWindowsPos(aWindow, aIMEContext);
-
   mIsComposing = true;
   mComposingWindow = aWindow;
 
@@ -1610,7 +1623,9 @@ nsIMM32Handler::DispatchTextEvent(nsWindow* aWindow,
 
   aWindow->DispatchWindowEvent(&event);
 
-  SetIMERelatedWindowsPos(aWindow, aIMEContext);
+  
+  
+  
 }
 
 void
