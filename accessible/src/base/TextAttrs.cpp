@@ -68,8 +68,11 @@ TextAttrsMgr::GetAttributes(nsIPersistentProperties* aAttributes,
 
   
   
-  nsIContent *hyperTextElm = mHyperTextAcc->GetContent();
-  nsIFrame *rootFrame = mHyperTextAcc->GetFrame();
+  nsIContent* hyperTextElm = mHyperTextAcc->GetContent();
+  if (!hyperTextElm)
+    return; 
+
+  nsIFrame* rootFrame = mHyperTextAcc->GetFrame();
   NS_ASSERTION(rootFrame, "No frame for accessible!");
   if (!rootFrame)
     return;
