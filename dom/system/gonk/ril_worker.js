@@ -4312,6 +4312,46 @@ let RIL = {
 
 
 
+
+
+  _processCdmaSmsStatusReport: function _processCdmaSmsStatusReport(message) {
+    let options = this._pendingSentSmsMap[message.msgId];
+    if (!options) {
+      if (DEBUG) debug("no pending SMS-SUBMIT message");
+      return PDU_FCS_OK;
+    }
+
+    if (message.errorClass === 2) {
+      if (DEBUG) debug("SMS-STATUS-REPORT: delivery still pending, msgStatus: " + message.msgStatus);
+      return PDU_FCS_OK;
+    }
+
+    delete this._pendingSentSmsMap[message.msgId];
+
+    if (message.errorClass === -1 && message.body) {
+      
+      
+      return this._processSmsMultipart(message);
+    }
+
+    let deliveryStatus = (message.errorClass === 0)
+                       ? GECKO_SMS_DELIVERY_STATUS_SUCCESS
+                       : GECKO_SMS_DELIVERY_STATUS_ERROR;
+    this.sendChromeMessage({
+      rilMessageType: options.rilMessageType,
+      rilMessageToken: options.rilMessageToken,
+      deliveryStatus: deliveryStatus
+    });
+
+    return PDU_FCS_OK;
+  },
+
+  
+
+
+
+
+
   _processReceivedSmsSegment: function _processReceivedSmsSegment(original) {
     let hash = original.sender + ":" + original.header.segmentRef;
     let seq = original.header.segmentSeq;
@@ -6206,7 +6246,11 @@ RIL[UNSOLICITED_RESPONSE_CDMA_NEW_SMS] = function UNSOLICITED_RESPONSE_CDMA_NEW_
   let [message, result] = CdmaPDUHelper.processReceivedSms(length);
 
   if (message) {
-    result = this._processSmsMultipart(message);
+    if (message.subMsgType === PDU_CDMA_MSG_TYPE_DELIVER_ACK) {
+      result = this._processCdmaSmsStatusReport(message);
+    } else {
+      result = this._processSmsMultipart(message);
+    }
   }
 
   if (result == PDU_FCS_RESERVED || result == MOZ_FCS_WAIT_FOR_EXPLICIT_ACK) {
@@ -8667,6 +8711,9 @@ let CdmaPDUHelper = {
     
     this.encodeUserDataMsg(options);
 
+    
+    this.encodeUserDataReplyOption(options);
+
     return userDataBuffer;
   },
 
@@ -8795,6 +8842,21 @@ let CdmaPDUHelper = {
 
 
 
+
+  encodeUserDataReplyOption: function cdma_encodeUserDataReplyOption(options) {
+    if (options.requestStatusReport) {
+      BitBufferHelper.writeBits(PDU_CDMA_MSG_USERDATA_REPLY_OPTION, 8);
+      BitBufferHelper.writeBits(1, 8);
+      BitBufferHelper.writeBits(0, 1); 
+      BitBufferHelper.writeBits(1, 1); 
+      BitBufferHelper.flushWithPadding();
+    }
+  },
+
+  
+
+
+
   readMessage: function cdma_readMessage() {
     let message = {};
 
@@ -8842,34 +8904,51 @@ let CdmaPDUHelper = {
     this.decodeUserData(message);
 
     
+    let userData = message[PDU_CDMA_MSG_USERDATA_BODY];
+    [message.header, message.body, message.encoding] =
+      (userData)? [userData.header, userData.body, userData.encoding]
+                : [null, null, null];
+
+    
+    
+    
+    let msgStatus = message[PDU_CDMA_MSG_USER_DATA_MSG_STATUS];
+    [message.errorClass, message.msgStatus] =
+      (msgStatus)? [msgStatus.errorClass, msgStatus.msgStatus]
+                 : ((message.body)? [-1, -1]: [0, 0]);
+
+    
     let msg = {
-      SMSC:            "",
-      mti:             0,
-      udhi:            0,
-      sender:          message.sender,
-      recipient:       null,
-      pid:             PDU_PID_DEFAULT,
-      epid:            PDU_PID_DEFAULT,
-      dcs:             0,
-      mwi:             null, 
-      replace:         false,
-      header:          message[PDU_CDMA_MSG_USERDATA_BODY].header,
-      body:            message[PDU_CDMA_MSG_USERDATA_BODY].body,
-      data:            null,
-      timestamp:       message[PDU_CDMA_MSG_USERDATA_TIMESTAMP],
-      language:        message[PDU_CDMA_LANGUAGE_INDICATOR],
-      status:          null,
-      scts:            null,
-      dt:              null,
-      encoding:        message[PDU_CDMA_MSG_USERDATA_BODY].encoding,
-      messageClass:    GECKO_SMS_MESSAGE_CLASSES[PDU_DCS_MSG_CLASS_NORMAL],
-      messageType:     message.messageType,
-      serviceCategory: message.service
+      SMSC:             "",
+      mti:              0,
+      udhi:             0,
+      sender:           message.sender,
+      recipient:        null,
+      pid:              PDU_PID_DEFAULT,
+      epid:             PDU_PID_DEFAULT,
+      dcs:              0,
+      mwi:              null,
+      replace:          false,
+      header:           message.header,
+      body:             message.body,
+      data:             null,
+      timestamp:        message[PDU_CDMA_MSG_USERDATA_TIMESTAMP],
+      language:         message[PDU_CDMA_LANGUAGE_INDICATOR],
+      status:           null,
+      scts:             null,
+      dt:               null,
+      encoding:         message.encoding,
+      messageClass:     GECKO_SMS_MESSAGE_CLASSES[PDU_DCS_MSG_CLASS_NORMAL],
+      messageType:      message.messageType,
+      serviceCategory:  message.service,
+      subMsgType:       message[PDU_CDMA_MSG_USERDATA_MSG_ID].msgType,
+      msgId:            message[PDU_CDMA_MSG_USERDATA_MSG_ID].msgId,
+      errorClass:       message.errorClass,
+      msgStatus:        message.msgStatus
     };
 
     return msg;
   },
-
 
   
 
@@ -8963,14 +9042,17 @@ let CdmaPDUHelper = {
         case PDU_CDMA_MSG_USERDATA_TIMESTAMP:
           message[id] = this.decodeUserDataTimestamp();
           break;
-        case PDU_CDMA_REPLY_OPTION:
-          message[id] = this.decodeUserDataReplyAction();
+        case PDU_CDMA_MSG_USERDATA_REPLY_OPTION:
+          message[id] = this.decodeUserDataReplyOption();
           break;
         case PDU_CDMA_LANGUAGE_INDICATOR:
           message[id] = this.decodeLanguageIndicator();
           break;
         case PDU_CDMA_MSG_USERDATA_CALLBACK_NUMBER:
           message[id] = this.decodeUserDataCallbackNumber();
+          break;
+        case PDU_CDMA_MSG_USER_DATA_MSG_STATUS:
+          message[id] = this.decodeUserDataMsgStatus();
           break;
       }
 
@@ -9338,7 +9420,7 @@ let CdmaPDUHelper = {
 
 
 
-  decodeUserDataReplyAction: function cdma_decodeUserDataReplyAction() {
+  decodeUserDataReplyOption: function cdma_decodeUserDataReplyOption() {
     let replyAction = BitBufferHelper.readBits(4),
         result = { userAck: (replyAction & 0x8) ? true : false,
                    deliverAck: (replyAction & 0x4) ? true : false,
@@ -9382,6 +9464,20 @@ let CdmaPDUHelper = {
         result += String.fromCharCode(addrDigit);
       }
     }
+
+    return result;
+  },
+
+  
+
+
+
+
+  decodeUserDataMsgStatus: function cdma_decodeUserDataMsgStatus() {
+    let result = {
+      errorClass: BitBufferHelper.readBits(2),
+      msgStatus: BitBufferHelper.readBits(6)
+    };
 
     return result;
   },
