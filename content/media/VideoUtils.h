@@ -130,10 +130,6 @@ static const int64_t USECS_PER_MS = 1000;
 
 
 
-nsresult SecondsToUsecs(double aSeconds, int64_t& aOutUsecs);
-
-
-
 
 
 static const int32_t MAX_VIDEO_WIDTH = 4000;

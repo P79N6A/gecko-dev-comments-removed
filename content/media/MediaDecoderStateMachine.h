@@ -191,7 +191,7 @@ public:
   void Play();
 
   
-  void Seek(const SeekTarget& aTarget);
+  void Seek(double aTime);
 
   
   
@@ -725,7 +725,7 @@ private:
   
   
   
-  SeekTarget mSeekTarget;
+  int64_t mSeekTime;
 
   
   int64_t mFragmentEndTime;

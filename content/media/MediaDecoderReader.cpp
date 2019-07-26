@@ -180,7 +180,8 @@ nsresult MediaDecoderReader::DecodeToTarget(int64_t aTarget)
   
   if (HasVideo()) {
     bool eof = false;
-    VideoData* video = nullptr;
+    int64_t startTime = -1;
+    nsAutoPtr<VideoData> video;
     while (HasVideo() && !eof) {
       while (VideoQueue().GetSize() == 0 && !eof) {
         bool skip = false;
@@ -194,32 +195,22 @@ nsresult MediaDecoderReader::DecodeToTarget(int64_t aTarget)
       }
       if (eof) {
         
+        if (video) {
+          VideoQueue().PushFront(video.forget());
+        }
         VideoQueue().Finish();
         break;
       }
       video = VideoQueue().PeekFront();
-      MOZ_ASSERT(video);
       
       
-      if (video->GetEndTime() <= aTarget) {
-        DECODER_LOG(PR_LOG_DEBUG,
-                    ("MediaDecoderReader::DecodeToTarget(%lld) pop video frame [%lld, %lld]",
-                     aTarget, video->mTime, video->GetEndTime()));
-        delete VideoQueue().PopFront();
-      } else {
-        
-        if (aTarget >= video->mTime && video->GetEndTime() >= aTarget) {
-          
-          
-          
-          VideoData* temp = VideoData::ShallowCopyUpdateTimestamp(video, aTarget);
-          delete VideoQueue().PopFront();
-          video = temp;
-          VideoQueue().PushFront(video);
+      if (video && video->GetEndTime() <= aTarget) {
+        if (startTime == -1) {
+          startTime = video->mTime;
         }
-        DECODER_LOG(PR_LOG_DEBUG,
-                    ("MediaDecoderReader::DecodeToTarget(%lld) found target video frame [%lld,%lld]",
-                     aTarget, video->mTime, video->GetEndTime()));
+        VideoQueue().PopFront();
+      } else {
+        video.forget();
         break;
       }
     }
@@ -229,6 +220,7 @@ nsresult MediaDecoderReader::DecodeToTarget(int64_t aTarget)
         return NS_ERROR_FAILURE;
       }
     }
+    DECODER_LOG(PR_LOG_DEBUG, ("First video frame after decode is %lld", startTime));
   }
 
   if (HasAudio()) {
@@ -310,13 +302,8 @@ nsresult MediaDecoderReader::DecodeToTarget(int64_t aTarget)
     }
   }
 
-#ifdef PR_LOGGING
-  const VideoData* v = VideoQueue().PeekFront();
-  const AudioData* a = AudioQueue().PeekFront();
-  DECODER_LOG(PR_LOG_DEBUG,
-              ("MediaDecoderReader::DecodeToTarget(%lld) finished v=%lld a=%lld",
-              aTarget, v ? v->mTime : -1, a ? a->mTime : -1));
-#endif
+  DECODER_LOG(PR_LOG_DEBUG, ("MediaDecoderReader::DecodeToTarget(%lld) End", aTarget));
+
   return NS_OK;
 }
 
