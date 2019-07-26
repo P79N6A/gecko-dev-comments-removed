@@ -177,6 +177,18 @@ struct ThreadSafeContext : ContextFriendFields,
         return maybeJSContext();
     }
 
+    
+    
+    
+    
+    
+    
+    
+    bool shouldBeJSContext() const {
+        JS_ASSERT(isJSContext());
+        return isJSContext();
+    }
+
     bool isExclusiveContext() const {
         return contextKind_ == Context_JS || contextKind_ == Context_Exclusive;
     }

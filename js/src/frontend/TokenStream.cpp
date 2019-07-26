@@ -288,23 +288,13 @@ TokenStream::TokenStream(ExclusiveContext *cx, const CompileOptions &options,
 {
     
     
+    JS_ASSERT_IF(originPrincipals, originPrincipals->refcount);
+
+    
+    
     
     
     userbuf.setAddressOfNextRawChar(base);
-
-    JSContext *ncx = cx->asJSContext();
-    {
-        if (originPrincipals)
-            JS_HoldPrincipals(originPrincipals);
-
-        JSSourceHandler listener = ncx->runtime()->debugHooks.sourceHandler;
-        void *listenerData = ncx->runtime()->debugHooks.sourceHandlerData;
-
-        if (listener) {
-            void *listenerTSData;
-            listener(options.filename, options.lineno, base, length, &listenerTSData, listenerData);
-        }
-    }
 
     
 
@@ -367,8 +357,8 @@ TokenStream::~TokenStream()
 {
     if (sourceMap)
         js_free(sourceMap);
-    if (originPrincipals)
-        JS_DropPrincipals(cx->asJSContext()->runtime(), originPrincipals);
+
+    JS_ASSERT_IF(originPrincipals, originPrincipals->refcount);
 }
 
 
