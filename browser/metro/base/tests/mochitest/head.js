@@ -708,7 +708,7 @@ TouchDragAndHold.prototype = {
 
 
 
- 
+
 
 
 function emptyClipboard() {
