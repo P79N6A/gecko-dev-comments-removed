@@ -3,18 +3,21 @@
 
 
 
-#ifndef nsGenericHTMLElement_h
-#define nsGenericHTMLElement_h
+#ifndef mozilla_dom_HTMLOptGroupElement_h
+#define mozilla_dom_HTMLOptGroupElement_h
 
 #include "nsIDOMHTMLOptGroupElement.h"
 #include "nsGenericHTMLElement.h"
 
-class nsHTMLOptGroupElement : public nsGenericHTMLElement,
-                              public nsIDOMHTMLOptGroupElement
+namespace mozilla {
+namespace dom {
+
+class HTMLOptGroupElement : public nsGenericHTMLElement,
+                            public nsIDOMHTMLOptGroupElement
 {
 public:
-  nsHTMLOptGroupElement(already_AddRefed<nsINodeInfo> aNodeInfo);
-  virtual ~nsHTMLOptGroupElement();
+  HTMLOptGroupElement(already_AddRefed<nsINodeInfo> aNodeInfo);
+  virtual ~HTMLOptGroupElement();
 
   
   NS_DECL_ISUPPORTS_INHERITED
@@ -41,7 +44,7 @@ public:
 
   virtual nsEventStates IntrinsicState() const;
  
-  virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
+  virtual nsresult Clone(nsINodeInfo* aNodeInfo, nsINode** aResult) const;
 
   virtual nsXPCClassInfo* GetClassInfo();
 
@@ -61,5 +64,8 @@ protected:
 
   nsIContent* GetSelect();
 };
+
+} 
+} 
 
 #endif 
