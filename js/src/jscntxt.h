@@ -765,17 +765,11 @@ struct JSRuntime : js::RuntimeFriendFields
 
     bool                gcPoke;
 
-    enum HeapState {
-        Idle,       
-        Tracing,    
-        Collecting  
-    };
+    js::HeapState       heapState;
 
-    HeapState           heapState;
+    bool isHeapBusy() { return heapState != js::Idle; }
 
-    bool isHeapBusy() { return heapState != Idle; }
-
-    bool isHeapCollecting() { return heapState == Collecting; }
+    bool isHeapCollecting() { return heapState == js::Collecting; }
 
     
 

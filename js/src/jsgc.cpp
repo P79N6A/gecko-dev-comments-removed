@@ -3585,25 +3585,6 @@ EndSweepPhase(JSRuntime *rt, JSGCInvocationKind gckind, bool lastGC)
 }
 
 
-
-
-
-class AutoTraceSession {
-  public:
-    AutoTraceSession(JSRuntime *rt, JSRuntime::HeapState state = JSRuntime::Tracing);
-    ~AutoTraceSession();
-
-  protected:
-    JSRuntime *runtime;
-
-  private:
-    AutoTraceSession(const AutoTraceSession&) MOZ_DELETE;
-    void operator=(const AutoTraceSession&) MOZ_DELETE;
-
-    JSRuntime::HeapState prevState;
-};
-
-
 class AutoGCSession : AutoTraceSession {
   public:
     explicit AutoGCSession(JSRuntime *rt);
@@ -3611,13 +3592,13 @@ class AutoGCSession : AutoTraceSession {
 };
 
 
-AutoTraceSession::AutoTraceSession(JSRuntime *rt, JSRuntime::HeapState heapState)
+AutoTraceSession::AutoTraceSession(JSRuntime *rt, js::HeapState heapState)
   : runtime(rt),
     prevState(rt->heapState)
 {
     JS_ASSERT(!rt->noGCOrAllocationCheck);
     JS_ASSERT(!rt->isHeapBusy());
-    JS_ASSERT(heapState == JSRuntime::Collecting || heapState == JSRuntime::Tracing);
+    JS_ASSERT(heapState == Collecting || heapState == Tracing);
     rt->heapState = heapState;
 }
 
@@ -3628,7 +3609,7 @@ AutoTraceSession::~AutoTraceSession()
 }
 
 AutoGCSession::AutoGCSession(JSRuntime *rt)
-  : AutoTraceSession(rt, JSRuntime::Collecting)
+  : AutoTraceSession(rt, Collecting)
 {
     runtime->gcIsNeeded = false;
     runtime->gcInterFrameGC = true;
@@ -3658,21 +3639,18 @@ AutoGCSession::~AutoGCSession()
     runtime->resetGCMallocBytes();
 }
 
-class AutoCopyFreeListToArenas {
-    JSRuntime *rt;
+AutoCopyFreeListToArenas::AutoCopyFreeListToArenas(JSRuntime *rt)
+  : runtime(rt)
+{
+    for (CompartmentsIter c(rt); !c.done(); c.next())
+        c->arenas.copyFreeListsToArenas();
+}
 
-  public:
-    AutoCopyFreeListToArenas(JSRuntime *rt)
-      : rt(rt) {
-        for (CompartmentsIter c(rt); !c.done(); c.next())
-            c->arenas.copyFreeListsToArenas();
-    }
-
-    ~AutoCopyFreeListToArenas() {
-        for (CompartmentsIter c(rt); !c.done(); c.next())
-            c->arenas.clearFreeListsInArenas();
-    }
-};
+AutoCopyFreeListToArenas::~AutoCopyFreeListToArenas()
+{
+    for (CompartmentsIter c(runtime); !c.done(); c.next())
+        c->arenas.clearFreeListsInArenas();
+}
 
 static void
 IncrementalCollectSlice(JSRuntime *rt,
@@ -4261,30 +4239,23 @@ js::ShrinkGCBuffers(JSRuntime *rt)
         rt->gcHelperThread.startBackgroundShrink();
 }
 
-struct AutoFinishGC
+AutoFinishGC::AutoFinishGC(JSRuntime *rt)
 {
-    AutoFinishGC(JSRuntime *rt) {
-        if (IsIncrementalGCInProgress(rt)) {
-            PrepareForIncrementalGC(rt);
-            FinishIncrementalGC(rt, gcreason::API);
-        }
-
-        rt->gcHelperThread.waitBackgroundSweepEnd();
+    if (IsIncrementalGCInProgress(rt)) {
+        PrepareForIncrementalGC(rt);
+        FinishIncrementalGC(rt, gcreason::API);
     }
-};
 
-struct AutoPrepareForTracing
+    rt->gcHelperThread.waitBackgroundSweepEnd();
+}
+
+AutoPrepareForTracing::AutoPrepareForTracing(JSRuntime *rt)
+  : finish(rt),
+    session(rt),
+    copy(rt)
 {
-    AutoFinishGC finish;
-    AutoTraceSession session;
-    AutoCopyFreeListToArenas copy;
-
-    AutoPrepareForTracing(JSRuntime *rt)
-      : finish(rt),
-        session(rt),
-        copy(rt)
-    {}
-};
+    RecordNativeStackTopForGC(rt);
+}
 
 void
 js::TraceRuntime(JSTracer *trc)
@@ -4292,7 +4263,6 @@ js::TraceRuntime(JSTracer *trc)
     JS_ASSERT(!IS_GC_MARKING_TRACER(trc));
 
     AutoPrepareForTracing prep(trc->runtime);
-    RecordNativeStackTopForGC(trc->runtime);
     MarkRuntime(trc);
 }
 

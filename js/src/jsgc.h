@@ -37,6 +37,12 @@ class GCHelperThread;
 struct Shape;
 struct SliceBudget;
 
+enum HeapState {
+    Idle,       
+    Tracing,    
+    Collecting  
+};
+
 namespace ion {
     class IonCode;
 }
