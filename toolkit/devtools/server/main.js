@@ -12,34 +12,20 @@
 
 
 
-
-
-var Ci, Cc, CC, Cu, Cr, Components;
-if (this.require) {
-  ({ Ci, Cc, CC, Cu, Cr, components: Components }) = require("chrome");
-} else {
-  ({
-    interfaces: Ci,
-    classes: Cc,
-    Constructor: CC,
-    utils: Cu,
-    results: Cr
-  }) = Components;
-}
+var { Ci, Cc, CC, Cu, Cr } = require("chrome");
 
 
 
+this.Ci = Ci;
+this.Cc = Cc;
+this.CC = CC;
+this.Cu = Cu;
+this.Cr = Cr;
 
 
-
-
-var localRequire;
-if (this.require) {
-  localRequire = id => require(id);
-} else {
-  let { devtools } = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
-  localRequire = id => devtools.require(id);
-}
+Object.defineProperty(this, "Components", {
+  get: function () require("chrome").components
+});
 
 const DBG_STRINGS_URI = "chrome://global/locale/devtools/debugger.properties";
 
@@ -68,10 +54,12 @@ function loadSubScript(aURL)
   }
 }
 
-let loaderRequire = this.require;
-this.require = null;
-loadSubScript.call(this, "resource://gre/modules/commonjs/sdk/core/promise.js");
-this.require = loaderRequire;
+let {defer, resolve, reject, promised, all} = require("sdk/core/promise");
+this.defer = defer;
+this.resolve = resolve;
+this.reject = reject;
+this.promised = promised;
+this.all = all;
 
 Cu.import("resource://gre/modules/devtools/SourceMap.jsm");
 
@@ -82,12 +70,14 @@ function dumpn(str) {
     dump("DBG-SERVER: " + str + "\n");
   }
 }
+this.dumpn = dumpn;
 
 function dbg_assert(cond, e) {
   if (!cond) {
     return e;
   }
 }
+this.dbg_assert = dbg_assert;
 
 loadSubScript.call(this, "resource://gre/modules/devtools/server/transport.js");
 
@@ -324,7 +314,7 @@ var DebuggerServer = {
     }
 
     let moduleAPI = ModuleAPI();
-    let mod = localRequire(id);
+    let mod = require(id);
     mod.register(moduleAPI);
     gRegisteredModules[id] = { module: mod, api: moduleAPI };
   },
@@ -689,6 +679,8 @@ if (this.exports) {
   exports.DebuggerServer = DebuggerServer;
 }
 
+this.DebuggerServer = DebuggerServer;
+
 
 
 
@@ -706,6 +698,8 @@ function ActorPool(aConnection)
 if (this.exports) {
   exports.ActorPool = ActorPool;
 }
+
+this.ActorPool = ActorPool;
 
 ActorPool.prototype = {
   
