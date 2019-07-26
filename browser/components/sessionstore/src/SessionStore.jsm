@@ -125,6 +125,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "GlobalState",
   "resource:///modules/sessionstore/GlobalState.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Messenger",
   "resource:///modules/sessionstore/Messenger.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "PrivacyFilter",
+  "resource:///modules/sessionstore/PrivacyFilter.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "RecentWindow",
   "resource:///modules/RecentWindow.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "ScratchpadManager",
@@ -1117,13 +1119,20 @@ let SessionStoreInternal = {
 
       
       
-      if (!winData.isPrivate && (winData.tabs.length > 1 ||
-          (winData.tabs.length == 1 && this._shouldSaveTabState(winData.tabs[0])))) {
+      if (!winData.isPrivate) {
         
-        delete winData.busy;
+        PrivacyFilter.filterPrivateTabs(winData);
 
-        this._closedWindows.unshift(winData);
-        this._capClosedWindows();
+        let hasSingleTabToSave =
+          winData.tabs.length == 1 && this._shouldSaveTabState(winData.tabs[0]);
+
+        if (hasSingleTabToSave || winData.tabs.length > 1) {
+          
+          delete winData.busy;
+
+          this._closedWindows.unshift(winData);
+          this._capClosedWindows();
+        }
       }
 
       
@@ -1408,7 +1417,8 @@ let SessionStoreInternal = {
     let tabState = TabState.collectSync(aTab);
 
     
-    if (tabState.isPrivate || false) {
+    let isPrivateWindow = PrivateBrowsingUtils.isWindowPrivate(aWindow);
+    if (!isPrivateWindow && tabState.isPrivate) {
       return;
     }
 
