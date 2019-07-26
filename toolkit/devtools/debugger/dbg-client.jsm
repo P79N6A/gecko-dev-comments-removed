@@ -382,12 +382,15 @@ DebuggerClient.prototype = {
 
 
 
-  release: function DC_release(aActor) {
+
+
+
+  release: function DC_release(aActor, aOnResponse) {
     let packet = {
       to: aActor,
       type: "release",
     };
-    this.request(packet);
+    this.request(packet, aOnResponse);
   },
 
   
@@ -784,6 +787,23 @@ ThreadClient.prototype = {
       }
       doSetBreakpoint(this.resume.bind(this));
     }.bind(this));
+  },
+
+  
+
+
+
+
+
+
+
+  releaseMany: function TC_releaseMany(aActors, aOnResponse) {
+    let packet = {
+      to: this._actor,
+      type: "releaseMany",
+      actors: aActors
+    };
+    this._client.request(packet, aOnResponse);
   },
 
   

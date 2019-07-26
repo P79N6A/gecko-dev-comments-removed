@@ -31,7 +31,11 @@ function test_thread_lifetime()
     let grips = [];
 
     let handler = function(aResponse) {
-      grips.push(aResponse.threadGrip);
+      if (aResponse.error) {
+        do_check_eq(aResponse.error, '');
+        finishClient(gClient);
+      }
+      grips.push(aResponse.from);
       if (grips.length == 3) {
         test_release_many(grips);
       }
@@ -55,19 +59,19 @@ function test_release_many(grips)
 {
   
 
-  let release = [grips[0].actor, grips[1].actor];
+  let release = [grips[0], grips[1]];
 
-  gClient.request({ to: gThreadClient.actor, type: "releaseMany", "actors": release }, function(aResponse) {
+  gThreadClient.releaseMany(release, function(aResponse) {
     
     
-    gClient.request({ to: grips[0].actor, type: "bogusRequest" }, function(aResponse) {
+    gClient.request({ to: grips[0], type: "bogusRequest" }, function(aResponse) {
       do_check_eq(aResponse.error, "noSuchActor");
-      gClient.request({ to: grips[1].actor, type: "bogusRequest" }, function(aResponse) {
+      gClient.request({ to: grips[1], type: "bogusRequest" }, function(aResponse) {
         do_check_eq(aResponse.error, "noSuchActor");
 
         
         
-        gClient.request({ to: grips[2].actor, type: "bogusRequest" }, function(aResponse) {
+        gClient.request({ to: grips[2], type: "bogusRequest" }, function(aResponse) {
           do_check_eq(aResponse.error, "unrecognizedPacketType");
           gThreadClient.resume(function() {
             finishClient(gClient);

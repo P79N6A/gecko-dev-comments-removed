@@ -377,12 +377,19 @@ ThreadActor.prototype = {
                message: "no actors were specified" };
     }
 
+    let res;
     for each (let actorID in aRequest.actors) {
       let actor = this.threadLifetimePool.get(actorID);
-      this.threadLifetimePool.objectActors.delete(actor.obj);
-      this.threadLifetimePool.removeActor(actorID);
+      if (!actor) {
+        if (!res) {
+          res = { error: "notReleasable",
+                  message: "Only thread-lifetime actors can be released." };
+        }
+        continue;
+      }
+      actor.onRelease();
     }
-    return {};
+    return res ? res : {};
   },
 
   
@@ -877,8 +884,15 @@ ThreadActor.prototype = {
 
 
 
-  threadObjectGrip: function TA_threadObjectGrip(aValue) {
-    return this.objectGrip(aValue, this.threadLifetimePool);
+  threadObjectGrip: function TA_threadObjectGrip(aActor) {
+    if (!this.threadLifetimePool.objectActors) {
+      this.threadLifetimePool.objectActors = new WeakMap();
+    }
+    
+    
+    aActor.registeredPool.objectActors.delete(aActor.obj);
+    this.threadLifetimePool.addActor(aActor);
+    this.threadLifetimePool.objectActors.set(aActor.obj, aActor);
   },
 
   
@@ -1381,7 +1395,7 @@ update(ObjectActor.prototype, {
 
   release: function OA_release() {
     this.registeredPool.objectActors.delete(this.obj);
-    this.registeredPool.removeActor(this.actorID);
+    this.registeredPool.removeActor(this);
   },
 
   
@@ -1543,7 +1557,8 @@ update(ObjectActor.prototype, {
 
 
   onThreadGrip: PauseScopedActor.withPaused(function OA_onThreadGrip(aRequest) {
-    return { threadGrip: this.threadActor.threadObjectGrip(this.obj) };
+    this.threadActor.threadObjectGrip(this);
+    return {};
   }),
 
   
@@ -1555,7 +1570,7 @@ update(ObjectActor.prototype, {
   onRelease: PauseScopedActor.withPaused(function OA_onRelease(aRequest) {
     if (this.registeredPool !== this.threadActor.threadLifetimePool) {
       return { error: "notReleasable",
-               message: "only thread-lifetime actors can be released." };
+               message: "Only thread-lifetime actors can be released." };
     }
 
     this.release();
@@ -1797,7 +1812,7 @@ BreakpointActor.prototype = {
     let scriptBreakpoints = this.threadActor._breakpointStore[this.location.url];
     delete scriptBreakpoints[this.location.line];
     
-    this.threadActor._hooks.removeFromBreakpointPool(this.actorID);
+    this.threadActor._hooks.removeFromBreakpointPool(this);
     for (let script of this.scripts) {
       script.clearBreakpoint(this);
     }

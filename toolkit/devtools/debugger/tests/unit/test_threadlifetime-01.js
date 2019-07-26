@@ -28,23 +28,17 @@ function test_thread_lifetime()
   gThreadClient.addOneTimeListener("paused", function(aEvent, aPacket) {
     let pauseGrip = aPacket.frame.arguments[0];
 
+    
     gClient.request({ to: pauseGrip.actor, type: "threadGrip" }, function(aResponse) {
-      let threadGrip = aResponse.threadGrip;
-
-      do_check_neq(pauseGrip.actor, threadGrip.actor);
-
       
-
+      do_check_eq(aResponse.error, undefined);
       gThreadClient.addOneTimeListener("paused", function(aEvent, aPacket) {
         
         
-        gClient.request({ to: pauseGrip.actor, type: "bogusRequest" }, function(aResponse) {
-          do_check_eq(aResponse.error, "noSuchActor");
-          gClient.request({ to: threadGrip.actor, type: "bogusRequest"}, function(aResponse) {
-            do_check_eq(aResponse.error, "unrecognizedPacketType");
-            gThreadClient.resume(function() {
-              finishClient(gClient);
-            });
+        gClient.request({ to: pauseGrip.actor, type: "bogusRequest"}, function(aResponse) {
+          do_check_eq(aResponse.error, "unrecognizedPacketType");
+          gThreadClient.resume(function() {
+            finishClient(gClient);
           });
         });
       });
