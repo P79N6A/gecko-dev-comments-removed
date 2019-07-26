@@ -4064,6 +4064,7 @@ pref("dom.sms.enabled", false);
 
 
 pref("dom.sms.strict7BitEncoding", false);
+pref("dom.sms.requestStatusReport", true);
 
 
 pref("dom.mozContacts.enabled", false);
