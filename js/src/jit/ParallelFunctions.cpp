@@ -82,18 +82,18 @@ jit::ParallelWriteGuard(ForkJoinContext *cx, JSObject *object)
 
     JS_ASSERT(ForkJoinContext::current() == cx);
 
-    if (object->is<TypedDatum>()) {
-        TypedDatum &datum = object->as<TypedDatum>();
+    if (object->is<TypedObject>()) {
+        TypedObject &typedObj = object->as<TypedObject>();
 
         
         
         
         
-        if (IsInTargetRegion(cx, &datum))
+        if (IsInTargetRegion(cx, &typedObj))
             return true;
 
         
-        ArrayBufferObject &owner = datum.owner();
+        ArrayBufferObject &owner = typedObj.owner();
         return cx->isThreadLocal(&owner);
     }
 
@@ -110,10 +110,10 @@ jit::ParallelWriteGuard(ForkJoinContext *cx, JSObject *object)
 
 
 bool
-jit::IsInTargetRegion(ForkJoinContext *cx, TypedDatum *datum)
+jit::IsInTargetRegion(ForkJoinContext *cx, TypedObject *typedObj)
 {
-    JS_ASSERT(datum->is<TypedDatum>()); 
-    uint8_t *typedMem = datum->typedMem();
+    JS_ASSERT(typedObj->is<TypedObject>()); 
+    uint8_t *typedMem = typedObj->typedMem();
     return (typedMem >= cx->targetRegionStart &&
             typedMem <  cx->targetRegionEnd);
 }

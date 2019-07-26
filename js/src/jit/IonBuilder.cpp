@@ -6632,7 +6632,7 @@ IonBuilder::checkTypedObjectIndexInBounds(size_t elemSize,
         
         *canBeNeutered = true;
     } else {
-        MInstruction *lengthValue = MLoadFixedSlot::New(alloc(), obj, JS_DATUM_SLOT_LENGTH);
+        MInstruction *lengthValue = MLoadFixedSlot::New(alloc(), obj, JS_TYPEDOBJ_SLOT_LENGTH);
         current->add(lengthValue);
 
         MInstruction *length32 = MTruncateToInt32::New(alloc(), lengthValue);
@@ -9829,7 +9829,7 @@ IonBuilder::loadTypedObjectType(MDefinition *typedObj)
         return typedObj->toNewDerivedTypedObject()->type();
 
     MInstruction *load = MLoadFixedSlot::New(alloc(), typedObj,
-                                             JS_DATUM_SLOT_TYPE_DESCR);
+                                             JS_TYPEDOBJ_SLOT_TYPE_DESCR);
     current->add(load);
     return load;
 }

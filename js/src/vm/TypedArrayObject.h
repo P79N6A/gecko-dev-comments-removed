@@ -224,23 +224,23 @@ class ArrayBufferViewObject : public JSObject
 {
   protected:
     
-    static const size_t BYTEOFFSET_SLOT  = JS_DATUM_SLOT_BYTEOFFSET;
+    static const size_t BYTEOFFSET_SLOT  = JS_TYPEDOBJ_SLOT_BYTEOFFSET;
 
     
-    static const size_t BYTELENGTH_SLOT  = JS_DATUM_SLOT_BYTELENGTH;
+    static const size_t BYTELENGTH_SLOT  = JS_TYPEDOBJ_SLOT_BYTELENGTH;
 
     
-    static const size_t BUFFER_SLOT      = JS_DATUM_SLOT_OWNER;
+    static const size_t BUFFER_SLOT      = JS_TYPEDOBJ_SLOT_OWNER;
 
     
-    static const size_t NEXT_VIEW_SLOT   = JS_DATUM_SLOT_NEXT_VIEW;
+    static const size_t NEXT_VIEW_SLOT   = JS_TYPEDOBJ_SLOT_NEXT_VIEW;
 
     
 
 
 
 
-    static const size_t NEXT_BUFFER_SLOT = JS_DATUM_SLOT_NEXT_BUFFER;
+    static const size_t NEXT_BUFFER_SLOT = JS_TYPEDOBJ_SLOT_NEXT_BUFFER;
 
   public:
     JSObject *bufferObject() const {
@@ -279,10 +279,10 @@ class TypedArrayObject : public ArrayBufferViewObject
   protected:
     
     
-    static const size_t LENGTH_SLOT    = JS_DATUM_SLOT_LENGTH;
-    static const size_t TYPE_SLOT      = JS_DATUM_SLOT_TYPE_DESCR;
-    static const size_t RESERVED_SLOTS = JS_DATUM_SLOTS;
-    static const size_t DATA_SLOT      = JS_DATUM_SLOT_DATA;
+    static const size_t LENGTH_SLOT    = JS_TYPEDOBJ_SLOT_LENGTH;
+    static const size_t TYPE_SLOT      = JS_TYPEDOBJ_SLOT_TYPE_DESCR;
+    static const size_t RESERVED_SLOTS = JS_TYPEDOBJ_SLOTS;
+    static const size_t DATA_SLOT      = JS_TYPEDOBJ_SLOT_DATA;
 
   public:
     static const Class classes[ScalarTypeDescr::TYPE_MAX];
@@ -419,7 +419,7 @@ TypedArrayShift(ArrayBufferView::ViewType viewType)
 class DataViewObject : public ArrayBufferViewObject
 {
     static const size_t RESERVED_SLOTS = JS_DATAVIEW_SLOTS;
-    static const size_t DATA_SLOT      = JS_DATUM_SLOT_DATA;
+    static const size_t DATA_SLOT      = JS_TYPEDOBJ_SLOT_DATA;
 
   private:
     static const Class protoClass;
@@ -581,7 +581,7 @@ inline bool
 JSObject::is<js::ArrayBufferViewObject>() const
 {
     return is<js::DataViewObject>() || is<js::TypedArrayObject>() ||
-           IsTypedDatumClass(getClass());
+           IsTypedObjectClass(getClass());
 }
 
 #endif 

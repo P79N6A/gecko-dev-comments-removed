@@ -105,19 +105,19 @@
 
 
 
-#define JS_DATUM_SLOT_BYTEOFFSET       0
-#define JS_DATUM_SLOT_BYTELENGTH       1
-#define JS_DATUM_SLOT_OWNER            2
-#define JS_DATUM_SLOT_NEXT_VIEW        3
-#define JS_DATUM_SLOT_NEXT_BUFFER      4
+#define JS_TYPEDOBJ_SLOT_BYTEOFFSET       0
+#define JS_TYPEDOBJ_SLOT_BYTELENGTH       1
+#define JS_TYPEDOBJ_SLOT_OWNER            2
+#define JS_TYPEDOBJ_SLOT_NEXT_VIEW        3
+#define JS_TYPEDOBJ_SLOT_NEXT_BUFFER      4
 
 #define JS_DATAVIEW_SLOTS              5 // Number of slots for data views
 
-#define JS_DATUM_SLOT_LENGTH           5 // Length of array (see (*) below)
-#define JS_DATUM_SLOT_TYPE_DESCR       6 // For typed objects, type descr
+#define JS_TYPEDOBJ_SLOT_LENGTH           5 // Length of array (see (*) below)
+#define JS_TYPEDOBJ_SLOT_TYPE_DESCR       6 // For typed objects, type descr
 
-#define JS_DATUM_SLOT_DATA             7 // private slot, based on alloc kind
-#define JS_DATUM_SLOTS                 7 // Number of slots for typed objs
+#define JS_TYPEDOBJ_SLOT_DATA             7 // private slot, based on alloc kind
+#define JS_TYPEDOBJ_SLOTS                 7 // Number of slots for typed objs
 
 
 

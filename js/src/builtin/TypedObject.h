@@ -95,6 +95,16 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
 namespace js {
 
 
@@ -254,21 +264,21 @@ typedef Handle<StructTypeDescr*> HandleStructTypeDescr;
 
 
 
-class TypedDatum : public ArrayBufferViewObject
+class TypedObject : public ArrayBufferViewObject
 {
   private:
-    static const bool IsTypedDatumClass = true;
+    static const bool IsTypedObjectClass = true;
 
     template<class T>
     static bool obj_getArrayElement(JSContext *cx,
-                                    Handle<TypedDatum*> datum,
+                                    Handle<TypedObject*> typedObj,
                                     Handle<TypeDescr*> typeDescr,
                                     uint32_t index,
                                     MutableHandleValue vp);
 
     template<class T>
     static bool obj_setArrayElement(JSContext *cx,
-                                    Handle<TypedDatum*> datum,
+                                    Handle<TypedObject*> typedObj,
                                     Handle<TypeDescr*> typeDescr,
                                     uint32_t index,
                                     MutableHandleValue vp);
@@ -356,7 +366,7 @@ class TypedDatum : public ArrayBufferViewObject
     static size_t dataOffset();
 
     
-    static TypedDatum *createUnattachedWithClass(JSContext *cx,
+    static TypedObject *createUnattachedWithClass(JSContext *cx,
                                                  const Class *clasp,
                                                  HandleTypeDescr type,
                                                  int32_t length);
@@ -369,21 +379,21 @@ class TypedDatum : public ArrayBufferViewObject
     
     
     
-    static TypedDatum *createUnattached(JSContext *cx, HandleTypeDescr type,
+    static TypedObject *createUnattached(JSContext *cx, HandleTypeDescr type,
                                         int32_t length);
 
     
     
     
-    static TypedDatum *createDerived(JSContext *cx,
+    static TypedObject *createDerived(JSContext *cx,
                                      HandleSizedTypeDescr type,
-                                     Handle<TypedDatum*> typedContents,
+                                     Handle<TypedObject*> typedContents,
                                      size_t offset);
 
     
     
     
-    static TypedDatum *createZeroed(JSContext *cx,
+    static TypedObject *createZeroed(JSContext *cx,
                                     HandleTypeDescr typeObj,
                                     int32_t length);
 
@@ -399,21 +409,21 @@ class TypedDatum : public ArrayBufferViewObject
     void attach(ArrayBufferObject &buffer, int32_t offset);
 
     
-    void attach(TypedDatum &datum, int32_t offset);
+    void attach(TypedObject &typedObj, int32_t offset);
 
     
     void neuter(JSContext *cx);
 
     int32_t offset() const {
-        return getReservedSlot(JS_DATUM_SLOT_BYTEOFFSET).toInt32();
+        return getReservedSlot(JS_TYPEDOBJ_SLOT_BYTEOFFSET).toInt32();
     }
 
     ArrayBufferObject &owner() const {
-        return getReservedSlot(JS_DATUM_SLOT_OWNER).toObject().as<ArrayBufferObject>();
+        return getReservedSlot(JS_TYPEDOBJ_SLOT_OWNER).toObject().as<ArrayBufferObject>();
     }
 
     TypeDescr &typeDescr() const {
-        return getReservedSlot(JS_DATUM_SLOT_TYPE_DESCR).toObject().as<TypeDescr>();
+        return getReservedSlot(JS_TYPEDOBJ_SLOT_TYPE_DESCR).toObject().as<TypeDescr>();
     }
 
     TypeRepresentation *typeRepresentation() const {
@@ -425,7 +435,7 @@ class TypedDatum : public ArrayBufferViewObject
     }
 
     size_t length() const {
-        return getReservedSlot(JS_DATUM_SLOT_LENGTH).toInt32();
+        return getReservedSlot(JS_TYPEDOBJ_SLOT_LENGTH).toInt32();
     }
 
     size_t size() const {
@@ -456,9 +466,9 @@ class TypedDatum : public ArrayBufferViewObject
     }
 };
 
-typedef Handle<TypedDatum*> HandleTypedDatum;
+typedef Handle<TypedObject*> HandleTypedObject;
 
-class TransparentTypedObject : public TypedDatum
+class TransparentTypedObject : public TypedObject
 {
   public:
     static const Class class_;
@@ -466,7 +476,7 @@ class TransparentTypedObject : public TypedDatum
 
 typedef Handle<TransparentTypedObject*> HandleTransparentTypedObject;
 
-class OpaqueTypedObject : public TypedDatum
+class OpaqueTypedObject : public TypedObject
 {
   public:
     static const Class class_;
@@ -485,7 +495,7 @@ bool NewOpaqueTypedObject(JSContext *cx, unsigned argc, Value *vp);
 
 
 
-bool NewDerivedTypedDatum(JSContext *cx, unsigned argc, Value *vp);
+bool NewDerivedTypedObject(JSContext *cx, unsigned argc, Value *vp);
 
 
 
@@ -493,8 +503,8 @@ bool NewDerivedTypedDatum(JSContext *cx, unsigned argc, Value *vp);
 
 
 
-bool AttachDatum(ThreadSafeContext *cx, unsigned argc, Value *vp);
-extern const JSJitInfo AttachDatumJitInfo;
+bool AttachTypedObject(ThreadSafeContext *cx, unsigned argc, Value *vp);
+extern const JSJitInfo AttachTypedObjectJitInfo;
 
 
 
@@ -526,8 +536,8 @@ extern const JSJitInfo ObjectIsTransparentTypedObjectJitInfo;
 
 
 
-bool DatumIsAttached(ThreadSafeContext *cx, unsigned argc, Value *vp);
-extern const JSJitInfo DatumIsAttachedJitInfo;
+bool TypedObjectIsAttached(ThreadSafeContext *cx, unsigned argc, Value *vp);
+extern const JSJitInfo TypedObjectIsAttachedJitInfo;
 
 
 
@@ -665,7 +675,7 @@ JS_FOR_EACH_REFERENCE_TYPE_REPR(JS_STORE_REFERENCE_CLASS_DEFN)
 JS_FOR_EACH_REFERENCE_TYPE_REPR(JS_LOAD_REFERENCE_CLASS_DEFN)
 
 inline bool
-IsTypedDatumClass(const Class *class_)
+IsTypedObjectClass(const Class *class_)
 {
     return class_ == &TransparentTypedObject::class_ ||
            class_ == &OpaqueTypedObject::class_;
@@ -704,9 +714,9 @@ JSObject::is<js::TypeDescr>() const
 
 template <>
 inline bool
-JSObject::is<js::TypedDatum>() const
+JSObject::is<js::TypedObject>() const
 {
-    return IsTypedDatumClass(getClass());
+    return IsTypedObjectClass(getClass());
 }
 
 #endif
