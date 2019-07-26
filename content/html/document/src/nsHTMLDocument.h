@@ -313,6 +313,7 @@ protected:
                                 nsACString& aCharset);
   void TryParentCharset(nsIDocShell*  aDocShell,
                         int32_t& charsetSource, nsACString& aCharset);
+  void TryTLD(int32_t& aCharsetSource, nsACString& aCharset);
   static void TryFallback(int32_t& aCharsetSource, nsACString& aCharset);
 
   

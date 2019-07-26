@@ -17,10 +17,32 @@ public:
   
 
 
+  static bool sGuessFallbackFromTopLevelDomain;
+
+  
+
+
 
 
 
   static void FromLocale(nsACString& aFallback);
+
+  
+
+
+
+
+
+  static bool IsParticipatingTopLevelDomain(const nsACString& aTLD);
+
+  
+
+
+
+
+
+
+  static void FromTopLevelDomain(const nsACString& aTLD, nsACString& aFallback);
 
   
 

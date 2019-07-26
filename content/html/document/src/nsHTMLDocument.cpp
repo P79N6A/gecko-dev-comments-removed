@@ -436,6 +436,66 @@ nsHTMLDocument::TryParentCharset(nsIDocShell*  aDocShell,
 }
 
 void
+nsHTMLDocument::TryTLD(int32_t& aCharsetSource, nsACString& aCharset)
+{
+  if (aCharsetSource >= kCharsetFromTopLevelDomain) {
+    return;
+  }
+  if (!FallbackEncoding::sGuessFallbackFromTopLevelDomain) {
+    return;
+  }
+  if (!mDocumentURI) {
+    return;
+  }
+  nsAutoCString host;
+  mDocumentURI->GetAsciiHost(host);
+  if (host.IsEmpty()) {
+    return;
+  }
+  
+  
+  if (host.Last() == '.') {
+    host.SetLength(host.Length() - 1);
+    if (host.IsEmpty()) {
+      return;
+    }
+  }
+  
+  
+  if (host.Last() == '.') {
+    return;
+  }
+  int32_t index = host.RFindChar('.');
+  if (index == kNotFound) {
+    
+    return;
+  }
+  
+  
+  
+  nsAutoCString tld;
+  ToLowerCase(Substring(host, index + 1, host.Length() - (index + 1)), tld);
+  
+  if (!FallbackEncoding::IsParticipatingTopLevelDomain(tld)) {
+    return;
+  }
+  
+  bool seenNonDigit = false;
+  for (size_t i = 0; i < tld.Length(); ++i) {
+    char c = tld.CharAt(i);
+    if (c < '0' || c > '9') {
+      seenNonDigit = true;
+      break;
+    }
+  }
+  if (!seenNonDigit) {
+    return;
+  }
+  aCharsetSource = kCharsetFromTopLevelDomain;
+  FallbackEncoding::FromTopLevelDomain(tld, aCharset);
+}
+
+void
 nsHTMLDocument::TryFallback(int32_t& aCharsetSource, nsACString& aCharset)
 {
   if (kCharsetFromFallback <= aCharsetSource)
@@ -661,6 +721,7 @@ nsHTMLDocument::StartDocumentLoad(const char* aCommand,
       TryCacheCharset(cachingChan, charsetSource, charset);
     }
 
+    TryTLD(charsetSource, charset);
     TryFallback(charsetSource, charset);
 
     if (wyciwygChannel) {
