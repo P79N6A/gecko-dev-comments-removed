@@ -47,6 +47,12 @@ DisableFontActivation()
     }
 
     
+    if (!mainBundleID) {
+        NS_WARNING("missing bundle ID, packaging set up incorrectly");
+        return;
+    }
+
+    
     void (*CTFontManagerSetAutoActivationSettingPtr)
             (CFStringRef, AutoActivationSetting);
     CTFontManagerSetAutoActivationSettingPtr =
