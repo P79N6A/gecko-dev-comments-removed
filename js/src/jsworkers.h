@@ -348,6 +348,13 @@ struct ParseTask
     PersistentRootedObject exclusiveContextGlobal;
 
     
+    
+    
+    
+    
+    PersistentRootedObject optionsElement;
+
+    
     JS::OffThreadCompileCallback callback;
     void *callbackData;
 
@@ -367,6 +374,7 @@ struct ParseTask
     bool init(JSContext *cx, const ReadOnlyCompileOptions &options);
 
     void activate(JSRuntime *rt);
+    void finish();
 
     ~ParseTask();
 };
