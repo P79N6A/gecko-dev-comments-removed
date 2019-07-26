@@ -110,6 +110,14 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         call(rax);
     }
 
+    void call(const CallSiteDesc &desc, AsmJSImmPtr target) {
+        call(target);
+        appendCallSite(desc);
+    }
+    void callExit(AsmJSImmPtr target, uint32_t stackArgBytes) {
+        call(CallSiteDesc::Exit(), target);
+    }
+
     
     
     Operand ToUpper32(Operand base) {

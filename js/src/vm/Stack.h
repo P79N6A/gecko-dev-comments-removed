@@ -12,6 +12,7 @@
 #include "jsfun.h"
 #include "jsscript.h"
 
+#include "jit/AsmJSLink.h"
 #include "jit/JitFrameIterator.h"
 #ifdef CHECK_OSIPOINT_REGISTERS
 #include "jit/Registers.h" 
@@ -1502,18 +1503,16 @@ class AsmJSActivation : public Activation
     void *errorRejoinSP_;
     SPSProfiler *profiler_;
     void *resumePC_;
+    uint8_t *exitSP_;
 
-    
-    
-    unsigned exportIndex_;
+    static const intptr_t InterruptedSP = -1;
 
   public:
-    AsmJSActivation(JSContext *cx, AsmJSModule &module, unsigned exportIndex);
+    AsmJSActivation(JSContext *cx, AsmJSModule &module);
     ~AsmJSActivation();
 
     JSContext *cx() { return cx_; }
     AsmJSModule &module() const { return module_; }
-    unsigned exportIndex() const { return exportIndex_; }
     AsmJSActivation *prevAsmJS() const { return prevAsmJS_; }
 
     
@@ -1522,9 +1521,16 @@ class AsmJSActivation : public Activation
 
     
     static unsigned offsetOfErrorRejoinSP() { return offsetof(AsmJSActivation, errorRejoinSP_); }
+    static unsigned offsetOfExitSP() { return offsetof(AsmJSActivation, exitSP_); }
 
     
-    void setResumePC(void *pc) { resumePC_ = pc; }
+    void setInterrupted(void *pc) { resumePC_ = pc; exitSP_ = (uint8_t*)InterruptedSP; }
+    bool isInterruptedSP() const { return exitSP_ == (uint8_t*)InterruptedSP; }
+
+    
+    
+    
+    uint8_t *exitSP() const { JS_ASSERT(!isInterruptedSP()); return exitSP_; }
 };
 
 
@@ -1575,6 +1581,7 @@ class FrameIter
 #ifdef JS_ION
         jit::JitFrameIterator jitFrames_;
         unsigned ionInlineFrameNo_;
+        AsmJSFrameIterator asmJSFrames_;
 #endif
 
         Data(JSContext *cx, SavedOption savedOption, ContextOption contextOption,
@@ -1701,6 +1708,7 @@ class FrameIter
 #ifdef JS_ION
     void nextJitFrame();
     void popJitFrame();
+    void popAsmJSFrame();
 #endif
     void settleOnActivation();
 

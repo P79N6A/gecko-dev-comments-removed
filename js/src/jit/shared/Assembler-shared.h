@@ -668,6 +668,77 @@ class CodeLocationLabel
 
 
 
+
+
+
+
+
+
+
+
+
+class CallSiteDesc
+{
+    uint32_t line_;
+    uint32_t column_;
+    uint32_t functionNameIndex_;
+
+    static const uint32_t sEntryTrampoline = UINT32_MAX;
+    static const uint32_t sExit = UINT32_MAX - 1;
+
+  public:
+    static const uint32_t FUNCTION_NAME_INDEX_MAX = UINT32_MAX - 2;
+
+    CallSiteDesc() {}
+
+    CallSiteDesc(uint32_t line, uint32_t column, uint32_t functionNameIndex)
+     : line_(line), column_(column), functionNameIndex_(functionNameIndex)
+    {}
+
+    static CallSiteDesc Entry() { return CallSiteDesc(0, 0, sEntryTrampoline); }
+    static CallSiteDesc Exit() { return CallSiteDesc(0, 0, sExit); }
+
+    bool isEntry() const { return functionNameIndex_ == sEntryTrampoline; }
+    bool isExit() const { return functionNameIndex_ == sExit; }
+    bool isNormal() const { return !(isEntry() || isExit()); }
+
+    uint32_t line() const { JS_ASSERT(isNormal()); return line_; }
+    uint32_t column() const { JS_ASSERT(isNormal()); return column_; }
+    uint32_t functionNameIndex() const { JS_ASSERT(isNormal()); return functionNameIndex_; }
+};
+
+
+
+struct CallSite : public CallSiteDesc
+{
+    uint32_t returnAddressOffset_;
+    uint32_t stackDepth_;
+
+  public:
+    CallSite() {}
+
+    CallSite(CallSiteDesc desc, uint32_t returnAddressOffset, uint32_t stackDepth)
+      : CallSiteDesc(desc),
+        returnAddressOffset_(returnAddressOffset),
+        stackDepth_(stackDepth)
+    { }
+
+    void setReturnAddressOffset(uint32_t r) { returnAddressOffset_ = r; }
+    uint32_t returnAddressOffset() const { return returnAddressOffset_; }
+
+    
+    
+    
+    uint32_t stackDepth() const { JS_ASSERT(!isEntry()); return stackDepth_; }
+};
+
+typedef Vector<CallSite, 0, SystemAllocPolicy> CallSiteVector;
+
+
+
+
+
+
 class AsmJSHeapAccess
 {
     uint32_t offset_;
@@ -814,11 +885,15 @@ struct AsmJSAbsoluteLink
 
 class AssemblerShared
 {
+    Vector<CallSite, 0, SystemAllocPolicy> callsites_;
     Vector<AsmJSHeapAccess, 0, SystemAllocPolicy> asmJSHeapAccesses_;
     Vector<AsmJSGlobalAccess, 0, SystemAllocPolicy> asmJSGlobalAccesses_;
     Vector<AsmJSAbsoluteLink, 0, SystemAllocPolicy> asmJSAbsoluteLinks_;
 
   public:
+    bool append(CallSite callsite) { return callsites_.append(callsite); }
+    CallSiteVector &&extractCallSites() { return Move(callsites_); }
+
     bool append(AsmJSHeapAccess access) { return asmJSHeapAccesses_.append(access); }
     AsmJSHeapAccessVector &&extractAsmJSHeapAccesses() { return Move(asmJSHeapAccesses_); }
 
