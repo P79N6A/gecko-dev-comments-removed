@@ -12,13 +12,21 @@
 using namespace std;
 
 #include "mozilla/Scoped.h"
+#include "mozilla/SyncRunnable.h"
 #include <MediaConduitInterface.h>
 #include "nsIEventTarget.h"
 #include "FakeMediaStreamsImpl.h"
+#include "GmpVideoCodec.h"
+#include "nsThreadUtils.h"
+#include "runnable_utils.h"
 
 #define GTEST_HAS_RTTI 0
 #include "gtest/gtest.h"
 #include "gtest_utils.h"
+
+nsCOMPtr<nsIThread> gMainThread;
+nsCOMPtr<nsIThread> gGtestThread;
+bool gTestsComplete = false;
 
 #include "mtransport_test_utils.h"
 MtransportTestUtils *test_utils;
@@ -54,12 +62,12 @@ VideoTestStats vidStatsGlobal={0,0,0};
 
 
 
-
 class VideoSendAndReceive
 {
 public:
   VideoSendAndReceive():width(640),
-                        height(480)
+                        height(480),
+			rate(30)
   {
   }
 
@@ -67,36 +75,46 @@ public:
   {
   }
 
+  void SetDimensions(int w, int h)
+  {
+    width = w;
+    height = h;
+  }
+  void SetRate(int r) {
+    rate = r;
+  }
   void Init(mozilla::RefPtr<mozilla::VideoSessionConduit> aSession)
   {
         mSession = aSession;
+        mLen = ((width * height) * 3 / 2);
+        mFrame = (uint8_t*) PR_MALLOC(mLen);
+        memset(mFrame, COLOR, mLen);
+        numFrames = 121;
   }
+
   void GenerateAndReadSamples()
   {
-
-    int len = ((width * height) * 3 / 2);
-    uint8_t* frame = (uint8_t*) PR_MALLOC(len);
-    int numFrames = 121;
-    memset(frame, COLOR, len);
-
     do
     {
-      mSession->SendVideoFrame((unsigned char*)frame,
-                                len,
+      mSession->SendVideoFrame((unsigned char*)mFrame,
+                                mLen,
                                 width,
                                 height,
                                 mozilla::kVideoI420,
                                 0);
-      PR_Sleep(PR_MillisecondsToInterval(33));
+      PR_Sleep(PR_MillisecondsToInterval(1000/rate));
       vidStatsGlobal.numRawFramesInserted++;
       numFrames--;
     } while(numFrames >= 0);
-    PR_Free(frame);
   }
 
 private:
 mozilla::RefPtr<mozilla::VideoSessionConduit> mSession;
+mozilla::ScopedDeletePtr<uint8_t> mFrame;
+int mLen;
 int width, height;
+int rate;
+int numFrames;
 };
 
 
@@ -267,17 +285,17 @@ void AudioSendAndReceive::GenerateMusic(short* buf, int len)
 
 void AudioSendAndReceive::GenerateAndReadSamples()
 {
-   int16_t audioInput[PLAYOUT_SAMPLE_LENGTH];
-   int16_t audioOutput[PLAYOUT_SAMPLE_LENGTH];
+   mozilla::ScopedDeletePtr<int16_t> audioInput(new int16_t [PLAYOUT_SAMPLE_LENGTH]);
+   mozilla::ScopedDeletePtr<int16_t> audioOutput(new int16_t [PLAYOUT_SAMPLE_LENGTH]);
    short* inbuf;
    int sampleLengthDecoded = 0;
    unsigned int SAMPLES = (PLAYOUT_SAMPLE_FREQUENCY * 10); 
    int CHANNELS = 1; 
-   int sampleLengthInBytes = sizeof(audioInput);
+   int sampleLengthInBytes = sizeof(int16_t) * PLAYOUT_SAMPLE_LENGTH;
    
    inbuf = (short *)moz_xmalloc(sizeof(short)*SAMPLES*CHANNELS);
-   memset(audioInput,0,sampleLengthInBytes);
-   memset(audioOutput,0,sampleLengthInBytes);
+   memset(audioInput.get(),0,sampleLengthInBytes);
+   memset(audioOutput.get(),0,sampleLengthInBytes);
    MOZ_ASSERT(SAMPLES <= PLAYOUT_SAMPLE_LENGTH);
 
    FILE* inFile = fopen( iFile.c_str(), "wb+");
@@ -303,7 +321,7 @@ void AudioSendAndReceive::GenerateAndReadSamples()
    unsigned int numSamplesReadFromInput = 0;
    do
    {
-    if(!memcpy(audioInput, inbuf, sampleLengthInBytes))
+    if(!memcpy(audioInput.get(), inbuf, sampleLengthInBytes))
     {
       return;
     }
@@ -311,19 +329,19 @@ void AudioSendAndReceive::GenerateAndReadSamples()
     numSamplesReadFromInput += PLAYOUT_SAMPLE_LENGTH;
     inbuf += PLAYOUT_SAMPLE_LENGTH;
 
-    mSession->SendAudioFrame(audioInput,
+    mSession->SendAudioFrame(audioInput.get(),
                              PLAYOUT_SAMPLE_LENGTH,
                              PLAYOUT_SAMPLE_FREQUENCY,10);
 
     PR_Sleep(PR_MillisecondsToInterval(10));
-    mOtherSession->GetAudioFrame(audioOutput, PLAYOUT_SAMPLE_FREQUENCY,
+    mOtherSession->GetAudioFrame(audioOutput.get(), PLAYOUT_SAMPLE_FREQUENCY,
                                  10, sampleLengthDecoded);
     if(sampleLengthDecoded == 0)
     {
       cerr << " Zero length Sample " << endl;
     }
 
-    int wrote_  = fwrite (audioOutput, 1 , sampleLengthInBytes, outFile);
+    int wrote_  = fwrite (audioOutput.get(), 1 , sampleLengthInBytes, outFile);
     if(wrote_ != sampleLengthInBytes)
     {
       cerr << "Couldn't Write " << sampleLengthInBytes << "bytes" << endl;
@@ -402,16 +420,16 @@ public:
 
 
 
-class FakeMediaTransport : public mozilla::TransportInterface
+class WebrtcMediaTransport : public mozilla::TransportInterface
 {
 public:
-  FakeMediaTransport():numPkts(0),
+  WebrtcMediaTransport():numPkts(0),
                        mAudio(false),
                        mVideo(false)
   {
   }
 
-  ~FakeMediaTransport()
+  ~WebrtcMediaTransport()
   {
   }
 
@@ -475,6 +493,7 @@ namespace {
 class TransportConduitTest : public ::testing::Test
 {
  public:
+
   TransportConduitTest()
   {
     
@@ -484,6 +503,21 @@ class TransportConduitTest : public ::testing::Test
 
   ~TransportConduitTest()
   {
+    mozilla::SyncRunnable::DispatchToThread(gMainThread,
+                                            mozilla::WrapRunnable(
+                                                this,
+                                                &TransportConduitTest::SelfDestruct));
+  }
+
+  void SelfDestruct() {
+    mAudioSession = nullptr;
+    mAudioSession2 = nullptr;
+    mAudioTransport = nullptr;
+
+    mVideoSession = nullptr;
+    mVideoSession2 = nullptr;
+    mVideoRenderer = nullptr;
+    mVideoTransport = nullptr;
   }
 
   
@@ -491,15 +525,23 @@ class TransportConduitTest : public ::testing::Test
   {
     
     int err=0;
-    mAudioSession = mozilla::AudioSessionConduit::Create(nullptr);
+    mozilla::SyncRunnable::DispatchToThread(gMainThread,
+                                            WrapRunnableNMRet(
+                                                &mozilla::AudioSessionConduit::Create,
+                                                nullptr,
+                                                &mAudioSession));
     if( !mAudioSession )
       ASSERT_NE(mAudioSession, (void*)nullptr);
 
-    mAudioSession2 = mozilla::AudioSessionConduit::Create(nullptr);
+    mozilla::SyncRunnable::DispatchToThread(gMainThread,
+                                            WrapRunnableNMRet(
+                                                &mozilla::AudioSessionConduit::Create,
+                                                nullptr,
+                                                &mAudioSession2));
     if( !mAudioSession2 )
       ASSERT_NE(mAudioSession2, (void*)nullptr);
 
-    FakeMediaTransport* xport = new FakeMediaTransport();
+    WebrtcMediaTransport* xport = new WebrtcMediaTransport();
     ASSERT_NE(xport, (void*)nullptr);
     xport->SetAudioSession(mAudioSession, mAudioSession2);
     mAudioTransport = xport;
@@ -545,23 +587,35 @@ class TransportConduitTest : public ::testing::Test
   }
 
   
-  void TestDummyVideoAndTransport()
+  void TestDummyVideoAndTransport(bool send_vp8 = true, const char *source_file = nullptr)
   {
     int err = 0;
     
-    mVideoSession = mozilla::VideoSessionConduit::Create(nullptr);
+    mozilla::SyncRunnable::DispatchToThread(gMainThread,
+                                            WrapRunnableNMRet(
+                                                &mozilla::VideoSessionConduit::Create,
+                                                nullptr,
+                                                &mVideoSession));
     if( !mVideoSession )
       ASSERT_NE(mVideoSession, (void*)nullptr);
 
    
-    mVideoSession2 = mozilla::VideoSessionConduit::Create(nullptr);
+    mozilla::SyncRunnable::DispatchToThread(gMainThread,
+                                            WrapRunnableNMRet(
+                                                &mozilla::VideoSessionConduit::Create,
+                                                nullptr,
+                                                &mVideoSession2));
     if( !mVideoSession2 )
       ASSERT_NE(mVideoSession2,(void*)nullptr);
+
+    if (!send_vp8) {
+      SetGmpCodecs();
+    }
 
     mVideoRenderer = new DummyVideoTarget();
     ASSERT_NE(mVideoRenderer, (void*)nullptr);
 
-    FakeMediaTransport* xport = new FakeMediaTransport();
+    WebrtcMediaTransport* xport = new WebrtcMediaTransport();
     ASSERT_NE(xport, (void*)nullptr);
     xport->SetVideoSession(mVideoSession,mVideoSession2);
     mVideoTransport = xport;
@@ -583,9 +637,15 @@ class TransportConduitTest : public ::testing::Test
     rcvCodecList.push_back(&cinst1);
     rcvCodecList.push_back(&cinst2);
 
-    err = mVideoSession->ConfigureSendMediaCodec(&cinst1);
+    err = mVideoSession->ConfigureSendMediaCodec(
+        send_vp8 ? &cinst1 : &cinst2);
+
     ASSERT_EQ(mozilla::kMediaConduitNoError, err);
 
+    err = mVideoSession2->ConfigureSendMediaCodec(
+        send_vp8 ? &cinst1 : &cinst2);
+
+    ASSERT_EQ(mozilla::kMediaConduitNoError, err);
     err = mVideoSession2->ConfigureRecvMediaCodecs(rcvCodecList);
     ASSERT_EQ(mozilla::kMediaConduitNoError, err);
 
@@ -597,6 +657,7 @@ class TransportConduitTest : public ::testing::Test
     videoTester.Init(mVideoSession);
     videoTester.GenerateAndReadSamples();
     PR_Sleep(PR_SecondsToInterval(2));
+
     cerr << "   **************************************************" << endl;
     cerr << "    Done With The Testing  " << endl;
     cerr << "    VIDEO TEST STATS  "  << endl;
@@ -611,18 +672,32 @@ class TransportConduitTest : public ::testing::Test
 
     cerr << "   **************************************************" << endl;
     ASSERT_EQ(0, vidStatsGlobal.numFramesRenderedWrongly);
-    ASSERT_EQ(vidStatsGlobal.numRawFramesInserted,
-        vidStatsGlobal.numFramesRenderedSuccessfully);
+    if (send_vp8) {
+	ASSERT_EQ(vidStatsGlobal.numRawFramesInserted,
+		  vidStatsGlobal.numFramesRenderedSuccessfully);
+    }
+    else {
+	
+	
+	ASSERT_GE(vidStatsGlobal.numRawFramesInserted,
+		  vidStatsGlobal.numFramesRenderedSuccessfully);
+	ASSERT_LE(vidStatsGlobal.numRawFramesInserted,
+		  vidStatsGlobal.numFramesRenderedSuccessfully + 2);
+    }
   }
 
  void TestVideoConduitCodecAPI()
   {
     int err = 0;
-    mozilla::RefPtr<mozilla::VideoSessionConduit> mVideoSession;
+    mozilla::RefPtr<mozilla::VideoSessionConduit> videoSession;
     
-    mVideoSession = mozilla::VideoSessionConduit::Create(nullptr);
-    if( !mVideoSession )
-      ASSERT_NE(mVideoSession, (void*)nullptr);
+    mozilla::SyncRunnable::DispatchToThread(gMainThread,
+                                            WrapRunnableNMRet(
+                                                &mozilla::VideoSessionConduit::Create,
+                                                nullptr,
+                                                &videoSession));
+    if( !videoSession )
+      ASSERT_NE(videoSession, (void*)nullptr);
 
     
     cerr << "   *************************************************" << endl;
@@ -640,7 +715,7 @@ class TransportConduitTest : public ::testing::Test
     mozilla::VideoCodecConfig cinst2(120, "VP8", 0);
     rcvCodecList.push_back(&cinst1);
     rcvCodecList.push_back(&cinst2);
-    err = mVideoSession->ConfigureRecvMediaCodecs(rcvCodecList);
+    err = videoSession->ConfigureRecvMediaCodecs(rcvCodecList);
     EXPECT_NE(err,mozilla::kMediaConduitNoError);
     rcvCodecList.pop_back();
     rcvCodecList.pop_back();
@@ -659,7 +734,7 @@ class TransportConduitTest : public ::testing::Test
     rcvCodecList.push_back(&cinst3);
     rcvCodecList.push_back(&cinst4);
 
-    err = mVideoSession->ConfigureRecvMediaCodecs(rcvCodecList);
+    err = videoSession->ConfigureRecvMediaCodecs(rcvCodecList);
     EXPECT_TRUE(err != mozilla::kMediaConduitNoError);
     rcvCodecList.pop_back();
     rcvCodecList.pop_back();
@@ -672,7 +747,7 @@ class TransportConduitTest : public ::testing::Test
 
     rcvCodecList.push_back(0);
 
-    err = mVideoSession->ConfigureRecvMediaCodecs(rcvCodecList);
+    err = videoSession->ConfigureRecvMediaCodecs(rcvCodecList);
     EXPECT_TRUE(err != mozilla::kMediaConduitNoError);
     rcvCodecList.pop_back();
 
@@ -685,9 +760,9 @@ class TransportConduitTest : public ::testing::Test
     cerr << "   *************************************************" << endl;
 
 
-    err = mVideoSession->ConfigureSendMediaCodec(&cinst1);
+    err = videoSession->ConfigureSendMediaCodec(&cinst1);
     EXPECT_EQ(mozilla::kMediaConduitNoError, err);
-    err = mVideoSession->ConfigureSendMediaCodec(&cinst1);
+    err = videoSession->ConfigureSendMediaCodec(&cinst1);
     EXPECT_EQ(mozilla::kMediaConduitCodecInUse, err);
 
 
@@ -696,16 +771,20 @@ class TransportConduitTest : public ::testing::Test
     cerr << "   *************************************************" << endl;
     cerr << "   Setting payload with name: I4201234tttttthhhyyyy89087987y76t567r7756765rr6u6676" << endl;
 
-    err = mVideoSession->ConfigureSendMediaCodec(&cinst3);
+    err = videoSession->ConfigureSendMediaCodec(&cinst3);
     EXPECT_TRUE(err != mozilla::kMediaConduitNoError);
 
     cerr << "   *************************************************" << endl;
     cerr << "    3. Null Codec Parameter  " << endl;
     cerr << "   *************************************************" << endl;
 
-    err = mVideoSession->ConfigureSendMediaCodec(nullptr);
+    err = videoSession->ConfigureSendMediaCodec(nullptr);
     EXPECT_TRUE(err != mozilla::kMediaConduitNoError);
 
+    mozilla::SyncRunnable::DispatchToThread(gMainThread,
+                                            WrapRunnable(
+                                                videoSession.forget().drop(),
+                                                &mozilla::VideoSessionConduit::Release));
   }
 
   void DumpMaxFs(int orig_width, int orig_height, int max_fs,
@@ -724,7 +803,11 @@ class TransportConduitTest : public ::testing::Test
     int err = 0;
 
     
-    mVideoSession = mozilla::VideoSessionConduit::Create(nullptr);
+    mozilla::SyncRunnable::DispatchToThread(gMainThread,
+                                            WrapRunnableNMRet(
+                                                &mozilla::VideoSessionConduit::Create,
+                                                nullptr,
+                                                &mVideoSession));
     if( !mVideoSession )
       ASSERT_NE(mVideoSession, (void*)nullptr);
 
@@ -861,7 +944,15 @@ class TransportConduitTest : public ::testing::Test
     cerr << endl;
  }
 
-private:
+  void SetGmpCodecs() {
+    mExternalEncoder = mozilla::GmpVideoCodec::CreateEncoder();
+    mExternalDecoder = mozilla::GmpVideoCodec::CreateDecoder();
+    mozilla::VideoCodecConfig config(124, "H264", 0);
+    mVideoSession->SetExternalSendCodec(&config, mExternalEncoder);
+    mVideoSession2->SetExternalRecvCodec(&config, mExternalDecoder);
+  }
+
+ private:
   
   mozilla::RefPtr<mozilla::AudioSessionConduit> mAudioSession;
   mozilla::RefPtr<mozilla::AudioSessionConduit> mAudioSession2;
@@ -874,6 +965,9 @@ private:
   mozilla::RefPtr<mozilla::VideoRenderer> mVideoRenderer;
   mozilla::RefPtr<mozilla::TransportInterface> mVideoTransport;
   VideoSendAndReceive videoTester;
+
+  mozilla::VideoEncoder* mExternalEncoder;
+  mozilla::VideoDecoder* mExternalDecoder;
 
   std::string fileToPlay;
   std::string fileToRecord;
@@ -892,6 +986,10 @@ TEST_F(TransportConduitTest, TestDummyVideoWithTransport) {
   TestDummyVideoAndTransport();
  }
 
+TEST_F(TransportConduitTest, TestVideoConduitExternalCodec) {
+  TestDummyVideoAndTransport(false);
+}
+
 TEST_F(TransportConduitTest, TestVideoConduitCodecAPI) {
   TestVideoConduitCodecAPI();
  }
@@ -902,16 +1000,64 @@ TEST_F(TransportConduitTest, TestVideoConduitMaxFs) {
 
 }  
 
+static int test_result;
+bool test_finished = false;
+
+
+
+
+static void tests_complete() {
+  gTestsComplete = true;
+}
+
+
+
+static int gtest_main(int argc, char **argv) {
+  MOZ_ASSERT(!NS_IsMainThread());
+
+  ::testing::InitGoogleTest(&argc, argv);
+
+  int result = RUN_ALL_TESTS();
+
+  
+  
+  
+  gMainThread->Dispatch(mozilla::WrapRunnableNM(tests_complete), NS_DISPATCH_SYNC);
+
+  return result;
+}
+
 int main(int argc, char **argv)
 {
   
   CHECK_ENVIRONMENT_FLAG("MOZ_WEBRTC_MEDIACONDUIT_TESTS")
 
   test_utils = new MtransportTestUtils();
-  ::testing::InitGoogleTest(&argc, argv);
-  int rv = RUN_ALL_TESTS();
+
+  
+  nsIThread *thread;
+  NS_GetMainThread(&thread);
+  gMainThread = thread;
+
+  
+  
+  NS_NewNamedThread("gtest_thread", &thread);
+  gGtestThread = thread;
+
+  int result;
+  gGtestThread->Dispatch(
+    mozilla::WrapRunnableNMRet(gtest_main, argc, argv, &result), NS_DISPATCH_NORMAL);
+
+  
+  
+  
+  while (!gTestsComplete && NS_ProcessNextEvent());
+
+  gGtestThread->Shutdown();
+
   delete test_utils;
-  return rv;
+  return test_result;
 }
+
 
 
