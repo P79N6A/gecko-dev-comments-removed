@@ -118,8 +118,8 @@ _extend_to_string (cairo_extend_t extend)
 {
     static const char *names[] = {
 	"EXTEND_NONE",		
-	"EXTEND_REPEAT",	
-	"EXTEND_REFLECT",	
+	"ExtendMode::REPEAT",	
+	"ExtendMode::REFLECT",	
 	"EXTEND_PAD"		
     };
     assert (extend < ARRAY_LENGTH (names));
@@ -131,7 +131,7 @@ _filter_to_string (cairo_filter_t filter)
 {
     static const char *names[] = {
 	"FILTER_FAST",		
-	"FILTER_GOOD",		
+	"Filter::GOOD",		
 	"FILTER_BEST",		
 	"FILTER_NEAREST",	
 	"FILTER_BILINEAR",	

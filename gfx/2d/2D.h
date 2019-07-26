@@ -78,16 +78,16 @@ struct NativeFont {
 
 struct DrawOptions {
   DrawOptions(Float aAlpha = 1.0f,
-              CompositionOp aCompositionOp = OP_OVER,
-              AntialiasMode aAntialiasMode = AA_DEFAULT)
+              CompositionOp aCompositionOp = CompositionOp::OP_OVER,
+              AntialiasMode aAntialiasMode = AntialiasMode::DEFAULT)
     : mAlpha(aAlpha)
     , mCompositionOp(aCompositionOp)
     , mAntialiasMode(aAntialiasMode)
   {}
 
   Float mAlpha;
-  CompositionOp mCompositionOp : 8;
-  AntialiasMode mAntialiasMode : 3;
+  CompositionOp mCompositionOp;
+  AntialiasMode mAntialiasMode;
 };
 
 
@@ -108,8 +108,8 @@ struct DrawOptions {
 
 struct StrokeOptions {
   StrokeOptions(Float aLineWidth = 1.0f,
-                JoinStyle aLineJoin = JOIN_MITER_OR_BEVEL,
-                CapStyle aLineCap = CAP_BUTT,
+                JoinStyle aLineJoin = JoinStyle::MITER_OR_BEVEL,
+                CapStyle aLineCap = CapStyle::BUTT,
                 Float aMiterLimit = 10.0f,
                 size_t aDashLength = 0,
                 const Float* aDashPattern = 0,
@@ -130,8 +130,8 @@ struct StrokeOptions {
   const Float* mDashPattern;
   size_t mDashLength;
   Float mDashOffset;
-  JoinStyle mLineJoin : 4;
-  CapStyle mLineCap : 3;
+  JoinStyle mLineJoin;
+  CapStyle mLineCap;
 };
 
 
@@ -144,14 +144,14 @@ struct StrokeOptions {
 
 
 struct DrawSurfaceOptions {
-  DrawSurfaceOptions(Filter aFilter = FILTER_LINEAR,
-                     SamplingBounds aSamplingBounds = SAMPLING_UNBOUNDED)
+  DrawSurfaceOptions(Filter aFilter = Filter::LINEAR,
+                     SamplingBounds aSamplingBounds = SamplingBounds::UNBOUNDED)
     : mFilter(aFilter)
     , mSamplingBounds(aSamplingBounds)
   { }
 
-  Filter mFilter : 3;
-  SamplingBounds mSamplingBounds : 1;
+  Filter mFilter;
+  SamplingBounds mSamplingBounds;
 };
 
 
@@ -194,7 +194,7 @@ public:
     : mColor(aColor)
   {}
 
-  virtual PatternType GetType() const { return PATTERN_COLOR; }
+  virtual PatternType GetType() const { return PatternType::COLOR; }
 
   Color mColor;
 };
@@ -226,7 +226,7 @@ public:
   {
   }
 
-  virtual PatternType GetType() const { return PATTERN_LINEAR_GRADIENT; }
+  virtual PatternType GetType() const { return PatternType::LINEAR_GRADIENT; }
 
   Point mBegin;
   Point mEnd;
@@ -266,7 +266,7 @@ public:
   {
   }
 
-  virtual PatternType GetType() const { return PATTERN_RADIAL_GRADIENT; }
+  virtual PatternType GetType() const { return PatternType::RADIAL_GRADIENT; }
 
   Point mCenter1;
   Point mCenter2;
@@ -291,14 +291,14 @@ public:
 
 
   SurfacePattern(SourceSurface *aSourceSurface, ExtendMode aExtendMode,
-                 const Matrix &aMatrix = Matrix(), Filter aFilter = FILTER_GOOD)
+                 const Matrix &aMatrix = Matrix(), Filter aFilter = Filter::GOOD)
     : mSurface(aSourceSurface)
     , mExtendMode(aExtendMode)
     , mFilter(aFilter)
     , mMatrix(aMatrix)
   {}
 
-  virtual PatternType GetType() const { return PATTERN_SURFACE; }
+  virtual PatternType GetType() const { return PatternType::SURFACE; }
 
   RefPtr<SourceSurface> mSurface;
   ExtendMode mExtendMode;
@@ -413,9 +413,9 @@ public:
   
 
 
-  virtual TemporaryRef<PathBuilder> CopyToBuilder(FillRule aFillRule = FILL_WINDING) const = 0;
+  virtual TemporaryRef<PathBuilder> CopyToBuilder(FillRule aFillRule = FillRule::FILL_WINDING) const = 0;
   virtual TemporaryRef<PathBuilder> TransformedCopyToBuilder(const Matrix &aTransform,
-                                                             FillRule aFillRule = FILL_WINDING) const = 0;
+                                                             FillRule aFillRule = FillRule::FILL_WINDING) const = 0;
 
   
 
@@ -863,7 +863,7 @@ public:
 
 
 
-  virtual TemporaryRef<PathBuilder> CreatePathBuilder(FillRule aFillRule = FILL_WINDING) const = 0;
+  virtual TemporaryRef<PathBuilder> CreatePathBuilder(FillRule aFillRule = FillRule::FILL_WINDING) const = 0;
 
   
 
@@ -878,7 +878,7 @@ public:
   virtual TemporaryRef<GradientStops>
     CreateGradientStops(GradientStop *aStops,
                         uint32_t aNumStops,
-                        ExtendMode aExtendMode = EXTEND_CLAMP) const = 0;
+                        ExtendMode aExtendMode = ExtendMode::CLAMP) const = 0;
 
   
 

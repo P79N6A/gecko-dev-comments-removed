@@ -38,11 +38,11 @@ struct BaseMargin {
 
   T& Side(SideT aSide) {
     
-    return *(&top + aSide);
+    return *(&top + T(aSide));
   }
   T Side(SideT aSide) const {
     
-    return *(&top + aSide);
+    return *(&top + T(aSide));
   }
 
   

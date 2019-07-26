@@ -135,7 +135,7 @@ ThebesLayerComposite::RenderLayer(const nsIntRect& aClipRect)
   mBuffer->Composite(effectChain,
                      GetEffectiveOpacity(),
                      transform,
-                     gfx::FILTER_LINEAR,
+                     gfx::Filter::LINEAR,
                      clipRect,
                      &visibleRegion,
                      mRequiresTiledProperties ? &tiledLayerProps
