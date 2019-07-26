@@ -17,12 +17,16 @@
 #include "nsIDOMFile.h"
 #include "mozilla/dom/BlobEvent.h"
 
+
+#include "mozilla/dom/AudioStreamTrack.h"
+#include "mozilla/dom/VideoStreamTrack.h"
+
 namespace mozilla {
 
 namespace dom {
 
-NS_IMPL_CYCLE_COLLECTION_INHERITED_1(MediaRecorder, nsDOMEventTargetHelper,
-                                     mStream)
+NS_IMPL_CYCLE_COLLECTION_INHERITED_2(MediaRecorder, nsDOMEventTargetHelper,
+                                     mStream, mSession)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(MediaRecorder)
 NS_INTERFACE_MAP_END_INHERITING(nsDOMEventTargetHelper)
@@ -90,7 +94,7 @@ class MediaRecorder::Session: public nsIObserver
     }
 
   private:
-    Session *mSession;
+    nsRefPtr<Session> mSession;
   };
 
   
@@ -110,7 +114,36 @@ class MediaRecorder::Session: public nsIObserver
     }
 
   private:
-    Session *mSession;
+    nsRefPtr<Session> mSession;
+  };
+
+  
+  class TracksAvailableCallback : public DOMMediaStream::OnTracksAvailableCallback
+  {
+  public:
+    TracksAvailableCallback(Session *aSession)
+     : mSession(aSession) {}
+    virtual void NotifyTracksAvailable(DOMMediaStream* aStream)
+    {
+      uint8_t trackType = aStream->GetHintContents();
+      
+      if (trackType == 0) {
+        nsTArray<nsRefPtr<mozilla::dom::AudioStreamTrack> > audioTracks;
+        aStream->GetAudioTracks(audioTracks);
+        nsTArray<nsRefPtr<mozilla::dom::VideoStreamTrack> > videoTracks;
+        aStream->GetVideoTracks(videoTracks);
+        
+        if (videoTracks.Length() > 0) {
+          trackType |= DOMMediaStream::HINT_CONTENTS_VIDEO;
+        }
+        if (audioTracks.Length() > 0) {
+          trackType |= DOMMediaStream::HINT_CONTENTS_AUDIO;
+        }
+      }
+      mSession->AfterTracksAdded(trackType);
+    }
+  private:
+    nsRefPtr<Session> mSession;
   };
 
   
@@ -154,6 +187,7 @@ class MediaRecorder::Session: public nsIObserver
   friend class PushBlobRunnable;
   friend class ExtractRunnable;
   friend class DestroyRunnable;
+  friend class TracksAvailableCallback;
 
 public:
   Session(MediaRecorder* aRecorder, int32_t aTimeSlice)
@@ -169,8 +203,6 @@ public:
   
   virtual ~Session()
   {
-    MOZ_ASSERT(NS_IsMainThread());
-
     CleanupStreams();
   }
 
@@ -179,22 +211,6 @@ public:
     MOZ_ASSERT(NS_IsMainThread());
 
     SetupStreams();
-
-    
-    if (!mReadThread) {
-      nsresult rv = NS_NewNamedThread("Media Encoder", getter_AddRefs(mReadThread));
-      if (NS_FAILED(rv)) {
-        CleanupStreams();
-        mRecorder->NotifyError(rv);
-        return;
-      }
-    }
-
-    
-    
-    nsContentUtils::RegisterShutdownObserver(this);
-
-    mReadThread->Dispatch(new ExtractRunnable(this), NS_DISPATCH_NORMAL);
   }
 
   void Stop()
@@ -290,14 +306,57 @@ private:
     mInputPort = mTrackUnionStream->AllocateInputPort(mRecorder->mStream->GetStream(), MediaInputPort::FLAG_BLOCK_OUTPUT);
 
     
-    mEncoder = MediaEncoder::CreateEncoder(NS_LITERAL_STRING(""));
-    MOZ_ASSERT(mEncoder, "CreateEncoder failed");
-
-    if (mEncoder) {
-      mTrackUnionStream->AddListener(mEncoder);
-    }
+    TracksAvailableCallback* tracksAvailableCallback = new TracksAvailableCallback(mRecorder->mSession);
+    mRecorder->mStream->OnTracksAvailable(tracksAvailableCallback);
   }
 
+  void AfterTracksAdded(uint8_t aTrackTypes)
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+
+    
+    
+    mEncoder = MediaEncoder::CreateEncoder(NS_LITERAL_STRING(""), aTrackTypes);
+
+    if (!mEncoder) {
+      DoSessionEndTask(NS_ERROR_ABORT);
+      return;
+    }
+
+    
+    if (mRecorder->mState == RecordingState::Inactive) {
+      DoSessionEndTask(NS_OK);
+      return;
+    }
+    mTrackUnionStream->AddListener(mEncoder);
+    
+    if (!mReadThread) {
+      nsresult rv = NS_NewNamedThread("Media Encoder", getter_AddRefs(mReadThread));
+      if (NS_FAILED(rv)) {
+        DoSessionEndTask(rv);
+        return;
+      }
+    }
+
+    
+    
+    nsContentUtils::RegisterShutdownObserver(this);
+
+    mReadThread->Dispatch(new ExtractRunnable(this), NS_DISPATCH_NORMAL);
+  }
+  
+  void DoSessionEndTask(nsresult rv)
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+
+    if (NS_FAILED(rv)) {
+      mRecorder->NotifyError(rv);
+    }
+    CleanupStreams();
+    
+    NS_DispatchToMainThread(new PushBlobRunnable(this));
+    NS_DispatchToMainThread(new DestroyRunnable(already_AddRefed<Session>(this)));
+  }
   void CleanupStreams()
   {
     if (mInputPort.get()) {
@@ -430,11 +489,10 @@ MediaRecorder::Stop(ErrorResult& aResult)
     aResult.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return;
   }
+  mState = RecordingState::Inactive;
 
   mSession->Stop();
   mSession = nullptr;
-
-  mState = RecordingState::Inactive;
 }
 
 void

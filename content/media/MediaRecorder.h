@@ -104,7 +104,7 @@ protected:
   
   RecordingState mState;
   
-  Session *mSession;
+  nsRefPtr<Session> mSession;
   
   Mutex mMutex;
   
