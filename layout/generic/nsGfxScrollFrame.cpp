@@ -2577,9 +2577,6 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     DisplayListClipState::AutoSaveRestore clipState(aBuilder);
 
     if (usingDisplayport) {
-      nsRect clip = displayPort + aBuilder->ToReferenceFrame(mOuter);
-
-      
       
       
       
@@ -2593,12 +2590,6 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       
       
       clipState.Clear();
-
-      if (mClipAllDescendants) {
-        clipState.ClipContentDescendants(clip);
-      } else {
-        clipState.ClipContainingBlockDescendants(clip, nullptr);
-      }
     } else {
       nsRect clip = mScrollPort + aBuilder->ToReferenceFrame(mOuter);
       nscoord radii[8];
