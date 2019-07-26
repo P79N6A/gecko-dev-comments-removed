@@ -448,7 +448,8 @@ TransactionThreadPool::AbortTransactionsForDatabase(IDBDatabase* aDatabase)
     
     
     
-    transactions[index]->Abort();
+    ErrorResult rv;
+    transactions[index]->Abort(rv);
   }
 }
 
