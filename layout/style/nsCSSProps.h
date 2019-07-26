@@ -193,6 +193,10 @@ static_assert((CSS_PROPERTY_PARSE_PROPERTY_MASK &
 
 
 
+#define CSS_PROPERTY_ALWAYS_ENABLED_IN_UA_SHEETS  (1<<21)
+
+
+
 
 enum nsStyleAnimType {
   
@@ -251,6 +255,7 @@ public:
   
   enum EnabledState {
     eEnabled,
+    eEnabledInUASheets,
     eAny
   };
   
@@ -434,6 +439,13 @@ public:
                       aProperty < eCSSProperty_COUNT_with_aliases,
                       "out of range");
     return gPropertyEnabled[aProperty];
+  }
+
+  static bool IsEnabled(nsCSSProperty aProperty, EnabledState aEnabled) {
+    return IsEnabled(aProperty) ||
+      (aEnabled == eEnabledInUASheets &&
+       PropHasFlags(aProperty, CSS_PROPERTY_ALWAYS_ENABLED_IN_UA_SHEETS)) ||
+      aEnabled == eAny;
   }
 
 public:
