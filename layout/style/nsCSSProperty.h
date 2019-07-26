@@ -72,4 +72,14 @@ enum nsCSSFontDesc {
   eCSSFontDesc_COUNT
 };
 
+
+
+enum nsCSSCounterDesc {
+  eCSSCounterDesc_UNKNOWN = -1,
+#define CSS_COUNTER_DESC(name_, method_) eCSSCounterDesc_##method_,
+#include "nsCSSCounterDescList.h"
+#undef CSS_COUNTER_DESC
+  eCSSCounterDesc_COUNT
+};
+
 #endif 

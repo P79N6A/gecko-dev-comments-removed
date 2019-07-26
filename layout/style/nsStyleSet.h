@@ -30,6 +30,7 @@ class nsCSSFontFaceRule;
 class nsCSSKeyframesRule;
 class nsCSSFontFeatureValuesRule;
 class nsCSSPageRule;
+class nsCSSCounterStyleRule;
 class nsRuleWalker;
 struct ElementDependentRuleProcessorData;
 struct TreeMatchContext;
@@ -180,6 +181,10 @@ class nsStyleSet
   
   nsCSSKeyframesRule* KeyframesRuleForName(nsPresContext* aPresContext,
                                            const nsString& aName);
+
+  
+  nsCSSCounterStyleRule* CounterStyleRuleForName(nsPresContext* aPresContext,
+                                                 const nsAString& aName);
 
   
   already_AddRefed<gfxFontFeatureValueSet> GetFontFeatureValuesLookup();

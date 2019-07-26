@@ -311,8 +311,17 @@ public:
   static nsCSSFontDesc LookupFontDesc(const nsACString& aProperty);
 
   
+  static nsCSSCounterDesc LookupCounterDesc(const nsAString& aProperty);
+  static nsCSSCounterDesc LookupCounterDesc(const nsACString& aProperty);
+
+  
+  static bool IsPredefinedCounterStyle(const nsAString& aStyle);
+  static bool IsPredefinedCounterStyle(const nsACString& aStyle);
+
+  
   static const nsAFlatCString& GetStringValue(nsCSSProperty aProperty);
   static const nsAFlatCString& GetStringValue(nsCSSFontDesc aFontDesc);
+  static const nsAFlatCString& GetStringValue(nsCSSCounterDesc aCounterDesc);
 
   
   
@@ -641,6 +650,9 @@ public:
   static const KTableValue kWordWrapKTable[];
   static const KTableValue kWritingModeKTable[];
   static const KTableValue kHyphensKTable[];
+  static const KTableValue kCounterSystemKTable[];
+  static const KTableValue kCounterRangeKTable[];
+  static const KTableValue kCounterSpeakAsKTable[];
 };
 
 inline nsCSSProps::EnabledState operator|(nsCSSProps::EnabledState a,

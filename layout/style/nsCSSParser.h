@@ -264,6 +264,17 @@ public:
                                    uint32_t aLineNumber,
                                    uint32_t aLineOffset);
 
+  bool ParseCounterStyleName(const nsAString& aBuffer,
+                             nsIURI* aURL,
+                             nsAString& aName);
+
+  bool ParseCounterDescriptor(nsCSSCounterDesc aDescID,
+                              const nsAString& aBuffer,
+                              nsIURI* aSheetURL,
+                              nsIURI* aBaseURL,
+                              nsIPrincipal* aSheetPrincipal,
+                              nsCSSValue& aValue);
+
 protected:
   
   

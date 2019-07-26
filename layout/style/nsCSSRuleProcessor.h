@@ -29,6 +29,7 @@ class nsCSSKeyframesRule;
 class nsCSSPageRule;
 class nsCSSFontFeatureValuesRule;
 class nsCSSStyleSheet;
+class nsCSSCounterStyleRule;
 
 
 
@@ -128,6 +129,9 @@ public:
 
   nsCSSKeyframesRule* KeyframesRuleForName(nsPresContext* aPresContext,
                                            const nsString& aName);
+
+  nsCSSCounterStyleRule* CounterStyleRuleForName(nsPresContext* aPresContext,
+                                                 const nsAString& aName);
 
   bool AppendPageRules(nsPresContext* aPresContext,
                        nsTArray<nsCSSPageRule*>& aArray);
