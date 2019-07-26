@@ -42,6 +42,9 @@ pref("browser.cache.offline.enable", true);
 pref("offline-apps.allow_by_default", true);
 
 
+pref("dom.mozTCPSocket.enabled", true);
+
+
 pref("general.smoothScroll", true);
 
 pref("plugin.allowed_types", "application/x-shockwave-flash,application/futuresplash");
