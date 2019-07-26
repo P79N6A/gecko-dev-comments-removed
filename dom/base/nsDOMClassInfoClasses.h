@@ -31,11 +31,6 @@ DOMCI_CLASS(TreeContentView)
 #endif
 
 
-#ifndef MOZ_DISABLE_CRYPTOLEGACY
-DOMCI_CLASS(CRMFObject)
-#endif
-
-
 DOMCI_CLASS(ChromeWindow)
 
 #ifdef MOZ_XUL
