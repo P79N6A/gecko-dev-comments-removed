@@ -41,6 +41,7 @@ const BUTTON_POSITION_REVERT=0;
 
 
 var Scratchpad = {
+  _instanceId: null,
   _initialWindowTitle: document.title,
 
   
@@ -208,6 +209,15 @@ var Scratchpad = {
 
 
 
+  get uniqueName()
+  {
+    return "Scratchpad/" + this._instanceId;
+  },
+
+  
+
+
+
 
 
 
@@ -317,7 +327,7 @@ var Scratchpad = {
     let error, result;
     try {
       result = Cu.evalInSandbox(aString, this.contentSandbox, "1.8",
-                                "Scratchpad", 1);
+                                this.uniqueName, 1);
     }
     catch (ex) {
       error = ex;
@@ -339,7 +349,7 @@ var Scratchpad = {
     let error, result;
     try {
       result = Cu.evalInSandbox(aString, this.chromeSandbox, "1.8",
-                                "Scratchpad", 1);
+                                this.uniqueName, 1);
     }
     catch (ex) {
       error = ex;
@@ -1111,6 +1121,7 @@ var Scratchpad = {
     if (aEvent.target != document) {
       return;
     }
+
     let chrome = Services.prefs.getBoolPref(DEVTOOLS_CHROME_ENABLED);
     if (chrome) {
       let environmentMenu = document.getElementById("sp-environment-menu");
@@ -1121,8 +1132,6 @@ var Scratchpad = {
       errorConsoleCommand.removeAttribute("disabled");
     }
 
-    let state = null;
-
     let initialText = this.strings.formatStringFromName(
       "scratchpadIntro1",
       [LayoutHelpers.prettyKey(document.getElementById("sp-key-run")),
@@ -1130,9 +1139,21 @@ var Scratchpad = {
        LayoutHelpers.prettyKey(document.getElementById("sp-key-display"))],
       3);
 
-    if ("arguments" in window &&
-         window.arguments[0] instanceof Ci.nsIDialogParamBlock) {
-      state = JSON.parse(window.arguments[0].GetString(0));
+    let args = window.arguments;
+
+    if (args && args[0] instanceof Ci.nsIDialogParamBlock) {
+      args = args[0];
+    } else {
+      
+      
+      Cu.reportError(this.strings. GetStringFromName("scratchpad.noargs"));
+    }
+
+    this._instanceId = args.GetString(0);
+
+    let state = args.GetString(1) || null;
+    if (state) {
+      state = JSON.parse(state);
       this.setState(state);
       initialText = state.text;
     }

@@ -978,11 +978,31 @@ WebConsoleFrame.prototype = {
   {
     let lastMessage = this.outputNode.lastChild;
 
-    
-    if (lastMessage && lastMessage.childNodes[2] &&
-        !aNode.classList.contains("webconsole-msg-inspector") &&
-        aNode.childNodes[2].textContent ==
-        lastMessage.childNodes[2].textContent) {
+    if (!lastMessage) {
+      return false;
+    }
+
+    let body = aNode.querySelector(".webconsole-msg-body");
+    let lastBody = lastMessage.querySelector(".webconsole-msg-body");
+
+    if (aNode.classList.contains("webconsole-msg-inspector")) {
+      return false;
+    }
+
+    if (!body || !lastBody) {
+      return false;
+    }
+
+    if (body.textContent == lastBody.textContent) {
+      let loc = aNode.querySelector(".webconsole-location");
+      let lastLoc = lastMessage.querySelector(".webconsole-location");
+
+      if (loc && lastLoc) {
+        if (loc.getAttribute("value") !== lastLoc.getAttribute("value")) {
+          return false;
+        }
+      }
+
       this.mergeFilteredMessageNode(lastMessage, aNode);
       return true;
     }
@@ -2374,10 +2394,19 @@ WebConsoleFrame.prototype = {
 
     
     
-    let text = WebConsoleUtils.abbreviateSourceURL(aSourceURL);
+    let text;
+
+    if (/^Scratchpad\/\d+$/.test(aSourceURL)) {
+      text = aSourceURL;
+    }
+    else {
+      text = WebConsoleUtils.abbreviateSourceURL(aSourceURL);
+    }
+
     if (aSourceLine) {
       text += ":" + aSourceLine;
     }
+
     locationNode.setAttribute("value", text);
 
     
@@ -2389,10 +2418,16 @@ WebConsoleFrame.prototype = {
 
     
     locationNode.addEventListener("click", function() {
-      if (aSourceURL == "Scratchpad") {
-        let win = Services.wm.getMostRecentWindow("devtools:scratchpad");
-        if (win) {
-          win.focus();
+      if (/^Scratchpad\/\d+$/.test(aSourceURL)) {
+        let wins = Services.wm.getEnumerator("devtools:scratchpad");
+
+        while (wins.hasMoreElements()) {
+          let win = wins.getNext();
+
+          if (win.Scratchpad.uniqueName === aSourceURL) {
+            win.focus();
+            return;
+          }
         }
       }
       else if (locationNode.parentNode.category == CATEGORY_CSS) {
