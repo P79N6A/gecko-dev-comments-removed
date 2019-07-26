@@ -212,10 +212,11 @@ class MOZ_STACK_CLASS nsWSRunObject
     
     
     
-    nsresult InsertText(const nsAString& aStringToInsert,
-                        nsCOMPtr<nsINode>* aInOutNode,
-                        int32_t* aInOutOffset,
-                        nsIDocument* aDoc);
+    
+    nsresult InsertText(const nsAString& aStringToInsert, 
+                        nsCOMPtr<nsIDOMNode> *aInOutNode, 
+                        int32_t *aInOutOffset,
+                        nsIDOMDocument *aDoc);
 
     
     
