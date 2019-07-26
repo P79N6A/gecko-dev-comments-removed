@@ -93,28 +93,8 @@ public class LightweightThemeDrawable extends Drawable {
 
 
     public void setTexture(int textureId) {
-        Shader.TileMode modeX = Shader.TileMode.REPEAT;
-        Shader.TileMode modeY = Shader.TileMode.REPEAT;
-
-        
-        Bitmap texture = BitmapFactory.decodeResource(mResources, textureId);
-
-        if (texture == null) {
-            
-            Drawable drawable = mResources.getDrawable(textureId);
-            if (drawable != null && drawable instanceof BitmapDrawable) {
-                BitmapDrawable bitmapDrawable = (BitmapDrawable) drawable;
-                texture = bitmapDrawable.getBitmap();
-                modeX = bitmapDrawable.getTileModeX();
-                modeY = bitmapDrawable.getTileModeY();
-            }
-        }
-
-        
-        if (texture != null) {
-            mTexturePaint = new Paint(mPaint);
-            mTexturePaint.setShader(new BitmapShader(texture, modeX, modeY));
-        }
+        mTexturePaint = new Paint(mPaint);
+        mTexturePaint.setColor(mResources.getColor(textureId));
     }
 
     
