@@ -1763,18 +1763,18 @@ private:
   
   
   
-  nsresult WrapFramesInFirstLineFrame(nsFrameConstructorState& aState,
-                                      nsIContent*              aBlockContent,
-                                      nsIFrame*                aBlockFrame,
-                                      nsIFrame*                aLineFrame,
-                                      nsFrameItems&            aFrameItems);
+  void WrapFramesInFirstLineFrame(nsFrameConstructorState& aState,
+                                  nsIContent*              aBlockContent,
+                                  nsIFrame*                aBlockFrame,
+                                  nsIFrame*                aLineFrame,
+                                  nsFrameItems&            aFrameItems);
 
   
   
-  nsresult AppendFirstLineFrames(nsFrameConstructorState& aState,
-                                 nsIContent*              aContent,
-                                 nsIFrame*                aBlockFrame,
-                                 nsFrameItems&            aFrameItems);
+  void AppendFirstLineFrames(nsFrameConstructorState& aState,
+                             nsIContent*              aContent,
+                             nsIFrame*                aBlockFrame,
+                             nsFrameItems&            aFrameItems);
 
   nsresult InsertFirstLineFrames(nsFrameConstructorState& aState,
                                  nsIContent*              aContent,
