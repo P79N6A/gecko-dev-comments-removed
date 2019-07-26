@@ -182,7 +182,7 @@ nsresult
 nsTableCellFrame::GetColIndex(int32_t &aColIndex) const
 {
   if (GetPrevInFlow()) {
-    return ((nsTableCellFrame*)GetFirstInFlow())->GetColIndex(aColIndex);
+    return ((nsTableCellFrame*)FirstInFlow())->GetColIndex(aColIndex);
   }
   else {
     aColIndex = mColIndex;
@@ -787,8 +787,8 @@ CalcUnpaginagedHeight(nsPresContext*        aPresContext,
                       nsTableFrame&         aTableFrame,
                       nscoord               aVerticalBorderPadding)
 {
-  const nsTableCellFrame* firstCellInFlow   = (nsTableCellFrame*)aCellFrame.GetFirstInFlow();
-  nsTableFrame*           firstTableInFlow  = (nsTableFrame*)aTableFrame.GetFirstInFlow();
+  const nsTableCellFrame* firstCellInFlow   = (nsTableCellFrame*)aCellFrame.FirstInFlow();
+  nsTableFrame*           firstTableInFlow  = (nsTableFrame*)aTableFrame.FirstInFlow();
   nsTableRowFrame*        row
     = static_cast<nsTableRowFrame*>(firstCellInFlow->GetParent());
   nsTableRowGroupFrame*   firstRGInFlow
@@ -821,7 +821,7 @@ NS_METHOD nsTableCellFrame::Reflow(nsPresContext*           aPresContext,
   DISPLAY_REFLOW(aPresContext, this, aReflowState, aDesiredSize, aStatus);
 
   if (aReflowState.mFlags.mSpecialHeightReflow) {
-    GetFirstInFlow()->AddStateBits(NS_TABLE_CELL_HAD_SPECIAL_REFLOW);
+    FirstInFlow()->AddStateBits(NS_TABLE_CELL_HAD_SPECIAL_REFLOW);
   }
 
   
@@ -890,7 +890,7 @@ NS_METHOD nsTableCellFrame::Reflow(nsPresContext*           aPresContext,
   kidReflowState.mFlags.mSpecialHeightReflow = false;
 
   if (aReflowState.mFlags.mSpecialHeightReflow ||
-      (GetFirstInFlow()->GetStateBits() & NS_TABLE_CELL_HAD_SPECIAL_REFLOW)) {
+      (FirstInFlow()->GetStateBits() & NS_TABLE_CELL_HAD_SPECIAL_REFLOW)) {
     
     
     

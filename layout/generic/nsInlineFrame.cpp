@@ -130,7 +130,7 @@ nsInlineFrame::IsSelfEmpty()
 
       
       
-      nsIFrame* firstCont = GetFirstContinuation();
+      nsIFrame* firstCont = FirstContinuation();
       return
         (!haveStart || nsLayoutUtils::FrameIsNonFirstInIBSplit(firstCont)) &&
         (!haveEnd || nsLayoutUtils::FrameIsNonLastInIBSplit(firstCont));
@@ -640,7 +640,7 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
 
 
   if (NS_FRAME_IS_COMPLETE(aStatus) &&
-      !GetLastInFlow()->GetNextContinuation() &&
+      !LastInFlow()->GetNextContinuation() &&
       !nsLayoutUtils::FrameIsNonLastInIBSplit(this)) {
     aMetrics.width += ltr ? aReflowState.mComputedBorderPadding.right
                           : aReflowState.mComputedBorderPadding.left;
@@ -886,7 +886,7 @@ nsInlineFrame::GetSkipSides(const nsHTMLReflowState* aReflowState) const
     if (((startBit | endBit) & skip) != (startBit | endBit)) {
       
       
-      nsIFrame* firstContinuation = GetFirstContinuation();
+      nsIFrame* firstContinuation = FirstContinuation();
       if (nsLayoutUtils::FrameIsNonLastInIBSplit(firstContinuation)) {
         skip |= endBit;
       }
@@ -946,7 +946,7 @@ nsFirstLineFrame::Init(nsIContent* aContent, nsIFrame* aParent,
   
   
   if (aPrevInFlow->StyleContext()->GetPseudo() == nsCSSPseudoElements::firstLine) {
-    MOZ_ASSERT(GetFirstInFlow() == aPrevInFlow);
+    MOZ_ASSERT(FirstInFlow() == aPrevInFlow);
     
     
     
@@ -956,7 +956,7 @@ nsFirstLineFrame::Init(nsIContent* aContent, nsIFrame* aParent,
       ResolveAnonymousBoxStyle(nsCSSAnonBoxes::mozLineFrame, parentContext);
     SetStyleContext(newSC);
   } else {
-    MOZ_ASSERT(GetFirstInFlow() != aPrevInFlow);
+    MOZ_ASSERT(FirstInFlow() != aPrevInFlow);
     MOZ_ASSERT(aPrevInFlow->StyleContext()->GetPseudo() ==
                  nsCSSAnonBoxes::mozLineFrame);
   }

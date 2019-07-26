@@ -775,7 +775,7 @@ HyperTextAccessible::FindOffset(int32_t aOffset, nsDirection aDirection,
       return -1;
 
     
-    frameAtOffset = frameAtOffset->GetLastContinuation();
+    frameAtOffset = frameAtOffset->LastContinuation();
   }
 
   

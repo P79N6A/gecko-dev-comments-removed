@@ -45,8 +45,8 @@ public:
   NS_IMETHOD SetNextContinuation(nsIFrame*) MOZ_OVERRIDE;
 
   
-  virtual nsIFrame* GetFirstContinuation() const MOZ_OVERRIDE;
-  virtual nsIFrame* GetLastContinuation() const MOZ_OVERRIDE;
+  virtual nsIFrame* FirstContinuation() const MOZ_OVERRIDE;
+  virtual nsIFrame* LastContinuation() const MOZ_OVERRIDE;
 
 #ifdef DEBUG
   
@@ -66,8 +66,8 @@ public:
   NS_IMETHOD  SetNextInFlow(nsIFrame*) MOZ_OVERRIDE;
 
   
-  virtual nsIFrame* GetFirstInFlow() const MOZ_OVERRIDE;
-  virtual nsIFrame* GetLastInFlow() const MOZ_OVERRIDE;
+  virtual nsIFrame* FirstInFlow() const MOZ_OVERRIDE;
+  virtual nsIFrame* LastInFlow() const MOZ_OVERRIDE;
 
   
   

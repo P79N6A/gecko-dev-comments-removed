@@ -1309,7 +1309,7 @@ nsBidiPresUtils::IsLeftOrRightMost(nsIFrame*              aFrame,
     
     
     
-    nsIFrame* firstContinuation = aFrame->GetFirstContinuation();
+    nsIFrame* firstContinuation = aFrame->FirstContinuation();
     if (nsLayoutUtils::FrameIsNonLastInIBSplit(firstContinuation)) {
       
       if (isLTR) {

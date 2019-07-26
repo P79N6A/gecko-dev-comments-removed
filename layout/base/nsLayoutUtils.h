@@ -279,7 +279,7 @@ public:
 
 
 
-  static nsIFrame* GetLastContinuationWithChild(nsIFrame* aFrame);
+  static nsIFrame* LastContinuationWithChild(nsIFrame* aFrame);
 
   
 
@@ -942,7 +942,7 @@ public:
 
 
   static nsIFrame*
-  GetFirstContinuationOrSpecialSibling(nsIFrame *aFrame);
+  FirstContinuationOrSpecialSibling(nsIFrame *aFrame);
 
   
 
@@ -1467,7 +1467,7 @@ public:
 
   static bool FrameIsNonFirstInIBSplit(const nsIFrame* aFrame) {
     return (aFrame->GetStateBits() & NS_FRAME_IS_SPECIAL) &&
-      aFrame->GetFirstContinuation()->
+      aFrame->FirstContinuation()->
         Properties().Get(nsIFrame::IBSplitSpecialPrevSibling());
   }
 
@@ -1477,7 +1477,7 @@ public:
 
   static bool FrameIsNonLastInIBSplit(const nsIFrame* aFrame) {
     return (aFrame->GetStateBits() & NS_FRAME_IS_SPECIAL) &&
-      aFrame->GetFirstContinuation()->
+      aFrame->FirstContinuation()->
         Properties().Get(nsIFrame::IBSplitSpecialSibling());
   }
 
