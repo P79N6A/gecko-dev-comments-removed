@@ -2785,15 +2785,17 @@ public abstract class GeckoApp
             return;
         }
 
-        final HealthRecorder rec = mHealthRecorder;
-        if (rec == null) {
-            return;
-        }
-
         final boolean startNewSession = true;
         final boolean shouldRestart = false;
-        rec.onAppLocaleChanged(resultant);
-        rec.onEnvironmentChanged(startNewSession, SESSION_END_LOCALE_CHANGED);
+
+        
+        
+        
+        final HealthRecorder rec = mHealthRecorder;
+        if (rec != null) {
+            rec.onAppLocaleChanged(resultant);
+            rec.onEnvironmentChanged(startNewSession, SESSION_END_LOCALE_CHANGED);
+        }
 
         if (!shouldRestart) {
             ThreadUtils.postToUiThread(new Runnable() {
