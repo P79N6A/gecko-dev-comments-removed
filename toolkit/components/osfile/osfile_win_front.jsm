@@ -331,9 +331,19 @@
 
 
 
-     File.remove = function remove(path) {
-       throw_on_zero("remove",
-         WinFile.DeleteFile(path));
+
+
+
+
+     File.remove = function remove(path, options = {}) {
+       let result = WinFile.DeleteFile(path);
+       if (!result) {
+         if ((!("ignoreAbsent" in options) || options.ignoreAbsent) &&
+             ctypes.winLastError == Const.ERROR_FILE_NOT_FOUND) {
+           return;
+         }
+         throw new File.Error("remove");
+       }
      };
 
      

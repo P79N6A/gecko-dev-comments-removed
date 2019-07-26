@@ -269,10 +269,20 @@
 
 
 
-     File.remove = function remove(path) {
-       throw_on_negative("remove",
-         UnixFile.unlink(path)
-       );
+
+
+
+
+
+     File.remove = function remove(path, options = {}) {
+       let result = UnixFile.unlink(path);
+       if (result == -1) {
+         if ((!("ignoreAbsent" in options) || options.ignoreAbsent) &&
+             ctypes.errno == Const.ENOENT) {
+           return;
+         }
+         throw new File.Error("remove");
+       }
      };
 
      
