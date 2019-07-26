@@ -362,15 +362,21 @@ public abstract class GeckoApp
     }
 
     @Override
-    public void showMenu(View menu) {
+    public void showMenu(final View menu) {
         
         
         closeMenu();
 
-        mMenuPanel.removeAllViews();
-        mMenuPanel.addView(menu);
-
-        openOptionsMenu();
+        
+        
+        ThreadUtils.postToUiThread(new Runnable() {
+            @Override
+            public void run() {
+                mMenuPanel.removeAllViews();
+                mMenuPanel.addView(menu);
+                openOptionsMenu();
+            }
+        });
     }
 
     @Override
