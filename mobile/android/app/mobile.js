@@ -827,7 +827,8 @@ pref("browser.snippets.syncPromo.enabled", true);
 
 #ifdef MOZ_ANDROID_SYNTHAPKS
 
-pref("browser.webapps.apkFactoryUrl", "https://controller.apk.firefox.com/application.apk");
+
+pref("browser.webapps.apkFactoryUrl", "http://dapk.net/application.apk");
 
 
 pref("browser.webapps.updateInterval", 86400);
@@ -835,7 +836,8 @@ pref("browser.webapps.updateInterval", 86400);
 
 
 
-pref("browser.webapps.updateCheckUrl", "https://controller.apk.firefox.com/app_updates");
+
+pref("browser.webapps.updateCheckUrl", "http://dapk.net/app_updates");
 
 #endif
 
@@ -846,3 +848,7 @@ pref("home.sync.updateMode", 0);
 
 
 pref("home.sync.checkIntervalSecs", 3600);
+
+#ifdef NIGHTLY_BUILD
+pref("devtools.debugger.remote-enabled", true);
+#endif
