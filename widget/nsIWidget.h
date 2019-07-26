@@ -100,8 +100,8 @@ typedef void* nsNativeWidget;
 #endif
 
 #define NS_IWIDGET_IID \
-{ 0x67da44c4, 0xe21b, 0x4742, \
-  { 0x9c, 0x2b, 0x26, 0xc7, 0x70, 0x21, 0xde, 0x87 } }
+{ 0xb979c607, 0xf0aa, 0x4fee, \
+  { 0xb2, 0x7b, 0xd4, 0x46, 0xa2, 0xe, 0x8b, 0x27 } }
 
 
 
@@ -449,7 +449,9 @@ struct SizeConstraints {
 };
 
 
-enum NotificationToIME {
+
+enum IMEMessage MOZ_ENUM_TYPE(int8_t)
+{
   
   
   NOTIFY_IME_OF_CURSOR_POS_CHANGED,
@@ -459,10 +461,62 @@ enum NotificationToIME {
   NOTIFY_IME_OF_BLUR,
   
   NOTIFY_IME_OF_SELECTION_CHANGE,
-  REQUEST_TO_COMMIT_COMPOSITION,
-  REQUEST_TO_CANCEL_COMPOSITION,
   
-  NOTIFY_IME_OF_COMPOSITION_UPDATE
+  NOTIFY_IME_OF_TEXT_CHANGE,
+  
+  NOTIFY_IME_OF_COMPOSITION_UPDATE,
+  
+  
+  REQUEST_TO_COMMIT_COMPOSITION,
+  
+  
+  REQUEST_TO_CANCEL_COMPOSITION
+};
+
+struct IMENotification
+{
+  IMENotification(IMEMessage aMessage)
+    : mMessage(aMessage)
+  {
+    switch (aMessage) {
+      case NOTIFY_IME_OF_TEXT_CHANGE:
+        mTextChangeData.mStartOffset = 0;
+        mTextChangeData.mOldEndOffset = 0;
+        mTextChangeData.mNewEndOffset = 0;
+        break;
+      default:
+        break;
+    }
+  }
+
+  IMEMessage mMessage;
+
+  union
+  {
+    
+    struct
+    {
+      uint32_t mStartOffset;
+      uint32_t mOldEndOffset;
+      uint32_t mNewEndOffset;
+
+      uint32_t OldLength() const { return mOldEndOffset - mStartOffset; }
+      uint32_t NewLength() const { return mNewEndOffset - mStartOffset; }
+      int32_t AdditionalLength() const
+      {
+        return static_cast<int32_t>(mNewEndOffset - mOldEndOffset);
+      }
+      bool IsInInt32Range() const
+      {
+        return mStartOffset <= INT32_MAX &&
+               mOldEndOffset <= INT32_MAX &&
+               mNewEndOffset <= INT32_MAX;
+      }
+    } mTextChangeData;
+  };
+
+private:
+  IMENotification();
 };
 
 } 
@@ -483,7 +537,8 @@ class nsIWidget : public nsISupports {
     typedef mozilla::layers::LayerManagerComposite LayerManagerComposite;
     typedef mozilla::layers::LayersBackend LayersBackend;
     typedef mozilla::layers::PLayerTransactionChild PLayerTransactionChild;
-    typedef mozilla::widget::NotificationToIME NotificationToIME;
+    typedef mozilla::widget::IMEMessage IMEMessage;
+    typedef mozilla::widget::IMENotification IMENotification;
     typedef mozilla::widget::IMEState IMEState;
     typedef mozilla::widget::InputContext InputContext;
     typedef mozilla::widget::InputContextAction InputContextAction;
@@ -1705,7 +1760,7 @@ public:
     
 
 
-    NS_IMETHOD NotifyIME(NotificationToIME aNotification) = 0;
+    NS_IMETHOD NotifyIME(const IMENotification& aIMENotification) = 0;
 
     
 
@@ -1733,16 +1788,6 @@ public:
 
 
     NS_IMETHOD GetToggledKeyState(uint32_t aKeyCode, bool* aLEDState) = 0;
-
-    
-
-
-
-
-
-    NS_IMETHOD NotifyIMEOfTextChange(uint32_t aStart,
-                                     uint32_t aOldEnd,
-                                     uint32_t aNewEnd) = 0;
 
     
 

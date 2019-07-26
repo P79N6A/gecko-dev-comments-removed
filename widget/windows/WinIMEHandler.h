@@ -68,14 +68,7 @@ public:
 
 
   static nsresult NotifyIME(nsWindow* aWindow,
-                            NotificationToIME aNotification);
-
-  
-
-
-  static nsresult NotifyIMEOfTextChange(uint32_t aStart,
-                                        uint32_t aOldEnd,
-                                        uint32_t aNewEnd);
+                            const IMENotification& aIMENotification);
 
   
 

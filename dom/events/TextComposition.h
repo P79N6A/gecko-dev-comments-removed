@@ -74,7 +74,7 @@ public:
 
 
 
-  nsresult NotifyIME(widget::NotificationToIME aNotification);
+  nsresult NotifyIME(widget::IMEMessage aMessage);
 
   
 

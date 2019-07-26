@@ -586,7 +586,7 @@ nsIMEStateManager::DispatchCompositionEvent(nsINode* aEventTargetNode,
 
 
 nsresult
-nsIMEStateManager::NotifyIME(NotificationToIME aNotification,
+nsIMEStateManager::NotifyIME(IMEMessage aMessage,
                              nsIWidget* aWidget)
 {
   NS_ENSURE_TRUE(aWidget, NS_ERROR_INVALID_ARG);
@@ -596,13 +596,14 @@ nsIMEStateManager::NotifyIME(NotificationToIME aNotification,
     composition = sTextCompositions->GetCompositionFor(aWidget);
   }
   if (!composition || !composition->IsSynthesizedForTests()) {
-    switch (aNotification) {
+    switch (aMessage) {
       case NOTIFY_IME_OF_CURSOR_POS_CHANGED:
-        return aWidget->NotifyIME(aNotification);
+        return aWidget->NotifyIME(IMENotification(aMessage));
       case REQUEST_TO_COMMIT_COMPOSITION:
       case REQUEST_TO_CANCEL_COMPOSITION:
       case NOTIFY_IME_OF_COMPOSITION_UPDATE:
-        return composition ? aWidget->NotifyIME(aNotification) : NS_OK;
+        return composition ?
+          aWidget->NotifyIME(IMENotification(aMessage)) : NS_OK;
       default:
         MOZ_CRASH("Unsupported notification");
     }
@@ -613,7 +614,7 @@ nsIMEStateManager::NotifyIME(NotificationToIME aNotification,
   
   
   
-  switch (aNotification) {
+  switch (aMessage) {
     case REQUEST_TO_COMMIT_COMPOSITION: {
       nsCOMPtr<nsIWidget> widget(aWidget);
       nsEventStatus status = nsEventStatus_eIgnore;
@@ -672,7 +673,7 @@ nsIMEStateManager::NotifyIME(NotificationToIME aNotification,
 
 
 nsresult
-nsIMEStateManager::NotifyIME(NotificationToIME aNotification,
+nsIMEStateManager::NotifyIME(IMEMessage aMessage,
                              nsPresContext* aPresContext)
 {
   NS_ENSURE_TRUE(aPresContext, NS_ERROR_INVALID_ARG);
@@ -681,7 +682,7 @@ nsIMEStateManager::NotifyIME(NotificationToIME aNotification,
   if (!widget) {
     return NS_ERROR_NOT_AVAILABLE;
   }
-  return NotifyIME(aNotification, widget);
+  return NotifyIME(aMessage, widget);
 }
 
 void
@@ -740,7 +741,7 @@ nsTextStateManager::Init(nsIWidget* aWidget,
                          false, false))->RunDOMEventWhenSafe();
   }
 
-  aWidget->NotifyIME(NOTIFY_IME_OF_FOCUS);
+  aWidget->NotifyIME(IMENotification(NOTIFY_IME_OF_FOCUS));
 
   
   
@@ -784,7 +785,7 @@ nsTextStateManager::Destroy(void)
       (new nsAsyncDOMEvent(doc, NS_LITERAL_STRING("MozIMEFocusOut"),
                            false, false))->RunDOMEventWhenSafe();
     }
-    mWidget->NotifyIME(NOTIFY_IME_OF_BLUR);
+    mWidget->NotifyIME(IMENotification(NOTIFY_IME_OF_BLUR));
   }
   
   mWidget = nullptr;
@@ -831,7 +832,8 @@ public:
 
   NS_IMETHOD Run() {
     if (mDispatcher->mWidget) {
-      mDispatcher->mWidget->NotifyIME(NOTIFY_IME_OF_SELECTION_CHANGE);
+      mDispatcher->mWidget->NotifyIME(
+        IMENotification(NOTIFY_IME_OF_SELECTION_CHANGE));
     }
     return NS_OK;
   }
@@ -869,7 +871,11 @@ public:
 
   NS_IMETHOD Run() {
     if (mDispatcher->mWidget) {
-      mDispatcher->mWidget->NotifyIMEOfTextChange(mStart, mOldEnd, mNewEnd);
+      IMENotification notification(NOTIFY_IME_OF_TEXT_CHANGE);
+      notification.mTextChangeData.mStartOffset = mStart;
+      notification.mTextChangeData.mOldEndOffset = mOldEnd;
+      notification.mTextChangeData.mNewEndOffset = mNewEnd;
+      mDispatcher->mWidget->NotifyIME(notification);
     }
     return NS_OK;
   }
