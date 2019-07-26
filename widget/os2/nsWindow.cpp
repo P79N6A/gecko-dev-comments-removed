@@ -2619,6 +2619,18 @@ bool nsWindow::OnImeRequest(MPARAM mp1, MPARAM mp2)
   return rc;
 }
 
+NS_IMETHODIMP_(InputContext) nsWindow::GetInputContext()
+{
+  HIMI himi;
+  if (sIm32Mod && spfnImGetInstance(mWnd, &himi)) {
+    mInputContext.mNativeIMEContext = static_cast<void*>(himi);
+  }
+  if (!mInputContext.mNativeIMEContext) {
+    mInputContext.mNativeIMEContext = this;
+  }
+  return mInputContext;
+}
+
 
 
 
