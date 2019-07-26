@@ -163,12 +163,7 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
 
 
 
-
   setParam: method(function (param, value) {
-    
-    if (typeof value === "string") {
-      value = value.replace(/[\'\"]*/g, "");
-    }
     try {
       if (isAudioParam(this.node, param))
         this.node[param].value = value;

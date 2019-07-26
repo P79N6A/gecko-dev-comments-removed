@@ -269,12 +269,21 @@ let WebAudioParamView = {
     let ownerScope = variable.ownerView;
     let node = getViewNodeById(ownerScope.actorID);
     let propName = variable.name;
-    let errorMessage = yield node.actor.setParam(propName, value);
+    let error;
+
+    
+    try {
+      value = JSON.parse(value);
+      error = yield node.actor.setParam(propName, value);
+    }
+    catch (e) {
+      error = e;
+    }
 
     
     
     
-    if (!errorMessage) {
+    if (!error) {
       ownerScope.get(propName).setGrip(value);
       window.emit(EVENTS.UI_SET_PARAM, node.id, propName, value);
     } else {
