@@ -606,19 +606,7 @@ DrawTargetSkia::Mask(const Pattern &aSource,
   raster->addLayer(maskPaint);
   SkSafeUnref(paint.mPaint.setRasterizer(raster));
 
-  
-  
-  
-  SkPath path;
-  path.addRect(SkRect::MakeWH(SkScalar(mSize.width), SkScalar(mSize.height)));
- 
-  Matrix temp = mTransform;
-  temp.Invert();
-  SkMatrix mat;
-  GfxMatrixToSkiaMatrix(temp, mat);
-  path.transform(mat);
-
-  mCanvas->drawPath(path, paint.mPaint);
+  mCanvas->drawRect(SkRectCoveringWholeSurface(), paint.mPaint);
 }
 
 void
@@ -892,6 +880,14 @@ DrawTargetSkia::MarkChanged()
     mSnapshot->DrawTargetWillChange();
     mSnapshot = nullptr;
   }
+}
+
+
+
+SkRect
+DrawTargetSkia::SkRectCoveringWholeSurface() const
+{
+  return RectToSkRect(mTransform.TransformBounds(Rect(0, 0, mSize.width, mSize.height)));
 }
 
 void
