@@ -250,7 +250,7 @@ struct JSCompartment
     js::types::TypeObjectSet     lazyTypeObjects;
     void sweepNewTypeObjectTable(js::types::TypeObjectSet &table);
 
-    js::types::TypeObject        *emptyTypeObject;
+    js::ReadBarriered<js::types::TypeObject> emptyTypeObject;
 
     
     inline js::types::TypeObject *getEmptyType(JSContext *cx);

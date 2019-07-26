@@ -793,10 +793,20 @@ TRY_AGAIN_NO_SHARING:
         return true;
     }
 
-    bool MakeCurrentImpl()
+    bool MakeCurrentImpl(bool aForce = false)
     {
-        bool succeeded = sGLXLibrary.xMakeCurrent(mDisplay, mDrawable, mContext);
-        NS_ASSERTION(succeeded, "Failed to make GL context current!");
+        bool succeeded = true;
+
+        
+        
+        
+        
+        
+        
+        if (aForce || sGLXLibrary.xGetCurrentContext() != mContext) {
+            succeeded = sGLXLibrary.xMakeCurrent(mDisplay, mDrawable, mContext);
+            NS_ASSERTION(succeeded, "Failed to make GL context current!");
+        }
 
         return succeeded;
     }

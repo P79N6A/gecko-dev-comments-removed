@@ -971,7 +971,7 @@ class ErrorEvent : public Event
   public:
     static ErrorEvent *create(JSContext *cx, Worker *child) {
         JSString *data = NULL;
-        jsval exc;
+        JS::Value exc;
         if (JS_GetPendingException(cx, &exc)) {
             AutoValueRooter tvr(cx, exc);
             JS_ClearPendingException(cx);
@@ -979,12 +979,12 @@ class ErrorEvent : public Event
             
             
             
-            if (JSVAL_IS_OBJECT(exc)) {
-                jsval msg;
-                if (!JS_GetProperty(cx, JSVAL_TO_OBJECT(exc), "message", &msg))
+            if (exc.isObject()) {
+                JS::Value msg;
+                if (!JS_GetProperty(cx, &exc.toObject(), "message", &msg))
                     JS_ClearPendingException(cx);
-                else if (JSVAL_IS_STRING(msg))
-                    data = JSVAL_TO_STRING(msg);
+                else if (msg.isString())
+                    data = msg.toString();
             }
             if (!data) {
                 data = JS_ValueToString(cx, exc);
