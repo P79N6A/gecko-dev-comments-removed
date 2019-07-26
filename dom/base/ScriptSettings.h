@@ -151,6 +151,18 @@ private:
 
 
 
+
+
+
+
+class AutoJSAPIWithErrorsReportedToWindow : public AutoJSAPI {
+  public:
+    AutoJSAPIWithErrorsReportedToWindow(nsIScriptContext* aScx);
+};
+
+
+
+
 class AutoEntryScript : public AutoJSAPI,
                         protected ScriptSettingsStackEntry {
 public:

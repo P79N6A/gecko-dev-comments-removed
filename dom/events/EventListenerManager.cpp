@@ -792,7 +792,9 @@ EventListenerManager::CompileEventHandlerInternal(Listener* aListener,
   NS_ENSURE_STATE(context);
 
   
-  AutoPushJSContextForErrorReporting cx(context->GetNativeContext());
+  
+  AutoJSAPIWithErrorsReportedToWindow jsapi(context);
+  JSContext* cx = jsapi.cx();
 
   nsCOMPtr<nsIAtom> typeAtom = aListener->mTypeAtom;
   nsIAtom* attrName = typeAtom;
