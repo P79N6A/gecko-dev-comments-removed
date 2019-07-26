@@ -7944,6 +7944,16 @@ IonBuilder::getPropTryCache(bool *emitted, HandlePropertyName name, HandleId id,
     if (accessGetter)
         barrier = true;
 
+    
+    
+    
+    
+    if (info().executionMode() == ParallelExecution &&
+        !types->hasType(types::Type::UndefinedType()))
+    {
+        barrier = true;
+    }
+
     if (!pushTypeBarrier(load, types, barrier))
         return false;
 
