@@ -87,6 +87,7 @@ public:
     , mIsRepeat(false)
     , mIsComposing(false)
     , mKeyNameIndex(mozilla::KEY_NAME_INDEX_Unidentified)
+    , mCodeNameIndex(CODE_NAME_INDEX_UNKNOWN)
     , mNativeKeyEvent(nullptr)
     , mUniqueId(0)
   {
@@ -129,7 +130,12 @@ public:
   
   KeyNameIndex mKeyNameIndex;
   
+  CodeNameIndex mCodeNameIndex;
+  
   nsString mKeyValue;
+  
+  
+  nsString mCodeValue;
   
   void* mNativeKeyEvent;
   
@@ -146,9 +152,19 @@ public:
     }
     GetDOMKeyName(mKeyNameIndex, aKeyName);
   }
+  void GetDOMCodeName(nsAString& aCodeName)
+  {
+    if (mCodeNameIndex == CODE_NAME_INDEX_USE_STRING) {
+      aCodeName = mCodeValue;
+      return;
+    }
+    GetDOMCodeName(mCodeNameIndex, aCodeName);
+  }
 
-  static void GetDOMKeyName(mozilla::KeyNameIndex aKeyNameIndex,
+  static void GetDOMKeyName(KeyNameIndex aKeyNameIndex,
                             nsAString& aKeyName);
+  static void GetDOMCodeName(CodeNameIndex aCodeNameIndex,
+                             nsAString& aCodeName);
 
   static const char* GetCommandStr(Command aCommand);
 
@@ -164,7 +180,9 @@ public:
     mIsRepeat = aEvent.mIsRepeat;
     mIsComposing = aEvent.mIsComposing;
     mKeyNameIndex = aEvent.mKeyNameIndex;
+    mCodeNameIndex = aEvent.mCodeNameIndex;
     mKeyValue = aEvent.mKeyValue;
+    mCodeValue = aEvent.mCodeValue;
     
     
     mNativeKeyEvent = nullptr;
