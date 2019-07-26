@@ -3172,8 +3172,10 @@ JS_StealArrayBufferContents(JSContext *cx, JS::HandleObject obj, void **contents
 
 
 
+
+
 extern JS_PUBLIC_API(bool)
-JS_AllocateArrayBufferContents(JSContext *cx, uint32_t nbytes, void **contents, uint8_t **data);
+JS_AllocateArrayBufferContents(JSContext *maybecx, uint32_t nbytes, void **contents, uint8_t **data);
 
 
 
