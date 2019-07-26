@@ -326,6 +326,8 @@ BrowserGlue.prototype = {
         
         
         
+        
+        
         let ss = Services.search;
         if (ss.currentEngine.name == ss.defaultEngine.name)
           return;
@@ -334,6 +336,22 @@ BrowserGlue.prototype = {
         else
           ss.currentEngine = ss.defaultEngine;
         break;
+      case "browser-search-service":
+        if (data != "init-complete")
+          return;
+        Services.obs.removeObserver(this, "browser-search-service");
+        this._syncSearchEngines();
+        break;
+    }
+  },
+
+  _syncSearchEngines: function () {
+    
+    
+    
+    
+    if (Services.search.isInitialized) {
+      Services.search.defaultEngine = Services.search.currentEngine;
     }
   },
 
@@ -369,6 +387,7 @@ BrowserGlue.prototype = {
     os.addObserver(this, "keyword-search", false);
 #endif
     os.addObserver(this, "browser-search-engine-modified", false);
+    os.addObserver(this, "browser-search-service", false);
   },
 
   
@@ -403,6 +422,10 @@ BrowserGlue.prototype = {
     os.removeObserver(this, "keyword-search");
 #endif
     os.removeObserver(this, "browser-search-engine-modified");
+    try {
+      os.removeObserver(this, "browser-search-service");
+      
+    } catch (ex) {}
   },
 
   _onAppDefaults: function BG__onAppDefaults() {
@@ -429,6 +452,8 @@ BrowserGlue.prototype = {
     this._migrateUI();
 
     this._setUpUserAgentOverrides();
+
+    this._syncSearchEngines();
 
     webappsUI.init();
     PageThumbs.init();
