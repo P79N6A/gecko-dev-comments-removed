@@ -12,6 +12,7 @@
 #include "Relation.h"
 #include "Role.h"
 #include "States.h"
+#include "TreeWalker.h"
 
 #include "nsContentList.h"
 #include "nsCxPusher.h"
@@ -478,6 +479,22 @@ HTMLTextFieldAccessible::GetEditor() const
   editableElt->GetEditor(getter_AddRefs(editor));
 
   return editor.forget();
+}
+
+void
+HTMLTextFieldAccessible::CacheChildren()
+{
+  
+  
+  
+  TreeWalker walker(this, mContent);
+  Accessible* child = nullptr;
+  while ((child = walker.NextChild())) {
+    if (child->IsTextLeaf())
+      AppendChild(child);
+    else
+      Document()->UnbindFromDocument(child);
+  }
 }
 
 

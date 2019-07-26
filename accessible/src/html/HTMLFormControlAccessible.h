@@ -96,6 +96,7 @@ protected:
 
 
 
+
 class HTMLTextFieldAccessible : public HyperTextAccessibleWrap
 {
 
@@ -129,6 +130,8 @@ public:
 protected:
   
   virtual ENameValueFlag NativeName(nsString& aName) MOZ_OVERRIDE;
+
+  virtual void CacheChildren() MOZ_OVERRIDE;
 };
 
 
