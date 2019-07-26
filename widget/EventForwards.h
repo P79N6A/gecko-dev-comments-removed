@@ -38,7 +38,7 @@ enum KeyNameIndex
 #include "nsDOMKeyNameList.h"
   
   
-  NUMBER_OF_KEY_NAME_INDEX
+  KEY_NAME_INDEX_USE_STRING
 };
 
 #undef NS_DEFINE_KEYNAME
