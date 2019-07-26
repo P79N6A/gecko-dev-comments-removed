@@ -418,6 +418,25 @@ function is_element_hidden(aElement, aMsg) {
   ok(is_hidden(aElement), aMsg);
 }
 
+
+
+
+
+
+function install_addon(path, cb, pathPrefix=TESTROOT) {
+  AddonManager.getInstallForURL(pathPrefix + path, (install) => {
+    install.addListener({
+      onInstallEnded: () => {
+        executeSoon(() => {
+          cb(install.addon);
+        });
+      },
+    });
+
+    install.install();
+  }, "application/x-xpinstall");
+}
+
 function CategoryUtilities(aManagerWindow) {
   this.window = aManagerWindow;
 

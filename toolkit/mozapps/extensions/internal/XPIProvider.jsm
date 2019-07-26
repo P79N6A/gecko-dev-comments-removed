@@ -168,8 +168,15 @@ const TYPES = {
   theme: 4,
   locale: 8,
   multipackage: 32,
-  dictionary: 64
+  dictionary: 64,
+  experiment: 128,
 };
+
+const RESTARTLESS_TYPES = new Set([
+  "dictionary",
+  "experiment",
+  "locale",
+]);
 
 
 
@@ -820,8 +827,9 @@ function loadManifestFromRDF(aUri, aStream) {
   }
   else {
     
-    if (addon.type == "dictionary" || addon.type == "locale")
+    if (RESTARTLESS_TYPES.has(addon.type)) {
       addon.bootstrap = true;
+    }
 
     
     
@@ -7270,7 +7278,7 @@ WinRegInstallLocation.prototype = {
 };
 #endif
 
-AddonManagerPrivate.registerProvider(XPIProvider, [
+let addonTypes = [
   new AddonManagerPrivate.AddonType("extension", URI_EXTENSION_STRINGS,
                                     STRING_TYPE_NAME,
                                     AddonManager.VIEW_TYPE_LIST, 4000),
@@ -7284,5 +7292,20 @@ AddonManagerPrivate.registerProvider(XPIProvider, [
   new AddonManagerPrivate.AddonType("locale", URI_EXTENSION_STRINGS,
                                     STRING_TYPE_NAME,
                                     AddonManager.VIEW_TYPE_LIST, 8000,
-                                    AddonManager.TYPE_UI_HIDE_EMPTY)
-]);
+                                    AddonManager.TYPE_UI_HIDE_EMPTY),
+];
+
+
+
+
+
+if (Prefs.getBoolPref("experiments.supported", false)) {
+  addonTypes.push(
+    new AddonManagerPrivate.AddonType("experiment",
+                                      URI_EXTENSION_STRINGS,
+                                      STRING_TYPE_NAME,
+                                      AddonManager.VIEW_TYPE_LIST, 11000,
+                                      AddonManager.TYPE_UI_HIDE_EMPTY));
+}
+
+AddonManagerPrivate.registerProvider(XPIProvider, addonTypes);
