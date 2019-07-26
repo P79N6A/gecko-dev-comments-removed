@@ -7,7 +7,6 @@
 #ifndef nsCUPSShim_h___
 #define nsCUPSShim_h___
 
-#include "prtypes.h"
 
 
 
