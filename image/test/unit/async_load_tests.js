@@ -51,13 +51,10 @@ function checkClone(other_listener, aRequest)
 }
 
 
-function checkAllCallbacks(listener, aRequest)
+function checkSizeAndLoad(listener, aRequest)
 {
   do_check_neq(listener.state & SIZE_AVAILABLE, 0);
-  do_check_neq(listener.state & FRAME_COMPLETE, 0);
-  do_check_neq(listener.state & DECODE_COMPLETE, 0);
   do_check_neq(listener.state & LOAD_COMPLETE, 0);
-  do_check_eq(listener.state, ALL_BITS);
 
   do_test_finished();
 }
@@ -71,7 +68,7 @@ function secondLoadDone(oldlistener, aRequest)
 
     
     
-    var listener = new ImageListener(null, checkAllCallbacks);
+    var listener = new ImageListener(null, checkSizeAndLoad);
     listener.synchronous = false;
     var outer = Cc["@mozilla.org/image/tools;1"].getService(Ci.imgITools)
                   .createScriptedObserver(listener);
