@@ -239,6 +239,8 @@ protected:
   nsCOMPtr<nsIFile> mTempFile;
   nsCOMPtr<nsIURI> mSourceUrl;
   nsString mTempFileExtension;
+  nsString mTempLeafName;
+
   
 
 
