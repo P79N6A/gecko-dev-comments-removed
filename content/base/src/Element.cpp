@@ -10,10 +10,9 @@
 
 
 
-#include "mozilla/DebugOnly.h"
-
 #include "mozilla/dom/Element.h"
 
+#include "mozilla/DebugOnly.h"
 #include "mozilla/dom/Attr.h"
 #include "nsDOMAttributeMap.h"
 #include "nsIAtom.h"

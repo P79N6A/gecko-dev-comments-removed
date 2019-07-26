@@ -4,8 +4,10 @@
 
 
 #include "mozilla/dom/SVGFEImageElement.h"
+
 #include "mozilla/dom/SVGFEImageElementBinding.h"
 #include "mozilla/dom/SVGFilterElement.h"
+#include "nsContentUtils.h"
 #include "nsLayoutUtils.h"
 #include "nsSVGUtils.h"
 #include "nsNetUtil.h"
