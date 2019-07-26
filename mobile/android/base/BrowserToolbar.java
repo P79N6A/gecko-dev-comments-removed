@@ -1279,17 +1279,33 @@ public class BrowserToolbar extends GeckoRelativeLayout
         mUrlEditText.setText(url != null ? url : "");
         mIsEditing = true;
 
+        final int entryTranslation = getUrlBarEntryTranslation();
+        final int curveTranslation = getUrlBarCurveTranslation();
+
         
-        if (HardwareUtils.isTablet()) {
+        if (HardwareUtils.isTablet() || Build.VERSION.SDK_INT < 11) {
             showUrlEditContainer();
+
+            if (!HardwareUtils.isTablet()) {
+                if (mUrlBarRightEdge != null) {
+                    ViewHelper.setTranslationX(mUrlBarRightEdge, entryTranslation);
+                }
+
+                ViewHelper.setTranslationX(mTabs, curveTranslation);
+                ViewHelper.setTranslationX(mTabsCounter, curveTranslation);
+                ViewHelper.setTranslationX(mActionItemBar, curveTranslation);
+
+                if (mHasSoftMenuButton) {
+                    ViewHelper.setTranslationX(mMenu, curveTranslation);
+                    ViewHelper.setTranslationX(mMenuIcon, curveTranslation);
+                }
+            }
+
             return;
         }
 
         if (mAnimatingEntry)
             return;
-
-        final int entryTranslation = getUrlBarEntryTranslation();
-        final int curveTranslation = getUrlBarCurveTranslation();
 
         
         setSelected(true);
@@ -1371,9 +1387,25 @@ public class BrowserToolbar extends GeckoRelativeLayout
         }
         mIsEditing = false;
 
-        if (HardwareUtils.isTablet()) {
+        if (HardwareUtils.isTablet() || Build.VERSION.SDK_INT < 11) {
             hideUrlEditContainer();
             updateTabCountAndAnimate(Tabs.getInstance().getDisplayCount());
+
+            if (!HardwareUtils.isTablet()) {
+                if (mUrlBarRightEdge != null) {
+                    ViewHelper.setTranslationX(mUrlBarRightEdge, 0);
+                }
+
+                ViewHelper.setTranslationX(mTabs, 0);
+                ViewHelper.setTranslationX(mTabsCounter, 0);
+                ViewHelper.setTranslationX(mActionItemBar, 0);
+
+                if (mHasSoftMenuButton) {
+                    ViewHelper.setTranslationX(mMenu, 0);
+                    ViewHelper.setTranslationX(mMenuIcon, 0);
+                }
+            }
+
             return url;
         }
 
