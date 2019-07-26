@@ -151,10 +151,40 @@ ElementAnimations::EnsureStyleRuleFor(TimeStamp aRefreshTime,
                                       EventArray& aEventsToDispatch,
                                       bool aIsThrottled)
 {
-  if (!mNeedsRefreshes ||
-      aIsThrottled) {
-    
-    
+  if (!mNeedsRefreshes) {
+    mStyleRuleRefreshTime = aRefreshTime;
+    return;
+  }
+
+  
+  
+  
+  
+  
+  
+  if (aIsThrottled) {
+    for (uint32_t animIdx = mAnimations.Length(); animIdx-- != 0; ) {
+      ElementAnimation &anim = mAnimations[animIdx];
+
+      if (anim.mProperties.Length() == 0 ||
+          anim.mIterationDuration.ToMilliseconds() <= 0.0 ||
+          anim.IsPaused()) {
+        continue;
+      }
+
+      
+      
+      
+      
+      if ((aRefreshTime - anim.mStartTime) / anim.mIterationDuration >= anim.mIterationCount && 
+          anim.mLastNotification != ElementAnimation::LAST_NOTIFICATION_END) {
+        aIsThrottled = false;
+        break;
+      }
+    }
+  }
+
+  if (aIsThrottled) {
     mStyleRuleRefreshTime = aRefreshTime;
     return;
   }
