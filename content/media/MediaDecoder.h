@@ -191,7 +191,6 @@
 #include "necko-config.h"
 
 class nsIStreamListener;
-class nsIMemoryReporter;
 class nsIPrincipal;
 class nsITimer;
 

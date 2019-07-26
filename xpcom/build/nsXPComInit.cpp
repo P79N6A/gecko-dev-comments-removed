@@ -583,7 +583,7 @@ NS_InitXPCOM2(nsIServiceManager* *result,
 
     
     
-    NS_RegisterMemoryReporter(new ICUReporter());
+    RegisterStrongMemoryReporter(new ICUReporter());
 
     mozilla::Telemetry::Init();
 
