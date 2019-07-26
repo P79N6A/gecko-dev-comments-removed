@@ -40,7 +40,6 @@ ICCompare_Int32::Compiler::generateStubCode(MacroAssembler &masm)
     
     masm.bind(&failure);
     EmitStubGuardFailure(masm);
-
     return true;
 }
 
