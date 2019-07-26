@@ -26,7 +26,7 @@ class SafepointWriter
     BitSet *frameSlots_;
 
   public:
-    bool init(uint32_t slotCount);
+    bool init(TempAllocator &alloc, uint32_t slotCount);
 
   private:
     
