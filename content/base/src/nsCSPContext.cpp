@@ -3,9 +3,6 @@
 
 
 
-#include "mozilla/Preferences.h"
-#include "nsAsyncRedirectVerifyHelper.h"
-#include "nsChannelProperties.h"
 #include "nsCOMPtr.h"
 #include "nsContentPolicyUtils.h"
 #include "nsContentUtils.h"
@@ -14,12 +11,16 @@
 #include "nsCSPService.h"
 #include "nsError.h"
 #include "nsIAsyncVerifyRedirectCallback.h"
-#include "nsIChannelEventSink.h"
 #include "nsIChannelPolicy.h"
+#include "nsIClassInfoImpl.h"
 #include "nsIDocShell.h"
 #include "nsIDocShellTreeItem.h"
+#include "nsIDOMHTMLDocument.h"
+#include "nsIDOMHTMLElement.h"
 #include "nsIHttpChannel.h"
 #include "nsIInterfaceRequestorUtils.h"
+#include "nsIObjectInputStream.h"
+#include "nsIObjectOutputStream.h"
 #include "nsIObserver.h"
 #include "nsIObserverService.h"
 #include "nsIPrincipal.h"
@@ -30,6 +31,19 @@
 #include "prlog.h"
 
 using namespace mozilla;
+
+#if defined(PR_LOGGING)
+static PRLogModuleInfo *
+GetCspContextLog()
+{
+  static PRLogModuleInfo *gCspContextPRLog;
+  if (!gCspContextPRLog)
+    gCspContextPRLog = PR_NewLogModule("CSPContext");
+  return gCspContextPRLog;
+}
+#endif
+
+#define CSPCONTEXTLOG(args) PR_LOG(GetCspContextLog(), 4, args)
 
 
 
@@ -42,7 +56,94 @@ nsCSPContext::ShouldLoad(nsContentPolicyType aContentType,
                          nsISupports*        aExtra,
                          int16_t*            outDecision)
 {
+#ifdef PR_LOGGING
+  {
+  nsAutoCString spec;
+  aContentLocation->GetSpec(spec);
+  CSPCONTEXTLOG(("nsCSPContext::ShouldLoad, aContentLocation: %s", spec.get()));
+  }
+#endif
+
+  nsresult rv = NS_OK;
+
+  
+  
+  
+  
+  
+  
+  
+
+  
   *outDecision = nsIContentPolicy::ACCEPT;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  nsCOMPtr<nsIDOMHTMLDocument> doc = do_QueryInterface(aRequestContext);
+  bool isPreload = doc &&
+                   (aContentType == nsIContentPolicy::TYPE_SCRIPT ||
+                    aContentType == nsIContentPolicy::TYPE_STYLESHEET);
+
+  nsAutoString nonce;
+  if (!isPreload) {
+    nsCOMPtr<nsIDOMHTMLElement> htmlElement = do_QueryInterface(aRequestContext);
+    if (htmlElement) {
+      rv = htmlElement->GetAttribute(NS_LITERAL_STRING("nonce"), nonce);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+  }
+
+  nsAutoString violatedDirective;
+  for (uint32_t p = 0; p < mPolicies.Length(); p++) {
+    if (!mPolicies[p]->permits(aContentType,
+                               aContentLocation,
+                               nonce,
+                               violatedDirective)) {
+      
+      
+      if (!mPolicies[p]->getReportOnlyFlag()) {
+        CSPCONTEXTLOG(("nsCSPContext::ShouldLoad, nsIContentPolicy::REJECT_SERVER"));
+        *outDecision = nsIContentPolicy::REJECT_SERVER;
+      }
+
+      
+      
+      
+      if (!isPreload) {
+        nsCOMPtr<nsIObserverService> observerService = mozilla::services::GetObserverService();
+        NS_ASSERTION(observerService, "CSP requires observer service.");
+
+        observerService->NotifyObservers(aContentLocation,
+                                         CSP_VIOLATION_TOPIC,
+                                         violatedDirective.get());
+      }
+
+      
+      
+      
+    }
+  }
+#ifdef PR_LOGGING
+  {
+  nsAutoCString spec;
+  aContentLocation->GetSpec(spec);
+  CSPCONTEXTLOG(("nsCSPContext::ShouldLoad, decision: %s, aContentLocation: %s", *outDecision ? "load" : "deny", spec.get()));
+  }
+#endif
   return NS_OK;
 }
 
@@ -61,16 +162,24 @@ nsCSPContext::ShouldProcess(nsContentPolicyType aContentType,
 
 
 
-NS_IMPL_ISUPPORTS(nsCSPContext,
-                  nsIContentSecurityPolicy,
-                  nsISerializable)
+NS_IMPL_CLASSINFO(nsCSPContext,
+                  nullptr,
+                  nsIClassInfo::MAIN_THREAD_ONLY,
+                  NS_CSPCONTEXT_CID)
+
+NS_IMPL_ISUPPORTS_CI(nsCSPContext,
+                     nsIContentSecurityPolicy,
+                     nsISerializable)
 
 nsCSPContext::nsCSPContext()
+  : mSelfURI(nullptr)
 {
+  CSPCONTEXTLOG(("nsCSPContext::nsCSPContext"));
 }
 
 nsCSPContext::~nsCSPContext()
 {
+  CSPCONTEXTLOG(("nsCSPContext::~nsCSPContext"));
   for (uint32_t i = 0; i < mPolicies.Length(); i++) {
     delete mPolicies[i];
   }
@@ -86,7 +195,7 @@ NS_IMETHODIMP
 nsCSPContext::GetPolicy(uint32_t aIndex, nsAString& outStr)
 {
   if (aIndex >= mPolicies.Length()) {
-    return NS_ERROR_FAILURE;
+    return NS_ERROR_ILLEGAL_VALUE;
   }
   mPolicies[aIndex]->toString(outStr);
   return NS_OK;
@@ -115,33 +224,95 @@ nsCSPContext::AppendPolicy(const nsAString& aPolicyString,
                            bool aReportOnly,
                            bool aSpecCompliant)
 {
-  NS_ASSERTION(aSelfURI, "aSelfURI required for AppendPolicy");
-  nsCSPPolicy* policy = nsCSPParser::parseContentSecurityPolicy(aPolicyString, aSelfURI, aReportOnly, 0);
+  CSPCONTEXTLOG(("nsCSPContext::AppendPolicy: %s",
+                 NS_ConvertUTF16toUTF8(aPolicyString).get()));
+
+  if (aSelfURI) {
+    
+    NS_WARNING("aSelfURI should be a nullptr in AppendPolicy and removed in bug 991474");
+  }
+
+  
+  NS_ASSERTION(mSelfURI, "mSelfURI required for AppendPolicy, but not set");
+  nsCSPPolicy* policy = nsCSPParser::parseContentSecurityPolicy(aPolicyString, mSelfURI, aReportOnly, 0);
   if (policy) {
     mPolicies.AppendElement(policy);
   }
   return NS_OK;
 }
 
+
+
 NS_IMETHODIMP
-nsCSPContext::GetAllowsInlineScript(bool* outShouldReportViolations,
+nsCSPContext::getAllowsInternal(nsContentPolicyType aContentType,
+                                enum CSPKeyword aKeyword,
+                                const nsAString& aNonceOrContent,
+                                bool* outShouldReportViolation,
+                                bool* outIsAllowed) const
+{
+  *outShouldReportViolation = false;
+  *outIsAllowed = true;
+
+  
+  if (aKeyword == CSP_NONCE || aKeyword == CSP_HASH) {
+    if (!(aContentType == nsIContentPolicy::TYPE_SCRIPT ||
+          aContentType == nsIContentPolicy::TYPE_STYLESHEET)) {
+      *outIsAllowed = false;
+      return NS_OK;
+    }
+  }
+
+  for (uint32_t i = 0; i < mPolicies.Length(); i++) {
+    if (!mPolicies[i]->allows(aContentType,
+                              aKeyword,
+                              aNonceOrContent)) {
+      
+      
+      *outShouldReportViolation = true;
+      if (!mPolicies[i]->getReportOnlyFlag()) {
+        *outIsAllowed = false;
+      }
+    }
+  }
+  CSPCONTEXTLOG(("nsCSPContext::getAllowsInternal, aContentType: %d, aKeyword: %s, aNonceOrContent: %s, isAllowed: %s",
+                aContentType,
+                aKeyword == CSP_HASH ? "hash" : CSP_EnumToKeyword(aKeyword),
+                NS_ConvertUTF16toUTF8(aNonceOrContent).get(),
+                *outIsAllowed ? "load" : "deny"));
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsCSPContext::GetAllowsInlineScript(bool* outShouldReportViolation,
                                     bool* outAllowsInlineScript)
 {
-  return NS_ERROR_NOT_IMPLEMENTED;
+  return getAllowsInternal(nsIContentPolicy::TYPE_SCRIPT,
+                           CSP_UNSAFE_INLINE,
+                           EmptyString(),
+                           outShouldReportViolation,
+                           outAllowsInlineScript);
 }
 
 NS_IMETHODIMP
-nsCSPContext::GetAllowsEval(bool* outShouldReportViolations,
+nsCSPContext::GetAllowsEval(bool* outShouldReportViolation,
                             bool* outAllowsEval)
 {
-  return NS_ERROR_NOT_IMPLEMENTED;
+  return getAllowsInternal(nsIContentPolicy::TYPE_SCRIPT,
+                           CSP_UNSAFE_EVAL,
+                           EmptyString(),
+                           outShouldReportViolation,
+                           outAllowsEval);
 }
 
 NS_IMETHODIMP
-nsCSPContext::GetAllowsInlineStyle(bool* outShouldReportViolations,
+nsCSPContext::GetAllowsInlineStyle(bool* outShouldReportViolation,
                                    bool* outAllowsInlineStyle)
 {
-  return NS_ERROR_NOT_IMPLEMENTED;
+  return getAllowsInternal(nsIContentPolicy::TYPE_STYLESHEET,
+                           CSP_UNSAFE_INLINE,
+                           EmptyString(),
+                           outShouldReportViolation,
+                           outAllowsInlineStyle);
 }
 
 NS_IMETHODIMP
@@ -150,7 +321,11 @@ nsCSPContext::GetAllowsNonce(const nsAString& aNonce,
                              bool* outShouldReportViolation,
                              bool* outAllowsNonce)
 {
-  return NS_ERROR_NOT_IMPLEMENTED;
+  return getAllowsInternal(aContentType,
+                           CSP_NONCE,
+                           aNonce,
+                           outShouldReportViolation,
+                           outAllowsNonce);
 }
 
 NS_IMETHODIMP
@@ -159,7 +334,11 @@ nsCSPContext::GetAllowsHash(const nsAString& aContent,
                             bool* outShouldReportViolation,
                             bool* outAllowsHash)
 {
-  return NS_ERROR_NOT_IMPLEMENTED;
+  return getAllowsInternal(aContentType,
+                           CSP_HASH,
+                           aContent,
+                           outShouldReportViolation,
+                           outAllowsHash);
 }
 
 NS_IMETHODIMP
@@ -179,7 +358,24 @@ nsCSPContext::SetRequestContext(nsIURI* aSelfURI,
                                 nsIPrincipal* aDocumentPrincipal,
                                 nsIChannel* aChannel)
 {
-  return NS_ERROR_NOT_IMPLEMENTED;
+  if (!aSelfURI && !aChannel) {
+    CSPCONTEXTLOG(("nsCSPContext::SetRequestContext: !selfURI && !aChannel provided"));
+    return NS_ERROR_FAILURE;
+  }
+
+  mSelfURI = aSelfURI;
+
+  if (!mSelfURI) {
+    nsresult rv = aChannel->GetURI(getter_AddRefs(mSelfURI));
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  NS_ASSERTION(mSelfURI, "No mSelfURI in SetRequestContext, can not translate 'self' into actual URI");
+
+  
+  
+
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -191,14 +387,76 @@ nsCSPContext::PermitsAncestry(nsIDocShell* aDocShell, bool* outPermitsAncestry)
 }
 
 
+
 NS_IMETHODIMP
 nsCSPContext::Read(nsIObjectInputStream* aStream)
 {
-  return NS_ERROR_NOT_IMPLEMENTED;
+  nsresult rv;
+  nsCOMPtr<nsISupports> supports;
+
+  rv = NS_ReadOptionalObject(aStream, true, getter_AddRefs(supports));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  mSelfURI = do_QueryInterface(supports);
+  NS_ASSERTION(mSelfURI, "need a self URI to de-serialize");
+
+  uint32_t numPolicies;
+  rv = aStream->Read32(&numPolicies);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsAutoString policyString;
+
+  while (numPolicies > 0) {
+    numPolicies--;
+
+    rv = aStream->ReadString(policyString);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    bool reportOnly = false;
+    rv = aStream->ReadBoolean(&reportOnly);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    bool specCompliant = false;
+    rv = aStream->ReadBoolean(&specCompliant);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    
+    if (!specCompliant) {
+      continue;
+    }
+
+    nsCSPPolicy* policy = nsCSPParser::parseContentSecurityPolicy(policyString,
+                                                                  mSelfURI,
+                                                                  reportOnly,
+                                                                  0);
+    if (policy) {
+      mPolicies.AppendElement(policy);
+    }
+  }
+
+  return NS_OK;
 }
 
 NS_IMETHODIMP
 nsCSPContext::Write(nsIObjectOutputStream* aStream)
 {
-  return NS_ERROR_NOT_IMPLEMENTED;
+  nsresult rv = NS_WriteOptionalCompoundObject(aStream,
+                                               mSelfURI,
+                                               NS_GET_IID(nsIURI),
+                                               true);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  aStream->Write32(mPolicies.Length());
+
+  nsAutoString polStr;
+  for (uint32_t p = 0; p < mPolicies.Length(); p++) {
+    mPolicies[p]->toString(polStr);
+    aStream->WriteWStringZ(polStr.get());
+    aStream->WriteBoolean(mPolicies[p]->getReportOnlyFlag());
+    
+    aStream->WriteBoolean(true);
+  }
+  return NS_OK;
 }

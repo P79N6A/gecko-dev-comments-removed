@@ -717,6 +717,13 @@ nsCSPPolicy::permits(nsContentPolicyType aContentType,
 
   
   
+  
+  if (aContentType == nsIContentPolicy::TYPE_DOCUMENT) {
+    return true;
+  }
+
+  
+  
   if (defaultDir) {
     if (!defaultDir->permits(aUri, aNonce)) {
       defaultDir->toString(outViolatedDirective);

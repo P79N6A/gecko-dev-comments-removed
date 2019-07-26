@@ -8,12 +8,10 @@
 
 #include "nsCSPUtils.h"
 #include "nsIChannel.h"
+#include "nsIClassInfo.h"
 #include "nsIContentSecurityPolicy.h"
 #include "nsISerializable.h"
 #include "nsXPCOM.h"
-
-class nsIObjectInputStream;
-class nsIObjectOutputStream;
 
 #define NS_CSPCONTEXT_CONTRACTID "@mozilla.org/cspcontext;1"
  
@@ -32,6 +30,12 @@ class nsCSPContext : public nsIContentSecurityPolicy
     virtual ~nsCSPContext();
 
   private:
+    NS_IMETHODIMP getAllowsInternal(nsContentPolicyType aContentType,
+                                    enum CSPKeyword aKeyword,
+                                    const nsAString& aNonceOrContent,
+                                    bool* outShouldReportViolations,
+                                    bool* outIsAllowed) const;
+
     nsTArray<nsCSPPolicy*> mPolicies;
     nsCOMPtr<nsIURI>       mSelfURI;
 };
