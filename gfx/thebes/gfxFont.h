@@ -3538,7 +3538,7 @@ protected:
     gfxFloat mUnderlineOffset;
     gfxFloat mHyphenWidth;
 
-    gfxUserFontSet* mUserFontSet;
+    nsRefPtr<gfxUserFontSet> mUserFontSet;
     uint64_t mCurrGeneration;  
 
     gfxTextPerfMetrics *mTextPerf;
