@@ -192,20 +192,21 @@ let PaymentProvider = {
 
 #ifdef MOZ_B2G_RIL
   
-  
-  
-  
+  get iccInfo() {
+    delete this.iccInfo;
+    return this.iccInfo = iccProvider.getIccInfo(0);
+  },
 
   get iccIds() {
-    return [iccProvider.iccInfo.iccid];
+    return [this.iccInfo.iccid];
   },
 
   get mcc() {
-    return [iccProvider.iccInfo.mcc];
+    return [this.iccInfo.mcc];
   },
 
   get mnc() {
-    return [iccProvider.iccInfo.mnc];
+    return [this.iccInfo.mnc];
   },
 
   _silentNumbers: null,
