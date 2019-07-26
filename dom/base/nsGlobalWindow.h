@@ -511,6 +511,10 @@ public:
     return mIsChrome;
   }
 
+  
+  
+  nsIScrollableFrame *GetScrollFrame();
+
   nsresult Observe(nsISupports* aSubject, const char* aTopic,
                    const PRUnichar* aData);
 
@@ -793,9 +797,6 @@ protected:
   nsresult GetTreeOwner(nsIDocShellTreeOwner** aTreeOwner);
   nsresult GetTreeOwner(nsIBaseWindow** aTreeOwner);
   nsresult GetWebBrowserChrome(nsIWebBrowserChrome** aBrowserChrome);
-  
-  
-  nsIScrollableFrame *GetScrollFrame();
   nsresult SecurityCheckURL(const char *aURL);
   nsresult BuildURIfromBase(const char *aURL,
                             nsIURI **aBuiltURI,
