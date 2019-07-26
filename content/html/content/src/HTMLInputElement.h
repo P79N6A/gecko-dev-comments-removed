@@ -19,6 +19,7 @@
 #include "nsHTMLFormElement.h" 
 #include "nsIFile.h"
 #include "nsIFilePicker.h"
+#include "nsIContentPrefService2.h"
 
 class nsDOMFileList;
 class nsIFilePicker;
@@ -41,7 +42,10 @@ public:
 
 
 
-  nsresult FetchLastUsedDirectory(nsIDocument* aDoc, nsIFile** aFile);
+
+  nsresult FetchDirectoryAndDisplayPicker(nsIDocument* aDoc,
+                                          nsIFilePicker* aFilePicker,
+                                          nsIFilePickerShownCallback* aFpCallback);
 
   
 
@@ -51,6 +55,25 @@ public:
 
 
   nsresult StoreLastUsedDirectory(nsIDocument* aDoc, nsIDOMFile* aDomFile);
+
+  class ContentPrefCallback MOZ_FINAL : public nsIContentPrefCallback2
+  {
+    public:
+    ContentPrefCallback(nsIFilePicker* aFilePicker, nsIFilePickerShownCallback* aFpCallback)
+    : mFilePicker(aFilePicker)
+    , mFpCallback(aFpCallback)
+    { }
+
+    virtual ~ContentPrefCallback()
+    { }
+
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSICONTENTPREFCALLBACK2
+
+    nsCOMPtr<nsIFilePicker> mFilePicker;
+    nsCOMPtr<nsIFilePickerShownCallback> mFpCallback;
+    nsCOMPtr<nsIContentPref> mResult;
+  };
 };
 
 class HTMLInputElement : public nsGenericHTMLFormElement,
