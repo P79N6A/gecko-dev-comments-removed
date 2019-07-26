@@ -27,8 +27,8 @@
 
 
 
-#ifndef MacroAssemblerCodeRef_h
-#define MacroAssemblerCodeRef_h
+#ifndef assembler_assembler_MacroAssemblerCodeRef_h
+#define assembler_assembler_MacroAssemblerCodeRef_h
 
 #include "assembler/wtf/Platform.h"
 #include "assembler/jit/ExecutableAllocator.h"

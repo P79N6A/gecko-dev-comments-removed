@@ -4,8 +4,8 @@
 
 
 
-#ifndef RegExp_h___
-#define RegExp_h___
+#ifndef builtin_RegExp_h
+#define builtin_RegExp_h
 
 #include "jsprvtd.h"
 

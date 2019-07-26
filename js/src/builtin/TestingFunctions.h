@@ -4,8 +4,8 @@
 
 
 
-#ifndef TestingFunctions_h__
-#define TestingFunctions_h__
+#ifndef builtin_TestingFunctions_h
+#define builtin_TestingFunctions_h
 
 #include "jsapi.h"
 

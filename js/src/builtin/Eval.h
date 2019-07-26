@@ -4,10 +4,10 @@
 
 
 
-#include "vm/Stack.h"
+#ifndef builtin_Eval_h
+#define builtin_Eval_h
 
-#ifndef Eval_h__
-#define Eval_h__
+#include "vm/Stack.h"
 
 namespace js {
 
@@ -47,4 +47,4 @@ extern JSPrincipals *
 PrincipalsForCompiledCode(const CallReceiver &call, JSContext *cx);
 
 }  
-#endif  
+#endif 

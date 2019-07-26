@@ -4,8 +4,8 @@
 
 
 
-#ifndef ParallelArray_h__
-#define ParallelArray_h__
+#ifndef builtin_ParallelArray_h
+#define builtin_ParallelArray_h
 
 #include "jsapi.h"
 #include "jscntxt.h"

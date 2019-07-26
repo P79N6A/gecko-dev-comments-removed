@@ -4,8 +4,8 @@
 
 
 
-#ifndef FoldConstants_h__
-#define FoldConstants_h__
+#ifndef frontend_FoldConstants_h
+#define frontend_FoldConstants_h
 
 #include "jsprvtd.h"
 

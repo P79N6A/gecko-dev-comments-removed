@@ -4,8 +4,8 @@
 
 
 
-#ifndef BytecodeCompiler_h__
-#define BytecodeCompiler_h__
+#ifndef frontend_BytecodeCompiler_h
+#define frontend_BytecodeCompiler_h
 
 #include "jsapi.h"
 

@@ -27,8 +27,8 @@
 
 
 
-#ifndef AssemblerBuffer_h
-#define AssemblerBuffer_h
+#ifndef assembler_assembler_AssemblerBuffer_h
+#define assembler_assembler_AssemblerBuffer_h
 
 #include "assembler/wtf/Platform.h"
 

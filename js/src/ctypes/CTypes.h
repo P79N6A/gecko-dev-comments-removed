@@ -3,8 +3,8 @@
 
 
 
-#ifndef CTYPES_H
-#define CTYPES_H
+#ifndef ctypes_CTypes_h
+#define ctypes_CTypes_h
 
 #include "jscntxt.h"
 #include "jsapi.h"
@@ -509,4 +509,4 @@ namespace UInt64 {
 }
 }
 
-#endif
+#endif 

@@ -4,8 +4,8 @@
 
 
 
-#ifndef ParseNode_inl_h__
-#define ParseNode_inl_h__
+#ifndef frontend_ParseNode_inl_h
+#define frontend_ParseNode_inl_h
 
 #include "frontend/ParseNode.h"
 #include "frontend/SharedContext.h"

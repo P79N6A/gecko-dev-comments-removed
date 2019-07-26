@@ -4,8 +4,8 @@
 
 
 
-#ifndef Intl_h___
-#define Intl_h___
+#ifndef builtin_Intl_h
+#define builtin_Intl_h
 
 #include "jsapi.h"
 

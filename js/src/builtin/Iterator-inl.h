@@ -4,8 +4,8 @@
 
 
 
-#ifndef Iterator_inl_h_
-#define Iterator_inl_h_
+#ifndef builtin_Iterator_inl_h
+#define builtin_Iterator_inl_h
 
 #include "jsiter.h"
 #include "vm/ObjectImpl-inl.h"
@@ -23,4 +23,4 @@ js::PropertyIteratorObject::setNativeIterator(js::NativeIterator *ni)
     setPrivate(ni);
 }
 
-#endif  
+#endif 

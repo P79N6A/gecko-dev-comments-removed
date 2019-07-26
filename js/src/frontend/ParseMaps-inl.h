@@ -4,8 +4,8 @@
 
 
 
-#ifndef ParseMapPool_inl_h__
-#define ParseMapPool_inl_h__
+#ifndef frontend_ParseMaps_inl_h
+#define frontend_ParseMaps_inl_h
 
 #include "jscntxt.h"
 
@@ -119,4 +119,4 @@ AtomDecls<ParseHandler>::~AtomDecls()
 } 
 } 
 
-#endif
+#endif 

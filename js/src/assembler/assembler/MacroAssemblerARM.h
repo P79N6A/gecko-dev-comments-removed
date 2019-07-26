@@ -29,8 +29,8 @@
 
 
 
-#ifndef MacroAssemblerARM_h
-#define MacroAssemblerARM_h
+#ifndef assembler_assembler_MacroAssemblerARM_h
+#define assembler_assembler_MacroAssemblerARM_h
 
 #include "assembler/wtf/Platform.h"
 

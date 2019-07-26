@@ -4,8 +4,8 @@
 
 
 
-#ifndef SharedContext_inl_h__
-#define SharedContext_inl_h__
+#ifndef frontend_SharedContext_inl_h
+#define frontend_SharedContext_inl_h
 
 #include "frontend/Parser.h"
 #include "frontend/SharedContext.h"

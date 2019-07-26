@@ -4,8 +4,8 @@
 
 
 
-#ifndef Module_h___
-#define Module_h___
+#ifndef builtin_Module_h
+#define builtin_Module_h
 
 #include "jsobj.h"
 

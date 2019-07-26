@@ -4,8 +4,8 @@
 
 
 
-#ifndef NameFunctions_h__
-#define NameFunctions_h__
+#ifndef frontend_NameFunctions_h
+#define frontend_NameFunctions_h
 
 struct JSContext;
 

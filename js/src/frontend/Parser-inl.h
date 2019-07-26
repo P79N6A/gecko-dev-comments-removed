@@ -4,8 +4,8 @@
 
 
 
-#ifndef Parser_inl_h__
-#define Parser_inl_h__
+#ifndef frontend_Parser_inl
+#define frontend_Parser_inl
 
 #include "frontend/BytecodeCompiler.h"
 #include "frontend/Parser.h"
@@ -119,4 +119,3 @@ CheckStrictBinding(JSContext *cx, ParseHandler *handler, ParseContext<ParseHandl
 } 
 
 #endif 
-

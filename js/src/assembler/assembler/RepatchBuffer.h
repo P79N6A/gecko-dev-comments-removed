@@ -27,8 +27,8 @@
 
 
 
-#ifndef RepatchBuffer_h
-#define RepatchBuffer_h
+#ifndef assembler_assembler_RepatchBuffer_h
+#define assembler_assembler_RepatchBuffer_h
 
 #include "assembler/wtf/Platform.h"
 

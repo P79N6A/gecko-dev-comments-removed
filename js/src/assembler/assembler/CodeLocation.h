@@ -27,8 +27,8 @@
 
 
 
-#ifndef CodeLocation_h
-#define CodeLocation_h
+#ifndef assembler_assembler_CodeLocation_h
+#define assembler_assembler_CodeLocation_h
 
 #include "assembler/wtf/Platform.h"
 #include "assembler/assembler/MacroAssemblerCodeRef.h"

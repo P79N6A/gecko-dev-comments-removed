@@ -4,8 +4,8 @@
 
 
 
-#ifndef Parser_h__
-#define Parser_h__
+#ifndef frontend_Parser_h
+#define frontend_Parser_h
 
 
 

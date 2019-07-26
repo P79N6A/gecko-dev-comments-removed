@@ -4,8 +4,8 @@
 
 
 
-#ifndef SyntaxParseHandler_h__
-#define SyntaxParseHandler_h__
+#ifndef frontend_SyntaxParseHandler_h
+#define frontend_SyntaxParseHandler_h
 
 namespace js {
 namespace frontend {

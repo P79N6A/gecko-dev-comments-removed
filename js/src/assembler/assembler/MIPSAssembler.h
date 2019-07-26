@@ -26,8 +26,8 @@
 
 
 
-#ifndef MIPSAssembler_h
-#define MIPSAssembler_h
+#ifndef assembler_assembler_MIPSAssembler_h
+#define assembler_assembler_MIPSAssembler_h
 
 #if ENABLE(ASSEMBLER) && CPU(MIPS)
 

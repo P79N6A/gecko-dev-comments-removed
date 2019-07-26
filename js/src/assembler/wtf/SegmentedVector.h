@@ -26,8 +26,8 @@
 
 
 
-#ifndef SegmentedVector_h
-#define SegmentedVector_h
+#ifndef assembler_wtf_SegmentedVector_h
+#define assembler_wtf_SegmentedVector_h
 
 #include "jsprvtd.h"
 #include "js/Vector.h"

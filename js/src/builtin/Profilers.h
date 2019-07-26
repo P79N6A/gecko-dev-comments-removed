@@ -8,8 +8,8 @@
 
 
 
-#ifndef Profilers_h___
-#define Profilers_h___
+#ifndef builtin_Profilers_h
+#define builtin_Profilers_h
 
 #include "jstypes.h"
 

@@ -4,8 +4,8 @@
 
 
 
-#ifndef ParseNode_h__
-#define ParseNode_h__
+#ifndef frontend_ParseNode_h
+#define frontend_ParseNode_h
 
 #include "mozilla/Attributes.h"
 

@@ -27,8 +27,8 @@
 
 
 
-#ifndef MacroAssembler_h
-#define MacroAssembler_h
+#ifndef assembler_assembler_MacroAssembler_h
+#define assembler_assembler_MacroAssembler_h
 
 #include "assembler/wtf/Platform.h"
 

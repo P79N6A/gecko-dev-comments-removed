@@ -4,8 +4,8 @@
 
 
 
-#ifndef SourceNotes_h__
-#define SourceNotes_h__
+#ifndef frontend_SourceNotes_h
+#define frontend_SourceNotes_h
 
 #include "jsprvtd.h"
 
@@ -159,4 +159,4 @@ extern JS_FRIEND_API(unsigned)         js_SrcNoteLength(jssrcnote *sn);
 extern JS_FRIEND_API(ptrdiff_t)
 js_GetSrcNoteOffset(jssrcnote *sn, unsigned which);
 
-#endif  
+#endif 

@@ -25,8 +25,8 @@
 
 
 
-#ifndef WTF_Platform_h
-#define WTF_Platform_h
+#ifndef assembler_wtf_Platform_h
+#define assembler_wtf_Platform_h
 
 
 

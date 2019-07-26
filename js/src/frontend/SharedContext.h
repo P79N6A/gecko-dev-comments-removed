@@ -4,8 +4,8 @@
 
 
 
-#ifndef SharedContext_h__
-#define SharedContext_h__
+#ifndef frontend_SharedContext_h
+#define frontend_SharedContext_h
 
 #include "jstypes.h"
 #include "jsatom.h"

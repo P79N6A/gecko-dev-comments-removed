@@ -4,8 +4,8 @@
 
 
 
-#ifndef BytecodeEmitter_inl_h__
-#define BytecodeEmitter_inl_h__
+#ifndef frontend_BytecodeEmitter_inl_h
+#define frontend_BytecodeEmitter_inl_h
 
 #include "frontend/BytecodeEmitter.h"
 #include "frontend/Parser.h"

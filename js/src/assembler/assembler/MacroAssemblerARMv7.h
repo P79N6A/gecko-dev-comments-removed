@@ -28,8 +28,8 @@
 
 
 
-#ifndef MacroAssemblerARMv7_h
-#define MacroAssemblerARMv7_h
+#ifndef assembler_assembler_MacroAssemblerARMv7_h
+#define assembler_assembler_MacroAssemblerARMv7_h
 
 #include "assembler/wtf/Platform.h"
 

@@ -4,8 +4,8 @@
 
 
 
-#ifndef MapObject_h__
-#define MapObject_h__
+#ifndef builtin_MapObject_h
+#define builtin_MapObject_h
 
 #include "jsapi.h"
 #include "jscntxt.h"

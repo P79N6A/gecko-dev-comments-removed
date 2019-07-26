@@ -23,8 +23,8 @@
 
 
 
-#ifndef ExecutableAllocator_h
-#define ExecutableAllocator_h
+#ifndef assembler_jit_ExecutableAllocator_h
+#define assembler_jit_ExecutableAllocator_h
 
 #include <stddef.h> 
 #include <limits>
@@ -506,4 +506,3 @@ private:
 #endif 
 
 #endif 
-

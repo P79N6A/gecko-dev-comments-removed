@@ -4,8 +4,8 @@
 
 
 
-#ifndef MacroAssemblerSparc_h
-#define MacroAssemblerSparc_h
+#ifndef assembler_assembler_MacroAssemblerSparc_h
+#define assembler_assembler_MacroAssemblerSparc_h
 
 #include <assembler/wtf/Platform.h>
 

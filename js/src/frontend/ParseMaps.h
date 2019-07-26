@@ -4,8 +4,8 @@
 
 
 
-#ifndef ParseMaps_h__
-#define ParseMaps_h__
+#ifndef frontend_ParseMaps_h
+#define frontend_ParseMaps_h
 
 #include "mozilla/Attributes.h"
 #include "mozilla/TypeTraits.h"
@@ -468,4 +468,4 @@ struct IsPod<js::frontend::DefinitionList> : TrueType {};
 
 } 
 
-#endif
+#endif 

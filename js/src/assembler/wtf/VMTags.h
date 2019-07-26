@@ -23,8 +23,8 @@
 
 
 
-#ifndef VMTags_h
-#define VMTags_h
+#ifndef assembler_wtf_VMTags_h
+#define assembler_wtf_VMTags_h
 
 
 

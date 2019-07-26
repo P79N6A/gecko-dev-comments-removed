@@ -4,8 +4,8 @@
 
 
 
-#ifndef BytecodeEmitter_h__
-#define BytecodeEmitter_h__
+#ifndef frontend_BytecodeEmitter_h
+#define frontend_BytecodeEmitter_h
 
 
 

@@ -27,8 +27,8 @@
 
 
 
-#ifndef MacroAssemblerX86_64_h
-#define MacroAssemblerX86_64_h
+#ifndef assembler_assembler_MacroAssemblerX86_64_h
+#define assembler_assembler_MacroAssemblerX86_64_h
 
 #include "mozilla/DebugOnly.h"
 

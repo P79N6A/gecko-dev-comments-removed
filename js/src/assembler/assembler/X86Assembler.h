@@ -27,8 +27,8 @@
 
 
 
-#ifndef X86Assembler_h
-#define X86Assembler_h
+#ifndef assembler_assembler_X86Assembler_h
+#define assembler_assembler_X86Assembler_h
 
 #include <stdarg.h>
 

@@ -4,8 +4,8 @@
 
 
 
-#ifndef FullParseHandler_h__
-#define FullParseHandler_h__
+#ifndef frontend_FullParseHandler_h
+#define frontend_FullParseHandler_h
 
 #include "mozilla/PodOperations.h"
 

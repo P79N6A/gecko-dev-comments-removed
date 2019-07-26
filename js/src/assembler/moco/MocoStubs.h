@@ -4,8 +4,8 @@
 
 
 
-#ifndef _include_assembler_moco_stubs_h_
-#define _include_assembler_moco_stubs_h_
+#ifndef assembler_moco_MocoStubs_h
+#define assembler_moco_MocoStubs_h
 
 namespace JSC {
 
@@ -36,4 +36,3 @@ private:
 } 
 
 #endif 
-

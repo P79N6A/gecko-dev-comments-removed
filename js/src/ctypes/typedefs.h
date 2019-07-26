@@ -19,6 +19,9 @@
 
 
 
+
+
+
 #if defined(DEFINE_TYPE)
 #  define DEFINE_CHAR_TYPE(x, y, z)         DEFINE_TYPE(x, y, z)
 #  define DEFINE_JSCHAR_TYPE(x, y, z)       DEFINE_TYPE(x, y, z)

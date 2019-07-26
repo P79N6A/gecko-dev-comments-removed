@@ -24,8 +24,8 @@
 
 
 
-#ifndef MacroAssemblerMIPS_h
-#define MacroAssemblerMIPS_h
+#ifndef assembler_assembler_MacroAssemblerMIPS_h
+#define assembler_assembler_MacroAssemblerMIPS_h
 
 #if ENABLE(ASSEMBLER) && CPU(MIPS)
 

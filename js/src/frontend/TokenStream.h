@@ -4,8 +4,8 @@
 
 
 
-#ifndef TokenStream_h__
-#define TokenStream_h__
+#ifndef frontend_TokenStream_h
+#define frontend_TokenStream_h
 
 
 

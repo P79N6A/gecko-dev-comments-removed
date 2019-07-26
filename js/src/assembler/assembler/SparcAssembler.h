@@ -4,8 +4,8 @@
 
 
 
-#ifndef SparcAssembler_h
-#define SparcAssembler_h
+#ifndef assembler_assembler_SparcAssembler_h
+#define assembler_assembler_SparcAssembler_h
 
 #include <assembler/wtf/Platform.h>
 

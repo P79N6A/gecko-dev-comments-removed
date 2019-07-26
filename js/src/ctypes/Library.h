@@ -3,42 +3,8 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#ifndef LIBRARY_H
-#define LIBRARY_H
+#ifndef ctypes_Library_h
+#define ctypes_Library_h
 
 #include "jsapi.h"
 
@@ -54,17 +20,17 @@ enum LibrarySlot {
 
 namespace Library
 {
-  JSBool Name(JSContext* cx, uintN argc, jsval *vp);
+  JSBool Name(JSContext* cx, unsigned argc, jsval *vp);
 
   JSObject* Create(JSContext* cx, jsval path, JSCTypesCallbacks* callbacks);
 
   bool IsLibrary(JSObject* obj);
-  PRLibrary* GetLibrary(JSContext* cx, JSObject* obj);
+  PRLibrary* GetLibrary(JSObject* obj);
 
-  JSBool Open(JSContext* cx, uintN argc, jsval* vp);
+  JSBool Open(JSContext* cx, unsigned argc, jsval* vp);
 }
 
 }
 }
 
-#endif
+#endif 
