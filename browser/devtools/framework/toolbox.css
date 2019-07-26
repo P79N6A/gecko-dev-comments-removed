@@ -1,0 +1,10 @@
+
+
+
+
+.devtools-tab > .radio-check,
+.devtools-tab > .radio-check-box1,
+.devtools-tab > .radio-spacer-box {
+  display: none;
+}
+

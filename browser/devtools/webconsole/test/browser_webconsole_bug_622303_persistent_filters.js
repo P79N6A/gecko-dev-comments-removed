@@ -1,8 +1,6 @@
 
 
 
-let prefService = Services.prefs;
-
 let prefs = {
   "net": [
     "network",
@@ -28,7 +26,7 @@ function test() {
   
   for (let category in prefs) {
     prefs[category].forEach(function(pref) {
-      prefService.setBoolPref("devtools.webconsole.filter." + pref, true);
+      Services.prefs.setBoolPref("devtools.webconsole.filter." + pref, true);
     });
   }
 
@@ -107,12 +105,11 @@ function onConsoleReopen2(hud) {
   
   for (let category in prefs) {
     prefs[category].forEach(function(pref) {
-      prefService.clearUserPref("devtools.webconsole.filter." + pref);
+      Services.prefs.clearUserPref("devtools.webconsole.filter." + pref);
     });
   }
 
-  prefs = prefService = null;
-  gBrowser.removeCurrentTab();
+  prefs = null;
   finishTest();
 }
 

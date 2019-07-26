@@ -9,8 +9,10 @@ const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource:///modules/devtools/gDevTools.jsm");
 Cu.import("resource:///modules/devtools/FloatingScrollbars.jsm");
 Cu.import("resource:///modules/devtools/EventEmitter.jsm");
+Cu.import("resource:///modules/devtools/Target.jsm");
 
 this.EXPORTED_SYMBOLS = ["ResponsiveUIManager"];
 
@@ -161,7 +163,8 @@ function ResponsiveUI(aWindow, aTab)
   this.buildUI();
   this.checkMenus();
 
-  this.inspectorWasOpen = this.mainWindow.InspectorUI.isInspectorOpen;
+  let target = TargetFactory.forTab(this.tab);
+  this.toolboxWasOpen = !!gDevTools.getToolboxForTarget(target);
 
   try {
     if (Services.prefs.getBoolPref("devtools.responsiveUI.rotate")) {
@@ -245,8 +248,9 @@ ResponsiveUI.prototype = {
       
       
 
-      let isInspectorOpen = this.mainWindow.InspectorUI.isInspectorOpen;
-      if (this.inspectorWasOpen || !isInspectorOpen) {
+      let target = TargetFactory.forTab(this.tab);
+      let isToolboxOpen =  !!gDevTools.getToolboxForTarget(target);
+      if (this.toolboxWasOpen || !isToolboxOpen) {
         aEvent.preventDefault();
         aEvent.stopPropagation();
         this.close();
