@@ -2730,62 +2730,54 @@ UpdatePropertyType(ExclusiveContext *cx, HeapTypeSet *types, JSObject *obj, Shap
     }
 }
 
-bool
-TypeObject::addProperty(ExclusiveContext *cx, jsid id, Property **pprop)
+void
+TypeObject::updateNewPropertyTypes(ExclusiveContext *cx, jsid id, HeapTypeSet *types)
 {
-    JS_ASSERT(!*pprop);
-    Property *base = cx->typeLifoAlloc().new_<Property>(id);
-    if (!base)
-        return false;
+    InferSpew(ISpewOps, "typeSet: %sT%p%s property %s %s",
+              InferSpewColor(types), types, InferSpewColorReset(),
+              TypeObjectString(this), TypeIdString(id));
 
-    if (singleton() && singleton()->isNative()) {
+    if (!singleton() || !singleton()->isNative())
+        return;
+
+    
+
+
+
+
+
+
+    if (JSID_IS_VOID(id)) {
+        
+        RootedShape shape(cx, singleton()->lastProperty());
+        while (!shape->isEmptyShape()) {
+            if (JSID_IS_VOID(IdToTypeId(shape->propid())))
+                UpdatePropertyType(cx, types, singleton(), shape, true);
+            shape = shape->previous();
+        }
+
+        
+        for (size_t i = 0; i < singleton()->getDenseInitializedLength(); i++) {
+            const Value &value = singleton()->getDenseElement(i);
+            if (!value.isMagic(JS_ELEMENTS_HOLE)) {
+                Type type = GetValueType(value);
+                types->TypeSet::addType(type, &cx->typeLifoAlloc());
+            }
+        }
+    } else if (!JSID_IS_EMPTY(id)) {
+        RootedId rootedId(cx, id);
+        Shape *shape = singleton()->nativeLookup(cx, rootedId);
+        if (shape)
+            UpdatePropertyType(cx, types, singleton(), shape, false);
+    }
+
+    if (singleton()->watched()) {
         
 
 
 
-
-
-
-        if (JSID_IS_VOID(id)) {
-            
-            RootedShape shape(cx, singleton()->lastProperty());
-            while (!shape->isEmptyShape()) {
-                if (JSID_IS_VOID(IdToTypeId(shape->propid())))
-                    UpdatePropertyType(cx, &base->types, singleton(), shape, true);
-                shape = shape->previous();
-            }
-
-            
-            for (size_t i = 0; i < singleton()->getDenseInitializedLength(); i++) {
-                const Value &value = singleton()->getDenseElement(i);
-                if (!value.isMagic(JS_ELEMENTS_HOLE)) {
-                    Type type = GetValueType(value);
-                    base->types.TypeSet::addType(type, &cx->typeLifoAlloc());
-                }
-            }
-        } else if (!JSID_IS_EMPTY(id)) {
-            RootedId rootedId(cx, id);
-            Shape *shape = singleton()->nativeLookup(cx, rootedId);
-            if (shape)
-                UpdatePropertyType(cx, &base->types, singleton(), shape, false);
-        }
-
-        if (singleton()->watched()) {
-            
-
-
-
-            base->types.setNonDataProperty(cx);
-        }
+        types->setNonDataProperty(cx);
     }
-
-    *pprop = base;
-
-    InferSpew(ISpewOps, "typeSet: %sT%p%s property %s %s",
-              InferSpewColor(&base->types), &base->types, InferSpewColorReset(),
-              TypeObjectString(this), TypeIdString(id));
-
-    return true;
 }
 
 bool

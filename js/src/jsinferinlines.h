@@ -1238,6 +1238,12 @@ TypeObject::getProperty(ExclusiveContext *cx, jsid id)
     if (HeapTypeSet *types = maybeGetProperty(id))
         return types;
 
+    Property *base = cx->typeLifoAlloc().new_<Property>(id);
+    if (!base) {
+        markUnknown(cx);
+        return nullptr;
+    }
+
     uint32_t propertyCount = basePropertyCount();
     Property **pprop = HashSetInsert<jsid,Property,Property>
         (cx->typeLifoAlloc(), propertySet, propertyCount, id);
@@ -1249,28 +1255,18 @@ TypeObject::getProperty(ExclusiveContext *cx, jsid id)
     JS_ASSERT(!*pprop);
 
     setBasePropertyCount(propertyCount);
-    if (!addProperty(cx, id, pprop)) {
-        markUnknown(cx);
-        return nullptr;
-    }
+    *pprop = base;
+
+    updateNewPropertyTypes(cx, id, &base->types);
 
     if (propertyCount == OBJECT_FLAG_PROPERTY_COUNT_LIMIT) {
-        markUnknown(cx);
-
         
-
-
-
-        unsigned count = getPropertyCount();
-        for (unsigned i = 0; i < count; i++) {
-            if (Property *prop = getProperty(i))
-                return &prop->types;
-        }
-
-        MOZ_ASSUME_UNREACHABLE("Missing property");
+        
+        
+        markUnknown(cx);
     }
 
-    return &(*pprop)->types;
+    return &base->types;
 }
 
 inline HeapTypeSet *
