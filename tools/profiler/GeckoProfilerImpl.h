@@ -19,7 +19,7 @@
 #include "jsfriendapi.h"
 #include "GeckoProfilerFunc.h"
 #include "PseudoStack.h"
-
+#include "nsISupports.h"
 
 
 
