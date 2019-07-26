@@ -715,7 +715,7 @@ var SocialToolbar = {
     let command = document.getElementById("Social:ToggleNotifications");
     command.setAttribute("checked", Services.prefs.getBoolPref("social.toast-notifications.enabled"));
 
-    const CACHE_PREF_NAME = "social.cached.notificationIcons";
+    const CACHE_PREF_NAME = "social.cached.ambientNotificationIcons";
     
     
     if (!Social.provider || !Social.provider.enabled ||
@@ -732,7 +732,8 @@ var SocialToolbar = {
       
       let cached;
       try {
-        cached = JSON.parse(Services.prefs.getCharPref(CACHE_PREF_NAME));
+        cached = JSON.parse(Services.prefs.getComplexValue(CACHE_PREF_NAME,
+                                                           Ci.nsISupportsString).data);
       } catch (ex) {}
       if (cached && cached.provider == Social.provider.origin && cached.data) {
         icons = cached.data;
@@ -745,9 +746,11 @@ var SocialToolbar = {
     } else {
       
       
-      Services.prefs.setCharPref(CACHE_PREF_NAME,
-                                 JSON.stringify({provider: Social.provider.origin,
-                                                 data: icons}));
+      let str = Cc["@mozilla.org/supports-string;1"].createInstance(Ci.nsISupportsString);
+      str.data = JSON.stringify({provider: Social.provider.origin, data: icons});
+      Services.prefs.setComplexValue(CACHE_PREF_NAME,
+                                     Ci.nsISupportsString,
+                                     str);
     }
 
     let notificationFrames = document.createDocumentFragment();
