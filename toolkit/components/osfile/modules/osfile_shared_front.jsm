@@ -16,8 +16,7 @@ if (typeof Components != "undefined") {
 
 let SharedAll =
   require("resource://gre/modules/osfile/osfile_shared_allthreads.jsm");
-let Lz4 =
-  require("resource://gre/modules/workers/lz4.js");
+
 let LOG = SharedAll.LOG.bind(SharedAll, "Shared front-end");
 let clone = SharedAll.clone;
 
@@ -83,7 +82,7 @@ AbstractFile.prototype = {
 
 
   readTo: function readTo(buffer, options = {}) {
-    let {ptr, bytes} = SharedAll.normalizeToPointer(buffer, options.bytes);
+    let {ptr, bytes} = AbstractFile.normalizeToPointer(buffer, options.bytes);
     let pos = 0;
     while (pos < bytes) {
       let chunkSize = this._read(ptr, bytes - pos, options);
@@ -117,7 +116,7 @@ AbstractFile.prototype = {
   write: function write(buffer, options = {}) {
 
     let {ptr, bytes} =
-      SharedAll.normalizeToPointer(buffer, options.bytes || undefined);
+      AbstractFile.normalizeToPointer(buffer, options.bytes || undefined);
 
     let pos = 0;
     while (pos < bytes) {
@@ -185,6 +184,51 @@ AbstractFile.openUnique = function openUnique(path, options = {}) {
     }
     throw OS.File.Error.exists("could not find an unused file name.");
   }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+AbstractFile.normalizeToPointer = function normalizeToPointer(candidate, bytes) {
+  if (!candidate) {
+    throw new TypeError("Expecting  a Typed Array or a C pointer");
+  }
+  let ptr;
+  if ("isNull" in candidate) {
+    if (candidate.isNull()) {
+      throw new TypeError("Expecting a non-null pointer");
+    }
+    ptr = SharedAll.Type.uint8_t.out_ptr.cast(candidate);
+    if (bytes == null) {
+      throw new TypeError("C pointer missing bytes indication.");
+    }
+  } else if (SharedAll.isTypedArray(candidate)) {
+    
+    ptr = SharedAll.Type.uint8_t.out_ptr.implementation(candidate.buffer);
+    if (bytes == null) {
+      bytes = candidate.byteLength;
+    } else if (candidate.byteLength < bytes) {
+      throw new TypeError("Buffer is too short. I need at least " +
+                         bytes +
+                         " bytes but I have only " +
+                         candidate.byteLength +
+                          "bytes");
+    }
+  } else {
+    throw new TypeError("Expecting  a Typed Array or a C pointer");
+  }
+  return {ptr: ptr, bytes: bytes};
 };
 
 
@@ -317,31 +361,14 @@ AbstractFile.normalizeOpenMode = function normalizeOpenMode(mode) {
 
 
 
-
-
-
-
 AbstractFile.read = function read(path, bytes, options = {}) {
-  if (bytes && typeof bytes == "object") {
-    options = bytes;
-    bytes = options.bytes || null;
-  }
   let file = exports.OS.File.open(path);
   try {
-    let buffer = file.read(bytes, options);
-    if (options.compression == "lz4") {
-      return Lz4.decompressFileContent(buffer, options);
-    } else {
-      return buffer;
-    }
+    return file.read(bytes, options);
   } finally {
     file.close();
   }
 };
-
-
-
-
 
 
 
@@ -397,12 +424,6 @@ AbstractFile.writeAtomic =
     
     let encoding = options.encoding || "utf-8";
     buffer = new TextEncoder(encoding).encode(buffer);
-  }
-
-  if (options.compression == "lz4") {
-    buffer = Lz4.compressFileContent(buffer, options);
-    options = Object.create(options);
-    options.bytes = buffer.byteLength;
   }
 
   let bytesWritten = 0;

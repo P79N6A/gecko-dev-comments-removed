@@ -741,10 +741,7 @@ File.makeDir = function makeDir(path, options) {
 
 
 
-
-
-
-File.read = function read(path, bytes, options = {}) {
+File.read = function read(path, bytes, options) {
   let promise = Scheduler.post("read",
     [Type.path.toMsg(path), bytes, options], path);
   return promise.then(
