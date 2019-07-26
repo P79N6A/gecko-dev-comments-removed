@@ -242,29 +242,14 @@ struct nsCharTraits<PRUnichar>
 
 
 
-
-
-
-
     static
     char_type
     ASCIIToLower( char_type c )
       {
-        if (c < 0x100)
-          {
-            if (c >= 'A' && c <= 'Z')
-              return char_type(c + ('a' - 'A'));
+        if (c >= 'A' && c <= 'Z')
+          return char_type(c + ('a' - 'A'));
           
-            return c;
-          }
-        else
-          {
-            if (c == 0x212A) 
-              return 'k';
-            if (c == 0x0130) 
-              return 'i';
-            return c;
-          }
+        return c;
       }
 
     static

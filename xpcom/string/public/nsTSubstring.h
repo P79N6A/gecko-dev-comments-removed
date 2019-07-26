@@ -304,6 +304,7 @@ class nsTSubstring_CharT
     
     
     
+    
       bool NS_FASTCALL LowerCaseEqualsASCII( const char* data, size_type len ) const;
       bool NS_FASTCALL LowerCaseEqualsASCII( const char* data ) const;
 
