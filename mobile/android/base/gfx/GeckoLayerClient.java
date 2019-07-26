@@ -259,7 +259,7 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
         });
     }
 
-    private boolean adjustFixedLayerMarginsForOverscroll(ImmutableViewportMetrics metrics, RectF adjustedMargins) {
+    private void adjustFixedLayerMarginsForOverscroll(ImmutableViewportMetrics metrics, RectF adjustedMargins) {
         
         
         
@@ -267,49 +267,43 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
         
         
         
-        boolean changed = false;
+        
         adjustedMargins.left = metrics.fixedLayerMarginLeft;
         adjustedMargins.top = metrics.fixedLayerMarginTop;
         adjustedMargins.right = metrics.fixedLayerMarginRight;
         adjustedMargins.bottom = metrics.fixedLayerMarginBottom;
 
-        if (metrics.getPageWidth() > metrics.getWidthWithoutMargins()) {
-            
-            if (metrics.viewportRectLeft < metrics.pageRectLeft && metrics.fixedLayerMarginLeft > 0) {
-                adjustedMargins.left = Math.max(0, metrics.fixedLayerMarginLeft
-                                                   - (metrics.pageRectLeft - metrics.viewportRectLeft));
-                adjustedMargins.right += metrics.fixedLayerMarginLeft - adjustedMargins.left;
-                changed = true;
-            }
+        
+        float maxMarginWidth = Math.max(0, metrics.getPageWidth() - metrics.getWidthWithoutMargins());
+        float maxMarginHeight = Math.max(0, metrics.getPageHeight() - metrics.getHeightWithoutMargins());
 
-            
-            if (metrics.viewportRectRight < metrics.pageRectRight && metrics.fixedLayerMarginRight > 0) {
-                adjustedMargins.right = Math.max(0, metrics.fixedLayerMarginRight
-                                                   - (metrics.pageRectRight - metrics.viewportRectRight));
-                adjustedMargins.left += metrics.fixedLayerMarginRight - adjustedMargins.right;
-                changed = true;
-            }
+        
+        float leftOverscroll = metrics.pageRectLeft - metrics.viewportRectLeft;
+        if (leftOverscroll > 0) {
+            adjustedMargins.left = FloatUtils.clamp(adjustedMargins.left - leftOverscroll, 0, maxMarginWidth);
+            adjustedMargins.right = FloatUtils.clamp(adjustedMargins.right + leftOverscroll, 0, maxMarginWidth - adjustedMargins.left);
         }
 
-        if (metrics.getPageHeight() > metrics.getHeightWithoutMargins()) {
-            
-            if (metrics.viewportRectTop < metrics.pageRectTop && metrics.fixedLayerMarginTop > 0) {
-                adjustedMargins.top = Math.max(0, metrics.fixedLayerMarginTop
-                                                   - (metrics.pageRectTop - metrics.viewportRectTop));
-                adjustedMargins.bottom += metrics.fixedLayerMarginTop - adjustedMargins.top;
-                changed = true;
-            }
-
-            
-            if (metrics.viewportRectBottom < metrics.pageRectBottom && metrics.fixedLayerMarginBottom > 0) {
-                adjustedMargins.bottom = Math.max(0, metrics.fixedLayerMarginBottom
-                                                   - (metrics.pageRectBottom - metrics.viewportRectBottom));
-                adjustedMargins.top += metrics.fixedLayerMarginBottom - adjustedMargins.bottom;
-                changed = true;
-            }
+        
+        float rightOverscroll = metrics.viewportRectRight - metrics.pageRectRight;
+        if (rightOverscroll > 0) {
+            adjustedMargins.right = FloatUtils.clamp(adjustedMargins.right - rightOverscroll, 0, maxMarginWidth);
+            adjustedMargins.left = FloatUtils.clamp(adjustedMargins.left + rightOverscroll, 0, maxMarginWidth - adjustedMargins.right);
         }
 
-        return changed;
+        
+        float topOverscroll = metrics.pageRectTop - metrics.viewportRectTop;
+        if (topOverscroll > 0) {
+            adjustedMargins.top = FloatUtils.clamp(adjustedMargins.top - topOverscroll, 0, maxMarginHeight);
+            adjustedMargins.bottom = FloatUtils.clamp(adjustedMargins.bottom + topOverscroll, 0, maxMarginHeight - adjustedMargins.top);
+        }
+
+        
+        float bottomOverscroll = metrics.viewportRectBottom - metrics.pageRectBottom;
+        if (bottomOverscroll > 0) {
+            adjustedMargins.bottom = FloatUtils.clamp(adjustedMargins.bottom - bottomOverscroll, 0, maxMarginHeight);
+            adjustedMargins.top = FloatUtils.clamp(adjustedMargins.top + bottomOverscroll, 0, maxMarginHeight - adjustedMargins.bottom);
+        }
     }
 
     private void adjustViewport(DisplayPortMetrics displayPort) {
@@ -317,11 +311,10 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
         ImmutableViewportMetrics clampedMetrics = metrics.clamp();
 
         RectF fixedLayerMargins = new RectF();
-        if (adjustFixedLayerMarginsForOverscroll(metrics, fixedLayerMargins)) {
-            clampedMetrics = clampedMetrics.setFixedLayerMargins(
-                fixedLayerMargins.left, fixedLayerMargins.top,
-                fixedLayerMargins.right, fixedLayerMargins.bottom);
-        }
+        adjustFixedLayerMarginsForOverscroll(metrics, fixedLayerMargins);
+        clampedMetrics = clampedMetrics.setFixedLayerMargins(
+            fixedLayerMargins.left, fixedLayerMargins.top,
+            fixedLayerMargins.right, fixedLayerMargins.bottom);
 
         if (displayPort == null) {
             displayPort = DisplayPortCalculator.calculate(metrics, mPanZoomController.getVelocityVector());
