@@ -466,10 +466,8 @@ nsWyciwygChannel::WriteToCacheEntry(const nsAString &aData)
   mMode = WRITING;
 
   if (mozilla::net::CacheObserver::UseNewCache()) {
-    mozilla::DebugOnly<nsresult> rv = EnsureWriteCacheEntry();
-    
-    
-    MOZ_ASSERT(NS_SUCCEEDED(rv));
+    nsresult rv = EnsureWriteCacheEntry();
+    if (NS_FAILED(rv)) return rv;
   }
 
   return mCacheIOTarget->Dispatch(new nsWyciwygWriteEvent(this, aData),
