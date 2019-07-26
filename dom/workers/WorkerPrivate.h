@@ -600,6 +600,15 @@ public:
     return mLoadInfo.mPrincipal;
   }
 
+  
+  
+  
+  nsIPrincipal*
+  GetPrincipalDontAssertMainThread() const
+  {
+      return mLoadInfo.mPrincipal;
+  }
+
   void
   SetPrincipal(nsIPrincipal* aPrincipal);
 

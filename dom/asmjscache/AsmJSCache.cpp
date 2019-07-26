@@ -21,7 +21,6 @@
 #include "mozilla/dom/quota/QuotaObject.h"
 #include "mozilla/dom/quota/UsageInfo.h"
 #include "mozilla/unused.h"
-#include "nsContentUtils.h"
 #include "nsIAtom.h"
 #include "nsIFile.h"
 #include "nsIPrincipal.h"
@@ -975,7 +974,7 @@ DeallocEntryChild(PAsmJSCacheEntryChild* aActor)
 namespace {
 
 bool
-OpenFile(JS::Handle<JSObject*> aGlobal,
+OpenFile(nsIPrincipal* aPrincipal,
          OpenMode aOpenMode,
          size_t aSizeToWrite,
          File::AutoClose* aFile)
@@ -999,16 +998,13 @@ OpenFile(JS::Handle<JSObject*> aGlobal,
   }
 
   
-  nsIPrincipal* principal = nsContentUtils::GetObjectPrincipal(aGlobal);
-
-  
   
   
   nsRefPtr<File> file;
   if (IsMainProcess()) {
-    file = new SingleProcessRunnable(principal, aOpenMode, aSizeToWrite);
+    file = new SingleProcessRunnable(aPrincipal, aOpenMode, aSizeToWrite);
   } else {
-    file = new ChildProcessRunnable(principal, aOpenMode, aSizeToWrite);
+    file = new ChildProcessRunnable(aPrincipal, aOpenMode, aSizeToWrite);
   }
 
   if (!file->BlockUntilOpen(aFile)) {
@@ -1028,7 +1024,7 @@ static const uint32_t sAsmJSCookie = 0x600d600d;
 static const size_t sMinCachedModuleLength = 10000;
 
 bool
-OpenEntryForRead(JS::Handle<JSObject*> aGlobal,
+OpenEntryForRead(nsIPrincipal* aPrincipal,
                  const jschar* aBegin,
                  const jschar* aLimit,
                  size_t* aSize,
@@ -1040,7 +1036,7 @@ OpenEntryForRead(JS::Handle<JSObject*> aGlobal,
   }
 
   File::AutoClose file;
-  if (!OpenFile(aGlobal, eOpenForRead, 0, &file)) {
+  if (!OpenFile(aPrincipal, eOpenForRead, 0, &file)) {
     return false;
   }
 
@@ -1082,7 +1078,7 @@ CloseEntryForRead(JS::Handle<JSObject*> global,
 }
 
 bool
-OpenEntryForWrite(JS::Handle<JSObject*> aGlobal,
+OpenEntryForWrite(nsIPrincipal* aPrincipal,
                   const jschar* aBegin,
                   const jschar* aEnd,
                   size_t aSize,
@@ -1097,7 +1093,7 @@ OpenEntryForWrite(JS::Handle<JSObject*> aGlobal,
   aSize += sizeof(AsmJSCookieType);
 
   File::AutoClose file;
-  if (!OpenFile(aGlobal, eOpenForWrite, aSize, &file)) {
+  if (!OpenFile(aPrincipal, eOpenForWrite, aSize, &file)) {
     return false;
   }
 

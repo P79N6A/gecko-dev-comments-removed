@@ -34,8 +34,18 @@ enum OpenMode
 
 
 
+
+
+
+
+
+
+
+
+
+
 bool
-OpenEntryForRead(JS::Handle<JSObject*> aGlobal,
+OpenEntryForRead(nsIPrincipal* aPrincipal,
                  const jschar* aBegin,
                  const jschar* aLimit,
                  size_t* aSize,
@@ -47,7 +57,7 @@ CloseEntryForRead(JS::Handle<JSObject*> aGlobal,
                   const uint8_t* aMemory,
                   intptr_t aHandle);
 bool
-OpenEntryForWrite(JS::Handle<JSObject*> aGlobal,
+OpenEntryForWrite(nsIPrincipal* aPrincipal,
                   const jschar* aBegin,
                   const jschar* aEnd,
                   size_t aSize,
