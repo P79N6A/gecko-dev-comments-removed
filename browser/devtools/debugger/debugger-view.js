@@ -157,7 +157,10 @@ let DebuggerView = {
 
 
 
-  setEditorMode: function DV_setEditorMode(aUrl, aContentType) {
+
+
+  setEditorMode:
+  function DV_setEditorMode(aUrl, aContentType = "", aTextContent = "") {
     if (!this.editor) {
       return;
     }
@@ -170,12 +173,16 @@ let DebuggerView = {
       } else {
         this.editor.setMode(SourceEditor.MODES.HTML);
       }
+    } else if (aTextContent.match(/^\s*</)) {
+      
+      
+      this.editor.setMode(SourceEditor.MODES.HTML);
     } else {
       
       if (/\.jsm?$/.test(SourceUtils.trimUrlQuery(aUrl))) {
         this.editor.setMode(SourceEditor.MODES.JAVASCRIPT);
       } else {
-        this.editor.setMode(SourceEditor.MODES.HTML);
+        this.editor.setMode(SourceEditor.MODES.TEXT);
       }
     }
   },
@@ -215,7 +222,9 @@ let DebuggerView = {
     
     else {
       if (aSource.text.length < SOURCE_SYNTAX_HIGHLIGHT_MAX_FILE_SIZE) {
-        this.setEditorMode(aSource.url, aSource.contentType);
+        this.setEditorMode(aSource.url, aSource.contentType, aSource.text);
+      } else {
+        this.editor.setMode(SourceEditor.MODES.TEXT);
       }
       this.editor.setText(aSource.text);
       this.editor.resetUndo();
@@ -752,7 +761,7 @@ MenuContainer.prototype = {
 
 
   set selectedLabel(aLabel) {
-    let item = this._itemsByLabel.get(aValue);
+    let item = this._itemsByLabel.get(aLabel);
     if (item) {
       this._container.selectedItem = item.target;
     }
