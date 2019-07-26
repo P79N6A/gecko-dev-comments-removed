@@ -249,9 +249,20 @@ void GetBoxQuads(nsINode* aNode,
     
     return;
   }
+  nsWeakFrame weakFrame(frame);
   nsIDocument* ownerDoc = aNode->OwnerDoc();
   nsIFrame* relativeToFrame =
     GetFirstNonAnonymousFrameForGeometryNode(aOptions.mRelativeTo, ownerDoc);
+  
+  
+  
+  if (!weakFrame.IsAlive()) {
+    frame = GetFrameForNode(aNode);
+    if (!frame) {
+      
+      return;
+    }
+  }
   if (!relativeToFrame) {
     aRv.Throw(NS_ERROR_DOM_NOT_FOUND_ERR);
     return;
@@ -274,7 +285,14 @@ TransformPoints(nsINode* aTo, const GeometryNode& aFrom,
                 const ConvertCoordinateOptions& aOptions, ErrorResult& aRv)
 {
   nsIFrame* fromFrame = GetFirstNonAnonymousFrameForGeometryNode(aFrom);
+  nsWeakFrame weakFrame(fromFrame);
   nsIFrame* toFrame = GetFirstNonAnonymousFrameForNode(aTo);
+  
+  
+  
+  if (fromFrame && !weakFrame.IsAlive()) {
+    fromFrame = GetFirstNonAnonymousFrameForGeometryNode(aFrom);
+  }
   if (!fromFrame || !toFrame) {
     aRv.Throw(NS_ERROR_DOM_NOT_FOUND_ERR);
     return;
