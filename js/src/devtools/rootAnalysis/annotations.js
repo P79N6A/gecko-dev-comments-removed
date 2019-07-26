@@ -60,6 +60,7 @@ var ignoreCallees = {
     "nsISupports.Release" : true, 
     "nsAXPCNativeCallContext.GetJSContext" : true,
     "js::ion::MDefinition.op" : true, 
+    "js::ion::MDefinition.opName" : true, 
     "js::ion::LInstruction.getDef" : true, 
     "js::ion::IonCache.kind" : true, 
 };
