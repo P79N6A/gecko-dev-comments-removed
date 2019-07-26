@@ -42,6 +42,7 @@ function add_tests_in_mode(useInsanity, certDB, otherTestCA) {
   add_ocsp_test("ocsp-stapling-none.example.com", Cr.NS_OK, false);
   add_ocsp_test("ocsp-stapling-expired.example.com", Cr.NS_OK, false);
   add_ocsp_test("ocsp-stapling-expired-fresh-ca.example.com", Cr.NS_OK, false);
+  add_ocsp_test("ocsp-stapling-skip-responseBytes.example.com", Cr.NS_OK, false);
 
   
   
@@ -108,11 +109,15 @@ function add_tests_in_mode(useInsanity, certDB, otherTestCA) {
       Services.prefs.setBoolPref("security.ssl.enable_ocsp_stapling", true);
     }
   );
-  
   add_ocsp_test("ocsp-stapling-empty.example.com",
-                getXPCOMStatusFromNSS(
-                  useInsanity ? SEC_ERROR_BAD_DER
-                              : SEC_ERROR_OCSP_MALFORMED_RESPONSE), true);
+                getXPCOMStatusFromNSS(SEC_ERROR_OCSP_MALFORMED_RESPONSE), true);
+
+  
+  if (useInsanity) {
+    add_ocsp_test("ocsp-stapling-skip-responseBytes.example.com",
+                  getXPCOMStatusFromNSS(SEC_ERROR_OCSP_MALFORMED_RESPONSE), true);
+  }
+
   
   
   
@@ -125,9 +130,9 @@ function check_ocsp_stapling_telemetry() {
                     .snapshot();
   do_check_eq(histogram.counts[0], 2 * 0); 
   do_check_eq(histogram.counts[1], 2 * 1); 
-  do_check_eq(histogram.counts[2], 2 * 14); 
+  do_check_eq(histogram.counts[2], 2 * 15); 
   do_check_eq(histogram.counts[3], 2 * 0); 
-  do_check_eq(histogram.counts[4], 2 * 11); 
+  do_check_eq(histogram.counts[4], 12 + 11); 
   run_next_test();
 }
 

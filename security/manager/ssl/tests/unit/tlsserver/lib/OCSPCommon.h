@@ -28,7 +28,8 @@ enum OCSPResponseType
   ORTTryLater,         
   ORTNeedsSig,         
   ORTUnauthorized,     
-  ORTBadSignature      
+  ORTBadSignature,     
+  ORTSkipResponseBytes 
 };
 
 struct OCSPHost

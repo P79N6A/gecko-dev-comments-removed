@@ -27,13 +27,15 @@ namespace insanity { namespace test {
 class OCSPResponseContext
 {
 public:
+  OCSPResponseContext(PLArenaPool* arena, CERTCertificate* cert, PRTime time);
+
   PLArenaPool* arena;
   
   pkix::ScopedCERTCertificate cert; 
   pkix::ScopedCERTCertificate issuerCert; 
   pkix::ScopedCERTCertificate signerCert; 
   uint8_t responseStatus; 
-  
+  bool skipResponseBytes; 
 
   
   
