@@ -20,16 +20,9 @@ import android.opengl.GLES20;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 
-
-
-
 public class ScrollbarLayer extends TileLayer {
     public static final long FADE_DELAY = 500; 
     private static final float FADE_AMOUNT = 0.03f; 
-
-    private static final int PADDING = 1;   
-    private static final int BAR_SIZE = 6;
-    private static final int CAP_RADIUS = (BAR_SIZE / 2);
 
     private final boolean mVertical;
     private float mOpacity;
@@ -61,49 +54,42 @@ public class ScrollbarLayer extends TileLayer {
         "}\n";
 
     
-    private static final int TEX_HEIGHT = 8;
-    private static final int TEX_WIDTH = 8;
+    private final int mTexWidth;
+    private final int mTexHeight;
+    
+    private final int mBarWidth;
+    private final int mCapLength;
 
-    private static final Rect BODY_TEX_COORDS = new Rect(CAP_RADIUS, CAP_RADIUS, CAP_RADIUS + 1, CAP_RADIUS + 1);
-    private static final Rect LEFT_CAP_TEX_COORDS = new Rect(0, TEX_HEIGHT - BAR_SIZE, CAP_RADIUS, TEX_HEIGHT);
-    private static final Rect TOP_CAP_TEX_COORDS = new Rect(0, TEX_HEIGHT - CAP_RADIUS, BAR_SIZE, TEX_HEIGHT);
-    private static final Rect RIGHT_CAP_TEX_COORDS = new Rect(CAP_RADIUS, TEX_HEIGHT - BAR_SIZE, BAR_SIZE, TEX_HEIGHT);
-    private static final Rect BOT_CAP_TEX_COORDS = new Rect(0, TEX_HEIGHT - BAR_SIZE, BAR_SIZE, TEX_HEIGHT - CAP_RADIUS);
+    private final Rect mStartCapTexCoords;  
+    private final Rect mBodyTexCoords;      
+    private final Rect mEndCapTexCoords;    
 
-    private ScrollbarLayer(LayerRenderer renderer, CairoImage image, boolean vertical, ByteBuffer buffer) {
-        super(image, TileLayer.PaintMode.NORMAL);
-        mVertical = vertical;
+    ScrollbarLayer(LayerRenderer renderer, Bitmap scrollbarImage, IntSize imageSize, boolean vertical) {
+        super(new BufferedCairoImage(scrollbarImage), TileLayer.PaintMode.NORMAL);
         mRenderer = renderer;
-
-        IntSize size = image.getSize();
-        Bitmap bitmap = Bitmap.createBitmap(size.width, size.height, Bitmap.Config.ARGB_8888);
-        Canvas canvas = new Canvas(bitmap);
-
-        
-        Paint foregroundPaint = new Paint();
-        foregroundPaint.setAntiAlias(true);
-        foregroundPaint.setStyle(Paint.Style.FILL);
-        foregroundPaint.setColor(Color.argb(127, 0, 0, 0));
-
-        canvas.drawColor(Color.argb(0, 0, 0, 0), PorterDuff.Mode.CLEAR);
-        canvas.drawCircle(CAP_RADIUS, CAP_RADIUS, CAP_RADIUS, foregroundPaint);
-
-        bitmap.copyPixelsToBuffer(buffer.asIntBuffer());
+        mVertical = vertical;
 
         mBarRectF = new RectF();
         mBarRect = new Rect();
         mCoords = new float[20];
         mCapRectF = new RectF();
-    }
 
-    public static ScrollbarLayer create(LayerRenderer renderer, boolean vertical) {
-        
-        
-        int imageSize = IntSize.nextPowerOfTwo(BAR_SIZE);
-        ByteBuffer buffer = DirectBufferAllocator.allocate(imageSize * imageSize * 4);
-        CairoImage image = new BufferedCairoImage(buffer, imageSize, imageSize,
-                                                  CairoImage.FORMAT_ARGB32);
-        return new ScrollbarLayer(renderer, image, vertical, buffer);
+        mTexHeight = scrollbarImage.getHeight();
+        mTexWidth = scrollbarImage.getWidth();
+
+        if (mVertical) {
+            mBarWidth = imageSize.width;
+            mCapLength = imageSize.height / 2;
+            mStartCapTexCoords = new Rect(0, mTexHeight - mCapLength, imageSize.width, mTexHeight);
+            mBodyTexCoords = new Rect(0, mTexHeight - (mCapLength + 1), imageSize.width, mTexHeight - mCapLength);
+            mEndCapTexCoords = new Rect(0, mTexHeight - imageSize.height, imageSize.width, mTexHeight - (mCapLength + 1));
+        } else {
+            mBarWidth = imageSize.height;
+            mCapLength = imageSize.width / 2;
+            mStartCapTexCoords = new Rect(0, mTexHeight - imageSize.height, mCapLength, mTexHeight);
+            mBodyTexCoords = new Rect(mCapLength, mTexHeight - imageSize.height, mCapLength + 1, mTexHeight);
+            mEndCapTexCoords = new Rect(mCapLength + 1, mTexHeight - imageSize.height, imageSize.width, mTexHeight);
+        }
     }
 
     private void createProgram() {
@@ -210,7 +196,7 @@ public class ScrollbarLayer extends TileLayer {
         mBarRectF.set(mBarRect.left, viewHeight - mBarRect.top, mBarRect.right, viewHeight - mBarRect.bottom);
 
         
-        fillRectCoordBuffer(mCoords, mBarRectF, viewWidth, viewHeight, BODY_TEX_COORDS, TEX_WIDTH, TEX_HEIGHT);
+        fillRectCoordBuffer(mCoords, mBarRectF, viewWidth, viewHeight, mBodyTexCoords, mTexWidth, mTexHeight);
 
         
         FloatBuffer coordBuffer = context.coordBuffer;
@@ -239,12 +225,13 @@ public class ScrollbarLayer extends TileLayer {
         coordBuffer.position(0);
         if (mVertical) {
             
-            mCapRectF.set(mBarRectF.left, mBarRectF.top + CAP_RADIUS, mBarRectF.left + BAR_SIZE, mBarRectF.top);
-            fillRectCoordBuffer(mCoords, mCapRectF, viewWidth, viewHeight, TOP_CAP_TEX_COORDS, TEX_WIDTH, TEX_HEIGHT);
+            mCapRectF.set(mBarRectF.left, mBarRectF.top + mCapLength, mBarRectF.right, mBarRectF.top);
         } else {
-            mCapRectF.set(mBarRectF.left - CAP_RADIUS, mBarRectF.bottom + BAR_SIZE, mBarRectF.left, mBarRectF.bottom);
-            fillRectCoordBuffer(mCoords, mCapRectF, viewWidth, viewHeight, LEFT_CAP_TEX_COORDS, TEX_WIDTH, TEX_HEIGHT);
+            
+            mCapRectF.set(mBarRectF.left - mCapLength, mBarRectF.bottom + mBarWidth, mBarRectF.left, mBarRectF.bottom);
         }
+
+        fillRectCoordBuffer(mCoords, mCapRectF, viewWidth, viewHeight, mStartCapTexCoords, mTexWidth, mTexHeight);
         coordBuffer.put(mCoords);
 
         
@@ -261,13 +248,12 @@ public class ScrollbarLayer extends TileLayer {
         coordBuffer.position(0);
         if (mVertical) {
             
-            mCapRectF.set(mBarRectF.left, mBarRectF.bottom, mBarRectF.left + BAR_SIZE, mBarRectF.bottom - CAP_RADIUS);
-            fillRectCoordBuffer(mCoords, mCapRectF, viewWidth, viewHeight, BOT_CAP_TEX_COORDS, TEX_WIDTH, TEX_HEIGHT);
+            mCapRectF.set(mBarRectF.left, mBarRectF.bottom, mBarRectF.right, mBarRectF.bottom - mCapLength);
         } else {
             
-            mCapRectF.set(mBarRectF.right, mBarRectF.bottom + BAR_SIZE, mBarRectF.right + CAP_RADIUS, mBarRectF.bottom);
-            fillRectCoordBuffer(mCoords, mCapRectF, viewWidth, viewHeight, RIGHT_CAP_TEX_COORDS, TEX_WIDTH, TEX_HEIGHT);
+            mCapRectF.set(mBarRectF.right, mBarRectF.bottom + mBarWidth, mBarRectF.right + mCapLength, mBarRectF.bottom);
         }
+        fillRectCoordBuffer(mCoords, mCapRectF, viewWidth, viewHeight, mEndCapTexCoords, mTexWidth, mTexHeight);
         coordBuffer.put(mCoords);
 
         
@@ -291,26 +277,24 @@ public class ScrollbarLayer extends TileLayer {
     private void getVerticalRect(RenderContext context, RectF dest) {
         RectF viewport = context.viewport;
         RectF pageRect = context.pageRect;
-        float barStart = ((viewport.top - pageRect.top) * (viewport.height() / pageRect.height())) + CAP_RADIUS;
-        float barEnd = ((viewport.bottom - pageRect.top) * (viewport.height() / pageRect.height())) - CAP_RADIUS;
+        float barStart = ((viewport.top - pageRect.top) * (viewport.height() / pageRect.height())) + mCapLength;
+        float barEnd = ((viewport.bottom - pageRect.top) * (viewport.height() / pageRect.height())) - mCapLength;
         if (barStart > barEnd) {
             float middle = (barStart + barEnd) / 2.0f;
             barStart = barEnd = middle;
         }
-        float right = viewport.width() - PADDING;
-        dest.set(right - BAR_SIZE, barStart, right, barEnd);
+        dest.set(viewport.width() - mBarWidth, barStart, viewport.width(), barEnd);
     }
 
     private void getHorizontalRect(RenderContext context, RectF dest) {
         RectF viewport = context.viewport;
         RectF pageRect = context.pageRect;
-        float barStart = ((viewport.left - pageRect.left) * (viewport.width() / pageRect.width())) + CAP_RADIUS;
-        float barEnd = ((viewport.right - pageRect.left) * (viewport.width() / pageRect.width())) - CAP_RADIUS;
+        float barStart = ((viewport.left - pageRect.left) * (viewport.width() / pageRect.width())) + mCapLength;
+        float barEnd = ((viewport.right - pageRect.left) * (viewport.width() / pageRect.width())) - mCapLength;
         if (barStart > barEnd) {
             float middle = (barStart + barEnd) / 2.0f;
             barStart = barEnd = middle;
         }
-        float bottom = viewport.height() - PADDING;
-        dest.set(barStart, bottom - BAR_SIZE, barEnd, bottom);
+        dest.set(barStart, viewport.height() - mBarWidth, barEnd, viewport.height());
     }
 }
