@@ -1018,15 +1018,15 @@ nsDocumentViewer::LoadComplete(nsresult aStatus)
 
     docShell->GetRestoringDocument(&restoring);
     if (!restoring) {
-      MOZ_ASSERT(mDocument->IsXUL() || 
-                 mDocument->GetReadyStateEnum() ==
-                   nsIDocument::READYSTATE_INTERACTIVE ||
-                 
-                 
-                 (mDocument->GetReadyStateEnum() ==
-                    nsIDocument::READYSTATE_UNINITIALIZED &&
-                  NS_IsAboutBlank(mDocument->GetDocumentURI())),
-                 "Bad readystate");
+      NS_ASSERTION(mDocument->IsXUL() || 
+                   mDocument->GetReadyStateEnum() ==
+                     nsIDocument::READYSTATE_INTERACTIVE ||
+                   
+                   
+                   (mDocument->GetReadyStateEnum() ==
+                      nsIDocument::READYSTATE_UNINITIALIZED &&
+                    NS_IsAboutBlank(mDocument->GetDocumentURI())),
+                   "Bad readystate");
       nsCOMPtr<nsIDocument> d = mDocument;
       mDocument->SetReadyStateInternal(nsIDocument::READYSTATE_COMPLETE);
 
