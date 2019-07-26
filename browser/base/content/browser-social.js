@@ -1267,6 +1267,10 @@ SocialSidebar = {
     sbrowser.stop();
     sbrowser.removeAttribute("origin");
     sbrowser.setAttribute("src", "about:blank");
+    
+    
+    
+    sbrowser.docShell.createAboutBlankContentViewer(null);
     SocialFlyout.unload();
   },
 
