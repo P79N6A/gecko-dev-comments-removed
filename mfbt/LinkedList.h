@@ -58,6 +58,7 @@
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/MemoryReporting.h"
 #include "mozilla/Move.h"
 #include "mozilla/NullPtr.h"
 
@@ -377,6 +378,26 @@ class LinkedList
     void clear() {
       while (popFirst())
         continue;
+    }
+
+    
+
+
+
+
+
+    size_t sizeOfExcludingThis(MallocSizeOf mallocSizeOf) const {
+      size_t n = 0;
+      for (const T* t = getFirst(); t; t = t->getNext())
+        n += mallocSizeOf(t);
+      return n;
+    }
+
+    
+
+
+    size_t sizeOfIncludingThis(MallocSizeOf mallocSizeOf) const {
+      return mallocSizeOf(this) + sizeOfExcludingThis(mallocSizeOf);
     }
 
     
