@@ -8,6 +8,11 @@ var gPluginHandler = {
   PLUGIN_SCRIPTED_STATE_FIRED: 1,
   PLUGIN_SCRIPTED_STATE_DONE: 2,
 
+  getPluginUI: function (plugin, className) {
+    return plugin.ownerDocument.
+           getAnonymousElementByAttribute(plugin, "class", className);
+  },
+
 #ifdef MOZ_CRASHREPORTER
   get CrashSubmit() {
     delete this.CrashSubmit;
@@ -409,11 +414,16 @@ var gPluginHandler = {
   },
 
 #ifdef MOZ_CRASHREPORTER
-  
-  submitReport : function(pluginDumpID, browserDumpID) {
-    
-    
-    this.CrashSubmit.submit(pluginDumpID);
+  submitReport: function submitReport(pluginDumpID, browserDumpID, plugin) {
+    let keyVals = {};
+    if (plugin) {
+      let userComment = this.getPluginUI(plugin, "submitComment").value.trim();
+      if (userComment)
+        keyVals.PluginUserComment = userComment;
+      if (this.getPluginUI(plugin, "submitURLOptIn").checked)
+        keyVals.PluginContentURL = plugin.ownerDocument.URL;
+    }
+    this.CrashSubmit.submit(pluginDumpID, { extraExtraKeyVals: keyVals });
     if (browserDumpID)
       this.CrashSubmit.submit(browserDumpID);
   },
@@ -937,11 +947,16 @@ var gPluginHandler = {
     }
     else { 
       status = "please";
-      
-      let pleaseLink = doc.getAnonymousElementByAttribute(
-                            plugin, "class", "pleaseSubmitLink");
-      this.addLinkClickCallback(pleaseLink, "submitReport",
-                                pluginDumpID, browserDumpID);
+      this.getPluginUI(plugin, "submitButton").addEventListener("click",
+        function (event) {
+          if (event.button != 0 || !event.isTrusted)
+            return;
+          this.submitReport(pluginDumpID, browserDumpID, plugin);
+          pref.setBoolPref("", optInCB.checked);
+        }.bind(this));
+      let optInCB = this.getPluginUI(plugin, "submitURLOptIn");
+      let pref = Services.prefs.getBranch("dom.ipc.plugins.reportCrashURL");
+      optInCB.checked = pref.getBoolPref("");
     }
 
     
@@ -952,8 +967,6 @@ var gPluginHandler = {
 
     statusDiv.setAttribute("status", status);
 
-    let bottomLinks = doc.getAnonymousElementByAttribute(plugin, "class", "msg msgBottomLinks");
-    bottomLinks.style.display = "block";
     let helpIcon = doc.getAnonymousElementByAttribute(plugin, "class", "helpIcon");
     this.addLinkClickCallback(helpIcon, "openHelpPage");
 
@@ -990,7 +1003,7 @@ var gPluginHandler = {
     }
 #endif
 
-    let crashText = doc.getAnonymousElementByAttribute(plugin, "class", "msg msgCrashed");
+    let crashText = doc.getAnonymousElementByAttribute(plugin, "class", "msgCrashedText");
     crashText.textContent = messageString;
 
     let browser = gBrowser.getBrowserForDocument(doc.defaultView.top.document);
@@ -1000,21 +1013,32 @@ var gPluginHandler = {
 
     let notificationBox = gBrowser.getNotificationBox(browser);
 
+    let isShowing = true;
+
     
     if (this.isTooSmall(plugin, overlay)) {
+      
+      statusDiv.removeAttribute("status");
+
+      if (this.isTooSmall(plugin, overlay)) {
         
         
         overlay.style.visibility = "hidden";
-        
-        
-        if (!doc.mozNoPluginCrashedNotification)
-          showNotificationBar(pluginDumpID, browserDumpID);
+        isShowing = false;
+      }
+    }
+
+    if (isShowing) {
+      
+      
+      
+      hideNotificationBar();
+      doc.mozNoPluginCrashedNotification = true;
     } else {
-        
-        
-        
-        hideNotificationBar();
-        doc.mozNoPluginCrashedNotification = true;
+      
+      
+      if (!doc.mozNoPluginCrashedNotification)
+        showNotificationBar(pluginDumpID, browserDumpID);
     }
 
     function hideNotificationBar() {

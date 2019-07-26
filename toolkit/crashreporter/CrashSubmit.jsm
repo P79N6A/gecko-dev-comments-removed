@@ -186,12 +186,14 @@ function writeSubmittedReport(crashID, viewURL) {
 }
 
 
-function Submitter(id, submitSuccess, submitError, noThrottle) {
+function Submitter(id, submitSuccess, submitError, noThrottle,
+                   extraExtraKeyVals) {
   this.id = id;
   this.successCallback = submitSuccess;
   this.errorCallback = submitError;
   this.noThrottle = noThrottle;
   this.additionalDumps = [];
+  this.extraKeyVals = extraExtraKeyVals || {};
 }
 
 Submitter.prototype = {
@@ -238,13 +240,10 @@ Submitter.prototype = {
 
   submitForm: function Submitter_submitForm()
   {
-    let reportData = parseKeyValuePairsFromFile(this.extra);
-    if (!('ServerURL' in reportData)) {
+    if (!('ServerURL' in this.extraKeyVals)) {
       return false;
     }
-
-    let serverURL = reportData.ServerURL;
-    delete reportData.ServerURL;
+    let serverURL = this.extraKeyVals.ServerURL;
 
     
 
@@ -253,7 +252,7 @@ Submitter.prototype = {
     if (envOverride != '') {
       serverURL = envOverride;
     }
-    else if ('PluginHang' in reportData) {
+    else if ('PluginHang' in this.extraKeyVals) {
       try {
         serverURL = Services.prefs.
           getCharPref("toolkit.crashreporter.pluginHangSubmitURL");
@@ -267,8 +266,10 @@ Submitter.prototype = {
     let formData = Cc["@mozilla.org/files/formdata;1"]
                    .createInstance(Ci.nsIDOMFormData);
     
-    for (let [name, value] in Iterator(reportData)) {
-      formData.append(name, value);
+    for (let [name, value] in Iterator(this.extraKeyVals)) {
+      if (name != "ServerURL") {
+        formData.append(name, value);
+      }
     }
     if (this.noThrottle) {
       
@@ -311,6 +312,13 @@ Submitter.prototype = {
       propBag.setPropertyAsAString("serverCrashID", ret.CrashID);
     }
 
+    let extraKeyValsBag = Cc["@mozilla.org/hash-property-bag;1"].
+                          createInstance(Ci.nsIWritablePropertyBag2);
+    for (let key in this.extraKeyVals) {
+      extraKeyValsBag.setPropertyAsAString(key, this.extraKeyVals[key]);
+    }
+    propBag.setPropertyAsInterface("extra", extraKeyValsBag);
+
     Services.obs.notifyObservers(propBag, "crash-report-status", status);
 
     switch (status) {
@@ -336,10 +344,16 @@ Submitter.prototype = {
       return false;
     }
 
-    let reportData = parseKeyValuePairsFromFile(extra);
+    let extraKeyVals = parseKeyValuePairsFromFile(extra);
+    for (let key in extraKeyVals) {
+      if (!(key in this.extraKeyVals)) {
+        this.extraKeyVals[key] = extraKeyVals[key];
+      }
+    }
+
     let additionalDumps = [];
-    if ("additional_minidumps" in reportData) {
-      let names = reportData.additional_minidumps.split(',');
+    if ("additional_minidumps" in this.extraKeyVals) {
+      let names = this.extraKeyVals.additional_minidumps.split(',');
       for (let name of names) {
         let [dump, extra] = getPendingMinidump(this.id + "-" + name);
         if (!dump.exists()) {
@@ -396,12 +410,18 @@ this.CrashSubmit = {
 
 
 
+
+
+
+
+
   submit: function CrashSubmit_submit(id, params)
   {
     params = params || {};
     let submitSuccess = null;
     let submitError = null;
     let noThrottle = false;
+    let extraExtraKeyVals = null;
 
     if ('submitSuccess' in params)
       submitSuccess = params.submitSuccess;
@@ -409,11 +429,14 @@ this.CrashSubmit = {
       submitError = params.submitError;
     if ('noThrottle' in params)
       noThrottle = params.noThrottle;
+    if ('extraExtraKeyVals' in params)
+      extraExtraKeyVals = params.extraExtraKeyVals;
 
     let submitter = new Submitter(id,
                                   submitSuccess,
                                   submitError,
-                                  noThrottle);
+                                  noThrottle,
+                                  extraExtraKeyVals);
     CrashSubmit._activeSubmissions.push(submitter);
     return submitter.submit();
   },
