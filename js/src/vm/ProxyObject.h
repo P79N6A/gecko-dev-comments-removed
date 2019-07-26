@@ -77,6 +77,19 @@ class ProxyObject : public JSObject
         return &getReservedSlotRef(n);
     }
 
+    static bool isValidProxyClass(const Class *clasp) {
+        
+        
+        
+
+        
+        
+        return clasp->isProxy() &&
+               (clasp->flags & JSCLASS_IMPLEMENTS_BARRIERS) &&
+               clasp->trace == proxy_Trace &&
+               JSCLASS_RESERVED_SLOTS(clasp) >= PROXY_MINIMUM_SLOTS;
+    }
+
   public:
     static unsigned grayLinkSlot(JSObject *obj);
 
