@@ -191,9 +191,8 @@ NS_IMETHODIMP nsUTF8ToUnicode::Convert(const char * aSrc,
     
     
     if (aDestLen < 2) {
-      NS_ERROR("Output buffer insufficient to hold supplementary character");
-      mState = 0;
-      return NS_ERROR_ILLEGAL_INPUT;
+      *aSrcLength = *aDestLength = 0;
+      return NS_OK_UDEC_MOREOUTPUT;
     }
     out = EmitSurrogatePair(mUcs4, out);
     mUcs4 = 0;
@@ -225,8 +224,12 @@ NS_IMETHODIMP nsUTF8ToUnicode::Convert(const char * aSrc,
         mBytes = 1;
       } else if (c < 0xC2) {  
         
-        res = NS_ERROR_ILLEGAL_INPUT;
-        break;
+        if (mErrBehavior == kOnError_Signal) {
+          res = NS_ERROR_ILLEGAL_INPUT;
+          break;
+        }
+        *out++ = UCS2_REPLACEMENT_CHAR;
+        mFirst = false;
       } else if (c < 0xE0) {  
         
         mUcs4 = c;
@@ -249,11 +252,15 @@ NS_IMETHODIMP nsUTF8ToUnicode::Convert(const char * aSrc,
         
 
 
+        if (mErrBehavior == kOnError_Signal) {
+          
 
 
-
-        res = NS_ERROR_ILLEGAL_INPUT;
-        break;
+          res = NS_ERROR_ILLEGAL_INPUT;
+          break;
+        }
+        *out++ = UCS2_REPLACEMENT_CHAR;
+        mFirst = false;
       }
     } else {
       
@@ -270,8 +277,14 @@ NS_IMETHODIMP nsUTF8ToUnicode::Convert(const char * aSrc,
                               mUcs4 == 0x100000 && c > 0x8F)) {  
             
             in--;
-            res = NS_ERROR_ILLEGAL_INPUT;
-            break;
+            if (mErrBehavior == kOnError_Signal) {
+              res = NS_ERROR_ILLEGAL_INPUT;
+              break;
+            }
+            *out++ = UCS2_REPLACEMENT_CHAR;
+            mState = 0;
+            mFirst = false;
+            continue;
           }
         }
 
@@ -315,8 +328,13 @@ NS_IMETHODIMP nsUTF8ToUnicode::Convert(const char * aSrc,
 
 
         in--;
-        res = NS_ERROR_ILLEGAL_INPUT;
-        break;
+        if (mErrBehavior == kOnError_Signal) {
+          res = NS_ERROR_ILLEGAL_INPUT;
+          break;
+        }
+        *out++ = UCS2_REPLACEMENT_CHAR;
+        mState = 0;
+        mFirst = false;
       }
     }
   }
