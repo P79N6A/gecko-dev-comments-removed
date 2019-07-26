@@ -353,8 +353,7 @@ protected:
                                               nsDeviceContext *aContext);
   void                 DestroyNativeWindow();
   void                 AdjustWindowShadow();
-  void                 SetUpWindowFilter();
-  void                 CleanUpWindowFilter();
+  void                 SetWindowBackgroundBlur();
   void                 UpdateBounds();
 
   nsresult             DoResize(double aX, double aY, double aWidth, double aHeight,
@@ -375,7 +374,6 @@ protected:
   NSWindow*            mSheetWindowParent; 
   nsChildView*         mPopupContentView; 
   int32_t              mShadowStyle;
-  NSUInteger           mWindowFilter;
 
   CGFloat              mBackingScaleFactor;
 
