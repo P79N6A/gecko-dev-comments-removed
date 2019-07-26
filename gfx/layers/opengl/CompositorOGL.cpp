@@ -717,14 +717,6 @@ CompositorOGL::SetRenderTarget(CompositingRenderTarget *aSurface)
   CompositingRenderTargetOGL* surface
     = static_cast<CompositingRenderTargetOGL*>(aSurface);
   if (mCurrentRenderTarget != surface) {
-    
-    
-    mGLContext->PopScissorRect();
-
-    
-    
-    mGLContext->PushScissorRect();
-
     surface->BindRenderTarget();
     mCurrentRenderTarget = surface;
   }
