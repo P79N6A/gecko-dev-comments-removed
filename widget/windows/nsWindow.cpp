@@ -4578,6 +4578,13 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
 
     case WM_FONTCHANGE:
     {
+      
+      
+      
+      if (mWindowType != eWindowType_invisible) {
+        break;
+      }
+
       nsresult rv;
       bool didChange = false;
 
