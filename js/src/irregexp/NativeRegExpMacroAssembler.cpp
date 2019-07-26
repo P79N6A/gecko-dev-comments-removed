@@ -729,7 +729,69 @@ NativeRegExpMacroAssembler::CheckNotBackReferenceIgnoreCase(int start_reg, Label
     masm.branchPtr(Assembler::GreaterThan, temp0, ImmWord(0), BranchOrBacktrack(on_no_match));
 
     if (mode_ == ASCII) {
-        MOZ_ASSUME_UNREACHABLE("Ascii case not implemented");
+        Label success, fail;
+
+        
+        
+        masm.push(current_position);
+
+        masm.addPtr(input_end_pointer, current_character); 
+        masm.addPtr(input_end_pointer, current_position); 
+        masm.addPtr(current_position, temp1); 
+
+        Label loop, loop_increment;
+        masm.bind(&loop);
+        masm.load8ZeroExtend(Address(current_position, 0), temp0);
+        masm.load8ZeroExtend(Address(current_character, 0), temp2);
+        masm.branch32(Assembler::Equal, temp0, temp2, &loop_increment);
+
+        
+        masm.or32(Imm32(0x20), temp0); 
+
+        
+        Label convert_capture;
+        masm.computeEffectiveAddress(Address(temp0, -'a'), temp2);
+        masm.branch32(Assembler::BelowOrEqual, temp2, Imm32(static_cast<int32_t>('z' - 'a')),
+                      &convert_capture);
+
+        
+        masm.sub32(Imm32(224 - 'a'), temp2);
+        masm.branch32(Assembler::Above, temp2, Imm32(254 - 224), &fail);
+
+        
+        masm.branch32(Assembler::Equal, temp2, Imm32(247 - 224), &fail);
+
+        masm.bind(&convert_capture);
+
+        
+        masm.load8ZeroExtend(Address(current_character, 0), temp2);
+        masm.or32(Imm32(0x20), temp2);
+
+        masm.branch32(Assembler::NotEqual, temp0, temp2, &fail);
+
+        masm.bind(&loop_increment);
+
+        
+        masm.addPtr(Imm32(1), current_character);
+        masm.addPtr(Imm32(1), current_position);
+
+        
+        masm.branchPtr(Assembler::Below, current_position, temp1, &loop);
+        masm.jump(&success);
+
+        masm.bind(&fail);
+
+        
+        masm.pop(current_position);
+        JumpOrBacktrack(on_no_match);
+
+        masm.bind(&success);
+
+        
+        masm.addPtr(Imm32(sizeof(uintptr_t)), StackPointer);
+
+        
+        masm.subPtr(input_end_pointer, current_position);
     } else {
         JS_ASSERT(mode_ == JSCHAR);
 
