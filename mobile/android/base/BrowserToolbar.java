@@ -757,7 +757,7 @@ public class BrowserToolbar implements TextWatcher,
 
         
         if (TextUtils.isEmpty(mAutoCompleteResult) || !mAutoCompleteResult.equals(text)) {
-            if (mFilterListener != null) {
+            if (isEditing() && mFilterListener != null) {
                 mFilterListener.onFilter(text, useHandler ? this : null);
             }
             mAutoCompletePrefix = text;
