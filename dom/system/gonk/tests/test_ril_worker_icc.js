@@ -1873,6 +1873,94 @@ add_test(function test_find_free_icc_contact_usim() {
   run_next_test();
 });
 
+
+
+
+add_test(function test_error_message_read_icc_contact () {
+  let worker = newUint8Worker();
+  let ril = worker.RIL;
+
+  function do_test(options, expectedErrorMsg) {
+    ril.sendChromeMessage = function (message) {
+      do_check_eq(message.errorMsg, expectedErrorMsg);
+    }
+    ril.readICCContacts(options);
+  }
+
+  
+  do_test({}, CONTACT_ERR_REQUEST_NOT_SUPPORTED);
+
+  
+  ril.appType = CARD_APPTYPE_USIM;
+  do_test({contactType: "sdn"}, CONTACT_ERR_CONTACT_TYPE_NOT_SUPPORTED);
+
+  
+  
+  USIM_PBR_FIELDS.push("pbc");
+  do_test({contactType: "adn"}, CONTACT_ERR_FIELD_NOT_SUPPORTED);
+
+  run_next_test();
+});
+
+
+
+
+add_test(function test_error_message_update_icc_contact() {
+  let worker = newUint8Worker();
+  let ril = worker.RIL;
+
+  function do_test(options, expectedErrorMsg) {
+    ril.sendChromeMessage = function (message) {
+      do_check_eq(message.errorMsg, expectedErrorMsg);
+    }
+    ril.updateICCContact(options);
+  }
+
+  
+  do_test({}, CONTACT_ERR_REQUEST_NOT_SUPPORTED);
+
+  
+  do_test({contactType: "adn"}, CONTACT_ERR_REQUEST_NOT_SUPPORTED);
+
+  
+  ril.appType = CARD_APPTYPE_USIM;
+  do_test({contactType: "sdn", contact: {}}, CONTACT_ERR_CONTACT_TYPE_NOT_SUPPORTED);
+
+  
+  let record = worker.ICCRecordHelper;
+  record.readPBR = function (onsuccess, onerror) {
+    onsuccess([{adn: {fileId: 0x4f3a}}]);
+  };
+
+  let io = worker.ICCIOHelper;
+  io.loadLinearFixedEF = function (options) {
+    options.totalRecords = 1;
+    options.p1 = 1;
+    options.callback(options);
+  };
+
+  do_test({contactType: "adn", contact: {}}, CONTACT_ERR_NO_FREE_RECORD_FOUND);
+
+  const ICCID = "123456789";
+  ril.iccInfo.iccid = ICCID;
+
+  
+  
+  USIM_PBR_FIELDS.push("pbc");
+  do_test({contactType: "adn", contact: {contactId: ICCID + "1"}},
+          CONTACT_ERR_FIELD_NOT_SUPPORTED);
+
+  
+  record.readPBR = function (onsuccess, onerror) {
+    onsuccess([]);
+  };
+
+  do_test({contactType: "adn", contact: {contactId: ICCID + "1"}},
+          CONTACT_ERR_CANNOT_ACCESS_PHONEBOOK);
+
+  run_next_test();
+});
+
 add_test(function test_personalization_state() {
   let worker = newUint8Worker();
   let ril = worker.RIL;
