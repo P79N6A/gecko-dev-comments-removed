@@ -16,6 +16,7 @@ class gfxContext;
 class nsIFrame;
 class nsSVGElement;
 class nsSVGLength2;
+class nsSVGPathGeometryFrame;
 class nsSVGViewBox;
 
 namespace mozilla {
@@ -131,7 +132,7 @@ private:
   
   
   
-  nsSVGGeometryFrame               *mSource;
+  nsSVGPathGeometryFrame           *mSource;
   nsAutoPtr<gfxMatrix>              mCTM;
 
 protected:

@@ -13,7 +13,6 @@
 #include "nsISVGChildFrame.h"
 #include "nsLiteralString.h"
 #include "nsQueryFrame.h"
-#include "nsSVGGeometryFrame.h"
 #include "nsSVGUtils.h"
 
 class gfxContext;
@@ -30,7 +29,7 @@ struct nsPoint;
 struct nsRect;
 struct nsIntRect;
 
-typedef nsSVGGeometryFrame nsSVGPathGeometryFrameBase;
+typedef nsFrame nsSVGPathGeometryFrameBase;
 
 class nsSVGPathGeometryFrame : public nsSVGPathGeometryFrameBase,
                                public nsISVGChildFrame
@@ -44,7 +43,7 @@ protected:
   nsSVGPathGeometryFrame(nsStyleContext* aContext)
     : nsSVGPathGeometryFrameBase(aContext)
   {
-     AddStateBits(NS_FRAME_MAY_BE_TRANSFORMED);
+     AddStateBits(NS_FRAME_SVG_LAYOUT | NS_FRAME_MAY_BE_TRANSFORMED);
   }
 
 public:
@@ -53,6 +52,15 @@ public:
   NS_DECL_FRAMEARENA_HELPERS
 
   
+  virtual void Init(nsIContent* aContent,
+                    nsIFrame* aParent,
+                    nsIFrame* aPrevInFlow) MOZ_OVERRIDE;
+
+  virtual bool IsFrameOfType(uint32_t aFlags) const MOZ_OVERRIDE
+  {
+    return nsSVGPathGeometryFrameBase::IsFrameOfType(aFlags & ~(nsIFrame::eSVG | nsIFrame::eSVGGeometry));
+  }
+
   NS_IMETHOD  AttributeChanged(int32_t         aNameSpaceID,
                                nsIAtom*        aAttribute,
                                int32_t         aModType) MOZ_OVERRIDE;
@@ -82,8 +90,7 @@ public:
 
   
   gfxMatrix GetCanvasTM(uint32_t aFor,
-                        nsIFrame* aTransformRoot = nullptr) MOZ_OVERRIDE;
-
+                        nsIFrame* aTransformRoot = nullptr);
 protected:
   
   NS_IMETHOD PaintSVG(nsRenderingContext *aContext,
@@ -97,9 +104,14 @@ protected:
                                       uint32_t aFlags) MOZ_OVERRIDE;
   NS_IMETHOD_(bool) IsDisplayContainer() MOZ_OVERRIDE { return false; }
 
-protected:
   void GeneratePath(gfxContext *aContext, const Matrix &aTransform);
+  
 
+
+
+
+
+  virtual uint16_t GetHitTestFlags();
 private:
   enum { eRenderFill = 1, eRenderStroke = 2 };
   void Render(nsRenderingContext *aContext, uint32_t aRenderComponents,

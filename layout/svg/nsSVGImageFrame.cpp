@@ -63,7 +63,7 @@ public:
   virtual void ReflowSVG();
 
   
-  virtual uint16_t GetHitTestFlags();
+  virtual uint16_t GetHitTestFlags() MOZ_OVERRIDE;
 
   
   NS_IMETHOD  AttributeChanged(int32_t         aNameSpaceID,
