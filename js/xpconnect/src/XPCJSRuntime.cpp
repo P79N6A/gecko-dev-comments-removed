@@ -39,6 +39,7 @@
 #include "mozilla/dom/Element.h"
 #include "mozilla/Attributes.h"
 #include "AccessCheck.h"
+#include "nsGlobalWindow.h"
 
 #include "GeckoProfiler.h"
 #include "nsJSPrincipals.h"
@@ -1226,6 +1227,67 @@ XPCJSRuntime::CTypesActivityCallback(JSContext *cx, js::CTypesActivityType type)
   } else if (type == js::CTYPES_CALLBACK_END) {
     xpc::PopJSContextNoScriptContext();
   }
+}
+
+
+bool
+XPCJSRuntime::OperationCallback(JSContext *cx)
+{
+    XPCJSRuntime *self = XPCJSRuntime::Get();
+
+    
+    
+    if (self->mSlowScriptCheckpoint.IsNull()) {
+        self->mSlowScriptCheckpoint = TimeStamp::NowLoRes();
+        return true;
+    }
+
+    
+    
+    
+    TimeDuration duration = TimeStamp::NowLoRes() - self->mSlowScriptCheckpoint;
+    bool chrome =
+      nsContentUtils::IsSystemPrincipal(nsContentUtils::GetSubjectPrincipal());
+    const char *prefName = chrome ? "dom.max_chrome_script_run_time"
+                                  : "dom.max_script_run_time";
+    int32_t limit = Preferences::GetInt(prefName, chrome ? 20 : 10);
+
+    
+    if (limit == 0 || duration.ToSeconds() < limit)
+        return true;
+
+    
+    
+    
+
+    
+    
+    RootedObject global(cx, JS::CurrentGlobalOrNull(cx));
+    nsCOMPtr<nsPIDOMWindow> win;
+    if (IS_WN_REFLECTOR(global))
+        win = do_QueryWrappedNative(XPCWrappedNative::Get(global));
+    if (!win)
+        return true;
+
+    
+    nsGlobalWindow::SlowScriptResponse response =
+      static_cast<nsGlobalWindow*>(win.get())->ShowSlowScriptDialog();
+    if (response == nsGlobalWindow::KillSlowScript)
+        return false;
+
+    
+    
+    self->mSlowScriptCheckpoint = TimeStamp::NowLoRes();
+    if (response == nsGlobalWindow::AlwaysContinueSlowScript)
+        Preferences::SetInt(prefName, 0);
+
+    return true;
+}
+
+bool
+xpc::OperationCallback(JSContext *cx)
+{
+    return XPCJSRuntime::OperationCallback(cx);
 }
 
 size_t

@@ -1183,6 +1183,9 @@ nsXPConnect::AfterProcessNextEvent(nsIThreadInternal *aThread,
     mEventDepth--;
 
     
+    mRuntime->OnAfterProcessNextEvent();
+
+    
     MOZ_ASSERT(NS_IsMainThread());
     nsJSContext::MaybePokeCC();
     nsDOMMutationObserver::HandleMutations();
