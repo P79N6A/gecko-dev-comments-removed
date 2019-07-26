@@ -365,9 +365,11 @@ class MDefinition : public MNode
     
     
     Range *range() const {
+        JS_ASSERT(type() != MIRType_None);
         return range_;
     }
     void setRange(Range *range) {
+        JS_ASSERT(type() != MIRType_None);
         range_ = range;
     }
 
