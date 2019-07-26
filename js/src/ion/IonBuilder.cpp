@@ -5636,6 +5636,8 @@ IonBuilder::jsop_getgname(HandlePropertyName name)
         
         return jsop_getname(name);
     }
+    if (!propertyTypes->hasPropagatedProperty())
+        globalType->getFromPrototypes(cx, id, propertyTypes);
 
     
 
