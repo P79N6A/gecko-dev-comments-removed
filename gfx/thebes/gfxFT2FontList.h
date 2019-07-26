@@ -23,16 +23,17 @@ using mozilla::dom::FontListEntry;
 
 class FontNameCache;
 typedef struct FT_FaceRec_* FT_Face;
+class nsZipArchive;
 
 class FT2FontEntry : public gfxFontEntry
 {
 public:
     FT2FontEntry(const nsAString& aFaceName) :
-        gfxFontEntry(aFaceName)
+        gfxFontEntry(aFaceName),
+        mFTFace(nullptr),
+        mFontFace(nullptr),
+        mFTFontIndex(0)
     {
-        mFTFace = nullptr;
-        mFontFace = nullptr;
-        mFTFontIndex = 0;
     }
 
     ~FT2FontEntry();
@@ -57,17 +58,25 @@ public:
     
     
     static FT2FontEntry* 
-    CreateFontEntry(FT_Face aFace, const char *aFilename, uint8_t aIndex,
+    CreateFontEntry(FT_Face aFace,
+                    const char *aFilename, uint8_t aIndex,
                     const nsAString& aName,
                     const uint8_t *aFontData = nullptr);
 
     virtual gfxFont *CreateFontInstance(const gfxFontStyle *aFontStyle,
                                         bool aNeedsBold);
 
+    
+    
     cairo_font_face_t *CairoFontFace();
+
+    
+    
     cairo_scaled_font_t *CreateScaledFont(const gfxFontStyle *aStyle);
 
     nsresult ReadCMAP();
+
+    virtual hb_blob_t* GetFontTable(uint32_t aTableTag) MOZ_OVERRIDE;
 
     virtual nsresult CopyFontTable(uint32_t aTableTag,
                                    FallibleTArray<uint8_t>& aBuffer) MOZ_OVERRIDE;
@@ -85,7 +94,7 @@ public:
     cairo_font_face_t *mFontFace;
 
     nsCString mFilename;
-    uint8_t mFTFontIndex;
+    uint8_t   mFTFontIndex;
 };
 
 class FT2FontFamily : public gfxFontFamily
@@ -124,15 +133,25 @@ protected:
     void AppendFaceFromFontListEntry(const FontListEntry& aFLE,
                                      bool isStdFile);
 
-    void AppendFacesFromFontFile(nsCString& aFileName,
+    void AppendFacesFromFontFile(const nsCString& aFileName,
                                  bool isStdFile = false,
                                  FontNameCache *aCache = nullptr);
 
-    void AppendFacesFromCachedFaceList(nsCString& aFileName,
+    void AppendFacesFromOmnijarEntry(nsZipArchive *aReader,
+                                     const nsCString& aEntryName,
+                                     FontNameCache *aCache,
+                                     bool aJarChanged);
+
+    void AppendFacesFromCachedFaceList(const nsCString& aFileName,
                                        bool isStdFile,
-                                       nsCString& aFaceList);
+                                       const nsCString& aFaceList);
+
+    void AddFaceToList(const nsCString& aEntryName, uint32_t aIndex,
+                       bool aStdFile, FT_Face aFace, nsCString& aFaceList);
 
     void FindFonts();
+
+    void FindFontsInOmnijar(FontNameCache *aCache);
 
 #ifdef ANDROID
     void FindFontsInDir(const nsCString& aDir, FontNameCache* aFNC);
