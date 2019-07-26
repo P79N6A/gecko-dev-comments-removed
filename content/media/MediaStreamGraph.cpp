@@ -918,15 +918,11 @@ MediaStreamGraphImpl::PlayAudio(MediaStream* aStream,
     
     
     TrackTicks offset = track->TimeToTicksRoundDown(GraphTimeToStreamTime(aStream, aFrom));
-    if (!audioOutput.mLastTickWritten) {
-        audioOutput.mLastTickWritten = offset;
-    }
-    if (audioOutput.mLastTickWritten != offset) {
+    if (audioOutput.mLastTickWritten &&
+        audioOutput.mLastTickWritten != offset) {
       
       
-      if (mozilla::Abs(audioOutput.mLastTickWritten - offset) != 1) {
-        audioOutput.mLastTickWritten = offset;
-      } else {
+      if (mozilla::Abs(audioOutput.mLastTickWritten - offset) == 1) {
         offset = audioOutput.mLastTickWritten;
       }
     }
@@ -950,18 +946,23 @@ MediaStreamGraphImpl::PlayAudio(MediaStream* aStream,
       } else {
         toWrite = TimeToTicksRoundDown(mSampleRate, end - aFrom);
       }
+      ticksNeeded -= toWrite;
 
       if (blocked) {
         output.InsertNullDataAtStart(toWrite);
         STREAM_LOG(PR_LOG_DEBUG+1, ("MediaStream %p writing %ld blocking-silence samples for %f to %f (%ld to %ld)\n",
                                     aStream, toWrite, MediaTimeToSeconds(t), MediaTimeToSeconds(end),
                                     offset, offset + toWrite));
-        ticksNeeded -= toWrite;
       } else {
         TrackTicks endTicksNeeded = offset + toWrite;
         TrackTicks endTicksAvailable = audio->GetDuration();
+        STREAM_LOG(PR_LOG_DEBUG+1, ("MediaStream %p writing %ld samples for %f to %f (samples %ld to %ld)\n",
+                                     aStream, toWrite, MediaTimeToSeconds(t), MediaTimeToSeconds(end),
+                                     offset, endTicksNeeded));
+
         if (endTicksNeeded <= endTicksAvailable) {
           output.AppendSlice(*audio, offset, endTicksNeeded);
+          offset = endTicksNeeded;
         } else {
           MOZ_ASSERT(track->IsEnded(), "Not enough data, and track not ended.");
           
@@ -969,21 +970,16 @@ MediaStreamGraphImpl::PlayAudio(MediaStream* aStream,
           if (endTicksNeeded > endTicksAvailable &&
               offset < endTicksAvailable) {
             output.AppendSlice(*audio, offset, endTicksAvailable);
-            ticksNeeded -= endTicksAvailable - offset;
             toWrite -= endTicksAvailable - offset;
+            offset = endTicksAvailable;
           }
           output.AppendNullData(toWrite);
         }
         output.ApplyVolume(volume);
-        STREAM_LOG(PR_LOG_DEBUG+1, ("MediaStream %p writing %ld samples for %f to %f (samples %ld to %ld)\n",
-                                     aStream, toWrite, MediaTimeToSeconds(t), MediaTimeToSeconds(end),
-                                     offset, endTicksNeeded));
-        ticksNeeded -= toWrite;
       }
       t = end;
-      offset += toWrite;
-      audioOutput.mLastTickWritten += toWrite;
     }
+    audioOutput.mLastTickWritten = offset;
 
     
     output.WriteTo(LATENCY_STREAM_ID(aStream, track->GetID()),
