@@ -173,9 +173,8 @@ nsPluginInstanceOwner::GetImageContainer()
 
   
   
-  float xResolution = mObjectFrame->PresContext()->GetRootPresContext()->PresShell()->GetXResolution();
-  float yResolution = mObjectFrame->PresContext()->GetRootPresContext()->PresShell()->GetYResolution();
-  ScreenSize screenSize = (r * LayoutDeviceToScreenScale(xResolution, yResolution)).Size();
+  gfxSize resolution = mObjectFrame->PresContext()->PresShell()->GetCumulativeResolution();
+  ScreenSize screenSize = (r * LayoutDeviceToScreenScale(resolution.width, resolution.height)).Size();
   mInstance->NotifySize(nsIntSize(screenSize.width, screenSize.height));
   
   container = LayerManager::CreateImageContainer();
