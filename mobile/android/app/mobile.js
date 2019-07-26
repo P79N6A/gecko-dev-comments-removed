@@ -682,6 +682,9 @@ pref("memory.free_dirty_pages", true);
 
 pref("layout.imagevisibility.enabled", false);
 
+
+pref("browser.chrome.dynamictoolbar", false);
+
 #ifdef MOZ_PKG_SPECIAL
 
 
