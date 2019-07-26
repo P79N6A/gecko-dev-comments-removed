@@ -1101,10 +1101,16 @@ function PeerConnectionWrapper(label, configuration) {
 
 
   this._pc.onaddstream = function (event) {
-    info(self + ": 'onaddstream' event fired for " + event.stream);
+    info(self + ": 'onaddstream' event fired for " + JSON.stringify(event.stream));
 
-    
-    self.attachMedia(event.stream, 'video', 'remote');
+    var type = '';
+    if (event.stream.getAudioTracks().length > 0) {
+      type = 'audio';
+    }
+    if (event.stream.getVideoTracks().length > 0) {
+      type += 'video';
+    }
+    self.attachMedia(event.stream, type, 'remote');
    };
 
   
