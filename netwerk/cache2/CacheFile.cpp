@@ -1540,13 +1540,21 @@ CacheFile::IsWriteInProgress()
   
   
   
-  return
-    mDataIsDirty ||
-    (mMetadata && mMetadata->IsDirty()) ||
-    mWritingMetadata ||
-    mOpeningFile ||
-    mOutput ||
-    mChunks.Count();
+
+  bool result = false;
+
+  if (!mMemoryOnly) {
+    result = mDataIsDirty ||
+             (mMetadata && mMetadata->IsDirty()) ||
+             mWritingMetadata;
+  }
+
+  result = result ||
+           mOpeningFile ||
+           mOutput ||
+           mChunks.Count();
+
+  return result;
 }
 
 bool
