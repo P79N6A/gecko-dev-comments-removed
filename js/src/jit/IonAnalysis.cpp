@@ -1907,7 +1907,7 @@ AnalyzePoppedThis(JSContext *cx, types::TypeObject *type,
                   MDefinition *thisValue, MInstruction *ins, bool definitelyExecuted,
                   HandleObject baseobj,
                   Vector<types::TypeNewScript::Initializer> *initializerList,
-                  Vector<jsid> *accessedProperties,
+                  Vector<PropertyName *> *accessedProperties,
                   bool *phandled)
 {
     
@@ -1922,17 +1922,15 @@ AnalyzePoppedThis(JSContext *cx, types::TypeObject *type,
         
         
         
-        RootedId id(cx, NameToId(setprop->name()));
-        if (types::IdToTypeId(id) != id ||
-            id == NameToId(cx->names().classPrototype) ||
-            id == NameToId(cx->names().proto) ||
-            id == NameToId(cx->names().constructor))
+        if (setprop->name() == cx->names().classPrototype ||
+            setprop->name() == cx->names().proto ||
+            setprop->name() == cx->names().constructor)
         {
             return true;
         }
 
         
-        if (baseobj->nativeLookup(cx, id)) {
+        if (baseobj->nativeLookup(cx, NameToId(setprop->name()))) {
             *phandled = true;
             return true;
         }
@@ -1940,7 +1938,7 @@ AnalyzePoppedThis(JSContext *cx, types::TypeObject *type,
         
         
         for (size_t i = 0; i < accessedProperties->length(); i++) {
-            if ((*accessedProperties)[i] == id)
+            if ((*accessedProperties)[i] == setprop->name())
                 return true;
         }
 
@@ -1953,13 +1951,14 @@ AnalyzePoppedThis(JSContext *cx, types::TypeObject *type,
         if (!definitelyExecuted)
             return true;
 
-        if (!types::AddClearDefiniteGetterSetterForPrototypeChain(cx, type, id)) {
+        if (!types::AddClearDefiniteGetterSetterForPrototypeChain(cx, type, NameToId(setprop->name()))) {
             
             
             return true;
         }
 
         DebugOnly<unsigned> slotSpan = baseobj->slotSpan();
+        RootedId id(cx, NameToId(setprop->name()));
         RootedValue value(cx, UndefinedValue());
         if (!DefineNativeProperty(cx, baseobj, id, value, nullptr, nullptr,
                                   JSPROP_ENUMERATE, 0, 0, DNP_SKIP_TYPE))
@@ -2015,9 +2014,7 @@ AnalyzePoppedThis(JSContext *cx, types::TypeObject *type,
 
 
         RootedId id(cx, NameToId(get->name()));
-        if (types::IdToTypeId(id) != id)
-            return true;
-        if (!baseobj->nativeLookup(cx, id) && !accessedProperties->append(id.get()))
+        if (!baseobj->nativeLookup(cx, id) && !accessedProperties->append(get->name()))
             return false;
 
         if (!types::AddClearDefiniteGetterSetterForPrototypeChain(cx, type, id)) {
@@ -2066,7 +2063,7 @@ jit::AnalyzeNewScriptProperties(JSContext *cx, JSFunction *fun,
 
     types::TypeScript::SetThis(cx, fun->nonLazyScript(), types::Type::ObjectType(type));
 
-    Vector<jsid> accessedProperties(cx);
+    Vector<PropertyName *> accessedProperties(cx);
 
     LifoAlloc alloc(types::TypeZone::TYPE_LIFO_ALLOC_PRIMARY_CHUNK_SIZE);
 
@@ -2085,8 +2082,10 @@ jit::AnalyzeNewScriptProperties(JSContext *cx, JSFunction *fun,
 
     AutoTempAllocatorRooter root(cx, &temp);
 
+    types::CompilerConstraintList constraints;
     BaselineInspector inspector(cx, fun->nonLazyScript());
-    IonBuilder builder(cx, &temp, &graph, &inspector, &info,  nullptr);
+    IonBuilder builder(cx, &temp, &graph, &constraints,
+                       &inspector, &info,  nullptr);
 
     if (!builder.build()) {
         if (builder.abortReason() == AbortReason_Alloc)

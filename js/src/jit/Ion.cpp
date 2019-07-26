@@ -518,11 +518,8 @@ jit::FinishOffThreadBuilder(IonBuilder *builder)
     ExecutionMode executionMode = builder->info().executionMode();
 
     
-    if (CompilingOffThread(builder->script(), executionMode)) {
-        types::TypeCompartment &types = builder->script()->compartment()->types;
-        builder->recompileInfo.compilerOutput(types)->invalidate();
+    if (CompilingOffThread(builder->script(), executionMode))
         SetIonScript(builder->script(), executionMode, nullptr);
-    }
 
     
     
@@ -748,7 +745,8 @@ IonScript::IonScript()
 static const int DataAlignment = sizeof(void *);
 
 IonScript *
-IonScript::New(JSContext *cx, uint32_t frameSlots, uint32_t frameSize, size_t snapshotsSize,
+IonScript::New(JSContext *cx, types::RecompileInfo recompileInfo,
+               uint32_t frameSlots, uint32_t frameSize, size_t snapshotsSize,
                size_t bailoutEntries, size_t constants, size_t safepointIndices,
                size_t osiIndices, size_t cacheEntries, size_t runtimeSize,
                size_t safepointsSize, size_t callTargetEntries, size_t backedgeEntries)
@@ -835,7 +833,7 @@ IonScript::New(JSContext *cx, uint32_t frameSlots, uint32_t frameSize, size_t sn
     script->frameSlots_ = frameSlots;
     script->frameSize_ = frameSize;
 
-    script->recompileInfo_ = cx->compartment()->types.compiledInfo;
+    script->recompileInfo_ = recompileInfo;
 
     return script;
 }
@@ -1510,17 +1508,13 @@ AttachFinishedCompilations(JSContext *cx)
 
             types::AutoEnterAnalysis enterTypes(cx);
 
-            ExecutionMode executionMode = builder->info().executionMode();
-            types::AutoEnterCompilation enterCompiler(cx, CompilerOutputKind(executionMode));
-            enterCompiler.initExisting(builder->recompileInfo);
-
             bool success;
             {
                 
                 AutoTempAllocatorRooter root(cx, &builder->temp());
                 AutoUnlockWorkerThreadState unlock(cx->runtime());
                 AutoFlushCache afc("AttachFinishedCompilations", cx->runtime()->ionRuntime());
-                success = codegen->link();
+                success = codegen->link(cx, builder->constraints());
             }
 
             if (!success) {
@@ -1601,13 +1595,11 @@ IonCompile(JSContext *cx, JSScript *script,
 
     AutoFlushCache afc("IonCompile", cx->runtime()->ionRuntime());
 
-    types::AutoEnterCompilation enterCompiler(cx, CompilerOutputKind(executionMode));
-    if (!enterCompiler.init(script))
-        return AbortReason_Disable;
-
     AutoTempAllocatorRooter root(cx, temp);
+    types::CompilerConstraintList *constraints = alloc->new_<types::CompilerConstraintList>();
 
-    IonBuilder *builder = alloc->new_<IonBuilder>(cx, temp, graph, &inspector, info, baselineFrame);
+    IonBuilder *builder = alloc->new_<IonBuilder>(cx, temp, graph, constraints,
+                                                  &inspector, info, baselineFrame);
     if (!builder)
         return AbortReason_Alloc;
 
@@ -1652,7 +1644,7 @@ IonCompile(JSContext *cx, JSScript *script,
         return AbortReason_Disable;
     }
 
-    bool success = codegen->link();
+    bool success = codegen->link(cx, builder->constraints());
 
     IonSpewEndFunction();
 
@@ -2343,25 +2335,27 @@ jit::Invalidate(types::TypeCompartment &types, FreeOp *fop,
 
     
     
-    bool anyInvalidation = false;
+    size_t numInvalidations = 0;
     for (size_t i = 0; i < invalid.length(); i++) {
         const types::CompilerOutput &co = *invalid[i].compilerOutput(types);
-        switch (co.kind()) {
-          case types::CompilerOutput::Ion:
-          case types::CompilerOutput::ParallelIon:
-            JS_ASSERT(co.isValid());
-            IonSpew(IonSpew_Invalidate, " Invalidate %s:%u, IonScript %p",
-                    co.script->filename(), co.script->lineno, co.ion());
+        JS_ASSERT(co.isValid());
 
-            
-            
-            
-            co.ion()->incref();
-            anyInvalidation = true;
-        }
+        CancelOffThreadIonCompile(co.script()->compartment(), co.script());
+
+        if (!co.ion())
+            continue;
+
+        IonSpew(IonSpew_Invalidate, " Invalidate %s:%u, IonScript %p",
+                co.script()->filename(), co.script()->lineno, co.ion());
+
+        
+        
+        
+        co.ion()->incref();
+        numInvalidations++;
     }
 
-    if (!anyInvalidation) {
+    if (!numInvalidations) {
         IonSpew(IonSpew_Invalidate, " No IonScript invalidation.");
         return;
     }
@@ -2374,22 +2368,18 @@ jit::Invalidate(types::TypeCompartment &types, FreeOp *fop,
     
     for (size_t i = 0; i < invalid.length(); i++) {
         types::CompilerOutput &co = *invalid[i].compilerOutput(types);
-        ExecutionMode executionMode = SequentialExecution;
-        switch (co.kind()) {
-          case types::CompilerOutput::Ion:
-            break;
-          case types::CompilerOutput::ParallelIon:
-            executionMode = ParallelExecution;
-            break;
-        }
         JS_ASSERT(co.isValid());
-        JSScript *script = co.script;
-        IonScript *ionScript = GetIonScript(script, executionMode);
+        ExecutionMode executionMode = co.mode();
+        JSScript *script = co.script();
+        IonScript *ionScript = co.ion();
+        if (!ionScript)
+            continue;
 
         SetIonScript(script, executionMode, nullptr);
         ionScript->detachDependentAsmJSModules(fop);
         ionScript->decref(fop);
         co.invalidate();
+        numInvalidations--;
 
         
         
@@ -2405,6 +2395,10 @@ jit::Invalidate(types::TypeCompartment &types, FreeOp *fop,
         if (resetUses && executionMode != ParallelExecution)
             script->resetUseCount();
     }
+
+    
+    
+    JS_ASSERT(!numInvalidations);
 }
 
 void

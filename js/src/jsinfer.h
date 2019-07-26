@@ -104,6 +104,20 @@ class CallObject;
 
 namespace jit {
     struct IonScript;
+    class IonAllocPolicy;
+
+    enum ExecutionMode {
+        
+        SequentialExecution,
+
+        
+        
+        ParallelExecution,
+
+        
+        
+        DefinitePropertiesAnalysis
+    };
 }
 
 namespace analyze {
@@ -115,11 +129,7 @@ namespace types {
 class TypeCompartment;
 class TypeSet;
 
-
-struct TypeObjectKey {
-    static intptr_t keyBits(TypeObjectKey *obj) { return (intptr_t) obj; }
-    static TypeObjectKey *getKey(TypeObjectKey *obj) { return obj; }
-};
+struct TypeObjectKey;
 
 
 
@@ -553,47 +563,9 @@ class HeapTypeSet : public TypeSet
 {
   public:
     HeapTypeSet() { flags |= TYPE_FLAG_HEAP_SET; }
-
-    
-    void addFreeze(JSContext *cx);
-
-    
-
-
-
-
-    static void WatchObjectStateChange(JSContext *cx, TypeObject *object);
-
-    
-    static bool HasObjectFlags(JSContext *cx, TypeObject *object, TypeObjectFlags flags);
-
-    
-
-
-
-
-
-
-    bool isConfiguredProperty(JSContext *cx, TypeObject *object);
-
-    
-    bool knownNonEmpty(JSContext *cx);
-
-    
-    bool knownSubset(JSContext *cx, HeapTypeSet *other);
-
-    
-    JSObject *getSingleton(JSContext *cx);
-
-    
-
-
-
-    bool needsBarrier(JSContext *cx);
-
-    
-    JSValueType getKnownTypeTag(JSContext *cx);
 };
+
+class CompilerConstraintList;
 
 class TemporaryTypeSet : public TypeSet
 {
@@ -644,7 +616,7 @@ class TemporaryTypeSet : public TypeSet
     }
 
     
-    bool hasObjectFlags(JSContext *cx, TypeObjectFlags flags);
+    bool hasObjectFlags(CompilerConstraintList *constraints, TypeObjectFlags flags);
 
     
     const Class *getKnownClass();
@@ -668,7 +640,7 @@ class TemporaryTypeSet : public TypeSet
     JSObject *getSingleton();
 
     
-    bool propertyNeedsBarrier(JSContext *cx, jsid id);
+    bool propertyNeedsBarrier(CompilerConstraintList *constraints, jsid id);
 
     
 
@@ -694,7 +666,7 @@ class TemporaryTypeSet : public TypeSet
 
 
 
-    DoubleConversion convertDoubleElements(JSContext *cx);
+    DoubleConversion convertDoubleElements(CompilerConstraintList *constraints);
 };
 
 inline StackTypeSet *
@@ -994,15 +966,6 @@ struct TypeObject : gc::BarrieredCell<TypeObject>
     inline Property *getProperty(unsigned i);
 
     
-    inline int getTypedArrayType();
-
-    
-
-
-
-    
-
-    
 
     
 
@@ -1119,11 +1082,11 @@ UseNewTypeForClone(JSFunction *fun);
 
 
 bool
-ArrayPrototypeHasIndexedProperty(JSContext *cx, HandleScript script);
+ArrayPrototypeHasIndexedProperty(CompilerConstraintList *constraints, HandleScript script);
 
 
 bool
-TypeCanHaveExtraIndexedProperties(JSContext *cx, TemporaryTypeSet *types);
+TypeCanHaveExtraIndexedProperties(CompilerConstraintList *constraints, TemporaryTypeSet *types);
 
 
 class TypeScript
@@ -1204,56 +1167,116 @@ typedef HashMap<ObjectTableKey,ObjectTableEntry,ObjectTableKey,SystemAllocPolicy
 struct AllocationSiteKey;
 typedef HashMap<AllocationSiteKey,ReadBarriered<TypeObject>,AllocationSiteKey,SystemAllocPolicy> AllocationSiteTable;
 
+class HeapTypeSetKey;
 
 
+struct TypeObjectKey {
+    static intptr_t keyBits(TypeObjectKey *obj) { return (intptr_t) obj; }
+    static TypeObjectKey *getKey(TypeObjectKey *obj) { return obj; }
 
+    static TypeObjectKey *get(JSObject *obj) {
+        JS_ASSERT(obj);
+        return (TypeObjectKey *) (uintptr_t(obj) | 1);
+    }
+    static TypeObjectKey *get(TypeObject *obj) {
+        JS_ASSERT(obj);
+        return (TypeObjectKey *) obj;
+    }
 
+    bool isTypeObject() {
+        return (uintptr_t(this) & 1) == 0;
+    }
+    bool isSingleObject() {
+        return (uintptr_t(this) & 1) != 0;
+    }
 
+    TypeObject *asTypeObject() {
+        JS_ASSERT(isTypeObject());
+        return (TypeObject *) this;
+    }
+    JSObject *asSingleObject() {
+        JS_ASSERT(isSingleObject());
+        return (JSObject *) (uintptr_t(this) & ~1);
+    }
 
-struct CompilerOutput
+    const Class *clasp();
+    TaggedProto proto();
+    JSObject *singleton();
+    TypeNewScript *newScript();
+
+    bool unknownProperties();
+    bool hasFlags(CompilerConstraintList *constraints, TypeObjectFlags flags);
+    void watchStateChange(CompilerConstraintList *constraints);
+    HeapTypeSetKey property(jsid id);
+};
+
+class HeapTypeSetKey
 {
-    enum Kind {
-        Ion,
-        ParallelIon
-    };
+  public:
+    HeapTypeSet *actualTypes;
 
-    JSScript *script;
+    void freeze(CompilerConstraintList *constraints);
+    JSValueType knownTypeTag(CompilerConstraintList *constraints);
+    bool configured(CompilerConstraintList *constraints, TypeObjectKey *type);
+    bool notEmpty(CompilerConstraintList *constraints);
+    bool knownSubset(CompilerConstraintList *constraints, const HeapTypeSetKey &other);
+    JSObject *singleton(CompilerConstraintList *constraints);
+    bool needsBarrier(CompilerConstraintList *constraints);
+};
 
+
+
+
+
+
+
+class CompilerOutput
+{
     
     
+    JSScript *script_;
+    unsigned mode_ : 2;
+
     
-    unsigned kindInt : 2;
-    bool pendingRecompilation : 1;
+    bool pendingInvalidation_ : 1;
 
-    CompilerOutput();
+  public:
+    CompilerOutput()
+      : script_(NULL), mode_(0), pendingInvalidation_(false)
+    {}
 
-    Kind kind() const { return static_cast<Kind>(kindInt); }
-    void setKind(Kind k) { kindInt = k; }
+    CompilerOutput(JSScript *script, jit::ExecutionMode mode)
+      : script_(script), mode_(mode), pendingInvalidation_(false)
+    {}
 
-    jit::IonScript *ion() const;
+    JSScript *script() const { return script_; }
+    inline jit::ExecutionMode mode() const { return static_cast<jit::ExecutionMode>(mode_); }
 
-    bool isValid() const;
+    inline jit::IonScript *ion() const;
 
-    void setPendingRecompilation() {
-        pendingRecompilation = true;
+    bool isValid() const {
+        return script_ != NULL;
     }
     void invalidate() {
-        script = NULL;
+        script_ = NULL;
     }
-    bool isInvalidated() const {
-        return script == NULL;
+
+    void setPendingInvalidation() {
+        pendingInvalidation_ = true;
+    }
+    bool pendingInvalidation() {
+        return pendingInvalidation_;
     }
 };
 
-struct RecompileInfo
+class RecompileInfo
 {
-    static const uint32_t NoCompilerRunning = uint32_t(-1);
     uint32_t outputIndex;
 
-    RecompileInfo()
-      : outputIndex(NoCompilerRunning)
-    {
-    }
+  public:
+    RecompileInfo(uint32_t outputIndex = uint32_t(-1))
+      : outputIndex(outputIndex)
+    {}
 
     bool operator == (const RecompileInfo &o) const {
         return outputIndex == o.outputIndex;
@@ -1292,13 +1315,6 @@ struct TypeCompartment
 
     
     Vector<RecompileInfo> *pendingRecompiles;
-
-    
-
-
-
-
-    RecompileInfo compiledInfo;
 
     
     AllocationSiteTable *allocationSiteTable;
@@ -1359,7 +1375,7 @@ struct TypeCompartment
 
     void sweep(FreeOp *fop);
     void sweepShapes(FreeOp *fop);
-    void sweepCompilerOutputs(FreeOp *fop, bool discardConstraints);
+    void clearCompilerOutputs(FreeOp *fop);
 
     void finalizeObjects();
 

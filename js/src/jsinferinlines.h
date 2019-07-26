@@ -16,6 +16,7 @@
 #include "jsanalyze.h"
 
 #include "builtin/ParallelArray.h"
+#include "jit/ExecutionModeInlines.h"
 #include "vm/ArrayObject.h"
 #include "vm/BooleanObject.h"
 #include "vm/NumberObject.h"
@@ -87,61 +88,19 @@ namespace types {
 
 
 
-inline
-CompilerOutput::CompilerOutput()
-  : script(NULL),
-    kindInt(Ion),
-    pendingRecompilation(false)
-{
-}
-
 inline jit::IonScript *
 CompilerOutput::ion() const
 {
 #ifdef JS_ION
+    
+    
+    
     JS_ASSERT(isValid());
-    switch (kind()) {
-      case Ion: return script->ionScript();
-      case ParallelIon: return script->parallelIonScript();
-    }
+    jit::IonScript *ion = jit::GetIonScript(script(), mode());
+    JS_ASSERT(ion != ION_COMPILING_SCRIPT);
+    return ion;
 #endif
     MOZ_ASSUME_UNREACHABLE("Invalid kind of CompilerOutput");
-}
-
-inline bool
-CompilerOutput::isValid() const
-{
-    if (!script)
-        return false;
-
-#if defined(DEBUG) && defined(JS_ION)
-    TypeCompartment &types = script->compartment()->types;
-#endif
-
-    switch (kind()) {
-      case Ion:
-#ifdef JS_ION
-        if (script->hasIonScript()) {
-            JS_ASSERT(this == script->ionScript()->recompileInfo().compilerOutput(types));
-            return true;
-        }
-        if (script->isIonCompilingOffThread())
-            return true;
-#endif
-        return false;
-
-      case ParallelIon:
-#ifdef JS_ION
-        if (script->hasParallelIonScript()) {
-            JS_ASSERT(this == script->parallelIonScript()->recompileInfo().compilerOutput(types));
-            return true;
-        }
-        if (script->isParallelIonCompilingOffThread())
-            return true;
-#endif
-        return false;
-    }
-    return false;
 }
 
 inline CompilerOutput*
@@ -346,75 +305,6 @@ struct AutoEnterAnalysis
         compartment = comp;
         oldActiveAnalysis = compartment->activeAnalysis;
         compartment->activeAnalysis = true;
-    }
-};
-
-
-
-
-
-struct AutoEnterCompilation
-{
-    JSContext *cx;
-    RecompileInfo &info;
-    CompilerOutput::Kind kind;
-
-    AutoEnterCompilation(JSContext *cx, CompilerOutput::Kind kind)
-      : cx(cx),
-        info(cx->compartment()->types.compiledInfo),
-        kind(kind)
-    {
-        JS_ASSERT(cx->compartment()->activeAnalysis);
-        JS_ASSERT(info.outputIndex == RecompileInfo::NoCompilerRunning);
-    }
-
-    bool init(JSScript *script)
-    {
-        CompilerOutput co;
-        co.script = script;
-        co.setKind(kind);
-
-        JS_ASSERT(!co.isValid());
-        TypeCompartment &types = cx->compartment()->types;
-        if (!types.constrainedOutputs) {
-            types.constrainedOutputs = cx->new_< Vector<CompilerOutput> >(cx);
-            if (!types.constrainedOutputs) {
-                types.setPendingNukeTypes(cx);
-                return false;
-            }
-        }
-
-        info.outputIndex = types.constrainedOutputs->length();
-        
-        if (info.outputIndex >= RecompileInfo::NoCompilerRunning)
-            return false;
-
-        if (!types.constrainedOutputs->append(co)) {
-            info.outputIndex = RecompileInfo::NoCompilerRunning;
-            return false;
-        }
-        return true;
-    }
-
-    void initExisting(RecompileInfo oldInfo)
-    {
-        
-        
-        info = oldInfo;
-    }
-
-    ~AutoEnterCompilation()
-    {
-        
-        if (info.outputIndex >= RecompileInfo::NoCompilerRunning)
-            return;
-
-        JS_ASSERT(info.outputIndex < cx->compartment()->types.constrainedOutputs->length());
-        CompilerOutput *co = info.compilerOutput(cx);
-        if (!co->isValid())
-            co->invalidate();
-
-        info.outputIndex = RecompileInfo::NoCompilerRunning;
     }
 };
 
@@ -1315,14 +1205,14 @@ inline JSObject *
 TypeSet::getSingleObject(unsigned i) const
 {
     TypeObjectKey *key = getObject(i);
-    return (uintptr_t(key) & 1) ? (JSObject *)(uintptr_t(key) ^ 1) : NULL;
+    return (key && key->isSingleObject()) ? key->asSingleObject() : NULL;
 }
 
 inline TypeObject *
 TypeSet::getTypeObject(unsigned i) const
 {
     TypeObjectKey *key = getObject(i);
-    return (key && !(uintptr_t(key) & 1)) ? (TypeObject *) key : NULL;
+    return (key && key->isTypeObject()) ? key->asTypeObject() : NULL;
 }
 
 inline bool
@@ -1470,14 +1360,6 @@ TypeObject::getProperty(unsigned i)
     return propertySet[i];
 }
 
-inline int
-TypeObject::getTypedArrayType()
-{
-    if (IsTypedArrayClass(clasp))
-        return clasp - &TypedArrayObject::classes[0];
-    return ScalarTypeRepresentation::TYPE_MAX;
-}
-
 inline void
 TypeObjectAddendum::writeBarrierPre(TypeObjectAddendum *type)
 {
@@ -1509,6 +1391,44 @@ TypeNewScript::writeBarrierPre(TypeNewScript *newScript)
     }
 #endif
 }
+
+
+
+
+bool
+FinishCompilation(JSContext *cx, JSScript *script, jit::ExecutionMode executionMode,
+                  CompilerConstraintList *constraints, RecompileInfo *precompileInfo);
+
+class CompilerConstraint;
+class CompilerConstraintList
+{
+    
+    Vector<CompilerConstraint *, 0, jit::IonAllocPolicy> constraints;
+
+    
+    bool failed_;
+
+  public:
+    CompilerConstraintList()
+      : failed_(false)
+    {}
+
+    void add(CompilerConstraint *constraint);
+
+    size_t length() {
+        return constraints.length();
+    }
+    CompilerConstraint *get(size_t i) {
+        return constraints[i];
+    }
+
+    bool failed() {
+        return failed_;
+    }
+    void setFailed() {
+        failed_ = true;
+    }
+};
 
 } } 
 

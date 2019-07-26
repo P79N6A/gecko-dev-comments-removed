@@ -16,6 +16,7 @@
 #include "vm/NumericConversions.h"
 
 #include "jscntxtinlines.h"
+#include "jsinferinlines.h"
 
 using namespace js;
 using namespace js::frontend;
@@ -762,7 +763,8 @@ Fold(ExclusiveContext *cx, ParseNode **pnp,
             }
         }
 
-        if (name) {
+        if (name && NameToId(name) == types::IdToTypeId(NameToId(name))) {
+            
             
             
             

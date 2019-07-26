@@ -28,19 +28,6 @@ CountArgSlots(JSScript *script, JSFunction *fun)
     return StartArgSlot(script, fun) + (fun ? fun->nargs + 1 : 0);
 }
 
-enum ExecutionMode {
-    
-    SequentialExecution,
-
-    
-    
-    ParallelExecution,
-
-    
-    
-    DefinitePropertiesAnalysis
-};
-
 
 
 static const unsigned NumExecutionModes = ParallelExecution + 1;

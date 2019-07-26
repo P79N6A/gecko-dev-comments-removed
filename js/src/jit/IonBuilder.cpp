@@ -34,16 +34,18 @@ using namespace js;
 using namespace js::jit;
 
 using mozilla::DebugOnly;
+using mozilla::Maybe;
 
 IonBuilder::IonBuilder(JSContext *cx, TempAllocator *temp, MIRGraph *graph,
+                       types::CompilerConstraintList *constraints,
                        BaselineInspector *inspector, CompileInfo *info, BaselineFrame *baselineFrame,
                        size_t inliningDepth, uint32_t loopDepth)
   : MIRGenerator(cx->compartment(), temp, graph, info),
     backgroundCodegen_(nullptr),
-    recompileInfo(cx->compartment()->types.compiledInfo),
     cx(cx),
     baselineFrame_(baselineFrame),
     abortReason_(AbortReason_Disable),
+    constraints_(constraints),
     analysis_(info->script()),
     loopDepth_(loopDepth),
     callerResumePoint_(nullptr),
@@ -249,8 +251,8 @@ IonBuilder::canEnterInlinedFunction(JSFunction *target)
     if (!targetScript->compileAndGo)
         return false;
 
-    types::TypeObject *targetType = target->getType(cx);
-    if (!targetType || targetType->unknownProperties())
+    types::TypeObjectKey *targetType = types::TypeObjectKey::get(target);
+    if (targetType->unknownProperties())
         return false;
 
     return true;
@@ -3762,7 +3764,7 @@ IonBuilder::inlineScriptedCall(CallInfo &callInfo, JSFunction *target)
 
     
     JS_ASSERT(!cx->isExceptionPending());
-    IonBuilder inlineBuilder(cx, &temp(), &graph(), &inspector, info, nullptr,
+    IonBuilder inlineBuilder(cx, &temp(), &graph(), constraints(), &inspector, info, nullptr,
                              inliningDepth_ + 1, loopDepth_);
     if (!inlineBuilder.buildInline(this, outerResumePoint, callInfo)) {
         if (cx->isExceptionPending()) {
@@ -3956,12 +3958,9 @@ IonBuilder::makeInliningDecision(JSFunction *target, CallInfo &callInfo)
         }
     }
 
-    JS_ASSERT(!target->hasLazyType());
-    types::TypeObject *targetType = target->getType(cx);
-    JS_ASSERT(targetType && !targetType->unknownProperties());
-
     
-    types::HeapTypeSet::WatchObjectStateChange(cx, targetType);
+    types::TypeObjectKey *targetType = types::TypeObjectKey::get(target);
+    targetType->watchStateChange(constraints());
 
     return true;
 }
@@ -4607,16 +4606,14 @@ IonBuilder::getSingletonPrototype(JSFunction *target)
 {
     if (!target || !target->hasSingletonType())
         return nullptr;
-    types::TypeObject *targetType = target->getType(cx);
+    types::TypeObjectKey *targetType = types::TypeObjectKey::get(target);
     if (targetType->unknownProperties())
         return nullptr;
 
     jsid protoid = NameToId(cx->names().classPrototype);
-    types::HeapTypeSet *protoTypes = targetType->getProperty(cx, protoid);
-    if (!protoTypes)
-        return nullptr;
+    types::HeapTypeSetKey protoProperty = targetType->property(protoid);
 
-    return protoTypes->getSingleton(cx);
+    return protoProperty.singleton(constraints());
 }
 
 MDefinition *
@@ -4644,8 +4641,9 @@ IonBuilder::createThisScriptedSingleton(JSFunction *target, MDefinition *callee)
         return nullptr;
 
     
-    if (templateObject->type()->hasNewScript())
-        types::HeapTypeSet::WatchObjectStateChange(cx, templateObject->type());
+    types::TypeObjectKey *templateType = types::TypeObjectKey::get(templateObject);
+    if (templateType->newScript())
+        templateType->watchStateChange(constraints());
 
     MCreateThisWithTemplate *createThis = MCreateThisWithTemplate::New(templateObject);
     current->add(createThis);
@@ -4996,20 +4994,11 @@ TestShouldDOMCall(JSContext *cx, types::TypeSet *inTypes, JSFunction *func,
         return false;
 
     for (unsigned i = 0; i < inTypes->getObjectCount(); i++) {
-        types::TypeObject *curType = inTypes->getTypeObject(i);
+        types::TypeObjectKey *curType = inTypes->getObject(i);
+        if (!curType)
+            continue;
 
-        if (!curType) {
-            JSObject *curObj = inTypes->getSingleObject(i);
-
-            if (!curObj)
-                continue;
-
-            curType = curObj->getType(cx);
-            if (!curType)
-                return false;
-        }
-
-        RootedObject protoRoot(cx, curType->proto);
+        RootedObject protoRoot(cx, curType->proto().toObjectOrNull());
         if (!instanceChecker(protoRoot, jinfo->protoID, jinfo->depth))
             return false;
     }
@@ -5026,24 +5015,13 @@ TestAreKnownDOMTypes(JSContext *cx, types::TypeSet *inTypes)
     
     
     for (unsigned i = 0; i < inTypes->getObjectCount(); i++) {
-        types::TypeObject *curType = inTypes->getTypeObject(i);
-
-        if (!curType) {
-            JSObject *curObj = inTypes->getSingleObject(i);
-
-            
-            if (!curObj)
-                continue;
-
-            curType = curObj->getType(cx);
-            if (!curType)
-                return false;
-        }
+        types::TypeObjectKey *curType = inTypes->getObject(i);
+        if (!curType)
+            continue;
 
         if (curType->unknownProperties())
             return false;
-
-        if (!(curType->clasp->flags & JSCLASS_IS_DOMJSCLASS))
+        if (!(curType->clasp()->flags & JSCLASS_IS_DOMJSCLASS))
             return false;
     }
 
@@ -5388,7 +5366,7 @@ IonBuilder::jsop_newarray(uint32_t count)
     }
 
     types::TemporaryTypeSet::DoubleConversion conversion =
-        bytecodeTypes(pc)->convertDoubleElements(cx);
+        bytecodeTypes(pc)->convertDoubleElements(constraints());
     if (conversion == types::TemporaryTypeSet::AlwaysConvertToDoubles)
         templateObject->setShouldConvertDoubleElements();
 
@@ -5463,16 +5441,14 @@ IonBuilder::jsop_initelem_array()
     
     
     bool needStub = false;
-    types::TypeObject *initializer = obj->resultTypeSet()->getTypeObject(0);
+    types::TypeObjectKey *initializer = obj->resultTypeSet()->getObject(0);
     if (value->isConstant() && value->toConstant()->value().isMagic(JS_ELEMENTS_HOLE)) {
-        if (!(initializer->flags & types::OBJECT_FLAG_NON_PACKED))
+        if (!initializer->hasFlags(constraints(), types::OBJECT_FLAG_NON_PACKED))
             needStub = true;
     } else if (!initializer->unknownProperties()) {
-        types::HeapTypeSet *elemTypes = initializer->getProperty(cx, JSID_VOID);
-        if (!elemTypes)
-            return false;
-        if (!TypeSetIncludes(elemTypes, value->type(), value->resultTypeSet())) {
-            elemTypes->addFreeze(cx);
+        types::HeapTypeSetKey elemTypes = initializer->property(JSID_VOID);
+        if (!TypeSetIncludes(elemTypes.actualTypes, value->type(), value->resultTypeSet())) {
+            elemTypes.freeze(constraints());
             needStub = true;
         }
     }
@@ -5514,14 +5490,14 @@ IonBuilder::jsop_initelem_array()
 }
 
 static bool
-CanEffectlesslyCallLookupGenericOnObject(JSContext *cx, JSObject *obj, jsid id)
+CanEffectlesslyCallLookupGenericOnObject(JSContext *cx, JSObject *obj, PropertyName *name)
 {
     while (obj) {
         if (!obj->isNative())
             return false;
         if (obj->getClass()->ops.lookupGeneric)
             return false;
-        if (obj->nativeLookup(cx, id))
+        if (obj->nativeLookup(cx, NameToId(name)))
             return true;
         if (obj->getClass()->resolve != JS_ResolveStub &&
             obj->getClass()->resolve != (JSResolveOp)fun_resolve)
@@ -5539,12 +5515,12 @@ IonBuilder::jsop_initprop(PropertyName *name)
 
     RootedObject templateObject(cx, obj->toNewObject()->templateObject());
 
-    RootedId id(cx, NameToId(name));
-    if (!CanEffectlesslyCallLookupGenericOnObject(cx, templateObject, id))
+    if (!CanEffectlesslyCallLookupGenericOnObject(cx, templateObject, name))
         return abort("INITPROP template object is special");
 
     RootedObject holder(cx);
     RootedShape shape(cx);
+    RootedId id(cx, NameToId(name));
     bool res = LookupPropertyWithFlags(cx, templateObject, id,
                                        0, &holder, &shape);
     if (!res)
@@ -5557,13 +5533,9 @@ IonBuilder::jsop_initprop(PropertyName *name)
         return resumeAfter(init);
     }
 
-    bool writeNeedsBarrier = false;
-    if (!PropertyWriteNeedsTypeBarrier(cx, current, &obj, name, &value,  true,
-                                       &writeNeedsBarrier))
+    if (PropertyWriteNeedsTypeBarrier(constraints(), current,
+                                      &obj, name, &value,  true))
     {
-        return false;
-    }
-    if (writeNeedsBarrier) {
         
         MInitProp *init = MInitProp::New(obj, name, value);
         current->add(init);
@@ -5574,9 +5546,8 @@ IonBuilder::jsop_initprop(PropertyName *name)
         current->add(MPostWriteBarrier::New(obj, value));
 
     bool needsBarrier = true;
-    if ((id == types::IdToTypeId(id)) &&
-        obj->resultTypeSet() &&
-        !obj->resultTypeSet()->propertyNeedsBarrier(cx, id))
+    if (obj->resultTypeSet() &&
+        !obj->resultTypeSet()->propertyNeedsBarrier(constraints(), id))
     {
         needsBarrier = false;
     }
@@ -5977,9 +5948,9 @@ IonBuilder::maybeInsertResume()
     return resumeAfter(ins);
 }
 
-static inline bool
-TestSingletonProperty(JSContext *cx, JSObject *obj, JSObject *singleton,
-                      jsid id, bool *isKnownConstant)
+bool
+IonBuilder::testSingletonProperty(JSObject *obj, JSObject *singleton,
+                                  PropertyName *name, bool *isKnownConstant)
 {
     
     
@@ -5996,15 +5967,11 @@ TestSingletonProperty(JSContext *cx, JSObject *obj, JSObject *singleton,
 
     *isKnownConstant = false;
 
-    if (id != types::IdToTypeId(id))
-        return true;
-
-    if (!CanEffectlesslyCallLookupGenericOnObject(cx, obj, id))
+    if (!CanEffectlesslyCallLookupGenericOnObject(cx, obj, name))
         return true;
 
     RootedObject objRoot(cx, obj);
-    RootedId idRoot(cx, id);
-
+    RootedId idRoot(cx, NameToId(name));
     RootedObject holder(cx);
     RootedShape shape(cx);
     if (!JSObject::lookupGeneric(cx, objRoot, idRoot, &holder, &shape))
@@ -6023,21 +5990,16 @@ TestSingletonProperty(JSContext *cx, JSObject *obj, JSObject *singleton,
     
     
     while (true) {
-        types::TypeObject *objType = obj->getType(cx);
-        if (!objType)
-            return false;
+        types::TypeObjectKey *objType = types::TypeObjectKey::get(obj);
         if (objType->unknownProperties())
             return true;
 
-        types::HeapTypeSet *property = objType->getProperty(cx, id);
-        if (!property)
-            return false;
+        types::HeapTypeSetKey property = objType->property(idRoot);
         if (obj != holder) {
-            if (!property->empty())
+            if (property.notEmpty(constraints()))
                 return true;
-            property->addFreeze(cx);
         } else {
-            if (property->getSingleton(cx) != singleton)
+            if (property.singleton(constraints()) != singleton)
                 return true;
             break;
         }
@@ -6049,11 +6011,11 @@ TestSingletonProperty(JSContext *cx, JSObject *obj, JSObject *singleton,
     return true;
 }
 
-static inline bool
-TestSingletonPropertyTypes(JSContext *cx, MDefinition *obj, JSObject *singleton,
-                           JSObject *globalObj, jsid id,
-                           bool *isKnownConstant, bool *testObject,
-                           bool *testString)
+bool
+IonBuilder::testSingletonPropertyTypes(MDefinition *obj, JSObject *singleton,
+                                       JSObject *globalObj, PropertyName *name,
+                                       bool *isKnownConstant, bool *testObject,
+                                       bool *testString)
 {
     
     
@@ -6071,12 +6033,9 @@ TestSingletonPropertyTypes(JSContext *cx, MDefinition *obj, JSObject *singleton,
     if (types && types->unknownObject())
         return true;
 
-    if (id != types::IdToTypeId(id))
-        return true;
-
     JSObject *objectSingleton = types ? types->getSingleton() : nullptr;
     if (objectSingleton)
-        return TestSingletonProperty(cx, objectSingleton, singleton, id, isKnownConstant);
+        return testSingletonProperty(objectSingleton, singleton, name, isKnownConstant);
 
     if (!globalObj)
         return true;
@@ -6111,32 +6070,20 @@ TestSingletonPropertyTypes(JSContext *cx, MDefinition *obj, JSObject *singleton,
         
         
         for (unsigned i = 0; i < types->getObjectCount(); i++) {
-            types::TypeObject *object = types->getTypeObject(i);
-            if (!object) {
-                
-                JSObject *curObj = types->getSingleObject(i);
-                
-                
-                if (!curObj)
-                    continue;
-                object = curObj->getType(cx);
-                if (!object)
-                    return false;
-            }
+            types::TypeObjectKey *object = types->getObject(i);
+            if (!object)
+                continue;
 
             if (object->unknownProperties())
                 return true;
-            types::HeapTypeSet *property = object->getProperty(cx, id);
-            if (!property)
-                return false;
-            if (!property->empty())
+            types::HeapTypeSetKey property = object->property(NameToId(name));
+            if (property.notEmpty(constraints()))
                 return true;
-            property->addFreeze(cx);
 
-            if (object->proto) {
+            if (JSObject *proto = object->proto().toObjectOrNull()) {
                 
                 bool thoughtConstant = false;
-                if (!TestSingletonProperty(cx, object->proto, singleton, id, &thoughtConstant))
+                if (!testSingletonProperty(proto, singleton, name, &thoughtConstant))
                     return false;
                 if (!thoughtConstant)
                     return true;
@@ -6158,7 +6105,7 @@ TestSingletonPropertyTypes(JSContext *cx, MDefinition *obj, JSObject *singleton,
     if (!js_GetClassPrototype(cx, key, &proto, nullptr))
         return false;
 
-    return TestSingletonProperty(cx, proto, singleton, id, isKnownConstant);
+    return testSingletonProperty(proto, singleton, name, isKnownConstant);
 }
 
 
@@ -6263,29 +6210,21 @@ IonBuilder::getStaticName(JSObject *staticObject, PropertyName *name, bool *psuc
         return true;
     }
 
-    types::TypeObject *staticType = staticObject->getType(cx);
-    if (!staticType)
-        return false;
-    types::HeapTypeSet *propertyTypes = nullptr;
+    types::TypeObjectKey *staticType = types::TypeObjectKey::get(staticObject);
+    Maybe<types::HeapTypeSetKey> propertyTypes;
     if (!staticType->unknownProperties()) {
-        propertyTypes = staticType->getProperty(cx, id);
-        if (!propertyTypes)
-            return false;
-    }
-    if (propertyTypes && propertyTypes->isConfiguredProperty(cx, staticType)) {
-        
-        
-        *psucceeded = false;
-        return true;
+        propertyTypes.construct(staticType->property(id));
+        if (propertyTypes.ref().configured(constraints(), staticType)) {
+            
+            
+            *psucceeded = false;
+            return true;
+        }
     }
 
     types::StackTypeSet *baseTypes = types::TypeScript::BytecodeTypes(script(), pc);
-    bool barrier;
-    if (!PropertyReadNeedsTypeBarrier(cx, staticType, name, baseTypes,  true,
-                                      &barrier))
-    {
-        return false;
-    }
+    bool barrier = PropertyReadNeedsTypeBarrier(cx, constraints(), staticType,
+                                                name, baseTypes,  true);
     types::TemporaryTypeSet *types = cloneTypeSet(baseTypes);
 
     
@@ -6297,7 +6236,7 @@ IonBuilder::getStaticName(JSObject *staticObject, PropertyName *name, bool *psuc
         if (singleton) {
             
             bool isKnownConstant;
-            if (!TestSingletonProperty(cx, staticObject, singleton, id, &isKnownConstant))
+            if (!testSingletonProperty(staticObject, singleton, name, &isKnownConstant))
                 return false;
             if (isKnownConstant)
                 return pushConstant(ObjectValue(*singleton));
@@ -6313,7 +6252,7 @@ IonBuilder::getStaticName(JSObject *staticObject, PropertyName *name, bool *psuc
 
     
     
-    if (!propertyTypes && shape->configurable())
+    if (propertyTypes.empty() && shape->configurable())
         obj = addShapeGuard(obj, staticObject->lastProperty(), Bailout_ShapeGuard);
 
     MIRType rvalType = MIRTypeFromValueType(types->getKnownTypeTag());
@@ -6374,21 +6313,18 @@ IonBuilder::setStaticName(JSObject *staticObject, PropertyName *name)
     if (!shape || !shape->hasDefaultSetter() || !shape->writable() || !shape->hasSlot())
         return jsop_setprop(name);
 
-    types::TypeObject *staticType = staticObject->getType(cx);
-    if (!staticType)
-        return false;
-    types::HeapTypeSet *propertyTypes = nullptr;
-    if (!staticType->unknownProperties()) {
-        propertyTypes = staticType->getProperty(cx, id);
-        if (!propertyTypes)
-            return false;
-    }
-    if (!propertyTypes || propertyTypes->isConfiguredProperty(cx, staticType)) {
+    types::TypeObjectKey *staticType = types::TypeObjectKey::get(staticObject);
+    if (staticType->unknownProperties())
+        return jsop_setprop(name);
+
+    types::HeapTypeSetKey propertyTypes = staticType->property(id);
+    if (propertyTypes.configured(constraints(), staticType)) {
         
         
         return jsop_setprop(name);
     }
-    if (!TypeSetIncludes(propertyTypes, value->type(), value->resultTypeSet()))
+
+    if (!TypeSetIncludes(propertyTypes.actualTypes, value->type(), value->resultTypeSet()))
         return jsop_setprop(name);
 
     current->pop();
@@ -6396,12 +6332,6 @@ IonBuilder::setStaticName(JSObject *staticObject, PropertyName *name)
     
     MDefinition *obj = current->pop();
     JS_ASSERT(&obj->toConstant()->value().toObject() == staticObject);
-
-    
-    
-    
-    if (!propertyTypes)
-        obj = addShapeGuard(obj, staticObject->lastProperty(), Bailout_ShapeGuard);
 
     if (NeedsPostBarrier(info(), value))
         current->add(MPostWriteBarrier::New(obj, value));
@@ -6411,13 +6341,13 @@ IonBuilder::setStaticName(JSObject *staticObject, PropertyName *name)
     
     
     MIRType slotType = MIRType_None;
-    if (propertyTypes && !staticObject->getSlot(shape->slot()).isUndefined()) {
-        JSValueType knownType = propertyTypes->getKnownTypeTag(cx);
+    if (!staticObject->getSlot(shape->slot()).isUndefined()) {
+        JSValueType knownType = propertyTypes.knownTypeTag(constraints());
         if (knownType != JSVAL_TYPE_UNKNOWN)
             slotType = MIRTypeFromValueType(knownType);
     }
 
-    bool needsBarrier = !propertyTypes || propertyTypes->needsBarrier(cx);
+    bool needsBarrier = propertyTypes.needsBarrier(constraints());
     return storeSlot(obj, shape, value, needsBarrier, slotType);
 }
 
@@ -6575,7 +6505,7 @@ IonBuilder::getElemTryDense(bool *emitted, MDefinition *obj, MDefinition *index)
 
     
     
-    if (ElementAccessHasExtraIndexedProperty(cx, obj) && failedBoundsCheck_)
+    if (ElementAccessHasExtraIndexedProperty(constraints(), obj) && failedBoundsCheck_)
         return true;
 
     
@@ -6603,7 +6533,7 @@ IonBuilder::getElemTryTypedStatic(bool *emitted, MDefinition *obj, MDefinition *
     if (!LIRGenerator::allowStaticTypedArrayAccesses())
         return true;
 
-    if (ElementAccessHasExtraIndexedProperty(cx, obj))
+    if (ElementAccessHasExtraIndexedProperty(constraints(), obj))
         return true;
 
     if (!obj->resultTypeSet())
@@ -6803,9 +6733,7 @@ IonBuilder::getElemTryCache(bool *emitted, MDefinition *obj, MDefinition *index)
     
 
     types::StackTypeSet *baseTypes = types::TypeScript::BytecodeTypes(script(), pc);
-    bool barrier;
-    if (!PropertyReadNeedsTypeBarrier(cx, obj, nullptr, baseTypes, &barrier))
-        return false;
+    bool barrier = PropertyReadNeedsTypeBarrier(cx, constraints(), obj, nullptr, baseTypes);
     types::TemporaryTypeSet *types = cloneTypeSet(baseTypes);
 
     
@@ -6827,7 +6755,7 @@ IonBuilder::getElemTryCache(bool *emitted, MDefinition *obj, MDefinition *index)
 
     
     if (index->type() == MIRType_Int32 && !barrier) {
-        bool needHoleCheck = !ElementAccessIsPacked(cx, obj);
+        bool needHoleCheck = !ElementAccessIsPacked(constraints(), obj);
         JSValueType knownType = GetElemKnownType(needHoleCheck, types);
 
         if (knownType != JSVAL_TYPE_UNKNOWN && knownType != JSVAL_TYPE_DOUBLE)
@@ -6854,19 +6782,17 @@ IonBuilder::jsop_getelem_dense(MDefinition *obj, MDefinition *index)
             return false;
     }
 
-    bool barrier;
-    if (!PropertyReadNeedsTypeBarrier(cx, obj, nullptr, baseTypes, &barrier))
-        return false;
+    bool barrier = PropertyReadNeedsTypeBarrier(cx, constraints(), obj, nullptr, baseTypes);
     types::TemporaryTypeSet *types = cloneTypeSet(baseTypes);
 
-    bool needsHoleCheck = !ElementAccessIsPacked(cx, obj);
+    bool needsHoleCheck = !ElementAccessIsPacked(constraints(), obj);
 
     
     
     
     bool readOutOfBounds =
         types->hasType(types::Type::UndefinedType()) &&
-        !ElementAccessHasExtraIndexedProperty(cx, obj);
+        !ElementAccessHasExtraIndexedProperty(constraints(), obj);
 
     JSValueType knownType = JSVAL_TYPE_UNKNOWN;
     if (!barrier)
@@ -6903,7 +6829,7 @@ IonBuilder::jsop_getelem_dense(MDefinition *obj, MDefinition *index)
         !needsHoleCheck &&
         knownType == JSVAL_TYPE_DOUBLE &&
         objTypes &&
-        objTypes->convertDoubleElements(cx) == types::TemporaryTypeSet::AlwaysConvertToDoubles;
+        objTypes->convertDoubleElements(constraints()) == types::TemporaryTypeSet::AlwaysConvertToDoubles;
     if (loadDouble)
         elements = addConvertElementsToDoubles(elements);
 
@@ -6959,7 +6885,8 @@ IonBuilder::getTypedArrayElements(MDefinition *obj)
 
         
         
-        types::HeapTypeSet::WatchObjectStateChange(cx, tarr->getType(cx));
+        types::TypeObjectKey *tarrType = types::TypeObjectKey::get(tarr);
+        tarrType->watchStateChange(constraints());
 
         obj->setFoldedUnchecked();
         return MConstantElements::New(data);
@@ -7162,7 +7089,7 @@ IonBuilder::setElemTryTypedStatic(bool *emitted, MDefinition *object,
     if (!LIRGenerator::allowStaticTypedArrayAccesses())
         return true;
 
-    if (ElementAccessHasExtraIndexedProperty(cx, object))
+    if (ElementAccessHasExtraIndexedProperty(constraints(), object))
         return true;
 
     if (!object->resultTypeSet())
@@ -7226,19 +7153,16 @@ IonBuilder::setElemTryDense(bool *emitted, MDefinition *object,
 
     if (!ElementAccessIsDenseNative(object, index))
         return true;
-    bool needsBarrier;
-    if (!PropertyWriteNeedsTypeBarrier(cx, current, &object, nullptr, &value,
-                                        true, &needsBarrier))
+    if (PropertyWriteNeedsTypeBarrier(constraints(), current,
+                                      &object, nullptr, &value,  true))
     {
-        return false;
-    }
-    if (needsBarrier)
         return true;
+    }
     if (!object->resultTypeSet())
         return true;
 
     types::TemporaryTypeSet::DoubleConversion conversion =
-        object->resultTypeSet()->convertDoubleElements(cx);
+        object->resultTypeSet()->convertDoubleElements(constraints());
 
     
     if (conversion == types::TemporaryTypeSet::AmbiguousDoubleConversion &&
@@ -7249,7 +7173,7 @@ IonBuilder::setElemTryDense(bool *emitted, MDefinition *object,
 
     
     
-    if (ElementAccessHasExtraIndexedProperty(cx, object) && failedBoundsCheck_)
+    if (ElementAccessHasExtraIndexedProperty(constraints(), object) && failedBoundsCheck_)
         return true;
 
     
@@ -7292,15 +7216,11 @@ IonBuilder::setElemTryCache(bool *emitted, MDefinition *object,
     if (!icInspect.sawDenseWrite() && !icInspect.sawTypedArrayWrite())
         return true;
 
-    bool needsBarrier;
-    if (!PropertyWriteNeedsTypeBarrier(cx, current, &object, nullptr, &value,
-                                        true, &needsBarrier))
+    if (PropertyWriteNeedsTypeBarrier(constraints(), current,
+                                      &object, nullptr, &value,  true))
     {
-        return false;
-    }
-
-    if (needsBarrier)
         return true;
+    }
 
     
     MInstruction *ins = MSetElementCache::New(object, index, value, script()->strict);
@@ -7319,15 +7239,12 @@ IonBuilder::jsop_setelem_dense(types::TemporaryTypeSet::DoubleConversion convers
                                SetElemSafety safety,
                                MDefinition *obj, MDefinition *id, MDefinition *value)
 {
-    MIRType elementType;
-    if (!DenseNativeElementType(cx, obj, &elementType))
-        return false;
-
-    bool packed = ElementAccessIsPacked(cx, obj);
+    MIRType elementType = DenseNativeElementType(constraints(), obj);
+    bool packed = ElementAccessIsPacked(constraints(), obj);
 
     
     
-    bool writeOutOfBounds = !ElementAccessHasExtraIndexedProperty(cx, obj);
+    bool writeOutOfBounds = !ElementAccessHasExtraIndexedProperty(constraints(), obj);
 
     if (NeedsPostBarrier(info(), value))
         current->add(MPostWriteBarrier::New(obj, value));
@@ -7416,7 +7333,7 @@ IonBuilder::jsop_setelem_dense(types::TemporaryTypeSet::DoubleConversion convers
     }
 
     
-    if (obj->resultTypeSet()->propertyNeedsBarrier(cx, JSID_VOID))
+    if (obj->resultTypeSet()->propertyNeedsBarrier(constraints(), JSID_VOID))
         store->setNeedsBarrier();
 
     if (elementType != MIRType_None && packed)
@@ -7522,7 +7439,7 @@ IonBuilder::jsop_length_fastPath()
 
         if (objTypes &&
             objTypes->getKnownClass() == &ArrayObject::class_ &&
-            !objTypes->hasObjectFlags(cx, types::OBJECT_FLAG_LENGTH_OVERFLOW))
+            !objTypes->hasObjectFlags(constraints(), types::OBJECT_FLAG_LENGTH_OVERFLOW))
         {
             current->pop();
             MElements *elements = MElements::New(obj);
@@ -7645,29 +7562,22 @@ IonBuilder::jsop_rest()
     return true;
 }
 
-inline types::HeapTypeSet *
-GetDefiniteSlot(JSContext *cx, types::TemporaryTypeSet *types, JSAtom *atom)
+bool
+IonBuilder::getDefiniteSlot(types::TemporaryTypeSet *types, PropertyName *name,
+                            types::HeapTypeSetKey *property)
 {
     if (!types || types->unknownObject() || types->getObjectCount() != 1)
-        return nullptr;
+        return false;
 
-    types::TypeObject *type = types->getTypeObject(0);
-    if (!type || type->unknownProperties())
-        return nullptr;
+    types::TypeObjectKey *type = types->getObject(0);
+    if (type->unknownProperties())
+        return false;
 
-    jsid id = AtomToId(atom);
-    if (id != types::IdToTypeId(id))
-        return nullptr;
+    jsid id = NameToId(name);
 
-    types::HeapTypeSet *propertyTypes = type->getProperty(cx, id);
-    if (!propertyTypes ||
-        !propertyTypes->definiteProperty() ||
-        propertyTypes->isConfiguredProperty(cx, type))
-    {
-        return nullptr;
-    }
-
-    return propertyTypes;
+    *property = type->property(id);
+    return property->actualTypes->definiteProperty() &&
+           !property->configured(constraints(), type);
 }
 
 bool
@@ -7701,20 +7611,19 @@ TestClassHasAccessorHook(const Class *clasp, bool isGetter)
 }
 
 inline bool
-TestTypeHasOwnProperty(JSContext *cx, types::TypeObject *typeObj, jsid id, bool &cont)
+TestTypeHasOwnProperty(types::TypeObjectKey *typeObj, PropertyName *name, bool &cont)
 {
     cont = true;
-    types::HeapTypeSet *propSet = typeObj->getProperty(cx, types::IdToTypeId(id));
-    if (!propSet)
-        return false;
-    if (!propSet->empty())
+    types::HeapTypeSetKey propSet = typeObj->property(NameToId(name));
+    if (!propSet.actualTypes->empty())
         cont = false;
     
     return true;
 }
 
 inline bool
-TestCommonAccessorProtoChain(JSContext *cx, jsid id, bool isGetter, JSObject *foundProto,
+TestCommonAccessorProtoChain(JSContext *cx, PropertyName *name,
+                             bool isGetter, JSObject *foundProto,
                              JSObject *obj, bool &cont)
 {
     cont = false;
@@ -7732,10 +7641,7 @@ TestCommonAccessorProtoChain(JSContext *cx, jsid id, bool isGetter, JSObject *fo
         
         
         if (curObj != foundProto) {
-            types::TypeObject *typeObj = curObj->getType(cx);
-            if (!typeObj)
-                return false;
-
+            types::TypeObjectKey *typeObj = types::TypeObjectKey::get(curObj);
             if (typeObj->unknownProperties())
                 return true;
 
@@ -7749,7 +7655,7 @@ TestCommonAccessorProtoChain(JSContext *cx, jsid id, bool isGetter, JSObject *fo
             
             
             bool lcont;
-            if (!TestTypeHasOwnProperty(cx, typeObj, id, lcont))
+            if (!TestTypeHasOwnProperty(typeObj, name, lcont))
                 return false;
             if (!lcont)
                 return true;
@@ -7762,7 +7668,8 @@ TestCommonAccessorProtoChain(JSContext *cx, jsid id, bool isGetter, JSObject *fo
 }
 
 inline bool
-SearchCommonPropFunc(JSContext *cx, types::TemporaryTypeSet *types, jsid id, bool isGetter,
+SearchCommonPropFunc(JSContext *cx, types::TemporaryTypeSet *types,
+                     PropertyName *name, bool isGetter,
                      JSObject *&found, JSObject *&foundProto, bool &cont)
 {
     cont = false;
@@ -7771,8 +7678,7 @@ SearchCommonPropFunc(JSContext *cx, types::TemporaryTypeSet *types, jsid id, boo
 
         
         if (!curObj) {
-            types::TypeObject *typeObj = types->getTypeObject(i);
-
+            types::TypeObjectKey *typeObj = types->getObject(i);
             if (!typeObj)
                 continue;
 
@@ -7781,19 +7687,19 @@ SearchCommonPropFunc(JSContext *cx, types::TemporaryTypeSet *types, jsid id, boo
 
             
             
-            if (TestClassHasAccessorHook(typeObj->clasp, isGetter))
+            if (TestClassHasAccessorHook(typeObj->clasp(), isGetter))
                 return true;
 
             
             
             bool lcont;
-            if (!TestTypeHasOwnProperty(cx, typeObj, id, lcont))
+            if (!TestTypeHasOwnProperty(typeObj, name, lcont))
                 return false;
             if (!lcont)
                 return true;
 
             
-            curObj = typeObj->proto;
+            curObj = typeObj->proto().toObjectOrNull();
         } else {
             
             
@@ -7804,10 +7710,10 @@ SearchCommonPropFunc(JSContext *cx, types::TemporaryTypeSet *types, jsid id, boo
 
         
         
-        if (!CanEffectlesslyCallLookupGenericOnObject(cx, curObj, id))
+        if (!CanEffectlesslyCallLookupGenericOnObject(cx, curObj, name))
             return true;
 
-        RootedId idRoot(cx, id);
+        RootedId idRoot(cx, NameToId(name));
         RootedObject proto(cx);
         RootedShape shape(cx);
         if (!JSObject::lookupGeneric(cx, curObj, idRoot, &proto, &shape))
@@ -7847,7 +7753,7 @@ SearchCommonPropFunc(JSContext *cx, types::TemporaryTypeSet *types, jsid id, boo
             return true;
 
         bool lcont;
-        if (!TestCommonAccessorProtoChain(cx, id, isGetter, foundProto, curObj, lcont))
+        if (!TestCommonAccessorProtoChain(cx, name, isGetter, foundProto, curObj, lcont))
             return false;
         if (!lcont)
             return true;
@@ -7856,51 +7762,39 @@ SearchCommonPropFunc(JSContext *cx, types::TemporaryTypeSet *types, jsid id, boo
     return true;
 }
 
-inline bool
-FreezePropTypeSets(JSContext *cx, types::TemporaryTypeSet *types, JSObject *foundProto, jsid id)
+bool
+IonBuilder::freezePropTypeSets(types::TemporaryTypeSet *types,
+                               JSObject *foundProto, PropertyName *name)
 {
-    types::TypeObject *curType;
     for (unsigned i = 0; i < types->getObjectCount(); i++) {
-        curType = types->getTypeObject(i);
-        JSObject *obj = nullptr;
-        if (!curType) {
-            obj = types->getSingleObject(i);
-            if (!obj)
-                continue;
+        
+        
+        if (types->getSingleObject(i) == foundProto)
+            continue;
 
-            curType = obj->getType(cx);
-            if (!curType)
-                return false;
-        }
+        types::TypeObjectKey *type = types->getObject(i);
+        if (!type)
+            continue;
 
         
         
-        if (obj != foundProto) {
+        while (true) {
+            types::HeapTypeSetKey property = type->property(NameToId(name));
+            JS_ALWAYS_TRUE(!property.notEmpty(constraints()));
+
             
             
-            jsid typeId = types::IdToTypeId(id);
-            while (true) {
-                types::HeapTypeSet *propSet = curType->getProperty(cx, typeId);
-                
-                
-                JS_ASSERT(propSet && propSet->empty());
-                propSet->addFreeze(cx);
-                
-                
-                
-                if (curType->proto == foundProto)
-                    break;
-                curType = curType->proto->getType(cx);
-                if (!curType)
-                    return false;
-            }
+            
+            if (type->proto() == foundProto)
+                break;
+            type = types::TypeObjectKey::get(type->proto().toObjectOrNull());
         }
     }
     return true;
 }
 
 inline bool
-IonBuilder::testCommonPropFunc(JSContext *cx, types::TemporaryTypeSet *types, jsid id,
+IonBuilder::testCommonPropFunc(JSContext *cx, types::TemporaryTypeSet *types, PropertyName *name,
                                JSFunction **funcp, bool isGetter, bool *isDOM,
                                MDefinition **guardOut)
 {
@@ -7917,7 +7811,7 @@ IonBuilder::testCommonPropFunc(JSContext *cx, types::TemporaryTypeSet *types, js
     
     
     bool cont;
-    if (!SearchCommonPropFunc(cx, types, id, isGetter, found, foundProto, cont))
+    if (!SearchCommonPropFunc(cx, types, name, isGetter, found, foundProto, cont))
         return false;
     if (!cont)
         return true;
@@ -7944,7 +7838,7 @@ IonBuilder::testCommonPropFunc(JSContext *cx, types::TemporaryTypeSet *types, js
 
     
     
-    if (!FreezePropTypeSets(cx, types, foundProto, id))
+    if (!freezePropTypeSets(types, foundProto, name))
         return false;
 
     *funcp = &found->as<JSFunction>();
@@ -7957,9 +7851,7 @@ bool
 IonBuilder::annotateGetPropertyCache(JSContext *cx, MDefinition *obj, MGetPropertyCache *getPropCache,
                                     types::TemporaryTypeSet *objTypes, types::TemporaryTypeSet *pushedTypes)
 {
-    jsid id = NameToId(getPropCache->name());
-    if (id != types::IdToTypeId(id))
-        return true;
+    PropertyName *name = getPropCache->name();
 
     
     if (pushedTypes->unknownObject() || pushedTypes->baseFlags() != 0)
@@ -7985,30 +7877,25 @@ IonBuilder::annotateGetPropertyCache(JSContext *cx, MDefinition *obj, MGetProper
     
     
     for (unsigned int i = 0; i < objCount; i++) {
-        types::TypeObject *typeObj = objTypes->getTypeObject(i);
-        if (!typeObj || typeObj->unknownProperties() || !typeObj->proto)
+        types::TypeObject *baseTypeObj = objTypes->getTypeObject(i);
+        if (!baseTypeObj)
+            continue;
+        types::TypeObjectKey *typeObj = types::TypeObjectKey::get(baseTypeObj);
+        if (typeObj->unknownProperties() || !typeObj->proto().isObject())
             continue;
 
-        types::HeapTypeSet *ownTypes = typeObj->getProperty(cx, id);
-        if (!ownTypes)
+        types::HeapTypeSetKey ownTypes = typeObj->property(NameToId(name));
+        if (ownTypes.notEmpty(constraints()))
             continue;
-
-        if (!ownTypes->empty())
-            continue;
-        ownTypes->addFreeze(cx);
 
         JSObject *singleton = nullptr;
-        JSObject *proto = typeObj->proto;
+        JSObject *proto = typeObj->proto().toObject();
         while (true) {
-            types::TypeObject *protoType = proto->getType(cx);
-            if (!protoType)
-                return false;
+            types::TypeObjectKey *protoType = types::TypeObjectKey::get(proto);
             if (!protoType->unknownProperties()) {
-                types::HeapTypeSet *protoTypes = protoType->getProperty(cx, id);
-                if (!protoTypes)
-                    return false;
+                types::HeapTypeSetKey property = protoType->property(NameToId(name));
 
-                singleton = protoTypes->getSingleton(cx);
+                singleton = property.singleton(constraints());
                 if (singleton) {
                     if (singleton->is<JSFunction>())
                         break;
@@ -8024,14 +7911,14 @@ IonBuilder::annotateGetPropertyCache(JSContext *cx, MDefinition *obj, MGetProper
             continue;
 
         bool knownConstant = false;
-        if (!TestSingletonProperty(cx, proto, singleton, id, &knownConstant))
+        if (!testSingletonProperty(proto, singleton, name, &knownConstant))
             return false;
 
         
         if (!pushedTypes->hasType(types::Type::ObjectType(singleton)))
             continue;
 
-        if (!inlinePropTable->addEntry(typeObj, &singleton->as<JSFunction>()))
+        if (!inlinePropTable->addEntry(baseTypeObj, &singleton->as<JSFunction>()))
             return false;
     }
 
@@ -8138,8 +8025,6 @@ IonBuilder::storeSlot(MDefinition *obj, Shape *shape, MDefinition *value, bool n
 bool
 IonBuilder::jsop_getprop(PropertyName *name)
 {
-    jsid id = NameToId(name);
-
     bool emitted = false;
 
     
@@ -8147,13 +8032,12 @@ IonBuilder::jsop_getprop(PropertyName *name)
         return emitted;
 
     types::StackTypeSet *baseTypes = types::TypeScript::BytecodeTypes(script(), pc);
-    bool barrier;
-    if (!PropertyReadNeedsTypeBarrier(cx, current->peek(-1), name, baseTypes, &barrier))
-        return false;
+    bool barrier = PropertyReadNeedsTypeBarrier(cx, constraints(),
+                                                current->peek(-1), name, baseTypes);
     types::TemporaryTypeSet *types = cloneTypeSet(baseTypes);
 
     
-    if (!getPropTryConstant(&emitted, id, types) || emitted)
+    if (!getPropTryConstant(&emitted, name, types) || emitted)
         return emitted;
 
     
@@ -8168,7 +8052,7 @@ IonBuilder::jsop_getprop(PropertyName *name)
     }
 
     
-    if (!getPropTryTypedObject(&emitted, id, types) || emitted)
+    if (!getPropTryTypedObject(&emitted, name, types) || emitted)
         return emitted;
 
     
@@ -8176,15 +8060,15 @@ IonBuilder::jsop_getprop(PropertyName *name)
         return emitted;
 
     
-    if (!getPropTryCommonGetter(&emitted, id, types) || emitted)
+    if (!getPropTryCommonGetter(&emitted, name, types) || emitted)
         return emitted;
 
     
-    if (!getPropTryInlineAccess(&emitted, name, id, barrier, types) || emitted)
+    if (!getPropTryInlineAccess(&emitted, name, barrier, types) || emitted)
         return emitted;
 
     
-    if (!getPropTryCache(&emitted, name, id, barrier, types) || emitted)
+    if (!getPropTryCache(&emitted, name, barrier, types) || emitted)
         return emitted;
 
     
@@ -8215,7 +8099,8 @@ IonBuilder::getPropTryArgumentsLength(bool *emitted)
 }
 
 bool
-IonBuilder::getPropTryConstant(bool *emitted, jsid id, types::TemporaryTypeSet *types)
+IonBuilder::getPropTryConstant(bool *emitted, PropertyName *name,
+                               types::TemporaryTypeSet *types)
 {
     JS_ASSERT(*emitted == false);
     JSObject *singleton = types ? types->getSingleton() : nullptr;
@@ -8225,7 +8110,7 @@ IonBuilder::getPropTryConstant(bool *emitted, jsid id, types::TemporaryTypeSet *
     JSObject *global = &script()->global();
 
     bool isConstant, testObject, testString;
-    if (!TestSingletonPropertyTypes(cx, current->peek(-1), singleton, global, id,
+    if (!testSingletonPropertyTypes(current->peek(-1), singleton, global, name,
                                     &isConstant, &testObject, &testString))
         return false;
 
@@ -8253,14 +8138,13 @@ IonBuilder::getPropTryConstant(bool *emitted, jsid id, types::TemporaryTypeSet *
 }
 
 bool
-IonBuilder::getPropTryTypedObject(bool *emitted,
-                                  jsid id,
+IonBuilder::getPropTryTypedObject(bool *emitted, PropertyName *name,
                                   types::TemporaryTypeSet *resultTypes)
 {
     TypeRepresentationSet fieldTypeReprs;
     int32_t fieldOffset;
     size_t fieldIndex;
-    if (!lookupTypedObjectField(current->peek(-1), id, &fieldOffset,
+    if (!lookupTypedObjectField(current->peek(-1), name, &fieldOffset,
                                 &fieldTypeReprs, &fieldIndex))
         return false;
     if (fieldTypeReprs.empty())
@@ -8372,8 +8256,8 @@ IonBuilder::getPropTryDefiniteSlot(bool *emitted, PropertyName *name,
                                    bool barrier, types::TemporaryTypeSet *types)
 {
     JS_ASSERT(*emitted == false);
-    types::TypeSet *propTypes = GetDefiniteSlot(cx, current->peek(-1)->resultTypeSet(), name);
-    if (!propTypes)
+    types::HeapTypeSetKey property;
+    if (!getDefiniteSlot(current->peek(-1)->resultTypeSet(), name, &property))
         return true;
 
     MDefinition *obj = current->pop();
@@ -8384,7 +8268,7 @@ IonBuilder::getPropTryDefiniteSlot(bool *emitted, PropertyName *name,
         useObj = guard;
     }
 
-    MLoadFixedSlot *fixed = MLoadFixedSlot::New(useObj, propTypes->definiteSlot());
+    MLoadFixedSlot *fixed = MLoadFixedSlot::New(useObj, property.actualTypes->definiteSlot());
     if (!barrier)
         fixed->setResultType(MIRTypeFromValueType(types->getKnownTypeTag()));
 
@@ -8399,7 +8283,8 @@ IonBuilder::getPropTryDefiniteSlot(bool *emitted, PropertyName *name,
 }
 
 bool
-IonBuilder::getPropTryCommonGetter(bool *emitted, jsid id, types::TemporaryTypeSet *types)
+IonBuilder::getPropTryCommonGetter(bool *emitted, PropertyName *name,
+                                   types::TemporaryTypeSet *types)
 {
     JS_ASSERT(*emitted == false);
     JSFunction *commonGetter;
@@ -8408,7 +8293,7 @@ IonBuilder::getPropTryCommonGetter(bool *emitted, jsid id, types::TemporaryTypeS
 
     types::TemporaryTypeSet *objTypes = current->peek(-1)->resultTypeSet();
 
-    if (!testCommonPropFunc(cx, objTypes, id, &commonGetter, true, &isDOM, &guard))
+    if (!testCommonPropFunc(cx, objTypes, name, &commonGetter, true, &isDOM, &guard))
         return false;
     if (!commonGetter)
         return true;
@@ -8483,7 +8368,7 @@ CanInlinePropertyOpShapes(const BaselineInspector::ShapeVector &shapes)
 }
 
 bool
-IonBuilder::getPropTryInlineAccess(bool *emitted, PropertyName *name, jsid id,
+IonBuilder::getPropTryInlineAccess(bool *emitted, PropertyName *name,
                                    bool barrier, types::TemporaryTypeSet *types)
 {
     JS_ASSERT(*emitted == false);
@@ -8510,7 +8395,7 @@ IonBuilder::getPropTryInlineAccess(bool *emitted, PropertyName *name, jsid id,
         Shape *objShape = shapes[0];
         obj = addShapeGuard(obj, objShape, Bailout_ShapeGuard);
 
-        Shape *shape = objShape->search(cx, id);
+        Shape *shape = objShape->search(cx, NameToId(name));
         JS_ASSERT(shape);
 
         if (!loadSlot(obj, shape, rvalType, barrier, types))
@@ -8525,7 +8410,7 @@ IonBuilder::getPropTryInlineAccess(bool *emitted, PropertyName *name, jsid id,
 
         for (size_t i = 0; i < shapes.length(); i++) {
             Shape *objShape = shapes[i];
-            Shape *shape =  objShape->search(cx, id);
+            Shape *shape =  objShape->search(cx, NameToId(name));
             JS_ASSERT(shape);
             if (!load->addShape(objShape, shape))
                 return false;
@@ -8544,7 +8429,7 @@ IonBuilder::getPropTryInlineAccess(bool *emitted, PropertyName *name, jsid id,
 }
 
 bool
-IonBuilder::getPropTryCache(bool *emitted, PropertyName *name, jsid id,
+IonBuilder::getPropTryCache(bool *emitted, PropertyName *name,
                             bool barrier, types::TemporaryTypeSet *types)
 {
     JS_ASSERT(*emitted == false);
@@ -8572,11 +8457,7 @@ IonBuilder::getPropTryCache(bool *emitted, PropertyName *name, jsid id,
     if (obj->type() == MIRType_Object && !invalidatedIdempotentCache() &&
         info().executionMode() != ParallelExecution)
     {
-        bool idempotent;
-        if (!PropertyReadIsIdempotent(cx, obj, name, &idempotent))
-            return false;
-
-        if (idempotent)
+        if (PropertyReadIsIdempotent(constraints(), obj, name))
             load->setIdempotent();
     }
 
@@ -8603,8 +8484,8 @@ IonBuilder::getPropTryCache(bool *emitted, PropertyName *name, jsid id,
 
     
     
-    if (!barrier && !PropertyReadOnPrototypeNeedsTypeBarrier(cx, obj, name, types, &barrier))
-        return false;
+    if (!barrier)
+        barrier = PropertyReadOnPrototypeNeedsTypeBarrier(cx, constraints(), obj, name, types);
 
     MIRType rvalType = MIRTypeFromValueType(types->getKnownTypeTag());
     if (barrier || IsNullOrUndefined(rvalType))
@@ -8635,7 +8516,6 @@ IonBuilder::jsop_setprop(PropertyName *name)
     MDefinition *value = current->pop();
     MDefinition *obj = current->pop();
 
-    jsid id = NameToId(name);
     bool emitted = false;
 
     
@@ -8652,19 +8532,15 @@ IonBuilder::jsop_setprop(PropertyName *name)
         current->add(MPostWriteBarrier::New(obj, value));
 
     
-    if (!setPropTryCommonSetter(&emitted, obj, name, id, value) || emitted)
+    if (!setPropTryCommonSetter(&emitted, obj, name, value) || emitted)
         return emitted;
 
     types::TemporaryTypeSet *objTypes = obj->resultTypeSet();
-    bool barrier;
-    if (!PropertyWriteNeedsTypeBarrier(cx, current, &obj, name, &value,
-                                        true, &barrier))
-    {
-        return false;
-    }
+    bool barrier = PropertyWriteNeedsTypeBarrier(constraints(), current, &obj, name, &value,
+                                                  true);
 
     
-    if (!setPropTryTypedObject(&emitted, obj, id, value) || emitted)
+    if (!setPropTryTypedObject(&emitted, obj, name, value) || emitted)
         return emitted;
 
     
@@ -8672,7 +8548,7 @@ IonBuilder::jsop_setprop(PropertyName *name)
         return emitted;
 
     
-    if (!setPropTryInlineAccess(&emitted, obj, name, id, value, barrier, objTypes) || emitted)
+    if (!setPropTryInlineAccess(&emitted, obj, name, value, barrier, objTypes) || emitted)
         return emitted;
 
     
@@ -8688,8 +8564,7 @@ IonBuilder::jsop_setprop(PropertyName *name)
 
 bool
 IonBuilder::setPropTryCommonSetter(bool *emitted, MDefinition *obj,
-                                   PropertyName *name, jsid id,
-                                   MDefinition *value)
+                                   PropertyName *name, MDefinition *value)
 {
     JS_ASSERT(*emitted == false);
 
@@ -8697,7 +8572,7 @@ IonBuilder::setPropTryCommonSetter(bool *emitted, MDefinition *obj,
     bool isDOM;
 
     types::TemporaryTypeSet *objTypes = obj->resultTypeSet();
-    if (!testCommonPropFunc(cx, objTypes, id, &commonSetter, false, &isDOM, nullptr))
+    if (!testCommonPropFunc(cx, objTypes, name, &commonSetter, false, &isDOM, nullptr))
         return false;
 
     if (!commonSetter)
@@ -8801,12 +8676,12 @@ IonBuilder::setPropTryCommonDOMSetter(bool *emitted, MDefinition *obj,
 
 bool
 IonBuilder::setPropTryTypedObject(bool *emitted, MDefinition *obj,
-                                  jsid id, MDefinition *value)
+                                  PropertyName *name, MDefinition *value)
 {
     TypeRepresentationSet fieldTypeReprs;
     int32_t fieldOffset;
     size_t fieldIndex;
-    if (!lookupTypedObjectField(obj, id, &fieldOffset, &fieldTypeReprs,
+    if (!lookupTypedObjectField(obj, name, &fieldOffset, &fieldTypeReprs,
                                 &fieldIndex))
         return false;
     if (fieldTypeReprs.empty())
@@ -8869,15 +8744,15 @@ IonBuilder::setPropTryDefiniteSlot(bool *emitted, MDefinition *obj,
     if (barrier)
         return true;
 
-    types::HeapTypeSet *propTypes = GetDefiniteSlot(cx, objTypes, name);
-    if (!propTypes)
+    types::HeapTypeSetKey property;
+    if (!getDefiniteSlot(obj->resultTypeSet(), name, &property))
         return true;
 
-    MStoreFixedSlot *fixed = MStoreFixedSlot::New(obj, propTypes->definiteSlot(), value);
+    MStoreFixedSlot *fixed = MStoreFixedSlot::New(obj, property.actualTypes->definiteSlot(), value);
     current->add(fixed);
     current->push(value);
 
-    if (propTypes->needsBarrier(cx))
+    if (property.needsBarrier(constraints()))
         fixed->setNeedsBarrier();
 
     if (!resumeAfter(fixed))
@@ -8889,7 +8764,7 @@ IonBuilder::setPropTryDefiniteSlot(bool *emitted, MDefinition *obj,
 
 bool
 IonBuilder::setPropTryInlineAccess(bool *emitted, MDefinition *obj,
-                                   PropertyName *name, jsid id,
+                                   PropertyName *name,
                                    MDefinition *value, bool barrier,
                                    types::TemporaryTypeSet *objTypes)
 {
@@ -8921,7 +8796,7 @@ IonBuilder::setPropTryInlineAccess(bool *emitted, MDefinition *obj,
         Shape *shape = objShape->search(cx, NameToId(name));
         JS_ASSERT(shape);
 
-        bool needsBarrier = objTypes->propertyNeedsBarrier(cx, id);
+        bool needsBarrier = objTypes->propertyNeedsBarrier(constraints(), NameToId(name));
         if (!storeSlot(obj, shape, value, needsBarrier))
             return false;
     } else {
@@ -8934,13 +8809,13 @@ IonBuilder::setPropTryInlineAccess(bool *emitted, MDefinition *obj,
 
         for (size_t i = 0; i < shapes.length(); i++) {
             Shape *objShape = shapes[i];
-            Shape *shape =  objShape->search(cx, id);
+            Shape *shape =  objShape->search(cx, NameToId(name));
             JS_ASSERT(shape);
             if (!ins->addShape(objShape, shape))
                 return false;
         }
 
-        if (objTypes->propertyNeedsBarrier(cx, id))
+        if (objTypes->propertyNeedsBarrier(constraints(), NameToId(name)))
             ins->setNeedsBarrier();
 
         if (!resumeAfter(ins))
@@ -8961,8 +8836,7 @@ IonBuilder::setPropTryCache(bool *emitted, MDefinition *obj,
     
     MSetPropertyCache *ins = MSetPropertyCache::New(obj, value, name, script()->strict, barrier);
 
-    jsid id = NameToId(name);
-    if (!objTypes || objTypes->propertyNeedsBarrier(cx, id))
+    if (!objTypes || objTypes->propertyNeedsBarrier(constraints(), NameToId(name)))
         ins->setNeedsBarrier();
 
     current->add(ins);
@@ -9316,10 +9190,8 @@ IonBuilder::hasStaticScopeObject(ScopeCoordinate sc, JSObject **pcall)
     if (!outerScript || !outerScript->treatAsRunOnce)
         return false;
 
-    types::TypeObject *funType = outerScript->function()->getType(cx);
-    if (!funType)
-        return false;
-    if (types::HeapTypeSet::HasObjectFlags(cx, funType, types::OBJECT_FLAG_RUNONCE_INVALIDATED))
+    types::TypeObjectKey *funType = types::TypeObjectKey::get(outerScript->function());
+    if (funType->hasFlags(constraints(), types::OBJECT_FLAG_RUNONCE_INVALIDATED))
         return false;
 
     
@@ -9459,8 +9331,11 @@ IonBuilder::jsop_in()
     MDefinition *obj = current->peek(-1);
     MDefinition *id = current->peek(-2);
 
-    if (ElementAccessIsDenseNative(obj, id) && !ElementAccessHasExtraIndexedProperty(cx, obj))
+    if (ElementAccessIsDenseNative(obj, id) &&
+        !ElementAccessHasExtraIndexedProperty(constraints(), obj))
+    {
         return jsop_in_dense();
+    }
 
     current->pop();
     current->pop();
@@ -9478,7 +9353,7 @@ IonBuilder::jsop_in_dense()
     MDefinition *obj = current->pop();
     MDefinition *id = current->pop();
 
-    bool needsHoleCheck = !ElementAccessIsPacked(cx, obj);
+    bool needsHoleCheck = !ElementAccessIsPacked(constraints(), obj);
 
     
     MInstruction *idInt32 = MToInt32::New(id);
@@ -9515,13 +9390,13 @@ IonBuilder::jsop_instanceof()
         if (!rhsObject || !rhsObject->is<JSFunction>() || rhsObject->isBoundFunction())
             break;
 
-        types::TypeObject *rhsType = rhsObject->getType(cx);
-        if (!rhsType || rhsType->unknownProperties())
+        types::TypeObjectKey *rhsType = types::TypeObjectKey::get(rhsObject);
+        if (rhsType->unknownProperties())
             break;
 
-        types::HeapTypeSet *protoTypes =
-            rhsType->getProperty(cx, NameToId(cx->names().classPrototype));
-        JSObject *protoObject = protoTypes ? protoTypes->getSingleton(cx) : nullptr;
+        types::HeapTypeSetKey protoProperty =
+            rhsType->property(NameToId(cx->names().classPrototype));
+        JSObject *protoObject = protoProperty.singleton(constraints());
         if (!protoObject)
             break;
 
@@ -9706,7 +9581,7 @@ IonBuilder::loadTypedObjectData(MDefinition *typedObj,
 
 bool
 IonBuilder::lookupTypedObjectField(MDefinition *typedObj,
-                                   jsid id,
+                                   PropertyName *name,
                                    int32_t *fieldOffset,
                                    TypeRepresentationSet *fieldTypeReprs,
                                    size_t *fieldIndex)
@@ -9721,7 +9596,7 @@ IonBuilder::lookupTypedObjectField(MDefinition *typedObj,
 
     
     size_t offset;
-    if (!objTypeReprs.fieldNamed(*this, id, &offset,
+    if (!objTypeReprs.fieldNamed(*this, NameToId(name), &offset,
                                  fieldTypeReprs, fieldIndex))
         return false;
     if (fieldTypeReprs->empty())
