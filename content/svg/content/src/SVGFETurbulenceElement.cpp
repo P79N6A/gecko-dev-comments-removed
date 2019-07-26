@@ -132,7 +132,7 @@ SVGFETurbulenceElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
   uint16_t stitch = mEnumAttributes[STITCHTILES].GetAnimValue();
 
   if (fX == 0 || fY == 0) {
-    return FilterPrimitiveDescription(FilterPrimitiveDescription::eNone);
+    return FilterPrimitiveDescription(PrimitiveType::Empty);
   }
 
   
@@ -145,7 +145,7 @@ SVGFETurbulenceElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
                               1 / firstPeriodInFilterSpace.height);
   gfxPoint offset = firstPeriodInFilterSpace.TopLeft();
 
-  FilterPrimitiveDescription descr(FilterPrimitiveDescription::eTurbulence);
+  FilterPrimitiveDescription descr(PrimitiveType::Turbulence);
   descr.Attributes().Set(eTurbulenceOffset, IntPoint(offset.x, offset.y));
   descr.Attributes().Set(eTurbulenceBaseFrequency, frequencyInFilterSpace);
   descr.Attributes().Set(eTurbulenceSeed, seed);

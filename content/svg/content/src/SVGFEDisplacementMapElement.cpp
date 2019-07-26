@@ -99,7 +99,7 @@ SVGFEDisplacementMapElement::GetPrimitiveDescription(nsSVGFilterInstance* aInsta
   if (aInputsAreTainted[1]) {
     
     
-    FilterPrimitiveDescription descr(FilterPrimitiveDescription::eOffset);
+    FilterPrimitiveDescription descr(PrimitiveType::Offset);
     descr.Attributes().Set(eOffsetOffset, IntPoint(0, 0));
     return descr;
   }
@@ -108,7 +108,7 @@ SVGFEDisplacementMapElement::GetPrimitiveDescription(nsSVGFilterInstance* aInsta
                                               &mNumberAttributes[SCALE]);
   uint32_t xChannel = mEnumAttributes[CHANNEL_X].GetAnimValue();
   uint32_t yChannel = mEnumAttributes[CHANNEL_Y].GetAnimValue();
-  FilterPrimitiveDescription descr(FilterPrimitiveDescription::eDisplacementMap);
+  FilterPrimitiveDescription descr(PrimitiveType::DisplacementMap);
   descr.Attributes().Set(eDisplacementMapScale, scale);
   descr.Attributes().Set(eDisplacementMapXChannel, xChannel);
   descr.Attributes().Set(eDisplacementMapYChannel, yChannel);
