@@ -161,11 +161,16 @@ public class PropertyAnimator implements Runnable {
 
         
         
-        if (treeObserver != null && treeObserver.isAlive()) {
+        
+        
+        if (Build.VERSION.SDK_INT >= 11 && treeObserver != null && treeObserver.isAlive()) {
             treeObserver.addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
                 @Override
                 public boolean onPreDraw() {
-                    treeObserver.removeOnPreDrawListener(this);
+                    if (treeObserver.isAlive()) {
+                        treeObserver.removeOnPreDrawListener(this);
+                    }
+
                     mFramePoster.postFirstAnimationFrame();
                     return true;
                 }
