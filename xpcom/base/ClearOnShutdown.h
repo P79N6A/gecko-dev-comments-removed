@@ -9,7 +9,7 @@
 
 #include "mozilla/LinkedList.h"
 #include "mozilla/StaticPtr.h"
-#include "MainThreadUtils.h"
+#include "nsThreadUtils.h"
 
 
 
