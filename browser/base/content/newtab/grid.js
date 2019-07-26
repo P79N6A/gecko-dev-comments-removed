@@ -37,7 +37,7 @@ let gGrid = {
   get sites() [cell.site for each (cell in this.cells)],
 
   
-  get ready() !!this._node,
+  get ready() !!this._ready,
 
   
 
@@ -46,7 +46,11 @@ let gGrid = {
   init: function Grid_init() {
     this._node = document.getElementById("newtab-grid");
     this._createSiteFragment();
-    this._render();
+    this._renderGrid();
+    gLinks.populateCache(() => {
+      this._renderSites();
+      this._ready = true;
+    });
     addEventListener("load", this);
     addEventListener("resize", this);
   },
@@ -69,14 +73,6 @@ let gGrid = {
   handleEvent: function Grid_handleEvent(aEvent) {
     switch (aEvent.type) {
       case "load":
-        
-        let refCell = document.querySelector(".newtab-cell");
-        this._cellMargin = parseFloat(getComputedStyle(refCell).marginTop) * 2;
-        this._cellHeight = refCell.offsetHeight + this._cellMargin;
-        this._cellWidth = refCell.offsetWidth + this._cellMargin;
-        this._resizeGrid();
-        break;
-
       case "resize":
         this._resizeGrid();
         break;
@@ -97,8 +93,11 @@ let gGrid = {
     }, this);
 
     
-    this._render();
-    this._resizeGrid();
+    if (this._shouldRenderGrid()) {
+      this._renderGrid();
+      this._resizeGrid();
+    }
+    this._renderSites();
   },
 
   
@@ -188,18 +187,15 @@ let gGrid = {
   
 
 
-  _render: function Grid_render() {
-    if (this._shouldRenderGrid()) {
-      this._renderGrid();
+  _resizeGrid: function Grid_resizeGrid() {
+    
+    if (this._cellMargin === undefined) {
+      let refCell = document.querySelector(".newtab-cell");
+      this._cellMargin = parseFloat(getComputedStyle(refCell).marginTop) * 2;
+      this._cellHeight = refCell.offsetHeight + this._cellMargin;
+      this._cellWidth = refCell.offsetWidth + this._cellMargin;
     }
 
-    this._renderSites();
-  },
-
-  
-
-
-  _resizeGrid: function Grid_resizeGrid() {
     let availSpace = document.documentElement.clientHeight - this._cellMargin -
                      document.querySelector("#newtab-margin-top").offsetHeight;
     let visibleRows = Math.floor(availSpace / this._cellHeight);

@@ -281,10 +281,6 @@ let AllPages = {
     }
   },
 
-  get updateScheduledForHiddenPages() {
-    return !!this._scheduleUpdateTimeout;
-  },
-
   
 
 

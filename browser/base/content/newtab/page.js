@@ -144,19 +144,17 @@ let gPage = {
       attributeFilter: ["allow-background-captures"],
     });
 
-    gLinks.populateCache(function () {
-      
-      gGrid.init();
+    
+    gGrid.init();
 
-      
-      gDropTargetShim.init();
+    
+    gDropTargetShim.init();
 
 #ifdef XP_MACOSX
-      
-      document.addEventListener("dragover", this, false);
-      document.addEventListener("drop", this, false);
+    
+    document.addEventListener("dragover", this, false);
+    document.addEventListener("drop", this, false);
 #endif
-    }.bind(this));
   },
 
   

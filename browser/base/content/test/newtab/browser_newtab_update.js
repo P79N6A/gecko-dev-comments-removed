@@ -6,11 +6,6 @@
 
 
 function runTests() {
-  if (NewTabUtils.allPages.updateScheduledForHiddenPages) {
-    
-    yield whenPagesUpdated(null, true);
-  }
-
   
   
   
