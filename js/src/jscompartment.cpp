@@ -361,13 +361,17 @@ JSCompartment::wrap(JSContext *cx, MutableHandleObject obj, HandleObject existin
     JS_ASSERT(global);
     JS_ASSERT(objGlobal);
 
-    JS_ASSERT(!cx->runtime()->isSelfHostingGlobal(global) &&
-              !cx->runtime()->isSelfHostingGlobal(objGlobal));
-
     const JSWrapObjectCallbacks *cb = cx->runtime()->wrapObjectCallbacks;
 
     if (obj->compartment() == this)
         return WrapForSameCompartment(cx, obj, cb);
+
+    
+    
+    
+    
+    JS_ASSERT(!cx->runtime()->isSelfHostingGlobal(global) &&
+              !cx->runtime()->isSelfHostingGlobal(objGlobal));
 
     
     unsigned flags = 0;
