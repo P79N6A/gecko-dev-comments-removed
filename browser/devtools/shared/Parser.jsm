@@ -85,7 +85,7 @@ Parser.prototype = {
       }
     }
 
-    let pool = new SyntaxTreesPool(syntaxTrees, aUrl);
+    let pool = new SyntaxTreesPool(syntaxTrees);
 
     
     
@@ -124,11 +124,8 @@ Parser.prototype = {
 
 
 
-
-
-function SyntaxTreesPool(aSyntaxTrees, aUrl = "<unknown>") {
+function SyntaxTreesPool(aSyntaxTrees) {
   this._trees = aSyntaxTrees;
-  this._url = aUrl;
   this._cache = new Map();
 }
 
@@ -218,7 +215,7 @@ SyntaxTreesPool.prototype = {
         
         
         
-        DevToolsUtils.reportException("Syntax tree visitor for " + aUrl, e);
+        DevToolsUtils.reportException("syntax tree", e);
       }
     }
     this._cache.set(requestId, results);
