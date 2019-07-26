@@ -93,7 +93,7 @@ public:
 
 
 
-class TextureClient : public RefCounted<TextureClient>
+class TextureClient : public AtomicRefCounted<TextureClient>
 {
 public:
   TextureClient(TextureFlags aFlags = TEXTURE_FLAGS_DEFAULT);

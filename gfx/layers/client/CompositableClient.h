@@ -66,7 +66,7 @@ class SurfaceDescriptor;
 
 
 
-class CompositableClient : public RefCounted<CompositableClient>
+class CompositableClient : public AtomicRefCounted<CompositableClient>
 {
 public:
   CompositableClient(CompositableForwarder* aForwarder);
