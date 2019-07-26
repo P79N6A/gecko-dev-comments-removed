@@ -18,46 +18,10 @@ Volume::EventObserverList Volume::mEventObserverList;
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-static int32_t sMountGeneration = 0;
-
-
-
-Volume::Volume(const nsCSubstring& aName)
+Volume::Volume(const nsCSubstring &aName)
   : mMediaPresent(true),
     mState(nsIVolume::STATE_INIT),
-    mName(aName),
-    mMountGeneration(-1),
-    mMountLocked(true)  
+    mName(aName)
 {
   DBG("Volume %s: created", NameStr());
 }
@@ -65,9 +29,6 @@ Volume::Volume(const nsCSubstring& aName)
 void
 Volume::SetMediaPresent(bool aMediaPresent)
 {
-  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
-  MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
-
   
   
   
@@ -103,19 +64,13 @@ Volume::SetMediaPresent(bool aMediaPresent)
 void
 Volume::SetState(Volume::STATE aNewState)
 {
-  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
-  MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
-
   if (aNewState == mState) {
     return;
   }
   if (aNewState == nsIVolume::STATE_MOUNTED) {
-    mMountGeneration = ++sMountGeneration;
-    LOG("Volume %s: changing state from %s to %s @ '%s' (%d observers) "
-        "mountGeneration = %d, locked = %d",
+    LOG("Volume %s: changing state from %s to %s @ '%s' (%d observers)",
         NameStr(), StateStr(mState),
-        StateStr(aNewState), mMountPoint.get(), mEventObserverList.Length(),
-        mMountGeneration, (int)mMountLocked);
+        StateStr(aNewState), mMountPoint.get(), mEventObserverList.Length());
   } else {
     LOG("Volume %s: changing state from %s to %s (%d observers)",
         NameStr(), StateStr(mState),
@@ -131,11 +86,8 @@ Volume::SetState(Volume::STATE aNewState)
 }
 
 void
-Volume::SetMountPoint(const nsCSubstring& aMountPoint)
+Volume::SetMountPoint(const nsCSubstring &aMountPoint)
 {
-  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
-  MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
-
   if (mMountPoint.Equals(aMountPoint)) {
     return;
   }
@@ -144,55 +96,39 @@ Volume::SetMountPoint(const nsCSubstring& aMountPoint)
 }
 
 void
-Volume::StartMount(VolumeResponseCallback* aCallback)
+Volume::StartMount(VolumeResponseCallback *aCallback)
 {
-  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
-  MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
-
   StartCommand(new VolumeActionCommand(this, "mount", "", aCallback));
 }
 
 void
-Volume::StartUnmount(VolumeResponseCallback* aCallback)
+Volume::StartUnmount(VolumeResponseCallback *aCallback)
 {
-  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
-  MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
-
   StartCommand(new VolumeActionCommand(this, "unmount", "force", aCallback));
 }
 
 void
-Volume::StartShare(VolumeResponseCallback* aCallback)
+Volume::StartShare(VolumeResponseCallback *aCallback)
 {
-  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
-  MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
-
   StartCommand(new VolumeActionCommand(this, "share", "ums", aCallback));
 }
 
 void
-Volume::StartUnshare(VolumeResponseCallback* aCallback)
+Volume::StartUnshare(VolumeResponseCallback *aCallback)
 {
-  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
-  MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
-
   StartCommand(new VolumeActionCommand(this, "unshare", "ums", aCallback));
 }
 
 void
-Volume::StartCommand(VolumeCommand* aCommand)
+Volume::StartCommand(VolumeCommand *aCommand)
 {
-  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
-  MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
-
   VolumeManager::PostCommand(aCommand);
 }
 
 
 void
-Volume::RegisterObserver(Volume::EventObserver* aObserver)
+Volume::RegisterObserver(Volume::EventObserver *aObserver)
 {
-  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
   MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
 
   mEventObserverList.AddObserver(aObserver);
@@ -206,40 +142,16 @@ Volume::RegisterObserver(Volume::EventObserver* aObserver)
 
 
 void
-Volume::UnregisterObserver(Volume::EventObserver* aObserver)
+Volume::UnregisterObserver(Volume::EventObserver *aObserver)
 {
-  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
   MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
 
   mEventObserverList.RemoveObserver(aObserver);
 }
 
-
 void
-Volume::UpdateMountLock(const nsACString& aVolumeName,
-                        const int32_t& aMountGeneration,
-                        const bool& aMountLocked)
+Volume::HandleVoldResponse(int aResponseCode, nsCWhitespaceTokenizer &aTokenizer)
 {
-  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
-  MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
-
-  RefPtr<Volume> vol = VolumeManager::FindVolumeByName(aVolumeName);
-  if (!vol || (vol->mMountGeneration != aMountGeneration)) {
-    return;
-  }
-  if (vol->mMountLocked != aMountLocked) {
-    vol->mMountLocked = aMountLocked;
-    DBG("Volume::UpdateMountLock for '%s' to %d\n", vol->NameStr(), (int)aMountLocked);
-    mEventObserverList.Broadcast(vol);
-  }
-}
-
-void
-Volume::HandleVoldResponse(int aResponseCode, nsCWhitespaceTokenizer& aTokenizer)
-{
-  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
-  MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
-
   
   
   switch (aResponseCode) {
