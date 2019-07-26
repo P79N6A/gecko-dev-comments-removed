@@ -13,7 +13,7 @@
 
 
 #include "PlatformMacros.h"
-#include "GeckoProfiler.h"
+#include "GeckoProfilerImpl.h"
 #include "platform.h"
 #include "nsXULAppAPI.h"
 #include "nsThreadUtils.h"

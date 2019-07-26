@@ -4,7 +4,7 @@
 
 
 #include "SaveProfileTask.h"
-#include "GeckoProfiler.h"
+#include "GeckoProfilerImpl.h"
 
 static bool
 WriteCallback(const jschar *buf, uint32_t len, void *data)

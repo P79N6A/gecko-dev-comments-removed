@@ -4,6 +4,7 @@
 
 
 #include <ostream>
+#include "GeckoProfilerImpl.h"
 #include "platform.h"
 #include "nsThreadUtils.h"
 #include "nsXULAppAPI.h"

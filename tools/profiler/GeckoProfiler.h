@@ -56,12 +56,6 @@ namespace mozilla {
 class TimeStamp;
 }
 
-enum TracingMetadata {
-  TRACING_DEFAULT,
-  TRACING_INTERVAL_START,
-  TRACING_INTERVAL_END
-};
-
 #ifndef MOZ_ENABLE_PROFILER_SPS
 
 #include <stdint.h>
@@ -87,9 +81,6 @@ enum TracingMetadata {
 
 #define PROFILER_MAIN_THREAD_LABEL(name_space, info) do {} while (0)
 #define PROFILER_MAIN_THREAD_LABEL_PRINTF(name_space, info, format, ...) do {} while (0)
-
-static inline void profiler_tracing(const char* aCategory, const char* aInfo,
-                                    TracingMetadata metaData = TRACING_DEFAULT) {}
 
 
 
