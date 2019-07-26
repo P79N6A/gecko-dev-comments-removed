@@ -798,6 +798,8 @@ public:
 
   virtual void OnFocusChangeInGecko(bool aFocus);
 
+  void OnSelectionChange() { mSelectedRange.location = NSNotFound; }
+
   
 
 
@@ -957,6 +959,7 @@ private:
   nsString mLastDispatchedCompositionString;
 
   NSRange mMarkedRange;
+  NSRange mSelectedRange;
 
   bool mIsIMEComposing;
   bool mIsIMEEnabled;
@@ -967,6 +970,7 @@ private:
   
   
   bool mIsInFocusProcessing;
+  bool mIMEHasFocus;
 
   void KillIMEComposition();
   void SendCommittedText(NSString *aString);
