@@ -231,11 +231,6 @@ SafepointWriter::writeNunboxParts(LSafepoint *safepoint)
     
     
     
-    
-    
-    
-    
-    
     uint32_t partials = safepoint->partialNunboxes();
 
     stream_.writeUnsigned(entries.length() - partials);

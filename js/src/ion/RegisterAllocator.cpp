@@ -310,6 +310,7 @@ AllocationIntegrityState::checkSafepointAllocation(LInstruction *ins,
             if (!safepoint->addNunboxPayload(vreg, alloc))
                 return false;
         }
+        JS_ASSERT(safepoint->hasNunboxPayload(alloc));
         break;
 #else
       case LDefinition::BOX:
