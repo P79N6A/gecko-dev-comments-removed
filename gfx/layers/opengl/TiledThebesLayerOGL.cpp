@@ -7,6 +7,7 @@
 #include "ReusableTileStoreOGL.h"
 #include "BasicTiledThebesLayer.h"
 #include "gfxImageSurface.h"
+#include "gfxPlatform.h"
 
 namespace mozilla {
 namespace layers {
@@ -159,9 +160,10 @@ TiledThebesLayerOGL::ProcessUploadQueue()
   if (mReusableTileStore && mIsFixedPosition) {
     delete mReusableTileStore;
     mReusableTileStore = nullptr;
-  } else if (!mReusableTileStore && !mIsFixedPosition) {
+  } else if (gfxPlatform::UseReusableTileStore() &&
+             !mReusableTileStore && !mIsFixedPosition) {
     
-    mReusableTileStore = new ReusableTileStoreOGL(gl(), 2);
+    mReusableTileStore = new ReusableTileStoreOGL(gl(), 1);
   }
 
   gfxSize resolution(1, 1);
