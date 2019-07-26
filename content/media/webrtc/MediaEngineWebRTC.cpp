@@ -101,7 +101,7 @@ MediaEngineWebRTC::EnumerateVideoDevices(nsTArray<nsRefPtr<MediaEngineVideoSourc
       
       aVSources->AppendElement(vSource.get());
     } else {
-      vSource = new MediaEngineWebRTCVideoSource(mCameraManager, i);
+      vSource = new MediaEngineWebRTCVideoSource(mCameraManager, i, mWindowId);
       mVideoSources.Put(uuid, vSource); 
       aVSources->AppendElement(vSource);
     }
