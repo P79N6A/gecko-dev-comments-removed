@@ -13,6 +13,7 @@ Cu.import("resource://gre/modules/Task.jsm");
 
 const TEST_DATASET_ID = "test-dataset-id";
 const TEST_URL = "http://test.com";
+const TEST_TITLE = "Test";
 
 const PREF_SYNC_CHECK_INTERVAL_SECS = "home.sync.checkIntervalSecs";
 const TEST_INTERVAL_SECS = 1;
@@ -47,7 +48,7 @@ add_test(function test_periodic_sync() {
 add_task(function test_save_and_delete() {
   
   let storage = HomeProvider.getStorage(TEST_DATASET_ID);
-  yield storage.save([{ url: TEST_URL }]);
+  yield storage.save([{ title: TEST_TITLE, url: TEST_URL }]);
 
   
   let db = yield Sqlite.openConnection({ path: DB_PATH });
@@ -63,6 +64,36 @@ add_task(function test_save_and_delete() {
 
   
   yield storage.deleteAll();
+
+  
+  let result = yield db.execute("SELECT * FROM items");
+  do_check_eq(result.length, 0);
+
+  db.close();
+});
+
+add_task(function test_row_validation() {
+  
+  let storage = HomeProvider.getStorage(TEST_DATASET_ID);
+
+  let invalidRows = [
+    { url: "url" },
+    { title: "title" },
+    { description: "description" },
+    { image_url: "image_url" }
+  ];
+
+  
+  for (let row of invalidRows) {
+    try {
+      yield storage.save([row]);
+    } catch (e if e instanceof HomeProvider.ValidationError) {
+      
+    }
+  }
+
+  
+  let db = yield Sqlite.openConnection({ path: DB_PATH });
 
   
   let result = yield db.execute("SELECT * FROM items");

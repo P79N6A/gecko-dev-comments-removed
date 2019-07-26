@@ -112,7 +112,20 @@ function syncTimerCallback(timer) {
   }
 }
 
+this.HomeStorage = function(datasetId) {
+  this.datasetId = datasetId;
+};
+
+this.ValidationError = function(message) {
+  this.name = "ValidationError";
+  this.message = message;
+};
+ValidationError.prototype = new Error();
+ValidationError.prototype.constructor = ValidationError;
+
 this.HomeProvider = Object.freeze({
+  ValidationError: ValidationError,
+
   
 
 
@@ -249,9 +262,23 @@ function getDatabaseConnection() {
   });
 }
 
-this.HomeStorage = function(datasetId) {
-  this.datasetId = datasetId;
-};
+
+
+
+
+
+
+function validateItem(datasetId, item) {
+  if (!item.url) {
+    throw new ValidationError('HomeStorage: All rows must have an URL: datasetId = ' +
+                              datasetId);
+  }
+
+  if (!item.image_url && !item.title && !item.description) {
+    throw new ValidationError('HomeStorage: All rows must have at least an image URL, ' +
+                              'or a title or a description: datasetId = ' + datasetId);
+  }
+}
 
 HomeStorage.prototype = {
   
@@ -269,6 +296,8 @@ HomeStorage.prototype = {
       try {
         
         for (let item of data) {
+          validateItem(this.datasetId, item);
+
           
           let params = {
             dataset_id: this.datasetId,
