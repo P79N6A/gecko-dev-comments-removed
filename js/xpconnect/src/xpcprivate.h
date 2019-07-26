@@ -2705,7 +2705,7 @@ public:
     nsXPCWrappedJS* FindInherited(REFNSIID aIID);
 
     bool IsValid() const {return mJSObj != nullptr;}
-    void SystemIsBeingShutDown(JSRuntime* rt);
+    void SystemIsBeingShutDown();
 
     
     

@@ -459,18 +459,28 @@ CycleCollectedJSRuntime::CycleCollectedJSRuntime(uint32_t aMaxbytes,
   nsCycleCollector_registerJSRuntime(this);
 }
 
-CycleCollectedJSRuntime::~CycleCollectedJSRuntime()
+void
+CycleCollectedJSRuntime::DestroyRuntime()
 {
+  if (!mJSRuntime) {
+    return;
+  }
+
   MOZ_ASSERT(!mDeferredFinalizerTable.Count());
   MOZ_ASSERT(!mDeferredSupports.Length());
 
   
   mPendingException = nullptr;
-
   nsCycleCollector_forgetJSRuntime();
 
   JS_DestroyRuntime(mJSRuntime);
   mJSRuntime = nullptr;
+}
+
+CycleCollectedJSRuntime::~CycleCollectedJSRuntime()
+{
+  
+  DestroyRuntime();
 }
 
 size_t

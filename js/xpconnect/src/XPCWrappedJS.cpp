@@ -598,7 +598,7 @@ nsXPCWrappedJS::GetInterfaceIID(nsIID** iid)
 }
 
 void
-nsXPCWrappedJS::SystemIsBeingShutDown(JSRuntime* rt)
+nsXPCWrappedJS::SystemIsBeingShutDown()
 {
     
     
@@ -614,7 +614,7 @@ nsXPCWrappedJS::SystemIsBeingShutDown(JSRuntime* rt)
 
     
     if (mNext)
-        mNext->SystemIsBeingShutDown(rt);
+        mNext->SystemIsBeingShutDown();
 }
 
 

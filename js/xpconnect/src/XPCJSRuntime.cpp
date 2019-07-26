@@ -1416,6 +1416,16 @@ XPCJSRuntime::~XPCJSRuntime()
     }
 #endif
 
+    auto rtPrivate = static_cast<PerThreadAtomCache*>(JS_GetRuntimePrivate(Runtime()));
+    delete rtPrivate;
+    JS_SetRuntimePrivate(Runtime(), nullptr);
+
+    
+    
+    
+    
+    DestroyRuntime();
+
     
     if (mWrappedJSMap) {
 #ifdef XPC_DUMP_AT_SHUTDOWN
@@ -1423,7 +1433,7 @@ XPCJSRuntime::~XPCJSRuntime()
         if (count)
             printf("deleting XPCJSRuntime with %d live wrapped JSObject\n", (int)count);
 #endif
-        mWrappedJSMap->ShutdownMarker(Runtime());
+        mWrappedJSMap->ShutdownMarker();
         delete mWrappedJSMap;
     }
 
@@ -1524,10 +1534,6 @@ XPCJSRuntime::~XPCJSRuntime()
         MOZ_ASSERT(!mScratchStrings[i].mInUse, "Uh, string wrapper still in use!");
     }
 #endif
-
-    auto rtPrivate = static_cast<PerThreadAtomCache*>(JS_GetRuntimePrivate(Runtime()));
-    delete rtPrivate;
-    JS_SetRuntimePrivate(Runtime(), nullptr);
 }
 
 static void
