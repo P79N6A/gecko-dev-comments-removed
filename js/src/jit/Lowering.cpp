@@ -3209,7 +3209,7 @@ LIRGenerator::visitFunctionBoundary(MFunctionBoundary *ins)
         return false;
     
     
-    return !GetIonContext()->runtime->spsProfiler.slowAssertionsEnabled() ||
+    return !GetIonContext()->runtime->spsProfiler().slowAssertionsEnabled() ||
            assignSafepoint(lir, ins);
 }
 
