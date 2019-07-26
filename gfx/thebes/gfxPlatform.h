@@ -20,6 +20,7 @@
 #include "gfx2DGlue.h"
 #include "mozilla/RefPtr.h"
 #include "GfxInfoCollector.h"
+#include "GLContext.h"
 
 #ifdef XP_OS2
 #undef OS2EMX_PLAIN_CHAR
@@ -102,6 +103,13 @@ enum eGfxLog {
     eGfxLog_textrunui        = 3,
     
     eGfxLog_cmapdata         = 4
+};
+
+enum eMemoryUse {
+    
+    eMemoryUse_alloc    = 0,
+    
+    eMemoryUse_free     = 1
 };
 
 
@@ -415,6 +423,13 @@ public:
     
     
     static bool UseReusableTileStore();
+
+    
+    
+    static void UpdateTiledThebesLayerTextureUsage(eMemoryUse action,
+                                                   GLenum format,
+                                                   GLenum type,
+                                                   uint16_t tileSize);
 
     static bool OffMainThreadCompositingEnabled();
 
