@@ -122,7 +122,7 @@ var MigrationWizard = {
       this._selectedProfile = null;
     }
     this._source = newSource;
-      
+
     
     var sourceProfiles = this._migrator.sourceProfiles;    
     if (sourceProfiles && sourceProfiles.length > 1) {
