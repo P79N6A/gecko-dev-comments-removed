@@ -141,7 +141,7 @@ public class testMasterPassword extends PixelTest {
         
         selectSettingsItem("Privacy", "Clear private data");
 
-        waitForText("Browsing & download history"); 
+        waitForText("Browsing history"); 
         Actions.EventExpecter clearPrivateDataEventExpecter = mActions.expectGeckoEvent("Sanitize:Finished");
         if (mSolo.searchText("Clear data") && !mSolo.searchText("Cookies")) {
             mSolo.clickOnText("^Clear data$");
@@ -149,7 +149,7 @@ public class testMasterPassword extends PixelTest {
         } else { 
             if (mSolo.searchText("Cookies")) {
                 mSolo.clickOnText("^Clear private data$");
-                waitForText("Browsing & download history"); 
+                waitForText("Browsing history"); 
                 mSolo.clickOnText("^Clear data$");
                 clearPrivateDataEventExpecter.blockForEvent();
             } else {
