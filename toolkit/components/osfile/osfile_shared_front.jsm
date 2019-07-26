@@ -305,5 +305,71 @@ AbstractFile.normalizeOpenMode = function normalizeOpenMode(mode) {
   return result;
 };
 
+
+
+
+
+
+
+
+
+
+
+AbstractFile.read = function read(path, bytes) {
+  let file = exports.OS.File.open(path);
+  try {
+    return file.read(bytes);
+  } finally {
+    file.close();
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+AbstractFile.writeAtomic =
+     function writeAtomic(path, buffer, options) {
+  options = options || noOptions;
+
+  let tmpPath = options.tmpPath;
+
+  if (!tmpPath) {
+    throw new TypeError("Expected option tmpPath");
+  }
+  let tmpFile = OS.File.open(tmpPath, {write: true, truncate: true});
+  let bytesWritten;
+  try {
+    bytesWritten = tmpFile.write(buffer, options);
+    tmpFile.flush();
+  } catch (x) {
+    OS.File.remove(tmpPath);
+    throw x;
+  } finally {
+    tmpFile.close();
+  }
+
+  OS.File.move(tmpPath, path, {noCopy: true});
+  return bytesWritten;
+};
+
    exports.OS.Shared.AbstractFile = AbstractFile;
 })(this);
