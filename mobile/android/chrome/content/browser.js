@@ -3337,17 +3337,26 @@ Tab.prototype = {
           
         }
 
+        let docURI = target.documentURI;
+        let errorType = "";
+        if (docURI.startsWith("about:certerror"))
+          errorType = "certerror";
+        else if (docURI.startsWith("about:blocked"))
+          errorType = "blocked"
+        else if (docURI.startsWith("about:neterror"))
+          errorType = "neterror";
+
         sendMessageToJava({
           type: "DOMContentLoaded",
           tabID: this.id,
-          bgColor: backgroundColor
+          bgColor: backgroundColor,
+          errorType: errorType
         });
 
         
         
         
         
-        let docURI = target.documentURI;
         if (docURI.startsWith("about:certerror") || docURI.startsWith("about:blocked")) {
           this.browser.addEventListener("click", ErrorPageEventHandler, true);
           let listener = function() {
@@ -3631,7 +3640,6 @@ Tab.prototype = {
       fixedURI = URIFixup.createExposableURI(aLocationURI);
     } catch (ex) { }
 
-    let documentURI = contentWin.document.documentURIObject.spec;
     let contentType = contentWin.document.contentType;
 
     
@@ -3648,6 +3656,7 @@ Tab.prototype = {
     this.shouldShowPluginDoorhanger = true;
     this.clickToPlayPluginsActivated = false;
     
+    let documentURI = contentWin.document.documentURIObject.spec
     let matchedURL = documentURI.match(/^((?:[a-z]+:\/\/)?(?:[^\/]+@)?)(.+?)(?::\d+)?(?:\/|$)/);
     let baseDomain = "";
     if (matchedURL) {
@@ -3669,7 +3678,6 @@ Tab.prototype = {
       tabID: this.id,
       uri: fixedURI.spec,
       userSearch: this.userSearch || "",
-      documentURI: documentURI,
       baseDomain: baseDomain,
       contentType: (contentType ? contentType : ""),
       sameDocument: sameDocument
