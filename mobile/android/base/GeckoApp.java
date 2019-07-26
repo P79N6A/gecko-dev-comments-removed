@@ -2142,6 +2142,8 @@ abstract public class GeckoApp
                 public void run() {
                     ProfileMigrator profileMigrator = new ProfileMigrator(app);
 
+                    profileMigrator.launchDeferredCleanup();
+
                     
                     if (!GeckoApp.sIsUsingCustomProfile &&
                         !profileMigrator.hasMigrationRun()) {
