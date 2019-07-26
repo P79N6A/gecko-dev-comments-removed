@@ -226,9 +226,6 @@ var SelectionHelperUI = {
 
 
   openEditSession: function openEditSession(aMessage) {
-    if (!this.canHandle(aMessage))
-      return;
-
      
 
 
@@ -270,17 +267,37 @@ var SelectionHelperUI = {
 
 
 
+  attachEditSession: function attachEditSession(aMessage) {
+    this._popupState = aMessage.json;
+    this._popupState._target = aMessage.target;
+
+    this._init();
+
+    Util.dumpLn("enableSelection target:", this._popupState._target);
+
+    
+    this.startMark.setTrackBounds(this._popupState.xPos, this._popupState.yPos);
+    this.endMark.setTrackBounds(this._popupState.xPos, this._popupState.yPos);
+
+    
+    
+    this._popupState._target.messageManager.sendAsyncMessage(
+      "Browser:SelectionAttach",
+      { xPos: this._popupState.xPos,
+        yPos: this._popupState.yPos });
+
+    this._setupDebugOptions();
+  },
+
+  
+
+
+
+
   canHandle: function canHandle(aMessage) {
-    
-    if (aMessage.json.types.indexOf("input-empty") != -1) {
-      return false;
-    }
-    
-    if (aMessage.json.types.indexOf("content-text") == -1 &&
-        aMessage.json.types.indexOf("input-text") == -1) {
-      return false;
-    }
-    return true;
+    if (aMessage.json.types.indexOf("content-text") != -1)
+      return true;
+    return false;
   },
 
   

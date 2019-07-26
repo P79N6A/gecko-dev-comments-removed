@@ -118,14 +118,54 @@ var ContextMenuUI = {
     this._popupState.target = aMessage.target;
     let contentTypes = this._popupState.types;
 
-    let optionsAvailable = false;
-    for (let i = 0; i < this._commands.childElementCount; i++) {
-      let command = this._commands.childNodes[i];
-      command.hidden = true;
+    
 
-      let types = command.getAttribute("type").split(/\s+/);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Util.dumpLn("contentTypes:", contentTypes);
+
+    
+    
+    let multipleMediaTypes = false;
+    if (contentTypes.indexOf("link") != -1 &&
+        (contentTypes.indexOf("image") != -1  ||
+         contentTypes.indexOf("video") != -1 ||
+         contentTypes.indexOf("selected-text") != -1))
+      multipleMediaTypes = true;
+
+    for (let command of Array.slice(this._commands.childNodes)) {
+      command.hidden = true;
+    }
+
+    let optionsAvailable = false;
+    for (let command of Array.slice(this._commands.childNodes)) {
+      let types = command.getAttribute("type").split(",");
+      let lowPriority = (command.hasAttribute("priority") &&
+        command.getAttribute("priority") == "low");
+      let searchTextItem = (command.id == "context-search");
+
+      
+      if (multipleMediaTypes && lowPriority)
+        continue;
+
       for (let i = 0; i < types.length; i++) {
         if (contentTypes.indexOf(types[i]) != -1) {
+          
+          if (searchTextItem && !ContextCommands.searchTextSetup(command, this._popupState.string)) {
+            break;
+          }
           optionsAvailable = true;
           command.hidden = false;
           break;
@@ -137,7 +177,6 @@ var ContextMenuUI = {
       this._popupState = null;
       return false;
     }
-
 
     this._menuPopup.show(this._popupState);
 
