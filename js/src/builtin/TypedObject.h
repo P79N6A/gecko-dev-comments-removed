@@ -4,8 +4,8 @@
 
 
 
-#ifndef builtin_BinaryData_h
-#define builtin_BinaryData_h
+#ifndef builtin_TypedObject_h
+#define builtin_TypedObject_h
 
 #include "jsobj.h"
 

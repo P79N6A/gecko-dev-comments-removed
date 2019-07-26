@@ -28,7 +28,7 @@ extern JSObject *
 js_InitTypedArrayClasses(JSContext *cx, js::HandleObject obj);
 
 extern JSObject *
-js_InitBinaryDataClasses(JSContext *cx, js::HandleObject obj);
+js_InitTypedObjectClasses(JSContext *cx, js::HandleObject obj);
 
 namespace js {
 

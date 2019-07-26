@@ -1,6 +1,6 @@
 
 var BUGNUMBER = 578700;
-var summary = 'BinaryData StructType propery enumeration';
+var summary = 'TypedObjects StructType propery enumeration';
 
 function runTests() {
   var RgbColor = new StructType({r: uint8, g: uint8, b: uint8});

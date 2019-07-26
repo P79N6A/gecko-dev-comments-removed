@@ -1,6 +1,6 @@
 
 var BUGNUMBER = 578700;
-var summary = 'BinaryData memory check';
+var summary = 'TypedObjects memory check';
 
 function spin() {
     for (var i = 0; i < 10000; i++)

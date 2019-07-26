@@ -1,6 +1,6 @@
 
 var BUGNUMBER = 578700;
-var summary = 'BinaryData StructType prototype chains';
+var summary = 'TypedObjects StructType prototype chains';
 
 
 function runTests() {

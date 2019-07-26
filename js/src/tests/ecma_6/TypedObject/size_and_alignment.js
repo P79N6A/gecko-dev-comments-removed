@@ -1,6 +1,6 @@
 
 var BUGNUMBER = 578700;
-var summary = 'Size and Alignment of BinaryData types';
+var summary = 'Size and Alignment of TypedObjects types';
 var actual = '';
 var expect = '';
 
