@@ -45,7 +45,7 @@ public class SearchPreferenceCategory extends PreferenceCategory implements Geck
 
         
         GeckoAppShell.registerEventListener("SearchEngines:Data", this);
-        GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("SearchEngines:Get", null));
+        GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("SearchEngines:GetVisible", null));
     }
 
     @Override
