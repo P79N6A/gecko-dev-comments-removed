@@ -13,7 +13,6 @@
 namespace mozilla {
 namespace dom {
 
-template<class NodeType>
 class PlayingRefChangeHandler : public nsRunnable
 {
 public:
@@ -26,14 +25,14 @@ public:
 
   NS_IMETHOD Run()
   {
-    nsRefPtr<NodeType> node;
+    nsRefPtr<AudioNode> node;
     {
       
       
       
       
       MutexAutoLock lock(mStream->Engine()->NodeMutex());
-      node = static_cast<NodeType*>(mStream->Engine()->Node());
+      node = mStream->Engine()->Node();
     }
     if (node) {
       if (mChange == ADDREF) {
