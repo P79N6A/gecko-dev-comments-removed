@@ -68,15 +68,6 @@ nsSecurityNameSet::InitializeNameSet(nsIScriptContext* aScriptContext)
     JSObject *global = JS_ObjectToInnerObject(cx, JS_GetGlobalObject(cx));
 
     
-    
-    
-    
-    
-    
-    if (!Preferences::GetBool("security.enablePrivilege.enable_for_tests"))
-        return NS_OK;
-
-    
 
 
 
@@ -115,6 +106,15 @@ nsSecurityNameSet::InitializeNameSet(nsIScriptContext* aScriptContext)
         if (securityObj == nullptr)
             return NS_ERROR_FAILURE;
     }
+
+    
+    
+    
+    
+    
+    
+    if (!Preferences::GetBool("security.enablePrivilege.enable_for_tests"))
+        return NS_OK;
 
     
     obj = JS_DefineObject(cx, securityObj, "PrivilegeManager", objectClass,
