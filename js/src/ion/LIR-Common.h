@@ -434,6 +434,52 @@ class LToIdV : public LCallInstructionHelper<BOX_PIECES, 2 * BOX_PIECES, 0>
 
 
 
+class LCreateThis : public LCallInstructionHelper<BOX_PIECES, 1, 0>
+{
+  public:
+    LIR_HEADER(CreateThis)
+
+    LCreateThis(const LAllocation &callee)
+    {
+        setOperand(0, callee);
+    }
+
+    const LAllocation *getCallee() {
+        return getOperand(0);
+    }
+
+    MCreateThis *mir() const {
+        return mir_->toCreateThis();
+    }
+};
+
+
+
+class LCreateThisWithProto : public LCallInstructionHelper<1, 2, 0>
+{
+  public:
+    LIR_HEADER(CreateThisWithProto)
+
+    LCreateThisWithProto(const LAllocation &callee, const LAllocation &prototype)
+    {
+        setOperand(0, callee);
+        setOperand(1, prototype);
+    }
+
+    const LAllocation *getCallee() {
+        return getOperand(0);
+    }
+    const LAllocation *getPrototype() {
+        return getOperand(1);
+    }
+
+    MCreateThis *mir() const {
+        return mir_->toCreateThis();
+    }
+};
+
+
+
 class LCreateThisWithTemplate : public LInstructionHelper<1, 0, 0>
 {
   public:
@@ -444,54 +490,6 @@ class LCreateThisWithTemplate : public LInstructionHelper<1, 0, 0>
 
     MCreateThisWithTemplate *mir() const {
         return mir_->toCreateThisWithTemplate();
-    }
-};
-
-
-class LCreateThisV : public LCallInstructionHelper<BOX_PIECES, 2, 0>
-{
-  public:
-    LIR_HEADER(CreateThisV)
-
-    LCreateThisV(const LAllocation &callee, const LAllocation &prototype)
-    {
-        setOperand(0, callee);
-        setOperand(1, prototype);
-    }
-
-    const LAllocation *getCallee() {
-        return getOperand(0);
-    }
-    const LAllocation *getPrototype() {
-        return getOperand(1);
-    }
-
-    MCreateThis *mir() const {
-        return mir_->toCreateThis();
-    }
-};
-
-
-class LCreateThisO : public LCallInstructionHelper<1, 2, 0>
-{
-  public:
-    LIR_HEADER(CreateThisO)
-
-    LCreateThisO(const LAllocation &callee, const LAllocation &prototype)
-    {
-        setOperand(0, callee);
-        setOperand(1, prototype);
-    }
-
-    const LAllocation *getCallee() {
-        return getOperand(0);
-    }
-    const LAllocation *getPrototype() {
-        return getOperand(1);
-    }
-
-    MCreateThis *mir() const {
-        return mir_->toCreateThis();
     }
 };
 

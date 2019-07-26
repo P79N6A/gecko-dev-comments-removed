@@ -1688,29 +1688,21 @@ class MCreateThisWithTemplate
 
 
 
-
-class MCreateThis
-  : public MAryInstruction<2>,
+class MCreateThisWithProto
+  : public MBinaryInstruction,
     public MixPolicy<ObjectPolicy<0>, ObjectPolicy<1> >
 {
-    bool needNativeCheck_;
-
-    MCreateThis(MDefinition *callee, MDefinition *prototype)
-      : needNativeCheck_(true)
+    MCreateThisWithProto(MDefinition *callee, MDefinition *prototype)
+      : MBinaryInstruction(callee, prototype)
     {
-        initOperand(0, callee);
-        initOperand(1, prototype);
-
-        
-        
-        setResultType(MIRType_Value);
+        setResultType(MIRType_Object);
     }
 
   public:
-    INSTRUCTION_HEADER(CreateThis)
-    static MCreateThis *New(MDefinition *callee, MDefinition *prototype)
+    INSTRUCTION_HEADER(CreateThisWithProto)
+    static MCreateThisWithProto *New(MDefinition *callee, MDefinition *prototype)
     {
-        return new MCreateThis(callee, prototype);
+        return new MCreateThisWithProto(callee, prototype);
     }
 
     MDefinition *getCallee() const {
@@ -1719,12 +1711,37 @@ class MCreateThis
     MDefinition *getPrototype() const {
         return getOperand(1);
     }
-    void removeNativeCheck() {
-        needNativeCheck_ = false;
-        setResultType(MIRType_Object);
+
+    
+    AliasSet getAliasSet() const {
+        return AliasSet::None();
     }
-    bool needNativeCheck() const {
-        return needNativeCheck_;
+    TypePolicy *typePolicy() {
+        return this;
+    }
+};
+
+
+
+class MCreateThis
+  : public MUnaryInstruction,
+    public ObjectPolicy<0>
+{
+    MCreateThis(MDefinition *callee)
+      : MUnaryInstruction(callee)
+    {
+        setResultType(MIRType_Value);
+    }
+
+  public:
+    INSTRUCTION_HEADER(CreateThis)
+    static MCreateThis *New(MDefinition *callee)
+    {
+        return new MCreateThis(callee);
+    }
+
+    MDefinition *getCallee() const {
+        return getOperand(0);
     }
 
     

@@ -3575,15 +3575,6 @@ IonBuilder::createCallObject(MDefinition *callee, MDefinition *scope)
 }
 
 MDefinition *
-IonBuilder::createThisNative()
-{
-    
-    MConstant *magic = MConstant::New(MagicValue(JS_IS_CONSTRUCTING));
-    current->add(magic);
-    return magic;
-}
-
-MDefinition *
 IonBuilder::createThisScripted(MDefinition *callee)
 {
     
@@ -3610,7 +3601,7 @@ IonBuilder::createThisScripted(MDefinition *callee)
     current->add(getProto);
 
     
-    MCreateThis *createThis = MCreateThis::New(callee, getProto);
+    MCreateThisWithProto *createThis = MCreateThisWithProto::New(callee, getProto);
     current->add(createThis);
 
     return createThis;
@@ -3633,8 +3624,13 @@ IonBuilder::getSingletonPrototype(JSFunction *target)
 }
 
 MDefinition *
-IonBuilder::createThisScriptedSingleton(HandleFunction target, HandleObject proto, MDefinition *callee)
+IonBuilder::createThisScriptedSingleton(HandleFunction target, MDefinition *callee)
 {
+    
+    RootedObject proto(cx, getSingletonPrototype(target));
+    if (!proto)
+        return NULL;
+
     
     
     types::TypeObject *type = proto->getNewType(cx, target);
@@ -3661,36 +3657,26 @@ MDefinition *
 IonBuilder::createThis(HandleFunction target, MDefinition *callee)
 {
     
-    if (!target)
-        return createThisScripted(callee);
+    if (!target) {
+        MCreateThis *createThis = MCreateThis::New(callee);
+        current->add(createThis);
+        return createThis;
+    }
 
     
     if (target->isNative()) {
-        if (!target->isNativeConstructor())
-            return NULL;
-        return createThisNative();
+        JS_ASSERT (target->isNativeConstructor());
+        MConstant *magic = MConstant::New(MagicValue(JS_IS_CONSTRUCTING));
+        current->add(magic);
+        return magic;
     }
 
     
-    RootedObject proto(cx, getSingletonPrototype(target));
+    MDefinition *createThis = createThisScriptedSingleton(target, callee);
+    if (createThis)
+        return createThis;
 
-    
-    if (proto) {
-        MDefinition *createThis = createThisScriptedSingleton(target, proto, callee);
-        if (createThis)
-            return createThis;
-    }
-
-    MDefinition *createThis = createThisScripted(callee);
-    if (!createThis)
-        return NULL;
-
-    
-    
-    JS_ASSERT(createThis->isCreateThis());
-    createThis->toCreateThis()->removeNativeCheck();
-
-    return createThis;
+    return createThisScripted(callee);
 }
 
 bool
