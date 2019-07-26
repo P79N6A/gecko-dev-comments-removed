@@ -167,7 +167,7 @@ nsFilePicker.prototype = {
   get addToRecentDocs()  { return false; },
 
   
-  get mode() { return mMode; },
+  get mode() { return this.mMode; },
 
   
   mFilesEnumerator: undefined,
