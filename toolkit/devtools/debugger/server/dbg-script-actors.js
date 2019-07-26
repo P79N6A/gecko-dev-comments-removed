@@ -597,6 +597,7 @@ ThreadActor.prototype = {
   _setBreakpoint: function TA__setBreakpoint(aLocation) {
     let breakpoints = this._breakpointStore[aLocation.url];
 
+    
     let actor;
     if (breakpoints[aLocation.line].actor) {
       actor = breakpoints[aLocation.line].actor;
@@ -608,6 +609,7 @@ ThreadActor.prototype = {
       this._hooks.addToParentPool(actor);
     }
 
+    
     let scripts = this.dbg.findScripts(aLocation);
     if (scripts.length == 0) {
       return {
@@ -615,6 +617,10 @@ ThreadActor.prototype = {
         actor: actor.actorID
       };
     }
+
+   
+
+
 
     let found = false;
     for (let script of scripts) {
@@ -633,11 +639,24 @@ ThreadActor.prototype = {
       };
     }
 
+   
+
+
+
+
+
+
+    
     let scripts = this.dbg.findScripts({
       url: aLocation.url,
       line: aLocation.line,
       innermost: true
     });
+
+    
+
+
+
 
     let actualLocation;
     let found = false;
@@ -653,7 +672,7 @@ ThreadActor.prototype = {
             actualLocation = {
               url: aLocation.url,
               line: line,
-              column: aLocation.column
+              column: 0
             };
           }
           found = true;
@@ -664,6 +683,11 @@ ThreadActor.prototype = {
     if (found) {
       if (breakpoints[actualLocation.line] &&
           breakpoints[actualLocation.line].actor) {
+        
+
+
+
+
         actor.onDelete();
         delete breakpoints[aLocation.line];
         return {
@@ -671,16 +695,26 @@ ThreadActor.prototype = {
           actualLocation: actualLocation
         };
       } else {
+        
+
+
+
+
         actor.location = actualLocation;
         breakpoints[actualLocation.line] = breakpoints[aLocation.line];
-        breakpoints[actualLocation.line].line = actualLocation.line;
         delete breakpoints[aLocation.line];
+        
+        breakpoints[actualLocation.line].line = actualLocation.line;
         return {
           actor: actor.actorID,
           actualLocation: actualLocation
         };
       }
     }
+
+    
+
+
 
     return {
       error: "noCodeAtLineColumn",
