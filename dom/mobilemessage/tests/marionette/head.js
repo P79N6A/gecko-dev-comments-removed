@@ -57,6 +57,31 @@ function ensureMobileMessage() {
 
 
 
+function waitForManagerEvent(aEventName) {
+  let deferred = Promise.defer();
+
+  manager.addEventListener(aEventName, function onevent(aEvent) {
+    manager.removeEventListener(aEventName, onevent);
+
+    ok(true, "MobileMessageManager event '" + aEventName + "' got.");
+    deferred.resolve(aEvent);
+  });
+
+  return deferred.promise;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -327,6 +352,9 @@ function sendTextSmsToEmulator(aFrom, aText) {
   let command = "sms send " + aFrom + " " + aText;
   return runEmulatorCmdSafe(command);
 }
+
+
+
 
 
 
