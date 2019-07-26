@@ -18,7 +18,6 @@ using namespace js::jit;
 
 namespace {
 
-typedef Vector<MBasicBlock*, 1, IonAllocPolicy> BlockQueue;
 typedef Vector<MInstruction*, 1, IonAllocPolicy> InstructionQueue;
 
 class Loop
@@ -56,6 +55,10 @@ class Loop
     
     
     bool containsPossibleCall_;
+
+    TempAllocator &alloc() const {
+        return mir->alloc();
+    }
 
     bool hoistInstructions(InstructionQueue &toHoist);
 
@@ -123,7 +126,8 @@ LICM::analyze()
 Loop::Loop(MIRGenerator *mir, MBasicBlock *header)
   : mir(mir),
     header_(header),
-    containsPossibleCall_(false)
+    containsPossibleCall_(false),
+    worklist_(mir->alloc())
 {
     preLoop_ = header_->getPredecessor(0);
 }
@@ -140,7 +144,7 @@ Loop::init()
     
     
     
-    Vector<MBasicBlock *, 1, IonAllocPolicy> inlooplist;
+    Vector<MBasicBlock *, 1, IonAllocPolicy> inlooplist(alloc());
     if (!inlooplist.append(header_->backedge()))
         return LoopReturn_Error;
     header_->backedge()->mark();
@@ -202,7 +206,7 @@ Loop::init()
 bool
 Loop::optimize()
 {
-    InstructionQueue invariantInstructions;
+    InstructionQueue invariantInstructions(alloc());
 
     IonSpew(IonSpew_LICM, "These instructions are in the loop: ");
 

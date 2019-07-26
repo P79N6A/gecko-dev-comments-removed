@@ -48,7 +48,7 @@ IonBuilder::IonBuilder(JSContext *analysisContext, JSCompartment *comp, TempAllo
     abortReason_(AbortReason_Disable),
     reprSetHash_(nullptr),
     constraints_(constraints),
-    analysis_(info->script()),
+    analysis_(*temp, info->script()),
     thisTypes(nullptr),
     argTypes(nullptr),
     typeArray(nullptr),
@@ -56,6 +56,12 @@ IonBuilder::IonBuilder(JSContext *analysisContext, JSCompartment *comp, TempAllo
     loopDepth_(loopDepth),
     callerResumePoint_(nullptr),
     callerBuilder_(nullptr),
+    cfgStack_(*temp),
+    loops_(*temp),
+    switches_(*temp),
+    labels_(*temp),
+    iterators_(*temp),
+    loopHeaders_(*temp),
     inspector(inspector),
     inliningDepth_(inliningDepth),
     numLoopRestarts_(0),
@@ -542,7 +548,7 @@ IonBuilder::init()
         return false;
     }
 
-    if (!analysis().init(gsn))
+    if (!analysis().init(alloc(), gsn))
         return false;
 
     return true;
@@ -1179,8 +1185,8 @@ IonBuilder::traverseBytecode()
         
         
         
-        Vector<MDefinition *, 4, IonAllocPolicy> popped;
-        Vector<size_t, 4, IonAllocPolicy> poppedUses;
+        Vector<MDefinition *, 4, IonAllocPolicy> popped(alloc());
+        Vector<size_t, 4, IonAllocPolicy> poppedUses(alloc());
         unsigned nuses = GetUseCount(script_, pc - script_->code);
 
         for (unsigned i = 0; i < nuses; i++) {
@@ -3802,7 +3808,7 @@ IonBuilder::inlineScriptedCall(CallInfo &callInfo, JSFunction *target)
     if (!info)
         return false;
 
-    MIRGraphExits saveExits;
+    MIRGraphExits saveExits(alloc());
     AutoAccumulateExits aae(graph(), saveExits);
 
     
@@ -4156,7 +4162,7 @@ IonBuilder::inlineCallsite(ObjectVector &targets, ObjectVector &originals,
     }
 
     
-    BoolVector choiceSet;
+    BoolVector choiceSet(alloc());
     uint32_t numInlined = selectInliningTargets(targets, callInfo, choiceSet);
     if (numInlined == 0)
         return InliningStatus_NotInlined;
@@ -4178,7 +4184,7 @@ IonBuilder::inlineGenericFallback(JSFunction *target, CallInfo &callInfo, MBasic
         return false;
 
     
-    CallInfo fallbackInfo(callInfo.constructing());
+    CallInfo fallbackInfo(alloc(), callInfo.constructing());
     if (!fallbackInfo.init(callInfo))
         return false;
     fallbackInfo.popFormals(fallbackBlock);
@@ -4216,7 +4222,7 @@ IonBuilder::inlineTypeObjectFallback(CallInfo &callInfo, MBasicBlock *dispatchBl
     
 
     
-    CallInfo fallbackInfo(callInfo.constructing());
+    CallInfo fallbackInfo(alloc(), callInfo.constructing());
     if (!fallbackInfo.init(callInfo))
         return false;
 
@@ -4398,7 +4404,7 @@ IonBuilder::inlineCalls(CallInfo &callInfo, ObjectVector &targets,
         inlineBlock->rewriteSlot(funIndex, funcDef);
 
         
-        CallInfo inlineInfo(callInfo.constructing());
+        CallInfo inlineInfo(alloc(), callInfo.constructing());
         if (!inlineInfo.init(callInfo))
             return false;
         inlineInfo.popFormals(inlineBlock);
@@ -4730,7 +4736,7 @@ IonBuilder::jsop_funcall(uint32_t argc)
     types::TemporaryTypeSet *calleeTypes = current->peek(calleeDepth)->resultTypeSet();
     JSFunction *native = getSingleCallTarget(calleeTypes);
     if (!native || !native->isNative() || native->native() != &js_fun_call) {
-        CallInfo callInfo(false);
+        CallInfo callInfo(alloc(), false);
         if (!callInfo.init(current, argc))
             return false;
         return makeCall(native, callInfo, false);
@@ -4765,7 +4771,7 @@ IonBuilder::jsop_funcall(uint32_t argc)
         argc -= 1;
     }
 
-    CallInfo callInfo(false);
+    CallInfo callInfo(alloc(), false);
     if (!callInfo.init(current, argc))
         return false;
 
@@ -4785,7 +4791,7 @@ IonBuilder::jsop_funapply(uint32_t argc)
     types::TemporaryTypeSet *calleeTypes = current->peek(calleeDepth)->resultTypeSet();
     JSFunction *native = getSingleCallTarget(calleeTypes);
     if (argc != 2) {
-        CallInfo callInfo(false);
+        CallInfo callInfo(alloc(), false);
         if (!callInfo.init(current, argc))
             return false;
         return makeCall(native, callInfo, false);
@@ -4803,7 +4809,7 @@ IonBuilder::jsop_funapply(uint32_t argc)
 
     
     if (argument->type() != MIRType_Magic) {
-        CallInfo callInfo(false);
+        CallInfo callInfo(alloc(), false);
         if (!callInfo.init(current, argc))
             return false;
         return makeCall(native, callInfo, false);
@@ -4881,7 +4887,7 @@ IonBuilder::jsop_funapplyarguments(uint32_t argc)
     
     
 
-    CallInfo callInfo(false);
+    CallInfo callInfo(alloc(), false);
 
     
     MPassArg *passVp = current->pop()->toPassArg();
@@ -4890,7 +4896,7 @@ IonBuilder::jsop_funapplyarguments(uint32_t argc)
     passVp->block()->discard(passVp);
 
     
-    MDefinitionVector args;
+    MDefinitionVector args(alloc());
     if (inliningDepth_) {
         if (!args.append(inlineCallInfo_->argv().begin(), inlineCallInfo_->argv().end()))
             return false;
@@ -4945,7 +4951,7 @@ IonBuilder::jsop_call(uint32_t argc, bool constructing)
     int calleeDepth = -((int)argc + 2);
 
     
-    ObjectVector originals;
+    ObjectVector originals(alloc());
     bool gotLambda = false;
     types::TemporaryTypeSet *calleeTypes = current->peek(calleeDepth)->resultTypeSet();
     if (calleeTypes) {
@@ -4957,7 +4963,7 @@ IonBuilder::jsop_call(uint32_t argc, bool constructing)
     
     
     bool hasClones = false;
-    ObjectVector targets;
+    ObjectVector targets(alloc());
     for (uint32_t i = 0; i < originals.length(); i++) {
         JSFunction *fun = &originals[i]->as<JSFunction>();
         if (fun->hasScript() && fun->nonLazyScript()->shouldCloneAtCallsite) {
@@ -4970,7 +4976,7 @@ IonBuilder::jsop_call(uint32_t argc, bool constructing)
             return false;
     }
 
-    CallInfo callInfo(constructing);
+    CallInfo callInfo(alloc(), constructing);
     if (!callInfo.init(current, argc))
         return false;
 
@@ -5292,7 +5298,7 @@ IonBuilder::jsop_eval(uint32_t argc)
         if (type != JSVAL_TYPE_OBJECT && type != JSVAL_TYPE_NULL && type != JSVAL_TYPE_UNDEFINED)
             return abort("Direct eval from script with maybe-primitive 'this'");
 
-        CallInfo callInfo( false);
+        CallInfo callInfo(alloc(),  false);
         if (!callInfo.init(current, argc))
             return false;
         callInfo.unwrapArgs();
@@ -5325,7 +5331,7 @@ IonBuilder::jsop_eval(uint32_t argc)
                 current->push(dynamicName);
                 current->push(thisv);
 
-                CallInfo evalCallInfo( false);
+                CallInfo evalCallInfo(alloc(),  false);
                 if (!evalCallInfo.init(current,  0))
                     return false;
 
@@ -8349,7 +8355,7 @@ IonBuilder::getPropTryCommonGetter(bool *emitted, PropertyName *name,
     current->add(wrapper);
     current->push(wrapper);
 
-    CallInfo callInfo(false);
+    CallInfo callInfo(alloc(), false);
     if (!callInfo.init(current, 0))
         return false;
 
@@ -8389,7 +8395,7 @@ IonBuilder::getPropTryInlineAccess(bool *emitted, PropertyName *name,
     if (current->peek(-1)->type() != MIRType_Object)
         return true;
 
-    BaselineInspector::ShapeVector shapes;
+    BaselineInspector::ShapeVector shapes(alloc());
     if (!inspector->maybeShapesForPropertyOp(pc, shapes))
         return false;
 
@@ -8636,7 +8642,7 @@ IonBuilder::setPropTryCommonSetter(bool *emitted, MDefinition *obj,
 
     
     
-    CallInfo callInfo(false);
+    CallInfo callInfo(alloc(), false);
     if (!callInfo.init(current, 1))
         return false;
 
@@ -8782,7 +8788,7 @@ IonBuilder::setPropTryInlineAccess(bool *emitted, MDefinition *obj,
     if (barrier)
         return true;
 
-    BaselineInspector::ShapeVector shapes;
+    BaselineInspector::ShapeVector shapes(alloc());
     if (!inspector->maybeShapesForPropertyOp(pc, shapes))
         return false;
 
@@ -9501,7 +9507,8 @@ TypeRepresentationSetHash *
 IonBuilder::getOrCreateReprSetHash()
 {
     if (!reprSetHash_) {
-        TypeRepresentationSetHash *hash = alloc_->lifoAlloc()->new_<TypeRepresentationSetHash>();
+        TypeRepresentationSetHash *hash =
+            alloc_->lifoAlloc()->new_<TypeRepresentationSetHash>(alloc());
         if (!hash || !hash->init())
             return nullptr;
 

@@ -5829,7 +5829,7 @@ CodeGenerator::link(JSContext *cx, types::CompilerConstraintList *constraints)
 
     
     
-    CallTargetVector callTargets;
+    CallTargetVector callTargets(alloc());
     if (executionMode == ParallelExecution)
         AddPossibleCallees(cx, graph.mir(), callTargets);
 

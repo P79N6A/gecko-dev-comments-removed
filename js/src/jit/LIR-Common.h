@@ -105,6 +105,10 @@ class LMoveGroup : public LInstructionHelper<0, 0, 0>
   public:
     LIR_HEADER(MoveGroup)
 
+    LMoveGroup(TempAllocator &alloc)
+      : moves_(alloc)
+    { }
+
     void printOperands(FILE *fp);
 
     
