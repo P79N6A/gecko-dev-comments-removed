@@ -1571,14 +1571,9 @@ OffThreadCompilationAvailable(JSContext *cx)
     
     
     
-    
-    
-    
-    
     return cx->runtime()->canUseParallelIonCompilation()
         && cx->runtime()->gcIncrementalState == gc::NO_INCREMENTAL
-        && !cx->runtime()->profilingScripts
-        && !cx->runtime()->spsProfiler.enabled();
+        && !cx->runtime()->profilingScripts;
 }
 
 static void
@@ -1735,8 +1730,7 @@ IonCompile(JSContext *cx, JSScript *script,
     Maybe<AutoProtectHeapForIonCompilation> protect;
     if (js_JitOptions.checkThreadSafety &&
         cx->runtime()->gcIncrementalState == gc::NO_INCREMENTAL &&
-        !cx->runtime()->profilingScripts &&
-        !cx->runtime()->spsProfiler.enabled())
+        !cx->runtime()->profilingScripts)
     {
         protect.construct(cx->runtime());
     }
