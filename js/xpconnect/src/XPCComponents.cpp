@@ -3044,14 +3044,6 @@ NS_IMPL_THREADSAFE_RELEASE(nsXPCComponents_utils_Sandbox)
 #define XPC_MAP_FLAGS               0
 #include "xpc_map_end.h" 
 
-static bool
-WrapForSandbox(JSContext *cx, bool wantXrays, jsval *vp)
-{
-    return wantXrays
-           ? JS_WrapValue(cx, vp)
-           : xpc::WrapperFactory::WaiveXrayAndWrap(cx, vp);
-}
-
 xpc::SandboxProxyHandler xpc::sandboxProxyHandler;
 
 bool
@@ -3290,7 +3282,18 @@ xpc_CreateSandboxObject(JSContext *cx, jsval *vp, nsISupports *prinOrSop, Sandbo
     sandbox = xpc::CreateGlobalObject(cx, &SandboxClass, principal);
     if (!sandbox)
         return NS_ERROR_FAILURE;
-    xpc::GetCompartmentPrivate(sandbox)->wantXrays = options.wantXrays;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    xpc::GetCompartmentPrivate(sandbox)->wantXrays =
+      AccessCheck::isChrome(sandbox) ? false : options.wantXrays;
 
     JS::AutoObjectRooter tvr(cx, sandbox);
 
@@ -3354,10 +3357,14 @@ xpc_CreateSandboxObject(JSContext *cx, jsval *vp, nsISupports *prinOrSop, Sandbo
     }
 
     if (vp) {
+        
+        
+        
         *vp = OBJECT_TO_JSVAL(sandbox);
-        if (!WrapForSandbox(cx, options.wantXrays, vp)) {
+        if (options.wantXrays && !JS_WrapValue(cx, vp))
             return NS_ERROR_UNEXPECTED;
-        }
+        if (!options.wantXrays && !xpc::WrapperFactory::WaiveXrayAndWrap(cx, vp))
+            return NS_ERROR_UNEXPECTED;
     }
 
     
@@ -3862,6 +3869,7 @@ xpc_EvalInSandbox(JSContext *cx, JSObject *sandbox, const nsAString& source,
 {
     JS_AbortIfWrongThread(JS_GetRuntime(cx));
 
+    bool waiveXray = xpc::WrapperFactory::HasWaiveXrayFlag(sandbox);
     sandbox = js::UnwrapObjectChecked(sandbox);
     if (!sandbox || js::GetObjectJSClass(sandbox) != &SandboxClass) {
         return NS_ERROR_INVALID_ARG;
@@ -3976,10 +3984,11 @@ xpc_EvalInSandbox(JSContext *cx, JSObject *sandbox, const nsAString& source,
                 v = STRING_TO_JSVAL(str);
             }
 
-            CompartmentPrivate *sandboxdata = GetCompartmentPrivate(sandbox);
-            if (!WrapForSandbox(cx, sandboxdata->wantXrays, &v)) {
+            
+            if (waiveXray && !xpc::WrapperFactory::WaiveXrayAndWrap(cx, &v))
                 rv = NS_ERROR_FAILURE;
-            }
+            if (!waiveXray && !JS_WrapValue(cx, &v))
+                rv = NS_ERROR_FAILURE;
 
             if (NS_SUCCEEDED(rv)) {
                 *rval = v;
