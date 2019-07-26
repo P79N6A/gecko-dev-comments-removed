@@ -462,6 +462,9 @@ TestRunner.testFinished = function(tests) {
 };
 
 TestRunner.testUnloaded = function() {
+    
+    
+    
     if (SpecialPowers.isDebugBuild) {
         var newAssertionCount = SpecialPowers.assertionCount();
         var numAsserts = newAssertionCount - TestRunner._lastAssertionCount;
