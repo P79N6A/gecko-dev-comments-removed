@@ -7,8 +7,8 @@
 
 
 
-#ifndef nsDOMDocumentType_h
-#define nsDOMDocumentType_h
+#ifndef DocumentType_h
+#define DocumentType_h
 
 #include "nsCOMPtr.h"
 #include "nsIDOMDocumentType.h"
@@ -16,16 +16,19 @@
 #include "nsGenericDOMDataNode.h"
 #include "nsString.h"
 
+namespace mozilla {
+namespace dom {
 
 
 
 
 
-class nsDOMDocumentTypeForward : public nsGenericDOMDataNode,
-                                 public nsIDOMDocumentType
+
+class DocumentTypeForward : public nsGenericDOMDataNode,
+                            public nsIDOMDocumentType
 {
 public:
-  nsDOMDocumentTypeForward(already_AddRefed<nsINodeInfo> aNodeInfo)
+  DocumentTypeForward(already_AddRefed<nsINodeInfo> aNodeInfo)
     : nsGenericDOMDataNode(aNodeInfo)
   {
   }
@@ -34,15 +37,15 @@ public:
   NS_FORWARD_NSIDOMNODE_TO_NSINODE
 };
 
-class nsDOMDocumentType : public nsDOMDocumentTypeForward
+class DocumentType : public DocumentTypeForward
 {
 public:
-  nsDOMDocumentType(already_AddRefed<nsINodeInfo> aNodeInfo,
-                    const nsAString& aPublicId,
-                    const nsAString& aSystemId,
-                    const nsAString& aInternalSubset);
+  DocumentType(already_AddRefed<nsINodeInfo> aNodeInfo,
+               const nsAString& aPublicId,
+               const nsAString& aSystemId,
+               const nsAString& aInternalSubset);
 
-  virtual ~nsDOMDocumentType();
+  virtual ~DocumentType();
 
   
   NS_DECL_ISUPPORTS_INHERITED
@@ -74,15 +77,18 @@ public:
 
   virtual nsIDOMNode* AsDOMNode() { return this; }
 
-  virtual JSObject* WrapNode(JSContext *cx, JSObject *scope, bool *triedToWrap);
-
 protected:
+  virtual JSObject* WrapNode(JSContext *cx, JSObject *scope, bool *triedToWrap) MOZ_OVERRIDE;
+
   nsString mPublicId;
   nsString mSystemId;
   nsString mInternalSubset;
 };
 
-already_AddRefed<nsDOMDocumentType>
+} 
+} 
+
+already_AddRefed<mozilla::dom::DocumentType>
 NS_NewDOMDocumentType(nsNodeInfoManager* aNodeInfoManager,
                       nsIAtom *aName,
                       const nsAString& aPublicId,
