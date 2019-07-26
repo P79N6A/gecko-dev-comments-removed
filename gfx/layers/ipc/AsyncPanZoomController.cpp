@@ -967,7 +967,11 @@ void AsyncPanZoomController::RequestContentRepaint() {
   
   
   
-  mGeckoContentController->RequestContentRepaint(mFrameMetrics);
+  mPaintThrottler.PostTask(
+    FROM_HERE,
+    NewRunnableMethod(mGeckoContentController.get(),
+                      &GeckoContentController::RequestContentRepaint,
+                      mFrameMetrics));
   mLastPaintRequestMetrics = mFrameMetrics;
   mWaitingForContentToPaint = true;
 
@@ -1080,6 +1084,8 @@ bool AsyncPanZoomController::SampleContentTransformForFrame(const TimeStamp& aSa
 
 void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aViewportFrame, bool aIsFirstPaint) {
   MonitorAutoLock monitor(mMonitor);
+
+  mPaintThrottler.TaskComplete();
 
   mLastContentPaintMetrics = aViewportFrame;
 
