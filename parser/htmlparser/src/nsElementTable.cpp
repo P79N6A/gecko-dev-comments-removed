@@ -400,6 +400,26 @@ const nsHTMLElement gHTMLElements[] = {
      kSpecial, false
   },
   {
+             eHTMLTag_rb,
+     kPhrase, false
+  },
+  {
+             eHTMLTag_rp,
+     kPhrase, false
+  },
+  {
+             eHTMLTag_rt,
+     kPhrase, false
+  },
+  {
+             eHTMLTag_rtc,
+     kPhrase, false
+  },
+  {
+             eHTMLTag_ruby,
+     kPhrase, false
+  },
+  {
              eHTMLTag_s,
      kFontStyle, false
   },
