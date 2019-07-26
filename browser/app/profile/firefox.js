@@ -878,11 +878,6 @@ pref("security.alternate_certificate_error_page", "certerror");
 
 pref("browser.privatebrowsing.autostart", false);
 
-#ifndef MOZ_PER_WINDOW_PRIVATE_BROWSING
-
-pref("browser.privatebrowsing.dont_prompt_on_enter", false);
-#endif
-
 
 
 pref("browser.bookmarks.editDialog.firstEditField", "namePicker");

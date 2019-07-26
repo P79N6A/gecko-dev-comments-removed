@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
 
 EXPORTED_SYMBOLS = ["TaskConstants", "TestPilotBuiltinSurvey",
                     "TestPilotExperiment", "TestPilotStudyResults",
@@ -25,25 +25,25 @@ const DATE_FOR_DATA_DELETION_PREFIX =
   "extensions.testpilot.dateForDataDeletion.";
 const GUID_PREF_PREFIX = "extensions.testpilot.taskGUID.";
 const RETRY_INTERVAL_PREF = "extensions.testpilot.uploadRetryInterval";
-const TIME_FOR_DATA_DELETION = 7 * (24 * 60 * 60 * 1000); // 7 days
+const TIME_FOR_DATA_DELETION = 7 * (24 * 60 * 60 * 1000); 
 const DATA_UPLOAD_PREF = "extensions.testpilot.dataUploadURL";
 const DEFAULT_THUMBNAIL_URL = "chrome://testpilot/skin/badge-default.png";
 
 
 const TaskConstants = {
-  // TODO status RESULTS and ARCHIVED don't make sense for studies anymore;
-  // we need a status MISSED and a status EXPIRED.  (can you be cancelled and
-  // expired?)
- STATUS_NEW: 0, // It's new and you haven't seen it yet.
- STATUS_PENDING : 1,  // You've seen it but it hasn't started.
- STATUS_STARTING: 2,  // Data collection started but notification not shown.
- STATUS_IN_PROGRESS : 3, // Started and notification shown.
- STATUS_FINISHED : 4, // Finished and awaiting your choice.
- STATUS_CANCELLED : 5, // You've opted out and not submitted anything.
- STATUS_SUBMITTED : 6, // You've submitted your data.
- STATUS_RESULTS : 7, // Test finished AND final results visible somewhere, deprecated
- STATUS_ARCHIVED: 8, // Results seen.  Deprecated. TODO: or use for expired?
- STATUS_MISSED: 9, // You never ran this study.
+  
+  
+  
+ STATUS_NEW: 0, 
+ STATUS_PENDING : 1,  
+ STATUS_STARTING: 2,  
+ STATUS_IN_PROGRESS : 3, 
+ STATUS_FINISHED : 4, 
+ STATUS_CANCELLED : 5, 
+ STATUS_SUBMITTED : 6, 
+ STATUS_RESULTS : 7, 
+ STATUS_ARCHIVED: 8, 
+ STATUS_MISSED: 9, 
 
  TYPE_EXPERIMENT : 1,
  TYPE_SURVEY : 2,
@@ -54,14 +54,14 @@ const TaskConstants = {
  NEVER_SUBMIT: -1,
  ASK_EACH_TIME: 0
 };
-/* Note that experiments use all 9 status codes, but surveys don't have a
- * data collection period so they are never STARTING or IN_PROGRESS or
- * FINISHED, they go straight from PENDING to SUBMITTED or CANCELED. */
+
+
+
 
 let Application = Cc["@mozilla.org/fuel/application;1"]
                   .getService(Ci.fuelIApplication);
 
-// Prototype for both TestPilotSurvey and TestPilotExperiment.
+
 var TestPilotTask = {
   _id: null,
   _title: null,
@@ -119,7 +119,7 @@ var TestPilotTask = {
     }
   },
 
-  // urls:
+  
   get infoPageUrl() {
     return this._url;
   },
@@ -137,38 +137,30 @@ var TestPilotTask = {
     return url + this._id;
   },
 
-  // event handlers:
+  
 
   onExperimentStartup: function TestPilotTask_onExperimentStartup() {
-    // Called when experiment is to start running (either on Firefox
-    // startup, or when study first becomes IN_PROGRESS)
+    
+    
   },
 
   onExperimentShutdown: function TestPilotTask_onExperimentShutdown() {
-    // Called when experiment needs to stop running (either on Firefox
-    // shutdown, or on experiment reload, or on finishing or being canceled.)
+    
+    
   },
 
   doExperimentCleanup: function TestPilotTask_onExperimentCleanup() {
-    // Called when experiment has finished or been canceled; do any cleanup
-    // of user's profile.
+    
+    
   },
 
   onAppStartup: function TestPilotTask_onAppStartup() {
-    // Called by extension core when Firefox startup is complete.
+    
   },
 
   onAppShutdown: function TestPilotTask_onAppShutdown() {
-    // Called by extension core when Firefox is shutting down.
+    
   },
-
-#ifndef MOZ_PER_WINDOW_PRIVATE_BROWSING
-  onEnterPrivateBrowsing: function TestPilotTask_onEnterPrivate() {
-  },
-
-  onExitPrivateBrowsing: function TestPilotTask_onExitPrivate() {
-  },
-#endif
 
   onNewWindow: function TestPilotTask_onNewWindow(window) {
   },
@@ -180,35 +172,35 @@ var TestPilotTask = {
   },
 
   onDetailPageOpened: function TestPilotTask_onDetailPageOpened(){
-    // TODO fold this into loadPage()?
+    
   },
 
   checkDate: function TestPilotTask_checkDate() {
   },
 
   changeStatus: function TPS_changeStatus(newStatus, suppressNotification) {
-    // TODO we always suppress notifications except when new status is
-    // "finished"; maybe remove that argument and only fire notification
-    // when status is "finished".
+    
+    
+    
     let logger = Log4Moz.repository.getLogger("TestPilot.Task");
     logger.info("Changing task " + this._id + " status to " + newStatus);
     this._status = newStatus;
-    // Set the pref:
+    
     Application.prefs.setValue(STATUS_PREF_PREFIX + this._id, newStatus);
-    // Notify user of status change:
+    
     if (!suppressNotification) {
       Observers.notify("testpilot:task:changed", "", null);
     }
   },
 
   loadPage: function TestPilotTask_loadPage() {
-    // open the link in the chromeless window
+    
     var wm = Cc["@mozilla.org/appshell/window-mediator;1"]
                        .getService(Ci.nsIWindowMediator);
     let window = wm.getMostRecentWindow("navigator:browser");
     window.TestPilotWindowUtils.openChromeless(this.defaultUrl);
-    /* Advance the status when the user sees the page, so that we can stop
-     * notifying them about stuff they've seen. */
+    
+
     if (this._status == TaskConstants.STATUS_NEW) {
       this.changeStatus(TaskConstants.STATUS_PENDING);
     } else if (this._status == TaskConstants.STATUS_STARTING) {
@@ -221,14 +213,14 @@ var TestPilotTask = {
   },
 
   getGuid: function TPS_getGuid(id) {
-    // If there is a guid for the task with the given id (not neccessarily this one!)
-    // then use it; if there isn't, generate it and store it.
+    
+    
     let guid = Application.prefs.getValue(GUID_PREF_PREFIX + id, "");
     if (guid == "") {
       let uuidGenerator =
         Cc["@mozilla.org/uuid-generator;1"].getService(Ci.nsIUUIDGenerator);
       guid = uuidGenerator.generateUUID().toString();
-      // remove the brackets from the generated UUID
+      
       if (guid.indexOf("{") == 0) {
         guid = guid.substring(1, (guid.length - 1));
       }
@@ -239,7 +231,7 @@ var TestPilotTask = {
 };
 
 function TestPilotExperiment(expInfo, dataStore, handlers, webContent, dateOverrideFunc) {
-  // All four of these are objects defined in the remote experiment file
+  
   this._init(expInfo, dataStore, handlers, webContent, dateOverrideFunc);
 }
 TestPilotExperiment.prototype = {
@@ -248,22 +240,22 @@ TestPilotExperiment.prototype = {
 					    handlers,
                                             webContent,
                                             dateOverrideFunc) {
-    /* expInfo is a dictionary defined in the remote experiment code, which
-     * should have the following properties:
-     * startDate (string representation of date)
-     * duration (number of days)
-     * testName (human-readable string)
-     * testId (int)
-     * testInfoUrl (url)
-     * summary (string - couple of sentences explaining study)
-     * thumbnail (url of an image representing the study)
-     * optInRequired  (boolean)
-     * recursAutomatically (boolean)
-     * recurrenceInterval (number of days)
-     * versionNumber (int) */
+    
 
-    // dateOverrideFunc: For unit testing. Optional. If provided, will be called
-    // instead of Date.now() for determining the current time.
+
+
+
+
+
+
+
+
+
+
+
+
+    
+    
     if (dateOverrideFunc) {
       this._now = dateOverrideFunc;
     } else {
@@ -275,19 +267,19 @@ TestPilotExperiment.prototype = {
     this._dataStore = dataStore;
     this._versionNumber = expInfo.versionNumber;
     this._optInRequired = expInfo.optInRequired;
-    // TODO implement opt-in interface for tests that require opt-in.
+    
     this._recursAutomatically = expInfo.recursAutomatically;
     this._recurrenceInterval = expInfo.recurrenceInterval;
 
     let prefName = START_DATE_PREF_PREFIX + this._id;
     let startDateString = Application.prefs.getValue(prefName, false);
     if (startDateString) {
-      // If this isn't the first time we're starting, use the start date
-      // already stored in prefs.
+      
+      
       this._startDate = Date.parse(startDateString);
     } else {
-      // If a start date is provided in expInfo, use that.
-      // Otherwise, start immediately!
+      
+      
       if (expInfo.startDate) {
         this._startDate = Date.parse(expInfo.startDate);
         Application.prefs.setValue(prefName, expInfo.startDate);
@@ -297,8 +289,8 @@ TestPilotExperiment.prototype = {
       }
     }
 
-    // Duration is specified in days:
-    let duration = expInfo.duration || 7; // default 1 week
+    
+    let duration = expInfo.duration || 7; 
     this._endDate = this._startDate + duration * (24 * 60 * 60 * 1000);
     this._logger.info("Start date is " + this._startDate.toString());
     this._logger.info("End date is " + this._endDate.toString());
@@ -307,8 +299,8 @@ TestPilotExperiment.prototype = {
     this._uploadRetryTimer = null;
     this._startedUpHandlers = false;
 
-    // checkDate will see what our status is with regards to the start and
-    // end dates, and set status appropriately.
+    
+    
     this.checkDate();
 
     if (this.experimentIsRunning) {
@@ -370,7 +362,7 @@ TestPilotExperiment.prototype = {
 	  if (withData) {
 	    content = self.webContent.completedHtml;
 	  } else {
-	    // for after deleting data manually by user.
+	    
             let stringBundle =
               Components.classes["@mozilla.org/intl/stringbundle;1"].
                 getService(Components.interfaces.nsIStringBundleService).
@@ -401,7 +393,7 @@ TestPilotExperiment.prototype = {
 	}
       break;
     }
-    // TODO what to do if status is cancelled, submitted, results, or archived?
+    
     if (!waitForData) {
       callback(content);
     }
@@ -447,12 +439,12 @@ TestPilotExperiment.prototype = {
   },
 
   experimentIsRunning: function TestPilotExperiment_isRunning() {
-    // bug 575767
+    
     return (this._status == TaskConstants.STATUS_STARTING ||
             this._status == TaskConstants.STATUS_IN_PROGRESS);
   },
 
-  // Pass events along to handlers:
+  
   onNewWindow: function TestPilotExperiment_onNewWindow(window) {
     this._logger.trace("Experiment.onNewWindow called.");
     if (this.experimentIsRunning()) {
@@ -499,7 +491,7 @@ TestPilotExperiment.prototype = {
 
   onExperimentStartup: function TestPilotExperiment_onStartup() {
     this._logger.trace("Experiment.onExperimentStartup called.");
-    // Make sure not to call this if it's already been called:
+    
     if (this.experimentIsRunning() && !this._startedUpHandlers) {
       this._logger.trace("  ... starting up handlers!");
       try {
@@ -534,36 +526,12 @@ TestPilotExperiment.prototype = {
     }
   },
 
-#ifndef MOZ_PER_WINDOW_PRIVATE_BROWSING
-  onEnterPrivateBrowsing: function TestPilotExperiment_onEnterPrivate() {
-    this._logger.trace("Task is entering private browsing.");
-    if (this.experimentIsRunning()) {
-      try {
-        this._handlers.onEnterPrivateBrowsing();
-      } catch(e) {
-        this._dataStore.logException("onEnterPrivateBrowsing: " + e);
-      }
-    }
-  },
-
-  onExitPrivateBrowsing: function TestPilotExperiment_onExitPrivate() {
-    this._logger.trace("Task is exiting private browsing.");
-    if (this.experimentIsRunning()) {
-      try {
-        this._handlers.onExitPrivateBrowsing();
-      } catch(e) {
-        this._dataStore.logException("onExitPrivateBrowsing: " + e);
-      }
-    }
-  },
-#endif
-
   getStudyMetadata: function TestPilotExperiment_getStudyMetadata() {
     try {
       if (this._handlers.getStudyMetadata) {
         let metadata = this._handlers.getStudyMetadata();
         if (metadata.length) {
-          // getStudyMetadata must return an array, otherwise it is invalid.
+          
           return metadata;
         }
       }
@@ -574,10 +542,10 @@ TestPilotExperiment.prototype = {
   },
 
   _reschedule: function TestPilotExperiment_reschedule() {
-    // Schedule next run of test:
-    // add recurrence interval to start date and store!
+    
+    
     let ms = this._recurrenceInterval * (24 * 60 * 60 * 1000);
-    // recurrenceInterval is in days, convert to milliseconds:
+    
     this._startDate += ms;
     this._endDate += ms;
     let prefName = START_DATE_PREF_PREFIX + this._id;
@@ -586,9 +554,9 @@ TestPilotExperiment.prototype = {
   },
 
   get _numTimesRun() {
-    // For automatically recurring tests, this is the number of times it
-    // has recurred - it will be 1 on the first run, 2 on the second run,
-    // etc.
+    
+    
+    
     if (this._recursAutomatically) {
       return Application.prefs.getValue(RECUR_TIMES_PREF_PREFIX + this._id,
                                         1);
@@ -628,26 +596,26 @@ TestPilotExperiment.prototype = {
   },
 
   checkDate: function TestPilotExperiment_checkDate() {
-    // This method handles all date-related status changes and should be
-    // called periodically.
+    
+    
     let currentDate = this._now();
     let self = this;
 
-    // Reset automatically recurring tests:
+    
     if (this._recursAutomatically &&
         this._status >= TaskConstants.STATUS_FINISHED &&
         currentDate >= this._startDate &&
 	currentDate <= this._endDate) {
-      // if we've done a permanent opt-out, then don't start over-
-      // just keep rescheduling.
+      
+      
       if (this.recurPref == TaskConstants.NEVER_SUBMIT) {
         this._logger.info("recurPref is never submit, so I'm rescheduling.");
         this._reschedule();
       } else {
-        // Normal case is reset to new.
+        
         this.changeStatus(TaskConstants.STATUS_NEW, true);
 
-        // increment count of how many times this recurring test has run
+        
         let numTimesRun = this._numTimesRun;
         numTimesRun++;
         this._logger.trace("Test recurring... incrementing " + RECUR_TIMES_PREF_PREFIX + this._id + " to " + numTimesRun);
@@ -657,8 +625,8 @@ TestPilotExperiment.prototype = {
       }
     }
 
-    // If the notify-on-new-study pref is turned off, and the test doesn't
-    // require opt-in, then it can jump straight ahead to STARTING.
+    
+    
     if (!this._optInRequired &&
         !Application.prefs.getValue("extensions.testpilot.popup.showOnNewStudy",
                                     false) &&
@@ -668,21 +636,21 @@ TestPilotExperiment.prototype = {
       this.changeStatus(TaskConstants.STATUS_STARTING, true);
     }
 
-    // If a study is STARTING, and we're in the right date range,
-    // then start it, and move it to IN_PROGRESS.
+    
+    
     if ( this._status == TaskConstants.STATUS_STARTING &&
         currentDate >= this._startDate &&
         currentDate <= this._endDate) {
       this._logger.info("Study now starting.");
-      // clear the data before starting.
+      
       this._dataStore.wipeAllData(function() {
-        // Experiment is now in progress.
+        
         self.changeStatus(TaskConstants.STATUS_IN_PROGRESS, true);
         self.onExperimentStartup();
       });
     }
 
-    // What happens when a test finishes:
+    
     if (this._status < TaskConstants.STATUS_FINISHED &&
 	currentDate > this._endDate) {
       let setDataDeletionDate = true;
@@ -693,8 +661,8 @@ TestPilotExperiment.prototype = {
 
       if (this._recursAutomatically) {
         this._reschedule();
-        // A recurring experiment may have been set to automatically submit. If
-        // so, submit now!
+        
+        
         if (this.recurPref == TaskConstants.ALWAYS_SUBMIT) {
           this._logger.info("Automatically Uploading Data");
           this.upload(function(success) {
@@ -735,7 +703,7 @@ TestPilotExperiment.prototype = {
         this._expirationDateForDataSubmission = null;
       }
     } else {
-      // only do this if the state is already finished and the data is expired.
+      
       if (this._status == TaskConstants.STATUS_FINISHED) {
 	if (Application.prefs.getValue(
 	    "extensions.testpilot.alwaysSubmitData", false)) {
@@ -750,8 +718,8 @@ TestPilotExperiment.prototype = {
             this.changeStatus(TaskConstants.STATUS_CANCELLED, true);
             this._dataStore.wipeAllData();
 	    this._dateForDataDeletion = null;
-	    // need to keep the expirationDateForDataSubmission value so
-	    // we know that data is expired, not user cancels the task.
+	    
+	    
 	  }
 	}
       } else if (this._status == TaskConstants.STATUS_SUBMITTED) {
@@ -777,8 +745,8 @@ TestPilotExperiment.prototype = {
       if (moreMd) {
         for (let i = 0; i < moreMd.length; i++) {
           if (moreMd[i].name && moreMd[i].value) {
-            json.metadata[ moreMd[i].name ] = moreMd[i].value; // TODO sanitize strings?
-            // TODO handle case where name or value are something other than strings?
+            json.metadata[ moreMd[i].name ] = moreMd[i].value; 
+            
           }
         }
       }
@@ -792,21 +760,21 @@ TestPilotExperiment.prototype = {
     });
   },
 
-  // Note: When we have multiple experiments running, the uploads
-  // are separate files.
+  
+  
   upload: function TestPilotExperiment_upload(callback, retryCount) {
-    // Callback is a function that will be called back with true or false
-    // on success or failure.
+    
+    
 
-    /* If we've already uploaded, and the user tries to upload again for
-     * some reason (they could navigate back to the status.html page,
-     * for instance), then proceed without uploading: */
+    
+
+
     if (this._status >= TaskConstants.STATUS_SUBMITTED) {
       callback(true);
       return;
     }
 
-    // note the server will reject any upload over 5MB - shouldn't be a problem
+    
     let self = this;
     let url = self.uploadUrl;
     self._logger.info("Posting data to url " + url + "\n");
@@ -823,23 +791,23 @@ TestPilotExperiment.prototype = {
             let location = req.getResponseHeader("Location");
   	    self._logger.info("DATA WAS POSTED SUCCESSFULLY " + location);
             if (self._uploadRetryTimer) {
-              self._uploadRetryTimer.cancel(); // Stop retrying - it worked!
+              self._uploadRetryTimer.cancel(); 
             }
             self.changeStatus(TaskConstants.STATUS_SUBMITTED);
             self._dateForDataDeletion = self._now() + TIME_FOR_DATA_DELETION;
             self._expirationDateForDataSubmission = null;
             callback(true);
           } else {
-          /* If something went wrong with the upload, give up for now,
-           * but start a timer to try again later.  Maybe the network will
-           * be better by then.  "later" starts at 1 hour, but increases
-           * using a random exponential function.  This serves as a backoff
-           * in cases where a lot of users are trying to submit data at
-           * the same time and the network or server can't handle it.
-           */
+          
 
-            // TODO don't retry if status code is 401, 404, or...
-            // any others?
+
+
+
+
+
+
+            
+            
             self._logger.warn("ERROR POSTING DATA: " + req.responseText);
             self._uploadRetryTimer = Cc["@mozilla.org/timer;1"]
               .createInstance(Ci.nsITimer);
@@ -848,7 +816,7 @@ TestPilotExperiment.prototype = {
 	      retryCount = 0;
             }
             let interval =
-	      Application.prefs.getValue(RETRY_INTERVAL_PREF, 3600000); // 1 hour
+	      Application.prefs.getValue(RETRY_INTERVAL_PREF, 3600000); 
             let delay =
               parseInt(Math.random() * Math.pow(2, retryCount) * interval);
             self._uploadRetryTimer.initWithCallback(
@@ -864,8 +832,8 @@ TestPilotExperiment.prototype = {
   },
 
   optOut: function TestPilotExperiment_optOut(reason, callback) {
-    // Regardless of study ID, post the opt-out message to a special
-    // database table of just opt-out messages; include study ID in metadata.
+    
+    
     let logger = this._logger;
 
     this.onExperimentShutdown();
@@ -876,8 +844,8 @@ TestPilotExperiment.prototype = {
     this._expirationDateForDataSubmission = null;
     logger.info("Opting out of test with reason " + reason);
     if (reason) {
-      // Send us the reason...
-      // (TODO: include metadata?)
+      
+      
       let url = Application.prefs.getValue(DATA_UPLOAD_PREF, "") + "opt-out";
       let answer = {id: this._id,
                     reason: reason};
@@ -915,7 +883,7 @@ TestPilotExperiment.prototype = {
   },
 
   setRecurPref: function TPE_setRecurPrefs(value) {
-    // value is NEVER_SUBMIT, ALWAYS_SUBMIT, or ASK_EACH_TIME
+    
     let prefName = RECUR_PREF_PREFIX + this._id;
     this._logger.info("Setting recur pref to " + value);
     Application.prefs.setValue(prefName, value);
@@ -933,7 +901,7 @@ TestPilotBuiltinSurvey.prototype = {
                    surveyInfo.surveyUrl,
                    surveyInfo.summary,
                    surveyInfo.thumbnail);
-    this._studyId = surveyInfo.uploadWithExperiment; // what study do we belong to
+    this._studyId = surveyInfo.uploadWithExperiment; 
     this._versionNumber = surveyInfo.versionNumber;
     this._questions = surveyInfo.surveyQuestions;
     this._explanation = surveyInfo.surveyExplanation;
@@ -989,15 +957,15 @@ TestPilotBuiltinSurvey.prototype = {
   },
 
   store: function TestPilotSurvey_store(surveyResults, callback) {
-    /* Store answers in preferences store; then, upload the survey data
-     * if this is a survey with an associated study (the matching GUIDs
-     * will be used to associate the two datasets server-side).
-     * If it's not one with an associated survey, just store and set status
-     * to submitted.  Either way, call the callback with true/false for
-     * success/failure.*/
+    
+
+
+
+
+
     surveyResults = sanitizeJSONStrings(surveyResults);
     let prefName = SURVEY_ANSWER_PREFIX + this._id;
-    // Also store survey version number
+    
     if (this._versionNumber) {
       surveyResults["version_number"] = this._versionNumber;
     }
@@ -1016,8 +984,8 @@ TestPilotBuiltinSurvey.prototype = {
     MetadataCollector.getMetadata(function(md) {
       json.metadata = md;
       if (self._studyId) {
-        // Include guid of the study that this survey is related to, so we
-        // can match them up server-side.
+        
+        
         json.metadata.task_guid = self.getGuid(self._studyId);
       }
       let pref = SURVEY_ANSWER_PREFIX + self._id;
@@ -1027,8 +995,8 @@ TestPilotBuiltinSurvey.prototype = {
     });
   },
 
-  // Upload function for survey -- TODO this duplicates a lot of code
-  // from study._upload().
+  
+  
   _upload: function TestPilotSurvey__upload(callback, retryCount) {
     let self = this;
     this._prependMetadataToJSON(function(params) {
@@ -1047,7 +1015,7 @@ TestPilotBuiltinSurvey.prototype = {
             self._logger.info(
 	    "DATA WAS POSTED SUCCESSFULLY " + req.responseText);
             if (self._uploadRetryTimer) {
-              self._uploadRetryTimer.cancel(); // Stop retrying - it worked!
+              self._uploadRetryTimer.cancel(); 
 	    }
             self.changeStatus(TaskConstants.STATUS_SUBMITTED);
 	    callback(true);
@@ -1060,7 +1028,7 @@ TestPilotBuiltinSurvey.prototype = {
               retryCount = 0;
 	    }
 	    let interval =
-              Application.prefs.getValue(RETRY_INTERVAL_PREF, 3600000); // 1 hour
+              Application.prefs.getValue(RETRY_INTERVAL_PREF, 3600000); 
 	    let delay =
 	      parseInt(Math.random() * Math.pow(2, retryCount) * interval);
 	    self._uploadRetryTimer.initWithCallback(
@@ -1099,10 +1067,10 @@ TestPilotWebSurvey.prototype = {
   },
 
   onDetailPageOpened: function TPWS_onDetailPageOpened() {
-    /* Once you view the URL of the survey, we'll assume you've taken it.
-     * There's no reliable way to tell whether you have or not, so let's
-     * default to not bugging the user about it again.
-     */
+    
+
+
+
     if (this._status < TaskConstants.STATUS_SUBMITTED) {
       this.changeStatus( TaskConstants.STATUS_SUBMITTED, true );
     }
@@ -1121,7 +1089,7 @@ TestPilotStudyResults.prototype = {
                     resultsInfo.url,
                     resultsInfo.summary,
                     resultsInfo.thumbnail);
-    this._studyId = resultsInfo.studyId; // what study do we belong to
+    this._studyId = resultsInfo.studyId; 
     this._pubDate = Date.parse(resultsInfo.date);
   },
 
@@ -1152,22 +1120,22 @@ TestPilotLegacyStudy.prototype = {
                     studyInfo.summary,
                     studyInfo.thumbnail );
 
-    /* Only three statuses are valid for legacy studies: It must be either
-     * canceled, archived (meaning you submitted it), or missed (you never ran it).
-     * Set status to one of these.
-     */
+    
+
+
+
     switch (stat) {
     case TaskConstants.STATUS_CANCELLED:
     case TaskConstants.STATUS_ARCHIVED:
     case TaskConstants.STATUS_MISSED:
-      // Keep that status, so do nothing
+      
       break;
     case TaskConstants.STATUS_SUBMITTED:
-      // Change submitted to archived
+      
       this.changeStatus(TaskConstants.STATUS_ARCHIVED, true);
       break;
     default:
-      // Anything else means you missed it
+      
       this.changeStatus(TaskConstants.STATUS_MISSED, true);
     }
 
@@ -1184,7 +1152,7 @@ TestPilotLegacyStudy.prototype = {
   get taskType() {
     return TaskConstants.TYPE_LEGACY;
   }
-  // TODO test that they don't say "thanks for contributing" if the
-  // user didn't actually complete them...
+  
+  
 };
 TestPilotLegacyStudy.prototype.__proto__ = TestPilotTask;

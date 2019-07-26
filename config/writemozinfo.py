@@ -69,9 +69,6 @@ def build_dict(env=os.environ):
 
     
     d["crashreporter"] = 'MOZ_CRASHREPORTER' in env and env['MOZ_CRASHREPORTER'] == '1'
-
-    
-    d["perwindowprivatebrowsing"] = 'MOZ_PER_WINDOW_PRIVATE_BROWSING' in env and env['MOZ_PER_WINDOW_PRIVATE_BROWSING'] == '1'
     return d
 
 

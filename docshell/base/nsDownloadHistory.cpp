@@ -13,9 +13,6 @@
 #include "nsIComponentRegistrar.h"
 #include "nsDocShellCID.h"
 #include "nsNetCID.h"
-#ifndef MOZ_PER_WINDOW_PRIVATE_BROWSING
-#include "nsIPrivateBrowsingService.h"
-#endif
 
 
 
@@ -32,20 +29,6 @@ nsDownloadHistory::AddDownload(nsIURI *aSource,
                                nsIURI *aDestination)
 {
   NS_ENSURE_ARG_POINTER(aSource);
-
-#if !(defined(MOZ_PER_WINDOW_PRIVATE_BROWSING)) && defined(DEBUG)
-  
-  
-  
-  nsCOMPtr<nsIPrivateBrowsingService> pbService =
-      do_GetService(NS_PRIVATE_BROWSING_SERVICE_CONTRACTID);
-  if (pbService) {
-    bool inPrivateBrowsing = false;
-    if (NS_SUCCEEDED(pbService->GetPrivateBrowsingEnabled(&inPrivateBrowsing))) {
-      MOZ_ASSERT(!inPrivateBrowsing, "Shouldn't be adding any download history in PB mode");
-    }
-  }
-#endif
 
   nsCOMPtr<nsIGlobalHistory2> history =
     do_GetService("@mozilla.org/browser/global-history;2");

@@ -276,7 +276,6 @@ var gPrivacyPane = {
 
     observe: function PPP_observe(aSubject, aTopic, aData)
     {
-#ifdef MOZ_PER_WINDOW_PRIVATE_BROWSING
       if (!gPrivacyPane._shouldPromptForRestart) {
         
         gPrivacyPane._shouldPromptForRestart = true;
@@ -318,23 +317,6 @@ var gPrivacyPane = {
         let rememberHistoryCheckbox = document.getElementById("rememberHistory");
         rememberHistory.checked = pref.value;
       }
-#else
-      
-      let prefValue = document.getElementById("browser.privatebrowsing.autostart").value;
-      let keepCurrentSession = document.getElementById("browser.privatebrowsing.keep_current_session");
-      keepCurrentSession.value = true;
-
-      let privateBrowsingService = Components.classes["@mozilla.org/privatebrowsing;1"].
-        getService(Components.interfaces.nsIPrivateBrowsingService);
-
-      
-      
-      if (prefValue && privateBrowsingService.privateBrowsingEnabled)
-        privateBrowsingService.privateBrowsingEnabled = false;
-      privateBrowsingService.privateBrowsingEnabled = prefValue;
-
-      keepCurrentSession.reset();
-#endif
     }
   },
 

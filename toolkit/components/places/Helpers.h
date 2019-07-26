@@ -264,11 +264,6 @@ private:
   const TimeStamp mStart;
 };
 
-
-
-
-void EnsureNotGlobalPrivateBrowsing();
-
 } 
 } 
 

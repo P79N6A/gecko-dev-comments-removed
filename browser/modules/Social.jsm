@@ -84,9 +84,6 @@ this.Social = {
     }
 
     if (!this._addedObservers) {
-#ifndef MOZ_PER_WINDOW_PRIVATE_BROWSING
-      Services.obs.addObserver(this, "private-browsing", false);
-#endif
       Services.obs.addObserver(this, "social:pref-changed", false);
       this._addedObservers = true;
     }
@@ -133,22 +130,6 @@ this.Social = {
   },
 
   observe: function(aSubject, aTopic, aData) {
-#ifndef MOZ_PER_WINDOW_PRIVATE_BROWSING
-    if (aTopic == "private-browsing") {
-      if (aData == "enter") {
-        this._enabledBeforePrivateBrowsing = this.enabled;
-        this.enabled = false;
-      } else if (aData == "exit") {
-        
-        
-        
-        
-        
-        this.enabled = false;
-        this.enabled = this._enabledBeforePrivateBrowsing;
-      }
-    } else
-#endif
     if (aTopic == "social:pref-changed") {
       
       

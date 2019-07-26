@@ -20,9 +20,6 @@
 #include "nsIWindowMediator.h"
 #include "nsILocalFileWin.h"
 #include "nsILoadContext.h"
-#ifndef MOZ_PER_WINDOW_PRIVATE_BROWSING
-#include "nsIPrivateBrowsingService.h"
-#endif
 
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsArrayEnumerator.h"
@@ -79,12 +76,6 @@ static const int64_t gUpdateInterval = 400 * PR_USEC_PER_MSEC;
 #define DM_DB_CORRUPT_FILENAME NS_LITERAL_STRING("downloads.sqlite.corrupt")
 
 #define NS_SYSTEMINFO_CONTRACTID "@mozilla.org/system-info;1"
-
-#ifdef MOZ_PER_WINDOW_PRIVATE_BROWSING
-const bool gUsePerWindowPrivateBrowsing = true;
-#else
-const bool gUsePerWindowPrivateBrowsing = false;
-#endif
 
 
 
@@ -1002,10 +993,6 @@ nsDownloadManager::Init()
   (void)mObserverService->AddObserver(this, "profile-before-change", true);
   (void)mObserverService->AddObserver(this, NS_IOSERVICE_GOING_OFFLINE_TOPIC, true);
   (void)mObserverService->AddObserver(this, NS_IOSERVICE_OFFLINE_STATUS_TOPIC, true);
-#ifndef MOZ_PER_WINDOW_PRIVATE_BROWSING
-  (void)mObserverService->AddObserver(this, NS_PRIVATE_BROWSING_REQUEST_TOPIC, true);
-  (void)mObserverService->AddObserver(this, NS_PRIVATE_BROWSING_SWITCH_TOPIC, true);
-#endif
   (void)mObserverService->AddObserver(this, "last-pb-context-exited", true);
   (void)mObserverService->AddObserver(this, "last-pb-context-exiting", true);
 
@@ -1114,18 +1101,14 @@ nsDownloadManager::GetDownloadFromDB(const nsACString& aGUID, nsDownload **retVa
 nsresult
 nsDownloadManager::GetDownloadFromDB(uint32_t aID, nsDownload **retVal)
 {
-  if (gUsePerWindowPrivateBrowsing)
-    NS_WARNING("Using integer IDs without compat mode enabled");
+  NS_WARNING("Using integer IDs without compat mode enabled");
 
   MOZ_ASSERT(!FindDownload(aID),
              "If it is a current download, you should not call this method!");
 
-  nsCOMPtr<mozIStorageConnection> dbConn =
-    IsInGlobalPrivateBrowsing() ? mPrivateDBConn : mDBConn;
-
   
   nsCOMPtr<mozIStorageStatement> stmt;
-  nsresult rv = dbConn->CreateStatement(NS_LITERAL_CSTRING(
+  nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
     "SELECT id, state, startTime, source, target, tempPath, name, referrer, "
            "entityID, currBytes, maxBytes, mimeType, preferredAction, "
            "preferredApplication, autoResume, guid "
@@ -1136,7 +1119,7 @@ nsDownloadManager::GetDownloadFromDB(uint32_t aID, nsDownload **retVal)
   rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("id"), aID);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  return GetDownloadFromDB(dbConn, stmt, retVal);
+  return GetDownloadFromDB(mDBConn, stmt, retVal);
 }
 
 nsresult
@@ -1305,8 +1288,7 @@ nsDownloadManager::GetActivePrivateDownloadCount(int32_t* aResult)
 NS_IMETHODIMP
 nsDownloadManager::GetActiveDownloadCount(int32_t *aResult)
 {
-  *aResult = IsInGlobalPrivateBrowsing() ?
-    mCurrentPrivateDownloads.Count() : mCurrentDownloads.Count();
+  *aResult = mCurrentDownloads.Count();
 
   return NS_OK;
 }
@@ -1314,9 +1296,7 @@ nsDownloadManager::GetActiveDownloadCount(int32_t *aResult)
 NS_IMETHODIMP
 nsDownloadManager::GetActiveDownloads(nsISimpleEnumerator **aResult)
 {
-  return NS_NewArrayEnumerator(aResult,
-                               IsInGlobalPrivateBrowsing() ?
-                                 mCurrentPrivateDownloads : mCurrentDownloads);
+  return NS_NewArrayEnumerator(aResult, mCurrentDownloads);
 }
 
 NS_IMETHODIMP
@@ -1549,20 +1529,6 @@ nsDownloadManager::AddDownload(DownloadType aDownloadType,
 
   nsresult rv;
 
-#if !(defined(MOZ_PER_WINDOW_PRIVATE_BROWSING)) && defined(DEBUG)
-  
-  
-  
-  nsCOMPtr<nsIPrivateBrowsingService> pbService =
-    do_GetService(NS_PRIVATE_BROWSING_SERVICE_CONTRACTID);
-  if (pbService) {
-    bool inPrivateBrowsing = false;
-    if (NS_SUCCEEDED(pbService->GetPrivateBrowsingEnabled(&inPrivateBrowsing))) {
-      MOZ_ASSERT(inPrivateBrowsing == aIsPrivate);
-    }
-  }
-#endif
-
   
   nsCOMPtr<nsIFileURL> targetFileURL = do_QueryInterface(aTarget, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1689,9 +1655,7 @@ nsDownloadManager::AddDownload(DownloadType aDownloadType,
 NS_IMETHODIMP
 nsDownloadManager::GetDownload(uint32_t aID, nsIDownload **aDownloadItem)
 {
-  if (gUsePerWindowPrivateBrowsing) {
-    NS_WARNING("Using integer IDs without compat mode enabled");
-  }
+  NS_WARNING("Using integer IDs without compat mode enabled");
 
   nsDownload *itm = FindDownload(aID);
 
@@ -1749,29 +1713,12 @@ nsDownloadManager::GetDownloadByGUID(const nsACString& aGUID,
   return NS_OK;
 }
 
-bool
-nsDownloadManager::IsInGlobalPrivateBrowsing()
-{
-  bool inPrivateBrowsing = false;
-#ifndef MOZ_PER_WINDOW_PRIVATE_BROWSING
-  nsCOMPtr<nsIPrivateBrowsingService> pbs =
-    do_GetService(NS_PRIVATE_BROWSING_SERVICE_CONTRACTID);
-  if (pbs) {
-    pbs->GetPrivateBrowsingEnabled(&inPrivateBrowsing);
-  }
-#endif
-  return inPrivateBrowsing;
-}
-
 nsDownload *
 nsDownloadManager::FindDownload(uint32_t aID)
 {
-  nsCOMArray<nsDownload>& currentDownloads =
-    IsInGlobalPrivateBrowsing() ?
-      mCurrentPrivateDownloads : mCurrentDownloads;
   
-  for (int32_t i = currentDownloads.Count() - 1; i >= 0; --i) {
-    nsDownload *dl = currentDownloads[i];
+  for (int32_t i = mCurrentDownloads.Count() - 1; i >= 0; --i) {
+    nsDownload *dl = mCurrentDownloads[i];
     if (dl->mID == aID)
       return dl;
   }
@@ -1801,9 +1748,7 @@ nsDownloadManager::FindDownload(const nsACString& aGUID)
 NS_IMETHODIMP
 nsDownloadManager::CancelDownload(uint32_t aID)
 {
-  if (gUsePerWindowPrivateBrowsing) {
-    NS_WARNING("Using integer IDs without compat mode enabled");
-  }
+  NS_WARNING("Using integer IDs without compat mode enabled");
 
   
   nsRefPtr<nsDownload> dl = FindDownload(aID);
@@ -1829,9 +1774,7 @@ nsDownloadManager::RetryDownload(const nsACString& aGUID)
 NS_IMETHODIMP
 nsDownloadManager::RetryDownload(uint32_t aID)
 {
-  if (gUsePerWindowPrivateBrowsing) {
-    NS_WARNING("Using integer IDs without compat mode enabled");
-  }
+  NS_WARNING("Using integer IDs without compat mode enabled");
 
   nsRefPtr<nsDownload> dl;
   nsresult rv = GetDownloadFromDB(aID, getter_AddRefs(dl));
@@ -1933,9 +1876,7 @@ nsDownloadManager::RemoveDownload(const nsACString& aGUID)
 NS_IMETHODIMP
 nsDownloadManager::RemoveDownload(uint32_t aID)
 {
-  if (gUsePerWindowPrivateBrowsing) {
-    NS_WARNING("Using integer IDs without compat mode enabled");
-  }
+  NS_WARNING("Using integer IDs without compat mode enabled");
 
   nsRefPtr<nsDownload> dl = FindDownload(aID);
   MOZ_ASSERT(!dl, "Can't call RemoveDownload on a download in progress!");
@@ -1945,10 +1886,8 @@ nsDownloadManager::RemoveDownload(uint32_t aID)
   nsresult rv = GetDownloadFromDB(aID, getter_AddRefs(dl));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<mozIStorageConnection> dbConn =
-    IsInGlobalPrivateBrowsing() ? mPrivateDBConn : mDBConn;
   nsCOMPtr<mozIStorageStatement> stmt;
-  rv = dbConn->CreateStatement(NS_LITERAL_CSTRING(
+  rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
     "DELETE FROM moz_downloads "
     "WHERE id = :id"), getter_AddRefs(stmt));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1971,9 +1910,7 @@ nsDownloadManager::NotifyDownloadRemoval(nsDownload* aRemoved)
   nsresult rv;
 
   
-  
-  bool sendDeprecatedNotification = !gUsePerWindowPrivateBrowsing ||
-                                    !(aRemoved && aRemoved->mPrivate);
+  bool sendDeprecatedNotification = !(aRemoved && aRemoved->mPrivate);
 
   if (sendDeprecatedNotification && aRemoved) {
     id = do_CreateInstance(NS_SUPPORTS_PRUINT32_CONTRACTID, &rv);
@@ -2158,9 +2095,7 @@ nsDownloadManager::GetCanCleanUpPrivate(bool *aResult)
 NS_IMETHODIMP
 nsDownloadManager::PauseDownload(uint32_t aID)
 {
-  if (gUsePerWindowPrivateBrowsing) {
-    NS_WARNING("Using integer IDs without compat mode enabled");
-  }
+  NS_WARNING("Using integer IDs without compat mode enabled");
 
   nsDownload *dl = FindDownload(aID);
   if (!dl)
@@ -2172,9 +2107,7 @@ nsDownloadManager::PauseDownload(uint32_t aID)
 NS_IMETHODIMP
 nsDownloadManager::ResumeDownload(uint32_t aID)
 {
-  if (gUsePerWindowPrivateBrowsing) {
-    NS_WARNING("Using integer IDs without compat mode enabled");
-  }
+  NS_WARNING("Using integer IDs without compat mode enabled");
 
   nsDownload *dl = FindDownload(aID);
   if (!dl)
@@ -2186,7 +2119,7 @@ nsDownloadManager::ResumeDownload(uint32_t aID)
 NS_IMETHODIMP
 nsDownloadManager::GetDBConnection(mozIStorageConnection **aDBConn)
 {
-  NS_ADDREF(*aDBConn = IsInGlobalPrivateBrowsing() ? mPrivateDBConn : mDBConn);
+  NS_ADDREF(*aDBConn = mDBConn);
 
   return NS_OK;
 }
@@ -2231,9 +2164,7 @@ nsDownloadManager::NotifyListenersOnDownloadStateChange(int16_t aOldState,
 
   
   
-  
-  
-  if (aDownload->mPrivate && gUsePerWindowPrivateBrowsing) {
+  if (aDownload->mPrivate) {
     return;
   }
 
@@ -2259,9 +2190,7 @@ nsDownloadManager::NotifyListenersOnProgressChange(nsIWebProgress *aProgress,
 
   
   
-  
-  
-  if (aDownload->mPrivate && gUsePerWindowPrivateBrowsing) {
+  if (aDownload->mPrivate) {
     return;
   }
 
@@ -2286,9 +2215,7 @@ nsDownloadManager::NotifyListenersOnStateChange(nsIWebProgress *aProgress,
 
   
   
-  
-  
-  if (aDownload->mPrivate && gUsePerWindowPrivateBrowsing) {
+  if (aDownload->mPrivate) {
     return;
   }
 
@@ -2395,28 +2322,21 @@ nsDownloadManager::Observe(nsISupports *aSubject,
   
   
   
-  
-  
-  nsCOMArray<nsDownload>& currDownloads =
-    IsInGlobalPrivateBrowsing() ? mCurrentPrivateDownloads : mCurrentDownloads;
-  int32_t currDownloadCount = currDownloads.Count();
+  int32_t currDownloadCount = mCurrentDownloads.Count();
 
   
   
-  
-  if (GetQuitBehavior() != QUIT_AND_CANCEL && !IsInGlobalPrivateBrowsing()) {
+  if (GetQuitBehavior() != QUIT_AND_CANCEL) {
     for (int32_t i = currDownloadCount - 1; i >= 0; --i) {
-      if (currDownloads[i]->IsResumable()) {
+      if (mCurrentDownloads[i]->IsResumable()) {
         currDownloadCount--;
       }
     }
 
-    if (gUsePerWindowPrivateBrowsing) {
-      
-      
-      
-      currDownloadCount += mCurrentPrivateDownloads.Count();
-    }
+    
+    
+    
+    currDownloadCount += mCurrentPrivateDownloads.Count();
   }
 
   nsresult rv;
@@ -2518,76 +2438,15 @@ nsDownloadManager::Observe(nsISupports *aSubject,
     nsCOMPtr<nsISupportsPRBool> cancelDownloads = do_QueryInterface(aSubject, &rv);
     NS_ENSURE_SUCCESS(rv, rv);
 
-#ifdef MOZ_PER_WINDOW_PRIVATE_BROWSING
     ConfirmCancelDownloads(mCurrentPrivateDownloads.Count(), cancelDownloads,
                            NS_LITERAL_STRING("leavePrivateBrowsingCancelDownloadsAlertTitle").get(),
                            NS_LITERAL_STRING("leavePrivateBrowsingWindowsCancelDownloadsAlertMsgMultiple").get(),
                            NS_LITERAL_STRING("leavePrivateBrowsingWindowsCancelDownloadsAlertMsg").get(),
                            NS_LITERAL_STRING("dontLeavePrivateBrowsingButton").get());
-#else
-    ConfirmCancelDownloads(mCurrentPrivateDownloads.Count(), cancelDownloads,
-                           NS_LITERAL_STRING("leavePrivateBrowsingCancelDownloadsAlertTitle").get(),
-                           NS_LITERAL_STRING("leavePrivateBrowsingCancelDownloadsAlertMsgMultiple").get(),
-                           NS_LITERAL_STRING("leavePrivateBrowsingCancelDownloadsAlertMsg").get(),
-                           NS_LITERAL_STRING("dontLeavePrivateBrowsingButton").get());
-#endif
   }
-#ifndef MOZ_PER_WINDOW_PRIVATE_BROWSING
-  else if (strcmp(aTopic, NS_PRIVATE_BROWSING_REQUEST_TOPIC) == 0) {
-    if (NS_LITERAL_STRING(NS_PRIVATE_BROWSING_ENTER).Equals(aData) &&
-        currDownloadCount) {
-      nsCOMPtr<nsISupportsPRBool> cancelDownloads =
-        do_QueryInterface(aSubject, &rv);
-      NS_ENSURE_SUCCESS(rv, rv);
-      ConfirmCancelDownloads(currDownloadCount, cancelDownloads,
-                             NS_LITERAL_STRING("enterPrivateBrowsingCancelDownloadsAlertTitle").get(),
-                             NS_LITERAL_STRING("enterPrivateBrowsingCancelDownloadsAlertMsgMultiple").get(),
-                             NS_LITERAL_STRING("enterPrivateBrowsingCancelDownloadsAlertMsg").get(),
-                             NS_LITERAL_STRING("dontEnterPrivateBrowsingButton").get());
-    }
-  }
-  else if (strcmp(aTopic, NS_PRIVATE_BROWSING_SWITCH_TOPIC) == 0) {
-    if (NS_LITERAL_STRING(NS_PRIVATE_BROWSING_ENTER).Equals(aData))
-      OnEnterPrivateBrowsingMode();
-    else if (NS_LITERAL_STRING(NS_PRIVATE_BROWSING_LEAVE).Equals(aData))
-      OnLeavePrivateBrowsingMode();
-  }
-#endif
 
   return NS_OK;
 }
-
-#ifndef MOZ_PER_WINDOW_PRIVATE_BROWSING
-void
-nsDownloadManager::OnEnterPrivateBrowsingMode()
-{
-  
-  (void)PauseAllDownloads(true);
-  (void)RemoveAllDownloads();
-
-  
-  (void)mObserverService->NotifyObservers(
-      static_cast<nsIDownloadManager *>(this),
-      "download-manager-database-type-changed",
-      nullptr);
-}
-
-void
-nsDownloadManager::OnLeavePrivateBrowsingMode()
-{
-  nsresult rv = RestoreDatabaseState();
-  NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "Failed to restore database state");
-
-  
-  (void)mObserverService->NotifyObservers(
-      static_cast<nsIDownloadManager *>(this),
-      "download-manager-database-type-changed",
-      nullptr);
-
-  rv = RestoreActiveDownloads();
-  NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "Failed to restore all active downloads");
-}
-#endif
 
 void
 nsDownloadManager::ConfirmCancelDownloads(int32_t aCount,
@@ -2889,33 +2748,33 @@ nsDownload::SetState(DownloadState aState)
     case nsIDownloadManager::DOWNLOAD_DOWNLOADING:
       
       if (oldState == nsIDownloadManager::DOWNLOAD_QUEUED) {
-        if (!gUsePerWindowPrivateBrowsing || !mPrivate)
+        if (!mPrivate)
           mDownloadManager->SendEvent(this, "dl-start");
       }
       break;
     case nsIDownloadManager::DOWNLOAD_FAILED:
-      if (!gUsePerWindowPrivateBrowsing || !mPrivate)
+      if (!mPrivate)
         mDownloadManager->SendEvent(this, "dl-failed");
       break;
     case nsIDownloadManager::DOWNLOAD_SCANNING:
-      if (!gUsePerWindowPrivateBrowsing || !mPrivate)
+      if (!mPrivate)
         mDownloadManager->SendEvent(this, "dl-scanning");
       break;
     case nsIDownloadManager::DOWNLOAD_FINISHED:
-      if (!gUsePerWindowPrivateBrowsing || !mPrivate)
+      if (!mPrivate)
         mDownloadManager->SendEvent(this, "dl-done");
       break;
     case nsIDownloadManager::DOWNLOAD_BLOCKED_PARENTAL:
     case nsIDownloadManager::DOWNLOAD_BLOCKED_POLICY:
-      if (!gUsePerWindowPrivateBrowsing || !mPrivate)
+      if (!mPrivate)
         mDownloadManager->SendEvent(this, "dl-blocked");
       break;
     case nsIDownloadManager::DOWNLOAD_DIRTY:
-      if (!gUsePerWindowPrivateBrowsing || !mPrivate)
+      if (!mPrivate)
         mDownloadManager->SendEvent(this, "dl-dirty");
       break;
     case nsIDownloadManager::DOWNLOAD_CANCELED:
-      if (!gUsePerWindowPrivateBrowsing || !mPrivate)
+      if (!mPrivate)
         mDownloadManager->SendEvent(this, "dl-cancel");
       break;
     default:
@@ -3259,7 +3118,7 @@ nsDownload::GetSpeed(double *aSpeed)
 NS_IMETHODIMP
 nsDownload::GetId(uint32_t *aId)
 {
-  if (mPrivate && gUsePerWindowPrivateBrowsing) {
+  if (mPrivate) {
     return NS_ERROR_NOT_AVAILABLE;
   }
   *aId = mID;

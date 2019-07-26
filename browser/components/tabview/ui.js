@@ -64,17 +64,6 @@ let UI = {
   
   _maxInteractiveWait: 250,
 
-#ifndef MOZ_PER_WINDOW_PRIVATE_BROWSING
-  
-  
-  
-  
-  _privateBrowsing: {
-    transitionMode: "",
-    wasInTabView: false 
-  },
-#endif
-
   
   
   _storageBusy: false,
@@ -597,13 +586,8 @@ let UI = {
 
   
   
-#ifdef MOZ_PER_WINDOW_PRIVATE_BROWSING
   
   
-#else
-  
-  
-#endif
   storageBusy: function UI_storageBusy() {
     if (this._storageBusy)
       return;
@@ -656,49 +640,6 @@ let UI = {
       gWindow.removeEventListener("SSWindowStateReady", handleSSWindowStateReady, false);
     });
 
-#ifndef MOZ_PER_WINDOW_PRIVATE_BROWSING
-    
-    
-    
-    
-    
-    
-    function pbObserver(subject, topic, data) {
-      if (topic == "private-browsing") {
-        
-        
-        if (data == "enter") {
-          
-          self._privateBrowsing.wasInTabView = self.isTabViewVisible();
-          if (self.isTabViewVisible())
-            self.goToTab(gBrowser.selectedTab);
-        }
-      } else if (topic == "private-browsing-change-granted") {
-        if (data == "enter" || data == "exit") {
-          Search.hide();
-          self._privateBrowsing.transitionMode = data;
-        }
-      } else if (topic == "private-browsing-transition-complete") {
-        
-        if (self._privateBrowsing.transitionMode == "exit" &&
-            self._privateBrowsing.wasInTabView)
-          self.showTabView(false);
-
-        self._privateBrowsing.transitionMode = "";
-      }
-    }
-
-    Services.obs.addObserver(pbObserver, "private-browsing", false);
-    Services.obs.addObserver(pbObserver, "private-browsing-change-granted", false);
-    Services.obs.addObserver(pbObserver, "private-browsing-transition-complete", false);
-
-    this._cleanupFunctions.push(function() {
-      Services.obs.removeObserver(pbObserver, "private-browsing");
-      Services.obs.removeObserver(pbObserver, "private-browsing-change-granted");
-      Services.obs.removeObserver(pbObserver, "private-browsing-transition-complete");
-    });
-#endif
-
     
     this._eventListeners.open = function (event) {
       let tab = event.target;
@@ -723,11 +664,7 @@ let UI = {
         if (self._currentTab == tab)
           self._closedSelectedTabInTabView = true;
       } else {
-#ifdef MOZ_PER_WINDOW_PRIVATE_BROWSING
         
-#else
-        
-#endif
         
         if (self._storageBusy)
           return;
@@ -838,14 +775,8 @@ let UI = {
     if (this.isTabViewVisible()) {
       
       
-#ifdef MOZ_PER_WINDOW_PRIVATE_BROWSING
       
       if (!this.restoredClosedTab &&
-#else
-      
-      
-      if (!this.restoredClosedTab && !this._privateBrowsing.transitionMode &&
-#endif
           this._lastOpenedTab == tab && tab._tabViewTabItem) {
         tab._tabViewTabItem.zoomIn(true);
         this._lastOpenedTab = null;
@@ -1031,9 +962,6 @@ let UI = {
       "fullScreen",
 #endif
       "closeWindow", "tabview", "undoCloseTab", "undoCloseWindow"
-#ifndef MOZ_PER_WINDOW_PRIVATE_BROWSING
-      , "privatebrowsing"
-#endif
     ].forEach(function(key) {
       let element = gWindow.document.getElementById("key_" + key);
       let code = element.getAttribute("key").toLocaleLowerCase().charCodeAt(0);

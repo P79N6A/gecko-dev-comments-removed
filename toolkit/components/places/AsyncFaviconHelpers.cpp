@@ -19,9 +19,6 @@
 #include "nsStreamUtils.h"
 #include "nsIPrivateBrowsingChannel.h"
 #include <algorithm>
-#if !(defined(MOZ_PER_WINDOW_PRIVATE_BROWSING)) && defined(DEBUG)
-#include "nsIPrivateBrowsingService.h"
-#endif
 
 using namespace mozilla::places;
 using namespace mozilla::storage;
@@ -455,30 +452,6 @@ AsyncFetchAndSetIconForPage::AsyncFetchAndSetIconForPage(
   , mPage(aPage)
   , mFaviconLoadPrivate(aFaviconLoadType == nsIFaviconService::FAVICON_LOAD_PRIVATE)
 {
-#if !(defined(MOZ_PER_WINDOW_PRIVATE_BROWSING)) && defined(DEBUG)
-  
-  
-  
-  nsCOMPtr<nsIPrivateBrowsingService> pbService =
-    do_GetService(NS_PRIVATE_BROWSING_SERVICE_CONTRACTID);
-  if (pbService) {
-    bool inPrivateBrowsing = false;
-    if (NS_SUCCEEDED(pbService->GetPrivateBrowsingEnabled(&inPrivateBrowsing))) {
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      MOZ_ASSERT_IF(inPrivateBrowsing && !mFaviconLoadPrivate, false);
-      NS_ASSERTION(inPrivateBrowsing == mFaviconLoadPrivate,
-                   "The favicon load flag and the global PB flag do not match");
-    }
-  }
-#endif
 }
 
 AsyncFetchAndSetIconForPage::~AsyncFetchAndSetIconForPage()

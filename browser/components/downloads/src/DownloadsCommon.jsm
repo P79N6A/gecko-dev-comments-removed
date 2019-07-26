@@ -186,15 +186,11 @@ this.DownloadsCommon = {
 
 
   getData: function DC_getData(aWindow) {
-#ifdef MOZ_PER_WINDOW_PRIVATE_BROWSING
     if (PrivateBrowsingUtils.isWindowPrivate(aWindow)) {
       return PrivateDownloadsData;
     } else {
       return DownloadsData;
     }
-#else
-    return DownloadsData;
-#endif
   },
 
   
@@ -239,15 +235,11 @@ this.DownloadsCommon = {
 
 
   getIndicatorData: function DC_getIndicatorData(aWindow) {
-#ifdef MOZ_PER_WINDOW_PRIVATE_BROWSING
     if (PrivateBrowsingUtils.isWindowPrivate(aWindow)) {
       return PrivateDownloadsIndicatorData;
     } else {
       return DownloadsIndicatorData;
     }
-#else
-    return DownloadsIndicatorData;
-#endif
   },
 
   
@@ -262,7 +254,6 @@ this.DownloadsCommon = {
 
   getSummary: function DC_getSummary(aWindow, aNumToExclude)
   {
-#ifdef MOZ_PER_WINDOW_PRIVATE_BROWSING
     if (PrivateBrowsingUtils.isWindowPrivate(aWindow)) {
       if (this._privateSummary) {
         return this._privateSummary;
@@ -274,12 +265,6 @@ this.DownloadsCommon = {
       }
       return this._summary = new DownloadsSummaryData(false, aNumToExclude);
     }
-#else
-    if (this._summary) {
-      return this._summary;
-    }
-    return this._summary = new DownloadsSummaryData(false, aNumToExclude);
-#endif
   },
   _summary: null,
   _privateSummary: null,
@@ -559,12 +544,6 @@ function DownloadsDataCtor(aPrivate) {
   
   this.dataItems = {};
 
-#ifndef MOZ_PER_WINDOW_PRIVATE_BROWSING
-  
-  
-  this._persistentDataItems = {};
-#endif
-
   
   
   this._views = [];
@@ -585,10 +564,6 @@ DownloadsDataCtor.prototype = {
     
     aDownloadManagerService.addPrivacyAwareListener(this);
     Services.obs.addObserver(this, "download-manager-remove-download-guid", false);
-#ifndef MOZ_PER_WINDOW_PRIVATE_BROWSING
-    Services.obs.addObserver(this, "download-manager-database-type-changed",
-                             false);
-#endif
   },
 
   
@@ -599,9 +574,6 @@ DownloadsDataCtor.prototype = {
     this._terminateDataAccess();
 
     
-#ifndef MOZ_PER_WINDOW_PRIVATE_BROWSING
-    Services.obs.removeObserver(this, "download-manager-database-type-changed");
-#endif
     Services.obs.removeObserver(this, "download-manager-remove-download-guid");
     Services.downloads.removeListener(this);
   },
@@ -917,26 +889,6 @@ DownloadsDataCtor.prototype = {
           }
         }
         break;
-
-#ifndef MOZ_PER_WINDOW_PRIVATE_BROWSING
-      case "download-manager-database-type-changed":
-        let pbs = Cc["@mozilla.org/privatebrowsing;1"]
-                  .getService(Ci.nsIPrivateBrowsingService);
-        if (pbs.privateBrowsingEnabled) {
-          
-          this._persistentDataItems = this.dataItems;
-          this.clear();
-        } else {
-          
-          this.clear();
-          this.dataItems = this._persistentDataItems;
-          this._persistentDataItems = null;
-        }
-        
-        
-        this._views.forEach(this._updateView, this);
-        break;
-#endif
     }
   },
 
@@ -945,13 +897,11 @@ DownloadsDataCtor.prototype = {
 
   onDownloadStateChange: function DD_onDownloadStateChange(aOldState, aDownload)
   {
-#ifdef MOZ_PER_WINDOW_PRIVATE_BROWSING
     if (aDownload.isPrivate != this._isPrivate) {
       
       
       return;
     }
-#endif
 
     
     
@@ -1031,13 +981,11 @@ DownloadsDataCtor.prototype = {
                                                   aCurTotalProgress,
                                                   aMaxTotalProgress, aDownload)
   {
-#ifdef MOZ_PER_WINDOW_PRIVATE_BROWSING
     if (aDownload.isPrivate != this._isPrivate) {
       
       
       return;
     }
-#endif
 
     let dataItem = this._getOrAddDataItem(aDownload, false);
     if (!dataItem) {

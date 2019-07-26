@@ -436,10 +436,6 @@ function Startup()
   let obs = Cc["@mozilla.org/observer-service;1"].
             getService(Ci.nsIObserverService);
   obs.addObserver(gDownloadObserver, "download-manager-remove-download", false);
-#ifndef MOZ_PER_WINDOW_PRIVATE_BROWSING
-  obs.addObserver(gDownloadObserver, "private-browsing", false);
-  obs.addObserver(gDownloadObserver, "private-browsing-change-granted", false);
-#endif
   obs.addObserver(gDownloadObserver, "browser-lastwindow-close-granted", false);
 
   
@@ -464,10 +460,6 @@ function Shutdown()
 
   let obs = Cc["@mozilla.org/observer-service;1"].
             getService(Ci.nsIObserverService);
-#ifndef MOZ_PER_WINDOW_PRIVATE_BROWSING
-  obs.removeObserver(gDownloadObserver, "private-browsing");
-  obs.removeObserver(gDownloadObserver, "private-browsing-change-granted");
-#endif
   obs.removeObserver(gDownloadObserver, "download-manager-remove-download");
   obs.removeObserver(gDownloadObserver, "browser-lastwindow-close-granted");
 
@@ -492,35 +484,6 @@ let gDownloadObserver = {
         let dl = getDownload(id.data);
         removeFromView(dl);
         break;
-#ifndef MOZ_PER_WINDOW_PRIVATE_BROWSING
-      case "private-browsing-change-granted":
-        
-        
-        gStmt.finalize();
-        gStmt = null;
-        break;
-      case "private-browsing":
-        if (aData == "enter" || aData == "exit") {
-          
-          
-          
-          
-          
-          
-          
-          document.title = document.documentElement.getAttribute("statictitle");
-
-          
-          
-          
-          
-          setTimeout(function() {
-            initStatement();
-            buildDownloadList(true);
-          }, 0);
-        }
-        break;
-#endif
       case "browser-lastwindow-close-granted":
 #ifndef XP_MACOSX
         if (gDownloadManager.activeDownloadCount == 0) {
@@ -1351,12 +1314,6 @@ function getDownload(aID)
 {
   return document.getElementById("dl" + aID);
 }
-
-
-
-
-
-
 
 
 
