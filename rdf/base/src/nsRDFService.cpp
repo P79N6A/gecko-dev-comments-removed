@@ -70,6 +70,10 @@ static NS_DEFINE_IID(kIRDFIntIID,         NS_IRDFINT_IID);
 static NS_DEFINE_IID(kIRDFNodeIID,            NS_IRDFNODE_IID);
 static NS_DEFINE_IID(kISupportsIID,           NS_ISUPPORTS_IID);
 
+#ifdef PR_LOGGING
+static PRLogModuleInfo* gLog = nullptr;
+#endif
+
 class BlobImpl;
 
 
@@ -723,10 +727,6 @@ IntImpl::EqualsInt(nsIRDFInt* intValue, bool* result)
 
 
 
-
-#ifdef PR_LOGGING
-PRLogModuleInfo* RDFServiceImpl::gLog;
-#endif
 
 RDFServiceImpl*
 RDFServiceImpl::gRDFService;
