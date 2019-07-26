@@ -102,7 +102,8 @@ struct nsWidgetInitData {
       mRTL(false),
       mNoAutoHide(false),
       mIsDragPopup(false),
-      mIsAnimationSuppressed(false)
+      mIsAnimationSuppressed(false),
+      mSupportTranslucency(false)
   {
   }
 
@@ -117,8 +118,10 @@ struct nsWidgetInitData {
   bool          mRTL;
   bool          mNoAutoHide; 
   bool          mIsDragPopup;  
-  bool          mIsAnimationSuppressed;  
-                                         
+  
+  bool          mIsAnimationSuppressed;
+  
+  bool          mSupportTranslucency;
 };
 
 #endif 

@@ -3466,18 +3466,13 @@ nsWindow::Create(nsIWidget        *aParent,
             mShell = gtk_window_new(type);
             gtk_window_set_wmclass(GTK_WINDOW(mShell), "Popup",
                                    gdk_get_program_class());
-            
-            if (!aInitData->mNoAutoHide) {
+
+            if (aInitData->mSupportTranslucency) {
+                
+                
+                
+                
                 GdkScreen *screen = gtk_widget_get_screen(mShell);
-                
-                
-                
-                
-                
-                
-                
-                
-                
                 if (gdk_screen_is_composited(screen)) {
 #if defined(MOZ_WIDGET_GTK2)
                     GdkColormap *colormap =
@@ -3488,7 +3483,8 @@ nsWindow::Create(nsIWidget        *aParent,
                     gtk_widget_set_visual(mShell, visual);
 #endif
                 }
-            } else {
+            }
+            if (aInitData->mNoAutoHide) {
                 
                 
                 if (mBorderStyle == eBorderStyle_default) {
