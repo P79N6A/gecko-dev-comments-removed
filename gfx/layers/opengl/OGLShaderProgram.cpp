@@ -2,7 +2,7 @@
 
 
 
-#include "LayerManagerOGLProgram.h"
+#include "OGLShaderProgram.h"
 #include <stdint.h>                     
 #include "gfxMatrix.h"                  
 #include "gfxPoint.h"                   
@@ -12,7 +12,7 @@
 #include "nsAutoPtr.h"                  
 #include "nsString.h"                   
 #include "prenv.h"                      
-#include "LayerManagerOGLShaders.h"
+#include "OGLShaders.h"
 #include "Layers.h"
 #include "GLContext.h"
 

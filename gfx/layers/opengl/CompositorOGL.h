@@ -8,7 +8,7 @@
 
 #include "GLContextTypes.h"             
 #include "GLDefs.h"                     
-#include "LayerManagerOGLProgram.h"     
+#include "OGLShaderProgram.h"           
 #include "Units.h"                      
 #include "mozilla/Assertions.h"         
 #include "mozilla/Attributes.h"         

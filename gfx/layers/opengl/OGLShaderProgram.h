@@ -3,8 +3,8 @@
 
 
 
-#ifndef GFX_LAYERMANAGEROGLPROGRAM_H
-#define GFX_LAYERMANAGEROGLPROGRAM_H
+#ifndef GFX_OGLSHADERPROGRAM_H
+#define GFX_OGLSHADERPROGRAM_H
 
 #include "GLDefs.h"                     
 #include "gfx3DMatrix.h"                
