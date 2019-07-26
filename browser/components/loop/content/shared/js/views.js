@@ -6,7 +6,7 @@
 
 var loop = loop || {};
 loop.shared = loop.shared || {};
-loop.shared.views = (function(OT) {
+loop.shared.views = (function(_, OT, l10n) {
   "use strict";
 
   var sharedModels = loop.shared.models;
@@ -14,7 +14,36 @@ loop.shared.views = (function(OT) {
   
 
 
-  var BaseView = Backbone.View.extend({
+  var L10nView = (function() {
+    var L10nViewImpl = Backbone.View.extend(),
+        extend       = L10nViewImpl.extend;
+
+    
+    
+    L10nViewImpl.extend = function() {
+      var ExtendedView = extend.apply(this, arguments),
+          render       = ExtendedView.prototype.render;
+
+      
+      
+      ExtendedView.prototype.render = function() {
+        if (render) {
+          render.apply(this, arguments);
+          l10n.translate(this.el);
+        }
+        return this;
+      };
+
+      return ExtendedView;
+    };
+
+    return L10nViewImpl;
+  })();
+
+  
+
+
+  var BaseView = L10nView.extend({
     
 
 
@@ -33,6 +62,21 @@ loop.shared.views = (function(OT) {
     show: function() {
       this.$el.show();
       return this;
+    },
+
+    
+
+
+
+
+
+
+
+    render: function() {
+      if (this.template) {
+        this.$el.html(this.template());
+      }
+      return this;
     }
   });
 
@@ -40,7 +84,21 @@ loop.shared.views = (function(OT) {
 
 
   var ConversationView = BaseView.extend({
-    el: "#conversation",
+    className: "conversation",
+
+    template: _.template([
+      '<nav class="controls">',
+      '  <button class="btn stop" data-l10n-id="stop"></button>',
+      '</nav>',
+      '<div class="media nested">',
+      
+      
+      
+      
+      '  <div class="remote"><div class="incoming"></div></div>',
+      '  <div class="local"><div class="outgoing"></div></div>',
+      '</div>'
+    ].join("")),
 
     
     
@@ -59,13 +117,11 @@ loop.shared.views = (function(OT) {
         throw new Error("missing required sdk");
       }
       this.sdk = options.sdk;
-      
-      
-      
-      this.session   = this.sdk.initSession(this.model.get("sessionId"));
-      this.publisher = this.sdk.initPublisher(this.model.get("apiKey"),
-                                              "outgoing", this.videoStyles);
 
+      
+      
+      
+      this.session = this.sdk.initSession(this.model.get("sessionId"));
       this.session.connect(this.model.get("apiKey"),
                            this.model.get("sessionToken"));
 
@@ -91,6 +147,8 @@ loop.shared.views = (function(OT) {
 
 
     _sessionConnected: function(event) {
+      this.publisher = this.sdk.initPublisher(this.$(".outgoing").get(0),
+                                              this.videoStyles);
       this.session.publish(this.publisher);
     },
 
@@ -149,19 +207,30 @@ loop.shared.views = (function(OT) {
 
 
     _subscribeToStreams: function(streams) {
+      var incomingContainer = this.$(".incoming").get(0);
       streams.forEach(function(stream) {
         if (stream.connection.connectionId !==
             this.session.connection.connectionId) {
-          this.session.subscribe(stream, "incoming", this.videoStyles);
+          this.session.subscribe(stream, incomingContainer, this.videoStyles);
         }
       }.bind(this));
+    },
+
+    
+
+
+
+
+    render: function() {
+      this.$el.html(this.template(this.model.toJSON()));
+      return this;
     }
   });
 
   
 
 
-  var NotificationView = Backbone.View.extend({
+  var NotificationView = BaseView.extend({
     template: _.template([
       '<div class="alert alert-<%- level %>">',
       '  <button class="close"></button>',
@@ -260,9 +329,10 @@ loop.shared.views = (function(OT) {
   });
 
   return {
+    L10nView: L10nView,
     BaseView: BaseView,
     ConversationView: ConversationView,
     NotificationListView: NotificationListView,
     NotificationView: NotificationView
   };
-})(window.OT);
+})(_, window.OT, document.webL10n || document.mozL10n);
