@@ -1,3 +1,7 @@
+
+
+
+
 import unittest
 
 import os, sys, os.path, time
@@ -5,7 +9,8 @@ from tempfile import mkdtemp
 from shutil import rmtree
 import mozunit
 
-from buildlist import addEntriesToListFile
+from mozbuild.action.buildlist import addEntriesToListFile
+
 
 class TestBuildList(unittest.TestCase):
   """
