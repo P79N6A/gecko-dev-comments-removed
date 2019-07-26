@@ -489,6 +489,7 @@
        this._handle = null;
        this._path = path;
        this._started = false;
+       this._closed = false;
      };
      File.DirectoryIterator.prototype = Object.create(exports.OS.Shared.AbstractFile.AbstractIterator.prototype);
 
@@ -498,6 +499,12 @@
 
 
      File.DirectoryIterator.prototype._next = function _next() {
+        
+        
+        if (this._closed) {
+          return null;
+        }
+
          
          
          if (!this._started) {
@@ -513,11 +520,6 @@
               }
             }
             return gFindData;
-         }
-
-         
-         if (!this._handle) {
-           return null;
          }
 
          if (WinFile.FindNextFile(this._handle, gFindDataPtr)) {
@@ -555,14 +557,21 @@
          }
          throw StopIteration;
      };
+
      File.DirectoryIterator.prototype.close = function close() {
-       if (!this._handle) {
+       if (this._closed) {
          return;
        }
-       throw_on_zero("FindClose",
-         WinFile.FindClose(this._handle));
-       this._handle = null;
+       this._closed = true;
+       if (this._handle) {
+         
+         
+         throw_on_zero("FindClose",
+           WinFile.FindClose(this._handle));
+         this._handle = null;
+       }
      };
+
      File.DirectoryIterator.Entry = function Entry(win_entry, parent) {
        
        
