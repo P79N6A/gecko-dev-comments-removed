@@ -1639,6 +1639,15 @@ abstract public class BrowserApp extends GeckoApp
         showHomePagerWithAnimator(page, null);
     }
 
+    @Override
+    public void onLocaleReady(final String locale) {
+        super.onLocaleReady(locale);
+        if (mHomePager != null) {
+            
+            mHomePager.redisplay(getSupportFragmentManager());
+        }
+    }
+
     private void showHomePagerWithAnimator(HomePager.Page page, PropertyAnimator animator) {
         if (isHomePagerVisible()) {
             return;

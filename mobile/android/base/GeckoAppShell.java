@@ -1586,44 +1586,6 @@ public class GeckoAppShell
         }
     }
 
-    public static void setSelectedLocale(String localeCode) {
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    }
-
-
     @WrapElementForJNI(stubName = "GetSystemColoursWrapper")
     public static int[] getSystemColors() {
         

@@ -715,6 +715,8 @@ public abstract class GeckoApp
                 GeckoAppShell.openUriExternal(message.optString("url"),
                     message.optString("mime"), message.optString("packageName"),
                     message.optString("className"), message.optString("action"), message.optString("title"));
+            } else if (event.equals("Locale:Set")) {
+                setLocale(message.getString("locale"));
             }
         } catch (Exception e) {
             Log.e(LOGTAG, "Exception handling message \"" + event + "\":", e);
@@ -1205,17 +1207,6 @@ public abstract class GeckoApp
             Log.e(LOGTAG, "Exception starting favicon cache. Corrupt resources?", e);
         }
 
-        
-        
-        
-        
-        
-        if (((GeckoApplication)getApplication()).needsRestart()) {
-            doRestart();
-            System.exit(0);
-            return;
-        }
-
         if (GeckoThread.isCreated()) {
             
             
@@ -1291,6 +1282,10 @@ public abstract class GeckoApp
             public void run() {
                 final SharedPreferences prefs = GeckoApp.getAppSharedPreferences();
 
+                
+                
+                LocaleManager.setContextGetter(GeckoApp.this);
+
                 SessionInformation previousSession = SessionInformation.fromSharedPrefs(prefs);
                 if (previousSession.wasKilled()) {
                     Telemetry.HistogramAdd("FENNEC_WAS_KILLED", 1);
@@ -1311,22 +1306,58 @@ public abstract class GeckoApp
                 final String profilePath = getProfile().getDir().getAbsolutePath();
                 final EventDispatcher dispatcher = GeckoAppShell.getEventDispatcher();
                 Log.i(LOGTAG, "Creating BrowserHealthRecorder.");
-                final String osLocale = Locale.getDefault().toString();
-                Log.d(LOGTAG, "Locale is " + osLocale);
 
-                
-                
+                final String osLocale = Locale.getDefault().toString();
+                String appLocale = LocaleManager.getAndApplyPersistedLocale();
+                Log.d(LOGTAG, "OS locale is " + osLocale + ", app locale is " + appLocale);
+
+                if (appLocale == null) {
+                    appLocale = osLocale;
+                }
+
                 mHealthRecorder = new BrowserHealthRecorder(GeckoApp.this,
                                                             profilePath,
                                                             dispatcher,
                                                             osLocale,
-                                                            osLocale,    
+                                                            appLocale,
                                                             previousSession);
+
+                final String uiLocale = appLocale;
+                ThreadUtils.postToUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        GeckoApp.this.onLocaleReady(uiLocale);
+                    }
+                });
             }
         });
 
         GeckoAppShell.setNotificationClient(makeNotificationClient());
         NotificationHelper.init(getApplicationContext());
+    }
+
+    
+
+
+
+
+
+    @Override
+    public void onLocaleReady(final String locale) {
+        if (!ThreadUtils.isOnUiThread()) {
+            throw new RuntimeException("onLocaleReady must always be called from the UI thread.");
+        }
+
+        
+        TextView urlBar = (TextView) findViewById(R.id.url_bar_title);
+        if (urlBar == null) {
+            return;
+        }
+        final String hint = getResources().getString(R.string.url_bar_default_text);
+        urlBar.setHint(hint);
+
+        
+        onConfigurationChanged(getResources().getConfiguration());
     }
 
     protected void initializeChrome() {
@@ -1538,6 +1569,7 @@ public abstract class GeckoApp
         registerEventListener("Contact:Add");
         registerEventListener("Intent:Open");
         registerEventListener("Intent:GetHandlers");
+        registerEventListener("Locale:Set");
 
         if (SmsManager.getInstance() != null) {
           SmsManager.getInstance().start();
@@ -1591,23 +1623,6 @@ public abstract class GeckoApp
                 
                 GeckoPreferences.broadcastAnnouncementsPref(context);
                 GeckoPreferences.broadcastHealthReportUploadPref(context);
-
-                
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
                 if (!GeckoThread.checkLaunchState(GeckoThread.LaunchState.Launched)) {
                     return;
                 }
@@ -2152,6 +2167,8 @@ public abstract class GeckoApp
 
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
+        Log.d(LOGTAG, "onConfigurationChanged: " + newConfig.locale);
+        LocaleManager.correctLocale(getResources(), newConfig);
         super.onConfigurationChanged(newConfig);
 
         if (mOrientation != newConfig.orientation) {
@@ -2736,5 +2753,53 @@ public abstract class GeckoApp
             Log.wtf(LOGTAG, getPackageName() + " not found", e);
         }
         return versionCode;
+    }
+
+    
+    
+    private static final String SESSION_END_LOCALE_CHANGED = "L";
+
+    
+
+
+
+    private void setLocale(final String locale) {
+        if (locale == null) {
+            return;
+        }
+        final String resultant = LocaleManager.setSelectedLocale(locale);
+        if (resultant == null) {
+            return;
+        }
+
+        final BrowserHealthRecorder rec = mHealthRecorder;
+        if (rec == null) {
+            return;
+        }
+
+        final boolean startNewSession = true;
+        final boolean shouldRestart = false;
+        rec.onAppLocaleChanged(resultant);
+        rec.onEnvironmentChanged(startNewSession, SESSION_END_LOCALE_CHANGED);
+
+        if (!shouldRestart) {
+            ThreadUtils.postToUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    GeckoApp.this.onLocaleReady(resultant);
+                }
+            });
+            return;
+        }
+
+        
+        
+        ThreadUtils.postToBackgroundThread(new Runnable() {
+            @Override
+            public void run() {
+                GeckoApp.this.doRestart();
+                GeckoApp.this.finish();
+            }
+        });
     }
 }
