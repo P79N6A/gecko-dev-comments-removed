@@ -7159,6 +7159,36 @@ IonBuilder::jsop_getelem_dense(MDefinition *obj, MDefinition *index)
         JS_ASSERT(knownType == JSVAL_TYPE_UNKNOWN);
     }
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (executionMode == ParallelExecution &&
+        barrier &&
+        types->getKnownTypeTag() == JSVAL_TYPE_INT32 &&
+        objTypes &&
+        objTypes->convertDoubleElements(constraints()) == types::TemporaryTypeSet::AlwaysConvertToDoubles)
+    {
+        
+        types = alloc_->lifoAlloc()->new_<types::TemporaryTypeSet>(types::Type::DoubleType());
+        if (!types)
+            return false;
+
+        barrier = false; 
+    }
+
     if (knownType != JSVAL_TYPE_UNKNOWN)
         load->setResultType(MIRTypeFromValueType(knownType));
 
