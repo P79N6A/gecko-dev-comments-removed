@@ -440,13 +440,12 @@ private:
   
   
   
-  nsresult ConstructDocElementFrame(Element*                 aDocElement,
-                                    nsILayoutHistoryState*   aFrameState,
-                                    nsIFrame**               aNewFrame);
+  nsIFrame* ConstructDocElementFrame(Element*                 aDocElement,
+                                     nsILayoutHistoryState*   aFrameState);
 
   
   
-  nsresult SetUpDocElementContainingBlock(nsIContent* aDocElement);
+  void SetUpDocElementContainingBlock(nsIContent* aDocElement);
 
   
 
