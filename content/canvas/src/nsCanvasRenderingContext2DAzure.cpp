@@ -882,6 +882,11 @@ nsCanvasRenderingContext2DAzure::EnsureTarget()
     mTarget->ClearRect(mgfx::Rect(Point(0, 0), Size(mWidth, mHeight)));
     
     
+    if (mCanvasElement) {
+      mCanvasElement->InvalidateCanvas();
+    }
+    
+    
     Redraw();
   } else {
     EnsureErrorTarget();
