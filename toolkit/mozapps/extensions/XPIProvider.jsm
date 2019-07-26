@@ -3625,8 +3625,9 @@ var XPIProvider = {
 
 
 
+
+
   loadBootstrapScope: function XPI_loadBootstrapScope(aId, aFile, aVersion, aType) {
-    LOG("Loading bootstrap scope from " + aFile.path);
     
     this.bootstrappedAddons[aId] = {
       version: aVersion,
@@ -3634,6 +3635,14 @@ var XPIProvider = {
       descriptor: aFile.persistentDescriptor
     };
     this.addAddonsToCrashReporter();
+
+    
+    if (aType == "locale") {
+      this.bootstrapScopes[aId] = null;
+      return;
+    }
+
+    LOG("Loading bootstrap scope from " + aFile.path);
 
     let principal = Cc["@mozilla.org/systemprincipal;1"].
                     createInstance(Ci.nsIPrincipal);
@@ -3722,13 +3731,12 @@ var XPIProvider = {
 
     try {
       
-      
-      if (aType == "locale")
-         return;
-
-      
       if (!(aId in this.bootstrapScopes))
         this.loadBootstrapScope(aId, aFile, aVersion, aType);
+
+      
+      if (aType == "locale")
+        return;
 
       if (!(aMethod in this.bootstrapScopes[aId])) {
         WARN("Add-on " + aId + " is missing bootstrap method " + aMethod);
