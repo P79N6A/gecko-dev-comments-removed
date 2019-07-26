@@ -30,7 +30,15 @@ function run_test() {
   }
   do_check_eq(gUpdateManager.activeUpdate.state, STATE_DOWNLOADING);
 
-  do_test_finished();
+  
+  
+  
+  gAUS.pauseDownload();
+  writeUpdatesToXMLFile(getLocalUpdatesXMLString(""), true);
+  writeUpdatesToXMLFile(getLocalUpdatesXMLString(""), false);
+  reloadUpdateManagerData();
+
+  do_timeout(TEST_CHECK_TIMEOUT, do_test_finished);
 }
 
 function end_test() {
