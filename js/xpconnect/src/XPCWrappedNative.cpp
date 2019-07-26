@@ -27,6 +27,7 @@
 
 using namespace xpc;
 using namespace mozilla;
+using namespace mozilla::dom;
 
 bool
 xpc_OkToHandOutWrapper(nsWrapperCache *cache)
@@ -1665,26 +1666,8 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCCallContext& ccx,
 
 
 
-bool
-XPCWrappedNative::IsOrphan()
-{
-    JSObject *parent = js::GetObjectParent(mFlatJSObject);
-
-    
-    
-    if (!parent)
-        return false;
-
-    
-    return js::IsCrossCompartmentWrapper(parent);
-}
-
-
-
-
-
-nsresult
-XPCWrappedNative::RescueOrphans(XPCCallContext& ccx)
+static nsresult
+RescueOrphans(XPCCallContext& ccx, JSObject* obj)
 {
     
     
@@ -1698,7 +1681,7 @@ XPCWrappedNative::RescueOrphans(XPCCallContext& ccx)
     
     
     nsresult rv;
-    JSObject *parentObj = js::GetObjectParent(mFlatJSObject);
+    JSObject *parentObj = js::GetObjectParent(obj);
     if (!parentObj)
         return NS_OK; 
     parentObj = js::UnwrapObject(parentObj,  false);
@@ -1706,7 +1689,8 @@ XPCWrappedNative::RescueOrphans(XPCCallContext& ccx)
     
     js::AutoMaybeTouchDeadCompartments agc(parentObj);
 
-    
+    bool isWN = IS_WRAPPER_CLASS(js::GetObjectClass(obj));
+
     
     
     
@@ -1714,36 +1698,56 @@ XPCWrappedNative::RescueOrphans(XPCCallContext& ccx)
     
     
     if (MOZ_UNLIKELY(JS_IsDeadWrapper(parentObj))) {
-        rv = mScriptableInfo->GetCallback()->PreCreate(mIdentity, ccx,
-                                                       GetScope()->GetGlobalJSObject(),
-                                                       &parentObj);
-        NS_ENSURE_SUCCESS(rv, rv);
+        if (isWN) {
+            XPCWrappedNative *wn =
+                static_cast<XPCWrappedNative*>(js::GetObjectPrivate(obj));
+            rv = wn->GetScriptableInfo()->GetCallback()->PreCreate(wn->GetIdentityObject(), ccx,
+                                                           wn->GetScope()->GetGlobalJSObject(),
+                                                           &parentObj);
+            NS_ENSURE_SUCCESS(rv, rv);
+        } else {
+            MOZ_ASSERT(IsDOMObject(obj));
+            const DOMClass* domClass = GetDOMClass(obj);
+            parentObj = domClass->mGetParent(ccx, obj);
+        }
     }
 
     
-    MOZ_ASSERT(IS_WRAPPER_CLASS(js::GetObjectClass(parentObj)));
-    if (IS_SLIM_WRAPPER_OBJECT(parentObj)) {
+    if (IS_SLIM_WRAPPER(parentObj)) {
         bool ok = MorphSlimWrapper(ccx, parentObj);
         NS_ENSURE_TRUE(ok, NS_ERROR_FAILURE);
     }
 
     
-    XPCWrappedNative *parentWrapper =
-      static_cast<XPCWrappedNative*>(js::GetObjectPrivate(parentObj));
-    rv = parentWrapper->RescueOrphans(ccx);
+    rv = RescueOrphans(ccx, parentObj);
     NS_ENSURE_SUCCESS(rv, rv);
 
     
     
-    if (!IsOrphan())
+    if (!js::IsCrossCompartmentWrapper(parentObj))
         return NS_OK;
 
     
-    JSObject *parentGhost = js::GetObjectParent(mFlatJSObject);
-    JSObject *realParent = js::UnwrapObject(parentGhost);
-    return ReparentWrapperIfFound(ccx, GetObjectScope(parentGhost),
-                                  GetObjectScope(realParent),
-                                  realParent, mIdentity);
+    if (isWN) {
+        JSObject *realParent = js::UnwrapObject(parentObj);
+        XPCWrappedNative *wn =
+            static_cast<XPCWrappedNative*>(js::GetObjectPrivate(obj));
+        return wn->ReparentWrapperIfFound(ccx, GetObjectScope(parentObj),
+                                          GetObjectScope(realParent),
+                                          realParent, wn->GetIdentityObject());
+    }
+
+    return ReparentWrapper(ccx, obj);
+}
+
+
+
+
+
+nsresult
+XPCWrappedNative::RescueOrphans(XPCCallContext& ccx)
+{
+    return ::RescueOrphans(ccx, mFlatJSObject);
 }
 
 #define IS_TEAROFF_CLASS(clazz)                                               \

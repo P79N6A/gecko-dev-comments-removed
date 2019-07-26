@@ -12,11 +12,12 @@
 #include "BindingUtils.h"
 
 #include "AccessCheck.h"
+#include "nsContentUtils.h"
+#include "nsIXPConnect.h"
 #include "WrapperFactory.h"
 #include "xpcprivate.h"
-#include "nsContentUtils.h"
 #include "XPCQuickStubs.h"
-#include "nsIXPConnect.h"
+#include "XrayWrapper.h"
 
 namespace mozilla {
 namespace dom {
@@ -1252,6 +1253,165 @@ NativeToString(JSContext* cx, JSObject* wrapper, JSObject* obj, const char* pre,
 
   v->setString(str);
   return JS_WrapValue(cx, v);
+}
+
+
+class AutoCloneDOMObjectSlotGuard NS_STACK_CLASS
+{
+public:
+  AutoCloneDOMObjectSlotGuard(JSObject* aOld, JSObject* aNew)
+    : mOldReflector(aOld), mNewReflector(aNew)
+  {
+    MOZ_ASSERT(js::GetReservedSlot(aOld, DOM_OBJECT_SLOT) ==
+                 js::GetReservedSlot(aNew, DOM_OBJECT_SLOT));
+  }
+
+  ~AutoCloneDOMObjectSlotGuard()
+  {
+    if (js::GetReservedSlot(mOldReflector, DOM_OBJECT_SLOT).toPrivate()) {
+      js::SetReservedSlot(mNewReflector, DOM_OBJECT_SLOT,
+                          JS::PrivateValue(nullptr));
+    }
+  }
+
+private:
+  JSObject* mOldReflector;
+  JSObject* mNewReflector;
+  size_t mSlot;
+};
+
+nsresult
+ReparentWrapper(JSContext* aCx, JSObject* aObj)
+{
+  const DOMClass* domClass = GetDOMClass(aObj);
+
+  JSObject* oldParent = JS_GetParent(aObj);
+  JSObject* newParent = domClass->mGetParent(aCx, aObj);
+
+  JSAutoCompartment oldAc(aCx, oldParent);
+
+  if (js::GetObjectCompartment(oldParent) ==
+      js::GetObjectCompartment(newParent)) {
+    if (!JS_SetParent(aCx, aObj, newParent)) {
+      MOZ_CRASH();
+    }
+    return NS_OK;
+  }
+
+  nsISupports* native;
+  if (!UnwrapDOMObjectToISupports(aObj, native)) {
+    return NS_OK;
+  }
+
+  
+  
+  
+  JSObject* ww = xpc::WrapperFactory::WrapForSameCompartment(aCx, aObj);
+  if (!ww) {
+    return NS_ERROR_FAILURE;
+  }
+
+  JSAutoCompartment newAc(aCx, newParent);
+
+  
+  
+  
+  
+
+  JSObject *proto =
+    (domClass->mGetProto)(aCx,
+                          js::GetGlobalForObjectCrossCompartment(newParent));
+  if (!proto) {
+    return NS_ERROR_FAILURE;
+  }
+
+  JSObject *newobj = JS_CloneObject(aCx, aObj, proto, newParent);
+  if (!newobj) {
+    return NS_ERROR_FAILURE;
+  }
+
+  js::SetReservedSlot(newobj, DOM_OBJECT_SLOT,
+                      js::GetReservedSlot(aObj, DOM_OBJECT_SLOT));
+
+  
+  
+  
+  
+  
+  
+  JSObject *propertyHolder;
+  {
+    AutoCloneDOMObjectSlotGuard cloneGuard(aObj, newobj);
+
+    propertyHolder = JS_NewObjectWithGivenProto(aCx, nullptr, nullptr,
+                                                newParent);
+    if (!propertyHolder) {
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
+
+    if (!JS_CopyPropertiesFrom(aCx, propertyHolder, aObj)) {
+      return NS_ERROR_FAILURE;
+    }
+
+    
+    
+    SetXrayExpandoChain(newobj, nullptr);
+    if (!xpc::XrayUtils::CloneExpandoChain(aCx, newobj, aObj)) {
+      return NS_ERROR_FAILURE;
+    }
+
+    
+    
+    
+    
+    
+    
+    js::SetReservedSlot(aObj, DOM_OBJECT_SLOT, JS::PrivateValue(nullptr));
+  }
+
+  nsWrapperCache* cache = nullptr;
+  CallQueryInterface(native, &cache);
+  if (ww != aObj) {
+    MOZ_ASSERT(cache->HasSystemOnlyWrapper());
+
+    JSObject *newwrapper =
+      xpc::WrapperFactory::WrapSOWObject(aCx, newobj);
+    if (!newwrapper) {
+      MOZ_CRASH();
+    }
+
+    
+    ww = xpc::TransplantObjectWithWrapper(aCx, aObj, ww, newobj, newwrapper);
+    if (!ww) {
+      MOZ_CRASH();
+    }
+
+    aObj = newobj;
+    SetSystemOnlyWrapperSlot(aObj, JS::ObjectValue(*ww));
+  } else {
+    aObj = xpc::TransplantObject(aCx, aObj, newobj);
+    if (!aObj) {
+      MOZ_CRASH();
+    }
+  }
+
+  bool preserving = cache->PreservingWrapper();
+  cache->SetPreservingWrapper(false);
+  cache->SetWrapper(aObj);
+  cache->SetPreservingWrapper(preserving);
+  if (!JS_CopyPropertiesFrom(aCx, aObj, propertyHolder)) {
+    MOZ_CRASH();
+  }
+
+  
+
+  
+
+  if (newParent && !JS_SetParent(aCx, aObj, newParent)) {
+    MOZ_CRASH();
+  }
+
+  return NS_OK;
 }
 
 } 

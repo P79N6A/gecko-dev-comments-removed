@@ -135,6 +135,9 @@ enum DOMObjectType {
   eInterfacePrototype
 };
 
+typedef JSObject* (*ParentGetter)(JSContext* aCx, JSObject* aObj);
+typedef JSObject* (*ProtoGetter)(JSContext* aCx, JSObject* aGlobal);
+
 struct DOMClass
 {
   
@@ -148,6 +151,9 @@ struct DOMClass
   const bool mDOMObjectIsISupports;
 
   const NativePropertyHooks* mNativeHooks;
+
+  ParentGetter mGetParent;
+  ProtoGetter mGetProto;
 
   
   
