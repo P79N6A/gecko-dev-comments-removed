@@ -113,6 +113,14 @@ void AudioBlockCopyChannelWithScale(const float aInput[WEBAUDIO_BLOCK_SIZE],
 
 
 
+void BufferComplexMultiply(const float* aInput,
+                           const float* aScale,
+                           float* aOutput,
+                           uint32_t aSize);
+
+
+
+
 void AudioBlockInPlaceScale(float aBlock[WEBAUDIO_BLOCK_SIZE],
                             uint32_t aChannelCount,
                             float aScale);
