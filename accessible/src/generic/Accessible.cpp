@@ -622,10 +622,16 @@ Accessible::VisibilityState()
       return states::INVISIBLE;
 
     
+    
     nsIFrame* parentFrame = curFrame->GetParent();
     nsDeckFrame* deckFrame = do_QueryFrame(parentFrame);
-    if (deckFrame && deckFrame->GetSelectedBox() != curFrame)
-      return states::OFFSCREEN;
+    if (deckFrame && deckFrame->GetSelectedBox() != curFrame) {
+      if (deckFrame->GetContent()->IsXUL() &&
+          deckFrame->GetContent()->Tag() == nsGkAtoms::tabpanels)
+        return states::OFFSCREEN;
+
+      return states::INVISIBLE;
+    }
 
     
     
