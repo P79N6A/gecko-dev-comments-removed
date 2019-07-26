@@ -4,6 +4,9 @@
 
 
 
+#ifndef MP3FrameParser_h
+#define MP3FrameParser_h
+
 #include <stdint.h>
 
 #include "mozilla/Mutex.h"
@@ -205,3 +208,5 @@ private:
 };
 
 }
+
+#endif
