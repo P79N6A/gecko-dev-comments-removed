@@ -568,7 +568,8 @@ private:
     TouchBlockState()
       :  mAllowedTouchBehaviorSet(false),
          mPreventDefault(false),
-         mPreventDefaultSet(false)
+         mPreventDefaultSet(false),
+         mSingleTapOccurred(false)
     {}
 
     
@@ -586,6 +587,9 @@ private:
 
     
     bool mPreventDefaultSet;
+
+    
+    bool mSingleTapOccurred;
   };
 
   
@@ -650,6 +654,9 @@ private:
 
   
   nsEventStatus GenerateSingleTap(const ScreenIntPoint& aPoint, mozilla::Modifiers aModifiers);
+
+  
+  void OnTouchEndOrCancel();
 
   uint64_t mLayersId;
   nsRefPtr<CompositorParent> mCompositorParent;
