@@ -804,9 +804,7 @@ pref("browser.safebrowsing.reportMalwareURL", "http://%LOCALE%.malware-report.mo
 pref("browser.safebrowsing.reportMalwareErrorURL", "http://%LOCALE%.malware-error.mozilla.com/?hl=%LOCALE%");
 
 pref("browser.safebrowsing.malware.reportURL", "https://safebrowsing.google.com/safebrowsing/diagnostic?client=%NAME%&hl=%LOCALE%&site=");
-#ifndef MOZILLA_OFFICIAL
 pref("browser.safebrowsing.appRepURL", "https://sb-ssl.google.com/safebrowsing/clientreport/download&key=%GOOGLE_API_KEY%");
-#endif
 
 #ifdef MOZILLA_OFFICIAL
 
@@ -827,7 +825,12 @@ pref("urlclassifier.gethashnoise", 4);
 pref("urlclassifier.max-complete-age", 2700);
 
 pref("urlclassifier.download_block_table", "goog-badbinurl-shavar");
+#ifdef XP_WIN
+
+
+
 pref("urlclassifier.download_allow_table", "goog-downloadwhite-digest256");
+#endif
 #endif
 
 pref("browser.geolocation.warning.infoURL", "https://www.mozilla.org/%LOCALE%/firefox/geolocation/");
