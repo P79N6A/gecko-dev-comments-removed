@@ -21,6 +21,7 @@
 #include "mozilla/layers/YCbCrImageDataSerializer.h"
 #include "nsDebug.h"                    
 #include "nsTraceRefcnt.h"              
+#include "nsIMemoryReporter.h"
 
 #ifdef MOZ_ANDROID_OMTC
 #  include "gfxReusableImageSurfaceWrapper.h"
@@ -34,6 +35,72 @@ using namespace mozilla::gl;
 
 namespace mozilla {
 namespace layers {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class TextureClientReporter : public MemoryUniReporter
+{
+public:
+  TextureClientReporter(const char* name, uint32_t aKind)
+    : MemoryUniReporter(name, aKind, UNITS_BYTES,
+      "Texture data that is shared between the content process and the compositor process.")
+    , mAmount(0)
+  {}
+
+  int64_t Amount() MOZ_OVERRIDE { return mAmount; }
+
+  void Add(uint64_t val) { mAmount += val; }
+
+  void Remove(uint64_t val) { mAmount -= val; }
+
+private:
+  int64_t mAmount;
+};
+
+static TextureClientReporter* sMemoryTextureClientReporter = nullptr;
+static TextureClientReporter* sShmemTextureClientReporter = nullptr;
+
+TextureClientReporter* GetMemoryTextureReporter()
+{
+  if (!sMemoryTextureClientReporter) {
+    sMemoryTextureClientReporter
+      = new TextureClientReporter("gfx-MemoryTexture", nsIMemoryReporter::KIND_HEAP);
+    NS_RegisterMemoryReporter(sMemoryTextureClientReporter);
+  }
+  return sMemoryTextureClientReporter;
+}
+
+TextureClientReporter* GetShmemTextureReporter()
+{
+  if (!sShmemTextureClientReporter) {
+    sShmemTextureClientReporter
+      = new TextureClientReporter("gfx-ShmemTexture", nsIMemoryReporter::KIND_OTHER);
+    NS_RegisterMemoryReporter(sShmemTextureClientReporter);
+  }
+  return sShmemTextureClientReporter;
+}
 
 class ShmemTextureClientData : public TextureClientData
 {
@@ -49,9 +116,20 @@ public:
     MOZ_COUNT_CTOR(ShmemTextureClientData);
   }
 
-  virtual void DeallocateSharedData(ISurfaceAllocator* allocator)
+  virtual void DeallocateSharedData(ISurfaceAllocator* allocator) MOZ_OVERRIDE
   {
+    MOZ_ASSERT(mShmem.IsReadable());
+    GetShmemTextureReporter()->Remove(mShmem.Size<uint8_t>());
     allocator->DeallocShmem(mShmem);
+    mShmem = ipc::Shmem();
+  }
+
+  virtual void ForgetSharedData() MOZ_OVERRIDE
+  {
+    MOZ_ASSERT(mShmem.IsReadable());
+    
+    
+    GetShmemTextureReporter()->Remove(mShmem.Size<uint8_t>());
     mShmem = ipc::Shmem();
   }
 
@@ -62,8 +140,9 @@ private:
 class MemoryTextureClientData : public TextureClientData
 {
 public:
-  MemoryTextureClientData(uint8_t* aBuffer)
+  MemoryTextureClientData(uint8_t* aBuffer, uint64_t aBufferSize)
   : mBuffer(aBuffer)
+  , mBufferSize(aBufferSize)
   {
     MOZ_COUNT_CTOR(MemoryTextureClientData);
   }
@@ -74,22 +153,35 @@ public:
     MOZ_COUNT_CTOR(MemoryTextureClientData);
   }
 
-  virtual void DeallocateSharedData(ISurfaceAllocator*)
+  virtual void DeallocateSharedData(ISurfaceAllocator*) MOZ_OVERRIDE
   {
+    MOZ_ASSERT(mBuffer);
+    GetMemoryTextureReporter()->Remove(mBufferSize);
     delete[] mBuffer;
+  }
+
+  virtual void ForgetSharedData() MOZ_OVERRIDE
+  {
+    MOZ_ASSERT(mBuffer);
+    
+    
+    GetMemoryTextureReporter()->Remove(mBufferSize);
+    mBuffer = nullptr;
   }
 
 private:
   uint8_t* mBuffer;
+  uint64_t mBufferSize;
 };
 
 TextureClientData*
 MemoryTextureClient::DropTextureData()
 {
+  MOZ_ASSERT(IsValid());
   if (!mBuffer) {
     return nullptr;
   }
-  TextureClientData* result = new MemoryTextureClientData(mBuffer);
+  TextureClientData* result = new MemoryTextureClientData(mBuffer, mBufSize);
   MarkInvalid();
   mBuffer = nullptr;
   return result;
@@ -98,6 +190,7 @@ MemoryTextureClient::DropTextureData()
 TextureClientData*
 ShmemTextureClient::DropTextureData()
 {
+  MOZ_ASSERT(IsValid());
   if (!mShmem.IsReadable()) {
     return nullptr;
   }
@@ -155,6 +248,7 @@ ShmemTextureClient::Allocate(uint32_t aSize)
   MOZ_ASSERT(IsValid());
   ipc::SharedMemory::SharedMemoryType memType = OptimalShmemType();
   mAllocated = GetAllocator()->AllocUnsafeShmem(aSize, memType, &mShmem);
+  GetShmemTextureReporter()->Add(aSize);
   return mAllocated;
 }
 
@@ -187,9 +281,10 @@ ShmemTextureClient::ShmemTextureClient(CompositableClient* aCompositable,
 ShmemTextureClient::~ShmemTextureClient()
 {
   MOZ_COUNT_DTOR(ShmemTextureClient);
-  if (ShouldDeallocateInDestructor()) {
+  if (mShmem.IsReadable() && ShouldDeallocateInDestructor()) {
     
     
+    GetShmemTextureReporter()->Remove(mShmem.Size<uint8_t>());
     mCompositable->GetForwarder()->DeallocShmem(mShmem);
   }
 }
@@ -212,6 +307,7 @@ MemoryTextureClient::Allocate(uint32_t aSize)
   MOZ_ASSERT(!mBuffer);
   mBuffer = new uint8_t[aSize];
   mBufSize = aSize;
+  GetMemoryTextureReporter()->Add(aSize);
   return true;
 }
 
@@ -228,9 +324,10 @@ MemoryTextureClient::MemoryTextureClient(CompositableClient* aCompositable,
 MemoryTextureClient::~MemoryTextureClient()
 {
   MOZ_COUNT_DTOR(MemoryTextureClient);
-  if (ShouldDeallocateInDestructor()) {
+  if (mBuffer && ShouldDeallocateInDestructor()) {
     
     
+    GetMemoryTextureReporter()->Remove(mBufSize);
     delete mBuffer;
   }
 }
