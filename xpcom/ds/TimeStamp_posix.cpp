@@ -48,7 +48,6 @@
 
 #include "mozilla/TimeStamp.h"
 #include "nsCRT.h"
-#include "prenv.h"
 #include "prprf.h"
 #include "prthread.h"
 
@@ -131,9 +130,6 @@ ClockResolutionNs()
 }
 
 namespace mozilla {
-
-TimeStamp TimeStamp::sFirstTimeStamp;
-TimeStamp TimeStamp::sProcessCreation;
 
 double
 TimeDuration::ToSeconds() const
@@ -286,8 +282,8 @@ ComputeProcessUptimeThread(void *aTime)
 
 
 
-static uint64_t
-ComputeProcessUptime()
+uint64_t
+TimeStamp::ComputeProcessUptime()
 {
   uint64_t uptime = 0;
   PRThread *thread = PR_CreateThread(PR_USER_THREAD,
@@ -300,7 +296,7 @@ ComputeProcessUptime()
 
   PR_JoinThread(thread);
 
-  return uptime;
+  return uptime / kNsPerUs;
 }
 
 #elif defined(__DragonFly__) || defined(__FreeBSD__) \
@@ -309,8 +305,8 @@ ComputeProcessUptime()
 
 
 
-static uint64_t
-ComputeProcessUptime()
+uint64_t
+TimeStamp::ComputeProcessUptime()
 {
   struct timespec ts;
   int rv = clock_gettime(CLOCK_REALTIME, &ts);
@@ -345,55 +341,17 @@ ComputeProcessUptime()
   if (startTime > now)
     return 0;
 
-  return (now - startTime);
+  return (now - startTime) / kNsPerUs;
 }
 
 #else
 
-static uint64_t
-ComputeProcessUptime()
+uint64_t
+TimeStamp::ComputeProcessUptime()
 {
   return 0;
 }
 
 #endif
 
-TimeStamp
-TimeStamp::ProcessCreation(bool& aIsInconsistent)
-{
-  aIsInconsistent = false;
-
-  if (sProcessCreation.IsNull()) {
-    char *mozAppRestart = PR_GetEnv("MOZ_APP_RESTART");
-    TimeStamp ts;
-
-    if (mozAppRestart) {
-      ts = TimeStamp(nsCRT::atoll(mozAppRestart));
-    } else {
-      TimeStamp now = TimeStamp::Now();
-      uint64_t uptime = ComputeProcessUptime();
-
-      ts = now - TimeDuration::FromMicroseconds(uptime / 1000);
-
-      if ((ts > sFirstTimeStamp) || (uptime == 0)) {
-        
-        
-        aIsInconsistent = true;
-        ts = sFirstTimeStamp;
-      }
-    }
-
-    sProcessCreation = ts;
-  }
-
-  return sProcessCreation;
-}
-
-void
-TimeStamp::RecordProcessRestart()
-{
-  PR_SetEnv(PR_smprintf("MOZ_APP_RESTART=%lld", ClockTimeNs()));
-  sProcessCreation = TimeStamp();
-}
-
-}
+} 
