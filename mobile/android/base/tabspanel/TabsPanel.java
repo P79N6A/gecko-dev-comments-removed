@@ -20,6 +20,7 @@ import org.mozilla.gecko.widget.IconTabWidget;
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Rect;
+import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
@@ -140,7 +141,8 @@ public class TabsPanel extends LinearLayout
         mTabWidget.addTab(R.drawable.tabs_private, R.string.tabs_private);
 
         if (!GeckoProfile.get(mContext).inGuestMode()) {
-            mTabWidget.addTab(R.drawable.tabs_synced, R.string.tabs_synced);
+            
+            mTabWidget.addTab(R.drawable.tabs_synced_animation, R.string.tabs_synced);
         }
 
         mTabWidget.setTabSelectionListener(this);
@@ -460,5 +462,14 @@ public class TabsPanel extends LinearLayout
     private void dispatchLayoutChange(int width, int height) {
         if (mLayoutChangeListener != null)
             mLayoutChangeListener.onTabsLayoutChange(width, height);
+    }
+
+    
+
+
+
+
+    public Drawable getIconDrawable(Panel panel) {
+        return mTabWidget.getIconDrawable(panel.ordinal());
     }
 }

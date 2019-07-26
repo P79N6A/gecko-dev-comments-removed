@@ -5,17 +5,22 @@
 package org.mozilla.gecko.tabspanel;
 
 import org.mozilla.gecko.R;
+import org.mozilla.gecko.Tabs;
 import org.mozilla.gecko.TabsAccessor;
 import org.mozilla.gecko.fxa.FirefoxAccounts;
-import org.mozilla.gecko.fxa.authenticator.AndroidFxAccount;
+import org.mozilla.gecko.tabspanel.TabsPanel.Panel;
 import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.gecko.widget.GeckoSwipeRefreshLayout;
 
 import android.accounts.Account;
 import android.content.Context;
+import android.graphics.drawable.AnimationDrawable;
+import android.graphics.drawable.Drawable;
+import android.os.Handler;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.ViewGroup;
+
 
 
 
@@ -25,8 +30,16 @@ public class RemoteTabsContainerPanel extends GeckoSwipeRefreshLayout
                                  implements TabsPanel.PanelView {
     private static final String[] STAGES_TO_SYNC_ON_REFRESH = new String[] { "tabs" };
 
+    
+
+
+
+
+    private static final long MINIMUM_REFRESH_INDICATOR_DURATION_IN_MS = 12 * 100; 
+
     private final Context context;
     private final RemoteTabsSyncObserver syncListener;
+    private TabsPanel panel;
     private RemoteTabsList list;
 
     
@@ -65,12 +78,18 @@ public class RemoteTabsContainerPanel extends GeckoSwipeRefreshLayout
 
     @Override
     public void setTabsPanel(TabsPanel panel) {
+        this.panel = panel;
         list.setTabsPanel(panel);
     }
 
     @Override
     public void show() {
+        
         TabsAccessor.getTabs(context, list);
+        
+        
+        Tabs.getInstance().persistAllTabs();
+
         if (!isListening) {
             isListening = true;
             FirefoxAccounts.addSyncStatusListener(syncListener);
@@ -103,6 +122,10 @@ public class RemoteTabsContainerPanel extends GeckoSwipeRefreshLayout
     }
 
     private class RemoteTabsSyncObserver implements FirefoxAccounts.SyncStatusListener {
+        
+        
+        protected volatile long lastSyncStarted = 0;
+
         @Override
         public Context getContext() {
             return RemoteTabsContainerPanel.this.getContext();
@@ -113,16 +136,50 @@ public class RemoteTabsContainerPanel extends GeckoSwipeRefreshLayout
             return FirefoxAccounts.getFirefoxAccount(getContext());
         }
 
-        public void onSyncFinished() {
+        public void onSyncStarted() {
             ThreadUtils.postToUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    TabsAccessor.getTabs(context, list);
-                    setRefreshing(false);
+                    lastSyncStarted = System.currentTimeMillis();
+
+                    
+                    final Drawable iconDrawable = panel.getIconDrawable(Panel.REMOTE_TABS);
+                    if (iconDrawable instanceof AnimationDrawable) {
+                        ((AnimationDrawable) iconDrawable).start();
+                    }
                 }
             });
         }
 
-        public void onSyncStarted() {}
+        public void onSyncFinished() {
+            final Handler uiHandler = ThreadUtils.getUiHandler();
+
+            
+            uiHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    TabsAccessor.getTabs(context, list);
+                }
+            });
+
+            
+            
+            final long last = lastSyncStarted;
+            final long now = System.currentTimeMillis();
+            final long delay = Math.max(0, MINIMUM_REFRESH_INDICATOR_DURATION_IN_MS - (now - last));
+
+            uiHandler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    setRefreshing(false);
+
+                    
+                    final Drawable iconDrawable = panel.getIconDrawable(Panel.REMOTE_TABS);
+                    if (iconDrawable instanceof AnimationDrawable) {
+                        ((AnimationDrawable) iconDrawable).stop();
+                    }
+                }
+            }, delay);
+        }
     }
 }
