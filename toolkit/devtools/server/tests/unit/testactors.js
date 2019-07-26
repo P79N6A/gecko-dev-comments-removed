@@ -105,16 +105,7 @@ TestTabActor.prototype = {
 
   
   _createExtraActors: CommonCreateExtraActors,
-  _appendExtraActors: CommonAppendExtraActors,
-
-  
-  addToParentPool: function(aActor) {
-    this.conn.addActor(aActor);
-  },
-
-  removeFromParentPool: function(aActor) {
-    this.conn.removeActor(aActor);
-  }
+  _appendExtraActors: CommonAppendExtraActors
 };
 
 TestTabActor.prototype.requestTypes = {

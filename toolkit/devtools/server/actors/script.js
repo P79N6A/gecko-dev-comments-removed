@@ -408,8 +408,6 @@ EventLoop.prototype = {
 
 
 
-
-
 function ThreadActor(aHooks, aGlobal)
 {
   this._state = "detached";
@@ -1368,7 +1366,7 @@ ThreadActor.prototype = {
         line: aLocation.line,
         column: aLocation.column
       });
-      this._hooks.addToParentPool(actor);
+      this.threadLifetimePool.addActor(actor);
     }
 
     
@@ -3568,7 +3566,7 @@ BreakpointActor.prototype = {
   onDelete: function (aRequest) {
     
     this.threadActor.breakpointStore.removeBreakpoint(this.location);
-    this.threadActor._hooks.removeFromParentPool(this);
+    this.threadActor.threadLifetimePool.removeActor(this);
     
     this.removeScripts();
     return { from: this.actorID };
@@ -3805,8 +3803,6 @@ Object.defineProperty(Debugger.Frame.prototype, "line", {
     }
   }
 });
-
-
 
 
 

@@ -381,32 +381,8 @@ RootActor.prototype = {
       windowUtils.resumeTimeouts();
       windowUtils.suppressEventHandling(false);
     }
-  },
-
-  
-
-  
-
-
-
-
-
-
-
-  addToParentPool: function(aActor) {
-    this.conn.addActor(aActor);
-  },
-
-  
-
-
-
-
-
-  removeFromParentPool: function(aActor) {
-    this.conn.removeActor(aActor);
   }
-}
+};
 
 RootActor.prototype.requestTypes = {
   "listTabs": RootActor.prototype.onListTabs,

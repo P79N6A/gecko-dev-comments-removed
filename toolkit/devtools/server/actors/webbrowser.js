@@ -504,28 +504,6 @@ BrowserTabActor.prototype = {
   _pendingNavigation: null,
 
   
-
-
-
-
-
-
-
-  addToParentPool: function BTA_addToParentPool(aActor) {
-    this.conn.addActor(aActor);
-  },
-
-  
-
-
-
-
-
-  removeFromParentPool: function BTA_removeFromParentPool(aActor) {
-    this.conn.removeActor(aActor);
-  },
-
-  
   actorPrefix: "tab",
 
   
