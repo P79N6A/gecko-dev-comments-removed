@@ -17,7 +17,7 @@ FileDescriptorSet::~FileDescriptorSet() {
   if (consumed_descriptor_highwater_ == descriptors_.size())
     return;
 
-  LOG(WARNING) << "FileDescriptorSet destroyed with unconsumed descriptors";
+  CHROMIUM_LOG(WARNING) << "FileDescriptorSet destroyed with unconsumed descriptors";
   
   
   

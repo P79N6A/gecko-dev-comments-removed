@@ -251,7 +251,7 @@ bool DidProcessCrash(bool* child_exited, ProcessHandle handle) {
     
     
     
-    LOG(ERROR) << "waitpid failed pid:" << handle << " errno:" << errno;
+    CHROMIUM_LOG(ERROR) << "waitpid failed pid:" << handle << " errno:" << errno;
     if (child_exited)
       *child_exited = false;
     return false;

@@ -125,8 +125,8 @@ NotificationService::~NotificationService() {
       
       
       
-      LOG(WARNING) << observer_counts_[i] << " notification observer(s) leaked"
-          << " of notification type " << i;
+      CHROMIUM_LOG(WARNING) << observer_counts_[i] << " notification observer(s) leaked"
+                            << " of notification type " << i;
     }
   }
 #endif

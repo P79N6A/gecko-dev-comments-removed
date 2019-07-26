@@ -121,8 +121,8 @@ class SymbolContext {
   
   DWORD init_error() {
     if (!initialized_) {
-      LOG(ERROR) << "Calling GetInitError() before Init() was called.  "
-                 << "Returning ERROR_INVALID_DATA.";
+      CHROMIUM_LOG(ERROR) << "Calling GetInitError() before Init() was called.  "
+                          << "Returning ERROR_INVALID_DATA.";
       return ERROR_INVALID_DATA;
     }
 
@@ -135,8 +135,8 @@ class SymbolContext {
   
   HANDLE process() {
     if (!initialized_) {
-      LOG(ERROR) << "Calling process() before Init() was called. "
-                 << "Returning NULL.";
+      CHROMIUM_LOG(ERROR) << "Calling process() before Init() was called. "
+                          << "Returning NULL.";
       return NULL;
     }
 
