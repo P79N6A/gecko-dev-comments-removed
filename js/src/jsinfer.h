@@ -360,23 +360,6 @@ enum {
 
     
 
-
-
-
-
-
-
-
-
-
-
-
-
-    TYPE_FLAG_STACK_SET           = 0x00004000,
-    TYPE_FLAG_HEAP_SET            = 0x00008000,
-
-    
-
     
 
 
@@ -486,6 +469,20 @@ class HeapTypeSet;
 class TemporaryTypeSet;
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class TypeSet
 {
   protected:
@@ -497,16 +494,11 @@ class TypeSet
 
   public:
 
-    
-    TypeConstraint *constraintList;
-
     TypeSet()
-      : flags(0), objectSet(nullptr), constraintList(nullptr)
+      : flags(0), objectSet(nullptr)
     {}
 
     void print();
-
-    inline void sweep(JS::Zone *zone);
 
     
     inline bool hasType(Type type) const;
@@ -537,15 +529,6 @@ class TypeSet
     inline bool addType(Type type, LifoAlloc *alloc, bool *padded = nullptr);
 
     
-
-
-
-    inline void addType(ExclusiveContext *cx, Type type);
-
-    
-    inline void setConfiguredProperty(ExclusiveContext *cx);
-
-    
     typedef Vector<Type, 1, SystemAllocPolicy> TypeList;
     bool enumerateTypes(TypeList *list);
 
@@ -574,13 +557,6 @@ class TypeSet
         flags |= ((slot + 1) << TYPE_FLAG_DEFINITE_SHIFT);
     }
 
-    bool isStackSet() {
-        return flags & TYPE_FLAG_STACK_SET;
-    }
-    bool isHeapSet() {
-        return flags & TYPE_FLAG_HEAP_SET;
-    }
-
     
     bool mightBeType(JSValueType type);
 
@@ -592,12 +568,6 @@ class TypeSet
 
     
     void addTypesToConstraint(JSContext *cx, TypeConstraint *constraint);
-
-    
-    void add(JSContext *cx, TypeConstraint *constraint, bool callExisting = true);
-
-    inline StackTypeSet *toStackSet();
-    inline HeapTypeSet *toHeapSet();
 
     
     TemporaryTypeSet *clone(LifoAlloc *alloc) const;
@@ -612,16 +582,37 @@ class TypeSet
     inline void clearObjects();
 };
 
-class StackTypeSet : public TypeSet
+
+class ConstraintTypeSet : public TypeSet
 {
   public:
-    StackTypeSet() { flags |= TYPE_FLAG_STACK_SET; }
+    
+    TypeConstraint *constraintList;
+
+    ConstraintTypeSet() : constraintList(nullptr) {}
+
+    
+
+
+
+    inline void addType(ExclusiveContext *cx, Type type);
+
+    
+    void add(JSContext *cx, TypeConstraint *constraint, bool callExisting = true);
+
+    inline void sweep(JS::Zone *zone);
 };
 
-class HeapTypeSet : public TypeSet
+class StackTypeSet : public ConstraintTypeSet
 {
   public:
-    HeapTypeSet() { flags |= TYPE_FLAG_HEAP_SET; }
+};
+
+class HeapTypeSet : public ConstraintTypeSet
+{
+  public:
+    
+    inline void setConfiguredProperty(ExclusiveContext *cx);
 };
 
 class CompilerConstraintList;
@@ -638,7 +629,6 @@ class TemporaryTypeSet : public TypeSet
     TemporaryTypeSet(uint32_t flags, TypeObjectKey **objectSet) {
         this->flags = flags;
         this->objectSet = objectSet;
-        JS_ASSERT(!isStackSet() && !isHeapSet());
     }
 
     
@@ -724,20 +714,6 @@ class TemporaryTypeSet : public TypeSet
 
     DoubleConversion convertDoubleElements(CompilerConstraintList *constraints);
 };
-
-inline StackTypeSet *
-TypeSet::toStackSet()
-{
-    JS_ASSERT(isStackSet());
-    return (StackTypeSet *) this;
-}
-
-inline HeapTypeSet *
-TypeSet::toHeapSet()
-{
-    JS_ASSERT(isHeapSet());
-    return (HeapTypeSet *) this;
-}
 
 bool
 AddClearDefiniteGetterSetterForPrototypeChain(JSContext *cx, TypeObject *type, jsid id);
@@ -1398,7 +1374,7 @@ struct TypeCompartment
     struct PendingWork
     {
         TypeConstraint *constraint;
-        TypeSet *source;
+        ConstraintTypeSet *source;
         Type type;
     };
     PendingWork *pendingArray;
@@ -1441,7 +1417,8 @@ struct TypeCompartment
     inline JSCompartment *compartment();
 
     
-    inline void addPending(JSContext *cx, TypeConstraint *constraint, TypeSet *source, Type type);
+    inline void addPending(JSContext *cx, TypeConstraint *constraint,
+                           ConstraintTypeSet *source, Type type);
     bool growPendingArray(JSContext *cx);
 
     
