@@ -5,8 +5,8 @@
 
 
 
-#ifndef _nsARIAMap_H_
-#define _nsARIAMap_H_
+#ifndef mozilla_a11y_aria_ARIAMap_h_
+#define mozilla_a11y_aria_ARIAMap_h_
 
 #include "ARIAStateMap.h"
 #include "mozilla/a11y/AccTypes.h"
@@ -115,27 +115,11 @@ const uint8_t ATTR_GLOBAL = 0x1 << 3;
 
 
 
-struct nsAttributeCharacteristics
-{
-  nsIAtom** attributeName;
-  const uint8_t characteristics;
-};
-
-
-
-
-
 
 
 
 
 #define kNoReqStates 0
-
-enum EDefaultStateRule
-{
-  
-  eUseFirstState
-};
 
 
 
@@ -206,26 +190,16 @@ struct nsRoleMapEntry
 
 
 
-
-struct nsARIAMap
-{
-  
-
-
-
-
-  static nsRoleMapEntry gEmptyRoleMap;
-
-  
-
-
-  static nsAttributeCharacteristics gWAIUnivAttrMap[];
-  static uint32_t gWAIUnivAttrMapLength;
-};
-
 namespace mozilla {
 namespace a11y {
 namespace aria {
+
+
+
+
+
+
+extern nsRoleMapEntry gEmptyRoleMap;
 
 
 
@@ -242,6 +216,15 @@ nsRoleMapEntry* GetRoleMap(nsINode* aNode);
 
 
 uint64_t UniversalStatesFor(mozilla::dom::Element* aElement);
+
+
+
+
+
+
+
+
+uint8_t AttrCharacteristicsFor(nsIAtom* aAtom);
 
  
 

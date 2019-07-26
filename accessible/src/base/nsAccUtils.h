@@ -198,15 +198,6 @@ public:
 
 
 
-  static uint8_t GetAttributeCharacteristics(nsIAtom* aAtom);
-
-  
-
-
-
-
-
-
 
 
   static bool GetLiveAttrValue(uint32_t aRule, nsAString& aValue);

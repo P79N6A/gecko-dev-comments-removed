@@ -4,9 +4,7 @@
 
 
 
-#include "ARIAStateMap.h"
-
-#include "nsARIAMap.h"
+#include "ARIAMap.h"
 #include "States.h"
 
 #include "mozilla/dom/Element.h"
