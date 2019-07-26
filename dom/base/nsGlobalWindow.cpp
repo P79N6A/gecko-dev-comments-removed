@@ -11644,7 +11644,7 @@ nsGlobalWindow::OpenInternal(const nsAString& aUrl, const nsAString& aName,
       
       rv = pwwatch->OpenWindow2(this, url.get(), name_ptr, options_ptr,
                                  true,
-                                aDialog, aNavigate, argv,
+                                aDialog, aNavigate, nullptr, argv,
                                 getter_AddRefs(domReturn));
     } else {
       
@@ -11664,7 +11664,7 @@ nsGlobalWindow::OpenInternal(const nsAString& aUrl, const nsAString& aName,
 
       rv = pwwatch->OpenWindow2(this, url.get(), name_ptr, options_ptr,
                                  false,
-                                aDialog, aNavigate, aExtraArgument,
+                                aDialog, aNavigate, nullptr, aExtraArgument,
                                 getter_AddRefs(domReturn));
 
     }
