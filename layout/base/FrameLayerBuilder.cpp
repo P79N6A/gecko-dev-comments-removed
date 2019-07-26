@@ -3022,8 +3022,10 @@ PredictScaleForContent(nsIFrame* aFrame, nsIFrame* aAncestorWithScale,
 {
   gfx3DMatrix transform =
     gfx3DMatrix::ScalingMatrix(aScale.width, aScale.height, 1.0);
-  
-  transform = nsLayoutUtils::GetTransformToAncestor(aFrame, aAncestorWithScale)*transform;
+  if (aFrame != aAncestorWithScale) {
+    
+    transform = nsLayoutUtils::GetTransformToAncestor(aFrame, aAncestorWithScale)*transform;
+  }
   gfxMatrix transform2d;
   if (transform.CanDraw2D(&transform2d)) {
      return transform2d.ScaleFactors(true);
@@ -3037,6 +3039,13 @@ FrameLayerBuilder::GetThebesLayerScaleForFrame(nsIFrame* aFrame)
   nsIFrame* last;
   for (nsIFrame* f = aFrame; f; f = nsLayoutUtils::GetCrossDocParentFrame(f)) {
     last = f;
+
+    if (nsLayoutUtils::IsPopup(f)) {
+      
+      
+      
+      break;
+    }
   
     nsTArray<DisplayItemData*> *array = 
       reinterpret_cast<nsTArray<DisplayItemData*>*>(aFrame->Properties().Get(LayerManagerDataProperty()));
