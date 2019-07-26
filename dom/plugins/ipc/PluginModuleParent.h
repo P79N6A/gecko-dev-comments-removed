@@ -45,10 +45,6 @@ namespace plugins {
 
 class BrowserStreamParent;
 
-#ifdef XP_WIN
-class PluginHangUIParent;
-#endif
-
 
 
 
@@ -133,13 +129,6 @@ public:
     GetIdentifierForNPIdentifier(NPP npp, NPIdentifier aIdentifier);
 
     void ProcessRemoteNativeEventsInRPCCall();
-
-    void TerminateChildProcess(MessageLoop* aMsgLoop);
-
-#ifdef XP_WIN
-    void
-    ExitedCxxStack() MOZ_OVERRIDE;
-#endif 
 
 protected:
     virtual mozilla::ipc::RPCChannel::RacyRPCPolicy
@@ -297,7 +286,6 @@ private:
     void WriteExtraDataForMinidump(CrashReporter::AnnotationTable& notes);
 #endif
     void CleanupFromTimeout();
-    void SetChildTimeout(const int32_t aChildTimeout);
     static int TimeoutChanged(const char* aPref, void* aModule);
     void NotifyPluginCrashed();
 
@@ -316,31 +304,6 @@ private:
     nsString mHangID;
 #ifdef XP_WIN
     InfallibleTArray<float> mPluginCpuUsageOnHang;
-    PluginHangUIParent *mHangUIParent;
-    bool mHangUIEnabled;
-    bool mIsTimerReset;
-
-    void
-    EvaluateHangUIState(const bool aReset);
-
-    bool
-    GetPluginName(nsAString& aPluginName);
-
-    
-
-
-
-
-
-
-    bool
-    LaunchHangUI();
-
-    
-
-
-    void
-    FinishHangUI();
 #endif
 
 #ifdef MOZ_X11
