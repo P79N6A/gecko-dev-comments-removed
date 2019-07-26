@@ -9,7 +9,6 @@
 #include "BluetoothHfpManager.h"
 
 #include "BluetoothReplyRunnable.h"
-#include "BluetoothScoManager.h"
 #include "BluetoothService.h"
 #include "BluetoothSocket.h"
 #include "BluetoothUtils.h"
@@ -333,35 +332,6 @@ private:
   nsString mNumber;
   int mType;
 };
-
-void
-OpenScoSocket(const nsAString& aDeviceAddress)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-
-  BluetoothScoManager* sco = BluetoothScoManager::Get();
-  if (!sco) {
-    NS_WARNING("BluetoothScoManager is not available!");
-    return;
-  }
-
-  if (!sco->Connect(aDeviceAddress)) {
-    NS_WARNING("Failed to create a sco socket!");
-  }
-}
-
-void
-CloseScoSocket()
-{
-  MOZ_ASSERT(NS_IsMainThread());
-
-  BluetoothScoManager* sco = BluetoothScoManager::Get();
-  if (!sco) {
-    NS_WARNING("BluetoothScoManager is not available!");
-    return;
-  }
-  sco->Disconnect();
-}
 
 static bool
 IsValidDtmf(const char aChar) {
@@ -940,12 +910,6 @@ BluetoothHfpManager::ReceiveSocketData(BluetoothSocket* aSocket,
 
     mCCWA = atCommandValues[0].EqualsLiteral("1");
   } else if (msg.Find("AT+CKPD") != -1) {
-    BluetoothScoManager* sco = BluetoothScoManager::Get();
-    if (!sco) {
-      NS_WARNING("Couldn't get BluetoothScoManager instance");
-      goto respond_with_ok;
-    }
-
     if (!sStopSendingRingFlag) {
       
       
@@ -953,12 +917,10 @@ BluetoothHfpManager::ReceiveSocketData(BluetoothSocket* aSocket,
       
       NotifyDialer(NS_LITERAL_STRING("ATA"));
     } else {
-      if (!sco->IsConnected()) {
+      if (!IsScoConnected()) {
         
         
-        nsAutoString address;
-        mSocket->GetAddress(address);
-        sco->Connect(address);
+        ConnectSco();
       } else if (!mFirstCKPD) {
         
         
@@ -967,7 +929,7 @@ BluetoothHfpManager::ReceiveSocketData(BluetoothSocket* aSocket,
         if (mCurrentCallArray.Length() > 1) {
           NotifyDialer(NS_LITERAL_STRING("CHUP"));
         } else {
-          sco->Disconnect();
+          DisconnectSco();
         }
       } else {
         
@@ -1300,17 +1262,14 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
       }
 
       UpdateCIND(CINDType::CALLSETUP, CallSetupState::OUTGOING, aSend);
-
-      mSocket->GetAddress(address);
-      OpenScoSocket(address);
+      ConnectSco();
       break;
     case nsITelephonyProvider::CALL_STATE_ALERTING:
       UpdateCIND(CINDType::CALLSETUP, CallSetupState::OUTGOING_ALERTING, aSend);
 
       
       
-      mSocket->GetAddress(address);
-      OpenScoSocket(address);
+      ConnectSco();
       break;
     case nsITelephonyProvider::CALL_STATE_CONNECTED:
       mCurrentCallIndex = aCallIndex;
@@ -1319,9 +1278,7 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
         case nsITelephonyProvider::CALL_STATE_DISCONNECTED:
           
           sStopSendingRingFlag = true;
-
-          mSocket->GetAddress(address);
-          OpenScoSocket(address);
+          ConnectSco();
         case nsITelephonyProvider::CALL_STATE_ALERTING:
           
           UpdateCIND(CINDType::CALL, CallState::IN_PROGRESS, aSend);
@@ -1391,7 +1348,7 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
 
         
         if (index == callArrayLength) {
-          CloseScoSocket();
+          DisconnectSco();
           ResetCallArray();
         }
       }
