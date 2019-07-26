@@ -82,7 +82,18 @@ public:
 
 
 
-  void UpdateForValueChange(const nsAString& aValue);
+
+
+  void SetValueOfAnonTextControl(const nsAString& aValue);
+
+  
+
+
+
+
+
+
+  void GetValueOfAnonTextControl(nsAString& aValue);
 
   
 

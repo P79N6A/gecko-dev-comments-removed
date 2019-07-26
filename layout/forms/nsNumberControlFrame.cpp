@@ -6,6 +6,7 @@
 #include "nsNumberControlFrame.h"
 
 #include "HTMLInputElement.h"
+#include "ICUUtils.h"
 #include "nsIFocusManager.h"
 #include "nsIPresShell.h"
 #include "nsFocusManager.h"
@@ -284,7 +285,7 @@ nsNumberControlFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
   
   nsAutoString value;
   content->GetValue(value);
-  mTextField->SetAttr(kNameSpaceID_None, nsGkAtoms::value, value, false);
+  SetValueOfAnonTextControl(value);
 
   
   nsAutoString readonly;
@@ -527,7 +528,7 @@ nsNumberControlFrame::AppendAnonymousContentTo(nsBaseContentList& aElements,
 }
 
 void
-nsNumberControlFrame::UpdateForValueChange(const nsAString& aValue)
+nsNumberControlFrame::SetValueOfAnonTextControl(const nsAString& aValue)
 {
   if (mHandlingInputEvent) {
     
@@ -541,11 +542,57 @@ nsNumberControlFrame::UpdateForValueChange(const nsAString& aValue)
     
     return;
   }
+
+  
+  
+  
+  nsAutoString localizedValue(aValue);
+
+#ifdef ENABLE_INTL_API
+  
+  Decimal val = HTMLInputElement::StringToDecimal(aValue);
+  if (val.isFinite()) {
+    ICUUtils::LanguageTagIterForContent langTagIter(mContent);
+    ICUUtils::LocalizeNumber(val.toDouble(), langTagIter, localizedValue);
+  }
+#endif
+
   
   
   
   
-  HTMLInputElement::FromContent(mTextField)->SetValue(aValue);
+  HTMLInputElement::FromContent(mTextField)->SetValue(localizedValue);
+}
+
+void
+nsNumberControlFrame::GetValueOfAnonTextControl(nsAString& aValue)
+{
+  if (!mTextField) {
+    aValue.Truncate();
+    return;
+  }
+
+  HTMLInputElement::FromContent(mTextField)->GetValue(aValue);
+
+#ifdef ENABLE_INTL_API
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  ICUUtils::LanguageTagIterForContent langTagIter(mContent);
+  double value = ICUUtils::ParseNumber(aValue, langTagIter);
+  if (NS_finite(value) &&
+      !HTMLInputElement::StringToDecimal(aValue).isFinite()) {
+    aValue.Truncate();
+    aValue.AppendFloat(value);
+  }
+#endif
 }
 
 Element*
