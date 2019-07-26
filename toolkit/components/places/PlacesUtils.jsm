@@ -480,9 +480,7 @@ this.PlacesUtils = {
 
 
 
-
-
-  wrapNode: function PU_wrapNode(aNode, aType, aOverrideURI, aForceCopy) {
+  wrapNode: function PU_wrapNode(aNode, aType, aOverrideURI) {
     
     
     
@@ -490,9 +488,9 @@ this.PlacesUtils = {
     
     function convertNode(cNode) {
       if (PlacesUtils.nodeIsFolder(cNode) &&
+          cNode.type != Ci.nsINavHistoryResultNode.RESULT_TYPE_FOLDER_SHORTCUT &&
           asQuery(cNode).queryOptions.excludeItems) {
-        let concreteId = PlacesUtils.getConcreteItemId(cNode);
-        return [PlacesUtils.getFolderContents(concreteId, false, true).root, true];
+        return [PlacesUtils.getFolderContents(cNode.itemId, false, true).root, true];
       }
 
       
@@ -530,7 +528,7 @@ this.PlacesUtils = {
         };
 
         let [node, shouldClose] = convertNode(aNode);
-        this._serializeNodeAsJSONToOutputStream(node, writer, true, aForceCopy);
+        this._serializeNodeAsJSONToOutputStream(node, writer);
         if (shouldClose)
           node.containerOpen = false;
 
@@ -1110,24 +1108,16 @@ this.PlacesUtils = {
 
 
 
-
-
-
-
-
-
-
-  _serializeNodeAsJSONToOutputStream:
-  function PU__serializeNodeAsJSONToOutputStream(aNode, aStream, aIsUICommand,
-                                                aResolveShortcuts,
-                                                aExcludeItems) {
+  _serializeNodeAsJSONToOutputStream: function (aNode, aStream) {
     function addGenericProperties(aPlacesNode, aJSNode) {
       aJSNode.title = aPlacesNode.title;
       aJSNode.id = aPlacesNode.itemId;
       if (aJSNode.id != -1) {
         var parent = aPlacesNode.parent;
-        if (parent)
+        if (parent) {
           aJSNode.parent = parent.itemId;
+          aJSNode.parentReadOnly = PlacesUtils.nodeIsReadOnly(parent);
+        }
         var dateAdded = aPlacesNode.dateAdded;
         if (dateAdded)
           aJSNode.dateAdded = dateAdded;
@@ -1145,10 +1135,6 @@ this.PlacesUtils = {
             
             if (anno.name == PlacesUtils.LMANNO_FEEDURI)
               aJSNode.livemark = 1;
-            if (anno.name == PlacesUtils.READ_ONLY_ANNO && aResolveShortcuts) {
-              
-              return false;
-            }
             return true;
           });
         } catch(ex) {}
@@ -1168,9 +1154,8 @@ this.PlacesUtils = {
           aJSNode.keyword = keyword;
       }
 
-      var tags = aIsUICommand ? aPlacesNode.tags : null;
-      if (tags)
-        aJSNode.tags = tags;
+      if (aPlacesNode.tags)
+        aJSNode.tags = aPlacesNode.tags;
 
       
       var uri = PlacesUtils._uri(aPlacesNode.uri);
@@ -1190,12 +1175,11 @@ this.PlacesUtils = {
       if (concreteId != -1) {
         
         if (PlacesUtils.nodeIsQuery(aPlacesNode) ||
-            (concreteId != aPlacesNode.itemId && !aResolveShortcuts)) {
+            concreteId != aPlacesNode.itemId) {
           aJSNode.type = PlacesUtils.TYPE_X_MOZ_PLACE;
           aJSNode.uri = aPlacesNode.uri;
           
-          if (aIsUICommand)
-            aJSNode.concreteId = concreteId;
+          aJSNode.concreteId = concreteId;
         }
         else { 
           aJSNode.type = PlacesUtils.TYPE_X_MOZ_PLACE_CONTAINER;
@@ -1236,8 +1220,6 @@ this.PlacesUtils = {
         var cc = aSourceNode.childCount;
         for (var i = 0; i < cc; ++i) {
           var childNode = aSourceNode.getChild(i);
-          if (aExcludeItems && aExcludeItems.indexOf(childNode.itemId) != -1)
-            continue;
           appendConvertedNode(aSourceNode.getChild(i), i, children);
         }
         if (!wasOpen)
@@ -1261,6 +1243,8 @@ this.PlacesUtils = {
 
       var parent = bNode.parent;
       var grandParent = parent ? parent.parent : null;
+      if (grandParent)
+        node.grandParentId = grandParent.itemId;
 
       if (PlacesUtils.nodeIsURI(bNode)) {
         

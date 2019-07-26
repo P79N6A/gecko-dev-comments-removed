@@ -36,6 +36,46 @@ function openLibrary(callback, aLeftPaneRoot) {
 
 
 
+function promiseLibrary(aLeftPaneRoot) {
+  let deferred = Promise.defer();
+  let library = Services.wm.getMostRecentWindow("Places:Organizer");
+  if (library) {
+    if (aLeftPaneRoot)
+      library.PlacesOrganizer.selectLeftPaneContainerByHierarchy(aLeftPaneRoot);
+    deferred.resolve(library);
+  }
+  else {
+    openLibrary(aLibrary => deferred.resolve(aLibrary), aLeftPaneRoot);
+  }
+  return deferred.promise;
+}
+
+
+
+
+
+
+
+
+
+
+
+function promiseClipboard(aPopulateClipboardFn, aFlavor) {
+  let deferred = Promise.defer();
+  waitForClipboard(function (aData) !!aData,
+                   aPopulateClipboardFn,
+                   function () { deferred.resolve(); },
+                   aFlavor);
+  return deferred.promise;
+}
+
+
+
+
+
+
+
+
 function waitForClearHistory(aCallback) {
   Services.obs.addObserver(function observeCH(aSubject, aTopic, aData) {
     Services.obs.removeObserver(observeCH, PlacesUtils.TOPIC_EXPIRATION_FINISHED);

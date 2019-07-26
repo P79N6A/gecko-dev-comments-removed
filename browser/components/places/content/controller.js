@@ -1008,7 +1008,6 @@ PlacesController.prototype = {
 
   setDataTransfer: function PC_setDataTransfer(aEvent) {
     let dt = aEvent.dataTransfer;
-    let doCopy = ["copyLink", "copy", "link"].indexOf(dt.effectAllowed) != -1;
 
     let result = this._view.result;
     let didSuppressNotifications = result.suppressNotifications;
@@ -1016,7 +1015,7 @@ PlacesController.prototype = {
       result.suppressNotifications = true;
 
     function addData(type, index, overrideURI) {
-      let wrapNode = PlacesUtils.wrapNode(node, type, overrideURI, doCopy);
+      let wrapNode = PlacesUtils.wrapNode(node, type, overrideURI);
       dt.mozSetDataAt(type, wrapNode, index);
     }
 
@@ -1116,11 +1115,10 @@ PlacesController.prototype = {
 
       let livemarkInfo = this.getCachedLivemarkInfo(node);
       let overrideURI = livemarkInfo ? livemarkInfo.feedURI.spec : null;
-      let resolveShortcuts = !PlacesControllerDragHelper.canMoveNode(node);
 
       contents.forEach(function (content) {
         content.entries.push(
-          PlacesUtils.wrapNode(node, content.type, overrideURI, resolveShortcuts)
+          PlacesUtils.wrapNode(node, content.type, overrideURI)
         );
       });
     }, this);
@@ -1262,6 +1260,13 @@ PlacesController.prototype = {
       if (ip.index != PlacesUtils.bookmarks.DEFAULT_INDEX)
         insertionIndex = ip.index + i;
 
+      
+      
+      if (action != "copy" && !PlacesControllerDragHelper.canMoveUnwrappedNode(items[i])) {
+        Components.utils.reportError("Tried to move an unmovable Places node, " +
+                                     "reverting to a copy operation.");
+        action = "copy";
+      }
       transactions.push(
         PlacesUIUtils.makeTransaction(items[i], type, ip.itemId,
                                       insertionIndex, action == "copy")
@@ -1438,6 +1443,21 @@ let PlacesControllerDragHelper = {
     return true;
   },
 
+  
+
+
+
+
+
+
+  canMoveUnwrappedNode: function (aUnwrappedNode) {
+    return aUnwrappedNode.id > 0 &&
+           !PlacesUtils.isRootItem(aUnwrappedNode.id) &&
+           aUnwrappedNode.parent != PlacesUtils.placesRootId &&
+           aUnwrappedNode.parent != PlacesUtils.tagsFolderId &&
+           aUnwrappedNode.grandParentId != PlacesUtils.tagsFolderId &&
+           !aUnwrappedNode.parentReadOnly;
+  },
 
   
 
@@ -1555,6 +1575,13 @@ let PlacesControllerDragHelper = {
         transactions.push(tagTxn);
       }
       else {
+        
+        
+        if (!doCopy && !PlacesControllerDragHelper.canMoveUnwrappedNode(unwrapped)) {
+          Components.utils.reportError("Tried to move an unmovable Places node, " +
+                                       "reverting to a copy operation.");
+          doCopy = true;
+        }
         transactions.push(PlacesUIUtils.makeTransaction(unwrapped,
                           flavor, insertionPoint.itemId,
                           index, doCopy));
