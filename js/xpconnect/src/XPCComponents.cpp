@@ -2817,7 +2817,7 @@ nsXPCComponents_Utils::EvalInSandbox(const nsAString& source,
 
     
     nsXPIDLCString filename;
-    int32_t lineNo = (optionalArgc >= 3) ? lineNumber : 0;
+    int32_t lineNo = (optionalArgc >= 3) ? lineNumber : 1;
     if (optionalArgc >= 2) {
         JSString *filenameStr = JS_ValueToString(cx, filenameVal);
         if (!filenameStr)
