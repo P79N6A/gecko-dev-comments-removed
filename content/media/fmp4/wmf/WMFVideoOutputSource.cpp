@@ -4,7 +4,7 @@
 
 
 
-#include "WMFVideoDecoder.h"
+#include "WMFVideoOutputSource.h"
 #include "MediaDecoderReader.h"
 #include "WMFUtils.h"
 #include "ImageContainer.h"
@@ -28,26 +28,25 @@ using mozilla::layers::LayersBackend;
 
 namespace mozilla {
 
-WMFVideoDecoder::WMFVideoDecoder(mozilla::layers::LayersBackend aLayersBackend,
+WMFVideoOutputSource::WMFVideoOutputSource(mozilla::layers::LayersBackend aLayersBackend,
                                  mozilla::layers::ImageContainer* aImageContainer,
                                  bool aDXVAEnabled)
-  : mVideoStride(0),
-    mVideoWidth(0),
-    mVideoHeight(0),
-    mLastStreamOffset(0),
-    mImageContainer(aImageContainer),
-    mDXVAEnabled(aDXVAEnabled),
-    mLayersBackend(aLayersBackend),
-    mUseHwAccel(false)
+  : mVideoStride(0)
+  , mVideoWidth(0)
+  , mVideoHeight(0)
+  , mImageContainer(aImageContainer)
+  , mDXVAEnabled(aDXVAEnabled)
+  , mLayersBackend(aLayersBackend)
+  , mUseHwAccel(false)
 {
   NS_ASSERTION(!NS_IsMainThread(), "Should not be on main thread.");
   MOZ_ASSERT(mImageContainer);
-  MOZ_COUNT_CTOR(WMFVideoDecoder);
+  MOZ_COUNT_CTOR(WMFVideoOutputSource);
 }
 
-WMFVideoDecoder::~WMFVideoDecoder()
+WMFVideoOutputSource::~WMFVideoOutputSource()
 {
-  MOZ_COUNT_DTOR(WMFVideoDecoder);
+  MOZ_COUNT_DTOR(WMFVideoOutputSource);
 }
 
 class CreateDXVAManagerEvent : public nsRunnable {
@@ -61,7 +60,7 @@ public:
 };
 
 bool
-WMFVideoDecoder::InitializeDXVA()
+WMFVideoOutputSource::InitializeDXVA()
 {
   
   
@@ -80,18 +79,18 @@ WMFVideoDecoder::InitializeDXVA()
   return mDXVA2Manager != nullptr;
 }
 
-nsresult
-WMFVideoDecoder::Init()
+TemporaryRef<MFTDecoder>
+WMFVideoOutputSource::Init()
 {
   bool useDxva = InitializeDXVA();
 
-  mDecoder = new MFTDecoder();
+  RefPtr<MFTDecoder> decoder(new MFTDecoder());
 
-  HRESULT hr = mDecoder->Create(CLSID_CMSH264DecoderMFT);
-  NS_ENSURE_TRUE(SUCCEEDED(hr), NS_ERROR_FAILURE);
+  HRESULT hr = decoder->Create(CLSID_CMSH264DecoderMFT);
+  NS_ENSURE_TRUE(SUCCEEDED(hr), nullptr);
 
   if (useDxva) {
-    RefPtr<IMFAttributes> attr(mDecoder->GetAttributes());
+    RefPtr<IMFAttributes> attr(decoder->GetAttributes());
 
     UINT32 aware = 0;
     if (attr) {
@@ -103,7 +102,7 @@ WMFVideoDecoder::Init()
       
       MOZ_ASSERT(mDXVA2Manager);
       ULONG_PTR manager = ULONG_PTR(mDXVA2Manager->GetDXVADeviceManager());
-      hr = mDecoder->SendMFTMessage(MFT_MESSAGE_SET_D3D_MANAGER, manager);
+      hr = decoder->SendMFTMessage(MFT_MESSAGE_SET_D3D_MANAGER, manager);
       if (SUCCEEDED(hr)) {
         mUseHwAccel = true;
       }
@@ -113,28 +112,29 @@ WMFVideoDecoder::Init()
   
   RefPtr<IMFMediaType> type;
   hr = wmf::MFCreateMediaType(byRef(type));
-  NS_ENSURE_TRUE(SUCCEEDED(hr), NS_ERROR_FAILURE);
+  NS_ENSURE_TRUE(SUCCEEDED(hr), nullptr);
 
   hr = type->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video);
-  NS_ENSURE_TRUE(SUCCEEDED(hr), NS_ERROR_FAILURE);
+  NS_ENSURE_TRUE(SUCCEEDED(hr), nullptr);
 
   hr = type->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_H264);
-  NS_ENSURE_TRUE(SUCCEEDED(hr), NS_ERROR_FAILURE);
+  NS_ENSURE_TRUE(SUCCEEDED(hr), nullptr);
 
   hr = type->SetUINT32(MF_MT_INTERLACE_MODE, MFVideoInterlace_MixedInterlaceOrProgressive);
-  NS_ENSURE_TRUE(SUCCEEDED(hr), NS_ERROR_FAILURE);
+  NS_ENSURE_TRUE(SUCCEEDED(hr), nullptr);
 
   GUID outputType = mUseHwAccel ? MFVideoFormat_NV12 : MFVideoFormat_YV12;
-  hr = mDecoder->SetMediaTypes(type, outputType);
-  NS_ENSURE_TRUE(SUCCEEDED(hr), NS_ERROR_FAILURE);
+  hr = decoder->SetMediaTypes(type, outputType);
+  NS_ENSURE_TRUE(SUCCEEDED(hr), nullptr);
 
+  mDecoder = decoder;
   LOG("Video Decoder initialized, Using DXVA: %s", (mUseHwAccel ? "Yes" : "No"));
 
-  return NS_OK;
+  return decoder.forget();
 }
 
 HRESULT
-WMFVideoDecoder::ConfigureVideoFrameGeometry()
+WMFVideoOutputSource::ConfigureVideoFrameGeometry()
 {
   RefPtr<IMFMediaType> mediaType;
   HRESULT hr = mDecoder->GetOutputMediaType(mediaType);
@@ -194,30 +194,9 @@ WMFVideoDecoder::ConfigureVideoFrameGeometry()
   return S_OK;
 }
 
-nsresult
-WMFVideoDecoder::Shutdown()
-{
-  return NS_OK;
-}
-
-
-DecoderStatus
-WMFVideoDecoder::Input(nsAutoPtr<mp4_demuxer::MP4Sample>& aSample)
-{
-  mLastStreamOffset = aSample->byte_offset;
-  const uint8_t* data = &aSample->data->front();
-  uint32_t length = aSample->data->size();
-  HRESULT hr = mDecoder->Input(data, length, aSample->composition_timestamp);
-  if (hr == MF_E_NOTACCEPTING) {
-    return DECODE_STATUS_NOT_ACCEPTING;
-  }
-  NS_ENSURE_TRUE(SUCCEEDED(hr), DECODE_STATUS_ERROR);
-
-  return DECODE_STATUS_OK;
-}
-
 HRESULT
-WMFVideoDecoder::CreateBasicVideoFrame(IMFSample* aSample,
+WMFVideoOutputSource::CreateBasicVideoFrame(IMFSample* aSample,
+                                       int64_t aStreamOffset,
                                        VideoData** aOutVideoData)
 {
   NS_ENSURE_TRUE(aSample, E_POINTER);
@@ -292,7 +271,7 @@ WMFVideoDecoder::CreateBasicVideoFrame(IMFSample* aSample,
   Microseconds duration = GetSampleDuration(aSample);
   VideoData *v = VideoData::Create(mVideoInfo,
                                    mImageContainer,
-                                   mLastStreamOffset,
+                                   aStreamOffset,
                                    pts,
                                    duration,
                                    b,
@@ -311,7 +290,8 @@ WMFVideoDecoder::CreateBasicVideoFrame(IMFSample* aSample,
 }
 
 HRESULT
-WMFVideoDecoder::CreateD3DVideoFrame(IMFSample* aSample,
+WMFVideoOutputSource::CreateD3DVideoFrame(IMFSample* aSample,
+                                     int64_t aStreamOffset,
                                      VideoData** aOutVideoData)
 {
   NS_ENSURE_TRUE(aSample, E_POINTER);
@@ -334,7 +314,7 @@ WMFVideoDecoder::CreateD3DVideoFrame(IMFSample* aSample,
   Microseconds duration = GetSampleDuration(aSample);
   VideoData *v = VideoData::CreateFromImage(mVideoInfo,
                                             mImageContainer,
-                                            mLastStreamOffset,
+                                            aStreamOffset,
                                             pts,
                                             duration,
                                             image.forget(),
@@ -349,22 +329,20 @@ WMFVideoDecoder::CreateD3DVideoFrame(IMFSample* aSample,
 }
 
 
-DecoderStatus
-WMFVideoDecoder::Output(nsAutoPtr<MediaData>& aOutData)
+HRESULT
+WMFVideoOutputSource::Output(int64_t aStreamOffset,
+                        nsAutoPtr<MediaData>& aOutData)
 {
   RefPtr<IMFSample> sample;
   HRESULT hr;
+  aOutData = nullptr;
 
   
   
   while (true) {
     hr = mDecoder->Output(&sample);
-    if (SUCCEEDED(hr)) {
-      NS_ENSURE_TRUE(sample, DECODE_STATUS_ERROR);
-      break;
-    }
     if (hr == MF_E_TRANSFORM_NEED_MORE_INPUT) {
-      return DECODE_STATUS_NEED_MORE_INPUT;
+      return MF_E_TRANSFORM_NEED_MORE_INPUT;
     }
     if (hr == MF_E_TRANSFORM_STREAM_CHANGE) {
       
@@ -372,37 +350,32 @@ WMFVideoDecoder::Output(nsAutoPtr<MediaData>& aOutData)
       
       MOZ_ASSERT(!sample);
       hr = ConfigureVideoFrameGeometry();
-      NS_ENSURE_TRUE(SUCCEEDED(hr), DECODE_STATUS_ERROR);
+      NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
       
       continue;
     }
+    if (SUCCEEDED(hr)) {
+      break;
+    }
     
-    NS_WARNING("WMFVideoDecoder::Output() unexpected error");
-    return DECODE_STATUS_ERROR;
+    NS_WARNING("WMFVideoOutputSource::Output() unexpected error");
+    return E_FAIL;
   }
 
   VideoData* frame = nullptr;
   if (mUseHwAccel) {
-    hr = CreateD3DVideoFrame(sample, &frame);
+    hr = CreateD3DVideoFrame(sample, aStreamOffset, &frame);
   } else {
-    hr = CreateBasicVideoFrame(sample, &frame);
+    hr = CreateBasicVideoFrame(sample, aStreamOffset, &frame);
   }
   
   MOZ_ASSERT((frame != nullptr) == SUCCEEDED(hr));
-  NS_ENSURE_TRUE(SUCCEEDED(hr) && frame, DECODE_STATUS_ERROR);
+  NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
+  NS_ENSURE_TRUE(frame, E_FAIL);
 
   aOutData = frame;
 
-  return DECODE_STATUS_OK;
-}
-
-DecoderStatus
-WMFVideoDecoder::Flush()
-{
-  NS_ENSURE_TRUE(mDecoder, DECODE_STATUS_ERROR);
-  HRESULT hr = mDecoder->Flush();
-  NS_ENSURE_TRUE(SUCCEEDED(hr), DECODE_STATUS_ERROR);
-  return DECODE_STATUS_OK;
+  return S_OK;
 }
 
 } 
