@@ -58,6 +58,11 @@ ContentClient::CreateContentClient(CompositableForwarder* aForwarder)
   useDeprecatedTextures = gfxPlatform::GetPlatform()->UseDeprecatedTextures();
 #endif
 
+  
+  if (backend == LAYERS_BASIC) {
+    useDeprecatedTextures = false;
+  }
+
 #ifdef XP_WIN
   if (backend == LAYERS_D3D11) {
     useDoubleBuffering = !!gfxWindowsPlatform::GetPlatform()->GetD2DDevice();

@@ -72,6 +72,7 @@
 #include "APZCCallbackHelper.h"
 #include "nsILoadContext.h"
 #include "ipc/nsGUIEventIPC.h"
+#include "gfxPlatform.h"
 
 #ifdef DEBUG
 #include "PCOMContentPermissionRequestChild.h"
@@ -2281,6 +2282,10 @@ TabChild::InitRenderingState()
           NS_WARNING("failed to properly allocate layer transaction");
           return false;
         }
+
+        
+        
+        gfxPlatform::GetPlatform()->SetCompositorBackend(mTextureFactoryIdentifier.mParentBackend);
     } else {
         
         shadowManager = remoteFrame->SendPLayerTransactionConstructor();
