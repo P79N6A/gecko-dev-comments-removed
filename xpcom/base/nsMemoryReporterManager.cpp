@@ -822,7 +822,8 @@ HashtableEnumerator::GetNext(nsISupports** aNext)
 } 
 
 nsMemoryReporterManager::nsMemoryReporterManager()
-  : mMutex("nsMemoryReporterManager::mMutex")
+  : mMutex("nsMemoryReporterManager::mMutex"),
+    mIsRegistrationBlocked(false)
 {
     mReporters.Init();
     mMultiReporters.Init();
@@ -877,13 +878,14 @@ DebugAssertRefcountIsNonZero(nsISupports* aObj)
 #endif
 }
 
-NS_IMETHODIMP
-nsMemoryReporterManager::RegisterReporter(nsIMemoryReporter *reporter)
+nsresult
+nsMemoryReporterManager::RegisterReporterHelper(
+    nsIMemoryReporter *reporter, bool aForce)
 {
     
     mozilla::MutexAutoLock autoLock(mMutex);
 
-    if (mReporters.Contains(reporter)) {
+    if ((mIsRegistrationBlocked && !aForce) || mReporters.Contains(reporter)) {
         return NS_ERROR_FAILURE;
     }
 
@@ -908,12 +910,27 @@ nsMemoryReporterManager::RegisterReporter(nsIMemoryReporter *reporter)
 }
 
 NS_IMETHODIMP
-nsMemoryReporterManager::RegisterMultiReporter(nsIMemoryMultiReporter *reporter)
+nsMemoryReporterManager::RegisterReporter(nsIMemoryReporter *reporter)
+{
+    return RegisterReporterHelper(reporter,  false);
+}
+
+NS_IMETHODIMP
+nsMemoryReporterManager::RegisterReporterEvenIfBlocked(
+    nsIMemoryReporter *reporter)
+{
+    return RegisterReporterHelper(reporter,  true);
+}
+
+nsresult
+nsMemoryReporterManager::RegisterMultiReporterHelper(
+    nsIMemoryMultiReporter *reporter, bool aForce)
 {
     
     mozilla::MutexAutoLock autoLock(mMutex);
 
-    if (mMultiReporters.Contains(reporter)) {
+    if ((mIsRegistrationBlocked && !aForce) ||
+         mMultiReporters.Contains(reporter)) {
         return NS_ERROR_FAILURE;
     }
 
@@ -925,6 +942,19 @@ nsMemoryReporterManager::RegisterMultiReporter(nsIMemoryMultiReporter *reporter)
     DebugAssertRefcountIsNonZero(reporter);
 
     return NS_OK;
+}
+
+NS_IMETHODIMP
+nsMemoryReporterManager::RegisterMultiReporter(nsIMemoryMultiReporter *reporter)
+{
+    return RegisterMultiReporterHelper(reporter,  false);
+}
+
+NS_IMETHODIMP
+nsMemoryReporterManager::RegisterMultiReporterEvenIfBlocked(
+    nsIMemoryMultiReporter *reporter)
+{
+    return RegisterMultiReporterHelper(reporter,  true);
 }
 
 NS_IMETHODIMP
@@ -952,6 +982,30 @@ nsMemoryReporterManager::UnregisterMultiReporter(nsIMemoryMultiReporter *reporte
     }
 
     mMultiReporters.RemoveEntry(reporter);
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsMemoryReporterManager::BlockRegistration()
+{
+    
+    mozilla::MutexAutoLock autoLock(mMutex);
+    if (mIsRegistrationBlocked) {
+        return NS_ERROR_FAILURE;
+    }
+    mIsRegistrationBlocked = true;
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsMemoryReporterManager::UnblockRegistration()
+{
+    
+    mozilla::MutexAutoLock autoLock(mMutex);
+    if (!mIsRegistrationBlocked) {
+        return NS_ERROR_FAILURE;
+    }
+    mIsRegistrationBlocked = false;
     return NS_OK;
 }
 
