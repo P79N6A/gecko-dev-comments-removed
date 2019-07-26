@@ -76,6 +76,9 @@ class NameResolver
           case PNK_NAME:
             return buf->append(n->pn_atom);
 
+          case PNK_THIS:
+            return buf->append("this");
+
           case PNK_ELEM:
             return nameExpression(n->pn_left) &&
                    buf->append("[") &&
@@ -118,6 +121,7 @@ class NameResolver
 
             switch (cur->getKind()) {
               case PNK_NAME:     return cur;  
+              case PNK_THIS:     return cur;  
               case PNK_FUNCTION: return nullptr; 
 
               case PNK_RETURN:
