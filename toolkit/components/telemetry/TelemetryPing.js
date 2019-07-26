@@ -947,6 +947,15 @@ TelemetryPing.prototype = {
     return this.getCurrentSessionPayload("gather-payload");
   },
 
+  gatherStartup: function gatherStartup() {
+    let counters = processInfo.getCounters();
+    if (counters) {
+      [this._startupIO.startupSessionRestoreReadBytes,
+        this._startupIO.startupSessionRestoreWriteBytes] = counters;
+    }
+    this.gatherStartupInformation();
+  },
+
   
 
 
@@ -995,14 +1004,7 @@ TelemetryPing.prototype = {
       
       let debugService = Cc["@mozilla.org/xpcom/debug;1"].getService(Ci.nsIDebug2);
       gWasDebuggerAttached = debugService.isDebuggerAttached;
-      
-    case "test-gather-startup":
-      var counters = processInfo.getCounters();
-      if (counters) {  
-        [this._startupIO.startupSessionRestoreReadBytes, 
-          this._startupIO.startupSessionRestoreWriteBytes] = counters;
-      }
-      this.gatherStartupInformation();
+      this.gatherStartup();
       break;
     case "idle-daily":
       
