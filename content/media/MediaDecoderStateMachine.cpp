@@ -160,6 +160,7 @@ MediaDecoderStateMachine::MediaDecoderStateMachine(MediaDecoder* aDecoder,
                                                    bool aRealTime) :
   mDecoder(aDecoder),
   mState(DECODER_STATE_DECODING_METADATA),
+  mInRunningStateMachine(false),
   mSyncPointInMediaStream(-1),
   mSyncPointInDecodedStream(-1),
   mResetPlayStartTime(false),
@@ -191,10 +192,7 @@ MediaDecoderStateMachine::MediaDecoderStateMachine(MediaDecoder* aDecoder,
   mDispatchedEventToDecode(false),
   mStopAudioThread(true),
   mQuickBuffering(false),
-  mIsRunning(false),
-  mRunAgain(false),
   mMinimizePreroll(false),
-  mDispatchedRunEvent(false),
   mDecodeThreadWaiting(false),
   mRealTime(aRealTime),
   mLastFrameStatus(MediaDecoderOwner::NEXT_FRAME_UNINITIALIZED)
@@ -1035,6 +1033,12 @@ nsresult MediaDecoderStateMachine::Init(MediaDecoderStateMachine* aCloneDonor)
   }
 
   mStateMachineThreadPool = stateMachinePool;
+
+  nsresult rv;
+  mTimer = do_CreateInstance("@mozilla.org/timer;1", &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = mTimer->SetTarget(GetStateMachineThread());
+  NS_ENSURE_SUCCESS(rv, rv);
 
   return mReader->Init(cloneReader);
 }
@@ -2666,42 +2670,21 @@ nsresult MediaDecoderStateMachine::GetBuffered(dom::TimeRanges* aBuffered) {
   return res;
 }
 
-nsresult MediaDecoderStateMachine::Run()
-{
-  ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-  NS_ASSERTION(OnStateMachineThread(), "Should be on state machine thread.");
-
-  return CallRunStateMachine();
-}
-
 nsresult MediaDecoderStateMachine::CallRunStateMachine()
 {
   AssertCurrentThreadInMonitor();
   NS_ASSERTION(OnStateMachineThread(), "Should be on state machine thread.");
-  
-  
-  mRunAgain = false;
-
-  
-  
-  mDispatchedRunEvent = false;
 
   
   if (mAudioCaptured) {
     StopAudioThread();
   }
 
+  MOZ_ASSERT(!mInRunningStateMachine, "State machine cycles must run in sequence!");
   mTimeout = TimeStamp();
-
-  mIsRunning = true;
+  mInRunningStateMachine = true;
   nsresult res = RunStateMachine();
-  mIsRunning = false;
-
-  if (mRunAgain && !mDispatchedRunEvent) {
-    mDispatchedRunEvent = true;
-    return GetStateMachineThread()->Dispatch(this, NS_DISPATCH_NORMAL);
-  }
-
+  mInRunningStateMachine = false;
   return res;
 }
 
@@ -2716,16 +2699,7 @@ void MediaDecoderStateMachine::TimeoutExpired()
 {
   ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
   NS_ASSERTION(OnStateMachineThread(), "Must be on state machine thread");
-  if (mIsRunning) {
-    mRunAgain = true;
-  } else if (!mDispatchedRunEvent) {
-    
-    
-    CallRunStateMachine();
-  }
-  
-  
-  
+  CallRunStateMachine();
 }
 
 void MediaDecoderStateMachine::ScheduleStateMachineWithLockAndWakeDecoder() {
@@ -2745,60 +2719,25 @@ nsresult MediaDecoderStateMachine::ScheduleStateMachine(int64_t aUsecs) {
   aUsecs = std::max<int64_t>(aUsecs, 0);
 
   TimeStamp timeout = TimeStamp::Now() + UsecsToDuration(aUsecs);
-  if (!mTimeout.IsNull()) {
-    if (timeout >= mTimeout) {
-      
-      
-      return NS_OK;
-    }
-    if (mTimer) {
-      
-      
-      mTimer->Cancel();
-    }
+  if (!mTimeout.IsNull() && timeout >= mTimeout) {
+    
+    
+    return NS_OK;
   }
 
   uint32_t ms = static_cast<uint32_t>((aUsecs / USECS_PER_MS) & 0xFFFFFFFF);
-  if (mRealTime && ms > 40)
+  if (mRealTime && ms > 40) {
     ms = 40;
-  if (ms == 0) {
-    if (mIsRunning) {
-      
-      
-      mRunAgain = true;
-      return NS_OK;
-    } else if (!mDispatchedRunEvent) {
-      
-      
-      mDispatchedRunEvent = true;
-      return GetStateMachineThread()->Dispatch(this, NS_DISPATCH_NORMAL);
-    }
-    
-    
-    
-    return NS_OK;
   }
-
-  
-  
-  if (mRunAgain) {
-    return NS_OK;
-  }
-
   mTimeout = timeout;
-
-  nsresult res;
-  if (!mTimer) {
-    mTimer = do_CreateInstance("@mozilla.org/timer;1", &res);
-    if (NS_FAILED(res)) return res;
-    mTimer->SetTarget(GetStateMachineThread());
-  }
-
-  res = mTimer->InitWithFuncCallback(mozilla::TimeoutExpired,
-                                     this,
-                                     ms,
-                                     nsITimer::TYPE_ONE_SHOT);
-  return res;
+  
+  mTimer->Cancel();
+  nsresult rv = mTimer->InitWithFuncCallback(mozilla::TimeoutExpired,
+                                             this,
+                                             ms,
+                                             nsITimer::TYPE_ONE_SHOT);
+  NS_ENSURE_SUCCESS(rv, rv);
+  return NS_OK;
 }
 
 bool MediaDecoderStateMachine::OnDecodeThread() const
