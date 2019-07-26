@@ -69,7 +69,21 @@ public:
 
   void ClearAnimValue(nsSVGElement *aElement);
 
+  
+
+
+
+
   bool IsExplicitlySet() const;
+
+  
+
+
+
+
+
+  bool HasTransform() const
+    { return (mAnimVal && !mAnimVal->IsEmpty()) || !mBaseVal.IsEmpty(); }
 
   bool IsAnimating() const {
     return !!mAnimVal;
