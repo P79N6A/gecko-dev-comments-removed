@@ -8,7 +8,16 @@
 
 #include "nsCOMPtr.h"
 #include "nsIObserver.h"
-#include "SpeechRecognition.h"
+
+
+namespace mozilla {
+  class AudioSegment;
+
+  namespace dom {
+    class SpeechRecognition;
+    class SpeechRecognitionResultList;
+  }
+}
 
 #include "nsISpeechRecognitionService.h"
 
