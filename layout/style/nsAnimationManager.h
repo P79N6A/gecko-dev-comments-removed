@@ -70,22 +70,18 @@ struct ElementAnimations MOZ_FINAL
   
   
   
-  
-  
-  
-  
   static double GetPositionInIteration(TimeDuration aElapsedDuration,
                                        TimeDuration aIterationDuration,
                                        double aIterationCount,
                                        uint32_t aDirection,
+                                       uint8_t aFillMode,
                                        mozilla::ElementAnimation* aAnimation =
                                          nullptr,
                                        ElementAnimations* aEa = nullptr,
                                        EventArray* aEventsToDispatch = nullptr);
 
-  void EnsureStyleRuleFor(TimeStamp aRefreshTime,
-                          EventArray &aEventsToDispatch,
-                          bool aIsThrottled);
+  void EnsureStyleRuleFor(TimeStamp aRefreshTime, bool aIsThrottled);
+  void GetEventsAt(TimeStamp aRefreshTime, EventArray &aEventsToDispatch);
 
   bool IsForElement() const { 
     return mElementProperty == nsGkAtoms::animationsProperty;
