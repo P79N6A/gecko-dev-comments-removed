@@ -1394,6 +1394,7 @@ public:
   virtual void AddInvalidateHiddenPresShellObserver(nsRefreshDriver *aDriver) = 0;
 
   void InvalidatePresShellIfHidden();
+  void CancelInvalidatePresShellIfHidden();
 
   
   virtual void ScheduleImageVisibilityUpdate() = 0;
