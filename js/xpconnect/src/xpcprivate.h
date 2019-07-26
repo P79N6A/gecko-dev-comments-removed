@@ -1398,11 +1398,6 @@ public:
     JSObject*
     GetGlobalJSObjectPreserveColor() const {return mGlobalJSObject;}
 
-    
-    
-    JSObject*
-    GetPrototypeNoHelper();
-
     nsIPrincipal*
     GetPrincipal() const {
         JSCompartment *c = js::GetObjectCompartment(mGlobalJSObject);
@@ -1525,9 +1520,6 @@ private:
     
     
     JS::ObjectPtr                    mXBLScope;
-
-    
-    JSObject*                        mPrototypeNoHelper;
 
     XPCContext*                      mContext;
 

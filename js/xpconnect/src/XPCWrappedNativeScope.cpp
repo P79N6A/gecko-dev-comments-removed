@@ -126,7 +126,6 @@ XPCWrappedNativeScope::XPCWrappedNativeScope(JSContext *cx,
         mComponents(nullptr),
         mNext(nullptr),
         mGlobalJSObject(aGlobal),
-        mPrototypeNoHelper(nullptr),
         mIsXBLScope(false)
 {
     
@@ -286,40 +285,6 @@ bool AllowXBLScope(JSCompartment *c)
 }
 } 
 
-
-
-
-
-
-
-
-
-
-js::Class XPC_WN_NoHelper_Proto_JSClass = {
-    "XPC_WN_NoHelper_Proto_JSClass",
-    WRAPPER_SLOTS,                  
-
-    
-    JS_PropertyStub,                
-    JS_DeletePropertyStub,          
-    JS_PropertyStub,                
-    JS_StrictPropertyStub,          
-    JS_EnumerateStub,               
-    JS_ResolveStub,                 
-    JS_ConvertStub,                 
-    nullptr,                         
-
-    
-    nullptr,                         
-    nullptr,                         
-    nullptr,                         
-    nullptr,                         
-    nullptr,                         
-
-    JS_NULL_CLASS_EXT,
-    XPC_WN_NoCall_ObjectOps
-};
-
 XPCWrappedNativeScope::~XPCWrappedNativeScope()
 {
     MOZ_COUNT_DTOR(XPCWrappedNativeScope);
@@ -357,27 +322,6 @@ XPCWrappedNativeScope::~XPCWrappedNativeScope()
     JSRuntime *rt = XPCJSRuntime::Get()->GetJSRuntime();
     mXBLScope.finalize(rt);
     mGlobalJSObject.finalize(rt);
-}
-
-JSObject *
-XPCWrappedNativeScope::GetPrototypeNoHelper()
-{
-    AutoJSContext cx;
-    
-    
-    
-    if (!mPrototypeNoHelper) {
-        mPrototypeNoHelper = JS_NewObject(cx, js::Jsvalify(&XPC_WN_NoHelper_Proto_JSClass),
-                                          JS_GetObjectPrototype(cx, mGlobalJSObject),
-                                          mGlobalJSObject);
-
-        NS_ASSERTION(mPrototypeNoHelper,
-                     "Failed to create prototype for wrappers w/o a helper");
-    } else {
-        xpc_UnmarkGrayObject(mPrototypeNoHelper);
-    }
-
-    return mPrototypeNoHelper;
 }
 
 static JSDHashOperator
@@ -483,9 +427,6 @@ XPCWrappedNativeScope::StartFinalizationPhaseOfGC(JSFreeOp *fop, XPCJSRuntime* r
             cur->mNext = gDyingScopes;
             gDyingScopes = cur;
             cur = nullptr;
-        } else {
-            if (cur->mPrototypeNoHelper && JS_IsAboutToBeFinalized(&cur->mPrototypeNoHelper))
-                cur->mPrototypeNoHelper = nullptr;
         }
         if (cur)
             prev = cur;
@@ -739,10 +680,6 @@ WNProtoRemover(JSDHashTable *table, JSDHashEntryHdr *hdr,
 void
 XPCWrappedNativeScope::RemoveWrappedNativeProtos()
 {
-    
-    
-    mPrototypeNoHelper = nullptr;
-
     XPCAutoLock al(XPCJSRuntime::Get()->GetMapLock());
 
     mWrappedNativeProtoMap->Enumerate(WNProtoRemover,
@@ -803,7 +740,6 @@ XPCWrappedNativeScope::DebugDump(int16_t depth)
         XPC_LOG_ALWAYS(("mNext @ %x", mNext));
         XPC_LOG_ALWAYS(("mComponents @ %x", mComponents.get()));
         XPC_LOG_ALWAYS(("mGlobalJSObject @ %x", mGlobalJSObject.get()));
-        XPC_LOG_ALWAYS(("mPrototypeNoHelper @ %x", mPrototypeNoHelper));
 
         XPC_LOG_ALWAYS(("mWrappedNativeMap @ %x with %d wrappers(s)",         \
                         mWrappedNativeMap,                                    \
