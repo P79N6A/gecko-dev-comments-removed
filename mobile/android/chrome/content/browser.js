@@ -274,6 +274,7 @@ var BrowserApp = {
 
     Services.androidBridge.browserApp = this;
 
+    Services.obs.addObserver(this, "Locale:Changed", false);
     Services.obs.addObserver(this, "Tab:Load", false);
     Services.obs.addObserver(this, "Tab:Selected", false);
     Services.obs.addObserver(this, "Tab:Closed", false);
@@ -408,6 +409,14 @@ var BrowserApp = {
       return savedmstone ? "upgrade" : "new";
     }
     return "";
+  },
+
+  
+
+
+  setLocale: function (locale) {
+    console.log("browser.js: requesting locale set: " + locale);
+    sendMessageToJava({ type: "Locale:Set", locale: locale });
   },
 
   initContextMenu: function ba_initContextMenu() {
@@ -1494,6 +1503,13 @@ var BrowserApp = {
 
       case "nsPref:changed":
         this.notifyPrefObservers(aData);
+        break;
+
+      case "Locale:Changed":
+        
+        
+        Services.prefs.setBoolPref("intl.locale.matchOS", false);
+        Services.prefs.setCharPref("general.useragent.locale", aData);
         break;
 
       default:

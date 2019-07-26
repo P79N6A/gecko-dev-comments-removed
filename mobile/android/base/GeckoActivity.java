@@ -12,6 +12,15 @@ public class GeckoActivity extends FragmentActivity implements GeckoActivityStat
     
     private boolean mGeckoActivityOpened = false;
 
+    
+
+
+
+
+
+    public void onLocaleReady(final String locale) {
+    }
+
     @Override
     public void onPause() {
         super.onPause();
