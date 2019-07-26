@@ -16,9 +16,8 @@
 
 using namespace mozilla;
 
-NS_IMPL_THREADSAFE_ISUPPORTS2(xptiInterfaceInfoManager, 
-                              nsIInterfaceInfoManager,
-                              nsIInterfaceInfoSuperManager)
+NS_IMPL_THREADSAFE_ISUPPORTS1(xptiInterfaceInfoManager, 
+                              nsIInterfaceInfoManager)
 
 static xptiInterfaceInfoManager* gInterfaceInfoManager = nullptr;
 #ifdef DEBUG
@@ -79,9 +78,7 @@ xptiInterfaceInfoManager::FreeInterfaceInfoManager()
 
 xptiInterfaceInfoManager::xptiInterfaceInfoManager()
     :   mWorkingSet(),
-        mResolveLock("xptiInterfaceInfoManager.mResolveLock"),
-        mAdditionalManagersLock(
-            "xptiInterfaceInfoManager.mAdditionalManagersLock")
+        mResolveLock("xptiInterfaceInfoManager.mResolveLock")
 {
     NS_RegisterMemoryReporter(new NS_MEMORY_REPORTER_NAME(xptiWorkingSet));
 }
@@ -333,75 +330,4 @@ NS_IMETHODIMP xptiInterfaceInfoManager::EnumerateInterfacesWhoseNamesStartWith(c
 NS_IMETHODIMP xptiInterfaceInfoManager::AutoRegisterInterfaces()
 {
     return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-
-
-
-NS_IMETHODIMP xptiInterfaceInfoManager::AddAdditionalManager(nsIInterfaceInfoManager *manager)
-{
-    nsCOMPtr<nsIWeakReference> weakRef = do_GetWeakReference(manager);
-    nsISupports* ptrToAdd = weakRef ? 
-                    static_cast<nsISupports*>(weakRef) :
-                    static_cast<nsISupports*>(manager);
-    { 
-        MutexAutoLock lock(mAdditionalManagersLock);
-        if (mAdditionalManagers.IndexOf(ptrToAdd) != -1)
-            return NS_ERROR_FAILURE;
-        if (!mAdditionalManagers.AppendObject(ptrToAdd))
-            return NS_ERROR_OUT_OF_MEMORY;
-    }
-    return NS_OK;
-}
-
-
-NS_IMETHODIMP xptiInterfaceInfoManager::RemoveAdditionalManager(nsIInterfaceInfoManager *manager)
-{
-    nsCOMPtr<nsIWeakReference> weakRef = do_GetWeakReference(manager);
-    nsISupports* ptrToRemove = weakRef ? 
-                    static_cast<nsISupports*>(weakRef) :
-                    static_cast<nsISupports*>(manager);
-    { 
-        MutexAutoLock lock(mAdditionalManagersLock);
-        if (!mAdditionalManagers.RemoveObject(ptrToRemove))
-            return NS_ERROR_FAILURE;
-    }
-    return NS_OK;
-}
-
-
-NS_IMETHODIMP xptiInterfaceInfoManager::HasAdditionalManagers(bool *_retval)
-{
-    *_retval = mAdditionalManagers.Count() > 0;
-    return NS_OK;
-}
-
-
-NS_IMETHODIMP xptiInterfaceInfoManager::EnumerateAdditionalManagers(nsISimpleEnumerator **_retval)
-{
-    MutexAutoLock lock(mAdditionalManagersLock);
-
-    nsCOMArray<nsISupports> managerArray(mAdditionalManagers);
-    
-    for(int32_t i = managerArray.Count(); i--; ) {
-        nsISupports *raw = managerArray.ObjectAt(i);
-        if (!raw)
-            return NS_ERROR_FAILURE;
-        nsCOMPtr<nsIWeakReference> weakRef = do_QueryInterface(raw);
-        if (weakRef) {
-            nsCOMPtr<nsIInterfaceInfoManager> manager = 
-                do_QueryReferent(weakRef);
-            if (manager) {
-                if (!managerArray.ReplaceObjectAt(manager, i))
-                    return NS_ERROR_FAILURE;
-            }
-            else {
-                
-                mAdditionalManagers.RemoveObjectAt(i);
-                managerArray.RemoveObjectAt(i);
-            }
-        }
-    }
-    
-    return NS_NewArrayEnumerator(_retval, managerArray);
 }
