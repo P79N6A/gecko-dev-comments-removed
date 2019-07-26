@@ -353,6 +353,13 @@ AudioNodeStream::ObtainInputBlock(AudioChunk* aTmpChunk)
 void
 AudioNodeStream::ProduceOutput(GraphTime aFrom, GraphTime aTo)
 {
+  if (mMarkAsFinishedAfterThisBlock) {
+    
+    
+    
+    FinishOutput();
+  }
+
   StreamBuffer::Track* track = EnsureTrack();
 
   AudioChunk outputChunk;
@@ -369,7 +376,7 @@ AudioNodeStream::ProduceOutput(GraphTime aFrom, GraphTime aTo)
     bool finished = false;
     mEngine->ProduceAudioBlock(this, *inputChunk, &outputChunk, &finished);
     if (finished) {
-      FinishOutput();
+      mMarkAsFinishedAfterThisBlock = true;
     }
   }
 
