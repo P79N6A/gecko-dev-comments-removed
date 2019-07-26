@@ -173,50 +173,27 @@ NS_IMETHODIMP imgStatusTrackerObserver::OnStopFrame(imgIRequest *request,
 }
 
 
-NS_IMETHODIMP imgStatusTrackerObserver::OnStopContainer(imgIRequest *request,
-                                          imgIContainer *image)
-{
-  LOG_SCOPE(gImgLog, "imgStatusTrackerObserver::OnStopContainer");
-  NS_ABORT_IF_FALSE(mTracker->GetImage(),
-                    "OnDataContainer callback before we've created our image");
-
-  mTracker->RecordStopContainer(image);
-
-  nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mTracker->mConsumers);
-  while (iter.HasMore()) {
-    mTracker->SendStopContainer(iter.GetNext(), image);
-  }
-
-  
-  
-  
-  
-  
-  
-  mTracker->MaybeUnblockOnload();
-
-  return NS_OK;
-}
-
-
 NS_IMETHODIMP imgStatusTrackerObserver::OnStopDecode(imgIRequest *aRequest,
-                                       nsresult aStatus,
-                                       const PRUnichar *aStatusArg)
+                                                     nsresult aStatus)
 {
   LOG_SCOPE(gImgLog, "imgStatusTrackerObserver::OnStopDecode");
   NS_ABORT_IF_FALSE(mTracker->GetImage(),
-                    "OnDataDecode callback before we've created our image");
+                    "OnStopDecode callback before we've created our image");
 
   
   
   mTracker->GetRequest()->UpdateCacheEntrySize();
 
-  mTracker->RecordStopDecode(aStatus, aStatusArg);
+  mTracker->RecordStopDecode(aStatus);
 
   nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mTracker->mConsumers);
   while (iter.HasMore()) {
-    mTracker->SendStopDecode(iter.GetNext(), aStatus, aStatusArg);
+    mTracker->SendStopDecode(iter.GetNext(), aStatus);
   }
+
+  
+  
+  mTracker->MaybeUnblockOnload();
 
   if (NS_FAILED(aStatus)) {
     
@@ -229,19 +206,6 @@ NS_IMETHODIMP imgStatusTrackerObserver::OnStopDecode(imgIRequest *aRequest,
       os->NotifyObservers(uri, "net:failed-to-process-uri-content", nullptr);
     }
   }
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
 
   return NS_OK;
 }
@@ -513,16 +477,12 @@ imgStatusTracker::SyncNotify(imgRequestProxy* proxy)
     }
   }
 
-  
-  
-  
   if (mState & stateDecodeStopped) {
     NS_ABORT_IF_FALSE(mImage, "stopped decoding without ever having an image?");
-    proxy->OnStopContainer(mImage);
+    proxy->OnStopDecode();
   }
 
   if (mState & stateRequestStopped) {
-    proxy->OnStopDecode(GetResultFromImageStatus(mImageStatus), nullptr);
     proxy->OnStopRequest(mHadLastPart);
   }
 }
@@ -670,21 +630,7 @@ imgStatusTracker::SendStopFrame(imgRequestProxy* aProxy, uint32_t aFrame)
 }
 
 void
-imgStatusTracker::RecordStopContainer(imgIContainer* aContainer)
-{
-  NS_ABORT_IF_FALSE(mImage,
-                    "RecordStopContainer called before we have an Image");
-  
-}
-
-void
-imgStatusTracker::SendStopContainer(imgRequestProxy* aProxy, imgIContainer* aContainer)
-{
-  
-}
-
-void
-imgStatusTracker::RecordStopDecode(nsresult aStatus, const PRUnichar* statusArg)
+imgStatusTracker::RecordStopDecode(nsresult aStatus)
 {
   NS_ABORT_IF_FALSE(mImage,
                     "RecordStopDecode called before we have an Image");
@@ -698,14 +644,10 @@ imgStatusTracker::RecordStopDecode(nsresult aStatus, const PRUnichar* statusArg)
 }
 
 void
-imgStatusTracker::SendStopDecode(imgRequestProxy* aProxy, nsresult aStatus,
-                                 const PRUnichar* statusArg)
+imgStatusTracker::SendStopDecode(imgRequestProxy* aProxy, nsresult aStatus)
 {
-  
-  
-  
   if (!aProxy->NotificationsDeferred())
-    aProxy->OnStopContainer(mImage);
+    aProxy->OnStopDecode();
 }
 
 void
@@ -816,10 +758,7 @@ imgStatusTracker::RecordStopRequest(bool aLastPart, nsresult aStatus)
 void
 imgStatusTracker::SendStopRequest(imgRequestProxy* aProxy, bool aLastPart, nsresult aStatus)
 {
-  
-  
   if (!aProxy->NotificationsDeferred()) {
-    aProxy->OnStopDecode(GetResultFromImageStatus(mImageStatus), nullptr);
     aProxy->OnStopRequest(aLastPart);
   }
 }
