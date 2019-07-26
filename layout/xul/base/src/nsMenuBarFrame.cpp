@@ -72,21 +72,19 @@ nsMenuBarFrame::Init(nsIContent*      aContent,
 
   
   
-  nsCOMPtr<nsIDOMEventTarget> target = do_QueryInterface(aContent->GetDocument());
-  
-  mTarget = target;
+  mTarget = aContent->GetDocument();
 
   
   
-  
-  target->AddEventListener(NS_LITERAL_STRING("keypress"), mMenuBarListener, false); 
-  target->AddEventListener(NS_LITERAL_STRING("keydown"), mMenuBarListener, false);  
-  target->AddEventListener(NS_LITERAL_STRING("keyup"), mMenuBarListener, false);   
+
+  mTarget->AddEventListener(NS_LITERAL_STRING("keypress"), mMenuBarListener, false);
+  mTarget->AddEventListener(NS_LITERAL_STRING("keydown"), mMenuBarListener, false);
+  mTarget->AddEventListener(NS_LITERAL_STRING("keyup"), mMenuBarListener, false);
 
   
-  target->AddEventListener(NS_LITERAL_STRING("mousedown"), mMenuBarListener, true);
-  target->AddEventListener(NS_LITERAL_STRING("mousedown"), mMenuBarListener, false);
-  target->AddEventListener(NS_LITERAL_STRING("blur"), mMenuBarListener, true);   
+  mTarget->AddEventListener(NS_LITERAL_STRING("mousedown"), mMenuBarListener, true);
+  mTarget->AddEventListener(NS_LITERAL_STRING("mousedown"), mMenuBarListener, false);
+  mTarget->AddEventListener(NS_LITERAL_STRING("blur"), mMenuBarListener, true);
 }
 
 NS_IMETHODIMP
