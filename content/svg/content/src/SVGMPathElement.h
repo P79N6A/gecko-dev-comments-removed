@@ -10,7 +10,6 @@
 #include "nsIDOMSVGURIReference.h"
 #include "nsSVGElement.h"
 #include "nsStubMutationObserver.h"
-#include "nsSVGPathElement.h"
 #include "nsSVGString.h"
 #include "nsReferencedElement.h"
 
@@ -21,6 +20,7 @@ typedef nsSVGElement SVGMPathElementBase;
 
 namespace mozilla {
 namespace dom {
+class SVGPathElement;
 
 class SVGMPathElement MOZ_FINAL : public SVGMPathElementBase,
                                   public nsIDOMSVGMpathElement,
@@ -69,7 +69,7 @@ public:
   
   
   
-  nsSVGPathElement* GetReferencedPath();
+  SVGPathElement* GetReferencedPath();
 
   virtual nsXPCClassInfo* GetClassInfo();
 

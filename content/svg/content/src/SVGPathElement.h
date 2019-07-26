@@ -3,8 +3,8 @@
 
 
 
-#ifndef __NS_SVGPATHELEMENT_H__
-#define __NS_SVGPATHELEMENT_H__
+#ifndef mozilla_dom_SVGPathElement_h
+#define mozilla_dom_SVGPathElement_h
 
 #include "nsIDOMSVGAnimatedPathData.h"
 #include "nsIDOMSVGPathElement.h"
@@ -12,23 +12,29 @@
 #include "nsSVGPathGeometryElement.h"
 #include "SVGAnimatedPathSegList.h"
 
+nsresult NS_NewSVGPathElement(nsIContent **aResult,
+                              already_AddRefed<nsINodeInfo> aNodeInfo);
+
 class gfxContext;
 
-typedef nsSVGPathGeometryElement nsSVGPathElementBase;
+typedef nsSVGPathGeometryElement SVGPathElementBase;
 
-class nsSVGPathElement : public nsSVGPathElementBase,
-                         public nsIDOMSVGPathElement,
-                         public nsIDOMSVGAnimatedPathData
+namespace mozilla {
+namespace dom {
+
+class SVGPathElement MOZ_FINAL : public SVGPathElementBase,
+                                 public nsIDOMSVGPathElement,
+                                 public nsIDOMSVGAnimatedPathData
 {
 friend class nsSVGPathFrame;
 
 protected:
-  friend nsresult NS_NewSVGPathElement(nsIContent **aResult,
-                                       already_AddRefed<nsINodeInfo> aNodeInfo);
-  nsSVGPathElement(already_AddRefed<nsINodeInfo> aNodeInfo);
+  friend nsresult (::NS_NewSVGPathElement(nsIContent **aResult,
+                                          already_AddRefed<nsINodeInfo> aNodeInfo));
+  SVGPathElement(already_AddRefed<nsINodeInfo> aNodeInfo);
 
 public:
-  typedef mozilla::SVGAnimatedPathSegList SVGAnimatedPathSegList;
+  typedef SVGAnimatedPathSegList SVGAnimatedPathSegList;
   
 
   NS_DECL_ISUPPORTS_INHERITED
@@ -38,7 +44,7 @@ public:
   
   NS_FORWARD_NSIDOMNODE_TO_NSINODE
   NS_FORWARD_NSIDOMELEMENT_TO_GENERIC
-  NS_FORWARD_NSIDOMSVGELEMENT(nsSVGPathElementBase::)
+  NS_FORWARD_NSIDOMSVGELEMENT(SVGPathElementBase::)
 
   
   NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* name) const;
@@ -91,4 +97,7 @@ protected:
   static NumberInfo sNumberInfo;
 };
 
-#endif
+} 
+} 
+
+#endif 
