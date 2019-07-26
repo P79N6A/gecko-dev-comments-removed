@@ -54,12 +54,21 @@ public:
 
 
 
-  JSObject* Encode(JSContext* aCx, const nsAString& aString,
-                   const bool aStream, ErrorResult& aRv);
+
+  JSObject* Encode(JSContext* aCx,
+                   JS::Handle<JSObject*> aObj,
+                   const nsAString& aString,
+                   const bool aStream,
+                   ErrorResult& aRv);
 
 protected:
-  virtual JSObject*
-  CreateUint8Array(JSContext* aCx, char* aBuf, uint32_t aLen) = 0;
+  JSObject*
+  CreateUint8Array(JSContext* aCx, JS::Handle<JSObject*> aObj, 
+                   char* aBuf, uint32_t aLen) const
+  {
+    return Uint8Array::Create(aCx, aObj, aLen,
+                              reinterpret_cast<uint8_t*>(aBuf));
+  }
 
 private:
   nsCString mEncoding;
