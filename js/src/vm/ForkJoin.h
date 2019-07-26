@@ -313,9 +313,6 @@ class ForkJoinContext : public ThreadSafeContext
 {
   public:
     
-    const uint32_t workerId;
-
-    
     ParallelBailoutRecord *const bailoutRecord;
 
 #ifdef DEBUG
@@ -343,17 +340,16 @@ class ForkJoinContext : public ThreadSafeContext
     uint8_t *targetRegionStart;
     uint8_t *targetRegionEnd;
 
-    ForkJoinContext(PerThreadData *perThreadData, uint32_t workerId,
+    ForkJoinContext(PerThreadData *perThreadData, ThreadPoolWorker *worker,
                     Allocator *allocator, ForkJoinShared *shared,
                     ParallelBailoutRecord *bailoutRecord);
 
     
-    bool getSlice(uint16_t *sliceId) {
-        ThreadPool &pool = runtime()->threadPool;
-        return (isMainThread()
-                ? pool.getSliceForMainThread(sliceId)
-                : pool.getSliceForWorker(workerId, sliceId));
-    }
+    
+    uint32_t workerId() const { return worker_->id(); }
+
+    
+    bool getSlice(uint16_t *sliceId) { return worker_->getSlice(this, sliceId); }
 
     
     bool isMainThread() const;
@@ -416,7 +412,9 @@ class ForkJoinContext : public ThreadSafeContext
     
     static mozilla::ThreadLocal<ForkJoinContext*> tlsForkJoinContext;
 
-    ForkJoinShared *const shared;
+    ForkJoinShared *const shared_;
+
+    ThreadPoolWorker *worker_;
 
     bool acquiredJSContext_;
 

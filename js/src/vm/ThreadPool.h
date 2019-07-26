@@ -11,6 +11,7 @@
 
 #include "jsalloc.h"
 #include "jslock.h"
+#include "jsmath.h"
 #include "jspubtd.h"
 
 #include "js/Vector.h"
@@ -21,9 +22,74 @@ struct JSCompartment;
 
 namespace js {
 
-class ThreadPoolBaseWorker;
-class ThreadPoolWorker;
-class ThreadPoolMainWorker;
+class ThreadPool;
+
+
+
+
+
+
+
+
+class ThreadPoolWorker
+{
+    const uint32_t workerId_;
+    ThreadPool *pool_;
+
+    
+    
+    
+    
+    
+    mozilla::Atomic<uint32_t, mozilla::ReleaseAcquire> sliceBounds_;
+
+    
+    volatile enum WorkerState {
+        CREATED, ACTIVE, TERMINATED
+    } state_;
+
+    
+    static void HelperThreadMain(void *arg);
+    void helperLoop();
+
+    bool hasWork() const;
+    bool popSliceFront(uint16_t *sliceId);
+    bool popSliceBack(uint16_t *sliceId);
+    bool stealFrom(ThreadPoolWorker *victim, uint16_t *sliceId);
+
+  public:
+    ThreadPoolWorker(uint32_t workerId, ThreadPool *pool)
+      : workerId_(workerId),
+        pool_(pool),
+        sliceBounds_(0),
+        state_(CREATED)
+    { }
+
+    uint32_t id() const { return workerId_; }
+    bool isMainThread() const { return id() == 0; }
+
+    
+    void submitSlices(uint16_t sliceFrom, uint16_t sliceTo);
+
+    
+    
+    bool getSlice(ForkJoinContext *cx, uint16_t *sliceId);
+
+    
+    void discardSlices();
+
+    
+    bool start();
+
+    
+    void terminate(AutoLockMonitor &lock);
+
+    static size_t offsetOfSliceBounds() {
+        return offsetof(ThreadPoolWorker, sliceBounds_);
+    }
+};
+
+
 
 
 
@@ -33,9 +99,10 @@ class ThreadPoolMainWorker;
 class ParallelJob
 {
   public:
-    virtual bool executeFromWorker(uint32_t workerId, uintptr_t stackLimit) = 0;
-    virtual bool executeFromMainThread() = 0;
+    virtual bool executeFromWorker(ThreadPoolWorker *worker, uintptr_t stackLimit) = 0;
+    virtual bool executeFromMainThread(ThreadPoolWorker *mainWorker) = 0;
 };
+
 
 
 
@@ -79,17 +146,13 @@ class ParallelJob
 class ThreadPool : public Monitor
 {
   private:
-    friend class ThreadPoolBaseWorker;
     friend class ThreadPoolWorker;
-    friend class ThreadPoolMainWorker;
 
     
     JSRuntime *const runtime_;
 
     
-    
     js::Vector<ThreadPoolWorker *, 8, SystemAllocPolicy> workers_;
-    ThreadPoolMainWorker *mainWorker_;
 
     
     uint32_t activeWorkers_;
@@ -106,11 +169,15 @@ class ThreadPool : public Monitor
     
     mozilla::Atomic<uint32_t, mozilla::ReleaseAcquire> pendingSlices_;
 
+    
+    bool isMainThreadActive_;
+
     bool lazyStartWorkers(JSContext *cx);
     void terminateWorkers();
     void terminateWorkersAndReportOOM(JSContext *cx);
     void join(AutoLockMonitor &lock);
     void waitForWorkers(AutoLockMonitor &lock);
+    ThreadPoolWorker *mainThreadWorker() { return workers_[0]; }
 
   public:
     ThreadPool(JSRuntime *rt);
@@ -134,7 +201,7 @@ class ThreadPool : public Monitor
     bool workStealing() const;
 
     
-    bool isMainThreadActive() const;
+    bool isMainThreadActive() const { return isMainThreadActive_; }
 
 #ifdef DEBUG
     
@@ -150,11 +217,6 @@ class ThreadPool : public Monitor
     
     ParallelResult executeJob(JSContext *cx, ParallelJob *job, uint16_t sliceStart,
                               uint16_t numSlices);
-
-    
-    
-    bool getSliceForWorker(uint32_t workerId, uint16_t *sliceId);
-    bool getSliceForMainThread(uint16_t *sliceId);
 
     
     void abortJob();
