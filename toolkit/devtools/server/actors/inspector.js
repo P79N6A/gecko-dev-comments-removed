@@ -1386,46 +1386,6 @@ var WalkerActor = protocol.ActorClass({
 
 
 
-  removeNode: method(function(node) {
-    if ((node.rawNode.ownerDocument &&
-         node.rawNode.ownerDocument.documentElement === this.rawNode) ||
-         node.rawNode.nodeType === Ci.nsIDOMNode.DOCUMENT_NODE) {
-      throw Error("Cannot remove document or document elements.");
-    }
-    let nextSibling = this.nextSibling(node);
-    if (node.rawNode.parentNode) {
-      node.rawNode.parentNode.removeChild(node.rawNode);
-      
-    }
-    return nextSibling;
-  }, {
-    request: {
-      node: Arg(0, "domnode")
-    },
-    response: {
-      nextSibling: RetVal("domnode", { optional: true })
-    }
-  }),
-
-  
-
-
-  insertBefore: method(function(node, parent, sibling) {
-    parent.rawNode.insertBefore(node.rawNode, sibling ? sibling.rawNode : null);
-  }, {
-    request: {
-      node: Arg(0, "domnode"),
-      parent: Arg(1, "domnode"),
-      sibling: Arg(2, "domnode", { optional: true })
-    },
-    response: {}
-  }),
-
-  
-
-
-
-
 
 
 
