@@ -1364,10 +1364,6 @@ GetPropertyIC::tryAttachDOMProxyUnshadowed(JSContext *cx, IonScript *ion, Handle
         return false;
     if (canCache == CanAttachNone)
         return true;
-    
-    
-    if (!holder)
-        return true;
 
     *emitted = true;
 
@@ -1396,32 +1392,45 @@ GetPropertyIC::tryAttachDOMProxyUnshadowed(JSContext *cx, IonScript *ion, Handle
     
     GenerateDOMProxyChecks(cx, masm, obj, name, object(), &failures);
 
-    Register scratchReg = output().valueReg().scratchReg();
-    GeneratePrototypeGuards(cx, ion, masm, obj, holder, object(), scratchReg, &failures);
+    if (holder) {
+        
+        
+        Register scratchReg = output().valueReg().scratchReg();
+        GeneratePrototypeGuards(cx, ion, masm, obj, holder, object(), scratchReg, &failures);
 
-    
-    Register holderReg = scratchReg;
+        
+        Register holderReg = scratchReg;
 
-    
-    masm.moveNurseryPtr(ImmMaybeNurseryPtr(holder), holderReg);
-    masm.branchPtr(Assembler::NotEqual,
-                   Address(holderReg, JSObject::offsetOfShape()),
-                   ImmGCPtr(holder->lastProperty()),
-                   &failures);
+        
+        masm.moveNurseryPtr(ImmMaybeNurseryPtr(holder), holderReg);
+        masm.branchPtr(Assembler::NotEqual,
+                    Address(holderReg, JSObject::offsetOfShape()),
+                    ImmGCPtr(holder->lastProperty()),
+                    &failures);
 
-    if (canCache == CanAttachReadSlot) {
-        EmitLoadSlot(masm, holder, shape, holderReg, output(), scratchReg);
+        if (canCache == CanAttachReadSlot) {
+            EmitLoadSlot(masm, holder, shape, holderReg, output(), scratchReg);
+        } else {
+            
+            
+            
+            JS_ASSERT_IF(canCache != CanAttachCallGetter, canCache == CanAttachArrayLength);
+            if (!EmitGetterCall(cx, masm, attacher, checkObj, holder, shape, liveRegs_,
+                                object(), scratchReg, output(), returnAddr))
+            {
+                return false;
+            }
+        }
     } else {
         
         
-        
-        JS_ASSERT_IF(canCache != CanAttachCallGetter, canCache == CanAttachArrayLength);
-        if (!EmitGetterCall(cx, masm, attacher, checkObj, holder, shape, liveRegs_,
-                            object(), scratchReg, output(), returnAddr))
+        if (!EmitCallProxyGet(cx, masm, attacher, name, liveRegs_, object(), output(),
+                              returnAddr))
         {
             return false;
         }
     }
+
     attacher.jumpRejoin(masm);
     masm.bind(&failures);
     attacher.jumpNextStub(masm);
