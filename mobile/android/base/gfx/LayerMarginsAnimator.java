@@ -7,6 +7,7 @@ package org.mozilla.gecko.gfx;
 
 import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.GeckoEvent;
+import org.mozilla.gecko.TouchEventInterceptor;
 import org.mozilla.gecko.util.FloatUtils;
 
 import android.graphics.PointF;
@@ -14,14 +15,22 @@ import android.graphics.RectF;
 import android.os.SystemClock;
 import android.util.Log;
 import android.view.animation.DecelerateInterpolator;
+import android.view.MotionEvent;
+import android.view.View;
 
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class LayerMarginsAnimator {
+public class LayerMarginsAnimator implements TouchEventInterceptor {
     private static final String LOGTAG = "GeckoLayerMarginsAnimator";
     private static final float MS_PER_FRAME = 1000.0f / 60.0f;
     private static final long MARGIN_ANIMATION_DURATION = 250;
+
+    
+
+
+
+    private static final float SHOW_MARGINS_AREA = 0.25f;
 
     
     private final RectF mMaxMargins;
@@ -33,14 +42,20 @@ public class LayerMarginsAnimator {
     private final DecelerateInterpolator mInterpolator;
     
     private final GeckoLayerClient mTarget;
+    
+    private final PointF mTouchStartPosition;
 
-    public LayerMarginsAnimator(GeckoLayerClient aTarget) {
+    public LayerMarginsAnimator(GeckoLayerClient aTarget, LayerView aView) {
         
         mTarget = aTarget;
 
         
         mMaxMargins = new RectF();
         mInterpolator = new DecelerateInterpolator();
+        mTouchStartPosition = new PointF();
+
+        
+        aView.addTouchInterceptor(this);
     }
 
     
@@ -126,7 +141,63 @@ public class LayerMarginsAnimator {
     }
 
     public void setMarginsPinned(boolean pin) {
+        if (pin == mMarginsPinned) {
+            return;
+        }
+
         mMarginsPinned = pin;
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    private float scrollMargin(float[] aMargins, float aDelta,
+                               float aOverscrollStart, float aOverscrollEnd,
+                               float aTouchCoordinate,
+                               float aViewportStart, float aViewportEnd,
+                               float aPageStart, float aPageEnd,
+                               float aMaxMarginStart, float aMaxMarginEnd,
+                               boolean aNegativeOffset) {
+        float marginStart = aMargins[0];
+        float marginEnd = aMargins[1];
+        float viewportSize = aViewportEnd - aViewportStart;
+        float activeArea = viewportSize * SHOW_MARGINS_AREA;
+
+        if (aDelta >= 0) {
+            float marginDelta = Math.max(0, aDelta - aOverscrollStart);
+            aMargins[0] = marginStart - Math.min(marginDelta, marginStart);
+            if (aTouchCoordinate < viewportSize - activeArea) {
+                  
+                  
+                  
+                  
+                marginDelta = Math.max(0, marginDelta - (aPageEnd - aViewportEnd));
+            }
+            aMargins[1] = marginEnd + Math.min(marginDelta, aMaxMarginEnd - marginEnd);
+        } else {
+            float marginDelta = Math.max(0, -aDelta - aOverscrollEnd);
+            aMargins[1] = marginEnd - Math.min(marginDelta, marginEnd);
+            if (aTouchCoordinate > activeArea) {
+                marginDelta = Math.max(0, marginDelta - (aViewportStart - aPageStart));
+            }
+            aMargins[0] = marginStart + Math.min(marginDelta, aMaxMarginStart - marginStart);
+        }
+
+        if (aNegativeOffset) {
+            return aDelta - (marginEnd - aMargins[1]);
+        }
+        return aDelta - (marginStart - aMargins[0]);
     }
 
     
@@ -140,47 +211,45 @@ public class LayerMarginsAnimator {
             mAnimationTimer = null;
         }
 
-        float newMarginLeft = aMetrics.marginLeft;
-        float newMarginTop = aMetrics.marginTop;
-        float newMarginRight = aMetrics.marginRight;
-        float newMarginBottom = aMetrics.marginBottom;
+        float[] newMarginsX = { aMetrics.marginLeft, aMetrics.marginRight };
+        float[] newMarginsY = { aMetrics.marginTop, aMetrics.marginBottom };
 
         
         if (!mMarginsPinned) {
             RectF overscroll = aMetrics.getOverscroll();
-            if (aDx >= 0) {
-              
-              float marginDx = Math.max(0, aDx - overscroll.left);
-              newMarginLeft = aMetrics.marginLeft - Math.min(marginDx, aMetrics.marginLeft);
-              newMarginRight = aMetrics.marginRight + Math.min(marginDx, mMaxMargins.right - aMetrics.marginRight);
-
-              aDx -= aMetrics.marginLeft - newMarginLeft;
-            } else {
-              
-              float marginDx = Math.max(0, -aDx - overscroll.right);
-              newMarginLeft = aMetrics.marginLeft + Math.min(marginDx, mMaxMargins.left - aMetrics.marginLeft);
-              newMarginRight = aMetrics.marginRight - Math.min(marginDx, aMetrics.marginRight);
-
-              aDx -= aMetrics.marginLeft - newMarginLeft;
-            }
-
-            if (aDy >= 0) {
-              
-              float marginDy = Math.max(0, aDy - overscroll.top);
-              newMarginTop = aMetrics.marginTop - Math.min(marginDy, aMetrics.marginTop);
-              newMarginBottom = aMetrics.marginBottom + Math.min(marginDy, mMaxMargins.bottom - aMetrics.marginBottom);
-
-              aDy -= aMetrics.marginTop - newMarginTop;
-            } else {
-              
-              float marginDy = Math.max(0, -aDy - overscroll.bottom);
-              newMarginTop = aMetrics.marginTop + Math.min(marginDy, mMaxMargins.top - aMetrics.marginTop);
-              newMarginBottom = aMetrics.marginBottom - Math.min(marginDy, aMetrics.marginBottom);
-
-              aDy -= aMetrics.marginTop - newMarginTop;
-            }
+            aDx = scrollMargin(newMarginsX, aDx,
+                               overscroll.left, overscroll.right,
+                               mTouchStartPosition.x,
+                               aMetrics.viewportRectLeft, aMetrics.viewportRectRight,
+                               aMetrics.pageRectLeft, aMetrics.pageRectRight,
+                               mMaxMargins.left, mMaxMargins.right,
+                               aMetrics.isRTL);
+            aDy = scrollMargin(newMarginsY, aDy,
+                               overscroll.top, overscroll.bottom,
+                               mTouchStartPosition.y,
+                               aMetrics.viewportRectTop, aMetrics.viewportRectBottom,
+                               aMetrics.pageRectTop, aMetrics.pageRectBottom,
+                               mMaxMargins.top, mMaxMargins.bottom,
+                               false);
         }
 
-        return aMetrics.setMargins(newMarginLeft, newMarginTop, newMarginRight, newMarginBottom).offsetViewportBy(aDx, aDy);
+        return aMetrics.setMargins(newMarginsX[0], newMarginsY[0], newMarginsX[1], newMarginsY[1]).offsetViewportBy(aDx, aDy);
+    }
+
+    
+    @Override
+    public boolean onTouch(View view, MotionEvent event) {
+        return false;
+    }
+
+    
+    @Override
+    public boolean onInterceptTouchEvent(View view, MotionEvent event) {
+        int action = event.getActionMasked();
+        if (action == MotionEvent.ACTION_DOWN && event.getPointerCount() == 1) {
+            mTouchStartPosition.set(event.getX(), event.getY());
+        }
+
+        return false;
     }
 }
