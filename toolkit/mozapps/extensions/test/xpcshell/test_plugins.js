@@ -18,28 +18,31 @@ function run_test() {
 
 
 function get_test_plugin() {
-  var plugins = Services.dirsvc.get("GreD", AM_Ci.nsIFile);
-  plugins.append("plugins");
-  do_check_true(plugins.exists());
-
-  var plugin = plugins.clone();
-  
-  plugin.append("Test.plugin");
-  if (plugin.exists())
-    return plugin;
-
-  plugin = plugins.clone();
-  
-  plugin.append("libnptest.so");
-  if (plugin.exists())
-    return plugin;
-
-  
-  plugin = plugins.clone();
-  plugin.append("nptest.dll");
-  if (plugin.exists())
-    return plugin;
-
+  var pluginEnum = Services.dirsvc.get("APluginsDL", AM_Ci.nsISimpleEnumerator);
+  while (pluginEnum.hasMoreElements()) {
+    let dir = pluginEnum.getNext().QueryInterface(AM_Ci.nsILocalFile);
+    let plugin = dir.clone();
+    
+    plugin.append("Test.plugin");
+    if (plugin.exists()) {
+      plugin.normalize();
+      return plugin;
+    }
+    plugin = dir.clone();
+    
+    plugin.append("libnptest.so");
+    if (plugin.exists()) {
+      plugin.normalize();
+      return plugin;
+    }
+    
+    plugin = dir.clone();
+    plugin.append("nptest.dll");
+    if (plugin.exists()) {
+      plugin.normalize();
+      return plugin;
+    }
+  }
   return null;
 }
 
@@ -95,20 +98,6 @@ function run_test_1() {
       do_check_true(p.updateDate > 0);
       do_check_eq(p.updateDate.getTime(), testPlugin.lastModifiedTime);
       do_check_eq(p.installDate.getTime(), testPlugin.lastModifiedTime);
-
-      
-      
-      
-      
-      if (testPlugin.isSymlink()) {
-        do_check_neq(p.scope, AddonManager.SCOPE_APPLICATION);
-        do_check_neq(p.scope, AddonManager.SCOPE_PROFILE);
-      } else {
-        
-        
-        do_check_true(p.scope == AddonManager.SCOPE_APPLICATION ||
-                      p.scope == AddonManager.SCOPE_SYSTEM);
-      }
       do_check_true("isCompatibleWith" in p);
       do_check_true("findUpdates" in p);
 
