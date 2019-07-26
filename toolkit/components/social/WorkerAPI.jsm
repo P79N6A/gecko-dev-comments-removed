@@ -102,18 +102,19 @@ WorkerAPI.prototype = {
             case "link":
               
               if (actionArgs.toURL) {
-                let uriToOpen = provider.resolveUri(actionArgs.toURL);
-                
-                
-                let pUri = Services.io.newURI(provider.origin, null, null);
-                if (uriToOpen.scheme != pUri.scheme)
-                  uriToOpen.scheme = pUri.scheme;
-                if (provider.isSameOrigin(uriToOpen)) {
-                  let xulWindow = Services.wm.getMostRecentWindow("navigator:browser");
-                  xulWindow.openUILinkIn(uriToOpen.spec, "tab");
-                } else {
-                  Cu.reportError("Not opening notification link " + actionArgs.toURL
-                                 + " as not in provider origin");
+                try {
+                  let pUri = Services.io.newURI(provider.origin, null, null);
+                  let nUri = Services.io.newURI(pUri.resolve(actionArgs.toURL),
+                                                null, null);
+                  
+                  if (nUri.scheme != pUri.scheme)
+                    nUri.scheme = pUri.scheme;
+                  if (nUri.prePath == provider.origin) {
+                    let xulWindow = Services.wm.getMostRecentWindow("navigator:browser");
+                    xulWindow.openUILinkIn(nUri.spec, "tab");
+                  }
+                } catch(e) {
+                  Cu.reportError("social.notification-create error: "+e);
                 }
               }
               break;
