@@ -9,6 +9,15 @@ function getSimpleMeasurementsFromTelemetryPing() {
 }
 
 function test() {
+  waitForExplicitFinish()
+  const Telemetry = Services.telemetry;
+  Telemetry.asyncReadShutdownTime(function () {
+    actualTest();
+    finish();
+  });
+}
+
+function actualTest() {
   
   let tmp = {};
   Cu.import("resource:///modules/TelemetryTimestamps.jsm", tmp);

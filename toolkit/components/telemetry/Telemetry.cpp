@@ -24,6 +24,7 @@
 #include "nsBaseHashtable.h"
 #include "nsXULAppAPI.h"
 #include "nsThreadUtils.h"
+#include "nsNetCID.h"
 #include "plstr.h"
 #include "nsAppDirectoryServiceDefs.h"
 #include "mozilla/ProcessedStack.h"
@@ -319,6 +320,8 @@ private:
 
   bool mCachedShutdownTime;
   uint32_t mLastShutdownTime;
+  std::vector<nsCOMPtr<nsIReadShutdownTimeCallback> > mCallbacks;
+  friend class nsReadShutdownTime;
 };
 
 TelemetryImpl*  TelemetryImpl::sTelemetry = NULL;
@@ -686,6 +689,53 @@ WrapAndReturnHistogram(Histogram *h, JSContext *cx, jsval *ret)
   return NS_OK;
 }
 
+static uint32_t
+ReadLastShutdownDuration(const char *filename) {
+  FILE *f = fopen(filename, "r");
+  if (!f) {
+    return 0;
+  }
+
+  int shutdownTime;
+  int r = fscanf(f, "%d\n", &shutdownTime);
+  fclose(f);
+  if (r != 1) {
+    return 0;
+  }
+
+  return shutdownTime;
+}
+
+class nsReadShutdownTime : public nsRunnable
+{
+public:
+  nsReadShutdownTime(const char *aFilename) :
+    mFilename(aFilename), mTelemetry(TelemetryImpl::sTelemetry) {
+  }
+
+private:
+  const char *mFilename;
+  nsCOMPtr<TelemetryImpl> mTelemetry;
+
+public:
+  void MainThread() {
+    mTelemetry->mCachedShutdownTime = true;
+    for (unsigned int i = 0, n = mTelemetry->mCallbacks.size(); i < n; ++i) {
+      mTelemetry->mCallbacks[i]->Complete();
+    }
+    mTelemetry->mCallbacks.clear();
+  }
+
+  NS_IMETHOD Run() {
+    mTelemetry->mLastShutdownTime = ReadLastShutdownDuration(mFilename);
+    nsCOMPtr<nsIRunnable> e =
+      NS_NewRunnableMethod(this, &nsReadShutdownTime::MainThread);
+    NS_ENSURE_STATE(e);
+    NS_DispatchToMainThread(e, NS_DISPATCH_NORMAL);
+    return NS_OK;
+  }
+};
+
 static TimeStamp gRecordedShutdownStartTime;
 static bool gAlreadyFreedShutdownTimeFileName = false;
 static char *gRecordedShutdownTimeFileName = nullptr;
@@ -721,38 +771,61 @@ TelemetryImpl::GetLastShutdownDuration(uint32_t *aResult)
   
   
   
-  if (!Telemetry::CanRecord()) {
+  if (!mCachedShutdownTime) {
     *aResult = 0;
     return NS_OK;
   }
 
-  if (!mCachedShutdownTime) {
-    const char *filename = GetShutdownTimeFileName();
+  *aResult = mLastShutdownTime;
+  return NS_OK;
+}
 
-    if (!filename) {
-      *aResult = 0;
-      return NS_OK;
-    }
-
-    FILE *f = fopen(filename, "r");
-    if (!f) {
-      *aResult = 0;
-      return NS_OK;
-    }
-
-    int shutdownTime;
-    int r = fscanf(f, "%d\n", &shutdownTime);
-    fclose(f);
-    if (r != 1) {
-      *aResult = 0;
-      return NS_OK;
-    }
-
-    mLastShutdownTime = shutdownTime;
-    mCachedShutdownTime = true;
+NS_IMETHODIMP
+TelemetryImpl::AsyncReadShutdownTime(nsIReadShutdownTimeCallback *aCallback)
+{
+  
+  if (mCachedShutdownTime) {
+    aCallback->Complete();
+    return NS_OK;
   }
 
-  *aResult = mLastShutdownTime;
+  
+  if (!mCallbacks.empty()) {
+    mCallbacks.push_back(aCallback);
+    return NS_OK;
+  }
+
+  
+  
+  
+  if (!Telemetry::CanRecord()) {
+    mCachedShutdownTime = true;
+    aCallback->Complete();
+    return NS_OK;
+  }
+
+  
+  
+  nsCOMPtr<nsIEventTarget> targetThread =
+    do_GetService(NS_STREAMTRANSPORTSERVICE_CONTRACTID);
+  if (!targetThread) {
+    mCachedShutdownTime = true;
+    aCallback->Complete();
+    return NS_OK;
+  }
+
+  
+  const char *filename = GetShutdownTimeFileName();
+  if (!filename) {
+    mCachedShutdownTime = true;
+    aCallback->Complete();
+    return NS_OK;
+  }
+
+  mCallbacks.push_back(aCallback);
+  nsCOMPtr<nsIRunnable> event = new nsReadShutdownTime(filename);
+
+  targetThread->Dispatch(event, NS_DISPATCH_NORMAL);
   return NS_OK;
 }
 
