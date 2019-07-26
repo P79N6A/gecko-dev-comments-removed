@@ -330,12 +330,7 @@ protected:
   
 
 
-  void NotifyOfLoad(uint32_t aLoadEventType)
-  {
-    mLoadState |= eDOMLoaded;
-    mLoadEventType = aLoadEventType;
-  }
-
+  void NotifyOfLoad(uint32_t aLoadEventType);
   void NotifyOfLoading(bool aIsReloading);
 
   friend class nsAccDocManager;

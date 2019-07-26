@@ -10,6 +10,7 @@
 #include "DocAccessible.h"
 #include "nsAccessibilityService.h"
 #include "NotificationController.h"
+#include "States.h"
 
 inline void
 DocAccessible::BindChildDocument(DocAccessible* aDocument)
@@ -37,6 +38,21 @@ DocAccessible::UpdateText(nsIContent* aTextNode)
   
   if (mNotificationController && HasLoadState(eTreeConstructed))
     mNotificationController->ScheduleTextUpdate(aTextNode);
+}
+
+inline void
+DocAccessible::NotifyOfLoad(uint32_t aLoadEventType)
+{
+  mLoadState |= eDOMLoaded;
+  mLoadEventType = aLoadEventType;
+
+  
+  
+  if (HasLoadState(eCompletelyLoaded) && IsLoadEventTarget()) {
+    nsRefPtr<AccEvent> stateEvent =
+      new AccStateChangeEvent(this, mozilla::a11y::states::BUSY, false);
+    FireDelayedAccessibleEvent(stateEvent);
+  }
 }
 
 inline void
