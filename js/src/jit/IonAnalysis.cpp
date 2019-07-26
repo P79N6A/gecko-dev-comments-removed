@@ -1010,6 +1010,63 @@ jit::ApplyTypeInformation(MIRGenerator *mir, MIRGraph &graph)
 }
 
 bool
+jit::MakeMRegExpHoistable(MIRGraph &graph)
+{
+    for (ReversePostorderIterator block(graph.rpoBegin()); block != graph.rpoEnd(); block++) {
+        for (MDefinitionIterator iter(*block); iter; iter++) {
+            if (!iter->isRegExp())
+                continue;
+
+            MRegExp *regexp = iter->toRegExp();
+
+            
+            bool hoistable = true;
+            for (MUseIterator i = regexp->usesBegin(); i != regexp->usesEnd(); i++) {
+                
+                
+                if (i->consumer()->isResumePoint())
+                    continue;
+
+                JS_ASSERT(i->consumer()->isDefinition());
+
+                
+                MDefinition *use = i->consumer()->toDefinition();
+                if (use->isRegExpReplace())
+                    continue;
+                if (use->isRegExpExec())
+                    continue;
+                if (use->isRegExpTest())
+                    continue;
+
+                hoistable = false;
+                break;
+            }
+
+            if (!hoistable)
+                continue;
+
+            
+            regexp->setMovable();
+
+            
+            
+            RegExpObject *source = regexp->source();
+            if (source->sticky() || source->global()) {
+                JS_ASSERT(regexp->mustClone());
+                MConstant *zero = MConstant::New(graph.alloc(), Int32Value(0));
+                regexp->block()->insertAfter(regexp, zero);
+
+                MStoreFixedSlot *lastIndex =
+                    MStoreFixedSlot::New(graph.alloc(), regexp, RegExpObject::lastIndexSlot(), zero);
+                regexp->block()->insertAfter(zero, lastIndex);
+            }
+        }
+    }
+
+    return true;
+}
+
+bool
 jit::RenumberBlocks(MIRGraph &graph)
 {
     size_t id = 0;
