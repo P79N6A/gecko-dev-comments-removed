@@ -1659,6 +1659,9 @@ class InitialShapeSetRef : public BufferableRef
 void
 JSCompartment::checkInitialShapesTableAfterMovingGC()
 {
+    if (!initialShapes.initialized())
+        return;
+
     
 
 
