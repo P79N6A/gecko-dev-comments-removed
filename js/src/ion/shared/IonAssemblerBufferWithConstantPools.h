@@ -481,7 +481,7 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
         
         
         
-        for (cur = &pools[numPoolKinds-1]; cur >= pools; cur--) {
+        for (cur = pools; cur < &pools[numPoolKinds]; cur++) {
             
             tmp = cur->other;
             if (p == cur)
@@ -504,7 +504,6 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
             if (p == tmp) {
                 poolOffset += tmp->immSize;
             }
-            poolOffset += tmp->immSize * tmp->numEntries + tmp->getAlignment();
         }
         return p->numEntries + p->other->insertEntry(data, this->nextOffset());
     }
