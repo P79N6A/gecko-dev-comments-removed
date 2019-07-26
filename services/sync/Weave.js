@@ -9,9 +9,22 @@ const Cu = Components.utils;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/FileUtils.jsm");
+Cu.import("resource://gre/modules/Promise.jsm");
 Cu.import("resource://services-sync/util.js");
 
 const SYNC_PREFS_BRANCH = "services.sync.";
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -63,6 +76,20 @@ WeaveService.prototype = {
 
     
     Weave.Service;
+  },
+
+  whenLoaded: function() {
+    if (this.ready) {
+      return Promise.resolve();
+    }
+    let deferred = Promise.defer();
+
+    Services.obs.addObserver(function onReady() {
+      Services.obs.removeObserver(onReady, "weave:service:ready");
+      deferred.resolve();
+    }, "weave:service:ready", false);
+    this.ensureLoaded();
+    return deferred.promise;
   },
 
   get fxAccountsEnabled() {

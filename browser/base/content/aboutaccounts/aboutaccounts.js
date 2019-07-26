@@ -142,18 +142,23 @@ let wrapper = {
     
     setPreviousAccountNameHash(newAccountEmail);
 
-    fxAccounts.setSignedInUser(accountData).then(
-      () => {
-        this.injectData("message", { status: "login" });
-        
-        
-        
-        
-        
-        
-        
-      },
-      (err) => this.injectData("message", { status: "error", error: err })
+    
+    
+    let xps = Cc["@mozilla.org/weave/service;1"]
+              .getService(Ci.nsISupports)
+              .wrappedJSObject;
+    xps.whenLoaded().then(() => {
+      return fxAccounts.setSignedInUser(accountData);
+    }).then(() => {
+      this.injectData("message", { status: "login" });
+      
+      
+      
+      
+      
+      
+      
+    }, (err) => this.injectData("message", { status: "error", error: err })
     );
   },
 
