@@ -87,7 +87,7 @@ public:
 
     
     virtual nsresult ValueFromString(const nsAString& aStr,
-                                     const nsISMILAnimationElement *aSrcElement,
+                                     const mozilla::dom::SVGAnimationElement *aSrcElement,
                                      nsSMILValue& aValue,
                                      bool& aPreventCachingOfSandwich) const;
     virtual nsSMILValue GetBaseValue() const;

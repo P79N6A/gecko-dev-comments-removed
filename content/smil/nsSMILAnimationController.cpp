@@ -10,7 +10,7 @@
 #include "nsITimer.h"
 #include "mozilla/dom/Element.h"
 #include "nsIDocument.h"
-#include "nsISMILAnimationElement.h"
+#include "mozilla/dom/SVGAnimationElement.h"
 #include "nsSMILTimedElement.h"
 #include <algorithm>
 #include "mozilla/AutoRestore.h"
@@ -163,7 +163,7 @@ nsSMILAnimationController::WillRefresh(mozilla::TimeStamp aTime)
 
 void
 nsSMILAnimationController::RegisterAnimationElement(
-                                  nsISMILAnimationElement* aAnimationElement)
+                                  SVGAnimationElement* aAnimationElement)
 {
   mAnimationElementTable.PutEntry(aAnimationElement);
   if (mDeferredStartSampling) {
@@ -181,7 +181,7 @@ nsSMILAnimationController::RegisterAnimationElement(
 
 void
 nsSMILAnimationController::UnregisterAnimationElement(
-                                  nsISMILAnimationElement* aAnimationElement)
+                                  SVGAnimationElement* aAnimationElement)
 {
   mAnimationElementTable.RemoveEntry(aAnimationElement);
 }
@@ -497,7 +497,7 @@ nsSMILAnimationController::RewindNeeded(TimeContainerPtrKey* aKey,
 nsSMILAnimationController::RewindAnimation(AnimationElementPtrKey* aKey,
                                            void* aData)
 {
-  nsISMILAnimationElement* animElem = aKey->GetKey();
+  SVGAnimationElement* animElem = aKey->GetKey();
   nsSMILTimeContainer* timeContainer = animElem->GetTimeContainer();
   if (timeContainer && timeContainer->NeedsRewind()) {
     animElem->TimedElement().Rewind();
@@ -566,7 +566,7 @@ nsSMILAnimationController::DoMilestoneSamples()
     sampleTime = std::max(nextMilestone.mTime, sampleTime);
 
     for (uint32_t i = 0; i < length; ++i) {
-      nsISMILAnimationElement* elem = params.mElements[i].get();
+      SVGAnimationElement* elem = params.mElements[i].get();
       NS_ABORT_IF_FALSE(elem, "NULL animation element in list");
       nsSMILTimeContainer* container = elem->GetTimeContainer();
       if (!container)
@@ -669,7 +669,7 @@ nsSMILAnimationController::SampleAnimation(AnimationElementPtrKey* aKey,
   NS_ENSURE_TRUE(aKey->GetKey(), PL_DHASH_NEXT);
   NS_ENSURE_TRUE(aData, PL_DHASH_NEXT);
 
-  nsISMILAnimationElement* animElem = aKey->GetKey();
+  SVGAnimationElement* animElem = aKey->GetKey();
   if (animElem->PassesConditionalProcessingTests()) {
     SampleAnimationParams* params = static_cast<SampleAnimationParams*>(aData);
 
@@ -682,7 +682,7 @@ nsSMILAnimationController::SampleAnimation(AnimationElementPtrKey* aKey,
 
  void
 nsSMILAnimationController::SampleTimedElement(
-  nsISMILAnimationElement* aElement, TimeContainerHashtable* aActiveContainers)
+  SVGAnimationElement* aElement, TimeContainerHashtable* aActiveContainers)
 {
   nsSMILTimeContainer* timeContainer = aElement->GetTimeContainer();
   if (!timeContainer)
@@ -709,7 +709,7 @@ nsSMILAnimationController::SampleTimedElement(
 
  void
 nsSMILAnimationController::AddAnimationToCompositorTable(
-  nsISMILAnimationElement* aElement, nsSMILCompositorTable* aCompositorTable)
+  SVGAnimationElement* aElement, nsSMILCompositorTable* aCompositorTable)
 {
   
   nsSMILTargetIdentifier key;
@@ -758,7 +758,7 @@ IsTransformAttribute(int32_t aNamespaceID, nsIAtom *aAttributeName)
 
  bool
 nsSMILAnimationController::GetTargetIdentifierForAnimation(
-    nsISMILAnimationElement* aAnimElem, nsSMILTargetIdentifier& aResult)
+    SVGAnimationElement* aAnimElem, nsSMILTargetIdentifier& aResult)
 {
   
   Element* targetElem = aAnimElem->GetTargetElementContent();
@@ -779,7 +779,7 @@ nsSMILAnimationController::GetTargetIdentifierForAnimation(
   
   
   if (IsTransformAttribute(attributeNamespaceID, attributeName) !=
-      aAnimElem->AsElement().IsSVG(nsGkAtoms::animateTransform))
+      (aAnimElem->Tag() == nsGkAtoms::animateTransform))
     return false;
 
   

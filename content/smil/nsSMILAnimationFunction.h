@@ -18,7 +18,11 @@
 #include "nsAttrValue.h"
 #include "nsSMILTypes.h"
 
-class nsISMILAnimationElement;
+namespace mozilla {
+namespace dom {
+class SVGAnimationElement;
+}
+}
 
 
 
@@ -41,7 +45,7 @@ public:
 
 
 
-  void SetAnimationElement(nsISMILAnimationElement* aAnimationElement);
+  void SetAnimationElement(mozilla::dom::SVGAnimationElement* aAnimationElement);
 
   
 
@@ -413,7 +417,7 @@ protected:
   
   
   
-  nsISMILAnimationElement*      mAnimationElement;
+  mozilla::dom::SVGAnimationElement* mAnimationElement;
 
   
   

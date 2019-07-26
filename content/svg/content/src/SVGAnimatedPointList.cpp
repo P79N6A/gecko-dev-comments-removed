@@ -153,7 +153,7 @@ SVGAnimatedPointList::ToSMILAttr(nsSVGElement *aElement)
 nsresult
 SVGAnimatedPointList::
   SMILAnimatedPointList::ValueFromString(const nsAString& aStr,
-                               const nsISMILAnimationElement* ,
+                               const dom::SVGAnimationElement* ,
                                nsSMILValue& aValue,
                                bool& aPreventCachingOfSandwich) const
 {

@@ -132,7 +132,7 @@ nsSVGBoolean::ToSMILAttr(nsSVGElement *aSVGElement)
 
 nsresult
 nsSVGBoolean::SMILBool::ValueFromString(const nsAString& aStr,
-                                        const nsISMILAnimationElement* ,
+                                        const SVGAnimationElement* ,
                                         nsSMILValue& aValue,
                                         bool& aPreventCachingOfSandwich) const
 {

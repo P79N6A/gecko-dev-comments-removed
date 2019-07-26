@@ -6,7 +6,6 @@
 #ifndef NS_SMILTIMEDELEMENT_H_
 #define NS_SMILTIMEDELEMENT_H_
 
-#include "nsISMILAnimationElement.h"
 #include "nsSMILInterval.h"
 #include "nsSMILInstanceTime.h"
 #include "nsSMILMilestone.h"
@@ -24,6 +23,12 @@ class nsSMILTimeContainer;
 class nsSMILTimeValue;
 class nsIAtom;
 
+namespace mozilla {
+namespace dom {
+class SVGAnimationElement;
+}
+}
+
 
 
 
@@ -39,7 +44,7 @@ public:
 
 
 
-  void SetAnimationElement(nsISMILAnimationElement* aElement);
+  void SetAnimationElement(mozilla::dom::SVGAnimationElement* aElement);
 
   
 
@@ -51,12 +56,7 @@ public:
 
 
 
-  mozilla::dom::Element* GetTargetElement()
-  {
-    return mAnimationElement ?
-        mAnimationElement->GetTargetElementContent() :
-        nullptr;
-  }
+  mozilla::dom::Element* GetTargetElement();
 
   
 
@@ -535,8 +535,8 @@ protected:
   
   
   
-  nsISMILAnimationElement*        mAnimationElement; 
-                                                     
+  mozilla::dom::SVGAnimationElement* mAnimationElement; 
+                                                        
   TimeValueSpecList               mBeginSpecs; 
   TimeValueSpecList               mEndSpecs; 
 

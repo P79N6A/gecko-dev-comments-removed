@@ -128,7 +128,7 @@ SVGAnimatedLengthList::ToSMILAttr(nsSVGElement *aSVGElement,
 nsresult
 SVGAnimatedLengthList::
   SMILAnimatedLengthList::ValueFromString(const nsAString& aStr,
-                               const nsISMILAnimationElement* ,
+                               const dom::SVGAnimationElement* ,
                                nsSMILValue& aValue,
                                bool& aPreventCachingOfSandwich) const
 {

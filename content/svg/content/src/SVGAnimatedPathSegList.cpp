@@ -150,7 +150,7 @@ SVGAnimatedPathSegList::ToSMILAttr(nsSVGElement *aElement)
 nsresult
 SVGAnimatedPathSegList::
   SMILAnimatedPathSegList::ValueFromString(const nsAString& aStr,
-                               const nsISMILAnimationElement* ,
+                               const dom::SVGAnimationElement* ,
                                nsSMILValue& aValue,
                                bool& aPreventCachingOfSandwich) const
 {

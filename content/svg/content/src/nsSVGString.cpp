@@ -106,7 +106,7 @@ nsSVGString::ToSMILAttr(nsSVGElement *aSVGElement)
 
 nsresult
 nsSVGString::SMILString::ValueFromString(const nsAString& aStr,
-                                         const nsISMILAnimationElement* ,
+                                         const dom::SVGAnimationElement* ,
                                          nsSMILValue& aValue,
                                          bool& aPreventCachingOfSandwich) const
 {

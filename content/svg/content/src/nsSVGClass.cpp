@@ -88,7 +88,7 @@ nsSVGClass::ToSMILAttr(nsSVGElement *aSVGElement)
 
 nsresult
 nsSVGClass::SMILString::ValueFromString(const nsAString& aStr,
-                                        const nsISMILAnimationElement* ,
+                                        const dom::SVGAnimationElement* ,
                                         nsSMILValue& aValue,
                                         bool& aPreventCachingOfSandwich) const
 {

@@ -4,12 +4,12 @@
 
 
 #include "SVGMotionSMILAnimationFunction.h"
-#include "nsISMILAnimationElement.h"
 #include "nsSMILParserUtils.h"
 #include "nsSVGAngle.h"
 #include "SVGMotionSMILType.h"
 #include "SVGMotionSMILPathUtils.h"
 #include "nsSVGPathDataParser.h"
+#include "mozilla/dom/SVGAnimationElement.h"
 #include "mozilla/dom/SVGPathElement.h" 
 #include "mozilla/dom/SVGMPathElement.h"
 #include "nsAttrValueInlines.h"
@@ -127,7 +127,7 @@ SVGMotionSMILAnimationFunction::GetCalcMode() const
 
 
 static SVGMPathElement*
-GetFirstMpathChild(nsIContent* aElem)
+GetFirstMPathChild(nsIContent* aElem)
 {
   for (nsIContent* child = aElem->GetFirstChild();
        child;
@@ -272,8 +272,7 @@ SVGMotionSMILAnimationFunction::
 
   
   
-  SVGMPathElement* firstMpathChild =
-    GetFirstMpathChild(&mAnimationElement->AsElement());
+  SVGMPathElement* firstMpathChild = GetFirstMPathChild(mAnimationElement);
 
   if (firstMpathChild) {
     RebuildPathAndVerticesFromMpathElem(firstMpathChild);
@@ -361,7 +360,7 @@ SVGMotionSMILAnimationFunction::IsToAnimation() const
   
   
   
-  return !GetFirstMpathChild(&mAnimationElement->AsElement()) &&
+  return !GetFirstMPathChild(mAnimationElement) &&
     !HasAttr(nsGkAtoms::path) &&
     nsSMILAnimationFunction::IsToAnimation();
 }
