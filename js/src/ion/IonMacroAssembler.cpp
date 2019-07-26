@@ -385,17 +385,16 @@ MacroAssembler::getNewObject(JSContext *cx, const Register &result,
     JS_ASSERT(!templateObject->hasDynamicElements());
 
 #ifdef JS_GC_ZEAL
-    if (cx->runtime->needZealousGC()) {
-        jump(fail);
-        return;
-    }
+    
+    movePtr(ImmWord(cx->runtime), result);
+    loadPtr(Address(result, offsetof(JSRuntime, gcZeal_)), result);
+    branch32(Assembler::NotEqual, result, Imm32(0), fail);
 #endif
 
     
     
     
     
-
     gc::FreeSpan *list = const_cast<gc::FreeSpan *>
                          (cx->compartment->arenas.getFreeList(allocKind));
     loadPtr(AbsoluteAddress(&list->first), result);
