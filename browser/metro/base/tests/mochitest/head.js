@@ -126,7 +126,7 @@ function getTrimmedSelection(aElement) {
 
 
 function clearSelection(aTarget) {
-  SelectionHelperUI.closeEditSessionAndClear();
+  SelectionHelperUI.closeEditSession(true);
   getSelection(aTarget).removeAllRanges();
   purgeEventQueue();
 }
