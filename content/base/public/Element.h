@@ -406,7 +406,20 @@ public:
                               bool aCompileEventHandlers) MOZ_OVERRIDE;
   virtual void UnbindFromTree(bool aDeep = true,
                               bool aNullParent = true) MOZ_OVERRIDE;
-  virtual already_AddRefed<nsINodeInfo> GetExistingAttrNameFromQName(const nsAString& aStr) const MOZ_OVERRIDE;
+
+  
+
+
+
+
+
+
+
+
+
+  already_AddRefed<nsINodeInfo>
+  GetExistingAttrNameFromQName(const nsAString& aStr) const;
+
   nsresult SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
                    const nsAString& aValue, bool aNotify)
   {

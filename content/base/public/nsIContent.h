@@ -34,8 +34,8 @@ enum nsLinkState {
 
 
 #define NS_ICONTENT_IID \
-{ 0Xf22c131c, 0Xc554, 0X4d06, \
-  { 0X81, 0Xac, 0X86, 0X64, 0X2f, 0X05, 0Xcc, 0X81 } }
+{ 0x976f4cd1, 0xbdfc, 0x4a1e, \
+  { 0x82, 0x46, 0x1c, 0x13, 0x9c, 0xd3, 0x73, 0x7f } }
 
 
 
@@ -318,18 +318,6 @@ public:
 
 
   virtual nsIAtom *GetIDAttributeName() const = 0;
-
-  
-
-
-
-
-
-
-
-
-
-  virtual already_AddRefed<nsINodeInfo> GetExistingAttrNameFromQName(const nsAString& aStr) const = 0;
 
   
 
