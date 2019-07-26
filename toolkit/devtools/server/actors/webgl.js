@@ -14,12 +14,17 @@ const { on, once, off, emit } = events;
 const { method, Arg, Option, RetVal } = protocol;
 
 const WEBGL_CONTEXT_NAMES = ["webgl", "experimental-webgl", "moz-webgl"];
+
 const HIGHLIGHT_FRAG_SHADER = [
   "precision lowp float;",
   "void main() {",
     "gl_FragColor.rgba = vec4(%color);",
   "}"
 ].join("\n");
+
+
+const PROGRAM_DEFAULT_TRAITS = 0;
+const PROGRAM_BLACKBOX_TRAIT = 1;
 
 exports.register = function(handle) {
   handle.addTabActor(WebGLActor, "webglActor");
@@ -36,8 +41,25 @@ exports.unregister = function(handle) {
 
 let ShaderActor = protocol.ActorClass({
   typeName: "gl-shader",
-  initialize: function(conn, id) {
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  initialize: function(conn, program, shader, proxy) {
     protocol.Actor.prototype.initialize.call(this, conn);
+    this.program = program;
+    this.shader = shader;
+    this.text = proxy.getShaderSource(shader);
+    this.linkedProxy = proxy;
   },
 
   
@@ -54,18 +76,18 @@ let ShaderActor = protocol.ActorClass({
 
   compile: method(function(text) {
     
-    let { context, shader, program, observer: { proxy } } = this;
+    let { linkedProxy: proxy, shader, program } = this;
 
     
     let oldText = this.text;
     let newText = text;
 
     
-    let error = proxy.call("compileShader", context, program, shader, this.text = newText);
+    let error = proxy.compileShader(program, shader, this.text = newText);
 
     
     if (error.compile || error.link) {
-      proxy.call("compileShader", context, program, shader, this.text = oldText);
+      proxy.compileShader(program, shader, this.text = oldText);
       return error;
     }
     return undefined;
@@ -90,10 +112,32 @@ let ShaderFront = protocol.FrontClass(ShaderActor, {
 
 let ProgramActor = protocol.ActorClass({
   typeName: "gl-program",
-  initialize: function(conn, id) {
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  initialize: function(conn, [program, shaders, cache, proxy]) {
     protocol.Actor.prototype.initialize.call(this, conn);
     this._shaderActorsCache = { vertex: null, fragment: null };
+    this.program = program;
+    this.shaders = shaders;
+    this.linkedCache = cache;
+    this.linkedProxy = proxy;
   },
+
+  get ownerWindow() this.linkedCache.ownerWindow,
+  get ownerContext() this.linkedCache.ownerContext,
 
   
 
@@ -144,7 +188,7 @@ let ProgramActor = protocol.ActorClass({
 
 
   blackbox: method(function() {
-    this.observer.cache.blackboxedPrograms.add(this.program);
+    this.linkedCache.setProgramTrait(this.program, PROGRAM_BLACKBOX_TRAIT);
   }, {
     oneway: true
   }),
@@ -153,7 +197,7 @@ let ProgramActor = protocol.ActorClass({
 
 
   unblackbox: method(function() {
-    this.observer.cache.blackboxedPrograms.delete(this.program);
+    this.linkedCache.unsetProgramTrait(this.program, PROGRAM_BLACKBOX_TRAIT);
   }, {
     oneway: true
   }),
@@ -170,14 +214,9 @@ let ProgramActor = protocol.ActorClass({
     if (this._shaderActorsCache[type]) {
       return this._shaderActorsCache[type];
     }
-
-    let shaderActor = new ShaderActor(this.conn);
-    shaderActor.context = this.context;
-    shaderActor.observer = this.observer;
-    shaderActor.program = this.program;
-    shaderActor.shader = this.shadersData[type].ref;
-    shaderActor.text = this.shadersData[type].text;
-
+    let proxy = this.linkedProxy;
+    let shader = proxy.getShaderOfType(this.shaders, type);
+    let shaderActor = new ShaderActor(this.conn, this.program, shader, proxy);
     return this._shaderActorsCache[type] = shaderActor;
   }
 });
@@ -204,7 +243,6 @@ let WebGLActor = exports.WebGLActor = protocol.ActorClass({
     this._onGlobalCreated = this._onGlobalCreated.bind(this);
     this._onGlobalDestroyed = this._onGlobalDestroyed.bind(this);
     this._onProgramLinked = this._onProgramLinked.bind(this);
-    this._programActorsCache = [];
   },
   destroy: function(conn) {
     protocol.Actor.prototype.destroy.call(this, conn);
@@ -223,8 +261,11 @@ let WebGLActor = exports.WebGLActor = protocol.ActorClass({
       return;
     }
     this._initialized = true;
+
+    this._programActorsCache = [];
     this._contentObserver = new ContentObserver(this.tabActor);
     this._webglObserver = new WebGLObserver();
+
     on(this._contentObserver, "global-created", this._onGlobalCreated);
     on(this._contentObserver, "global-destroyed", this._onGlobalDestroyed);
     on(this._webglObserver, "program-linked", this._onProgramLinked);
@@ -247,10 +288,15 @@ let WebGLActor = exports.WebGLActor = protocol.ActorClass({
       return;
     }
     this._initialized = false;
+
     this._contentObserver.stopListening();
     off(this._contentObserver, "global-created", this._onGlobalCreated);
     off(this._contentObserver, "global-destroyed", this._onGlobalDestroyed);
     off(this._webglObserver, "program-linked", this._onProgramLinked);
+
+    this._programActorsCache = null;
+    this._contentObserver = null;
+    this._webglObserver = null;
   }, {
    oneway: true
   }),
@@ -261,7 +307,7 @@ let WebGLActor = exports.WebGLActor = protocol.ActorClass({
 
   getPrograms: method(function() {
     let id = getInnerWindowID(this.tabActor.window);
-    return this._programActorsCache.filter(e => e.owner == id).map(e => e.actor);
+    return this._programActorsCache.filter(e => e.ownerWindow == id);
   }, {
     response: { programs: RetVal("array:gl-program") }
   }),
@@ -288,42 +334,16 @@ let WebGLActor = exports.WebGLActor = protocol.ActorClass({
 
 
   _onGlobalDestroyed: function(id) {
-    this._programActorsCache =
-      this._programActorsCache.filter(e => e.owner != id);
+    removeFromArray(this._programActorsCache, e => e.ownerWindow == id);
+    this._webglObserver.unregisterContextsForWindow(id);
   },
 
   
 
 
-  _onProgramLinked: function(gl, program, shaders) {
-    let observer = this._webglObserver;
-    let shadersData = { vertex: null, fragment: null };
-
-    for (let shader of shaders) {
-      let text = observer.cache.call("getShaderInfo", shader);
-      let data = { ref: shader, text: text };
-
-      
-      
-      
-      if (gl.getShaderParameter(shader, gl.SHADER_TYPE) == gl.VERTEX_SHADER) {
-        shadersData.vertex = data;
-      } else {
-        shadersData.fragment = data;
-      }
-    }
-
-    let programActor = new ProgramActor(this.conn);
-    programActor.context = gl;
-    programActor.observer = observer;
-    programActor.program = program;
-    programActor.shadersData = shadersData;
-
-    this._programActorsCache.push({
-      owner: getInnerWindowID(this.tabActor.window),
-      actor: programActor
-    });
-
+  _onProgramLinked: function(...args) {
+    let programActor = new ProgramActor(this.conn, args);
+    this._programActorsCache.push(programActor);
     events.emit(this, "program-linked", programActor);
   }
 });
@@ -406,6 +426,7 @@ let WebGLInstrumenter = {
   handle: function(window, observer) {
     let self = this;
 
+    let id = getInnerWindowID(window);
     let canvasElem = XPCNativeWrapper.unwrap(window.HTMLCanvasElement);
     let canvasPrototype = canvasElem.prototype;
     let originalGetContext = canvasPrototype.getContext;
@@ -425,11 +446,19 @@ let WebGLInstrumenter = {
       if (WEBGL_CONTEXT_NAMES.indexOf(name) == -1) {
         return context;
       }
+      
+      
+      if (observer.for(context)) {
+        return context;
+      }
+
+      
+      observer.registerContextForWindow(id, context);
 
       
       for (let { timing, callback, functions } of self._methods) {
         for (let func of functions) {
-          self._instrument(observer, context, func, timing, callback);
+          self._instrument(observer, context, func, callback, timing);
         }
       }
 
@@ -455,22 +484,22 @@ let WebGLInstrumenter = {
 
 
 
-  _instrument: function(observer, context, funcName, timing, callbackName) {
+
+  _instrument: function(observer, context, funcName, callbackName, timing = 0) {
+    let { cache, proxy } = observer.for(context);
     let originalFunc = context[funcName];
+    let proxyFuncName = callbackName || funcName;
 
-    context[funcName] = function() {
-      let glArgs = Array.slice(arguments);
-      let glResult, glBreak;
-
-      if (timing == "before" && !observer.suppressHandlers) {
-        glBreak = observer.call(callbackName || funcName, context, glArgs);
+    context[funcName] = function(...glArgs) {
+      if (timing == 0 && !observer.suppressHandlers) {
+        let glBreak = observer[proxyFuncName](glArgs, cache, proxy);
         if (glBreak) return undefined;
       }
 
-      glResult = originalFunc.apply(this, glArgs);
+      let glResult = originalFunc.apply(this, glArgs);
 
-      if (timing == "after" && !observer.suppressHandlers) {
-        glBreak = observer.call(callbackName || funcName, context, glArgs, glResult);
+      if (timing == 1 && !observer.suppressHandlers) {
+        let glBreak = observer[proxyFuncName](glArgs, glResult, cache, proxy);
         if (glBreak) return undefined;
       }
 
@@ -482,18 +511,16 @@ let WebGLInstrumenter = {
 
 
   _methods: [{
-    timing: "after",
+    timing: 1, 
     functions: [
       "linkProgram", "getAttribLocation", "getUniformLocation"
     ]
   }, {
-    timing: "before",
     callback: "toggleVertexAttribArray",
     functions: [
       "enableVertexAttribArray", "disableVertexAttribArray"
     ]
   }, {
-    timing: "before",
     callback: "attribute_",
     functions: [
       "vertexAttrib1f", "vertexAttrib2f", "vertexAttrib3f", "vertexAttrib4f",
@@ -501,7 +528,6 @@ let WebGLInstrumenter = {
       "vertexAttribPointer"
     ]
   }, {
-    timing: "before",
     callback: "uniform_",
     functions: [
       "uniform1i", "uniform2i", "uniform3i", "uniform4i",
@@ -511,10 +537,9 @@ let WebGLInstrumenter = {
       "uniformMatrix2fv", "uniformMatrix3fv", "uniformMatrix4fv"
     ]
   }, {
-    timing: "after",
+    timing: 1, 
     functions: ["useProgram"]
   }, {
-    timing: "before",
     callback: "draw_",
     functions: [
       "drawArrays", "drawElements"
@@ -531,11 +556,53 @@ let WebGLInstrumenter = {
 
 
 function WebGLObserver() {
-  this.cache = new WebGLCache(this);
-  this.proxy = new WebGLProxy(this);
+  this._contexts = new Map();
 }
 
 WebGLObserver.prototype = {
+  _contexts: null,
+
+  
+
+
+
+
+
+
+
+  registerContextForWindow: function(id, context) {
+    let cache = new WebGLCache(id, context);
+    let proxy = new WebGLProxy(id, context, cache, this);
+
+    this._contexts.set(context, {
+      ownerWindow: id,
+      cache: cache,
+      proxy: proxy
+    });
+  },
+
+  
+
+
+
+
+
+  unregisterContextsForWindow: function(id) {
+    removeFromMap(this._contexts, e => e.ownerWindow == id);
+  },
+
+  
+
+
+
+
+
+
+
+  for: function(context) {
+    return this._contexts.get(context);
+  },
+
   
 
 
@@ -551,31 +618,32 @@ WebGLObserver.prototype = {
 
 
 
-  linkProgram: function(gl, glArgs, glResult) {
+
+
+  linkProgram: function(glArgs, glResult, cache, proxy) {
     let program = glArgs[0];
-    let shaders = gl.getAttachedShaders(program);
+    let shaders = proxy.getAttachedShaders(program);
+    cache.addProgram(program, PROGRAM_DEFAULT_TRAITS);
+    emit(this, "program-linked", program, shaders, cache, proxy);
+  },
 
-    for (let shader of shaders) {
-      let source = gl.getShaderSource(shader);
-      this.cache.call("addShaderInfo", shader, source);
+  
+
+
+
+
+
+
+
+
+
+  getAttribLocation: function(glArgs, glResult, cache) {
+    
+    if (glResult < 0) {
+      return;
     }
-
-    emit(this, "program-linked", gl, program, shaders);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  getAttribLocation: function(gl, glArgs, glResult) {
     let [program, name] = glArgs;
-    this.cache.call("addAttribute", program, name, glResult);
+    cache.addAttribute(program, name, glResult);
   },
 
   
@@ -588,9 +656,13 @@ WebGLObserver.prototype = {
 
 
 
-  getUniformLocation: function(gl, glArgs, glResult) {
+  getUniformLocation: function(glArgs, glResult, cache) {
+    
+    if (!glResult) {
+      return;
+    }
     let [program, name] = glArgs;
-    this.cache.call("addUniform", program, name, glResult);
+    cache.addUniform(program, name, glResult);
   },
 
   
@@ -602,8 +674,8 @@ WebGLObserver.prototype = {
 
 
 
-  toggleVertexAttribArray: function(gl, glArgs) {
-    glArgs[0] = this.cache.call("getCurrentAttributeLocation", glArgs[0]);
+  toggleVertexAttribArray: function(glArgs, cache) {
+    glArgs[0] = cache.getCurrentAttributeLocation(glArgs[0]);
     return glArgs[0] < 0; 
   },
 
@@ -615,8 +687,8 @@ WebGLObserver.prototype = {
 
 
 
-  attribute_: function(gl, glArgs) {
-    glArgs[0] = this.cache.call("getCurrentAttributeLocation", glArgs[0]);
+  attribute_: function(glArgs, cache) {
+    glArgs[0] = cache.getCurrentAttributeLocation(glArgs[0]);
     return glArgs[0] < 0; 
   },
 
@@ -628,8 +700,8 @@ WebGLObserver.prototype = {
 
 
 
-  uniform_: function(gl, glArgs) {
-    glArgs[0] = this.cache.call("getCurrentUniformLocation", glArgs[0]);
+  uniform_: function(glArgs, cache) {
+    glArgs[0] = cache.getCurrentUniformLocation(glArgs[0]);
     return !glArgs[0]; 
   },
 
@@ -643,10 +715,10 @@ WebGLObserver.prototype = {
 
 
 
-  useProgram: function(gl, glArgs, glResult) {
+  useProgram: function(glArgs, glResult, cache) {
     
     
-    this.cache.currentProgram = glArgs[0];
+    cache.currentProgram = glArgs[0];
   },
 
   
@@ -658,27 +730,9 @@ WebGLObserver.prototype = {
 
 
 
-  draw_: function(gl, glArgs) {
+  draw_: function(glArgs, cache) {
     
-    return this.cache.blackboxedPrograms.has(this.cache.currentProgram);
-  },
-
-  
-
-
-
-
-
-
-
-  call: function(funcName, ...args) {
-    let prevState = this.suppressHandlers;
-
-    this.suppressHandlers = true;
-    let result = this[funcName].apply(this, args);
-    this.suppressHandlers = prevState;
-
-    return result;
+    return cache.currentProgramTraits & PROGRAM_BLACKBOX_TRAIT;
   }
 };
 
@@ -688,44 +742,25 @@ WebGLObserver.prototype = {
 
 
 
-function WebGLCache(observer) {
-  this._observer = observer;
 
-  this.currentProgram = null;
-  this.blackboxedPrograms = new Set();
 
-  this._shaders = new Map();
-  this._attributes = [];
-  this._uniforms = [];
-  this._attributesBridge = new Map();
-  this._uniformsBridge = new Map();
+
+function WebGLCache(id, context) {
+  this._id = id;
+  this._gl = context;
+  this._programs = new Map();
 }
 
 WebGLCache.prototype = {
-  
+  _id: 0,
+  _gl: null,
+  _programs: null,
+  _currentProgramInfo: null,
+  _currentAttributesMap: null,
+  _currentUniformsMap: null,
 
-
-  currentProgram: null,
-
-  
-
-
-  blackboxedPrograms: null,
-
-  
-
-
-
-
-
-
-
-
-  _addShaderInfo: function(shader, text) {
-    if (!this._shaders.has(shader)) {
-      this._shaders.set(shader, text);
-    }
-  },
+  get ownerWindow() this._id,
+  get ownerContext() this._gl,
 
   
 
@@ -735,8 +770,12 @@ WebGLCache.prototype = {
 
 
 
-  _getShaderInfo: function(shader) {
-    return this._shaders.get(shader);
+  addProgram: function(program, traits) {
+    this._programs.set(program, {
+      traits: traits,
+      attributes: [], 
+      uniforms: new Map() 
+    });
   },
 
   
@@ -748,20 +787,59 @@ WebGLCache.prototype = {
 
 
 
+  setProgramTrait: function(program, trait) {
+    this._programs.get(program).traits |= trait;
+  },
+
+  
 
 
-  _addAttribute: function(program, name, value) {
-    let isCached = this._attributes.some(e => e.program == program && e.name == name);
-    if (isCached || value < 0) {
+
+
+
+
+
+  unsetProgramTrait: function(program, trait) {
+    this._programs.get(program).traits &= ~trait;
+  },
+
+  
+
+
+
+  set currentProgram(program) {
+    let programInfo = this._programs.get(program);
+    if (programInfo == null) {
       return;
     }
-    let attributeInfo = {
-      program: program,
+    this._currentProgramInfo = programInfo;
+    this._currentAttributesMap = programInfo.attributes;
+    this._currentUniformsMap = programInfo.uniforms;
+  },
+
+  
+
+
+
+  get currentProgramTraits() {
+    return this._currentProgramInfo.traits;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  addAttribute: function(program, name, value) {
+    this._programs.get(program).attributes[value] = {
       name: name,
       value: value
     };
-    this._attributes.push(attributeInfo);
-    this._attributesBridge.set(value, attributeInfo);
   },
 
   
@@ -774,19 +852,11 @@ WebGLCache.prototype = {
 
 
 
-
-  _addUniform: function(program, name, value) {
-    let isCached = this._uniforms.some(e => e.program == program && e.name == name);
-    if (isCached || !value) {
-      return;
-    }
-    let uniformInfo = {
-      program: program,
+  addUniform: function(program, name, value) {
+    this._programs.get(program).uniforms.set(new XPCNativeWrapper(value), {
       name: name,
       value: value
-    };
-    this._uniforms.push(uniformInfo);
-    this._uniformsBridge.set(new XPCNativeWrapper(value), uniformInfo);
+    });
   },
 
   
@@ -797,8 +867,11 @@ WebGLCache.prototype = {
 
 
 
-  _getAttributesForProgram: function(program) {
-    return this._attributes.filter(e => e.program == program);
+  updateAttributesForProgram: function(program) {
+    let attributes = this._programs.get(program).attributes;
+    for (let attribute of attributes) {
+      attribute.value = this._gl.getAttribLocation(program, attribute.name);
+    }
   },
 
   
@@ -809,38 +882,11 @@ WebGLCache.prototype = {
 
 
 
-  _getUniformsForProgram: function(program) {
-    return this._uniforms.filter(e => e.program == program);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  _updateAttributesForProgram: function(gl, program) {
-    let dirty = this._attributes.filter(e => e.program == program);
-    dirty.forEach(e => e.value = gl.getAttribLocation(program, e.name));
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  _updateUniformsForProgram: function(gl, program) {
-    let dirty = this._uniforms.filter(e => e.program == program);
-    dirty.forEach(e => e.value = gl.getUniformLocation(program, e.name));
+  updateUniformsForProgram: function(program) {
+    let uniforms = this._programs.get(program).uniforms;
+    for (let [, uniform] of uniforms) {
+      uniform.value = this._gl.getUniformLocation(program, uniform.name);
+    }
   },
 
   
@@ -854,8 +900,9 @@ WebGLCache.prototype = {
 
 
 
-  _getCurrentAttributeLocation: function(initialValue) {
-    let currentInfo = this._attributesBridge.get(initialValue);
+  getCurrentAttributeLocation: function(initialValue) {
+    let attributes = this._currentAttributesMap;
+    let currentInfo = attributes ? attributes[initialValue] : null;
     return currentInfo ? currentInfo.value : initialValue;
   },
 
@@ -870,29 +917,10 @@ WebGLCache.prototype = {
 
 
 
-  _getCurrentUniformLocation: function(initialValue) {
-    let currentInfo = this._uniformsBridge.get(initialValue);
+  getCurrentUniformLocation: function(initialValue) {
+    let uniforms = this._currentUniformsMap;
+    let currentInfo = uniforms ? uniforms.get(initialValue) : null;
     return currentInfo ? currentInfo.value : initialValue;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  call: function(funcName, ...aArgs) {
-    let prevState = this._observer.suppressHandlers;
-
-    this._observer.suppressHandlers = true;
-    let result = this["_" + funcName].apply(this, aArgs);
-    this._observer.suppressHandlers = prevState;
-
-    return result;
   }
 };
 
@@ -902,12 +930,88 @@ WebGLCache.prototype = {
 
 
 
-function WebGLProxy(observer) {
+
+
+
+
+
+
+
+
+
+
+function WebGLProxy(id, context, cache, observer) {
+  this._id = id;
+  this._gl = context;
+  this._cache = cache;
   this._observer = observer;
+
+  let exports = [
+    "getAttachedShaders",
+    "getShaderSource",
+    "getShaderOfType",
+    "compileShader"
+  ];
+  exports.forEach(e => this[e] = (...args) => this._call(e, args));
 }
 
 WebGLProxy.prototype = {
-  get cache() this._observer.cache,
+  _id: 0,
+  _gl: null,
+  _cache: null,
+  _observer: null,
+
+  get ownerWindow() this._id,
+  get ownerContext() this._gl,
+
+  
+
+
+
+
+
+
+
+  _getAttachedShaders: function(program) {
+    return this._gl.getAttachedShaders(program);
+  },
+
+  
+
+
+
+
+
+
+
+  _getShaderSource: function(shader) {
+    return this._gl.getShaderSource(shader);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  _getShaderOfType: function(shaders, type) {
+    let gl = this._gl;
+    let shaderTypeEnum = {
+      vertex: gl.VERTEX_SHADER,
+      fragment: gl.FRAGMENT_SHADER
+    }[type];
+
+    for (let shader of shaders) {
+      if (gl.getShaderParameter(shader, gl.SHADER_TYPE) == shaderTypeEnum) {
+        return shader;
+      }
+    }
+    return null;
+  },
 
   
 
@@ -921,9 +1025,8 @@ WebGLProxy.prototype = {
 
 
 
-
-
-  _compileShader: function(gl, program, shader, text) {
+  _compileShader: function(program, shader, text) {
+    let gl = this._gl;
     gl.shaderSource(shader, text);
     gl.compileShader(shader);
     gl.linkProgram(program);
@@ -937,8 +1040,8 @@ WebGLProxy.prototype = {
       error.link = gl.getShaderInfoLog(shader);
     }
 
-    this.cache.call("updateAttributesForProgram", gl, program);
-    this.cache.call("updateUniformsForProgram", gl, program);
+    this._cache.updateAttributesForProgram(program);
+    this._cache.updateUniformsForProgram(program);
 
     return error;
   },
@@ -953,20 +1056,41 @@ WebGLProxy.prototype = {
 
 
 
-  call: function(funcName, ...aArgs) {
+
+
+
+  _call: function(funcName, args) {
     let prevState = this._observer.suppressHandlers;
 
     this._observer.suppressHandlers = true;
-    let result = this["_" + funcName].apply(this, aArgs);
+    let result = this["_" + funcName].apply(this, args);
     this._observer.suppressHandlers = prevState;
 
     return result;
   }
 };
 
+
+
 function getInnerWindowID(window) {
   return window
     .QueryInterface(Ci.nsIInterfaceRequestor)
     .getInterface(Ci.nsIDOMWindowUtils)
     .currentInnerWindowID;
+}
+
+function removeFromMap(map, predicate) {
+  for (let [key, value] of map) {
+    if (predicate(value)) {
+      map.delete(key);
+    }
+  }
+};
+
+function removeFromArray(array, predicate) {
+  for (let value of array) {
+    if (predicate(value)) {
+      array.splice(array.indexOf(value), 1);
+    }
+  }
 }
