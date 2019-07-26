@@ -209,6 +209,11 @@ let NodeFront = protocol.FrontClass(NodeActor, {
     protocol.Front.prototype.initialize.call(this, conn, form, detail, ctx);
   },
 
+  
+
+
+
+
   destroy: function() {
     
     if (this.observer) {
@@ -216,12 +221,6 @@ let NodeFront = protocol.FrontClass(NodeActor, {
       this._observer = null;
     }
 
-    
-    
-    this.reparent(null);
-    for (let child of this.treeChildren()) {
-      child.destroy();
-    }
     protocol.Front.prototype.destroy.call(this);
   },
 
@@ -645,6 +644,11 @@ var WalkerActor = protocol.ActorClass({
     
     this._orphaned = new Set();
 
+    
+    
+    
+    this._retainedOrphans = new Set();
+
     this.onMutations = this.onMutations.bind(this);
     this.onFrameLoad = this.onFrameLoad.bind(this);
     this.onFrameUnload = this.onFrameUnload.bind(this);
@@ -793,21 +797,73 @@ var WalkerActor = protocol.ActorClass({
   
 
 
-  releaseNode: method(function(node) {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  retainNode: method(function(node) {
+    node.retained = true;
+  }, {
+    request: { node: Arg(0, "domnode") },
+    response: {}
+  }),
+
+  
+
+
+
+  unretainNode: method(function(node) {
+    node.retained = false;
+    if (this._retainedOrphans.has(node)) {
+      this._retainedOrphans.delete(node);
+      this.releaseNode(node);
+    }
+  }, {
+    request: { node: Arg(0, "domnode") },
+    response: {},
+  }),
+
+  
+
+
+  releaseNode: method(function(node, options={}) {
+    if (node.retained && !options.force) {
+      this._retainedOrphans.add(node);
+      return;
+    }
+
+    if (node.retained) {
+      
+      this._retainedOrphans.delete(node);
+    }
+
     let walker = documentWalker(node.rawNode);
 
     let child = walker.firstChild();
     while (child) {
       let childActor = this._refMap.get(child);
       if (childActor) {
-        this.releaseNode(childActor);
+        this.releaseNode(childActor, options);
       }
       child = walker.nextSibling();
     }
 
     node.destroy();
   }, {
-    request: { node: Arg(0, "domnode") }
+    request: {
+      node: Arg(0, "domnode"),
+      force: Option(1)
+    }
   }),
 
   
@@ -1124,6 +1180,8 @@ var WalkerActor = protocol.ActorClass({
 
     if (options.cleanup) {
       for (let node of this._orphaned) {
+        
+        
         this.releaseNode(node);
       }
       this._orphaned = new Set();
@@ -1139,6 +1197,22 @@ var WalkerActor = protocol.ActorClass({
     }
   }),
 
+  queueMutation: function(mutation) {
+    if (!this.actorID) {
+      
+      return;
+    }
+    
+    
+    let needEvent = this._pendingMutations.length === 0;
+
+    this._pendingMutations.push(mutation);
+
+    if (needEvent) {
+      events.emit(this, "new-mutations");
+    }
+  },
+
   
 
 
@@ -1146,10 +1220,6 @@ var WalkerActor = protocol.ActorClass({
 
 
   onMutations: function(mutations) {
-    
-    
-    let needEvent = this._pendingMutations.length === 0;
-
     for (let change of mutations) {
       let targetActor = this._refMap.get(change.target);
       if (!targetActor) {
@@ -1206,10 +1276,7 @@ var WalkerActor = protocol.ActorClass({
         mutation.removed = removedActors;
         mutation.added = addedActors;
       }
-      this._pendingMutations.push(mutation);
-    }
-    if (needEvent) {
-      events.emit(this, "new-mutations");
+      this.queueMutation(mutation);
     }
   },
 
@@ -1219,35 +1286,64 @@ var WalkerActor = protocol.ActorClass({
     if (!frameActor) {
       return;
     }
-    let needEvent = this._pendingMutations.length === 0;
-    this._pendingMutations.push({
+
+    this.queueMutation({
       type: "frameLoad",
       target: frameActor.actorID,
       added: [],
       removed: []
     });
+  },
 
-    if (needEvent) {
-      events.emit(this, "new-mutations");
+  
+  _childOfWindow: function(window, domNode) {
+    let win = nodeDocument(domNode).defaultView;
+    while (win) {
+      if (win === window) {
+        return true;
+      }
+      win = win.frameElement;
     }
+    return false;
   },
 
   onFrameUnload: function(window) {
+    
+    
+    
+    let releasedOrphans = [];
+
+    for (let retained of this._retainedOrphans) {
+      if (Cu.isDeadWrapper(retained.rawNode) ||
+          this._childOfWindow(window, retained.rawNode)) {
+        this._retainedOrphans.delete(retained);
+        releasedOrphans.push(retained.actorID);
+        this.releaseNode(retained, { force: true });
+      }
+    }
+
+    if (releasedOrphans.length > 0) {
+      this.queueMutation({
+        target: this.rootNode.actorID,
+        type: "unretained",
+        nodes: releasedOrphans
+      });
+    }
+
     let doc = window.document;
     let documentActor = this._refMap.get(doc);
     if (!documentActor) {
       return;
     }
 
-    let needEvent = this._pendingMutations.length === 0;
-    this._pendingMutations.push({
+    this.queueMutation({
       type: "documentUnload",
       target: documentActor.actorID
     });
-    this.releaseNode(documentActor);
-    if (needEvent) {
-      events.emit(this, "new-mutations");
-    }
+
+    
+    
+    this.releaseNode(documentActor, { force: true });
   }
 });
 
@@ -1261,6 +1357,7 @@ var WalkerFront = exports.WalkerFront = protocol.FrontClass(WalkerActor, {
   initialize: function(client, form) {
     protocol.Front.prototype.initialize.call(this, client, form);
     this._orphaned = new Set();
+    this._retainedOrphans = new Set();
   },
 
   destroy: function() {
@@ -1290,11 +1387,51 @@ var WalkerFront = exports.WalkerFront = protocol.FrontClass(WalkerActor, {
     return types.getType("domnode").read({ actor: id }, this, "standin");
   },
 
-  releaseNode: protocol.custom(function(node) {
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  retainNode: protocol.custom(function(node) {
+    return this._retainNode(node).then(() => {
+      node.retained = true;
+    });
+  }, {
+    impl: "_retainNode",
+  }),
+
+  unretainNode: protocol.custom(function(node) {
+    return this._unretainNode(node).then(() => {
+      node.retained = false;
+      if (this._retainedOrphans.has(node)) {
+        this._retainedOrphans.delete(node);
+        this._releaseFront(node);
+      }
+    });
+  }, {
+    impl: "_unretainNode"
+  }),
+
+  releaseNode: protocol.custom(function(node, options={}) {
     
     
     let actorID = node.actorID;
-    node.destroy();
+    this._releaseFront(node, !!options.force);
     return this._releaseNode({ actorID: actorID });
   }, {
     impl: "_releaseNode"
@@ -1307,6 +1444,28 @@ var WalkerFront = exports.WalkerFront = protocol.FrontClass(WalkerActor, {
   }, {
     impl: "_querySelector"
   }),
+
+  _releaseFront: function(node, force) {
+    if (node.retained && !force) {
+      node.reparent(null);
+      this._retainedOrphans.add(node);
+      return;
+    }
+
+    if (node.retained) {
+      
+      this._retainedOrphans.delete(node);
+    }
+
+    
+    for (let child of node.treeChildren()) {
+      this._releaseFront(child, force);
+    }
+
+    
+    node.reparent(null);
+    node.destroy();
+  },
 
   
 
@@ -1374,7 +1533,17 @@ var WalkerFront = exports.WalkerFront = protocol.FrontClass(WalkerActor, {
           
           
           emittedMutation.target = targetFront.actorID;
-          targetFront.destroy();
+
+          
+          this._releaseFront(targetFront, true);
+        } else if (change.type === "unretained") {
+          
+          
+          for (let released of change.nodes) {
+            let releasedFront = this.get(released);
+            this._retainedOrphans.delete(released);
+            this._releaseFront(releasedFront, true);
+          }
         } else {
           targetFront.updateMutation(change);
         }
@@ -1384,7 +1553,8 @@ var WalkerFront = exports.WalkerFront = protocol.FrontClass(WalkerActor, {
 
       if (options.cleanup) {
         for (let node of this._orphaned) {
-          node.destroy();
+          
+          this._releaseFront(node);
         }
         this._orphaned = new Set();
       }
