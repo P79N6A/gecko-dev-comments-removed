@@ -1,10 +1,6 @@
 
 
 
-let tmp = {};
-Cu.import("resource:///modules/sessionstore/SessionStore.jsm", tmp);
-let SessionStore = tmp.SessionStore;
-
 
 
 
@@ -121,6 +117,8 @@ function newWindowWithTabView(shownCallback, loadCallback, width, height) {
 
 
 function afterAllTabsLoaded(callback, win) {
+  const TAB_STATE_NEEDS_RESTORE = 1;
+
   win = win || window;
 
   let stillToLoad = 0;
@@ -139,7 +137,8 @@ function afterAllTabsLoaded(callback, win) {
     let browser = tab.linkedBrowser;
 
     let isRestorable = !(tab.hidden && !restoreHiddenTabs &&
-                         SessionStore.isTabStateNeedsRestore(browser));
+                         browser.__SS_restoreState &&
+                         browser.__SS_restoreState == TAB_STATE_NEEDS_RESTORE);
 
     if (isRestorable && browser.contentDocument.readyState != "complete" ||
         browser.webProgress.isLoadingDocument) {
