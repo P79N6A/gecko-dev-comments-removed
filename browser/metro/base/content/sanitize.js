@@ -3,10 +3,6 @@
 
 
 
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
-                                  "resource://gre/modules/PlacesUtils.jsm");
-
 function Sanitizer() {}
 
 Sanitizer.prototype = {
@@ -17,17 +13,22 @@ Sanitizer.prototype = {
       this.items[aItemName].clear();
   },
 
-  canClearItem: function (aItemName)
+  canClearItem: function (aItemName, aCallback, aArg)
   {
-    return this.items[aItemName].canClear;
+    let canClear = this.items[aItemName].canClear;
+    if (typeof canClear == "function"){
+      canClear(aCallback, aArg);
+    } else {
+      aCallback(aItemName, canClear, aArg);
+    }
   },
-  
+
   _prefDomain: "privacy.item.",
   getNameFromPreference: function (aPreferenceName)
   {
     return aPreferenceName.substr(this._prefDomain.length);
   },
-  
+
   
 
 
@@ -39,26 +40,32 @@ Sanitizer.prototype = {
     var branch = Services.prefs.getBranch(this._prefDomain);
     var errors = null;
     for (var itemName in this.items) {
-      var item = this.items[itemName];
-      if ("clear" in item && item.canClear && branch.getBoolPref(itemName)) {
+      if ("clear" in item && branch.getBoolPref(itemName)) {
         
         
         
         
         
-        try {
-          item.clear();
-        } catch(er) {
-          if (!errors) 
-            errors = {};
-          errors[itemName] = er;
-          dump("Error sanitizing " + itemName + ": " + er + "\n");
+        let clearCallback = (itemName, aCanClear) => {
+          let item = this.items[itemName];
+          try{
+            if (aCanClear){
+              item.clear();
+            }
+          } catch(er){
+            if (!errors){
+              errors = {};
+            }
+            errors[itemName] = er;
+            dump("Error sanitizing " + itemName + ":" + er + "\n");
+          }
         }
+        this.canClearItem(itemName, clearCallback);
       }
     }
     return errors;
   },
-  
+
   items: {
     
     
@@ -88,20 +95,20 @@ Sanitizer.prototype = {
           imageCache.clearCache(false); 
         } catch(er) {}
       },
-      
+
       get canClear()
       {
         return true;
       }
     },
-    
+
     cookies: {
       clear: function ()
       {
         var cookieMgr = Cc["@mozilla.org/cookiemanager;1"].getService(Ci.nsICookieManager);
         cookieMgr.removeAll();
       },
-      
+
       get canClear()
       {
         return true;
@@ -185,18 +192,21 @@ Sanitizer.prototype = {
             searchBar.textbox.editor.transactionManager.clear();
           }
         }
-
-        var formHistory = Cc["@mozilla.org/satchel/form-history;1"].getService(Ci.nsIFormHistory2);
-        formHistory.removeAllEntries();
+        FormHistory.update({op : "remove"});
       },
-      
-      get canClear()
+
+      canClear : function(aCallback, aArg)
       {
-        var formHistory = Cc["@mozilla.org/satchel/form-history;1"].getService(Ci.nsIFormHistory2);
-        return formHistory.hasEntries;
+        let count = 0;
+        let countDone = {
+          handleResult : function(aResult) { count = aResult; },
+          handleError : function(aError) { Components.utils.reportError(aError); },
+          handleCompletion : function(aReason) { aCallback("formdata", aReason == 0 && count > 0, aArg); }
+        };
+        FormHistory.count({}, countDone);
       }
     },
-    
+
     downloads: {
       clear: function ()
       {
@@ -210,14 +220,14 @@ Sanitizer.prototype = {
         return dlMgr.canCleanUp;
       }
     },
-    
+
     passwords: {
       clear: function ()
       {
         var pwmgr = Cc["@mozilla.org/login-manager;1"].getService(Ci.nsILoginManager);
         pwmgr.removeAllLogins();
       },
-      
+
       get canClear()
       {
         var pwmgr = Cc["@mozilla.org/login-manager;1"].getService(Ci.nsILoginManager);
@@ -225,7 +235,7 @@ Sanitizer.prototype = {
         return (count > 0);
       }
     },
-    
+
     sessions: {
       clear: function ()
       {
@@ -237,7 +247,7 @@ Sanitizer.prototype = {
         var authMgr = Cc['@mozilla.org/network/http-auth-manager;1'].getService(Ci.nsIHttpAuthManager);
         authMgr.clearAll();
       },
-      
+
       get canClear()
       {
         return true;
