@@ -18,7 +18,6 @@
 #include "nsEventStates.h"                 
 #include "mozilla/dom/DirectionalityUtils.h"
 #include "nsIDOMElement.h"
-#include "nsIDOMDocumentFragment.h"
 #include "nsILinkHandler.h"
 #include "nsNodeUtils.h"
 #include "nsAttrAndChildArray.h"
