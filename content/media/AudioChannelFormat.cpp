@@ -20,16 +20,50 @@ enum {
 
 static const uint32_t CUSTOM_CHANNEL_LAYOUTS = 6;
 
+static const int IGNORE = CUSTOM_CHANNEL_LAYOUTS;
+static const float IGNORE_F = 0.0f;
+
 uint32_t
 GetAudioChannelsSuperset(uint32_t aChannels1, uint32_t aChannels2)
 {
-  if (aChannels1 == 3 && aChannels2 == 4) {
-    
-    
-    return 5;
-  }
   return std::max(aChannels1, aChannels2);
 }
+
+
+
+
+
+struct UpMixMatrix {
+  uint8_t mInputDestination[CUSTOM_CHANNEL_LAYOUTS];
+};
+
+static const UpMixMatrix
+gUpMixMatrices[CUSTOM_CHANNEL_LAYOUTS*(CUSTOM_CHANNEL_LAYOUTS - 1)/2] =
+{
+  
+  { { 0, 0 } },
+  { { 0, IGNORE, IGNORE } },
+  { { 0, 0, IGNORE, IGNORE } },
+  { { 0, IGNORE, IGNORE, IGNORE, IGNORE } },
+  { { IGNORE, IGNORE, 0, IGNORE, IGNORE, IGNORE } },
+  
+  { { 0, 1, IGNORE } },
+  { { 0, 1, IGNORE, IGNORE } },
+  { { 0, 1, IGNORE, IGNORE, IGNORE } },
+  { { 0, 1, IGNORE, IGNORE, IGNORE, IGNORE } },
+  
+  { { 0, 1, 2, IGNORE } },
+  { { 0, 1, 2, IGNORE, IGNORE } },
+  { { 0, 1, 2, IGNORE, IGNORE, IGNORE } },
+  
+  { { 0, 1, 2, 3, IGNORE } },
+  { { 0, 1, IGNORE, IGNORE, 2, 3 } },
+  
+  { { 0, 1, 2, 3, 4, IGNORE } }
+};
+
+static const int gMixingMatrixIndexByChannels[CUSTOM_CHANNEL_LAYOUTS - 1] =
+  { 0, 5, 9, 12, 14 };
 
 void
 AudioChannelsUpMix(nsTArray<const void*>* aChannelArray,
@@ -46,81 +80,26 @@ AudioChannelsUpMix(nsTArray<const void*>* aChannelArray,
 
   aChannelArray->SetLength(outputChannelCount);
 
-  if (inputChannelCount < CUSTOM_CHANNEL_LAYOUTS) {
-    const void* surroundChannels[CUSTOM_CHANNEL_LAYOUTS] =
-      { aZeroChannel, aZeroChannel, aZeroChannel,
-        aZeroChannel, aZeroChannel, aZeroChannel
-      };
-    
-    switch (inputChannelCount) {
-    case 1:
-      surroundChannels[SURROUND_C] = aChannelArray->ElementAt(0);
-      break;
-    case 2:
-      surroundChannels[SURROUND_L] = aChannelArray->ElementAt(0);
-      surroundChannels[SURROUND_R] = aChannelArray->ElementAt(1);
-      break;
-    case 3:
-      surroundChannels[SURROUND_L] = aChannelArray->ElementAt(0);
-      surroundChannels[SURROUND_R] = aChannelArray->ElementAt(1);
-      surroundChannels[SURROUND_C] = aChannelArray->ElementAt(2);
-      break;
-    case 4:
-      surroundChannels[SURROUND_L] = aChannelArray->ElementAt(0);
-      surroundChannels[SURROUND_R] = aChannelArray->ElementAt(1);
-      surroundChannels[SURROUND_SL] = aChannelArray->ElementAt(2);
-      surroundChannels[SURROUND_SR] = aChannelArray->ElementAt(3);
-      break;
-    case 5:
-      surroundChannels[SURROUND_L] = aChannelArray->ElementAt(0);
-      surroundChannels[SURROUND_R] = aChannelArray->ElementAt(1);
-      surroundChannels[SURROUND_C] = aChannelArray->ElementAt(2);
-      surroundChannels[SURROUND_SL] = aChannelArray->ElementAt(3);
-      surroundChannels[SURROUND_SR] = aChannelArray->ElementAt(4);
-      break;
-    }
+  if (inputChannelCount < CUSTOM_CHANNEL_LAYOUTS &&
+      outputChannelCount <= CUSTOM_CHANNEL_LAYOUTS) {
+    const UpMixMatrix& m = gUpMixMatrices[
+      gMixingMatrixIndexByChannels[inputChannelCount - 1] +
+      outputChannelCount - inputChannelCount - 1];
 
-    if (outputChannelCount < CUSTOM_CHANNEL_LAYOUTS) {
-      
-      switch (outputChannelCount) {
-      case 2:
-        
-        aChannelArray->ElementAt(0) = surroundChannels[SURROUND_C];
-        aChannelArray->ElementAt(1) = surroundChannels[SURROUND_C];
-        break;
-      case 3:
-        aChannelArray->ElementAt(0) = surroundChannels[SURROUND_L];
-        aChannelArray->ElementAt(1) = surroundChannels[SURROUND_R];
-        aChannelArray->ElementAt(2) = surroundChannels[SURROUND_C];
-        break;
-      case 4:
-        
-        NS_ASSERTION(inputChannelCount != 3,
-                     "3->4 upmix not supported directly");
-        if (inputChannelCount == 1) {
-          
-          
-          aChannelArray->ElementAt(0) = surroundChannels[SURROUND_C];
-          aChannelArray->ElementAt(1) = surroundChannels[SURROUND_C];
-        } else {
-          aChannelArray->ElementAt(0) = surroundChannels[SURROUND_L];
-          aChannelArray->ElementAt(1) = surroundChannels[SURROUND_R];
-        }
-        aChannelArray->ElementAt(2) = surroundChannels[SURROUND_SL];
-        aChannelArray->ElementAt(3) = surroundChannels[SURROUND_SR];
-        break;
-      case 5:
-        aChannelArray->ElementAt(0) = surroundChannels[SURROUND_L];
-        aChannelArray->ElementAt(1) = surroundChannels[SURROUND_R];
-        aChannelArray->ElementAt(2) = surroundChannels[SURROUND_C];
-        aChannelArray->ElementAt(3) = surroundChannels[SURROUND_SL];
-        aChannelArray->ElementAt(4) = surroundChannels[SURROUND_SR];
+    const void* outputChannels[CUSTOM_CHANNEL_LAYOUTS];
+
+    for (uint32_t i = 0; i < outputChannelCount; ++i) {
+      uint8_t channelIndex = m.mInputDestination[i];
+      if (channelIndex == IGNORE) {
+        outputChannels[i] = aZeroChannel;
+      } else {
+        outputChannels[i] = aChannelArray->ElementAt(channelIndex);
       }
-      return;
     }
-
-    memcpy(aChannelArray->Elements(), surroundChannels, sizeof(surroundChannels));
-    inputChannelCount = CUSTOM_CHANNEL_LAYOUTS;
+    for (uint32_t i = 0; i < outputChannelCount; ++i) {
+      aChannelArray->ElementAt(i) = outputChannels[i];
+    }
+    return;
   }
 
   for (uint32_t i = inputChannelCount; i < outputChannelCount; ++i) {
@@ -145,36 +124,30 @@ struct DownMixMatrix {
   float mInputCoefficient[CUSTOM_CHANNEL_LAYOUTS];
 };
 
-static const int IGNORE = CUSTOM_CHANNEL_LAYOUTS;
-static const float IGNORE_F = 0.0f;
-
 static const DownMixMatrix
 gDownMixMatrices[CUSTOM_CHANNEL_LAYOUTS*(CUSTOM_CHANNEL_LAYOUTS - 1)/2] =
 {
   
   { { 0, 0 }, IGNORE, { 0.5f, 0.5f } },
-  { { 0, 0, 0 }, IGNORE, { 0.3333f, 0.3333f, 0.3333f } },
+  { { 0, IGNORE, IGNORE }, IGNORE, { 1.0f, IGNORE_F, IGNORE_F } },
   { { 0, 0, 0, 0 }, IGNORE, { 0.25f, 0.25f, 0.25f, 0.25f } },
-  { { 0, 0, 0, 0, 0 }, IGNORE, { 0.7071f, 0.7071f, 1.0f, 0.5f, 0.5f } },
+  { { 0, IGNORE, IGNORE, IGNORE, IGNORE }, IGNORE, { 1.0f, IGNORE_F, IGNORE_F, IGNORE_F, IGNORE_F } },
   { { 0, 0, 0, IGNORE, 0, 0 }, IGNORE, { 0.7071f, 0.7071f, 1.0f, IGNORE_F, 0.5f, 0.5f } },
   
-  { { 0, 1, 0 }, 1, { 1.0f, 1.0f, 0.7071f } },
+  { { 0, 1, IGNORE }, IGNORE, { 1.0f, 1.0f, IGNORE_F } },
   { { 0, 1, 0, 1 }, IGNORE, { 0.5f, 0.5f, 0.5f, 0.5f } },
-  { { 0, 1, 0, 0, 1 }, 1, { 1.0f, 1.0f, 0.7071f, 0.7071f, 0.7071f } },
+  { { 0, 1, IGNORE, IGNORE, IGNORE }, IGNORE, { 1.0f, 1.0f, IGNORE_F, IGNORE_F, IGNORE_F } },
   { { 0, 1, 0, IGNORE, 0, 1 }, 1, { 1.0f, 1.0f, 0.7071f, IGNORE_F, 0.7071f, 0.7071f } },
   
-  { { 0, 1, 0, 1 }, IGNORE, { 0.25f, 0.25f, 0.25f, 0.25f } },
-  { { 0, 1, 2, 0, 1 }, IGNORE, { 0.5f, 0.5f, 1.0f, 0.5f, 0.5f } },
-  { { 0, 1, 2, IGNORE, 0, 1 }, IGNORE, { 0.5f, 0.5f, 1.0f, IGNORE_F, 0.5f, 0.5f } },
+  { { 0, 1, 2, IGNORE }, IGNORE, { 1.0f, 1.0f, 1.0f, IGNORE_F } },
+  { { 0, 1, 2, IGNORE, IGNORE }, IGNORE, { 1.0f, 1.0f, 1.0f, IGNORE_F, IGNORE_F } },
+  { { 0, 1, 2, IGNORE, IGNORE, IGNORE }, IGNORE, { 1.0f, 1.0f, 1.0f, IGNORE_F, IGNORE_F, IGNORE_F } },
   
-  { { 0, 1, 0, 2, 3 }, 1, { 1.0f, 1.0f, 0.7071f, 1.0f, 1.0f } },
+  { { 0, 1, 2, 3, IGNORE }, IGNORE, { 1.0f, 1.0f, 1.0f, 1.0f, IGNORE_F } },
   { { 0, 1, 0, IGNORE, 2, 3 }, 1, { 1.0f, 1.0f, 0.7071f, IGNORE_F, 1.0f, 1.0f } },
   
-  { { 0, 1, 2, IGNORE, 3, 4 }, IGNORE, { 1.0f, 1.0f, 1.0f, IGNORE_F, 1.0f, 1.0f } }
+  { { 0, 1, 2, 3, 4, IGNORE }, IGNORE, { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, IGNORE_F } }
 };
-
-static const int gDownMixMatrixIndexByOutputChannels[CUSTOM_CHANNEL_LAYOUTS - 1] =
-  { 0, 5, 9, 12, 14 };
 
 void
 AudioChannelsDownMix(const nsTArray<const void*>& aChannelArray,
@@ -186,7 +159,7 @@ AudioChannelsDownMix(const nsTArray<const void*>& aChannelArray,
   const void* const* inputChannels = aChannelArray.Elements();
   NS_ASSERTION(inputChannelCount > aOutputChannelCount, "Nothing to do");
 
-  if (aOutputChannelCount >= 6) {
+  if (inputChannelCount > 6) {
     
     for (uint32_t o = 0; o < aOutputChannelCount; ++o) {
       memcpy(aOutputChannels[o], inputChannels[o], aDuration*sizeof(float));
@@ -198,7 +171,7 @@ AudioChannelsDownMix(const nsTArray<const void*>& aChannelArray,
   inputChannelCount = std::min<uint32_t>(6, inputChannelCount);
 
   const DownMixMatrix& m = gDownMixMatrices[
-    gDownMixMatrixIndexByOutputChannels[aOutputChannelCount - 1] +
+    gMixingMatrixIndexByChannels[aOutputChannelCount - 1] +
     inputChannelCount - aOutputChannelCount - 1];
 
   
