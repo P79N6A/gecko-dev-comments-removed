@@ -4217,32 +4217,6 @@ var XULBrowserWindow = {
     }
 
     
-    
-    
-    
-    
-    
-    
-    
-    var selectedBrowser = gBrowser.selectedBrowser;
-    if (selectedBrowser.lastURI) {
-      let oldSpec = selectedBrowser.lastURI.spec;
-      let oldIndexOfHash = oldSpec.indexOf("#");
-      if (oldIndexOfHash != -1)
-        oldSpec = oldSpec.substr(0, oldIndexOfHash);
-      let newSpec = location;
-      let newIndexOfHash = newSpec.indexOf("#");
-      if (newIndexOfHash != -1)
-        newSpec = newSpec.substr(0, newIndexOfHash);
-      if (newSpec != oldSpec) {
-        
-        
-        let nBox = gBrowser.getNotificationBox(selectedBrowser);
-        nBox.removeTransientNotifications();
-      }
-    }
-
-    
     if (content.document && mimeTypeIsTextBased(content.document.contentType))
       this.isImage.removeAttribute('disabled');
     else
@@ -4696,23 +4670,23 @@ var TabsProgressListener = {
                               aFlags) {
     
     
-    if (aBrowser.contentWindow == aWebProgress.DOMWindow &&
-        !(aFlags & Ci.nsIWebProgressListener.LOCATION_CHANGE_SAME_DOCUMENT)) {
+    if (aFlags & Ci.nsIWebProgressListener.LOCATION_CHANGE_SAME_DOCUMENT)
+      return;
+
+    
+    
+    
+    if (!Object.getOwnPropertyDescriptor(window, "PopupNotifications").get)
+      PopupNotifications.locationChange(aBrowser);
+
+    gBrowser.getNotificationBox(aBrowser).removeTransientNotifications();
+
+    
+    if (aBrowser.contentWindow == aWebProgress.DOMWindow) {
       
       aBrowser._clickToPlayPluginsActivated = new Map();
       aBrowser._clickToPlayAllPluginsActivated = false;
       aBrowser._pluginScriptedState = gPluginHandler.PLUGIN_SCRIPTED_STATE_NONE;
-
-      
-      
-      
-      if (!Object.getOwnPropertyDescriptor(window, "PopupNotifications").get)
-        PopupNotifications.locationChange(aBrowser);
-
-      
-      
-      if (aBrowser != gBrowser.selectedBrowser)
-        gBrowser.getNotificationBox(aBrowser).removeTransientNotifications();
 
       FullZoom.onLocationChange(aLocationURI, false, aBrowser);
     }
