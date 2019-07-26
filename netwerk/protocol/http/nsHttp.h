@@ -181,11 +181,11 @@ struct nsHttp
     }
 
     
-    static bool IsPermanentRedirect(PRUint32 httpStatus);
+    static bool IsPermanentRedirect(uint32_t httpStatus);
 
     
     
-    static bool ShouldRewriteRedirectToGET(PRUint32 httpStatus, nsHttpAtom method);
+    static bool ShouldRewriteRedirectToGET(uint32_t httpStatus, nsHttpAtom method);
 
     
     
