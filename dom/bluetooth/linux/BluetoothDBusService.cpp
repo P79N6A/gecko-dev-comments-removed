@@ -1945,6 +1945,27 @@ public:
       v.get_ArrayOfBluetoothNamedValue().AppendElement(
         BluetoothNamedValue(NS_LITERAL_STRING("Path"), objectPath)
       );
+      const InfallibleTArray<BluetoothNamedValue>& deviceProperties =
+        v.get_ArrayOfBluetoothNamedValue();
+      uint32_t length = deviceProperties.Length();
+      
+      
+      
+      
+      
+      if (!ContainsIcon(deviceProperties)) {
+        for (uint32_t p = 0; p < length; ++p) {
+          if (deviceProperties[p].name().EqualsLiteral("Class")) {
+            if (HasAudioService(deviceProperties[p].value().get_uint32_t())) {
+              v.get_ArrayOfBluetoothNamedValue()
+                 .AppendElement(
+                 BluetoothNamedValue(NS_LITERAL_STRING("Icon"),
+                 NS_LITERAL_STRING("audio-card")));
+            }
+            break;
+          }
+        }
+      }
 
       if (mFilterFunc(v)) {
         values.get_ArrayOfBluetoothNamedValue().AppendElement(
