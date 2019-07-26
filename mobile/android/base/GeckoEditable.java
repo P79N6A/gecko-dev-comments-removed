@@ -103,7 +103,8 @@ final class GeckoEditable
     private int mIcUpdateSeqno;
     private int mLastIcUpdateSeqno;
     private boolean mUpdateGecko;
-    private boolean mFocused;
+    private boolean mFocused; 
+    private boolean mGeckoFocused; 
     private volatile boolean mSuppressCompositions;
     private volatile boolean mSuppressKeyUp;
 
@@ -759,11 +760,16 @@ final class GeckoEditable
         });
 
         
-        if (type == NOTIFY_IME_OF_BLUR) {
+        
+        if (type == NOTIFY_IME_OF_BLUR && mGeckoFocused) {
+            
+            
+            mGeckoFocused = false;
             mSuppressCompositions = false;
             GeckoAppShell.getEventDispatcher().
                 unregisterEventListener("TextSelection:IMECompositions", this);
         } else if (type == NOTIFY_IME_OF_FOCUS) {
+            mGeckoFocused = true;
             mSuppressCompositions = false;
             GeckoAppShell.getEventDispatcher().
                 registerEventListener("TextSelection:IMECompositions", this);
