@@ -58,7 +58,6 @@
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
-#include "mozilla/NullPtr.h"
 
 #ifdef __cplusplus
 
@@ -212,13 +211,13 @@ class LinkedListElement
 
     T* asT() {
       if (isSentinel)
-        return nullptr;
+        return NULL;
 
       return static_cast<T*>(this);
     }
     const T* asT() const {
       if (isSentinel)
-        return nullptr;
+        return NULL;
 
       return static_cast<const T*>(this);
     }

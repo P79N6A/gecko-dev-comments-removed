@@ -1419,6 +1419,7 @@ XPCJSRuntime::~XPCJSRuntime()
         delete mDetachedWrappedNativeProtoMap;
     }
 
+    JS_ShutDown();
 #ifdef MOZ_ENABLE_PROFILER_SPS
     
     if (PseudoStack *stack = mozilla_get_pseudo_stack())
