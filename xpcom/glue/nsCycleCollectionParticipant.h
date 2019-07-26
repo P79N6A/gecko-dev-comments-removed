@@ -710,11 +710,18 @@ static NS_CYCLE_COLLECTION_INNERCLASS NS_CYCLE_COLLECTION_INNERNAME;
     tmp->_unroot_function();                                                   \
   }
 
-
-
-
 #define NS_IMPL_CYCLE_COLLECTION_CLASS(_class) \
  _class::NS_CYCLE_COLLECTION_INNERCLASS _class::NS_CYCLE_COLLECTION_INNERNAME;
+
+
+
+
+#define NS_IMPL_CYCLE_COLLECTION_0(_class)                                     \
+ NS_IMPL_CYCLE_COLLECTION_CLASS(_class)                                        \
+ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(_class)                                 \
+ NS_IMPL_CYCLE_COLLECTION_UNLINK_END                                           \
+ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(_class)                               \
+ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 #define NS_IMPL_CYCLE_COLLECTION_1(_class, _f)                                 \
  NS_IMPL_CYCLE_COLLECTION_CLASS(_class)                                        \
