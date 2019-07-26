@@ -19,13 +19,13 @@ class nsIFrame;
 class nsStyleContext;
 class nsSVGElement;
 class nsSVGLength2;
-class nsSVGSVGElement;
 
 namespace mozilla {
 class SVGAnimatedPreserveAspectRatio;
 class SVGPreserveAspectRatio;
 namespace dom {
 class Element;
+class SVGSVGElement;
 } 
 } 
 
@@ -56,7 +56,7 @@ public:
   
 
 
-  static nsSVGSVGElement *GetOuterSVGElement(nsSVGElement *aSVGElement);
+  static mozilla::dom::SVGSVGElement *GetOuterSVGElement(nsSVGElement *aSVGElement);
 
   
 

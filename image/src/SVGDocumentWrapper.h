@@ -23,12 +23,15 @@ class nsIRequest;
 class nsILoadGroup;
 class nsIFrame;
 struct nsIntSize;
-class nsSVGSVGElement;
 
 #define OBSERVER_SVC_CID "@mozilla.org/observer-service;1"
 
 
 namespace mozilla {
+namespace dom {
+class SVGSVGElement;
+}
+
 namespace image {
 
 class SVGDocumentWrapper MOZ_FINAL : public nsIStreamListener,
@@ -68,7 +71,7 @@ public:
 
 
 
-  nsSVGSVGElement* GetRootSVGElem();
+  mozilla::dom::SVGSVGElement* GetRootSVGElem();
 
   
 

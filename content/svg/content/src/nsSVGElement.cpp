@@ -8,7 +8,7 @@
 
 #include "nsSVGElement.h"
 
-#include "nsSVGSVGElement.h"
+#include "mozilla/dom/SVGSVGElement.h"
 #include "nsIDocument.h"
 #include "nsRange.h"
 #include "nsIDOMAttr.h"
@@ -1156,10 +1156,10 @@ nsSVGElement::GetOwnerSVGElement(nsIDOMSVGSVGElement * *aOwnerSVGElement)
   return rv.ErrorCode();
 }
 
-nsSVGSVGElement*
+SVGSVGElement*
 nsSVGElement::GetOwnerSVGElement(ErrorResult& rv)
 {
-  nsSVGSVGElement* ownerSVGElement = GetCtx();
+  SVGSVGElement* ownerSVGElement = GetCtx();
 
   
   
@@ -1588,7 +1588,7 @@ nsIAtom* nsSVGElement::GetEventNameForAttr(nsIAtom* aAttr)
   return aAttr;
 }
 
-nsSVGSVGElement *
+SVGSVGElement *
 nsSVGElement::GetCtx() const
 {
   nsIContent* ancestor = GetFlattenedTreeParent();
@@ -1599,7 +1599,7 @@ nsSVGElement::GetCtx() const
       return nullptr;
     }
     if (tag == nsGkAtoms::svg) {
-      return static_cast<nsSVGSVGElement*>(ancestor);
+      return static_cast<SVGSVGElement*>(ancestor);
     }
     ancestor = ancestor->GetFlattenedTreeParent();
   }
@@ -1702,7 +1702,7 @@ nsSVGElement::GetAnimatedLengthValues(float *aFirst, ...)
   NS_ASSERTION(info.mLengthCount > 0,
                "GetAnimatedLengthValues on element with no length attribs");
 
-  nsSVGSVGElement *ctx = nullptr;
+  SVGSVGElement *ctx = nullptr;
 
   float *f = aFirst;
   uint32_t i = 0;
