@@ -765,9 +765,11 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
 
         createOrUpdateAllSpecialFolders(db);
 
+        int offset = createDefaultBookmarks(db, 0);
+
         
-        int pos = createDistributionBookmarks(db);
-        createDefaultBookmarks(db, pos);
+        
+        enqueueDistributionBookmarkLoad(db, offset);
 
         createReadingListTable(db);
     }
@@ -795,17 +797,45 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
     }
 
     
-    private int createDistributionBookmarks(SQLiteDatabase db) {
-        JSONArray bookmarks = Distribution.getBookmarks(mContext);
+    
+    private void enqueueDistributionBookmarkLoad(final SQLiteDatabase db, final int start) {
+        final Distribution distribution = Distribution.getInstance(mContext);
+        distribution.addOnDistributionReadyCallback(new Runnable() {
+            @Override
+            public void run() {
+                Log.d(LOGTAG, "Running post-distribution task: bookmarks.");
+                if (!distribution.exists()) {
+                    return;
+                }
+
+                
+                
+                
+                
+                
+                createDistributionBookmarks(distribution, db, start);
+            }
+        });
+    }
+
+    
+
+
+
+
+
+
+    private int createDistributionBookmarks(Distribution distribution, SQLiteDatabase db, int start) {
+        JSONArray bookmarks = distribution.getBookmarks();
         if (bookmarks == null) {
             return 0;
         }
 
         Locale locale = Locale.getDefault();
-        int pos = 0;
+        int pos = start;
         Integer mobileFolderId = getMobileFolderId(db);
         if (mobileFolderId == null) {
-            Log.e(LOGTAG, "Error creating distribution bookmarks: mobileFolderId is null");
+            Log.e(LOGTAG, "Error creating distribution bookmarks: mobileFolderId is null.");
             return 0;
         }
 
@@ -826,7 +856,7 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
                             createBookmark(db, title, url, pos, Bookmarks.FIXED_PINNED_LIST_ID);
                         }
                     } catch (JSONException e) {
-                        Log.e(LOGTAG, "Error pinning bookmark to top sites", e);
+                        Log.e(LOGTAG, "Error pinning bookmark to top sites.", e);
                     }
                 }
 
@@ -837,27 +867,20 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
                     continue;
                 }
 
-                
-                ThreadUtils.postToBackgroundThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        SQLiteDatabase db = getWritableDatabase();
-                        try {
-                            String iconData = bookmark.getString("icon");
-                            Bitmap icon = BitmapUtils.getBitmapFromDataURI(iconData);
-                            if (icon != null) {
-                                createFavicon(db, url, icon);
-                            }
-                        } catch (JSONException e) {
-                            Log.e(LOGTAG, "Error creating distribution bookmark icon", e);
-                        }
+                try {
+                    final String iconData = bookmark.getString("icon");
+                    final Bitmap icon = BitmapUtils.getBitmapFromDataURI(iconData);
+                    if (icon != null) {
+                        createFavicon(db, url, icon);
                     }
-                });
+                } catch (JSONException e) {
+                    Log.e(LOGTAG, "Error creating distribution bookmark icon.", e);
+                }
             } catch (JSONException e) {
-                Log.e(LOGTAG, "Error creating distribution bookmark", e);
+                Log.e(LOGTAG, "Error creating distribution bookmark.", e);
             }
         }
-        return pos;
+        return pos - start;
     }
 
     private void createReadingListTable(SQLiteDatabase db) {
@@ -882,7 +905,13 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
     }
 
     
-    private void createDefaultBookmarks(SQLiteDatabase db, int pos) {
+
+
+
+
+
+
+    private int createDefaultBookmarks(SQLiteDatabase db, int start) {
         Class<?> stringsClass = R.string.class;
         Field[] fields = stringsClass.getFields();
         Pattern p = Pattern.compile("^bookmarkdefaults_title_");
@@ -890,8 +919,10 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
         Integer mobileFolderId = getMobileFolderId(db);
         if (mobileFolderId == null) {
             Log.e(LOGTAG, "Error creating default bookmarks: mobileFolderId is null");
-            return;
+            return 0;
         }
+
+        int pos = start;
 
         for (int i = 0; i < fields.length; i++) {
             final String name = fields[i].getName();
@@ -929,6 +960,8 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
                 Log.e(LOGTAG, "Can't create bookmark " + name, ex);
             }
         }
+
+        return pos - start;
     }
 
     private void createBookmark(SQLiteDatabase db, String title, String url, int pos, int parent) {
