@@ -8,16 +8,113 @@ var loop = loop || {};
 loop.webapp = (function() {
   "use strict";
 
+  
+
+
+
+
+
+
+  var baseApiUrl = "http://localhost:5000";
+
+  
+
+
+
   var router;
 
   
 
 
+
+  var conversation;
+
+  
+
+
+  var ConversationModel = Backbone.Model.extend({
+    defaults: {
+      loopToken:    undefined, 
+      sessionId:    undefined, 
+      sessionToken: undefined, 
+      apiKey:       undefined  
+    },
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    initiate: function(options) {
+      options = options || {};
+
+      if (!this.get("loopToken")) {
+        throw new Error("missing required attribute loopToken");
+      }
+
+      var request = $.ajax({
+        url:         baseApiUrl + "/calls/" + this.get("loopToken"),
+        method:      "POST",
+        contentType: "application/json",
+        data:        JSON.stringify({}),
+        dataType:    "json"
+      });
+
+      request.done(this.setReady.bind(this));
+
+      request.fail(function(xhr, _, statusText) {
+        var serverError = xhr.status + " " + statusText;
+        if (typeof xhr.responseJSON === "object" && xhr.responseJSON.error) {
+          serverError += "; " + xhr.responseJSON.error;
+        }
+        this.trigger("session:error", new Error(
+          "Retrieval of session information failed: HTTP " + serverError));
+      }.bind(this));
+    },
+
+    
+
+
+
+
+    setReady: function(sessionData) {
+      
+      this.set({
+        sessionId:    sessionData.sessionId,
+        sessionToken: sessionData.sessionToken,
+        apiKey:       sessionData.apiKey
+      }).trigger("session:ready", this);
+      return this;
+    }
+  });
+
+  
+
+
   var BaseView = Backbone.View.extend({
+    
+
+
+
+
     hide: function() {
       this.$el.hide();
       return this;
     },
+
+    
+
+
+
 
     show: function() {
       this.$el.show();
@@ -35,32 +132,33 @@ loop.webapp = (function() {
   
 
 
-  var CallLauncherView = BaseView.extend({
-    el: "#call-launcher",
+
+  var ConversationFormView = BaseView.extend({
+    el: "#conversation-form",
 
     events: {
-      "click button": "launchCall"
+      "submit": "initiate"
     },
 
-    initialize: function(options) {
-      options = options || {};
-      if (!options.token) {
-        throw new Error("missing required token");
-      }
-      this.token = options.token;
+    initialize: function() {
+      this.listenTo(this.model, "session:error", function(error) {
+        
+        
+        alert(error);
+      });
     },
 
-    launchCall: function(event) {
+    initiate: function(event) {
       event.preventDefault();
-      
+      this.model.initiate();
     }
   });
 
   
 
 
-  var CallView = BaseView.extend({
-    el: "#call"
+  var ConversationView = BaseView.extend({
+    el: "#conversation"
   });
 
   
@@ -69,14 +167,24 @@ loop.webapp = (function() {
 
 
   var Router = Backbone.Router.extend({
-    view: undefined,
+    _conversation: undefined,
+    activeView: undefined,
 
     routes: {
-        "": "home",
-        "call/:token": "call"
+      "": "home",
+      "call/:token": "initiate"
     },
 
-    initialize: function() {
+    initialize: function(options) {
+      options = options || {};
+      if (!options.conversation) {
+        throw new Error("missing required conversation");
+      }
+      this._conversation = options.conversation;
+      this.listenTo(this._conversation, "session:ready",
+                    this._onConversationSessionReady);
+
+      
       this.loadView(new HomeView());
     },
 
@@ -85,9 +193,24 @@ loop.webapp = (function() {
 
 
 
+    _onConversationSessionReady: function(conversation) {
+      
+      
+      
+      alert("conversation session ready");
+      console.log("conversation session info", conversation);
+    },
+
+    
+
+
+
+
     loadView : function(view) {
-      this.view && this.view.hide();
-      this.view = view.render().show();
+      if (this.activeView) {
+        this.activeView.hide();
+      }
+      this.activeView = view.render().show();
     },
 
     
@@ -102,8 +225,18 @@ loop.webapp = (function() {
 
 
 
-    call: function(token) {
-      this.loadView(new CallLauncherView({token: token}));
+
+    initiate: function(loopToken) {
+      this._conversation.set("loopToken", loopToken);
+      this.loadView(new ConversationFormView({model: this._conversation}));
+    },
+
+    
+
+
+
+    conversation: function() {
+      this.loadView(new ConversationView({model: this._conversation}));
     }
   });
 
@@ -111,15 +244,17 @@ loop.webapp = (function() {
 
 
   function init() {
-    router = new Router();
+    conversation = new ConversationModel();
+    router = new Router({conversation: conversation});
     Backbone.history.start();
   }
 
   return {
-    init: init,
     BaseView: BaseView,
+    ConversationFormView: ConversationFormView,
+    ConversationModel: ConversationModel,
     HomeView: HomeView,
-    Router: Router,
-    CallLauncherView: CallLauncherView
+    init: init,
+    Router: Router
   };
 })();
