@@ -2303,7 +2303,7 @@ gfxContext::GetRoundOffsetsToPixels(bool *aRoundX, bool *aRoundY)
     
     
     
-    if (CurrentMatrix().HasNonTranslation() || mDT) {
+    if (CurrentMatrix().HasNonTranslation()) {
         *aRoundY = false;
         return;
     }
