@@ -478,6 +478,12 @@ DefineStaticJSVals(JSContext *cx);
 void
 Register(nsScriptNameSpaceManager* aNameSpaceManager);
 
+
+
+
+
+bool IsChromeOrXBL(JSContext* cx, JSObject* );
+
 } 
 } 
 

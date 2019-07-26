@@ -735,15 +735,6 @@ nsINode::GetUserData(JSContext* aCx, const nsAString& aKey, ErrorResult& aError)
   return result;
 }
 
-
-bool
-nsINode::IsChromeOrXBL(JSContext* aCx, JSObject* )
-{
-  JSCompartment* compartment = js::GetContextCompartment(aCx);
-  return xpc::AccessCheck::isChrome(compartment) ||
-         xpc::IsXBLScope(compartment);
-}
-
 uint16_t
 nsINode::CompareDocumentPosition(nsINode& aOtherNode) const
 {
