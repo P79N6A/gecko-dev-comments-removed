@@ -95,10 +95,16 @@ typedef uint8_t nsHttpVersion;
 
 
 
+#define NS_HTTP_LOAD_AS_BLOCKING     (1<<6)
+
 
 
 
 #define NS_HTTP_DISALLOW_SPDY        (1<<7)
+
+
+
+#define NS_HTTP_LOAD_UNBLOCKED       (1<<8)
 
 
 

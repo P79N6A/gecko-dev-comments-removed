@@ -107,6 +107,7 @@ nsHttpTransaction::nsHttpTransaction()
     , mProxyConnectFailed(false)
     , mHttpResponseMatched(false)
     , mPreserveStream(false)
+    , mDispatchedAsBlocking(false)
     , mReportedStart(false)
     , mReportedResponseHeader(false)
     , mForTakeResponseHead(nullptr)
@@ -129,6 +130,7 @@ nsHttpTransaction::~nsHttpTransaction()
     delete mResponseHead;
     delete mForTakeResponseHead;
     delete mChunkedDecoder;
+    ReleaseBlockingTransaction();
 }
 
 nsHttpTransaction::Classifier
@@ -786,6 +788,7 @@ nsHttpTransaction::Close(nsresult reason)
     mStatus = reason;
     mTransactionDone = true; 
     mClosed = true;
+    ReleaseBlockingTransaction();
 
     
     mRequestStream = nullptr;
@@ -1383,6 +1386,7 @@ nsHttpTransaction::HandleContent(char *buf,
         
         mTransactionDone = true;
         mResponseIsComplete = true;
+        ReleaseBlockingTransaction();
 
         if (TimingEnabled())
             mTimings.responseEnd = TimeStamp::Now();
@@ -1493,6 +1497,57 @@ nsHttpTransaction::CancelPipeline(uint32_t reason)
     
     
     mClassification = CLASS_SOLO;
+}
+
+
+
+
+
+void
+nsHttpTransaction::DispatchedAsBlocking()
+{
+    if (mDispatchedAsBlocking)
+        return;
+
+    LOG(("nsHttpTransaction %p dispatched as blocking\n", this));
+    
+    if (!mLoadGroupCI)
+        return;
+
+    LOG(("nsHttpTransaction adding blocking channel %p from "
+         "loadgroup %p\n", this, mLoadGroupCI.get()));
+    
+    mLoadGroupCI->AddBlockingTransaction();
+    mDispatchedAsBlocking = true;
+}
+
+void
+nsHttpTransaction::RemoveDispatchedAsBlocking()
+{
+    if (!mLoadGroupCI || !mDispatchedAsBlocking)
+        return;
+    
+    uint32_t blockers = 0;
+    nsresult rv = mLoadGroupCI->RemoveBlockingTransaction(&blockers);
+
+    LOG(("nsHttpTransaction removing blocking channel %p from "
+         "loadgroup %p. %d blockers remain.\n", this,
+         mLoadGroupCI.get(), blockers));
+
+    if (NS_SUCCEEDED(rv) && !blockers) {
+        LOG(("nsHttpTransaction %p triggering release of blocked channels.\n",
+             this));
+        gHttpHandler->ConnMgr()->ProcessPendingQ();
+    }
+    
+    mDispatchedAsBlocking = false;
+}
+
+void
+nsHttpTransaction::ReleaseBlockingTransaction()
+{
+    RemoveDispatchedAsBlocking();
+    mLoadGroupCI = nullptr;
 }
 
 

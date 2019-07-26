@@ -912,6 +912,10 @@ pref("network.http.connection-timeout", 90);
 
 
 
+pref("network.http.speculative-parallel-limit", 6);
+
+
+
 pref("network.http.fast-fallback-to-IPv4", true);
 
 

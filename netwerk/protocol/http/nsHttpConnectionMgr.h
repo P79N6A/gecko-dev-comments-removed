@@ -208,6 +208,9 @@ public:
     bool     ProcessPendingQForEntry(nsHttpConnectionInfo *);
 
     
+    nsresult ProcessPendingQ();
+
+    
     
     
     nsresult CloseIdleConnection(nsHttpConnection *);
@@ -453,12 +456,13 @@ private:
     
 
     static PLDHashOperator ProcessOneTransactionCB(const nsACString &, nsAutoPtr<nsConnectionEntry> &, void *);
+    static PLDHashOperator ProcessAllTransactionsCB(const nsACString &, nsAutoPtr<nsConnectionEntry> &, void *);
 
     static PLDHashOperator PruneDeadConnectionsCB(const nsACString &, nsAutoPtr<nsConnectionEntry> &, void *);
     static PLDHashOperator ShutdownPassCB(const nsACString &, nsAutoPtr<nsConnectionEntry> &, void *);
     static PLDHashOperator PurgeExcessIdleConnectionsCB(const nsACString &, nsAutoPtr<nsConnectionEntry> &, void *);
     static PLDHashOperator ClosePersistentConnectionsCB(const nsACString &, nsAutoPtr<nsConnectionEntry> &, void *);
-    bool     ProcessPendingQForEntry(nsConnectionEntry *);
+    bool     ProcessPendingQForEntry(nsConnectionEntry *, bool considerAll);
     bool     IsUnderPressure(nsConnectionEntry *ent,
                              nsHttpTransaction::Classifier classification);
     bool     AtActiveConnectionLimit(nsConnectionEntry *, uint32_t caps);
@@ -579,6 +583,9 @@ private:
     
     
     uint16_t mNumIdleConns;
+    
+    
+    uint32_t mNumHalfOpenConns;
 
     
     uint64_t mTimeOfNextWakeUp;
