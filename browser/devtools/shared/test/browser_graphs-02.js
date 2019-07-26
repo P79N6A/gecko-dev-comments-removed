@@ -52,7 +52,7 @@ function testGraph(graph) {
   ok(graph.hasRegions(), "The graph should now have the regions set.");
 
   is(graph.dataScaleX,
-     graph.width / 4180, 
+     graph.width / (4180 - 112), 
     "The data scale on the X axis is correct.");
 
   is(graph.dataScaleY,
