@@ -416,6 +416,11 @@ const CustomizableWidgets = [{
       let zoomResetButton = node.childNodes[2];
       let window = aDocument.defaultView;
       function updateZoomResetButton() {
+        let updateDisplay = true;
+        
+        if (aDocument.documentElement.hasAttribute("customizing")) {
+          updateDisplay = false;
+        }
         
         
         let zoomFactor = 100;
@@ -423,7 +428,7 @@ const CustomizableWidgets = [{
           zoomFactor = Math.floor(window.ZoomManager.zoom * 100);
         } catch (e) {}
         zoomResetButton.setAttribute("label", CustomizableUI.getLocalizedProperty(
-          buttons[1], "label", [zoomFactor]
+          buttons[1], "label", [updateDisplay ? zoomFactor : 100]
         ));
       };
 
@@ -507,6 +512,18 @@ const CustomizableWidgets = [{
           let container = aDoc.defaultView.gBrowser.tabContainer;
           container.removeEventListener("TabSelect", updateZoomResetButton);
         }.bind(this),
+
+        onCustomizeStart: function(aWindow) {
+          if (aWindow.document == aDocument) {
+            updateZoomResetButton();
+          }
+        },
+
+        onCustomizeEnd: function(aWindow) {
+          if (aWindow.document == aDocument) {
+            updateZoomResetButton();
+          }
+        },
 
         onWidgetDrag: function(aWidgetId, aArea) {
           if (aWidgetId != this.id)
