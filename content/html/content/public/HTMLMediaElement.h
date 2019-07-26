@@ -326,6 +326,13 @@ public:
 
 
 
+  void RunInStableState(nsIRunnable* aRunnable);
+
+  
+
+
+
+
 
   virtual void FireTimeUpdate(bool aPeriodic) MOZ_FINAL MOZ_OVERRIDE;
 
