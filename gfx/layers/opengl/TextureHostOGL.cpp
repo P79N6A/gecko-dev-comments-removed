@@ -13,7 +13,6 @@
 #include "SharedSurfaceGL.h"            
 #include "SurfaceStream.h"              
 #include "SurfaceTypes.h"               
-#include "TiledLayerBuffer.h"           
 #include "gfx2DGlue.h"                  
 #include "gfxImageSurface.h"            
 #include "gfxReusableSurfaceWrapper.h"  
