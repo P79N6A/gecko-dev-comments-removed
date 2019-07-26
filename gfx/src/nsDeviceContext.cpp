@@ -370,11 +370,21 @@ nsDeviceContext::Init(nsIWidget *aWidget)
 nsresult
 nsDeviceContext::CreateRenderingContext(nsRenderingContext *&aContext)
 {
-    NS_ABORT_IF_FALSE(mPrintingSurface, "only call for printing dcs");
-
+    nsRefPtr<gfxASurface> printingSurface = mPrintingSurface;
+#ifdef XP_MACOSX
+    
+    
+    
+    
+    
+    
+    if (!printingSurface) {
+      printingSurface = mCachedPrintingSurface;
+    }
+#endif
     nsRefPtr<nsRenderingContext> pContext = new nsRenderingContext();
 
-    pContext->Init(this, mPrintingSurface);
+    pContext->Init(this, printingSurface);
     pContext->Scale(mPrintingScale, mPrintingScale);
     aContext = pContext;
     NS_ADDREF(aContext);
@@ -523,8 +533,6 @@ nsDeviceContext::BeginPage(void)
 #ifdef XP_MACOSX
     
     
-    
-    
     mDeviceContextSpec->GetSurfaceForPrinter(getter_AddRefs(mPrintingSurface));
 #endif
 
@@ -537,6 +545,18 @@ nsresult
 nsDeviceContext::EndPage(void)
 {
     nsresult rv = mPrintingSurface->EndPage();
+
+#ifdef XP_MACOSX
+    
+    
+    
+    
+    
+    
+    
+    mCachedPrintingSurface = mPrintingSurface;
+    mPrintingSurface = nullptr;
+#endif
 
     if (mDeviceContextSpec)
         mDeviceContextSpec->EndPage();
