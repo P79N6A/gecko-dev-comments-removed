@@ -805,6 +805,26 @@ class LInlineFunctionGuard : public LInstructionHelper<0, 1, 0>
     }
 };
 
+class LPolyInlineDispatch : public LInstructionHelper<0, 1, 0>
+{
+  
+  public:
+    LIR_HEADER(PolyInlineDispatch);
+
+    LPolyInlineDispatch(const LAllocation &in) {
+        setOperand(0, in);
+    }
+
+    const LAllocation *input() {
+        return getOperand(0);
+    }
+
+    MPolyInlineDispatch *mir() {
+        return mir_->toPolyInlineDispatch();
+    }
+};
+
+
 
 
 class LCompare : public LInstructionHelper<1, 2, 0>
