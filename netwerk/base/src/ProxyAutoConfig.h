@@ -8,6 +8,10 @@
 #define ProxyAutoConfig_h__
 
 #include "nsString.h"
+#include "jsapi.h"
+#include "prio.h"
+#include "nsITimer.h"
+#include "nsAutoPtr.h"
 
 namespace mozilla { namespace net {
 
@@ -21,7 +25,6 @@ class ProxyAutoConfig  {
 public:
   ProxyAutoConfig()
     : mJSRuntime(nullptr)
-    , mRunning(false)
     , mJSNeedsSetup(false)
     , mShutdown(false)
   {
@@ -33,6 +36,9 @@ public:
                 const nsCString &aPACScript);
   void     Shutdown();
   void     GC();
+  bool     MyIPAddress(jsval *vp);
+  bool     ResolveAddress(const nsCString &aHostName,
+                          PRNetAddr *aNetAddr, unsigned int aTimeout);
 
   
 
@@ -73,15 +79,22 @@ public:
                           nsACString &result);
 
 private:
+  const static unsigned int kTimeout = 1000; 
+
   
   nsresult SetupJS();
 
+  bool SrcAddress(const PRNetAddr *remoteAddress, nsCString &localAddress);
+  bool MyIPAddressTryHost(const nsCString &hostName, unsigned int timeout,
+                          jsval *vp);
+
   JSRuntimeWrapper *mJSRuntime;
-  bool              mRunning;
   bool              mJSNeedsSetup;
   bool              mShutdown;
   nsCString         mPACScript;
   nsCString         mPACURI;
+  nsCString         mRunningHost;
+  nsCOMPtr<nsITimer> mTimer;
 };
 
 }} 

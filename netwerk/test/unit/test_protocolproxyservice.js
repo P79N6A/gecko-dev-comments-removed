@@ -15,6 +15,7 @@
 
 
 
+
 var ios = Components.classes["@mozilla.org/network/io-service;1"]
                     .getService(Components.interfaces.nsIIOService);
 var pps = Components.classes["@mozilla.org/network/protocol-proxy-service;1"]
@@ -557,6 +558,45 @@ function host_filters_4()
   prefs.setCharPref("network.proxy.no_proxies_on", "");
   do_check_eq(prefs.getCharPref("network.proxy.no_proxies_on"), "");  
 
+  run_myipaddress_test();
+}
+
+function run_myipaddress_test()
+{
+  
+  
+  
+  
+
+  var pac = 'data:text/plain,' +
+            'function FindProxyForURL(url, host) {' +
+            ' return "PROXY " + myIpAddress() + ":1234";' +
+            '}';
+
+  
+  
+  var uri = ios.newURI("http://192.0.43.10/", null, null);
+
+  prefs.setIntPref("network.proxy.type", 2);
+  prefs.setCharPref("network.proxy.autoconfig_url", pac);
+
+  var cb = new resolveCallback();
+  cb.nextFunction = myipaddress_callback;
+  var req = pps.asyncResolve(uri, 0, cb);
+}
+
+function myipaddress_callback(pi)
+{
+  do_check_neq(pi, null);
+  do_check_eq(pi.type, "http");
+  do_check_eq(pi.port, 1234);
+
+  
+  do_check_neq(pi.host, null);
+  do_check_neq(pi.host, "127.0.0.1");
+  do_check_neq(pi.host, "::1");
+
+  prefs.setIntPref("network.proxy.type", 0);
   do_test_finished();
 }
 
