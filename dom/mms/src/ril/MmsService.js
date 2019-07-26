@@ -38,6 +38,8 @@ const CONFIG_SEND_REPORT_DEFAULT_NO  = 1;
 const CONFIG_SEND_REPORT_DEFAULT_YES = 2;
 const CONFIG_SEND_REPORT_ALWAYS      = 3;
 
+const TIME_TO_BUFFER_MMS_REQUESTS    = 30000;
+
 XPCOMUtils.defineLazyServiceGetter(this, "gpps",
                                    "@mozilla.org/network/protocol-proxy-service;1",
                                    "nsIProtocolProxyService");
@@ -50,6 +52,12 @@ XPCOMUtils.defineLazyGetter(this, "MMS", function () {
   let MMS = {};
   Cu.import("resource://gre/modules/MmsPduHelper.jsm", MMS);
   return MMS;
+});
+
+XPCOMUtils.defineLazyGetter(this, "gRIL", function () {
+  return Cc["@mozilla.org/telephony/system-worker-manager;1"].
+           getService(Ci.nsIInterfaceRequestor).
+           getInterface(Ci.nsIRadioInterfaceLayer);
 });
 
 
@@ -109,11 +117,17 @@ MmsService.prototype = {
   mmsNetworkConnected: false,
 
   
-  proxyFilterRefCount: 0,
+  mmsConnRefCount: 0,
 
   
   urlUAProf: null,
   tagnameUAProf: null,
+
+  
+  
+  
+  mmsRequestQueue: [],
+  timerToClearQueue: Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer),
 
   
 
@@ -136,24 +150,65 @@ MmsService.prototype = {
   
 
 
-  acquireProxyFilter: function acquireProxyFilter() {
-    if (!this.proxyFilterRefCount) {
-      debug("Register proxy filter");
+
+
+
+
+
+
+
+
+
+
+
+
+  acquireMmsConnection: function acquireMmsConnection(method, url, istream, callback) {
+    
+    
+    if (!this.mmsNetworkConnected) {
+      debug("acquireMmsConnection: " +
+            "buffer the MMS request and setup the MMS data call.");
+      this.mmsRequestQueue.push({method: method,
+                                 url: url,
+                                 istream: istream,
+                                 callback: callback});
+      gRIL.setupDataCallByType("mms");
+
+      
+      
+      this.timerToClearQueue.initWithCallback(function timerToClearQueueCb() {
+        debug("timerToClearQueueCb: clear the buffered MMS requests due to " +
+              "the timeout: number: " + this.mmsRequestQueue.length);
+        while (this.mmsRequestQueue.length) {
+          let mmsRequest = this.mmsRequestQueue.shift();
+          if (mmsRequest.callback) {
+            mmsRequest.callback(0, null);
+          }
+        }
+      }.bind(this), TIME_TO_BUFFER_MMS_REQUESTS, Ci.nsITimer.TYPE_ONE_SHOT);
+      return false;
+    }
+
+    if (!this.mmsConnRefCount) {
+      debug("acquireMmsConnection: register the MMS proxy filter.");
       gpps.registerFilter(this, 0);
     }
-    this.proxyFilterRefCount++;
+    this.mmsConnRefCount++;
+    return true;
   },
 
   
 
 
-  releaseProxyFilter: function releaseProxyFilter() {
-    this.proxyFilterRefCount--;
-    if (this.proxyFilterRefCount <= 0) {
-      this.proxyFilterRefCount = 0;
+  releaseMmsConnection: function releaseMmsConnection() {
+    this.mmsConnRefCount--;
+    if (this.mmsConnRefCount <= 0) {
+      this.mmsConnRefCount = 0;
 
-      debug("Unregister proxy filter");
+      debug("releaseMmsConnection: " +
+            "unregister the MMS proxy filter and deactivate the MMS data call.");
       gpps.unregisterFilter(this);
+      gRIL.deactivateDataCallByType("mms");
     }
   },
 
@@ -171,16 +226,21 @@ MmsService.prototype = {
 
 
   sendMmsRequest: function sendMmsRequest(method, url, istream, callback) {
+    debug("sendMmsRequest: method: " + method + "url: " + url +
+          "istream: " + istream + "callback: " + callback);
+
+    if (!this.acquireMmsConnection(method, url, istream, callback)) {
+      return;
+    }
+
     let that = this;
-    function releaseProxyFilterAndCallback(status, data) {
+    function releaseMmsConnectionAndCallback(status, data) {
       
-      that.releaseProxyFilter();
+      that.releaseMmsConnection();
       if (callback) {
         callback(status, data);
       }
     }
-
-    this.acquireProxyFilter();
 
     try {
       let xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"]
@@ -203,7 +263,7 @@ MmsService.prototype = {
       
       xhr.onerror = function () {
         debug("xhr error, response headers: " + xhr.getAllResponseHeaders());
-        releaseProxyFilterAndCallback(xhr.status, null);
+        releaseMmsConnectionAndCallback(xhr.status, null);
       };
       xhr.onreadystatechange = function () {
         if (xhr.readyState != Ci.nsIXMLHttpRequest.DONE) {
@@ -231,14 +291,14 @@ MmsService.prototype = {
           }
         }
 
-        releaseProxyFilterAndCallback(xhr.status, data);
+        releaseMmsConnectionAndCallback(xhr.status, data);
       }
 
       
       xhr.send(istream);
     } catch (e) {
       debug("xhr error, can't send: " + e.message);
-      releaseProxyFilterAndCallback(0, null);
+      releaseMmsConnectionAndCallback(0, null);
     }
   },
 
@@ -342,7 +402,9 @@ MmsService.prototype = {
     }
 
     this.sendMmsRequest("POST", this.MMSC, istream, (function (status, data) {
-      if (!data) {
+      if (status != HTTP_STATUS_OK) {
+        callback(MMS.MMS_PDU_ERROR_TRANSIENT_FAILURE, null);
+      } else if (!data) {
         callback(MMS.MMS_PDU_ERROR_PERMANENT_FAILURE, null);
       } else if (!this.parseStreamAndDispatch(data, {msg: msg, callback: callback})) {
         callback(MMS.MMS_PDU_RESPONSE_ERROR_UNSUPPORTED_MESSAGE, null);
@@ -478,8 +540,7 @@ MmsService.prototype = {
       
       let messageId = msg.headers["message-id"];
       options.msg.headers["message-id"] = messageId;
-    } else if ((status >= MMS.MMS_PDU_ERROR_TRANSIENT_FAILURE)
-               && (status < MMS.MMS_PDU_ERROR_PERMANENT_FAILURE)) {
+    } else if (this.isTransientError(status)) {
       return;
     }
 
@@ -496,6 +557,10 @@ MmsService.prototype = {
 
   handleNotificationIndication: function handleNotificationIndication(msg) {
     function callback(status, retr) {
+      if (this.isTransientError(status)) {
+        return;
+      }
+
       let tid = msg.headers["x-mms-transaction-id"];
 
       
@@ -516,7 +581,9 @@ MmsService.prototype = {
 
     let url = msg.headers["x-mms-content-location"].uri;
     this.sendMmsRequest("GET", url, null, (function (status, data) {
-      if (!data) {
+      if (status != HTTP_STATUS_OK) {
+        callback.call(this, MMS.MMS_PDU_ERROR_TRANSIENT_FAILURE, null);
+      } else if (!data) {
         callback.call(this, MMS.MMS_PDU_STATUS_DEFERRED, null);
       } else if (!this.parseStreamAndDispatch(data, retrCallback.bind(this))) {
         callback.call(this, MMS.MMS_PDU_STATUS_UNRECOGNISED, null);
@@ -591,6 +658,17 @@ MmsService.prototype = {
 
   
 
+
+
+
+
+  isTransientError: function isTransientError(status) {
+    return (status >= MMS.MMS_PDU_ERROR_TRANSIENT_FAILURE &&
+            status < MMS.MMS_PDU_ERROR_PERMANENT_FAILURE);
+  },
+
+  
+
   hasSupport: function hasSupport() {
     return true;
   },
@@ -606,13 +684,24 @@ MmsService.prototype = {
   observe: function observe(subject, topic, data) {
     switch (topic) {
       case kNetworkInterfaceStateChangedTopic: {
-        let iface = subject.QueryInterface(Ci.nsINetworkInterface);
-        if (iface.type != Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE &&
-            iface.type != Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_MMS) {
+        this.mmsNetworkConnected =
+          gRIL.getDataCallStateByType("mms") ==
+            Ci.nsINetworkInterface.NETWORK_STATE_CONNECTED;
+
+        if (!this.mmsNetworkConnected) {
           return;
         }
-        this.mmsNetworkConnected =
-          iface.state == Ci.nsINetworkInterface.NETWORK_STATE_CONNECTED;
+
+        debug("Got the MMS network connected! Resend the buffered " +
+              "MMS requests: number: " + this.mmsRequestQueue.length);
+        this.timerToClearQueue.cancel();
+        while (this.mmsRequestQueue.length) {
+          let mmsRequest = this.mmsRequestQueue.shift();
+          this.sendMmsRequest(mmsRequest.method,
+                              mmsRequest.url,
+                              mmsRequest.istream,
+                              mmsRequest.callback);
+        }
         break;
       }
       case kXpcomShutdownObserverTopic: {
@@ -621,6 +710,13 @@ MmsService.prototype = {
         this.mmsProxySettings.forEach(function(name) {
           Services.prefs.removeObserver(name, this);
         }, this);
+        this.timerToClearQueue.cancel();
+        while (this.mmsRequestQueue.length) {
+          let mmsRequest = this.mmsRequestQueue.shift();
+          if (mmsRequest.callback) {
+            mmsRequest.callback(0, null);
+          }
+        }
         break;
       }
       case kPrefenceChangedObserverTopic: {
