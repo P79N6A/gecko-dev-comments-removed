@@ -38,11 +38,11 @@ class DtoaCache {
     JSFlatString *s;      
 
   public:
-    DtoaCache() : s(NULL) {}
-    void purge() { s = NULL; }
+    DtoaCache() : s(nullptr) {}
+    void purge() { s = nullptr; }
 
     JSFlatString *lookup(int base, double d) {
-        return this->s && base == this->base && d == this->d ? this->s : NULL;
+        return this->s && base == this->base && d == this->d ? this->s : nullptr;
     }
 
     void cache(int base, double d, JSFlatString *s) {
@@ -71,18 +71,18 @@ struct CrossCompartmentKey
     js::gc::Cell *wrapped;
 
     CrossCompartmentKey()
-      : kind(ObjectWrapper), debugger(NULL), wrapped(NULL) {}
+      : kind(ObjectWrapper), debugger(nullptr), wrapped(nullptr) {}
     CrossCompartmentKey(JSObject *wrapped)
-      : kind(ObjectWrapper), debugger(NULL), wrapped(wrapped) {}
+      : kind(ObjectWrapper), debugger(nullptr), wrapped(wrapped) {}
     CrossCompartmentKey(JSString *wrapped)
-      : kind(StringWrapper), debugger(NULL), wrapped(wrapped) {}
+      : kind(StringWrapper), debugger(nullptr), wrapped(wrapped) {}
     CrossCompartmentKey(Value wrapped)
       : kind(wrapped.isString() ? StringWrapper : ObjectWrapper),
-        debugger(NULL),
+        debugger(nullptr),
         wrapped((js::gc::Cell *)wrapped.toGCThing()) {}
     CrossCompartmentKey(const RootedValue &wrapped)
       : kind(wrapped.get().isString() ? StringWrapper : ObjectWrapper),
-        debugger(NULL),
+        debugger(nullptr),
         wrapped((js::gc::Cell *)wrapped.get().toGCThing()) {}
     CrossCompartmentKey(Kind kind, JSObject *dbg, js::gc::Cell *wrapped)
       : kind(kind), debugger(dbg), wrapped(wrapped) {}
@@ -366,10 +366,10 @@ struct JSCompartment
     bool addDebuggee(JSContext *cx, js::GlobalObject *global,
                      js::AutoDebugModeGC &dmgc);
     void removeDebuggee(js::FreeOp *fop, js::GlobalObject *global,
-                        js::GlobalObjectSet::Enum *debuggeesEnum = NULL);
+                        js::GlobalObjectSet::Enum *debuggeesEnum = nullptr);
     void removeDebuggee(js::FreeOp *fop, js::GlobalObject *global,
                         js::AutoDebugModeGC &dmgc,
-                        js::GlobalObjectSet::Enum *debuggeesEnum = NULL);
+                        js::GlobalObjectSet::Enum *debuggeesEnum = nullptr);
     bool setDebugModeFromC(JSContext *cx, bool b, js::AutoDebugModeGC &dmgc);
 
     void clearBreakpointsIn(js::FreeOp *fop, js::Debugger *dbg, JSObject *handler);

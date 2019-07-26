@@ -45,12 +45,12 @@ class ArrayObject;
 
 
 extern ArrayObject * JS_FASTCALL
-NewDenseEmptyArray(JSContext *cx, JSObject *proto = NULL,
+NewDenseEmptyArray(JSContext *cx, JSObject *proto = nullptr,
                    NewObjectKind newKind = GenericObject);
 
 
 extern ArrayObject * JS_FASTCALL
-NewDenseAllocatedArray(ExclusiveContext *cx, uint32_t length, JSObject *proto = NULL,
+NewDenseAllocatedArray(ExclusiveContext *cx, uint32_t length, JSObject *proto = nullptr,
                        NewObjectKind newKind = GenericObject);
 
 
@@ -58,16 +58,16 @@ NewDenseAllocatedArray(ExclusiveContext *cx, uint32_t length, JSObject *proto = 
 
 
 extern ArrayObject * JS_FASTCALL
-NewDenseUnallocatedArray(ExclusiveContext *cx, uint32_t length, JSObject *proto = NULL,
+NewDenseUnallocatedArray(ExclusiveContext *cx, uint32_t length, JSObject *proto = nullptr,
                          NewObjectKind newKind = GenericObject);
 
 
 extern ArrayObject *
-NewDenseCopiedArray(JSContext *cx, uint32_t length, HandleObject src, uint32_t elementOffset, JSObject *proto = NULL);
+NewDenseCopiedArray(JSContext *cx, uint32_t length, HandleObject src, uint32_t elementOffset, JSObject *proto = nullptr);
 
 
 extern ArrayObject *
-NewDenseCopiedArray(JSContext *cx, uint32_t length, const Value *values, JSObject *proto = NULL,
+NewDenseCopiedArray(JSContext *cx, uint32_t length, const Value *values, JSObject *proto = nullptr,
                     NewObjectKind newKind = GenericObject);
 
 

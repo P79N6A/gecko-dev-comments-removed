@@ -162,7 +162,7 @@ struct ThreadSafeContext : ContextFriendFields,
     JSContext *maybeJSContext() const {
         if (isJSContext())
             return (JSContext *) this;
-        return NULL;
+        return nullptr;
     }
 
     JSContext *asJSContext() const {
@@ -193,7 +193,7 @@ struct ThreadSafeContext : ContextFriendFields,
     ExclusiveContext *maybeExclusiveContext() const {
         if (isExclusiveContext())
             return (ExclusiveContext *) this;
-        return NULL;
+        return nullptr;
     }
 
     ExclusiveContext *asExclusiveContext() const {
@@ -302,7 +302,7 @@ class ExclusiveContext : public ThreadSafeContext
 
     ExclusiveContext(JSRuntime *rt, PerThreadData *pt, ContextKind kind)
       : ThreadSafeContext(rt, pt, kind),
-        workerThread_(NULL),
+        workerThread_(nullptr),
         enterCompartmentDepth_(0)
     {}
 
@@ -358,7 +358,7 @@ class ExclusiveContext : public ThreadSafeContext
 
     
     inline bool typeInferenceEnabled() const;
-    types::TypeObject *getNewType(const Class *clasp, TaggedProto proto, JSFunction *fun = NULL);
+    types::TypeObject *getNewType(const Class *clasp, TaggedProto proto, JSFunction *fun = nullptr);
     types::TypeObject *getLazyType(const Class *clasp, TaggedProto proto);
     inline js::LifoAlloc &typeLifoAlloc();
 
@@ -541,7 +541,7 @@ struct JSContext : public js::ExclusiveContext,
         DONT_ALLOW_CROSS_COMPARTMENT = false,
         ALLOW_CROSS_COMPARTMENT = true
     };
-    inline JSScript *currentScript(jsbytecode **pc = NULL,
+    inline JSScript *currentScript(jsbytecode **pc = nullptr,
                                    MaybeAllowCrossCompartment = DONT_ALLOW_CROSS_COMPARTMENT) const;
 
 #ifdef MOZ_TRACE_JSCALLS
@@ -807,11 +807,11 @@ js_ReportValueErrorFlags(JSContext *cx, unsigned flags, const unsigned errorNumb
 
 #define js_ReportValueError(cx,errorNumber,spindex,v,fallback)                \
     ((void)js_ReportValueErrorFlags(cx, JSREPORT_ERROR, errorNumber,          \
-                                    spindex, v, fallback, NULL, NULL))
+                                    spindex, v, fallback, nullptr, nullptr))
 
 #define js_ReportValueError2(cx,errorNumber,spindex,v,fallback,arg1)          \
     ((void)js_ReportValueErrorFlags(cx, JSREPORT_ERROR, errorNumber,          \
-                                    spindex, v, fallback, arg1, NULL))
+                                    spindex, v, fallback, arg1, nullptr))
 
 #define js_ReportValueError3(cx,errorNumber,spindex,v,fallback,arg1,arg2)     \
     ((void)js_ReportValueErrorFlags(cx, JSREPORT_ERROR, errorNumber,          \
