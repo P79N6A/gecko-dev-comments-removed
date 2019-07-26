@@ -630,6 +630,12 @@ flyoutpanel > settings:first-child {
 
 
 
+#sync-flyoutpanel {
+  width: 400px;
+}
+
+
+
 #about-flyoutpanel {
   width: 350px;
   background-image:url('chrome://browser/skin/images/about-footer.png');
@@ -687,10 +693,13 @@ settings {
 }
 
 
-#prefs-flyoutpanel > setting {
+#prefs-flyoutpanel > setting,
+#sync-flyoutpanel > setting {
   margin-top: 16px;
 }
-#prefs-flyoutpanel > setting .preferences-title {
+
+#prefs-flyoutpanel > setting .preferences-title,
+#sync-flyoutpanel > setting .preferences-title {
   font-weight: bold
 }
 
