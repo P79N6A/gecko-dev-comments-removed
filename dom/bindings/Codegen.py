@@ -6385,7 +6385,8 @@ class CGDictionary(CGThing):
         else:
             inheritance = ""
         memberDecls = ["  %s %s;" %
-                       (self.getMemberType(m), m[0].identifier.name)
+                       (self.getMemberType(m),
+                        self.makeMemberName(m[0].identifier.name))
                        for m in self.memberInfo]
 
         return (string.Template(
@@ -6530,6 +6531,10 @@ class CGDictionary(CGThing):
     def makeClassName(self, dictionary):
         return self.makeDictionaryName(dictionary, self.workers)
 
+    @staticmethod
+    def makeMemberName(name):
+        return "m" + name[0].upper() + name[1:]
+
     def getMemberType(self, memberInfo):
         (member, (templateBody, declType,
                   holderType, dealWithOptional)) = memberInfo
@@ -6544,14 +6549,7 @@ class CGDictionary(CGThing):
                   holderType, dealWithOptional)) = memberInfo
         replacements = { "val": "temp",
                          "valPtr": "&temp",
-                         
-                         
-                         
-                         
-                         
-                         
-                         
-                         "declName": ("(this->%s)" % member.identifier.name),
+                         "declName": self.makeMemberName(member.identifier.name),
                          
                          
                          
@@ -6579,7 +6577,7 @@ class CGDictionary(CGThing):
                        propId)
 
         conversionReplacements = {
-            "prop": "(this->%s)" % member.identifier.name,
+            "prop": self.makeMemberName(member.identifier.name),
             "convert": string.Template(templateBody).substitute(replacements),
             "propCheck": propCheck,
             "propGet": propGet
@@ -6616,14 +6614,7 @@ class CGDictionary(CGThing):
     def getMemberDefinition(self, memberInfo):
         member = memberInfo[0]
         declType = memberInfo[1][1]
-        
-        
-        
-        
-        
-        
-        
-        memberLoc = "(this->%s)" % member.identifier.name
+        memberLoc = self.makeMemberName(member.identifier.name)
         if member.defaultValue:
             memberData = memberLoc
         else:
