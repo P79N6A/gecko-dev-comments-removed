@@ -338,6 +338,7 @@ nsWindow::nsWindow() : nsBaseWidget()
   mOldExStyle           = 0;
   mPainting             = 0;
   mLastKeyboardLayout   = 0;
+  mBlurSuppressLevel    = 0;
   mLastPaintEndTime     = TimeStamp::Now();
 #ifdef MOZ_XUL
   mTransparentSurface   = nullptr;
@@ -4007,14 +4008,25 @@ bool nsWindow::DispatchMouseEvent(uint32_t aEventType, WPARAM wParam,
   return result;
 }
 
-HWND nsWindow::GetTopLevelForFocus(HWND aCurWnd)
+void nsWindow::DispatchFocusToTopLevelWindow(bool aIsActivate)
 {
-  
-  HWND toplevelWnd = NULL;
-  while (aCurWnd) {
-    toplevelWnd = aCurWnd;
+  if (aIsActivate)
+    sJustGotActivate = false;
+  sJustGotDeactivate = false;
 
-    nsWindow *win = WinUtils::GetNSWindowPtr(aCurWnd);
+  if (!aIsActivate && BlurEventsSuppressed())
+    return;
+
+  if (!mWidgetListener)
+    return;
+
+  
+  HWND curWnd = mWnd;
+  HWND toplevelWnd = NULL;
+  while (curWnd) {
+    toplevelWnd = curWnd;
+
+    nsWindow *win = WinUtils::GetNSWindowPtr(curWnd);
     if (win) {
       nsWindowType wintype;
       win->GetWindowType(wintype);
@@ -4022,23 +4034,9 @@ HWND nsWindow::GetTopLevelForFocus(HWND aCurWnd)
         break;
     }
 
-    aCurWnd = ::GetParent(aCurWnd); 
+    curWnd = ::GetParent(curWnd); 
   }
 
-  return toplevelWnd;
-}
-
-void nsWindow::DispatchFocusToTopLevelWindow(bool aIsActivate)
-{
-  if (aIsActivate)
-    sJustGotActivate = false;
-  sJustGotDeactivate = false;
-  mLastKillFocusWindow = NULL;
-
-  if (!mWidgetListener)
-    return;
-
-  HWND toplevelWnd = GetTopLevelForFocus(mWnd);
   if (toplevelWnd) {
     nsWindow *win = WinUtils::GetNSWindowPtr(toplevelWnd);
     if (win) {
@@ -4066,6 +4064,36 @@ bool nsWindow::IsTopLevelMouseExit(HWND aWnd)
     return true;
 
   return WinUtils::GetTopLevelHWND(aWnd) != mouseTopLevel;
+}
+
+bool nsWindow::BlurEventsSuppressed()
+{
+  
+  if (mBlurSuppressLevel > 0)
+    return true;
+
+  
+  HWND parentWnd = ::GetParent(mWnd);
+  if (parentWnd) {
+    nsWindow *parent = WinUtils::GetNSWindowPtr(parentWnd);
+    if (parent)
+      return parent->BlurEventsSuppressed();
+  }
+  return false;
+}
+
+
+
+
+void nsWindow::SuppressBlurEvents(bool aSuppress)
+{
+  if (aSuppress)
+    ++mBlurSuppressLevel; 
+  else {
+    NS_ASSERTION(mBlurSuppressLevel > 0, "unbalanced blur event suppression");
+    if (mBlurSuppressLevel > 0)
+      --mBlurSuppressLevel;
+  }
 }
 
 bool nsWindow::ConvertStatus(nsEventStatus aStatus)
@@ -5000,11 +5028,7 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
         if (WA_INACTIVE == fActive) {
           
           
-          
-          
-          
-          if (HIWORD(wParam) ||
-              (mLastKillFocusWindow && (GetTopLevelForFocus(mLastKillFocusWindow) == mWnd)))
+          if (HIWORD(wParam))
             DispatchFocusToTopLevelWindow(false);
           else
             sJustGotDeactivate = true;
@@ -5079,9 +5103,6 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
     case WM_KILLFOCUS:
       if (sJustGotDeactivate) {
         DispatchFocusToTopLevelWindow(false);
-      }
-      else {
-        mLastKillFocusWindow = mWnd;
       }
       break;
 
@@ -7056,9 +7077,6 @@ void nsWindow::OnDestroy()
   mWidgetListener = nullptr;
   mAttachedWidgetListener = nullptr;
 
-  if (mWnd == mLastKillFocusWindow)
-    mLastKillFocusWindow = NULL;
-
   
   
   SubclassWindow(FALSE);
@@ -7073,7 +7091,7 @@ void nsWindow::OnDestroy()
 
   
   nsBaseWidget::OnDestroy();
-
+  
   
   
   

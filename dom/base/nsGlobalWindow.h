@@ -829,6 +829,8 @@ protected:
 
   bool CanMoveResizeWindows();
 
+  bool     GetBlurSuppression();
+
   
   
   nsresult GetScrollXY(int32_t* aScrollX, int32_t* aScrollY,
