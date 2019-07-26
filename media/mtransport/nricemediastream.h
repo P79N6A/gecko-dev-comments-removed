@@ -105,6 +105,9 @@ class NrIceMediaStream {
   nsresult ParseTrickleCandidate(const std::string& candidate);
 
   
+  nsresult DisableComponent(int component);
+
+  
   
   nsresult GetActivePair(int component,
                          NrIceCandidate** local, NrIceCandidate** remote);
