@@ -85,7 +85,8 @@ abstract class HomeFragment extends Fragment {
         menu.setHeaderTitle(info.getDisplayTitle());
 
         
-        if (info.bookmarkId < 0) {
+        
+        if (info.bookmarkId < 0 || info.inReadingList) {
             menu.findItem(R.id.home_edit_bookmark).setVisible(false);
         }
 
