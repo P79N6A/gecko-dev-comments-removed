@@ -112,6 +112,15 @@
 #endif
 
 
+#if defined(__i386__)
+#define SECCOMP_WHITELIST_ARCH_B2G_LOW
+#else
+#define SECCOMP_WHITELIST_ARCH_B2G_LOW \
+  ALLOW_SYSCALL(sendto), \
+  ALLOW_SYSCALL(recvfrom),
+#endif
+
+
 #if defined(MOZ_B2G)
 
 #define SECCOMP_WHITELIST_B2G_HIGH \
@@ -125,8 +134,7 @@
   ALLOW_SYSCALL(poll),
 
 #define SECCOMP_WHITELIST_B2G_LOW \
-  ALLOW_SYSCALL(sendto), \
-  ALLOW_SYSCALL(recvfrom), \
+  SECCOMP_WHITELIST_ARCH_B2G_LOW \
   ALLOW_SYSCALL(getdents64), \
   ALLOW_SYSCALL(epoll_ctl), \
   ALLOW_SYSCALL(sched_yield), \
