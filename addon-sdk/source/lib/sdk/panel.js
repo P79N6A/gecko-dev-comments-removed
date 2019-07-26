@@ -19,7 +19,7 @@ const { isPrivateBrowsingSupported } = require('./self');
 const { isWindowPBSupported } = require('./private-browsing/utils');
 const { Class } = require("./core/heritage");
 const { merge } = require("./util/object");
-const { WorkerHost, Worker, detach, attach,
+const { WorkerHost, Worker, detach, attach, destroy,
         requiresAddonGlobal } = require("./worker/utils");
 const { Disposable } = require("./core/disposable");
 const { contract: loaderContract } = require("./content/loader");
@@ -140,7 +140,7 @@ const Panel = Class({
     this.hide();
     off(this);
 
-    detach(workerFor(this));
+    destroy(workerFor(this));
 
     domPanel.dispose(viewFor(this));
 
@@ -167,6 +167,9 @@ const Panel = Class({
     let model = modelFor(this);
     model.contentURL = panelContract({ contentURL: value }).contentURL;
     domPanel.setURL(viewFor(this), model.contentURL);
+    
+    
+    detach(workerFor(this));
   },
 
   
@@ -250,10 +253,6 @@ let hides = filter(panelEvents, function({type}) type === "popuphidden");
 
 let ready = filter(panelEvents, function({type, target})
   getAttachEventType(modelFor(panelFor(target))) === type);
-
-
-let change = filter(panelEvents, function({type})
-  type === "document-element-inserted");
 
 
 on(shows, "data", function({target}) emit(panelFor(target), "show"));

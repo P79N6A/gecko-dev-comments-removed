@@ -112,6 +112,7 @@ function startup(reason, options) {
     }).then(function() {
       run(options);
     }).then(null, console.exception);
+    return void 0; 
 }
 
 function run(options) {

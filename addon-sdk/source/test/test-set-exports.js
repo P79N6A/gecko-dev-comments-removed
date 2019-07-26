@@ -3,9 +3,9 @@
 
 
 let four = require("./modules/exportsEquals");
-exports.testExportsEquals = function(test) {
-  test.assertEqual(four, 4);
-}
+exports.testExportsEquals = function(assert) {
+  assert.equal(four, 4);
+};
 
 
 
@@ -25,11 +25,13 @@ exports.testExportsEquals = function(test) {
 
 
 
-exports.testModule = function(test) {
+exports.testModule = function(assert) {
   
   
   
   
   var found = /test-set-exports$/.test(module.id);
-  test.assertEqual(found, true, module.id+" ends with test-set-exports.js");
-}
+  assert.equal(found, true, module.id+" ends with test-set-exports.js");
+};
+
+require('sdk/test').run(exports);

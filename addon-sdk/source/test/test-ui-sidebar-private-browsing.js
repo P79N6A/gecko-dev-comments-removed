@@ -49,39 +49,39 @@ exports.testSideBarIsNotInNewPrivateWindows = function(assert, done) {
   })
 }
 
+exports.testSidebarIsNotOpenInNewPrivateWindow = function(assert, done) {
+  const { Sidebar } = require('sdk/ui/sidebar');
+  let testName = 'testSidebarIsNotOpenInNewPrivateWindow';
+  let window = getMostRecentBrowserWindow();
 
+    let sidebar = Sidebar({
+      id: testName,
+      title: testName,
+      url: 'data:text/html;charset=utf-8,'+testName
+    });
 
+    sidebar.on('show', function() {
+      assert.equal(isPrivate(window), false, 'the new window is not private');
+      assert.equal(isSidebarShowing(window), true, 'the sidebar is showing');
+      assert.equal(isShowing(sidebar), true, 'the sidebar is showing');
 
+      let window2 = window.OpenBrowserWindow({private: true});
+      windowPromise(window2, 'load').then(focus).then(function() {
+        
+        setTimeout(function() {
+          assert.equal(isPrivate(window2), true, 'the new window is private');
+          assert.equal(isSidebarShowing(window), true, 'the sidebar is showing in old window still');
+          assert.equal(isSidebarShowing(window2), false, 'the sidebar is not showing in the new private window');
+          assert.equal(isShowing(sidebar), false, 'the sidebar is not showing');
 
+          sidebar.destroy();
+          close(window2).then(done);
+        }, 500);
+      })
+    });
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    sidebar.show();
+}
 
 
 exports.testDestroyEdgeCaseBugWithPrivateWindow = function(assert, done) {

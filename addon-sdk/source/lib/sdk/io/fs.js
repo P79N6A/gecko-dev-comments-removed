@@ -108,8 +108,14 @@ function remove(path, recursive) {
   }
 }
 
+
+
+
+
+
+
 function Mode(mode, fallback) {
-  return isString(mode) ? parseInt(mode) : mode || fallback;
+  return isString(mode) ? parseInt(mode, 8) : mode || fallback;
 }
 function Flags(flag) {
   return !isString(flag) ? flag :
@@ -394,8 +400,15 @@ exports.lchown = lchown;
 
 
 function chmodSync (path, mode) {
-  throw Error("Not implemented yet!!");
-};
+  let file;
+  try {
+    file = new nsILocalFile(path);
+  } catch(e) {
+    throw FSError("chmod", "ENOENT", 34, path);
+  }
+
+  file.permissions = Mode(mode);
+}
 exports.chmodSync = chmodSync;
 
 
@@ -416,7 +429,7 @@ exports.fchmodSync = fchmodSync;
 
 
 let fchmod = Async(fchmodSync);
-exports.chmod = fchmod;
+exports.fchmod = fchmod;
 
 
 
@@ -844,6 +857,9 @@ exports.readFileSync = readFileSync;
 
 
 function writeFile(path, content, encoding, callback) {
+  if (!isString(path))
+    throw new TypeError('path must be a string');
+
   try {
     if (isFunction(encoding)) {
       callback = encoding

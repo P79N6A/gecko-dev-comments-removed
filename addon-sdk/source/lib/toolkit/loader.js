@@ -172,6 +172,8 @@ exports.serializeStack = serializeStack
 
 
 
+
+
 const Sandbox = iced(function Sandbox(options) {
   
   options = {
@@ -184,7 +186,8 @@ const Sandbox = iced(function Sandbox(options) {
     wantGlobalProperties: 'wantGlobalProperties' in options ?
                           options.wantGlobalProperties : [],
     sandboxPrototype: 'prototype' in options ? options.prototype : {},
-    sameGroupAs: 'sandbox' in options ? options.sandbox : null
+    sameGroupAs: 'sandbox' in options ? options.sandbox : null,
+    metadata: 'metadata' in options ? options.metadata : {}
   };
 
   
@@ -253,7 +256,11 @@ const load = iced(function load(loader, module) {
     sandbox: sandboxes[keys(sandboxes).shift()],
     prototype: create(globals, descriptors),
     wantXrays: false,
-    wantGlobalProperties: module.id == "sdk/indexed-db" ? ["indexedDB"] : []
+    wantGlobalProperties: module.id == "sdk/indexed-db" ? ["indexedDB"] : [],
+    metadata: {
+      addonID: loader.id,
+      URI: module.uri
+    }
   });
 
   try {
@@ -333,6 +340,7 @@ const resolveURI = iced(function resolveURI(id, mapping) {
     if (id.indexOf(path) === 0)
       return normalize(id.replace(path, uri));
   }
+  return void 0; 
 });
 exports.resolveURI = resolveURI;
 
@@ -478,6 +486,8 @@ const Loader = iced(function Loader(options) {
     
     sandboxes: { enumerable: false, value: {} },
     resolve: { enumerable: false, value: resolve },
+    
+    id: { enumerable: false, value: options.id },
     load: { enumerable: false, value: options.load || load },
     
     

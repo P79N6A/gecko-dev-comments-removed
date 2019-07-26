@@ -2,16 +2,16 @@
 
 
 
-exports.testDefine = function(test) {
+exports.testDefine = function(assert) {
   let tiger = require('./modules/tiger');
-  test.assertEqual(tiger.name, 'tiger', 'name proprety was exported properly');
-  test.assertEqual(tiger.type, 'cat', 'property form other module exported');
+  assert.equal(tiger.name, 'tiger', 'name proprety was exported properly');
+  assert.equal(tiger.type, 'cat', 'property form other module exported');
 };
 
-exports.testDefineInoresNonFactory = function(test) {
+exports.testDefineInoresNonFactory = function(assert) {
   let mod = require('./modules/async2');
-  test.assertEqual(mod.name, 'async2', 'name proprety was exported properly');
-  test.assertNotEqual(mod.traditional2Name, 'traditional2', '1st is ignored');
+  assert.equal(mod.name, 'async2', 'name proprety was exported properly');
+  assert.ok(mod.traditional2Name !== 'traditional2', '1st is ignored');
 };
 
 
@@ -146,3 +146,5 @@ exports.testDefineInoresNonFactory = function(test) {
 
 
 
+
+require('sdk/test').run(exports);

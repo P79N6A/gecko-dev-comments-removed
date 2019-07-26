@@ -21,79 +21,76 @@ const { Services } = Cu.import("resource://gre/modules/Services.jsm");
 
 
 
-const basePath = pathFor("ProfD")
+const basePath = pathFor("ProfD");
 const port = 8099;
 
 
-exports.testOptionsValidator = function(test) {
+exports.testOptionsValidator = function(assert) {
   
-  test.assertRaises(function () {
+  assert.throws(function () {
     Request({
       url: null
     });
-  }, 'The option "url" is invalid.');
+  }, /The option "url" is invalid./);
 
   
   let req = Request({
     url: "http://playground.zpao.com/jetpack/request/text.php",
     onComplete: function () {}
   });
-  test.assertRaises(function () {
+  assert.throws(function () {
     req.url = 'www.mozilla.org';
-  }, 'The option "url" is invalid.');
+  }, /The option "url" is invalid/);
   
-  test.assertEqual(req.url, "http://playground.zpao.com/jetpack/request/text.php");
-}
+  assert.equal(req.url, "http://playground.zpao.com/jetpack/request/text.php");
+};
 
-exports.testContentValidator = function(test) {
-  test.waitUntilDone();
-  runMultipleURLs(null, test, {
+exports.testContentValidator = function(assert, done) {
+  runMultipleURLs(null, assert, done, {
     url: "data:text/html;charset=utf-8,response",
     content: { 'key1' : null, 'key2' : 'some value' },
     onComplete: function(response) {
-      test.assertEqual(response.text, "response?key1=null&key2=some+value");
+      assert.equal(response.text, "response?key1=null&key2=some+value");
     }
   });
 };
 
 
-exports.testStatus200 = function (test) {
+exports.testStatus200 = function (assert, done) {
   let srv = startServerAsync(port, basePath);
   let content = "Look ma, no hands!\n";
   let basename = "test-request.txt"
   prepareFile(basename, content);
 
-  test.waitUntilDone();
   var req = Request({
     url: "http://localhost:" + port + "/" + basename,
     onComplete: function (response) {
-      test.assertEqual(this, req, "`this` should be request");
-      test.assertEqual(response.status, 200);
-      test.assertEqual(response.statusText, "OK");
-      test.assertEqual(response.headers["Content-Type"], "text/plain");
-      test.assertEqual(response.text, content);
-      srv.stop(function() test.done());
+      assert.equal(this, req, "`this` should be request");
+      assert.equal(response.status, 200);
+      assert.equal(response.statusText, "OK");
+      assert.equal(response.headers["Content-Type"], "text/plain");
+      assert.equal(response.text, content);
+      srv.stop(done);
     }
   }).get();
-}
+};
 
 
-exports.testStatus404 = function (test) {
+exports.testStatus404 = function (assert, done) {
   var srv = startServerAsync(port, basePath);
 
-  test.waitUntilDone();
-  runMultipleURLs(srv, test, {
+  runMultipleURLs(srv, assert, done, {
     
     url: "http://localhost:" + port + "/test-request-404.txt",
     onComplete: function (response) {
-      test.assertEqual(response.status, 404);
-      test.assertEqual(response.statusText, "Not Found");
+      assert.equal(response.status, 404);
+      assert.equal(response.statusText, "Not Found");
     }
   });
-}
+};
 
 
-exports.testKnownHeader = function (test) {
+exports.testKnownHeader = function (assert, done) {
   var srv = startServerAsync(port, basePath);
 
  
@@ -104,17 +101,16 @@ exports.testKnownHeader = function (test) {
   prepareFile(basename, content);
   prepareFile(headerBasename, headerContent);
 
-  test.waitUntilDone();
-  runMultipleURLs(srv, test, {
+  runMultipleURLs(srv, assert, done, {
     url: "http://localhost:" + port + "/test-request-headers.txt",
     onComplete: function (response) {
-      test.assertEqual(response.headers["x-jetpack-header"], "Jamba Juice");
+      assert.equal(response.headers["x-jetpack-header"], "Jamba Juice");
     }
   });
-}
+};
 
 
-exports.testComplexHeader = function (test) {
+exports.testComplexHeader = function (assert, done) {
   let srv = startServerAsync(port, basePath);
 
   let basename = "test-request-complex-headers.sjs";
@@ -127,21 +123,20 @@ exports.testComplexHeader = function (test) {
     "x-jetpack-header-3": "sup dawg, i heard you like x, so we put a x in " +
       "yo x so you can y while you y",
     "Set-Cookie": "foo=bar\nbaz=foo"
-  }
+  };
 
-  test.waitUntilDone();
-  runMultipleURLs(srv, test, {
+  runMultipleURLs(srv, assert, done, {
     url: "http://localhost:" + port + "/test-request-complex-headers.sjs",
     onComplete: function (response) {
       for (k in headers) {
-        test.assertEqual(response.headers[k], headers[k]);
+        assert.equal(response.headers[k], headers[k]);
       }
     }
   });
-}
+};
 
 
-exports.test3rdPartyCookies = function (test) {
+exports.test3rdPartyCookies = function (assert, done) {
   let srv = startServerAsync(port, basePath);
 
   let basename = "test-request-3rd-party-cookies.sjs";
@@ -159,66 +154,63 @@ exports.test3rdPartyCookies = function (test) {
     }
 
     response.write("<html><body>This tests 3rd party cookies.</body></html>");
-  }.toString()
+  }.toString();
 
   prepareFile(basename, content);
 
   
   Services.prefs.setIntPref("network.cookie.cookieBehavior", 1);
 
-  test.waitUntilDone();
   Request({
     url: "http://localhost:" + port + "/test-request-3rd-party-cookies.sjs",
     onComplete: function (response) {
       
-      test.assertEqual(response.headers['Set-Cookie'], 'cookie=monster;');
+      assert.equal(response.headers['Set-Cookie'], 'cookie=monster;');
 
       
-      test.assertEqual(response.headers['x-jetpack-3rd-party'], 'false');
+      assert.equal(response.headers['x-jetpack-3rd-party'], 'false');
 
       
       
       Request({
         url: "http://localhost:" + port + "/test-request-3rd-party-cookies.sjs",
         onComplete: function (response) {
-          test.assertEqual(response.headers['x-jetpack-3rd-party'], 'true');
-          srv.stop(function() test.done());
+          assert.equal(response.headers['x-jetpack-3rd-party'], 'true');
+          srv.stop(done);
         }
       }).get();
     }
   }).get();
-}
+};
 
-exports.testSimpleJSON = function (test) {
+exports.testSimpleJSON = function (assert, done) {
   let srv = startServerAsync(port, basePath);
   let json = { foo: "bar" };
   let basename = "test-request.json";
   prepareFile(basename, JSON.stringify(json));
 
-  test.waitUntilDone();
-  runMultipleURLs(srv, test, {
+  runMultipleURLs(srv, assert, done, {
     url: "http://localhost:" + port + "/" + basename,
     onComplete: function (response) {
-      assertDeepEqual(test, response.json, json);
+      assert.deepEqual(response.json, json);
     }
   });
-}
+};
 
-exports.testInvalidJSON = function (test) {
+exports.testInvalidJSON = function (assert, done) {
   let srv = startServerAsync(port, basePath);
   let basename = "test-request-invalid.json";
   prepareFile(basename, '"this": "isn\'t JSON"');
 
-  test.waitUntilDone();
-  runMultipleURLs(srv, test, {
+  runMultipleURLs(srv, assert, done, {
     url: "http://localhost:" + port + "/" + basename,
     onComplete: function (response) {
-      test.assertEqual(response.json, null);
+      assert.equal(response.json, null);
     }
   });
-}
+};
 
-exports.testHead = function (test) {
+exports.testHead = function (assert, done) {
   let srv = startServerAsync(port, basePath);
 
   srv.registerPathHandler("/test-head",
@@ -226,27 +218,26 @@ exports.testHead = function (test) {
     response.setHeader("Content-Type", "text/plain", false);
   });
 
-  test.waitUntilDone();
   Request({
     url: "http://localhost:" + port + "/test-head",
     onComplete: function (response) {
-      test.assertEqual(response.text, "");
-      test.assertEqual(response.statusText, "OK");
-      test.assertEqual(response.headers["Content-Type"], "text/plain");
-      srv.stop(function() test.done());
+      assert.equal(response.text, "");
+      assert.equal(response.statusText, "OK");
+      assert.equal(response.headers["Content-Type"], "text/plain");
+      srv.stop(done);
     }
   }).head();
-}
+};
 
-function runMultipleURLs (srv, test, options) {
+function runMultipleURLs (srv, assert, done, options) {
   let urls = [options.url, URL(options.url)];
   let cb = options.onComplete;
   let ran = 0;
   let onComplete = function (res) {
     cb(res);
     if (++ran === urls.length)
-      srv ? srv.stop(function () test.done()) : test.done();
-  }
+      srv ? srv.stop(done) : done();
+  };
   urls.forEach(function (url) {
     Request(extend(options, { url: url, onComplete: onComplete })).get();
   });
@@ -400,48 +391,6 @@ function runMultipleURLs (srv, test, options) {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-function assertDeepEqual(test, obj1, obj2, msg) {
-  function equal(o1, o2) {
-    
-    if (o1 == o2)
-      return true;
-    if (typeof(o1) != typeof(o2))
-      return false;
-    if (typeof(o1) != "object")
-      return o1 == o2;
-
-    let e = true;
-    for (let key in o1) {
-      let val = o1[key];
-      e = e && key in o2 && equal(o2[key], val);
-      if (!e)
-        break;
-    }
-    for (let key in o2) {
-      let val = o2[key]
-      e = e && key in o1 && equal(o1[key], val);
-      if (!e)
-        break;
-    }
-    return e;
-  }
-  msg = msg || "objects not equal - " + JSON.stringify(obj1) + " != " +
-               JSON.stringify(obj2);
-  test.assert(equal(obj1, obj2), msg);
-}
-
 function prepareFile(basename, content) {
   let filePath = file.join(basePath, basename);
   let fileStream = file.open(filePath, 'w');
@@ -469,3 +418,4 @@ function handleRequest(request, response) {
   response.write("<html><body>This file tests more complex headers.</body></html>");
 }
 
+require('sdk/test').run(exports);
