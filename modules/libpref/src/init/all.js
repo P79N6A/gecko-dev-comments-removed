@@ -4143,20 +4143,24 @@ pref("layers.frame-counter", false);
 pref("layers.max-active", -1);
 
 
+pref("layers.offmainthreadcomposition.enabled", false);
+
+pref("layers.use-deprecated-textures", true);
+
+
+pref("layers.async-video.enabled",false);
+
 #ifdef XP_MACOSX
 pref("layers.offmainthreadcomposition.enabled", true);
 pref("layers.use-deprecated-textures", false);
-
-
 pref("layers.async-video.enabled",true);
-#else
-pref("layers.async-video.enabled",false);
-#ifdef MOZ_WIDGET_GONK
-pref("layers.use-deprecated-textures", false);
-#else
-pref("layers.offmainthreadcomposition.enabled", false);
-pref("layers.use-deprecated-textures", true);
 #endif
+
+
+#ifdef ANDROID
+pref("layers.offmainthreadcomposition.enabled", true);
+pref("layers.use-deprecated-textures", false);
+pref("layers.async-video.enabled",true);
 #endif
 
 
