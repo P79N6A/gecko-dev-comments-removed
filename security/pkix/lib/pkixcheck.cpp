@@ -24,11 +24,11 @@
 
 #include <limits>
 
+#include "pkix/bind.h"
 #include "pkix/pkix.h"
 #include "pkixcheck.h"
 #include "pkixder.h"
 #include "pkixutil.h"
-#include "secder.h"
 
 namespace mozilla { namespace pkix {
 
@@ -166,32 +166,15 @@ CheckCertificatePolicies(BackCert& cert, EndEntityOrCA endEntityOrCA,
   return Fail(RecoverableError, SEC_ERROR_POLICY_VALIDATION_FAILED);
 }
 
+static const long UNLIMITED_PATH_LEN = -1; 
 
 
 
-der::Result
-DecodeBasicConstraints(const SECItem* encodedBasicConstraints,
-                       CERTBasicConstraints& basicConstraints)
+
+static der::Result
+DecodeBasicConstraints(der::Input& input,  bool& isCA,
+                        long& pathLenConstraint)
 {
-  PR_ASSERT(encodedBasicConstraints);
-  if (!encodedBasicConstraints) {
-    return der::Fail(SEC_ERROR_INVALID_ARGS);
-  }
-
-  basicConstraints.isCA = false;
-  basicConstraints.pathLenConstraint = 0;
-
-  der::Input input;
-  if (input.Init(encodedBasicConstraints->data, encodedBasicConstraints->len)
-        != der::Success) {
-    return der::Fail(SEC_ERROR_EXTENSION_VALUE_INVALID);
-  }
-
-  if (der::ExpectTagAndIgnoreLength(input, der::SEQUENCE) != der::Success) {
-    return der::Fail(SEC_ERROR_EXTENSION_VALUE_INVALID);
-  }
-
-  bool isCA = false;
   
   
   
@@ -201,30 +184,15 @@ DecodeBasicConstraints(const SECItem* encodedBasicConstraints,
   if (der::OptionalBoolean(input, true, isCA) != der::Success) {
     return der::Fail(SEC_ERROR_EXTENSION_VALUE_INVALID);
   }
-  basicConstraints.isCA = isCA;
 
-  if (input.Peek(der::INTEGER)) {
-    SECItem pathLenConstraintEncoded;
-    if (der::Integer(input, pathLenConstraintEncoded) != der::Success) {
-      return der::Fail(SEC_ERROR_EXTENSION_VALUE_INVALID);
-    }
-    long pathLenConstraint = DER_GetInteger(&pathLenConstraintEncoded);
-    if (pathLenConstraint >= std::numeric_limits<int>::max() ||
-        pathLenConstraint < 0) {
-      return der::Fail(SEC_ERROR_EXTENSION_VALUE_INVALID);
-    }
-    basicConstraints.pathLenConstraint = static_cast<int>(pathLenConstraint);
-    
-    
-    
-  } else if (basicConstraints.isCA) {
-    
-    basicConstraints.pathLenConstraint = CERT_UNLIMITED_PATH_CONSTRAINT;
-  }
-
-  if (der::End(input) != der::Success) {
+  
+  
+  
+  if (OptionalInteger(input, UNLIMITED_PATH_LEN, pathLenConstraint)
+        != der::Success) {
     return der::Fail(SEC_ERROR_EXTENSION_VALUE_INVALID);
   }
+
   return der::Success;
 }
 
@@ -235,17 +203,24 @@ CheckBasicConstraints(const BackCert& cert,
                       bool isTrustAnchor,
                       unsigned int subCACount)
 {
-  CERTBasicConstraints basicConstraints;
+  bool isCA = false;
+  long pathLenConstraint = UNLIMITED_PATH_LEN;
+
   if (cert.encodedBasicConstraints) {
-    if (DecodeBasicConstraints(cert.encodedBasicConstraints,
-                               basicConstraints) != der::Success) {
-      return RecoverableError;
+    der::Input input;
+    if (input.Init(cert.encodedBasicConstraints->data,
+                   cert.encodedBasicConstraints->len) != der::Success) {
+      return Fail(RecoverableError, SEC_ERROR_EXTENSION_VALUE_INVALID);
+    }
+    if (der::Nested(input, der::SEQUENCE,
+                    bind(DecodeBasicConstraints, _1, ref(isCA),
+                         ref(pathLenConstraint))) != der::Success) {
+      return Fail(RecoverableError, SEC_ERROR_EXTENSION_VALUE_INVALID);
+    }
+    if (der::End(input) != der::Success) {
+      return Fail(RecoverableError, SEC_ERROR_EXTENSION_VALUE_INVALID);
     }
   } else {
-    
-    basicConstraints.isCA = false;
-    basicConstraints.pathLenConstraint = 0;
-
     
     
     
@@ -261,8 +236,7 @@ CheckBasicConstraints(const BackCert& cert,
       
       
       if (!nssCert->version.data && !nssCert->version.len) {
-        basicConstraints.isCA = true;
-        basicConstraints.pathLenConstraint = CERT_UNLIMITED_PATH_CONSTRAINT;
+        isCA = true;
       }
     }
   }
@@ -270,7 +244,7 @@ CheckBasicConstraints(const BackCert& cert,
   if (endEntityOrCA == EndEntityOrCA::MustBeEndEntity) {
     
 
-    if (basicConstraints.isCA) {
+    if (isCA) {
       
       
       
@@ -290,15 +264,13 @@ CheckBasicConstraints(const BackCert& cert,
   PORT_Assert(endEntityOrCA == EndEntityOrCA::MustBeCA);
 
   
-  if (!basicConstraints.isCA) {
+  if (!isCA) {
     return Fail(RecoverableError, SEC_ERROR_CA_CERT_INVALID);
   }
 
-  if (basicConstraints.pathLenConstraint >= 0) {
-    if (subCACount >
-           static_cast<unsigned int>(basicConstraints.pathLenConstraint)) {
-      return Fail(RecoverableError, SEC_ERROR_PATH_LEN_CONSTRAINT_INVALID);
-    }
+  if (pathLenConstraint >= 0 &&
+      static_cast<long>(subCACount) > pathLenConstraint) {
+    return Fail(RecoverableError, SEC_ERROR_PATH_LEN_CONSTRAINT_INVALID);
   }
 
   return Success;

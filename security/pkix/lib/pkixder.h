@@ -372,6 +372,32 @@ Skip(Input& input, uint8_t tag,  SECItem& value)
 
 
 
+namespace internal {
+
+
+
+template <typename T> inline Result
+IntegralValue(Input& input, uint8_t tag, T& value)
+{
+  
+  
+  
+  if (ExpectTagAndLength(input, tag, 1) != Success) {
+    return Failure;
+  }
+  uint8_t valueByte;
+  if (input.Read(valueByte) != Success) {
+    return Failure;
+  }
+  if (valueByte & 0x80) { 
+    return Fail(SEC_ERROR_BAD_DER);
+  }
+  value = valueByte;
+  return Success;
+}
+
+} 
+
 inline Result
 Boolean(Input& input,  bool& value)
 {
@@ -411,13 +437,12 @@ OptionalBoolean(Input& input, bool allowInvalidExplicitEncoding,
   return Success;
 }
 
+
+
 inline Result
 Enumerated(Input& input, uint8_t& value)
 {
-  if (ExpectTagAndLength(input, ENUMERATED | 0, 1) != Success) {
-    return Failure;
-  }
-  return input.Read(value);
+  return internal::IntegralValue(input, ENUMERATED | 0, value);
 }
 
 inline Result
@@ -438,34 +463,40 @@ GeneralizedTime(Input& input, PRTime& time)
   return Success;
 }
 
+
+
 inline Result
-Integer(Input& input,  SECItem& value)
+Integer(Input& input,  uint8_t& value)
 {
-  uint16_t length;
-  if (ExpectTagAndGetLength(input, INTEGER, length) != Success) {
+  if (internal::IntegralValue(input, INTEGER, value) != Success) {
     return Failure;
   }
+  return Success;
+}
 
-  if (input.Skip(length, value) != Success) {
+
+
+
+
+inline Result
+OptionalInteger(Input& input, long defaultValue,  long& value)
+{
+  
+  
+  if (defaultValue != -1) {
+    return Fail(SEC_ERROR_INVALID_ARGS);
+  }
+
+  if (!input.Peek(INTEGER)) {
+    value = defaultValue;
+    return Success;
+  }
+
+  uint8_t parsedValue;
+  if (Integer(input, parsedValue) != Success) {
     return Failure;
   }
-
-  if (value.len == 0) {
-    return Fail(SEC_ERROR_BAD_DER);
-  }
-
-  
-  
-  
-  
-  
-  if (value.len > 1) {
-    if ((value.data[0] == 0x00 && (value.data[1] & 0x80) == 0) ||
-        (value.data[0] == 0xff && (value.data[1] & 0x80) != 0)) {
-      return Fail(SEC_ERROR_BAD_DER);
-    }
-  }
-
+  value = parsedValue;
   return Success;
 }
 
@@ -506,7 +537,7 @@ AlgorithmIdentifier(Input& input, SECAlgorithmID& algorithmID)
 }
 
 inline Result
-CertificateSerialNumber(Input& input,  SECItem& serialNumber)
+CertificateSerialNumber(Input& input,  SECItem& value)
 {
   
   
@@ -519,7 +550,32 @@ CertificateSerialNumber(Input& input,  SECItem& serialNumber)
   
   
 
-  return Integer(input, serialNumber);
+  uint16_t length;
+  if (ExpectTagAndGetLength(input, INTEGER, length) != Success) {
+    return Failure;
+  }
+
+  if (input.Skip(length, value) != Success) {
+    return Failure;
+  }
+
+  if (value.len == 0) {
+    return Fail(SEC_ERROR_BAD_DER);
+  }
+
+  
+  
+  
+  
+  
+  if (value.len > 1) {
+    if ((value.data[0] == 0x00 && (value.data[1] & 0x80) == 0) ||
+        (value.data[0] == 0xff && (value.data[1] & 0x80) != 0)) {
+      return Fail(SEC_ERROR_BAD_DER);
+    }
+  }
+
+  return Success;
 }
 
 
