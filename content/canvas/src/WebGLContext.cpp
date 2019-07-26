@@ -155,6 +155,7 @@ WebGLContext::WebGLContext()
 
     mScissorTestEnabled = 0;
     mDitherEnabled = 1;
+    mRasterizerDiscardEnabled = 0; 
 
     
     
@@ -1327,12 +1328,20 @@ WebGLContext::ForceClearFramebufferWithDefaultValues(GLbitfield mask, const bool
         gl->fClearStencil(0);
     }
 
+    if (mRasterizerDiscardEnabled) {
+        gl->fDisable(LOCAL_GL_RASTERIZER_DISCARD);
+    }
+
     
     gl->fClear(mask);
 
     
     if (mScissorTestEnabled)
         gl->fEnable(LOCAL_GL_SCISSOR_TEST);
+
+    if (mRasterizerDiscardEnabled) {
+        gl->fEnable(LOCAL_GL_RASTERIZER_DISCARD);
+    }
 
     
     if (initializeColorBuffer) {
