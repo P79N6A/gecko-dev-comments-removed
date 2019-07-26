@@ -2457,7 +2457,7 @@ class Debugger::ScriptQuery {
     bool prepareQuery() {
         
         if (url.isString()) {
-            if (!urlCString.encode(cx, url.toString()))
+            if (!urlCString.encodeLatin1(cx, url.toString()))
                 return false;
         }
 
