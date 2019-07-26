@@ -509,11 +509,17 @@ let SocialShareButton = {
     this.unsharePopup.hidePopup();
   },
 
+  canSharePage: function SSB_canSharePage(aURI) {
+    
+    return aURI && (aURI.schemeIs('http') || aURI.schemeIs('https'));
+  },
+
   updateButtonHiddenState: function SSB_updateButtonHiddenState() {
     let shareButton = this.shareButton;
     if (shareButton)
       shareButton.hidden = !Social.uiVisible || this.promptImages == null ||
-                           !SocialUI.haveLoggedInUser();
+                           !SocialUI.haveLoggedInUser() ||
+                           !this.canSharePage(gBrowser.currentURI);
   },
 
   onClick: function SSB_onClick(aEvent) {
@@ -566,7 +572,12 @@ let SocialShareButton = {
   },
 
   updateShareState: function SSB_updateShareState() {
-    let currentPageShared = Social.isPageShared(gBrowser.currentURI);
+    
+    
+    this.updateButtonHiddenState();
+
+    let shareButton = this.shareButton;
+    let currentPageShared = shareButton && !shareButton.hidden && Social.isPageShared(gBrowser.currentURI);
 
     
     let status = document.getElementById("share-button-status");
@@ -583,7 +594,6 @@ let SocialShareButton = {
     }
 
     
-    let shareButton = this.shareButton;
     if (!shareButton || shareButton.hidden)
       return;
 
