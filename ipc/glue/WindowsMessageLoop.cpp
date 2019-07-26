@@ -86,6 +86,7 @@ extern UINT sDefaultBrowserMsgId;
 namespace {
 
 const wchar_t kOldWndProcProp[] = L"MozillaIPCOldWndProc";
+const wchar_t k3rdPartyWindowProp[] = L"Mozilla3rdPartyWindow";
 
 
 enum { WM_XP_THEMECHANGED = 0x031A };
@@ -102,6 +103,9 @@ HHOOK gDeferredGetMsgHook = nullptr;
 HHOOK gDeferredCallWndProcHook = nullptr;
 
 DWORD gUIThreadId = 0;
+
+
+#define MOZOBJID_UIAROOT -25
 
 LRESULT CALLBACK
 DeferredMessageHook(int nCode,
@@ -159,6 +163,28 @@ ScheduleDeferredMessageRun()
     NS_ASSERTION(gDeferredGetMsgHook && gDeferredCallWndProcHook,
                  "Failed to set hooks!");
   }
+}
+
+static void
+DumpNeuteredMessage(HWND hwnd, UINT uMsg)
+{
+#ifdef DEBUG
+  nsAutoCString log("Received \"nonqueued\" message ");
+  log.AppendInt(uMsg);
+  log.AppendLiteral(" during a synchronous IPC message for window ");
+  log.AppendInt((int64_t)hwnd);
+
+  wchar_t className[256] = { 0 };
+  if (GetClassNameW(hwnd, className, sizeof(className) - 1) > 0) {
+    log.AppendLiteral(" (\"");
+    log.Append(NS_ConvertUTF16toUTF8((char16_t*)className));
+    log.AppendLiteral("\")");
+  }
+
+  log.AppendLiteral(", sending it to DefWindowProc instead of the normal "
+                    "window procedure.");
+  NS_ERROR(log.get());
+#endif
 }
 
 LRESULT
@@ -285,7 +311,24 @@ ProcessOrDeferMessage(HWND hwnd,
     case WM_APP-1:
       return 0;
 
+    
+    
+#if defined(ACCESSIBILITY)
+   case WM_GETOBJECT: {
+      if (!::GetPropW(hwnd, k3rdPartyWindowProp)) {
+        DWORD objId = static_cast<DWORD>(lParam);
+        WNDPROC oldWndProc = (WNDPROC)GetProp(hwnd, kOldWndProcProp);
+        if ((objId == OBJID_CLIENT || objId == MOZOBJID_UIAROOT) && oldWndProc) {
+          return CallWindowProcW(oldWndProc, hwnd, uMsg, wParam, lParam);
+        }
+      }
+      break;
+    }
+#endif 
+
     default: {
+      
+      
       if (uMsg && uMsg == mozilla::widget::sAppShellGeckoMsgId) {
         
         deferred = new DeferredSendMessage(hwnd, uMsg, wParam, lParam);
@@ -294,31 +337,16 @@ ProcessOrDeferMessage(HWND hwnd,
         
         deferred = new DeferredSendMessage(hwnd, uMsg, wParam, lParam);
 #endif
-      } else {
-        
-#ifdef DEBUG
-        nsAutoCString log("Received \"nonqueued\" message ");
-        log.AppendInt(uMsg);
-        log.AppendLiteral(" during a synchronous IPC message for window ");
-        log.AppendInt((int64_t)hwnd);
-
-        wchar_t className[256] = { 0 };
-        if (GetClassNameW(hwnd, className, sizeof(className) - 1) > 0) {
-          log.AppendLiteral(" (\"");
-          log.Append(NS_ConvertUTF16toUTF8((char16_t*)className));
-          log.AppendLiteral("\")");
-        }
-
-        log.AppendLiteral(", sending it to DefWindowProc instead of the normal "
-                          "window procedure.");
-        NS_ERROR(log.get());
-#endif
-        return DefWindowProc(hwnd, uMsg, wParam, lParam);
       }
     }
   }
 
-  NS_ASSERTION(deferred, "Must have a message here!");
+  
+  
+  if (!deferred) {
+    DumpNeuteredMessage(hwnd, uMsg);
+    return DefWindowProc(hwnd, uMsg, wParam, lParam);
+  }
 
   
   if (!gDeferredMessages) {
@@ -400,6 +428,7 @@ WindowIsDeferredWindow(HWND hWnd)
   if (className.EqualsLiteral("ShockwaveFlashFullScreen") ||
       className.EqualsLiteral("QTNSHIDDEN") ||
       className.EqualsLiteral("AGFullScreenWinClass")) {
+    SetPropW(hWnd, k3rdPartyWindowProp, (HANDLE)1);
     return true;
   }
 
@@ -407,6 +436,7 @@ WindowIsDeferredWindow(HWND hWnd)
   
   
   if (className.EqualsLiteral("__geplugin_bridge_window__")) {
+    SetPropW(hWnd, k3rdPartyWindowProp, (HANDLE)1);
     return true;
   }
 
@@ -473,7 +503,8 @@ NeuterWindowProcedure(HWND hWnd)
     
     NS_WARNING("SetProp failed!");
     SetWindowLongPtr(hWnd, GWLP_WNDPROC, currentWndProc);
-    RemoveProp(hWnd, kOldWndProcProp);
+    RemovePropW(hWnd, kOldWndProcProp);
+    RemovePropW(hWnd, k3rdPartyWindowProp);
     return false;
   }
 
@@ -495,7 +526,8 @@ RestoreWindowProcedure(HWND hWnd)
     NS_ASSERTION(currentWndProc == (LONG_PTR)NeuteredWindowProc,
                  "This should never be switched out from under us!");
   }
-  RemoveProp(hWnd, kOldWndProcProp);
+  RemovePropW(hWnd, kOldWndProcProp);
+  RemovePropW(hWnd, k3rdPartyWindowProp);
 }
 
 LRESULT CALLBACK
