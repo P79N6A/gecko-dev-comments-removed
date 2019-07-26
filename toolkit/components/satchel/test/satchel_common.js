@@ -47,8 +47,9 @@ function doKey(aKey, modifier) {
     
     var wutils = SpecialPowers.getDOMWindowUtils(window);
 
-    wutils.sendKeyEvent("keydown",  key, 0, modifier);
-    wutils.sendKeyEvent("keypress", key, 0, modifier);
+    if (wutils.sendKeyEvent("keydown",  key, 0, modifier)) {
+      wutils.sendKeyEvent("keypress", key, 0, modifier);
+    }
     wutils.sendKeyEvent("keyup",    key, 0, modifier);
 }
 
