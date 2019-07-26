@@ -3435,30 +3435,6 @@ void nsPluginInstanceOwner::SetFrame(nsObjectFrame *aFrame)
   
   if (mObjectFrame) {
     
-    
-    nsRefPtr<ImageContainer> container = mObjectFrame->GetImageContainer();
-    if (container) {
-#ifdef XP_MACOSX
-      AutoLockImage autoLock(container);
-      Image *image = autoLock.GetImage();
-      if (image && (image->GetFormat() == MAC_IO_SURFACE) && mObjectFrame) {
-        
-        MacIOSurfaceImage *oglImage = static_cast<MacIOSurfaceImage*>(image);
-        oglImage->SetUpdateCallback(nullptr, nullptr);
-        oglImage->SetDestroyCallback(nullptr);
-        
-        
-        
-        NS_RELEASE_THIS();
-      }
-      
-      
-      autoLock.Unlock();
-#endif
-      container->SetCurrentImageInTransaction(nullptr);
-    }
-
-    
     mObjectFrame->SetInstanceOwner(nullptr);
   }
 

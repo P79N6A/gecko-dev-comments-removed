@@ -173,7 +173,6 @@ public:
   LayerState GetLayerState(nsDisplayListBuilder* aBuilder,
                            LayerManager* aManager);
 
-  already_AddRefed<ImageContainer> GetImageContainer();
   
 
 
@@ -289,10 +288,6 @@ private:
   nsTArray<nsIntRect>             mNextConfigurationClipRegion;
 
   bool mReflowCallbackPosted;
-
-  
-  
-  nsRefPtr<ImageContainer> mImageContainer;
 
   
   
