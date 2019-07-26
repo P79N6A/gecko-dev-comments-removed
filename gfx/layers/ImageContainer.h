@@ -486,7 +486,7 @@ public:
 
 
 
-  already_AddRefed<gfxASurface> GetCurrentAsSurface(gfx::IntSize* aSizeResult);
+  already_AddRefed<gfxASurface> DeprecatedGetCurrentAsSurface(gfx::IntSize* aSizeResult);
 
   
 
@@ -496,8 +496,19 @@ public:
 
 
 
-  already_AddRefed<gfxASurface> LockCurrentAsSurface(gfx::IntSize* aSizeResult,
-                                                     Image** aCurrentImage = nullptr);
+  already_AddRefed<gfxASurface> DeprecatedLockCurrentAsSurface(gfx::IntSize* aSizeResult,
+                                                               Image** aCurrentImage = nullptr);
+
+  
+
+
+  TemporaryRef<gfx::SourceSurface> GetCurrentAsSourceSurface(gfx::IntSize* aSizeResult);
+
+  
+
+
+  TemporaryRef<gfx::SourceSurface> LockCurrentAsSourceSurface(gfx::IntSize* aSizeResult,
+                                                              Image** aCurrentImage = nullptr);
 
   
 
@@ -671,7 +682,7 @@ class AutoLockImage
 public:
   AutoLockImage(ImageContainer *aContainer) : mContainer(aContainer) { mImage = mContainer->LockCurrentImage(); }
   AutoLockImage(ImageContainer *aContainer, gfxASurface **aSurface) : mContainer(aContainer) {
-    *aSurface = mContainer->LockCurrentAsSurface(&mSize, getter_AddRefs(mImage)).get();
+    *aSurface = mContainer->DeprecatedLockCurrentAsSurface(&mSize, getter_AddRefs(mImage)).get();
   }
   ~AutoLockImage() { if (mContainer) { mContainer->UnlockCurrentImage(); } }
 
