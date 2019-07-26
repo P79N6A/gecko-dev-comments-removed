@@ -7163,6 +7163,29 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
     return NS_OK;
   }
 
+  if (sTop_id == id && !(flags & JSRESOLVE_ASSIGNING)) {
+    nsCOMPtr<nsIDOMWindow> top;
+    rv = win->GetScriptableTop(getter_AddRefs(top));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    jsval v;
+    nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
+    rv = WrapNative(cx, obj, top, &NS_GET_IID(nsIDOMWindow), true,
+                    &v, getter_AddRefs(holder));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    
+    if (!JS_DefinePropertyById(cx, obj, id, v, nullptr, nullptr,
+                               JSPROP_READONLY | JSPROP_PERMANENT |
+                               JSPROP_ENUMERATE)) {
+      return NS_ERROR_FAILURE;
+    }
+    *objp = obj;
+
+    return NS_OK;
+  }
+
   
   
   
@@ -7303,29 +7326,6 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
       jsval v;
       nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
       rv = WrapNative(cx, obj, navigator, &NS_GET_IID(nsIDOMNavigator), true,
-                      &v, getter_AddRefs(holder));
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      
-      
-      if (!::JS_DefinePropertyById(cx, obj, id, v, nullptr, nullptr,
-                                   JSPROP_READONLY | JSPROP_PERMANENT |
-                                   JSPROP_ENUMERATE)) {
-        return NS_ERROR_FAILURE;
-      }
-      *objp = obj;
-
-      return NS_OK;
-    }
-
-    if (sTop_id == id) {
-      nsCOMPtr<nsIDOMWindow> top;
-      rv = win->GetScriptableTop(getter_AddRefs(top));
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      jsval v;
-      nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
-      rv = WrapNative(cx, obj, top, &NS_GET_IID(nsIDOMWindow), true,
                       &v, getter_AddRefs(holder));
       NS_ENSURE_SUCCESS(rv, rv);
 
