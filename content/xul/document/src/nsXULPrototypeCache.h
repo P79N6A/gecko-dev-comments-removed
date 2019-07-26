@@ -24,11 +24,6 @@
 
 class nsCSSStyleSheet;
 
-struct CacheScriptEntry
-{
-    JSScript*   mScriptObject; 
-};
-
 
 
 
@@ -130,7 +125,7 @@ protected:
 
     nsRefPtrHashtable<nsURIHashKey,nsXULPrototypeDocument>  mPrototypeTable; 
     nsRefPtrHashtable<nsURIHashKey,nsCSSStyleSheet>        mStyleSheetTable;
-    nsDataHashtable<nsURIHashKey,CacheScriptEntry>         mScriptTable;
+    nsDataHashtable<nsURIHashKey, JSScript*>               mScriptTable;
     nsRefPtrHashtable<nsURIHashKey,nsXBLDocumentInfo>  mXBLDocTable;
 
     nsTHashtable<nsURIHashKey> mCacheURITable;
