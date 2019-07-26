@@ -336,14 +336,11 @@ Experiments.Policy.prototype = {
 };
 
 function AlreadyShutdownError(message="already shut down") {
-  Error.call(this, message);
-  let error = new Error();
   this.name = "AlreadyShutdownError";
   this.message = message;
-  this.stack = error.stack;
 }
 
-AlreadyShutdownError.prototype = Object.create(Error.prototype);
+AlreadyShutdownError.prototype = new Error();
 AlreadyShutdownError.prototype.constructor = AlreadyShutdownError;
 
 
@@ -382,6 +379,10 @@ Experiments.Experiments = function (policy=new Experiments.Policy()) {
 
   this._shutdown = false;
 
+  
+  
+  this._firstEvaluate = true;
+
   this.init();
 };
 
@@ -406,19 +407,22 @@ Experiments.Experiments.prototype = {
 
     this._registerWithAddonManager();
 
-    this._loadTask = this._loadFromCache();
+    let deferred = Promise.defer();
 
-    return this._loadTask.then(
+    this._loadTask = this._loadFromCache();
+    this._loadTask.then(
       () => {
         this._log.trace("_loadTask finished ok");
         this._loadTask = null;
-        return this._run();
+        this._run().then(deferred.resolve, deferred.reject);
       },
       (e) => {
         this._log.error("_loadFromCache caught error: " + e);
-        throw e;
+        deferred.reject(e);
       }
     );
+
+    return deferred.promise;
   },
 
   
@@ -666,22 +670,18 @@ Experiments.Experiments.prototype = {
     this._log.trace("_run");
     this._checkForShutdown();
     if (!this._mainTask) {
-      this._mainTask = Task.spawn(function*() {
-        try {
-          yield this._main();
-        } catch (e) {
+      this._mainTask = Task.spawn(this._main.bind(this));
+      this._mainTask.then(
+        () => {
+          this._log.trace("_main finished, scheduling next run");
+          this._mainTask = null;
+          this._scheduleNextRun();
+        },
+        (e) => {
           this._log.error("_main caught error: " + e);
-          return;
-        } finally {
           this._mainTask = null;
         }
-        this._log.trace("_main finished, scheduling next run");
-        try {
-          yield this._scheduleNextRun();
-        } catch (ex if ex instanceof AlreadyShutdownError) {
-          
-        }
-      }.bind(this));
+      );
     }
     return this._mainTask;
   },
@@ -1175,8 +1175,9 @@ Experiments.Experiments.prototype = {
 
     gPrefs.set(PREF_ACTIVE_EXPERIMENT, activeExperiment != null);
 
-    if (activeChanged) {
+    if (activeChanged || this._firstEvaluate) {
       Services.obs.notifyObservers(null, EXPERIMENTS_CHANGED_TOPIC, null);
+      this._firstEvaluate = false;
     }
 
     if ("@mozilla.org/toolkit/crash-reporter;1" in Cc && activeExperiment) {
