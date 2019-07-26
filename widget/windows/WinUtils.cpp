@@ -208,6 +208,14 @@ WinUtils::LogToPhysFactor()
     HDC hdc = ::GetDC(nullptr);
     double result = ::GetDeviceCaps(hdc, LOGPIXELSY) / 96.0;
     ::ReleaseDC(nullptr, hdc);
+
+    if (result == 0) {
+      
+      
+      
+      
+      result = 1.0;
+    }
     return result;
   }
 }
