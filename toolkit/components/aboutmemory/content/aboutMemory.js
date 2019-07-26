@@ -1287,12 +1287,14 @@ function appendProcessAboutMemoryElements(aP, aN, aProcess, aTrees,
   let warningsDiv = appendElement(aP, "div", "accuracyWarning");
 
   
+  let hasExplicitTree;
   let hasKnownHeapAllocated;
   {
     let treeName = "explicit";
-    let pre = appendSectionHeader(aP, "Explicit Allocations");
     let t = aTrees[treeName];
     if (t) {
+      let pre = appendSectionHeader(aP, "Explicit Allocations");
+      hasExplicitTree = true;
       fillInTree(t);
       
       
@@ -1353,8 +1355,10 @@ function appendProcessAboutMemoryElements(aP, aN, aProcess, aTrees,
   
   
   
-  appendWarningElements(warningsDiv, hasKnownHeapAllocated,
-                        aHasMozMallocUsableSize);
+  if (hasExplicitTree) {
+    appendWarningElements(warningsDiv, hasKnownHeapAllocated,
+                          aHasMozMallocUsableSize);
+  }
 
   appendElementWithText(aP, "h3", "", "End of " + aProcess);
   appendLink("end", "start", kUpwardsArrow);
