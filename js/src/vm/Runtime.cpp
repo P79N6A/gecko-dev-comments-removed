@@ -259,6 +259,7 @@ JSRuntime::JSRuntime(JSUseHelperThreads useHelperThreads)
     mathCache_(NULL),
     trustedPrincipals_(NULL),
     atomsCompartment_(NULL),
+    beingDestroyed_(false),
     wrapObjectCallback(TransparentObjectWrapper),
     sameCompartmentWrapObjectCallback(NULL),
     preWrapObjectCallback(NULL),
@@ -418,6 +419,15 @@ JSRuntime::~JSRuntime()
 
     
     staticStrings.finish();
+
+    
+
+
+
+    beingDestroyed_ = true;
+
+    
+    profilingScripts = false;
 
     JS::PrepareForFullGC(this);
     GC(this, GC_NORMAL, JS::gcreason::DESTROY_RUNTIME);
