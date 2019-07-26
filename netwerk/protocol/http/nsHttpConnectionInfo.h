@@ -26,7 +26,7 @@ public:
     nsHttpConnectionInfo(const nsACString &host, int32_t port,
                          const nsACString &username,
                          nsProxyInfo* proxyInfo,
-                         bool usingSSL=false);
+                         bool endToEndSSL = false);
 
     virtual ~nsHttpConnectionInfo()
     {
@@ -65,10 +65,7 @@ public:
     int32_t       Port() const           { return mPort; }
     const char   *Username() const       { return mUsername.get(); }
     nsProxyInfo  *ProxyInfo()            { return mProxyInfo; }
-    bool          UsingHttpProxy() const { return mUsingHttpProxy; }
-    bool          UsingSSL() const       { return mUsingSSL; }
-    bool          UsingConnect() const   { return mUsingConnect; }
-    int32_t       DefaultPort() const    { return mUsingSSL ? NS_HTTPS_DEFAULT_PORT : NS_HTTP_DEFAULT_PORT; }
+    int32_t       DefaultPort() const    { return mEndToEndSSL ? NS_HTTPS_DEFAULT_PORT : NS_HTTP_DEFAULT_PORT; }
     void          SetAnonymous(bool anon)
                                          { mHashKey.SetCharAt(anon ? 'A' : '.', 2); }
     bool          GetAnonymous() const   { return mHashKey.CharAt(2) == 'A'; }
@@ -81,6 +78,21 @@ public:
     bool UsingProxy();
 
     
+    bool UsingHttpProxy() const { return mUsingHttpProxy || mUsingHttpsProxy; }
+
+    
+    bool UsingHttpsProxy() const { return mUsingHttpsProxy; }
+
+    
+    bool EndToEndSSL() const { return mEndToEndSSL; }
+
+    
+    bool FirstHopSSL() const { return mEndToEndSSL || mUsingHttpsProxy; }
+
+    
+    bool UsingConnect() const { return mUsingConnect; }
+
+    
     bool HostIsLocalIPLiteral() const;
 
 private:
@@ -90,7 +102,8 @@ private:
     nsCString              mUsername;
     nsCOMPtr<nsProxyInfo>  mProxyInfo;
     bool                   mUsingHttpProxy;
-    bool                   mUsingSSL;
+    bool                   mUsingHttpsProxy;
+    bool                   mEndToEndSSL;
     bool                   mUsingConnect;  
 
 

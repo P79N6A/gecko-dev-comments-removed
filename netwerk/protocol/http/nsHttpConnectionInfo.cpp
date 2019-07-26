@@ -23,18 +23,19 @@ namespace net {
 nsHttpConnectionInfo::nsHttpConnectionInfo(const nsACString &host, int32_t port,
                                            const nsACString &username,
                                            nsProxyInfo* proxyInfo,
-                                           bool usingSSL)
+                                           bool endToEndSSL)
     : mUsername(username)
     , mProxyInfo(proxyInfo)
-    , mUsingSSL(usingSSL)
+    , mEndToEndSSL(endToEndSSL)
     , mUsingConnect(false)
 {
     LOG(("Creating nsHttpConnectionInfo @%x\n", this));
 
-    mUsingHttpProxy = (proxyInfo && proxyInfo->IsHTTP());
+    mUsingHttpsProxy = (proxyInfo && proxyInfo->IsHTTPS());
+    mUsingHttpProxy = mUsingHttpsProxy || (proxyInfo && proxyInfo->IsHTTP());
 
     if (mUsingHttpProxy) {
-        mUsingConnect = mUsingSSL;  
+        mUsingConnect = mEndToEndSSL;  
         uint32_t resolveFlags = 0;
         if (NS_SUCCEEDED(mProxyInfo->GetResolveFlags(&resolveFlags)) &&
             resolveFlags & nsIProtocolProxyService::RESOLVE_ALWAYS_TUNNEL) {
@@ -73,7 +74,13 @@ nsHttpConnectionInfo::SetOriginServer(const nsACString &host, int32_t port)
         keyPort = Port();
     }
 
+    
+    
+    
+    
+    
     mHashKey.AssignLiteral("....");
+
     mHashKey.Append(keyHost);
     mHashKey.Append(':');
     mHashKey.AppendInt(keyPort);
@@ -83,10 +90,14 @@ nsHttpConnectionInfo::SetOriginServer(const nsACString &host, int32_t port)
         mHashKey.Append(']');
     }
 
-    if (mUsingHttpProxy)
+    if (mUsingHttpsProxy) {
+        mHashKey.SetCharAt('T', 0);
+    } else if (mUsingHttpProxy) {
         mHashKey.SetCharAt('P', 0);
-    if (mUsingSSL)
+    }
+    if (mEndToEndSSL) {
         mHashKey.SetCharAt('S', 1);
+    }
 
     
     
@@ -113,7 +124,7 @@ nsHttpConnectionInfo::SetOriginServer(const nsACString &host, int32_t port)
 nsHttpConnectionInfo*
 nsHttpConnectionInfo::Clone() const
 {
-    nsHttpConnectionInfo* clone = new nsHttpConnectionInfo(mHost, mPort, mUsername, mProxyInfo, mUsingSSL);
+    nsHttpConnectionInfo* clone = new nsHttpConnectionInfo(mHost, mPort, mUsername, mProxyInfo, mEndToEndSSL);
 
     
     clone->SetAnonymous(GetAnonymous());
