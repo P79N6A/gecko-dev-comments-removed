@@ -675,6 +675,8 @@ pref("app.orientation.default", "");
 
 pref("memory.free_dirty_pages", true);
 
+pref("layout.imagevisibility.enabled", false);
+
 #ifdef MOZ_PKG_SPECIAL
 
 
