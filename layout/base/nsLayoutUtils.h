@@ -1680,6 +1680,12 @@ public:
 
 
 
+  static bool IsTextAlignTrueValueEnabled();
+
+  
+
+
+
   static void UnionChildOverflow(nsIFrame* aFrame,
                                  nsOverflowAreas& aOverflowAreas);
 

@@ -962,8 +962,6 @@ int32_t nsCSSProps::kDisplayKTable[] = {
   eCSSKeyword__moz_groupbox,      NS_STYLE_DISPLAY_GROUPBOX,
 #endif
   
-  
-  
   eCSSKeyword_flex,               NS_STYLE_DISPLAY_FLEX,
   eCSSKeyword_inline_flex,        NS_STYLE_DISPLAY_INLINE_FLEX,
   eCSSKeyword_UNKNOWN,-1
@@ -1382,8 +1380,6 @@ int32_t nsCSSProps::kPositionKTable[] = {
   eCSSKeyword_absolute, NS_STYLE_POSITION_ABSOLUTE,
   eCSSKeyword_fixed, NS_STYLE_POSITION_FIXED,
   
-  
-  
   eCSSKeyword_sticky, NS_STYLE_POSITION_STICKY,
   eCSSKeyword_UNKNOWN,-1
 };
@@ -1433,7 +1429,7 @@ const int32_t nsCSSProps::kTableLayoutKTable[] = {
   eCSSKeyword_UNKNOWN,-1
 };
 
-const int32_t nsCSSProps::kTextAlignKTable[] = {
+int32_t nsCSSProps::kTextAlignKTable[] = {
   eCSSKeyword_left, NS_STYLE_TEXT_ALIGN_LEFT,
   eCSSKeyword_right, NS_STYLE_TEXT_ALIGN_RIGHT,
   eCSSKeyword_center, NS_STYLE_TEXT_ALIGN_CENTER,
@@ -1443,10 +1439,11 @@ const int32_t nsCSSProps::kTextAlignKTable[] = {
   eCSSKeyword__moz_left, NS_STYLE_TEXT_ALIGN_MOZ_LEFT,
   eCSSKeyword_start, NS_STYLE_TEXT_ALIGN_DEFAULT,
   eCSSKeyword_end, NS_STYLE_TEXT_ALIGN_END,
+  eCSSKeyword_true, NS_STYLE_TEXT_ALIGN_TRUE,
   eCSSKeyword_UNKNOWN,-1
 };
 
-const int32_t nsCSSProps::kTextAlignLastKTable[] = {
+int32_t nsCSSProps::kTextAlignLastKTable[] = {
   eCSSKeyword_auto, NS_STYLE_TEXT_ALIGN_AUTO,
   eCSSKeyword_left, NS_STYLE_TEXT_ALIGN_LEFT,
   eCSSKeyword_right, NS_STYLE_TEXT_ALIGN_RIGHT,
@@ -1454,6 +1451,7 @@ const int32_t nsCSSProps::kTextAlignLastKTable[] = {
   eCSSKeyword_justify, NS_STYLE_TEXT_ALIGN_JUSTIFY,
   eCSSKeyword_start, NS_STYLE_TEXT_ALIGN_DEFAULT,
   eCSSKeyword_end, NS_STYLE_TEXT_ALIGN_END,
+  eCSSKeyword_true, NS_STYLE_TEXT_ALIGN_TRUE,
   eCSSKeyword_UNKNOWN,-1
 };
 
@@ -1789,15 +1787,33 @@ const int32_t nsCSSProps::kColumnFillKTable[] = {
   eCSSKeyword_UNKNOWN, -1
 };
 
+static bool IsKeyValSentinel(nsCSSKeyword aKey, int32_t aValue)
+{
+  return aKey == eCSSKeyword_UNKNOWN && aValue == -1;
+}
+
 int32_t
 nsCSSProps::FindIndexOfKeyword(nsCSSKeyword aKeyword, const int32_t aTable[])
 {
-  int32_t index = 0;
-  while (eCSSKeyword_UNKNOWN != nsCSSKeyword(aTable[index])) {
-    if (aKeyword == nsCSSKeyword(aTable[index])) {
-      return index;
+  if (eCSSKeyword_UNKNOWN == aKeyword) {
+    
+    
+    
+    
+    
+    return -1;
+  }
+  int32_t i = 0;
+  for (;;) {
+    nsCSSKeyword key = nsCSSKeyword(aTable[i]);
+    int32_t val = aTable[i + 1];
+    if (::IsKeyValSentinel(key, val)) {
+      break;
     }
-    index += 2;
+    if (aKeyword == key) {
+      return i;
+    }
+    i += 2;
   }
   return -1;
 }
@@ -1819,11 +1835,13 @@ nsCSSProps::ValueToKeywordEnum(int32_t aValue, const int32_t aTable[])
 {
   int32_t i = 1;
   for (;;) {
-    if (aTable[i] == -1 && aTable[i-1] == eCSSKeyword_UNKNOWN) {
+    int32_t val = aTable[i];
+    nsCSSKeyword key = nsCSSKeyword(aTable[i - 1]);
+    if (::IsKeyValSentinel(key, val)) {
       break;
     }
-    if (aValue == aTable[i]) {
-      return nsCSSKeyword(aTable[i-1]);
+    if (aValue == val) {
+      return key;
     }
     i += 2;
   }
