@@ -366,7 +366,7 @@ void nsMediaFragmentURIParser::Parse(nsACString& aRef)
   
   bool gotTemporal = false, gotSpatial = false, gotResolution = false;
   for (int i = fragments.Length() - 1 ; i >= 0 ; --i) {
-    if (gotTemporal && gotSpatial) {
+    if (gotTemporal && gotSpatial && gotResolution) {
       
       break;
     } else if (!gotTemporal && fragments[i].first.EqualsLiteral("t")) {
