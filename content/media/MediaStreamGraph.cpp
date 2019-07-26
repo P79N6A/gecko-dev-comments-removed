@@ -19,6 +19,8 @@
 #include "TrackUnionStream.h"
 #include "ImageContainer.h"
 #include "AudioChannelCommon.h"
+#include "AudioNodeEngine.h"
+#include "AudioNodeStream.h"
 #include <algorithm>
 
 using namespace mozilla::layers;
@@ -874,6 +876,40 @@ MediaStreamGraphImpl::EnsureNextIterationLocked(MonitorAutoLock& aLock)
   }
 }
 
+static GraphTime
+RoundUpToAudioBlock(GraphTime aTime)
+{
+  TrackRate rate = IdealAudioRate();
+  int64_t ticksAtIdealRate = (aTime*rate) >> MEDIA_TIME_FRAC_BITS;
+  
+  int64_t blocksAtIdealRate =
+    (ticksAtIdealRate + (WEBAUDIO_BLOCK_SIZE - 1)) >>
+    WEBAUDIO_BLOCK_SIZE_BITS;
+  
+  return
+    ((((blocksAtIdealRate + 1)*WEBAUDIO_BLOCK_SIZE) << MEDIA_TIME_FRAC_BITS)
+     + rate - 1)/rate;
+}
+
+void
+MediaStreamGraphImpl::ProduceDataForStreamsBlockByBlock(uint32_t aStreamIndex,
+                                                        GraphTime aFrom,
+                                                        GraphTime aTo)
+{
+  GraphTime t = aFrom;
+  while (t < aTo) {
+    GraphTime next = RoundUpToAudioBlock(t + 1);
+    for (uint32_t i = aStreamIndex; i < mStreams.Length(); ++i) {
+      ProcessedMediaStream* ps = mStreams[i]->AsProcessedStream();
+      if (ps) {
+        ps->ProduceOutput(t, next);
+      }
+    }
+    t = next;
+  }
+  NS_ASSERTION(t == aTo, "Something went wrong with rounding to block boundaries");
+}
+
 void
 MediaStreamGraphImpl::RunThread()
 {
@@ -905,9 +941,8 @@ MediaStreamGraphImpl::RunThread()
 
     UpdateStreamOrder();
 
-    int32_t writeAudioUpTo = AUDIO_TARGET_MS;
     GraphTime endBlockingDecisions =
-      mCurrentTime + MillisecondsToMediaTime(writeAudioUpTo);
+      RoundUpToAudioBlock(mCurrentTime + MillisecondsToMediaTime(AUDIO_TARGET_MS));
     bool ensureNextIteration = false;
 
     
@@ -927,14 +962,26 @@ MediaStreamGraphImpl::RunThread()
     uint32_t audioStreamsActive = 0;
     bool allBlockedForever = true;
     
+    bool doneAllProducing = false;
+    
     for (uint32_t i = 0; i < mStreams.Length(); ++i) {
       MediaStream* stream = mStreams[i];
-      ProcessedMediaStream* ps = stream->AsProcessedStream();
-      if (ps && !ps->mFinished) {
-        ps->ProduceOutput(prevComputedTime, mStateComputedTime);
-        NS_ASSERTION(stream->mBuffer.GetEnd() >=
-                     GraphTimeToStreamTime(stream, mStateComputedTime),
-                     "Stream did not produce enough data");
+      if (!doneAllProducing && !stream->IsFinishedOnGraphThread()) {
+        ProcessedMediaStream* ps = stream->AsProcessedStream();
+        if (ps) {
+          AudioNodeStream* n = stream->AsAudioNodeStream();
+          if (n) {
+            
+            
+            ProduceDataForStreamsBlockByBlock(i, prevComputedTime, mStateComputedTime);
+            doneAllProducing = true;
+          } else {
+            ps->ProduceOutput(prevComputedTime, mStateComputedTime);
+            NS_ASSERTION(stream->mBuffer.GetEnd() >=
+                         GraphTimeToStreamTime(stream, mStateComputedTime),
+                       "Stream did not produce enough data");
+          }
+        }
       }
       NotifyHasCurrentData(stream);
       CreateOrDestroyAudioStreams(prevComputedTime, stream);
@@ -1891,6 +1938,15 @@ ProcessedMediaStream*
 MediaStreamGraph::CreateTrackUnionStream(nsDOMMediaStream* aWrapper)
 {
   TrackUnionStream* stream = new TrackUnionStream(aWrapper);
+  NS_ADDREF(stream);
+  static_cast<MediaStreamGraphImpl*>(this)->AppendMessage(new CreateMessage(stream));
+  return stream;
+}
+
+AudioNodeStream*
+MediaStreamGraph::CreateAudioNodeStream(AudioNodeEngine* aEngine)
+{
+  AudioNodeStream* stream = new AudioNodeStream(aEngine);
   NS_ADDREF(stream);
   static_cast<MediaStreamGraphImpl*>(this)->AppendMessage(new CreateMessage(stream));
   return stream;

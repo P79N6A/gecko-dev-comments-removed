@@ -255,6 +255,19 @@ public:
 
 
 
+
+
+
+
+  void ProduceDataForStreamsBlockByBlock(uint32_t aStreamIndex,
+                                         GraphTime aFrom,
+                                         GraphTime aTo);
+  
+
+
+
+
+
   bool WillUnderrun(MediaStream* aStream, GraphTime aTime,
                     GraphTime aEndBlockingDecisions, GraphTime* aEnd);
   
