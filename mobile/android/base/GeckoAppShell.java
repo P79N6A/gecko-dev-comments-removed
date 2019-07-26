@@ -1305,6 +1305,11 @@ public class GeckoAppShell
             shareIntent.putExtra(Intent.EXTRA_TEXT, targetURI);
             shareIntent.putExtra(Intent.EXTRA_SUBJECT, title);
 
+            
+            
+            
+            shareIntent.putExtra(Intent.EXTRA_TITLE, title);
+
             if (mimeType != null && mimeType.length() > 0) {
                 shareIntent.setType(mimeType);
             }
