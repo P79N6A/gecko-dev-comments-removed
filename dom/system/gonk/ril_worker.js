@@ -5893,7 +5893,7 @@ RIL[REQUEST_CDMA_SUBSCRIPTION] = function REQUEST_CDMA_SUBSCRIPTION(length, opti
   this.iccInfo.mdn = result[0];
   
   
-  this.iccInfo.min = result[3];
+  
   
 
   ICCUtilsHelper.handleICCInfoChange();
