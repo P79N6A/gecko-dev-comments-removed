@@ -99,6 +99,9 @@
 
 
 
+
+
+
 #  if defined(MOZ_GLUE_IN_PROGRAM)
 #    define MFBT_API(type)        __attribute__((weak)) MOZ_IMPORT_API(type)
 #    define MFBT_DATA(type)       __attribute__((weak)) MOZ_IMPORT_DATA(type)
