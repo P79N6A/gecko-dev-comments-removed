@@ -16,7 +16,7 @@ using namespace js::ion;
 bool
 ICCompare_Double::Compiler::generateStubCode(MacroAssembler &masm)
 {
-    Label failure, isNaN;
+    Label failure, notNaN;
     masm.ensureDouble(R0, FloatReg0, &failure);
     masm.ensureDouble(R1, FloatReg1, &failure);
 
@@ -28,16 +28,14 @@ ICCompare_Double::Compiler::generateStubCode(MacroAssembler &masm)
     masm.movzxbl(dest, dest);
 
     
-    masm.j(Assembler::Parity, &isNaN);
+    Assembler::NaNCond nanCond = Assembler::NaNCondFromDoubleCondition(cond);
+    if (nanCond != Assembler::NaN_Unexpected) {
+      masm.j(Assembler::NoParity, &notNaN);
+      masm.mov(Imm32(nanCond == Assembler::NaN_IsTrue), dest);
+      masm.bind(&notNaN);
+    }
 
     masm.tagValue(JSVAL_TYPE_BOOLEAN, dest, R0);
-    EmitReturnFromIC(masm);
-
-    Assembler::NaNCond nanCond = Assembler::NaNCondFromDoubleCondition(cond);
-    JS_ASSERT(nanCond == Assembler::NaN_IsTrue || nanCond == Assembler::NaN_IsFalse);
-
-    masm.bind(&isNaN);
-    masm.moveValue(BooleanValue(nanCond == Assembler::NaN_IsTrue), R0);
     EmitReturnFromIC(masm);
 
     
