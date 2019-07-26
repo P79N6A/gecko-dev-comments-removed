@@ -144,10 +144,6 @@ Site.prototype = {
   refreshThumbnail: function Site_refreshThumbnail() {
     let thumbnailURL = PageThumbs.getThumbnailURL(this.url);
     let thumbnail = this._querySelector(".newtab-thumbnail");
-    
-    
-    
-    thumbnail.style.removeProperty("backgroundImage");
     thumbnail.style.backgroundImage = "url(" + thumbnailURL + ")";
   },
 
