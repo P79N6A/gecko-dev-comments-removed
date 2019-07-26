@@ -79,7 +79,7 @@ FindFunctionSymbol(const char *name)
 
 static bool HasChar(FcPattern *aFont, FcChar32 wc)
 {
-    FcCharSet *charset = NULL;
+    FcCharSet *charset = nullptr;
     FcPatternGetCharSet(aFont, FC_CHARSET, 0, &charset);
 
     return charset && FcCharSetHasChar(charset, wc);
@@ -187,7 +187,7 @@ public:
           mFTFace(nullptr), mFTFaceInitialized(false)
     {
         cairo_font_face_reference(mFontFace);
-        cairo_font_face_set_user_data(mFontFace, &sFontEntryKey, this, NULL);
+        cairo_font_face_set_user_data(mFontFace, &sFontEntryKey, this, nullptr);
         mPatterns.AppendElement();
         
         
@@ -202,7 +202,10 @@ public:
 
     ~gfxSystemFcFontEntry()
     {
-        cairo_font_face_set_user_data(mFontFace, &sFontEntryKey, NULL, NULL);
+        cairo_font_face_set_user_data(mFontFace,
+                                      &sFontEntryKey,
+                                      nullptr,
+                                      nullptr);
         cairo_font_face_destroy(mFontFace);
     }
 
@@ -448,7 +451,7 @@ public:
                              const uint8_t *aData, FT_Face aFace)
         : gfxUserFcFontEntry(aProxyEntry), mFontData(aData), mFace(aFace)
     {
-        NS_PRECONDITION(aFace != NULL, "aFace is NULL!");
+        NS_PRECONDITION(aFace != nullptr, "aFace is NULL!");
         InitPattern();
     }
 
@@ -544,8 +547,12 @@ gfxDownloadedFcFontEntry::InitPattern()
         
         
         
+        
         pattern =
-            (*sQueryFacePtr)(mFace, gfxFontconfigUtils::ToFcChar8(""), 0, NULL);
+            (*sQueryFacePtr)(mFace,
+                             gfxFontconfigUtils::ToFcChar8(""),
+                             0,
+                             nullptr);
         if (!pattern)
             
             
@@ -561,7 +568,7 @@ gfxDownloadedFcFontEntry::InitPattern()
         
 
         
-        nsAutoRef<FcCharSet> charset(FcFreeTypeCharSet(mFace, NULL));
+        nsAutoRef<FcCharSet> charset(FcFreeTypeCharSet(mFace, nullptr));
         
         
         if (!charset || FcCharSetCount(charset) == 0)
@@ -708,7 +715,7 @@ public:
             
             FcPattern *fontPattern = GetFontPatternAt(i);
             if (!fontPattern)
-                return NULL;
+                return nullptr;
 
             mFonts[i].mFont =
                 gfxFcFont::GetOrMakeFont(mSortPattern, fontPattern,
@@ -1056,7 +1063,7 @@ gfxFcFontSet::SortPreferredFonts(bool &aWaitForUserFont)
         }
     }
 
-    FcPattern *truncateMarker = NULL;
+    FcPattern *truncateMarker = nullptr;
     for (uint32_t r = 0; r < requiredLangs.Length(); ++r) {
         const nsTArray< nsCountedRef<FcPattern> >& langFonts =
             utils->GetFontsForLang(requiredLangs[r].mLang);
@@ -1106,13 +1113,13 @@ gfxFcFontSet::SortPreferredFonts(bool &aWaitForUserFont)
     
     
     fontSet.own(FcFontSetSort(FcConfigGetCurrent(), sets, 1, mSortPattern,
-                              FcFalse, NULL, &result));
+                              FcFalse, nullptr, &result));
 #else
-    fontSet.own(FcFontSetSort(NULL, sets, 1, mSortPattern,
-                              FcFalse, NULL, &result));
+    fontSet.own(FcFontSetSort(nullptr, sets, 1, mSortPattern,
+                              FcFalse, nullptr, &result));
 #endif
 
-    if (truncateMarker != NULL && fontSet) {
+    if (truncateMarker != nullptr && fontSet) {
         nsAutoRef<FcFontSet> truncatedSet(FcFontSetCreate());
 
         for (int f = 0; f < fontSet->nfont; ++f) {
@@ -1143,8 +1150,8 @@ gfxFcFontSet::SortFallbackFonts()
     
     
     FcResult result;
-    return nsReturnRef<FcFontSet>(FcFontSort(NULL, mSortPattern,
-                                             FcFalse, NULL, &result));
+    return nsReturnRef<FcFontSet>(FcFontSort(nullptr, mSortPattern,
+                                             FcFalse, nullptr, &result));
 }
 
 
@@ -1178,7 +1185,7 @@ gfxFcFontSet::GetFontPatternAt(uint32_t i)
                 }
 
                 if (supportedChars) {
-                    FcCharSet *newChars = NULL;
+                    FcCharSet *newChars = nullptr;
                     FcPatternGetCharSet(font, FC_CHARSET, 0, &newChars);
                     if (newChars) {
                         if (FcCharSetIsSubset(newChars, supportedChars))
@@ -1214,7 +1221,7 @@ static void
 PrepareSortPattern(FcPattern *aPattern, double aFallbackSize,
                    double aSizeAdjustFactor, bool aIsPrinterFont)
 {
-    FcConfigSubstitute(NULL, aPattern, FcMatchPattern);
+    FcConfigSubstitute(nullptr, aPattern, FcMatchPattern);
 
     
     
@@ -1553,7 +1560,7 @@ gfxPangoFontGroup::FindFontForChar(uint32_t aCh, uint32_t aPrevCh,
 
     gfxFcFontSet *fontSet = GetBaseFontSet();
     uint32_t nextFont = 0;
-    FcPattern *basePattern = NULL;
+    FcPattern *basePattern = nullptr;
     if (!mStyle.systemFont && mPangoLanguage) {
         basePattern = fontSet->GetFontPatternAt(0);
         if (HasChar(basePattern, aCh)) {
@@ -1617,12 +1624,15 @@ gfxFcFont::gfxFcFont(cairo_scaled_font_t *aCairoFont,
                      const gfxFontStyle *aFontStyle)
     : gfxFT2FontBase(aCairoFont, aFontEntry, aFontStyle)
 {
-    cairo_scaled_font_set_user_data(mScaledFont, &sGfxFontKey, this, NULL);
+    cairo_scaled_font_set_user_data(mScaledFont, &sGfxFontKey, this, nullptr);
 }
 
 gfxFcFont::~gfxFcFont()
 {
-    cairo_scaled_font_set_user_data(mScaledFont, &sGfxFontKey, NULL, NULL);
+    cairo_scaled_font_set_user_data(mScaledFont,
+                                    &sGfxFontKey,
+                                    nullptr,
+                                    nullptr);
 }
 
 bool
@@ -1669,7 +1679,7 @@ gfxPangoFontGroup::Shutdown()
 {
     
     
-    gFTLibrary = NULL;
+    gFTLibrary = nullptr;
 }
 
  gfxFontEntry *
@@ -1704,7 +1714,7 @@ gfxPangoFontGroup::NewFontEntry(const gfxProxyFontEntry &aProxyEntry,
     NS_ConvertUTF16toUTF8 fullname(aFullname);
     FcPatternAddString(pattern, FC_FULLNAME,
                        gfxFontconfigUtils::ToFcChar8(fullname));
-    FcConfigSubstitute(NULL, pattern, FcMatchPattern);
+    FcConfigSubstitute(nullptr, pattern, FcMatchPattern);
 
     FcChar8 *name;
     for (int v = 0;
@@ -1739,11 +1749,11 @@ gfxPangoFontGroup::GetFTLibrary()
 
         gfxFcFont *font = fontGroup->GetBaseFont();
         if (!font)
-            return NULL;
+            return nullptr;
 
         gfxFT2LockedFace face(font);
         if (!face.get())
-            return NULL;
+            return nullptr;
 
         gFTLibrary = face.get()->glyph->library;
     }
@@ -1803,7 +1813,7 @@ gfxFcFont::GetOrMakeFont(FcPattern *aRequestedPattern, FcPattern *aFontPattern,
                          const gfxFontStyle *aFontStyle)
 {
     nsAutoRef<FcPattern> renderPattern
-        (FcFontRenderPrepare(NULL, aRequestedPattern, aFontPattern));
+        (FcFontRenderPrepare(nullptr, aRequestedPattern, aFontPattern));
     cairo_font_face_t *face =
         cairo_ft_font_face_create_for_pattern(renderPattern);
 
@@ -2125,14 +2135,14 @@ PangoLanguage *
 GuessPangoLanguage(nsIAtom *aLanguage)
 {
     if (!aLanguage)
-        return NULL;
+        return nullptr;
 
     
     
     nsAutoCString lang;
     gfxFontconfigUtils::GetSampleLangForGroup(aLanguage, &lang);
     if (lang.IsEmpty())
-        return NULL;
+        return nullptr;
 
     return pango_language_from_string(lang.get());
 }

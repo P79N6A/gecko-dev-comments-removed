@@ -320,8 +320,8 @@ CreateTempXlibSurface (gfxASurface *destination, nsIntSize size,
         
         
         
-        Visual *target_visual = NULL;
-        XRenderPictFormat *target_format = NULL;
+        Visual *target_visual = nullptr;
+        XRenderPictFormat *target_format = nullptr;
         switch (target_type) {
         case CAIRO_SURFACE_TYPE_XLIB:
             target_visual = cairo_xlib_surface_get_visual (target);
@@ -419,7 +419,7 @@ gfxXlibNativeRenderer::DrawOntoTempSurface(gfxXlibSurface *tempXlibSurface,
     tempXlibSurface->Flush();
     
 
-    nsresult rv = DrawWithXlib(tempXlibSurface, offset, NULL, 0);
+    nsresult rv = DrawWithXlib(tempXlibSurface, offset, nullptr, 0);
     tempXlibSurface->MarkDirty();
     return NS_SUCCEEDED(rv);
 }
@@ -445,7 +445,7 @@ gfxXlibNativeRenderer::Draw(gfxContext* ctx, nsIntSize size,
                             DrawOutput* result)
 {
     if (result) {
-        result->mSurface = NULL;
+        result->mSurface = nullptr;
         result->mUniformAlpha = false;
         result->mUniformColor = false;
     }
@@ -520,7 +520,7 @@ gfxXlibNativeRenderer::Draw(gfxContext* ctx, nsIntSize size,
     if (drawingRect.Size() != size || method == eCopyBackground) {
         
         
-        result = NULL;
+        result = nullptr;
     }
 
     nsRefPtr<gfxContext> tmpCtx;

@@ -59,6 +59,7 @@ public:
 
 
 
+
     gfxContext* Init(const gfxRect& aRect,
                      const gfxIntSize& aSpreadRadius,
                      const gfxIntSize& aBlurRadius,

@@ -308,7 +308,7 @@ gfxFontconfigUtils::NewPattern(const nsTArray<nsString>& aFamilies,
 }
 
 gfxFontconfigUtils::gfxFontconfigUtils()
-    : mLastConfig(NULL)
+    : mLastConfig(nullptr)
 {
     mFontsByFamily.Init(50);
     mFontsByFullname.Init(50);
@@ -477,7 +477,7 @@ gfxFontconfigUtils::GetSampleLangForGroup(nsIAtom *aLangGroup,
                 }
             }
         }
-        const char *ctype = setlocale(LC_CTYPE, NULL);
+        const char *ctype = setlocale(LC_CTYPE, nullptr);
         if (ctype &&
             TryLangForGroup(nsDependentCString(ctype), aLangGroup, aFcLang))
             return;
@@ -494,9 +494,9 @@ nsresult
 gfxFontconfigUtils::GetFontListInternal(nsTArray<nsCString>& aListOfFonts,
                                         nsIAtom *aLangGroup)
 {
-    FcPattern *pat = NULL;
-    FcObjectSet *os = NULL;
-    FcFontSet *fs = NULL;
+    FcPattern *pat = nullptr;
+    FcObjectSet *os = nullptr;
+    FcFontSet *fs = nullptr;
     nsresult rv = NS_ERROR_FAILURE;
 
     aListOfFonts.Clear();
@@ -505,7 +505,7 @@ gfxFontconfigUtils::GetFontListInternal(nsTArray<nsCString>& aListOfFonts,
     if (!pat)
         goto end;
 
-    os = FcObjectSetBuild(FC_FAMILY, NULL);
+    os = FcObjectSetBuild(FC_FAMILY, nullptr);
     if (!os)
         goto end;
 
@@ -514,7 +514,7 @@ gfxFontconfigUtils::GetFontListInternal(nsTArray<nsCString>& aListOfFonts,
         AddLangGroup(pat, aLangGroup);
     }
 
-    fs = FcFontList(NULL, pat, os);
+    fs = FcFontList(nullptr, pat, os);
     if (!fs)
         goto end;
 
@@ -564,8 +564,8 @@ gfxFontconfigUtils::UpdateFontListInternal(bool aForce)
         
         
         FcInitBringUptoDate();
-    } else if (!FcConfigUptoDate(NULL)) { 
-        mLastConfig = NULL;
+    } else if (!FcConfigUptoDate(nullptr)) { 
+        mLastConfig = nullptr;
         FcInitReinitialize();
     }
 
@@ -669,11 +669,11 @@ gfxFontconfigUtils::GetStandardFamilyName(const nsAString& aFontName, nsAString&
     if (!IsExistingFamily(fontname))
         return NS_OK;
 
-    FcPattern *pat = NULL;
-    FcObjectSet *os = NULL;
-    FcFontSet *givenFS = NULL;
+    FcPattern *pat = nullptr;
+    FcObjectSet *os = nullptr;
+    FcFontSet *givenFS = nullptr;
     nsTArray<nsCString> candidates;
-    FcFontSet *candidateFS = NULL;
+    FcFontSet *candidateFS = nullptr;
     rv = NS_ERROR_FAILURE;
 
     pat = FcPatternCreate();
@@ -682,11 +682,11 @@ gfxFontconfigUtils::GetStandardFamilyName(const nsAString& aFontName, nsAString&
 
     FcPatternAddString(pat, FC_FAMILY, (FcChar8 *)fontname.get());
 
-    os = FcObjectSetBuild(FC_FAMILY, FC_FILE, FC_INDEX, NULL);
+    os = FcObjectSetBuild(FC_FAMILY, FC_FILE, FC_INDEX, nullptr);
     if (!os)
         goto end;
 
-    givenFS = FcFontList(NULL, pat, os);
+    givenFS = FcFontList(nullptr, pat, os);
     if (!givenFS)
         goto end;
 
@@ -718,7 +718,7 @@ gfxFontconfigUtils::GetStandardFamilyName(const nsAString& aFontName, nsAString&
         FcPatternDel(pat, FC_FAMILY);
         FcPatternAddString(pat, FC_FAMILY, (FcChar8 *)candidates[j].get());
 
-        candidateFS = FcFontList(NULL, pat, os);
+        candidateFS = FcFontList(nullptr, pat, os);
         if (!candidateFS)
             goto end;
 
@@ -835,6 +835,7 @@ gfxFontconfigUtils::FontsByFullnameEntry::KeyEquals(KeyTypePointer aKey) const
 {
     const FcChar8 *key = mKey;
     
+    
     nsAutoCString fullname;
     if (!key) {
         NS_ASSERTION(mFonts.Length(), "No font in FontsByFullnameEntry!");
@@ -850,7 +851,7 @@ void
 gfxFontconfigUtils::AddFullnameEntries()
 {
     
-    FcFontSet *fontSet = FcConfigGetFonts(NULL, FcSetSystem);
+    FcFontSet *fontSet = FcConfigGetFonts(nullptr, FcSetSystem);
 
     
     for (int f = 0; f < fontSet->nfont; ++f) {
@@ -1008,7 +1009,7 @@ gfxFontconfigUtils::GetLangSupportEntry(const FcChar8 *aLang, bool aWithFonts)
     }
 
     
-    FcFontSet *fontSet = FcConfigGetFonts(NULL, FcSetSystem);
+    FcFontSet *fontSet = FcConfigGetFonts(nullptr, FcSetSystem);
 
     nsAutoTArray<FcPattern*,100> fonts;
 
@@ -1046,7 +1047,7 @@ gfxFontconfigUtils::GetLangSupportEntry(const FcChar8 *aLang, bool aWithFonts)
             
             
             
-            mLastConfig = NULL; 
+            mLastConfig = nullptr; 
             UpdateFontListInternal(true);
             return GetLangSupportEntry(aLang, aWithFonts);
         }

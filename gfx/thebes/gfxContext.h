@@ -67,7 +67,7 @@ public:
 
     already_AddRefed<gfxASurface> CurrentSurface(gfxFloat *dx, gfxFloat *dy);
     already_AddRefed<gfxASurface> CurrentSurface() {
-        return CurrentSurface(NULL, NULL);
+        return CurrentSurface(nullptr, nullptr);
     }
 
     

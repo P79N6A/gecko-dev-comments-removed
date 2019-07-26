@@ -185,7 +185,7 @@ public:
         
         
         DepFcStrEntry(KeyTypePointer aName)
-            : mKey(NULL) { }
+            : mKey(nullptr) { }
 
         DepFcStrEntry(const DepFcStrEntry& toCopy)
             : mKey(toCopy.mKey) { }

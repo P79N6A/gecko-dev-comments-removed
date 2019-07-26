@@ -13,7 +13,7 @@ TextAnalysis::TextAnalysis(const wchar_t* text,
   , mTextLength(textLength)
   , mLocaleName(localeName)
   , mReadingDirection(readingDirection)
-  , mCurrentRun(NULL)
+  , mCurrentRun(nullptr)
 {
 }
 
@@ -42,7 +42,7 @@ TextAnalysis::GenerateResults(IDWriteTextAnalyzer* textAnalyzer,
     mRunHead.mTextLength = mTextLength;
     mRunHead.mBidiLevel = 
         (mReadingDirection == DWRITE_READING_DIRECTION_RIGHT_TO_LEFT);
-    mRunHead.nextRun = NULL;
+    mRunHead.nextRun = nullptr;
     mCurrentRun = &mRunHead;
 
     
@@ -67,7 +67,7 @@ TextAnalysis::GetTextAtPosition(UINT32 textPosition,
 {
     if (textPosition >= mTextLength) {
         
-        *textString = NULL;
+        *textString = nullptr;
         *textLength = 0;
     } else {
         *textString = mText + textPosition;
@@ -85,7 +85,7 @@ TextAnalysis::GetTextBeforePosition(UINT32 textPosition,
     if (textPosition == 0 || textPosition > mTextLength) {
         
         
-        *textString = NULL;
+        *textString = nullptr;
         *textLength = 0;
     } else {
         *textString = mText;
@@ -122,7 +122,7 @@ TextAnalysis::GetNumberSubstitution(UINT32 textPosition,
                                     OUT IDWriteNumberSubstitution** numberSubstitution)
 {
     
-    *numberSubstitution = NULL;
+    *numberSubstitution = nullptr;
     *textLength = mTextLength - textPosition;
 
     return S_OK;

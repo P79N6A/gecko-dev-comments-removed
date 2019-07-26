@@ -32,8 +32,8 @@
 using namespace mozilla;
 
 
-CTFontDescriptorRef gfxCoreTextShaper::sDefaultFeaturesDescriptor = NULL;
-CTFontDescriptorRef gfxCoreTextShaper::sDisableLigaturesDescriptor = NULL;
+CTFontDescriptorRef gfxCoreTextShaper::sDefaultFeaturesDescriptor = nullptr;
+CTFontDescriptorRef gfxCoreTextShaper::sDisableLigaturesDescriptor = nullptr;
 
 gfxCoreTextShaper::gfxCoreTextShaper(gfxMacFont *aFont)
     : gfxFontShaper(aFont)
@@ -41,7 +41,7 @@ gfxCoreTextShaper::gfxCoreTextShaper(gfxMacFont *aFont)
     
     mCTFont = ::CTFontCreateWithGraphicsFont(aFont->GetCGFontRef(),
                                              aFont->GetAdjustedSize(),
-                                             NULL,
+                                             nullptr,
                                              GetDefaultFeaturesDescriptor());
 
     
@@ -214,9 +214,9 @@ gfxCoreTextShaper::SetGlyphsFromRun(gfxShapedText *aShapedText,
     nsAutoArrayPtr<CGGlyph> glyphsArray;
     nsAutoArrayPtr<CGPoint> positionsArray;
     nsAutoArrayPtr<CFIndex> glyphToCharArray;
-    const CGGlyph* glyphs = NULL;
-    const CGPoint* positions = NULL;
-    const CFIndex* glyphToChar = NULL;
+    const CGGlyph* glyphs = nullptr;
+    const CGPoint* positions = nullptr;
+    const CFIndex* glyphToChar = nullptr;
 
     
     
@@ -260,7 +260,7 @@ gfxCoreTextShaper::SetGlyphsFromRun(gfxShapedText *aShapedText,
     }
 
     double runWidth = ::CTRunGetTypographicBounds(aCTRun, ::CFRangeMake(0, 0),
-                                                  NULL, NULL, NULL);
+                                                  nullptr, nullptr, nullptr);
 
     nsAutoTArray<gfxShapedText::DetailedGlyph,1> detailedGlyphs;
     gfxShapedText::CompressedGlyph g;
@@ -513,7 +513,7 @@ gfxCoreTextShaper::SetGlyphsFromRun(gfxShapedText *aShapedText,
 void
 gfxCoreTextShaper::CreateDefaultFeaturesDescriptor()
 {
-    if (sDefaultFeaturesDescriptor != NULL) {
+    if (sDefaultFeaturesDescriptor != nullptr) {
         return;
     }
 
@@ -586,7 +586,7 @@ gfxCoreTextShaper::CreateDefaultFeaturesDescriptor()
 CTFontRef
 gfxCoreTextShaper::CreateCTFontWithDisabledLigatures(CGFloat aSize)
 {
-    if (sDisableLigaturesDescriptor == NULL) {
+    if (sDisableLigaturesDescriptor == nullptr) {
         
         SInt16 val = kLigaturesType;
         CFNumberRef ligaturesType =
@@ -636,19 +636,19 @@ gfxCoreTextShaper::CreateCTFontWithDisabledLigatures(CGFloat aSize)
     }
 
     gfxMacFont *f = static_cast<gfxMacFont*>(mFont);
-    return ::CTFontCreateWithGraphicsFont(f->GetCGFontRef(), aSize, NULL,
+    return ::CTFontCreateWithGraphicsFont(f->GetCGFontRef(), aSize, nullptr,
                                           sDisableLigaturesDescriptor);
 }
 
 void
 gfxCoreTextShaper::Shutdown() 
 {
-    if (sDisableLigaturesDescriptor != NULL) {
+    if (sDisableLigaturesDescriptor != nullptr) {
         ::CFRelease(sDisableLigaturesDescriptor);
-        sDisableLigaturesDescriptor = NULL;
+        sDisableLigaturesDescriptor = nullptr;
     }        
-    if (sDefaultFeaturesDescriptor != NULL) {
+    if (sDefaultFeaturesDescriptor != nullptr) {
         ::CFRelease(sDefaultFeaturesDescriptor);
-        sDefaultFeaturesDescriptor = NULL;
+        sDefaultFeaturesDescriptor = nullptr;
     }
 }

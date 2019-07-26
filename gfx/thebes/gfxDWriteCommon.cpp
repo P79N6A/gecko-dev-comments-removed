@@ -5,7 +5,7 @@
 
 #include "gfxDWriteCommon.h"
 
-IDWriteFontFileLoader* gfxDWriteFontFileLoader::mInstance = NULL;
+IDWriteFontFileLoader* gfxDWriteFontFileLoader::mInstance = nullptr;
 
 HRESULT STDMETHODCALLTYPE
 gfxDWriteFontFileLoader::CreateStreamFromKey(const void *fontFileReferenceKey, 
@@ -61,7 +61,7 @@ gfxDWriteFontFileStream::ReadFileFragment(const void **fragmentStart,
     }
     
     *fragmentStart = &mData[fileOffset];
-    *fragmentContext = NULL;
+    *fragmentContext = nullptr;
     return S_OK;
 }
 

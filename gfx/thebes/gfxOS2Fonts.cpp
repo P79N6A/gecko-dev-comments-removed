@@ -356,7 +356,7 @@ cairo_font_face_t *gfxOS2Font::CairoFontFace()
 
         
         FcResult fcRes;
-        FcPattern *fcMatch = FcFontMatch(NULL, fcPattern, &fcRes);
+        FcPattern *fcMatch = FcFontMatch(nullptr, fcPattern, &fcRes);
 
         
         
@@ -370,7 +370,7 @@ cairo_font_face_t *gfxOS2Font::CairoFontFace()
 
             
             FcPatternAddString(fcPattern, FC_FAMILY, (FcChar8*)"SERIF");
-            fcMatch = FcFontMatch(NULL, fcPattern, &fcRes);
+            fcMatch = FcFontMatch(nullptr, fcPattern, &fcRes);
 
             printf("Attempt to substitute default SERIF font %s\n",
                    fcMatch ? "succeeded" : "failed");

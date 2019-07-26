@@ -54,7 +54,8 @@ private:
     
     
     
-    gfxFcFontSet *GetFontSet(PangoLanguage *aLang = NULL);
+    
+    gfxFcFontSet *GetFontSet(PangoLanguage *aLang = nullptr);
 
     class FontSetByLangEntry {
     public:
@@ -77,7 +78,7 @@ private:
     
     already_AddRefed<gfxFcFontSet>
     MakeFontSet(PangoLanguage *aLang, gfxFloat aSizeAdjustFactor,
-                nsAutoRef<FcPattern> *aMatchPattern = NULL);
+                nsAutoRef<FcPattern> *aMatchPattern = nullptr);
 
     gfxFcFontSet *GetBaseFontSet();
     gfxFcFont *GetBaseFont();
