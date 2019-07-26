@@ -6,8 +6,11 @@
 #ifndef nsColor_h___
 #define nsColor_h___
 
-#include "gfxCore.h"
-#include "nscore.h"
+#include <stddef.h>                     
+#include <stdint.h>                     
+#include "gfxCore.h"                    
+#include "nscore.h"                     
+#include "prtypes.h"                    
 
 class nsAString;
 class nsString;

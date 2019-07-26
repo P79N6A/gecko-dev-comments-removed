@@ -6,11 +6,17 @@
 #ifndef _NS_DEVICECONTEXT_H_
 #define _NS_DEVICECONTEXT_H_
 
-#include "gfxTypes.h"
-#include "nsAutoPtr.h"
-#include "nsCOMPtr.h"
-#include "nsCoord.h"
-#include "nsMathUtils.h"
+#include <stdint.h>                     
+#include <sys/types.h>                  
+#include "gfxTypes.h"                   
+#include "mozilla/Assertions.h"         
+#include "nsAutoPtr.h"                  
+#include "nsCOMPtr.h"                   
+#include "nsCoord.h"                    
+#include "nsError.h"                    
+#include "nsISupports.h"                
+#include "nsMathUtils.h"                
+#include "nscore.h"                     
 
 class gfxASurface;
 class gfxUserFontSet;

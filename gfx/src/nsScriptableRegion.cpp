@@ -5,10 +5,19 @@
 
 
 #include "nsScriptableRegion.h"
-#include "nsCOMPtr.h"
-#include "nsIXPConnect.h"
-#include "nsServiceManagerUtils.h"
-#include "jsapi.h"
+#include <stdint.h>                     
+#include <sys/types.h>                  
+#include "js/RootingAPI.h"              
+#include "js/Value.h"                   
+#include "jsapi.h"                      
+#include "mozilla/Assertions.h"         
+#include "nsError.h"                    
+#include "nsID.h"
+#include "nsRect.h"                     
+#include "nscore.h"                     
+
+class JSObject;
+struct JSContext;
 
 nsScriptableRegion::nsScriptableRegion()
 {

@@ -4,12 +4,18 @@
 
 
 #include "nsThebesFontEnumerator.h"
-
-#include "nsMemory.h"
-
-#include "gfxPlatform.h"
-#include "nsTArray.h"
-#include "nsIAtom.h"
+#include <stdint.h>                     
+#include "gfxPlatform.h"                
+#include "mozilla/Assertions.h"         
+#include "nsCOMPtr.h"                   
+#include "nsDebug.h"                    
+#include "nsError.h"                    
+#include "nsIAtom.h"                    
+#include "nsID.h"
+#include "nsMemory.h"                   
+#include "nsStringGlue.h"               
+#include "nsTArray.h"                   
+#include "nscore.h"                     
 
 NS_IMPL_ISUPPORTS1(nsThebesFontEnumerator, nsIFontEnumerator)
 

@@ -5,17 +5,15 @@
 
 #include "mozilla/Util.h"
 
-#include "plstr.h"
 #include "nsColor.h"
-#include "nsColorNames.h"
-#include "nsString.h"
-#include "nscore.h"
-#include "nsCoord.h"
-#include "nsCOMPtr.h"
-#include "nsIServiceManager.h"
-#include <math.h>
-#include "prprf.h"
+#include <sys/types.h>                  
+#include "mozilla/Util.h"               
+#include "mozilla/mozalloc.h"           
+#include "nsColorNames.h"               
+#include "nsDebug.h"                    
 #include "nsStaticNameTable.h"
+#include "nsStringGlue.h"               
+#include "nscore.h"                     
 
 using namespace mozilla;
 

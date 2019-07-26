@@ -4,9 +4,10 @@
 
 
 #include "nsRect.h"
-#include "nsString.h"
-#include "nsDeviceContext.h"
-#include "prlog.h"
+#include "mozilla/gfx/Types.h"          
+#include "nsDeviceContext.h"            
+#include "nsStringGlue.h"               
+#include "prtypes.h"                    
 
 
 PR_STATIC_ASSERT((NS_SIDE_TOP == 0) && (NS_SIDE_RIGHT == 1) && (NS_SIDE_BOTTOM == 2) && (NS_SIDE_LEFT == 3));

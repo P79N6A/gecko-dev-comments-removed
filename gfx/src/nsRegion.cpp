@@ -3,11 +3,14 @@
 
 
 #include "nsRegion.h"
-#include "nsISupportsImpl.h"
-#include "nsTArray.h"
-#include "mozilla/ThreadLocal.h"
-#include "nsPrintfCString.h"
-#include <algorithm>
+#include <algorithm>                    
+#include "mozilla/Assertions.h"         
+#include "mozilla/ThreadLocal.h"        
+#include "mozilla/mozalloc.h"           
+#include "nsDebug.h"                    
+#include "nsISupports.h"                
+#include "nsPrintfCString.h"            
+#include "nsTArray.h"                   
 
 
 

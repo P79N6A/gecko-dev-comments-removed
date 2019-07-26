@@ -4,9 +4,23 @@
 
 
 #include "nsRenderingContext.h"
-#include "nsBoundingMetrics.h"
-#include "nsRegion.h"
-#include <algorithm>
+#include <string.h>                     
+#include <algorithm>                    
+#include "gfxColor.h"                   
+#include "gfxMatrix.h"                  
+#include "gfxPoint.h"                   
+#include "gfxRect.h"                    
+#include "gfxTypes.h"                   
+#include "mozilla/gfx/BasePoint.h"      
+#include "mozilla/mozalloc.h"           
+#include "nsBoundingMetrics.h"          
+#include "nsCharTraits.h"               
+#include "nsDebug.h"                    
+#include "nsPoint.h"                    
+#include "nsRect.h"                     
+#include "nsRegion.h"                   
+
+class gfxASurface;
 
 
 #define FROM_TWIPS(_x)  ((gfxFloat)((_x)/(mP2A)))

@@ -3,15 +3,20 @@
 
 
 
+#include "gfxPlatform.h"                
+#include "mozilla/Assertions.h"         
+#include "mozilla/Attributes.h"         
+#include "mozilla/Module.h"             
 #include "mozilla/ModuleUtils.h"
-#include "mozilla/Attributes.h"
-#include "nsCOMPtr.h"
-#include "nsGfxCIID.h"
-
-#include "nsThebesFontEnumerator.h"
-#include "nsScriptableRegion.h"
-
-#include "gfxPlatform.h"
+#include "mozilla/mozalloc.h"           
+#include "nsCOMPtr.h"                   
+#include "nsError.h"                    
+#include "nsGfxCIID.h"                  
+#include "nsID.h"                       
+#include "nsIScriptableRegion.h"        
+#include "nsISupports.h"                
+#include "nsScriptableRegion.h"         
+#include "nsThebesFontEnumerator.h"     
 
 
 

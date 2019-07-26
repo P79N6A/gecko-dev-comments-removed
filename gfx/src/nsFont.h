@@ -6,13 +6,17 @@
 #ifndef nsFont_h___
 #define nsFont_h___
 
-#include "gfxCore.h"
-#include "nsCoord.h"
-#include "nsStringGlue.h"
-#include "nsTArray.h"
-#include "gfxFontConstants.h"
+#include <stdint.h>                     
+#include <sys/types.h>                  
+#include "gfxCore.h"                    
 #include "gfxFontFeatures.h"
-#include "nsAutoPtr.h"
+#include "nsAutoPtr.h"                  
+#include "nsCoord.h"                    
+#include "nsStringFwd.h"                
+#include "nsStringGlue.h"               
+#include "nsTArray.h"                   
+
+struct gfxFontStyle;
 
 
 
@@ -33,8 +37,6 @@ const uint8_t kGenericFont_sans_serif   = 0x04;
 const uint8_t kGenericFont_monospace    = 0x08;
 const uint8_t kGenericFont_cursive      = 0x10;
 const uint8_t kGenericFont_fantasy      = 0x20;
-
-struct gfxFontStyle;
 
 
 struct NS_GFX nsFont {

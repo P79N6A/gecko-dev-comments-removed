@@ -4,10 +4,17 @@
 
 
 #include "nsFont.h"
-#include "nsString.h"
+#include "gfxFont.h"                    
+#include "gfxFontConstants.h"           
+#include "gfxFontFeatures.h"            
+#include "gfxFontUtils.h"               
+#include "nsCRT.h"                      
+#include "nsDebug.h"                    
+#include "nsISupports.h"
+#include "nsMemory.h"                   
 #include "nsUnicharUtils.h"
-#include "nsCRT.h"
-#include "gfxFont.h"
+#include "nscore.h"                     
+#include "prtypes.h"                    
 
 nsFont::nsFont(const char* aName, uint8_t aStyle, uint8_t aVariant,
                uint16_t aWeight, int16_t aStretch, uint8_t aDecoration,

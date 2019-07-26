@@ -6,13 +6,21 @@
 #ifndef NSFONTMETRICS__H__
 #define NSFONTMETRICS__H__
 
-#include "nsCOMPtr.h"
-#include "nsCoord.h"
-#include "nsFont.h"
-#include "gfxFont.h"
+#include <stdint.h>                     
+#include <sys/types.h>                  
+#include "gfxFont.h"                    
+#include "mozilla/Assertions.h"         
+#include "nsAutoPtr.h"                  
+#include "nsCOMPtr.h"                   
+#include "nsCoord.h"                    
+#include "nsError.h"                    
+#include "nsFont.h"                     
+#include "nsISupports.h"                
+#include "nscore.h"                     
 
-class nsIAtom;
+class gfxUserFontSet;
 class nsDeviceContext;
+class nsIAtom;
 class nsRenderingContext;
 struct nsBoundingMetrics;
 

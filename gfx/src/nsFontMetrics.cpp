@@ -4,11 +4,22 @@
 
 
 #include "nsFontMetrics.h"
-#include "nsBoundingMetrics.h"
-#include "nsRenderingContext.h"
-#include "nsDeviceContext.h"
-#include "nsStyleConsts.h"
-#include <algorithm>
+#include <math.h>                       
+#include <algorithm>                    
+#include "gfxPlatform.h"                
+#include "gfxPoint.h"                   
+#include "gfxRect.h"                    
+#include "gfxTypes.h"                   
+#include "nsBoundingMetrics.h"          
+#include "nsDebug.h"                    
+#include "nsDeviceContext.h"            
+#include "nsIAtom.h"                    
+#include "nsMathUtils.h"                
+#include "nsRenderingContext.h"         
+#include "nsStringGlue.h"               
+#include "nsStyleConsts.h"              
+
+class gfxUserFontSet;
 
 namespace {
 

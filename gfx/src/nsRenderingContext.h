@@ -6,16 +6,25 @@
 #ifndef NSRENDERINGCONTEXT__H__
 #define NSRENDERINGCONTEXT__H__
 
-#include "nsAutoPtr.h"
-#include "nsDeviceContext.h"
-#include "nsFontMetrics.h"
-#include "nsColor.h"
-#include "nsCoord.h"
-#include "gfxContext.h"
-#include "mozilla/gfx/UserData.h"
+#include <stdint.h>                     
+#include <sys/types.h>                  
+#include "gfxContext.h"                 
+#include "mozilla/Assertions.h"         
+#include "mozilla/gfx/UserData.h"       
+#include "nsAutoPtr.h"                  
+#include "nsBoundingMetrics.h"          
+#include "nsColor.h"                    
+#include "nsCoord.h"                    
+#include "nsDeviceContext.h"            
+#include "nsFontMetrics.h"              
+#include "nsISupports.h"                
+#include "nsStringGlue.h"               
+#include "nscore.h"                     
 
-struct nsPoint;
+class gfxASurface;
 class nsIntRegion;
+struct nsPoint;
+struct nsRect;
 
 typedef enum {
     nsLineStyle_kNone   = 0,
