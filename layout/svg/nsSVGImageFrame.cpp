@@ -273,18 +273,18 @@ nsSVGImageFrame::TransformContextForPainting(gfxContext* aGfxContext,
     imageTransform =
       GetRasterImageTransform(nativeWidth, nativeHeight, FOR_PAINTING,
                               aTransformRoot);
-
-    
-    
-    nscoord appUnitsPerDevPx = PresContext()->AppUnitsPerDevPixel();
-    gfxFloat pageZoomFactor =
-      nsPresContext::AppUnitsToFloatCSSPixels(appUnitsPerDevPx);
-    imageTransform.Scale(pageZoomFactor, pageZoomFactor);
   }
 
   if (imageTransform.IsSingular()) {
     return false;
   }
+
+  
+  
+  nscoord appUnitsPerDevPx = PresContext()->AppUnitsPerDevPixel();
+  gfxFloat pageZoomFactor =
+    nsPresContext::AppUnitsToFloatCSSPixels(appUnitsPerDevPx);
+  imageTransform.Scale(pageZoomFactor, pageZoomFactor);
 
   aGfxContext->Multiply(imageTransform);
   return true;
