@@ -77,24 +77,13 @@ protected:
   
 
 
-
-
-  inline void Disconnect()
-  {
-    mConstraintValidation = nullptr;
-  }
-
-  
-
-
   inline bool GetValidityState(nsIConstraintValidation::ValidityStateType aState) const
   {
     return mConstraintValidation &&
            mConstraintValidation->GetValidityState(aState);
   }
 
-  
-  nsIConstraintValidation*       mConstraintValidation;
+  nsCOMPtr<nsIConstraintValidation> mConstraintValidation;
 };
 
 } 
