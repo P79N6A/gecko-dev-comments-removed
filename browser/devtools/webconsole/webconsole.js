@@ -401,6 +401,11 @@ WebConsoleFrame.prototype = {
 
   setSaveRequestAndResponseBodies:
   function WCF_setSaveRequestAndResponseBodies(aValue) {
+    if (!this.webConsoleClient) {
+      
+      return promise.resolve(null);
+    }
+
     let deferred = promise.defer();
     let newValue = !!aValue;
     let toSet = {
