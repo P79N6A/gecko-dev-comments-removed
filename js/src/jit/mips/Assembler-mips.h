@@ -863,14 +863,12 @@ class Assembler
   protected:
     
     
-    
-    BufferOffset as_ls_Odd(FloatRegister fd, Register base, int32_t off);
-    BufferOffset as_ss_Odd(FloatRegister fd, Register base, int32_t off);
-    BufferOffset as_mtc1_Odd(Register rt, FloatRegister fs);
-  public:
-    
-    BufferOffset as_mfc1_Odd(Register rt, FloatRegister fs);
+    FloatRegister getOddPair(FloatRegister reg) {
+        JS_ASSERT(reg.code() % 2 == 0);
+        return FloatRegister::FromCode(reg.code() + 1);
+    }
 
+  public:
     
     BufferOffset as_ceilws(FloatRegister fd, FloatRegister fs);
     BufferOffset as_floorws(FloatRegister fd, FloatRegister fs);
