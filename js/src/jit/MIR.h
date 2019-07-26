@@ -59,6 +59,8 @@ MIRType MIRTypeFromValue(const js::Value &vp)
      * points.
      */                                                                         \
     _(Unused)                                                                   \
+    _(DOMFunction)           \
+                                                                                \
     
 
 
@@ -1804,7 +1806,7 @@ class MCall
   public:
     INSTRUCTION_HEADER(Call)
     static MCall *New(TempAllocator &alloc, JSFunction *target, size_t maxArgc, size_t numActualArgs,
-                      bool construct, bool isDOMCall);
+                      bool construct);
 
     void initFunction(MDefinition *func) {
         return setOperand(FunctionOperandIndex, func);
@@ -1828,6 +1830,10 @@ class MCall
 
     MDefinition *getArg(uint32_t index) const {
         return getOperand(NumNonArgumentOperands + index);
+    }
+
+    void replaceArg(uint32_t index, MDefinition *def) {
+        replaceOperand(NumNonArgumentOperands + index, def);
     }
 
     static size_t IndexOfThis() {
@@ -1865,48 +1871,49 @@ class MCall
     TypePolicy *typePolicy() {
         return this;
     }
+    AliasSet getAliasSet() const {
+        if (isDOMFunction()) {
+            JS_ASSERT(getSingleTarget() && getSingleTarget()->isNative());
+
+            const JSJitInfo* jitInfo = getSingleTarget()->jitInfo();
+            JS_ASSERT(jitInfo);
+
+            JS_ASSERT(jitInfo->aliasSet != JSJitInfo::AliasNone);
+            if (jitInfo->aliasSet == JSJitInfo::AliasDOMSets &&
+                jitInfo->argTypes) {
+                uint32_t argIndex = 0;
+                for (const JSJitInfo::ArgType* argType = jitInfo->argTypes;
+                     *argType != JSJitInfo::ArgTypeListEnd;
+                     ++argType, ++argIndex)
+                {
+                    if (argIndex >= numActualArgs()) {
+                        
+                        continue;
+                    }
+                    
+                    MDefinition *arg = getArg(argIndex+1);
+                    MIRType actualType = arg->type();
+                    
+                    
+                    
+                    if ((actualType == MIRType_Value || actualType == MIRType_Object) &&
+                        (*argType &
+                         (JSJitInfo::Boolean | JSJitInfo::String | JSJitInfo::Numeric)))
+                    {
+                        return AliasSet::Store(AliasSet::Any);
+                    }
+                }
+                
+                
+                return AliasSet::Load(AliasSet::DOMProperty);
+            }
+        }
+        return AliasSet::Store(AliasSet::Any);
+    }
 
     bool possiblyCalls() const {
         return true;
     }
-
-    virtual bool isCallDOMNative() const {
-        return false;
-    }
-
-    
-    
-    
-    
-    virtual void computeMovable() {
-    }
-};
-
-class MCallDOMNative : public MCall
-{
-    
-    
-    
-    
-  protected:
-    MCallDOMNative(JSFunction *target, uint32_t numActualArgs)
-        : MCall(target, numActualArgs, false)
-    {
-    }
-
-    friend MCall *MCall::New(TempAllocator &alloc, JSFunction *target, size_t maxArgc,
-                             size_t numActualArgs, bool construct, bool isDOMCall);
-
-  public:
-    virtual AliasSet getAliasSet() const MOZ_OVERRIDE;
-
-    virtual bool congruentTo(MDefinition *ins) const MOZ_OVERRIDE;
-
-    virtual bool isCallDOMNative() const MOZ_OVERRIDE {
-        return true;
-    }
-
-    virtual void computeMovable() MOZ_OVERRIDE;
 };
 
 

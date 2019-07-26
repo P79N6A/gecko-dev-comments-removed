@@ -648,118 +648,13 @@ MParameter::congruentTo(MDefinition *ins) const
 
 MCall *
 MCall::New(TempAllocator &alloc, JSFunction *target, size_t maxArgc, size_t numActualArgs,
-           bool construct, bool isDOMCall)
+           bool construct)
 {
     JS_ASSERT(maxArgc >= numActualArgs);
-    MCall *ins;
-    if (isDOMCall) {
-        JS_ASSERT(!construct);
-        ins = new(alloc) MCallDOMNative(target, numActualArgs);
-    } else {
-        ins = new(alloc) MCall(target, numActualArgs, construct);
-    }
+    MCall *ins = new(alloc) MCall(target, numActualArgs, construct);
     if (!ins->init(alloc, maxArgc + NumNonArgumentOperands))
         return nullptr;
     return ins;
-}
-
-AliasSet
-MCallDOMNative::getAliasSet() const
-{
-    JS_ASSERT(getSingleTarget() && getSingleTarget()->isNative());
-
-    const JSJitInfo *jitInfo = getSingleTarget()->jitInfo();
-    JS_ASSERT(jitInfo);
-
-    JS_ASSERT(jitInfo->aliasSet != JSJitInfo::AliasNone);
-    
-    
-    
-    if (jitInfo->aliasSet != JSJitInfo::AliasDOMSets || !jitInfo->argTypes)
-        return AliasSet::Store(AliasSet::Any);
-
-    uint32_t argIndex = 0;
-    for (const JSJitInfo::ArgType *argType = jitInfo->argTypes;
-         *argType != JSJitInfo::ArgTypeListEnd;
-         ++argType, ++argIndex)
-    {
-        if (argIndex >= numActualArgs()) {
-            
-            continue;
-        }
-        
-        MDefinition *arg = getArg(argIndex+1);
-        MIRType actualType = arg->type();
-        
-        
-        
-        
-        
-        
-        
-        if ((actualType == MIRType_Value || actualType == MIRType_Object) ||
-            (*argType & JSJitInfo::Object))
-         {
-             return AliasSet::Store(AliasSet::Any);
-         }
-    }
-
-    
-    
-    return AliasSet::Load(AliasSet::DOMProperty);
-}
-
-void
-MCallDOMNative::computeMovable()
-{
-    
-    
-    
-    JS_ASSERT(getSingleTarget() && getSingleTarget()->isNative());
-
-    const JSJitInfo *jitInfo = getSingleTarget()->jitInfo();
-    JS_ASSERT(jitInfo);
-
-    JS_ASSERT_IF(jitInfo->isMovable,
-                 jitInfo->aliasSet != JSJitInfo::AliasEverything);
-
-    if (jitInfo->isMovable && !isEffectful())
-        setMovable();
-}
-
-bool
-MCallDOMNative::congruentTo(MDefinition *ins) const
-{
-    if (!isMovable())
-        return false;
-
-    if (!ins->isCall())
-        return false;
-
-    MCall *call = ins->toCall();
-
-    if (!call->isCallDOMNative())
-        return false;
-
-    if (getSingleTarget() != call->getSingleTarget())
-        return false;
-
-    if (isConstructing() != call->isConstructing())
-        return false;
-
-    if (numActualArgs() != call->numActualArgs())
-        return false;
-
-    if (needsArgCheck() != call->needsArgCheck())
-        return false;
-
-    if (!congruentIfOperandsEqual(call))
-        return false;
-
-    
-    JS_ASSERT(call->isMovable());
-
-    return true;
 }
 
 MApplyArgs *
