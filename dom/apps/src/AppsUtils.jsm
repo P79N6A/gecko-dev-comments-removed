@@ -12,6 +12,8 @@ const Cr = Components.results;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/FileUtils.jsm");
+Cu.import("resource://gre/modules/osfile.jsm");
+Cu.import("resource://gre/modules/Task.jsm");
 
 XPCOMUtils.defineLazyGetter(this, "NetUtil", function() {
   return Cc["@mozilla.org/network/util;1"]
@@ -487,6 +489,32 @@ this.AppsUtils = {
 
     
     return true;
+  },
+
+  
+  
+  
+  
+  loadJSONAsync: function(aFile) {
+    debug("_loadJSONAsync: " + aFile);
+    return Task.spawn(function() {
+      let file = yield OS.File.open(aFile, { read: true });
+      let rawData = yield file.read();
+      
+      let data;
+      try {
+        
+        let converter = new TextDecoder();
+        data = JSON.parse(converter.decode(rawData));
+        file.close();
+      } catch (ex) {
+        debug("Error parsing JSON: " + aFile + ". Error: " + ex);
+        Cu.reportError("OperatorApps: Could not parse JSON: " +
+                       aFile + " " + ex + "\n" + ex.stack);
+        throw ex;
+      }
+      throw new Task.Result(data);
+    });
   },
 
   
