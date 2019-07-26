@@ -49,19 +49,6 @@ const WINDOW_HIDEABLE_FEATURES = [
   "menubar", "toolbar", "locationbar", "personalbar", "statusbar", "scrollbars"
 ];
 
-
-
-
-
-
-
-
-
-const CAPABILITIES = [
-  "Subframes", "Plugins", "Javascript", "MetaRedirects", "Images",
-  "DNSPrefetch", "Auth", "WindowControl"
-];
-
 const MESSAGES = [
   
   
@@ -96,6 +83,23 @@ Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js", this);
 
 XPCOMUtils.defineLazyServiceGetter(this, "gSessionStartup",
   "@mozilla.org/browser/sessionstartup;1", "nsISessionStartup");
+
+
+
+
+
+let gDocShellCapabilities = (function () {
+  let caps;
+
+  return docShell => {
+    if (!caps) {
+      let keys = Object.keys(docShell);
+      caps = keys.filter(k => k.startsWith("allow")).map(k => k.slice(5));
+    }
+
+    return caps;
+  };
+})();
 
 XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
   "resource://gre/modules/NetUtil.jsm");
@@ -1983,9 +1987,9 @@ let SessionStoreInternal = {
     tabData.hidden = aTab.hidden;
 
     var disallow = [];
-    for (var i = 0; i < CAPABILITIES.length; i++)
-      if (!browser.docShell["allow" + CAPABILITIES[i]])
-        disallow.push(CAPABILITIES[i]);
+    for (let cap of gDocShellCapabilities(browser.docShell))
+      if (!browser.docShell["allow" + cap])
+        disallow.push(cap);
     if (disallow.length > 0)
       tabData.disallow = disallow.join(",");
     else if (tabData.disallow)
@@ -3106,10 +3110,10 @@ let SessionStoreInternal = {
     }
 
     
-    var disallow = (tabData.disallow)?tabData.disallow.split(","):[];
-    CAPABILITIES.forEach(function(aCapability) {
-      browser.docShell["allow" + aCapability] = disallow.indexOf(aCapability) == -1;
-    });
+    let disallow = new Set(tabData.disallow && tabData.disallow.split(","));
+    for (let cap of gDocShellCapabilities(browser.docShell))
+      browser.docShell["allow" + cap] = !disallow.has(cap);
+
     for (let name in this.xulAttributes)
       tab.removeAttribute(name);
     for (let name in tabData.attributes)
