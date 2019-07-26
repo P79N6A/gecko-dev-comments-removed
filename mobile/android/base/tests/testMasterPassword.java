@@ -184,24 +184,33 @@ public class testMasterPassword extends PixelTest {
         String option [] = {"Save", "Don't save"};
 
         doorhangerDisplayed(LOGIN_URL);
+
+        
+        mSolo.sleep(2000);
+
         for (String item:option) {
             if (item.equals("Save")) {
-                mAsserter.ok(mSolo.waitForText("Save"), "Checking if Save option is present", "Save option is present");
-                mSolo.clickOnButton(item);
+                final String OK_BUTTON_LABEL = "^OK$";
+                final String SAVE_BUTTON_LABEL = "^Save$";
+                mAsserter.ok(mSolo.waitForText(SAVE_BUTTON_LABEL), "Checking if Save option is present", "Save option is present");
+                mSolo.clickOnButton(SAVE_BUTTON_LABEL);
 
                 
                 closeTabletKeyboard();
-                mSolo.clickOnButton("OK");
+                waitForText(OK_BUTTON_LABEL);
+                mSolo.clickOnButton(OK_BUTTON_LABEL);
 
                 
                 closeTabletKeyboard();
                 editPasswordField(0, badPassword);
-                mSolo.clickOnButton("OK");
+                waitForText(OK_BUTTON_LABEL);
+                mSolo.clickOnButton(OK_BUTTON_LABEL);
 
                 
                 closeTabletKeyboard();
                 editPasswordField(0, password);
-                mSolo.clickOnButton("OK");
+                waitForText(OK_BUTTON_LABEL);
+                mSolo.clickOnButton(OK_BUTTON_LABEL);
 
                 
                 noDoorhangerDisplayed(LOGIN_URL);
