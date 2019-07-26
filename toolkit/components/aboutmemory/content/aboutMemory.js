@@ -1737,7 +1737,9 @@ function appendTreeElements(aP, aRoot, aProcess, aPadText)
       tIsInvalid = true;
       let unsafePath = aUnsafeNames.join("/");
       gUnsafePathsWithInvalidValuesForThisProcess.push(unsafePath);
-      reportAssertionFailure("Invalid value for " + flipBackslashes(unsafePath));
+      reportAssertionFailure("Invalid value (" + aT._amount + " / " +
+                             aRoot._amount + ") for " +
+                             flipBackslashes(unsafePath));
     }
 
     
