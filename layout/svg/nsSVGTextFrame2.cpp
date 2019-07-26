@@ -3810,8 +3810,7 @@ nsSVGTextFrame2::GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
   NS_ASSERTION(GetFirstPrincipalChild(), "must have a child frame");
 
   SVGBBox bbox;
-  nsIFrame* kid = GetFirstPrincipalChild();
-  if (kid && NS_SUBTREE_DIRTY(kid)) {
+  if (NS_SUBTREE_DIRTY(this)) {
     
     
     
