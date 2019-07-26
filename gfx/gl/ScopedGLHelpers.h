@@ -59,6 +59,9 @@ protected:
 public:
     
     ScopedGLState(GLContext* aGL, GLenum aCapability, bool aNewState);
+    
+    
+    ScopedGLState(GLContext* aGL, GLenum aCapability);
 
 protected:
     void UnwrapImpl();
