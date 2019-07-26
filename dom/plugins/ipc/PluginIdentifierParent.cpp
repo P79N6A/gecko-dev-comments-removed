@@ -31,7 +31,7 @@ PluginIdentifierParent::RecvRetain()
 
   
   
-  JSString* str = JSID_TO_STRING(id);
+  JS::RootedString str(cx, JSID_TO_STRING(id));
   JSString* str2 = JS_InternJSString(cx, str);
   if (!str2) {
     return false;
