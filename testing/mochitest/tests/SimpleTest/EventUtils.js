@@ -352,7 +352,6 @@ function synthesizeTouchAtCenter(aTarget, aEvent, aWindow)
 
 
 
-
 function synthesizeWheel(aTarget, aOffsetX, aOffsetY, aEvent, aWindow)
 {
   var utils = _getDOMWindowUtils(aWindow);
@@ -362,8 +361,9 @@ function synthesizeWheel(aTarget, aOffsetX, aOffsetY, aEvent, aWindow)
 
   var modifiers = _parseModifiers(aEvent);
   var options = 0;
-  if (aEvent.isNoLineOrPageDelta) {
-    options |= utils.WHEEL_EVENT_CAUSED_BY_NO_LINE_OR_PAGE_DELTA_DEVICE;
+  if (aEvent.isPixelOnlyDevice &&
+      (aEvent.deltaMode == WheelEvent.DOM_DELTA_PIXEL)) {
+    options |= utils.WHEEL_EVENT_CAUSED_BY_PIXEL_ONLY_DEVICE;
   }
   if (aEvent.isMomentum) {
     options |= utils.WHEEL_EVENT_CAUSED_BY_MOMENTUM;
@@ -389,7 +389,8 @@ function synthesizeWheel(aTarget, aOffsetX, aOffsetY, aEvent, aWindow)
       options |= utils.WHEEL_EVENT_EXPECTED_OVERFLOW_DELTA_Y_NEGATIVE;
     }
   }
-  var isNoLineOrPageDelta = aEvent.isNoLineOrPageDelta;
+  var isPixelOnlyDevice =
+    aEvent.isPixelOnlyDevice && aEvent.deltaMode == WheelEvent.DOM_DELTA_PIXEL;
 
   
   if (!aEvent.deltaX) {
