@@ -3,14 +3,21 @@
 
 
 
+#include "nsXPCOM.h"
 #include "nsMemoryImpl.h"
 #include "nsThreadUtils.h"
 
 #include "nsIObserver.h"
 #include "nsIObserverService.h"
+#include "nsIServiceManager.h"
 #include "nsISimpleEnumerator.h"
 
+#include "prcvar.h"
+#include "pratom.h"
+
+#include "nsAlgorithm.h"
 #include "nsCOMPtr.h"
+#include "nsString.h"
 #include "mozilla/Services.h"
 
 #ifdef ANDROID

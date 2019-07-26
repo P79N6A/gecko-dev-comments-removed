@@ -8,8 +8,7 @@
 #define mozilla_nsMemoryInfoDumper_h
 
 #include "nsIMemoryInfoDumper.h"
-
-class nsACString;
+#include "nsString.h"
 
 
 
