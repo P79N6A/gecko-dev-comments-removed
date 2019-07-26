@@ -12,7 +12,7 @@ let Services = tempScope.Services;
 
 
 let gEnableLogging = Services.prefs.getBoolPref("devtools.debugger.log");
-Services.prefs.setBoolPref("devtools.debugger.log", true);
+Services.prefs.setBoolPref("devtools.debugger.log", false);
 
 Cu.import("resource://gre/modules/devtools/dbg-server.jsm", tempScope);
 Cu.import("resource://gre/modules/devtools/dbg-client.jsm", tempScope);
