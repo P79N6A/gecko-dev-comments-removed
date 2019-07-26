@@ -6,10 +6,6 @@ Cu.import("resource://services-common/async.js");
 Cu.import("resource://services-sync/util.js");
 Cu.import("resource://services-sync/record.js");
 Cu.import("resource://services-sync/engines.js");
-Cu.import("resource://testing-common/services/sync/fakeservices.js");
-
-let btoa;
-let atob;
 
 let provider = {
   getFile: function(prop, persistent) {
@@ -24,26 +20,6 @@ let provider = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIDirectoryServiceProvider])
 };
 Services.dirsvc.QueryInterface(Ci.nsIDirectoryService).registerProvider(provider);
-
-let timer;
-function waitForZeroTimer(callback) {
-  
-  
-  
-  let ticks = 2;
-  function wait() {
-    if (ticks) {
-      ticks -= 1;
-      Utils.nextTick(wait);
-      return;
-    }
-    callback();
-  }
-  timer = Utils.namedTimer(wait, 150, {}, "timer");
-}
-
-btoa = Cu.import("resource://services-common/log4moz.js").btoa;
-atob = Cu.import("resource://services-common/log4moz.js").atob;
 
 
 let gGlobalScope = this;
@@ -146,33 +122,7 @@ function uninstallAddon(addon) {
   Async.waitForSyncCallback(cb);
 }
 
-function setBasicCredentials(username, password, syncKey) {
-  let ns = {};
-  Cu.import("resource://services-sync/service.js", ns);
 
-  let auth = ns.Service.identity;
-  auth.username = username;
-  auth.basicPassword = password;
-  auth.syncKey = syncKey;
-}
-
-function SyncTestingInfrastructure(username, password, syncKey) {
-  let ns = {};
-  Cu.import("resource://services-sync/service.js", ns);
-
-  let auth = ns.Service.identity;
-  auth.account = username || "foo";
-  auth.basicPassword = password || "password";
-  auth.syncKey = syncKey || "foo";
-
-  ns.Service.serverURL = TEST_SERVER_URL;
-  ns.Service.clusterURL = TEST_CLUSTER_URL;
-
-  this.logStats = initTestLogging();
-  this.fakeFilesystem = new FakeFilesystemService({});
-  this.fakeGUIDService = new FakeGUIDService();
-  this.fakeCryptoService = new FakeCryptoService();
-}
 
 _("Setting the identity for passphrase");
 Cu.import("resource://services-sync/identity.js");
@@ -180,17 +130,6 @@ Cu.import("resource://services-sync/identity.js");
 
 
 
-
-
-function encryptPayload(cleartext) {
-  if (typeof cleartext == "object") {
-    cleartext = JSON.stringify(cleartext);
-  }
-
-  return {ciphertext: cleartext, 
-          IV: "irrelevant",
-          hmac: fakeSHA256HMAC(cleartext, Utils.makeHMACKey(""))};
-}
 
 function generateNewKeys(collectionKeys, collections=null) {
   let wbo = collectionKeys.generateNewKeysWBO(collections);

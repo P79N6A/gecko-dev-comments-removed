@@ -4,8 +4,6 @@
 Cu.import("resource://services-sync/constants.js");
 Cu.import("resource://services-sync/service.js");
 
-var btoa = Cu.import("resource://services-sync/util.js").btoa;
-
 
 function run_test() {
   const PBKDF2_KEY_BYTES = 16;

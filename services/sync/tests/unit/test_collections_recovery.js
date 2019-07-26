@@ -1,5 +1,9 @@
 
+
+
+
 Cu.import("resource://services-sync/service.js");
+Cu.import("resource://testing-common/services/sync/utils.js");
 
 add_test(function test_missing_crypto_collection() {
   let johnHelper = track_collections_helper();
