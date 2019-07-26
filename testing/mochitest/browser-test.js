@@ -19,7 +19,9 @@ function testOnLoad() {
   window.removeEventListener("load", testOnLoad, false);
 
   gConfig = readConfig();
-  if (gConfig.testRoot == "browser" || gConfig.testRoot == "webapprtChrome") {
+  if (gConfig.testRoot == "browser" ||
+      gConfig.testRoot == "metro" ||
+      gConfig.testRoot == "webapprtChrome") {
     
     var prefs = Services.prefs;
     if (prefs.prefHasUserValue("testing.browserTestHarness.running"))
