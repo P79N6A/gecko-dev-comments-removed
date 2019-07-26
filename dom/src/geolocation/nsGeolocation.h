@@ -124,7 +124,7 @@ public:
 
   void SetCachedPosition(nsIDOMGeoPosition* aPosition);
   nsIDOMGeoPosition* GetCachedPosition();
-  PRBool IsBetterPosition(nsIDOMGeoPosition *aSomewhere);
+  bool IsBetterPosition(nsIDOMGeoPosition *aSomewhere);
 
   
   nsresult StartDevice(nsIPrincipal* aPrincipal, bool aRequestPrivate);
