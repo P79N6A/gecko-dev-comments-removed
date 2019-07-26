@@ -185,7 +185,7 @@ var TouchModule = {
     
     if (this._treatMouseAsTouch) {
       let event = document.createEvent("Events");
-      event.initEvent("MozEdgeUIGesture", true, false);
+      event.initEvent("MozEdgeUICompleted", true, false);
       window.dispatchEvent(event);
       return;
     }
