@@ -101,26 +101,17 @@ public class HomeBanner extends LinearLayout
         closeButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                
-                HomeBanner.this.setVisibility(View.GONE);
-                HomeBanner.this.setEnabled(false);
+                HomeBanner.this.dismiss();
 
                 
                 GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("HomeBanner:Dismiss", (String) getTag()));
-
-                if (mOnDismissListener != null) {
-                    mOnDismissListener.onDismiss();
-                }
             }
         });
 
         setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                
-                
-                HomeBanner.this.setVisibility(View.GONE);
-                HomeBanner.this.setEnabled(false);
+                HomeBanner.this.dismiss();
 
                 
                 GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("HomeBanner:Click", (String) getTag()));
@@ -154,6 +145,18 @@ public class HomeBanner extends LinearLayout
 
     public void setOnDismissListener(OnDismissListener listener) {
         mOnDismissListener = listener;
+    }
+
+    
+
+
+    private void dismiss() {
+        setVisibility(View.GONE);
+        setEnabled(false);
+
+        if (mOnDismissListener != null) {
+            mOnDismissListener.onDismiss();
+        }
     }
 
     
