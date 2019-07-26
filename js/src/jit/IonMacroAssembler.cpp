@@ -1854,6 +1854,11 @@ MacroAssembler::convertTypedOrValueToInt(TypedOrValueRegister src, FloatRegister
       case MIRType_Double:
         convertDoubleToInt(src.typedReg().fpu(), output, temp, nullptr, fail, behavior);
         break;
+      case MIRType_Float32:
+        
+        convertFloatToDouble(src.typedReg().fpu(), temp);
+        convertDoubleToInt(temp, output, temp, nullptr, fail, behavior);
+        break;
       case MIRType_String:
       case MIRType_Object:
         jump(fail);
