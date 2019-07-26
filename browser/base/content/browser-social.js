@@ -351,8 +351,14 @@ let SocialChatBar = {
     return !!this.chatbar.firstElementChild;
   },
   openChat: function(aProvider, aURL, aCallback, aMode) {
-    if (this.isAvailable)
+    if (this.isAvailable) {
       this.chatbar.openChat(aProvider, aURL, aCallback, aMode);
+      
+      let dwu = window.QueryInterface(Ci.nsIInterfaceRequestor)
+                      .getInterface(Ci.nsIDOMWindowUtils);
+      if (dwu.isHandlingUserInput)
+        this.chatbar.focus();
+    }
   },
   update: function() {
     let command = document.getElementById("Social:FocusChat");
