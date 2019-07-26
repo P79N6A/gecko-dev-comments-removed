@@ -75,6 +75,8 @@ private:
 #define NS_LOG_RELEASE(_p, _rc, _type) \
   NS_LogRelease((_p), (_rc), (_type))
 
+
+
 #define MOZ_COUNT_CTOR(_type)                                 \
 do {                                                          \
   NS_LogCtor((void*)this, #_type, sizeof(*this));             \
