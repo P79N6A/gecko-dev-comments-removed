@@ -2480,8 +2480,24 @@ let SessionStoreInternal = {
         this._windows[aWindow.__SSi].extData[key] = winData.extData[key];
       }
     }
+
+    let newClosedTabsData = winData._closedTabs || [];
+
     if (overwriteTabs || firstWindow) {
-      this._windows[aWindow.__SSi]._closedTabs = winData._closedTabs || [];
+      
+      
+      this._windows[aWindow.__SSi]._closedTabs = newClosedTabsData;
+    } else if (this._max_tabs_undo > 0) {
+      
+      
+      
+      newClosedTabsData =
+        newClosedTabsData.concat(this._windows[aWindow.__SSi]._closedTabs);
+
+      
+      
+      this._windows[aWindow.__SSi]._closedTabs =
+        newClosedTabsData.slice(0, this._max_tabs_undo);
     }
 
     this.restoreTabs(aWindow, tabs, winData.tabs,
