@@ -52,6 +52,9 @@ public:
     aURL = mURL;
   }
 
+  WorkerPrivate*
+  GetWorkerPrivate() const;
+
 private:
   
   ServiceWorker(nsPIDOMWindow* aWindow, SharedWorker* aSharedWorker);

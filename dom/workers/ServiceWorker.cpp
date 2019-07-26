@@ -44,3 +44,13 @@ ServiceWorker::WrapObject(JSContext* aCx)
 
   return ServiceWorkerBinding::Wrap(aCx, this);
 }
+
+WorkerPrivate*
+ServiceWorker::GetWorkerPrivate() const
+{
+  
+  
+  
+  MOZ_ASSERT(mSharedWorker);
+  return mSharedWorker->GetWorkerPrivate();
+}
