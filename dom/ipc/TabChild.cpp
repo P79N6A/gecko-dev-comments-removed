@@ -2104,10 +2104,15 @@ TabChild::InitRenderingState()
     if (id != 0) {
         
         
+        PCompositorChild* compositorChild = CompositorChild::Get();
+        if (!compositorChild) {
+          NS_WARNING("failed to get CompositorChild instance");
+          return false;
+        }
         shadowManager =
-            CompositorChild::Get()->SendPLayersConstructor(be, id,
-                                                           &be,
-                                                           &maxTextureSize);
+            compositorChild->SendPLayersConstructor(be, id,
+                                                    &be,
+                                                    &maxTextureSize);
     } else {
         
         shadowManager = remoteFrame->SendPLayersConstructor();
