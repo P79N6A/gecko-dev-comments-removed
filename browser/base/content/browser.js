@@ -1462,7 +1462,7 @@ var gBrowserInit = {
     }
 
     
-    gDevTools.registerBrowserWindow(window);
+    gDevToolsBrowser.registerBrowserWindow(window);
 
     let appMenuButton = document.getElementById("appmenu-button");
     let appMenuPopup = document.getElementById("appmenu-popup");
@@ -1506,7 +1506,7 @@ var gBrowserInit = {
     if (!this._loadHandled)
       return;
 
-    gDevTools.forgetBrowserWindow(window);
+    gDevToolsBrowser.forgetBrowserWindow(window);
 
     
     
@@ -7297,7 +7297,7 @@ var TabContextMenu = {
 XPCOMUtils.defineLazyModuleGetter(this, "gDevTools",
                                   "resource:///modules/devtools/gDevTools.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "DevToolsXULCommands",
+XPCOMUtils.defineLazyModuleGetter(this, "gDevToolsBrowser",
                                   "resource:///modules/devtools/gDevTools.jsm");
 
 XPCOMUtils.defineLazyGetter(this, "HUDConsoleUI", function () {
