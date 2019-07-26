@@ -190,17 +190,6 @@ nsXULPrototypeCache::GetScript(nsIURI* aURI)
     return entry.mScriptObject;
 }
 
-
-
-static PLDHashOperator
-ReleaseScriptObjectCallback(nsIURI* aKey, CacheScriptEntry &aData, void* aClosure)
-{
-    nsCOMPtr<nsIScriptRuntime> rt;
-    if (NS_SUCCEEDED(NS_GetJSRuntime(getter_AddRefs(rt))))
-        rt->DropScriptObject(aData.mScriptObject);
-    return PL_DHASH_REMOVE;
-}
-
 nsresult
 nsXULPrototypeCache::PutScript(nsIURI* aURI, JSScript* aScriptObject)
 {
@@ -214,33 +203,14 @@ nsXULPrototypeCache::PutScript(nsIURI* aURI, JSScript* aScriptObject)
         message += " twice (bug 392650)";
         NS_WARNING(message.get());
 #endif
-        
-        ReleaseScriptObjectCallback(aURI, existingEntry, nullptr);
     }
 
     CacheScriptEntry entry = {aScriptObject};
 
     mScriptTable.Put(aURI, entry);
 
-    
-    nsCOMPtr<nsIScriptRuntime> rt;
-    nsresult rv = NS_GetJSRuntime(getter_AddRefs(rt));
-    if (NS_SUCCEEDED(rv))
-        rv = rt->HoldScriptObject(aScriptObject);
-    NS_ASSERTION(NS_SUCCEEDED(rv), "Failed to GC lock the object");
-
-    
-    return rv;
+    return NS_OK;
 }
-
-void
-nsXULPrototypeCache::FlushScripts()
-{
-    
-    
-    mScriptTable.Enumerate(ReleaseScriptObjectCallback, nullptr);
-}
-
 
 nsresult
 nsXULPrototypeCache::PutXBLDocumentInfo(nsXBLDocumentInfo* aDocumentInfo)
@@ -307,15 +277,17 @@ nsXULPrototypeCache::FlushSkinFiles()
   mXBLDocTable.Enumerate(FlushScopedSkinStylesheets, nullptr);
 }
 
+void
+nsXULPrototypeCache::FlushScripts()
+{
+    mScriptTable.Clear();
+}
 
 void
 nsXULPrototypeCache::Flush()
 {
     mPrototypeTable.Clear();
-
-    
-    FlushScripts();
-
+    mScriptTable.Clear();
     mStyleSheetTable.Clear();
     mXBLDocTable.Clear();
 }
@@ -665,4 +637,19 @@ nsXULPrototypeCache::MarkInCCGeneration(uint32_t aGeneration)
 {
     mXBLDocTable.Enumerate(MarkXBLInCCGeneration, &aGeneration);
     mPrototypeTable.Enumerate(MarkXULInCCGeneration, &aGeneration);
+}
+
+static PLDHashOperator
+MarkScriptsInGC(nsIURI* aKey, CacheScriptEntry& aScriptEntry, void* aClosure)
+{
+    JSTracer* trc = static_cast<JSTracer*>(aClosure);
+    JS_CALL_SCRIPT_TRACER(trc, aScriptEntry.mScriptObject,
+                          "nsXULPrototypeCache script");
+    return PL_DHASH_NEXT;
+}
+
+void
+nsXULPrototypeCache::MarkInGC(JSTracer* aTrc)
+{
+    mScriptTable.Enumerate(MarkScriptsInGC, aTrc);
 }
