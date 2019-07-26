@@ -12,13 +12,11 @@
 
 class nsIXULTemplateBuilder;
 class nsIContent;
-class nsIScriptGlobalObjectOwner;
 
 
 
 #define NS_IXULDOCUMENT_IID \
-{ 0x3e872e97, 0xb678, 0x418e, \
-  { 0xa7, 0xe3, 0x41, 0xb8, 0x30, 0x5d, 0x4e, 0x75 } }
+  {0x81ba4be5, 0x6cc5, 0x478a, {0x9b, 0x08, 0xb3, 0xe7, 0xed, 0x52, 0x44, 0x55}}
 
 
 
@@ -37,11 +35,6 @@ public:
 
 
   virtual void GetElementsForID(const nsAString& aID, nsCOMArray<nsIContent>& aElements) = 0;
-
-  
-
-
-  NS_IMETHOD GetScriptGlobalObjectOwner(nsIScriptGlobalObjectOwner** aGlobalOwner) = 0;
 
   
 
