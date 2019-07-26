@@ -739,6 +739,12 @@ nsScriptLoader::ProcessRequest(nsScriptLoadRequest* aRequest)
                                          true, true, &runScript);
   }
 
+  
+  pwin = mDocument->GetInnerWindow();
+  if (!pwin) {
+    runScript = false;
+  }
+
   nsresult rv = NS_OK;
   if (runScript) {
     if (doc) {
