@@ -300,7 +300,8 @@ public:
   Layer* GetOldLayerFor(nsDisplayItem* aItem, 
                         nsDisplayItemGeometry** aOldGeometry = nullptr, 
                         Clip** aOldClip = nullptr,
-                        nsTArray<nsIFrame*>* aChangedFrames = nullptr);
+                        nsTArray<nsIFrame*>* aChangedFrames = nullptr,
+                        bool *aIsInvalid = nullptr);
 
   static Layer* GetDebugOldLayerFor(nsIFrame* aFrame, uint32_t aDisplayItemKey);
 
@@ -335,6 +336,11 @@ public:
 
 
   static bool HasRetainedDataFor(nsIFrame* aFrame, uint32_t aDisplayItemKey);
+
+  class DisplayItemData;
+  typedef void (*DisplayItemDataCallback)(nsIFrame *aFrame, DisplayItemData* aItem);
+
+  static void IterateRetainedDataFor(nsIFrame* aFrame, DisplayItemDataCallback aCallback);
 
   
 
@@ -466,7 +472,6 @@ public:
   NS_DECLARE_FRAME_PROPERTY_WITH_FRAME_IN_DTOR(LayerManagerDataProperty,
                                                RemoveFrameFromLayerManager)
 
-protected:
   
 
 
@@ -485,6 +490,12 @@ protected:
 
   class DisplayItemData {
   public:
+    friend class FrameLayerBuilder;
+
+    uint32_t GetDisplayItemKey() { return mDisplayItemKey; }
+    Layer* GetLayer() { return mLayer; }
+    void Invalidate() { mIsInvalid = true; }
+  protected:
 
     DisplayItemData(LayerManagerData* aParent, uint32_t aKey, Layer* aLayer, LayerState aLayerState, uint32_t aGeneration);
     DisplayItemData(DisplayItemData &toCopy);
@@ -496,6 +507,7 @@ protected:
     ~DisplayItemData();
 
     NS_INLINE_DECL_REFCOUNTING(DisplayItemData)
+
 
     
 
@@ -531,7 +543,10 @@ protected:
 
 
     bool            mUsed;
+    bool            mIsInvalid;
   };
+
+protected:
 
   friend class LayerManagerData;
 
