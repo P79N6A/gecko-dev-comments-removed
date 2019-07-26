@@ -62,9 +62,9 @@ class nsJAR : public nsIZipReader
 
     nsJAR();
     virtual ~nsJAR();
-    
+
     NS_DEFINE_STATIC_CID_ACCESSOR( NS_ZIPREADER_CID )
-  
+
     NS_DECL_THREADSAFE_ISUPPORTS
 
     NS_DECL_NSIZIPREADER
@@ -74,7 +74,7 @@ class nsJAR : public nsIZipReader
     PRIntervalTime GetReleaseTime() {
         return mReleaseTime;
     }
-    
+
     bool IsReleased() {
         return mReleaseTime != PR_INTERVAL_NO_TIMEOUT;
     }
@@ -82,11 +82,11 @@ class nsJAR : public nsIZipReader
     void SetReleaseTime() {
       mReleaseTime = PR_IntervalNow();
     }
-    
+
     void ClearReleaseTime() {
       mReleaseTime = PR_INTERVAL_NO_TIMEOUT;
     }
-    
+
     void SetZipReaderCache(nsZipReaderCache* cache) {
       mCache = cache;
     }
@@ -102,18 +102,18 @@ class nsJAR : public nsIZipReader
     int16_t                  mGlobalStatus;   
     PRIntervalTime           mReleaseTime;    
     nsZipReaderCache*        mCache;          
-    mozilla::Mutex           mLock;	
+    mozilla::Mutex           mLock;
     int64_t                  mMtime;
     int32_t                  mTotalItemsInManifest;
     bool                     mOpened;
 
     nsresult ParseManifest();
     void     ReportError(const nsACString &aFilename, int16_t errorCode);
-    nsresult LoadEntry(const nsACString &aFilename, char** aBuf, 
+    nsresult LoadEntry(const nsACString &aFilename, char** aBuf,
                        uint32_t* aBufLen = nullptr);
-    int32_t  ReadLine(const char** src); 
+    int32_t  ReadLine(const char** src);
     nsresult ParseOneFile(const char* filebuf, int16_t aFileType);
-    nsresult VerifyEntry(nsJARManifestItem* aEntry, const char* aEntryData, 
+    nsresult VerifyEntry(nsJARManifestItem* aEntry, const char* aEntryData,
                          uint32_t aLen);
 
     nsresult CalculateDigest(const char* aInBuf, uint32_t aInBufLen,
@@ -131,7 +131,7 @@ class nsJARItem : public nsIZipEntry
 public:
     NS_DECL_THREADSAFE_ISUPPORTS
     NS_DECL_NSIZIPENTRY
-    
+
     nsJARItem(nsZipItem* aZipItem);
     virtual ~nsJARItem() {}
 
@@ -142,7 +142,7 @@ private:
     PRTime       mLastModTime;
     uint16_t     mCompression;
     uint32_t     mPermissions;
-    bool mIsDirectory; 
+    bool mIsDirectory;
     bool mIsSynthetic;
 };
 
@@ -158,7 +158,7 @@ public:
     NS_DECL_THREADSAFE_ISUPPORTS
     NS_DECL_NSIUTF8STRINGENUMERATOR
 
-    nsJAREnumerator(nsZipFind *aFind) : mFind(aFind), mName(nullptr) { 
+    nsJAREnumerator(nsZipFind *aFind) : mFind(aFind), mName(nullptr) {
       NS_ASSERTION(mFind, "nsJAREnumerator: Missing zipFind.");
     }
 
