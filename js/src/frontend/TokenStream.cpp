@@ -1003,7 +1003,7 @@ enum FirstCharKind {
     Dec,
     Colon,
     Plus,
-    HexOct,
+    BasePrefix,
 
     
     Space,
@@ -1032,7 +1032,7 @@ static const uint8_t firstCharKinds[] = {
      EOL,   Space,   Space,     EOL, _______, _______, _______, _______, _______, _______,
  _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,
  _______, _______,   Space, _______,  String, _______,   Ident, _______, _______,  String,
- OneChar, OneChar, _______,    Plus, OneChar, _______,     Dot, _______,  HexOct,     Dec,
+ OneChar, OneChar, _______,    Plus, OneChar, _______,     Dot, _______, BasePrefix,  Dec,
      Dec,     Dec,     Dec,     Dec,     Dec,     Dec,     Dec,     Dec,   Colon, OneChar,
  _______,  Equals, _______, OneChar, _______,   Ident,   Ident,   Ident,   Ident,   Ident,
    Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,
@@ -1398,9 +1398,7 @@ TokenStream::getTokenInternal()
     }
 
     
-
-
-    if (c1kind == HexOct) {
+    if (c1kind == BasePrefix) {
         int radix;
         c = getCharIgnoreEOL();
         if (c == 'x' || c == 'X') {
@@ -1413,6 +1411,28 @@ TokenStream::getTokenInternal()
             }
             numStart = userbuf.addressOfNextRawChar() - 1;  
             while (JS7_ISHEX(c))
+                c = getCharIgnoreEOL();
+        } else if (c == 'b' || c == 'B') {
+            radix = 2;
+            c = getCharIgnoreEOL();
+            if (c != '0' && c != '1') {
+                ungetCharIgnoreEOL(c);
+                reportError(JSMSG_MISSING_BINARY_DIGITS);
+                goto error;
+            }
+            numStart = userbuf.addressOfNextRawChar() - 1;  
+            while (c == '0' || c == '1')
+                c = getCharIgnoreEOL();
+        } else if (c == 'o' || c == 'O') {
+            radix = 8;
+            c = getCharIgnoreEOL();
+            if (c < '0' || c > '7') {
+                ungetCharIgnoreEOL(c);
+                reportError(JSMSG_MISSING_OCTAL_DIGITS);
+                goto error;
+            }
+            numStart = userbuf.addressOfNextRawChar() - 1;  
+            while ('0' <= c && c <= '7')
                 c = getCharIgnoreEOL();
         } else if (JS7_ISDEC(c)) {
             radix = 8;
