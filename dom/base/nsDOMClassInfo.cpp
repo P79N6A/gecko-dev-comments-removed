@@ -102,6 +102,7 @@
 #include "nsError.h"
 #include "nsIDOMDOMException.h"
 #include "nsIDOMNode.h"
+#include "nsIDOMMozNamedAttrMap.h"
 #include "nsIDOMDOMStringList.h"
 
 
@@ -279,6 +280,8 @@ using mozilla::dom::indexedDB::IDBWrapperCache;
 using mozilla::dom::workers::ResolveWorkerClasses;
 
 #include "nsIDOMMediaQueryList.h"
+
+#include "mozilla/dom/Activity.h"
 
 #include "nsDOMTouchEvent.h"
 
@@ -559,6 +562,8 @@ static nsDOMClassInfoData sClassInfoData[] = {
                            ELEMENT_SCRIPTABLE_FLAGS)
   NS_DEFINE_CLASSINFO_DATA(Attr, nsAttributeSH,
                            NODE_SCRIPTABLE_FLAGS)
+  NS_DEFINE_CLASSINFO_DATA(MozNamedAttrMap, nsNamedNodeMapSH,
+                           ARRAY_SCRIPTABLE_FLAGS)
 
   
 
@@ -1659,9 +1664,8 @@ nsDOMClassInfo::Init()
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMNavigatorBluetooth)
 #endif
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMNavigatorCamera)
-#ifdef MOZ_SYS_MSG
-    DOM_CLASSINFO_MAP_ENTRY(nsIDOMNavigatorSystemMessages)
-#endif
+    DOM_CLASSINFO_MAP_CONDITIONAL_ENTRY(nsIDOMNavigatorSystemMessages,
+                                        Activity::PrefEnabled())
 #ifdef MOZ_TIME_MANAGER
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMMozNavigatorTime)
 #endif
@@ -1720,6 +1724,10 @@ nsDOMClassInfo::Init()
   DOM_CLASSINFO_MAP_BEGIN(Attr, nsIDOMAttr)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMAttr)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMEventTarget)
+  DOM_CLASSINFO_MAP_END
+
+  DOM_CLASSINFO_MAP_BEGIN(MozNamedAttrMap, nsIDOMMozNamedAttrMap)
+    DOM_CLASSINFO_MAP_ENTRY(nsIDOMMozNamedAttrMap)
   DOM_CLASSINFO_MAP_END
 
   DOM_CLASSINFO_MAP_BEGIN(Event, nsIDOMEvent)
@@ -3413,8 +3421,6 @@ BaseStubConstructor(nsIWeakReference* aWeakOwner,
                     const nsGlobalNameStruct *name_struct, JSContext *cx,
                     JSObject *obj, unsigned argc, jsval *argv, jsval *rval)
 {
-  MOZ_ASSERT(obj);
-
   nsresult rv;
   nsCOMPtr<nsISupports> native;
   if (name_struct->mType == nsGlobalNameStruct::eTypeClassConstructor) {
@@ -3930,7 +3936,11 @@ nsDOMConstructor::Construct(nsIXPConnectWrappedNative *wrapper, JSContext * cx,
                             JSObject * obj, uint32_t argc, jsval * argv,
                             jsval * vp, bool *_retval)
 {
-  MOZ_ASSERT(obj);
+  JSObject* class_obj = JSVAL_TO_OBJECT(argv[-2]);
+  if (!class_obj) {
+    NS_ERROR("nsDOMConstructor::Construct couldn't get constructor object.");
+    return NS_ERROR_UNEXPECTED;
+  }
 
   const nsGlobalNameStruct *name_struct = GetNameStruct();
   NS_ENSURE_TRUE(name_struct, NS_ERROR_FAILURE);
@@ -6059,6 +6069,31 @@ nsNamedArraySH::GetProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
 }
 
 
+
+
+nsISupports*
+nsNamedNodeMapSH::GetItemAt(nsISupports *aNative, uint32_t aIndex,
+                            nsWrapperCache **aCache, nsresult *aResult)
+{
+  *aResult = NS_OK;
+  nsDOMAttributeMap* map = nsDOMAttributeMap::FromSupports(aNative);
+
+  nsINode *attr;
+  *aCache = attr = map->GetItemAt(aIndex);
+  return attr;
+}
+
+nsISupports*
+nsNamedNodeMapSH::GetNamedItem(nsISupports *aNative, const nsAString& aName,
+                               nsWrapperCache **aCache, nsresult *aResult)
+{
+  nsDOMAttributeMap* map = nsDOMAttributeMap::FromSupports(aNative);
+
+  nsINode *attr;
+  *aCache = attr = map->GetNamedItem(aName);
+  return attr;
+}
+
 NS_IMETHODIMP
 nsDocumentSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
                          JSObject *obj, jsid id, uint32_t flags,
@@ -7429,8 +7464,6 @@ nsDOMConstructorSH::Call(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
                          JSObject *obj, uint32_t argc, jsval *argv, jsval *vp,
                          bool *_retval)
 {
-  MOZ_ASSERT(obj);
-
   nsDOMConstructor *wrapped =
     static_cast<nsDOMConstructor *>(wrapper->Native());
 
@@ -7450,8 +7483,6 @@ nsDOMConstructorSH::Construct(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
                               JSObject *obj, uint32_t argc, jsval *argv,
                               jsval *vp, bool *_retval)
 {
-  MOZ_ASSERT(obj);
-
   nsDOMConstructor *wrapped =
     static_cast<nsDOMConstructor *>(wrapper->Native());
 

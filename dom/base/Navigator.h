@@ -186,10 +186,9 @@ public:
 
   void OnNavigation();
 
-#ifdef MOZ_SYS_MSG
   
   nsresult EnsureMessagesManager();
-#endif
+
   NS_DECL_NSIDOMNAVIGATORCAMERA
 
 private:

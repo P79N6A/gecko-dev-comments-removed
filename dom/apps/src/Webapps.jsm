@@ -25,6 +25,14 @@ function debug(aMsg) {
   
 }
 
+let cachedSysMsgPref = null;
+function supportSystemMessages() {
+  if (_sysMsgPref === null) {
+    cachedSysMsgPref = Services.prefs.getBoolPref("dom.sysmsg.enabled");
+  }
+  return cachedSysMsgPref;
+}
+
 
 const MIN_PROGRESS_EVENT_DELAY = 1000;
 
@@ -180,21 +188,21 @@ this.DOMApplicationRegistry = {
     for (let id in this.webapps) {
       ids.push({ id: id });
     }
-#ifdef MOZ_SYS_MSG
-    this._processManifestForIds(ids, aRunUpdate);
-#else
-    
-    
-    
-    this._readManifests(ids, (function readCSPs(aResults) {
-      aResults.forEach(function registerManifest(aResult) {
-        this.webapps[aResult.id].csp = aResult.manifest.csp || "";
-      }, this);
-    }).bind(this));
+    if (supportSystemMessages()) {
+      this._processManifestForIds(ids, aRunUpdate);
+    } else {
+      
+      
+      
+      this._readManifests(ids, (function readCSPs(aResults) {
+        aResults.forEach(function registerManifest(aResult) {
+          this.webapps[aResult.id].csp = aResult.manifest.csp || "";
+        }, this);
+      }).bind(this));
 
-    
-    this.notifyAppsRegistryReady();
-#endif
+      
+      this.notifyAppsRegistryReady();
+    }
   },
 
   updatePermissionsForApp: function updatePermissionsForApp(aId) {
@@ -439,7 +447,6 @@ this.DOMApplicationRegistry = {
     }).bind(this));
   },
 
-#ifdef MOZ_SYS_MSG
   
   
   _registerSystemMessagesForEntryPoint: function(aManifest, aApp, aEntryPoint) {
@@ -657,7 +664,6 @@ this.DOMApplicationRegistry = {
       this._registerActivitiesForApps(appsToRegister, aRunUpdate);
     }).bind(this));
   },
-#endif
 
   observe: function(aSubject, aTopic, aData) {
     if (aTopic == "xpcom-shutdown") {
@@ -1284,16 +1290,17 @@ this.DOMApplicationRegistry = {
   updateAppHandlers: function(aOldManifest, aNewManifest, aApp) {
     debug("updateAppHandlers: old=" + aOldManifest + " new=" + aNewManifest);
     this.notifyAppsRegistryStart();
-#ifdef MOZ_SYS_MSG
-    if (aOldManifest) {
-      this._unregisterActivities(aOldManifest, aApp);
+
+    if (supportSystemMessages()) {
+      if (aOldManifest) {
+        this._unregisterActivities(aOldManifest, aApp);
+      }
+      this._registerSystemMessages(aNewManifest, aApp);
+      this._registerActivities(aNewManifest, aApp, true);
+    } else {
+      
+      this.notifyAppsRegistryReady();
     }
-    this._registerSystemMessages(aNewManifest, aApp);
-    this._registerActivities(aNewManifest, aApp, true);
-#else
-    
-    this.notifyAppsRegistryReady();
-#endif
   },
 
   checkForUpdate: function(aData, aMm) {
@@ -2486,11 +2493,11 @@ this.DOMApplicationRegistry = {
       let appNote = JSON.stringify(AppsUtils.cloneAppObject(app));
       appNote.id = id;
 
-#ifdef MOZ_SYS_MSG
-      this._readManifests([{ id: id }], (function unregisterManifest(aResult) {
-        this._unregisterActivities(aResult[0].manifest, app);
-      }).bind(this));
-#endif
+      if (supportSystemMessages()) {
+        this._readManifests([{ id: id }], (function unregisterManifest(aResult) {
+          this._unregisterActivities(aResult[0].manifest, app);
+        }).bind(this));
+      }
 
       let dir = this._getAppDir(id);
       try {
