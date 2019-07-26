@@ -171,27 +171,26 @@ HTMLLabelElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
                          dragDistance.y > CLICK_DISTANCE ||
                          dragDistance.y < -CLICK_DISTANCE;
           }
-
           
           
-          
-          if (dragSelect || event->clickCount > 1 ||
-              event->IsShift() || event->IsControl() || event->IsAlt() ||
-              event->IsMeta()) {
+          if (dragSelect || event->IsShift() || event->IsControl() ||
+              event->IsAlt() || event->IsMeta()) {
             break;
           }
-
-          nsIFocusManager* fm = nsFocusManager::GetFocusManager();
-          if (fm) {
-            
-            
-            
-            
-            
-            nsCOMPtr<nsIDOMElement> elem = do_QueryInterface(content);
-            fm->SetFocus(elem, nsIFocusManager::FLAG_BYMOVEFOCUS);
+          
+          
+          if (event->clickCount <= 1) {
+            nsIFocusManager* fm = nsFocusManager::GetFocusManager();
+            if (fm) {
+              
+              
+              
+              
+              
+              nsCOMPtr<nsIDOMElement> elem = do_QueryInterface(content);
+              fm->SetFocus(elem, nsIFocusManager::FLAG_BYMOVEFOCUS);
+            }
           }
-
           
           
           
