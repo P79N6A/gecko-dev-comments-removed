@@ -121,8 +121,6 @@ mjit::Compiler::Compiler(JSContext *cx, JSScript *outerScript,
     gcNumber(cx->runtime->gcNumber),
     pcLengths(NULL)
 {
-    JS_ASSERT(cx->jaegerCompilationAllowed());
-
     if (!IsIonEnabled(cx)) {
         
         if (!debugMode() && cx->typeInferenceEnabled() && globalObj &&
@@ -994,9 +992,6 @@ mjit::CanMethodJIT(JSContext *cx, JSScript *script, jsbytecode *pc,
     bool compiledOnce = false;
   checkOutput:
     if (!cx->methodJitEnabled)
-        return Compile_Abort;
-
-    if (!cx->jaegerCompilationAllowed())
         return Compile_Abort;
 
 #ifdef JS_ION

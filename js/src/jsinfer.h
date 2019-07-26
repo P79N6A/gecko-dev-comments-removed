@@ -1466,13 +1466,6 @@ struct TypeZone
     
     bool                         inferenceEnabled;
 
-    
-
-
-
-
-    bool jaegerCompilationAllowed;
-
     TypeZone(JS::Zone *zone);
     ~TypeZone();
     void init(JSContext *cx);
