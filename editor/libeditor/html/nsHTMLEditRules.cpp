@@ -8145,8 +8145,8 @@ nsHTMLEditRules::RemoveEmptyNodes()
     NS_ENSURE_TRUE(node, NS_ERROR_FAILURE);
 
     nsINode* parent = node->GetParentNode();
-    
-    uint32_t idx = skipList.IndexOf(node);
+
+    size_t idx = skipList.IndexOf(node);
     if (idx != skipList.NoIndex) {
       
       

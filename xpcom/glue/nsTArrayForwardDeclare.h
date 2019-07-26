@@ -19,7 +19,7 @@
 
 
 
-#include <stdint.h>
+#include <stddef.h>
 
 template<class E>
 class nsTArray;
@@ -27,10 +27,10 @@ class nsTArray;
 template<class E>
 class FallibleTArray;
 
-template<class E, uint32_t N>
+template<class E, size_t N>
 class nsAutoTArray;
 
-template<class E, uint32_t N>
+template<class E, size_t N>
 class AutoFallibleTArray;
 
 #define InfallibleTArray nsTArray

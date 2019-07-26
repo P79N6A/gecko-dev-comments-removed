@@ -2929,7 +2929,7 @@ nsTableFrame::ReflowChildren(nsTableReflowState& aReflowState,
   }
    
   bool allowRepeatedFooter = false;
-  for (uint32_t childX = 0; childX < rowGroups.Length(); childX++) {
+  for (size_t childX = 0; childX < rowGroups.Length(); childX++) {
     nsIFrame* kidFrame = rowGroups[childX];
     
     

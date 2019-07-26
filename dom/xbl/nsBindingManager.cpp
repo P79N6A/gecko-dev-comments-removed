@@ -334,7 +334,7 @@ nsBindingManager::RemoveFromAttachedQueue(nsXBLBinding* aBinding)
 {
   
   
-  uint32_t index = mAttachedStack.IndexOf(aBinding);
+  size_t index = mAttachedStack.IndexOf(aBinding);
   if (index != mAttachedStack.NoIndex) {
     mAttachedStack[index] = nullptr;
   }
@@ -840,7 +840,7 @@ static void
 InsertAppendedContent(XBLChildrenElement* aPoint,
                       nsIContent* aFirstNewContent)
 {
-  uint32_t insertionIndex;
+  size_t insertionIndex;
   if (nsIContent* prevSibling = aFirstNewContent->GetPreviousSibling()) {
     
     
@@ -1083,14 +1083,14 @@ nsBindingManager::HandleChildInsertion(nsIContent* aContainer,
     
     
     
-    uint32_t index = aAppend ? point->mInsertedChildren.Length() : 0;
+    size_t index = aAppend ? point->mInsertedChildren.Length() : 0;
     for (nsIContent* currentSibling = aChild->GetPreviousSibling();
          currentSibling;
          currentSibling = currentSibling->GetPreviousSibling()) {
       
       
       
-      uint32_t pointIndex = point->IndexOfInsertedChild(currentSibling);
+      size_t pointIndex = point->IndexOfInsertedChild(currentSibling);
       if (pointIndex != point->NoIndex) {
         index = pointIndex + 1;
         break;

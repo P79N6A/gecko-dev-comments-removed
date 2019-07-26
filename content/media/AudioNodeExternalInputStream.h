@@ -92,8 +92,8 @@ private:
 
 
 
-  uint32_t GetTrackMapEntry(const StreamBuffer::Track& aTrack,
-                            GraphTime aFrom);
+  size_t GetTrackMapEntry(const StreamBuffer::Track& aTrack,
+                          GraphTime aFrom);
 };
 
 }

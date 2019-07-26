@@ -96,6 +96,9 @@ bool nsTArray_base<Alloc, Copy>::UsesAutoArrayBuffer() const {
 }
 
 
+bool
+IsTwiceTheRequiredBytesRepresentableAsUint32(size_t capacity, size_t elemSize);
+
 template<class Alloc, class Copy>
 typename Alloc::ResultTypeProxy
 nsTArray_base<Alloc, Copy>::EnsureCapacity(size_type capacity, size_type elemSize) {
@@ -108,7 +111,7 @@ nsTArray_base<Alloc, Copy>::EnsureCapacity(size_type capacity, size_type elemSiz
   
   
   
-  if ((uint64_t)capacity * elemSize > size_type(-1)/2) {
+  if (!IsTwiceTheRequiredBytesRepresentableAsUint32(capacity, elemSize)) {
     Alloc::SizeTooBig((size_t)capacity * elemSize);
     return Alloc::FailureResult();
   }
@@ -130,11 +133,11 @@ nsTArray_base<Alloc, Copy>::EnsureCapacity(size_type capacity, size_type elemSiz
   
   
   
-  const uint32_t pageSizeBytes = 12;
-  const uint32_t pageSize = 1 << pageSizeBytes;
+  const size_t pageSizeBytes = 12;
+  const size_t pageSize = 1 << pageSizeBytes;
 
-  uint32_t minBytes = capacity * elemSize + sizeof(Header);
-  uint32_t bytesToAlloc;
+  size_t minBytes = capacity * elemSize + sizeof(Header);
+  size_t bytesToAlloc;
   if (minBytes >= pageSize) {
     
     bytesToAlloc = pageSize * ((minBytes + pageSize - 1) / pageSize);
@@ -173,7 +176,7 @@ nsTArray_base<Alloc, Copy>::EnsureCapacity(size_type capacity, size_type elemSiz
   }
 
   
-  uint32_t newCapacity = (bytesToAlloc - sizeof(Header)) / elemSize;
+  size_t newCapacity = (bytesToAlloc - sizeof(Header)) / elemSize;
   MOZ_ASSERT(newCapacity >= capacity, "Didn't enlarge the array enough!");
   header->mCapacity = newCapacity;
 

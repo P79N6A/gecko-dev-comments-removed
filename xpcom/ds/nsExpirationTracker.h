@@ -177,7 +177,7 @@ template <class T, uint32_t K> class nsExpirationTracker {
       
       
       
-      uint32_t index = generation.Length();
+      size_t index = generation.Length();
       for (;;) {
         
         

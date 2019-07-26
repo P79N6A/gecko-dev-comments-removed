@@ -3012,7 +3012,7 @@ nsresult
 nsHTMLEditor::RemoveStyleSheetFromList(const nsAString &aURL)
 {
   
-  uint32_t foundIndex;
+  size_t foundIndex;
   foundIndex = mStyleSheetURLs.IndexOf(aURL);
   if (foundIndex == mStyleSheetURLs.NoIndex)
     return NS_ERROR_FAILURE;
@@ -3032,7 +3032,7 @@ nsHTMLEditor::GetStyleSheetForURL(const nsAString &aURL,
   *aStyleSheet = 0;
 
   
-  uint32_t foundIndex;
+  size_t foundIndex;
   foundIndex = mStyleSheetURLs.IndexOf(aURL);
   if (foundIndex == mStyleSheetURLs.NoIndex)
     return NS_OK; 

@@ -3113,13 +3113,13 @@ WorkerPrivateParent<Derived>::BroadcastErrorToSharedWorkers(
   
   
   
-  for (uint32_t index = 0; index < sharedWorkers.Length(); index++) {
+  for (size_t index = 0; index < sharedWorkers.Length(); index++) {
     nsRefPtr<SharedWorker>& sharedWorker = sharedWorkers[index];
 
     
     nsPIDOMWindow* window = sharedWorker->GetOwner();
 
-    uint32_t actionsIndex = windowActions.LastIndexOf(WindowAction(window));
+    size_t actionsIndex = windowActions.LastIndexOf(WindowAction(window));
 
     
     JSContext* cx;

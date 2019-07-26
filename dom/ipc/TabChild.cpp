@@ -1455,7 +1455,7 @@ TabChild::RecvCacheFileDescriptor(const nsString& aPath,
 
     
     const CachedFileDescriptorInfo search(aPath);
-    uint32_t index =
+    size_t index =
         mCachedFileDescriptorInfos.IndexOf(search, 0,
                                            search.PathOnlyComparator());
     if (index == mCachedFileDescriptorInfos.NoIndex) {
@@ -1507,7 +1507,7 @@ TabChild::GetCachedFileDescriptor(const nsAString& aPath,
     
     
     const CachedFileDescriptorInfo search(aPath);
-    uint32_t index =
+    size_t index =
         mCachedFileDescriptorInfos.IndexOf(search, 0,
                                            search.PathOnlyComparator());
     if (index == mCachedFileDescriptorInfos.NoIndex) {
@@ -1563,7 +1563,7 @@ TabChild::CancelCachedFileDescriptorCallback(
     }
 
     const CachedFileDescriptorInfo search(aPath, aCallback);
-    uint32_t index =
+    size_t index =
         mCachedFileDescriptorInfos.IndexOf(search, 0,
                                            search.PathAndCallbackComparator());
     if (index == mCachedFileDescriptorInfos.NoIndex) {
