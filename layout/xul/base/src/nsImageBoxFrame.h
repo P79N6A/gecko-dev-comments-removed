@@ -145,7 +145,9 @@ public:
     *aSnap = true;
     return nsRect(ToReferenceFrame(), Frame()->GetSize());
   }
-
+  virtual void ComputeInvalidationRegion(nsDisplayListBuilder* aBuilder,
+                                         const nsDisplayItemGeometry* aGeometry,
+                                         nsRegion* aInvalidRegion) MOZ_OVERRIDE;
   
   
   virtual void Paint(nsDisplayListBuilder* aBuilder,
