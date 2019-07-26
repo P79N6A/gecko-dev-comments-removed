@@ -62,6 +62,16 @@ namespace mozilla {
 namespace dom {
 
 
+static MOZ_CONSTEXPR nsAttrValue::EnumTable kKindTable[] = {
+  { "subtitles", static_cast<int16_t>(TextTrackKind::Subtitles) },
+  { "captions", static_cast<int16_t>(TextTrackKind::Captions) },
+  { "descriptions", static_cast<int16_t>(TextTrackKind::Descriptions) },
+  { "chapters", static_cast<int16_t>(TextTrackKind::Chapters) },
+  { "metadata", static_cast<int16_t>(TextTrackKind::Metadata) },
+  { 0 }
+};
+
+
 static MOZ_CONSTEXPR const char* kKindTableDefaultString = kKindTable->tag;
 
 
