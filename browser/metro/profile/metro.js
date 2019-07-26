@@ -87,6 +87,9 @@ pref("network.protocol-handler.warn-external.ms-windows-store", false);
 pref("network.protocol-handler.external.ms-windows-store", true);
 
 
+pref("browser.display.overlaynavbuttons", true);
+
+
 pref("browser.display.history.maxresults", 100);
 
 
