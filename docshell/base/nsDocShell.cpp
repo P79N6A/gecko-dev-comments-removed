@@ -2160,6 +2160,7 @@ nsDocShell::GetFullscreenAllowed(bool* aFullscreenAllowed)
     nsCOMPtr<nsIContent> frameElement = do_QueryInterface(win->GetFrameElementInternal());
     if (frameElement &&
         frameElement->IsHTML(nsGkAtoms::iframe) &&
+        !frameElement->HasAttr(kNameSpaceID_None, nsGkAtoms::allowfullscreen) &&
         !frameElement->HasAttr(kNameSpaceID_None, nsGkAtoms::mozallowfullscreen)) {
         return NS_OK;
     }
