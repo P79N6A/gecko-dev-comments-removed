@@ -6,6 +6,7 @@
 #include "WebGLContext.h"
 #include "WebGLTexture.h"
 #include "GLContext.h"
+#include "WebGLTexelConversions.h"
 #include "mozilla/dom/WebGLRenderingContextBinding.h"
 #include <algorithm>
 
@@ -358,9 +359,44 @@ WebGLTexture::ResolvedFakeBlackStatus() {
             hasUninitializedImageData |= (ImageInfoAtFace(face, level).mImageDataStatus == WebGLImageDataStatus::UninitializedImageData);
         }
     }
+
     if (hasUninitializedImageData) {
-        mFakeBlackStatus = WebGLTextureFakeBlackStatus::UninitializedImageData;
-        return mFakeBlackStatus;
+        bool hasAnyInitializedImageData = false;
+        for (size_t level = 0; level <= mMaxLevelWithCustomImages; ++level) {
+            for (size_t face = 0; face < mFacesCount; ++face) {
+                if (ImageInfoAtFace(face, level).mImageDataStatus == WebGLImageDataStatus::InitializedImageData) {
+                    hasAnyInitializedImageData = true;
+                    break;
+                }
+            }
+            if (hasAnyInitializedImageData) {
+                break;
+            }
+        }
+
+        if (hasAnyInitializedImageData) {
+            
+            
+            
+            
+            
+            for (size_t level = 0; level <= mMaxLevelWithCustomImages; ++level) {
+                for (size_t face = 0; face < mFacesCount; ++face) {
+                    GLenum imageTarget = mTarget == LOCAL_GL_TEXTURE_2D
+                                         ? LOCAL_GL_TEXTURE_2D
+                                         : LOCAL_GL_TEXTURE_CUBE_MAP_POSITIVE_X + face;
+                    const ImageInfo& imageInfo = ImageInfoAt(imageTarget, level);
+                    if (imageInfo.mImageDataStatus == WebGLImageDataStatus::UninitializedImageData) {
+                        DoDeferredImageInitialization(imageTarget, level);
+                    }
+                }
+            }
+            mFakeBlackStatus = WebGLTextureFakeBlackStatus::NotNeeded;
+        } else {
+            
+            
+            mFakeBlackStatus = WebGLTextureFakeBlackStatus::UninitializedImageData;
+        }
     }
 
     
@@ -371,6 +407,41 @@ WebGLTexture::ResolvedFakeBlackStatus() {
 
     MOZ_ASSERT(mFakeBlackStatus != WebGLTextureFakeBlackStatus::Unknown);
     return mFakeBlackStatus;
+}
+
+void
+WebGLTexture::DoDeferredImageInitialization(GLenum imageTarget, GLint level)
+{
+    const ImageInfo& imageInfo = ImageInfoAt(imageTarget, level);
+    MOZ_ASSERT(imageInfo.mImageDataStatus == WebGLImageDataStatus::UninitializedImageData);
+
+    mContext->MakeContextCurrent();
+    gl::ScopedBindTexture autoBindTex(mContext->gl, GLName(), mTarget);
+
+    WebGLTexelFormat texelformat = GetWebGLTexelFormat(imageInfo.mFormat, imageInfo.mType);
+    uint32_t texelsize = WebGLTexelConversions::TexelBytesForFormat(texelformat);
+    CheckedUint32 checked_byteLength
+        = WebGLContext::GetImageSize(
+                        imageInfo.mHeight,
+                        imageInfo.mWidth,
+                        texelsize,
+                        mContext->mPixelStoreUnpackAlignment);
+    MOZ_ASSERT(checked_byteLength.isValid()); 
+    void *zeros = calloc(1, checked_byteLength.value());
+    GLenum error
+        = mContext->CheckedTexImage2D(imageTarget, level, imageInfo.mFormat,
+                                      imageInfo.mWidth, imageInfo.mHeight,
+                                      0, imageInfo.mFormat, imageInfo.mType,
+                                      zeros);
+
+    free(zeros);
+    SetImageDataStatus(imageTarget, level, WebGLImageDataStatus::InitializedImageData);
+
+    if (error) {
+      
+      MOZ_CRASH(); 
+      return;
+    }
 }
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_0(WebGLTexture)

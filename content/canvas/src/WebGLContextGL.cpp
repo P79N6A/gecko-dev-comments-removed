@@ -680,6 +680,10 @@ WebGLContext::CopyTexSubImage2D(GLenum target,
         if (!mBoundFramebuffer->CheckAndInitializeAttachments())
             return ErrorInvalidFramebufferOperation("copyTexSubImage2D: incomplete framebuffer");
 
+    if (imageInfo.HasUninitializedImageData()) {
+        tex->DoDeferredImageInitialization(target, level);
+    }
+
     return CopyTexSubImage2D_base(target, level, format, xoffset, yoffset, x, y, width, height, true);
 }
 
@@ -1035,14 +1039,15 @@ WebGLContext::BindFakeBlackTexturesHelper(
             continue;
         }
 
-        bool opaque = s == WebGLTextureFakeBlackStatus::IncompleteTexture;
+        bool alpha = s == WebGLTextureFakeBlackStatus::UninitializedImageData &&
+                     FormatHasAlpha(boundTexturesArray[i]->ImageInfoBase().Format());
         ScopedDeletePtr<FakeBlackTexture>&
-            blackTexturePtr = opaque
-                              ? opaqueTextureScopedPtr
-                              : transparentTextureScopedPtr;
+            blackTexturePtr = alpha
+                              ? transparentTextureScopedPtr
+                              : opaqueTextureScopedPtr;
 
         if (!blackTexturePtr) {
-            GLenum format = opaque ? LOCAL_GL_RGB : LOCAL_GL_RGBA;
+            GLenum format = alpha ? LOCAL_GL_RGBA : LOCAL_GL_RGB;
             blackTexturePtr
                 = new FakeBlackTexture(gl, target, format);
         }
@@ -3470,6 +3475,10 @@ WebGLContext::CompressedTexSubImage2D(GLenum target, GLint level, GLint xoffset,
         }
     }
 
+    if (imageInfo.HasUninitializedImageData()) {
+        tex->DoDeferredImageInitialization(target, level);
+    }
+
     gl->fCompressedTexSubImage2D(target, level, xoffset, yoffset, width, height, format, byteLength, view.Data());
 
     return;
@@ -3810,28 +3819,9 @@ WebGLContext::TexImage2D_base(GLenum target, GLint level, GLenum internalformat,
         }
         imageInfoStatusIfSuccess = WebGLImageDataStatus::InitializedImageData;
     } else {
-        if (isDepthTexture) {
-            
-            
-            
-            
-            
-            
-            error = CheckedTexImage2D(target, level, internalformat,
-                                      width, height, border, format, type, nullptr);
-            imageInfoStatusIfSuccess = WebGLImageDataStatus::UninitializedImageData;
-        } else {
-            
-            
-            
-            void *tempZeroData = calloc(1, bytesNeeded);
-            if (!tempZeroData)
-                return ErrorOutOfMemory("texImage2D: could not allocate %d bytes (for zero fill)", bytesNeeded);
-            error = CheckedTexImage2D(target, level, internalformat,
-                                      width, height, border, format, type, tempZeroData);
-            free(tempZeroData);
-            imageInfoStatusIfSuccess = WebGLImageDataStatus::InitializedImageData;
-        }
+        error = CheckedTexImage2D(target, level, internalformat,
+                                  width, height, border, format, type, nullptr);
+        imageInfoStatusIfSuccess = WebGLImageDataStatus::UninitializedImageData;
     }
 
     if (error) {
@@ -3966,6 +3956,10 @@ WebGLContext::TexSubImage2D_base(GLenum target, GLint level,
     
     if (imageInfo.Format() != format || imageInfo.Type() != type)
         return ErrorInvalidOperation("texSubImage2D: format or type doesn't match the existing texture");
+
+    if (imageInfo.HasUninitializedImageData()) {
+        tex->DoDeferredImageInitialization(target, level);
+    }
 
     MakeContextCurrent();
 
