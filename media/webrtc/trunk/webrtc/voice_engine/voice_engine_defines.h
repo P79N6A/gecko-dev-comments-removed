@@ -358,7 +358,10 @@ namespace webrtc
 
   
   #undef WEBRTC_CODEC_ISAC
-  #undef WEBRTC_VOE_EXTERNAL_REC_AND_PLAYOUT
+  
+  
+  
+  
   #undef WEBRTC_CONFERENCING
   #undef WEBRTC_TYPING_DETECTION
 
@@ -378,10 +381,10 @@ namespace webrtc
   #define WEBRTC_VOICE_ENGINE_AGC_DEFAULT_MODE \
       GainControl::kAdaptiveDigital
 
-  #define ANDROID_NOT_SUPPORTED(stat)                         \
-      stat.SetLastError(VE_FUNC_NOT_SUPPORTED, kTraceError,   \
-                        "API call not supported");            \
-      return -1;
+  
+  
+  
+  #define ANDROID_NOT_SUPPORTED(stat)
 
 #else 
 

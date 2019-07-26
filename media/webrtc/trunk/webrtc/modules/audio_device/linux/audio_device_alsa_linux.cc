@@ -972,7 +972,8 @@ WebRtc_Word32 AudioDeviceLinuxALSA::RecordingDeviceName(
         memset(guid, 0, kAdmMaxGuidSize);
     }
     
-    return GetDevicesInfo(1, false, index, name, kAdmMaxDeviceNameSize);
+    return GetDevicesInfo(1, false, index, name, kAdmMaxDeviceNameSize,
+                          guid, kAdmMaxGuidSize);
 }
 
 WebRtc_Word16 AudioDeviceLinuxALSA::RecordingDevices()
@@ -1620,6 +1621,17 @@ WebRtc_Word32 AudioDeviceLinuxALSA::StartPlayout()
         return -1;
     }
 
+    int errVal = LATE(snd_pcm_prepare)(_handlePlayout);
+    if (errVal < 0)
+    {
+        WEBRTC_TRACE(kTraceCritical, kTraceAudioDevice, _id,
+                     "     playout snd_pcm_prepare failed (%s)\n",
+                     LATE(snd_strerror)(errVal));
+        
+        
+    }
+
+
     unsigned int threadID(0);
     if (!_ptrThreadPlay->Start(threadID))
     {
@@ -1633,16 +1645,6 @@ WebRtc_Word32 AudioDeviceLinuxALSA::StartPlayout()
         return -1;
     }
     _playThreadID = threadID;
-
-    int errVal = LATE(snd_pcm_prepare)(_handlePlayout);
-    if (errVal < 0)
-    {
-        WEBRTC_TRACE(kTraceCritical, kTraceAudioDevice, _id,
-                     "     playout snd_pcm_prepare failed (%s)\n",
-                     LATE(snd_strerror)(errVal));
-        
-        
-    }
 
     return 0;
 }
@@ -1815,7 +1817,9 @@ WebRtc_Word32 AudioDeviceLinuxALSA::GetDevicesInfo(
     const bool playback,
     const WebRtc_Word32 enumDeviceNo,
     char* enumDeviceName,
-    const WebRtc_Word32 ednLen) const
+    const WebRtc_Word32 ednLen,
+    char* enumDeviceId,
+    const WebRtc_Word32 ediLen) const
 {
     
     
@@ -1854,6 +1858,8 @@ WebRtc_Word32 AudioDeviceLinuxALSA::GetDevicesInfo(
             function == FUNC_GET_DEVICE_NAME_FOR_AN_ENUM) && enumDeviceNo == 0)
         {
             strcpy(enumDeviceName, "default");
+            if (enumDeviceId)
+                memset(enumDeviceId, 0, ediLen);
 
             err = LATE(snd_device_name_free_hint)(hints);
             if (err != 0)
@@ -1916,6 +1922,11 @@ WebRtc_Word32 AudioDeviceLinuxALSA::GetDevicesInfo(
                     
                     strncpy(enumDeviceName, desc, ednLen);
                     enumDeviceName[ednLen-1] = '\0';
+                    if (enumDeviceId)
+                    {
+                        strncpy(enumDeviceId, name, ediLen);
+                        enumDeviceId[ediLen-1] = '\0';
+                    }
                     keepSearching = false;
                     
                     char * pret = strchr(enumDeviceName, '\n'); 
@@ -1928,6 +1939,11 @@ WebRtc_Word32 AudioDeviceLinuxALSA::GetDevicesInfo(
                     
                     strncpy(enumDeviceName, name, ednLen);
                     enumDeviceName[ednLen-1] = '\0';
+                    if (enumDeviceId)
+                    {
+                        strncpy(enumDeviceId, name, ediLen);
+                        enumDeviceId[ediLen-1] = '\0';
+                    }
                     keepSearching = false;
                 }
 
@@ -1952,7 +1968,7 @@ WebRtc_Word32 AudioDeviceLinuxALSA::GetDevicesInfo(
                          LATE(snd_strerror)(err));
             
         }
-    }
+      }
 
     if (FUNC_GET_NUM_OF_DEVICE == function)
     {

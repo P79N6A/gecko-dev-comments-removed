@@ -357,7 +357,7 @@ enum NsModes
     kNsLowSuppression,  
     kNsModerateSuppression,
     kNsHighSuppression,
-    kNsVeryHighSuppression,     
+    kNsVeryHighSuppression     
 };
 
 enum AgcModes                  
@@ -382,7 +382,7 @@ enum EcModes
     kEcDefault,                
     kEcConference,             
     kEcAec,                    
-    kEcAecm,                   
+    kEcAecm                    
 };
 
 
@@ -434,7 +434,7 @@ enum NetEqModes
     kNetEqFax = 2,
     
     
-    kNetEqOff = 3,
+    kNetEqOff = 3
 };
 
 enum NetEqBgnModes          
@@ -446,7 +446,7 @@ enum NetEqBgnModes
     kBgnFade = 1,
     
     
-    kBgnOff = 2,
+    kBgnOff = 2
 };
 
 enum OnHoldModes            
@@ -460,7 +460,7 @@ enum AmrMode
 {
     kRfc3267BwEfficient = 0,
     kRfc3267OctetAligned = 1,
-    kRfc3267FileStorage = 2,
+    kRfc3267FileStorage = 2
 };
 
 
