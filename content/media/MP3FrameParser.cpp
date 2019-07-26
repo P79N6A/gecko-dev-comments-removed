@@ -7,6 +7,7 @@
 #include <algorithm>
 #include "nsMemory.h"
 #include "MP3FrameParser.h"
+#include "VideoUtils.h"
 
 namespace mozilla {
 
@@ -84,6 +85,7 @@ public:
     mDurationUs(0),
     mNumFrames(0),
     mBitRateSum(0),
+    mSampleRate(0),
     mFrameSizeSum(0)
   {
     MOZ_ASSERT(mBuffer || !mLength);
@@ -101,6 +103,10 @@ public:
 
   int64_t GetBitRateSum() const {
     return mBitRateSum;
+  }
+
+  int16_t GetSampleRate() const {
+    return mSampleRate;
   }
 
   int64_t GetFrameSizeSum() const {
@@ -133,6 +139,7 @@ private:
   static nsresult DecodeFrameHeader(const uint8_t* aBuffer,
                                     uint32_t* aFrameSize,
                                     uint32_t* aBitRate,
+                                    uint16_t* aSampleRate,
                                     uint64_t* aDuration);
 
   static const uint16_t sBitRate[16];
@@ -149,6 +156,9 @@ private:
 
   
   int64_t mBitRateSum;
+
+  
+  int16_t mSampleRate;
 
   
   int32_t mFrameSizeSum;
@@ -207,6 +217,7 @@ uint32_t MP3Buffer::ExtractFrameHeader(const uint8_t* aBuffer)
 nsresult MP3Buffer::DecodeFrameHeader(const uint8_t* aBuffer,
                                       uint32_t* aFrameSize,
                                       uint32_t* aBitRate,
+                                      uint16_t* aSampleRate,
                                       uint64_t* aDuration)
 {
   uint32_t header = ExtractFrameHeader(aBuffer);
@@ -230,6 +241,9 @@ nsresult MP3Buffer::DecodeFrameHeader(const uint8_t* aBuffer,
   MOZ_ASSERT(aDuration);
   *aDuration = (uint64_t(MP3_DURATION_CONST) * frameSize) / bitRate;
 
+  MOZ_ASSERT(aSampleRate);
+  *aSampleRate = sampleRate;
+
   return NS_OK;
 }
 
@@ -246,9 +260,11 @@ nsresult MP3Buffer::Parse()
 
     uint32_t frameSize;
     uint32_t bitRate;
+    uint16_t sampleRate;
     uint64_t duration;
 
-    nsresult rv = DecodeFrameHeader(buffer, &frameSize, &bitRate, &duration);
+    nsresult rv = DecodeFrameHeader(buffer, &frameSize, &bitRate,
+                                    &sampleRate, &duration);
     if (NS_FAILED(rv)) {
       return rv;
     }
@@ -258,6 +274,8 @@ nsresult MP3Buffer::Parse()
     ++mNumFrames;
 
     mFrameSizeSum += frameSize;
+
+    mSampleRate = sampleRate;
 
     if (frameSize <= length) {
       length -= frameSize;
@@ -276,17 +294,24 @@ nsresult MP3Buffer::Parse()
 
 static const uint32_t MAX_SKIPPED_BYTES = 200 * 1024;
 
+
+
+
+
+static const uint32_t SAMPLES_PER_FRAME = 1152;
+
 MP3FrameParser::MP3FrameParser(int64_t aLength)
 : mBufferLength(0),
   mLock("MP3FrameParser.mLock"),
   mDurationUs(0),
   mBitRateSum(0),
+  mTotalFrameSize(0),
   mNumFrames(0),
   mOffset(0),
-  mUnhandled(0),
   mLength(aLength),
   mMP3Offset(-1),
   mSkippedBytes(0),
+  mSampleRate(0),
   mIsMP3(MAYBE_MP3)
 { }
 
@@ -329,6 +354,8 @@ nsresult MP3FrameParser::ParseBuffer(const uint8_t* aBuffer,
       }
       mDurationUs += mp3Buffer.GetDuration();
       mBitRateSum += mp3Buffer.GetBitRateSum();
+      mTotalFrameSize += mp3Buffer.GetFrameSizeSum();
+      mSampleRate = mp3Buffer.GetSampleRate();
       mNumFrames += mp3Buffer.GetNumberOfFrames();
       bufferOffset += mp3Buffer.GetFrameSizeSum();
     } else {
@@ -368,7 +395,7 @@ void MP3FrameParser::Parse(const char* aBuffer, uint32_t aLength, int64_t aOffse
     aOffset = lastChunkEnd;
   } else if (aOffset > lastChunkEnd) {
     
-    mUnhandled += aOffset - lastChunkEnd;
+    mOffset += aOffset - lastChunkEnd;
     mSkippedBytes = 0;
   }
 
@@ -430,13 +457,16 @@ int64_t MP3FrameParser::GetDuration()
 
   
   
-  int64_t avgBitRate = mBitRateSum / mNumFrames;
-  NS_ENSURE_TRUE(avgBitRate > 0, mDurationUs);
+  double avgFrameSize = (double)mTotalFrameSize / mNumFrames;
 
-  MOZ_ASSERT(mLength >= mOffset);
-  int64_t unhandled = mUnhandled + (mLength-mOffset);
+  
+  
+  double estimatedFrames = (double)(mLength - mMP3Offset) / avgFrameSize;
 
-  return mDurationUs + (uint64_t(MP3Buffer::MP3_DURATION_CONST) * unhandled) / avgBitRate;
+  
+  double usPerFrame = USECS_PER_S * SAMPLES_PER_FRAME / mSampleRate;
+
+  return estimatedFrames * usPerFrame;
 }
 
 int64_t MP3FrameParser::GetMP3Offset()

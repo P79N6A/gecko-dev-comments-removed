@@ -79,6 +79,7 @@ private:
   
   uint64_t mDurationUs;
   uint64_t mBitRateSum;
+  uint64_t mTotalFrameSize;
   uint64_t mNumFrames;
 
   
@@ -87,9 +88,8 @@ private:
   int64_t  mOffset;
 
   
-  
-  int64_t  mUnhandled;
   int64_t  mLength;
+
   
   
   int64_t mMP3Offset;
@@ -98,6 +98,9 @@ private:
   
   
   uint32_t mSkippedBytes;
+
+  
+  uint16_t mSampleRate;
 
   enum eIsMP3 {
     MAYBE_MP3, 
