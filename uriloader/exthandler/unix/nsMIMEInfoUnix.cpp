@@ -65,6 +65,12 @@ nsMIMEInfoUnix::LoadUriInternal(nsIURI * aURI)
 NS_IMETHODIMP
 nsMIMEInfoUnix::GetHasDefaultHandler(bool *_retval)
 {
+  
+  
+  
+  if (mDefaultApplication)
+    return nsMIMEInfoImpl::GetHasDefaultHandler(_retval);
+
   *_retval = false;
   nsRefPtr<nsMIMEInfoBase> mimeInfo = nsGNOMERegistry::GetFromType(mSchemeOrType);
   if (!mimeInfo) {
@@ -98,13 +104,18 @@ nsMIMEInfoUnix::GetHasDefaultHandler(bool *_retval)
   }
 #endif
 
-  
-  return nsMIMEInfoImpl::GetHasDefaultHandler(_retval);
+  return NS_OK;
 }
 
 nsresult
 nsMIMEInfoUnix::LaunchDefaultWithFile(nsIFile *aFile)
 {
+  
+  
+  
+  if (mDefaultApplication)
+    return nsMIMEInfoImpl::LaunchDefaultWithFile(aFile);
+
   nsAutoCString nativePath;
   aFile->GetNativePath(nativePath);
 
