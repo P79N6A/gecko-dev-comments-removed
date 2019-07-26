@@ -1,10 +1,10 @@
-
-
-
-
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+/*
+** secutil.c - various functions used by security stuff
+**
+*/
 
 #include "prtypes.h"
 #include "prtime.h"
@@ -27,12 +27,12 @@
 #include <unistd.h>
 #endif
 
-
+/* for SEC_TraverseNames */
 #include "cert.h"
 #include "certt.h"
 #include "certdb.h"
 
-
+/* #include "secmod.h" */
 #include "pk11func.h"
 #include "secoid.h"
 
@@ -69,7 +69,7 @@ SECU_GetPasswordString(void *arg, char *prompt)
     char *p = NULL;
     FILE *input, *output;
 
-    
+    /* open terminal */
     input = fopen(consoleName, "r");
     if (input == NULL) {
 	fprintf(stderr, "Error opening input terminal for read\n");
@@ -91,8 +91,8 @@ SECU_GetPasswordString(void *arg, char *prompt)
     return p;
 
 #else
-    
-
+    /* Win32 version of above. opening the console may fail
+       on windows95, and certainly isn't necessary.. */
 
     char *p = NULL;
 
@@ -103,14 +103,14 @@ SECU_GetPasswordString(void *arg, char *prompt)
 }
 
 
-
-
-
-
-
-
-
-
+/*
+ *  p a s s w o r d _ h a r d c o d e 
+ *
+ *  A function to use the password passed in the -f(pwfile) argument
+ *  of the command line.  
+ *  After use once, null it out otherwise PKCS11 calls us forever.?
+ *
+ */
 char *
 SECU_FilePasswd(PK11SlotInfo *slot, PRBool retry, void *arg)
 {
@@ -127,13 +127,13 @@ SECU_FilePasswd(PK11SlotInfo *slot, PRBool retry, void *arg)
 	return 0;
 
     if (retry) {
-	return 0;  
+	return 0;  /* no good retrying - the files contents will be the same */
     }
 
     phrases = PORT_ZAlloc(maxPwdFileSize);
 
     if (!phrases) {
-        return 0; 
+        return 0; /* out of memory */
     }
  
     fd = PR_Open(pwFile, PR_RDONLY, 0);
@@ -165,15 +165,15 @@ SECU_FilePasswd(PK11SlotInfo *slot, PRBool retry, void *arg)
         int startphrase = i;
         int phraseLen;
 
-        
+        /* handle the Windows EOL case */
         while (phrases[i] != '\r' && phrases[i] != '\n' && i < nb) i++;
-        
+        /* terminate passphrase */
         phrases[i++] = '\0';
-        
+        /* clean up any EOL before the start of the next passphrase */
         while ( (i<nb) && (phrases[i] == '\r' || phrases[i] == '\n')) {
             phrases[i++] = '\0';
         }
-        
+        /* now analyze the current passphrase */
         phrase = &phrases[startphrase];
         if (!tokenName)
             break;
@@ -217,20 +217,20 @@ SECU_GetModulePassword(PK11SlotInfo *slot, PRBool retry, void *arg)
 	                 PK11_GetTokenName(slot));
 	return SECU_GetPasswordString(NULL, prompt);
     case PW_FROMFILE:
-	
-
-
+	/* Instead of opening and closing the file every time, get the pw
+	 * once, then keep it in memory (duh).
+	 */
 	pw = SECU_FilePasswd(slot, retry, pwdata->data);
 	pwdata->source = PW_PLAINTEXT;
 	pwdata->data = PL_strdup(pw);
-	
+	/* it's already been dup'ed */
 	return pw;
     case PW_EXTERNAL:
 	sprintf(prompt, 
 	        "Press Enter, then enter PIN for \"%s\" on external device.\n",
 		PK11_GetTokenName(slot));
 	(void) SECU_GetPasswordString(NULL, prompt);
-    	
+    	/* Fall Through */
     case PW_PLAINTEXT:
 	return PL_strdup(pwdata->data);
     default:
@@ -256,8 +256,8 @@ secu_InitSlotPassword(PK11SlotInfo *slot, PRBool retry, void *arg)
 	return PL_strdup(pwdata->data);
     }
     
-    
-    
+    /* PW_NONE - get it from tty */
+    /* open terminal */
 #ifdef _WINDOWS
     input = stdin;
 #else
@@ -268,7 +268,7 @@ secu_InitSlotPassword(PK11SlotInfo *slot, PRBool retry, void *arg)
 	return NULL;
     }
 
-    
+    /* we have no password, so initialize database with one */
     PR_fprintf(PR_STDERR, 
         "Enter a password which will be used to encrypt your keys.\n"
      	"The password should be at least 8 characters long,\n"
@@ -297,7 +297,7 @@ secu_InitSlotPassword(PK11SlotInfo *slot, PRBool retry, void *arg)
 	PR_fprintf(PR_STDERR, "Passwords do not match. Try again.\n");
     }
         
-    
+    /* clear out the duplicate password string */
     secu_ClearPassword(p1);
     
     fclose(input);
@@ -450,8 +450,8 @@ SECU_ConfigDirectory(const char* base)
     return buf;
 }
 
-
-
+/*Turn off SSL for now */
+/* This gets called by SSL when server wants our cert & key */
 int
 SECU_GetClientAuthData(void *arg, PRFileDesc *fd,
 		       struct CERTDistNamesStr *caNames,
@@ -498,11 +498,11 @@ SECU_ReadDERFromFile(SECItem *der, PRFileDesc *inFile, PRBool ascii)
 {
     SECStatus rv;
     if (ascii) {
-	
+	/* First convert ascii to binary */
 	SECItem filedata;
 	char *asc, *body;
 
-	
+	/* Read in ascii data */
 	rv = SECU_FileToItem(&filedata, inFile);
 	asc = (char *)filedata.data;
 	if (!asc) {
@@ -510,13 +510,13 @@ SECU_ReadDERFromFile(SECItem *der, PRFileDesc *inFile, PRBool ascii)
 	    return SECFailure;
 	}
 
-	
+	/* check for headers and trailers and remove them */
 	if ((body = strstr(asc, "-----BEGIN")) != NULL) {
 	    char *trailer = NULL;
 	    asc = body;
 	    body = PORT_Strchr(body, '\n');
 	    if (!body)
-		body = PORT_Strchr(asc, '\r'); 
+		body = PORT_Strchr(asc, '\r'); /* maybe this is a MAC file */
 	    if (body)
 		trailer = strstr(++body, "-----END");
 	    if (trailer != NULL) {
@@ -530,7 +530,7 @@ SECU_ReadDERFromFile(SECItem *der, PRFileDesc *inFile, PRBool ascii)
 	    body = asc;
 	}
      
-	
+	/* Convert to binary */
 	rv = ATOB_ConvertAsciiToItem(der, body);
 	if (rv) {
 	    fprintf(stderr, "error converting ascii to binary (%s)\n",
@@ -541,7 +541,7 @@ SECU_ReadDERFromFile(SECItem *der, PRFileDesc *inFile, PRBool ascii)
 
 	PORT_Free(filedata.data);
     } else {
-	
+	/* Read in binary der */
 	rv = SECU_FileToItem(der, inFile);
 	if (rv) {
 	    fprintf(stderr, "error converting der (%s)\n", 
@@ -559,7 +559,7 @@ SECU_StripTagAndLength(SECItem *i)
 {
     unsigned int start;
 
-    if (!i || !i->data || i->len < 2) { 
+    if (!i || !i->data || i->len < 2) { /* must be at least tag and length */
         return SECFailure;
     }
     start = ((i->data[1] & 0x80) ? (i->data[1] & 0x7f) + 2 : 2);
@@ -627,7 +627,7 @@ SECU_PrintString(FILE *out, SECItem *si, char *m, int level)
     secu_PrintRawString(out, &my, m, level);
 }
 
-
+/* print an unencoded boolean */
 static void
 secu_PrintBoolean(FILE *out, SECItem *i, const char *m, int level)
 {
@@ -644,18 +644,18 @@ secu_PrintBoolean(FILE *out, SECItem *i, const char *m, int level)
     fprintf(out, "%s: %s\n", m, (val ? "True" : "False"));
 }
 
-
-
-
-
-
+/*
+ * Format and print "time".  If the tag message "m" is not NULL,
+ * do indent formatting based on "level" and add a newline afterward;
+ * otherwise just print the formatted time string only.
+ */
 static void
 secu_PrintTime(FILE *out, int64 time, char *m, int level)
 {
     PRExplodedTime printableTime; 
     char *timeString;
 
-    
+    /* Convert to local time */
     PR_ExplodeTime(time, PR_GMTParameters, &printableTime);
 
     timeString = PORT_Alloc(256);
@@ -677,11 +677,11 @@ secu_PrintTime(FILE *out, int64 time, char *m, int level)
     PORT_Free(timeString);
 }
 
-
-
-
-
-
+/*
+ * Format and print the UTC Time "t".  If the tag message "m" is not NULL,
+ * do indent formatting based on "level" and add a newline afterward;
+ * otherwise just print the formatted time string only.
+ */
 void
 SECU_PrintUTCTime(FILE *out, SECItem *t, char *m, int level)
 {
@@ -695,11 +695,11 @@ SECU_PrintUTCTime(FILE *out, SECItem *t, char *m, int level)
     secu_PrintTime(out, time, m, level);
 }
 
-
-
-
-
-
+/*
+ * Format and print the Generalized Time "t".  If the tag message "m"
+ * is not NULL, * do indent formatting based on "level" and add a newline
+ * afterward; otherwise just print the formatted time string only.
+ */
 void
 SECU_PrintGeneralizedTime(FILE *out, SECItem *t, char *m, int level)
 {
@@ -714,11 +714,11 @@ SECU_PrintGeneralizedTime(FILE *out, SECItem *t, char *m, int level)
     secu_PrintTime(out, time, m, level);
 }
 
-
-
-
-
-
+/*
+ * Format and print the UTC or Generalized Time "t".  If the tag message
+ * "m" is not NULL, do indent formatting based on "level" and add a newline
+ * afterward; otherwise just print the formatted time string only.
+ */
 void
 SECU_PrintTimeChoice(FILE *out, SECItem *t, char *m, int level)
 {
@@ -738,7 +738,7 @@ SECU_PrintTimeChoice(FILE *out, SECItem *t, char *m, int level)
 }
 
 
-
+/* This prints a SET or SEQUENCE */
 void
 SECU_PrintSet(FILE *out, SECItem *t, char *m, int level)
 {
@@ -765,7 +765,7 @@ SECU_PrintSet(FILE *out, SECItem *t, char *m, int level)
     	label = "Sequence ";
     else
     	label = "";
-    fprintf(out,"%s{\n", label); 
+    fprintf(out,"%s{\n", label); /* } */
 
     while (my.len >= 2) {
 	SECItem  tmp = my;
@@ -790,7 +790,7 @@ SECU_PrintSet(FILE *out, SECItem *t, char *m, int level)
 	my.len  -= tmp.len;
 	SECU_PrintAny(out, &tmp, NULL, level + 1);
     }
-    SECU_Indent(out, level); fprintf(out,  "}\n");
+    SECU_Indent(out, level); fprintf(out, /* { */ "}\n");
 }
 
 static void
@@ -851,7 +851,7 @@ secu_PrintBitString(FILE *out, SECItem *i, char *m, int level)
     }
 }
 
-
+/* in a decoded bit string, the len member is a bit length. */
 static void
 secu_PrintDecodedBitString(FILE *out, SECItem *i, char *m, int level)
 {
@@ -860,7 +860,7 @@ secu_PrintDecodedBitString(FILE *out, SECItem *i, char *m, int level)
 
 
     unused_bits = (tmp.len & 0x7) ? 8 - (tmp.len & 7) : 0;
-    DER_ConvertBitString(&tmp); 
+    DER_ConvertBitString(&tmp); /* convert length to byte length */
 
     SECU_PrintAsHex(out, &tmp, m, level);
     if (unused_bits) {
@@ -870,7 +870,7 @@ secu_PrintDecodedBitString(FILE *out, SECItem *i, char *m, int level)
 }
 
 
-
+/* Print a DER encoded Boolean */
 void
 SECU_PrintEncodedBoolean(FILE *out, SECItem *i, char *m, int level)
 {
@@ -879,7 +879,7 @@ SECU_PrintEncodedBoolean(FILE *out, SECItem *i, char *m, int level)
 	secu_PrintBoolean(out, &my, m, level);
 }
 
-
+/* Print a DER encoded integer */
 void
 SECU_PrintEncodedInteger(FILE *out, SECItem *i, char *m, int level)
 {
@@ -888,7 +888,7 @@ SECU_PrintEncodedInteger(FILE *out, SECItem *i, char *m, int level)
 	SECU_PrintInteger(out, &my, m, level);
 }
 
-
+/* Print a DER encoded OID */
 void
 SECU_PrintEncodedObjectID(FILE *out, SECItem *i, char *m, int level)
 {
@@ -1049,7 +1049,7 @@ secu_PrintValidity(FILE *out, CERTValidity *v, char *m, int level)
     return 0;
 }
 
-
+/* This function does NOT expect a DER type and length. */
 SECOidTag
 SECU_PrintObjectID(FILE *out, SECItem *oid, char *m, int level)
 {
@@ -1088,7 +1088,7 @@ typedef struct secuPBEParamsStr {
 
 SEC_ASN1_MKSUB(SECOID_AlgorithmIDTemplate)
 
-
+/* SECOID_PKCS5_PBKDF2 */
 const SEC_ASN1Template secuKDF2Params[] =
 {
     { SEC_ASN1_SEQUENCE, 0, NULL, sizeof(secuPBEParams) },
@@ -1100,7 +1100,7 @@ const SEC_ASN1Template secuKDF2Params[] =
     { 0 }
 };
 
-
+/* PKCS5v1 & PKCS12 */
 const SEC_ASN1Template secuPBEParamsTemp[] =
 {
     { SEC_ASN1_SEQUENCE, 0, NULL, sizeof(secuPBEParams) },
@@ -1109,7 +1109,7 @@ const SEC_ASN1Template secuPBEParamsTemp[] =
     { 0 }
 };
 
-
+/* SEC_OID_PKCS5_PBES2, SEC_OID_PKCS5_PBMAC1 */
 const SEC_ASN1Template secuPBEV2Params[] =
 {
     { SEC_ASN1_SEQUENCE, 0, NULL, sizeof(secuPBEParams)},
@@ -1269,7 +1269,7 @@ secu_PrintPBEParams(FILE *out, SECItem *value, char *m, int level)
     PORT_FreeArena(pool, PR_FALSE);
 }
 
-
+/* This function does NOT expect a DER type and length. */
 void
 SECU_PrintAlgorithmID(FILE *out, SECAlgorithmID *a, char *m, int level)
 {
@@ -1303,9 +1303,9 @@ SECU_PrintAlgorithmID(FILE *out, SECAlgorithmID *a, char *m, int level)
     if (a->parameters.len == 0
 	|| (a->parameters.len == 2
 	    && PORT_Memcmp(a->parameters.data, "\005\000", 2) == 0)) {
-	
+	/* No arguments or NULL argument */
     } else {
-	
+	/* Print args to algorithm */
 	SECU_PrintAsHex(out, &a->parameters, "Args", level+1);
     }
 }
@@ -1321,10 +1321,10 @@ secu_PrintAttribute(FILE *out, SEC_PKCS7Attribute *attr, char *m, int level)
     	SECU_Indent(out, level); fprintf(out, "%s:\n", m);
     }
 
-    
-
-
-
+    /*
+     * Should make this smarter; look at the type field and then decode
+     * and print the value(s) appropriately!
+     */
     SECU_PrintObjectID(out, &(attr->type), "Type", level+1);
     if (attr->values != NULL) {
 	i = 0;
@@ -1357,9 +1357,9 @@ secu_PrintECPublicKey(FILE *out, SECKEYPublicKey *pk, char *m, int level)
 
     SECU_Indent(out, level); fprintf(out, "%s:\n", m);
     SECU_PrintInteger(out, &pk->u.ec.publicValue, "PublicValue", level+1);
-    
-
-
+    /* For named curves, the DEREncodedParams field contains an
+     * ASN Object ID (0x06 is SEC_ASN1_OBJECT_ID).
+     */
     if ((pk->u.ec.DEREncodedParams.len > 2) &&
 	(pk->u.ec.DEREncodedParams.data[0] == 0x06)) {
         curveOID.len = pk->u.ec.DEREncodedParams.data[1];
@@ -1367,7 +1367,7 @@ secu_PrintECPublicKey(FILE *out, SECKEYPublicKey *pk, char *m, int level)
 	SECU_PrintObjectID(out, &curveOID, "Curve", level +1);
     }
 }
-#endif 
+#endif /* NSS_ENABLE_ECC */
 
 void
 SECU_PrintRSAPublicKey(FILE *out, SECKEYPublicKey *pk, char *m, int level)
@@ -1451,7 +1451,7 @@ SECU_PrintDumpDerIssuerAndSerial(FILE *out, SECItem *der, char *m,
     if (!arena)
         return rv;
 
-    
+    /* Decode certificate */
     c = PORT_ArenaZNew(arena, CERTCertificate);
     if (!c)
         goto loser;
@@ -1572,7 +1572,7 @@ static const char * const nsTypeBits[] = {
     "ObjectSigning CA" 
 };
 
-
+/* NSCertType is merely a bit string whose bits are displayed symbolically */
 static SECStatus
 secu_PrintNSCertType(FILE *out, SECItem *value, char *msg, int level) 
 {
@@ -1609,19 +1609,19 @@ secu_PrintNSCertType(FILE *out, SECItem *value, char *msg, int level)
 }
 
 static const char * const usageBits[] = {
-    "Digital Signature",   
-    "Non-Repudiation",     
-    "Key Encipherment",    
-    "Data Encipherment",   
-    "Key Agreement",       
-    "Certificate Signing", 
-    "CRL Signing",         
-    "Encipher Only",       
-    "Decipher Only",        
+    "Digital Signature",   /* 0x80 */
+    "Non-Repudiation",     /* 0x40 */
+    "Key Encipherment",    /* 0x20 */
+    "Data Encipherment",   /* 0x10 */
+    "Key Agreement",       /* 0x08 */
+    "Certificate Signing", /* 0x04 */
+    "CRL Signing",         /* 0x02 */
+    "Encipher Only",       /* 0x01 */
+    "Decipher Only",       /* 0x0080 */ 
     NULL
 };
 
-
+/* X509KeyUsage is merely a bit string whose bits are displayed symbolically */
 static void
 secu_PrintX509KeyUsage(FILE *out, SECItem *value, char *msg, int level) 
 {
@@ -1672,7 +1672,7 @@ secu_PrintIPAddress(FILE *out, SECItem *value, char *msg, int level)
 	addr.ipv6.family = PR_AF_INET6;
 	memcpy(addr.ipv6.ip.pr_s6_addr, value->data, value->len);
 	if (PR_IsNetAddrType(&addr, PR_IpAddrV4Mapped)) {
-	    
+	    /* convert to IPv4.  */
 	    addr.inet.family = PR_AF_INET;
 	    memcpy(&addr.inet.ip, &addr.ipv6.ip.pr_s6_addr[12], 4);
 	    memset(&addr.inet.pad[0], 0, sizeof addr.inet.pad);
@@ -1793,7 +1793,7 @@ secu_PrintAltNameExtension(FILE *out, SECItem *value, char *msg, int level)
     nameList = current = CERT_DecodeAltNameExtension(pool, value);
     if (!current) {
 	if (PORT_GetError() == SEC_ERROR_EXTENSION_NOT_FOUND) {
-	    
+	    /* Decoder found empty sequence, which is invalid. */
 	    PORT_SetError(SEC_ERROR_EXTENSION_VALUE_INVALID);
 	}
 	SECU_PrintErrMsg(out, level, "Error", "Parsing extension");
@@ -2015,7 +2015,7 @@ SECU_PrintExtensions(FILE *out, CERTCertExtension **extensions,
 		case SEC_OID_X509_CRL_NUMBER:
 		case SEC_OID_X509_REASON_CODE:
 
-		
+		/* PKIX OIDs */
 		case SEC_OID_PKIX_OCSP:
 		case SEC_OID_PKIX_OCSP_BASIC_RESPONSE:
 		case SEC_OID_PKIX_OCSP_NONCE:
@@ -2033,14 +2033,14 @@ SECU_PrintExtensions(FILE *out, CERTCertExtension **extensions,
 		case SEC_OID_PKIX_REGINFO_UTF8_PAIRS:
 		case SEC_OID_PKIX_REGINFO_CERT_REQUEST:
 
-	        
+	        /* Netscape extension OIDs. */
 		case SEC_OID_NS_CERT_EXT_NETSCAPE_OK:
 		case SEC_OID_NS_CERT_EXT_ISSUER_LOGO:
 		case SEC_OID_NS_CERT_EXT_SUBJECT_LOGO:
 		case SEC_OID_NS_CERT_EXT_ENTITY_LOGO:
 		case SEC_OID_NS_CERT_EXT_USER_PICTURE:
 
-		
+		/* x.509 v3 Extensions */
 		case SEC_OID_X509_SUBJECT_DIRECTORY_ATTR:
 		case SEC_OID_X509_SUBJECT_KEY_ID:
 		case SEC_OID_X509_POLICY_MAPPINGS:
@@ -2058,9 +2058,9 @@ SECU_PrintExtensions(FILE *out, CERTCertExtension **extensions,
     }
 }
 
-
-
-
+/* An RDN is a subset of a DirectoryName, and we already know how to
+ * print those, so make a directory name out of the RDN, and print it.
+ */
 void
 SECU_PrintRDN(FILE *out, CERTRDN *rdn, const char *msg, int level)
 {
@@ -2139,11 +2139,11 @@ printflags(char *trusts, unsigned int flags)
     return;
 }
 
-
+/* callback for listing certs through pkcs11 */
 SECStatus
 SECU_PrintCertNickname(CERTCertListNode *node, void *data)
 {
-    CERTCertTrust *trust;
+    CERTCertTrust trust;
     CERTCertificate* cert;
     FILE *out;
     char trusts[30];
@@ -2165,13 +2165,12 @@ SECU_PrintCertNickname(CERTCertListNode *node, void *data)
         name = "(NULL)";
     }
 
-    trust = cert->trust;
-    if (trust) {
-        printflags(trusts, trust->sslFlags);
+    if (CERT_GetCertTrust(cert, &trust) == SECSuccess) {
+        printflags(trusts, trust.sslFlags);
         PORT_Strcat(trusts, ",");
-        printflags(trusts, trust->emailFlags);
+        printflags(trusts, trust.emailFlags);
         PORT_Strcat(trusts, ",");
-        printflags(trusts, trust->objectSigningFlags);
+        printflags(trusts, trust.objectSigningFlags);
     } else {
         PORT_Memcpy(trusts,",,",3);
     }
@@ -2200,7 +2199,7 @@ SECU_DecodeAndPrintExtensions(FILE *out, SECItem *any, char *m, int level)
     return rv;
 }
 
-
+/* print a decoded SET OF or SEQUENCE OF Extensions */
 int
 SECU_PrintSetOfExtensions(FILE *out, SECItem **any, char *m, int level)
 {
@@ -2215,7 +2214,7 @@ SECU_PrintSetOfExtensions(FILE *out, SECItem **any, char *m, int level)
     return rv;
 }
 
-
+/* print a decoded SET OF or SEQUENCE OF "ANY" */
 int
 SECU_PrintSetOfAny(FILE *out, SECItem **any, char *m, int level)
 {
@@ -2255,7 +2254,7 @@ SECU_PrintCertAttributes(FILE *out, CERTAttribute **attrs, char *m, int level)
     return rv;
 }
 
-int  
+int  /* sometimes a PRErrorCode, other times a SECStatus.  Sigh. */
 SECU_PrintCertificateRequest(FILE *out, SECItem *der, char *m, int level)
 {
     PRArenaPool *arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
@@ -2265,7 +2264,7 @@ SECU_PrintCertificateRequest(FILE *out, SECItem *der, char *m, int level)
     if (!arena) 
 	return rv;
 
-    
+    /* Decode certificate request */
     cr = PORT_ArenaZNew(arena, CERTCertificateRequest);
     if (!cr)
 	goto loser;
@@ -2275,7 +2274,7 @@ SECU_PrintCertificateRequest(FILE *out, SECItem *der, char *m, int level)
     if (rv) 
 	goto loser;
 
-    
+    /* Pretty print it out */
     SECU_Indent(out, level); fprintf(out, "%s:\n", m);
     SECU_PrintInteger(out, &cr->version, "Version", level+1);
     SECU_PrintName(out, &cr->subject, "Subject", level+1);
@@ -2300,7 +2299,7 @@ SECU_PrintCertificate(FILE *out, SECItem *der, char *m, int level)
     if (!arena)
 	return rv;
 
-    
+    /* Decode certificate */
     c = PORT_ArenaZNew(arena, CERTCertificate);
     if (!c)
 	goto loser;
@@ -2313,9 +2312,9 @@ SECU_PrintCertificate(FILE *out, SECItem *der, char *m, int level)
 	SECU_PrintAny(out, der, "Raw", level);
 	goto loser;
     }
-    
+    /* Pretty print it out */
     SECU_Indent(out, level); fprintf(out, "%s:\n", m);
-    iv = c->version.len ? DER_GetInteger(&c->version) : 0;  
+    iv = c->version.len ? DER_GetInteger(&c->version) : 0;  /* version is optional */
     SECU_Indent(out, level+1); fprintf(out, "%s: %d (0x%x)\n", "Version", iv + 1, iv);
 
     SECU_PrintInteger(out, &c->serialNumber, "Serial Number", level+1);
@@ -2378,7 +2377,7 @@ SECU_PrintPrivateKey(FILE *out, SECItem *der, char *m, int level)
     if (rv)
 	goto loser;
 
-    
+    /* Pretty print it out */
     SECU_Indent(out, level); fprintf(out, "%s:\n", m);
     SECU_PrintAlgorithmID(out, &key.algorithm, "Encryption Algorithm", 
 			  level+1);
@@ -2398,7 +2397,7 @@ SECU_PrintFingerprints(FILE *out, SECItem *derCert, char *m, int level)
     SECStatus rv;
     SECItem fpItem;
 
-    
+    /* print MD5 fingerprint */
     memset(fingerprint, 0, sizeof fingerprint);
     rv = PK11_HashBuf(SEC_OID_MD5,fingerprint, derCert->data, derCert->len);
     fpItem.data = fingerprint;
@@ -2418,7 +2417,7 @@ SECU_PrintFingerprints(FILE *out, SECItem *derCert, char *m, int level)
     if (rv != SECSuccess && !err)
 	err = PORT_GetError();
 
-    
+    /* print SHA1 fingerprint */
     memset(fingerprint, 0, sizeof fingerprint);
     rv = PK11_HashBuf(SEC_OID_SHA1,fingerprint, derCert->data, derCert->len);
     fpItem.data = fingerprint;
@@ -2445,18 +2444,18 @@ SECU_PrintFingerprints(FILE *out, SECItem *derCert, char *m, int level)
     return 0;
 }
 
+/*
+** PKCS7 Support
+*/
 
-
-
-
-
+/* forward declaration */
 static int
 secu_PrintPKCS7ContentInfo(FILE *, SEC_PKCS7ContentInfo *, char *, int);
 
-
-
-
-
+/*
+** secu_PrintPKCS7EncContent
+**   Prints a SEC_PKCS7EncryptedContentInfo (without decrypting it)
+*/
 static void
 secu_PrintPKCS7EncContent(FILE *out, SEC_PKCS7EncryptedContentInfo *src, 
 			  char *m, int level)
@@ -2476,10 +2475,10 @@ secu_PrintPKCS7EncContent(FILE *out, SEC_PKCS7EncryptedContentInfo *src,
 		    "Encrypted Content", level+1);
 }
 
-
-
-
-
+/*
+** secu_PrintRecipientInfo
+**   Prints a PKCS7RecipientInfo type
+*/
 static void
 secu_PrintRecipientInfo(FILE *out, SEC_PKCS7RecipientInfo *info, char *m, 
 			int level)
@@ -2492,16 +2491,16 @@ secu_PrintRecipientInfo(FILE *out, SEC_PKCS7RecipientInfo *info, char *m,
     SECU_PrintInteger(out, &(info->issuerAndSN->serialNumber), 
 		      "Serial Number", level + 1);
 
-    
+    /* Parse and display encrypted key */
     SECU_PrintAlgorithmID(out, &(info->keyEncAlg), 
 			"Key Encryption Algorithm", level + 1);
     SECU_PrintAsHex(out, &(info->encKey), "Encrypted Key", level + 1);
 }
 
-
-
-
-
+/* 
+** secu_PrintSignerInfo
+**   Prints a PKCS7SingerInfo type
+*/
 static void
 secu_PrintSignerInfo(FILE *out, SEC_PKCS7SignerInfo *info, char *m, int level)
 {
@@ -2530,7 +2529,7 @@ secu_PrintSignerInfo(FILE *out, SEC_PKCS7SignerInfo *info, char *m, int level)
 	}
     }
     
-    
+    /* Parse and display signature */
     SECU_PrintAlgorithmID(out, &(info->digestEncAlg), 
 			"Digest Encryption Algorithm", level + 1);
     SECU_PrintAsHex(out, &(info->encDigest), "Encrypted Digest", level + 1);
@@ -2546,10 +2545,10 @@ secu_PrintSignerInfo(FILE *out, SEC_PKCS7SignerInfo *info, char *m, int level)
     }
 }
 
-
-
-
-
+/* callers of this function must make sure that the CERTSignedCrl
+   from which they are extracting the CERTCrl has been fully-decoded.
+   Otherwise it will not have the entries even though the CRL may have
+   some */
 
 void
 SECU_PrintCRLInfo(FILE *out, CERTCrl *crl, char *m, int level)
@@ -2559,7 +2558,7 @@ SECU_PrintCRLInfo(FILE *out, CERTCrl *crl, char *m, int level)
     char om[100];
     
     SECU_Indent(out, level); fprintf(out, "%s:\n", m);
-    
+    /* version is optional */
     iv = crl->version.len ? DER_GetInteger(&crl->version) : 0;  
     SECU_Indent(out, level+1); 
     	fprintf(out, "%s: %d (0x%x)\n", "Version", iv + 1, iv);
@@ -2567,7 +2566,7 @@ SECU_PrintCRLInfo(FILE *out, CERTCrl *crl, char *m, int level)
 			  level + 1);
     SECU_PrintName(out, &(crl->name), "Issuer", level + 1);
     SECU_PrintTimeChoice(out, &(crl->lastUpdate), "This Update", level + 1);
-    if (crl->nextUpdate.data && crl->nextUpdate.len) 
+    if (crl->nextUpdate.data && crl->nextUpdate.len) /* is optional */
 	SECU_PrintTimeChoice(out, &(crl->nextUpdate), "Next Update", level + 1);
     
     if (crl->entries != NULL) {
@@ -2586,25 +2585,25 @@ SECU_PrintCRLInfo(FILE *out, CERTCrl *crl, char *m, int level)
     SECU_PrintExtensions(out, crl->extensions, "CRL Extensions", level + 1);
 }
 
-
-
-
-
+/*
+** secu_PrintPKCS7Signed
+**   Pretty print a PKCS7 signed data type (up to version 1).
+*/
 static int
 secu_PrintPKCS7Signed(FILE *out, SEC_PKCS7SignedData *src,
 		      const char *m, int level)
 {
-    SECAlgorithmID *digAlg;		
-    SECItem *aCert;			
-    CERTSignedCrl *aCrl;		
-    SEC_PKCS7SignerInfo *sigInfo;	
+    SECAlgorithmID *digAlg;		/* digest algorithms */
+    SECItem *aCert;			/* certificate */
+    CERTSignedCrl *aCrl;		/* certificate revocation list */
+    SEC_PKCS7SignerInfo *sigInfo;	/* signer information */
     int rv, iv;
     char om[100];
 
     SECU_Indent(out, level); fprintf(out, "%s:\n", m);
     SECU_PrintInteger(out, &(src->version), "Version", level + 1);
 
-    
+    /* Parse and list digest algorithms (if any) */
     if (src->digestAlgorithms != NULL) {
 	SECU_Indent(out, level + 1);  fprintf(out, "Digest Algorithm List:\n");
 	iv = 0;
@@ -2614,13 +2613,13 @@ secu_PrintPKCS7Signed(FILE *out, SEC_PKCS7SignedData *src,
 	}
     }
 
-    
+    /* Now for the content */
     rv = secu_PrintPKCS7ContentInfo(out, &(src->contentInfo), 
 				    "Content Information", level + 1);
     if (rv != 0)
 	return rv;
 
-    
+    /* Parse and list certificates (if any) */
     if (src->rawCerts != NULL) {
 	SECU_Indent(out, level + 1);  fprintf(out, "Certificate List:\n");
 	iv = 0;
@@ -2633,7 +2632,7 @@ secu_PrintPKCS7Signed(FILE *out, SEC_PKCS7SignedData *src,
 	}
     }
 
-    
+    /* Parse and list CRL's (if any) */
     if (src->crls != NULL) {
 	SECU_Indent(out, level + 1);  
 	fprintf(out, "Signed Revocation Lists:\n");
@@ -2651,7 +2650,7 @@ secu_PrintPKCS7Signed(FILE *out, SEC_PKCS7SignedData *src,
 	}
     }
 
-    
+    /* Parse and list signatures (if any) */
     if (src->signerInfos != NULL) {
 	SECU_Indent(out, level + 1);
 	fprintf(out, "Signer Information List:\n");
@@ -2665,22 +2664,22 @@ secu_PrintPKCS7Signed(FILE *out, SEC_PKCS7SignedData *src,
     return 0;
 }
 
-
-
-
-
+/*
+** secu_PrintPKCS7Enveloped
+**  Pretty print a PKCS7 enveloped data type (up to version 1).
+*/
 static void
 secu_PrintPKCS7Enveloped(FILE *out, SEC_PKCS7EnvelopedData *src,
 			 const char *m, int level)
 {
-    SEC_PKCS7RecipientInfo *recInfo;   
+    SEC_PKCS7RecipientInfo *recInfo;   /* pointer for signer information */
     int iv;
     char om[100];
 
     SECU_Indent(out, level); fprintf(out, "%s:\n", m);
     SECU_PrintInteger(out, &(src->version), "Version", level + 1);
 
-    
+    /* Parse and list recipients (this is not optional) */
     if (src->recipientInfos != NULL) {
 	SECU_Indent(out, level + 1);
 	fprintf(out, "Recipient Information List:\n");
@@ -2695,27 +2694,27 @@ secu_PrintPKCS7Enveloped(FILE *out, SEC_PKCS7EnvelopedData *src,
 			      "Encrypted Content Information", level + 1);
 }
 
-
-
-
-
+/*
+** secu_PrintPKCS7SignedEnveloped
+**   Pretty print a PKCS7 singed and enveloped data type (up to version 1).
+*/
 static int
 secu_PrintPKCS7SignedAndEnveloped(FILE *out,
 				  SEC_PKCS7SignedAndEnvelopedData *src,
 				  const char *m, int level)
 {
-    SECAlgorithmID *digAlg;  
-    SECItem *aCert;           
-    CERTSignedCrl *aCrl;        
-    SEC_PKCS7SignerInfo *sigInfo;   
-    SEC_PKCS7RecipientInfo *recInfo; 
+    SECAlgorithmID *digAlg;  /* pointer for digest algorithms */
+    SECItem *aCert;           /* pointer for certificate */
+    CERTSignedCrl *aCrl;        /* pointer for certificate revocation list */
+    SEC_PKCS7SignerInfo *sigInfo;   /* pointer for signer information */
+    SEC_PKCS7RecipientInfo *recInfo; /* pointer for recipient information */
     int rv, iv;
     char om[100];
 
     SECU_Indent(out, level); fprintf(out, "%s:\n", m);
     SECU_PrintInteger(out, &(src->version), "Version", level + 1);
 
-    
+    /* Parse and list recipients (this is not optional) */
     if (src->recipientInfos != NULL) {
 	SECU_Indent(out, level + 1);
 	fprintf(out, "Recipient Information List:\n");
@@ -2726,7 +2725,7 @@ secu_PrintPKCS7SignedAndEnveloped(FILE *out,
 	}
     }  
 
-    
+    /* Parse and list digest algorithms (if any) */
     if (src->digestAlgorithms != NULL) {
 	SECU_Indent(out, level + 1);  fprintf(out, "Digest Algorithm List:\n");
 	iv = 0;
@@ -2739,7 +2738,7 @@ secu_PrintPKCS7SignedAndEnveloped(FILE *out,
     secu_PrintPKCS7EncContent(out, &src->encContentInfo, 
 			      "Encrypted Content Information", level + 1);
 
-    
+    /* Parse and list certificates (if any) */
     if (src->rawCerts != NULL) {
 	SECU_Indent(out, level + 1);  fprintf(out, "Certificate List:\n");
 	iv = 0;
@@ -2752,7 +2751,7 @@ secu_PrintPKCS7SignedAndEnveloped(FILE *out,
 	}
     }
 
-    
+    /* Parse and list CRL's (if any) */
     if (src->crls != NULL) {
 	SECU_Indent(out, level + 1);  
 	fprintf(out, "Signed Revocation Lists:\n");
@@ -2770,7 +2769,7 @@ secu_PrintPKCS7SignedAndEnveloped(FILE *out,
 	}
     }
 
-    
+    /* Parse and list signatures (if any) */
     if (src->signerInfos != NULL) {
 	SECU_Indent(out, level + 1);
 	fprintf(out, "Signer Information List:\n");
@@ -2794,7 +2793,7 @@ SECU_PrintCrl (FILE *out, SECItem *der, char *m, int level)
     if (!arena)
     	return rv;
     do {
-	
+	/* Decode CRL */
 	c = PORT_ArenaZNew(arena, CERTCrl);
 	if (!c)
 	    break;
@@ -2809,10 +2808,10 @@ SECU_PrintCrl (FILE *out, SECItem *der, char *m, int level)
 }
 
 
-
-
-
-
+/*
+** secu_PrintPKCS7Encrypted
+**   Pretty print a PKCS7 encrypted data type (up to version 1).
+*/
 static void
 secu_PrintPKCS7Encrypted(FILE *out, SEC_PKCS7EncryptedData *src,
 			 const char *m, int level)
@@ -2824,10 +2823,10 @@ secu_PrintPKCS7Encrypted(FILE *out, SEC_PKCS7EncryptedData *src,
 			      "Encrypted Content Information", level + 1);
 }
 
-
-
-
-
+/*
+** secu_PrintPKCS7Digested
+**   Pretty print a PKCS7 digested data type (up to version 1).
+*/
 static void
 secu_PrintPKCS7Digested(FILE *out, SEC_PKCS7DigestedData *src,
 			const char *m, int level)
@@ -2842,11 +2841,11 @@ secu_PrintPKCS7Digested(FILE *out, SEC_PKCS7DigestedData *src,
     SECU_PrintAsHex(out, &src->digest, "Digest", level + 1);  
 }
 
-
-
-
-
-
+/*
+** secu_PrintPKCS7ContentInfo
+**   Takes a SEC_PKCS7ContentInfo type and sends the contents to the 
+** appropriate function
+*/
 static int
 secu_PrintPKCS7ContentInfo(FILE *out, SEC_PKCS7ContentInfo *src,
 			   char *m, int level)
@@ -2878,25 +2877,25 @@ secu_PrintPKCS7ContentInfo(FILE *out, SEC_PKCS7ContentInfo *src,
 
     rv = 0;
     switch (kind) {
-      case SEC_OID_PKCS7_SIGNED_DATA:  
+      case SEC_OID_PKCS7_SIGNED_DATA:  /* Signed Data */
 	rv = secu_PrintPKCS7Signed(out, src->content.signedData, desc, level);
 	break;
 
-      case SEC_OID_PKCS7_ENVELOPED_DATA:  
+      case SEC_OID_PKCS7_ENVELOPED_DATA:  /* Enveloped Data */
         secu_PrintPKCS7Enveloped(out, src->content.envelopedData, desc, level);
 	break;
 
-      case SEC_OID_PKCS7_SIGNED_ENVELOPED_DATA:  
+      case SEC_OID_PKCS7_SIGNED_ENVELOPED_DATA:  /* Signed and Enveloped */
 	rv = secu_PrintPKCS7SignedAndEnveloped(out,
 					src->content.signedAndEnvelopedData,
 					desc, level);
 	break;
 
-      case SEC_OID_PKCS7_DIGESTED_DATA:  
+      case SEC_OID_PKCS7_DIGESTED_DATA:  /* Digested Data */
 	secu_PrintPKCS7Digested(out, src->content.digestedData, desc, level);
 	break;
 
-      case SEC_OID_PKCS7_ENCRYPTED_DATA:  
+      case SEC_OID_PKCS7_ENCRYPTED_DATA:  /* Encrypted Data */
 	secu_PrintPKCS7Encrypted(out, src->content.encryptedData, desc, level);
 	break;
 
@@ -2908,10 +2907,10 @@ secu_PrintPKCS7ContentInfo(FILE *out, SEC_PKCS7ContentInfo *src,
     return rv;
 }
 
-
-
-
-
+/*
+** SECU_PrintPKCS7ContentInfo
+**   Decode and print any major PKCS7 data type (up to version 1).
+*/
 int
 SECU_PrintPKCS7ContentInfo(FILE *out, SECItem *der, char *m, int level)
 {
@@ -2920,7 +2919,7 @@ SECU_PrintPKCS7ContentInfo(FILE *out, SECItem *der, char *m, int level)
 
     cinfo = SEC_PKCS7DecodeItem(der, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
     if (cinfo != NULL) {
-	
+	/* Send it to recursive parsing and printing module */
 	rv = secu_PrintPKCS7ContentInfo(out, cinfo, m, level);
 	SEC_PKCS7DestroyContentInfo(cinfo);
     } else {
@@ -2930,9 +2929,9 @@ SECU_PrintPKCS7ContentInfo(FILE *out, SECItem *der, char *m, int level)
     return rv;
 }
 
-
-
-
+/*
+** End of PKCS7 functions
+*/
 
 void
 printFlags(FILE *out, unsigned int flags, int level)
@@ -3018,7 +3017,7 @@ secu_PrintSignedDataSigOpt(FILE *out, SECItem *der, const char *m,
     if (!arena)
 	return rv;
 
-    
+    /* Strip off the signature */
     sd = PORT_ArenaZNew(arena, CERTSignedData);
     if (!sd)
 	goto loser;
@@ -3068,6 +3067,7 @@ SEC_PrintCertificateAndTrust(CERTCertificate *cert,
 {
     SECStatus rv;
     SECItem data;
+    CERTCertTrust certTrust;
     
     data.data = cert->derCert.data;
     data.len = cert->derCert.len;
@@ -3080,8 +3080,8 @@ SEC_PrintCertificateAndTrust(CERTCertificate *cert,
     if (trust) {
 	SECU_PrintTrustFlags(stdout, trust,
 	                     "Certificate Trust Flags", 1);
-    } else if (cert->trust) {
-	SECU_PrintTrustFlags(stdout, cert->trust,
+    } else if (CERT_GetCertTrust(cert, &certTrust) == SECSuccess) {
+	SECU_PrintTrustFlags(stdout, &certTrust,
 	                     "Certificate Trust Flags", 1);
     }
 
@@ -3126,7 +3126,7 @@ SECU_printCertProblemsOnDate(FILE *outfile, CERTCertDBHandle *handle,
     }
     PORT_FreeArena(log.arena, PR_FALSE);
 
-    PORT_SetError(err); 
+    PORT_SetError(err); /* restore original error code */
 }
 
 void
@@ -3392,20 +3392,20 @@ SECU_DerSignDataCRL(PRArenaPool *arena, CERTSignedData *sd,
 
     it.data = 0;
 
-    
+    /* XXX We should probably have some asserts here to make sure the key type
+     * and algID match
+     */
 
-
-
-    
+    /* Sign input buffer */
     rv = SEC_SignData(&it, buf, len, pk, algID);
     if (rv) goto loser;
 
-    
+    /* Fill out SignedData object */
     PORT_Memset(sd, 0, sizeof(*sd));
     sd->data.data = buf;
     sd->data.len = len;
     sd->signature.data = it.data;
-    sd->signature.len = it.len << 3;		
+    sd->signature.len = it.len << 3;		/* convert to bit string */
     rv = SECOID_SetAlgorithmID(arena, &sd->signatureAlgorithm, algID, 0);
     if (rv) goto loser;
 
@@ -3418,7 +3418,7 @@ SECU_DerSignDataCRL(PRArenaPool *arena, CERTSignedData *sd,
 
 #if 0
 
-
+/* we need access to the private function cert_FindExtension for this code to work */
 
 CERTAuthKeyID *
 SECU_FindCRLAuthKeyIDExten (PRArenaPool *arena, CERTSignedCrl *scrl)
@@ -3454,15 +3454,16 @@ SECU_FindCRLAuthKeyIDExten (PRArenaPool *arena, CERTSignedCrl *scrl)
 
 #endif
 
-
-
-
+/*
+ * Find the issuer of a Crl.  Use the authorityKeyID if it exists.
+ */
 CERTCertificate *
 SECU_FindCrlIssuer(CERTCertDBHandle *dbhandle, SECItem* subject,
                    CERTAuthKeyID* authorityKeyID, PRTime validTime)
 {
     CERTCertificate *issuerCert = NULL;
     CERTCertList *certList = NULL;
+    CERTCertTrust trust;
 
     if (!subject) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
@@ -3475,13 +3476,13 @@ SECU_FindCrlIssuer(CERTCertDBHandle *dbhandle, SECItem* subject,
     if (certList) {
         CERTCertListNode *node = CERT_LIST_HEAD(certList);
     
-        
+        /* XXX and authoritykeyid in the future */
         while ( ! CERT_LIST_END(node, certList) ) {
             CERTCertificate *cert = node->cert;
-            
-
-
-            if (cert->trust &&
+            /* check cert CERTCertTrust data is allocated, check cert
+               usage extension, check that cert has pkey in db. Select
+               the first (newest) user cert */
+            if (CERT_GetCertTrust(cert, &trust) == SECSuccess &&
                 CERT_CheckCertUsage(cert, KU_CRL_SIGN) == SECSuccess &&
                 CERT_IsUserCert(cert)) {
                 
@@ -3496,7 +3497,7 @@ SECU_FindCrlIssuer(CERTCertDBHandle *dbhandle, SECItem* subject,
 }
 
 
-
+/* Encodes and adds extensions to the CRL or CRL entries. */
 SECStatus 
 SECU_EncodeAndAddExtensionValue(PRArenaPool *arena, void *extHandle, 
                                 void *value, PRBool criticality, int extenType, 
@@ -3533,8 +3534,8 @@ SECU_FindCertByNicknameOrFilename(CERTCertDBHandle *handle,
     }
     the_cert = PK11_FindCertFromNickname(name, pwarg);
     if (!the_cert) {
-        
-
+        /* Don't have a cert with name "name" in the DB. Try to
+         * open a file with such name and get the cert from there.*/
         SECStatus rv;
         SECItem item = {0, NULL, 0};
         PRFileDesc* fd = PR_Open(name, PR_RDONLY, 0777); 
@@ -3548,20 +3549,20 @@ SECU_FindCertByNicknameOrFilename(CERTCertDBHandle *handle,
             return NULL;
         }
         the_cert = CERT_NewTempCertificate(handle, &item, 
-                                           NULL     , 
-                                           PR_FALSE , 
-                                           PR_TRUE  );
+                                           NULL     /* nickname */, 
+                                           PR_FALSE /* isPerm */, 
+                                           PR_TRUE  /* copyDER */);
         PORT_Free(item.data);
     }
     return the_cert;
 }
 
-
-
-
-
-
-
+/* Convert a SSL/TLS protocol version string into the respective numeric value
+ * defined by the SSL_LIBRARY_VERSION_* constants,
+ * while accepting a flexible set of case-insensitive identifiers.
+ *
+ * Caller must specify bufLen, allowing the function to operate on substrings.
+ */
 static SECStatus
 SECU_GetSSLVersionFromName(const char *buf, size_t bufLen, PRUint16 *version)
 {
@@ -3606,7 +3607,7 @@ SECU_ParseSSLVersionRangeString(const char *input,
     }
 
     if (!strcmp(input, ":")) {
-        
+        /* special value, use default */
         *enableSSL2 = defaultEnableSSL2;
         *vrange = defaultVersionRange;
         return SECSuccess;
@@ -3622,12 +3623,12 @@ SECU_ParseSSLVersionRangeString(const char *input,
     maxStr = colonPos + 1;
 
     if (!colonIndex) {
-        
+        /* colon was first character, min version is empty */
         *enableSSL2 = defaultEnableSSL2;
         vrange->min = defaultVersionRange.min;
     } else {
         PRUint16 version;
-        
+        /* colonIndex is equivalent to the length of the min version substring */
         if (SECU_GetSSLVersionFromName(input, colonIndex, &version) != SECSuccess) {
             PORT_SetError(SEC_ERROR_INVALID_ARGS);
             return SECFailure;
@@ -3646,7 +3647,7 @@ SECU_ParseSSLVersionRangeString(const char *input,
         vrange->max = defaultVersionRange.max;
     } else {
         PRUint16 version;
-        
+        /* if max version is empty, then maxStr points to the string terminator */
         if (SECU_GetSSLVersionFromName(maxStr, strlen(maxStr), &version)
                 != SECSuccess) {
             PORT_SetError(SEC_ERROR_INVALID_ARGS);
@@ -3654,12 +3655,12 @@ SECU_ParseSSLVersionRangeString(const char *input,
         }
 
         if (version == SSL_LIBRARY_VERSION_2) {
-            
+            /* consistency checking, require that min allows enableSSL2, too */
             if (!*enableSSL2) {
                 PORT_SetError(SEC_ERROR_INVALID_ARGS);
                 return SECFailure;
             }
-            
+            /* we use 0 because SSL_LIBRARY_VERSION_NONE is private: */
             vrange->min = 0;
             vrange->max = 0;
         } else {

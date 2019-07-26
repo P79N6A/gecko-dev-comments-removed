@@ -1,31 +1,31 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * ssltap.c
+ *
+ * Version 1.0 : Frederick Roeber : 11 June 1997
+ * Version 2.0 : Steve Parkinson  : 13 November 1997
+ * Version 3.0 : Nelson Bolyard   : 22 July 1998
+ * Version 3.1 : Nelson Bolyard   : 24 May  1999
+ *
+ * changes in version 2.0:
+ *  Uses NSPR20
+ *  Shows structure of SSL negotiation, if enabled.
+ *
+ * This "proxies" a socket connection (like a socks tunnel), but displays the
+ * data is it flies by.
+ *
+ * In the code, the 'client' socket is the one on the client side of the
+ * proxy, and the server socket is on the server side.
+ *
+ */
 
 #include "nspr.h"
 #include "plstr.h"
 #include "secutil.h"
-#include <memory.h>	
+#include <memory.h>	/* for memcpy, etc. */
 #include <string.h>
 #include <time.h>
 
@@ -34,7 +34,7 @@
 #include "cert.h"
 #include "sslproto.h"
 
-#define VERSIONSTRING "$Revision: 1.22 $ ($Date: 2012/06/14 18:16:05 $) $Author: wtc%google.com $"
+#define VERSIONSTRING "$Revision: 1.23 $ ($Date: 2013/01/23 20:53:58 $) $Author: wtc%google.com $"
 
 
 struct _DataBufferList;
@@ -53,7 +53,7 @@ typedef struct _DataBufferList {
 typedef struct _DataBuffer {
   unsigned char *buffer;
   int length;
-  int offset;  
+  int offset;  /* offset of first good byte */
   struct _DataBuffer *next;
 } DataBuffer;
 
@@ -102,7 +102,7 @@ typedef struct _ClientMasterKeyV2 {
 
 } ClientMasterKeyV2;
 
-
+/* forward declaration */
 void showErr(const char * msg);
 
 #define TAPBUFSIZ 16384
@@ -197,9 +197,9 @@ void check_integrity(DataBufferList *dbl)
   }
 }
 
-
-
-
+/* Free's the DataBuffer at the head of the list and returns the pointer
+ * to the new head of the list.
+ */
 DataBuffer * 
 free_head(DataBufferList *dbl)
 {
@@ -229,8 +229,8 @@ read_stream_bytes(unsigned char *d, DataBufferList *dbl, int length)
   }
   while (length) {
     int         toCopy;
-    
-    
+    /* find the number of bytes to copy from the head buffer */
+    /* if there's too many in this buffer, then only copy 'length' */
     toCopy = PR_MIN(db->length - db->offset, length);
 
     memcpy(d + copied, db->buffer + db->offset, toCopy);
@@ -239,7 +239,7 @@ read_stream_bytes(unsigned char *d, DataBufferList *dbl, int length)
     length     -= toCopy;
     dbl->size  -= toCopy;
 
-    
+    /* if we emptied the head buffer */
     if (db->offset >= db->length) {
       db = free_head(dbl);
     }
@@ -333,8 +333,11 @@ const char * V2CipherString(int cs_int)
   case 0x000039:    cs_str = "TLS/DHE-RSA/AES256-CBC/SHA";	break;
   case 0x00003A:    cs_str = "TLS/DH-ANON/AES256-CBC/SHA";	break;
 
+  case 0x00003B:    cs_str = "TLS/RSA/NULL/SHA256";		break;
   case 0x00003C:    cs_str = "TLS/RSA/AES128-CBC/SHA256";  	break;
   case 0x00003D:    cs_str = "TLS/RSA/AES256-CBC/SHA256";  	break;
+  case 0x00003E:    cs_str = "TLS/DH-DSS/AES128-CBC/SHA256";  	break;
+  case 0x00003F:    cs_str = "TLS/DH-RSA/AES128-CBC/SHA256";  	break;
   case 0x000040:    cs_str = "TLS/DHE-DSS/AES128-CBC/SHA256";	break;
 
   case 0x000041:    cs_str = "TLS/RSA/CAMELLIA128-CBC/SHA";	break;
@@ -442,7 +445,7 @@ const char * V2CipherString(int cs_int)
   case 0x00FFE1:    cs_str = "SSL3/RSA-FIPS/DES56-CBC/SHA";     break;
   case 0x00FFE0:    cs_str = "SSL3/RSA-FIPS/3DES192EDE-CBC/SHA";break;
 
-  
+  /* the string literal is broken up to avoid trigraphs */
   default:          cs_str = "????" "/????????" "/?????????" "/???"; break;
   }
 
@@ -455,8 +458,8 @@ const char * CompressionMethodString(int cm_int)
   cm_str = NULL;
   switch (cm_int) {
   case  0: cm_str = "NULL";     break;
-  case  1: cm_str = "DEFLATE";  break;  
-  case 64: cm_str = "LZS";      break;  
+  case  1: cm_str = "DEFLATE";  break;  /* RFC 3749 */
+  case 64: cm_str = "LZS";      break;  /* RFC 3943 */
   default: cm_str = "???";      break;
   }
 
@@ -586,9 +589,9 @@ void print_sslv2(DataBufferList *s, unsigned char *recordBuf, unsigned int recor
     }
     PR_fprintf(PR_STDOUT,"}\n");
     break;
-    
+    /* end of V2 CLientHello Parsing */
 
-  case 2:  
+  case 2:  /* Client Master Key  */
     {
     const char *cs_str=NULL;
     PRUint32 cs_int=0;
@@ -619,7 +622,7 @@ void print_sslv2(DataBufferList *s, unsigned char *recordBuf, unsigned int recor
     break;
 
 
-  case 4:  
+  case 4:  /* V2 Server Hello */
     isV2Session = 1;
 
     PR_fprintf(PR_STDOUT," [ssl2]  ServerHelloV2 {\n");
@@ -635,13 +638,13 @@ void print_sslv2(DataBufferList *s, unsigned char *recordBuf, unsigned int recor
 	       (PRUint32)(GET_SHORT((shv2->cidlength))));
 
     pos = (unsigned char *)shv2;
-    pos += 2;   
-    pos += 11;  
+    pos += 2;   /* skip length header */
+    pos += 11;  /* position pointer to Certificate data area */
     q = GET_SHORT(&shv2->certlength);
     if (q >recordLen) {
       goto eosh;
     }
-    pos += q; 			
+    pos += q; 			/* skip certificate */
 
     PR_fprintf(PR_STDOUT,"           cipher-suites = { ");
     len = GET_SHORT((shv2->cslength));
@@ -652,17 +655,17 @@ void print_sslv2(DataBufferList *s, unsigned char *recordBuf, unsigned int recor
       PR_fprintf(PR_STDOUT,"(0x%06x) %s", cs_int, cs_str);
     }
     pos += len;
-    PR_fprintf(PR_STDOUT,"   }\n");	
+    PR_fprintf(PR_STDOUT,"   }\n");	/* End of cipher suites */
     len = (PRUint32)GET_SHORT((shv2->cidlength));
     if (len) {
       PR_fprintf(PR_STDOUT,"           connection-id = { ");
       for (p = 0; p < len; p += 2) {
 	PR_fprintf(PR_STDOUT,"0x%04x ", (PRUint32)(GET_SHORT((pos + p))));
       }
-      PR_fprintf(PR_STDOUT,"   }\n");	
+      PR_fprintf(PR_STDOUT,"   }\n");	/* End of connection id */
     }
 eosh:
-    PR_fprintf(PR_STDOUT,"\n              }\n"); 
+    PR_fprintf(PR_STDOUT,"\n              }\n"); /* end of ServerHelloV2 */
     if (shv2->sidhit) {
       clientstream.isEncrypted = 1;
       serverstream.isEncrypted = 1;
@@ -702,7 +705,7 @@ unsigned int print_hello_extension(unsigned char *  hsdata,
 				   unsigned int     length,
 				   unsigned int     pos)
 {
-  
+  /* pretty print extensions, if any */
   if (pos < length) {
     int exListLen = GET_SHORT((hsdata+pos)); pos += 2;
     PR_fprintf(PR_STDOUT,
@@ -711,7 +714,7 @@ unsigned int print_hello_extension(unsigned char *  hsdata,
       int exLen;
       int exType = GET_SHORT((hsdata+pos)); pos += 2;
       exLen = GET_SHORT((hsdata+pos)); pos += 2;
-      
+      /* dump the extension */
       PR_fprintf(PR_STDOUT,
 		 "              extension type %s, length [%d]",
 		 helloExtensionNameString(exType), exLen);
@@ -730,11 +733,11 @@ unsigned int print_hello_extension(unsigned char *  hsdata,
   return pos;
 }
 
-
-
-
-
-
+/* In the case of renegotiation, handshakes that occur in an already MAC'ed 
+ * channel, by the time of this call, the caller has already removed the MAC 
+ * from input recordLen. The only MAC'ed record that will get here with its 
+ * MAC intact (not removed) is the first Finished message on the connection.
+ */
 void print_ssl3_handshake(unsigned char *recordBuf, 
                           unsigned int   recordLen,
                           SSLRecord *    sr,
@@ -747,7 +750,7 @@ void print_ssl3_handshake(unsigned char *recordBuf,
   PR_fprintf(PR_STDOUT,"   handshake {\n");
 
   if (s->msgBufOffset && s->msgBuf) {
-    
+    /* append recordBuf to msgBuf, then use msgBuf */
     if (s->msgBufOffset + recordLen > s->msgBufSize) {
       int             newSize = s->msgBufOffset + recordLen;
       unsigned char * newBuf = PORT_Realloc(s->msgBuf, newSize);
@@ -769,7 +772,7 @@ void print_ssl3_handshake(unsigned char *recordBuf,
     sslh.length = GET_24(recordBuf+offset+1);
     if (offset + 4 + sslh.length > recordLen)
       break;
-    
+    /* finally have a complete message */
     if (sslhexparse) 
       print_hex(4,recordBuf+offset);
 
@@ -794,11 +797,11 @@ void print_ssl3_handshake(unsigned char *recordBuf,
     PR_fprintf(PR_STDOUT,"      length = %d (0x%06x)\n",sslh.length,sslh.length);
     switch (sslh.type) {
 
-    case 0:   break;
+    case 0: /* hello_request */ /* not much to show here. */ break;
 
-    case 1: 
+    case 1: /* client hello */
       switch (sr->ver_maj)  {
-      case 3:  
+      case 3:  /* ssl version 3 */
 	{
 	  unsigned int pos;
 	  int w;
@@ -809,7 +812,7 @@ void print_ssl3_handshake(unsigned char *recordBuf,
 	  PR_fprintf(PR_STDOUT,"            random = {...}\n");
 	  if (sslhexparse) print_hex(32,&hsdata[2]);
 
-	  
+	  /* pretty print Session ID */
 	  {
 	    int sidlength = (int)hsdata[2+32];
 	    PR_fprintf(PR_STDOUT,"            session ID = {\n");
@@ -820,7 +823,7 @@ void print_ssl3_handshake(unsigned char *recordBuf,
 	    pos = 2+32+1+sidlength;
 	  }
 
-	  
+	  /* pretty print cipher suites */
 	  {
 	    int csuitelength = GET_SHORT((hsdata+pos));
 	    PR_fprintf(PR_STDOUT,"            cipher_suites[%d] = {\n",
@@ -839,7 +842,7 @@ void print_ssl3_handshake(unsigned char *recordBuf,
 	    PR_fprintf(PR_STDOUT,"            }\n");
 	  }
 
-	  
+	  /* pretty print compression methods */
 	  {
 	    int complength = hsdata[pos];
 	    PR_fprintf(PR_STDOUT,"            compression[%d] = {\n",
@@ -854,21 +857,21 @@ void print_ssl3_handshake(unsigned char *recordBuf,
 	    PR_fprintf(PR_STDOUT,"            }\n");
 	  }
 
-	  
+	  /* pretty print extensions, if any */
 	  pos = print_hello_extension(hsdata, sslh.length, pos);
 
 	  PR_fprintf(PR_STDOUT,"         }\n");
-	} 
+	} /* end of ssl version 3 */
 	break;
       default:
 	PR_fprintf(PR_STDOUT,"         UNDEFINED VERSION %d.%d {...}\n",
 	                     sr->ver_maj, sr->ver_min );
 	if (sslhexparse) print_hex(sslh.length, hsdata);
 	break;
-      } 
+      } /* end of switch sr->ver_maj */
       break;
 
-    case 2: 
+    case 2: /* server hello */
       {
 	unsigned int sidlength, pos;
 
@@ -886,7 +889,7 @@ void print_ssl3_handshake(unsigned char *recordBuf,
 	PR_fprintf(PR_STDOUT,"            }\n");
 	pos = 2+32+1+sidlength;
 
-	
+	/* pretty print chosen cipher suite */
 	{
 	  PRUint32 cs_int    = GET_SHORT((hsdata+pos));
 	  const char *cs_str = V2CipherString(cs_int);
@@ -895,7 +898,7 @@ void print_ssl3_handshake(unsigned char *recordBuf,
 	  currentcipher = cs_int;
 	  pos += 2;
 	}
-	
+	/* pretty print chosen compression method */
 	{
 	  PRUint32 cm_int    = hsdata[pos++];
 	  const char *cm_str = CompressionMethodString(cm_int);
@@ -903,14 +906,14 @@ void print_ssl3_handshake(unsigned char *recordBuf,
 		     cm_int, cm_str);
 	}
 
-	
+	/* pretty print extensions, if any */
 	pos = print_hello_extension(hsdata, sslh.length, pos);
 
 	PR_fprintf(PR_STDOUT,"         }\n");
       }
       break;
 
-    case 4: 
+    case 4: /* new session ticket */
       {
 	PRUint32 lifetimehint;
 	PRUint16 ticketlength;
@@ -921,11 +924,11 @@ void print_ssl3_handshake(unsigned char *recordBuf,
 	  PRTime t = lifetimehint;
 	  t *= PR_USEC_PER_SEC;
 	  PR_ExplodeTime(t, PR_GMTParameters, &et);
-	  
+	  /* use HTTP Cookie header's date format */
 	  PR_FormatTimeUSEnglish(lifetime, sizeof lifetime,
 				 "%a, %d-%b-%Y %H:%M:%S GMT", &et);
 	} else {
-	  
+	  /* 0 means the lifetime of the ticket is unspecified */
 	  strcpy(lifetime, "unspecified");
 	}
 	ticketlength = GET_SHORT((hsdata+4));
@@ -941,7 +944,7 @@ void print_ssl3_handshake(unsigned char *recordBuf,
       }
       break;
 
-    case 11: 
+    case 11: /* certificate */
       {
 	PRFileDesc *cfd;
 	int         pos;
@@ -988,18 +991,18 @@ void print_ssl3_handshake(unsigned char *recordBuf,
       }
       break;
 
-    case 12:                     
+    case 12: /* server_key_exchange */                    
       if (sslhexparse) print_hex(sslh.length, hsdata);
       break;
 
-    case 13: 
+    case 13: /* certificate request */
       { 
 	unsigned int pos = 0;
 	int w, reqLength;
 
 	PR_fprintf(PR_STDOUT,"         CertificateRequest {\n");
 
-	
+	/* pretty print requested certificate types */
 	reqLength = hsdata[pos];
 	PR_fprintf(PR_STDOUT,"            certificate types[%d] = {",
 		   reqLength);
@@ -1009,7 +1012,7 @@ void print_ssl3_handshake(unsigned char *recordBuf,
 	pos += 1 + reqLength;
 	PR_fprintf(PR_STDOUT," }\n");
 
-	
+	/* pretty print CA names, if any */
 	if (pos < sslh.length) {
 	  int exListLen = GET_SHORT((hsdata+pos)); pos += 2;
 	  PR_fprintf(PR_STDOUT,
@@ -1020,7 +1023,7 @@ void print_ssl3_handshake(unsigned char *recordBuf,
 	    SECItem it;
 	    int     dnLen = GET_SHORT((hsdata+pos)); pos += 2;
 
-	    
+	    /* dump the CA name */
 	    it.type = siBuffer;
 	    it.data = hsdata + pos;
 	    it.len  = dnLen;
@@ -1049,13 +1052,13 @@ void print_ssl3_handshake(unsigned char *recordBuf,
       }
       break;
 
-    case 14:   break;
+    case 14: /* server_hello_done */ /* not much to show here. */ break;
 
-    case 15: 	           
+    case 15: /* certificate_verify */	           
       if (sslhexparse) print_hex(sslh.length, hsdata);
       break;
 
-    case 16: 
+    case 16: /* client key exchange */
       {
 	PR_fprintf(PR_STDOUT,"         ClientKeyExchange {\n");
 	PR_fprintf(PR_STDOUT,"            message = {...}\n");
@@ -1063,25 +1066,25 @@ void print_ssl3_handshake(unsigned char *recordBuf,
       }
       break;
 
-    case 20: 			 
+    case 20: /* finished */			 
       PR_fprintf(PR_STDOUT,"         Finished {\n");
       PR_fprintf(PR_STDOUT,"            verify_data = {...}\n");
       if (sslhexparse) print_hex(sslh.length, hsdata);
       PR_fprintf(PR_STDOUT,"         }\n");
 
       if (!isNULLmac(currentcipher) && !s->hMACsize) {
-          
-
-
-
-
-
-
-
-
-
+          /* To calculate the size of MAC, we subtract the number of known 
+	   * bytes of message from the number of remaining bytes in the 
+	   * record. This assumes that this is the first record on the 
+	   * connection to have a MAC, and that the sender has not put another 
+	   * message after the finished message in the handshake record. 
+	   * This is only correct for the first transition from unMACed to 
+	   * MACed. If the connection switches from one cipher suite to 
+	   * another one with a different MAC, this logic will not track that 
+	   * change correctly.
+	   */
           s->hMACsize = recordLen - (sslh.length + 4);
-	  sslh.length += s->hMACsize;  
+	  sslh.length += s->hMACsize;  /* skip over the MAC data */
       }
       break;
 
@@ -1093,10 +1096,10 @@ void print_ssl3_handshake(unsigned char *recordBuf,
 	PR_fprintf(PR_STDOUT,"         }\n");
 
       }
-    }  
+    }  /* end of switch sslh.type */
     offset += sslh.length + 4; 
-  } 
-  if (offset < recordLen) { 
+  } /* while */
+  if (offset < recordLen) { /* stuff left over */
     int newMsgLen = recordLen - offset;
     if (!s->msgBuf) {
       s->msgBuf = PORT_Alloc(newMsgLen);
@@ -1130,14 +1133,14 @@ void print_ssl3_handshake(unsigned char *recordBuf,
 
 void print_ssl(DataBufferList *s, int length, unsigned char *buffer)
 {
-  
-  
+  /* --------------------------------------------------------  */
+  /* first, create a new buffer object for this piece of data. */
 
   DataBuffer *db;
   int i,l;
 
   if (s->size == 0 && length > 0 && buffer[0] >= 32 && buffer[0] < 128) {
-    
+    /* Not an SSL record, treat entire buffer as plaintext */
     PR_Write(PR_STDOUT,buffer,length);
     return;
   }
@@ -1156,7 +1159,7 @@ void print_ssl(DataBufferList *s, int length, unsigned char *buffer)
   memcpy(db->buffer, buffer, length);
   db->next = NULL;
 
-  
+  /* now, add it to the stream */
 
   if (s->last != NULL) s->last->next = db;
   s->last = db;
@@ -1165,9 +1168,9 @@ void print_ssl(DataBufferList *s, int length, unsigned char *buffer)
 
   check_integrity(s);
 
-  
-  
-
+  /*------------------------------------------------------- */
+  /* now we look at the stream to see if we have enough data to
+     decode  */
 
   while (s->size > 0 ) {
     unsigned char *recordBuf = NULL;
@@ -1183,29 +1186,29 @@ void print_ssl(DataBufferList *s, int length, unsigned char *buffer)
       exit(9);
     }
 
-    
-    
-    
-
-
+    /* in the case of an SSL 2 client-hello  */
+    /* will have the high-bit set, whereas an SSL 3 client-hello will not  */
+    /* SSL2 can also send records that begin with the high bit clear.
+     * This code will incorrectly handle them. XXX
+     */
     if (isV2Session || s->first->buffer[s->first->offset] & 0x80) {
-      
+      /* it's an SSL 2 packet */
       unsigned char lenbuf[3];
 
-      
-
+      /* first, we check if there's enough data for it to be an SSL2-type
+       * record.  What a pain.*/
       if (s->size < sizeof lenbuf) {
 	partial_packet(length, s->size, sizeof lenbuf);
 	return;
       }
 
-      
+      /* read the first two bytes off the stream. */
       read_stream_bytes(lenbuf, s, sizeof(lenbuf));
       recordLen = ((unsigned int)(lenbuf[0] & 0x7f) << 8) + lenbuf[1] + 
                  ((lenbuf[0] & 0x80) ? 2 : 3);
       PR_fprintf(PR_STDOUT, "recordLen = %u bytes\n", recordLen);
 
-      
+      /* put 'em back on the head of the stream. */
       db = PR_NEW(struct _DataBuffer);
 
       db->length = sizeof lenbuf;
@@ -1219,7 +1222,7 @@ void print_ssl(DataBufferList *s, int length, unsigned char *buffer)
 	s->last = db;
       s->size += db->length;
 
-      
+      /* if there wasn't enough, go back for more. */
       if (s->size < recordLen) {
 	check_integrity(s);
 	partial_packet(length, s->size, recordLen);
@@ -1227,7 +1230,7 @@ void print_ssl(DataBufferList *s, int length, unsigned char *buffer)
       }
       partial_packet(length, s->size, recordLen);
 
-      
+      /* read in the whole record. */
       recordBuf = PORT_Alloc(recordLen);
       read_stream_bytes(recordBuf, s, recordLen);
 
@@ -1238,9 +1241,9 @@ void print_ssl(DataBufferList *s, int length, unsigned char *buffer)
       continue;
     }
 
-    
-    
-    
+    /***********************************************************/
+    /* It's SSL v3 */
+    /***********************************************************/
     check_integrity(s);
 
     if (s->size < sizeof sr) {
@@ -1250,10 +1253,10 @@ void print_ssl(DataBufferList *s, int length, unsigned char *buffer)
 
     read_stream_bytes((unsigned char *)&sr, s, sizeof sr);
 
-    
-
-
-
+    /* we have read the stream bytes. Look at the length of
+       the ssl record. If we don't have enough data to satisfy this
+       request, then put the bytes we just took back at the head
+       of the queue */
     recordsize = GET_SHORT(sr.length);
 
     if (recordsize > s->size) {
@@ -1265,7 +1268,7 @@ void print_ssl(DataBufferList *s, int length, unsigned char *buffer)
       memcpy(db->buffer, &sr, sizeof sr);
       db->next = s->first;
 
-      
+      /* now, add it back on to the head of the stream */
 
       s->first = db;
       if (s->last == NULL) 
@@ -1318,17 +1321,17 @@ void print_ssl(DataBufferList *s, int length, unsigned char *buffer)
 
       if (s->isEncrypted) {
 	PR_fprintf(PR_STDOUT,"            < encrypted >\n");
-      } else { 
+      } else { /* not encrypted */
 
       switch(sr.type) {
-      case 20 : 
+      case 20 : /* change_cipher_spec */
 	if (sslhexparse) print_hex(recordLen - s->hMACsize,recordBuf);
-         
-
+         /* mark to say we can only dump hex form now on
+          * if it is not one on a null cipher */
 	s->isEncrypted = isNULLcipher(currentcipher) ? 0 : 1; 
 	break;
 
-      case 21 : 
+      case 21 : /* alert */
 	switch(recordBuf[0]) {
 	case 1: PR_fprintf(PR_STDOUT, "   warning: "); break;
 	case 2: PR_fprintf(PR_STDOUT, "   fatal: "); break;
@@ -1373,11 +1376,11 @@ void print_ssl(DataBufferList *s, int length, unsigned char *buffer)
 	if (sslhexparse) print_hex(recordLen - s->hMACsize,recordBuf);
 	break;
 
-      case 22 :  	
+      case 22 : /* handshake */ 	
         print_ssl3_handshake( recordBuf, recordLen - s->hMACsize, &sr, s );
 	break;
 
-      case 23 : 
+      case 23 : /* application data */
 	 print_hex(recordLen - s->hMACsize,recordBuf);
          break;
 
@@ -1392,7 +1395,7 @@ void print_ssl(DataBufferList *s, int length, unsigned char *buffer)
 	      print_hex(s->hMACsize, offset);
 	  }
       }
-     } 
+     } /* not encrypted */
     }
     PR_fprintf(PR_STDOUT,"}\n");
     PR_FREEIF(recordBuf);
@@ -1410,8 +1413,8 @@ void print_hex(int amt, unsigned char *buf)
   for(i=0;i<amt;i++) {
     t[1] =0;
 
-    if (i%16 ==0) {  
-      PR_fprintf(PR_STDOUT,"%4x:",i); 
+    if (i%16 ==0) {  /* if we are at the beginning of a line */
+      PR_fprintf(PR_STDOUT,"%4x:",i); /* print the line number  */
       strcpy(string,"");
     }
 
@@ -1440,15 +1443,15 @@ void print_hex(int amt, unsigned char *buf)
 
     PR_fprintf(PR_STDOUT,"%02x ",(PRUint8) buf[i]);
 
-    
+    /* if we've reached the end of the line - add the string */
     if (i%16 == 15) PR_fprintf(PR_STDOUT," | %s\n",string);
   }
-  
-  
+  /* we reached the end of the buffer,*/
+  /* do we have buffer left over? */
   j = i%16;
   if (j > 0) {
     for (k=0;k<(16-j);k++) {
-        
+        /* print additional space after every four bytes */
         if ((k + j)%4 == 0) {
             PR_fprintf(PR_STDOUT," ");
         }
@@ -1480,7 +1483,7 @@ showErr(const char * msg)
   const char * errString;
 
   if (err == PR_UNKNOWN_ERROR)
-    err = PR_CONNECT_RESET_ERROR;	
+    err = PR_CONNECT_RESET_ERROR;	/* bug in NSPR. */
   errString = SECU_Strerror(err);
 
   if (!errString)
@@ -1496,7 +1499,7 @@ int main(int argc,  char *argv[])
   void *iter;
   PRStatus r;
   PRNetAddr na_client,na_server,na_rend;
-  PRFileDesc *s_server,*s_client,*s_rend; 
+  PRFileDesc *s_server,*s_client,*s_rend; /*rendezvous */
   int c_count=0;
   PLOptState *optstate;
   PLOptStatus status;
@@ -1560,7 +1563,7 @@ int main(int argc,  char *argv[])
       }
   }
 
-  
+  /* find the 'server' IP address so we don't have to look it up later */
 
   if (fancy) {
       PR_fprintf(PR_STDOUT,"<HTML><HEAD><TITLE>SSLTAP output</TITLE></HEAD>\n");
@@ -1575,7 +1578,7 @@ int main(int argc,  char *argv[])
 
   iter = NULL;
   iter = PR_EnumerateAddrInfo(iter, ai, port, &na_server);
-  
+  /* set up the port which the client will connect to */
 
   r = PR_InitializeNetAddr(PR_IpAddrAny,rendport,&na_rend);
   if (r == PR_FAILURE) {
@@ -1608,7 +1611,7 @@ int main(int argc,  char *argv[])
   }
 
   PR_fprintf(PR_STDERR,"Proxy socket ready and listening\n");
-  do {	
+  do {	/* accept one connection and process it. */
       PRPollDesc pds[2];
 
       s_client = PR_Accept(s_rend,&na_client,PR_SecondsToInterval(3600));
@@ -1649,14 +1652,14 @@ int main(int argc,  char *argv[])
       pds[PD_C].in_flags = PR_POLL_READ;
       pds[PD_S].in_flags = PR_POLL_READ;
 
-      
+      /* make sure the new connections don't start out encrypted. */
       clientstream.isEncrypted = 0;
       serverstream.isEncrypted = 0;
       isV2Session = 0;
 
       while( (pds[PD_C].in_flags & PR_POLL_READ) != 0 ||
              (pds[PD_S].in_flags & PR_POLL_READ) != 0 )
-        {  
+        {  /* Handle all messages on the connection */
 	  PRInt32 amt;
 	  PRInt32 wrote;
 	  unsigned char buffer[ TAPBUFSIZ ];
@@ -1681,7 +1684,7 @@ int main(int argc,  char *argv[])
 	  }
 
 
-
+/* read data, copy it to stdout, and write to other socket */
 
 	  if ((pds[PD_C].in_flags  & PR_POLL_READ) != 0 &&
 	      (pds[PD_C].out_flags & PR_POLL_READ) != 0 ) {
@@ -1719,9 +1722,9 @@ int main(int argc,  char *argv[])
 		PR_fprintf(PR_STDERR, "Short write to server socket!\n");
 	      }
 	    }
-	  }  
+	  }  /* end of read from client socket. */
 
-
+/* read data, copy it to stdout, and write to other socket */
 	  if ((pds[PD_S].in_flags  & PR_POLL_READ) != 0 &&
 	      (pds[PD_S].out_flags & PR_POLL_READ) != 0 ) {
 
@@ -1759,21 +1762,21 @@ int main(int argc,  char *argv[])
 	      }
 	    }
 
-	  } 
+	  } /* end of read from server socket. */
 
+/* Loop, handle next message. */
 
-
-        }	
+        }	/* handle messages during a connection loop */
       PR_Close(s_client);
       PR_Close(s_server);
       flush_stream(&clientstream);
       flush_stream(&serverstream);
-      
+      /* Connection is closed, so reset the current cipher */
       currentcipher = 0;
       c_count++;
       PR_fprintf(PR_STDERR,"Connection %d Complete [%s]\n", c_count,
                             get_time_string() );
-    }  while (looparound); 
+    }  while (looparound); /* accept connection and process it. */
     PR_Close(s_rend);
     NSS_Shutdown();
     return 0;

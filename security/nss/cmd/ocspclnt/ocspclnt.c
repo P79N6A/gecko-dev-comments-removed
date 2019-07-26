@@ -1,12 +1,12 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
-
-
-
-
-
-
-
+/*
+ * Test program for client-side OCSP.
+ *
+ * $Id: ocspclnt.c,v 1.14 2013/01/23 23:05:50 kaie%kuix.de Exp $
+ */
 
 #include "secutil.h"
 #include "nspr.h"
@@ -14,20 +14,20 @@
 #include "nss.h"
 #include "cert.h"
 #include "ocsp.h"
-#include "xconst.h"	
+#include "xconst.h"	/*
+			 * XXX internal header file; needed to get at
+			 * cert_DecodeAuthInfoAccessExtension -- would be
+			 * nice to not need this, but that would require
+			 * better/different APIs.
+			 */
 
-
-
-
-
-
-#ifndef NO_PP		
-
-
-
-
-#include "ocspti.h"	
-#endif	
+#ifndef NO_PP		/*
+			 * Compile with this every once in a while to be
+			 * sure that no dependencies on it get added
+			 * outside of the pretty-printing routines.
+			 */
+#include "ocspti.h"	/* internals for pretty-printing routines *only* */
+#endif	/* NO_PP */
 
 #if defined(_WIN32)
 #include "fcntl.h"
@@ -36,7 +36,7 @@
 
 #define DEFAULT_DB_DIR	"~/.netscape"
 
-
+/* global */
 char	*program_name;
 
 
@@ -157,10 +157,10 @@ long_usage (char *program_name)
 }
 
 #if defined(WIN32)
-
-
-
-
+/* We're going to write binary data to stdout, or read binary from stdin. 
+ * We must put stdout or stdin into O_BINARY mode or else 
+   outgoing \n's will become \r\n's, and incoming \r\n's will become \n's.
+*/
 static SECStatus
 make_file_binary(FILE * binfile)
 {
@@ -176,20 +176,20 @@ make_file_binary(FILE * binfile)
 #define MAKE_FILE_BINARY(file) 
 #endif
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * XXX This is a generic function that would probably make a good
+ * replacement for SECU_DER_Read (which is not at all specific to DER,
+ * despite its name), but that requires fixing all of the tools...
+ * Still, it should be done, whenenver I/somebody has the time.
+ * (Also, consider whether this actually belongs in the security
+ * library itself, not just in the command library.)
+ *
+ * This function takes an open file (a PRFileDesc *) and reads the
+ * entire file into a SECItem.  (Obviously, the file is intended to
+ * be small enough that such a thing is advisable.)  Both the SECItem
+ * and the buffer it points to are allocated from the heap; the caller
+ * is expected to free them.  ("SECITEM_FreeItem(item, PR_TRUE)")
+ */
 static SECItem *
 read_file_into_item (PRFileDesc *in_file, SECItemType si_type)
 {
@@ -203,12 +203,12 @@ read_file_into_item (PRFileDesc *in_file, SECItemType si_type)
 	return NULL;
 
     if (file_info.size ==  0) {
-	
+	/* XXX Need a better error; just grabbed this one for expediency. */
 	PORT_SetError (SEC_ERROR_INPUT_LEN);
 	return NULL;
     }
 
-    if (file_info.size > 0xffff) {	
+    if (file_info.size > 0xffff) {	/* I think this is too big. */
 	PORT_SetError (SEC_ERROR_NO_MEMORY);
 	return NULL;
     }
@@ -225,15 +225,15 @@ read_file_into_item (PRFileDesc *in_file, SECItemType si_type)
 
     bytes_read = PR_Read (in_file, item->data, (PRInt32) item->len);
     if (bytes_read < 0) {
-	
+	/* Something went wrong; error is already set for us. */
 	goto loser;
     } else if (bytes_read == 0) {
-	
-	
+	/* Something went wrong; we read nothing.  But no system/nspr error. */
+	/* XXX Need to set an error here. */
 	goto loser;
     } else if (item->len != (unsigned int)bytes_read) {
-	
-	
+	/* Something went wrong; we read less (or more!?) than we expected. */
+	/* XXX Need to set an error here. */
 	goto loser;
     }
 
@@ -245,10 +245,10 @@ loser:
 }
 
 
-
-
-
-
+/*
+ * Create a DER-encoded OCSP request (for the certificate whose nickname
+ * is "name") and dump it out.
+ */
 static SECStatus
 create_request (FILE *out_file, CERTCertDBHandle *handle, CERTCertificate *cert,
 		PRBool add_service_locator, PRBool add_acceptable_responses)
@@ -267,9 +267,9 @@ create_request (FILE *out_file, CERTCertDBHandle *handle, CERTCertificate *cert,
     if (myCert == NULL)
         goto loser;
 
-    
-
-
+    /*
+     * We need to create a list of one.
+     */
     certs = CERT_NewCertList();
     if (certs == NULL)
 	goto loser;
@@ -277,10 +277,10 @@ create_request (FILE *out_file, CERTCertDBHandle *handle, CERTCertificate *cert,
     if (CERT_AddCertToListTail (certs, myCert) != SECSuccess)
 	goto loser;
 
-    
-
-
-
+    /*
+     * Now that cert is included in the list, we need to be careful
+     * that we do not try to destroy it twice.  This will prevent that.
+     */
     myCert = NULL;
 
     request = CERT_CreateOCSPRequest (certs, now, add_service_locator, NULL);
@@ -318,12 +318,12 @@ loser:
 }
 
 
-
-
-
-
-
-
+/*
+ * Create a DER-encoded OCSP request (for the certificate whose nickname is
+ * "cert_name"), then get and dump a corresponding response.  The responder
+ * location is either specified explicitly (as "responder_url") or found
+ * via the AuthorityInfoAccess URL in the cert.
+ */
 static SECStatus
 dump_response (FILE *out_file, CERTCertDBHandle *handle, CERTCertificate *cert,
 	       const char *responder_url)
@@ -353,9 +353,9 @@ dump_response (FILE *out_file, CERTCertDBHandle *handle, CERTCertificate *cert,
 	includeServiceLocator = PR_FALSE;
     }
 
-    
-
-
+    /*
+     * We need to create a list of one.
+     */
     certs = CERT_NewCertList();
     if (certs == NULL)
 	goto loser;
@@ -363,10 +363,10 @@ dump_response (FILE *out_file, CERTCertDBHandle *handle, CERTCertificate *cert,
     if (CERT_AddCertToListTail (certs, myCert) != SECSuccess)
 	goto loser;
 
-    
-
-
-
+    /*
+     * Now that cert is included in the list, we need to be careful
+     * that we do not try to destroy it twice.  This will prevent that.
+     */
     myCert = NULL;
 
     response = CERT_GetEncodedOCSPResponse (NULL, certs, loc, now,
@@ -395,10 +395,10 @@ loser:
 }
 
 
-
-
-
-
+/*
+ * Get the status for the specified certificate (whose nickname is "cert_name").
+ * Directly use the OCSP function rather than doing a full verification.
+ */
 static SECStatus
 get_cert_status (FILE *out_file, CERTCertDBHandle *handle,
 		 CERTCertificate *cert, const char *cert_name,
@@ -431,11 +431,11 @@ loser:
 }
 
 
-
-
-
-
-
+/*
+ * Verify the specified certificate (whose nickname is "cert_name").
+ * OCSP is already turned on, so we just need to call the standard
+ * certificate verification API and let it do all the work.
+ */
 static SECStatus
 verify_cert (FILE *out_file, CERTCertDBHandle *handle, CERTCertificate *cert,
 	     const char *cert_name, SECCertUsage cert_usage, int64 verify_time)
@@ -476,7 +476,7 @@ find_certificate(CERTCertDBHandle *handle, const char *name, PRBool ascii)
         return NULL;
 
     if (ascii == PR_FALSE) { 
-        
+        /* by default need to check if there is cert nick is given */
         cert = CERT_FindCertByNicknameOrEmailAddr (handle, (char *) name);
         if (cert != NULL)
             return cert;
@@ -513,7 +513,7 @@ print_response (FILE *out_file, SECItem *data, CERTCertDBHandle *handle)
     return SECSuccess;
 }
 
-#else 
+#else /* NO_PP */
 
 static void
 print_ocsp_version (FILE *out_file, SECItem *version, int level)
@@ -542,7 +542,7 @@ print_ocsp_cert_id (FILE *out_file, CERTOCSPCertID *cert_id, int level)
 		     "Issuer Key Hash", level);
     SECU_PrintInteger (out_file, &(cert_id->serialNumber),
 		       "Serial Number", level);
-    
+    /* XXX lookup the cert; if found, print something nice (nickname?) */
 }
 
 
@@ -591,10 +591,10 @@ print_single_request (FILE *out_file, ocspSingleRequest *single, int level)
 }
 
 
-
-
-
-
+/*
+ * Decode the DER/BER-encoded item "data" as an OCSP request
+ * and pretty-print the subfields.
+ */
 static SECStatus
 print_request (FILE *out_file, SECItem *data)
 {
@@ -620,10 +620,10 @@ print_request (FILE *out_file, SECItem *data)
 
     print_ocsp_version (out_file, &(tbsRequest->version), level);
 
-    
-
-
-
+    /*
+     * XXX Probably should be an interface to get the signer name
+     * without looking inside the tbsRequest at all.
+     */
     if (tbsRequest->requestorName != NULL) {
 	SECU_Indent (out_file, level);
 	fprintf (out_file, "XXX print the requestorName\n");
@@ -818,9 +818,9 @@ print_basic_response (FILE *out_file, ocspBasicOCSPResponse *basic, int level)
 }
 
 
-
-
-
+/*
+ * Note this must match (exactly) the enumeration ocspResponseStatus.
+ */
 static char *responseStatusNames[] = {
     "successful (Response has valid confirmations)",
     "malformedRequest (Illegal confirmation request)",
@@ -828,14 +828,13 @@ static char *responseStatusNames[] = {
     "tryLater (Try again later)",
     "unused ((4) is not used)",
     "sigRequired (Must sign the request)",
-    "unauthorized (Request unauthorized)",
-    "other (Status value out of defined range)"
+    "unauthorized (Request unauthorized)"
 };
 
-
-
-
-
+/*
+ * Decode the DER/BER-encoded item "data" as an OCSP response
+ * and pretty-print the subfields.
+ */
 static SECStatus
 print_response (FILE *out_file, SECItem *data, CERTCertDBHandle *handle)
 {
@@ -853,9 +852,15 @@ print_response (FILE *out_file, SECItem *data, CERTCertDBHandle *handle)
     if (response == NULL)
 	return SECFailure;
 
-    PORT_Assert (response->statusValue <= ocspResponse_other);
-    fprintf (out_file, "Response Status: %s\n",
-	     responseStatusNames[response->statusValue]);
+    if (response->statusValue >= ocspResponse_min &&
+	response->statusValue <= ocspResponse_max) {
+	fprintf (out_file, "Response Status: %s\n",
+		 responseStatusNames[response->statusValue]);
+    } else {
+	fprintf (out_file,
+		 "Response Status: other (Status value %d out of defined range)\n",
+		 (int)response->statusValue);
+    }
 
     if (response->statusValue == ocspResponse_successful) {
 	ocspResponseBytes *responseBytes = response->responseBytes;
@@ -906,7 +911,7 @@ print_response (FILE *out_file, SECItem *data, CERTCertDBHandle *handle)
     return SECSuccess;
 }
 
-#endif	
+#endif	/* NO_PP */
 
 
 static SECStatus
@@ -950,7 +955,7 @@ main (int argc, char **argv)
 {
     int		 retval;
     PRFileDesc	*in_file;
-    FILE	*out_file;	
+    FILE	*out_file;	/* not PRFileDesc until SECU accepts it */
     int		 crequest, dresponse;
     int		 prequest, presponse;
     int		 ccert, vcert;
@@ -966,7 +971,7 @@ main (int argc, char **argv)
     CERTCertificate *cert = NULL;
     PRBool ascii = PR_FALSE;
 
-    retval = -1;		
+    retval = -1;		/* what we return/exit with on error */
 
     program_name = PL_strrchr(argv[0], '/');
     program_name = program_name ? (program_name + 1) : argv[0];
@@ -1102,10 +1107,10 @@ main (int argc, char **argv)
 
     if (ccert + vcert) {
 	if (responder_url != NULL || responder_name != NULL) {
-	    
-
-
-
+	    /*
+	     * To do a full status check, both the URL and the cert name
+	     * of the responder must be specified if either one is.
+	     */
 	    if (responder_url == NULL || responder_name == NULL) {
 		if (responder_url == NULL)
 		    PR_fprintf (PR_STDERR,
@@ -1133,11 +1138,11 @@ main (int argc, char **argv)
 	}
     }
 
-    retval = -2;		
+    retval = -2;		/* errors change from usage to runtime */
 
-    
-
-
+    /*
+     * Initialize the NSPR and Security libraries.
+     */
     PR_Init (PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
     db_dir = SECU_ConfigDirectory (db_dir);
     rv = NSS_Init (db_dir);
@@ -1163,12 +1168,12 @@ main (int argc, char **argv)
 	    goto nssdone;
 	}
 
-	
-
-
-
-
-
+	/*
+	 * It would be fine to do the enable for all of these commands,
+	 * but this way we check that everything but an overall verify
+	 * can be done without it.  That is, that the individual pieces
+	 * work on their own.
+	 */
 	if (vcert) {
 	    rv = CERT_EnableOCSPChecking (handle);
 	    if (rv != SECSuccess) {

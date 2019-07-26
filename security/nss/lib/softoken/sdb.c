@@ -24,12 +24,13 @@
 #include <sqlite3.h>
 #include "prthread.h"
 #include "prio.h"
-#include "stdio.h"
+#include <stdio.h>
 #include "secport.h"
 #include "prmon.h"
 #include "prenv.h"
+#include "prprf.h"
 #include "prsystem.h" 
-#include "sys/stat.h"
+#include <sys/stat.h>
 #if defined(_WIN32)
 #include <io.h>
 #include <windows.h>
@@ -195,7 +196,7 @@ sdb_done(int err, int *count)
 
 #if defined(_WIN32)
 static char *
-sdb_getTempDir(void)
+sdb_getFallbackTempDir(void)
 {
     
 
@@ -219,7 +220,7 @@ sdb_getTempDir(void)
 }
 #elif defined(XP_UNIX)
 static char *
-sdb_getTempDir(void)
+sdb_getFallbackTempDir(void)
 {
     const char *azDirs[] = {
         NULL,
@@ -250,8 +251,51 @@ sdb_getTempDir(void)
     return PORT_Strdup(zDir);
 }
 #else
-#error "sdb_getTempDir not implemented"
+#error "sdb_getFallbackTempDir not implemented"
 #endif
+
+static char *
+sdb_getTempDir(sqlite3 *sqlDB)
+{
+    int sqlrv;
+    char *result = NULL;
+    char *tempName = NULL;
+    char *foundSeparator = NULL;
+
+    
+    sqlrv = sqlite3_file_control(sqlDB, 0, SQLITE_FCNTL_TEMPFILENAME,
+				 (void*)&tempName);
+    if (sqlrv == SQLITE_NOTFOUND) {
+	
+
+	return sdb_getFallbackTempDir();
+    }
+    if (sqlrv != SQLITE_OK) {
+	return NULL;
+    }
+
+    
+    foundSeparator = PORT_Strrchr(tempName, PR_GetDirectorySeparator());
+    if (foundSeparator) {
+	
+
+
+
+
+
+
+
+
+	++foundSeparator;
+	*foundSeparator = 0;
+
+	
+	result = PORT_Strdup(tempName);
+    }
+
+    sqlite3_free(tempName);
+    return result;
+}
 
 
 
@@ -291,11 +335,13 @@ sdb_mapSQLError(sdbDataType type, int sqlerr)
 
 static char *sdb_BuildFileName(const char * directory, 
 			const char *prefix, const char *type, 
-			int version, int flags)
+			int version)
 {
     char *dbname = NULL;
     
-    dbname = sqlite3_mprintf("%s/%s%s%d.db",directory, prefix, type, version);
+    dbname = sqlite3_mprintf("%s%c%s%s%d.db", directory,
+			     (int)(unsigned char)PR_GetDirectorySeparator(),
+			     prefix, type, version);
     return dbname;
 }
 
@@ -311,6 +357,9 @@ sdb_measureAccess(const char *directory)
     PRIntervalTime time;
     PRIntervalTime delta;
     PRIntervalTime duration = PR_MillisecondsToInterval(33);
+    const char *doesntExistName = "_dOeSnotExist_.db";
+    char *temp, *tempStartOfFilename;
+    size_t maxTempLen, maxFileNameLen, directoryLength;
 
     
     if (directory == NULL) {
@@ -318,21 +367,53 @@ sdb_measureAccess(const char *directory)
     }
 
     
+    PORT_Assert(sizeof(time) == 4);
+
+    directoryLength = strlen(directory);
+
+    maxTempLen = directoryLength + strlen(doesntExistName)
+		 + 1 
+		 + 11 
+		 + 1; 
+
+    temp = PORT_Alloc(maxTempLen);
+    if (!temp) {
+        return 1;
+    }
+
+    
+
+
+
+    strcpy(temp, directory);
+    if (directory[directoryLength - 1] != PR_GetDirectorySeparator()) {
+	temp[directoryLength++] = PR_GetDirectorySeparator();
+    }
+    tempStartOfFilename = temp + directoryLength;
+    maxFileNameLen = maxTempLen - directoryLength;
+
+    
 
 
     time =  PR_IntervalNow();
     for (i=0; i < 10000u; i++) { 
-	char *temp;
 	PRIntervalTime next;
 
-        temp  = sdb_BuildFileName(directory,"","._dOeSnotExist_", time+i, 0);
+	
+
+
+
+
+        PR_snprintf(tempStartOfFilename, maxFileNameLen,
+		    ".%lu%s", (PRUint32)(time+i), doesntExistName);
 	PR_Access(temp,PR_ACCESS_EXISTS);
-        sqlite3_free(temp);
 	next = PR_IntervalNow();
 	delta = next - time;
 	if (delta >= duration)
 	    break;
     }
+
+    PORT_Free(temp);
 
     
     return i ? i : 1u;
@@ -1792,7 +1873,7 @@ sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
 
 
 
-	tempDir = sdb_getTempDir();
+	tempDir = sdb_getTempDir(sqlDB);
 	if (tempDir) {
 	    tempOps = sdb_measureAccess(tempDir);
 	    PORT_Free(tempDir);
@@ -1901,9 +1982,9 @@ s_open(const char *directory, const char *certPrefix, const char *keyPrefix,
 	SDB **certdb, SDB **keydb, int *newInit)
 {
     char *cert = sdb_BuildFileName(directory, certPrefix,
-				   "cert", cert_version, flags);
+				   "cert", cert_version);
     char *key = sdb_BuildFileName(directory, keyPrefix,
-				   "key", key_version, flags);
+				   "key", key_version);
     CK_RV error = CKR_OK;
     int inUpdate;
     PRUint32 accessOps;

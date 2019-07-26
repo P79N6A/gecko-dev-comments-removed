@@ -1,21 +1,21 @@
-
-
-
-
-
-
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+/*
+ * pkix_procparams.c
+ *
+ * ProcessingParams Object Functions
+ *
+ */
 
 #include "pkix_procparams.h"
 
+/* --Private-Functions-------------------------------------------- */
 
-
-
-
-
-
+/*
+ * FUNCTION: pkix_ProcessingParams_Destroy
+ * (see comments for PKIX_PL_DestructorCallback in pkix_pl_system.h)
+ */
 static PKIX_Error *
 pkix_ProcessingParams_Destroy(
         PKIX_PL_Object *object,
@@ -26,7 +26,7 @@ pkix_ProcessingParams_Destroy(
         PKIX_ENTER(PROCESSINGPARAMS, "pkix_ProcessingParams_Destroy");
         PKIX_NULLCHECK_ONE(object);
 
-        
+        /* Check that this object is a processing params object */
         PKIX_CHECK(pkix_CheckType
                     (object, PKIX_PROCESSINGPARAMS_TYPE, plContext),
                     PKIX_OBJECTNOTPROCESSINGPARAMS);
@@ -48,10 +48,10 @@ cleanup:
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 
-
-
-
-
+/*
+ * FUNCTION: pkix_ProcessingParams_Equals
+ * (see comments for PKIX_PL_EqualsCallback in pkix_pl_system.h)
+ */
 static PKIX_Error *
 pkix_ProcessingParams_Equals(
         PKIX_PL_Object *first,
@@ -80,7 +80,7 @@ pkix_ProcessingParams_Equals(
         firstProcParams = (PKIX_ProcessingParams *)first;
         secondProcParams = (PKIX_ProcessingParams *)second;
 
-        
+        /* Do the simplest tests first */
         if ((firstProcParams->qualifiersRejected) !=
             (secondProcParams->qualifiersRejected)) {
                 goto cleanup;
@@ -95,7 +95,7 @@ pkix_ProcessingParams_Equals(
                 goto cleanup;
         }
 
-        
+        /* trustAnchors can never be NULL */
 
         PKIX_EQUALS
                 (firstProcParams->trustAnchors,
@@ -142,7 +142,7 @@ pkix_ProcessingParams_Equals(
 
         if (!cmpResult) goto cleanup;
 
-        
+        /* There is no Equals function for CertChainCheckers */
 
         PKIX_EQUALS
                     ((PKIX_PL_Object *)firstProcParams->certStores,
@@ -172,10 +172,10 @@ cleanup:
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 
-
-
-
-
+/*
+ * FUNCTION: pkix_ProcessingParams_Hashcode
+ * (see comments for PKIX_PL_HashcodeCallback in pkix_pl_system.h)
+ */
 static PKIX_Error *
 pkix_ProcessingParams_Hashcode(
         PKIX_PL_Object *object,
@@ -221,7 +221,7 @@ pkix_ProcessingParams_Hashcode(
 
         rejectedHash = procParams->qualifiersRejected;
 
-        
+        /* There is no Hash function for CertChainCheckers */
 
         PKIX_HASHCODE(procParams->certStores, &certStoresHash, plContext,
                 PKIX_OBJECTHASHCODEFAILED);
@@ -246,10 +246,10 @@ cleanup:
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 
-
-
-
-
+/*
+ * FUNCTION: pkix_ProcessingParams_ToString
+ * (see comments for PKIX_PL_ToStringCallback in pkix_pl_system.h)
+ */
 static PKIX_Error *
 pkix_ProcessingParams_ToString(
         PKIX_PL_Object *object,
@@ -322,7 +322,7 @@ pkix_ProcessingParams_ToString(
                 plContext),
                 PKIX_STRINGCREATEFAILED);
 
-        
+        /* There is no ToString function for CertChainCheckers */
 
        PKIX_CHECK(PKIX_ProcessingParams_GetCertStores
                 (procParams, &certStores, plContext),
@@ -368,10 +368,10 @@ cleanup:
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 
-
-
-
-
+/*
+ * FUNCTION: pkix_ProcessingParams_Duplicate
+ * (see comments for PKIX_PL_DuplicateCallback in pkix_pl_system.h)
+ */
 static PKIX_Error *
 pkix_ProcessingParams_Duplicate(
         PKIX_PL_Object *object,
@@ -397,7 +397,7 @@ pkix_ProcessingParams_Duplicate(
                 plContext),
                 PKIX_PROCESSINGPARAMSCREATEFAILED);
 
-        
+        /* initialize fields */
         PKIX_DUPLICATE
                 (params->trustAnchors,
                 &(paramsDuplicate->trustAnchors),
@@ -471,18 +471,18 @@ cleanup:
 
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * FUNCTION: pkix_ProcessingParams_RegisterSelf
+ * DESCRIPTION:
+ *  Registers PKIX_PROCESSINGPARAMS_TYPE and its related functions with
+ *  systemClasses[]
+ * THREAD SAFETY:
+ *  Not Thread Safe - for performance and complexity reasons
+ *
+ *  Since this function is only called by PKIX_PL_Initialize, which should
+ *  only be called once, it is acceptable that this function is not
+ *  thread-safe.
+ */
 PKIX_Error *
 pkix_ProcessingParams_RegisterSelf(void *plContext)
 {
@@ -506,11 +506,11 @@ pkix_ProcessingParams_RegisterSelf(void *plContext)
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 
+/* --Public-Functions--------------------------------------------- */
 
-
-
-
-
+/*
+ * FUNCTION: PKIX_ProcessingParams_Create (see comments in pkix_params.h)
+ */
 PKIX_Error *
 PKIX_ProcessingParams_Create(
         PKIX_ProcessingParams **pParams,
@@ -528,7 +528,7 @@ PKIX_ProcessingParams_Create(
                     plContext),
                     PKIX_COULDNOTCREATEPROCESSINGPARAMSOBJECT);
 
-        
+        /* initialize fields */
         PKIX_CHECK(PKIX_List_Create(&params->trustAnchors, plContext),
                    PKIX_LISTCREATEFAILED);
         PKIX_CHECK(PKIX_List_SetImmutable(params->trustAnchors, plContext),
@@ -556,6 +556,7 @@ PKIX_ProcessingParams_Create(
 
         params->useAIAForCertFetching = PKIX_FALSE;
         params->qualifyTargetCert = PKIX_TRUE;
+        params->useOnlyTrustAnchors = PKIX_TRUE;
 
         *pParams = params;
         params = NULL;
@@ -568,14 +569,14 @@ cleanup:
 
 }
 
-
-
-
-
+/*
+ * FUNCTION: PKIX_ProcessingParams_GetUseAIAForCertFetching
+ * (see comments in pkix_params.h)
+ */
 PKIX_Error *
 PKIX_ProcessingParams_GetUseAIAForCertFetching(
         PKIX_ProcessingParams *params,
-        PKIX_Boolean *pUseAIA,  
+        PKIX_Boolean *pUseAIA,  /* list of TrustAnchor */
         void *plContext)
 {
         PKIX_ENTER(PROCESSINGPARAMS, "PKIX_ProcessingParams_GetUseAIAForCertFetching");
@@ -586,10 +587,10 @@ PKIX_ProcessingParams_GetUseAIAForCertFetching(
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 
-
-
-
-
+/*
+ * FUNCTION: PKIX_ProcessingParams_SetUseAIAForCertFetching
+ * (see comments in pkix_params.h)
+ */
 PKIX_Error *
 PKIX_ProcessingParams_SetUseAIAForCertFetching(
         PKIX_ProcessingParams *params,
@@ -604,10 +605,10 @@ PKIX_ProcessingParams_SetUseAIAForCertFetching(
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 
-
-
-
-
+/*
+ * FUNCTION: PKIX_ProcessingParams_GetQualifyTargetCert
+ * (see comments in pkix_params.h)
+ */
 PKIX_Error *
 PKIX_ProcessingParams_GetValidateTargetCert(
         PKIX_ProcessingParams *params,
@@ -623,10 +624,10 @@ PKIX_ProcessingParams_GetValidateTargetCert(
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 
-
-
-
-
+/*
+ * FUNCTION: PKIX_ProcessingParams_SetQualifyTargetCert
+ * (see comments in pkix_params.h)
+ */
 PKIX_Error *
 PKIX_ProcessingParams_SetQualifyTargetCert(
         PKIX_ProcessingParams *params,
@@ -642,14 +643,14 @@ PKIX_ProcessingParams_SetQualifyTargetCert(
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 
-
-
-
-
+/*
+ * FUNCTION: PKIX_ProcessingParams_SetTrustAnchors
+ * (see comments in pkix_params.h)
+ */
 PKIX_Error *
 PKIX_ProcessingParams_SetTrustAnchors(
         PKIX_ProcessingParams *params,
-        PKIX_List *anchors,  
+        PKIX_List *anchors,  /* list of TrustAnchor */
         void *plContext)
 {
         PKIX_ENTER(PROCESSINGPARAMS, "PKIX_ProcessingParams_SetTrustAnchors");
@@ -666,14 +667,14 @@ cleanup:
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 
-
-
-
-
+/*
+ * FUNCTION: PKIX_ProcessingParams_GetTrustAnchors
+ * (see comments in pkix_params.h)
+ */
 PKIX_Error *
 PKIX_ProcessingParams_GetTrustAnchors(
         PKIX_ProcessingParams *params,
-        PKIX_List **pAnchors,  
+        PKIX_List **pAnchors,  /* list of TrustAnchor */
         void *plContext)
 {
         PKIX_ENTER(PROCESSINGPARAMS, "PKIX_ProcessingParams_GetTrustAnchors");
@@ -687,9 +688,47 @@ cleanup:
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 
+/**
+ * FUNCTION: PKIX_ProcessingParams_SetUseOnlyTrustAnchors
+ * (see comments in pkix_params.h)
+ */
+PKIX_Error *
+PKIX_ProcessingParams_GetUseOnlyTrustAnchors(
+        PKIX_ProcessingParams *params,
+        PKIX_Boolean *pUseOnlyTrustAnchors,
+        void *plContext)
+{
+        PKIX_ENTER(PROCESSINGPARAMS,
+                   "PKIX_ProcessingParams_SetUseTrustAnchorsOnly");
+        PKIX_NULLCHECK_TWO(params, pUseOnlyTrustAnchors);
 
+        *pUseOnlyTrustAnchors = params->useOnlyTrustAnchors;
 
+        PKIX_RETURN(PROCESSINGPARAMS);
+}
 
+/**
+ * FUNCTION: PKIX_ProcessingParams_SetUseOnlyTrustAnchors
+ * (see comments in pkix_params.h)
+ */
+PKIX_Error *
+PKIX_ProcessingParams_SetUseOnlyTrustAnchors(
+        PKIX_ProcessingParams *params,
+        PKIX_Boolean useOnlyTrustAnchors,
+        void *plContext)
+{
+        PKIX_ENTER(PROCESSINGPARAMS,
+                   "PKIX_ProcessingParams_SetUseTrustAnchorsOnly");
+        PKIX_NULLCHECK_ONE(params);
+
+        params->useOnlyTrustAnchors = useOnlyTrustAnchors;
+
+        PKIX_RETURN(PROCESSINGPARAMS);
+}
+
+/*
+ * FUNCTION: PKIX_ProcessingParams_GetDate (see comments in pkix_params.h)
+ */
 PKIX_Error *
 PKIX_ProcessingParams_GetDate(
         PKIX_ProcessingParams *params,
@@ -706,9 +745,9 @@ cleanup:
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 
-
-
-
+/*
+ * FUNCTION: PKIX_ProcessingParams_SetDate (see comments in pkix_params.h)
+ */
 PKIX_Error *
 PKIX_ProcessingParams_SetDate(
         PKIX_ProcessingParams *params,
@@ -736,10 +775,10 @@ cleanup:
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 
-
-
-
-
+/*
+ * FUNCTION: PKIX_ProcessingParams_GetTargetCertConstraints
+ * (see comments in pkix_params.h)
+ */
 PKIX_Error *
 PKIX_ProcessingParams_GetTargetCertConstraints(
         PKIX_ProcessingParams *params,
@@ -758,10 +797,10 @@ cleanup:
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 
-
-
-
-
+/*
+ * FUNCTION: PKIX_ProcessingParams_SetTargetCertConstraints
+ * (see comments in pkix_params.h)
+ */
 PKIX_Error *
 PKIX_ProcessingParams_SetTargetCertConstraints(
         PKIX_ProcessingParams *params,
@@ -791,14 +830,14 @@ cleanup:
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 
-
-
-
-
+/*
+ * FUNCTION: PKIX_ProcessingParams_GetInitialPolicies
+ *      (see comments in pkix_params.h)
+ */
 PKIX_Error *
 PKIX_ProcessingParams_GetInitialPolicies(
         PKIX_ProcessingParams *params,
-        PKIX_List **pInitPolicies, 
+        PKIX_List **pInitPolicies, /* list of PKIX_PL_OID */
         void *plContext)
 {
 
@@ -827,14 +866,14 @@ cleanup:
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 
-
-
-
-
+/*
+ * FUNCTION: PKIX_ProcessingParams_SetInitialPolicies
+ *      (see comments in pkix_params.h)
+ */
 PKIX_Error *
 PKIX_ProcessingParams_SetInitialPolicies(
         PKIX_ProcessingParams *params,
-        PKIX_List *initPolicies, 
+        PKIX_List *initPolicies, /* list of PKIX_PL_OID */
         void *plContext)
 {
         PKIX_ENTER(PROCESSINGPARAMS,
@@ -858,10 +897,10 @@ cleanup:
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 
-
-
-
-
+/*
+ * FUNCTION: PKIX_ProcessingParams_GetPolicyQualifiersRejected
+ *      (see comments in pkix_params.h)
+ */
 PKIX_Error *
 PKIX_ProcessingParams_GetPolicyQualifiersRejected(
         PKIX_ProcessingParams *params,
@@ -878,10 +917,10 @@ PKIX_ProcessingParams_GetPolicyQualifiersRejected(
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 
-
-
-
-
+/*
+ * FUNCTION: PKIX_ProcessingParams_SetPolicyQualifiersRejected
+ *      (see comments in pkix_params.h)
+ */
 PKIX_Error *
 PKIX_ProcessingParams_SetPolicyQualifiersRejected(
         PKIX_ProcessingParams *params,
@@ -904,14 +943,14 @@ cleanup:
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 
-
-
-
-
+/*
+ * FUNCTION: PKIX_ProcessingParams_GetCertChainCheckers
+ * (see comments in pkix_params.h)
+ */
 PKIX_Error *
 PKIX_ProcessingParams_GetCertChainCheckers(
         PKIX_ProcessingParams *params,
-        PKIX_List **pCheckers,  
+        PKIX_List **pCheckers,  /* list of PKIX_CertChainChecker */
         void *plContext)
 {
         PKIX_ENTER(PROCESSINGPARAMS,
@@ -925,14 +964,14 @@ cleanup:
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 
-
-
-
-
+/*
+ * FUNCTION: PKIX_ProcessingParams_SetCertChainCheckers
+ * (see comments in pkix_params.h)
+ */
 PKIX_Error *
 PKIX_ProcessingParams_SetCertChainCheckers(
         PKIX_ProcessingParams *params,
-        PKIX_List *checkers,  
+        PKIX_List *checkers,  /* list of PKIX_CertChainChecker */
         void *plContext)
 {
 
@@ -958,10 +997,10 @@ cleanup:
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 
-
-
-
-
+/*
+ * FUNCTION: PKIX_ProcessingParams_AddCertChainCheckers
+ * (see comments in pkix_params.h)
+ */
 PKIX_Error *
 PKIX_ProcessingParams_AddCertChainChecker(
         PKIX_ProcessingParams *params,
@@ -1001,10 +1040,10 @@ cleanup:
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 
-
-
-
-
+/*
+ * FUNCTION: PKIX_ProcessingParams_GetRevocationChecker
+ * (see comments in pkix_params.h)
+ */
 PKIX_Error *
 PKIX_ProcessingParams_GetRevocationChecker(
         PKIX_ProcessingParams *params,
@@ -1024,10 +1063,10 @@ cleanup:
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 
-
-
-
-
+/*
+ * FUNCTION: PKIX_ProcessingParams_SetRevocationChecker
+ * (see comments in pkix_params.h)
+ */
 PKIX_Error *
 PKIX_ProcessingParams_SetRevocationChecker(
         PKIX_ProcessingParams *params,
@@ -1051,14 +1090,14 @@ cleanup:
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 
-
-
-
-
+/*
+ * FUNCTION: PKIX_ProcessingParams_GetCertStores
+ * (see comments in pkix_params.h)
+ */
 PKIX_Error *
 PKIX_ProcessingParams_GetCertStores(
         PKIX_ProcessingParams *params,
-        PKIX_List **pStores,  
+        PKIX_List **pStores,  /* list of PKIX_CertStore */
         void *plContext)
 {
         PKIX_ENTER(PROCESSINGPARAMS, "PKIX_ProcessingParams_GetCertStores");
@@ -1078,14 +1117,14 @@ cleanup:
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 
-
-
-
-
+/*
+ * FUNCTION: PKIX_ProcessingParams_SetCertStores
+ * (see comments in pkix_params.h)
+ */
 PKIX_Error *
 PKIX_ProcessingParams_SetCertStores(
         PKIX_ProcessingParams *params,
-        PKIX_List *stores,  
+        PKIX_List *stores,  /* list of PKIX_CertStore */
         void *plContext)
 {
         PKIX_ENTER(PROCESSINGPARAMS, "PKIX_ProcessingParams_SetCertStores");
@@ -1110,10 +1149,10 @@ cleanup:
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 
-
-
-
-
+/*
+ * FUNCTION: PKIX_ProcessingParams_AddCertStore
+ * (see comments in pkix_params.h)
+ */
 PKIX_Error *
 PKIX_ProcessingParams_AddCertStore(
         PKIX_ProcessingParams *params,
@@ -1143,10 +1182,10 @@ cleanup:
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 
-
-
-
-
+/*
+ * FUNCTION: PKIX_ProcessingParams_SetResourceLimits
+ * (see comments in pkix_params.h)
+ */
 PKIX_Error *
 PKIX_ProcessingParams_SetResourceLimits(
         PKIX_ProcessingParams *params,
@@ -1170,10 +1209,10 @@ cleanup:
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 
-
-
-
-
+/*
+ * FUNCTION: PKIX_ProcessingParams_GetResourceLimits
+ * (see comments in pkix_params.h)
+ */
 PKIX_Error *
 PKIX_ProcessingParams_GetResourceLimits(
         PKIX_ProcessingParams *params,
@@ -1192,10 +1231,10 @@ cleanup:
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 
-
-
-
-
+/*
+ * FUNCTION: PKIX_ProcessingParams_IsAnyPolicyInhibited
+ * (see comments in pkix_params.h)
+ */
 PKIX_Error *
 PKIX_ProcessingParams_IsAnyPolicyInhibited(
         PKIX_ProcessingParams *params,
@@ -1212,10 +1251,10 @@ PKIX_ProcessingParams_IsAnyPolicyInhibited(
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 
-
-
-
-
+/*
+ * FUNCTION: PKIX_ProcessingParams_SetAnyPolicyInhibited
+ * (see comments in pkix_params.h)
+ */
 PKIX_Error *
 PKIX_ProcessingParams_SetAnyPolicyInhibited(
         PKIX_ProcessingParams *params,
@@ -1238,10 +1277,10 @@ cleanup:
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 
-
-
-
-
+/*
+ * FUNCTION: PKIX_ProcessingParams_IsExplicitPolicyRequired
+ * (see comments in pkix_params.h)
+ */
 PKIX_Error *
 PKIX_ProcessingParams_IsExplicitPolicyRequired(
         PKIX_ProcessingParams *params,
@@ -1258,10 +1297,10 @@ PKIX_ProcessingParams_IsExplicitPolicyRequired(
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 
-
-
-
-
+/*
+ * FUNCTION: PKIX_ProcessingParams_SetExplicitPolicyRequired
+ * (see comments in pkix_params.h)
+ */
 PKIX_Error *
 PKIX_ProcessingParams_SetExplicitPolicyRequired(
         PKIX_ProcessingParams *params,
@@ -1284,10 +1323,10 @@ cleanup:
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 
-
-
-
-
+/*
+ * FUNCTION: PKIX_ProcessingParams_IsPolicyMappingInhibited
+ * (see comments in pkix_params.h)
+ */
 PKIX_Error *
 PKIX_ProcessingParams_IsPolicyMappingInhibited(
         PKIX_ProcessingParams *params,
@@ -1304,10 +1343,10 @@ PKIX_ProcessingParams_IsPolicyMappingInhibited(
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 
-
-
-
-
+/*
+ * FUNCTION: PKIX_ProcessingParams_SetPolicyMappingInhibited
+ * (see comments in pkix_params.h)
+ */
 PKIX_Error *
 PKIX_ProcessingParams_SetPolicyMappingInhibited(
         PKIX_ProcessingParams *params,
@@ -1330,10 +1369,10 @@ cleanup:
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 
-
-
-
-
+/*
+ * FUNCTION: PKIX_ProcessingParams_SetHintCerts
+ * (see comments in pkix_params.h)
+ */
 PKIX_Error *
 PKIX_ProcessingParams_SetHintCerts(
         PKIX_ProcessingParams *params,
@@ -1356,10 +1395,10 @@ cleanup:
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 
-
-
-
-
+/*
+ * FUNCTION: PKIX_ProcessingParams_GetHintCerts
+ * (see comments in pkix_params.h)
+ */
 PKIX_Error *
 PKIX_ProcessingParams_GetHintCerts(
         PKIX_ProcessingParams *params,

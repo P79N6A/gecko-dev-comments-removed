@@ -1,15 +1,15 @@
-
-
-
-
-
-
-
-
-
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+/*
+ * nss_pkix_proxy.h
+ *
+ * PKIX - NSS proxy functions
+ *
+ * NOTE: All structures, functions, data types are parts of library private
+ * api and are subjects to change in any following releases.
+ *
+ */
 #include "prerror.h"
 #include "prprf.h"
  
@@ -28,8 +28,8 @@
 extern PRLogModuleInfo *pkixLog;
 
 #ifdef DEBUG_volkov
-
-
+/* Temporary declarations of functioins. Will be removed with fix for
+ * 391183 */
 extern char *
 pkix_Error2ASCII(PKIX_Error *error, void *plContext);
 
@@ -39,7 +39,7 @@ cert_PrintCert(PKIX_PL_Cert *pkixCert, void *plContext);
 extern PKIX_Error *
 cert_PrintCertChain(PKIX_List *pkixCertChain, void *plContext);
 
-#endif 
+#endif /* DEBUG */
 
 #ifdef PKIX_OBJECT_LEAK_TEST
 
@@ -50,26 +50,26 @@ extern SECStatus
 pkix_pl_lifecycle_ObjectTableUpdate(int *objCountTable);
 
 PRInt32 parallelFnInvocationCount;
-#endif 
+#endif /* PKIX_OBJECT_LEAK_TEST */
 
 
 static PRBool usePKIXValidationEngine = PR_FALSE;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * FUNCTION: CERT_SetUsePKIXForValidation
+ * DESCRIPTION:
+ *
+ * Enables or disables use of libpkix for certificate validation
+ *
+ * PARAMETERS:
+ *  "enable"
+ *      PR_TRUE: enables use of libpkix for cert validation.
+ *      PR_FALSE: disables.
+ * THREAD SAFETY:
+ *  NOT Thread Safe.
+ * RETURNS:
+ *  Returns SECSuccess if successfully enabled
+ */
 SECStatus
 CERT_SetUsePKIXForValidation(PRBool enable)
 {
@@ -77,20 +77,20 @@ CERT_SetUsePKIXForValidation(PRBool enable)
     return SECSuccess;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * FUNCTION: CERT_GetUsePKIXForValidation
+ * DESCRIPTION:
+ *
+ * Checks if libpkix building function should be use for certificate
+ * chain building.
+ *
+ * PARAMETERS:
+ *  NONE
+ * THREAD SAFETY:
+ *  NOT Thread Safe
+ * RETURNS:
+ *  Returns PR_TRUE if libpkix should be used. PR_FALSE otherwise.
+ */
 PRBool
 CERT_GetUsePKIXForValidation()
 {
@@ -98,26 +98,26 @@ CERT_GetUsePKIXForValidation()
 }
 
 #ifdef NOTDEF
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * FUNCTION: cert_NssKeyUsagesToPkix
+ * DESCRIPTION:
+ *
+ * Converts nss key usage bit field(PRUint32) to pkix key usage
+ * bit field.
+ *
+ * PARAMETERS:
+ *  "nssKeyUsage"
+ *      Nss key usage bit field.
+ *  "pkixKeyUsage"
+ *      Pkix key usage big field.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
 static PKIX_Error*
 cert_NssKeyUsagesToPkix(
     PRUint32 nssKeyUsage,
@@ -163,9 +163,9 @@ cert_NssKeyUsagesToPkix(
         pkixKeyUsage |= PKIX_ENCIPHER_ONLY;
     }
     
-    
-
-    
+    /* Not supported. XXX we should support this once it is
+     * fixed in NSS */
+    /* pkixKeyUsage |= PKIX_DECIPHER_ONLY; */
 
     *pPkixKeyUsage = pkixKeyUsage;
 
@@ -203,35 +203,35 @@ const SECCertUsageToEku certUsageEkuStringMap[] = {
     {certUsageAnyCA,                 ekuIndexUnknown},
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * FUNCTION: cert_NssCertificateUsageToPkixKUAndEKU
+ * DESCRIPTION:
+ *
+ * Converts nss CERTCertificateUsage bit field to pkix key and
+ * extended key usages.
+ *
+ * PARAMETERS:
+ *  "cert"
+ *      Pointer to CERTCertificate structure of validating cert.
+ *  "requiredCertUsages"
+ *      Required usage that will be converted to pkix eku and ku. 
+ *  "requiredKeyUsage",
+ *      Additional key usages impose to cert.
+ *  "isCA",
+ *      it true, convert usages for cert that is a CA cert.  
+ *  "ppkixEKUList"
+ *      Returned address of a list of pkix extended key usages.
+ *  "ppkixKU"
+ *      Returned address of pkix required key usages bit field. 
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Cert Verify Error if the function fails in an unrecoverable way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
 static PKIX_Error*
 cert_NssCertificateUsageToPkixKUAndEKU(
     CERTCertificate *cert,
@@ -302,31 +302,31 @@ cleanup:
 
 #endif
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * FUNCTION: cert_ProcessingParamsSetKeyAndCertUsage
+ * DESCRIPTION:
+ *
+ * Converts cert usage to pkix KU type and sets
+ * converted data into PKIX_ProcessingParams object. It also sets
+ * proper cert usage into nsscontext object.
+ *
+ * PARAMETERS:
+ *  "procParams"
+ *      Pointer to PKIX_ProcessingParams used during validation.
+ *  "requiredCertUsage"
+ *      Required certificate usages the certificate and chain is built and
+ *      validated for.
+ *  "requiredKeyUsage"
+ *      Request additional key usages the certificate should be validated for.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Cert Verify Error if the function fails in an unrecoverable way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
 static PKIX_Error*
 cert_ProcessingParamsSetKeyAndCertUsage(
     PKIX_ProcessingParams *procParams,
@@ -370,52 +370,52 @@ cleanup:
     PKIX_RETURN(CERTVFYPKIX);
 }
 
+/*
+ * Unused parameters: 
+ *
+ *  CERTCertList *initialChain,
+ *  CERTCertStores certStores,
+ *  CERTCertRevCheckers certRevCheckers,
+ *  CERTCertChainCheckers certChainCheckers,
+ *  SECItem *initPolicies,
+ *  PRBool policyQualifierRejected,
+ *  PRBool anyPolicyInhibited,
+ *  PRBool reqExplicitPolicy,
+ *  PRBool policyMappingInhibited,
+ *  PKIX_CertSelector certConstraints,
+ */
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * FUNCTION: cert_CreatePkixProcessingParams
+ * DESCRIPTION:
+ *
+ * Creates and fills in PKIX_ProcessingParams structure to be used
+ * for certificate chain building.
+ *
+ * PARAMETERS:
+ *  "cert"
+ *      Pointer to the CERTCertificate: the leaf certificate of a chain.
+ *  "time"
+ *      Validity time.
+ *  "wincx"
+ *      Nss db password token.
+ *  "useArena"
+ *      Flags to use arena for data allocation during chain building process.
+ *  "pprocParams"
+ *      Address to return created processing parameters.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Cert Verify Error if the function fails in an unrecoverable way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
 static PKIX_Error*
 cert_CreatePkixProcessingParams(
     CERTCertificate        *cert,
-    PRBool                  checkSig, 
+    PRBool                  checkSig, /* not used yet. See bug 391476 */
     PRTime                  time,
     void                   *wincx,
     PRBool                  useArena,
@@ -446,13 +446,13 @@ cert_CreatePkixProcessingParams(
     *pplContext = plContext;
 
 #ifdef PKIX_NOTDEF 
-    
+    /* Functions should be implemented in patch for 390532 */
     PKIX_CHECK(
         pkix_pl_NssContext_SetCertSignatureCheck(checkSig,
                                                  (PKIX_PL_NssContext*)plContext),
         PKIX_NSSCONTEXTSETCERTSIGNCHECKFAILED);
 
-#endif 
+#endif /* PKIX_NOTDEF */
 
     PKIX_CHECK(
         PKIX_ProcessingParams_Create(&procParams, plContext),
@@ -485,9 +485,9 @@ cert_CreatePkixProcessingParams(
                                                        certSelector, plContext),
         PKIX_PROCESSINGPARAMSSETTARGETCERTCONSTRAINTSFAILED);
 
-    
-
-
+    /* Turn off quialification of target cert since leaf cert is
+     * already check for date validity, key usages and extended
+     * key usages. */
     PKIX_CHECK(
         PKIX_ProcessingParams_SetQualifyTargetCert(procParams, PKIX_FALSE,
                                                    plContext),
@@ -533,47 +533,47 @@ cert_CreatePkixProcessingParams(
                                                    plContext),
         PKIX_PROCESSINGPARAMSSETREVOCATIONCHECKERFAILED);
 
-    
+    /* CRL method flags */
     methodFlags = 
         PKIX_REV_M_TEST_USING_THIS_METHOD |
         PKIX_REV_M_FORBID_NETWORK_FETCHING |
-        PKIX_REV_M_SKIP_TEST_ON_MISSING_SOURCE |   
-        PKIX_REV_M_IGNORE_MISSING_FRESH_INFO |     
+        PKIX_REV_M_SKIP_TEST_ON_MISSING_SOURCE |   /* 0 */
+        PKIX_REV_M_IGNORE_MISSING_FRESH_INFO |     /* 0 */
         PKIX_REV_M_CONTINUE_TESTING_ON_FRESH_INFO;
 
-    
+    /* add CRL revocation method to check the leaf certificate */
     PKIX_CHECK(
         PKIX_RevocationChecker_CreateAndAddMethod(revChecker, procParams,
                                          PKIX_RevocationMethod_CRL, methodFlags,
                                          0, NULL, PKIX_TRUE, plContext),
         PKIX_REVOCATIONCHECKERADDMETHODFAILED);
 
-    
+    /* add CRL revocation method for other certs in the chain. */
     PKIX_CHECK(
         PKIX_RevocationChecker_CreateAndAddMethod(revChecker, procParams,
                                          PKIX_RevocationMethod_CRL, methodFlags,
                                          0, NULL, PKIX_FALSE, plContext),
         PKIX_REVOCATIONCHECKERADDMETHODFAILED);
     
-    
-
-
+    /* For compatibility with the old code, need to check that
+     * statusConfig is set in the db handle and status checker
+     * is defined befor allow ocsp status check on the leaf cert.*/
     statusConfig = CERT_GetStatusConfig(CERT_GetDefaultCertDB());
     if (statusConfig != NULL && statusConfig->statusChecker != NULL) {
 
-        
-        
+        /* Enable OCSP revocation checking for the leaf cert. */
+        /* OCSP method flags */
         methodFlags =
             PKIX_REV_M_TEST_USING_THIS_METHOD |
-            PKIX_REV_M_ALLOW_NETWORK_FETCHING |         
-            PKIX_REV_M_ALLOW_IMPLICIT_DEFAULT_SOURCE |  
-            PKIX_REV_M_SKIP_TEST_ON_MISSING_SOURCE |    
-            PKIX_REV_M_IGNORE_MISSING_FRESH_INFO |      
+            PKIX_REV_M_ALLOW_NETWORK_FETCHING |         /* 0 */
+            PKIX_REV_M_ALLOW_IMPLICIT_DEFAULT_SOURCE |  /* 0 */
+            PKIX_REV_M_SKIP_TEST_ON_MISSING_SOURCE |    /* 0 */
+            PKIX_REV_M_IGNORE_MISSING_FRESH_INFO |      /* 0 */
             PKIX_REV_M_CONTINUE_TESTING_ON_FRESH_INFO;
         
-        
-
-
+        /* Disabling ocsp fetching when checking the status
+         * of ocsp response signer. Here and in the next if,
+         * adjust flags for ocsp signer cert validation case. */
         if (disableOCSPRemoteFetching) {
             methodFlags |= PKIX_REV_M_FORBID_NETWORK_FETCHING;
         }
@@ -584,7 +584,7 @@ cert_CreatePkixProcessingParams(
                 PKIX_REV_M_FAIL_ON_MISSING_FRESH_INFO;
         }
         
-        
+        /* add OCSP revocation method to check only the leaf certificate.*/
         PKIX_CHECK(
             PKIX_RevocationChecker_CreateAndAddMethod(revChecker, procParams,
                                      PKIX_RevocationMethod_OCSP, methodFlags,
@@ -624,26 +624,26 @@ cleanup:
     PKIX_RETURN(CERTVFYPKIX);
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * FUNCTION: cert_PkixToNssCertsChain
+ * DESCRIPTION:
+ *
+ * Converts pkix cert list into nss cert list.
+ * 
+ * PARAMETERS:
+ *  "pkixCertChain"
+ *      Pkix certificate list.     
+ *  "pvalidChain"
+ *      An address of returned nss certificate list.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Cert Verify Error if the function fails in an unrecoverable way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
 static PKIX_Error*
 cert_PkixToNssCertsChain(
     PKIX_List *pkixCertChain, 
@@ -725,33 +725,33 @@ cleanup:
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * FUNCTION: cert_BuildAndValidateChain
+ * DESCRIPTION:
+ *
+ * The function builds and validates a cert chain based on certificate
+ * selection criterias from procParams. This function call PKIX_BuildChain
+ * to accomplish chain building. If PKIX_BuildChain returns with incomplete
+ * IO, the function waits with PR_Poll until the blocking IO is finished and
+ * return control back to PKIX_BuildChain.
+ *
+ * PARAMETERS:
+ *  "procParams"
+ *      Processing parameters to be used during chain building.
+ *  "pResult"
+ *      Returned build result.
+ *  "pVerifyNode"
+ *      Returned pointed to verify node structure: the tree-like structure
+ *      that reports points of chain building failures.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Cert Verify Error if the function fails in an unrecoverable way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
 static PKIX_Error*
 cert_BuildAndValidateChain(
     PKIX_ProcessingParams *procParams,
@@ -769,8 +769,8 @@ cert_BuildAndValidateChain(
  
     do {
         if (nbioContext && state) {
-            
-
+            /* PKIX-XXX: need to test functionality of NBIO handling in libPkix.
+             * See bug 391180 */
             PRInt32 filesReady = 0;
             PRPollDesc *pollDesc = (PRPollDesc*)nbioContext;
             filesReady = PR_Poll(pollDesc, 1, PR_INTERVAL_NO_TIMEOUT);
@@ -797,28 +797,28 @@ cleanup:
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * FUNCTION: cert_PkixErrorToNssCode
+ * DESCRIPTION:
+ *
+ * Converts pkix error(PKIX_Error) structure to PR error codes.
+ *
+ * PKIX-XXX to be implemented. See 391183.
+ *
+ * PARAMETERS:
+ *  "error"
+ *      Pkix error that will be converted.
+ *  "nssCode"
+ *      Corresponding nss error code.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Cert Verify Error if the function fails in an unrecoverable way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
 static PKIX_Error *
 cert_PkixErrorToNssCode(
     PKIX_Error *error,
@@ -832,8 +832,8 @@ cert_PkixErrorToNssCode(
     PKIX_ENTER(CERTVFYPKIX, "cert_PkixErrorToNssCode");
     PKIX_NULLCHECK_TWO(error, pNssErr);
     
-    
-
+    /* Loop until we find at least one error with non-null
+     * plErr code, that is going to be nss error code. */
     while (errPtr) {
         if (errPtr->plErr && !nssErr) {
             nssErr = errPtr->plErr;
@@ -846,7 +846,7 @@ cert_PkixErrorToNssCode(
 #else
             PR_LOG(pkixLog, 2, ("Error at level %d: Error code %d\n", errLevel,
                                 errPtr->errCode));
-#endif 
+#endif /* PKIX_ERROR_DESCRIPTION */
         }
         errPtr = errPtr->cause;
         errLevel += 1; 
@@ -861,27 +861,27 @@ cert_PkixErrorToNssCode(
     PKIX_RETURN(CERTVFYPKIX);
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * FUNCTION: cert_GetLogFromVerifyNode
+ * DESCRIPTION:
+ *
+ * Recursive function that converts verify node tree-like set of structures
+ * to CERTVerifyLog.
+ *
+ * PARAMETERS:
+ *  "log"
+ *      Pointed to already allocated CERTVerifyLog structure. 
+ *  "node"
+ *      A node of PKIX_VerifyNode tree.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Cert Verify Error if the function fails in an unrecoverable way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
 static PKIX_Error *
 cert_GetLogFromVerifyNode(
     CERTVerifyLog *log,
@@ -947,46 +947,46 @@ cleanup:
     PKIX_RETURN(CERTVFYPKIX);
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * FUNCTION: cert_GetBuildResults
+ * DESCRIPTION:
+ *
+ * Converts pkix build results to nss results. This function is called
+ * regardless of build result.
+ *
+ * If it called after chain was successfully constructed, then it will
+ * convert:
+ *   * pkix cert list that represent the chain to nss cert list
+ *   * trusted root the chain was anchored to nss certificate.
+ *
+ * In case of failure it will convert:
+ *   * pkix error to PR error code(will set it with PORT_SetError)
+ *   * pkix validation log to nss CERTVerifyLog
+ *   
+ * PARAMETERS:
+ *  "buildResult"
+ *      Build results returned by PKIX_BuildChain.
+ *  "verifyNode"
+ *      Tree-like structure of chain building/validation failures
+ *      returned by PKIX_BuildChain. Ignored in case of success.
+ *  "error"
+ *      Final error returned by PKIX_BuildChain. Should be NULL in
+ *      case of success.
+ *  "log"
+ *      Address of pre-allocated(if not NULL) CERTVerifyLog structure.
+ *  "ptrustedRoot"
+ *      Address of returned trusted root the chain was anchored to.
+ *  "pvalidChain"
+ *      Address of returned valid chain.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Cert Verify Error if the function fails in an unrecoverable way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
 static PKIX_Error*
 cert_GetBuildResults(
     PKIX_BuildResult *buildResult,
@@ -1005,7 +1005,7 @@ cert_GetBuildResults(
     PKIX_List           *pkixCertChain = NULL;
 #ifdef DEBUG_volkov
     PKIX_Error          *tmpPkixError = NULL;
-#endif 
+#endif /* DEBUG */
             
     PKIX_ENTER(CERTVFYPKIX, "cert_GetBuildResults");
     if (buildResult == NULL && error == NULL) {
@@ -1018,7 +1018,7 @@ cert_GetBuildResults(
         char *temp = pkix_Error2ASCII(error, plContext);
         fprintf(stderr, "BUILD ERROR:\n%s\n", temp);
         PKIX_PL_Free(temp, NULL);
-#endif 
+#endif /* DEBUG */
         if (verifyNode) {
             PKIX_Error *tmpError =
                 cert_GetLogFromVerifyNode(log, verifyNode, plContext);
@@ -1106,40 +1106,40 @@ cleanup:
     PKIX_RETURN(CERTVFYPKIX);
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * FUNCTION: cert_VerifyCertChainPkix
+ * DESCRIPTION:
+ *
+ * The main wrapper function that is called from CERT_VerifyCert and
+ * CERT_VerifyCACertForUsage functions to validate cert with libpkix.
+ *
+ * PARAMETERS:
+ *  "cert"
+ *      Leaf certificate of a chain we want to build.
+ *  "checkSig"
+ *      Certificate signatures will not be verified if this
+ *      flag is set to PR_FALSE.
+ *  "requiredUsage"
+ *      Required usage for certificate and chain.
+ *  "time"
+ *      Validity time.
+ *  "wincx"
+ *      Nss database password token.
+ *  "log"
+ *      Address of already allocated CERTVerifyLog structure. Not
+ *      used if NULL;
+ *  "pSigerror"
+ *      Address of PRBool. If not NULL, returns true is cert chain
+ *      was invalidated because of bad certificate signature.
+ *  "pRevoked"
+ *      Address of PRBool. If not NULL, returns true is cert chain
+ *      was invalidated because a revoked certificate was found in
+ *      the chain.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  SECFailure is chain building process has failed. SECSuccess otherwise.
+ */
 SECStatus
 cert_VerifyCertChainPkix(
     CERTCertificate *cert,
@@ -1161,7 +1161,7 @@ cert_VerifyCertChainPkix(
 #ifdef DEBUG_volkov
     CERTCertificate       *trustedRoot = NULL;
     CERTCertList          *validChain = NULL;
-#endif 
+#endif /* DEBUG */
 
 #ifdef PKIX_OBJECT_LEAK_TEST
     int  leakedObjNum = 0;
@@ -1171,10 +1171,10 @@ cert_VerifyCertChainPkix(
     PKIX_Boolean savedUsePkixEngFlag = usePKIXValidationEngine;
 
     if (usePKIXValidationEngine) {
-        
-
-
-
+        /* current memory leak testing implementation does not allow
+         * to run simultaneous tests one the same or a different threads.
+         * Setting the variable to false, to make additional chain
+         * validations be handled by old nss. */
         usePKIXValidationEngine = PR_FALSE;
     }
     testStartFnStackPosition = 2;
@@ -1185,7 +1185,7 @@ cert_VerifyCertChainPkix(
                                                    PKIX_FALSE : PKIX_TRUE;
     runningLeakTest = PKIX_TRUE;
 
-    
+    /* Prevent multi-threaded run of object leak test */
     fnInvLocalCount = PR_ATOMIC_INCREMENT(&parallelFnInvocationCount);
     PORT_Assert(fnInvLocalCount == 1);
 
@@ -1199,7 +1199,7 @@ do {
 #ifdef DEBUG_volkov
     trustedRoot = NULL;
     validChain = NULL;
-#endif 
+#endif /* DEBUG */
     errorGenerated = PKIX_FALSE;
     stackPosition = 0;
 
@@ -1207,11 +1207,11 @@ do {
         pkix_pl_lifecycle_ObjectTableUpdate(objCountTable); 
     }
     memLeakLoopCount += 1;
-#endif
+#endif /* PKIX_OBJECT_LEAK_TEST */
 
     error =
         cert_CreatePkixProcessingParams(cert, checkSig, time, wincx,
-                                    PR_FALSE,
+                                    PR_FALSE/*use arena*/,
                                     requiredUsage == certUsageStatusResponder,
                                     &procParams, &plContext);
     if (error) {
@@ -1232,11 +1232,11 @@ do {
     }
     
     if (pRevoked) {
-        
+        /* Currently always PR_FALSE. Will be fixed as a part of 394077 */
         *pRevoked = PR_FALSE;
     }
     if (pSigerror) {
-        
+        /* Currently always PR_FALSE. Will be fixed as a part of 394077 */
         *pSigerror = PR_FALSE;
     }
     rv = SECSuccess;
@@ -1247,14 +1247,14 @@ cleanup:
                                  &trustedRoot, &validChain,
 #else
                                  NULL, NULL,
-#endif 
+#endif /* DEBUG */
                                  plContext);
     if (error) {
 #ifdef DEBUG_volkov        
         char *temp = pkix_Error2ASCII(error, plContext);
         fprintf(stderr, "GET BUILD RES ERRORS:\n%s\n", temp);
         PKIX_PL_Free(temp, NULL);
-#endif 
+#endif /* DEBUG */
         PKIX_PL_Object_DecRef((PKIX_PL_Object *)error, plContext);
     }
 #ifdef DEBUG_volkov
@@ -1264,7 +1264,7 @@ cleanup:
     if (validChain) {
         CERT_DestroyCertList(validChain);
     }
-#endif 
+#endif /* DEBUG */
     if (procParams) {
         PKIX_PL_Object_DecRef((PKIX_PL_Object *)procParams, plContext);
     }
@@ -1291,7 +1291,7 @@ cleanup:
     runningLeakTest = PKIX_FALSE; 
     PR_ATOMIC_DECREMENT(&parallelFnInvocationCount);
     usePKIXValidationEngine = savedUsePkixEngFlag;
-#endif 
+#endif /* PKIX_OBJECT_LEAK_TEST */
 
     return rv;
 }
@@ -1390,9 +1390,9 @@ struct fake_PKIX_PL_CertStruct {
         CERTCertificate *nssCert;
 };
 
-
-
-
+/* This needs to be part of the PKIX_PL_* */
+/* This definitely needs to go away, and be replaced with
+   a real accessor function in PKIX */
 static CERTCertificate *
 cert_NSSCertFromPKIXCert(const PKIX_PL_Cert *pkix_cert)
 {
@@ -1524,13 +1524,13 @@ cert_pkixSetParam(PKIX_ProcessingParams *procParams,
     PKIX_RevocationChecker *revChecker = NULL;
     PKIX_PL_NssContext *nssContext = (PKIX_PL_NssContext *)plContext;
 
-    
+    /* XXX we need a way to map generic PKIX error to generic NSS errors */
 
     switch (param->type) {
 
         case cert_pi_policyOID:
 
-            
+            /* needed? */
             error = PKIX_ProcessingParams_SetExplicitPolicyRequired(
                                 procParams, PKIX_TRUE, plContext);
 
@@ -1711,6 +1711,13 @@ cert_pkixSetParam(PKIX_ProcessingParams *procParams,
         }
         break;
 
+        case cert_pi_useOnlyTrustAnchors:
+            error =
+                PKIX_ProcessingParams_SetUseOnlyTrustAnchors(procParams,
+                                      (PRBool)(param->value.scalar.b != 0),
+                                                             plContext);
+            break;
+
         default:
             PORT_SetError(errCode);
             r = SECFailure;
@@ -1779,20 +1786,20 @@ cert_pkixDestroyValOutParam(CERTValOutParam *params)
 }
 
 static PRUint64 certRev_NSS_3_11_Ocsp_Enabled_Soft_Policy_LeafFlags[2] = {
-  
+  /* crl */
   CERT_REV_M_TEST_USING_THIS_METHOD 
   | CERT_REV_M_FORBID_NETWORK_FETCHING
   | CERT_REV_M_CONTINUE_TESTING_ON_FRESH_INFO,
-  
+  /* ocsp */
   CERT_REV_M_TEST_USING_THIS_METHOD
 };
 
 static PRUint64 certRev_NSS_3_11_Ocsp_Enabled_Soft_Policy_ChainFlags[2] = {
-  
+  /* crl */
   CERT_REV_M_TEST_USING_THIS_METHOD
   | CERT_REV_M_FORBID_NETWORK_FETCHING
   | CERT_REV_M_CONTINUE_TESTING_ON_FRESH_INFO,
-  
+  /* ocsp */
   0
 };
 
@@ -1803,7 +1810,7 @@ certRev_NSS_3_11_Ocsp_Enabled_Soft_Policy_Method_Preference = {
 
 static const CERTRevocationFlags certRev_NSS_3_11_Ocsp_Enabled_Soft_Policy = {
   {
-    
+    /* leafTests */
     2,
     certRev_NSS_3_11_Ocsp_Enabled_Soft_Policy_LeafFlags,
     1,
@@ -1811,7 +1818,7 @@ static const CERTRevocationFlags certRev_NSS_3_11_Ocsp_Enabled_Soft_Policy = {
     0
   },
   {
-    
+    /* chainTests */
     2,
     certRev_NSS_3_11_Ocsp_Enabled_Soft_Policy_ChainFlags,
     0,
@@ -1828,21 +1835,21 @@ CERT_GetClassicOCSPEnabledSoftFailurePolicy()
 
 
 static PRUint64 certRev_NSS_3_11_Ocsp_Enabled_Hard_Policy_LeafFlags[2] = {
-  
+  /* crl */
   CERT_REV_M_TEST_USING_THIS_METHOD 
   | CERT_REV_M_FORBID_NETWORK_FETCHING
   | CERT_REV_M_CONTINUE_TESTING_ON_FRESH_INFO,
-  
+  /* ocsp */
   CERT_REV_M_TEST_USING_THIS_METHOD
   | CERT_REV_M_FAIL_ON_MISSING_FRESH_INFO
 };
 
 static PRUint64 certRev_NSS_3_11_Ocsp_Enabled_Hard_Policy_ChainFlags[2] = {
-  
+  /* crl */
   CERT_REV_M_TEST_USING_THIS_METHOD
   | CERT_REV_M_FORBID_NETWORK_FETCHING
   | CERT_REV_M_CONTINUE_TESTING_ON_FRESH_INFO,
-  
+  /* ocsp */
   0
 };
 
@@ -1853,7 +1860,7 @@ certRev_NSS_3_11_Ocsp_Enabled_Hard_Policy_Method_Preference = {
 
 static const CERTRevocationFlags certRev_NSS_3_11_Ocsp_Enabled_Hard_Policy = {
   {
-    
+    /* leafTests */
     2,
     certRev_NSS_3_11_Ocsp_Enabled_Hard_Policy_LeafFlags,
     1,
@@ -1861,7 +1868,7 @@ static const CERTRevocationFlags certRev_NSS_3_11_Ocsp_Enabled_Hard_Policy = {
     0
   },
   {
-    
+    /* chainTests */
     2,
     certRev_NSS_3_11_Ocsp_Enabled_Hard_Policy_ChainFlags,
     0,
@@ -1878,26 +1885,26 @@ CERT_GetClassicOCSPEnabledHardFailurePolicy()
 
 
 static PRUint64 certRev_NSS_3_11_Ocsp_Disabled_Policy_LeafFlags[2] = {
-  
+  /* crl */
   CERT_REV_M_TEST_USING_THIS_METHOD
   | CERT_REV_M_FORBID_NETWORK_FETCHING
   | CERT_REV_M_CONTINUE_TESTING_ON_FRESH_INFO,
-  
+  /* ocsp */
   0
 };
 
 static PRUint64 certRev_NSS_3_11_Ocsp_Disabled_Policy_ChainFlags[2] = {
-  
+  /* crl */
   CERT_REV_M_TEST_USING_THIS_METHOD
   | CERT_REV_M_FORBID_NETWORK_FETCHING
   | CERT_REV_M_CONTINUE_TESTING_ON_FRESH_INFO,
-  
+  /* ocsp */
   0
 };
 
 static const CERTRevocationFlags certRev_NSS_3_11_Ocsp_Disabled_Policy = {
   {
-    
+    /* leafTests */
     2,
     certRev_NSS_3_11_Ocsp_Disabled_Policy_LeafFlags,
     0,
@@ -1905,7 +1912,7 @@ static const CERTRevocationFlags certRev_NSS_3_11_Ocsp_Disabled_Policy = {
     0
   },
   {
-    
+    /* chainTests */
     2,
     certRev_NSS_3_11_Ocsp_Disabled_Policy_ChainFlags,
     0,
@@ -1922,26 +1929,26 @@ CERT_GetClassicOCSPDisabledPolicy()
 
 
 static PRUint64 certRev_PKIX_Verify_Nist_Policy_LeafFlags[2] = {
-  
+  /* crl */
   CERT_REV_M_TEST_USING_THIS_METHOD
   | CERT_REV_M_FAIL_ON_MISSING_FRESH_INFO
   | CERT_REV_M_REQUIRE_INFO_ON_MISSING_SOURCE,
-  
+  /* ocsp */
   0
 };
 
 static PRUint64 certRev_PKIX_Verify_Nist_Policy_ChainFlags[2] = {
-  
+  /* crl */
   CERT_REV_M_TEST_USING_THIS_METHOD
   | CERT_REV_M_FAIL_ON_MISSING_FRESH_INFO
   | CERT_REV_M_REQUIRE_INFO_ON_MISSING_SOURCE,
-  
+  /* ocsp */
   0
 };
 
 static const CERTRevocationFlags certRev_PKIX_Verify_Nist_Policy = {
   {
-    
+    /* leafTests */
     2,
     certRev_PKIX_Verify_Nist_Policy_LeafFlags,
     0,
@@ -1949,7 +1956,7 @@ static const CERTRevocationFlags certRev_PKIX_Verify_Nist_Policy = {
     0
   },
   {
-    
+    /* chainTests */
     2,
     certRev_PKIX_Verify_Nist_Policy_ChainFlags,
     0,
@@ -2022,31 +2029,31 @@ void CERT_DestroyCERTRevocationFlags(CERTRevocationFlags *flags)
      PORT_Free(flags);
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * CERT_PKIXVerifyCert
+ *
+ * Verify a Certificate using the PKIX library.
+ *
+ * Parameters:
+ *  cert    - the target certificate to verify. Must be non-null
+ *  params  - an array of type/value parameters which can be
+ *            used to modify the behavior of the validation
+ *            algorithm, or supply additional constraints.
+ *
+ *  outputTrustAnchor - the trust anchor which the certificate
+ *                      chains to. The caller is responsible
+ *                      for freeing this.
+ *
+ * Example Usage:
+ *    CERTValParam args[3];
+ *    args[0].type = cvpt_policyOID;
+ *    args[0].value.si = oid;
+ *    args[1].type = revCheckRequired;
+ *    args[1].value.b = PR_TRUE;
+ *    args[2].type = cvpt_end;
+ *
+ *    CERT_PKIXVerifyCert(cert, &output, args
+ */
 SECStatus CERT_PKIXVerifyCert(
  CERTCertificate *cert,
  SECCertificateUsage usages,
@@ -2058,8 +2065,8 @@ SECStatus CERT_PKIXVerifyCert(
     PKIX_Error *          error = NULL;
     PKIX_ProcessingParams *procParams = NULL;
     PKIX_BuildResult *    buildResult = NULL;
-    void *                nbioContext = NULL;  
-    void *                buildState = NULL;   
+    void *                nbioContext = NULL;  /* for non-blocking IO */
+    void *                buildState = NULL;   /* for non-blocking IO */
     PKIX_CertSelector *   certSelector = NULL;
     PKIX_List *           certStores = NULL;
     PKIX_ValidateResult * valResult = NULL;
@@ -2080,10 +2087,10 @@ SECStatus CERT_PKIXVerifyCert(
     PKIX_Boolean savedUsePkixEngFlag = usePKIXValidationEngine;
 
     if (usePKIXValidationEngine) {
-        
-
-
-
+        /* current memory leak testing implementation does not allow
+         * to run simultaneous tests one the same or a different threads.
+         * Setting the variable to false, to make additional chain
+         * validations be handled by old nss. */
         usePKIXValidationEngine = PR_FALSE;
     }
     testStartFnStackPosition = 1;
@@ -2094,7 +2101,7 @@ SECStatus CERT_PKIXVerifyCert(
                                                    PKIX_FALSE : PKIX_TRUE;
     runningLeakTest = PKIX_TRUE;
 
-    
+    /* Prevent multi-threaded run of object leak test */
     fnInvLocalCount = PR_ATOMIC_INCREMENT(&parallelFnInvocationCount);
     PORT_Assert(fnInvLocalCount == 1);
 
@@ -2103,8 +2110,8 @@ do {
     error = NULL;
     procParams = NULL;
     buildResult = NULL;
-    nbioContext = NULL;  
-    buildState = NULL;   
+    nbioContext = NULL;  /* for non-blocking IO */
+    buildState = NULL;   /* for non-blocking IO */
     certSelector = NULL;
     certStores = NULL;
     valResult = NULL;
@@ -2121,11 +2128,11 @@ do {
         pkix_pl_lifecycle_ObjectTableUpdate(objCountTable);
     }
     memLeakLoopCount += 1;
-#endif
+#endif /* PKIX_OBJECT_LEAK_TEST */
 
     error = PKIX_PL_NssContext_Create(
-            0, PR_FALSE , wincx, &plContext);
-    if (error != NULL) {        
+            0, PR_FALSE /*use arena*/, wincx, &plContext);
+    if (error != NULL) {        /* need pkix->nss error map */
         PORT_SetError(SEC_ERROR_CERT_NOT_VALID);
         goto cleanup;
     }
@@ -2137,13 +2144,13 @@ do {
     }
 
     error = PKIX_ProcessingParams_Create(&procParams, plContext);
-    if (error != NULL) {              
+    if (error != NULL) {              /* need pkix->nss error map */
         PORT_SetError(SEC_ERROR_CERT_NOT_VALID);
         goto cleanup;
     }
 
-    
-
+    /* local cert store should be set into procParams before
+     * filling in revocation settings. */
     certStores = cert_GetCertStores(plContext);
     if (certStores == NULL) {
         goto cleanup;
@@ -2154,7 +2161,7 @@ do {
         goto cleanup;
     }
 
-    
+    /* now process the extensible input parameters structure */
     if (paramsIn != NULL) {
         i=0;
         while (paramsIn[i].type != cert_pi_end) {
@@ -2209,10 +2216,10 @@ do {
     }
 
 #ifdef PKIX_OBJECT_LEAK_TEST
-    
-
+    /* Can not continue if error was generated but not returned.
+     * Jumping to cleanup. */
     if (errorGenerated) goto cleanup;
-#endif 
+#endif /* PKIX_OBJECT_LEAK_TEST */
 
     oparam = cert_pkix_FindOutputParam(paramsOut, cert_po_trustAnchor);
     if (oparam != NULL) {
@@ -2242,11 +2249,11 @@ do {
 
 cleanup:
     if (verifyNode) {
-        
+        /* Return validation log only upon error. */
         oparam = cert_pkix_FindOutputParam(paramsOut, cert_po_errorLog);
 #ifdef PKIX_OBJECT_LEAK_TEST
         if (!errorGenerated)
-#endif 
+#endif /* PKIX_OBJECT_LEAK_TEST */
         if (r && oparam != NULL) {
             PKIX_Error *tmpError =
                 cert_GetLogFromVerifyNode(oparam->value.pointer.log,
@@ -2312,7 +2319,7 @@ cleanup:
     runningLeakTest = PKIX_FALSE; 
     PR_ATOMIC_DECREMENT(&parallelFnInvocationCount);
     usePKIXValidationEngine = savedUsePkixEngFlag;
-#endif 
+#endif /* PKIX_OBJECT_LEAK_TEST */
 
     return r;
 }

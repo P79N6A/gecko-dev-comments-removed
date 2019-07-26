@@ -1,7 +1,7 @@
-
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+/* $Id: rijndael.c,v 1.29 2013/01/15 02:36:11 rrelyea%redhat.com Exp $ */
 
 #ifdef FREEBL_NO_DEPEND
 #include "stubs.h"
@@ -20,38 +20,46 @@
 #include "gcm.h"
 
 #if USE_HW_AES
+#include "intel-gcm.h"
 #include "intel-aes.h"
 #include "mpi.h"
+
+static int has_intel_aes = 0;
+static int has_intel_avx = 0;
+static int has_intel_clmul = 0;
+static PRBool use_hw_aes = PR_FALSE;
+static PRBool use_hw_avx = PR_FALSE;
+static PRBool use_hw_gcm = PR_FALSE;
 #endif
 
+/*
+ * There are currently five ways to build this code, varying in performance
+ * and code size.
+ *
+ * RIJNDAEL_INCLUDE_TABLES         Include all tables from rijndael32.tab
+ * RIJNDAEL_GENERATE_TABLES        Generate tables on first 
+ *                                 encryption/decryption, then store them;
+ *                                 use the function gfm
+ * RIJNDAEL_GENERATE_TABLES_MACRO  Same as above, but use macros to do
+ *                                 the generation
+ * RIJNDAEL_GENERATE_VALUES        Do not store tables, generate the table
+ *                                 values "on-the-fly", using gfm
+ * RIJNDAEL_GENERATE_VALUES_MACRO  Same as above, but use macros
+ *
+ * The default is RIJNDAEL_INCLUDE_TABLES.
+ */
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * When building RIJNDAEL_INCLUDE_TABLES, includes S**-1, Rcon, T[0..4], 
+ *                                                 T**-1[0..4], IMXC[0..4]
+ * When building anything else, includes S, S**-1, Rcon
+ */
 #include "rijndael32.tab"
 
 #if defined(RIJNDAEL_INCLUDE_TABLES)
-
-
-
+/*
+ * RIJNDAEL_INCLUDE_TABLES
+ */
 #define T0(i)    _T0[i]
 #define T1(i)    _T1[i]
 #define T2(i)    _T2[i]
@@ -64,7 +72,7 @@
 #define IMXC1(b) _IMXC1[b]
 #define IMXC2(b) _IMXC2[b]
 #define IMXC3(b) _IMXC3[b]
-
+/* The S-box can be recovered from the T-tables */
 #ifdef IS_LITTLE_ENDIAN
 #define SBOX(b)    ((PRUint8)_T3[b])
 #else
@@ -72,11 +80,11 @@
 #endif
 #define SINV(b) (_SInv[b])
 
-#else 
+#else /* not RIJNDAEL_INCLUDE_TABLES */
 
-
-
-
+/*
+ * Code for generating T-table values.
+ */
 
 #ifdef IS_LITTLE_ENDIAN
 #define WORD4(b0, b1, b2, b3) \
@@ -86,25 +94,25 @@
     (((b0) << 24) | ((b1) << 16) | ((b2) << 8) | (b3))
 #endif
 
-
-
-
+/*
+ * Define the S and S**-1 tables (both have been stored)
+ */
 #define SBOX(b)    (_S[b])
 #define SINV(b) (_SInv[b])
 
-
-
-
+/*
+ * The function xtime, used for Galois field multiplication
+ */
 #define XTIME(a) \
     ((a & 0x80) ? ((a << 1) ^ 0x1b) : (a << 1))
 
-
+/* Choose GFM method (macros or function) */
 #if defined(RIJNDAEL_GENERATE_TABLES_MACRO) ||  \
     defined(RIJNDAEL_GENERATE_VALUES_MACRO)
 
-
-
-
+/*
+ * Galois field GF(2**8) multipliers, in macro form
+ */
 #define GFM01(a) \
     (a)                                 /* a * 01 = a, the identity */
 #define GFM02(a) \
@@ -124,12 +132,12 @@
 #define GFM0E(a) \
     (GFM02(a) ^ GFM04(a) ^ GFM08(a))    /* a * 0E = a * (02 + 04 + 08) */
 
-#else  
+#else  /* RIJNDAEL_GENERATE_TABLES or RIJNDAEL_GENERATE_VALUES */
 
-
-
-
-
+/* GF_MULTIPLY
+ *
+ * multiply two bytes represented in GF(2**8), mod (x**4 + 1)
+ */
 PRUint8 gfm(PRUint8 a, PRUint8 b)
 {
     PRUint8 res = 0;
@@ -156,11 +164,11 @@ PRUint8 gfm(PRUint8 a, PRUint8 b)
 #define GFM0E(a) \
     (gfm(a, 0x0E))                      /* a * 0E */
 
-#endif 
+#endif /* choosing GFM function */
 
-
-
-
+/*
+ * The T-tables
+ */
 #define G_T0(i) \
     ( WORD4( GFM02(SBOX(i)), GFM01(SBOX(i)), GFM01(SBOX(i)), GFM03(SBOX(i)) ) )
 #define G_T1(i) \
@@ -170,9 +178,9 @@ PRUint8 gfm(PRUint8 a, PRUint8 b)
 #define G_T3(i) \
     ( WORD4( GFM01(SBOX(i)), GFM01(SBOX(i)), GFM03(SBOX(i)), GFM02(SBOX(i)) ) )
 
-
-
-
+/*
+ * The inverse T-tables
+ */
 #define G_TInv0(i) \
     ( WORD4( GFM0E(SINV(i)), GFM09(SINV(i)), GFM0D(SINV(i)), GFM0B(SINV(i)) ) )
 #define G_TInv1(i) \
@@ -182,9 +190,9 @@ PRUint8 gfm(PRUint8 a, PRUint8 b)
 #define G_TInv3(i) \
     ( WORD4( GFM09(SINV(i)), GFM0D(SINV(i)), GFM0B(SINV(i)), GFM0E(SINV(i)) ) )
 
-
-
-
+/*
+ * The inverse mix column tables
+ */
 #define G_IMXC0(i) \
     ( WORD4( GFM0E(i), GFM09(i), GFM0D(i), GFM0B(i) ) )
 #define G_IMXC1(i) \
@@ -194,9 +202,9 @@ PRUint8 gfm(PRUint8 a, PRUint8 b)
 #define G_IMXC3(i) \
     ( WORD4( GFM09(i), GFM0D(i), GFM0B(i), GFM0E(i) ) )
 
-
+/* Now choose the T-table indexing method */
 #if defined(RIJNDAEL_GENERATE_VALUES)
-
+/* generate values for the tables with a function*/
 static PRUint32 gen_TInvXi(PRUint8 tx, PRUint8 i)
 {
     PRUint8 si01, si02, si03, si04, si08, si09, si0B, si0D, si0E;
@@ -234,7 +242,7 @@ static PRUint32 gen_TInvXi(PRUint8 tx, PRUint8 i)
 #define IMXC2(b) G_IMXC2(b)
 #define IMXC3(b) G_IMXC3(b)
 #elif defined(RIJNDAEL_GENERATE_VALUES_MACRO)
-
+/* generate values for the tables with macros */
 #define T0(i)    G_T0(i)
 #define T1(i)    G_T1(i)
 #define T2(i)    G_T2(i)
@@ -247,9 +255,9 @@ static PRUint32 gen_TInvXi(PRUint8 tx, PRUint8 i)
 #define IMXC1(b) G_IMXC1(b)
 #define IMXC2(b) G_IMXC2(b)
 #define IMXC3(b) G_IMXC3(b)
-#else  
-
-
+#else  /* RIJNDAEL_GENERATE_TABLES or RIJNDAEL_GENERATE_TABLES_MACRO */
+/* Generate T and T**-1 table values and store, then index */
+/* The inverse mix column tables are still generated */
 #define T0(i)    rijndaelTables->T0[i]
 #define T1(i)    rijndaelTables->T1[i]
 #define T2(i)    rijndaelTables->T2[i]
@@ -262,14 +270,14 @@ static PRUint32 gen_TInvXi(PRUint8 tx, PRUint8 i)
 #define IMXC1(b) G_IMXC1(b)
 #define IMXC2(b) G_IMXC2(b)
 #define IMXC3(b) G_IMXC3(b)
-#endif 
+#endif /* choose T-table indexing method */
 
-#endif 
+#endif /* not RIJNDAEL_INCLUDE_TABLES */
 
 #if defined(RIJNDAEL_GENERATE_TABLES) ||  \
     defined(RIJNDAEL_GENERATE_TABLES_MACRO)
 
-
+/* Code to generate and store the tables */
 
 struct rijndael_tables_str {
     PRUint32 T0[256];
@@ -294,7 +302,7 @@ init_rijndael_tables(void)
                    PORT_Alloc(sizeof(struct rijndael_tables_str));
     if (!rts) return PR_FAILURE;
     for (i=0; i<256; i++) {
-	
+	/* The forward values */
 	si01 = SBOX(i);
 	si02 = XTIME(si01);
 	si03 = si02 ^ si01;
@@ -302,7 +310,7 @@ init_rijndael_tables(void)
 	rts->T1[i] = WORD4(si03, si02, si01, si01);
 	rts->T2[i] = WORD4(si01, si03, si02, si01);
 	rts->T3[i] = WORD4(si01, si01, si03, si02);
-	
+	/* The inverse values */
 	si01 = SINV(i);
 	si02 = XTIME(si01);
 	si04 = XTIME(si02);
@@ -317,18 +325,18 @@ init_rijndael_tables(void)
 	rts->TInv2[i] = WORD4(si0D, si0B, si0E, si09);
 	rts->TInv3[i] = WORD4(si09, si0D, si0B, si0E);
     }
-    
+    /* wait until all the values are in to set */
     rijndaelTables = rts;
     return PR_SUCCESS;
 }
 
-#endif 
+#endif /* code to generate tables */
 
-
-
-
-
-
+/**************************************************************************
+ *
+ * Stuff related to the Rijndael key schedule
+ *
+ *************************************************************************/
 
 #define SUBBYTE(w) \
     ((SBOX((w >> 24) & 0xff) << 24) | \
@@ -344,16 +352,16 @@ init_rijndael_tables(void)
     ((b << 8) | (b >> 24))
 #endif
 
-
-
-
-
-
-
-
-
-
-
+/* rijndael_key_expansion7
+ *
+ * Generate the expanded key from the key input by the user.
+ * XXX
+ * Nk == 7 (224 key bits) is a weird case.  Since Nk > 6, an added SubByte
+ * transformation is done periodically.  The period is every 4 bytes, and
+ * since 7%4 != 0 this happens at different times for each key word (unlike
+ * Nk == 8 where it happens twice in every key word, in the same positions).
+ * For now, I'm implementing this case "dumbly", w/o any unrolling.
+ */
 static SECStatus
 rijndael_key_expansion7(AESContext *cx, const unsigned char *key, unsigned int Nk)
 {
@@ -362,10 +370,10 @@ rijndael_key_expansion7(AESContext *cx, const unsigned char *key, unsigned int N
     PRUint32 *pW;
     PRUint32 tmp;
     W = cx->expandedKey;
-    
+    /* 1.  the first Nk words contain the cipher key */
     memcpy(W, key, Nk * 4);
     i = Nk;
-    
+    /* 2.  loop until full expanded key is obtained */
     pW = W + i - 1;
     for (; i < cx->Nb * (cx->Nr + 1); ++i) {
 	tmp = *pW++;
@@ -378,10 +386,10 @@ rijndael_key_expansion7(AESContext *cx, const unsigned char *key, unsigned int N
     return SECSuccess;
 }
 
-
-
-
-
+/* rijndael_key_expansion
+ *
+ * Generate the expanded key from the key input by the user.
+ */
 static SECStatus
 rijndael_key_expansion(AESContext *cx, const unsigned char *key, unsigned int Nk)
 {
@@ -393,11 +401,11 @@ rijndael_key_expansion(AESContext *cx, const unsigned char *key, unsigned int Nk
     if (Nk == 7)
 	return rijndael_key_expansion7(cx, key, Nk);
     W = cx->expandedKey;
-    
+    /* The first Nk words contain the input cipher key */
     memcpy(W, key, Nk * 4);
     i = Nk;
     pW = W + i - 1;
-    
+    /* Loop over all sets of Nk words, except the last */
     while (i < round_key_words - Nk) {
 	tmp = *pW++;
 	tmp = SUBBYTE(ROTBYTE(tmp)) ^ Rcon[i / Nk - 1];
@@ -414,23 +422,23 @@ rijndael_key_expansion(AESContext *cx, const unsigned char *key, unsigned int Nk
 	case 5: tmp = *pW++; *pW = W[i++ - Nk] ^ tmp;
 	}
     }
-    
+    /* Generate the last word */
     tmp = *pW++;
     tmp = SUBBYTE(ROTBYTE(tmp)) ^ Rcon[i / Nk - 1];
     *pW = W[i++ - Nk] ^ tmp;
-    
-
-
-
+    /* There may be overflow here, if Nk % (Nb * (Nr + 1)) > 0.  However,
+     * since the above loop generated all but the last Nk key words, there
+     * is no more need for the SubByte transformation.
+     */
     if (Nk < 8) {
 	for (; i < round_key_words; ++i) {
 	    tmp = *pW++; 
 	    *pW = W[i - Nk] ^ tmp;
 	}
     } else {
-	
-
-
+	/* except in the case when Nk == 8.  Then one more SubByte may have
+	 * to be performed, at i % Nk == 4.
+	 */
 	for (; i < round_key_words; ++i) {
 	    tmp = *pW++;
 	    if (i % Nk == 4)
@@ -441,11 +449,11 @@ rijndael_key_expansion(AESContext *cx, const unsigned char *key, unsigned int Nk
     return SECSuccess;
 }
 
-
-
-
-
-
+/* rijndael_invkey_expansion
+ *
+ * Generate the expanded key for the inverse cipher from the key input by 
+ * the user.
+ */
 static SECStatus
 rijndael_invkey_expansion(AESContext *cx, const unsigned char *key, unsigned int Nk)
 {
@@ -453,21 +461,21 @@ rijndael_invkey_expansion(AESContext *cx, const unsigned char *key, unsigned int
     PRUint32 *roundkeyw;
     PRUint8 *b;
     int Nb = cx->Nb;
-    
+    /* begins like usual key expansion ... */
     if (rijndael_key_expansion(cx, key, Nk) != SECSuccess)
 	return SECFailure;
-    
-
-
+    /* ... but has the additional step of InvMixColumn,
+     * excepting the first and last round keys.
+     */
     roundkeyw = cx->expandedKey + cx->Nb;
     for (r=1; r<cx->Nr; ++r) {
-	
-
-
-
-
-
-
+	/* each key word, roundkeyw, represents a column in the key
+	 * matrix.  Each column is multiplied by the InvMixColumn matrix.
+	 *   [ 0E 0B 0D 09 ]   [ b0 ]
+	 *   [ 09 0E 0B 0D ] * [ b1 ]
+	 *   [ 0D 09 0E 0B ]   [ b2 ]
+	 *   [ 0B 0D 09 0E ]   [ b3 ]
+	 */
 	b = (PRUint8 *)roundkeyw;
 	*roundkeyw++ = IMXC0(b[0]) ^ IMXC1(b[1]) ^ IMXC2(b[2]) ^ IMXC3(b[3]);
 	b = (PRUint8 *)roundkeyw;
@@ -495,12 +503,12 @@ rijndael_invkey_expansion(AESContext *cx, const unsigned char *key, unsigned int
     }
     return SECSuccess;
 }
-
-
-
-
-
-
+/**************************************************************************
+ *
+ * Stuff related to Rijndael encryption/decryption, optimized for
+ * a 128-bit blocksize.
+ *
+ *************************************************************************/
 
 #ifdef IS_LITTLE_ENDIAN
 #define BYTE0WORD(w) ((w) & 0x000000ff)
@@ -555,14 +563,14 @@ rijndael_encryptBlock128(AESContext *cx,
     }
 #endif
     roundkeyw = cx->expandedKey;
-    
+    /* Step 1: Add Round Key 0 to initial state */
     COLUMN_0(state) = *((PRUint32 *)(pIn     )) ^ *roundkeyw++;
     COLUMN_1(state) = *((PRUint32 *)(pIn + 4 )) ^ *roundkeyw++;
     COLUMN_2(state) = *((PRUint32 *)(pIn + 8 )) ^ *roundkeyw++;
     COLUMN_3(state) = *((PRUint32 *)(pIn + 12)) ^ *roundkeyw++;
-    
+    /* Step 2: Loop over rounds [1..NR-1] */
     for (r=1; r<cx->Nr; ++r) {
-        
+        /* Do ShiftRow, ByteSub, and MixColumn all at once */
 	C0 = T0(STATE_BYTE(0))  ^
 	     T1(STATE_BYTE(5))  ^
 	     T2(STATE_BYTE(10)) ^
@@ -579,14 +587,14 @@ rijndael_encryptBlock128(AESContext *cx,
 	     T1(STATE_BYTE(1))  ^
 	     T2(STATE_BYTE(6))  ^
 	     T3(STATE_BYTE(11));
-	
+	/* Round key addition */
 	COLUMN_0(state) = C0 ^ *roundkeyw++;
 	COLUMN_1(state) = C1 ^ *roundkeyw++;
 	COLUMN_2(state) = C2 ^ *roundkeyw++;
 	COLUMN_3(state) = C3 ^ *roundkeyw++;
     }
-    
-    
+    /* Step 3: Do the last round */
+    /* Final round does not employ MixColumn */
     C0 = ((BYTE0WORD(T2(STATE_BYTE(0))))   |
           (BYTE1WORD(T3(STATE_BYTE(5))))   |
           (BYTE2WORD(T0(STATE_BYTE(10))))  |
@@ -651,14 +659,14 @@ rijndael_decryptBlock128(AESContext *cx,
     }
 #endif
     roundkeyw = cx->expandedKey + cx->Nb * cx->Nr + 3;
-    
+    /* reverse the final key addition */
     COLUMN_3(state) = *((PRUint32 *)(pIn + 12)) ^ *roundkeyw--;
     COLUMN_2(state) = *((PRUint32 *)(pIn +  8)) ^ *roundkeyw--;
     COLUMN_1(state) = *((PRUint32 *)(pIn +  4)) ^ *roundkeyw--;
     COLUMN_0(state) = *((PRUint32 *)(pIn     )) ^ *roundkeyw--;
-    
+    /* Loop over rounds in reverse [NR..1] */
     for (r=cx->Nr; r>1; --r) {
-	
+	/* Invert the (InvByteSub*InvMixColumn)(InvShiftRow(state)) */
 	C0 = TInv0(STATE_BYTE(0))  ^
 	     TInv1(STATE_BYTE(13)) ^
 	     TInv2(STATE_BYTE(10)) ^
@@ -675,13 +683,13 @@ rijndael_decryptBlock128(AESContext *cx,
 	     TInv1(STATE_BYTE(9))  ^
 	     TInv2(STATE_BYTE(6))  ^
 	     TInv3(STATE_BYTE(3));
-	
+	/* Invert the key addition step */
 	COLUMN_3(state) = C3 ^ *roundkeyw--;
 	COLUMN_2(state) = C2 ^ *roundkeyw--;
 	COLUMN_1(state) = C1 ^ *roundkeyw--;
 	COLUMN_0(state) = C0 ^ *roundkeyw--;
     }
-    
+    /* inverse sub */
     pOut[ 0] = SINV(STATE_BYTE( 0));
     pOut[ 1] = SINV(STATE_BYTE(13));
     pOut[ 2] = SINV(STATE_BYTE(10));
@@ -698,7 +706,7 @@ rijndael_decryptBlock128(AESContext *cx,
     pOut[13] = SINV(STATE_BYTE( 9));
     pOut[14] = SINV(STATE_BYTE( 6));
     pOut[15] = SINV(STATE_BYTE( 3));
-    
+    /* final key addition */
     *((PRUint32 *)(pOut + 12)) ^= *roundkeyw--;
     *((PRUint32 *)(pOut +  8)) ^= *roundkeyw--;
     *((PRUint32 *)(pOut +  4)) ^= *roundkeyw--;
@@ -714,16 +722,16 @@ rijndael_decryptBlock128(AESContext *cx,
     return SECSuccess;
 }
 
-
-
-
-
-
-
-
-
-
-
+/**************************************************************************
+ *
+ * Stuff related to general Rijndael encryption/decryption, for blocksizes
+ * greater than 128 bits.
+ *
+ * XXX This code is currently untested!  So far, AES specs have only been
+ *     released for 128 bit blocksizes.  This will be tested, but for now
+ *     only the code above has been tested using known values.
+ *
+ *************************************************************************/
 
 #define COLUMN(array, j) *((PRUint32 *)(array + j))
 
@@ -740,11 +748,11 @@ rijndael_encryptBlock(AESContext *cx,
     PRUint8 clone[RIJNDAEL_MAX_STATE_SIZE];
     Nb = cx->Nb;
     roundkeyw = cx->expandedKey;
-    
+    /* Step 1: Add Round Key 0 to initial state */
     for (j=0; j<4*Nb; j+=4) {
 	COLUMN(clone, j) = COLUMN(input, j) ^ *roundkeyw++;
     }
-    
+    /* Step 2: Loop over rounds [1..NR-1] */
     for (r=1; r<cx->Nr; ++r) {
 	for (j=0; j<Nb; ++j) {
 	    COLUMN(output, j) = T0(STATE_BYTE(4*  j          )) ^
@@ -756,8 +764,8 @@ rijndael_encryptBlock(AESContext *cx,
 	    COLUMN(clone, j) = COLUMN(output, j) ^ *roundkeyw++;
 	}
     }
-    
-    
+    /* Step 3: Do the last round */
+    /* Final round does not employ MixColumn */
     for (j=0; j<Nb; ++j) {
 	COLUMN(output, j) = ((BYTE0WORD(T2(STATE_BYTE(4* j         ))))  |
                              (BYTE1WORD(T3(STATE_BYTE(4*(j+ 1)%Nb)+1)))  |
@@ -782,29 +790,29 @@ rijndael_decryptBlock(AESContext *cx,
     PRUint8 clone[RIJNDAEL_MAX_STATE_SIZE];
     Nb = cx->Nb;
     roundkeyw = cx->expandedKey + cx->Nb * cx->Nr + 3;
-    
+    /* reverse key addition */
     for (j=4*Nb; j>=0; j-=4) {
 	COLUMN(clone, j) = COLUMN(input, j) ^ *roundkeyw--;
     }
-    
+    /* Loop over rounds in reverse [NR..1] */
     for (r=cx->Nr; r>1; --r) {
-	
+	/* Invert the (InvByteSub*InvMixColumn)(InvShiftRow(state)) */
 	for (j=0; j<Nb; ++j) {
 	    COLUMN(output, 4*j) = TInv0(STATE_BYTE(4* j            )) ^
 	                          TInv1(STATE_BYTE(4*(j+Nb- 1)%Nb)+1) ^
 	                          TInv2(STATE_BYTE(4*(j+Nb-c2)%Nb)+2) ^
 	                          TInv3(STATE_BYTE(4*(j+Nb-c3)%Nb)+3);
 	}
-	
+	/* Invert the key addition step */
 	for (j=4*Nb; j>=0; j-=4) {
 	    COLUMN(clone, j) = COLUMN(output, j) ^ *roundkeyw--;
 	}
     }
-    
+    /* inverse sub */
     for (j=0; j<4*Nb; ++j) {
 	output[j] = SINV(clone[j]);
     }
-    
+    /* final key addition */
     for (j=4*Nb; j>=0; j-=4) {
 	COLUMN(output, j) ^= *roundkeyw--;
     }
@@ -812,11 +820,11 @@ rijndael_decryptBlock(AESContext *cx,
 #endif
 }
 
-
-
-
-
-
+/**************************************************************************
+ *
+ *  Rijndael modes of operation (ECB and CBC)
+ *
+ *************************************************************************/
 
 static SECStatus 
 rijndael_encryptECB(AESContext *cx, unsigned char *output,
@@ -861,14 +869,14 @@ rijndael_encryptCBC(AESContext *cx, unsigned char *output,
 				  ? &rijndael_encryptBlock128 
 				  : &rijndael_encryptBlock;
     while (inputLen > 0) {
-	
+	/* XOR with the last block (IV if first block) */
 	for (j=0; j<blocksize; ++j)
 	    inblock[j] = input[j] ^ lastblock[j];
-	
+	/* encrypt */
         rv = (*encryptor)(cx, output, inblock);
 	if (rv != SECSuccess)
 	    return rv;
-	
+	/* move to the next block */
 	lastblock = output;
 	output += blocksize;
 	input += blocksize;
@@ -945,14 +953,14 @@ rijndael_decryptCBC(AESContext *cx, unsigned char *output,
     return SECSuccess;
 }
 
-
-
-
-
-
-
-
-
+/************************************************************************
+ *
+ * BLAPI Interface functions
+ *
+ * The following functions implement the encryption routines defined in
+ * BLAPI for the AES cipher, Rijndael.
+ *
+ ***********************************************************************/
 
 AESContext * AES_AllocateContext(void)
 {
@@ -960,25 +968,21 @@ AESContext * AES_AllocateContext(void)
 }
 
 
-
-
-
-
-
+/*
+** Initialize a new AES context suitable for AES encryption/decryption in
+** the ECB or CBC mode.
+** 	"mode" the mode of operation, which must be NSS_AES or NSS_AES_CBC
+*/
 static SECStatus   
 aes_InitContext(AESContext *cx, const unsigned char *key, unsigned int keysize, 
 	        const unsigned char *iv, int mode, unsigned int encrypt,
 	        unsigned int blocksize)
 {
-#if USE_HW_AES
-    static int has_intel_aes;
-    PRBool use_hw_aes = PR_FALSE;
-#endif
     unsigned int Nk;
-    
-
-
-
+    /* According to Rijndael AES Proposal, section 12.1, block and key
+     * lengths between 128 and 256 bits are supported, as long as the
+     * length in bytes is divisible by 4.
+     */
     if (key == NULL || 
         keysize < RIJNDAEL_MIN_BLOCKSIZE   || 
 	keysize > RIJNDAEL_MAX_BLOCKSIZE   || 
@@ -1009,20 +1013,26 @@ aes_InitContext(AESContext *cx, const unsigned char *key, unsigned int keysize,
 	if (disable_hw_aes == NULL) {
 	    freebl_cpuid(1, &eax, &ebx, &ecx, &edx);
 	    has_intel_aes = (ecx & (1 << 25)) != 0 ? 1 : -1;
+	    has_intel_clmul = (ecx & (1 << 1)) != 0 ? 1 : -1;
+	    has_intel_avx = (ecx & (1 << 28)) != 0 ? 1 : -1;
 	} else {
 	    has_intel_aes = -1;
+	    has_intel_avx = -1;
+	    has_intel_clmul = -1;
 	}
     }
     use_hw_aes = (PRBool)
 		(has_intel_aes > 0 && (keysize % 8) == 0 && blocksize == 16);
+    use_hw_gcm = (PRBool)
+		(use_hw_aes && has_intel_avx>0 && has_intel_clmul>0);
 #endif
-    
+    /* Nb = (block size in bits) / 32 */
     cx->Nb = blocksize / 4;
-    
+    /* Nk = (key size in bits) / 32 */
     Nk = keysize / 4;
-    
+    /* Obtain number of rounds from "table" */
     cx->Nr = RIJNDAEL_NUM_ROUNDS(Nk, cx->Nb);
-    
+    /* copy in the iv, if neccessary */
     if (mode == NSS_AES_CBC) {
 	memcpy(cx->iv, iv, blocksize);
 #if USE_HW_AES
@@ -1064,7 +1074,7 @@ aes_InitContext(AESContext *cx, const unsigned char *key, unsigned int keysize,
 	    }
 	}
 #endif
-	
+	/* Generate expanded key */
 	if (encrypt) {
 	    if (rijndael_key_expansion(cx, key, Nk) != SECSuccess)
 		goto cleanup;
@@ -1107,7 +1117,7 @@ AES_InitContext(AESContext *cx, const unsigned char *key, unsigned int keysize,
 	return rv;
     }
 
-    
+    /* finally, set up any mode specific contexts */
     switch (mode) {
     case NSS_AES_CTS:
 	cx->worker_cx = CTS_CreateContext(cx, cx->worker, iv, blocksize);
@@ -1117,11 +1127,22 @@ AES_InitContext(AESContext *cx, const unsigned char *key, unsigned int keysize,
 	cx->isBlock = PR_FALSE;
 	break;
     case NSS_AES_GCM:
+#if USE_HW_AES
+	if(use_hw_gcm) {
+        	cx->worker_cx = intel_AES_GCM_CreateContext(cx, cx->worker, iv, blocksize);
+		cx->worker = (freeblCipherFunc)
+			(encrypt ? intel_AES_GCM_EncryptUpdate : intel_AES_GCM_DecryptUpdate);
+		cx->destroy = (freeblDestroyFunc) intel_AES_GCM_DestroyContext;
+		cx->isBlock = PR_FALSE;
+    	} else
+#endif
+	{
 	cx->worker_cx = GCM_CreateContext(cx, cx->worker, iv, blocksize);
 	cx->worker = (freeblCipherFunc)
 			(encrypt ? GCM_EncryptUpdate : GCM_DecryptUpdate);
 	cx->destroy = (freeblDestroyFunc) GCM_DestroyContext;
 	cx->isBlock = PR_FALSE;
+	}
 	break;
     case NSS_AES_CTR:
 	cx->worker_cx = CTR_CreateContext(cx, cx->worker, iv, blocksize);
@@ -1130,25 +1151,25 @@ AES_InitContext(AESContext *cx, const unsigned char *key, unsigned int keysize,
 	cx->isBlock = PR_FALSE;
 	break;
     default:
-	
-
+	/* everything has already been set up by aes_InitContext, just
+	 * return */
 	return SECSuccess;
     }
-    
+    /* check to see if we succeeded in getting the worker context */
     if (cx->worker_cx == NULL) {
-	
-	cx->destroy = NULL; 
-			    
+	/* no, just destroy the existing context */
+	cx->destroy = NULL; /* paranoia, though you can see a dozen lines */
+			    /* below that this isn't necessary */
 	AES_DestroyContext(cx, PR_TRUE);
 	return SECFailure;
     }
     return SECSuccess;
 }
 
-
-
-
-
+/* AES_CreateContext
+ *
+ * create a new context for Rijndael operations
+ */
 AESContext *
 AES_CreateContext(const unsigned char *key, const unsigned char *iv, 
                   int mode, int encrypt,
@@ -1166,16 +1187,16 @@ AES_CreateContext(const unsigned char *key, const unsigned char *iv,
     return cx;
 }
 
-
-
-
-
-
-
+/*
+ * AES_DestroyContext
+ * 
+ * Zero an AES cipher context.  If freeit is true, also free the pointer
+ * to the context.
+ */
 void 
 AES_DestroyContext(AESContext *cx, PRBool freeit)
 {
-
+/*  memset(cx, 0, sizeof *cx); */
     if (cx->worker_cx && cx->destroy) {
 	(*cx->destroy)(cx->worker_cx, PR_TRUE);
     }
@@ -1183,19 +1204,19 @@ AES_DestroyContext(AESContext *cx, PRBool freeit)
 	PORT_Free(cx);
 }
 
-
-
-
-
-
-
+/*
+ * AES_Encrypt
+ *
+ * Encrypt an arbitrary-length buffer.  The output buffer must already be
+ * allocated to at least inputLen.
+ */
 SECStatus 
 AES_Encrypt(AESContext *cx, unsigned char *output,
             unsigned int *outputLen, unsigned int maxOutputLen,
             const unsigned char *input, unsigned int inputLen)
 {
     int blocksize;
-    
+    /* Check args */
     if (cx == NULL || output == NULL || input == NULL) {
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	return SECFailure;
@@ -1214,19 +1235,19 @@ AES_Encrypt(AESContext *cx, unsigned char *output,
                              input, inputLen, blocksize);
 }
 
-
-
-
-
-
-
+/*
+ * AES_Decrypt
+ *
+ * Decrypt and arbitrary-length buffer.  The output buffer must already be
+ * allocated to at least inputLen.
+ */
 SECStatus 
 AES_Decrypt(AESContext *cx, unsigned char *output,
             unsigned int *outputLen, unsigned int maxOutputLen,
             const unsigned char *input, unsigned int inputLen)
 {
     int blocksize;
-    
+    /* Check args */
     if (cx == NULL || output == NULL || input == NULL) {
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	return SECFailure;

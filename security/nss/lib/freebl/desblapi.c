@@ -1,13 +1,13 @@
-
-
-
-
-
-
-
-
-
-
+/*
+ *  desblapi.c
+ *
+ *  core source file for DES-150 library
+ *  Implement DES Modes of Operation and Triple-DES.
+ *  Adapt DES-150 to blapi API.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifdef FREEBL_NO_DEPEND
 #include "stubs.h"
@@ -18,7 +18,7 @@
 #include "secerr.h"
 
 #if defined(NSS_X86_OR_X64)
-
+/* Intel X86 CPUs do unaligned loads and stores without complaint. */
 #define COPY8B(to, from, ptr) \
     	HALFPTR(to)[0] = HALFPTR(from)[0]; \
     	HALFPTR(to)[1] = HALFPTR(from)[1]; 
@@ -169,12 +169,12 @@ DES_InitContext(DESContext *cx, const unsigned char *key, unsigned int keylen,
     cx->direction = encrypt ? DES_ENCRYPT : DES_DECRYPT;
     opposite      = encrypt ? DES_DECRYPT : DES_ENCRYPT;
     switch (mode) {
-    case NSS_DES:	
+    case NSS_DES:	/* DES ECB */
 	DES_MakeSchedule( cx->ks0, key, cx->direction);
 	cx->worker = &DES_ECB;
 	break;
 
-    case NSS_DES_EDE3:	
+    case NSS_DES_EDE3:	/* DES EDE ECB */
 	cx->worker = &DES_EDE3_ECB;
 	if (encrypt) {
 	    DES_MakeSchedule(cx->ks0, key,      cx->direction);
@@ -187,13 +187,13 @@ DES_InitContext(DESContext *cx, const unsigned char *key, unsigned int keylen,
 	}
 	break;
 
-    case NSS_DES_CBC:	
+    case NSS_DES_CBC:	/* DES CBC */
 	COPY8BTOHALF(cx->iv, iv);
 	cx->worker = encrypt ? &DES_CBCEn : &DES_CBCDe;
 	DES_MakeSchedule(cx->ks0, key, cx->direction);
 	break;
 
-    case NSS_DES_EDE3_CBC:	
+    case NSS_DES_EDE3_CBC:	/* DES EDE CBC */
 	COPY8BTOHALF(cx->iv, iv);
 	if (encrypt) {
 	    cx->worker = &DES_EDE3CBCEn;
@@ -243,7 +243,7 @@ DES_Encrypt(DESContext *cx, BYTE *out, unsigned int *outLen,
             unsigned int maxOutLen, const BYTE *in, unsigned int inLen)
 {
 
-    if (inLen < 0 || (inLen % 8) != 0 || maxOutLen < inLen || !cx || 
+    if ((inLen % 8) != 0 || maxOutLen < inLen || !cx || 
         cx->direction != DES_ENCRYPT) {
     	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	return SECFailure;
@@ -260,7 +260,7 @@ DES_Decrypt(DESContext *cx, BYTE *out, unsigned int *outLen,
             unsigned int maxOutLen, const BYTE *in, unsigned int inLen)
 {
 
-    if (inLen < 0 || (inLen % 8) != 0 || maxOutLen < inLen || !cx || 
+    if ((inLen % 8) != 0 || maxOutLen < inLen || !cx || 
         cx->direction != DES_DECRYPT) {
     	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	return SECFailure;

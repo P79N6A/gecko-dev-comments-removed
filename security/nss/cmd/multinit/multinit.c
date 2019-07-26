@@ -1,6 +1,6 @@
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include <stdio.h>
 #include <string.h>
@@ -41,29 +41,29 @@ enum optionNames {
 static const
 secuCommandFlag options_init[] =
 {
-   {   'o', PR_TRUE, "1M2zmi", PR_TRUE,  "order" },
-   {     'd', PR_TRUE,     0,    PR_FALSE, "main_db" },
-   {     '1', PR_TRUE,     0,    PR_FALSE, "lib1_db" },
-   {     '2', PR_TRUE,     0,    PR_FALSE, "lib2_db" },
-   {     'r', PR_FALSE,    0,    PR_FALSE, "main_readonly" },
-   {      0,  PR_FALSE,    0,    PR_FALSE, "lib1_readonly" },
-   {      0,  PR_FALSE,    0,    PR_FALSE, "lib2_readonly" },
-   {    'c', PR_TRUE,     0,    PR_FALSE, "main_command" },
-   {     0,  PR_TRUE,     0,    PR_FALSE, "lib1_command" },
-   {     0,  PR_TRUE,     0,    PR_FALSE, "lib2_command" },
-   { 't', PR_TRUE,     0,    PR_FALSE, "main_token_name" },
-   {  0,  PR_TRUE,     0,    PR_FALSE, "lib1_token_name" },
-   {  0,  PR_TRUE,     0,    PR_FALSE, "lib2_token_name" },
-   {   's', PR_FALSE,    0,    PR_FALSE, "oldStype" },
-   {    'v', PR_FALSE,    0,    PR_FALSE, "verbose" },
-   {    'z', PR_FALSE,    0,    PR_FALSE, "summary" },
-   {       'h', PR_FALSE,    0,    PR_FALSE, "help" }
+   { /* opt_liborder */  'o', PR_TRUE, "1M2zmi", PR_TRUE,  "order" },
+   { /* opt_mainDB */    'd', PR_TRUE,     0,    PR_FALSE, "main_db" },
+   { /* opt_lib1DB */    '1', PR_TRUE,     0,    PR_FALSE, "lib1_db" },
+   { /* opt_lib2DB */    '2', PR_TRUE,     0,    PR_FALSE, "lib2_db" },
+   { /* opt_mainRO */    'r', PR_FALSE,    0,    PR_FALSE, "main_readonly" },
+   { /* opt_lib1RO */     0,  PR_FALSE,    0,    PR_FALSE, "lib1_readonly" },
+   { /* opt_lib2RO */     0,  PR_FALSE,    0,    PR_FALSE, "lib2_readonly" },
+   { /* opt_mainCMD */   'c', PR_TRUE,     0,    PR_FALSE, "main_command" },
+   { /* opt_lib1CMD */    0,  PR_TRUE,     0,    PR_FALSE, "lib1_command" },
+   { /* opt_lib2CMD */    0,  PR_TRUE,     0,    PR_FALSE, "lib2_command" },
+   { /* opt_mainTokNam */'t', PR_TRUE,     0,    PR_FALSE, "main_token_name" },
+   { /* opt_lib1TokNam */ 0,  PR_TRUE,     0,    PR_FALSE, "lib1_token_name" },
+   { /* opt_lib2TokNam */ 0,  PR_TRUE,     0,    PR_FALSE, "lib2_token_name" },
+   { /* opt_oldStype */  's', PR_FALSE,    0,    PR_FALSE, "oldStype" },
+   { /* opt_verbose */   'v', PR_FALSE,    0,    PR_FALSE, "verbose" },
+   { /* opt_summary */   'z', PR_FALSE,    0,    PR_FALSE, "summary" },
+   { /* opt_help */      'h', PR_FALSE,    0,    PR_FALSE, "help" }
 };
 
 static const
 commandDescript options_des[] =
 {
-   {   PR_FALSE, "initOrder", 
+   { /* opt_liborder */  PR_FALSE, "initOrder", 
 	" Specifies the order of NSS initialization and shutdown. Order is\n"
 	" given as a string where each character represents either an init or\n"
 	" a shutdown of the main program or one of the 2 test libraries\n"
@@ -72,63 +72,63 @@ commandDescript options_des[] =
 	"   2 Init library 2\n"
 	"   m Shutdown the main program\n   i Shutdown library 1\n"
 	"   z Shutdown library 2\n" },
-   {    PR_TRUE, "nss_db",
+   { /* opt_mainDB */   PR_TRUE, "nss_db",
 	" Specified the directory to open the nss database for the main\n" 
 	" program. Must be specified if \"M\" is given in the order string\n"},
-   {    PR_FALSE, "nss_db",
+   { /* opt_lib1DB */   PR_FALSE, "nss_db",
 	" Specified the directory to open the nss database for library 1.\n" 
 	" Must be specified if \"1\" is given in the order string\n"},
-   {    PR_FALSE, "nss_db",
+   { /* opt_lib2DB */   PR_FALSE, "nss_db",
 	" Specified the directory to open the nss database for library 2.\n" 
 	" Must be specified if \"2\" is given in the order string\n"},
-   {    PR_FALSE,    NULL,
+   { /* opt_mainRO */   PR_FALSE,    NULL,
 	" Open the main program's database read only.\n" },
-   {    PR_FALSE,    NULL,
+   { /* opt_lib1RO */   PR_FALSE,    NULL,
 	" Open library 1's database read only.\n" },
-   {    PR_FALSE,    NULL,
+   { /* opt_lib2RO */   PR_FALSE,    NULL,
 	" Open library 2's database read only.\n" },
-   {   PR_FALSE,  "nss_command",
+   { /* opt_mainCMD */  PR_FALSE,  "nss_command",
 	" Specifies the NSS command to execute in the main program.\n"
 	" Valid commands are: \n"
 	"   key_slot, list_slots, list_certs, add_cert, none.\n"
 	" Default is \"none\".\n" },
-   {   PR_FALSE,  "nss_command",
+   { /* opt_lib1CMD */  PR_FALSE,  "nss_command",
 	" Specifies the NSS command to execute in library 1.\n" },
-   {   PR_FALSE,  "nss_command",
+   { /* opt_lib2CMD */  PR_FALSE,  "nss_command",
 	" Specifies the NSS command to execute in library 2.\n" },
-   { PR_FALSE,  "token_name",
+   { /* opt_mainTokNam */PR_FALSE,  "token_name",
 	" Specifies the name of PKCS11 token for the main program's "
 	"database.\n" },
-   { PR_FALSE,  "token_name",
+   { /* opt_lib1TokNam */PR_FALSE,  "token_name",
 	" Specifies the name of PKCS11 token for library 1's database.\n" },
-   { PR_FALSE,  "token_name",
+   { /* opt_lib2TokNam */PR_FALSE,  "token_name",
 	" Specifies the name of PKCS11 token for library 2's database.\n" },
-   {  PR_FALSE,   NULL,
+   { /* opt_oldStype */ PR_FALSE,   NULL,
 	" Use NSS_Shutdown rather than NSS_ShutdownContext in the main\n"
 	" program.\n" },
-   {   PR_FALSE,   NULL,
+   { /* opt_verbose */  PR_FALSE,   NULL,
 	" Noisily output status to standard error\n" },
-   {  PR_FALSE,  NULL, 
+   { /* opt_summarize */ PR_FALSE,  NULL, 
 	"report a summary of the test results\n" },
-   {  PR_FALSE,   NULL, " give this message\n" }
+   { /* opt_help */ PR_FALSE,   NULL, " give this message\n" }
 }; 
 
-
-
-
+/*
+ * output our short help (table driven). (does not exit).
+ */
 static void
 short_help(const char *prog)
 {
     int count = opt_last;
     int i,words_found;
 
-    
-
+    /* make sure all the tables are up to date before we allow compiles to
+     * succeed */
     PR_STATIC_ASSERT(sizeof(options_init)/sizeof(secuCommandFlag) == opt_last);
     PR_STATIC_ASSERT(sizeof(options_init)/sizeof(secuCommandFlag) == 
 		     sizeof(options_des)/sizeof(commandDescript));
 
-    
+    /* print the base usage */
     fprintf(stderr,"usage: %s ",prog);
     for (i=0, words_found=0; i < count; i++) {
 	if (!options_des[i].required) {
@@ -163,9 +163,9 @@ short_help(const char *prog)
     fprintf(stderr,"\n");
 }
 
-
-
-
+/*
+ * print out long help. like short_help, this does not exit
+ */
 static void
 long_help(const char *prog)
 {
@@ -173,7 +173,7 @@ long_help(const char *prog)
     int count = opt_last;
 
     short_help(prog);
-    
+    /* print the option descriptions */
     fprintf(stderr,"\n");
     for (i=0; i < count; i++) {
 	fprintf(stderr,"        ");
@@ -200,25 +200,25 @@ long_help(const char *prog)
     }
 }
 
-
-
-
+/*
+ * record summary data
+ */
 struct bufferData {
-   char * data;		
-   char * next;		
-   int  len;		
+   char * data;		/* lowest address of the buffer */
+   char * next;		/* pointer to the next element on the buffer */
+   int  len;		/* length of the buffer */
 };
 
-
-
+/* our actual buffer. If data is NULL, then all append ops 
+ * except are noops */
 static struct bufferData buffer= { NULL, NULL, 0 };
 
 #define CHUNK_SIZE 1000
 
-
-
-
-
+/*
+ * get our initial data. and set the buffer variables up. on failure,
+ * just don't initialize the buffer.
+ */
 static void
 initBuffer(void)
 {
@@ -230,18 +230,18 @@ initBuffer(void)
    buffer.len = CHUNK_SIZE;
 }
 
-
-
-
-
-
+/*
+ * grow the buffer. If we can't get more data, record a 'D' in the second
+ * to last record and allow the rest of the data to overwrite the last
+ * element.
+ */
 static void
 growBuffer(void)
 {
    char *new = PORT_Realloc(buffer.data, buffer.len + CHUNK_SIZE);
    if (!new) {
-	buffer.data[buffer.len-2] = 'D'; 
-	
+	buffer.data[buffer.len-2] = 'D'; /* signal malloc failure in summary */
+	/* buffer must always point to good memory if it exists */
 	buffer.next = buffer.data + (buffer.len -1);
 	return;
    }
@@ -250,9 +250,9 @@ growBuffer(void)
    buffer.len += CHUNK_SIZE;
 }
 
-
-
-
+/*
+ * append a label, doubles as appending a single character.
+ */
 static void
 appendLabel(char label)
 {
@@ -266,9 +266,9 @@ appendLabel(char label)
     }
 }
 
-
-
-
+/*
+ * append a string onto the buffer. The result will be <string>
+ */
 static void
 appendString(char *string)
 {
@@ -283,9 +283,9 @@ appendString(char *string)
     appendLabel('>');
 }
 
-
-
-
+/*
+ * append a bool, T= true, F=false
+ */
 static void
 appendBool(PRBool bool)
 {
@@ -300,9 +300,9 @@ appendBool(PRBool bool)
     }
 }
 
-
-
-
+/*
+ * append a single hex nibble.
+ */
 static void
 appendHex(unsigned char nibble)
 {
@@ -313,9 +313,9 @@ appendHex(unsigned char nibble)
     }
 }
 
-
-
-
+/*
+ * append a secitem as colon separated hex bytes.
+ */
 static void
 appendItem(SECItem *item)
 {
@@ -334,10 +334,10 @@ appendItem(SECItem *item)
     }
 }
 
-
-
-
-
+/*
+ * append a 32 bit integer (even on a 64 bit platform).
+ * for simplicity append it as a hex value, full extension with 0x prefix.
+ */
 static void
 appendInt(unsigned int value)
 {
@@ -349,14 +349,14 @@ appendInt(unsigned int value)
 
     appendLabel('0');
     appendLabel('x');
-    value = value & 0xffffffff; 
+    value = value & 0xffffffff; /* only look at the buttom 8 bytes */
     for (i=0; i < 8; i++) {
 	appendHex(value >> 28 );
 	value = value << 4;
     }
 }
 
-
+/* append a trust flag */
 static void
 appendFlags(unsigned int flag)
 {
@@ -370,10 +370,10 @@ appendFlags(unsigned int flag)
   }
 }
 
-
-
-
-
+/*
+ * dump our buffer out with a result= flag so we can find it easily.
+ * free the buffer as a side effect.
+ */
 static void
 dumpBuffer(void)
 {
@@ -381,7 +381,7 @@ dumpBuffer(void)
 	return;
     }
 
-    appendLabel(0); 
+    appendLabel(0); /* terminate */
     printf("\nresult=%s\n",buffer.data);
     PORT_Free(buffer.data);
     buffer.data = buffer.next = NULL;
@@ -389,9 +389,9 @@ dumpBuffer(void)
 }
 
 
-
-
-
+/*
+ * usage, like traditional usage, automatically exit
+ */
 static void
 usage(const char *prog)
 {
@@ -400,9 +400,9 @@ usage(const char *prog)
     exit(1);
 }
 
-
-
-
+/*
+ * like usage, except prints the long version of help
+ */
 static void
 usage_long(const char *prog)
 {
@@ -417,9 +417,9 @@ bool2String(PRBool bool)
     return bool ? "true" : "false";
 }
 
-
-
-
+/*
+ * print out interesting info about the given slot
+ */
 void
 print_slot(PK11SlotInfo *slot, int log)
 {
@@ -435,9 +435,9 @@ print_slot(PK11SlotInfo *slot, int log)
     appendBool(PK11_IsReadOnly(slot));
 }
 
-
-
-
+/*
+ * list all our slots
+ */
 void
 do_list_slots(const char *progName, int log)
 {
@@ -483,15 +483,16 @@ sort_CN(CERTCertificate *certa, CERTCertificate *certb, void *arg)
     return (ret < 0) ? PR_TRUE: PR_FALSE;
 }
 
-
-
-
+/*
+ * list all the certs
+ */
 void
 do_list_certs(const char *progName, int log)
 {
    CERTCertList *list;
    CERTCertList *sorted;
    CERTCertListNode *node;
+   CERTCertTrust trust;
    int i;
 
    list = PK11_ListCerts(PK11CertListUnique, NULL);
@@ -513,7 +514,7 @@ do_list_certs(const char *progName, int log)
 	return;
    }
 
-   
+   /* sort the list */
    for (node = CERT_LIST_HEAD(list); !CERT_LIST_END(node,list); 
 				node = CERT_LIST_NEXT(node)) {
 	CERT_AddCertToListSorted(sorted, node->cert, sort_CN, NULL);
@@ -543,28 +544,28 @@ do_list_certs(const char *progName, int log)
 	commonName = CERT_GetCommonName(&cert->subject);
 	appendString(commonName?commonName:"*NoName*");
 	PORT_Free(commonName);
-	if (cert->trust) {
-	    appendFlags(cert->trust->sslFlags);
-	    appendFlags(cert->trust->emailFlags);
-	    appendFlags(cert->trust->objectSigningFlags);
+	if (CERT_GetCertTrust(cert, &trust) == SECSuccess) {
+	    appendFlags(trust.sslFlags);
+	    appendFlags(trust.emailFlags);
+	    appendFlags(trust.objectSigningFlags);
 	}
    }
    CERT_DestroyCertList(list);
 
 }
 
-
-
-
+/*
+ * need to implement yet... try to add a new certificate
+ */
 void
 do_add_cert(const char *progName, int log)
 {
-  PORT_Assert( 0);
+  PORT_Assert(/* do_add_cert not implemented */ 0);
 }
 
-
-
-
+/*
+ * display the current key slot
+ */
 void
 do_key_slot(const char *progName, int log)
 {
@@ -580,9 +581,9 @@ do_key_slot(const char *progName, int log)
    PK11_FreeSlot(slot);
 }
 
-
-
-
+/*
+ * execute some NSS command.
+ */
 void
 do_command(const char *label, int initialized, secuCommandFlag *command, 
 	   const char *progName, int log)
@@ -603,7 +604,7 @@ do_command(const char *label, int initialized, secuCommandFlag *command,
 						command_string,label);
    }
 
-   
+   /* do something */
    if (PORT_Strcasecmp(command_string, "list_slots") == 0) {
 	do_list_slots(progName, log);
    } else if (PORT_Strcasecmp(command_string, "list_certs") == 0) {
@@ -622,10 +623,10 @@ do_command(const char *label, int initialized, secuCommandFlag *command,
 }
 
 
-
-
-
-
+/*
+ * functions do handle
+ * different library initializations.
+ */
 static int main_initialized;
 static int lib1_initialized;
 static int lib2_initialized;
@@ -695,7 +696,7 @@ main_Shutdown(int old_style, const char *progName, int log)
     main_initialized = 0;
 }
 
-
+/* common library init */
 NSSInitContext *
 lib_Init(const char *lableString, char label, int initialized, 
 	 secuCommandFlag *db, secuCommandFlag *tokNam, int readonly, 
@@ -735,7 +736,7 @@ lib_Init(const char *lableString, char label, int initialized,
     return ctxt;
 }
 
-
+/* common library shutdown */
 void
 lib_Shutdown(const char *labelString, char label, NSSInitContext *ctx, 
 	     int initialize, const char *progName, int log)
@@ -796,8 +797,8 @@ lib1_Shutdown(const char *progName, int log)
 {
      lib_Shutdown("lib1", 'I', lib1_context, lib1_initialized, progName, log);
      lib1_initialized = 0;
-     
-
+     /* don't clear lib1_Context, so we can test multiple attempts to close
+      * the same context produces correct errors*/
 }
 
 void
@@ -805,8 +806,8 @@ lib2_Shutdown(const char *progName, int log)
 {
     lib_Shutdown("lib2", 'Z', lib2_context, lib2_initialized, progName, log);
     lib2_initialized = 0;
-    
-
+    /* don't clear lib2_Context, so we can test multiple attempts to close
+     * the same context produces correct errors*/
 }
 
 int

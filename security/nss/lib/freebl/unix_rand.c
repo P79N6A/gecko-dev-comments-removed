@@ -1,6 +1,6 @@
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include <stdio.h>
 #include <string.h>
@@ -20,15 +20,15 @@
 
 size_t RNG_FileUpdate(const char *fileName, size_t limit);
 
-
-
-
-
-
-
-
-
-
+/*
+ * When copying data to the buffer we want the least signicant bytes
+ * from the input since those bits are changing the fastest. The address
+ * of least significant byte depends upon whether we are running on
+ * a big-endian or little-endian machine.
+ *
+ * Does this mean the least signicant bytes are the most significant
+ * to us? :-)
+ */
     
 static size_t CopyLowBits(void *dst, size_t dstlen, void *src, size_t srclen)
 {
@@ -43,10 +43,10 @@ static size_t CopyLowBits(void *dst, size_t dstlen, void *src, size_t srclen)
     }
     u.i = 0x01020304;
     if (u.c[0] == 0x01) {
-	
+	/* big-endian case */
 	memcpy(dst, (char*)src + (srclen - dstlen), dstlen);
     } else {
-	
+	/* little-endian case */
 	memcpy(dst, src, dstlen);
     }
     return dstlen;
@@ -56,12 +56,12 @@ static size_t CopyLowBits(void *dst, size_t dstlen, void *src, size_t srclen)
 
 #include <kstat.h>
 
-static const PRUint32 entropy_buf_len = 4096; 
+static const PRUint32 entropy_buf_len = 4096; /* buffer up to 4 KB */
 
-
-
-
-
+/* Buffer entropy data, and feed it to the RNG, entropy_buf_len bytes at a time.
+ * Returns error if RNG_RandomUpdate fails. Also increments *total_fed
+ * by the number of bytes successfully buffered.
+ */
 static SECStatus BufferEntropy(char* inbuf, PRUint32 inlen,
                                 char* entropy_buf, PRUint32* entropy_buffered,
                                 PRUint32* total_fed)
@@ -73,7 +73,7 @@ static SECStatus BufferEntropy(char* inbuf, PRUint32 inlen,
     while (inlen) {
         avail = entropy_buf_len - *entropy_buffered;
         if (!avail) {
-            
+            /* Buffer is full, time to feed it to the RNG. */
             rv = RNG_RandomUpdate(entropy_buf, entropy_buf_len);
             if (SECSuccess != rv) {
                 break;
@@ -91,9 +91,9 @@ static SECStatus BufferEntropy(char* inbuf, PRUint32 inlen,
     return rv;
 }
 
-
-
-
+/* Feed kernel statistics structures and ks_data field to the RNG.
+ * Returns status as well as the number of bytes successfully fed to the RNG.
+ */
 static SECStatus RNG_kstat(PRUint32* fed)
 {
     kstat_ctl_t*    kc = NULL;
@@ -118,7 +118,7 @@ static SECStatus RNG_kstat(PRUint32* fed)
     if (entropy_buf) {
         for (ksp = kc->kc_chain; ksp != NULL; ksp = ksp->ks_next) {
             if (-1 == kstat_read(kc, ksp, NULL)) {
-                
+                /* missing data from a single kstat shouldn't be fatal */
                 continue;
             }
             rv = BufferEntropy((char*)ksp, sizeof(kstat_t),
@@ -138,7 +138,7 @@ static SECStatus RNG_kstat(PRUint32* fed)
             }
         }
         if (SECSuccess == rv && entropy_buffered) {
-            
+            /* Buffer is not empty, time to feed it to the RNG */
             rv = RNG_RandomUpdate(entropy_buf, entropy_buffered);
         }
         PORT_Free(entropy_buf);
@@ -176,9 +176,9 @@ GiveSystemInfo(void)
 {
     long si;
 
-    
-
-
+    /* 
+     * Is this really necessary?  Why not use rand48 or something?
+     */
     si = sysconf(_SC_CHILD_MAX);
     RNG_RandomUpdate(&si, sizeof(si));
 
@@ -226,7 +226,7 @@ GetHighResClock(void *buf, size_t maxbytes)
     }
     return 0;
 }
-#else 
+#else /* SunOS (Sun, but not SVR4) */
 
 extern long sysconf(int name);
 
@@ -241,12 +241,12 @@ GiveSystemInfo(void)
 {
     long si;
 
-    
+    /* This is not very good */
     si = sysconf(_SC_CHILD_MAX);
     RNG_RandomUpdate(&si, sizeof(si));
 }
 #endif
-#endif 
+#endif /* Sun */
 
 #if defined(__hpux)
 #include <sys/unistd.h>
@@ -281,13 +281,13 @@ GiveSystemInfo(void)
 {
     long si;
 
-    
+    /* This is not very good */
     si = sysconf(_AES_OS_VERSION);
     RNG_RandomUpdate(&si, sizeof(si));
     si = sysconf(_SC_CPU_VERSION);
     RNG_RandomUpdate(&si, sizeof(si));
 }
-#endif 
+#endif /* HPUX */
 
 #if defined(OSF1)
 #include <sys/types.h>
@@ -316,11 +316,11 @@ GiveSystemInfo(void)
     }
 }
 
-
-
-
-
-
+/*
+ * Use the "get the cycle counter" instruction on the alpha.
+ * The low 32 bits completely turn over in less than a minute.
+ * The high 32 bits are some non-counter gunk that changes sometimes.
+ */
 static size_t
 GetHighResClock(void *buf, size_t maxbytes)
 {
@@ -330,7 +330,7 @@ GetHighResClock(void *buf, size_t maxbytes)
     return CopyLowBits(buf, maxbytes, &t, sizeof(t));
 }
 
-#endif 
+#endif /* Alpha */
 
 #if defined(_IBMR2)
 static size_t
@@ -342,9 +342,9 @@ GetHighResClock(void *buf, size_t maxbytes)
 static void
 GiveSystemInfo(void)
 {
-    
+    /* XXX haven't found any yet! */
 }
-#endif 
+#endif /* IBM R2 */
 
 #if defined(LINUX)
 #include <sys/sysinfo.h>
@@ -358,12 +358,14 @@ GetHighResClock(void *buf, size_t maxbytes)
 static void
 GiveSystemInfo(void)
 {
+#ifndef NO_SYSINFO
     struct sysinfo si;
     if (sysinfo(&si) == 0) {
 	RNG_RandomUpdate(&si, sizeof(si));
     }
+#endif
 }
-#endif 
+#endif /* LINUX */
 
 #if defined(NCR)
 
@@ -398,7 +400,7 @@ GiveSystemInfo(void)
     }
 }
 
-#endif 
+#endif /* NCR */
 
 #if defined(sgi)
 #include <fcntl.h>
@@ -425,7 +427,7 @@ GiveSystemInfo(void)
     if (rv > 0) {
 	RNG_RandomUpdate(buf, sizeof(buf));
     }
-#endif 
+#endif /* SGI_RDUBLK */
     rv = syssgi(SGI_INVENT, SGI_INV_READ, buf, sizeof(buf));
     if (rv > 0) {
 	RNG_RandomUpdate(buf, sizeof(buf));
@@ -460,14 +462,14 @@ static size_t GetHighResClock(void *buf, size_t maxbuf)
 
     if (iotimer_addr == NULL) {
 	if (tries++ > 1) {
-	    
+	    /* Don't keep trying if it didn't work */
 	    return 0;
 	}
 
-	
-
-
-
+	/*
+	** For SGI machines we can use the cycle counter, if it has one,
+	** to generate some truly random numbers
+	*/
 	phys_addr = syssgi(SGI_QUERY_CYCLECNTR, &cycleval);
 	if (phys_addr) {
 	    int pgsz = getpagesize();
@@ -487,20 +489,20 @@ static size_t GetHighResClock(void *buf, size_t maxbuf)
 	    }
 	    iotimer_addr = (unsigned*)
 		((__psint_t)iotimer_addr | (phys_addr & pgoffmask));
-	    
-
-
+	    /*
+	     * The file 'mfd' is purposefully not closed.
+	     */
 	    cntr_size = syssgi(SGI_CYCLECNTR_SIZE);
 	    if (cntr_size < 0) {
 		struct utsname utsinfo;
 
-		
-
-
-
-
-
-
+		/* 
+		 * We must be executing on a 6.0 or earlier system, since the
+		 * SGI_CYCLECNTR_SIZE call is not supported.
+		 * 
+		 * The only pre-6.1 platforms with 64-bit counters are
+		 * IP19 and IP21 (Challenge, PowerChallenge, Onyx).
+		 */
 		uname(&utsinfo);
 		if (!strncmp(utsinfo.machine, "IP19", 4) ||
 		    !strncmp(utsinfo.machine, "IP21", 4))
@@ -508,7 +510,7 @@ static size_t GetHighResClock(void *buf, size_t maxbuf)
 		else
 			cntr_size = 32;
 	    }
-	    cntr_size /= 8;	
+	    cntr_size /= 8;	/* Convert from bits to bytes */
 	}
     }
 
@@ -550,7 +552,7 @@ GiveSystemInfo(void)
 	RNG_RandomUpdate(buf, rv);
     }
 }
-#endif 
+#endif /* sony */
 
 #if defined(sinix)
 #include <sys/systeminfo.h>
@@ -590,7 +592,7 @@ GiveSystemInfo(void)
 	RNG_RandomUpdate(buf, rv);
     }
 }
-#endif 
+#endif /* sinix */
 
 
 #ifdef BEOS
@@ -599,7 +601,7 @@ GiveSystemInfo(void)
 static size_t
 GetHighResClock(void *buf, size_t maxbytes)
 {
-    bigtime_t bigtime; 
+    bigtime_t bigtime; /* Actually an int64 */
 
     bigtime = real_time_clock_usecs();
     return CopyLowBits(buf, maxbytes, &bigtime, sizeof(bigtime));
@@ -624,7 +626,7 @@ GiveSystemInfo(void)
         RNG_RandomUpdate(&val, sizeof(val));
     }
 }
-#endif 
+#endif /* BEOS */
 
 #if defined(nec_ews)
 #include <sys/systeminfo.h>
@@ -656,7 +658,7 @@ GiveSystemInfo(void)
 	RNG_RandomUpdate(buf, rv);
     }
 }
-#endif 
+#endif /* nec_ews */
 
 size_t RNG_GetNoise(void *buf, size_t maxbytes)
 {
@@ -678,11 +680,11 @@ size_t RNG_GetNoise(void *buf, size_t maxbytes)
 
 #define SAFE_POPEN_MAXARGS	10	/* must be at least 2 */
 
-
-
-
-
-
+/*
+ * safe_popen is static to this module and we know what arguments it is
+ * called with. Note that this version only supports a single open child
+ * process at any time.
+ */
 static pid_t safe_popen_pid;
 static struct sigaction oldact;
 
@@ -706,7 +708,7 @@ safe_popen(char *cmd)
 	return 0;
     }
 
-    
+    /* Setup signals so that SIGCHLD is ignored as we want to do waitpid */
     newact.sa_handler = SIG_DFL;
     newact.sa_flags = 0;
     sigfillset(&newact.sa_mask);
@@ -717,36 +719,36 @@ safe_popen(char *cmd)
       int ndesc;
 
       case -1:
-	fclose(fp); 
+	fclose(fp); /* this closes p[0], the fd associated with fp */
 	close(p[1]);
 	sigaction (SIGCHLD, &oldact, NULL);
 	return 0;
 
       case 0:
-	
+	/* dup write-side of pipe to stderr and stdout */
 	if (p[1] != 1) dup2(p[1], 1);
 	if (p[1] != 2) dup2(p[1], 2);
 
-	
-
-
-
+	/* 
+	 * close the other file descriptors, except stdin which we
+	 * try reassociating with /dev/null, first (bug 174993)
+	 */
 	if (!freopen("/dev/null", "r", stdin))
 	    close(0);
 	ndesc = getdtablesize();
 	for (fd = PR_MIN(65536, ndesc); --fd > 2; close(fd));
 
-	
+	/* clean up environment in the child process */
 	putenv("PATH=/bin:/usr/bin:/sbin:/usr/sbin:/etc:/usr/etc");
 	putenv("SHELL=/bin/sh");
 	putenv("IFS= \t");
 
-	
-
-
-
+	/*
+	 * The caller may have passed us a string that is in text
+	 * space. It may be illegal to modify the string
+	 */
 	cmd = strdup(cmd);
-	
+	/* format argv */
 	argv[0] = strtok(cmd, blank);
 	argc = 1;
 	while ((argv[argc] = strtok(0, blank)) != 0) {
@@ -756,7 +758,7 @@ safe_popen(char *cmd)
 	    }
 	}
 
-	
+	/* and away we go */
 	execvp(argv[0], argv);
 	exit(127);
 	break;
@@ -766,7 +768,7 @@ safe_popen(char *cmd)
 	break;
     }
 
-    
+    /* non-zero means there's a cmd running */
     safe_popen_pid = pid;
     return fp;
 }
@@ -783,10 +785,10 @@ safe_pclose(FILE *fp)
 
     fclose(fp);
 
-    
+    /* yield the processor so the child gets some time to exit normally */
     PR_Sleep(PR_INTERVAL_NO_WAIT);
 
-    
+    /* if the child hasn't exited, kill it -- we're done with its output */
     while ((rv = waitpid(pid, &status, WNOHANG)) == -1 && errno == EINTR)
 	;
     if (rv == 0) {
@@ -795,7 +797,7 @@ safe_pclose(FILE *fp)
 	    ;
     }
 
-    
+    /* Reset SIGCHLD signal hander before returning */
     sigaction(SIGCHLD, &oldact, NULL);
 
     return status;
@@ -808,9 +810,9 @@ safe_pclose(FILE *fp)
 #endif
 #endif
 
-
-
-
+/* Fork netstat to collect its output by default. Do not unset this unless
+ * another source of entropy is available
+ */
 #define DO_NETSTAT 1
 
 void RNG_SystemInfoForRNG(void)
@@ -822,7 +824,7 @@ void RNG_SystemInfoForRNG(void)
     char *randfile;
 #ifdef DARWIN
 #if TARGET_OS_IPHONE
-    
+    /* iOS does not expose a way to access environ. */
     char **environ = NULL;
 #else
     char **environ = *_NSGetEnviron();
@@ -861,12 +863,12 @@ void RNG_SystemInfoForRNG(void)
     bytes = RNG_GetNoise(buf, sizeof(buf));
     RNG_RandomUpdate(buf, bytes);
 
-    
-
-
-
-
-
+    /*
+     * Pass the C environment and the addresses of the pointers to the
+     * hash function. This makes the random number function depend on the
+     * execution environment of the user and on the platform the program
+     * is running on.
+     */
     if (environ != NULL) {
         cp = (const char * const *) environ;
         while (*cp) {
@@ -876,16 +878,16 @@ void RNG_SystemInfoForRNG(void)
         RNG_RandomUpdate(environ, (char*)cp - (char*)environ);
     }
 
-    
+    /* Give in system information */
     if (gethostname(buf, sizeof(buf)) == 0) {
 	RNG_RandomUpdate(buf, strlen(buf));
     }
     GiveSystemInfo();
 
-    
+    /* grab some data from system's PRNG before any other files. */
     bytes = RNG_FileUpdate("/dev/urandom", SYSTEM_RNG_SEED_COUNT);
 
-    
+    /* If the user points us to a random file, pass it through the rng */
     randfile = getenv("NSRANDFILE");
     if ( ( randfile != NULL ) && ( randfile[0] != '\0') ) {
 	char *randCountString = getenv("NSRANDCOUNT");
@@ -897,19 +899,19 @@ void RNG_SystemInfoForRNG(void)
 	}
     }
 
-    
+    /* pass other files through */
     for (cp = files; *cp; cp++)
 	RNG_FileForRNG(*cp);
 
-
-
-
-
-
-
-
-
-
+/*
+ * Bug 100447: On BSD/OS 4.2 and 4.3, we have problem calling safe_popen
+ * in a pthreads environment.  Therefore, we call safe_popen last and on
+ * BSD/OS we do not call safe_popen when we succeeded in getting data
+ * from /dev/urandom.
+ *
+ * Bug 174993: On platforms providing /dev/urandom, don't fork netstat
+ * either, if data has been gathered successfully.
+ */
 
 #if defined(BSDI) || defined(FREEBSD) || defined(NETBSD) \
     || defined(OPENBSD) || defined(DARWIN) || defined(LINUX) \
@@ -920,18 +922,18 @@ void RNG_SystemInfoForRNG(void)
 
 #ifdef SOLARIS
 
-
-
-
-
-
-
-
-
+/*
+ * On Solaris, NSS may be initialized automatically from libldap in
+ * applications that are unaware of the use of NSS. safe_popen forks, and
+ * sometimes creates issues with some applications' pthread_atfork handlers.
+ * We always have /dev/urandom on Solaris 9 and above as an entropy source,
+ * and for Solaris 8 we have the libkstat interface, so we don't need to
+ * fork netstat.
+ */
 
 #undef DO_NETSTAT
     if (!bytes) {
-        
+        /* On Solaris 8, /dev/urandom isn't available, so we use libkstat. */
         PRUint32 kstat_bytes = 0;
         if (SECSuccess != RNG_kstat(&kstat_bytes)) {
             PORT_Assert(0);
@@ -963,7 +965,7 @@ size_t RNG_FileUpdate(const char *fileName, size_t limit)
     unsigned char buffer[BUFSIZ];
     static size_t totalFileBytes = 0;
     
-    
+    /* suppress valgrind warnings due to holes in struct stat */
     memset(&stat_buf, 0, sizeof(stat_buf));
 
     if (stat((char *)fileName, &stat_buf) < 0)
@@ -980,18 +982,18 @@ size_t RNG_FileUpdate(const char *fileName, size_t limit)
 	    RNG_RandomUpdate(buffer, bytes);
 	    fileBytes      += bytes;
 	    totalFileBytes += bytes;
-	    
-
-
+	    /* after TOTAL_FILE_LIMIT has been reached, only read in first
+	    ** buffer of data from each subsequent file.
+	    */
 	    if (totalFileBytes > TOTAL_FILE_LIMIT) 
 		break;
 	}
 	fclose(file);
     }
-    
-
-
-
+    /*
+     * Pass yet another snapshot of our highest resolution clock into
+     * the hash function.
+     */
     bytes = RNG_GetNoise(buffer, sizeof(buffer));
     RNG_RandomUpdate(buffer, bytes);
     return fileBytes;
@@ -1026,27 +1028,27 @@ ReadFileOK(char *dir, char *file)
     int count = snprintf(filename, sizeof filename, "%s/%s",dir, file);
 
     if (count <= 0) {
-	return PR_FALSE; 
+	return PR_FALSE; /* name too long, can't read it anyway */
     }
     
     if (stat(filename, &stat_buf) < 0)
-	return PR_FALSE; 
+	return PR_FALSE; /* can't stat, probably can't read it then as well */
     return S_ISREG(stat_buf.st_mode) ? PR_TRUE : PR_FALSE;
 }
 
-
-
-
-
-
-
+/*
+ * read one file out of either /etc or the user's home directory.
+ * fileToRead tells which file to read.
+ *
+ * return 1 if it's time to reset the fileToRead (no more files to read).
+ */
 int ReadOneFile(int fileToRead)
 {
     char *dir = "/etc";
     DIR *fd = opendir(dir);
     int resetCount = 0;
 #ifdef SOLARIS
-     
+     /* grumble, Solaris does not define struct dirent to be the full length */
     typedef union {
 	unsigned char space[sizeof(struct dirent) + MAXNAMELEN];
 	struct dirent dir;
@@ -1078,18 +1080,18 @@ int ReadOneFile(int fileToRead)
 	} while (error == 0 && result != NULL  &&
 					!ReadFileOK(dir,&result->d_name[0]));
 	if (error != 0 || result == NULL)  {
-	    resetCount = 1; 
+	    resetCount = 1; /* read to the end, start again at the beginning */
 	    if (i != 0) {
-		
+		/* ran out of entries in the directory, use the first one */
 	 	entry = firstEntry;
 	 	error = 0;
 	 	break;
 	    }
-	    
+	    /* if i== 0, there were no readable entries in the directory */
 	    break;
 	}
 	if (i==0) {
-	    
+	    /* save the first entry in case we run out of entries */
 	    firstEntry = entry;
 	}
     }
@@ -1107,9 +1109,9 @@ int ReadOneFile(int fileToRead)
     return resetCount;
 }
 
-
-
-
+/*
+ * do something to try to introduce more noise into the 'GetNoise' call
+ */
 static void rng_systemJitter(void)
 {
    static int fileToRead = 1;
@@ -1142,7 +1144,7 @@ size_t RNG_SystemRNG(void *dest, size_t maxLen)
     }
     fclose(file);
     if (fileBytes != maxLen) {
-	PORT_SetError(SEC_ERROR_NEED_RANDOM);  
+	PORT_SetError(SEC_ERROR_NEED_RANDOM);  /* system RNG failed */
 	fileBytes = 0;
     }
     return fileBytes;

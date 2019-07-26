@@ -1,6 +1,6 @@
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include "nspr.h"
 #include "secerr.h"
 #include "secasn1.h"
@@ -27,16 +27,16 @@ CERT_MatchNickname(char *name1, char *name2) {
     char *token = NULL;
     int len;
 
-    
+    /* first deal with the straight comparison */
     if (PORT_Strcmp(name1, name2) == 0) {
 	return PR_TRUE;
     }
-    
-
+    /* we need to handle the case where one name has an explicit token and the other
+     * doesn't */
     token1 = PORT_Strchr(name1,':');
     token2 = PORT_Strchr(name2,':');
     if ((token1 && token2) || (!token1 && !token2)) {
-	
+	/* either both token names are specified or neither are, not match */
 	return PR_FALSE;
     }
     if (token1) {
@@ -53,20 +53,20 @@ CERT_MatchNickname(char *name1, char *name2) {
     if (PORT_Strcmp(nickname1,nickname2) != 0) {
 	return PR_FALSE;
     }
-    
+    /* compare the other token with the internal slot here */
     return PR_TRUE;
 }
 
-
-
-
-
-
-
-
-
-
-
+/*
+ * Find all user certificates that match the given criteria.
+ * 
+ *	"handle" - database to search
+ *	"usage" - certificate usage to match
+ *	"oneCertPerName" - if set then only return the "best" cert per
+ *			name
+ *	"validOnly" - only return certs that are curently valid
+ *	"proto_win" - window handle passed to pkcs11
+ */
 CERTCertList *
 CERT_FindUserCertsByUsage(CERTCertDBHandle *handle,
 			  SECCertUsage usage,
@@ -99,33 +99,33 @@ CERT_FindUserCertsByUsage(CERTCertDBHandle *handle,
 
     while ( nn > 0 ) {
 	cert = NULL;
-	
-
-
+	/* use the pk11 call so that we pick up any certs on tokens,
+	 * which may require login
+	 */
 	if ( proto_win != NULL ) {
 	    cert = PK11_FindCertFromNickname(*nnptr,proto_win);
 	}
 
-	
-
-
-
-
-
-
-
+	/* Sigh, It turns out if the cert is already in the temp db, because
+	 * it's in the perm db, then the nickname lookup doesn't work.
+	 * since we already have the cert here, though, than we can just call
+	 * CERT_CreateSubjectCertList directly. For those cases where we didn't
+	 * find the cert in pkcs #11 (because we didn't have a password arg,
+	 * or because the nickname is for a peer, server, or CA cert, then we
+	 * go look the cert up.
+	 */
 	if (cert == NULL) { 
 	    cert = CERT_FindCertByNickname(handle,*nnptr);
 	}
 
 	if ( cert != NULL ) {
-	   
+	   /* collect certs for this nickname, sorting them into the list */
 	    certList = CERT_CreateSubjectCertList(certList, handle, 
 				&cert->derSubject, time, validOnly);
 
 	    CERT_FilterCertListForUserCerts(certList);
 	
-	    
+	    /* drop the extra reference */
 	    CERT_DestroyCertificate(cert);
 	}
 	
@@ -133,14 +133,14 @@ CERT_FindUserCertsByUsage(CERTCertDBHandle *handle,
 	nn--;
     }
 
-    
+    /* remove certs with incorrect usage */
     rv = CERT_FilterCertListByUsage(certList, usage, PR_FALSE);
 
     if ( rv != SECSuccess ) {
 	goto loser;
     }
 
-    
+    /* remove any extra certs for each name */
     if ( oneCertPerName ) {
 	PRBool *flags;
 
@@ -154,28 +154,28 @@ CERT_FindUserCertsByUsage(CERTCertDBHandle *handle,
 	
 	node = CERT_LIST_HEAD(certList);
 	
-	
+	/* treverse all certs in the list */
 	while ( !CERT_LIST_END(node, certList) ) {
 
-	    
+	    /* find matching nickname index */
 	    for ( n = 0; n < nn; n++ ) {
 		if ( CERT_MatchNickname(nnptr[n], node->cert->nickname) ) {
-		    
-
-
-
+		    /* We found a match.  If this is the first one, then
+		     * set the flag and move on to the next cert.  If this
+		     * is not the first one then delete it from the list.
+		     */
 		    if ( flags[n] ) {
-			
-
-
+			/* We have already seen a cert with this nickname,
+			 * so delete this one.
+			 */
 			freenode = node;
 			node = CERT_LIST_NEXT(node);
 			CERT_RemoveCertListNode(freenode);
 		    } else {
-			
-
-
-
+			/* keep the first cert for each nickname, but set the
+			 * flag so we know to delete any others with the same
+			 * nickname.
+			 */
 			flags[n] = PR_TRUE;
 			node = CERT_LIST_NEXT(node);
 		    }
@@ -183,9 +183,9 @@ CERT_FindUserCertsByUsage(CERTCertDBHandle *handle,
 		}
 	    }
 	    if ( n == nn ) {
-		
-
-
+		/* if we get here it means that we didn't find a matching
+		 * nickname, which should not happen.
+		 */
 		PORT_Assert(0);
 		node = CERT_LIST_NEXT(node);
 	    }
@@ -209,15 +209,15 @@ done:
     return(certList);
 }
 
-
-
-
-
-
-
-
-
-
+/*
+ * Find a user certificate that matchs the given criteria.
+ * 
+ *	"handle" - database to search
+ *	"nickname" - nickname to match
+ *	"usage" - certificate usage to match
+ *	"validOnly" - only return certs that are curently valid
+ *	"proto_win" - window handle passed to pkcs11
+ */
 CERTCertificate *
 CERT_FindUserCertByUsage(CERTCertDBHandle *handle,
 			 const char *nickname,
@@ -232,19 +232,19 @@ CERT_FindUserCertByUsage(CERTCertDBHandle *handle,
     
     time = PR_Now();
     
-    
-
-
-    
+    /* use the pk11 call so that we pick up any certs on tokens,
+     * which may require login
+     */
+    /* XXX - why is this restricted? */
     if ( proto_win != NULL ) {
 	cert = PK11_FindCertFromNickname(nickname,proto_win);
     }
 
 
-    
-
-
-
+    /* sigh, There are still problems find smart cards from the temp
+     * db. This will get smart cards working again. The real fix
+     * is to make sure we can search the temp db by their token nickname.
+     */
     if (cert == NULL) {
 	cert = CERT_FindCertByNickname(handle,nickname);
     }
@@ -256,12 +256,12 @@ CERT_FindUserCertByUsage(CERTCertDBHandle *handle,
 	rv = CERT_KeyUsageAndTypeForCertUsage(usage, PR_FALSE,
 					&requiredKeyUsage, &requiredCertType);
 	if ( rv != SECSuccess ) {
-	    
+	    /* drop the extra reference */
 	    CERT_DestroyCertificate(cert);
 	    cert = NULL;
 	    goto loser;
 	}
-	
+	/* If we already found the right cert, just return it */
 	if ( (!validOnly || CERT_CheckCertValidTimes(cert, time, PR_FALSE)
 	      == secCertTimeValid) &&
 	     (CERT_CheckKeyUsage(cert, requiredKeyUsage) == SECSuccess) &&
@@ -270,13 +270,13 @@ CERT_FindUserCertByUsage(CERTCertDBHandle *handle,
 	    return(cert);
 	}
 
- 	
+ 	/* collect certs for this nickname, sorting them into the list */
 	certList = CERT_CreateSubjectCertList(certList, handle, 
 					&cert->derSubject, time, validOnly);
 
 	CERT_FilterCertListForUserCerts(certList);
 
-	
+	/* drop the extra reference */
 	CERT_DestroyCertificate(cert);
 	cert = NULL;
     }
@@ -285,7 +285,7 @@ CERT_FindUserCertByUsage(CERTCertDBHandle *handle,
 	goto loser;
     }
     
-    
+    /* remove certs with incorrect usage */
     rv = CERT_FilterCertListByUsage(certList, usage, PR_FALSE);
 
     if ( rv != SECSuccess ) {
@@ -404,20 +404,20 @@ CollectNicknames( NSSCertificate *c, void *data)
 #endif
     }
 
-    
-
-
+    /* traverse the list of collected nicknames and make sure we don't make
+     * a duplicate
+     */
     if ( saveit ) {
 	nickname = STAN_GetCERTCertificateName(NULL, c);
-	
-
+	/* nickname can only be NULL here if we are having memory 
+	 * alloc problems */
 	if (nickname == NULL) {
 	    return PR_FAILURE;
 	}
 	node = (stringNode *)names->head;
 	while ( node != NULL ) {
 	    if ( PORT_Strcmp(nickname, node->string) == 0 ) { 
-		
+		/* if the string matches, then don't save this one */
 		saveit = PR_FALSE;
 		break;
 	    }
@@ -427,14 +427,14 @@ CollectNicknames( NSSCertificate *c, void *data)
 
     if ( saveit ) {
 	
-	
+	/* allocate the node */
 	node = (stringNode*)PORT_ArenaAlloc(names->arena, sizeof(stringNode));
 	if ( node == NULL ) {
 	    PORT_Free(nickname);
 	    return PR_FAILURE;
 	}
 
-	
+	/* copy the string */
 	len = PORT_Strlen(nickname) + 1;
 	node->string = (char*)PORT_ArenaAlloc(names->arena, len);
 	if ( node->string == NULL ) {
@@ -443,11 +443,11 @@ CollectNicknames( NSSCertificate *c, void *data)
 	}
 	PORT_Memcpy(node->string, nickname, len);
 
-	
+	/* link it into the list */
 	node->next = (stringNode *)names->head;
 	names->head = (void *)node;
 
-	
+	/* bump the count */
 	names->numnicknames++;
     }
     
@@ -481,7 +481,7 @@ CERT_GetCertNicknames(CERTCertDBHandle *handle, int what, void *wincx)
     names->what = what;
     names->totallen = 0;
 
-    
+    /* make sure we are logged in */
     (void) pk11_TraverseAllSlots(NULL, NULL, PR_TRUE, wincx);
    
     NSSTrustDomain_TraverseCertificates(handle,
@@ -522,7 +522,7 @@ CERT_FreeNicknames(CERTCertNicknames *nicknames)
     return;
 }
 
-
+/* [ FROM pcertdb.c ] */
 
 typedef struct dnameNode {
     struct dnameNode *next;
@@ -542,29 +542,27 @@ CollectDistNames( CERTCertificate *cert, SECItem *k, void *data)
 {
     CERTDistNames *names;
     PRBool saveit = PR_FALSE;
-    CERTCertTrust *trust;
+    CERTCertTrust trust;
     dnameNode *node;
     int len;
     
     names = (CERTDistNames *)data;
     
-    if ( cert->trust ) {
-	trust = cert->trust;
-	
-	
-	if (  trust->sslFlags &  CERTDB_TRUSTED_CLIENT_CA )  {
+    if ( CERT_GetCertTrust(cert, &trust) == SECSuccess ) {
+	/* only collect names of CAs trusted for issuing SSL clients */
+	if (  trust.sslFlags &  CERTDB_TRUSTED_CLIENT_CA )  {
 	    saveit = PR_TRUE;
 	}
     }
 
     if ( saveit ) {
-	
+	/* allocate the node */
 	node = (dnameNode*)PORT_ArenaAlloc(names->arena, sizeof(dnameNode));
 	if ( node == NULL ) {
 	    return(SECFailure);
 	}
 
-	
+	/* copy the name */
 	node->name.len = len = cert->derSubject.len;
 	node->name.type = siBuffer;
 	node->name.data = (unsigned char*)PORT_ArenaAlloc(names->arena, len);
@@ -573,20 +571,20 @@ CollectDistNames( CERTCertificate *cert, SECItem *k, void *data)
 	}
 	PORT_Memcpy(node->name.data, cert->derSubject.data, len);
 
-	
+	/* link it into the list */
 	node->next = (dnameNode *)names->head;
 	names->head = (void *)node;
 
-	
+	/* bump the count */
 	names->nnames++;
     }
     
     return(SECSuccess);
 }
 
-
-
-
+/*
+ * Return all of the CAs that are "trusted" for SSL.
+ */
 CERTDistNames *
 CERT_DupDistNames(CERTDistNames *orig)
 {
@@ -595,26 +593,26 @@ CERT_DupDistNames(CERTDistNames *orig)
     int i;
     SECStatus rv;
     
-    
+    /* allocate an arena to use */
     arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
     if (arena == NULL) {
 	PORT_SetError(SEC_ERROR_NO_MEMORY);
 	return(NULL);
     }
     
-    
+    /* allocate the header structure */
     names = (CERTDistNames *)PORT_ArenaAlloc(arena, sizeof(CERTDistNames));
     if (names == NULL) {
 	goto loser;
     }
 
-    
+    /* initialize the header struct */
     names->arena = arena;
     names->head = NULL;
     names->nnames = orig->nnames;
     names->names = NULL;
     
-    
+    /* construct the array from the list */
     if (orig->nnames) {
 	names->names = (SECItem*)PORT_ArenaNewArray(arena, SECItem,
                                                     orig->nnames);
@@ -644,32 +642,32 @@ CERT_GetSSLCACerts(CERTCertDBHandle *handle)
     SECStatus rv;
     dnameNode *node;
     
-    
+    /* allocate an arena to use */
     arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
     if ( arena == NULL ) {
 	PORT_SetError(SEC_ERROR_NO_MEMORY);
 	return(NULL);
     }
     
-    
+    /* allocate the header structure */
     names = (CERTDistNames *)PORT_ArenaAlloc(arena, sizeof(CERTDistNames));
     if ( names == NULL ) {
 	goto loser;
     }
 
-    
+    /* initialize the header struct */
     names->arena = arena;
     names->head = NULL;
     names->nnames = 0;
     names->names = NULL;
     
-    
+    /* collect the names from the database */
     rv = PK11_TraverseSlotCerts(CollectDistNames, (void *)names, NULL);
     if ( rv ) {
 	goto loser;
     }
 
-    
+    /* construct the array from the list */
     if ( names->nnames ) {
 	names->names = (SECItem*)PORT_ArenaAlloc(arena, names->nnames * sizeof(SECItem));
 
@@ -780,10 +778,10 @@ loser:
     return NULL;
 }
 
-
-
-
-
+/* [ from pcertdb.c - calls Ascii to Name ] */
+/*
+ * Lookup a certificate in the database by name
+ */
 CERTCertificate *
 CERT_FindCertByNameString(CERTCertDBHandle *handle, char *nameStr)
 {
@@ -817,7 +815,7 @@ loser:
     return(cert);
 }
 
-
+/* From certv3.c */
 
 CERTCrlDistributionPoints *
 CERT_FindCRLDistributionPoints (CERTCertificate *cert)
@@ -842,7 +840,7 @@ CERT_FindCRLDistributionPoints (CERTCertificate *cert)
     return dps;
 }
 
-
+/* From crl.c */
 CERTSignedCrl * CERT_ImportCRL
    (CERTCertDBHandle *handle, SECItem *derCRL, char *url, int type, void *wincx)
 {
@@ -855,7 +853,7 @@ CERTSignedCrl * CERT_ImportCRL
     return retCrl;
 }
 
-
+/* From certdb.c */
 static SECStatus
 cert_ImportCAChain(SECItem *certs, int numcerts, SECCertUsage certUsage, PRBool trusted)
 {
@@ -875,27 +873,27 @@ cert_ImportCAChain(SECItem *certs, int numcerts, SECCertUsage certUsage, PRBool 
 	derCert = certs;
 	certs++;
 
-	
-	
+	/* decode my certificate */
+	/* This use is ok -- only looks at decoded parts, calls NewTemp later */
 	newcert = CERT_DecodeDERCertificate(derCert, PR_FALSE, NULL);
 	if ( newcert == NULL ) {
 	    goto loser;
 	}
 
 	if (!trusted) {
-	    
+	    /* make sure that cert is valid */
 	    rv = CERT_CertTimesValid(newcert);
 	    if ( rv == SECFailure ) {
 		goto endloop;
 	    }
 	}
 
+	/* does it have the CA extension */
 	
-	
-	
-
-
-
+	/*
+	 * Make sure that if this is an intermediate CA in the chain that
+	 * it was given permission by its signer to be a CA.
+	 */
 	isca = CERT_IsCACert(newcert, &certtype);
 
 	if ( !isca ) {
@@ -906,14 +904,14 @@ cert_ImportCAChain(SECItem *certs, int numcerts, SECCertUsage certUsage, PRBool 
 	    trust.emailFlags = CERTDB_VALID_CA;
 	    trust.objectSigningFlags = CERTDB_VALID_CA;
 	} else {
-	    
+	    /* SSL ca's must have the ssl bit set */
 	    if ( ( certUsage == certUsageSSLCA ) &&
 		(( certtype & NS_CERT_TYPE_SSL_CA ) != NS_CERT_TYPE_SSL_CA )) {
 		goto endloop;
 	    }
 
-	    
-	    
+	    /* it passed all of the tests, so lets add it to the database */
+	    /* mark it as a CA */
 	    PORT_Memset((void *)&trust, 0, sizeof(trust));
 	    switch ( certUsage ) {
 	      case certUsageSSLCA:
@@ -944,14 +942,14 @@ cert_ImportCAChain(SECItem *certs, int numcerts, SECCertUsage certUsage, PRBool 
 	    goto loser;
 	}
 	
-	
+	/* if the cert is temp, make it perm; otherwise we're done */
 	if (cert->istemp) {
-	    
+	    /* get a default nickname for it */
 	    nickname = CERT_MakeCANickname(cert);
 
 	    rv = CERT_AddTempCertToPerm(cert, nickname, &trust);
 
-	    
+	    /* free the nickname */
 	    if ( nickname ) {
 		PORT_Free(nickname);
 	    }
@@ -1004,15 +1002,15 @@ CERT_ImportCAChainTrusted(SECItem *certs, int numcerts, SECCertUsage certUsage) 
     return cert_ImportCAChain(certs, numcerts, certUsage, PR_TRUE);
 }
 
-
-
-
-
-
-
-
-
-
+/* Moved from certdb.c */
+/*
+** CERT_CertChainFromCert
+**
+** Construct a CERTCertificateList consisting of the given certificate and all
+** of the issuer certs until we either get to a self-signed cert or can't find
+** an issuer.  Since we don't know how many certs are in the chain we have to
+** build a linked list first as we count them.
+*/
 
 typedef struct certNode {
     struct certNode *next;
@@ -1034,7 +1032,7 @@ CERT_CertChainFromCert(CERTCertificate *cert, SECCertUsage usage,
 
     stanCert = STAN_GetNSSCertificate(cert);
     if (!stanCert) {
-        
+        /* error code is set */
         return NULL;
     }
     nssUsage.anyUsage = PR_FALSE;
@@ -1077,9 +1075,9 @@ CERT_CertChainFromCert(CERTCertificate *cert, SECCertUsage usage,
 	SECITEM_CopyItem(arena, &chain->certs[i], &derCert);
 	stanCert = stanChain[++i];
 	if (!stanCert && !cCert->isRoot) {
-	    
-
-
+	    /* reached the end of the chain, but the final cert is
+	     * not a root.  Don't discard it.
+	     */
 	    includeRoot = PR_TRUE;
 	}
 	CERT_DestroyCertificate(cCert);
@@ -1110,9 +1108,9 @@ loser:
     return NULL;
 }
 
-
-
-
+/* Builds a CERTCertificateList holding just one DER-encoded cert, namely
+** the one for the cert passed as an argument.
+*/
 CERTCertificateList *
 CERT_CertListFromCert(CERTCertificate *cert)
 {
@@ -1120,11 +1118,11 @@ CERT_CertListFromCert(CERTCertificate *cert)
     int rv;
     PRArenaPool *arena;
 
-    
+    /* arena for SecCertificateList */
     arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
     if (arena == NULL) goto no_memory;
 
-    
+    /* build the CERTCertificateList */
     chain = (CERTCertificateList *)PORT_ArenaAlloc(arena, sizeof(CERTCertificateList));
     if (chain == NULL) goto no_memory;
     chain->certs = (SECItem*)PORT_ArenaAlloc(arena, 1 * sizeof(SECItem));
@@ -1155,12 +1153,12 @@ CERT_DupCertList(const CERTCertificateList * oldList)
     int                 len      = oldList->len;
     int                 rv;
 
-    
+    /* arena for SecCertificateList */
     arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
     if (arena == NULL) 
 	goto no_memory;
 
-    
+    /* now build the CERTCertificateList */
     newList = PORT_ArenaNew(arena, CERTCertificateList);
     if (newList == NULL) 
 	goto no_memory;
