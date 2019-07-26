@@ -759,9 +759,17 @@ nsEventStatus AsyncPanZoomController::OnTouchEnd(const MultiTouchInput& aEvent) 
   case PANNING_LOCKED_X:
   case PANNING_LOCKED_Y:
     {
-      ReentrantMonitorAutoEnter lock(mMonitor);
-      RequestContentRepaint();
-      UpdateSharedCompositorFrameMetrics();
+      
+      
+      
+      APZCTreeManager* treeManagerLocal = mTreeManager;
+      if (treeManagerLocal) {
+        if (!treeManagerLocal->FlushRepaintsForOverscrollHandoffChain()) {
+          NS_WARNING("Overscroll handoff chain was empty during panning! This should not be the case.");
+          
+          FlushRepaintForOverscrollHandoff();
+        }
+      }
     }
     mX.EndTouch();
     mY.EndTouch();
@@ -1389,6 +1397,12 @@ void AsyncPanZoomController::ScheduleComposite() {
   if (mCompositorParent) {
     mCompositorParent->ScheduleRenderOnCompositorThread();
   }
+}
+
+void AsyncPanZoomController::FlushRepaintForOverscrollHandoff() {
+  ReentrantMonitorAutoEnter lock(mMonitor);
+  RequestContentRepaint();
+  UpdateSharedCompositorFrameMetrics();
 }
 
 void AsyncPanZoomController::RequestContentRepaint() {

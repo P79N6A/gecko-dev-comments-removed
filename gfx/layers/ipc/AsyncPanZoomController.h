@@ -333,6 +333,8 @@ public:
 
   bool HasScrollgrab() const { return mFrameMetrics.mHasScrollgrab; }
 
+  void FlushRepaintForOverscrollHandoff();
+
 protected:
   
 
