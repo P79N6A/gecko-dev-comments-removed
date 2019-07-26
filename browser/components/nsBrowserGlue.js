@@ -82,16 +82,20 @@ XPCOMUtils.defineLazyModuleGetter(this, "SessionStore",
 XPCOMUtils.defineLazyModuleGetter(this, "BrowserUITelemetry",
                                   "resource:///modules/BrowserUITelemetry.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "AsyncShutdown",
+                                  "resource:///modules/AsyncShutdown.jsm");
+
 const PREF_PLUGINS_NOTIFYUSER = "plugins.update.notifyUser";
 const PREF_PLUGINS_UPDATEURL  = "plugins.update.url";
 
 
+const BOOKMARKS_BACKUP_IDLE_TIME_SEC = 10 * 60;
 
-const BOOKMARKS_BACKUP_IDLE_TIME = 10 * 60;
 
-const BOOKMARKS_BACKUP_INTERVAL = 86400 * 1000;
+const BOOKMARKS_BACKUP_MIN_INTERVAL_DAYS = 1;
 
-const BOOKMARKS_BACKUP_MAX_BACKUPS = 10;
+
+const BOOKMARKS_BACKUP_MAX_INTERVAL_DAYS = 5;
 
 
 const BrowserGlueServiceFactory = {
@@ -134,7 +138,6 @@ function BrowserGlue() {
 
 BrowserGlue.prototype = {
   _saveSession: false,
-  _isIdleObserver: false,
   _isPlacesInitObserver: false,
   _isPlacesLockedObserver: false,
   _isPlacesShutdownObserver: false,
@@ -262,8 +265,7 @@ BrowserGlue.prototype = {
         this._onPlacesShutdown();
         break;
       case "idle":
-        if (this._idleService.idleTime > BOOKMARKS_BACKUP_IDLE_TIME * 1000)
-          this._backupBookmarks();
+        this._backupBookmarks();
         break;
       case "distribution-customization-complete":
         Services.obs.removeObserver(this, "distribution-customization-complete");
@@ -422,8 +424,10 @@ BrowserGlue.prototype = {
     os.removeObserver(this, "weave:engine:clients:display-uri");
 #endif
     os.removeObserver(this, "session-save");
-    if (this._isIdleObserver)
-      this._idleService.removeIdleObserver(this, BOOKMARKS_BACKUP_IDLE_TIME);
+    if (this._bookmarksBackupIdleTime) {
+      this._idleService.removeIdleObserver(this, this._bookmarksBackupIdleTime);
+      delete this._bookmarksBackupIdleTime;
+    }
     if (this._isPlacesInitObserver)
       os.removeObserver(this, "places-init-complete");
     if (this._isPlacesLockedObserver)
@@ -1062,12 +1066,16 @@ BrowserGlue.prototype = {
 
       
       
+      let lastBackupFile;
+
+      
+      
       if (importBookmarks && !restoreDefaultBookmarks && !importBookmarksHTML) {
         
-        var bookmarksBackupFile = yield PlacesBackups.getMostRecent("json");
-        if (bookmarksBackupFile) {
+        lastBackupFile = yield PlacesBackups.getMostRecentBackup("json");
+        if (lastBackupFile) {
           
-          yield BookmarkJSONUtils.importFromFile(bookmarksBackupFile, true);
+          yield BookmarkJSONUtils.importFromFile(lastBackupFile, true);
           importBookmarks = false;
         }
         else {
@@ -1162,10 +1170,39 @@ BrowserGlue.prototype = {
       }
 
       
-      
-      if (!this._isIdleObserver) {
-        this._idleService.addIdleObserver(this, BOOKMARKS_BACKUP_IDLE_TIME);
-        this._isIdleObserver = true;
+      if (!this._bookmarksBackupIdleTime) {
+        this._bookmarksBackupIdleTime = BOOKMARKS_BACKUP_IDLE_TIME_SEC;
+
+        
+        
+        if (lastBackupFile === undefined)
+          lastBackupFile = yield PlacesBackups.getMostRecentBackup();
+        if (!lastBackupFile) {
+            this._bookmarksBackupIdleTime /= 2;
+        }
+        else {
+          let lastBackupTime = PlacesBackups.getDateForFile(lastBackupFile);
+          let profileLastUse = Services.appinfo.replacedLockTime || Date.now();
+
+          
+          
+          
+          if (profileLastUse > lastBackupTime) {
+            let backupAge = Math.round((profileLastUse - lastBackupTime) / 86400000);
+            
+            try {
+              Services.telemetry
+                      .getHistogramById("PLACES_BACKUPS_DAYSFROMLAST")
+                      .add(backupAge);
+            } catch (ex) {
+              Components.utils.reportError("Unable to report telemetry.");
+            }
+
+            if (backupAge > BOOKMARKS_BACKUP_MAX_INTERVAL_DAYS)
+              this._bookmarksBackupIdleTime /= 2;
+          }
+        }
+        this._idleService.addIdleObserver(this, this._bookmarksBackupIdleTime);
       }
 
       Services.obs.notifyObservers(null, "places-browser-init-complete", "");
@@ -1177,56 +1214,27 @@ BrowserGlue.prototype = {
 
 
 
-
   _onPlacesShutdown: function BG__onPlacesShutdown() {
     this._sanitizer.onShutdown();
     PageThumbs.uninit();
 
-    if (this._isIdleObserver) {
-      this._idleService.removeIdleObserver(this, BOOKMARKS_BACKUP_IDLE_TIME);
-      this._isIdleObserver = false;
+    if (this._bookmarksBackupIdleTime) {
+      this._idleService.removeIdleObserver(this, this._bookmarksBackupIdleTime);
+      delete this._bookmarksBackupIdleTime;
     }
 
-    let waitingForBackupToComplete = true;
-    this._backupBookmarks().then(
-      function onSuccess() {
-        waitingForBackupToComplete = false;
-      },
-      function onFailure() {
-        Cu.reportError("Unable to backup bookmarks.");
-        waitingForBackupToComplete = false;
+    
+    try {
+      if (Services.prefs.getBoolPref("browser.bookmarks.autoExportHTML")) {
+        
+        
+        AsyncShutdown.profileBeforeChange.addBlocker(
+          "Places: bookmarks.html",
+          () => BookmarkHTMLUtils.exportToFile(Services.dirsvc.get("BMarks", Ci.nsIFile))
+                                 .then(null, Cu.reportError)
+        );
       }
-    );
-
-    
-    
-    let waitingForHTMLExportToComplete = false;
-    
-    if (Services.prefs.getBoolPref("browser.bookmarks.autoExportHTML")) {
-      
-      
-      
-      
-      
-      
-      waitingForHTMLExportToComplete = true;
-      BookmarkHTMLUtils.exportToFile(Services.dirsvc.get("BMarks", Ci.nsIFile)).then(
-        function onSuccess() {
-          waitingForHTMLExportToComplete = false;
-        },
-        function onFailure() {
-          Cu.reportError("Unable to auto export html.");
-          waitingForHTMLExportToComplete = false;
-        }
-      );
-    }
-
-    
-    
-    let thread = Services.tm.currentThread;
-    while (waitingForBackupToComplete || waitingForHTMLExportToComplete) {
-      thread.processNextEvent(true);
-    }
+    } catch (ex) {} 
   },
 
   
@@ -1238,14 +1246,9 @@ BrowserGlue.prototype = {
       
       
       if (!lastBackupFile ||
-          new Date() - PlacesBackups.getDateForFile(lastBackupFile) > BOOKMARKS_BACKUP_INTERVAL) {
-        let maxBackups = BOOKMARKS_BACKUP_MAX_BACKUPS;
-        try {
-          maxBackups = Services.prefs.getIntPref("browser.bookmarks.max_backups");
-        }
-        catch(ex) {  }
-
-        yield PlacesBackups.create(maxBackups); 
+          new Date() - PlacesBackups.getDateForFile(lastBackupFile) > BOOKMARKS_BACKUP_MIN_INTERVAL_DAYS * 86400000) {
+        let maxBackups = Services.prefs.getIntPref("browser.bookmarks.max_backups");
+        yield PlacesBackups.create(maxBackups);
       }
     });
   },

@@ -479,7 +479,7 @@ pref("browser.bookmarks.autoExportHTML",          false);
 
 
 
-pref("browser.bookmarks.max_backups",             10);
+pref("browser.bookmarks.max_backups",             15);
 
 
 pref("dom.disable_open_during_load",              true);

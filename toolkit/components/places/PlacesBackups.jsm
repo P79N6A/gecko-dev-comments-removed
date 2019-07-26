@@ -17,11 +17,16 @@ Cu.import("resource://gre/modules/BookmarkJSONUtils.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/osfile.jsm");
 Cu.import("resource://gre/modules/Deprecated.jsm");
+Cu.import("resource://gre/modules/NetUtil.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "OS",
   "resource://gre/modules/osfile.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
-  "resource://gre/modules/FileUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Sqlite",
+  "resource://gre/modules/Sqlite.jsm");
+
+XPCOMUtils.defineLazyGetter(this, "localFileCtor",
+  () => Components.Constructor("@mozilla.org/file/local;1",
+                               "nsILocalFile", "initWithPath"));
 
 this.PlacesBackups = {
   get _filenamesRegex() {
@@ -40,7 +45,14 @@ this.PlacesBackups = {
     Deprecated.warning(
       "PlacesBackups.folder is deprecated and will be removed in a future version",
       "https://bugzilla.mozilla.org/show_bug.cgi?id=859695");
+    return this._folder;
+  },
 
+  
+
+
+
+  get _folder() {
     let bookmarksBackupDir = Services.dirsvc.get("ProfD", Ci.nsILocalFile);
     bookmarksBackupDir.append(this.profileRelativeFolderPath);
     if (!bookmarksBackupDir.exists()) {
@@ -48,8 +60,8 @@ this.PlacesBackups = {
       if (!bookmarksBackupDir.exists())
         throw("Unable to create bookmarks backup folder");
     }
-    delete this.folder;
-    return this.folder = bookmarksBackupDir;
+    delete this._folder;
+    return this._folder = bookmarksBackupDir;
   },
 
   
@@ -58,21 +70,15 @@ this.PlacesBackups = {
 
 
   getBackupFolder: function PB_getBackupFolder() {
-    return Task.spawn(function() {
-      if (this._folder) {
-        throw new Task.Result(this._folder);
+    return Task.spawn(function* () {
+      if (this._backupFolder) {
+        return this._backupFolder;
       }
       let profileDir = OS.Constants.Path.profileDir;
       let backupsDirPath = OS.Path.join(profileDir, this.profileRelativeFolderPath);
-      yield OS.File.makeDir(backupsDirPath, { ignoreExisting: true }).then(
-        function onSuccess() {
-          this._folder = backupsDirPath;
-         }.bind(this),
-         function onError() {
-           throw("Unable to create bookmarks backup folder");
-         });
-       throw new Task.Result(this._folder);
-     }.bind(this));
+      yield OS.File.makeDir(backupsDirPath, { ignoreExisting: true });
+      return this._backupFolder = backupsDirPath;
+    }.bind(this));
   },
 
   get profileRelativeFolderPath() "bookmarkbackups",
@@ -84,10 +90,17 @@ this.PlacesBackups = {
     Deprecated.warning(
       "PlacesBackups.entries is deprecated and will be removed in a future version",
       "https://bugzilla.mozilla.org/show_bug.cgi?id=859695");
+    return this._entries;
+  },
 
-    delete this.entries;
-    this.entries = [];
-    let files = this.folder.directoryEntries;
+  
+
+
+
+  get _entries() {
+    delete this._entries;
+    this._entries = [];
+    let files = this._folder.directoryEntries;
     while (files.hasMoreElements()) {
       let entry = files.getNext().QueryInterface(Ci.nsIFile);
       
@@ -99,15 +112,15 @@ this.PlacesBackups = {
           entry.remove(false);
           continue;
         }
-        this.entries.push(entry);
+        this._entries.push(entry);
       }
     }
-    this.entries.sort((a, b) => {
+    this._entries.sort((a, b) => {
       let aDate = this.getDateForFile(a);
       let bDate = this.getDateForFile(b);
       return aDate < bDate ? 1 : aDate > bDate ? -1 : 0;
     });
-    return this.entries;
+    return this._entries;
   },
 
   
@@ -116,10 +129,10 @@ this.PlacesBackups = {
 
 
   getBackupFiles: function PB_getBackupFiles() {
-    return Task.spawn(function() {
-      if (this._backupFiles) {
-        throw new Task.Result(this._backupFiles);
-      }
+    return Task.spawn(function* () {
+      if (this._backupFiles)
+        return this._backupFiles;
+
       this._backupFiles = [];
 
       let backupFolderPath = yield this.getBackupFolder();
@@ -138,13 +151,13 @@ this.PlacesBackups = {
       }.bind(this));
       iterator.close();
 
-      this._backupFiles.sort(function(a, b) {
+      this._backupFiles.sort((a, b) => {
         let aDate = this.getDateForFile(a);
         let bDate = this.getDateForFile(b);
         return aDate < bDate ? 1 : aDate > bDate ? -1 : 0;
-      }.bind(this));
+      });
 
-      throw new Task.Result(this._backupFiles);
+      return this._backupFiles;
     }.bind(this));
   },
 
@@ -194,10 +207,10 @@ this.PlacesBackups = {
       "https://bugzilla.mozilla.org/show_bug.cgi?id=859695");
 
     let fileExt = aFileExt || "(json|html)";
-    for (let i = 0; i < this.entries.length; i++) {
+    for (let i = 0; i < this._entries.length; i++) {
       let rx = new RegExp("\." + fileExt + "$");
-      if (this.entries[i].leafName.match(rx))
-        return this.entries[i];
+      if (this._entries[i].leafName.match(rx))
+        return this._entries[i];
     }
     return null;
   },
@@ -212,16 +225,16 @@ this.PlacesBackups = {
 
 
    getMostRecentBackup: function PB_getMostRecentBackup(aFileExt) {
-     return Task.spawn(function() {
+     return Task.spawn(function* () {
        let fileExt = aFileExt || "(json|html)";
        let entries = yield this.getBackupFiles();
        for (let entry of entries) {
          let rx = new RegExp("\." + fileExt + "$");
          if (OS.Path.basename(entry).match(rx)) {
-           throw new Task.Result(entry);
+           return entry;
          }
        }
-       throw new Task.Result(null);
+       return null;
     }.bind(this));
   },
 
@@ -235,18 +248,26 @@ this.PlacesBackups = {
 
 
 
-  saveBookmarksToJSONFile: function PB_saveBookmarksToJSONFile(aFile) {
-    return Task.spawn(function() {
-      let nodeCount = yield BookmarkJSONUtils.exportToFile(aFile);
+
+  saveBookmarksToJSONFile: function PB_saveBookmarksToJSONFile(aFilePath) {
+    if (aFilePath instanceof Ci.nsIFile) {
+      Deprecated.warning("Passing an nsIFile to PlacesBackups.saveBookmarksToJSONFile " +
+                         "is deprecated. Please use an OS.File path instead.",
+                         "https://developer.mozilla.org/docs/JavaScript_OS.File");
+      aFilePath = aFilePath.path;
+    }
+    return Task.spawn(function* () {
+      let nodeCount = yield BookmarkJSONUtils.exportToFile(aFilePath);
 
       let backupFolderPath = yield this.getBackupFolder();
-      if (aFile.parent.path == backupFolderPath) {
+      if (OS.Path.dirname(aFilePath) == backupFolderPath) {
         
-        this.entries.push(aFile);
+        
+        this._entries.unshift(new localFileCtor(aFilePath));
         if (!this._backupFiles) {
           yield this.getBackupFiles();
         }
-        this._backupFiles.push(aFile.path);
+        this._backupFiles.unshift(aFilePath);
       } else {
         
         
@@ -257,24 +278,20 @@ this.PlacesBackups = {
                                                          { nodeCount: nodeCount });
         let newFilePath = OS.Path.join(backupFolderPath, newFilename);
         let backupFile = yield this._getBackupFileForSameDate(name);
-
-        if (backupFile) {
-          yield OS.File.remove(backupFile, { ignoreAbsent: true });
-        } else {
-          let file = new FileUtils.File(newFilePath);
-
+        if (!backupFile) {
           
           
-          this.entries.push(file);
+          this._entries.unshift(new localFileCtor(newFilePath));
           if (!this._backupFiles) {
             yield this.getBackupFiles();
           }
-          this._backupFiles.push(file.path);
+          this._backupFiles.unshift(newFilePath);
         }
-        yield OS.File.copy(aFile.path, newFilePath);
+
+        yield OS.File.copy(aFilePath, newFilePath);
       }
 
-      throw new Task.Result(nodeCount);
+      return nodeCount;
     }.bind(this));
   },
 
@@ -292,7 +309,7 @@ this.PlacesBackups = {
 
 
   create: function PB_create(aMaxBackups, aForceBackup) {
-    return Task.spawn(function() {
+    return Task.spawn(function* () {
       
       let newBackupFilename = this.getFilenameForDate();
       let mostRecentBackupFile = yield this.getMostRecentBackup();
@@ -314,7 +331,7 @@ this.PlacesBackups = {
             numberOfBackupsToDelete++;
 
           while (numberOfBackupsToDelete--) {
-            this.entries.pop();
+            this._entries.pop();
             if (!this._backupFiles) {
               yield this.getBackupFiles();
             }
@@ -341,25 +358,22 @@ this.PlacesBackups = {
       }
 
       
-      let backupFolderPath = yield this.getBackupFolder();
-      let backupFolder = new FileUtils.File(backupFolderPath);
-      let newBackupFile = backupFolder.clone();
-      newBackupFile.append(newBackupFilename);
-
+      let backupFolder = yield this.getBackupFolder();
+      let newBackupFile = OS.Path.join(backupFolder, newBackupFilename);
       let nodeCount = yield this.saveBookmarksToJSONFile(newBackupFile);
       
       let newFilenameWithMetaData = this._appendMetaDataToFilename(
                                       newBackupFilename,
                                       { nodeCount: nodeCount });
-      newBackupFile.moveTo(backupFolder, newFilenameWithMetaData);
+      let newBackupFileWithMetadata = OS.Path.join(backupFolder, newFilenameWithMetaData);
+      yield OS.File.move(newBackupFile, newBackupFileWithMetadata);
 
       
-      let newFileWithMetaData = backupFolder.clone();
-      newFileWithMetaData.append(newFilenameWithMetaData);
-      this.entries.pop();
-      this.entries.push(newFileWithMetaData);
+      let newFileWithMetaData = new localFileCtor(newBackupFileWithMetadata);
+      this._entries.pop();
+      this._entries.unshift(newFileWithMetaData);
       this._backupFiles.pop();
-      this._backupFiles.push(newFileWithMetaData.path);
+      this._backupFiles.unshift(newBackupFileWithMetadata);
     }.bind(this));
   },
 
@@ -400,22 +414,216 @@ this.PlacesBackups = {
             sourceMatches[4] == targetMatches[4]);
     },
 
-   _getBackupFileForSameDate:
-   function PB__getBackupFileForSameDate(aFilename) {
-     return Task.spawn(function() {
-       let backupFolderPath = yield this.getBackupFolder();
-       let iterator = new OS.File.DirectoryIterator(backupFolderPath);
-       let backupFile;
+  _getBackupFileForSameDate:
+  function PB__getBackupFileForSameDate(aFilename) {
+    return Task.spawn(function* () {
+      let backupFolderPath = yield this.getBackupFolder();
+      let iterator = new OS.File.DirectoryIterator(backupFolderPath);
+      let backupFile;
 
-       yield iterator.forEach(function(aEntry) {
-         if (this._isFilenameWithSameDate(aEntry.name, aFilename)) {
-           backupFile = aEntry.path;
-           return iterator.close();
-         }
-       }.bind(this));
-       yield iterator.close();
+      yield iterator.forEach(function(aEntry) {
+        if (this._isFilenameWithSameDate(aEntry.name, aFilename)) {
+          backupFile = aEntry.path;
+          return iterator.close();
+        }
+      }.bind(this));
+      yield iterator.close();
 
-       throw new Task.Result(backupFile);
-     }.bind(this));
-   }
+      return backupFile;
+    }.bind(this));
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  getBookmarksTree: function () {
+    return Task.spawn(function* () {
+      let dbFilePath = OS.Path.join(OS.Constants.Path.profileDir, "places.sqlite");
+      let conn = yield Sqlite.openConnection({ path: dbFilePath,
+                                               sharedMemoryCache: false });
+      let rows = [];
+      try {
+        rows = yield conn.execute(
+          "SELECT b.id, h.url, IFNULL(b.title, '') AS title, b.parent, " +
+                 "b.position AS [index], b.type, b.dateAdded, b.lastModified, b.guid, " +
+                 "( SELECT GROUP_CONCAT(t.title, ',') " +
+                   "FROM moz_bookmarks b2 " +
+                   "JOIN moz_bookmarks t ON t.id = +b2.parent AND t.parent = :tags_folder " +
+                   "WHERE b2.fk = h.id " +
+                 ") AS tags, " +
+                 "EXISTS (SELECT 1 FROM moz_items_annos WHERE item_id = b.id LIMIT 1) AS has_annos, " +
+                 "( SELECT a.content FROM moz_annos a " +
+                   "JOIN moz_anno_attributes n ON a.anno_attribute_id = n.id " +
+                   "WHERE place_id = h.id AND n.name = :charset_anno " +
+                 ") AS charset " +
+          "FROM moz_bookmarks b " +
+          "LEFT JOIN moz_bookmarks p ON p.id = b.parent " +
+          "LEFT JOIN moz_places h ON h.id = b.fk " +
+          "WHERE b.id <> :tags_folder AND b.parent <> :tags_folder AND p.parent <> :tags_folder " +
+          "ORDER BY b.parent, b.position",
+          { tags_folder: PlacesUtils.tagsFolderId,
+            charset_anno: PlacesUtils.CHARSET_ANNO });
+      } catch(e) {
+        Cu.reportError("Unable to query the database " + e);
+      } finally {
+        yield conn.close();
+      }
+
+      let startTime = Date.now();
+      
+      let itemsMap = new Map();
+      for (let row of rows) {
+        let id = row.getResultByName("id");
+        try {
+          let bookmark = sqliteRowToBookmarkObject(row);
+          if (itemsMap.has(id)) {
+            
+            
+            let original = itemsMap.get(id);
+            for (prop in bookmark) {
+              original[prop] = bookmark[prop];
+            }
+            bookmark = original;
+          }
+          else {
+            itemsMap.set(id, bookmark);
+          }
+
+          
+          if (!itemsMap.has(bookmark.parent))
+            itemsMap.set(bookmark.parent, {});
+          let parent = itemsMap.get(bookmark.parent);
+          if (!("children" in parent))
+            parent.children = [];
+          parent.children.push(bookmark);
+        } catch (e) {
+          Cu.reportError("Error while reading node " + id + " " + e);
+        }
+      }
+
+      
+      function removeFromMap(id) {
+        
+        
+        if (itemsMap.has(id)) {
+          let excludedItem = itemsMap.get(id);
+          if (excludedItem.children) {
+            for (let child of excludedItem.children) {
+              removeFromMap(child.id);
+            }
+          }
+          
+          let parentItem = itemsMap.get(excludedItem.parent);
+          parentItem.children = parentItem.children.filter(aChild => aChild.id != id);
+          
+          itemsMap.delete(id);
+        }
+      }
+
+      for (let id of PlacesUtils.annotations.getItemsWithAnnotation(
+                       PlacesUtils.EXCLUDE_FROM_BACKUP_ANNO)) {
+        removeFromMap(id);
+      }
+
+      
+      
+      try {
+        Services.telemetry
+                .getHistogramById("PLACES_BACKUPS_BOOKMARKSTREE_MS")
+                .add(Date.now() - startTime);
+      } catch (ex) {
+        Components.utils.reportError("Unable to report telemetry.");
+      }
+
+      return [itemsMap.get(PlacesUtils.placesRootId), itemsMap.size];
+    });
+  }
+}
+
+
+
+
+
+
+
+function sqliteRowToBookmarkObject(aRow) {
+  let bookmark = {};
+  for (let p of [ "id" ,"guid", "title", "index", "dateAdded", "lastModified" ]) {
+    bookmark[p] = aRow.getResultByName(p);
+  }
+  Object.defineProperty(bookmark, "parent",
+                        { value: aRow.getResultByName("parent") });
+
+  let type = aRow.getResultByName("type");
+
+  
+  if (aRow.getResultByName("has_annos")) {
+    try {
+      bookmark.annos = PlacesUtils.getAnnotationsForItem(bookmark.id);
+    } catch (e) {
+      Cu.reportError("Unexpected error while reading annotations " + e);
+    }
+  }
+
+  switch (type) {
+    case Ci.nsINavBookmarksService.TYPE_BOOKMARK:
+      
+      bookmark.type = PlacesUtils.TYPE_X_MOZ_PLACE;
+      
+      
+      bookmark.uri = NetUtil.newURI(aRow.getResultByName("url")).spec;
+      
+      let keyword = PlacesUtils.bookmarks.getKeywordForBookmark(bookmark.id);
+      if (keyword)
+        bookmark.keyword = keyword;
+      let charset = aRow.getResultByName("charset");
+      if (charset)
+        bookmark.charset = charset;
+      let tags = aRow.getResultByName("tags");
+      if (tags)
+        bookmark.tags = tags;
+      break;
+    case Ci.nsINavBookmarksService.TYPE_FOLDER:
+      bookmark.type = PlacesUtils.TYPE_X_MOZ_PLACE_CONTAINER;
+
+      
+      if (bookmark.id == PlacesUtils.placesRootId)
+        bookmark.root = "placesRoot";
+      else if (bookmark.id == PlacesUtils.bookmarksMenuFolderId)
+        bookmark.root = "bookmarksMenuFolder";
+      else if (bookmark.id == PlacesUtils.unfiledBookmarksFolderId)
+        bookmark.root = "unfiledBookmarksFolder";
+      else if (bookmark.id == PlacesUtils.toolbarFolderId)
+        bookmark.root = "toolbarFolder";
+      break;
+    case Ci.nsINavBookmarksService.TYPE_SEPARATOR:
+      bookmark.type = PlacesUtils.TYPE_X_MOZ_PLACE_SEPARATOR;
+      break;
+    default:
+      Cu.reportError("Unexpected bookmark type");
+      break;
+  }
+  return bookmark;
 }
