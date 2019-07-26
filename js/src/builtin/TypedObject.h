@@ -133,6 +133,18 @@ class ReferenceType
 
 
 
+class X4Type : public JSObject
+{
+  private:
+  public:
+    static const Class class_;
+
+    static bool call(JSContext *cx, unsigned argc, Value *vp);
+};
+
+
+
+
 class ArrayType : public JSObject
 {
   private:
