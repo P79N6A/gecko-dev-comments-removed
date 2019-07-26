@@ -394,6 +394,9 @@ class nsStyleSet
 
   
   
+  
+  
+  
   nsCOMArray<nsIStyleSheet> mSheets[eSheetTypeCount];
 
   

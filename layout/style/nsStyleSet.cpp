@@ -30,6 +30,8 @@
 #include "nsStyleSheetService.h"
 #include "mozilla/dom/Element.h"
 #include "GeckoProfiler.h"
+#include "nsHTMLCSSStyleSheet.h"
+#include "nsHTMLStyleSheet.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -318,19 +320,28 @@ nsStyleSet::GatherRuleProcessors(sheetType aType)
     
     return NS_OK;
   }
-  if (aType == eAnimationSheet) {
+  switch (aType) {
     
     
-    
-    mRuleProcessors[aType] = PresContext()->AnimationManager();
-    return NS_OK;
-  }
-  if (aType == eTransitionSheet) {
-    
-    
-    
-    mRuleProcessors[aType] = PresContext()->TransitionManager();
-    return NS_OK;
+    case eAnimationSheet:
+      MOZ_ASSERT(mSheets[aType].Count() == 0);
+      mRuleProcessors[aType] = PresContext()->AnimationManager();
+      return NS_OK;
+    case eTransitionSheet:
+      MOZ_ASSERT(mSheets[aType].Count() == 0);
+      mRuleProcessors[aType] = PresContext()->TransitionManager();
+      return NS_OK;
+    case eStyleAttrSheet:
+      MOZ_ASSERT(mSheets[aType].Count() == 0);
+      mRuleProcessors[aType] = PresContext()->Document()->GetInlineStyleSheet();
+      return NS_OK;
+    case ePresHintSheet:
+      MOZ_ASSERT(mSheets[aType].Count() == 0);
+      mRuleProcessors[aType] = PresContext()->Document()->GetAttributeStyleSheet();
+      return NS_OK;
+    default:
+      
+      break;
   }
   if (aType == eScopedDocSheet) {
     
