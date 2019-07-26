@@ -2921,20 +2921,42 @@ XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect)
     
     
     JS_SetGCParameter(runtime, JSGC_MAX_BYTES, 0xffffffff);
-#if defined(MOZ_ASAN) || (defined(DEBUG) && !defined(XP_WIN))
+
     
     
     
-    JS_SetNativeStackQuota(runtime, 2 * 128 * sizeof(size_t) * 1024);
+    const size_t kDefaultStackQuota = 128 * sizeof(size_t) * 1024;
+
+    
+    
+    
+
+#if defined(XP_MACOSX) || defined(DARWIN)
+    
+    const size_t kStackQuota = 7 * 1024 * 1024;
+#elif defined(MOZ_ASAN)
+    
+    
+    const size_t kStackQuota =  2 * kDefaultStackQuota;
 #elif defined(XP_WIN)
     
-    JS_SetNativeStackQuota(runtime, 900 * 1024);
-#elif defined(XP_MACOSX) || defined(DARWIN)
     
-    JS_SetNativeStackQuota(runtime, 7 * 1024 * 1024);
+    const size_t kStackQuota = 900 * 1024;
+#elif defined(DEBUG)
+    
+    
+    
+    const size_t kStackQuota = 2 * kDefaultStackQuota;
 #else
-    JS_SetNativeStackQuota(runtime, 128 * sizeof(size_t) * 1024);
+    const size_t kStackQuota = kDefaultStackQuota;
 #endif
+
+    
+    
+    (void) kDefaultStackQuota;
+
+    JS_SetNativeStackQuota(runtime, kStackQuota);
+
     JS_SetDestroyCompartmentCallback(runtime, CompartmentDestroyedCallback);
     JS_SetCompartmentNameCallback(runtime, CompartmentNameCallback);
     mPrevGCSliceCallback = JS::SetGCSliceCallback(runtime, GCSliceCallback);
