@@ -464,31 +464,24 @@ nsImageFrame::ShouldCreateImageFrameFor(Element* aElement,
   else if (gIconLoad && gIconLoad->mPrefForceInlineAltText) {
     useSizedBox = false;
   }
-  else {
-    if (aStyleContext->PresContext()->CompatibilityMode() !=
-        eCompatibility_NavQuirks) {
-      useSizedBox = false;
-    }
-    else {
-      
-      
-      nsIAtom *localName = aElement->Tag();
-
-      
-      
-      
-      if (!aElement->HasAttr(kNameSpaceID_None, nsGkAtoms::alt) &&
-          localName != nsGkAtoms::object &&
-          localName != nsGkAtoms::input) {
-        useSizedBox = true;
-      }
-      else {
-        
-        useSizedBox = HaveFixedSize(aStyleContext->StylePosition());
-      }
-    }
+  else if (aElement->HasAttr(kNameSpaceID_None, nsGkAtoms::src) &&
+           !aElement->HasAttr(kNameSpaceID_None, nsGkAtoms::alt) &&
+           !aElement->IsHTML(nsGkAtoms::object) &&
+           !aElement->IsHTML(nsGkAtoms::input)) {
+    
+    
+    
+    useSizedBox = true;
   }
-  
+  else if (aStyleContext->PresContext()->CompatibilityMode() !=
+           eCompatibility_NavQuirks) {
+    useSizedBox = false;
+  }
+  else {
+    
+    useSizedBox = HaveFixedSize(aStyleContext->StylePosition());
+  }
+
   return useSizedBox;
 }
 
@@ -720,9 +713,7 @@ nsImageFrame::EnsureIntrinsicSizeAndRatio(nsPresContext* aPresContext)
       
       
       
-      
-      
-      if (aPresContext->CompatibilityMode() == eCompatibility_NavQuirks) {
+      if (!(GetStateBits() & NS_FRAME_GENERATED_CONTENT)) {
         nscoord edgeLengthToUse =
           nsPresContext::CSSPixelsToAppUnits(
             ICON_SIZE + (2 * (ICON_PADDING + ALT_BORDER_WIDTH)));
