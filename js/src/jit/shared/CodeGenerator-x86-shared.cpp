@@ -1711,6 +1711,136 @@ CodeGeneratorX86Shared::visitFloorF(LFloorF *lir)
 }
 
 bool
+CodeGeneratorX86Shared::visitCeil(LCeil *lir)
+{
+    FloatRegister input = ToFloatRegister(lir->input());
+    FloatRegister scratch = ScratchFloatReg;
+    Register output = ToRegister(lir->output());
+
+    Label bailout, lessThanMinusOne;
+
+    
+    masm.loadConstantDouble(-1, scratch);
+    masm.branchDouble(Assembler::DoubleLessThanOrEqualOrUnordered, input,
+                      scratch, &lessThanMinusOne);
+
+    
+    masm.movmskpd(input, output);
+    masm.branchTest32(Assembler::NonZero, output, Imm32(1), &bailout);
+    if (!bailoutFrom(&bailout, lir->snapshot()))
+        return false;
+
+    if (AssemblerX86Shared::HasSSE41()) {
+        
+        masm.bind(&lessThanMinusOne);
+        
+        masm.roundsd(input, scratch, JSC::X86Assembler::RoundUp);
+
+        masm.cvttsd2si(scratch, output);
+        masm.cmp32(output, Imm32(1));
+        if (!bailoutIf(Assembler::Overflow, lir->snapshot()))
+            return false;
+        return true;
+    }
+
+    
+    Label end;
+
+    
+    
+    
+    
+    masm.cvttsd2si(input, output);
+    masm.cmp32(output, Imm32(1));
+    if (!bailoutIf(Assembler::Overflow, lir->snapshot()))
+        return false;
+    masm.convertInt32ToDouble(output, scratch);
+    masm.branchDouble(Assembler::DoubleEqualOrUnordered, input, scratch, &end);
+
+    
+    masm.addl(Imm32(1), output);
+    
+    if (!bailoutIf(Assembler::Overflow, lir->snapshot()))
+        return false;
+    masm.jump(&end);
+
+    
+    masm.bind(&lessThanMinusOne);
+    masm.cvttsd2si(input, output);
+    masm.cmp32(output, Imm32(1));
+    if (!bailoutIf(Assembler::Overflow, lir->snapshot()))
+        return false;
+
+    masm.bind(&end);
+    return true;
+}
+
+bool
+CodeGeneratorX86Shared::visitCeilF(LCeilF *lir)
+{
+    FloatRegister input = ToFloatRegister(lir->input());
+    FloatRegister scratch = ScratchFloatReg;
+    Register output = ToRegister(lir->output());
+
+    Label bailout, lessThanMinusOne;
+
+    
+    masm.loadConstantFloat32(-1.f, scratch);
+    masm.branchFloat(Assembler::DoubleLessThanOrEqualOrUnordered, input,
+                     scratch, &lessThanMinusOne);
+
+    
+    masm.movmskps(input, output);
+    masm.branchTest32(Assembler::NonZero, output, Imm32(1), &bailout);
+    if (!bailoutFrom(&bailout, lir->snapshot()))
+        return false;
+
+    if (AssemblerX86Shared::HasSSE41()) {
+        
+        masm.bind(&lessThanMinusOne);
+        
+        masm.roundss(input, scratch, JSC::X86Assembler::RoundUp);
+
+        masm.cvttss2si(scratch, output);
+        masm.cmp32(output, Imm32(1));
+        if (!bailoutIf(Assembler::Overflow, lir->snapshot()))
+            return false;
+        return true;
+    }
+
+    
+    Label end;
+
+    
+    
+    
+    
+    masm.cvttss2si(input, output);
+    masm.cmp32(output, Imm32(1));
+    if (!bailoutIf(Assembler::Overflow, lir->snapshot()))
+        return false;
+    masm.convertInt32ToFloat32(output, scratch);
+    masm.branchFloat(Assembler::DoubleEqualOrUnordered, input, scratch, &end);
+
+    
+    masm.addl(Imm32(1), output);
+    
+    if (!bailoutIf(Assembler::Overflow, lir->snapshot()))
+        return false;
+    masm.jump(&end);
+
+    
+    masm.bind(&lessThanMinusOne);
+    masm.cvttss2si(input, output);
+    masm.cmp32(output, Imm32(1));
+    if (!bailoutIf(Assembler::Overflow, lir->snapshot()))
+        return false;
+
+    masm.bind(&end);
+    return true;
+}
+
+bool
 CodeGeneratorX86Shared::visitRound(LRound *lir)
 {
     FloatRegister input = ToFloatRegister(lir->input());
