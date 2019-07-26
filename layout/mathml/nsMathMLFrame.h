@@ -111,8 +111,7 @@ public:
   ResolveMathMLCharStyle(nsPresContext*  aPresContext,
                          nsIContent*      aContent,
                          nsStyleContext*  aParenStyleContext,
-                         nsMathMLChar*    aMathMLChar,
-                         bool             aIsMutableChar);
+                         nsMathMLChar*    aMathMLChar);
 
   
   

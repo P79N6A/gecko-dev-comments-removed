@@ -93,11 +93,6 @@ public:
                    float*                aTrailingSpace);
 
   
-  
-  static bool
-  IsMutableOperator(const nsString& aOperator);
-
-  
   static bool
   IsMirrorableOperator(const nsString& aOperator);
 

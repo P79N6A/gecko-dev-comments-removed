@@ -205,40 +205,6 @@ mtable[frame="dashed"] > mtr > mtd:last-child {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-::-moz-math-stretchy {
-  font-style: normal;
-  font-family: serif; 
-
-}
-
-
-
-
-
-
-
-
 *|*::-moz-mathml-anonymous-block {
   display: inline-block !important;
   position: static !important;
