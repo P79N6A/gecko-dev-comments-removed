@@ -26,13 +26,13 @@ SnapshotIterator::readFrameArgs(Op &op, const Value *argv, Value *scopeChain, Va
     else
         skip();
 
+    
+    if (script->argumentsHasVarBinding())
+        skip();
+
     if (thisv)
         *thisv = read();
     else
-        skip();
-
-    
-    if (script->argumentsHasVarBinding())
         skip();
 
     unsigned i = 0;
@@ -158,6 +158,10 @@ InlineFrameIteratorMaybeGC<allowGC>::thisObject() const
 
     
     s.skip();
+
+    
+    if (script()->argumentsHasVarBinding())
+        s.skip();
 
     
     
