@@ -15,8 +15,7 @@
 namespace js {
 
 
-
-extern const char sWrapperFamily;
+extern int sWrapperFamily;
 
 class WrapperObject : public ProxyObject
 {

@@ -54,7 +54,7 @@ using mozilla::dom::PerThreadAtomCache;
 
 
 
-const char* const XPCJSRuntime::mStrings[] = {
+const char* XPCJSRuntime::mStrings[] = {
     "constructor",          
     "toString",             
     "toSource",             
