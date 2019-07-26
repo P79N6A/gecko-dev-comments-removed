@@ -17,6 +17,7 @@ check(false);
 check(1);
 check(NaN);
 check("ok");
+check(Symbol("ok"));
 
 
 var g = newGlobal();
