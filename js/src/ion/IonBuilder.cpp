@@ -7004,15 +7004,37 @@ IonBuilder::jsop_rest()
     MElements *elements = MElements::New(array);
     current->add(elements);
 
+    types::TypeObject *arrayType = templateObject->type();
+    types::HeapTypeSet *elemTypes = NULL;
+    Vector<MInstruction *> setElemCalls(cx);
+    if (!arrayType->unknownProperties()) {
+        elemTypes = arrayType->getProperty(cx, JSID_VOID, false);
+        if (!elemTypes)
+            return false;
+    }
+
     
     
     MConstant *index;
     for (unsigned i = numFormals; i < numActuals; i++) {
         index = MConstant::New(Int32Value(i - numFormals));
         current->add(index);
-        MStoreElement *store = MStoreElement::New(elements, index, inlinedArguments_[i],
-                                                   false);
+
+        MInstruction *store;
+        MDefinition *arg = inlinedArguments_[i];
+        if (elemTypes && !TypeSetIncludes(elemTypes, arg->type(), arg->resultTypeSet())) {
+            elemTypes->addFreeze(cx);
+            store = MCallSetElement::New(array, index, arg);
+            if (!setElemCalls.append(store))
+                return false;
+        } else {
+            store = MStoreElement::New(elements, index, arg,  false);
+        }
+
         current->add(store);
+
+        if (store->isCallSetElement() && !resumeAfter(store))
+            return false;
     }
 
     MSetInitializedLength *initLength = MSetInitializedLength::New(elements, index);

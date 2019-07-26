@@ -563,7 +563,17 @@ ParallelArrayVisitor::visitNewArray(MNewArray *newInstruction)
 bool
 ParallelArrayVisitor::visitRest(MRest *ins)
 {
-    return replace(ins, MParRest::New(parSlice(), ins));
+    
+    
+    
+    
+    
+    JSObject *templateObj = NewDenseUnallocatedArray(cx_, 0, NULL, TenuredObject);
+    if (!templateObj)
+        return false;
+
+    return replace(ins, MParRest::New(parSlice(), ins->numActuals(),
+                                      ins->numFormals(), templateObj));
 }
 
 bool
