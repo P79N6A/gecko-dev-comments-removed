@@ -356,6 +356,14 @@ let RIL = {
     
 
 
+
+
+
+    this._needRepollNetworkInfo = false;
+
+    
+
+
     this._pendingNetworkInfo = {rilMessageType: "networkinfochanged"};
 
     
@@ -1130,6 +1138,7 @@ let RIL = {
   requestNetworkInfo: function requestNetworkInfo() {
     if (this._processingNetworkInfo) {
       if (DEBUG) debug("Network info requested, but we're already requesting network info.");
+      this._needRepollNetworkInfo = true;
       return;
     }
 
@@ -3141,6 +3150,11 @@ let RIL = {
     RIL._processingNetworkInfo = false;
     for (let i = 0; i < NETWORK_INFO_MESSAGE_TYPES.length; i++) {
       delete RIL._pendingNetworkInfo[NETWORK_INFO_MESSAGE_TYPES[i]];
+    }
+
+    if (RIL._needRepollNetworkInfo) {
+      RIL._needRepollNetworkInfo = false;
+      RIL.requestNetworkInfo();
     }
   },
 
