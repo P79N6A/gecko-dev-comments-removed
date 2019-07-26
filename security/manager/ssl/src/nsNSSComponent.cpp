@@ -1416,7 +1416,7 @@ nsNSSComponent::DefineNextTimer()
      
   
   if ( now < nextFiring) {
-    LL_SUB(diff,nextFiring,now);
+    diff = nextFiring - now;
     LL_L2UI(interval, diff);
     
     interval = interval/PR_USEC_PER_MSEC;

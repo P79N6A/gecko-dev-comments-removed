@@ -415,7 +415,7 @@ nsCRLManager::ComputeNextAutoUpdateTime(nsICRLInfo *info,
 
   switch (autoUpdateType) {
   case TYPE_AUTOUPDATE_FREQ_BASED:
-    LL_SUB(diff, now, lastUpdate);             
+    diff = now - lastUpdate;                    
     LL_DIV(cycleCnt, diff, microsecInDayCnt);   
     LL_MOD(temp, diff, microsecInDayCnt);
     if(temp != 0) {
@@ -425,7 +425,7 @@ nsCRLManager::ComputeNextAutoUpdateTime(nsICRLInfo *info,
     tempTime = lastUpdate + temp;
     break;  
   case TYPE_AUTOUPDATE_TIME_BASED:
-    LL_SUB(tempTime, nextUpdate, microsecInDayCnt);
+    tempTime = nextUpdate - microsecInDayCnt;
     break;
   default:
     return NS_ERROR_NOT_IMPLEMENTED;

@@ -779,8 +779,7 @@ nsProtocolProxyService::SecondsSinceSessionStart()
     PRTime now = PR_Now();
 
     
-    int64_t diff;
-    LL_SUB(diff, now, mSessionStart);
+    int64_t diff = now - mSessionStart;
 
     
     PRTime ups;
