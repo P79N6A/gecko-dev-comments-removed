@@ -787,6 +787,15 @@ const nsHTMLElement gHTMLElements[] = {
                 0,0,
   },
   {
+                                 eHTMLTag_main,
+              eHTMLTag_unknown,eHTMLTag_unknown,
+              &gRootTags,&gRootTags,
+     0,0,0,0,
+              kBlock, (kSelf|kFlowEntity), kNone,
+           0,kDefaultPropRange,
+                0,0,
+  },
+  {
                                  eHTMLTag_map,
               eHTMLTag_unknown,eHTMLTag_unknown,
               &gRootTags,&gRootTags,
