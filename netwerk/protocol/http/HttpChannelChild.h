@@ -33,10 +33,6 @@
 namespace mozilla {
 namespace net {
 
-#if defined(_MSC_VER) && defined(__clang__)
-
-class __multiple_inheritance HttpChannelChild;
-#endif
 class HttpChannelChild : public PHttpChannelChild
                        , public HttpBaseChannel
                        , public HttpAsyncAborter<HttpChannelChild>
