@@ -594,7 +594,7 @@ let CustomizableUIInternal = {
         continue;
       }
 
-      this.notifyListeners("onWidgetBeforeDOMChange", widgetNode, null, container);
+      this.notifyListeners("onWidgetBeforeDOMChange", widgetNode, null, container, true);
       this._removeParentFlex(widgetNode);
 
       if (gPalette.has(aWidgetId) || this.isSpecialWidget(aWidgetId)) {
@@ -607,7 +607,7 @@ let CustomizableUIInternal = {
         }
         areaNode.toolbox.palette.appendChild(widgetNode);
       }
-      this.notifyListeners("onWidgetAfterDOMChange", widgetNode, null, container);
+      this.notifyListeners("onWidgetAfterDOMChange", widgetNode, null, container, true);
 
       if (area.get("type") == CustomizableUI.TYPE_TOOLBAR) {
         areaNode.setAttribute("currentset", areaNode.currentSet);
@@ -2309,6 +2309,8 @@ OverflowableToolbar.prototype = {
     this._panel.addEventListener("popuphiding", this);
     CustomizableUIInternal.addPanelCloseListeners(this._panel);
 
+    CustomizableUI.addListener(this);
+
     this._initialized = true;
 
     
@@ -2334,6 +2336,7 @@ OverflowableToolbar.prototype = {
     window.gNavToolbox.removeEventListener("aftercustomization", this);
     this._chevron.removeEventListener("command", this);
     this._panel.removeEventListener("popuphiding", this);
+    CustomizableUI.removeListener(this);
     CustomizableUIInternal.removePanelCloseListeners(this._panel);
   },
 
@@ -2398,6 +2401,9 @@ OverflowableToolbar.prototype = {
         child.setAttribute("customizableui-anchorid", this._chevron.id);
 
         this._list.insertBefore(child, this._list.firstChild);
+        if (!this._toolbar.hasAttribute("overflowing")) {
+          CustomizableUI.addListener(this);
+        }
         this._toolbar.setAttribute("overflowing", "true");
       }
       child = prevChild;
@@ -2456,6 +2462,7 @@ OverflowableToolbar.prototype = {
 
     if (!this._collapsed.size) {
       this._toolbar.removeAttribute("overflowing");
+      CustomizableUI.removeListener(this);
     }
   },
 
@@ -2477,6 +2484,87 @@ OverflowableToolbar.prototype = {
   _enable: function() {
     this._enabled = true;
     this._onOverflow();
+  },
+
+  onWidgetBeforeDOMChange: function(aNode, aNextNode, aContainer) {
+    if (aContainer != this._target) {
+      return;
+    }
+    
+    
+    
+    if (aNode.parentNode == this._list) {
+      let updatedMinSize;
+      if (aNode.previousSibling) {
+        updatedMinSize = this._collapsed.get(aNode.previousSibling.id);
+      } else {
+        
+        updatedMinSize = 1;
+      }
+      let nextItem = aNode.nextSibling;
+      while (nextItem) {
+        this._collapsed.set(nextItem.id, updatedMinSize);
+        nextItem = nextItem.nextSibling;
+      }
+    }
+  },
+
+  onWidgetAfterDOMChange: function(aNode, aNextNode, aContainer) {
+    if (aContainer != this._target) {
+      return;
+    }
+
+    let nowInBar = aNode.parentNode == aContainer;
+    let nowOverflowed = aNode.parentNode == this._list;
+    let wasOverflowed = this._collapsed.has(aNode.id);
+
+    
+    if (!wasOverflowed) {
+      
+      if (nowOverflowed) {
+        
+        
+        let prevId = aNode.previousSibling.id;
+        let minSize = this._collapsed.get(prevId);
+        this._collapsed.set(aNode.id, minSize);
+        aNode.setAttribute("customizableui-anchorid", this._chevron.id);
+        aNode.classList.add("overflowedItem");
+      }
+      
+      
+      
+      else if (!nowInBar) {
+        this._moveItemsBackToTheirOrigin(true);
+      }
+      
+      
+    }
+    
+    else {
+      
+      if (!nowOverflowed) {
+        this._collapsed.delete(aNode.id);
+        aNode.removeAttribute("customizableui-anchorid");
+        aNode.classList.remove("overflowedItem");
+
+        if (!this._collapsed.size) {
+          this._toolbar.removeAttribute("overflowing");
+          CustomizableUI.removeListener(this);
+        }
+      }
+      
+      else {
+        if (aNode.previousSibling) {
+          let prevId = aNode.previousSibling.id;
+          let minSize = this._collapsed.get(prevId);
+          this._collapsed.set(aNode.id, minSize);
+        } else {
+          
+          
+          this._moveItemsBackToTheirOrigin();
+        }
+      }
+    }
   },
 
   getOverflowedInsertionPoints: function(aNode, aNextNodeId) {
