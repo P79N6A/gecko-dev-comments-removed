@@ -1517,8 +1517,8 @@ struct JSJitInfo {
         JSParallelNative parallelNative;
     };
 
-    uint32_t protoID;
-    uint32_t depth;
+    uint16_t protoID;
+    uint16_t depth;
     
     
     
