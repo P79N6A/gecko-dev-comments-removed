@@ -40,6 +40,7 @@ const kSmsSentObserverTopic              = "sms-sent";
 const kSmsDeliveredObserverTopic         = "sms-delivered";
 const kMozSettingsChangedObserverTopic   = "mozsettings-changed";
 const kSysMsgListenerReadyObserverTopic  = "system-message-listener-ready";
+const kTimeNitzAutomaticUpdateEnabled    = "time.nitz.automatic-update.enabled";
 const DOM_SMS_DELIVERY_RECEIVED          = "received";
 const DOM_SMS_DELIVERY_SENT              = "sent";
 
@@ -101,6 +102,10 @@ XPCOMUtils.defineLazyServiceGetter(this, "gSystemMessenger",
 XPCOMUtils.defineLazyServiceGetter(this, "gNetworkManager",
                                    "@mozilla.org/network/manager;1",
                                    "nsINetworkManager");
+
+XPCOMUtils.defineLazyServiceGetter(this, "gTimeService",
+                                   "@mozilla.org/time/timeservice;1",
+                                   "nsITimeService");
 
 XPCOMUtils.defineLazyGetter(this, "WAP", function () {
   let WAP = {};
@@ -238,6 +243,10 @@ function RadioInterfaceLayer() {
 
   
   lock.get("ril.callwaiting.enabled", this);
+
+  
+  
+  lock.get(kTimeNitzAutomaticUpdateEnabled, this);
 
   this._messageManagerByRequest = {};
 
@@ -469,17 +478,7 @@ RadioInterfaceLayer.prototype = {
         this.handleDataCallList(message);
         break;
       case "nitzTime":
-        
-        
-        
-        
-        
-        
-        
-        debug("nitzTime networkTime=" + message.networkTimeInSeconds +
-              " timezone=" + message.networkTimeZoneInMinutes +
-              " dst=" + message.dstFlag +
-              " timestamp=" + message.localTimeStampInMS);
+        this.handleNitzTime(message);
         break;
       case "iccinfochange":
         this.handleICCInfoChange(message);
@@ -1222,6 +1221,35 @@ RadioInterfaceLayer.prototype = {
                                   [message.datacalls, message.datacalls.length]);
   },
 
+  
+
+
+  handleNitzTime: function handleNitzTime(message) {
+    if (!this._nitzAutomaticUpdateEnabled) {
+      return;
+    }
+    
+    
+    gTimeService.set(
+      message.networkTimeInMS + (Date.now() - message.receiveTimeInMS));
+
+    
+    
+    
+    
+    
+    
+    if (message.networkTimeZoneInMinutes != (new Date()).getTimezoneOffset()) {
+      let absTimeZoneInMinutes = Math.abs(message.networkTimeZoneInMinutes);
+      let timeZoneStr = "UTC";
+      timeZoneStr += (message.networkTimeZoneInMinutes >= 0 ? "+" : "-");
+      timeZoneStr += ("0" + Math.floor(absTimeZoneInMinutes / 60)).slice(-2);
+      timeZoneStr += ":";
+      timeZoneStr += ("0" + absTimeZoneInMinutes % 60).slice(-2);
+      gSettingsService.createLock().set("time.timezone", timeZoneStr, null);
+    }
+  },
+
   handleICCInfoChange: function handleICCInfoChange(message) {
     let oldIcc = this.rilContext.icc;
     this.rilContext.icc = message;
@@ -1319,7 +1347,10 @@ RadioInterfaceLayer.prototype = {
   _oldRilDataEnabledState: null,
 
   
+  
+  _nitzAutomaticUpdateEnabled: null,
 
+  
   handle: function handle(aName, aResult) {
     switch(aName) {
       case "ril.radio.disabled":
@@ -1371,6 +1402,9 @@ RadioInterfaceLayer.prototype = {
       case "ril.callwaiting.enabled":
         this._callWaitingEnabled = aResult;
         this.setCallWaitingEnabled(this._callWaitingEnabled);
+        break;
+      case kTimeNitzAutomaticUpdateEnabled:
+        this._nitzAutomaticUpdateEnabled = aResult;
         break;
     };
   },
