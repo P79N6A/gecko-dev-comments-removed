@@ -12,6 +12,7 @@
 
 #include <stddef.h>
 
+#include "jslock.h"
 #include "jsscript.h"
 
 #include "js/ProfilingStack.h"
@@ -123,6 +124,7 @@ class SPSProfiler
     uint32_t             max_;
     bool                 slowAssertions;
     uint32_t             enabled_;
+    PRLock               *lock_;
 
     const char *allocProfileString(JSScript *script, JSFunction *function);
     void push(const char *string, void *sp, JSScript *script, jsbytecode *pc);
@@ -185,13 +187,50 @@ class SPSProfiler
     void onScriptFinalized(JSScript *script);
 
     
-    size_t stringsCount() { return strings.count(); }
-    void stringsReset() { strings.clear(); }
+    size_t stringsCount();
+    void stringsReset();
 
     uint32_t *addressOfEnabled() {
         return &enabled_;
     }
 };
+
+
+
+
+
+class AutoSPSLock
+{
+  public:
+#ifdef JS_THREADSAFE
+    AutoSPSLock(PRLock *lock)
+    {
+        MOZ_ASSERT(lock, "Parameter should not be null!");
+        lock_ = lock;
+        PR_Lock(lock);
+    }
+    ~AutoSPSLock() { PR_Unlock(lock_); }
+#else
+    AutoSPSLock(PRLock *) {}
+#endif
+
+  private:
+    PRLock *lock_;
+};
+
+inline size_t
+SPSProfiler::stringsCount()
+{
+    AutoSPSLock lock(lock_);
+    return strings.count();
+}
+
+inline void
+SPSProfiler::stringsReset()
+{
+    AutoSPSLock lock(lock_);
+    strings.clear();
+}
 
 
 
