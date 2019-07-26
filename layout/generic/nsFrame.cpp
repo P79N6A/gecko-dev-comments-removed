@@ -2203,6 +2203,7 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
   if (isVisuallyAtomic || isPositioned || (!isSVG && disp->IsFloating(child)) ||
       ((disp->mClipFlags & NS_STYLE_CLIP_RECT) &&
        IsSVGContentWithCSSClip(child)) ||
+       (disp->mWillChangeBitField & NS_STYLE_WILL_CHANGE_STACKING_CONTEXT) ||
       (aFlags & DISPLAY_CHILD_FORCE_STACKING_CONTEXT)) {
     
     pseudoStackingContext = true;
@@ -8381,9 +8382,12 @@ nsIFrame::DestroyRegion(void* aPropertyValue)
 bool
 nsIFrame::IsPseudoStackingContextFromStyle() {
   const nsStyleDisplay* disp = StyleDisplay();
+  
+  
   return disp->mOpacity != 1.0f ||
          disp->IsPositioned(this) ||
-         disp->IsFloating(this);
+         disp->IsFloating(this) ||
+         (disp->mWillChangeBitField & NS_STYLE_WILL_CHANGE_STACKING_CONTEXT);
 }
 
 Element*
