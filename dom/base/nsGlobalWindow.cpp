@@ -7875,11 +7875,8 @@ PostMessageEvent::Run()
   NS_ABORT_IF_FALSE(!mSource || mSource->IsOuterWindow(),
                     "should have been passed an outer window!");
 
-  
-  nsIScriptContext* scriptContext = mTargetWindow->GetContext();
-  AutoPushJSContext cx(scriptContext ? scriptContext->GetNativeContext()
-                                     : nsContentUtils::GetSafeJSContext());
-  MOZ_ASSERT(cx);
+  AutoJSAPI jsapi;
+  JSContext* cx = jsapi.cx();
 
   
   
@@ -7892,6 +7889,7 @@ PostMessageEvent::Run()
 
   NS_ABORT_IF_FALSE(targetWindow->IsInnerWindow(),
                     "we ordered an inner window!");
+  JSAutoCompartment ac(cx, targetWindow->GetWrapperPreserveColor());
 
   
   
