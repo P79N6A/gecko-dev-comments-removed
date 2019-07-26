@@ -3121,6 +3121,7 @@ static JSBool
 ChildWindowGetter(JSContext *cx, JSHandleObject obj, JSHandleId id,
                   JSMutableHandleValue vp)
 {
+  MOZ_ASSERT(JSID_IS_STRING(id));
   
   vp.setUndefined();
   nsCOMPtr<nsISupports> winSupports =
@@ -3130,7 +3131,8 @@ ChildWindowGetter(JSContext *cx, JSHandleObject obj, JSHandleId id,
   nsGlobalWindow *win = nsGlobalWindow::FromSupports(winSupports);
 
   
-  nsCOMPtr<nsIDOMWindow> child = win->GetChildWindow(id);
+  nsDependentJSString name(id);
+  nsCOMPtr<nsIDOMWindow> child = win->GetChildWindow(name);
   if (!child)
     return true;
 
@@ -3174,7 +3176,8 @@ nsWindowSH::GlobalScopePolluterNewResolve(JSContext *cx, JSHandleObject obj,
   nsGlobalWindow* win = static_cast<nsGlobalWindow*>(piWin.get());
 
   if (win->GetLength() > 0) {
-    nsCOMPtr<nsIDOMWindow> child_win = win->GetChildWindow(id);
+    nsDependentJSString name(id);
+    nsCOMPtr<nsIDOMWindow> child_win = win->GetChildWindow(name);
     if (child_win) {
       
       
