@@ -649,6 +649,8 @@ pref("dom.disable_window_open_dialog_feature", true);
 
 pref("accessibility.accessfu.activate", 2);
 
+pref("accessibility.accessfu.utterance", 1);
+
 pref("accessibility.accessfu.skip_empty_images", true);
 
 
