@@ -10,18 +10,25 @@ log = '';
 assertEq(typeof newGlobal(), "object");
 assertEq(log, 'n');
 
-
-
+dbg.uncaughtExceptionHook = function (ex) { assertEq(/disallowed/.test(ex), true); log += 'u'; }
 dbg.onNewGlobalObject = function (g) { log += 'n'; return { return: "snoo" }; };
 log = '';
 assertEq(typeof newGlobal(), "object");
-assertEq(log, 'n');
+assertEq(log, 'nu');
 
 dbg.onNewGlobalObject = function (g) { log += 'n'; return { throw: "snoo" }; };
 log = '';
-assertThrowsValue(function () { newGlobal(); }, "snoo");
-assertEq(log, 'n');
+assertEq(typeof newGlobal(), "object");
+assertEq(log, 'nu');
 
 dbg.onNewGlobalObject = function (g) { log += 'n'; return null; };
 log = '';
-assertEq(evaluate('newGlobal();', { catchTermination: true }), "terminated");
+assertEq(typeof newGlobal(), "object");
+assertEq(log, 'nu');
+
+dbg.uncaughtExceptionHook = function (ex) { assertEq(/foopy/.test(ex), true); log += 'u'; }
+dbg.onNewGlobalObject = function (g) { log += 'n'; throw "foopy"; };
+log = '';
+assertEq(typeof newGlobal(), "object");
+assertEq(log, 'nu');
+
