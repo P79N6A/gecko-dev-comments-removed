@@ -2926,8 +2926,6 @@ nsCSSRendering::PrepareBackgroundLayer(nsPresContext* aPresContext,
   
   nsPoint imageTopLeft;
   if (NS_STYLE_BG_ATTACHMENT_FIXED == aLayer.mAttachment) {
-    aPresContext->SetHasFixedBackgroundFrame();
-
     if ((aFlags & nsCSSRendering::PAINTBG_TO_WINDOW) &&
         !IsTransformed(aForFrame, attachedToFrame)) {
       
