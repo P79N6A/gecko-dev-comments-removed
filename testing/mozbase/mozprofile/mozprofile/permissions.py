@@ -307,6 +307,10 @@ class Permissions(object):
         
         
         
+        
+        
+        
+        
         pacURL = """data:text/plain,
 var knownOrigins = (function () {
   return [%(origins)s].reduce(function(t, h) { t[h] = true; return t; }, {})
