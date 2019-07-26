@@ -136,22 +136,16 @@ public:
 
 
 
-
-
   virtual nsresult
-  StopDiscoveryInternal(const nsAString& aAdapterPath,
-                        BluetoothReplyRunnable* aRunnable) = 0;
+  StopDiscoveryInternal(BluetoothReplyRunnable* aRunnable) = 0;
 
   
 
 
 
 
-
-
   virtual nsresult
-  StartDiscoveryInternal(const nsAString& aAdapterPath,
-                         BluetoothReplyRunnable* aRunnable) = 0;
+  StartDiscoveryInternal(BluetoothReplyRunnable* aRunnable) = 0;
 
   
 
@@ -172,10 +166,8 @@ public:
 
 
 
-
   virtual nsresult
   SetProperty(BluetoothObjectType aType,
-              const nsAString& aPath,
               const BluetoothNamedValue& aValue,
               BluetoothReplyRunnable* aRunnable) = 0;
 
@@ -194,14 +186,12 @@ public:
                 nsAString& aDevicePath) = 0;
 
   virtual nsresult
-  CreatePairedDeviceInternal(const nsAString& aAdapterPath,
-                             const nsAString& aAddress,
+  CreatePairedDeviceInternal(const nsAString& aAddress,
                              int aTimeout,
                              BluetoothReplyRunnable* aRunnable) = 0;
 
   virtual nsresult
-  RemoveDeviceInternal(const nsAString& aAdapterPath,
-                       const nsAString& aObjectPath,
+  RemoveDeviceInternal(const nsAString& aObjectPath,
                        BluetoothReplyRunnable* aRunnable) = 0;
 
   virtual nsresult
@@ -236,11 +226,10 @@ public:
                            BluetoothReplyRunnable* aRunnable) = 0;
 
   virtual nsresult
-  PrepareAdapterInternal(const nsAString& aPath) = 0;
+  PrepareAdapterInternal() = 0;
 
   virtual void
   Connect(const nsAString& aDeviceAddress,
-          const nsAString& aAdapterPath,
           uint16_t aProfileId,
           BluetoothReplyRunnable* aRunnable) = 0;
 
