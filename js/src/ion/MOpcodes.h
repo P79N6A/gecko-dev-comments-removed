@@ -146,7 +146,8 @@ namespace ion {
     _(IteratorEnd)                                                          \
     _(StringLength)                                                         \
     _(Floor)                                                                \
-    _(Round)
+    _(Round)                                                                \
+    _(InterruptCheck)
 
 
 #define FORWARD_DECLARE(op) class M##op;

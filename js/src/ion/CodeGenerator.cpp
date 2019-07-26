@@ -756,9 +756,7 @@ CodeGenerator::visitCheckOverRecursed(LCheckOverRecursed *lir)
     
 
     JSRuntime *rt = gen->cx->runtime;
-
-    const LAllocation *limit = lir->limitTemp();
-    Register limitReg = ToRegister(limit);
+    Register limitReg = ToRegister(lir->limitTemp());
 
     
     
@@ -771,6 +769,7 @@ CodeGenerator::visitCheckOverRecursed(LCheckOverRecursed *lir)
 
     
     masm.branchPtr(Assembler::BelowOrEqual, StackPointer, limitReg, ool->entry());
+    masm.bind(ool->rejoin());
 
     return true;
 }
@@ -814,10 +813,8 @@ CodeGenerator::visitCheckOverRecursedFailure(CheckOverRecursedFailure *ool)
     if (!callVM(ReportOverRecursedInfo, ool->lir()))
         return false;
 
-#ifdef DEBUG
-    
-    masm.breakpoint();
-#endif
+    restoreLive(ool->lir());
+    masm.jump(ool->rejoin());
     return true;
 }
 

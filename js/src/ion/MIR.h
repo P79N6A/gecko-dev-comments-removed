@@ -2476,6 +2476,24 @@ class MRecompileCheck : public MNullaryInstruction
 };
 
 
+class MInterruptCheck : public MNullaryInstruction
+{
+    MInterruptCheck() {
+        setGuard();
+    }
+
+  public:
+    INSTRUCTION_HEADER(InterruptCheck);
+
+    static MInterruptCheck *New() {
+        return new MInterruptCheck();
+    }
+    AliasSet getAliasSet() const {
+        return AliasSet::None();
+    }
+};
+
+
 class MDefVar : public MUnaryInstruction
 {
   PropertyName *name_; 
