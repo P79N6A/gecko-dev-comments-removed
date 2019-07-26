@@ -875,6 +875,20 @@ void nsBaseWidget::CreateCompositor()
   CreateCompositor(rect.width, rect.height);
 }
 
+mozilla::layers::LayersBackend
+nsBaseWidget::GetPreferredCompositorBackend()
+{
+  
+  
+  
+  
+  if (Preferences::GetBool("layers.offmainthreadcomposition.prefer-basic", false)) {
+    return mozilla::layers::LAYERS_BASIC;
+  }
+
+  return mozilla::layers::LAYERS_OPENGL;
+}
+
 void nsBaseWidget::CreateCompositor(int aWidth, int aHeight)
 {
   
