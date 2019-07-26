@@ -946,15 +946,12 @@ public:
   {
     mContent->RemoveSystemEventListener(NS_LITERAL_STRING("transitionend"), this, false);
 
-    nsMenuPopupFrame* popupFrame = do_QueryFrame(mContent->GetPrimaryFrame());
-
     
     
     
     nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
-    if (pm && popupFrame) {
-      pm->HidePopupCallback(mContent, popupFrame, nullptr, nullptr,
-                            popupFrame->PopupType(), mDeselectMenu);
+    if (pm) {
+      pm->HidePopupFrame(mContent, mDeselectMenu);
     }
 
     return NS_OK;
@@ -969,7 +966,8 @@ nsXULPopupManager::HidePopupCallback(nsIContent* aPopup,
                                      nsIContent* aNextPopup,
                                      nsIContent* aLastPopup,
                                      nsPopupType aPopupType,
-                                     bool aDeselectMenu)
+                                     bool aDeselectMenu,
+                                     bool aIsRollup)
 {
   if (mCloseTimer && mTimerMenu == aPopupFrame) {
     mCloseTimer->Cancel();
@@ -1005,18 +1003,31 @@ nsXULPopupManager::HidePopupCallback(nsIContent* aPopup,
 
   delete item;
 
-  nsWeakFrame weakFrame(aPopupFrame);
-  aPopupFrame->HidePopup(aDeselectMenu, ePopupClosed);
-  ENSURE_TRUE(weakFrame.IsAlive());
+  
+  
+  
+  
+  
+  
+  
+  if (!aNextPopup && aPopup->HasAttr(kNameSpaceID_None, nsGkAtoms::animate) &&
+       aPopupFrame->StyleDisplay()->mTransitionPropertyCount > 0) {
+    nsAutoString animate;
+    aPopup->GetAttr(kNameSpaceID_None, nsGkAtoms::animate, animate);
 
-  
-  
-  nsEventStatus status = nsEventStatus_eIgnore;
-  WidgetMouseEvent event(true, NS_XUL_POPUP_HIDDEN, nullptr,
-                         WidgetMouseEvent::eReal);
-  EventDispatcher::Dispatch(aPopup, aPopupFrame->PresContext(),
-                            &event, nullptr, &status);
-  ENSURE_TRUE(weakFrame.IsAlive());
+    
+    
+    
+    if (!animate.EqualsLiteral("false") &&
+        (!animate.EqualsLiteral("cancel") || aIsRollup)) {
+      nsCOMPtr<TransitionEnder> ender = new TransitionEnder(aPopup, aDeselectMenu);
+      aPopup->AddSystemEventListener(NS_LITERAL_STRING("transitionend"),
+                                     ender, false, false);
+      return;
+    }
+  }
+
+  HidePopupFrame(aPopup, aDeselectMenu);
 
   
   if (aNextPopup && aPopup != aLastPopup) {
@@ -1056,6 +1067,26 @@ nsXULPopupManager::HidePopupCallback(nsIContent* aPopup,
                            foundMenu->PopupType(), aDeselectMenu, false);
     }
   }
+}
+
+void
+nsXULPopupManager::HidePopupFrame(nsIContent* aPopup, bool aDeselectMenu)
+{
+  nsMenuPopupFrame* popupFrame = do_QueryFrame(aPopup->GetPrimaryFrame());
+  if (!popupFrame)
+    return;
+
+  nsWeakFrame weakFrame(popupFrame);
+  popupFrame->HidePopup(aDeselectMenu, ePopupClosed);
+  ENSURE_TRUE(weakFrame.IsAlive());
+
+  
+  
+  nsEventStatus status = nsEventStatus_eIgnore;
+  WidgetMouseEvent event(true, NS_XUL_POPUP_HIDDEN, nullptr,
+                         WidgetMouseEvent::eReal);
+  EventDispatcher::Dispatch(aPopup, popupFrame->PresContext(),
+                            &event, nullptr, &status);
 }
 
 void
@@ -1362,32 +1393,8 @@ nsXULPopupManager::FirePopupHidingEvent(nsIContent* aPopup,
       popupFrame->SetPopupState(ePopupOpenAndVisible);
     }
     else {
-      
-      
-      
-      
-      
-      
-      
-      if (!aNextPopup && aPopup->HasAttr(kNameSpaceID_None, nsGkAtoms::animate) &&
-          popupFrame->StyleDisplay()->mTransitionPropertyCount > 0) {
-        nsAutoString animate;
-        aPopup->GetAttr(kNameSpaceID_None, nsGkAtoms::animate, animate);
-
-        
-        
-        
-        if (!animate.EqualsLiteral("false") &&
-            (!animate.EqualsLiteral("cancel") || aIsRollup)) {
-          nsCOMPtr<TransitionEnder> ender = new TransitionEnder(aPopup, aDeselectMenu);
-          aPopup->AddSystemEventListener(NS_LITERAL_STRING("transitionend"),
-                                         ender, false, false);
-          return;
-        }
-      }
-
       HidePopupCallback(aPopup, popupFrame, aNextPopup, aLastPopup,
-                        aPopupType, aDeselectMenu);
+                        aPopupType, aDeselectMenu, aIsRollup);
     }
   }
 }
