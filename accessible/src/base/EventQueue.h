@@ -75,7 +75,7 @@ protected:
   
 
 
-  nsRefPtr<DocAccessible> mDocument;
+  DocAccessible* mDocument;
 
   
 
