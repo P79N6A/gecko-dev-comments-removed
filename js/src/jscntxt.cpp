@@ -179,7 +179,6 @@ js::NewContext(JSRuntime *rt, size_t stackChunkSize)
 
 
 
-    bool first = rt->contextList.isEmpty();
     rt->contextList.insertBack(cx);
 
     
@@ -189,8 +188,7 @@ js::NewContext(JSRuntime *rt, size_t stackChunkSize)
 
 
 
-
-    if (first) {
+    if (!rt->haveCreatedContext) {
 #ifdef JS_THREADSAFE
         JS_BeginRequest(cx);
 #endif
@@ -207,6 +205,7 @@ js::NewContext(JSRuntime *rt, size_t stackChunkSize)
             DestroyContext(cx, DCM_NEW_FAILED);
             return NULL;
         }
+        rt->haveCreatedContext = true;
     }
 
     JSContextCallback cxCallback = rt->cxCallback;

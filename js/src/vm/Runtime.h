@@ -1301,6 +1301,9 @@ struct JSRuntime : public JS::shadow::Runtime,
     bool                hadOutOfMemory;
 
     
+    bool                haveCreatedContext;
+
+    
     mozilla::LinkedList<js::Debugger> debuggerList;
 
     
