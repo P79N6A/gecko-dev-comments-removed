@@ -77,10 +77,12 @@
 #include "nsIRemoteBlob.h"
 #include "nsIScriptError.h"
 #include "nsIScriptSecurityManager.h"
+#include "nsIStyleSheet.h"
 #include "nsISupportsPrimitives.h"
 #include "nsIURIFixup.h"
 #include "nsIWindowWatcher.h"
 #include "nsServiceManagerUtils.h"
+#include "nsStyleSheetService.h"
 #include "nsSystemInfo.h"
 #include "nsThreadUtils.h"
 #include "nsToolkitCompsCID.h"
@@ -1261,6 +1263,34 @@ ContentParent::ContentParent(mozIApplication* aApp,
         
         unused << SendAppInfo(version, buildID, name, UAName);
     }
+
+    nsStyleSheetService *sheetService = nsStyleSheetService::GetInstance();
+    if (sheetService) {
+        
+        
+
+        nsCOMArray<nsIStyleSheet>& agentSheets = *sheetService->AgentStyleSheets();
+        for (uint32_t i = 0; i < agentSheets.Length(); i++) {
+            URIParams uri;
+            SerializeURI(agentSheets[i]->GetSheetURI(), uri);
+            unused << SendLoadAndRegisterSheet(uri, nsIStyleSheetService::AGENT_SHEET);
+        }
+
+        nsCOMArray<nsIStyleSheet>& userSheets = *sheetService->UserStyleSheets();
+        for (uint32_t i = 0; i < userSheets.Length(); i++) {
+            URIParams uri;
+            SerializeURI(userSheets[i]->GetSheetURI(), uri);
+            unused << SendLoadAndRegisterSheet(uri, nsIStyleSheetService::USER_SHEET);
+        }
+
+        nsCOMArray<nsIStyleSheet>& authorSheets = *sheetService->AuthorStyleSheets();
+        for (uint32_t i = 0; i < authorSheets.Length(); i++) {
+            URIParams uri;
+            SerializeURI(authorSheets[i]->GetSheetURI(), uri);
+            unused << SendLoadAndRegisterSheet(uri, nsIStyleSheetService::AUTHOR_SHEET);
+        }
+    }
+
 }
 
 ContentParent::~ContentParent()
