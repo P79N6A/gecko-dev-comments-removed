@@ -9,7 +9,6 @@
 #define MOZILLA_LAYERS_LAYERTRANSACTIONCHILD_H
 
 #include <stdint.h>                     
-#include "gfxPoint.h"                   
 #include "mozilla/Attributes.h"         
 #include "mozilla/ipc/ProtocolUtils.h"
 #include "mozilla/layers/PLayerTransactionChild.h"
@@ -47,9 +46,9 @@ protected:
   friend class detail::RefCounted<LayerTransactionChild, detail::AtomicRefCount>;
 
   virtual PGrallocBufferChild*
-  AllocPGrallocBufferChild(const gfxIntSize&,
-                      const uint32_t&, const uint32_t&,
-                      MaybeMagicGrallocBufferHandle*) MOZ_OVERRIDE;
+  AllocPGrallocBufferChild(const IntSize&,
+                           const uint32_t&, const uint32_t&,
+                           MaybeMagicGrallocBufferHandle*) MOZ_OVERRIDE;
   virtual bool
   DeallocPGrallocBufferChild(PGrallocBufferChild* actor) MOZ_OVERRIDE;
 

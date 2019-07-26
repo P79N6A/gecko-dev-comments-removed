@@ -5,11 +5,13 @@
 
 
 
+#include "mozilla/gfx/Point.h"
 #include "mozilla/layers/PLayerTransaction.h"
 #include "mozilla/layers/ShadowLayers.h"
 #include "mozilla/layers/LayerManagerComposite.h"
 #include "mozilla/layers/CompositorTypes.h"
 
+#include "gfx2DGlue.h"
 #include "gfxPlatform.h"
 
 #include "gfxSharedQuartzSurface.h"
@@ -20,7 +22,7 @@ namespace mozilla {
 namespace layers {
 
 bool
-ISurfaceAllocator::PlatformAllocSurfaceDescriptor(const gfxIntSize& aSize,
+ISurfaceAllocator::PlatformAllocSurfaceDescriptor(const gfx::IntSize& aSize,
                                                   gfxContentType aContent,
                                                   uint32_t aCaps,
                                                   SurfaceDescriptor* aBuffer)
@@ -41,7 +43,7 @@ ShadowLayerForwarder::PlatformOpenDescriptor(OpenMode aMode,
 
     nsRefPtr<gfxASurface> surf =
       new gfxQuartzSurface((unsigned char*)image.data(),
-                           image.size(),
+                           gfx::ThebesIntSize(image.size()),
                            image.stride(),
                            format);
     return surf.forget();

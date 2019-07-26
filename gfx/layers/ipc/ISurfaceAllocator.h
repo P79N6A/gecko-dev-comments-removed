@@ -9,7 +9,7 @@
 #include <stddef.h>                     
 #include <stdint.h>                     
 #include "gfxTypes.h"
-#include "gfxPoint.h"                   
+#include "mozilla/gfx/Point.h"          
 #include "mozilla/ipc/SharedMemory.h"   
 #include "mozilla/RefPtr.h"
 #include "nsIMemoryReporter.h"          
@@ -100,15 +100,15 @@ public:
   virtual void DeallocShmem(mozilla::ipc::Shmem& aShmem) = 0;
 
   
-  virtual bool AllocSharedImageSurface(const gfxIntSize& aSize,
+  virtual bool AllocSharedImageSurface(const gfx::IntSize& aSize,
                                        gfxContentType aContent,
                                        gfxSharedImageSurface** aBuffer);
-  virtual bool AllocSurfaceDescriptor(const gfxIntSize& aSize,
+  virtual bool AllocSurfaceDescriptor(const gfx::IntSize& aSize,
                                       gfxContentType aContent,
                                       SurfaceDescriptor* aBuffer);
 
   
-  virtual bool AllocSurfaceDescriptorWithCaps(const gfxIntSize& aSize,
+  virtual bool AllocSurfaceDescriptorWithCaps(const gfx::IntSize& aSize,
                                               gfxContentType aContent,
                                               uint32_t aCaps,
                                               SurfaceDescriptor* aBuffer);
@@ -134,7 +134,7 @@ protected:
   
   virtual bool IsOnCompositorSide() const = 0;
   static bool PlatformDestroySharedSurface(SurfaceDescriptor* aSurface);
-  virtual bool PlatformAllocSurfaceDescriptor(const gfxIntSize& aSize,
+  virtual bool PlatformAllocSurfaceDescriptor(const gfx::IntSize& aSize,
                                               gfxContentType aContent,
                                               uint32_t aCaps,
                                               SurfaceDescriptor* aBuffer);

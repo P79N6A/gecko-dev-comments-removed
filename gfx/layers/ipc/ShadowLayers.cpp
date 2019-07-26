@@ -14,6 +14,7 @@
 #include "Layers.h"                     
 #include "RenderTrace.h"                
 #include "ShadowLayerChild.h"           
+#include "gfx2DGlue.h"                  
 #include "gfxImageSurface.h"            
 #include "gfxPlatform.h"                
 #include "gfxSharedImageSurface.h"      
@@ -627,7 +628,7 @@ ShadowLayerForwarder::OpenDescriptor(OpenMode aMode,
     gfxImageFormat format
       = static_cast<gfxImageFormat>(image.format());
     surf = new gfxImageSurface((unsigned char *)image.data(),
-                               image.size(),
+                               gfx::ThebesIntSize(image.size()),
                                image.stride(),
                                format);
     return surf.forget();

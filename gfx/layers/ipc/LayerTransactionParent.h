@@ -11,7 +11,6 @@
 #include <stddef.h>                     
 #include <stdint.h>                     
 #include "CompositableTransactionParent.h"
-#include "gfxPoint.h"                   
 #include "mozilla/Attributes.h"         
 #include "mozilla/ipc/SharedMemory.h"   
 #include "mozilla/layers/PLayerTransactionParent.h"
@@ -96,9 +95,9 @@ protected:
                                 gfx3DMatrix* aTransform) MOZ_OVERRIDE;
 
   virtual PGrallocBufferParent*
-  AllocPGrallocBufferParent(const gfxIntSize& aSize,
-                      const uint32_t& aFormat, const uint32_t& aUsage,
-                      MaybeMagicGrallocBufferHandle* aOutHandle) MOZ_OVERRIDE;
+  AllocPGrallocBufferParent(const IntSize& aSize,
+                            const uint32_t& aFormat, const uint32_t& aUsage,
+                            MaybeMagicGrallocBufferHandle* aOutHandle) MOZ_OVERRIDE;
   virtual bool
   DeallocPGrallocBufferParent(PGrallocBufferParent* actor) MOZ_OVERRIDE;
 
