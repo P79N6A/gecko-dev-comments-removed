@@ -81,7 +81,7 @@ public class SyncStorageRequest implements Resource {
   
 
 
-  public class SyncStorageResourceDelegate extends SyncResourceDelegate {
+  public class SyncStorageResourceDelegate extends BaseResourceDelegate {
     private static final String LOG_TAG = "SSResourceDelegate";
     protected SyncStorageRequest request;
 
@@ -91,8 +91,13 @@ public class SyncStorageRequest implements Resource {
     }
 
     @Override
-    public String getCredentials() {
-      return this.request.delegate.credentials();
+    public AuthHeaderProvider getAuthHeaderProvider() {
+      String credentials = request.delegate.credentials();
+      if (credentials == null) {
+        return null;
+      }
+
+      return new BasicAuthHeaderProvider(credentials);
     }
 
     @Override
@@ -145,7 +150,7 @@ public class SyncStorageRequest implements Resource {
     }
   }
 
-  protected SyncResourceDelegate resourceDelegate;
+  protected BaseResourceDelegate resourceDelegate;
   public SyncStorageRequestDelegate delegate;
   protected BaseResource resource;
 
@@ -154,7 +159,7 @@ public class SyncStorageRequest implements Resource {
   }
 
   
-  protected SyncResourceDelegate makeResourceDelegate(SyncStorageRequest request) {
+  protected BaseResourceDelegate makeResourceDelegate(SyncStorageRequest request) {
     return new SyncStorageResourceDelegate(request);
   }
 

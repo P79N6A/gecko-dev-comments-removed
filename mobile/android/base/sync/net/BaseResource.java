@@ -6,6 +6,7 @@ package org.mozilla.gecko.sync.net;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.lang.ref.WeakReference;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -16,14 +17,15 @@ import java.security.SecureRandom;
 
 import javax.net.ssl.SSLContext;
 
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.mozilla.gecko.sync.ExtendedJSONObject;
 import org.mozilla.gecko.sync.Logger;
 
 import ch.boye.httpclientandroidlib.Header;
 import ch.boye.httpclientandroidlib.HttpEntity;
 import ch.boye.httpclientandroidlib.HttpResponse;
 import ch.boye.httpclientandroidlib.HttpVersion;
-import ch.boye.httpclientandroidlib.auth.Credentials;
-import ch.boye.httpclientandroidlib.auth.UsernamePasswordCredentials;
 import ch.boye.httpclientandroidlib.client.AuthCache;
 import ch.boye.httpclientandroidlib.client.ClientProtocolException;
 import ch.boye.httpclientandroidlib.client.methods.HttpDelete;
@@ -38,7 +40,7 @@ import ch.boye.httpclientandroidlib.conn.scheme.PlainSocketFactory;
 import ch.boye.httpclientandroidlib.conn.scheme.Scheme;
 import ch.boye.httpclientandroidlib.conn.scheme.SchemeRegistry;
 import ch.boye.httpclientandroidlib.conn.ssl.SSLSocketFactory;
-import ch.boye.httpclientandroidlib.impl.auth.BasicScheme;
+import ch.boye.httpclientandroidlib.entity.StringEntity;
 import ch.boye.httpclientandroidlib.impl.client.BasicAuthCache;
 import ch.boye.httpclientandroidlib.impl.client.DefaultHttpClient;
 import ch.boye.httpclientandroidlib.impl.conn.tsccm.ThreadSafeClientConnManager;
@@ -132,28 +134,9 @@ public class BaseResource implements Resource {
   
 
 
-  public static Header getBasicAuthHeader(final String credentials) {
-    Credentials creds = new UsernamePasswordCredentials(credentials);
-
-    
-    return BasicScheme.authenticate(creds, "UTF-8", false);
-  }
-
-  
 
 
-
-  private static void applyCredentials(String credentials, HttpUriRequest request, HttpContext context) {
-    request.addHeader(getBasicAuthHeader(credentials));
-    Logger.trace(LOG_TAG, "Adding Basic Auth header.");
-  }
-
-  
-
-
-
-
-  private void prepareClient() throws KeyManagementException, NoSuchAlgorithmException {
+  protected void prepareClient() throws KeyManagementException, NoSuchAlgorithmException, GeneralSecurityException {
     context = new BasicHttpContext();
 
     
@@ -162,9 +145,13 @@ public class BaseResource implements Resource {
 
     
     
-    String credentials = delegate.getCredentials();
-    if (credentials != null) {
-      BaseResource.applyCredentials(credentials, request, context);
+    AuthHeaderProvider authHeaderProvider = delegate.getAuthHeaderProvider();
+    if (authHeaderProvider != null) {
+      Header authHeader = authHeaderProvider.getAuthHeader(request, context, client);
+      if (authHeader != null) {
+        request.addHeader(authHeader);
+        Logger.debug(LOG_TAG, "Added auth header.");
+      }
     }
 
     addAuthCacheToContext(request, context);
@@ -296,6 +283,10 @@ public class BaseResource implements Resource {
       Logger.error(LOG_TAG, "Couldn't prepare client.", e);
       delegate.handleTransportException(e);
       return;
+    } catch (GeneralSecurityException e) {
+      Logger.error(LOG_TAG, "Couldn't prepare client.", e);
+      delegate.handleTransportException(e);
+      return;
     } catch (Exception e) {
       
       
@@ -341,6 +332,36 @@ public class BaseResource implements Resource {
     HttpPut request = new HttpPut(this.uri);
     request.setEntity(body);
     this.go(request);
+  }
+
+  protected static StringEntity stringEntityWithContentTypeApplicationJSON(String s) throws UnsupportedEncodingException {
+    StringEntity e = new StringEntity(s, "UTF-8");
+    e.setContentType("application/json");
+    return e;
+  }
+
+  
+
+
+
+  protected static StringEntity jsonEntity(JSONObject body) throws UnsupportedEncodingException {
+    return stringEntityWithContentTypeApplicationJSON(body.toJSONString());
+  }
+
+  
+
+
+
+  protected static StringEntity jsonEntity(ExtendedJSONObject body) throws UnsupportedEncodingException {
+    return stringEntityWithContentTypeApplicationJSON(body.toJSONString());
+  }
+
+  
+
+
+
+  protected static HttpEntity jsonEntity(JSONArray toPOST) throws UnsupportedEncodingException {
+    return stringEntityWithContentTypeApplicationJSON(toPOST.toJSONString());
   }
 
   
@@ -410,5 +431,17 @@ public class BaseResource implements Resource {
     } catch (IOException e) {
       
     }
+  }
+
+  public void post(JSONArray jsonArray) throws UnsupportedEncodingException {
+    post(jsonEntity(jsonArray));
+  }
+
+  public void put(JSONObject jsonObject) throws UnsupportedEncodingException {
+    put(jsonEntity(jsonObject));
+  }
+
+  public void post(ExtendedJSONObject o) throws UnsupportedEncodingException {
+    post(jsonEntity(o));
   }
 }
