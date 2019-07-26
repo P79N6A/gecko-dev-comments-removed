@@ -227,42 +227,9 @@ let tests = [
       isnot([r, g, b].toString(), [0, 255, 0].toString(),
             "The captured page should not be green.");
       gBrowser.removeTab(tab);
-      file.remove(false);
       deferred.resolve();
     });
     yield deferred.promise;
-  },
-
-  
-  
-  
-  
-  
-  
-  
-  
-  function noAuthPrompt() {
-    let url = "http://mochi.test:8888/browser/browser/base/content/test/authenticate.sjs?user=anyone";
-    let file = fileForURL(url);
-    ok(!file.exists(), "Thumbnail file should not already exist.");
-
-    let capturedURL = yield capture(url);
-    is(capturedURL, url, "Captured URL should be URL passed to capture.");
-    ok(file.exists(),
-       "Thumbnail file should exist even though it requires auth.");
-    file.remove(false);
-  },
-
-  function noAlert() {
-    let url = "data:text/html,<script>alert('yo!');</script>";
-    let file = fileForURL(url);
-    ok(!file.exists(), "Thumbnail file should not already exist.");
-
-    let capturedURL = yield capture(url);
-    is(capturedURL, url, "Captured URL should be URL passed to capture.");
-    ok(file.exists(),
-       "Thumbnail file should exist even though it alerted.");
-    file.remove(false);
   },
 ];
 

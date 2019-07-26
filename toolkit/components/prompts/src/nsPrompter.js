@@ -368,11 +368,13 @@ function openModalWindow(domWin, uri, args) {
     
     
     if (!domWin)
-        throw Components.Exception("openModalWindow, but no parent passed", Cr.NS_ERROR_NOT_AVAILABLE);
-    let winUtils = domWin.QueryInterface(Ci.nsIInterfaceRequestor)
-                     .getInterface(Ci.nsIDOMWindowUtils);
-    if (!winUtils.isParentWindowMainWidgetVisible)
-        throw Components.Exception("Cannot call openModalWindow on a hidden window", Cr.NS_ERROR_NOT_AVAILABLE);
+        domWin = Services.ww.activeWindow;
+
+    
+
+    
+    
+    
 
     Services.ww.openWindow(domWin, uri, "_blank", "centerscreen,chrome,modal,titlebar", args);
 }
