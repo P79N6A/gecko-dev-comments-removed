@@ -42,6 +42,8 @@ public class Favicons {
         }
     };
 
+    public static Bitmap sDefaultFavicon;
+
     
     
     private static final LruCache<String, Long> sFailedCache = new LruCache<String, Long>(64);
@@ -200,6 +202,9 @@ public class Favicons {
         if (sFaviconLargeSize < 0) {
             sFaviconLargeSize = Math.round(sContext.getResources().getDimension(R.dimen.favicon_size_large));
         }
+
+        
+        sDefaultFavicon = BitmapUtils.decodeResource(sContext, R.drawable.favicon);
     }
     public static void removeLoadTask(long taskId) {
         sLoadTasks.remove(taskId);

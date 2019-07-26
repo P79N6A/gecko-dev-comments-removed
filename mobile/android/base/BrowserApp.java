@@ -1333,13 +1333,12 @@ abstract public class BrowserApp extends GeckoApp
         int flags = LoadFaviconTask.FLAG_SCALE | ( (tab.isPrivate() || tab.getErrorType() != Tab.ErrorType.NONE) ? 0 : LoadFaviconTask.FLAG_PERSIST);
         int id = Favicons.loadFavicon(tab.getURL(), tab.getFaviconURL(), flags,
                         new OnFaviconLoadedListener() {
-
             @Override
             public void onFaviconLoaded(String pageUrl, Bitmap favicon) {
                 
-                
-                if (favicon == null)
-                    return;
+                if (favicon == null) {
+                    favicon = Favicons.sDefaultFavicon;
+                }
 
                 
                 
