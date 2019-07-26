@@ -11,7 +11,6 @@
 #include "nsComponentManagerUtils.h"
 #include "nsServiceManagerUtils.h"
 #include "nsThreadUtils.h"
-#include "mozilla/DebugOnly.h"
 #include "mozilla/Services.h"
 
 #ifdef DEBUG
@@ -235,17 +234,6 @@ LazyIdleThread::ShutdownThread()
 
   nsresult rv;
 
-  
-  
-  if (mIdleTimer) {
-    DebugOnly<nsresult> rv =
-      mIdleTimer->Cancel();
-    
-    MOZ_ASSERT(NS_SUCCEEDED(rv));
-
-    mIdleTimer = nullptr;
-  }
-
   if (mThread) {
     if (mShutdownMethod == AutomaticShutdown && NS_IsMainThread()) {
       nsCOMPtr<nsIObserverService> obs =
@@ -272,7 +260,7 @@ LazyIdleThread::ShutdownThread()
 
     nsCOMPtr<nsIRunnable> runnable =
       NS_NewRunnableMethod(this, &LazyIdleThread::CleanupThread);
-    MOZ_ASSERT(runnable);
+    NS_ENSURE_TRUE(runnable, NS_ERROR_FAILURE);
 
     PreDispatch();
 
@@ -299,6 +287,13 @@ LazyIdleThread::ShutdownThread()
       MOZ_ASSERT(mThreadIsShuttingDown, "Huh?!");
       mThreadIsShuttingDown = false;
     }
+  }
+
+  if (mIdleTimer) {
+    rv = mIdleTimer->Cancel();
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    mIdleTimer = nullptr;
   }
 
   
