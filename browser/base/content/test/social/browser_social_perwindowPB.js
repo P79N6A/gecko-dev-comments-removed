@@ -38,7 +38,9 @@ function test() {
     name: "provider 1",
     origin: "https://example.com",
     sidebarURL: "https://example.com/browser/browser/base/content/test/social/social_sidebar.html",
+    statusURL: "https://example.com/browser/browser/base/content/test/social/social_panel.html",
     workerURL: "https://example.com/browser/browser/base/content/test/social/social_worker.js",
+    markURL: "https://example.com/browser/browser/base/content/test/social/social_mark.html?url=%{url}",
     iconURL: "https://example.com/browser/browser/base/content/test/general/moz.png"
   };
   runSocialTestWithProvider(manifest, function (finishcb) {
@@ -68,10 +70,26 @@ var tests = {
           info("checking private window ui");
           ok(!pbwin.SocialUI.enabled, "social is disabled in a PB window");
           checkSocialUI(pbwin);
+
           
           info("checking main window ui");
           ok(window.SocialUI.enabled, "social is still enabled in normal window");
           checkSocialUI(window);
+
+          
+          
+          let id = SocialStatus._toolbarHelper.idFromOrigin("https://example.com");
+          let widget = CustomizableUI.getWidget(id);
+          ok(widget.forWindow(pbwin).node.disabled, "status button disabled on private window");
+          ok(!widget.forWindow(window).node.disabled, "status button enabled on normal window");
+
+          
+          
+          id = SocialMarks._toolbarHelper.idFromOrigin("https://example.com");
+          widget = CustomizableUI.getWidget(id);
+          ok(widget.forWindow(pbwin).node.disabled, "mark button disabled on private window");
+          ok(!widget.forWindow(window).node.disabled, "mark button enabled on normal window");
+
           
           pbwin.close();
           next();
