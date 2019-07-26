@@ -264,10 +264,6 @@ Fold(ExclusiveContext *cx, ParseNode **pnp,
             pn->pn_funbox->useAsmOrInsideUseAsm() && options.asmJSOption)
         {
             return true;
-        }
-        if (pn->getKind() == PNK_MODULE) {
-            if (!Fold(cx, &pn->pn_body, handler, options, false, SyntacticContext::Other))
-                return false;
         } else {
             
             JS_ASSERT(pn->getKind() == PNK_FUNCTION);
