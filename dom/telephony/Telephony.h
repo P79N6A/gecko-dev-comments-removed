@@ -9,6 +9,9 @@
 
 #include "TelephonyCommon.h"
 
+
+#include "TelephonyCall.h"
+
 #include "nsIDOMTelephony.h"
 #include "nsIDOMTelephonyCall.h"
 #include "nsITelephonyProvider.h"
@@ -56,7 +59,9 @@ public:
                                                    nsDOMEventTargetHelper)
 
   static already_AddRefed<Telephony>
-  Create(nsPIDOMWindow* aOwner, nsITelephonyProvider* aProvider);
+  Create(nsPIDOMWindow* aOwner, ErrorResult& aRv);
+
+  static bool CheckPermission(nsPIDOMWindow* aOwner);
 
   nsISupports*
   ToISupports()

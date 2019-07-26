@@ -306,6 +306,9 @@ public:
                             systemMessageCallback* aCallback,
                             ErrorResult& aRv);
   bool MozHasPendingMessage(const nsAString& aType, ErrorResult& aRv);
+#ifdef MOZ_B2G_RIL
+  nsIDOMTelephony* GetMozTelephony(ErrorResult& aRv);
+#endif
 
 
   
@@ -323,6 +326,10 @@ public:
                                       JSObject* aGlobal);
   static bool HasCameraSupport(JSContext* ,
                                JSObject* aGlobal);
+#ifdef MOZ_B2G_RIL
+  static bool HasTelephonySupport(JSContext* ,
+                                  JSObject* aGlobal);
+#endif 
   nsPIDOMWindow* GetParentObject() const
   {
     return GetWindow();
