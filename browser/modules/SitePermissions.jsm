@@ -34,8 +34,24 @@ this.SitePermissions = {
 
 
   getAvailableStates: function (aPermissionID) {
-    return gPermissionObject[aPermissionID].states ||
-           [ SitePermissions.ALLOW, SitePermissions.BLOCK ];
+    if (aPermissionID in gPermissionObject &&
+        gPermissionObject[aPermissionID].states)
+      return gPermissionObject[aPermissionID].states;
+
+    if (this.getDefault(aPermissionID) == this.UNKNOWN)
+      return [ SitePermissions.UNKNOWN, SitePermissions.ALLOW, SitePermissions.BLOCK ];
+
+    return [ SitePermissions.ALLOW, SitePermissions.BLOCK ];
+  },
+
+  
+
+  getDefault: function (aPermissionID) {
+    if (aPermissionID in gPermissionObject &&
+        gPermissionObject[aPermissionID].getDefault)
+      return gPermissionObject[aPermissionID].getDefault();
+
+    return this.UNKNOWN;
   },
 
   
@@ -45,7 +61,8 @@ this.SitePermissions = {
       return this.UNKNOWN;
 
     let state;
-    if (gPermissionObject[aPermissionID].exactHostMatch)
+    if (aPermissionID in gPermissionObject &&
+        gPermissionObject[aPermissionID].exactHostMatch)
       state = Services.perms.testExactPermission(aURI, aPermissionID);
     else
       state = Services.perms.testPermission(aURI, aPermissionID);
@@ -58,10 +75,29 @@ this.SitePermissions = {
     if (!this.isSupportedURI(aURI))
       return;
 
+    if (aState == this.UNKNOWN) {
+      this.remove(aURI, aPermissionID);
+      return;
+    }
+
     Services.perms.add(aURI, aPermissionID, aState);
 
-    if (gPermissionObject[aPermissionID].onSet)
-      gPermissionObject[aPermissionID].onSet(aURI, aState);
+    if (aPermissionID in gPermissionObject &&
+        gPermissionObject[aPermissionID].onChange)
+      gPermissionObject[aPermissionID].onChange(aURI, aState);
+  },
+
+  
+
+  remove: function (aURI, aPermission) {
+    if (!this.isSupportedURI(aURI))
+      return;
+
+    Services.perms.remove(aURI.host, aPermission);
+
+    if (aPermissionID in gPermissionObject &&
+        gPermissionObject[aPermissionID].onChange)
+      gPermissionObject[aPermissionID].onChange(aURI, this.UNKNOWN);
   },
 
   
@@ -76,6 +112,8 @@ this.SitePermissions = {
 
   getStateLabel: function (aState) {
     switch (aState) {
+      case this.UNKNOWN:
+        return gStringBundle.GetStringFromName("alwaysAsk");
       case this.ALLOW:
         return gStringBundle.GetStringFromName("allow");
       case this.SESSION:
@@ -105,24 +143,56 @@ let gPermissionObject = {
 
 
 
-  "image": {},
+
+
+
+
+
+  "image": {
+    getDefault: function () {
+      return Services.prefs.getIntPref("permissions.default.image") == 2 ?
+               SitePermissions.BLOCK : SitePermissions.ALLOW;
+    }
+  },
 
   "cookie": {
-    states: [ SitePermissions.ALLOW, SitePermissions.SESSION, SitePermissions.BLOCK ]
+    states: [ SitePermissions.ALLOW, SitePermissions.SESSION, SitePermissions.BLOCK ],
+    getDefault: function () {
+      if (Services.prefs.getIntPref("network.cookie.cookieBehavior") == 2)
+        return SitePermissions.BLOCK;
+
+      if (Services.prefs.getIntPref("network.cookie.lifetimePolicy") == 2)
+        return SitePermissions.SESSION;
+
+      return SitePermissions.ALLOW;
+    }
   },
 
   "desktop-notification": {},
 
-  "popup": {},
+  "popup": {
+    getDefault: function () {
+      return Services.prefs.getBoolPref("dom.disable_open_during_load") ?
+               SitePermissions.BLOCK : SitePermissions.ALLOW;
+    }
+  },
 
-  "install": {},
+  "install": {
+    getDefault: function () {
+      return Services.prefs.getBoolPref("xpinstall.whitelist.required") ?
+               SitePermissions.BLOCK : SitePermissions.ALLOW;
+    }
+  },
 
   "geo": {
     exactHostMatch: true
   },
 
   "indexedDB": {
-    onSet: function (aURI, aState) {
+    getDefault: function () {
+      return SitePermissions.ALLOW;
+    },
+    onChange: function (aURI, aState) {
       if (aState == SitePermissions.ALLOW || aState == SitePermissions.BLOCK)
         Services.perms.remove(aURI.host, "indexedDB-unlimited");
     }
