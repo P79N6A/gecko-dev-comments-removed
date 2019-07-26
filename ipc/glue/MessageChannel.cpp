@@ -428,8 +428,10 @@ MessageChannel::MaybeInterceptSpecialIOMessage(const Message& aMsg)
         
         
         mChannelState = ChannelClosing;
-        printf("NOTE: %s process received `Goodbye', closing down\n",
-               (mSide == ChildSide) ? "child" : "parent");
+        if (LoggingEnabled()) {
+            printf("NOTE: %s process received `Goodbye', closing down\n",
+                   (mSide == ChildSide) ? "child" : "parent");
+        }
         return true;
     }
     return false;
@@ -1731,4 +1733,3 @@ MessageChannel::DumpInterruptStack(const char* const pfx) const
 
 } 
 } 
-
