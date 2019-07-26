@@ -98,6 +98,17 @@ GFX2D_API void AppendRoundedRectToPath(PathBuilder* aPathBuilder,
                                        const Size(& aCornerRadii)[4],
                                        bool aDrawClockwise = true);
 
+
+
+
+
+
+
+
+GFX2D_API void AppendEllipseToPath(PathBuilder* aPathBuilder,
+                                   const Point& aCenter,
+                                   const Size& aDimensions);
+
 } 
 } 
 
