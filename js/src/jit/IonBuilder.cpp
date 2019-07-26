@@ -3772,14 +3772,23 @@ IonBuilder::inlineScriptedCall(CallInfo &callInfo, JSFunction *target)
     AutoAccumulateExits aae(graph(), saveExits);
 
     
+    JS_ASSERT(!cx->isExceptionPending());
     IonBuilder inlineBuilder(cx, &temp(), &graph(), &inspector, info, NULL,
                              inliningDepth_ + 1, loopDepth_);
     if (!inlineBuilder.buildInline(this, outerResumePoint, callInfo)) {
         JS_ASSERT(calleeScript->hasAnalysis());
+        if (cx->isExceptionPending()) {
+            IonSpew(IonSpew_Abort, "Inline builder raised exception.");
+            abortReason_ = AbortReason_Error;
+            return false;
+        }
 
         
-        if (inlineBuilder.abortReason_ == AbortReason_Disable)
+        if (inlineBuilder.abortReason_ == AbortReason_Disable) {
+            
+            
             calleeScript->analysis()->setIonUninlineable();
+        }
 
         abortReason_ = AbortReason_Inlining;
         return false;
@@ -5565,9 +5574,20 @@ IonBuilder::jsop_initprop(HandlePropertyName name)
     if (!res)
         return false;
 
-    if (!shape || holder != templateObject ||
-        PropertyWriteNeedsTypeBarrier(cx, current, &obj, name, &value))
+    if (!shape || holder != templateObject) {
+        
+        MInitProp *init = MInitProp::New(obj, name, value);
+        current->add(init);
+        return resumeAfter(init);
+    }
+
+    bool writeNeedsBarrier = false;
+    if (!PropertyWriteNeedsTypeBarrier(cx, current, &obj, name, &value,  true,
+                                       &writeNeedsBarrier))
     {
+        return false;
+    }
+    if (writeNeedsBarrier) {
         
         MInitProp *init = MInitProp::New(obj, name, value);
         current->add(init);
@@ -6267,7 +6287,12 @@ IonBuilder::getStaticName(HandleObject staticObject, HandlePropertyName name, bo
     }
 
     types::StackTypeSet *types = types::TypeScript::BytecodeTypes(script(), pc);
-    bool barrier = PropertyReadNeedsTypeBarrier(cx, staticType, name, types);
+    bool barrier;
+    if (!PropertyReadNeedsTypeBarrier(cx, staticType, name, types,  true,
+                                      &barrier))
+    {
+        return false;
+    }
 
     
 
@@ -6791,7 +6816,9 @@ IonBuilder::getElemTryCache(bool *emitted, MDefinition *obj, MDefinition *index)
     
 
     types::StackTypeSet *types = types::TypeScript::BytecodeTypes(script(), pc);
-    bool barrier = PropertyReadNeedsTypeBarrier(cx, obj, NULL, types);
+    bool barrier;
+    if (!PropertyReadNeedsTypeBarrier(cx, obj, NULL, types, &barrier))
+        return false;
 
     
     
@@ -6835,10 +6862,14 @@ IonBuilder::jsop_getelem_dense(MDefinition *obj, MDefinition *index)
         
         
         
-        AddObjectsForPropertyRead(cx, obj, NULL, types);
+        if (!AddObjectsForPropertyRead(cx, obj, NULL, types))
+            return false;
     }
 
-    bool barrier = PropertyReadNeedsTypeBarrier(cx, obj, NULL, types);
+    bool barrier;
+    if (!PropertyReadNeedsTypeBarrier(cx, obj, NULL, types, &barrier))
+        return false;
+
     bool needsHoleCheck = !ElementAccessIsPacked(cx, obj);
 
     
@@ -7203,7 +7234,13 @@ IonBuilder::setElemTryDense(bool *emitted, MDefinition *object,
 
     if (!ElementAccessIsDenseNative(object, index))
         return true;
-    if (PropertyWriteNeedsTypeBarrier(cx, current, &object, NULL, &value))
+    bool needsBarrier;
+    if (!PropertyWriteNeedsTypeBarrier(cx, current, &object, NULL, &value,  true,
+                                       &needsBarrier))
+    {
+        return false;
+    }
+    if (needsBarrier)
         return true;
     if (!object->resultTypeSet())
         return true;
@@ -7263,7 +7300,14 @@ IonBuilder::setElemTryCache(bool *emitted, MDefinition *object,
     if (!icInspect.sawDenseWrite())
         return true;
 
-    if (PropertyWriteNeedsTypeBarrier(cx, current, &object, NULL, &value))
+    bool needsBarrier;
+    if (PropertyWriteNeedsTypeBarrier(cx, current, &object, NULL, &value,  true,
+                                      &needsBarrier))
+    {
+        return false;
+    }
+
+    if (needsBarrier)
         return true;
 
     
@@ -7283,7 +7327,10 @@ IonBuilder::jsop_setelem_dense(types::StackTypeSet::DoubleConversion conversion,
                                SetElemSafety safety,
                                MDefinition *obj, MDefinition *id, MDefinition *value)
 {
-    MIRType elementType = DenseNativeElementType(cx, obj);
+    MIRType elementType;
+    if (!DenseNativeElementType(cx, obj, &elementType))
+        return false;
+
     bool packed = ElementAccessIsPacked(cx, obj);
 
     
@@ -8100,7 +8147,9 @@ IonBuilder::jsop_getprop(HandlePropertyName name)
     if (!getPropTryArgumentsLength(&emitted) || emitted)
         return emitted;
 
-    bool barrier = PropertyReadNeedsTypeBarrier(cx, current->peek(-1), name, types);
+    bool barrier;
+    if (!PropertyReadNeedsTypeBarrier(cx, current->peek(-1), name, types, &barrier))
+        return false;
 
     
     if (!getPropTryConstant(&emitted, id, types) || emitted)
@@ -8405,7 +8454,11 @@ IonBuilder::getPropTryCache(bool *emitted, HandlePropertyName name, HandleId id,
     if (obj->type() == MIRType_Object && !invalidatedIdempotentCache() &&
         info().executionMode() != ParallelExecution)
     {
-        if (PropertyReadIsIdempotent(cx, obj, name))
+        bool idempotent;
+        if (!PropertyReadIsIdempotent(cx, obj, name, &idempotent))
+            return false;
+
+        if (idempotent)
             load->setIdempotent();
     }
 
@@ -8480,7 +8533,12 @@ IonBuilder::jsop_setprop(HandlePropertyName name)
         return emitted;
 
     types::StackTypeSet *objTypes = obj->resultTypeSet();
-    bool barrier = PropertyWriteNeedsTypeBarrier(cx, current, &obj, name, &value);
+    bool barrier;
+    if (!PropertyWriteNeedsTypeBarrier(cx, current, &obj, name, &value,
+                                        true, &barrier))
+    {
+        return false;
+    }
 
     
     if (!setPropTryDefiniteSlot(&emitted, obj, name, value, barrier, objTypes) || emitted)
