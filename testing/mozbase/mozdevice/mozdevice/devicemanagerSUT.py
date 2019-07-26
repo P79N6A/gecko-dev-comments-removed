@@ -2,6 +2,7 @@
 
 
 
+import datetime
 import mozlog
 import select
 import socket
@@ -425,6 +426,12 @@ class DeviceManagerSUT(DeviceManager):
         if self.dirExists(remoteDir):
             self._runCmds([{ 'cmd': 'rmdr ' + remoteDir }])
 
+    def moveTree(self, source, destination):
+        self._runCmds([{ 'cmd': 'mv %s %s' % (source, destination) }])
+
+    def copyTree(self, source, destination):
+        self._runCmds([{ 'cmd': 'dd if=%s of=%s' % (source, destination) }])
+
     def getProcessList(self):
         data = self._runCmds([{ 'cmd': 'ps' }])
 
@@ -723,61 +730,83 @@ class DeviceManagerSUT(DeviceManager):
 
         self._runCmds([{ 'cmd': 'unzp %s %s' % (filePath, destDir)}])
 
-    def _wait_for_reboot(self, host, port):
-        self._logger.debug('Creating server with %s:%d' % (host, port))
-        timeout_expires = time.time() + self.reboot_timeout
+    def _getRebootServerSocket(self, ipAddr):
+        
+        
+        
+        
+        serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        serverSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        serverSocket.settimeout(60.0)
+        serverSocket.bind((ipAddr, 0))
+        serverSocket.listen(1)
+        self._logger.debug('Created reboot callback server at %s:%d' %
+                           serverSocket.getsockname())
+        return serverSocket
+
+    def _waitForRebootPing(self, serverSocket):
         conn = None
-        data = ''
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        s.settimeout(60.0)
-        s.bind((host, port))
-        s.listen(1)
-        while not data and time.time() < timeout_expires:
+        data = None
+        startTime = datetime.datetime.now()
+        waitTime = datetime.timedelta(seconds=self.reboot_timeout)
+        while not data and datetime.datetime.now() - startTime < waitTime:
+            self._logger.info("Waiting for reboot callback ping from device...")
             try:
                 if not conn:
-                    conn, _ = s.accept()
+                    conn, _ = serverSocket.accept()
                 
                 data = conn.recv(1024)
                 if data:
+                    self._logger.info("Received reboot callback ping from device!")
                     conn.sendall('OK')
                 conn.close()
             except socket.timeout:
-                print '.'
+                pass
             except socket.error, e:
                 if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
                     raise
-        if data:
-            
-            
-            time.sleep(self.reboot_settling_time)
-        else:
-            self._logger.error('Timed out waiting for reboot callback.')
-        s.close()
-        return data
 
-    def reboot(self, ipAddr=None, port=30000):
+        if not data:
+            raise DMError('Timed out waiting for reboot callback.')
+
+        self._logger.info("Sleeping for %s seconds to wait for device "
+                          "to 'settle'" % self.reboot_settling_time)
+        time.sleep(self.reboot_settling_time)
+
+
+    def reboot(self, ipAddr=None, port=30000, wait=False):
+        
+        
+        wait = (wait or ipAddr)
+
         cmd = 'rebt'
 
-        self._logger.info("sending rebt command")
+        self._logger.info("Rebooting device")
 
-        if ipAddr is not None:
+        
+        
+        
+        
+        
+        if wait:
+            if not ipAddr:
+                nettools = NetworkTools()
+                ipAddr = nettools.getLanIp()
+            serverSocket = self._getRebootServerSocket(ipAddr)
             
             
             destname = '/data/data/com.mozilla.SUTAgentAndroid/files/update.info'
-            data = "%s,%s\rrebooting\r" % (ipAddr, port)
+            data = "%s,%s\rrebooting\r" % serverSocket.getsockname()
             self._runCmds([{'cmd': 'push %s %s' % (destname, len(data)),
                             'data': data}])
+            cmd += " %s %s" % serverSocket.getsockname()
 
-            ip, port = self._getCallbackIpAndPort(ipAddr, port)
-            cmd += " %s %s" % (ip, port)
-
-        status = self._runCmds([{'cmd': cmd}])
-
-        if ipAddr is not None:
-            status = self._wait_for_reboot(ipAddr, port)
-
-        self._logger.info("rebt- got status back: %s" % status)
+        
+        self._runCmds([{'cmd': cmd}])
+        
+        
+        if wait:
+            self._waitForRebootPing(serverSocket)
 
     def getInfo(self, directive=None):
         data = None
@@ -818,10 +847,8 @@ class DeviceManagerSUT(DeviceManager):
 
         data = self._runCmds([{ 'cmd': cmd }])
 
-        f = re.compile('Failure')
-        for line in data.split():
-            if (f.match(line)):
-                raise DMError("Remove Device Error: Error installing app. Error message: %s" % data)
+        if 'installation complete [0]' not in data:
+            raise DMError("Remove Device Error: Error installing app. Error message: %s" % data)
 
     def uninstallApp(self, appName, installPath=None):
         cmd = 'uninstall ' + appName
@@ -844,8 +871,12 @@ class DeviceManagerSUT(DeviceManager):
         self._logger.debug("uninstallAppAndReboot: %s" % data)
         return
 
-    def updateApp(self, appBundlePath, processName=None, destPath=None, ipAddr=None, port=30000):
-        status = None
+    def updateApp(self, appBundlePath, processName=None, destPath=None,
+                  ipAddr=None, port=30000, wait=False):
+        
+        
+        wait = (wait or ipAddr)
+
         cmd = 'updt '
         if processName is None:
             
@@ -856,38 +887,22 @@ class DeviceManagerSUT(DeviceManager):
         if destPath:
             cmd += " " + destPath
 
-        if ipAddr is not None:
-            ip, port = self._getCallbackIpAndPort(ipAddr, port)
-            cmd += " %s %s" % (ip, port)
+        if wait:
+            if not ipAddr:
+                nettools = NetworkTools()
+                ipAddr = nettools.getLanIp()
+            serverSocket = self._getRebootServerSocket(ipAddr)
+            cmd += " %s %s" % serverSocket.getsockname()
 
         self._logger.debug("updateApp using command: " % cmd)
 
-        status = self._runCmds([{'cmd': cmd}])
+        self._runCmds([{'cmd': cmd}])
 
-        if ipAddr is not None:
-            status = self._wait_for_reboot(ip, port)
-
-        self._logger.debug("updateApp: got status back: %s" % status)
+        if wait:
+            self._waitForRebootPing(serverSocket)
 
     def getCurrentTime(self):
         return int(self._runCmds([{ 'cmd': 'clok' }]).strip())
-
-    def _getCallbackIpAndPort(self, aIp, aPort):
-        """
-        Connect the ipaddress and port for a callback ping.
-
-        Defaults to current IP address and ports starting at 30000.
-        NOTE: the detection for current IP address only works on Linux!
-        """
-        ip = aIp
-        nettools = NetworkTools()
-        if (ip == None):
-            ip = nettools.getLanIp()
-        if (aPort != None):
-            port = nettools.findOpenPort(ip, aPort)
-        else:
-            port = nettools.findOpenPort(ip, 30000)
-        return ip, port
 
     def _formatEnvString(self, env):
         """

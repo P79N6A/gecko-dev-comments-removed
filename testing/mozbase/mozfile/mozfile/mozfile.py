@@ -5,12 +5,16 @@
 
 
 from contextlib import contextmanager
+import errno
 import os
 import shutil
+import stat
 import tarfile
 import tempfile
+import time
 import urlparse
 import urllib2
+import warnings
 import zipfile
 
 __all__ = ['extract_tarball',
@@ -18,6 +22,7 @@ __all__ = ['extract_tarball',
            'extract',
            'is_url',
            'load',
+           'remove',
            'rmtree',
            'tree',
            'NamedTemporaryFile',
@@ -113,52 +118,85 @@ def extract(src, dest=None):
 
 
 def rmtree(dir):
-    """Removes the specified directory tree
+    """Deprecated wrapper method to remove a directory tree.
+
+    Ensure to update your code to use mozfile.remove() directly
+
+    :param dir: directory to be removed
+    """
+
+    warnings.warn("mozfile.rmtree() is deprecated in favor of mozfile.remove()",
+                  PendingDeprecationWarning, stacklevel=2)
+    return remove(dir)
+
+
+def remove(path):
+    """Removes the specified file, link, or directory tree
 
     This is a replacement for shutil.rmtree that works better under
-    windows."""
-    
-    if not os.path.exists(dir):
+    windows.
+
+    :param path: path to be removed
+    """
+
+    def _call_with_windows_retry(func, args=(), retry_max=5, retry_delay=0.5):
+        """
+        It's possible to see spurious errors on Windows due to various things
+        keeping a handle to the directory open (explorer, virus scanners, etc)
+        So we try a few times if it fails with a known error.
+        """
+        retry_count = 0
+        while True:
+            try:
+                func(*args)
+            except OSError, e:
+                
+                if e.errno == errno.ENOENT:
+                    break
+
+                
+                
+                if e.errno not in [errno.EACCES, errno.ENOTEMPTY]:
+                    raise
+
+                if retry_count == retry_max:
+                    raise
+
+                retry_count += 1
+
+                print '%s() failed for "%s". Reason: %s (%s). Retrying...' % \
+                        (func.__name__, args, e.strerror, e.errno)
+                time.sleep(retry_delay)
+            else:
+                
+                break
+
+    def _update_permissions(path):
+        """Sets specified pemissions depending on filetype"""
+        mode = dir_mode if os.path.isdir(path) else file_mode
+        _call_with_windows_retry(os.chmod, (path, mode))
+
+    if not os.path.exists(path):
         return
-    if os.path.islink(dir):
-        os.remove(dir)
-        return
 
-    
-    os.chmod(dir, 0700)
+    path_stats = os.stat(path)
+    file_mode = path_stats.st_mode | stat.S_IRUSR | stat.S_IWUSR
+    dir_mode = file_mode | stat.S_IXUSR
 
-    
-    
-    
-    
-    
-    if not isinstance(dir, unicode):
-        try:
-            dir = unicode(dir, "utf-8")
-        except UnicodeDecodeError:
-            if os.environ.get('DEBUG') == '1':
-                print("rmtree: decoding from UTF-8 failed for directory: %s" %s)
-
-    for name in os.listdir(dir):
-        full_name = os.path.join(dir, name)
+    if os.path.isfile(path) or os.path.islink(path):
         
-        
-        if os.name == 'nt':
-            if not os.access(full_name, os.W_OK):
-                
-                
-                
-                os.chmod(full_name, 0600)
+        _update_permissions(path)
+        _call_with_windows_retry(os.remove, (path,))
 
-        if os.path.islink(full_name):
-            os.remove(full_name)
-        elif os.path.isdir(full_name):
-            rmtree(full_name)
-        else:
-            if os.path.isfile(full_name):
-                os.chmod(full_name, 0700)
-            os.remove(full_name)
-    os.rmdir(dir)
+    elif os.path.isdir(path):
+        
+        _update_permissions(path)
+
+        
+        for root, dirs, files in os.walk(path):
+            for entry in dirs + files:
+                _update_permissions(os.path.join(root, entry))
+        _call_with_windows_retry(shutil.rmtree, (path,))
 
 
 def depth(directory):
@@ -172,6 +210,7 @@ def depth(directory):
         if not remainder:
             break
     return level
+
 
 
 ascii_delimeters = {

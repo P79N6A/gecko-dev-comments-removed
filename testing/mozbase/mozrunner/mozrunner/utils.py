@@ -4,11 +4,10 @@
 
 
 
-"""
-utility functions for mozrunner
-"""
+"""Utility functions for mozrunner"""
 
 __all__ = ['findInPath', 'get_metadata_from_egg']
+
 
 import mozinfo
 import os
