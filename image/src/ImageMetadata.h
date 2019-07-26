@@ -5,7 +5,7 @@
 
 
 #include <stdint.h>
-#include "mozilla/Util.h"
+#include "mozilla/Maybe.h"
 #include "nsSize.h"
 #include "Orientation.h"
 

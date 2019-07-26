@@ -14,7 +14,7 @@
 #include "gfxMatrix.h"                  
 #include "ipc/AutoOpenSurface.h"        
 #include "mozilla/Attributes.h"         
-#include "mozilla/Util.h"               
+#include "mozilla/Maybe.h"              
 #include "mozilla/layers/LayersSurfaces.h"  
 #include "nsAutoPtr.h"                  
 #include "nsDebug.h"                    
