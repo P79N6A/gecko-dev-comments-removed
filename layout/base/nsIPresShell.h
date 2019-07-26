@@ -823,6 +823,18 @@ public:
   
 
 
+
+  virtual void FreezePainting() = 0;
+
+  
+
+
+
+  virtual void ThawPainting() = 0;
+
+  
+
+
   virtual NS_HIDDEN_(void) UnsuppressPainting() = 0;
 
   
