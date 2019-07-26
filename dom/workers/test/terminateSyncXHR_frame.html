@@ -1,0 +1,25 @@
+
+
+
+
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <title>Test for SharedWorker</title>
+  </head>
+  <body>
+    <script type="text/javascript">
+      function doStuff() {
+        var worker = new Worker("terminateSyncXHR_worker.js");
+
+        worker.onmessage = function(event) {
+          parent.postMessage(event.data, "*");
+        };
+
+        worker.onerror = function(event) {
+          parent.postMessage("ERROR!", "*");
+        }
+      }
+    </script>
+  </body>
+</html>
