@@ -66,6 +66,14 @@ const TELEMETRY_COLLECT_CHECKPOINT = "HEALTHREPORT_POST_COLLECT_CHECKPOINT_MS";
 
 
 
+
+
+
+
+
+
+
+
 function HealthReporterState(reporter) {
   this._reporter = reporter;
 
@@ -89,6 +97,20 @@ function HealthReporterState(reporter) {
 }
 
 HealthReporterState.prototype = Object.freeze({
+  
+
+
+  get clientID() {
+    return this._s.clientID;
+  },
+
+  
+
+
+  get clientIDVersion() {
+    return this._s.clientIDVersion;
+  },
+
   get lastPingDate() {
     return new Date(this._s.lastPingTime);
   },
@@ -117,9 +139,19 @@ HealthReporterState.prototype = Object.freeze({
 
       let resetObjectState = function () {
         this._s = {
+          
+          
           v: 1,
+          
+          clientID: CommonUtils.generateUUID(),
+          
+          
+          clientIDVersion: 1,
+          
           remoteIDs: [],
+          
           lastPingTime: 0,
+          
           removedOutdatedLastpayload: false,
         };
       }.bind(this);
@@ -152,6 +184,23 @@ HealthReporterState.prototype = Object.freeze({
         resetObjectState();
         
         
+      }
+
+      let regen = false;
+      if (!this._s.clientID) {
+        this._log.warn("No client ID stored. Generating random ID.");
+        regen = true;
+      }
+
+      if (typeof(this._s.clientID) != "string") {
+        this._log.warn("Client ID is not a string. Regenerating.");
+        regen = true;
+      }
+
+      if (regen) {
+        this._s.clientID = CommonUtils.generateUUID();
+        this._s.clientIDVersion = 1;
+        yield this.save();
       }
 
       
@@ -212,6 +261,24 @@ HealthReporterState.prototype = Object.freeze({
     this._log.info("Recording last ping time and deleted remote document.");
     this._s.lastPingTime = date.getTime();
     return this.removeRemoteIDs(ids);
+  },
+
+  
+
+
+
+
+
+  resetClientID: function () {
+    if (this.remoteIDs.length) {
+      throw new Error("Cannot reset client ID while remote IDs are stored.");
+    }
+
+    this._log.warn("Resetting client ID.");
+    this._s.clientID = CommonUtils.generateUUID();
+    this._s.clientIDVersion = 1;
+
+    return this.save();
   },
 
   _migratePrefs: function () {
@@ -897,6 +964,8 @@ AbstractHealthReporter.prototype = Object.freeze({
 
     let o = {
       version: 2,
+      clientID: this._state.clientID,
+      clientIDVersion: this._state.clientIDVersion,
       thisPingDate: pingDateString,
       geckoAppInfo: this.obtainAppInfo(this._log),
       data: {last: {}, days: {}},
@@ -1457,9 +1526,23 @@ this.HealthReporter.prototype = Object.freeze({
     this._log.warn("Deleting remote data.");
     let client = new BagheeraClient(this.serverURI);
 
-    return client.deleteDocument(this.serverNamespace, this.lastSubmitID)
-                 .then(this._onBagheeraResult.bind(this, request, true, this._now()),
-                       this._onSubmitDataRequestFailure.bind(this));
+    return Task.spawn(function* doDelete() {
+      try {
+        let result = yield client.deleteDocument(this.serverNamespace,
+                                                 this.lastSubmitID);
+        yield this._onBagheeraResult(request, true, this._now(), result);
+      } catch (ex) {
+        this._log.error("Error processing request to delete data: " +
+                        CommonUtils.exceptionStr(error));
+      } finally {
+        
+        
+        
+        if (!this.haveRemoteData()) {
+          yield this._state.resetClientID();
+        }
+      }
+    }.bind(this));
   },
 });
 
