@@ -54,8 +54,6 @@ DOMCI_CLASS(DeviceRotationRate)
 DOMCI_CLASS(HTMLDocument)
 DOMCI_CLASS(HTMLOptionsCollection)
 DOMCI_CLASS(HTMLCollection)
-DOMCI_CLASS(HTMLPropertiesCollection)
-DOMCI_CLASS(PropertyNodeList)
 
 
 DOMCI_CLASS(HTMLElement)

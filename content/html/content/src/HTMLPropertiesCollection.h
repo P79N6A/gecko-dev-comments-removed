@@ -10,8 +10,6 @@
 #include "nsDOMLists.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsAutoPtr.h"
-#include "nsIDOMHTMLPropertiesCollection.h"
-#include "nsIDOMPropertyNodeList.h"
 #include "nsCOMArray.h"
 #include "nsIMutationObserver.h"
 #include "nsStubMutationObserver.h"
@@ -20,9 +18,9 @@
 #include "nsIHTMLCollection.h"
 #include "nsHashKeys.h"
 #include "nsRefPtrHashtable.h"
+#include "jsapi.h"
 
 class nsGenericHTMLElement;
-class nsXPCClassInfo;
 class nsIDocument;
 class nsINode;
 
@@ -48,7 +46,6 @@ protected:
 };
 
 class HTMLPropertiesCollection : public nsIHTMLCollection,
-                                 public nsIDOMHTMLPropertiesCollection,
                                  public nsStubMutationObserver,
                                  public nsWrapperCache
 {
@@ -64,7 +61,6 @@ public:
 
   virtual Element* GetElementAt(uint32_t aIndex);
 
-  NS_IMETHOD NamedItem(const nsAString& aName, nsIDOMNode** aResult);
   void SetDocument(nsIDocument* aDocument);
   nsINode* GetParentObject();
   virtual JSObject* NamedItem(JSContext* cx, const nsAString& name,
@@ -82,8 +78,9 @@ public:
   }
   virtual void GetSupportedNames(nsTArray<nsString>& aNames);
 
+  NS_DECL_NSIDOMHTMLCOLLECTION
+
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_NSIDOMHTMLPROPERTIESCOLLECTION
 
   NS_DECL_NSIMUTATIONOBSERVER_ATTRIBUTECHANGED
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTAPPENDED
@@ -93,12 +90,10 @@ public:
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_AMBIGUOUS(HTMLPropertiesCollection,
                                                          nsIHTMLCollection)
 
-  nsXPCClassInfo* GetClassInfo();
-
 protected:
   
   void EnsureFresh();
-  
+
   
   void CrawlProperties();
 
@@ -112,26 +107,25 @@ protected:
   }
 
   
-  nsTArray<nsRefPtr<nsGenericHTMLElement> > mProperties; 
+  nsTArray<nsRefPtr<nsGenericHTMLElement> > mProperties;
+
   
-  
-  nsRefPtr<PropertyStringList> mNames; 
- 
+  nsRefPtr<PropertyStringList> mNames;
+
   
   nsRefPtrHashtable<nsStringHashKey, PropertyNodeList> mNamedItemEntries;
-  
+
   
   nsCOMPtr<nsGenericHTMLElement> mRoot;
-  
+
   
   nsCOMPtr<nsIDocument> mDoc;
-  
+
   
   bool mIsDirty;
 };
 
 class PropertyNodeList : public nsINodeList,
-                         public nsIDOMPropertyNodeList,
                          public nsStubMutationObserver
 {
 public:
@@ -148,12 +142,12 @@ public:
                  ErrorResult& aError);
 
   virtual nsIContent* Item(uint32_t aIndex);
-  NS_DECL_NSIDOMPROPERTYNODELIST
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
 
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_AMBIGUOUS(PropertyNodeList,
                                                          nsINodeList)
+  NS_DECL_NSIDOMNODELIST
 
   NS_DECL_NSIMUTATIONOBSERVER_ATTRIBUTECHANGED
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTAPPENDED
@@ -163,19 +157,19 @@ public:
   
   virtual int32_t IndexOf(nsIContent* aContent);
   virtual nsINode* GetParentObject();
-  
+
   void AppendElement(nsGenericHTMLElement* aElement)
   {
     mElements.AppendElement(aElement);
   }
-  
+
   void Clear()
   {
     mElements.Clear();
   }
-  
+
   void SetDirty() { mIsDirty = true; }
- 
+
 protected:
   
   void EnsureFresh();
