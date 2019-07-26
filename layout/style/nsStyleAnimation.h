@@ -164,8 +164,6 @@ public:
 
 
 
-
-
   static bool UncomputeValue(nsCSSProperty aProperty,
                              const Value& aComputedValue,
                              nsCSSValue& aSpecifiedValue);
