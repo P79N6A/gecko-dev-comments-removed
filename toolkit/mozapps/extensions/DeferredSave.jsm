@@ -38,7 +38,7 @@ const DEFAULT_SAVE_DELAY_MS = 50;
 
 
 
-function DeferredSave(aPath, aDataProvider, aDelay) {
+this.DeferredSave = function (aPath, aDataProvider, aDelay) {
   
   let leafName = OS.Path.basename(aPath);
   Cu.import("resource://gre/modules/AddonLogging.jsm");
@@ -87,7 +87,7 @@ function DeferredSave(aPath, aDataProvider, aDelay) {
     this._delay = DEFAULT_SAVE_DELAY_MS;
 }
 
-DeferredSave.prototype = {
+this.DeferredSave.prototype = {
   get dirty() {
     return this._pending || this.writeInProgress;
   },

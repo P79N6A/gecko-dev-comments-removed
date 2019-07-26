@@ -92,8 +92,8 @@ AddonLogger.prototype = {
                         Ci.nsIScriptError.errorFlag, "component javascript");
     Services.console.logMessage(consoleMessage);
 
-    if (gDebugLogEnabled)
-      dump("*** " + message + "\n");
+    
+    dump("*** " + message + "\n");
 
     try {
       var tstamp = new Date();
