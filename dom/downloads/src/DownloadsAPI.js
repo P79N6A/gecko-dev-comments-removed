@@ -7,6 +7,7 @@
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
+const Cr = Components.results;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
@@ -319,8 +320,46 @@ DOMDownloadImpl.prototype = {
     });
 
     if (aDownload.error) {
+      
+      
+      
+      
+      
+      
+      
+      
+      let result = aDownload.error.result;
+      let storage = this._window.navigator.getDeviceStorage("sdcard");
+
+      
+      
+      if (result == Cr.NS_ERROR_FAILURE && storage) {
+        
+        
+        changed = false;
+        debug("Attempting to infer error via device storage sanity checks.");
+        
+        let available = storage.available();
+        available.onsuccess = (function() {
+          debug("Storage Status = '" + available.result + "'");
+          let inferredError = result;
+          switch (available.result) {
+            case "unavailable":
+              inferredError = Cr.NS_ERROR_FILE_NOT_FOUND;
+              break;
+            case "shared":
+              inferredError = Cr.NS_ERROR_FILE_ACCESS_DENIED;
+              break;
+          }
+          this._updateWithError(aDownload, inferredError);
+        }).bind(this);
+        available.onerror = (function() {
+          this._updateWithError(aDownload, result);
+        }).bind(this);
+      }
+
       this.error =
-        new this._window.DOMError("DownloadError", aDownload.error.result);
+        new this._window.DOMError("DownloadError", result);
     } else {
       this.error = null;
     }
@@ -330,6 +369,16 @@ DOMDownloadImpl.prototype = {
       return;
     }
 
+    this._sendStateChange();
+  },
+
+  _updateWithError: function(aDownload, aError) {
+    this.error =
+      new this._window.DOMError("DownloadError", aError);
+    this._sendStateChange();
+  },
+
+  _sendStateChange: function() {
     
     if (this.__DOM_IMPL__) {
       let event = new this._window.DownloadEvent("statechange", {
