@@ -154,6 +154,7 @@ public:
   void PassOptionalByteWithDefault(int8_t);
   void PassNullableByte(const Nullable<int8_t>&);
   void PassOptionalNullableByte(const Optional< Nullable<int8_t> >&);
+  void PassVariadicByte(const Sequence<int8_t>&);
 
   int16_t ReadonlyShort();
   int16_t WritableShort();
@@ -381,6 +382,7 @@ public:
   void PassOptionalStringWithDefaultValue(const nsAString&);
   void PassOptionalNullableString(const Optional<nsAString>&);
   void PassOptionalNullableStringWithDefaultValue(const nsAString&);
+  void PassVariadicString(const Sequence<nsString>&);
 
   
   void PassEnum(TestEnum);
@@ -474,6 +476,14 @@ public:
   static void SetStaticAttribute(nsISupports*, bool);
 
   
+  bool Overload1(TestInterface&);
+  TestInterface* Overload1(const nsAString&, TestInterface&);
+
+  
+  void PassVariadicThirdArg(const nsAString&, int32_t,
+                            const Sequence<OwningNonNull<TestInterface> >&);
+
+  
   int32_t AttrWithLenientThis();
   void SetAttrWithLenientThis(int32_t);
   uint32_t UnforgeableAttr();
@@ -522,6 +532,7 @@ private:
   void PassOptionalByte(const Optional<T>&) MOZ_DELETE;
   template<typename T>
   void PassOptionalByteWithDefault(T) MOZ_DELETE;
+  void PassVariadicByte(Sequence<int8_t>&) MOZ_DELETE;
 
   void SetReadonlyShort(int16_t) MOZ_DELETE;
   template<typename T>
@@ -631,7 +642,7 @@ private:
   void PassOptionalStringWithDefaultValue(nsAString&) MOZ_DELETE;
   void PassOptionalNullableString(Optional<nsAString>&) MOZ_DELETE;
   void PassOptionalNullableStringWithDefaultValue(nsAString&) MOZ_DELETE;
-
+  void PassVariadicString(Sequence<nsString>&) MOZ_DELETE;
 };
 
 class TestIndexedGetterInterface : public nsISupports,
