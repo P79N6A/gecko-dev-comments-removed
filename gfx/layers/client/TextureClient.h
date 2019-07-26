@@ -149,11 +149,27 @@ public:
 
 
 
-class TextureClient : public AtomicRefCounted<TextureClient>
+class TextureClient
 {
 public:
   TextureClient(TextureFlags aFlags = TEXTURE_FLAGS_DEFAULT);
   virtual ~TextureClient();
+
+  void AddRef() {
+    MOZ_ASSERT(mRefCount >= 0);
+    ++mRefCount;
+  }
+
+  void Release() {
+    MOZ_ASSERT(mRefCount > 0);
+    if (0 == --mRefCount) {
+#ifdef DEBUG
+      mRefCount = detail::DEAD;
+#endif
+      Finalize();
+      delete this;
+    }
+  }
 
   virtual TextureClientSurface* AsTextureClientSurface() { return nullptr; }
   virtual TextureClientDrawTarget* AsTextureClientDrawTarget() { return nullptr; }
@@ -252,6 +268,20 @@ public:
   
   
   virtual void OnActorDestroy() {}
+
+private:
+  Atomic<int> mRefCount;
+
+  
+
+
+
+
+
+  void Finalize()
+  {
+    
+  }
 
 protected:
   void AddFlags(TextureFlags  aFlags)
