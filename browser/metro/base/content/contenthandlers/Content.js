@@ -498,7 +498,7 @@ let Content = {
         
         
         
-        let action = isMalware ? "report-malware" : "report-phising";
+        let action = isMalware ? "report-malware" : "report-phishing";
         sendAsyncMessage("Browser:BlockedSite",
                          { url: errorDoc.location.href, action: action });
       } else if (ot == errorDoc.getElementById("ignoreWarningButton")) {
