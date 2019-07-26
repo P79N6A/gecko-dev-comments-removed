@@ -269,17 +269,24 @@ static nscoord CalcLengthWith(const nsCSSValue& aValue,
                           aCanStoreInRuleTree);
     return css::ComputeCalc(aValue, ops);
   }
-  
-  
-  aCanStoreInRuleTree = false;
-  const nsStyleFont *styleFont =
-    aStyleFont ? aStyleFont : aStyleContext->GetStyleFont();
-  if (aFontSize == -1) {
-    
-    
-    aFontSize = styleFont->mFont.size;
-  }
   switch (aValue.GetUnit()) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     case eCSSUnit_ViewportWidth: {
       aPresContext->SetUsesViewportUnits(true);
       return ScaleCoord(aValue, 0.01f * aPresContext->GetVisibleArea().width);
@@ -298,6 +305,22 @@ static nscoord CalcLengthWith(const nsCSSValue& aValue,
       nsSize viewportSize = aPresContext->GetVisibleArea().Size();
       return ScaleCoord(aValue, 0.01f * max(viewportSize.width, viewportSize.height));
     }
+    default:
+      
+      
+      break;
+  }
+  
+  
+  aCanStoreInRuleTree = false;
+  const nsStyleFont *styleFont =
+    aStyleFont ? aStyleFont : aStyleContext->GetStyleFont();
+  if (aFontSize == -1) {
+    
+    
+    aFontSize = styleFont->mFont.size;
+  }
+  switch (aValue.GetUnit()) {
     case eCSSUnit_RootEM: {
       nscoord rootFontSize;
 
