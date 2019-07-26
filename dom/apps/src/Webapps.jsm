@@ -79,6 +79,13 @@ XPCOMUtils.defineLazyGetter(this, "updateSvc", function() {
   const DIRECTORY_NAME = WEBAPP_RUNTIME ? "WebappRegD" : "ProfD";
 #endif
 
+
+
+
+
+
+const STORE_ID_PENDING_PREFIX = "#unknownID#";
+
 this.DOMApplicationRegistry = {
   appsFile: null,
   webapps: { },
@@ -345,6 +352,11 @@ this.DOMApplicationRegistry = {
     }
 
     app.origin = "app://" + aId;
+
+    
+    
+    
+    app.storeId = STORE_ID_PENDING_PREFIX + app.installOrigin;
 
     
     let zipFile = baseDir.clone();
@@ -2262,19 +2274,23 @@ this.DOMApplicationRegistry = {
       
       
       
+      
 
       
       let appId = self.getAppLocalIdByStoreId(aStoreId);
       let isInstalled = appId != Ci.nsIScriptSecurityManager.NO_APP_ID;
       if (aIsUpdate) {
-        if (!isInstalled || (app.localId !== appId)) {
-          
-          
+        let isDifferent = app.localId !== appId;
+        let isPending = app.storeId.indexOf(STORE_ID_PENDING_PREFIX) == 0;
+
+        if ((!isInstalled && !isPending) || (isInstalled && isDifferent)) {
           throw "WRONG_APP_STORE_ID";
         }
-        if (app.storeVersion >= aStoreVersion) {
+
+        if (!isPending && (app.storeVersion >= aStoreVersion)) {
           throw "APP_STORE_VERSION_ROLLBACK";
         }
+
       } else if (isInstalled) {
         throw "WRONG_APP_STORE_ID";
       }
