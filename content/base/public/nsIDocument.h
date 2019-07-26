@@ -777,7 +777,7 @@ public:
 
 
 
-  virtual void EnsureOnDemandBuiltInUASheet(const char *aStyleSheetURI) = 0;
+  virtual void EnsureOnDemandBuiltInUASheet(nsCSSStyleSheet* aSheet) = 0;
 
   
 

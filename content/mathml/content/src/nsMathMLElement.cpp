@@ -9,6 +9,7 @@
 #include "mozilla/ArrayUtils.h"
 #include "nsGkAtoms.h"
 #include "nsCRT.h"
+#include "nsLayoutStylesheetCache.h"
 #include "nsRuleData.h"
 #include "nsCSSValue.h"
 #include "nsMappedAttributes.h"
@@ -91,8 +92,6 @@ nsMathMLElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                             nsIContent* aBindingParent,
                             bool aCompileEventHandlers)
 {
-  static const char kMathMLStyleSheetURI[] = "resource://gre-resources/mathml.css";
-
   Link::ResetLinkState(false, Link::ElementHasHref());
 
   nsresult rv = nsMathMLElementBase::BindToTree(aDocument, aParent,
@@ -108,7 +107,8 @@ nsMathMLElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
       
       
       aDocument->SetMathMLEnabled();
-      aDocument->EnsureOnDemandBuiltInUASheet(kMathMLStyleSheetURI);
+      aDocument->
+        EnsureOnDemandBuiltInUASheet(nsLayoutStylesheetCache::MathMLSheet());
 
       
       
