@@ -11040,18 +11040,18 @@ nsDocument::GetVisibilityState(nsAString& aState)
 }
 
  void
-nsIDocument::DocSizeOfExcludingThis(nsWindowSizes* aWindowSizes) const
+nsIDocument::DocAddSizeOfExcludingThis(nsWindowSizes* aWindowSizes) const
 {
   aWindowSizes->mDOMOther +=
     nsINode::SizeOfExcludingThis(aWindowSizes->mMallocSizeOf);
 
   if (mPresShell) {
-    mPresShell->SizeOfIncludingThis(aWindowSizes->mMallocSizeOf,
-                                    &aWindowSizes->mArenaStats,
-                                    &aWindowSizes->mLayoutPresShell,
-                                    &aWindowSizes->mLayoutStyleSets,
-                                    &aWindowSizes->mLayoutTextRuns,
-                                    &aWindowSizes->mLayoutPresContext);
+    mPresShell->AddSizeOfIncludingThis(aWindowSizes->mMallocSizeOf,
+                                       &aWindowSizes->mArenaStats,
+                                       &aWindowSizes->mLayoutPresShell,
+                                       &aWindowSizes->mLayoutStyleSets,
+                                       &aWindowSizes->mLayoutTextRuns,
+                                       &aWindowSizes->mLayoutPresContext);
   }
 
   aWindowSizes->mPropertyTables +=
@@ -11068,10 +11068,10 @@ nsIDocument::DocSizeOfExcludingThis(nsWindowSizes* aWindowSizes) const
 }
 
 void
-nsIDocument::DocSizeOfIncludingThis(nsWindowSizes* aWindowSizes) const
+nsIDocument::DocAddSizeOfIncludingThis(nsWindowSizes* aWindowSizes) const
 {
   aWindowSizes->mDOMOther += aWindowSizes->mMallocSizeOf(this);
-  DocSizeOfExcludingThis(aWindowSizes);
+  DocAddSizeOfExcludingThis(aWindowSizes);
 }
 
 static size_t
@@ -11093,9 +11093,9 @@ nsDocument::SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const
 }
 
 void
-nsDocument::DocSizeOfExcludingThis(nsWindowSizes* aWindowSizes) const
+nsDocument::DocAddSizeOfExcludingThis(nsWindowSizes* aWindowSizes) const
 {
-  nsIDocument::DocSizeOfExcludingThis(aWindowSizes);
+  nsIDocument::DocAddSizeOfExcludingThis(aWindowSizes);
 
   for (nsIContent* node = nsINode::GetFirstChild();
        node;

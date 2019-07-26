@@ -1011,7 +1011,7 @@ public:
   
   virtual void PostVisibilityUpdateEvent() MOZ_OVERRIDE;
 
-  virtual void DocSizeOfExcludingThis(nsWindowSizes* aWindowSizes) const MOZ_OVERRIDE;
+  virtual void DocAddSizeOfExcludingThis(nsWindowSizes* aWindowSizes) const MOZ_OVERRIDE;
   
 
   virtual nsIDOMNode* AsDOMNode() MOZ_OVERRIDE { return this; }

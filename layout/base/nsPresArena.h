@@ -85,8 +85,8 @@ public:
 
 
 
-  void SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf,
-                           nsArenaMemoryStats* aArenaStats);
+  void AddSizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf,
+                              nsArenaMemoryStats* aArenaStats);
 
 private:
   NS_HIDDEN_(void*) Allocate(uint32_t aCode, size_t aSize);

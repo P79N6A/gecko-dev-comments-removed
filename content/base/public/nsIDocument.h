@@ -1880,11 +1880,11 @@ public:
   
   
   
-  virtual void DocSizeOfExcludingThis(nsWindowSizes* aWindowSizes) const;
+  virtual void DocAddSizeOfExcludingThis(nsWindowSizes* aWindowSizes) const;
   
   
   
-  virtual void DocSizeOfIncludingThis(nsWindowSizes* aWindowSizes) const;
+  virtual void DocAddSizeOfIncludingThis(nsWindowSizes* aWindowSizes) const;
 
   bool MayHaveDOMMutationObservers()
   {

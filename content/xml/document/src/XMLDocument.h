@@ -47,7 +47,7 @@ public:
 
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const MOZ_OVERRIDE;
 
-  virtual void DocSizeOfExcludingThis(nsWindowSizes* aWindowSizes) const MOZ_OVERRIDE;
+  virtual void DocAddSizeOfExcludingThis(nsWindowSizes* aWindowSizes) const MOZ_OVERRIDE;
   
 
 
