@@ -27,6 +27,7 @@ class MOZ_STACK_CLASS AutoOpenSurface
 {
 public:
   typedef gfxASurface::gfxContentType gfxContentType;
+  typedef gfxASurface::gfxImageFormat gfxImageFormat;
 
   
 
@@ -39,6 +40,7 @@ public:
 
 
   gfxContentType ContentType();
+  gfxImageFormat ImageFormat();
   gfxIntSize Size();
 
   
