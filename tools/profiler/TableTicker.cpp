@@ -347,7 +347,7 @@ void addProfileEntry(volatile StackEntry &entry, ThreadProfile &aProfile,
     
 
     addDynamicTag(aProfile, 'c', sampleLabel);
-    if (entry.js()) {
+    if (entry.isJs()) {
       if (!entry.pc()) {
         
         MOZ_ASSERT(&entry == &stack->mStack[stack->stackSize() - 1]);
@@ -367,7 +367,12 @@ void addProfileEntry(volatile StackEntry &entry, ThreadProfile &aProfile,
     }
   } else {
     aProfile.addTag(ProfileEntry('c', sampleLabel));
-    lineno = entry.line();
+
+    
+    
+    if (entry.isCpp()) {
+      lineno = entry.line();
+    }
   }
   if (lineno != -1) {
     aProfile.addTag(ProfileEntry('n', lineno));
@@ -507,7 +512,7 @@ void TableTicker::doNativeBacktrace(ThreadProfile &aProfile, TickSample* aSample
     
     
     volatile StackEntry &entry = pseudoStack->mStack[i - 1];
-    if (!entry.js() && strcmp(entry.label(), "EnterJIT") == 0) {
+    if (!entry.isJs() && strcmp(entry.label(), "EnterJIT") == 0) {
       
       
       
