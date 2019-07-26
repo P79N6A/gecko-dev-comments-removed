@@ -15,6 +15,7 @@
 #include "mozilla/TimeStamp.h"
 #include "AudioChannelService.h"
 #include "prlog.h"
+#include "nsPrintfCString.h"
 #include "nsWeakPtr.h"
 #include "nsXULAppAPI.h"
 #include "nsIInterfaceRequestorUtils.h"
@@ -139,43 +140,98 @@ IsBackgroundPriority(ProcessPriority aPriority)
 class ProcessPriorityManager MOZ_FINAL
   : public nsIObserver
   , public nsIDOMEventListener
+  , public nsITimerCallback
 {
 public:
   ProcessPriorityManager();
   void Init();
 
   NS_DECL_ISUPPORTS
+  NS_DECL_NSITIMERCALLBACK
   NS_DECL_NSIOBSERVER
   NS_DECL_NSIDOMEVENTLISTENER
 
   ProcessPriority GetPriority() const { return mProcessPriority; }
 
-private:
-  void SetPriority(ProcessPriority aPriority);
-  void OnAudioChannelAgentChanged();
-  void OnContentDocumentGlobalCreated(nsISupports* aOuterWindow);
-  void OnInnerWindowDestroyed();
-  void OnGracePeriodTimerFired();
-  void RecomputeNumVisibleWindows();
+  
+
+
+
+  void TemporarilySetIsForeground();
 
   
+
+
+
+
+
+
+
+
+
+
+
+
+
+  void ResetPriority();
+
   
+
+
+  void ResetPriorityNow();
+
+private:
+  void OnContentDocumentGlobalCreated(nsISupports* aOuterWindow);
+
   
+
+
+  bool ComputeIsInForeground();
+
+  
+
+
+  void SetIsForeground();
+
+  
+
+
+
+  void SetIsBackgroundNow();
+
+  
+
+
+
+
+  void
+  ScheduleResetPriority(const char* aTimeoutPref);
+
   
   ProcessPriority mProcessPriority;
 
   nsTArray<nsWeakPtr> mWindows;
-  nsCOMPtr<nsITimer> mGracePeriodTimer;
+
+  
+  
+  nsCOMPtr<nsITimer> mResetPriorityTimer;
+
   nsWeakPtr mMemoryMinimizerRunnable;
-  TimeStamp mStartupTime;
 };
 
 NS_IMPL_ISUPPORTS2(ProcessPriorityManager, nsIObserver, nsIDOMEventListener)
 
 ProcessPriorityManager::ProcessPriorityManager()
-  : mProcessPriority(PROCESS_PRIORITY_FOREGROUND)
-  , mStartupTime(TimeStamp::Now())
+  : mProcessPriority(ProcessPriority(-1))
 {
+  
+  
+  
+  
+  
+  
+  
+  
 }
 
 void
@@ -189,8 +245,6 @@ ProcessPriorityManager::Init()
   os->AddObserver(this, "content-document-global-created",  false);
   os->AddObserver(this, "inner-window-destroyed",  false);
   os->AddObserver(this, "audio-channel-agent-changed",  false);
-
-  SetPriority(PROCESS_PRIORITY_FOREGROUND);
 }
 
 NS_IMETHODIMP
@@ -201,12 +255,9 @@ ProcessPriorityManager::Observe(
 {
   if (!strcmp(aTopic, "content-document-global-created")) {
     OnContentDocumentGlobalCreated(aSubject);
-  } else if (!strcmp(aTopic, "inner-window-destroyed")) {
-    OnInnerWindowDestroyed();
-  } else if (!strcmp(aTopic, "timer-callback")) {
-    OnGracePeriodTimerFired();
-  } else if (!strcmp(aTopic, "audio-channel-agent-changed")) {
-    OnAudioChannelAgentChanged();
+  } else if (!strcmp(aTopic, "inner-window-destroyed") ||
+             !strcmp(aTopic, "audio-channel-agent-changed")) {
+    ResetPriority();
   } else {
     MOZ_ASSERT(false);
   }
@@ -218,22 +269,15 @@ ProcessPriorityManager::HandleEvent(
   nsIDOMEvent* aEvent)
 {
   LOG("Got visibilitychange.");
-  RecomputeNumVisibleWindows();
+  ResetPriority();
   return NS_OK;
-}
-
-void
-ProcessPriorityManager::OnAudioChannelAgentChanged()
-{
-  if (IsBackgroundPriority(mProcessPriority)) {
-    SetPriority(GetBackgroundPriority());
-  }
 }
 
 void
 ProcessPriorityManager::OnContentDocumentGlobalCreated(
   nsISupports* aOuterWindow)
 {
+  LOG("DocumentGlobalCreated");
   
   
   nsCOMPtr<nsPIDOMWindow> outerWindow = do_QueryInterface(aOuterWindow);
@@ -265,17 +309,35 @@ ProcessPriorityManager::OnContentDocumentGlobalCreated(
                                   false);
 
   mWindows.AppendElement(weakWin);
-  RecomputeNumVisibleWindows();
+  ResetPriority();
 }
 
 void
-ProcessPriorityManager::OnInnerWindowDestroyed()
+ProcessPriorityManager::ResetPriority()
 {
-  RecomputeNumVisibleWindows();
+  if (ComputeIsInForeground()) {
+    SetIsForeground();
+  } else if (IsBackgroundPriority(mProcessPriority)) {
+    
+    
+    SetIsBackgroundNow();
+  } else {
+    ScheduleResetPriority("backgroundGracePeriodMS");
+  }
 }
 
 void
-ProcessPriorityManager::RecomputeNumVisibleWindows()
+ProcessPriorityManager::ResetPriorityNow()
+{
+  if (ComputeIsInForeground()) {
+    SetIsForeground();
+  } else {
+    SetIsBackgroundNow();
+  }
+}
+
+bool
+ProcessPriorityManager::ComputeIsInForeground()
 {
   
   
@@ -314,68 +376,38 @@ ProcessPriorityManager::RecomputeNumVisibleWindows()
     
   }
 
-  SetPriority(allHidden ?
-              GetBackgroundPriority() :
-              PROCESS_PRIORITY_FOREGROUND);
+  return !allHidden;
 }
 
 void
-ProcessPriorityManager::SetPriority(ProcessPriority aPriority)
+ProcessPriorityManager::SetIsForeground()
 {
-  if (aPriority == mProcessPriority) {
+  if (mProcessPriority == PROCESS_PRIORITY_FOREGROUND) {
     return;
   }
 
-  if (IsBackgroundPriority(aPriority)) {
-    
-    
-    uint32_t gracePeriodMS = Preferences::GetUint("dom.ipc.processPriorityManager.gracePeriodMS", 1000);
-    if (mGracePeriodTimer) {
-      LOG("Grace period timer already active.");
-      return;
-    }
-
-    LOG("Initializing grace period timer.");
-    mProcessPriority = aPriority;
-    mGracePeriodTimer = do_CreateInstance("@mozilla.org/timer;1");
-    mGracePeriodTimer->Init(this, gracePeriodMS, nsITimer::TYPE_ONE_SHOT);
-
-  } else if (aPriority == PROCESS_PRIORITY_FOREGROUND) {
-    
-    
-    if (mGracePeriodTimer) {
-      mGracePeriodTimer->Cancel();
-      mGracePeriodTimer = nullptr;
-    }
-
-    
-    nsCOMPtr<nsICancelableRunnable> runnable =
-      do_QueryReferent(mMemoryMinimizerRunnable);
-    if (runnable) {
-      runnable->Cancel();
-    }
-
-    LOG("Setting priority to %d.", aPriority);
-    mProcessPriority = aPriority;
-    hal::SetProcessPriority(getpid(), aPriority);
-
-  } else {
-    MOZ_ASSERT(false);
+  
+  nsCOMPtr<nsICancelableRunnable> runnable =
+    do_QueryReferent(mMemoryMinimizerRunnable);
+  if (runnable) {
+    runnable->Cancel();
   }
+
+  LOG("Setting priority to FOREGROUND.");
+  mProcessPriority = PROCESS_PRIORITY_FOREGROUND;
+  hal::SetProcessPriority(getpid(), PROCESS_PRIORITY_FOREGROUND);
 }
 
 void
-ProcessPriorityManager::OnGracePeriodTimerFired()
+ProcessPriorityManager::SetIsBackgroundNow()
 {
-  LOG("Grace period timer fired; setting priority to %d.",
-      mProcessPriority);
+  ProcessPriority backgroundPriority = GetBackgroundPriority();
+  if (mProcessPriority == backgroundPriority) {
+    return;
+  }
 
-  
-  
-  
-  MOZ_ASSERT(IsBackgroundPriority(mProcessPriority));
-
-  mGracePeriodTimer = nullptr;
+  mProcessPriority = backgroundPriority;
+  LOG("Setting priority to BACKGROUND (type %d)", mProcessPriority);
   hal::SetProcessPriority(getpid(), mProcessPriority);
 
   
@@ -396,6 +428,46 @@ ProcessPriorityManager::OnGracePeriodTimerFired()
   }
 }
 
+void
+ProcessPriorityManager::ScheduleResetPriority(const char* aTimeoutPref)
+{
+  if (mResetPriorityTimer) {
+    
+    return;
+  }
+
+  uint32_t timeout = Preferences::GetUint(
+    nsPrintfCString("dom.ipc.processPriorityManager.%s", aTimeoutPref).get());
+  LOG("Scheduling reset timer to fire in %dms.", timeout);
+  mResetPriorityTimer = do_CreateInstance("@mozilla.org/timer;1");
+  mResetPriorityTimer->InitWithCallback(this, timeout, nsITimer::TYPE_ONE_SHOT);
+}
+
+NS_IMETHODIMP
+ProcessPriorityManager::Notify(nsITimer* aTimer)
+{
+  LOG("Reset priority timer callback; about to ResetPriorityNow.");
+  ResetPriorityNow();
+  mResetPriorityTimer = nullptr;
+  return NS_OK;
+}
+
+void
+ProcessPriorityManager::TemporarilySetIsForeground()
+{
+  LOG("TemporarilySetIsForeground");
+  SetIsForeground();
+
+  
+  
+  
+  if (mResetPriorityTimer) {
+    mResetPriorityTimer->Cancel();
+    mResetPriorityTimer = nullptr;
+  }
+  ScheduleResetPriority("temporaryPriorityMS");
+}
+
 } 
 
 void
@@ -408,6 +480,7 @@ InitProcessPriorityManager()
   
   if (!Preferences::GetBool("dom.ipc.processPriorityManager.enabled") ||
       Preferences::GetBool("dom.ipc.tabs.disabled")) {
+    LOG("InitProcessPriorityManager bailing due to prefs.");
     return;
   }
 
@@ -437,6 +510,17 @@ CurrentProcessIsForeground()
   }
 
   return sManager->GetPriority() >= PROCESS_PRIORITY_FOREGROUND;
+}
+
+void
+TemporarilySetProcessPriorityToForeground()
+{
+  if (sManager) {
+    sManager->TemporarilySetIsForeground();
+  } else {
+    LOG("TemporarilySetProcessPriorityToForeground called before "
+        "InitProcessPriorityManager.  Bailing.");
+  }
 }
 
 } 

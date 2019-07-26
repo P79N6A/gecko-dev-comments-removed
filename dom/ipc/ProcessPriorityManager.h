@@ -33,6 +33,17 @@ void InitProcessPriorityManager();
 
 bool CurrentProcessIsForeground();
 
+
+
+
+
+
+
+
+
+
+void TemporarilySetProcessPriorityToForeground();
+
 } 
 } 
 } 
