@@ -348,22 +348,6 @@ public:
         return sStrictFileOriginPolicy;
     }
 
-    
-
-
-
-
-
-
-
-
-
-
-
-    static bool
-    AppAttributesEqual(nsIPrincipal* aFirst,
-                       nsIPrincipal* aSecond);
-
 private:
 
     
