@@ -12,6 +12,7 @@
 
 
 
+#include "NSPRFormatTime.h" 
 #include "TestCommon.h"
 
 #define FORCE_PR_LOG

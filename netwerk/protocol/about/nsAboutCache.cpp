@@ -3,6 +3,7 @@
 
 
 
+#include "NSPRFormatTime.h" 
 #include "nsAboutCache.h"
 #include "nsIIOService.h"
 #include "nsIServiceManager.h"

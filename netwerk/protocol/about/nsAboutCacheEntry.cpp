@@ -5,6 +5,7 @@
 
 #include <limits.h>
 
+#include "NSPRFormatTime.h" 
 #include "nsAboutCacheEntry.h"
 #include "nsICacheService.h"
 #include "nsICacheSession.h"

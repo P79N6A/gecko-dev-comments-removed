@@ -19,6 +19,7 @@
 
 
 
+#include "NSPRFormatTime.h" 
 #include "nsCOMPtr.h"
 #include "nsIRDFDataSource.h"
 #include "nsIRDFNode.h"

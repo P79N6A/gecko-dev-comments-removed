@@ -5,6 +5,7 @@
 
 
 
+#include "NSPRFormatTime.h" 
 #include "nsJARInputStream.h"
 #include "zipstruct.h"         
 #include "nsZipArchive.h"

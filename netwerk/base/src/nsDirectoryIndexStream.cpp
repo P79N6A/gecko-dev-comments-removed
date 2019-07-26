@@ -14,6 +14,7 @@
 
 
 
+#include "NSPRFormatTime.h" 
 #include "nsEscape.h"
 #include "nsDirectoryIndexStream.h"
 #include "nsXPIDLString.h"
