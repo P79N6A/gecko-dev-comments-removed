@@ -34,8 +34,7 @@ function ActivityRequestHandler() {
   
   
   this._id = null;
-  this._options = Cc["@mozilla.org/dom/activities/options;1"]
-                    .createInstance(Ci.nsIDOMMozActivityOptions);
+  this._options = null;
 }
 
 ActivityRequestHandler.prototype = {
@@ -46,6 +45,9 @@ ActivityRequestHandler.prototype = {
                     },
 
   get source() {
+    if (this._options === null) {
+      Cu.reportError("ActivityRequestHandler._options must be initialized at this point");
+    }
     return this._options;
   },
 
