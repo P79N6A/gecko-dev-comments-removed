@@ -71,24 +71,39 @@ function FrameWorker(url, name) {
   this.loaded = false;
 
   this.frame = makeHiddenFrame();
-
-  var self = this;
-  Services.obs.addObserver(function injectController(doc, topic, data) {
-    if (!doc.defaultView || doc.defaultView != self.frame.contentWindow) {
-      return;
-    }
-    Services.obs.removeObserver(injectController, "document-element-inserted", false);
-    try {
-      self.createSandbox();
-    } catch (e) {
-      Cu.reportError("FrameWorker: failed to create sandbox for " + url + ". " + e);
-    }
-  }, "document-element-inserted", false);
-
-  this.frame.setAttribute("src", url);
+  this.load();
 }
 
 FrameWorker.prototype = {
+  load: function FrameWorker_loadWorker() {
+    var self = this;
+    Services.obs.addObserver(function injectController(doc, topic, data) {
+      if (!doc.defaultView || doc.defaultView != self.frame.contentWindow) {
+        return;
+      }
+      Services.obs.removeObserver(injectController, "document-element-inserted", false);
+      try {
+        self.createSandbox();
+      } catch (e) {
+        Cu.reportError("FrameWorker: failed to create sandbox for " + url + ". " + e);
+      }
+    }, "document-element-inserted", false);
+
+    this.frame.setAttribute("src", this.url);
+  },
+
+  reload: function FrameWorker_reloadWorker() {
+    
+    
+    for (let [portid, port] in Iterator(this.ports)) {
+      port._window = null;
+      this.pendingPorts.push(port);
+    }
+    this.ports = {};
+    this.loaded = false;
+    this.load();
+  },
+
   createSandbox: function createSandbox() {
     let workerWindow = this.frame.contentWindow;
     let sandbox = new Cu.Sandbox(workerWindow);
@@ -139,10 +154,10 @@ FrameWorker.prototype = {
 
     
     
-    this.frame.addEventListener('offline', function fw_onoffline(event) {
+    workerWindow.addEventListener('offline', function fw_onoffline(event) {
       Cu.evalInSandbox("onoffline();", sandbox);
     }, false);
-    this.frame.addEventListener('online', function fw_ononline(event) {
+    workerWindow.addEventListener('online', function fw_ononline(event) {
       Cu.evalInSandbox("ononline();", sandbox);
     }, false);
 
@@ -248,15 +263,12 @@ function makeHiddenFrame() {
   return iframe;
 }
 
+
 function WorkerHandle(port, worker) {
   this.port = port;
   this._worker = worker;
 }
 WorkerHandle.prototype = {
-  get document() {
-    return this._worker.frame.contentDocument;
-  },
-
   
   
   

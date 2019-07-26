@@ -27,9 +27,6 @@ function WorkerAPI(provider, port) {
   
   
   this._port.postMessage({topic: "social.initialize"});
-  
-  
-  this._port.postMessage({topic: "social.cookie-changed"});
 }
 
 WorkerAPI.prototype = {
@@ -52,6 +49,13 @@ WorkerAPI.prototype = {
   },
 
   handlers: {
+    "social.reload-worker": function(data) {
+      getFrameWorkerHandle(this._provider.workerURL, null)._worker.reload();
+      
+      
+      
+      this._port.postMessage({topic: "social.initialize"});
+    },
     "social.user-profile": function (data) {
       this._provider.updateUserProfile(data);
     },
@@ -59,7 +63,8 @@ WorkerAPI.prototype = {
       this._provider.setAmbientNotification(data);
     },
     "social.cookies-get": function(data) {
-      let document = getFrameWorkerHandle(this._provider.workerURL, null).document;
+      let document = getFrameWorkerHandle(this._provider.workerURL, null).
+                        _worker.frame.contentDocument;
       let cookies = document.cookie.split(";");
       let results = [];
       cookies.forEach(function(aCookie) {

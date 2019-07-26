@@ -102,6 +102,43 @@ let tests = {
     Services.cookies.add('.example.com', '/', 'cheez', 'burger', false, false, true, MAX_EXPIRY);
     port.postMessage({topic: "test-initialization"});
     port.postMessage({topic: "test.cookies-get"});
-  }
+  },
 
+  testWorkerReload: function(next) {
+    let fw = {};
+    Cu.import("resource://gre/modules/FrameWorker.jsm", fw);
+
+    
+    
+    
+    
+    let reloading = false;
+    let worker = fw.getFrameWorkerHandle(provider.workerURL, undefined, "testWorkerReload");
+    let win = worker._worker.frame.contentWindow;
+    win.addEventListener("unload", function workerUnload(e) {
+      win.removeEventListener("unload", workerUnload);
+      ok(true, "worker unload event has fired");
+      reloading = true;
+    });
+    let port = provider.getWorkerPort();
+    ok(port, "provider has a port");
+    port.onmessage = function (e) {
+      let topic = e.data.topic;
+      switch (topic) {
+        case "test-initialization-complete":
+          
+          port.postMessage({topic: "test-reload-init"});
+          break;
+        case "worker.connected":
+          
+          
+          if (reloading) {
+            ok(true, "worker reloaded and testPort was reconnected");
+            next();
+          }
+          break;
+      }
+    }
+    port.postMessage({topic: "test-initialization"});
+  }
 };

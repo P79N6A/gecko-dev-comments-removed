@@ -33,6 +33,17 @@ onconnect = function(e) {
         break;
       case "social.cookies-get-response":
         testerPort.postMessage({topic: "test.cookies-get-response", data: data});
+        break;
+      case "test-reload-init":
+        
+        
+        apiPort.postMessage({topic: 'social.reload-worker'});
+        break;
     }
   }
+  
+  if (apiPort && apiPort != port) {
+    port.postMessage({topic: "worker.connected"})
+  }
+
 }
