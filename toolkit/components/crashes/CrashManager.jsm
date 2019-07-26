@@ -166,7 +166,6 @@ let gCrashManager;
 
 
 XPCOMUtils.defineLazyGetter(this.CrashManager, "Singleton", function () {
-  Cu.reportError("CrashManager.Singleton accessed!");
   if (gCrashManager) {
     return gCrashManager;
   }
