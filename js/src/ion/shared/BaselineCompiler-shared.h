@@ -83,6 +83,9 @@ class BaselineCompilerShared
         inCall_ = true;
 
         
+        frame.syncStack(0);
+
+        
         masm.Push(BaselineFrameReg);
     }
 
