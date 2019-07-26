@@ -190,7 +190,7 @@ struct IonOptions
         rangeAnalysis(true),
         uce(true),
         parallelCompilation(false),
-        usesBeforeCompile(10240),
+        usesBeforeCompile(1000),
         usesBeforeCompileNoJaeger(40),
         usesBeforeInliningFactor(.125),
         maxStackArgs(4096),
