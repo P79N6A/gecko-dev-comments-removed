@@ -347,6 +347,22 @@ LayoutHelpers.prototype = {
   
 
 
+  isIncludedInTopLevelWindow: function LH_isIncludedInTopLevelWindow(win) {
+    if (this.isTopLevelWindow(win)) {
+      return true;
+    }
+
+    let parent = this.getParentWindow(win);
+    if (!parent || parent === win) {
+      return false;
+    }
+
+    return this.isIncludedInTopLevelWindow(parent);
+  },
+
+  
+
+
   getParentWindow: function LH_getParentWindow(win) {
     if (this.isTopLevelWindow(win)) {
       return null;
