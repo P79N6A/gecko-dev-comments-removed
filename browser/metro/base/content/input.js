@@ -163,7 +163,16 @@ var TouchModule = {
             break;
           case "MozMouseHittest":
             
-            if (aEvent.target.ownerDocument == document) {
+            
+            
+            let onScrollbar = false;
+            for (let node = aEvent.originalTarget; node instanceof XULElement; node = node.parentNode) {
+              if (node.tagName == 'scrollbar') {
+                onScrollbar = true;
+                break;
+              }
+            }
+            if (onScrollbar || aEvent.target.ownerDocument == document) {
               aEvent.preventDefault();
             }
             aEvent.stopPropagation();
