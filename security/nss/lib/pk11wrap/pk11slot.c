@@ -172,15 +172,10 @@ PK11_FreeSlotList(PK11SlotList *list)
 
 
 
-
-
-
-
 SECStatus
-PK11_AddSlotToList(PK11SlotList *list,PK11SlotInfo *slot, PRBool sorted)
+PK11_AddSlotToList(PK11SlotList *list,PK11SlotInfo *slot)
 {
     PK11SlotListElement *le;
-    PK11SlotListElement *element;
 
     le = (PK11SlotListElement *) PORT_Alloc(sizeof(PK11SlotListElement));
     if (le == NULL) return SECFailure;
@@ -189,23 +184,9 @@ PK11_AddSlotToList(PK11SlotList *list,PK11SlotInfo *slot, PRBool sorted)
     le->prev = NULL;
     le->refCount = 1;
     PZ_Lock(list->lock);
-    element = list->head;
-    
-    while (element && sorted && (element->slot->module->cipherOrder >
-                                 le->slot->module->cipherOrder)) {
-        element = element->next;
-    }
-    if (element) {
-        le->prev = element->prev;
-        element->prev = le;
-        le->next = element;
-    } else {
-        le->prev = list->tail;
-        le->next = NULL;
-        list->tail = le;
-    }
-    if (le->prev) le->prev->next = le;
-    if (list->head == element) list->head = le;
+    if (list->head) list->head->prev = le; else list->tail = le;
+    le->next = list->head;
+    list->head = le;
     PZ_Unlock(list->lock);
 
     return SECSuccess;
@@ -230,9 +211,8 @@ PK11_DeleteSlotFromList(PK11SlotList *list,PK11SlotListElement *le)
 
 
 
-
 SECStatus
-pk11_MoveListToList(PK11SlotList *target,PK11SlotList *src)
+PK11_MoveListToList(PK11SlotList *target,PK11SlotList *src)
 {
     if (src->head == NULL) return SECSuccess;
 
@@ -531,7 +511,7 @@ PK11_FindSlotsByNames(const char *dllName, const char* slotName,
         ((NULL == slotName) || (0 == *slotName)) &&
         ((NULL == tokenName) || (0 == *tokenName)) ) {
         
-        PK11_AddSlotToList(slotList, PK11_GetInternalKeySlot(), PR_TRUE);
+        PK11_AddSlotToList(slotList, PK11_GetInternalKeySlot());
         return slotList;
     }
 
@@ -559,7 +539,7 @@ PK11_FindSlotsByNames(const char *dllName, const char* slotName,
                     ( (!slotName) || (tmpSlot->slot_name &&
                     (0==PORT_Strcmp(tmpSlot->slot_name, slotName)))) ) {
                     if (tmpSlot) {
-                        PK11_AddSlotToList(slotList, tmpSlot, PR_TRUE);
+                        PK11_AddSlotToList(slotList, tmpSlot);
                         slotcount++;
                     }
                 }
@@ -930,7 +910,7 @@ PK11_LoadSlotList(PK11SlotInfo *slot, PK11PreSlotInfo *psi, int count)
 	    CK_MECHANISM_TYPE mechanism = PK11_DefaultArray[i].mechanism;
 	    PK11SlotList *slotList = PK11_GetSlotList(mechanism);
 
-	    if (slotList) PK11_AddSlotToList(slotList,slot,PR_FALSE);
+	    if (slotList) PK11_AddSlotToList(slotList,slot);
 	}
     }
 
@@ -957,7 +937,7 @@ PK11_UpdateSlotAttribute(PK11SlotInfo *slot, PK11DefaultArrayEntry *entry,
         
         
         if (slotList!=NULL)
-            result = PK11_AddSlotToList(slotList, slot, PR_FALSE);
+            result = PK11_AddSlotToList(slotList, slot);
         
     } else { 
             
@@ -1930,12 +1910,12 @@ PK11_GetAllTokens(CK_MECHANISM_TYPE type, PRBool needRW, PRBool loadCerts,
 					|| PK11_DoesMechanism(slot, type)) {
 		    if (pk11_LoginStillRequired(slot,wincx)) {
 			if (PK11_IsFriendly(slot)) {
-			    PK11_AddSlotToList(friendlyList, slot, PR_TRUE);
+			    PK11_AddSlotToList(friendlyList, slot);
 			} else {
-			    PK11_AddSlotToList(loginList, slot, PR_TRUE);
+			    PK11_AddSlotToList(loginList, slot);
 			}
 		    } else {
-			PK11_AddSlotToList(list, slot, PR_TRUE);
+			PK11_AddSlotToList(list, slot);
 		    }
 		}
 	    }
@@ -1943,9 +1923,9 @@ PK11_GetAllTokens(CK_MECHANISM_TYPE type, PRBool needRW, PRBool loadCerts,
     }
     SECMOD_ReleaseReadLock(moduleLock);
 
-    pk11_MoveListToList(list,friendlyList);
+    PK11_MoveListToList(list,friendlyList);
     PK11_FreeSlotList(friendlyList);
-    pk11_MoveListToList(list,loginList);
+    PK11_MoveListToList(list,loginList);
     PK11_FreeSlotList(loginList);
 
     return list;

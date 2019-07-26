@@ -14,7 +14,10 @@
 
 
 
+#if defined(_WIN32_WCE)
+#else
 #include <time.h>
+#endif
 
 #include "plarena.h"
 #include "prlong.h"

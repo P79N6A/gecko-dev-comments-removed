@@ -633,6 +633,9 @@ PORT_UCS2_ASCIIConversion(PRBool toUnicode, unsigned char *inBuf,
 int
 NSS_PutEnv(const char * envVarName, const char * envValue)
 {
+#ifdef _WIN32_WCE
+    return SECFailure;
+#else
     SECStatus result = SECSuccess;
     char *    encoded;
     int       putEnvFailed;
@@ -658,6 +661,7 @@ NSS_PutEnv(const char * envVarName, const char * envValue)
         PORT_Free(encoded);
     }
     return result;
+#endif
 }
 
 

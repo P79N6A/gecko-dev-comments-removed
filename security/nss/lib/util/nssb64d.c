@@ -809,7 +809,7 @@ ATOB_AsciiToData(const char *string, unsigned int *lenp)
 
 
 SECStatus
-ATOB_ConvertAsciiToItem(SECItem *binary_item, const char *ascii)
+ATOB_ConvertAsciiToItem(SECItem *binary_item, char *ascii)
 {
     SECItem *dummy;
 
