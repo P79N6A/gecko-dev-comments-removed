@@ -497,8 +497,18 @@ public:
   
   virtual void SetDuration(double aDuration);
 
+  
+  
   void SetMediaDuration(int64_t aDuration) MOZ_OVERRIDE;
-  void UpdateMediaDuration(int64_t aDuration) MOZ_OVERRIDE;
+  
+  
+  
+  
+  
+  
+  
+  
+  void UpdateEstimatedMediaDuration(int64_t aDuration) MOZ_OVERRIDE;
 
   
   virtual void SetMediaSeekable(bool aMediaSeekable) MOZ_OVERRIDE;

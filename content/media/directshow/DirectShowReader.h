@@ -10,6 +10,7 @@
 #include "Windows.h" 
 #include "MediaDecoderReader.h"
 #include "mozilla/RefPtr.h"
+#include "MP3FrameParser.h"
 
 class IGraphBuilder;
 class IMediaControl;
@@ -70,6 +71,10 @@ public:
   void OnDecodeThreadStart() MOZ_OVERRIDE;
   void OnDecodeThreadFinish() MOZ_OVERRIDE;
 
+  void NotifyDataArrived(const char* aBuffer,
+                         uint32_t aLength,
+                         int64_t aOffset) MOZ_OVERRIDE;
+
 private:
 
   
@@ -91,6 +96,11 @@ private:
   
   RefPtr<AudioSinkFilter> mAudioSinkFilter;
 
+  
+  
+  
+  MP3FrameParser mMP3FrameParser;
+
 #ifdef DEBUG
   
   
@@ -106,6 +116,9 @@ private:
 
   
   uint32_t mBytesPerSample;
+
+  
+  int64_t mDuration;
 };
 
 } 

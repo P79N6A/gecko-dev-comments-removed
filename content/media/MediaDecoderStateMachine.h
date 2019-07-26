@@ -162,7 +162,10 @@ public:
 
   
   
-  void UpdateDuration(int64_t aDuration);
+  
+  
+  
+  void UpdateEstimatedDuration(int64_t aDuration);
 
   
   

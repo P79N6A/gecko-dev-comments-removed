@@ -75,7 +75,7 @@ public:
   
   
   
-  virtual void UpdateMediaDuration(int64_t aDuration) = 0;
+  virtual void UpdateEstimatedMediaDuration(int64_t aDuration) = 0;
 
   
   virtual void SetMediaSeekable(bool aMediaSeekable) = 0;
