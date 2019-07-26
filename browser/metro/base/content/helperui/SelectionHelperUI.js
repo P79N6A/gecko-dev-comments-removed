@@ -991,7 +991,6 @@ var SelectionHelperUI = {
         if (aEvent.touches.length != 1)
           break;
         let touch = aEvent.touches[0];
-        this._movement.x = this._movement.y = 0;
         this._movement.x = touch.clientX;
         this._movement.y = touch.clientY;
         this._movement.active = true;
@@ -1009,8 +1008,8 @@ var SelectionHelperUI = {
         let touch = aEvent.touches[0];
         
         if (!this._checkForActiveDrag() && this._movement.active) {
-          let distanceY = touch.clientY - this._movement.y;
-          if (Math.abs(distanceY) > kDisableOnScrollDistance) {
+          if (Math.abs(touch.clientX - this._movement.x) > kDisableOnScrollDistance ||
+              Math.abs(touch.clientY - this._movement.y) > kDisableOnScrollDistance) {
             this.closeEditSession(true);
           }
         }
