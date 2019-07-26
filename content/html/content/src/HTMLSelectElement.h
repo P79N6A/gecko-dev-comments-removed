@@ -395,6 +395,7 @@ public:
   nsresult GetValidationMessage(nsAString& aValidationMessage,
                                 ValidityStateType aType) MOZ_OVERRIDE;
 
+  void UpdateValueMissingValidityState();
   
 
 
@@ -511,7 +512,6 @@ protected:
   
   void UpdateBarredFromConstraintValidation();
   bool IsValueMissing();
-  void UpdateValueMissingValidityState();
 
   
 

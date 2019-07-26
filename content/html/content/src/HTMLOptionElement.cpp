@@ -243,6 +243,25 @@ HTMLOptionElement::BeforeSetAttr(int32_t aNamespaceID, nsIAtom* aName,
   return NS_OK;
 }
 
+nsresult
+HTMLOptionElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
+                                const nsAttrValue* aValue, bool aNotify)
+{
+  if (aNameSpaceID == kNameSpaceID_None &&
+      aName == nsGkAtoms::value && Selected()) {
+    
+    
+    
+    HTMLSelectElement* select = GetSelect();
+    if (select) {
+      select->UpdateValueMissingValidityState();
+    }
+  }
+
+  return nsGenericHTMLElement::AfterSetAttr(aNameSpaceID, aName,
+                                            aValue, aNotify);
+}
+
 NS_IMETHODIMP
 HTMLOptionElement::GetText(nsAString& aText)
 {
