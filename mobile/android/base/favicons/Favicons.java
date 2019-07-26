@@ -3,8 +3,10 @@
 
 
 
-package org.mozilla.gecko;
+package org.mozilla.gecko.favicons;
 
+import org.mozilla.gecko.GeckoAppShell;
+import org.mozilla.gecko.R;
 import org.mozilla.gecko.db.BrowserDB;
 import org.mozilla.gecko.gfx.BitmapUtils;
 import org.mozilla.gecko.util.GeckoJarReader;
