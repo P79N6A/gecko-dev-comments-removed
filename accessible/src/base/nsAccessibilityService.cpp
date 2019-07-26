@@ -141,11 +141,12 @@ nsAccessibilityService::~nsAccessibilityService()
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED3(nsAccessibilityService,
+NS_IMPL_ISUPPORTS_INHERITED4(nsAccessibilityService,
                              DocManager,
                              nsIAccessibilityService,
                              nsIAccessibleRetrieval,
-                             nsIObserver)
+                             nsIObserver,
+                             nsISelectionListener) 
 
 
 
@@ -1024,6 +1025,8 @@ nsAccessibilityService::Shutdown()
   
   DocManager::Shutdown();
 
+  SelectionManager::Shutdown();
+
   
   
   
@@ -1604,6 +1607,12 @@ namespace a11y {
 
 FocusManager*
 FocusMgr()
+{
+  return nsAccessibilityService::gAccessibilityService;
+}
+
+SelectionManager*
+SelectionMgr()
 {
   return nsAccessibilityService::gAccessibilityService;
 }

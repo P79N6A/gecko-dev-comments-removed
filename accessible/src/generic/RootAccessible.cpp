@@ -197,10 +197,6 @@ RootAccessible::AddEventListeners()
     }
   }
 
-  if (!mCaretAccessible) {
-    mCaretAccessible = new nsCaretAccessible(this);
-  }
-
   return DocAccessible::AddEventListeners();
 }
 
@@ -220,23 +216,11 @@ RootAccessible::RemoveEventListeners()
   
   
   DocAccessible::RemoveEventListeners();
-
-  if (mCaretAccessible) {
-    mCaretAccessible->Shutdown();
-    mCaretAccessible = nullptr;
-  }
-
   return NS_OK;
 }
 
 
 
-
-nsCaretAccessible*
-RootAccessible::GetCaretAccessible()
-{
-  return mCaretAccessible;
-}
 
 void
 RootAccessible::DocumentActivated(DocAccessible* aDocument)
