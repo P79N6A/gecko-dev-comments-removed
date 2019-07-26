@@ -701,9 +701,7 @@ DrawTargetCG::FillGlyphs(ScaledFont *aFont, const GlyphBuffer &aBuffer, const Pa
 
   CGContextConcatCTM(cg, GfxMatrixToCGAffineTransform(mTransform));
 
-  ScaledFontMac* cgFont = static_cast<ScaledFontMac*>(aFont);
-  CGContextSetFont(cg, cgFont->mFont);
-  CGContextSetFontSize(cg, cgFont->mSize);
+  ScaledFontMac* macFont = static_cast<ScaledFontMac*>(aFont);
 
   
   std::vector<CGGlyph> glyphs;
@@ -729,14 +727,32 @@ DrawTargetCG::FillGlyphs(ScaledFont *aFont, const GlyphBuffer &aBuffer, const Pa
   
   if (isGradient(aPattern)) {
     CGContextSetTextDrawingMode(cg, kCGTextClip);
-    CGContextShowGlyphsAtPositions(cg, &glyphs.front(), &positions.front(), aBuffer.mNumGlyphs);
+    if (ScaledFontMac::CTFontDrawGlyphsPtr != nullptr) {
+      ScaledFontMac::CTFontDrawGlyphsPtr(macFont->mCTFont, &glyphs.front(),
+                                         &positions.front(),
+                                         aBuffer.mNumGlyphs, cg);
+    } else {
+      CGContextSetFont(cg, macFont->mFont);
+      CGContextSetFontSize(cg, macFont->mSize);
+      CGContextShowGlyphsAtPositions(cg, &glyphs.front(), &positions.front(),
+                                     aBuffer.mNumGlyphs);
+    }
     DrawGradient(cg, aPattern);
   } else {
     
     
     CGContextSetTextDrawingMode(cg, kCGTextFill);
     SetFillFromPattern(cg, mColorSpace, aPattern);
-    CGContextShowGlyphsAtPositions(cg, &glyphs.front(), &positions.front(), aBuffer.mNumGlyphs);
+    if (ScaledFontMac::CTFontDrawGlyphsPtr != nullptr) {
+      ScaledFontMac::CTFontDrawGlyphsPtr(macFont->mCTFont, &glyphs.front(),
+                                         &positions.front(),
+                                         aBuffer.mNumGlyphs, cg);
+    } else {
+      CGContextSetFont(cg, macFont->mFont);
+      CGContextSetFontSize(cg, macFont->mSize);
+      CGContextShowGlyphsAtPositions(cg, &glyphs.front(), &positions.front(),
+                                     aBuffer.mNumGlyphs);
+    }
   }
 
   fixer.Fix(mCg);

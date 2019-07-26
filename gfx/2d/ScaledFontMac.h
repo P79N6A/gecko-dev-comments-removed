@@ -25,9 +25,23 @@ public:
   virtual SkTypeface* GetSkTypeface();
 #endif
   virtual TemporaryRef<Path> GetPathForGlyphs(const GlyphBuffer &aBuffer, const DrawTarget *aTarget);
+
 private:
   friend class DrawTargetCG;
   CGFontRef mFont;
+  CTFontRef mCTFont; 
+
+  typedef void (CTFontDrawGlyphsFuncT)(CTFontRef,
+                                       const CGGlyph[], const CGPoint[],
+                                       size_t, CGContextRef);
+
+  static bool sSymbolLookupDone;
+
+public:
+  
+  
+  
+  static CTFontDrawGlyphsFuncT* CTFontDrawGlyphsPtr;
 };
 
 }
