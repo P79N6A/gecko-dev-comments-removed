@@ -2,24 +2,31 @@
 
 
 
+
+
+
+
+
+
 #ifndef BASE_BASICTYPES_H_
 #define BASE_BASICTYPES_H_
 
-#include <limits.h>         
-#include <stddef.h>         
-#include <string.h>         
+#include <limits.h>  
+#include <stddef.h>  
+#include <stdint.h>  
 
-#include "base/port.h"    
+#include "base/macros.h"
+#include "base/port.h"  
 
-#ifndef COMPILER_MSVC
 
-#include <stdint.h>         
-#endif
+typedef int8_t int8;
+typedef uint8_t uint8;
+typedef int16_t int16;
+typedef int32_t int32;
+typedef uint16_t uint16;
+typedef uint32_t uint32;
 
-typedef signed char         schar;
-typedef signed char         int8;
-typedef short               int16;
-typedef int                 int32;
+
 
 
 
@@ -27,43 +34,13 @@ typedef int                 int32;
 
 
 #if defined(__LP64__) && !defined(OS_MACOSX) && !defined(OS_OPENBSD)
-typedef long                int64;
-#else
-typedef long long           int64;
-#endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-typedef unsigned char      uint8;
-typedef unsigned short     uint16;
-typedef unsigned int       uint32;
-
-
-#if defined(__LP64__) && !defined(OS_MACOSX) && !defined(OS_OPENBSD)
+typedef long int64;
 typedef unsigned long uint64;
 #else
+typedef long long int64;
 typedef unsigned long long uint64;
 #endif
 
-
-
-
-
-typedef signed int         char32;
 
 const uint8  kuint8max  = (( uint8) 0xFF);
 const uint16 kuint16max = ((uint16) 0xFFFF);
@@ -77,293 +54,5 @@ const  int32 kint32min  = (( int32) 0x80000000);
 const  int32 kint32max  = (( int32) 0x7FFFFFFF);
 const  int64 kint64min  = (( int64) GG_LONGLONG(0x8000000000000000));
 const  int64 kint64max  = (( int64) GG_LONGLONG(0x7FFFFFFFFFFFFFFF));
-
-
-#define DISALLOW_COPY(TypeName) \
-  TypeName(const TypeName&)
-
-
-#define DISALLOW_ASSIGN(TypeName) \
-  void operator=(const TypeName&)
-
-
-
-#define DISALLOW_COPY_AND_ASSIGN(TypeName) \
-  TypeName(const TypeName&);               \
-  void operator=(const TypeName&)
-
-
-
-
-
-
-#define DISALLOW_EVIL_CONSTRUCTORS(TypeName) DISALLOW_COPY_AND_ASSIGN(TypeName)
-
-
-
-
-
-
-
-#define DISALLOW_IMPLICIT_CONSTRUCTORS(TypeName) \
-  TypeName();                                    \
-  DISALLOW_COPY_AND_ASSIGN(TypeName)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-template <typename T, size_t N>
-char (&ArraySizeHelper(T (&array)[N]))[N];
-
-
-
-
-#ifndef _MSC_VER
-template <typename T, size_t N>
-char (&ArraySizeHelper(const T (&array)[N]))[N];
-#endif
-
-#define arraysize(array) (sizeof(ArraySizeHelper(array)))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#define ARRAYSIZE_UNSAFE(a) \
-  ((sizeof(a) / sizeof(*(a))) / \
-   static_cast<size_t>(!(sizeof(a) % sizeof(*(a)))))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-template<typename To, typename From>
-inline To implicit_cast(From const &f) {
-  return f;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-template <bool>
-struct CompileAssert {
-};
-
-#undef COMPILE_ASSERT
-#define COMPILE_ASSERT(expr, msg) \
-  typedef CompileAssert<(bool(expr))> msg[bool(expr) ? 1 : -1]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-template <class Dest, class Source>
-inline Dest bit_cast(const Source& source) {
-  
-  
-  typedef char VerifySizesAreEqual [sizeof(Dest) == sizeof(Source) ? 1 : -1];
-
-  Dest dest;
-  memcpy(&dest, &source, sizeof(dest));
-  return dest;
-}
-
-
-
-
-
-
-
-
-
-template<typename T>
-inline void ignore_result(const T&) {
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-namespace base {
-enum LinkerInitialized { LINKER_INITIALIZED };
-
-
-
-
-#define CR_DEFINE_STATIC_LOCAL(type, name, arguments) \
-  static type& name = *new type arguments
-
-}  
 
 #endif  
