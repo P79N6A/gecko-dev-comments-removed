@@ -44,21 +44,15 @@ Cu.import("resource://gre/modules/CSPUtils.jsm");
 function ContentSecurityPolicy() {
   CSPdebug("CSP CREATED");
   this._isInitialized = false;
-  this._reportOnlyMode = false;
 
-  this._policy = CSPRep.fromString("default-src *");
-
-  
-  this._policy._allowInlineScripts = true;
-  this._policy._allowInlineStyles = true;
-  this._policy._allowEval = true;
+  this._policies = [];
 
   this._request = "";
   this._requestOrigin = "";
   this._requestPrincipal = "";
   this._referrer = "";
   this._docRequest = null;
-  CSPdebug("CSP POLICY INITED TO 'default-src *'");
+  CSPdebug("CSP object initialized, no policies to enforce yet");
 
   this._cache = { };
 }
@@ -135,40 +129,63 @@ ContentSecurityPolicy.prototype = {
     this._isInitialized = foo;
   },
 
-  get policy () {
-    return this._policy.toString();
-  },
-
-  getAllowsInlineScript: function(shouldReportViolation) {
-    
-    shouldReportViolation.value = !this._policy.allowsInlineScripts;
-
-    
-    return this._reportOnlyMode || this._policy.allowsInlineScripts;
-  },
-
-  getAllowsEval: function(shouldReportViolation) {
-    
-    shouldReportViolation.value = !this._policy.allowsEvalInScripts;
-
-    
-    return this._reportOnlyMode || this._policy.allowsEvalInScripts;
-  },
-
-  getAllowsInlineStyle: function(shouldReportViolation) {
-    
-    shouldReportViolation.value = !this._policy.allowsInlineStyles;
-
-    
-    return this._reportOnlyMode || this._policy.allowsInlineStyles;
+  _getPolicyInternal: function(index) {
+    if (index < 0 || index >= this._policies.length) {
+      throw Cr.NS_ERROR_FAILURE;
+    }
+    return this._policies[index];
   },
 
   _buildViolatedDirectiveString:
-  function(aDirectiveName) {
+  function(aDirectiveName, aPolicy) {
     var SD = CSPRep.SRC_DIRECTIVES_NEW;
-    var cspContext = (SD[aDirectiveName] in this._policy._directives) ? SD[aDirectiveName] : SD.DEFAULT_SRC;
-    var directive = this._policy._directives[cspContext];
+    var cspContext = (SD[aDirectiveName] in aPolicy._directives) ? SD[aDirectiveName] : SD.DEFAULT_SRC;
+    var directive = aPolicy._directives[cspContext];
     return cspContext + ' ' + directive.toString();
+  },
+
+  
+
+
+  getPolicy: function(index) {
+    return this._getPolicyInternal(index).toString();
+  },
+
+  
+
+
+  get numPolicies() {
+    return this._policies.length;
+  },
+
+  getAllowsInlineScript: function(shouldReportViolations) {
+    
+    shouldReportViolations.value = this._policies.some(function(a) { return !a.allowsInlineScripts; });
+
+    
+    return this._policies.every(function(a) {
+      return a._reportOnlyMode || a.allowsInlineScripts;
+    });
+  },
+
+  getAllowsEval: function(shouldReportViolations) {
+    
+    shouldReportViolations.value = this._policies.some(function(a) { return !a.allowsEvalInScripts; });
+
+    
+    return this._policies.every(function(a) {
+      return a._reportOnlyMode || a.allowsEvalInScripts;
+    });
+  },
+
+  getAllowsInlineStyle: function(shouldReportViolations) {
+    
+    shouldReportViolations.value = this._policies.some(function(a) { return !a.allowsInlineStyles; });
+
+    
+    return this._policies.every(function(a) {
+      return a._reportOnlyMode || a.allowsInlineStyles;
+    });
   },
 
   
@@ -185,50 +202,43 @@ ContentSecurityPolicy.prototype = {
 
 
   logViolationDetails:
-  function(aViolationType, aSourceFile, aScriptSample, aLineNum) {
-    
-    
-    
-    switch (aViolationType) {
-    case Ci.nsIContentSecurityPolicy.VIOLATION_TYPE_INLINE_STYLE:
-      if (!this._policy.allowsInlineStyles) {
-        var violatedDirective = this._buildViolatedDirectiveString('STYLE_SRC');
-        this._asyncReportViolation('self', null, violatedDirective, INLINE_STYLE_VIOLATION_OBSERVER_SUBJECT,
-                                   aSourceFile, aScriptSample, aLineNum);
-      }
-      break;
-    case Ci.nsIContentSecurityPolicy.VIOLATION_TYPE_INLINE_SCRIPT:
-      if (!this._policy.allowsInlineScripts)    {
-        var violatedDirective = this._buildViolatedDirectiveString('SCRIPT_SRC');
-        this._asyncReportViolation('self', null, violatedDirective, INLINE_SCRIPT_VIOLATION_OBSERVER_SUBJECT,
+  function(aViolationType, aSourceFile, aScriptSample, aLineNum, violatedPolicyIndex) {
+    for (let policyIndex=0; policyIndex < this._policies.length; policyIndex++) {
+      let policy = this._policies[policyIndex];
+
+      
+      
+      
+      
+      
+      switch (aViolationType) {
+      case Ci.nsIContentSecurityPolicy.VIOLATION_TYPE_INLINE_STYLE:
+        if (!policy.allowsInlineStyles) {
+          var violatedDirective = this._buildViolatedDirectiveString('STYLE_SRC', policy);
+          this._asyncReportViolation('self', null, violatedDirective, policyIndex,
+                                    INLINE_STYLE_VIOLATION_OBSERVER_SUBJECT,
                                     aSourceFile, aScriptSample, aLineNum);
         }
-      break;
-    case Ci.nsIContentSecurityPolicy.VIOLATION_TYPE_EVAL:
-      if (!this._policy.allowsEvalInScripts) {
-        var violatedDirective = this._buildViolatedDirectiveString('SCRIPT_SRC');
-        this._asyncReportViolation('self', null, violatedDirective, EVAL_VIOLATION_OBSERVER_SUBJECT,
-                                   aSourceFile, aScriptSample, aLineNum);
+        break;
+      case Ci.nsIContentSecurityPolicy.VIOLATION_TYPE_INLINE_SCRIPT:
+        if (!policy.allowsInlineScripts)    {
+          var violatedDirective = this._buildViolatedDirectiveString('SCRIPT_SRC', policy);
+          this._asyncReportViolation('self', null, violatedDirective, policyIndex,
+                                    INLINE_SCRIPT_VIOLATION_OBSERVER_SUBJECT,
+                                    aSourceFile, aScriptSample, aLineNum);
+          }
+        break;
+      case Ci.nsIContentSecurityPolicy.VIOLATION_TYPE_EVAL:
+        if (!policy.allowsEvalInScripts) {
+          var violatedDirective = this._buildViolatedDirectiveString('SCRIPT_SRC', policy);
+          this._asyncReportViolation('self', null, violatedDirective, policyIndex,
+                                    EVAL_VIOLATION_OBSERVER_SUBJECT,
+                                    aSourceFile, aScriptSample, aLineNum);
+        }
+        break;
       }
-      break;
     }
   },
-
-  set reportOnlyMode(val) {
-    this._reportOnlyMode = val;
-  },
-
-  get reportOnlyMode () {
-    return this._reportOnlyMode;
-  },
-
-  
-
-
-
-
-
-
 
   
 
@@ -268,55 +278,66 @@ ContentSecurityPolicy.prototype = {
 
 
 
-
-
-  refinePolicy:
-  function csp_refinePolicy(aPolicy, selfURI, aSpecCompliant) {
-    CSPdebug("REFINE POLICY: " + aPolicy);
-    CSPdebug("         SELF: " + selfURI.asciiSpec);
+  appendPolicy:
+  function csp_appendPolicy(aPolicy, selfURI, aReportOnly, aSpecCompliant) {
+#ifndef MOZ_B2G
+    CSPdebug("APPENDING POLICY: " + aPolicy);
+    CSPdebug("            SELF: " + selfURI.asciiSpec);
     CSPdebug("CSP 1.0 COMPLIANT : " + aSpecCompliant);
+#endif
+
     
     
     
     if (selfURI instanceof Ci.nsINestedURI) {
+#ifndef MOZ_B2G
       CSPdebug("        INNER: " + selfURI.innermostURI.asciiSpec);
+#endif
       selfURI = selfURI.innermostURI;
     }
 
     
-    this._isInitialized = false;
-
-    
-    
-    
-    
-
-    
-    
-    
     var newpolicy;
+
+    
+    
+    
+    
+
+    
+    
+    
     if (aSpecCompliant) {
       newpolicy = CSPRep.fromStringSpecCompliant(aPolicy,
                                                  selfURI,
                                                  this._docRequest,
-                                                 this);
+                                                 this,
+                                                 aReportOnly);
     } else {
       newpolicy = CSPRep.fromString(aPolicy,
                                     selfURI,
                                     this._docRequest,
-                                    this);
+                                    this,
+                                    aReportOnly);
     }
 
-    
-    var intersect = this._policy.intersectWith(newpolicy);
+    newpolicy._specCompliant = !!aSpecCompliant;
+    newpolicy._isInitialized = true;
+    this._policies.push(newpolicy);
+    this._cache = {}; 
+  },
 
-    
-    this._policy = intersect;
+  
 
-    this._policy._specCompliant = !!aSpecCompliant;
 
-    this._isInitialized = true;
-    this._cache = {};
+  removePolicy:
+  function csp_removePolicy(index) {
+    if (index < 0 || index >= this._policies.length) {
+      CSPdebug("Cannot remove policy " + index + "; not enough policies.");
+      return;
+    }
+    this._policies.splice(index, 1);
+    this._cache = {}; 
   },
 
   
@@ -324,17 +345,29 @@ ContentSecurityPolicy.prototype = {
 
   sendReports:
   function(blockedUri, originalUri, violatedDirective,
-           aSourceFile, aScriptSample, aLineNum) {
-    var uriString = this._policy.getReportURIs();
+           violatedPolicyIndex, aSourceFile,
+           aScriptSample, aLineNum) {
+
+    let policy = this._getPolicyInternal(violatedPolicyIndex);
+    if (!policy) {
+      CSPdebug("ERROR in SendReports: policy " + violatedPolicyIndex + " is not defined.");
+      return;
+    }
+
+    var uriString = policy.getReportURIs();
     var uris = uriString.split(/\s+/);
     if (uris.length > 0) {
       
       let blocked = '';
       if (originalUri) {
         
-        let clone = blockedUri.clone();
-        clone.path = '';
-        blocked = clone.asciiSpec;
+        try {
+          let clone = blockedUri.clone();
+          clone.path = '';
+          blocked = clone.asciiSpec;
+        } catch(e) {
+          CSPdebug(".... blockedUri can't be cloned: " + blockedUri);
+        }
       }
       else if (blockedUri instanceof Ci.nsIURI) {
         blocked = blockedUri.cloneIgnoringRef().asciiSpec;
@@ -400,7 +433,7 @@ ContentSecurityPolicy.prototype = {
 
           
           
-          chan.notificationCallbacks = new CSPReportRedirectSink(this._policy);
+          chan.notificationCallbacks = new CSPReportRedirectSink(policy);
           if (this._docRequest) {
             chan.loadGroup = this._docRequest.loadGroup;
           }
@@ -435,8 +468,8 @@ ContentSecurityPolicy.prototype = {
         } catch(e) {
           
           
-          this._policy.log(WARN_FLAG, CSPLocalizer.getFormatStr("triedToSendReport", [uris[i]]));
-          this._policy.log(WARN_FLAG, CSPLocalizer.getFormatStr("errorWas", [e.toString()]));
+          policy.log(WARN_FLAG, CSPLocalizer.getFormatStr("triedToSendReport", [uris[i]]));
+          policy.log(WARN_FLAG, CSPLocalizer.getFormatStr("errorWas", [e.toString()]));
         }
       }
     }
@@ -446,8 +479,9 @@ ContentSecurityPolicy.prototype = {
 
 
   logToConsole:
-  function(blockedUri, originalUri, violatedDirective,
+  function(blockedUri, originalUri, violatedDirective, aViolatedPolicyIndex,
            aSourceFile, aScriptSample, aLineNum, aObserverSubject) {
+     let policy = this._policies[aViolatedPolicyIndex];
      switch(aObserverSubject.data) {
       case INLINE_STYLE_VIOLATION_OBSERVER_SUBJECT:
         violatedDirective = CSPLocalizer.getStr("inlineStyleBlocked");
@@ -465,11 +499,12 @@ ContentSecurityPolicy.prototype = {
     } else {
       violationMessage = CSPLocalizer.getFormatStr("CSPViolation", [violatedDirective]);
     }
-    this._policy.log(WARN_FLAG, violationMessage,
-      (aSourceFile) ? aSourceFile : null,
-      (aScriptSample) ? decodeURIComponent(aScriptSample) : null,
-      (aLineNum) ? aLineNum : null);
+    policy.log(WARN_FLAG, violationMessage,
+               (aSourceFile) ? aSourceFile : null,
+               (aScriptSample) ? decodeURIComponent(aScriptSample) : null,
+               (aLineNum) ? aLineNum : null);
   },
+
 
 
 
@@ -481,8 +516,20 @@ ContentSecurityPolicy.prototype = {
 
   permitsAncestry:
   function(docShell) {
+    
+    
+    var permitted = true;
+    for (let i = 0; i < this._policies.length; i++) {
+      if (!this._permitsAncestryInternal(docShell, this._policies[i], i)) {
+        permitted = false;
+      }
+    }
+    return permitted;
+  },
+
+  _permitsAncestryInternal:
+  function(docShell, policy, policyIndex) {
     if (!docShell) { return false; }
-    CSPdebug(" in permitsAncestry(), docShell = " + docShell);
 
     
     var dst = docShell.QueryInterface(Ci.nsIInterfaceRequestor)
@@ -504,7 +551,9 @@ ContentSecurityPolicy.prototype = {
           ancestor.userPass = '';
         } catch (ex) {}
 
+#ifndef MOZ_B2G
         CSPdebug(" found frame ancestor " + ancestor.asciiSpec);
+#endif
         ancestors.push(ancestor);
       }
     }
@@ -515,17 +564,16 @@ ContentSecurityPolicy.prototype = {
     let cspContext = CSPRep.SRC_DIRECTIVES_NEW.FRAME_ANCESTORS;
     for (let i in ancestors) {
       let ancestor = ancestors[i];
-      if (!this._policy.permits(ancestor, cspContext)) {
+      if (!policy.permits(ancestor, cspContext)) {
         
-        let directive = this._policy._directives[cspContext];
-        let violatedPolicy = (directive._isImplicit
-                                ? 'default-src' : 'frame-ancestors ')
-                                + directive.toString();
+        let directive = policy._directives[cspContext];
+        let violatedPolicy = 'frame-ancestors ' + directive.toString();
 
-        this._asyncReportViolation(ancestors[i], null, violatedPolicy);
+        this._asyncReportViolation(ancestors[i], null, violatedPolicy,
+                                   policyIndex);
 
         
-        return this._reportOnlyMode;
+        return policy._reportOnlyMode;
       }
     }
     return true;
@@ -581,63 +629,82 @@ ContentSecurityPolicy.prototype = {
 
     let cp = Ci.nsIContentPolicy;
 
+    
+    
+    
+    let policyAllowsLoadArray = [];
+    for (let policyIndex=0; policyIndex < this._policies.length; policyIndex++) {
+      let policy = this._policies[policyIndex];
+
 #ifndef MOZ_B2G
-    CSPdebug("policy is " + (this._policy._specCompliant ?
-                             "1.0 compliant" : "pre-1.0"));
+      CSPdebug("policy is " + (policy._specCompliant ?
+                              "1.0 compliant" : "pre-1.0"));
+      CSPdebug("policy is " + (policy._reportOnlyMode ?
+                              "report-only" : "blocking"));
 #endif
 
-    if (aContentType == cp.TYPE_XMLHTTPREQUEST && this._policy._specCompliant) {
-      cspContext = ContentSecurityPolicy._MAPPINGS[CSP_TYPE_XMLHTTPREQUEST_SPEC_COMPLIANT];
-    } else if (aContentType == cp.TYPE_WEBSOCKET && this._policy._specCompliant) {
-      cspContext = ContentSecurityPolicy._MAPPINGS[CSP_TYPE_WEBSOCKET_SPEC_COMPLIANT];
-    } else {
-      cspContext = ContentSecurityPolicy._MAPPINGS[aContentType];
-    }
-
-    CSPdebug("shouldLoad cspContext = " + cspContext);
-
-    
-    if (!cspContext) {
-      return Ci.nsIContentPolicy.ACCEPT;
-    }
-
-    
-    
-    var res = this._policy.permits(aContentLocation, cspContext)
-              ? Ci.nsIContentPolicy.ACCEPT
-              : Ci.nsIContentPolicy.REJECT_SERVER;
-
-    
-
-    
-    if (res != Ci.nsIContentPolicy.ACCEPT) {
-      CSPdebug("blocking request for " + aContentLocation.asciiSpec);
-      try {
-        let directive = "unknown directive",
-            violatedPolicy = "unknown policy";
-
-        
-        
-        
-        if (this._policy._directives.hasOwnProperty(cspContext)) {
-          directive = this._policy._directives[cspContext];
-          violatedPolicy = cspContext + ' ' + directive.toString();
-        } else if (this._policy._directives.hasOwnProperty("default-src")) {
-          directive = this._policy._directives["default-src"];
-          violatedPolicy = "default-src " + directive.toString();
-        } else {
-          violatedPolicy = "unknown directive";
-          CSPdebug('ERROR in blocking content: ' +
-                   'CSP is not sure which part of the policy caused this block');
-        }
-
-        this._asyncReportViolation(aContentLocation, aOriginalUri, violatedPolicy);
-      } catch(e) {
-        CSPdebug('---------------- ERROR: ' + e);
+      if (aContentType == cp.TYPE_XMLHTTPREQUEST && this._policies[policyIndex]._specCompliant) {
+        cspContext = ContentSecurityPolicy._MAPPINGS[CSP_TYPE_XMLHTTPREQUEST_SPEC_COMPLIANT];
+      } else if (aContentType == cp.TYPE_WEBSOCKET && this._policies[policyIndex]._specCompliant) {
+        cspContext = ContentSecurityPolicy._MAPPINGS[CSP_TYPE_WEBSOCKET_SPEC_COMPLIANT];
+      } else {
+        cspContext = ContentSecurityPolicy._MAPPINGS[aContentType];
       }
-    }
 
-    let ret = (this._reportOnlyMode ? Ci.nsIContentPolicy.ACCEPT : res);
+#ifndef MOZ_B2G
+      CSPdebug("shouldLoad cspContext = " + cspContext);
+#endif
+
+      
+      if (!cspContext) {
+        return Ci.nsIContentPolicy.ACCEPT;
+      }
+
+      
+      
+      var res = policy.permits(aContentLocation, cspContext)
+                ? cp.ACCEPT : cp.REJECT_SERVER;
+      
+      policyAllowsLoadArray.push(res == cp.ACCEPT || policy._reportOnlyMode);
+
+      
+
+      
+      if (res != Ci.nsIContentPolicy.ACCEPT) {
+        CSPdebug("blocking request for " + aContentLocation.asciiSpec);
+        try {
+          let directive = "unknown directive",
+              violatedPolicy = "unknown policy";
+
+          
+          
+          
+          if (policy._directives.hasOwnProperty(cspContext)) {
+            directive = policy._directives[cspContext];
+            violatedPolicy = cspContext + ' ' + directive.toString();
+          } else if (policy._directives.hasOwnProperty("default-src")) {
+            directive = policy._directives["default-src"];
+            violatedPolicy = "default-src " + directive.toString();
+          } else {
+            violatedPolicy = "unknown directive";
+            CSPdebug('ERROR in blocking content: ' +
+                    'CSP is not sure which part of the policy caused this block');
+          }
+
+          this._asyncReportViolation(aContentLocation, aOriginalUri,
+                                     violatedPolicy, policyIndex);
+        } catch(e) {
+          CSPdebug('---------------- ERROR: ' + e);
+        }
+      }
+    } 
+
+    
+    
+    
+    let ret = (policyAllowsLoadArray.some(function(a,b) { return !a; }) ?
+               cp.REJECT_SERVER : cp.ACCEPT);
+
     if (key) {
       this._cache[key] = ret;
     }
@@ -679,8 +746,12 @@ ContentSecurityPolicy.prototype = {
 
 
 
+
+
+
   _asyncReportViolation:
-  function(aBlockedContentSource, aOriginalUri, aViolatedDirective, aObserverSubject,
+  function(aBlockedContentSource, aOriginalUri, aViolatedDirective,
+           aViolatedPolicyIndex, aObserverSubject,
            aSourceFile, aScriptSample, aLineNum) {
     
     
@@ -704,10 +775,11 @@ ContentSecurityPolicy.prototype = {
                                      CSP_VIOLATION_TOPIC,
                                      aViolatedDirective);
         reportSender.sendReports(aBlockedContentSource, aOriginalUri,
-                                 aViolatedDirective,
+                                 aViolatedDirective, aViolatedPolicyIndex,
                                  aSourceFile, aScriptSample, aLineNum);
         reportSender.logToConsole(aBlockedContentSource, aOriginalUri,
-                                  aViolatedDirective, aSourceFile, aScriptSample,
+                                  aViolatedDirective, aViolatedPolicyIndex,
+                                  aSourceFile, aScriptSample,
                                   aLineNum, aObserverSubject);
 
       }, Ci.nsIThread.DISPATCH_NORMAL);

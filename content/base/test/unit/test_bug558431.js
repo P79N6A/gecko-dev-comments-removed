@@ -67,7 +67,7 @@ listener.prototype = {
       
       
       
-      let cspr_str = this._csp.policy;
+      let cspr_str = this._csp.getPolicy(0);
       let cspr = CSPRep.fromString(cspr_str, mkuri(DOCUMENT_URI));
 
       

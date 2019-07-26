@@ -60,88 +60,97 @@ CSPService::ShouldLoad(uint32_t aContentType,
                        nsIPrincipal *aRequestPrincipal,
                        int16_t *aDecision)
 {
-    if (!aContentLocation)
-        return NS_ERROR_FAILURE;
+  if (!aContentLocation)
+    return NS_ERROR_FAILURE;
 
 #ifdef PR_LOGGING
-    {
-        nsAutoCString location;
-        aContentLocation->GetSpec(location);
-        PR_LOG(gCspPRLog, PR_LOG_DEBUG,
-            ("CSPService::ShouldLoad called for %s", location.get()));
-    }
-#endif
-    
-    *aDecision = nsIContentPolicy::ACCEPT;
-
-    
-    if (!sCSPEnabled)
-        return NS_OK;
-
-    
-    
-    bool schemeMatch = false;
-    NS_ENSURE_SUCCESS(aContentLocation->SchemeIs("about", &schemeMatch), NS_OK);
-    if (schemeMatch)
-        return NS_OK;
-    NS_ENSURE_SUCCESS(aContentLocation->SchemeIs("chrome", &schemeMatch), NS_OK);
-    if (schemeMatch)
-        return NS_OK;
-    NS_ENSURE_SUCCESS(aContentLocation->SchemeIs("resource", &schemeMatch), NS_OK);
-    if (schemeMatch)
-        return NS_OK;
-    NS_ENSURE_SUCCESS(aContentLocation->SchemeIs("javascript", &schemeMatch), NS_OK);
-    if (schemeMatch)
-        return NS_OK;
-
-
-    
-    
-    
-    if (aContentType == nsIContentPolicy::TYPE_CSP_REPORT ||
-        aContentType == nsIContentPolicy::TYPE_REFRESH ||
-        aContentType == nsIContentPolicy::TYPE_DOCUMENT) {
-        return NS_OK;
-    }
-
-    
-    
-    nsCOMPtr<nsINode> node(do_QueryInterface(aRequestContext));
-    nsCOMPtr<nsIPrincipal> principal;
-    nsCOMPtr<nsIContentSecurityPolicy> csp;
-    if (node) {
-        principal = node->NodePrincipal();
-        principal->GetCsp(getter_AddRefs(csp));
-
-        if (csp) {
-#ifdef PR_LOGGING
-            nsAutoString policy;
-            csp->GetPolicy(policy);
-            PR_LOG(gCspPRLog, PR_LOG_DEBUG,
-                    ("Document has CSP: %s",
-                     NS_ConvertUTF16toUTF8(policy).get()));
-#endif
-            
-            
-            csp->ShouldLoad(aContentType,
-                            aContentLocation,
-                            aRequestOrigin,
-                            aRequestContext,
-                            aMimeTypeGuess,
-                            nullptr,
-                            aDecision);
-        }
-    }
-#ifdef PR_LOGGING
-    else {
-        nsAutoCString uriSpec;
-        aContentLocation->GetSpec(uriSpec);
-        PR_LOG(gCspPRLog, PR_LOG_DEBUG,
-            ("COULD NOT get nsINode for location: %s", uriSpec.get()));
-    }
+  {
+    nsAutoCString location;
+    aContentLocation->GetSpec(location);
+    PR_LOG(gCspPRLog, PR_LOG_DEBUG,
+           ("CSPService::ShouldLoad called for %s", location.get()));
+  }
 #endif
 
+  
+  *aDecision = nsIContentPolicy::ACCEPT;
+
+  
+  if (!sCSPEnabled)
     return NS_OK;
+
+  
+  
+  bool schemeMatch = false;
+  NS_ENSURE_SUCCESS(aContentLocation->SchemeIs("about", &schemeMatch), NS_OK);
+  if (schemeMatch)
+    return NS_OK;
+  NS_ENSURE_SUCCESS(aContentLocation->SchemeIs("chrome", &schemeMatch), NS_OK);
+  if (schemeMatch)
+    return NS_OK;
+  NS_ENSURE_SUCCESS(aContentLocation->SchemeIs("resource", &schemeMatch), NS_OK);
+  if (schemeMatch)
+    return NS_OK;
+  NS_ENSURE_SUCCESS(aContentLocation->SchemeIs("javascript", &schemeMatch), NS_OK);
+  if (schemeMatch)
+    return NS_OK;
+
+
+  
+  
+  
+  if (aContentType == nsIContentPolicy::TYPE_CSP_REPORT ||
+    aContentType == nsIContentPolicy::TYPE_REFRESH ||
+    aContentType == nsIContentPolicy::TYPE_DOCUMENT) {
+    return NS_OK;
+  }
+
+  
+  
+  nsCOMPtr<nsINode> node(do_QueryInterface(aRequestContext));
+  nsCOMPtr<nsIPrincipal> principal;
+  nsCOMPtr<nsIContentSecurityPolicy> csp;
+  if (node) {
+    principal = node->NodePrincipal();
+    principal->GetCsp(getter_AddRefs(csp));
+
+    if (csp) {
+#ifdef PR_LOGGING
+      {
+        int numPolicies = 0;
+        nsresult rv = csp->GetPolicyCount(&numPolicies);
+        if (NS_SUCCEEDED(rv)) {
+          for (int i=0; i<numPolicies; i++) {
+            nsAutoString policy;
+            csp->GetPolicy(i, policy);
+            PR_LOG(gCspPRLog, PR_LOG_DEBUG,
+                   ("Document has CSP[%d]: %s", i,
+                   NS_ConvertUTF16toUTF8(policy).get()));
+          }
+        }
+      }
+#endif
+      
+      
+      csp->ShouldLoad(aContentType,
+                      aContentLocation,
+                      aRequestOrigin,
+                      aRequestContext,
+                      aMimeTypeGuess,
+                      nullptr,
+                      aDecision);
+    }
+  }
+#ifdef PR_LOGGING
+  else {
+    nsAutoCString uriSpec;
+    aContentLocation->GetSpec(uriSpec);
+    PR_LOG(gCspPRLog, PR_LOG_DEBUG,
+           ("COULD NOT get nsINode for location: %s", uriSpec.get()));
+  }
+#endif
+
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -154,52 +163,60 @@ CSPService::ShouldProcess(uint32_t         aContentType,
                           nsIPrincipal     *aRequestPrincipal,
                           int16_t          *aDecision)
 {
-    if (!aContentLocation)
-        return NS_ERROR_FAILURE;
+  if (!aContentLocation)
+    return NS_ERROR_FAILURE;
 
-    
-    *aDecision = nsIContentPolicy::ACCEPT;
+  
+  *aDecision = nsIContentPolicy::ACCEPT;
 
-    
-    if (!sCSPEnabled)
-        return NS_OK;
-
-    
-    
-    nsCOMPtr<nsINode> node(do_QueryInterface(aRequestContext));
-    nsCOMPtr<nsIPrincipal> principal;
-    nsCOMPtr<nsIContentSecurityPolicy> csp;
-    if (node) {
-        principal = node->NodePrincipal();
-        principal->GetCsp(getter_AddRefs(csp));
-
-        if (csp) {
-#ifdef PR_LOGGING
-            nsAutoString policy;
-            csp->GetPolicy(policy);
-            PR_LOG(gCspPRLog, PR_LOG_DEBUG,
-                  ("shouldProcess - document has policy: %s",
-                    NS_ConvertUTF16toUTF8(policy).get()));
-#endif
-            
-            csp->ShouldProcess(aContentType,
-                               aContentLocation,
-                               aRequestOrigin,
-                               aRequestContext,
-                               aMimeTypeGuess,
-                               aExtra,
-                               aDecision);
-        }
-    }
-#ifdef PR_LOGGING
-    else {
-        nsAutoCString uriSpec;
-        aContentLocation->GetSpec(uriSpec);
-        PR_LOG(gCspPRLog, PR_LOG_DEBUG,
-            ("COULD NOT get nsINode for location: %s", uriSpec.get()));
-    }
-#endif
+  
+  if (!sCSPEnabled)
     return NS_OK;
+
+  
+  
+  nsCOMPtr<nsINode> node(do_QueryInterface(aRequestContext));
+  nsCOMPtr<nsIPrincipal> principal;
+  nsCOMPtr<nsIContentSecurityPolicy> csp;
+  if (node) {
+    principal = node->NodePrincipal();
+    principal->GetCsp(getter_AddRefs(csp));
+
+    if (csp) {
+#ifdef PR_LOGGING
+      {
+        int numPolicies = 0;
+        nsresult rv = csp->GetPolicyCount(&numPolicies);
+        if (NS_SUCCEEDED(rv)) {
+          for (int i=0; i<numPolicies; i++) {
+            nsAutoString policy;
+            csp->GetPolicy(i, policy);
+            PR_LOG(gCspPRLog, PR_LOG_DEBUG,
+                   ("shouldProcess - document has policy[%d]: %s", i,
+                   NS_ConvertUTF16toUTF8(policy).get()));
+          }
+        }
+      }
+#endif
+      
+      csp->ShouldProcess(aContentType,
+                         aContentLocation,
+                         aRequestOrigin,
+                         aRequestContext,
+                         aMimeTypeGuess,
+                         aExtra,
+                         aDecision);
+    }
+  }
+#ifdef PR_LOGGING
+  else {
+    nsAutoCString uriSpec;
+    aContentLocation->GetSpec(uriSpec);
+    PR_LOG(gCspPRLog, PR_LOG_DEBUG,
+           ("COULD NOT get nsINode for location: %s", uriSpec.get()));
+  }
+#endif
+  return NS_OK;
 }
 
 
