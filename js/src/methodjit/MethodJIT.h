@@ -783,6 +783,12 @@ struct JITScript
 
 
 
+    uint32_t        ionCalls;
+
+    
+
+
+
 
     bool mustDestroyEntryChunk;
 

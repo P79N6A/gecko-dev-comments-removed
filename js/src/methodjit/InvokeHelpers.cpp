@@ -247,7 +247,7 @@ stubs::CompileFunction(VMFrame &f, uint32_t argc)
 
 
 static inline bool
-ShouldJaegerCompileCallee(JSContext *cx, JSScript *caller, JSScript *callee)
+ShouldJaegerCompileCallee(JSContext *cx, JSScript *caller, JSScript *callee, JITScript *callerJit)
 {
 #ifdef JS_ION
     if (!ion::IsEnabled(cx))
@@ -259,12 +259,11 @@ ShouldJaegerCompileCallee(JSContext *cx, JSScript *caller, JSScript *callee)
 
     
     
-    if (caller->getUseCount() > 1500)
+    if (!callee->hasAnalysis() || !callee->analysis()->hasLoops())
         return true;
 
     
-    
-    if (!callee->hasAnalysis() || !callee->analysis()->hasLoops())
+    if (callee->hasIonScript() && ++callerJit->ionCalls > 4000)
         return true;
 
     return false;
@@ -290,7 +289,7 @@ UncachedInlineCall(VMFrame &f, InitialFrameFlags initial,
         return false;
 
     
-    if (ShouldJaegerCompileCallee(cx, f.script(), newscript)) {
+    if (ShouldJaegerCompileCallee(cx, f.script(), newscript, f.jit())) {
         CompileStatus status = CanMethodJIT(cx, newscript, newscript->code, construct,
                                             CompileRequest_JIT, f.fp());
         if (status == Compile_Error) {
