@@ -98,7 +98,7 @@ public:
   
 
 
-  static mozilla::TextComposition* GetTextComposition(nsIWidget* aWidget);
+  static mozilla::TextComposition* GetTextCompositionFor(nsIWidget* aWidget);
 
   
 

@@ -31,12 +31,13 @@ namespace mozilla {
 class TextComposition MOZ_FINAL
 {
   friend class ::nsIMEStateManager;
+
+  NS_INLINE_DECL_REFCOUNTING(TextComposition)
+
 public:
   TextComposition(nsPresContext* aPresContext,
                   nsINode* aNode,
                   WidgetGUIEvent* aEvent);
-
-  TextComposition(const TextComposition& aOther);
 
   ~TextComposition()
   {
@@ -99,6 +100,8 @@ private:
 
   
   TextComposition() {}
+  TextComposition(const TextComposition& aOther);
+
 
   
 
@@ -163,7 +166,8 @@ private:
 
 
 
-class TextCompositionArray MOZ_FINAL : public nsAutoTArray<TextComposition, 2>
+class TextCompositionArray MOZ_FINAL :
+  public nsAutoTArray<nsRefPtr<TextComposition>, 2>
 {
 public:
   index_type IndexOf(nsIWidget* aWidget);
