@@ -8,8 +8,14 @@ this.EXPORTED_SYMBOLS = ["XPathGenerator"];
 
 this.XPathGenerator = {
   
-  namespaceURIs:     { "xhtml": "http://www.w3.org/1999/xhtml" },
-  namespacePrefixes: { "http://www.w3.org/1999/xhtml": "xhtml" },
+  namespaceURIs:     {
+    "xhtml": "http://www.w3.org/1999/xhtml",
+    "xul": "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+  },
+  namespacePrefixes: {
+    "http://www.w3.org/1999/xhtml": "xhtml",
+    "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul": "xul"
+  },
 
   
 
@@ -92,6 +98,9 @@ this.XPathGenerator = {
       ignoreTypes.join("' or translate(@type, " + toLowerCase + ")='") + "')";
     let formNodesXPath = "//textarea|//select|//xhtml:textarea|//xhtml:select|" +
       "//input[" + ignore + "]|//xhtml:input[" + ignore + "]";
+
+    
+    formNodesXPath += '|/xul:window[@id="config"]//xul:textbox[@id="textbox"]';
 
     delete this.restorableFormNodes;
     return (this.restorableFormNodes = formNodesXPath);
