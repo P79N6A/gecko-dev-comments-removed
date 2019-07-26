@@ -146,19 +146,22 @@ WeaveService.prototype = {
       this.timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
       this.timer.initWithCallback({
         notify: function() {
+          let isConfigured = false;
           
           let prefs = Services.prefs.getBranch(SYNC_PREFS_BRANCH);
-          if (!prefs.prefHasUserValue("username")) {
-            return;
+          if (prefs.prefHasUserValue("username")) {
+            
+            
+            
+            
+            
+            Components.utils.import("resource://services-sync/main.js");
+            isConfigured = Weave.Status.checkSetup() != Weave.CLIENT_NOT_CONFIGURED;
           }
-
-          
-          
-          
-          
-          
-          Components.utils.import("resource://services-sync/main.js");
-          if (Weave.Status.checkSetup() != Weave.CLIENT_NOT_CONFIGURED) {
+          let getHistogramById = Services.telemetry.getHistogramById;
+          getHistogramById("WEAVE_CONFIGURED").add(isConfigured);
+          if (isConfigured) {
+            getHistogramById("WEAVE_CONFIGURED_MASTER_PASSWORD").add(Utils.mpEnabled());
             this.ensureLoaded();
           }
         }.bind(this)
