@@ -561,6 +561,7 @@ BasicTableLayoutStrategy::DistributePctWidthToColumns(float aSpanPrefPct,
     
 
     int32_t scol, scol_end;
+    nsTableCellMap *cellMap = mTableFrame->GetCellMap();
     for (scol = aFirstCol, scol_end = aFirstCol + aColCount;
          scol < scol_end; ++scol) {
         nsTableColFrame *scolFrame = mTableFrame->GetColFrame(scol);
@@ -571,7 +572,9 @@ BasicTableLayoutStrategy::DistributePctWidthToColumns(float aSpanPrefPct,
         float scolPct = scolFrame->GetPrefPercent();
         if (scolPct == 0.0f) {
             nonPctTotalPrefWidth += scolFrame->GetPrefCoord();
-            ++nonPctColCount;
+            if (cellMap->GetNumCellsOriginatingInCol(scol) > 0) {
+                ++nonPctColCount;
+            }
         } else {
             aSpanPrefPct -= scolPct;
         }
@@ -608,18 +611,22 @@ BasicTableLayoutStrategy::DistributePctWidthToColumns(float aSpanPrefPct,
                 allocatedPct = aSpanPrefPct *
                     (float(scolFrame->GetPrefCoord()) /
                      float(nonPctTotalPrefWidth));
-            } else {
+            } else if (cellMap->GetNumCellsOriginatingInCol(scol) > 0) {
                 
                 allocatedPct = aSpanPrefPct / float(nonPctColCount);
+            } else {
+                allocatedPct = 0.0f;
             }
             
             scolFrame->AddSpanPrefPercent(allocatedPct);
-            
+
             
             
             aSpanPrefPct -= allocatedPct;
             nonPctTotalPrefWidth -= scolFrame->GetPrefCoord();
-            --nonPctColCount;
+            if (cellMap->GetNumCellsOriginatingInCol(scol) > 0) {
+                --nonPctColCount;
+            }
 
             if (!aSpanPrefPct) {
                 
