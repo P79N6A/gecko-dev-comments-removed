@@ -37,6 +37,7 @@ NS_QUERYFRAME_TAIL_INHERITING(nsContainerFrame)
 
 nsNumberControlFrame::nsNumberControlFrame(nsStyleContext* aContext)
   : nsContainerFrame(aContext)
+  , mHandlingInputEvent(false)
 {
 }
 
@@ -286,6 +287,18 @@ nsNumberControlFrame::AppendAnonymousContentTo(nsBaseContentList& aElements,
 void
 nsNumberControlFrame::UpdateForValueChange(const nsAString& aValue)
 {
+  if (mHandlingInputEvent) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    return;
+  }
   
   
   

@@ -71,6 +71,15 @@ public:
 
   void UpdateForValueChange(const nsAString& aValue);
 
+  
+
+
+
+  void HandlingInputEvent(bool aHandlingEvent)
+  {
+    mHandlingInputEvent = aHandlingEvent;
+  }
+
   HTMLInputElement* GetAnonTextControl();
 
 private:
@@ -95,6 +104,7 @@ private:
   nsCOMPtr<nsIContent> mSpinBox;
   nsCOMPtr<nsIContent> mSpinUp;
   nsCOMPtr<nsIContent> mSpinDown;
+  bool mHandlingInputEvent;
 };
 
 #endif 

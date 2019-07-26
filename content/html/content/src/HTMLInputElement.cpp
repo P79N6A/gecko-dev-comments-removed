@@ -3274,7 +3274,45 @@ HTMLInputElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
     }
   }
 
-  return nsGenericHTMLFormElementWithState::PreHandleEvent(aVisitor);
+  nsresult rv = nsGenericHTMLFormElementWithState::PreHandleEvent(aVisitor);
+
+  
+  
+  if (mType == NS_FORM_INPUT_NUMBER &&
+      aVisitor.mEvent->mFlags.mIsTrusted  &&
+      aVisitor.mEvent->originalTarget != this) {
+    
+    
+    
+    HTMLInputElement* textControl = nullptr;
+    nsNumberControlFrame* numberControlFrame =
+      do_QueryFrame(GetPrimaryFrame());
+    if (numberControlFrame) {
+      textControl = numberControlFrame->GetAnonTextControl();
+    }
+    if (textControl && aVisitor.mEvent->originalTarget == textControl) {
+      if (aVisitor.mEvent->message == NS_FORM_INPUT) {
+        
+        numberControlFrame->HandlingInputEvent(true);
+        nsAutoString value;
+        textControl->GetValue(value);
+        SetValueInternal(value, false, true);
+        numberControlFrame->HandlingInputEvent(false);
+      }
+      else if (aVisitor.mEvent->message == NS_FORM_CHANGE) {
+        
+        
+        
+        
+        
+        
+        
+        aVisitor.mCanHandle = false;
+      }
+    }
+  }
+
+  return rv;
 }
 
 void
