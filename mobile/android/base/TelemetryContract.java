@@ -49,6 +49,10 @@ public interface TelemetryContract {
 
         
         public static final String ACTION = "action.1";
+
+        
+        
+        public static final String ACTION = "launch.1";
     }
 
     
@@ -82,6 +86,10 @@ public interface TelemetryContract {
 
         
         public static final String SUGGESTION = "suggestion";
+
+        
+        
+        public static final String PAGEACTION = "pageaction";
     }
 
     

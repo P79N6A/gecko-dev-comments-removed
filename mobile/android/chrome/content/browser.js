@@ -8101,6 +8101,10 @@ var ExternalApps = {
       icon: "drawable://icon_openinapp",
 
       clickCallback: () => {
+        
+        let uptime = Date.now() - Services.startup.getStartupInfo().linkerInitialized;
+        UITelemetry.addEvent("launch.1", "pageaction", uptime, "helper");
+
         if (apps.length > 1) {
           
           HelperApps.prompt(apps, {
