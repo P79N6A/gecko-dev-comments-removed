@@ -465,7 +465,7 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
     if (mInitialized) {
         unsigned int version = 0;
 
-        bool parseSuccess = ParseGLVersion(this, &version);
+        ParseGLVersion(this, &version);
 
 #ifdef DEBUG
         printf_stderr("OpenGL version detected: %u\n", version);
@@ -475,10 +475,10 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
 
         if (version >= mVersion) {
             mVersion = version;
-        } else if (parseSuccess) {
-            NS_WARNING("Parsed version less than expected.");
-            mInitialized = false;
         }
+        
+        
+        
     }
 
     
