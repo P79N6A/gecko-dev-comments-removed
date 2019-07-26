@@ -1948,7 +1948,7 @@ nsXPCComponents_Exception::CallOrConstruct(nsIXPConnectWrappedNative *wrapper,
     if (!ccx.IsValid())
         return ThrowAndFail(NS_ERROR_XPC_UNEXPECTED, cx, _retval);
 
-    nsXPConnect* xpc = ccx.GetXPConnect();
+    nsXPConnect* xpc = nsXPConnect::XPConnect();
     XPCContext* xpcc = ccx.GetXPCContext();
 
     
@@ -2223,7 +2223,7 @@ nsXPCConstructor::CallOrConstruct(nsIXPConnectWrappedNative *wrapper,JSContext *
     if (!ccx.IsValid())
         return ThrowAndFail(NS_ERROR_XPC_UNEXPECTED, cx, _retval);
 
-    nsXPConnect* xpc = ccx.GetXPConnect();
+    nsXPConnect* xpc = nsXPConnect::XPConnect();
 
     
     
@@ -2457,7 +2457,7 @@ nsXPCComponents_Constructor::CallOrConstruct(nsIXPConnectWrappedNative *wrapper,
     if (!ccx.IsValid())
         return ThrowAndFail(NS_ERROR_XPC_UNEXPECTED, cx, _retval);
 
-    nsXPConnect* xpc = ccx.GetXPConnect();
+    nsXPConnect* xpc = nsXPConnect::XPConnect();
     XPCContext* xpcc = ccx.GetXPCContext();
     XPCWrappedNativeScope* scope = GetObjectScope(obj);
     nsXPCComponents* comp;
