@@ -268,6 +268,11 @@ public:
 
     void *LockBitmap(jobject bitmap);
 
+    
+    
+    
+    jobject GetGlobalContextRef(void);
+
     void UnlockBitmap(jobject bitmap);
 
     bool UnlockProfile();
@@ -485,6 +490,8 @@ protected:
 
     jclass jThumbnailHelperClass;
     jmethodID jNotifyThumbnail;
+
+    jmethodID jGetContext;
 
     
     jmethodID jGetGfxInfoData;
