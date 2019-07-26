@@ -187,6 +187,13 @@ nsSVGUseFrame::ReflowSVG()
   mRect.MoveTo(nsLayoutUtils::RoundGfxRectToAppRect(
                  gfxRect(x, y, 0.0, 0.0),
                  PresContext()->AppUnitsPerCSSPixel()).TopLeft());
+
+  
+  
+  if (StyleSVGReset()->HasFilters()) {
+    InvalidateFrame();
+  }
+
   nsSVGUseFrameBase::ReflowSVG();
 }
 

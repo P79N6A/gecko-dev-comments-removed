@@ -102,6 +102,13 @@ nsSVGInnerSVGFrame::ReflowSVG()
   mRect = nsLayoutUtils::RoundGfxRectToAppRect(
                            gfxRect(x, y, width, height),
                            PresContext()->AppUnitsPerCSSPixel());
+
+  
+  
+  if (StyleSVGReset()->HasFilters()) {
+    InvalidateFrame();
+  }
+
   nsSVGInnerSVGFrameBase::ReflowSVG();
 }
 

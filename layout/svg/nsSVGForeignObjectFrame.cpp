@@ -384,6 +384,12 @@ nsSVGForeignObjectFrame::ReflowSVG()
 
   
   
+  if (StyleSVGReset()->HasFilters()) {
+    InvalidateFrame();
+  }
+
+  
+  
   nsRect overflow = nsRect(nsPoint(0,0), mRect.Size());
   nsOverflowAreas overflowAreas(overflow, overflow);
   FinishAndStoreOverflow(overflowAreas, mRect.Size());
