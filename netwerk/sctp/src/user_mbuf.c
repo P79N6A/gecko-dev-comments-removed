@@ -747,7 +747,7 @@ m_pullup(struct mbuf *n, int len)
 	} else {
 		if (len > MHLEN)
 			goto bad;
-		MGET(m, M_DONTWAIT, n->m_type);
+		MGET(m, M_NOWAIT, n->m_type);
 		if (m == NULL)
 			goto bad;
 		m->m_len = 0;
@@ -876,7 +876,7 @@ m_pulldown(struct mbuf *m, int off, int len, int *offp)
 
 
 	if (len <= n->m_len - off) {
-		o = m_dup1(n, off, n->m_len - off, M_DONTWAIT);
+		o = m_dup1(n, off, n->m_len - off, M_NOWAIT);
 		if (o == NULL) {
 			m_freem(m);
 		return NULL;    
@@ -936,10 +936,10 @@ m_pulldown(struct mbuf *m, int off, int len, int *offp)
 
 
 	if (len > MLEN)
-		m_clget(o, M_DONTWAIT);
+		m_clget(o, M_NOWAIT);
 		
 	else
-		o = m_get(M_DONTWAIT, m->m_type);
+		o = m_get(M_NOWAIT, m->m_type);
 	if (!o) {
 		m_freem(m);
 		return NULL;    
@@ -1165,7 +1165,7 @@ m_copyback(struct mbuf *m0, int off, int len, caddr_t cp)
 		off -= mlen;
 		totlen += mlen;
 		if (m->m_next == NULL) {
-			n = m_get(M_DONTWAIT, m->m_type);
+			n = m_get(M_NOWAIT, m->m_type);
 			if (n == NULL)
 				goto out;
 			bzero(mtod(n, caddr_t), MLEN);
@@ -1185,7 +1185,7 @@ m_copyback(struct mbuf *m0, int off, int len, caddr_t cp)
 		if (len == 0)
 			break;
 		if (m->m_next == NULL) {
-			n = m_get(M_DONTWAIT, m->m_type);
+			n = m_get(M_NOWAIT, m->m_type);
 			if (n == NULL)
 				break;
 			n->m_len = min(MLEN, len);
