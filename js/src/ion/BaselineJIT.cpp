@@ -248,7 +248,13 @@ CanEnterBaselineJIT(JSContext *cx, HandleScript script, bool osr)
     
     
     
-    if (IsJSDEnabled(cx)) {
+    
+    
+    
+    
+    
+    
+    if (IsJSDEnabled(cx) || cx->runtime()->parallelWarmup > 0) {
         if (osr)
             return Method_Skipped;
     } else if (script->incUseCount() <= js_IonOptions.baselineUsesBeforeCompile) {
