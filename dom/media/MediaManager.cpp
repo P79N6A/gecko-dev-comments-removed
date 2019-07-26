@@ -2,8 +2,6 @@
 
 
 
-
-
 #include "MediaManager.h"
 
 #include "MediaStreamGraph.h"
@@ -242,10 +240,8 @@ public:
   {
     NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
 
-    nsCOMPtr<nsIGetUserMediaDevicesSuccessCallback> success;
-    nsCOMPtr<nsIDOMGetUserMediaErrorCallback> error;
-    success.swap(mSuccess);
-    error.swap(mError);
+    nsCOMPtr<nsIGetUserMediaDevicesSuccessCallback> success(mSuccess);
+    nsCOMPtr<nsIDOMGetUserMediaErrorCallback> error(mError);
 
     
     if (!mManager->IsWindowStillActive(mWindowID)) {
@@ -282,8 +278,8 @@ public:
   }
 
 private:
-  nsCOMPtr<nsIGetUserMediaDevicesSuccessCallback> mSuccess;
-  nsCOMPtr<nsIDOMGetUserMediaErrorCallback> mError;
+  already_AddRefed<nsIGetUserMediaDevicesSuccessCallback> mSuccess;
+  already_AddRefed<nsIDOMGetUserMediaErrorCallback> mError;
   nsAutoPtr<nsTArray<nsCOMPtr<nsIMediaDevice> > > mDevices;
   uint64_t mWindowID;
   nsRefPtr<MediaManager> mManager;
@@ -1091,16 +1087,15 @@ public:
       final->MoveElementsFrom(*s);
     }
     NS_DispatchToMainThread(new DeviceSuccessCallbackRunnable(mWindowId,
-                                                              mSuccess.forget(),
-                                                              mError.forget(),
+                                                              mSuccess, mError,
                                                               final.forget()));
     return NS_OK;
   }
 
 private:
   MediaStreamConstraintsInternal mConstraints;
-  nsCOMPtr<nsIGetUserMediaDevicesSuccessCallback> mSuccess;
-  nsCOMPtr<nsIDOMGetUserMediaErrorCallback> mError;
+  already_AddRefed<nsIGetUserMediaDevicesSuccessCallback> mSuccess;
+  already_AddRefed<nsIDOMGetUserMediaErrorCallback> mError;
   nsRefPtr<MediaManager> mManager;
   uint64_t mWindowId;
   const nsString mCallId;
