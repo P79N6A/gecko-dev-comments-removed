@@ -291,8 +291,10 @@ CodeGeneratorX86Shared::bailout(const T &binder, LSnapshot *snapshot)
         binder(masm, ool);
         return true;
       }
-
-      case SequentialExecution: break;
+      case SequentialExecution:
+        break;
+      default:
+        JS_NOT_REACHED("No such execution mode");
     }
 
     if (!encode(snapshot))

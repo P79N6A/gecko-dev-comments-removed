@@ -2134,6 +2134,29 @@ Assembler::retarget(Label *label, Label *target)
     if (label->used()) {
         if (target->bound()) {
             bind(label, BufferOffset(target));
+        } else if (target->used()) {
+            
+            
+            bool more;
+            BufferOffset labelBranchOffset(label);
+            BufferOffset next;
+
+            
+            while (nextLink(labelBranchOffset, &next))
+                labelBranchOffset = next;
+
+            
+            
+            Instruction branch = *editSrc(labelBranchOffset);
+            Condition c;
+            branch.extractCond(&c);
+            int32_t prev = target->use(label->offset());
+            if (branch.is<InstBImm>())
+                as_b(BOffImm(prev), c, labelBranchOffset);
+            else if (branch.is<InstBLImm>())
+                as_bl(BOffImm(prev), c, labelBranchOffset);
+            else
+                JS_NOT_REACHED("crazy fixup!");
         } else {
             
             
