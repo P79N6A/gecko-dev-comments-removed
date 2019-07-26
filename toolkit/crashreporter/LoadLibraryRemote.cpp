@@ -22,8 +22,6 @@
 
 #include "nsWindowsHelpers.h"
 
-namespace {
-
 typedef const unsigned char* FileView;
 
 template<>
@@ -42,8 +40,6 @@ public:
       UnmapViewOfFile(aView);
   }
 };
-
-} 
 
 #ifndef IMAGE_SIZEOF_BASE_RELOCATION
 
@@ -436,5 +432,5 @@ static void* MemoryGetProcAddress(PMEMORYMODULE module, const char *name)
   }
 
   
-  return (FARPROC) (module->remoteCodeBase + (*(DWORD *) (localCodeBase + exports->AddressOfFunctions + (idx*4))));
+  return module->remoteCodeBase + (*(DWORD *) (localCodeBase + exports->AddressOfFunctions + (idx*4)));
 }
