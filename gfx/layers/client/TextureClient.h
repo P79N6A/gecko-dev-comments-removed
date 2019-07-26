@@ -81,6 +81,31 @@ public:
 class TextureClientDrawTarget
 {
 public:
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   virtual TemporaryRef<gfx::DrawTarget> GetAsDrawTarget() = 0;
   virtual gfx::SurfaceFormat GetFormat() const = 0;
   
@@ -100,7 +125,20 @@ public:
 class TextureClientYCbCr
 {
 public:
+  
+
+
+
+
   virtual bool UpdateYCbCr(const PlanarYCbCrData& aData) = 0;
+
+  
+
+
+
+
+
+
   virtual bool AllocateForYCbCr(gfx::IntSize aYSize,
                                 gfx::IntSize aCbCrSize,
                                 StereoMode aStereoMode) = 0;
@@ -204,16 +242,6 @@ public:
 
 
 
-
-
-  virtual TextureClientData* DropTextureData() = 0;
-
-  
-
-
-
-
-
   TextureFlags GetFlags() const { return mFlags; }
 
   
@@ -239,12 +267,6 @@ public:
 
 
 
-  void MarkInvalid() { mValid = false; }
-
-  
-
-
-
 
   bool InitIPDLActor(CompositableForwarder* aForwarder);
 
@@ -257,6 +279,10 @@ public:
   PTextureChild* GetIPDLActor();
 
   
+
+
+
+
 
 
   void ForceRemove();
@@ -273,6 +299,22 @@ private:
   friend class AtomicRefCountedWithFinalize<TextureClient>;
 
 protected:
+  
+
+
+
+  void MarkInvalid() { mValid = false; }
+
+  
+
+
+
+
+
+
+
+  virtual TextureClientData* DropTextureData() = 0;
+
   void AddFlags(TextureFlags  aFlags)
   {
     MOZ_ASSERT(!IsSharedWithCompositor());
