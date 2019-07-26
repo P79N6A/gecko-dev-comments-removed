@@ -16,20 +16,22 @@ function init(aEvent)
     var distroId = Services.prefs.getCharPref("distribution.id");
     if (distroId) {
       var distroVersion = Services.prefs.getCharPref("distribution.version");
-      var distroAbout = Services.prefs.getComplexValue("distribution.about",
-        Components.interfaces.nsISupportsString);
-
-      var distroField = document.getElementById("distribution");
-      distroField.value = distroAbout;
-      distroField.style.display = "block";
 
       var distroIdField = document.getElementById("distributionId");
       distroIdField.value = distroId + " - " + distroVersion;
       distroIdField.style.display = "block";
+
+      
+      var distroAbout = Services.prefs.getComplexValue("distribution.about",
+        Components.interfaces.nsISupportsString);
+      var distroField = document.getElementById("distribution");
+      distroField.value = distroAbout;
+      distroField.style.display = "block";
     }
   }
   catch (e) {
     
+    Components.utils.reportError(e);
   }
 
   
