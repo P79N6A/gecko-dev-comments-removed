@@ -1998,6 +1998,7 @@ gfxPlatform::OptimalFormatForContent(gfxContentType aContent)
 
 
 static bool sLayersSupportsD3D9 = false;
+static bool sLayersSupportsD3D11 = false;
 static bool sBufferRotationCheckPref = true;
 static bool sPrefBrowserTabsRemoteAutostart = false;
 
@@ -2019,6 +2020,7 @@ InitLayersAccelerationPrefs()
 #ifdef XP_WIN
     if (gfxPrefs::LayersAccelerationForceEnabled()) {
       sLayersSupportsD3D9 = true;
+      sLayersSupportsD3D11 = true;
     } else {
       nsCOMPtr<nsIGfxInfo> gfxInfo = do_GetService("@mozilla.org/gfx/info;1");
       if (gfxInfo) {
@@ -2026,6 +2028,11 @@ InitLayersAccelerationPrefs()
         if (NS_SUCCEEDED(gfxInfo->GetFeatureStatus(nsIGfxInfo::FEATURE_DIRECT3D_9_LAYERS, &status))) {
           if (status == nsIGfxInfo::FEATURE_NO_INFO) {
             sLayersSupportsD3D9 = true;
+          }
+        }
+        if (NS_SUCCEEDED(gfxInfo->GetFeatureStatus(nsIGfxInfo::FEATURE_DIRECT3D_11_LAYERS, &status))) {
+          if (status == nsIGfxInfo::FEATURE_NO_INFO) {
+            sLayersSupportsD3D11 = true;
           }
         }
       }
@@ -2064,6 +2071,15 @@ gfxPlatform::CanUseDirect3D9()
   
   MOZ_ASSERT(sLayersAccelerationPrefsInitialized);
   return sLayersSupportsD3D9;
+}
+
+bool
+gfxPlatform::CanUseDirect3D11()
+{
+  
+  
+  MOZ_ASSERT(sLayersAccelerationPrefsInitialized);
+  return sLayersSupportsD3D11;
 }
 
 bool
