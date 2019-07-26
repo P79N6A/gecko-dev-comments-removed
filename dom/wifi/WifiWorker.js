@@ -1025,6 +1025,7 @@ var WifiManager = (function() {
 
   
   manager.state = "UNINITIALIZED";
+  manager.tetheringState = "UNINITIALIZED";
   manager.enabled = false;
   manager.supplicantStarted = false;
   manager.connectionInfo = { ssid: null, bssid: null, id: -1 };
@@ -1054,10 +1055,12 @@ var WifiManager = (function() {
     }
 
     if (enable) {
+      manager.state = "INITIALIZING";
       
       getProperty("wifi.interface", "tiwlan0", function (ifname) {
         if (!ifname) {
           callback(-1);
+          manager.state = "UNINITIALIZED";
           return;
         }
         manager.ifname = ifname;
@@ -1083,6 +1086,7 @@ var WifiManager = (function() {
           loadDriver(function (status) {
             if (status < 0) {
               callback(status);
+              manager.state = "UNINITIALIZED";
               return;
             }
 
@@ -1093,6 +1097,7 @@ var WifiManager = (function() {
                   unloadDriver(function() {
                     callback(status);
                   });
+                  manager.state = "UNINITIALIZED";
                   return;
                 }
 
@@ -1132,25 +1137,32 @@ var WifiManager = (function() {
   
   manager.setWifiApEnabled = function(enabled, callback) {
     if (enabled) {
+      manager.tetheringState = "INITIALIZING";
       getProperty("wifi.interface", "tiwlan0", function (ifname) {
         if (!ifname) {
-          callback(enabled);
+          callback();
+          manager.tetheringState = "UNINITIALIZED";
           return;
         }
         manager.ifname = ifname;
         loadDriver(function (status) {
           if (status < 0) {
-            callback(enabled);
+            callback();
+            manager.tetheringState = "UNINITIALIZED";
             return;
           }
 
           function doStartWifiTethering() {
             cancelWaitForDriverReadyTimer();
             WifiNetworkInterface.name = manager.ifname;
-            manager.state = "WIFITETHERING";
             gNetworkManager.setWifiTethering(enabled, WifiNetworkInterface, function(result) {
+              if (result) {
+                manager.tetheringState = "UNINITIALIZED";
+              } else {
+                manager.tetheringState = "COMPLETED";
+              }
               
-              callback(enabled);
+              callback();
               
               debug("Enable Wifi tethering result: " + (result ? result : "successfully"));
             });
@@ -1163,7 +1175,6 @@ var WifiManager = (function() {
         });
       });
     } else {
-      manager.state = "UNINITIALIZED";
       gNetworkManager.setWifiTethering(enabled, WifiNetworkInterface, function(result) {
         
         debug("Disable Wifi tethering result: " + (result ? result : "successfully"));
@@ -1172,7 +1183,8 @@ var WifiManager = (function() {
           if (status < 0) {
             debug("Fail to unload wifi driver");
           }
-          callback(enabled);
+          manager.tetheringState = "UNINITIALIZED";
+          callback();
         });
       });
     }
@@ -2559,6 +2571,7 @@ WifiWorker.prototype = {
         
       } while (success &&
                this._stateRequests.length &&
+               !("callback" in this._stateRequests[0]) &&
                this._stateRequests[0].enabled === state);
     }
 
@@ -2615,7 +2628,7 @@ WifiWorker.prototype = {
     }
   },
 
-  setWifiEnabledInternal: function(enabled, callback) {
+  queueRequest: function(enabled, callback) {
     this.setWifiEnabled({enabled: enabled, callback: callback});
   },
 
@@ -2797,17 +2810,12 @@ WifiWorker.prototype = {
     this.setWifiEnabled({enabled: false});
   },
 
-  nextRequest: function nextRequest(state) {
+  nextRequest: function nextRequest() {
     if (this._stateRequests.length <= 0 ||
         !("callback" in this._stateRequests[0])) {
       return;
     }
-
-    do {
-      this._stateRequests.shift();
-    } while (this._stateRequests.length &&
-             this._stateRequests[0].enabled === state);
-
+    this._stateRequests.shift();
     
     if (this._stateRequests.length > 0) {
       if ("callback" in this._stateRequests[0]) {
@@ -2820,20 +2828,26 @@ WifiWorker.prototype = {
     }
   },
 
+  notifyTetheringOff: function notifyTetheringOff() {
+    
+    
+    
+    gSettingsService.createLock().set(
+      "tethering.wifi.enabled", false, null, "fromInternalSetting");
+    
+    this.nextRequest();
+  },
+
   handleWifiEnabled: function(enabled) {
     if (WifiManager.enabled === enabled) {
       return;
     }
     
-    if (gNetworkManager.wifiTetheringEnabled) {
-      this.setWifiEnabledInternal(false, function(data) {
-        this.setWifiApEnabled(data, this.nextRequest.bind(this));
+    if (enabled && (gNetworkManager.wifiTetheringEnabled ||
+         WifiManager.tetheringState != "UNINITIALIZED")) {
+      this.queueRequest(false, function(data) {
+        this.setWifiApEnabled(false, this.notifyTetheringOff.bind(this));
       }.bind(this));
-      
-      
-      
-      gSettingsService.createLock().set(
-        "tethering.wifi.enabled", false, null, "fromInternalSetting");
     }
     this.setWifiEnabled({enabled: enabled});
   },
@@ -2844,21 +2858,14 @@ WifiWorker.prototype = {
     }
 
     
-    if (!WifiManager.enabled) {
-      this.setWifiEnabledInternal(enabled, function(data) {
-        this.setWifiApEnabled(data, this.nextRequest.bind(this));
-      }.bind(this));
-      return;
+    if (enabled && (WifiManager.enabled ||
+         WifiManager.state != "UNINITIALIZED")) {
+      this.setWifiEnabled({enabled: false});
     }
 
-    
-    if (enabled) {
-      
-      this.setWifiEnabled({enabled: false});
-      this.setWifiEnabledInternal(enabled, (function (data) {
-        this.setWifiApEnabled(data, this.nextRequest.bind(this));
-      }).bind(this));
-    }
+    this.queueRequest(enabled, function(data) {
+      this.setWifiApEnabled(data, this.nextRequest.bind(this));
+    }.bind(this));
   },
 
   
