@@ -1612,6 +1612,19 @@ this.WidgetMethods = {
     return +(aFirst._label.toLowerCase() > aSecond._label.toLowerCase());
   },
 
+  
+
+
+
+
+
+
+
+
+  callMethod: function(aMethodName, ...aArgs) {
+    return this._widget[aMethodName].apply(this._widget, aArgs);
+  },
+
   _widget: null,
   _preferredValue: null,
   _cachedCommandDispatcher: null

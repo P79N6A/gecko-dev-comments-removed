@@ -57,6 +57,7 @@ this.SideMenuWidget = function SideMenuWidget(aNode, aOptions={}) {
   this._groupsByName = new Map(); 
   this._orderedGroupElementsArray = [];
   this._orderedMenuElementsArray = [];
+  this._itemsByElement = new Map();
 
   
   EventEmitter.decorate(this);
@@ -166,6 +167,7 @@ SideMenuWidget.prototype = {
 
     this._orderedMenuElementsArray.splice(
       this._orderedMenuElementsArray.indexOf(aChild), 1);
+    this._itemsByElement.delete(aChild);
 
     if (this._selectedItem == aChild) {
       this._selectedItem = null;
@@ -188,6 +190,7 @@ SideMenuWidget.prototype = {
     this._groupsByName.clear();
     this._orderedGroupElementsArray.length = 0;
     this._orderedMenuElementsArray.length = 0;
+    this._itemsByElement.clear();
   },
 
   
@@ -332,6 +335,22 @@ SideMenuWidget.prototype = {
 
 
 
+
+
+
+
+  checkItem: function(aNode, aCheckState) {
+    const widgetItem = this._itemsByElement.get(aNode);
+    if (!widgetItem) {
+      throw new Error("No item for " + aNode);
+    }
+    widgetItem.check(aCheckState);
+  },
+
+  
+
+
+
   set notice(aValue) {
     if (this._noticeTextNode) {
       this._noticeTextNode.setAttribute("value", aValue);
@@ -424,6 +443,7 @@ SideMenuWidget.prototype = {
   _groupsByName: null,
   _orderedGroupElementsArray: null,
   _orderedMenuElementsArray: null,
+  _itemsByElement: null,
   _ensureVisibleTimeout: null,
   _noticeTextContainer: null,
   _noticeTextNode: null,
@@ -478,6 +498,7 @@ function SideMenuGroup(aWidget, aName) {
 SideMenuGroup.prototype = {
   get _orderedGroupElementsArray() this.ownerView._orderedGroupElementsArray,
   get _orderedMenuElementsArray() this.ownerView._orderedMenuElementsArray,
+  get _itemsByElement() { return this.ownerView._itemsByElement; },
 
   
 
@@ -549,19 +570,6 @@ function SideMenuItem(aGroup, aContents, aTooltip, aArrowFlag, aCheckboxFlag, aA
   this.window = aGroup.window;
   this.ownerView = aGroup;
 
-  let makeCheckbox = () => {
-    let checkbox = this.document.createElement("checkbox");
-    checkbox.className = "side-menu-widget-item-checkbox";
-    checkbox.setAttribute("checked", aAttachment.checkboxState);
-    checkbox.setAttribute("tooltiptext", aAttachment.checkboxTooltip);
-    checkbox.addEventListener("command", function () {
-      ViewHelpers.dispatchEvent(checkbox, "check", {
-        checked: checkbox.checked,
-      });
-    }, false);
-    return checkbox;
-  };
-
   if (aArrowFlag || aCheckboxFlag) {
     let container = this._container = this.document.createElement("hbox");
     container.className = "side-menu-widget-item";
@@ -573,7 +581,7 @@ function SideMenuItem(aGroup, aContents, aTooltip, aArrowFlag, aCheckboxFlag, aA
 
     
     if (aCheckboxFlag) {
-      let checkbox = this._checkbox = makeCheckbox();
+      let checkbox = this._checkbox = this._makeCheckbox(aAttachment);
       container.appendChild(checkbox);
     }
 
@@ -599,6 +607,36 @@ function SideMenuItem(aGroup, aContents, aTooltip, aArrowFlag, aCheckboxFlag, aA
 SideMenuItem.prototype = {
   get _orderedGroupElementsArray() this.ownerView._orderedGroupElementsArray,
   get _orderedMenuElementsArray() this.ownerView._orderedMenuElementsArray,
+  get _itemsByElement() { return this.ownerView._itemsByElement; },
+
+  
+
+
+
+
+
+
+
+
+  _makeCheckbox: function (aAttachment) {
+    let checkbox = this.document.createElement("checkbox");
+    checkbox.className = "side-menu-widget-item-checkbox";
+    checkbox.setAttribute("tooltiptext", aAttachment.checkboxTooltip);
+
+    if (aAttachment.checkboxState) {
+      checkbox.setAttribute("checked", true);
+    } else {
+      checkbox.removeAttribute("checked");
+    }
+
+    checkbox.addEventListener("command", function () {
+      ViewHelpers.dispatchEvent(checkbox, "check", {
+        checked: checkbox.checked,
+      });
+    }, false);
+
+    return checkbox;
+  },
 
   
 
@@ -619,8 +657,26 @@ SideMenuItem.prototype = {
       ownerList.appendChild(this._container);
       menuArray.push(this._target);
     }
+    this._itemsByElement.set(this._target, this);
 
     return this._target;
+  },
+
+  
+
+
+
+
+
+  check: function(aCheckState) {
+    if (!this._checkbox) {
+      throw new Error("Cannot check items that do not have checkboxes.");
+    }
+    if (aCheckState) {
+      this._checkbox.setAttribute("checked", true);
+    } else {
+      this._checkbox.removeAttribute("checked");
+    }
   },
 
   
@@ -655,5 +711,6 @@ SideMenuItem.prototype = {
   ownerView: null,
   _target: null,
   _container: null,
+  _checkbox: null,
   _arrow: null
 };
