@@ -57,8 +57,8 @@ nsICODecoder::GetNumColors()
 }
 
 
-nsICODecoder::nsICODecoder(RasterImage &aImage, imgDecoderObserver* aObserver)
- : Decoder(aImage, aObserver)
+nsICODecoder::nsICODecoder(RasterImage &aImage)
+ : Decoder(aImage)
 {
   mPos = mImageOffset = mCurrIcon = mNumIcons = mBPP = mRowBytes = 0;
   mIsPNG = false;
@@ -312,7 +312,8 @@ nsICODecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
     mIsPNG = !memcmp(mSignature, nsPNGDecoder::pngSignatureBytes, 
                      PNGSIGNATURESIZE);
     if (mIsPNG) {
-      mContainedDecoder = new nsPNGDecoder(mImage, mObserver);
+      mContainedDecoder = new nsPNGDecoder(mImage);
+      mContainedDecoder->SetObserver(mObserver);
       mContainedDecoder->InitSharedDecoder();
       if (!WriteToContainedDecoder(mSignature, PNGSIGNATURESIZE)) {
         return;
@@ -376,9 +377,10 @@ nsICODecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
     
     
     
-    nsBMPDecoder *bmpDecoder = new nsBMPDecoder(mImage, mObserver); 
+    nsBMPDecoder *bmpDecoder = new nsBMPDecoder(mImage);
     mContainedDecoder = bmpDecoder;
     bmpDecoder->SetUseAlphaData(true);
+    mContainedDecoder->SetObserver(mObserver);
     mContainedDecoder->SetSizeDecode(IsSizeDecode());
     mContainedDecoder->InitSharedDecoder();
 

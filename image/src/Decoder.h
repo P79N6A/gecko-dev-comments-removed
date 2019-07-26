@@ -18,7 +18,7 @@ class Decoder
 {
 public:
 
-  Decoder(RasterImage& aImage, imgDecoderObserver* aObserver);
+  Decoder(RasterImage& aImage);
   virtual ~Decoder();
 
   
@@ -26,16 +26,9 @@ public:
 
 
 
-
-
-
   void Init();
 
-
   
-
-
-
 
 
 
@@ -95,6 +88,12 @@ public:
   {
     NS_ABORT_IF_FALSE(!mInitialized, "Can't set size decode after Init()!");
     mSizeDecode = aSizeDecode;
+  }
+
+  void SetObserver(imgDecoderObserver* aObserver)
+  {
+    MOZ_ASSERT(aObserver);
+    mObserver = aObserver;
   }
 
   

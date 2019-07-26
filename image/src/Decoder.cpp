@@ -13,9 +13,8 @@
 namespace mozilla {
 namespace image {
 
-Decoder::Decoder(RasterImage &aImage, imgDecoderObserver* aObserver)
+Decoder::Decoder(RasterImage &aImage)
   : mImage(aImage)
-  , mObserver(aObserver)
   , mDecodeFlags(0)
   , mDecodeDone(false)
   , mDataError(false)
@@ -42,9 +41,10 @@ Decoder::Init()
 {
   
   NS_ABORT_IF_FALSE(!mInitialized, "Can't re-initialize a decoder!");
+  NS_ABORT_IF_FALSE(mObserver, "Need an observer!");
 
   
-  if (!IsSizeDecode() && mObserver)
+  if (!IsSizeDecode())
       mObserver->OnStartDecode();
 
   
