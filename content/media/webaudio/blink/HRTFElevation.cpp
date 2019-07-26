@@ -66,8 +66,32 @@ size_t HRTFElevation::fftSizeForSampleRate(float sampleRate)
     
     
     
-    ASSERT(sampleRate >= 44100 && sampleRate <= 96000.0);
-    return (sampleRate < 88200.0) ? 512 : 1024;
+    
+    
+    
+    
+    MOZ_ASSERT(sampleRate > 1.0 && sampleRate < 1048576.0);
+
+    
+    unsigned resampledLength =
+        floorf(ResponseFrameSize * sampleRate / rawSampleRate);
+    
+    
+    
+    unsigned size = min(resampledLength, 1023U);
+    size |= 3;
+    
+    
+    
+    
+    
+    size |= (size >> 1);
+    size |= (size >> 2);
+    size |= (size >> 4);
+    size++;
+    MOZ_ASSERT((size & (size - 1)) == 0);
+
+    return size;
 }
 
 bool HRTFElevation::calculateKernelForAzimuthElevation(int azimuth, int elevation, SpeexResamplerState* resampler, float sampleRate,
