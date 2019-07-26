@@ -79,7 +79,7 @@ RegExpStatics::executeLazy(JSContext *cx)
 
     
     RegExpGuard g(cx);
-    if (!cx->compartment->regExps.get(cx, lazySource, lazyFlags, &g))
+    if (!cx->compartment()->regExps.get(cx, lazySource, lazyFlags, &g))
         return false;
 
     

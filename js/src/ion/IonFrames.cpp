@@ -364,7 +364,7 @@ HandleException(JSContext *cx, const IonFrameIterator &frame, ResumeFromExceptio
     jsbytecode *pc;
     frame.baselineScriptAndPc(script.address(), &pc);
 
-    if (cx->isExceptionPending() && cx->compartment->debugMode()) {
+    if (cx->isExceptionPending() && cx->compartment()->debugMode()) {
         BaselineFrame *baselineFrame = frame.baselineFrame();
         JSTrapStatus status = DebugExceptionUnwind(cx, baselineFrame, pc);
         switch (status) {
@@ -462,8 +462,8 @@ HandleException(ResumeFromException *rfe)
     
     
     
-    if (cx->runtime->hasIonReturnOverride())
-        cx->runtime->takeIonReturnOverride();
+    if (cx->runtime()->hasIonReturnOverride())
+        cx->runtime()->takeIonReturnOverride();
 
     IonFrameIterator iter(cx->mainThread().ionTop);
     while (!iter.isEntry()) {
@@ -486,7 +486,7 @@ HandleException(ResumeFromException *rfe)
 
             IonScript *ionScript = NULL;
             if (iter.checkInvalidation(&ionScript))
-                ionScript->decref(cx->runtime->defaultFreeOp());
+                ionScript->decref(cx->runtime()->defaultFreeOp());
 
         } else if (iter.isBaselineJS()) {
             
@@ -504,7 +504,7 @@ HandleException(ResumeFromException *rfe)
             
             iter.baselineFrame()->unsetPushedSPSFrame();
  
-            if (cx->compartment->debugMode() && !calledDebugEpilogue) {
+            if (cx->compartment()->debugMode() && !calledDebugEpilogue) {
                 
                 
                 BaselineFrame *frame = iter.baselineFrame();
@@ -1023,7 +1023,7 @@ GetPcScript(JSContext *cx, JSScript **scriptRes, jsbytecode **pcRes)
     JS_ASSERT(cx->fp()->beginsIonActivation());
     IonSpew(IonSpew_Snapshots, "Recover PC & Script from the last frame.");
 
-    JSRuntime *rt = cx->runtime;
+    JSRuntime *rt = cx->runtime();
 
     
     IonFrameIterator it(rt->mainThread.ionTop);

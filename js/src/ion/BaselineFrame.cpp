@@ -145,7 +145,7 @@ BaselineFrame::initForOsr(StackFrame *fp, uint32_t numStackValues)
         *valueSlot(i) = fp->slots()[i];
 
     JSContext *cx = GetIonContext()->cx;
-    if (cx->compartment->debugMode()) {
+    if (cx->compartment()->debugMode()) {
         
         
 

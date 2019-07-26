@@ -2049,7 +2049,7 @@ js_InitIntlClass(JSContext *cx, HandleObject obj)
     
     
     
-    if (!cx->runtime->isSelfHostingGlobal(cx->global())) {
+    if (!cx->runtime()->isSelfHostingGlobal(cx->global())) {
         if (!InitCollatorClass(cx, Intl, global))
             return NULL;
         if (!InitNumberFormatClass(cx, Intl, global))

@@ -503,7 +503,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
     
     
     
-    if (cx->runtime->spsProfiler.enabled() && ionScript->hasSPSInstrumentation()) {
+    if (cx->runtime()->spsProfiler.enabled() && ionScript->hasSPSInstrumentation()) {
         IonSpew(IonSpew_BaselineBailouts, "      Setting SPS flag on frame!");
         flags |= BaselineFrame::HAS_PUSHED_SPS_FRAME;
     }
@@ -615,11 +615,11 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
         
         
         
-        if (!iter.moreFrames() && i == exprStackSlots - 1 && cx->runtime->hasIonReturnOverride()) {
+        if (!iter.moreFrames() && i == exprStackSlots - 1 && cx->runtime()->hasIonReturnOverride()) {
             JS_ASSERT(invalidate);
             iter.skip();
             IonSpew(IonSpew_BaselineBailouts, "      [Return Override]");
-            v = cx->runtime->takeIonReturnOverride();
+            v = cx->runtime()->takeIonReturnOverride();
         } else {
             v = iter.read();
         }
@@ -793,16 +793,16 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
                 
                 
                 
-                if (cx->runtime->spsProfiler.enabled()) {
+                if (cx->runtime()->spsProfiler.enabled()) {
                     if (caller && bailoutKind == Bailout_ArgumentCheck) {
                         IonSpew(IonSpew_BaselineBailouts, "      Setting PCidx on innermost "
                                 "inlined frame's parent's SPS entry (%s:%d) (pcIdx=%d)!",
                                 caller->filename(), caller->lineno, callerPC - caller->code);
-                        cx->runtime->spsProfiler.updatePC(caller, callerPC);
+                        cx->runtime()->spsProfiler.updatePC(caller, callerPC);
                     } else if (bailoutKind != Bailout_ArgumentCheck) {
                         IonSpew(IonSpew_BaselineBailouts,
                                 "      Popping SPS entry for innermost inlined frame's SPS entry");
-                        cx->runtime->spsProfiler.exit(cx, script, fun);
+                        cx->runtime()->spsProfiler.exit(cx, script, fun);
                     }
                 }
             } else {
@@ -911,7 +911,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
         return false;
 
     
-    void *baselineCallReturnAddr = cx->compartment->ionCompartment()->baselineCallReturnAddr();
+    void *baselineCallReturnAddr = cx->compartment()->ionCompartment()->baselineCallReturnAddr();
     JS_ASSERT(baselineCallReturnAddr);
     if (!builder.writePtr(baselineCallReturnAddr, "ReturnAddr"))
         return false;
@@ -990,7 +990,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
 
     
     
-    void *rectReturnAddr = cx->compartment->ionCompartment()->getArgumentsRectifierReturnAddr();
+    void *rectReturnAddr = cx->compartment()->ionCompartment()->getArgumentsRectifierReturnAddr();
     JS_ASSERT(rectReturnAddr);
     if (!builder.writePtr(rectReturnAddr, "ReturnAddr"))
         return false;

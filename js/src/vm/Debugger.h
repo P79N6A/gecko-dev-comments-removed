@@ -655,7 +655,7 @@ Debugger::observesGlobal(GlobalObject *global) const
 JSTrapStatus
 Debugger::onEnterFrame(JSContext *cx, AbstractFramePtr frame, MutableHandleValue vp)
 {
-    if (cx->compartment->getDebuggees().empty())
+    if (cx->compartment()->getDebuggees().empty())
         return JSTRAP_CONTINUE;
     return slowPathOnEnterFrame(cx, frame, vp);
 }
@@ -663,7 +663,7 @@ Debugger::onEnterFrame(JSContext *cx, AbstractFramePtr frame, MutableHandleValue
 JSTrapStatus
 Debugger::onDebuggerStatement(JSContext *cx, MutableHandleValue vp)
 {
-    return cx->compartment->getDebuggees().empty()
+    return cx->compartment()->getDebuggees().empty()
            ? JSTRAP_CONTINUE
            : dispatchHook(cx, vp, OnDebuggerStatement);
 }
@@ -671,7 +671,7 @@ Debugger::onDebuggerStatement(JSContext *cx, MutableHandleValue vp)
 JSTrapStatus
 Debugger::onExceptionUnwind(JSContext *cx, MutableHandleValue vp)
 {
-    return cx->compartment->getDebuggees().empty()
+    return cx->compartment()->getDebuggees().empty()
            ? JSTRAP_CONTINUE
            : dispatchHook(cx, vp, OnExceptionUnwind);
 }
@@ -688,7 +688,7 @@ Debugger::onNewScript(JSContext *cx, HandleScript script, GlobalObject *compileA
 bool
 Debugger::onNewGlobalObject(JSContext *cx, Handle<GlobalObject *> global)
 {
-    if (JS_CLIST_IS_EMPTY(&cx->runtime->onNewGlobalObjectWatchers))
+    if (JS_CLIST_IS_EMPTY(&cx->runtime()->onNewGlobalObjectWatchers))
         return true;
     return Debugger::slowPathOnNewGlobalObject(cx, global);
 }

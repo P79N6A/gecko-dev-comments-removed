@@ -412,7 +412,7 @@ Parser<ParseHandler>::Parser(JSContext *cx, const CompileOptions &options,
     traceListHead(NULL),
     pc(NULL),
     sct(NULL),
-    keepAtoms(cx->runtime),
+    keepAtoms(cx->runtime()),
     foldConstants(foldConstants),
     compileAndGo(options.compileAndGo),
     selfHostingMode(options.selfHostingMode),
@@ -422,7 +422,7 @@ Parser<ParseHandler>::Parser(JSContext *cx, const CompileOptions &options,
     
     handler.disableSyntaxParser();
 
-    cx->runtime->activeCompilations++;
+    cx->runtime()->activeCompilations++;
 
     
     
@@ -438,7 +438,7 @@ Parser<ParseHandler>::~Parser()
 {
     JSContext *cx = context;
     cx->tempLifoAlloc().release(tempPoolMark);
-    cx->runtime->activeCompilations--;
+    cx->runtime()->activeCompilations--;
 
     
 
@@ -2323,7 +2323,7 @@ template <>
 ParseNode *
 Parser<FullParseHandler>::moduleDecl()
 {
-    JS_ASSERT(tokenStream.currentToken().name() == context->runtime->atomState.module);
+    JS_ASSERT(tokenStream.currentToken().name() == context->runtime()->atomState.module);
     if (!((pc->sc->isGlobalSharedContext() || pc->sc->isModuleBox()) && pc->atBodyLevel()))
     {
         report(ParseError, false, NULL, JSMSG_MODULE_STATEMENT);
@@ -2464,7 +2464,7 @@ Parser<ParseHandler>::maybeParseDirective(Node pn, bool *cont)
         
         handler.setPrologue(pn);
 
-        if (directive == context->runtime->atomState.useStrict) {
+        if (directive == context->runtime()->atomState.useStrict) {
             
             
             pc->sc->setExplicitUseStrict();
