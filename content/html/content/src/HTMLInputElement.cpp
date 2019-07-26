@@ -6026,9 +6026,13 @@ HTMLInputElement::SetFilePickerFiltersFromAccept(nsIFilePicker* filePicker)
       }
 
       
-      nsCString mimeTypeName;
-      mimeInfo->GetType(mimeTypeName);
-      CopyUTF8toUTF16(mimeTypeName, filterName);
+      
+      mimeInfo->GetDescription(filterName);
+      if (filterName.IsEmpty()) {
+        nsCString mimeTypeName;
+        mimeInfo->GetType(mimeTypeName);
+        CopyUTF8toUTF16(mimeTypeName, filterName);
+      }
 
       
       nsCOMPtr<nsIUTF8StringEnumerator> extensions;
