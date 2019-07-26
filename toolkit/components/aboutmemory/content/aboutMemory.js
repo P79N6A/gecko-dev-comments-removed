@@ -57,22 +57,12 @@ let gMgr = Cc["@mozilla.org/memory-reporter-manager;1"]
 
 let gUnnamedProcessStr = "Main Process";
 
-
-
-
 let gIsDiff = false;
+
 {
   let split = document.location.href.split('?');
+  
   document.title = split[0].toLowerCase();
-
-  if (split.length === 2) {
-    let searchSplit = split[1].split('&');
-    for (let i = 0; i < searchSplit.length; i++) {
-      if (searchSplit[i].toLowerCase() === 'diff') {
-        gIsDiff = true;
-      }
-    }
-  }
 }
 
 let gChildMemoryListener = undefined;
@@ -213,7 +203,13 @@ function processMemoryReporters(aIgnoreSingle, aIgnoreMulti, aHandleReport)
   while (e.hasMoreElements()) {
     let mr = e.getNext().QueryInterface(Ci.nsIMemoryMultiReporter);
     if (!aIgnoreMulti(mr.name)) {
-      mr.collectReports(aHandleReport, null);
+      
+      let handleReport = function(aProcess, aUnsafePath, aKind, aUnits,
+                                  aAmount, aDescription) {
+        aHandleReport(aProcess, aUnsafePath, aKind, aUnits, aAmount,
+                      aDescription,  undefined);
+      }
+      mr.collectReports(handleReport, null);
     }
   }
 }
@@ -237,7 +233,7 @@ function processMemoryReportsFromFile(aReports, aIgnoreSingle, aHandleReport)
     let r = aReports[i];
     if (!aIgnoreSingle(r.path)) {
       aHandleReport(r.process, r.path, r.kind, r.units, r.amount,
-                    r.description);
+                    r.description, r._presence);
     }
   }
 }
@@ -413,6 +409,15 @@ function appendButton(aP, aTitle, aOnClick, aText, aId)
   return b;
 }
 
+function appendHiddenFileInput(aP, aId, aChangeListener)
+{
+  let input = appendElementWithText(aP, "input", "hidden", "");
+  input.type = "file";
+  input.id = aId;      
+  input.addEventListener("change", aChangeListener);
+  return input;
+}
+
 function onLoadAboutMemory()
 {
   
@@ -420,17 +425,38 @@ function onLoadAboutMemory()
   let header = appendElement(document.body, "div", "ancillary");
 
   
-  let filePickerInput = appendElementWithText(header, "input", "hidden", "");
-  filePickerInput.type = "file";
-  filePickerInput.id = "filePickerInput";   
-  filePickerInput.addEventListener("change", function() {
+  let fileInput1 = appendHiddenFileInput(header, "fileInput1", function() {
     let file = this.files[0];
     let filename = file.mozFullPath;
     updateAboutMemoryFromFile(filename);
   });
 
+  
+  let fileInput2 =
+      appendHiddenFileInput(header, "fileInput2", function(e) {
+    let file = this.files[0];
+    
+    
+    if (!this.filename1) {
+      this.filename1 = file.mozFullPath;
+
+      
+      
+      
+      if (!e.skipClick) {
+        this.click();
+      }
+    } else {
+      let filename1 = this.filename1;
+      delete this.filename1;
+      updateAboutMemoryFromTwoFiles(filename1, file.mozFullPath);
+    }
+  }); 
+
   const CuDesc = "Measure current memory reports and show.";
   const LdDesc = "Load memory reports from file and show.";
+  const DfDesc = "Load memory report data from two files and show the " +
+                 "difference.";
   const RdDesc = "Read memory reports from the clipboard and show.";
 
   const SvDesc = "Save memory reports to file.";
@@ -460,7 +486,9 @@ function onLoadAboutMemory()
 
   
   appendButton(row1, CuDesc, doMeasure, "Measure", "measureButton");
-  appendButton(row1, LdDesc, () => filePickerInput.click(), "Load" + kEllipsis);
+  appendButton(row1, LdDesc, () => fileInput1.click(), "Load" + kEllipsis);
+  appendButton(row1, DfDesc, () => fileInput2.click(),
+               "Load and diff" + kEllipsis);
   appendButton(row1, RdDesc, updateAboutMemoryFromClipboard,
                "Read from clipboard");
 
@@ -497,6 +525,8 @@ function onLoadAboutMemory()
   appendElementWithText(gFooter, "div", "legend", legendText1);
   appendElementWithText(gFooter, "div", "legend hiddenOnMobile", legendText2);
 
+  
+  
   
   let search = location.href.split('?')[1];
   if (search) {
@@ -578,21 +608,19 @@ var gCurrentFileFormatVersion = 1;
 
 
 
-function updateAboutMemoryFromJSONString(aJSONString)
+function updateAboutMemoryFromJSONObject(aObj)
 {
   try {
-    let json = JSON.parse(aJSONString);
-    assertInput(json.version === gCurrentFileFormatVersion,
+    assertInput(aObj.version === gCurrentFileFormatVersion,
                 "data version number missing or doesn't match");
-    assertInput(json.hasMozMallocUsableSize !== undefined,
+    assertInput(aObj.hasMozMallocUsableSize !== undefined,
                 "missing 'hasMozMallocUsableSize' property");
-    assertInput(json.reports && json.reports instanceof Array,
+    assertInput(aObj.reports && aObj.reports instanceof Array,
                 "missing or non-array 'reports' property");
     let process = function(aIgnoreSingle, aIgnoreMulti, aHandleReport) {
-      processMemoryReportsFromFile(json.reports, aIgnoreSingle,
-                                   aHandleReport);
+      processMemoryReportsFromFile(aObj.reports, aIgnoreSingle, aHandleReport);
     }
-    appendAboutMemoryMain(process, json.hasMozMallocUsableSize,
+    appendAboutMemoryMain(process, aObj.hasMozMallocUsableSize,
                            true);
   } catch (ex) {
     handleException(ex);
@@ -606,10 +634,25 @@ function updateAboutMemoryFromJSONString(aJSONString)
 
 
 
+function updateAboutMemoryFromJSONString(aStr)
+{
+  try {
+    let obj = JSON.parse(aStr);
+    updateAboutMemoryFromJSONObject(obj);
+  } catch (ex) {
+    handleException(ex);
+  }
+}
 
 
 
-function updateAboutMemoryFromFile(aFilename)
+
+
+
+
+
+
+function loadMemoryReportsFromFile(aFilename, aFn)
 {
   updateMainAndFooter("Loading...", HIDE_FOOTER);
 
@@ -619,7 +662,7 @@ function updateAboutMemoryFromFile(aFilename)
     reader.onabort = () => { throw "FileReader.onabort"; };
     reader.onload = (aEvent) => {
       updateMainAndFooter("", SHOW_FOOTER);  
-      updateAboutMemoryFromJSONString(aEvent.target.result);
+      aFn(aEvent.target.result);
     };
 
     
@@ -662,6 +705,46 @@ function updateAboutMemoryFromFile(aFilename)
 
 
 
+
+
+
+
+function updateAboutMemoryFromFile(aFilename)
+{
+  loadMemoryReportsFromFile(aFilename,
+                            updateAboutMemoryFromJSONString);
+}
+
+
+
+
+
+
+
+
+
+
+function updateAboutMemoryFromTwoFiles(aFilename1, aFilename2)
+{
+  loadMemoryReportsFromFile(aFilename1, function(aStr1) {
+    loadMemoryReportsFromFile(aFilename2, function f2(aStr2) {
+      try {
+        let obj1 = JSON.parse(aStr1);
+        let obj2 = JSON.parse(aStr2);
+        gIsDiff = true;
+        updateAboutMemoryFromJSONObject(diffJSONObjects(obj1, obj2));
+        gIsDiff = false;
+      } catch (ex) {
+        handleException(ex);
+      }
+    });
+  });
+}
+
+
+
+
+
 function updateAboutMemoryFromClipboard()
 {
   
@@ -688,6 +771,188 @@ function updateAboutMemoryFromClipboard()
   } catch (ex) {
     handleException(ex);
   }
+}
+
+
+
+
+let kProcessPathSep = "^:^:^";
+
+
+function DReport(aKind, aUnits, aAmount, aDescription, aNMerged, aPresence)
+{
+  this._kind = aKind;
+  this._units = aUnits;
+  this._amount = aAmount;
+  this._description = aDescription;
+  this._nMerged = aNMerged;
+  if (aPresence !== undefined) {
+    this._presence = aPresence;
+  }
+}
+
+DReport.prototype = {
+  assertCompatible: function(aKind, aUnits)
+  {
+    assert(this._kind  == aKind,  "Mismatched kinds");
+    assert(this._units == aUnits, "Mismatched units");
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+  },
+
+  merge: function(aJr) {
+    this.assertCompatible(aJr.kind, aJr.units);
+    this._amount += aJr.amount;
+    this._nMerged++;
+  },
+
+  toJSON: function(aProcess, aPath, aAmount) {
+    return {
+      process:     aProcess,
+      path:        aPath,
+      kind:        this._kind,
+      units:       this._units,
+      amount:      aAmount,
+      description: this._description,
+      _presence:   this._presence
+    };
+  }
+};
+
+
+
+DReport.PRESENT_IN_FIRST_ONLY  = 1;
+DReport.PRESENT_IN_SECOND_ONLY = 2;
+
+
+
+
+
+
+
+
+
+function makeDReportMap(aJSONReports)
+{
+  let dreportMap = {};
+  for (let i = 0; i < aJSONReports.length; i++) {
+    let jr = aJSONReports[i];
+
+    assert(jr.process     !== undefined, "Missing process");
+    assert(jr.path        !== undefined, "Missing path");
+    assert(jr.kind        !== undefined, "Missing kind");
+    assert(jr.units       !== undefined, "Missing units");
+    assert(jr.amount      !== undefined, "Missing amount");
+    assert(jr.description !== undefined, "Missing description");
+
+    
+    
+    let strippedProcess = jr.process.replace(/pid \d+/, "pid NNN");
+    let strippedPath = jr.path.replace(/0x[0-9A-Fa-f]+/, "0xNNN");
+    let processPath = strippedProcess + kProcessPathSep + strippedPath;
+
+    let rOld = dreportMap[processPath];
+    if (rOld === undefined) {
+      dreportMap[processPath] =
+        new DReport(jr.kind, jr.units, jr.amount, jr.description, 1, undefined);
+    } else {
+      rOld.merge(jr);
+    }
+  }
+  return dreportMap;
+}
+
+
+
+function diffDReportMaps(aDReportMap1, aDReportMap2)
+{
+  let result = {};
+
+  for (let processPath in aDReportMap1) {
+    let r1 = aDReportMap1[processPath];
+    let r2 = aDReportMap2[processPath];
+    let r2_amount, r2_nMerged;
+    let presence;
+    if (r2 !== undefined) {
+      r1.assertCompatible(r2._kind, r2._units);
+      r2_amount = r2._amount;
+      r2_nMerged = r2._nMerged;
+      delete aDReportMap2[processPath];
+      presence = undefined;   
+    } else {
+      r2_amount = 0;
+      r2_nMerged = 0;
+      presence = DReport.PRESENT_IN_FIRST_ONLY;
+    }
+    result[processPath] =
+      new DReport(r1._kind, r1._units, r2_amount - r1._amount, r1._description,
+                  Math.max(r1._nMerged, r2_nMerged), presence);
+  }
+
+  for (let processPath in aDReportMap2) {
+    let r2 = aDReportMap2[processPath];
+    result[processPath] = new DReport(r2._kind, r2._units, r2._amount,
+                                      r2._description, r2._nMerged,
+                                      DReport.PRESENT_IN_SECOND_ONLY);
+  }
+
+  return result;
+}
+
+function makeJSONReports(aDReportMap)
+{
+  let reports = [];
+  for (let processPath in aDReportMap) {
+    let r = aDReportMap[processPath];
+    if (r._amount !== 0) {
+      
+      
+      
+      
+      let split = processPath.split(kProcessPathSep);
+      assert(split.length >= 2);
+      let process = split.shift();
+      let path = split.join();
+      reports.push(r.toJSON(process, path, r._amount));
+      for (let i = 1; i < r._nMerged; i++) {
+        reports.push(r.toJSON(process, path, 0));
+      }
+    }
+  }
+
+  return reports;
+}
+
+
+
+function diffJSONObjects(aJson1, aJson2)
+{
+  function simpleProp(aProp)
+  {
+    assert(aJson1[aProp] !== undefined && aJson1[aProp] === aJson2[aProp],
+           aProp + " properties don't match");
+    return aJson1[aProp];
+  }
+
+  return {
+    version: simpleProp("version"),
+
+    hasMozMallocUsableSize: simpleProp("hasMozMallocUsableSize"),
+
+    reports: makeJSONReports(diffDReportMaps(makeDReportMap(aJson1.reports),
+                                             makeDReportMap(aJson2.reports)))
+  };
 }
 
 
@@ -823,7 +1088,7 @@ function getPCollsByProcess(aProcessMemoryReports, aForceShowSmaps)
   }
 
   function handleReport(aProcess, aUnsafePath, aKind, aUnits, aAmount,
-                        aDescription)
+                        aDescription, aPresence)
   {
     if (isExplicitPath(aUnsafePath)) {
       assertInput(aKind === KIND_HEAP || aKind === KIND_NONHEAP,
@@ -841,6 +1106,10 @@ function getPCollsByProcess(aProcessMemoryReports, aForceShowSmaps)
       assertInput(gSentenceRegExp.test(aDescription),
                   "non-sentence other description");
     }
+
+    assert(aPresence === undefined || 
+           aPresence == DReport.PRESENT_IN_FIRST_ONLY ||
+           aPresence == DReport.PRESENT_IN_SECOND_ONLY);
 
     let process = aProcess === "" ? gUnnamedProcessStr : aProcess;
     let unsafeNames = aUnsafePath.split('/');
@@ -887,10 +1156,14 @@ function getPCollsByProcess(aProcessMemoryReports, aForceShowSmaps)
       
       t._amount += aAmount;
       t._nMerged = t._nMerged ? t._nMerged + 1 : 2;
+      assert(t._presence === aPresence, "presence mismatch");
     } else {
       
       t._amount = aAmount;
       t._description = aDescription;
+      if (aPresence !== undefined) {
+        t._presence = aPresence;
+      }
     }
   }
 
@@ -915,6 +1188,7 @@ function TreeNode(aUnsafeName, aUnits, aIsDegenerate)
     this._isDegenerate = true;
   }
 
+  
   
   
   
@@ -1429,10 +1703,11 @@ const kNoKidsSep                    = " \u2500\u2500 ",
       kHideKidsSep                  = " ++ ",
       kShowKidsSep                  = " -- ";
 
-function appendMrNameSpan(aP, aDescription, aUnsafeName, aIsInvalid, aNMerged)
+function appendMrNameSpan(aP, aDescription, aUnsafeName, aIsInvalid, aNMerged,
+                          aPresence)
 {
   let safeName = flipBackslashes(aUnsafeName);
-  if (!aIsInvalid && !aNMerged) {
+  if (!aIsInvalid && !aNMerged && !aPresence) {
     safeName += "\n";
   }
   let nameSpan = appendElementWithText(aP, "span", "mrName", safeName);
@@ -1450,11 +1725,34 @@ function appendMrNameSpan(aP, aDescription, aUnsafeName, aIsInvalid, aNMerged)
   }
 
   if (aNMerged) {
-    let noteSpan = appendElementWithText(aP, "span", "mrNote",
-                                         " [" + aNMerged + "]\n");
+    let noteText = " [" + aNMerged + "]";
+    if (!aPresence) {
+      noteText += "\n";
+    }
+    let noteSpan = appendElementWithText(aP, "span", "mrNote", noteText);
     noteSpan.title =
       "This value is the sum of " + aNMerged +
       " memory reporters that all have the same path.";
+  }
+
+  if (aPresence) {
+    let c, nth;
+    switch (aPresence) {
+     case DReport.PRESENT_IN_FIRST_ONLY:
+      c = '-';
+      nth = "first";
+      break;
+     case DReport.PRESENT_IN_SECOND_ONLY:
+      c = '+';
+      nth = "second";
+      break;
+     default: assert(false, "bad presence");
+      break;
+    }
+    let noteSpan = appendElementWithText(aP, "span", "mrNote",
+                                         " [" + c + "]\n");
+    noteSpan.title =
+      "This value was only present in the " + nth + " set of memory reports.";
   }
 }
 
@@ -1650,7 +1948,7 @@ function appendTreeElements(aP, aRoot, aProcess, aPadText)
 
     
     appendMrNameSpan(d, aT._description, aT._unsafeName,
-                     tIsInvalid, aT._nMerged);
+                     tIsInvalid, aT._nMerged, aT._presence);
 
     
     
@@ -1882,7 +2180,7 @@ function GhostWindow(aUnsafeURL)
 }
 
 GhostWindow.prototype = {
-  merge: function(r) {
+  merge: function(aR) {
     this._nMerged = this._nMerged ? this._nMerged + 1 : 2;
   }
 };
