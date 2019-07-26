@@ -1732,7 +1732,10 @@ public:
 
 
 
-  static gfxSize GetMaximumAnimatedScale(nsIContent* aContent);
+
+
+
+  static gfxSize ComputeSuitableScaleForAnimation(nsIContent* aContent);
 
   
 
