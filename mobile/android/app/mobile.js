@@ -660,7 +660,7 @@ pref("reader.parse-on-load.enabled", true);
 pref("reader.parse-on-load.force-enabled", false);
 
 
-pref("reader.font_size", 4);
+pref("reader.font_size", 3);
 
 
 
