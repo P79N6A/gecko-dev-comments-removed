@@ -10,6 +10,7 @@ import android.os.Handler;
 
 
 
+
 public abstract class GeckoAsyncTask<Params, Progress, Result> {
     public enum Priority { NORMAL, HIGH };
 
@@ -18,7 +19,6 @@ public abstract class GeckoAsyncTask<Params, Progress, Result> {
 
     public GeckoAsyncTask() {
         mHandler = new Handler();
-        mHandler.getLooper();
     }
 
     private final class BackgroundTaskRunnable implements Runnable {
