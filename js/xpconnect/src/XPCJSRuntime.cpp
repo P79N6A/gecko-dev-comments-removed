@@ -830,9 +830,8 @@ XPCJSRuntime::FinalizeCallback(JSFreeOp *fop, JSFinalizeStatus status, bool isCo
         {
             MOZ_ASSERT(!self->mDoingFinalization, "bad state");
 
-            
-            MOZ_ASSERT(!self->mThreadRunningGC, "bad state");
-            self->mThreadRunningGC = PR_GetCurrentThread();
+            MOZ_ASSERT(!self->mGCIsRunning, "bad state");
+            self->mGCIsRunning = true;
 
             nsTArray<nsXPCWrappedJS*>* dyingWrappedJSArray =
                 &self->mWrappedJSToReleaseArray;
@@ -863,18 +862,15 @@ XPCJSRuntime::FinalizeCallback(JSFreeOp *fop, JSFinalizeStatus status, bool isCo
             
             XPCWrappedNativeScope::FinishedFinalizationPhaseOfGC();
 
-            
-            
-            MOZ_ASSERT(self->mThreadRunningGC == PR_GetCurrentThread(), "bad state");
-            self->mThreadRunningGC = nullptr;
+            MOZ_ASSERT(self->mGCIsRunning, "bad state");
+            self->mGCIsRunning = false;
 
             break;
         }
         case JSFINALIZE_COLLECTION_END:
         {
-            
-            MOZ_ASSERT(!self->mThreadRunningGC, "bad state");
-            self->mThreadRunningGC = PR_GetCurrentThread();
+            MOZ_ASSERT(!self->mGCIsRunning, "bad state");
+            self->mGCIsRunning = true;
 
             
             
@@ -1011,10 +1007,8 @@ XPCJSRuntime::FinalizeCallback(JSFreeOp *fop, JSFinalizeStatus status, bool isCo
             self->mDyingWrappedNativeProtoMap->
                 Enumerate(DyingProtoKiller, nullptr);
 
-            
-            
-            MOZ_ASSERT(self->mThreadRunningGC == PR_GetCurrentThread(), "bad state");
-            self->mThreadRunningGC = nullptr;
+            MOZ_ASSERT(self->mGCIsRunning, "bad state");
+            self->mGCIsRunning = false;
 
             break;
         }
@@ -2930,7 +2924,7 @@ XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect)
    mNativeScriptableSharedMap(XPCNativeScriptableSharedMap::newMap(XPC_NATIVE_JSCLASS_MAP_SIZE)),
    mDyingWrappedNativeProtoMap(XPCWrappedNativeProtoMap::newMap(XPC_DYING_NATIVE_PROTO_MAP_SIZE)),
    mDetachedWrappedNativeProtoMap(XPCWrappedNativeProtoMap::newMap(XPC_DETACHED_NATIVE_PROTO_MAP_SIZE)),
-   mThreadRunningGC(nullptr),
+   mGCIsRunning(false),
    mWrappedJSToReleaseArray(),
    mNativesToReleaseArray(),
    mDoingFinalization(false),
