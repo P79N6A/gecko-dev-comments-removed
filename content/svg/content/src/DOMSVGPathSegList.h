@@ -46,14 +46,13 @@ class SVGAnimatedPathSegList;
 
 
 
-class DOMSVGPathSegList MOZ_FINAL : public nsISupports,
-                                    public nsWrapperCache
+class DOMSVGPathSegList MOZ_FINAL : public nsWrapperCache
 {
   friend class DOMSVGPathSeg;
 
 public:
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMSVGPathSegList)
+  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(DOMSVGPathSegList)
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(DOMSVGPathSegList)
 
   virtual JSObject* WrapObject(JSContext *cx,
                                JS::Handle<JSObject*> scope) MOZ_OVERRIDE;
