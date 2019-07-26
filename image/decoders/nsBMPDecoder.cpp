@@ -133,7 +133,7 @@ nsBMPDecoder::FinishInternal()
     NS_ABORT_IF_FALSE(GetFrameCount() <= 1, "Multiple BMP frames?");
 
     
-    if (!IsSizeDecode() && (GetFrameCount() == 1)) {
+    if (!IsSizeDecode() && HasSize()) {
 
         
         nsIntRect r(0, 0, mBIH.width, GetHeight());
@@ -228,7 +228,7 @@ nsBMPDecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
     
     
     
-    if (mPos == mLOH && GetFrameCount() == 0) {
+    if (mPos == mLOH && !HasSize()) {
         ProcessInfoHeader();
         PR_LOG(GetBMPLog(), PR_LOG_DEBUG, ("BMP is %lix%lix%lu. compression=%lu\n",
                mBIH.width, mBIH.height, mBIH.bpp, mBIH.compression));

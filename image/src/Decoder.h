@@ -92,6 +92,11 @@ public:
     mSizeDecode = aSizeDecode;
   }
 
+  void SetSynchronous(bool aSynchronous)
+  {
+    mSynchronous = aSynchronous;
+  }
+
   void SetObserver(imgDecoderObserver* aObserver)
   {
     MOZ_ASSERT(aObserver);
@@ -151,6 +156,12 @@ public:
                     gfxASurface::gfxImageFormat format,
                     uint8_t palette_depth = 0);
 
+  virtual bool NeedsNewFrame() const { return mNeedsNewFrame; }
+
+  
+  
+  virtual nsresult AllocateFrame();
+
 protected:
 
   
@@ -200,10 +211,6 @@ protected:
   
   void PostDataError();
   void PostDecoderError(nsresult aFailCode);
-
-  
-  
-  nsresult AllocateFrame();
 
   
 
@@ -260,6 +267,7 @@ private:
   bool mSizeDecode;
   bool mInFrame;
   bool mIsAnimated;
+  bool mSynchronous;
 };
 
 } 

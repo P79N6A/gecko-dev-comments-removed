@@ -420,6 +420,15 @@ RasterImage::~RasterImage()
     
     DecodeWorker::Singleton()->StopDecoding(this);
     mDecoder = nullptr;
+
+    
+    
+    
+    
+    if (mFrames.Length() > 0) {
+      imgFrame *curframe = mFrames.ElementAt(mFrames.Length() - 1);
+      curframe->UnlockImageData();
+    }
   }
 
   delete mAnim;
@@ -905,8 +914,8 @@ RasterImage::FrameIsOpaque(uint32_t aWhichFrame)
     return false;
 
   
-  imgFrame* frame = aWhichFrame == FRAME_FIRST ? GetImgFrame(0)
-                                               : GetCurrentImgFrame();
+  imgFrame* frame = aWhichFrame == FRAME_FIRST ? GetImgFrameNoDecode(0)
+                                               : GetImgFrameNoDecode(GetCurrentImgFrameIndex());
 
   
   if (!frame)
@@ -931,7 +940,6 @@ RasterImage::FrameRect(uint32_t aWhichFrame)
   
   imgFrame* frame = aWhichFrame == FRAME_FIRST ? GetImgFrameNoDecode(0)
                                                : GetImgFrameNoDecode(GetCurrentImgFrameIndex());
-
 
   
   if (frame) {
@@ -1293,7 +1301,7 @@ RasterImage::InternalAddFrame(uint32_t framenum,
   
   
   
-  NS_ABORT_IF_FALSE(mInDecoder, "Only decoders may add frames!");
+  NS_ABORT_IF_FALSE(mDecoder, "Only decoders may add frames!");
 
   NS_ABORT_IF_FALSE(framenum <= mFrames.Length(), "Invalid frame index!");
   if (framenum > mFrames.Length())
@@ -1429,7 +1437,7 @@ RasterImage::EnsureFrame(uint32_t aFrameNum, int32_t aX, int32_t aY,
                             aPaletteDepth, imageData, imageLength,
                             paletteData, paletteLength, aRetFrame);
 
-  imgFrame *frame = GetImgFrame(aFrameNum);
+  imgFrame *frame = GetImgFrameNoDecode(aFrameNum);
   if (!frame)
     return InternalAddFrame(aFrameNum, aX, aY, aWidth, aHeight, aFormat, 
                             aPaletteDepth, imageData, imageLength,
@@ -1899,6 +1907,7 @@ RasterImage::OnNewSourceData()
   mHasSourceData = false;
   mHasSize = false;
   mWantFullDecode = true;
+  mDecodeRequest = nullptr;
 
   
   rv = InitDecoder( true);
@@ -2448,6 +2457,8 @@ RasterImage::Discard(bool force)
   if (mStatusTracker)
     mStatusTracker->OnDiscard();
 
+  mDecodeRequest = nullptr;
+
   if (force)
     DiscardTracker::Remove(&mDiscardTrackerNode);
 
@@ -2501,7 +2512,7 @@ RasterImage::StoringSourceData() const {
 
 
 nsresult
-RasterImage::InitDecoder(bool aDoSizeDecode)
+RasterImage::InitDecoder(bool aDoSizeDecode, bool aIsSynchronous )
 {
   
   NS_ABORT_IF_FALSE(!mDecoder, "Calling InitDecoder() while already decoding!");
@@ -2553,18 +2564,28 @@ RasterImage::InitDecoder(bool aDoSizeDecode)
   }
 
   
+  
+  
+  if (mFrames.Length() > 0) {
+    imgFrame *curframe = mFrames.ElementAt(mFrames.Length() - 1);
+    curframe->LockImageData();
+  }
+
+  
   if (!mDecodeRequest) {
     mDecodeRequest = new DecodeRequest(this);
   }
   mDecoder->SetObserver(mDecodeRequest->mStatusTracker->GetDecoderObserver());
   mDecoder->SetSizeDecode(aDoSizeDecode);
   mDecoder->SetDecodeFlags(mFrameDecodeFlags);
+  mDecoder->SetSynchronous(aIsSynchronous);
   if (!aDoSizeDecode) {
     
     
     
     mDecoder->NeedNewFrame(0, 0, 0, mSize.width, mSize.height,
                            gfxASurface::ImageFormatARGB32);
+    mDecoder->AllocateFrame();
   }
   mDecoder->Init();
   CONTAINER_ENSURE_SUCCESS(mDecoder->GetDecoderError());
@@ -2610,6 +2631,13 @@ RasterImage::ShutdownDecoder(eShutdownIntent aIntent)
 
   
   bool wasSizeDecode = mDecoder->IsSizeDecode();
+
+  
+  
+  if (mFrames.Length() > 0) {
+    imgFrame *curframe = mFrames.ElementAt(mFrames.Length() - 1);
+    curframe->UnlockImageData();
+  }
 
   
   
@@ -2664,31 +2692,14 @@ RasterImage::WriteToDecoder(const char *aBuffer, uint32_t aCount)
   NS_ABORT_IF_FALSE(mDecoder, "Trying to write to null decoder!");
 
   
-  
-  
-  
-  
-  if (mFrames.Length() > 0) {
-    imgFrame *curframe = mFrames.ElementAt(mFrames.Length() - 1);
-    curframe->LockImageData();
-  }
-
-  
   nsRefPtr<Decoder> kungFuDeathGrip = mDecoder;
   mInDecoder = true;
   mDecoder->Write(aBuffer, aCount);
   mInDecoder = false;
 
-  
-  
-  if (mFrames.Length() > 0) {
-    imgFrame *curframe = mFrames.ElementAt(mFrames.Length() - 1);
-    curframe->UnlockImageData();
-  }
-
   if (!mDecoder)
     return NS_ERROR_FAILURE;
-    
+
   CONTAINER_ENSURE_SUCCESS(mDecoder->GetDecoderError());
 
   
@@ -2810,7 +2821,14 @@ RasterImage::RequestDecodeCore(RequestDecodeType aDecodeType)
   
   if (!mDecoded && !mInDecoder && mHasSourceData && aDecodeType == SOMEWHAT_SYNCHRONOUS) {
     SAMPLE_LABEL_PRINTF("RasterImage", "DecodeABitOf", "%s", GetURIString().get());
+    mDecoder->SetSynchronous(true);
+
     DecodeWorker::Singleton()->DecodeABitOf(this);
+
+    
+    if (mDecoder) {
+      mDecoder->SetSynchronous(false);
+    }
     return NS_OK;
   }
 
@@ -2862,14 +2880,22 @@ RasterImage::SyncDecode()
   }
 
   
-  if (!mDecoder) {
-    rv = InitDecoder( false);
-    CONTAINER_ENSURE_SUCCESS(rv);
+  
+  if (mDecoder && mDecoder->NeedsNewFrame()) {
+    mDecoder->AllocateFrame();
+    mDecodeRequest->mAllocatedNewFrame = true;
   }
 
   
-  rv = WriteToDecoder(mSourceData.Elements() + mBytesDecoded,
-                      mSourceData.Length() - mBytesDecoded);
+  if (!mDecoder) {
+    rv = InitDecoder( false,  true);
+    CONTAINER_ENSURE_SUCCESS(rv);
+  } else {
+    mDecoder->SetSynchronous(true);
+  }
+
+  
+  rv = DecodeSomeData(mSourceData.Length() - mBytesDecoded);
   CONTAINER_ENSURE_SUCCESS(rv);
 
   
@@ -2890,6 +2916,8 @@ RasterImage::SyncDecode()
     CONTAINER_ENSURE_SUCCESS(rv);
     rv = FinishedSomeDecoding(eShutdownIntent_Done, request);
     CONTAINER_ENSURE_SUCCESS(rv);
+  } else if (mDecoder) {
+    mDecoder->SetSynchronous(false);
   }
 
   
@@ -3213,6 +3241,17 @@ RasterImage::DecodeSomeData(uint32_t aMaxBytes)
   NS_ABORT_IF_FALSE(mDecoder, "trying to decode without decoder!");
 
   
+  
+  
+  if (mDecodeRequest->mAllocatedNewFrame) {
+    mDecodeRequest->mAllocatedNewFrame = false;
+    nsresult rv = WriteToDecoder(nullptr, 0);
+    if (NS_FAILED(rv) || mDecoder->NeedsNewFrame()) {
+      return rv;
+    }
+  }
+
+  
   if (mBytesDecoded == mSourceData.Length())
     return NS_OK;
 
@@ -3249,11 +3288,16 @@ RasterImage::IsDecodeFinished()
   }
 
   
+  if (mDecoder && mDecoder->NeedsNewFrame())
+    decodeFinished = false;
+
   
   
   
   
-  if (mHasSourceData && (mBytesDecoded == mSourceData.Length()))
+  
+  
+  else if (mHasSourceData && (mBytesDecoded == mSourceData.Length()))
     decodeFinished = true;
 
   return decodeFinished;
@@ -3517,8 +3561,12 @@ RasterImage::DecodeWorker::RequestDecode(RasterImage* aImg)
 {
   MOZ_ASSERT(aImg->mDecoder);
 
-  AddDecodeRequest(aImg->mDecodeRequest, aImg->mSourceData.Length() - aImg->mBytesDecoded);
-  EnsurePendingInEventLoop();
+  
+  
+  if (!aImg->mDecoder->NeedsNewFrame()) {
+    AddDecodeRequest(aImg->mDecodeRequest, aImg->mSourceData.Length() - aImg->mBytesDecoded);
+    EnsurePendingInEventLoop();
+  }
 }
 
 void
@@ -3527,15 +3575,22 @@ RasterImage::DecodeWorker::DecodeABitOf(RasterImage* aImg)
   MOZ_ASSERT(NS_IsMainThread());
 
   DecodeSomeOfImage(aImg);
+
   aImg->FinishedSomeDecoding();
 
   
   
-  if (aImg->mDecoder &&
-      !aImg->mError &&
-      !aImg->IsDecodeFinished() &&
-      aImg->mSourceData.Length() > aImg->mBytesDecoded) {
-    RequestDecode(aImg);
+  if (aImg->mDecoder && aImg->mDecoder->NeedsNewFrame()) {
+    FrameNeededWorker::GetNewFrame(aImg);
+  } else {
+    
+    
+    if (aImg->mDecoder &&
+        !aImg->mError &&
+        !aImg->IsDecodeFinished() &&
+        aImg->mSourceData.Length() > aImg->mBytesDecoded) {
+      RequestDecode(aImg);
+    }
   }
 }
 
@@ -3583,7 +3638,7 @@ RasterImage::DecodeWorker::Run()
     
     
     nsRefPtr<RasterImage> image = request->mImage;
-    uint32_t oldCount = image->mDecoder->GetFrameCount();
+    uint32_t oldFrameCount = image->mDecoder->GetFrameCount();
     uint32_t oldByteCount = image->mBytesDecoded;
 
     DecodeSomeOfImage(image, DECODE_TYPE_NORMAL, request->mBytesToDecode);
@@ -3592,14 +3647,20 @@ RasterImage::DecodeWorker::Run()
 
     
     
-    if (image->mDecoder &&
-        !image->mError &&
-        !image->IsDecodeFinished() &&
-        bytesDecoded < request->mBytesToDecode) {
+    if (image->mDecoder && image->mDecoder->NeedsNewFrame()) {
+      FrameNeededWorker::GetNewFrame(image);
+    }
+
+    
+    
+    else if (image->mDecoder &&
+             !image->mError &&
+             !image->IsDecodeFinished() &&
+             bytesDecoded < request->mBytesToDecode) {
       AddDecodeRequest(request, request->mBytesToDecode - bytesDecoded);
 
       
-      if (image->mDecoder->GetFrameCount() != oldCount) {
+      if (image->mDecoder->GetFrameCount() != oldFrameCount) {
         DecodeDoneWorker::NotifyFinishedSomeDecoding(image, request);
       }
     } else {
@@ -3630,7 +3691,15 @@ RasterImage::DecodeWorker::DecodeUntilSizeAvailable(RasterImage* aImg)
     return rv;
   }
 
-  return aImg->FinishedSomeDecoding();
+  
+  
+  if (aImg->mDecoder && aImg->mDecoder->NeedsNewFrame()) {
+    FrameNeededWorker::GetNewFrame(aImg);
+  } else {
+    rv = aImg->FinishedSomeDecoding();
+  }
+
+  return rv;
 }
 
 nsresult
@@ -3650,6 +3719,12 @@ RasterImage::DecodeWorker::DecodeSomeOfImage(RasterImage* aImg,
   
   if (!aImg->mDecoder || aImg->mDecoded)
     return NS_OK;
+
+  
+  
+  if (aImg->mDecoder->NeedsNewFrame()) {
+    return NS_OK;
+  }
 
   nsRefPtr<Decoder> decoderKungFuDeathGrip = aImg->mDecoder;
 
@@ -3678,10 +3753,14 @@ RasterImage::DecodeWorker::DecodeSomeOfImage(RasterImage* aImg,
   
   
   
-  while (aImg->mSourceData.Length() > aImg->mBytesDecoded &&
-         bytesToDecode > 0 &&
-         !aImg->IsDecodeFinished() &&
-         !(aDecodeType == DECODE_TYPE_UNTIL_SIZE && aImg->mHasSize)) {
+  
+  
+  while ((aImg->mSourceData.Length() > aImg->mBytesDecoded &&
+          bytesToDecode > 0 &&
+          !aImg->IsDecodeFinished() &&
+          !(aDecodeType == DECODE_TYPE_UNTIL_SIZE && aImg->mHasSize) &&
+          !aImg->mDecoder->NeedsNewFrame()) ||
+         (aImg->mDecodeRequest && aImg->mDecodeRequest->mAllocatedNewFrame)) {
     chunkCount++;
     uint32_t chunkSize = std::min(bytesToDecode, maxBytes);
     nsresult rv = aImg->DecodeSomeData(chunkSize);
@@ -3751,6 +3830,37 @@ RasterImage::DecodeDoneWorker::Run()
   
   if (mImage->mDecoder && !mImage->IsDecodeFinished() &&
       mImage->mSourceData.Length() > mImage->mBytesDecoded) {
+    DecodeWorker::Singleton()->RequestDecode(mImage);
+  }
+
+  return NS_OK;
+}
+
+RasterImage::FrameNeededWorker::FrameNeededWorker(RasterImage* image)
+ : mImage(image)
+{}
+
+
+void
+RasterImage::FrameNeededWorker::GetNewFrame(RasterImage* image)
+{
+  nsCOMPtr<FrameNeededWorker> worker = new FrameNeededWorker(image);
+  NS_DispatchToMainThread(worker);
+}
+
+NS_IMETHODIMP
+RasterImage::FrameNeededWorker::Run()
+{
+  nsresult rv = NS_OK;
+
+  
+  
+  if (mImage->mDecoder && mImage->mDecoder->NeedsNewFrame()) {
+    rv = mImage->mDecoder->AllocateFrame();
+    mImage->mDecodeRequest->mAllocatedNewFrame = true;
+  }
+
+  if (NS_SUCCEEDED(rv) && mImage->mDecoder) {
     DecodeWorker::Singleton()->RequestDecode(mImage);
   }
 

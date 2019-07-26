@@ -218,8 +218,12 @@ nsICODecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
     return;
   }
 
-  if (!aCount) 
+  if (!aCount) {
+    if (mContainedDecoder) {
+      WriteToContainedDecoder(aBuffer, aCount);
+    }
     return;
+  }
 
   while (aCount && (mPos < ICONCOUNTOFFSET)) { 
     if (mPos == 2) { 
@@ -583,6 +587,26 @@ nsICODecoder::ProcessDirEntry(IconDirEntry& aTarget)
   memcpy(&aTarget.mImageOffset, mDirEntryArray + 12, 
          sizeof(aTarget.mImageOffset));
   aTarget.mImageOffset = LITTLE_TO_NATIVE32(aTarget.mImageOffset);
+}
+
+bool
+nsICODecoder::NeedsNewFrame() const
+{
+  if (mContainedDecoder) {
+    return mContainedDecoder->NeedsNewFrame();
+  }
+
+  return Decoder::NeedsNewFrame();
+}
+
+nsresult
+nsICODecoder::AllocateFrame()
+{
+  if (mContainedDecoder) {
+    return mContainedDecoder->AllocateFrame();
+  }
+
+  return Decoder::AllocateFrame();
 }
 
 } 

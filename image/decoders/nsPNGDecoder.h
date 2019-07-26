@@ -89,6 +89,9 @@ public:
   
   uint32_t mCMSMode;
   bool mDisablePremultipliedAlpha;
+
+  
+  uint32_t mNumFrames;
   
   
 

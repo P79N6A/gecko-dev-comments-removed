@@ -391,6 +391,7 @@ private:
       : mImage(aImage)
       , mBytesToDecode(0)
       , mChunkCount(0)
+      , mAllocatedNewFrame(false)
       , mIsASAP(false)
     {
       mStatusTracker = aImage->mStatusTracker->CloneForRecording();
@@ -410,6 +411,10 @@ private:
 
     
     int32_t mChunkCount;
+
+    
+
+    bool mAllocatedNewFrame;
 
     
     bool mIsASAP;
@@ -543,6 +548,28 @@ private:
 
     nsRefPtr<RasterImage> mImage;
     nsRefPtr<DecodeRequest> mRequest;
+  };
+
+  class FrameNeededWorker : public nsRunnable
+  {
+  public:
+    
+
+
+
+
+
+
+    static void GetNewFrame(RasterImage* image);
+
+    NS_IMETHOD Run();
+
+  private: 
+    FrameNeededWorker(RasterImage* image);
+
+  private: 
+
+    nsRefPtr<RasterImage> mImage;
   };
 
   nsresult FinishedSomeDecoding(eShutdownIntent intent = eShutdownIntent_Done,
@@ -769,7 +796,7 @@ private:
   
   nsresult WantDecodedFrames();
   nsresult SyncDecode();
-  nsresult InitDecoder(bool aDoSizeDecode);
+  nsresult InitDecoder(bool aDoSizeDecode, bool aIsSynchronous = false);
   nsresult WriteToDecoder(const char *aBuffer, uint32_t aCount);
   nsresult DecodeSomeData(uint32_t aMaxBytes);
   bool     IsDecodeFinished();
