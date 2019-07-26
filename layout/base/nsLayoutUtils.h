@@ -1547,18 +1547,16 @@ public:
 
   enum {
     
-    SFE_WANT_NEW_SURFACE   = 1 << 0,
-    
-    SFE_WANT_IMAGE_SURFACE = 1 << 1,
+    SFE_WANT_IMAGE_SURFACE = 1 << 0,
     
 
-    SFE_WANT_FIRST_FRAME = 1 << 2,
+    SFE_WANT_FIRST_FRAME = 1 << 1,
     
-    SFE_NO_COLORSPACE_CONVERSION = 1 << 3,
+    SFE_NO_COLORSPACE_CONVERSION = 1 << 2,
     
 
 
-    SFE_NO_PREMULTIPLY_ALPHA = 1 << 4
+    SFE_NO_PREMULTIPLY_ALPHA = 1 << 3
   };
 
   struct SurfaceFromElementResult {
