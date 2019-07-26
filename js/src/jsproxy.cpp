@@ -2555,7 +2555,7 @@ Proxy::set(JSContext *cx, HandleObject proxy, HandleObject receiver, HandleId id
     if (!Proxy::getPropertyDescriptor(cx, proxy, id, &desc, JSRESOLVE_ASSIGNING))
         return false;
     if (desc.object() && desc.setter() && desc.setter() != JS_StrictPropertyStub)
-        return CallSetter(cx, receiver, id, desc.setter(), desc.attributes(), desc.shortid(), strict, vp);
+        return CallSetter(cx, receiver, id, desc.setter(), desc.attributes(), strict, vp);
 
     
     
