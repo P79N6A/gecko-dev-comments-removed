@@ -122,10 +122,20 @@ static void *_pt_root(void *arg)
     PRIntn rv;
     PRThread *thred = (PRThread*)arg;
     PRBool detached = (thred->state & PT_THREAD_DETACHED) ? PR_TRUE : PR_FALSE;
-    pthread_t id = pthread_self();
 #ifdef _PR_NICE_PRIORITY_SCHEDULING
     pid_t tid;
 #endif
+
+    
+
+
+
+
+
+
+
+
+    thred->id = pthread_self();
 
 #ifdef _PR_NICE_PRIORITY_SCHEDULING
     
@@ -142,6 +152,11 @@ static void *_pt_root(void *arg)
         setpriority(PRIO_PROCESS, tid,
                     pt_RelativePriority(rv, thred->priority));
     }
+
+    PR_Lock(pt_book.ml);
+    thred->tid = tid;
+    PR_NotifyAllCondVar(pt_book.cv);
+    PR_Unlock(pt_book.ml);
 #endif
 
     
@@ -153,7 +168,7 @@ static void *_pt_root(void *arg)
     if (detached)
     {
         
-        pthread_t self = id;
+        pthread_t self = thred->id;
         rv = pthread_detach(&self);
         PR_ASSERT(0 == rv);
     }
@@ -172,28 +187,6 @@ static void *_pt_root(void *arg)
 
     
     PR_Lock(pt_book.ml);
-    
-
-
-
-
-
-
-
-    if (!thred->idSet)
-    {
-        thred->id = id;
-        thred->idSet = PR_TRUE;
-    }
-    else
-    {
-        PR_ASSERT(pthread_equal(thred->id, id));
-    }
-
-#ifdef _PR_NICE_PRIORITY_SCHEDULING
-    thred->tid = tid;
-    PR_NotifyAllCondVar(pt_book.cv);
-#endif
 
     
     if (thred->suspend & PT_THREAD_SETGCABLE)
@@ -280,7 +273,6 @@ static PRThread* pt_AttachThread(void)
 
         thred->priority = PR_PRIORITY_NORMAL;
         thred->id = pthread_self();
-        thred->idSet = PR_TRUE;
 #ifdef _PR_NICE_PRIORITY_SCHEDULING
         thred->tid = gettid();
 #endif
@@ -501,21 +493,12 @@ static PRThread* _PR_CreateThread(
             goto done;
         }
 
-        PR_Lock(pt_book.ml);
         
 
 
 
 
-        if (!thred->idSet)
-        {
-            thred->id = id;
-            thred->idSet = PR_TRUE;
-        }
-        else
-        {
-            PR_ASSERT(pthread_equal(thred->id, id));
-        }
+        thred->id = id;
 
         
 
@@ -523,10 +506,11 @@ static PRThread* _PR_CreateThread(
 
         if (PR_UNJOINABLE_THREAD == state)
         {
+            PR_Lock(pt_book.ml);
             thred->okToDelete = PR_TRUE;
             PR_NotifyAllCondVar(pt_book.cv);
+            PR_Unlock(pt_book.ml);
         }
-        PR_Unlock(pt_book.ml);
     }
 
 done:
@@ -956,7 +940,6 @@ void _PR_InitThreads(
     thred->startFunc = NULL;
     thred->priority = priority;
     thred->id = pthread_self();
-    thred->idSet = PR_TRUE;
 #ifdef _PR_NICE_PRIORITY_SCHEDULING
     thred->tid = gettid();
 #endif

@@ -753,7 +753,7 @@ static PRStatus NewThread(
                 0U, 
                 windows_start, 
                 start_object, 
-                STACK_SIZE_PARAM_IS_A_RESERVATION, 
+                0U, 
                 &id  );
 
             rv = (NULL == th) ? PR_FAILURE : PR_SUCCESS;

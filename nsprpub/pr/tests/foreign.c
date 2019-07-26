@@ -79,7 +79,9 @@ static void sproc_start(void *arg, PRSize size)
 #endif  
 
 #if defined(WIN32)
+#if defined(WINCE)
 #include <windows.h>
+#endif
 #include <process.h>  
 
 static PRUintn __stdcall windows_start(void *arg)
@@ -172,7 +174,7 @@ static PRStatus NSPRPUB_TESTS_CreateThread(StartFn start, void *arg)
                 0U, 
                 windows_start, 
                 start_object, 
-                STACK_SIZE_PARAM_IS_A_RESERVATION, 
+                0U, 
                 &id  );
 
             rv = (NULL == th) ? PR_FAILURE : PR_SUCCESS;
