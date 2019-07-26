@@ -315,6 +315,7 @@ XPCWrappedNative::WrapNewGlobal(XPCCallContext &ccx, xpcObjectHelper &nativeHelp
     JSObject *global =  xpc::CreateGlobalObject(ccx, clasp, principal);
     if (!global)
         return NS_ERROR_FAILURE;
+    XPCWrappedNativeScope *scope = GetCompartmentPrivate(global)->scope;
 
     
     
@@ -325,13 +326,10 @@ XPCWrappedNative::WrapNewGlobal(XPCCallContext &ccx, xpcObjectHelper &nativeHelp
         return NS_ERROR_FAILURE;
 
     
-    
-    XPCWrappedNativeScope *scope = XPCWrappedNativeScope::GetNewOrUsed(ccx, global);
-    MOZ_ASSERT(scope);
-
-    
     XPCWrappedNativeProto *proto =
-        XPCWrappedNativeProto::GetNewOrUsed(ccx, scope, nativeHelper.GetClassInfo(), &sciProto,
+        XPCWrappedNativeProto::GetNewOrUsed(ccx,
+                                            scope,
+                                            nativeHelper.GetClassInfo(), &sciProto,
                                             UNKNOWN_OFFSETS,  false);
     if (!proto)
         return NS_ERROR_FAILURE;

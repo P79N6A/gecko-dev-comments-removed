@@ -12,6 +12,7 @@
 #include "mozilla/dom/BindingUtils.h"
 
 using namespace mozilla;
+using namespace xpc;
 
 
 
@@ -85,8 +86,9 @@ XPCWrappedNativeScope::GetNewOrUsed(JSContext *cx, JSObject* aGlobal)
 {
 
     XPCWrappedNativeScope* scope = FindInJSObjectScope(cx, aGlobal, true);
-    if (!scope)
+    if (!scope) {
         scope = new XPCWrappedNativeScope(cx, aGlobal);
+    }
     else {
         
         
@@ -134,6 +136,10 @@ XPCWrappedNativeScope::XPCWrappedNativeScope(JSContext *cx,
 
     DEBUG_TrackNewScope(this);
     MOZ_COUNT_CTOR(XPCWrappedNativeScope);
+
+    
+    CompartmentPrivate *priv = EnsureCompartmentPrivate(aGlobal);
+    priv->scope = this;
 }
 
 
