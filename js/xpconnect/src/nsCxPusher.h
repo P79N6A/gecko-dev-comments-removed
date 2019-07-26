@@ -31,10 +31,15 @@ public:
 
   nsIScriptContext* GetScriptContext() { return mScx; }
 
+  
+  
+  bool IsStackTop();
+
 private:
   mozilla::Maybe<JSAutoRequest> mAutoRequest;
   mozilla::Maybe<JSAutoCompartment> mAutoCompartment;
   nsCOMPtr<nsIScriptContext> mScx;
+  uint32_t mStackDepthAfterPush;
 #ifdef DEBUG
   JSContext* mPushedContext;
   unsigned mCompartmentDepthOnEntry;
