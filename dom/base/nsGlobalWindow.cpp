@@ -6896,16 +6896,18 @@ nsGlobalWindow::PostMessageMoz(const JS::Value& aMessage,
 class nsCloseEvent : public nsRunnable {
 
   nsRefPtr<nsGlobalWindow> mWindow;
+  bool mIndirect;
 
-  nsCloseEvent(nsGlobalWindow *aWindow)
+  nsCloseEvent(nsGlobalWindow *aWindow, bool aIndirect)
     : mWindow(aWindow)
+    , mIndirect(aIndirect)
   {}
 
 public:
 
   static nsresult
-  PostCloseEvent(nsGlobalWindow* aWindow) {
-    nsCOMPtr<nsIRunnable> ev = new nsCloseEvent(aWindow);
+  PostCloseEvent(nsGlobalWindow* aWindow, bool aIndirect) {
+    nsCOMPtr<nsIRunnable> ev = new nsCloseEvent(aWindow, aIndirect);
     nsresult rv = NS_DispatchToCurrentThread(ev);
     if (NS_SUCCEEDED(rv))
       aWindow->MaybeForgiveSpamCount();
@@ -6913,8 +6915,12 @@ public:
   }
 
   NS_IMETHOD Run() {
-    if (mWindow)
+    if (mWindow) {
+      if (mIndirect) {
+        return PostCloseEvent(mWindow, false);
+      }
       mWindow->ReallyCloseWindow();
+    }
     return NS_OK;
   }
 
@@ -7047,23 +7053,29 @@ nsGlobalWindow::FinalClose()
   
   mIsClosed = true;
 
-  JSContext *cx = nsContentUtils::GetCurrentJSContext();
-  if (cx) {
-    nsIScriptContext *currentCX = nsJSUtils::GetDynamicScriptContext(cx);
-
-    if (currentCX && currentCX == GetContextInternal()) {
-      currentCX->SetTerminationFunction(CloseWindow, this);
-      mHavePendingClose = true;
-      return NS_OK;
-    }
-  }
-
   
   
   
   
-  if (nsContentUtils::IsCallerChrome() ||
-      NS_FAILED(nsCloseEvent::PostCloseEvent(this))) {
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  bool indirect = nsContentUtils::GetCurrentJSContext() ==
+                  GetContextInternal()->GetNativeContext();
+  if ((!indirect && nsContentUtils::IsCallerChrome()) ||
+      NS_FAILED(nsCloseEvent::PostCloseEvent(this, indirect))) {
     ReallyCloseWindow();
   } else {
     mHavePendingClose = true;
@@ -9916,22 +9928,6 @@ nsGlobalWindow::OpenInternal(const nsAString& aUrl, const nsAString& aName,
   }
 
   return rv;
-}
-
-
-void
-nsGlobalWindow::CloseWindow(nsISupports *aWindow)
-{
-  nsCOMPtr<nsPIDOMWindow> win(do_QueryInterface(aWindow));
-
-  nsGlobalWindow* globalWin =
-    static_cast<nsGlobalWindow *>
-               (static_cast<nsPIDOMWindow*>(win));
-
-  
-  
-  nsCloseEvent::PostCloseEvent(globalWin);
-  
 }
 
 

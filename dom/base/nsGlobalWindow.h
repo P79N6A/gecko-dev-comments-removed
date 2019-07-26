@@ -903,8 +903,6 @@ protected:
                                     JSContext *aJSCallerContext,
                                     nsIDOMWindow **aReturn);
 
-  static void CloseWindow(nsISupports* aWindow);
-
   
   
   
