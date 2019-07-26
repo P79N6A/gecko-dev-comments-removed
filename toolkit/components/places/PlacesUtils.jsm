@@ -47,6 +47,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "Promise",
 XPCOMUtils.defineLazyModuleGetter(this, "Deprecated",
                                   "resource://gre/modules/Deprecated.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "BookmarkJSONUtils",
+                                  "resource://gre/modules/BookmarkJSONUtils.jsm");
+
 
 
 
@@ -1719,7 +1722,10 @@ this.PlacesUtils = {
 
 
   backupBookmarksToFile: function PU_backupBookmarksToFile(aFile) {
-    this.backups.saveBookmarksToJSONFile(aFile);
+    Deprecated.warning(
+      "backupBookmarksToFile is deprecated and will be removed in a future version",
+      "https://bugzilla.mozilla.org/show_bug.cgi?id=852041");
+    return this.backups.saveBookmarksToJSONFile(aFile);
   },
 
   
@@ -1730,7 +1736,7 @@ this.PlacesUtils = {
 
   archiveBookmarksFile:
   function PU_archiveBookmarksFile(aMaxBackups, aForceBackup) {
-    this.backups.create(aMaxBackups, aForceBackup);
+    return this.backups.create(aMaxBackups, aForceBackup);
   },
 
   
@@ -1855,82 +1861,44 @@ this.PlacesUtils = {
 
 
 
+
+
     saveBookmarksToJSONFile:
     function PU_B_saveBookmarksToFile(aFile) {
-      if (!aFile.exists())
-        aFile.create(Ci.nsIFile.NORMAL_FILE_TYPE, 0600);
-      if (!aFile.exists() || !aFile.isWritable()) {
-        Cu.reportError("Unable to create bookmarks backup file: " + aFile.leafName);
-        return;
-      }
+      return Task.spawn(function() {
+        if (!aFile.exists())
+          aFile.create(Ci.nsIFile.NORMAL_FILE_TYPE, 0600);
+        if (!aFile.exists() || !aFile.isWritable()) {
+          throw new Error("Unable to create bookmarks backup file: " + aFile.leafName);
+        }
 
-      this._writeBackupFile(aFile);
+        yield BookmarkJSONUtils.exportToFile(aFile);
 
-      if (aFile.parent.equals(this.folder)) {
-        
-        this.entries.push(aFile);
-      }
-      else {
-        
-        
-        
-        
-        var latestBackup = this.getMostRecent("json");
-        if (!latestBackup || latestBackup != aFile) {
-          let name = this.getFilenameForDate();
-          let file = this.folder.clone();
-          file.append(name);
-          if (file.exists())
-            file.remove(false);
-          else {
-            
-            
-            this.entries.push(file);
+        if (aFile.parent.equals(this.folder)) {
+          
+          this.entries.push(aFile);
+        }
+        else {
+          
+          
+          
+          
+          var latestBackup = this.getMostRecent("json");
+          if (!latestBackup || latestBackup != aFile) {
+            let name = this.getFilenameForDate();
+            let file = this.folder.clone();
+            file.append(name);
+            if (file.exists())
+              file.remove(false);
+            else {
+              
+              
+              this.entries.push(file);
+            }
+            aFile.copyTo(this.folder, name);
           }
-          aFile.copyTo(this.folder, name);
         }
-      }
-    },
-
-    _writeBackupFile:
-    function PU_B__writeBackupFile(aFile) {
-      
-      let stream = Cc["@mozilla.org/network/file-output-stream;1"].
-                   createInstance(Ci.nsIFileOutputStream);
-      stream.init(aFile, 0x02 | 0x08 | 0x20, 0600, 0);
-
-      
-      let converter = Cc["@mozilla.org/intl/converter-output-stream;1"].
-                   createInstance(Ci.nsIConverterOutputStream);
-      converter.init(stream, "UTF-8", 0, 0x0000);
-
-      
-      let streamProxy = {
-        converter: converter,
-        write: function(aData, aLen) {
-          this.converter.writeString(aData);
-        }
-      };
-
-      
-      let excludeItems =
-        PlacesUtils.annotations.getItemsWithAnnotation(PlacesUtils.EXCLUDE_FROM_BACKUP_ANNO);
-
-      
-      let options = PlacesUtils.history.getNewQueryOptions();
-      options.expandQueries = false;
-      let query = PlacesUtils.history.getNewQuery();
-      query.setFolders([PlacesUtils.placesRootId], 1);
-      let root = PlacesUtils.history.executeQuery(query, options).root;
-      root.containerOpen = true;
-      
-      PlacesUtils.serializeNodeAsJSONToOutputStream(root, streamProxy,
-                                                    false, false, excludeItems);
-      root.containerOpen = false;
-
-      
-      converter.close();
-      stream.close();
+      }.bind(this));
     },
 
     
@@ -1948,50 +1916,53 @@ this.PlacesUtils = {
 
 
 
+
+
     create:
     function PU_B_create(aMaxBackups, aForceBackup) {
-      
-      let newBackupFilename = this.getFilenameForDate();
-      let mostRecentBackupFile = this.getMostRecent();
+      return Task.spawn(function() {
+        
+        let newBackupFilename = this.getFilenameForDate();
+        let mostRecentBackupFile = this.getMostRecent();
 
-      if (!aForceBackup) {
-        let numberOfBackupsToDelete = 0;
-        if (aMaxBackups !== undefined && aMaxBackups > -1)
-          numberOfBackupsToDelete = this.entries.length - aMaxBackups;
+        if (!aForceBackup) {
+          let numberOfBackupsToDelete = 0;
+          if (aMaxBackups !== undefined && aMaxBackups > -1)
+            numberOfBackupsToDelete = this.entries.length - aMaxBackups;
 
-        if (numberOfBackupsToDelete > 0) {
-          
-          
-          
-          if (!mostRecentBackupFile ||
-              mostRecentBackupFile.leafName != newBackupFilename)
-            numberOfBackupsToDelete++;
+          if (numberOfBackupsToDelete > 0) {
+            
+            
+            
+            if (!mostRecentBackupFile ||
+                mostRecentBackupFile.leafName != newBackupFilename)
+              numberOfBackupsToDelete++;
 
-          while (numberOfBackupsToDelete--) {
-            let oldestBackup = this.entries.pop();
-            oldestBackup.remove(false);
+            while (numberOfBackupsToDelete--) {
+              let oldestBackup = this.entries.pop();
+              oldestBackup.remove(false);
+            }
           }
+
+          
+          if (aMaxBackups === 0 ||
+              (mostRecentBackupFile &&
+               mostRecentBackupFile.leafName == newBackupFilename))
+            return;
         }
 
-        
-        if (aMaxBackups === 0 ||
-            (mostRecentBackupFile &&
-             mostRecentBackupFile.leafName == newBackupFilename))
+        let newBackupFile = this.folder.clone();
+        newBackupFile.append(newBackupFilename);
+
+        if (aForceBackup && newBackupFile.exists())
+          newBackupFile.remove(false);
+
+        if (newBackupFile.exists())
           return;
-      }
 
-      let newBackupFile = this.folder.clone();
-      newBackupFile.append(newBackupFilename);
-
-      if (aForceBackup && newBackupFile.exists())
-        newBackupFile.remove(false);
-
-      if (newBackupFile.exists())
-        return;
-
-      this.saveBookmarksToJSONFile(newBackupFile);
+        yield this.saveBookmarksToJSONFile(newBackupFile);
+      }.bind(this));
     }
-
   },
 
   

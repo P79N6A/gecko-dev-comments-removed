@@ -15,6 +15,8 @@ const SUFFIX = ".json";
 const NUMBER_OF_BACKUPS = 10;
 
 function run_test() {
+  do_test_pending();
+
   
   var dateObj = new Date();
   var dates = [];
@@ -55,31 +57,35 @@ function run_test() {
     return LOCALIZED_PREFIX + aValue;
   }
 
-  PlacesUtils.backups.create(Math.floor(dates.length/2));
-  
-  dates.push(dateObj.toLocaleFormat("%Y-%m-%d"));
+  Task.spawn(function() {
+    yield PlacesUtils.backups.create(Math.floor(dates.length/2));
+    
+    dates.push(dateObj.toLocaleFormat("%Y-%m-%d"));
 
-  
-  for (var i = 0; i < dates.length; i++) {
-    let backupFilename;
-    let shouldExist;
-    if (i > Math.floor(dates.length/2)) {
-      backupFilename = PREFIX + dates[i] + SUFFIX;
-      shouldExist = true;
+    
+    for (var i = 0; i < dates.length; i++) {
+      let backupFilename;
+      let shouldExist;
+      if (i > Math.floor(dates.length/2)) {
+        backupFilename = PREFIX + dates[i] + SUFFIX;
+        shouldExist = true;
+      }
+      else {
+        backupFilename = LOCALIZED_PREFIX + dates[i] + SUFFIX;
+        shouldExist = false;
+      }
+      var backupFile = bookmarksBackupDir.clone();
+      backupFile.append(backupFilename);
+      if (backupFile.exists() != shouldExist)
+        do_throw("Backup should " + (shouldExist ? "" : "not") + " exist: " + backupFilename);
     }
-    else {
-      backupFilename = LOCALIZED_PREFIX + dates[i] + SUFFIX;
-      shouldExist = false;
-    }
-    var backupFile = bookmarksBackupDir.clone();
-    backupFile.append(backupFilename);
-    if (backupFile.exists() != shouldExist)
-      do_throw("Backup should " + (shouldExist ? "" : "not") + " exist: " + backupFilename);
-  }
 
-  
-  bookmarksBackupDir.remove(true);
-  do_check_false(bookmarksBackupDir.exists());
-  
-  PlacesUtils.backups.folder;
+    
+    bookmarksBackupDir.remove(true);
+    do_check_false(bookmarksBackupDir.exists());
+    
+    PlacesUtils.backups.folder;
+
+    do_test_finished();
+  });
 }

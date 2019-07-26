@@ -107,6 +107,8 @@ var test = {
 }
 
 function run_test() {
+  do_test_pending();
+
   do_check_eq(typeof PlacesUtils, "object");
 
   
@@ -121,38 +123,41 @@ function run_test() {
   
   test.populate();
 
-  try {
-    PlacesUtils.backups.saveBookmarksToJSONFile(jsonFile);
-  } catch(ex) {
-    do_throw("couldn't export to file: " + ex);
-  }
+  Task.spawn(function() {
+    try {
+      yield BookmarkJSONUtils.exportToFile(jsonFile);
+    } catch(ex) {
+      do_throw("couldn't export to file: " + ex);
+    }
 
-  
-  try {
-    PlacesUtils.restoreBookmarksFromJSONFile(jsonFile);
-  } catch(ex) {
-    do_throw("couldn't import the exported file: " + ex);
-  }
+    
+    try {
+      PlacesUtils.restoreBookmarksFromJSONFile(jsonFile);
+    } catch(ex) {
+      do_throw("couldn't import the exported file: " + ex);
+    }
 
-  
-  
-  test.validate(false);
+    
+    
+    test.validate(false);
 
-  
-  remove_all_bookmarks();
-  
-  PlacesUtils.bookmarks.removeItem(test._excludeRootId);
+    
+    remove_all_bookmarks();
+    
+    PlacesUtils.bookmarks.removeItem(test._excludeRootId);
+    
+    try {
+      PlacesUtils.restoreBookmarksFromJSONFile(jsonFile);
+    } catch(ex) {
+      do_throw("couldn't import the exported file: " + ex);
+    }
 
-  
-  try {
-    PlacesUtils.restoreBookmarksFromJSONFile(jsonFile);
-  } catch(ex) {
-    do_throw("couldn't import the exported file: " + ex);
-  }
+    
+    test.validate(true);
 
-  
-  test.validate(true);
+    
+    jsonFile.remove(false);
 
-  
-  jsonFile.remove(false);
+    do_test_finished();
+  });
 }

@@ -186,6 +186,8 @@ var test = {
 tests.push(test);
 
 function run_test() {
+  do_test_pending();
+
   do_check_eq(typeof PlacesUtils, "object");
 
   
@@ -205,25 +207,29 @@ function run_test() {
   });
 
   
-  try {
-    PlacesUtils.backups.saveBookmarksToJSONFile(jsonFile);
-  } catch(ex) { do_throw("couldn't export to file: " + ex); }
+  Task.spawn(function() {
+    try {
+      yield BookmarkJSONUtils.exportToFile(jsonFile);
+    } catch(ex) { do_throw("couldn't export to file: " + ex); }
 
-  
-  tests.forEach(function(aTest) {
-    aTest.clean();
+    
+    tests.forEach(function(aTest) {
+      aTest.clean();
+    });
+
+    
+    try {
+      PlacesUtils.restoreBookmarksFromJSONFile(jsonFile);
+    } catch(ex) { do_throw("couldn't import the exported file: " + ex); }
+
+    
+    tests.forEach(function(aTest) {
+      aTest.validate();
+    });
+
+    
+    jsonFile.remove(false);
+
+    do_test_finished();
   });
-
-  
-  try {
-    PlacesUtils.restoreBookmarksFromJSONFile(jsonFile);
-  } catch(ex) { do_throw("couldn't import the exported file: " + ex); }
-
-  
-  tests.forEach(function(aTest) {
-    aTest.validate();
-  });
-
-  
-  jsonFile.remove(false);
 }

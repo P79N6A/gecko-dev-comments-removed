@@ -56,6 +56,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
 XPCOMUtils.defineLazyModuleGetter(this, "RecentWindow",
                                   "resource:///modules/RecentWindow.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "Task",
+                                  "resource://gre/modules/Task.jsm");
+
 const PREF_PLUGINS_NOTIFYUSER = "plugins.update.notifyUser";
 const PREF_PLUGINS_UPDATEURL  = "plugins.update.url";
 
@@ -236,7 +239,8 @@ BrowserGlue.prototype = {
         this._onPlacesShutdown();
         break;
       case "idle":
-        if (this._idleService.idleTime > BOOKMARKS_BACKUP_IDLE_TIME * 1000)
+        if ((this._idleService.idleTime > BOOKMARKS_BACKUP_IDLE_TIME * 1000) &&
+             this._shouldBackupBookmarks())
           this._backupBookmarks();
         break;
       case "distribution-customization-complete":
@@ -981,126 +985,129 @@ BrowserGlue.prototype = {
         importBookmarks = true;
     } catch(ex) {}
 
-    
-    
-    var restoreDefaultBookmarks = false;
-    try {
-      restoreDefaultBookmarks =
-        Services.prefs.getBoolPref("browser.bookmarks.restore_default_bookmarks");
-      if (restoreDefaultBookmarks) {
-        
-        this._backupBookmarks();
-        importBookmarks = true;
-      }
-    } catch(ex) {}
-
-    
-    
-    if (importBookmarks && !restoreDefaultBookmarks && !importBookmarksHTML) {
+    Task.spawn(function() {
       
-      var bookmarksBackupFile = PlacesUtils.backups.getMostRecent("json");
-      if (bookmarksBackupFile) {
-        
-        PlacesUtils.restoreBookmarksFromJSONFile(bookmarksBackupFile);
-        importBookmarks = false;
-      }
-      else {
-        
-        importBookmarks = true;
-        var dirService = Cc["@mozilla.org/file/directory_service;1"].
-                         getService(Ci.nsIProperties);
-        var bookmarksHTMLFile = dirService.get("BMarks", Ci.nsILocalFile);
-        if (bookmarksHTMLFile.exists()) {
+      
+      var restoreDefaultBookmarks = false;
+      try {
+        restoreDefaultBookmarks =
+          Services.prefs.getBoolPref("browser.bookmarks.restore_default_bookmarks");
+        if (restoreDefaultBookmarks) {
           
-          importBookmarksHTML = true;
+          if (this._shouldBackupBookmarks())
+            yield this._backupBookmarks();
+          importBookmarks = true;
+        }
+      } catch(ex) {}
+
+      
+      
+      if (importBookmarks && !restoreDefaultBookmarks && !importBookmarksHTML) {
+        
+        var bookmarksBackupFile = PlacesUtils.backups.getMostRecent("json");
+        if (bookmarksBackupFile) {
+          
+          PlacesUtils.restoreBookmarksFromJSONFile(bookmarksBackupFile);
+          importBookmarks = false;
         }
         else {
           
-          restoreDefaultBookmarks = true;
+          importBookmarks = true;
+          var dirService = Cc["@mozilla.org/file/directory_service;1"].
+                           getService(Ci.nsIProperties);
+          var bookmarksHTMLFile = dirService.get("BMarks", Ci.nsILocalFile);
+          if (bookmarksHTMLFile.exists()) {
+            
+            importBookmarksHTML = true;
+          }
+          else {
+            
+            restoreDefaultBookmarks = true;
+          }
         }
       }
-    }
-
-    
-    
-    
-    
-    
-    if (!importBookmarks) {
-      
-      
-      this._distributionCustomizer.applyBookmarks();
-      this.ensurePlacesDefaultQueriesInitialized();
-    }
-    else {
-      
-      
-      
-      var autoExportHTML = false;
-      try {
-        autoExportHTML = Services.prefs.getBoolPref("browser.bookmarks.autoExportHTML");
-      } catch(ex) {}
-      var smartBookmarksVersion = 0;
-      try {
-        smartBookmarksVersion = Services.prefs.getIntPref("browser.places.smartBookmarksVersion");
-      } catch(ex) {}
-      if (!autoExportHTML && smartBookmarksVersion != -1)
-        Services.prefs.setIntPref("browser.places.smartBookmarksVersion", 0);
 
       
-      var dirService = Cc["@mozilla.org/file/directory_service;1"].
-                       getService(Ci.nsIProperties);
-
-      var bookmarksURI = null;
-      if (restoreDefaultBookmarks) {
+      
+      
+      
+      
+      if (!importBookmarks) {
         
-        bookmarksURI = NetUtil.newURI("resource:///defaults/profile/bookmarks.html");
+        
+        this._distributionCustomizer.applyBookmarks();
+        this.ensurePlacesDefaultQueriesInitialized();
       }
       else {
-        var bookmarksFile = dirService.get("BMarks", Ci.nsILocalFile);
-        if (bookmarksFile.exists())
-          bookmarksURI = NetUtil.newURI(bookmarksFile);
-      }
-
-      if (bookmarksURI) {
         
+        
+        
+        var autoExportHTML = false;
         try {
-          BookmarkHTMLUtils.importFromURL(bookmarksURI.spec, true).then(null,
-            function onFailure() {
-              Cu.reportError("Bookmarks.html file could be corrupt.");
-            }
-          ).then(
-            function onComplete() {
-              
-              
-              this._distributionCustomizer.applyBookmarks();
-              
-              
-              this.ensurePlacesDefaultQueriesInitialized();
-            }.bind(this)
-          );
-        } catch (err) {
-          Cu.reportError("Bookmarks.html file could be corrupt. " + err);
+          autoExportHTML = Services.prefs.getBoolPref("browser.bookmarks.autoExportHTML");
+        } catch(ex) {}
+        var smartBookmarksVersion = 0;
+        try {
+          smartBookmarksVersion = Services.prefs.getIntPref("browser.places.smartBookmarksVersion");
+        } catch(ex) {}
+        if (!autoExportHTML && smartBookmarksVersion != -1)
+          Services.prefs.setIntPref("browser.places.smartBookmarksVersion", 0);
+
+        
+        var dirService = Cc["@mozilla.org/file/directory_service;1"].
+                         getService(Ci.nsIProperties);
+
+        var bookmarksURI = null;
+        if (restoreDefaultBookmarks) {
+          
+          bookmarksURI = NetUtil.newURI("resource:///defaults/profile/bookmarks.html");
         }
-      }
-      else {
-        Cu.reportError("Unable to find bookmarks.html file.");
+        else {
+          var bookmarksFile = dirService.get("BMarks", Ci.nsILocalFile);
+          if (bookmarksFile.exists())
+            bookmarksURI = NetUtil.newURI(bookmarksFile);
+        }
+
+        if (bookmarksURI) {
+          
+          try {
+            BookmarkHTMLUtils.importFromURL(bookmarksURI.spec, true).then(null,
+              function onFailure() {
+                Cu.reportError("Bookmarks.html file could be corrupt.");
+              }
+            ).then(
+              function onComplete() {
+                
+                
+                this._distributionCustomizer.applyBookmarks();
+                
+                
+                this.ensurePlacesDefaultQueriesInitialized();
+              }.bind(this)
+            );
+          } catch (err) {
+            Cu.reportError("Bookmarks.html file could be corrupt. " + err);
+          }
+        }
+        else {
+          Cu.reportError("Unable to find bookmarks.html file.");
+        }
+
+        
+        if (importBookmarksHTML)
+          Services.prefs.setBoolPref("browser.places.importBookmarksHTML", false);
+        if (restoreDefaultBookmarks)
+          Services.prefs.setBoolPref("browser.bookmarks.restore_default_bookmarks",
+                                     false);
       }
 
       
-      if (importBookmarksHTML)
-        Services.prefs.setBoolPref("browser.places.importBookmarksHTML", false);
-      if (restoreDefaultBookmarks)
-        Services.prefs.setBoolPref("browser.bookmarks.restore_default_bookmarks",
-                                   false);
-    }
-
-    
-    
-    if (!this._isIdleObserver) {
-      this._idleService.addIdleObserver(this, BOOKMARKS_BACKUP_IDLE_TIME);
-      this._isIdleObserver = true;
-    }
+      
+      if (!this._isIdleObserver) {
+        this._idleService.addIdleObserver(this, BOOKMARKS_BACKUP_IDLE_TIME);
+        this._isIdleObserver = true;
+      }
+    }.bind(this));
   },
 
   
@@ -1118,55 +1125,77 @@ BrowserGlue.prototype = {
       this._isIdleObserver = false;
     }
 
-    this._backupBookmarks();
+    let waitingForBackupToComplete = true;
+    if (this._shouldBackupBookmarks()) {
+      waitingForBackupToComplete = false;
+      this._backupBookmarks().then(
+        function onSuccess() {
+          waitingForBackupToComplete = true;
+        },
+        function onFailure() {
+          Cu.reportError("Unable to backup bookmarks.");
+          waitingForBackupToComplete = true;
+        }
+      );
+    }
 
     
     
-    try {
+    let waitingForHTMLExportToComplete = true;
+    
+    if (Services.prefs.getBoolPref("browser.bookmarks.autoExportHTML")) {
       
-      if (Services.prefs.getBoolPref("browser.bookmarks.autoExportHTML")) {
-        
-        
-        
-        
-        
-        
-        let shutdownComplete = false;
-        BookmarkHTMLUtils.exportToFile(FileUtils.getFile("BMarks", [])).then(
-          function onSuccess() {
-            shutdownComplete = true;
-          },
-          function onFailure() {
-            
-            shutdownComplete = true;
-          }
-        );
-        let thread = Services.tm.currentThread;
-        while (!shutdownComplete) {
-          thread.processNextEvent(true);
+      
+      
+      
+      
+      
+      waitingForHTMLExportToComplete = false;
+      BookmarkHTMLUtils.exportToFile(FileUtils.getFile("BMarks", [])).then(
+        function onSuccess() {
+          waitingForHTMLExportToComplete = true;
+        },
+        function onFailure() {
+          Cu.reportError("Unable to auto export html.");
+          waitingForHTMLExportToComplete = true;
         }
-      }
-    } catch(ex) {  }
+      );
+    }
+
+    let thread = Services.tm.currentThread;
+    while (!waitingForBackupToComplete || !waitingForHTMLExportToComplete) {
+      thread.processNextEvent(true);
+    }
+  },
+
+  
+
+
+
+  _shouldBackupBookmarks: function BG__shouldBackupBookmarks() {
+    let lastBackupFile = PlacesUtils.backups.getMostRecent();
+
+    
+    
+    return (!lastBackupFile ||
+            new Date() - PlacesUtils.backups.getDateForFile(lastBackupFile) > BOOKMARKS_BACKUP_INTERVAL);
   },
 
   
 
 
   _backupBookmarks: function BG__backupBookmarks() {
-    let lastBackupFile = PlacesUtils.backups.getMostRecent();
-
-    
-    
-    if (!lastBackupFile ||
-        new Date() - PlacesUtils.backups.getDateForFile(lastBackupFile) > BOOKMARKS_BACKUP_INTERVAL) {
+    return Task.spawn(function() {
+      
+      
       let maxBackups = BOOKMARKS_BACKUP_MAX_BACKUPS;
       try {
         maxBackups = Services.prefs.getIntPref("browser.bookmarks.max_backups");
       }
       catch(ex) {  }
 
-      PlacesUtils.backups.create(maxBackups); 
-    }
+      yield PlacesUtils.backups.create(maxBackups); 
+    });
   },
 
   

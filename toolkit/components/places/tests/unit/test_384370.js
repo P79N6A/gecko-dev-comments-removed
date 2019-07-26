@@ -62,7 +62,7 @@ function run_test() {
       
       
       try {
-        PlacesUtils.backups.saveBookmarksToJSONFile(jsonFile);
+        yield BookmarkJSONUtils.exportToFile(jsonFile);
       } catch(ex) { do_throw("couldn't export to file: " + ex); }
       LOG("exported json");
 

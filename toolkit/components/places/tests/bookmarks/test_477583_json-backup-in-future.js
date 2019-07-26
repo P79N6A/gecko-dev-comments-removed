@@ -5,6 +5,8 @@
 
 
 function run_test() {
+  do_test_pending();
+
   let bookmarksBackupDir = PlacesUtils.backups.folder;
   
   let files = bookmarksBackupDir.directoryEntries;
@@ -28,19 +30,22 @@ function run_test() {
 
   do_check_eq(PlacesUtils.backups.entries.length, 0);
 
-  PlacesUtils.backups.create();
+  Task.spawn(function() {
+    yield PlacesUtils.backups.create();
+    
+    do_check_eq(PlacesUtils.backups.entries.length, 1);
+    let mostRecentBackupFile = PlacesUtils.backups.getMostRecent();
+    do_check_neq(mostRecentBackupFile, null);
+    let todayName = PlacesUtils.backups.getFilenameForDate();
+    do_check_eq(mostRecentBackupFile.leafName, todayName);
 
-  
-  do_check_eq(PlacesUtils.backups.entries.length, 1);
-  let mostRecentBackupFile = PlacesUtils.backups.getMostRecent();
-  do_check_neq(mostRecentBackupFile, null);
-  let todayName = PlacesUtils.backups.getFilenameForDate();
-  do_check_eq(mostRecentBackupFile.leafName, todayName);
+    
+    do_check_false(futureBackupFile.exists());
 
-  
-  do_check_false(futureBackupFile.exists());
+    
+    mostRecentBackupFile.remove(false);
+    do_check_false(mostRecentBackupFile.exists());
 
-  
-  mostRecentBackupFile.remove(false);
-  do_check_false(mostRecentBackupFile.exists());
+    do_test_finished()
+  });
 }
