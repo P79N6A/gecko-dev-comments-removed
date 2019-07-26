@@ -17,6 +17,7 @@
 #include <opus/opus.h>
 #include "opus/opus_multistream.h"
 
+#include "nsHTMLMediaElement.h"
 #include "nsBuiltinDecoderStateMachine.h"
 #include "nsBuiltinDecoderReader.h"
 #endif
@@ -94,6 +95,11 @@ public:
   
   virtual bool DecodeHeader(ogg_packet* aPacket) {
     return (mDoneReadingHeaders = true);
+  }
+
+  
+  virtual nsHTMLMediaElement::MetadataTags* GetTags() {
+    return nullptr;
   }
 
   
@@ -187,6 +193,16 @@ protected:
   
   
   nsTArray<ogg_packet*> mUnstamped;
+
+  
+  static bool IsValidVorbisTagName(nsCString& aName);
+
+  
+  
+  
+  static bool AddVorbisComment(nsHTMLMediaElement::MetadataTags* aTags,
+                        const char* aComment,
+                        uint32_t aLength);
 };
 
 class nsVorbisState : public nsOggCodecState {
@@ -201,6 +217,9 @@ public:
   nsresult Reset();
   bool IsHeader(ogg_packet* aPacket);
   nsresult PageIn(ogg_page* aPage); 
+
+  
+  nsHTMLMediaElement::MetadataTags* GetTags();
 
   
   static int64_t Time(vorbis_info* aInfo, int64_t aGranulePos); 
@@ -337,7 +356,13 @@ public:
   
   int64_t mPrevPacketGranulepos;
 
+  
+  nsHTMLMediaElement::MetadataTags* GetTags();
+
 private:
+
+  nsCString mVendorString;   
+  nsTArray<nsCString> mTags; 
 
   
   
