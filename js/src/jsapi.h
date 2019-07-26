@@ -5363,13 +5363,6 @@ JS_ConcatStrings(JSContext *cx, JSString *left, JSString *right);
 
 
 
-extern JS_PUBLIC_API(const jschar *)
-JS_UndependString(JSContext *cx, JSString *str);
-
-
-
-
-
 
 
 
