@@ -70,6 +70,8 @@ WeaveService.prototype = {
     
     
     
+    
+    
     let fxAccountsAvailable;
     try {
       fxAccountsAvailable = Services.prefs.getBoolPref("identity.fxaccounts.enabled");
@@ -101,58 +103,12 @@ WeaveService.prototype = {
     return this.fxAccountsEnabled = fxAccountsEnabled;
   },
 
-  maybeInitWithFxAccountsAndEnsureLoaded: function() {
-    Components.utils.import("resource://services-sync/main.js");
-    
-    Cu.import("resource://gre/modules/FxAccounts.jsm");
-
-    
-    
-    
-    return fxAccounts.getSignedInUser().then(
-      (accountData) => {
-        if (accountData) {
-          Cu.import("resource://services-sync/browserid_identity.js");
-          
-          
-          
-          
-          
-          Weave.Service.identity = Weave.Status._authManager = new BrowserIDManager(),
-          
-          
-          
-          Weave.Service.identity.initWithLoggedInUser().then(function () {
-            
-            Weave.Service.clusterURL = Weave.Service.identity.clusterURL;
-            
-            
-            if (Weave.Status.checkSetup() != Weave.CLIENT_NOT_CONFIGURED) {
-              
-              Svc.Obs.notify("weave:service:setup-complete");
-              
-              
-              Weave.Utils.nextTick(Weave.Service.sync, Weave.Service);
-              this.ensureLoaded();
-            }
-          }.bind(this));
-        } else if (Weave.Status.checkSetup() != Weave.CLIENT_NOT_CONFIGURED) {
-          
-          this.ensureLoaded();
-        }
-      },
-      (err) => {dump("err in getting logged in account "+err.message)}
-    ).then(null, (err) => {dump("err in processing logged in account "+err.message)});
-  },
-
   observe: function (subject, topic, data) {
     switch (topic) {
     case "app-startup":
       let os = Cc["@mozilla.org/observer-service;1"].
                getService(Ci.nsIObserverService);
       os.addObserver(this, "final-ui-startup", true);
-      os.addObserver(this, "fxaccounts:onverified", true);
-      os.addObserver(this, "fxaccounts:onlogout", true);
       break;
 
     case "final-ui-startup":
@@ -160,52 +116,23 @@ WeaveService.prototype = {
       this.timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
       this.timer.initWithCallback({
         notify: function() {
-          if (this.fxAccountsEnabled) {
-            
-            this.maybeInitWithFxAccountsAndEnsureLoaded();
-          } else {
-            
-            
-            let prefs = Services.prefs.getBranch(SYNC_PREFS_BRANCH);
-            if (!prefs.prefHasUserValue("username")) {
-              return;
-            }
+          
+          let prefs = Services.prefs.getBranch(SYNC_PREFS_BRANCH);
+          if (!prefs.prefHasUserValue("username")) {
+            return;
+          }
 
-            
-            
-            
-            
-            
-            Components.utils.import("resource://services-sync/main.js");
-            if (Weave.Status.checkSetup() != Weave.CLIENT_NOT_CONFIGURED) {
-              this.ensureLoaded();
-            }
+          
+          
+          
+          
+          
+          Components.utils.import("resource://services-sync/main.js");
+          if (Weave.Status.checkSetup() != Weave.CLIENT_NOT_CONFIGURED) {
+            this.ensureLoaded();
           }
         }.bind(this)
       }, 10000, Ci.nsITimer.TYPE_ONE_SHOT);
-      break;
-
-    case 'fxaccounts:onverified':
-        
-        
-        
-        
-        
-        Components.utils.import("resource://services-sync/main.js"); 
-        Weave.Svc.Prefs.set("firstSync", "resetClient");
-        this.maybeInitWithFxAccountsAndEnsureLoaded().then(() => {
-          
-          
-          
-          
-          
-        });
-      break;
-    case 'fxaccounts:onlogout':
-      Components.utils.import("resource://services-sync/main.js"); 
-      
-      
-      
       break;
     }
   }

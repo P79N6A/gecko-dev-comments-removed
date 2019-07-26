@@ -172,3 +172,13 @@ function uninstallFakePAC() {
   let CID = PACSystemSettings.CID;
   Cm.nsIComponentRegistrar.unregisterFactory(CID, PACSystemSettings);
 }
+
+
+
+
+function setDefaultIdentityConfig() {
+  Cu.import("resource://gre/modules/Services.jsm");
+  Services.prefs.setBoolPref("identity.fxaccounts.enabled", false);
+
+}
+setDefaultIdentityConfig();

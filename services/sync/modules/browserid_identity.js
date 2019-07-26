@@ -18,6 +18,7 @@ Cu.import("resource://services-common/tokenserverclient.js");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://services-sync/constants.js");
 Cu.import("resource://gre/modules/Promise.jsm");
+Cu.import("resource://services-sync/stages/cluster.js");
 
 
 XPCOMUtils.defineLazyModuleGetter(this, "BulkKeyBundle",
@@ -25,6 +26,12 @@ XPCOMUtils.defineLazyModuleGetter(this, "BulkKeyBundle",
 
 XPCOMUtils.defineLazyModuleGetter(this, "fxAccounts",
                                   "resource://gre/modules/FxAccounts.jsm");
+
+XPCOMUtils.defineLazyGetter(this, 'fxAccountsCommon', function() {
+  let ob = {};
+  Cu.import("resource://gre/modules/FxAccountsCommon.js", ob);
+  return ob;
+});
 
 function deriveKeyBundle(kB) {
   let out = CryptoUtils.hkdf(kB, undefined,
@@ -39,6 +46,8 @@ function deriveKeyBundle(kB) {
 this.BrowserIDManager = function BrowserIDManager() {
   this._fxaService = fxAccounts;
   this._tokenServerClient = new TokenServerClient();
+  
+  this.whenReadyToAuthenticate = null;
   this._log = Log.repository.getLogger("Sync.BrowserIDManager");
   this._log.Level = Log.Level[Svc.Prefs.get("log.logger.identity")];
 
@@ -54,13 +63,85 @@ this.BrowserIDManager.prototype = {
   _account: null,
 
   
+  
+  _shouldHaveSyncKeyBundle: false,
+
+  get readyToAuthenticate() {
+    
+    
+    return this._shouldHaveSyncKeyBundle;
+  },
+
+  initialize: function() {
+    Services.obs.addObserver(this, fxAccountsCommon.ONVERIFIED_NOTIFICATION, false);
+    Services.obs.addObserver(this, fxAccountsCommon.ONLOGOUT_NOTIFICATION, false);
+    return this.initializeWithCurrentIdentity();
+  },
+
+  initializeWithCurrentIdentity: function() {
+    this._log.trace("initializeWithCurrentIdentity");
+    Components.utils.import("resource://services-sync/main.js");
+
+    
+    this.whenReadyToAuthenticate = Promise.defer();
+    this._shouldHaveSyncKeyBundle = false;
+    this.username = ""; 
+
+    return fxAccounts.getSignedInUser().then(accountData => {
+      if (!accountData) {
+        this._log.info("initializeWithCurrentIdentity has no user logged in");
+        this._account = null;
+        return;
+      }
+      this._account = accountData.email;
+      
+      this._log.info("Starting background fetch for key bundle.");
+      this._fetchSyncKeyBundle().then(() => {
+        this._shouldHaveSyncKeyBundle = true; 
+        this.whenReadyToAuthenticate.resolve();
+        this._log.info("Background fetch for key bundle done");
+      }).then(null, err => {
+        this._shouldHaveSyncKeyBundle = true; 
+        this.whenReadyToAuthenticate.reject(err);
+        
+        this._log.error("Background fetch for key bundle failed: " + err);
+        throw err;
+      });
+      
+    }).then(null, err => {
+      dump("err in processing logged in account "+err.message);
+    });
+  },
+
+  observe: function (subject, topic, data) {
+    switch (topic) {
+    case fxAccountsCommon.ONVERIFIED_NOTIFICATION:
+    case fxAccountsCommon.ONLOGIN_NOTIFICATION:
+      
+      
+      
+      
+      
+      this.initializeWithCurrentIdentity();
+      break;
+
+    case fxAccountsCommon.ONLOGOUT_NOTIFICATION:
+      Components.utils.import("resource://services-sync/main.js");
+      
+      
+      this.username = "";
+      this._account = null;
+      Weave.Service.logout();
+      break;
+    }
+  },
+
+  
 
 
   _now: function() {
     return Date.now();
   },
-
-  clusterURL: null,
 
   get account() {
     return this._account;
@@ -148,6 +229,7 @@ this.BrowserIDManager.prototype = {
     this._syncKey = null;
     this._syncKeyBundle = null;
     this._syncKeyUpdated = true;
+    this._shouldHaveSyncKeyBundle = false;
   },
 
   
@@ -167,7 +249,7 @@ this.BrowserIDManager.prototype = {
     
     
     
-    if (!this.syncKeyBundle) {
+    if (this._shouldHaveSyncKeyBundle && !this.syncKeyBundle) {
       return LOGIN_FAILED_NO_PASSPHRASE;
     }
 
@@ -221,45 +303,24 @@ this.BrowserIDManager.prototype = {
     return userData;
   },
 
-  
-  
-  
-  initWithLoggedInUser: function() {
+  _fetchSyncKeyBundle: function() {
     
-    return this._fxaService.getSignedInUser()
-      .then(userData => {
-        if (!userData) {
-          this._log.warn("initWithLoggedInUser found no logged in user");
-          throw new Error("initWithLoggedInUser found no logged in user");
-        }
-        
-        this._account = userData.email;
-        
-        return this._refreshTokenForLoggedInUser();
-      })
-      .then(token => {
-        this._token = token;
-        
-        
-        
-        
-        this.username = this._token.uid.toString();
-
-        return this._fxaService.getKeys();
-      })
-      .then(userData => {
-        
-        let kB = Utils.hexToBytes(userData.kB);
-        this._syncKeyBundle = deriveKeyBundle(kB);
-
-        
-        
-        
-        let clusterURI = Services.io.newURI(this._token.endpoint, null, null);
-        clusterURI.path = "/";
-        this.clusterURL = clusterURI.spec;
-        this._log.info("initWithLoggedUser has username " + this.username + ", endpoint is " + this.clusterURL);
-      });
+    return this._refreshTokenForLoggedInUser(
+    ).then(token => {
+      this._token = token;
+      return this._fxaService.getKeys();
+    }).then(userData => {
+      
+      
+      if (!userData || userData.email !== this.account) {
+        throw new Error("The currently logged-in user has changed.");
+      }
+      
+      this.username = this._token.uid.toString();
+      
+      let kB = Utils.hexToBytes(userData.kB);
+      this._syncKeyBundle = deriveKeyBundle(kB);
+    });
   },
 
   
@@ -368,5 +429,45 @@ this.BrowserIDManager.prototype = {
     }
     request.setHeader("authorization", header.headers.authorization);
     return request;
+  },
+
+  createClusterManager: function(service) {
+    return new BrowserIDClusterManager(service);
   }
+
 };
+
+
+
+
+function BrowserIDClusterManager(service) {
+  ClusterManager.call(this, service);
+}
+
+BrowserIDClusterManager.prototype = {
+  __proto__: ClusterManager.prototype,
+
+  _findCluster: function() {
+    let promiseClusterURL = function() {
+      return fxAccounts.getSignedInUser().then(userData => {
+        return this.identity._fetchTokenForUser(userData).then(token => {
+          
+          
+          
+          let clusterURI = Services.io.newURI(token.endpoint, null, null);
+          clusterURI.path = "/";
+          return clusterURI.spec;
+        });
+      });
+    }.bind(this);
+
+    let cb = Async.makeSpinningCallback();
+    promiseClusterURL().then(function (clusterURL) {
+        cb(null, clusterURL);
+    },
+    function (err) {
+        cb(err);
+    });
+    return cb.wait();
+  },
+}

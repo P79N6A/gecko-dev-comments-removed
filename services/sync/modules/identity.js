@@ -9,6 +9,7 @@ this.EXPORTED_SYMBOLS = ["IdentityManager"];
 const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/Promise.jsm");
 Cu.import("resource://services-sync/constants.js");
 Cu.import("resource://gre/modules/Log.jsm");
 Cu.import("resource://services-sync/util.js");
@@ -19,6 +20,7 @@ for (let symbol of ["BulkKeyBundle", "SyncKeyBundle"]) {
                                     "resource://services-sync/keys.js",
                                     symbol);
 }
+
 
 
 
@@ -80,6 +82,24 @@ IdentityManager.prototype = {
   _syncKeySet: false,
 
   _syncKeyBundle: null,
+
+  
+
+
+
+
+  initialize: function() {
+    
+    return Promise.resolve();
+  },
+
+  
+
+
+  get readyToAuthenticate() {
+    
+    return true;
+  },
 
   get account() {
     return Svc.Prefs.get("account", this.username);
@@ -505,5 +525,10 @@ IdentityManager.prototype = {
   onRESTRequestBasic: function onRESTRequestBasic(request) {
     let up = this.username + ":" + this.basicPassword;
     request.setHeader("authorization", "Basic " + btoa(up));
+  },
+
+  createClusterManager: function(service) {
+    Cu.import("resource://services-sync/stages/cluster.js");
+    return new ClusterManager(service);
   }
 };
