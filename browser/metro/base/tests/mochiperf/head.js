@@ -4,6 +4,10 @@
 "use strict";
 
 
+let mochitestDir = getRootDirectory(gTestPath).replace('/mochiperf', '/mochitest');
+Services.scriptloader.loadSubScript(mochitestDir + "head.js", this);
+
+
 const kInfoHeader = "PERF-TEST | ";
 const kDeclareId = "DECLARE ";
 const kResultsId = "RESULTS ";
