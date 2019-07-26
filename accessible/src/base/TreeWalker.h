@@ -6,6 +6,7 @@
 #ifndef mozilla_a11y_TreeWalker_h_
 #define mozilla_a11y_TreeWalker_h_
 
+#include "mozilla/Attributes.h"
 #include <stdint.h>
 
 class nsIContent;
@@ -21,11 +22,26 @@ struct WalkState;
 
 
 
-class TreeWalker
+class TreeWalker MOZ_FINAL
 {
 public:
-  TreeWalker(Accessible* aContext, nsIContent* aNode, bool aWalkCache = false);
-  virtual ~TreeWalker();
+  enum {
+    
+    eWalkCache = 1,
+    
+    eWalkContextTree = 2 | eWalkCache
+  };
+
+  
+
+
+
+
+
+
+
+  TreeWalker(Accessible* aContext, nsIContent* aNode, uint32_t aFlags = 0);
+  ~TreeWalker();
 
   
 
@@ -59,7 +75,7 @@ private:
 
 
 
-  bool PushState(nsIContent *aNode);
+  void PushState(nsIContent* aNode);
 
   
 
@@ -69,11 +85,11 @@ private:
   DocAccessible* mDoc;
   Accessible* mContext;
   int32_t mChildFilter;
-  bool mWalkCache;
+  uint32_t mFlags;
   WalkState* mState;
 };
 
 } 
 } 
 
-#endif 
+#endif

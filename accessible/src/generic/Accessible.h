@@ -889,16 +889,6 @@ protected:
   static nsresult GetFullKeyName(const nsAString& aModifierName, const nsAString& aKeyName, nsAString& aStringOut);
 
   
-
-
-
-
-
-
-
-  Accessible* GetFirstAvailableAccessible(nsINode* aStartNode) const;
-
-  
   
 
   
