@@ -213,7 +213,7 @@ public:
   void NotifyPaintWaiter(nsDisplayListBuilder* aBuilder);
 
   
-  already_AddRefed<ImageContainer> GetImageContainer();
+  already_AddRefed<mozilla::layers::ImageContainer> GetImageContainer();
 
   
 
@@ -234,7 +234,7 @@ public:
 #ifdef MOZ_WIDGET_ANDROID
   
   void GetVideos(nsTArray<nsNPAPIPluginInstance::VideoInfo*>& aVideos);
-  already_AddRefed<ImageContainer> GetImageContainerForVideo(nsNPAPIPluginInstance::VideoInfo* aVideoInfo);
+  already_AddRefed<mozilla::layers::ImageContainer> GetImageContainerForVideo(nsNPAPIPluginInstance::VideoInfo* aVideoInfo);
 
   void Invalidate();
 

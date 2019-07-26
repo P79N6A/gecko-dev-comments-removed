@@ -94,6 +94,7 @@ using namespace mozilla::dom;
 #endif
 
 using namespace mozilla;
+using namespace mozilla::layers;
 
 
 

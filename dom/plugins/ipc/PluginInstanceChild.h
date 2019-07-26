@@ -20,7 +20,6 @@
 #include "mozilla/gfx/QuartzSupport.h"
 #include "base/timer.h"
 
-using namespace mozilla::plugins::PluginUtilsOSX;
 #endif
 
 #include "npfunctions.h"
@@ -555,7 +554,7 @@ private:
 #ifdef XP_MACOSX
     
     
-    nsDoubleBufferCARenderer mDoubleBufferCARenderer; 
+    PluginUtilsOSX::nsDoubleBufferCARenderer mDoubleBufferCARenderer; 
 #endif
 
     
