@@ -20,12 +20,18 @@ struct IDataObject;
 
 
 
-class nsClipboard : public nsBaseClipboard
+class nsClipboard : public nsBaseClipboard,
+                    public nsIObserver
 {
 
 public:
   nsClipboard();
   virtual ~nsClipboard();
+
+  NS_DECL_ISUPPORTS_INHERITED
+
+  
+  NS_DECL_NSIOBSERVER
 
   
   NS_IMETHOD HasDataMatchingFlavors(const char** aFlavorList, uint32_t aLength,
