@@ -180,26 +180,39 @@ let HighlighterActor = protocol.ActorClass({
     return this._walker.attachElement(node);
   },
 
+  
+
+
+
+
+
+
+
+
+
+
+
+  _getPickerListenerTarget: function() {
+    let actor = this._tabActor;
+    return actor.isRootActor ? actor.window : actor.browser;
+  },
+
   _startPickerListeners: function() {
-    
-    
-    
-    
-    let browser = this._tabActor.browser;
-    browser.addEventListener("mousemove", this._onHovered, true);
-    browser.addEventListener("click", this._onPick, true);
-    browser.addEventListener("mousedown", this._preventContentEvent, true);
-    browser.addEventListener("mouseup", this._preventContentEvent, true);
-    browser.addEventListener("dblclick", this._preventContentEvent, true);
+    let target = this._getPickerListenerTarget();
+    target.addEventListener("mousemove", this._onHovered, true);
+    target.addEventListener("click", this._onPick, true);
+    target.addEventListener("mousedown", this._preventContentEvent, true);
+    target.addEventListener("mouseup", this._preventContentEvent, true);
+    target.addEventListener("dblclick", this._preventContentEvent, true);
   },
 
   _stopPickerListeners: function() {
-    let browser = this._tabActor.browser;
-    browser.removeEventListener("mousemove", this._onHovered, true);
-    browser.removeEventListener("click", this._onPick, true);
-    browser.removeEventListener("mousedown", this._preventContentEvent, true);
-    browser.removeEventListener("mouseup", this._preventContentEvent, true);
-    browser.removeEventListener("dblclick", this._preventContentEvent, true);
+    let target = this._getPickerListenerTarget();
+    target.removeEventListener("mousemove", this._onHovered, true);
+    target.removeEventListener("click", this._onPick, true);
+    target.removeEventListener("mousedown", this._preventContentEvent, true);
+    target.removeEventListener("mouseup", this._preventContentEvent, true);
+    target.removeEventListener("dblclick", this._preventContentEvent, true);
   },
 
   cancelPick: method(function() {
