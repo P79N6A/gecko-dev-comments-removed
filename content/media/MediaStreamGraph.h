@@ -553,7 +553,19 @@ public:
 
 
 
-  void Finish();
+  void FinishWithLockHeld();
+  void Finish()
+    {
+      MutexAutoLock lock(mMutex);
+      FinishWithLockHeld();
+    }
+
+
+  
+
+
+
+  void EndAllTrackAndFinish();
 
   
 
