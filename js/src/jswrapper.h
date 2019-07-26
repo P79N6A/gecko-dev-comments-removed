@@ -35,8 +35,7 @@ class JS_FRIEND_API(Wrapper) : public DirectProxyHandler
     enum Action {
         GET,
         SET,
-        CALL,
-        PUNCTURE
+        CALL
     };
 
     enum Flags {
@@ -67,23 +66,6 @@ class JS_FRIEND_API(Wrapper) : public DirectProxyHandler
     }
 
     
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
