@@ -32,7 +32,7 @@ nsContextMenu.prototype = {
       this.ellipsis = gPrefService.getComplexValue("intl.ellipsis",
                                                    Ci.nsIPrefLocalizedString).data;
     } catch (e) { }
-    this.isTextSelected = this.isTextSelection();
+
     this.isContentSelected = this.isContentSelection();
     this.onPlainTextLink = false;
 
@@ -268,18 +268,21 @@ nsContextMenu.prototype = {
   },
 
   initMiscItems: function CM_initMiscItems() {
-    var isTextSelected = this.isTextSelected;
-
     
     this.showItem("context-bookmarkpage",
                   !(this.isContentSelected || this.onTextInput || this.onLink ||
                     this.onImage || this.onVideo || this.onAudio || this.onSocial));
     this.showItem("context-bookmarklink", (this.onLink && !this.onMailtoLink &&
                                            !this.onSocial) || this.onPlainTextLink);
-    this.showItem("context-searchselect", isTextSelected);
     this.showItem("context-keywordfield",
                   this.onTextInput && this.onKeywordField);
     this.showItem("frame", this.inFrame);
+
+    let showSearchSelect = (this.isTextSelected || this.onLink) && !this.onImage;
+    this.showItem("context-searchselect", showSearchSelect);
+    if (showSearchSelect) {
+      this.formatSearchContextItem();
+    }
 
     
     
@@ -292,7 +295,7 @@ nsContextMenu.prototype = {
     this.showItem("context-bookmarkframe", !this.inSrcdocFrame);
     this.showItem("open-frame-sep", !this.inSrcdocFrame);
 
-    this.showItem("frame-sep", this.inFrame && isTextSelected);
+    this.showItem("frame-sep", this.inFrame && this.isTextSelected);
 
     
     if (this.inFrame) {
@@ -540,6 +543,8 @@ nsContextMenu.prototype = {
     this.isDesignMode      = false;
     this.onCTPPlugin       = false;
     this.canSpellCheck     = false;
+    this.textSelected      = getBrowserSelection();
+    this.isTextSelected    = this.textSelected.length != 0;
 
     
     this.target = aNode;
@@ -1443,39 +1448,6 @@ nsContextMenu.prototype = {
   },
 
   
-  isTextSelection: function() {
-    
-    
-    var selectedText = getBrowserSelection(16);
-
-    if (!selectedText)
-      return false;
-
-    if (selectedText.length > 15)
-      selectedText = selectedText.substr(0,15) + this.ellipsis;
-
-    
-    
-    var engineName = "";
-    var ss = Cc["@mozilla.org/browser/search-service;1"].
-             getService(Ci.nsIBrowserSearchService);
-    if (isElementVisible(BrowserSearch.searchBar))
-      engineName = ss.currentEngine.name;
-    else
-      engineName = ss.defaultEngine.name;
-
-    
-    var menuLabel = gNavigatorBundle.getFormattedString("contextMenuSearch",
-                                                        [engineName,
-                                                         selectedText]);
-    document.getElementById("context-searchselect").label = menuLabel;
-    document.getElementById("context-searchselect").accessKey =
-             gNavigatorBundle.getString("contextMenuSearch.accesskey"); 
-
-    return true;
-  },
-
-  
   isContentSelection: function() {
     return !document.commandDispatcher.focusedWindow.getSelection().isCollapsed;
   },
@@ -1688,5 +1660,34 @@ nsContextMenu.prototype = {
     if (this.onImage)
       return this.mediaURL;
     return "";
+  },
+
+  
+  formatSearchContextItem: function() {
+    var menuItem = document.getElementById("context-searchselect");
+    var selectedText = this.onLink ? this.linkText() : this.textSelected;
+
+    
+    menuItem.searchTerms = selectedText;
+
+    if (selectedText.length > 15)
+      selectedText = selectedText.substr(0,15) + this.ellipsis;
+
+    
+    
+    var engineName = "";
+    var ss = Cc["@mozilla.org/browser/search-service;1"].
+             getService(Ci.nsIBrowserSearchService);
+    if (isElementVisible(BrowserSearch.searchBar))
+      engineName = ss.currentEngine.name;
+    else
+      engineName = ss.defaultEngine.name;
+
+    
+    var menuLabel = gNavigatorBundle.getFormattedString("contextMenuSearch",
+                                                        [engineName,
+                                                         selectedText]);
+    menuItem.label = menuLabel;
+    menuItem.accessKey = gNavigatorBundle.getString("contextMenuSearch.accesskey");
   }
 };
