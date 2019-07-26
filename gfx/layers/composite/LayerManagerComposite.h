@@ -338,6 +338,8 @@ public:
 
   virtual void DestroyFrontBuffer() { }
 
+  void AddBlendModeEffect(EffectChain& aEffectChain);
+
   
 
 
