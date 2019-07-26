@@ -24,6 +24,7 @@
 #include "nsPropertyTable.h"             
 #include "nsTHashtable.h"                
 #include "mozilla/dom/DirectionalityUtils.h"
+#include "mozilla/dom/DocumentBinding.h"
 
 class imgIRequest;
 class nsAString;
@@ -1888,15 +1889,22 @@ public:
   }
   bool Hidden() const
   {
-    return mVisibilityState != eVisible;
+    return mVisibilityState != mozilla::dom::VisibilityStateValues::Visible;
   }
   bool MozHidden() 
   {
     WarnOnceAbout(ePrefixedVisibilityAPI);
     return Hidden();
   }
-  void GetVisibilityState(nsAString& aState);
-  void GetMozVisibilityState(nsAString& aState);
+  mozilla::dom::VisibilityState VisibilityState()
+  {
+    return mVisibilityState;
+  }
+  mozilla::dom::VisibilityState MozVisibilityState()
+  {
+    WarnOnceAbout(ePrefixedVisibilityAPI);
+    return VisibilityState();
+  }
   virtual nsIDOMStyleSheetList* StyleSheets() = 0;
   void GetSelectedStyleSheetSet(nsAString& aSheetSet);
   virtual void SetSelectedStyleSheetSet(const nsAString& aSheetSet) = 0;
@@ -1988,14 +1996,6 @@ protected:
     mDirectionality = aDir;
   }
 
-  
-  
-  enum VisibilityState {
-    eHidden = 0,
-    eVisible,
-    eVisibilityStateCount
-  };
-
   nsCString mReferrer;
   nsString mLastModified;
 
@@ -2047,7 +2047,7 @@ protected:
   ReadyState mReadyState;
 
   
-  VisibilityState mVisibilityState;
+  mozilla::dom::VisibilityState mVisibilityState;
 
   
   bool mBidiEnabled;

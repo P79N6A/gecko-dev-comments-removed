@@ -1253,7 +1253,7 @@ protected:
 private:
   friend class nsUnblockOnloadEvent;
   
-  VisibilityState GetVisibilityState() const;
+  mozilla::dom::VisibilityState GetVisibilityState() const;
 
   void PostUnblockOnloadEvent();
   void DoUnblockOnload();
