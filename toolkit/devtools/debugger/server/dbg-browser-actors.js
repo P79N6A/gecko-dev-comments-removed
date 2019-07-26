@@ -31,20 +31,24 @@ function BrowserRootActor(aConnection)
   this.conn = aConnection;
   this._tabActors = new WeakMap();
   this._tabActorPool = null;
-  this._actorFactories = null;
+  
+  this._extraActors = {};
 
   this.onTabClosed = this.onTabClosed.bind(this);
   windowMediator.addListener(this);
 }
 
 BrowserRootActor.prototype = {
+
   
 
 
   sayHello: function BRA_sayHello() {
-    return { from: "root",
-             applicationType: "browser",
-             traits: [] };
+    return {
+      from: "root",
+      applicationType: "browser",
+      traits: {}
+    };
   },
 
   
@@ -52,6 +56,7 @@ BrowserRootActor.prototype = {
 
   disconnect: function BRA_disconnect() {
     windowMediator.removeListener(this);
+    this._extraActors = null;
 
     
     
@@ -77,7 +82,7 @@ BrowserRootActor.prototype = {
     
 
     let actorPool = new ActorPool(this.conn);
-    let actorList = [];
+    let tabActorList = [];
 
     
     let e = windowMediator.getEnumerator("navigator:browser");
@@ -95,7 +100,7 @@ BrowserRootActor.prototype = {
       let browsers = win.getBrowser().browsers;
       for each (let browser in browsers) {
         if (browser == selectedBrowser && win == top) {
-          selected = actorList.length;
+          selected = tabActorList.length;
         }
         let actor = this._tabActors.get(browser);
         if (!actor) {
@@ -104,8 +109,20 @@ BrowserRootActor.prototype = {
           this._tabActors.set(browser, actor);
         }
         actorPool.addActor(actor);
-        actorList.push(actor);
+        tabActorList.push(actor);
       }
+    }
+
+    
+    for (let name in DebuggerServer.globalActorFactories) {
+      let actor = this._extraActors[name];
+      if (!actor) {
+        actor = DebuggerServer.globalActorFactories[name].bind(null, this.conn);
+        actor.prototype = DebuggerServer.globalActorFactories[name].prototype;
+        actor.parentID = this.actorID;
+        this._extraActors[name] = actor;
+      }
+      actorPool.addActor(actor);
     }
 
     
@@ -117,10 +134,16 @@ BrowserRootActor.prototype = {
     this._tabActorPool = actorPool;
     this.conn.addActorPool(this._tabActorPool);
 
-    return { "from": "root",
-             "selected": selected,
-             "tabs": [actor.grip()
-                      for each (actor in actorList)] };
+    let response = {
+      "from": "root",
+      "selected": selected,
+      "tabs": [actor.grip() for (actor of tabActorList)]
+    };
+    for (let name in this._extraActors) {
+      let actor = this._extraActors[name];
+      response[name] = actor.actorID;
+    }
+    return response;
   },
 
   
@@ -203,6 +226,9 @@ function BrowserTabActor(aConnection, aBrowser, aTabBrowser)
   this.conn = aConnection;
   this._browser = aBrowser;
   this._tabbrowser = aTabBrowser;
+  this._tabActorPool = null;
+  
+  this._extraActors = {};
 
   this._onWindowCreated = this.onWindowCreated.bind(this);
 }
@@ -245,6 +271,7 @@ BrowserTabActor.prototype = {
     this.conn.removeActor(aActor);
   },
 
+  
   actorPrefix: "tab",
 
   grip: function BTA_grip() {
@@ -252,9 +279,35 @@ BrowserTabActor.prototype = {
                "grip() shouldn't be called on exited browser actor.");
     dbg_assert(this.actorID,
                "tab should have an actorID.");
-    return { actor: this.actorID,
-             title: this.browser.contentTitle,
-             url: this.browser.currentURI.spec }
+
+    let response = {
+      actor: this.actorID,
+      title: this.browser.contentTitle,
+      url: this.browser.currentURI.spec
+    };
+
+    
+    let actorPool = new ActorPool(this.conn);
+    for (let name in DebuggerServer.tabActorFactories) {
+      let actor = this._extraActors[name];
+      if (!actor) {
+        actor = DebuggerServer.tabActorFactories[name].bind(null, this.conn);
+        actor.prototype = DebuggerServer.tabActorFactories[name].prototype;
+        actor.parentID = this.actorID;
+        this._extraActors[name] = actor;
+      }
+      actorPool.addActor(actor);
+    }
+    if (!actorPool.isEmpty()) {
+      this._tabActorPool = actorPool;
+      this.conn.addActorPool(this._tabActorPool);
+    }
+
+    for (let name in this._extraActors) {
+      let actor = this._extraActors[name];
+      response[name] = actor.actorID;
+    }
+    return response;
   },
 
   
@@ -266,6 +319,7 @@ BrowserTabActor.prototype = {
     if (this._progressListener) {
       this._progressListener.destroy();
     }
+    this._extraActors = null;
   },
 
   
@@ -370,6 +424,10 @@ BrowserTabActor.prototype = {
     
     this.conn.removeActorPool(this._tabPool);
     this._tabPool = null;
+    if (this._tabActorPool) {
+      this.conn.removeActorPool(this._tabActorPool);
+      this._tabActorPool = null;
+    }
 
     this._attached = false;
   },
@@ -544,11 +602,92 @@ DebuggerProgressListener.prototype = {
 
 
 
+
+
+
+
+
 DebuggerServer.addTabRequest = function DS_addTabRequest(aName, aFunction) {
   BrowserTabActor.prototype.requestTypes[aName] = function(aRequest) {
     if (!this.attached) {
       return { error: "wrongState" };
     }
     return aFunction(this, aRequest);
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+DebuggerServer.addTabActor = function DS_addTabActor(aFunction, aName) {
+  let name = aName ? aName : aFunction.prototype.actorPrefix;
+  if (["title", "url", "actor"].indexOf(name) != -1) {
+    throw Error(name + " is not allowed");
+  }
+  if (DebuggerServer.tabActorFactories.hasOwnProperty(name)) {
+    throw Error(name + " already exists");
+  }
+  DebuggerServer.tabActorFactories[name] = aFunction;
+};
+
+
+
+
+
+
+
+
+DebuggerServer.removeTabActor = function DS_removeTabActor(aFunction) {
+  for (let name in DebuggerServer.tabActorFactories) {
+    let handler = DebuggerServer.tabActorFactories[name];
+    if (handler.name == aFunction.name) {
+      delete DebuggerServer.tabActorFactories[name];
+    }
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+DebuggerServer.addGlobalActor = function DS_addGlobalActor(aFunction, aName) {
+  let name = aName ? aName : aFunction.prototype.actorPrefix;
+  if (["from", "tabs", "selected"].indexOf(name) != -1) {
+    throw Error(name + " is not allowed");
+  }
+  if (DebuggerServer.globalActorFactories.hasOwnProperty(name)) {
+    throw Error(name + " already exists");
+  }
+  DebuggerServer.globalActorFactories[name] = aFunction;
+};
+
+
+
+
+
+
+
+
+DebuggerServer.removeGlobalActor = function DS_removeGlobalActor(aFunction) {
+  for (let name in DebuggerServer.globalActorFactories) {
+    let handler = DebuggerServer.globalActorFactories[name];
+    if (handler.name == aFunction.name) {
+      delete DebuggerServer.globalActorFactories[name];
+    }
   }
 };
