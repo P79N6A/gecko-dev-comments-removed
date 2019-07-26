@@ -164,125 +164,6 @@ IonCompartment::generateReturnError(JSContext *cx)
     return linker.newCode(cx);
 }
 
-static void
-GenerateBailoutTail(MacroAssembler &masm)
-{
-    masm.enterExitFrame();
-
-    Label reflow;
-    Label interpret;
-    Label exception;
-    Label osr;
-    Label recompile;
-    Label boundscheck;
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-    masm.cmpl(rax, Imm32(BAILOUT_RETURN_FATAL_ERROR));
-    masm.j(Assembler::LessThan, &interpret);
-    masm.j(Assembler::Equal, &exception);
-
-    masm.cmpl(rax, Imm32(BAILOUT_RETURN_RECOMPILE_CHECK));
-    masm.j(Assembler::LessThan, &reflow);
-    masm.j(Assembler::Equal, &recompile);
-
-    masm.cmpl(eax, Imm32(BAILOUT_RETURN_INVALIDATE));
-    masm.j(Assembler::LessThan, &boundscheck);
-
-    
-    {
-        masm.setupUnalignedABICall(0, rdx);
-        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, ForceInvalidation));
-
-        masm.testl(rax, rax);
-        masm.j(Assembler::Zero, &exception);
-        masm.jmp(&interpret);
-    }
-
-    
-    masm.bind(&boundscheck);
-    {
-        masm.setupUnalignedABICall(0, rdx);
-        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, BoundsCheckFailure));
-
-        masm.testl(rax, rax);
-        masm.j(Assembler::Zero, &exception);
-        masm.jmp(&interpret);
-    }
-
-    
-    masm.bind(&recompile);
-    {
-        masm.setupUnalignedABICall(0, rdx);
-        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, RecompileForInlining));
-
-        masm.testl(rax, rax);
-        masm.j(Assembler::Zero, &exception);
-        masm.jmp(&interpret);
-    }
-
-    
-    masm.bind(&reflow);
-    {
-        masm.setupUnalignedABICall(1, rdx);
-        masm.passABIArg(rax);
-        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, ReflowTypeInfo));
-
-        masm.testl(rax, rax);
-        masm.j(Assembler::Zero, &exception);
-    }
-
-    masm.bind(&interpret);
-    {
-        
-        masm.subq(Imm32(sizeof(Value)), rsp);
-        masm.movq(rsp, rcx);
-
-        
-        masm.setupUnalignedABICall(1, rdx);
-        masm.passABIArg(rcx);
-        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, ThunkToInterpreter));
-
-        
-        masm.popValue(JSReturnOperand);
-
-        
-        masm.testl(rax, rax);
-        masm.j(Assembler::Zero, &exception);
-
-        
-        masm.leaveExitFrame();
-
-        
-        masm.cmpl(rax, Imm32(Interpret_OSR));
-        masm.j(Assembler::Equal, &osr);
-
-        
-        masm.ret();
-    }
-
-    
-    masm.bind(&osr);
-    {
-        masm.unboxPrivate(JSReturnOperand, OsrFrameReg);
-        masm.performOsr();
-    }
-
-    
-    masm.bind(&exception);
-    {
-        masm.handleException();
-    }
-}
-
 IonCode *
 IonCompartment::generateInvalidator(JSContext *cx)
 {
@@ -319,7 +200,7 @@ IonCompartment::generateInvalidator(JSContext *cx)
     
     masm.lea(Operand(rsp, rbx, TimesOne, sizeof(InvalidationBailoutStack)), rsp);
 
-    GenerateBailoutTail(masm);
+    masm.generateBailoutTail(rdx);
 
     Linker linker(masm);
     return linker.newCode(cx);
@@ -443,7 +324,7 @@ GenerateBailoutThunk(JSContext *cx, MacroAssembler &masm, uint32 frameClass)
     masm.pop(rcx);
     masm.lea(Operand(rsp, rcx, TimesOne, sizeof(void *)), rsp);
 
-    GenerateBailoutTail(masm);
+    masm.generateBailoutTail(rdx);
 }
 
 IonCode *

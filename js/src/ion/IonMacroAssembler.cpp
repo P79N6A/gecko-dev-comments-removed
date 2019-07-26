@@ -9,6 +9,7 @@
 #include "jsinferinlines.h"
 #include "IonMacroAssembler.h"
 #include "gc/Root.h"
+#include "Bailouts.h"
 
 using namespace js;
 using namespace js::ion;
@@ -485,5 +486,114 @@ MacroAssembler::performOsr()
     
     enterOsr(calleeToken, code);
     ret();
+}
+
+void
+MacroAssembler::generateBailoutTail(Register scratch)
+{
+    enterExitFrame();
+
+    Label reflow;
+    Label interpret;
+    Label exception;
+    Label osr;
+    Label recompile;
+    Label boundscheck;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    branch32(LessThan, ReturnReg, Imm32(BAILOUT_RETURN_FATAL_ERROR), &interpret);
+    branch32(Equal, ReturnReg, Imm32(BAILOUT_RETURN_FATAL_ERROR), &exception);
+
+    branch32(LessThan, ReturnReg, Imm32(BAILOUT_RETURN_RECOMPILE_CHECK), &reflow);
+    branch32(Equal, ReturnReg, Imm32(BAILOUT_RETURN_RECOMPILE_CHECK), &recompile);
+
+    branch32(Equal, ReturnReg, Imm32(BAILOUT_RETURN_INVALIDATE), &boundscheck);
+
+    
+    {
+        setupUnalignedABICall(0, scratch);
+        callWithABI(JS_FUNC_TO_DATA_PTR(void *, ForceInvalidation));
+
+        branchTest32(Zero, ReturnReg, ReturnReg, &exception);
+        jump(&interpret);
+    }
+
+    
+    bind(&boundscheck);
+    {
+        setupUnalignedABICall(0, scratch);
+        callWithABI(JS_FUNC_TO_DATA_PTR(void *, BoundsCheckFailure));
+
+        branchTest32(Zero, ReturnReg, ReturnReg, &exception);
+        jump(&interpret);
+    }
+
+    
+    bind(&recompile);
+    {
+        setupUnalignedABICall(0, scratch);
+        callWithABI(JS_FUNC_TO_DATA_PTR(void *, RecompileForInlining));
+
+        branchTest32(Zero, ReturnReg, ReturnReg, &exception);
+        jump(&interpret);
+    }
+
+    
+    bind(&reflow);
+    {
+        setupUnalignedABICall(1, scratch);
+        passABIArg(ReturnReg);
+        callWithABI(JS_FUNC_TO_DATA_PTR(void *, ReflowTypeInfo));
+
+        branchTest32(Zero, ReturnReg, ReturnReg, &exception);
+        
+    }
+
+    bind(&interpret);
+    {
+        
+        subPtr(Imm32(sizeof(Value)), StackPointer);
+        mov(StackPointer, ReturnReg);
+
+        
+        setupUnalignedABICall(1, scratch);
+        passABIArg(ReturnReg);
+        callWithABI(JS_FUNC_TO_DATA_PTR(void *, ThunkToInterpreter));
+
+        
+        popValue(JSReturnOperand);
+
+        
+        JS_STATIC_ASSERT(!Interpret_Error);
+        branchTest32(Zero, ReturnReg, ReturnReg, &exception);
+
+        
+        leaveExitFrame();
+
+        branch32(Equal, ReturnReg, Imm32(Interpret_OSR), &osr);
+
+        
+        ret();
+    }
+
+    bind(&osr);
+    {
+        unboxPrivate(JSReturnOperand, OsrFrameReg);
+        performOsr();
+    }
+
+    bind(&exception);
+    {
+        handleException();
+    }
 }
 
