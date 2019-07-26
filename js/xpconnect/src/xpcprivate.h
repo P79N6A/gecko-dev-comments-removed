@@ -359,7 +359,7 @@ static inline void xpc_NotifyAll(XPCLock* lock)
 
 
 
-class NS_STACK_CLASS XPCAutoLock {
+class MOZ_STACK_CLASS XPCAutoLock {
 public:
 
     static XPCLock* NewLock(const char* name)
@@ -404,7 +404,7 @@ private:
 
 
 
-class NS_STACK_CLASS XPCAutoUnlock {
+class MOZ_STACK_CLASS XPCAutoUnlock {
 public:
     XPCAutoUnlock(XPCLock* lock MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
         : mLock(lock)
@@ -2293,7 +2293,7 @@ private:
 
 
 
-class NS_STACK_CLASS XPCNativeScriptableCreateInfo
+class MOZ_STACK_CLASS XPCNativeScriptableCreateInfo
 {
 public:
 
@@ -3792,7 +3792,7 @@ private:
 
 
 
-class NS_STACK_CLASS AutoScriptEvaluate
+class MOZ_STACK_CLASS AutoScriptEvaluate
 {
 public:
     
@@ -3832,7 +3832,7 @@ private:
 };
 
 
-class NS_STACK_CLASS AutoResolveName
+class MOZ_STACK_CLASS AutoResolveName
 {
 public:
     AutoResolveName(XPCCallContext& ccx, jsid name

@@ -1398,7 +1398,7 @@ XPCWrappedNative::SystemIsBeingShutDown()
 
 
 
-class AutoClonePrivateGuard NS_STACK_CLASS {
+class MOZ_STACK_CLASS AutoClonePrivateGuard {
 public:
     AutoClonePrivateGuard(JSObject *aOld, JSObject *aNew)
         : mOldReflector(aOld), mNewReflector(aNew)
@@ -2200,7 +2200,7 @@ public:
 };
 
 
-NS_SUPPRESS_STACK_CHECK JSBool
+JSBool
 XPCWrappedNative::CallMethod(XPCCallContext& ccx,
                              CallMode mode )
 {
