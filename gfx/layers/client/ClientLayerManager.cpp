@@ -7,7 +7,6 @@
 #include "CompositorChild.h"            
 #include "GeckoProfiler.h"              
 #include "gfxASurface.h"                
-#include "gfxPrefs.h"                   
 #include "ipc/AutoOpenSurface.h"        
 #include "mozilla/Assertions.h"         
 #include "mozilla/Hal.h"
@@ -458,8 +457,8 @@ ClientLayerManager::GetTexturePool(SurfaceFormat aFormat)
   }
 
   mTexturePools.AppendElement(
-      new TextureClientPool(aFormat, IntSize(gfxPrefs::LayersTileWidth(),
-                                             gfxPrefs::LayersTileHeight()),
+      new TextureClientPool(aFormat, IntSize(TILEDLAYERBUFFER_TILE_SIZE,
+                                             TILEDLAYERBUFFER_TILE_SIZE),
                             mForwarder));
 
   return mTexturePools.LastElement();
@@ -472,8 +471,8 @@ ClientLayerManager::GetSimpleTileTexturePool(SurfaceFormat aFormat)
   mSimpleTilePools.EnsureLengthAtLeast(index+1);
 
   if (mSimpleTilePools[index].get() == nullptr) {
-    mSimpleTilePools[index] = new SimpleTextureClientPool(aFormat, IntSize(gfxPrefs::LayersTileWidth(),
-                                                                           gfxPrefs::LayersTileHeight()),
+    mSimpleTilePools[index] = new SimpleTextureClientPool(aFormat, IntSize(TILEDLAYERBUFFER_TILE_SIZE,
+                                                                           TILEDLAYERBUFFER_TILE_SIZE),
                                                           mForwarder);
   }
 

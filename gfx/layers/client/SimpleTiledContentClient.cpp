@@ -14,7 +14,6 @@
 #include "CompositorChild.h"            
 #include "gfxContext.h"                 
 #include "gfxPlatform.h"                
-#include "gfxPrefs.h"                   
 #include "gfxRect.h"                    
 #include "mozilla/Attributes.h"         
 #include "mozilla/MathAlgorithms.h"     
@@ -75,7 +74,7 @@ SimpleTiledLayerBuffer::ValidateTile(SimpleTiledLayerTile aTile,
                                      const nsIntRegion& aDirtyRegion)
 {
   PROFILER_LABEL("SimpleTiledLayerBuffer", "ValidateTile");
-  static gfx::IntSize kTileSize(gfxPrefs::LayersTileWidth(), gfxPrefs::LayersTileHeight());
+  static gfx::IntSize kTileSize(TILEDLAYERBUFFER_TILE_SIZE, TILEDLAYERBUFFER_TILE_SIZE);
 
   gfx::SurfaceFormat tileFormat = gfxPlatform::GetPlatform()->Optimal2DFormatForContent(GetContentType());
 
@@ -130,7 +129,7 @@ SimpleTiledLayerBuffer::ValidateTile(SimpleTiledLayerTile aTile,
                                                                        tileFormat);
 
       if (fullPaint) {
-        drawBounds = nsIntRect(aTileOrigin.x, aTileOrigin.y, GetScaledTileSize().width, GetScaledTileSize().height);
+        drawBounds = nsIntRect(aTileOrigin.x, aTileOrigin.y, GetScaledTileLength(), GetScaledTileLength());
         drawRegion = nsIntRegion(drawBounds);
       } else {
         drawBounds = aDirtyRegion.GetBounds();
@@ -150,7 +149,7 @@ SimpleTiledLayerBuffer::ValidateTile(SimpleTiledLayerTile aTile,
     drawTarget = textureClient->AsTextureClientDrawTarget()->GetAsDrawTarget();
 
     fullPaint = true;
-    drawBounds = nsIntRect(aTileOrigin.x, aTileOrigin.y, GetScaledTileSize().width, GetScaledTileSize().height);
+    drawBounds = nsIntRect(aTileOrigin.x, aTileOrigin.y, GetScaledTileLength(), GetScaledTileLength());
     drawRegion = nsIntRegion(drawBounds);
 
     if (GetContentType() == gfxContentType::COLOR_ALPHA)

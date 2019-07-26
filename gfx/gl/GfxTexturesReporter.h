@@ -39,7 +39,7 @@ public:
     
     
     static void UpdateAmount(MemoryUse action, GLenum format, GLenum type,
-                             int32_t tileWidth, int32_t tileHeight);
+                             uint16_t tileSize);
 
     NS_IMETHOD CollectReports(nsIHandleReportCallback* aHandleReport,
                               nsISupports* aData)
