@@ -1383,13 +1383,14 @@ nsTextServicesDocument::DeleteSelection()
 
       nsCOMPtr<nsIContent> curContent;
 
-      if (mIteratorStatus != nsTextServicesDocument::eIsDone &&
-          mIterator->GetCurrentNode()->IsContent()) {
+      if (mIteratorStatus != nsTextServicesDocument::eIsDone) {
         
         
         
 
-        curContent = mIterator->GetCurrentNode()->AsContent();
+        curContent = mIterator->GetCurrentNode()
+                     ? mIterator->GetCurrentNode()->AsContent()
+                     : nullptr;
       }
 
       
