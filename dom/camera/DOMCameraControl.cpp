@@ -952,12 +952,6 @@ nsDOMCameraControl::Shutdown()
   mCameraControl->Shutdown();
 }
 
-nsRefPtr<ICameraControl>
-nsDOMCameraControl::GetNativeCameraControl()
-{
-  return mCameraControl;
-}
-
 nsresult
 nsDOMCameraControl::NotifyRecordingStatusChange(const nsString& aMsg)
 {
@@ -1139,21 +1133,31 @@ void
 nsDOMCameraControl::OnAutoFocusComplete(bool aAutoFocusSucceeded)
 {
   MOZ_ASSERT(NS_IsMainThread());
-  ErrorResult ignored;
 
   nsCOMPtr<CameraAutoFocusCallback> cb = mAutoFocusOnSuccessCb.forget();
   mAutoFocusOnErrorCb = nullptr;
-  cb->Call(aAutoFocusSucceeded, ignored);
+  if (cb) {
+    ErrorResult ignored;
+    cb->Call(aAutoFocusSucceeded, ignored);
+  }
 }
 
 void
 nsDOMCameraControl::OnTakePictureComplete(nsIDOMBlob* aPicture)
 {
   MOZ_ASSERT(NS_IsMainThread());
-  ErrorResult ignored;
 
   nsCOMPtr<CameraTakePictureCallback> cb = mTakePictureOnSuccessCb.forget();
   mTakePictureOnErrorCb = nullptr;
+  if (!cb) {
+    
+    
+    
+    NS_WARNING("DOM Null success callback in OnTakePictureComplete()");
+    return;
+  }
+
+  ErrorResult ignored;
   cb->Call(aPicture, ignored);
 }
 
