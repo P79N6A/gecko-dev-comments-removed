@@ -819,6 +819,8 @@ InterAppCommService.prototype = {
     
     
     if (aMessage.name !== "child-process-shutdown" &&
+        
+        aMessage.name !== "InterAppMessagePort:Unregister" &&
         kMessages.indexOf(aMessage.name) != -1) {
       if (!target.assertContainApp(message.manifestURL)) {
         if (DEBUG) {
