@@ -52,9 +52,6 @@
 
 using namespace mozilla;
 
-#define SYNC_TEXT 0x1
-#define SYNC_BUTTON 0x2
-
 nsIFrame*
 NS_NewFileControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 {
@@ -63,8 +60,8 @@ NS_NewFileControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 
 NS_IMPL_FRAMEARENA_HELPERS(nsFileControlFrame)
 
-nsFileControlFrame::nsFileControlFrame(nsStyleContext* aContext):
-  nsBlockFrame(aContext)
+nsFileControlFrame::nsFileControlFrame(nsStyleContext* aContext)
+  : nsBlockFrame(aContext)
 {
   AddStateBits(NS_BLOCK_FLOAT_MGR);
 }
@@ -304,12 +301,6 @@ nsFileControlFrame::ContentStatesChanged(nsEventStates aStates)
   if (aStates.HasState(NS_EVENT_STATE_DISABLED)) {
     nsContentUtils::AddScriptRunner(new SyncDisabledStateEvent(this));
   }
-}
-
-bool
-nsFileControlFrame::IsLeaf() const
-{
-  return true;
 }
 
 #ifdef DEBUG
