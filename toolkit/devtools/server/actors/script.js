@@ -3377,8 +3377,6 @@ function ThreadSources(aThreadActor, aUseSourceMaps, aAllowPredicate,
   this._onNewSource = aOnNewSource;
 
   
-  this._sourceMaps = Object.create(null);
-  
   this._sourceMapsByGeneratedSource = Object.create(null);
   
   this._sourceMapsByOriginalSource = Object.create(null);
@@ -3450,7 +3448,6 @@ ThreadSources.prototype = {
       })
       .then(null, (e) => {
         reportError(e);
-        delete this._sourceMaps[this._normalize(aScript.sourceMapURL, aScript.url)];
         delete this._sourceMapsByGeneratedSource[aScript.url];
         return [this.source(aScript.url)];
       })
@@ -3465,9 +3462,6 @@ ThreadSources.prototype = {
 
 
   sourceMap: function TS_sourceMap(aScript) {
-    if (aScript.url in this._sourceMapsByGeneratedSource) {
-      return this._sourceMapsByGeneratedSource[aScript.url];
-    }
     dbg_assert(aScript.sourceMapURL, "Script should have a sourceMapURL");
     let sourceMapURL = this._normalize(aScript.sourceMapURL, aScript.url);
     let map = this._fetchSourceMap(sourceMapURL, aScript.url)
@@ -3495,17 +3489,12 @@ ThreadSources.prototype = {
 
 
   _fetchSourceMap: function TS__fetchSourceMap(aAbsSourceMapURL, aScriptURL) {
-    if (aAbsSourceMapURL in this._sourceMaps) {
-      return this._sourceMaps[aAbsSourceMapURL];
-    }
-
-    let promise = fetch(aAbsSourceMapURL).then(({ content }) => {
-      let map = new SourceMapConsumer(content);
-      this._setSourceMapRoot(map, aAbsSourceMapURL, aScriptURL);
-      return map;
-    });
-    this._sourceMaps[aAbsSourceMapURL] = promise;
-    return promise;
+    return fetch(aAbsSourceMapURL, { loadFromCache: false })
+      .then(({ content }) => {
+        let map = new SourceMapConsumer(content);
+        this._setSourceMapRoot(map, aAbsSourceMapURL, aScriptURL);
+        return map;
+      });
   },
 
   
