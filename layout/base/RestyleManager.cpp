@@ -350,7 +350,16 @@ RestyleManager::RecomputePosition(nsIFrame* aFrame)
 
     
     if (display->mPosition == NS_STYLE_POSITION_STICKY) {
-      StickyScrollContainer::ComputeStickyOffsets(aFrame);
+      
+      
+      if (!aFrame->GetPrevContinuation()) {
+        StickyScrollContainer::ComputeStickyOffsets(aFrame);
+        StickyScrollContainer* ssc =
+          StickyScrollContainer::GetStickyScrollContainerForFrame(aFrame);
+        if (ssc) {
+          ssc->PositionContinuations(aFrame);
+        }
+      }
     } else {
       MOZ_ASSERT(NS_STYLE_POSITION_RELATIVE == display->mPosition,
                  "Unexpected type of positioning");
@@ -362,13 +371,13 @@ RestyleManager::RecomputePosition(nsIFrame* aFrame)
       NS_ASSERTION(newOffsets.left == -newOffsets.right &&
                    newOffsets.top == -newOffsets.bottom,
                    "ComputeRelativeOffsets should return valid results");
+
+      
+      
+      
+      aFrame->SetPosition(aFrame->GetNormalPosition() +
+                          nsPoint(newOffsets.left, newOffsets.top));
     }
-
-    nsPoint position = aFrame->GetNormalPosition();
-
-    
-    nsHTMLReflowState::ApplyRelativePositioning(aFrame, newOffsets, &position);
-    aFrame->SetPosition(position);
 
     return true;
   }

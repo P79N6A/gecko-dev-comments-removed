@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+
+
+<html>
+  <head>
+    <title>CSS Test: Sticky Positioning - inline</title>
+    <link rel="author" title="Corey Ford" href="mailto:cford@mozilla.com">
+    <link rel="match" href="inline-1-ref.html">
+    <meta name="assert" content="Sticky positioning on inline elements should use the bounding box of all continuations">
+    <style>
+      #scroll {
+        overflow: hidden;
+        height: 200px;
+        line-height: 1;
+      }
+      #sticky {
+        position: sticky;
+        top: 20px;
+        left: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="scroll">
+      hello <span id="sticky">there<br>everyone</span>
+    </div>
+  </body>
+</html>

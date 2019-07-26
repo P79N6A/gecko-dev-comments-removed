@@ -66,6 +66,11 @@ public:
   
 
 
+  void PositionContinuations(nsIFrame* aFrame);
+
+  
+
+
 
 
 
