@@ -57,8 +57,8 @@ class IonCode : public gc::BarrieredCell<IonCode>
 #endif
 
     IonCode()
-      : code_(NULL),
-        pool_(NULL)
+      : code_(nullptr),
+        pool_(nullptr)
     { }
     IonCode(uint8_t *code, uint32_t bufferSize, JSC::ExecutablePool *pool)
       : code_(code),
@@ -671,7 +671,7 @@ struct IonScriptCounts
     bool init(size_t numBlocks) {
         numBlocks_ = numBlocks;
         blocks_ = js_pod_calloc<IonBlockCounts>(numBlocks);
-        return blocks_ != NULL;
+        return blocks_ != nullptr;
     }
 
     size_t numBlocks() const {
