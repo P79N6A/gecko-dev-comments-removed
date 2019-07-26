@@ -1,8 +1,8 @@
 <!DOCTYPE HTML>
 <html>
-<!--
-https://bugzilla.mozilla.org/show_bug.cgi?id=677638
--->
+
+
+
 <head>
   <meta charset="utf-8">
   <title>Test for Bug 677638 - port cloning</title>
@@ -64,7 +64,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=677638
   }
 
   SimpleTest.waitForExplicitFinish();
-  runTest();
+  SpecialPowers.pushPrefEnv({"set": [["dom.messageChannel.enabled", true]]}, runTest);
   </script>
 </body>
 </html>
