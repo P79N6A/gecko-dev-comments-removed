@@ -16,7 +16,8 @@
 #include "nsNetUtil.h"
 #include "nsString.h"
 
-#include "nsCSSStyleSheet.h"
+#include "mozilla/CSSStyleSheet.h"
+#include "mozilla/dom/URL.h"
 #include "nsIConsoleService.h"
 #include "nsIDocument.h"
 #include "nsIDOMDocument.h"
@@ -27,9 +28,12 @@
 #include "nsIPresShell.h"
 #include "nsIScriptError.h"
 #include "nsIWindowMediator.h"
-#include "mozilla/dom/URL.h"
 
 nsChromeRegistry* nsChromeRegistry::gChromeRegistry;
+
+
+
+using mozilla::CSSStyleSheet;
 using mozilla::dom::IsChromeURI;
 
 
@@ -415,7 +419,7 @@ nsresult nsChromeRegistry::RefreshWindow(nsIDOMWindow* aWindow)
 
       if (IsChromeURI(uri)) {
         
-        nsRefPtr<nsCSSStyleSheet> newSheet;
+        nsRefPtr<CSSStyleSheet> newSheet;
         rv = document->LoadChromeSheetSync(uri, true,
                                            getter_AddRefs(newSheet));
         if (NS_FAILED(rv)) return rv;
@@ -454,12 +458,12 @@ nsresult nsChromeRegistry::RefreshWindow(nsIDOMWindow* aWindow)
   
   
   for (i = 0; i < count; i++) {
-    nsRefPtr<nsCSSStyleSheet> sheet = do_QueryObject(oldSheets[i]);
+    nsRefPtr<CSSStyleSheet> sheet = do_QueryObject(oldSheets[i]);
     nsIURI* uri = sheet ? sheet->GetOriginalURI() : nullptr;
 
     if (uri && IsChromeURI(uri)) {
       
-      nsRefPtr<nsCSSStyleSheet> newSheet;
+      nsRefPtr<CSSStyleSheet> newSheet;
       
       
       document->LoadChromeSheetSync(uri, false, getter_AddRefs(newSheet));

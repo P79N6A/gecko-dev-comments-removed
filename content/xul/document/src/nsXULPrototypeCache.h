@@ -19,7 +19,9 @@
 
 #include "mozilla/scache/StartupCache.h"
 
-class nsCSSStyleSheet;
+namespace mozilla {
+class CSSStyleSheet;
+} 
 
 
 
@@ -72,7 +74,7 @@ public:
 
 
 
-    nsCSSStyleSheet* GetStyleSheet(nsIURI* aURI) {
+    mozilla::CSSStyleSheet* GetStyleSheet(nsIURI* aURI) {
         return mStyleSheetTable.GetWeak(aURI);
     }
 
@@ -80,7 +82,7 @@ public:
 
 
 
-    nsresult PutStyleSheet(nsCSSStyleSheet* aStyleSheet);
+    nsresult PutStyleSheet(mozilla::CSSStyleSheet* aStyleSheet);
 
     
 
@@ -121,7 +123,7 @@ protected:
     void FlushSkinFiles();
 
     nsRefPtrHashtable<nsURIHashKey,nsXULPrototypeDocument>   mPrototypeTable; 
-    nsRefPtrHashtable<nsURIHashKey,nsCSSStyleSheet>          mStyleSheetTable;
+    nsRefPtrHashtable<nsURIHashKey,mozilla::CSSStyleSheet>   mStyleSheetTable;
     nsJSThingHashtable<nsURIHashKey, JSScript*>              mScriptTable;
     nsRefPtrHashtable<nsURIHashKey,nsXBLDocumentInfo>        mXBLDocTable;
 

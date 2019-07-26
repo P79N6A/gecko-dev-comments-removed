@@ -8,10 +8,10 @@
 #ifndef mozilla_css_Rule_h___
 #define mozilla_css_Rule_h___
 
+#include "mozilla/CSSStyleSheet.h"
 #include "mozilla/MemoryReporting.h"
 #include "nsIStyleRule.h"
 #include "nsIDOMCSSRule.h"
-#include "nsCSSStyleSheet.h"
 
 class nsIStyleSheet;
 class nsIDocument;
@@ -73,17 +73,17 @@ public:
 
   virtual int32_t GetType() const = 0;
 
-  nsCSSStyleSheet* GetStyleSheet() const;
+  CSSStyleSheet* GetStyleSheet() const;
   nsHTMLCSSStyleSheet* GetHTMLCSSStyleSheet() const;
 
   
   nsIDocument* GetDocument() const
   {
-    nsCSSStyleSheet* sheet = GetStyleSheet();
+    CSSStyleSheet* sheet = GetStyleSheet();
     return sheet ? sheet->GetDocument() : nullptr;
   }
 
-  virtual void SetStyleSheet(nsCSSStyleSheet* aSheet);
+  virtual void SetStyleSheet(CSSStyleSheet* aSheet);
   
   
   void SetHTMLCSSStyleSheet(nsHTMLCSSStyleSheet* aSheet);

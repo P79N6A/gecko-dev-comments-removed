@@ -9,6 +9,7 @@
 
 #include "nsCSSRules.h"
 #include "nsCSSValue.h"
+#include "mozilla/CSSStyleSheet.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/css/ImportRule.h"
 #include "mozilla/css/NameSpaceRule.h"
@@ -17,7 +18,6 @@
 #include "nsIAtom.h"
 
 #include "nsCSSProps.h"
-#include "nsCSSStyleSheet.h"
 
 #include "nsCOMPtr.h"
 #include "nsIDOMCSSStyleSheet.h"
@@ -59,11 +59,11 @@ IMPL_STYLE_RULE_INHERIT_MAP_RULE_INFO_INTO(class_, super_)
 namespace mozilla {
 namespace css {
 
-nsCSSStyleSheet*
+CSSStyleSheet*
 Rule::GetStyleSheet() const
 {
   if (!(mSheet & 0x1)) {
-    return reinterpret_cast<nsCSSStyleSheet*>(mSheet);
+    return reinterpret_cast<CSSStyleSheet*>(mSheet);
   }
 
   return nullptr;
@@ -80,7 +80,7 @@ Rule::GetHTMLCSSStyleSheet() const
 }
 
  void
-Rule::SetStyleSheet(nsCSSStyleSheet* aSheet)
+Rule::SetStyleSheet(CSSStyleSheet* aSheet)
 {
   
   
@@ -135,7 +135,7 @@ class GroupRuleRuleList MOZ_FINAL : public dom::CSSRuleList
 public:
   GroupRuleRuleList(GroupRule *aGroupRule);
 
-  virtual nsCSSStyleSheet* GetParentObject() MOZ_OVERRIDE;
+  virtual CSSStyleSheet* GetParentObject() MOZ_OVERRIDE;
 
   virtual nsIDOMCSSRule*
   IndexedGetter(uint32_t aIndex, bool& aFound) MOZ_OVERRIDE;
@@ -162,7 +162,7 @@ GroupRuleRuleList::~GroupRuleRuleList()
 {
 }
 
-nsCSSStyleSheet*
+CSSStyleSheet*
 GroupRuleRuleList::GetParentObject()
 {
   if (!mGroupRule) {
@@ -343,7 +343,7 @@ ImportRule::ImportRule(const ImportRule& aCopy)
   
   
   if (aCopy.mChildSheet) {
-    nsRefPtr<nsCSSStyleSheet> sheet =
+    nsRefPtr<CSSStyleSheet> sheet =
       aCopy.mChildSheet->Clone(nullptr, this, nullptr, nullptr);
     SetSheet(sheet);
     
@@ -403,7 +403,7 @@ ImportRule::Clone() const
 }
 
 void
-ImportRule::SetSheet(nsCSSStyleSheet* aSheet)
+ImportRule::SetSheet(CSSStyleSheet* aSheet)
 {
   NS_PRECONDITION(aSheet, "null arg");
 
@@ -547,7 +547,7 @@ IMPL_STYLE_RULE_INHERIT_MAP_RULE_INFO_INTO(GroupRule, Rule)
 static bool
 SetStyleSheetReference(Rule* aRule, void* aSheet)
 {
-  nsCSSStyleSheet* sheet = (nsCSSStyleSheet*)aSheet;
+  CSSStyleSheet* sheet = (CSSStyleSheet*)aSheet;
   aRule->SetStyleSheet(sheet);
   return true;
 }
@@ -582,7 +582,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(GroupRule)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
  void
-GroupRule::SetStyleSheet(nsCSSStyleSheet* aSheet)
+GroupRule::SetStyleSheet(CSSStyleSheet* aSheet)
 {
   
   
@@ -613,7 +613,7 @@ void
 GroupRule::AppendStyleRule(Rule* aRule)
 {
   mRules.AppendObject(aRule);
-  nsCSSStyleSheet* sheet = GetStyleSheet();
+  CSSStyleSheet* sheet = GetStyleSheet();
   aRule->SetStyleSheet(sheet);
   aRule->SetParentRule(this);
   if (sheet) {
@@ -711,7 +711,7 @@ GroupRule::GetCssRules(nsIDOMCSSRuleList* *aRuleList)
 nsresult
 GroupRule::InsertRule(const nsAString & aRule, uint32_t aIndex, uint32_t* _retval)
 {
-  nsCSSStyleSheet* sheet = GetStyleSheet();
+  CSSStyleSheet* sheet = GetStyleSheet();
   NS_ENSURE_TRUE(sheet, NS_ERROR_FAILURE);
   
   if (aIndex > uint32_t(mRules.Count()))
@@ -726,7 +726,7 @@ GroupRule::InsertRule(const nsAString & aRule, uint32_t aIndex, uint32_t* _retva
 nsresult
 GroupRule::DeleteRule(uint32_t aIndex)
 {
-  nsCSSStyleSheet* sheet = GetStyleSheet();
+  CSSStyleSheet* sheet = GetStyleSheet();
   NS_ENSURE_TRUE(sheet, NS_ERROR_FAILURE);
 
   if (aIndex >= uint32_t(mRules.Count()))
@@ -789,7 +789,7 @@ NS_INTERFACE_MAP_BEGIN(MediaRule)
 NS_INTERFACE_MAP_END_INHERITING(GroupRule)
 
  void
-MediaRule::SetStyleSheet(nsCSSStyleSheet* aSheet)
+MediaRule::SetStyleSheet(CSSStyleSheet* aSheet)
 {
   if (mMedia) {
     
@@ -2367,7 +2367,7 @@ nsCSSKeyframeRule::SetKeyText(const nsAString& aKeyText)
 
   newSelectors.SwapElements(mKeys);
 
-  nsCSSStyleSheet* sheet = GetStyleSheet();
+  CSSStyleSheet* sheet = GetStyleSheet();
   if (sheet) {
     sheet->SetModifiedByChildRule();
 
@@ -2404,7 +2404,7 @@ nsCSSKeyframeRule::ChangeDeclaration(css::Declaration* aDeclaration)
     mDeclaration = aDeclaration;
   }
 
-  nsCSSStyleSheet* sheet = GetStyleSheet();
+  CSSStyleSheet* sheet = GetStyleSheet();
   if (sheet) {
     sheet->SetModifiedByChildRule();
 
@@ -2543,7 +2543,7 @@ nsCSSKeyframesRule::SetName(const nsAString& aName)
 
   mName = aName;
 
-  nsCSSStyleSheet* sheet = GetStyleSheet();
+  CSSStyleSheet* sheet = GetStyleSheet();
   if (sheet) {
     sheet->SetModifiedByChildRule();
 
@@ -2578,7 +2578,7 @@ nsCSSKeyframesRule::AppendRule(const nsAString& aRule)
 
     AppendStyleRule(rule);
 
-    nsCSSStyleSheet* sheet = GetStyleSheet();
+    CSSStyleSheet* sheet = GetStyleSheet();
     if (sheet) {
       sheet->SetModifiedByChildRule();
 
@@ -2626,7 +2626,7 @@ nsCSSKeyframesRule::DeleteRule(const nsAString& aKey)
 
     mRules.RemoveObjectAt(index);
 
-    nsCSSStyleSheet* sheet = GetStyleSheet();
+    CSSStyleSheet* sheet = GetStyleSheet();
     if (sheet) {
       sheet->SetModifiedByChildRule();
 
@@ -2887,7 +2887,7 @@ nsCSSPageRule::ChangeDeclaration(css::Declaration* aDeclaration)
     mDeclaration = aDeclaration;
   }
 
-  nsCSSStyleSheet* sheet = GetStyleSheet();
+  CSSStyleSheet* sheet = GetStyleSheet();
   if (sheet) {
     sheet->SetModifiedByChildRule();
   }
@@ -3181,7 +3181,7 @@ nsCSSCounterStyleRule::SetName(const nsAString& aName)
 
     mName = name;
 
-    nsCSSStyleSheet* sheet = GetStyleSheet();
+    CSSStyleSheet* sheet = GetStyleSheet();
     if (sheet) {
       sheet->SetModifiedByChildRule();
       if (doc) {
@@ -3227,7 +3227,7 @@ nsCSSCounterStyleRule::SetDesc(nsCSSCounterDesc aDescID, const nsCSSValue& aValu
   mValues[aDescID] = aValue;
   mGeneration++;
 
-  nsCSSStyleSheet* sheet = GetStyleSheet();
+  CSSStyleSheet* sheet = GetStyleSheet();
   if (sheet) {
     sheet->SetModifiedByChildRule();
     if (doc) {
@@ -3457,7 +3457,7 @@ nsCSSCounterStyleRule::SetDescriptor(nsCSSCounterDesc aDescID,
 {
   nsCSSParser parser;
   nsCSSValue value;
-  nsCSSStyleSheet* sheet = GetStyleSheet();
+  CSSStyleSheet* sheet = GetStyleSheet();
   nsIURI* baseURL = nullptr;
   nsIPrincipal* principal = nullptr;
   if (sheet) {

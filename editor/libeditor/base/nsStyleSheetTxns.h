@@ -8,7 +8,7 @@
 
 #include "EditTxn.h"                    
 #include "nsAutoPtr.h"                  
-#include "nsCSSStyleSheet.h"            
+#include "mozilla/CSSStyleSheet.h"      
 #include "nsCycleCollectionParticipant.h"
 #include "nsID.h"                       
 #include "nsISupportsImpl.h"            
@@ -23,8 +23,8 @@ public:
 
 
 
-  NS_IMETHOD Init(nsIEditor         *aEditor,
-                  nsCSSStyleSheet   *aSheet);
+  NS_IMETHOD Init(nsIEditor* aEditor,
+                  mozilla::CSSStyleSheet* aSheet);
 
   AddStyleSheetTxn();
 
@@ -35,8 +35,8 @@ public:
 
 protected:
 
-  nsIEditor*  mEditor;                  
-  nsRefPtr<nsCSSStyleSheet>  mSheet;    
+  nsIEditor* mEditor;                      
+  nsRefPtr<mozilla::CSSStyleSheet> mSheet; 
 
 };
 
@@ -48,8 +48,8 @@ public:
 
 
 
-  NS_IMETHOD Init(nsIEditor         *aEditor,
-                  nsCSSStyleSheet   *aSheet);
+  NS_IMETHOD Init(nsIEditor* aEditor,
+                  mozilla::CSSStyleSheet* aSheet);
 
   RemoveStyleSheetTxn();
 
@@ -60,8 +60,8 @@ public:
 
 protected:
 
-  nsIEditor*  mEditor;                  
-  nsRefPtr<nsCSSStyleSheet>  mSheet;    
+  nsIEditor* mEditor;                      
+  nsRefPtr<mozilla::CSSStyleSheet> mSheet; 
 
 };
 
