@@ -518,14 +518,57 @@ namespace {
 
 
 
+#ifdef MOZ_DMD
+
+#include "DMD.h"
+
+
+
+
+
+
+
+
+
+
+
+NS_MEMORY_REPORTER_MALLOC_SIZEOF_ON_ALLOC_FUN(sqliteMallocSizeOfOnAlloc, "sqlite")
+NS_MEMORY_REPORTER_MALLOC_SIZEOF_ON_FREE_FUN(sqliteMallocSizeOfOnFree)
+
+#endif
+
 static void *sqliteMemMalloc(int n)
 {
-  return ::moz_malloc(n);
+  void* p = ::moz_malloc(n);
+#ifdef MOZ_DMD
+  sqliteMallocSizeOfOnAlloc(p);
+#endif
+  return p;
+}
+
+static void sqliteMemFree(void *p)
+{
+#ifdef MOZ_DMD
+  sqliteMallocSizeOfOnFree(p);
+#endif
+  ::moz_free(p);
 }
 
 static void *sqliteMemRealloc(void *p, int n)
 {
+#ifdef MOZ_DMD
+  sqliteMallocSizeOfOnFree(p);
+  void *pnew = ::moz_realloc(p, n);
+  if (pnew) {
+    sqliteMallocSizeOfOnAlloc(pnew);
+  } else {
+    
+    sqliteMallocSizeOfOnAlloc(p);
+  }
+  return pnew;
+#else
   return ::moz_realloc(p, n);
+#endif
 }
 
 static int sqliteMemSize(void *p)
@@ -554,14 +597,14 @@ static void sqliteMemShutdown(void *p)
 
 const sqlite3_mem_methods memMethods = {
   &sqliteMemMalloc,
-  &moz_free,
+  &sqliteMemFree,
   &sqliteMemRealloc,
   &sqliteMemSize,
   &sqliteMemRoundup,
   &sqliteMemInit,
   &sqliteMemShutdown,
   NULL
-}; 
+};
 
 } 
 

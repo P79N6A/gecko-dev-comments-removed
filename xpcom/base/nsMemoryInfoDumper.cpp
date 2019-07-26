@@ -469,42 +469,28 @@ NS_IMPL_ISUPPORTS1(
 
 } 
 
- nsresult
-nsMemoryInfoDumper::DumpMemoryReportsToFileImpl(
-  const nsAString& aIdentifier)
+static void
+MakeFilename(const char *aPrefix, const nsAString &aIdentifier,
+             const char *aSuffix, nsACString &aResult)
 {
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+  aResult = nsPrintfCString("%s-%s-%d.%s",
+                            aPrefix,
+                            NS_ConvertUTF16toUTF8(aIdentifier).get(),
+                            getpid(), aSuffix);
+}
 
-  nsCOMPtr<nsIFile> tmpFile;
-  nsresult rv = NS_GetSpecialDirectory(NS_OS_TEMP_DIR,
-                                       getter_AddRefs(tmpFile));
+static nsresult
+OpenTempFile(const nsACString &aFilename, nsIFile* *aFile)
+{
+  nsresult rv = NS_GetSpecialDirectory(NS_OS_TEMP_DIR, aFile);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
-  
-  nsAutoCString filename;
-  filename.AppendLiteral("memory-report");
-  if (!aIdentifier.IsEmpty()) {
-    filename.AppendLiteral("-");
-    filename.Append(NS_ConvertUTF16toUTF8(aIdentifier));
-  }
-  filename.AppendLiteral("-");
-  filename.AppendInt(getpid());
-  filename.AppendLiteral(".json.gz");
+  nsCOMPtr<nsIFile> file(*aFile);
 
-  rv = tmpFile->AppendNative(NS_LITERAL_CSTRING("incomplete-") + filename);
+  rv = file->AppendNative(aFilename);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = tmpFile->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0644);
+  rv = file->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0644);
   NS_ENSURE_SUCCESS(rv, rv);
 #ifdef ANDROID
   {
@@ -512,15 +498,65 @@ nsMemoryInfoDumper::DumpMemoryReportsToFileImpl(
     
     
     nsAutoCString path;
-    rv = tmpFile->GetNativePath(path);
+    rv = file->GetNativePath(path);
     if (NS_SUCCEEDED(rv)) {
       chmod(PromiseFlatCString(path).get(), 0644);
     }
   }
 #endif
+  return NS_OK;
+}
+
+#ifdef MOZ_DMD
+struct DMDWriteState
+{
+  static const size_t kBufSize = 4096;
+  char mBuf[kBufSize];
+  nsRefPtr<nsGZFileWriter> mGZWriter;
+
+  DMDWriteState(nsGZFileWriter *aGZWriter)
+    : mGZWriter(aGZWriter)
+  {}
+};
+
+static void DMDWrite(void* aState, const char* aFmt, va_list ap)
+{
+  DMDWriteState *state = (DMDWriteState*)aState;
+  vsnprintf(state->mBuf, state->kBufSize, aFmt, ap);
+  unused << state->mGZWriter->Write(state->mBuf);
+}
+#endif
+
+ nsresult
+nsMemoryInfoDumper::DumpMemoryReportsToFileImpl(
+  const nsAString& aIdentifier)
+{
+  MOZ_ASSERT(!aIdentifier.IsEmpty());
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+  nsCString mrFilename;
+  MakeFilename("memory-report", aIdentifier, ".json.gz", mrFilename);
+
+  nsCOMPtr<nsIFile> mrTmpFile;
+  nsresult rv;
+  rv = OpenTempFile(NS_LITERAL_CSTRING("incomplete-") + mrFilename,
+                    getter_AddRefs(mrTmpFile));
+  NS_ENSURE_SUCCESS(rv, rv);
 
   nsRefPtr<nsGZFileWriter> writer = new nsGZFileWriter();
-  rv = writer->Init(tmpFile);
+  rv = writer->Init(mrTmpFile);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -593,24 +629,55 @@ nsMemoryInfoDumper::DumpMemoryReportsToFileImpl(
   rv = writer->Finish();
   NS_ENSURE_SUCCESS(rv, rv);
 
+#ifdef MOZ_DMD
+  
+  
+  
+  
+  
+  
   
   
 
-  nsCOMPtr<nsIFile> dstFile;
-  rv = NS_GetSpecialDirectory(NS_OS_TEMP_DIR, getter_AddRefs(dstFile));
+  nsCString dmdFilename;
+  MakeFilename("dmd", aIdentifier, ".txt.gz", dmdFilename);
+
+  nsCOMPtr<nsIFile> dmdFile;
+  rv = OpenTempFile(dmdFilename, getter_AddRefs(dmdFile));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = dstFile->AppendNative(filename);
+  nsRefPtr<nsGZFileWriter> dmdWriter = new nsGZFileWriter();
+  rv = dmdWriter->Init(dmdFile);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = dstFile->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0600);
+  
+
+  DMDWriteState state(dmdWriter);
+  dmd::Writer w(DMDWrite, &state);
+  mozilla::dmd::Dump(w);
+
+  rv = dmdWriter->Finish();
+  NS_ENSURE_SUCCESS(rv, rv);
+#endif  
+
+  
+  
+
+  nsCOMPtr<nsIFile> mrFinalFile;
+  rv = NS_GetSpecialDirectory(NS_OS_TEMP_DIR, getter_AddRefs(mrFinalFile));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsAutoString dstFileName;
-  rv = dstFile->GetLeafName(dstFileName);
+  rv = mrFinalFile->AppendNative(mrFilename);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = tmpFile->MoveTo( nullptr, dstFileName);
+  rv = mrFinalFile->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0600);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsAutoString mrActualFinalFilename;
+  rv = mrFinalFile->GetLeafName(mrActualFinalFilename);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = mrTmpFile->MoveTo( nullptr, mrActualFinalFilename);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIConsoleService> cs =
@@ -618,7 +685,7 @@ nsMemoryInfoDumper::DumpMemoryReportsToFileImpl(
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsString path;
-  tmpFile->GetPath(path);
+  mrTmpFile->GetPath(path);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsString msg = NS_LITERAL_STRING(
