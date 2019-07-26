@@ -313,10 +313,8 @@ public:
     }
 
     
-    
-    if (ComputeFinalOutSampleRate() == 0) {
+    if (mPlaybackRate <= 0.0 || mPlaybackRate >= 1024) {
       mPlaybackRate = 1.0;
-      mDopplerShift = 1.0;
     }
 
     uint32_t currentOutSampleRate, currentInSampleRate;
