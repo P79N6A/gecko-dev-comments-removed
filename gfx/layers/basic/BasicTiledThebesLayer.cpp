@@ -484,8 +484,12 @@ BasicTiledThebesLayer::PaintThebes(gfxContext* aContext,
   transform.Invert();
 
   nsIntRect layerDisplayPort;
+  nsIntRegion lowPrecisionInvalidRegion;
   const gfx::Rect& criticalDisplayPort = GetParent()->GetFrameMetrics().mCriticalDisplayPort;
   if (!criticalDisplayPort.IsEmpty()) {
+    
+    lowPrecisionInvalidRegion.Sub(mVisibleRegion, mLowPrecisionValidRegion);
+
     
     gfxRect transformedCriticalDisplayPort = transform.TransformBounds(
       gfxRect(criticalDisplayPort.x, criticalDisplayPort.y,
@@ -498,8 +502,9 @@ BasicTiledThebesLayer::PaintThebes(gfxContext* aContext,
 
     
     invalidRegion.And(invalidRegion, layerDisplayPort);
-    if (invalidRegion.IsEmpty())
+    if (invalidRegion.IsEmpty() && lowPrecisionInvalidRegion.IsEmpty()) {
       return;
+    }
   }
 
   gfxSize resolution(1, 1);
@@ -525,61 +530,66 @@ BasicTiledThebesLayer::PaintThebes(gfxContext* aContext,
                                   transformedViewport.width, transformedViewport.height);
   }
 
-  
-  if (gfxPlatform::UseProgressiveTilePainting() &&
-      !BasicManager()->HasShadowTarget() &&
-      mTiledBuffer.GetFrameResolution() == resolution) {
+  if (!invalidRegion.IsEmpty()) {
+    bool updatedBuffer = false;
     
-    
-    
-    nsIntRegion oldValidRegion = mTiledBuffer.GetValidRegion();
-    oldValidRegion.And(oldValidRegion, mVisibleRegion);
-    if (!layerDisplayPort.IsEmpty()) {
-      oldValidRegion.And(oldValidRegion, layerDisplayPort);
-    }
+    if (gfxPlatform::UseProgressiveTilePainting() &&
+        !BasicManager()->HasShadowTarget() &&
+        mTiledBuffer.GetFrameResolution() == resolution) {
+      
+      
+      
+      nsIntRegion oldValidRegion = mTiledBuffer.GetValidRegion();
+      oldValidRegion.And(oldValidRegion, mVisibleRegion);
+      if (!layerDisplayPort.IsEmpty()) {
+        oldValidRegion.And(oldValidRegion, layerDisplayPort);
+      }
 
-    
-    
-    if (!BasicManager()->IsRepeatTransaction()) {
-      mValidRegion.And(mValidRegion, mVisibleRegion);
+      
+      
+      if (!BasicManager()->IsRepeatTransaction()) {
+        mValidRegion.And(mValidRegion, mVisibleRegion);
+        if (!layerDisplayPort.IsEmpty()) {
+          mValidRegion.And(mValidRegion, layerDisplayPort);
+        }
+      }
+
+      updatedBuffer =
+        ProgressiveUpdate(mTiledBuffer, mValidRegion, invalidRegion,
+                          oldValidRegion, transform, compositionBounds,
+                          scrollOffset, resolution, aCallback, aCallbackData);
+    } else {
+      updatedBuffer = true;
+      mTiledBuffer.SetFrameResolution(resolution);
+      mValidRegion = mVisibleRegion;
       if (!layerDisplayPort.IsEmpty()) {
         mValidRegion.And(mValidRegion, layerDisplayPort);
       }
+      mTiledBuffer.PaintThebes(this, mValidRegion, invalidRegion, aCallback, aCallbackData);
     }
 
-    if (!ProgressiveUpdate(mTiledBuffer, mValidRegion, invalidRegion,
-                           oldValidRegion, transform, compositionBounds,
-                           scrollOffset, resolution, aCallback, aCallbackData))
-      return;
-  } else {
-    mTiledBuffer.SetFrameResolution(resolution);
-    mValidRegion = mVisibleRegion;
-    if (!layerDisplayPort.IsEmpty()) {
-      mValidRegion.And(mValidRegion, layerDisplayPort);
+    if (updatedBuffer) {
+      mTiledBuffer.ReadLock();
+
+      
+      if (aMaskLayer && !BasicManager()->IsRepeatTransaction()) {
+        static_cast<BasicImplData*>(aMaskLayer->ImplData())
+          ->Paint(aContext, nullptr);
+      }
+
+      
+      
+      
+      
+      BasicTiledLayerBuffer *heapCopy = new BasicTiledLayerBuffer(mTiledBuffer);
+
+      BasicManager()->PaintedTiledLayerBuffer(BasicManager()->Hold(this), heapCopy);
+      mTiledBuffer.ClearPaintedRegion();
     }
-    mTiledBuffer.PaintThebes(this, mValidRegion, invalidRegion, aCallback, aCallbackData);
-  }
-
-  mTiledBuffer.ReadLock();
-
-  
-  if (aMaskLayer && !BasicManager()->IsRepeatTransaction()) {
-    static_cast<BasicImplData*>(aMaskLayer->ImplData())
-      ->Paint(aContext, nullptr);
   }
 
   
   
-  
-  
-  BasicTiledLayerBuffer *heapCopy = new BasicTiledLayerBuffer(mTiledBuffer);
-
-  BasicManager()->PaintedTiledLayerBuffer(BasicManager()->Hold(this), heapCopy);
-  mTiledBuffer.ClearPaintedRegion();
-
-  
-  
-  bool clearedLowPrecision = false;
   bool updatedLowPrecision = false;
   if (!criticalDisplayPort.IsEmpty() &&
       !nsIntRegion(layerDisplayPort).Contains(mVisibleRegion)) {
@@ -589,7 +599,7 @@ BasicTiledThebesLayer::PaintThebes(gfxContext* aContext,
     
     if (mLowPrecisionTiledBuffer.GetFrameResolution() != resolution) {
       if (!mLowPrecisionValidRegion.IsEmpty()) {
-        clearedLowPrecision = true;
+        updatedLowPrecision = true;
       }
       oldValidRegion.SetEmpty();
       mLowPrecisionValidRegion.SetEmpty();
@@ -600,9 +610,6 @@ BasicTiledThebesLayer::PaintThebes(gfxContext* aContext,
     if (!BasicManager()->IsRepeatTransaction()) {
       mLowPrecisionValidRegion.And(mLowPrecisionValidRegion, mVisibleRegion);
     }
-
-    nsIntRegion lowPrecisionInvalidRegion;
-    lowPrecisionInvalidRegion.Sub(mVisibleRegion, mLowPrecisionValidRegion);
 
     
     
@@ -623,7 +630,7 @@ BasicTiledThebesLayer::PaintThebes(gfxContext* aContext,
     lowPrecisionInvalidRegion.Or(lowPrecisionInvalidRegion, invalidHighPrecisionIntersect);
   } else if (!mLowPrecisionValidRegion.IsEmpty()) {
     
-    clearedLowPrecision = true;
+    updatedLowPrecision = true;
     mLowPrecisionValidRegion.SetEmpty();
     mLowPrecisionTiledBuffer.PaintThebes(this, mLowPrecisionValidRegion,
                                          mLowPrecisionValidRegion, aCallback,
@@ -633,7 +640,7 @@ BasicTiledThebesLayer::PaintThebes(gfxContext* aContext,
   
   
   
-  if (clearedLowPrecision || updatedLowPrecision) {
+  if (updatedLowPrecision) {
     mLowPrecisionTiledBuffer.ReadLock();
     BasicTiledLayerBuffer *heapCopy = new BasicTiledLayerBuffer(mLowPrecisionTiledBuffer);
 
