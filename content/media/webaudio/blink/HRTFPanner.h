@@ -44,7 +44,7 @@ public:
     ~HRTFPanner();
 
     
-    void pan(double azimuth, double elevation, const AudioChunk* inputBus, AudioChunk* outputBus, mozilla::TrackTicks framesToProcess);
+    void pan(double azimuth, double elevation, const AudioChunk* inputBus, AudioChunk* outputBus);
     void reset();
 
     size_t fftSize() const { return m_convolverL1.fftSize(); }
