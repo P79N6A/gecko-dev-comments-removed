@@ -90,3 +90,12 @@ nsCSSPseudoClasses::GetPseudoType(nsIAtom* aAtom)
 
   return nsCSSPseudoClasses::ePseudoClass_NotPseudoClass;
 }
+
+ bool
+nsCSSPseudoClasses::IsUserActionPseudoClass(Type aType)
+{
+  
+  return aType == ePseudoClass_hover ||
+         aType == ePseudoClass_active ||
+         aType == ePseudoClass_focus;
+}

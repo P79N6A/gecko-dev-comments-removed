@@ -3660,6 +3660,8 @@ CSSParserImpl::ParsePseudoSelector(int32_t&       aDataMask,
     nsCSSPseudoElements::GetPseudoType(pseudo);
   nsCSSPseudoClasses::Type pseudoClassType =
     nsCSSPseudoClasses::GetPseudoType(pseudo);
+  bool pseudoClassIsUserAction =
+    nsCSSPseudoClasses::IsUserActionPseudoClass(pseudoClassType);
 
   if (!mUnsafeRulesEnabled &&
       (pseudoElementType == nsCSSPseudoElements::ePseudo_mozNumberWrapper ||
@@ -3759,6 +3761,13 @@ CSSParserImpl::ParsePseudoSelector(int32_t&       aDataMask,
     }
   }
   else if (!parsingPseudoElement && isPseudoClass) {
+    if (aSelector.IsPseudoElement() && !pseudoClassIsUserAction) {
+      
+      
+      REPORT_UNEXPECTED_TOKEN(PEPseudoClassNotUserAction);
+      UngetToken();
+      return eSelectorParsingStatus_Error;
+    }
     aDataMask |= SEL_MASK_PCLASS;
     if (eCSSToken_Function == mToken.mType) {
       nsSelectorParsingStatus parsingStatus;
@@ -3828,8 +3837,14 @@ CSSParserImpl::ParsePseudoSelector(int32_t&       aDataMask,
 #endif
 
       
+      
+      
       if (!GetToken(true)) { 
         return eSelectorParsingStatus_Done;
+      }
+      if (parsingPseudoElement && mToken.IsSymbol(':')) {
+        UngetToken();
+        return eSelectorParsingStatus_Continue;
       }
       if ((mToken.IsSymbol('{') || mToken.IsSymbol(','))) {
         UngetToken();
@@ -4201,6 +4216,19 @@ CSSParserImpl::ParseSelector(nsCSSSelectorList* aList,
                                           getter_AddRefs(pseudoElement),
                                           getter_Transfers(pseudoElementArgs),
                                           &pseudoElementType);
+      if (pseudoElement &&
+          pseudoElementType != nsCSSPseudoElements::ePseudo_AnonBox) {
+        
+        
+
+        aList->mWeight += selector->CalcWeight();
+
+        selector = aList->AddSelector('>');
+
+        selector->mLowercaseTag.swap(pseudoElement);
+        selector->mClassList = pseudoElementArgs.forget();
+        selector->SetPseudoType(pseudoElementType);
+      }
     }
     else if (mToken.IsSymbol('[')) {    
       parsingStatus = ParseAttributeSelector(dataMask, *selector);
@@ -4254,16 +4282,6 @@ CSSParserImpl::ParseSelector(nsCSSSelectorList* aList,
   }
 
   aList->mWeight += selector->CalcWeight();
-
-  
-  
-  if (pseudoElement) {
-    selector = aList->AddSelector('>');
-
-    selector->mLowercaseTag.swap(pseudoElement);
-    selector->mClassList = pseudoElementArgs.forget();
-    selector->SetPseudoType(pseudoElementType);
-  }
 
   return true;
 }
