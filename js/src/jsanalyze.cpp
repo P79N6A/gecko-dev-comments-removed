@@ -1912,6 +1912,13 @@ ScriptAnalysis::needsArgsObj(JSContext *cx)
 
 
 
+    if (cx->compartment->debugMode() || script_->isGenerator)
+        return true;
+
+    
+
+
+
 
 
 
@@ -1925,8 +1932,7 @@ ScriptAnalysis::needsArgsObj(JSContext *cx)
 
 
 
-
-    if (localsAliasStack() || cx->compartment->debugMode() || script_->isGenerator)
+    if (localsAliasStack())
         return true;
 
     
