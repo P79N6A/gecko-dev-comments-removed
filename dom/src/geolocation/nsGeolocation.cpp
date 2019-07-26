@@ -694,6 +694,10 @@ nsresult nsGeolocationService::Init()
   }
 #endif
 
+  if (Preferences::GetBool("geo.provider.use_mls", false)) {
+    mProvider = do_GetService("@mozilla.org/geolocation/mls-provider;1");
+  }
+
   
   
   
