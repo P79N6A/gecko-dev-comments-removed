@@ -76,7 +76,6 @@ SystemMessageManager.prototype = {
     
     
     
-    
     debug("Dispatching " + JSON.stringify(aMessage) + "\n");
     let contractID = "@mozilla.org/dom/system-messages/wrapper/" + aType + ";1";
     let wrapped = false;
@@ -104,8 +103,18 @@ SystemMessageManager.prototype = {
                             handledCount: 1 });
 
     aDispatcher.isHandling = false;
+
     if (aDispatcher.messages.length > 0) {
       this._dispatchMessage(aType, aDispatcher, aDispatcher.messages.shift());
+    } else {
+      
+      
+      
+      
+      
+      Services.obs.notifyObservers( null,
+                                   "handle-system-messages-done",
+                                    null);
     }
   },
 
@@ -232,14 +241,17 @@ SystemMessageManager.prototype = {
       
       
       
+      
       cpmm.sendAsyncMessage("SystemMessageManager:HandleMessagesDone",
                             { type: msg.type,
                               manifestURL: this._manifestURL,
                               pageURL: this._pageURL,
                               handledCount: messages.length });
-    }
 
-    if (!dispatcher || !dispatcher.isHandling) {
+      
+      
+      
+      
       
       Services.obs.notifyObservers( null,
                                    "handle-system-messages-done",
