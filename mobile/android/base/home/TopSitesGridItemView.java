@@ -110,6 +110,13 @@ public class TopSitesGridItemView extends RelativeLayout {
     
 
 
+    public boolean isEmpty() {
+        return mIsEmpty;
+    }
+
+    
+
+
     public void setTitle(String title) {
         if (mTitle != null && mTitle.equals(title)) {
             return;
