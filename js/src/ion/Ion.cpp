@@ -377,6 +377,9 @@ void
 IonCompartment::mark(JSTracer *trc, JSCompartment *compartment)
 {
     
+    
+    
+    JS_ASSERT(!trc->runtime->isHeapMinorCollecting());
     CancelOffThreadIonCompile(compartment, NULL);
     FinishAllOffThreadCompilations(this);
 

@@ -749,8 +749,15 @@ js::gc::MarkRuntime(JSTracer *trc, bool useSavedRoots)
     ion::MarkJitActivations(rt, trc);
 #endif
 
-    for (CompartmentsIter c(rt); !c.done(); c.next())
-        c->mark(trc);
+    if (!rt->isHeapMinorCollecting()) {
+        
+
+
+
+
+        for (CompartmentsIter c(rt); !c.done(); c.next())
+            c->mark(trc);
+    }
 
     
     if (JSTraceDataOp op = rt->gcBlackRootsTraceOp)
