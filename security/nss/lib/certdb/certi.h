@@ -264,8 +264,6 @@ void CERT_MapStanError();
 
 
 
-
-
 SECStatus
 cert_VerifyCertWithFlags(CERTCertDBHandle *handle, CERTCertificate *cert,
                          PRBool checkSig, SECCertUsage certUsage, PRTime t,
@@ -276,6 +274,8 @@ cert_VerifyCertWithFlags(CERTCertDBHandle *handle, CERTCertificate *cert,
 
 
 #define CERT_VERIFYCERT_USE_DEFAULTS 0
+
+
 
 
 

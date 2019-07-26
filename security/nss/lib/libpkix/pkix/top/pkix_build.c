@@ -65,7 +65,6 @@ pkix_ForwardBuilderState_Destroy(
         state->numFanout = 0;
         state->numDepth = 0;
         state->reasonCode = 0;
-        state->revCheckDelayed = PKIX_FALSE;
         state->canBeCached = PKIX_FALSE;
         state->useOnlyLocal = PKIX_FALSE;
         state->revChecking = PKIX_FALSE;
@@ -151,15 +150,11 @@ cleanup:
 
 
 
-
-
-
 static PKIX_Error *
 pkix_ForwardBuilderState_Create(
         PKIX_Int32 traversedCACerts,
         PKIX_UInt32 numFanout,
         PKIX_UInt32 numDepth,
-        PKIX_Boolean revCheckDelayed,
         PKIX_Boolean canBeCached,
         PKIX_PL_Date *validityDate,
         PKIX_PL_Cert *prevCert,
@@ -195,7 +190,6 @@ pkix_ForwardBuilderState_Create(
         state->numDepth = numDepth;
         state->reasonCode = 0;
         state->revChecking = numDepth;
-        state->revCheckDelayed = revCheckDelayed;
         state->canBeCached = canBeCached;
         state->useOnlyLocal = PKIX_TRUE;
         state->revChecking = PKIX_FALSE;
@@ -371,7 +365,6 @@ pkix_ForwardBuilderState_ToString
                 "\tnumFanout: \t%d\n"
                 "\tnumDepth:  \t%d\n"
                 "\treasonCode:  \t%d\n"
-                "\trevCheckDelayed: \t%d\n"
                 "\tcanBeCached: \t%d\n"
                 "\tuseOnlyLocal: \t%d\n"
                 "\trevChecking: \t%d\n"
@@ -416,10 +409,6 @@ pkix_ForwardBuilderState_ToString
                                         break;
             case BUILD_ABANDONNODE:     asciiStatus = "BUILD_ABANDONNODE";
                                         break;
-            case BUILD_CRLPREP:         asciiStatus = "BUILD_CRLPREP";
-                                        break;
-            case BUILD_CRL1:            asciiStatus = "BUILD_CRL1";
-                                        break;
             case BUILD_DATEPREP:        asciiStatus = "BUILD_DATEPREP";
                                         break;
             case BUILD_CHECKTRUSTED:    asciiStatus = "BUILD_CHECKTRUSTED";
@@ -427,8 +416,6 @@ pkix_ForwardBuilderState_ToString
             case BUILD_CHECKTRUSTED2:   asciiStatus = "BUILD_CHECKTRUSTED2";
                                         break;
             case BUILD_ADDTOCHAIN:      asciiStatus = "BUILD_ADDTOCHAIN";
-                                        break;
-            case BUILD_CRL2:            asciiStatus = "BUILD_CRL2";
                                         break;
             case BUILD_VALCHAIN:        asciiStatus = "BUILD_VALCHAIN";
                                         break;
@@ -498,7 +485,6 @@ pkix_ForwardBuilderState_ToString
                 (PKIX_UInt32)state->numFanout,
                 (PKIX_UInt32)state->numDepth,
                 (PKIX_UInt32)state->reasonCode,
-                state->revCheckDelayed,
                 state->canBeCached,
                 state->useOnlyLocal,
                 state->revChecking,
@@ -656,8 +642,6 @@ pkix_ForwardBuilderState_IsIOPending(
         PKIX_NULLCHECK_TWO(state, pPending);
 
         if ((state->status == BUILD_GATHERPENDING) ||
-            (state->status == BUILD_CRL1) ||
-            (state->status == BUILD_CRL2) ||
             (state->status == BUILD_CHECKTRUSTED2) ||
             (state->status == BUILD_VALCHAIN2) ||
             (state->status == BUILD_AIAPENDING)) {
@@ -807,23 +791,11 @@ cleanup:
 
 
 
-
-
-
-
-
-
-
-
-
-
 static PKIX_Error *
 pkix_Build_VerifyCertificate(
         PKIX_ForwardBuilderState *state,
         PKIX_List *userCheckers,
-        PKIX_Boolean revocationChecking,
         PKIX_Boolean *pTrusted,
-        PKIX_Boolean *pNeedsCRLChecking,
         PKIX_VerifyNode *verifyNode,
         void *plContext)
 {
@@ -841,11 +813,9 @@ pkix_Build_VerifyCertificate(
         void *nbioContext = NULL;
         
         PKIX_ENTER(BUILD, "pkix_Build_VerifyCertificate");
-        PKIX_NULLCHECK_THREE(state, pTrusted, pNeedsCRLChecking);
+        PKIX_NULLCHECK_TWO(state, pTrusted);
         PKIX_NULLCHECK_THREE
                 (state->candidateCerts, state->prevCert, state->trustChain);
-
-        *pNeedsCRLChecking = PKIX_FALSE;
 
         PKIX_INCREF(state->candidateCert);
         candidateCert = state->candidateCert;
@@ -943,26 +913,6 @@ pkix_Build_VerifyCertificate(
             if (paramsNeeded) {
                 PKIX_ERROR(PKIX_MISSINGDSAPARAMETERS);
             }
-        }
-        
-        
-        if (revocationChecking) {
-            if (!trusted) {
-                if (state->revCheckDelayed) {
-                    goto cleanup;
-                } else {
-                    PKIX_Boolean isSelfIssued = PKIX_FALSE;
-                    PKIX_CHECK(
-                        pkix_IsCertSelfIssued(candidateCert, &isSelfIssued,
-                                              plContext),
-                        PKIX_ISCERTSELFISSUEDFAILED);
-                    if (isSelfIssued) {
-                        state->revCheckDelayed = PKIX_TRUE;
-                        goto cleanup;
-                    }
-                }
-            }
-            *pNeedsCRLChecking = PKIX_TRUE;
         }
 
 cleanup:
@@ -2079,8 +2029,6 @@ pkix_BuildForwardDepthFirstSearch(
         PKIX_Boolean trusted = PKIX_FALSE;
         PKIX_Boolean isSelfIssued = PKIX_FALSE;
         PKIX_Boolean canBeCached = PKIX_FALSE;
-        PKIX_Boolean revocationCheckingExists = PKIX_FALSE;
-        PKIX_Boolean needsCRLChecking = PKIX_FALSE;
         PKIX_Boolean ioPending = PKIX_FALSE;
         PKIX_PL_Date *validityDate = NULL;
         PKIX_PL_Date *currTime  = NULL;
@@ -2391,9 +2339,6 @@ pkix_BuildForwardDepthFirstSearch(
 #endif
 
             if (state->status == BUILD_CERTVALIDATING) {
-                    revocationCheckingExists =
-                        (state->buildConstants.revChecker != NULL);
-
                     PKIX_DECREF(state->candidateCert);
                     PKIX_CHECK(PKIX_List_GetItem
                             (state->candidateCerts,
@@ -2416,9 +2361,7 @@ pkix_BuildForwardDepthFirstSearch(
                     verifyError = pkix_Build_VerifyCertificate
                             (state,
                             state->buildConstants.userCheckers,
-                            revocationCheckingExists,
                             &trusted,
-                            &needsCRLChecking,
                             verifyNode,
                             plContext);
 
@@ -2453,61 +2396,9 @@ pkix_BuildForwardDepthFirstSearch(
                                     (PKIX_LOOPDISCOVEREDDUPCERTSNOTALLOWED);
                             }
                             state->status = BUILD_GETNEXTCERT;
-                    } else if (needsCRLChecking) {
-                            state->status = BUILD_CRLPREP;
                     } else {
                             state->status = BUILD_DATEPREP;
                     }
-            }
-
-            if (state->status == BUILD_CRLPREP) {
-                PKIX_RevocationStatus revStatus;
-                PKIX_UInt32 reasonCode;
-
-                verifyError =
-                    PKIX_RevocationChecker_Check(
-                             state->prevCert, state->candidateCert,
-                             state->buildConstants.revChecker,
-                             state->buildConstants.procParams,
-                             PKIX_FALSE,
-                             (state->parentState == NULL) ?
-                                              PKIX_TRUE : PKIX_FALSE,
-                             &revStatus, &reasonCode,
-                             &nbio, plContext);
-                if (nbio != NULL) {
-                    *pNBIOContext = nbio;
-                    goto cleanup;
-                }
-                if (revStatus == PKIX_RevStatus_Revoked || verifyError) {
-                    if (!verifyError) {
-                        
-
-
-                        PKIX_ERROR_CREATE(VALIDATE, PKIX_CERTIFICATEREVOKED,
-                                          verifyError);
-                    }
-                    if (state->verifyNode != NULL) {
-                            PKIX_CHECK_FATAL(pkix_VerifyNode_SetError
-                                    (verifyNode, verifyError, plContext),
-                                    PKIX_VERIFYNODESETERRORFAILED);
-                            PKIX_CHECK_FATAL(pkix_VerifyNode_AddToTree
-                                    (state->verifyNode,
-                                    verifyNode,
-                                    plContext),
-                                    PKIX_VERIFYNODEADDTOTREEFAILED);
-                            PKIX_DECREF(verifyNode);
-                    }
-                    PKIX_DECREF(finalError);
-                    finalError = verifyError;
-                    verifyError = NULL;
-                    if (state->certLoopingDetected) {
-                            PKIX_ERROR
-                                (PKIX_LOOPDISCOVEREDDUPCERTSNOTALLOWED);
-                    }
-                    state->status = BUILD_GETNEXTCERT;
-                } else {
-                    state->status = BUILD_DATEPREP;
-                }
             }
 
             if (state->status == BUILD_DATEPREP) {
@@ -2711,7 +2602,6 @@ pkix_BuildForwardDepthFirstSearch(
                             (childTraversedCACerts,
                             state->buildConstants.maxFanout,
                             state->numDepth - 1,
-                            state->revCheckDelayed,
                             canBeCached,
                             validityDate,
                             state->candidateCert,
@@ -3521,7 +3411,6 @@ pkix_Build_InitiateBuildChain(
                     (0,              
                     buildConstants.maxFanout,
                     buildConstants.maxDepth,
-                    PKIX_FALSE,      
                     PKIX_TRUE,       
                     NULL,            
                     targetCert,      
