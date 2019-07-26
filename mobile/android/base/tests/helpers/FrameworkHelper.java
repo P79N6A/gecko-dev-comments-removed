@@ -29,7 +29,13 @@ public final class FrameworkHelper {
         do {
             try {
                 return cls.getDeclaredField(fieldName);
-            } catch (final NoSuchFieldException e) {
+            } catch (final Exception e) {
+                
+                
+                
+                
+                
+                
                 cls = cls.getSuperclass();
             }
         } while (cls != null);
