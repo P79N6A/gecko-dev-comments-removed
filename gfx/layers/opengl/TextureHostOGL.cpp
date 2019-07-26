@@ -1108,11 +1108,20 @@ GrallocDeprecatedTextureHostOGL::DeleteTextures()
 
 
 static void
-RegisterDeprecatedTextureHostAtGrallocBufferActor(DeprecatedTextureHost* aDeprecatedTextureHost, const SurfaceDescriptor& aSurfaceDescriptor)
+AddDeprecatedTextureHostToGrallocBufferActor(DeprecatedTextureHost* aDeprecatedTextureHost, const SurfaceDescriptor* aSurfaceDescriptor)
 {
-  if (IsSurfaceDescriptorValid(aSurfaceDescriptor)) {
-    GrallocBufferActor* actor = static_cast<GrallocBufferActor*>(aSurfaceDescriptor.get_SurfaceDescriptorGralloc().bufferParent());
-    actor->SetDeprecatedTextureHost(aDeprecatedTextureHost);
+  if (aSurfaceDescriptor && IsSurfaceDescriptorValid(*aSurfaceDescriptor)) {
+    GrallocBufferActor* actor = static_cast<GrallocBufferActor*>(aSurfaceDescriptor->get_SurfaceDescriptorGralloc().bufferParent());
+    actor->AddDeprecatedTextureHost(aDeprecatedTextureHost);
+  }
+}
+
+static void
+RemoveDeprecatedTextureHostFromGrallocBufferActor(DeprecatedTextureHost* aDeprecatedTextureHost, const SurfaceDescriptor* aSurfaceDescriptor)
+{
+  if (aSurfaceDescriptor && IsSurfaceDescriptorValid(*aSurfaceDescriptor)) {
+    GrallocBufferActor* actor = static_cast<GrallocBufferActor*>(aSurfaceDescriptor->get_SurfaceDescriptorGralloc().bufferParent());
+    actor->RemoveDeprecatedTextureHost(aDeprecatedTextureHost);
   }
 }
 
@@ -1129,11 +1138,6 @@ GrallocDeprecatedTextureHostOGL::SwapTexturesImpl(const SurfaceDescriptor& aImag
                                         nsIntRegion*)
 {
   MOZ_ASSERT(aImage.type() == SurfaceDescriptor::TSurfaceDescriptorGralloc);
-
-  if (mBuffer) {
-    
-    RegisterDeprecatedTextureHostAtGrallocBufferActor(nullptr, *mBuffer);
-  }
 
   const SurfaceDescriptorGralloc& desc = aImage.get_SurfaceDescriptorGralloc();
   mGraphicBuffer = GrallocBufferActor::GetFrom(desc);
@@ -1198,11 +1202,9 @@ GrallocDeprecatedTextureHostOGL::~GrallocDeprecatedTextureHostOGL()
   DeleteTextures();
 
   
-  if (mBuffer) {
-    
-    
-    RegisterDeprecatedTextureHostAtGrallocBufferActor(nullptr, *mBuffer);
-  }
+  
+  
+  RemoveDeprecatedTextureHostFromGrallocBufferActor(this, mBuffer);
 }
 
 bool
@@ -1222,12 +1224,16 @@ void
 GrallocDeprecatedTextureHostOGL::SetBuffer(SurfaceDescriptor* aBuffer, ISurfaceAllocator* aAllocator)
 {
   MOZ_ASSERT(!mBuffer, "Will leak the old mBuffer");
+
+  if (aBuffer != mBuffer) {
+    
+    
+    RemoveDeprecatedTextureHostFromGrallocBufferActor(this, mBuffer);
+    AddDeprecatedTextureHostToGrallocBufferActor(this, aBuffer);
+  }
+
   mBuffer = aBuffer;
   mDeAllocator = aAllocator;
-
-  
-  
-  RegisterDeprecatedTextureHostAtGrallocBufferActor(this, *mBuffer);
 }
 
 LayerRenderState

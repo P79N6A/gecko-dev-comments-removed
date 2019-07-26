@@ -216,7 +216,6 @@ int64_t GrallocReporter::sAmount = 0;
 
 GrallocBufferActor::GrallocBufferActor()
 : mAllocBytes(0)
-, mDeprecatedTextureHost(nullptr)
 {
   static bool registered;
   if (!registered) {
@@ -270,21 +269,24 @@ GrallocBufferActor::Create(const gfxIntSize& aSize,
 
 void GrallocBufferActor::ActorDestroy(ActorDestroyReason)
 {
-  if (mDeprecatedTextureHost) {
-    mDeprecatedTextureHost->ForgetBuffer();
+  for (size_t i = 0; i < mDeprecatedTextureHosts.Length(); i++) {
+    mDeprecatedTextureHosts[i]->ForgetBuffer();
   }
-  mDeprecatedTextureHost = nullptr;
 }
 
 
-void GrallocBufferActor::SetDeprecatedTextureHost(DeprecatedTextureHost* aDeprecatedTextureHost)
+void GrallocBufferActor::AddDeprecatedTextureHost(DeprecatedTextureHost* aDeprecatedTextureHost)
 {
-  if (mDeprecatedTextureHost &&
-      mDeprecatedTextureHost != aDeprecatedTextureHost)
-  {
-    mDeprecatedTextureHost->ForgetBuffer();
-  }
-  mDeprecatedTextureHost = aDeprecatedTextureHost;
+  mDeprecatedTextureHosts.AppendElement(aDeprecatedTextureHost);
+}
+
+
+void GrallocBufferActor::RemoveDeprecatedTextureHost(DeprecatedTextureHost* aDeprecatedTextureHost)
+{
+  mDeprecatedTextureHosts.RemoveElement(aDeprecatedTextureHost);
+  
+  
+  MOZ_ASSERT(!mDeprecatedTextureHosts.Contains(aDeprecatedTextureHost));
 }
 
  already_AddRefed<TextureImage>

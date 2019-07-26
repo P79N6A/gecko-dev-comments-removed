@@ -87,7 +87,8 @@ public:
 
   
   
-  void SetDeprecatedTextureHost(DeprecatedTextureHost* aDeprecatedTextureHost);
+  void AddDeprecatedTextureHost(DeprecatedTextureHost* aDeprecatedTextureHost);
+  void RemoveDeprecatedTextureHost(DeprecatedTextureHost* aDeprecatedTextureHost);
 
   android::GraphicBuffer* GetGraphicBuffer();
 
@@ -104,7 +105,7 @@ private:
 
   
   
-  DeprecatedTextureHost* mDeprecatedTextureHost;
+  nsAutoTArray<DeprecatedTextureHost*, 2> mDeprecatedTextureHosts;
 
   friend class ISurfaceAllocator;
 };
