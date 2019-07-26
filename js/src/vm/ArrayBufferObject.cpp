@@ -332,7 +332,7 @@ ArrayBufferObject::neuter(JSContext *cx, Handle<ArrayBufferObject*> buffer, void
     
 
     for (ArrayBufferViewObject *view = buffer->viewList(); view; view = view->nextView()) {
-        view->neuter(newData);
+        view->neuter(cx);
 
         
         MarkObjectStateChange(cx, view);
@@ -372,6 +372,9 @@ ArrayBufferObject::changeContents(JSContext *cx, void *newData)
     
     ArrayBufferViewObject *viewListHead = viewList();
     for (ArrayBufferViewObject *view = viewListHead; view; view = view->nextView()) {
+        
+        
+        
         
         
         
@@ -885,12 +888,16 @@ ArrayBufferViewObject::trace(JSTracer *trc, JSObject *obj)
     MarkSlot(trc, &bufSlot, "typedarray.buffer");
 
     
-    
+
     if (bufSlot.isObject()) {
         ArrayBufferObject &buf = AsArrayBuffer(&bufSlot.toObject());
-        int32_t offset = obj->getReservedSlot(BYTEOFFSET_SLOT).toInt32();
-        MOZ_ASSERT(buf.dataPointer() != nullptr);
-        obj->initPrivate(buf.dataPointer() + offset);
+        if (buf.isNeutered()) {
+            
+            JS_ASSERT(obj->getPrivate() == nullptr);
+        } else {
+            int32_t offset = obj->getReservedSlot(BYTEOFFSET_SLOT).toInt32();
+            obj->initPrivate(buf.dataPointer() + offset);
+        }
     }
 
     
@@ -898,15 +905,14 @@ ArrayBufferViewObject::trace(JSTracer *trc, JSObject *obj)
 }
 
 void
-ArrayBufferViewObject::neuter(void *newData)
+ArrayBufferViewObject::neuter(JSContext *cx)
 {
-    MOZ_ASSERT(newData != nullptr);
     if (is<DataViewObject>())
-        as<DataViewObject>().neuter(newData);
+        as<DataViewObject>().neuter();
     else if (is<TypedArrayObject>())
-        as<TypedArrayObject>().neuter(newData);
+        as<TypedArrayObject>().neuter(cx);
     else
-        as<TypedObject>().neuter(newData);
+        as<TypedObject>().neuter(cx);
 }
 
 
