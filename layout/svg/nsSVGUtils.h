@@ -61,6 +61,9 @@ class SVGPreserveAspectRatio;
 namespace dom {
 class Element;
 } 
+namespace gfx {
+class SourceSurface;
+}
 } 
 
 
@@ -473,9 +476,16 @@ public:
   GetClipRectForFrame(nsIFrame *aFrame,
                       float aX, float aY, float aWidth, float aHeight);
 
+  
+
+
+
+
   static void CompositeSurfaceMatrix(gfxContext *aContext,
                                      gfxASurface *aSurface,
-                                     const gfxMatrix &aCTM, float aOpacity);
+                                     mozilla::gfx::SourceSurface *aSourceSurface,
+                                     const gfxPoint &aSurfaceOffset,
+                                     const gfxMatrix &aCTM);
 
   static void CompositePatternMatrix(gfxContext *aContext,
                                      gfxPattern *aPattern,

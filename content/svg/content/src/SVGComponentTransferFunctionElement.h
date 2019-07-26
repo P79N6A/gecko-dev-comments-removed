@@ -33,6 +33,8 @@ protected:
   }
 
 public:
+  typedef gfx::AttributeMap AttributeMap;
+
   
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_SVG_FE_COMPONENT_TRANSFER_FUNCTION_ELEMENT_CID)
 
@@ -42,7 +44,8 @@ public:
           int32_t aNameSpaceID, nsIAtom* aAttribute) const MOZ_OVERRIDE;
 
   virtual int32_t GetChannel() = 0;
-  bool GenerateLookupTable(uint8_t* aTable);
+
+  AttributeMap ComputeAttributes();
 
   
   virtual JSObject* WrapNode(JSContext* aCx,

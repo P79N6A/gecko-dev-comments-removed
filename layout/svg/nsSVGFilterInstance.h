@@ -18,6 +18,8 @@
 #include "nsSVGNumber2.h"
 #include "nsSVGNumberPair.h"
 #include "nsTArray.h"
+#include "nsIFrame.h"
+#include "mozilla/gfx/2D.h"
 
 class gfxASurface;
 class gfxImageSurface;
@@ -49,6 +51,12 @@ class SVGFilterElement;
 
 class nsSVGFilterInstance
 {
+  typedef mozilla::gfx::Point3D Point3D;
+  typedef mozilla::gfx::IntRect IntRect;
+  typedef mozilla::gfx::SourceSurface SourceSurface;
+  typedef mozilla::gfx::DrawTarget DrawTarget;
+  typedef mozilla::gfx::FilterPrimitiveDescription FilterPrimitiveDescription;
+
 public:
   
 
@@ -96,8 +104,7 @@ public:
     mFilterSpaceToDeviceSpaceTransform(aFilterSpaceToDeviceSpaceTransform),
     mFilterSpaceToFrameSpaceInCSSPxTransform(aFilterSpaceToFrameSpaceInCSSPxTransform),
     mFilterRegion(aFilterRegion),
-    mFilterSpaceSize(aFilterSpaceSize),
-    mSurfaceRect(nsIntPoint(0, 0), aFilterSpaceSize),
+    mFilterSpaceBounds(nsIntPoint(0, 0), aFilterSpaceSize),
     mTargetBounds(aTargetBounds),
     mPostFilterDirtyRect(aPostFilterDirtyRect),
     mPreFilterDirtyRect(aPreFilterDirtyRect),
@@ -121,9 +128,8 @@ public:
 
 
 
-  const nsIntSize& GetFilterSpaceSize() { return mFilterSpaceSize; }
-  uint32_t GetFilterResX() const { return mFilterSpaceSize.width; }
-  uint32_t GetFilterResY() const { return mFilterSpaceSize.height; }
+  uint32_t GetFilterResX() const { return mFilterSpaceBounds.width; }
+  uint32_t GetFilterResY() const { return mFilterSpaceBounds.height; }
 
   
 
@@ -131,18 +137,7 @@ public:
 
 
 
-  const nsIntRect& GetSurfaceRect() const { return mSurfaceRect; }
-  int32_t GetSurfaceWidth() const { return mSurfaceRect.width; }
-  int32_t GetSurfaceHeight() const { return mSurfaceRect.height; }
-
-  
-
-
-
-
-
-
-  nsresult Render(gfxASurface** aOutput);
+  nsresult Render(gfxContext* aContext);
 
   
 
@@ -160,14 +155,16 @@ public:
 
 
 
-  nsresult ComputeSourceNeededRect(nsIntRect* aDirty);
+  nsresult ComputePostFilterExtents(nsIntRect* aPostFilterExtents);
 
   
 
 
 
 
-  nsresult ComputeOutputBBox(nsIntRect* aBBox);
+
+
+  nsresult ComputeSourceNeededRect(nsIntRect* aDirty);
 
   float GetPrimitiveNumber(uint8_t aCtxType, const nsSVGNumber2 *aNumber) const
   {
@@ -184,7 +181,7 @@ public:
 
 
 
-  void ConvertLocation(float aValues[3]) const;
+  Point3D ConvertLocation(const Point3D& aPoint) const;
 
   
 
@@ -217,103 +214,44 @@ public:
   }
 
 private:
-  typedef nsSVGFE::Image Image;
-  typedef nsSVGFE::ColorModel ColorModel;
-
-  struct PrimitiveInfo {
-    
-    nsSVGFE*  mFE;
-
-    
-
-
-
-
-
-
-    nsIntRect mResultBoundingBox;
-
-    
-
-
-
-
-
-
-
-
-
-
-    nsIntRect mResultNeededBox;
-
-    
-
-
-
-
-
-
-
-    nsIntRect mResultChangeBox;
-
-    Image     mImage;
-
-    
-
-
-
-
-
-
-    int32_t   mImageUsers;
-  
+  struct SourceInfo {
     
     
+    nsIntRect mNeededBounds;
+
     
-    nsTArray<PrimitiveInfo*> mInputs;
+    
+    mozilla::RefPtr<SourceSurface> mSourceSurface;
 
-    PrimitiveInfo() : mFE(nullptr), mImageUsers(0) {}
-  };
-
-  class ImageAnalysisEntry : public nsStringHashKey {
-  public:
-    ImageAnalysisEntry(KeyTypePointer aStr) : nsStringHashKey(aStr) { }
-    ImageAnalysisEntry(const ImageAnalysisEntry& toCopy) : nsStringHashKey(toCopy),
-      mInfo(toCopy.mInfo) { }
-
-    PrimitiveInfo* mInfo;
+    
+    
+    IntRect mSurfaceRect;
   };
 
   
 
 
 
-
-  nsresult BuildSources();
-
-  
-
-
-
-  nsresult BuildSourcePaint(PrimitiveInfo *aPrimitive);
+  nsresult BuildSourcePaint(SourceInfo *aPrimitive,
+                            gfxASurface* aTargetSurface,
+                            DrawTarget* aTargetDT);
 
   
 
 
 
 
-  nsresult BuildSourcePaints();
+  nsresult BuildSourcePaints(gfxASurface* aTargetSurface,
+                             DrawTarget* aTargetDT);
 
   
 
 
 
-
-
-  nsresult BuildSourceImages();
+  nsresult BuildSourceImage(gfxASurface* aTargetSurface,
+                            DrawTarget* aTargetDT);
 
   
-
 
 
 
@@ -325,50 +263,13 @@ private:
 
 
 
-
-
-  void ComputeResultBoundingBoxes();
-
-  
-
-
-
-
    void ComputeNeededBoxes();
 
   
 
 
-
-
-  void ComputeResultChangeBoxes();
-
-  
-
-
-
-
-  nsIntRect ComputeUnionOfAllNeededBoxes();
-
-  
-
-
-
-
-  already_AddRefed<gfxImageSurface> CreateImage();
-
-  
-
-
-  void ComputeFilterPrimitiveSubregion(PrimitiveInfo* aInfo);
-
-  
-
-
-
-
-  void EnsureColorModel(PrimitiveInfo* aPrimitive,
-                        ColorModel aColorModel);
+  IntRect ComputeFilterPrimitiveSubregion(nsSVGFE* aFilterElement,
+                                          const nsTArray<int32_t>& aInputIndices);
 
   
 
@@ -377,15 +278,6 @@ private:
   float GetPrimitiveNumber(uint8_t aCtxType, float aValue) const;
 
   gfxRect UserSpaceToFilterSpace(const gfxRect& aUserSpace) const;
-
-  
-
-
-  void ClipToFilterSpace(nsIntRect* aRect) const
-  {
-    nsIntRect filterSpace(nsIntPoint(0, 0), mFilterSpaceSize);
-    aRect->IntersectRect(*aRect, filterSpace);
-  }
 
   
 
@@ -403,8 +295,7 @@ private:
   gfxMatrix               mFilterSpaceToDeviceSpaceTransform;
   gfxMatrix               mFilterSpaceToFrameSpaceInCSSPxTransform;
   gfxRect                 mFilterRegion;
-  nsIntSize               mFilterSpaceSize;
-  nsIntRect               mSurfaceRect;
+  nsIntRect               mFilterSpaceBounds;
 
   
 
@@ -432,12 +323,12 @@ private:
 
   uint16_t                mPrimitiveUnits;
 
-  PrimitiveInfo           mSourceColorAlpha;
-  PrimitiveInfo           mSourceAlpha;
-  PrimitiveInfo           mFillPaint;
-  PrimitiveInfo           mStrokePaint;
-  nsTArray<PrimitiveInfo> mPrimitives;
+  SourceInfo              mSourceGraphic;
+  SourceInfo              mFillPaint;
+  SourceInfo              mStrokePaint;
   nsIFrame*               mTransformRoot;
+  nsTArray<nsRefPtr<gfxASurface> > mInputImages;
+  nsTArray<FilterPrimitiveDescription> mPrimitiveDescriptions;
 };
 
 #endif

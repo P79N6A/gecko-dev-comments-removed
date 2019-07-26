@@ -9,6 +9,8 @@
 
 NS_IMPL_NS_NEW_NAMESPACED_SVG_ELEMENT(FEComposite)
 
+using namespace mozilla::gfx;
+
 namespace mozilla {
 namespace dom {
 
@@ -107,67 +109,22 @@ SVGFECompositeElement::SetK(float k1, float k2, float k3, float k4)
   mNumberAttributes[ATTR_K4].SetBaseValue(k4, this);
 }
 
-nsresult
-SVGFECompositeElement::Filter(nsSVGFilterInstance* instance,
-                              const nsTArray<const Image*>& aSources,
-                              const Image* aTarget,
-                              const nsIntRect& rect)
+FilterPrimitiveDescription
+SVGFECompositeElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
+                                               const IntRect& aFilterSubregion,
+                                               nsTArray<nsRefPtr<gfxASurface> >& aInputImages)
 {
-  uint16_t op = mEnumAttributes[OPERATOR].GetAnimValue();
+  FilterPrimitiveDescription descr(FilterPrimitiveDescription::eComposite);
+  uint32_t op = mEnumAttributes[OPERATOR].GetAnimValue();
+  descr.Attributes().Set(eCompositeOperator, op);
 
-  
   if (op == SVG_FECOMPOSITE_OPERATOR_ARITHMETIC) {
-    float k1, k2, k3, k4;
-    GetAnimatedNumberValues(&k1, &k2, &k3, &k4, nullptr);
-
-    
-    CopyRect(aTarget, aSources[0], rect);
-
-    uint8_t* sourceData = aSources[1]->mImage->Data();
-    uint8_t* targetData = aTarget->mImage->Data();
-    uint32_t stride = aTarget->mImage->Stride();
-
-    
-    float k1Scaled = k1 / 255.0f;
-    float k4Scaled = k4*255.0f;
-    for (int32_t x = rect.x; x < rect.XMost(); x++) {
-      for (int32_t y = rect.y; y < rect.YMost(); y++) {
-        uint32_t targIndex = y * stride + 4 * x;
-        for (int32_t i = 0; i < 4; i++) {
-          uint8_t i1 = targetData[targIndex + i];
-          uint8_t i2 = sourceData[targIndex + i];
-          float result = k1Scaled*i1*i2 + k2*i1 + k3*i2 + k4Scaled;
-          targetData[targIndex + i] =
-                       static_cast<uint8_t>(clamped(result, 0.f, 255.f));
-        }
-      }
-    }
-    return NS_OK;
+    float k[4];
+    GetAnimatedNumberValues(k, k+1, k+2, k+3, nullptr);
+    descr.Attributes().Set(eCompositeCoefficients, k, 4);
   }
 
-  
-
-  gfxContext ctx(aTarget->mImage);
-  ctx.SetOperator(gfxContext::OPERATOR_SOURCE);
-  ctx.SetSource(aSources[1]->mImage);
-  
-  ctx.Clip(aTarget->mFilterPrimitiveSubregion);
-  ctx.Paint();
-
-  if (op < SVG_FECOMPOSITE_OPERATOR_OVER || op > SVG_FECOMPOSITE_OPERATOR_XOR) {
-    return NS_ERROR_FAILURE;
-  }
-  static const gfxContext::GraphicsOperator opMap[] = {
-                                           gfxContext::OPERATOR_DEST,
-                                           gfxContext::OPERATOR_OVER,
-                                           gfxContext::OPERATOR_IN,
-                                           gfxContext::OPERATOR_OUT,
-                                           gfxContext::OPERATOR_ATOP,
-                                           gfxContext::OPERATOR_XOR };
-  ctx.SetOperator(opMap[op]);
-  ctx.SetSource(aSources[0]->mImage);
-  ctx.Paint();
-  return NS_OK;
+  return descr;
 }
 
 bool
@@ -190,34 +147,6 @@ SVGFECompositeElement::GetSourceImageNames(nsTArray<nsSVGStringInfo>& aSources)
 {
   aSources.AppendElement(nsSVGStringInfo(&mStringAttributes[IN1], this));
   aSources.AppendElement(nsSVGStringInfo(&mStringAttributes[IN2], this));
-}
-
-nsIntRect
-SVGFECompositeElement::ComputeTargetBBox(const nsTArray<nsIntRect>& aSourceBBoxes,
-        const nsSVGFilterInstance& aInstance)
-{
-  uint16_t op = mEnumAttributes[OPERATOR].GetAnimValue();
-
-  if (op == SVG_FECOMPOSITE_OPERATOR_ARITHMETIC) {
-    
-    
-    
-    
-    
-    return GetMaxRect();
-  }
-
-  if (op == SVG_FECOMPOSITE_OPERATOR_IN ||
-      op == SVG_FECOMPOSITE_OPERATOR_ATOP) {
-    
-    
-    return aSourceBBoxes[1];
-  }
-
-  
-  
-  
-  return SVGFECompositeElementBase::ComputeTargetBBox(aSourceBBoxes, aInstance);
 }
 
 
