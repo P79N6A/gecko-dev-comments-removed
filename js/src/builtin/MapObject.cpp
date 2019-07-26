@@ -816,7 +816,8 @@ JSObject::asMapIterator()
 
 Class js::MapIteratorClass = {
     "Map Iterator",
-    JSCLASS_IMPLEMENTS_BARRIERS | JSCLASS_HAS_RESERVED_SLOTS(MapIteratorObject::SlotCount),
+    JSCLASS_IMPLEMENTS_BARRIERS |
+    JSCLASS_HAS_RESERVED_SLOTS(MapIteratorObject::SlotCount),
     JS_PropertyStub,         
     JS_PropertyStub,         
     JS_PropertyStub,         
@@ -1348,7 +1349,8 @@ JSObject::asSetIterator()
 
 Class js::SetIteratorClass = {
     "Set Iterator",
-    JSCLASS_IMPLEMENTS_BARRIERS | JSCLASS_HAS_RESERVED_SLOTS(SetIteratorObject::SlotCount),
+    JSCLASS_IMPLEMENTS_BARRIERS |
+    JSCLASS_HAS_RESERVED_SLOTS(SetIteratorObject::SlotCount),
     JS_PropertyStub,         
     JS_PropertyStub,         
     JS_PropertyStub,         
