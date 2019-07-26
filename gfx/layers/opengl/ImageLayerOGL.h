@@ -11,11 +11,15 @@
 
 #include "LayerManagerOGL.h"
 #include "ImageLayers.h"
+#include "ImageContainer.h"
 #include "yuv_convert.h"
 #include "mozilla/Mutex.h"
 
 namespace mozilla {
 namespace layers {
+
+class CairoImage;
+class PlanarYCbCrImage;
 
 
 
@@ -186,7 +190,12 @@ private:
   gl::TextureImage::TextureShareType mShareType;
   bool mInverted;
   GLuint mTexture;
+
   
+  
+  
+  GLTexture mExternalBufferTexture;
+
   GLTexture mYUVTexture[3];
   gfxIntSize mSize;
   gfxIntSize mCbCrSize;

@@ -1393,6 +1393,10 @@ public:
                                     gfxImageSurface *aDest);
 
     
+    
+    void ReadScreenIntoImageSurface(gfxImageSurface* dest);
+
+    
 
 
 

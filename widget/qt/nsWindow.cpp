@@ -6,12 +6,7 @@
 
 
 #include "mozilla/Util.h"
-#include "BasicLayers.h"
 
-#include <QtOpenGL/QGLWidget>
-#include <QtOpenGL/QGLContext>
-
-#define GLdouble_defined 1
 #include <QApplication>
 #include <QDesktopWidget>
 #include <QtGui/QCursor>
@@ -27,6 +22,7 @@
 #include <QStyleOptionGraphicsItem>
 #include <QPaintEngine>
 #include <QMimeData>
+#include "mozqglwidgetwrapper.h"
 
 #include <QtCore/QDebug>
 #include <QtCore/QEvent>
@@ -106,6 +102,7 @@ static Atom sPluginIMEAtom = nullptr;
 #endif 
 
 #include "Layers.h"
+#include "BasicLayers.h"
 #include "LayerManagerOGL.h"
 #include "nsFastStartupQt.h"
 
@@ -2581,8 +2578,7 @@ nsPopupWindow::~nsPopupWindow()
 NS_IMETHODIMP_(bool)
 nsWindow::HasGLContext()
 {
-    QGraphicsView *view = qobject_cast<QGraphicsView*>(GetViewWidget());
-    return view && qobject_cast<QGLWidget*>(view->viewport());
+    return MozQGLWidgetWrapper::hasGLContext(qobject_cast<QGraphicsView*>(GetViewWidget()));
 }
 
 MozQWidget*
@@ -3272,12 +3268,7 @@ nsWindow::GetGLFrameBufferFormat()
 {
     if (mLayerManager &&
         mLayerManager->GetBackendType() == mozilla::layers::LAYERS_OPENGL) {
-        
-#ifdef MOZ_PLATFORM_MAEMO
-        return LOCAL_GL_RGB;
-#else
-        return LOCAL_GL_RGBA;
-#endif
+        return MozQGLWidgetWrapper::isRGBAContext() ? LOCAL_GL_RGBA : LOCAL_GL_RGB;
     }
     return LOCAL_GL_NONE;
 }

@@ -183,6 +183,7 @@
 #include "nsContentUtils.h"
 #include "nsIChannelPolicy.h"
 #include "nsIContentSecurityPolicy.h"
+#include "nsSandboxFlags.h"
 
 #include "nsXULAppAPI.h"
 
@@ -733,6 +734,7 @@ nsDocShell::nsDocShell():
     mItemType(typeContent),
     mPreviousTransIndex(-1),
     mLoadedTransIndex(-1),
+    mSandboxFlags(0),
     mCreated(false),
     mAllowSubframes(true),
     mAllowPlugins(true),
@@ -3029,6 +3031,63 @@ nsDocShell::FindItemWithName(const PRUnichar * aName,
             
             
 
+            
+            PRUint32 sandboxFlags = 0;
+
+            nsCOMPtr<nsIDocument> doc = do_GetInterface(aOriginalRequestor);
+
+            if (doc) {
+                sandboxFlags = doc->GetSandboxFlags();
+            }
+
+            if (sandboxFlags) {
+                nsCOMPtr<nsIDocShellTreeItem> root;
+                GetSameTypeRootTreeItem(getter_AddRefs(root));
+
+                
+                nsCOMPtr<nsIDocShellTreeItem> selfAsItem = static_cast<nsIDocShellTreeItem *>(this);
+                if (foundItem != root && foundItem != selfAsItem) {
+                    
+                    bool isAncestor = false;
+
+                    nsCOMPtr<nsIDocShellTreeItem> parentAsItem;
+                    GetSameTypeParent(getter_AddRefs(parentAsItem));
+
+                    while (parentAsItem) {
+                        nsCOMPtr<nsIDocShellTreeItem> tmp;
+                        parentAsItem->GetParent(getter_AddRefs(tmp));
+
+                        if (tmp && tmp == selfAsItem) {
+                            isAncestor = true;
+                            break;
+                        }
+                        parentAsItem = tmp;
+                    }
+
+                    if (!isAncestor) {
+                        
+                        
+                        foundItem = nullptr;
+                    }
+                } else {
+                    
+                    nsCOMPtr<nsIDocShellTreeItem> tmp;
+                    GetSameTypeParent(getter_AddRefs(tmp));
+
+                    while (tmp) {
+                        if (tmp && tmp == foundItem) {
+                            
+                            
+                            if (sandboxFlags & SANDBOXED_TOPLEVEL_NAVIGATION) {
+                                foundItem = nullptr;
+                            }
+                            break;
+                        }
+                        tmp->GetParent(getter_AddRefs(tmp));
+                    }
+                }
+            }
+
             foundItem.swap(*_retval);
             return NS_OK;
         }
@@ -5108,6 +5167,20 @@ nsDocShell::GetIsAppTab(bool *aIsAppTab)
 }
 
 NS_IMETHODIMP
+nsDocShell::SetSandboxFlags(PRUint32 aSandboxFlags)
+{
+    mSandboxFlags = aSandboxFlags;
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDocShell::GetSandboxFlags(PRUint32  *aSandboxFlags)
+{
+    *aSandboxFlags = mSandboxFlags;
+    return NS_OK;
+}
+
+NS_IMETHODIMP
 nsDocShell::SetVisibility(bool aVisibility)
 {
     if (!mContentViewer)
@@ -6717,6 +6790,10 @@ nsDocShell::CreateAboutBlankContentViewer(nsIPrincipal* aPrincipal,
       blankDoc->SetBaseURI(aBaseURI);
 
       blankDoc->SetContainer(static_cast<nsIDocShell *>(this));
+
+      
+      
+      blankDoc->SetSandboxFlags(mSandboxFlags);
 
       
       docFactory->CreateInstanceForDocument(NS_ISUPPORTS_CAST(nsIDocShell *, this),
@@ -8382,6 +8459,22 @@ nsDocShell::InternalLoad(nsIURI * aURI,
         
         bool isNewWindow = false;
         if (!targetDocShell) {
+            
+            
+            
+            
+            
+            NS_ENSURE_TRUE(mContentViewer, NS_ERROR_FAILURE);
+            nsIDocument* doc = mContentViewer->GetDocument();
+            PRUint32 sandboxFlags = 0;
+
+            if (doc) {
+                sandboxFlags = doc->GetSandboxFlags();
+                if (sandboxFlags & SANDBOXED_NAVIGATION) {
+                    return NS_ERROR_FAILURE;
+                }
+            }
+
             nsCOMPtr<nsPIDOMWindow> win =
                 do_GetInterface(GetAsSupports(this));
             NS_ENSURE_TRUE(win, NS_ERROR_NOT_AVAILABLE);
@@ -9196,8 +9289,21 @@ nsDocShell::DoURILoad(nsIURI * aURI,
         }
     }
 
-    nsCOMPtr<nsIPrincipal> ownerPrincipal(do_QueryInterface(aOwner));
-    nsContentUtils::SetUpChannelOwner(ownerPrincipal, channel, aURI, true);
+    nsCOMPtr<nsIPrincipal> ownerPrincipal;
+
+    
+    
+    
+    
+    if (mSandboxFlags & SANDBOXED_ORIGIN) {
+        ownerPrincipal = do_CreateInstance("@mozilla.org/nullprincipal;1");
+    } else {
+        
+        ownerPrincipal = do_QueryInterface(aOwner);
+    }
+
+    nsContentUtils::SetUpChannelOwner(ownerPrincipal, channel, aURI, true,
+                                      (mSandboxFlags & SANDBOXED_ORIGIN));
 
     nsCOMPtr<nsIScriptChannel> scriptChannel = do_QueryInterface(channel);
     if (scriptChannel) {
@@ -9966,7 +10072,7 @@ nsDocShell::AddState(nsIVariant *aData, const nsAString& aTitle,
             nsCOMPtr<nsIPrincipal> principal = docScriptObj->GetPrincipal();
 
             if (!principal ||
-                NS_FAILED(principal->CheckMayLoad(newURI, true))) {
+                NS_FAILED(principal->CheckMayLoad(newURI, true, false))) {
 
                 return NS_ERROR_DOM_SECURITY_ERR;
             }
@@ -11918,6 +12024,24 @@ nsDocShell::ShouldBlockLoadingForBackButton()
   bool canGoForward = false;
   GetCanGoForward(&canGoForward);
   return canGoForward;
+}
+
+bool 
+nsDocShell::PluginsAllowedInCurrentDoc()
+{
+  bool pluginsAllowed = false;
+
+  if (!mContentViewer) {
+    return false;
+  }
+  
+  nsIDocument* doc = mContentViewer->GetDocument();
+  if (!doc) {
+    return false;
+  }
+  
+  doc->GetAllowPlugins(&pluginsAllowed);
+  return pluginsAllowed;
 }
 
 

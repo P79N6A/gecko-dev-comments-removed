@@ -986,6 +986,7 @@ nsView::WindowResized(nsIWidget* aWidget, PRInt32 aWidth, PRInt32 aHeight)
 {
   
   
+  SetForcedRepaint(true);
   if (this == mViewManager->GetRootView()) {
     nsRefPtr<nsDeviceContext> devContext;
     mViewManager->GetDeviceContext(*getter_AddRefs(devContext));

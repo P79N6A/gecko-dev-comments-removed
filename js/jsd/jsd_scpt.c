@@ -662,6 +662,8 @@ jsd_NewScriptHookProc(
     
     JSD_LOCK();
     hook = jsdc->scriptHook;
+    if( hook )
+        jsdscript->flags = jsdscript->flags | JSD_SCRIPT_CALL_DESTROY_HOOK_BIT;
     hookData = jsdc->scriptHookData;
     JSD_UNLOCK();
 
@@ -700,7 +702,7 @@ jsd_DestroyScriptHookProc(
 
     
     JSD_LOCK();
-    hook = jsdc->scriptHook;
+    hook = (jsdscript->flags & JSD_SCRIPT_CALL_DESTROY_HOOK_BIT) ? jsdc->scriptHook : NULL;
     hookData = jsdc->scriptHookData;
     JSD_UNLOCK();
 

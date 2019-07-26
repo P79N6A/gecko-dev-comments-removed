@@ -44,7 +44,7 @@
 
 #include "frontend/ParseMaps-inl.h"
 #include "frontend/ParseNode-inl.h"
-#include "frontend/TreeContext-inl.h"
+#include "frontend/SharedContext-inl.h"
 
 
 #define BYTECODE_CHUNK_LENGTH  1024    /* initial bytecode chunk length */
@@ -103,7 +103,7 @@ struct frontend::StmtInfoBCE : public StmtInfoBase
 
 BytecodeEmitter::BytecodeEmitter(BytecodeEmitter *parent, Parser *parser, SharedContext *sc,
                                  HandleScript script, StackFrame *callerFrame, bool hasGlobalScope,
-                                 unsigned lineno)
+                                 unsigned lineno, bool selfHostingMode)
   : sc(sc),
     parent(parent),
     script(sc->context, script),
@@ -122,7 +122,8 @@ BytecodeEmitter::BytecodeEmitter(BytecodeEmitter *parent, Parser *parser, Shared
     typesetCount(0),
     hasSingletons(false),
     inForInit(false),
-    hasGlobalScope(hasGlobalScope)
+    hasGlobalScope(hasGlobalScope),
+    selfHostingMode(selfHostingMode)
 {
     JS_ASSERT_IF(callerFrame, callerFrame->isScriptFrame());
     memset(&prolog, 0, sizeof prolog);
@@ -886,15 +887,20 @@ ClonedBlockDepth(BytecodeEmitter *bce)
 static uint16_t
 AliasedNameToSlot(JSScript *script, PropertyName *name)
 {
+    
+
+
+
     unsigned slot = CallObject::RESERVED_SLOTS;
-    BindingIter bi(script->bindings);
-    for (; bi->name() != name; bi++) {
-        if (bi->aliased())
+    for (BindingIter bi(script->bindings); ; bi++) {
+        if (bi->aliased()) {
+            if (bi->name() == name)
+                return slot;
             slot++;
+        }
     }
 
-    JS_ASSERT(bi->aliased());
-    return slot;
+    return 0;
 }
 
 static bool
@@ -1167,14 +1173,25 @@ EmitEnterBlock(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, JSOp op)
 
 
 
+
+
+
+
+
 static bool
 TryConvertToGname(BytecodeEmitter *bce, ParseNode *pn, JSOp *op)
 {
+    if (bce->selfHostingMode) {
+        JS_ASSERT(*op == JSOP_NAME);
+        *op = JSOP_INTRINSICNAME;
+        return true;
+    }
     if (bce->script->compileAndGo &&
         bce->hasGlobalScope &&
         !bce->sc->funMightAliasLocals() &&
         !pn->isDeoptimized() &&
-        !bce->sc->inStrictMode()) {
+        !bce->sc->inStrictMode())
+    {
         switch (*op) {
           case JSOP_NAME:     *op = JSOP_GETGNAME; break;
           case JSOP_SETNAME:  *op = JSOP_SETGNAME; break;
@@ -4875,7 +4892,7 @@ EmitFunc(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         script->bindings = funbox->bindings;
 
         BytecodeEmitter bce2(bce, bce->parser, &sc, script, bce->callerFrame, bce->hasGlobalScope,
-                             pn->pn_pos.begin.lineno);
+                             pn->pn_pos.begin.lineno, bce->selfHostingMode);
         if (!bce2.init())
             return false;
 

@@ -232,7 +232,7 @@ public:
   mozilla::TimeStamp StopTime();
 
   
-  nsresult SetCached(bool aCache);
+  void SetCached(bool aCache);
 
   already_AddRefed<nsPIDOMWindow> GetDOMWindow();
 

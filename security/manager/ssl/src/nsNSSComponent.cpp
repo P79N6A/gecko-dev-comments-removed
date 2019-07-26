@@ -1658,13 +1658,8 @@ nsNSSComponent::InitializeNSS(bool showWarningBox)
     {
 
   
-  
 
-  #if defined(XP_MAC) && defined(XP_MACOSX)
-  #error "This code assumes XP_MAC and XP_MACOSX will never be defined at the same time"
-  #endif
-
-  #if defined(XP_MAC) || defined(XP_MACOSX)
+  #if defined(XP_MACOSX)
     
     
     nsCOMPtr<nsIFile> cfmSecurityPath;
@@ -1672,11 +1667,7 @@ nsNSSComponent::InitializeNSS(bool showWarningBox)
     cfmSecurityPath->AppendNative(NS_LITERAL_CSTRING("Security"));
   #endif
 
-  #if defined(XP_MAC)
-    
-    profilePath->Create(nsIFile::DIRECTORY_TYPE, 0); 
-                                                     
-  #elif defined(XP_MACOSX)
+  #if defined(XP_MACOSX)
     
     
     

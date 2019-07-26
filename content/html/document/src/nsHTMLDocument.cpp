@@ -103,6 +103,7 @@
 #include "nsHtml5TreeOpExecutor.h"
 #include "nsHtml5Parser.h"
 #include "nsIDOMJSWindow.h"
+#include "nsSandboxFlags.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -1223,6 +1224,12 @@ nsHTMLDocument::GetCookie(nsAString& aCookie)
   }
 
   
+  
+  if (mSandboxFlags & SANDBOXED_ORIGIN) {
+    return NS_ERROR_DOM_SECURITY_ERR;
+  }
+  
+  
   nsCOMPtr<nsICookieService> service = do_GetService(NS_COOKIESERVICE_CONTRACTID);
   if (service) {
     
@@ -1250,6 +1257,12 @@ nsHTMLDocument::SetCookie(const nsAString& aCookie)
 {
   if (mDisableCookieAccess) {
     return NS_OK;
+  }
+
+  
+  
+  if (mSandboxFlags & SANDBOXED_ORIGIN) {
+    return NS_ERROR_DOM_SECURITY_ERR;
   }
 
   

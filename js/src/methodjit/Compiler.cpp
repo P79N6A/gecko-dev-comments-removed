@@ -5715,8 +5715,9 @@ mjit::Compiler::jsop_setprop(PropertyName *name, bool popGuaranteed)
 void
 mjit::Compiler::jsop_intrinsicname(PropertyName *name, JSValueType type)
 {
-    JSFunction *fun = cx->global().get()->getIntrinsicFunction(cx, name);
-    frame.push(ObjectValue(*fun));
+    Value vp = NullValue();
+    cx->global().get()->getIntrinsicValue(cx, name, &vp);
+    frame.push(vp);
 }
 
 void
@@ -6025,7 +6026,9 @@ mjit::Compiler::jsop_this()
 
 
 
-    if (script->function() && !script->strictModeCode) {
+    if (script->function() && !script->strictModeCode &&
+        !script->function()->isSelfHostedBuiltin())
+    {
         FrameEntry *thisFe = frame.peek(-1);
 
         if (!thisFe->isType(JSVAL_TYPE_OBJECT)) {

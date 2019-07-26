@@ -373,10 +373,10 @@ public:
 
   void FireTimeUpdate(bool aPeriodic);
 
-  MediaStream* GetMediaStream()
+  MediaStream* GetSrcMediaStream()
   {
-    NS_ASSERTION(mStream, "Don't call this when not playing a stream");
-    return mStream->GetStream();
+    NS_ASSERTION(mSrcStream, "Don't call this when not playing a stream");
+    return mSrcStream->GetStream();
   }
 
 protected:
@@ -403,11 +403,11 @@ protected:
   
 
 
-  void SetupMediaStreamPlayback();
+  void SetupSrcMediaStreamPlayback();
   
 
 
-  void EndMediaStreamPlayback();
+  void EndSrcMediaStreamPlayback();
 
   
 
@@ -637,7 +637,7 @@ protected:
   
   
   
-  nsRefPtr<nsDOMMediaStream> mStream;
+  nsRefPtr<nsDOMMediaStream> mSrcStream;
 
   
   
@@ -648,7 +648,7 @@ protected:
   nsTArray<OutputMediaStream> mOutputStreams;
 
   
-  StreamListener* mStreamListener;
+  StreamListener* mSrcStreamListener;
 
   
   

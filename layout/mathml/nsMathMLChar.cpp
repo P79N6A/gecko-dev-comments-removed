@@ -73,22 +73,6 @@ typedef enum {eExtension_base, eExtension_variants, eExtension_parts}
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #define NS_TABLE_TYPE_UNICODE       0
 #define NS_TABLE_TYPE_GLYPH_INDEX   1
 
@@ -159,12 +143,6 @@ public:
 
   
   bool HasPartsOf(nsPresContext* aPresContext, nsMathMLChar* aChar);
-
-  
-  bool IsComposite(nsPresContext* aPresContext, nsMathMLChar* aChar);
-
-  
-  PRInt32 ChildCountOf(nsPresContext* aPresContext, nsMathMLChar* aChar);
 
   
   nsGlyphCode TopOf(nsPresContext* aPresContext, nsMathMLChar* aChar) {
@@ -270,10 +248,6 @@ nsGlyphTable::ElementAt(nsPresContext* aPresContext, nsMathMLChar* aChar,
   }
 
   
-  
-  if (aChar->mParent && (aChar->mGlyphTable != this)) return kNullGlyph;
-
-  
   PRUnichar uchar = aChar->mData[0];
   if (mCharCache != uchar) {
     
@@ -296,16 +270,10 @@ nsGlyphTable::ElementAt(nsPresContext* aPresContext, nsMathMLChar* aChar,
     nsAutoString buffer;
     PRInt32 length = value.Length();
     PRInt32 i = 0; 
-    PRInt32 j = 0; 
     while (i < length) {
       PRUnichar code = value[i];
       ++i;
       buffer.Append(code);
-      
-      if (code == kSpaceCh) {
-        
-        j = -1;
-      }
       
       if (i < length && NS_IS_HIGH_SURROGATE(code)) {
         code = value[i];
@@ -333,7 +301,6 @@ nsGlyphTable::ElementAt(nsPresContext* aPresContext, nsMathMLChar* aChar,
         }
       }
       buffer.Append(font);
-      ++j;
     }
     
     mGlyphCache.Assign(buffer);
@@ -341,58 +308,13 @@ nsGlyphTable::ElementAt(nsPresContext* aPresContext, nsMathMLChar* aChar,
   }
 
   
-  
-  
-  
-  if (!aChar->mParent && (kNotFound != mGlyphCache.FindChar(kSpaceCh))) {
-    return kNullGlyph;
-  }
-
-  
-  
-  PRUint32 offset = 0;
-  PRUint32 length = mGlyphCache.Length();
-  if (aChar->mParent) {
-    nsMathMLChar* child = aChar->mParent->mSibling;
-    
-    while (child && (child != aChar)) {
-      offset += 5; 
-      child = child->mSibling;
-    }
-    
-    length = 3*(offset + 4);
-  }
-  
-  PRUint32 index = 3*(offset + aPosition);
-  if (index+2 >= length) return kNullGlyph;
+  PRUint32 index = 3*aPosition;
+  if (index+2 >= mGlyphCache.Length()) return kNullGlyph;
   nsGlyphCode ch;
   ch.code[0] = mGlyphCache.CharAt(index);
   ch.code[1] = mGlyphCache.CharAt(index + 1);
   ch.font = mGlyphCache.CharAt(index + 2);
   return ch.code[0] == PRUnichar(0xFFFD) ? kNullGlyph : ch;
-}
-
-bool
-nsGlyphTable::IsComposite(nsPresContext* aPresContext, nsMathMLChar* aChar)
-{
-  
-  
-  if (aChar->mParent) return false;
-  
-  mCharCache = 0; mGlyphCache.Truncate(); ElementAt(aPresContext, aChar, 0);
-  
-  if (4*3 >= mGlyphCache.Length()) return false;
-  
-  return (kSpaceCh == mGlyphCache.CharAt(4*3));
-}
-
-PRInt32
-nsGlyphTable::ChildCountOf(nsPresContext* aPresContext, nsMathMLChar* aChar)
-{
-  
-  if (!IsComposite(aPresContext, aChar)) return 0;
-  
-  return 1 + mGlyphCache.CountChar(kSpaceCh);
 }
 
 bool
@@ -414,8 +336,7 @@ nsGlyphTable::HasPartsOf(nsPresContext* aPresContext, nsMathMLChar* aChar)
   return GlueOf(aPresContext, aChar).Exists() ||
     TopOf(aPresContext, aChar).Exists() ||
     BottomOf(aPresContext, aChar).Exists() ||
-    MiddleOf(aPresContext, aChar).Exists() ||
-    IsComposite(aPresContext, aChar);
+    MiddleOf(aPresContext, aChar).Exists();
 }
 
 
@@ -697,7 +618,6 @@ InitGlobals(nsPresContext* aPresContext)
 nsStyleContext*
 nsMathMLChar::GetStyleContext() const
 {
-  NS_ASSERTION(!mParent, "invalid call - not allowed for child chars");
   NS_ASSERTION(mStyleContext, "chars should always have style context");
   return mStyleContext;
 }
@@ -705,7 +625,6 @@ nsMathMLChar::GetStyleContext() const
 void
 nsMathMLChar::SetStyleContext(nsStyleContext* aStyleContext)
 {
-  NS_ASSERTION(!mParent, "invalid call - not allowed for child chars");
   NS_PRECONDITION(aStyleContext, "null ptr");
   if (aStyleContext != mStyleContext) {
     if (mStyleContext)
@@ -713,13 +632,6 @@ nsMathMLChar::SetStyleContext(nsStyleContext* aStyleContext)
     if (aStyleContext) {
       mStyleContext = aStyleContext;
       aStyleContext->AddRef();
-
-      
-      nsMathMLChar* child = mSibling;
-      while (child) {
-        child->mStyleContext = mStyleContext;
-        child = child->mSibling;
-      }
     }
   }
 }
@@ -728,7 +640,6 @@ void
 nsMathMLChar::SetData(nsPresContext* aPresContext,
                       nsString&       aData)
 {
-  NS_ASSERTION(!mParent, "invalid call - not allowed for child chars");
   if (!gInitialized) {
     InitGlobals(aPresContext);
   }
@@ -746,14 +657,6 @@ nsMathMLChar::SetData(nsPresContext* aPresContext,
     mGlyphTable = gGlyphTableList->GetGlyphTableFor(aPresContext, this);
   }
 }
-
-
-
-
-
-
-
-
 
 
 
@@ -1192,30 +1095,6 @@ nsMathMLChar::StretchEnumContext::TryParts(nsGlyphTable*    aGlyphTable,
 {
   if (!aGlyphTable->HasPartsOf(mPresContext, mChar))
     return false; 
-
-  
-  if (aGlyphTable->IsComposite(mPresContext, mChar)) {
-    
-    nsBoundingMetrics compositeSize;
-    nsresult rv =
-      mChar->ComposeChildren(mPresContext, mRenderingContext, aGlyphTable,
-                             mTargetSize, compositeSize, mStretchHint);
-#ifdef NOISY_SEARCH
-    printf("    Composing %d chars in font %s %s!\n",
-           aGlyphTable->ChildCountOf(mPresContext, mChar),
-           NS_LossyConvertUTF16toASCII(fontName).get(),
-           NS_SUCCEEDED(rv)? "OK" : "Rejected");
-#endif
-    if (NS_FAILED(rv))
-      return false; 
-
-    
-    mChar->mGlyph = kNullGlyph; 
-    mGlyphFound = true;
-    mChar->mGlyphTable = aGlyphTable;
-    mBoundingMetrics = compositeSize;
-    return true; 
-  }
 
   
 
@@ -1715,89 +1594,6 @@ nsMathMLChar::GetMaxWidth(nsPresContext* aPresContext,
                   bm, aStretchHint | NS_STRETCH_MAXWIDTH);
 
   return NS_MAX(bm.width, bm.rightBearing) - NS_MIN(0, bm.leftBearing);
-}
-
-nsresult
-nsMathMLChar::ComposeChildren(nsPresContext*      aPresContext,
-                              nsRenderingContext& aRenderingContext,
-                              nsGlyphTable*        aGlyphTable,
-                              nscoord              aTargetSize,
-                              nsBoundingMetrics&   aCompositeSize,
-                              PRUint32             aStretchHint)
-{
-  PRInt32 i = 0;
-  nsMathMLChar* child;
-  PRInt32 count = aGlyphTable->ChildCountOf(aPresContext, this);
-  NS_ASSERTION(count, "something is wrong somewhere");
-  if (!count) return NS_ERROR_FAILURE;
-  
-  
-  
-  nsMathMLChar* last = this;
-  while ((i < count) && last->mSibling) {
-    i++;
-    last = last->mSibling;
-  }
-  while (i < count) {
-    child = new nsMathMLChar(this);
-    last->mSibling = child;
-    last = child;
-    i++;
-  }
-  if (last->mSibling) {
-    delete last->mSibling;
-    last->mSibling = nullptr;
-  }
-  
-  nsBoundingMetrics splitSize;
-  if (NS_STRETCH_DIRECTION_HORIZONTAL == mDirection)
-    splitSize.width = aTargetSize / count;
-  else {
-    splitSize.ascent = aTargetSize / (count * 2);
-    splitSize.descent = splitSize.ascent;
-  }
-  nscoord dx = 0, dy = 0;
-  for (i = 0, child = mSibling; child; child = child->mSibling, i++) {
-    
-    
-    child->mData = mData;
-    child->mDirection = mDirection;
-    child->mStyleContext = mStyleContext;
-    child->mGlyphTable = aGlyphTable; 
-    child->mMirrored = mMirrored;
-    
-    nsBoundingMetrics childSize;
-    nsresult rv = child->Stretch(aPresContext, aRenderingContext, mDirection,
-                                 splitSize, childSize, aStretchHint, mMirrored);
-    
-    
-    if (NS_FAILED(rv) ||
-        (NS_STRETCH_DIRECTION_UNSUPPORTED == child->mDirection)) {
-      delete mSibling; 
-      mSibling = nullptr;
-      return NS_ERROR_FAILURE;
-    }
-    child->SetRect(nsRect(dx, dy, childSize.width,
-                          childSize.ascent+childSize.descent));
-    if (0 == i)
-      aCompositeSize = childSize;
-    else {
-      if (NS_STRETCH_DIRECTION_HORIZONTAL == mDirection)
-        aCompositeSize += childSize;
-      else {
-        aCompositeSize.descent += childSize.ascent + childSize.descent;
-        if (aCompositeSize.leftBearing > childSize.leftBearing)
-          aCompositeSize.leftBearing = childSize.leftBearing;
-        if (aCompositeSize.rightBearing < childSize.rightBearing)
-          aCompositeSize.rightBearing = childSize.rightBearing;
-      }
-    }
-    if (NS_STRETCH_DIRECTION_HORIZONTAL == mDirection)
-      dx += childSize.width;
-    else
-      dy += childSize.ascent + childSize.descent;
-  }
-  return NS_OK;
 }
 
 class nsDisplayMathMLSelectionRect : public nsDisplayItem {

@@ -144,6 +144,11 @@ nsContentBlocker::ShouldLoad(PRUint32          aContentType,
 
   
   
+  if (aContentType == nsIContentPolicy::TYPE_OBJECT)
+    return NS_OK;
+  
+  
+  
   nsCAutoString scheme;
   aContentLocation->GetScheme(scheme);
   if (!scheme.LowerCaseEqualsLiteral("ftp") &&
@@ -162,40 +167,8 @@ nsContentBlocker::ShouldLoad(PRUint32          aContentType,
       *aDecision = nsIContentPolicy::REJECT_SERVER;
     }
   }
-  if (aContentType != nsIContentPolicy::TYPE_OBJECT || aMimeGuess.IsEmpty())
-    return NS_OK;
 
-  
-  
-  nsCOMPtr<nsIObjectLoadingContent> objectLoader =
-    do_QueryInterface(aRequestingContext);
-  if (!objectLoader)
-    return NS_OK;
-
-  PRUint32 contentType;
-  rv = objectLoader->GetContentTypeForMIMEType(aMimeGuess, &contentType);
-  if (NS_FAILED(rv))
-    return rv;
-    
-  switch (contentType) {
-  case nsIObjectLoadingContent::TYPE_IMAGE:
-    aContentType = nsIContentPolicy::TYPE_IMAGE;
-    break;
-  case nsIObjectLoadingContent::TYPE_DOCUMENT:
-    aContentType = nsIContentPolicy::TYPE_SUBDOCUMENT;
-    break;
-  default:
-    return NS_OK;
-  }
-
-  NS_ASSERTION(aContentType != nsIContentPolicy::TYPE_OBJECT,
-               "Shouldn't happen.  Infinite loops are bad!");
-
-  
-  
-  return ShouldLoad(aContentType, aContentLocation, aRequestingLocation,
-                    aRequestingContext, aMimeGuess, aExtra, aRequestPrincipal,
-                    aDecision);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -223,6 +196,29 @@ nsContentBlocker::ShouldProcess(PRUint32          aContentType,
     }
   }
 
+  
+  
+  
+  
+  
+  
+  if (aContentType == nsIContentPolicy::TYPE_OBJECT) {
+    *aDecision = nsIContentPolicy::ACCEPT;
+
+    bool shouldLoad, fromPrefs;
+    nsresult rv = TestPermission(aContentLocation, aRequestingLocation,
+				 aContentType, &shouldLoad, &fromPrefs);
+    NS_ENSURE_SUCCESS(rv, rv);
+    if (!shouldLoad) {
+      if (fromPrefs) {
+	*aDecision = nsIContentPolicy::REJECT_TYPE;
+      } else {
+	*aDecision = nsIContentPolicy::REJECT_SERVER;
+      }
+    }
+    return NS_OK;
+  }
+  
   
   
   return ShouldLoad(aContentType, aContentLocation, aRequestingLocation,

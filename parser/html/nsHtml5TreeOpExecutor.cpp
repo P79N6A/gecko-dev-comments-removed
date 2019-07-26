@@ -146,7 +146,7 @@ nsHtml5TreeOpExecutor::DidBuildModel(bool aTerminated)
   
   
   
-  DidBuildModelImpl(aTerminated || IsBroken());
+  DidBuildModelImpl(aTerminated || NS_FAILED(IsBroken()));
 
   if (!mLayoutStarted) {
     
@@ -480,7 +480,7 @@ nsHtml5TreeOpExecutor::RunFlushLoop()
       return;
     }
 
-    if (IsBroken()) {
+    if (NS_FAILED(IsBroken())) {
       return;
     }
 
@@ -936,7 +936,7 @@ nsHtml5TreeOpExecutor::Reset()
   mFlushState = eNotFlushing;
   mRunFlushLoopOnStack = false;
   MOZ_ASSERT(!mReadingFromStage);
-  MOZ_ASSERT(!mBroken);
+  MOZ_ASSERT(NS_SUCCEEDED(mBroken));
 }
 
 void

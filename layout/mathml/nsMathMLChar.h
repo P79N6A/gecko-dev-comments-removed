@@ -57,24 +57,13 @@ struct nsGlyphCode {
 
 
 
-
-
-
-
-
-
-
-
-
 class nsMathMLChar
 {
 public:
   
-  nsMathMLChar(nsMathMLChar* aParent = nullptr) {
+  nsMathMLChar() {
     MOZ_COUNT_CTOR(nsMathMLChar);
     mStyleContext = nullptr;
-    mSibling = nullptr;
-    mParent = aParent;
     mUnscaledAscent = 0;
     mScaleX = mScaleY = 1.0;
     mDrawNormal = true;
@@ -84,14 +73,7 @@ public:
   
   ~nsMathMLChar() {
     MOZ_COUNT_DTOR(nsMathMLChar);
-    
-    
-    if (!mParent && mStyleContext) { 
-      mStyleContext->Release();
-    }
-    if (mSibling) {
-      delete mSibling;
-    }
+    mStyleContext->Release();
   }
 
   nsresult
@@ -152,16 +134,6 @@ public:
   void
   SetRect(const nsRect& aRect) {
     mRect = aRect;
-    
-    if (!mParent && mSibling) { 
-                                
-      for (nsMathMLChar* child = mSibling; child; child = child->mSibling) {
-        nsRect rect; 
-        child->GetRect(rect);
-        rect.MoveBy(mRect.x, mRect.y);
-        child->SetRect(rect);
-      }
-    }
   }
 
   
@@ -209,10 +181,6 @@ protected:
   friend class nsGlyphTable;
   nsString           mData;
 
-  
-  nsMathMLChar*      mSibling;
-  nsMathMLChar*      mParent;
-
 private:
   nsRect             mRect;
   nsStretchDirection mDirection;
@@ -245,14 +213,6 @@ private:
                   PRUint32                 aStretchHint,
                   float           aMaxSize = NS_MATHML_OPERATOR_SIZE_INFINITY,
                   bool            aMaxSizeIsAbsolute = false);
-
-  nsresult
-  ComposeChildren(nsPresContext*       aPresContext,
-                  nsRenderingContext& aRenderingContext,
-                  nsGlyphTable*        aGlyphTable,
-                  nscoord              aTargetSize,
-                  nsBoundingMetrics&   aCompositeSize,
-                  PRUint32             aStretchHint);
 
   nsresult
   PaintVertically(nsPresContext*       aPresContext,

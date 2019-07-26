@@ -79,6 +79,18 @@ public:
     GLXPixmap GetGLXPixmap();
 #endif
 
+    
+    
+    
+    
+    
+    bool IsPadSlow() {
+        
+        
+        return VendorRelease(mDisplay) >= 60700000 ||
+            VendorRelease(mDisplay) < 10699000;
+    }
+
 protected:
     
     bool mPixmapTaken;

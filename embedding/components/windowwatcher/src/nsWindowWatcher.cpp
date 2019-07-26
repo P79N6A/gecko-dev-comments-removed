@@ -58,6 +58,7 @@
 #include "nsContentUtils.h"
 #include "nsIPrefBranch.h"
 #include "nsIPrefService.h"
+#include "nsSandboxFlags.h"
 
 #ifdef USEWEAKREFS
 #include "nsIWeakReference.h"
@@ -548,7 +549,7 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
   
   
   
-  chromeFlags = CalculateChromeFlags(features.get(), featuresSpecified,
+  chromeFlags = CalculateChromeFlags(aParent, features.get(), featuresSpecified,
                                      aDialog, uriToLoadIsChrome,
                                      hasChromeParent);
 
@@ -599,6 +600,18 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
     
     
     windowNeedsName = true;
+
+    
+    
+    if (aParent) {
+      nsCOMPtr<nsIDOMDocument> domdoc;
+      aParent->GetDocument(getter_AddRefs(domdoc));
+      nsCOMPtr<nsIDocument> doc = do_QueryInterface(domdoc);
+
+      if (doc && (doc->GetSandboxFlags() & SANDBOXED_NAVIGATION)) {
+        return NS_ERROR_FAILURE;
+      }
+    }
 
     
     
@@ -1421,7 +1434,9 @@ nsWindowWatcher::URIfromURL(const char *aURL,
 
 
 
-PRUint32 nsWindowWatcher::CalculateChromeFlags(const char *aFeatures,
+
+PRUint32 nsWindowWatcher::CalculateChromeFlags(nsIDOMWindow *aParent,
+                                               const char *aFeatures,
                                                bool aFeaturesSpecified,
                                                bool aDialog,
                                                bool aChromeURL,
@@ -1588,6 +1603,17 @@ PRUint32 nsWindowWatcher::CalculateChromeFlags(const char *aFeatures,
   if (!(chromeFlags & nsIWebBrowserChrome::CHROME_OPENAS_CHROME)) {
     
     chromeFlags &= ~nsIWebBrowserChrome::CHROME_DEPENDENT;
+  }
+
+  
+  
+  nsCOMPtr<nsIDocShell> docshell = do_GetInterface(aParent);
+  if (docshell) {
+    bool belowContentBoundary = false;
+    docshell->GetIsBelowContentBoundary(&belowContentBoundary);
+    if (belowContentBoundary) {
+      chromeFlags &= ~nsIWebBrowserChrome::CHROME_OPENAS_DIALOG;
+    }
   }
 
   return chromeFlags;

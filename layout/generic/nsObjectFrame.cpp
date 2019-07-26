@@ -88,6 +88,7 @@
 
 #include "gfxContext.h"
 #include "gfxPlatform.h"
+#include "ImageLayers.h"
 
 #ifdef XP_WIN
 #include "gfxWindowsNativeDrawing.h"
@@ -430,8 +431,7 @@ nsObjectFrame::PrepForDrawing(nsIWidget *aWidget)
     }
 #endif
 
-    rpc->RegisterPluginForGeometryUpdates(this);
-    rpc->RequestUpdatePluginGeometry(this);
+    RegisterPluginForGeometryUpdates();
 
     
     
@@ -450,8 +450,7 @@ nsObjectFrame::PrepForDrawing(nsIWidget *aWidget)
     FixupWindow(GetContentRectRelativeToSelf().Size());
 
 #ifndef XP_MACOSX
-    rpc->RegisterPluginForGeometryUpdates(this);
-    rpc->RequestUpdatePluginGeometry(this);
+    RegisterPluginForGeometryUpdates();
 #endif
   }
 
@@ -735,35 +734,57 @@ nsObjectFrame::CallSetWindow(bool aCheckIsHidden)
 }
 
 void
+nsObjectFrame::RegisterPluginForGeometryUpdates()
+{
+  nsRootPresContext* rpc = PresContext()->GetRootPresContext();
+  NS_ASSERTION(rpc, "We should have a root pres context!");
+  if (mRootPresContextRegisteredWith == rpc || !rpc) {
+    
+    
+    return;
+  }
+  if (mRootPresContextRegisteredWith && mRootPresContextRegisteredWith != rpc) {
+    
+    
+    UnregisterPluginForGeometryUpdates();
+  }
+  mRootPresContextRegisteredWith = rpc;
+  mRootPresContextRegisteredWith->RegisterPluginForGeometryUpdates(mContent);
+  mRootPresContextRegisteredWith->RequestUpdatePluginGeometry(this);
+}
+
+void
+nsObjectFrame::UnregisterPluginForGeometryUpdates()
+{
+  if (!mRootPresContextRegisteredWith) {
+    
+    return;
+  }
+  mRootPresContextRegisteredWith->UnregisterPluginForGeometryUpdates(mContent);
+  mRootPresContextRegisteredWith = nullptr;
+}
+
+void
 nsObjectFrame::SetInstanceOwner(nsPluginInstanceOwner* aOwner)
 {
   mInstanceOwner = aOwner;
-  if (!mInstanceOwner) {
-    nsRootPresContext* rpc = PresContext()->GetRootPresContext();
-    if (rpc) {
-      if (mWidget) {
-        if (mInnerView) {
-          mInnerView->DetachWidgetEventHandler(mWidget);
+  if (mInstanceOwner) {
+    return;
+  }
+  UnregisterPluginForGeometryUpdates();
+  if (mWidget && mInnerView) {
+    mInnerView->DetachWidgetEventHandler(mWidget);
+    
+    
+    nsIWidget* parent = mWidget->GetParent();
+    if (parent) {
+      nsTArray<nsIWidget::Configuration> configurations;
+      this->GetEmptyClipConfiguration(&configurations);
+      parent->ConfigureChildren(configurations);
 
-          rpc->UnregisterPluginForGeometryUpdates(this);
-          
-          
-          nsIWidget* parent = mWidget->GetParent();
-          if (parent) {
-            nsTArray<nsIWidget::Configuration> configurations;
-            this->GetEmptyClipConfiguration(&configurations);
-            parent->ConfigureChildren(configurations);
-
-            mWidget->Show(false);
-            mWidget->Enable(false);
-            mWidget->SetParent(nullptr);
-          }
-        }
-      } else {
-#ifndef XP_MACOSX
-        rpc->UnregisterPluginForGeometryUpdates(this);
-#endif
-      }
+      mWidget->Show(false);
+      mWidget->Enable(false);
+      mWidget->SetParent(nullptr);
     }
   }
 }
@@ -1625,7 +1646,7 @@ nsObjectFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
   
   r.Round();
   nsRefPtr<Layer> layer =
-    (GetLayerBuilderForManager(aManager)->GetLeafLayerFor(aBuilder, aManager, aItem));
+    (aManager->GetLayerBuilder()->GetLeafLayerFor(aBuilder, aManager, aItem));
 
   if (aItem->GetType() == nsDisplayItem::TYPE_PLUGIN) {
     if (!layer) {
@@ -2219,9 +2240,7 @@ nsObjectFrame::BeginSwapDocShells(nsIContent* aContent, void*)
   nsObjectFrame* objectFrame = static_cast<nsObjectFrame*>(obj);
   NS_ASSERTION(!objectFrame->mWidget || objectFrame->mWidget->GetParent(),
                "Plugin windows must not be toplevel");
-  nsRootPresContext* rootPC = objectFrame->PresContext()->GetRootPresContext();
-  NS_ASSERTION(rootPC, "unable to unregister the plugin frame");
-  rootPC->UnregisterPluginForGeometryUpdates(objectFrame);
+  objectFrame->UnregisterPluginForGeometryUpdates();
 }
 
  void
@@ -2247,8 +2266,7 @@ nsObjectFrame::EndSwapDocShells(nsIContent* aContent, void*)
     objectFrame->CallSetWindow();
 
     
-    rootPC->RegisterPluginForGeometryUpdates(objectFrame);
-    rootPC->RequestUpdatePluginGeometry(objectFrame);
+    objectFrame->RegisterPluginForGeometryUpdates();
   }
 }
 

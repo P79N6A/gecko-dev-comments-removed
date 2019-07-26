@@ -27,6 +27,7 @@ class ShadowImageLayer;
 class ShadowCanvasLayer;
 class ShadowColorLayer;
 class ReadbackProcessor;
+class ImageFactory;
 
 
 

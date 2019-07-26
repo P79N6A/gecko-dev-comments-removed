@@ -44,6 +44,7 @@
 #include "nsIObjectOutputStream.h"
 #include "nsIWritablePropertyBag2.h"
 #include "nsIContentSecurityPolicy.h"
+#include "nsSandboxFlags.h"
 
 static NS_DEFINE_CID(kJSURICID, NS_JSURI_CID);
 
@@ -189,6 +190,13 @@ nsresult nsJSThunk::EvaluateScript(nsIChannel *aChannel,
     }
 
     nsCOMPtr<nsPIDOMWindow> win(do_QueryInterface(global));
+
+    
+    
+    nsIDocument* doc = aOriginalInnerWindow->GetExtantDoc();
+    if (doc && (doc->GetSandboxFlags() & SANDBOXED_SCRIPTS)) {
+        return NS_ERROR_DOM_RETVAL_UNDEFINED;
+    }
 
     
     nsAutoPopupStatePusher popupStatePusher(win, aPopupState);

@@ -1548,14 +1548,29 @@ CallMethodIfWrapped(JSContext *cx, IsAcceptableThis test, NativeImpl impl, CallA
 
 
 
+
+
+
+
+template<IsAcceptableThis Test, NativeImpl Impl>
 JS_ALWAYS_INLINE bool
-CallNonGenericMethod(JSContext *cx, IsAcceptableThis test, NativeImpl impl, CallArgs args)
+CallNonGenericMethod(JSContext *cx, CallArgs args)
 {
     const Value &thisv = args.thisv();
-    if (test(thisv))
-        return impl(cx, args);
+    if (Test(thisv))
+        return Impl(cx, args);
 
-    return detail::CallMethodIfWrapped(cx, test, impl, args);
+    return detail::CallMethodIfWrapped(cx, Test, Impl, args);
+}
+
+JS_ALWAYS_INLINE bool
+CallNonGenericMethod(JSContext *cx, IsAcceptableThis Test, NativeImpl Impl, CallArgs args)
+{
+    const Value &thisv = args.thisv();
+    if (Test(thisv))
+        return Impl(cx, args);
+
+    return detail::CallMethodIfWrapped(cx, Test, Impl, args);
 }
 
 }  
@@ -2526,6 +2541,11 @@ class AutoIdRooter : private AutoGCRooter
 
 
 #define JSFUN_LAMBDA            0x08    /* expressed, not declared, function */
+
+#define JSFUN_SELF_HOSTED       0x40    /* function is self-hosted native and
+                                           must not be decompilable nor
+                                           constructible. */
+
 #define JSFUN_HEAVYWEIGHT       0x80    /* activation requires a Call object */
 
 #define JSFUN_HEAVYWEIGHT_TEST(f)  ((f) & JSFUN_HEAVYWEIGHT)
@@ -4402,11 +4422,17 @@ struct JSPropertySpec {
     JSStrictPropertyOpWrapper   setter;
 };
 
+
+
+
+
+
 struct JSFunctionSpec {
     const char      *name;
     JSNativeWrapper call;
     uint16_t        nargs;
     uint16_t        flags;
+    const char      *selfHostedName;
 };
 
 
@@ -5135,7 +5161,7 @@ struct JS_PUBLIC_API(CompileOptions) {
     unsigned lineno;
     bool compileAndGo;
     bool noScriptRval;
-    bool allowIntrinsicsCalls;
+    bool selfHostingMode;
     enum SourcePolicy {
         NO_SOURCE,
         LAZY_SOURCE,
@@ -5152,7 +5178,7 @@ struct JS_PUBLIC_API(CompileOptions) {
     }
     CompileOptions &setCompileAndGo(bool cng) { compileAndGo = cng; return *this; }
     CompileOptions &setNoScriptRval(bool nsr) { noScriptRval = nsr; return *this; }
-    CompileOptions &setAllowIntrinsicsCalls(bool aic) { allowIntrinsicsCalls = aic; return *this; }
+    CompileOptions &setSelfHostingMode(bool shm) { selfHostingMode = shm; return *this; }
     CompileOptions &setSourcePolicy(SourcePolicy sp) { sourcePolicy = sp; return *this; }
 };
 

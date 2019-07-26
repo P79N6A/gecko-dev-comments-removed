@@ -775,6 +775,8 @@ protected:
     PRInt32                    mPreviousTransIndex;
     PRInt32                    mLoadedTransIndex;
 
+    PRUint32                   mSandboxFlags;
+
     bool                       mCreated;
     bool                       mAllowSubframes;
     bool                       mAllowPlugins;
@@ -818,7 +820,7 @@ protected:
     
     
     bool                       mSavingOldViewer;
-
+    
     
     bool                       mDynamicallyCreated;
 #ifdef DEBUG

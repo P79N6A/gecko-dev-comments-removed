@@ -41,7 +41,8 @@ ChannelMediaResource::ChannelMediaResource(nsMediaDecoder* aDecoder,
     mReopenOnError(false), mIgnoreClose(false),
     mCacheStream(this),
     mLock("ChannelMediaResource.mLock"),
-    mIgnoreResume(false)
+    mIgnoreResume(false),
+    mSeekingForMetadata(false)
 {
 }
 
@@ -261,7 +262,12 @@ ChannelMediaResource::OnStartRequest(nsIRequest* aRequest)
   }
 
   mReopenOnError = false;
-  mIgnoreClose = false;
+  
+  
+  
+  
+  mIgnoreClose = mSeekingForMetadata;
+
   if (mSuspendCount > 0) {
     
     
@@ -588,6 +594,16 @@ nsresult ChannelMediaResource::Seek(PRInt32 aWhence, PRInt64 aOffset)
   NS_ASSERTION(!NS_IsMainThread(), "Don't call on main thread");
 
   return mCacheStream.Seek(aWhence, aOffset);
+}
+
+void ChannelMediaResource::StartSeekingForMetadata()
+{
+  mSeekingForMetadata = true;
+}
+
+void ChannelMediaResource::EndSeekingForMetadata()
+{
+  mSeekingForMetadata = false;
 }
 
 PRInt64 ChannelMediaResource::Tell()
@@ -926,6 +942,8 @@ public:
   virtual void     SetPlaybackRate(PRUint32 aBytesPerSecond) {}
   virtual nsresult Read(char* aBuffer, PRUint32 aCount, PRUint32* aBytes);
   virtual nsresult Seek(PRInt32 aWhence, PRInt64 aOffset);
+  virtual void     StartSeekingForMetadata() {};
+  virtual void     EndSeekingForMetadata() {};
   virtual PRInt64  Tell();
 
   

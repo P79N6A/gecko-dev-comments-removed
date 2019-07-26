@@ -20,10 +20,207 @@
 
 #include "frontend/ParseMaps.h"
 #include "frontend/ParseNode.h"
-#include "frontend/TreeContext.h"
+#include "frontend/SharedContext.h"
 
 namespace js {
 namespace frontend {
+
+struct StmtInfoPC : public StmtInfoBase {
+    StmtInfoPC      *down;          
+    StmtInfoPC      *downScope;     
+
+    uint32_t        blockid;        
+
+    
+    bool            isFunctionBodyBlock;
+
+    StmtInfoPC(JSContext *cx) : StmtInfoBase(cx), isFunctionBodyBlock(false) {}
+};
+
+typedef HashSet<JSAtom *> FuncStmtSet;
+struct Parser;
+struct SharedContext;
+
+typedef Vector<Definition *, 16> DeclVector;
+
+
+
+
+
+
+
+
+
+struct ParseContext                 
+{
+    typedef StmtInfoPC StmtInfo;
+
+    SharedContext   *sc;            
+
+    uint32_t        bodyid;         
+    uint32_t        blockidGen;     
+
+    StmtInfoPC      *topStmt;       
+    StmtInfoPC      *topScopeStmt;  
+    Rooted<StaticBlockObject *> blockChain;
+                                    
+
+    const unsigned  staticLevel;    
+
+    uint32_t        parenDepth;     
+
+    uint32_t        yieldCount;     
+
+    ParseNode       *blockNode;     
+
+  private:
+    AtomDecls       decls_;         
+    DeclVector      args_;          
+    DeclVector      vars_;          
+
+  public:
+    const AtomDecls &decls() const {
+        return decls_;
+    }
+
+    uint32_t numArgs() const {
+        JS_ASSERT(sc->inFunction());
+        return args_.length();
+    }
+
+    uint32_t numVars() const {
+        JS_ASSERT(sc->inFunction());
+        return vars_.length();
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    bool define(JSContext *cx, PropertyName *name, ParseNode *pn, Definition::Kind);
+
+    
+
+
+
+
+
+
+
+    void popLetDecl(JSAtom *atom);
+
+    
+    void prepareToAddDuplicateArg(Definition *prevDecl);
+
+    
+    void updateDecl(JSAtom *atom, ParseNode *newDecl);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    bool generateFunctionBindings(JSContext *cx, Bindings *bindings) const;
+
+  public:
+    ParseNode       *yieldNode;     
+
+
+    FunctionBox     *functionList;
+
+    
+    
+    
+    CompileError    *queuedStrictModeError;
+
+  private:
+    ParseContext    **parserPC;     
+
+
+
+  public:
+    OwnedAtomDefnMapPtr lexdeps;    
+
+    ParseContext     *parent;       
+
+    ParseNode       *innermostWith; 
+
+    FuncStmtSet     *funcStmts;     
+
+
+
+    
+
+
+
+    bool            hasReturnExpr:1; 
+    bool            hasReturnVoid:1; 
+
+    bool            inForInit:1;    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    bool            inDeclDestructuring:1;
+
+    inline ParseContext(Parser *prs, SharedContext *sc, unsigned staticLevel, uint32_t bodyid);
+    inline ~ParseContext();
+
+    inline bool init();
+
+    inline void setQueuedStrictModeError(CompileError *e);
+
+    unsigned blockid();
+
+    
+    
+    
+    
+    
+    
+    
+    bool atBodyLevel();
+};
+
+bool
+GenerateBlockId(ParseContext *pc, uint32_t &blockid);
 
 struct BindData;
 
@@ -40,7 +237,7 @@ struct Parser : private AutoGCRooter
     ParseNodeAllocator  allocator;
     ObjectBox           *traceListHead; 
 
-    TreeContext         *tc;            
+    ParseContext        *pc;            
 
     SourceCompressionToken *sct;        
 
@@ -58,7 +255,17 @@ struct Parser : private AutoGCRooter
 
 
 
-    const bool          allowIntrinsicsCalls:1;
+
+
+
+
+
+
+
+
+
+
+    const bool          selfHostingMode:1;
 
   public:
     Parser(JSContext *cx, const CompileOptions &options,
@@ -93,14 +300,14 @@ struct Parser : private AutoGCRooter
 
     ObjectBox *newObjectBox(JSObject *obj);
 
-    FunctionBox *newFunctionBox(JSObject *obj, ParseNode *fn, TreeContext *tc,
+    FunctionBox *newFunctionBox(JSObject *obj, ParseNode *fn, ParseContext *pc,
                                 StrictMode::StrictModeState sms);
 
     
 
 
 
-    JSFunction *newFunction(TreeContext *tc, JSAtom *atom, FunctionSyntaxKind kind);
+    JSFunction *newFunction(ParseContext *pc, JSAtom *atom, FunctionSyntaxKind kind);
 
     void trace(JSTracer *trc);
 
@@ -249,7 +456,7 @@ struct Parser : private AutoGCRooter
     
     
     bool allowsXML() const {
-        return tc->sc->strictModeState == StrictMode::NOTSTRICT && tokenStream.allowsXML();
+        return pc->sc->strictModeState == StrictMode::NOTSTRICT && tokenStream.allowsXML();
     }
 
     ParseNode *endBracketedExpr();

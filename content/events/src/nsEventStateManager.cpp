@@ -1119,6 +1119,11 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
       WheelPrefs::GetInstance()->ApplyUserPrefsToDelta(wheelEvent);
 
       
+      if (!NS_IsAllowedToDispatchDOMEvent(wheelEvent)) {
+        break;
+      }
+
+      
       
       
       
@@ -5086,10 +5091,10 @@ nsEventStateManager::DeltaAccumulator::InitLineOrPageDelta(
       
       
       if (mX && aEvent->deltaX && ((aEvent->deltaX > 0.0) != (mX > 0.0))) {
-        mX = 0.0;
+        mX = mPendingScrollAmountX = 0.0;
       }
       if (mY && aEvent->deltaY && ((aEvent->deltaY > 0.0) != (mY > 0.0))) {
-        mY = 0.0;
+        mY = mPendingScrollAmountY = 0.0;
       }
     }
   }
@@ -5104,6 +5109,17 @@ nsEventStateManager::DeltaAccumulator::InitLineOrPageDelta(
         mHandlingPixelOnlyDevice) &&
       !nsEventStateManager::WheelPrefs::GetInstance()->
         NeedToComputeLineOrPageDelta(aEvent)) {
+    
+    
+    
+    
+    
+    if (aEvent->deltaX) {
+      mX = aEvent->deltaX;
+    }
+    if (aEvent->deltaY) {
+      mY = aEvent->deltaY;
+    }
     mLastTime = TimeStamp::Now();
     return;
   }
@@ -5315,25 +5331,16 @@ nsEventStateManager::WheelPrefs::Init(
   prefNameX.AppendLiteral("delta_multiplier_x");
   mMultiplierX[aIndex] =
     static_cast<double>(Preferences::GetInt(prefNameX.get(), 100)) / 100;
-  if (mMultiplierX[aIndex] < 1.0 && mMultiplierX[aIndex] > -1.0) {
-    mMultiplierX[aIndex] = mMultiplierX[aIndex] < 0.0 ? -1.0 : 1.0;
-  }
 
   nsCAutoString prefNameY(basePrefName);
   prefNameY.AppendLiteral("delta_multiplier_y");
   mMultiplierY[aIndex] =
     static_cast<double>(Preferences::GetInt(prefNameY.get(), 100)) / 100;
-  if (mMultiplierY[aIndex] < 1.0 && mMultiplierY[aIndex] > -1.0) {
-    mMultiplierY[aIndex] = mMultiplierY[aIndex] < 0.0 ? -1.0 : 1.0;
-  }
 
   nsCAutoString prefNameZ(basePrefName);
   prefNameZ.AppendLiteral("delta_multiplier_z");
   mMultiplierZ[aIndex] =
     static_cast<double>(Preferences::GetInt(prefNameZ.get(), 100)) / 100;
-  if (mMultiplierZ[aIndex] < 1.0 && mMultiplierZ[aIndex] > -1.0) {
-    mMultiplierZ[aIndex] = mMultiplierZ[aIndex] < 0.0 ? -1.0 : 1.0;
-  }
 
   nsCAutoString prefNameAction(basePrefName);
   prefNameAction.AppendLiteral("action");
@@ -5380,10 +5387,12 @@ nsEventStateManager::WheelPrefs::CancelApplyingUserPrefsFromOverflowDelta(
   Index index = GetIndexFor(aEvent);
   Init(index);
 
-  NS_ASSERTION(mMultiplierX[index] && mMultiplierY[index],
-               "The absolute values of both multipliers must be 1 or larger");
-  aEvent->overflowDeltaX /= mMultiplierX[index];
-  aEvent->overflowDeltaY /= mMultiplierY[index];
+  if (mMultiplierX[index]) {
+    aEvent->overflowDeltaX /= mMultiplierX[index];
+  }
+  if (mMultiplierY[index]) {
+    aEvent->overflowDeltaY /= mMultiplierY[index];
+  }
 }
 
 nsEventStateManager::WheelPrefs::Action

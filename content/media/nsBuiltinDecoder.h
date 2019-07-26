@@ -195,11 +195,16 @@
 #include "nsMediaDecoder.h"
 #include "nsHTMLMediaElement.h"
 #include "mozilla/ReentrantMonitor.h"
-#include "ImageLayers.h"
-class nsAudioStream;
+
+namespace mozilla {
+namespace layers {
+class Image;
+} 
+} 
 
 typedef mozilla::layers::Image Image;
-typedef mozilla::layers::ImageContainer ImageContainer;
+
+class nsAudioStream;
 
 static inline bool IsCurrentThread(nsIThread* aThread) {
   return NS_GetCurrentThread() == aThread;
@@ -375,20 +380,12 @@ public:
   virtual void AddOutputStream(SourceMediaStream* aStream, bool aFinishWhenEnded);
   
   struct OutputMediaStream {
-    void Init(PRInt64 aInitialTime, SourceMediaStream* aStream, bool aFinishWhenEnded)
-    {
-      mLastAudioPacketTime = -1;
-      mLastAudioPacketEndTime = -1;
-      mAudioFramesWrittenBaseTime = aInitialTime;
-      mAudioFramesWritten = 0;
-      mNextVideoTime = aInitialTime;
-      mStream = aStream;
-      mStreamInitialized = false;
-      mFinishWhenEnded = aFinishWhenEnded;
-      mHaveSentFinish = false;
-      mHaveSentFinishAudio = false;
-      mHaveSentFinishVideo = false;
-    }
+    OutputMediaStream();
+    ~OutputMediaStream();
+    OutputMediaStream(const OutputMediaStream& rhs);
+
+    void Init(PRInt64 aInitialTime, SourceMediaStream* aStream, bool aFinishWhenEnded);
+    
     PRInt64 mLastAudioPacketTime; 
     PRInt64 mLastAudioPacketEndTime; 
     

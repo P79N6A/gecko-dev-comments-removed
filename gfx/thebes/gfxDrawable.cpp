@@ -73,15 +73,7 @@ PreparePatternForUntiledDrawing(gfxPattern* aPattern,
             
             
             
-
-            gfxXlibSurface *xlibSurface =
-                static_cast<gfxXlibSurface *>(currentTarget);
-            Display *dpy = xlibSurface->XDisplay();
-            
-            
-            if (VendorRelease(dpy) >= 60700000 ||
-                VendorRelease(dpy) < 10699000) {
-
+            if (static_cast<gfxXlibSurface*>(currentTarget)->IsPadSlow()) {
                 bool isDownscale =
                     aDeviceToImage.xx >= 1.0 && aDeviceToImage.yy >= 1.0 &&
                     aDeviceToImage.xy == 0.0 && aDeviceToImage.yx == 0.0;

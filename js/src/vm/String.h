@@ -196,18 +196,27 @@ class JSString : public js::gc::Cell
 
 
 
+
+
+
+
+
+
+
     static const size_t LENGTH_SHIFT          = 4;
     static const size_t FLAGS_MASK            = JS_BITMASK(LENGTH_SHIFT);
 
-    static const size_t ROPE_BIT              = JS_BIT(0);
+    static const size_t ROPE_FLAGS            = 0;
+    static const size_t DEPENDENT_FLAGS       = JS_BIT(0);
+    static const size_t UNDEPENDED_FLAGS      = JS_BIT(0) | JS_BIT(1);
+    static const size_t EXTENSIBLE_FLAGS      = JS_BIT(1);
+    static const size_t FIXED_FLAGS           = JS_BIT(2);
 
-    static const size_t DEPENDENT_FLAGS       = JS_BIT(1);
-    static const size_t EXTENSIBLE_FLAGS      = JS_BIT(2);
-    static const size_t FIXED_FLAGS           = JS_BIT(1) | JS_BIT(2);
-    static const size_t UNDEPENDED_FLAGS      = JS_BIT(1) | JS_BIT(3);
+    static const size_t INT32_MASK            = JS_BITMASK(3);
+    static const size_t INT32_FLAGS           = JS_BIT(1) | JS_BIT(2);
 
-    static const size_t ATOM_MASK             = JS_BITMASK(3);
-    static const size_t ATOM_FLAGS            = JS_BIT(3);
+    static const size_t HAS_BASE_BIT          = JS_BIT(0);
+    static const size_t ATOM_BIT              = JS_BIT(3);
 
     static const size_t MAX_LENGTH            = JS_BIT(32 - LENGTH_SHIFT) - 1;
 
@@ -272,9 +281,7 @@ class JSString : public js::gc::Cell
 
     JS_ALWAYS_INLINE
     bool isRope() const {
-        bool rope = d.lengthAndFlags & ROPE_BIT;
-        JS_ASSERT_IF(rope, (d.lengthAndFlags & FLAGS_MASK) == ROPE_BIT);
-        return rope;
+        return (d.lengthAndFlags & FLAGS_MASK) == ROPE_FLAGS;
     }
 
     JS_ALWAYS_INLINE
@@ -285,7 +292,7 @@ class JSString : public js::gc::Cell
 
     JS_ALWAYS_INLINE
     bool isLinear() const {
-        return !(d.lengthAndFlags & ROPE_BIT);
+        return !isRope();
     }
 
     JS_ALWAYS_INLINE
@@ -353,7 +360,7 @@ class JSString : public js::gc::Cell
 
     JS_ALWAYS_INLINE
     bool isAtom() const {
-        return !(d.lengthAndFlags & ATOM_MASK);
+        return (d.lengthAndFlags & ATOM_BIT);
     }
 
     JS_ALWAYS_INLINE
@@ -365,8 +372,8 @@ class JSString : public js::gc::Cell
     
 
     inline bool hasBase() const {
-        JS_STATIC_ASSERT((DEPENDENT_FLAGS | JS_BIT(3)) == UNDEPENDED_FLAGS);
-        return (d.lengthAndFlags & JS_BITMASK(3)) == DEPENDENT_FLAGS;
+        JS_STATIC_ASSERT((DEPENDENT_FLAGS | JS_BIT(1)) == UNDEPENDED_FLAGS);
+        return (d.lengthAndFlags & HAS_BASE_BIT);
     }
 
     inline JSLinearString *base() const;

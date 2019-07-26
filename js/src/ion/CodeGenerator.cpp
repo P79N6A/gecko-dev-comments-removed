@@ -1831,7 +1831,7 @@ CodeGenerator::visitCompareS(LCompareS *lir)
     masm.bind(&notPointerEqual);
 
     
-    Imm32 atomMask(JSString::ATOM_MASK);
+    Imm32 atomMask(JSString::ATOM_BIT);
 
     
     
@@ -2005,7 +2005,7 @@ CodeGenerator::visitCharCodeAt(LCharCodeAt *lir)
     Address lengthAndFlagsAddr(str, JSString::offsetOfLengthAndFlags());
     masm.loadPtr(lengthAndFlagsAddr, output);
 
-    masm.branchTest32(Assembler::NonZero, output, Imm32(JSString::ROPE_BIT), ool->entry());
+    masm.branchTest32(Assembler::Zero, output, Imm32(JSString::FLAGS_MASK), ool->entry());
     masm.bind(ool->rejoin());
 
     

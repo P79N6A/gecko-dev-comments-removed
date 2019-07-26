@@ -2519,15 +2519,15 @@ mjit::Compiler::jsop_stricteq(JSOp op)
         JS_ASSERT(reg2 != tmpReg);
 
         
-        Imm32 atomMask(JSString::ATOM_MASK);
+        Imm32 atomBit(JSString::ATOM_BIT);
 
         masm.load32(Address(reg1, JSString::offsetOfLengthAndFlags()), tmpReg);
-        Jump op1NotAtomized = masm.branchTest32(Assembler::NonZero, tmpReg, atomMask);
+        Jump op1NotAtomized = masm.branchTest32(Assembler::Zero, tmpReg, atomBit);
         stubcc.linkExit(op1NotAtomized, Uses(2));
 
         if (!op2->isConstant()) {
             masm.load32(Address(reg2, JSString::offsetOfLengthAndFlags()), tmpReg);
-            Jump op2NotAtomized = masm.branchTest32(Assembler::NonZero, tmpReg, atomMask);
+            Jump op2NotAtomized = masm.branchTest32(Assembler::Zero, tmpReg, atomBit);
             stubcc.linkExit(op2NotAtomized, Uses(2));
         }
 

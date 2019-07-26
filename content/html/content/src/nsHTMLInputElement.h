@@ -18,6 +18,7 @@
 #include "nsDOMFile.h"
 #include "nsHTMLFormElement.h" 
 #include "nsIFile.h"
+#include "nsIFilePicker.h"
 
 class nsDOMFileList;
 class nsIFilePicker;
@@ -728,6 +729,38 @@ private:
     
     
     bool mIsTrusted; 
+  };
+
+  class AsyncClickHandler
+    : public nsRunnable
+  {
+  public:
+    AsyncClickHandler(nsHTMLInputElement* aInput);
+    NS_IMETHOD Run();
+
+  protected:
+    nsRefPtr<nsHTMLInputElement> mInput;
+    PopupControlState mPopupControlState;
+  };
+
+  class nsFilePickerShownCallback
+    : public nsIFilePickerShownCallback
+  {
+  public:
+    nsFilePickerShownCallback(nsHTMLInputElement* aInput,
+                              nsIFilePicker* aFilePicker,
+                              bool aMulti);
+    virtual ~nsFilePickerShownCallback()
+    { }
+
+    NS_DECL_ISUPPORTS
+
+    NS_IMETHOD Done(PRInt16 aResult);
+
+  private:
+    nsCOMPtr<nsIFilePicker> mFilePicker;
+    nsRefPtr<nsHTMLInputElement> mInput;
+    bool mMulti;
   };
 };
 

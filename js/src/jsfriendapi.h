@@ -84,7 +84,9 @@ enum {
     JS_TELEMETRY_GC_MMU_50,
     JS_TELEMETRY_GC_RESET,
     JS_TELEMETRY_GC_INCREMENTAL_DISABLED,
-    JS_TELEMETRY_GC_NON_INCREMENTAL
+    JS_TELEMETRY_GC_NON_INCREMENTAL,
+    JS_TELEMETRY_GC_SCC_SWEEP_TOTAL_MS,
+    JS_TELEMETRY_GC_SCC_SWEEP_MAX_PAUSE_MS
 };
 
 typedef void
@@ -575,7 +577,7 @@ class ProfileEntry
     const char * volatile string; 
     void * volatile sp;           
     JSScript * volatile script_;  
-    uint32_t volatile idx;        
+    int32_t volatile idx;         
 
   public:
     
@@ -608,6 +610,13 @@ class ProfileEntry
     static size_t offsetOfStackAddress() { return offsetof(ProfileEntry, sp); }
     static size_t offsetOfPCIdx() { return offsetof(ProfileEntry, idx); }
     static size_t offsetOfScript() { return offsetof(ProfileEntry, script_); }
+
+    
+
+
+
+
+    static const int32_t NullPCIndex = -1;
 };
 
 JS_FRIEND_API(void)
