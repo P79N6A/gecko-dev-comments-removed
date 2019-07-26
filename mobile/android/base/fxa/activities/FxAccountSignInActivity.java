@@ -151,6 +151,20 @@ public class FxAccountSignInActivity extends FxAccountAbstractSetupActivity {
       
       setResult(RESULT_OK, intent);
       finish();
+
+      
+      Intent successIntent;
+      if (result.verified) {
+        successIntent = new Intent(FxAccountSignInActivity.this, FxAccountVerifiedAccountActivity.class);
+      } else {
+        successIntent = new Intent(FxAccountSignInActivity.this, FxAccountConfirmAccountActivity.class);
+        successIntent.putExtra("sessionToken", result.sessionToken);
+      }
+      successIntent.putExtra("email", email);
+      
+      
+      successIntent.setFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+      startActivity(successIntent);
     }
   }
 
