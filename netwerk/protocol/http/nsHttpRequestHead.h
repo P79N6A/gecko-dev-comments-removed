@@ -54,6 +54,14 @@ public:
 
     void Flatten(nsACString &, bool pruneProxyHeaders = false);
 
+    
+    nsresult SetHeaderOnce(nsHttpAtom h, const char *v, bool merge = false)
+    {
+        if (!merge || !HasHeaderValue(h, v))
+            return mHeaders.SetHeader(h, nsDependentCString(v), merge);
+        return NS_OK;
+    }
+
 private:
     
     nsHttpHeaderArray mHeaders;
