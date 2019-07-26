@@ -21,6 +21,27 @@ MediaDecoderStateMachine* WMFDecoder::CreateStateMachine()
   return new MediaDecoderStateMachine(this, new WMFReader(this));
 }
 
+
+bool
+WMFDecoder::IsMP3Supported()
+{
+  if (!MediaDecoder::IsWMFEnabled()) {
+    return false;
+  }
+  if (WinUtils::GetWindowsVersion() != WinUtils::WIN7_VERSION) {
+    return true;
+  }
+  
+  
+  UINT spMajorVer = 0, spMinorVer = 0;
+  if (!WinUtils::GetWindowsServicePackVersion(spMajorVer, spMinorVer)) {
+    
+    
+    return false;
+  }
+  return spMajorVer != 0;
+}
+
 bool
 WMFDecoder::GetSupportedCodecs(const nsACString& aType,
                                char const *const ** aCodecList)
@@ -35,8 +56,10 @@ WMFDecoder::GetSupportedCodecs(const nsACString& aType,
     "mp3",
     nullptr
   };
-  if (aType.EqualsASCII("audio/mpeg") ||
-      aType.EqualsASCII("audio/mp3")) {
+  if ((aType.EqualsASCII("audio/mpeg") || aType.EqualsASCII("audio/mp3")) &&
+      IsMP3Supported()) {
+    
+    
     if (aCodecList) {
       *aCodecList = mp3AudioCodecs;
     }

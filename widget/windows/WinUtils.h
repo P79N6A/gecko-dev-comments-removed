@@ -50,6 +50,10 @@ public:
   static WinVersion GetWindowsVersion();
 
   
+  
+  static bool GetWindowsServicePackVersion(UINT& aOutMajor, UINT& aOutMinor);
+
+  
 
 
 
