@@ -16,14 +16,12 @@ function test() {
       aWindow.gBrowser.selectedBrowser.removeEventListener("load", onLoad, true);
       if (aIsZoomedWindow) {
         
-        aWindow.FullZoom.enlarge(function () {
-          isnot(aWindow.ZoomManager.zoom, 1, "Zoom level for about:blank should be changed");
-          aCallback();
-        });
-        return;
+        aWindow.FullZoom.enlarge();
+        isnot(aWindow.ZoomManager.zoom, 1, "Zoom level for about:blank should be changed");
+      } else {
+        
+        is(aWindow.ZoomManager.zoom, 1, "Zoom level for about:privatebrowsing should be reset");
       }
-      
-      is(aWindow.ZoomManager.zoom, 1, "Zoom level for about:privatebrowsing should be reset");
 
       aCallback();
     }, true);
@@ -33,18 +31,10 @@ function test() {
 
   function finishTest() {
     
-    let numWindows = windowsToReset.length;
-    if (!numWindows) {
-      finish();
-      return;
-    }
     windowsToReset.forEach(function(win) {
-      win.FullZoom.reset(function onReset() {
-        numWindows--;
-        if (!numWindows)
-          finish();
-      });
+      win.FullZoom.reset();
     });
+    finish();
   }
 
   function testOnWindow(options, callback) {
