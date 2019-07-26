@@ -54,6 +54,7 @@ class nsPIWindowRoot;
 namespace mozilla {
 namespace dom {
 class AudioContext;
+class SpeechSynthesis;
 }
 }
 
@@ -651,6 +652,10 @@ public:
   static bool HasPerformanceSupport();
   nsPerformance* GetPerformance();
 
+#ifdef MOZ_WEBSPEECH
+  mozilla::dom::SpeechSynthesis* GetSpeechSynthesisInternal();
+#endif
+
 protected:
   
   
@@ -689,6 +694,11 @@ protected:
 
   
   nsRefPtr<nsPerformance>       mPerformance;
+
+#ifdef MOZ_WEBSPEECH
+  
+  nsRefPtr<mozilla::dom::SpeechSynthesis>     mSpeechSynthesis;
+#endif
 
   uint32_t               mModalStateDepth;
 

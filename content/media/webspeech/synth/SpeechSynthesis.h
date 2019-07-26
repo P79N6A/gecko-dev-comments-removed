@@ -1,0 +1,71 @@
+
+
+
+
+
+
+#pragma once
+
+#include "nsCOMPtr.h"
+#include "nsString.h"
+#include "nsWrapperCache.h"
+#include "nsRefPtrHashtable.h"
+
+#include "EnableSpeechSynthesisCheck.h"
+#include "SpeechSynthesisUtterance.h"
+#include "SpeechSynthesisVoice.h"
+
+struct JSContext;
+class nsIDOMWindow;
+
+namespace mozilla {
+namespace dom {
+
+class nsSpeechTask;
+
+class SpeechSynthesis MOZ_FINAL : public nsISupports,
+                                  public nsWrapperCache,
+                                  public EnableSpeechSynthesisCheck
+{
+public:
+  SpeechSynthesis(nsPIDOMWindow* aParent);
+  virtual ~SpeechSynthesis();
+
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(SpeechSynthesis)
+
+  nsIDOMWindow* GetParentObject() const;
+
+  virtual JSObject* WrapObject(JSContext* aCx, JSObject* aScope);
+
+  bool Pending() const;
+
+  bool Speaking() const;
+
+  bool Paused() const;
+
+  void Speak(SpeechSynthesisUtterance& aUtterance);
+
+  void Cancel();
+
+  void Pause();
+
+  void Resume();
+
+  void OnEnd();
+
+  void GetVoices(nsTArray< nsRefPtr<SpeechSynthesisVoice> >& aResult);
+
+private:
+
+  void AdvanceQueue();
+
+  nsCOMPtr<nsPIDOMWindow> mParent;
+
+  nsTArray<nsRefPtr<SpeechSynthesisUtterance>> mSpeechQueue;
+
+  nsRefPtrHashtable<nsStringHashKey, SpeechSynthesisVoice> mVoiceCache;
+};
+
+} 
+} 
