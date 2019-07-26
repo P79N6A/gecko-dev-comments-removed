@@ -2,7 +2,10 @@
 
 
 
-#include "nspr.h"
+
+#include <stdint.h>
+#include <string.h>
+#include "prtime.h"
 
 
 

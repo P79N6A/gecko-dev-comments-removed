@@ -9,8 +9,6 @@
 #include "nsITXTToHTMLConv.h"
 #include "nsCOMPtr.h"
 #include "nsTArray.h"
-#include "nsAutoPtr.h"
-#include "nsIFactory.h"
 #include "nsString.h"
 
 #define NS_NSTXTTOHTMLCONVERTER_CID                         \
@@ -27,7 +25,9 @@ typedef struct convToken {
     nsString modText;   
     bool     prepend;   
 } convToken;
-    
+
+template<class T> class nsAutoPtr;
+
 
 
 

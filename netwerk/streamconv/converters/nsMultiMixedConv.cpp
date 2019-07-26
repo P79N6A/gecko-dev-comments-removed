@@ -4,14 +4,11 @@
 
 
 #include "nsMultiMixedConv.h"
-#include "nsMemory.h"
 #include "plstr.h"
 #include "nsIHttpChannel.h"
-#include "nsIServiceManager.h"
 #include "nsNetUtil.h"
 #include "nsMimeTypes.h"
 #include "nsIStringStream.h"
-#include "nsReadableUtils.h"
 #include "nsCRT.h"
 #include "nsIHttpChannelInternal.h"
 #include "nsURLHelper.h"

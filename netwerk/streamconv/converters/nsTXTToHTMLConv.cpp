@@ -4,10 +4,10 @@
 
 
 #include "nsTXTToHTMLConv.h"
-#include "nsNetUtil.h"
 #include "nsEscape.h"
 #include "nsStringStream.h"
 #include "nsAutoPtr.h"
+#include "nsIChannel.h"
 #include <algorithm>
 
 #define TOKEN_DELIMITERS NS_LITERAL_STRING("\t\r\n ").get()

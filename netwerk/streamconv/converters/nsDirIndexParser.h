@@ -6,11 +6,12 @@
 #ifndef __NSDIRINDEX_H_
 #define __NSDIRINDEX_H_
 
-#include "nsIDirIndex.h"
 #include "nsString.h"
 #include "nsCOMPtr.h"
 #include "nsIDirIndexListener.h"
-#include "nsITextToSubURI.h"
+
+class nsIDirIndex;
+class nsITextToSubURI;
 
 
 

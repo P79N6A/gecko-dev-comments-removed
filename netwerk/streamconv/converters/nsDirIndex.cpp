@@ -4,8 +4,6 @@
 
 
 #include "nsDirIndex.h"
-#include "nsReadableUtils.h"
-#include "nsCRT.h"
 #include "nsISupportsObsolete.h"
 
 NS_IMPL_ISUPPORTS1(nsDirIndex,
