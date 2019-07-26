@@ -65,7 +65,6 @@ public:
   NS_DECL_NSIOBSERVER
 
   nsExternalHelperAppService();
-  virtual ~nsExternalHelperAppService();
 
   
 
@@ -113,6 +112,8 @@ public:
                                                        bool *aExists) = 0;
 
 protected:
+  virtual ~nsExternalHelperAppService();
+
   
 
 
@@ -226,14 +227,14 @@ public:
                        const nsAString& aFilename,
                        uint32_t aReason, bool aForceSave);
 
-  ~nsExternalAppHandler();
-
   
 
 
   void DidDivertRequest(nsIRequest *request);
 
 protected:
+  ~nsExternalAppHandler();
+
   nsCOMPtr<nsIFile> mTempFile;
   nsCOMPtr<nsIURI> mSourceUrl;
   nsString mTempFileExtension;

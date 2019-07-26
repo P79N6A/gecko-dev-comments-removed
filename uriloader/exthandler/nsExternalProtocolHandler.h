@@ -25,9 +25,10 @@ public:
 	NS_DECL_NSIEXTERNALPROTOCOLHANDLER
 
 	nsExternalProtocolHandler();
-	~nsExternalProtocolHandler();
 
 protected:
+  ~nsExternalProtocolHandler();
+
   
   bool HaveExternalProtocolHandler(nsIURI * aURI);
 	nsCString	m_schemeName;

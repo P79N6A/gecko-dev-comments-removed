@@ -31,9 +31,10 @@ public:
   NS_DECL_ISUPPORTS
 
   nsURILoader();
-  ~nsURILoader();
 
 protected:
+  ~nsURILoader();
+
   
 
 

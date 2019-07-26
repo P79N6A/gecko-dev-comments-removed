@@ -70,7 +70,6 @@ class nsMIMEInfoBase : public nsIMIMEInfo {
     nsMIMEInfoBase(const char *aMIMEType = "");
     nsMIMEInfoBase(const nsACString& aMIMEType);
     nsMIMEInfoBase(const nsACString& aType, HandlerClass aClass);
-    virtual ~nsMIMEInfoBase();        
 
     void SetMIMEType(const nsACString & aMIMEType) { mSchemeOrType = aMIMEType; }
 
@@ -92,6 +91,8 @@ class nsMIMEInfoBase : public nsIMIMEInfo {
     bool HasExtensions() const { return mExtensions.Length() != 0; }
 
   protected:
+    virtual ~nsMIMEInfoBase();        
+
     
 
 
