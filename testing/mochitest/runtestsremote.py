@@ -70,11 +70,6 @@ class RemoteOptions(MochitestOptions):
                     help = "http port of the remote web server")
         defaults["httpPort"] = automation.DEFAULT_HTTP_PORT
 
-        self.add_option("--httpd-path", action = "store",
-                    type = "string", dest = "httpdPath",
-                    help = "path to the httpd.js file")
-        defaults["httpdPath"] = None
-
         self.add_option("--ssl-port", action = "store",
                     type = "string", dest = "sslPort",
                     help = "ssl port of the remote web server")
@@ -218,11 +213,6 @@ class RemoteOptions(MochitestOptions):
         tempPort = options.httpPort
         tempSSL = options.sslPort
         tempIP = options.webServer
-        
-        
-        
-        if not options.httpdPath:
-            options.httpdPath = options.utilityPath + "/components"
         options = MochitestOptions.verifyOptions(self, options, mochitest)
         options.webServer = tempIP
         options.app = temp
@@ -312,6 +302,11 @@ class MochiRemote(Mochitest):
         if options.utilityPath == None:
             print "ERROR: unable to find utility path for %s, please specify with --utility-path" % (os.name)
             sys.exit(1)
+        
+        
+        
+        if not options.httpdPath:
+            options.httpdPath = os.path.join(options.utilityPath, "components")
 
         xpcshell_path = os.path.join(options.utilityPath, xpcshell)
         if localAutomation.elf_arm(xpcshell_path):

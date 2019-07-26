@@ -475,6 +475,11 @@ class B2GDeviceMochitest(B2GMochitest):
         if options.utilityPath == None:
             print "ERROR: unable to find utility path for %s, please specify with --utility-path" % (os.name)
             sys.exit(1)
+        
+        
+        
+        if not options.httpdPath:
+            options.httpdPath = os.path.join(options.utilityPath, "components")
 
         options.profilePath = tempfile.mkdtemp()
         self.server = MochitestServer(localAutomation, options)
