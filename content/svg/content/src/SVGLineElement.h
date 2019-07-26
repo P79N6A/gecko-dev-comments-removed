@@ -17,8 +17,7 @@ namespace dom {
 
 typedef nsSVGPathGeometryElement SVGLineElementBase;
 
-class SVGLineElement MOZ_FINAL : public SVGLineElementBase,
-                                 public nsIDOMSVGElement
+class SVGLineElement MOZ_FINAL : public SVGLineElementBase
 {
 protected:
   SVGLineElement(already_AddRefed<nsINodeInfo> aNodeInfo);
@@ -31,11 +30,6 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  NS_FORWARD_NSIDOMNODE_TO_NSINODE
-  NS_FORWARD_NSIDOMELEMENT_TO_GENERIC
-  NS_FORWARD_NSIDOMSVGELEMENT(SVGLineElementBase::)
-
-  
   NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* name) const;
 
   
@@ -44,8 +38,6 @@ public:
   virtual void ConstructPath(gfxContext *aCtx);
 
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
-
-  virtual nsIDOMNode* AsDOMNode() { return this; }
 
   
   already_AddRefed<SVGAnimatedLength> X1();

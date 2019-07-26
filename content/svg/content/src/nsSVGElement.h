@@ -63,6 +63,7 @@ struct nsSVGEnumMapping;
 typedef nsStyledElementNotElementCSSInlineStyle nsSVGElementBase;
 
 class nsSVGElement : public nsSVGElementBase    
+                   , public nsIDOMSVGElement
 {
 protected:
   nsSVGElement(already_AddRefed<nsINodeInfo> aNodeInfo);
@@ -117,13 +118,9 @@ public:
   static const MappedAttributeEntry sLightingEffectsMap[];
   static const MappedAttributeEntry sMaskMap[];
 
-  
-  NS_IMETHOD GetId(nsAString & aId);
-  NS_IMETHOD SetId(const nsAString & aId);
-  NS_IMETHOD GetOwnerSVGElement(nsIDOMSVGElement** aOwnerSVGElement);
-  NS_IMETHOD GetViewportElement(nsIDOMSVGElement** aViewportElement);
-  NS_IMETHOD GetClassName(nsIDOMSVGAnimatedString** aClassName);
-  NS_IMETHOD GetStyle(nsIDOMCSSStyleDeclaration** aStyle);
+  NS_FORWARD_NSIDOMNODE_TO_NSINODE
+  NS_FORWARD_NSIDOMELEMENT_TO_GENERIC
+  NS_DECL_NSIDOMSVGELEMENT
 
   
   
@@ -296,6 +293,9 @@ public:
   virtual nsIAtom* GetTransformListAttrName() const {
     return nullptr;
   }
+
+  virtual nsIDOMNode* AsDOMNode() MOZ_FINAL { return this; }
+  virtual bool IsTransformable() { return false; }
 
   
   mozilla::dom::SVGSVGElement* GetOwnerSVGElement(mozilla::ErrorResult& rv);

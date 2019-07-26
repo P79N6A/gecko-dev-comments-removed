@@ -21,7 +21,6 @@ namespace dom {
 class SVGPathElement;
 
 class SVGMPathElement MOZ_FINAL : public SVGMPathElementBase,
-                                  public nsIDOMSVGElement,
                                   public nsStubMutationObserver
 {
 protected:
@@ -42,11 +41,6 @@ public:
   NS_DECL_NSIMUTATIONOBSERVER_ATTRIBUTECHANGED
 
   
-  NS_FORWARD_NSIDOMNODE_TO_NSINODE
-  NS_FORWARD_NSIDOMELEMENT_TO_GENERIC
-  NS_FORWARD_NSIDOMSVGELEMENT(SVGMPathElementBase::)
-
-  
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               nsIContent* aBindingParent,
@@ -65,8 +59,6 @@ public:
   
   
   SVGPathElement* GetReferencedPath();
-
-  virtual nsIDOMNode* AsDOMNode() { return this; }
 
   
   already_AddRefed<nsIDOMSVGAnimatedString> Href();

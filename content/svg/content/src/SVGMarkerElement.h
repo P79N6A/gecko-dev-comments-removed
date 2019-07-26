@@ -86,8 +86,7 @@ private:
 
 typedef nsSVGElement SVGMarkerElementBase;
 
-class SVGMarkerElement : public SVGMarkerElementBase,
-                         public nsIDOMSVGElement
+class SVGMarkerElement : public SVGMarkerElementBase
 {
   friend class ::nsSVGMarkerFrame;
 
@@ -101,11 +100,6 @@ public:
   
 
   NS_DECL_ISUPPORTS_INHERITED
-
-  
-  NS_FORWARD_NSIDOMNODE_TO_NSINODE
-  NS_FORWARD_NSIDOMELEMENT_TO_GENERIC
-  NS_FORWARD_NSIDOMSVGELEMENT(nsSVGElement::)
 
   
   NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* name) const;
@@ -125,8 +119,6 @@ public:
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
   nsSVGOrientType* GetOrientType() { return &mOrientType; }
-
-  virtual nsIDOMNode* AsDOMNode() { return this; }
 
   
   already_AddRefed<nsIDOMSVGAnimatedRect> ViewBox();

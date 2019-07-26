@@ -41,7 +41,6 @@ NS_IMPL_ELEMENT_CLONE_WITH_INIT(SVGFEDistantLightElement)
 
 
 
-
 bool
 SVGFEDistantLightElement::AttributeAffectsRendering(int32_t aNameSpaceID,
                                                     nsIAtom* aAttribute) const

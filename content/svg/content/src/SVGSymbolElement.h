@@ -20,7 +20,6 @@ namespace dom {
 typedef nsSVGElement SVGSymbolElementBase;
 
 class SVGSymbolElement MOZ_FINAL : public SVGSymbolElementBase,
-                                   public nsIDOMSVGElement,
                                    public SVGTests
 {
 protected:
@@ -35,16 +34,9 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  NS_FORWARD_NSIDOMNODE_TO_NSINODE
-  NS_FORWARD_NSIDOMELEMENT_TO_GENERIC
-  NS_FORWARD_NSIDOMSVGELEMENT(nsSVGElement::)
-
-  
   NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* name) const;
 
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
-
-  virtual nsIDOMNode* AsDOMNode() { return this; }
 
   
   already_AddRefed<nsIDOMSVGAnimatedRect> ViewBox();

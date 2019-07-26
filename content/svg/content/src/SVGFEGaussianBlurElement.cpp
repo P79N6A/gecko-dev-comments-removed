@@ -44,9 +44,7 @@ NS_INTERFACE_MAP_END_INHERITING(SVGFEGaussianBlurElementBase)
 
 
 
-
 NS_IMPL_ELEMENT_CLONE_WITH_INIT(SVGFEGaussianBlurElement)
-
 
 
 

@@ -19,7 +19,6 @@ namespace mozilla {
 namespace dom {
 
 class SVGStyleElement MOZ_FINAL : public SVGStyleElementBase,
-                                  public nsIDOMSVGElement,
                                   public nsStyleLinkElement,
                                   public nsStubMutationObserver
 {
@@ -35,11 +34,6 @@ public:
 
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(SVGStyleElement,
                                            SVGStyleElementBase)
-
-  
-  NS_FORWARD_NSIDOMNODE_TO_NSINODE
-  NS_FORWARD_NSIDOMELEMENT_TO_GENERIC
-  NS_FORWARD_NSIDOMSVGELEMENT(SVGStyleElementBase::)
 
   
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
@@ -69,8 +63,6 @@ public:
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTAPPENDED
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTINSERTED
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTREMOVED
-
-  virtual nsIDOMNode* AsDOMNode() { return this; }
 
   
   void GetXmlspace(nsAString & aXmlspace);

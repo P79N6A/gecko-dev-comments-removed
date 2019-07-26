@@ -24,7 +24,6 @@ namespace dom {
 class DOMSVGAnimatedPreserveAspectRatio;
 
 class SVGImageElement : public SVGImageElementBase,
-                        public nsIDOMSVGElement,
                         public nsImageLoadingContent
 {
   friend class ::nsSVGImageFrame;
@@ -40,11 +39,6 @@ public:
   
 
   NS_DECL_ISUPPORTS_INHERITED
-
-  
-  NS_FORWARD_NSIDOMNODE_TO_NSINODE
-  NS_FORWARD_NSIDOMELEMENT_TO_GENERIC
-  NS_FORWARD_NSIDOMSVGELEMENT(SVGImageElementBase::)
 
   
   virtual nsresult AfterSetAttr(int32_t aNamespaceID, nsIAtom* aName,
@@ -71,8 +65,6 @@ public:
   void MaybeLoadSVGImage();
 
   bool IsImageSrcSetDisabled() const;
-
-  virtual nsIDOMNode* AsDOMNode() { return this; }
 
   
   already_AddRefed<SVGAnimatedLength> X();

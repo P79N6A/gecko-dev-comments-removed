@@ -21,7 +21,6 @@ namespace dom {
 typedef SVGTransformableElement SVGClipPathElementBase;
 
 class SVGClipPathElement MOZ_FINAL : public SVGClipPathElementBase,
-                                     public nsIDOMSVGElement,
                                      public nsIDOMSVGUnitTypes
 {
   friend class ::nsSVGClipPathFrame;
@@ -33,18 +32,10 @@ protected:
   virtual JSObject* WrapNode(JSContext *cx, JSObject *scope) MOZ_OVERRIDE;
 
 public:
-  
 
   NS_DECL_ISUPPORTS_INHERITED
 
-  
-  NS_FORWARD_NSIDOMNODE_TO_NSINODE
-  NS_FORWARD_NSIDOMELEMENT_TO_GENERIC
-  NS_FORWARD_NSIDOMSVGELEMENT(SVGClipPathElementBase::)
-
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
-
-  virtual nsIDOMNode* AsDOMNode() { return this; }
 
   
   already_AddRefed<nsIDOMSVGAnimatedEnumeration> ClipPathUnits();

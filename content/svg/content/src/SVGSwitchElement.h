@@ -16,8 +16,7 @@ namespace dom {
 
 typedef SVGGraphicsElement SVGSwitchElementBase;
 
-class SVGSwitchElement MOZ_FINAL : public SVGSwitchElementBase,
-                                   public nsIDOMSVGElement
+class SVGSwitchElement MOZ_FINAL : public SVGSwitchElementBase
 {
   friend class nsSVGSwitchFrame;
 protected:
@@ -37,11 +36,6 @@ public:
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(SVGSwitchElement,
                                            SVGSwitchElementBase)
   
-  NS_FORWARD_NSIDOMNODE_TO_NSINODE
-  NS_FORWARD_NSIDOMELEMENT_TO_GENERIC
-  NS_FORWARD_NSIDOMSVGELEMENT(SVGSwitchElementBase::)
-
-  
   virtual nsresult InsertChildAt(nsIContent* aKid, uint32_t aIndex,
                                  bool aNotify);
   virtual void RemoveChildAt(uint32_t aIndex, bool aNotify);
@@ -50,8 +44,6 @@ public:
   NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const;
 
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
-
-  virtual nsIDOMNode* AsDOMNode() { return this; }
 private:
   void UpdateActiveChild()
   { mActiveChild = FindActiveChild(); }
