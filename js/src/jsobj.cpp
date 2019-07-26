@@ -1186,6 +1186,18 @@ JSObject::isSealedOrFrozen(JSContext *cx, HandleObject obj, ImmutabilityType it,
         return true;
     }
 
+    if (obj->is<TypedArrayObject>()) {
+        if (it == SEAL) {
+            
+            *resultp = true;
+        } else {
+            
+            
+            *resultp = (obj->as<TypedArrayObject>().length() == 0);
+        }
+        return true;
+    }
+
     AutoIdVector props(cx);
     if (!GetPropertyNames(cx, obj, JSITER_HIDDEN | JSITER_OWNONLY, &props))
         return false;
