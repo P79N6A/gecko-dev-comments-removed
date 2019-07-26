@@ -17,8 +17,6 @@ nsTreeStyleCache::GetStyleContext(nsICSSPseudoComparator* aComparator,
                                   const AtomArray & aInputWord)
 {
   uint32_t count = aInputWord.Length();
-  nsDFAState startState(0);
-  nsDFAState* currState = &startState;
 
   
   if (!mTransitionTable) {
@@ -28,8 +26,8 @@ nsTreeStyleCache::GetStyleContext(nsICSSPseudoComparator* aComparator,
   }
 
   
-  nsTransitionKey key(currState->GetStateID(), aPseudoElement);
-  currState = static_cast<nsDFAState*>(mTransitionTable->Get(&key));
+  nsTransitionKey key(0, aPseudoElement);
+  nsDFAState* currState = static_cast<nsDFAState*>(mTransitionTable->Get(&key));
 
   if (!currState) {
     
