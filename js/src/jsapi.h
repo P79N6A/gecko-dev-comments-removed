@@ -2803,9 +2803,9 @@ struct JSClass {
     JSEnumerateOp       enumerate;
     JSResolveOp         resolve;
     JSConvertOp         convert;
-    JSFinalizeOp        finalize;
 
     
+    JSFinalizeOp        finalize;
     JSCheckAccessOp     checkAccess;
     JSNative            call;
     JSHasInstanceOp     hasInstance;
