@@ -481,8 +481,10 @@ protected:
           }
         } else if (origBytes[nBytes] == 0xc7) {
           
-          if ((origBytes[nBytes + 1] & 0xf8) == 0x40) {
-            nBytes += 6;
+          if (origBytes[nBytes + 1] == 0x44) {
+            
+            
+            nBytes += 8;
           } else {
             return;
           }
