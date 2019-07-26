@@ -144,7 +144,16 @@ LIRGeneratorX86Shared::lowerDivI(MDiv *div)
         
         int32_t shift = FloorLog2(rhs);
         if (rhs > 0 && 1 << shift == rhs) {
-            LDivPowTwoI *lir = new LDivPowTwoI(useRegisterAtStart(div->lhs()), useRegister(div->lhs()), shift);
+            LAllocation lhs = useRegisterAtStart(div->lhs());
+            LDivPowTwoI *lir;
+            if (!div->canBeNegativeDividend()) {
+                
+                lir = new LDivPowTwoI(lhs, shift);
+            } else {
+                
+                
+                lir = new LDivPowTwoI(lhs, useRegister(div->lhs()), shift);
+            }
             if (div->fallible() && !assignSnapshot(lir, Bailout_BaselineInfo))
                 return false;
             return defineReuseInput(lir, div, 0);

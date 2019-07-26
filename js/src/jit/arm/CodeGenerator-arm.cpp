@@ -654,15 +654,20 @@ CodeGeneratorARM::visitDivPowTwoI(LDivPowTwoI *ins)
     int32_t shift = ins->shift();
 
     if (shift != 0) {
-        if (!ins->mir()->isTruncated()) {
+        MDiv *mir = ins->mir();
+        if (!mir->isTruncated()) {
             
             masm.as_mov(ScratchRegister, lsl(lhs, 32 - shift), SetCond);
             if (!bailoutIf(Assembler::NonZero, ins->snapshot()))
                 return false;
         }
 
-        
-        
+        if (!mir->canBeNegativeDividend()) {
+            
+            masm.as_mov(output, asr(lhs, shift));
+            return true;
+        }
+
         
         
         

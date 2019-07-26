@@ -853,7 +853,6 @@ bool
 CodeGeneratorX86Shared::visitDivPowTwoI(LDivPowTwoI *ins)
 {
     Register lhs = ToRegister(ins->numerator());
-    Register lhsCopy = ToRegister(ins->numeratorCopy());
     mozilla::DebugOnly<Register> output = ToRegister(ins->output());
     int32_t shift = ins->shift();
 
@@ -862,19 +861,25 @@ CodeGeneratorX86Shared::visitDivPowTwoI(LDivPowTwoI *ins)
     JS_ASSERT(lhs == output);
 
     if (shift != 0) {
-        if (!ins->mir()->isTruncated()) {
+        MDiv *mir = ins->mir();
+        if (!mir->isTruncated()) {
             
             masm.testl(lhs, Imm32(UINT32_MAX >> (32 - shift)));
             if (!bailoutIf(Assembler::NonZero, ins->snapshot()))
                 return false;
         }
 
+        if (!mir->canBeNegativeDividend()) {
+            
+            masm.sarl(Imm32(shift), lhs);
+            return true;
+        }
+
         
         
         
-        
-        
-        
+        Register lhsCopy = ToRegister(ins->numeratorCopy());
+        JS_ASSERT(lhsCopy != lhs);
         if (shift > 1)
             masm.sarl(Imm32(31), lhs);
         masm.shrl(Imm32(32 - shift), lhs);
