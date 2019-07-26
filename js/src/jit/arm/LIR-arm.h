@@ -431,8 +431,6 @@ class LUMod : public LBinaryMath<0>
     }
 };
 
-
-
 class LSoftUDivOrMod : public LBinaryMath<3>
 {
   public:
