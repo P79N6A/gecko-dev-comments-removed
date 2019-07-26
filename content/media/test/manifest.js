@@ -80,6 +80,12 @@ var gTrackTests = [
 
 
 
+var gMediaRecorderTests = [
+  { name:"detodos.opus", type:"audio/ogg; codecs=opus", duration:2.9135 }
+];
+
+
+
 
 
 var gPlayTests = [
