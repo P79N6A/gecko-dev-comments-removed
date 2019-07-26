@@ -27,8 +27,13 @@ this.PrivateBrowsingUtils = {
   },
 
   get permanentPrivateBrowsing() {
-    return gTemporaryAutoStartMode ||
-           Services.prefs.getBoolPref(kAutoStartPref, false);
+    try {
+      return gTemporaryAutoStartMode ||
+             Services.prefs.getBoolPref(kAutoStartPref);
+    } catch (e) {
+      
+      return false;
+    }
   },
 
   
