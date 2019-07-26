@@ -2208,13 +2208,13 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
   
   
 
-  nscoord flexContainerMainSize =
+  const nscoord contentBoxMainSize =
     ComputeFlexContainerMainSize(aReflowState, axisTracker, items);
 
-  ResolveFlexibleLengths(axisTracker, flexContainerMainSize, items);
+  ResolveFlexibleLengths(axisTracker, contentBoxMainSize, items);
 
   
-  nscoord frameMainSize = flexContainerMainSize +
+  const nscoord frameMainSize = contentBoxMainSize +
     axisTracker.GetMarginSizeInMainAxis(aReflowState.mComputedBorderPadding);
 
   
