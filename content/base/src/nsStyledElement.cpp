@@ -1,15 +1,15 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim:set tw=80 expandtab softtabstop=2 ts=2 sw=2: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsStyledElement.h"
 #include "nsGkAtoms.h"
 #include "nsAttrValue.h"
 #include "nsAttrValueInlines.h"
 #include "mozilla/dom/ElementInlines.h"
-#include "mozilla/MutationEvent.h"
+#include "mozilla/InternalMutationEvent.h"
 #include "nsDOMCSSDeclaration.h"
 #include "nsDOMCSSAttrDeclaration.h"
 #include "nsServiceManagerUtils.h"
@@ -25,8 +25,8 @@
 using namespace mozilla;
 using namespace mozilla::dom;
 
-
-
+//----------------------------------------------------------------------
+// nsIContent methods
 
 nsIAtom*
 nsStyledElementNotElementCSSInlineStyle::GetClassAttributeName() const
@@ -45,9 +45,9 @@ nsStyledElementNotElementCSSInlineStyle::DoGetID() const
 {
   NS_ASSERTION(HasID(), "Unexpected call");
 
-  
-  
-  
+  // The nullcheck here is needed because Element::UnsetAttr calls
+  // out to various code between removing the attribute and we get a chance to
+  // ClearHasID().
 
   const nsAttrValue* attr = mAttrsAndChildren.GetAttr(nsGkAtoms::id);
 
@@ -79,8 +79,8 @@ nsStyledElementNotElementCSSInlineStyle::ParseAttribute(int32_t aNamespaceID,
       return true;
     }
     if (aAttribute == nsGkAtoms::id) {
-      
-      
+      // Store id as an atom.  id="" means that the element has no id,
+      // not that it has an emptystring as the id.
       RemoveFromIdTable();
       if (aValue.IsEmpty()) {
         ClearHasID();
@@ -104,7 +104,7 @@ nsStyledElementNotElementCSSInlineStyle::UnsetAttr(int32_t aNameSpaceID,
 {
   nsAutoScriptBlocker scriptBlocker;
   if (aAttribute == nsGkAtoms::id && aNameSpaceID == kNameSpaceID_None) {
-    
+    // Have to do this before clearing flag. See RemoveFromIdTable
     RemoveFromIdTable();
   }
 
@@ -119,9 +119,9 @@ nsStyledElementNotElementCSSInlineStyle::AfterSetAttr(int32_t aNamespaceID,
 {
   if (aNamespaceID == kNameSpaceID_None && !aValue &&
       aAttribute == nsGkAtoms::id) {
-    
-    
-    
+    // The id has been removed when calling UnsetAttr but we kept it because
+    // the id is used for some layout stuff between UnsetAttr and AfterSetAttr.
+    // Now. the id is really removed so it would not be safe to keep this flag.
     ClearHasID();
   }
 
@@ -142,14 +142,14 @@ nsStyledElementNotElementCSSInlineStyle::SetInlineStyleRule(css::StyleRule* aSty
                                          NS_EVENT_BITS_MUTATION_ATTRMODIFIED,
                                          this);
 
-  
-  
-  
-  
+  // There's no point in comparing the stylerule pointers since we're always
+  // getting a new stylerule here. And we can't compare the stringvalues of
+  // the old and the new rules since both will point to the same declaration
+  // and thus will be the same.
   if (hasListeners) {
-    
-    
-    
+    // save the old attribute so we can set up the mutation event properly
+    // XXXbz if the old rule points to the same declaration as the new one,
+    // this is getting the new attr value, not the old one....
     nsAutoString oldValueStr;
     modification = GetAttr(kNameSpaceID_None, nsGkAtoms::style,
                            oldValueStr);
@@ -163,7 +163,7 @@ nsStyledElementNotElementCSSInlineStyle::SetInlineStyleRule(css::StyleRule* aSty
 
   nsAttrValue attrValue(aStyleRule, aSerialized);
 
-  
+  // XXXbz do we ever end up with ADDITION here?  I doubt it.
   uint8_t modType = modification ?
     static_cast<uint8_t>(nsIDOMMutationEvent::MODIFICATION) :
     static_cast<uint8_t>(nsIDOMMutationEvent::ADDITION);
@@ -188,8 +188,8 @@ nsStyledElementNotElementCSSInlineStyle::GetInlineStyleRule()
   return nullptr;
 }
 
-
-
+// ---------------------------------------------------------------
+// Others and helpers
 
 nsICSSDeclaration*
 nsStyledElementNotElementCSSInlineStyle::Style()
@@ -197,7 +197,7 @@ nsStyledElementNotElementCSSInlineStyle::Style()
   Element::nsDOMSlots *slots = DOMSlots();
 
   if (!slots->mStyle) {
-    
+    // Just in case...
     ReparseStyleAttribute(true);
 
     slots->mStyle = new nsDOMCSSAttributeDeclaration(this, false);
@@ -220,8 +220,8 @@ nsStyledElementNotElementCSSInlineStyle::ReparseStyleAttribute(bool aForceInData
     nsAutoString stringValue;
     oldVal->ToString(stringValue);
     ParseStyleAttribute(stringValue, attrValue, aForceInDataDoc);
-    
-    
+    // Don't bother going through SetInlineStyleRule, we don't want to fire off
+    // mutation events or document notifications anyway
     nsresult rv = mAttrsAndChildren.SetAndTakeAttr(nsGkAtoms::style, attrValue);
     NS_ENSURE_SUCCESS(rv, rv);
   }
@@ -244,10 +244,10 @@ nsStyledElementNotElementCSSInlineStyle::ParseStyleAttribute(const nsAString& aV
   if (aForceInDataDoc ||
       !doc->IsLoadedAsData() ||
       doc->IsStaticDocument()) {
-    bool isCSS = true; 
+    bool isCSS = true; // assume CSS until proven otherwise
 
-    if (!IsInNativeAnonymousSubtree()) {  
-                                          
+    if (!IsInNativeAnonymousSubtree()) {  // native anonymous content
+                                          // always assumes CSS
       nsAutoString styleType;
       doc->GetHeaderData(nsGkAtoms::headerContentStyleType, styleType);
       if (!styleType.IsEmpty()) {
