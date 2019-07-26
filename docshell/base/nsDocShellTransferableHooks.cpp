@@ -2,12 +2,9 @@
 
 
 
-#include "nsCOMPtr.h"
-#include "nsCOMArray.h"
 #include "nsDocShellTransferableHooks.h"
 #include "nsIClipboardDragDropHooks.h"
 #include "nsIClipboardDragDropHookList.h"
-#include "nsISimpleEnumerator.h"
 #include "nsArrayEnumerator.h"
 
 nsTransferableHookData::nsTransferableHookData()

@@ -5,9 +5,6 @@
 
 
 #include "mozilla/LoadContext.h"
-#include "nsIScriptSecurityManager.h"
-#include "nsServiceManagerUtils.h"
-#include "mozIApplication.h"
 
 namespace mozilla {
 

@@ -4,10 +4,7 @@
 
 
 
-#include "nsString.h"
-#include "nsReadableUtils.h"
 #include "nsNetUtil.h"
-#include "nsEscape.h"
 #include "nsCRT.h"
 
 #include "nsIPlatformCharset.h"

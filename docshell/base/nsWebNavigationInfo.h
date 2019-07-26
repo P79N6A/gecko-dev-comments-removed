@@ -9,8 +9,9 @@
 #include "nsIWebNavigationInfo.h"
 #include "nsCOMPtr.h"
 #include "nsICategoryManager.h"
-#include "nsStringFwd.h"
 #include "mozilla/Attributes.h"
+
+class nsCString;
 
 
 #define NS_WEBNAVIGATION_INFO_CID \

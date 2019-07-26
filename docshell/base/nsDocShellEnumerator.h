@@ -5,7 +5,6 @@
 
 
 #include "nsISimpleEnumerator.h"
-#include "nsCOMPtr.h"
 #include "nsTArray.h"
 #include "nsIWeakReferenceUtils.h"
 
