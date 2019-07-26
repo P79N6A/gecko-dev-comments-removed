@@ -272,6 +272,33 @@ public:
 
   bool IsInRefresh() { return mInRefresh; }
 
+  
+
+
+
+
+
+
+  uint64_t GetTransactionId();
+
+  
+
+
+
+
+
+
+
+  void NotifyTransactionCompleted(uint64_t aTransactionId);
+
+  
+
+
+
+
+
+  void RevokeTransactionId(uint64_t aTransactionId);
+
 private:
   typedef nsTObserverArray<nsARefreshObserver*> ObserverArray;
   typedef nsTHashtable<nsISupportsHashKey> RequestTable;
@@ -314,6 +341,8 @@ private:
     return mFrameRequestCallbackDocs.Length() != 0;
   }
 
+  void FinishedWaitingForTransaction();
+
   mozilla::RefreshDriverTimer* ChooseTimer() const;
   mozilla::RefreshDriverTimer *mActiveTimer;
 
@@ -323,12 +352,25 @@ private:
   nsPresContext *mPresContext; 
                                
 
+  
+  uint64_t mPendingTransaction;
+  
+  uint64_t mCompletedTransaction;
+
   uint32_t mFreezeCount;
   bool mThrottled;
   bool mTestControllingRefreshes;
   bool mViewManagerFlushIsPending;
   bool mRequestedHighPrecision;
   bool mInRefresh;
+
+  
+  
+  bool mWaitingForTransaction;
+  
+  
+  
+  bool mSkippedPaint;
 
   int64_t mMostRecentRefreshEpochTime;
   mozilla::TimeStamp mMostRecentRefresh;
