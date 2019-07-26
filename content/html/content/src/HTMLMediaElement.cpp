@@ -108,9 +108,6 @@ namespace mozilla {
 namespace dom {
 
 
-#define TIMEUPDATE_MS 250
-
-
 #define FADED_VOLUME_RATIO 0.25
 
 
@@ -3385,6 +3382,7 @@ void HTMLMediaElement::NotifyOwnerDocumentActivityChanged()
   nsIDocument* ownerDoc = OwnerDoc();
 
   if (mDecoder) {
+    mDecoder->SetElementVisibility(!ownerDoc->Hidden());
     mDecoder->SetDormantIfNecessary(ownerDoc->Hidden());
   }
 

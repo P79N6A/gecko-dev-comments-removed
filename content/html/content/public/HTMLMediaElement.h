@@ -50,6 +50,9 @@ class nsIRunnable;
 namespace mozilla {
 namespace dom {
 
+
+#define TIMEUPDATE_MS 250
+
 class MediaError;
 class MediaSource;
 class TextTrackList;

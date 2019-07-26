@@ -117,6 +117,12 @@ public:
   virtual void NotifyWaitingForResourcesStatusChanged() = 0;
 
   
+  virtual void SetCanOffloadAudio(bool aCanOffloadAudio) {}
+
+  
+  virtual void SetElementVisibility(bool aIsVisible) {}
+
+  
   
   
   class AutoNotifyDecoded {

@@ -368,7 +368,7 @@ public:
 
   virtual void NotifyWaitingForResourcesStatusChanged() MOZ_OVERRIDE;
 
-  void SetPlaybackRate(double aPlaybackRate);
+  virtual void SetPlaybackRate(double aPlaybackRate);
   void SetPreservesPitch(bool aPreservesPitch);
 
   
@@ -760,7 +760,7 @@ public:
   
   
   
-  void ChangeState(PlayState aState);
+  virtual void ChangeState(PlayState aState);
 
   
   
@@ -772,7 +772,11 @@ public:
 
   
   
-  void MetadataLoaded(int aChannels, int aRate, bool aHasAudio, bool aHasVideo, MetadataTags* aTags);
+  virtual void MetadataLoaded(int aChannels,
+                              int aRate,
+                              bool aHasAudio,
+                              bool aHasVideo,
+                              MetadataTags* aTags);
 
   
   
@@ -805,7 +809,7 @@ public:
 
   
   
-  void UpdateReadyStateForData();
+  virtual void UpdateReadyStateForData();
 
   
   
