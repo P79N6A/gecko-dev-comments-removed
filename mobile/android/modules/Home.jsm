@@ -229,6 +229,12 @@ let HomePanels = (function () {
     }),
 
     
+    Item: Object.freeze({
+      ARTICLE: "article",
+      IMAGE: "image"
+    }),
+
+    
     ItemHandler: Object.freeze({
       BROWSER: "browser",
       INTENT: "intent"
@@ -255,6 +261,18 @@ let HomePanels = (function () {
       for (let view of panel.views) {
         if (!_valueExists(this.View, view.type)) {
           throw "Home.panels: Invalid view type: panel.id = " + panel.id + ", view.type = " + view.type;
+        }
+
+        if (!view.itemType) {
+          if (view.type == this.View.LIST) {
+            
+            view.itemType = this.Item.ARTICLE;
+          } else if (view.type == this.View.GRID) {
+            
+            view.itemType = this.Item.IMAGE;
+          }
+        } else if (!_valueExists(this.Item, view.itemType)) {
+          throw "Home.panels: Invalid item type: panel.id = " + panel.id + ", view.itemType = " + view.itemType;
         }
 
         if (!view.itemHandler) {
