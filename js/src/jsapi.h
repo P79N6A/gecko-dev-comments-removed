@@ -110,7 +110,6 @@ class JS_PUBLIC_API(AutoGCRooter) {
         DESCRIPTORS =  -7, 
         ID =           -9, 
         VALVECTOR =   -10, 
-        STRING =      -12, 
         IDVECTOR =    -13, 
         OBJVECTOR =   -14, 
         STRINGVECTOR =-15, 
@@ -135,38 +134,6 @@ class JS_PUBLIC_API(AutoGCRooter) {
     
     AutoGCRooter(AutoGCRooter &ida) MOZ_DELETE;
     void operator=(AutoGCRooter &ida) MOZ_DELETE;
-};
-
-class AutoStringRooter : private AutoGCRooter {
-  public:
-    AutoStringRooter(JSContext *cx, JSString *str = nullptr
-                     MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-      : AutoGCRooter(cx, STRING), str_(str)
-    {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-    }
-
-    void setString(JSString *str) {
-        str_ = str;
-    }
-
-    JSString * string() const {
-        return str_;
-    }
-
-    JSString ** addr() {
-        return &str_;
-    }
-
-    JSString * const * addr() const {
-        return &str_;
-    }
-
-    friend void AutoGCRooter::trace(JSTracer *trc);
-
-  private:
-    JSString *str_;
-    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
 class AutoArrayRooter : private AutoGCRooter
