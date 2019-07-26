@@ -162,13 +162,13 @@ struct D : private B1, private B2 {};
 static void
 StandardIsBaseOfTests()
 {
-  MOZ_ASSERT((IsBaseOf<B, D>::value) == true);
-  MOZ_ASSERT((IsBaseOf<const B, D>::value) == true);
-  MOZ_ASSERT((IsBaseOf<B, const D>::value) == true);
-  MOZ_ASSERT((IsBaseOf<B, const B>::value) == true);
-  MOZ_ASSERT((IsBaseOf<D, B>::value) == false);
-  MOZ_ASSERT((IsBaseOf<B&, D&>::value) == false);
-  MOZ_ASSERT((IsBaseOf<B[3], D[3]>::value) == false);
+  static_assert((IsBaseOf<B, D>::value) == true, "IsBaseOf fails on diamond");
+  static_assert((IsBaseOf<const B, D>::value) == true, "IsBaseOf fails on diamond plus constness change");
+  static_assert((IsBaseOf<B, const D>::value) == true, "IsBaseOf fails on diamond plus constness change");
+  static_assert((IsBaseOf<B, const B>::value) == true, "IsBaseOf fails on constness change");
+  static_assert((IsBaseOf<D, B>::value) == false, "IsBaseOf got the direction of inheritance wrong");
+  static_assert((IsBaseOf<B&, D&>::value) == false, "IsBaseOf should return false on references");
+  static_assert((IsBaseOf<B[3], D[3]>::value) == false, "IsBaseOf should return false on arrays");
   
   
   
@@ -186,23 +186,23 @@ class F : public B, public E { };
 static void
 TestIsBaseOf()
 {
-  MOZ_ASSERT((IsBaseOf<A, B>::value),
+  static_assert((IsBaseOf<A, B>::value),
              "A is a base of B");
-  MOZ_ASSERT((!IsBaseOf<B, A>::value),
+  static_assert((!IsBaseOf<B, A>::value),
              "B is not a base of A");
-  MOZ_ASSERT((IsBaseOf<A, C>::value),
+  static_assert((IsBaseOf<A, C>::value),
              "A is a base of C");
-  MOZ_ASSERT((!IsBaseOf<C, A>::value),
+  static_assert((!IsBaseOf<C, A>::value),
              "C is not a base of A");
-  MOZ_ASSERT((IsBaseOf<A, F>::value),
+  static_assert((IsBaseOf<A, F>::value),
              "A is a base of F");
-  MOZ_ASSERT((!IsBaseOf<F, A>::value),
+  static_assert((!IsBaseOf<F, A>::value),
              "F is not a base of A");
-  MOZ_ASSERT((!IsBaseOf<A, D>::value),
+  static_assert((!IsBaseOf<A, D>::value),
              "A is not a base of D");
-  MOZ_ASSERT((!IsBaseOf<D, A>::value),
+  static_assert((!IsBaseOf<D, A>::value),
              "D is not a base of A");
-  MOZ_ASSERT((IsBaseOf<B, B>::value),
+  static_assert((IsBaseOf<B, B>::value),
              "B is the same as B (and therefore, a base of B)");
 }
 
@@ -210,27 +210,27 @@ static void
 TestIsConvertible()
 {
   
-  MOZ_ASSERT((IsConvertible<A*, A*>::value),
+  static_assert((IsConvertible<A*, A*>::value),
              "A* should convert to A*");
-  MOZ_ASSERT((IsConvertible<B*, A*>::value),
+  static_assert((IsConvertible<B*, A*>::value),
              "B* should convert to A*");
-  MOZ_ASSERT((!IsConvertible<A*, B*>::value),
+  static_assert((!IsConvertible<A*, B*>::value),
              "A* shouldn't convert to B*");
-  MOZ_ASSERT((!IsConvertible<A*, C*>::value),
+  static_assert((!IsConvertible<A*, C*>::value),
              "A* shouldn't convert to C*");
-  MOZ_ASSERT((!IsConvertible<A*, D*>::value),
+  static_assert((!IsConvertible<A*, D*>::value),
              "A* shouldn't convert to unrelated D*");
-  MOZ_ASSERT((!IsConvertible<D*, A*>::value),
+  static_assert((!IsConvertible<D*, A*>::value),
              "D* shouldn't convert to unrelated A*");
 
   
-  MOZ_ASSERT((IsConvertible<A, A>::value),
+  static_assert((IsConvertible<A, A>::value),
              "A is A");
-  MOZ_ASSERT((IsConvertible<B, A>::value),
+  static_assert((IsConvertible<B, A>::value),
              "B converts to A");
-  MOZ_ASSERT((!IsConvertible<D, A>::value),
+  static_assert((!IsConvertible<D, A>::value),
              "D and A are unrelated");
-  MOZ_ASSERT((!IsConvertible<A, D>::value),
+  static_assert((!IsConvertible<A, D>::value),
              "A and D are unrelated");
 
   
