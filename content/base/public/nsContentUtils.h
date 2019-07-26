@@ -337,6 +337,12 @@ public:
   
 
 
+
+  static bool IsHTMLWhitespaceOrNBSP(PRUnichar aChar);
+
+  
+
+
   static bool IsHTMLBlock(nsIAtom* aLocalName);
 
   
