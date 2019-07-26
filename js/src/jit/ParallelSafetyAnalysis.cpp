@@ -201,7 +201,6 @@ class ParallelSafetyVisitor : public MInstructionVisitor
     SAFE_OP(LoadSlot)
     WRITE_GUARDED_OP(StoreSlot, slots)
     SAFE_OP(FunctionEnvironment) 
-    SAFE_OP(FilterTypeSet)
     SAFE_OP(TypeBarrier) 
     SAFE_OP(MonitorTypes) 
     UNSAFE_OP(PostWriteBarrier)

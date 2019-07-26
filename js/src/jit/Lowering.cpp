@@ -2197,12 +2197,6 @@ LIRGenerator::visitStoreSlot(MStoreSlot *ins)
 }
 
 bool
-LIRGenerator::visitFilterTypeSet(MFilterTypeSet *ins)
-{
-    return redefine(ins, ins->input());
-}
-
-bool
 LIRGenerator::visitTypeBarrier(MTypeBarrier *ins)
 {
     

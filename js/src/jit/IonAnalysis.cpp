@@ -1287,7 +1287,6 @@ jit::AssertBasicGraphCoherency(MIRGraph &graph)
 
     
     uint32_t count = 0;
-    size_t compares = 0;
     for (MBasicBlockIterator block(graph.begin()); block != graph.end(); block++) {
         count++;
 
@@ -1301,8 +1300,6 @@ jit::AssertBasicGraphCoherency(MIRGraph &graph)
 
         
         for (MDefinitionIterator iter(*block); iter; iter++) {
-            if (iter->isCompare())
-                compares++;
             for (uint32_t i = 0, e = iter->numOperands(); i < e; i++)
                 JS_ASSERT(CheckOperandImpliesUse(*iter, iter->getOperand(i)));
         }
@@ -1650,31 +1647,42 @@ TryEliminateTypeBarrierFromTest(MTypeBarrier *barrier, bool filtersNull, bool fi
         input = inputUnbox->input();
     }
 
-    MDefinition *subject = nullptr;
-    bool removeUndefined;
-    bool removeNull;
-    test->filtersUndefinedOrNull(direction == TRUE_BRANCH, &subject, &removeUndefined, &removeNull);
+    if (test->getOperand(0) == input && direction == TRUE_BRANCH) {
+        *eliminated = true;
+        if (inputUnbox)
+            inputUnbox->makeInfallible();
+        barrier->replaceAllUsesWith(barrier->input());
+        return;
+    }
 
-    
-    if (!subject)
+    if (!test->getOperand(0)->isCompare())
+        return;
+
+    MCompare *compare = test->getOperand(0)->toCompare();
+    MCompare::CompareType compareType = compare->compareType();
+
+    if (compareType != MCompare::Compare_Undefined && compareType != MCompare::Compare_Null)
+        return;
+    if (compare->getOperand(0) != input)
+        return;
+
+    JSOp op = compare->jsop();
+    JS_ASSERT(op == JSOP_EQ || op == JSOP_STRICTEQ ||
+              op == JSOP_NE || op == JSOP_STRICTNE);
+
+    if ((direction == TRUE_BRANCH) != (op == JSOP_NE || op == JSOP_STRICTNE))
         return;
 
     
-    if (subject != input)
-        return;
+    
+    
+    if (op == JSOP_STRICTEQ || op == JSOP_STRICTNE) {
+        if (compareType == MCompare::Compare_Undefined && !filtersUndefined)
+            return;
+        if (compareType == MCompare::Compare_Null && !filtersNull)
+            return;
+    }
 
-    
-    
-    if (!removeUndefined && filtersUndefined)
-        return;
-
-    
-    
-    if (!removeNull && filtersNull)
-        return;
-
-    
-    
     *eliminated = true;
     if (inputUnbox)
         inputUnbox->makeInfallible();
