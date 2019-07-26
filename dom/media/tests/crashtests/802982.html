@@ -15,7 +15,7 @@
   function boom()
   {
     for (var j = 0; j < 100; ++j) {
-      navigator.mozGetUserMedia({}, {}, {});
+      navigator.mozGetUserMedia({}, function(){}, function(){});
     }
     finish(); // we're not waiting for success/error callbacks here
   }

@@ -5,9 +5,42 @@ MARIONETTE_TIMEOUT = 30000;
 
 SpecialPowers.addPermission("mobileconnection", true, document);
 
-let icc = navigator.mozIccManager;
-ok(icc instanceof MozIccManager,
-   "icc is instanceof " + icc.constructor);
+
+
+let ifr = document.createElement("iframe");
+let icc;
+let iccInfo;
+ifr.onload = function() {
+  icc = ifr.contentWindow.navigator.mozIccManager;
+  ok(icc instanceof ifr.contentWindow.MozIccManager,
+     "icc is instanceof " + icc.constructor);
+
+  iccInfo = icc.iccInfo;
+
+  
+  
+  is(iccInfo.iccid, 89014103211118510720);
+
+  
+  
+  is(iccInfo.mcc, 310);
+  is(iccInfo.mnc, 260);
+  is(iccInfo.spn, "Android");
+  
+  
+  is(iccInfo.msisdn, "15555215554");
+
+  testDisplayConditionChange(testSPN, [
+    
+    [123, 456, false, true], 
+    [234, 136,  true, true], 
+    [123, 456, false, true], 
+    [466,  92,  true, true], 
+    [123, 456, false, true], 
+    [310, 260,  true, true], 
+  ], finalize);
+};
+document.body.appendChild(ifr);
 
 let emulatorCmdPendingCount = 0;
 function sendEmulatorCommand(cmd, callback) {
@@ -39,21 +72,6 @@ function finalize() {
   finish();
 }
 
-let iccInfo = icc.iccInfo;
-
-
-
-is(iccInfo.iccid, 89014103211118510720);
-
-
-
-is(iccInfo.mcc, 310);
-is(iccInfo.mnc, 260);
-is(iccInfo.spn, "Android");
-
-
-is(iccInfo.msisdn, "15555215554");
-
 
 function testDisplayConditionChange(func, caseArray, oncomplete) {
   (function do_call(index) {
@@ -75,13 +93,3 @@ function testSPN(mcc, mnc, expectedIsDisplayNetworkNameRequired,
   });
   setEmulatorMccMnc(mcc, mnc);
 }
-
-testDisplayConditionChange(testSPN, [
-  
-  [123, 456, false, true], 
-  [234, 136,  true, true], 
-  [123, 456, false, true], 
-  [466,  92,  true, true], 
-  [123, 456, false, true], 
-  [310, 260,  true, true], 
-], finalize);

@@ -5,7 +5,16 @@ MARIONETTE_TIMEOUT = 20000;
 
 SpecialPowers.addPermission("mobileconnection", true, document);
 
-let mobileConnection = navigator.mozMobileConnection;
+
+
+let ifr = document.createElement("iframe");
+let mobileConnection;
+ifr.onload = function() {
+  mobileConnection = ifr.contentWindow.navigator.mozMobileConnection;
+
+  tasks.run();
+};
+document.body.appendChild(ifr);
 
 let tasks = {
   
@@ -43,7 +52,7 @@ let tasks = {
 tasks.push(function verifyInitialState() {
   log("Verifying initial state.");
 
-  ok(mobileConnection instanceof MozMobileConnection,
+  ok(mobileConnection instanceof ifr.contentWindow.MozMobileConnection,
       "mobileConnection is instanceof " + mobileConnection.constructor);
 
   tasks.next();
@@ -77,5 +86,3 @@ tasks.push(function cleanUp() {
   SpecialPowers.removePermission("mobileconnection", document);
   finish();
 });
-
-tasks.run();

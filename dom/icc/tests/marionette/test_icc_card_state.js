@@ -6,13 +6,28 @@ MARIONETTE_TIMEOUT = 30000;
 SpecialPowers.addPermission("mobileconnection", true, document);
 SpecialPowers.addPermission("settings-write", true, document);
 
-let icc = navigator.mozIccManager;
-ok(icc instanceof MozIccManager, "icc is instanceof " + icc.constructor);
 
-is(icc.cardState, "ready");
+
+let ifr = document.createElement("iframe");
+let icc;
+ifr.onload = function() {
+  icc = ifr.contentWindow.navigator.mozIccManager;
+
+  ok(icc instanceof ifr.contentWindow.MozIccManager,
+     "icc is instanceof " + icc.constructor);
+
+  is(icc.cardState, "ready");
+
+  
+  testCardStateChange(true, null,
+    
+    testCardStateChange.bind(window, false, "ready", cleanUp)
+  );
+};
+document.body.appendChild(ifr);
 
 function setAirplaneModeEnabled(enabled) {
-  let settings = window.navigator.mozSettings;
+  let settings = ifr.contentWindow.navigator.mozSettings;
   let setLock = settings.createLock();
   let obj = {
     "ril.radio.disabled": enabled
@@ -53,9 +68,3 @@ function cleanUp() {
 
   finish();
 }
-
-
-testCardStateChange(true, null,
-  
-  testCardStateChange.bind(this, false, "ready", cleanUp)
-);

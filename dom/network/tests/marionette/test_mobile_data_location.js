@@ -5,7 +5,18 @@ MARIONETTE_TIMEOUT = 20000;
 
 SpecialPowers.addPermission("mobileconnection", true, document);
 
-let mobileConnection = navigator.mozMobileConnection;
+
+
+let ifr = document.createElement("iframe");
+let mobileConnection;
+ifr.onload = function() {
+  mobileConnection = ifr.contentWindow.navigator.mozMobileConnection;
+
+  
+  verifyInitialState();
+};
+document.body.appendChild(ifr);
+
 let emulatorStartLac = 0;
 let emulatorStartCid = 0;
 
@@ -114,6 +125,3 @@ function cleanUp() {
   SpecialPowers.removePermission("mobileconnection", document);
   finish();
 }
-
-
-verifyInitialState();
