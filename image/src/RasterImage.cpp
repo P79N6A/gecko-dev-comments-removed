@@ -2714,6 +2714,10 @@ RasterImage::ScaleWorker::RequestScale(RasterImage* aImg)
   if (request->isInList())
     return;
 
+  
+  
+  request->kungFuDeathGrip = request->image;
+
   mScaleRequests.insertBack(request);
 
   if (!sScaleWorkerThread) {
@@ -2758,6 +2762,10 @@ RasterImage::DrawWorker::Run()
       nsIntRect frameRect = request->srcFrame->GetRect();
       observer->FrameChanged(nullptr, request->image, &frameRect);
     }
+    if (request->done) {
+      
+      
+      request->kungFuDeathGrip = nullptr;
   }
 
   return NS_OK;
