@@ -535,23 +535,25 @@ ArrayBufferObject::obj_trace(JSTracer *trc, RawObject obj)
     } else {
         
 
-        
-        
-        if (BufferLink(firstView) == UNSET_BUFFER_LINK)  {
-            JSObject **bufList = &trc->runtime->liveArrayBuffers;
-            SetBufferLink(firstView, *bufList);
-            *bufList = obj;
+        if (IS_GC_MARKING_TRACER(trc)) {
+            
+            
+            if (BufferLink(firstView) == UNSET_BUFFER_LINK) {
+                JS_ASSERT(obj->compartment() == firstView->compartment());
+                JSObject **bufList = &obj->compartment()->gcLiveArrayBuffers;
+                SetBufferLink(firstView, *bufList);
+                *bufList = obj;
+            }
         }
     }
 }
 
 void
-ArrayBufferObject::sweepAll(JSRuntime *rt)
+ArrayBufferObject::sweep(JSCompartment *compartment)
 {
-    JSObject *buffer = rt->liveArrayBuffers;
+    JSObject *buffer = compartment->gcLiveArrayBuffers;
     JS_ASSERT(buffer != UNSET_BUFFER_LINK);
-
-    JSObject *lastBufferViews = NULL;
+    compartment->gcLiveArrayBuffers = NULL;
 
     while (buffer) {
         JSObject **views = GetViewList(&buffer->asArrayBuffer());
@@ -559,6 +561,7 @@ ArrayBufferObject::sweepAll(JSRuntime *rt)
 
         JSObject *nextBuffer = BufferLink(*views);
         JS_ASSERT(nextBuffer != UNSET_BUFFER_LINK);
+        SetBufferLink(*views, UNSET_BUFFER_LINK);
 
         
         
@@ -575,31 +578,16 @@ ArrayBufferObject::sweepAll(JSRuntime *rt)
         }
         *views = prevLiveView;
 
-        
-        
-        if (*views) {
-            if (lastBufferViews)
-                SetBufferLink(lastBufferViews, buffer);
-            else
-                rt->liveArrayBuffers = buffer;
-            lastBufferViews = *views;
-        }
-
         buffer = nextBuffer;
     }
-
-    
-    if (lastBufferViews)
-        SetBufferLink(lastBufferViews, NULL);
-    else
-        rt->liveArrayBuffers = NULL;
 }
 
 void
-ArrayBufferObject::resetArrayBufferList(JSRuntime *rt)
+ArrayBufferObject::resetArrayBufferList(JSCompartment *compartment)
 {
-    JSObject *buffer = rt->liveArrayBuffers;
+    JSObject *buffer = compartment->gcLiveArrayBuffers;
     JS_ASSERT(buffer != UNSET_BUFFER_LINK);
+    compartment->gcLiveArrayBuffers = NULL;
 
     while (buffer) {
         JSObject *view = *GetViewList(&buffer->asArrayBuffer());
@@ -611,7 +599,6 @@ ArrayBufferObject::resetArrayBufferList(JSRuntime *rt)
         SetBufferLink(view, UNSET_BUFFER_LINK);
         buffer = nextBuffer;
     }
-    rt->liveArrayBuffers = NULL;
 }
 
 JSBool

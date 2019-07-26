@@ -363,6 +363,9 @@ struct JSCompartment : public js::gc::GraphNodeBase
 
     js::RawObject                gcIncomingGrayPointers;
 
+    
+    JSObject                     *gcLiveArrayBuffers;
+
   private:
     
 

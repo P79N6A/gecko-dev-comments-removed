@@ -3320,6 +3320,7 @@ BeginMarkPhase(JSRuntime *rt)
         JS_ASSERT(!c->isCollecting());
         for (unsigned i = 0; i < FINALIZE_LIMIT; ++i)
             JS_ASSERT(!c->arenas.arenaListsToSweep[i]);
+        JS_ASSERT(!c->gcLiveArrayBuffers);
 
         
         if (c->isGCScheduled()) {
@@ -3381,8 +3382,6 @@ BeginMarkPhase(JSRuntime *rt)
 
     
     WeakMapBase::resetWeakMapList(rt);
-
-    ArrayBufferObject::resetArrayBufferList(rt);
 
     
 
@@ -3936,7 +3935,8 @@ BeginSweepingCompartmentGroup(JSRuntime *rt)
     rt->debugScopes->sweep();
 
     
-    ArrayBufferObject::sweepAll(rt);
+    for (GCCompartmentGroupIter c(rt); !c.done(); c.next())
+        ArrayBufferObject::sweep(c);
 
     
     WatchpointMap::sweepAll(rt);
@@ -4192,6 +4192,7 @@ EndSweepPhase(JSRuntime *rt, JSGCInvocationKind gckind, bool lastGC)
         JS_ASSERT(!c->isCollecting());
         JS_ASSERT(!c->wasGCStarted());
         JS_ASSERT(!c->gcIncomingGrayPointers);
+        JS_ASSERT(!c->gcLiveArrayBuffers);
 
         for (unsigned i = 0 ; i < FINALIZE_LIMIT ; ++i) {
             JS_ASSERT_IF(!IsBackgroundFinalized(AllocKind(i)) ||
@@ -4313,6 +4314,7 @@ ResetIncrementalGC(JSRuntime *rt, const char *reason)
             if (c->isGCMarking()) {
                 c->setNeedsBarrier(false, JSCompartment::UpdateIon);
                 c->setGCState(JSCompartment::NoGC);
+                ArrayBufferObject::resetArrayBufferList(c);
             }
         }
 
@@ -4350,6 +4352,7 @@ ResetIncrementalGC(JSRuntime *rt, const char *reason)
         JS_ASSERT(c->isCollecting());
         JS_ASSERT(!c->needsBarrier());
         JS_ASSERT(!NextGraphNode(c.get()));
+        JS_ASSERT(!c->gcLiveArrayBuffers);
         for (unsigned i = 0 ; i < FINALIZE_LIMIT ; ++i)
             JS_ASSERT(!c->arenas.arenaListsToSweep[i]);
     }

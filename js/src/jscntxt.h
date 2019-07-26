@@ -916,9 +916,6 @@ struct JSRuntime : js::RuntimeFriendFields
     js::DebugScopes     *debugScopes;
 
     
-    JSObject            *liveArrayBuffers;
-
-    
     void                *data;
 
     
