@@ -469,6 +469,10 @@ Tooltip.prototype = {
       vbox.appendChild(innerbox);
 
       var widget = new VariablesView(innerbox, viewOptions);
+
+      
+      widget.commitHierarchy = () => {};
+
       for (let e in relayEvents) widget.on(e, relayEvents[e]);
       VariablesViewController.attach(widget, controllerOptions);
 
