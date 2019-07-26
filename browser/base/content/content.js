@@ -16,18 +16,6 @@ XPCOMUtils.defineLazyModuleGetter(this,
 XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
   "resource://gre/modules/PrivateBrowsingUtils.jsm");
 
-
-
-this.__defineGetter__("webNavigation", function () {
-  return docShell.QueryInterface(Ci.nsIWebNavigation);
-});
-
-addMessageListener("WebNavigation:LoadURI", function (message) {
-  let flags = message.json.flags || webNavigation.LOAD_FLAGS_NONE;
-
-  webNavigation.loadURI(message.json.uri, flags, null, null, null);
-});
-
 addMessageListener("Browser:HideSessionRestoreButton", function (message) {
   
   let doc = content.document;
