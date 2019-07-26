@@ -7,6 +7,7 @@
 
 
 
+
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Util.h"
 
@@ -60,21 +61,21 @@ nsDomainEntry::FuncForStaticAsserts(void)
 
 static nsEffectiveTLDService *gService = nullptr;
 
-NS_MEMORY_REPORTER_MALLOC_SIZEOF_FUN(EffectiveTLDServiceMallocSizeOf)
-
-static int64_t
-GetEffectiveTLDSize()
+class EffectiveTLDServiceReporter MOZ_FINAL : public MemoryReporterBase
 {
-  return gService->SizeOfIncludingThis(EffectiveTLDServiceMallocSizeOf);
-}
+public:
+  EffectiveTLDServiceReporter()
+    : MemoryReporterBase("explicit/xpcom/effective-TLD-service",
+                         KIND_HEAP, UNITS_BYTES,
+                         "Memory used by the effective TLD service.")
+  {}
 
-NS_MEMORY_REPORTER_IMPLEMENT(
-  EffectiveTLDService,
-  "explicit/xpcom/effective-TLD-service",
-  KIND_HEAP,
-  nsIMemoryReporter::UNITS_BYTES,
-  GetEffectiveTLDSize,
-  "Memory used by the effective TLD service.")
+private:
+  int64_t Amount() MOZ_OVERRIDE
+  {
+    return gService ? gService->SizeOfIncludingThis(MallocSizeOf) : 0;
+  }
+};
 
 nsresult
 nsEffectiveTLDService::Init()
@@ -108,16 +109,15 @@ nsEffectiveTLDService::Init()
 
   MOZ_ASSERT(!gService);
   gService = this;
-  mReporter = new NS_MEMORY_REPORTER_NAME(EffectiveTLDService);
-  (void)::NS_RegisterMemoryReporter(mReporter);
+  mReporter = new EffectiveTLDServiceReporter();
+  NS_RegisterMemoryReporter(mReporter);
 
   return NS_OK;
 }
 
 nsEffectiveTLDService::~nsEffectiveTLDService()
 {
-  (void)::NS_UnregisterMemoryReporter(mReporter);
-  mReporter = nullptr;
+  NS_UnregisterMemoryReporter(mReporter);
   gService = nullptr;
 }
 
