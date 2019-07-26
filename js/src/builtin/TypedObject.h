@@ -701,6 +701,15 @@ extern const JSJitInfo AttachTypedObjectJitInfo;
 
 
 
+
+bool SetTypedObjectOffset(ThreadSafeContext *cx, unsigned argc, Value *vp);
+extern const JSJitInfo SetTypedObjectOffsetJitInfo;
+
+
+
+
+
+
 bool ObjectIsTypeDescr(ThreadSafeContext *cx, unsigned argc, Value *vp);
 extern const JSJitInfo ObjectIsTypeDescrJitInfo;
 

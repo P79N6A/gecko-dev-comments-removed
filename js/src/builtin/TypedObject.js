@@ -448,6 +448,11 @@ TypedObjectPointer.prototype.getX4 = function() {
 
 
 
+function SetTypedObjectValue(descr, typedObj, offset, fromValue) {
+  new TypedObjectPointer(descr, typedObj, offset).set(fromValue);
+}
+
+
 
 
 TypedObjectPointer.prototype.set = function(fromValue) {
@@ -934,10 +939,23 @@ function TypedArrayMap(a, b) {
     return MapTypedSeqImpl(this, a, thisType, b);
   else if (typeof a === "function")
     return MapTypedSeqImpl(this, 1, thisType, a);
-  else if (typeof a === "number")
+  return ThrowError(JSMSG_TYPEDOBJECT_BAD_ARGS);
+}
+
+
+function TypedArrayMapPar(a, b) {
+  if (!IsObject(this) || !ObjectIsTypedObject(this))
     return ThrowError(JSMSG_TYPEDOBJECT_BAD_ARGS);
-  else
+  var thisType = TYPEDOBJ_TYPE_DESCR(this);
+  if (!TypeDescrIsArrayType(thisType))
     return ThrowError(JSMSG_TYPEDOBJECT_BAD_ARGS);
+
+  
+  if (typeof a === "number" && typeof b === "function")
+    return MapTypedParImpl(this, a, thisType, b);
+  else if (typeof a === "function")
+    return MapTypedParImpl(this, 1, thisType, a);
+  return ThrowError(JSMSG_TYPEDOBJECT_BAD_ARGS);
 }
 
 
@@ -1002,11 +1020,6 @@ function TypedObjectArrayTypeFromPar(a,b,c) {
 }
 
 
-function TypedArrayMapPar(a, b) {
-  return callFunction(TypedArrayMap, this, a, b);
-}
-
-
 function TypedArrayReducePar(a, b) {
   return callFunction(TypedArrayReduce, this, a, b);
 }
@@ -1034,6 +1047,12 @@ function GET_BIT(data, index) {
   var word = index >> 3;
   var mask = 1 << (index & 0x7);
   return (data[word] & mask) != 0;
+}
+
+function TypeDescrIsUnsizedArrayType(t) {
+  assert(IsObject(t) && ObjectIsTypeDescr(t),
+         "TypeDescrIsArrayType called on non-type-object");
+  return DESCR_KIND(t) === JS_TYPEREPR_UNSIZED_ARRAY_KIND;
 }
 
 function TypeDescrIsArrayType(t) {
@@ -1073,7 +1092,8 @@ function TypeDescrIsSizedArrayType(t) {
 }
 
 function TypeDescrIsSimpleType(t) {
-  assert(IsObject(t) && ObjectIsTypeDescr(t), "TypeDescrIsSimpleType called on non-type-object");
+  assert(IsObject(t) && ObjectIsTypeDescr(t),
+         "TypeDescrIsSimpleType called on non-type-object");
 
   var kind = DESCR_KIND(t);
   switch (kind) {
@@ -1325,6 +1345,183 @@ function MapTypedSeqImpl(inArray, depth, outputType, func) {
   }
 
 }
+
+
+function MapTypedParImpl(inArray, depth, outputType, func) {
+  assert(IsObject(outputType) && ObjectIsTypeDescr(outputType),
+         "Map/From called on non-type-object outputType");
+  assert(IsObject(inArray) && ObjectIsTypedObject(inArray),
+         "Map/From called on non-object or untyped input array.");
+  assert(TypeDescrIsArrayType(outputType),
+         "Map/From called on non array-type outputType");
+
+  var inArrayType = TypeOfTypedObject(inArray);
+
+  if (ShouldForceSequential() ||
+      depth <= 0 ||
+      TO_INT32(depth) !== depth ||
+      !TypeDescrIsArrayType(inArrayType) ||
+      !TypeDescrIsUnsizedArrayType(outputType))
+  {
+    
+    return MapTypedSeqImpl(inArray, depth, outputType, func);
+  }
+
+  switch (depth) {
+  case 1:
+    return MapTypedParImplDepth1(inArray, inArrayType, outputType, func);
+  default:
+    return MapTypedSeqImpl(inArray, depth, outputType, func);
+  }
+}
+
+function RedirectPointer(typedObj, offset, outputIsScalar) {
+  if (!outputIsScalar || !InParallelSection()) {
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    typedObj = NewDerivedTypedObject(TYPEDOBJ_TYPE_DESCR(typedObj),
+                                     typedObj, 0);
+  }
+
+  SetTypedObjectOffset(typedObj, offset);
+  return typedObj;
+}
+SetScriptHints(RedirectPointer,         { inline: true });
+
+function MapTypedParImplDepth1(inArray, inArrayType, outArrayType, func) {
+  assert(IsObject(inArrayType) && ObjectIsTypeDescr(inArrayType) &&
+         TypeDescrIsArrayType(inArrayType),
+         "DoMapTypedParDepth1: invalid inArrayType");
+  assert(IsObject(outArrayType) && ObjectIsTypeDescr(outArrayType) &&
+         TypeDescrIsArrayType(outArrayType),
+         "DoMapTypedParDepth1: invalid outArrayType");
+  assert(IsObject(inArray) && ObjectIsTypedObject(inArray),
+         "DoMapTypedParDepth1: invalid inArray");
+
+  
+  const inGrainType = inArrayType.elementType;
+  const outGrainType = outArrayType.elementType;
+  const inGrainTypeSize = DESCR_SIZE(inGrainType);
+  const outGrainTypeSize = DESCR_SIZE(outGrainType);
+  const inGrainTypeIsComplex = !TypeDescrIsSimpleType(inGrainType);
+  const outGrainTypeIsComplex = !TypeDescrIsSimpleType(outGrainType);
+
+  const length = inArray.length;
+  const mode = undefined;
+
+  const outArray = new outArrayType(length);
+
+  const outGrainTypeIsTransparent = ObjectIsTransparentTypedObject(outArray);
+
+  
+  const slicesInfo = ComputeSlicesInfo(length);
+  const numWorkers = ForkJoinNumWorkers();
+  assert(numWorkers > 0, "Should have at least the main thread");
+  const pointers = [];
+  for (var i = 0; i < numWorkers; i++) {
+    const inPointer = new TypedObjectPointer(inGrainType, inArray, 0);
+    const inTypedObject = inPointer.getDerivedIf(inGrainTypeIsComplex);
+    const outPointer = new TypedObjectPointer(outGrainType, outArray, 0);
+    const outTypedObject = outPointer.getOpaqueIf(outGrainTypeIsComplex);
+    ARRAY_PUSH(pointers, ({ inTypedObject: inTypedObject,
+                            outTypedObject: outTypedObject }));
+  }
+
+  
+  
+  
+  const inBaseOffset = TYPEDOBJ_BYTEOFFSET(inArray);
+
+  ForkJoin(mapThread, ShrinkLeftmost(slicesInfo), ForkJoinMode(mode));
+  return outArray;
+
+  function mapThread(workerId, warmup) {
+    assert(TO_INT32(workerId) === workerId,
+           "workerId not int: " + workerId);
+    assert(workerId >= 0 && workerId < pointers.length,
+          "workerId too large: " + workerId + " >= " + pointers.length);
+    assert(!!pointers[workerId],
+          "no pointer data for workerId: " + workerId);
+
+    var sliceId;
+    const { inTypedObject, outTypedObject } = pointers[workerId];
+
+    while (GET_SLICE(slicesInfo, sliceId)) {
+      const indexStart = SLICE_START(slicesInfo, sliceId);
+      const indexEnd = SLICE_END(slicesInfo, indexStart, length);
+
+      var inOffset = inBaseOffset + std_Math_imul(inGrainTypeSize, indexStart);
+      var outOffset = std_Math_imul(outGrainTypeSize, indexStart);
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      const endOffset = std_Math_imul(outGrainTypeSize, indexEnd);
+      SetForkJoinTargetRegion(outArray, outOffset, endOffset);
+
+      for (var i = indexStart; i < indexEnd; i++) {
+        var inVal = (inGrainTypeIsComplex
+                     ? RedirectPointer(inTypedObject, inOffset,
+                                       outGrainTypeIsTransparent)
+                     : inArray[i]);
+        var outVal = (outGrainTypeIsComplex
+                      ? RedirectPointer(outTypedObject, outOffset,
+                                        outGrainTypeIsTransparent)
+                      : undefined);
+        const r = func(inVal, i, inArray, outVal);
+        if (r !== undefined) {
+          if (outGrainTypeIsComplex)
+            SetTypedObjectValue(outGrainType, outArray, outOffset, r);
+          else
+            outArray[i] = r;
+        }
+        inOffset += inGrainTypeSize;
+        outOffset += outGrainTypeSize;
+      }
+
+      MARK_SLICE_DONE(slicesInfo, sliceId);
+      if (warmup)
+        return;
+    }
+  }
+
+  return undefined;
+}
+SetScriptHints(MapTypedParImplDepth1,         { cloneAtCallsite: true });
 
 function ReduceTypedSeqImpl(array, outputType, func, initial) {
   assert(IsObject(array) && ObjectIsTypedObject(array), "Reduce called on non-object or untyped input array.");
