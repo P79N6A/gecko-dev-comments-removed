@@ -15,9 +15,16 @@ import org.mozilla.gecko.mozglue.JNITarget;
 public class NativeJSObject
 {
     private final NativeJSContainer mContainer;
+    private final int mObjectIndex;
 
     protected NativeJSObject() {
         mContainer = (NativeJSContainer)this;
+        mObjectIndex = -1;
+    }
+
+    private NativeJSObject(NativeJSContainer container, int index) {
+        mContainer = container;
+        mObjectIndex = index;
     }
 
     
@@ -67,6 +74,22 @@ public class NativeJSObject
 
 
     public native int getInt(String name);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    public native NativeJSObject getObject(String name);
 
     
 
