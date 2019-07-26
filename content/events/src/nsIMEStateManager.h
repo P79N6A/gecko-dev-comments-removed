@@ -7,6 +7,7 @@
 #define nsIMEStateManager_h__
 
 #include "nscore.h"
+#include "nsEvent.h"
 #include "nsIWidget.h"
 
 class nsDispatchingCallback;
@@ -95,6 +96,15 @@ public:
                                        nsEvent* aEvent,
                                        nsEventStatus* aStatus,
                                        nsDispatchingCallback* aCallBack);
+
+  
+
+
+
+  static nsresult NotifyIME(mozilla::widget::NotificationToIME aNotification,
+                            nsIWidget* aWidget);
+  static nsresult NotifyIME(mozilla::widget::NotificationToIME aNotification,
+                            nsPresContext* aPresContext);
 
 protected:
   static nsresult OnChangeFocusInternal(nsPresContext* aPresContext,

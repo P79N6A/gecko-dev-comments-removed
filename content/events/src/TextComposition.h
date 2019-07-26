@@ -61,6 +61,12 @@ public:
 
   void SynthesizeCommit(bool aDiscard);
 
+  
+
+
+
+  nsresult NotifyIME(widget::NotificationToIME aNotification);
+
 private:
   
   

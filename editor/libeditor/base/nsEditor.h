@@ -389,10 +389,6 @@ protected:
                                bool      bNoBlockCrossing);
 
   
-  nsresult GetWidget(nsIWidget **aWidget);
-
-
-  
   virtual nsresult InstallEventListeners();
 
   virtual void CreateEventListeners();
