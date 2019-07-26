@@ -2497,17 +2497,15 @@ ion::UsesBeforeIonRecompile(JSScript *script, jsbytecode *pc)
     JS_ASSERT(pc == script->code || JSOp(*pc) == JSOP_LOOPENTRY);
 
     uint32_t minUses = js_IonOptions.usesBeforeCompile;
-    if (JSOp(*pc) != JSOP_LOOPENTRY || !script->hasAnalysis() || js_IonOptions.eagerCompilation)
-        return minUses;
-
-    analyze::LoopAnalysis *loop = script->analysis()->getLoop(pc);
-    if (!loop)
+    if (JSOp(*pc) != JSOP_LOOPENTRY || js_IonOptions.eagerCompilation)
         return minUses;
 
     
     
     
-    return minUses + (loop->depth + 1) * 100;
+    uint32_t loopDepth = GET_UINT8(pc);
+    JS_ASSERT(loopDepth > 0);
+    return minUses + loopDepth * 100;
 }
 
 void
