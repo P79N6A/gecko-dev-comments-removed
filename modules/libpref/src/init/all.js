@@ -27,19 +27,16 @@ pref("general.useragent.compatMode.firefox", false);
 
 pref("general.useragent.site_specific_overrides", true);
 
+
+
+pref("general.useragent.enable_overrides", false);
+
 pref("general.config.obscure_value", 13); 
 
 pref("general.warnOnAboutConfig", true);
 
 
 pref("browser.bookmarks.max_backups",       5);
-
-
-
-
-
-
-pref("browser.cache.use_new_backend",       0);
 
 pref("browser.cache.disk.enable",           true);
 
@@ -63,9 +60,6 @@ pref("browser.cache.disk_cache_ssl",        true);
 
 pref("browser.cache.check_doc_frequency",   3);
 
-
-pref("browser.cache.memory_limit", 51200); 
-
 pref("browser.cache.offline.enable",           true);
 
 pref("offline-apps.allow_by_default",          true);
@@ -85,22 +79,14 @@ pref("offline-apps.quota.warn",        51200);
 pref("browser.cache.compression_level", 0);
 
 
-pref("dom.quotaManager.testing", false);
-
-
 pref("dom.indexedDB.enabled", true);
 
 pref("dom.indexedDB.warningQuota", 50);
-
-pref("dom.indexedDB.experimental", false);
 
 
 pref("dom.workers.enabled", true);
 
 pref("dom.workers.maxPerDomain", 20);
-
-
-pref("dom.workers.sharedWorkers.enabled", false);
 
 
 pref("dom.enable_performance", true);
@@ -160,14 +146,6 @@ pref("browser.display.focus_ring_style", 1);
 pref("browser.helperApps.alwaysAsk.force",  false);
 pref("browser.helperApps.neverAsk.saveToDisk", "");
 pref("browser.helperApps.neverAsk.openFile", "");
-pref("browser.helperApps.deleteTempFileOnExit", false);
-
-#ifdef XP_WIN
-
-
-
-pref("browser.download.saveZoneInformation", true);
-#endif
 
 
 pref("browser.chrome.toolbar_tips",         true);
@@ -211,11 +189,11 @@ pref("media.wave.enabled", true);
 #ifdef MOZ_WEBM
 pref("media.webm.enabled", true);
 #endif
-#ifdef MOZ_GSTREAMER
-pref("media.gstreamer.enabled", true);
+#ifdef MOZ_DASH
+pref("media.dash.enabled", false);
 #endif
-#ifdef MOZ_APPLEMEDIA
-pref("media.apple.mp3.enabled", true);
+#ifdef MOZ_GSTREAMER
+pref("media.gstreamer.enabled", false);
 #endif
 #ifdef MOZ_WEBRTC
 pref("media.navigator.enabled", true);
@@ -223,13 +201,9 @@ pref("media.navigator.video.default_width",640);
 pref("media.navigator.video.default_height",480);
 pref("media.navigator.video.default_fps",30);
 pref("media.navigator.video.default_minfps",10);
-pref("media.navigator.video.max_fs", 0); 
-pref("media.navigator.video.max_fr", 0); 
-pref("media.navigator.load_adapt", false);
 pref("media.peerconnection.enabled", true);
 pref("media.navigator.permission.disabled", false);
-pref("media.peerconnection.default_iceservers", "[{\"url\": \"stun:stun.services.mozilla.com\"}]");
-pref("media.peerconnection.trickle_ice", true);
+pref("media.peerconnection.default_iceservers", "[{\"url\": \"stun:23.21.150.121\"}]");
 pref("media.peerconnection.use_document_iceservers", true);
 
 
@@ -246,11 +220,6 @@ pref("media.peerconnection.noise", 1);
 pref("media.navigator.enabled", true);
 #endif
 #endif
-
-pref("media.tabstreaming.width", 320);
-pref("media.tabstreaming.height", 240);
-pref("media.tabstreaming.time_per_frame", 40);
-
 
 pref("media.webvtt.enabled", false);
 
@@ -275,13 +244,7 @@ pref("media.video-queue.default-size", 10);
 pref("media.video_stats.enabled", true);
 
 
-pref("media.audio_data.enabled", false);
-
-
-
-
-
-pref("apz.axis_lock_mode", 0);
+pref("media.audio_data.enabled", true);
 
 #ifdef XP_MACOSX
 
@@ -322,12 +285,6 @@ pref("gfx.font_loader.interval", 50);
 
 pref("gfx.font_rendering.fallback.always_use_cmaps", false);
 
-
-pref("gfx.font_rendering.wordcache.charlimit", 32);
-
-
-pref("gfx.font_rendering.wordcache.maxentries", 10000);
-
 pref("gfx.font_rendering.graphite.enabled", true);
 
 
@@ -345,14 +302,10 @@ pref("gfx.font_rendering.graphite.enabled", true);
 
 #ifdef XP_WIN
 
-
-
-pref("gfx.font_rendering.harfbuzz.scripts", 247);
+pref("gfx.font_rendering.harfbuzz.scripts", 7);
 #else
 
-
-
-pref("gfx.font_rendering.harfbuzz.scripts", 255);
+pref("gfx.font_rendering.harfbuzz.scripts", -1);
 #endif
 
 #ifdef XP_WIN
@@ -360,17 +313,20 @@ pref("gfx.font_rendering.directwrite.enabled", false);
 pref("gfx.font_rendering.directwrite.use_gdi_table_loading", true);
 #endif
 
-pref("gfx.font_rendering.opentype_svg.enabled", true);
+pref("gfx.font_rendering.opentype_svg.enabled", false);
 
 #ifdef XP_WIN
 
 
 pref("gfx.canvas.azure.backends", "direct2d,skia,cairo");
-pref("gfx.content.azure.backends", "direct2d,cairo");
+pref("gfx.content.azure.backends", "direct2d");
+pref("gfx.content.azure.enabled", true);
 #else
+pref("gfx.content.azure.enabled", false);
 #ifdef XP_MACOSX
 pref("gfx.content.azure.backends", "cg");
 pref("gfx.canvas.azure.backends", "cg");
+pref("gfx.content.azure.enabled", true);
 
 pref("gfx.canvas.azure.accelerated", false);
 #else
@@ -379,12 +335,8 @@ pref("gfx.content.azure.backends", "cairo");
 #endif
 #endif
 
-#ifdef MOZ_WIDGET_GTK2
-pref("gfx.content.azure.backends", "cairo");
-#endif
 #ifdef ANDROID
 pref("gfx.textures.poweroftwo.force-enabled", false);
-pref("gfx.content.azure.backends", "cairo");
 #endif
 
 pref("gfx.work-around-driver-bugs", true);
@@ -412,9 +364,6 @@ pref("ui.scrollToClick", 0);
 
 pref("accessibility.tabfocus_applies_to_xul", true);
 #endif
-
-
-pref("canvas.focusring.enabled", false);
 
 
 
@@ -486,7 +435,7 @@ pref("toolkit.telemetry.enabledPreRelease", true);
 #else
 pref("toolkit.telemetry.enabled", false);
 #endif
-pref("toolkit.telemetry.server", "https://incoming.telemetry.mozilla.org");
+pref("toolkit.telemetry.server", "https://data.mozilla.com");
 
 pref("toolkit.telemetry.server_owner", "Mozilla");
 
@@ -498,9 +447,6 @@ pref("toolkit.telemetry.debugSlowSql", false);
 
 pref("toolkit.identity.enabled", false);
 pref("toolkit.identity.debug", false);
-
-
-pref("toolkit.asyncshutdown.timeout.crash", 60000);
 
 
 pref("devtools.errorconsole.deprecation_warnings", true);
@@ -515,12 +461,7 @@ pref("devtools.debugger.force-local", true);
 
 pref("devtools.debugger.prompt-connection", true);
 
-pref("devtools.debugger.enable-content-actors", true);
-
-pref("devtools.debugger.forbid-certified-apps", true);
-
-
-pref("devtools.defaultColorUnit", "hex");
+pref("devtools.debugger.enable-content-actors", false);
 
 
 pref("view_source.syntax_highlight", true);
@@ -545,16 +486,6 @@ pref("nglayout.debug.paint_flashing_chrome", false);
 
 
 pref("nglayout.debug.widget_update_flashing", false);
-
-
-
-pref("layout.imagevisibility.enabled", true);
-
-
-
-pref("layout.imagevisibility.enabled_for_browser_elements_only", false);
-pref("layout.imagevisibility.numscrollportwidths", 0);
-pref("layout.imagevisibility.numscrollportheights", 1);
 
 
 
@@ -847,11 +778,12 @@ pref("dom.min_background_timeout_value", 1000);
 
 
 pref("dom.experimental_forms", false);
-pref("dom.forms.number", false);
 
 
+pref("dom.experimental_forms_range", true);
 
-pref("dom.forms.color", true);
+
+pref("dom.forms.color", false);
 
 
 pref("dom.sysmsg.enabled", false);
@@ -970,14 +902,6 @@ pref("network.protocol-handler.external.afp", false);
 pref("network.protocol-handler.external.moz-icon", false);
 
 
-pref("network.protocol-handler.external.ttp", false);  
-pref("network.protocol-handler.external.ttps", false); 
-pref("network.protocol-handler.external.tps", false);  
-pref("network.protocol-handler.external.ps", false);   
-pref("network.protocol-handler.external.ile", false);  
-pref("network.protocol-handler.external.le", false);   
-
-
 
 
 
@@ -1043,16 +967,7 @@ pref("network.http.request.max-start-delay", 10);
 
 
 pref("network.http.accept.default", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
-
-
-
 pref("network.http.sendRefererHeader",      2); 
-
-pref("network.http.referer.spoofSource", false); 
-
-pref("network.http.referer.trimmingPolicy", 0); 
-
-pref("network.http.referer.XOriginPolicy", 0); 
 
 
 
@@ -1135,8 +1050,8 @@ pref("network.http.bypass-cachelock-threshold", 250);
 
 
 pref("network.http.spdy.enabled", true);
+pref("network.http.spdy.enabled.v2", true);
 pref("network.http.spdy.enabled.v3", true);
-pref("network.http.spdy.enabled.v3-1", true);
 pref("network.http.spdy.chunk-size", 4096);
 pref("network.http.spdy.timeout", 180);
 pref("network.http.spdy.coalesce-hostnames", true);
@@ -1395,24 +1310,6 @@ pref("network.dir.format", 2);
 pref("network.prefetch-next", true);
 
 
-pref("network.seer.enabled", true);
-pref("network.seer.enable-hover-on-ssl", false);
-pref("network.seer.page-degradation.day", 0);
-pref("network.seer.page-degradation.week", 5);
-pref("network.seer.page-degradation.month", 10);
-pref("network.seer.page-degradation.year", 25);
-pref("network.seer.page-degradation.max", 50);
-pref("network.seer.subresource-degradation.day", 1);
-pref("network.seer.subresource-degradation.week", 10);
-pref("network.seer.subresource-degradation.month", 25);
-pref("network.seer.subresource-degradation.year", 50);
-pref("network.seer.subresource-degradation.max", 100);
-pref("network.seer.preconnect-min-confidence", 90);
-pref("network.seer.preresolve-min-confidence", 60);
-pref("network.seer.redirect-likely-confidence", 75);
-pref("network.seer.max-queue-size", 50);
-
-
 
 
 
@@ -1532,7 +1429,7 @@ pref("intl.charsetmenu.mailview.cache",     "");
 pref("intl.charsetmenu.composer.cache",     "");
 pref("intl.charsetmenu.browser.cache.size", 5);
 pref("intl.charset.detector",               "chrome://global/locale/intl.properties");
-pref("intl.charset.fallback.override",      "");
+pref("intl.charset.default",                "chrome://global-platform/locale/intl.properties");
 pref("intl.ellipsis",                       "chrome://global-platform/locale/intl.properties");
 pref("intl.locale.matchOS",                 false);
 
@@ -1623,7 +1520,6 @@ pref("security.notification_enable_delay", 500);
 
 pref("security.csp.enable", true);
 pref("security.csp.debug", false);
-pref("security.csp.experimentalEnabled", false);
 
 
 pref("security.mixed_content.block_active_content", false);
@@ -1855,6 +1751,11 @@ pref("layout.word_select.stop_at_punctuation", true);
 pref("layout.selection.caret_style", 0);
 
 
+
+
+pref("layout.enable_japanese_specific_transform", false);
+
+
 pref("layout.frames.force_resizability", false);
 
 
@@ -1892,17 +1793,7 @@ pref("layout.css.supports-rule.enabled", true);
 pref("layout.css.filters.enabled", false);
 
 
-#ifdef RELEASE_BUILD
-pref("layout.css.sticky.enabled", false);
-#else
-pref("layout.css.sticky.enabled", true);
-#endif
-
-
-pref("layout.css.text-align-true-value.enabled", false);
-
-
-pref("layout.css.image-orientation.enabled", true);
+pref("layout.css.flexbox.enabled", true);
 
 
 
@@ -1931,13 +1822,6 @@ pref("layout.css.scope-pseudo.enabled", true);
 #endif
 
 
-#ifdef RELEASE_BUILD
-pref("layout.css.background-blend-mode.enabled", false);
-#else
-pref("layout.css.background-blend-mode.enabled", true);
-#endif
-
-
 pref("layout.css.vertical-text.enabled", false);
 
 
@@ -1947,12 +1831,6 @@ pref("layout.css.osx-font-smoothing.enabled", true);
 #else
 pref("layout.css.osx-font-smoothing.enabled", false);
 #endif
-
-
-pref("layout.css.unset-value.enabled", true);
-
-
-pref("layout.css.all-shorthand.enabled", true);
 
 
 
@@ -2769,12 +2647,12 @@ pref("font.name-list.serif.ja", "Hiragino Mincho ProN,Hiragino Mincho Pro");
 pref("font.name-list.sans-serif.ja", "Hiragino Kaku Gothic ProN,Hiragino Kaku Gothic Pro");
 pref("font.name-list.monospace.ja", "Osaka-Mono"); 
 
-pref("font.name.serif.ko", "AppleMyungjo");
-pref("font.name.sans-serif.ko", "Apple SD Gothic Neo");
-pref("font.name.monospace.ko", "Apple SD Gothic Neo");
-pref("font.name-list.serif.ko", "AppleMyungjo");
-pref("font.name-list.sans-serif.ko", "Apple SD Gothic Neo,AppleGothic");
-pref("font.name-list.monospace.ko", "Apple SD Gothic Neo,AppleGothic");
+pref("font.name.serif.ko", "AppleMyungjo"); 
+pref("font.name.sans-serif.ko", "AppleGothic"); 
+pref("font.name.monospace.ko", "AppleGothic"); 
+pref("font.name-list.serif.ko", "AppleMyungjo"); 
+pref("font.name-list.sans-serif.ko", "AppleGothic"); 
+pref("font.name-list.monospace.ko", "AppleGothic"); 
 
 pref("font.name.serif.th", "Thonburi");
 pref("font.name.sans-serif.th", "Thonburi");
@@ -3410,68 +3288,74 @@ pref("font.alias-list", "sans,sans-serif,serif,monospace");
 
 
 pref("font.name.serif.el", "Droid Serif");
-pref("font.name.sans-serif.el", "Fira Sans OT");
-pref("font.name.monospace.el", "Fira Mono OT");
+pref("font.name.sans-serif.el", "Roboto");
+pref("font.name.monospace.el", "Source Code Pro");
 
 pref("font.name.serif.he", "Charis SIL Compact");
-pref("font.name.sans-serif.he", "Fira Sans OT");
-pref("font.name.monospace.he", "Fira Mono OT");
-pref("font.name-list.sans-serif.he", "Droid Sans Hebrew, Fira Sans OT");
+pref("font.name.sans-serif.he", "Feura Sans");
+pref("font.name.monospace.he", "Source Code Pro");
+pref("font.name-list.sans-serif.he", "Droid Sans Hebrew, Feura Sans");
 
 pref("font.name.serif.ja", "Charis SIL Compact");
-pref("font.name.sans-serif.ja", "Fira Sans OT");
+pref("font.name.sans-serif.ja", "Feura Sans");
 pref("font.name.monospace.ja", "MotoyaLMaru");
-pref("font.name-list.sans-serif.ja", "Fira Sans OT, MotoyaLMaru, MotoyaLCedar, Droid Sans Japanese");
-pref("font.name-list.monospace.ja", "MotoyaLMaru, MotoyaLCedar, Fira Mono OT");
+pref("font.name-list.sans-serif.ja", "Feura Sans, Roboto, MotoyaLMaru, MotoyaLCedar, Droid Sans Japanese");
+pref("font.name-list.monospace.ja", "MotoyaLMaru, MotoyaLCedar, Source Code Pro");
 
 pref("font.name.serif.ko", "Charis SIL Compact");
-pref("font.name.sans-serif.ko", "Fira Sans OT");
-pref("font.name.monospace.ko", "Fira Mono OT");
+pref("font.name.sans-serif.ko", "Feura Sans");
+pref("font.name.monospace.ko", "Source Code Pro");
 
 pref("font.name.serif.th", "Charis SIL Compact");
-pref("font.name.sans-serif.th", "Fira Sans OT");
-pref("font.name.monospace.th", "Fira Mono OT");
-pref("font.name-list.sans-serif.th", "Fira Sans OT, Droid Sans Thai");
+pref("font.name.sans-serif.th", "Feura Sans");
+pref("font.name.monospace.th", "Source Code Pro");
+pref("font.name-list.sans-serif.th", "Feura Sans, Droid Sans Thai");
 
 pref("font.name.serif.tr", "Charis SIL Compact");
-pref("font.name.sans-serif.tr", "Fira Sans OT");
-pref("font.name.monospace.tr", "Fira Mono OT");
+pref("font.name.sans-serif.tr", "Feura Sans");
+pref("font.name.monospace.tr", "Source Code Pro");
+pref("font.name-list.sans-serif.tr", "Feura Sans, Roboto");
 
 pref("font.name.serif.x-baltic", "Charis SIL Compact");
-pref("font.name.sans-serif.x-baltic", "Fira Sans OT");
-pref("font.name.monospace.x-baltic", "Fira Mono OT");
+pref("font.name.sans-serif.x-baltic", "Feura Sans");
+pref("font.name.monospace.x-baltic", "Source Code Pro");
+pref("font.name-list.sans-serif.x-baltic", "Feura Sans, Roboto");
 
 pref("font.name.serif.x-central-euro", "Charis SIL Compact");
-pref("font.name.sans-serif.x-central-euro", "Fira Sans OT");
-pref("font.name.monospace.x-central-euro", "Fira Mono OT");
+pref("font.name.sans-serif.x-central-euro", "Feura Sans");
+pref("font.name.monospace.x-central-euro", "Source Code Pro");
+pref("font.name-list.sans-serif.x-central-euro", "Feura Sans, Roboto");
 
 pref("font.name.serif.x-cyrillic", "Charis SIL Compact");
-pref("font.name.sans-serif.x-cyrillic", "Fira Sans OT");
-pref("font.name.monospace.x-cyrillic", "Fira Mono OT");
+pref("font.name.sans-serif.x-cyrillic", "Roboto");
+pref("font.name.monospace.x-cyrillic", "Source Code Pro");
 
 pref("font.name.serif.x-unicode", "Charis SIL Compact");
-pref("font.name.sans-serif.x-unicode", "Fira Sans OT");
-pref("font.name.monospace.x-unicode", "Fira Mono OT");
+pref("font.name.sans-serif.x-unicode", "Feura Sans");
+pref("font.name.monospace.x-unicode", "Source Code Pro");
+pref("font.name-list.sans-serif.x-unicode", "Feura Sans, Roboto");
 
 pref("font.name.serif.x-user-def", "Charis SIL Compact");
-pref("font.name.sans-serif.x-user-def", "Fira Sans OT");
-pref("font.name.monospace.x-user-def", "Fira Mono OT");
+pref("font.name.sans-serif.x-user-def", "Feura Sans");
+pref("font.name.monospace.x-user-def", "Source Code Pro");
+pref("font.name-list.sans-serif.x-user-def", "Feura Sans, Roboto");
 
 pref("font.name.serif.x-western", "Charis SIL Compact");
-pref("font.name.sans-serif.x-western", "Fira Sans OT");
-pref("font.name.monospace.x-western", "Fira Mono OT");
+pref("font.name.sans-serif.x-western", "Feura Sans");
+pref("font.name.monospace.x-western", "Source Code Pro");
+pref("font.name-list.sans-serif.x-western", "Feura Sans, Roboto");
 
 pref("font.name.serif.zh-CN", "Charis SIL Compact");
-pref("font.name.sans-serif.zh-CN", "Fira Sans OT");
-pref("font.name.monospace.zh-CN", "Fira Mono OT");
+pref("font.name.sans-serif.zh-CN", "Feura Sans");
+pref("font.name.monospace.zh-CN", "Source Code Pro");
 
 pref("font.name.serif.zh-HK", "Charis SIL Compact");
-pref("font.name.sans-serif.zh-HK", "Fira Sans OT");
-pref("font.name.monospace.zh-HK", "Fira Mono OT");
+pref("font.name.sans-serif.zh-HK", "Feura Sans");
+pref("font.name.monospace.zh-HK", "Source Code Pro");
 
 pref("font.name.serif.zh-TW", "Charis SIL Compact");
-pref("font.name.sans-serif.zh-TW", "Fira Sans OT");
-pref("font.name.monospace.zh-TW", "Fira Mono OT");
+pref("font.name.sans-serif.zh-TW", "Feura Sans");
+pref("font.name.monospace.zh-TW", "Source Code Pro");
 
 #else
 
@@ -3480,92 +3364,92 @@ pref("font.name.monospace.zh-TW", "Fira Mono OT");
 
 
 pref("font.name.serif.el", "Droid Serif"); 
-pref("font.name.sans-serif.el", "Clear Sans");
+pref("font.name.sans-serif.el", "Open Sans");
 pref("font.name.monospace.el", "Droid Sans Mono");
-pref("font.name-list.sans-serif.el", "Clear Sans, Roboto, Droid Sans");
+pref("font.name-list.sans-serif.el", "Open Sans, Roboto, Droid Sans");
 
 pref("font.name.serif.he", "Droid Serif");
-pref("font.name.sans-serif.he", "Clear Sans");
+pref("font.name.sans-serif.he", "Open Sans");
 pref("font.name.monospace.he", "Droid Sans Mono");
-pref("font.name-list.sans-serif.he", "Droid Sans Hebrew, Clear Sans, Droid Sans");
+pref("font.name-list.sans-serif.he", "Droid Sans Hebrew, Open Sans, Droid Sans");
 
 pref("font.name.serif.ja", "Charis SIL Compact");
-pref("font.name.sans-serif.ja", "Clear Sans");
+pref("font.name.sans-serif.ja", "Open Sans");
 pref("font.name.monospace.ja", "MotoyaLMaru");
 pref("font.name-list.serif.ja", "Droid Serif");
-pref("font.name-list.sans-serif.ja", "Clear Sans, Roboto, Droid Sans, MotoyaLMaru, MotoyaLCedar, Droid Sans Japanese");
+pref("font.name-list.sans-serif.ja", "Open Sans, Roboto, Droid Sans, MotoyaLMaru, MotoyaLCedar, Droid Sans Japanese");
 pref("font.name-list.monospace.ja", "MotoyaLMaru, MotoyaLCedar, Droid Sans Mono");
 
 pref("font.name.serif.ko", "Charis SIL Compact");
-pref("font.name.sans-serif.ko", "Clear Sans");
+pref("font.name.sans-serif.ko", "Open Sans");
 pref("font.name.monospace.ko", "Droid Sans Mono");
 pref("font.name-list.serif.ko", "Droid Serif, HYSerif");
 pref("font.name-list.sans-serif.ko", "SmartGothic, NanumGothic, DroidSansFallback, Droid Sans Fallback");
 
 pref("font.name.serif.th", "Charis SIL Compact");
-pref("font.name.sans-serif.th", "Clear Sans");
+pref("font.name.sans-serif.th", "Open Sans");
 pref("font.name.monospace.th", "Droid Sans Mono");
 pref("font.name-list.serif.th", "Droid Serif");
-pref("font.name-list.sans-serif.th", "Droid Sans Thai, Clear Sans, Droid Sans");
+pref("font.name-list.sans-serif.th", "Droid Sans Thai, Open Sans, Droid Sans");
 
 pref("font.name.serif.tr", "Charis SIL Compact");
-pref("font.name.sans-serif.tr", "Clear Sans");
+pref("font.name.sans-serif.tr", "Open Sans");
 pref("font.name.monospace.tr", "Droid Sans Mono");
 pref("font.name-list.serif.tr", "Droid Serif");
-pref("font.name-list.sans-serif.tr", "Clear Sans, Roboto, Droid Sans");
+pref("font.name-list.sans-serif.tr", "Open Sans, Roboto, Droid Sans");
 
 pref("font.name.serif.x-baltic", "Charis SIL Compact");
-pref("font.name.sans-serif.x-baltic", "Clear Sans");
+pref("font.name.sans-serif.x-baltic", "Open Sans");
 pref("font.name.monospace.x-baltic", "Droid Sans Mono");
 pref("font.name-list.serif.x-baltic", "Droid Serif");
-pref("font.name-list.sans-serif.x-baltic", "Clear Sans, Roboto, Droid Sans");
+pref("font.name-list.sans-serif.x-baltic", "Open Sans, Roboto, Droid Sans");
 
 pref("font.name.serif.x-central-euro", "Charis SIL Compact");
-pref("font.name.sans-serif.x-central-euro", "Clear Sans");
+pref("font.name.sans-serif.x-central-euro", "Open Sans");
 pref("font.name.monospace.x-central-euro", "Droid Sans Mono");
 pref("font.name-list.serif.x-central-euro", "Droid Serif");
-pref("font.name-list.sans-serif.x-central-euro", "Clear Sans, Roboto, Droid Sans");
+pref("font.name-list.sans-serif.x-central-euro", "Open Sans, Roboto, Droid Sans");
 
 pref("font.name.serif.x-cyrillic", "Charis SIL Compact");
-pref("font.name.sans-serif.x-cyrillic", "Clear Sans");
+pref("font.name.sans-serif.x-cyrillic", "Open Sans");
 pref("font.name.monospace.x-cyrillic", "Droid Sans Mono");
 pref("font.name-list.serif.x-cyrillic", "Droid Serif");
-pref("font.name-list.sans-serif.x-cyrillic", "Clear Sans, Roboto, Droid Sans");
+pref("font.name-list.sans-serif.x-cyrillic", "Open Sans, Roboto, Droid Sans");
 
 pref("font.name.serif.x-unicode", "Charis SIL Compact");
-pref("font.name.sans-serif.x-unicode", "Clear Sans");
+pref("font.name.sans-serif.x-unicode", "Open Sans");
 pref("font.name.monospace.x-unicode", "Droid Sans Mono");
 pref("font.name-list.serif.x-unicode", "Droid Serif");
-pref("font.name-list.sans-serif.x-unicode", "Clear Sans, Roboto, Droid Sans");
+pref("font.name-list.sans-serif.x-unicode", "Open Sans, Roboto, Droid Sans");
 
 pref("font.name.serif.x-user-def", "Charis SIL Compact");
-pref("font.name.sans-serif.x-user-def", "Clear Sans");
+pref("font.name.sans-serif.x-user-def", "Open Sans");
 pref("font.name.monospace.x-user-def", "Droid Sans Mono");
 pref("font.name-list.serif.x-user-def", "Droid Serif");
-pref("font.name-list.sans-serif.x-user-def", "Clear Sans, Roboto, Droid Sans");
+pref("font.name-list.sans-serif.x-user-def", "Open Sans, Roboto, Droid Sans");
 
 pref("font.name.serif.x-western", "Charis SIL Compact");
-pref("font.name.sans-serif.x-western", "Clear Sans");
+pref("font.name.sans-serif.x-western", "Open Sans");
 pref("font.name.monospace.x-western", "Droid Sans Mono");
 pref("font.name-list.serif.x-western", "Droid Serif");
-pref("font.name-list.sans-serif.x-western", "Clear Sans, Roboto, Droid Sans");
+pref("font.name-list.sans-serif.x-western", "Open Sans, Roboto, Droid Sans");
 
 pref("font.name.serif.zh-CN", "Charis SIL Compact");
-pref("font.name.sans-serif.zh-CN", "Clear Sans");
+pref("font.name.sans-serif.zh-CN", "Open Sans");
 pref("font.name.monospace.zh-CN", "Droid Sans Mono");
 pref("font.name-list.serif.zh-CN", "Droid Serif, Droid Sans Fallback");
 pref("font.name-list.sans-serif.zh-CN", "Roboto, Droid Sans, Droid Sans Fallback");
 pref("font.name-list.monospace.zh-CN", "Droid Sans Fallback");
 
 pref("font.name.serif.zh-HK", "Charis SIL Compact");
-pref("font.name.sans-serif.zh-HK", "Clear Sans");
+pref("font.name.sans-serif.zh-HK", "Open Sans");
 pref("font.name.monospace.zh-HK", "Droid Sans Mono");
 pref("font.name-list.serif.zh-HK", "Droid Serif, Droid Sans Fallback");
 pref("font.name-list.sans-serif.zh-HK", "Roboto, Droid Sans, Droid Sans Fallback");
 pref("font.name-list.monospace.zh-HK", "Droid Sans Fallback");
 
 pref("font.name.serif.zh-TW", "Charis SIL Compact");
-pref("font.name.sans-serif.zh-TW", "Clear Sans");
+pref("font.name.sans-serif.zh-TW", "Open Sans");
 pref("font.name.monospace.zh-TW", "Droid Sans Mono");
 pref("font.name-list.serif.zh-TW", "Droid Serif, Droid Sans Fallback");
 pref("font.name-list.sans-serif.zh-TW", "Roboto, Droid Sans, Droid Sans Fallback");
@@ -3984,6 +3868,8 @@ pref("ui.panel.default_level_parent", true);
 
 pref("mousewheel.system_scroll_override_on_root_content.enabled", false);
 
+pref("ui.key.menuAccessKeyFocuses", true);
+
 # XP_UNIX
 #endif
 #endif
@@ -4019,10 +3905,12 @@ pref("print.print_command", "lp -c -s ${MOZ_PRINTER_NAME:+-d\"$MOZ_PRINTER_NAME\
 
 
 pref("signon.rememberSignons",              true);
+pref("signon.SignonFileName",               "signons.txt"); 
+pref("signon.SignonFileName2",              "signons2.txt"); 
+pref("signon.SignonFileName3",              "signons3.txt"); 
 pref("signon.autofillForms",                true);
 pref("signon.autologin.proxy",              false);
 pref("signon.debug",                        false);
-pref("signon.useDOMFormHasPassword",        true);
 
 
 pref("browser.formfill.debug",            false);
@@ -4112,9 +4000,6 @@ pref("image.mem.discardable", true);
 pref("image.mem.decodeondraw", true);
 
 
-pref("image.mem.allow_locking_in_content_processes", true);
-
-
 
 
 
@@ -4132,20 +4017,6 @@ pref("image.mem.max_ms_before_yield", 5);
 
 
 pref("image.mem.max_decoded_image_kb", 51200);
-
-
-
-pref("image.mem.surfacecache.min_expiration_ms", 60000); 
-
-
-pref("image.mem.surfacecache.max_size_kb", 102400); 
-
-
-
-
-
-
-pref("image.mem.surfacecache.size_factor", 64);
 
 
 
@@ -4193,6 +4064,10 @@ pref("network.tcp.sendbuffer", 131072);
 #endif
 
 
+
+pref("layers.async-video.enabled",false);
+
+
 pref("layers.acceleration.disabled", false);
 
 
@@ -4206,7 +4081,6 @@ pref("layers.acceleration.force-enabled", false);
 
 pref("layers.acceleration.draw-fps", false);
 
-pref("layers.dump", false);
 pref("layers.draw-borders", false);
 pref("layers.draw-tile-borders", false);
 pref("layers.draw-bigimage-borders", false);
@@ -4214,27 +4088,14 @@ pref("layers.frame-counter", false);
 
 pref("layers.max-active", -1);
 
-
-pref("layers.offmainthreadcomposition.enabled", false);
-
-pref("layers.use-deprecated-textures", true);
-
-
-pref("layers.async-video.enabled",false);
-
 #ifdef XP_MACOSX
 pref("layers.offmainthreadcomposition.enabled", true);
+
 pref("layers.use-deprecated-textures", false);
-pref("layers.async-video.enabled",true);
+#else
+pref("layers.offmainthreadcomposition.enabled", false);
+pref("layers.use-deprecated-textures", true);
 #endif
-
-
-#ifdef ANDROID
-pref("layers.offmainthreadcomposition.enabled", true);
-pref("layers.use-deprecated-textures", false);
-pref("layers.async-video.enabled",true);
-#endif
-
 
 
 pref("layers.offmainthreadcomposition.testing.enabled", false);
@@ -4251,12 +4112,8 @@ pref("layers.bufferrotation.enabled", true);
 
 pref("layers.componentalpha.enabled", true);
 
-#ifdef ANDROID
-pref("gfx.apitrace.enabled",false);
-#endif
-
 #ifdef MOZ_X11
-#ifdef MOZ_WIDGET_GTK
+#ifdef MOZ_WIDGET_GTK2
 pref("gfx.xrender.enabled",true);
 #endif
 #endif
@@ -4347,9 +4204,6 @@ pref("dom.sms.enabled", false);
 
 pref("dom.sms.strict7BitEncoding", false);
 pref("dom.sms.requestStatusReport", true);
-
-
-pref("dom.sms.defaultServiceId", 0);
 
 
 pref("dom.mozContacts.enabled", false);
@@ -4473,13 +4327,6 @@ pref("wap.UAProf.tagname", "x-wap-profile");
 
 
 
-pref("dom.mms.version", 19);
-
-pref("dom.mms.requestStatusReport", true);
-
-
-
-
 
 
 pref("dom.mms.retrieval_mode", "manual");
@@ -4491,26 +4338,16 @@ pref("dom.mms.retrievalRetryCount", 4);
 pref("dom.mms.retrievalRetryIntervals", "60000,300000,600000,1800000");
 
 
-pref("dom.mms.defaultServiceId", 0);
-
 pref("mms.debugging.enabled", false);
 
 
-pref("dom.mms.requestReadReport", true);
-
-
-pref("ril.numRadioInterfaces", 0);
+pref("ril.numRadioInterfaces", 1);
 
 
 
 
 
 pref("ui.touch_activation.delay_ms", 100);
-
-
-
-
-pref("ui.touch_activation.duration_ms", 100);
 
 
 
@@ -4527,62 +4364,3 @@ pref("dom.forms.inputmode", false);
 #else
 pref("dom.forms.inputmode", true);
 #endif
-
-
-pref("dom.mozInputMethod.enabled", false);
-
-
-pref("dom.datastore.enabled", false);
-
-
-#ifdef MOZ_B2G_RIL
-pref("dom.telephony.enabled", true);
-#else
-pref("dom.telephony.enabled", false);
-#endif
-
-
-pref("dom.telephony.defaultServiceId", 0);
-
-
-#ifdef MOZ_B2G_RIL
-pref("dom.cellbroadcast.enabled", true);
-#else
-pref("dom.cellbroadcast.enabled", false);
-#endif
-
-
-#ifdef MOZ_B2G_RIL
-pref("dom.icc.enabled", true);
-#else
-pref("dom.icc.enabled", false);
-#endif
-
-
-#ifdef MOZ_B2G_RIL
-pref("dom.mobileconnection.enabled", true);
-#else
-pref("dom.mobileconnection.enabled", false);
-#endif
-
-
-#ifdef MOZ_B2G_RIL
-pref("dom.voicemail.enabled", true);
-#else
-pref("dom.voicemail.enabled", false);
-#endif
-
-
-pref("dom.voicemail.defaultServiceId", 0);
-
-
-pref("dom.inter-app-communication-api.enabled", false);
-
-
-pref("urlclassifier.malware_table", "goog-malware-shavar");
-pref("urlclassifier.phish_table", "goog-phish-shavar");
-pref("urlclassifier.download_block_table", "");
-pref("urlclassifier.download_allow_table", "");
-
-
-pref("snav.enabled", false);
