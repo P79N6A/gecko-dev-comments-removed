@@ -198,7 +198,6 @@ public:
       CreateDrawTargetForData(unsigned char* aData, const mozilla::gfx::IntSize& aSize, 
                               int32_t aStride, mozilla::gfx::SurfaceFormat aFormat);
 
-    bool SupportsAzureCanvas();
     bool SupportsAzureContent() {
       return GetContentBackend() != mozilla::gfx::BACKEND_NONE;
     }
@@ -494,6 +493,7 @@ protected:
     static mozilla::gfx::BackendType GetContentBackendPref(uint32_t aBackendBitmask);
 
     
+
 
 
 
