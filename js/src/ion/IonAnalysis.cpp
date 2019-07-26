@@ -623,6 +623,210 @@ ion::ApplyTypeInformation(MIRGenerator *mir, MIRGraph &graph)
     return true;
 }
 
+static bool
+SetLoopDepth(MBasicBlock *header)
+{
+    size_t depth = header->loopDepth() + 1;
+
+    Vector<MBasicBlock *, 1, IonAllocPolicy> worklist;
+    worklist.append(header->backedge());
+
+    
+    while (!worklist.empty()) {
+        MBasicBlock *block = worklist.popCopy();
+        block->setLoopDepth(depth);
+        if (block == header)
+            continue;
+
+        for (size_t i = 0; i < block->numPredecessors(); i++) {
+            MBasicBlock *pred = block->getPredecessor(i);
+            if (pred->loopDepth() == depth)
+                continue;
+
+            if (!worklist.append(pred))
+                return false;
+        }
+    }
+
+    return true;
+}
+
+bool
+ion::RecalculateLoopDepth(MIRGraph &graph)
+{
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+
+    
+    for (MBasicBlockIterator block(graph.begin()); block != graph.end(); block++)
+        (*block)->setLoopDepth(0);
+
+    
+    
+    
+    
+    
+    
+    
+    Vector<MBasicBlock *, 1, IonAllocPolicy> worklist;
+    if (!worklist.append(graph.entryBlock()))
+        return false;
+
+    JS_ASSERT(!graph.entryBlock()->isLoopHeader());
+    while (!worklist.empty()) {
+        MBasicBlock *block = worklist.back();
+
+        
+        for (size_t i = 0; i < block->numSuccessors(); i++) {
+            MBasicBlock *succ = block->getSuccessor(i);
+            if (!succ->isMarked()) {
+                if (!worklist.append(succ))
+                    return false;
+                succ->mark();
+
+                
+                if (succ->isLoopHeader()) {
+                    if (!SetLoopDepth(succ))
+                        return false;
+                }
+            }
+        }
+
+        
+        if (block != worklist.back())
+            continue;
+
+        
+        worklist.popBack();
+    }
+
+    graph.unmarkBlocks();
+
+    return true;
+}
+
+static void
+SortByLoopDepth(InlineList<MBasicBlock> &pending, MBasicBlockIterator from)
+{
+    
+    
+    
+
+    MBasicBlockIterator end = pending.end();
+    while (from != end) {
+        MBasicBlockIterator current(from);
+        MBasicBlock *max = *current;
+        while (current != end) {
+            if (current->loopDepth() > max->loopDepth())
+                max = *current;
+            current++;
+        }
+        if (max != *from) {
+            pending.remove(max);
+            pending.insertBefore(*from, max);
+        }
+        from++;
+    }
+}
+
+bool
+ion::ReorderBlocks(MIRGraph &graph)
+{
+    
+    
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+
+    mozilla::DebugOnly<size_t> numBlocks = graph.numBlocks();
+
+    InlineList<MBasicBlock> pending;
+    MBasicBlock *entry = graph.entryBlock();
+    MBasicBlock *osr = graph.osrBlock();
+    graph.clearBlockList();
+
+    
+    pending.pushBack(entry);
+    entry->mark();
+
+    
+    
+    while (!pending.empty()) {
+        MBasicBlock *block = pending.peekBack();
+        bool sortSuccessors = false;
+
+        
+        for (size_t i = 0; i < block->numSuccessors(); i++) {
+            MBasicBlock *succ = block->getSuccessor(i);
+            if (!succ->isMarked()) {
+                pending.pushBack(succ);
+                succ->mark();
+
+                
+                if (succ->loopDepth() != block->loopDepth())
+                    sortSuccessors = true;
+            }
+        }
+
+        
+        if (block != pending.peekBack()) {
+            
+            if (sortSuccessors) {
+                MBasicBlockIterator start = pending.begin(block);
+                start++;
+                SortByLoopDepth(pending, start);
+            }
+            continue;
+        }
+
+        
+        
+        pending.popBack();
+        graph.addBlock(block);
+        graph.moveBlockToBegin(block);
+    }
+
+    
+    if (osr) {
+        graph.addBlock(osr);
+        graph.moveBlockToBegin(osr);
+        graph.moveBlockToBegin(entry);
+    }
+
+    graph.unmarkBlocks();
+
+    JS_ASSERT(graph.numBlocks() == numBlocks);
+
+#ifdef DEBUG
+    graph.setInRPO();
+#endif
+
+    return true;
+}
+
 bool
 ion::RenumberBlocks(MIRGraph &graph)
 {

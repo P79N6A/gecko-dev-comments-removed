@@ -904,9 +904,22 @@ OptimizeMIR(MIRGenerator *mir)
     if (!SplitCriticalEdges(graph))
         return false;
     IonSpewPass("Split Critical Edges");
-    AssertGraphCoherency(graph);
 
     if (mir->shouldCancel("Split Critical Edges"))
+        return false;
+
+    if (!RecalculateLoopDepth(graph))
+        return false;
+    
+
+    if (mir->shouldCancel("Recalculate Loop Depth"))
+        return false;
+
+    if (!ReorderBlocks(graph))
+        return false;
+    
+
+    if (mir->shouldCancel("ReorderBlocks"))
         return false;
 
     if (!RenumberBlocks(graph))
