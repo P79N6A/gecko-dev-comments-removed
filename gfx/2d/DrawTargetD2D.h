@@ -173,7 +173,8 @@ private:
 
   
   
-  void EnsureClipMaskTexture();
+  
+  void EnsureClipMaskTexture(IntRect *aClipBounds);
 
   bool FillGlyphsManual(ScaledFontDWrite *aFont,
                         const GlyphBuffer &aBuffer,
@@ -183,7 +184,14 @@ private:
 
   TemporaryRef<ID2D1RenderTarget> CreateRTForTexture(ID3D10Texture2D *aTexture, SurfaceFormat aFormat);
   TemporaryRef<ID2D1Geometry> ConvertRectToGeometry(const D2D1_RECT_F& aRect);
-  TemporaryRef<ID2D1Geometry> GetClippedGeometry();
+  TemporaryRef<ID2D1Geometry> GetTransformedGeometry(ID2D1Geometry *aGeometry, const D2D1_MATRIX_3X2_F &aTransform);
+  TemporaryRef<ID2D1Geometry> Intersect(ID2D1Geometry *aGeometryA, ID2D1Geometry *aGeometryB);
+
+  
+  
+  
+  
+  TemporaryRef<ID2D1Geometry> GetClippedGeometry(IntRect *aClipBounds);
 
   TemporaryRef<ID2D1Brush> CreateBrushForPattern(const Pattern &aPattern, Float aAlpha = 1.0f);
 
@@ -199,6 +207,10 @@ private:
   void SetupEffectForRadialGradient(const RadialGradientPattern *aPattern);
   void SetupStateForRendering();
 
+  
+  
+  void SetScissorToRect(IntRect *aRect);
+
   static const uint32_t test = 4;
 
   IntSize mSize;
@@ -207,6 +219,10 @@ private:
   RefPtr<ID3D10Texture2D> mTexture;
   RefPtr<ID3D10Texture2D> mCurrentClipMaskTexture;
   RefPtr<ID2D1Geometry> mCurrentClippedGeometry;
+  
+  
+  
+  IntRect mCurrentClipBounds;
   mutable RefPtr<ID2D1RenderTarget> mRT;
 
   
@@ -224,7 +240,12 @@ private:
   {
     RefPtr<ID2D1Layer> mLayer;
     D2D1_RECT_F mBounds;
-    D2D1_MATRIX_3X2_F mTransform;
+    union {
+      
+      
+      D2D1_MATRIX_3X2_F mTransform;
+      bool mIsPixelAligned;
+    };
     RefPtr<PathD2D> mPath;
   };
   std::vector<PushedClip> mPushedClips;
