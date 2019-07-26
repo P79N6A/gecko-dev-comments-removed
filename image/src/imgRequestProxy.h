@@ -94,8 +94,7 @@ public:
   }
 
   
-  
-  void SetImage(mozilla::image::Image* aImage);
+  void SetHasImage();
 
   
   
@@ -169,7 +168,7 @@ protected:
   
   
   
-  imgStatusTracker& GetStatusTracker();
+  imgStatusTracker& GetStatusTracker() const;
 
   nsITimedChannel* TimedChannel()
   {
@@ -177,6 +176,8 @@ protected:
       return nullptr;
     return mOwner->mTimedChannel;
   }
+
+  virtual mozilla::image::Image* GetImage() const;
 
 public:
   NS_FORWARD_SAFE_NSITIMEDCHANNEL(TimedChannel())
@@ -200,10 +201,6 @@ private:
 
   
   
-  nsRefPtr<mozilla::image::Image> mImage;
-
-  
-  
   
   imgIDecoderObserver* mListener;
   nsCOMPtr<nsILoadGroup> mLoadGroup;
@@ -223,6 +220,9 @@ private:
   
   
   bool mSentStartContainer;
+
+  protected:
+    bool mOwnerHasImage;
 };
 
 
@@ -231,15 +231,28 @@ class imgRequestProxyStatic : public imgRequestProxy
 {
 
 public:
-  imgRequestProxyStatic(nsIPrincipal* aPrincipal) : mPrincipal(aPrincipal) {};
+  imgRequestProxyStatic(mozilla::image::Image* aImage,
+                        nsIPrincipal* aPrincipal)
+                       : mImage(aImage)
+                       , mPrincipal(aPrincipal)
+  {
+    mOwnerHasImage = true;
+  };
 
   NS_IMETHOD GetImagePrincipal(nsIPrincipal** aPrincipal);
 
 protected:
   
   
+  nsRefPtr<mozilla::image::Image> mImage;
+
+  
+  
   nsCOMPtr<nsIPrincipal> mPrincipal;
 
+private:
+  mozilla::image::Image* GetImage() const MOZ_OVERRIDE;
+  using imgRequestProxy::GetImage;
 };
 
 #endif 

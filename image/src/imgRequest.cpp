@@ -995,7 +995,7 @@ imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctxt,
       if (mResniffMimeType) {
         NS_ABORT_IF_FALSE(mIsMultiPartChannel, "Resniffing a non-multipart image");
         imgStatusTracker* freshTracker = new imgStatusTracker(nullptr, this);
-        freshTracker->AdoptConsumers(mStatusTracker);
+        freshTracker->AdoptConsumers(&GetStatusTracker());
         mStatusTracker = freshTracker;
       }
 
@@ -1012,7 +1012,7 @@ imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctxt,
       
     nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(GetStatusTracker().GetConsumers());
       while (iter.HasMore()) {
-        iter.GetNext()->SetImage(mImage);
+        iter.GetNext()->SetHasImage();
       }
 
       
