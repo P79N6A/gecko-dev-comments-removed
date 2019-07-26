@@ -563,6 +563,32 @@ private:
   };
 
   
+  struct TouchBlockState {
+
+    TouchBlockState()
+      :  mAllowedTouchBehaviorSet(false),
+         mPreventDefault(false),
+         mPreventDefaultSet(false)
+    {}
+
+    
+    
+    
+    
+    nsTArray<TouchBehaviorFlags> mAllowedTouchBehaviors;
+
+    
+    bool mAllowedTouchBehaviorSet;
+
+    
+    
+    bool mPreventDefault;
+
+    
+    bool mPreventDefaultSet;
+  };
+
+  
 
 
   bool TouchActionAllowZoom();
@@ -726,20 +752,7 @@ private:
   bool mHandlingTouchQueue;
 
   
-  
-  
-  
-  nsTArray<TouchBehaviorFlags> mAllowedTouchBehaviors;
-
-  
-  bool mAllowedTouchBehaviorSet;
-
-  
-  
-  bool mPreventDefault;
-
-  
-  bool mPreventDefaultSet;
+  TouchBlockState mTouchBlockState;
 
   
   CSSPoint mTestAsyncScrollOffset;
