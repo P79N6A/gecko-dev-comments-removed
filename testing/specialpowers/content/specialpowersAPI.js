@@ -76,6 +76,13 @@ function isXrayWrapper(x) {
   return Cu.isXrayWrapper(x);
 }
 
+function isObjectOrArray(obj) {
+  if (Object(obj) !== obj)
+    return false;
+  let className = Cu.getClassName(obj, true);
+  return className == 'Object' || className == 'Array';
+}
+
 function callGetOwnPropertyDescriptor(obj, name) {
   
   
@@ -105,9 +112,7 @@ function doApply(fun, invocant, args) {
   
   
   
-  args = args.map(x => (Object(x) === x &&
-                        Cu.getClassName(x, true) == 'Object')
-                  ? Cu.waiveXrays(x) : x);
+  args = args.map(x => isObjectOrArray(x) ? Cu.waiveXrays(x) : x);
   return Function.prototype.apply.call(fun, invocant, args);
 }
 
@@ -234,8 +239,9 @@ SpecialPowersHandler.prototype.doGetPropertyDescriptor = function(name, own) {
   
   
   
+  
   var obj = this.wrappedObject;
-  if (name == 'toString' || Cu.getClassName(obj, true) == 'Object')
+  if (name == 'toString' || isObjectOrArray(obj))
     obj = XPCNativeWrapper.unwrap(obj);
 
   
