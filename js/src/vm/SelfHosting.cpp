@@ -8,14 +8,16 @@
 #include "jscntxt.h"
 #include "jscompartment.h"
 #include "jsinterp.h"
+#include "jsnum.h"
 #include "jsobj.h"
 
-#include "builtin/Intl.h"
-#include "builtin/ParallelArray.h"
 #include "gc/Marking.h"
-#include "vm/ForkJoin.h"
+
 #include "vm/ParallelDo.h"
+#include "vm/ForkJoin.h"
 #include "vm/ThreadPool.h"
+
+#include "builtin/ParallelArray.h"
 
 #include "jsfuninlines.h"
 #include "jstypedarrayinlines.h"
@@ -28,7 +30,6 @@
 #include "selfhosted.out.h"
 
 using namespace js;
-using namespace js::selfhosted;
 
 static void
 selfHosting_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
@@ -400,7 +401,11 @@ js::intrinsic_UnsafeSetElement(JSContext *cx, unsigned argc, Value *vp)
 static JSBool
 intrinsic_ParallelTestsShouldPass(JSContext *cx, unsigned argc, Value *vp)
 {
+    
     CallArgs args = CallArgsFromVp(argc, vp);
+    args.rval().setBoolean(false);
+    return true;
+
 #if defined(JS_THREADSAFE) && defined(JS_ION)
     args.rval().setBoolean(ion::IsEnabled(cx) &&
                            !ion::js_IonOptions.eagerCompilation);
@@ -469,21 +474,6 @@ JSFunctionSpec intrinsic_functions[] = {
     JS_FN("ShouldForceSequential", intrinsic_ShouldForceSequential, 0,0),
     JS_FN("ParallelTestsShouldPass", intrinsic_ParallelTestsShouldPass, 0,0),
 
-    
-    JS_FN("intl_availableCalendars", intl_availableCalendars, 1,0),
-    JS_FN("intl_availableCollations", intl_availableCollations, 1,0),
-    JS_FN("intl_Collator", intl_Collator, 2,0),
-    JS_FN("intl_Collator_availableLocales", intl_Collator_availableLocales, 0,0),
-    JS_FN("intl_CompareStrings", intl_CompareStrings, 3,0),
-    JS_FN("intl_DateTimeFormat", intl_DateTimeFormat, 2,0),
-    JS_FN("intl_DateTimeFormat_availableLocales", intl_DateTimeFormat_availableLocales, 0,0),
-    JS_FN("intl_FormatDateTime", intl_FormatDateTime, 2,0),
-    JS_FN("intl_FormatNumber", intl_FormatNumber, 2,0),
-    JS_FN("intl_NumberFormat", intl_NumberFormat, 2,0),
-    JS_FN("intl_NumberFormat_availableLocales", intl_NumberFormat_availableLocales, 0,0),
-    JS_FN("intl_numberingSystem", intl_numberingSystem, 1,0),
-    JS_FN("intl_patternForSkeleton", intl_patternForSkeleton, 2,0),
-
 #ifdef DEBUG
     JS_FN("Dump",                 intrinsic_Dump,                 1,0),
 #endif
@@ -531,32 +521,13 @@ JSRuntime::initSelfHosting(JSContext *cx)
         if (script)
             ok = Execute(cx, script, *shg.get(), &rv);
     } else {
-        uint32_t srcLen = GetRawScriptsSize();
-
-#ifdef USE_ZLIB
-        const unsigned char *compressed = compressedSources;
-        uint32_t compressedLen = GetCompressedSize();
-        ScopedJSFreePtr<char> src(reinterpret_cast<char *>(cx->malloc_(srcLen)));
-        if (!src || !DecompressString(compressed, compressedLen,
-                                      reinterpret_cast<unsigned char *>(src.get()), srcLen))
-        {
-            return false;
-        }
-#else
-        const char *src = rawSources;
-#endif
-
+        const char *src = selfhosted::raw_sources;
+        uint32_t srcLen = selfhosted::GetRawScriptsSize();
         ok = Evaluate(cx, shg, options, src, srcLen, &rv);
     }
     JS_SetErrorReporter(cx, oldReporter);
     JS_SetGlobalObject(cx, savedGlobal);
     return ok;
-}
-
-void
-JSRuntime::finishSelfHosting()
-{
-    selfHostingGlobal_ = NULL;
 }
 
 void
@@ -597,7 +568,6 @@ CloneProperties(JSContext *cx, HandleObject obj, HandleObject clone, CloneMemory
     }
     return true;
 }
-
 static RawObject
 CloneObject(JSContext *cx, HandleObject srcObj, CloneMemory &clonedObjects)
 {
@@ -631,7 +601,7 @@ CloneObject(JSContext *cx, HandleObject srcObj, CloneMemory &clonedObjects)
     } else {
         JS_ASSERT(srcObj->isNative());
         clone = NewObjectWithClassProto(cx, srcObj->getClass(), NULL, cx->global(),
-                                        srcObj->tenuredGetAllocKind());
+                                        srcObj->getAllocKind());
     }
     if (!clone || !clonedObjects.relookupOrAdd(p, srcObj.get(), clone.get()) ||
         !CloneProperties(cx, srcObj, clone, clonedObjects))

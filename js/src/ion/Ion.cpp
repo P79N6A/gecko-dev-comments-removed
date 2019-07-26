@@ -1502,9 +1502,13 @@ Compile(JSContext *cx, HandleScript script, HandleFunction fun, jsbytecode *osrP
     JS_ASSERT(ion::IsEnabled(cx));
     JS_ASSERT_IF(osrPc != NULL, (JSOp)*osrPc == JSOP_LOOPENTRY);
 
-    if (IsBaselineEnabled(cx) && !script->hasBaselineScript()) {
-        IonSpew(IonSpew_Abort, "Aborted compilation of %s:%d (has no baseline script)",
-                script->filename(), script->lineno);
+    ExecutionMode executionMode = compileContext.executionMode();
+
+    if (executionMode == SequentialExecution &&
+        IsBaselineEnabled(cx) && !script->hasBaselineScript())
+    {
+        
+        
         return Method_Skipped;
     }
 
@@ -1524,7 +1528,6 @@ Compile(JSContext *cx, HandleScript script, HandleFunction fun, jsbytecode *osrP
         return status;
     }
 
-    ExecutionMode executionMode = compileContext.executionMode();
     IonScript *scriptIon = GetIonScript(script, executionMode);
     if (scriptIon) {
         if (!scriptIon->method())
@@ -2265,7 +2268,16 @@ ion::Invalidate(types::TypeCompartment &types, FreeOp *fop,
 
         
         
-        if (resetUses)
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        if (resetUses && executionMode != ParallelExecution)
             script->resetUseCount();
     }
 }
