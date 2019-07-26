@@ -44,28 +44,27 @@ function test() {
   registerCleanupFunction(cleanUp);
 
   
-  PlacesUtils.history.addVisit(TEST_URI_1, Date.now() * 1000, null,
-    Ci.nsINavHistoryService.TRANSITION_LINK, false, 0);
-
-  
-  
-  for (let type in TEST_PERMS) {
-    if (type == "password") {
-      Services.logins.setLoginSavingEnabled(TEST_URI_2.prePath, true);
-    } else {
-      
-      Services.perms.addFromPrincipal(TEST_PRINCIPAL_2, type, TEST_PERMS[type]);
+  addVisits(TEST_URI_1, function() {
+    
+    
+    for (let type in TEST_PERMS) {
+      if (type == "password") {
+        Services.logins.setLoginSavingEnabled(TEST_URI_2.prePath, true);
+      } else {
+        
+        Services.perms.addFromPrincipal(TEST_PRINCIPAL_2, type, TEST_PERMS[type]);
+      }
     }
-  }
+
+    
+    gBrowser.selectedTab = gBrowser.addTab("about:permissions");
+  });
 
   function observer() {
     Services.obs.removeObserver(observer, "browser-permissions-initialized", false);
     runNextTest();
   }
   Services.obs.addObserver(observer, "browser-permissions-initialized", false);
-
-  
-  gBrowser.selectedTab = gBrowser.addTab("about:permissions");
 }
 
 function cleanUp() {

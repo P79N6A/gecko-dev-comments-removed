@@ -35,48 +35,54 @@ var gAllTests = [
   function () {
     
     let uris = [];
+    let places = [];
+    let pURI;
     for (let i = 0; i < 30; i++) {
-      uris.push(addHistoryWithMinutesAgo(i));
+      pURI = makeURI("http://" + i + "-minutes-ago.com/");
+      places.push({uri: pURI, visitDate: visitTimeForMinutesAgo(i)});
+      uris.push(pURI);
     }
 
-    
-    openWindow(function (aWin) {
-      let wh = new WindowHelper(aWin);
-      wh.selectDuration(Sanitizer.TIMESPAN_HOUR);
-      wh.checkGrippy("Grippy should be at last row after selecting HOUR " +
-                     "duration",
-                     wh.getRowCount() - 1);
-
+    addVisits(places, function() {
       
-      let row = wh.getGrippyRow();
-      while (row !== 0) {
-        row--;
+      openWindow(function (aWin) {
+        let wh = new WindowHelper(aWin);
+        wh.selectDuration(Sanitizer.TIMESPAN_HOUR);
+        wh.checkGrippy("Grippy should be at last row after selecting HOUR " +
+                       "duration",
+                       wh.getRowCount() - 1);
+
+        
+        let row = wh.getGrippyRow();
+        while (row !== 0) {
+          row--;
+          wh.moveGrippyBy(-1);
+          wh.checkGrippy("Grippy should be moved up one row", row);
+        }
         wh.moveGrippyBy(-1);
-        wh.checkGrippy("Grippy should be moved up one row", row);
-      }
-      wh.moveGrippyBy(-1);
-      wh.checkGrippy("Grippy should remain at first row after trying to move " +
-                     "it up",
-                     0);
-      while (row !== wh.getRowCount() - 1) {
-        row++;
+        wh.checkGrippy("Grippy should remain at first row after trying to move " +
+                       "it up",
+                       0);
+        while (row !== wh.getRowCount() - 1) {
+          row++;
+          wh.moveGrippyBy(1);
+          wh.checkGrippy("Grippy should be moved down one row", row);
+        }
         wh.moveGrippyBy(1);
-        wh.checkGrippy("Grippy should be moved down one row", row);
-      }
-      wh.moveGrippyBy(1);
-      wh.checkGrippy("Grippy should remain at last row after trying to move " +
-                     "it down",
-                     wh.getRowCount() - 1);
+        wh.checkGrippy("Grippy should remain at last row after trying to move " +
+                       "it down",
+                       wh.getRowCount() - 1);
 
-      
-      wh.checkPrefCheckbox("history", false);
+        
+        wh.checkPrefCheckbox("history", false);
 
-      wh.cancelDialog();
-      ensureHistoryClearedState(uris, false);
+        wh.cancelDialog();
+        ensureHistoryClearedState(uris, false);
 
-      
-      blankSlate();
-      ensureHistoryClearedState(uris, true);
+        
+        blankSlate();
+        ensureHistoryClearedState(uris, true);
+      });
     });
   },
 
@@ -87,47 +93,58 @@ var gAllTests = [
   function () {
     
     let uris = [];
+    let places = [];
+    let pURI;
     for (let i = 0; i < 30; i++) {
-      uris.push(addHistoryWithMinutesAgo(i));
-    }
-    let downloadIDs = [];
-    for (let i = 0; i < 5; i++) {
-      downloadIDs.push(addDownloadWithMinutesAgo(i));
+      pURI = makeURI("http://" + i + "-minutes-ago.com/");
+      places.push({uri: pURI, visitDate: visitTimeForMinutesAgo(i)});
+      uris.push(pURI);
     }
     
     let olderURIs = [];
     for (let i = 0; i < 5; i++) {
-      olderURIs.push(addHistoryWithMinutesAgo(61 + i));
+      pURI = makeURI("http://" + (60 + i) + "-minutes-ago.com/");
+      places.push({uri: pURI, visitDate: visitTimeForMinutesAgo(60 + i)});
+      olderURIs.push(pURI);
     }
-    let olderDownloadIDs = [];
-    for (let i = 0; i < 5; i++) {
-      olderDownloadIDs.push(addDownloadWithMinutesAgo(61 + i));
-    }
-    let totalHistoryVisits = uris.length + olderURIs.length;
 
-    
-    openWindow(function (aWin) {
-      let wh = new WindowHelper(aWin);
-      wh.selectDuration(Sanitizer.TIMESPAN_HOUR);
-      wh.checkGrippy("Grippy should be at proper row after selecting HOUR " +
-                     "duration",
-                     uris.length);
-
+    addVisits(places, function() {
       
+      let downloadIDs = [];
+      for (let i = 0; i < 5; i++) {
+        downloadIDs.push(addDownloadWithMinutesAgo(i));
+      }
       
-      wh.checkPrefCheckbox("history", true);
-      wh.acceptDialog();
-      ensureHistoryClearedState(uris, true);
-      ensureDownloadsClearedState(downloadIDs, true);
+      let olderDownloadIDs = [];
+      for (let i = 0; i < 5; i++) {
+        olderDownloadIDs.push(addDownloadWithMinutesAgo(61 + i));
+      }
+      let totalHistoryVisits = uris.length + olderURIs.length;
 
       
-      ensureHistoryClearedState(olderURIs, false);
-      ensureDownloadsClearedState(olderDownloadIDs, false);
+      openWindow(function (aWin) {
+        let wh = new WindowHelper(aWin);
+        wh.selectDuration(Sanitizer.TIMESPAN_HOUR);
+        wh.checkGrippy("Grippy should be at proper row after selecting HOUR " +
+                       "duration",
+                       uris.length);
 
-      
-      blankSlate();
-      ensureHistoryClearedState(olderURIs, true);
-      ensureDownloadsClearedState(olderDownloadIDs, true);
+        
+        
+        wh.checkPrefCheckbox("history", true);
+        wh.acceptDialog();
+        ensureHistoryClearedState(uris, true);
+        ensureDownloadsClearedState(downloadIDs, true);
+
+        
+        ensureHistoryClearedState(olderURIs, false);
+        ensureDownloadsClearedState(olderDownloadIDs, false);
+
+        
+        blankSlate();
+        ensureHistoryClearedState(olderURIs, true);
+        ensureDownloadsClearedState(olderDownloadIDs, true);
+      });
     });
   },
 
@@ -138,40 +155,47 @@ var gAllTests = [
   function () {
     
     let uris = [];
+    let places = [];
+    let pURI;
     for (let i = 0; i < 5; i++) {
-      uris.push(addHistoryWithMinutesAgo(i));
-    }
-    let downloadIDs = [];
-    for (let i = 0; i < 5; i++) {
-      downloadIDs.push(addDownloadWithMinutesAgo(i));
-    }
-    let formEntries = [];
-    for (let i = 0; i < 5; i++) {
-      formEntries.push(addFormEntryWithMinutesAgo(i));
+      pURI = makeURI("http://" + i + "-minutes-ago.com/");
+      places.push({uri: pURI, visitDate: visitTimeForMinutesAgo(i)});
+      uris.push(pURI);
     }
 
-    
-    openWindow(function (aWin) {
-      let wh = new WindowHelper(aWin);
-      wh.selectDuration(Sanitizer.TIMESPAN_HOUR);
-      wh.checkGrippy("Grippy should be at last row after selecting HOUR " +
-                     "duration",
-                     wh.getRowCount() - 1);
+    addVisits(places, function() {
+      let downloadIDs = [];
+      for (let i = 0; i < 5; i++) {
+        downloadIDs.push(addDownloadWithMinutesAgo(i));
+      }
+      let formEntries = [];
+      for (let i = 0; i < 5; i++) {
+        formEntries.push(addFormEntryWithMinutesAgo(i));
+      }
 
       
-      wh.checkPrefCheckbox("history", false);
-      wh.checkPrefCheckbox("formdata", true);
-      wh.acceptDialog();
+      openWindow(function (aWin) {
+        let wh = new WindowHelper(aWin);
+        wh.selectDuration(Sanitizer.TIMESPAN_HOUR);
+        wh.checkGrippy("Grippy should be at last row after selecting HOUR " +
+                       "duration",
+                       wh.getRowCount() - 1);
 
-      
-      ensureHistoryClearedState(uris, false);
-      ensureDownloadsClearedState(downloadIDs, false);
-      ensureFormEntriesClearedState(formEntries, true);
+        
+        wh.checkPrefCheckbox("history", false);
+        wh.checkPrefCheckbox("formdata", true);
+        wh.acceptDialog();
 
-      
-      blankSlate();
-      ensureHistoryClearedState(uris, true);
-      ensureDownloadsClearedState(downloadIDs, true);
+        
+        ensureHistoryClearedState(uris, false);
+        ensureDownloadsClearedState(downloadIDs, false);
+        ensureFormEntriesClearedState(formEntries, true);
+
+        
+        blankSlate();
+        ensureHistoryClearedState(uris, true);
+        ensureDownloadsClearedState(downloadIDs, true);
+      });
     });
   },
 
@@ -181,18 +205,25 @@ var gAllTests = [
   function () {
     
     let uris = [];
-    uris.push(addHistoryWithMinutesAgo(10));  
-    uris.push(addHistoryWithMinutesAgo(70));  
-    uris.push(addHistoryWithMinutesAgo(130)); 
-    uris.push(addHistoryWithMinutesAgo(250)); 
-
+    let places = [];
+    let pURI;
     
-    openWindow(function (aWin) {
-      let wh = new WindowHelper(aWin);
-      wh.selectDuration(Sanitizer.TIMESPAN_EVERYTHING);
-      wh.checkPrefCheckbox("history", true);
-      wh.acceptDialog();
-      ensureHistoryClearedState(uris, true);
+    
+    [10, 70, 130, 250].forEach(function(aValue) {
+      pURI = makeURI("http://" + aValue + "-minutes-ago.com/");
+      places.push({uri: pURI, visitDate: visitTimeForMinutesAgo(aValue)});
+      uris.push(pURI);
+    });
+    addVisits(places, function() {
+
+      
+      openWindow(function (aWin) {
+        let wh = new WindowHelper(aWin);
+        wh.selectDuration(Sanitizer.TIMESPAN_EVERYTHING);
+        wh.checkPrefCheckbox("history", true);
+        wh.acceptDialog();
+        ensureHistoryClearedState(uris, true);
+      });
     });
   }
 ];
@@ -465,26 +496,6 @@ function addFormEntryWithMinutesAgo(aMinutesAgo) {
 
 
 
-
-
-
-function addHistoryWithMinutesAgo(aMinutesAgo) {
-  let pURI = makeURI("http://" + aMinutesAgo + "-minutes-ago.com/");
-  PlacesUtils.history.addVisit(pURI,
-                               now_uSec - (aMinutesAgo * 60 * 1000 * 1000),
-                               null,
-                               Ci.nsINavHistoryService.TRANSITION_LINK,
-                               false,
-                               0);
-  is(PlacesUtils.bhistory.isVisited(pURI), true,
-     "Sanity check: history visit " + pURI.spec +
-     " should exist after creating it");
-  return pURI;
-}
-
-
-
-
 function blankSlate() {
   PlacesUtils.bhistory.removeAllPages();
   dm.cleanUp();
@@ -651,6 +662,16 @@ function openWindow(aOnloadCallback) {
                          "Sanitize",
                          "chrome,titlebar,dialog,centerscreen,modal",
                          null);
+}
+
+
+
+
+
+
+
+function visitTimeForMinutesAgo(aMinutesAgo) {
+  return now_uSec - (aMinutesAgo * 60 * 1000000);
 }
 
 

@@ -28,27 +28,28 @@ const TEST_PERMS = {
 function test() {
   waitForExplicitFinish();
   registerCleanupFunction(cleanUp);
-  setup();
-  runNextTest();
+  setup(function() {
+    runNextTest();
+  });
 }
 
-function setup() {
+function setup(aCallback) {
   
-  PlacesUtils.history.addVisit(TEST_URI_1, Date.now() * 1000, null,
-    Ci.nsINavHistoryService.TRANSITION_LINK, false, 0);
-
-  
-  
-  for (let type in TEST_PERMS) {
-    if (type == "password") {
-      Services.logins.setLoginSavingEnabled(TEST_URI_2.prePath, true);
-    } else {
-      
-      Services.perms.add(TEST_URI_2, type, TEST_PERMS[type]);
+  addVisits(TEST_URI_1, function() {
+    
+    
+    for (let type in TEST_PERMS) {
+      if (type == "password") {
+        Services.logins.setLoginSavingEnabled(TEST_URI_2.prePath, true);
+      } else {
+        
+        Services.perms.add(TEST_URI_2, type, TEST_PERMS[type]);
+      }
     }
-  }
 
-  Services.perms.add(TEST_URI_3, "popup", TEST_PERMS["popup"]);
+    Services.perms.add(TEST_URI_3, "popup", TEST_PERMS["popup"]);
+    aCallback();
+  });
 }
 
 function cleanUp() {

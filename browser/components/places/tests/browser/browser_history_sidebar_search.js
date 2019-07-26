@@ -17,16 +17,6 @@ function uri(spec) {
 
 var sidebar = document.getElementById("sidebar");
 
-function add_visit(aURI, aDate) {
-  var visitId = hs.addVisit(aURI,
-                            aDate,
-                            null, 
-                            hs.TRANSITION_TYPED, 
-                            false, 
-                            0);
-  return visitId;
-}
-
 
 var pages = [
   "http://sidebar.mozilla.org/a",
@@ -47,9 +37,15 @@ function test() {
 function continue_test() {
   
   var time = Date.now();
-  for (var i = 0; i < pages.length; i++) {
-    add_visit(uri(pages[i]), (time - i) * 1000);
+  var pagesLength = pages.length;
+  var places = [];
+  for (var i = 0; i < pagesLength; i++) {
+    places.push({uri: uri(pages[i]), visitDate: (time - i) * 1000,
+                 transition: hs.TRANSITION_TYPED});
   }
+  addVisits(places, window, function() {
+    toggleSidebar("viewHistorySidebar", true);
+  });
 
   sidebar.addEventListener("load", function() {
     sidebar.removeEventListener("load", arguments.callee, true);
@@ -71,7 +67,6 @@ function continue_test() {
       waitForClearHistory(finish);
     });
   }, true);
-  toggleSidebar("viewHistorySidebar", true);
 }
 
 function check_sidebar_tree_order(aExpectedRows) {

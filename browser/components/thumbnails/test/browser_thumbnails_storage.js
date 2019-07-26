@@ -45,16 +45,18 @@ function runTests() {
   yield clearHistory(true);
 
   
-  while (file.exists()) {
-    
-    
-    let time = Date.now() * 1000;
-    let trans = Ci.nsINavHistoryService.TRANSITION_LINK;
-    PlacesUtils.history.addVisit(makeURI(URL), time, null, trans, false, 0);
+  clearFile(file, URL);
+}
 
+function clearFile(aFile, aURL) {
+  if (aFile.exists())
     
-    yield clearHistory(true);
-  }
+    
+    addVisits(makeURI(aURL), function() {
+      
+      yield clearHistory(true);
+      clearFile(aFile, aURL);
+    });
 }
 
 function clearHistory(aUseRange) {
