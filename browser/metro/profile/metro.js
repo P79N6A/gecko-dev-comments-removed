@@ -564,10 +564,10 @@ pref("browser.chrome.toolbar_tips", false);
 
 
 
-pref("pdfjs.disabled", false);
+pref("pdfjs.disabled", true);
 
 
-pref("pdfjs.firstRun", true);
+pref("pdfjs.firstRun", false);
 
 
 pref("pdfjs.previousHandler.preferredAction", 0);
