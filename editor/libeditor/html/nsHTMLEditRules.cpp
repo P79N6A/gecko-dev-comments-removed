@@ -6630,7 +6630,7 @@ nsHTMLEditRules::ReturnInHeader(nsISelection *aSelection,
   nsCOMPtr<nsIDOMNode> headerParent = nsEditor::GetNodeLocation(aHeader, &offset);
 
   
-  nsCOMPtr<nsIDOMNode> selNode = aNode;
+  nsCOMPtr<nsINode> selNode(do_QueryInterface(aNode));
   NS_ENSURE_STATE(mHTMLEditor);
   nsresult res = nsWSRunObject::PrepareToSplitAcrossBlocks(mHTMLEditor,
                                                            address_of(selNode),
@@ -6640,7 +6640,7 @@ nsHTMLEditRules::ReturnInHeader(nsISelection *aSelection,
   
   int32_t newOffset;
   NS_ENSURE_STATE(mHTMLEditor);
-  res = mHTMLEditor->SplitNodeDeep( aHeader, selNode, aOffset, &newOffset);
+  res = mHTMLEditor->SplitNodeDeep(aHeader, GetAsDOMNode(selNode), aOffset, &newOffset);
   NS_ENSURE_SUCCESS(res, res);
 
   
@@ -6836,7 +6836,9 @@ nsHTMLEditRules::SplitParagraph(nsIDOMNode *aPara,
   
   nsCOMPtr<nsIDOMNode> leftPara, rightPara;
   NS_ENSURE_STATE(mHTMLEditor);
-  res = nsWSRunObject::PrepareToSplitAcrossBlocks(mHTMLEditor, aSelNode, aOffset);
+  nsCOMPtr<nsINode> selNode(do_QueryInterface(*aSelNode));
+  res = nsWSRunObject::PrepareToSplitAcrossBlocks(mHTMLEditor, address_of(selNode), aOffset);
+  *aSelNode = GetAsDOMNode(selNode);
   NS_ENSURE_SUCCESS(res, res);
   
   NS_ENSURE_STATE(mHTMLEditor);
@@ -6974,14 +6976,14 @@ nsHTMLEditRules::ReturnInListItem(nsISelection *aSelection,
   
   
   
-  nsCOMPtr<nsIDOMNode> selNode = aNode;
+  nsCOMPtr<nsINode> selNode(do_QueryInterface(aNode));
   NS_ENSURE_STATE(mHTMLEditor);
   res = nsWSRunObject::PrepareToSplitAcrossBlocks(mHTMLEditor, address_of(selNode), &aOffset);
   NS_ENSURE_SUCCESS(res, res);
   
   int32_t newOffset;
   NS_ENSURE_STATE(mHTMLEditor);
-  res = mHTMLEditor->SplitNodeDeep( aListItem, selNode, aOffset, &newOffset, false);
+  res = mHTMLEditor->SplitNodeDeep(aListItem, GetAsDOMNode(selNode), aOffset, &newOffset, false);
   NS_ENSURE_SUCCESS(res, res);
   
   
