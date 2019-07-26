@@ -56,8 +56,6 @@ public class AnnouncementsService extends IntentService implements Announcements
   private static final String WORKER_THREAD_NAME = "AnnouncementsServiceWorker";
   private static final String LOG_TAG = "AnnounceService";
 
-  private static final long MINIMUM_FETCH_INTERVAL_MSEC = 60 * 60 * 1000;   
-
   public AnnouncementsService() {
     super(WORKER_THREAD_NAME);
     Logger.setThreadLogTag(AnnouncementsConstants.GLOBAL_LOG_TAG);
@@ -82,8 +80,8 @@ public class AnnouncementsService extends IntentService implements Announcements
 
     
     
-    if ((now - lastFetch) < MINIMUM_FETCH_INTERVAL_MSEC) {
-      Logger.debug(LOG_TAG, "Returning: minimum fetch interval of " + MINIMUM_FETCH_INTERVAL_MSEC + "ms not met.");
+    if ((now - lastFetch) < AnnouncementsConstants.MINIMUM_FETCH_INTERVAL_MSEC) {
+      Logger.debug(LOG_TAG, "Returning: minimum fetch interval of " + AnnouncementsConstants.MINIMUM_FETCH_INTERVAL_MSEC + "ms not met.");
       return false;
     }
 
