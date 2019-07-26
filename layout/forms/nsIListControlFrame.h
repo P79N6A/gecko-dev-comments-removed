@@ -29,7 +29,7 @@ public:
   
 
 
-  virtual void GetOptionText(int32_t aIndex, nsAString & aStr) = 0;
+  virtual void GetOptionText(uint32_t aIndex, nsAString& aStr) = 0;
 
   
 

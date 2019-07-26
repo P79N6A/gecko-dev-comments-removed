@@ -124,7 +124,7 @@ public:
 
 
 
-  virtual void GetOptionText(int32_t aIndex, nsAString & aStr) MOZ_OVERRIDE;
+  virtual void GetOptionText(uint32_t aIndex, nsAString& aStr) MOZ_OVERRIDE;
 
   virtual void CaptureMouseEvents(bool aGrabMouseEvents) MOZ_OVERRIDE;
   virtual nscoord GetHeightOfARow() MOZ_OVERRIDE;
