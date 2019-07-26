@@ -11,6 +11,16 @@
 namespace mozilla {
 namespace media {
 
+#define NS_IF_ADDREF(expr) \
+  if (expr) { \
+    (expr)->AddRef(); \
+  }
+
+#define NS_IF_RELEASE(expr) \
+  if (expr) { \
+    (expr)->Release(); \
+  }
+
 
 
 
