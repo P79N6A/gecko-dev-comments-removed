@@ -2,7 +2,7 @@
 
 
 
-#include "CSFLogStream.h"
+#include "CSFLog.h"
 
 #include "CC_Common.h"
 

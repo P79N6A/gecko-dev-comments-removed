@@ -2,7 +2,7 @@
 
 
 
-#include "CSFLogStream.h"
+#include "CSFLog.h"
 
 #include "CC_Common.h"
 
@@ -551,7 +551,8 @@ void CC_SIPCCCallInfo::generateCapabilities()
 	case WHISPER:
 	case WAITINGFORDIGITS:
 	default:
-		CSFLogErrorS( logTag, "State " << getCallState() << " not handled in generateCapabilities()");
+		CSFLogError( logTag, "State %d not handled in generateCapabilities()",
+      getCallState());
 		break;
 	}
 }

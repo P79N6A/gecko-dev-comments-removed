@@ -2,7 +2,7 @@
 
 
 
-#include "CSFLogStream.h"
+#include "CSFLog.h"
 
 #include "CC_Common.h"
 
@@ -125,13 +125,13 @@ MediaProviderObserver * VcmSIPCCBinding::getMediaProviderObserver()
 
 void VcmSIPCCBinding::setAudioCodecs(int codecMask)
 {
-  CSFLogDebugS(logTag, "SETTING AUDIO: " << codecMask);
+  CSFLogDebug(logTag, "SETTING AUDIO: %d", codecMask);
   VcmSIPCCBinding::gAudioCodecMask = codecMask;
 }
 
 void VcmSIPCCBinding::setVideoCodecs(int codecMask)
 {
-  CSFLogDebugS(logTag, "SETTING VIDEO: " << codecMask);
+  CSFLogDebug(logTag, "SETTING VIDEO: %d", codecMask);
   VcmSIPCCBinding::gVideoCodecMask = codecMask;
 }
 
