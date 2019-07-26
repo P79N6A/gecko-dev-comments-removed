@@ -588,6 +588,17 @@ let NodeFront = protocol.FrontClass(NodeActor, {
 
 
 
+
+
+  isLocal_toBeDeprecated: function() {
+    return !!this.conn._transport._serverConnection;
+  },
+
+  
+
+
+
+
   rawNode: function(rawNode) {
     if (!this.conn._transport._serverConnection) {
       console.warn("Tried to use rawNode on a remote connection.");

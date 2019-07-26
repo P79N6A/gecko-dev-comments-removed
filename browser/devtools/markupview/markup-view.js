@@ -1570,7 +1570,9 @@ function ElementEditor(aContainer, aNode) {
   
   this.template("element", this);
 
-  this.rawNode = aNode.rawNode();
+  if (aNode.isLocal_toBeDeprecated()) {
+    this.rawNode = aNode.rawNode();
+  }
 
   
   
