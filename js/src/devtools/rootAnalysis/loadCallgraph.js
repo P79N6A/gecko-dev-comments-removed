@@ -148,9 +148,7 @@ function loadCallgraph(file)
     
     
     for (var name in resolvedFunctions) {
-        if (!(name in gcFunctions)) {
+        if (!(name in gcFunctions))
             suppressedFunctions[name] = true;
-            printErr("Adding " + name);
-        }
     }
 }
