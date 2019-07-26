@@ -135,8 +135,10 @@ function migrateSettings() {
     
     for (let origin in ActiveProviders._providers) {
       let prefname;
+      let manifest;
       try {
         prefname = getPrefnameFromOrigin(origin);
+        manifest = JSON.parse(Services.prefs.getComplexValue(prefname, Ci.nsISupportsString).data);
       } catch(e) {
         
         
@@ -146,21 +148,14 @@ function migrateSettings() {
         ActiveProviders.flush();
         continue;
       }
-      if (!Services.prefs.prefHasUserValue(prefname)) {
-        
-        
-        let manifest;
-        try {
-          manifest = JSON.parse(Services.prefs.getComplexValue(prefname, Ci.nsISupportsString).data);
-        } catch(e) {
-          
-          ActiveProviders.delete(origin);
-          ActiveProviders.flush();
-          continue;
-        }
+      if (!manifest.updateDate) {
         
         
         delete manifest.builtin;
+        if (!manifest.updateDate) {
+          manifest.updateDate = Date.now();
+          manifest.installDate = 0; 
+        }
 
         let string = Cc["@mozilla.org/supports-string;1"].
                      createInstance(Ci.nsISupportsString);
@@ -196,6 +191,10 @@ function migrateSettings() {
         
         
         delete manifest.builtin;
+        if (!manifest.updateDate) {
+          manifest.updateDate = Date.now();
+          manifest.installDate = 0; 
+        }
 
         let string = Cc["@mozilla.org/supports-string;1"].createInstance(Ci.nsISupportsString);
         string.data = JSON.stringify(manifest);
@@ -836,6 +835,14 @@ function getPrefnameFromOrigin(origin) {
 }
 
 function AddonInstaller(sourceURI, aManifest, installCallback) {
+  aManifest.updateDate = Date.now();
+  
+  let manifest = SocialServiceInternal.getManifestByOrigin(aManifest.origin);
+  if (manifest && manifest.installDate)
+    aManifest.installDate = manifest.installDate;
+  else
+    aManifest.installDate = aManifest.updateDate;
+
   this.sourceURI = sourceURI;
   this.install = function() {
     let addon = this.addon;
