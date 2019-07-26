@@ -83,14 +83,11 @@ NS_IMPL_ISUPPORTS1(nsStreamConverterService, nsIStreamConverterService)
 
 
 nsStreamConverterService::nsStreamConverterService()
-  : mAdjacencyList (new nsObjectHashtable(nullptr, nullptr,
-                                          DeleteAdjacencyEntry, nullptr))
+  : mAdjacencyList(nullptr, nullptr, DeleteAdjacencyEntry, nullptr)
 {
 }
 
 nsStreamConverterService::~nsStreamConverterService() {
-    NS_ASSERTION(mAdjacencyList, "init wasn't called, or the retval was ignored");
-    delete mAdjacencyList;
 }
 
 
@@ -163,22 +160,22 @@ nsStreamConverterService::AddAdjacency(const char *aContractID) {
     
 
     nsCStringKey fromKey(fromStr);
-    SCTableData *fromEdges = (SCTableData*)mAdjacencyList->Get(&fromKey);
+    SCTableData *fromEdges = (SCTableData*)mAdjacencyList.Get(&fromKey);
     if (!fromEdges) {
         
 
         nsCStringKey *newFromKey = new nsCStringKey(ToNewCString(fromStr), fromStr.Length(), nsCStringKey::OWN);
         SCTableData *data = new SCTableData();
-        mAdjacencyList->Put(newFromKey, data);
+        mAdjacencyList.Put(newFromKey, data);
         fromEdges = data;
     }
 
     nsCStringKey toKey(toStr);
-    if (!mAdjacencyList->Get(&toKey)) {
+    if (!mAdjacencyList.Get(&toKey)) {
         
         nsCStringKey *newToKey = new nsCStringKey(ToNewCString(toStr), toStr.Length(), nsCStringKey::OWN);
         SCTableData *data = new SCTableData();
-        mAdjacencyList->Put(newToKey, data);
+        mAdjacencyList.Put(newToKey, data);
     }
 
     
@@ -271,12 +268,12 @@ nsStreamConverterService::FindConverter(const char *aContractID, nsTArray<nsCStr
 
     
 
-    int32_t vertexCount = mAdjacencyList->Count();
+    int32_t vertexCount = mAdjacencyList.Count();
     if (0 >= vertexCount) return NS_ERROR_FAILURE;
 
     
     nsObjectHashtable lBFSTable(nullptr, nullptr, DeleteBFSEntry, nullptr);
-    mAdjacencyList->Enumerate(InitBFSTable, &lBFSTable);
+    mAdjacencyList.Enumerate(InitBFSTable, &lBFSTable);
 
     NS_ASSERTION(lBFSTable.Count() == vertexCount, "strmconv BFS table init problem");
 
@@ -305,7 +302,7 @@ nsStreamConverterService::FindConverter(const char *aContractID, nsTArray<nsCStr
     grayQ.Push(source);
     while (0 < grayQ.GetSize()) {
         nsCStringKey *currentHead = (nsCStringKey*)grayQ.PeekFront();
-        SCTableData *data2 = (SCTableData*)mAdjacencyList->Get(currentHead);
+        SCTableData *data2 = (SCTableData*)mAdjacencyList.Get(currentHead);
         if (!data2) return NS_ERROR_FAILURE;
 
         
