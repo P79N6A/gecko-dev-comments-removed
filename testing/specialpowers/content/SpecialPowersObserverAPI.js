@@ -1,6 +1,7 @@
 
 
 
+"use strict";
 
 Components.utils.import("resource://gre/modules/Services.jsm");
 
@@ -160,6 +161,48 @@ SpecialPowersObserverAPI.prototype = {
     return Services.io.newURI(url, null, null);
   },
 
+  _readUrlAsString: function(aUrl) {
+    
+    
+    var scriptableStream = Cc["@mozilla.org/scriptableinputstream;1"]
+                             .getService(Ci.nsIScriptableInputStream);
+    var channel = Services.io.newChannel(aUrl, null, null);
+    var input = channel.open();
+    scriptableStream.init(input);
+
+    var str;
+    var buffer = [];
+
+    while ((str = scriptableStream.read(4096))) {
+      buffer.push(str);
+    }
+
+    var output = buffer.join("");
+
+    scriptableStream.close();
+    input.close();
+
+    var status;
+    try {
+      channel.QueryInterface(Ci.nsIHttpChannel);
+      status = channel.responseStatus;
+    } catch(e) {
+      
+      dump("-*- _readUrlAsString: Got an error while fetching " +
+           "chrome script '" + aUrl + "': (" + e.name + ") " + e.message + ". " +
+           "Ignoring.\n");
+    }
+
+    if (status == 404) {
+      throw new SpecialPowersException(
+        "Error while executing chrome script '" + aUrl + "':\n" +
+        "The script doesn't exists. Ensure you have registered it in " +
+        "'support-files' in your mochitest.ini.");
+    }
+
+    return output;
+  },
+
   
 
 
@@ -300,16 +343,7 @@ SpecialPowersObserverAPI.prototype = {
         var url = aMessage.json.url;
         var id = aMessage.json.id;
 
-        
-        
-        var scriptableStream = Cc["@mozilla.org/scriptableinputstream;1"]
-                                 .getService(Ci.nsIScriptableInputStream);
-        var channel = Services.io.newChannel(url, null, null);
-        var input = channel.open();
-        scriptableStream.init(input);
-        var jsScript = scriptableStream.read(input.available());
-        scriptableStream.close();
-        input.close();
+        var jsScript = this._readUrlAsString(url);
 
         
         
@@ -332,7 +366,8 @@ SpecialPowersObserverAPI.prototype = {
           Components.utils.evalInSandbox(jsScript, sb, "1.8", url, 1);
         } catch(e) {
           throw new SpecialPowersException("Error while executing chrome " +
-                                           "script '" + url + "':\n" + e);
+                                           "script '" + url + "':\n" + e + "\n" +
+                                           e.fileName + ":" + e.lineNumber);
         }
         return undefined;	
 
