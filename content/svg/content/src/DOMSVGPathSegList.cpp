@@ -21,7 +21,6 @@ namespace mozilla {
 static nsSVGAttrTearoffTable<void, DOMSVGPathSegList>
   sSVGPathSegListTearoffTable;
 
-NS_IMPL_CYCLE_COLLECTION_CLASS(DOMSVGPathSegList)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(DOMSVGPathSegList)
   
   

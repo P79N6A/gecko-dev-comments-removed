@@ -41,7 +41,6 @@ namespace mozilla {
 static nsSVGAttrTearoffTable<void, DOMSVGPointList>
   sSVGPointListTearoffTable;
 
-NS_IMPL_CYCLE_COLLECTION_CLASS(DOMSVGPointList)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(DOMSVGPointList)
   
   

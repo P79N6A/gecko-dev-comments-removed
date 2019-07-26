@@ -20,7 +20,6 @@ using namespace mozilla;
 
 
 
-NS_IMPL_CYCLE_COLLECTION_CLASS(DOMSVGNumber)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(DOMSVGNumber)
   
   if (tmp->mList) {

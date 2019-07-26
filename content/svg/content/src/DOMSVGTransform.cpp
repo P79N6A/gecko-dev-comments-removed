@@ -27,7 +27,6 @@ static nsSVGAttrTearoffTable<DOMSVGTransform, SVGMatrix> sSVGMatrixTearoffTable;
 
 
 
-NS_IMPL_CYCLE_COLLECTION_CLASS(DOMSVGTransform)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(DOMSVGTransform)
   
   if (tmp->mList) {

@@ -21,7 +21,6 @@ using namespace mozilla;
 
 
 
-NS_IMPL_CYCLE_COLLECTION_CLASS(DOMSVGPoint)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(DOMSVGPoint)
   
   if (tmp->mList) {

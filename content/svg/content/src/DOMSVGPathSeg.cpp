@@ -20,7 +20,6 @@ using namespace mozilla;
 
 
 
-NS_IMPL_CYCLE_COLLECTION_CLASS(DOMSVGPathSeg)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(DOMSVGPathSeg)
   
   if (tmp->mList) {

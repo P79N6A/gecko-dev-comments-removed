@@ -130,7 +130,6 @@ nsSVGElement::EnumInfo SVGSVGElement::sEnumInfo[1] =
 
 
 
-NS_IMPL_CYCLE_COLLECTION_CLASS(SVGSVGElement)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(SVGSVGElement,
                                                 SVGSVGElementBase)
   if (tmp->mTimedDocumentRoot) {
