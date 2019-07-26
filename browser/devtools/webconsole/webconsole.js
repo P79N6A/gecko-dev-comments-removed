@@ -383,18 +383,12 @@ WebConsoleFrame.prototype = {
     }.bind(this));
   },
 
-  _persistLog: null,
-
   
 
 
 
-
   get persistLog() {
-    if (this._persistLog === null) {
-      this._persistLog = Services.prefs.getBoolPref(PREF_PERSISTLOG);
-    }
-    return this._persistLog;
+    return Services.prefs.getBoolPref(PREF_PERSISTLOG);
   },
 
   
