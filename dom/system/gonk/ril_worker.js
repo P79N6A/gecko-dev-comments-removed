@@ -63,6 +63,20 @@ const TLV_LOCATION_INFO_UMTS_SIZE = 11;
 
 const DEFAULT_EMERGENCY_NUMBERS = ["112", "911"];
 
+
+const MMI_MATCH_GROUP_FULL_MMI = 1;
+const MMI_MATCH_GROUP_MMI_PROCEDURE = 2;
+const MMI_MATCH_GROUP_SERVICE_CODE = 3;
+const MMI_MATCH_GROUP_SIA = 5;
+const MMI_MATCH_GROUP_SIB = 7;
+const MMI_MATCH_GROUP_SIC = 9;
+const MMI_MATCH_GROUP_PWD_CONFIRM = 11;
+const MMI_MATCH_GROUP_DIALING_NUMBER = 12;
+
+const MMI_MAX_LENGTH_SHORT_CODE = 2;
+
+const MMI_END_OF_USSD = "#";
+
 let RILQUIRKS_CALLSTATE_EXTRA_UINT32 = libcutils.property_get("ro.moz.ril.callstate_extra_int");
 
 
@@ -748,6 +762,21 @@ let RIL = {
 
 
     this._muted = true;
+
+    
+
+
+
+
+
+
+
+    this._ussdSession = null;
+
+   
+
+
+    this._mmiRegExp = null;
   },
   
   get muted() {
@@ -2197,6 +2226,183 @@ let RIL = {
 
   getFailCauseCode: function getFailCauseCode(options) {
     Buf.simpleRequest(REQUEST_LAST_CALL_FAIL_CAUSE, options);
+  },
+
+  
+
+
+  _parseMMI: function _parseMMI(mmiString) {
+    if (!mmiString || !mmiString.length) {
+      return null;
+    }
+
+    
+    if (this._mmiRegExp == null) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      let pattern = "((\\*[*#]?|##?)";
+
+      
+      
+      
+      pattern += "(\\d{2,3})";
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      pattern += "(\\*([^*#]*)(\\*([^*#]*)(\\*([^*#]*)";
+
+      
+      
+      pattern += "(\\*([^*#]*))?)?)?)?#)";
+
+      
+      pattern += "([^#]*)";
+
+      this._mmiRegExp = new RegExp(pattern);
+    }
+    let matches = this._mmiRegExp.exec(mmiString);
+
+    
+    
+    
+    
+    if (matches == null) {
+      if (mmiString.charAt(mmiString.length - 1) == MMI_END_OF_USSD) {
+        return {
+          fullMMI: mmiString
+        };
+      }
+      return null;
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    return {
+      fullMMI: matches[MMI_MATCH_GROUP_FULL_MMI],
+      procedure: matches[MMI_MATCH_GROUP_MMI_PROCEDURE],
+      serviceCode: matches[MMI_MATCH_GROUP_SERVICE_CODE],
+      sia: matches[MMI_MATCH_GROUP_SIA],
+      sib: matches[MMI_MATCH_GROUP_SIB],
+      sic: matches[MMI_MATCH_GROUP_SIC],
+      pwd: matches[MMI_MATCH_GROUP_PWD_CONFIRM],
+      dialNumber: matches[MMI_MATCH_GROUP_DIALING_NUMBER]
+    };
+  },
+
+  sendMMI: function sendMMI(options) {
+    if (DEBUG) {
+      debug("SendMMI " + JSON.stringify(options));
+    }
+    let mmiString = options.mmi;
+    let mmi = this._parseMMI(mmiString);
+
+    let _sendMMIError = (function _sendMMIError(errorMsg) {
+      options.rilMessageType = "sendMMI";
+      options.errorMsg = errorMsg;
+      this.sendDOMMessage(options);
+    }).bind(this);
+
+    if (mmi == null) {
+      if (this._ussdSession) {
+        options.ussd = mmiString;
+        this.sendUSSD(options);
+        return;
+      }
+      _sendMMIError("NO_VALID_MMI_STRING");
+      return;
+    }
+
+    if (DEBUG) {
+      debug("MMI " + JSON.stringify(mmi));
+    }
+
+    
+    
+    let sc = mmi.serviceCode;
+
+    switch (sc) {
+      
+      case MMI_SC_CFU:
+      case MMI_SC_CF_BUSY:
+      case MMI_SC_CF_NO_REPLY:
+      case MMI_SC_CF_NOT_REACHABLE:
+      case MMI_SC_CF_ALL:
+      case MMI_SC_CF_ALL_CONDITIONAL:
+        
+        _sendMMIError("CALL_FORWARDING_NOT_SUPPORTED_VIA_MMI");
+        return;
+
+      
+      case MMI_SC_PIN:
+      case MMI_SC_PIN2:
+      case MMI_SC_PUK:
+      case MMI_SC_PUK2:
+        
+        _sendMMIError("SIM_FUNCTION_NOT_SUPPORTED_VIA_MMI");
+        return;
+
+      
+      case MMI_SC_IMEI:
+        
+        _sendMMIError("GET_IMEI_NOT_SUPPORTED_VIA_MMI");
+        return;
+
+      
+      case MMI_SC_BAOC:
+      case MMI_SC_BAOIC:
+      case MMI_SC_BAOICxH:
+      case MMI_SC_BAIC:
+      case MMI_SC_BAICr:
+      case MMI_SC_BA_ALL:
+      case MMI_SC_BA_MO:
+      case MMI_SC_BA_MT:
+        _sendMMIError("CALL_BARRING_NOT_SUPPORTED_VIA_MMI");
+        return;
+
+      
+      case MMI_SC_CALL_WAITING:
+        _sendMMIError("CALL_WAITING_NOT_SUPPORTED_VIA_MMI");
+        return;
+    }
+
+    
+    
+    if (mmi.fullMMI &&
+        (mmiString.charAt(mmiString.length - 1) == MMI_END_OF_USSD)) {
+      options.ussd = mmi.fullMMI;
+      this.sendUSSD(options);
+      return;
+    }
+
+    
+    
+    _sendMMIError("NOT_VALID_MMI_STRING");
   },
 
   
@@ -4193,9 +4399,9 @@ RIL[REQUEST_SIM_IO] = function REQUEST_SIM_IO(length, options) {
 };
 RIL[REQUEST_SEND_USSD] = function REQUEST_SEND_USSD(length, options) {
   if (DEBUG) {
-    debug("REQUEST_SEND_USSD " + JSON.stringify(options)); 
+    debug("REQUEST_SEND_USSD " + JSON.stringify(options));
   }
-  options.success = options.rilRequestError == 0 ? true : false;
+  options.success = this._ussdSession = options.rilRequestError == 0;
   options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
   this.sendDOMMessage(options);
 };
@@ -4203,7 +4409,8 @@ RIL[REQUEST_CANCEL_USSD] = function REQUEST_CANCEL_USSD(length, options) {
   if (DEBUG) {
     debug("REQUEST_CANCEL_USSD" + JSON.stringify(options));
   }
-  options.success = options.rilRequestError == 0 ? true : false;
+  options.success = options.rilRequestError == 0;
+  this._ussdSession = !options.success;
   options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
   this.sendDOMMessage(options);
 };
@@ -4625,6 +4832,9 @@ RIL[UNSOLICITED_ON_USSD] = function UNSOLICITED_ON_USSD() {
   if (DEBUG) {
     debug("On USSD. Type Code: " + typeCode + " Message: " + message);
   }
+
+  this._ussdSession = (typeCode != "0" || typeCode != "2");
+
   
   if (!message || message == "") {
     return;

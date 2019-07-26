@@ -512,9 +512,11 @@ RadioInterfaceLayer.prototype = {
         this.handleUSSDReceived(message);
         break;
       case "sendMMI":
+      case "sendUSSD":
         this.handleSendMMI(message);
         break;
       case "cancelMMI":
+      case "cancelUSSD":
         this.handleCancelMMI(message);
         break;
       case "stkcommand":
@@ -1523,13 +1525,16 @@ RadioInterfaceLayer.prototype = {
 
   sendMMI: function sendMMI(message) {
     debug("SendMMI " + JSON.stringify(message));
-    
-    message.rilMessageType = "sendUSSD";
+    message.rilMessageType = "sendMMI";
     this.worker.postMessage(message);
   },
 
   cancelMMI: function cancelMMI(message) {
-    debug("Cancel pending MMI");
+    
+    
+    
+    
+    debug("Cancel pending USSD");
     message.rilMessageType = "cancelUSSD";
     this.worker.postMessage(message);
   },

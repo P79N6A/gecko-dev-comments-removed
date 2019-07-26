@@ -1887,4 +1887,46 @@ const GECKO_RADIO_TECH = [
 const GECKO_VOICEMAIL_MESSAGE_COUNT_UNKNOWN = -1;
 
 
+const MMI_PROCEDURE_ACTIVATION = "*";
+const MMI_PROCEDURE_DEACTIVATION = "#";
+const MMI_PROCEDURE_INTERROGATION = "*#";
+const MMI_PROCEDURE_REGISTRATION = "**";
+const MMI_PROCEDURE_ERASURE = "##";
+
+
+const MMI_SC_CFU = "21";
+const MMI_SC_CF_BUSY = "67";
+const MMI_SC_CF_NO_REPLY = "61";
+const MMI_SC_CF_NOT_REACHABLE = "62";
+const MMI_SC_CF_ALL = "002";
+const MMI_SC_CF_ALL_CONDITIONAL = "004";
+
+
+
+const MMI_SC_PIN = "04";
+const MMI_SC_PIN2 = "042";
+const MMI_SC_PUK = "05";
+const MMI_SC_PUK2 = "052";
+
+
+const MMI_SC_IMEI = "06";
+
+
+const MMI_SC_CLIP = "30";
+const MMI_SC_CLIR = "31";
+
+
+const MMI_SC_CALL_WAITING = "43";
+
+
+const MMI_SC_BAOC = "33";
+const MMI_SC_BAOIC = "331";
+const MMI_SC_BAOICxH = "332";
+const MMI_SC_BAIC = "35";
+const MMI_SC_BAICr = "351";
+const MMI_SC_BA_ALL = "330";
+const MMI_SC_BA_MO = "333";
+const MMI_SC_BA_MT = "353";
+
+
 const EXPORTED_SYMBOLS = Object.keys(this);
