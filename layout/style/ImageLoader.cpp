@@ -342,7 +342,14 @@ ImageLoader::DoRedraw(FrameSet* aFrameSet)
     nsIFrame* frame = aFrameSet->ElementAt(i);
 
     if (frame->StyleVisibility()->IsVisible()) {
-      FrameLayerBuilder::IterateRetainedDataFor(frame, InvalidateImagesCallback);
+      if (frame->IsFrameOfType(nsIFrame::eTablePart)) {
+        
+        
+        
+        frame->InvalidateFrame();
+      } else {
+        FrameLayerBuilder::IterateRetainedDataFor(frame, InvalidateImagesCallback);
+      }
     }
   }
 }

@@ -2094,11 +2094,12 @@ public:
     eXULBox =                           1 << 10,
     eCanContainOverflowContainers =     1 << 11,
     eBlockFrame =                       1 << 12,
+    eTablePart =                        1 << 13,
     
     
     
-    eExcludesIgnorableWhitespace =      1 << 13,
-    eSupportsCSSTransforms =            1 << 14,
+    eExcludesIgnorableWhitespace =      1 << 14,
+    eSupportsCSSTransforms =            1 << 15,
 
     
     
