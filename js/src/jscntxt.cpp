@@ -352,6 +352,15 @@ PopulateReportBlame(JSContext *cx, JSErrorReport *report)
 void
 js_ReportOutOfMemory(ThreadSafeContext *cxArg)
 {
+#ifdef JS_MORE_DETERMINISTIC
+    
+
+
+
+
+    fprintf(stderr, "js_ReportOutOfMemory called\n");
+#endif
+
     if (cxArg->isForkJoinSlice()) {
         cxArg->asForkJoinSlice()->setPendingAbortFatal(ParallelBailoutOutOfMemory);
         return;
