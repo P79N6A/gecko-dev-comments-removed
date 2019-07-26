@@ -133,15 +133,6 @@ LayerManager::CreateDrawTarget(const IntSize &aSize,
     CreateOffscreenCanvasDrawTarget(aSize, aFormat);
 }
 
-TextureFactoryIdentifier
-LayerManager::GetTextureFactoryIdentifier()
-{
-  
-  NS_ERROR("Should have been overridden");
-  return TextureFactoryIdentifier();
-}
-
-
 #ifdef DEBUG
 void
 LayerManager::Mutated(Layer* aLayer)
