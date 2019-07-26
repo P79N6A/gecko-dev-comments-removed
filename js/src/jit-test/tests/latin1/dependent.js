@@ -71,3 +71,21 @@ function testSlice() {
     assertEq(s2, "abcdefghijklmnopqrstuvwxyz123456789000A");
 }
 testSlice();
+
+function testUndepend() {
+    
+    var s = "abcdefg".repeat(7);
+    s.indexOf("def"); 
+    s = toLatin1(s);
+    var dep = s.substr(7);
+    var res = dep.replace(/abcdef/g, ""); 
+    assertEq(res, "gggggg");
+
+    
+    var s = "abcdefg\u1200".repeat(6);
+    s.indexOf("def"); 
+    var dep = s.substr(8);
+    var res = dep.replace(/abcdefg/g, ""); 
+    assertEq(res, "\u1200\u1200\u1200\u1200\u1200");
+}
+testUndepend();
