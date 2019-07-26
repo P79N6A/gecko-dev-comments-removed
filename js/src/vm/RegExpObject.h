@@ -84,11 +84,11 @@ class RegExpObjectBuilder
     RegExpObject *build(HandleAtom source, RegExpShared &shared);
 
     
-    RegExpObject *clone(Handle<RegExpObject*> other, Handle<RegExpObject*> proto);
+    RegExpObject *clone(Handle<RegExpObject*> other);
 };
 
 JSObject *
-CloneRegExpObject(JSContext *cx, JSObject *obj, JSObject *proto);
+CloneRegExpObject(JSContext *cx, JSObject *obj);
 
 
 
