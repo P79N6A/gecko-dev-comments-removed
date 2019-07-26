@@ -256,8 +256,9 @@ public:
 private:
   
   AsyncPanZoomController* FindTargetAPZC(AsyncPanZoomController* aApzc, const ScrollableLayerGuid& aGuid);
-  AsyncPanZoomController* GetAPZCAtPoint(AsyncPanZoomController* aApzc, const gfxPoint& aHitTestPoint,
-                                         gfx3DMatrix& aTransformToApzcOut, gfx3DMatrix& aTransformToScreenOut);
+  AsyncPanZoomController* GetAPZCAtPoint(AsyncPanZoomController* aApzc, const gfxPoint& aHitTestPoint);
+  void GetInputTransforms(AsyncPanZoomController *aApzc, gfx3DMatrix& aTransformToApzcOut,
+                          gfx3DMatrix& aTransformToScreenOut);
 
   
 

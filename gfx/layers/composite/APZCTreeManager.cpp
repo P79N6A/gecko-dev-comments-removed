@@ -492,8 +492,9 @@ APZCTreeManager::GetTargetAPZC(const ScreenPoint& aPoint,
   
   gfxPoint point(aPoint.x, aPoint.y);
   for (AsyncPanZoomController* apzc = mRootApzc; apzc; apzc = apzc->GetPrevSibling()) {
-    target = GetAPZCAtPoint(apzc, point, aTransformToApzcOut, aTransformToScreenOut);
+    target = GetAPZCAtPoint(apzc, point);
     if (target) {
+      GetInputTransforms(target, aTransformToApzcOut, aTransformToScreenOut);
       break;
     }
   }
@@ -518,8 +519,7 @@ APZCTreeManager::FindTargetAPZC(AsyncPanZoomController* aApzc, const ScrollableL
 }
 
 AsyncPanZoomController*
-APZCTreeManager::GetAPZCAtPoint(AsyncPanZoomController* aApzc, const gfxPoint& aHitTestPoint,
-                                gfx3DMatrix& aTransformToApzcOut, gfx3DMatrix& aTransformToScreenOut)
+APZCTreeManager::GetAPZCAtPoint(AsyncPanZoomController* aApzc, const gfxPoint& aHitTestPoint)
 {
   
   
@@ -543,30 +543,55 @@ APZCTreeManager::GetAPZCAtPoint(AsyncPanZoomController* aApzc, const gfxPoint& a
   
   
   for (AsyncPanZoomController* child = aApzc->GetLastChild(); child; child = child->GetPrevSibling()) {
-    AsyncPanZoomController* match = GetAPZCAtPoint(child, untransformed, aTransformToApzcOut, aTransformToScreenOut);
+    AsyncPanZoomController* match = GetAPZCAtPoint(child, untransformed);
     if (match) {
-      
-      
-      
-      aTransformToApzcOut = untransformSinceLastApzc * aTransformToApzcOut;
-      
-      aTransformToScreenOut = aTransformToScreenOut * aApzc->GetCSSTransform() * aApzc->GetAncestorTransform();
-      
-      
-      
       return match;
     }
   }
   if (aApzc->VisibleRegionContains(LayerPoint(untransformed.x, untransformed.y))) {
     APZC_LOG("Successfully matched untransformed point %f %f to visible region for APZC %p\n", untransformed.x, untransformed.y, aApzc);
-    
-    
-    aTransformToApzcOut = ancestorUntransform;
-    
-    aTransformToScreenOut = asyncUntransform * aApzc->GetAncestorTransform();
     return aApzc;
   }
   return nullptr;
+}
+
+void
+APZCTreeManager::GetInputTransforms(AsyncPanZoomController *aApzc, gfx3DMatrix& aTransformToApzcOut,
+                                    gfx3DMatrix& aTransformToScreenOut)
+{
+  
+  
+  
+  
+  
+
+  
+  gfx3DMatrix ancestorUntransform = aApzc->GetAncestorTransform().Inverse();
+  
+  gfx3DMatrix asyncUntransform = gfx3DMatrix(aApzc->GetCurrentAsyncTransform()).Inverse();
+
+  
+  aTransformToApzcOut = ancestorUntransform;
+  
+  aTransformToScreenOut = asyncUntransform * aApzc->GetAncestorTransform();
+
+  for (AsyncPanZoomController* parent = aApzc->GetParent(); parent; parent = parent->GetParent()) {
+    
+    ancestorUntransform = parent->GetAncestorTransform().Inverse();
+    
+    asyncUntransform = gfx3DMatrix(parent->GetCurrentAsyncTransform()).Inverse();
+    
+    gfx3DMatrix untransformSinceLastApzc = ancestorUntransform * asyncUntransform * parent->GetCSSTransform().Inverse();
+
+    
+    aTransformToApzcOut = untransformSinceLastApzc * aTransformToApzcOut;
+    
+    aTransformToScreenOut = aTransformToScreenOut * parent->GetCSSTransform() * parent->GetAncestorTransform();
+
+    
+    
+    
+  }
 }
 
 }
