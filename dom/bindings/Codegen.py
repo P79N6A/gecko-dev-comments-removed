@@ -4892,21 +4892,6 @@ class CGMethodCall(CGThing):
             
             distinguishingArg = "args[%d]" % distinguishingIndex
 
-            def pickFirstSignature(condition, filterLambda):
-                sigs = filter(filterLambda, possibleSignatures)
-                assert len(sigs) < 2
-                if len(sigs) > 0:
-                    if condition is None:
-                        caseBody.append(
-                            getPerSignatureCall(sigs[0], distinguishingIndex))
-                    else:
-                        caseBody.append(CGGeneric("if (" + condition + ") {"))
-                        caseBody.append(CGIndenter(
-                                getPerSignatureCall(sigs[0], distinguishingIndex)))
-                        caseBody.append(CGGeneric("}"))
-                    return True
-                return False
-
             def tryCall(signature, indent, isDefinitelyObject=False,
                         isNullOrUndefined=False):
                 assert not isDefinitelyObject or not isNullOrUndefined
@@ -5036,15 +5021,49 @@ class CGMethodCall(CGThing):
             
             
             
-            if pickFirstSignature(None,
-                                  lambda s: (distinguishingType(s).isString() or
-                                             distinguishingType(s).isEnum())):
-                pass
             
-            elif pickFirstSignature(None,
-                                    lambda s: distinguishingType(s).isPrimitive()):
-                pass
+            
+            def findUniqueSignature(filterLambda):
+                sigs = filter(filterLambda, possibleSignatures)
+                assert len(sigs) < 2
+                if len(sigs) > 0:
+                    return sigs[0]
+                return None
+
+            stringSignature = findUniqueSignature(
+                lambda s: (distinguishingType(s).isString() or
+                           distinguishingType(s).isEnum()))
+            numericSignature = findUniqueSignature(
+                lambda s: distinguishingType(s).isNumeric())
+            booleanSignature = findUniqueSignature(
+                lambda s: distinguishingType(s).isBoolean())
+
+            if stringSignature or numericSignature:
+                booleanCondition = "%s.isBoolean()"
             else:
+                booleanCondition = None
+
+            if stringSignature:
+                numericCondition = "%s.isNumber()"
+            else:
+                numericCondition = None
+
+            def addCase(sig, condition):
+                sigCode = getPerSignatureCall(sig, distinguishingIndex)
+                if condition:
+                    sigCode = CGIfWrapper(sigCode,
+                                          condition % distinguishingArg)
+                caseBody.append(sigCode)
+
+            if booleanSignature:
+                addCase(booleanSignature, booleanCondition)
+            if numericSignature:
+                addCase(numericSignature, numericCondition)
+            if stringSignature:
+                addCase(stringSignature, None)
+
+            if (not booleanSignature and not numericSignature and
+                not stringSignature):
                 
                 
                 caseBody.append(CGGeneric(
@@ -5241,7 +5260,7 @@ class CGJsonifierMethod(CGSpecializedMethod):
                '  return false;\n'
                '}\n')
         for m in self.descriptor.interface.members:
-          if m.isAttr() and not m.isStatic() and m.type.isSerializable():
+          if m.isAttr() and not m.isStatic():
               ret += ('{ // scope for "temp"\n'
                       '  JS::Rooted<JS::Value> temp(cx);\n'
                       '  if (!get_%s(cx, obj, self, JSJitGetterCallArgs(&temp))) {\n'
