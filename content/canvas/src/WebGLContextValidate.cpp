@@ -929,6 +929,19 @@ WebGLContext::ValidateTexImageSize(GLenum target, GLint level,
 {
     MOZ_ASSERT(level >= 0, "level should already be validated");
 
+    
+
+
+
+
+
+
+
+
+
+    if (level > 31)
+        level = 31;
+
     const GLuint maxTexImageSize = MaxTextureSizeForTarget(target) >> level;
     const bool isCubemapTarget = IsTexImageCubemapTarget(target);
 
