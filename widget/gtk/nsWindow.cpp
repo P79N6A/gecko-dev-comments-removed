@@ -1980,10 +1980,17 @@ nsWindow::OnExposeEvent(cairo_t *cr)
     if (!listener)
         return FALSE;
 
-    
-    
-    if (GetLayerManager()->GetBackendType() == LAYERS_CLIENT && mCompositorParent) {
-        mCompositorParent->ScheduleRenderOnCompositorThread();
+    ClientLayerManager *clientLayers =
+        (GetLayerManager()->GetBackendType() == LAYERS_CLIENT)
+        ? static_cast<ClientLayerManager*>(GetLayerManager())
+        : nullptr;
+
+    if (clientLayers && mCompositorParent &&
+        !gdk_screen_is_composited(gdk_window_get_screen(mGdkWindow)))
+    {
+        
+        
+        clientLayers->SetNeedsComposite(true);
     }
 
     
@@ -2002,6 +2009,11 @@ nsWindow::OnExposeEvent(cairo_t *cr)
             mAttachedWidgetListener ? mAttachedWidgetListener : mWidgetListener;
         if (!listener)
             return FALSE;
+    }
+
+    if (clientLayers && mCompositorParent && clientLayers->NeedsComposite()) {
+        mCompositorParent->ScheduleRenderOnCompositorThread();
+        clientLayers->SetNeedsComposite(false);
     }
 
 #if (MOZ_WIDGET_GTK == 2)

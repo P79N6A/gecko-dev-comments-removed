@@ -334,7 +334,7 @@ public:
 
 
 
-  bool EndTransaction(InfallibleTArray<EditReply>* aReplies);
+  bool EndTransaction(InfallibleTArray<EditReply>* aReplies, bool* aSent);
 
   
 
