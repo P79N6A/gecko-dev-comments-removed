@@ -602,4 +602,5 @@ def shell_quote(s):
     
     
     
-    return "'%s'" % s.replace("'", "'\\''")
+    t = type(s)
+    return t("'%s'") % s.replace(t("'"), t("'\\''"))
