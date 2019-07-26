@@ -3032,6 +3032,14 @@ NS_IMETHODIMP nsFrame::HandleDrag(nsPresContext* aPresContext,
 
   frameselection->StopAutoScrollTimer();
 
+#ifdef MOZ_B2G
+  
+  if (aEvent->message == NS_TOUCH_MOVE &&
+      nsEventStatus_eConsumeNoDefault == *aEventStatus) {
+    return NS_OK;
+  }
+#endif 
+
   
   nsCOMPtr<nsIContent> parentContent;
   int32_t contentOffset;
