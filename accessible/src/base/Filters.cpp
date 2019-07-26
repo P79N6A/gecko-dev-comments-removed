@@ -38,7 +38,7 @@ filters::GetRow(Accessible* aAccessible)
     return eMatch | eSkipSubtree;
 
   
-  if (role == roles::SECTION)
+  if (role == roles::GROUPING)
     return eSkip;
 
   return eSkipSubtree;

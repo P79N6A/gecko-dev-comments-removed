@@ -434,6 +434,16 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     eARIASelectable
   },
   { 
+    &nsGkAtoms::rowgroup,
+    roles::GROUPING,
+    kUseMapRole,
+    eNoValue,
+    eNoAction,
+    eNoLiveAttr,
+    kGenericAccType,
+    kNoReqStates
+  },
+  { 
     &nsGkAtoms::rowheader,
     roles::ROWHEADER,
     kUseMapRole,
