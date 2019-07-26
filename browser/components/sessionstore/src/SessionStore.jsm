@@ -2730,7 +2730,6 @@ let SessionStoreInternal = {
       }
       catch (ex) {
         
-        aTab.removeAttribute("busy");
         didStartLoad = false;
       }
     }
