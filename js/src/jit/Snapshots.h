@@ -58,16 +58,18 @@ class RValueAllocation
 
         
         TYPED_REG_MIN       = 0x10,
-        TYPED_REG_MAX       = 0x17,
+        TYPED_REG_MAX       = 0x1f,
         TYPED_REG = TYPED_REG_MIN,
 
         
-        TYPED_STACK_MIN     = 0x18,
-        TYPED_STACK_MAX     = 0x1f,
+        TYPED_STACK_MIN     = 0x20,
+        TYPED_STACK_MAX     = 0x2f,
         TYPED_STACK = TYPED_STACK_MIN,
 
         INVALID = 0x100,
     };
+
+    enum { PACKED_TAG_MASK = 0x0f };
 
     
     enum PayloadType {
