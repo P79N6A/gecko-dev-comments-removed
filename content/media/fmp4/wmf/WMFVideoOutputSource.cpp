@@ -69,7 +69,8 @@ WMFVideoOutputSource::InitializeDXVA()
   
   if (!mDXVAEnabled ||
       (mLayersBackend != LayersBackend::LAYERS_D3D9 &&
-       mLayersBackend != LayersBackend::LAYERS_D3D10)) {
+       mLayersBackend != LayersBackend::LAYERS_D3D10 &&
+       mLayersBackend != LayersBackend::LAYERS_D3D11)) {
     return false;
   }
 
