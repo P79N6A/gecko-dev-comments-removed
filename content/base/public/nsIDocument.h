@@ -1168,6 +1168,11 @@ public:
   
 
 
+  nsIDocShell* GetDocShell() const;
+
+  
+
+
 
 
 
@@ -1525,7 +1530,7 @@ public:
   void SetDisplayDocument(nsIDocument* aDisplayDocument)
   {
     NS_PRECONDITION(!GetShell() &&
-                    !nsCOMPtr<nsISupports>(GetContainer()) &&
+                    !GetContainer() &&
                     !GetWindow(),
                     "Shouldn't set mDisplayDocument on documents that already "
                     "have a presentation or a docshell or a window");

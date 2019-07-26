@@ -981,8 +981,7 @@ EndSwapDocShellsForDocument(nsIDocument* aDocument, void*)
   
   
   
-  nsCOMPtr<nsISupports> container = aDocument->GetContainer();
-  nsCOMPtr<nsIDocShell> ds = do_QueryInterface(container);
+  nsCOMPtr<nsIDocShell> ds = aDocument->GetDocShell();
   if (ds) {
     nsCOMPtr<nsIContentViewer> cv;
     ds->GetContentViewer(getter_AddRefs(cv));

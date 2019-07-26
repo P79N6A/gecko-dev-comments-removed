@@ -3187,8 +3187,7 @@ XULDocument::DoneWalking()
         
         
         
-        nsCOMPtr<nsISupports> container = GetContainer();
-        nsCOMPtr<nsIDocShellTreeItem> item = do_QueryInterface(container);
+        nsCOMPtr<nsIDocShellTreeItem> item = GetDocShell();
         if (item) {
             nsCOMPtr<nsIDocShellTreeOwner> owner;
             item->GetTreeOwner(getter_AddRefs(owner));
@@ -3196,7 +3195,7 @@ XULDocument::DoneWalking()
             if (xulWin) {
                 nsCOMPtr<nsIDocShell> xulWinShell;
                 xulWin->GetDocShell(getter_AddRefs(xulWinShell));
-                if (SameCOMIdentity(xulWinShell, container)) {
+                if (SameCOMIdentity(xulWinShell, item)) {
                     
                     xulWin->ApplyChromeFlags();
                 }
