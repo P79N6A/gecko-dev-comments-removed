@@ -46,9 +46,8 @@
 #include "webrtc/video_engine/include/vie_render.h"
 #include "webrtc/video_engine/include/vie_capture.h"
 #ifdef MOZ_B2G_CAMERA
-#include "CameraPreviewMediaStream.h"
-#include "DOMCameraManager.h"
-#include "GonkCameraControl.h"
+#include "CameraControlListener.h"
+#include "ICameraControl.h"
 #include "ImageContainer.h"
 #include "nsGlobalWindow.h"
 #include "prprf.h"
@@ -83,24 +82,15 @@ class GetCameraNameRunnable;
 class MediaEngineWebRTCVideoSource : public MediaEngineVideoSource
                                    , public nsRunnable
 #ifdef MOZ_B2G_CAMERA
-                                   , public nsICameraGetCameraCallback
-                                   , public nsICameraPreviewStreamCallback
-                                   , public nsICameraTakePictureCallback
-                                   , public nsICameraReleaseCallback
-                                   , public nsICameraErrorCallback
-                                   , public CameraPreviewFrameCallback
+                                   , public CameraControlListener
 #else
                                    , public webrtc::ExternalRenderer
 #endif
 {
 public:
 #ifdef MOZ_B2G_CAMERA
-  MediaEngineWebRTCVideoSource(nsDOMCameraManager* aCameraManager,
-    int aIndex, uint64_t aWindowId)
-    : mCameraManager(aCameraManager)
-    , mNativeCameraControl(nullptr)
-    , mPreviewStream(nullptr)
-    , mWindowId(aWindowId)
+  MediaEngineWebRTCVideoSource(int aIndex)
+    : mCameraControl(nullptr)
     , mCallbackMonitor("WebRTCCamera.CallbackMonitor")
     , mCaptureIndex(aIndex)
     , mMonitor("WebRTCCamera.Monitor")
@@ -111,7 +101,6 @@ public:
     , mSnapshotPath(nullptr)
   {
     mState = kReleased;
-    NS_NewNamedThread("CameraThread", getter_AddRefs(mCameraThread));
     Init();
   }
 #else
@@ -167,20 +156,17 @@ public:
 
   NS_DECL_THREADSAFE_ISUPPORTS
 #ifdef MOZ_B2G_CAMERA
-  NS_DECL_NSICAMERAGETCAMERACALLBACK
-  NS_DECL_NSICAMERAPREVIEWSTREAMCALLBACK
-  NS_DECL_NSICAMERATAKEPICTURECALLBACK
-  NS_DECL_NSICAMERARELEASECALLBACK
-  NS_DECL_NSICAMERAERRORCALLBACK
+  void OnHardwareStateChange(HardwareState aState);
+  void OnConfigurationChange(const CameraListenerConfiguration& aConfiguration);
+  bool OnNewPreviewFrame(layers::Image* aImage, uint32_t aWidth, uint32_t aHeight);
+  void OnError(CameraErrorContext aContext, const nsACString& aError);
+  void OnTakePictureComplete(uint8_t* aData, uint32_t aLength, const nsAString& aMimeType);
 
   void AllocImpl();
   void DeallocImpl();
   void StartImpl(webrtc::CaptureCapability aCapability);
   void StopImpl();
   void SnapshotImpl();
-
-  virtual void OnNewFrame(const gfxIntSize& aIntrinsicSize, layers::Image* aImage);
-
 #endif
 
   
@@ -212,20 +198,8 @@ private:
 
   
 #ifdef MOZ_B2G_CAMERA
-  
-  
-  
-  
-  
-  
-  
-  nsDOMCameraManager* mCameraManager;
-  nsRefPtr<nsDOMCameraControl> mDOMCameraControl;
-  nsRefPtr<nsGonkCameraControl> mNativeCameraControl;
-  nsRefPtr<DOMCameraPreview> mPreviewStream;
-  uint64_t mWindowId;
+  nsRefPtr<ICameraControl> mCameraControl;
   mozilla::ReentrantMonitor mCallbackMonitor; 
-  nsRefPtr<nsIThread> mCameraThread;
   nsRefPtr<nsIDOMFile> mLastCapture;
 #else
   webrtc::VideoEngine* mVideoEngine; 
@@ -351,24 +325,7 @@ private:
 class MediaEngineWebRTC : public MediaEngine
 {
 public:
-#ifdef MOZ_B2G_CAMERA
-  MediaEngineWebRTC(nsDOMCameraManager* aCameraManager, uint64_t aWindowId)
-    : mMutex("mozilla::MediaEngineWebRTC")
-    , mVideoEngine(nullptr)
-    , mVoiceEngine(nullptr)
-    , mVideoEngineInit(false)
-    , mAudioEngineInit(false)
-    , mCameraManager(aCameraManager)
-    , mWindowId(aWindowId)
-    , mHasTabVideoSource(false)
-  {
-    AsyncLatencyLogger::Get(true)->AddRef();
-    mLoadMonitor = new LoadMonitor();
-    mLoadMonitor->Init(mLoadMonitor);
-  }
-#else
   MediaEngineWebRTC(MediaEnginePrefs &aPrefs);
-#endif
   ~MediaEngineWebRTC() {
     Shutdown();
 #ifdef MOZ_B2G_CAMERA
@@ -400,19 +357,7 @@ private:
   nsRefPtrHashtable<nsStringHashKey, MediaEngineWebRTCVideoSource > mVideoSources;
   nsRefPtrHashtable<nsStringHashKey, MediaEngineWebRTCAudioSource > mAudioSources;
 
-#ifdef MOZ_B2G_CAMERA
-  
-  
-  
-  
-  
-  
-  
-  nsDOMCameraManager* mCameraManager;
-  uint64_t mWindowId;
-#endif
-
-   nsRefPtr<LoadMonitor> mLoadMonitor;
+  nsRefPtr<LoadMonitor> mLoadMonitor;
 };
 
 }

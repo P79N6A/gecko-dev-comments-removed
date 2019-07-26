@@ -2,9 +2,8 @@
 
 
 
-#include "nsDOMClassInfoID.h"
-#include "DOMCameraControl.h"
 #include "DOMCameraCapabilities.h"
+#include "DOMCameraControl.h"
 #include "CameraCommon.h"
 
 using namespace mozilla;
