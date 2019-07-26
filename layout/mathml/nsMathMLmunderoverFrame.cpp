@@ -36,7 +36,7 @@ nsMathMLmunderoverFrame::AttributeChanged(int32_t         aNameSpaceID,
       nsGkAtoms::accentunder_ == aAttribute) {
     
     
-    return ReLayoutChildren(mParent);
+    return ReLayoutChildren(GetParent());
   }
 
   return nsMathMLContainerFrame::

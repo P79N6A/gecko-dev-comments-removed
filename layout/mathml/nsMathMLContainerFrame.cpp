@@ -391,7 +391,7 @@ nsMathMLContainerFrame::Stretch(nsRenderingContext& aRenderingContext,
         
 
         nsEmbellishData parentData;
-        GetEmbellishDataFrom(mParent, parentData);
+        GetEmbellishDataFrom(GetParent(), parentData);
         
         
         if (parentData.coreFrame != mEmbellishData.coreFrame) {
@@ -479,7 +479,7 @@ nsMathMLContainerFrame::FinalizeReflow(nsRenderingContext& aRenderingContext,
     
     
     
-    nsIMathMLFrame* mathMLFrame = do_QueryFrame(mParent);
+    nsIMathMLFrame* mathMLFrame = do_QueryFrame(GetParent());
     if (mathMLFrame) {
       nsEmbellishData embellishData;
       nsPresentationData presentationData;
@@ -724,7 +724,7 @@ nsMathMLContainerFrame::ChildListChanged(int32_t aModType)
   
   nsIFrame* frame = this;
   if (mEmbellishData.coreFrame) {
-    nsIFrame* parent = mParent;
+    nsIFrame* parent = GetParent();
     nsEmbellishData embellishData;
     for ( ; parent; frame = parent, parent = parent->GetParent()) {
       GetEmbellishDataFrom(parent, embellishData);

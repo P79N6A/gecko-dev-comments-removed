@@ -440,7 +440,7 @@ nsBulletFrame::SetListItemOrdinal(int32_t aNextOrdinal,
   
   
   
-  nsIContent* parentContent = mParent->GetContent();
+  nsIContent* parentContent = GetParent()->GetContent();
   if (parentContent) {
     nsGenericHTMLElement *hc =
       nsGenericHTMLElement::FromContent(parentContent);
