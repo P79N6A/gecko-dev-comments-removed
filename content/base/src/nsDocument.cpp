@@ -1954,15 +1954,6 @@ nsDocument::Init()
   mCustomPrototypes.Init();
 
   
-  
-  
-  
-  nsCOMPtr<nsIGlobalObject> global = xpc::GetJunkScopeGlobal();
-  NS_ENSURE_TRUE(global, NS_ERROR_FAILURE);
-  mScopeObject = do_GetWeakReference(global);
-  MOZ_ASSERT(mScopeObject);
-
-  
   nsINode::nsSlots* slots = Slots();
 
   
@@ -1991,6 +1982,15 @@ nsDocument::Init()
                     "Bad NodeType in aNodeInfo");
 
   NS_ASSERTION(OwnerDoc() == this, "Our nodeinfo is busted!");
+
+  
+  
+  
+  
+  nsCOMPtr<nsIGlobalObject> global = xpc::GetJunkScopeGlobal();
+  NS_ENSURE_TRUE(global, NS_ERROR_FAILURE);
+  mScopeObject = do_GetWeakReference(global);
+  MOZ_ASSERT(mScopeObject);
 
   mScriptLoader = new nsScriptLoader(this);
 
