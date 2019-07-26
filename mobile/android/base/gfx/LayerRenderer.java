@@ -410,12 +410,18 @@ public class LayerRenderer implements Tabs.OnTabsChangedListener {
         
         private boolean mUpdated;
         private final Rect mPageRect;
+        private final Rect mAbsolutePageRect;
 
         public Frame(ImmutableViewportMetrics metrics) {
             mFrameMetrics = metrics;
             mPageContext = createPageContext(metrics);
             mScreenContext = createScreenContext(metrics);
-            mPageRect = getPageRect();
+
+            Point origin = PointUtils.round(mFrameMetrics.getOrigin());
+            Rect pageRect = RectUtils.round(mFrameMetrics.getPageRect());
+            mAbsolutePageRect = new Rect(pageRect);
+            pageRect.offset(-origin.x, -origin.y);
+            mPageRect = pageRect;
         }
 
         private void setScissorRect() {
@@ -435,13 +441,6 @@ public class LayerRenderer implements Tabs.OnTabsChangedListener {
 
             return new Rect(left, screenSize.height - bottom, right,
                             (screenSize.height - bottom) + (bottom - top));
-        }
-
-        private Rect getPageRect() {
-            Point origin = PointUtils.round(mFrameMetrics.getOrigin());
-            Rect pageRect = RectUtils.round(mFrameMetrics.getPageRect());
-            pageRect.offset(-origin.x, -origin.y);
-            return pageRect;
         }
 
         
@@ -543,9 +542,7 @@ public class LayerRenderer implements Tabs.OnTabsChangedListener {
             mBackgroundLayer.draw(mScreenContext);
 
             
-            RectF untransformedPageRect = new RectF(0.0f, 0.0f, mPageRect.width(),
-                                                    mPageRect.height());
-            if (!untransformedPageRect.contains(mFrameMetrics.getViewport()))
+            if (!new RectF(mAbsolutePageRect).contains(mFrameMetrics.getViewport()))
                 mShadowLayer.draw(mPageContext);
 
             
@@ -607,7 +604,7 @@ public class LayerRenderer implements Tabs.OnTabsChangedListener {
 
                 
 
-                if (!viewport.intersect(mPageRect)) {
+                if (!viewport.intersect(mAbsolutePageRect)) {
                     
 
 
@@ -615,10 +612,14 @@ public class LayerRenderer implements Tabs.OnTabsChangedListener {
                 }
                 validRegion.op(viewport, Region.Op.INTERSECT);
 
-                float checkerboard = 0.0f;
-
+                
+                
+                
                 int screenArea = viewport.width() * viewport.height();
-                if (screenArea > 0 && !(validRegion.isRect() && validRegion.getBounds().equals(viewport))) {
+                float checkerboard = (screenArea > 0 &&
+                  validRegion.quickReject(viewport)) ? 1.0f : 0.0f;
+
+                if (screenArea > 0 && checkerboard < 1.0f) {
                     validRegion.op(viewport, Region.Op.REVERSE_DIFFERENCE);
 
                     
@@ -633,6 +634,9 @@ public class LayerRenderer implements Tabs.OnTabsChangedListener {
                     }
 
                     checkerboard = checkerboardArea / (float)screenArea;
+
+                    
+                    checkerboard += (1.0 - checkerboard) * (1.0 - GeckoAppShell.computeRenderIntegrity());
                 }
 
                 PanningPerfAPI.recordCheckerboard(checkerboard);
