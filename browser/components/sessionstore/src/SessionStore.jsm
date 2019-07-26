@@ -58,7 +58,11 @@ const MESSAGES = [
   
   
   
-  "SessionStore:pageshow"
+  "SessionStore:pageshow",
+
+  
+  
+  "SessionStore:MozStorageChanged"
 ];
 
 
@@ -120,9 +124,16 @@ XPCOMUtils.defineLazyServiceGetter(this, "CrashReporter",
   "@mozilla.org/xre/app-info;1", "nsICrashReporter");
 #endif
 
+
+
+
+
+let gDebuggingEnabled = false;
 function debug(aMsg) {
-  aMsg = ("SessionStore: " + aMsg).replace(/\S{80}/g, "$&\n");
-  Services.console.logStringMessage(aMsg);
+  if (gDebuggingEnabled) {
+    aMsg = ("SessionStore: " + aMsg).replace(/\S{80}/g, "$&\n");
+    Services.console.logStringMessage(aMsg);
+  }
 }
 
 this.SessionStore = {
@@ -537,9 +548,13 @@ let SessionStoreInternal = {
   },
 
   _initPrefs : function() {
-    XPCOMUtils.defineLazyGetter(this, "_prefBranch", function () {
-      return Services.prefs.getBranch("browser.");
-    });
+    this._prefBranch = Services.prefs.getBranch("browser.");
+
+    gDebuggingEnabled = this._prefBranch.getBoolPref("sessionstore.debug");
+
+    Services.prefs.addObserver("browser.sessionstore.debug", () => {
+      gDebuggingEnabled = this._prefBranch.getBoolPref("sessionstore.debug");
+    }, false);
 
     
     XPCOMUtils.defineLazyGetter(this, "_interval", function () {
@@ -621,37 +636,43 @@ let SessionStoreInternal = {
     if (this._disabledForMultiProcess)
       return;
 
-    switch (aTopic) {
-      case "domwindowopened": 
-        this.onOpen(aSubject);
-        break;
-      case "domwindowclosed": 
-        this.onClose(aSubject);
-        break;
-      case "quit-application-requested":
-        this.onQuitApplicationRequested();
-        break;
-      case "quit-application-granted":
-        this.onQuitApplicationGranted();
-        break;
-      case "browser-lastwindow-close-granted":
-        this.onLastWindowCloseGranted();
-        break;
-      case "quit-application":
-        this.onQuitApplication(aData);
-        break;
-      case "browser:purge-session-history": 
-        this.onPurgeSessionHistory();
-        break;
-      case "browser:purge-domain-data":
-        this.onPurgeDomainData(aData);
-        break;
-      case "nsPref:changed": 
-        this.onPrefChange(aData);
-        break;
-      case "timer-callback": 
-        this.onTimerCallback();
-        break;
+    try {
+      switch (aTopic) {
+        case "domwindowopened": 
+          this.onOpen(aSubject);
+          break;
+        case "domwindowclosed": 
+          this.onClose(aSubject);
+          break;
+        case "quit-application-requested":
+          this.onQuitApplicationRequested();
+          break;
+        case "quit-application-granted":
+          this.onQuitApplicationGranted();
+          break;
+        case "browser-lastwindow-close-granted":
+          this.onLastWindowCloseGranted();
+          break;
+        case "quit-application":
+          this.onQuitApplication(aData);
+          break;
+        case "browser:purge-session-history": 
+          this.onPurgeSessionHistory();
+          break;
+        case "browser:purge-domain-data":
+          this.onPurgeDomainData(aData);
+          break;
+        case "nsPref:changed": 
+          this.onPrefChange(aData);
+          break;
+        case "timer-callback": 
+          this.onTimerCallback();
+          break;
+      }
+    } catch (ex) {
+      debug("Uncaught error during observe");
+      debug(ex);
+      debug(ex.stack);
     }
   },
 
@@ -669,6 +690,10 @@ let SessionStoreInternal = {
         break;
       case "SessionStore:input":
         this.onTabInput(win, browser);
+        break;
+      case "SessionStore:MozStorageChanged":
+        TabStateCache.delete(browser);
+        this.saveStateDelayed(win);
         break;
       default:
         debug("received unknown message '" + aMessage.name + "'");
@@ -1091,6 +1116,7 @@ let SessionStoreInternal = {
     let openWindows = {};
     this._forEachBrowserWindow(function(aWindow) {
       Array.forEach(aWindow.gBrowser.tabs, function(aTab) {
+        TabStateCache.delete(aTab);
         delete aTab.linkedBrowser.__SS_data;
         delete aTab.linkedBrowser.__SS_tabStillLoading;
         delete aTab.linkedBrowser.__SS_formDataSaved;
@@ -1315,8 +1341,7 @@ let SessionStoreInternal = {
     }
 
     
-    var tabState = this._collectTabData(aTab);
-    this._updateTextAndScrollDataForTab(aWindow, aTab.linkedBrowser, tabState);
+    let tabState = this._collectTabData(aTab);
 
     
     if (this._shouldSaveTabState(tabState)) {
@@ -1343,6 +1368,7 @@ let SessionStoreInternal = {
 
 
 
+
   onTabLoad: function ssi_onTabLoad(aWindow, aBrowser) {
     
     
@@ -1352,6 +1378,8 @@ let SessionStoreInternal = {
         aBrowser.__SS_restoreState == TAB_STATE_NEEDS_RESTORE) {
       return;
     }
+
+    TabStateCache.delete(aBrowser);
 
     delete aBrowser.__SS_data;
     delete aBrowser.__SS_tabStillLoading;
@@ -1372,6 +1400,8 @@ let SessionStoreInternal = {
   onTabInput: function ssi_onTabInput(aWindow, aBrowser) {
     
     delete aBrowser.__SS_formDataSaved;
+
+    TabStateCache.delete(aBrowser);
 
     this.saveStateDelayed(aWindow, 3000);
   },
@@ -1496,20 +1526,41 @@ let SessionStoreInternal = {
     if (!aTab.ownerDocument || !aTab.ownerDocument.defaultView.__SSi)
       throw (Components.returnCode = Cr.NS_ERROR_INVALID_ARG);
 
-    var tabState = this._collectTabData(aTab);
-
-    var window = aTab.ownerDocument.defaultView;
-    this._updateTextAndScrollDataForTab(window, aTab.linkedBrowser, tabState);
+    let tabState = this._collectTabData(aTab);
 
     return this._toJSONString(tabState);
   },
 
   setTabState: function ssi_setTabState(aTab, aState) {
-    var tabState = JSON.parse(aState);
-    if (!tabState.entries || !aTab.ownerDocument || !aTab.ownerDocument.defaultView.__SSi)
+    
+    
+    
+    
+    let tabState = JSON.parse(aState);
+    if (!tabState) {
+      debug("Empty state argument");
       throw (Components.returnCode = Cr.NS_ERROR_INVALID_ARG);
+    }
+    if (typeof tabState != "object") {
+      debug("State argument does not represent an object");
+      throw (Components.returnCode = Cr.NS_ERROR_INVALID_ARG);
+    }
+    if (!("entries" in tabState)) {
+      debug("State argument must contain field 'entries'");
+      throw (Components.returnCode = Cr.NS_ERROR_INVALID_ARG);
+    }
+    if (!aTab.ownerDocument) {
+      debug("Tab argument must have an owner document");
+      throw (Components.returnCode = Cr.NS_ERROR_INVALID_ARG);
+    }
 
-    var window = aTab.ownerDocument.defaultView;
+    let window = aTab.ownerDocument.defaultView;
+    if (!("__SSi" in window)) {
+      debug("Default view of ownerDocument must have a unique identifier");
+      throw (Components.returnCode = Cr.NS_ERROR_INVALID_ARG);
+    }
+
+    TabStateCache.delete(aTab);
     this._setWindowStateBusy(window);
     this.restoreHistoryPrecursor(window, [aTab], [tabState], 0, 0, 0);
   },
@@ -1519,9 +1570,9 @@ let SessionStoreInternal = {
         !aWindow.getBrowser)
       throw (Components.returnCode = Cr.NS_ERROR_INVALID_ARG);
 
-    var tabState = this._collectTabData(aTab, true);
-    var sourceWindow = aTab.ownerDocument.defaultView;
-    this._updateTextAndScrollDataForTab(sourceWindow, aTab.linkedBrowser, tabState, true);
+    
+    let tabState = this._cloneFullTabData(aTab);
+
     tabState.index += aDelta;
     tabState.index = Math.max(1, Math.min(tabState.index, tabState.entries.length));
     tabState.pinned = false;
@@ -1691,6 +1742,7 @@ let SessionStoreInternal = {
     if (aWindow.__SSi && this._windows[aWindow.__SSi].extData &&
         this._windows[aWindow.__SSi].extData[aKey])
       delete this._windows[aWindow.__SSi].extData[aKey];
+    this.saveStateDelayed(aWindow);
   },
 
   getTabValue: function ssi_getTabValue(aTab, aKey) {
@@ -1706,6 +1758,7 @@ let SessionStoreInternal = {
   },
 
   setTabValue: function ssi_setTabValue(aTab, aKey, aStringValue) {
+    TabStateCache.delete(aTab);
     
     
     let saveTo;
@@ -1724,6 +1777,7 @@ let SessionStoreInternal = {
   },
 
   deleteTabValue: function ssi_deleteTabValue(aTab, aKey) {
+    TabStateCache.delete(aTab);
     
     
     
@@ -1737,6 +1791,7 @@ let SessionStoreInternal = {
 
     if (deleteFrom && deleteFrom[aKey])
       delete deleteFrom[aKey];
+    this.saveStateDelayed(aTab.ownerDocument.defaultView);
   },
 
   persistTabAttribute: function ssi_persistTabAttribute(aName) {
@@ -1918,15 +1973,24 @@ let SessionStoreInternal = {
 
 
 
-  _saveWindowHistory: function ssi_saveWindowHistory(aWindow) {
-    var tabbrowser = aWindow.gBrowser;
-    var tabs = tabbrowser.tabs;
-    var tabsData = this._windows[aWindow.__SSi].tabs = [];
 
-    for (var i = 0; i < tabs.length; i++)
-      tabsData.push(this._collectTabData(tabs[i]));
 
-    this._windows[aWindow.__SSi].selected = tabbrowser.mTabBox.selectedIndex + 1;
+
+
+
+  _collectTabData: function ssi_collectTabData(aTab) {
+    if (!aTab) {
+      throw new TypeError("Expecting a tab");
+    }
+    let tabData;
+    if ((tabData = TabStateCache.get(aTab))) {
+      return tabData;
+    }
+    tabData = new TabData(this._collectBaseTabData(aTab));
+    TabStateCache.set(aTab, tabData);
+
+    this._updateTextAndScrollDataForTab(aTab, tabData);
+    return tabData;
   },
 
   
@@ -1937,9 +2001,19 @@ let SessionStoreInternal = {
 
 
 
-  _collectTabData: function ssi_collectTabData(aTab, aFullData) {
-    var tabData = { entries: [], lastAccessed: aTab.lastAccessed };
-    var browser = aTab.linkedBrowser;
+
+
+  _cloneFullTabData: function ssi_cloneFullTabData(aTab) {
+    let options = { includePrivateData: true };
+    let tabData = this._collectBaseTabData(aTab, options);
+    this._updateTextAndScrollDataForTab(aTab, tabData, options);
+    return tabData;
+  },
+
+  _collectBaseTabData: function ssi_collectBaseTabData(aTab, aOptions = null) {
+    let includePrivateData = aOptions && aOptions.includePrivateData;
+    let tabData = {entries: [], lastAccessed: aTab.lastAccessed };
+    let browser = aTab.linkedBrowser;
 
     if (!browser || !browser.currentURI)
       
@@ -1974,7 +2048,7 @@ let SessionStoreInternal = {
     if (history && browser.__SS_data &&
         browser.__SS_data.entries[history.index] &&
         browser.__SS_data.entries[history.index].url == browser.currentURI.spec &&
-        history.index < this._sessionhistory_max_entries - 1 && !aFullData) {
+        history.index < this._sessionhistory_max_entries - 1 && !includePrivateData) {
       tabData = browser.__SS_data;
       tabData.index = history.index + 1;
     }
@@ -1983,7 +2057,7 @@ let SessionStoreInternal = {
       try {
         for (var j = 0; j < history.count; j++) {
           let entry = this._serializeHistoryEntry(history.getEntryAtIndex(j, false),
-                                                  aFullData, aTab.pinned, browser.__SS_hostSchemeData);
+                                                  includePrivateData, aTab.pinned, browser.__SS_hostSchemeData);
           tabData.entries.push(entry);
         }
         
@@ -2009,7 +2083,7 @@ let SessionStoreInternal = {
       tabData.index = history.index + 1;
 
       
-      if (!aFullData)
+      if (!includePrivateData)
         browser.__SS_data = tabData;
     }
     else if (browser.currentURI.spec != "about:blank" ||
@@ -2058,7 +2132,7 @@ let SessionStoreInternal = {
       delete tabData.extData;
 
     if (history && browser.docShell instanceof Ci.nsIDocShell) {
-      let storageData = SessionStorage.serialize(browser.docShell, aFullData)
+      let storageData = SessionStorage.serialize(browser.docShell, includePrivateData)
       if (Object.keys(storageData).length)
         tabData.storage = storageData;
     }
@@ -2080,7 +2154,7 @@ let SessionStoreInternal = {
 
 
   _serializeHistoryEntry:
-    function ssi_serializeHistoryEntry(aEntry, aFullData, aIsPinned, aHostSchemeData) {
+    function ssi_serializeHistoryEntry(aEntry, aIncludePrivateData, aIsPinned, aHostSchemeData) {
     var entry = { url: aEntry.URI.spec };
 
     try {
@@ -2131,7 +2205,7 @@ let SessionStoreInternal = {
 
     try {
       var prefPostdata = this._prefBranch.getIntPref("sessionstore.postdata");
-      if (aEntry.postData && (aFullData || prefPostdata &&
+      if (aEntry.postData && (aIncludePrivateData || prefPostdata &&
             this.checkPrivacyLevel(aEntry.URI.schemeIs("https"), aIsPinned))) {
         aEntry.postData.QueryInterface(Ci.nsISeekableStream).
                         seek(Ci.nsISeekableStream.NS_SEEK_SET, 0);
@@ -2140,7 +2214,7 @@ let SessionStoreInternal = {
         stream.setInputStream(aEntry.postData);
         var postBytes = stream.readByteArray(stream.available());
         var postdata = String.fromCharCode.apply(null, postBytes);
-        if (aFullData || prefPostdata == -1 ||
+        if (aIncludePrivateData || prefPostdata == -1 ||
             postdata.replace(/^(Content-.*\r\n)+(\r\n)*/, "").length <=
               prefPostdata) {
           
@@ -2201,7 +2275,7 @@ let SessionStoreInternal = {
             break;
           }
 
-          children.push(this._serializeHistoryEntry(child, aFullData,
+          children.push(this._serializeHistoryEntry(child, aIncludePrivateData,
                                                     aIsPinned, aHostSchemeData));
         }
       }
@@ -2219,21 +2293,6 @@ let SessionStoreInternal = {
 
 
 
-  _updateTextAndScrollData: function ssi_updateTextAndScrollData(aWindow) {
-    var browsers = aWindow.gBrowser.browsers;
-    this._windows[aWindow.__SSi].tabs.forEach(function (tabData, i) {
-      try {
-        this._updateTextAndScrollDataForTab(aWindow, browsers[i], tabData);
-      }
-      catch (ex) { debug(ex); } 
-    }, this);
-  },
-
-  
-
-
-
-
 
 
 
@@ -2242,9 +2301,12 @@ let SessionStoreInternal = {
 
 
   _updateTextAndScrollDataForTab:
-    function ssi_updateTextAndScrollDataForTab(aWindow, aBrowser, aTabData, aFullData) {
+    function ssi_updateTextAndScrollDataForTab(aTab, aTabData, aOptions = null) {
+    let includePrivateData = aOptions && aOptions.includePrivateData;
+    let window = aTab.ownerDocument.defaultView;
+    let browser = aTab.linkedBrowser;
     
-    if (aBrowser.__SS_data && aBrowser.__SS_tabStillLoading)
+    if (browser.__SS_data && browser.__SS_tabStillLoading)
       return;
 
     var tabIndex = (aTabData.index || aTabData.entries.length) - 1;
@@ -2252,22 +2314,22 @@ let SessionStoreInternal = {
     if (!aTabData.entries[tabIndex])
       return;
 
-    let selectedPageStyle = aBrowser.markupDocumentViewer.authorStyleDisabled ? "_nostyle" :
-                            this._getSelectedPageStyle(aBrowser.contentWindow);
+    let selectedPageStyle = browser.markupDocumentViewer.authorStyleDisabled ? "_nostyle" :
+                            this._getSelectedPageStyle(browser.contentWindow);
     if (selectedPageStyle)
       aTabData.pageStyle = selectedPageStyle;
     else if (aTabData.pageStyle)
       delete aTabData.pageStyle;
 
-    this._updateTextAndScrollDataForFrame(aWindow, aBrowser.contentWindow,
+    this._updateTextAndScrollDataForFrame(window, browser.contentWindow,
                                           aTabData.entries[tabIndex],
-                                          !aBrowser.__SS_formDataSaved, aFullData,
+                                          !browser.__SS_formDataSaved, includePrivateData,
                                           !!aTabData.pinned);
-    aBrowser.__SS_formDataSaved = true;
-    if (aBrowser.currentURI.spec == "about:config")
+    browser.__SS_formDataSaved = true;
+    if (browser.currentURI.spec == "about:config")
       aTabData.entries[tabIndex].formdata = {
         id: {
-          "textbox": aBrowser.contentDocument.getElementById("textbox").value
+          "textbox": browser.contentDocument.getElementById("textbox").value
         },
         xpath: {}
       };
@@ -2291,19 +2353,19 @@ let SessionStoreInternal = {
 
   _updateTextAndScrollDataForFrame:
     function ssi_updateTextAndScrollDataForFrame(aWindow, aContent, aData,
-                                                 aUpdateFormData, aFullData, aIsPinned) {
+                                                 aUpdateFormData, aIncludePrivateData, aIsPinned) {
     for (var i = 0; i < aContent.frames.length; i++) {
       if (aData.children && aData.children[i])
         this._updateTextAndScrollDataForFrame(aWindow, aContent.frames[i],
                                               aData.children[i], aUpdateFormData,
-                                              aFullData, aIsPinned);
+                                              aIncludePrivateData, aIsPinned);
     }
     var isHTTPS = this._getURIFromString((aContent.parent || aContent).
                                          document.location.href).schemeIs("https");
     let topURL = aContent.top.document.location.href;
     let isAboutSR = topURL == "about:sessionrestore" || topURL == "about:welcomeback";
-    if (aFullData || this.checkPrivacyLevel(isHTTPS, aIsPinned) || isAboutSR) {
-      if (aFullData || aUpdateFormData) {
+    if (aIncludePrivateData || this.checkPrivacyLevel(isHTTPS, aIsPinned) || isAboutSR) {
+      if (aIncludePrivateData || aUpdateFormData) {
         let formData = DocumentUtils.getFormData(aContent.document);
 
         
@@ -2423,28 +2485,6 @@ let SessionStoreInternal = {
     }
     else if (aScheme == "file") {
       aHosts[aHost] = true;
-    }
-  },
-
-  
-
-
-
-
-  _updateCookieHosts: function ssi_updateCookieHosts(aWindow) {
-    var hosts = this._internalWindows[aWindow.__SSi].hosts = {};
-
-    
-    
-    
-    for (let i = 0; i < aWindow.gBrowser.tabs.length; i++) {
-      let tab = aWindow.gBrowser.tabs[i];
-      let hostSchemeData = tab.linkedBrowser.__SS_hostSchemeData || [];
-      for (let j = 0; j < hostSchemeData.length; j++) {
-        this._extractHostsForCookiesFromHostScheme(hostSchemeData[j].host,
-                                                   hostSchemeData[j].scheme,
-                                                   hosts, true, tab.pinned);
-      }
     }
   },
 
@@ -2685,10 +2725,29 @@ let SessionStoreInternal = {
     if (!this._isWindowLoaded(aWindow))
       return;
 
+    let tabbrowser = aWindow.gBrowser;
+    let tabs = tabbrowser.tabs;
+    let winData = this._windows[aWindow.__SSi];
+    let tabsData = winData.tabs = [];
+    let hosts = this._internalWindows[aWindow.__SSi].hosts = {};
+
     
-    this._saveWindowHistory(aWindow);
-    this._updateTextAndScrollData(aWindow);
-    this._updateCookieHosts(aWindow);
+    for (let tab of tabs) {
+      tabsData.push(this._collectTabData(tab));
+
+      
+      
+      
+      
+      let hostSchemeData = tab.linkedBrowser.__SS_hostSchemeData || [];
+      for (let j = 0; j < hostSchemeData.length; j++) {
+        this._extractHostsForCookiesFromHostScheme(hostSchemeData[j].host,
+                                                   hostSchemeData[j].scheme,
+                                                   hosts, true, tab.pinned);
+      }
+    }
+    winData.selected = tabbrowser.mTabBox.selectedIndex + 1;
+
     this._updateWindowFeatures(aWindow);
 
     
@@ -2987,6 +3046,7 @@ let SessionStoreInternal = {
   restoreHistoryPrecursor:
     function ssi_restoreHistoryPrecursor(aWindow, aTabs, aTabData, aSelectTab,
                                          aIx, aCount, aRestoreImmediately = false) {
+
     var tabbrowser = aWindow.gBrowser;
 
     
@@ -3002,7 +3062,7 @@ let SessionStoreInternal = {
           var restoreHistoryFunc = function(self) {
             self.restoreHistoryPrecursor(aWindow, aTabs, aTabData, aSelectTab,
                                          aIx, aCount + 1, aRestoreImmediately);
-          }
+          };
           aWindow.setTimeout(restoreHistoryFunc, 100, this);
           return;
         }
@@ -3138,7 +3198,6 @@ let SessionStoreInternal = {
 
     var tab = aTabs.shift();
     var tabData = aTabData.shift();
-
     var browser = aWindow.gBrowser.getBrowserForTab(tab);
     var history = browser.webNavigation.sessionHistory;
 
@@ -3703,7 +3762,7 @@ let SessionStoreInternal = {
 
 
 
-  saveStateDelayed: function ssi_saveStateDelayed(aWindow, aDelay) {
+  saveStateDelayed: function ssi_saveStateDelayed(aWindow = null, aDelay = 2000) {
     if (aWindow) {
       this._dirtyWindows[aWindow.__SSi] = true;
     }
@@ -3713,7 +3772,7 @@ let SessionStoreInternal = {
       var minimalDelay = this._lastSaveTime + this._interval - Date.now();
 
       
-      aDelay = Math.max(minimalDelay, aDelay || 2000);
+      aDelay = Math.max(minimalDelay, aDelay);
       if (aDelay > 0) {
         this._saveTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
         this._saveTimer.init(this, aDelay, Ci.nsITimer.TYPE_ONE_SHOT);
@@ -3985,6 +4044,7 @@ let SessionStoreInternal = {
       if (tab.linkedBrowser == aBrowser)
         return tab;
     }
+    return undefined;
   },
 
   
@@ -4807,11 +4867,25 @@ SessionStoreSHistoryListener.prototype = {
     Ci.nsISupportsWeakReference
   ]),
   browser: null,
-  OnHistoryNewEntry: function(aNewURI) { },
-  OnHistoryGoBack: function(aBackURI) { return true; },
-  OnHistoryGoForward: function(aForwardURI) { return true; },
-  OnHistoryGotoIndex: function(aIndex, aGotoURI) { return true; },
-  OnHistoryPurge: function(aNumEntries) { return true; },
+
+
+
+  OnHistoryNewEntry: function(aNewURI) {
+
+  },
+  OnHistoryGoBack: function(aBackURI) {
+    return true;
+  },
+  OnHistoryGoForward: function(aForwardURI) {
+    return true;
+  },
+  OnHistoryGotoIndex: function(aIndex, aGotoURI) {
+    return true;
+  },
+  OnHistoryPurge: function(aNumEntries) {
+    TabStateCache.delete(this.tab);
+    return true;
+  },
   OnHistoryReload: function(aReloadURI, aReloadFlags) {
     
     
@@ -4834,4 +4908,83 @@ String.prototype.hasRootDomain = function hasRootDomain(aDomain) {
   let prevChar = this[index - 1];
   return (index == (this.length - aDomain.length)) &&
          (prevChar == "." || prevChar == "/");
+};
+
+function TabData(obj = null) {
+  if (obj) {
+    if (obj instanceof TabData) {
+      
+      return obj;
+    }
+    for (let [key, value] in Iterator(obj)) {
+      this[key] = value;
+    }
+  }
+  return this;
 }
+
+
+
+
+
+
+
+
+
+
+
+let TabStateCache = {
+  _data: new WeakMap(),
+
+  
+
+
+
+
+
+
+
+  set: function(aTab, aValue) {
+    let key = this._normalizeToBrowser(aTab);
+    if (!(aValue instanceof TabData)) {
+      throw new TypeError("Attempting to cache a non TabData");
+    }
+    this._data.set(key, aValue);
+  },
+
+  
+
+
+
+
+
+
+
+  get: function(aKey) {
+    let key = this._normalizeToBrowser(aKey);
+    return this._data.get(key);
+  },
+
+  
+
+
+
+
+
+
+  delete: function(aKey) {
+    let key = this._normalizeToBrowser(aKey);
+    this._data.delete(key);
+  },
+
+  _normalizeToBrowser: function(aKey) {
+    let nodeName = aKey.localName;
+    if (nodeName == "tab") {
+      return aKey.linkedBrowser;
+    }
+    if (nodeName == "browser") {
+      return aKey;
+    }
+    throw new TypeError("Key is neither a tab nor a browser: " + nodeName);
+  }
+};
