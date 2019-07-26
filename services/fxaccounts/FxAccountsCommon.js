@@ -11,22 +11,53 @@ Cu.import("resource://gre/modules/Log.jsm");
 
 
 
+
 const PREF_LOG_LEVEL = "identity.fxaccounts.loglevel";
+
+
+const PREF_LOG_LEVEL_DUMP = "identity.fxaccounts.log.appender.dump";
+
+
+
+const PREF_LOG_SENSITIVE_DETAILS = "identity.fxaccounts.log.sensitive";
 
 XPCOMUtils.defineLazyGetter(this, 'log', function() {
   let log = Log.repository.getLogger("FirefoxAccounts");
-  log.addAppender(new Log.DumpAppender());
-  log.level = Log.Level.Error;
+  
+  
+  
+  log.level = Log.Level.Debug;
+  let appender = new Log.DumpAppender();
+  appender.level = Log.Level.Error;
+
+  log.addAppender(appender);
   try {
+    
     let level =
       Services.prefs.getPrefType(PREF_LOG_LEVEL) == Ci.nsIPrefBranch.PREF_STRING
       && Services.prefs.getCharPref(PREF_LOG_LEVEL);
-    log.level = Log.Level[level] || Log.Level.Error;
+    log.level = Log.Level[level] || Log.Level.Debug;
+
+    
+    level =
+      Services.prefs.getPrefType(PREF_LOG_LEVEL_DUMP) == Ci.nsIPrefBranch.PREF_STRING
+      && Services.prefs.getCharPref(PREF_LOG_LEVEL_DUMP);
+    appender.level = Log.Level[level] || Log.Level.Error;
   } catch (e) {
     log.error(e);
   }
 
   return log;
+});
+
+
+
+XPCOMUtils.defineLazyGetter(this, 'logPII', function() {
+  try {
+    return Services.prefs.getBoolPref(PREF_LOG_SENSITIVE_DETAILS);
+  } catch (_) {
+    return false;
+  }
 });
 
 this.DATA_FORMAT_VERSION = 1;
