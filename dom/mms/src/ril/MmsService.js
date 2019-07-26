@@ -168,9 +168,9 @@ XPCOMUtils.defineLazyGetter(this, "gMmsConnection", function () {
 
 
 
-    isDataConnRoaming: function isDataConnRoaming() {
-      let isRoaming = gRIL.rilContext.data.roaming;
-      debug("isDataConnRoaming = " + isRoaming);
+    isVoiceRoaming: function isVoiceRoaming() {
+      let isRoaming = gRIL.rilContext.voice.roaming;
+      debug("isVoiceRoaming = " + isRoaming);
       return isRoaming;
     },
 
@@ -1166,9 +1166,14 @@ MmsService.prototype = {
       retrievalMode = Services.prefs.getCharPref(PREF_RETRIEVAL_MODE);
     } catch (e) {}
 
-    let isRoaming = gMmsConnection.isDataConnRoaming();
-    if ((retrievalMode === RETRIEVAL_MODE_AUTOMATIC_HOME && isRoaming) ||
-        RETRIEVAL_MODE_MANUAL === retrievalMode ||
+    
+    
+    if ((retrievalMode !== RETRIEVAL_MODE_AUTOMATIC) &&
+        gMmsConnection.isVoiceRoaming()) {
+      return;
+    }
+
+    if (RETRIEVAL_MODE_MANUAL === retrievalMode ||
         RETRIEVAL_MODE_NEVER === retrievalMode) {
       let mmsStatus = RETRIEVAL_MODE_NEVER === retrievalMode
                     ? MMS.MMS_PDU_STATUS_REJECTED
