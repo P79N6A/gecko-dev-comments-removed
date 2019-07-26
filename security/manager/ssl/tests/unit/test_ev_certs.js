@@ -172,3 +172,39 @@ add_test(function() {
   check_ee_for_ev("ev-valid", isDebugBuild);
   ocspResponder.stop(run_next_test);
 });
+
+
+
+
+
+
+function check_no_ocsp_requests(cert_name) {
+  clearOCSPCache();
+  let ocspResponder = failingOCSPResponder();
+  let cert = certdb.findCertByNickname(null, cert_name);
+  let hasEVPolicy = {};
+  let verifiedChain = {};
+  let flags = Ci.nsIX509CertDB.FLAG_LOCAL_ONLY |
+              Ci.nsIX509CertDB.FLAG_NO_DV_FALLBACK_FOR_EV;
+  let error = certdb.verifyCertNow(cert, certificateUsageSSLServer, flags,
+                                   verifiedChain, hasEVPolicy);
+  
+  do_check_eq(hasEVPolicy.value, false);
+  do_check_eq(0, error);
+  
+  let identityInfo = cert.QueryInterface(Ci.nsIIdentityInfo);
+  do_check_eq(identityInfo.isExtendedValidation, false);
+  ocspResponder.stop(run_next_test);
+}
+
+add_test(function() {
+  check_no_ocsp_requests("ev-valid");
+});
+
+add_test(function() {
+  check_no_ocsp_requests("non-ev-root");
+});
+
+add_test(function() {
+  check_no_ocsp_requests("no-ocsp-url-cert");
+});
