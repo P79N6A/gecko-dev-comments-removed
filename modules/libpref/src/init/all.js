@@ -414,6 +414,9 @@ pref("accessibility.tabfocus_applies_to_xul", true);
 #endif
 
 
+pref("canvas.focusring.enabled", false);
+
+
 
 
 
