@@ -421,18 +421,16 @@ let TabView = {
   _addToolbarButton: function TabView__addToolbarButton() {
     let buttonId = "tabview-button";
 
-    if (document.getElementById(buttonId))
+    if (CustomizableUI.getPlacementOfWidget(buttonId))
       return;
 
-    let toolbar = document.getElementById("TabsToolbar");
-    let currentSet = toolbar.currentSet.split(",");
-    let alltabsPos = currentSet.indexOf("alltabs-button");
-    if (-1 == alltabsPos)
-      return;
-
-    let allTabsBtn = document.getElementById("alltabs-button");
-    let nextItem = allTabsBtn.nextSibling;
-    toolbar.insertItem(buttonId, nextItem);
+    let allTabsBtnPlacement = CustomizableUI.getPlacementOfWidget("alltabs-button");
+    
+    let desiredPosition = allTabsBtnPlacement.position + 1;
+    CustomizableUI.addWidgetToArea(buttonId, "TabsToolbar", desiredPosition);
+    
+    
+    document.persist("TabsToolbar", "currentset");
   },
 
   
