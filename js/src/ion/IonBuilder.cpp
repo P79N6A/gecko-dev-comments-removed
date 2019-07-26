@@ -2846,13 +2846,39 @@ class AutoAccumulateExits
     }
 };
 
+static bool IsSmallFunction(JSFunction *target) {
+    if (!target->isInterpreted())
+        return false;
+
+    JSScript *script = target->script();
+    if(script->length > js_IonOptions.smallFunctionMaxBytecodeLength)
+        return false;
+
+    return true;
+}
+
 bool
 IonBuilder::makeInliningDecision(JSFunction *target)
 {
-    if (inliningDepth >= 3)
+    static const size_t INLINING_LIMIT = 3;
+
+    if (inliningDepth >= INLINING_LIMIT)
         return false;
 
-    if (script->getUseCount() < js_IonOptions.usesBeforeInlining) {
+    
+    
+    
+    
+    
+    
+    
+    
+
+    uint32 checkUses = js_IonOptions.usesBeforeInlining;
+    if (IsSmallFunction(target))
+        checkUses = js_IonOptions.smallFunctionUsesBeforeInlining;
+
+    if (script->getUseCount() < checkUses) {
         IonSpew(IonSpew_Inlining, "Not inlining, caller is not hot");
         return false;
     }
@@ -3603,6 +3629,9 @@ void
 IonBuilder::insertRecompileCheck()
 {
     if (!inliningEnabled())
+        return;
+
+    if (inliningDepth > 0)
         return;
 
     

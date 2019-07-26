@@ -119,6 +119,24 @@ struct IonOptions
     
     uint32 maxStackArgs;
 
+    
+    
+    
+    
+    
+    
+    
+    uint32 smallFunctionMaxBytecodeLength;
+
+    
+    
+    
+    
+    
+    
+    
+    uint32 smallFunctionUsesBeforeInlining;
+
     void setEagerCompilation() {
         usesBeforeCompile = usesBeforeCompileNoJaeger = 0;
 
@@ -138,7 +156,9 @@ struct IonOptions
         usesBeforeCompile(10240),
         usesBeforeCompileNoJaeger(40),
         usesBeforeInlining(usesBeforeCompile),
-        maxStackArgs(4096)
+        maxStackArgs(4096),
+        smallFunctionMaxBytecodeLength(100),
+        smallFunctionUsesBeforeInlining(usesBeforeInlining / 4)
     { }
 };
 
