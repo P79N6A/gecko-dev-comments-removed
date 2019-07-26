@@ -24,6 +24,7 @@ typedef nsSVGDisplayContainerFrame nsSVGTextFrame2Base;
 
 namespace mozilla {
 
+class CharIterator;
 class TextFrameIterator;
 class TextNodeCorrespondenceRecorder;
 struct TextRenderedRun;
@@ -175,6 +176,7 @@ class nsSVGTextFrame2 : public nsSVGTextFrame2Base
   friend nsIFrame*
   NS_NewSVGTextFrame2(nsIPresShell* aPresShell, nsStyleContext* aContext);
 
+  friend class mozilla::CharIterator;
   friend class mozilla::GlyphMetricsUpdater;
   friend class mozilla::TextFrameIterator;
   friend class mozilla::TextNodeCorrespondenceRecorder;
@@ -188,6 +190,8 @@ protected:
   nsSVGTextFrame2(nsStyleContext* aContext)
     : nsSVGTextFrame2Base(aContext),
       mFontSizeScaleFactor(1.0f),
+      mLastContextScale(1.0f),
+      mLengthAdjustScaleFactor(1.0f),
       mGetCanvasTMForFlag(FOR_OUTERSVG_TM)
   {
     AddStateBits(NS_STATE_SVG_POSITIONING_DIRTY);
@@ -316,7 +320,9 @@ public:
 
 
 
-  void UpdateFontSizeScaleFactor();
+
+
+  bool UpdateFontSizeScaleFactor();
 
   double GetFontSizeScaleFactor() const;
 
@@ -469,7 +475,9 @@ private:
 
 
 
-  bool ResolvePositions(nsTArray<gfxPoint>& aDeltas);
+
+
+  bool ResolvePositions(nsTArray<gfxPoint>& aDeltas, bool aRunPerGlyph);
 
   
 
@@ -635,6 +643,19 @@ private:
 
 
   float mFontSizeScaleFactor;
+
+  
+
+
+
+
+  float mLastContextScale;
+
+  
+
+
+
+  float mLengthAdjustScaleFactor;
 
   
 

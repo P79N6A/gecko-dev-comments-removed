@@ -46,6 +46,7 @@
 #include <limits>
 
 using namespace mozilla;
+using namespace mozilla::dom;
 
 
 
@@ -431,6 +432,16 @@ FrameIfAnonymousChildReflowed(nsSVGTextFrame2* aFrame)
   return aFrame;
 }
 
+static double
+GetContextScale(const gfxMatrix& aMatrix)
+{
+  
+  
+  
+  gfxPoint p = aMatrix.Transform(gfxPoint(1, 1)) -
+               aMatrix.Transform(gfxPoint(0, 0));
+  return SVGContentUtils::ComputeNormalizedHypotenuse(p.x, p.y);
+}
 
 
 
@@ -471,12 +482,14 @@ struct TextRenderedRun
 
 
   TextRenderedRun(nsTextFrame* aFrame, const gfxPoint& aPosition,
-                  double aRotate, float aFontSizeScaleFactor, nscoord aBaseline,
+                  float aLengthAdjustScaleFactor, double aRotate,
+                  float aFontSizeScaleFactor, nscoord aBaseline,
                   uint32_t aTextFrameContentOffset,
                   uint32_t aTextFrameContentLength,
                   uint32_t aTextElementCharIndex)
     : mFrame(aFrame),
       mPosition(aPosition),
+      mLengthAdjustScaleFactor(aLengthAdjustScaleFactor),
       mRotate(static_cast<float>(aRotate)),
       mFontSizeScaleFactor(aFontSizeScaleFactor),
       mBaseline(aBaseline),
@@ -729,6 +742,12 @@ struct TextRenderedRun
   
 
 
+
+  float mLengthAdjustScaleFactor;
+
+  
+
+
   float mRotate;
 
   
@@ -782,6 +801,8 @@ TextRenderedRun::GetTransformFromUserSpaceForPainting(
   
   m.Rotate(mRotate);
 
+  m.Scale(mLengthAdjustScaleFactor, 1.0);
+
   
   nsPoint t(IsRightToLeft() ?
               -mFrame->GetRect().width + aItem.mRightEdge :
@@ -812,6 +833,9 @@ TextRenderedRun::GetTransformFromRunUserSpaceToUserSpace(
 
   
   m.Rotate(mRotate);
+
+  
+  m.Scale(mLengthAdjustScaleFactor, 1.0);
 
   
   nsPoint t(IsRightToLeft() ?
@@ -1985,7 +2009,8 @@ TextRenderedRunIterator::Next()
     }
   }
 
-  mCurrent = TextRenderedRun(frame, pt, rotate, mFontSizeScaleFactor, baseline,
+  mCurrent = TextRenderedRun(frame, pt, Root()->mLengthAdjustScaleFactor,
+                             rotate, mFontSizeScaleFactor, baseline,
                              offset, length, charIndex);
   return mCurrent;
 }
@@ -2289,6 +2314,12 @@ private:
 
 
   uint32_t mGlyphStartTextElementCharIndex;
+
+  
+
+
+
+  float mLengthAdjustScaleFactor;
 };
 
 CharIterator::CharIterator(nsSVGTextFrame2* aSVGTextFrame,
@@ -2300,7 +2331,8 @@ CharIterator::CharIterator(nsSVGTextFrame2* aSVGTextFrame,
     mTrimmedOffset(0),
     mTrimmedLength(0),
     mTextElementCharIndex(0),
-    mGlyphStartTextElementCharIndex(0)
+    mGlyphStartTextElementCharIndex(0),
+    mLengthAdjustScaleFactor(aSVGTextFrame->mLengthAdjustScaleFactor)
 {
   if (!AtEnd()) {
     mSkipCharsIterator = TextFrame()->EnsureTextRun(nsTextFrame::eInflated);
@@ -2478,7 +2510,8 @@ CharIterator::GetGlyphAdvance(nsPresContext* aContext) const
     AppUnitsToFloatCSSPixels(aContext->AppUnitsPerDevPixel());
 
   gfxFloat advance = mTextRun->GetAdvanceWidth(offset, length, nullptr);
-  return aContext->AppUnitsToGfxUnits(advance) * cssPxPerDevPx;
+  return aContext->AppUnitsToGfxUnits(advance) *
+         mLengthAdjustScaleFactor * cssPxPerDevPx;
 }
 
 gfxFloat
@@ -2489,7 +2522,8 @@ CharIterator::GetAdvance(nsPresContext* aContext) const
 
   gfxFloat advance =
     mTextRun->GetAdvanceWidth(mSkipCharsIterator.GetSkippedOffset(), 1, nullptr);
-  return aContext->AppUnitsToGfxUnits(advance) * cssPxPerDevPx;
+  return aContext->AppUnitsToGfxUnits(advance) *
+         mLengthAdjustScaleFactor * cssPxPerDevPx;
 }
 
 gfxFloat
@@ -2511,7 +2545,8 @@ CharIterator::GetGlyphPartialAdvance(uint32_t aPartOffset, uint32_t aPartLength,
     AppUnitsToFloatCSSPixels(aContext->AppUnitsPerDevPixel());
 
   gfxFloat advance = mTextRun->GetAdvanceWidth(offset, length, nullptr);
-  return aContext->AppUnitsToGfxUnits(advance) * cssPxPerDevPx;
+  return aContext->AppUnitsToGfxUnits(advance) *
+         mLengthAdjustScaleFactor * cssPxPerDevPx;
 }
 
 bool
@@ -3026,7 +3061,9 @@ nsSVGTextFrame2::AttributeChanged(int32_t aNameSpaceID,
       NotifyGlyphMetricsChange();
     }
     mCanvasTM = nullptr;
-  } else if (IsGlyphPositioningAttribute(aAttribute)) {
+  } else if (IsGlyphPositioningAttribute(aAttribute) ||
+             aAttribute == nsGkAtoms::textLength ||
+             aAttribute == nsGkAtoms::lengthAdjust) {
     NotifyGlyphMetricsChange();
   }
 
@@ -3280,6 +3317,23 @@ nsSVGTextFrame2::NotifySVGChanged(uint32_t aFlags)
     }
   }
 
+  
+  
+  
+  
+  if (needNewCanvasTM && mLastContextScale != 0.0f) {
+    
+    mCanvasTM = nullptr;
+    gfxMatrix newTM = GetCanvasTM(FOR_OUTERSVG_TM);
+    
+    float scale = GetContextScale(newTM);
+    float change = scale / mLastContextScale;
+    if (change >= 2.0f || change <= 0.5f) {
+      needNewBounds = true;
+      needGlyphMetricsUpdate = true;
+    }
+  }
+
   if (needNewBounds) {
     
     
@@ -3297,12 +3351,6 @@ nsSVGTextFrame2::NotifySVGChanged(uint32_t aFlags)
     if (!(mState & NS_FRAME_FIRST_REFLOW)) {
       NotifyGlyphMetricsChange();
     }
-  }
-
-  if (needNewCanvasTM) {
-    
-    
-    mCanvasTM = nullptr;
   }
 }
 
@@ -3773,7 +3821,7 @@ nsSVGTextFrame2::GetComputedTextLength(nsIContent* aContent)
   }
 
   return PresContext()->AppUnitsToGfxUnits(length) *
-           cssPxPerDevPx / mFontSizeScaleFactor;
+           cssPxPerDevPx * mLengthAdjustScaleFactor / mFontSizeScaleFactor;
 }
 
 
@@ -4249,7 +4297,8 @@ nsSVGTextFrame2::ResolvePositions(nsIContent* aContent,
 }
 
 bool
-nsSVGTextFrame2::ResolvePositions(nsTArray<gfxPoint>& aDeltas)
+nsSVGTextFrame2::ResolvePositions(nsTArray<gfxPoint>& aDeltas,
+                                  bool aRunPerGlyph)
 {
   NS_ASSERTION(mPositions.IsEmpty(), "expected mPositions to be empty");
   RemoveStateBits(NS_STATE_SVG_POSITIONING_MAY_USE_PERCENTAGES);
@@ -4280,7 +4329,8 @@ nsSVGTextFrame2::ResolvePositions(nsTArray<gfxPoint>& aDeltas)
 
   
   bool forceStartOfChunk = false;
-  return ResolvePositions(mContent, 0, false, forceStartOfChunk, aDeltas) != 0;
+  return ResolvePositions(mContent, 0, aRunPerGlyph,
+                          forceStartOfChunk, aDeltas) != 0;
 }
 
 void
@@ -4697,11 +4747,22 @@ nsSVGTextFrame2::DoGlyphPositioning()
     return;
   }
 
-  nsPresContext* presContext = PresContext();
+  
+  
+  SVGTextContentElement* element = static_cast<SVGTextContentElement*>(mContent);
+  nsSVGLength2* textLengthAttr =
+    element->GetAnimatedLength(nsGkAtoms::textLength);
+  bool adjustingTextLength = textLengthAttr->IsExplicitlySet();
+  float expectedTextLength = textLengthAttr->GetAnimValue(element);
+
+  if (adjustingTextLength && expectedTextLength < 0.0f) {
+    
+    adjustingTextLength = false;
+  }
 
   
   nsTArray<gfxPoint> deltas;
-  if (!ResolvePositions(deltas)) {
+  if (!ResolvePositions(deltas, adjustingTextLength)) {
     
     
     
@@ -4727,8 +4788,42 @@ nsSVGTextFrame2::DoGlyphPositioning()
     mPositions[0].mAngle = 0.0;
   }
 
-  float cssPxPerDevPx = PresContext()->
-    AppUnitsToFloatCSSPixels(PresContext()->AppUnitsPerDevPixel());
+  nsPresContext* presContext = PresContext();
+
+  float cssPxPerDevPx = presContext->
+    AppUnitsToFloatCSSPixels(presContext->AppUnitsPerDevPixel());
+  double factor = cssPxPerDevPx / mFontSizeScaleFactor;
+
+  
+  
+  double adjustment = 0.0;
+  mLengthAdjustScaleFactor = 1.0f;
+  if (adjustingTextLength) {
+    nscoord frameWidth = GetFirstPrincipalChild()->GetRect().width;
+    float actualTextLength =
+      static_cast<float>(presContext->AppUnitsToGfxUnits(frameWidth) * factor);
+
+    nsRefPtr<SVGAnimatedEnumeration> lengthAdjustEnum = element->LengthAdjust();
+    uint16_t lengthAdjust = lengthAdjustEnum->AnimVal();
+    switch (lengthAdjust) {
+      case SVG_LENGTHADJUST_SPACINGANDGLYPHS:
+        
+        mLengthAdjustScaleFactor = expectedTextLength / actualTextLength;
+        break;
+
+      default:
+        MOZ_ASSERT(lengthAdjust == SVG_LENGTHADJUST_SPACING);
+        
+        int32_t adjustableSpaces = 0;
+        for (uint32_t i = 1; i < mPositions.Length(); i++) {
+          if (!mPositions[i].mUnaddressable) {
+            adjustableSpaces++;
+          }
+        }
+        adjustment = (expectedTextLength - actualTextLength) / adjustableSpaces;
+        break;
+    }
+  }
 
   
   
@@ -4736,14 +4831,16 @@ nsSVGTextFrame2::DoGlyphPositioning()
     mPositions[0].mPosition += deltas[0];
   }
 
-  double factor = cssPxPerDevPx / mFontSizeScaleFactor;
   for (uint32_t i = 1; i < mPositions.Length(); i++) {
     
     if (!mPositions[i].IsXSpecified()) {
       nscoord d = charPositions[i].x - charPositions[i - 1].x;
       mPositions[i].mPosition.x =
         mPositions[i - 1].mPosition.x +
-        presContext->AppUnitsToGfxUnits(d) * factor;
+        presContext->AppUnitsToGfxUnits(d) * factor * mLengthAdjustScaleFactor;
+      if (!mPositions[i].mUnaddressable) {
+        mPositions[i].mPosition.x += adjustment;
+      }
     }
     
     if (!mPositions[i].IsYSpecified()) {
@@ -4894,7 +4991,11 @@ nsSVGTextFrame2::DoReflow()
   if (!renderingContext)
     return;
 
-  UpdateFontSizeScaleFactor();
+  if (UpdateFontSizeScaleFactor()) {
+    
+    
+    kid->MarkIntrinsicWidthsDirty();
+  }
 
   nscoord width = kid->GetPrefWidth(renderingContext);
   nsHTMLReflowState reflowState(presContext, kid,
@@ -4921,9 +5022,11 @@ nsSVGTextFrame2::DoReflow()
 #define CLAMP_MAX_SIZE 200.0
 #define PRECISE_SIZE   200.0
 
-void
+bool
 nsSVGTextFrame2::UpdateFontSizeScaleFactor()
 {
+  double oldFontSizeScaleFactor = mFontSizeScaleFactor;
+
   nsPresContext* presContext = PresContext();
 
   bool geometricPrecision = false;
@@ -4952,7 +5055,7 @@ nsSVGTextFrame2::UpdateFontSizeScaleFactor()
   if (min == nscoord_MAX) {
     
     mFontSizeScaleFactor = 1.0;
-    return;
+    return mFontSizeScaleFactor != oldFontSizeScaleFactor;
   }
 
   gfxMatrix m;
@@ -4961,7 +5064,7 @@ nsSVGTextFrame2::UpdateFontSizeScaleFactor()
     m = GetCanvasTM(mGetCanvasTMForFlag);
     if (m.IsSingular()) {
       mFontSizeScaleFactor = 1.0;
-      return;
+      return mFontSizeScaleFactor != oldFontSizeScaleFactor;
     }
   }
 
@@ -4970,16 +5073,13 @@ nsSVGTextFrame2::UpdateFontSizeScaleFactor()
   if (geometricPrecision) {
     
     mFontSizeScaleFactor = PRECISE_SIZE / minSize;
-    return;
+    return mFontSizeScaleFactor != oldFontSizeScaleFactor;
   }
 
   double maxSize = presContext->AppUnitsToFloatCSSPixels(max);
 
-  
-  
-  
-  gfxPoint p = m.Transform(gfxPoint(1, 1)) - m.Transform(gfxPoint(0, 0));
-  double contextScale = SVGContentUtils::ComputeNormalizedHypotenuse(p.x, p.y);
+  double contextScale = GetContextScale(m);
+  mLastContextScale = contextScale;
 
   
   
@@ -4997,23 +5097,18 @@ nsSVGTextFrame2::UpdateFontSizeScaleFactor()
     
     
     mFontSizeScaleFactor = contextScale;
-    return;
-  }
-
-  if (maxSize / minSize > CLAMP_MAX_SIZE / CLAMP_MIN_SIZE) {
+  } else if (maxSize / minSize > CLAMP_MAX_SIZE / CLAMP_MIN_SIZE) {
     
     
     
     mFontSizeScaleFactor = CLAMP_MIN_SIZE / minTextRunSize;
-    return;
-  }
-
-  if (minTextRunSize < CLAMP_MIN_SIZE) {
+  } else if (minTextRunSize < CLAMP_MIN_SIZE) {
     mFontSizeScaleFactor = CLAMP_MIN_SIZE / minTextRunSize;
-    return;
+  } else {
+    mFontSizeScaleFactor = CLAMP_MAX_SIZE / maxTextRunSize;
   }
 
-  mFontSizeScaleFactor = CLAMP_MAX_SIZE / maxTextRunSize;
+  return mFontSizeScaleFactor != oldFontSizeScaleFactor;
 }
 
 double
