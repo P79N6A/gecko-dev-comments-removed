@@ -621,7 +621,7 @@ let Links = {
     let pinnedLinks = Array.slice(PinnedLinks.links);
 
     
-    let links = this._links.filter(function (link) {
+    let links = (this._links || []).filter(function (link) {
       return !BlockedLinks.isBlocked(link) && !PinnedLinks.isPinned(link);
     });
 
