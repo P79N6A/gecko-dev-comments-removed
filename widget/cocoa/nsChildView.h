@@ -112,6 +112,18 @@ class GLManager;
 
 
 
+
+
+
+- (void)_drawTitleBar:(NSRect)aRect;
+
+
+
+
+
+
+
+
 - (NSRect)_dirtyRect;
 
 @end
