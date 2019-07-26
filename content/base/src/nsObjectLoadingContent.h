@@ -450,7 +450,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent
     nsRefPtr<nsFrameLoader>     mFrameLoader;
 
     
-    nsIRunnable                *mPendingInstantiateEvent;
+    nsCOMPtr<nsIRunnable>       mPendingInstantiateEvent;
 
     
     

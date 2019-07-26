@@ -129,6 +129,7 @@ nsAsyncInstantiateEvent::Run()
     static_cast<nsObjectLoadingContent *>(mContent.get());
 
   
+  
   if (objLC->mPendingInstantiateEvent != this) {
     return NS_OK;
   }
@@ -2370,25 +2371,23 @@ NS_IMETHODIMP
 nsObjectLoadingContent::AsyncStartPluginInstance()
 {
   
-  if (mInstanceOwner) {
+  if (mInstanceOwner || mPendingInstantiateEvent) {
     return NS_OK;
   }
 
-  nsCOMPtr<nsIContent> thisContent = do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
+  nsCOMPtr<nsIContent> thisContent =
+    do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
   nsIDocument* doc = thisContent->OwnerDoc();
   if (doc->IsStaticDocument() || doc->IsBeingUsedAsImage()) {
     return NS_OK;
   }
 
-  
-  
   nsCOMPtr<nsIRunnable> event = new nsAsyncInstantiateEvent(this);
   if (!event) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
   nsresult rv = NS_DispatchToCurrentThread(event);
   if (NS_SUCCEEDED(rv)) {
-    
     
     mPendingInstantiateEvent = event;
   }
