@@ -37,6 +37,10 @@ public:
   void Shutdown();
 
 private:
+  
+  
+  
+  uint32_t mClientId;
   nsCOMPtr<nsIIccProvider> mProvider;
   nsRefPtr<Listener> mListener;
 };
