@@ -18,7 +18,6 @@ var gProxyFavIcon = null;
 var gLastValidURLStr = "";
 var gInPrintPreviewMode = false;
 var gContextMenu = null; 
-var gMultiProcessBrowser = false;
 
 #ifndef XP_MACOSX
 var gEditUIVisible = true;
@@ -740,8 +739,6 @@ var gBrowserInit = {
     if ("arguments" in window && window.arguments[0])
       var uriToLoad = window.arguments[0];
 
-    gMultiProcessBrowser = gPrefService.getBoolPref("browser.tabs.remote");
-
     var mustLoadSidebar = false;
 
     Cc["@mozilla.org/eventlistenerservice;1"]
@@ -804,18 +801,18 @@ var gBrowserInit = {
 
     
     try {
-      if (!gMultiProcessBrowser)
-        gBrowser.docShell.QueryInterface(Ci.nsIDocShellHistory).useGlobalHistory = true;
+      gBrowser.docShell.QueryInterface(Ci.nsIDocShellHistory).useGlobalHistory = true;
     } catch(ex) {
       Cu.reportError("Places database may be locked: " + ex);
     }
 
+#ifdef MOZ_E10S_COMPAT
     
-    if (!gMultiProcessBrowser) {
-      
-      gBrowser.addProgressListener(window.XULBrowserWindow);
-      gBrowser.addTabsProgressListener(window.TabsProgressListener);
-    }
+#else
+    
+    gBrowser.addProgressListener(window.XULBrowserWindow);
+    gBrowser.addTabsProgressListener(window.TabsProgressListener);
+#endif
 
     
     gBrowser.addEventListener("DOMLinkAdded", DOMLinkHandler, false);
@@ -978,7 +975,7 @@ var gBrowserInit = {
     gBrowser.addEventListener("pageshow", function(event) {
       
       if (content && event.target == content.document)
-        setTimeout(pageShowEventHandlers, 0, event.persisted);
+        setTimeout(pageShowEventHandlers, 0, event);
     }, true);
 
     if (uriToLoad && uriToLoad != "about:blank") {
@@ -1087,12 +1084,13 @@ var gBrowserInit = {
     
     FullZoom.init();
 
+#ifdef MOZ_E10S_COMPAT
     
-    if (!gMultiProcessBrowser) {
-      let NP = {};
-      Cu.import("resource:///modules/NetworkPrioritizer.jsm", NP);
-      NP.trackBrowserWindow(window);
-    }
+#else
+    let NP = {};
+    Cu.import("resource:///modules/NetworkPrioritizer.jsm", NP);
+    NP.trackBrowserWindow(window);
+#endif
 
     
     let ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
@@ -1136,11 +1134,12 @@ var gBrowserInit = {
     gBrowser.mPanelContainer.addEventListener("PreviewBrowserTheme", LightWeightThemeWebInstaller, false, true);
     gBrowser.mPanelContainer.addEventListener("ResetBrowserThemePreview", LightWeightThemeWebInstaller, false, true);
 
+#ifdef MOZ_E10S_COMPAT
     
-    if (!gMultiProcessBrowser) {
-      if (Win7Features)
-        Win7Features.onOpenWindow();
-    }
+#else
+    if (Win7Features)
+      Win7Features.onOpenWindow();
+#endif
 
    
     window.addEventListener("fullscreen", onFullScreen, true);
@@ -2133,9 +2132,8 @@ function URLBarSetURI(aURI) {
 
     
     
-    
     if (gInitialPages.indexOf(uri.spec) != -1)
-      value = !gMultiProcessBrowser && content.opener ? uri.spec : "";
+      value = content.opener ? uri.spec : "";
     else
       value = losslessDecodeURI(uri);
 
@@ -3627,15 +3625,15 @@ var XULBrowserWindow = {
   init: function () {
     this.throbberElement = document.getElementById("navigator-throbber");
 
+#ifdef MOZ_E10S_COMPAT
     
-    if (gMultiProcessBrowser)
-      return;
-
+#else
     
     
     var securityUI = gBrowser.securityUI;
     this._hostChanged = true;
     this.onSecurityChange(null, null, securityUI.state);
+#endif
   },
 
   destroy: function () {
@@ -3802,7 +3800,7 @@ var XULBrowserWindow = {
         this.setDefaultStatus(msg);
 
         
-        if (!gMultiProcessBrowser && content.document && mimeTypeIsTextBased(content.document.contentType))
+        if (content.document && mimeTypeIsTextBased(content.document.contentType))
           this.isImage.removeAttribute('disabled');
         else
           this.isImage.setAttribute('disabled', 'true');
@@ -3852,7 +3850,7 @@ var XULBrowserWindow = {
     }
 
     
-    if (!gMultiProcessBrowser && content.document && mimeTypeIsTextBased(content.document.contentType))
+    if (content.document && mimeTypeIsTextBased(content.document.contentType))
       this.isImage.removeAttribute('disabled');
     else
       this.isImage.setAttribute('disabled', 'true');
@@ -3868,7 +3866,7 @@ var XULBrowserWindow = {
 
     var browser = gBrowser.selectedBrowser;
     if (aWebProgress.DOMWindow == content) {
-      if ((location == "about:blank" && (gMultiProcessBrowser || !content.opener)) ||
+      if ((location == "about:blank" && !content.opener) ||
           location == "") {  
                              
         this.reloadCommand.setAttribute("disabled", "true");
@@ -3922,7 +3920,7 @@ var XULBrowserWindow = {
       }
 
       
-      if (!gMultiProcessBrowser && aLocationURI &&
+      if (aLocationURI &&
           (aLocationURI.schemeIs("about") || aLocationURI.schemeIs("chrome"))) {
         
         
@@ -4034,9 +4032,6 @@ var XULBrowserWindow = {
       if (gURLBar)
         gURLBar.removeAttribute("level");
     }
-
-    if (gMultiProcessBrowser)
-      return;
 
     
     
@@ -4258,9 +4253,8 @@ var TabsProgressListener = {
     
     
 
-    let doc = gMultiProcessBrowser ? null : aWebProgress.DOMWindow.document;
-    if (!gMultiProcessBrowser &&
-        aStateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
+    let doc = aWebProgress.DOMWindow.document;
+    if (aStateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
         Components.isSuccessCode(aStatus) &&
         doc.documentURI.startsWith("about:") &&
         !doc.documentURI.toLowerCase().startsWith("about:blank") &&
@@ -6139,12 +6133,7 @@ function AddKeywordForSearchField() {
 }
 
 function SwitchDocumentDirection(aWindow) {
-  
-  if (aWindow.document.dir == "ltr" || aWindow.document.dir == "") {
-    aWindow.document.dir = "rtl";
-  } else if (aWindow.document.dir == "rtl") {
-    aWindow.document.dir = "ltr";
-  }
+  aWindow.document.dir = (aWindow.document.dir == "ltr" ? "rtl" : "ltr");
   for (var run = 0; run < aWindow.frames.length; run++)
     SwitchDocumentDirection(aWindow.frames[run]);
 }
@@ -6218,8 +6207,7 @@ function isTabEmpty(aTab) {
   if (!isBlankPageURL(browser.currentURI.spec))
     return false;
 
-  
-  if (!gMultiProcessBrowser && browser.contentWindow.opener)
+  if (browser.contentWindow.opener)
     return false;
 
   if (browser.sessionHistory && browser.sessionHistory.count >= 2)
@@ -6766,7 +6754,9 @@ let gPrivateBrowsingUI = {
       }
     }
 
-    if (gURLBar) {
+    if (gURLBar &&
+        !PrivateBrowsingUtils.permanentPrivateBrowsing) {
+      
       
       gURLBar.setAttribute("autocompletesearchparam", "");
     }
@@ -6791,8 +6781,9 @@ function switchToTabHavingURI(aURI, aOpenNew) {
   function switchIfURIInWindow(aWindow) {
     
     
-    if (PrivateBrowsingUtils.isWindowPrivate(window) ||
-        PrivateBrowsingUtils.isWindowPrivate(aWindow)) {
+    if ((PrivateBrowsingUtils.isWindowPrivate(window) ||
+        PrivateBrowsingUtils.isWindowPrivate(aWindow)) &&
+        !PrivateBrowsingUtils.permanentPrivateBrowsing) {
       return false;
     }
 
