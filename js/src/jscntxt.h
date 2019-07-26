@@ -450,6 +450,10 @@ class PerThreadData : public js::PerThreadDataFriendFields
     bool associatedWith(const JSRuntime *rt) { return runtime_ == rt; }
 };
 
+namespace gc {
+class MarkingValidator;
+} 
+
 } 
 
 struct JSRuntime : js::RuntimeFriendFields
@@ -728,6 +732,10 @@ struct JSRuntime : js::RuntimeFriendFields
 
 
     js::gc::ArenaHeader *gcArenasAllocatedDuringSweep;
+
+#ifdef DEBUG
+    js::gc::MarkingValidator *gcMarkingValidator;
+#endif
 
     
 

@@ -2698,7 +2698,8 @@ BeginMarkPhase(JSRuntime *rt)
     return true;
 }
 
-void
+template <class CompartmentIter>
+static void
 MarkWeakReferences(JSRuntime *rt, gcstats::Phase phase)
 {
     GCMarker *gcmarker = &rt->gcMarker;
@@ -2709,7 +2710,7 @@ MarkWeakReferences(JSRuntime *rt, gcstats::Phase phase)
 
     for (;;) {
         bool markedAny = false;
-        for (GCCompartmentGroupIter c(rt); !c.done(); c.next()) {
+        for (CompartmentIter c(rt); !c.done(); c.next()) {
             markedAny |= WatchpointMap::markCompartmentIteratively(c, gcmarker);
             markedAny |= WeakMapBase::markCompartmentIteratively(c, gcmarker);
         }
@@ -2723,6 +2724,20 @@ MarkWeakReferences(JSRuntime *rt, gcstats::Phase phase)
     }
     JS_ASSERT(gcmarker->isDrained());
 }
+
+static void
+MarkWeakReferencesInCurrentGroup(JSRuntime *rt, gcstats::Phase phase)
+{
+    MarkWeakReferences<GCCompartmentGroupIter>(rt, phase);
+}
+
+#ifdef DEBUG
+static void
+MarkAllWeakReferences(JSRuntime *rt, gcstats::Phase phase)
+{
+    MarkWeakReferences<GCCompartmentsIter>(rt, phase);
+}
+#endif
 
 static void
 MarkGrayReferences(JSRuntime *rt)
@@ -2743,78 +2758,164 @@ MarkGrayReferences(JSRuntime *rt)
         gcmarker->drainMarkStack(budget);
     }
 
-    MarkWeakReferences(rt, gcstats::PHASE_SWEEP_MARK_GRAY_WEAK);
+    MarkWeakReferencesInCurrentGroup(rt, gcstats::PHASE_SWEEP_MARK_GRAY_WEAK);
 
     JS_ASSERT(gcmarker->isDrained());
 
     gcmarker->setMarkColorBlack();
 }
 
-#if 0
 #ifdef DEBUG
-static void
-ValidateIncrementalMarking(JSRuntime *rt)
+
+class js::gc::MarkingValidator
 {
-    typedef HashMap<Chunk *, uintptr_t *, GCChunkHasher, SystemAllocPolicy> BitmapMap;
+  public:
+    MarkingValidator(JSRuntime *rt);
+    ~MarkingValidator();
+    void nonIncrementalMark();
+    void validate();
+
+  private:
+    JSRuntime *runtime;
+    bool initialized;
+
+    typedef HashMap<Chunk *, ChunkBitmap *, GCChunkHasher, SystemAllocPolicy> BitmapMap;
     BitmapMap map;
+};
+
+js::gc::MarkingValidator::MarkingValidator(JSRuntime *rt)
+  : runtime(rt),
+    initialized(false)
+{}
+
+js::gc::MarkingValidator::~MarkingValidator()
+{
+    if (!map.initialized())
+        return;
+
+    for (BitmapMap::Range r(map.all()); !r.empty(); r.popFront())
+        js_delete(r.front().value);
+}
+
+void
+js::gc::MarkingValidator::nonIncrementalMark()
+{
+    
+
+
+
+
+
+
     if (!map.init())
         return;
 
-    GCMarker *gcmarker = &rt->gcMarker;
+    GCMarker *gcmarker = &runtime->gcMarker;
 
     
-    for (GCChunkSet::Range r(rt->gcChunkSet.all()); !r.empty(); r.popFront()) {
+    for (GCChunkSet::Range r(runtime->gcChunkSet.all()); !r.empty(); r.popFront()) {
         ChunkBitmap *bitmap = &r.front()->bitmap;
-        uintptr_t *entry = (uintptr_t *)js_malloc(sizeof(bitmap->bitmap));
+	ChunkBitmap *entry = js_new<ChunkBitmap>();
         if (!entry)
             return;
 
-        memcpy(entry, bitmap->bitmap, sizeof(bitmap->bitmap));
+        memcpy(entry->bitmap, bitmap->bitmap, sizeof(bitmap->bitmap));
         if (!map.putNew(r.front(), entry))
             return;
     }
 
     
+
+
+
     WeakMapVector weakmaps;
-    for (GCCompartmentsIter c(rt); !c.done(); c.next()) {
-        if (!WeakMapBase::saveCompartmentWeakMapList(c, weakmaps))
+    ArrayBufferVector arrayBuffers;
+    for (GCCompartmentsIter c(runtime); !c.done(); c.next()) {
+        if (!WeakMapBase::saveCompartmentWeakMapList(c, weakmaps) ||
+            !ArrayBufferObject::saveArrayBufferList(c, arrayBuffers))
+        {
             return;
+        }
     }
-    for (GCCompartmentsIter c(rt); !c.done(); c.next())
+
+    
+
+
+
+    initialized = true;
+
+    
+
+
+
+    for (GCCompartmentsIter c(runtime); !c.done(); c.next()) {
         WeakMapBase::resetCompartmentWeakMapList(c);
+        ArrayBufferObject::resetArrayBufferList(c);
+    }
 
     
-
-
-
-
-    
-    js::gc::State state = rt->gcIncrementalState;
-    rt->gcIncrementalState = MARK_ROOTS;
+    js::gc::State state = runtime->gcIncrementalState;
+    runtime->gcIncrementalState = MARK_ROOTS;
 
     JS_ASSERT(gcmarker->isDrained());
     gcmarker->reset();
 
-    for (GCChunkSet::Range r(rt->gcChunkSet.all()); !r.empty(); r.popFront())
+    for (GCChunkSet::Range r(runtime->gcChunkSet.all()); !r.empty(); r.popFront())
         r.front()->bitmap.clear();
 
-    MarkRuntime(gcmarker, true);
+    {
+        gcstats::AutoPhase ap1(runtime->gcStats, gcstats::PHASE_MARK);
+        gcstats::AutoPhase ap2(runtime->gcStats, gcstats::PHASE_MARK_ROOTS);
+        MarkRuntime(gcmarker, true);
+    }
 
     SliceBudget budget;
-    rt->gcIncrementalState = MARK;
-    rt->gcMarker.drainMarkStack(budget);
-    MarkWeakReferences(rt, gcstats::PHASE_SWEEP_MARK_WEAK);
-    MarkGrayReferences(rt);
+    runtime->gcIncrementalState = MARK;
+    runtime->gcMarker.drainMarkStack(budget);
+
+    {
+        gcstats::AutoPhase ap(runtime->gcStats, gcstats::PHASE_SWEEP);
+        MarkAllWeakReferences(runtime, gcstats::PHASE_SWEEP_MARK_WEAK);
+    }
 
     
-    for (GCChunkSet::Range r(rt->gcChunkSet.all()); !r.empty(); r.popFront()) {
+    for (GCChunkSet::Range r(runtime->gcChunkSet.all()); !r.empty(); r.popFront()) {
         Chunk *chunk = r.front();
         ChunkBitmap *bitmap = &chunk->bitmap;
-        uintptr_t *entry = map.lookup(r.front())->value;
-        ChunkBitmap incBitmap;
+        ChunkBitmap *entry = map.lookup(chunk)->value;
+        js::Swap(*entry, *bitmap);
+    }
 
-        memcpy(incBitmap.bitmap, entry, sizeof(incBitmap.bitmap));
-        js_free(entry);
+    
+    for (GCCompartmentsIter c(runtime); !c.done(); c.next()) {
+        WeakMapBase::resetCompartmentWeakMapList(c);
+        ArrayBufferObject::resetArrayBufferList(c);
+    }
+    WeakMapBase::restoreCompartmentWeakMapLists(weakmaps);
+    ArrayBufferObject::restoreArrayBufferLists(arrayBuffers);
+
+    runtime->gcIncrementalState = state;
+}
+
+void
+js::gc::MarkingValidator::validate()
+{
+    
+
+
+
+
+    if (!initialized)
+        return;
+
+    for (GCChunkSet::Range r(runtime->gcChunkSet.all()); !r.empty(); r.popFront()) {
+        Chunk *chunk = r.front();
+        BitmapMap::Ptr ptr = map.lookup(chunk);
+        if (!ptr)
+            continue;  
+
+        ChunkBitmap *bitmap = ptr->value;
+        ChunkBitmap *incBitmap = &chunk->bitmap;
 
         for (size_t i = 0; i < ArenasPerChunk; i++) {
             if (chunk->decommittedArenas.get(i))
@@ -2822,7 +2923,7 @@ ValidateIncrementalMarking(JSRuntime *rt)
             Arena *arena = &chunk->arenas[i];
             if (!arena->aheader.allocated())
                 continue;
-            if (!arena->aheader.compartment->isCollecting())
+            if (!arena->aheader.compartment->isGCSweeping())
                 continue;
             if (arena->aheader.allocatedDuringIncremental)
                 continue;
@@ -2837,31 +2938,45 @@ ValidateIncrementalMarking(JSRuntime *rt)
 
 
 
-                JS_ASSERT_IF(bitmap->isMarked(cell, BLACK), incBitmap.isMarked(cell, BLACK));
-
-                
-
-
-
-
-                JS_ASSERT_IF(!bitmap->isMarked(cell, GRAY), !incBitmap.isMarked(cell, GRAY));
+                JS_ASSERT_IF(bitmap->isMarked(cell, BLACK), incBitmap->isMarked(cell, BLACK));
 
                 thing += Arena::thingSize(kind);
             }
         }
-
-        memcpy(bitmap->bitmap, incBitmap.bitmap, sizeof(incBitmap.bitmap));
     }
-
-    
-    for (GCCompartmentsIter c(rt); !c.done(); c.next())
-        WeakMapBase::resetCompartmentWeakMapList(c);
-    WeakMapBase::restoreCompartmentWeakMapLists(weakmaps);
-
-    rt->gcIncrementalState = state;
 }
+
 #endif
+
+static void
+ComputeNonIncrementalMarkingForValidation(JSRuntime *rt)
+{
+#ifdef DEBUG
+    JS_ASSERT(!rt->gcMarkingValidator);
+    if (rt->gcIsIncremental && rt->gcValidate)
+        rt->gcMarkingValidator = js_new<MarkingValidator>(rt);
+    if (rt->gcMarkingValidator)
+        rt->gcMarkingValidator->nonIncrementalMark();
 #endif
+}
+
+static void
+ValidateIncrementalMarking(JSRuntime *rt)
+{
+#ifdef DEBUG
+    if (rt->gcMarkingValidator)
+        rt->gcMarkingValidator->validate();
+#endif
+}
+
+static void
+FinishMarkingValidation(JSRuntime *rt)
+{
+#ifdef DEBUG
+    js_delete(rt->gcMarkingValidator);
+    rt->gcMarkingValidator = NULL;
+#endif
+}
 
 static void
 DropStringWrappers(JSRuntime *rt)
@@ -3206,7 +3321,7 @@ EndMarkingCompartmentGroup(JSRuntime *rt)
 
     MarkIncomingCrossCompartmentPointers(rt, BLACK);
 
-    MarkWeakReferences(rt, gcstats::PHASE_SWEEP_MARK_WEAK);
+    MarkWeakReferencesInCurrentGroup(rt, gcstats::PHASE_SWEEP_MARK_WEAK);
 
     
 
@@ -3256,6 +3371,8 @@ BeginSweepingCompartmentGroup(JSRuntime *rt)
         if (c == rt->atomsCompartment)
             sweepingAtoms = true;
     }
+
+    ValidateIncrementalMarking(rt);
 
     FreeOp fop(rt, rt->gcSweepOnBackgroundThread);
 
@@ -3357,6 +3474,9 @@ BeginSweepPhase(JSRuntime *rt)
 
 
 
+
+
+    ComputeNonIncrementalMarkingForValidation(rt);
 
     gcstats::AutoPhase ap(rt->gcStats, gcstats::PHASE_SWEEP);
 
@@ -3566,6 +3686,8 @@ EndSweepPhase(JSRuntime *rt, JSGCInvocationKind gckind, bool lastGC)
         }
 #endif
     }
+
+    FinishMarkingValidation(rt);
 
     rt->gcLastGCTime = PRMJ_Now();
 }
