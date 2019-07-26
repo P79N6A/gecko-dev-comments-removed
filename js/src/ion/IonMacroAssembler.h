@@ -58,6 +58,9 @@
 
 namespace js {
 namespace ion {
+ 
+
+
 
 class MacroAssembler : public MacroAssemblerSpecific
 {
@@ -82,18 +85,28 @@ class MacroAssembler : public MacroAssemblerSpecific
     };
 
     AutoRooter autoRooter_;
+    Maybe<IonContext> ionContext_;
+    Maybe<AutoIonContextAlloc> alloc_;
     bool enoughMemory_;
 
   public:
     MacroAssembler()
       : autoRooter_(GetIonContext()->cx, thisFromCtor()),
         enoughMemory_(true)
-    { }
+    {
+        if (!GetIonContext()->temp)
+            alloc_.construct(GetIonContext()->cx);
+    }
 
+    
+    
     MacroAssembler(JSContext *cx)
       : autoRooter_(cx, thisFromCtor()),
         enoughMemory_(true)
-    { }
+    {
+        ionContext_.construct(cx, (js::ion::TempAllocator *)NULL);
+        alloc_.construct(cx);
+    }
 
     MoveResolver &moveResolver() {
         return moveResolver_;
