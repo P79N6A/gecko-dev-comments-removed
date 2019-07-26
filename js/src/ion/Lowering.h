@@ -211,6 +211,7 @@ class LIRGenerator : public LIRGeneratorSpecific
     bool visitCallSetElement(MCallSetElement *ins);
     bool visitCallInitElementArray(MCallInitElementArray *ins);
     bool visitSetPropertyCache(MSetPropertyCache *ins);
+    bool visitSetElementCache(MSetElementCache *ins);
     bool visitCallSetProperty(MCallSetProperty *ins);
     bool visitIteratorStart(MIteratorStart *ins);
     bool visitIteratorNext(MIteratorNext *ins);
@@ -219,6 +220,7 @@ class LIRGenerator : public LIRGeneratorSpecific
     bool visitStringLength(MStringLength *ins);
     bool visitArgumentsLength(MArgumentsLength *ins);
     bool visitGetArgument(MGetArgument *ins);
+    bool visitRunOncePrologue(MRunOncePrologue *ins);
     bool visitRest(MRest *ins);
     bool visitParRest(MParRest *ins);
     bool visitThrow(MThrow *ins);

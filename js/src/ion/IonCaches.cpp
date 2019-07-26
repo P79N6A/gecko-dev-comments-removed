@@ -1543,6 +1543,8 @@ GetPropertyIC::reset()
     RepatchIonCache::reset();
     hasArrayLengthStub_ = false;
     hasTypedArrayLengthStub_ = false;
+    hasStrictArgumentsLengthStub_ = false;
+    hasNormalArgumentsLengthStub_ = false;
 }
 
 void
@@ -2557,6 +2559,146 @@ GetElementIC::update(JSContext *cx, size_t cacheIndex, HandleObject obj,
 
 void
 GetElementIC::reset()
+{
+    RepatchIonCache::reset();
+    hasDenseStub_ = false;
+    hasStrictArgumentsStub_ = false;
+    hasNormalArgumentsStub_ = false;
+}
+
+static bool
+IsElementSetInlineable(HandleObject obj, HandleValue index)
+{
+    if (!obj->isArray())
+        return false;
+
+    if (obj->watched())
+        return false;
+
+    if (!index.isInt32())
+        return false;
+
+    return true;
+}
+
+bool
+SetElementIC::attachDenseElement(JSContext *cx, IonScript *ion, JSObject *obj, const Value &idval)
+{
+    JS_ASSERT(obj->isNative());
+    JS_ASSERT(idval.isInt32());
+
+    Label failures;
+    Label outOfBounds; 
+
+    MacroAssembler masm(cx);
+    RepatchStubAppender attacher(*this);
+
+    
+    RootedObject globalObj(cx, &script->global());
+    RootedShape shape(cx, obj->lastProperty());
+    if (!shape)
+        return false;
+    masm.branchTestObjShape(Assembler::NotEqual, object(), shape, &failures);
+
+    
+    ValueOperand indexVal = index();
+    masm.branchTestInt32(Assembler::NotEqual, indexVal, &failures);
+
+    
+    Register scratch = temp();
+    Register index = masm.extractInt32(indexVal, scratch);
+    Register elements = scratch;
+
+    {
+        
+        if (scratch == index) {
+            masm.push(object());
+            elements = object();
+        }
+
+        
+        masm.loadPtr(Address(object(), JSObject::offsetOfElements()), elements);
+
+        
+        BaseIndex target(elements, index, TimesEight);
+
+        
+        Address capacity(elements, ObjectElements::offsetOfCapacity());
+        masm.branch32(Assembler::BelowOrEqual, capacity, index, &outOfBounds);
+
+        
+        Address initLength(elements, ObjectElements::offsetOfInitializedLength());
+        masm.branch32(Assembler::Below, initLength, index, &outOfBounds);
+
+        
+        Label markElem, storeElem;
+        masm.branch32(Assembler::NotEqual, initLength, index, &markElem);
+        {
+            
+            Int32Key newLength(index);
+            masm.bumpKey(&newLength, 1);
+            masm.storeKey(newLength, initLength);
+
+            
+            Label bumpedLength;
+            Address length(elements, ObjectElements::offsetOfLength());
+            masm.branch32(Assembler::AboveOrEqual, length, index, &bumpedLength);
+            masm.storeKey(newLength, length);
+            masm.bind(&bumpedLength);
+
+            
+            masm.bumpKey(&newLength, -1);
+            masm.jump(&storeElem);
+        }
+        
+        {
+            
+            masm.bind(&markElem);
+            if (cx->zone()->needsBarrier())
+                masm.callPreBarrier(target, MIRType_Value);
+        }
+
+        
+        masm.bind(&storeElem);
+        masm.storeConstantOrRegister(value(), target);
+
+        if (elements == object())
+            masm.pop(object());
+    }
+    attacher.jumpRejoin(masm);
+
+    
+    {
+        masm.bind(&outOfBounds);
+        if (elements == object())
+            masm.pop(object());
+    }
+    masm.bind(&failures);
+    attacher.jumpNextStub(masm);
+
+    setHasDenseStub();
+    return linkAndAttachStub(cx, masm, attacher, ion, "dense array");
+}
+
+bool
+SetElementIC::update(JSContext *cx, size_t cacheIndex, HandleObject obj,
+                     HandleValue idval, HandleValue value)
+{
+    IonScript *ion = GetTopIonJSScript(cx)->ionScript();
+    SetElementIC &cache = ion->getCache(cacheIndex).toSetElement();
+
+    if (cache.canAttachStub() && !cache.hasDenseStub() && IsElementSetInlineable(obj, idval)) {
+        if (!cache.attachDenseElement(cx, ion, obj, idval))
+            return false;
+    }
+
+    if (!SetObjectElement(cx, obj, idval, value, cache.strict()))
+        return false;
+    return true;
+}
+
+void
+SetElementIC::reset()
 {
     RepatchIonCache::reset();
     hasDenseStub_ = false;
