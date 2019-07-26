@@ -258,34 +258,6 @@ EmitCall(ExclusiveContext *cx, BytecodeEmitter *bce, JSOp op, uint16_t argc)
 }
 
 
-
-
-
-
-
-
-
-
-
-static bool
-EmitDupAt(ExclusiveContext *cx, BytecodeEmitter *bce, unsigned slot)
-{
-    JS_ASSERT(slot < unsigned(bce->stackDepth));
-    
-    unsigned slotFromTop = bce->stackDepth - 1 - slot;
-    if (slotFromTop >= JS_BIT(24)) {
-        bce->reportError(nullptr, JSMSG_TOO_MANY_LOCALS);
-        return false;
-    }
-    ptrdiff_t off = EmitN(cx, bce, JSOP_DUPAT, 3);
-    if (off < 0)
-        return false;
-    jsbytecode *pc = bce->code(off);
-    SET_UINT24(pc, slotFromTop);
-    return true;
-}
-
-
 const char js_with_statement_str[] = "with statement";
 const char js_finally_block_str[]  = "finally block";
 const char js_script_str[]         = "script";
@@ -611,6 +583,7 @@ NonLocalExitScope::prepareForNonLocalJump(StmtInfoBCE *toStmt)
                 if (Emit1(cx, bce, JSOP_POPBLOCKSCOPE) < 0)
                     return false;
             }
+            npops += blockObj.slotCount();
         }
     }
 
@@ -685,6 +658,25 @@ EnclosingStaticScope(BytecodeEmitter *bce)
     return bce->sc->asFunctionBox()->function();
 }
 
+
+
+
+
+
+static bool
+AdjustBlockSlot(ExclusiveContext *cx, BytecodeEmitter *bce, uint32_t *slot)
+{
+    JS_ASSERT(*slot < bce->maxStackDepth);
+    if (bce->sc->isFunctionBox()) {
+        *slot += bce->script->bindings.numVars();
+        if (*slot >= StaticBlockObject::VAR_INDEX_LIMIT) {
+            bce->reportError(nullptr, JSMSG_TOO_MANY_LOCALS);
+            return false;
+        }
+    }
+    return true;
+}
+
 #ifdef DEBUG
 static bool
 AllLocalsAliased(StaticBlockObject &obj)
@@ -699,6 +691,10 @@ AllLocalsAliased(StaticBlockObject &obj)
 static bool
 ComputeAliasedSlots(ExclusiveContext *cx, BytecodeEmitter *bce, Handle<StaticBlockObject *> blockObj)
 {
+    uint32_t depthPlusFixed = blockObj->stackDepth();
+    if (!AdjustBlockSlot(cx, bce, &depthPlusFixed))
+        return false;
+
     for (unsigned i = 0; i < blockObj->slotCount(); i++) {
         Definition *dn = blockObj->maybeDefinitionParseNode(i);
 
@@ -710,7 +706,7 @@ ComputeAliasedSlots(ExclusiveContext *cx, BytecodeEmitter *bce, Handle<StaticBlo
 
         JS_ASSERT(dn->isDefn());
         if (!dn->pn_cookie.set(bce->parser->tokenStream, dn->pn_cookie.level(),
-                               blockObj->varToLocalIndex(dn->frameSlot())))
+                               dn->frameSlot() + depthPlusFixed))
         {
             return false;
         }
@@ -734,31 +730,53 @@ ComputeAliasedSlots(ExclusiveContext *cx, BytecodeEmitter *bce, Handle<StaticBlo
 static bool
 EmitInternedObjectOp(ExclusiveContext *cx, uint32_t index, JSOp op, BytecodeEmitter *bce);
 
-
-
-
-
-static void
-ComputeLocalOffset(ExclusiveContext *cx, BytecodeEmitter *bce, Handle<StaticBlockObject *> blockObj)
+static bool
+EnterNestedScope(ExclusiveContext *cx, BytecodeEmitter *bce, StmtInfoBCE *stmt, ObjectBox *objbox,
+                 StmtType stmtType)
 {
-    unsigned nfixedvars = bce->sc->isFunctionBox() ? bce->script->bindings.numVars() : 0;
-    unsigned localOffset = nfixedvars;
+    Rooted<NestedScopeObject *> scopeObj(cx, &objbox->object->as<NestedScopeObject>());
+    uint32_t scopeObjectIndex = bce->objectList.add(objbox);
 
-    if (bce->staticScope) {
-        Rooted<NestedScopeObject *> outer(cx, bce->staticScope);
-        for (; outer; outer = outer->enclosingNestedScope()) {
-            if (outer->is<StaticBlockObject>()) {
-                StaticBlockObject &outerBlock = outer->as<StaticBlockObject>();
-                localOffset = outerBlock.localOffset() + outerBlock.slotCount();
-                break;
-            }
+    switch (stmtType) {
+      case STMT_BLOCK: {
+        Rooted<StaticBlockObject *> blockObj(cx, &scopeObj->as<StaticBlockObject>());
+
+        if (!ComputeAliasedSlots(cx, bce, blockObj))
+            return false;
+
+        if (blockObj->needsClone()) {
+            if (!EmitInternedObjectOp(cx, scopeObjectIndex, JSOP_PUSHBLOCKSCOPE, bce))
+                return false;
         }
+        break;
+      }
+      case STMT_WITH:
+        JS_ASSERT(scopeObj->is<StaticWithObject>());
+        if (!EmitInternedObjectOp(cx, scopeObjectIndex, JSOP_ENTERWITH, bce))
+            return false;
+        break;
+      default:
+        MOZ_ASSUME_UNREACHABLE();
     }
 
-    JS_ASSERT(localOffset + blockObj->slotCount()
-              <= nfixedvars + bce->script->bindings.numBlockScoped());
+    uint32_t parent = BlockScopeNote::NoBlockScopeIndex;
+    if (bce->staticScope) {
+        StmtInfoBCE *stmt = bce->topScopeStmt;
+        for (; stmt->staticScope != bce->staticScope; stmt = stmt->down) {}
+        parent = stmt->blockScopeIndex;
+    }
 
-    blockObj->setLocalOffset(localOffset);
+    stmt->blockScopeIndex = bce->blockScopeList.length();
+    if (!bce->blockScopeList.append(scopeObjectIndex, bce->offset(), parent))
+        return false;
+
+    PushStatementBCE(bce, stmt, stmtType, bce->offset());
+    scopeObj->initEnclosingNestedScope(EnclosingStaticScope(bce));
+    FinishPushNestedScope(bce, stmt, *scopeObj);
+    JS_ASSERT(stmt->isNestedScope);
+    stmt->isBlockScope = (stmtType == STMT_BLOCK);
+
+    return true;
 }
 
 
@@ -807,54 +825,23 @@ ComputeLocalOffset(ExclusiveContext *cx, BytecodeEmitter *bce, Handle<StaticBloc
 
 
 
+
+
+
 static bool
-EnterNestedScope(ExclusiveContext *cx, BytecodeEmitter *bce, StmtInfoBCE *stmt, ObjectBox *objbox,
-                 StmtType stmtType)
+EnterBlockScope(ExclusiveContext *cx, BytecodeEmitter *bce, StmtInfoBCE *stmt, ObjectBox *objbox,
+                unsigned extraSlots)
 {
-    Rooted<NestedScopeObject *> scopeObj(cx, &objbox->object->as<NestedScopeObject>());
-    uint32_t scopeObjectIndex = bce->objectList.add(objbox);
+    Rooted<StaticBlockObject *> blockObj(cx, &objbox->object->as<StaticBlockObject>());
 
-    switch (stmtType) {
-      case STMT_BLOCK: {
-        Rooted<StaticBlockObject *> blockObj(cx, &scopeObj->as<StaticBlockObject>());
+    
+    
+    
+    int depth = bce->stackDepth - (blockObj->slotCount() + extraSlots);
+    JS_ASSERT(depth >= 0);
+    blockObj->setStackDepth(depth);
 
-        ComputeLocalOffset(cx, bce, blockObj);
-
-        if (!ComputeAliasedSlots(cx, bce, blockObj))
-            return false;
-
-        if (blockObj->needsClone()) {
-            if (!EmitInternedObjectOp(cx, scopeObjectIndex, JSOP_PUSHBLOCKSCOPE, bce))
-                return false;
-        }
-        break;
-      }
-      case STMT_WITH:
-        JS_ASSERT(scopeObj->is<StaticWithObject>());
-        if (!EmitInternedObjectOp(cx, scopeObjectIndex, JSOP_ENTERWITH, bce))
-            return false;
-        break;
-      default:
-        MOZ_ASSUME_UNREACHABLE();
-    }
-
-    uint32_t parent = BlockScopeNote::NoBlockScopeIndex;
-    if (StmtInfoBCE *stmt = bce->topScopeStmt) {
-        for (; stmt->staticScope != bce->staticScope; stmt = stmt->down) {}
-        parent = stmt->blockScopeIndex;
-    }
-
-    stmt->blockScopeIndex = bce->blockScopeList.length();
-    if (!bce->blockScopeList.append(scopeObjectIndex, bce->offset(), parent))
-        return false;
-
-    PushStatementBCE(bce, stmt, stmtType, bce->offset());
-    scopeObj->initEnclosingNestedScope(EnclosingStaticScope(bce));
-    FinishPushNestedScope(bce, stmt, *scopeObj);
-    JS_ASSERT(stmt->isNestedScope);
-    stmt->isBlockScope = (stmtType == STMT_BLOCK);
-
-    return true;
+    return EnterNestedScope(cx, bce, stmt, objbox, STMT_BLOCK);
 }
 
 
@@ -1153,17 +1140,17 @@ EmitAliasedVarOp(ExclusiveContext *cx, JSOp op, ParseNode *pn, BytecodeEmitter *
                 return false;
             JS_ALWAYS_TRUE(LookupAliasedNameSlot(bceOfDef->script, pn->name(), &sc));
         } else {
-            JS_ASSERT_IF(bce->sc->isFunctionBox(), local <= bceOfDef->script->bindings.numLocals());
+            uint32_t depth = local - bceOfDef->script->bindings.numVars();
             JS_ASSERT(bceOfDef->staticScope->is<StaticBlockObject>());
             Rooted<StaticBlockObject*> b(cx, &bceOfDef->staticScope->as<StaticBlockObject>());
-            while (local < b->localOffset()) {
+            while (!b->containsVarAtDepth(depth)) {
                 if (b->needsClone())
                     skippedScopes++;
                 b = &b->enclosingNestedScope()->as<StaticBlockObject>();
             }
             if (!AssignHops(bce, pn, skippedScopes, &sc))
                 return false;
-            sc.setSlot(b->localIndexToSlot(local));
+            sc.setSlot(b->localIndexToSlot(bceOfDef->script->bindings, local));
         }
     }
 
@@ -2428,55 +2415,6 @@ SetJumpOffsetAt(BytecodeEmitter *bce, ptrdiff_t off)
     SET_JUMP_OFFSET(bce->code(off), bce->offset() - off);
 }
 
-static bool
-PushUndefinedValues(ExclusiveContext *cx, BytecodeEmitter *bce, unsigned n)
-{
-    for (unsigned i = 0; i < n; ++i) {
-        if (Emit1(cx, bce, JSOP_UNDEFINED) < 0)
-            return false;
-    }
-    return true;
-}
-
-static bool
-InitializeBlockScopedLocalsFromStack(ExclusiveContext *cx, BytecodeEmitter *bce,
-                                     Handle<StaticBlockObject *> blockObj)
-{
-    for (unsigned i = blockObj->slotCount(); i > 0; --i) {
-        if (blockObj->isAliased(i - 1)) {
-            ScopeCoordinate sc;
-            sc.setHops(0);
-            sc.setSlot(BlockObject::RESERVED_SLOTS + i - 1);
-            if (!EmitAliasedVarOp(cx, JSOP_SETALIASEDVAR, sc, bce))
-                return false;
-        } else {
-            if (!EmitUnaliasedVarOp(cx, JSOP_SETLOCAL, blockObj->varToLocalIndex(i - 1), bce))
-                return false;
-        }
-        if (Emit1(cx, bce, JSOP_POP) < 0)
-            return false;
-    }
-    return true;
-}
-
-static bool
-EnterBlockScope(ExclusiveContext *cx, BytecodeEmitter *bce, StmtInfoBCE *stmtInfo,
-                ObjectBox *objbox, unsigned alreadyPushed = 0)
-{
-    
-    Rooted<StaticBlockObject *> blockObj(cx, &objbox->object->as<StaticBlockObject>());
-    if (!PushUndefinedValues(cx, bce, blockObj->slotCount() - alreadyPushed))
-        return false;
-
-    if (!EnterNestedScope(cx, bce, stmtInfo, objbox, STMT_BLOCK))
-        return false;
-
-    if (!InitializeBlockScopedLocalsFromStack(cx, bce, blockObj))
-        return false;
-
-    return true;
-}
-
 
 
 
@@ -2503,14 +2441,26 @@ EmitSwitch(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
     JS_ASSERT(pn2->isKind(PNK_LEXICALSCOPE) || pn2->isKind(PNK_STATEMENTLIST));
 
     
+
+
+
+    Rooted<StaticBlockObject *> blockObj(cx, nullptr);
+    if (pn2->isKind(PNK_LEXICALSCOPE)) {
+        blockObj = &pn2->pn_objbox->object->as<StaticBlockObject>();
+        for (uint32_t i = 0; i < blockObj->slotCount(); ++i) {
+            if (Emit1(cx, bce, JSOP_UNDEFINED) < 0)
+                return false;
+        }
+    }
+
+    
     if (!EmitTree(cx, bce, pn->pn_left))
         return false;
 
     StmtInfoBCE stmtInfo(cx);
     if (pn2->isKind(PNK_LEXICALSCOPE)) {
-        if (!EnterBlockScope(cx, bce, &stmtInfo, pn2->pn_objbox, 0))
+        if (!EnterBlockScope(cx, bce, &stmtInfo, pn2->pn_objbox, 1))
             return false;
-
         stmtInfo.type = STMT_SWITCH;
         stmtInfo.update = top = bce->offset();
         
@@ -2796,6 +2746,7 @@ EmitSwitch(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
     if (pn->pn_right->isKind(PNK_LEXICALSCOPE)) {
         if (!LeaveNestedScope(cx, bce, &stmtInfo))
             return false;
+        EMIT_UINT16_IMM_OP(JSOP_POPN, blockObj->slotCount());
     } else {
         if (!PopStatementBCE(cx, bce))
             return false;
@@ -3326,8 +3277,11 @@ EmitGroupAssignment(ExclusiveContext *cx, BytecodeEmitter *bce, JSOp prologOp,
     for (pn = lhs->pn_head; pn; pn = pn->pn_next, ++i) {
         
         JS_ASSERT(i < limit);
+        uint32_t slot = i;
+        if (!AdjustBlockSlot(cx, bce, &slot))
+            return false;
 
-        if (!EmitDupAt(cx, bce, i))
+        if (!EmitUnaliasedVarOp(cx, JSOP_GETLOCAL, slot, bce))
             return false;
 
         if (pn->isKind(PNK_ELISION)) {
@@ -4105,6 +4059,9 @@ EmitTry(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         
         
         
+        
+        
+        
         for (ParseNode *pn3 = pn2->pn_head; pn3; pn3 = pn3->pn_next) {
             JS_ASSERT(bce->stackDepth == depth);
 
@@ -4307,8 +4264,6 @@ EmitIf(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
 
 
-
-
 MOZ_NEVER_INLINE static bool
 EmitLet(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pnLet)
 {
@@ -4317,6 +4272,7 @@ EmitLet(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pnLet)
     JS_ASSERT(varList->isArity(PN_LIST));
     ParseNode *letBody = pnLet->pn_right;
     JS_ASSERT(letBody->isLet() && letBody->isKind(PNK_LEXICALSCOPE));
+    Rooted<StaticBlockObject*> blockObj(cx, &letBody->pn_objbox->object->as<StaticBlockObject>());
 
     int letHeadDepth = bce->stackDepth;
 
@@ -4325,8 +4281,14 @@ EmitLet(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pnLet)
 
     
     uint32_t alreadyPushed = bce->stackDepth - letHeadDepth;
+    uint32_t blockObjCount = blockObj->slotCount();
+    for (uint32_t i = alreadyPushed; i < blockObjCount; ++i) {
+        if (Emit1(cx, bce, JSOP_UNDEFINED) < 0)
+            return false;
+    }
+
     StmtInfoBCE stmtInfo(cx);
-    if (!EnterBlockScope(cx, bce, &stmtInfo, letBody->pn_objbox, alreadyPushed))
+    if (!EnterBlockScope(cx, bce, &stmtInfo, letBody->pn_objbox, 0))
         return false;
 
     if (!EmitTree(cx, bce, letBody->pn_expr))
@@ -4334,6 +4296,10 @@ EmitLet(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pnLet)
 
     if (!LeaveNestedScope(cx, bce, &stmtInfo))
         return false;
+
+    JSOp leaveOp = letBody->getOp();
+    JS_ASSERT(leaveOp == JSOP_POPN || leaveOp == JSOP_POPNV);
+    EMIT_UINT16_IMM_OP(leaveOp, blockObj->slotCount());
 
     return true;
 }
@@ -4346,9 +4312,19 @@ MOZ_NEVER_INLINE static bool
 EmitLexicalScope(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 {
     JS_ASSERT(pn->isKind(PNK_LEXICALSCOPE));
+    JS_ASSERT(pn->getOp() == JSOP_POPN);
 
     StmtInfoBCE stmtInfo(cx);
-    if (!EnterBlockScope(cx, bce, &stmtInfo, pn->pn_objbox, 0))
+    ObjectBox *objbox = pn->pn_objbox;
+    StaticBlockObject &blockObj = objbox->object->as<StaticBlockObject>();
+    size_t slots = blockObj.slotCount();
+
+    for (size_t n = 0; n < slots; ++n) {
+        if (Emit1(cx, bce, JSOP_UNDEFINED) < 0)
+            return false;
+    }
+
+    if (!EnterBlockScope(cx, bce, &stmtInfo, objbox, 0))
         return false;
 
     if (!EmitTree(cx, bce, pn->pn_expr))
@@ -4356,6 +4332,8 @@ EmitLexicalScope(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
     if (!LeaveNestedScope(cx, bce, &stmtInfo))
         return false;
+
+    EMIT_UINT16_IMM_OP(JSOP_POPN, slots);
 
     return true;
 }
@@ -4385,6 +4363,18 @@ EmitForOf(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t t
     bool letDecl = pn1 && pn1->isKind(PNK_LEXICALSCOPE);
     JS_ASSERT_IF(letDecl, pn1->isLet());
 
+    Rooted<StaticBlockObject*>
+        blockObj(cx, letDecl ? &pn1->pn_objbox->object->as<StaticBlockObject>() : nullptr);
+    uint32_t blockObjCount = blockObj ? blockObj->slotCount() : 0;
+
+    
+    
+    
+    for (uint32_t i = 0; i < blockObjCount; ++i) {
+        if (Emit1(cx, bce, JSOP_UNDEFINED) < 0)
+            return false;
+    }
+
     
     
     if (pn1) {
@@ -4395,9 +4385,6 @@ EmitForOf(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t t
             return false;
         bce->emittingForInit = false;
     }
-
-    
-    
 
     
     if (!EmitTree(cx, bce, forHead->pn_kid3))
@@ -4421,7 +4408,7 @@ EmitForOf(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t t
     
     StmtInfoBCE letStmt(cx);
     if (letDecl) {
-        if (!EnterBlockScope(cx, bce, &letStmt, pn1->pn_objbox, 0))
+        if (!EnterBlockScope(cx, bce, &letStmt, pn1->pn_objbox, 2))
             return false;
     }
 
@@ -4515,7 +4502,7 @@ EmitForOf(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t t
     }
 
     
-    EMIT_UINT16_IMM_OP(JSOP_POPN, 2);
+    EMIT_UINT16_IMM_OP(JSOP_POPN, blockObjCount + 2);
 
     return true;
 }
@@ -4529,6 +4516,38 @@ EmitForIn(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t t
     ParseNode *pn1 = forHead->pn_kid1;
     bool letDecl = pn1 && pn1->isKind(PNK_LEXICALSCOPE);
     JS_ASSERT_IF(letDecl, pn1->isLet());
+
+    Rooted<StaticBlockObject*>
+        blockObj(cx, letDecl ? &pn1->pn_objbox->object->as<StaticBlockObject>() : nullptr);
+    uint32_t blockObjCount = blockObj ? blockObj->slotCount() : 0;
+
+    if (letDecl) {
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        for (uint32_t i = 0; i < blockObjCount; ++i) {
+            if (Emit1(cx, bce, JSOP_UNDEFINED) < 0)
+                return false;
+        }
+    }
 
     
 
@@ -4561,7 +4580,7 @@ EmitForIn(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t t
     
     StmtInfoBCE letStmt(cx);
     if (letDecl) {
-        if (!EnterBlockScope(cx, bce, &letStmt, pn1->pn_objbox, 0))
+        if (!EnterBlockScope(cx, bce, &letStmt, pn1->pn_objbox, 1))
             return false;
     }
 
@@ -4643,6 +4662,7 @@ EmitForIn(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t t
     if (letDecl) {
         if (!LeaveNestedScope(cx, bce, &letStmt))
             return false;
+        EMIT_UINT16_IMM_OP(JSOP_POPN, blockObjCount);
     }
 
     return true;
@@ -4934,8 +4954,7 @@ EmitFunc(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         BindingIter bi(bce->script);
         while (bi->name() != fun->atom())
             bi++;
-        JS_ASSERT(bi->kind() == Binding::VARIABLE || bi->kind() == Binding::CONSTANT ||
-                  bi->kind() == Binding::ARGUMENT);
+        JS_ASSERT(bi->kind() == VARIABLE || bi->kind() == CONSTANT || bi->kind() == ARGUMENT);
         JS_ASSERT(bi.frameIndex() < JS_BIT(20));
 #endif
         pn->pn_index = index;
@@ -6504,7 +6523,10 @@ frontend::EmitTree(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
         if (!EmitTree(cx, bce, pn->pn_kid))
             return false;
-        if (!EmitDupAt(cx, bce, bce->arrayCompDepth))
+        uint32_t slot = bce->arrayCompDepth;
+        if (!AdjustBlockSlot(cx, bce, &slot))
+            return false;
+        if (!EmitUnaliasedVarOp(cx, JSOP_GETLOCAL, slot, bce))
             return false;
         if (Emit1(cx, bce, JSOP_ARRAYPUSH) < 0)
             return false;

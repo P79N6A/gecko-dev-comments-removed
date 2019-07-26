@@ -269,6 +269,12 @@ frontend::CompileScript(ExclusiveContext *cx, LifoAlloc *alloc, HandleObject sco
         return nullptr;
 
     
+    
+    InternalHandle<Bindings*> bindings(script, &script->bindings);
+    if (!Bindings::initWithTemporaryStorage(cx, bindings, 0, 0, nullptr))
+        return nullptr;
+
+    
     JSObject *globalScope =
         scopeChain && scopeChain == &scopeChain->global() ? (JSObject*) scopeChain : nullptr;
     JS_ASSERT_IF(globalScope, globalScope->isNative());
@@ -287,8 +293,7 @@ frontend::CompileScript(ExclusiveContext *cx, LifoAlloc *alloc, HandleObject sco
     Maybe<ParseContext<FullParseHandler> > pc;
 
     pc.construct(&parser, (GenericParseContext *) nullptr, (ParseNode *) nullptr, &globalsc,
-                 (Directives *) nullptr, staticLevel,  0,
-                  0);
+                 (Directives *) nullptr, staticLevel,  0);
     if (!pc.ref().init(parser.tokenStream))
         return nullptr;
 
@@ -355,12 +360,10 @@ frontend::CompileScript(ExclusiveContext *cx, LifoAlloc *alloc, HandleObject sco
 
                 pc.destroy();
                 pc.construct(&parser, (GenericParseContext *) nullptr, (ParseNode *) nullptr,
-                             &globalsc, (Directives *) nullptr, staticLevel,  0,
-                             script->bindings.numBlockScoped());
+                             &globalsc, (Directives *) nullptr, staticLevel,  0);
                 if (!pc.ref().init(parser.tokenStream))
                     return nullptr;
                 JS_ASSERT(parser.pc == pc.addr());
-
                 pn = parser.statement();
             }
             if (!pn) {
@@ -368,11 +371,6 @@ frontend::CompileScript(ExclusiveContext *cx, LifoAlloc *alloc, HandleObject sco
                 return nullptr;
             }
         }
-
-        
-        
-        
-        script->bindings.updateNumBlockScoped(pc.ref().blockScopeDepth);
 
         if (canHaveDirectives) {
             if (!parser.maybeParseDirective( nullptr, pn, &canHaveDirectives))
@@ -414,15 +412,6 @@ frontend::CompileScript(ExclusiveContext *cx, LifoAlloc *alloc, HandleObject sco
 
 
     if (Emit1(cx, &bce, JSOP_RETRVAL) < 0)
-        return nullptr;
-
-    
-    
-    
-    
-    InternalHandle<Bindings*> bindings(script, &script->bindings);
-    if (!Bindings::initWithTemporaryStorage(cx, bindings, 0, 0, nullptr,
-                                            pc.ref().blockScopeDepth))
         return nullptr;
 
     if (!JSScript::fullyInitFromEmitter(cx, script, &bce))

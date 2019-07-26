@@ -413,6 +413,20 @@ class BlockObject : public NestedScopeObject
         return propertyCountForCompilation();
     }
 
+    
+
+
+
+
+    uint32_t slotToLocalIndex(const Bindings &bindings, uint32_t slot) {
+        JS_ASSERT(slot < RESERVED_SLOTS + slotCount());
+        return bindings.numVars() + stackDepth() + (slot - RESERVED_SLOTS);
+    }
+
+    uint32_t localIndexToSlot(const Bindings &bindings, uint32_t i) {
+        return RESERVED_SLOTS + (i - (bindings.numVars() + stackDepth()));
+    }
+
   protected:
     
     const Value &slotValue(unsigned i) {
@@ -426,42 +440,15 @@ class BlockObject : public NestedScopeObject
 
 class StaticBlockObject : public BlockObject
 {
-    static const unsigned LOCAL_OFFSET_SLOT = 1;
-
   public:
     static StaticBlockObject *create(ExclusiveContext *cx);
 
     
-    JSObject *enclosingStaticScope() const {
-        AutoThreadSafeAccess ts(this);
-        return getFixedSlot(SCOPE_CHAIN_SLOT).toObjectOrNull();
-    }
-
-    
 
 
 
-    inline StaticBlockObject *enclosingBlock() const;
-
-    uint32_t localOffset() {
-        return getReservedSlot(LOCAL_OFFSET_SLOT).toPrivateUint32();
-    }
-
-    
-    
-    uint32_t varToLocalIndex(uint32_t var) {
-        JS_ASSERT(var < slotCount());
-        return getReservedSlot(LOCAL_OFFSET_SLOT).toPrivateUint32() + var;
-    }
-
-    
-    
-    
-    uint32_t localIndexToSlot(uint32_t local) {
-        JS_ASSERT(local >= localOffset());
-        local -= localOffset();
-        JS_ASSERT(local < slotCount());
-        return RESERVED_SLOTS + local;
+    bool containsVarAtDepth(uint32_t depth) {
+        return depth >= stackDepth() && depth < stackDepth() + slotCount();
     }
 
     
@@ -495,9 +482,9 @@ class StaticBlockObject : public BlockObject
         }
     }
 
-    void setLocalOffset(uint32_t offset) {
-        JS_ASSERT(getReservedSlot(LOCAL_OFFSET_SLOT).isUndefined());
-        initReservedSlot(LOCAL_OFFSET_SLOT, PrivateUint32Value(offset));
+    void setStackDepth(uint32_t depth) {
+        JS_ASSERT(getReservedSlot(DEPTH_SLOT).isUndefined());
+        initReservedSlot(DEPTH_SLOT, PrivateUint32Value(depth));
     }
 
     
@@ -521,7 +508,7 @@ class StaticBlockObject : public BlockObject
 
 
 
-    static const unsigned LOCAL_INDEX_LIMIT = JS_BIT(16);
+    static const unsigned VAR_INDEX_LIMIT = JS_BIT(16);
 
     static Shape *addVar(ExclusiveContext *cx, Handle<StaticBlockObject*> block, HandleId id,
                          unsigned index, bool *redeclared);
