@@ -20,7 +20,7 @@
 
 
 
-this.EXPORTED_SYMBOLS = [ "console", "ConsoleAPI" ];
+this.EXPORTED_SYMBOLS = [ "console" ];
 
 const Cu = Components.utils;
 
@@ -272,41 +272,6 @@ function logProperty(aProp, aValue) {
   return reply;
 }
 
-const LOG_LEVELS = {
-  "all": Number.MIN_VALUE,
-  "debug": 2,
-  "log": 3,
-  "info": 3,
-  "trace": 3,
-  "timeEnd": 3,
-  "time": 3,
-  "group": 3,
-  "groupEnd": 3,
-  "dir": 3,
-  "dirxml": 3,
-  "warn": 4,
-  "error": 5,
-  "off": Number.MAX_VALUE,
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function shouldLog(aLevel, aMaxLevel) {
-  return LOG_LEVELS[aMaxLevel] <= LOG_LEVELS[aLevel];
-}
-
 
 
 
@@ -434,37 +399,15 @@ function stopTimer(aName, aTimestamp) {
 
 
 
-function dumpMessage(aConsole, aLevel, aMessage) {
-  aConsole.dump(
-    "console." + aLevel + ": " +
-    aConsole.prefix +
-    aMessage + "\n"
-  );
-}
-
-
-
-
-
-
-
-
-
-
-
-
 function createDumper(aLevel) {
   return function() {
-    if (!shouldLog(aLevel, this.maxLogLevel)) {
-      return;
-    }
     let args = Array.prototype.slice.call(arguments, 0);
     let frame = getStack(Components.stack.caller, 1)[0];
     sendConsoleAPIMessage(aLevel, frame, args);
     let data = args.map(function(arg) {
       return stringify(arg);
     });
-    dumpMessage(this, aLevel, data.join(", "));
+    dump("console." + aLevel + ": " + data.join(", ") + "\n");
   };
 }
 
@@ -481,16 +424,13 @@ function createDumper(aLevel) {
 
 function createMultiLineDumper(aLevel) {
   return function() {
-    if (!shouldLog(aLevel, this.maxLogLevel)) {
-      return;
-    }
-    dumpMessage(this, aLevel, "");
+    dump("console." + aLevel + ": \n");
     let args = Array.prototype.slice.call(arguments, 0);
     let frame = getStack(Components.stack.caller, 1)[0];
     sendConsoleAPIMessage(aLevel, frame, args);
     args.forEach(function(arg) {
-      this.dump(log(arg));
-    }, this);
+      dump(log(arg));
+    });
   };
 }
 
@@ -558,30 +498,7 @@ function sendConsoleAPIMessage(aLevel, aFrame, aArgs, aOptions = {})
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function ConsoleAPI(aConsoleOptions = {}) {
-  
-  
-  this.dump = aConsoleOptions.dump || dump;
-  this.prefix = aConsoleOptions.prefix || "";
-  this.maxLogLevel = aConsoleOptions.maxLogLevel || "all";
-}
-
-ConsoleAPI.prototype = {
+this.console = {
   debug: createMultiLineDumper("debug"),
   log: createDumper("log"),
   info: createDumper("info"),
@@ -590,14 +507,11 @@ ConsoleAPI.prototype = {
   exception: createMultiLineDumper("error"),
 
   trace: function Console_trace() {
-    if (!shouldLog("trace", this.maxLogLevel)) {
-      return;
-    }
     let args = Array.prototype.slice.call(arguments, 0);
     let trace = getStack(Components.stack.caller);
     sendConsoleAPIMessage("trace", trace[0], args,
                           { stacktrace: trace });
-    dumpMessage(this, "trace", "\n" + formatTrace(trace));
+    dump("console.trace:\n" + formatTrace(trace) + "\n");
   },
   clear: function Console_clear() {},
 
@@ -607,28 +521,18 @@ ConsoleAPI.prototype = {
   groupEnd: createDumper("groupEnd"),
 
   time: function Console_time() {
-    if (!shouldLog("time", this.maxLogLevel)) {
-      return;
-    }
     let args = Array.prototype.slice.call(arguments, 0);
     let frame = getStack(Components.stack.caller, 1)[0];
     let timer = startTimer(args[0]);
     sendConsoleAPIMessage("time", frame, args, { timer: timer });
-    dumpMessage(this, "time",
-                "'" + timer.name + "' @ " + (new Date()));
+    dump("console.time: '" + timer.name + "' @ " + (new Date()) + "\n");
   },
 
   timeEnd: function Console_timeEnd() {
-    if (!shouldLog("timeEnd", this.maxLogLevel)) {
-      return;
-    }
     let args = Array.prototype.slice.call(arguments, 0);
     let frame = getStack(Components.stack.caller, 1)[0];
     let timer = stopTimer(args[0]);
     sendConsoleAPIMessage("timeEnd", frame, args, { timer: timer });
-    dumpMessage(this, "timeEnd",
-                "'" + timer.name + "' " + timer.duration + "ms");
+    dump("console.timeEnd: '" + timer.name + "' " + timer.duration + "ms\n");
   },
 };
-
-const console = new ConsoleAPI();
