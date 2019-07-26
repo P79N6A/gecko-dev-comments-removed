@@ -743,6 +743,38 @@ class MacroAssembler : public MacroAssemblerSpecific
         addPtr(ImmWord(p->stack()), temp);
     }
 
+    
+    
+    
+    
+    
+    
+    void spsProfileEntryAddressSafe(SPSProfiler *p, int offset, Register temp,
+                                    Label *full)
+    {
+        movePtr(ImmWord(p->addressOfSizePointer()), temp);
+
+        
+        loadPtr(Address(temp, 0), temp);
+
+        
+        load32(Address(temp, 0), temp);
+        if (offset != 0)
+            add32(Imm32(offset), temp);
+
+        
+        branch32(Assembler::LessThanOrEqual, AbsoluteAddress(p->addressOfMaxSize()), temp, full);
+
+        
+        JS_STATIC_ASSERT(sizeof(ProfileEntry) == 4 * sizeof(void*));
+        lshiftPtr(Imm32(2 + (sizeof(void*) == 4 ? 2 : 3)), temp);
+        push(temp);
+        movePtr(ImmWord(p->addressOfStack()), temp);
+        loadPtr(Address(temp, 0), temp);
+        addPtr(Address(StackPointer, 0), temp);
+        addPtr(Imm32(sizeof(size_t)), StackPointer);
+    }
+
   public:
 
     
@@ -758,7 +790,7 @@ class MacroAssembler : public MacroAssemblerSpecific
 
     void spsUpdatePCIdx(SPSProfiler *p, Register idx, Register temp) {
         Label stackFull;
-        spsProfileEntryAddress(p, -1, temp, &stackFull);
+        spsProfileEntryAddressSafe(p, -1, temp, &stackFull);
         store32(idx, Address(temp, ProfileEntry::offsetOfPCIdx()));
         bind(&stackFull);
     }
@@ -782,7 +814,7 @@ class MacroAssembler : public MacroAssemblerSpecific
                       Register temp, Register temp2)
     {
         Label stackFull;
-        spsProfileEntryAddress(p, 0, temp, &stackFull);
+        spsProfileEntryAddressSafe(p, 0, temp, &stackFull);
 
         loadPtr(str, temp2);
         storePtr(temp2, Address(temp, ProfileEntry::offsetOfString()));
@@ -799,12 +831,20 @@ class MacroAssembler : public MacroAssemblerSpecific
 
         
         bind(&stackFull);
-        movePtr(ImmWord(p->sizePointer()), temp);
+        movePtr(ImmWord(p->addressOfSizePointer()), temp);
+        loadPtr(Address(temp, 0), temp);
         add32(Imm32(1), Address(temp, 0));
     }
 
     void spsPopFrame(SPSProfiler *p, Register temp) {
         movePtr(ImmWord(p->sizePointer()), temp);
+        add32(Imm32(-1), Address(temp, 0));
+    }
+
+    
+    void spsPopFrameSafe(SPSProfiler *p, Register temp) {
+        movePtr(ImmWord(p->addressOfSizePointer()), temp);
+        loadPtr(Address(temp, 0), temp);
         add32(Imm32(-1), Address(temp, 0));
     }
 

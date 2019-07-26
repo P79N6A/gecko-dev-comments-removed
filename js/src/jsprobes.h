@@ -78,6 +78,7 @@ bool wantNativeAddressInfo(JSContext *);
 bool enterScript(JSContext *, JSScript *, JSFunction *, StackFrame *);
 
 
+bool exitScript(JSContext *, JSScript *, JSFunction *, AbstractFramePtr);
 bool exitScript(JSContext *, JSScript *, JSFunction *, StackFrame *);
 
 
@@ -205,7 +206,7 @@ Probes::enterScript(JSContext *cx, JSScript *script, JSFunction *maybeFun,
 
 inline bool
 Probes::exitScript(JSContext *cx, JSScript *script, JSFunction *maybeFun,
-                   StackFrame *fp)
+                   AbstractFramePtr fp)
 {
     bool ok = true;
 
@@ -223,12 +224,16 @@ Probes::exitScript(JSContext *cx, JSScript *script, JSFunction *maybeFun,
 
 
 
-    if ((fp == NULL && rt->spsProfiler.enabled()) ||
-        (fp != NULL && fp->hasPushedSPSFrame()))
-    {
+    if ((!fp && rt->spsProfiler.enabled()) || (fp && fp.hasPushedSPSFrame()))
         rt->spsProfiler.exit(cx, script, maybeFun);
-    }
     return ok;
+}
+
+inline bool
+Probes::exitScript(JSContext *cx, JSScript *script, JSFunction *maybeFun,
+                   StackFrame *fp)
+{
+    return Probes::exitScript(cx, script, maybeFun, fp ? AbstractFramePtr(fp) : AbstractFramePtr());
 }
 
 #ifdef INCLUDE_MOZILLA_DTRACE

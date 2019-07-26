@@ -642,9 +642,19 @@ DebugEpilogue(JSContext *cx, BaselineFrame *frame, JSBool ok)
         DebugScopes::onPopStrictEvalScope(frame);
     }
 
+    
+    if (frame->hasPushedSPSFrame()) {
+        cx->runtime->spsProfiler.exit(cx, frame->script(), frame->maybeFun());
+        
+        
+        
+        frame->unsetPushedSPSFrame();
+    }
+
     if (!ok) {
         
         
+
         IonJSFrameLayout *prefix = frame->framePrefix();
         EnsureExitFrame(prefix);
         cx->mainThread().ionTop = (uint8_t *)prefix;

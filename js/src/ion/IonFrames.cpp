@@ -495,8 +495,12 @@ HandleException(ResumeFromException *rfe)
 
             
             JSScript *script = iter.script();
-            Probes::exitScript(cx, script, script->function(), NULL);
-
+            Probes::exitScript(cx, script, script->function(), iter.baselineFrame());
+            
+            
+            
+            iter.baselineFrame()->unsetPushedSPSFrame();
+ 
             if (cx->compartment->debugMode() && !calledDebugEpilogue) {
                 
                 
