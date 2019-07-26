@@ -2300,21 +2300,21 @@ class GetCCParticipant
 {
   
   template<class U>
-  static nsCycleCollectionParticipant*
+  static MOZ_CONSTEXPR nsCycleCollectionParticipant*
   GetHelper(int, typename U::NS_CYCLE_COLLECTION_INNERCLASS* dummy=nullptr)
   {
     return T::NS_CYCLE_COLLECTION_INNERCLASS::GetParticipant();
   }
   
   template<class U>
-  static nsCycleCollectionParticipant*
+  static MOZ_CONSTEXPR nsCycleCollectionParticipant*
   GetHelper(double)
   {
     return nullptr;
   }
 
 public:
-  static nsCycleCollectionParticipant*
+  static MOZ_CONSTEXPR nsCycleCollectionParticipant*
   Get()
   {
     
