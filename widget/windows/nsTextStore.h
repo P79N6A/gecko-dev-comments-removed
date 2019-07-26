@@ -14,6 +14,7 @@
 #include "nsWindowBase.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/TextRange.h"
+#include "mozilla/WindowsVersion.h"
 
 #include <msctf.h>
 #include <textstor.h>
@@ -47,7 +48,8 @@ class MetroWidget;
 
 
 class nsTextStore MOZ_FINAL : public ITextStoreACP,
-                              public ITfContextOwnerCompositionSink
+                              public ITfContextOwnerCompositionSink,
+                              public ITfInputProcessorProfileActivationSink
 {
 public: 
   STDMETHODIMP_(ULONG)  AddRef(void);
@@ -91,6 +93,10 @@ public:
   STDMETHODIMP OnStartComposition(ITfCompositionView*, BOOL*);
   STDMETHODIMP OnUpdateComposition(ITfCompositionView*, ITfRange*);
   STDMETHODIMP OnEndComposition(ITfCompositionView*);
+
+public: 
+  STDMETHODIMP OnActivated(DWORD, LANGID, REFCLSID, REFGUID, REFGUID,
+                           HKL, DWORD);
 
 protected:
   typedef mozilla::widget::IMEState IMEState;
@@ -190,6 +196,17 @@ public:
     return (IsComposing() && sTsfTextStore->mWidget == aWidget);
   }
 
+  static bool     IsIMM_IME()
+  {
+    return sTsfTextStore && mozilla::IsVistaOrLater() ?
+      sTsfTextStore->mIsIMM_IME : IsIMM_IME(::GetKeyboardLayout(0));
+  }
+
+  static bool     IsIMM_IME(HKL aHKL)
+  {
+     return (::ImmGetIMEFileNameW(aHKL, nullptr, 0) > 0);
+  }
+
 #ifdef DEBUG
   
   static bool     CurrentKeyboardLayoutHasIME();
@@ -258,6 +275,8 @@ protected:
   nsRefPtr<ITfDocumentMgr>     mDocumentMgr;
   
   DWORD                        mEditCookie;
+  
+  DWORD                        mIPProfileCookie;
   
   nsRefPtr<ITfContext>         mContext;
   
@@ -633,6 +652,9 @@ protected:
   bool                         mNotifySelectionChange;
 
   
+  bool mIsIMM_IME;
+
+  
   static ITfThreadMgr*  sTsfThreadMgr;
   
   static ITfMessagePump* sMessagePump;
@@ -653,6 +675,8 @@ protected:
   
   static ITfDocumentMgr* sTsfDisabledDocumentMgr;
   static ITfContext* sTsfDisabledContext;
+
+  static ITfInputProcessorProfiles* sInputProcessorProfiles;
 
   
   

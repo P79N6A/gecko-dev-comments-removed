@@ -127,6 +127,11 @@ IMEHandler::ProcessMessage(nsWindow* aWindow, UINT aMessage,
     if (!sIsIMMEnabled) {
       return false;
     }
+    
+    
+    if (!nsTextStore::IsIMM_IME()) {
+      return false;
+    }
   }
 #endif 
 
