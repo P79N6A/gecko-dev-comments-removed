@@ -399,10 +399,21 @@ SuggestAutoComplete.prototype = {
     if (!previousResult)
       this._formHistoryResult = null;
 
+    var formHistorySearchParam = searchParam.split("|")[0];
+
+    
+    
+    
+    
+    
+    
+    
+    var privacyMode = (searchParam.split("|")[1] == "private");
+
     
     
     if (Services.search.isInitialized) {
-      this._triggerSearch(searchString, searchParam, listener);
+      this._triggerSearch(searchString, formHistorySearchParam, listener, privacyMode);
       return;
     }
 
@@ -411,14 +422,14 @@ SuggestAutoComplete.prototype = {
         Cu.reportError("Could not initialize search service, bailing out: " + aResult);
         return;
       }
-      this._triggerSearch(searchString, searchParam, listener);
+      this._triggerSearch(searchString, formHistorySearchParam, listener, privacyMode);
     }).bind(this));
   },
 
   
 
 
-  _triggerSearch: function(searchString, searchParam, listener) {
+  _triggerSearch: function(searchString, searchParam, listener, privacyMode) {
     
     
     
@@ -454,6 +465,9 @@ SuggestAutoComplete.prototype = {
     var method = (submission.postData ? "POST" : "GET");
     this._request.open(method, this._suggestURI.spec, true);
     this._request.channel.notificationCallbacks = new SearchSuggestLoadListener();
+    if (this._request.channel instanceof Ci.nsIPrivateBrowsingChannel) {
+      this._request.channel.setPrivate(privacyMode);
+    }
 
     var self = this;
     function onReadyStateChange() {
