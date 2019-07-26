@@ -40,6 +40,7 @@ function ContentSecurityPolicy() {
 
   
   this._policy._allowInlineScripts = true;
+  this._policy._allowInlineStyles = true;
   this._policy._allowEval = true;
 
   this._request = "";
@@ -144,6 +145,14 @@ ContentSecurityPolicy.prototype = {
     return this._reportOnlyMode || this._policy.allowsEvalInScripts;
   },
 
+  getAllowsInlineStyle: function(shouldReportViolation) {
+    
+    shouldReportViolation.value = !this._policy.allowsInlineStyles;
+
+    
+    return this._reportOnlyMode || this._policy.allowsInlineStyles;
+  },
+
   
 
 
@@ -163,6 +172,12 @@ ContentSecurityPolicy.prototype = {
     
     
     switch (aViolationType) {
+    case Ci.nsIContentSecurityPolicy.VIOLATION_TYPE_INLINE_STYLE:
+      if (!this._policy.allowsInlineStyles)
+        this._asyncReportViolation('self',null,'inline style base restriction',
+                                   'violated base restriction: Inline Stylesheets will not apply',
+                                   aSourceFile, aScriptSample, aLineNum);
+      break;
     case Ci.nsIContentSecurityPolicy.VIOLATION_TYPE_INLINE_SCRIPT:
       if (!this._policy.allowsInlineScripts)
         this._asyncReportViolation('self',null,'inline script base restriction',
