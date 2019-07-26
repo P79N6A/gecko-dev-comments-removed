@@ -371,6 +371,17 @@ Blocklist.prototype = {
     return Ci.nsIBlocklistService.STATE_NOT_BLOCKED;
   },
 
+  
+
+
+
+
+
+  _getAddonPrefs: function Blocklist_getAddonPrefs(id) {
+    let entry = this._findMatchingAddonEntry(this._addonEntries, id);
+    return entry.prefs.slice(0);
+  },
+
   _findMatchingAddonEntry: function Blocklist_findMatchingAddonEntry(aAddonEntries,
                                                                      aId) {
     for (let entry of aAddonEntries) {
@@ -648,6 +659,10 @@ Blocklist.prototype = {
 
 
 
+
+
+
+
   _loadBlocklistFromFile: function Blocklist_loadBlocklistFromFile(file) {
     if (!gBlocklistEnabled) {
       LOG("Blocklist::_loadBlocklistFromFile: blocklist is disabled");
@@ -721,23 +736,33 @@ Blocklist.prototype = {
     let blockEntry = {
       id: null,
       versions: [],
+      prefs: [],
       blockID: null
     };
 
-    var versionNodes = blocklistElement.childNodes;
+    var childNodes = blocklistElement.childNodes;
     var id = blocklistElement.getAttribute("id");
     
     if (id.startsWith("/"))
       id = parseRegExp(id);
     blockEntry.id = id;
 
-    for (var x = 0; x < versionNodes.length; ++x) {
-      var versionRangeElement = versionNodes.item(x);
-      if (!(versionRangeElement instanceof Ci.nsIDOMElement) ||
-          versionRangeElement.localName != "versionRange")
+    for (let x = 0; x < childNodes.length; x++) {
+      var childElement = childNodes.item(x);
+      if (!(childElement instanceof Ci.nsIDOMElement))
         continue;
-
-      blockEntry.versions.push(new BlocklistItemData(versionRangeElement));
+      if (childElement.localName === "prefs") {
+        let prefElements = childElement.childNodes;
+        for (let i = 0; i < prefElements.length; i++) {
+          let prefElement = prefElements.item(i);
+          if (!(prefElement instanceof Ci.nsIDOMElement) ||
+              prefElement.localName !== "pref")
+            continue;
+          blockEntry.prefs.push(prefElement.textContent);
+        }
+      }
+      else if (childElement.localName === "versionRange")
+        blockEntry.versions.push(new BlocklistItemData(childElement));
     }
     
     
@@ -891,8 +916,13 @@ Blocklist.prototype = {
   _blocklistUpdated: function Blocklist_blocklistUpdated(oldAddonEntries, oldPluginEntries) {
     var addonList = [];
 
+    
+    function resetPrefs(prefs) {
+      for (let pref of prefs)
+        gPref.clearUserPref(pref);
+    }
     var self = this;
-    const types = ["extension", "theme", "locale", "dictionary", "service"]
+    const types = ["extension", "theme", "locale", "dictionary", "service"];
     AddonManager.getAddonsByTypes(types, function blocklistUpdated_getAddonsByTypes(addons) {
 
       for (let addon of addons) {
@@ -908,6 +938,12 @@ Blocklist.prototype = {
         
         if (state == oldState)
           continue;
+
+        if (state === Ci.nsIBlocklistService.STATE_BLOCKED) {
+          
+          let prefs = self._getAddonPrefs(addon.id);
+          resetPrefs(prefs);
+         }
 
         
         if (state != Ci.nsIBlocklistService.STATE_SOFTBLOCKED)
@@ -1016,8 +1052,13 @@ Blocklist.prototype = {
 
           if (addon.item instanceof Ci.nsIPluginTag)
             addon.item.enabledState = Ci.nsIPluginTag.STATE_DISABLED;
-          else
+          else {
+            
             addon.item.softDisabled = true;
+            
+            let prefs = self._getAddonPrefs(addon.item.id);
+            resetPrefs(prefs);
+          }
         }
 
         if (args.restart)
