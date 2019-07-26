@@ -467,6 +467,8 @@ void String8::getUtf32(char32_t* dst) const
 
 
 
+#if 0
+
 void String8::setPathName(const char* name)
 {
     setPathName(name, strlen(name));
@@ -638,5 +640,7 @@ String8& String8::convertToResPath()
 #endif
     return *this;
 }
+
+#endif
 
 }; 
