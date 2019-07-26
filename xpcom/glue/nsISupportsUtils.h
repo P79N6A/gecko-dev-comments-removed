@@ -90,7 +90,6 @@ ns_if_addref( T expr )
 
 
 
-
 #define NS_RELEASE_THIS() \
     Release()
 
@@ -102,10 +101,11 @@ ns_if_addref( T expr )
 
 
 
-#define NS_RELEASE2(_ptr,_rv)                                                 \
+
+#define NS_RELEASE2(_ptr, _rc)                                                \
   PR_BEGIN_MACRO                                                              \
-    _rv = (_ptr)->Release();                                                  \
-    if (0 == (_rv)) (_ptr) = 0;                                               \
+    _rc = (_ptr)->Release();                                                  \
+    if (0 == (_rc)) (_ptr) = 0;                                               \
   PR_END_MACRO
 
 
