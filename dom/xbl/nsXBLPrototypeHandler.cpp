@@ -325,15 +325,15 @@ nsXBLPrototypeHandler::ExecuteHandler(EventTarget* aTarget,
   TypedEventHandler typedHandler(handlerCallback);
 
   
-  nsCOMPtr<nsJSEventListener> eventListener;
+  nsCOMPtr<JSEventHandler> jsEventHandler;
   rv = NS_NewJSEventHandler(scriptTarget, onEventAtom,
                             typedHandler,
-                            getter_AddRefs(eventListener));
+                            getter_AddRefs(jsEventHandler));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  eventListener->HandleEvent(aEvent);
-  eventListener->Disconnect();
+  jsEventHandler->HandleEvent(aEvent);
+  jsEventHandler->Disconnect();
   return NS_OK;
 }
 
