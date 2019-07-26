@@ -703,6 +703,7 @@ function DownloadsPlacesView(aRichListBox, aActive = true) {
 
   
   
+  this._initiallySelectedElement = null;
   let downloadsData = DownloadsCommon.getData(window.opener || window);
   downloadsData.addView(this);
 
@@ -1045,6 +1046,7 @@ DownloadsPlacesView.prototype = {
       this._result = val;
       this._resultNode = val.root;
       this._resultNode.containerOpen = true;
+      this._ensureInitialSelection();
     }
     else {
       delete this._resultNode;
@@ -1167,16 +1169,44 @@ DownloadsPlacesView.prototype = {
     return this._searchTerm = aValue;
   },
 
-  applyFilter: function() {
-    throw new Error("applyFilter is not implemented by the DownloadsView")
-  },
+  
 
-  load: function(aQueries, aOptions) {
-    throw new Error("|load| is not implemented by the Downloads View");
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _ensureInitialSelection: function DPV__ensureInitialSelection() {
+    
+    if (this._richlistbox.selectedItem == this._initiallySelectedElement) {
+      let firstDownloadElement = this._richlistbox.firstChild;
+      if (firstDownloadElement != this._initiallySelectedElement) {
+        
+        
+        
+        
+        firstDownloadElement._shell.ensureActive();
+        Services.tm.mainThread.dispatch(function() {
+          this._richlistbox.selectedItem = firstDownloadElement;
+          this._richlistbox.currentItem = firstDownloadElement;
+          this._initiallySelectedElement = firstDownloadElement;
+        }.bind(this), Ci.nsIThread.DISPATCH_NORMAL);
+      }
+    }
   },
 
   onDataLoadStarting: function() { },
-  onDataLoadCompleted: function() { },
+  onDataLoadCompleted: function DPV_onDataLoadCompleted() {
+    this._ensureInitialSelection();
+  },
 
   onDataItemAdded: function DPV_onDataItemAdded(aDataItem, aNewest) {
     this._addDownloadData(aDataItem, null, aNewest);
@@ -1345,6 +1375,12 @@ DownloadsPlacesView.prototype = {
     this._ensureVisibleElementsAreActive();
   }
 };
+
+for (let methodName of ["load", "applyFilter", "selectNode", "selectItems"]) {
+  DownloadsPlacesView.prototype[methodName] = function() {
+    throw new Error("|" + methodName + "| is not implemented by the downloads view.");
+  }
+}
 
 function goUpdateDownloadCommands() {
   for (let command of DOWNLOAD_VIEW_SUPPORTED_COMMANDS) {
