@@ -86,7 +86,22 @@ BasicTiledLayerBuffer::PaintThebes(BasicTiledThebesLayer* aLayer,
 #ifdef GFX_TILEDLAYER_PREF_WARNINGS
   long start = PR_IntervalNow();
 #endif
-  if (UseSinglePaintBuffer()) {
+
+  
+  NS_ASSERTION(!aPaintRegion.GetBounds().IsEmpty(), "Empty paint region\n");
+
+  bool useSinglePaintBuffer = UseSinglePaintBuffer();
+  if (useSinglePaintBuffer) {
+    
+    
+    nsIntRect paintBounds = aPaintRegion.GetBounds();
+    useSinglePaintBuffer = GetTileStart(paintBounds.x) !=
+                           GetTileStart(paintBounds.XMost() - 1) ||
+                           GetTileStart(paintBounds.y) !=
+                           GetTileStart(paintBounds.YMost() - 1);
+  }
+
+  if (useSinglePaintBuffer) {
     const nsIntRect bounds = aPaintRegion.GetBounds();
     {
       SAMPLE_LABEL("BasicTiledLayerBuffer", "PaintThebesSingleBufferAlloc");
@@ -161,8 +176,8 @@ BasicTiledLayerBuffer::ValidateTileInternal(BasicTiledLayerTile aTile,
 
   
   nsRefPtr<gfxContext> ctxt = new gfxContext(writableSurface);
-  ctxt->SetOperator(gfxContext::OPERATOR_SOURCE);
   if (mSinglePaintBuffer) {
+    ctxt->SetOperator(gfxContext::OPERATOR_SOURCE);
     ctxt->NewPath();
     ctxt->SetSource(mSinglePaintBuffer.get(),
                     gfxPoint(mSinglePaintBufferOffset.x - aDirtyRect.x + drawRect.x,
@@ -173,7 +188,7 @@ BasicTiledLayerBuffer::ValidateTileInternal(BasicTiledLayerTile aTile,
     ctxt->NewPath();
     ctxt->Translate(gfxPoint(-aTileOrigin.x, -aTileOrigin.y));
     nsIntPoint a = aTileOrigin;
-    mCallback(mThebesLayer, ctxt, nsIntRegion(nsIntRect(a, nsIntSize(GetTileLength(), GetTileLength()))), aDirtyRect, mCallbackData);
+    mCallback(mThebesLayer, ctxt, nsIntRegion(nsIntRect(a, nsIntSize(GetTileLength(), GetTileLength()))), nsIntRegion(), mCallbackData);
   }
 
 #ifdef GFX_TILEDLAYER_DEBUG_OVERLAY
