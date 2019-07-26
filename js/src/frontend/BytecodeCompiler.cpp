@@ -282,7 +282,7 @@ frontend::CompileScript(ExclusiveContext *cx, LifoAlloc *alloc, HandleObject sco
 
 
 
-            JSAtom *atom = AtomizeString<CanGC>(cx, source);
+            JSAtom *atom = AtomizeString(cx, source);
             jsatomid _;
             if (!atom || !bce.makeAtomIndex(atom, &_))
                 return nullptr;
