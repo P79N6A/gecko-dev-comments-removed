@@ -624,6 +624,8 @@ RenderFrameParent::RenderFrameParent(nsFrameLoader* aFrameLoader,
       CompositorParent::SetControllerForLayerTree(mLayersId, mContentController);
     }
   }
+  
+  mFrameLoader->SetCurrentRemoteFrame(this);
 }
 
 APZCTreeManager*
