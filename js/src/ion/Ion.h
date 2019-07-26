@@ -127,6 +127,11 @@ struct IonOptions
     
     
     
+    uint32 maxInlineDepth;
+
+    
+    
+    
     
     
     
@@ -141,6 +146,16 @@ struct IonOptions
     
     
     uint32 smallFunctionUsesBeforeInlining;
+
+    
+    
+    
+    uint32 polyInlineMax;
+
+    
+    
+    
+    uint32 inlineMaxTotalBytecodeLength;
 
     void setEagerCompilation() {
         usesBeforeCompile = usesBeforeCompileNoJaeger = 0;
@@ -163,8 +178,11 @@ struct IonOptions
         usesBeforeCompileNoJaeger(40),
         usesBeforeInlining(usesBeforeCompile),
         maxStackArgs(4096),
+        maxInlineDepth(3),
         smallFunctionMaxBytecodeLength(100),
-        smallFunctionUsesBeforeInlining(usesBeforeInlining / 4)
+        smallFunctionUsesBeforeInlining(usesBeforeInlining / 4),
+        polyInlineMax(4),
+        inlineMaxTotalBytecodeLength(800)
     { }
 };
 
