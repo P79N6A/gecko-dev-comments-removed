@@ -88,7 +88,7 @@ nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aPrototypeBinding,
   JSAutoCompartment ac(cx, scopeObject);
 
   
-  JS::RootedObject propertyHolder(cx);
+  JS::Rooted<JSObject*> propertyHolder(cx);
   if (scopeObject != globalObject) {
 
     
@@ -247,7 +247,7 @@ nsXBLProtoImpl::CompilePrototypeMembers(nsXBLPrototypeBinding* aBinding)
 
 bool
 nsXBLProtoImpl::LookupMember(JSContext* aCx, nsString& aName,
-                             JS::HandleId aNameAsId,
+                             JS::Handle<jsid> aNameAsId,
                              JS::MutableHandle<JSPropertyDescriptor> aDesc,
                              JSObject* aClassObject)
 {

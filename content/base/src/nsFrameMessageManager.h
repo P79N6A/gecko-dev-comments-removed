@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nsFrameMessageManager_h__
 #define nsFrameMessageManager_h__
 
@@ -59,8 +60,8 @@ public:
 
   virtual bool DoSendBlockingMessage(JSContext* aCx,
                                      const nsAString& aMessage,
-                                     const mozilla::dom::StructuredCloneData& aData,
-                                     JS::Handle<JSObject *> aCpows,
+                                     const StructuredCloneData& aData,
+                                     JS::Handle<JSObject*> aCpows,
                                      nsIPrincipal* aPrincipal,
                                      InfallibleTArray<nsString>* aJSONRetVal,
                                      bool aIsSync)
@@ -70,8 +71,8 @@ public:
 
   virtual bool DoSendAsyncMessage(JSContext* aCx,
                                   const nsAString& aMessage,
-                                  const mozilla::dom::StructuredCloneData& aData,
-                                  JS::Handle<JSObject *> aCpows,
+                                  const StructuredCloneData& aData,
+                                  JS::Handle<JSObject*> aCpows,
                                   nsIPrincipal* aPrincipal)
   {
     return true;
@@ -129,22 +130,22 @@ struct nsMessageListenerInfo
 
 class CpowHolder
 {
-  public:
-    virtual bool ToObject(JSContext* cx, JS::MutableHandleObject objp) = 0;
+public:
+  virtual bool ToObject(JSContext* cx, JS::MutableHandle<JSObject*> objp) = 0;
 };
 
 class MOZ_STACK_CLASS SameProcessCpowHolder : public CpowHolder
 {
-  public:
-    SameProcessCpowHolder(JSRuntime *aRuntime, JS::Handle<JSObject *> aObj)
-      : mObj(aRuntime, aObj)
-    {
-    }
+public:
+  SameProcessCpowHolder(JSRuntime *aRuntime, JS::Handle<JSObject*> aObj)
+    : mObj(aRuntime, aObj)
+  {
+  }
 
-    bool ToObject(JSContext* aCx, JS::MutableHandleObject aObjp);
+  bool ToObject(JSContext* aCx, JS::MutableHandle<JSObject*> aObjp);
 
-  private:
-    JS::Rooted<JSObject*> mObj;
+private:
+  JS::Rooted<JSObject*> mObj;
 };
 
 class nsFrameMessageManager MOZ_FINAL : public nsIContentFrameMessageManager,
@@ -247,7 +248,7 @@ public:
   nsresult DispatchAsyncMessageInternal(JSContext* aCx,
                                         const nsAString& aMessage,
                                         const StructuredCloneData& aData,
-                                        JS::Handle<JSObject *> aCpows,
+                                        JS::Handle<JSObject*> aCpows,
                                         nsIPrincipal* aPrincipal);
   void RemoveFromParent();
   nsFrameMessageManager* GetParentManager() { return mParentManager; }

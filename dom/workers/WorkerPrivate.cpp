@@ -3582,7 +3582,7 @@ WorkerPrivate::GetLoadInfo(JSContext* aCx, nsPIDOMWindow* aWindow,
 
       
       
-      JS::RootedScript script(aCx);
+      JS::Rooted<JSScript*> script(aCx);
       if (JS_DescribeScriptedCaller(aCx, &script, nullptr)) {
         const char* fileName = JS_GetScriptFilename(aCx, script);
 
@@ -4539,7 +4539,7 @@ void
 WorkerPrivate::PostMessageToParentMessagePort(
                              JSContext* aCx,
                              uint64_t aMessagePortSerial,
-                             JS::HandleValue aMessage,
+                             JS::Handle<JS::Value> aMessage,
                              const Optional<Sequence<JS::Value>>& aTransferable,
                              ErrorResult& aRv)
 {
@@ -4923,7 +4923,7 @@ WorkerPrivate::RunExpiredTimeouts(JSContext* aCx)
   bool retval = true;
 
   AutoPtrComparator<TimeoutInfo> comparator = GetAutoPtrComparator(mTimeouts);
-  JS::RootedObject global(aCx, JS::CurrentGlobalOrNull(aCx));
+  JS::Rooted<JSObject*> global(aCx, JS::CurrentGlobalOrNull(aCx));
   JSPrincipals* principal = GetWorkerPrincipal();
 
   

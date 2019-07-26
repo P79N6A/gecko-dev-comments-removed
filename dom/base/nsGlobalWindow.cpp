@@ -10396,7 +10396,7 @@ nsGlobalWindow::ShowSlowScriptDialog()
   NS_ENSURE_TRUE(prompt, KillSlowScript);
 
   
-  JS::RootedScript script(cx);
+  JS::Rooted<JSScript*> script(cx);
   unsigned lineno;
   bool hasFrame = JS_DescribeScriptedCaller(cx, &script, &lineno);
 
