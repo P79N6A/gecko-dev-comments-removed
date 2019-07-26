@@ -2,10 +2,6 @@
 
 
 
-#ifdef DEBUG
-static const char CKDBM_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
-#endif 
-
 #ifndef CKDBM_H
 #define CKDBM_H
 

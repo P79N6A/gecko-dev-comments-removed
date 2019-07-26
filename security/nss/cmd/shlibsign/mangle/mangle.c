@@ -6,8 +6,6 @@
 
 
 
-
-
 #include "nspr.h"
 #include "plstr.h"
 #include "plgetopt.h"

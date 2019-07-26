@@ -2,10 +2,6 @@
 
 
 
-#ifdef DEBUG
-static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
-#endif 
-
 #ifndef DEVM_H
 #include "devm.h"
 #endif 

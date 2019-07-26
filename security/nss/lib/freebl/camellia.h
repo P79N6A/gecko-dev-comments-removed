@@ -2,9 +2,6 @@
 
 
 
-
-
-
 #ifndef _CAMELLIA_H_
 #define _CAMELLIA_H_ 1
 

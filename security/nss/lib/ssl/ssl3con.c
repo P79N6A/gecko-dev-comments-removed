@@ -8,7 +8,6 @@
 
 
 
-
 #include "cert.h"
 #include "ssl.h"
 #include "cryptohi.h"	
@@ -8446,10 +8445,7 @@ static SECStatus
 ssl3_SendCertificateStatus(sslSocket *ss)
 {
     SECStatus            rv;
-    CERTCertificateList *certChain;
     int                  len 		= 0;
-    int                  i;
-    SSL3KEAType          certIndex;
 
     SSL_TRC(3, ("%d: SSL3[%d]: send certificate status handshake",
 		SSL_GETPID(), ss->fd));

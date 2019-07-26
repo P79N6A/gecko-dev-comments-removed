@@ -1,9 +1,6 @@
 
 
 
-#ifdef DEBUG
-static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
-#endif 
 
 #include "ckcapi.h"
 

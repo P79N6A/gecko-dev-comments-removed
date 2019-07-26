@@ -4,8 +4,6 @@
 
 
 
-
-
 #ifndef _CERTT_H_
 #define _CERTT_H_
 

@@ -11,10 +11,6 @@
 
 
 
-#ifdef DEBUG
-static const char DEV_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
-#endif 
-
 #ifndef NSSDEV_H
 #include "nssdev.h"
 #endif 

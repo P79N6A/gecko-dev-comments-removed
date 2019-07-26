@@ -11,10 +11,6 @@
 #ifndef CKHELPER_H
 #define CKHELPER_H
 
-#ifdef DEBUG
-static const char CKHELPER_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
-#endif 
-
 PR_BEGIN_EXTERN_C
 
 

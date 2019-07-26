@@ -15,8 +15,6 @@
 
 
 
-
-
 #include "blapi.h"
 
 

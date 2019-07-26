@@ -6,8 +6,6 @@
 
 
 
-
-
 #include "seccomon.h"
 #include "secport.h"
 #include "secder.h"

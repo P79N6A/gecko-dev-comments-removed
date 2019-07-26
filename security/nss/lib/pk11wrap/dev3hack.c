@@ -2,10 +2,6 @@
 
 
 
-#ifdef DEBUG
-static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
-#endif 
-
 #ifndef PKIT_H
 #include "pkit.h"
 #endif 

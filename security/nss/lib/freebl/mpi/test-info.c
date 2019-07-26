@@ -8,7 +8,6 @@
 
 
 
-
 const int   g_count = 42;
 const char *g_names[] = {
    "list",              

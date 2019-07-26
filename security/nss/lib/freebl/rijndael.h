@@ -2,7 +2,6 @@
 
 
 
-
 #ifndef _RIJNDAEL_H_
 #define _RIJNDAEL_H_ 1
 
