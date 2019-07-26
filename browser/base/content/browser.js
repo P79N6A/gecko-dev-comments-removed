@@ -4482,6 +4482,9 @@ var TabsInTitlebar = {
       
 
       
+      let tabsToolbar = $("TabsToolbar");
+      let fullTabsHeight = rect(tabsToolbar).height;
+      
       let captionButtonsBoxWidth = rect($("titlebar-buttonbox")).width;
 #ifdef XP_MACOSX
       let fullscreenButtonWidth = rect($("titlebar-fullscreen-button")).width;
@@ -4495,11 +4498,9 @@ var TabsInTitlebar = {
       let menuHeight = rect(menubar).height;
       let menuStyles = window.getComputedStyle(menubar);
       let fullMenuHeight = verticalMargins(menuStyles) + menuHeight;
-#endif
-      
-      let tabsToolbar = $("TabsToolbar");
       let tabsStyles = window.getComputedStyle(tabsToolbar);
-      let fullTabsHeight = rect(tabsToolbar).height + verticalMargins(tabsStyles);
+      fullTabsHeight += verticalMargins(tabsStyles);
+#endif
 
       
       
@@ -4508,16 +4509,6 @@ var TabsInTitlebar = {
 
       
       let titlebarContentHeight = rect(titlebarContent).height;
-
-      
-      
-      let areCustomizing = document.documentElement.hasAttribute("customizing") ||
-                           document.documentElement.hasAttribute("customize-exiting");
-      let customizePadding = 0;
-      if (areCustomizing) {
-        let deckStyle = window.getComputedStyle($("tab-view-deck"));
-        customizePadding = parseFloat(deckStyle.paddingTop);
-      }
 
       
 
@@ -4551,10 +4542,6 @@ var TabsInTitlebar = {
       
       
       let tabAndMenuHeight = fullTabsHeight + fullMenuHeight;
-      
-      if (areCustomizing) {
-        tabAndMenuHeight += customizePadding;
-      }
 
       if (tabAndMenuHeight > titlebarContentHeight) {
         
@@ -4566,12 +4553,6 @@ var TabsInTitlebar = {
         
 #ifndef XP_MACOSX
         titlebarContent.style.marginBottom = extraMargin + "px";
-#else
-        
-        
-        let halfMargin = (extraMargin - titlebarPadding) / 2;
-        titlebarContent.style.marginTop =  halfMargin + "px";
-        titlebarContent.style.marginBottom =  (titlebarPadding + halfMargin) + "px";
 #endif
         titlebarContentHeight += extraMargin;
       }
@@ -4606,6 +4587,7 @@ var TabsInTitlebar = {
       updateTitlebarDisplay();
 
       
+      titlebarContent.style.marginTop = "";
       titlebarContent.style.marginBottom = "";
       titlebar.style.marginBottom = "";
       menubar.style.paddingBottom = "";
@@ -4630,16 +4612,37 @@ var TabsInTitlebar = {
 
 #ifdef CAN_DRAW_IN_TITLEBAR
 function updateTitlebarDisplay() {
-  document.getElementById("titlebar").hidden = !TabsInTitlebar.enabled;
+
+#ifdef XP_MACOSX
+  
+  
+  
+  
+  
+  if (TabsInTitlebar.enabled) {
+    document.documentElement.setAttribute("chromemargin-nonlwtheme", "0,-1,-1,-1");
+    document.documentElement.setAttribute("chromemargin", "0,-1,-1,-1");
+    document.documentElement.removeAttribute("drawtitle");
+  } else {
+    
+    
+    
+    document.documentElement.setAttribute("chromemargin-nonlwtheme", "");
+    let isCustomizing = document.documentElement.hasAttribute("customizing");
+    let hasLWTheme = document.documentElement.hasAttribute("lwtheme");
+    if (!hasLWTheme || isCustomizing) {
+      document.documentElement.removeAttribute("chromemargin");
+    }
+    document.documentElement.setAttribute("drawtitle", "true");
+  }
+
+#else
 
   if (TabsInTitlebar.enabled)
-#ifdef XP_WIN
     document.documentElement.setAttribute("chromemargin", "0,2,2,2");
-#else
-    document.documentElement.setAttribute("chromemargin", "0,-1,-1,-1");
-#endif
   else
     document.documentElement.removeAttribute("chromemargin");
+#endif
 }
 #endif
 
@@ -5939,10 +5942,6 @@ function WindowIsClosing()
 
   if (!closeWindow(false, warnAboutClosingWindow))
     return false;
-
-  
-  if (gMultiProcessBrowser)
-    return true;
 
   for (let browser of gBrowser.browsers) {
     let ds = browser.docShell;
