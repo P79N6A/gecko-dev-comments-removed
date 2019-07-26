@@ -90,11 +90,6 @@ public:
         ForceSingleTile  = 0x4
     };
 
-    enum TextureShareType {
-        ThreadShared     = 0x0,
-        ProcessShared    = 0x1
-    };
-
     typedef gfxASurface::gfxContentType ContentType;
 
     virtual ~TextureImage() {}
@@ -912,6 +907,12 @@ public:
         return IsExtensionSupported(EXT_framebuffer_blit) || IsExtensionSupported(ANGLE_framebuffer_blit);
     }
 
+
+    enum SharedTextureShareType {
+        SameProcess = 0,
+        CrossProcess
+    };
+
     enum SharedTextureBufferType {
         TextureID
 #ifdef MOZ_WIDGET_ANDROID
@@ -922,23 +923,26 @@ public:
     
 
 
-    virtual SharedTextureHandle CreateSharedHandle(TextureImage::TextureShareType aType) { return 0; }
+    virtual SharedTextureHandle CreateSharedHandle(SharedTextureShareType shareType)
+    { return 0; }
     
 
 
 
 
 
-    virtual SharedTextureHandle CreateSharedHandle(TextureImage::TextureShareType aType,
-                                                   void* aBuffer,
-                                                   SharedTextureBufferType aBufferType) { return 0; }
+    virtual SharedTextureHandle CreateSharedHandle(SharedTextureShareType shareType,
+                                                   void* buffer,
+                                                   SharedTextureBufferType bufferType)
+    { return 0; }
     
 
 
 
 
-    virtual void UpdateSharedHandle(TextureImage::TextureShareType aType,
-                                    SharedTextureHandle aSharedHandle) { }
+    virtual void UpdateSharedHandle(SharedTextureShareType shareType,
+                                    SharedTextureHandle sharedHandle)
+    { }
     
 
 
@@ -952,8 +956,9 @@ public:
 
 
 
-    virtual void ReleaseSharedHandle(TextureImage::TextureShareType aType,
-                                     SharedTextureHandle aSharedHandle) { }
+    virtual void ReleaseSharedHandle(SharedTextureShareType shareType,
+                                     SharedTextureHandle sharedHandle)
+    { }
 
 
     typedef struct {
@@ -966,21 +971,24 @@ public:
 
 
 
-    virtual bool GetSharedHandleDetails(TextureImage::TextureShareType aType,
-                                        SharedTextureHandle aSharedHandle,
-                                        SharedHandleDetails& aDetails) { return false; }
+    virtual bool GetSharedHandleDetails(SharedTextureShareType shareType,
+                                        SharedTextureHandle sharedHandle,
+                                        SharedHandleDetails& details)
+    { return false; }
     
 
 
 
-    virtual bool AttachSharedHandle(TextureImage::TextureShareType aType,
-                                    SharedTextureHandle aSharedHandle) { return false; }
+    virtual bool AttachSharedHandle(SharedTextureShareType shareType,
+                                    SharedTextureHandle sharedHandle)
+    { return false; }
 
     
 
 
-    virtual void DetachSharedHandle(TextureImage::TextureShareType aType,
-                                    SharedTextureHandle aSharedHandle) { return; }
+    virtual void DetachSharedHandle(SharedTextureShareType shareType,
+                                    SharedTextureHandle sharedHandle)
+    { }
 
 private:
     GLuint mUserBoundDrawFBO;
