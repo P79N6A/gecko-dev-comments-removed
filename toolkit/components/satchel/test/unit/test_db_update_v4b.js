@@ -3,9 +3,17 @@
 
 
 var testnum = 0;
-var fh;
+
+let iter;
 
 function run_test()
+{
+  do_test_pending();
+  iter = next_test();
+  iter.next();
+}
+
+function next_test()
 {
   try {
 
@@ -22,19 +30,27 @@ function run_test()
   testfile.copyTo(profileDir, "formhistory.sqlite");
   do_check_eq(3, getDBVersion(testfile));
 
-  fh = Cc["@mozilla.org/satchel/form-history;1"].
-       getService(Ci.nsIFormHistory2);
-
-
   
   testnum++;
 
+  destFile = profileDir.clone();
+  destFile.append("formhistory.sqlite");
+  dbConnection = Services.storage.openUnsharedDatabase(destFile);
+
   
-  do_check_true(fh.DBConnection.tableExists("moz_deleted_formhistory"));
+  do_check_eq(CURRENT_SCHEMA, FormHistory.schemaVersion);
+
   
-  do_check_eq(CURRENT_SCHEMA, fh.DBConnection.schemaVersion);
+  do_check_true(dbConnection.tableExists("moz_deleted_formhistory"));
+  dbConnection.close();
+
   
-  do_check_true(fh.entryExists("name-A", "value-A"));
+  yield countEntries("name-A", "value-A",
+    function (num) {
+      do_check_true(num > 0);
+      do_test_finished();
+    }
+  );
 
   } catch (e) {
     throw "FAILED in test #" + testnum + " -- " + e;
