@@ -181,6 +181,9 @@ struct IonScript
     bool hasInvalidatedCallTarget_;
 
     
+    bool hasSPSInstrumentation_;
+
+    
     
     uint32_t runtimeData_;
     uint32_t runtimeSize_;
@@ -381,6 +384,15 @@ struct IonScript
     }
     bool hasInvalidatedCallTarget() const {
         return hasInvalidatedCallTarget_;
+    }
+    void setHasSPSInstrumentation() {
+        hasSPSInstrumentation_ = true;
+    }
+    void clearHasSPSInstrumentation() {
+        hasSPSInstrumentation_ = false;
+    }
+    bool hasSPSInstrumentation() const {
+        return hasSPSInstrumentation_;
     }
     const uint8_t *snapshots() const {
         return reinterpret_cast<const uint8_t *>(this) + snapshots_;

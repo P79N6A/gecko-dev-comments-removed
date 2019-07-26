@@ -295,6 +295,10 @@ ConvertFrames(JSContext *cx, IonActivation *activation, IonBailoutIterator &it)
     while (true) {
         IonSpew(IonSpew_Bailouts, " restoring frame");
         fp->initFromBailout(cx, iter);
+        
+        
+        if (!it.ionScript()->hasSPSInstrumentation())
+            fp->unsetPushedSPSFrame();
 
         if (!iter.moreFrames())
              break;
