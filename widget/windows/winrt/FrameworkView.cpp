@@ -32,12 +32,6 @@ using namespace ABI::Windows::Foundation;
 using namespace Microsoft::WRL;
 using namespace Microsoft::WRL::Wrappers;
 
-
-
-
-
-
-
 namespace mozilla {
 namespace widget {
 namespace winrt {
@@ -57,7 +51,6 @@ FrameworkView::FrameworkView(MetroApp* aMetroApp) :
   mWinVisible(false),
   mWinActiveState(false)
 {
-  mPainting = false;
   memset(&sKeyboardRect, 0, sizeof(Rect));
   sSettingsArray = new nsTArray<nsString>();
   LogFunction();
@@ -102,7 +95,6 @@ FrameworkView::Uninitialize()
   sSettingsArray = nullptr;
   mWidget = nullptr;
   mMetroApp = nullptr;
-  mDispatcher = nullptr;
   mWindow = nullptr;
 
   return S_OK;
@@ -114,34 +106,40 @@ FrameworkView::Load(HSTRING aEntryPoint)
   return S_OK;
 }
 
+
 HRESULT
 FrameworkView::Run()
 {
   LogFunction();
 
   
-  mMetroApp->Initialize();
+  
+  
+  mMetroApp->Run();
 
-  ProcessLaunchArguments();
+  Log("Exiting FrameworkView::Run()");
+
+  return S_OK;
+}
+
+HRESULT
+FrameworkView::ActivateView()
+{
+  LogFunction();
+
+  UpdateWidgetSizeAndPosition();
+  MetroUtils::GetViewState(mViewState);
+
+  nsIntRegion region(nsIntRect(0, 0, mWindowBounds.width, mWindowBounds.height));
+  mWidget->Paint(region);
 
   
   mWindow->Activate();
 
-  UpdateWidgetSizeAndPosition();
-
-  MetroUtils::GetViewState(mViewState);
-
-  
-  HRESULT hr = mWindow->get_Dispatcher(&mDispatcher);
-  AssertRetHRESULT(hr, hr);
-
-  
+  ProcessLaunchArguments();
   AddEventHandlers();
+  SetupContracts();
 
-  
-  mDispatcher->ProcessEvents(ABI::Windows::UI::Core::CoreProcessEventsOption::CoreProcessEventsOption_ProcessUntilQuit);
-
-  Log("Exiting FrameworkView::Run()");
   return S_OK;
 }
 
@@ -165,12 +163,9 @@ void
 FrameworkView::AddEventHandlers() {
   NS_ASSERTION(mWindow, "SetWindow must be called before AddEventHandlers!");
   NS_ASSERTION(mWidget, "SetWidget must be called before AddEventHAndlers!");
-  NS_ASSERTION(mDispatcher, "Must have a valid CoreDispatcher before "
-                            "calling AddEventHAndlers!");
 
   mMetroInput = Make<MetroInput>(mWidget.Get(),
-                                 mWindow.Get(),
-                                 mDispatcher.Get());
+                                 mWindow.Get());
 
   mWindow->add_VisibilityChanged(Callback<__FITypedEventHandler_2_Windows__CUI__CCore__CCoreWindow_Windows__CUI__CCore__CVisibilityChangedEventArgs>(
     this, &FrameworkView::OnWindowVisibilityChanged).Get(), &mWindowVisibilityChanged);
@@ -289,6 +284,8 @@ FrameworkView::IsVisible() const
 void FrameworkView::SetDpi(float aDpi)
 {
   if (aDpi != mDPI) {
+    LogFunction();
+
     mDPI = aDpi;
     
     NS_ASSERTION(mWindow, "SetWindow must be called before SetDpi!");
@@ -346,9 +343,8 @@ FrameworkView::OnActivated(ICoreApplicationView* aApplicationView,
                            IActivatedEventArgs* aArgs)
 {
   LogFunction();
-  
-  
 
+  
   ApplicationExecutionState state;
   aArgs->get_PreviousExecutionState(&state);
   bool startup = state == ApplicationExecutionState::ApplicationExecutionState_Terminated ||
@@ -452,11 +448,6 @@ FrameworkView::OnWindowActivated(ICoreWindow* aSender, IWindowActivatedEventArgs
   aArgs->get_WindowActivationState(&state);
   mWinActiveState = !(state == CoreWindowActivationState::CoreWindowActivationState_Deactivated);
   SendActivationEvent();
-
-  
-  
-  MetroAppShell::ProcessAllNativeEventsPresent();
-
   return S_OK;
 }
 
@@ -465,7 +456,9 @@ FrameworkView::OnLogicalDpiChanged(IInspectable* aSender)
 {
   LogFunction();
   UpdateLogicalDPI();
-  Render();
+  if (mWidget) {
+    mWidget->Invalidate();
+  }
   return S_OK;
 }
 

@@ -78,6 +78,8 @@ public:
   STDMETHODIMP Run();
   STDMETHODIMP Uninitialize();
 
+  HRESULT ActivateView();
+
   
   void ShutdownXPCOM();
   bool Render();
@@ -180,7 +182,6 @@ private:
   nsIntRect mWindowBounds; 
   float mDPI;
   bool mShuttingDown;
-  bool mPainting;
   nsAutoString mActivationURI;
   nsAutoString mActivationCommandLine;
   Microsoft::WRL::ComPtr<IInspectable> mAutomationProvider;
@@ -190,7 +191,6 @@ private:
   
   Microsoft::WRL::ComPtr<MetroApp> mMetroApp;
   Microsoft::WRL::ComPtr<ICoreWindow> mWindow;
-  Microsoft::WRL::ComPtr<ICoreDispatcher> mDispatcher;
   Microsoft::WRL::ComPtr<MetroWidget> mWidget;
   Microsoft::WRL::ComPtr<MetroInput> mMetroInput;
   static bool sKeyboardIsVisible;
