@@ -238,6 +238,10 @@ let Keyboard = {
   },
 
   getContext: function keyboardGetContext(msg) {
+    if (this._layouts) {
+      ppmm.broadcastAsyncMessage('Keyboard:LayoutsChange', this._layouts);
+    }
+
     this.sendAsyncMessage('Forms:GetContext', msg.data);
   },
 
@@ -247,6 +251,19 @@ let Keyboard = {
 
   endComposition: function keyboardEndComposition(msg) {
     this.sendAsyncMessage('Forms:EndComposition', msg.data);
+  },
+
+  
+
+
+  _layouts: null,
+  setLayouts: function keyboardSetLayoutCount(layouts) {
+    
+    
+    
+    this._layouts = layouts;
+
+    ppmm.broadcastAsyncMessage('Keyboard:LayoutsChange', layouts);
   }
 };
 
