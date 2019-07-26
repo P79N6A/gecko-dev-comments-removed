@@ -2260,22 +2260,9 @@ nsFtpState::CheckCache()
         key.Truncate(pos);
     NS_ENSURE_FALSE(key.IsEmpty(), false);
 
-    
-    
+    nsresult rv = session->AsyncOpenCacheEntry(key, accessReq, this, false);
+    return NS_SUCCEEDED(rv);
 
-    nsresult rv = session->OpenCacheEntry(key, accessReq, false,
-                                          getter_AddRefs(mCacheEntry));
-    if (NS_SUCCEEDED(rv) && mCacheEntry) {
-        mDoomCache = true;
-        return false;  
-    }
-
-    if (rv == NS_ERROR_CACHE_WAIT_FOR_VALIDATION) {
-        rv = session->AsyncOpenCacheEntry(key, accessReq, this, false);
-        return NS_SUCCEEDED(rv);
-    }
-
-    return false;
 }
 
 nsresult
