@@ -2,39 +2,18 @@
 
 
 MARIONETTE_TIMEOUT = 30000;
+MARIONETTE_HEAD_JS = "icc_header.js";
 
-SpecialPowers.addPermission("mobileconnection", true, document);
-SpecialPowers.addPermission("settings-write", true, document);
-
-
-
-let ifr = document.createElement("iframe");
-let icc;
-ifr.onload = function() {
-  icc = ifr.contentWindow.navigator.mozIccManager;
-
-  ok(icc instanceof ifr.contentWindow.MozIccManager,
-     "icc is instanceof " + icc.constructor);
-
-  is(icc.cardState, "ready");
+function setRadioEnabled(enabled) {
+  SpecialPowers.addPermission("settings-write", true, document);
 
   
-  testCardStateChange(true, null,
-    
-    testCardStateChange.bind(window, false, "ready", cleanUp)
-  );
-};
-document.body.appendChild(ifr);
-
-function setAirplaneModeEnabled(enabled) {
-  let settings = ifr.contentWindow.navigator.mozSettings;
+  let settings = navigator.mozSettings;
   let setLock = settings.createLock();
   let obj = {
-    "ril.radio.disabled": enabled
+    "ril.radio.disabled": !enabled
   };
   let setReq = setLock.set(obj);
-
-  log("set airplane mode to " + enabled);
 
   setReq.addEventListener("success", function onSetSuccess() {
     log("set 'ril.radio.disabled' to " + enabled);
@@ -43,28 +22,37 @@ function setAirplaneModeEnabled(enabled) {
   setReq.addEventListener("error", function onSetError() {
     ok(false, "cannot set 'ril.radio.disabled' to " + enabled);
   });
+
+  SpecialPowers.removePermission("settings-write", document);
 }
 
-function waitCardStateChangedEvent(expectedCardState, callback) {
+
+taskHelper.push(function basicTest() {
+  is(icc.cardState, "ready", "card state is " + icc.cardState);
+  taskHelper.runNext();
+});
+
+
+taskHelper.push(function testCardStateChange() {
+  
+  setRadioEnabled(false);
   icc.addEventListener("cardstatechange", function oncardstatechange() {
     log("card state changes to " + icc.cardState);
-    if (icc.cardState === expectedCardState) {
-      log("got expected card state: " + icc.cardState);
+    
+    if (icc.cardState === null) {
       icc.removeEventListener("cardstatechange", oncardstatechange);
-      callback();
+      
+      setRadioEnabled(true);
+      icc.addEventListener("cardstatechange", function oncardstatechange(evt) {
+        log("card state changes to " + icc.cardState);
+        if (icc.cardState === 'ready') {
+          icc.removeEventListener("cardstatechange", oncardstatechange);
+          taskHelper.runNext();
+        }
+      });
     }
   });
-}
+});
 
 
-function testCardStateChange(airplaneMode, expectedCardState, callback) {
-  setAirplaneModeEnabled(airplaneMode);
-  waitCardStateChangedEvent(expectedCardState, callback);
-}
-
-function cleanUp() {
-  SpecialPowers.removePermission("mobileconnection", document);
-  SpecialPowers.removePermission("settings-write", document);
-
-  finish();
-}
+taskHelper.runNext();
