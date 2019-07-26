@@ -1222,6 +1222,16 @@ MediaStreamGraphImpl::RunThread()
     }
 
     
+    
+    
+    
+    
+    
+    if (endBlockingDecisions == mStateComputedTime) {
+      ensureNextIteration = true;
+    }
+
+    
     GraphTime prevComputedTime = mStateComputedTime;
     RecomputeBlocking(endBlockingDecisions);
 
