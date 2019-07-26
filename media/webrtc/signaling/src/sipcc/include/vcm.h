@@ -510,6 +510,23 @@ short vcmCreateRemoteStream(
 
 
 
+
+
+short vcmAddRemoteStreamHint(
+            const char *peerconnection,
+            int pc_stream_id,
+            cc_boolean is_video);
+
+
+
+
+
+
+
+
+
+
+
 void vcmRxReleasePort(cc_mcapid_t mcap_id,
         cc_groupid_t group_id,
         cc_streamid_t stream_id,

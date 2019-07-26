@@ -978,6 +978,61 @@ short vcmCreateRemoteStream(cc_mcapid_t mcap_id,
 
 
 
+static short vcmAddRemoteStreamHint_m(
+  const char *peerconnection,
+  int pc_stream_id,
+  cc_boolean is_video) {
+  nsresult res;
+
+  sipcc::PeerConnectionWrapper pc(peerconnection);
+  ENSURE_PC(pc, VCM_ERROR);
+
+  res = pc.impl()->media()->AddRemoteStreamHint(pc_stream_id,
+    is_video ? TRUE : FALSE);
+  if (NS_FAILED(res)) {
+    return VCM_ERROR;
+  }
+
+  CSFLogDebug( logTag, "%s: added remote stream hint %u with index %d",
+    __FUNCTION__, is_video, pc_stream_id);
+
+  return 0;
+}
+
+
+
+
+
+
+
+
+short vcmAddRemoteStreamHint(
+  const char *peerconnection,
+  int pc_stream_id,
+  cc_boolean is_video) {
+  short ret = 0;
+
+  mozilla::SyncRunnable::DispatchToThread(VcmSIPCCBinding::getMainThread(),
+      WrapRunnableNMRet(&vcmAddRemoteStreamHint_m,
+                        peerconnection,
+                        pc_stream_id,
+                        is_video,
+                        &ret));
+
+  return ret;
+}
+
+
+
+
+
+
+
+
+
+
+
+
 static short vcmGetDtlsIdentity_m(const char *peerconnection,
                                   char *digest_algp,
                                   size_t max_digest_alg_len,

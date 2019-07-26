@@ -129,7 +129,7 @@ class Fake_SourceMediaStream : public Fake_MediaStream {
         for(int i=0; i<chunk.mDuration; i++) {
           if(buf[i]) {
             
-            nonZeroSample = true; 
+            nonZeroSample = true;
             break;
           }
         }
@@ -208,9 +208,10 @@ public:
 
   
   
+  typedef uint8_t TrackTypeHints;
   enum {
-    HINT_CONTENTS_AUDIO = 0x00000001U,
-    HINT_CONTENTS_VIDEO = 0x00000002U
+    HINT_CONTENTS_AUDIO = 0x01,
+    HINT_CONTENTS_VIDEO = 0x02
   };
   uint32_t GetHintContents() const { return mHintContents; }
   void SetHintContents(uint32_t aHintContents) { mHintContents = aHintContents; }
