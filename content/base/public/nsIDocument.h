@@ -45,9 +45,15 @@ class nsIDocumentObserver;
 class nsIDOMDocument;
 class nsIDOMDocumentFragment;
 class nsIDOMDocumentType;
+class nsDOMDocumentType;
+class nsXMLProcessingInstruction;
 class nsIDOMElement;
 class nsIDOMEventTarget;
 class nsIDOMNodeList;
+class nsIDOMTouch;
+class nsIDOMTouchList;
+class nsIDOMXPathExpression;
+class nsIDOMXPathNSResolver;
 class nsILayoutHistoryState;
 class nsIObjectLoadingContent;
 class nsIObserver;
@@ -61,27 +67,35 @@ class nsIURI;
 class nsIVariant;
 class nsIViewManager;
 class nsPresContext;
+class nsRange;
 class nsScriptLoader;
 class nsSMILAnimationController;
 class nsStyleSet;
+class nsTextNode;
 class nsWindowSizes;
 class nsSmallVoidArray;
 
 namespace mozilla {
+class ErrorResult;
+
 namespace css {
 class Loader;
 class ImageLoader;
 } 
 
 namespace dom {
-class Link;
+class Comment;
+class DocumentFragment;
+class DOMImplementation;
 class Element;
+class Link;
+template<typename> class Sequence;
 } 
 } 
 
 #define NS_IDOCUMENT_IID \
-{ 0x1517f31a, 0x0ef9, 0x4629, \
- { 0xb4, 0x7f, 0x56, 0x31, 0x0d, 0x80, 0x61, 0xaf } }
+{ 0xff03d72f, 0x87cd, 0x4d11, \
+ { 0x81, 0x8d, 0xa8, 0xb4, 0xf5, 0x98, 0x1a, 0x10 } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -100,6 +114,13 @@ enum DocumentFlavor {
 
 #define NS_DOCUMENT_STATE_WINDOW_INACTIVE         NS_DEFINE_EVENT_STATE_MACRO(1)
 
+
+class nsContentList;
+
+already_AddRefed<nsContentList>
+NS_GetContentList(nsINode* aRootNode,
+                  int32_t aMatchNameSpaceId,
+                  const nsAString& aTagname);
 
 
 
@@ -531,7 +552,7 @@ public:
   
 
 
-  nsIContent* GetDocumentType() const;
+  nsDOMDocumentType* GetDoctype() const;
 
   
 
@@ -714,7 +735,7 @@ public:
 
 
 
-  virtual nsIScriptGlobalObject* GetScopeObject() = 0;
+  virtual nsIScriptGlobalObject* GetScopeObject() const = 0;
 
   
 
@@ -870,7 +891,10 @@ public:
 
   enum ReadyState { READYSTATE_UNINITIALIZED = 0, READYSTATE_LOADING = 1, READYSTATE_INTERACTIVE = 3, READYSTATE_COMPLETE = 4};
   virtual void SetReadyStateInternal(ReadyState rs) = 0;
-  virtual ReadyState GetReadyStateEnum() = 0;
+  ReadyState GetReadyStateEnum()
+  {
+    return mReadyState;
+  }
 
   
   
@@ -1204,7 +1228,7 @@ public:
   
 
 
-  virtual nsIContent*
+  virtual Element*
     GetAnonymousElementByAttribute(nsIContent* aElement,
                                    nsIAtom* aAttrName,
                                    const nsAString& aAttrValue) const = 0;
@@ -1215,10 +1239,9 @@ public:
 
 
 
-  virtual nsresult ElementFromPointHelper(float aX, float aY,
+  virtual Element* ElementFromPointHelper(float aX, float aY,
                                           bool aIgnoreRootScrollFrame,
-                                          bool aFlushLayout,
-                                          nsIDOMElement** aReturn) = 0;
+                                          bool aFlushLayout) = 0;
 
   virtual nsresult NodesFromRectHelper(float aX, float aY,
                                        float aTopSize, float aRightSize,
@@ -1702,7 +1725,7 @@ public:
 
   virtual void PostVisibilityUpdateEvent() = 0;
   
-  bool IsSyntheticDocument() { return mIsSyntheticDocument; }
+  bool IsSyntheticDocument() const { return mIsSyntheticDocument; }
 
   void SetNeedLayoutFlush() {
     mNeedLayoutFlush = true;
@@ -1757,6 +1780,164 @@ public:
     return mCreatingStaticClone;
   }
 
+  
+  nsIScriptGlobalObject* GetParentObject() const
+  {
+    return GetScopeObject();
+  }
+  static already_AddRefed<nsIDocument> Constructor(nsISupports* aGlobal,
+                                                   mozilla::ErrorResult& rv);
+  virtual mozilla::dom::DOMImplementation*
+    GetImplementation(mozilla::ErrorResult& rv) = 0;
+  void GetURL(nsString& retval) const;
+  void GetDocumentURI(nsString& retval) const;
+  void GetCompatMode(nsString& retval) const;
+  void GetCharacterSet(nsAString& retval) const;
+  
+  
+  Element* GetDocumentElement() const
+  {
+    return GetRootElement();
+  }
+  already_AddRefed<nsContentList>
+  GetElementsByTagName(const nsAString& aTagName)
+  {
+    return NS_GetContentList(this, kNameSpaceID_Unknown, aTagName);
+  }
+  already_AddRefed<nsContentList>
+    GetElementsByTagNameNS(const nsAString& aNamespaceURI,
+                           const nsAString& aLocalName);
+  already_AddRefed<nsContentList>
+    GetElementsByClassName(const nsAString& aClasses);
+  
+  already_AddRefed<Element> CreateElement(const nsAString& aTagName,
+                                          mozilla::ErrorResult& rv);
+  already_AddRefed<Element> CreateElementNS(const nsAString& aNamespaceURI,
+                                            const nsAString& aQualifiedName,
+                                            mozilla::ErrorResult& rv);
+  already_AddRefed<mozilla::dom::DocumentFragment>
+    CreateDocumentFragment(mozilla::ErrorResult& rv) const;
+  already_AddRefed<nsTextNode> CreateTextNode(const nsAString& aData,
+                                              mozilla::ErrorResult& rv) const;
+  already_AddRefed<mozilla::dom::Comment>
+    CreateComment(const nsAString& aData, mozilla::ErrorResult& rv) const;
+  already_AddRefed<nsXMLProcessingInstruction>
+    CreateProcessingInstruction(const nsAString& target, const nsAString& data,
+                                mozilla::ErrorResult& rv) const;
+  already_AddRefed<nsINode>
+    ImportNode(nsINode& aNode, bool aDeep, mozilla::ErrorResult& rv) const;
+  nsINode* AdoptNode(nsINode& aNode, mozilla::ErrorResult& rv);
+  already_AddRefed<nsIDOMEvent> CreateEvent(const nsAString& aEventType,
+                                            mozilla::ErrorResult& rv) const;
+  already_AddRefed<nsRange> CreateRange(mozilla::ErrorResult& rv);
+  already_AddRefed<nsIDOMNodeIterator>
+    CreateNodeIterator(nsINode& aRoot, uint32_t aWhatToShow,
+                       nsIDOMNodeFilter* aFilter, mozilla::ErrorResult& rv) const;
+  already_AddRefed<nsIDOMTreeWalker>
+    CreateTreeWalker(nsINode& aRoot, uint32_t aWhatToShow,
+                     nsIDOMNodeFilter* aFilter, mozilla::ErrorResult& rv) const;
+
+  
+  already_AddRefed<nsIDOMCDATASection>
+    CreateCDATASection(const nsAString& aData, mozilla::ErrorResult& rv);
+  already_AddRefed<nsIDOMAttr>
+    CreateAttribute(const nsAString& aName, mozilla::ErrorResult& rv);
+  already_AddRefed<nsIDOMAttr>
+    CreateAttributeNS(const nsAString& aNamespaceURI,
+                      const nsAString& aQualifiedName,
+                      mozilla::ErrorResult& rv);
+  void GetInputEncoding(nsAString& aInputEncoding);
+  already_AddRefed<nsIDOMLocation> GetLocation() const;
+  void GetReferrer(nsAString& aReferrer) const;
+  void GetLastModified(nsAString& aLastModified) const;
+  void GetReadyState(nsAString& aReadyState) const;
+  
+  
+  
+  virtual void GetTitle(nsString& aTitle) = 0;
+  virtual void SetTitle(const nsAString& aTitle, mozilla::ErrorResult& rv) = 0;
+  void GetDir(nsAString& aDirection) const;
+  void SetDir(const nsAString& aDirection, mozilla::ErrorResult& rv);
+  nsIDOMWindow* GetDefaultView() const
+  {
+    return GetWindow();
+  }
+  Element* GetActiveElement();
+  bool HasFocus(mozilla::ErrorResult& rv) const;
+  
+  bool MozSyntheticDocument() const
+  {
+    return IsSyntheticDocument();
+  }
+  Element* GetCurrentScript();
+  void ReleaseCapture() const;
+  virtual void MozSetImageElement(const nsAString& aImageElementId,
+                                  Element* aElement) = 0;
+  
+  virtual bool MozFullScreenEnabled() = 0;
+  virtual Element* GetMozFullScreenElement(mozilla::ErrorResult& rv) = 0;
+  bool MozFullScreen()
+  {
+    return IsFullScreenDoc();
+  }
+  void MozCancelFullScreen();
+  Element* GetMozPointerLockElement();
+  void MozExitPointerLock()
+  {
+    UnlockPointer();
+  }
+  bool Hidden() const
+  {
+    return mVisibilityState != eVisible;
+  }
+  bool MozHidden() 
+  {
+    WarnOnceAbout(ePrefixedVisibilityAPI);
+    return Hidden();
+  }
+  void GetVisibilityState(nsAString& aState);
+  void GetMozVisibilityState(nsAString& aState);
+  virtual nsIDOMStyleSheetList* StyleSheets() = 0;
+  void GetSelectedStyleSheetSet(nsAString& aSheetSet);
+  virtual void SetSelectedStyleSheetSet(const nsAString& aSheetSet) = 0;
+  virtual void GetLastStyleSheetSet(nsString& aSheetSet) = 0;
+  void GetPreferredStyleSheetSet(nsAString& aSheetSet);
+  virtual nsIDOMDOMStringList* StyleSheetSets() = 0;
+  virtual void EnableStyleSheetsForSet(const nsAString& aSheetSet) = 0;
+  Element* ElementFromPoint(float aX, float aY);
+  
+  nsINodeList* GetAnonymousNodes(Element& aElement);
+  Element* GetAnonymousElementByAttribute(Element& aElement,
+                                          const nsAString& aAttrName,
+                                          const nsAString& aAttrValue);
+  void AddBinding(Element& aElement, const nsAString& aURI,
+                  mozilla::ErrorResult& rv);
+  void RemoveBinding(Element& aElement, const nsAString& aURI,
+                     mozilla::ErrorResult& rv);
+  Element* GetBindingParent(nsINode& aNode);
+  void LoadBindingDocument(const nsAString& aURI, mozilla::ErrorResult& rv);
+  already_AddRefed<nsIDOMXPathExpression>
+    CreateExpression(const nsAString& aExpression,
+                     nsIDOMXPathNSResolver* aResolver,
+                     mozilla::ErrorResult& rv);
+  already_AddRefed<nsIDOMXPathNSResolver>
+    CreateNSResolver(nsINode* aNodeResolver, mozilla::ErrorResult& rv);
+  already_AddRefed<nsISupports>
+    Evaluate(const nsAString& aExpression, nsINode* aContextNode,
+             nsIDOMXPathNSResolver* aResolver, uint16_t aType,
+             nsISupports* aResult, mozilla::ErrorResult& rv);
+  
+  already_AddRefed<nsIDOMTouch>
+    CreateTouch(nsIDOMWindow* aView, nsISupports* aTarget,
+                int32_t aIdentifier, int32_t aPageX, int32_t aPageY,
+                int32_t aScreenX, int32_t aScreenY, int32_t aClientX,
+                int32_t aClientY, int32_t aRadiusX, int32_t aRadiusY,
+                float aRotationAngle, float aForce);
+  already_AddRefed<nsIDOMTouchList>
+    CreateTouchList(nsIDOMTouch* aTouch);
+  already_AddRefed<nsIDOMTouchList>
+    CreateTouchList(const mozilla::dom::Sequence<nsRefPtr<nsIDOMTouch> >& aTouches);
+
 private:
   uint64_t mWarnedAbout;
 
@@ -1801,6 +1982,23 @@ protected:
     return mContentType;
   }
 
+  inline void
+  SetDocumentDirectionality(mozilla::Directionality aDir)
+  {
+    mDirectionality = aDir;
+  }
+
+  
+  
+  enum VisibilityState {
+    eHidden = 0,
+    eVisible,
+    eVisibilityStateCount
+  };
+
+  nsCString mReferrer;
+  nsString mLastModified;
+
   nsCOMPtr<nsIURI> mDocumentURI;
   nsCOMPtr<nsIURI> mOriginalURI;
   nsCOMPtr<nsIURI> mDocumentBaseURI;
@@ -1844,6 +2042,12 @@ protected:
 
   
   nsCompatibility mCompatMode;
+
+  
+  ReadyState mReadyState;
+
+  
+  VisibilityState mVisibilityState;
 
   
   bool mBidiEnabled;
@@ -1933,6 +2137,10 @@ protected:
 
   
   bool mBFCacheDisallowed;
+
+  
+  
+  bool mHaveInputEncoding;
 
   
   

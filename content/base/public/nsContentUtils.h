@@ -354,10 +354,10 @@ public:
   
 
 
-  static nsresult CheckSameOrigin(nsINode* aTrustedNode,
+  static nsresult CheckSameOrigin(const nsINode* aTrustedNode,
                                   nsIDOMNode* aUnTrustedNode);
-  static nsresult CheckSameOrigin(nsINode* aTrustedNode,
-                                  nsINode* unTrustedNode);
+  static nsresult CheckSameOrigin(const nsINode* aTrustedNode,
+                                  const nsINode* unTrustedNode);
 
   
   static bool CanCallerAccess(nsIDOMNode *aNode);

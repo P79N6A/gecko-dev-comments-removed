@@ -63,7 +63,7 @@
 #include "nsISecurityEventSink.h"
 #include "nsIChannelEventSink.h"
 #include "imgIRequest.h"
-#include "nsIDOMDOMImplementation.h"
+#include "mozilla/dom/DOMImplementation.h"
 #include "nsIDOMTouchEvent.h"
 #include "nsIInlineEventHandlers.h"
 #include "nsDataHashtable.h"
@@ -477,6 +477,7 @@ class nsDocument : public nsIDocument,
 {
 public:
   typedef mozilla::dom::Element Element;
+  using nsIDocument::GetElementsByTagName;
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
 
@@ -624,7 +625,7 @@ public:
 
   virtual void SetScriptHandlingObject(nsIScriptGlobalObject* aScriptObject);
 
-  virtual nsIScriptGlobalObject* GetScopeObject();
+  virtual nsIScriptGlobalObject* GetScopeObject() const;
 
   
 
@@ -660,7 +661,6 @@ public:
   virtual void EndLoad();
 
   virtual void SetReadyStateInternal(ReadyState rs);
-  virtual ReadyState GetReadyStateEnum();
 
   virtual void ContentStateChanged(nsIContent* aContent,
                                    nsEventStates aStateMask);
@@ -775,12 +775,6 @@ public:
                               int32_t aNamespaceID,
                               nsIContent **aResult);
 
-  nsresult CreateElement(const nsAString& aTagName,
-                         nsIContent** aReturn);
-  nsresult CreateElementNS(const nsAString& aNamespaceURI,
-                           const nsAString& aQualifiedName,
-                           nsIContent** aReturn);
-
   nsresult CreateTextNode(const nsAString& aData, nsIContent** aReturn);
 
   virtual NS_HIDDEN_(nsresult) Sanitize();
@@ -806,15 +800,14 @@ public:
                                                    nsIDOMNodeList** aResult);
   virtual NS_HIDDEN_(nsresult) GetContentListFor(nsIContent* aContent,
                                                  nsIDOMNodeList** aResult);
-  virtual NS_HIDDEN_(nsIContent*)
+  virtual NS_HIDDEN_(Element*)
     GetAnonymousElementByAttribute(nsIContent* aElement,
                                    nsIAtom* aAttrName,
                                    const nsAString& aAttrValue) const;
 
-  virtual NS_HIDDEN_(nsresult) ElementFromPointHelper(float aX, float aY,
+  virtual NS_HIDDEN_(Element*) ElementFromPointHelper(float aX, float aY,
                                                       bool aIgnoreRootScrollFrame,
-                                                      bool aFlushLayout,
-                                                      nsIDOMElement** aReturn);
+                                                      bool aFlushLayout);
 
   virtual NS_HIDDEN_(nsresult) NodesFromRectHelper(float aX, float aY,
                                                    float aTopSize, float aRightSize,
@@ -899,18 +892,12 @@ public:
   virtual void ResetScrolledToRefAlready();
   virtual void SetChangeScrollPosWhenScrollingToRef(bool aValue);
 
-  already_AddRefed<nsContentList>
-  GetElementsByTagName(const nsAString& aTagName) {
-    return NS_GetContentList(this, kNameSpaceID_Unknown, aTagName);
-  }
-  already_AddRefed<nsContentList>
-    GetElementsByTagNameNS(const nsAString& aNamespaceURI,
-                           const nsAString& aLocalName);
-
   virtual Element *GetElementById(const nsAString& aElementId);
   virtual const nsSmallVoidArray* GetAllElementsForId(const nsAString& aElementId) const;
 
   virtual Element *LookupImageElement(const nsAString& aElementId);
+  virtual void MozSetImageElement(const nsAString& aImageElementId,
+                                  Element* aElement);
 
   virtual NS_HIDDEN_(nsresult) AddImage(imgIRequest* aImage);
   virtual NS_HIDDEN_(nsresult) RemoveImage(imgIRequest* aImage, uint32_t aFlags);
@@ -990,6 +977,10 @@ public:
   
   Element* FullScreenStackTop();
 
+  
+  virtual bool MozFullScreenEnabled();
+  virtual Element* GetMozFullScreenElement(mozilla::ErrorResult& rv);
+
   void RequestPointerLock(Element* aElement);
   bool ShouldLockPointer(Element* aElement);
   bool SetPointerLock(Element* aElement, int aCursorStyle);
@@ -1005,6 +996,16 @@ public:
   
 
   virtual nsIDOMNode* AsDOMNode() { return this; }
+
+  
+  virtual mozilla::dom::DOMImplementation*
+    GetImplementation(mozilla::ErrorResult& rv);
+  virtual nsIDOMStyleSheetList* StyleSheets();
+  virtual void SetSelectedStyleSheetSet(const nsAString& aSheetSet);
+  virtual void GetLastStyleSheetSet(nsString& aSheetSet);
+  virtual nsIDOMDOMStringList* StyleSheetSets();
+  virtual void EnableStyleSheetsForSet(const nsAString& aSheetSet);
+
 protected:
   friend class nsNodeUtils;
 
@@ -1052,12 +1053,6 @@ protected:
   nsIContent* GetFirstBaseNodeWithHref();
   nsresult SetFirstBaseNodeWithHref(nsIContent *node);
 
-  inline void
-  SetDocumentDirectionality(mozilla::Directionality aDir)
-  {
-    mDirectionality = aDir;
-  }
-
   
   
   nsIContent* GetTitleContent(uint32_t aNodeType);
@@ -1065,7 +1060,13 @@ protected:
   
   
   void GetTitleFromElement(uint32_t aNodeType, nsAString& aTitle);
+public:
+  
+  virtual void GetTitle(nsString& aTitle);
+  
+  virtual void SetTitle(const nsAString& aTitle, mozilla::ErrorResult& rv);
 
+protected:
   nsresult doCreateShell(nsPresContext* aContext,
                          nsIViewManager* aViewManager, nsStyleSet* aStyleSet,
                          nsCompatibility aCompatMode,
@@ -1100,9 +1101,6 @@ protected:
   virtual ~nsDocument();
 
   void EnsureOnloadBlocker();
-
-  nsCString mReferrer;
-  nsString mLastModified;
 
   nsTArray<nsIObserver*> mCharSetObservers;
 
@@ -1196,10 +1194,6 @@ protected:
 
   bool mSynchronousDOMContentLoaded:1;
 
-  
-  
-  bool mHaveInputEncoding:1;
-
   bool mInXBLUpdate:1;
 
   
@@ -1259,12 +1253,6 @@ protected:
 private:
   friend class nsUnblockOnloadEvent;
   
-  enum VisibilityState {
-    eHidden = 0,
-    eVisible,
-    eVisibilityStateCount
-  };
-  
   VisibilityState GetVisibilityState() const;
 
   void PostUnblockOnloadEvent();
@@ -1322,7 +1310,6 @@ private:
   
   uint32_t mAsyncOnloadBlockCount;
   nsCOMPtr<nsIRequest> mOnloadBlocker;
-  ReadyState mReadyState;
 
   
   nsTHashtable<nsPtrHashKey<mozilla::dom::Link> > mStyledLinks;
@@ -1348,7 +1335,7 @@ private:
   
   nsCOMArray<imgIRequest> mPreloadingImages;
 
-  nsCOMPtr<nsIDOMDOMImplementation> mDOMImplementation;
+  nsRefPtr<mozilla::dom::DOMImplementation> mDOMImplementation;
 
   nsRefPtr<nsContentList> mImageMaps;
 
@@ -1361,8 +1348,6 @@ private:
 
   
   nsTHashtable< nsPtrHashKey<nsIObjectLoadingContent> > mPlugins;
-
-  VisibilityState mVisibilityState;
 
 #ifdef DEBUG
 protected:

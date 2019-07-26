@@ -140,6 +140,13 @@ public:
 
     
     NS_FORWARD_NSIDOMDOCUMENT(nsXMLDocument::)
+    
+    using nsDocument::GetImplementation;
+    using nsDocument::GetTitle;
+    using nsDocument::SetTitle;
+    using nsDocument::GetLastStyleSheetSet;
+    using nsDocument::MozSetImageElement;
+    using nsDocument::GetMozFullScreenElement;
 
     
     virtual mozilla::dom::Element* GetElementById(const nsAString & elementId);
