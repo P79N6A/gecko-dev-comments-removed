@@ -124,12 +124,13 @@ tabbrowser {
 
   visibility: visible;
   
-
   transition: visibility 0ms 25ms;
 }
 
-.tab-background[selected]:not([fadein]):not([pinned]) {
+.tab-background:not([fadein]):not([pinned]) {
   visibility: hidden;
+  
+  transition-delay: 0ms;
 }
 
 .tab-throbber:not([fadein]):not([pinned]),
