@@ -2774,7 +2774,7 @@ PreserveWrapper(JSContext *cx, JSObject *obj)
 }
 
 static nsresult
-ReadSourceFromFilename(JSContext *cx, const char *filename, jschar **src, uint32_t *len)
+ReadSourceFromFilename(JSContext *cx, const char *filename, jschar **src, size_t *len)
 {
   nsresult rv;
 
@@ -2812,6 +2812,10 @@ ReadSourceFromFilename(JSContext *cx, const char *filename, jschar **src, uint32
   NS_ENSURE_SUCCESS(rv, rv);
   if (!rawLen)
     return NS_ERROR_FAILURE;
+
+  
+  
+  
   if (rawLen > UINT32_MAX)
     return NS_ERROR_FILE_TOO_BIG;
 
@@ -2849,7 +2853,7 @@ ReadSourceFromFilename(JSContext *cx, const char *filename, jschar **src, uint32
 
 
 static bool
-SourceHook(JSContext *cx, const char *filename, jschar **src, uint32_t *length)
+SourceHook(JSContext *cx, const char *filename, jschar **src, size_t *length)
 {
   *src = NULL;
   *length = 0;
