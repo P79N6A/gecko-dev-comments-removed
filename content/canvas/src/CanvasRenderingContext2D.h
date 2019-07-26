@@ -597,9 +597,7 @@ protected:
   void EnsureWritablePath();
 
   
-  
-  
-  void EnsureUserSpacePath(bool aCommitTransform = true);
+  void EnsureUserSpacePath();
 
   
 
