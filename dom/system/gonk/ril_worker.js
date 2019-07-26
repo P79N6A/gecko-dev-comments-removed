@@ -8481,6 +8481,13 @@ let StkProactiveCmdHelper = {
 
 
   retrieveItem: function retrieveItem(length) {
+    
+    
+    
+    
+    if (!length) {
+      return null;
+    }
     let item = {
       identifier: GsmPDUHelper.readHexOctet(),
       text: GsmPDUHelper.readAlphaIdentifier(length - 1)
