@@ -730,13 +730,10 @@ SessionStore.prototype = {
           let tabData = tabs[i];
 
           
-          let params = { getAttention: false, delayLoad: true };
-
-          
           
           
           let bringToFront = (i + 1 <= selected) && aBringToFront;
-          let tab = window.Browser.addTab(tabData.entries[tabData.index - 1].url, bringToFront, null, params);
+          let tab = window.Browser.addTab(tabData.entries[tabData.index - 1].url, bringToFront);
 
           
           if (i + 1 == selected) {
