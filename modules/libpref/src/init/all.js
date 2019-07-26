@@ -4495,7 +4495,11 @@ pref("dom.telephony.enabled", false);
 pref("dom.telephony.defaultServiceId", 0);
 
 
+#ifdef MOZ_B2G_RIL
+pref("dom.cellbroadcast.enabled", true);
+#else
 pref("dom.cellbroadcast.enabled", false);
+#endif
 
 
 pref("dom.icc.enabled", false);
