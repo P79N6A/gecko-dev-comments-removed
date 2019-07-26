@@ -59,27 +59,12 @@ static const LONGLONG kNsPerMillisec = 1000000;
 
 
 
-static const uint32_t kQPCHardFailureDetectionInterval = 2000;
+static const uint32_t kFailureFreeInterval = 5000;
+
+static const uint32_t kMaxFailuresPerInterval = 4;
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-static const ULONGLONG kOverflowLimit = 50;
+static const uint32_t kFailureThreshold = 50;
 
 
 
@@ -111,20 +96,38 @@ static LONGLONG sFrequencyPerSec = 0;
 
 
 
+static const LONGLONG kGTCTickLeapTolerance = 4;
 
 
 
 
 
 
-static LONGLONG sUnderrunThreshold;
-static LONGLONG sOverrunThreshold;
 
 
 
 
 
-static LONGLONG sQPCHardFailureDetectionInterval;
+
+static LONGLONG sGTCResulutionThreshold;
+
+
+
+
+
+
+
+static const uint32_t kHardFailureLimit = 2000;
+
+static LONGLONG sHardFailureLimit;
+
+
+static LONGLONG sFailureFreeInterval;
+static LONGLONG sFailureThreshold;
+
+
+
+
 
 
 static bool sHasStableTSC = false;
@@ -149,6 +152,21 @@ static const DWORD kLockSpinCount = 4096;
 
 
 static CRITICAL_SECTION sTimeStampLock;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static ULONGLONG sFaultIntoleranceCheckpoint = 0;
 
 
 
@@ -240,26 +258,16 @@ InitThresholds()
   timeIncrementCeil *= 10000;
 
   
-  LONGLONG ticksPerGetTickCountResolution =
-    (int64_t(timeIncrement) * sFrequencyPerSec) / 10000LL;
-
-  
   LONGLONG ticksPerGetTickCountResolutionCeiling =
     (int64_t(timeIncrementCeil) * sFrequencyPerSec) / 10000LL;
 
   
-  
-  
-  
-  sUnderrunThreshold =
-    LONGLONG((-4) * ticksPerGetTickCountResolutionCeiling);
+  sGTCResulutionThreshold =
+    LONGLONG(kGTCTickLeapTolerance * ticksPerGetTickCountResolutionCeiling);
 
-  
-  sOverrunThreshold =
-    LONGLONG((+4) * ticksPerGetTickCountResolution);
-
-  sQPCHardFailureDetectionInterval =
-    LONGLONG(kQPCHardFailureDetectionInterval) * sFrequencyPerSec;
+  sHardFailureLimit = ms2mt(kHardFailureLimit);
+  sFailureFreeInterval = ms2mt(kFailureFreeInterval);
+  sFailureThreshold = ms2mt(kFailureThreshold);
 }
 
 static void
@@ -343,64 +351,73 @@ TimeStampValue::operator-=(const int64_t aOther)
 
 
 
-bool
-TimeStampValue::CheckQPC(int64_t aDuration, const TimeStampValue &aOther) const
+uint64_t
+TimeStampValue::CheckQPC(const TimeStampValue &aOther) const
 {
+  uint64_t deltaGTC = mGTC - aOther.mGTC;
+
   if (!mHasQPC || !aOther.mHasQPC) 
-    return false;
+    return deltaGTC;
+
+  uint64_t deltaQPC = mQPC - aOther.mQPC;
 
   if (sHasStableTSC) 
-    return true;
+    return deltaQPC;
 
   if (!sUseQPC) 
-    return false;
+    return deltaGTC;
 
   
-  aDuration = DeprecatedAbs(aDuration);
+  int64_t diff = DeprecatedAbs(int64_t(deltaQPC) - int64_t(deltaGTC));
+  if (diff <= sGTCResulutionThreshold)
+    return deltaQPC;
 
   
+  int64_t duration = DeprecatedAbs(int64_t(deltaGTC));
+  int64_t overflow = diff - sGTCResulutionThreshold;
 
-  LONGLONG skew1 = mGTC - mQPC;
-  LONGLONG skew2 = aOther.mGTC - aOther.mQPC;
+  LOG(("TimeStamp: QPC check after %llums with overflow %1.4fms",
+       mt2ms(duration), mt2ms_f(overflow)));
 
-  LONGLONG diff = skew1 - skew2;
-  LONGLONG overflow;
+  if (overflow <= sFailureThreshold) 
+    return deltaQPC; 
 
-  if (diff < sUnderrunThreshold)
-    overflow = sUnderrunThreshold - diff;
-  else if (diff > sOverrunThreshold)
-    overflow = diff - sOverrunThreshold;
-  else
-    return true;
+  
+  LOG(("TimeStamp: QPC jittered over failure threshold"));
 
-  ULONGLONG trend;
-  if (aDuration)
-    trend = LONGLONG(overflow * (double(sQPCHardFailureDetectionInterval) / aDuration));
-  else
-    trend = overflow;
-
-  LOG(("TimeStamp: QPC check after %llums with overflow %1.4fms"
-       ", adjusted trend per interval is %1.4fms",
-       mt2ms(aDuration),
-       mt2ms_f(overflow),
-       mt2ms_f(trend)));
-
-  if (trend <= ms2mt(kOverflowLimit)) {
+  if (duration < sHardFailureLimit) {
     
-    return true;
+    
+    uint64_t now = ms2mt(sGetTickCount64());
+
+    AutoCriticalSection lock(&sTimeStampLock);
+
+    if (sFaultIntoleranceCheckpoint && sFaultIntoleranceCheckpoint > now) {
+      
+      
+      
+      uint64_t failureCount = (sFaultIntoleranceCheckpoint - now + sFailureFreeInterval - 1) /
+                               sFailureFreeInterval;
+      if (failureCount > kMaxFailuresPerInterval) {
+        sUseQPC = false;
+        LOG(("TimeStamp: QPC disabled"));
+      }
+      else {
+        
+        
+        ++failureCount;
+        sFaultIntoleranceCheckpoint = now + failureCount * sFailureFreeInterval;
+        LOG(("TimeStamp: recording %dth QPC failure", failureCount));
+      }
+    }
+    else {
+      
+      sFaultIntoleranceCheckpoint = now + sFailureFreeInterval;
+      LOG(("TimeStamp: recording 1st QPC failure"));
+    }
   }
 
-  
-  LOG(("TimeStamp: QPC found highly jittering"));
-
-  if (aDuration < sQPCHardFailureDetectionInterval) {
-    
-    
-    sUseQPC = false;
-    LOG(("TimeStamp: QPC disabled"));
-  }
-
-  return false;
+  return deltaGTC;
 }
 
 uint64_t
@@ -409,10 +426,7 @@ TimeStampValue::operator-(const TimeStampValue &aOther) const
   if (mIsNull && aOther.mIsNull)
     return uint64_t(0);
 
-  if (CheckQPC(int64_t(mGTC - aOther.mGTC), aOther))
-    return mQPC - aOther.mQPC;
-
-  return mGTC - aOther.mGTC;
+  return CheckQPC(aOther);
 }
 
 
