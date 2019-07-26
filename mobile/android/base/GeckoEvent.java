@@ -426,6 +426,13 @@ public class GeckoEvent {
                 mPointRadii[index] = new Point((int)size,(int)size);
                 mOrientations[index] = 0;
             }
+            if (!keepInViewCoordinates) {
+                
+                
+                float zoom = GeckoAppShell.getLayerView().getViewportMetrics().zoomFactor;
+                mPointRadii[index].x /= zoom;
+                mPointRadii[index].y /= zoom;
+            }
             mPressures[index] = event.getPressure(eventIndex);
         } catch (Exception ex) {
             Log.e(LOGTAG, "Error creating motion point " + index, ex);

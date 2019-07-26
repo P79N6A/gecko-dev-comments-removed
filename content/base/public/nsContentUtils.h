@@ -1519,15 +1519,6 @@ public:
                                         uint32_t aDisplayWidth,
                                         uint32_t aDisplayHeight);
 
-#ifdef MOZ_WIDGET_ANDROID
-  
-
-
-
-
-  static double GetDevicePixelsPerMetaViewportPixel(nsIWidget* aWidget);
-#endif
-
   
   
   static void EnterMicroTask() { ++sMicroTaskLevel; }

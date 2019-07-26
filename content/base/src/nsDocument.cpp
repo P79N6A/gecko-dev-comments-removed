@@ -6906,12 +6906,7 @@ nsDocument::GetViewportInfo(uint32_t aDisplayWidth,
     }
     
     nsIWidget *widget = nsContentUtils::WidgetForDocument(this);
-#ifdef MOZ_WIDGET_ANDROID
-    
-    double pixelRatio = widget ? nsContentUtils::GetDevicePixelsPerMetaViewportPixel(widget) : 1.0;
-#else
     double pixelRatio = widget ? widget->GetDefaultScale() : 1.0;
-#endif
     float scaleFloat = mScaleFloat * pixelRatio;
     float scaleMinFloat= mScaleMinFloat * pixelRatio;
     float scaleMaxFloat = mScaleMaxFloat * pixelRatio;

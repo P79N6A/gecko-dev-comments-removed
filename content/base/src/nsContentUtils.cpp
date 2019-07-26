@@ -4837,30 +4837,6 @@ nsContentUtils::GetViewportInfo(nsIDocument *aDocument,
   return aDocument->GetViewportInfo(aDisplayWidth, aDisplayHeight);
 }
 
-#ifdef MOZ_WIDGET_ANDROID
-
-double
-nsContentUtils::GetDevicePixelsPerMetaViewportPixel(nsIWidget* aWidget)
-{
-  int32_t prefValue = Preferences::GetInt("browser.viewport.scaleRatio", 0);
-  if (prefValue > 0) {
-    return double(prefValue) / 100.0;
-  }
-
-  float dpi = aWidget->GetDPI();
-  if (dpi < 200.0) {
-    
-    return 1.0;
-  }
-  if (dpi < 300.0) {
-    
-    return 1.5;
-  }
-  
-  return floor(dpi / 150.0);
-}
-#endif
-
 
 nsresult
 nsContentUtils::ProcessViewportInfo(nsIDocument *aDocument,
