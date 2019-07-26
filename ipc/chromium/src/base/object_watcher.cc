@@ -55,7 +55,7 @@ bool ObjectWatcher::StartWatching(HANDLE object, Delegate* delegate) {
 
   
   
-  DWORD wait_flags = WT_EXECUTEINWAITTHREAD | WT_EXECUTEONLYONCE;
+  DWORD wait_flags = WT_EXECUTEDEFAULT | WT_EXECUTEONLYONCE;
 
   if (!RegisterWaitForSingleObject(&watch->wait_object, object, DoneWaiting,
                                    watch, INFINITE, wait_flags)) {
