@@ -511,13 +511,6 @@ public class BrowserToolbar extends GeckoRelativeLayout
             }
         });
 
-        mShadow = (ImageView) findViewById(R.id.shadow);
-        mShadow.setOnClickListener(new Button.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-            }
-        });
-
         float slideWidth = getResources().getDimension(R.dimen.browser_toolbar_lock_width);
 
         LinearLayout.LayoutParams siteSecParams = (LinearLayout.LayoutParams) mSiteSecurity.getLayoutParams();
@@ -546,23 +539,6 @@ public class BrowserToolbar extends GeckoRelativeLayout
                 @Override
                 public void onClick(View view) {
                     mActivity.openOptionsMenu();
-                }
-            });
-        }
-
-        if (!HardwareUtils.isTablet()) {
-            
-            
-            post(new Runnable() {
-                @Override
-                public void run() {
-                    int height = mTabs.getHeight();
-                    int width = mTabs.getWidth();
-                    int tail = (width - height) / 2;
-
-                    Rect bounds = new Rect(0, 0, tail, height);
-                    TailTouchDelegate delegate = new TailTouchDelegate(bounds, mShadow);
-                    mTabs.setTouchDelegate(delegate);
                 }
             });
         }
@@ -1046,11 +1022,6 @@ public class BrowserToolbar extends GeckoRelativeLayout
 
         String url = tab.getURL();
 
-        
-        
-        visible &= !(url == null || (url.startsWith("about:") && 
-                     !url.equals("about:blank"))) && !isEditing();
-
         if ((mShadow.getVisibility() == View.VISIBLE) != visible) {
             mShadow.setVisibility(visible ? View.VISIBLE : View.GONE);
         }
@@ -1465,8 +1436,6 @@ public class BrowserToolbar extends GeckoRelativeLayout
 
             @Override
             public void onPropertyAnimationEnd() {
-                setShadowVisibility(true);
-
                 PropertyAnimator buttonsAnimator = new PropertyAnimator(300);
 
                 
@@ -1699,7 +1668,6 @@ public class BrowserToolbar extends GeckoRelativeLayout
             setProgressVisibility(tab.getState() == Tab.STATE_LOADING);
             setSecurityMode(tab.getSecurityMode());
             setPageActionVisibility(mStop.getVisibility() == View.VISIBLE);
-            setShadowVisibility(true);
             updateBackButton(tab.canDoBack());
             updateForwardButton(tab.canDoForward());
 

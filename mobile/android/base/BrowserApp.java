@@ -1481,7 +1481,6 @@ abstract public class BrowserApp extends GeckoApp
         
         mHomePager.hide();
 
-        mBrowserToolbar.setShadowVisibility(true);
         mBrowserToolbar.setNextFocusDownId(R.id.layer_view);
 
         
