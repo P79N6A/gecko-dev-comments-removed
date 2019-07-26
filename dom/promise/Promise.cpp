@@ -13,6 +13,7 @@
 #include "mozilla/Preferences.h"
 #include "PromiseCallback.h"
 #include "PromiseNativeHandler.h"
+#include "PromiseWorkerProxy.h"
 #include "nsContentUtils.h"
 #include "WorkerPrivate.h"
 #include "WorkerRunnable.h"
@@ -694,13 +695,13 @@ public:
   }
 
   void
-  ResolvedCallback(JS::Handle<JS::Value> aValue)
+  ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue)
   {
     mCountdownHolder->SetValue(mIndex, aValue);
   }
 
   void
-  RejectedCallback(JS::Handle<JS::Value> aValue)
+  RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue)
   {
     
     MOZ_ASSERT(false, "AllResolveHandler should never be attached to a Promise's reject handler!");
@@ -1123,6 +1124,201 @@ PromiseReportRejectFeature::Notify(JSContext* aCx, workers::Status aStatus)
   mPromise->MaybeReportRejectedOnce();
   
   return true;
+}
+
+
+
+class PromiseWorkerProxyRunnable : public workers::WorkerRunnable
+{
+public:
+  PromiseWorkerProxyRunnable(PromiseWorkerProxy* aPromiseWorkerProxy,
+                             JSStructuredCloneCallbacks* aCallbacks,
+                             JSAutoStructuredCloneBuffer&& aBuffer,
+                             PromiseWorkerProxy::RunCallbackFunc aFunc)
+    : WorkerRunnable(aPromiseWorkerProxy->GetWorkerPrivate(),
+                     WorkerThreadUnchangedBusyCount)
+    , mPromiseWorkerProxy(aPromiseWorkerProxy)
+    , mCallbacks(aCallbacks)
+    , mBuffer(Move(aBuffer))
+    , mFunc(aFunc)
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+    MOZ_ASSERT(mPromiseWorkerProxy);
+  }
+
+  virtual bool
+  WorkerRun(JSContext* aCx, workers::WorkerPrivate* aWorkerPrivate)
+  {
+    MOZ_ASSERT(aWorkerPrivate);
+    aWorkerPrivate->AssertIsOnWorkerThread();
+    MOZ_ASSERT(aWorkerPrivate == mWorkerPrivate);
+
+    MOZ_ASSERT(mPromiseWorkerProxy);
+    nsRefPtr<Promise> workerPromise = mPromiseWorkerProxy->GetWorkerPromise();
+    MOZ_ASSERT(workerPromise);
+
+    
+    JS::Rooted<JS::Value> value(aCx);
+    if (!mBuffer.read(aCx, &value, mCallbacks, mPromiseWorkerProxy)) {
+      JS_ClearPendingException(aCx);
+      return false;
+    }
+
+    
+    (workerPromise.get()->*mFunc)(aCx,
+                                  value,
+                                  Promise::PromiseTaskSync::SyncTask);
+
+    
+    mPromiseWorkerProxy->CleanUp(aCx);
+    return true;
+  }
+
+protected:
+  ~PromiseWorkerProxyRunnable() {}
+
+private:
+  nsRefPtr<PromiseWorkerProxy> mPromiseWorkerProxy;
+  JSStructuredCloneCallbacks* mCallbacks;
+  JSAutoStructuredCloneBuffer mBuffer;
+
+  
+  PromiseWorkerProxy::RunCallbackFunc mFunc;
+};
+
+PromiseWorkerProxy::PromiseWorkerProxy(WorkerPrivate* aWorkerPrivate,
+                                       Promise* aWorkerPromise,
+                                       JSStructuredCloneCallbacks* aCallbacks)
+  : mWorkerPrivate(aWorkerPrivate)
+  , mWorkerPromise(aWorkerPromise)
+  , mCleanedUp(false)
+  , mCallbacks(aCallbacks)
+  , mCleanUpLock("cleanUpLock")
+{
+  MOZ_ASSERT(mWorkerPrivate);
+  mWorkerPrivate->AssertIsOnWorkerThread();
+  MOZ_ASSERT(mWorkerPromise);
+
+  
+  
+  if (!mWorkerPrivate->AddFeature(mWorkerPrivate->GetJSContext(), this)) {
+    MOZ_ASSERT(false, "cannot add the worker feature!");
+    return;
+  }
+}
+
+PromiseWorkerProxy::~PromiseWorkerProxy()
+{
+  MOZ_ASSERT(mCleanedUp);
+  MOZ_ASSERT(!mWorkerPromise);
+}
+
+WorkerPrivate*
+PromiseWorkerProxy::GetWorkerPrivate() const
+{
+  
+  
+  MOZ_ASSERT(!mCleanedUp);
+
+  return mWorkerPrivate;
+}
+
+Promise*
+PromiseWorkerProxy::GetWorkerPromise() const
+{
+  return mWorkerPromise;
+}
+
+void
+PromiseWorkerProxy::StoreISupports(nsISupports* aSupports)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  nsMainThreadPtrHandle<nsISupports> supports =
+    new nsMainThreadPtrHolder<nsISupports>(aSupports);
+  mSupportsArray.AppendElement(supports);
+}
+
+void
+PromiseWorkerProxy::RunCallback(JSContext* aCx,
+                                JS::Handle<JS::Value> aValue,
+                                RunCallbackFunc aFunc)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  MutexAutoLock lock(mCleanUpLock);
+  
+  if (mCleanedUp) {
+    return;
+  }
+
+  
+  
+  
+  JSAutoStructuredCloneBuffer buffer;
+  if (!buffer.write(aCx, aValue, mCallbacks, this)) {
+    JS_ClearPendingException(aCx);
+    MOZ_ASSERT(false, "cannot write the JSAutoStructuredCloneBuffer!");
+  }
+
+  nsRefPtr<PromiseWorkerProxyRunnable> runnable =
+    new PromiseWorkerProxyRunnable(this,
+                                   mCallbacks,
+                                   Move(buffer),
+                                   aFunc);
+
+  runnable->Dispatch(aCx);
+}
+
+void
+PromiseWorkerProxy::ResolvedCallback(JSContext* aCx,
+                                     JS::Handle<JS::Value> aValue)
+{
+  RunCallback(aCx, aValue, &Promise::ResolveInternal);
+}
+
+void
+PromiseWorkerProxy::RejectedCallback(JSContext* aCx,
+                                     JS::Handle<JS::Value> aValue)
+{
+  RunCallback(aCx, aValue, &Promise::RejectInternal);
+}
+
+bool
+PromiseWorkerProxy::Notify(JSContext* aCx, Status aStatus)
+{
+  MOZ_ASSERT(mWorkerPrivate);
+  mWorkerPrivate->AssertIsOnWorkerThread();
+  MOZ_ASSERT(mWorkerPrivate->GetJSContext() == aCx);
+
+  if (aStatus >= Canceling) {
+    CleanUp(aCx);
+  }
+
+  return true;
+}
+
+void
+PromiseWorkerProxy::CleanUp(JSContext* aCx)
+{
+  MutexAutoLock lock(mCleanUpLock);
+
+  
+  
+  if (mCleanedUp) {
+    return;
+  }
+
+  MOZ_ASSERT(mWorkerPrivate);
+  mWorkerPrivate->AssertIsOnWorkerThread();
+  MOZ_ASSERT(mWorkerPrivate->GetJSContext() == aCx);
+
+  
+  
+  
+  mWorkerPromise = nullptr;
+  mWorkerPrivate->RemoveFeature(aCx, this);
+  mCleanedUp = true;
 }
 
 } 
