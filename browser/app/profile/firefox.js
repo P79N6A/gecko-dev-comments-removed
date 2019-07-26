@@ -1068,6 +1068,7 @@ pref("devtools.commands.dir", "");
 
 
 pref("devtools.appmanager.enabled", false);
+pref("devtools.appmanager.simulatorInstallPage", "https://addons.mozilla.org/firefox/addon/firefox-os-simulator/");
 
 
 pref("devtools.toolbox.footer.height", 250);
