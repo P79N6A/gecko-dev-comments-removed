@@ -463,8 +463,9 @@ nsThread::DispatchInternal(nsIRunnable *event, uint32_t flags,
     if (NS_FAILED(rv))
       return rv;
 
+    
     while (wrapper->IsPending())
-      NS_ProcessNextEvent(thread);
+      NS_ProcessNextEvent(thread, true);
     return wrapper->Result();
   }
 
@@ -539,8 +540,9 @@ nsThread::Shutdown()
   
   
   
+  
   while (!context.shutdownAck)
-    NS_ProcessNextEvent(context.joiningThread);
+    NS_ProcessNextEvent(context.joiningThread, true);
 
   
 
