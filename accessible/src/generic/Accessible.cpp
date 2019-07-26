@@ -120,7 +120,7 @@ Accessible::Accessible(nsIContent* aContent, DocAccessible* aDoc) :
 #ifdef NS_DEBUG_X
    {
      nsCOMPtr<nsIPresShell> shell(do_QueryReferent(aShell));
-     printf(">>> %p Created Acc - DOM: %p  PS: %p",
+     printf(">>> %p Created Acc - DOM: %p  PS: %p", 
             (void*)static_cast<nsIAccessible*>(this), (void*)aNode,
             (void*)shell.get());
     nsCOMPtr<nsIContent> content = do_QueryInterface(aNode);
@@ -550,7 +550,7 @@ Accessible::GetIndexInParent(int32_t* aIndexInParent)
   return *aIndexInParent != -1 ? NS_OK : NS_ERROR_FAILURE;
 }
 
-void
+void 
 Accessible::TranslateString(const nsString& aKey, nsAString& aStringOut)
 {
   nsCOMPtr<nsIStringBundleService> stringBundleService =
@@ -560,7 +560,7 @@ Accessible::TranslateString(const nsString& aKey, nsAString& aStringOut)
 
   nsCOMPtr<nsIStringBundle> stringBundle;
   stringBundleService->CreateBundle(
-    "chrome://global-platform/locale/accessible.properties",
+    "chrome://global-platform/locale/accessible.properties", 
     getter_AddRefs(stringBundle));
   if (!stringBundle)
     return;
@@ -1578,7 +1578,7 @@ Accessible::ApplyARIAState(uint64_t* aState) const
         *aState |= states::UNAVAILABLE;
         break;
       }
-    }
+    }    
   }
 
   
@@ -3058,7 +3058,7 @@ Accessible::TestChildCache(Accessible* aCachedChild) const
   }
 
   NS_ASSERTION(child == aCachedChild,
-               "[TestChildCache] cached accessible wasn't found. Wrong accessible tree!");
+               "[TestChildCache] cached accessible wasn't found. Wrong accessible tree!");  
 #endif
 }
 
@@ -3135,7 +3135,7 @@ Accessible::GetActionRule()
 
   if (isOnclick)
     return eClickAction;
-
+  
   
   if (mRoleMapEntry &&
       mRoleMapEntry->actionRule != eNoAction)
