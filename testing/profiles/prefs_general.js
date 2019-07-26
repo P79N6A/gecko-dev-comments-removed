@@ -148,3 +148,7 @@ user_pref("geo.provider.testing", true);
 
 
 user_pref("browser.pagethumbnails.capturing_disabled", true);
+
+
+
+user_pref("browser.download.panel.shown", true);

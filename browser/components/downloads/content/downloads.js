@@ -193,10 +193,17 @@ const DownloadsPanel = {
   
 
 
+
   get panel()
   {
+    
+    
+    let downloadsPanel = document.getElementById("downloadsPanel");
+    if (!downloadsPanel)
+      return null;
+
     delete this.panel;
-    return this.panel = document.getElementById("downloadsPanel");
+    return this.panel = downloadsPanel;
   },
 
   

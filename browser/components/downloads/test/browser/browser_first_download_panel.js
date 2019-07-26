@@ -10,6 +10,14 @@
 
 function test_task()
 {
+  
+  
+  let oldPrefValue = true;
+  try {
+    oldPrefValue = Services.prefs.getBoolPref("browser.download.panel.shown");
+  } catch(ex) { }
+  Services.prefs.setBoolPref("browser.download.panel.shown", false);
+
   try {
     
     yield task_resetState();
@@ -49,5 +57,9 @@ function test_task()
   } finally {
     
     yield task_resetState();
+    
+    
+    
+    Services.prefs.setBoolPref("browser.download.panel.shown", oldPrefValue);
   }
 }

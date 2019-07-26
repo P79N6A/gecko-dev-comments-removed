@@ -20,6 +20,9 @@ function test_task()
 
   try {
     
+    yield promiseFocus();
+
+    
     yield task_resetState();
 
     

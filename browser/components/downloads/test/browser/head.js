@@ -51,6 +51,10 @@ function promisePanelOpened()
 {
   let deferred = Promise.defer();
 
+  if (DownloadsPanel.panel && DownloadsPanel.panel.state == "open") {
+    return deferred.resolve();
+  }
+
   
   let originalOnPopupShown = DownloadsPanel.onPopupShown;
   DownloadsPanel.onPopupShown = function () {
@@ -74,9 +78,6 @@ function task_resetState()
     publicList.remove(download);
     yield download.finalize(true);
   }
-
-  
-  Services.prefs.clearUserPref("browser.download.panel.shown");
 
   DownloadsPanel.hidePanel();
 
