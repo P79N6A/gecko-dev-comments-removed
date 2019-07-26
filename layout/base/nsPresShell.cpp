@@ -724,8 +724,6 @@ PresShell::PresShell()
                                  "layout.reflow.synthMouseMove", true);
     addedSynthMouseMove = true;
   }
-
-  mPaintingIsFrozen = false;
 }
 
 NS_IMPL_ISUPPORTS7(PresShell, nsIPresShell, nsIDocumentObserver,
@@ -745,13 +743,6 @@ PresShell::~PresShell()
   NS_ASSERTION(mFirstCallbackEventRequest == nullptr &&
                mLastCallbackEventRequest == nullptr,
                "post-reflow queues not empty.  This means we're leaking");
-
-  
-  
-  
-  if (mPaintingIsFrozen) {
-    mPresContext->RefreshDriver()->Thaw();
-  }
 
 #ifdef DEBUG
   MOZ_ASSERT(mPresArenaAllocCount == 0,
@@ -9939,24 +9930,4 @@ nsIPresShell::SetMaxLineBoxWidth(nscoord aMaxLineBoxWidth)
     mReflowOnZoomPending = true;
     FrameNeedsReflow(GetRootFrame(), eResize, NS_FRAME_HAS_DIRTY_CHILDREN);
   }
-}
-
-void
-PresShell::PausePainting()
-{
-  if (GetPresContext()->RefreshDriver()->PresContext() != GetPresContext())
-    return;
-
-  mPaintingIsFrozen = true;
-  GetPresContext()->RefreshDriver()->Freeze();
-}
-
-void
-PresShell::ResumePainting()
-{
-  if (GetPresContext()->RefreshDriver()->PresContext() != GetPresContext())
-    return;
-
-  mPaintingIsFrozen = false;
-  GetPresContext()->RefreshDriver()->Thaw();
 }
