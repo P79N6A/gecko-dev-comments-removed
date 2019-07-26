@@ -57,15 +57,15 @@ function test() {
 
     
     editor.setCaretOffset(147);
-    EventUtils.synthesizeKey("[", {accelKey: true, shiftKey: true}, testWin);
+    EventUtils.synthesizeKey("[", {accelKey: true}, testWin);
     is(editor.getCaretOffset(), 16,
        "JS : Jump to opening bracket of previous sibling block when no parent");
 
-    EventUtils.synthesizeKey("]", {accelKey: true, shiftKey: true}, testWin);
+    EventUtils.synthesizeKey("]", {accelKey: true}, testWin);
     is(editor.getCaretOffset(), 129,
        "JS : Jump to closing bracket of same code block");
 
-    EventUtils.synthesizeKey("]", {accelKey: true, shiftKey: true}, testWin);
+    EventUtils.synthesizeKey("]", {accelKey: true}, testWin);
     is(editor.getCaretOffset(), 151,
        "JS : Jump to closing bracket of next sibling code block");
 
@@ -82,15 +82,15 @@ function test() {
 
     
     editor.setCaretOffset(57);
-    EventUtils.synthesizeKey("[", {accelKey: true, shiftKey: true}, testWin);
+    EventUtils.synthesizeKey("[", {accelKey: true}, testWin);
     is(editor.getCaretOffset(), 10,
        "CSS : Jump to opening bracket of previous sibling code block");
 
-    EventUtils.synthesizeKey("]", {accelKey: true, shiftKey: true}, testWin);
+    EventUtils.synthesizeKey("]", {accelKey: true}, testWin);
     is(editor.getCaretOffset(), 46,
        "CSS : Jump to closing bracket of same code block");
 
-    EventUtils.synthesizeKey("]", {accelKey: true, shiftKey: true}, testWin);
+    EventUtils.synthesizeKey("]", {accelKey: true}, testWin);
     is(editor.getCaretOffset(), 77,
        "CSS : Jump to closing bracket of next sibling code block");
 
