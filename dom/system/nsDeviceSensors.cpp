@@ -175,7 +175,7 @@ WindowCannotReceiveSensorEvent (nsPIDOMWindow* aWindow)
   
   
   
-  if (!aWindow || !aWindow->GetOuterWindow()) {
+  if (!aWindow || !aWindow->IsCurrentInnerWindow()) {
     return true;
   }
 
