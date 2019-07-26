@@ -147,6 +147,23 @@ struct IsLvalueReference : FalseType {};
 template<typename T>
 struct IsLvalueReference<T&> : TrueType {};
 
+
+
+
+
+
+
+
+
+
+
+
+template<typename T>
+struct IsRvalueReference : FalseType {};
+
+template<typename T>
+struct IsRvalueReference<T&&> : TrueType {};
+
 namespace detail {
 
 
@@ -197,6 +214,26 @@ struct IsClass
 {};
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template<typename T>
+struct IsReference
+  : IntegralConstant<bool,
+                     IsLvalueReference<T>::value || IsRvalueReference<T>::value>
+{};
 
 
 
