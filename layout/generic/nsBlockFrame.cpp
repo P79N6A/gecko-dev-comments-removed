@@ -6855,23 +6855,25 @@ nsBlockFrame::ReflowBullet(nsIFrame* aBulletFrame,
   
   
   
+  nscoord x;
+  if (rs.mStyleVisibility->mDirection == NS_STYLE_DIRECTION_LTR) {
+    
+    
+    
+    x = floatAvailSpace.x - rs.ComputedPhysicalBorderPadding().left
+        - reflowState.ComputedPhysicalMargin().right - aMetrics.Width();
+  } else {
+    
+    
+    
+    x = floatAvailSpace.XMost() + rs.ComputedPhysicalBorderPadding().right
+        + reflowState.ComputedPhysicalMargin().left;
+  }
 
   
   
-  
-  WritingMode wm = rs.GetWritingMode();
-  LogicalRect logicalFAS(wm, floatAvailSpace, floatAvailSpace.XMost());
-  nscoord iStart = logicalFAS.IStart(wm) -
-    rs.ComputedLogicalBorderPadding().IStart(wm)
-    - reflowState.ComputedLogicalMargin().IEnd(wm) - aMetrics.ISize();
-
-  
-  
-  nscoord bStart = logicalFAS.BStart(wm);
-  aBulletFrame->SetRect(LogicalRect(wm, LogicalPoint(wm, iStart, bStart),
-                                    LogicalSize(wm, aMetrics.ISize(),
-                                                aMetrics.BSize())),
-                        floatAvailSpace.XMost());
+  nscoord y = aState.mContentArea.y;
+  aBulletFrame->SetRect(nsRect(x, y, aMetrics.Width(), aMetrics.Height()));
   aBulletFrame->DidReflow(aState.mPresContext, &aState.mReflowState,
                           nsDidReflowStatus::FINISHED);
 }
