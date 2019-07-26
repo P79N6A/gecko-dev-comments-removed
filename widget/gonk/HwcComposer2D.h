@@ -1,0 +1,62 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef mozilla_HwcComposer2D
+#define mozilla_HwcComposer2D
+
+#include "Composer2D.h"
+#include "HWComposer.h"
+#include "Layers.h"
+#include "nsIScreen.h"
+
+namespace mozilla {
+
+namespace layers {
+class ContainerLayer;
+class Layer;
+}
+
+class HwcComposer2D : public android::HWComposer,
+                      public mozilla::layers::Composer2D {
+public:
+    HwcComposer2D();
+    virtual ~HwcComposer2D();
+
+    int Init(hwc_display_t aDisplay, hwc_surface_t aSurface);
+
+    bool Initialized() const { return mHwc; }
+
+    static HwcComposer2D* GetInstance();
+
+    
+    
+    
+    bool TryRender(layers::Layer* aRoot, const gfxMatrix& aGLWorldTransform) MOZ_OVERRIDE;
+
+private:
+    bool ReallocLayerList();
+    bool PrepareLayerList(layers::Layer* aContainer, const nsIntRect& aClip);
+    int GetRotation();
+
+    hwc_layer_list_t*       mList;
+    nsCOMPtr<nsIScreen>     mScreen;
+    int                     mScreenWidth, mScreenHeight;
+    int                     mMaxLayerCount;
+};
+
+} 
+
+#endif 
