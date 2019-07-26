@@ -126,31 +126,11 @@ PRMJ_LocalGMTDifference()
 #define G2037GMTMICROHI        0x00e45fab /* micro secs to 2037 high */
 #define G2037GMTMICROLOW       0x7a238000 /* micro secs to 2037 low */
 
-#ifdef HAVE_SYSTEMTIMETOFILETIME
+#if defined(XP_WIN)
 
 static const int64_t win2un = 0x19DB1DED53E8000;
 
 #define FILETIME2INT64(ft) (((int64_t)ft.dwHighDateTime) << 32LL | (int64_t)ft.dwLowDateTime)
-
-#endif
-
-#if defined(HAVE_GETSYSTEMTIMEASFILETIME) || defined(HAVE_SYSTEMTIMETOFILETIME)
-
-#if defined(HAVE_GETSYSTEMTIMEASFILETIME)
-inline void
-LowResTime(LPFILETIME lpft)
-{
-    GetSystemTimeAsFileTime(lpft);
-}
-#elif defined(HAVE_SYSTEMTIMETOFILETIME)
-inline void
-LowResTime(LPFILETIME lpft)
-{
-    GetCurrentFT(lpft);
-}
-#else
-#error "No implementation of PRMJ_Now was selected."
-#endif
 
 typedef struct CalibrationData {
     long double freq;         
@@ -160,7 +140,7 @@ typedef struct CalibrationData {
     
     int64_t last;
 
-    JSBool calibrated;
+    bool calibrated;
 
 #ifdef JS_THREADSAFE
     CRITICAL_SECTION data_lock;
@@ -190,9 +170,9 @@ NowCalibrate()
         
 
         timeBeginPeriod(1);
-        LowResTime(&ftStart);
+        GetSystemTimeAsFileTime(&ftStart);
         do {
-            LowResTime(&ft);
+            GetSystemTimeAsFileTime(&ft);
         } while (memcmp(&ftStart,&ft, sizeof(ft)) == 0);
         timeEndPeriod(1);
 
@@ -213,7 +193,7 @@ NowCalibrate()
         calibration.offset *= 0.1;
         calibration.last = 0;
 
-        calibration.calibrated = JS_TRUE;
+        calibration.calibrated = true;
     }
 }
 
@@ -358,8 +338,8 @@ PRMJ_Now(void)
     long double lowresTime, highresTimerValue;
     FILETIME ft;
     LARGE_INTEGER now;
-    JSBool calibrated = JS_FALSE;
-    JSBool needsCalibration = JS_FALSE;
+    bool calibrated = false;
+    bool needsCalibration = false;
     int64_t returnedTime;
     long double cachedOffset = 0.0;
 
@@ -369,7 +349,7 @@ PRMJ_Now(void)
 
     int thiscall = JS_ATOMIC_INCREMENT(&nCalls);
     if (thiscall <= CALIBRATION_DELAY_COUNT) {
-        LowResTime(&ft);
+        GetSystemTimeAsFileTime(&ft);
         return (FILETIME2INT64(ft)-win2un)/10L;
     }
 
@@ -390,7 +370,7 @@ PRMJ_Now(void)
 
                 NowCalibrate();
 
-                calibrated = JS_TRUE;
+                calibrated = true;
 
                 
                 MUTEX_SETSPINCOUNT(&calibration.data_lock, DATALOCK_SPINCOUNT);
@@ -401,7 +381,7 @@ PRMJ_Now(void)
 
 
         
-        LowResTime(&ft);
+        GetSystemTimeAsFileTime(&ft);
         lowresTime = 0.1*(long double)(FILETIME2INT64(ft) - win2un);
 
         if (calibration.freq > 0.0) {
@@ -462,7 +442,7 @@ PRMJ_Now(void)
 
 
                     returnedTime = int64_t(lowresTime);
-                    needsCalibration = JS_FALSE;
+                    needsCalibration = false;
                 } else {
                     
 
@@ -473,12 +453,12 @@ PRMJ_Now(void)
 
 
 
-                    needsCalibration = JS_TRUE;
+                    needsCalibration = true;
                 }
             } else {
                 
                 returnedTime = int64_t(highresTime);
-                needsCalibration = JS_FALSE;
+                needsCalibration = false;
             }
         } else {
             
