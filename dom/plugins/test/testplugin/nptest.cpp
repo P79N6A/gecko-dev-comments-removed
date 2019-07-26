@@ -1511,11 +1511,13 @@ NPP_GetValue(NPP instance, NPPVariable variable, void* value)
   }
   if (variable == NPPVpluginNeedsXEmbed) {
     
-    *(NPBool*)value = instanceData->hasWidget;
+    
+    *(uint32_t*)value = instanceData->hasWidget;
     return NPERR_NO_ERROR;
   }
   if (variable == NPPVpluginWantsAllNetworkStreams) {
-    *(NPBool*)value = instanceData->wantsAllStreams;
+    
+    *(uint32_t*)value = instanceData->wantsAllStreams;
     return NPERR_NO_ERROR;
   }
 
