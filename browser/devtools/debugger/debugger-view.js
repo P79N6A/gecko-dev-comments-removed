@@ -5,14 +5,12 @@
 
 "use strict";
 
-const BREAKPOINT_LINE_TOOLTIP_MAX_SIZE = 1000; 
+const SOURCE_URL_MAX_LENGTH = 64; 
+const SOURCE_SYNTAX_HIGHLIGHT_MAX_FILE_SIZE = 1048576; 
 const PANES_APPEARANCE_DELAY = 50; 
-const PROPERTY_VIEW_FLASH_DURATION = 400; 
-const GLOBAL_SEARCH_MATCH_FLASH_DURATION = 100; 
-const GLOBAL_SEARCH_URL_MAX_SIZE = 100; 
-const GLOBAL_SEARCH_LINE_MAX_SIZE = 300; 
+const BREAKPOINT_LINE_TOOLTIP_MAX_LENGTH = 1000; 
+const GLOBAL_SEARCH_LINE_MAX_LENGTH = 300; 
 const GLOBAL_SEARCH_ACTION_DELAY = 150; 
-
 const SEARCH_GLOBAL_FLAG = "!";
 const SEARCH_LINE_FLAG = ":";
 const SEARCH_TOKEN_FLAG = "#";
@@ -20,92 +18,83 @@ const SEARCH_TOKEN_FLAG = "#";
 
 
 
-
 let DebuggerView = {
+  
+
+
+
+
+
+  initialize: function DV_initialize(aCallback) {
+    dumpn("Initializing the DebuggerView");
+    this.Toolbar.initialize();
+    this.Options.initialize();
+    this.ChromeGlobals.initialize();
+    this.Sources.initialize();
+    this.Filtering.initialize();
+    this.StackFrames.initialize();
+    this.Breakpoints.initialize();
+    this.GlobalSearch.initialize();
+
+    this.Variables = new VariablesView(document.getElementById("variables"));
+    this.Variables.emptyText = L10N.getStr("emptyVariablesText");
+    this.Variables.nonEnumVisible = Prefs.nonEnumVisible;
+    this.Variables.eval = DebuggerController.StackFrames.evaluate;
+
+    this._initializePanes();
+    this._initializeEditor(aCallback)
+    this._isInitialized = true;
+  },
 
   
 
 
-  editor: null,
+
+
+
+  destroy: function DV_destroy(aCallback) {
+    dumpn("Destroying the DebuggerView");
+    this.Toolbar.destroy();
+    this.Options.destroy();
+    this.ChromeGlobals.destroy();
+    this.Sources.destroy();
+    this.Filtering.destroy();
+    this.StackFrames.destroy();
+    this.Breakpoints.destroy();
+    this.GlobalSearch.destroy();
+
+    this._destroyPanes();
+    this._destroyEditor();
+    aCallback();
+  },
 
   
 
 
-  cacheView: function DV_cacheView() {
-    this._onTogglePanesButtonPressed = this._onTogglePanesButtonPressed.bind(this);
+  _initializePanes: function DV__initializePanes() {
+    dumpn("Initializing the DebuggerView panes");
 
-    
     this._togglePanesButton = document.getElementById("toggle-panes");
     this._stackframesAndBreakpoints = document.getElementById("stackframes+breakpoints");
-    this._stackframes = document.getElementById("stackframes");
-    this._breakpoints = document.getElementById("breakpoints");
     this._variables = document.getElementById("variables");
-    this._scripts = document.getElementById("scripts");
-    this._globalSearch = document.getElementById("globalsearch");
-    this._globalSearchSplitter = document.getElementById("globalsearch-splitter");
-
-    
-    this._fileSearchKey = document.getElementById("fileSearchKey");
-    this._lineSearchKey = document.getElementById("lineSearchKey");
-    this._tokenSearchKey = document.getElementById("tokenSearchKey");
-    this._globalSearchKey = document.getElementById("globalSearchKey");
-    this._resumeKey = document.getElementById("resumeKey");
-    this._stepOverKey = document.getElementById("stepOverKey");
-    this._stepInKey = document.getElementById("stepInKey");
-    this._stepOutKey = document.getElementById("stepOutKey");
-
-    
-    this._resumeButton = document.getElementById("resume");
-    this._stepOverButton = document.getElementById("step-over");
-    this._stepInButton = document.getElementById("step-in");
-    this._stepOutButton = document.getElementById("step-out");
-    this._scriptsSearchbox = document.getElementById("scripts-search");
-    this._globalOperatorLabel = document.getElementById("global-operator-label");
-    this._globalOperatorButton = document.getElementById("global-operator-button");
-    this._tokenOperatorLabel = document.getElementById("token-operator-label");
-    this._tokenOperatorButton = document.getElementById("token-operator-button");
-    this._lineOperatorLabel = document.getElementById("line-operator-label");
-    this._lineOperatorButton = document.getElementById("line-operator-button");
-  },
-
-  
-
-
-  initializeKeys: function DV_initializeKeys() {
-    this._resumeButton.setAttribute("tooltiptext",
-      L10N.getFormatStr("pauseButtonTooltip", [LayoutHelpers.prettyKey(this._resumeKey)]));
-    this._stepOverButton.setAttribute("tooltiptext",
-      L10N.getFormatStr("stepOverTooltip", [LayoutHelpers.prettyKey(this._stepOverKey)]));
-    this._stepInButton.setAttribute("tooltiptext",
-      L10N.getFormatStr("stepInTooltip", [LayoutHelpers.prettyKey(this._stepInKey)]));
-    this._stepOutButton.setAttribute("tooltiptext",
-      L10N.getFormatStr("stepOutTooltip", [LayoutHelpers.prettyKey(this._stepOutKey)]));
-
-    this._scriptsSearchbox.setAttribute("placeholder",
-      L10N.getFormatStr("emptyFilterText", [LayoutHelpers.prettyKey(this._fileSearchKey)]));
-    this._globalOperatorLabel.setAttribute("value",
-      L10N.getFormatStr("searchPanelGlobal", [LayoutHelpers.prettyKey(this._globalSearchKey)]));
-    this._tokenOperatorLabel.setAttribute("value",
-      L10N.getFormatStr("searchPanelToken", [LayoutHelpers.prettyKey(this._tokenSearchKey)]));
-    this._lineOperatorLabel.setAttribute("value",
-      L10N.getFormatStr("searchPanelLine", [LayoutHelpers.prettyKey(this._lineSearchKey)]));
-
-    this._globalOperatorButton.setAttribute("label", SEARCH_GLOBAL_FLAG);
-    this._tokenOperatorButton.setAttribute("label", SEARCH_TOKEN_FLAG);
-    this._lineOperatorButton.setAttribute("label", SEARCH_LINE_FLAG);
-  },
-
-  
-
-
-  initializePanes: function DV_initializePanes() {
-    this._togglePanesButton.addEventListener("click", this._onTogglePanesButtonPressed);
 
     this._stackframesAndBreakpoints.setAttribute("width", Prefs.stackframesWidth);
     this._variables.setAttribute("width", Prefs.variablesWidth);
+    this.togglePanes({ visible: false, animated: false, silent: true });
+  },
 
-    this.toggleStackframesAndBreakpointsPane({ silent: true });
-    this.toggleVariablesPane({ silent: true });
+  
+
+
+  _destroyPanes: function DV__initializePanes() {
+    dumpn("Destroying the DebuggerView panes");
+
+    Prefs.stackframesWidth = this._stackframesAndBreakpoints.getAttribute("width");
+    Prefs.variablesWidth = this._variables.getAttribute("width");
+
+    this._togglePanesButton = null;
+    this._stackframesAndBreakpoints = null;
+    this._variables = null;
   },
 
   
@@ -114,15 +103,16 @@ let DebuggerView = {
 
 
 
-  initializeEditor: function DV_initializeEditor(aCallback) {
-    let placeholder = document.getElementById("editor");
+  _initializeEditor: function DV__initializeEditor(aCallback) {
+    dumpn("Initializing the DebuggerView editor");
 
+    let placeholder = document.getElementById("editor");
     let config = {
       mode: SourceEditor.MODES.JAVASCRIPT,
-      showLineNumbers: true,
       readOnly: true,
+      showLineNumbers: true,
       showAnnotationRuler: true,
-      showOverviewRuler: true,
+      showOverviewRuler: true
     };
 
     this.editor = new SourceEditor();
@@ -135,28 +125,21 @@ let DebuggerView = {
   
 
 
-  destroyPanes: function DV_destroyPanes() {
-    this._togglePanesButton.removeEventListener("click", this._onTogglePanesButtonPressed);
 
-    Prefs.stackframesWidth = this._stackframesAndBreakpoints.getAttribute("width");
-    Prefs.variablesWidth = this._variables.getAttribute("width");
+  _onEditorLoad: function DV__onEditorLoad() {
+    dumpn("Finished loading the DebuggerView editor");
 
-    this._breakpoints.parentNode.removeChild(this._breakpoints);
-    this._stackframes.parentNode.removeChild(this._stackframes);
-    this._stackframesAndBreakpoints.parentNode.removeChild(this._stackframesAndBreakpoints);
-    this._variables.parentNode.removeChild(this._variables);
-    this._globalSearch.parentNode.removeChild(this._globalSearch);
-
-    
-    for (let i in this) {
-      if (!(this[i] instanceof Function)) delete this[i];
-    }
+    DebuggerController.Breakpoints.initialize();
+    this.editor.focus();
   },
 
   
 
 
-  destroyEditor: function DV_destroyEditor() {
+
+  _destroyEditor: function DV__destroyEditor() {
+    dumpn("Destroying the DebuggerView editor");
+
     DebuggerController.Breakpoints.destroy();
     this.editor = null;
   },
@@ -165,32 +148,152 @@ let DebuggerView = {
 
 
 
-  _onEditorLoad: function DV__onEditorLoad() {
-    DebuggerController.Breakpoints.initialize();
-    this.editor.focus();
+
+
+
+
+
+  setEditorMode: function DV_setEditorMode(aUrl, aContentType) {
+    if (!this.editor) {
+      return;
+    }
+    dumpn("Setting the DebuggerView editor mode: " + aUrl +
+          ", content type: " + aContentType);
+
+    if (aContentType) {
+      if (/javascript/.test(aContentType)) {
+        this.editor.setMode(SourceEditor.MODES.JAVASCRIPT);
+      } else {
+        this.editor.setMode(SourceEditor.MODES.HTML);
+      }
+    } else {
+      
+      if (/\.jsm?$/.test(SourceUtils.trimUrlQuery(aUrl))) {
+        this.editor.setMode(SourceEditor.MODES.JAVASCRIPT);
+      } else {
+        this.editor.setMode(SourceEditor.MODES.HTML);
+      }
+    }
   },
 
   
 
 
-  _onTogglePanesButtonPressed: function DV__onTogglePanesButtonPressed() {
-    this.toggleStackframesAndBreakpointsPane({
-      visible: !!this._togglePanesButton.getAttribute("stackframesAndBreakpointsHidden"),
-      animated: true
-    });
-    this.toggleVariablesPane({
-      visible: !!this._togglePanesButton.getAttribute("variablesHidden"),
-      animated: true
-    });
-    this._onPanesToggle();
+
+
+
+
+
+
+
+
+  setEditorSource: function DV_setEditorSource(aSource, aOptions = {}) {
+    if (!this.editor) {
+      return;
+    }
+    dumpn("Setting the DebuggerView editor source: " + aSource.url +
+          ", loaded: " + aSource.loaded +
+          ", options: " + aOptions.toSource());
+
+    
+    if (!aSource.loaded) {
+      this.editor.setMode(SourceEditor.MODES.TEXT);
+      this.editor.setText(L10N.getStr("loadingText"));
+      this.editor.resetUndo();
+
+      
+      DebuggerController.SourceScripts.getText(aSource, function(aUrl, aText) {
+        aSource.loaded = true;
+        aSource.text = aText;
+        this.setEditorSource(aSource, aOptions);
+      }.bind(this));
+    }
+    
+    else {
+      if (aSource.text.length < SOURCE_SYNTAX_HIGHLIGHT_MAX_FILE_SIZE) {
+        this.setEditorMode(aSource.url, aSource.contentType);
+      }
+      this.editor.setText(aSource.text);
+      this.editor.resetUndo();
+      this.updateEditor();
+
+      DebuggerView.Sources.selectedValue = aSource.url;
+      DebuggerController.Breakpoints.updateEditorBreakpoints();
+
+      
+      if (aOptions.targetLine) {
+        editor.setCaretPosition(aOptions.targetLine - 1);
+      }
+      if (aOptions.debugLine) {
+        editor.setDebugLocation(aOptions.debugLine - 1);
+      }
+      if (aOptions.callback) {
+        aOptions.callback(aSource);
+      }
+      
+      window.dispatchEvent("Debugger:SourceShown", aSource);
+    }
   },
 
   
 
 
 
-  toggleCloseButton: function DV_toggleCloseButton(aVisibleFlag) {
-    document.getElementById("close").setAttribute("hidden", !aVisibleFlag);
+
+
+
+
+
+
+
+
+
+
+
+  updateEditor: function DV_updateEditor(aUrl, aLine, aFlags = {}) {
+    if (!this.editor) {
+      return;
+    }
+    
+    
+    if (!aUrl && !aLine) {
+      let cachedFrames = DebuggerController.activeThread.cachedFrames;
+      let currentFrame = DebuggerController.StackFrames.currentFrame;
+      let frame = cachedFrames[currentFrame];
+      if (frame) {
+        let { url, line } = frame.where;
+        this.updateEditor(url, line, { noSwitch: true });
+      }
+      return;
+    }
+
+    dumpn("Updating the DebuggerView editor: " + aUrl + " @ " + aLine +
+          ", flags: " + aFlags.toSource());
+
+    
+    if (this.Sources.selectedValue == aUrl) {
+      updateLine(aLine);
+    }
+    
+    else if (this.Sources.containsValue(aUrl) && !aFlags.noSwitch) {
+      this.Sources.selectedValue = aUrl;
+      updateLine(aLine);
+    }
+    
+    else {
+      updateLine(0);
+    }
+
+    
+    
+    function updateLine(aLine) {
+      if (!aFlags.noCaret) {
+        DebuggerView.editor.setCaretPosition(aLine - 1);
+      }
+      if (!aFlags.noDebug) {
+        DebuggerView.editor.setDebugLocation(aLine - 1);
+      }
+    }
   },
 
   
@@ -202,8 +305,93 @@ let DebuggerView = {
 
 
 
-  toggleStackframesAndBreakpointsPane:
-  function DV_toggleStackframesAndBreakpointsPane(aFlags = {}) {
+  getEditorLine: function SS_getEditorLine(aLine) {
+    let line = aLine || this.editor.getCaretPosition().line;
+    let start = this.editor.getLineStart(line);
+    let end = this.editor.getLineEnd(line);
+    return this.editor.getText(start, end);
+  },
+
+  
+
+
+
+  get panesHidden()
+    this.stackframesAndBreakpointsHidden && this.variablesHidden,
+
+  
+
+
+
+  get stackframesAndBreakpointsHidden()
+    !!this._togglePanesButton.getAttribute("stackframesAndBreakpointsHidden"),
+
+  
+
+
+
+  get variablesHidden()
+    !!this._togglePanesButton.getAttribute("variablesHidden"),
+
+  
+
+
+
+
+
+
+
+
+  togglePanes: function DV__togglePanes(aFlags = {}) {
+    this._toggleStackframesAndBreakpointsPane(aFlags);
+    this._toggleVariablesPane(aFlags);
+  },
+
+  
+
+
+
+  showPanesIfPreffered: function DV_showPanesIfPreffered() {
+    let self = this;
+
+    
+    window.setTimeout(function() {
+      let target;
+
+      if (Prefs.stackframesPaneVisible && self.stackframesAndBreakpointsHidden) {
+        self._toggleStackframesAndBreakpointsPane({
+          visible: true,
+          animated: true,
+          silent: true
+        });
+        target = self._stackframesAndBreakpoints;
+      }
+      if (Prefs.variablesPaneVisible && self.variablesHidden) {
+        self._toggleVariablesPane({
+          visible: true,
+          animated: true,
+          silent: true
+        });
+        target = self._variables;
+      }
+      
+      
+      
+      if (target) {
+        target.addEventListener("transitionend", function onEvent() {
+          target.removeEventListener("transitionend", onEvent, false);
+          self.updateEditor();
+        }, false);
+      }
+    }, PANES_APPEARANCE_DELAY);
+  },
+
+  
+
+
+
+  _toggleStackframesAndBreakpointsPane:
+  function DV__toggleStackframesAndBreakpointsPane(aFlags) {
     if (aFlags.animated) {
       this._stackframesAndBreakpoints.setAttribute("animated", "");
     } else {
@@ -228,13 +416,8 @@ let DebuggerView = {
 
 
 
-
-
-
-
-
-  toggleVariablesPane:
-  function DV_toggleVariablesPane(aFlags = {}) {
+  _toggleVariablesPane:
+  function DV__toggleVariablesPane(aFlags) {
     if (aFlags.animated) {
       this._variables.setAttribute("animated", "");
     } else {
@@ -258,93 +441,961 @@ let DebuggerView = {
   
 
 
+  _handleTabNavigation: function DV__handleTabNavigation() {
+    dumpn("Handling tab navigation in the DebuggerView");
 
-  showPanesIfAllowed: function DV_showPanesIfAllowed() {
-    
-    window.setTimeout(function() {
-      let shown;
+    this.ChromeGlobals.empty();
+    this.Sources.empty();
+    this.Filtering.clearSearch();
+    this.GlobalSearch.clearView();
+    this.GlobalSearch.clearCache();
+    this.StackFrames.empty();
+    this.Breakpoints.empty();
+    this.Variables.empty();
+    SourceUtils.clearLabelsCache();
 
-      if (Prefs.stackframesPaneVisible &&
-          this._togglePanesButton.getAttribute("stackframesAndBreakpointsHidden")) {
-        this.toggleStackframesAndBreakpointsPane({
-          visible: true,
-          animated: true,
-          silent: true
-        });
-        shown = true;
-      }
-      if (Prefs.variablesPaneVisible &&
-          this._togglePanesButton.getAttribute("variablesHidden")) {
-        this.toggleVariablesPane({
-          visible: true,
-          animated: true,
-          silent: true
-        });
-        shown = true;
-      }
-      if (shown) {
-        this._onPanesToggle();
-      }
-    }.bind(this), PANES_APPEARANCE_DELAY);
+    if (this.editor) {
+      this.editor.setText("");
+    }
   },
 
-  
-
-
-
-
-  _onPanesToggle: function DV__onPanesToggle() {
-    document.addEventListener("transitionend", function onEvent() {
-      document.removeEventListener("transitionend", onEvent);
-      DebuggerController.StackFrames.updateEditorLocation();
-    });
-  },
-
-  
-
-
+  Toolbar: null,
+  Options: null,
+  ChromeGlobals: null,
+  Sources: null,
+  Filtering: null,
+  StackFrames: null,
+  Breakpoints: null,
+  GlobalSearch: null,
+  Variables: null,
+  _editor: null,
   _togglePanesButton: null,
   _stackframesAndBreakpoints: null,
-  _stackframes: null,
-  _breakpoints: null,
   _variables: null,
-  _scripts: null,
-  _globalSearch: null,
-  _globalSearchSplitter: null,
-  _fileSearchKey: null,
-  _lineSearchKey: null,
-  _tokenSearchKey: null,
-  _globalSearchKey: null,
-  _resumeKey: null,
-  _stepOverKey: null,
-  _stepInKey: null,
-  _stepOutKey: null,
-  _resumeButton: null,
-  _stepOverButton: null,
-  _stepInButton: null,
-  _stepOutButton: null,
-  _scriptsSearchbox: null,
-  _globalOperatorLabel: null,
-  _globalOperatorButton: null,
-  _tokenOperatorLabel: null,
-  _tokenOperatorButton: null,
-  _lineOperatorLabel: null,
-  _lineOperatorButton: null
+  _isInitialized: false,
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function MenuItem(aLabel, aValue, aDescription, aAttachment) {
+  this._label = aLabel + "";
+  this._value = aValue + "";
+  this._description = aDescription + "";
+  this.attachment = aAttachment;
+}
+
+MenuItem.prototype = {
+  
+
+
+
+  get label() this._label,
+
+  
+
+
+
+  get value() this._value,
+
+  
+
+
+
+  get description() this._description,
+
+  
+
+
+
+  get target() this._target,
+
+  _label: "",
+  _value: "",
+  _description: "",
+  _target: null,
+  finalize: null,
+  attachment: null
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function MenuContainer(aContainerNode) {
+  this._container = aContainerNode;
+  this._stagedItems = [];
+  this._itemsByLabel = new Map();
+  this._itemsByValue = new Map();
+  this._itemsByElement = new Map();
+}
+
+MenuContainer.prototype = {
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  push: function DVMC_push(aLabel, aValue, aOptions = {}) {
+    let item = new MenuItem(
+      aLabel, aValue, aOptions.description, aOptions.attachment);
+
+    
+    if (!aOptions.forced) {
+      this._stagedItems.push(item);
+    }
+    
+    else if (!aOptions.unsorted) {
+      return this._insertItemAt(this._findExpectedIndex(aLabel), item, aOptions);
+    }
+    
+    else {
+      return this._appendItem(item, aOptions);
+    }
+  },
+
+  
+
+
+
+
+
+
+  commit: function DVMC_commit(aOptions = {}) {
+    let stagedItems = this._stagedItems;
+
+    
+    if (!aOptions.unsorted) {
+      stagedItems.sort(function(a, b) a.label.toLowerCase() > b.label.toLowerCase());
+    }
+    
+    for (let item of stagedItems) {
+      this._appendItem(item, aOptions);
+    }
+    
+    this._stagedItems = [];
+  },
+
+  
+
+
+
+
+
+
+  refresh: function DVMC_refresh() {
+    let selectedValue = this.selectedValue;
+    if (!selectedValue) {
+      return false;
+    }
+
+    let entangledLabel = this.getItemByValue(selectedValue).label;
+
+    this._container.setAttribute("label", entangledLabel);
+    this._container.setAttribute("tooltiptext", selectedValue);
+    return true;
+  },
+
+  
+
+
+
+
+
+  remove: function DVMC__remove(aItem) {
+    this._container.removeChild(aItem.target);
+    this._untangleItem(aItem);
+  },
+
+  
+
+
+  empty: function DVMC_empty() {
+    this._preferredValue = this.selectedValue;
+    this._container.selectedIndex = -1;
+    this._container.setAttribute("label", this._emptyLabel);
+    this._container.removeAttribute("tooltiptext");
+    this._container.removeAllItems();
+
+    for (let [_, item] of this._itemsByElement) {
+      this._untangleItem(item);
+    }
+
+    this._itemsByLabel = new Map();
+    this._itemsByValue = new Map();
+    this._itemsByElement = new Map();
+    this._stagedItems = [];
+  },
+
+  
+
+
+
+  setUnavailable: function DVMC_setUnavailable() {
+    this._container.setAttribute("label", this._unavailableLabel);
+    this._container.removeAttribute("tooltiptext");
+  },
+
+  
+
+
+
+
+
+
+
+
+  containsLabel: function DVMC_containsLabel(aLabel) {
+    return this._itemsByLabel.has(aLabel) ||
+           this._stagedItems.some(function(o) o.label == aLabel);
+  },
+
+  
+
+
+
+
+
+
+
+
+  containsValue: function DVMC_containsValue(aValue) {
+    return this._itemsByValue.has(aValue) ||
+           this._stagedItems.some(function(o) o.value == aValue);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  containsTrimmedValue:
+  function DVMC_containsTrimmedValue(aValue,
+                                     aTrim = SourceUtils.trimUrlQuery) {
+    let trimmedValue = aTrim(aValue);
+
+    for (let [value] of this._itemsByValue) {
+      if (aTrim(value) == trimmedValue) {
+        return true;
+      }
+    }
+    return this._stagedItems.some(function(o) aTrim(o.value) == trimmedValue);
+  },
+
+  
+
+
+
+  get preferredValue() this._preferredValue,
+
+  
+
+
+
+  get selectedIndex() this._container.selectedIndex,
+
+  
+
+
+
+  get selectedItem()
+    this._container.selectedItem ?
+    this._itemsByElement.get(this._container.selectedItem) : null,
+
+  
+
+
+
+  get selectedLabel()
+    this._container.selectedItem ?
+    this._itemsByElement.get(this._container.selectedItem).label : null,
+
+  
+
+
+
+  get selectedValue()
+    this._container.selectedItem ?
+    this._itemsByElement.get(this._container.selectedItem).value : null,
+
+  
+
+
+
+  set selectedIndex(aIndex) this._container.selectedIndex = aIndex,
+
+  
+
+
+
+  set selectedItem(aItem) this._container.selectedItem = aItem.target,
+
+  
+
+
+
+  set selectedLabel(aLabel) {
+    let item = this._itemsByLabel.get(aValue);
+    if (item) {
+      this._container.selectedItem = item.target;
+    }
+  },
+
+  
+
+
+
+  set selectedValue(aValue) {
+    let item = this._itemsByValue.get(aValue);
+    if (item) {
+      this._container.selectedItem = item.target;
+    }
+  },
+
+  
+
+
+
+
+
+
+
+  getItemByLabel: function DVMC_getItemByLabel(aLabel) {
+    return this._itemsByLabel.get(aLabel);
+  },
+
+  
+
+
+
+
+
+
+
+  getItemByValue: function DVMC_getItemByValue(aValue) {
+    return this._itemsByValue.get(aValue);
+  },
+
+  
+
+
+
+
+
+
+
+  getItemForElement:
+  function DVMC_getItemForElement(aElement) {
+    while (aElement) {
+      let item = this._itemsByElement.get(aElement);
+      if (item) {
+        return item;
+      }
+      aElement = aElement.parentNode;
+    }
+    return null;
+  },
+
+  
+
+
+
+  get labels() {
+    let labels = [];
+    for (let [label] of this._itemsByLabel) {
+      labels.push(label);
+    }
+    return labels;
+  },
+
+  
+
+
+
+  get values() {
+    let values = [];
+    for (let [value] of this._itemsByValue) {
+      values.push(value);
+    }
+    return values;
+  },
+
+  
+
+
+
+  get visibleItems() {
+    let count = 0;
+    for (let [element] of this._itemsByElement) {
+      count += element.hidden ? 0 : 1;
+    }
+    return count;
+  },
+
+  
+
+
+
+
+
+
+
+  uniquenessQualifier: 1,
+
+  
+
+
+
+
+
+
+
+  isUnique: function DVMC_isUnique(aItem) {
+    switch (this.uniquenessQualifier) {
+      case 1:
+        return !this._itemsByLabel.has(aItem.label) &&
+               !this._itemsByValue.has(aItem.value);
+      case 2:
+        return !this._itemsByLabel.has(aItem.label) ||
+               !this._itemsByValue.has(aItem.value);
+      case 3:
+        return !this._itemsByLabel.has(aItem.label);
+      case 4:
+        return !this._itemsByValue.has(aItem.value);
+    }
+    return false;
+  },
+
+  
+
+
+
+
+
+
+
+  isEligible: function DVMC_isEligible(aItem) {
+    return this.isUnique(aItem) &&
+           aItem.label != "undefined" && aItem.label != "null" &&
+           aItem.value != "undefined" && aItem.value != "null";
+  },
+
+  
+
+
+
+
+
+
+
+  _findExpectedIndex: function DVMC__findExpectedIndex(aLabel) {
+    let container = this._container;
+    let itemCount = container.itemCount;
+
+    for (let i = 0; i < itemCount; i++) {
+      if (this.getItemForElement(container.getItemAtIndex(i)).label > aLabel) {
+        return i;
+      }
+    }
+    return itemCount;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  _appendItem:
+  function DVMC__appendItem(aItem, aOptions = {}) {
+    if (!aOptions.relaxed && !this.isEligible(aItem)) {
+      return null;
+    }
+
+    return this._entangleItem(aItem, this._container.appendItem(
+      aItem.label, aItem.value, "", aOptions.attachment));
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  _insertItemAt:
+  function DVMC__insertItemAt(aIndex, aItem, aOptions) {
+    if (!aOptions.relaxed && !this.isEligible(aItem)) {
+      return null;
+    }
+
+    return this._entangleItem(aItem, this._container.insertItemAt(
+      aIndex, aItem.label, aItem.value, "", aOptions.attachment));
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  _entangleItem: function DVMC__entangleItem(aItem, aElement) {
+    this._itemsByLabel.set(aItem.label, aItem);
+    this._itemsByValue.set(aItem.value, aItem);
+    this._itemsByElement.set(aElement, aItem);
+
+    aItem._target = aElement;
+    return aItem;
+  },
+
+  
+
+
+
+
+
+
+
+  _untangleItem: function DVMC__untangleItem(aItem) {
+    if (aItem.finalize instanceof Function) {
+      aItem.finalize(aItem);
+    }
+
+    this._itemsByLabel.delete(aItem.label);
+    this._itemsByValue.delete(aItem.value);
+    this._itemsByElement.delete(aItem.target);
+
+    aItem._target = null;
+    return aItem;
+  },
+
+  
+
+
+  __iterator__: function DVMC_iterator() {
+    for (let [_, item] of this._itemsByElement) {
+      yield item;
+    }
+  },
+
+  _container: null,
+  _stagedItems: null,
+  _itemsByLabel: null,
+  _itemsByValue: null,
+  _itemsByElement: null,
+  _preferredValue: null,
+  _emptyLabel: "",
+  _unavailableLabel: ""
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function StackList(aAssociatedNode) {
+  this._parent = aAssociatedNode;
+  this._appendEmptyNotice();
+
+  
+  this._list = document.createElement("vbox");
+  this._parent.appendChild(this._list);
+}
+
+StackList.prototype = {
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  appendItem:
+  function DVSL_appendItem(aLabel, aValue, aDescription, aAttachment) {
+    return this.insertItemAt(
+      Number.MAX_VALUE, aLabel, aValue, aDescription, aAttachment);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  insertItemAt:
+  function DVSL_insertItemAt(aIndex, aLabel, aValue, aDescription, aAttachment) {
+    let list = this._list;
+    let childNodes = list.childNodes;
+
+    let element = document.createElement(this.itemType);
+    this._createItemView(element, aLabel, aValue, aAttachment);
+    this._removeEmptyNotice();
+
+    return list.insertBefore(element, childNodes[aIndex]);
+  },
+
+  
+
+
+
+
+
+
+
+  getItemAtIndex: function DVSL_getItemAtIndex(aIndex) {
+    return this._list.childNodes[aIndex];
+  },
+
+  
+
+
+
+
+
+  removeChild: function DVSL__removeChild(aChild) {
+    this._list.removeChild(aChild);
+
+    if (!this.itemCount) {
+      this._appendEmptyNotice();
+    }
+  },
+
+  
+
+
+  removeAllItems: function DVSL_removeAllItems() {
+    let parent = this._parent;
+    let list = this._list;
+    let firstChild;
+
+    while (firstChild = list.firstChild) {
+      list.removeChild(firstChild);
+    }
+    parent.scrollTop = 0;
+    parent.scrollLeft = 0;
+
+    this._selectedItem = null;
+    this._selectedIndex = -1;
+    this._appendEmptyNotice();
+  },
+
+  
+
+
+
+  get itemCount() this._list.childNodes.length,
+
+  
+
+
+
+  get selectedIndex() this._selectedIndex,
+
+  
+
+
+
+
+  set selectedIndex(aIndex) this.selectedItem = this._list.childNodes[aIndex],
+
+  
+
+
+
+  get selectedItem() this._selectedItem,
+
+  
+
+
+
+  set selectedItem(aChild) {
+    let childNodes = this._list.childNodes;
+
+    if (!aChild) {
+      this._selectedItem = null;
+      this._selectedIndex = -1;
+    }
+    for (let node of childNodes) {
+      if (node == aChild) {
+        node.classList.add("selected");
+        this._selectedIndex = Array.indexOf(childNodes, node);
+        this._selectedItem = node;
+      } else {
+        node.classList.remove("selected");
+      }
+    }
+  },
+
+  
+
+
+
+
+
+
+
+  getAttribute: function DVSL_setAttribute(aName) {
+    return this._parent.getAttribute(aName);
+  },
+
+  
+
+
+
+
+
+
+
+  setAttribute: function DVSL_setAttribute(aName, aValue) {
+    this._parent.setAttribute(aName, aValue);
+  },
+
+  
+
+
+
+
+
+  removeAttribute: function DVSL_removeAttribute(aName) {
+    this._parent.removeAttribute(aName);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  addEventListener:
+  function DVSL_addEventListener(aName, aCallback, aBubbleFlag) {
+    this._parent.addEventListener(aName, aCallback, aBubbleFlag);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  removeEventListener:
+  function DVSL_removeEventListener(aName, aCallback, aBubbleFlag) {
+    this._parent.removeEventListener(aName, aCallback, aBubbleFlag);
+  },
+
+  
+
+
+
+  set emptyText(aValue) {
+    if (this._emptyTextNode) {
+      this._emptyTextNode.setAttribute("value", aValue);
+    }
+    this._emptyTextValue = aValue;
+  },
+
+  
+
+
+
+  itemType: "hbox",
+
+  
+
+
+
+  set itemFactory(aCallback) this._createItemView = aCallback,
+
+  
+
+
+
+
+
+
+
+
+
+  _createItemView: function DVSL__createItemView(aElementNode, aLabel, aValue) {
+    let labelNode = document.createElement("label");
+    let valueNode = document.createElement("label");
+    let spacer = document.createElement("spacer");
+
+    labelNode.setAttribute("value", aLabel);
+    valueNode.setAttribute("value", aValue);
+    spacer.setAttribute("flex", "1");
+
+    aElementNode.appendChild(labelNode);
+    aElementNode.appendChild(spacer);
+    aElementNode.appendChild(valueNode);
+
+    aElementNode.labelNode = labelNode;
+    aElementNode.valueNode = valueNode;
+  },
+
+  
+
+
+  _appendEmptyNotice: function DVSL__appendEmptyNotice() {
+    if (this._emptyTextNode) {
+      return;
+    }
+
+    let label = document.createElement("label");
+    label.className = "empty list-item";
+    label.setAttribute("value", this._emptyTextValue);
+
+    this._parent.appendChild(label);
+    this._emptyTextNode = label;
+  },
+
+  
+
+
+  _removeEmptyNotice: function DVSL__removeEmptyNotice() {
+    if (!this._emptyTextNode) {
+      return;
+    }
+
+    this._parent.removeChild(this._emptyTextNode);
+    this._emptyTextNode = null;
+  },
+
+  _parent: null,
+  _list: null,
+  _selectedIndex: -1,
+  _selectedItem: null,
+  _emptyTextNode: null,
+  _emptyTextValue: ""
 };
 
 
 
 
 function RemoteDebuggerPrompt() {
-
-  
-
-
   this.remote = {};
 }
 
 RemoteDebuggerPrompt.prototype = {
-
   
 
 
@@ -364,3283 +1415,17 @@ RemoteDebuggerPrompt.prototype = {
           : "remoteDebuggerPromptMessage"), input,
         L10N.getStr("remoteDebuggerPromptCheck"), check);
 
-      Prefs.remoteAutoConnect = check.value;
-
       if (!result) {
         return false;
       }
-      if ((parts = input.value.split(":")).length === 2) {
+      if ((parts = input.value.split(":")).length == 2) {
         let [host, port] = parts;
 
         if (host.length && port.length) {
-          this.remote = { host: host, port: port };
+          this.remote = { host: host, port: port, auto: check.value };
           return true;
         }
       }
     }
   }
 };
-
-
-
-
-function GlobalSearchView() {
-  this._onFetchScriptFinished = this._onFetchScriptFinished.bind(this);
-  this._onFetchScriptsFinished = this._onFetchScriptsFinished.bind(this);
-  this._onLineClick = this._onLineClick.bind(this);
-  this._onMatchClick = this._onMatchClick.bind(this);
-  this._onResultsScroll = this._onResultsScroll.bind(this);
-  this._onFocusLost = this._onFocusLost.bind(this);
-  this._startSearch = this._startSearch.bind(this);
-}
-
-GlobalSearchView.prototype = {
-
-  
-
-
-
-  set hidden(value) {
-    this._pane.hidden = value;
-    this._splitter.hidden = value;
-  },
-
-  
-
-
-
-  get hidden() this._pane.hidden,
-
-  
-
-
-  empty: function DVGS_empty() {
-    while (this._pane.firstChild) {
-      this._pane.removeChild(this._pane.firstChild);
-    }
-    this._pane.scrollTop = 0;
-    this._pane.scrollLeft = 0;
-    this._currentlyFocusedMatch = -1;
-  },
-
-  
-
-
-  hideAndEmpty: function DVGS_hideAndEmpty() {
-    this.hidden = true;
-    this.empty();
-    DebuggerController.dispatchEvent("Debugger:GlobalSearch:ViewCleared");
-  },
-
-  
-
-
-  clearCache: function DVGS_clearCache() {
-    this._scriptSources = new Map();
-    DebuggerController.dispatchEvent("Debugger:GlobalSearch:CacheCleared");
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-  fetchScripts:
-  function DVGS_fetchScripts(aFetchCallback = null,
-                             aFetchedCallback = null,
-                             aUrls = DebuggerView.Scripts.scriptLocations) {
-
-    
-    if (this._scriptSources.size() === aUrls.length) {
-      aFetchedCallback && aFetchedCallback();
-      return;
-    }
-
-    
-    for (let url of aUrls) {
-      if (this._scriptSources.has(url)) {
-        continue;
-      }
-      DebuggerController.dispatchEvent("Debugger:LoadSource", {
-        script: DebuggerView.Scripts.getScriptByLocation(url).getUserData("sourceScript"),
-        options: {
-          silent: true,
-          callback: aFetchCallback
-        }
-      });
-    }
-  },
-
-  
-
-
-  scheduleSearch: function DVGS_scheduleSearch() {
-    window.clearTimeout(this._searchTimeout);
-    this._searchTimeout = window.setTimeout(this._startSearch, GLOBAL_SEARCH_ACTION_DELAY);
-  },
-
-  
-
-
-  _startSearch: function DVGS__startSearch() {
-    let scriptLocations = DebuggerView.Scripts.scriptLocations;
-    this._scriptCount = scriptLocations.length;
-
-    this.fetchScripts(
-      this._onFetchScriptFinished, this._onFetchScriptsFinished, scriptLocations);
-  },
-
-  
-
-
-
-
-
-
-
-  _onFetchScriptFinished: function DVGS__onFetchScriptFinished(aScriptUrl, aSourceText) {
-    this._scriptSources.set(aScriptUrl, aSourceText);
-
-    if (this._scriptSources.size() === this._scriptCount) {
-      this._onFetchScriptsFinished();
-    }
-  },
-
-  
-
-
-  _onFetchScriptsFinished: function DVGS__onFetchScriptsFinished() {
-    this.empty();
-
-    let token = DebuggerView.Scripts.searchToken;
-    let lowerCaseToken = token.toLowerCase();
-
-    
-    if (!token) {
-      DebuggerController.dispatchEvent("Debugger:GlobalSearch:TokenEmpty");
-      this.hidden = true;
-      return;
-    }
-
-    
-    let globalResults = new Map();
-
-    for (let [url, text] of this._scriptSources) {
-      
-      if (!text.toLowerCase().contains(lowerCaseToken)) {
-        continue;
-      }
-      let lines = text.split("\n");
-      let scriptResults = {
-        lineResults: [],
-        matchCount: 0
-      };
-
-      for (let i = 0, len = lines.length; i < len; i++) {
-        let line = lines[i];
-        let lowerCaseLine = line.toLowerCase();
-
-        
-        if (!lowerCaseLine.contains(lowerCaseToken)) {
-          continue;
-        }
-
-        let lineNumber = i;
-        let lineContents = [];
-
-        lowerCaseLine.split(lowerCaseToken).reduce(function(prev, curr, index, {length}) {
-          let unmatched = line.substr(prev.length, curr.length);
-          lineContents.push({ string: unmatched });
-
-          if (index !== length - 1) {
-            let matched = line.substr(prev.length + curr.length, token.length);
-            let range = {
-              start: prev.length + curr.length,
-              length: matched.length
-            };
-            lineContents.push({
-              string: matched,
-              range: range,
-              match: true
-            });
-            scriptResults.matchCount++;
-          }
-          return prev + token + curr;
-        }, "");
-
-        scriptResults.lineResults.push({
-          lineNumber: lineNumber,
-          lineContents: lineContents
-        });
-      }
-      if (scriptResults.matchCount) {
-        globalResults.set(url, scriptResults);
-      }
-    }
-
-    if (globalResults.size()) {
-      this._createGlobalResultsUI(globalResults);
-      this.hidden = false;
-      DebuggerController.dispatchEvent("Debugger:GlobalSearch:MatchFound");
-    } else {
-      this.hidden = true;
-      DebuggerController.dispatchEvent("Debugger:GlobalSearch:MatchNotFound");
-    }
-  },
-
-  
-
-
-
-
-
-  _createGlobalResultsUI:
-  function DVGS__createGlobalResultsUI(aGlobalResults) {
-    let i = 0;
-
-    for (let [scriptUrl, scriptResults] of aGlobalResults) {
-      if (i++ === 0) {
-        this._createScriptResultsUI(scriptUrl, scriptResults, true);
-      } else {
-        
-        
-        
-        Services.tm.currentThread.dispatch({ run:
-          this._createScriptResultsUI.bind(this, scriptUrl, scriptResults) }, 0);
-      }
-    }
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  _createScriptResultsUI:
-  function DVGS__createScriptResultsUI(aScriptUrl, aScriptResults, aExpandFlag) {
-    let { lineResults, matchCount } = aScriptResults;
-    let element;
-
-    for (let lineResult of lineResults) {
-      element = this._createLineSearchResultsUI({
-        scriptUrl: aScriptUrl,
-        matchCount: matchCount,
-        lineNumber: lineResult.lineNumber + 1,
-        lineContents: lineResult.lineContents
-      });
-    }
-    if (aExpandFlag) {
-      element.expand(true);
-    }
-  },
-
-  
-
-
-
-
-
-
-
-  _createLineSearchResultsUI:
-  function DVGS__createLineSearchresultsUI(aLineResults) {
-    let scriptResultsId = "search-results-" + aLineResults.scriptUrl;
-    let scriptResults = document.getElementById(scriptResultsId);
-
-    
-    if (!scriptResults) {
-      let trimFunc = DebuggerController.SourceScripts.trimUrlLength;
-      let urlLabel = trimFunc(aLineResults.scriptUrl, GLOBAL_SEARCH_URL_MAX_SIZE);
-
-      let resultsUrl = document.createElement("label");
-      resultsUrl.className = "plain script-url";
-      resultsUrl.setAttribute("value", urlLabel);
-
-      let resultsCount = document.createElement("label");
-      resultsCount.className = "plain match-count";
-      resultsCount.setAttribute("value", "(" + aLineResults.matchCount + ")");
-
-      let arrow = document.createElement("box");
-      arrow.className = "arrow";
-
-      let resultsHeader = document.createElement("hbox");
-      resultsHeader.className = "dbg-results-header";
-      resultsHeader.setAttribute("align", "center")
-      resultsHeader.appendChild(arrow);
-      resultsHeader.appendChild(resultsUrl);
-      resultsHeader.appendChild(resultsCount);
-
-      let resultsContainer = document.createElement("vbox");
-      resultsContainer.className = "dbg-results-container";
-
-      scriptResults = document.createElement("vbox");
-      scriptResults.id = scriptResultsId;
-      scriptResults.className = "dbg-script-results";
-      scriptResults.header = resultsHeader;
-      scriptResults.container = resultsContainer;
-      scriptResults.appendChild(resultsHeader);
-      scriptResults.appendChild(resultsContainer);
-      this._pane.appendChild(scriptResults);
-
-      
-
-
-
-
-
-
-
-      scriptResults.expand = function DVGS_element_expand(aSkipAnimationFlag) {
-        resultsContainer.setAttribute("open", "");
-        arrow.setAttribute("open", "");
-
-        if (!aSkipAnimationFlag) {
-          resultsContainer.setAttribute("animated", "");
-        }
-        return scriptResults;
-      };
-
-      
-
-
-
-
-      scriptResults.collapse = function DVGS_element_collapse() {
-        resultsContainer.removeAttribute("animated");
-        resultsContainer.removeAttribute("open");
-        arrow.removeAttribute("open");
-        return scriptResults;
-      };
-
-      
-
-
-
-
-      scriptResults.toggle = function DVGS_element_toggle(e) {
-        if (e instanceof Event) {
-          scriptResults._userToggle = true;
-        }
-        scriptResults.expanded = !scriptResults.expanded;
-        return scriptResults;
-      };
-
-      
-
-
-
-
-      Object.defineProperty(scriptResults, "expanded", {
-        get: function DVP_element_getExpanded() {
-          return arrow.hasAttribute("open");
-        },
-        set: function DVP_element_setExpanded(value) {
-          if (value) {
-            scriptResults.expand();
-          } else {
-            scriptResults.collapse();
-          }
-        }
-      });
-
-      
-
-
-      resultsHeader.addEventListener("click", scriptResults.toggle, false);
-    }
-
-    let lineNumber = document.createElement("label");
-    lineNumber.className = "plain line-number";
-    lineNumber.setAttribute("value", aLineResults.lineNumber);
-
-    let lineContents = document.createElement("hbox");
-    lineContents.setAttribute("flex", "1");
-    lineContents.className = "line-contents";
-    lineContents.addEventListener("click", this._onLineClick, false);
-
-    let lineContent;
-    let totalLength = 0;
-    let ellipsis = Services.prefs.getComplexValue("intl.ellipsis", Ci.nsIPrefLocalizedString);
-
-    for (lineContent of aLineResults.lineContents) {
-      let string = lineContent.string;
-      let match = lineContent.match;
-
-      string = string.substr(0, GLOBAL_SEARCH_LINE_MAX_SIZE - totalLength);
-      totalLength += string.length;
-
-      let label = document.createElement("label");
-      label.className = "plain string";
-      label.setAttribute("value", string);
-      label.setAttribute("match", match || false);
-      lineContents.appendChild(label);
-
-      if (match) {
-        label.addEventListener("click", this._onMatchClick, false);
-        label.setUserData("lineResults", aLineResults, null);
-        label.setUserData("lineContentRange", lineContent.range, null);
-        label.container = scriptResults;
-      }
-      if (totalLength >= GLOBAL_SEARCH_LINE_MAX_SIZE) {
-        label = document.createElement("label");
-        label.className = "plain string";
-        label.setAttribute("value", ellipsis.data);
-        lineContents.appendChild(label);
-        break;
-      }
-    }
-
-    let searchResult = document.createElement("hbox");
-    searchResult.className = "dbg-search-result";
-    searchResult.appendChild(lineNumber);
-    searchResult.appendChild(lineContents);
-
-    let resultsContainer = scriptResults.container;
-    resultsContainer.appendChild(searchResult);
-
-    
-    return scriptResults;
-  },
-
-  
-
-
-  focusNextMatch: function DVGS_focusNextMatch() {
-    let matches = this._pane.querySelectorAll(".string[match=true]");
-    if (!matches.length) {
-      return;
-    }
-    if (++this._currentlyFocusedMatch >= matches.length) {
-      this._currentlyFocusedMatch = 0;
-    }
-    this._onMatchClick({ target: matches[this._currentlyFocusedMatch] });
-  },
-
-  
-
-
-  focusPrevMatch: function DVGS_focusPrevMatch() {
-    let matches = this._pane.querySelectorAll(".string[match=true]");
-    if (!matches.length) {
-      return;
-    }
-    if (--this._currentlyFocusedMatch < 0) {
-      this._currentlyFocusedMatch = matches.length - 1;
-    }
-    this._onMatchClick({ target: matches[this._currentlyFocusedMatch] });
-  },
-
-  
-
-
-  _onLineClick: function DVGS__onLineClick(e) {
-    let firstMatch = e.target.parentNode.querySelector(".string[match=true]");
-    this._onMatchClick({ target: firstMatch });
-  },
-
-  
-
-
-  _onMatchClick: function DVGLS__onMatchClick(e) {
-    if (e instanceof Event) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    let match = e.target;
-
-    match.container.expand(true);
-    this._scrollMatchIntoViewIfNeeded(match);
-    this._animateMatchBounce(match);
-
-    let results = match.getUserData("lineResults");
-    let range = match.getUserData("lineContentRange");
-
-    let stackframes = DebuggerController.StackFrames;
-    stackframes.updateEditorToLocation(results.scriptUrl, results.lineNumber, 0, 0, 1);
-
-    let editor = DebuggerView.editor;
-    let offset = editor.getCaretOffset();
-    editor.setSelection(offset + range.start, offset + range.start + range.length);
-  },
-
-  
-
-
-  _onFocusLost: function DVGS__onFocusLost(e) {
-    this.hideAndEmpty();
-  },
-
-  
-
-
-  _onResultsScroll: function DVGS__onResultsScroll(e) {
-    this._expandAllVisibleResults();
-  },
-
-  
-
-
-  _expandAllVisibleResults: function DVGS__expandAllVisibleResults() {
-    let collapsed = this._pane.querySelectorAll(".dbg-results-container:not([open])");
-
-    for (let i = 0, l = collapsed.length; i < l; i++) {
-      this._expandResultsIfNeeded(collapsed[i].parentNode);
-    }
-  },
-
-  
-
-
-
-  _expandResultsIfNeeded: function DVGS__expandResultsIfNeeded(aTarget) {
-    if (aTarget.expanded || aTarget._userToggle) {
-      return;
-    }
-    let { clientHeight } = this._pane;
-    let { top, height } = aTarget.getBoundingClientRect();
-
-    if (top - height <= clientHeight || this._forceExpandResults) {
-      aTarget.expand(true);
-    }
-  },
-
-  
-
-
-
-  _scrollMatchIntoViewIfNeeded: function DVGS__scrollMatchIntoViewIfNeeded(aTarget) {
-    let { clientHeight } = this._pane;
-    let { top, height } = aTarget.getBoundingClientRect();
-
-    let style = window.getComputedStyle(aTarget);
-    let topBorderSize = window.parseInt(style.getPropertyValue("border-top-width"));
-    let bottomBorderSize = window.parseInt(style.getPropertyValue("border-bottom-width"));
-
-    let marginY = top - (height + topBorderSize + bottomBorderSize) * 2;
-    if (marginY <= 0) {
-      this._pane.scrollTop += marginY;
-    }
-    if (marginY + height > clientHeight) {
-      this._pane.scrollTop += height - (clientHeight - marginY);
-    }
-  },
-
-  
-
-
-
-  _animateMatchBounce: function DVGS__animateMatchBounce(aTarget) {
-    aTarget.setAttribute("focused", "");
-
-    window.setTimeout(function() {
-     aTarget.removeAttribute("focused");
-    }, GLOBAL_SEARCH_MATCH_FLASH_DURATION);
-  },
-
-  
-
-
-  _scriptSources: new Map(),
-
-  
-
-
-  _currentlyFocusedMatch: -1,
-
-  
-
-
-  _pane: null,
-  _splitter: null,
-  _searchbox: null,
-
-  
-
-
-  initialize: function DVGS_initialize() {
-    this._pane = DebuggerView._globalSearch;
-    this._splitter = DebuggerView._globalSearchSplitter;
-    this._searchbox = DebuggerView._scriptsSearchbox;
-
-    this._pane.addEventListener("scroll", this._onResultsScroll, false);
-    this._searchbox.addEventListener("blur", this._onFocusLost, false);
-  },
-
-  
-
-
-  destroy: function DVS_destroy() {
-    this._pane.removeEventListener("scroll", this._onResultsScroll, false);
-    this._searchbox.removeEventListener("blur", this._onFocusLost, false);
-
-    this.hideAndEmpty();
-    this._pane = null;
-    this._splitter = null;
-    this._searchbox = null;
-    this._scriptSources = null;
-  }
-};
-
-
-
-
-function ScriptsView() {
-  this._onScriptsChange = this._onScriptsChange.bind(this);
-  this._onScriptsSearchClick = this._onScriptsSearchClick.bind(this);
-  this._onScriptsSearchBlur = this._onScriptsSearchBlur.bind(this);
-  this._onScriptsSearch = this._onScriptsSearch.bind(this);
-  this._onScriptsKeyPress = this._onScriptsKeyPress.bind(this);
-}
-
-ScriptsView.prototype = {
-
-  
-
-
-  empty: function DVS_empty() {
-    this._scripts.selectedIndex = -1;
-    this._scripts.setAttribute("label", L10N.getStr("noScriptsText"));
-    this._scripts.removeAttribute("tooltiptext");
-
-    while (this._scripts.firstChild) {
-      this._scripts.removeChild(this._scripts.firstChild);
-    }
-  },
-
-  
-
-
-  clearSearch: function DVS_clearSearch() {
-    this._searchbox.value = "";
-    this._onScriptsSearch({});
-  },
-
-  
-
-
-
-
-
-
-
-  containsIgnoringQuery: function DVS_containsIgnoringQuery(aUrl) {
-    let sourceScripts = DebuggerController.SourceScripts;
-    aUrl = sourceScripts.trimUrlQuery(aUrl);
-
-    if (this._tmpScripts.some(function(element) {
-      return sourceScripts.trimUrlQuery(element.script.url) == aUrl;
-    })) {
-      return true;
-    }
-    if (this.scriptLocations.some(function(url) {
-      return sourceScripts.trimUrlQuery(url) == aUrl;
-    })) {
-      return true;
-    }
-    return false;
-  },
-
-  
-
-
-
-
-
-
-
-  contains: function DVS_contains(aUrl) {
-    if (this._tmpScripts.some(function(element) {
-      return element.script.url == aUrl;
-    })) {
-      return true;
-    }
-    if (this._scripts.getElementsByAttribute("value", aUrl).length > 0) {
-      return true;
-    }
-    return false;
-  },
-
-  
-
-
-
-
-
-
-
-  containsLabel: function DVS_containsLabel(aLabel) {
-    if (this._tmpScripts.some(function(element) {
-      return element.label == aLabel;
-    })) {
-      return true;
-    }
-    if (this._scripts.getElementsByAttribute("label", aLabel).length > 0) {
-      return true;
-    }
-    return false;
-  },
-
-  
-
-
-
-
-
-  selectIndex: function DVS_selectIndex(aIndex) {
-    this._scripts.selectedIndex = aIndex;
-  },
-
-  
-
-
-
-
-
-  selectScript: function DVS_selectScript(aUrl) {
-    for (let i = 0, l = this._scripts.itemCount; i < l; i++) {
-      if (this._scripts.getItemAtIndex(i).value == aUrl) {
-        this._scripts.selectedIndex = i;
-        return;
-      }
-    }
-  },
-
-  
-
-
-
-
-
-  isSelected: function DVS_isSelected(aUrl) {
-    if (this._scripts.selectedItem &&
-        this._scripts.selectedItem.value == aUrl) {
-      return true;
-    }
-    return false;
-  },
-
-  
-
-
-
-  get selected() {
-    return this._scripts.selectedItem ?
-           this._scripts.selectedItem.value : null;
-  },
-
-  
-
-
-
-  get preferredScriptUrl()
-    this._preferredScriptUrl ? this._preferredScriptUrl : null,
-
-  
-
-
-
-  set preferredScriptUrl(value) this._preferredScriptUrl = value,
-
-  
-
-
-
-
-
-
-
-  getScriptByLabel: function DVS_getScriptByLabel(aLabel) {
-    return this._scripts.getElementsByAttribute("label", aLabel)[0];
-  },
-
-  
-
-
-
-  get scriptLabels() {
-    let labels = [];
-    for (let i = 0, l = this._scripts.itemCount; i < l; i++) {
-      labels.push(this._scripts.getItemAtIndex(i).label);
-    }
-    return labels;
-  },
-
-  
-
-
-
-
-
-
-
-  getScriptByLocation: function DVS_getScriptByLocation(aUrl) {
-    return this._scripts.getElementsByAttribute("value", aUrl)[0];
-  },
-
-  
-
-
-
-  get scriptLocations() {
-    let locations = [];
-    for (let i = 0, l = this._scripts.itemCount; i < l; i++) {
-      locations.push(this._scripts.getItemAtIndex(i).value);
-    }
-    return locations;
-  },
-
-  
-
-
-
-  get visibleItemsCount() {
-    let count = 0;
-    for (let i = 0, l = this._scripts.itemCount; i < l; i++) {
-      count += this._scripts.getItemAtIndex(i).hidden ? 0 : 1;
-    }
-    return count;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  addScript: function DVS_addScript(aLabel, aScript, aForceFlag) {
-    
-    if (!aForceFlag) {
-      this._tmpScripts.push({ label: aLabel, script: aScript });
-      return;
-    }
-
-    
-    for (let i = 0, l = this._scripts.itemCount; i < l; i++) {
-      if (this._scripts.getItemAtIndex(i).label > aLabel) {
-        this._createScriptElement(aLabel, aScript, i);
-        return;
-      }
-    }
-    
-    this._createScriptElement(aLabel, aScript, -1);
-  },
-
-  
-
-
-
-  commitScripts: function DVS_commitScripts() {
-    let newScripts = this._tmpScripts;
-    this._tmpScripts = [];
-
-    if (!newScripts || !newScripts.length) {
-      return;
-    }
-    newScripts.sort(function(a, b) {
-      return a.label.toLowerCase() > b.label.toLowerCase();
-    });
-
-    for (let i = 0, l = newScripts.length; i < l; i++) {
-      let item = newScripts[i];
-      this._createScriptElement(item.label, item.script, -1);
-    }
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  _createScriptElement: function DVS__createScriptElement(aLabel, aScript, aIndex)
-  {
-    
-    if (aLabel == "null" || this.containsLabel(aLabel) || this.contains(aScript.url)) {
-      return;
-    }
-
-    let scriptItem =
-      aIndex == -1 ? this._scripts.appendItem(aLabel, aScript.url)
-                   : this._scripts.insertItemAt(aIndex, aLabel, aScript.url);
-
-    scriptItem.setAttribute("tooltiptext", aScript.url);
-    scriptItem.setUserData("sourceScript", aScript, null);
-  },
-
-  
-
-
-
-
-
-  get searchboxInfo() {
-    let file, line, token, isGlobal;
-
-    let rawValue = this._searchbox.value;
-    let rawLength = rawValue.length;
-    let lineFlagIndex = rawValue.lastIndexOf(SEARCH_LINE_FLAG);
-    let tokenFlagIndex = rawValue.lastIndexOf(SEARCH_TOKEN_FLAG);
-    let globalFlagIndex = rawValue.lastIndexOf(SEARCH_GLOBAL_FLAG);
-
-    if (globalFlagIndex !== 0) {
-      let fileEnd = lineFlagIndex !== -1 ? lineFlagIndex : tokenFlagIndex !== -1 ? tokenFlagIndex : rawLength;
-      let lineEnd = tokenFlagIndex !== -1 ? tokenFlagIndex : rawLength;
-
-      file = rawValue.slice(0, fileEnd);
-      line = window.parseInt(rawValue.slice(fileEnd + 1, lineEnd)) || -1;
-      token = rawValue.slice(lineEnd + 1);
-      isGlobal = false;
-    } else {
-      file = "";
-      line = -1;
-      token = rawValue.slice(1);
-      isGlobal = true;
-    }
-
-    return [file, line, token, isGlobal];
-  },
-
-  
-
-
-  get searchToken() this.searchboxInfo[2],
-
-  
-
-
-  _onScriptsChange: function DVS__onScriptsChange() {
-    let selectedItem = this._scripts.selectedItem;
-    if (!selectedItem) {
-      return;
-    }
-
-    this._preferredScript = selectedItem;
-    this._preferredScriptUrl = selectedItem.value;
-    this._scripts.setAttribute("tooltiptext", selectedItem.value);
-    DebuggerController.SourceScripts.showScript(selectedItem.getUserData("sourceScript"));
-  },
-
-  _prevSearchedFile: "",
-  _prevSearchedLine: 0,
-  _prevSearchedToken: "",
-
-  
-
-
-
-
-
-  _performFileSearch: function DVS__performFileSearch(aFile) {
-    let scripts = this._scripts;
-
-    
-    scripts.selectedItem = this._preferredScript;
-    scripts.setAttribute("label", this._preferredScript.label);
-    scripts.setAttribute("tooltiptext", this._preferredScript.value);
-
-    
-    if (!aFile && this._someScriptsHidden) {
-      this._someScriptsHidden = false;
-
-      for (let i = 0, l = scripts.itemCount; i < l; i++) {
-        scripts.getItemAtIndex(i).hidden = false;
-      }
-    } else if (this._prevSearchedFile !== aFile) {
-      let lowerCaseFile = aFile.toLowerCase();
-      let found = false;
-
-      for (let i = 0, l = scripts.itemCount; i < l; i++) {
-        let item = scripts.getItemAtIndex(i);
-        let lowerCaseLabel = item.label.toLowerCase();
-
-        
-        if (lowerCaseLabel.match(aFile)) {
-          item.hidden = false;
-
-          if (!found) {
-            found = true;
-            scripts.selectedItem = item;
-            scripts.setAttribute("label", item.label);
-            scripts.setAttribute("tooltiptext", item.value);
-          }
-        }
-        
-        else {
-          item.hidden = true;
-          this._someScriptsHidden = true;
-        }
-      }
-      if (!found) {
-        scripts.setAttribute("label", L10N.getStr("noMatchingScriptsText"));
-        scripts.removeAttribute("tooltiptext");
-      }
-    }
-    this._prevSearchedFile = aFile;
-  },
-
-  
-
-
-
-
-
-  _performLineSearch: function DVS__performLineSearch(aLine) {
-    
-    if (this._prevSearchedLine !== aLine && aLine > -1) {
-      DebuggerView.editor.setCaretPosition(aLine - 1);
-    }
-    this._prevSearchedLine = aLine;
-  },
-
-  
-
-
-
-
-
-  _performTokenSearch: function DVS__performTokenSearch(aToken) {
-    
-    if (this._prevSearchedToken !== aToken && aToken.length > 0) {
-      let editor = DebuggerView.editor;
-      let offset = editor.find(aToken, { ignoreCase: true });
-      if (offset > -1) {
-        editor.setSelection(offset, offset + aToken.length)
-      }
-    }
-    this._prevSearchedToken = aToken;
-  },
-
-  
-
-
-  _onScriptsSearchClick: function DVS__onScriptsSearchClick() {
-    this._searchboxPanel.openPopup(this._searchbox);
-  },
-
-  
-
-
-  _onScriptsSearchBlur: function DVS__onScriptsSearchBlur() {
-    this._searchboxPanel.hidePopup();
-  },
-
-  
-
-
-  _onScriptsSearch: function DVS__onScriptsSearch() {
-    
-    if (!this._scripts.itemCount) {
-      return;
-    }
-    this._searchboxPanel.hidePopup();
-
-    let [file, line, token, isGlobal] = this.searchboxInfo;
-
-    
-    
-    if (isGlobal) {
-      DebuggerView.GlobalSearch.scheduleSearch();
-    } else {
-      DebuggerView.GlobalSearch.hideAndEmpty();
-      this._performFileSearch(file);
-      this._performLineSearch(line);
-      this._performTokenSearch(token);
-    }
-  },
-
-  
-
-
-  _onScriptsKeyPress: function DVS__onScriptsKeyPress(e) {
-    if (e.keyCode === e.DOM_VK_ESCAPE) {
-      DebuggerView.editor.focus();
-      return;
-    }
-    var action;
-
-    if (e.keyCode === e.DOM_VK_DOWN ||
-        e.keyCode === e.DOM_VK_RETURN ||
-        e.keyCode === e.DOM_VK_ENTER) {
-      action = 1;
-    } else if (e.keyCode === e.DOM_VK_UP) {
-      action = 2;
-    }
-
-    if (action) {
-      let [file, line, token, isGlobal] = this.searchboxInfo;
-
-      if (token.length) {
-        e.preventDefault();
-        e.stopPropagation();
-      } else {
-        return;
-      }
-      if (isGlobal) {
-        if (DebuggerView.GlobalSearch.hidden) {
-          DebuggerView.GlobalSearch.scheduleSearch();
-        } else {
-          DebuggerView.GlobalSearch[action === 1
-            ? "focusNextMatch"
-            : "focusPrevMatch"]();
-        }
-        return;
-      }
-
-      let editor = DebuggerView.editor;
-      let offset = editor[action === 1 ? "findNext" : "findPrevious"](true);
-      if (offset > -1) {
-        editor.setSelection(offset, offset + token.length)
-      }
-    }
-  },
-
-  
-
-
-  _onSearch: function DVS__onSearch(aValue = "") {
-    this._searchbox.focus();
-    this._searchbox.value = aValue;
-    DebuggerView.GlobalSearch.hideAndEmpty();
-  },
-
-  
-
-
-  _onFileSearch: function DVS__onFileSearch() {
-    this._onSearch();
-    this._searchboxPanel.openPopup(this._searchbox);
-  },
-
-  
-
-
-  _onLineSearch: function DVS__onLineSearch() {
-    this._onSearch(SEARCH_LINE_FLAG);
-    this._searchboxPanel.hidePopup();
-  },
-
-  
-
-
-  _onTokenSearch: function DVS__onTokenSearch() {
-    this._onSearch(SEARCH_TOKEN_FLAG);
-    this._searchboxPanel.hidePopup();
-  },
-
-  
-
-
-  _onGlobalSearch: function DVS__onGlobalSearch() {
-    this._onSearch(SEARCH_GLOBAL_FLAG);
-    this._searchboxPanel.hidePopup();
-  },
-
-  
-
-
-  _scripts: null,
-  _searchbox: null,
-  _searchboxPanel: null,
-
-  
-
-
-  initialize: function DVS_initialize() {
-    this._scripts = DebuggerView._scripts;
-    this._searchbox = document.getElementById("scripts-search");
-    this._searchboxPanel = document.getElementById("scripts-search-panel");
-
-    this._scripts.addEventListener("select", this._onScriptsChange, false);
-    this._searchbox.addEventListener("click", this._onScriptsSearchClick, false);
-    this._searchbox.addEventListener("blur", this._onScriptsSearchBlur, false);
-    this._searchbox.addEventListener("select", this._onScriptsSearch, false);
-    this._searchbox.addEventListener("input", this._onScriptsSearch, false);
-    this._searchbox.addEventListener("keypress", this._onScriptsKeyPress, false);
-    this.commitScripts();
-  },
-
-  
-
-
-  destroy: function DVS_destroy() {
-    this._scripts.removeEventListener("select", this._onScriptsChange, false);
-    this._searchbox.removeEventListener("click", this._onScriptsSearchClick, false);
-    this._searchbox.removeEventListener("blur", this._onScriptsSearchBlur, false);
-    this._searchbox.removeEventListener("select", this._onScriptsSearch, false);
-    this._searchbox.removeEventListener("input", this._onScriptsSearch, false);
-    this._searchbox.removeEventListener("keypress", this._onScriptsKeyPress, false);
-
-    this.empty();
-    this._scripts = null;
-    this._searchbox = null;
-    this._searchboxPanel = null;
-  }
-};
-
-
-
-
-function StackFramesView() {
-  this._onFramesScroll = this._onFramesScroll.bind(this);
-  this._onPauseExceptionsClick = this._onPauseExceptionsClick.bind(this);
-  this._onCloseButtonClick = this._onCloseButtonClick.bind(this);
-  this._onResume = this._onResume.bind(this);
-  this._onStepOver = this._onStepOver.bind(this);
-  this._onStepIn = this._onStepIn.bind(this);
-  this._onStepOut = this._onStepOut.bind(this);
-}
-
-StackFramesView.prototype = {
-
- 
-
-
-
-
-
-  updateState: function DVF_updateState(aState) {
-    let resume = DebuggerView._resumeButton;
-    let resumeKey = LayoutHelpers.prettyKey(DebuggerView._resumeKey);
-
-    
-    if (aState == "paused") {
-      resume.setAttribute("tooltiptext", L10N.getFormatStr("resumeButtonTooltip", [resumeKey]));
-      resume.setAttribute("checked", true);
-    }
-    
-    else if (aState == "attached") {
-      resume.setAttribute("tooltiptext", L10N.getFormatStr("pauseButtonTooltip", [resumeKey]));
-      resume.removeAttribute("checked");
-    }
-  },
-
-  
-
-
-  empty: function DVF_empty() {
-    while (this._frames.firstChild) {
-      this._frames.removeChild(this._frames.firstChild);
-    }
-  },
-
-  
-
-
-
-  emptyText: function DVF_emptyText() {
-    
-    this.empty();
-
-    let item = document.createElement("label");
-
-    
-    item.className = "list-item empty";
-    item.setAttribute("value", L10N.getStr("emptyStackText"));
-
-    this._frames.appendChild(item);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-  addFrame: function DVF_addFrame(aDepth, aFrameNameText, aFrameDetailsText) {
-    
-    if (document.getElementById("stackframe-" + aDepth)) {
-      return null;
-    }
-    
-    DebuggerView.showPanesIfAllowed();
-
-    let frame = document.createElement("box");
-    let frameName = document.createElement("label");
-    let frameDetails = document.createElement("label");
-
-    
-    frame.id = "stackframe-" + aDepth;
-    frame.className = "dbg-stackframe list-item";
-
-    
-    frameName.className = "dbg-stackframe-name plain";
-    frameDetails.className = "dbg-stackframe-details plain";
-    frameName.setAttribute("value", aFrameNameText);
-    frameDetails.setAttribute("value", aFrameDetailsText);
-
-    let spacer = document.createElement("spacer");
-    spacer.setAttribute("flex", "1");
-
-    frame.appendChild(frameName);
-    frame.appendChild(spacer);
-    frame.appendChild(frameDetails);
-
-    this._frames.appendChild(frame);
-
-    
-    return frame;
-  },
-
-  
-
-
-
-
-
-
-
-  highlightFrame: function DVF_highlightFrame(aDepth, aFlag) {
-    let frame = document.getElementById("stackframe-" + aDepth);
-
-    
-    if (!frame) {
-      return;
-    }
-
-    
-    if (!aFlag && !frame.classList.contains("selected")) {
-      frame.classList.add("selected");
-    }
-    
-    else if (aFlag && frame.classList.contains("selected")) {
-      frame.classList.remove("selected");
-    }
-  },
-
-  
-
-
-
-
-
-  unhighlightFrame: function DVF_unhighlightFrame(aDepth) {
-    this.highlightFrame(aDepth, true);
-  },
-
-  
-
-
-
-
-
-  get dirty() {
-    return this._dirty;
-  },
-
-  
-
-
-
-
-
-  set dirty(aValue) {
-    this._dirty = aValue;
-  },
-
-  
-
-
-  _onFramesClick: function DVF__onFramesClick(aEvent) {
-    let target = aEvent.target;
-
-    while (target) {
-      if (target.debuggerFrame) {
-        DebuggerController.StackFrames.selectFrame(target.debuggerFrame.depth);
-        return;
-      }
-      target = target.parentNode;
-    }
-  },
-
-  
-
-
-  _onFramesScroll: function DVF__onFramesScroll(aEvent) {
-    
-    if (this._dirty) {
-      let clientHeight = this._frames.clientHeight;
-      let scrollTop = this._frames.scrollTop;
-      let scrollHeight = this._frames.scrollHeight;
-
-      
-      
-      if (scrollTop >= (scrollHeight - clientHeight) * 0.95) {
-        this._dirty = false;
-
-        DebuggerController.StackFrames.addMoreFrames();
-      }
-    }
-  },
-
-  
-
-
-  _onCloseButtonClick: function DVF__onCloseButtonClick() {
-    DebuggerController.dispatchEvent("Debugger:Close");
-  },
-
-  
-
-
-  _onPauseExceptionsClick: function DVF__onPauseExceptionsClick() {
-    let option = document.getElementById("pause-exceptions");
-    DebuggerController.StackFrames.updatePauseOnExceptions(option.checked);
-  },
-
-  
-
-
-  _onResume: function DVF__onResume(e) {
-    if (DebuggerController.activeThread.paused) {
-      DebuggerController.activeThread.resume();
-    } else {
-      DebuggerController.activeThread.interrupt();
-    }
-  },
-
-  
-
-
-  _onStepOver: function DVF__onStepOver(e) {
-    if (DebuggerController.activeThread.paused) {
-      DebuggerController.activeThread.stepOver();
-    }
-  },
-
-  
-
-
-  _onStepIn: function DVF__onStepIn(e) {
-    if (DebuggerController.activeThread.paused) {
-      DebuggerController.activeThread.stepIn();
-    }
-  },
-
-  
-
-
-  _onStepOut: function DVF__onStepOut(e) {
-    if (DebuggerController.activeThread.paused) {
-      DebuggerController.activeThread.stepOut();
-    }
-  },
-
-  
-
-
-  _dirty: false,
-
-  
-
-
-  _frames: null,
-
-  
-
-
-  initialize: function DVF_initialize() {
-    let close = document.getElementById("close");
-    let pauseOnExceptions = document.getElementById("pause-exceptions");
-    let resume = DebuggerView._resumeButton;
-    let stepOver = DebuggerView._stepOverButton;
-    let stepIn = DebuggerView._stepInButton;
-    let stepOut = DebuggerView._stepOutButton;
-    let frames = DebuggerView._stackframes;
-
-    close.addEventListener("click", this._onCloseButtonClick, false);
-    pauseOnExceptions.checked = DebuggerController.StackFrames.pauseOnExceptions;
-    pauseOnExceptions.addEventListener("click", this._onPauseExceptionsClick, false);
-    resume.addEventListener("click", this._onResume, false);
-    stepOver.addEventListener("click", this._onStepOver, false);
-    stepIn.addEventListener("click", this._onStepIn, false);
-    stepOut.addEventListener("click", this._onStepOut, false);
-    frames.addEventListener("click", this._onFramesClick, false);
-    frames.addEventListener("scroll", this._onFramesScroll, false);
-    window.addEventListener("resize", this._onFramesScroll, false);
-
-    this._frames = frames;
-    this.emptyText();
-  },
-
-  
-
-
-  destroy: function DVF_destroy() {
-    let close = document.getElementById("close");
-    let pauseOnExceptions = document.getElementById("pause-exceptions");
-    let resume = DebuggerView._resumeButton;
-    let stepOver = DebuggerView._stepOverButton;
-    let stepIn = DebuggerView._stepInButton;
-    let stepOut = DebuggerView._stepOutButton;
-    let frames = DebuggerView._stackframes;
-
-    close.removeEventListener("click", this._onCloseButtonClick, false);
-    pauseOnExceptions.removeEventListener("click", this._onPauseExceptionsClick, false);
-    resume.removeEventListener("click", this._onResume, false);
-    stepOver.removeEventListener("click", this._onStepOver, false);
-    stepIn.removeEventListener("click", this._onStepIn, false);
-    stepOut.removeEventListener("click", this._onStepOut, false);
-    frames.removeEventListener("click", this._onFramesClick, false);
-    frames.removeEventListener("scroll", this._onFramesScroll, false);
-    window.removeEventListener("resize", this._onFramesScroll, false);
-
-    this.empty();
-    this._frames = null;
-  }
-};
-
-
-
-
-function BreakpointsView() {
-  this._onBreakpointClick = this._onBreakpointClick.bind(this);
-  this._onBreakpointCheckboxChange = this._onBreakpointCheckboxChange.bind(this);
-}
-
-BreakpointsView.prototype = {
-
-  
-
-
-  empty: function DVB_empty() {
-    let firstChild;
-
-    while (firstChild = this._breakpoints.firstChild) {
-      this._destroyContextMenu(firstChild);
-      this._breakpoints.removeChild(firstChild);
-    }
-  },
-
-  
-
-
-
-  emptyText: function DVB_emptyText() {
-    
-    this.empty();
-
-    let item = document.createElement("label");
-
-    
-    item.className = "list-item empty";
-    item.setAttribute("value", L10N.getStr("emptyBreakpointsText"));
-
-    this._breakpoints.appendChild(item);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  getBreakpoint: function DVB_getBreakpoint(aUrl, aLine) {
-    return this._breakpoints.getElementsByAttribute("location", aUrl + ":" + aLine)[0];
-  },
-
-  
-
-
-
-
-
-
-  removeBreakpoint: function DVB_removeBreakpoint(aId) {
-    let breakpoint = document.getElementById("breakpoint-" + aId);
-
-    
-    if (!breakpoint) {
-      return;
-    }
-    this._destroyContextMenu(breakpoint);
-    this._breakpoints.removeChild(breakpoint);
-
-    if (!this.count) {
-      this.emptyText();
-    }
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  addBreakpoint: function DVB_addBreakpoint(aId, aLineInfo, aLineText, aUrl, aLine) {
-    
-    if (document.getElementById("breakpoint-" + aId)) {
-      return null;
-    }
-    
-    if (!this.count) {
-      this.empty();
-    }
-
-    
-    let breakpoint = this.getBreakpoint(aUrl, aLine);
-    if (breakpoint) {
-      breakpoint.id = "breakpoint-" + aId;
-      breakpoint.breakpointActor = aId;
-      breakpoint.getElementsByTagName("checkbox")[0].setAttribute("checked", "true");
-      return;
-    }
-
-    breakpoint = document.createElement("box");
-    let bkpCheckbox = document.createElement("checkbox");
-    let bkpLineInfo = document.createElement("label");
-    let bkpLineText = document.createElement("label");
-
-    
-    breakpoint.id = "breakpoint-" + aId;
-    breakpoint.className = "dbg-breakpoint list-item";
-    breakpoint.setAttribute("location", aUrl + ":" + aLine);
-    breakpoint.breakpointUrl = aUrl;
-    breakpoint.breakpointLine = aLine;
-    breakpoint.breakpointActor = aId;
-
-    aLineInfo = aLineInfo.trim();
-    aLineText = aLineText.trim();
-
-    
-    bkpCheckbox.setAttribute("checked", "true");
-    bkpCheckbox.addEventListener("click", this._onBreakpointCheckboxChange, false);
-
-    
-    bkpLineInfo.className = "dbg-breakpoint-info plain";
-    bkpLineText.className = "dbg-breakpoint-text plain";
-    bkpLineInfo.setAttribute("value", aLineInfo);
-    bkpLineText.setAttribute("value", aLineText);
-    bkpLineInfo.setAttribute("crop", "end");
-    bkpLineText.setAttribute("crop", "end");
-    bkpLineText.setAttribute("tooltiptext", aLineText.substr(0, BREAKPOINT_LINE_TOOLTIP_MAX_SIZE));
-
-    
-    let menupopupId = this._createContextMenu(breakpoint);
-    breakpoint.setAttribute("contextmenu", menupopupId);
-
-    let state = document.createElement("vbox");
-    state.className = "state";
-    state.appendChild(bkpCheckbox);
-
-    let content = document.createElement("vbox");
-    content.className = "content";
-    content.setAttribute("flex", "1");
-    content.appendChild(bkpLineInfo);
-    content.appendChild(bkpLineText);
-
-    breakpoint.appendChild(state);
-    breakpoint.appendChild(content);
-
-    this._breakpoints.appendChild(breakpoint);
-
-    
-    return breakpoint;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  enableBreakpoint:
-  function DVB_enableBreakpoint(aTarget, aCallback, aNoCheckboxUpdate) {
-    let { breakpointUrl: url, breakpointLine: line } = aTarget;
-    let breakpoint = DebuggerController.Breakpoints.getBreakpoint(url, line);
-
-    if (!breakpoint) {
-      if (!aNoCheckboxUpdate) {
-        aTarget.getElementsByTagName("checkbox")[0].setAttribute("checked", "true");
-      }
-      DebuggerController.Breakpoints.
-        addBreakpoint({ url: url, line: line }, aCallback);
-
-      return true;
-    }
-    return false;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  disableBreakpoint:
-  function DVB_disableBreakpoint(aTarget, aCallback, aNoCheckboxUpdate) {
-    let { breakpointUrl: url, breakpointLine: line } = aTarget;
-    let breakpoint = DebuggerController.Breakpoints.getBreakpoint(url, line)
-
-    if (breakpoint) {
-      if (!aNoCheckboxUpdate) {
-        aTarget.getElementsByTagName("checkbox")[0].removeAttribute("checked");
-      }
-      DebuggerController.Breakpoints.
-        removeBreakpoint(breakpoint, aCallback, false, true);
-
-      return true;
-    }
-    return false;
-  },
-
-  
-
-
-  get count() {
-    return this._breakpoints.getElementsByClassName("dbg-breakpoint").length;
-  },
-
-  
-
-
-
-
-
-  _iterate: function DVB_iterate(aCallback) {
-    Array.forEach(Array.slice(this._breakpoints.childNodes), aCallback);
-  },
-
-  
-
-
-
-  _getBreakpointTarget: function DVB__getBreakpointTarget(aEvent) {
-    let target = aEvent.target;
-
-    while (target) {
-      if (target.breakpointActor) {
-        return target;
-      }
-      target = target.parentNode;
-    }
-  },
-
-  
-
-
-  _onBreakpointClick: function DVB__onBreakpointClick(aEvent) {
-    let target = this._getBreakpointTarget(aEvent);
-    let { breakpointUrl: url, breakpointLine: line } = target;
-
-    DebuggerController.StackFrames.updateEditorToLocation(url, line, 0, 0, 1);
-  },
-
-  
-
-
-  _onBreakpointCheckboxChange: function DVB__onBreakpointCheckboxChange(aEvent) {
-    aEvent.stopPropagation();
-
-    let target = this._getBreakpointTarget(aEvent);
-    let { breakpointUrl: url, breakpointLine: line } = target;
-
-    if (aEvent.target.getAttribute("checked") === "true") {
-      this.disableBreakpoint(target, null, true);
-    } else {
-      this.enableBreakpoint(target, null, true);
-    }
-  },
-
-  
-
-
-
-
-
-  _onEnableSelf: function DVB__onEnableSelf(aTarget) {
-    if (!aTarget) {
-      return;
-    }
-    if (this.enableBreakpoint(aTarget)) {
-      aTarget.enableSelf.menuitem.setAttribute("hidden", "true");
-      aTarget.disableSelf.menuitem.removeAttribute("hidden");
-    }
-  },
-
-  
-
-
-
-
-
-  _onDisableSelf: function DVB__onDisableSelf(aTarget) {
-    if (!aTarget) {
-      return;
-    }
-    if (this.disableBreakpoint(aTarget)) {
-      aTarget.enableSelf.menuitem.removeAttribute("hidden");
-      aTarget.disableSelf.menuitem.setAttribute("hidden", "true");
-    }
-  },
-
-  
-
-
-
-
-
-  _onDeleteSelf: function DVB__onDeleteSelf(aTarget) {
-    let { breakpointUrl: url, breakpointLine: line } = aTarget;
-    let breakpoint = DebuggerController.Breakpoints.getBreakpoint(url, line)
-
-    if (aTarget) {
-      this.removeBreakpoint(aTarget.breakpointActor);
-    }
-    if (breakpoint) {
-      DebuggerController.Breakpoints.removeBreakpoint(breakpoint);
-    }
-  },
-
-  
-
-
-
-
-
-  _onEnableOthers: function DVB__onEnableOthers(aTarget) {
-    this._iterate(function(element) {
-      if (element !== aTarget) {
-        this._onEnableSelf(element);
-      }
-    }.bind(this));
-  },
-
-  
-
-
-
-
-
-  _onDisableOthers: function DVB__onDisableOthers(aTarget) {
-    this._iterate(function(element) {
-      if (element !== aTarget) {
-        this._onDisableSelf(element);
-      }
-    }.bind(this));
-  },
-
-  
-
-
-
-
-
-  _onDeleteOthers: function DVB__onDeleteOthers(aTarget) {
-    this._iterate(function(element) {
-      if (element !== aTarget) {
-        this._onDeleteSelf(element);
-      }
-    }.bind(this));
-  },
-
-  
-
-
-
-
-
-  _onEnableAll: function DVB__onEnableAll(aTarget) {
-    this._onEnableOthers(aTarget);
-    this._onEnableSelf(aTarget);
-  },
-
-  
-
-
-
-
-
-  _onDisableAll: function DVB__onDisableAll(aTarget) {
-    this._onDisableOthers(aTarget);
-    this._onDisableSelf(aTarget);
-  },
-
-  
-
-
-
-
-
-  _onDeleteAll: function DVB__onDeleteAll(aTarget) {
-    this._onDeleteOthers(aTarget);
-    this._onDeleteSelf(aTarget);
-  },
-
-  
-
-
-  _breakpoints: null,
-
-  
-
-
-
-
-
-
-
-  _createContextMenu: function DVB_createContextMenu(aBreakpoint) {
-    let commandsetId = "breakpointMenuCommands-" + aBreakpoint.id;
-    let menupopupId = "breakpointContextMenu-" + aBreakpoint.id;
-
-    let commandset = document.createElement("commandset");
-    commandset.setAttribute("id", commandsetId);
-
-    let menupopup = document.createElement("menupopup");
-    menupopup.setAttribute("id", menupopupId);
-
-    
-
-
-
-
-
-
-
-
-    function createMenuItem(aName, aHiddenFlag) {
-      let menuitem = document.createElement("menuitem");
-      let command = document.createElement("command");
-
-      let func = this["_on" + aName.charAt(0).toUpperCase() + aName.slice(1)];
-      let label = L10N.getStr("breakpointMenuItem." + aName);
-
-      let prefix = "bp-cMenu-";
-      let commandId = prefix + aName + "-" + aBreakpoint.id + "-command";
-      let menuitemId = prefix + aName + "-" + aBreakpoint.id + "-menuitem";
-
-      command.setAttribute("id", commandId);
-      command.setAttribute("label", label);
-      command.addEventListener("command", func.bind(this, aBreakpoint), true);
-
-      menuitem.setAttribute("id", menuitemId);
-      menuitem.setAttribute("command", commandId);
-      menuitem.setAttribute("hidden", aHiddenFlag);
-
-      commandset.appendChild(command);
-      menupopup.appendChild(menuitem);
-
-      aBreakpoint[aName] = {
-        menuitem: menuitem,
-        command: command
-      };
-    }
-
-    
-
-
-
-    function createMenuSeparator() {
-      let menuseparator = document.createElement("menuseparator");
-      menupopup.appendChild(menuseparator);
-    }
-
-    createMenuItem.call(this, "enableSelf", true);
-    createMenuItem.call(this, "disableSelf");
-    createMenuItem.call(this, "deleteSelf");
-    createMenuSeparator();
-    createMenuItem.call(this, "enableOthers");
-    createMenuItem.call(this, "disableOthers");
-    createMenuItem.call(this, "deleteOthers");
-    createMenuSeparator();
-    createMenuItem.call(this, "enableAll");
-    createMenuItem.call(this, "disableAll");
-    createMenuSeparator();
-    createMenuItem.call(this, "deleteAll");
-
-    let popupset = document.getElementById("debugger-popups");
-    popupset.appendChild(menupopup);
-    document.documentElement.appendChild(commandset);
-
-    aBreakpoint.commandsetId = commandsetId;
-    aBreakpoint.menupopupId = menupopupId;
-
-    return menupopupId;
-  },
-
-  
-
-
-
-
-
-  _destroyContextMenu: function DVB__destroyContextMenu(aBreakpoint) {
-    if (!aBreakpoint.commandsetId || !aBreakpoint.menupopupId) {
-      return;
-    }
-
-    let commandset = document.getElementById(aBreakpoint.commandsetId);
-    let menupopup = document.getElementById(aBreakpoint.menupopupId);
-
-    commandset.parentNode.removeChild(commandset);
-    menupopup.parentNode.removeChild(menupopup);
-  },
-
-  
-
-
-  initialize: function DVB_initialize() {
-    let breakpoints = DebuggerView._breakpoints;
-    breakpoints.addEventListener("click", this._onBreakpointClick, false);
-
-    this._breakpoints = breakpoints;
-    this.emptyText();
-  },
-
-  
-
-
-  destroy: function DVB_destroy() {
-    let breakpoints = this._breakpoints;
-    breakpoints.removeEventListener("click", this._onBreakpointClick, false);
-
-    this.empty();
-    this._breakpoints = null;
-  }
-};
-
-
-
-
-function PropertiesView() {
-  this.addScope = this._addScope.bind(this);
-  this._addVar = this._addVar.bind(this);
-  this._addProperties = this._addProperties.bind(this);
-}
-
-PropertiesView.prototype = {
-
-  
-
-
-
-  _idCount: 1,
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  _addScope: function DVP__addScope(aName, aId) {
-    
-    if (!this._vars) {
-      return null;
-    }
-
-    
-    aId = aId || aName.toLowerCase().trim().replace(/\s+/g, "-") + this._idCount++;
-
-    
-    let element = this._createPropertyElement(aName, aId, "scope", this._vars);
-
-    
-    if (!element) {
-      return null;
-    }
-    element._identifier = aName;
-
-    
-
-
-    element.addVar = this._addVar.bind(this, element);
-
-    
-
-
-    element.addToHierarchy = this.addScopeToHierarchy.bind(this, element);
-
-    
-    element.refresh(function() {
-      let title = element.getElementsByClassName("title")[0];
-      title.classList.add("devtools-toolbar");
-    }.bind(this));
-
-    
-    return element;
-  },
-
-  
-
-
-  empty: function DVP_empty() {
-    while (this._vars.firstChild) {
-      this._vars.removeChild(this._vars.firstChild);
-    }
-  },
-
-  
-
-
-
-  emptyText: function DVP_emptyText() {
-    
-    this.empty();
-
-    let item = document.createElement("label");
-
-    
-    item.className = "list-item empty";
-    item.setAttribute("value", L10N.getStr("emptyVariablesText"));
-
-    this._vars.appendChild(item);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  _addVar: function DVP__addVar(aScope, aName, aFlags, aId) {
-    
-    if (!aScope) {
-      return null;
-    }
-
-    
-    aId = aId || (aScope.id + "->" + aName + "-variable");
-
-    let parent;
-    if (aFlags && !aFlags.enumerable) {
-      parent = aScope.childNodes[2];
-    }
-    else {
-      parent = aScope.childNodes[1];
-    }
-
-    
-    let element = this._createPropertyElement(aName, aId, "variable", parent);
-
-    
-    if (!element) {
-      return null;
-    }
-    element._identifier = aName;
-
-    
-
-
-    element.setGrip = this._setGrip.bind(this, element);
-
-    
-
-
-    element.addProperties = this._addProperties.bind(this, element);
-
-    
-    element.refresh(function() {
-      let separatorLabel = document.createElement("label");
-      let valueLabel = document.createElement("label");
-      let title = element.getElementsByClassName("title")[0];
-
-      
-      this._setAttributes(element, aName, aFlags);
-
-      
-      separatorLabel.className = "plain";
-      separatorLabel.setAttribute("value", ":");
-
-      
-      valueLabel.className = "value plain";
-
-      
-      valueLabel.addEventListener("click", this._activateElementInputMode.bind({
-        scope: this,
-        element: element,
-        valueLabel: valueLabel
-      }));
-
-      
-      Object.defineProperty(element, "token", {
-        value: aName,
-        writable: false,
-        enumerable: true,
-        configurable: true
-      });
-
-      title.appendChild(separatorLabel);
-      title.appendChild(valueLabel);
-
-      
-      this._saveHierarchy({
-        parent: aScope,
-        element: element,
-        valueLabel: valueLabel
-      });
-    }.bind(this));
-
-    
-    return element;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  _setAttributes: function DVP_setAttributes(aVar, aName, aFlags) {
-    if (aFlags) {
-      if (!aFlags.configurable) {
-        aVar.setAttribute("non-configurable", "");
-      }
-      if (!aFlags.enumerable) {
-        aVar.setAttribute("non-enumerable", "");
-      }
-      if (!aFlags.writable) {
-        aVar.setAttribute("non-writable", "");
-      }
-    }
-    if (aName === "this") {
-      aVar.setAttribute("self", "");
-    }
-    if (aName === "__proto__ ") {
-      aVar.setAttribute("proto", "");
-    }
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  _setGrip: function DVP__setGrip(aVar, aGrip) {
-    
-    if (!aVar) {
-      return null;
-    }
-    if (aGrip === undefined) {
-      aGrip = { type: "undefined" };
-    }
-    if (aGrip === null) {
-      aGrip = { type: "null" };
-    }
-
-    let valueLabel = aVar.getElementsByClassName("value")[0];
-
-    
-    if (!valueLabel) {
-      return null;
-    }
-
-    this._applyGrip(valueLabel, aGrip);
-    return aVar;
-  },
-
-  
-
-
-
-
-
-
-
-
-  _applyGrip: function DVP__applyGrip(aValueLabel, aGrip) {
-    let prevGrip = aValueLabel.currentGrip;
-    if (prevGrip) {
-      aValueLabel.classList.remove(this._propertyColor(prevGrip));
-    }
-
-    aValueLabel.setAttribute("value", this._propertyString(aGrip));
-    aValueLabel.classList.add(this._propertyColor(aGrip));
-    aValueLabel.currentGrip = aGrip;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  _addProperties: function DVP__addProperties(aVar, aProperties) {
-    
-    for (let i in aProperties) {
-      
-      if (Object.getOwnPropertyDescriptor(aProperties, i)) {
-
-        
-        let desc = aProperties[i];
-
-        
-        
-        let value = desc["value"];
-
-        
-        
-        let getter = desc["get"];
-        let setter = desc["set"];
-
-        
-        if (value !== undefined) {
-          this._addProperty(aVar, [i, value], desc);
-        }
-
-        if (getter !== undefined || setter !== undefined) {
-          let prop = this._addProperty(aVar, [i]).expand();
-          prop.getter = this._addProperty(prop, ["get", getter], desc);
-          prop.setter = this._addProperty(prop, ["set", setter], desc);
-        }
-      }
-    }
-    return aVar;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  _addProperty: function DVP__addProperty(aVar, aProperty, aFlags, aName, aId) {
-    
-    if (!aVar) {
-      return null;
-    }
-
-    
-    aId = aId || (aVar.id + "->" + aProperty[0] + "-property");
-
-    let parent;
-    if (aFlags && !aFlags.enumerable) {
-      parent = aVar.childNodes[2];
-    }
-    else {
-      parent = aVar.childNodes[1];
-    }
-
-    
-    let element = this._createPropertyElement(aName, aId, "property", parent);
-
-    
-    if (!element) {
-      return null;
-    }
-    element._identifier = aName;
-
-    
-
-
-    element.setGrip = this._setGrip.bind(this, element);
-
-    
-
-
-    element.addProperties = this._addProperties.bind(this, element);
-
-    
-    element.refresh(function(pKey, pGrip) {
-      let title = element.getElementsByClassName("title")[0];
-      let nameLabel = title.getElementsByClassName("name")[0];
-      let separatorLabel = document.createElement("label");
-      let valueLabel = document.createElement("label");
-
-      
-      this._setAttributes(element, pKey, aFlags);
-
-      if ("undefined" !== typeof pKey) {
-        
-        nameLabel.className = "key plain";
-        nameLabel.setAttribute("value", pKey.trim());
-        title.appendChild(nameLabel);
-      }
-      if ("undefined" !== typeof pGrip) {
-        
-        separatorLabel.className = "plain";
-        separatorLabel.setAttribute("value", ":");
-
-        
-        valueLabel.className = "value plain";
-        this._applyGrip(valueLabel, pGrip);
-
-        title.appendChild(separatorLabel);
-        title.appendChild(valueLabel);
-      }
-
-      
-      valueLabel.addEventListener("click", this._activateElementInputMode.bind({
-        scope: this,
-        element: element,
-        valueLabel: valueLabel
-      }));
-
-      
-      Object.defineProperty(element, "token", {
-        value: aVar.token + "['" + pKey + "']",
-        writable: false,
-        enumerable: true,
-        configurable: true
-      });
-
-      
-      this._saveHierarchy({
-        parent: aVar,
-        element: element,
-        valueLabel: valueLabel
-      });
-
-      
-      Object.defineProperty(aVar, pKey, { value: element,
-                                          writable: false,
-                                          enumerable: true,
-                                          configurable: true });
-    }.bind(this), aProperty);
-
-    
-    return element;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  _activateElementInputMode: function DVP__activateElementInputMode(aEvent) {
-    if (aEvent) {
-      aEvent.stopPropagation();
-    }
-
-    let self = this.scope;
-    let element = this.element;
-    let valueLabel = this.valueLabel;
-    let titleNode = valueLabel.parentNode;
-    let initialValue = valueLabel.getAttribute("value");
-
-    
-    
-    element._previouslyExpanded = element.expanded;
-    element._preventExpand = true;
-    element.collapse();
-    element.forceHideArrow();
-
-    
-    
-    let textbox = document.createElement("textbox");
-    textbox.setAttribute("value", initialValue);
-    textbox.className = "element-input";
-    textbox.width = valueLabel.clientWidth + 1;
-
-    
-    function DVP_element_textbox_blur(aTextboxEvent) {
-      DVP_element_textbox_save();
-    }
-
-    function DVP_element_textbox_keyup(aTextboxEvent) {
-      if (aTextboxEvent.keyCode === aTextboxEvent.DOM_VK_LEFT ||
-          aTextboxEvent.keyCode === aTextboxEvent.DOM_VK_RIGHT ||
-          aTextboxEvent.keyCode === aTextboxEvent.DOM_VK_UP ||
-          aTextboxEvent.keyCode === aTextboxEvent.DOM_VK_DOWN) {
-        return;
-      }
-      if (aTextboxEvent.keyCode === aTextboxEvent.DOM_VK_RETURN ||
-          aTextboxEvent.keyCode === aTextboxEvent.DOM_VK_ENTER) {
-        DVP_element_textbox_save();
-        return;
-      }
-      if (aTextboxEvent.keyCode === aTextboxEvent.DOM_VK_ESCAPE) {
-        valueLabel.setAttribute("value", initialValue);
-        DVP_element_textbox_clear();
-        return;
-      }
-    }
-
-    
-    function DVP_element_textbox_save() {
-      if (textbox.value !== valueLabel.getAttribute("value")) {
-        valueLabel.setAttribute("value", textbox.value);
-
-        let expr = "(" + element.token + "=" + textbox.value + ")";
-        DebuggerController.StackFrames.evaluate(expr);
-      }
-      DVP_element_textbox_clear();
-    }
-
-    
-    function DVP_element_textbox_clear() {
-      element._preventExpand = false;
-      if (element._previouslyExpanded) {
-        element._previouslyExpanded = false;
-        element.expand();
-      }
-      element.showArrow();
-
-      textbox.removeEventListener("blur", DVP_element_textbox_blur, false);
-      textbox.removeEventListener("keyup", DVP_element_textbox_keyup, false);
-      titleNode.removeChild(textbox);
-      titleNode.appendChild(valueLabel);
-    }
-
-    textbox.addEventListener("blur", DVP_element_textbox_blur, false);
-    textbox.addEventListener("keyup", DVP_element_textbox_keyup, false);
-    titleNode.removeChild(valueLabel);
-    titleNode.appendChild(textbox);
-
-    textbox.select();
-
-    
-    
-    
-    if (valueLabel.getAttribute("value").match(/^"[^"]*"$/)) {
-      textbox.selectionEnd--;
-      textbox.selectionStart++;
-    }
-  },
-
-  
-
-
-
-
-
-
-
-  _propertyString: function DVP__propertyString(aGrip) {
-    if (aGrip && "object" === typeof aGrip) {
-      switch (aGrip.type) {
-        case "undefined":
-          return "undefined";
-        case "null":
-          return "null";
-        default:
-          return "[" + aGrip.type + " " + aGrip.class + "]";
-      }
-    } else {
-      switch (typeof aGrip) {
-        case "string":
-          return "\"" + aGrip + "\"";
-        case "boolean":
-          return aGrip ? "true" : "false";
-        default:
-          return aGrip + "";
-      }
-    }
-    return aGrip + "";
-  },
-
-  
-
-
-
-
-
-
-
-
-  _propertyColor: function DVP__propertyColor(aGrip) {
-    if (aGrip && "object" === typeof aGrip) {
-      switch (aGrip.type) {
-        case "undefined":
-          return "token-undefined";
-        case "null":
-          return "token-null";
-      }
-    } else {
-      switch (typeof aGrip) {
-        case "string":
-          return "token-string";
-        case "boolean":
-          return "token-boolean";
-        case "number":
-          return "token-number";
-      }
-    }
-    return "token-other";
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  _createPropertyElement: function DVP__createPropertyElement(aName, aId, aClass, aParent) {
-    
-    if (document.getElementById(aId)) {
-      return null;
-    }
-    if (!aParent) {
-      return null;
-    }
-
-    let element = document.createElement("vbox");
-    let arrow = document.createElement("box");
-    let name = document.createElement("label");
-
-    let title = document.createElement("box");
-    let details = document.createElement("vbox");
-    let nonEnum = document.createElement("vbox");
-
-    
-    element.id = aId;
-    element.className = aClass;
-
-    
-    arrow.className = "arrow";
-    arrow.style.visibility = "hidden";
-
-    
-    name.className = "name plain";
-    name.setAttribute("value", aName || "");
-
-    
-    title.className = "title";
-    title.setAttribute("align", "center")
-
-    
-    details.className = "details";
-    nonEnum.className = "details nonenum";
-
-    
-    if (aClass === "scope") {
-      title.addEventListener("click", function() element.toggle(), false);
-    } else {
-      arrow.addEventListener("click", function() element.toggle(), false);
-      name.addEventListener("click", function() element.toggle(), false);
-      name.addEventListener("mouseover", function() element.updateTooltip(name), false);
-    }
-
-    title.appendChild(arrow);
-    title.appendChild(name);
-
-    element.appendChild(title);
-    element.appendChild(details);
-    element.appendChild(nonEnum);
-
-    aParent.appendChild(element);
-
-    
-
-
-
-
-    element.show = function DVP_element_show() {
-      element.style.display = "-moz-box";
-
-      if ("function" === typeof element.onshow) {
-        element.onshow(element);
-      }
-      return element;
-    };
-
-    
-
-
-
-
-    element.hide = function DVP_element_hide() {
-      element.style.display = "none";
-
-      if ("function" === typeof element.onhide) {
-        element.onhide(element);
-      }
-      return element;
-    };
-
-    
-
-
-
-
-
-
-
-    element.expand = function DVP_element_expand(aSkipAnimationFlag) {
-      if (element._preventExpand) {
-        return;
-      }
-      arrow.setAttribute("open", "");
-      details.setAttribute("open", "");
-
-      if (Prefs.nonEnumVisible) {
-        nonEnum.setAttribute("open", "");
-      }
-
-      if (!aSkipAnimationFlag) {
-        details.setAttribute("animated", "");
-        nonEnum.setAttribute("animated", "");
-      }
-
-      if ("function" === typeof element.onexpand) {
-        element.onexpand(element);
-      }
-
-      return element;
-    };
-
-    
-
-
-
-
-    element.collapse = function DVP_element_collapse() {
-      if (element._preventCollapse) {
-        return;
-      }
-
-      arrow.removeAttribute("open");
-      details.removeAttribute("open");
-      details.removeAttribute("animated");
-      nonEnum.removeAttribute("open");
-      nonEnum.removeAttribute("animated");
-
-      if ("function" === typeof element.oncollapse) {
-        element.oncollapse(element);
-      }
-      return element;
-    };
-
-    
-
-
-
-
-    element.toggle = function DVP_element_toggle() {
-      element.expanded = !element.expanded;
-
-      if ("function" === typeof element.ontoggle) {
-        element.ontoggle(element);
-      }
-      return element;
-    };
-
-    
-
-
-
-
-    element.showArrow = function DVP_element_showArrow() {
-      let len = details.childNodes.length + nonEnum.childNodes.length;
-
-      if (element._forceShowArrow || len) {
-        arrow.style.visibility = "visible";
-      }
-
-      return element;
-    };
-
-    
-
-
-
-
-    element.hideArrow = function DVP_element_hideArrow() {
-      if (!element._forceShowArrow) {
-        arrow.style.visibility = "hidden";
-      }
-      return element;
-    };
-
-    
-
-
-
-
-
-
-    element.forceShowArrow = function DVP_element_forceShowArrow() {
-      element._forceShowArrow = true;
-      arrow.style.visibility = "visible";
-      return element;
-    };
-
-    
-
-
-
-
-
-
-    element.forceHideArrow = function DVP_element_forceHideArrow() {
-      arrow.style.visibility = "hidden";
-      return element;
-    };
-
-    
-
-
-
-
-    Object.defineProperty(element, "visible", {
-      get: function DVP_element_getVisible() {
-        return element.style.display !== "none";
-      },
-      set: function DVP_element_setVisible(value) {
-        if (value) {
-          element.show();
-        } else {
-          element.hide();
-        }
-      }
-    });
-
-    
-
-
-
-
-    Object.defineProperty(element, "expanded", {
-      get: function DVP_element_getExpanded() {
-        return arrow.hasAttribute("open");
-      },
-      set: function DVP_element_setExpanded(value) {
-        if (value) {
-          element.expand();
-        } else {
-          element.collapse();
-        }
-      }
-    });
-
-    
-
-
-
-
-    element.empty = function DVP_element_empty() {
-      
-      arrow.style.visibility = "hidden";
-
-      while (details.firstChild) {
-        details.removeChild(details.firstChild);
-      }
-
-      while (nonEnum.firstChild) {
-        nonEnum.removeChild(nonEnum.firstChild);
-      }
-
-      if ("function" === typeof element.onempty) {
-        element.onempty(element);
-      }
-
-      return element;
-    };
-
-    
-
-
-
-
-    element.remove = function DVP_element_remove() {
-      element.parentNode.removeChild(element);
-
-      if ("function" === typeof element.onremove) {
-        element.onremove(element);
-      }
-      return element;
-    };
-
-    
-
-
-
-
-    Object.defineProperty(element, "arrowVisible", {
-      get: function DVP_element_getArrowVisible() {
-        return arrow.style.visibility !== "hidden";
-      },
-      set: function DVP_element_setExpanded(value) {
-        if (value) {
-          element.showArrow();
-        } else {
-          element.hideArrow();
-        }
-      }
-    });
-
-    
-
-
-
-
-
-    element.updateTooltip = function DVP_element_updateTooltip(aAnchor) {
-      let tooltip = document.getElementById("element-tooltip");
-      if (tooltip) {
-        document.documentElement.removeChild(tooltip);
-      }
-
-      tooltip = document.createElement("tooltip");
-      tooltip.id = "element-tooltip";
-
-      let configurableLabel = document.createElement("label");
-      configurableLabel.id = "configurableLabel";
-      configurableLabel.setAttribute("value", "configurable");
-
-      let enumerableLabel = document.createElement("label");
-      enumerableLabel.id = "enumerableLabel";
-      enumerableLabel.setAttribute("value", "enumerable");
-
-      let writableLabel = document.createElement("label");
-      writableLabel.id = "writableLabel";
-      writableLabel.setAttribute("value", "writable");
-
-      tooltip.setAttribute("orient", "horizontal")
-      tooltip.appendChild(configurableLabel);
-      tooltip.appendChild(enumerableLabel);
-      tooltip.appendChild(writableLabel);
-
-      if (element.hasAttribute("non-configurable")) {
-        configurableLabel.setAttribute("non-configurable", "");
-      }
-      if (element.hasAttribute("non-enumerable")) {
-        enumerableLabel.setAttribute("non-enumerable", "");
-      }
-      if (element.hasAttribute("non-writable")) {
-        writableLabel.setAttribute("non-writable", "");
-      }
-
-      document.documentElement.appendChild(tooltip);
-      aAnchor.setAttribute("tooltip", tooltip.id);
-    };
-
-    
-
-
-
-
-
-
-
-
-    element.refresh = function DVP_element_refresh(aFunction, aArguments) {
-      if ("function" === typeof aFunction) {
-        aFunction.apply(this, aArguments);
-      }
-
-      let node = aParent.parentNode;
-      let arrow = node.getElementsByClassName("arrow")[0];
-      let children = node.querySelectorAll(".details > vbox").length;
-
-      
-      
-      if (children) {
-        arrow.style.visibility = "visible";
-      } else {
-        arrow.style.visibility = "hidden";
-      }
-    }.bind(this);
-
-    
-    return element;
-  },
-
-  
-
-
-
-
-
-  _saveHierarchy: function DVP__saveHierarchy(aProperties) {
-    let parent = aProperties.parent;
-    let element = aProperties.element;
-    let valueLabel = aProperties.valueLabel;
-    let store = aProperties.store || parent._children;
-
-    
-    if (!element || !store) {
-      return;
-    }
-
-    let relation = {
-      root: parent ? (parent._root || parent) : null,
-      parent: parent || null,
-      element: element,
-      valueLabel: valueLabel,
-      children: {}
-    };
-
-    store[element._identifier] = relation;
-    element._root = relation.root;
-    element._children = relation.children;
-  },
-
-  
-
-
-
-  createHierarchyStore: function DVP_createHierarchyStore() {
-    this._prevHierarchy = this._currHierarchy;
-    this._currHierarchy = {};
-  },
-
-  
-
-
-
-
-
-  addScopeToHierarchy: function DVP_addScopeToHierarchy(aScope) {
-    this._saveHierarchy({ element: aScope, store: this._currHierarchy });
-  },
-
-  
-
-
-  commitHierarchy: function DVS_commitHierarchy() {
-    for (let i in this._currHierarchy) {
-      let currScope = this._currHierarchy[i];
-      let prevScope = this._prevHierarchy[i];
-
-      if (!prevScope) {
-        continue;
-      }
-
-      for (let v in currScope.children) {
-        let currVar = currScope.children[v];
-        let prevVar = prevScope.children[v];
-
-        let action = "";
-
-        if (prevVar) {
-          let prevValue = prevVar.valueLabel.getAttribute("value");
-          let currValue = currVar.valueLabel.getAttribute("value");
-
-          if (currValue != prevValue) {
-            action = "changed";
-          } else {
-            action = "unchanged";
-          }
-        } else {
-          action = "added";
-        }
-
-        if (action) {
-          currVar.element.setAttribute(action, "");
-
-          window.setTimeout(function() {
-           currVar.element.removeAttribute(action);
-          }, PROPERTY_VIEW_FLASH_DURATION);
-        }
-      }
-    }
-  },
-
-  
-
-
-
-  _currHierarchy: null,
-  _prevHierarchy: null,
-
-  
-
-
-  _vars: null,
-
-  _onShowNonEnums: function DVP__onShowNonEnums() {
-    let option = document.getElementById("show-nonenum");
-    Prefs.nonEnumVisible = option.checked;
-
-    let els = document.getElementsByClassName("nonenum").iterator();
-    for (let el of els) {
-      if (el.parentNode.expanded) {
-        if (Prefs.nonEnumVisible) {
-          el.setAttribute("open", "");
-        } else {
-          el.removeAttribute("open");
-          el.removeAttribute("animated");
-        }
-      }
-    }
-  },
-
-  
-
-
-  initialize: function DVP_initialize() {
-    let showNonEnums = document.getElementById("show-nonenum");
-    showNonEnums.addEventListener("click", this._onShowNonEnums, false);
-    showNonEnums.checked = Prefs.nonEnumVisible;
-
-    this._vars = DebuggerView._variables;
-
-    this.emptyText();
-    this.createHierarchyStore();
-  },
-
-  
-
-
-  destroy: function DVP_destroy() {
-    this.empty();
-
-    this._currHierarchy = null;
-    this._prevHierarchy = null;
-    this._vars = null;
-  }
-};
-
-
-
-
-DebuggerView.GlobalSearch = new GlobalSearchView();
-DebuggerView.Scripts = new ScriptsView();
-DebuggerView.StackFrames = new StackFramesView();
-DebuggerView.Breakpoints = new BreakpointsView();
-DebuggerView.Properties = new PropertiesView();
-
-
-
-
-Object.defineProperty(window, "editor", {
-  get: function() { return DebuggerView.editor; }
-});

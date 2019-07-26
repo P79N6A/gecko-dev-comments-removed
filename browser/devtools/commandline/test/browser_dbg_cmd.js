@@ -17,8 +17,8 @@ function testDbgCmd() {
   ok(pane, "Debugger was opened.");
   let frame = pane._frame;
 
-  frame.addEventListener("Debugger:Connecting", function dbgConnected(aEvent) {
-    frame.removeEventListener("Debugger:Connecting", dbgConnected, true);
+  frame.addEventListener("Debugger:Connected", function dbgConnected(aEvent) {
+    frame.removeEventListener("Debugger:Connected", dbgConnected, true);
 
     
     aEvent.target.ownerDocument.defaultView.gClient

@@ -55,11 +55,11 @@
 
 
 
-.details {
+#variables .details {
   display: none;
 }
 
-.details[open] {
+#variables .details[open] {
   display: -moz-box;
 }
 

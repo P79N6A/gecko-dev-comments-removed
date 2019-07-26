@@ -9,36 +9,34 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 
-const NEW_SCRIPT_DISPLAY_DELAY = 100; 
-const FRAME_STEP_CACHE_DURATION = 100; 
 const DBG_STRINGS_URI = "chrome://browser/locale/devtools/debugger.properties";
-const SCRIPTS_URL_MAX_LENGTH = 64; 
-const SYNTAX_HIGHLIGHT_MAX_FILE_SIZE = 1048576; 
+const NEW_SCRIPT_DISPLAY_DELAY = 200; 
+const FRAME_STEP_CLEAR_DELAY = 100; 
+const CALL_STACK_PAGE_SIZE = 25; 
 
-Cu.import("resource:///modules/source-editor.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/devtools/dbg-server.jsm");
 Cu.import("resource://gre/modules/devtools/dbg-client.jsm");
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource://gre/modules/NetUtil.jsm");
-Cu.import('resource://gre/modules/Services.jsm');
+Cu.import("resource:///modules/source-editor.jsm");
 Cu.import("resource:///modules/devtools/LayoutHelpers.jsm");
-
+Cu.import("resource:///modules/devtools/VariablesView.jsm");
 
 
 
 
 let DebuggerController = {
-
   
 
 
-  init: function() {
+  initialize: function DC_initialize() {
+    dumpn("Initializing the DebuggerController");
     this._startupDebugger = this._startupDebugger.bind(this);
     this._shutdownDebugger = this._shutdownDebugger.bind(this);
     this._onTabNavigated = this._onTabNavigated.bind(this);
     this._onTabDetached = this._onTabDetached.bind(this);
 
-    window.addEventListener("DOMContentLoaded", this._startupDebugger, true);
+    window.addEventListener("load", this._startupDebugger, true);
     window.addEventListener("unload", this._shutdownDebugger, true);
   },
 
@@ -50,21 +48,10 @@ let DebuggerController = {
       return;
     }
     this._isInitialized = true;
-    window.removeEventListener("DOMContentLoaded", this._startupDebugger, true);
+    window.removeEventListener("load", this._startupDebugger, true);
 
-    DebuggerView.cacheView();
-    DebuggerView.initializeKeys();
-    DebuggerView.initializePanes();
-    DebuggerView.initializeEditor(function() {
-      DebuggerView.GlobalSearch.initialize();
-      DebuggerView.Scripts.initialize();
-      DebuggerView.StackFrames.initialize();
-      DebuggerView.Breakpoints.initialize();
-      DebuggerView.Properties.initialize();
-      DebuggerView.toggleCloseButton(!this._isRemoteDebugger &&
-                                     !this._isChromeDebugger);
-
-      this.dispatchEvent("Debugger:Loaded");
+    DebuggerView.initialize(function() {
+      window.dispatchEvent("Debugger:Loaded");
       this._connect();
     }.bind(this));
   },
@@ -72,32 +59,26 @@ let DebuggerController = {
   
 
 
-
   _shutdownDebugger: function DC__shutdownDebugger() {
-    if (this._isDestroyed) {
+    if (this._isDestroyed || !DebuggerView._isInitialized) {
       return;
     }
     this._isDestroyed = true;
     window.removeEventListener("unload", this._shutdownDebugger, true);
 
-    DebuggerView.GlobalSearch.destroy();
-    DebuggerView.Scripts.destroy();
-    DebuggerView.StackFrames.destroy();
-    DebuggerView.Breakpoints.destroy();
-    DebuggerView.Properties.destroy();
-    DebuggerView.destroyPanes();
-    DebuggerView.destroyEditor();
+    DebuggerView.destroy(function() {
+      this.SourceScripts.disconnect();
+      this.StackFrames.disconnect();
+      this.ThreadState.disconnect();
 
-    DebuggerController.SourceScripts.disconnect();
-    DebuggerController.StackFrames.disconnect();
-    DebuggerController.ThreadState.disconnect();
-
-    this.dispatchEvent("Debugger:Unloaded");
-    this._disconnect();
-    this._isChromeDebugger && this._quitApp();
+      this._disconnect();
+      window.dispatchEvent("Debugger:Unloaded");
+      window._isChromeDebugger && this._quitApp();
+    }.bind(this));
   },
 
   
+
 
 
 
@@ -109,7 +90,10 @@ let DebuggerController = {
       Services.prompt.alert(null,
         L10N.getStr("remoteDebuggerPromptTitle"),
         L10N.getStr("remoteDebuggerConnectionFailedMessage"));
-      this.dispatchEvent("Debugger:Close");
+
+      
+      
+      this._shutdownDebugger();
       return false;
     }
 
@@ -117,14 +101,17 @@ let DebuggerController = {
     if (!Prefs.remoteAutoConnect) {
       let prompt = new RemoteDebuggerPrompt();
       let result = prompt.show(!!this._remoteConnectionTimeout);
+
       
       
-      if (!result && !DebuggerController.activeThread) {
-        this.dispatchEvent("Debugger:Close");
+      if (!result) {
+        this._shutdownDebugger();
         return false;
       }
+
       Prefs.remoteHost = prompt.remote.host;
       Prefs.remotePort = prompt.remote.port;
+      Prefs.remoteAutoConnect = prompt.remote.auto;
     }
 
     
@@ -132,12 +119,13 @@ let DebuggerController = {
     this._remoteConnectionTry = ++this._remoteConnectionTry || 1;
     this._remoteConnectionTimeout = window.setTimeout(function() {
       
-      if (!DebuggerController.activeThread) {
-        DebuggerController._onRemoteConnectionTimeout();
-        DebuggerController._connect();
+      if (!this.activeThread) {
+        this._onRemoteConnectionTimeout();
+        this._connect();
       }
-    }, Prefs.remoteTimeout);
+    }.bind(this), Prefs.remoteTimeout);
 
+    
     return true;
   },
 
@@ -154,18 +142,14 @@ let DebuggerController = {
 
 
   _connect: function DC__connect() {
-    if (this._isRemoteDebugger) {
-      if (!this._prepareConnection()) {
-        return;
-      }
+    if (window._isRemoteDebugger && !this._prepareConnection()) {
+      return;
     }
-
-    let transport = (this._isChromeDebugger || this._isRemoteDebugger)
+    let transport = (window._isChromeDebugger || window._isRemoteDebugger)
       ? debuggerSocketConnect(Prefs.remoteHost, Prefs.remotePort)
       : DebuggerServer.connectPipe();
 
     let client = this.client = new DebuggerClient(transport);
-
     client.addListener("tabNavigated", this._onTabNavigated);
     client.addListener("tabDetached", this._onTabDetached);
 
@@ -173,7 +157,7 @@ let DebuggerController = {
       client.listTabs(function(aResponse) {
         let tab = aResponse.tabs[aResponse.selected];
         this._startDebuggingTab(client, tab);
-        this.dispatchEvent("Debugger:Connecting");
+        window.dispatchEvent("Debugger:Connected");
       }.bind(this));
     }.bind(this));
   },
@@ -182,6 +166,10 @@ let DebuggerController = {
 
 
   _disconnect: function DC__disconnect() {
+    
+    if (!this.client) {
+      return;
+    }
     this.client.removeListener("tabNavigated", this._onTabNavigated);
     this.client.removeListener("tabDetached", this._onTabDetached);
     this.client.close();
@@ -194,19 +182,18 @@ let DebuggerController = {
   
 
 
-  _onTabNavigated: function DC__onTabNavigated(aNotification, aPacket) {
-    DebuggerController.ThreadState._handleTabNavigation(function() {
-      DebuggerController.StackFrames._handleTabNavigation(function() {
-        DebuggerController.SourceScripts._handleTabNavigation();
-      });
-    });
+  _onTabNavigated: function DC__onTabNavigated() {
+    DebuggerView._handleTabNavigation();
+    this.ThreadState._handleTabNavigation();
+    this.StackFrames._handleTabNavigation();
+    this.SourceScripts._handleTabNavigation();
   },
 
   
 
 
   _onTabDetached: function DC__onTabDetached() {
-    this.dispatchEvent("Debugger:Close");
+    this._shutdownDebugger();
   },
 
   
@@ -238,13 +225,10 @@ let DebuggerController = {
         }
         this.activeThread = aThreadClient;
 
-        DebuggerController.ThreadState.connect(function() {
-          DebuggerController.StackFrames.connect(function() {
-            DebuggerController.SourceScripts.connect(function() {
-              aThreadClient.resume();
-            });
-          });
-        });
+        this.ThreadState.connect();
+        this.StackFrames.connect();
+        this.SourceScripts.connect();
+        aThreadClient.resume();
 
       }.bind(this));
     }.bind(this));
@@ -263,7 +247,6 @@ let DebuggerController = {
     if (canceled.data) {
       return;
     }
-
     Services.startup.quit(Ci.nsIAppStartup.eAttemptQuit);
   },
 
@@ -286,53 +269,22 @@ let DebuggerController = {
 
 
 
-XPCOMUtils.defineLazyGetter(DebuggerController, "_isRemoteDebugger", function() {
-  
-  return !(window.frameElement instanceof XULElement) &&
-         !!window._remoteFlag;
-});
-
-
-
-
-
-XPCOMUtils.defineLazyGetter(DebuggerController, "_isChromeDebugger", function() {
-  
-  return !(window.frameElement instanceof XULElement) &&
-         !window._remoteFlag;
-});
-
-
-
-
-
 function ThreadState() {
   this._update = this._update.bind(this);
 }
 
 ThreadState.prototype = {
+  get activeThread() DebuggerController.activeThread,
 
   
 
 
-  get activeThread() {
-    return DebuggerController.activeThread;
-  },
-
-  
-
-
-
-
-
-  connect: function TS_connect(aCallback) {
+  connect: function TS_connect() {
+    dumpn("ThreadState is connecting...");
     this.activeThread.addListener("paused", this._update);
     this.activeThread.addListener("resumed", this._update);
     this.activeThread.addListener("detached", this._update);
-
     this._handleTabNavigation();
-
-    aCallback && aCallback();
   },
 
   
@@ -342,6 +294,7 @@ ThreadState.prototype = {
     if (!this.activeThread) {
       return;
     }
+    dumpn("ThreadState is disconnecting...");
     this.activeThread.removeListener("paused", this._update);
     this.activeThread.removeListener("resumed", this._update);
     this.activeThread.removeListener("detached", this._update);
@@ -350,17 +303,19 @@ ThreadState.prototype = {
   
 
 
-  _handleTabNavigation: function TS__handleTabNavigation(aCallback) {
-    DebuggerView.StackFrames.updateState(this.activeThread.state);
-
-    aCallback && aCallback();
+  _handleTabNavigation: function TS__handleTabNavigation() {
+    if (!this.activeThread) {
+      return;
+    }
+    dumpn("Handling tab navigation in the ThreadState");
+    this._update(this.activeThread.state);
   },
 
   
 
 
   _update: function TS__update(aEvent) {
-    DebuggerView.StackFrames.updateState(this.activeThread.state);
+    DebuggerView.Toolbar.toggleResumeButtonState(this.activeThread.state);
   }
 };
 
@@ -370,54 +325,28 @@ ThreadState.prototype = {
 
 function StackFrames() {
   this._onPaused = this._onPaused.bind(this);
-  this._onResume = this._onResume.bind(this);
+  this._onResumed = this._onResumed.bind(this);
   this._onFrames = this._onFrames.bind(this);
   this._onFramesCleared = this._onFramesCleared.bind(this);
   this._afterFramesCleared = this._afterFramesCleared.bind(this);
+  this.evaluate = this.evaluate.bind(this);
 }
 
 StackFrames.prototype = {
+  get activeThread() DebuggerController.activeThread,
+  currentFrame: null,
+  currentException: null,
 
   
 
 
-  pageSize: 25,
-
-  
-
-
-  selectedFrame: null,
-
-  
-
-
-
-  pauseOnExceptions: false,
-
-  
-
-
-  get activeThread() {
-    return DebuggerController.activeThread;
-  },
-
-  
-
-
-
-
-
-  connect: function SF_connect(aCallback) {
-    window.addEventListener("Debugger:FetchedVariables", this._onFetchedVars, false);
+  connect: function SF_connect() {
+    dumpn("StackFrames is connecting...");
     this.activeThread.addListener("paused", this._onPaused);
-    this.activeThread.addListener("resumed", this._onResume);
+    this.activeThread.addListener("resumed", this._onResumed);
     this.activeThread.addListener("framesadded", this._onFrames);
     this.activeThread.addListener("framescleared", this._onFramesCleared);
-
     this._handleTabNavigation();
-    this.updatePauseOnExceptions(this.pauseOnExceptions);
-
-    aCallback && aCallback();
   },
 
   
@@ -427,9 +356,9 @@ StackFrames.prototype = {
     if (!this.activeThread) {
       return;
     }
-    window.removeEventListener("Debugger:FetchedVariables", this._onFetchedVars, false);
+    dumpn("StackFrames is disconnecting...");
     this.activeThread.removeListener("paused", this._onPaused);
-    this.activeThread.removeListener("resumed", this._onResume);
+    this.activeThread.removeListener("resumed", this._onResumed);
     this.activeThread.removeListener("framesadded", this._onFrames);
     this.activeThread.removeListener("framescleared", this._onFramesCleared);
   },
@@ -437,10 +366,9 @@ StackFrames.prototype = {
   
 
 
-  _handleTabNavigation: function SF__handleTabNavigation(aCallback) {
+  _handleTabNavigation: function SF__handleTabNavigation() {
+    dumpn("Handling tab navigation in the StackFrames");
     
-
-    aCallback && aCallback();
   },
 
   
@@ -454,17 +382,17 @@ StackFrames.prototype = {
   _onPaused: function SF__onPaused(aEvent, aPacket) {
     
     if (aPacket.why.type == "exception") {
-      this.exception = aPacket.why.exception;
+      this.currentException = aPacket.why.exception;
     }
 
-    this.activeThread.fillFrames(this.pageSize);
+    this.activeThread.fillFrames(CALL_STACK_PAGE_SIZE);
     DebuggerView.editor.focus();
   },
 
   
 
 
-  _onResume: function SF__onResume() {
+  _onResumed: function SF__onResumed() {
     DebuggerView.editor.setDebugLocation(-1);
   },
 
@@ -472,18 +400,17 @@ StackFrames.prototype = {
 
 
   _onFrames: function SF__onFrames() {
+    
     if (!this.activeThread.cachedFrames.length) {
-      DebuggerView.StackFrames.emptyText();
-      DebuggerView.Properties.emptyText();
       return;
     }
     DebuggerView.StackFrames.empty();
-    DebuggerView.Properties.empty();
+    DebuggerView.Variables.empty();
 
-    for each (let frame in this.activeThread.cachedFrames) {
+    for (let frame of this.activeThread.cachedFrames) {
       this._addFrame(frame);
     }
-    if (!this.selectedFrame) {
+    if (!this.currentFrame) {
       this.selectFrame(0);
     }
     if (this.activeThread.moreFrames) {
@@ -495,93 +422,27 @@ StackFrames.prototype = {
 
 
   _onFramesCleared: function SF__onFramesCleared() {
-    this.selectedFrame = null;
-    this.exception = null;
+    this.currentFrame = null;
+    this.currentException = null;
     
     
     
     
-    window.setTimeout(this._afterFramesCleared, FRAME_STEP_CACHE_DURATION);
+    window.setTimeout(this._afterFramesCleared, FRAME_STEP_CLEAR_DELAY);
   },
 
   
 
 
   _afterFramesCleared: function SF__afterFramesCleared() {
-    if (!this.activeThread.cachedFrames.length) {
-      DebuggerView.StackFrames.emptyText();
-      DebuggerView.Properties.emptyText();
-      DebuggerController.dispatchEvent("Debugger:AfterFramesCleared");
-    }
-  },
-
-  
-
-
-
-  updateEditorLocation: function SF_updateEditorLocation() {
-    let frame = this.activeThread.cachedFrames[this.selectedFrame];
-    if (!frame) {
+    
+    if (this.activeThread.cachedFrames.length) {
       return;
     }
-
-    let url = frame.where.url;
-    let line = frame.where.line;
-    let editor = DebuggerView.editor;
-
-    this.updateEditorToLocation(url, line, true);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  updateEditorToLocation:
-  function SF_updateEditorToLocation(aUrl, aLine, aNoSwitch, aNoCaretFlag, aNoDebugFlag) {
-    let editor = DebuggerView.editor;
-
-    function set() {
-      if (!aNoCaretFlag) {
-        editor.setCaretPosition(aLine - 1);
-      }
-      if (!aNoDebugFlag) {
-        editor.setDebugLocation(aLine - 1);
-      }
-    }
-
-    
-    if (DebuggerView.Scripts.isSelected(aUrl)) {
-      return set();
-    }
-    if (!aNoSwitch && DebuggerView.Scripts.contains(aUrl)) {
-      DebuggerView.Scripts.selectScript(aUrl);
-      return set();
-    }
-    editor.setCaretPosition(-1);
-    editor.setDebugLocation(-1);
-  },
-
-  
-
-
-
-
-
-
-  updatePauseOnExceptions: function SF_updatePauseOnExceptions(aFlag) {
-    this.pauseOnExceptions = aFlag;
-    this.activeThread.pauseOnExceptions(this.pauseOnExceptions);
+    DebuggerView.StackFrames.empty();
+    DebuggerView.Variables.empty();
+    DebuggerView.Breakpoints.unhighlightBreakpoint();
+    window.dispatchEvent("Debugger:AfterFramesCleared");
   },
 
   
@@ -592,129 +453,105 @@ StackFrames.prototype = {
 
 
   selectFrame: function SF_selectFrame(aDepth) {
-    
-    if (this.selectedFrame !== null) {
-      DebuggerView.StackFrames.unhighlightFrame(this.selectedFrame);
-    }
-
-    
-    this.selectedFrame = aDepth;
-    DebuggerView.StackFrames.highlightFrame(this.selectedFrame);
-
-    let frame = this.activeThread.cachedFrames[aDepth];
+    let frame = this.activeThread.cachedFrames[this.currentFrame = aDepth];
     if (!frame) {
       return;
     }
-
-    let url = frame.where.url;
-    let line = frame.where.line;
-
-    
-    this.updateEditorToLocation(url, line);
+    let env = frame.environment;
+    let { url, line } = frame.where;
 
     
-    DebuggerView.Properties.createHierarchyStore();
-
-    
-    DebuggerView.Properties.empty();
-
-    if (frame.environment) {
-      let env = frame.environment;
-      do {
-        
-        let name = env.type.charAt(0).toUpperCase() + env.type.slice(1);
-        
-        if (!env.parent) {
-          name = L10N.getStr("globalScopeLabel");
-        }
-        let label = L10N.getFormatStr("scopeLabel", [name]);
-        switch (env.type) {
-          case "with":
-          case "object":
-            label += " [" + env.object.class + "]";
-            break;
-          case "function":
-            if (env.functionName) {
-              label += " [" + env.functionName + "]";
-            }
-            break;
-          default:
-            break;
-        }
-
-        let scope = DebuggerView.Properties.addScope(label);
-
-        
-        if (env == frame.environment) {
-          
-          if (aDepth == 0 && this.exception) {
-            let excVar = scope.addVar("<exception>");
-            if (typeof this.exception == "object") {
-              excVar.setGrip({
-                type: this.exception.type,
-                class: this.exception.class
-              });
-              this._addExpander(excVar, this.exception);
-            } else {
-              excVar.setGrip(this.exception);
-            }
-          }
-
-          
-          if (frame.this) {
-            let thisVar = scope.addVar("this");
-            thisVar.setGrip({
-              type: frame.this.type,
-              class: frame.this.class
-            });
-            this._addExpander(thisVar, frame.this);
-          }
-
-          
-          scope.expand(true);
-          scope.addToHierarchy();
-        }
-
-        switch (env.type) {
-          case "with":
-          case "object":
-            let objClient = this.activeThread.pauseGrip(env.object);
-            objClient.getPrototypeAndProperties(function SF_getProps(aResponse) {
-              this._addScopeVariables(aResponse.ownProperties, scope);
-              
-              DebuggerController.dispatchEvent("Debugger:FetchedVariables");
-            }.bind(this));
-            break;
-          case "block":
-          case "function":
-            
-            let variables = env.bindings.arguments;
-            for each (let variable in variables) {
-              let name = Object.getOwnPropertyNames(variable)[0];
-              let paramVar = scope.addVar(name, variable[name]);
-              let paramVal = variable[name].value;
-              paramVar.setGrip(paramVal);
-              this._addExpander(paramVar, paramVal);
-            }
-            
-            this._addScopeVariables(env.bindings.variables, scope);
-            break;
-          default:
-            Cu.reportError("Unknown Debugger.Environment type: " + env.type);
-            break;
-        }
-      } while (env = env.parent);
+    if (!env) {
+      return;
     }
 
     
-    DebuggerController.dispatchEvent("Debugger:FetchedVariables");
-  },
+    DebuggerView.updateEditor(url, line);
+    
+    DebuggerView.StackFrames.highlightFrame(aDepth);
+    
+    DebuggerView.Breakpoints.highlightBreakpoint(url, line);
+    
+    DebuggerView.Variables.createHierarchy();
+    
+    DebuggerView.Variables.empty();
 
-  
+    let self = this;
+    let name = "";
 
+    do {
+      
+      if (!env.parent) {
+        name = L10N.getStr("globalScopeLabel");
+      }
+      
+      else {
+        name = env.type.charAt(0).toUpperCase() + env.type.slice(1);
+      }
 
-  _onFetchedVars: function SF__onFetchedVars() {
-    DebuggerView.Properties.commitHierarchy();
+      let label = L10N.getFormatStr("scopeLabel", [name]);
+      switch (env.type) {
+        case "with":
+        case "object":
+          label += " [" + env.object.class + "]";
+          break;
+        case "function":
+          label += " [" + env.functionName + "]";
+          break;
+      }
+
+      
+      let scope = DebuggerView.Variables.addScope(label);
+
+      
+      if (env == frame.environment) {
+        
+        if (aDepth == 0 && this.currentException) {
+          let excVar = scope.addVar("<exception>", { value: this.currentException });
+          this._addExpander(excVar, this.currentException);
+        }
+        
+        if (frame.this) {
+          let thisVar = scope.addVar("this", { value: frame.this });
+          this._addExpander(thisVar, frame.this);
+        }
+        
+        scope.expand(true);
+      }
+
+      switch (env.type) {
+        case "with":
+        case "object":
+          
+          this.activeThread.pauseGrip(env.object).getPrototypeAndProperties(function(aResponse) {
+            self._addScopeVariables(aResponse.ownProperties, scope);
+
+            
+            window.dispatchEvent("Debugger:FetchedVariables");
+            DebuggerView.Variables.commitHierarchy();
+          });
+          break;
+        case "block":
+        case "function":
+          
+          for (let variable of env.bindings.arguments) {
+            let name = Object.getOwnPropertyNames(variable)[0];
+            let paramVar = scope.addVar(name, variable[name]);
+            let paramVal = variable[name].value;
+            this._addExpander(paramVar, paramVal);
+          }
+          
+          this._addScopeVariables(env.bindings.variables, scope);
+          break;
+        default:
+          Cu.reportError("Unknown Debugger.Environment type: " + env.type);
+          break;
+      }
+    } while (env = env.parent);
+
+    
+    window.dispatchEvent("Debugger:FetchedVariables");
+    DebuggerView.Variables.commitHierarchy();
   },
 
   
@@ -727,17 +564,16 @@ StackFrames.prototype = {
 
 
   _addScopeVariables: function SF_addScopeVariables(aVariables, aScope) {
-    
-    let variables = {};
-    for each (let prop in Object.keys(aVariables).sort()) {
-      variables[prop] = aVariables[prop];
+    if (!aVariables) {
+      return;
     }
+    
+    let sortedVariableNames = Object.keys(aVariables).sort();
 
     
-    for (let variable in variables) {
-      let paramVar = aScope.addVar(variable, variables[variable]);
-      let paramVal = variables[variable].value;
-      paramVar.setGrip(paramVal);
+    for (let name of sortedVariableNames) {
+      let paramVar = aScope.addVar(name, aVariables[name]);
+      let paramVal = aVariables[name].value;
       this._addExpander(paramVar, paramVal);
     }
   },
@@ -746,50 +582,53 @@ StackFrames.prototype = {
 
 
 
-  _addExpander: function SF__addExpander(aVar, aObject) {
+
+
+
+
+
+  _addExpander: function SF__addExpander(aVar, aGrip) {
     
-    if (!aVar || !aObject || typeof aObject !== "object" ||
-        aObject.type !== "object") {
+    if (VariablesView.isPrimitive({ value: aGrip })) {
       return;
     }
-
-    
-    aVar.forceShowArrow();
-    aVar.onexpand = this._addVarProperties.bind(this, aVar, aObject);
+    aVar.onexpand = this._addVarProperties.bind(this, aVar, aGrip);
   },
 
   
 
 
 
-  _addVarProperties: function SF__addVarProperties(aVar, aObject) {
+
+
+
+
+
+  _addVarProperties: function SF__addVarProperties(aVar, aGrip) {
     
     if (aVar.fetched) {
       return;
     }
 
-    let objClient = this.activeThread.pauseGrip(aObject);
-    objClient.getPrototypeAndProperties(function SF_onProtoAndProps(aResponse) {
-      
-      let properties = {};
-      for each (let prop in Object.keys(aResponse.ownProperties).sort()) {
-        properties[prop] = aResponse.ownProperties[prop];
-      }
-      aVar.addProperties(properties);
+    this.activeThread.pauseGrip(aGrip).getPrototypeAndProperties(function(aResponse) {
+      let { ownProperties, prototype } = aResponse;
 
       
-      for (let prop in aResponse.ownProperties) {
-        this._addExpander(aVar[prop], aResponse.ownProperties[prop].value);
-      }
-
-      
-      if (aResponse.prototype.type !== "null") {
-        let properties = { "__proto__ ": { value: aResponse.prototype } };
-        aVar.addProperties(properties);
-
+      if (ownProperties) {
+        aVar.addProperties(ownProperties);
         
-        this._addExpander(aVar["__proto__ "], aResponse.prototype);
+        for (let name in ownProperties) {
+          this._addExpander(aVar.get(name), ownProperties[name].value);
+        }
       }
+
+      
+      if (prototype.type != "null") {
+        aVar.addProperties({ "__proto__ ": { value: prototype } });
+        
+        this._addExpander(aVar.get("__proto__ "), prototype);
+      }
+
       aVar.fetched = true;
     }.bind(this));
   },
@@ -802,15 +641,14 @@ StackFrames.prototype = {
 
   _addFrame: function SF__addFrame(aFrame) {
     let depth = aFrame.depth;
-    let label = DebuggerController.SourceScripts.getScriptLabel(aFrame.where.url);
+    let { url, line } = aFrame.where;
 
-    let startText = this._getFrameTitle(aFrame);
-    let endText = label + ":" + aFrame.where.line;
+    let startText = StackFrameUtils.getFrameTitle(aFrame);
+    let endText = SourceUtils.getSourceLabel(url) + ":" + line;
 
-    let frame = DebuggerView.StackFrames.addFrame(depth, startText, endText);
-    if (frame) {
-      frame.debuggerFrame = aFrame;
-    }
+    DebuggerView.StackFrames.addFrame(startText, endText, depth, {
+      attachment: aFrame
+    });
   },
 
   
@@ -818,21 +656,7 @@ StackFrames.prototype = {
 
   addMoreFrames: function SF_addMoreFrames() {
     this.activeThread.fillFrames(
-      this.activeThread.cachedFrames.length + this.pageSize);
-  },
-
-  
-
-
-
-
-
-
-  _getFrameTitle: function SF__getFrameTitle(aFrame) {
-    if (aFrame.type == "call") {
-      return aFrame["calleeName"] ? aFrame["calleeName"] : "(anonymous)";
-    }
-    return "(" + aFrame.type + ")";
+      this.activeThread.cachedFrames.length + CALL_STACK_PAGE_SIZE);
   },
 
   
@@ -843,7 +667,7 @@ StackFrames.prototype = {
 
 
   evaluate: function SF_evaluate(aExpression) {
-    let frame = this.activeThread.cachedFrames[this.selectedFrame];
+    let frame = this.activeThread.cachedFrames[this.currentFrame];
     this.activeThread.eval(frame.actor, aExpression);
   }
 };
@@ -852,48 +676,25 @@ StackFrames.prototype = {
 
 
 
+
+
+
+
 function SourceScripts() {
   this._onNewScript = this._onNewScript.bind(this);
   this._onScriptsAdded = this._onScriptsAdded.bind(this);
-  this._onShowScript = this._onShowScript.bind(this);
-  this._onLoadSource = this._onLoadSource.bind(this);
-  this._onLoadSourceFinished = this._onLoadSourceFinished.bind(this);
 }
 
 SourceScripts.prototype = {
+  get activeThread() DebuggerController.activeThread,
+  get debuggerClient() DebuggerController.client,
 
   
 
 
-  _labelsCache: {},
-
-  
-
-
-  get activeThread() {
-    return DebuggerController.activeThread;
-  },
-
-  
-
-
-  get debuggerClient() {
-    return DebuggerController.client;
-  },
-
-  
-
-
-
-
-
-  connect: function SS_connect(aCallback) {
-    window.addEventListener("Debugger:LoadSource", this._onLoadSource, false);
+  connect: function SS_connect() {
     this.debuggerClient.addListener("newScript", this._onNewScript);
-
     this._handleTabNavigation();
-
-    aCallback && aCallback();
   },
 
   
@@ -903,22 +704,21 @@ SourceScripts.prototype = {
     if (!this.activeThread) {
       return;
     }
-    window.removeEventListener("Debugger:LoadSource", this._onLoadSource, false);
     this.debuggerClient.removeListener("newScript", this._onNewScript);
   },
 
   
 
 
-  _handleTabNavigation: function SS__handleTabNavigation(aCallback) {
-    this._clearLabelsCache();
-    this._onScriptsCleared();
+  _handleTabNavigation: function SS__handleTabNavigation() {
+    if (!this.activeThread) {
+      return;
+    }
+    dumpn("Handling tab navigation in the SourceScripts");
 
     
     
     this.activeThread.getScripts(this._onScriptsAdded);
-
-    aCallback && aCallback();
   },
 
   
@@ -930,80 +730,73 @@ SourceScripts.prototype = {
       return;
     }
 
-    this._addScript({
+    
+    this._addSource({
       url: aPacket.url,
       startLine: aPacket.startLine,
       source: aPacket.source
-    }, true);
+    }, {
+      forced: true
+    });
 
-    let preferredScriptUrl = DebuggerView.Scripts.preferredScriptUrl;
+    let container = DebuggerView.Sources;
+    let preferredValue = container.preferredValue;
 
     
-    if (aPacket.url === DebuggerView.Scripts.preferredScriptUrl) {
-      DebuggerView.Scripts.selectScript(aPacket.url);
+    if (aPacket.url == preferredValue) {
+      container.selectedValue = preferredValue;
     }
     
     else {
       window.setTimeout(function() {
         
         
-        if (!DebuggerView.Scripts.selected) {
-          DebuggerView.Scripts.selectIndex(0);
-          
-          
-          
-          
-          
-          DebuggerView.Scripts.preferredScriptUrl = preferredScriptUrl;
+        if (!container.selectedValue) {
+          container.selectedIndex = 0;
         }
       }, NEW_SCRIPT_DISPLAY_DELAY);
     }
 
     
     
-    for each (let breakpoint in DebuggerController.Breakpoints.store) {
-      if (breakpoint.location.url == aPacket.url) {
-        DebuggerController.Breakpoints.displayBreakpoint(breakpoint);
-      }
-    }
+    DebuggerController.Breakpoints.updateEditorBreakpoints();
+    DebuggerController.Breakpoints.updatePaneBreakpoints();
 
-    DebuggerController.dispatchEvent("Debugger:AfterNewScript");
+    
+    window.dispatchEvent("Debugger:AfterNewScript");
   },
 
   
 
 
   _onScriptsAdded: function SS__onScriptsAdded(aResponse) {
-    for each (let script in aResponse.scripts) {
-      this._addScript(script, false);
+    
+    for (let script of aResponse.scripts) {
+      this._addSource(script);
     }
-    DebuggerView.Scripts.commitScripts();
+
+    let container = DebuggerView.Sources;
+    let preferredValue = container.preferredValue;
+
+    
+    container.commit();
+
+    
+    if (container.containsValue(preferredValue)) {
+      container.selectedValue = preferredValue;
+    }
+    
+    else if (!container.selectedValue) {
+      container.selectedIndex = 0;
+    }
+
+    
+    
+    DebuggerController.Breakpoints.updateEditorBreakpoints();
     DebuggerController.Breakpoints.updatePaneBreakpoints();
 
-    let preferredScriptUrl = DebuggerView.Scripts.preferredScriptUrl;
-
     
-    if (preferredScriptUrl && DebuggerView.Scripts.contains(preferredScriptUrl)) {
-      DebuggerView.Scripts.selectScript(preferredScriptUrl);
-    }
-    
-    else if (!DebuggerView.Scripts.selected) {
-      DebuggerView.Scripts.selectIndex(0);
-    }
-
-    DebuggerController.dispatchEvent("Debugger:AfterScriptsAdded");
-  },
-
-  
-
-
-  _onScriptsCleared: function SS__onScriptsCleared() {
-    DebuggerView.GlobalSearch.hideAndEmpty();
-    DebuggerView.GlobalSearch.clearCache();
-    DebuggerView.Scripts.clearSearch();
-    DebuggerView.Scripts.empty();
-    DebuggerView.Breakpoints.emptyText();
-    DebuggerView.editor.setText("");
+    window.dispatchEvent("Debugger:AfterScriptsAdded");
   },
 
   
@@ -1015,225 +808,13 @@ SourceScripts.prototype = {
 
 
 
-  _setEditorMode: function SS__setEditorMode(aUrl, aContentType) {
-    if (aContentType) {
-      if (/javascript/.test(aContentType)) {
-        DebuggerView.editor.setMode(SourceEditor.MODES.JAVASCRIPT);
-      } else {
-        DebuggerView.editor.setMode(SourceEditor.MODES.HTML);
-      }
-      return;
-    }
-
-    
-    if (/\.jsm?$/.test(this.trimUrlQuery(aUrl))) {
-      DebuggerView.editor.setMode(SourceEditor.MODES.JAVASCRIPT);
-    } else {
-      DebuggerView.editor.setMode(SourceEditor.MODES.HTML);
-    }
-  },
-
-  
-
-
-
-
-
-
-
-  trimUrlQuery: function SS_trimUrlQuery(aUrl) {
-    let length = aUrl.length;
-    let q1 = aUrl.indexOf('?');
-    let q2 = aUrl.indexOf('&');
-    let q3 = aUrl.indexOf('#');
-    let q = Math.min(q1 !== -1 ? q1 : length,
-                     q2 !== -1 ? q2 : length,
-                     q3 !== -1 ? q3 : length);
-
-    return aUrl.slice(0, q);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-  trimUrlLength: function SS_trimUrlLength(aUrl, aMaxLength = SCRIPTS_URL_MAX_LENGTH) {
-    if (aUrl.length > aMaxLength) {
-      let ellipsis = Services.prefs.getComplexValue("intl.ellipsis", Ci.nsIPrefLocalizedString);
-      return aUrl.substring(0, aMaxLength) + ellipsis.data;
-    }
-    return aUrl;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  _trimUrl: function SS__trimUrl(aUrl, aLabel, aSeq) {
-    if (!(aUrl instanceof Ci.nsIURL)) {
-      try {
-        
-        aUrl = Services.io.newURI(aUrl, null, null).QueryInterface(Ci.nsIURL);
-      } catch (e) {
-        
-        return aUrl;
-      }
-    }
-    if (!aSeq) {
-      let name = aUrl.fileName;
-      if (name) {
-        
-        
-
-        
-        
-        aLabel = aUrl.fileName.replace(/\&.*/, "");
-      } else {
-        
-        
-        aLabel = "";
-      }
-      aSeq = 1;
-    }
-
-    
-    if (aLabel && aLabel.indexOf("?") !== 0) {
-
-      if (DebuggerView.Scripts.containsIgnoringQuery(aUrl.spec)) {
-        
-        
-        return aLabel;
-      }
-      if (!DebuggerView.Scripts.containsLabel(aLabel)) {
-        
-        return aLabel;
-      }
-    }
-
-    
-    if (aSeq === 1) {
-      let query = aUrl.query;
-      if (query) {
-        return this._trimUrl(aUrl, aLabel + "?" + query, aSeq + 1);
-      }
-      aSeq++;
-    }
-    
-    if (aSeq === 2) {
-      let ref = aUrl.ref;
-      if (ref) {
-        return this._trimUrl(aUrl, aLabel + "#" + aUrl.ref, aSeq + 1);
-      }
-      aSeq++;
-    }
-    
-    if (aSeq === 3) {
-      let dir = aUrl.directory;
-      if (dir) {
-        return this._trimUrl(aUrl, dir.replace(/^\//, "") + aLabel, aSeq + 1);
-      }
-      aSeq++;
-    }
-    
-    if (aSeq === 4) {
-      let host = aUrl.hostPort;
-      if (host) {
-        return this._trimUrl(aUrl, host + "/" + aLabel, aSeq + 1);
-      }
-      aSeq++;
-    }
-    
-    if (aSeq === 5) {
-      return this._trimUrl(aUrl, aUrl.specIgnoringRef, aSeq + 1);
-    }
-    
-    return aUrl.spec;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-  getScriptLabel: function SS_getScriptLabel(aUrl, aHref) {
-    if (!this._labelsCache[aUrl]) {
-      this._labelsCache[aUrl] = this.trimUrlLength(this._trimUrl(aUrl));
-    }
-    return this._labelsCache[aUrl];
-  },
-
-  
-
-
-
-  _clearLabelsCache: function SS__clearLabelsCache() {
-    this._labelsCache = {};
-  },
-
-  
-
-
-
-
-
-
-
-  _addScript: function SS__addScript(aScript, aForceFlag) {
-    DebuggerView.Scripts.addScript(
-      this.getScriptLabel(aScript.url), aScript, aForceFlag);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  showScript: function SS_showScript(aScript, aOptions = {}) {
-    if (aScript.loaded) {
-      
-      
-      if (aScript.url === DebuggerView.Scripts.selected) {
-        this._onShowScript(aScript, aOptions);
-      }
-      return;
-    }
-
-    let editor = DebuggerView.editor;
-    editor.setMode(SourceEditor.MODES.TEXT);
-    editor.setText(L10N.getStr("loadingText"));
-    editor.resetUndo();
-
-    
-    DebuggerController.dispatchEvent("Debugger:LoadSource", {
-      script: aScript,
-      options: aOptions
+  _addSource: function SS__addSource(aSource, aOptions = {}) {
+    let url = aSource.url;
+    let label = SourceUtils.getSourceLabel(url);
+
+    DebuggerView.Sources.push(label, url, {
+      forced: aOptions.forced,
+      attachment: aSource
     });
   },
 
@@ -1245,117 +826,22 @@ SourceScripts.prototype = {
 
 
 
-
-
-  _onShowScript: function SS__onShowScript(aScript, aOptions = {}) {
-    if (aScript.text.length < SYNTAX_HIGHLIGHT_MAX_FILE_SIZE) {
-      this._setEditorMode(aScript.url, aScript.contentType);
-    }
-
-    let editor = DebuggerView.editor;
-    editor.setText(aScript.text);
-    editor.resetUndo();
-
-    DebuggerController.Breakpoints.updateEditorBreakpoints();
-    DebuggerController.StackFrames.updateEditorLocation();
-
+  getText: function SS_getText(aSource, aCallback) {
     
-    if (aOptions.targetLine) {
-      editor.setCaretPosition(aOptions.targetLine - 1);
+    if (aSource.loaded) {
+      aCallback(aSource.url, aSource.text);
+      return;
     }
 
     
-    DebuggerController.dispatchEvent("Debugger:ScriptShown", {
-      url: aScript.url
-    });
-  },
-
-  
-
-
-  _onLoadSource: function SS__onLoadSource(aEvent) {
-    let script = aEvent.detail.script;
-    let options = aEvent.detail.options;
-
-    let sourceClient = this.activeThread.source(script.source);
-    sourceClient.source(function (aResponse) {
+    this.activeThread.source(aSource.source).source(function(aResponse) {
       if (aResponse.error) {
-        return this._logError(script.url, -1);
+        Cu.reportError("Error loading " + aUrl);
+        return;
       }
-
-      this._onLoadSourceFinished(script.url,
-                                 aResponse.source,
-                                 options);
-    }.bind(this));
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  _onLoadSourceFinished:
-  function SS__onLoadSourceFinished(aScriptUrl, aSourceText, aOptions) {
-    let element = DebuggerView.Scripts.getScriptByLocation(aScriptUrl);
-
-    
-    
-    
-    
-    
-    if (!element) {
-      return;
-    }
-
-    let script = element.getUserData("sourceScript");
-
-    script.loaded = true;
-    script.text = aSourceText;
-    element.setUserData("sourceScript", script, null);
-
-    if (aOptions.silent) {
-      aOptions.callback && aOptions.callback(aScriptUrl, aSourceText);
-      return;
-    }
-
-    this.showScript(script, aOptions);
-  },
-
-  
-
-
-
-
-
-
-
-
-  getLineText: function SS_getLineText(aLine) {
-    let editor = DebuggerView.editor;
-    let line = aLine || editor.getCaretPosition().line;
-    let start = editor.getLineStart(line);
-    let end = editor.getLineEnd(line);
-    return editor.getText(start, end);
-  },
-
-  
-
-
-
-
-
-
-
-  _logError: function SS__logError(aUrl, aStatus) {
-    Cu.reportError(L10N.getFormatStr("loadingError", [aUrl, aStatus]));
-  },
+      aCallback(aSource.url, aResponse.source);
+    });
+  }
 };
 
 
@@ -1371,27 +857,10 @@ function Breakpoints() {
 }
 
 Breakpoints.prototype = {
+  get activeThread() DebuggerController.ThreadState.activeThread,
+  get editor() DebuggerView.editor,
 
   
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  _skipEditorBreakpointChange: false,
-
-  
-
-
 
 
 
@@ -1402,16 +871,16 @@ Breakpoints.prototype = {
   
 
 
-  get activeThread() {
-    return DebuggerController.ThreadState.activeThread;
-  },
-
-  
 
 
-  get editor() {
-    return DebuggerView.editor;
-  },
+
+
+
+
+
+
+
+  _skipEditorBreakpointCallbacks: false,
 
   
 
@@ -1425,14 +894,15 @@ Breakpoints.prototype = {
 
 
   destroy: function BP_destroy() {
-    for each (let breakpoint in this.store) {
-      this.removeBreakpoint(breakpoint);
+    this.editor.removeEventListener(
+      SourceEditor.EVENTS.BREAKPOINT_CHANGE, this._onEditorBreakpointChange);
+
+    for each (let breakpointClient in this.store) {
+      this.removeBreakpoint(breakpointClient);
     }
   },
 
   
-
-
 
 
 
@@ -1440,12 +910,13 @@ Breakpoints.prototype = {
 
 
   _onEditorBreakpointChange: function BP__onEditorBreakpointChange(aEvent) {
-    if (this._skipEditorBreakpointChange) {
+    if (this._skipEditorBreakpointCallbacks) {
       return;
     }
-
+    this._skipEditorBreakpointCallbacks = true;
     aEvent.added.forEach(this._onEditorBreakpointAdd, this);
     aEvent.removed.forEach(this._onEditorBreakpointRemove, this);
+    this._skipEditorBreakpointCallbacks = false;
   },
 
   
@@ -1454,27 +925,19 @@ Breakpoints.prototype = {
 
 
 
+  _onEditorBreakpointAdd: function BP__onEditorBreakpointAdd(aEditorBreakpoint) {
+    let url = DebuggerView.Sources.selectedValue;
+    let line = aEditorBreakpoint.line + 1;
 
-  _onEditorBreakpointAdd: function BP__onEditorBreakpointAdd(aBreakpoint) {
-    let url = DebuggerView.Scripts.selected;
-    if (!url) {
-      return;
-    }
-
-    let line = aBreakpoint.line + 1;
-
-    this.addBreakpoint({ url: url, line: line }, function (aBp) {
-      if (aBp.requestedLocation) {
-        this.editor.removeBreakpoint(aBp.requestedLocation.line - 1);
-
-        let breakpoints = this.getBreakpoints(url, aBp.location.line);
-        if (breakpoints.length > 1) {
-          this.removeBreakpoint(breakpoints[0], null, true, true);
-        } else {
-          this.updateEditorBreakpoints();
-        }
+    this.addBreakpoint({ url: url, line: line }, function(aBreakpointClient) {
+      
+      
+      
+      if (aBreakpointClient.actualLocation) {
+        this.editor.removeBreakpoint(line - 1);
+        this.editor.addBreakpoint(aBreakpointClient.actualLocation.line - 1);
       }
-    }.bind(this), true);
+    }.bind(this));
   },
 
   
@@ -1483,19 +946,11 @@ Breakpoints.prototype = {
 
 
 
+  _onEditorBreakpointRemove: function BP__onEditorBreakpointRemove(aEditorBreakpoint) {
+    let url = DebuggerView.Sources.selectedValue;
+    let line = aEditorBreakpoint.line + 1;
 
-  _onEditorBreakpointRemove: function BP__onEditorBreakpointRemove(aBreakpoint) {
-    let url = DebuggerView.Scripts.selected;
-    if (!url) {
-      return;
-    }
-
-    let line = aBreakpoint.line + 1;
-
-    let breakpoint = this.getBreakpoint(url, line);
-    if (breakpoint) {
-      this.removeBreakpoint(breakpoint, null, true);
-    }
+    this.removeBreakpoint(this.getBreakpoint(url, line));
   },
 
   
@@ -1504,42 +959,27 @@ Breakpoints.prototype = {
 
 
   updateEditorBreakpoints: function BP_updateEditorBreakpoints() {
-    let url = DebuggerView.Scripts.selected;
-    if (!url) {
-      return;
-    }
-
-    this._skipEditorBreakpointChange = true;
-    for each (let breakpoint in this.store) {
-      if (breakpoint.location.url == url) {
-        this.editor.addBreakpoint(breakpoint.location.line - 1);
+    for each (let breakpointClient in this.store) {
+      if (DebuggerView.Sources.selectedValue == breakpointClient.location.url) {
+        this._showBreakpoint(breakpointClient, { noPaneUpdate: true });
       }
     }
-    this._skipEditorBreakpointChange = false;
   },
 
   
+
 
 
 
   updatePaneBreakpoints: function BP_updatePaneBreakpoints() {
-    let url = DebuggerView.Scripts.selected;
-    if (!url) {
-      return;
-    }
-
-    this._skipEditorBreakpointChange = true;
-    for each (let breakpoint in this.store) {
-      if (DebuggerView.Scripts.contains(breakpoint.location.url)) {
-        this.displayBreakpoint(breakpoint, true);
+    for each (let breakpointClient in this.store) {
+      if (DebuggerView.Sources.containsValue(breakpointClient.location.url)) {
+        this._showBreakpoint(breakpointClient, { noEditorUpdate: true });
       }
     }
-    this._skipEditorBreakpointChange = false;
   },
 
   
-
-
 
 
 
@@ -1558,70 +998,58 @@ Breakpoints.prototype = {
 
 
   addBreakpoint:
-  function BP_addBreakpoint(aLocation, aCallback, aNoEditorUpdate, aNoPaneUpdate) {
-    let breakpoint = this.getBreakpoint(aLocation.url, aLocation.line);
-    if (breakpoint) {
-      aCallback && aCallback(breakpoint);
+  function BP_addBreakpoint(aLocation, aCallback, aFlags = {}) {
+    let breakpointClient = this.getBreakpoint(aLocation.url, aLocation.line);
+
+    
+    if (breakpointClient) {
+      aCallback && aCallback(breakpointClient);
       return;
     }
 
-    this.activeThread.setBreakpoint(aLocation, function(aResponse, aBpClient) {
-      let loc = aResponse.actualLocation;
+    this.activeThread.setBreakpoint(aLocation, function(aResponse, aBreakpointClient) {
+      let { url, line } = aResponse.actualLocation || aLocation;
 
-      if (loc) {
-        aBpClient.requestedLocation = {
-          line: aBpClient.location.line,
-          url: aBpClient.location.url
-        };
-
-        aBpClient.location.line = loc.line;
-        aBpClient.location.url = loc.url;
+      
+      
+      if (this.getBreakpoint(url, line)) {
+        this._hideBreakpoint(aBreakpointClient);
+        aBreakpointClient.remove();
+        return;
       }
 
-      this.store[aBpClient.actor] = aBpClient;
-      this.displayBreakpoint(aBpClient, aNoEditorUpdate, aNoPaneUpdate);
-      aCallback && aCallback(aBpClient, aResponse.error);
+      
+      
+      if (aResponse.actualLocation) {
+        
+        aBreakpointClient.requestedLocation = {
+          url: aBreakpointClient.location.url,
+          line: aBreakpointClient.location.line
+        };
+        
+        aBreakpointClient.actualLocation = aResponse.actualLocation;
+        
+        aBreakpointClient.location.url = aResponse.actualLocation.url;
+        aBreakpointClient.location.line = aResponse.actualLocation.line;
+      }
+
+      
+      this.store[aBreakpointClient.actor] = aBreakpointClient;
+
+      
+      
+      aBreakpointClient.lineText = DebuggerView.getEditorLine(line - 1);
+      aBreakpointClient.lineInfo = SourceUtils.getSourceLabel(url) + ":" + line;
+
+      
+      this._showBreakpoint(aBreakpointClient, aFlags);
+
+      
+      aCallback && aCallback(aBreakpointClient, aResponse.error);
     }.bind(this));
   },
 
   
-
-
-
-
-
-
-
-
-
-
-  displayBreakpoint:
-  function BP_displayBreakpoint(aBreakpoint, aNoEditorUpdate, aNoPaneUpdate) {
-    if (!aNoEditorUpdate) {
-      let url = DebuggerView.Scripts.selected;
-      if (url == aBreakpoint.location.url) {
-        this._skipEditorBreakpointChange = true;
-        this.editor.addBreakpoint(aBreakpoint.location.line - 1);
-        this._skipEditorBreakpointChange = false;
-      }
-    }
-    if (!aNoPaneUpdate) {
-      let { url: url, line: line } = aBreakpoint.location;
-
-      if (!aBreakpoint.lineText || !aBreakpoint.lineInfo) {
-        let scripts = DebuggerController.SourceScripts;
-        aBreakpoint.lineText = scripts.getLineText(line - 1);
-        aBreakpoint.lineInfo = scripts.getScriptLabel(url) + ":" + line;
-      }
-      DebuggerView.Breakpoints.addBreakpoint(
-        aBreakpoint.actor,
-        aBreakpoint.lineInfo,
-        aBreakpoint.lineText, url, line);
-    }
-  },
-
-  
-
 
 
 
@@ -1636,28 +1064,24 @@ Breakpoints.prototype = {
 
 
   removeBreakpoint:
-  function BP_removeBreakpoint(aBreakpoint, aCallback, aNoEditorUpdate, aNoPaneUpdate) {
-    if (!(aBreakpoint.actor in this.store)) {
-      aCallback && aCallback(aBreakpoint.location);
+  function BP_removeBreakpoint(aBreakpointClient, aCallback, aFlags = {}) {
+    let breakpointActor = (aBreakpointClient || {}).actor;
+
+    
+    if (!this.store[breakpointActor]) {
+      aCallback && aCallback(aBreakpointClient.location);
       return;
     }
 
-    aBreakpoint.remove(function() {
-      delete this.store[aBreakpoint.actor];
+    aBreakpointClient.remove(function() {
+      
+      delete this.store[breakpointActor];
 
-      if (!aNoEditorUpdate) {
-        let url = DebuggerView.Scripts.selected;
-        if (url == aBreakpoint.location.url) {
-          this._skipEditorBreakpointChange = true;
-          this.editor.removeBreakpoint(aBreakpoint.location.line - 1);
-          this._skipEditorBreakpointChange = false;
-        }
-      }
-      if (!aNoPaneUpdate) {
-        DebuggerView.Breakpoints.removeBreakpoint(aBreakpoint.actor);
-      }
+      
+      this._hideBreakpoint(aBreakpointClient, aFlags);
 
-      aCallback && aCallback(aBreakpoint.location);
+      
+      aCallback && aCallback(aBreakpointClient.location);
     }.bind(this));
   },
 
@@ -1671,25 +1095,68 @@ Breakpoints.prototype = {
 
 
 
+  _showBreakpoint: function BP__showBreakpoint(aBreakpointClient, aFlags = {}) {
+    let currentSourceUrl = DebuggerView.Sources.selectedValue;
+    let { url, line } = aBreakpointClient.location;
+
+    if (!aFlags.noEditorUpdate) {
+      if (url == currentSourceUrl) {
+        this._skipEditorBreakpointCallbacks = true;
+        this.editor.addBreakpoint(line - 1);
+        this._skipEditorBreakpointCallbacks = false;
+      }
+    }
+    if (!aFlags.noPaneUpdate) {
+      let { lineText, lineInfo } = aBreakpointClient;
+      let actor = aBreakpointClient.actor;
+      DebuggerView.Breakpoints.addBreakpoint(lineInfo, lineText, url, line, actor);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  _hideBreakpoint: function BP__hideBreakpoint(aBreakpointClient, aFlags = {}) {
+    let currentSourceUrl = DebuggerView.Sources.selectedValue;
+    let { url, line } = aBreakpointClient.location;
+
+    if (!aFlags.noEditorUpdate) {
+      if (url == currentSourceUrl) {
+        this._skipEditorBreakpointCallbacks = true;
+        this.editor.removeBreakpoint(line - 1);
+        this._skipEditorBreakpointCallbacks = false;
+      }
+    }
+    if (!aFlags.noPaneUpdate) {
+      DebuggerView.Breakpoints.removeBreakpoint(url, line);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
   getBreakpoint: function BP_getBreakpoint(aUrl, aLine) {
-    for each (let breakpoint in this.store) {
-      if (breakpoint.location.url == aUrl && breakpoint.location.line == aLine) {
-        return breakpoint;
+    for each (let breakpointClient in this.store) {
+      if (breakpointClient.location.url == aUrl &&
+          breakpointClient.location.line == aLine) {
+        return breakpointClient;
       }
     }
     return null;
-  },
-
-  getBreakpoints: function BP_getBreakpoints(aUrl, aLine) {
-    let breakpoints = [];
-
-    for each (let breakpoint in this.store) {
-      if (breakpoint.location.url == aUrl && breakpoint.location.line == aLine) {
-        breakpoints.push(breakpoint);
-      }
-    }
-
-    return breakpoints;
   }
 };
 
@@ -1697,7 +1164,6 @@ Breakpoints.prototype = {
 
 
 let L10N = {
-
   
 
 
@@ -1724,22 +1190,25 @@ XPCOMUtils.defineLazyGetter(L10N, "stringBundle", function() {
   return Services.strings.createBundle(DBG_STRINGS_URI);
 });
 
+XPCOMUtils.defineLazyGetter(L10N, "ellipsis", function() {
+  return Services.prefs.getComplexValue("intl.ellipsis", Ci.nsIPrefLocalizedString).data;
+});
+
 const STACKFRAMES_WIDTH = "devtools.debugger.ui.stackframes-width";
 const STACKFRAMES_VISIBLE = "devtools.debugger.ui.stackframes-pane-visible";
 const VARIABLES_WIDTH = "devtools.debugger.ui.variables-width";
 const VARIABLES_PANE_VISIBLE = "devtools.debugger.ui.variables-pane-visible";
+const NON_ENUM_VISIBLE = "devtools.debugger.ui.non-enum-visible";
 const REMOTE_AUTO_CONNECT = "devtools.debugger.remote-autoconnect";
 const REMOTE_HOST = "devtools.debugger.remote-host";
 const REMOTE_PORT = "devtools.debugger.remote-port";
 const REMOTE_CONNECTION_RETRIES = "devtools.debugger.remote-connection-retries";
 const REMOTE_TIMEOUT = "devtools.debugger.remote-timeout";
-const NON_ENUM_VISIBLE = "devtools.debugger.ui.non-enum-visible";
 
 
 
 
 let Prefs = {
-
   
 
 
@@ -1900,7 +1369,27 @@ XPCOMUtils.defineLazyGetter(Prefs, "remoteTimeout", function() {
 
 
 
-DebuggerController.init();
+
+XPCOMUtils.defineLazyGetter(window, "_isRemoteDebugger", function() {
+  
+  return !(window.frameElement instanceof XULElement) &&
+         !!window._remoteFlag;
+});
+
+
+
+
+
+XPCOMUtils.defineLazyGetter(window, "_isChromeDebugger", function() {
+  
+  return !(window.frameElement instanceof XULElement) &&
+         !window._remoteFlag;
+});
+
+
+
+
+DebuggerController.initialize();
 DebuggerController.ThreadState = new ThreadState();
 DebuggerController.StackFrames = new StackFrames();
 DebuggerController.SourceScripts = new SourceScripts();
@@ -1909,14 +1398,47 @@ DebuggerController.Breakpoints = new Breakpoints();
 
 
 
-Object.defineProperty(window, "gClient", {
-  get: function() { return DebuggerController.client; }
+Object.defineProperties(window, {
+  "gClient": {
+    get: function() DebuggerController.client
+  },
+  "gTabClient": {
+    get: function() DebuggerController.tabClient
+  },
+  "gThreadClient": {
+    get: function() DebuggerController.activeThread
+  },
+  "gThreadState": {
+    get: function() DebuggerController.ThreadState
+  },
+  "gStackFrames": {
+    get: function() DebuggerController.StackFrames
+  },
+  "gSourceScripts": {
+    get: function() DebuggerController.SourceScripts
+  },
+  "gBreakpoints": {
+    get: function() DebuggerController.Breakpoints
+  },
+  "gCallStackPageSize": {
+    get: function() CALL_STACK_PAGE_SIZE,
+  },
+  "dispatchEvent": {
+    get: function() DebuggerController.dispatchEvent,
+  },
+  "editor": {
+    get: function() DebuggerView.editor
+  }
 });
 
-Object.defineProperty(window, "gTabClient", {
-  get: function() { return DebuggerController.tabClient; }
-});
 
-Object.defineProperty(window, "gThreadClient", {
-  get: function() { return DebuggerController.activeThread; }
-});
+
+
+
+function dumpn(str) {
+  if (wantLogging) {
+    dump("DBG-FRONTEND: " + str + "\n");
+  }
+}
+
+let wantLogging = Services.prefs.getBoolPref("devtools.debugger.log");

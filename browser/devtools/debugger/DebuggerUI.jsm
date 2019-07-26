@@ -14,10 +14,16 @@ const DBG_STRINGS_URI = "chrome://browser/locale/devtools/debugger.properties";
 const CHROME_DEBUGGER_PROFILE_NAME = "_chrome-debugger-profile";
 const TAB_SWITCH_NOTIFICATION = "debugger-tab-switch";
 
-Cu.import("resource://gre/modules/devtools/dbg-server.jsm");
-Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/FileUtils.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this,
+  "DebuggerServer", "resource://gre/modules/devtools/dbg-server.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this,
+  "Services", "resource:///modules/Services.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this,
+  "FileUtils", "resource:///modules/FileUtils.jsm");
 
 let EXPORTED_SYMBOLS = ["DebuggerUI"];
 
@@ -33,7 +39,6 @@ function DebuggerUI(aWindow) {
 }
 
 DebuggerUI.prototype = {
-
   
 
 
@@ -71,6 +76,8 @@ DebuggerUI.prototype = {
 
 
 
+
+
   toggleDebugger: function DUI_toggleDebugger() {
     let scriptDebugger = this.findDebugger();
     let selectedTab = this.chromeWindow.gBrowser.selectedTab;
@@ -90,6 +97,8 @@ DebuggerUI.prototype = {
 
 
 
+
+
   toggleRemoteDebugger: function DUI_toggleRemoteDebugger() {
     let remoteDebugger = this.getRemoteDebugger();
 
@@ -101,6 +110,8 @@ DebuggerUI.prototype = {
   },
 
   
+
+
 
 
 
@@ -166,17 +177,14 @@ DebuggerUI.prototype = {
 
 
 
-  get preferences() {
-    return DebuggerPreferences;
-  },
+  get preferences() Prefs,
 
   
 
 
 
 
-  showTabSwitchNotification: function DUI_showTabSwitchNotification()
-  {
+  showTabSwitchNotification: function DUI_showTabSwitchNotification() {
     let gBrowser = this.chromeWindow.gBrowser;
     let selectedBrowser = gBrowser.selectedBrowser;
 
@@ -186,33 +194,34 @@ DebuggerUI.prototype = {
       nbox.removeNotification(notification);
       return;
     }
+    let self = this;
 
     let buttons = [{
       id: "debugger.confirmTabSwitch.buttonSwitch",
       label: L10N.getStr("confirmTabSwitch.buttonSwitch"),
       accessKey: L10N.getStr("confirmTabSwitch.buttonSwitch.accessKey"),
       callback: function DUI_notificationButtonSwitch() {
-        let scriptDebugger = this.findDebugger();
+        let scriptDebugger = self.findDebugger();
         let targetWindow = scriptDebugger.globalUI.chromeWindow;
         targetWindow.gBrowser.selectedTab = scriptDebugger.ownerTab;
         targetWindow.focus();
-      }.bind(this)
+      }
     }, {
       id: "debugger.confirmTabSwitch.buttonOpen",
       label: L10N.getStr("confirmTabSwitch.buttonOpen"),
       accessKey: L10N.getStr("confirmTabSwitch.buttonOpen.accessKey"),
       callback: function DUI_notificationButtonOpen() {
-        let scriptDebugger = this.findDebugger();
+        let scriptDebugger = self.findDebugger();
         let targetWindow = scriptDebugger.globalUI.chromeWindow;
         scriptDebugger.close();
-        let self = this;
-        targetWindow.addEventListener("Debugger:Shutdown", function toggle() {
-          targetWindow.removeEventListener("Debugger:Shutdown", toggle, false);
+
+        targetWindow.addEventListener("Debugger:Shutdown", function onShutdown() {
+          targetWindow.removeEventListener("Debugger:Shutdown", onShutdown, false);
           Services.tm.currentThread.dispatch({ run: function() {
             self.toggleDebugger();
           }}, 0);
         }, false);
-      }.bind(this)
+      }
     }];
 
     let message = L10N.getStr("confirmTabSwitch.message");
@@ -241,12 +250,12 @@ function DebuggerPane(aDebuggerUI, aTab) {
   this._win = aDebuggerUI.chromeWindow;
   this._tab = aTab;
 
+  this.close = this.close.bind(this);
   this._initServer();
   this._create();
 }
 
 DebuggerPane.prototype = {
-
   
 
 
@@ -271,25 +280,24 @@ DebuggerPane.prototype = {
     this._splitter.setAttribute("class", "devtools-horizontal-splitter");
 
     this._frame = ownerDocument.createElement("iframe");
-    this._frame.height = DebuggerPreferences.height;
+    this._frame.height = Prefs.height;
 
     this._nbox = gBrowser.getNotificationBox(this._tab.linkedBrowser);
     this._nbox.appendChild(this._splitter);
     this._nbox.appendChild(this._frame);
 
-    this.close = this.close.bind(this);
     let self = this;
 
     this._frame.addEventListener("Debugger:Loaded", function dbgLoaded() {
       self._frame.removeEventListener("Debugger:Loaded", dbgLoaded, true);
-      self._frame.addEventListener("Debugger:Close", self.close, true);
-      self._frame.addEventListener("unload", self.close, true);
+      self._frame.addEventListener("Debugger:Unloaded", self.close, true);
 
       
       let bkp = self.contentWindow.DebuggerController.Breakpoints;
       self.addBreakpoint = bkp.addBreakpoint;
       self.removeBreakpoint = bkp.removeBreakpoint;
       self.getBreakpoint = bkp.getBreakpoint;
+      self.breakpoints = bkp.store;
     }, true);
 
     this._frame.setAttribute("src", DBG_XUL);
@@ -308,16 +316,10 @@ DebuggerPane.prototype = {
       return;
     }
     delete this.globalUI._scriptDebugger;
-    this._win = null;
-    this._tab = null;
-
-    DebuggerPreferences.height = this._frame.height;
-    this._frame.removeEventListener("Debugger:Close", this.close, true);
-    this._frame.removeEventListener("unload", this.close, true);
 
     
     
-    if (typeof(aCloseCallback) == "function") {
+    if (typeof aCloseCallback == "function") {
       let frame = this._frame;
       frame.addEventListener("unload", function onUnload() {
         frame.removeEventListener("unload", onUnload, true);
@@ -325,15 +327,34 @@ DebuggerPane.prototype = {
       }, true)
     }
 
+    Prefs.height = this._frame.height;
+    this._frame.removeEventListener("Debugger:Unloaded", this.close, true);
+
     this._nbox.removeChild(this._splitter);
     this._nbox.removeChild(this._frame);
 
     this._splitter = null;
     this._frame = null;
     this._nbox = null;
+    this._win = null;
+    this._tab = null;
+
+    
+    delete this.addBreakpoint;
+    delete this.removeBreakpoint;
+    delete this.getBreakpoint;
+    delete this.breakpoints;
 
     this.globalUI.refreshCommand();
     this.globalUI = null;
+  },
+
+  
+
+
+
+  get ownerWindow() {
+    return this._win;
   },
 
   
@@ -350,18 +371,6 @@ DebuggerPane.prototype = {
 
   get contentWindow() {
     return this._frame ? this._frame.contentWindow : null;
-  },
-
-  
-
-
-
-  get breakpoints() {
-    let contentWindow = this.contentWindow;
-    if (contentWindow) {
-      return contentWindow.DebuggerController.Breakpoints.store;
-    }
-    return null;
   }
 };
 
@@ -375,11 +384,11 @@ function RemoteDebuggerWindow(aDebuggerUI) {
   this.globalUI = aDebuggerUI;
   this._win = aDebuggerUI.chromeWindow;
 
+  this.close = this.close.bind(this);
   this._create();
 }
 
 RemoteDebuggerWindow.prototype = {
-
   
 
 
@@ -388,26 +397,25 @@ RemoteDebuggerWindow.prototype = {
 
     this._dbgwin = this.globalUI.chromeWindow.open(DBG_XUL,
       L10N.getStr("remoteDebuggerWindowTitle"),
-      "width=" + DebuggerPreferences.remoteWinWidth + "," +
-      "height=" + DebuggerPreferences.remoteWinHeight + "," +
+      "width=" + Prefs.remoteWinWidth + "," +
+      "height=" + Prefs.remoteWinHeight + "," +
       "chrome,dependent,resizable,centerscreen");
 
-    this._dbgwin._remoteFlag = true;
-
-    this.close = this.close.bind(this);
     let self = this;
 
     this._dbgwin.addEventListener("Debugger:Loaded", function dbgLoaded() {
       self._dbgwin.removeEventListener("Debugger:Loaded", dbgLoaded, true);
-      self._dbgwin.addEventListener("Debugger:Close", self.close, true);
-      self._dbgwin.addEventListener("unload", self.close, true);
+      self._dbgwin.addEventListener("Debugger:Unloaded", self.close, true);
 
       
       let bkp = self.contentWindow.DebuggerController.Breakpoints;
       self.addBreakpoint = bkp.addBreakpoint;
       self.removeBreakpoint = bkp.removeBreakpoint;
       self.getBreakpoint = bkp.getBreakpoint;
+      self.breakpoints = bkp.store;
     }, true);
+
+    this._dbgwin._remoteFlag = true;
   },
 
   
@@ -418,11 +426,26 @@ RemoteDebuggerWindow.prototype = {
       return;
     }
     delete this.globalUI._remoteDebugger;
-    this.globalUI = null;
-    this._win = null;
 
     this._dbgwin.close();
     this._dbgwin = null;
+    this._win = null;
+
+    
+    delete this.addBreakpoint;
+    delete this.removeBreakpoint;
+    delete this.getBreakpoint;
+    delete this.breakpoints;
+
+    this.globalUI = null;
+  },
+
+  
+
+
+
+  get ownerWindow() {
+    return this._win;
   },
 
   
@@ -431,18 +454,6 @@ RemoteDebuggerWindow.prototype = {
 
   get contentWindow() {
     return this._dbgwin;
-  },
-
-  
-
-
-
-  get breakpoints() {
-    let contentWindow = this.contentWindow;
-    if (contentWindow) {
-      return contentWindow.DebuggerController.Breakpoints.store;
-    }
-    return null;
   }
 };
 
@@ -468,7 +479,6 @@ function ChromeDebuggerProcess(aDebuggerUI, aOnClose, aOnRun) {
 }
 
 ChromeDebuggerProcess.prototype = {
-
   
 
 
@@ -477,7 +487,7 @@ ChromeDebuggerProcess.prototype = {
       DebuggerServer.init();
       DebuggerServer.addBrowserActors();
     }
-    DebuggerServer.openListener(DebuggerPreferences.remotePort);
+    DebuggerServer.openListener(Prefs.remotePort);
   },
 
   
@@ -515,13 +525,13 @@ ChromeDebuggerProcess.prototype = {
     let args = [
       "-no-remote", "-P", this._dbgProfile.name,
       "-chrome", DBG_XUL,
-      "-width", DebuggerPreferences.remoteWinWidth,
-      "-height", DebuggerPreferences.remoteWinHeight];
+      "-width", Prefs.remoteWinWidth,
+      "-height", Prefs.remoteWinHeight];
 
     process.runwAsync(args, args.length, { observe: this.close.bind(this) });
     this._dbgProcess = process;
 
-    if (typeof this._runCallback === "function") {
+    if (typeof this._runCallback == "function") {
       this._runCallback.call({}, this);
     }
   },
@@ -534,8 +544,6 @@ ChromeDebuggerProcess.prototype = {
       return;
     }
     delete this.globalUI._chromeDebugger;
-    this.globalUI = null;
-    this._win = null;
 
     if (this._dbgProcess.isRunning) {
       this._dbgProcess.kill();
@@ -543,12 +551,15 @@ ChromeDebuggerProcess.prototype = {
     if (this._dbgProfile) {
       this._dbgProfile.remove(false);
     }
-    if (typeof this._closeCallback === "function") {
+    if (typeof this._closeCallback == "function") {
       this._closeCallback.call({}, this);
     }
 
     this._dbgProcess = null;
     this._dbgProfile = null;
+    this._win = null;
+
+    this.globalUI = null;
   }
 };
 
@@ -556,7 +567,6 @@ ChromeDebuggerProcess.prototype = {
 
 
 let L10N = {
-
   
 
 
@@ -575,8 +585,7 @@ XPCOMUtils.defineLazyGetter(L10N, "stringBundle", function() {
 
 
 
-let DebuggerPreferences = {
-
+let Prefs = {
   
 
 
@@ -602,7 +611,7 @@ let DebuggerPreferences = {
 
 
 
-XPCOMUtils.defineLazyGetter(DebuggerPreferences, "remoteWinWidth", function() {
+XPCOMUtils.defineLazyGetter(Prefs, "remoteWinWidth", function() {
   return Services.prefs.getIntPref("devtools.debugger.ui.remote-win.width");
 });
 
@@ -610,7 +619,7 @@ XPCOMUtils.defineLazyGetter(DebuggerPreferences, "remoteWinWidth", function() {
 
 
 
-XPCOMUtils.defineLazyGetter(DebuggerPreferences, "remoteWinHeight", function() {
+XPCOMUtils.defineLazyGetter(Prefs, "remoteWinHeight", function() {
   return Services.prefs.getIntPref("devtools.debugger.ui.remote-win.height");
 });
 
@@ -618,7 +627,7 @@ XPCOMUtils.defineLazyGetter(DebuggerPreferences, "remoteWinHeight", function() {
 
 
 
-XPCOMUtils.defineLazyGetter(DebuggerPreferences, "remoteHost", function() {
+XPCOMUtils.defineLazyGetter(Prefs, "remoteHost", function() {
   return Services.prefs.getCharPref("devtools.debugger.remote-host");
 });
 
@@ -626,6 +635,6 @@ XPCOMUtils.defineLazyGetter(DebuggerPreferences, "remoteHost", function() {
 
 
 
-XPCOMUtils.defineLazyGetter(DebuggerPreferences, "remotePort", function() {
+XPCOMUtils.defineLazyGetter(Prefs, "remotePort", function() {
   return Services.prefs.getIntPref("devtools.debugger.remote-port");
 });
