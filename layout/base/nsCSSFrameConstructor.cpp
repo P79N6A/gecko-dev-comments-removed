@@ -1910,8 +1910,6 @@ nsCSSFrameConstructor::ConstructTable(nsFrameConstructorState& aState,
   nsStyleContext* const styleContext = aItem.mStyleContext;
   const uint32_t nameSpaceID = aItem.mNameSpaceID;
 
-  nsresult rv = NS_OK;
-
   
   nsRefPtr<nsStyleContext> outerStyleContext;
   outerStyleContext = mPresShell->StyleSet()->
@@ -1966,11 +1964,9 @@ nsCSSFrameConstructor::ConstructTable(nsFrameConstructorState& aState,
     ConstructFramesFromItemList(aState, aItem.mChildItems,
                                 innerFrame, childItems);
   } else {
-    rv = ProcessChildren(aState, content, styleContext, innerFrame,
-                         true, childItems, false, aItem.mPendingBinding);
+    ProcessChildren(aState, content, styleContext, innerFrame,
+                    true, childItems, false, aItem.mPendingBinding);
   }
-  
-  if (NS_FAILED(rv)) return rv;
 
   nsFrameItems captionItems;
   PullOutCaptionFrames(childItems, captionItems);
@@ -1984,7 +1980,7 @@ nsCSSFrameConstructor::ConstructTable(nsFrameConstructorState& aState,
   }
 
   *aNewFrame = newFrame;
-  return rv;
+  return NS_OK;
 }
 
 nsresult
@@ -2010,15 +2006,13 @@ nsCSSFrameConstructor::ConstructTableRow(nsFrameConstructorState& aState,
   InitAndRestoreFrame(aState, content, aParentFrame, nullptr, newFrame);
 
   nsFrameItems childItems;
-  nsresult rv = NS_OK;
   if (aItem.mFCData->mBits & FCDATA_USE_CHILD_ITEMS) {
     ConstructFramesFromItemList(aState, aItem.mChildItems, newFrame,
                                 childItems);
   } else {
-    rv = ProcessChildren(aState, content, styleContext, newFrame,
-                         true, childItems, false, aItem.mPendingBinding);
+    ProcessChildren(aState, content, styleContext, newFrame,
+                    true, childItems, false, aItem.mPendingBinding);
   }
-  if (NS_FAILED(rv)) return rv;
 
   newFrame->SetInitialChildList(kPrincipalList, childItems);
   aFrameItems.AddChild(newFrame);
@@ -2116,7 +2110,6 @@ nsCSSFrameConstructor::ConstructTableCell(nsFrameConstructorState& aState,
   InitAndRestoreFrame(aState, content, newFrame, nullptr, cellInnerFrame);
 
   nsFrameItems childItems;
-  nsresult rv = NS_OK;
   if (aItem.mFCData->mBits & FCDATA_USE_CHILD_ITEMS) {
     
     
@@ -2133,18 +2126,10 @@ nsCSSFrameConstructor::ConstructTableCell(nsFrameConstructorState& aState,
                                 childItems);
   } else {
     
-    rv = ProcessChildren(aState, content, styleContext, cellInnerFrame,
-                         true, childItems, isBlock, aItem.mPendingBinding);
+    ProcessChildren(aState, content, styleContext, cellInnerFrame,
+                    true, childItems, isBlock, aItem.mPendingBinding);
   }
   
-  if (NS_FAILED(rv)) {
-    
-    
-    cellInnerFrame->Destroy();
-    newFrame->Destroy();
-    return rv;
-  }
-
   cellInnerFrame->SetInitialChildList(kPrincipalList, childItems);
   SetInitialSingleChild(newFrame, cellInnerFrame);
   aFrameItems.AddChild(newFrame);
@@ -3703,11 +3688,11 @@ nsCSSFrameConstructor::ConstructFrameFromItemInternal(FrameConstructionItem& aIt
                                   childItems);
     } else {
       
-      rv = ProcessChildren(aState, content, styleContext, newFrame,
-                           !(bits & FCDATA_DISALLOW_GENERATED_CONTENT),
-                           childItems,
-                           (bits & FCDATA_ALLOW_BLOCK_STYLES) != 0,
-                           aItem.mPendingBinding, possiblyLeafFrame);
+      ProcessChildren(aState, content, styleContext, newFrame,
+                      !(bits & FCDATA_DISALLOW_GENERATED_CONTENT),
+                      childItems,
+                      (bits & FCDATA_ALLOW_BLOCK_STYLES) != 0,
+                      aItem.mPendingBinding, possiblyLeafFrame);
     }
 
 #ifdef MOZ_XUL
@@ -4691,8 +4676,6 @@ nsCSSFrameConstructor::ConstructOuterSVG(nsFrameConstructorState& aState,
   nsIContent* const content = aItem.mContent;
   nsStyleContext* const styleContext = aItem.mStyleContext;
 
-  nsresult rv = NS_OK;
-
   
   nsIFrame* newFrame = NS_NewSVGOuterSVGFrame(mPresShell, styleContext);
 
@@ -4731,17 +4714,15 @@ nsCSSFrameConstructor::ConstructOuterSVG(nsFrameConstructorState& aState,
     ConstructFramesFromItemList(aState, aItem.mChildItems,
                                 innerFrame, childItems);
   } else {
-    rv = ProcessChildren(aState, content, styleContext, innerFrame,
-                         true, childItems, false, aItem.mPendingBinding);
+    ProcessChildren(aState, content, styleContext, innerFrame,
+                    true, childItems, false, aItem.mPendingBinding);
   }
-  
-  if (NS_FAILED(rv)) return rv;
 
   
   innerFrame->SetInitialChildList(kPrincipalList, childItems);
 
   *aNewFrame = newFrame;
-  return rv;
+  return NS_OK;
 }
 
 
@@ -9909,7 +9890,7 @@ nsCSSFrameConstructor::ConstructFramesFromItemList(nsFrameConstructorState& aSta
                "Should have proccessed it by now");
 }
 
-nsresult
+void
 nsCSSFrameConstructor::ProcessChildren(nsFrameConstructorState& aState,
                                        nsIContent*              aContent,
                                        nsStyleContext*          aStyleContext,
@@ -9950,7 +9931,6 @@ nsCSSFrameConstructor::ProcessChildren(nsFrameConstructorState& aState,
                                                            aPendingBinding);
 
   FrameConstructionItemList itemsToConstruct;
-  nsresult rv = NS_OK;
 
   
   
@@ -10107,8 +10087,6 @@ nsCSSFrameConstructor::ProcessChildren(nsFrameConstructorState& aState,
 
     aFrame->AddStateBits(NS_STATE_BOX_WRAPS_KIDS_IN_BLOCK);
   }
-
-  return rv;
 }
 
 
@@ -11044,14 +11022,13 @@ nsCSSFrameConstructor::ConstructBlock(nsFrameConstructorState& aState,
 
   
   nsFrameItems childItems;
-  nsresult rv;
-  rv = ProcessChildren(aState, aContent, aStyleContext, blockFrame, true,
-                       childItems, true, aPendingBinding);
+  ProcessChildren(aState, aContent, aStyleContext, blockFrame, true,
+                  childItems, true, aPendingBinding);
 
   
   blockFrame->SetInitialChildList(kPrincipalList, childItems);
 
-  return rv;
+  return NS_OK;
 }
 
 nsresult
@@ -12214,13 +12191,9 @@ nsCSSFrameConstructor::GenerateChildFrames(nsIFrame* aFrame)
     
     
     
-    nsresult rv = ProcessChildren(state, aFrame->GetContent(), aFrame->StyleContext(),
-                                  aFrame, false, childItems, false,
-                                  nullptr);
-    if (NS_FAILED(rv)) {
-      EndUpdate();
-      return rv;
-    }
+    ProcessChildren(state, aFrame->GetContent(), aFrame->StyleContext(),
+                    aFrame, false, childItems, false,
+                    nullptr);
 
     aFrame->SetInitialChildList(kPrincipalList, childItems);
 
