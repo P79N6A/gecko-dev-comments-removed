@@ -292,6 +292,20 @@ static_assert(IsSame<MakeUnsigned<volatile char>::Type, volatile unsigned char>:
 static_assert(IsSame<MakeUnsigned<const char>::Type, const unsigned char>::value,
               "const char won't unsignify correctly");
 
+
+
+
+
+
+
+
+#if defined(ANDROID) && !defined(__LP64__)
+static_assert(mozilla::IsSame<int, intptr_t>::value,
+              "emulated PRI[di]PTR definitions will be wrong");
+static_assert(mozilla::IsSame<unsigned int, uintptr_t>::value,
+              "emulated PRI[ouxX]PTR definitions will be wrong");
+#endif
+
 int
 main()
 {
