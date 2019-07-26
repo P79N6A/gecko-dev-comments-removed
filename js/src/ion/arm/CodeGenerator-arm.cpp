@@ -276,6 +276,51 @@ CodeGeneratorARM::visitOutOfLineBailout(OutOfLineBailout *ool)
 }
 
 bool
+CodeGeneratorARM::visitMinMaxD(LMinMaxD *ins)
+{
+    FloatRegister first = ToFloatRegister(ins->first());
+    FloatRegister second = ToFloatRegister(ins->second());
+    FloatRegister output = ToFloatRegister(ins->output());
+
+    JS_ASSERT(first == output);
+
+    Assembler::Condition cond = ins->mir()->isMax()
+        ? Assembler::VFP_LessThanOrEqual
+        : Assembler::VFP_GreaterThanOrEqual;
+    Label nan, equal, returnSecond, done;
+
+    masm.compareDouble(first, second);
+    masm.ma_b(&nan, Assembler::VFP_Unordered); 
+    masm.ma_b(&equal, Assembler::VFP_Equal); 
+    masm.ma_b(&returnSecond, cond);
+    masm.ma_b(&done);
+
+    
+    masm.bind(&equal);
+    masm.compareDouble(first, InvalidFloatReg);
+    masm.ma_b(&done, Assembler::VFP_NotEqualOrUnordered); 
+    
+    if (ins->mir()->isMax()) {
+        masm.ma_vadd(second, first, first); 
+    } else {
+        masm.ma_vneg(first, first);
+        masm.ma_vsub(first, second, first);
+        masm.ma_vneg(first, first);
+    }
+    masm.ma_b(&done);
+
+    masm.bind(&nan);
+    masm.loadStaticDouble(&js_NaN, output);
+    masm.ma_b(&done);
+
+    masm.bind(&returnSecond);
+    masm.ma_vmov(second, output);
+
+    masm.bind(&done);
+    return true;
+}
+
+bool
 CodeGeneratorARM::visitAbsD(LAbsD *ins)
 {
     FloatRegister input = ToFloatRegister(ins->input());

@@ -402,6 +402,50 @@ CodeGeneratorX86Shared::visitOutOfLineBailout(OutOfLineBailout *ool)
     return true;
 }
 
+
+bool
+CodeGeneratorX86Shared::visitMinMaxD(LMinMaxD *ins)
+{
+    FloatRegister first = ToFloatRegister(ins->first());
+    FloatRegister second = ToFloatRegister(ins->second());
+    FloatRegister output = ToFloatRegister(ins->output());
+
+    JS_ASSERT(first == output);
+
+    Assembler::Condition cond = ins->mir()->isMax()
+                               ? Assembler::Above
+                               : Assembler::Below;
+    Label nan, equal, returnSecond, done;
+
+    masm.ucomisd(second, first);
+    masm.j(Assembler::Parity, &nan); 
+    masm.j(Assembler::Equal, &equal); 
+    masm.j(cond, &returnSecond);
+    masm.jmp(&done);
+
+    
+    masm.bind(&equal);
+    masm.xorpd(ScratchFloatReg, ScratchFloatReg);
+    masm.ucomisd(first, ScratchFloatReg);
+    masm.j(Assembler::NotEqual, &done); 
+    
+    if (ins->mir()->isMax())
+        masm.addsd(second, first); 
+    else
+        masm.orpd(second, first); 
+    masm.jmp(&done);
+
+    masm.bind(&nan);
+    masm.loadStaticDouble(&js_NaN, output);
+    masm.jmp(&done);
+
+    masm.bind(&returnSecond);
+    masm.movsd(second, output);
+
+    masm.bind(&done);
+    return true;
+}
+
 bool
 CodeGeneratorX86Shared::visitAbsD(LAbsD *ins)
 {
