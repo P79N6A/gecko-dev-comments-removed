@@ -623,14 +623,11 @@ static JSFunctionSpec collator_methods[] = {
 
 
 
-static JSBool
-Collator(JSContext *cx, unsigned argc, Value *vp)
+static bool
+Collator(JSContext *cx, CallArgs args, bool construct)
 {
-    CallArgs args = CallArgsFromVp(argc, vp);
-
     RootedObject obj(cx);
 
-    bool construct = IsConstructing(args);
     if (!construct) {
         
         JSObject *intl = cx->global()->getOrCreateIntlObject(cx);
@@ -674,6 +671,21 @@ Collator(JSContext *cx, unsigned argc, Value *vp)
     
     args.rval().setObject(*obj);
     return true;
+}
+
+static JSBool
+Collator(JSContext *cx, unsigned argc, Value *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    return Collator(cx, args, IsConstructing(args));
+}
+
+JSBool
+js::intl_Collator(JSContext *cx, unsigned argc, Value *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    JS_ASSERT(args.length() == 2);
+    return Collator(cx, args, true);
 }
 
 static void

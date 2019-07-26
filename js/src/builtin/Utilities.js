@@ -121,6 +121,13 @@ function ToString(v) {
 
 
 
+function CheckObjectCoercible(v) {
+    if (v === undefined || v === null)
+        ThrowError(JSMSG_CANT_CONVERT_TO, ToString(v), "object");
+}
+
+
+
 
 
 

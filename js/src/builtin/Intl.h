@@ -41,6 +41,16 @@ namespace js {
 
 
 
+extern JSBool
+intl_Collator(JSContext *cx, unsigned argc, Value *vp);
+
+
+
+
+
+
+
+
 
 extern JSBool
 intl_Collator_availableLocales(JSContext *cx, unsigned argc, Value *vp);
