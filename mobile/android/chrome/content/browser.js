@@ -3502,12 +3502,18 @@ Tab.prototype = {
     
     
     
+    
+    
+    
+    
     if (!this.updatingViewportForPageSizeChange) {
       this.updatingViewportForPageSizeChange = true;
-      if (((viewport.pageBottom - viewport.pageTop <= gScreenHeight - 1) !=
-           this.viewportExcludesVerticalMargins) ||
-          ((viewport.pageRight - viewport.pageLeft <= gScreenWidth - 1) !=
-           this.viewportExcludesHorizontalMargins)) {
+      if (((viewport.pageBottom - viewport.pageTop
+              < gScreenHeight + gViewportMargins.top + gViewportMargins.bottom)
+             != this.viewportExcludesVerticalMargins) ||
+          ((viewport.pageRight - viewport.pageLeft
+              < gScreenWidth + gViewportMargins.left + gViewportMargins.right)
+             != this.viewportExcludesHorizontalMargins)) {
         this.updateViewportSize(gScreenWidth);
       }
       this.updatingViewportForPageSizeChange = false;
@@ -4003,12 +4009,11 @@ Tab.prototype = {
       
       
       
-      
-      if (pageWidth * this._zoom >= screenW + 1) {
+      if (pageWidth * this._zoom > gScreenWidth - 1) {
         screenW = gScreenWidth;
         this.viewportExcludesHorizontalMargins = false;
       }
-      if (pageHeight * this._zoom >= screenH + 1) {
+      if (pageHeight * this._zoom > gScreenHeight - 1) {
         screenH = gScreenHeight;
         this.viewportExcludesVerticalMargins = false;
       }

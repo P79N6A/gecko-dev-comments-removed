@@ -222,6 +222,14 @@ abstract public class BrowserApp extends GeckoApp
             return super.onInterceptTouchEvent(view, event);
         }
 
+        
+        
+        ImmutableViewportMetrics metrics =
+            mLayerView.getLayerClient().getViewportMetrics();
+        if (metrics.getPageHeight() < metrics.getHeight()) {
+            return super.onInterceptTouchEvent(view, event);
+        }
+
         int action = event.getActionMasked();
         int pointerCount = event.getPointerCount();
 
@@ -304,8 +312,6 @@ abstract public class BrowserApp extends GeckoApp
 
             
             
-            ImmutableViewportMetrics metrics =
-                mLayerView.getLayerClient().getViewportMetrics();
             float toolbarMaxY = Math.min(toolbarHeight,
                 Math.max(0, toolbarHeight - (metrics.pageRectTop -
                                              metrics.viewportRectTop)));
