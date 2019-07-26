@@ -91,7 +91,8 @@ nsWebHandlerApp.prototype = {
       
       
       
-      uriLoader.openURI(channel, true, aWindowContext);
+      uriLoader.openURI(channel, Ci.nsIURILoader.IS_CONTENT_PREFERRED,
+                        aWindowContext);
       return;
     } 
 
