@@ -63,8 +63,7 @@ public:
   virtual void DidRefresh() = 0;
 };
 
-class nsRefreshDriver MOZ_FINAL : public mozilla::layers::TransactionIdAllocator,
-                                  public nsARefreshObserver {
+class nsRefreshDriver MOZ_FINAL : public mozilla::layers::TransactionIdAllocator {
 public:
   nsRefreshDriver(nsPresContext *aPresContext);
   ~nsRefreshDriver();
@@ -276,12 +275,6 @@ public:
   void NotifyTransactionCompleted(uint64_t aTransactionId) MOZ_OVERRIDE;
   void RevokeTransactionId(uint64_t aTransactionId) MOZ_OVERRIDE;
 
-  bool IsWaitingForPaint();
-
-  
-  NS_IMETHOD_(MozExternalRefCountType) AddRef(void) { return TransactionIdAllocator::AddRef(); }
-  NS_IMETHOD_(MozExternalRefCountType) Release(void) { return TransactionIdAllocator::Release(); }
-  virtual void WillRefresh(mozilla::TimeStamp aTime);
 private:
   typedef nsTObserverArray<nsARefreshObserver*> ObserverArray;
   typedef nsTHashtable<nsISupportsHashKey> RequestTable;
@@ -334,8 +327,6 @@ private:
 
   nsPresContext *mPresContext; 
                                
-
-  nsRefPtr<nsRefreshDriver> mRootRefresh;
 
   
   uint64_t mPendingTransaction;
