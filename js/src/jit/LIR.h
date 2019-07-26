@@ -430,6 +430,7 @@ class LDefinition
 
     enum Type {
         GENERAL,    
+        INT32,      
         OBJECT,     
         SLOTS,      
         FLOAT32,    
@@ -525,7 +526,10 @@ class LDefinition
         switch (type) {
           case MIRType_Boolean:
           case MIRType_Int32:
-            return LDefinition::GENERAL;
+            
+            
+            static_assert(sizeof(bool) <= sizeof(int32_t), "bool doesn't fit in an int32 slot");
+            return LDefinition::INT32;
           case MIRType_String:
           case MIRType_Object:
             return LDefinition::OBJECT;

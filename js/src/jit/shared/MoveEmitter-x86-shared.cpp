@@ -135,6 +135,9 @@ MoveEmitterX86::emit(const MoveResolver &moves)
           case MoveOp::DOUBLE:
             emitDoubleMove(from, to);
             break;
+          case MoveOp::INT32:
+            emitInt32Move(from, to);
+            break;
           case MoveOp::GENERAL:
             emitGeneralMove(from, to);
             break;
@@ -238,6 +241,20 @@ MoveEmitterX86::breakCycle(const MoveOperand &to, MoveOp::Type type)
             masm.storeDouble(to.floatReg(), cycleSlot());
         }
         break;
+#ifdef JS_CPU_X64
+      case MoveOp::INT32:
+        
+        if (to.isMemory()) {
+            masm.load32(toAddress(to), ScratchReg);
+            masm.store32(ScratchReg, cycleSlot());
+        } else {
+            masm.store32(to.reg(), cycleSlot());
+        }
+        break;
+#endif
+#ifndef JS_CPU_X64
+      case MoveOp::INT32:
+#endif
       case MoveOp::GENERAL:
         masm.Push(toOperand(to));
         break;
@@ -272,6 +289,20 @@ MoveEmitterX86::completeCycle(const MoveOperand &to, MoveOp::Type type)
             masm.loadDouble(cycleSlot(), to.floatReg());
         }
         break;
+#ifdef JS_CPU_X64
+      case MoveOp::INT32:
+        
+        if (to.isMemory()) {
+            masm.load32(cycleSlot(), ScratchReg);
+            masm.store32(ScratchReg, toAddress(to));
+        } else {
+            masm.load32(cycleSlot(), to.reg());
+        }
+        break;
+#endif
+#ifndef JS_CPU_X64
+      case MoveOp::INT32:
+#endif
       case MoveOp::GENERAL:
         if (to.isMemory()) {
             masm.Pop(toPopOperand(to));
@@ -281,6 +312,29 @@ MoveEmitterX86::completeCycle(const MoveOperand &to, MoveOp::Type type)
         break;
       default:
         MOZ_ASSUME_UNREACHABLE("Unexpected move type");
+    }
+}
+
+void
+MoveEmitterX86::emitInt32Move(const MoveOperand &from, const MoveOperand &to)
+{
+    if (from.isGeneralReg()) {
+        masm.move32(from.reg(), toOperand(to));
+    } else if (to.isGeneralReg()) {
+        JS_ASSERT(from.isMemory());
+        masm.load32(toAddress(from), to.reg());
+    } else {
+        
+        JS_ASSERT(from.isMemory());
+#ifdef JS_CPU_X64
+        
+        masm.load32(toAddress(from), ScratchReg);
+        masm.move32(ScratchReg, toOperand(to));
+#else
+        
+        masm.Push(toOperand(from));
+        masm.Pop(toPopOperand(to));
+#endif
     }
 }
 
