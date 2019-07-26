@@ -802,10 +802,7 @@ pref("dom.datastore.enabled", true);
 #endif
 
 
-#ifdef MOZ_WIDGET_GONK
-
 pref("dom.inter-app-communication-api.enabled", true);
-#endif
 
 
 
