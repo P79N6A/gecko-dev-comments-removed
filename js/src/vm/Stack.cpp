@@ -6,6 +6,7 @@
 
 
 #include "mozilla/DebugOnly.h"
+#include "mozilla/PodOperations.h"
 
 #include "jscntxt.h"
 #include "gc/Marking.h"
@@ -47,6 +48,7 @@
 using namespace js;
 
 using mozilla::DebugOnly;
+using mozilla::PodCopy;
 
 
 

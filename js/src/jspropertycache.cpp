@@ -5,14 +5,19 @@
 
 
 
-#include "jspropertycache.h"
+#include "mozilla/PodOperations.h"
+
 #include "jscntxt.h"
 #include "jsnum.h"
+#include "jspropertycache.h"
+
 #include "jsobjinlines.h"
 #include "jsopcodeinlines.h"
 #include "jspropertycacheinlines.h"
 
 using namespace js;
+
+using mozilla::PodArrayZero;
 
 PropertyCacheEntry *
 PropertyCache::fill(JSContext *cx, JSObject *obj, JSObject *pobj, Shape *shape)

@@ -13,6 +13,7 @@
 #include "mozilla/DebugOnly.h"
 #include "mozilla/GuardObjects.h"
 #include "mozilla/MemoryChecking.h"
+#include "mozilla/PodOperations.h"
 #include "mozilla/TypeTraits.h"
 
 
@@ -221,7 +222,7 @@ class LifoAlloc
         
         
         size_t oldPeakSize = peakSize_;
-        PodCopy((char *) this, (char *) other, sizeof(*this));
+        mozilla::PodAssign(this, other);
         peakSize_ = Max(oldPeakSize, curSize_);
 
         other->reset(defaultChunkSize_);

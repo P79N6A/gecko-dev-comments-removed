@@ -6,6 +6,7 @@
 
 
 #include "mozilla/GuardObjects.h"
+#include "mozilla/PodOperations.h"
 #include "mozilla/StandardInteger.h"
 
 #include "jscntxt.h"
@@ -22,6 +23,8 @@
 
 using namespace js;
 using namespace JS;
+
+using mozilla::PodArrayZero;
 
 
 JS_STATIC_ASSERT(offsetof(JSRuntime, mainThread) ==

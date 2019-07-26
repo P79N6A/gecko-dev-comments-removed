@@ -4,6 +4,9 @@
 
 
 
+
+#include "mozilla/PodOperations.h"
+
 #include "jscntxt.h"
 #include "FrameState.h"
 #include "FrameState-inl.h"
@@ -12,6 +15,9 @@
 using namespace js;
 using namespace js::mjit;
 using namespace js::analyze;
+
+using mozilla::PodArrayZero;
+using mozilla::PodCopy;
 
 
 JS_STATIC_ASSERT(sizeof(FrameEntry) % 8 == 0);

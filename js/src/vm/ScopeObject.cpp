@@ -5,6 +5,8 @@
 
 
 
+#include "mozilla/PodOperations.h"
+
 #include "jscompartment.h"
 #include "jsiter.h"
 
@@ -20,6 +22,8 @@
 
 using namespace js;
 using namespace js::types;
+
+using mozilla::PodZero;
 
 typedef Rooted<ArgumentsObject *> RootedArgumentsObject;
 

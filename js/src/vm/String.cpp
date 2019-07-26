@@ -5,6 +5,7 @@
 
 
 
+#include "mozilla/PodOperations.h"
 #include "mozilla/RangedPtr.h"
 
 #include "gc/Marking.h"
@@ -16,6 +17,7 @@
 
 using namespace js;
 
+using mozilla::PodCopy;
 using mozilla::RangedPtr;
 
 bool
