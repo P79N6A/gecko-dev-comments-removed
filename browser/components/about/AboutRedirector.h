@@ -18,15 +18,15 @@ public:
   NS_DECL_NSIABOUTMODULE
  
   AboutRedirector() {}
-  virtual ~AboutRedirector() {}
 
   static nsresult
     Create(nsISupports *aOuter, REFNSIID aIID, void **aResult);
 
 protected:
+  virtual ~AboutRedirector() {}
 };
 
 } 
 } 
 
-#endif
+#endif 

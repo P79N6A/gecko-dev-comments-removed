@@ -29,6 +29,8 @@ public:
 
     
     nsChromeProtocolHandler() {}
+
+private:
     ~nsChromeProtocolHandler() {}
 };
 
