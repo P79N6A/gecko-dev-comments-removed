@@ -1391,7 +1391,7 @@ this.DOMApplicationRegistry = {
           try {
             zipReader.open(zipFile);
             if (!zipReader.hasEntry("manifest.webapp")) {
-              throw "No manifest.webapp found.";
+              throw "MISSING_MANIFEST";
             }
 
             let istream = zipReader.getInputStream("manifest.webapp");
@@ -1418,7 +1418,11 @@ this.DOMApplicationRegistry = {
             delete self.downloads[aApp.manifestURL];
           } catch (e) {
             
-            cleanup(e);
+            if (typeof e == 'object') {
+              cleanup("INVALID_PACKAGE");
+            } else {
+              cleanup(e);
+            }
           } finally {
             zipReader.close();
           }
