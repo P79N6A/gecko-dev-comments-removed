@@ -885,7 +885,7 @@ WebSocket::CreateAndDispatchMessageEvent(const nsACString& aData,
   NS_ENSURE_TRUE(cx, NS_ERROR_FAILURE);
 
   
-  jsval jsData;
+  JS::Value jsData;
   {
     JSAutoRequest ar(cx);
     if (isBinary) {

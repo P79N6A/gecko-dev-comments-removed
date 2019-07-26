@@ -1235,7 +1235,7 @@ EventSource::DispatchAllMessageEvents()
       message(static_cast<Message*>(mMessagesToDispatch.PopFront()));
 
     
-    jsval jsData;
+    JS::Value jsData;
     {
       JSString* jsString;
       JSAutoRequest ar(cx);
