@@ -1395,8 +1395,11 @@ struct JSRuntime : public JS::shadow::Runtime,
 
     
     JS::LargeAllocationFailureCallback largeAllocationFailureCallback;
+    void *largeAllocationFailureCallbackData;
+
     
     JS::OutOfMemoryCallback oomCallback;
+    void *oomCallbackData;
 
     
 
