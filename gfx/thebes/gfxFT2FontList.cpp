@@ -515,6 +515,15 @@ FT2FontEntry::ReadCMAP(FontInfoData *aFontInfoData)
         }
     }
 
+#ifdef MOZ_WIDGET_ANDROID
+    
+    
+    if (!charmap->test(0x0972) &&
+        charmap->test(0x0905) && charmap->test(0x0945)) {
+        charmap->set(0x0972);
+    }
+#endif
+
     mHasCmapTable = NS_SUCCEEDED(rv);
     if (mHasCmapTable) {
         gfxPlatformFontList *pfl = gfxPlatformFontList::PlatformFontList();
