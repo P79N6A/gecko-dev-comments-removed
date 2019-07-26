@@ -235,16 +235,6 @@ public:
   
 
 
-  static bool IsText(nsIAccessible *aAcc)
-  {
-    uint32_t role = Role(aAcc);
-    return role == nsIAccessibleRole::ROLE_TEXT_LEAF ||
-           role == nsIAccessibleRole::ROLE_STATICTEXT;
-  }
-
-  
-
-
   static uint32_t TextLength(Accessible* aAccessible);
 
   
