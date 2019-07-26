@@ -118,10 +118,6 @@ public:
   static const MappedAttributeEntry sMaskMap[];
 
   
-  NS_IMETHOD IsSupported(const nsAString& aFeature, const nsAString& aVersion,
-                         bool* aReturn);
-  
-  
   NS_IMETHOD GetId(nsAString & aId);
   NS_IMETHOD SetId(const nsAString & aId);
   NS_IMETHOD GetOwnerSVGElement(nsIDOMSVGElement** aOwnerSVGElement);
