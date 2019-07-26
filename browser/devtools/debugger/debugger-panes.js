@@ -1872,7 +1872,14 @@ VariableBubbleView.prototype = {
         messages: [textContent],
         messagesClass: className,
         containerClass: "plain"
-      });
+      }, [{
+        label: L10N.getStr('addWatchExpressionButton'),
+        className: "dbg-expression-button",
+        command: () => {
+          DebuggerView.VariableBubble.hideContents();
+          DebuggerView.WatchExpressions.addExpression(evalPrefix, true);
+        }
+      }]);
     } else {
       this._tooltip.setVariableContent(objectActor, {
         searchPlaceholder: L10N.getStr("emptyPropertiesFilterText"),
@@ -1894,7 +1901,14 @@ VariableBubbleView.prototype = {
             window.emit(EVENTS.FETCHED_BUBBLE_PROPERTIES);
           }
         }
-      });
+      }, [{
+        label: L10N.getStr("addWatchExpressionButton"),
+        className: "dbg-expression-button",
+        command: () => {
+          DebuggerView.VariableBubble.hideContents();
+          DebuggerView.WatchExpressions.addExpression(evalPrefix, true);
+        }
+      }]);
     }
 
     this._tooltip.show(this._markedText.anchor);
@@ -2032,7 +2046,10 @@ WatchExpressionsView.prototype = Heritage.extend(WidgetMethods, {
 
 
 
-  addExpression: function(aExpression = "") {
+
+
+
+  addExpression: function(aExpression = "", aSkipUserInput = false) {
     
     DebuggerView.showInstrumentsPane();
 
@@ -2050,9 +2067,17 @@ WatchExpressionsView.prototype = Heritage.extend(WidgetMethods, {
     });
 
     
-    expressionItem.attachment.view.inputNode.select();
-    expressionItem.attachment.view.inputNode.focus();
-    DebuggerView.Variables.parentNode.scrollTop = 0;
+    
+    if (!aSkipUserInput) {
+      expressionItem.attachment.view.inputNode.select();
+      expressionItem.attachment.view.inputNode.focus();
+      DebuggerView.Variables.parentNode.scrollTop = 0;
+    }
+    
+    else {
+      this.toggleContents(false);
+      this._onBlur({ target: expressionItem.attachment.view.inputNode });
+    }
   },
 
   
