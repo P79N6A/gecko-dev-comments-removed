@@ -487,7 +487,9 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
 
                 
                 
-                if (mActionItemBar.getVisibility() == View.VISIBLE)
+                
+                
+                if (mActionItemBar.getVisibility() == View.VISIBLE && mAwesomeBarParams != null)
                     ((View) mAwesomeBar.getParent()).setLayoutParams(mAwesomeBarParams);
 
                 
