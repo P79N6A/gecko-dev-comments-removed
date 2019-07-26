@@ -10878,7 +10878,7 @@ let ICCRecordHelper = {
   readPLMNEntries: function readPLMNEntries(length) {
     let plmnList = [];
     
-    debug("readPLMNEntries: PLMN entries length = " + length);
+    if (DEBUG) debug("readPLMNEntries: PLMN entries length = " + length);
     let index = 0;
     while (index < length) {
       
@@ -10962,40 +10962,43 @@ let ICCUtilsHelper = {
       return null;
     }
 
-    
-    
-    
-    
-    let length = iccInfoPriv.OPL ? iccInfoPriv.OPL.length : 0;
-    for (let i = 0; i < length; i++) {
-      let opl = iccInfoPriv.OPL[i];
+    if (!iccInfoPriv.OPL) {
       
-      if (mcc != opl.mcc || mnc != opl.mnc) {
-        continue;
+      
+      
+      
+      
+      
+      if (mcc == iccInfo.mcc && mnc == iccInfo.mnc) {
+        pnnEntry = iccInfoPriv.PNN[0];
       }
+    } else {
       
       
       
-      if ((opl.lacTacStart == 0x0 && opl.lacTacEnd == 0xFFFE) ||
-          (opl.lacTacStart <= lac && opl.lacTacEnd >= lac)) {
-        if (opl.pnnRecordId == 0) {
-          
-          
-          
-          return null;
+      
+      let length = iccInfoPriv.OPL ? iccInfoPriv.OPL.length : 0;
+      for (let i = 0; i < length; i++) {
+        let opl = iccInfoPriv.OPL[i];
+        
+        if (mcc != opl.mcc || mnc != opl.mnc) {
+          continue;
         }
-        pnnEntry = iccInfoPriv.PNN[opl.pnnRecordId - 1]
-        break;
+        
+        
+        
+        if ((opl.lacTacStart == 0x0 && opl.lacTacEnd == 0xFFFE) ||
+            (opl.lacTacStart <= lac && opl.lacTacEnd >= lac)) {
+          if (opl.pnnRecordId == 0) {
+            
+            
+            
+            return null;
+          }
+          pnnEntry = iccInfoPriv.PNN[opl.pnnRecordId - 1];
+          break;
+        }
       }
-    }
-
-    
-    
-    
-    
-    
-    if (!pnnEntry && mcc == iccInfo.mcc && mnc == iccInfo.mnc) {
-      pnnEntry = iccInfoPriv.PNN[0]
     }
 
     if (!pnnEntry) {
@@ -11003,8 +11006,8 @@ let ICCUtilsHelper = {
     }
 
     
-    return {fullName: pnnEntry.fullName || "",
-            shortName: pnnEntry.shortName || ""};
+    return { fullName: pnnEntry.fullName || "",
+             shortName: pnnEntry.shortName || "" };
   },
 
   
