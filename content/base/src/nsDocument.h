@@ -64,7 +64,6 @@
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/dom/DOMImplementation.h"
 #include "nsIDOMTouchEvent.h"
-#include "nsIInlineEventHandlers.h"
 #include "nsDataHashtable.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/Attributes.h"
@@ -504,7 +503,6 @@ class nsDocument : public nsIDocument,
                    public nsIRadioGroupContainer,
                    public nsIApplicationCacheContainer,
                    public nsStubMutationObserver,
-                   public nsIInlineEventHandlers,
                    public nsIObserver
 {
 public:
@@ -780,9 +778,6 @@ public:
 
   
   NS_DECL_NSIAPPLICATIONCACHECONTAINER
-
-  
-  NS_DECL_NSIINLINEEVENTHANDLERS
 
   
   NS_DECL_NSIOBSERVER
