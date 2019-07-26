@@ -3,17 +3,14 @@
 
 
 
+#include "nsMathMLOperators.h"
 #include "nsCOMPtr.h"
-#include "nsString.h"
 #include "nsHashtable.h"
 #include "nsTArray.h"
 
-#include "nsIComponentManager.h"
 #include "nsIPersistentProperties2.h"
 #include "nsNetUtil.h"
 #include "nsCRT.h"
-
-#include "nsMathMLOperators.h"
 
 
 struct OperatorData {

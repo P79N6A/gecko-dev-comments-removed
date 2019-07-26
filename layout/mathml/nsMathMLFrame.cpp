@@ -3,18 +3,17 @@
 
 
 
-#include "nsINameSpaceManager.h"
 #include "nsMathMLFrame.h"
+#include "nsINameSpaceManager.h"
 #include "nsMathMLChar.h"
 #include "nsCSSPseudoElements.h"
+#include "nsMathMLElement.h"
 
 
 #include "nsStyleSet.h"
 #include "nsAutoPtr.h"
 #include "nsDisplayList.h"
 #include "nsRenderingContext.h"
-#include "nsContentUtils.h"
-#include "nsIScriptError.h"
 
 eMathMLFrameType
 nsMathMLFrame::GetMathMLFrameType()

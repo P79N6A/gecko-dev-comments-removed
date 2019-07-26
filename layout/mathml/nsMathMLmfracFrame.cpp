@@ -4,16 +4,12 @@
 
 
 
-#include "nsCOMPtr.h"
-#include "nsFrame.h"
-#include "nsPresContext.h"
-#include "nsStyleContext.h"
-#include "nsStyleConsts.h"
-#include "nsRenderingContext.h"
-
 #include "nsMathMLmfracFrame.h"
+#include "nsPresContext.h"
+#include "nsRenderingContext.h"
 #include "nsDisplayList.h"
 #include "gfxContext.h"
+#include "nsMathMLElement.h"
 #include <algorithm>
 
 

@@ -4,14 +4,8 @@
 
 
 
-#include "nsCOMPtr.h"
-#include "nsCRT.h"  
-#include "nsFrame.h"
-#include "nsPresContext.h"
-#include "nsStyleContext.h"
-#include "nsStyleConsts.h"
-
 #include "nsMathMLmpaddedFrame.h"
+#include "nsMathMLElement.h"
 #include <algorithm>
 
 

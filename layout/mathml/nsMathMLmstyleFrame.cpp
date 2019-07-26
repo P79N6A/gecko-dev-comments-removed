@@ -3,13 +3,6 @@
 
 
 
-
-#include "nsCOMPtr.h"
-#include "nsFrame.h"
-#include "nsStyleContext.h"
-#include "nsStyleConsts.h"
-#include "nsINameSpaceManager.h"
-
 #include "nsMathMLmstyleFrame.h"
 
 

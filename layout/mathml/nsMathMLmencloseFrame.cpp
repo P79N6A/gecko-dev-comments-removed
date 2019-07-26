@@ -3,18 +3,14 @@
 
 
 
-
-#include "nsCOMPtr.h"
-#include "nsFrame.h"
+#include "nsMathMLmencloseFrame.h"
 #include "nsPresContext.h"
-#include "nsStyleContext.h"
-#include "nsStyleConsts.h"
 #include "nsRenderingContext.h"
 #include "nsWhitespaceTokenizer.h"
 
-#include "nsMathMLmencloseFrame.h"
 #include "nsDisplayList.h"
 #include "gfxContext.h"
+#include "nsMathMLChar.h"
 #include <algorithm>
 
 

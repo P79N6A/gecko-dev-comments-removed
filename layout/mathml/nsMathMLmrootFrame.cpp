@@ -3,15 +3,9 @@
 
 
 
-
-#include "nsCOMPtr.h"
-#include "nsFrame.h"
-#include "nsPresContext.h"
-#include "nsStyleContext.h"
-#include "nsStyleConsts.h"
-#include "nsRenderingContext.h"
-
 #include "nsMathMLmrootFrame.h"
+#include "nsPresContext.h"
+#include "nsRenderingContext.h"
 #include <algorithm>
 
 

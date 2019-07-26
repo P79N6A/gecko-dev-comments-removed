@@ -3,28 +3,17 @@
 
 
 
+#include "nsMathMLmactionFrame.h"
 #include "nsCOMPtr.h"
-#include "nsFrame.h"
 #include "nsPresContext.h"
-#include "nsStyleContext.h"
-#include "nsStyleConsts.h"
 #include "nsINameSpaceManager.h"
-
-#include "nsCSSRendering.h"
 #include "prprf.h"         
-
 #include "nsIDocShellTreeItem.h"
 #include "nsIDocShellTreeOwner.h"
 #include "nsIWebBrowserChrome.h"
-#include "nsIInterfaceRequestor.h"
 #include "nsIInterfaceRequestorUtils.h"
-#include "nsIDOMElement.h"
 #include "nsTextFragment.h"
-
-#include "nsMathMLmactionFrame.h"
-#include "nsAutoPtr.h"
-#include "nsStyleSet.h"
-#include "nsDisplayList.h"
+#include "nsIDOMEvent.h"
 
 
 

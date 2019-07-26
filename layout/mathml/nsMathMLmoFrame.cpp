@@ -3,16 +3,12 @@
 
 
 
-#include "nsCOMPtr.h"
-#include "nsFrame.h"
+#include "nsMathMLmoFrame.h"
 #include "nsPresContext.h"
-#include "nsStyleContext.h"
-#include "nsStyleConsts.h"
 #include "nsRenderingContext.h"
 #include "nsContentUtils.h"
 #include "nsFrameSelection.h"
-
-#include "nsMathMLmoFrame.h"
+#include "nsMathMLElement.h"
 #include <algorithm>
 
 

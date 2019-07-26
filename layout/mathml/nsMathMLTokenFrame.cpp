@@ -3,14 +3,9 @@
 
 
 
-#include "nsCOMPtr.h"
-#include "nsFrame.h"
-#include "nsPresContext.h"
-#include "nsStyleContext.h"
-#include "nsStyleConsts.h"
-#include "nsContentUtils.h"
-#include "nsCSSFrameConstructor.h"
 #include "nsMathMLTokenFrame.h"
+#include "nsPresContext.h"
+#include "nsContentUtils.h"
 #include "nsTextFrame.h"
 #include "RestyleManager.h"
 #include <algorithm>

@@ -3,14 +3,8 @@
 
 
 
-
-#include "nsCOMPtr.h"
-#include "nsFrame.h"
-#include "nsPresContext.h"
-#include "nsStyleContext.h"
-#include "nsStyleConsts.h"
-
 #include "nsMathMLmspaceFrame.h"
+#include "nsMathMLElement.h"
 #include <algorithm>
 
 

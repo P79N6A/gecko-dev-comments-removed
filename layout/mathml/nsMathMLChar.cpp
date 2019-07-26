@@ -3,23 +3,18 @@
 
 
 
+#include "nsMathMLChar.h"
 #include "mozilla/MathAlgorithms.h"
 
 #include "nsCOMPtr.h"
-#include "nsFrame.h"
+#include "nsIFrame.h"
 #include "nsPresContext.h"
 #include "nsStyleContext.h"
-#include "nsStyleConsts.h"
-#include "nsString.h"
 #include "nsUnicharUtils.h"
 #include "nsRenderingContext.h"
-#include "gfxPlatform.h"
 
 #include "mozilla/Preferences.h"
-#include "nsISupportsPrimitives.h"
-#include "nsIComponentManager.h"
 #include "nsIPersistentProperties2.h"
-#include "nsIServiceManager.h"
 #include "nsIObserverService.h"
 #include "nsIObserver.h"
 #include "nsNetUtil.h"
@@ -31,7 +26,6 @@
 #include "nsDisplayList.h"
 
 #include "nsMathMLOperators.h"
-#include "nsMathMLChar.h"
 #include <algorithm>
 
 using namespace mozilla;
@@ -612,6 +606,12 @@ InitGlobals(nsPresContext* aPresContext)
 
 
 
+
+nsMathMLChar::~nsMathMLChar()
+{
+  MOZ_COUNT_DTOR(nsMathMLChar);
+  mStyleContext->Release();
+}
 
 nsStyleContext*
 nsMathMLChar::GetStyleContext() const
