@@ -179,10 +179,8 @@ public:
 
 
 
-
   virtual nsresult
-  GetDevicePropertiesInternal(const nsAString& aDevicePath,
-                              const nsAString& aSignalPath) = 0;
+  GetDevicePropertiesInternal(const BluetoothSignal& aSignal) = 0;
 
   
 

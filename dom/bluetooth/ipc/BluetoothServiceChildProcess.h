@@ -142,8 +142,7 @@ private:
 
   
   virtual nsresult
-  GetDevicePropertiesInternal(const nsAString& aDevicePath,
-                              const nsAString& aSignalPath) MOZ_OVERRIDE;
+  GetDevicePropertiesInternal(const BluetoothSignal& aSignal) MOZ_OVERRIDE;
 
   
   virtual nsresult
