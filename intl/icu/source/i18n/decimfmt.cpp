@@ -1714,6 +1714,14 @@ DecimalFormat::subformat(UnicodeString& appendTo,
                 appendTo.append(*grouping);
                 handler.addAttribute(kGroupingSeparatorField, currentLength, appendTo.length());
             }
+        } 
+
+        
+        
+        
+        
+        if (sigCount == 0 && digits.getCount() == 0) { 
+          sigCount = 1; 
         }
 
         
