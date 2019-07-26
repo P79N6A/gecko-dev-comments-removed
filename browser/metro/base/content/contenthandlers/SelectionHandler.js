@@ -427,32 +427,9 @@ var SelectionHandler = {
       return 0;
     }
 
-    
-    
-    if (this._cache.element.bottom <= aNewViewHeight) {
-      return 0;
-    }
-    
-    
-    let targetHeight = this._cache.element.bottom - this._cache.element.top;
-    
-    let viewBottom = content.innerHeight;
-
-    
-    
-    if (targetHeight <= aNewViewHeight) {
-      
-      
-      
-      
-      
-      
-      let splitMargin = Math.round((aNewViewHeight - targetHeight) * .5);
-      let distanceToPageBounds = viewBottom - this._cache.element.bottom;
-      let distanceFromChromeTop = this._cache.element.bottom - aNewViewHeight;
-      let distanceToCenter =
-        distanceFromChromeTop + Math.min(distanceToPageBounds, splitMargin);
-      return distanceToCenter;
+    let position = Util.centerElementInView(aNewViewHeight, this._cache.element);
+    if (position !== undefined) {
+      return position;
     }
 
     

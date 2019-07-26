@@ -271,6 +271,43 @@ let Util = {
 
 
 
+
+
+
+  centerElementInView: function centerElementInView(aViewHeight, aRect) {
+    
+    
+    if (aRect.bottom <= aViewHeight) {
+      return 0;
+    }
+
+    
+    let targetHeight = aRect.bottom - aRect.top;
+    
+    let viewBottom = content.innerHeight;
+
+    
+    
+    if (targetHeight <= aViewHeight) {
+      
+      
+      
+      
+      
+      
+      let splitMargin = Math.round((aViewHeight - targetHeight) * .5);
+      let distanceToPageBounds = viewBottom - aRect.bottom;
+      let distanceFromChromeTop = aRect.bottom - aViewHeight;
+      let distanceToCenter =
+        distanceFromChromeTop + Math.min(distanceToPageBounds, splitMargin);
+      return distanceToCenter;
+    }
+  },
+
+  
+
+
+
   copyImageToClipboard: function Util_copyImageToClipboard(aImageLoadingContent) {
     let image = aImageLoadingContent.QueryInterface(Ci.nsIImageLoadingContent);
     if (!image) {

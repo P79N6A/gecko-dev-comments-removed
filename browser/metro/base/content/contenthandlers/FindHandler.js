@@ -68,6 +68,16 @@ var FindHandler = {
     let rangeRect = selection.getRangeAt(0).getBoundingClientRect();
     let rect = new Rect(scroll.x + rangeRect.left, scroll.y + rangeRect.top, rangeRect.width, rangeRect.height);
 
+    let aNewViewHeight = content.innerHeight - Services.metro.keyboardHeight;
+
+    let position = Util.centerElementInView(aNewViewHeight, rangeRect);
+    if (position !== undefined) {
+      sendAsyncMessage("Content:RepositionInfoResponse", {
+        reposition: true,
+        raiseContent: position,
+      });
+    }
+
     
     let timer = new Util.Timeout(function() {
       sendAsyncMessage("FindAssist:Show", { rect: rect.isEmpty() ? null: rect , result: findResult });
