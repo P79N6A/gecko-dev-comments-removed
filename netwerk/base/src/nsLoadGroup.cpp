@@ -155,6 +155,7 @@ nsLoadGroup::~nsLoadGroup()
 NS_IMPL_AGGREGATED(nsLoadGroup)
 NS_INTERFACE_MAP_BEGIN_AGGREGATED(nsLoadGroup)
     NS_INTERFACE_MAP_ENTRY(nsILoadGroup)
+    NS_INTERFACE_MAP_ENTRY(nsILoadGroupChild)
     NS_INTERFACE_MAP_ENTRY(nsIRequest)
     NS_INTERFACE_MAP_ENTRY(nsISupportsPriority)
     NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
@@ -759,6 +760,55 @@ nsLoadGroup::GetConnectionInfo(nsILoadGroupConnectionInfo **aCI)
     NS_ENSURE_ARG_POINTER(aCI);
     *aCI = mConnectionInfo;
     NS_IF_ADDREF(*aCI);
+    return NS_OK;
+}
+
+
+
+
+
+NS_IMETHODIMP
+nsLoadGroup::GetParentLoadGroup(nsILoadGroup * *aParentLoadGroup)
+{
+    *aParentLoadGroup = nullptr;
+    nsCOMPtr<nsILoadGroup> parent = do_QueryReferent(mParentLoadGroup);
+    if (!parent)
+        return NS_OK;
+    parent.forget(aParentLoadGroup);
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsLoadGroup::SetParentLoadGroup(nsILoadGroup *aParentLoadGroup)
+{
+    mParentLoadGroup = do_GetWeakReference(aParentLoadGroup);
+    return NS_OK;
+}
+
+
+NS_IMETHODIMP
+nsLoadGroup::GetChildLoadGroup(nsILoadGroup * *aChildLoadGroup)
+{
+    NS_ADDREF(*aChildLoadGroup = this);
+    return NS_OK;
+}
+
+
+NS_IMETHODIMP
+nsLoadGroup::GetRootLoadGroup(nsILoadGroup * *aRootLoadGroup)
+{
+    
+    nsCOMPtr<nsILoadGroupChild> ancestor = do_QueryReferent(mParentLoadGroup);
+    if (ancestor)
+        return ancestor->GetRootLoadGroup(aRootLoadGroup);
+
+    
+    ancestor = do_QueryInterface(mLoadGroup);
+    if (ancestor)
+        return ancestor->GetRootLoadGroup(aRootLoadGroup);
+
+    
+    NS_ADDREF(*aRootLoadGroup = this);
     return NS_OK;
 }
 
