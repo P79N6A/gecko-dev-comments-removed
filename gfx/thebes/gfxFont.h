@@ -2467,8 +2467,6 @@ protected:
 class gfxShapedWord : public gfxShapedText
 {
 public:
-    static const uint32_t kMaxLength = 32;
-
     
     
     
@@ -2482,7 +2480,8 @@ public:
                                  int32_t aRunScript,
                                  int32_t aAppUnitsPerDevUnit,
                                  uint32_t aFlags) {
-        NS_ASSERTION(aLength <= kMaxLength, "excessive length for gfxShapedWord!");
+        NS_ASSERTION(aLength <= gfxPlatform::GetPlatform()->WordCacheCharLimit(),
+                     "excessive length for gfxShapedWord!");
 
         
         
@@ -2503,7 +2502,8 @@ public:
                                  int32_t aRunScript,
                                  int32_t aAppUnitsPerDevUnit,
                                  uint32_t aFlags) {
-        NS_ASSERTION(aLength <= kMaxLength, "excessive length for gfxShapedWord!");
+        NS_ASSERTION(aLength <= gfxPlatform::GetPlatform()->WordCacheCharLimit(),
+                     "excessive length for gfxShapedWord!");
 
         
         
