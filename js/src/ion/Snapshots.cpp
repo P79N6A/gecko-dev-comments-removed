@@ -296,7 +296,7 @@ SnapshotWriter::startSnapshot(uint32_t frameCount, BailoutKind kind, bool resume
 }
 
 void
-SnapshotWriter::startFrame(JSFunction *fun, RawScript script, jsbytecode *pc, uint32_t exprStack)
+SnapshotWriter::startFrame(JSFunction *fun, JSScript *script, jsbytecode *pc, uint32_t exprStack)
 {
     JS_ASSERT(CountArgSlots(script, fun) < SNAPSHOT_MAX_NARGS);
 

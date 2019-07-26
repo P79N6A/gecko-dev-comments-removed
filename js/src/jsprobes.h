@@ -75,16 +75,16 @@ bool callTrackingActive(JSContext *);
 bool wantNativeAddressInfo(JSContext *);
 
 
-bool enterScript(JSContext *, RawScript, JSFunction *, StackFrame *);
+bool enterScript(JSContext *, JSScript *, JSFunction *, StackFrame *);
 
 
-bool exitScript(JSContext *, RawScript, JSFunction *, StackFrame *);
+bool exitScript(JSContext *, JSScript *, JSFunction *, StackFrame *);
 
 
-bool startExecution(RawScript script);
+bool startExecution(JSScript *script);
 
 
-bool stopExecution(RawScript script);
+bool stopExecution(JSScript *script);
 
 
 
@@ -132,7 +132,7 @@ discardMJITCode(FreeOp *fop, mjit::JITScript *jscr, mjit::JITChunk *chunk, void*
 
 bool
 registerICCode(JSContext *cx,
-               mjit::JITChunk *chunk, RawScript script, jsbytecode* pc,
+               mjit::JITChunk *chunk, JSScript *script, jsbytecode* pc,
                void *start, size_t size);
 #endif 
 
@@ -149,8 +149,8 @@ discardExecutableRegion(void *start, size_t size);
 
 
 
-void DTraceEnterJSFun(JSContext *cx, JSFunction *fun, RawScript script);
-void DTraceExitJSFun(JSContext *cx, JSFunction *fun, RawScript script);
+void DTraceEnterJSFun(JSContext *cx, JSFunction *fun, JSScript *script);
+void DTraceExitJSFun(JSContext *cx, JSFunction *fun, JSScript *script);
 
 } 
 
@@ -181,7 +181,7 @@ Probes::wantNativeAddressInfo(JSContext *cx)
 }
 
 inline bool
-Probes::enterScript(JSContext *cx, RawScript script, JSFunction *maybeFun,
+Probes::enterScript(JSContext *cx, JSScript *script, JSFunction *maybeFun,
                     StackFrame *fp)
 {
     bool ok = true;
@@ -204,7 +204,7 @@ Probes::enterScript(JSContext *cx, RawScript script, JSFunction *maybeFun,
 }
 
 inline bool
-Probes::exitScript(JSContext *cx, RawScript script, JSFunction *maybeFun,
+Probes::exitScript(JSContext *cx, JSScript *script, JSFunction *maybeFun,
                    StackFrame *fp)
 {
     bool ok = true;
@@ -275,7 +275,7 @@ Probes::finalizeObject(JSObject *obj)
     return ok;
 }
 inline bool
-Probes::startExecution(RawScript script)
+Probes::startExecution(JSScript *script)
 {
     bool ok = true;
 
@@ -289,7 +289,7 @@ Probes::startExecution(RawScript script)
 }
 
 inline bool
-Probes::stopExecution(RawScript script)
+Probes::stopExecution(JSScript *script)
 {
     bool ok = true;
 

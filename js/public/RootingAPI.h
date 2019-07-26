@@ -824,7 +824,6 @@ class CompilerRootNode
 
 }  
 
-ForwardDeclareJS(Script);
 ForwardDeclareJS(Object);
 
 #endif  

@@ -47,7 +47,7 @@ class ParallelCompileContext
     }
 
     
-    MethodStatus checkScriptSize(JSContext *cx, RawScript script);
+    MethodStatus checkScriptSize(JSContext *cx, JSScript *script);
     MethodStatus compileTransitively();
     AbortReason compile(IonBuilder *builder, MIRGraph *graph,
                         ScopedJSDeletePtr<LifoAlloc> &autoDelete);

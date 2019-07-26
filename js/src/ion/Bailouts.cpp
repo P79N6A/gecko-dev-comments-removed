@@ -62,7 +62,7 @@ IonBailoutIterator::dump() const
     }
 }
 
-static RawScript
+static JSScript *
 GetBailedJSScript(JSContext *cx)
 {
     
@@ -530,7 +530,7 @@ uint32_t
 ion::BoundsCheckFailure()
 {
     JSContext *cx = GetIonContext()->cx;
-    RawScript script = GetBailedJSScript(cx);
+    JSScript *script = GetBailedJSScript(cx);
 
     IonSpew(IonSpew_Bailouts, "Bounds check failure %s:%d", script->filename(),
             script->lineno);
@@ -551,7 +551,7 @@ uint32_t
 ion::ShapeGuardFailure()
 {
     JSContext *cx = GetIonContext()->cx;
-    RawScript script = GetBailedJSScript(cx);
+    JSScript *script = GetBailedJSScript(cx);
 
     JS_ASSERT(!script->ionScript()->invalidated());
 
@@ -566,7 +566,7 @@ uint32_t
 ion::CachedShapeGuardFailure()
 {
     JSContext *cx = GetIonContext()->cx;
-    RawScript script = GetBailedJSScript(cx);
+    JSScript *script = GetBailedJSScript(cx);
 
     JS_ASSERT(!script->ionScript()->invalidated());
 

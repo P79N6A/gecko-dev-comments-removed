@@ -389,7 +389,7 @@ class IonActivation
 
 
 void InvalidateAll(FreeOp *fop, JS::Zone *zone);
-void FinishInvalidation(FreeOp *fop, RawScript script);
+void FinishInvalidation(FreeOp *fop, JSScript *script);
 
 } 
 } 

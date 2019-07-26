@@ -1568,7 +1568,7 @@ stubs::AssertArgumentTypes(VMFrame &f)
 {
     StackFrame *fp = f.fp();
     JSFunction *fun = fp->fun();
-    RawScript script = fun->nonLazyScript();
+    JSScript *script = fun->nonLazyScript();
 
     
 
@@ -1612,7 +1612,7 @@ stubs::InvariantFailure(VMFrame &f, void *rval)
     *frameAddr = repatchCode;
 
     
-    RawScript script = f.fp()->script();
+    JSScript *script = f.fp()->script();
     JS_ASSERT(!script->failedBoundsCheck);
     script->failedBoundsCheck = true;
 
