@@ -487,12 +487,14 @@ RasterImage::Init(const char* aMimeType,
   }
 
   
-  
-  
-  
-  
-  nsresult rv = InitDecoder( StoringSourceData());
+  nsresult rv = InitDecoder( true);
   CONTAINER_ENSURE_SUCCESS(rv);
+
+  
+  
+  if (!StoringSourceData()) {
+    mWantFullDecode = true;
+  }
 
   
   mInitialized = true;
@@ -1195,8 +1197,6 @@ RasterImage::HeapSizeOfSourceWithComputedFallback(nsMallocSizeOfFun aMallocSizeO
   size_t n = mSourceData.SizeOfExcludingThis(aMallocSizeOf);
   if (n == 0) {
     n = mSourceData.Length();
-    NS_ABORT_IF_FALSE(StoringSourceData() || (n == 0),
-                      "Non-zero source data size when we aren't storing it?");
   }
   return n;
 }
@@ -1766,7 +1766,9 @@ RasterImage::AddSourceData(const char *aBuffer, uint32_t aCount)
   }
 
   
-  if (!StoringSourceData()) {
+  
+  
+  if (!StoringSourceData() && mHasSize) {
     rv = WriteToDecoder(aBuffer, aCount);
     CONTAINER_ENSURE_SUCCESS(rv);
 
@@ -1844,13 +1846,6 @@ RasterImage::DoImageDataComplete()
 
   
   NS_ABORT_IF_FALSE(!mInDecoder, "Re-entrant call to AddSourceData!");
-
-  
-  
-  
-  if (!StoringSourceData()) {
-    FinishedSomeDecoding();
-  }
 
   
   
@@ -1942,7 +1937,7 @@ RasterImage::OnNewSourceData()
   
   
   
-  NS_ABORT_IF_FALSE(mMultipart, "NewSourceData not supported for multipart");
+  NS_ABORT_IF_FALSE(mMultipart, "NewSourceData only supported for multipart");
   if (!mMultipart)
     return NS_ERROR_ILLEGAL_VALUE;
 
@@ -1960,8 +1955,11 @@ RasterImage::OnNewSourceData()
   
   mDecoded = false;
   mHasSourceData = false;
+  mHasSize = false;
+  mWantFullDecode = true;
 
-  rv = InitDecoder( StoringSourceData());
+  
+  rv = InitDecoder( true);
   CONTAINER_ENSURE_SUCCESS(rv);
 
   return NS_OK;
@@ -2574,7 +2572,7 @@ RasterImage::InitDecoder(bool aDoSizeDecode)
 
   
   
-  if (StoringSourceData() && !aDoSizeDecode) {
+  if (!aDoSizeDecode) {
     NS_ABORT_IF_FALSE(mHasSize, "Must do a size decode before a full decode!");
   }
 
@@ -2633,7 +2631,7 @@ RasterImage::InitDecoder(bool aDoSizeDecode)
       
       if (sMaxDecodeCount > 0) {
         Telemetry::GetHistogramById(Telemetry::IMAGE_MAX_DECODE_COUNT)->Subtract(sMaxDecodeCount);
-  }
+      }
       sMaxDecodeCount = mDecodeCount;
       Telemetry::GetHistogramById(Telemetry::IMAGE_MAX_DECODE_COUNT)->Add(sMaxDecodeCount);
     }
@@ -2700,6 +2698,11 @@ RasterImage::ShutdownDecoder(eShutdownIntent aIntent)
   }
 
   
+  
+  if (!wasSizeDecode && !StoringSourceData()) {
+    mSourceData.Clear();
+  }
+
   mBytesDecoded = 0;
 
   return NS_OK;
@@ -2795,14 +2798,6 @@ RasterImage::RequestDecodeCore(RequestDecodeType aDecodeType)
     return NS_ERROR_FAILURE;
 
   
-  if (mDecoded)
-    return NS_OK;
-
-  
-  if (!StoringSourceData())
-    return NS_OK;
-
-  
   
   if (mDecoder && !mDecoder->IsSizeDecode() && mBytesDecoded) {
     return NS_OK;
@@ -2840,14 +2835,18 @@ RasterImage::RequestDecodeCore(RequestDecodeType aDecodeType)
 
   
   
-  if (mDecoder && mDecoder->GetDecodeFlags() != mFrameDecodeFlags)
-  {
+  
+  if (mDecoded)
+    return NS_OK;
+
+  
+  
+  if (mDecoder && mDecoder->GetDecodeFlags() != mFrameDecodeFlags) {
     FinishedSomeDecoding(eShutdownIntent_NotNeeded);
   }
 
   
   if (!mDecoder) {
-    NS_ABORT_IF_FALSE(mFrames.IsEmpty(), "Trying to decode to non-empty frame-array");
     rv = InitDecoder( false);
 
     CONTAINER_ENSURE_SUCCESS(rv);
@@ -2883,10 +2882,6 @@ RasterImage::SyncDecode()
   SAMPLE_LABEL_PRINTF("RasterImage", "SyncDecode", "%s", GetURIString().get());;
 
   
-  if (!StoringSourceData())
-    return NS_OK;
-
-  
   
   
   
@@ -2918,7 +2913,6 @@ RasterImage::SyncDecode()
 
   
   if (!mDecoder) {
-    NS_ABORT_IF_FALSE(mFrames.IsEmpty(), "Trying to decode to non-empty frame-array");
     rv = InitDecoder( false);
     CONTAINER_ENSURE_SUCCESS(rv);
   }
@@ -3292,12 +3286,6 @@ RasterImage::IsDecodeFinished()
   NS_ABORT_IF_FALSE(mDecoder, "Can't call IsDecodeFinished() without decoder!");
 
   
-  
-  if (!StoringSourceData()) {
-    return true;
-  }
-
-  
   bool decodeFinished = false;
 
   
@@ -3473,10 +3461,16 @@ RasterImage::FinishedSomeDecoding(eShutdownIntent aIntent ,
     image->mStatusTracker->SyncNotifyDecodeState();
   }
 
-  if (done) {
+  
+  if (done && wasSize && image->mWantFullDecode) {
+    image->mWantFullDecode = false;
+
     
-    if (wasSize && image->mWantFullDecode) {
-      image->mWantFullDecode = false;
+    
+    
+    if (!image->StoringSourceData()) {
+      image->SyncDecode();
+    } else {
       image->RequestDecode();
     }
   }
