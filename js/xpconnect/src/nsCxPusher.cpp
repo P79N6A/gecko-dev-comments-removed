@@ -124,9 +124,6 @@ AutoCxPusher::AutoCxPusher(JSContext* cx, bool allowNull)
 
   
   
-  
-  
-  
   if (cx) {
     mAutoRequest.construct(cx);
 
@@ -135,7 +132,6 @@ AutoCxPusher::AutoCxPusher(JSContext* cx, bool allowNull)
                                        : js::DefaultObjectForContextOrNull(cx);
     if (compartmentObject)
       mAutoCompartment.construct(cx, compartmentObject);
-    xpc_UnmarkGrayContext(cx);
   }
 }
 
