@@ -986,36 +986,28 @@ nsMathMLmoFrame::MarkIntrinsicWidthsDirty()
   nsMathMLContainerFrame::MarkIntrinsicWidthsDirty();
 }
 
- void
-nsMathMLmoFrame::GetIntrinsicWidthMetrics(nsRenderingContext *aRenderingContext, nsHTMLReflowMetrics& aDesiredSize)
+ nscoord
+nsMathMLmoFrame::GetIntrinsicWidth(nsRenderingContext *aRenderingContext)
 {
   ProcessOperatorData();
+  nscoord width;
   if (UseMathMLChar()) {
     uint32_t stretchHint = GetStretchHint(mFlags, mPresentationData, true);
-    aDesiredSize.width = mMathMLChar.
+    width = mMathMLChar.
       GetMaxWidth(PresContext(), *aRenderingContext,
                   stretchHint, mMaxSize,
                   NS_MATHML_OPERATOR_MAXSIZE_IS_ABSOLUTE(mFlags));
   }
   else {
-    nsMathMLTokenFrame::GetIntrinsicWidthMetrics(aRenderingContext,
-                                                 aDesiredSize);
+    width = nsMathMLTokenFrame::GetIntrinsicWidth(aRenderingContext);
   }
 
   
   
   
-  bool isRTL = StyleVisibility()->mDirection;
-  aDesiredSize.width +=
-    mEmbellishData.leadingSpace + mEmbellishData.trailingSpace;
-  aDesiredSize.mBoundingMetrics.width = aDesiredSize.width;
-  if (isRTL) {
-    aDesiredSize.mBoundingMetrics.leftBearing += mEmbellishData.trailingSpace;
-    aDesiredSize.mBoundingMetrics.rightBearing += mEmbellishData.trailingSpace;
-  } else {
-    aDesiredSize.mBoundingMetrics.leftBearing += mEmbellishData.leadingSpace;
-    aDesiredSize.mBoundingMetrics.rightBearing += mEmbellishData.leadingSpace;
-  }
+  width += mEmbellishData.leadingSpace + mEmbellishData.trailingSpace;
+
+  return width;
 }
 
 NS_IMETHODIMP
