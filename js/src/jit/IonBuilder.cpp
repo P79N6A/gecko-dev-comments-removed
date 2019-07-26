@@ -3885,6 +3885,9 @@ IonBuilder::jsop_pos()
 {
     if (IsNumberType(current->peek(-1)->type())) {
         
+        
+        
+        current->peek(-1)->setImplicitlyUsedUnchecked();
         return true;
     }
 
