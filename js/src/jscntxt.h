@@ -521,12 +521,6 @@ class PerThreadData : public js::PerThreadDataFriendFields
     js::Activation *activation() const {
         return activation_;
     }
-    bool currentlyRunningInInterpreter() const {
-        return activation_->isInterpreter();
-    }
-    bool currentlyRunningInJit() const {
-        return activation_->isJit();
-    }
 
     
 
@@ -1527,7 +1521,7 @@ struct JSContext : js::ContextFriendFields,
         JS_ASSERT_IF(compartment(), js::GetCompartmentZone(compartment()) == zone_);
         return zone_;
     }
-    js::PerThreadData &mainThread() { return runtime()->mainThread; }
+    js::PerThreadData &mainThread() const { return runtime()->mainThread; }
 
   private:
     
@@ -1616,13 +1610,6 @@ struct JSContext : js::ContextFriendFields,
 
 
     inline js::Handle<js::GlobalObject*> global() const;
-
-    
-    inline bool hasfp() const               { return stack.hasfp(); }
-    inline js::StackFrame* fp() const       { return stack.fp(); }
-    inline js::StackFrame* maybefp() const  { return stack.maybefp(); }
-    inline js::FrameRegs& regs() const      { return stack.regs(); }
-    inline js::FrameRegs* maybeRegs() const { return stack.maybeRegs(); }
 
     
     void wrapPendingException();
@@ -1732,6 +1719,22 @@ struct JSContext : js::ContextFriendFields,
     inline bool typeInferenceEnabled() const;
 
     void updateJITEnabled();
+
+    
+    bool currentlyRunning() const;
+
+    bool currentlyRunningInInterpreter() const {
+        return mainThread().activation()->isInterpreter();
+    }
+    bool currentlyRunningInJit() const {
+        return mainThread().activation()->isJit();
+    }
+    js::StackFrame *interpreterFrame() const {
+        return mainThread().activation()->asInterpreter()->current();
+    }
+    js::FrameRegs &interpreterRegs() const {
+        return mainThread().activation()->asInterpreter()->regs();
+    }
 
 #ifdef MOZ_TRACE_JSCALLS
     

@@ -2599,8 +2599,6 @@ EvalInFrame(JSContext *cx, unsigned argc, jsval *vp)
                         ? !!(JSVAL_TO_BOOLEAN(argv[2]))
                         : false;
 
-    JS_ASSERT(cx->hasfp());
-
     
     if (!JS_GetDebugMode(cx)) {
         JS_ReportErrorFlagsAndNumber(cx, JSREPORT_ERROR, js_GetErrorMessage,

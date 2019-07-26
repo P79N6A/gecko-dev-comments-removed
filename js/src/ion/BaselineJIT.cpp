@@ -127,7 +127,7 @@ EnterBaseline(JSContext *cx, StackFrame *fp, void *jitcode, bool osr)
             scopeChain = fp->scopeChain();
 
         
-        uint32_t numStackValues = osr ? fp->script()->nfixed + cx->regs().stackDepth() : 0;
+        uint32_t numStackValues = osr ? fp->script()->nfixed + cx->stack.regs().stackDepth() : 0;
         JS_ASSERT_IF(osr, !IsJSDEnabled(cx));
 
         AutoFlushInhibitor afi(cx->compartment()->ionCompartment());
@@ -138,7 +138,6 @@ EnterBaseline(JSContext *cx, StackFrame *fp, void *jitcode, bool osr)
         fp->clearRunningInJit();
     }
 
-    JS_ASSERT(fp == cx->fp());
     JS_ASSERT(!cx->runtime()->hasIonReturnOverride());
 
     
@@ -247,7 +246,7 @@ ion::CanEnterBaselineJIT(JSContext *cx, JSScript *scriptArg, StackFrame *fp, boo
     
     
     if (IsJSDEnabled(cx)) {
-        if (JSOp(*cx->regs().pc) == JSOP_LOOPENTRY) 
+        if (JSOp(*cx->stack.regs().pc) == JSOP_LOOPENTRY) 
             return Method_Skipped;
     } else if (script->incUseCount() <= js_IonOptions.baselineUsesBeforeCompile) {
         return Method_Skipped;
