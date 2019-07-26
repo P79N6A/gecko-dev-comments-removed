@@ -498,6 +498,10 @@ CompositorParent::NotifyShadowTreeTransaction(uint64_t aId, bool aIsFirstPaint)
   ScheduleComposition();
 }
 
+
+
+static const int32_t kDefaultFrameRate = 60;
+
 void
 CompositorParent::ScheduleComposition()
 {
@@ -510,19 +514,29 @@ CompositorParent::ScheduleComposition()
   if (!initialComposition)
     delta = TimeStamp::Now() - mLastCompose;
 
+  int32_t rate = gfxPlatform::GetPrefLayoutFrameRate();
+  if (rate < 0) {
+    
+    
+    rate = kDefaultFrameRate;
+  }
+
+  
+  TimeDuration minFrameDelta = TimeDuration::FromMilliseconds(
+    rate == 0 ? 0.0 : std::max(0.0, 1000.0 / rate));
+
 #ifdef COMPOSITOR_PERFORMANCE_WARNING
-  mExpectedComposeTime = TimeStamp::Now() + TimeDuration::FromMilliseconds(15);
+  mExpectedComposeTime = TimeStamp::Now() + minFrameDelta;
 #endif
 
   mCurrentCompositeTask = NewRunnableMethod(this, &CompositorParent::Composite);
 
-  
-  
-  if (!initialComposition && delta.ToMilliseconds() < 15) {
+  if (!initialComposition && delta < minFrameDelta) {
+    TimeDuration delay = minFrameDelta - delta;
 #ifdef COMPOSITOR_PERFORMANCE_WARNING
-    mExpectedComposeTime = TimeStamp::Now() + TimeDuration::FromMilliseconds(15 - delta.ToMilliseconds());
+    mExpectedComposeTime = TimeStamp::Now() + delay;
 #endif
-    ScheduleTask(mCurrentCompositeTask, 15 - delta.ToMilliseconds());
+    ScheduleTask(mCurrentCompositeTask, delay.ToMilliseconds());
   } else {
     ScheduleTask(mCurrentCompositeTask, 0);
   }
