@@ -20,12 +20,15 @@ const kOk = 2;
 
 
 
-function testCharacterCount(aIDs, aCount)
+
+function testCharacterCount(aIDs, aCount, aTodoFlag)
 {
-  for (var i = 0; i < aIDs.length; i++) {
-    var textacc = getAccessible(aIDs[i], [nsIAccessibleText]);
-    is(textacc.characterCount, aCount,
-       "Wrong character count for " + prettyName(aIDs[i]));
+  var ids = (aIDs instanceof Array) ? aIDs : [ aIDs ];
+  var isFunc = (aTodoFlag == kTodo) ? todo_is : is;
+  for (var i = 0; i < ids.length; i++) {
+    var textacc = getAccessible(ids[i], [nsIAccessibleText]);
+    isFunc(textacc.characterCount, aCount,
+           "Wrong character count for " + prettyName(ids[i]));
   }
 }
 
@@ -37,19 +40,22 @@ function testCharacterCount(aIDs, aCount)
 
 
 
-function testText(aIDs, aStartOffset, aEndOffset, aText)
+
+function testText(aIDs, aStartOffset, aEndOffset, aText, aTodoFlag)
 {
-  for (var i = 0; i < aIDs.length; i++)
-  {
-    var acc = getAccessible(aIDs[i], nsIAccessibleText);
+  var ids = (aIDs instanceof Array) ? aIDs : [ aIDs ];
+  var isFunc = (aTodoFlag == kTodo) ? todo_is : is;
+  for (var i = 0; i < ids.length; i++) {
+    var acc = getAccessible(ids[i], nsIAccessibleText);
     try {
-      is(acc.getText(aStartOffset, aEndOffset), aText,
-         "getText: wrong text between start and end offsets '" + aStartOffset +
-         "', '" + aEndOffset + " for '" + prettyName(aIDs[i]) + "'");
+      isFunc(acc.getText(aStartOffset, aEndOffset), aText,
+             "getText: wrong text between start and end offsets '" +
+             aStartOffset + "', '" + aEndOffset + " for '" +
+             prettyName(ids[i]) + "'");
     } catch (e) {
       ok(false,
-         "getText fails between start and end offsets '" + aStartOffset +
-         "', '" + aEndOffset + " for '" + prettyName(aIDs[i]) + "'");
+        "getText fails between start and end offsets '" + aStartOffset +
+        "', '" + aEndOffset + " for '" + prettyName(ids[i]) + "'");
     }
   }
 }
