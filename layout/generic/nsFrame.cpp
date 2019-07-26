@@ -2099,6 +2099,7 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
   nsRect dirty = aDirtyRect - child->GetOffsetTo(this);
 
   nsIAtom* childType = child->GetType();
+  nsDisplayListBuilder::OutOfFlowDisplayData* savedOutOfFlowData = nullptr;
   if (childType == nsGkAtoms::placeholderFrame) {
     nsPlaceholderFrame* placeholder = static_cast<nsPlaceholderFrame*>(child);
     child = placeholder->GetOutOfFlowFrame();
@@ -2116,10 +2117,10 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
     
     if (child->GetStateBits() & NS_FRAME_TOO_DEEP_IN_FRAME_TREE)
       return;
-    nsRect* savedDirty = static_cast<nsRect*>
-      (child->Properties().Get(nsDisplayListBuilder::OutOfFlowDirtyRectProperty()));
-    if (savedDirty) {
-      dirty = *savedDirty;
+    savedOutOfFlowData = static_cast<OutOfFlowDisplayData*>
+      (child->Properties().Get(nsDisplayListBuilder::OutOfFlowDisplayDataProperty()));
+    if (savedOutOfFlowData) {
+      dirty = savedOutOfFlowData->mDirtyRect;
     } else {
       
       
@@ -2208,6 +2209,11 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
   nsDisplayListBuilder::AutoBuildingDisplayList
     buildingForChild(aBuilder, child, pseudoStackingContext, buildFixedPositionItem);
 
+  if (savedOutOfFlowData) {
+    aBuilder->ClipState().SetClipForContainingBlockDescendants(
+      savedOutOfFlowData->mContainingBlockClip);
+  }
+
   nsRect overflowClip;
   nscoord overflowClipRadii[8];
   bool applyOverflowClip =
@@ -2215,6 +2221,7 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
   if (applyOverflowClip) {
     child->GetPaddingBoxBorderRadii(overflowClipRadii);
   }
+
   
   
   
