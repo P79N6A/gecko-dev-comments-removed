@@ -65,6 +65,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "Task",
 XPCOMUtils.defineLazyModuleGetter(this, "PlacesBackups",
                                   "resource://gre/modules/PlacesBackups.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "OS",
+                                  "resource://gre/modules/osfile.jsm");
 
 const PREF_PLUGINS_NOTIFYUSER = "plugins.update.notifyUser";
 const PREF_PLUGINS_UPDATEURL  = "plugins.update.url";
@@ -1268,7 +1270,7 @@ BrowserGlue.prototype = {
   },
 
   _migrateUI: function BG__migrateUI() {
-    const UI_VERSION = 16;
+    const UI_VERSION = 17;
     const BROWSER_DOCURL = "chrome://browser/content/browser.xul#";
     let currentUIVersion = 0;
     try {
@@ -1460,6 +1462,13 @@ BrowserGlue.prototype = {
 
     if (currentUIVersion < 14) {
       
+      let path = OS.Path.join(OS.Constants.Path.profileDir,
+                              "chromeappsstore.sqlite");
+      OS.File.remove(path);
+    }
+
+    if (currentUIVersion < 15) {
+      
       let updateToolbars = function (aToolbarIds, aResourceName, aResourceValue) {
         let resource = this._rdf.GetResource(aResourceName);
         for (toolbarId of aToolbarIds) {
@@ -1476,7 +1485,7 @@ BrowserGlue.prototype = {
       updateToolbars(["navigator-toolbox", "nav-bar"], "iconsize", "large");
     }
 
-    if (currentUIVersion < 15) {
+    if (currentUIVersion < 16) {
       let toolbarResource = this._rdf.GetResource(BROWSER_DOCURL + "nav-bar");
       let collapsedResource = this._rdf.GetResource("collapsed");
       let isCollapsed = this._getPersist(toolbarResource, collapsedResource);
@@ -1487,7 +1496,7 @@ BrowserGlue.prototype = {
 
     
     
-    if (currentUIVersion < 16) {
+    if (currentUIVersion < 17) {
       let currentsetResource = this._rdf.GetResource("currentset");
       let toolbarResource = this._rdf.GetResource(BROWSER_DOCURL + "nav-bar");
       let currentset = this._getPersist(toolbarResource, currentsetResource);
