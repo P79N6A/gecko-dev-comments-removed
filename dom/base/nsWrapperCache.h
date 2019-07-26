@@ -156,6 +156,8 @@ public:
 
   bool IsBlackAndDoesNotNeedTracing(nsISupports* aThis);
 
+  bool HasNothingToTrace(nsISupports* aThis);
+
   
   void SetPreservingWrapper(bool aPreserve)
   {
