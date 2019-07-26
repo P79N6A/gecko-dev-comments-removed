@@ -106,49 +106,52 @@ TextureRequiresLocking(TextureFlags aFlags)
 
 
 
-typedef uint32_t DiagnosticTypes;
-const DiagnosticTypes DIAGNOSTIC_NONE             = 0;
-const DiagnosticTypes DIAGNOSTIC_TILE_BORDERS     = 1 << 0;
-const DiagnosticTypes DIAGNOSTIC_LAYER_BORDERS    = 1 << 1;
-const DiagnosticTypes DIAGNOSTIC_BIGIMAGE_BORDERS = 1 << 2;
-const DiagnosticTypes DIAGNOSTIC_FLASH_BORDERS    = 1 << 3;
+MOZ_BEGIN_ENUM_CLASS(DiagnosticTypes, uint8_t)
+  NO_DIAGNOSTIC    = 0,
+  TILE_BORDERS     = 1 << 0,
+  LAYER_BORDERS    = 1 << 1,
+  BIGIMAGE_BORDERS = 1 << 2,
+  FLASH_BORDERS    = 1 << 3
+MOZ_END_ENUM_CLASS(DiagnosticTypes)
+MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(DiagnosticTypes)
 
 #define DIAGNOSTIC_FLASH_COUNTER_MAX 100
 
 
 
 
-typedef uint32_t DiagnosticFlags;
-const DiagnosticFlags DIAGNOSTIC_IMAGE      = 1 << 0;
-const DiagnosticFlags DIAGNOSTIC_CONTENT    = 1 << 1;
-const DiagnosticFlags DIAGNOSTIC_CANVAS     = 1 << 2;
-const DiagnosticFlags DIAGNOSTIC_COLOR      = 1 << 3;
-const DiagnosticFlags DIAGNOSTIC_CONTAINER  = 1 << 4;
-const DiagnosticFlags DIAGNOSTIC_TILE       = 1 << 5;
-const DiagnosticFlags DIAGNOSTIC_BIGIMAGE   = 1 << 6;
-const DiagnosticFlags DIAGNOSTIC_COMPONENT_ALPHA = 1 << 7;
-const DiagnosticFlags DIAGNOSTIC_REGION_RECT = 1 << 8;
+MOZ_BEGIN_ENUM_CLASS(DiagnosticFlags, uint16_t)
+  NO_DIAGNOSTIC   = 0,
+  IMAGE           = 1 << 0,
+  CONTENT         = 1 << 1,
+  CANVAS          = 1 << 2,
+  COLOR           = 1 << 3,
+  CONTAINER       = 1 << 4,
+  TILE            = 1 << 5,
+  BIGIMAGE        = 1 << 6,
+  COMPONENT_ALPHA = 1 << 7,
+  REGION_RECT     = 1 << 8
+MOZ_END_ENUM_CLASS(DiagnosticFlags)
+MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(DiagnosticFlags)
 
 
 
 
-enum EffectTypes
-{
-  EFFECT_MASK,
-  EFFECT_MAX_SECONDARY, 
-  EFFECT_RGB,
-  EFFECT_YCBCR,
-  EFFECT_COMPONENT_ALPHA,
-  EFFECT_SOLID_COLOR,
-  EFFECT_RENDER_TARGET,
-  EFFECT_MAX  
-};
+MOZ_BEGIN_ENUM_CLASS(EffectTypes, uint8_t)
+  MASK,
+  MAX_SECONDARY, 
+  RGB,
+  YCBCR,
+  COMPONENT_ALPHA,
+  SOLID_COLOR,
+  RENDER_TARGET,
+  MAX  
+MOZ_END_ENUM_CLASS(EffectTypes)
 
 
 
 
-enum CompositableType
-{
+MOZ_BEGIN_ENUM_CLASS(CompositableType, uint8_t)
   BUFFER_UNKNOWN,
   
   BUFFER_IMAGE_SINGLE,    
@@ -160,23 +163,22 @@ enum CompositableType
   BUFFER_TILED,           
   BUFFER_SIMPLE_TILED,
   
-  COMPOSITABLE_IMAGE,     
-  COMPOSITABLE_CONTENT_SINGLE,  
-  COMPOSITABLE_CONTENT_DOUBLE,  
+  IMAGE,     
+  CONTENT_SINGLE,  
+  CONTENT_DOUBLE,  
   BUFFER_COUNT
-};
+MOZ_END_ENUM_CLASS(CompositableType)
 
 
 
 
-enum DeprecatedTextureHostFlags
-{
-  TEXTURE_HOST_DEFAULT = 0,       
-                                  
-  TEXTURE_HOST_TILED = 1 << 0,    
-  TEXTURE_HOST_COPY_PREVIOUS = 1 << 1 
+MOZ_BEGIN_ENUM_CLASS(DeprecatedTextureHostFlags, uint8_t)
+  DEFAULT = 0,       
+  TILED = 1 << 0,    
+  COPY_PREVIOUS = 1 << 1 
                                       
-};
+MOZ_END_ENUM_CLASS(DeprecatedTextureHostFlags)
+MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(DeprecatedTextureHostFlags)
 
 
 
@@ -210,11 +212,12 @@ struct TextureFactoryIdentifier
 
 
 
-typedef uint32_t TextureIdentifier;
-const TextureIdentifier TextureFront = 1;
-const TextureIdentifier TextureBack = 2;
-const TextureIdentifier TextureOnWhiteFront = 3;
-const TextureIdentifier TextureOnWhiteBack = 4;
+MOZ_BEGIN_ENUM_CLASS(TextureIdentifier, uint8_t)
+  Front = 1,
+  Back = 2,
+  OnWhiteFront = 3,
+  OnWhiteBack = 4
+MOZ_END_ENUM_CLASS(TextureIdentifier)
 
 
 
@@ -226,18 +229,18 @@ const TextureIdentifier TextureOnWhiteBack = 4;
 struct TextureInfo
 {
   CompositableType mCompositableType;
-  uint32_t mDeprecatedTextureHostFlags;
+  DeprecatedTextureHostFlags mDeprecatedTextureHostFlags;
   TextureFlags mTextureFlags;
 
   TextureInfo()
-    : mCompositableType(BUFFER_UNKNOWN)
-    , mDeprecatedTextureHostFlags(0)
+    : mCompositableType(CompositableType::BUFFER_UNKNOWN)
+    , mDeprecatedTextureHostFlags(DeprecatedTextureHostFlags::DEFAULT)
     , mTextureFlags(TextureFlags::NO_FLAGS)
   {}
 
   TextureInfo(CompositableType aType)
     : mCompositableType(aType)
-    , mDeprecatedTextureHostFlags(0)
+    , mDeprecatedTextureHostFlags(DeprecatedTextureHostFlags::DEFAULT)
     , mTextureFlags(TextureFlags::NO_FLAGS)
   {}
 
@@ -254,21 +257,24 @@ struct TextureInfo
 
 
 
-typedef uint32_t OpenMode;
-const OpenMode OPEN_READ        = 0x1;
-const OpenMode OPEN_WRITE       = 0x2;
-const OpenMode OPEN_READ_WRITE  = OPEN_READ|OPEN_WRITE;
-const OpenMode OPEN_READ_ONLY   = OPEN_READ;
-const OpenMode OPEN_WRITE_ONLY  = OPEN_WRITE;
+MOZ_BEGIN_ENUM_CLASS(OpenMode, uint8_t)
+  OPEN_NONE        = 0,
+  OPEN_READ        = 0x1,
+  OPEN_WRITE       = 0x2,
+  OPEN_READ_WRITE  = OPEN_READ|OPEN_WRITE,
+  OPEN_READ_ONLY   = OPEN_READ,
+  OPEN_WRITE_ONLY  = OPEN_WRITE
+MOZ_END_ENUM_CLASS(OpenMode)
+MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(OpenMode)
 
 
 
-enum MaskType {
+MOZ_BEGIN_ENUM_CLASS(MaskType, uint8_t)
   MaskNone = 0,   
   Mask2d,         
   Mask3d,         
   NumMaskTypes
-};
+MOZ_END_ENUM_CLASS(MaskType)
 
 } 
 } 
