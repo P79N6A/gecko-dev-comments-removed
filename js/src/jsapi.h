@@ -3321,21 +3321,97 @@ JS_CompileUCFunction(JSContext *cx, JSObject *obj, const char *name,
 namespace JS {
 
 
-class JS_PUBLIC_API(CompileOptions)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class JS_PUBLIC_API(ReadOnlyCompileOptions)
 {
+  protected:
     JSPrincipals *principals_;
     JSPrincipals *originPrincipals_;
     const char *filename_;
     const jschar *sourceMapURL_;
-    Handle<JSObject*> element_;
+
+    
+    
+    
+    
+    ReadOnlyCompileOptions()
+      : principals_(nullptr),
+        originPrincipals_(nullptr),
+        filename_(nullptr),
+        sourceMapURL_(nullptr),
+        version(JSVERSION_UNKNOWN),
+        versionSet(false),
+        utf8(false),
+        lineno(1),
+        column(0),
+        compileAndGo(false),
+        forEval(false),
+        noScriptRval(false),
+        selfHostingMode(false),
+        canLazilyParse(true),
+        strictOption(false),
+        extraWarningsOption(false),
+        werrorOption(false),
+        asmJSOption(false),
+        sourcePolicy(SAVE_SOURCE)
+    { }
+
+    
+    
+    void copyPODOptions(const ReadOnlyCompileOptions &rhs);
 
   public:
+    
+    
     JSPrincipals *principals() const { return principals_; }
     JSPrincipals *originPrincipals() const;
     const char *filename() const { return filename_; }
     const jschar *sourceMapURL() const { return sourceMapURL_; }
-    JSObject *element() const { return element_; }
+    virtual JSObject *element() const = 0;
 
+    
     JSVersion version;
     bool versionSet;
     bool utf8;
@@ -3356,17 +3432,120 @@ class JS_PUBLIC_API(CompileOptions)
         SAVE_SOURCE
     } sourcePolicy;
 
+  private:
+    static JSObject * const nullObjectPtr;
+    void operator=(const ReadOnlyCompileOptions &) MOZ_DELETE;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class JS_PUBLIC_API(OwningCompileOptions) : public ReadOnlyCompileOptions
+{
+    JSRuntime *runtime;
+    PersistentRootedObject elementRoot;
+
+  public:
+    
+    
+    
+    
+    explicit OwningCompileOptions(JSContext *cx);
+    ~OwningCompileOptions();
+
+    JSObject *element() const MOZ_OVERRIDE { return elementRoot; }
+
+    
+    bool copy(JSContext *cx, const ReadOnlyCompileOptions &rhs);
+
+    
+    bool setFileAndLine(JSContext *cx, const char *f, unsigned l);
+    bool setSourceMapURL(JSContext *cx, const jschar *s);
+
+    
+    OwningCompileOptions &setElement(JSObject *e) { elementRoot = e; return *this; }
+    OwningCompileOptions &setPrincipals(JSPrincipals *p) {
+        if (p) JS_HoldPrincipals(p);
+        if (principals_) JS_DropPrincipals(runtime, principals_);
+        principals_ = p;
+        return *this;
+    }
+    OwningCompileOptions &setOriginPrincipals(JSPrincipals *p) {
+        if (p) JS_HoldPrincipals(p);
+        if (originPrincipals_) JS_DropPrincipals(runtime, originPrincipals_);
+        originPrincipals_ = p;
+        return *this;
+    }
+    OwningCompileOptions &setVersion(JSVersion v) {
+        version = v;
+        versionSet = true;
+        return *this;
+    }
+    OwningCompileOptions &setUTF8(bool u) { utf8 = u; return *this; }
+    OwningCompileOptions &setColumn(unsigned c) { column = c; return *this; }
+    OwningCompileOptions &setCompileAndGo(bool cng) { compileAndGo = cng; return *this; }
+    OwningCompileOptions &setForEval(bool eval) { forEval = eval; return *this; }
+    OwningCompileOptions &setNoScriptRval(bool nsr) { noScriptRval = nsr; return *this; }
+    OwningCompileOptions &setSelfHostingMode(bool shm) { selfHostingMode = shm; return *this; }
+    OwningCompileOptions &setCanLazilyParse(bool clp) { canLazilyParse = clp; return *this; }
+    OwningCompileOptions &setSourcePolicy(SourcePolicy sp) { sourcePolicy = sp; return *this; }
+};
+
+
+
+
+
+
+
+
+class MOZ_STACK_CLASS JS_PUBLIC_API(CompileOptions) : public ReadOnlyCompileOptions
+{
+    RootedObject elementRoot;
+
+  public:
     explicit CompileOptions(JSContext *cx, JSVersion version = JSVERSION_UNKNOWN);
-    CompileOptions &setPrincipals(JSPrincipals *p) { principals_ = p; return *this; }
-    CompileOptions &setOriginPrincipals(JSPrincipals *p) { originPrincipals_ = p; return *this; }
-    CompileOptions &setVersion(JSVersion v) { version = v; versionSet = true; return *this; }
-    CompileOptions &setUTF8(bool u) { utf8 = u; return *this; }
+    CompileOptions(js::ContextFriendFields *cx, const ReadOnlyCompileOptions &rhs)
+      : ReadOnlyCompileOptions(), elementRoot(cx)
+    {
+        copyPODOptions(rhs);
+
+        principals_ = rhs.principals();
+        originPrincipals_ = rhs.originPrincipals();
+        filename_ = rhs.filename();
+        sourceMapURL_ = rhs.sourceMapURL();
+        elementRoot = rhs.element();
+    }
+
+    JSObject *element() const MOZ_OVERRIDE { return elementRoot; }
+
     CompileOptions &setFileAndLine(const char *f, unsigned l) {
         filename_ = f; lineno = l; return *this;
     }
     CompileOptions &setSourceMapURL(const jschar *s) { sourceMapURL_ = s; return *this; }
+    CompileOptions &setElement(JSObject *e) { elementRoot = e; return *this; }
+
+    CompileOptions &setPrincipals(JSPrincipals *p) { principals_ = p; return *this; }
+    CompileOptions &setOriginPrincipals(JSPrincipals *p) {
+        originPrincipals_ = p;
+        return *this;
+    }
+    CompileOptions &setVersion(JSVersion v) {
+        version = v;
+        versionSet = true;
+        return *this;
+    }
+    CompileOptions &setUTF8(bool u) { utf8 = u; return *this; }
     CompileOptions &setColumn(unsigned c) { column = c; return *this; }
-    CompileOptions &setElement(Handle<JSObject*> e) { element_.repoint(e); return *this; }
     CompileOptions &setCompileAndGo(bool cng) { compileAndGo = cng; return *this; }
     CompileOptions &setForEval(bool eval) { forEval = eval; return *this; }
     CompileOptions &setNoScriptRval(bool nsr) { noScriptRval = nsr; return *this; }
