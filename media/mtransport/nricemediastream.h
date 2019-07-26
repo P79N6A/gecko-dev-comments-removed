@@ -137,6 +137,9 @@ class NrIceMediaStream {
   
   std::vector<std::string> GetCandidates() const;
 
+  nsresult GetLocalCandidates(std::vector<NrIceCandidate>* candidates) const;
+  nsresult GetRemoteCandidates(std::vector<NrIceCandidate>* candidates) const;
+
   
   
   nsresult GetCandidatePairs(std::vector<NrIceCandidatePair>* out_pairs) const;
