@@ -26,6 +26,11 @@ class LIRGeneratorARM : public LIRGeneratorShared
                 LUse::Policy policy = LUse::REGISTER, bool useAtStart = false);
     bool useBoxFixed(LInstruction *lir, size_t n, MDefinition *mir, Register reg1, Register reg2);
 
+    
+    
+    LAllocation useByteOpRegister(MDefinition *mir);
+    LAllocation useByteOpRegisterOrNonDoubleConstant(MDefinition *mir);
+
     inline LDefinition tempToUnbox() {
         return LDefinition::BogusTemp();
     }
@@ -82,8 +87,6 @@ class LIRGeneratorARM : public LIRGeneratorShared
     bool lowerPhi(MPhi *phi);
     bool visitGuardShape(MGuardShape *ins);
     bool visitGuardObjectType(MGuardObjectType *ins);
-    bool visitStoreTypedArrayElement(MStoreTypedArrayElement *ins);
-    bool visitStoreTypedArrayElementHole(MStoreTypedArrayElementHole *ins);
     bool visitAsmJSUnsignedToDouble(MAsmJSUnsignedToDouble *ins);
     bool visitAsmJSLoadHeap(MAsmJSLoadHeap *ins);
     bool visitAsmJSStoreHeap(MAsmJSStoreHeap *ins);
