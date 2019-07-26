@@ -51,8 +51,7 @@ public:
 
     float sampleRate() const { return m_sampleRate; }
 
-    double tailTime() const;
-    double latencyTime() const;
+    int maxTailFrames() const;
 
 private:
     

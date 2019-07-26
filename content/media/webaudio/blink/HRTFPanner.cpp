@@ -290,19 +290,16 @@ void HRTFPanner::pan(double desiredAzimuth, double elevation, const AudioChunk* 
     }
 }
 
-double HRTFPanner::tailTime() const
+int HRTFPanner::maxTailFrames() const
 {
     
     
     
-    return MaxDelayTimeSeconds + (fftSize() / 2) / static_cast<double>(sampleRate());
-}
-
-double HRTFPanner::latencyTime() const
-{
     
     
-    return (fftSize() / 2) / static_cast<double>(sampleRate());
+    
+    
+    return m_delayLineL.MaxDelayFrames() + fftSize();
 }
 
 } 
