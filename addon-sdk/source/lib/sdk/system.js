@@ -53,7 +53,14 @@ exports.env = require('./system/environment').env;
 
 
 
+let forcedExit = false;
 exports.exit = function exit(code) {
+  if (forcedExit) {
+    
+    
+    return;
+  }
+
   
   if ('resultFile' in options && options.resultFile) {
     let mode = PR_WRONLY | PR_CREATE_FILE | PR_TRUNCATE;
@@ -64,6 +71,9 @@ exports.exit = function exit(code) {
     stream.close();
   }
 
+  if (code == 0) {
+    forcedExit = true;
+  }
   appStartup.quit(code ? E_ATTEMPT : E_FORCE);
 };
 
