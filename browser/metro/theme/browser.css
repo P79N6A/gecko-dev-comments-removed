@@ -859,6 +859,11 @@ setting[type="directory"] > .preferences-alignment {
 }
 
 
+#snapped-topsites-grid > richgriditem > .richgrid-item-content {
+  -moz-box-orient: horizontal;
+}
+
+
 
 #start[viewstate="snapped"],
 #snapped-start:not([viewstate="snapped"]) {
