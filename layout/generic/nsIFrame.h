@@ -1205,25 +1205,6 @@ public:
                                           const nsRect&         aDirtyRect,
                                           nsDisplayList*        aList);
 
-  
-
-
-
-
-
-
-
-
-
-
-  nsresult OverflowClip(nsDisplayListBuilder*   aBuilder,
-                        const nsDisplayListSet& aFromSet,
-                        const nsDisplayListSet& aToSet,
-                        const nsRect&           aClipRect,
-                        const nscoord           aClipRadii[8],
-                        bool                    aClipBorderBackground = false,
-                        bool                    aClipAll = false);
-
   enum {
     DISPLAY_CHILD_FORCE_PSEUDO_STACKING_CONTEXT = 0x01,
     DISPLAY_CHILD_FORCE_STACKING_CONTEXT = 0x02,
@@ -1243,15 +1224,6 @@ public:
                                 const nsRect&           aDirtyRect,
                                 const nsDisplayListSet& aLists,
                                 uint32_t                aFlags = 0);
-
-  
-
-
-
-
-  void WrapReplacedContentForBorderRadius(nsDisplayListBuilder* aBuilder,
-                                          nsDisplayList* aFromList,
-                                          const nsDisplayListSet& aToLists);
 
   
 

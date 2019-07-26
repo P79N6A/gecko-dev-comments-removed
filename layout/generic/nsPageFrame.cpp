@@ -31,6 +31,8 @@ extern PRLogModuleInfo *GetLayoutPrintingLog();
 #define PR_PL(_p1)
 #endif
 
+using namespace mozilla;
+
 nsIFrame*
 NS_NewPageFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 {
@@ -402,14 +404,10 @@ nsPageFrame::DrawHeaderFooter(nsRenderingContext& aRenderingContext,
 
 
 
-
-
-
-
 static void
 PruneDisplayListForExtraPage(nsDisplayListBuilder* aBuilder,
                              nsPageFrame* aPage, nsIFrame* aExtraPage,
-                             nscoord aY, nsDisplayList* aList)
+                             nsDisplayList* aList)
 {
   nsDisplayList newList;
 
@@ -419,46 +417,26 @@ PruneDisplayListForExtraPage(nsDisplayListBuilder* aBuilder,
       break;
     nsDisplayList* subList = i->GetSameCoordinateSystemChildren();
     if (subList) {
-      PruneDisplayListForExtraPage(aBuilder, aPage, aExtraPage, aY, subList);
-      nsDisplayItem::Type type = i->GetType();
-      if (type == nsDisplayItem::TYPE_CLIP ||
-          type == nsDisplayItem::TYPE_CLIP_ROUNDED_RECT) {
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        nsDisplayClip* clip = static_cast<nsDisplayClip*>(i);
-        clip->SetClipRect(clip->GetClipRect() + nsPoint(0, aY) -
-                aExtraPage->GetOffsetToCrossDoc(aBuilder->FindReferenceFrameFor(aPage)));
-      }
-      newList.AppendToTop(i);
+      PruneDisplayListForExtraPage(aBuilder, aPage, aExtraPage, subList);
+      i->UpdateBounds(aBuilder);
     } else {
       nsIFrame* f = i->GetUnderlyingFrame();
-      if (f && nsLayoutUtils::IsProperAncestorFrameCrossDoc(aPage, f)) {
-        
-        newList.AppendToTop(i);
-      } else {
+      if (!f || !nsLayoutUtils::IsProperAncestorFrameCrossDoc(aPage, f)) {
         
         
         i->~nsDisplayItem();
+        continue;
       }
     }
+    newList.AppendToTop(i);
   }
   aList->AppendToTop(&newList);
 }
 
-
 static nsresult
 BuildDisplayListForExtraPage(nsDisplayListBuilder* aBuilder,
                              nsPageFrame* aPage, nsIFrame* aExtraPage,
-                             nscoord aY, nsDisplayList* aList)
+                             nsDisplayList* aList)
 {
   nsDisplayList list;
   
@@ -468,7 +446,7 @@ BuildDisplayListForExtraPage(nsDisplayListBuilder* aBuilder,
   
   
   aExtraPage->BuildDisplayListForStackingContext(aBuilder, nsRect(), &list);
-  PruneDisplayListForExtraPage(aBuilder, aPage, aExtraPage, aY, &list);
+  PruneDisplayListForExtraPage(aBuilder, aPage, aExtraPage, &list);
   aList->AppendToTop(&list);
   return NS_OK;
 }
@@ -516,33 +494,7 @@ nsPageFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     DisplayBorderBackgroundOutline(aBuilder, aLists);
   }
 
-  nsDisplayList content;
   nsIFrame *child = mFrames.FirstChild();
-  child->BuildDisplayListForStackingContext(aBuilder,
-      child->GetVisualOverflowRectRelativeToSelf(), &content);
-
-  
-  
-  
-  
-  
-  
-  
-  nsIFrame* page = child;
-  nscoord y = child->GetSize().height;
-  while ((page = GetNextPage(page)) != nullptr) {
-    BuildDisplayListForExtraPage(aBuilder, this, page, y, &content);
-    y += page->GetSize().height;
-  }
-  
-  
-  
-  
-  nsRect backgroundRect =
-    nsRect(aBuilder->ToReferenceFrame(child), child->GetSize());
-  PresContext()->GetPresShell()->AddCanvasBackgroundColorItem(
-    *aBuilder, content, child, backgroundRect, NS_RGBA(0,0,0,0));
-
   float scale = PresContext()->GetPageScale();
   nsRect clipRect(nsPoint(0, 0), child->GetSize());
   
@@ -556,14 +508,48 @@ nsPageFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     
     
     
-    clipRect.y = NSToCoordCeil((-child->GetRect().y + 
+    clipRect.y = NSToCoordCeil((-child->GetRect().y +
                                 mPD->mReflowMargin.top) / scale);
     clipRect.height = expectedPageContentHeight;
     NS_ASSERTION(clipRect.y < child->GetSize().height,
                  "Should be clipping to region inside the page content bounds");
   }
   clipRect += aBuilder->ToReferenceFrame(child);
-  content.AppendNewToTop(new (aBuilder) nsDisplayClip(aBuilder, child, &content, clipRect));
+
+  nsDisplayList content;
+  {
+    DisplayListClipState::AutoSaveRestore saveClip(aBuilder->ClipState());
+
+    DisplayItemClip clipOnStack;
+    
+    
+    aBuilder->ClipState().Clear();
+    aBuilder->ClipState().ClipContainingBlockDescendants(clipRect, nullptr, clipOnStack);
+
+    child->BuildDisplayListForStackingContext(aBuilder,
+      child->GetVisualOverflowRectRelativeToSelf(), &content);
+
+    
+    
+    
+    
+    
+    
+    
+    nsIFrame* page = child;
+    while ((page = GetNextPage(page)) != nullptr) {
+      BuildDisplayListForExtraPage(aBuilder, this, page, &content);
+    }
+
+    
+    
+    
+    nsRect backgroundRect =
+      nsRect(aBuilder->ToReferenceFrame(child), child->GetSize());
+    PresContext()->GetPresShell()->AddCanvasBackgroundColorItem(
+      *aBuilder, content, child, backgroundRect, NS_RGBA(0,0,0,0));
+  }
+
   content.AppendNewToTop(new (aBuilder) nsDisplayTransform(aBuilder, child, &content, ::ComputePageTransform));
 
   set.Content()->AppendToTop(&content);

@@ -363,8 +363,6 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
   nsPresContext* presContext = presShell->GetPresContext();
 
-  nsDisplayList childItems;
-
   int32_t parentAPD = PresContext()->AppUnitsPerDevPixel();
   int32_t subdocAPD = presContext->AppUnitsPerDevPixel();
 
@@ -385,66 +383,77 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     aBuilder->EnterPresShell(subdocRootFrame, dirty);
   }
 
-  nsRect subdocBoundsInParentUnits =
-    mInnerView->GetBounds() + aBuilder->ToReferenceFrame(this);
-
-  if (subdocRootFrame) {
-    subdocRootFrame->
-      BuildDisplayListForStackingContext(aBuilder, dirty, &childItems);
-  }
-
-  if (!aBuilder->IsForEventDelivery()) {
-    
-    
-    
-    
-    nsRect bounds;
-    if (subdocRootFrame) {
-      bounds = subdocBoundsInParentUnits.ConvertAppUnitsRoundOut(parentAPD, subdocAPD);
-    } else {
-      bounds = subdocBoundsInParentUnits;
-    }
-
-    
-    
-    
-    if (nsLayoutUtils::NeedsPrintPreviewBackground(presContext)) {
-      presShell->AddPrintPreviewBackgroundItem(
-        *aBuilder, childItems, subdocRootFrame ? subdocRootFrame : this,
-        bounds);
-    } else {
-      
-      
-      
-      uint32_t flags = nsIPresShell::FORCE_DRAW;
-      presShell->AddCanvasBackgroundColorItem(
-        *aBuilder, childItems, subdocRootFrame ? subdocRootFrame : this,
-        bounds, NS_RGBA(0,0,0,0), flags);
-    }
-  }
-
-  bool addedLayer = false;
-
-  if (subdocRootFrame && parentAPD != subdocAPD) {
-    NS_WARN_IF_FALSE(!addedLayer,
-                     "Two container layers have been added. "
-                      "Performance may suffer.");
-    addedLayer = true;
-
-    nsDisplayZoom* zoomItem =
-      new (aBuilder) nsDisplayZoom(aBuilder, subdocRootFrame, &childItems,
-                                   subdocAPD, parentAPD, 
-                                   nsDisplayOwnLayer::GENERATE_SUBDOC_INVALIDATIONS);
-    childItems.AppendToTop(zoomItem);
+  DisplayListClipState::AutoSaveRestore saveClip(aBuilder->ClipState());
+  DisplayItemClip clipOnStack;
+  if (ShouldClipSubdocument()) {
+    aBuilder->ClipState().ClipContainingBlockDescendantsToContentBox(aBuilder, this,
+      clipOnStack);
   }
 
   nsIScrollableFrame *sf = presShell->GetRootScrollFrameAsScrollable();
-  if (!addedLayer &&
-      (presContext->IsRootContentDocument() ||
-       (sf && sf->IsScrollingActive()))) {
+  bool constructZoomItem = subdocRootFrame && parentAPD != subdocAPD;
+  bool needsOwnLayer = constructZoomItem ||
+    presContext->IsRootContentDocument() || (sf && sf->IsScrollingActive());
+
+  nsDisplayList childItems;
+
+  {
+    DisplayListClipState::AutoSaveRestore willClearClip(aBuilder->ClipState());
+    if (needsOwnLayer) {
+      
+      
+      
+      
+      aBuilder->ClipState().Clear();
+    }
+
+    if (subdocRootFrame) {
+      subdocRootFrame->
+        BuildDisplayListForStackingContext(aBuilder, dirty, &childItems);
+    }
+
+    if (!aBuilder->IsForEventDelivery()) {
+      
+      
+      
+      
+      nsRect bounds;
+      nsRect subdocBoundsInParentUnits = GetContentRectRelativeToSelf();
+      if (subdocRootFrame) {
+        bounds = subdocBoundsInParentUnits.ConvertAppUnitsRoundOut(parentAPD, subdocAPD);
+      } else {
+        bounds = subdocBoundsInParentUnits;
+      }
+
+      
+      
+      
+      if (nsLayoutUtils::NeedsPrintPreviewBackground(presContext)) {
+        presShell->AddPrintPreviewBackgroundItem(
+          *aBuilder, childItems, subdocRootFrame ? subdocRootFrame : this,
+          bounds);
+      } else {
+        
+        
+        
+        uint32_t flags = nsIPresShell::FORCE_DRAW;
+        presShell->AddCanvasBackgroundColorItem(
+          *aBuilder, childItems, subdocRootFrame ? subdocRootFrame : this,
+          bounds, NS_RGBA(0,0,0,0), flags);
+      }
+    }
+  }
+
+  if (constructZoomItem) {
+    nsDisplayZoom* zoomItem =
+      new (aBuilder) nsDisplayZoom(aBuilder, subdocRootFrame, &childItems,
+                                   subdocAPD, parentAPD,
+                                   nsDisplayOwnLayer::GENERATE_SUBDOC_INVALIDATIONS);
+    childItems.AppendToTop(zoomItem);
+  } else if (needsOwnLayer) {
     
     nsDisplayOwnLayer* layerItem = new (aBuilder) nsDisplayOwnLayer(
-      aBuilder, subdocRootFrame ? subdocRootFrame : this, 
+      aBuilder, subdocRootFrame ? subdocRootFrame : this,
       &childItems, nsDisplayOwnLayer::GENERATE_SUBDOC_INVALIDATIONS);
     childItems.AppendToTop(layerItem);
   }
@@ -453,27 +462,13 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     aBuilder->LeavePresShell(subdocRootFrame, dirty);
   }
 
-  if (ShouldClipSubdocument()) {
-    nsDisplayClip* item =
-      new (aBuilder) nsDisplayClip(aBuilder, this, &childItems,
-                                   subdocBoundsInParentUnits);
-    
-    childItems.AppendToTop(item);
-  }
-
   if (aBuilder->IsForImageVisibility()) {
     
     presShell->RebuildImageVisibility(childItems);
+    childItems.DeleteAll();
   } else {
-    if (mIsInline) {
-      WrapReplacedContentForBorderRadius(aBuilder, &childItems, aLists);
-    } else {
-      aLists.Content()->AppendToTop(&childItems);
-    }
+    aLists.Content()->AppendToTop(&childItems);
   }
-
-  
-  childItems.DeleteAll();
 }
 
 nscoord

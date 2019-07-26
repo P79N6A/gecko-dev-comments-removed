@@ -948,25 +948,23 @@ RenderFrameParent::BuildDisplayList(nsDisplayListBuilder* aBuilder,
 {
   
   
-  nsDisplayList shadowTree;
+  DisplayListClipState::AutoSaveRestore saveClip(aBuilder->ClipState());
+
+  nsPoint offset = aBuilder->ToReferenceFrame(aFrame);
+  nsRect bounds = aFrame->EnsureInnerView()->GetBounds() + offset;
+  DisplayItemClip clipOnStack;
+  aBuilder->ClipState().ClipContentDescendants(bounds, clipOnStack);
+
   ContainerLayer* container = GetRootLayer();
   if (aBuilder->IsForEventDelivery() && container) {
     ViewTransform offset =
       ViewTransform(GetContentRectLayerOffset(aFrame, aBuilder), 1, 1);
     BuildListForLayer(container, mFrameLoader, offset,
-                      aBuilder, shadowTree, aFrame);
+                      aBuilder, *aLists.Content(), aFrame);
   } else {
-    shadowTree.AppendToTop(
+    aLists.Content()->AppendToTop(
       new (aBuilder) nsDisplayRemote(aBuilder, aFrame, this));
   }
-
-  
-  nsPoint offset = aBuilder->ToReferenceFrame(aFrame);
-  nsRect bounds = aFrame->EnsureInnerView()->GetBounds() + offset;
-
-  aLists.Content()->AppendNewToTop(
-    new (aBuilder) nsDisplayClip(aBuilder, aFrame, &shadowTree,
-                                 bounds));
 }
 
 void

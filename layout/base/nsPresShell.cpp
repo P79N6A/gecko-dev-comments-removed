@@ -4503,7 +4503,6 @@ PresShell::ClipListToRange(nsDisplayListBuilder *aBuilder,
   
   
   
-  
   nsRect surfaceRect;
   nsDisplayList tmpList;
 
@@ -4542,11 +4541,11 @@ PresShell::ClipListToRange(nsDisplayListBuilder *aBuilder,
             textRect.width = std::max(startPoint.x, endPoint.x) - x;
             surfaceRect.UnionRect(surfaceRect, textRect);
 
-            
-            
-            
-            itemToInsert = new (aBuilder)
-                nsDisplayClip(aBuilder, frame, i, textRect);
+            DisplayItemClip newClip;
+            newClip.SetTo(textRect);
+            newClip.IntersectWith(i->GetClip());
+            i->SetClip(aBuilder, newClip);
+            itemToInsert = i;
           }
         }
         

@@ -1365,16 +1365,11 @@ nsImageFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   if (!IsVisibleForPainting(aBuilder))
     return;
 
-  
-  
-  
-  
   DisplayBorderBackgroundOutline(aBuilder, aLists);
-  
-  
-  
 
-  nsDisplayList replacedContent;
+  DisplayListClipState::AutoClipContainingBlockDescendantsToContentBox
+    clip(aBuilder, this, DisplayListClipState::ASSUME_DRAWING_RESTRICTED_TO_CONTENT_RECT);
+
   if (mComputedSize.width != 0 && mComputedSize.height != 0) {
     nsCOMPtr<nsIImageLoadingContent> imageLoader = do_QueryInterface(mContent);
     NS_ASSERTION(imageLoader, "Not an image loading content?");
@@ -1407,11 +1402,11 @@ nsImageFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     if (!imageOK || !haveSize) {
       
       
-      replacedContent.AppendNewToTop(new (aBuilder)
+      aLists.Content()->AppendNewToTop(new (aBuilder)
         nsDisplayAltFeedback(aBuilder, this));
     }
     else {
-      replacedContent.AppendNewToTop(new (aBuilder)
+      aLists.Content()->AppendNewToTop(new (aBuilder)
         nsDisplayImage(aBuilder, this, imgCon));
 
       
@@ -1420,7 +1415,6 @@ nsImageFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
         mDisplayingIcon = false;
       }
 
-        
 #ifdef DEBUG
       if (GetShowFrameBorders() && GetImageMap()) {
         aLists.Outlines()->AppendNewToTop(new (aBuilder)
@@ -1432,11 +1426,9 @@ nsImageFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   }
 
   if (ShouldDisplaySelection()) {
-    DisplaySelectionOverlay(aBuilder, &replacedContent,
+    DisplaySelectionOverlay(aBuilder, aLists.Content(),
                             nsISelectionDisplay::DISPLAY_IMAGES);
   }
-
-  WrapReplacedContentForBorderRadius(aBuilder, &replacedContent, aLists);
 }
 
 bool

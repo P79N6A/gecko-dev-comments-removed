@@ -501,10 +501,9 @@ protected:
 
 
 
-
   struct ClippedDisplayItem {
-    ClippedDisplayItem(nsDisplayItem* aItem, const DisplayItemClip& aClip, uint32_t aGeneration)
-      : mItem(aItem), mClip(aClip), mContainerLayerGeneration(aGeneration)
+    ClippedDisplayItem(nsDisplayItem* aItem, uint32_t aGeneration)
+      : mItem(aItem), mContainerLayerGeneration(aGeneration)
     {
     }
 
@@ -519,7 +518,6 @@ protected:
 
     nsRefPtr<LayerManager> mInactiveLayerManager;
 
-    DisplayItemClip mClip;
     uint32_t mContainerLayerGeneration;
   };
 

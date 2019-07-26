@@ -352,19 +352,25 @@ nsFileControlFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   }
 
   
-  
-  
-  
+  nsRect clipRect(aBuilder->ToReferenceFrame(this), GetSize());
+  clipRect.width = GetVisualOverflowRect().XMost();
+
   nsDisplayListCollection tempList;
-  nsBlockFrame::BuildDisplayList(aBuilder, aDirtyRect, tempList);
+  {
+    DisplayListClipState::AutoSaveRestore saveClipState(aBuilder->ClipState());
+    DisplayItemClip clipOnStack;
+    aBuilder->ClipState().ClipContainingBlockDescendants(clipRect, nullptr, clipOnStack);
+
+    
+    
+    
+    
+    nsBlockFrame::BuildDisplayList(aBuilder, aDirtyRect, tempList);
+  }
 
   tempList.BorderBackground()->DeleteAll();
 
-  
-  nsRect clipRect(aBuilder->ToReferenceFrame(this), GetSize());
-  clipRect.width = GetVisualOverflowRect().XMost();
-  nscoord radii[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-  OverflowClip(aBuilder, tempList, aLists, clipRect, radii);
+  tempList.MoveTo(aLists);
 
   
   

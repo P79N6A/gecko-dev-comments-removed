@@ -2127,7 +2127,38 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   }
 
   nsDisplayListCollection set;
-  mOuter->BuildDisplayListForChild(aBuilder, mScrolledFrame, dirtyRect, set);
+  {
+    DisplayListClipState::AutoSaveRestore saveClipState(aBuilder->ClipState());
+    DisplayItemClip clipOnStack;
+
+    if (usingDisplayport) {
+      nsRect clip = displayPort + aBuilder->ToReferenceFrame(mOuter);
+      if (mIsRoot) {
+        aBuilder->ClipState().ClipContentDescendants(clip, clipOnStack);
+      } else {
+        aBuilder->ClipState().ClipContainingBlockDescendants(clip, nullptr, clipOnStack);
+      }
+    } else {
+      nsRect clip = mScrollPort + aBuilder->ToReferenceFrame(mOuter);
+      
+      
+      if (mIsRoot) {
+#ifdef DEBUG
+        nscoord radii[8];
+#endif
+        NS_ASSERTION(!mOuter->GetPaddingBoxBorderRadii(radii),
+                     "Roots with radii not supported");
+        aBuilder->ClipState().ClipContentDescendants(clip, clipOnStack);
+      } else {
+        nscoord radii[8];
+        bool haveRadii = mOuter->GetPaddingBoxBorderRadii(radii);
+        aBuilder->ClipState().ClipContainingBlockDescendants(clip,
+            haveRadii ? radii : nullptr, clipOnStack);
+      }
+    }
+
+    mOuter->BuildDisplayListForChild(aBuilder, mScrolledFrame, dirtyRect, aLists);
+  }
 
   
   
@@ -2146,27 +2177,6 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
         (scrollRange.width > 0 || scrollRange.height > 0) &&
         (!mIsRoot || !mOuter->PresContext()->IsRootContentDocument()));
   }
-
-  nsRect clip;
-  nscoord radii[8];
-
-  if (usingDisplayport) {
-    clip = displayPort + aBuilder->ToReferenceFrame(mOuter);
-    memset(radii, 0, sizeof(nscoord) * ArrayLength(radii));
-  } else {
-    clip = mScrollPort + aBuilder->ToReferenceFrame(mOuter);
-    
-    
-    mOuter->GetPaddingBoxBorderRadii(radii);
-  }
-
-  
-  
-  
-  
-  
-  mOuter->OverflowClip(aBuilder, set, aLists, clip, radii,
-                       true, mIsRoot);
 
   if (ShouldBuildLayer()) {
     
