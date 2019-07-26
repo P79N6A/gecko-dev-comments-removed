@@ -1591,9 +1591,16 @@ public:
   }
 
   
+  mozilla::dom::Element* GetPreviousElementSibling() const;
+  mozilla::dom::Element* GetNextElementSibling() const;
+  
 
 
   void Remove();
+
+  
+  mozilla::dom::Element* GetFirstElementChild() const;
+  mozilla::dom::Element* GetLastElementChild() const;
 
 protected:
 
