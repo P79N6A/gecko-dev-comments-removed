@@ -21,7 +21,6 @@
 #include "nsTraceRefcnt.h"              
 #include "LayersTypes.h"
 
-struct gfxMatrix;
 struct nsIntSize;
 
 namespace mozilla {

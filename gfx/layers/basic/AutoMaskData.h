@@ -34,20 +34,20 @@ public:
 
 
 
-  void Construct(const gfxMatrix& aTransform,
+  void Construct(const gfx::Matrix& aTransform,
                  gfxASurface* aSurface);
 
-  void Construct(const gfxMatrix& aTransform,
+  void Construct(const gfx::Matrix& aTransform,
                  const SurfaceDescriptor& aSurface);
 
   
   gfxASurface* GetSurface();
-  const gfxMatrix& GetTransform();
+  const gfx::Matrix& GetTransform();
 
 private:
   bool IsConstructed();
 
-  gfxMatrix mTransform;
+  gfx::Matrix mTransform;
   nsRefPtr<gfxASurface> mSurface;
   Maybe<AutoOpenSurface> mSurfaceOpener;
 
