@@ -1089,7 +1089,9 @@ SocialErrorListener.prototype = {
         break;
 
       case "sidebar":
-        SocialSidebar.setSidebarErrorMessage("sidebar-error");
+        
+        let reason = Social.errorState ? Social.errorState : "sidebar-error";
+        SocialSidebar.setSidebarErrorMessage(reason);
         break;
 
       case "notification-panel":
