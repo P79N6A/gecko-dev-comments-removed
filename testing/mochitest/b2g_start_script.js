@@ -22,7 +22,7 @@ let container = homescreen.contentWindow.document.getElementById('test-container
 
 function openWindow(aEvent) {
   var popupIframe = aEvent.detail.frameElement;
-  popupIframe.setAttribute('style', 'position: absolute; left: 0; top: 0px; background: white;');
+  popupIframe.style = 'position: absolute; left: 0; top: 0px; background: white;';
 
   
   
