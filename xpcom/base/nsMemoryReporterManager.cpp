@@ -1047,9 +1047,10 @@ nsMemoryReporterManager::StartGettingReports()
   
   GetReportsForThisProcessExtended(s->mHandleReport, s->mHandleReportData,
                                    s->mDMDDumpIdent);
+  s->mParentDone = true;
 
   
-  return (s->mNumChildProcesses == 0)
+  return (s->mNumChildProcessesCompleted >= s->mNumChildProcesses)
     ? FinishReporting()
     : NS_OK;
 }
@@ -1185,7 +1186,8 @@ nsMemoryReporterManager::HandleChildReports(
   MEMORY_REPORTING_LOG("HandleChildReports (aGen=%u): completed child %d\n",
                        aGeneration, s->mNumChildProcessesCompleted);
 
-  if (s->mNumChildProcessesCompleted == s->mNumChildProcesses) {
+  if (s->mNumChildProcessesCompleted >= s->mNumChildProcesses &&
+      s->mParentDone) {
     s->mTimer->Cancel();
     FinishReporting();
   }
@@ -1195,15 +1197,24 @@ nsMemoryReporterManager::HandleChildReports(
 nsMemoryReporterManager::TimeoutCallback(nsITimer* aTimer, void* aData)
 {
   nsMemoryReporterManager* mgr = static_cast<nsMemoryReporterManager*>(aData);
+  GetReportsState* s = mgr->mGetReportsState;
 
   MOZ_ASSERT(mgr->mGetReportsState);
   MEMORY_REPORTING_LOG("TimeoutCallback (s->gen=%u)\n",
-                       mgr->mGetReportsState->mGeneration);
+                       s->mGeneration);
 
   
   
 
-  mgr->FinishReporting();
+  if (s->mParentDone) {
+    mgr->FinishReporting();
+  } else {
+    
+    MEMORY_REPORTING_LOG("Timeout expired before parent report started!");
+    
+    
+    s->mNumChildProcesses = s->mNumChildProcessesCompleted;
+  }
 }
 
 nsresult
