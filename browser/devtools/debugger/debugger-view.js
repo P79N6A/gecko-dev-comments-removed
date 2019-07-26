@@ -28,13 +28,6 @@ const SEARCH_FUNCTION_FLAG = "@";
 const SEARCH_TOKEN_FLAG = "#";
 const SEARCH_LINE_FLAG = ":";
 const SEARCH_VARIABLE_FLAG = "*";
-const DEFAULT_EDITOR_CONFIG = {
-  mode: SourceEditor.MODES.TEXT,
-  readOnly: true,
-  showLineNumbers: true,
-  showAnnotationRuler: true,
-  showOverviewRuler: true
-};
 
 
 
@@ -195,10 +188,34 @@ let DebuggerView = {
   _initializeEditor: function(aCallback) {
     dumpn("Initializing the DebuggerView editor");
 
-    this.editor = new SourceEditor();
-    this.editor.init(document.getElementById("editor"), DEFAULT_EDITOR_CONFIG, () => {
+    
+    let extraKeys = {};
+    extraKeys[(Services.appinfo.OS == "Darwin" ? "Cmd-" : "Ctrl-") + "F"] = (cm) => {
+      DebuggerView.Filtering._doTokenSearch();
+    };
+
+    this.editor = new Editor({
+      mode: Editor.modes.text,
+      readOnly: true,
+      lineNumbers: true,
+      showAnnotationRuler: true,
+      gutters: [ "breakpoints" ],
+      extraKeys: extraKeys,
+      contextMenu: "sourceEditorContextMenu"
+    });
+
+    this.editor.appendTo(document.getElementById("editor")).then(() => {
+      this.editor.extend(DebuggerEditor);
       this._loadingText = L10N.getStr("loadingText");
       this._onEditorLoad(aCallback);
+    });
+
+    this.editor.on("gutterClick", (ev, line) => {
+      if (this.editor.hasBreakpoint(line)) {
+        this.editor.removeBreakpoint(line);
+      } else {
+        this.editor.addBreakpoint(line);
+      }
     });
   },
 
@@ -276,9 +293,9 @@ let DebuggerView = {
 
 
   _setEditorText: function(aTextContent = "") {
-    this.editor.setMode(SourceEditor.MODES.TEXT);
+    this.editor.setMode(Editor.modes.text);
     this.editor.setText(aTextContent);
-    this.editor.resetUndo();
+    this.editor.clearHistory();
   },
 
   
@@ -294,22 +311,24 @@ let DebuggerView = {
 
   _setEditorMode: function(aUrl, aContentType = "", aTextContent = "") {
     
+    
     if (aTextContent.length >= SOURCE_SYNTAX_HIGHLIGHT_MAX_FILE_SIZE) {
-      this.editor.setMode(SourceEditor.MODES.TEXT);
+      return void this.editor.setMode(Editor.modes.text);
     }
+
     
-    else if (SourceUtils.isJavaScript(aUrl, aContentType)) {
-      this.editor.setMode(SourceEditor.MODES.JAVASCRIPT);
+    if (SourceUtils.isJavaScript(aUrl, aContentType)) {
+      return void this.editor.setMode(Editor.modes.js);
     }
+
     
     
-    else if (aTextContent.match(/^\s*</)) {
-      this.editor.setMode(SourceEditor.MODES.HTML);
+    if (aTextContent.match(/^\s*</)) {
+      return void this.editor.setMode(Editor.modes.html);
     }
+
     
-    else {
-      this.editor.setMode(SourceEditor.MODES.TEXT);
-    }
+    this.editor.setMode(Editor.modes.text);
   },
 
   
@@ -417,41 +436,34 @@ let DebuggerView = {
 
     
     
+    
+    this.editor.clearDebugLocation();
+
+    
+    
     return this._setEditorSource(sourceForm, aFlags).then(() => {
       
       
       if (aLine < 1) {
         return;
       }
+
       if (aFlags.charOffset) {
-        aLine += this.editor.getLineAtOffset(aFlags.charOffset);
+        aLine += this.editor.getPosition(aFlags.charOffset).line;
       }
+
       if (aFlags.lineOffset) {
         aLine += aFlags.lineOffset;
       }
+
       if (!aFlags.noCaret) {
-        this.editor.setCaretPosition(aLine - 1, aFlags.columnOffset);
+        this.editor.setCursor({ line: aLine -1, ch: aFlags.columnOffset || 0 });
       }
+
       if (!aFlags.noDebug) {
-        this.editor.setDebugLocation(aLine - 1, aFlags.columnOffset);
+        this.editor.setDebugLocation(aLine - 1);
       }
-    });
-  },
-
-  
-
-
-
-
-
-
-
-
-  getEditorLineText: function(aLine) {
-    let line = aLine || this.editor.getCaretPosition().line;
-    let start = this.editor.getLineStart(line);
-    let end = this.editor.getLineEnd(line);
-    return this.editor.getText(start, end);
+    }).then(null, console.error);
   },
 
   
@@ -599,9 +611,9 @@ let DebuggerView = {
     this.EventListeners.empty();
 
     if (this.editor) {
-      this.editor.setMode(SourceEditor.MODES.TEXT);
+      this.editor.setMode(Editor.modes.text);
       this.editor.setText("");
-      this.editor.resetUndo();
+      this.editor.clearHistory();
       this._editorSource = {};
     }
   },

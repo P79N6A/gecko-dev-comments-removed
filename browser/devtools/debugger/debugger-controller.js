@@ -78,14 +78,17 @@ const EVENTS = {
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/devtools/dbg-client.jsm");
-let promise = Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js").Promise;
 Cu.import("resource:///modules/devtools/shared/event-emitter.js");
-Cu.import("resource:///modules/devtools/sourceeditor/source-editor.jsm");
 Cu.import("resource:///modules/devtools/BreadcrumbsWidget.jsm");
 Cu.import("resource:///modules/devtools/SideMenuWidget.jsm");
 Cu.import("resource:///modules/devtools/VariablesView.jsm");
 Cu.import("resource:///modules/devtools/VariablesViewController.jsm");
 Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
+
+const require = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools.require;
+const Editor = require("devtools/sourceeditor/editor");
+const promise = require("sdk/core/promise");
+const DebuggerEditor = require("devtools/sourceeditor/debugger.js");
 
 XPCOMUtils.defineLazyModuleGetter(this, "Parser",
   "resource:///modules/devtools/Parser.jsm");
@@ -608,7 +611,7 @@ StackFrames.prototype = {
 
 
   _onResumed: function() {
-    DebuggerView.editor.setDebugLocation(-1);
+    DebuggerView.editor.clearDebugLocation();
 
     
     if (!this._isWatchExpressionsEvaluation) {
@@ -1434,7 +1437,6 @@ EventListeners.prototype = {
 
 
 function Breakpoints() {
-  this._onEditorBreakpointChange = this._onEditorBreakpointChange.bind(this);
   this._onEditorBreakpointAdd = this._onEditorBreakpointAdd.bind(this);
   this._onEditorBreakpointRemove = this._onEditorBreakpointRemove.bind(this);
   this.addBreakpoint = this.addBreakpoint.bind(this);
@@ -1457,8 +1459,8 @@ Breakpoints.prototype = {
 
 
   initialize: function() {
-    DebuggerView.editor.addEventListener(
-      SourceEditor.EVENTS.BREAKPOINT_CHANGE, this._onEditorBreakpointChange);
+    DebuggerView.editor.on("breakpointAdded", this._onEditorBreakpointAdd);
+    DebuggerView.editor.on("breakpointRemoved", this._onEditorBreakpointRemove);
 
     
     return promise.resolve(null);
@@ -1471,8 +1473,8 @@ Breakpoints.prototype = {
 
 
   destroy: function() {
-    DebuggerView.editor.removeEventListener(
-      SourceEditor.EVENTS.BREAKPOINT_CHANGE, this._onEditorBreakpointChange);
+    DebuggerView.editor.off("breakpointAdded", this._onEditorBreakpointAdd);
+    DebuggerView.editor.off("breakpointRemoved", this._onEditorBreakpointRemove);
 
     return this.removeAllBreakpoints();
   },
@@ -1483,22 +1485,9 @@ Breakpoints.prototype = {
 
 
 
-
-  _onEditorBreakpointChange: function(aEvent) {
-    aEvent.added.forEach(this._onEditorBreakpointAdd, this);
-    aEvent.removed.forEach(this._onEditorBreakpointRemove, this);
-  },
-
-  
-
-
-
-
-
-  _onEditorBreakpointAdd: function(aEditorBreakpoint) {
+  _onEditorBreakpointAdd: function(_, aLine) {
     let url = DebuggerView.Sources.selectedValue;
-    let line = aEditorBreakpoint.line + 1;
-    let location = { url: url, line: line };
+    let location = { url: url, line: aLine + 1 };
 
     
     
@@ -1511,7 +1500,7 @@ Breakpoints.prototype = {
         DebuggerView.editor.addBreakpoint(aBreakpointClient.location.line - 1);
       }
       
-      window.emit(EVENTS.BREAKPOINT_SHOWN, aEditorBreakpoint);
+      window.emit(EVENTS.BREAKPOINT_SHOWN);
     });
   },
 
@@ -1521,16 +1510,15 @@ Breakpoints.prototype = {
 
 
 
-  _onEditorBreakpointRemove: function(aEditorBreakpoint) {
+  _onEditorBreakpointRemove: function(_, aLine) {
     let url = DebuggerView.Sources.selectedValue;
-    let line = aEditorBreakpoint.line + 1;
-    let location = { url: url, line: line };
+    let location = { url: url, line: aLine + 1 };
 
     
     
     this.removeBreakpoint(location, { noEditorUpdate: true }).then(() => {
       
-      window.emit(EVENTS.BREAKPOINT_HIDDEN, aEditorBreakpoint);
+      window.emit(EVENTS.BREAKPOINT_HIDDEN);
     });
   },
 
@@ -1644,7 +1632,7 @@ Breakpoints.prototype = {
       
       
       let line = aBreakpointClient.location.line - 1;
-      aBreakpointClient.text = DebuggerView.getEditorLineText(line).trim();
+      aBreakpointClient.text = DebuggerView.editor.getText(line).trim();
 
       
       this._showBreakpoint(aBreakpointClient, aOptions);

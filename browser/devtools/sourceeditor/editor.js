@@ -24,7 +24,8 @@ const L10N = Services.strings.createBundle(L10N_BUNDLE);
 
 const CM_STYLES   = [
   "chrome://browser/content/devtools/codemirror/codemirror.css",
-  "chrome://browser/content/devtools/codemirror/dialog.css"
+  "chrome://browser/content/devtools/codemirror/dialog.css",
+  "chrome://browser/content/devtools/codemirror/mozilla.css"
 ];
 
 const CM_SCRIPTS  = [
@@ -33,7 +34,12 @@ const CM_SCRIPTS  = [
   "chrome://browser/content/devtools/codemirror/searchcursor.js",
   "chrome://browser/content/devtools/codemirror/search.js",
   "chrome://browser/content/devtools/codemirror/matchbrackets.js",
-  "chrome://browser/content/devtools/codemirror/comment.js"
+  "chrome://browser/content/devtools/codemirror/comment.js",
+  "chrome://browser/content/devtools/codemirror/javascript.js",
+  "chrome://browser/content/devtools/codemirror/xml.js",
+  "chrome://browser/content/devtools/codemirror/css.js",
+  "chrome://browser/content/devtools/codemirror/htmlmixed.js",
+  "chrome://browser/content/devtools/codemirror/activeline.js"
 ];
 
 const CM_IFRAME   =
@@ -62,8 +68,9 @@ const CM_MAPPING = [
   "undo",
   "redo",
   "clearHistory",
-  "posFromIndex",
-  "openDialog"
+  "openDialog",
+  "cursorCoords",
+  "lineCount"
 ];
 
 const CM_JUMP_DIALOG = [
@@ -75,7 +82,9 @@ const editors = new WeakMap();
 
 Editor.modes = {
   text: { name: "text" },
-  js:   { name: "javascript", url: "chrome://browser/content/devtools/codemirror/javascript.js" }
+  js:   { name: "javascript" },
+  html: { name: "htmlmixed" },
+  css:  { name: "css" }
 };
 
 function ctrl(k) {
@@ -109,14 +118,15 @@ function Editor(config) {
 
   this.version = null;
   this.config = {
-    value:          "",
-    mode:           Editor.modes.text,
-    indentUnit:     tabSize,
-    tabSize:        tabSize,
-    contextMenu:    null,
-    matchBrackets:  true,
-    extraKeys:      {},
-    indentWithTabs: useTabs,
+    value:           "",
+    mode:            Editor.modes.text,
+    indentUnit:      tabSize,
+    tabSize:         tabSize,
+    contextMenu:     null,
+    matchBrackets:   true,
+    extraKeys:       {},
+    indentWithTabs:  useTabs,
+    styleActiveLine: true
   };
 
   
@@ -151,8 +161,9 @@ function Editor(config) {
 }
 
 Editor.prototype = {
+  container: null,
   version: null,
-  config:  null,
+  config: null,
 
   
 
@@ -174,6 +185,7 @@ Editor.prototype = {
     let onLoad = () => {
       
       
+
       env.removeEventListener("load", onLoad, true);
       let win = env.contentWindow.wrappedJSObject;
 
@@ -182,22 +194,22 @@ Editor.prototype = {
 
       
       
-      if (this.config.mode.name !== "text")
-        Services.scriptloader.loadSubScript(this.config.mode.url, win, "utf8");
-
-      
-      
       
 
       cm = win.CodeMirror(win.document.body, this.config);
       cm.getWrapperElement().addEventListener("contextmenu", (ev) => {
         ev.preventDefault();
+        this.emit("contextMenu");
         this.showContextMenu(doc, ev.screenX, ev.screenY);
       }, false);
 
       cm.on("change", () => this.emit("change"));
+      cm.on("gutterClick", (cm, line) => this.emit("gutterClick", line));
+      cm.on("cursorActivity", (cm) => this.emit("cursorActivity"));
+
       doc.defaultView.controllers.insertControllerAt(0, controller(this, doc.defaultView));
 
+      this.container = env;
       editors.set(this, cm);
       def.resolve();
     };
@@ -254,9 +266,11 @@ Editor.prototype = {
   
 
 
-  getText: function () {
+
+  getText: function (line) {
     let cm = editors.get(this);
-    return cm.getValue();
+    return line == null ?
+      cm.getValue() : (cm.lineInfo(line) ? cm.lineInfo(line).text : "");
   },
 
   
@@ -266,6 +280,32 @@ Editor.prototype = {
   setText: function (value) {
     let cm = editors.get(this);
     cm.setValue(value);
+  },
+
+  
+
+
+
+  setMode: function (value) {
+    let cm = editors.get(this);
+    cm.setOption("mode", value);
+  },
+
+  
+
+
+
+  getMode: function () {
+    let cm = editors.get(this);
+    return cm.getOption("mode");
+  },
+
+  
+
+
+  isReadOnly: function () {
+    let cm = editors.get(this);
+    return cm.getOption("readOnly");
   },
 
   
@@ -340,8 +380,59 @@ Editor.prototype = {
       this.setCursor({ line: line - 1, ch: 0 }));
   },
 
+  
+
+
+
+  getPositionFromCoords: function (left, top) {
+    let cm = editors.get(this);
+    return cm.coordsChar({ left: left, top: top });
+  },
+
+  
+
+
+
+  extendSelection: function (pos) {
+    let cm = editors.get(this);
+    let cursor = cm.indexFromPos(cm.getCursor());
+    let anchor = cm.posFromIndex(cursor + pos.start);
+    let head   = cm.posFromIndex(cursor + pos.start + pos.length);
+    cm.setSelection(anchor, head);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  extend: function (funcs) {
+    Object.keys(funcs).forEach((name) => {
+      let cm  = editors.get(this);
+      let ctx = { ed: this, cm: cm };
+
+      if (name === "initialize")
+        return void funcs[name](ctx);
+
+      this[name] = funcs[name].bind(null, ctx);
+    });
+  },
+
   destroy: function () {
-    this.config  = null;
+    this.container = null;
+    this.config = null;
     this.version = null;
     this.emit("destroy");
   }
@@ -365,8 +456,6 @@ CM_MAPPING.forEach(function (name) {
 function controller(ed, view) {
   return {
     supportsCommand: function (cmd) {
-      let cm = editors.get(ed);
-
       switch (cmd) {
         case "cmd_find":
         case "cmd_findAgain":
