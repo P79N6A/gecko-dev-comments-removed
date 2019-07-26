@@ -844,9 +844,6 @@ pref("browser.sessionstore.resume_session_once", false);
 pref("browser.sessionstore.interval", 15000);
 
 
-pref("browser.sessionstore.postdata", 0);
-
-
 pref("browser.sessionstore.privacy_level", 0);
 
 pref("browser.sessionstore.privacy_level_deferred", 1);

@@ -314,8 +314,6 @@ let Statistics = {
     
     subsets.FORMDATA = [];
     
-    subsets.POSTDATA = [];
-    
     subsets.HISTORY = [];
 
 
@@ -333,9 +331,6 @@ let Statistics = {
           subsets.FORMDATA.push(value);
           
           return false;
-        case "postdata_b64":
-          subsets.POSTDATA.push(value);
-          return false; 
         case "cookies": 
         case "extData":
           return false;

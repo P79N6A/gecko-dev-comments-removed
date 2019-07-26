@@ -13,8 +13,6 @@ const Ci = Components.interfaces;
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "PrivacyLevel",
-  "resource:///modules/sessionstore/PrivacyLevel.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Utils",
   "resource:///modules/sessionstore/Utils.jsm");
 
@@ -23,23 +21,11 @@ function debug(msg) {
 }
 
 
-XPCOMUtils.defineLazyGetter(this, "gPostData", function () {
-  const PREF = "browser.sessionstore.postdata";
-
-  
-  Services.prefs.addObserver(PREF, () => {
-    this.gPostData = Services.prefs.getIntPref(PREF);
-  }, false);
-
-  return Services.prefs.getIntPref(PREF);
-});
-
-
 
 
 this.SessionHistory = Object.freeze({
-  collect: function (docShell, includePrivateData) {
-    return SessionHistoryInternal.collect(docShell, includePrivateData);
+  collect: function (docShell) {
+    return SessionHistoryInternal.collect(docShell);
   },
 
   restore: function (docShell, tabData) {
@@ -57,9 +43,7 @@ let SessionHistoryInternal = {
 
 
 
-
-
-  collect: function (docShell, includePrivateData = false) {
+  collect: function (docShell) {
     let data = {entries: []};
     let isPinned = docShell.isAppTab;
     let webNavigation = docShell.QueryInterface(Ci.nsIWebNavigation);
@@ -69,7 +53,7 @@ let SessionHistoryInternal = {
       try {
         for (let i = 0; i < history.count; i++) {
           let shEntry = history.getEntryAtIndex(i, false);
-          let entry = this.serializeEntry(shEntry, includePrivateData, isPinned);
+          let entry = this.serializeEntry(shEntry, isPinned);
           data.entries.push(entry);
         }
       } catch (ex) {
@@ -113,9 +97,7 @@ let SessionHistoryInternal = {
 
 
 
-
-
-  serializeEntry: function (shEntry, includePrivateData, isPinned) {
+  serializeEntry: function (shEntry, isPinned) {
     let entry = { url: shEntry.URI.spec };
 
     
@@ -158,17 +140,6 @@ let SessionHistoryInternal = {
 
     
     try {
-      let postdata = this.serializePostData(shEntry, isPinned);
-      if (postdata) {
-        entry.postdata_b64 = postdata;
-      }
-    } catch (ex) {
-      
-      debug("Failed serializing post data: " + ex);
-    }
-
-    
-    try {
       let owner = this.serializeOwner(shEntry);
       if (owner) {
         entry.owner_b64 = owner;
@@ -203,7 +174,7 @@ let SessionHistoryInternal = {
             break;
           }
 
-          children.push(this.serializeEntry(child, includePrivateData, isPinned));
+          children.push(this.serializeEntry(child, isPinned));
         }
       }
 
@@ -213,40 +184,6 @@ let SessionHistoryInternal = {
     }
 
     return entry;
-  },
-
-  
-
-
-
-
-
-
-
-
-  serializePostData: function (shEntry, isPinned) {
-    let isHttps = shEntry.URI.schemeIs("https");
-    if (!shEntry.postData || !gPostData ||
-        !PrivacyLevel.canSave({isHttps: isHttps, isPinned: isPinned})) {
-      return null;
-    }
-
-    shEntry.postData.QueryInterface(Ci.nsISeekableStream)
-                    .seek(Ci.nsISeekableStream.NS_SEEK_SET, 0);
-    let stream = Cc["@mozilla.org/binaryinputstream;1"]
-                   .createInstance(Ci.nsIBinaryInputStream);
-    stream.setInputStream(shEntry.postData);
-    let postBytes = stream.readByteArray(stream.available());
-    let postdata = String.fromCharCode.apply(null, postBytes);
-    if (gPostData != -1 &&
-        postdata.replace(/^(Content-.*\r\n)+(\r\n)*/, "").length > gPostData) {
-      return null;
-    }
-
-    
-    
-    
-    return btoa(postdata);
   },
 
   
@@ -373,14 +310,6 @@ let SessionHistoryInternal = {
       var scrollPos = (entry.scroll || "0,0").split(",");
       scrollPos = [parseInt(scrollPos[0]) || 0, parseInt(scrollPos[1]) || 0];
       shEntry.setScrollPosition(scrollPos[0], scrollPos[1]);
-    }
-
-    if (entry.postdata_b64) {
-      var postdata = atob(entry.postdata_b64);
-      var stream = Cc["@mozilla.org/io/string-input-stream;1"].
-                   createInstance(Ci.nsIStringInputStream);
-      stream.setData(postdata, postdata.length);
-      shEntry.postData = stream;
     }
 
     let childDocIdents = {};
