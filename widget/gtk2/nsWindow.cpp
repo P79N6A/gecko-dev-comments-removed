@@ -2067,8 +2067,22 @@ nsWindow::OnExposeEvent(cairo_t *cr)
     
     region.And(region, nsIntRect(0, 0, mBounds.width, mBounds.height));
 
-    bool translucent = eTransparencyTransparent == GetTransparencyMode();
-    if (!translucent) {
+    bool shaped = false;
+    if (eTransparencyTransparent == GetTransparencyMode()) {
+        GdkScreen *screen = gdk_window_get_screen(mGdkWindow);
+        if (gdk_screen_is_composited(screen) &&
+            gdk_window_get_visual(mGdkWindow) ==
+            gdk_screen_get_rgba_visual(screen)) {
+            
+            
+            static_cast<nsWindow*>(GetTopLevelWidget())->
+                ClearTransparencyBitmap();
+        } else {
+            shaped = true;
+        }
+    }
+
+    if (!shaped) {
         GList *children =
             gdk_window_peek_children(mGdkWindow);
         while (children) {
@@ -2141,7 +2155,7 @@ nsWindow::OnExposeEvent(cairo_t *cr)
     nsIntRect boundsRect; 
 
     ctx->NewPath();
-    if (translucent) {
+    if (shaped) {
         
         
         
@@ -2155,7 +2169,7 @@ nsWindow::OnExposeEvent(cairo_t *cr)
     ctx->Clip();
 
     BufferMode layerBuffering;
-    if (translucent) {
+    if (shaped) {
         
         
         
@@ -2195,7 +2209,7 @@ nsWindow::OnExposeEvent(cairo_t *cr)
 #ifdef MOZ_X11
     
     
-    if (translucent) {
+    if (shaped) {
         if (NS_LIKELY(!mIsDestroyed)) {
             if (painted) {
                 nsRefPtr<gfxPattern> pattern = ctx->PopGroup();
