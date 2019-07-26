@@ -984,6 +984,18 @@ File.remove = function remove(path) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 File.makeDir = function makeDir(path, options) {
   return Scheduler.post("makeDir",
     [Type.path.toMsg(path), options], path);

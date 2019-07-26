@@ -16,6 +16,7 @@ if (typeof Components != "undefined") {
 
 let SharedAll =
   require("resource://gre/modules/osfile/osfile_shared_allthreads.jsm");
+let Path = require("resource://gre/modules/osfile/ospath.jsm");
 let Lz4 =
   require("resource://gre/modules/workers/lz4.js");
 let LOG = SharedAll.LOG.bind(SharedAll, "Shared front-end");
@@ -154,8 +155,8 @@ AbstractFile.openUnique = function openUnique(path, options = {}) {
     create : true
   };
 
-  let dirName = OS.Path.dirname(path);
-  let leafName = OS.Path.basename(path);
+  let dirName = Path.dirname(path);
+  let leafName = Path.basename(path);
   let lastDotCharacter = leafName.lastIndexOf('.');
   let fileName = leafName.substring(0, lastDotCharacter != -1 ? lastDotCharacter : leafName.length);
   let suffix = (lastDotCharacter != -1 ? leafName.substring(lastDotCharacter) : "");
@@ -175,10 +176,10 @@ AbstractFile.openUnique = function openUnique(path, options = {}) {
     for (let i = 0; i < maxAttempts; ++i) {
       try {
         if (humanReadable) {
-          uniquePath = OS.Path.join(dirName, fileName + "-" + (i + 1) + suffix);
+          uniquePath = Path.join(dirName, fileName + "-" + (i + 1) + suffix);
         } else {
           let hexNumber = Math.floor(Math.random() * MAX_HEX_NUMBER).toString(HEX_RADIX);
-          uniquePath = OS.Path.join(dirName, fileName + "-" + hexNumber + suffix);
+          uniquePath = Path.join(dirName, fileName + "-" + hexNumber + suffix);
         }
         return {
           path: uniquePath,
@@ -519,6 +520,53 @@ AbstractFile.removeRecursive = function(path, options = {}) {
   }
 
   OS.File.removeEmptyDir(path);
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+AbstractFile.makeDir = function(path, options = {}) {
+  if (!options.from) {
+    return OS.File._makeDir(path, options);
+  }
+  if (!path.startsWith(options.from)) {
+    throw new Error("Incorrect use of option |from|: " + path + " is not a descendant of " + options.from);
+  }
+  let innerOptions = Object.create(options, {
+    ignoreExisting: {
+      value: true
+    }
+  });
+  
+  let items = Path.split(path).components.slice(Path.split(options.from).components.length);
+  let current = options.from;
+  for (let item of items) {
+    current = Path.join(current, item);
+    OS.File._makeDir(current, innerOptions);
+  }
 };
 
 if (!exports.OS.Shared) {

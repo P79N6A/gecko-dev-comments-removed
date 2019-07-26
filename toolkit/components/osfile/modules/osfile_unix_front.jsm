@@ -397,7 +397,14 @@
 
 
 
-     File.makeDir = function makeDir(path, options = {}) {
+
+
+
+
+
+
+
+     File._makeDir = function makeDir(path, options = {}) {
        let omode = options.unixMode !== undefined ? options.unixMode : DEFAULT_UNIX_MODE_DIR;
        let result = UnixFile.mkdir(path, omode);
        if (result == -1) {
@@ -935,6 +942,7 @@
      File.read = exports.OS.Shared.AbstractFile.read;
      File.writeAtomic = exports.OS.Shared.AbstractFile.writeAtomic;
      File.openUnique = exports.OS.Shared.AbstractFile.openUnique;
+     File.makeDir = exports.OS.Shared.AbstractFile.makeDir;
 
      
 
