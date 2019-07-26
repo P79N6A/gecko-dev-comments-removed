@@ -6,6 +6,7 @@
 package org.mozilla.gecko;
 
 import org.mozilla.gecko.util.GeckoEventListener;
+import org.mozilla.gecko.util.HardwareUtils;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -140,7 +141,7 @@ public class DoorHangerPopup extends PopupWindow
     private void init() {
         setBackgroundDrawable(new BitmapDrawable());
         setOutsideTouchable(true);
-        setWindowLayoutMode(mActivity.isTablet() ? ViewGroup.LayoutParams.WRAP_CONTENT : ViewGroup.LayoutParams.FILL_PARENT,
+        setWindowLayoutMode(HardwareUtils.isTablet() ? ViewGroup.LayoutParams.WRAP_CONTENT : ViewGroup.LayoutParams.FILL_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT);
 
         LayoutInflater inflater = LayoutInflater.from(mActivity);
@@ -274,7 +275,7 @@ public class DoorHangerPopup extends PopupWindow
         
         
         
-        int offset = mActivity.isTablet() ? mAnchor.getWidth()/2 - mArrowWidth/2 -
+        int offset = HardwareUtils.isTablet() ? mAnchor.getWidth()/2 - mArrowWidth/2 -
                      ((RelativeLayout.LayoutParams) mArrow.getLayoutParams()).leftMargin : 0;
         showAsDropDown(mAnchor, offset, -mYOffset);
         
