@@ -505,6 +505,8 @@ GetTypeCallerInitObject(JSContext *cx, JSProtoKey key)
     return GetTypeNewObject(cx, key);
 }
 
+void MarkIteratorUnknownSlow(JSContext *cx);
+
 
 
 
@@ -512,11 +514,12 @@ GetTypeCallerInitObject(JSContext *cx, JSProtoKey key)
 inline void
 MarkIteratorUnknown(JSContext *cx)
 {
-    extern void MarkIteratorUnknownSlow(JSContext *cx);
-
     if (cx->typeInferenceEnabled())
         MarkIteratorUnknownSlow(cx);
 }
+
+void TypeMonitorCallSlow(JSContext *cx, HandleObject callee, const CallArgs &args,
+                         bool constructing);
 
 
 
@@ -525,9 +528,6 @@ MarkIteratorUnknown(JSContext *cx)
 inline bool
 TypeMonitorCall(JSContext *cx, const js::CallArgs &args, bool constructing)
 {
-    extern void TypeMonitorCallSlow(JSContext *cx, HandleObject callee,
-                                    const CallArgs &args, bool constructing);
-
     js::RootedObject callee(cx, &args.callee());
     if (callee->isFunction()) {
         JSFunction *fun = callee->toFunction();

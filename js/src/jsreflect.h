@@ -98,5 +98,4 @@ extern char const *nodeTypeNames[];
 
 } 
 
-
 #endif 

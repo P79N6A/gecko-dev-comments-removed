@@ -1068,8 +1068,6 @@ ScopeIterKey::match(ScopeIterKey si1, ScopeIterKey si2)
 
 
 
-namespace js {
-
 
 
 
@@ -1460,8 +1458,6 @@ class DebugScopeProxy : public BaseProxyHandler
                                         JSDVG_IGNORE_STACK, idval, NullPtr(), NULL, NULL);
     }
 };
-
-}  
 
 int DebugScopeProxy::family = 0;
 DebugScopeProxy DebugScopeProxy::singleton;

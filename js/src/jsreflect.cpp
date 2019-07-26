@@ -37,9 +37,7 @@ using namespace js::frontend;
 using mozilla::DebugOnly;
 using mozilla::ArrayLength;
 
-namespace js {
-
-char const *aopNames[] = {
+char const *js::aopNames[] = {
     "=",    
     "+=",   
     "-=",   
@@ -54,7 +52,7 @@ char const *aopNames[] = {
     "&="    
 };
 
-char const *binopNames[] = {
+char const *js::binopNames[] = {
     "==",         
     "!=",         
     "===",        
@@ -79,7 +77,7 @@ char const *binopNames[] = {
     "..",         
 };
 
-char const *unopNames[] = {
+char const *js::unopNames[] = {
     "delete",  
     "-",       
     "+",       
@@ -89,14 +87,14 @@ char const *unopNames[] = {
     "void"     
 };
 
-char const *nodeTypeNames[] = {
+char const *js::nodeTypeNames[] = {
 #define ASTDEF(ast, str, method) str,
 #include "jsast.tbl"
 #undef ASTDEF
     NULL
 };
 
-char const *callbackNames[] = {
+static char const *callbackNames[] = {
 #define ASTDEF(ast, str, method) method,
 #include "jsast.tbl"
 #undef ASTDEF
@@ -1684,8 +1682,6 @@ NodeBuilder::xmlPI(HandleValue target, HandleValue contents, TokenPos *pos, Muta
                    "contents", contents,
                    dst);
 }
-
-
 
 
 
@@ -3386,8 +3382,6 @@ ASTSerializer::functionBody(ParseNode *pn, TokenPos *pos, MutableHandleValue dst
     return builder.blockStatement(elts, pos, dst);
 }
 
-} 
-
 static JSBool
 reflect_parse(JSContext *cx, uint32_t argc, jsval *vp)
 {
@@ -3514,7 +3508,6 @@ static JSFunctionSpec static_methods[] = {
     JS_FN("parse", reflect_parse, 1, 0),
     JS_FS_END
 };
-
 
 JS_PUBLIC_API(JSObject *)
 JS_InitReflect(JSContext *cx, JSObject *objArg)

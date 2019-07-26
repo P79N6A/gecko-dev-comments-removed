@@ -875,10 +875,8 @@ js_GetLocalizedErrorMessage(JSContext* cx, void *userRef, const char *locale,
     return errorString;
 }
 
-namespace js {
-
 JS_FRIEND_API(const jschar*)
-GetErrorTypeName(JSContext* cx, int16_t exnType)
+js::GetErrorTypeName(JSContext* cx, int16_t exnType)
 {
     
 
@@ -892,8 +890,6 @@ GetErrorTypeName(JSContext* cx, int16_t exnType)
     JSProtoKey key = GetExceptionProtoKey(exnType);
     return ClassName(key, cx)->chars();
 }
-
-} 
 
 #if defined ( DEBUG_mccabe ) && defined ( PRINTNAMES )
 

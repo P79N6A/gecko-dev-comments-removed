@@ -64,12 +64,12 @@ GetGCThingTraceKind(const void *thing)
 
 const size_t SLOTS_TO_THING_KIND_LIMIT = 17;
 
+extern AllocKind slotsToThingKind[];
+
 
 static inline AllocKind
 GetGCObjectKind(size_t numSlots)
 {
-    extern AllocKind slotsToThingKind[];
-
     AutoAssertNoGC nogc;
     if (numSlots >= SLOTS_TO_THING_KIND_LIMIT)
         return FINALIZE_OBJECT16;

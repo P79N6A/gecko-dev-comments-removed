@@ -862,11 +862,9 @@ Revive(JSContext *cx, HandleValue reviver, MutableHandleValue vp)
     return Walk(cx, obj, id, reviver, vp);
 }
 
-namespace js {
-
 JSBool
-ParseJSONWithReviver(JSContext *cx, StableCharPtr chars, size_t length, HandleValue reviver,
-                     MutableHandleValue vp, DecodingMode decodingMode )
+js::ParseJSONWithReviver(JSContext *cx, StableCharPtr chars, size_t length, HandleValue reviver,
+                         MutableHandleValue vp, DecodingMode decodingMode )
 {
     
     JSONParser parser(cx, chars, length,
@@ -879,8 +877,6 @@ ParseJSONWithReviver(JSContext *cx, StableCharPtr chars, size_t length, HandleVa
         return Revive(cx, reviver, vp);
     return true;
 }
-
-} 
 
 #if JS_HAS_TOSOURCE
 static JSBool
