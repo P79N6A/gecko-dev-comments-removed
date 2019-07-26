@@ -1264,7 +1264,17 @@ public:
 
   NS_IMETHOD Run()
   {
-    mManager->RemovedFromDocumentInternal(mElement, mDoc);
+    
+    
+    
+    
+    
+    
+    
+    if (!mElement->IsInDoc()) {
+      mManager->RemovedFromDocumentInternal(mElement, mDoc);
+    }
+
     return NS_OK;
   }
 
