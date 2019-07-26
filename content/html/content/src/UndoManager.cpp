@@ -361,7 +361,7 @@ nsresult
 UndoContentAppend::RedoTransaction()
 {
   for (int32_t i = 0; i < mChildren.Count(); i++) {
-    if (!mChildren[i]->GetParent()) {
+    if (!mChildren[i]->GetParentNode()) {
       mContent->AppendChildTo(mChildren[i], true);
     }
   }
@@ -373,7 +373,7 @@ nsresult
 UndoContentAppend::UndoTransaction()
 {
   for (int32_t i = mChildren.Count() - 1; i >= 0; i--) {
-    if (mChildren[i]->GetParent() == mContent) {
+    if (mChildren[i]->GetParentNode() == mContent) {
       ErrorResult error;
       mContent->RemoveChild(*mChildren[i], error);
     }
@@ -428,12 +428,12 @@ UndoContentInsert::RedoTransaction()
   }
 
   
-  if (mChild->GetParent()) {
+  if (mChild->GetParentNode()) {
     return NS_OK;
   }
 
   
-  if (mNextNode && mNextNode->GetParent() != mContent) {
+  if (mNextNode && mNextNode->GetParentNode() != mContent) {
     return NS_OK;
   }
 
@@ -450,12 +450,12 @@ UndoContentInsert::UndoTransaction()
   }
 
   
-  if (mChild->GetParent() != mContent) {
+  if (mChild->GetParentNode() != mContent) {
     return NS_OK;
   }
 
   
-  if (mNextNode && mNextNode->GetParent() != mContent) {
+  if (mNextNode && mNextNode->GetParentNode() != mContent) {
     return NS_OK;
   }
 
@@ -521,12 +521,12 @@ UndoContentRemove::UndoTransaction()
   }
 
   
-  if (mChild->GetParent()) {
+  if (mChild->GetParentNode()) {
     return NS_OK;
   }
 
   
-  if (mNextNode && mNextNode->GetParent() != mContent) {
+  if (mNextNode && mNextNode->GetParentNode() != mContent) {
     return NS_OK;
   }
 
@@ -543,12 +543,12 @@ UndoContentRemove::RedoTransaction()
   }
 
   
-  if (mChild->GetParent() != mContent) {
+  if (mChild->GetParentNode() != mContent) {
     return NS_OK;
   }
 
   
-  if (mNextNode && mNextNode->GetParent() != mContent) {
+  if (mNextNode && mNextNode->GetParentNode() != mContent) {
     return NS_OK;
   }
 
@@ -598,17 +598,17 @@ NS_IMPL_ISUPPORTS1(UndoMutationObserver, nsIMutationObserver)
 bool
 UndoMutationObserver::IsManagerForMutation(nsIContent* aContent)
 {
-  nsCOMPtr<nsIContent> content = aContent;
+  nsCOMPtr<nsINode> currentNode = aContent;
   nsRefPtr<UndoManager> undoManager;
 
   
-  while (content && !undoManager) {
-    nsCOMPtr<Element> htmlElem = do_QueryInterface(content);
+  while (currentNode && !undoManager) {
+    nsCOMPtr<Element> htmlElem = do_QueryInterface(currentNode);
     if (htmlElem) {
       undoManager = htmlElem->GetUndoManager();
     }
 
-    content = content->GetParent();
+    currentNode = currentNode->GetParentNode();
   }
 
   if (!undoManager) {
