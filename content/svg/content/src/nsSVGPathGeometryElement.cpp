@@ -4,6 +4,7 @@
 
 
 #include "nsSVGPathGeometryElement.h"
+#include "nsSVGLength2.h"
 
 
 
@@ -24,6 +25,19 @@ nsSVGPathGeometryElement::AttributeDefinesGeometry(const nsIAtom *aName)
     }
   }
 
+  return false;
+}
+
+bool
+nsSVGPathGeometryElement::GeometryDependsOnCoordCtx()
+{
+  
+  LengthAttributesInfo info = const_cast<nsSVGPathGeometryElement*>(this)->GetLengthInfo();
+  for (uint32_t i = 0; i < info.mLengthCount; i++) {
+    if (info.mLengths[i].GetSpecifiedUnitType() == nsIDOMSVGLength::SVG_LENGTHTYPE_PERCENTAGE) {
+      return true;
+    }   
+  }
   return false;
 }
 

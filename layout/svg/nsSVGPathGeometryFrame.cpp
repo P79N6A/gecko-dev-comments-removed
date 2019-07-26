@@ -358,7 +358,12 @@ nsSVGPathGeometryFrame::NotifySVGChanged(uint32_t aFlags)
   
   
   
-  nsSVGUtils::ScheduleReflowSVG(this);
+  
+
+  if ((aFlags & COORD_CONTEXT_CHANGED) &&
+      static_cast<nsSVGPathGeometryElement*>(mContent)->GeometryDependsOnCoordCtx()) {
+    nsSVGUtils::ScheduleReflowSVG(this);
+  }
 }
 
 SVGBBox

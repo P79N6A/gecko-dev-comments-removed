@@ -27,6 +27,18 @@ public:
   nsSVGPathGeometryElement(already_AddRefed<nsINodeInfo> aNodeInfo);
 
   virtual bool AttributeDefinesGeometry(const nsIAtom *aName);
+
+  
+
+
+
+
+
+
+
+
+  bool GeometryDependsOnCoordCtx();
+
   virtual bool IsMarkable();
   virtual void GetMarkPoints(nsTArray<nsSVGMark> *aMarks);
   virtual void ConstructPath(gfxContext *aCtx) = 0;
