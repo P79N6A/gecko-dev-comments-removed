@@ -576,7 +576,6 @@ FormAssistant.prototype = {
     return result;
   }
 };
-this.FormAssistant = FormAssistant;
 
 
 
@@ -705,7 +704,6 @@ SelectWrapper.prototype = {
     }, 0);
   }
 };
-this.SelectWrapper = SelectWrapper;
 
 
 
@@ -763,4 +761,3 @@ MenulistWrapper.prototype = {
     }, 0);
   }
 };
-this.MenulistWrapper = MenulistWrapper;

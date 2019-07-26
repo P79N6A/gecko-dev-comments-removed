@@ -2,9 +2,6 @@
 
 
 
-let Ci = Components.interfaces;
-let Cc = Components.classes;
-
 dump("### ConsoleAPIObserver.js loaded\n");
 
 
@@ -119,7 +116,6 @@ var ConsoleAPIObserver = {
     return aSourceURL;
   }
 };
-this.ConsoleAPIObserver = ConsoleAPIObserver;
 
 ConsoleAPIObserver.init();
 
