@@ -315,7 +315,7 @@ pref("urlclassifier.alternate_error_page", "blocked");
 pref("urlclassifier.gethashnoise", 4);
 
 
-pref("urlclassifier.randomizeclient", false);
+pref("urlclassifier.randomizeclient", true);
 
 
 pref("urlclassifier.gethashtables", "goog-phish-shavar,goog-malware-shavar");
@@ -586,4 +586,4 @@ pref("network.activity.blipIntervalMilliseconds", 250);
 pref("general.useragent.override.facebook.com", "\(Mobile#(Android; Mobile");
 pref("general.useragent.override.youtube.com", "\(Mobile#(Android; Mobile");
 
-pref("jsloader.reuseGlobal", false);
+pref("jsloader.reuseGlobal", true);
