@@ -16,25 +16,25 @@ const SNIPPETS_URL_PREF = "browser.aboutHomeSnippets.updateUrl";
 const STARTPAGE_VERSION = 4;
 
 this.AboutHomeUtils = {
-  get snippetsVersion() STARTPAGE_VERSION
-};
+  get snippetsVersion() STARTPAGE_VERSION,
+
+  
 
 
 
-
-
-XPCOMUtils.defineLazyGetter(AboutHomeUtils, "defaultSearchEngine", function() {
-  let defaultEngine = Services.search.defaultEngine;
-  let submission = defaultEngine.getSubmission("_searchTerms_", null, "homepage");
-  if (submission.postData) {
-    throw new Error("Home page does not support POST search engines.");
+  get defaultSearchEngine() {
+    let defaultEngine = Services.search.defaultEngine;
+    let submission = defaultEngine.getSubmission("_searchTerms_", null, "homepage");
+    if (submission.postData) {
+      throw new Error("Home page does not support POST search engines.");
+    }
+  
+    return Object.freeze({
+      name: defaultEngine.name,
+      searchURL: submission.uri.spec
+    });
   }
-
-  return Object.freeze({
-    name: defaultEngine.name,
-    searchURL: submission.uri.spec
-  });
-});
+};
 
 
 
