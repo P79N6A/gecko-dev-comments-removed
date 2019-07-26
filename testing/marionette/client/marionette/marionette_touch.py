@@ -18,7 +18,10 @@ class MarionetteTouchMixin(object):
         self.import_script(self.library)
 
     def tap(self, element):
-        self.execute_script("%s.tap(arguments[0]);" % self.library_name, [element])
+        
+        
+        send_all = self.execute_script("return typeof window.wrappedJSObject.MouseEventShim === 'undefined';") 
+        self.execute_script("%s.tap(arguments[0], null, null, null, null, arguments[1]);" % self.library_name, [element, send_all])
 
     def double_tap(self, element):
         self.execute_script("%s.dbltap(arguments[0]);" % self.library_name, [element])

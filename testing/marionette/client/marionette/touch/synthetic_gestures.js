@@ -285,7 +285,7 @@ var SyntheticGestures = (function() {
   
   
   
-  function tap(target, then, x, y, t) {
+  function tap(target, then, x, y, t, sendAll) {
     if (!SyntheticGestures.touchSupported) {
       console.warn('tap: touch events not supported; using mouse instead');
       return mousetap(target, then, x, y, t);
@@ -298,9 +298,14 @@ var SyntheticGestures = (function() {
 
     var c = coordinates(target, x, y);
 
-    touch(target, t || 50, [c.x0, c.x0], [c.y0, c.y0],  function() {
-      mousetap(target, then, x, y, t, true);
-    });
+    if (sendAll) {
+      touch(target, t || 50, [c.x0, c.x0], [c.y0, c.y0],  function() {
+        mousetap(target, then, x, y, t, true);
+      });
+    }
+    else {
+      touch(target, t || 50, [c.x0, c.x0], [c.y0, c.y0], then);
+    }
   }
 
   
