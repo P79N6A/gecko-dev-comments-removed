@@ -15,6 +15,13 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/CrashReports.jsm");
 #endif
 
+let Experiments;
+try {
+  Experiments = Cu.import("resource:///modules/experiments/Experiments.jsm").Experiments;
+}
+catch (e) {
+}
+
 
 
 
@@ -172,6 +179,18 @@ let dataProviders = {
         }, {});
       }));
     });
+  },
+
+  experiments: function experiments(done) {
+    if (Experiments === undefined) {
+      done([]);
+      return;
+    }
+
+    
+    Experiments.instance().getExperiments().then(
+      experiments => done(experiments)
+    );
   },
 
   modifiedPreferences: function modifiedPreferences(done) {
