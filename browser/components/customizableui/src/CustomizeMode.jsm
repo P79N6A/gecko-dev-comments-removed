@@ -132,7 +132,7 @@ CustomizeMode.prototype = {
       
       
       
-      window.PanelUI.ensureRegistered(true);
+      yield window.PanelUI.ensureReady(true);
 
       this._showPanelCustomizationPlaceholders();
 

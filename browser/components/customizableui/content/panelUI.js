@@ -4,6 +4,8 @@
 
 XPCOMUtils.defineLazyModuleGetter(this, "CustomizableUI",
                                   "resource:///modules/CustomizableUI.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Promise",
+                                  "resource://gre/modules/Promise.jsm");
 
 
 
@@ -22,7 +24,8 @@ const PanelUI = {
       multiView: "PanelUI-multiView",
       helpView: "PanelUI-help",
       menuButton: "PanelUI-menu-button",
-      panel: "PanelUI-popup"
+      panel: "PanelUI-popup",
+      scroller: "PanelUI-contents-scroller"
     };
   },
 
@@ -93,29 +96,30 @@ const PanelUI = {
     if (this.panel.state == "open") {
       this.hide();
     } else if (this.panel.state == "closed") {
-      this.ensureRegistered();
-      this.panel.hidden = false;
-      let editControlPlacement = CustomizableUI.getPlacementOfWidget("edit-controls");
-      if (editControlPlacement && editControlPlacement.area == CustomizableUI.AREA_PANEL) {
-        updateEditUIVisibility();
-      }
+      this.ensureReady().then(function() {
+        this.panel.hidden = false;
+        let editControlPlacement = CustomizableUI.getPlacementOfWidget("edit-controls");
+        if (editControlPlacement && editControlPlacement.area == CustomizableUI.AREA_PANEL) {
+          updateEditUIVisibility();
+        }
 
-      let anchor;
-      if (aEvent.type == "command") {
-        anchor = this.menuButton;
-      } else {
-        anchor = aEvent.target;
-      }
-      let iconAnchor =
-        document.getAnonymousElementByAttribute(anchor, "class",
-                                                "toolbarbutton-icon");
+        let anchor;
+        if (aEvent.type == "command") {
+          anchor = this.menuButton;
+        } else {
+          anchor = aEvent.target;
+        }
+        let iconAnchor =
+          document.getAnonymousElementByAttribute(anchor, "class",
+                                                  "toolbarbutton-icon");
 
-      
-      
-      let keyboardOpened = aEvent.sourceEvent &&
-                           aEvent.sourceEvent.target.localName == "key";
-      this.panel.setAttribute("noautofocus", !keyboardOpened);
-      this.panel.openPopup(iconAnchor || anchor, "bottomcenter topright");
+        
+        
+        let keyboardOpened = aEvent.sourceEvent &&
+                             aEvent.sourceEvent.target.localName == "key";
+        this.panel.setAttribute("noautofocus", !keyboardOpened);
+        this.panel.openPopup(iconAnchor || anchor, "bottomcenter topright");
+      }.bind(this));
     }
   },
 
@@ -151,14 +155,37 @@ const PanelUI = {
 
 
 
-  ensureRegistered: function(aCustomizing=false) {
-    if (aCustomizing) {
-      CustomizableUI.registerMenuPanel(this.contents);
-    } else {
-      this.beginBatchUpdate();
-      CustomizableUI.registerMenuPanel(this.contents);
-      this.endBatchUpdate();
-    }
+
+
+  ensureReady: function(aCustomizing=false) {
+    return Task.spawn(function() {
+      if (!this._scrollWidth) {
+        
+        
+        
+        
+        this._scrollWidth = (yield this._sampleScrollbarWidth()) + "px";
+        let cstyle = window.getComputedStyle(this.scroller);
+        let widthStr = cstyle.width;
+        
+        
+        
+        
+        let paddingLeft = cstyle.paddingLeft;
+        let paddingRight = cstyle.paddingRight;
+        let calcStr = [widthStr, this._scrollWidth,
+                       paddingLeft, paddingRight].join(" + ");
+        this.scroller.style.width = "calc(" + calcStr + ")";
+      }
+
+      if (aCustomizing) {
+        CustomizableUI.registerMenuPanel(this.contents);
+      } else {
+        this.beginBatchUpdate();
+        CustomizableUI.registerMenuPanel(this.contents);
+        this.endBatchUpdate();
+      }
+    }.bind(this));
   },
 
   
@@ -317,5 +344,35 @@ const PanelUI = {
 
   _onHelpViewHide: function(aEvent) {
     this.removeEventListener("command", PanelUI.onCommandHandler);
+  },
+
+  _sampleScrollbarWidth: function() {
+    let deferred = Promise.defer();
+    let hwin = Services.appShell.hiddenDOMWindow;
+    let hdoc = hwin.document.documentElement;
+    let iframe = hwin.document.createElementNS("http://www.w3.org/1999/xhtml",
+                                               "html:iframe");
+    iframe.setAttribute("srcdoc", '<body style="overflow-y: scroll"></body>');
+    hdoc.appendChild(iframe);
+
+    let cwindow = iframe.contentWindow;
+    let utils = cwindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                       .getInterface(Ci.nsIDOMWindowUtils);
+
+    cwindow.addEventListener("load", function onLoad(aEvent) {
+      cwindow.removeEventListener("load", onLoad);
+      let sbWidth = {};
+      try {
+        utils.getScrollbarSize(true, sbWidth, {});
+      } catch(e) {
+        Components.utils.reportError("Could not sample scrollbar size: " + e +
+                                     " -- " + e.stack);
+        sbWidth.value = 0;
+      }
+      deferred.resolve(sbWidth.value);
+      iframe.remove();
+    });
+
+    return deferred.promise;
   }
 };
