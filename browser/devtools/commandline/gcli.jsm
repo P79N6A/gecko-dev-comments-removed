@@ -24,7 +24,7 @@
 
 
 
-this.EXPORTED_SYMBOLS = [ "gcli" ];
+var EXPORTED_SYMBOLS = [ "gcli" ];
 
 Components.utils.import("resource://gre/modules/devtools/Require.jsm");
 Components.utils.import("resource://gre/modules/devtools/Console.jsm");
@@ -6796,7 +6796,12 @@ Output.prototype.toDom = function(element) {
       node = util.createElement(document, 'p');
     }
 
-    util.setContents(node, output.toString());
+    if (this.command.returnType === 'string') {
+      node.textContent = output;
+    }
+    else {
+      util.setContents(node, output.toString());
+    }
   }
 
   
@@ -10479,4 +10484,4 @@ define("text!gcli/ui/tooltip.html", [], "\n" +
 
 
 
-this.gcli = require('gcli/index');
+const gcli = require('gcli/index');

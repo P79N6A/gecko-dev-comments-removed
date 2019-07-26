@@ -4,7 +4,7 @@
 
 "use strict";
 
-this.EXPORTED_SYMBOLS = [ "DeveloperToolbar" ];
+const EXPORTED_SYMBOLS = [ "DeveloperToolbar" ];
 
 const NS_XHTML = "http://www.w3.org/1999/xhtml";
 const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
@@ -46,7 +46,7 @@ XPCOMUtils.defineLazyGetter(this, "isLinux", function () {
 
 
 
-this.DeveloperToolbar = function DeveloperToolbar(aChromeWindow, aToolbarElement)
+function DeveloperToolbar(aChromeWindow, aToolbarElement)
 {
   this._chromeWindow = aChromeWindow;
 
@@ -583,6 +583,7 @@ function OutputPanel(aChromeDoc, aInput, aLoadCallback)
   this._frame = aChromeDoc.createElementNS(NS_XHTML, "iframe");
   this._frame.id = "gcli-output-frame";
   this._frame.setAttribute("src", "chrome://browser/content/devtools/commandlineoutput.xhtml");
+  this._frame.setAttribute("sandbox", "allow-same-origin");
   this._panel.appendChild(this._frame);
 
   this.displayedOutput = undefined;
@@ -854,6 +855,7 @@ function TooltipPanel(aChromeDoc, aInput, aLoadCallback)
 
 
 
+
   
   
   this._panel = aChromeDoc.createElement(isLinux ? "tooltip" : "panel");
@@ -882,6 +884,7 @@ function TooltipPanel(aChromeDoc, aInput, aLoadCallback)
   this._frame.id = "gcli-tooltip-frame";
   this._frame.setAttribute("src", "chrome://browser/content/devtools/commandlinetooltip.xhtml");
   this._frame.setAttribute("flex", "1");
+  this._frame.setAttribute("sandbox", "allow-same-origin");
   this._panel.appendChild(this._frame);
 
   this._frame.addEventListener("load", this._onload, true);
