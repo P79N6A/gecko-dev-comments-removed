@@ -19,8 +19,8 @@ namespace ion {
 
 
 
-IonCode *
-ICCompare_Int32::Compiler::generateStubCode()
+bool
+ICCompare_Int32::Compiler::generateStubCode(MacroAssembler &masm)
 {
     
     Assembler::Condition cond;
@@ -29,10 +29,8 @@ ICCompare_Int32::Compiler::generateStubCode()
       case JSOP_GT: cond = Assembler::GreaterThan; break;
       default:
         JS_ASSERT(!"Unhandled op for ICCompare_Int32!");
-        return NULL;
+        return false;
     }
-
-    MacroAssembler masm;
 
     
     Label failure;
@@ -48,23 +46,20 @@ ICCompare_Int32::Compiler::generateStubCode()
 
     
     masm.boxValue(JSVAL_TYPE_BOOLEAN, ScratchReg, R0.valueReg());
-    masm.ret();
+    EmitReturnFromIC(masm);
 
     
     masm.bind(&failure);
     EmitStubGuardFailure(masm);
 
-    Linker linker(masm);
-    return linker.newCode(cx);
+    return true;
 }
 
 
 
-IonCode *
-ICBinaryArith_Int32::Compiler::generateStubCode()
+bool
+ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
 {
-    MacroAssembler masm;
-
     
     Label failure;
     masm.branchTestInt32(Assembler::NotEqual, R0, &failure);
@@ -81,7 +76,7 @@ ICBinaryArith_Int32::Compiler::generateStubCode()
         break;
       default:
         JS_ASSERT(!"Unhandled op for BinaryArith_Int32!");
-        return NULL;
+        return false;
     }
 
     
@@ -90,14 +85,13 @@ ICBinaryArith_Int32::Compiler::generateStubCode()
 
     
     masm.boxValue(JSVAL_TYPE_INT32, ScratchReg, R0.valueReg());
-    masm.ret();
+    EmitReturnFromIC(masm);
 
     
     masm.bind(&failure);
     EmitStubGuardFailure(masm);
 
-    Linker linker(masm);
-    return linker.newCode(cx);
+    return true;
 }
 
 

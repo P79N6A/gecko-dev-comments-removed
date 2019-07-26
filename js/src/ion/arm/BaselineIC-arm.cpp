@@ -24,9 +24,14 @@ ICCompare_Int32::Compiler::generateStubCode(MacroAssembler &masm)
 {
     
     Assembler::Condition cond;
+    Assembler::Condition notcond;
     switch(op) {
-      case JSOP_LT: cond = Assembler::LessThan; break;
-      case JSOP_GT: cond = Assembler::GreaterThan; break;
+      case JSOP_LT:
+        cond = Assembler::LessThan;
+        break;
+      case JSOP_GT:
+        cond = Assembler::GreaterThan;
+        break;
       default:
         JS_ASSERT(!"Unhandled op for ICCompare_Int32!");
         return false;
@@ -38,9 +43,9 @@ ICCompare_Int32::Compiler::generateStubCode(MacroAssembler &masm)
     masm.branchTestInt32(Assembler::NotEqual, R1, &failure);
 
     
-    masm.cmpl(R0.payloadReg(), R1.payloadReg());
-    masm.setCC(cond, R0.payloadReg());
-    masm.movzxbl(R0.payloadReg(), R0.payloadReg());
+    masm.cmp32(R0.payloadReg(), R1.payloadReg());
+    masm.ma_mov(Imm32(1), R0.payloadReg(), NoSetCond, cond);
+    masm.ma_mov(Imm32(0), R0.payloadReg(), NoSetCond, Assembler::InvertCondition(cond));
 
     
     masm.tagValue(JSVAL_TYPE_BOOLEAN, R0.payloadReg(), R0);
@@ -64,13 +69,11 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
     masm.branchTestInt32(Assembler::NotEqual, R1, &failure);
 
     
-    
-    Register scratchReg = BaselineTailCallReg;
+    Register scratchReg = R2.payloadReg();
 
     switch(op) {
       case JSOP_ADD:
-        masm.movl(R1.payloadReg(), scratchReg);
-        masm.addl(R0.payloadReg(), scratchReg);
+        masm.ma_add(R0.payloadReg(), R1.payloadReg(), scratchReg);
         break;
       default:
         JS_ASSERT(!"Unhandled op for BinaryArith_Int32!");
@@ -82,7 +85,8 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
     masm.j(Assembler::Overflow, &failure);
 
     
-    masm.tagValue(JSVAL_TYPE_INT32, scratchReg, R0);
+    
+    masm.movePtr(scratchReg, R0.payloadReg());
     EmitReturnFromIC(masm);
 
     

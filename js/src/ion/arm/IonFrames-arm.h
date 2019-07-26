@@ -18,7 +18,7 @@ class IonFramePrefix;
 
 class IonCommonFrameLayout
 {
-    uint8_t *returnAddress_;
+    uint8 *returnAddress_;
     uintptr_t descriptor_;
 
     static const uintptr_t FrameTypeMask = (1 << FRAMETYPE_BITS) - 1;
@@ -43,7 +43,7 @@ class IonCommonFrameLayout
     void setFrameDescriptor(size_t size, FrameType type) {
         descriptor_ = (size << FRAMESIZE_SHIFT) | type;
     }
-    uint8_t *returnAddress() const {
+    uint8 *returnAddress() const {
         return returnAddress_;
     }
 };
@@ -83,6 +83,9 @@ class IonJSFrameLayout : public IonEntryFrameLayout
         
         return reinterpret_cast<size_t>(&base->argv()[1]);
     }
+    static size_t offsetOfActualArg(size_t arg) {
+        return offsetOfActualArgs() + arg * sizeof(Value);
+    }
 
     Value *argv() {
         return (Value *)(this + 1);
@@ -93,8 +96,8 @@ class IonJSFrameLayout : public IonEntryFrameLayout
 
     
     
-    uintptr_t *slotRef(uint32_t slot) {
-        return (uintptr_t *)((uint8_t *)this - (slot * STACK_SLOT_SIZE));
+    uintptr_t *slotRef(uint32 slot) {
+        return (uintptr_t *)((uint8 *)this - (slot * STACK_SLOT_SIZE));
     }
 
     static inline size_t Size() {
@@ -110,14 +113,14 @@ class IonRectifierFrameLayout : public IonJSFrameLayout
     }
 };
 
-class IonUnwoundRectifierFrameLayout : public IonJSFrameLayout
+class IonBailedRectifierFrameLayout : public IonJSFrameLayout
 {
   public:
     static inline size_t Size() {
         
         
         
-        return sizeof(IonUnwoundRectifierFrameLayout);
+        return sizeof(IonBailedRectifierFrameLayout);
     }
 };
 
@@ -163,8 +166,8 @@ class IonDOMExitFrameLayout;
 
 class IonExitFrameLayout : public IonCommonFrameLayout
 {
-    inline uint8_t *top() {
-        return reinterpret_cast<uint8_t *>(this + 1);
+    inline uint8 *top() {
+        return reinterpret_cast<uint8 *>(this + 1);
     }
 
   public:
@@ -176,14 +179,14 @@ class IonExitFrameLayout : public IonCommonFrameLayout
     }
 
     inline IonExitFooterFrame *footer() {
-        uint8_t *sp = reinterpret_cast<uint8_t *>(this);
+        uint8 *sp = reinterpret_cast<uint8 *>(this);
         return reinterpret_cast<IonExitFooterFrame *>(sp - IonExitFooterFrame::Size());
     }
 
     
     
     
-    inline uint8_t *argBase() {
+    inline uint8 *argBase() {
         JS_ASSERT(footer()->ionCode() != NULL);
         return top();
     }
@@ -409,11 +412,11 @@ class InvalidationBailoutStack
     double      fpregs_[FloatRegisters::Total];
     uintptr_t   regs_[Registers::Total];
     IonScript   *ionScript_;
-    uint8_t       *osiPointReturnAddress_;
+    uint8       *osiPointReturnAddress_;
 
   public:
-    uint8_t *sp() const {
-        return (uint8_t *) this + sizeof(InvalidationBailoutStack);
+    uint8 *sp() const {
+        return (uint8 *) this + sizeof(InvalidationBailoutStack);
     }
     IonJSFrameLayout *fp() const;
     MachineState machine() {
@@ -423,7 +426,7 @@ class InvalidationBailoutStack
     IonScript *ionScript() const {
         return ionScript_;
     }
-    uint8_t *osiPointReturnAddress() const {
+    uint8 *osiPointReturnAddress() const {
         return osiPointReturnAddress_;
     }
 
@@ -432,5 +435,40 @@ class InvalidationBailoutStack
 
 } 
 } 
+
+
+
+
+
+
+
+
+
+class BaselineFrame
+{
+    size_t frameSize;
+
+  public:
+    
+    
+    static const uint32_t FramePointerOffset = sizeof(void *);
+
+    static inline size_t offsetOfArg(size_t index) {
+        return FramePointerOffset + js::ion::IonJSFrameLayout::offsetOfActualArg(index);
+    }
+    static size_t Size() {
+        return sizeof(BaselineFrame);
+    }
+
+    
+    
+    
+    static inline size_t reverseOffsetOfFrameSize() {
+        return -(sizeof(BaselineFrame) - offsetof(BaselineFrame, frameSize));
+    }
+    static inline size_t reverseOffsetOfLocal(size_t index) {
+        return -(sizeof(BaselineFrame) + index * sizeof(js::Value)) - sizeof(js::Value);
+    }
+};
 
 #endif 
