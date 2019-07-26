@@ -112,7 +112,7 @@ class NrIceStunServer {
       has_addr_ = true;
       return NS_OK;
     }
-    else if (host_.size() < 256) {
+    else if (addr.size() < 256) {
       
       host_ = addr;
       port_ = port;
