@@ -7603,6 +7603,13 @@ IonBuilder::TestCommonPropFunc(JSContext *cx, types::StackTypeSet *types, Handle
 
             
             
+            if (isGetter && typeObj->clasp->ops.getGeneric)
+                return true;
+            if (!isGetter && typeObj->clasp->ops.setGeneric)
+                return true;
+
+            
+            
             types::HeapTypeSet *propSet = typeObj->getProperty(cx, types::IdToTypeId(id), false);
             if (!propSet)
                 return false;
@@ -7662,18 +7669,12 @@ IonBuilder::TestCommonPropFunc(JSContext *cx, types::StackTypeSet *types, Handle
         else if (foundProto != proto)
             return true;
 
-        
-        
-        
-        
-        
-        
-        while (curObj != foundProto) {
-            types::TypeObject *typeObj = curObj->getType(cx);
-            if (!typeObj)
-                return false;
-
-            if (typeObj->unknownProperties())
+        JSObject *stopAt = foundProto->getProto();
+        while (curObj != stopAt) {
+            
+            if (isGetter && curObj->getClass()->ops.getGeneric)
+                return true;
+            if (!isGetter && curObj->getClass()->ops.setGeneric)
                 return true;
 
             
@@ -7681,15 +7682,31 @@ IonBuilder::TestCommonPropFunc(JSContext *cx, types::StackTypeSet *types, Handle
             
             
             
+            
+            if (curObj != foundProto) {
+                types::TypeObject *typeObj = curObj->getType(cx);
+                if (!typeObj)
+                    return false;
 
-            
-            
-            
-            types::HeapTypeSet *propSet = typeObj->getProperty(cx, types::IdToTypeId(id), false);
-            if (!propSet)
-                return false;
-            if (propSet->ownProperty(false))
-                return true;
+                if (typeObj->unknownProperties())
+                    return true;
+
+                
+                
+                
+                
+                
+
+                
+                
+                
+                types::HeapTypeSet *propSet =
+                    typeObj->getProperty(cx, types::IdToTypeId(id), false);
+                if (!propSet)
+                    return false;
+                if (propSet->ownProperty(false))
+                    return true;
+            }
 
             curObj = curObj->getProto();
         }
