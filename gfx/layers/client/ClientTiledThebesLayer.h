@@ -90,6 +90,14 @@ private:
 
 
 
+  bool RenderHighPrecision(nsIntRegion& aInvalidRegion,
+                           LayerManager::DrawThebesLayerCallback aCallback,
+                           void* aCallbackData);
+
+  
+
+
+
 
   void EndPaint(bool aFinish);
 
