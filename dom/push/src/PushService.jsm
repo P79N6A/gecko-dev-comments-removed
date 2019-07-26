@@ -30,11 +30,6 @@ const prefs = new Preferences("services.push.");
 const kPUSHDB_DB_NAME = "push";
 const kPUSHDB_DB_VERSION = 1; 
 const kPUSHDB_STORE_NAME = "push";
-const kCONFLICT_RETRY_ATTEMPTS = 3; 
-                                    
-
-const kERROR_CHID_CONFLICT = 409;   
-                                    
 
 const kUDP_WAKEUP_WS_STATUS_CODE = 4774;  
                                           
@@ -1146,22 +1141,10 @@ this.PushService = {
 
   _onRegisterError: function(aPageRecord, aMessageManager, reply) {
     debug("_onRegisterError()");
-    switch (reply.status) {
-      case kERROR_CHID_CONFLICT:
-        if (typeof aPageRecord._attempts !== "number")
-          aPageRecord._attempts = 0;
 
-        if (aPageRecord._attempts < kCONFLICT_RETRY_ATTEMPTS) {
-          aPageRecord._attempts++;
-          
-          debug("CONFLICT: trying again");
-          this.register(aPageRecord, aMessageManager);
-          return;
-        }
-        throw { requestID: aPageRecord.requestID, error: "conflict" };
-      default:
-        debug("General failure " + reply.status);
-        throw { requestID: aPageRecord.requestID, error: reply.error };
+    if (reply.status) {
+      debug("General failure " + reply.status);
+      throw { requestID: aPageRecord.requestID, error: reply.error };    
     }
   },
 
