@@ -326,36 +326,6 @@ public:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
-
-
-
-  void RenderCue();
-
-  
-
-
-
-
-
-
   already_AddRefed<DocumentFragment> GetCueAsHTML();
 
   void SetTrackElement(HTMLTrackElement* aTrackElement);
@@ -363,7 +333,6 @@ public:
 private:
   void CueChanged();
   void SetDefaultCueSettings();
-  void CreateCueOverlay();
   nsresult StashDocument(nsISupports* aGlobal);
 
   nsRefPtr<nsIDocument> mDocument;
