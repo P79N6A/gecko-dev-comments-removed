@@ -72,6 +72,12 @@ public:
 
 
 
+  static bool AnyProcessHasHighPriority();
+
+  
+
+
+
   static void RemoveFromBackgroundLRUPool(dom::ContentParent* aContentParent);
 
   

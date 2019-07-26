@@ -106,6 +106,7 @@ class ParticularProcessPriorityManager;
 
 
 
+
 class ProcessPriorityManagerImpl MOZ_FINAL
   : public nsIObserver
 {
@@ -142,6 +143,11 @@ public:
 
   bool OtherProcessHasHighPriority(
     ParticularProcessPriorityManager* aParticularManager);
+
+  
+
+
+  bool ChildProcessHasHighPriority();
 
   
 
@@ -191,6 +197,7 @@ public:
   NS_DECL_NSIOBSERVER
 
   bool CurrentProcessIsForeground();
+  bool CurrentProcessIsHighPriority();
 
 private:
   static StaticRefPtr<ProcessPriorityManagerChild> sSingleton;
@@ -537,6 +544,12 @@ ProcessPriorityManagerImpl::OtherProcessHasHighPriority(
   if (mHighPriorityChildIDs.Contains(aParticularManager->ChildID())) {
     return mHighPriorityChildIDs.Count() > 1;
   }
+  return mHighPriorityChildIDs.Count() > 0;
+}
+
+bool
+ProcessPriorityManagerImpl::ChildProcessHasHighPriority( void )
+{
   return mHighPriorityChildIDs.Count() > 0;
 }
 
@@ -1204,6 +1217,13 @@ ProcessPriorityManagerChild::CurrentProcessIsForeground()
          mCachedPriority >= PROCESS_PRIORITY_FOREGROUND;
 }
 
+bool
+ProcessPriorityManagerChild::CurrentProcessIsHighPriority()
+{
+  return mCachedPriority == PROCESS_PRIORITY_UNKNOWN ||
+         mCachedPriority >= PROCESS_PRIORITY_FOREGROUND_HIGH;
+}
+
  StaticAutoPtr<BackgroundProcessLRUPool>
 BackgroundProcessLRUPool::sSingleton;
 
@@ -1433,6 +1453,20 @@ ProcessPriorityManager::CurrentProcessIsForeground()
 {
   return ProcessPriorityManagerChild::Singleton()->
     CurrentProcessIsForeground();
+}
+
+ bool
+ProcessPriorityManager::AnyProcessHasHighPriority()
+{
+  ProcessPriorityManagerImpl* singleton =
+    ProcessPriorityManagerImpl::GetSingleton();
+
+  if (singleton) {
+    return singleton->ChildProcessHasHighPriority();
+  } else {
+    return ProcessPriorityManagerChild::Singleton()->
+      CurrentProcessIsHighPriority();
+  }
 }
 
 } 

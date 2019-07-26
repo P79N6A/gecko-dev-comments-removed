@@ -9,6 +9,7 @@
 #include "mozilla/FileUtils.h"
 #include "mozilla/Monitor.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/ProcessPriorityManager.h"
 #include "mozilla/Services.h"
 #include "nsIObserver.h"
 #include "nsIObserverService.h"
@@ -169,7 +170,7 @@ public:
 
       
       
-      rv = NS_DispatchMemoryPressure(MemPressure_New);
+      rv = DispatchMemoryPressure(MemPressure_New);
       NS_ENSURE_SUCCESS(rv, rv);
 
       
@@ -202,7 +203,7 @@ public:
         NS_ENSURE_SUCCESS(rv, rv);
 
         if (memoryPressure) {
-          rv = NS_DispatchMemoryPressure(MemPressure_Ongoing);
+          rv = DispatchMemoryPressure(MemPressure_Ongoing);
           NS_ENSURE_SUCCESS(rv, rv);
           continue;
         }
@@ -243,6 +244,21 @@ private:
       *aOut = buf[0] == '1' && buf[1] == '\n';
     }
     return NS_OK;
+  }
+
+  
+
+
+
+
+
+  nsresult DispatchMemoryPressure(MemoryPressureState state)
+  {
+    if (ProcessPriorityManager::AnyProcessHasHighPriority()) {
+      return NS_OK;
+    }
+
+    return NS_DispatchMemoryPressure(state);
   }
 
   Monitor mMonitor;
