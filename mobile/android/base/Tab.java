@@ -551,6 +551,8 @@ public class Tab {
         setDocumentURI(message.getString("documentURI"));
         if (message.getBoolean("sameDocument")) {
             
+            
+            Tabs.getInstance().notifyListeners(this, Tabs.TabEvents.LOCATION_CHANGE, uri);
             return;
         }
 
