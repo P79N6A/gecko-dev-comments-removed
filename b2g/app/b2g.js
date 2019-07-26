@@ -838,3 +838,6 @@ pref("b2g.neterror.url", "app://system.gaiamobile.org/net_error.html");
 
 
 pref("media.webspeech.synth.enabled", true);
+
+
+pref("dom.mozDownloads.enabled", true);
