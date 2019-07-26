@@ -165,13 +165,13 @@ class MOZ_STACK_CLASS nsWSRunObject
                                        BlockBoundary aBoundary,
                                        nsINode* aBlock,
                                        int32_t aOffset = -1);
+ 
     
     
     
-    
-    static nsresult PrepareToJoinBlocks(nsHTMLEditor *aEd, 
-                                        nsIDOMNode *aLeftParent,
-                                        nsIDOMNode *aRightParent);
+    static nsresult PrepareToJoinBlocks(nsHTMLEditor* aEd,
+                                        mozilla::dom::Element* aLeftBlock,
+                                        mozilla::dom::Element* aRightBlock);
 
     
     
