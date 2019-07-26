@@ -64,10 +64,13 @@ protected:
     virtual void CreatePlatformShaper();
 
     
-    virtual bool ShapeWord(gfxContext *aContext,
-                           gfxShapedWord *aShapedWord,
-                           const PRUnichar *aString,
-                           bool aPreferPlatformShaping = false);
+    virtual bool ShapeText(gfxContext      *aContext,
+                           const PRUnichar *aText,
+                           uint32_t         aOffset,
+                           uint32_t         aLength,
+                           int32_t          aScript,
+                           gfxShapedText   *aShapedText,
+                           bool             aPreferPlatformShaping);
 
     void Initialize(); 
 

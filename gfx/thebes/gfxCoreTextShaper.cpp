@@ -63,23 +63,25 @@ gfxCoreTextShaper::~gfxCoreTextShaper()
 }
 
 bool
-gfxCoreTextShaper::ShapeWord(gfxContext      *aContext,
-                             gfxShapedWord   *aShapedWord,
-                             const PRUnichar *aText)
+gfxCoreTextShaper::ShapeText(gfxContext      *aContext,
+                             const PRUnichar *aText,
+                             uint32_t         aOffset,
+                             uint32_t         aLength,
+                             int32_t          aScript,
+                             gfxShapedText   *aShapedText)
 {
     
 
-    bool isRightToLeft = aShapedWord->IsRightToLeft();
-    uint32_t length = aShapedWord->Length();
+    bool isRightToLeft = aShapedText->IsRightToLeft();
+    uint32_t length = aLength;
 
     
     
     bool bidiWrap = isRightToLeft;
-    if (!bidiWrap && !aShapedWord->TextIs8Bit()) {
-        const PRUnichar *text = aShapedWord->TextUnicode();
+    if (!bidiWrap && !aShapedText->TextIs8Bit()) {
         uint32_t i;
         for (i = 0; i < length; ++i) {
-            if (gfxFontUtils::PotentialRTLChar(text[i])) {
+            if (gfxFontUtils::PotentialRTLChar(aText[i])) {
                 bidiWrap = true;
                 break;
             }
@@ -115,7 +117,7 @@ gfxCoreTextShaper::ShapeWord(gfxContext      *aContext,
     }
 
     CFDictionaryRef attrObj;
-    if (aShapedWord->DisableLigatures()) {
+    if (aShapedText->DisableLigatures()) {
         
         
         CTFontRef ctFont =
@@ -156,7 +158,7 @@ gfxCoreTextShaper::ShapeWord(gfxContext      *aContext,
     for (uint32_t runIndex = 0; runIndex < numRuns; runIndex++) {
         CTRunRef aCTRun =
             (CTRunRef)::CFArrayGetValueAtIndex(glyphRuns, runIndex);
-        if (SetGlyphsFromRun(aShapedWord, aCTRun, startOffset) != NS_OK) {
+        if (SetGlyphsFromRun(aShapedText, aOffset, aLength, aCTRun, startOffset) != NS_OK) {
             success = false;
             break;
         }
@@ -172,22 +174,24 @@ gfxCoreTextShaper::ShapeWord(gfxContext      *aContext,
                             
 
 nsresult
-gfxCoreTextShaper::SetGlyphsFromRun(gfxShapedWord *aShapedWord,
-                                    CTRunRef aCTRun,
-                                    int32_t aStringOffset)
+gfxCoreTextShaper::SetGlyphsFromRun(gfxShapedText *aShapedText,
+                                    uint32_t       aOffset,
+                                    uint32_t       aLength,
+                                    CTRunRef       aCTRun,
+                                    int32_t        aStringOffset)
 {
     
     
     
 
-    int32_t direction = aShapedWord->IsRightToLeft() ? -1 : 1;
+    int32_t direction = aShapedText->IsRightToLeft() ? -1 : 1;
 
     int32_t numGlyphs = ::CTRunGetGlyphCount(aCTRun);
     if (numGlyphs == 0) {
         return NS_OK;
     }
 
-    int32_t wordLength = aShapedWord->Length();
+    int32_t wordLength = aLength;
 
     
     
@@ -257,8 +261,10 @@ gfxCoreTextShaper::SetGlyphsFromRun(gfxShapedWord *aShapedWord,
     double runWidth = ::CTRunGetTypographicBounds(aCTRun, ::CFRangeMake(0, 0),
                                                   NULL, NULL, NULL);
 
-    nsAutoTArray<gfxTextRun::DetailedGlyph,1> detailedGlyphs;
-    gfxTextRun::CompressedGlyph g;
+    nsAutoTArray<gfxShapedText::DetailedGlyph,1> detailedGlyphs;
+    gfxShapedText::CompressedGlyph g;
+    gfxShapedText::CompressedGlyph *charGlyphs =
+        aShapedText->GetCharacterGlyphs() + aOffset;
 
     
     
@@ -302,7 +308,7 @@ gfxCoreTextShaper::SetGlyphsFromRun(gfxShapedWord *aShapedWord,
     
     
 
-    bool isRightToLeft = aShapedWord->IsRightToLeft();
+    bool isRightToLeft = aShapedText->IsRightToLeft();
     int32_t glyphStart = 0; 
     int32_t charStart = isRightToLeft ?
         stringRange.length - 1 : 0; 
@@ -438,7 +444,7 @@ gfxCoreTextShaper::SetGlyphsFromRun(gfxShapedWord *aShapedWord,
 
         
         
-        int32_t appUnitsPerDevUnit = aShapedWord->AppUnitsPerDevUnit();
+        int32_t appUnitsPerDevUnit = aShapedText->GetAppUnitsPerDevUnit();
         double toNextGlyph;
         if (glyphStart < numGlyphs-1) {
             toNextGlyph = positions[glyphStart+1].x - positions[glyphStart].x;
@@ -452,12 +458,11 @@ gfxCoreTextShaper::SetGlyphsFromRun(gfxShapedWord *aShapedWord,
         if (glyphsInClump == 1 &&
             gfxTextRun::CompressedGlyph::IsSimpleGlyphID(glyphs[glyphStart]) &&
             gfxTextRun::CompressedGlyph::IsSimpleAdvance(advance) &&
-            aShapedWord->IsClusterStart(baseCharIndex) &&
+            charGlyphs[baseCharIndex].IsClusterStart() &&
             positions[glyphStart].y == 0.0)
         {
-            aShapedWord->SetSimpleGlyph(baseCharIndex,
-                                        g.SetSimpleGlyph(advance,
-                                                         glyphs[glyphStart]));
+            charGlyphs[baseCharIndex].SetSimpleGlyph(advance,
+                                                     glyphs[glyphStart]);
         } else {
             
             
@@ -480,18 +485,18 @@ gfxCoreTextShaper::SetGlyphsFromRun(gfxShapedWord *aShapedWord,
             }
 
             gfxTextRun::CompressedGlyph g;
-            g.SetComplex(aShapedWord->IsClusterStart(baseCharIndex),
+            g.SetComplex(charGlyphs[baseCharIndex].IsClusterStart(),
                          true, detailedGlyphs.Length());
-            aShapedWord->SetGlyphs(baseCharIndex, g, detailedGlyphs.Elements());
+            aShapedText->SetGlyphs(aOffset + baseCharIndex, g, detailedGlyphs.Elements());
 
             detailedGlyphs.Clear();
         }
 
         
         while (++baseCharIndex != endCharIndex && baseCharIndex < wordLength) {
-            g.SetComplex(inOrder && aShapedWord->IsClusterStart(baseCharIndex),
-                         false, 0);
-            aShapedWord->SetGlyphs(baseCharIndex, g, nullptr);
+            gfxShapedText::CompressedGlyph &g = charGlyphs[baseCharIndex];
+            NS_ASSERTION(!g.IsSimpleGlyph(), "overwriting a simple glyph");
+            g.SetComplex(inOrder && g.IsClusterStart(), false, 0);
         }
 
         glyphStart = glyphEnd;

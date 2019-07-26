@@ -41,6 +41,7 @@ class gfxFontFamily;
 class gfxFontGroup;
 class gfxUserFontSet;
 class gfxUserFontData;
+class gfxShapedText;
 class gfxShapedWord;
 class gfxSVGGlyphs;
 class gfxTextObjectPaint;
@@ -1126,9 +1127,15 @@ public:
 
     virtual ~gfxFontShaper() { }
 
-    virtual bool ShapeWord(gfxContext *aContext,
-                           gfxShapedWord *aShapedWord,
-                           const PRUnichar *aText) = 0;
+    
+    
+    
+    virtual bool ShapeText(gfxContext      *aContext,
+                           const PRUnichar *aText,
+                           uint32_t         aOffset,
+                           uint32_t         aLength,
+                           int32_t          aScript,
+                           gfxShapedText   *aShapedText) = 0;
 
     gfxFont *GetFont() const { return mFont; }
 
@@ -1562,12 +1569,60 @@ public:
 
 protected:
     
+    bool ShapeText(gfxContext    *aContext,
+                   const uint8_t *aText,
+                   uint32_t       aOffset, 
+                   uint32_t       aLength,
+                   int32_t        aScript,
+                   gfxShapedText *aShapedText, 
+                   bool           aPreferPlatformShaping = false);
+
     
     
-    virtual bool ShapeWord(gfxContext *aContext,
-                           gfxShapedWord *aShapedWord,
+    virtual bool ShapeText(gfxContext      *aContext,
                            const PRUnichar *aText,
-                           bool aPreferPlatformShaping = false);
+                           uint32_t         aOffset,
+                           uint32_t         aLength,
+                           int32_t          aScript,
+                           gfxShapedText   *aShapedText,
+                           bool             aPreferPlatformShaping = false);
+
+    
+    
+    
+    void PostShapingFixup(gfxContext      *aContext,
+                          const PRUnichar *aText,
+                          uint32_t         aOffset, 
+                          uint32_t         aLength,
+                          gfxShapedText   *aShapedText);
+
+    
+    
+    
+    
+    
+    
+    
+    template<typename T>
+    bool ShapeTextWithoutWordCache(gfxContext *aContext,
+                                   const T    *aText,
+                                   uint32_t    aOffset,
+                                   uint32_t    aLength,
+                                   int32_t     aScript,
+                                   gfxTextRun *aTextRun);
+
+    
+    
+    
+    
+    
+    template<typename T>
+    bool ShapeFragmentWithoutWordCache(gfxContext *aContext,
+                                       const T    *aText,
+                                       uint32_t    aOffset,
+                                       uint32_t    aLength,
+                                       int32_t     aScript,
+                                       gfxTextRun *aTextRun);
 
     nsRefPtr<gfxFontEntry> mFontEntry;
 
@@ -1742,77 +1797,17 @@ protected:
 
 
 
-
-
-class gfxShapedWord
+class gfxShapedText
 {
 public:
-    static const uint32_t kMaxLength = 0x7fff;
+    gfxShapedText(uint32_t aLength, uint32_t aFlags,
+                  uint32_t aAppUnitsPerDevUnit)
+        : mLength(aLength)
+        , mFlags(aFlags)
+        , mAppUnitsPerDevUnit(aAppUnitsPerDevUnit)
+    { }
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    static gfxShapedWord* Create(const uint8_t *aText, uint32_t aLength,
-                                 int32_t aRunScript,
-                                 int32_t aAppUnitsPerDevUnit,
-                                 uint32_t aFlags) {
-        NS_ASSERTION(aLength <= kMaxLength, "excessive length for gfxShapedWord!");
-
-        
-        
-        uint32_t size =
-            offsetof(gfxShapedWord, mCharacterGlyphs) +
-            aLength * (sizeof(CompressedGlyph) + sizeof(uint8_t));
-        void *storage = moz_malloc(size);
-        if (!storage) {
-            return nullptr;
-        }
-
-        
-        return new (storage) gfxShapedWord(aText, aLength, aRunScript,
-                                           aAppUnitsPerDevUnit, aFlags);
-    }
-
-    static gfxShapedWord* Create(const PRUnichar *aText, uint32_t aLength,
-                                 int32_t aRunScript,
-                                 int32_t aAppUnitsPerDevUnit,
-                                 uint32_t aFlags) {
-        NS_ASSERTION(aLength <= kMaxLength, "excessive length for gfxShapedWord!");
-
-        
-        
-        
-        if (aFlags & gfxTextRunFactory::TEXT_IS_8BIT) {
-            nsAutoCString narrowText;
-            LossyAppendUTF16toASCII(nsDependentSubstring(aText, aLength),
-                                    narrowText);
-            return Create((const uint8_t*)(narrowText.BeginReading()),
-                          aLength, aRunScript, aAppUnitsPerDevUnit, aFlags);
-        }
-
-        uint32_t size =
-            offsetof(gfxShapedWord, mCharacterGlyphs) +
-            aLength * (sizeof(CompressedGlyph) + sizeof(PRUnichar));
-        void *storage = moz_malloc(size);
-        if (!storage) {
-            return nullptr;
-        }
-
-        return new (storage) gfxShapedWord(aText, aLength, aRunScript,
-                                           aAppUnitsPerDevUnit, aFlags);
-    }
-
-    
-    
-    void operator delete(void* p) {
-        moz_free(p);
-    }
+    virtual ~gfxShapedText() { }
 
     
 
@@ -2013,6 +2008,10 @@ public:
     };
 
     
+    
+    virtual CompressedGlyph *GetCharacterGlyphs() = 0;
+
+    
 
 
 
@@ -2028,35 +2027,59 @@ public:
         float    mXOffset, mYOffset;
     };
 
+    void SetGlyphs(uint32_t aCharIndex, CompressedGlyph aGlyph,
+                   const DetailedGlyph *aGlyphs);
+
+    void SetMissingGlyph(uint32_t aIndex, uint32_t aChar, gfxFont *aFont);
+
+    void SetIsSpace(uint32_t aIndex) {
+        GetCharacterGlyphs()[aIndex].SetIsSpace();
+    }
+
+    void SetIsLowSurrogate(uint32_t aIndex) {
+        SetGlyphs(aIndex, CompressedGlyph().SetComplex(false, false, 0), nullptr);
+        GetCharacterGlyphs()[aIndex].SetIsLowSurrogate();
+    }
+
+    bool HasDetailedGlyphs() const {
+        return mDetailedGlyphs != nullptr;
+    }
+
     bool IsClusterStart(uint32_t aPos) {
-        NS_ASSERTION(aPos < Length(), "aPos out of range");
-        return mCharacterGlyphs[aPos].IsClusterStart();
+        NS_ASSERTION(aPos < GetLength(), "aPos out of range");
+        return GetCharacterGlyphs()[aPos].IsClusterStart();
     }
 
     bool IsLigatureGroupStart(uint32_t aPos) {
-        NS_ASSERTION(aPos < Length(), "aPos out of range");
-        return mCharacterGlyphs[aPos].IsLigatureGroupStart();
+        NS_ASSERTION(aPos < GetLength(), "aPos out of range");
+        return GetCharacterGlyphs()[aPos].IsLigatureGroupStart();
     }
 
-    uint32_t Length() const {
-        return mLength;
+    
+    
+    
+    DetailedGlyph *GetDetailedGlyphs(uint32_t aCharIndex) {
+        NS_ASSERTION(GetCharacterGlyphs() && HasDetailedGlyphs() &&
+                     !GetCharacterGlyphs()[aCharIndex].IsSimpleGlyph() &&
+                     GetCharacterGlyphs()[aCharIndex].GetGlyphCount() > 0,
+                     "invalid use of GetDetailedGlyphs; check the caller!");
+        return mDetailedGlyphs->Get(aCharIndex);
     }
 
-    const uint8_t* Text8Bit() const {
-        NS_ASSERTION(TextIs8Bit(), "invalid use of Text8Bit()");
-        return reinterpret_cast<const uint8_t*>(&mCharacterGlyphs[Length()]);
-    }
+    void AdjustAdvancesForSyntheticBold(float aSynBoldOffset,
+                                        uint32_t aOffset, uint32_t aLength);
 
-    const PRUnichar* TextUnicode() const {
-        NS_ASSERTION(!TextIs8Bit(), "invalid use of TextUnicode()");
-        return reinterpret_cast<const PRUnichar*>(&mCharacterGlyphs[Length()]);
-    }
-
-    PRUnichar GetCharAt(uint32_t aOffset) const {
-        NS_ASSERTION(aOffset < Length(), "aOffset out of range");
-        return TextIs8Bit() ?
-            PRUnichar(Text8Bit()[aOffset]) : TextUnicode()[aOffset];
-    }
+    
+    
+    
+    void SetupClusterBoundaries(uint32_t         aOffset,
+                                const PRUnichar *aString,
+                                uint32_t         aLength);
+    
+    
+    void SetupClusterBoundaries(uint32_t       aOffset,
+                                const uint8_t *aString,
+                                uint32_t       aLength);
 
     uint32_t Flags() const {
         return mFlags;
@@ -2078,105 +2101,17 @@ public:
         return (Flags() & gfxTextRunFactory::TEXT_IS_8BIT) != 0;
     }
 
-    int32_t Script() const {
-        return mScript;
-    }
-
-    int32_t AppUnitsPerDevUnit() const {
+    uint32_t GetAppUnitsPerDevUnit() const {
         return mAppUnitsPerDevUnit;
     }
 
-    void ResetAge() {
-        mAgeCounter = 0;
-    }
-    uint32_t IncrementAge() {
-        return ++mAgeCounter;
+    uint32_t GetLength() const {
+        return mLength;
     }
 
-    void SetSimpleGlyph(uint32_t aCharIndex, CompressedGlyph aGlyph) {
-        NS_ASSERTION(aGlyph.IsSimpleGlyph(), "Should be a simple glyph here");
-        NS_ASSERTION(mCharacterGlyphs, "mCharacterGlyphs pointer is null!");
-        mCharacterGlyphs[aCharIndex] = aGlyph;
-    }
+    bool FilterIfIgnorable(uint32_t aIndex, uint32_t aCh);
 
-    void SetGlyphs(uint32_t aCharIndex, CompressedGlyph aGlyph,
-                   const DetailedGlyph *aGlyphs);
-
-    void SetMissingGlyph(uint32_t aIndex, uint32_t aChar, gfxFont *aFont);
-
-    void SetIsSpace(uint32_t aIndex) {
-        mCharacterGlyphs[aIndex].SetIsSpace();
-    }
-
-    void SetIsLowSurrogate(uint32_t aIndex) {
-        SetGlyphs(aIndex, CompressedGlyph().SetComplex(false, false, 0), nullptr);
-        mCharacterGlyphs[aIndex].SetIsLowSurrogate();
-    }
-
-    bool FilterIfIgnorable(uint32_t aIndex);
-
-    const CompressedGlyph *GetCharacterGlyphs() const {
-        return &mCharacterGlyphs[0];
-    }
-
-    bool HasDetailedGlyphs() const {
-        return mDetailedGlyphs != nullptr;
-    }
-
-    
-    
-    
-    DetailedGlyph *GetDetailedGlyphs(uint32_t aCharIndex) const {
-        NS_ASSERTION(HasDetailedGlyphs() &&
-                     !mCharacterGlyphs[aCharIndex].IsSimpleGlyph() &&
-                     mCharacterGlyphs[aCharIndex].GetGlyphCount() > 0,
-                     "invalid use of GetDetailedGlyphs; check the caller!");
-        return mDetailedGlyphs->Get(aCharIndex);
-    }
-
-    void AdjustAdvancesForSyntheticBold(float aSynBoldOffset);
-
-    
-    
-    
-    static void
-    SetupClusterBoundaries(CompressedGlyph *aGlyphs,
-                           const PRUnichar *aString, uint32_t aLength);
-
-private:
-    
-    friend class gfxTextRun;
-
-    
-    gfxShapedWord(const uint8_t *aText, uint32_t aLength,
-                  int32_t aRunScript, int32_t aAppUnitsPerDevUnit,
-                  uint32_t aFlags)
-        : mLength(aLength)
-        , mFlags(aFlags | gfxTextRunFactory::TEXT_IS_8BIT)
-        , mAppUnitsPerDevUnit(aAppUnitsPerDevUnit)
-        , mScript(aRunScript)
-        , mAgeCounter(0)
-    {
-        memset(mCharacterGlyphs, 0, aLength * sizeof(CompressedGlyph));
-        uint8_t *text = reinterpret_cast<uint8_t*>(&mCharacterGlyphs[aLength]);
-        memcpy(text, aText, aLength * sizeof(uint8_t));
-    }
-
-    gfxShapedWord(const PRUnichar *aText, uint32_t aLength,
-                  int32_t aRunScript, int32_t aAppUnitsPerDevUnit,
-                  uint32_t aFlags)
-        : mLength(aLength)
-        , mFlags(aFlags)
-        , mAppUnitsPerDevUnit(aAppUnitsPerDevUnit)
-        , mScript(aRunScript)
-        , mAgeCounter(0)
-    {
-        memset(mCharacterGlyphs, 0, aLength * sizeof(CompressedGlyph));
-        PRUnichar *text = reinterpret_cast<PRUnichar*>(&mCharacterGlyphs[aLength]);
-        memcpy(text, aText, aLength * sizeof(PRUnichar));
-        SetupClusterBoundaries(&mCharacterGlyphs[0], aText, aLength);
-    }
-
+protected:
     
     DetailedGlyph *AllocateDetailedGlyphs(uint32_t aCharIndex,
                                           uint32_t aCount);
@@ -2304,24 +2239,163 @@ private:
     nsAutoPtr<DetailedGlyphStore>   mDetailedGlyphs;
 
     
-    
-    
-    
     uint32_t                        mLength;
 
+    
     uint32_t                        mFlags;
 
-    int32_t                         mAppUnitsPerDevUnit;
-    int32_t                         mScript;
+    uint32_t                        mAppUnitsPerDevUnit;
+};
 
-    uint32_t                        mAgeCounter;
+
+
+
+
+
+
+
+class gfxShapedWord : public gfxShapedText
+{
+public:
+    static const uint32_t kMaxLength = 0x7fff;
 
     
     
     
     
     
-    CompressedGlyph                 mCharacterGlyphs[1];
+    
+    
+    
+    
+    static gfxShapedWord* Create(const uint8_t *aText, uint32_t aLength,
+                                 int32_t aRunScript,
+                                 int32_t aAppUnitsPerDevUnit,
+                                 uint32_t aFlags) {
+        NS_ASSERTION(aLength <= kMaxLength, "excessive length for gfxShapedWord!");
+
+        
+        
+        uint32_t size =
+            offsetof(gfxShapedWord, mCharGlyphsStorage) +
+            aLength * (sizeof(CompressedGlyph) + sizeof(uint8_t));
+        void *storage = moz_malloc(size);
+        if (!storage) {
+            return nullptr;
+        }
+
+        
+        return new (storage) gfxShapedWord(aText, aLength, aRunScript,
+                                           aAppUnitsPerDevUnit, aFlags);
+    }
+
+    static gfxShapedWord* Create(const PRUnichar *aText, uint32_t aLength,
+                                 int32_t aRunScript,
+                                 int32_t aAppUnitsPerDevUnit,
+                                 uint32_t aFlags) {
+        NS_ASSERTION(aLength <= kMaxLength, "excessive length for gfxShapedWord!");
+
+        
+        
+        
+        if (aFlags & gfxTextRunFactory::TEXT_IS_8BIT) {
+            nsAutoCString narrowText;
+            LossyAppendUTF16toASCII(nsDependentSubstring(aText, aLength),
+                                    narrowText);
+            return Create((const uint8_t*)(narrowText.BeginReading()),
+                          aLength, aRunScript, aAppUnitsPerDevUnit, aFlags);
+        }
+
+        uint32_t size =
+            offsetof(gfxShapedWord, mCharGlyphsStorage) +
+            aLength * (sizeof(CompressedGlyph) + sizeof(PRUnichar));
+        void *storage = moz_malloc(size);
+        if (!storage) {
+            return nullptr;
+        }
+
+        return new (storage) gfxShapedWord(aText, aLength, aRunScript,
+                                           aAppUnitsPerDevUnit, aFlags);
+    }
+
+    
+    
+    void operator delete(void* p) {
+        moz_free(p);
+    }
+
+    CompressedGlyph *GetCharacterGlyphs() {
+        return &mCharGlyphsStorage[0];
+    }
+
+    const uint8_t* Text8Bit() const {
+        NS_ASSERTION(TextIs8Bit(), "invalid use of Text8Bit()");
+        return reinterpret_cast<const uint8_t*>(mCharGlyphsStorage + GetLength());
+    }
+
+    const PRUnichar* TextUnicode() const {
+        NS_ASSERTION(!TextIs8Bit(), "invalid use of TextUnicode()");
+        return reinterpret_cast<const PRUnichar*>(mCharGlyphsStorage + GetLength());
+    }
+
+    PRUnichar GetCharAt(uint32_t aOffset) const {
+        NS_ASSERTION(aOffset < GetLength(), "aOffset out of range");
+        return TextIs8Bit() ?
+            PRUnichar(Text8Bit()[aOffset]) : TextUnicode()[aOffset];
+    }
+
+    int32_t Script() const {
+        return mScript;
+    }
+
+    void ResetAge() {
+        mAgeCounter = 0;
+    }
+    uint32_t IncrementAge() {
+        return ++mAgeCounter;
+    }
+
+private:
+    
+    friend class gfxTextRun;
+
+    
+    gfxShapedWord(const uint8_t *aText, uint32_t aLength,
+                  int32_t aRunScript, int32_t aAppUnitsPerDevUnit,
+                  uint32_t aFlags)
+        : gfxShapedText(aLength, aFlags | gfxTextRunFactory::TEXT_IS_8BIT,
+                        aAppUnitsPerDevUnit)
+        , mScript(aRunScript)
+        , mAgeCounter(0)
+    {
+        memset(mCharGlyphsStorage, 0, aLength * sizeof(CompressedGlyph));
+        uint8_t *text = reinterpret_cast<uint8_t*>(&mCharGlyphsStorage[aLength]);
+        memcpy(text, aText, aLength * sizeof(uint8_t));
+    }
+
+    gfxShapedWord(const PRUnichar *aText, uint32_t aLength,
+                  int32_t aRunScript, int32_t aAppUnitsPerDevUnit,
+                  uint32_t aFlags)
+        : gfxShapedText(aLength, aFlags, aAppUnitsPerDevUnit)
+        , mScript(aRunScript)
+        , mAgeCounter(0)
+    {
+        memset(mCharGlyphsStorage, 0, aLength * sizeof(CompressedGlyph));
+        PRUnichar *text = reinterpret_cast<PRUnichar*>(&mCharGlyphsStorage[aLength]);
+        memcpy(text, aText, aLength * sizeof(PRUnichar));
+        SetupClusterBoundaries(0, aText, aLength);
+    }
+
+    int32_t          mScript;
+
+    uint32_t         mAgeCounter;
+
+    
+    
+    
+    
+    
+    CompressedGlyph  mCharGlyphsStorage[1];
 };
 
 
@@ -2343,13 +2417,8 @@ private:
 
 
 
-class THEBES_API gfxTextRun {
+class THEBES_API gfxTextRun : public gfxShapedText {
 public:
-    
-    
-    typedef gfxShapedWord::CompressedGlyph    CompressedGlyph;
-    typedef gfxShapedWord::DetailedGlyph      DetailedGlyph;
-    typedef gfxShapedWord::DetailedGlyphStore DetailedGlyphStore;
 
     
     
@@ -2364,42 +2433,42 @@ public:
     
 
     bool IsClusterStart(uint32_t aPos) {
-        NS_ASSERTION(aPos < mCharacterCount, "aPos out of range");
+        NS_ASSERTION(aPos < GetLength(), "aPos out of range");
         return mCharacterGlyphs[aPos].IsClusterStart();
     }
     bool IsLigatureGroupStart(uint32_t aPos) {
-        NS_ASSERTION(aPos < mCharacterCount, "aPos out of range");
+        NS_ASSERTION(aPos < GetLength(), "aPos out of range");
         return mCharacterGlyphs[aPos].IsLigatureGroupStart();
     }
     bool CanBreakLineBefore(uint32_t aPos) {
-        NS_ASSERTION(aPos < mCharacterCount, "aPos out of range");
+        NS_ASSERTION(aPos < GetLength(), "aPos out of range");
         return mCharacterGlyphs[aPos].CanBreakBefore() ==
             CompressedGlyph::FLAG_BREAK_TYPE_NORMAL;
     }
     bool CanHyphenateBefore(uint32_t aPos) {
-        NS_ASSERTION(aPos < mCharacterCount, "aPos out of range");
+        NS_ASSERTION(aPos < GetLength(), "aPos out of range");
         return mCharacterGlyphs[aPos].CanBreakBefore() ==
             CompressedGlyph::FLAG_BREAK_TYPE_HYPHEN;
     }
 
     bool CharIsSpace(uint32_t aPos) {
-        NS_ASSERTION(aPos < mCharacterCount, "aPos out of range");
+        NS_ASSERTION(aPos < GetLength(), "aPos out of range");
         return mCharacterGlyphs[aPos].CharIsSpace();
     }
     bool CharIsTab(uint32_t aPos) {
-        NS_ASSERTION(aPos < mCharacterCount, "aPos out of range");
+        NS_ASSERTION(aPos < GetLength(), "aPos out of range");
         return mCharacterGlyphs[aPos].CharIsTab();
     }
     bool CharIsNewline(uint32_t aPos) {
-        NS_ASSERTION(aPos < mCharacterCount, "aPos out of range");
+        NS_ASSERTION(aPos < GetLength(), "aPos out of range");
         return mCharacterGlyphs[aPos].CharIsNewline();
     }
     bool CharIsLowSurrogate(uint32_t aPos) {
-        NS_ASSERTION(aPos < mCharacterCount, "aPos out of range");
+        NS_ASSERTION(aPos < GetLength(), "aPos out of range");
         return mCharacterGlyphs[aPos].CharIsLowSurrogate();
     }
 
-    uint32_t GetLength() { return mCharacterCount; }
+    uint32_t GetLength() { return mLength; }
 
     
     
@@ -2655,7 +2724,6 @@ public:
 
     
 
-    bool IsRightToLeft() const { return (mFlags & gfxTextRunFactory::TEXT_IS_RTL) != 0; }
     gfxFloat GetDirection() const { return (mFlags & gfxTextRunFactory::TEXT_IS_RTL) ? -1.0 : 1.0; }
     void *GetUserData() const { return mUserData; }
     void SetUserData(void *aUserData) { mUserData = aUserData; }
@@ -2671,7 +2739,6 @@ public:
       mFlags &= ~aFlags;
     }
     const gfxSkipChars& GetSkipChars() const { return mSkipChars; }
-    uint32_t GetAppUnitsPerDevUnit() const { return mAppUnitsPerDevUnit; }
     gfxFontGroup *GetFontGroup() const { return mFontGroup; }
 
 
@@ -2747,20 +2814,11 @@ public:
     void SortGlyphRuns();
     void SanitizeGlyphRuns();
 
-    
-    
-    void SetSimpleGlyph(uint32_t aCharIndex, CompressedGlyph aGlyph) {
-        NS_ASSERTION(aGlyph.IsSimpleGlyph(), "Should be a simple glyph here");
-        mCharacterGlyphs[aCharIndex] = aGlyph;
+    CompressedGlyph* GetCharacterGlyphs() {
+        NS_ASSERTION(mCharacterGlyphs, "failed to initialize mCharacterGlyphs");
+        return mCharacterGlyphs;
     }
-    
 
-
-
-
-    void SetGlyphs(uint32_t aCharIndex, CompressedGlyph aGlyph,
-                   const DetailedGlyph *aGlyphs);
-    void SetMissingGlyph(uint32_t aCharIndex, uint32_t aUnicodeChar);
     void SetSpaceGlyph(gfxFont *aFont, gfxContext *aContext, uint32_t aCharIndex);
 
     
@@ -2820,22 +2878,6 @@ public:
 
     void FetchGlyphExtents(gfxContext *aRefContext);
 
-    
-    
-    CompressedGlyph *GetCharacterGlyphs() { return mCharacterGlyphs; }
-
-    
-    
-    
-    DetailedGlyph *GetDetailedGlyphs(uint32_t aCharIndex) {
-        NS_ASSERTION(mDetailedGlyphs != nullptr &&
-                     !mCharacterGlyphs[aCharIndex].IsSimpleGlyph() &&
-                     mCharacterGlyphs[aCharIndex].GetGlyphCount() > 0,
-                     "invalid use of GetDetailedGlyphs; check the caller!");
-        return mDetailedGlyphs->Get(aCharIndex);
-    }
-
-    bool HasDetailedGlyphs() { return mDetailedGlyphs != nullptr; }
     uint32_t CountMissingGlyphs();
     const GlyphRun *GetGlyphRuns(uint32_t *aNumGlyphRuns) {
         *aNumGlyphRuns = mGlyphRuns.Length();
@@ -2846,7 +2888,7 @@ public:
     uint32_t FindFirstGlyphRunContaining(uint32_t aOffset);
 
     
-    void CopyGlyphDataFrom(const gfxShapedWord *aSource, uint32_t aStart);
+    void CopyGlyphDataFrom(gfxShapedWord *aSource, uint32_t aStart);
 
     
     
@@ -2913,9 +2955,7 @@ protected:
 
     
     
-    
-    
-    CompressedGlyph  *mCharacterGlyphs;
+    CompressedGlyph *mCharacterGlyphs;
 
 private:
     
@@ -2975,8 +3015,6 @@ private:
                     uint32_t aEnd, PropertyProvider *aProvider,
                     uint32_t aSpacingStart, uint32_t aSpacingEnd);
 
-    nsAutoPtr<DetailedGlyphStore>   mDetailedGlyphs;
-
     
     
     nsAutoTArray<GlyphRun,1>        mGlyphRuns;
@@ -2985,9 +3023,6 @@ private:
     gfxFontGroup     *mFontGroup; 
     gfxSkipChars      mSkipChars;
     nsExpirationState mExpirationState;
-    uint32_t          mAppUnitsPerDevUnit;
-    uint32_t          mFlags;
-    uint32_t          mCharacterCount;
 
     bool              mSkipDrawing; 
                                     
