@@ -50,7 +50,7 @@ CompositingRenderTargetD3D11::CompositingRenderTargetD3D11(ID3D11Texture2D *aTex
   RefPtr<ID3D11Device> device;
   mTextures[0]->GetDevice(byRef(device));
 
-  HRESULT hr = device->CreateRenderTargetView(mTextures[0], NULL, byRef(mRTView));
+  HRESULT hr = device->CreateRenderTargetView(mTextures[0], nullptr, byRef(mRTView));
 
   if (FAILED(hr)) {
     LOGD3D11("Failed to create RenderTargetView.");
