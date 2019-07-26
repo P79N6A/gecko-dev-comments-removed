@@ -207,10 +207,12 @@ function _parseModifiers(aEvent)
 
 
 
+
+
 function synthesizeMouse(aTarget, aOffsetX, aOffsetY, aEvent, aWindow)
 {
   var rect = aTarget.getBoundingClientRect();
-  synthesizeMouseAtPoint(rect.left + aOffsetX, rect.top + aOffsetY,
+  return synthesizeMouseAtPoint(rect.left + aOffsetX, rect.top + aOffsetY,
        aEvent, aWindow);
 }
 function synthesizeTouch(aTarget, aOffsetX, aOffsetY, aEvent, aWindow)
@@ -234,6 +236,7 @@ function synthesizeTouch(aTarget, aOffsetX, aOffsetY, aEvent, aWindow)
 function synthesizeMouseAtPoint(left, top, aEvent, aWindow)
 {
   var utils = _getDOMWindowUtils(aWindow);
+  var defaultPrevented = false;
 
   if (utils) {
     var button = aEvent.button || 0;
@@ -241,12 +244,17 @@ function synthesizeMouseAtPoint(left, top, aEvent, aWindow)
     var modifiers = _parseModifiers(aEvent);
     var pressure = ("pressure" in aEvent) ? aEvent.pressure : 0;
     var inputSource = ("inputSource" in aEvent) ? aEvent.inputSource : 0;
-    var types = (("type" in aEvent) && aEvent.type) ? [aEvent.type] : ["mousedown", "mouseup"];
 
-    types.forEach(function(type) {
-      utils.sendMouseEvent(type, left, top, button, clickCount, modifiers, false, pressure, inputSource);
-    });
+    if (("type" in aEvent) && aEvent.type) {
+      defaultPrevented = utils.sendMouseEvent(aEvent.type, left, top, button, clickCount, modifiers, false, pressure, inputSource);
+    }
+    else {
+      utils.sendMouseEvent("mousedown", left, top, button, clickCount, modifiers, false, pressure, inputSource);
+      utils.sendMouseEvent("mouseup", left, top, button, clickCount, modifiers, false, pressure, inputSource);
+    }
   }
+
+  return defaultPrevented;
 }
 function synthesizeTouchAtPoint(left, top, aEvent, aWindow)
 {
