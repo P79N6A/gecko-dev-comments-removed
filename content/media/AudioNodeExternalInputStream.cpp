@@ -3,9 +3,9 @@
 
 
 
-#include "MediaStreamGraphImpl.h"
 #include "AudioNodeEngine.h"
 #include "AudioNodeExternalInputStream.h"
+#include "AudioChannelFormat.h"
 #include "speex/speex_resampler.h"
 
 using namespace mozilla::dom;

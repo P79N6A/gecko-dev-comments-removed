@@ -8,8 +8,11 @@
 #define MediaCache_h_
 
 #include "nsTArray.h"
-#include "nsIPrincipal.h"
 #include "nsCOMPtr.h"
+#include "nsHashKeys.h"
+#include "nsTHashtable.h"
+
+class nsIPrincipal;
 
 namespace mozilla {
 
@@ -191,17 +194,7 @@ public:
 
   
   
-  MediaCacheStream(ChannelMediaResource* aClient)
-    : mClient(aClient), mInitialized(false),
-      mHasHadUpdate(false),
-      mClosed(false),
-      mDidNotifyDataEnded(false), mResourceID(0),
-      mIsTransportSeekable(false), mCacheSuspended(false),
-      mChannelEnded(false),
-      mChannelOffset(0), mStreamLength(-1),  
-      mStreamOffset(0), mPlaybackBytesPerSecond(10000),
-      mPinCount(0), mCurrentMode(MODE_PLAYBACK),
-      mMetadataInPartialBlockBuffer(false) {}
+  MediaCacheStream(ChannelMediaResource* aClient);
   ~MediaCacheStream();
 
   

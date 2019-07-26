@@ -4,6 +4,7 @@
 
 #include "MediaEncoder.h"
 #include "MediaDecoder.h"
+#include "nsIPrincipal.h"
 #ifdef MOZ_OGG
 #include "OggWriter.h"
 #endif
