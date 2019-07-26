@@ -141,7 +141,7 @@ struct JSStructuredCloneWriter {
         : out(out), objs(out.context()),
           counts(out.context()), ids(out.context()),
           memory(out.context()), callbacks(cb), closure(cbClosure),
-          transferable(tVal), transferableObjects(out.context()) { }
+          transferable(out.context(), tVal), transferableObjects(out.context()) { }
 
     bool init() { return transferableObjects.init() && parseTransferable() &&
                          memory.init() && writeTransferMap(); }
@@ -186,7 +186,7 @@ struct JSStructuredCloneWriter {
     
     
     
-    typedef js::HashMap<JSObject *, uint32_t> CloneMemory;
+    typedef js::AutoObjectUnsigned32HashMap CloneMemory;
     CloneMemory memory;
 
     
@@ -196,8 +196,8 @@ struct JSStructuredCloneWriter {
     void *closure;
 
     
-    jsval transferable;
-    js::HashSet<JSObject*> transferableObjects;
+    js::RootedValue transferable;
+    js::AutoObjectHashSet transferableObjects;
 
     friend JSBool JS_WriteTypedArray(JSStructuredCloneWriter *w, jsval v);
 };

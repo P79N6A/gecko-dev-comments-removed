@@ -285,6 +285,7 @@ js::CloneFunctionAtCallsite(JSContext *cx, HandleFunction fun, HandleScript scri
     key.original = fun;
 
     Table::AddPtr p = table.lookupForAdd(key);
+    SkipRoot skipHash(cx, &p); 
     if (p)
         return p->value;
 
@@ -296,6 +297,14 @@ js::CloneFunctionAtCallsite(JSContext *cx, HandleFunction fun, HandleScript scri
 
     
     clone->setExtendedSlot(0, ObjectValue(*fun));
+
+    
+    if (key.script != script && key.original != fun) {
+        key.script = script;
+        key.original = fun;
+        Table::AddPtr p = table.lookupForAdd(key);
+        JS_ASSERT(!p);
+    }
 
     if (!table.relookupOrAdd(p, key, clone.get()))
         return NULL;
