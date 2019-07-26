@@ -1,0 +1,694 @@
+
+
+
+
+'use strict';
+
+const Ci = Components.interfaces;
+const Cc = Components.classes;
+const Cu = Components.utils;
+
+Cu.import("resource://gre/modules/Services.jsm");
+
+const Telemetry = Services.telemetry;
+const bundle = Services.strings.createBundle(
+  "chrome://global/locale/aboutTelemetry.properties");
+const TelemetryPing = Cc["@mozilla.org/base/telemetry-ping;1"].
+  getService(Ci.nsIObserver);
+
+
+const MAX_BAR_HEIGHT = 18;
+const PREF_TELEMETRY_ENABLED = "toolkit.telemetry.enabled";
+const PREF_DEBUG_SLOW_SQL = "toolkit.telemetry.debugSlowSql";
+const PREF_SYMBOL_SERVER_URI = "profiler.symbolicationUrl";
+const DEFAULT_SYMBOL_SERVER_URI = "http://symbolapi.mozilla.org";
+
+
+let documentRTLMode = "";
+
+
+
+
+
+
+
+
+function getPref(aPrefName, aDefault) {
+  let result = aDefault;
+
+  try {
+    let prefType = Services.prefs.getPrefType(aPrefName);
+    if (prefType == Ci.nsIPrefBranch.PREF_BOOL) {
+      result = Services.prefs.getBoolPref(aPrefName);
+    } else if (prefType == Ci.nsIPrefBranch.PREF_STRING) {
+      result = Services.prefs.getCharPref(aPrefName);
+    }
+  } catch (e) {
+    
+  }
+
+  return result;
+}
+
+
+
+
+
+function isRTL() {
+  if (!documentRTLMode)
+    documentRTLMode = window.getComputedStyle(document.body).direction;
+  return (documentRTLMode == "rtl");
+}
+
+let observer = {
+
+  enableTelemetry: bundle.GetStringFromName("enableTelemetry"),
+
+  disableTelemetry: bundle.GetStringFromName("disableTelemetry"),
+
+  
+
+
+  observe: function observe(aSubject, aTopic, aData) {
+    if (aData == PREF_TELEMETRY_ENABLED) {
+      this.updatePrefStatus();
+    }
+  },
+
+  
+
+
+  updatePrefStatus: function updatePrefStatus() {
+    
+    let enabledElement = document.getElementById("description-enabled");
+    let disabledElement = document.getElementById("description-disabled");
+    let toggleElement = document.getElementById("toggle-telemetry");
+    if (getPref(PREF_TELEMETRY_ENABLED, false)) {
+      enabledElement.classList.remove("hidden");
+      disabledElement.classList.add("hidden");
+      toggleElement.innerHTML = this.disableTelemetry;
+    } else {
+      enabledElement.classList.add("hidden");
+      disabledElement.classList.remove("hidden");
+      toggleElement.innerHTML = this.enableTelemetry;
+    }
+  }
+};
+
+let SlowSQL = {
+
+  slowSqlHits: bundle.GetStringFromName("slowSqlHits"),
+
+  slowSqlAverage: bundle.GetStringFromName("slowSqlAverage"),
+
+  slowSqlStatement: bundle.GetStringFromName("slowSqlStatement"),
+
+  mainThreadTitle: bundle.GetStringFromName("slowSqlMain"),
+
+  otherThreadTitle: bundle.GetStringFromName("slowSqlOther"),
+
+  
+
+
+  render: function SlowSQL_render() {
+    let debugSlowSql = getPref(PREF_DEBUG_SLOW_SQL, false);
+    let {mainThread, otherThreads} =
+      Telemetry[debugSlowSql ? "debugSlowSQL" : "slowSQL"];
+
+    let mainThreadCount = Object.keys(mainThread).length;
+    let otherThreadCount = Object.keys(otherThreads).length;
+    if (mainThreadCount == 0 && otherThreadCount == 0) {
+      showEmptySectionMessage("slow-sql-section");
+      return;
+    }
+
+    if (debugSlowSql) {
+      document.getElementById("sql-warning").classList.remove("hidden");
+    }
+
+    let slowSqlDiv = document.getElementById("slow-sql-tables");
+
+    
+    if (mainThreadCount > 0) {
+      let table = document.createElement("table");
+      this.renderTableHeader(table, this.mainThreadTitle);
+      this.renderTable(table, mainThread);
+
+      slowSqlDiv.appendChild(table);
+      slowSqlDiv.appendChild(document.createElement("hr"));
+    }
+
+    
+    if (otherThreadCount > 0) {
+      let table = document.createElement("table");
+      this.renderTableHeader(table, this.otherThreadTitle);
+      this.renderTable(table, otherThreads);
+
+      slowSqlDiv.appendChild(table);
+      slowSqlDiv.appendChild(document.createElement("hr"));
+    }
+  },
+
+  
+
+
+
+
+
+  renderTableHeader: function SlowSQL_renderTableHeader(aTable, aTitle) {
+    let caption = document.createElement("caption");
+    caption.appendChild(document.createTextNode(aTitle));
+    aTable.appendChild(caption);
+
+    let headings = document.createElement("tr");
+    this.appendColumn(headings, "th", this.slowSqlHits);
+    this.appendColumn(headings, "th", this.slowSqlAverage);
+    this.appendColumn(headings, "th", this.slowSqlStatement);
+    aTable.appendChild(headings);
+  },
+
+  
+
+
+
+
+
+  renderTable: function SlowSQL_renderTable(aTable, aSql) {
+    for (let [sql, [hitCount, totalTime]] of Iterator(aSql)) {
+      let averageTime = totalTime / hitCount;
+
+      let sqlRow = document.createElement("tr");
+
+      this.appendColumn(sqlRow, "td", hitCount);
+      this.appendColumn(sqlRow, "td", averageTime.toFixed(0));
+      this.appendColumn(sqlRow, "td", sql);
+
+      aTable.appendChild(sqlRow);
+    }
+  },
+
+  
+
+
+
+
+
+
+  appendColumn: function SlowSQL_appendColumn(aRowElement, aColType, aColText) {
+    let colElement = document.createElement(aColType);
+    let aColTextElement = document.createTextNode(aColText);
+    colElement.appendChild(aColTextElement);
+    aRowElement.appendChild(colElement);
+  }
+};
+
+let ChromeHangs = {
+
+  symbolRequest: null,
+
+  stackTitle: bundle.GetStringFromName("stackTitle"),
+
+  memoryMapTitle: bundle.GetStringFromName("memoryMapTitle"),
+
+  errorMessage: bundle.GetStringFromName("errorFetchingSymbols"),
+
+  
+
+
+  render: function ChromeHangs_render() {
+    let hangsDiv = document.getElementById("chrome-hangs-data");
+    this.clearHangData(hangsDiv);
+    document.getElementById("fetch-symbols").classList.remove("hidden");
+    document.getElementById("hide-symbols").classList.add("hidden");
+
+    let hangs = Telemetry.chromeHangs;
+    if (hangs.length == 0) {
+      showEmptySectionMessage("chrome-hangs-section");
+      return;
+    }
+
+    this.renderMemoryMap(hangsDiv);
+
+    for (let i = 0; i < hangs.length; ++i) {
+      let currentHang = hangs[i];
+      this.renderHangHeader(hangsDiv, i + 1, currentHang.duration);
+      this.renderStack(hangsDiv, currentHang.stack)
+    }
+  },
+
+  
+
+
+
+
+
+
+  renderHangHeader: function ChromeHangs_renderHangHeader(aDiv, aIndex, aDuration) {
+    let titleElement = document.createElement("span");
+    titleElement.className = "hang-title";
+
+    let titleText = bundle.formatStringFromName(
+      "hangTitle", [aIndex, aDuration], 2);
+    titleElement.appendChild(document.createTextNode(titleText));
+
+    aDiv.appendChild(titleElement);
+    aDiv.appendChild(document.createElement("br"));
+  },
+
+  
+
+
+
+
+
+  renderStack: function ChromeHangs_renderStack(aDiv, aStack) {
+    aDiv.appendChild(document.createTextNode(this.stackTitle));
+    let stackText = " " + aStack.join(" ");
+    aDiv.appendChild(document.createTextNode(stackText));
+
+    aDiv.appendChild(document.createElement("br"));
+    aDiv.appendChild(document.createElement("br"));
+  },
+
+  
+
+
+
+
+  renderMemoryMap: function ChromeHangs_renderMemoryMap(aDiv) {
+    aDiv.appendChild(document.createTextNode(this.memoryMapTitle));
+    aDiv.appendChild(document.createElement("br"));
+
+    let singleMemoryMap = Telemetry.chromeHangs[0].memoryMap;
+    for (let currentModule of singleMemoryMap) {
+      aDiv.appendChild(document.createTextNode(currentModule.join(" ")));
+      aDiv.appendChild(document.createElement("br"));
+    }
+
+    aDiv.appendChild(document.createElement("br"));
+  },
+
+  
+
+
+  fetchSymbols: function ChromeHangs_fetchSymbols() {
+    let symbolServerURI =
+      getPref(PREF_SYMBOL_SERVER_URI, DEFAULT_SYMBOL_SERVER_URI);
+
+    let chromeHangsJSON = JSON.stringify(Telemetry.chromeHangs);
+
+    this.symbolRequest = XMLHttpRequest();
+    this.symbolRequest.open("POST", symbolServerURI, true);
+    this.symbolRequest.setRequestHeader("Content-type", "application/json");
+    this.symbolRequest.setRequestHeader("Content-length", chromeHangsJSON.length);
+    this.symbolRequest.setRequestHeader("Connection", "close");
+
+    this.symbolRequest.onreadystatechange = this.handleSymbolResponse.bind(this);
+    this.symbolRequest.send(chromeHangsJSON);
+  },
+
+  
+
+
+
+  handleSymbolResponse: function ChromeHangs_handleSymbolResponse() {
+    if (this.symbolRequest.readyState != 4)
+      return;
+
+    document.getElementById("fetch-symbols").classList.add("hidden");
+    document.getElementById("hide-symbols").classList.remove("hidden");
+
+    let hangsDiv = document.getElementById("chrome-hangs-data");
+    this.clearHangData(hangsDiv);
+
+    if (this.symbolRequest.status != 200) {
+      hangsDiv.appendChild(document.createTextNode(this.errorMessage));
+      return;
+    }
+
+    let jsonResponse = {};
+    try {
+      jsonResponse = JSON.parse(this.symbolRequest.responseText);
+    } catch (e) {
+      hangsDiv.appendChild(document.createTextNode(this.errorMessage));
+      return;
+    }
+
+    let hangs = Telemetry.chromeHangs;
+    for (let i = 0; i < jsonResponse.length; ++i) {
+      let stack = jsonResponse[i];
+      let hangDuration = hangs[i].duration;
+      this.renderHangHeader(hangsDiv, i + 1, hangDuration);
+
+      for (let symbol of stack) {
+        hangsDiv.appendChild(document.createTextNode(symbol));
+        hangsDiv.appendChild(document.createElement("br"));
+      }
+      hangsDiv.appendChild(document.createElement("br"));
+    }
+  },
+
+  
+
+
+
+
+  clearHangData: function ChromeHangs_clearHangData(aDiv) {
+    while (aDiv.hasChildNodes()) {
+      aDiv.removeChild(aDiv.lastChild);
+    }
+  }
+};
+
+let Histogram = {
+
+  hgramSamplesCaption: bundle.GetStringFromName("histogramSamples"),
+
+  hgramAverageCaption: bundle.GetStringFromName("histogramAverage"),
+
+  hgramSumCaption: bundle.GetStringFromName("histogramSum"),
+
+  
+
+
+
+
+
+
+  render: function Histogram_render(aParent, aName, aHgram) {
+    let hgram = this.unpack(aHgram);
+
+    let outerDiv = document.createElement("div");
+    outerDiv.className = "histogram";
+    outerDiv.id = aName;
+
+    let divTitle = document.createElement("div");
+    divTitle.className = "histogram-title";
+    divTitle.appendChild(document.createTextNode(aName));
+    outerDiv.appendChild(divTitle);
+
+    let stats = hgram.sample_count + " " + this.hgramSamplesCaption + ", " +
+                this.hgramAverageCaption + " = " + hgram.pretty_average + ", " +
+                this.hgramSumCaption + " = " + hgram.sum;
+
+    let divStats = document.createElement("div");
+    divStats.appendChild(document.createTextNode(stats));
+    outerDiv.appendChild(divStats);
+
+    if (isRTL())
+      hgram.values.reverse();
+
+    this.renderValues(outerDiv, hgram.values, hgram.max);
+
+    aParent.appendChild(outerDiv);
+  },
+
+  
+
+
+
+
+
+
+  unpack: function Histogram_unpack(aHgram) {
+    let sample_count = aHgram.counts.reduceRight(function (a, b) a + b);
+    let buckets = [0, 1];
+    if (aHgram.histogram_type != Telemetry.HISTOGRAM_BOOLEAN) {
+      buckets = aHgram.ranges;
+    }
+
+    let average =  Math.round(aHgram.sum * 10 / sample_count) / 10;
+    let max_value = Math.max.apply(Math, aHgram.counts);
+
+    let first = true;
+    let last = 0;
+    let values = [];
+    for (let i = 0; i < buckets.length; i++) {
+      let count = aHgram.counts[i];
+      if (!count)
+        continue;
+      if (first) {
+        first = false;
+        if (i) {
+          values.push([buckets[i - 1], 0]);
+        }
+      }
+      last = i + 1;
+      values.push([buckets[i], count]);
+    }
+    if (last && last < buckets.length) {
+      values.push([buckets[last], 0]);
+    }
+
+    let result = {
+      values: values,
+      pretty_average: average,
+      max: max_value,
+      sample_count: sample_count,
+      sum: aHgram.sum
+    };
+
+    return result;
+  },
+
+  
+
+
+
+
+
+
+  renderValues: function Histogram_renderValues(aDiv, aValues, aMaxValue) {
+    for (let [label, value] of aValues) {
+      let belowEm = Math.round(MAX_BAR_HEIGHT * (value / aMaxValue) * 10) / 10;
+      let aboveEm = MAX_BAR_HEIGHT - belowEm;
+
+      let barDiv = document.createElement("div");
+      barDiv.className = "bar";
+      barDiv.style.paddingTop = aboveEm + "em";
+
+      
+      barDiv.appendChild(document.createTextNode(value ? value : '\u00A0'));
+
+      
+      let bar = document.createElement("div");
+      bar.className = "bar-inner";
+      bar.style.height = belowEm + "em";
+      barDiv.appendChild(bar);
+
+      
+      barDiv.appendChild(document.createTextNode(label));
+
+      aDiv.appendChild(barDiv);
+    }
+  }
+};
+
+let KeyValueTable = {
+
+  keysHeader: bundle.GetStringFromName("keysHeader"),
+
+  valuesHeader: bundle.GetStringFromName("valuesHeader"),
+
+  
+
+
+  render: function KeyValueTable_render(aTableID, aMeasurements) {
+    let table = document.getElementById(aTableID);
+    this.renderHeader(table);
+    this.renderBody(table, aMeasurements);
+  },
+
+  
+
+
+
+
+  renderHeader: function KeyValueTable_renderHeader(aTable) {
+    let headerRow = document.createElement("tr");
+    aTable.appendChild(headerRow);
+
+    let keysColumn = document.createElement("th");
+    keysColumn.appendChild(document.createTextNode(this.keysHeader));
+    let valuesColumn = document.createElement("th");
+    valuesColumn.appendChild(document.createTextNode(this.valuesHeader));
+
+    headerRow.appendChild(keysColumn);
+    headerRow.appendChild(valuesColumn);
+  },
+
+  
+
+
+
+
+
+  renderBody: function KeyValueTable_renderBody(aTable, aMeasurements) {
+    for (let [key, value] of Iterator(aMeasurements)) {
+      if (typeof value == "object") {
+        value = JSON.stringify(value);
+      }
+
+      let newRow = document.createElement("tr");
+      aTable.appendChild(newRow);
+
+      let keyField = document.createElement("td");
+      keyField.appendChild(document.createTextNode(key));
+      newRow.appendChild(keyField);
+
+      let valueField = document.createElement("td");
+      valueField.appendChild(document.createTextNode(value));
+      newRow.appendChild(valueField);
+    }
+  }
+};
+
+
+
+
+
+
+function showEmptySectionMessage(aSectionID) {
+  let sectionElement = document.getElementById(aSectionID);
+
+  
+  let toggleElements = sectionElement.getElementsByClassName("toggle-caption");
+  toggleElements[0].classList.add("hidden");
+  toggleElements[1].classList.add("hidden");
+
+  
+  let messageElement = sectionElement.getElementsByClassName("empty-caption")[0];
+  messageElement.classList.remove("hidden");
+
+  
+  let sectionHeaders = sectionElement.getElementsByClassName("section-name");
+  for (let sectionHeader of sectionHeaders) {
+    sectionHeader.removeEventListener("click", toggleSection);
+    sectionHeader.style.cursor = "auto";
+  }
+
+  
+  let toggleLinks = sectionElement.getElementsByClassName("toggle-caption");
+  for (let toggleLink of toggleLinks) {
+    toggleLink.removeEventListener("click", toggleSection);
+  }
+}
+
+
+
+
+
+function toggleSection(aEvent) {
+  let parentElement = aEvent.target.parentElement;
+  let sectionDiv = parentElement.getElementsByTagName("div")[0];
+  sectionDiv.classList.toggle("hidden");
+
+  let toggleLinks = parentElement.getElementsByClassName("toggle-caption");
+  toggleLinks[0].classList.toggle("hidden");
+  toggleLinks[1].classList.toggle("hidden");
+}
+
+
+
+
+
+function setupListeners() {
+  Services.prefs.addObserver(PREF_TELEMETRY_ENABLED, observer, false);
+  observer.updatePrefStatus();
+
+  
+  window.addEventListener("unload",
+    function unloadHandler(aEvent) {
+      window.removeEventListener("unload", unloadHandler);
+      Services.prefs.removeObserver(PREF_TELEMETRY_ENABLED, observer);
+  }, false);
+
+  document.getElementById("toggle-telemetry").addEventListener("click",
+    function () {
+      let value = getPref(PREF_TELEMETRY_ENABLED, false);
+      Services.prefs.setBoolPref(PREF_TELEMETRY_ENABLED, !value);
+  }, false);
+
+  document.getElementById("fetch-symbols").addEventListener("click",
+    function () {
+      ChromeHangs.fetchSymbols();
+  }, false);
+
+  document.getElementById("hide-symbols").addEventListener("click",
+    function () {
+      ChromeHangs.render();
+  }, false);
+
+  
+  let sectionHeaders = document.getElementsByClassName("section-name");
+  for (let sectionHeader of sectionHeaders) {
+    sectionHeader.addEventListener("click", toggleSection, false);
+  }
+
+  
+  let toggleLinks = document.getElementsByClassName("toggle-caption");
+  for (let toggleLink of toggleLinks) {
+    toggleLink.addEventListener("click", toggleSection, false);
+  }
+}
+
+function onLoad() {
+  window.removeEventListener("load", onLoad);
+
+  
+  setupListeners();
+
+  
+  SlowSQL.render();
+
+  
+  ChromeHangs.render();
+
+  
+  let histograms = Telemetry.histogramSnapshots;
+  if (Object.keys(histograms).length) {
+    let hgramDiv = document.getElementById("histograms");
+    for (let [name, hgram] of Iterator(histograms)) {
+      Histogram.render(hgramDiv, name, hgram);
+    }
+  } else {
+    showEmptySectionMessage("histograms-section");
+  }
+
+  
+  let pingData = Cc['@mozilla.org/supports-string;1'].
+    createInstance(Ci.nsISupportsString);
+  TelemetryPing.observe(pingData, "get-payload", "");
+  let ping = {};
+  try {
+    ping = JSON.parse(pingData.data);
+  } catch (e) {
+  }
+
+  
+  if (Object.keys(ping.simpleMeasurements).length) {
+    KeyValueTable.render("simple-measurements-table", ping.simpleMeasurements);
+  } else {
+    showEmptySectionMessage("simple-measurements-section");
+  }
+
+  
+  if (Object.keys(ping.info).length) {
+    KeyValueTable.render("system-info-table", ping.info);
+  } else {
+    showEmptySectionMessage("system-info-section");
+  }
+
+  
+  histograms = Telemetry.addonHistogramSnapshots;
+  if (Object.keys(histograms).length) {
+    let addonDiv = document.getElementById("addon-histograms");
+    for (let [name, hgram] of Iterator(histograms)) {
+      Histogram.render(addonDiv, "ADDON_" + name, hgram);
+    }
+  } else {
+    showEmptySectionMessage("addon-histograms-section");
+  }
+}
+
+window.addEventListener("load", onLoad, false);
