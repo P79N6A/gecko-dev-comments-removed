@@ -83,36 +83,15 @@ GetPPMLog()
 #define LOG(fmt, ...)
 #endif
 
-
-
-
-ProcessPriority
-GetBackgroundPriority()
+uint64_t
+GetContentChildID()
 {
-  AudioChannelService* service = AudioChannelService::GetAudioChannelService();
-  if (service->ContentOrNormalChannelIsActive()) {
-    return PROCESS_PRIORITY_BACKGROUND_PERCEIVABLE;
-  }
-
-  bool isHomescreen = false;
-
   ContentChild* contentChild = ContentChild::GetSingleton();
-  if (contentChild) {
-    const InfallibleTArray<PBrowserChild*>& browsers =
-      contentChild->ManagedPBrowserChild();
-    for (uint32_t i = 0; i < browsers.Length(); i++) {
-      nsAutoString appType;
-      static_cast<TabChild*>(browsers[i])->GetAppType(appType);
-      if (appType.EqualsLiteral("homescreen")) {
-        isHomescreen = true;
-        break;
-      }
-    }
+  if (!contentChild) {
+    return 0;
   }
 
-  return isHomescreen ?
-         PROCESS_PRIORITY_BACKGROUND_HOMESCREEN :
-         PROCESS_PRIORITY_BACKGROUND;
+  return contentChild->GetID();
 }
 
 
@@ -158,6 +137,7 @@ class ProcessPriorityManager MOZ_FINAL
   : public nsIObserver
   , public nsIDOMEventListener
   , public nsITimerCallback
+  , public WakeLockObserver
 {
 public:
   ProcessPriorityManager();
@@ -167,6 +147,7 @@ public:
   NS_DECL_NSITIMERCALLBACK
   NS_DECL_NSIOBSERVER
   NS_DECL_NSIDOMEVENTLISTENER
+  void Notify(const WakeLockInformation& aWakeLockInfo);
 
   ProcessPriority GetPriority() const { return mProcessPriority; }
 
@@ -174,7 +155,7 @@ public:
 
 
 
-  void TemporarilySetIsForeground();
+  void TemporarilyLockProcessPriority();
 
   
 
@@ -203,9 +184,26 @@ private:
   
 
 
+
+  bool IsCriticalProcessWithWakeLock();
+
+  
+
+
+  ProcessPriority GetForegroundPriority();
+
+  
+
+
+  ProcessPriority GetBackgroundPriority();
+
+  
+
+
   bool ComputeIsInForeground();
 
   
+
 
 
   void SetIsForeground();
@@ -225,6 +223,12 @@ private:
   ScheduleResetPriority(const char* aTimeoutPref);
 
   
+  bool mHoldsCPUWakeLock;
+
+  
+  bool mHoldsHighPriorityWakeLock;
+
+  
   ProcessPriority mProcessPriority;
 
   nsTArray<nsWeakPtr> mWindows;
@@ -236,13 +240,13 @@ private:
   nsWeakPtr mMemoryMinimizerRunnable;
 };
 
-NS_IMPL_ISUPPORTS3(ProcessPriorityManager, nsIObserver,
-                   nsIDOMEventListener, nsITimerCallback)
+NS_IMPL_ISUPPORTS2(ProcessPriorityManager, nsIObserver, nsIDOMEventListener)
 
 ProcessPriorityManager::ProcessPriorityManager()
-  : mProcessPriority(ProcessPriority(-1))
+  : mHoldsCPUWakeLock(false)
+  , mHoldsHighPriorityWakeLock(false)
+  , mProcessPriority(ProcessPriority(-1))
 {
-  
   
   
   
@@ -269,6 +273,20 @@ ProcessPriorityManager::Init()
   os->AddObserver(this, "inner-window-destroyed",  false);
   os->AddObserver(this, "audio-channel-agent-changed",  false);
   os->AddObserver(this, "process-priority:reset-now",  false);
+
+  RegisterWakeLockObserver(this);
+
+  
+  
+  WakeLockInformation info1, info2;
+  GetWakeLockInfo(NS_LITERAL_STRING("cpu"), &info1);
+  mHoldsCPUWakeLock = info1.lockingProcesses().Contains(GetContentChildID());
+
+  GetWakeLockInfo(NS_LITERAL_STRING("high-priority"), &info2);
+  mHoldsHighPriorityWakeLock = info2.lockingProcesses().Contains(GetContentChildID());
+
+  LOG("Done starting up.  mHoldsCPUWakeLock=%d, mHoldsHighPriorityWakeLock=%d",
+      mHoldsCPUWakeLock, mHoldsHighPriorityWakeLock);
 }
 
 NS_IMETHODIMP
@@ -289,6 +307,30 @@ ProcessPriorityManager::Observe(
     MOZ_ASSERT(false);
   }
   return NS_OK;
+}
+
+void
+ProcessPriorityManager::Notify(const WakeLockInformation& aInfo)
+{
+  bool* dest = nullptr;
+  if (aInfo.topic() == NS_LITERAL_STRING("cpu")) {
+    dest = &mHoldsCPUWakeLock;
+  } else if (aInfo.topic() == NS_LITERAL_STRING("high-priority")) {
+    dest = &mHoldsHighPriorityWakeLock;
+  }
+
+  if (dest) {
+    bool thisProcessLocks =
+      aInfo.lockingProcesses().Contains(GetContentChildID());
+
+    if (thisProcessLocks != *dest) {
+      *dest = thisProcessLocks;
+      LOG("Got wake lock changed event. "
+          "Now mHoldsCPUWakeLock=%d, mHoldsHighPriorityWakeLock=%d",
+          mHoldsCPUWakeLock, mHoldsHighPriorityWakeLock);
+      ResetPriority();
+    }
+  }
 }
 
 NS_IMETHODIMP
@@ -336,8 +378,74 @@ ProcessPriorityManager::OnContentDocumentGlobalCreated(
                                   false);
 
   mWindows.AppendElement(weakWin);
+
   ResetPriority();
 }
+
+bool
+ProcessPriorityManager::IsCriticalProcessWithWakeLock()
+{
+  if (!(mHoldsCPUWakeLock || mHoldsHighPriorityWakeLock)) {
+    return false;
+  }
+
+  ContentChild* contentChild = ContentChild::GetSingleton();
+  if (!contentChild) {
+    return false;
+  }
+
+  const InfallibleTArray<PBrowserChild*>& browsers =
+    contentChild->ManagedPBrowserChild();
+  for (uint32_t i = 0; i < browsers.Length(); i++) {
+    nsAutoString appType;
+    static_cast<TabChild*>(browsers[i])->GetAppType(appType);
+    if (appType.EqualsLiteral("critical")) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+ProcessPriority
+ProcessPriorityManager::GetForegroundPriority()
+{
+  return IsCriticalProcessWithWakeLock() ? PROCESS_PRIORITY_FOREGROUND_HIGH :
+                                           PROCESS_PRIORITY_FOREGROUND;
+}
+
+
+
+
+ProcessPriority
+ProcessPriorityManager::GetBackgroundPriority()
+{
+  AudioChannelService* service = AudioChannelService::GetAudioChannelService();
+  if (service->ContentOrNormalChannelIsActive()) {
+    return PROCESS_PRIORITY_BACKGROUND_PERCEIVABLE;
+  }
+
+  bool isHomescreen = false;
+
+  ContentChild* contentChild = ContentChild::GetSingleton();
+  if (contentChild) {
+    const InfallibleTArray<PBrowserChild*>& browsers =
+      contentChild->ManagedPBrowserChild();
+    for (uint32_t i = 0; i < browsers.Length(); i++) {
+      nsAutoString appType;
+      static_cast<TabChild*>(browsers[i])->GetAppType(appType);
+      if (appType.EqualsLiteral("homescreen")) {
+        isHomescreen = true;
+        break;
+      }
+    }
+  }
+
+  return isHomescreen ?
+         PROCESS_PRIORITY_BACKGROUND_HOMESCREEN :
+         PROCESS_PRIORITY_BACKGROUND;
+}
+
 
 void
 ProcessPriorityManager::ResetPriority()
@@ -368,6 +476,12 @@ ProcessPriorityManager::ComputeIsInForeground()
 {
   
   
+  if (IsCriticalProcessWithWakeLock()) {
+    return true;
+  }
+
+  
+  
   
   
   
@@ -389,6 +503,7 @@ ProcessPriorityManager::ComputeIsInForeground()
 
     bool isActive = false;
     docshell->GetIsActive(&isActive);
+
 
 #ifdef DEBUG
     nsAutoCString spec;
@@ -412,7 +527,8 @@ ProcessPriorityManager::ComputeIsInForeground()
 void
 ProcessPriorityManager::SetIsForeground()
 {
-  if (mProcessPriority == PROCESS_PRIORITY_FOREGROUND) {
+  ProcessPriority foregroundPriority = GetForegroundPriority();
+  if (foregroundPriority == mProcessPriority) {
     return;
   }
 
@@ -423,7 +539,7 @@ ProcessPriorityManager::SetIsForeground()
     runnable->Cancel();
   }
 
-  mProcessPriority = PROCESS_PRIORITY_FOREGROUND;
+  mProcessPriority = foregroundPriority;
   LOG("Setting priority to %s.", ProcessPriorityToString(mProcessPriority));
   hal::SetProcessPriority(getpid(), PROCESS_PRIORITY_FOREGROUND);
 }
@@ -462,7 +578,7 @@ void
 ProcessPriorityManager::ScheduleResetPriority(const char* aTimeoutPref)
 {
   if (mResetPriorityTimer) {
-    
+    LOG("ScheduleResetPriority bailing; the timer is already running.");
     return;
   }
 
@@ -483,11 +599,11 @@ ProcessPriorityManager::Notify(nsITimer* aTimer)
 }
 
 void
-ProcessPriorityManager::TemporarilySetIsForeground()
+ProcessPriorityManager::TemporarilyLockProcessPriority()
 {
-  LOG("TemporarilySetIsForeground");
-  SetIsForeground();
+  LOG("TemporarilyLockProcessPriority");
 
+  
   
   
   
@@ -496,7 +612,7 @@ ProcessPriorityManager::TemporarilySetIsForeground()
     mResetPriorityTimer->Cancel();
     mResetPriorityTimer = nullptr;
   }
-  ScheduleResetPriority("temporaryPriorityMS");
+  ScheduleResetPriority("temporaryPriorityLockMS");
 }
 
 } 
@@ -544,12 +660,12 @@ CurrentProcessIsForeground()
 }
 
 void
-TemporarilySetProcessPriorityToForeground()
+TemporarilyLockProcessPriority()
 {
   if (sManager) {
-    sManager->TemporarilySetIsForeground();
+    sManager->TemporarilyLockProcessPriority();
   } else {
-    LOG("TemporarilySetProcessPriorityToForeground called before "
+    LOG("TemporarilyLockProcessPriority called before "
         "InitProcessPriorityManager.  Bailing.");
   }
 }
