@@ -529,7 +529,14 @@ bool OmxDecoder::ReadVideo(VideoFrame *aFrame, int64_t aTimeUs,
     }
 
     if (descriptor) {
-      aFrame->mGraphicBuffer = new mozilla::layers::VideoGraphicBuffer(this, mVideoBuffer, descriptor);
+      
+      
+      
+      const mozilla::layers::SurfaceDescriptorGralloc& grallocDesc = descriptor->get_SurfaceDescriptorGralloc();
+      mozilla::layers::SurfaceDescriptor newDescriptor = mozilla::layers::SurfaceDescriptorGralloc(grallocDesc.bufferParent(),
+                                                               grallocDesc.bufferChild(), nsIntSize(mVideoWidth, mVideoHeight), grallocDesc.external());
+
+      aFrame->mGraphicBuffer = new mozilla::layers::VideoGraphicBuffer(this, mVideoBuffer, &newDescriptor);
       aFrame->mRotation = mVideoRotation;
       aFrame->mTimeUs = timeUs;
       aFrame->mEndTimeUs = timeUs + durationUs;
