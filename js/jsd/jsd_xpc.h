@@ -61,6 +61,8 @@ class jsdObject MOZ_FINAL : public jsdIObject
     jsdObject(); 
     jsdObject(const jsdObject&); 
 
+    ~jsdObject() {}
+
     JSDContext *mCx;
     JSDObject *mObject;
 };
@@ -74,7 +76,6 @@ class jsdProperty : public jsdIProperty
     NS_DECL_JSDIEPHEMERAL
     
     jsdProperty (JSDContext *aCx, JSDProperty *aProperty);
-    virtual ~jsdProperty ();
     
     static jsdIProperty *FromPtr (JSDContext *aCx,
                                   JSDProperty *aProperty)
@@ -93,6 +94,8 @@ class jsdProperty : public jsdIProperty
     jsdProperty(); 
     jsdProperty(const jsdProperty&); 
 
+    virtual ~jsdProperty ();
+
     bool           mValid;
     LiveEphemeral  mLiveListEntry;
     JSDContext    *mCx;
@@ -108,7 +111,6 @@ class jsdScript : public jsdIScript
 
     
     jsdScript (JSDContext *aCx, JSDScript *aScript);
-    virtual ~jsdScript();
     
     static jsdIScript *FromPtr (JSDContext *aCx, JSDScript *aScript)
     {
@@ -134,6 +136,8 @@ class jsdScript : public jsdIScript
     static void InvalidateAll();
 
   private:
+    virtual ~jsdScript();
+
     static uint32_t LastTag;
     
     jsdScript(); 
@@ -164,7 +168,6 @@ class jsdContext : public jsdIContext
     NS_DECL_JSDIEPHEMERAL
 
     jsdContext (JSDContext *aJSDCx, JSContext *aJSCx, nsISupports *aISCx);
-    virtual ~jsdContext();
 
     static void InvalidateAll();
     static jsdIContext *FromPtr (JSDContext *aJSDCx, JSContext *aJSCx);
@@ -173,6 +176,8 @@ class jsdContext : public jsdIContext
 
     jsdContext (); 
     jsdContext (const jsdContext&); 
+
+    virtual ~jsdContext();
 
     bool                   mValid;
     
@@ -204,7 +209,6 @@ class jsdStackFrame : public jsdIStackFrame
     
     jsdStackFrame (JSDContext *aCx, JSDThreadState *aThreadState,
                    JSDStackFrameInfo *aStackFrameInfo);
-    virtual ~jsdStackFrame();
 
     static void InvalidateAll();
     static jsdIStackFrame* FromPtr (JSDContext *aCx,
@@ -214,6 +218,8 @@ class jsdStackFrame : public jsdIStackFrame
   private:
     jsdStackFrame(); 
     jsdStackFrame(const jsdStackFrame&); 
+
+    virtual ~jsdStackFrame();
 
     bool               mValid;
     LiveEphemeral      mLiveListEntry;
@@ -231,12 +237,13 @@ class jsdValue : public jsdIValue
 
     
     jsdValue (JSDContext *aCx, JSDValue *aValue);
-    virtual ~jsdValue();
 
     static jsdIValue *FromPtr (JSDContext *aCx, JSDValue *aValue);    
     static void InvalidateAll();
     
   private:
+    virtual ~jsdValue();
+
     jsdValue(); 
     jsdValue (const jsdScript&); 
     
@@ -268,8 +275,6 @@ class jsdService : public jsdIDebuggerService
     {
     }
 
-    virtual ~jsdService();
-    
     static jsdService *GetService ();
 
     bool CheckInterruptHook() { return !!mInterruptHook; }
@@ -278,6 +283,8 @@ class jsdService : public jsdIDebuggerService
     nsresult DoUnPause(uint32_t *_rval, bool internalCall);
 
   private:
+    virtual ~jsdService();
+
     bool        mOn;
     uint32_t    mPauseLevel;
     uint32_t    mNestedLoopLevel;
