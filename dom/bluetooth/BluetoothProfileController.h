@@ -41,7 +41,7 @@ BEGIN_BLUETOOTH_NAMESPACE
 #define HAS_RENDERING(cod)           (cod & 0x40000)
 
 
-#define IS_PERIPHERAL(cod)           (GET_MAJOR_DEVICE_CLASS(cod) == 0xa)
+#define IS_PERIPHERAL(cod)           (GET_MAJOR_DEVICE_CLASS(cod) == 0x5)
 
 class BluetoothProfileManagerBase;
 class BluetoothReplyRunnable;
