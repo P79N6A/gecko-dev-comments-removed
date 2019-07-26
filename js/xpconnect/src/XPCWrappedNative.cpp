@@ -1582,6 +1582,7 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCCallContext& ccx,
                     wrapper->UpdateScriptableInfo(newProto->GetScriptableInfo());
                 }
 
+                
                 if (newMap->Find(wrapper->GetIdentityObject()))
                     MOZ_CRASH();
 
