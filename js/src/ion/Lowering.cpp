@@ -520,6 +520,27 @@ ReorderComparison(JSOp op, MDefinition **lhsp, MDefinition **rhsp)
     return op;
 }
 
+static void
+ReorderCommutative(MDefinition **lhsp, MDefinition **rhsp)
+{
+    MDefinition *lhs = *lhsp;
+    MDefinition *rhs = *rhsp;
+
+    
+    
+    
+
+    if (rhs->isConstant())
+        return;
+
+    if (lhs->isConstant() ||
+        (rhs->defUseCount() == 1 && lhs->defUseCount() > 1))
+    {
+        *rhsp = lhs;
+        *lhsp = rhs;
+    }
+}
+
 bool
 LIRGenerator::visitTest(MTest *test)
 {
@@ -672,6 +693,15 @@ LIRGenerator::visitTest(MTest *test)
                 return false;
             return add(lir, comp);
         }
+    }
+
+    
+    
+    if (opd->isBitAnd() && opd->isEmittedAtUses()) {
+        MDefinition *lhs = opd->getOperand(0);
+        MDefinition *rhs = opd->getOperand(1);
+        ReorderCommutative(&lhs, &rhs);
+        return lowerForBitAndAndBranch(new LBitAndAndBranch(ifTrue, ifFalse), test, lhs, rhs);
     }
 
     if (opd->type() == MIRType_Double)
@@ -848,27 +878,6 @@ LIRGenerator::visitCompare(MCompare *comp)
     MOZ_ASSUME_UNREACHABLE("Unrecognized compare type.");
 }
 
-static void
-ReorderCommutative(MDefinition **lhsp, MDefinition **rhsp)
-{
-    MDefinition *lhs = *lhsp;
-    MDefinition *rhs = *rhsp;
-
-    
-    
-    
-
-    if (rhs->isConstant())
-        return;
-
-    if (lhs->isConstant() ||
-        (rhs->defUseCount() == 1 && lhs->defUseCount() > 1))
-    {
-        *rhsp = lhs;
-        *lhsp = rhs;
-    }
-}
-
 bool
 LIRGenerator::lowerBitOp(JSOp op, MInstruction *ins)
 {
@@ -928,9 +937,33 @@ LIRGenerator::visitBitNot(MBitNot *ins)
     return assignSafepoint(lir, ins);
 }
 
+static bool
+CanEmitBitAndAtUses(MInstruction *ins)
+{
+    if (!ins->canEmitAtUses())
+        return false;
+
+    MUseDefIterator iter(ins);
+    if (!iter)
+        return false;
+
+    if (!iter.def()->isTest())
+        return false;
+
+    iter++;
+    return !iter;
+}
+
 bool
 LIRGenerator::visitBitAnd(MBitAnd *ins)
 {
+    
+    
+    
+    
+    if (CanEmitBitAndAtUses(ins))
+        return emitAtUses(ins);
+
     return lowerBitOp(JSOP_BITAND, ins);
 }
 
