@@ -208,10 +208,7 @@ EncodeInputStream(nsIInputStream *aInputStream,
   if (state.charsOnStack)
     Encode(state.c, state.charsOnStack, state.buffer);
 
-  if (aDest.Length())
-    
-    
-    *aDest.EndWriting() = '\0';
+  *aDest.EndWriting() = '\0';
 
   return NS_OK;
 }
