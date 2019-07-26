@@ -24,9 +24,6 @@ let gPage = {
     button.addEventListener("click", this, false);
 
     
-    this._sponsoredPanel = document.getElementById("sponsored-panel");
-
-    
     let enabled = gAllPages.enabled;
     if (enabled)
       this._init();
@@ -82,21 +79,6 @@ let gPage = {
   
 
 
-  showSponsoredPanel: function Page_showSponsoredPanel(aTarget) {
-    if (this._sponsoredPanel.state == "closed") {
-      let self = this;
-      this._sponsoredPanel.addEventListener("popuphidden", function onPopupHidden(aEvent) {
-        self._sponsoredPanel.removeEventListener("popuphidden", onPopupHidden, false);
-        aTarget.removeAttribute("panelShown");
-      });
-    }
-    aTarget.setAttribute("panelShown", "true");
-    this._sponsoredPanel.openPopup(aTarget);
-  },
-
-  
-
-
 
   _init: function Page_init() {
     if (this._initialized)
@@ -108,28 +90,10 @@ let gPage = {
       if (this.allowBackgroundCaptures) {
         Services.telemetry.getHistogramById("NEWTAB_PAGE_SHOWN").add(true);
 
-        
-        let directoryCount = {};
-        for (let type of DirectoryLinksProvider.linkTypes) {
-          directoryCount[type] = 0;
-        }
-
         for (let site of gGrid.sites) {
           if (site) {
             site.captureIfMissing();
-            let {type} = site.link;
-            if (type in directoryCount) {
-              directoryCount[type]++;
-            }
           }
-        }
-
-        
-        
-        for (let [type, count] of Iterator(directoryCount)) {
-          let shownId = "NEWTAB_PAGE_DIRECTORY_" + type.toUpperCase() + "_SHOWN";
-          let shownCount = Math.min(10, count);
-          Services.telemetry.getHistogramById(shownId).add(shownCount);
         }
       }
     });
