@@ -940,6 +940,17 @@ class LSafepoint : public TempObject
   private:
     
     
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     RegisterSet liveRegs_;
 
     
@@ -996,11 +1007,12 @@ class LSafepoint : public TempObject
         return gcSlots_;
     }
 
-    void addGcPointer(LAllocation alloc) {
+    bool addGcPointer(LAllocation alloc) {
+        if (alloc.isStackSlot())
+            return addGcSlot(alloc.toStackSlot()->slot());
         if (alloc.isRegister())
             addGcRegister(alloc.toRegister().gpr());
-        else if (alloc.isStackSlot())
-            addGcSlot(alloc.toStackSlot()->slot());
+        return true;
     }
 
     bool hasGcPointer(LAllocation alloc) {
