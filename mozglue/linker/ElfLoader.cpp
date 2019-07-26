@@ -14,6 +14,7 @@
 #include "CustomElf.h"
 #include "Mappable.h"
 #include "Logging.h"
+#include <inttypes.h>
 
 #if defined(ANDROID)
 #include <sys/syscall.h>
@@ -908,8 +909,34 @@ Divert(T func, T new_func)
 }
 #endif
 
+namespace {
+
+
+static uint64_t ProcessTimeStamp_Now()
+{
+  struct timespec ts;
+  int rv = clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts);
+
+  if (rv != 0) {
+    return 0;
+  }
+
+  uint64_t baseNs = (uint64_t)ts.tv_sec * 1000000000;
+  return baseNs + (uint64_t)ts.tv_nsec;
+}
+
+}
+
+
+
+struct TmpData {
+  volatile int crash_int;
+  volatile uint64_t crash_timestamp;
+};
+
 SEGVHandler::SEGVHandler()
 : registeredHandler(false), signalHandlingBroken(false)
+, signalHandlingSlow(false)
 {
   
 
@@ -926,6 +953,10 @@ SEGVHandler::SEGVHandler()
 
 
 
+
+
+
+
   struct sigaction action;
   action.sa_sigaction = &SEGVHandler::test_handler;
   sigemptyset(&action.sa_mask);
@@ -933,14 +964,17 @@ SEGVHandler::SEGVHandler()
   action.sa_restorer = NULL;
   if (sys_sigaction(SIGSEGV, &action, NULL))
     return;
-  stackPtr.Assign(MemoryRange::mmap(NULL, PageSize(), PROT_NONE,
+  stackPtr.Assign(MemoryRange::mmap(NULL, PageSize(), PROT_READ | PROT_WRITE,
                                     MAP_PRIVATE | MAP_ANONYMOUS, -1, 0));
   if (stackPtr.get() == MAP_FAILED)
     return;
 
-  *((volatile int*)stackPtr.get()) = 123;
+  TmpData *data = reinterpret_cast<TmpData*>(stackPtr.get());
+  data->crash_timestamp = ProcessTimeStamp_Now();
+  mprotect(stackPtr, stackPtr.GetLength(), PROT_NONE);
+  data->crash_int = 123;
   stackPtr.Assign(MAP_FAILED, 0);
-  if (signalHandlingBroken) {
+  if (signalHandlingBroken || signalHandlingSlow) {
     
     sys_sigaction(SIGSEGV, &this->action, NULL);
     return;
@@ -984,12 +1018,21 @@ SEGVHandler::~SEGVHandler()
 
 
 
+
 void SEGVHandler::test_handler(int signum, siginfo_t *info, void *context)
 {
   SEGVHandler &that = ElfLoader::Singleton;
   if (signum != SIGSEGV || info == NULL || info->si_addr != that.stackPtr.get())
     that.signalHandlingBroken = true;
   mprotect(that.stackPtr, that.stackPtr.GetLength(), PROT_READ | PROT_WRITE);
+  TmpData *data = reinterpret_cast<TmpData*>(that.stackPtr.get());
+  uint64_t latency = ProcessTimeStamp_Now() - data->crash_timestamp;
+  DEBUG_LOG("SEGVHandler latency: %" PRIu64, latency);
+  
+
+
+  if (latency > 150000)
+    that.signalHandlingSlow = true;
 }
 
 
