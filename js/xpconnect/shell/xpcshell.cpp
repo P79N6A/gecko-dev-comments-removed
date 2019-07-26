@@ -1594,7 +1594,6 @@ main(int argc, char **argv, char **envp)
         }
 
         nsCOMPtr<nsIPrincipal> systemprincipal;
-
         
         
         
