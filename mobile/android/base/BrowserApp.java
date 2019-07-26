@@ -1366,7 +1366,18 @@ abstract public class BrowserApp extends GeckoApp
     }
 
     private void enterEditingMode() {
-        enterEditingMode(null);
+        String url = null;
+
+        final Tab tab = Tabs.getInstance().getSelectedTab();
+        if (tab != null) {
+            final String userSearch = tab.getUserSearch();
+
+            
+            
+            url = (TextUtils.isEmpty(userSearch) ? tab.getURL() : userSearch);
+        }
+
+        enterEditingMode(url);
     }
 
     
@@ -1374,17 +1385,8 @@ abstract public class BrowserApp extends GeckoApp
 
 
     private void enterEditingMode(String url) {
-        
-        if (TextUtils.isEmpty(url)) {
-            Tab tab = Tabs.getInstance().getSelectedTab();
-            if (tab != null) {
-                
-                
-                url = tab.getUserSearch();
-                if (TextUtils.isEmpty(url)) {
-                    url = tab.getURL();
-                }
-            }
+        if (url == null) {
+            throw new IllegalArgumentException("Cannot handle null URLs in enterEditingMode");
         }
 
         final PropertyAnimator animator = new PropertyAnimator(300);
