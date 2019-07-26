@@ -95,11 +95,12 @@ struct JSSettings
   
   struct JSContentChromeSettings
   {
-    JS::ContextOptions options;
+    JS::ContextOptions contextOptions;
+    JS::CompartmentOptions compartmentOptions;
     int32_t maxScriptRuntime;
 
     JSContentChromeSettings()
-    : options(), maxScriptRuntime(0)
+    : contextOptions(), compartmentOptions(), maxScriptRuntime(0)
     { }
   };
 
