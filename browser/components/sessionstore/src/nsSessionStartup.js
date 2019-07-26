@@ -39,14 +39,19 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/TelemetryStopwatch.jsm");
 Cu.import("resource://gre/modules/PrivateBrowsingUtils.jsm");
+Cu.import("resource://gre/modules/commonjs/promise/core.js");
+
+XPCOMUtils.defineLazyModuleGetter(this, "_SessionFile",
+  "resource:///modules/sessionstore/_SessionFile.jsm");
 
 const STATE_RUNNING_STR = "running";
-const MAX_FILE_SIZE = 100 * 1024 * 1024; 
 
 function debug(aMsg) {
   aMsg = ("SessionStartup: " + aMsg).replace(/\S{80}/g, "$&\n");
   Services.console.logStringMessage(aMsg);
 }
+
+let gOnceInitializedDeferred = Promise.defer();
 
 
 
@@ -58,6 +63,7 @@ SessionStartup.prototype = {
   
   _initialState: null,
   _sessionType: Ci.nsISessionStartup.NO_SESSION,
+  _initialized: false,
 
 
 
@@ -65,95 +71,121 @@ SessionStartup.prototype = {
 
 
   init: function sss_init() {
+    debug("init starting");
     
     let pbs = Cc["@mozilla.org/privatebrowsing;1"].
               getService(Ci.nsIPrivateBrowsingService);
     if (PrivateBrowsingUtils.permanentPrivateBrowsing ||
         pbs.lastChangedByCommandLine)
       return;
-
-    let prefBranch = Cc["@mozilla.org/preferences-service;1"].
-                     getService(Ci.nsIPrefService).getBranch("browser.");
-
     
-    var dirService = Cc["@mozilla.org/file/directory_service;1"].
-                     getService(Ci.nsIProperties);
-    let sessionFile = dirService.get("ProfD", Ci.nsILocalFile);
-    sessionFile.append("sessionstore.js");
+    this._sessionType = null;
+    _SessionFile.read().then(
+      this._onSessionFileRead.bind(this)
+    );
+    debug("init launched");
+  },
 
-    let doResumeSessionOnce = prefBranch.getBoolPref("sessionstore.resume_session_once");
-    let doResumeSession = doResumeSessionOnce ||
-                          prefBranch.getIntPref("startup.page") == 3;
+  
+  _createSupportsString: function ssfi_createSupportsString(aData) {
+    let string = Cc["@mozilla.org/supports-string;1"]
+                   .createInstance(Ci.nsISupportsString);
+    string.data = aData;
+    return string;
+  },
 
-    
-    if (!sessionFile.exists())
+  _onSessionFileRead: function sss_onSessionFileRead(aStateString) {
+    debug("onSessionFileRead ");
+    if (this._initialized) {
+      debug("onSessionFileRead: Initialization is already complete");
+      
       return;
-
-    
-    let iniString = this._readStateFile(sessionFile);
-    if (!iniString)
-      return;
-
-    
-    
-    if (iniString.charAt(0) == '(')
-      iniString = iniString.slice(1, -1);
-    let corruptFile = false;
+    }
     try {
-      this._initialState = JSON.parse(iniString);
-    }
-    catch (ex) {
-      debug("The session file contained un-parse-able JSON: " + ex);
+      this._initialized = true;
+
       
+      let supportsStateString = this._createSupportsString(aStateString);
+      Services.obs.notifyObservers(supportsStateString, "sessionstore-state-read", "");
+      aStateString = supportsStateString.data;
+
       
-      try {
-        var s = new Cu.Sandbox("about:blank", {sandboxName: 'nsSessionStartup'});
-        this._initialState = Cu.evalInSandbox("(" + iniString + ")", s);
-      } catch(ex) {
-        debug("The session file contained un-eval-able JSON: " + ex);
-        corruptFile = true;
+      if (!aStateString) {
+        this._sessionType = Ci.nsISessionStartup.NO_SESSION;
+        return;
       }
+
+      
+      
+      if (aStateString.charAt(0) == '(')
+        aStateString = aStateString.slice(1, -1);
+      let corruptFile = false;
+      try {
+        this._initialState = JSON.parse(aStateString);
+      }
+      catch (ex) {
+        debug("The session file contained un-parse-able JSON: " + ex);
+        
+        
+        
+        try {
+          var s = new Cu.Sandbox("about:blank", {sandboxName: 'nsSessionStartup'});
+          this._initialState = Cu.evalInSandbox("(" + aStateString + ")", s);
+        } catch(ex) {
+          debug("The session file contained un-eval-able JSON: " + ex);
+          corruptFile = true;
+        }
+      }
+      Services.telemetry.getHistogramById("FX_SESSION_RESTORE_CORRUPT_FILE").add(corruptFile);
+
+      let doResumeSessionOnce = Services.prefs.getBoolPref("browser.sessionstore.resume_session_once");
+      let doResumeSession = doResumeSessionOnce ||
+            Services.prefs.getIntPref("browser.startup.page") == 3;
+
+      
+      if (!doResumeSessionOnce)
+        delete this._initialState.lastSessionState;
+
+      let resumeFromCrash = Services.prefs.getBoolPref("browser.sessionstore.resume_from_crash");
+      let lastSessionCrashed =
+        this._initialState && this._initialState.session &&
+        this._initialState.session.state &&
+        this._initialState.session.state == STATE_RUNNING_STR;
+
+      
+      
+      
+      Services.telemetry.getHistogramById("SHUTDOWN_OK").add(!lastSessionCrashed);
+
+      
+      if (lastSessionCrashed && resumeFromCrash)
+        this._sessionType = Ci.nsISessionStartup.RECOVER_SESSION;
+      else if (!lastSessionCrashed && doResumeSession)
+        this._sessionType = Ci.nsISessionStartup.RESUME_SESSION;
+      else if (this._initialState)
+        this._sessionType = Ci.nsISessionStartup.DEFER_SESSION;
+      else
+        this._initialState = null; 
+
+      
+      
+      
+      if (this.doRestore() &&
+          (!this._initialState.windows ||
+           !this._initialState.windows.every(function (win)
+             win.tabs.every(function (tab) tab.pinned))))
+        Services.obs.addObserver(this, "domwindowopened", true);
+
+      Services.obs.addObserver(this, "sessionstore-windows-restored", true);
+
+      if (this._sessionType != Ci.nsISessionStartup.NO_SESSION)
+        Services.obs.addObserver(this, "browser:purge-session-history", true);
+
+    } finally {
+      
+      Services.obs.notifyObservers(null, "sessionstore-state-finalized", "");
+      gOnceInitializedDeferred.resolve();
     }
-    Services.telemetry.getHistogramById("FX_SESSION_RESTORE_CORRUPT_FILE").add(corruptFile);
-
-    
-    if (!doResumeSessionOnce)
-      delete this._initialState.lastSessionState;
-
-    let resumeFromCrash = prefBranch.getBoolPref("sessionstore.resume_from_crash");
-    let lastSessionCrashed =
-      this._initialState && this._initialState.session &&
-      this._initialState.session.state &&
-      this._initialState.session.state == STATE_RUNNING_STR;
-
-    
-    
-    
-    Services.telemetry.getHistogramById("SHUTDOWN_OK").add(!lastSessionCrashed);
-
-    
-    if (lastSessionCrashed && resumeFromCrash)
-      this._sessionType = Ci.nsISessionStartup.RECOVER_SESSION;
-    else if (!lastSessionCrashed && doResumeSession)
-      this._sessionType = Ci.nsISessionStartup.RESUME_SESSION;
-    else if (this._initialState)
-      this._sessionType = Ci.nsISessionStartup.DEFER_SESSION;
-    else
-      this._initialState = null; 
-
-    
-    
-    
-    if (this.doRestore() &&
-        (!this._initialState.windows ||
-        !this._initialState.windows.every(function (win)
-           win.tabs.every(function (tab) tab.pinned))))
-      Services.obs.addObserver(this, "domwindowopened", true);
-
-    Services.obs.addObserver(this, "sessionstore-windows-restored", true);
-
-    if (this._sessionType != Ci.nsISessionStartup.NO_SESSION)
-      Services.obs.addObserver(this, "browser:purge-session-history", true);
   },
 
   
@@ -237,10 +269,15 @@ SessionStartup.prototype = {
 
 
 
+  get onceInitialized() {
+    return gOnceInitializedDeferred.promise;
+  },
+
   
 
 
   get state() {
+    this._ensureInitialized();
     return this._initialState;
   },
 
@@ -249,6 +286,7 @@ SessionStartup.prototype = {
 
 
   doRestore: function sss_doRestore() {
+    this._ensureInitialized();
     return this._sessionType == Ci.nsISessionStartup.RECOVER_SESSION ||
            this._sessionType == Ci.nsISessionStartup.RESUME_SESSION;
   },
@@ -257,59 +295,26 @@ SessionStartup.prototype = {
 
 
   get sessionType() {
+    this._ensureInitialized();
     return this._sessionType;
   },
 
-
-
   
-
-
-
-
-
-
-  _readStateFile: function sss_readStateFile(aFile) {
-    TelemetryStopwatch.start("FX_SESSION_RESTORE_READ_FILE_MS");
-    var stateString = Cc["@mozilla.org/supports-string;1"].
-                        createInstance(Ci.nsISupportsString);
-    stateString.data = this._readFile(aFile) || "";
-    TelemetryStopwatch.finish("FX_SESSION_RESTORE_READ_FILE_MS");
-
-    Services.obs.notifyObservers(stateString, "sessionstore-state-read", "");
-
-    return stateString.data;
-  },
-
   
-
-
-
-
-
-  _readFile: function sss_readFile(aFile) {
+  
+  _ensureInitialized: function sss__ensureInitialized() {
     try {
-      var stream = Cc["@mozilla.org/network/file-input-stream;1"].
-                   createInstance(Ci.nsIFileInputStream);
-      stream.init(aFile, 0x01, 0, 0);
-      var cvstream = Cc["@mozilla.org/intl/converter-input-stream;1"].
-                     createInstance(Ci.nsIConverterInputStream);
-
-      var fileSize = stream.available();
-      if (fileSize > MAX_FILE_SIZE)
-        throw "SessionStartup: sessionstore.js was not processed because it was too large.";
-
-      cvstream.init(stream, "UTF-8", fileSize, Ci.nsIConverterInputStream.DEFAULT_REPLACEMENT_CHARACTER);
-      var data = {};
-      cvstream.readString(fileSize, data);
-      var content = data.value;
-      cvstream.close();
-
-      return content.replace(/\r\n?/g, "\n");
+      debug("_ensureInitialized: " + this._initialState);
+      if (this._initialized) {
+        
+        return;
+      }
+      let contents = _SessionFile.syncRead();
+      this._onSessionFileRead(contents);
+    } catch(ex) {
+      debug("ensureInitialized: could not read session " + ex + ", " + ex.stack);
+      throw ex;
     }
-    catch (ex) { Cu.reportError(ex); }
-
-    return null;
   },
 
   
