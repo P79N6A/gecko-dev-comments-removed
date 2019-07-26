@@ -1386,6 +1386,8 @@ public class BrowserToolbar extends GeckoRelativeLayout
     }
 
     private void animateForwardButton(final boolean visible) {
+        
+        
         if (mForward.getVisibility() != View.VISIBLE)
             return;
 
