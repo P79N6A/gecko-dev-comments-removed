@@ -412,43 +412,6 @@ nsScriptSecurityManager::ContentSecurityPolicyPermitsJSAction(JSContext *cx)
     return evalOK;
 }
 
-bool
-nsScriptSecurityManager::CheckObjectAccess(JSContext *cx, JS::Handle<JSObject*> obj,
-                                           JS::Handle<jsid> id, JSAccessMode mode,
-                                           JS::MutableHandle<JS::Value> vp)
-{
-    
-    nsScriptSecurityManager *ssm =
-        nsScriptSecurityManager::GetScriptSecurityManager();
-
-    NS_WARN_IF_FALSE(ssm, "Failed to get security manager service");
-    if (!ssm)
-        return false;
-
-    
-    
-    
-    
-    
-    
-    
-    
-    JSObject* target = JSVAL_IS_PRIMITIVE(vp) ? obj : JSVAL_TO_OBJECT(vp);
-
-    
-    
-    nsresult rv =
-        ssm->CheckPropertyAccess(cx, target, js::GetObjectClass(obj)->name, id,
-                                 (mode & JSACC_WRITE) ?
-                                 (int32_t)nsIXPCSecurityManager::ACCESS_SET_PROPERTY :
-                                 (int32_t)nsIXPCSecurityManager::ACCESS_GET_PROPERTY);
-
-    if (NS_FAILED(rv))
-        return false; 
-
-    return true;
-}
-
 
 bool
 nsScriptSecurityManager::JSPrincipalsSubsume(JSPrincipals *first,
@@ -1688,7 +1651,6 @@ nsresult nsScriptSecurityManager::Init()
     NS_ENSURE_SUCCESS(rv, rv);
 
     static const JSSecurityCallbacks securityCallbacks = {
-        CheckObjectAccess,
         ContentSecurityPolicyPermitsJSAction,
         JSPrincipalsSubsume,
     };

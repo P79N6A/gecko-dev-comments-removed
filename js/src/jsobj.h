@@ -1534,10 +1534,6 @@ HasDataProperty(JSContext *cx, JSObject *obj, PropertyName *name, Value *vp)
 }
 
 extern bool
-CheckAccess(JSContext *cx, JSObject *obj, HandleId id, JSAccessMode mode,
-            MutableHandleValue v, unsigned *attrsp);
-
-extern bool
 IsDelegate(JSContext *cx, HandleObject obj, const Value &v, bool *result);
 
 
