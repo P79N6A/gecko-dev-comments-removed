@@ -73,6 +73,9 @@ public:
   
   void Ended();
 
+  
+  void Evict(double aStart, double aEnd);
+
 private:
   friend class AsyncEventRunner<SourceBufferList>;
   void DispatchSimpleEvent(const char* aName);

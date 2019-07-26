@@ -79,6 +79,10 @@ public:
     return mAudioReader;
   }
 
+  
+  
+  double GetMediaSourceDuration();
+
 private:
   dom::MediaSource* mMediaSource;
 
