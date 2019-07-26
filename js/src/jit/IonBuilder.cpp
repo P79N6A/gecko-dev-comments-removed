@@ -6595,6 +6595,10 @@ IonBuilder::getElemTryTypedObject(bool *emitted, MDefinition *obj, MDefinition *
     TypeRepresentationSet elemTypeReprs;
     if (!objTypeReprs.arrayElementType(*this, &elemTypeReprs))
         return false;
+    if (elemTypeReprs.empty())
+        return true;
+
+    JS_ASSERT(TypeRepresentation::isSized(elemTypeReprs.kind()));
 
     size_t elemSize;
     if (!elemTypeReprs.allHaveSameSize(&elemSize))
@@ -6606,7 +6610,7 @@ IonBuilder::getElemTryTypedObject(bool *emitted, MDefinition *obj, MDefinition *
         return true;
 
       case TypeRepresentation::Struct:
-      case TypeRepresentation::Array:
+      case TypeRepresentation::SizedArray:
         return getElemTryComplexElemOfTypedObject(emitted,
                                                   obj,
                                                   index,
@@ -6623,6 +6627,9 @@ IonBuilder::getElemTryTypedObject(bool *emitted, MDefinition *obj, MDefinition *
 
       case TypeRepresentation::Reference:
         return true;
+
+      case TypeRepresentation::UnsizedArray:
+        MOZ_ASSUME_UNREACHABLE("Unsized arrays cannot be element types");
     }
 
     MOZ_ASSUME_UNREACHABLE("Bad kind");
@@ -6633,6 +6640,47 @@ MIRTypeForTypedArrayRead(ScalarTypeRepresentation::Type arrayType,
                          bool observedDouble);
 
 bool
+IonBuilder::checkTypedObjectIndexInBounds(size_t elemSize,
+                                          MDefinition *obj,
+                                          MDefinition *index,
+                                          MDefinition **indexAsByteOffset,
+                                          TypeRepresentationSet objTypeReprs)
+{
+    
+    MInstruction *idInt32 = MToInt32::New(alloc(), index);
+    current->add(idInt32);
+
+    
+    
+    
+    
+    size_t lenOfAll;
+    MDefinition *length;
+    if (objTypeReprs.hasKnownArrayLength(&lenOfAll)) {
+        length = constantInt(lenOfAll);
+    } else {
+        MInstruction *lengthValue = MLoadFixedSlot::New(alloc(), obj, JS_DATUM_SLOT_LENGTH);
+        current->add(lengthValue);
+
+        MInstruction *length32 = MTruncateToInt32::New(alloc(), lengthValue);
+        current->add(length32);
+
+        length = length32;
+    }
+
+    index = addBoundsCheck(idInt32, length);
+
+    
+    
+    MMul *mul = MMul::New(alloc(), index, constantInt(elemSize),
+                          MIRType_Int32, MMul::Integer);
+    current->add(mul);
+
+    *indexAsByteOffset = mul;
+    return true;
+}
+
+bool
 IonBuilder::getElemTryScalarElemOfTypedObject(bool *emitted,
                                               MDefinition *obj,
                                               MDefinition *index,
@@ -6640,40 +6688,21 @@ IonBuilder::getElemTryScalarElemOfTypedObject(bool *emitted,
                                               TypeRepresentationSet elemTypeReprs,
                                               size_t elemSize)
 {
-    JS_ASSERT(objTypeReprs.allOfArrayKind());
+    JS_ASSERT(objTypeReprs.kind() == TypeRepresentation::SizedArray);
 
     
     if (!elemTypeReprs.singleton())
         return true;
     ScalarTypeRepresentation *elemTypeRepr = elemTypeReprs.getTypeRepresentation()->asScalar();
+    JS_ASSERT(elemSize == elemTypeRepr->alignment());
 
-    
-    size_t lenOfAll = objTypeReprs.arrayLength();
-    if (lenOfAll >= size_t(INT_MAX)) 
-        return true;
-    MInstruction *length = MConstant::New(alloc(), Int32Value(int32_t(lenOfAll)));
-
-    *emitted = true;
-    current->add(length);
-
-    
-    MInstruction *idInt32 = MToInt32::New(alloc(), index);
-    current->add(idInt32);
-    index = idInt32;
-
-    
-    index = addBoundsCheck(index, length);
-
-    
-    
-    const int32_t alignment = elemTypeRepr->alignment();
-    MMul *indexAsByteOffset = MMul::New(alloc(), index, constantInt(alignment),
-                                        MIRType_Int32, MMul::Integer);
-    current->add(indexAsByteOffset);
+    MDefinition *indexAsByteOffset;
+    if (!checkTypedObjectIndexInBounds(elemSize, obj, index, &indexAsByteOffset, objTypeReprs))
+        return false;
 
     
     MDefinition *elements, *scaledOffset;
-    loadTypedObjectElements(obj, indexAsByteOffset, alignment, &elements, &scaledOffset);
+    loadTypedObjectElements(obj, indexAsByteOffset, elemSize, &elements, &scaledOffset);
 
     
     MLoadTypedArrayElement *load = MLoadTypedArrayElement::New(alloc(), elements, scaledOffset, elemTypeRepr->type());
@@ -6692,6 +6721,7 @@ IonBuilder::getElemTryScalarElemOfTypedObject(bool *emitted,
     load->setResultType(knownType);
     load->setResultTypeSet(resultTypes);
 
+    *emitted = true;
     return true;
 }
 
@@ -6708,32 +6738,9 @@ IonBuilder::getElemTryComplexElemOfTypedObject(bool *emitted,
     MDefinition *type = loadTypedObjectType(obj);
     MDefinition *elemType = typeObjectForElementFromArrayStructType(type);
 
-    
-    size_t lenOfAll = objTypeReprs.arrayLength();
-    if (lenOfAll >= size_t(INT_MAX)) 
-        return true;
-    MInstruction *length = MConstant::New(alloc(), Int32Value(int32_t(lenOfAll)));
-
-    *emitted = true;
-    current->add(length);
-
-    
-    MInstruction *idInt32 = MToInt32::New(alloc(), index);
-    current->add(idInt32);
-    index = idInt32;
-
-    
-    index = addBoundsCheck(index, length);
-
-    
-    MConstant *alignment = MConstant::New(alloc(), Int32Value(elemSize));
-    current->add(alignment);
-
-    
-    
-    MMul *indexAsByteOffset = MMul::New(alloc(), index, alignment, MIRType_Int32,
-                                        MMul::Integer);
-    current->add(indexAsByteOffset);
+    MDefinition *indexAsByteOffset;
+    if (!checkTypedObjectIndexInBounds(elemSize, obj, index, &indexAsByteOffset, objTypeReprs))
+        return false;
 
     
     MDefinition *owner, *ownerOffset;
@@ -6750,7 +6757,7 @@ IonBuilder::getElemTryComplexElemOfTypedObject(bool *emitted,
     derived->setResultTypeSet(resultTypes);
     current->add(derived);
     current->push(derived);
-
+    *emitted = true;
     return true;
 }
 
@@ -8296,7 +8303,7 @@ IonBuilder::getPropTryTypedObject(bool *emitted, PropertyName *name,
         return true;
 
       case TypeRepresentation::Struct:
-      case TypeRepresentation::Array:
+      case TypeRepresentation::SizedArray:
         return getPropTryComplexPropOfTypedObject(emitted,
                                                   fieldOffset,
                                                   fieldTypeReprs,
@@ -8308,6 +8315,9 @@ IonBuilder::getPropTryTypedObject(bool *emitted, PropertyName *name,
                                                  fieldOffset,
                                                  fieldTypeReprs,
                                                  resultTypes);
+
+      case TypeRepresentation::UnsizedArray:
+        MOZ_ASSUME_UNREACHABLE("Field of unsized array type");
     }
 
     MOZ_ASSUME_UNREACHABLE("Bad kind");
@@ -8863,7 +8873,8 @@ IonBuilder::setPropTryTypedObject(bool *emitted, MDefinition *obj,
 
       case TypeRepresentation::Reference:
       case TypeRepresentation::Struct:
-      case TypeRepresentation::Array:
+      case TypeRepresentation::SizedArray:
+      case TypeRepresentation::UnsizedArray:
         
         return true;
 

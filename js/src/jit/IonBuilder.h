@@ -453,6 +453,11 @@ class IonBuilder : public MIRGenerator
                                      MDefinition *offset,
                                      ScalarTypeRepresentation *typeRepr,
                                      MDefinition *value);
+    bool checkTypedObjectIndexInBounds(size_t elemSize,
+                                       MDefinition *obj,
+                                       MDefinition *index,
+                                       MDefinition **indexAsByteOffset,
+                                       TypeRepresentationSet objTypeReprs);
 
     
     bool setElemTryTyped(bool *emitted, MDefinition *object,

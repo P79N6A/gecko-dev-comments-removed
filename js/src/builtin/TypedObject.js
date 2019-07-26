@@ -14,6 +14,8 @@
     UnsafeGetReservedSlot(obj, JS_DATUM_SLOT_TYPE_OBJ)
 #define DATUM_OWNER(obj) \
     UnsafeGetReservedSlot(obj, JS_DATUM_SLOT_OWNER)
+#define DATUM_LENGTH(obj) \
+    TO_INT32(UnsafeGetReservedSlot(obj, JS_DATUM_SLOT_LENGTH))
 
 
 
@@ -95,6 +97,18 @@ TypedObjectPointer.prototype.kind = function() {
   return REPR_KIND(this.typeRepr);
 }
 
+TypedObjectPointer.prototype.length = function() {
+  switch (this.kind()) {
+  case JS_TYPEREPR_SIZED_ARRAY_KIND:
+    return REPR_LENGTH(this.typeRepr);
+
+  case JS_TYPEREPR_UNSIZED_ARRAY_KIND:
+    return DATUM_LENGTH(this.datum);
+  }
+  assert(false, "length() invoked on non-array-type");
+  return 0;
+}
+
 
 
 
@@ -110,13 +124,14 @@ TypedObjectPointer.prototype.moveTo = function(propName) {
   case JS_TYPEREPR_X4_KIND:
     break;
 
-  case JS_TYPEREPR_ARRAY_KIND:
+  case JS_TYPEREPR_SIZED_ARRAY_KIND:
+  case JS_TYPEREPR_UNSIZED_ARRAY_KIND:
     
     
     
     
     var index = TO_INT32(propName);
-    if (index === propName && index >= 0 && index < REPR_LENGTH(this.typeRepr))
+    if (index === propName && index >= 0 && index < this.length())
       return this.moveToElem(index);
     break;
 
@@ -134,11 +149,12 @@ TypedObjectPointer.prototype.moveTo = function(propName) {
 
 
 TypedObjectPointer.prototype.moveToElem = function(index) {
-  assert(this.kind() == JS_TYPEREPR_ARRAY_KIND,
+  assert(this.kind() == JS_TYPEREPR_SIZED_ARRAY_KIND ||
+         this.kind() == JS_TYPEREPR_UNSIZED_ARRAY_KIND,
          "moveToElem invoked on non-array");
   assert(TO_INT32(index) === index,
          "moveToElem invoked with non-integer index");
-  assert(index >= 0 && index < REPR_LENGTH(this.typeRepr),
+  assert(index >= 0 && index < this.length(),
          "moveToElem invoked with out-of-bounds index: " + index);
 
   var elementTypeObj = this.typeObj.elementType;
@@ -200,9 +216,14 @@ TypedObjectPointer.prototype.get = function() {
   case JS_TYPEREPR_X4_KIND:
     return this.getX4();
 
-  case JS_TYPEREPR_ARRAY_KIND:
+  case JS_TYPEREPR_SIZED_ARRAY_KIND:
+    return NewDerivedTypedDatum(this.typeObj, this.datum, this.offset);
+
   case JS_TYPEREPR_STRUCT_KIND:
     return NewDerivedTypedDatum(this.typeObj, this.datum, this.offset);
+
+  case JS_TYPEREPR_UNSIZED_ARRAY_KIND:
+    assert(false, "Unhandled repr kind: " + REPR_KIND(this.typeRepr));
   }
 
   assert(false, "Unhandled kind: " + REPR_KIND(this.typeRepr));
@@ -298,8 +319,8 @@ TypedObjectPointer.prototype.set = function(fromValue) {
   
   
   
-  if (IsObject(fromValue) && HaveSameClass(fromValue, this.datum)) {
-    if (DATUM_TYPE_REPR(fromValue) === typeRepr) {
+  if (IsObject(fromValue) && ObjectIsTypedDatum(fromValue)) {
+    if (!typeRepr.variable && DATUM_TYPE_REPR(fromValue) === typeRepr) {
       if (!ObjectIsAttached(fromValue))
         ThrowError(JSMSG_TYPEDOBJECT_HANDLE_UNATTACHED);
 
@@ -322,12 +343,13 @@ TypedObjectPointer.prototype.set = function(fromValue) {
     this.setX4(fromValue);
     return;
 
-  case JS_TYPEREPR_ARRAY_KIND:
+  case JS_TYPEREPR_SIZED_ARRAY_KIND:
+  case JS_TYPEREPR_UNSIZED_ARRAY_KIND:
     if (!IsObject(fromValue))
       break;
 
     
-    var length = REPR_LENGTH(typeRepr);
+    var length = this.length();
     if (fromValue.length !== length)
       break;
 
@@ -541,9 +563,22 @@ function TypedArrayRedimension(newArrayType) {
   
   
   var oldArrayType = DATUM_TYPE_OBJ(this);
+  var oldArrayReprKind = REPR_KIND(TYPE_TYPE_REPR(oldArrayType));
   var oldElementType = oldArrayType;
   var oldElementCount = 1;
-  while (REPR_KIND(TYPE_TYPE_REPR(oldElementType)) == JS_TYPEREPR_ARRAY_KIND) {
+  switch (oldArrayReprKind) {
+  case JS_TYPEREPR_UNSIZED_ARRAY_KIND:
+    oldElementCount *= this.length;
+    oldElementType = oldElementType.elementType;
+    break;
+
+  case JS_TYPEREPR_SIZED_ARRAY_KIND:
+    break;
+
+  default:
+    ThrowError(JSMSG_TYPEDOBJECT_HANDLE_BAD_ARGS, "this", "typed array");
+  }
+  while (REPR_KIND(TYPE_TYPE_REPR(oldElementType)) === JS_TYPEREPR_SIZED_ARRAY_KIND) {
     oldElementCount *= oldElementType.length;
     oldElementType = oldElementType.elementType;
   }
@@ -552,7 +587,7 @@ function TypedArrayRedimension(newArrayType) {
   
   var newElementType = newArrayType;
   var newElementCount = 1;
-  while (REPR_KIND(TYPE_TYPE_REPR(newElementType)) == JS_TYPEREPR_ARRAY_KIND) {
+  while (REPR_KIND(TYPE_TYPE_REPR(newElementType)) == JS_TYPEREPR_SIZED_ARRAY_KIND) {
     newElementCount *= newElementType.length;
     newElementType = newElementType.elementType;
   }
@@ -591,6 +626,18 @@ function TypedArrayRedimension(newArrayType) {
 function HandleCreate(obj, ...path) {
   if (!IsObject(this) || !ObjectIsTypeObject(this))
     ThrowError(JSMSG_INCOMPATIBLE_PROTO, "Type", "handle", "value");
+
+  switch (REPR_KIND(TYPE_TYPE_REPR(this))) {
+  case JS_TYPEREPR_SCALAR_KIND:
+  case JS_TYPEREPR_REFERENCE_KIND:
+  case JS_TYPEREPR_X4_KIND:
+  case JS_TYPEREPR_SIZED_ARRAY_KIND:
+  case JS_TYPEREPR_STRUCT_KIND:
+    break;
+
+  case JS_TYPEREPR_UNSIZED_ARRAY_KIND:
+    ThrowError(JSMSG_TYPEDOBJECT_HANDLE_TO_UNSIZED);
+  }
 
   var handle = NewTypedHandle(this);
 
@@ -727,6 +774,23 @@ function X4ToSource() {
 
 
 
+
+
+function ArrayShorthand(...dims) {
+  if (!IsObject(this) || !ObjectIsTypeObject(this))
+    ThrowError(JSMSG_TYPEDOBJECT_HANDLE_BAD_ARGS,
+               "this", "typed object");
+
+  var T = StandardTypeObjectDescriptors();
+
+  if (dims.length == 0)
+    return new T.ArrayType(this);
+
+  var accum = this;
+  for (var i = dims.length - 1; i >= 0; i--)
+    accum = new T.ArrayType(accum).dimension(dims[i]);
+  return accum;
+}
 
 
 function TypeOfTypedDatum(obj) {

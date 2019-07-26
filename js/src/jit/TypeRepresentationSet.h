@@ -119,7 +119,8 @@ class TypeRepresentationSet {
 
     
     
-    size_t arrayLength();
+    
+    bool hasKnownArrayLength(size_t *length);
 
     
     

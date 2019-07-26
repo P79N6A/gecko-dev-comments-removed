@@ -31,7 +31,7 @@
 
 
 #define JS_TYPEOBJ_SLOT_ARRAY_ELEM_TYPE    1
-#define JS_TYPEOBJ_ARRAY_SLOTS             2  // Maximum number
+#define JS_TYPEOBJ_ARRAY_SLOTS             3  // Maximum number
 
 
 #define JS_TYPEOBJ_SLOT_STRUCT_FIELD_TYPES 1
@@ -63,11 +63,13 @@
 
 
 
-#define JS_TYPEREPR_SCALAR_KIND    0
-#define JS_TYPEREPR_REFERENCE_KIND 1
-#define JS_TYPEREPR_X4_KIND        2
-#define JS_TYPEREPR_STRUCT_KIND    3
-#define JS_TYPEREPR_ARRAY_KIND     4
+#define JS_TYPEREPR_UNSIZED_ARRAY_KIND  0
+#define JS_TYPEREPR_MAX_UNSIZED_KIND    0    // Unsized kinds go above here
+#define JS_TYPEREPR_SCALAR_KIND         1
+#define JS_TYPEREPR_REFERENCE_KIND      2
+#define JS_TYPEREPR_STRUCT_KIND         3
+#define JS_TYPEREPR_SIZED_ARRAY_KIND    4
+#define JS_TYPEREPR_X4_KIND             5
 
 
 
@@ -103,6 +105,12 @@
 
 #define JS_DATUM_SLOT_TYPE_OBJ 0  // Type object for a given typed object
 #define JS_DATUM_SLOT_OWNER    1  // Owner of data (if null, this is owner)
-#define JS_DATUM_SLOTS         2  // Number of slots for typed objs
+#define JS_DATUM_SLOT_LENGTH   2  // Length of array (see (*) below)
+#define JS_DATUM_SLOTS         3  // Number of slots for typed objs
+
+
+
+
+
 
 #endif

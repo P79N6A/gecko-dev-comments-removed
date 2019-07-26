@@ -148,6 +148,18 @@ class X4Type : public JSObject
 class ArrayType : public JSObject
 {
   private:
+    
+    
+    
+    
+    
+    
+    
+    static JSObject *create(JSContext *cx,
+                            HandleObject arrayTypePrototype,
+                            HandleObject arrayTypeReprObj,
+                            HandleObject elementType);
+
   public:
     static const Class class_;
 
@@ -165,10 +177,9 @@ class ArrayType : public JSObject
     
     static bool construct(JSContext *cx, unsigned argc, Value *vp);
 
-    static JSObject *create(JSContext *cx, HandleObject arrayTypeGlobal,
-                            HandleObject elementType, size_t length);
-    static bool repeat(JSContext *cx, unsigned argc, Value *vp);
-    static bool subarray(JSContext *cx, unsigned argc, Value *vp);
+    
+    
+    static bool dimension(JSContext *cx, unsigned int argc, jsval *vp);
 
     static JSObject *elementType(JSContext *cx, HandleObject obj);
 };
@@ -306,7 +317,8 @@ class TypedDatum : public JSObject
 
     static TypedDatum *createUnattachedWithClass(JSContext *cx,
                                                  const Class *clasp,
-                                                 HandleObject type);
+                                                 HandleObject type,
+                                                 int32_t length);
 
     
     
@@ -316,7 +328,7 @@ class TypedDatum : public JSObject
     
     
     template<class T>
-    static T *createUnattached(JSContext *cx, HandleObject type);
+    static T *createUnattached(JSContext *cx, HandleObject type, int32_t length);
 
     
     
@@ -325,6 +337,7 @@ class TypedDatum : public JSObject
                                      HandleObject type,
                                      HandleObject typedContents,
                                      size_t offset);
+
 
     
     void attach(uint8_t *mem);
@@ -339,7 +352,11 @@ class TypedObject : public TypedDatum
     static const Class class_;
 
     
-    static JSObject *createZeroed(JSContext *cx, HandleObject type);
+    
+    
+    static TypedObject *createZeroed(JSContext *cx,
+                                     HandleObject typeObj,
+                                     int32_t length);
 
     
     static bool construct(JSContext *cx, unsigned argc, Value *vp);
@@ -351,6 +368,13 @@ class TypedHandle : public TypedDatum
     static const Class class_;
     static const JSFunctionSpec handleStaticMethods[];
 };
+
+
+
+
+
+
+bool NewTypedHandle(JSContext *cx, unsigned argc, Value *vp);
 
 
 
