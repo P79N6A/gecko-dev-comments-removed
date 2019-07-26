@@ -5277,17 +5277,18 @@ TryEnablingIon(JSContext *cx, AsmJSModule::ExitDatum *exitDatum, int32_t argc, V
     const AsmJSModule &module =
         cx->mainThread().asmJSActivationStackFromOwnerThread()->module();
 
-#ifdef DEBUG
     
-    JS_ASSERT(types::TypeScript::ThisTypes(script)->hasType(types::Type::UndefinedType()));
+    
+    if (!types::TypeScript::ThisTypes(script)->hasType(types::Type::UndefinedType()))
+        return true;
     for(uint32_t i = 0; i < exitDatum->fun->nargs; i++) {
         types::StackTypeSet *typeset = types::TypeScript::ArgTypes(script, i);
         types::Type type = types::Type::DoubleType();
         if (!argv[i].isDouble())
             type = types::Type::PrimitiveType(argv[i].extractNonDoubleType());
-        JS_ASSERT(typeset->hasType(type));
+        if (!typeset->hasType(type))
+            return true;
     }
-#endif
 
     
     IonScript *ionScript = script->ionScript();
