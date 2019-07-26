@@ -6,6 +6,12 @@
 
 #include "HttpLog.h"
 
+
+#undef LOG
+#define LOG(args) LOG5(args)
+#undef LOG_ENABLED
+#define LOG_ENABLED() LOG5_ENABLED()
+
 #include "nsHttpConnectionMgr.h"
 #include "nsHttpConnection.h"
 #include "nsHttpPipeline.h"

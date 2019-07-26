@@ -7,6 +7,12 @@
 
 #include "HttpLog.h"
 
+
+#undef LOG
+#define LOG(args) LOG5(args)
+#undef LOG_ENABLED
+#define LOG_ENABLED() LOG5_ENABLED()
+
 #include "mozilla/Endian.h"
 #include "mozilla/Telemetry.h"
 #include "nsHttp.h"
