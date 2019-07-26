@@ -120,7 +120,12 @@ this.ContentSearch = {
   },
 
   _reply: function (msg, type, data) {
-    msg.target.messageManager.sendAsyncMessage(...this._msgArgs(type, data));
+    
+    
+    
+    if (msg.target.messageManager) {
+      msg.target.messageManager.sendAsyncMessage(...this._msgArgs(type, data));
+    }
   },
 
   _broadcast: function (type, data) {
