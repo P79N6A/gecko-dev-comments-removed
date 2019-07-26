@@ -17,8 +17,6 @@
   color: -moz-dialogText;
   background-color: -moz-dialog;
   background-image: 
-                    linear-gradient(rgba(255,255,255,0.45), rgba(255,255,255,0) 30%),
-                    
                     url("chrome://global/skin/inContentUI/background-texture.png");
 }
 
@@ -32,8 +30,6 @@ html|html {
     color: #000;
     background-color: #CCD9EA;
     background-image: 
-                      linear-gradient(rgb(237,245,252), rgba(237,245,252,0) 156px),
-                      
                       url("chrome://global/skin/inContentUI/background-texture.png");
   }
 }
@@ -43,8 +39,6 @@ html|html {
     color: #000;
     
     background-image: 
-                      linear-gradient(rgb(237,245,252) 3px, rgba(237,245,252,0) 156px),
-                      
                       linear-gradient(to right,
                                       rgba(255,255,255,0.2), rgba(255,255,255,0) 40%,
                                       rgba(255,255,255,0) 60%, rgba(255,255,255,0.2)),

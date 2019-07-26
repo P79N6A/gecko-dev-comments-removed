@@ -3458,10 +3458,7 @@ var XULBrowserWindow = {
   statusText: "",
   isBusy: false,
   
-  
-  
-  inContentWhitelist: ["about:addons", "about:downloads", "about:permissions",
-                       "about:sync-progress", "about:preferences"],
+  inContentWhitelist: [],
 
   QueryInterface: function (aIID) {
     if (aIID.equals(Ci.nsIWebProgressListener) ||
@@ -3752,15 +3749,11 @@ var XULBrowserWindow = {
       }
 
       
-      if (this.hideChromeForLocation(location)) {
+      let ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
+      if (ss.getTabValue(gBrowser.selectedTab, "appOrigin"))
         document.documentElement.setAttribute("disablechrome", "true");
-      } else {
-        let ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
-        if (ss.getTabValue(gBrowser.selectedTab, "appOrigin"))
-          document.documentElement.setAttribute("disablechrome", "true");
-        else
-          document.documentElement.removeAttribute("disablechrome");
-      }
+      else
+        document.documentElement.removeAttribute("disablechrome");
 
       
       var shouldDisableFind = function shouldDisableFind(aDocument) {
@@ -3838,12 +3831,8 @@ var XULBrowserWindow = {
     FeedHandler.updateFeeds();
   },
 
-  hideChromeForLocation: function(aLocation) {
-    aLocation = aLocation.toLowerCase();
-    return this.inContentWhitelist.some(function(aSpec) {
-      return aSpec == aLocation;
-    });
-  },
+  
+  hideChromeForLocation: function() {},
 
   onStatusChange: function (aWebProgress, aRequest, aStatus, aMessage) {
     this.status = aMessage;
