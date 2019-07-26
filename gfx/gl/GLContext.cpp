@@ -131,116 +131,10 @@ NS_MEMORY_REPORTER_IMPLEMENT(TextureMemoryUsage,
     GetTextureMemoryUsage,
     "Memory used for storing GL textures.")
 
-static bool
-ParseGLVersion(GLContext* gl, unsigned int* version)
-{
-    GLenum error = gl->fGetError();
-    if (error != LOCAL_GL_NO_ERROR) {
-        MOZ_ASSERT(false, "An OpenGL error has been triggered before.");
-        return false;
-    }
-
-    { 
-        
 
 
 
 
-        GLint majorVersion = 0;
-        GLint minorVersion = 0;
-
-        gl->fGetIntegerv(LOCAL_GL_MAJOR_VERSION, &majorVersion);
-        gl->fGetIntegerv(LOCAL_GL_MINOR_VERSION, &minorVersion);
-
-        
-        error = gl->fGetError();
-        if (error == LOCAL_GL_NO_ERROR &&
-            majorVersion > 0 &&
-            minorVersion >= 0)
-        {
-            *version = majorVersion * 100 + minorVersion * 10;
-            return true;
-        }
-    }
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    const char* versionString = (const char*)gl->fGetString(LOCAL_GL_VERSION);
-
-    error = gl->fGetError();
-    if (error != LOCAL_GL_NO_ERROR) {
-        MOZ_ASSERT(false, "glGetString(GL_VERSION) has generated an error");
-        return false;
-    } else if (!versionString) {
-        MOZ_ASSERT(false, "glGetString(GL_VERSION) has returned 0");
-        return false;
-    }
-
-    const char kGLESVersionPrefix[] = "OpenGL ES ";
-    if (strncmp(versionString, kGLESVersionPrefix, strlen(kGLESVersionPrefix)) == 0) {
-        versionString += strlen(kGLESVersionPrefix);
-    }
-
-    const char* itr = versionString;
-    char* end = nullptr;
-    int majorVersion = (int)strtol(itr, &end, 10);
-
-    if (!end) {
-        MOZ_ASSERT(false, "Failed to parse the GL major version number.");
-        return false;
-    } else if (*end != '.') {
-        MOZ_ASSERT(false, "Failed to parse GL's major-minor version number separator.");
-        return false;
-    }
-
-    
-    itr = end + 1;
-
-    end = nullptr;
-
-    int minorVersion = (int)strtol(itr, &end, 10);
-    if (!end) {
-        MOZ_ASSERT(false, "Failed to parse GL's minor version number.");
-        return false;
-    }
-
-    if (majorVersion <= 0 || majorVersion >= 100) {
-        MOZ_ASSERT(false, "Invalid major version.");
-        return false;
-    } else if (minorVersion < 0 || minorVersion >= 10) {
-        MOZ_ASSERT(false, "Invalid minor version.");
-        return false;
-    }
-
-    *version = (unsigned int)(majorVersion * 100 + minorVersion * 10);
-    return true;
-}
 
 bool
 GLContext::InitWithPrefix(const char *prefix, bool trygl)
@@ -400,18 +294,6 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
     };
 
     mInitialized = LoadSymbols(&symbols[0], trygl, prefix);
-
-    if (mInitialized) {
-        unsigned int version = 0;
-
-        bool parseSuccess = ParseGLVersion(this, &version);
-
-        if (version >= mVersion) {
-            mVersion = version;
-        } else if (parseSuccess) {
-            MOZ_ASSERT(false, "Parsed version less than expected.");
-        }
-    }
 
     
     if (mInitialized) {
