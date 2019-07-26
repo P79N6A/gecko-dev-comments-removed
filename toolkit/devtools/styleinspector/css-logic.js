@@ -543,7 +543,7 @@ CssLogic.prototype = {
     this._matchedRules.some(function(aValue) {
       let rule = aValue[0];
       let status = aValue[1];
-      aProperties = aProperties.filter(function(aProperty) {
+      aProperties = aProperties.filter((aProperty) => {
         
         
         if (rule.getPropertyValue(aProperty) &&
@@ -554,7 +554,7 @@ CssLogic.prototype = {
           return false;
         }
         return true; 
-      }.bind(this));
+      });
       return aProperties.length == 0;
     }, this);
 

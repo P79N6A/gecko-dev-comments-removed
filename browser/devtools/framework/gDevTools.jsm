@@ -273,25 +273,25 @@ DevTools.prototype = {
 
       this._toolboxes.set(target, toolbox);
 
-      toolbox.once("destroyed", function() {
+      toolbox.once("destroyed", () => {
         this._toolboxes.delete(target);
         this.emit("toolbox-destroyed", target);
-      }.bind(this));
+      });
 
       
       
       if (toolId != null) {
-        toolbox.once(toolId + "-ready", function(event, panel) {
+        toolbox.once(toolId + "-ready", (event, panel) => {
           this.emit("toolbox-ready", toolbox);
           deferred.resolve(toolbox);
-        }.bind(this));
+        });
         toolbox.open();
       }
       else {
-        toolbox.open().then(function() {
+        toolbox.open().then(() => {
           deferred.resolve(toolbox);
           this.emit("toolbox-ready", toolbox);
-        }.bind(this));
+        });
       }
     }
 

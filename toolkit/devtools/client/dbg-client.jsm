@@ -333,7 +333,7 @@ DebuggerClient.requester = function (aPacketSkeleton,
       outgoingPacket = before.call(this, outgoingPacket);
     }
 
-    this.request(outgoingPacket, DevToolsUtils.makeInfallible(function (aResponse) {
+    this.request(outgoingPacket, DevToolsUtils.makeInfallible((aResponse) => {
       if (after) {
         let { from } = aResponse;
         aResponse = after.call(this, aResponse);
@@ -351,7 +351,7 @@ DebuggerClient.requester = function (aPacketSkeleton,
       if (histogram) {
         histogram.add(+new Date - startTime);
       }
-    }.bind(this), "DebuggerClient.requester request callback"));
+    }, "DebuggerClient.requester request callback"));
 
   }, "DebuggerClient.requester");
 };
@@ -1128,7 +1128,7 @@ ProtocolCompatibility.prototype = {
   _shimPacket: function (aPacket) {
     let extraPackets = [];
 
-    let loop = function (aFeatures, aPacket) {
+    let loop = (aFeatures, aPacket) => {
       if (aFeatures.length === 0) {
         for (let packet of extraPackets) {
           this._client.onPacket(packet, true);
@@ -1151,7 +1151,7 @@ ProtocolCompatibility.prototype = {
                                                      keepPacket);
         return resolve(newPacket).then(loop.bind(null, aFeatures.slice(1)));
       }
-    }.bind(this);
+    };
 
     return loop([f for (f of this._featuresWithoutSupport)],
                 aPacket);
@@ -1679,7 +1679,7 @@ ThreadClient.prototype = {
 
   setBreakpoint: function ({ url, line, column, condition }, aOnResponse) {
     
-    let doSetBreakpoint = function (aCallback) {
+    let doSetBreakpoint = (aCallback) => {
       const location = {
         url: url,
         line: line,
@@ -1692,7 +1692,7 @@ ThreadClient.prototype = {
         location: location,
         condition: condition
       };
-      this.client.request(packet, function (aResponse) {
+      this.client.request(packet, (aResponse) => {
         
         
         if (aOnResponse) {
@@ -1708,8 +1708,8 @@ ThreadClient.prototype = {
         if (aCallback) {
           aCallback();
         }
-      }.bind(this));
-    }.bind(this);
+      });
+    };
 
     
     if (this.paused) {
@@ -1717,14 +1717,14 @@ ThreadClient.prototype = {
       return;
     }
     
-    this.interrupt(function (aResponse) {
+    this.interrupt((aResponse) => {
       if (aResponse.error) {
         
         aOnResponse(aResponse);
         return;
       }
       doSetBreakpoint(this.resume.bind(this));
-    }.bind(this));
+    });
   },
 
   
@@ -1784,14 +1784,14 @@ ThreadClient.prototype = {
       aAction();
       return;
     }
-    this.interrupt(function (aResponse) {
+    this.interrupt((aResponse) => {
       if (aResponse) {
         aError(aResponse);
         return;
       }
       aAction();
       this.resume();
-    }.bind(this));
+    });
   },
 
   

@@ -351,10 +351,10 @@ let OldStyleSheetActor = protocol.ActorClass({
     
     let ownerNode = this.rawSheet.ownerNode;
     if (ownerNode) {
-      let onSheetLoaded = function(event) {
+      let onSheetLoaded = (event) => {
         ownerNode.removeEventListener("load", onSheetLoaded, false);
         this._notifyPropertyChanged("ruleCount");
-      }.bind(this);
+      };
 
       ownerNode.addEventListener("load", onSheetLoaded, false);
     }
