@@ -330,6 +330,10 @@ pref("browser.download.useToolkitUI", false);
 pref("browser.download.panel.removeFinishedDownloads", false);
 
 
+
+pref("browser.download.panel.firstSessionCompleted", false);
+
+
 pref("browser.search.searchEnginesURL",      "https://addons.mozilla.org/%LOCALE%/firefox/search-engines/");
 
 

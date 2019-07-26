@@ -98,7 +98,7 @@ DownloadsStartup.prototype = {
         
         
         if (gSessionStartup.sessionType != Ci.nsISessionStartup.NO_SESSION) {
-          this._recoverAllDownloads = true;
+          this._restoringSession = true;
         }
         this._ensureDataLoaded();
         break;
@@ -188,6 +188,14 @@ DownloadsStartup.prototype = {
         if (this._cleanupOnShutdown) {
           Services.downloads.cleanUp();
         }
+
+        if (!DownloadsCommon.useToolkitUI) {
+          
+          
+          
+          
+          this._firstSessionCompleted = true;
+        }
         break;
     }
   },
@@ -199,7 +207,8 @@ DownloadsStartup.prototype = {
 
 
 
-  _recoverAllDownloads: false,
+
+  _restoringSession: false,
 
   
 
@@ -218,6 +227,31 @@ DownloadsStartup.prototype = {
 
 
   _cleanupOnShutdown: false,
+
+  
+
+
+
+
+
+  get _recoverAllDownloads() {
+    return this._restoringSession ||
+           (!DownloadsCommon.useToolkitUI && this._firstSessionCompleted);
+  },
+
+  
+
+
+  get _firstSessionCompleted() {
+    return Services.prefs
+                   .getBoolPref("browser.download.panel.firstSessionCompleted");
+  },
+
+  set _firstSessionCompleted(aValue) {
+    Services.prefs.setBoolPref("browser.download.panel.firstSessionCompleted",
+                               aValue);
+    return aValue;
+  },
 
   
 
