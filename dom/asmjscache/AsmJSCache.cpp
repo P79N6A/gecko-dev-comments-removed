@@ -1323,23 +1323,22 @@ AllocEntryParent(OpenMode aOpenMode,
                  WriteParams aWriteParams,
                  nsIPrincipal* aPrincipal)
 {
-  ParentProcessRunnable* runnable =
+  nsRefPtr<ParentProcessRunnable> runnable =
     new ParentProcessRunnable(aPrincipal, aOpenMode, aWriteParams);
-
-  
-  runnable->AddRef();
 
   nsresult rv = NS_DispatchToMainThread(runnable);
   NS_ENSURE_SUCCESS(rv, nullptr);
 
-  return runnable;
+  
+  return runnable.forget().take();
 }
 
 void
 DeallocEntryParent(PAsmJSCacheEntryParent* aActor)
 {
   
-  static_cast<ParentProcessRunnable*>(aActor)->Release();
+  nsRefPtr<ParentProcessRunnable> op =
+    dont_AddRef(static_cast<ParentProcessRunnable*>(aActor));
 }
 
 namespace {
