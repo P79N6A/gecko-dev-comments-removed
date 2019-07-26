@@ -78,7 +78,7 @@ nsAppFileLocationProvider::nsAppFileLocationProvider()
 
 
 
-NS_IMPL_THREADSAFE_ISUPPORTS2(nsAppFileLocationProvider, nsIDirectoryServiceProvider, nsIDirectoryServiceProvider2)
+NS_IMPL_ISUPPORTS2(nsAppFileLocationProvider, nsIDirectoryServiceProvider, nsIDirectoryServiceProvider2)
 
 
 

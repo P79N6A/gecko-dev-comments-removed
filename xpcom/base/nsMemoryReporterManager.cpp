@@ -682,7 +682,7 @@ NS_IMPL_ISUPPORTS1(DMDMultiReporter, nsIMemoryMultiReporter)
 
 
 
-NS_IMPL_THREADSAFE_ISUPPORTS1(nsMemoryReporterManager, nsIMemoryReporterManager)
+NS_IMPL_ISUPPORTS1(nsMemoryReporterManager, nsIMemoryReporterManager)
 
 NS_IMETHODIMP
 nsMemoryReporterManager::Init()
@@ -1199,7 +1199,7 @@ nsMemoryReporterManager::MinimizeMemoryUsage(nsIRunnable* aCallback,
 
 
 
-NS_IMPL_THREADSAFE_ISUPPORTS1(MemoryReporterBase, nsIMemoryReporter)
+NS_IMPL_ISUPPORTS1(MemoryReporterBase, nsIMemoryReporter)
 
 nsresult
 NS_RegisterMemoryReporter (nsIMemoryReporter *reporter)
