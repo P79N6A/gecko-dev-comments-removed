@@ -7,7 +7,7 @@
 #ifndef MERGED_COMPARTMENT
 this.EXPORTED_SYMBOLS = ["ProviderManager"];
 
-const {utils: Cu} = Components;
+const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
 Cu.import("resource://gre/modules/services/metrics/dataprovider.jsm");
 #endif
@@ -32,6 +32,13 @@ this.ProviderManager = function (storage) {
 
   this._providerInitQueue = [];
   this._providerInitializing = false;
+
+  this._pullOnlyProviders = {};
+  this._pullOnlyProvidersRegistered = false;
+
+  
+  
+  this.onProviderInit = null;
 }
 
 this.ProviderManager.prototype = Object.freeze({
@@ -55,6 +62,72 @@ this.ProviderManager.prototype = Object.freeze({
     }
 
     return provider.provider;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  registerProvidersFromCategoryManager: function (category) {
+    this._log.info("Registering providers from category: " + category);
+    let cm = Cc["@mozilla.org/categorymanager;1"]
+               .getService(Ci.nsICategoryManager);
+
+    let promises = [];
+    let enumerator = cm.enumerateCategory(category);
+    while (enumerator.hasMoreElements()) {
+      let entry = enumerator.getNext()
+                            .QueryInterface(Ci.nsISupportsCString)
+                            .toString();
+
+      let uri = cm.getCategoryEntry(category, entry);
+      this._log.info("Attempting to load provider from category manager: " +
+                     entry + " from " + uri);
+
+      try {
+        let ns = {};
+        Cu.import(uri, ns);
+
+        let promise = this.registerProviderFromType(ns[entry]);
+        if (promise) {
+          promises.push(promise);
+        }
+      } catch (ex) {
+        this._recordError("Error registering provider from category manager : " +
+                          entry + ": ", ex);
+        continue;
+      }
+    }
+
+    return Task.spawn(function wait() {
+      for (let promise of promises) {
+        yield promise;
+      }
+    });
   },
 
   
@@ -99,8 +172,107 @@ this.ProviderManager.prototype = Object.freeze({
 
 
 
+
+
+
+
+  registerProviderFromType: function (type) {
+    let proto = type.prototype;
+    if (proto.pullOnly) {
+      this._log.info("Provider is pull-only. Deferring initialization: " +
+                     proto.name);
+      this._pullOnlyProviders[proto.name] = type;
+
+      return null;
+    }
+
+    let provider = this._initProviderFromType(type);
+    return this.registerProvider(provider);
+  },
+
+  
+
+
+
+
+
+
+
+  _initProviderFromType: function (type) {
+    let provider = new type();
+    if (this.onProviderInit) {
+      this.onProviderInit(provider);
+    }
+
+    return provider;
+  },
+
+  
+
+
+
+
+
   unregisterProvider: function (name) {
     this._providers.delete(name);
+  },
+
+  
+
+
+  ensurePullOnlyProvidersRegistered: function () {
+    if (this._pullOnlyProvidersRegistered) {
+      return Promise.resolve();
+    }
+
+    let onFinished = function () {
+      this._pullOnlyProvidersRegistered = true;
+
+      return Promise.resolve();
+    }.bind(this);
+
+    return Task.spawn(function registerPullProviders() {
+      for each (let providerType in this._pullOnlyProviders) {
+        try {
+          let provider = this._initProviderFromType(providerType);
+          yield this.registerProvider(provider);
+        } catch (ex) {
+          this._recordError("Error registering pull-only provider", ex);
+        }
+      }
+    }.bind(this)).then(onFinished, onFinished);
+  },
+
+  ensurePullOnlyProvidersUnregistered: function () {
+    if (!this._pullOnlyProvidersRegistered) {
+      return Promise.resolve();
+    }
+
+    let onFinished = function () {
+      this._pullOnlyProvidersRegistered = false;
+
+      return Promise.resolve();
+    }.bind(this);
+
+    return Task.spawn(function unregisterPullProviders() {
+      for (let provider of this.providers) {
+        if (!provider.pullOnly) {
+          continue;
+        }
+
+        this._log.info("Shutting down pull-only provider: " +
+                       provider.name);
+
+        try {
+          yield provider.shutdown();
+        } catch (ex) {
+          this._recordError("Error when shutting down provider: " +
+                            provider.name, ex);
+        } finally {
+          this.unregisterProvider(provider.name);
+        }
+      }
+    }.bind(this)).then(onFinished, onFinished);
   },
 
   _popAndInitProvider: function () {
