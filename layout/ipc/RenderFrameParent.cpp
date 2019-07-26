@@ -838,17 +838,7 @@ RenderFrameParent::TriggerRepaint()
     return;
   }
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  nsRect rect = nsRect(nsPoint(0, 0), docFrame->GetRect().Size());
-  docFrame->InvalidateWithFlags(rect, nsIFrame::INVALIDATE_NO_THEBES_LAYERS);
+  docFrame->SchedulePaint();
 }
 
 ShadowLayersParent*

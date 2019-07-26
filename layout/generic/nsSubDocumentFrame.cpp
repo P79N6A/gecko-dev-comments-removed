@@ -656,9 +656,6 @@ nsSubDocumentFrame::Reflow(nsPresContext*           aPresContext,
     }
   }
 
-  
-  CheckInvalidateSizeChange(aDesiredSize);
-
   FinishAndStoreOverflow(&aDesiredSize);
 
   if (!aPresContext->IsPaginated() && !mPostedReflowCallback) {

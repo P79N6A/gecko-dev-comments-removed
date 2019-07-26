@@ -930,11 +930,6 @@ nsContainerFrame::ReflowChild(nsIFrame*                aKidFrame,
   aKidFrame->WillReflow(aPresContext);
 
   if (NS_FRAME_NO_MOVE_FRAME != (aFlags & NS_FRAME_NO_MOVE_FRAME)) {
-    if ((aFlags & NS_FRAME_INVALIDATE_ON_MOVE) &&
-        !(aKidFrame->GetStateBits() & NS_FRAME_FIRST_REFLOW) &&
-        aKidFrame->GetPosition() != nsPoint(aX, aY)) {
-      aKidFrame->InvalidateFrameSubtree();
-    }
     aKidFrame->SetPosition(nsPoint(aX, aY));
   }
 
@@ -1043,13 +1038,6 @@ nsContainerFrame::FinishReflowChild(nsIFrame*                  aKidFrame,
       
       PositionChildViews(aKidFrame);
     }
-
-    
-    
-    
-    
-    
-    aKidFrame->Invalidate(aDesiredSize.VisualOverflow());
   }
 
   return aKidFrame->DidReflow(aPresContext, aReflowState, NS_FRAME_REFLOW_FINISHED);
@@ -1130,10 +1118,6 @@ nsContainerFrame::ReflowOverflowContainerChildren(nsPresContext*           aPres
       nsReflowStatus frameStatus = NS_FRAME_COMPLETE;
 
       
-      nsRect oldRect = frame->GetRect();
-      nsRect oldOverflow = frame->GetVisualOverflowRect();
-
-      
       rv = ReflowChild(frame, aPresContext, desiredSize, frameState,
                        prevRect.x, 0, aFlags, frameStatus, &tracker);
       NS_ENSURE_SUCCESS(rv, rv);
@@ -1142,18 +1126,6 @@ nsContainerFrame::ReflowOverflowContainerChildren(nsPresContext*           aPres
       rv = FinishReflowChild(frame, aPresContext, &frameState, desiredSize,
                              prevRect.x, 0, aFlags);
       NS_ENSURE_SUCCESS(rv, rv);
-
-      
-      nsRect rect = frame->GetRect();
-      if (!rect.IsEqualInterior(oldRect)) {
-        nsRect dirtyRect = oldOverflow;
-        dirtyRect.MoveBy(oldRect.x, oldRect.y);
-        Invalidate(dirtyRect);
-
-        dirtyRect = frame->GetVisualOverflowRect();
-        dirtyRect.MoveBy(rect.x, rect.y);
-        Invalidate(dirtyRect);
-      }
 
       
       if (!NS_FRAME_IS_FULLY_COMPLETE(frameStatus)) {
@@ -1368,8 +1340,6 @@ nsContainerFrame::DeleteNextInFlowChild(nsPresContext* aPresContext,
         ->DeleteNextInFlowChild(aPresContext, delFrame, aDeletingEmptyFrames);
     }
   }
-
-  aNextInFlow->InvalidateFrameSubtree();
 
   
 #ifdef DEBUG

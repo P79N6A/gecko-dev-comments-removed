@@ -356,7 +356,7 @@ nsComboboxControlFrame::SetFocus(bool aOn, bool aRepaint)
   
   
   
-  Invalidate(nsRect(0,0,mRect.width,mRect.height));
+  InvalidateFrame();
 }
 
 void

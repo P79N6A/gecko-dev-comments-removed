@@ -157,12 +157,6 @@ nsCanvasFrame::RemoveFrame(ChildListID     aListID,
     return NS_ERROR_FAILURE;
 
   
-  
-  
-  
-  Invalidate(aOldFrame->GetVisualOverflowRect() + aOldFrame->GetPosition());
-
-  
   mFrames.DestroyFrame(aOldFrame);
 
   PresContext()->PresShell()->
@@ -507,15 +501,7 @@ nsCanvasFrame::Reflow(nsPresContext*           aPresContext,
       
       
       nsIFrame* viewport = PresContext()->GetPresShell()->GetRootFrame();
-      viewport->Invalidate(nsRect(nsPoint(0, 0), viewport->GetSize()));
-    } else {
-      nsRect newKidRect = kidFrame->GetRect();
-      if (newKidRect.TopLeft() == oldKidRect.TopLeft()) {
-        InvalidateRectDifference(oldKidRect, kidFrame->GetRect());
-      } else {
-        Invalidate(oldKidRect);
-        Invalidate(newKidRect);
-      }
+      viewport->InvalidateFrame();
     }
     
     
@@ -559,7 +545,7 @@ nsCanvasFrame::Reflow(nsPresContext*           aPresContext,
           const nsStyleBackground::Layer& layer = bg->mLayers[i];
           if (layer.mAttachment == NS_STYLE_BG_ATTACHMENT_FIXED &&
               layer.RenderingMightDependOnFrameSize()) {
-            Invalidate(nsRect(nsPoint(0, 0), GetSize()));
+            InvalidateFrame();
             break;
           }
         }

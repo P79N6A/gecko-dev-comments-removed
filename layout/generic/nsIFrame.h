@@ -2176,136 +2176,6 @@ public:
   
 
 
-  void InvalidateWithFlags(const nsRect& aDamageRect, uint32_t aFlags);
-
-  
-
-
-
-
-
-
-
-
-
-  void Invalidate(const nsRect& aDamageRect)
-  { return InvalidateWithFlags(aDamageRect, 0); }
-
-  
-
-
-
-
-
-
-
-
-  Layer* InvalidateLayer(const nsRect& aDamageRect, uint32_t aDisplayItemKey);
-
-  
-
-
-
-
-  void InvalidateTransformLayer();
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  enum {
-    INVALIDATE_IMMEDIATE = 0x01,
-    INVALIDATE_CROSS_DOC = 0x02,
-    INVALIDATE_REASON_SCROLL_BLIT = 0x04,
-    INVALIDATE_REASON_SCROLL_REPAINT = 0x08,
-    INVALIDATE_REASON_MASK = INVALIDATE_REASON_SCROLL_BLIT |
-                             INVALIDATE_REASON_SCROLL_REPAINT,
-    INVALIDATE_NO_THEBES_LAYERS = 0x10,
-    INVALIDATE_ONLY_THEBES_LAYERS = 0x20,
-    INVALIDATE_EXCLUDE_CURRENT_PAINT = 0x40,
-    INVALIDATE_NO_UPDATE_LAYER_TREE = 0x80,
-    INVALIDATE_ALREADY_TRANSFORMED = 0x100
-  };
-  virtual void InvalidateInternal(const nsRect& aDamageRect,
-                                  nscoord aOffsetX, nscoord aOffsetY,
-                                  nsIFrame* aForChild, uint32_t aFlags);
-
-  
-
-
-
-
-
-
-
-
-
-
-  void InvalidateInternalAfterResize(const nsRect& aDamageRect, nscoord aX,
-                                     nscoord aY, uint32_t aFlags);
-
-  
-
-
-
-
-
-
-
-  void InvalidateRectDifference(const nsRect& aR1, const nsRect& aR2);
-
-
-  
-
-
-
-
-  void InvalidateOverflowRect();
-
-  
-
-
 
 
 
@@ -2830,7 +2700,7 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::ParagraphDepthProperty()))
   bool IsHorizontal() const { return (mState & NS_STATE_IS_HORIZONTAL) != 0; }
   bool IsNormalDirection() const { return (mState & NS_STATE_IS_DIRECTION_NORMAL) != 0; }
 
-  NS_HIDDEN_(nsresult) Redraw(nsBoxLayoutState& aState, const nsRect* aRect = nullptr);
+  NS_HIDDEN_(nsresult) Redraw(nsBoxLayoutState& aState);
   NS_IMETHOD RelayoutChildAtOrdinal(nsBoxLayoutState& aState, nsIFrame* aChild)=0;
   
   virtual bool GetMouseThrough() const { return false; }
@@ -2878,17 +2748,6 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::ParagraphDepthProperty()))
 
 
   CaretPosition GetExtremeCaretPosition(bool aStart);
-
-  
-
-
-
-
-
-
-  void CheckInvalidateSizeChange(const nsRect& aOldRect,
-                                 const nsRect& aOldVisualOverflowRect,
-                                 const nsSize& aNewDesiredSize);
 
   
 
@@ -3052,12 +2911,6 @@ protected:
   } mOverflow;
 
   
-  
-
-
-
-  void InvalidateRoot(const nsRect& aDamageRect, uint32_t aFlags);
-
   
 
 

@@ -674,19 +674,6 @@ nsSimplePageSequenceFrame::PrePrintNextPage(nsITimerCallback* aCallback, bool* a
   return NS_OK;
 }
 
-void
-nsSimplePageSequenceFrame::InvalidateInternal(const nsRect& aDamageRect,
-                                              nscoord aX, nscoord aY,
-                                              nsIFrame* aForChild,
-                                              uint32_t aFlags)
-{
-  
-  
-  
-  nsContainerFrame::InvalidateInternal(
-      nsRect(nsPoint(0,0), GetSize()), 0, 0, aForChild, aFlags); 
-}
-
 NS_IMETHODIMP
 nsSimplePageSequenceFrame::ResetPrintCanvasList()
 {

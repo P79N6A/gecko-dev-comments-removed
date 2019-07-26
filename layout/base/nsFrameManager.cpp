@@ -467,21 +467,10 @@ nsFrameManager::InsertFrames(nsIFrame*       aParentFrame,
 
 nsresult
 nsFrameManager::RemoveFrame(ChildListID     aListID,
-                            nsIFrame*       aOldFrame,
-                            bool            aInvalidate )
+                            nsIFrame*       aOldFrame)
 {
   bool wasDestroyingFrames = mIsDestroyingFrames;
   mIsDestroyingFrames = true;
-
-  
-  
-  
-  
-  
-  
-  if (aInvalidate) {
-    aOldFrame->InvalidateFrameSubtree();
-  }
 
   NS_ASSERTION(!aOldFrame->GetPrevContinuation() ||
                

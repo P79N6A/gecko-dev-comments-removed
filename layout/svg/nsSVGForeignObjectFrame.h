@@ -67,10 +67,6 @@ public:
       ~(nsIFrame::eSVG | nsIFrame::eSVGForeignObject));
   }
 
-  virtual void InvalidateInternal(const nsRect& aDamageRect,
-                                  nscoord aX, nscoord aY, nsIFrame* aForChild,
-                                  uint32_t aFlags);
-
   virtual bool IsSVGTransformed(gfxMatrix *aOwnTransform,
                                 gfxMatrix *aFromParentTransform) const;
 
@@ -99,20 +95,10 @@ protected:
   void DoReflow();
   void RequestReflow(nsIPresShell::IntrinsicDirty aType);
 
-  void InvalidateDirtyRect(const nsRect& aRect, uint32_t aFlags,
-                           bool aDuringReflowSVG);
-  void FlushDirtyRegion(uint32_t aFlags, bool aDuringReflowSVG);
-
   
   bool IsDisabled() const { return mRect.width <= 0 || mRect.height <= 0; }
 
   nsAutoPtr<gfxMatrix> mCanvasTM;
-
-  
-  nsRegion mSameDocDirtyRegion;
-
-  
-  nsRegion mSubDocDirtyRegion;
 
   bool mInReflow;
 };

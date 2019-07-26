@@ -427,7 +427,7 @@ nsObjectFrame::PrepForDrawing(nsIWidget *aWidget)
     
     
     if (parentWidget == GetNearestWidget()) {
-      Invalidate(GetContentRectRelativeToSelf());
+      InvalidateFrame();
     }
 #endif
 

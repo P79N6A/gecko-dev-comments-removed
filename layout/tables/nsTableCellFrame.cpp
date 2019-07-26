@@ -561,11 +561,6 @@ void nsTableCellFrame::VerticallyAlignChild(nscoord aMaxAscent)
   
   kidYTop = NS_MAX(0, kidYTop);
 
-  if (kidYTop != kidRect.y) {
-    
-    firstKid->InvalidateFrameSubtree();
-  }
-
   firstKid->SetPosition(nsPoint(kidRect.x, kidYTop));
   nsHTMLReflowMetrics desiredSize;
   desiredSize.width = mRect.width;
@@ -580,9 +575,6 @@ void nsTableCellFrame::VerticallyAlignChild(nscoord aMaxAscent)
     
     
     nsContainerFrame::PositionChildViews(firstKid);
-
-    
-    firstKid->InvalidateFrameSubtree();
   }
   if (HasView()) {
     nsContainerFrame::SyncFrameViewAfterReflow(PresContext(), this,
@@ -873,9 +865,6 @@ NS_METHOD nsTableCellFrame::Reflow(nsPresContext*           aPresContext,
   }
 
   nsPoint kidOrigin(leftInset, topInset);
-  nsRect origRect = firstKid->GetRect();
-  nsRect origVisualOverflow = firstKid->GetVisualOverflowRect();
-  bool firstReflow = (firstKid->GetStateBits() & NS_FRAME_FIRST_REFLOW) != 0;
 
   ReflowChild(firstKid, aPresContext, kidSize, kidReflowState,
               kidOrigin.x, kidOrigin.y, NS_FRAME_INVALIDATE_ON_MOVE, aStatus);
@@ -884,11 +873,6 @@ NS_METHOD nsTableCellFrame::Reflow(nsPresContext*           aPresContext,
     
     NS_FRAME_SET_INCOMPLETE(aStatus);
     printf("Set table cell incomplete %p\n", static_cast<void*>(this));
-  }
-
-  
-  if (GetStateBits() & NS_FRAME_IS_DIRTY) {
-    InvalidateFrameSubtree();
   }
 
 #ifdef DEBUG
@@ -909,9 +893,6 @@ NS_METHOD nsTableCellFrame::Reflow(nsPresContext*           aPresContext,
   
   FinishReflowChild(firstKid, aPresContext, &kidReflowState, kidSize,
                     kidOrigin.x, kidOrigin.y, 0);
-
-  nsTableFrame::InvalidateFrame(firstKid, origRect, origVisualOverflow,
-                                firstReflow);
 
   
   nscoord cellHeight = kidSize.height;
@@ -943,12 +924,6 @@ NS_METHOD nsTableCellFrame::Reflow(nsPresContext*           aPresContext,
     if (NS_UNCONSTRAINEDSIZE == aReflowState.availableHeight) {
       aDesiredSize.height = mRect.height;
     }
-  }
-
-  
-  
-  if (!(GetParent()->GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
-    CheckInvalidateSizeChange(aDesiredSize);
   }
 
   

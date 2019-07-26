@@ -776,7 +776,7 @@ nsPresContext::InvalidateThebesLayers()
     
     
     
-    FrameLayerBuilder::InvalidateThebesLayersInSubtreeWithUntrustedFrameGeometry(rootFrame);
+    rootFrame->InvalidateFrameSubtree();
   }
 }
 
@@ -1974,12 +1974,9 @@ nsPresContext::FireDOMPaintEvent()
     if (notifyContent) {
       
       
-      notifyContent = false;
+      notifyContent = true;
       for (uint32_t i = 0; i < mInvalidateRequests.mRequests.Length(); ++i) {
-        if (!(mInvalidateRequests.mRequests[i].mFlags &
-              nsIFrame::INVALIDATE_CROSS_DOC)) {
-          notifyContent = true;
-        }
+        notifyContent = true;
       }
     }
     if (!notifyContent) {

@@ -3383,8 +3383,7 @@ NS_IMETHODIMP nsBlinkTimer::Notify(nsITimer *timer)
 
     
     
-    nsRect bounds(nsPoint(0, 0), frameData.mFrame->GetSize());
-    frameData.mFrame->Invalidate(bounds);
+    frameData.mFrame->InvalidateFrame();
   }
   return NS_OK;
 }
@@ -4431,6 +4430,7 @@ nsTextFrame::CharacterDataChanged(CharacterDataChangeInfo* aInfo)
       
       textFrame->AddStateBits(NS_FRAME_IS_DIRTY);
     }
+    textFrame->InvalidateFrame();
 
     
     
@@ -6328,7 +6328,7 @@ nsTextFrame::SetSelectedRange(uint32_t aStart, uint32_t aEnd, bool aSelected,
       }
     }
     
-    f->InvalidateOverflowRect();
+    f->InvalidateFrame();
 
     f = static_cast<nsTextFrame*>(f->GetNextContinuation());
   }
@@ -8101,7 +8101,7 @@ nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
 
   SetLength(contentLength, &aLineLayout, ALLOW_FRAME_CREATION_AND_DESTRUCTION);
 
-  Invalidate(aMetrics.VisualOverflow());
+  InvalidateFrame();
 
 #ifdef NOISY_REFLOW
   ListTag(stdout);
