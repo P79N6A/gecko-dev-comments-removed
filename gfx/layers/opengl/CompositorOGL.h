@@ -154,7 +154,9 @@ protected:
   nsTArray<GLuint> mUnusedTextures;
 };
 
-class CompositorOGL : public Compositor
+
+
+class CompositorOGL MOZ_FINAL : public Compositor
 {
   typedef mozilla::gl::GLContext GLContext;
 
