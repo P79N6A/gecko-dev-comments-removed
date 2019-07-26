@@ -135,9 +135,25 @@ Measurement.prototype = Object.freeze({
     return this._serializers[format];
   },
 
+  
+
+
+
+
+
+
+
   hasField: function (name) {
     return this._fieldsByName.has(name);
   },
+
+  
+
+
+
+
+
+
 
   fieldID: function (name) {
     let entry = this._fieldsByName.get(name);
@@ -192,40 +208,122 @@ Measurement.prototype = Object.freeze({
     return deferred.promise;
   },
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   incrementDailyCounter: function (field, date=new Date()) {
     return this.storage.incrementDailyCounterFromFieldID(this.fieldID(field),
                                                          date);
   },
+
+  
+
+
+
+
+
+
+
+
+
+
 
   addDailyDiscreteNumeric: function (field, value, date=new Date()) {
     return this.storage.addDailyDiscreteNumericFromFieldID(
                           this.fieldID(field), value, date);
   },
 
+  
+
+
+
+
   addDailyDiscreteText: function (field, value, date=new Date()) {
     return this.storage.addDailyDiscreteTextFromFieldID(
                           this.fieldID(field), value, date);
   },
+
+  
+
+
+
+
+
+
+
+
+
+
 
   setLastNumeric: function (field, value, date=new Date()) {
     return this.storage.setLastNumericFromFieldID(this.fieldID(field), value,
                                                   date);
   },
 
+  
+
+
+
+
   setLastText: function (field, value, date=new Date()) {
     return this.storage.setLastTextFromFieldID(this.fieldID(field), value,
                                                date);
   },
+
+  
+
+
+
+
+
+
+
+
+
+
 
   setDailyLastNumeric: function (field, value, date=new Date()) {
     return this.storage.setDailyLastNumericFromFieldID(this.fieldID(field),
                                                        value, date);
   },
 
+  
+
+
+
+
   setDailyLastText: function (field, value, date=new Date()) {
     return this.storage.setDailyLastTextFromFieldID(this.fieldID(field),
                                                     value, date);
   },
+
+  
+  
+  
 
   
 
@@ -563,6 +661,11 @@ Provider.prototype = Object.freeze({
   enqueueStorageOperation: function (func) {
     return this.storage.enqueueOperation(func);
   },
+
+  
+
+
+
 
   getState: function (key) {
     let name = this.name;
