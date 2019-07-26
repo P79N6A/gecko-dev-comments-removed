@@ -840,7 +840,14 @@ public:
 
 
 
-  void SetIsFixedPosition(bool aFixedPosition) { mIsFixedPosition = aFixedPosition; }
+  void SetIsFixedPosition(bool aFixedPosition)
+  {
+    if (mIsFixedPosition != aFixedPosition) {
+      MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) IsFixedPosition", this));
+      mIsFixedPosition = aFixedPosition;
+      Mutated();
+    }
+  }
 
   
   
@@ -861,7 +868,14 @@ public:
 
 
 
-  void SetFixedPositionAnchor(const gfxPoint& aAnchor) { mAnchor = aAnchor; }
+  void SetFixedPositionAnchor(const gfxPoint& aAnchor)
+  {
+    if (mAnchor != aAnchor) {
+      MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) FixedPositionAnchor", this));
+      mAnchor = aAnchor;
+      Mutated();
+    }
+  }
 
   
 
@@ -871,7 +885,14 @@ public:
 
 
 
-  void SetFixedPositionMargins(const gfx::Margin& aMargins) { mMargins = aMargins; }
+  void SetFixedPositionMargins(const gfx::Margin& aMargins)
+  {
+    if (mMargins != aMargins) {
+      MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) FixedPositionMargins", this));
+      mMargins = aMargins;
+      Mutated();
+    }
+  }
 
   
   float GetOpacity() { return mOpacity; }
@@ -1538,7 +1559,11 @@ public:
 
   virtual void SetColor(const gfxRGBA& aColor)
   {
-    mColor = aColor;
+    if (mColor != aColor) {
+      MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) Color", this));
+      mColor = aColor;
+      Mutated();
+    }
   }
 
   
@@ -1668,7 +1693,14 @@ public:
 
 
 
-  void SetFilter(gfxPattern::GraphicsFilter aFilter) { mFilter = aFilter; }
+  void SetFilter(gfxPattern::GraphicsFilter aFilter)
+  {
+    if (mFilter != aFilter) {
+      MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) Filter", this));
+      mFilter = aFilter;
+      Mutated();
+    }
+  }
   gfxPattern::GraphicsFilter GetFilter() const { return mFilter; }
 
   MOZ_LAYER_DECL_NAME("CanvasLayer", TYPE_CANVAS)

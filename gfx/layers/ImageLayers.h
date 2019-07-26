@@ -39,7 +39,14 @@ public:
 
 
 
-  void SetFilter(gfxPattern::GraphicsFilter aFilter) { mFilter = aFilter; }
+  void SetFilter(gfxPattern::GraphicsFilter aFilter)
+  {
+    if (mFilter != aFilter) {
+      MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) Filter", this));
+      mFilter = aFilter;
+      Mutated();
+    }
+  }
 
   
 
@@ -66,9 +73,11 @@ public:
 
   void SetForceSingleTile(bool aForceSingleTile)
   {
-    MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) ForceSingleTile", this));
-    mForceSingleTile = aForceSingleTile;
-    Mutated();
+    if (mForceSingleTile != aForceSingleTile) {
+      MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) ForceSingleTile", this));
+      mForceSingleTile = aForceSingleTile;
+      Mutated();
+    }
   }
 
 protected:
