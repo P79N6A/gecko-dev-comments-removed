@@ -3,6 +3,7 @@
 
 
 
+
 #include "mozilla/dom/HTMLLinkElement.h"
 
 #include "mozilla/Attributes.h"
@@ -255,7 +256,7 @@ HTMLLinkElement::SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
     bool dropSheet = false;
     if (aName == nsGkAtoms::rel && GetSheet()) {
       uint32_t linkTypes = nsStyleLinkElement::ParseLinkTypes(aValue);
-      dropSheet = !(linkTypes & STYLESHEET);          
+      dropSheet = !(linkTypes & nsStyleLinkElement::eSTYLESHEET);
     }
     
     UpdateStyleSheetInternal(nullptr, nullptr,
@@ -360,7 +361,7 @@ HTMLLinkElement::GetStyleSheetInfo(nsAString& aTitle,
   GetAttr(kNameSpaceID_None, nsGkAtoms::rel, rel);
   uint32_t linkTypes = nsStyleLinkElement::ParseLinkTypes(rel);
   
-  if (!(linkTypes & STYLESHEET)) {
+  if (!(linkTypes & nsStyleLinkElement::eSTYLESHEET)) {
     return;
   }
 
@@ -370,7 +371,7 @@ HTMLLinkElement::GetStyleSheetInfo(nsAString& aTitle,
   aTitle.Assign(title);
 
   
-  if (linkTypes & ALTERNATE) {
+  if (linkTypes & nsStyleLinkElement::eALTERNATE) {
     if (aTitle.IsEmpty()) { 
       return;
     } else {
