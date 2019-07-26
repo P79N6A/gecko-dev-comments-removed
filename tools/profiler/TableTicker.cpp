@@ -5,7 +5,6 @@
 
 #include <string>
 #include <stdio.h>
-#include <iostream>
 #include <fstream>
 #include <sstream>
 #include "sps_sampler.h"
@@ -18,6 +17,7 @@
 
 
 #include "JSObjectBuilder.h"
+#include "JSCustomObjectBuilder.h"
 #include "nsIJSRuntimeService.h"
 
 
@@ -307,17 +307,31 @@ public:
     }
   }
 
-  JSObject *ToJSObject(JSContext *aCx)
+  void ToStreamAsJSON(std::ostream& stream)
+  {
+    JSCustomObjectBuilder b;
+    JSCustomObject *profile = b.CreateObject();
+    BuildJSObject(b, profile);
+    b.Serialize(profile, stream);
+    b.DeleteObject(profile);
+  }
+
+  JSCustomObject *ToJSObject(JSContext *aCx)
   {
     JSObjectBuilder b(aCx);
+    JSCustomObject *profile = b.CreateObject();
+    BuildJSObject(b, profile);
 
-    JSObject *profile = b.CreateObject();
-    JSObject *samples = b.CreateArray();
+    return profile;
+  }
+
+  void BuildJSObject(JSAObjectBuilder& b, JSCustomObject* profile) {
+    JSCustomArray *samples = b.CreateArray();
     b.DefineProperty(profile, "samples", samples);
 
-    JSObject *sample = NULL;
-    JSObject *frames = NULL;
-    JSObject *marker = NULL;
+    JSCustomObject *sample = nullptr;
+    JSCustomArray *frames = nullptr;
+    JSCustomArray *marker = nullptr;
 
     int readPos = mReadPos;
     while (readPos != mLastFlushPos) {
@@ -382,7 +396,7 @@ public:
         case 'l':
           {
             if (sample) {
-              JSObject *frame = b.CreateObject();
+              JSCustomObject *frame = b.CreateObject();
               if (entry.mTagName == 'l') {
                 
                 
@@ -406,8 +420,6 @@ public:
       }
       readPos = (readPos + incBy) % mEntrySize;
     }
-
-    return profile;
   }
 
   ProfileStack* GetStack()
@@ -473,8 +485,9 @@ class TableTicker: public Sampler {
     return &mPrimaryThreadProfile;
   }
 
+  void ToStreamAsJSON(std::ostream& stream);
   JSObject *ToJSObject(JSContext *aCx);
-  JSObject *GetMetaJSObject(JSObjectBuilder& b);
+  JSCustomObject *GetMetaJSCustomObject(JSAObjectBuilder& b);
 
   const bool ProfileJS() { return mProfileJS; }
 
@@ -482,6 +495,7 @@ private:
   
   void doBacktrace(ThreadProfile &aProfile, TickSample* aSample);
 
+  void BuildJSObject(JSAObjectBuilder& b, JSCustomObject* profile);
 private:
   
   ThreadProfile mPrimaryThreadProfile;
@@ -513,7 +527,6 @@ public:
 
   NS_IMETHOD Run() {
     TableTicker *t = tlsTicker.get();
-
     
     
     
@@ -575,7 +588,6 @@ public:
       
       
       
-      t->SetPaused(true);
       if (stream.is_open()) {
         JSAutoCompartment autoComp(cx, obj);
         JSObject* profileObj = mozilla_sampler_get_profile_data(cx);
@@ -589,8 +601,6 @@ public:
     }
     JS_EndRequest(cx);
     JS_DestroyContext(cx);
-
-    t->SetPaused(false);
 
     return NS_OK;
   }
@@ -608,9 +618,9 @@ void TableTicker::HandleSaveRequest()
   NS_DispatchToMainThread(runnable);
 }
 
-JSObject* TableTicker::GetMetaJSObject(JSObjectBuilder& b)
+JSCustomObject* TableTicker::GetMetaJSCustomObject(JSAObjectBuilder& b)
 {
-  JSObject *meta = b.CreateObject();
+  JSCustomObject *meta = b.CreateObject();
 
   b.DefineProperty(meta, "version", 2);
   b.DefineProperty(meta, "interval", interval());
@@ -661,30 +671,44 @@ JSObject* TableTicker::GetMetaJSObject(JSObjectBuilder& b)
   return meta;
 }
 
+void TableTicker::ToStreamAsJSON(std::ostream& stream)
+{
+  JSCustomObjectBuilder b;
+  JSCustomObject* profile = b.CreateObject();
+  BuildJSObject(b, profile);
+  b.Serialize(profile, stream);
+  b.DeleteObject(profile);
+}
+
 JSObject* TableTicker::ToJSObject(JSContext *aCx)
 {
   JSObjectBuilder b(aCx);
+  JSCustomObject* profile = b.CreateObject();
+  BuildJSObject(b, profile);
+  JSObject* jsProfile = b.GetJSObject(profile);
 
-  JSObject *profile = b.CreateObject();
+  return jsProfile;
+}
 
+void TableTicker::BuildJSObject(JSAObjectBuilder& b, JSCustomObject* profile)
+{
   
   b.DefineProperty(profile, "libs", GetSharedLibraryInfoString().c_str());
 
   
-  JSObject *meta = GetMetaJSObject(b);
+  JSCustomObject *meta = GetMetaJSCustomObject(b);
   b.DefineProperty(profile, "meta", meta);
 
   
-  JSObject *threads = b.CreateArray();
+  JSCustomArray *threads = b.CreateArray();
   b.DefineProperty(profile, "threads", threads);
 
   
   SetPaused(true);
-  JSObject* threadSamples = GetPrimaryThreadProfile()->ToJSObject(aCx);
+  JSCustomObject* threadSamples = b.CreateObject();
+  GetPrimaryThreadProfile()->BuildJSObject(b, threadSamples);
   b.ArrayPush(threads, threadSamples);
   SetPaused(false);
-
-  return profile;
 }
 
 static
@@ -1062,8 +1086,21 @@ void mozilla_sampler_init()
                         features, sizeof(features)/sizeof(const char*));
 }
 
-void mozilla_sampler_deinit()
+void mozilla_sampler_shutdown()
 {
+  TableTicker *t = tlsTicker.get();
+  if (t) {
+    const char *val = PR_GetEnv("MOZ_PROFILER_SHUTDOWN");
+    if (val) {
+      std::ofstream stream;
+      stream.open(val);
+      if (stream.is_open()) {
+        t->ToStreamAsJSON(stream);
+        stream.close();
+      }
+    }
+  }
+
   mozilla_sampler_stop();
   
   
