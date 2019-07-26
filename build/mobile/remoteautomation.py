@@ -10,7 +10,7 @@ import shutil
 import subprocess
 
 from automation import Automation
-from devicemanager import NetworkTools
+from devicemanager import NetworkTools, DMError
 
 class RemoteAutomation(Automation):
     _devicemanager = None
@@ -157,19 +157,31 @@ class RemoteAutomation(Automation):
 
         @property
         def pid(self):
-            hexpid = self.dm.processExist(self.procName)
-            if (hexpid == None):
-                hexpid = "0x0"
-            return int(hexpid, 0)
+            pid = self.dm.processExist(self.procName)
+            
+            
+            
+            
+            if pid is None:
+                return 0
+            return pid
 
         @property
         def stdout(self):
-            t = self.dm.getFile(self.proc)
-            if t == None: return ''
-            tlen = len(t)
-            retVal = t[self.stdoutlen:]
-            self.stdoutlen = tlen
-            return retVal.strip('\n').strip()
+            if self.dm.fileExists(self.proc):
+                try:
+                    t = self.dm.pullFile(self.proc)
+                except DMError:
+                    
+                    
+                    
+                    return ''
+                tlen = len(t)
+                retVal = t[self.stdoutlen:]
+                self.stdoutlen = tlen
+                return retVal.strip('\n').strip()
+            else:
+                return ''
 
         def wait(self, timeout = None):
             timer = 0
