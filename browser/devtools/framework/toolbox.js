@@ -361,6 +361,11 @@ Toolbox.prototype = {
       this.selectTool(id);
     }.bind(this, id));
 
+    
+    let spacer = this.doc.createElement("spacer");
+    spacer.setAttribute("flex", "1");
+    radio.appendChild(spacer);
+
     if (toolDefinition.icon) {
       let image = this.doc.createElement("image");
       image.setAttribute("src", toolDefinition.icon);
