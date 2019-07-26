@@ -18,6 +18,7 @@
 #include "mozilla/RefPtr.h"             
 #include "mozilla/ipc/Shmem.h"          
 #include "mozilla/ipc/SharedMemory.h"   
+#include "mozilla/layers/AsyncCompositionManager.h"  
 #include "mozilla/layers/CompositableClient.h"  
 #include "mozilla/layers/CompositorTypes.h"  
 #include "mozilla/layers/LayersMessages.h" 
@@ -271,6 +272,14 @@ struct BasicTiledLayerPaintData {
 
 
 
+
+  gfx3DMatrix mTransformToCompBounds;
+
+  
+
+
+
+
   LayerIntRect mCriticalDisplayPort;
 
   
@@ -322,17 +331,15 @@ public:
   bool UpdateFromCompositorFrameMetrics(ContainerLayer* aLayer,
                                         bool aHasPendingNewThebesContent,
                                         bool aLowPrecision,
-                                        ParentLayerRect& aCompositionBounds,
-                                        CSSToParentLayerScale& aZoom);
+                                        ViewTransform& aViewTransform);
 
   
 
 
 
+  ViewTransform ComputeViewTransform(const FrameMetrics& aContentMetrics,
+                                     const FrameMetrics& aCompositorMetrics);
 
-  void FindFallbackContentFrameMetrics(ContainerLayer* aLayer,
-                                       ParentLayerRect& aCompositionBounds,
-                                       CSSToParentLayerScale& aZoom);
   
 
 

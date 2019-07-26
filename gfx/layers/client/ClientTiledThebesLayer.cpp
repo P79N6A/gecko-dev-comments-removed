@@ -176,10 +176,10 @@ ClientTiledThebesLayer::BeginPaint()
   TILING_PRLOG(("TILING 0x%p: Resolution %f\n", this, mPaintData.mResolution.scale));
 
   
-  gfx3DMatrix transformToCompBounds =
+  mPaintData.mTransformToCompBounds =
     GetTransformToAncestorsParentLayer(this, scrollAncestor);
   mPaintData.mCompositionBounds = ApplyParentLayerToLayerTransform(
-    transformToCompBounds.Inverse(), ParentLayerRect(scrollMetrics.mCompositionBounds));
+    mPaintData.mTransformToCompBounds.Inverse(), ParentLayerRect(scrollMetrics.mCompositionBounds));
   TILING_PRLOG_OBJ(("TILING 0x%p: Composition bounds %s\n", this, tmpstr.get()), mPaintData.mCompositionBounds);
 
   

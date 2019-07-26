@@ -31,6 +31,7 @@
 #include "nsMathUtils.h"               
 #include "gfx2DGlue.h"
 #include "LayersLogging.h"
+#include "UnitTransforms.h"             
 
 
 
@@ -145,8 +146,7 @@ SharedFrameMetricsHelper::UpdateFromCompositorFrameMetrics(
     ContainerLayer* aLayer,
     bool aHasPendingNewThebesContent,
     bool aLowPrecision,
-    ParentLayerRect& aCompositionBounds,
-    CSSToParentLayerScale& aZoom)
+    ViewTransform& aViewTransform)
 {
   MOZ_ASSERT(aLayer);
 
@@ -157,7 +157,6 @@ SharedFrameMetricsHelper::UpdateFromCompositorFrameMetrics(
   }
 
   if (!compositor) {
-    FindFallbackContentFrameMetrics(aLayer, aCompositionBounds, aZoom);
     return false;
   }
 
@@ -166,12 +165,10 @@ SharedFrameMetricsHelper::UpdateFromCompositorFrameMetrics(
 
   if (!compositor->LookupCompositorFrameMetrics(contentMetrics.GetScrollId(),
                                                 compositorMetrics)) {
-    FindFallbackContentFrameMetrics(aLayer, aCompositionBounds, aZoom);
     return false;
   }
 
-  aCompositionBounds = ParentLayerRect(compositorMetrics.mCompositionBounds);
-  aZoom = compositorMetrics.GetZoomToParent();
+  aViewTransform = ComputeViewTransform(contentMetrics, compositorMetrics);
 
   
   
@@ -217,28 +214,20 @@ SharedFrameMetricsHelper::UpdateFromCompositorFrameMetrics(
   return false;
 }
 
-void
-SharedFrameMetricsHelper::FindFallbackContentFrameMetrics(ContainerLayer* aLayer,
-                                                          ParentLayerRect& aCompositionBounds,
-                                                          CSSToParentLayerScale& aZoom) {
-  if (!aLayer) {
-    return;
-  }
-
-  ContainerLayer* layer = aLayer;
-  const FrameMetrics* contentMetrics = &(layer->GetFrameMetrics());
-
+ViewTransform
+SharedFrameMetricsHelper::ComputeViewTransform(const FrameMetrics& aContentMetrics,
+                                               const FrameMetrics& aCompositorMetrics)
+{
   
-  while (layer && contentMetrics->mCompositionBounds.IsEmpty()) {
-    layer = layer->GetParent();
-    contentMetrics = layer ? &(layer->GetFrameMetrics()) : contentMetrics;
-  }
+  
+  
 
-  MOZ_ASSERT(!contentMetrics->mCompositionBounds.IsEmpty());
-
-  aCompositionBounds = ParentLayerRect(contentMetrics->mCompositionBounds);
-  aZoom = contentMetrics->GetZoomToParent();  
-  return;
+  LayerPoint translation = (aCompositorMetrics.GetScrollOffset() - aContentMetrics.GetScrollOffset())
+                         * aContentMetrics.LayersPixelsPerCSSPixel();
+  return ViewTransform(-translation,
+                       aCompositorMetrics.GetZoom()
+                     / aContentMetrics.mDevPixelsPerCSSPixel
+                     / aCompositorMetrics.GetParentResolution());
 }
 
 bool
@@ -946,29 +935,45 @@ ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
   return aTile;
 }
 
+
+
+
+
+
+
+
+
+
+
+
 static LayerRect
-TransformCompositionBounds(const ParentLayerRect& aCompositionBounds,
-                           const CSSToParentLayerScale& aZoom,
-                           const ParentLayerPoint& aScrollOffset,
-                           const CSSToParentLayerScale& aResolution,
-                           const gfx3DMatrix& aTransformDisplayPortToLayer)
+GetCompositorSideCompositionBounds(ContainerLayer* aScrollAncestor,
+                                   const gfx3DMatrix& aTransformToCompBounds,
+                                   const ViewTransform& aAPZTransform)
 {
-  
-  
-  
-  
-  ParentLayerRect offsetViewportRect = (aCompositionBounds / aZoom) * aResolution;
-  offsetViewportRect.MoveBy(-aScrollOffset);
+  gfx3DMatrix nonTransientAPZTransform = gfx3DMatrix::ScalingMatrix(
+    aScrollAncestor->GetFrameMetrics().mResolution.scale,
+    aScrollAncestor->GetFrameMetrics().mResolution.scale,
+    1.f);
 
-  gfxRect transformedViewport =
-    aTransformDisplayPortToLayer.TransformBounds(
-      gfxRect(offsetViewportRect.x, offsetViewportRect.y,
-              offsetViewportRect.width, offsetViewportRect.height));
+  gfx3DMatrix layerTransform;
+  gfx::To3DMatrix(aScrollAncestor->GetTransform(), layerTransform);
 
-  return LayerRect(transformedViewport.x,
-                   transformedViewport.y,
-                   transformedViewport.width,
-                   transformedViewport.height);
+  
+  
+  
+  gfx3DMatrix transform = aTransformToCompBounds;
+  transform = transform * layerTransform.Inverse();
+  transform = transform * nonTransientAPZTransform.Inverse();
+
+  
+  
+  transform = transform * gfx3DMatrix(aAPZTransform);
+
+  
+  transform = transform * layerTransform;
+  return TransformTo<LayerPixel>(transform.Inverse(),
+            ParentLayerRect(aScrollAncestor->GetFrameMetrics().mCompositionBounds));
 }
 
 bool
@@ -999,31 +1004,29 @@ ClientTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& aInval
 
   TILING_PRLOG_OBJ(("TILING 0x%p: Progressive update stale region %s\n", mThebesLayer, tmpstr.get()), staleRegion);
 
+  ContainerLayer* scrollAncestor = nullptr;
+  mThebesLayer->GetAncestorLayers(&scrollAncestor, nullptr);
+
   
   
   
-  ParentLayerRect compositionBounds;
-  CSSToParentLayerScale zoom;
+  ViewTransform viewTransform;
 #if defined(MOZ_WIDGET_ANDROID)
   bool abortPaint = mManager->ProgressiveUpdateCallback(!staleRegion.Contains(aInvalidRegion),
-                                                        compositionBounds, zoom,
+                                                        viewTransform,
                                                         !drawingLowPrecision);
 #else
   MOZ_ASSERT(mSharedFrameMetricsHelper);
-
-  ContainerLayer* scrollAncestor = nullptr;
-  mThebesLayer->GetAncestorLayers(&scrollAncestor, nullptr);
 
   bool abortPaint =
     mSharedFrameMetricsHelper->UpdateFromCompositorFrameMetrics(
       scrollAncestor,
       !staleRegion.Contains(aInvalidRegion),
       drawingLowPrecision,
-      compositionBounds,
-      zoom);
+      viewTransform);
 #endif
 
-  TILING_PRLOG_OBJ(("TILING 0x%p: Progressive update compositor bounds %s zoom %f abort %d\n", mThebesLayer, tmpstr.get(), zoom.scale, abortPaint), compositionBounds);
+  TILING_PRLOG(("TILING 0x%p: Progressive update view transform %f %f zoom %f abort %d\n", mThebesLayer, viewTransform.mTranslation.x, viewTransform.mTranslation.y, viewTransform.mScale.scale, abortPaint));
 
   if (abortPaint) {
     
@@ -1039,12 +1042,11 @@ ClientTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& aInval
   }
 
   LayerRect transformedCompositionBounds =
-    TransformCompositionBounds(compositionBounds, zoom, aPaintData->mScrollOffset,
-                               aPaintData->mResolution, aPaintData->mTransformDisplayPortToLayer);
+    GetCompositorSideCompositionBounds(scrollAncestor,
+                                       aPaintData->mTransformToCompBounds,
+                                       viewTransform);
 
-  TILING_PRLOG_OBJ(("TILING 0x%p: Progressive update transformed compositor bounds %s using resolution %f and scroll (%f,%f)\n",
-    mThebesLayer, tmpstr.get(), aPaintData->mResolution.scale, aPaintData->mScrollOffset.x, aPaintData->mScrollOffset.y),
-    transformedCompositionBounds);
+  TILING_PRLOG_OBJ(("TILING 0x%p: Progressive update transformed compositor bounds %s\n", mThebesLayer, tmpstr.get()), transformedCompositionBounds);
 
   
   
@@ -1052,8 +1054,6 @@ ClientTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& aInval
   
   LayerRect typedCoherentUpdateRect =
     transformedCompositionBounds.Intersect(aPaintData->mCompositionBounds);
-
-  TILING_PRLOG_OBJ(("TILING 0x%p: Progressive update intersected coherency rect %s\n", mThebesLayer, tmpstr.get()), typedCoherentUpdateRect);
 
   
   nsIntRect untypedCoherentUpdateRect(LayerIntRect::ToUntyped(
