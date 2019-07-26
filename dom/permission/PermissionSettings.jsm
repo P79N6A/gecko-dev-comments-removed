@@ -57,11 +57,16 @@ this.PermissionSettingsModule = {
     
     
     
+    
     let perm =
       permissionManager.testExactPermissionFromPrincipal(aPrincipal,aPermName);
     let isExplicit = isExplicitInPermissionsTable(aPermName, aPrincipal.appStatus);
-    
-    return (aAction !== "unknown") &&
+
+    let deleteAllowed = true;
+    if (aAction === "unknown")
+      deleteAllowed = (aPrincipal.appStatus === Ci.nsIPrincipal.APP_STATUS_NOT_INSTALLED);
+
+    return deleteAllowed &&
            (perm !== Ci.nsIPermissionManager.UNKNOWN_ACTION) &&
            isExplicit;
   },
@@ -132,6 +137,17 @@ this.PermissionSettingsModule = {
     }
   },
 
+  removePermission: function removePermission(aPermName, aManifestURL, aOrigin, aBrowserFlag) {
+    let data = {
+      type: aPermName,
+      origin: aOrigin,
+      manifestURL: aManifestURL,
+      value: "unknown",
+      browserFlag: aBrowserFlag
+    };
+    this._internalAddPermission(data, false);
+  },
+
   observe: function observe(aSubject, aTopic, aData) {
     ppmm.removeMessageListener("PermissionSettings:AddPermission", this);
     Services.obs.removeObserver(this, "profile-before-change");
@@ -147,11 +163,11 @@ this.PermissionSettingsModule = {
     switch (aMessage.name) {
       case "PermissionSettings:AddPermission":
         let success = false;
-        let errorMsg = 
+        let errorMsg =
               " from a content process with no 'permissions' privileges.";
         if (mm.assertPermission("permissions")) {
           success = this._internalAddPermission(msg, false);
-          if (!success) { 
+          if (!success) {
             
             mm.assertPermission("permissions-modify-implicit");
             errorMsg = " had an implicit permission change. Child process killed.";
