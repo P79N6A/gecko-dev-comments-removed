@@ -247,9 +247,8 @@ private:
   bool mInSnapshotMode;
   nsString* mSnapshotPath;
 
-  
-  char mDeviceName[KMaxDeviceNameLength];
-  char mUniqueId[KMaxUniqueIdLength];
+  nsString mDeviceName;
+  nsString mUniqueId;
 
   void ChooseCapability(const MediaEnginePrefs &aPrefs);
 };
