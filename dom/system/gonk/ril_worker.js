@@ -45,6 +45,13 @@ let DEBUG = DEBUG_WORKER;
 let CLIENT_ID = -1;
 let GLOBAL = this;
 
+if (!this.debug) {
+  
+  this.debug = function debug(message) {
+    dump("RIL Worker[" + CLIENT_ID + "]: " + message + "\n");
+  };
+}
+
 const INT32_MAX   = 2147483647;
 const UINT8_SIZE  = 1;
 const UINT16_SIZE = 2;
@@ -379,7 +386,7 @@ let Buf = {
       delimiter |= this.readUint16();
     }
     if (DEBUG) {
-      if (delimiter != 0) {
+      if (delimiter !== 0) {
         debug("Something's wrong, found string delimiter: " + delimiter);
       }
     }
@@ -480,7 +487,7 @@ let Buf = {
     let translatedReadIndexEnd = this.currentParcelSize - this.readAvailable + length - 1;
     this.ensureIncomingAvailable(translatedReadIndexEnd);
 
-    let translatedWriteIndexEnd = this.outgoingIndex + length - 1
+    let translatedWriteIndexEnd = this.outgoingIndex + length - 1;
     this.ensureOutgoingAvailable(translatedWriteIndexEnd);
 
     let newIncomingReadIndex = this.incomingReadIndex + length;
@@ -826,7 +833,7 @@ let RIL = {
     
 
 
-    this.appType = null,
+    this.appType = null;
 
     this.networkSelectionMode = null;
 
@@ -1263,7 +1270,7 @@ let RIL = {
 
 
   iccIO: function iccIO(options) {
-    let token = Buf.newParcel(REQUEST_SIM_IO, options);
+    Buf.newParcel(REQUEST_SIM_IO, options);
     Buf.writeUint32(options.command);
     Buf.writeUint32(options.fileId);
     Buf.writeString(options.pathId);
@@ -1304,7 +1311,7 @@ let RIL = {
       Buf.simpleRequest(REQUEST_GET_IMSI);
       return;
     }
-    let token = Buf.newParcel(REQUEST_GET_IMSI);
+    Buf.newParcel(REQUEST_GET_IMSI);
     Buf.writeUint32(1);
     Buf.writeString(aid || this.aid);
     Buf.sendParcel();
@@ -1527,7 +1534,7 @@ let RIL = {
       debug("iccOpenChannel: " + JSON.stringify(options));
     }
 
-    let token = Buf.newParcel(REQUEST_SIM_OPEN_CHANNEL, options);
+    Buf.newParcel(REQUEST_SIM_OPEN_CHANNEL, options);
     Buf.writeString(options.aid);
     Buf.sendParcel();
   },
@@ -1538,24 +1545,16 @@ let RIL = {
   iccExchangeAPDU: function iccExchangeAPDU(options) {
     if (DEBUG) debug("iccExchangeAPDU: " + JSON.stringify(options));
 
-    var cla = options.apdu.cla;
-    var command = options.apdu.command;
-    var channel = options.channel;
-    var path = options.apdu.path;
-    var data = options.apdu.data;
-    var data2 = options.apdu.data2;
-    if (path == null || path === undefined) {
-      var path = "";
-    }
-    if (data == null || data === undefined) {
-      var data = "";
-    }
-    if (data2 == null || data2 === undefined) {
-      var data2 = "";
-    }
-    var p1 = options.apdu.p1;
-    var p2 = options.apdu.p2;
-    var p3 = options.apdu.p3; 
+    let cla = options.apdu.cla;
+    let command = options.apdu.command;
+    let channel = options.channel;
+    let path = options.apdu.path || "";
+    let data = options.apdu.data || "";
+    let data2 = options.apdu.data2 || "";
+
+    let p1 = options.apdu.p1;
+    let p2 = options.apdu.p2;
+    let p3 = options.apdu.p3; 
 
     Buf.newParcel(REQUEST_SIM_ACCESS_CHANNEL, options);
     Buf.writeUint32(cla);
@@ -1699,7 +1698,7 @@ let RIL = {
   },
 
   sendDialRequest: function sendDialRequest(options) {
-    let token = Buf.newParcel(options.request);
+    Buf.newParcel(options.request);
     Buf.writeString(options.number);
     Buf.writeUint32(options.clirMode || 0);
     Buf.writeUint32(options.uusInfo || 0);
@@ -1865,7 +1864,7 @@ let RIL = {
 
 
   acknowledgeGsmSms: function acknowledgeGsmSms(success, cause) {
-    let token = Buf.newParcel(REQUEST_SMS_ACKNOWLEDGE);
+    Buf.newParcel(REQUEST_SMS_ACKNOWLEDGE);
     Buf.writeUint32(2);
     Buf.writeUint32(success ? 1 : 0);
     Buf.writeUint32(cause);
@@ -1898,7 +1897,7 @@ let RIL = {
 
 
   acknowledgeCdmaSms: function acknowledgeCdmaSms(success, cause) {
-    let token = Buf.newParcel(REQUEST_CDMA_SMS_ACKNOWLEDGE);
+    Buf.newParcel(REQUEST_CDMA_SMS_ACKNOWLEDGE);
     Buf.writeUint32(success ? 0 : 1);
     Buf.writeUint32(cause);
     Buf.sendParcel();
@@ -2066,7 +2065,7 @@ let RIL = {
       return;
     }
 
-    let token = Buf.newParcel(REQUEST_DEACTIVATE_DATA_CALL, options);
+    Buf.newParcel(REQUEST_DEACTIVATE_DATA_CALL, options);
     Buf.writeUint32(2);
     Buf.writeString(options.cid);
     Buf.writeString(options.reason || DATACALL_DEACTIVATE_NO_REASON);
@@ -2512,8 +2511,8 @@ let RIL = {
       return;
     }
 
-    let token = Buf.newParcel(REQUEST_STK_SEND_TERMINAL_RESPONSE);
     let command = response.command;
+    Buf.newParcel(REQUEST_STK_SEND_TERMINAL_RESPONSE);
 
     
     Buf.startCalOutgoingSize(function(size) {
@@ -2728,7 +2727,8 @@ let RIL = {
         break;
       case STK_EVENT_TYPE_CALL_DISCONNECTED:
         command.cause = command.event.error;
-      case STK_EVENT_TYPE_CALL_CONNECTED:  
+        
+      case STK_EVENT_TYPE_CALL_CONNECTED:
         command.deviceId = {
           sourceId: (command.event.isIssuedByRemote ?
                      STK_DEVICE_ID_NETWORK : STK_DEVICE_ID_ME),
@@ -2773,7 +2773,7 @@ let RIL = {
     if (DEBUG) {
       debug("Stk Envelope " + JSON.stringify(options));
     }
-    let token = Buf.newParcel(REQUEST_STK_SEND_ENVELOPE_COMMAND);
+    Buf.newParcel(REQUEST_STK_SEND_ENVELOPE_COMMAND);
 
     
     Buf.startCalOutgoingSize(function(size) {
@@ -2980,6 +2980,7 @@ let RIL = {
         break;
       case CARD_APPSTATE_UNKNOWN:
       case CARD_APPSTATE_DETECTED:
+        
       default:
         newCardState = GECKO_CARDSTATE_UNKNOWN;
     }
@@ -3016,7 +3017,7 @@ let RIL = {
 
 
   _processEnterAndChangeICCResponses: function _processEnterAndChangeICCResponses(length, options) {
-    options.success = options.rilRequestError == 0;
+    options.success = (options.rilRequestError === 0);
     if (!options.success) {
       options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
     }
@@ -3071,8 +3072,8 @@ let RIL = {
     
     
     for (let i = 0; i < NETWORK_INFO_MESSAGE_TYPES.length; i++) {
-      let type = NETWORK_INFO_MESSAGE_TYPES[i];
-      if (!(type in pending)) {
+      let msgType = NETWORK_INFO_MESSAGE_TYPES[i];
+      if (!(msgType in pending)) {
         if (DEBUG) debug("Still missing some more network info, not notifying main thread.");
         return;
       }
@@ -3163,19 +3164,22 @@ let RIL = {
     }
 
     if (this._isCdma) {
-      let baseStationId = RIL.parseInt(state[4]);
+      
+      
+
+      
       let baseStationLatitude = RIL.parseInt(state[5]);
       let baseStationLongitude = RIL.parseInt(state[6]);
       if (!baseStationLatitude && !baseStationLongitude) {
         baseStationLatitude = baseStationLongitude = null;
       }
-      let cssIndicator = RIL.parseInt(state[7]);
+      
       RIL.cdmaSubscription.systemId = RIL.parseInt(state[8]);
       RIL.cdmaSubscription.networkId = RIL.parseInt(state[9]);
-      let roamingIndicator = RIL.parseInt(state[10]);
-      let systemIsInPRL = RIL.parseInt(state[11]);
-      let defaultRoamingIndicator = RIL.parseInt(state[12]);
-      let reasonForDenial = RIL.parseInt(state[13]);
+      
+      
+      
+      
     }
 
     if (stateChanged) {
@@ -3334,7 +3338,7 @@ let RIL = {
 
     
     
-    this.muted = Object.getOwnPropertyNames(this.currentCalls).length == 0;
+    this.muted = (Object.getOwnPropertyNames(this.currentCalls).length === 0);
   },
 
   _handleChangedCallState: function _handleChangedCallState(changedCall) {
@@ -3502,17 +3506,17 @@ let RIL = {
     this.radioTech = radioTech;
 
     switch(radioTech) {
-    case NETWORK_CREG_TECH_GPRS:
-    case NETWORK_CREG_TECH_EDGE:
-    case NETWORK_CREG_TECH_UMTS:
-    case NETWORK_CREG_TECH_HSDPA:
-    case NETWORK_CREG_TECH_HSUPA:
-    case NETWORK_CREG_TECH_HSPA:
-    case NETWORK_CREG_TECH_LTE:
-    case NETWORK_CREG_TECH_HSPAP:
-    case NETWORK_CREG_TECH_GSM:
-      isCdma = false;
-    };
+      case NETWORK_CREG_TECH_GPRS:
+      case NETWORK_CREG_TECH_EDGE:
+      case NETWORK_CREG_TECH_UMTS:
+      case NETWORK_CREG_TECH_HSDPA:
+      case NETWORK_CREG_TECH_HSUPA:
+      case NETWORK_CREG_TECH_HSPA:
+      case NETWORK_CREG_TECH_LTE:
+      case NETWORK_CREG_TECH_HSPAP:
+      case NETWORK_CREG_TECH_GSM:
+        isCdma = false;
+    }
 
     if (DEBUG) {
       debug("Radio tech is set to: " + GECKO_RADIO_TECH[radioTech] +
@@ -3827,7 +3831,7 @@ let RIL = {
 
     delete this._pendingSentSmsMap[message.messageRef];
 
-    let deliveryStatus = ((status >>> 5) == 0x00)
+    let deliveryStatus = ((status >>> 5) === 0x00)
                        ? GECKO_SMS_DELIVERY_STATUS_SUCCESS
                        : GECKO_SMS_DELIVERY_STATUS_ERROR;
     this.sendDOMMessage({
@@ -3944,7 +3948,7 @@ let RIL = {
             this.sendSMS(options);
             break;
           }
-
+          
           
         default:
           this.sendDOMMessage({
@@ -4240,8 +4244,8 @@ let RIL = {
         throw "Invalid format";
       }
 
-      from = parseInt(result[1]);
-      to = (result[2] != null) ? parseInt(result[2]) + 1 : from + 1;
+      from = parseInt(result[1], 10);
+      to = (result[2]) ? parseInt(result[2], 10) + 1 : from + 1;
       if (!this._checkCellBroadcastMMISettable(from, to)) {
         throw "Invalid range";
       }
@@ -4757,7 +4761,7 @@ RIL[REQUEST_SEND_USSD] = function REQUEST_SEND_USSD(length, options) {
   if (DEBUG) {
     debug("REQUEST_SEND_USSD " + JSON.stringify(options));
   }
-  options.success = this._ussdSession = options.rilRequestError == 0;
+  options.success = (this._ussdSession = options.rilRequestError === 0);
   options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
   this.sendDOMMessage(options);
 };
@@ -4765,7 +4769,7 @@ RIL[REQUEST_CANCEL_USSD] = function REQUEST_CANCEL_USSD(length, options) {
   if (DEBUG) {
     debug("REQUEST_CANCEL_USSD" + JSON.stringify(options));
   }
-  options.success = options.rilRequestError == 0;
+  options.success = (options.rilRequestError === 0);
   this._ussdSession = !options.success;
   options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
   this.sendDOMMessage(options);
@@ -4774,7 +4778,7 @@ RIL[REQUEST_GET_CLIR] = null;
 RIL[REQUEST_SET_CLIR] = null;
 RIL[REQUEST_QUERY_CALL_FORWARD_STATUS] =
   function REQUEST_QUERY_CALL_FORWARD_STATUS(length, options) {
-    options.success = options.rilRequestError == 0;
+    options.success = (options.rilRequestError === 0);
     if (!options.success) {
       options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
       this.sendDOMMessage(options);
@@ -4808,7 +4812,7 @@ RIL[REQUEST_QUERY_CALL_FORWARD_STATUS] =
 };
 RIL[REQUEST_SET_CALL_FORWARD] =
   function REQUEST_SET_CALL_FORWARD(length, options) {
-    options.success = options.rilRequestError == 0;
+    options.success = (options.rilRequestError === 0);
     if (!options.success) {
       options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
     }
@@ -4816,7 +4820,7 @@ RIL[REQUEST_SET_CALL_FORWARD] =
 };
 RIL[REQUEST_QUERY_CALL_WAITING] =
   function REQUEST_QUERY_CALL_WAITING(length, options) {
-  options.success = options.rilRequestError == 0;
+  options.success = (options.rilRequestError === 0);
   if (!options.success) {
     options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
     this.sendDOMMessage(options);
@@ -4829,7 +4833,7 @@ RIL[REQUEST_QUERY_CALL_WAITING] =
 };
 
 RIL[REQUEST_SET_CALL_WAITING] = function REQUEST_SET_CALL_WAITING(length, options) {
-  options.success = options.rilRequestError == 0;
+  options.success = (options.rilRequestError === 0);
   if (!options.success) {
     options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
   }
@@ -4844,7 +4848,7 @@ RIL[REQUEST_GET_IMEI] = function REQUEST_GET_IMEI(length, options) {
   }
 
   options.rilMessageType = "sendMMI";
-  options.success = options.rilRequestError == 0;
+  options.success = (options.rilRequestError === 0);
   options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
   if ((!options.success || this.IMEI == null) && !options.errorMsg) {
     options.errorMsg = GECKO_ERROR_GENERIC_FAILURE;
@@ -4872,18 +4876,18 @@ RIL[REQUEST_DEACTIVATE_DATA_CALL] = function REQUEST_DEACTIVATE_DATA_CALL(length
   this.sendDOMMessage(datacall);
 };
 RIL[REQUEST_QUERY_FACILITY_LOCK] = function REQUEST_QUERY_FACILITY_LOCK(length, options) {
-  options.success = options.rilRequestError == 0;
+  options.success = (options.rilRequestError === 0);
   if (!options.success) {
     options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
   }
 
   if (length) {
-    options.enabled = Buf.readUint32List()[0] == 0 ? false : true;
+    options.enabled = Buf.readUint32List()[0] === 0 ? false : true;
   }
   this.sendDOMMessage(options);
 };
 RIL[REQUEST_SET_FACILITY_LOCK] = function REQUEST_SET_FACILITY_LOCK(length, options) {
-  options.success = options.rilRequestError == 0;
+  options.success = (options.rilRequestError === 0);
   if (!options.success) {
     options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
   }
@@ -5064,7 +5068,7 @@ RIL[REQUEST_DATA_CALL_LIST] = function REQUEST_DATA_CALL_LIST(length, options) {
   if (!RILQUIRKS_V5_LEGACY) {
     version = Buf.readUint32();
   }
-  let num = num = Buf.readUint32();
+  let num = Buf.readUint32();
   let datacalls = {};
   for (let i = 0; i < num; i++) {
     let datacall;
@@ -5197,12 +5201,12 @@ RIL[REQUEST_STK_SEND_ENVELOPE_WITH_STATUS] = function REQUEST_STK_SEND_ENVELOPE_
 
   let sw1 = Buf.readUint32();
   let sw2 = Buf.readUint32();
-  if ((sw1 == ICC_STATUS_SAT_BUSY) && (sw2 == 0x00)) {
+  if ((sw1 == ICC_STATUS_SAT_BUSY) && (sw2 === 0x00)) {
     this.acknowledgeGsmSms(false, PDU_FCS_USAT_BUSY);
     return;
   }
 
-  let success = ((sw1 == ICC_STATUS_NORMAL_ENDING) && (sw2 == 0x00))
+  let success = ((sw1 == ICC_STATUS_NORMAL_ENDING) && (sw2 === 0x00))
                 || (sw1 == ICC_STATUS_NORMAL_ENDING_WITH_EXTRA);
 
   let messageStringLength = Buf.readUint32(); 
@@ -5336,7 +5340,7 @@ RIL[UNSOLICITED_RESPONSE_NEW_SMS_STATUS_REPORT] = function UNSOLICITED_RESPONSE_
   this.acknowledgeGsmSms(result == PDU_FCS_OK, result);
 };
 RIL[UNSOLICITED_RESPONSE_NEW_SMS_ON_SIM] = function UNSOLICITED_RESPONSE_NEW_SMS_ON_SIM(length) {
-  let info = Buf.readUint32List();
+  
   
 };
 RIL[UNSOLICITED_ON_USSD] = function UNSOLICITED_ON_USSD() {
@@ -5845,7 +5849,7 @@ let GsmPDUHelper = {
       }
     }
 
-    if (dataBits != 0) {
+    if (dataBits !== 0) {
       this.writeHexOctet(data & 0xFF);
     }
   },
@@ -6055,7 +6059,7 @@ let GsmPDUHelper = {
               if (this.readHexOctet() & 0x80) {
                 gotUCS2 = 1;
                 break;
-              };
+              }
             }
             
             
@@ -6235,7 +6239,7 @@ let GsmPDUHelper = {
       }
     }
 
-    if (dataAvailable != 0) {
+    if (dataAvailable !== 0) {
       throw new Error("Illegal user data header found!");
     }
 
@@ -6615,6 +6619,7 @@ let GsmPDUHelper = {
         encoding = PDU_DCS_MSG_CODING_16BITS_ALPHABET;
         
         
+        
       case 0xC0: 
       case 0xD0: 
         
@@ -6947,10 +6952,11 @@ let GsmPDUHelper = {
             
             return [null, PDU_FCS_RESERVED];
           }
-          
 
           
           
+          
+
           
         default:
           RIL.writeSmsToSIM(message);
@@ -7530,9 +7536,9 @@ let GsmPDUHelper = {
       return null;
     }
 
-    let textEncoding = (codingInfo & 0x70) >> 4,
-        shouldIncludeCountryInitials = !!(codingInfo & 0x08),
-        spareBits = codingInfo & 0x07;
+    let textEncoding = (codingInfo & 0x70) >> 4;
+    let shouldIncludeCountryInitials = !!(codingInfo & 0x08);
+    let spareBits = codingInfo & 0x07;
     let resultString;
 
     switch (textEncoding) {
@@ -7814,7 +7820,7 @@ let CdmaPDUHelper = {
         result.address = [];
         break;
       }
-      result.address.push(addrDigit)
+      result.address.push(addrDigit);
     }
 
     
@@ -7964,7 +7970,6 @@ let CdmaPDUHelper = {
               if (msgDigit == -1) {
                 throw new Error("'" + msgDigitChar + "' is not in 7 bit alphabet "
                                 + langIndex + ":" + langShiftIndex + "!");
-                break;
               }
 
               if (msgDigit === PDU_NL_RESERVED_CONTROL) {
@@ -8221,14 +8226,14 @@ let CdmaPDUHelper = {
 
       switch (identifier) {
         case PDU_IEI_CONCATENATED_SHORT_MESSAGES_8BIT: {
-            let ref = BitBufferHelper.readBits(8),
-                max = BitBufferHelper.readBits(8),
-                seq = BitBufferHelper.readBits(8);
-            if (max && seq && (seq <= max)) {
-              header.segmentRef = ref;
-              header.segmentMaxSeq = max;
-              header.segmentSeq = seq;
-            }
+          let ref = BitBufferHelper.readBits(8),
+              max = BitBufferHelper.readBits(8),
+              seq = BitBufferHelper.readBits(8);
+          if (max && seq && (seq <= max)) {
+            header.segmentRef = ref;
+            header.segmentMaxSeq = max;
+            header.segmentSeq = seq;
+          }
           break;
         }
         case PDU_IEI_APPLICATION_PORT_ADDRESSING_SCHEME_8BIT: {
@@ -8311,16 +8316,13 @@ let CdmaPDUHelper = {
           mwi.active = mwi.msgCount > 0;
 
           if (DEBUG) debug("MWI in TP_UDH received: " + JSON.stringify(mwi));
-
           break;
         }
-        default: {
+        default:
           
           for (let i = 0; i < length; i++) {
             BitBufferHelper.readBits(8);
           }
-          break;
-        }
       }
     }
 
@@ -8391,6 +8393,7 @@ let CdmaPDUHelper = {
             result = this.decodeAddr(addrInfo);
             break;
         }
+        
       case PDU_CDMA_MSG_CODING_7BITS_ASCII:
       case PDU_CDMA_MSG_CODING_IA5:           
         while(msgBodySize > 0) {
@@ -8461,8 +8464,10 @@ let CdmaPDUHelper = {
       case PDU_CDMA_MSG_CODING_SHIFT_JIS:
         
         
+        
       case PDU_CDMA_MSG_CODING_KOREAN:
       case PDU_CDMA_MSG_CODING_GSM_DCS:
+        
       default:
         break;
     }
@@ -8735,7 +8740,7 @@ let StkCommandParamsFactory = {
       }
     }
 
-    if (menu.items.length == 0) {
+    if (menu.items.length === 0) {
       RIL.sendStkTerminalResponse({
         command: cmdDetails,
         resultCode: STK_RESULT_REQUIRED_VALUES_MISSING});
@@ -8965,7 +8970,7 @@ let StkCommandParamsFactory = {
     }
     browser.url = ctlv.value.url;
 
-    ctlv = StkProactiveCmdHelper.searchForTag(COMPREHENSIONTLV_TAG_ALPHA_ID, ctlvs)
+    ctlv = StkProactiveCmdHelper.searchForTag(COMPREHENSIONTLV_TAG_ALPHA_ID, ctlvs);
     if (ctlv) {
       browser.confirmMessage = ctlv.value.identifier;
     }
@@ -8996,7 +9001,7 @@ let StkCommandParamsFactory = {
     }
 
     
-    playTone.isVibrate = (cmdDetails.commandQualifier & 0x01) != 0x00;
+    playTone.isVibrate = (cmdDetails.commandQualifier & 0x01) !== 0x00;
 
     return playTone;
   },
@@ -9409,7 +9414,7 @@ let ComprehensionTlvHelper = {
     hlen++;
 
     
-    let tag, tagValue, cr;
+    let tag, cr;
     switch (temp) {
       
       case 0x0: 
@@ -9418,7 +9423,6 @@ let ComprehensionTlvHelper = {
         RIL.sendStkTerminalResponse({
           resultCode: STK_RESULT_CMD_DATA_NOT_UNDERSTOOD});
         throw new Error("Invalid octet when parsing Comprehension TLV :" + temp);
-        break;
       case 0x7f: 
         
         
@@ -9426,7 +9430,7 @@ let ComprehensionTlvHelper = {
         
         tag = (GsmPDUHelper.readHexOctet() << 8) | GsmPDUHelper.readHexOctet();
         hlen += 2;
-        cr = (tag & 0x8000) != 0;
+        cr = (tag & 0x8000) !== 0;
         tag &= ~0x8000;
         break;
       default: 
@@ -9434,7 +9438,7 @@ let ComprehensionTlvHelper = {
         
         
         
-        cr = (tag & 0x80) != 0;
+        cr = (tag & 0x80) !== 0;
         tag &= ~0x80;
     }
 
@@ -9718,7 +9722,6 @@ let BerTlvHelper = {
       RIL.sendStkTerminalResponse({
         resultCode: STK_RESULT_CMD_DATA_NOT_UNDERSTOOD});
       throw new Error("BerTlvHelper value length too long!!");
-      return;
     }
 
     let ctlvs = ComprehensionTlvHelper.decodeChunks(length);
@@ -9773,7 +9776,7 @@ let ICCFileHelper = {
       case ICC_EF_PNN:
         return EF_PATH_MF_SIM + EF_PATH_DF_GSM;
       default:
-        return null
+        return null;
     }
   },
 
@@ -10434,7 +10437,7 @@ let ICCRecordHelper = {
       }
       Buf.readStringDelimiter(strLen);
 
-      if (pbrTlvs.length == 0) {
+      if (pbrTlvs.length === 0) {
         let error = onerror || debug;
         error("Cannot access Phonebook.");
         return;
@@ -10642,7 +10645,6 @@ let ICCRecordHelper = {
   readANR: function readANR(fileId, fileType, recordNumber, onsuccess, onerror) {
     function callback(options) {
       let strLen = Buf.readUint32();
-      let octetLen = strLen / 2;
       let number = null;
       this._anrRecordSize = options.recordSize;
 
@@ -11180,9 +11182,9 @@ let ICCUtilsHelper = {
         
         
         
-        if ((opl.lacTacStart == 0x0 && opl.lacTacEnd == 0xFFFE) ||
+        if ((opl.lacTacStart === 0x0 && opl.lacTacEnd == 0xFFFE) ||
             (opl.lacTacStart <= lac && opl.lacTacEnd >= lac)) {
-          if (opl.pnnRecordId == 0) {
+          if (opl.pnnRecordId === 0) {
             
             
             
@@ -11232,14 +11234,14 @@ let ICCUtilsHelper = {
 
       
       
-      if (displayCondition == 0x0) {
+      if (displayCondition === 0x0) {
         iccInfo.isDisplaySpnRequired = false;
       } else {
         
         
         if (!cdmaHome ||
             !cdmaHome.systemId ||
-            cdmaHome.systemId.length == 0 ||
+            cdmaHome.systemId.length === 0 ||
             cdmaHome.systemId.length != cdmaHome.networkId.length ||
             !sid || !nid) {
           
@@ -11253,7 +11255,7 @@ let ICCUtilsHelper = {
           for (let i = 0; i < cdmaHome.systemId.length; i++) {
             let homeSid = cdmaHome.systemId[i],
                 homeNid = cdmaHome.networkId[i];
-            if (homeSid == 0 || homeNid == 0 
+            if (homeSid === 0 || homeNid === 0 
                || homeSid != sid) {
               continue;
             }
@@ -11304,7 +11306,7 @@ let ICCUtilsHelper = {
         
         
         iccInfo.isDisplaySpnRequired = true;
-        iccInfo.isDisplayNetworkNameRequired = (displayCondition & 0x01) != 0;
+        iccInfo.isDisplayNetworkNameRequired = (displayCondition & 0x01) !== 0;
       } else {
         
         
@@ -11314,7 +11316,7 @@ let ICCUtilsHelper = {
         
         
         iccInfo.isDisplayNetworkNameRequired = false;
-        iccInfo.isDisplaySpnRequired = (displayCondition & 0x02) == 0;
+        iccInfo.isDisplaySpnRequired = (displayCondition & 0x02) === 0;
       }
     }
 
@@ -11335,7 +11337,7 @@ let ICCUtilsHelper = {
         tag : GsmPDUHelper.readHexOctet(),
         length : GsmPDUHelper.readHexOctet(),
       };
-      simTlv.value = GsmPDUHelper.readHexOctetArray(simTlv.length)
+      simTlv.value = GsmPDUHelper.readHexOctetArray(simTlv.length);
       tlvs.push(simTlv);
       index += simTlv.length + 2; 
     }
@@ -11447,7 +11449,7 @@ let ICCUtilsHelper = {
 
     return (serviceTable &&
            (index < serviceTable.length) &&
-           (serviceTable[index] & bitmask)) != 0;
+           (serviceTable[index] & bitmask)) !== 0;
   },
 
   
@@ -11720,7 +11722,7 @@ let ICCContactHelper = {
   readPhonebookField: function readPhonebookField(pbr, contacts, field, onsuccess, onerror) {
     if (!pbr[field]) {
       if (onsuccess) {
-        onsuccess(contacts)
+        onsuccess(contacts);
       }
       return;
     }
@@ -12151,20 +12153,13 @@ let RuimRecordHelper = {
 
 
 
-if (!this.debug) {
-  
-  this.debug = function debug(message) {
-    dump("RIL Worker[" + CLIENT_ID + "]: " + message + "\n");
-  };
-}
-
 
 
 Buf.init();
 
 function onRILMessage(data) {
   Buf.processIncoming(data);
-};
+}
 
 onmessage = function onmessage(event) {
   RIL.handleDOMMessage(event.data);
