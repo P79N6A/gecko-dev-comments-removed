@@ -1207,20 +1207,18 @@ Interpret(JSContext *cx, RunState &state)
 # define INTERPRETER_LOOP()
 # define CASE(OP)                 label_##OP:
 # define DEFAULT()                label_default:
-# define DISPATCH_TO(OP)          goto *(LABEL(JSOP_NOP) + offsets[(OP)])
+# define DISPATCH_TO(OP)          goto *addresses[(OP)]
 
-# define LABEL(X)                 ((const char *)&&label_##X)
-# define LABEL_OFFSET(X)          (int32_t((X) - LABEL(JSOP_NOP)))
+# define LABEL(X)                 (&&label_##X)
 
     
     
-    
-    static const int32_t offsets[EnableInterruptsPseudoOpcode + 1] = {
-# define OPDEF(op,v,n,t,l,u,d,f)  LABEL_OFFSET(LABEL(op)),
+    static const void *const addresses[EnableInterruptsPseudoOpcode + 1] = {
+# define OPDEF(op,v,n,t,l,u,d,f)  LABEL(op),
 # define OPPAD(v)                                                             \
-    LABEL_OFFSET((v) == EnableInterruptsPseudoOpcode ?                        \
-                 LABEL(EnableInterruptsPseudoOpcode) :                        \
-                 LABEL(default)),
+    ((v) == EnableInterruptsPseudoOpcode                                      \
+     ? LABEL(EnableInterruptsPseudoOpcode)                                    \
+     : LABEL(default)),
 # include "jsopcode.tbl"
 # undef OPDEF
 # undef OPPAD
