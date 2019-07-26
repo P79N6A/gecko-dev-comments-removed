@@ -5981,31 +5981,30 @@ JSObject::splicePrototype(JSContext *cx, Class *clasp, Handle<TaggedProto> proto
     return true;
 }
 
-TypeObject *
-JSObject::makeLazyType(JSContext *cx)
+ TypeObject *
+JSObject::makeLazyType(JSContext *cx, HandleObject obj)
 {
-    JS_ASSERT(hasLazyType());
-    JS_ASSERT(cx->compartment == compartment());
+    JS_ASSERT(obj->hasLazyType());
+    JS_ASSERT(cx->compartment == obj->compartment());
 
-    RootedObject self(cx, this);
     
-    if (self->isFunction() && self->toFunction()->isInterpretedLazy()) {
-        RootedFunction fun(cx, self->toFunction());
+    if (obj->isFunction() && obj->toFunction()->isInterpretedLazy()) {
+        RootedFunction fun(cx, obj->toFunction());
         if (!fun->getOrCreateScript(cx))
             return NULL;
     }
-    Rooted<TaggedProto> proto(cx, getTaggedProto());
-    TypeObject *type = cx->compartment->types.newTypeObject(cx, getClass(), proto);
+    Rooted<TaggedProto> proto(cx, obj->getTaggedProto());
+    TypeObject *type = cx->compartment->types.newTypeObject(cx, obj->getClass(), proto);
     AutoAssertNoGC nogc;
     if (!type) {
         if (cx->typeInferenceEnabled())
             cx->compartment->types.setPendingNukeTypes(cx);
-        return self->type_;
+        return obj->type_;
     }
 
     if (!cx->typeInferenceEnabled()) {
         
-        self->type_ = type;
+        obj->type_ = type;
         return type;
     }
 
@@ -6013,18 +6012,18 @@ JSObject::makeLazyType(JSContext *cx)
 
     
 
-    type->singleton = self;
+    type->singleton = obj;
 
-    if (self->isFunction() && self->toFunction()->isInterpreted()) {
-        type->interpretedFunction = self->toFunction();
+    if (obj->isFunction() && obj->toFunction()->isInterpreted()) {
+        type->interpretedFunction = obj->toFunction();
         if (type->interpretedFunction->nonLazyScript()->uninlineable)
             type->flags |= OBJECT_FLAG_UNINLINEABLE;
     }
 
-    if (self->lastProperty()->hasObjectFlag(BaseShape::ITERATED_SINGLETON))
+    if (obj->lastProperty()->hasObjectFlag(BaseShape::ITERATED_SINGLETON))
         type->flags |= OBJECT_FLAG_ITERATED;
 
-    if (self->getClass()->emulatesUndefined())
+    if (obj->getClass()->emulatesUndefined())
         type->flags |= OBJECT_FLAG_EMULATES_UNDEFINED;
 
     
@@ -6035,13 +6034,13 @@ JSObject::makeLazyType(JSContext *cx)
     
     type->flags |= OBJECT_FLAG_NON_PACKED;
 
-    if (self->isIndexed())
+    if (obj->isIndexed())
         type->flags |= OBJECT_FLAG_SPARSE_INDEXES;
 
-    if (self->isArray() && self->getArrayLength() > INT32_MAX)
+    if (obj->isArray() && obj->getArrayLength() > INT32_MAX)
         type->flags |= OBJECT_FLAG_LENGTH_OVERFLOW;
 
-    self->type_ = type;
+    obj->type_ = type;
 
     return type;
 }

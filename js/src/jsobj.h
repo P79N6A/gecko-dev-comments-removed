@@ -284,7 +284,7 @@ class JSObject : public js::ObjectImpl
     friend class  js::NewObjectCache;
 
     
-    js::types::TypeObject *makeLazyType(JSContext *cx);
+    static js::types::TypeObject *makeLazyType(JSContext *cx, js::HandleObject obj);
 
   public:
     
