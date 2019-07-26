@@ -13,7 +13,7 @@ namespace mozilla {
 
 
 
-class MOZ_STACK_CLASS SVGImageContext
+class SVGImageContext
 {
 public:
   SVGImageContext(SVGPreserveAspectRatio aPreserveAspectRatio)
@@ -22,6 +22,14 @@ public:
 
   const SVGPreserveAspectRatio& GetPreserveAspectRatio() const {
     return mPreserveAspectRatio;
+  }
+
+  bool operator==(const SVGImageContext& aOther) const {
+    return mPreserveAspectRatio == aOther.mPreserveAspectRatio;
+  }
+
+  bool operator!=(const SVGImageContext& aOther) const {
+    return !(*this == aOther);
   }
 
 private:
