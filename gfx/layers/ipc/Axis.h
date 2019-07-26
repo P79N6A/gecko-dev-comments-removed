@@ -143,7 +143,7 @@ public:
 
 
 
-  Overscroll ScaleWillOverscroll(float aScale, int32_t aFocus);
+  Overscroll ScaleWillOverscroll(float aScale, float aFocus);
 
   
 
@@ -153,7 +153,7 @@ public:
 
 
 
-  float ScaleWillOverscrollAmount(float aScale, int32_t aFocus);
+  float ScaleWillOverscrollAmount(float aScale, float aFocus);
 
   
 

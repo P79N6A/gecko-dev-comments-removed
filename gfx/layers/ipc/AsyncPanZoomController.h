@@ -342,7 +342,7 @@ protected:
 
 
 
-  void ScaleWithFocus(float aScale, const nsIntPoint& aFocus);
+  void ScaleWithFocus(float aScale, const gfx::Point& aFocus);
 
   
 
@@ -546,7 +546,7 @@ private:
 
   
   
-  nsIntPoint mLastZoomFocus;
+  gfx::Point mLastZoomFocus;
 
   
   
