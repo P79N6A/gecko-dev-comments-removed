@@ -24,6 +24,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "UpdateChannel",
                                   "resource://gre/modules/UpdateChannel.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "AddonManager",
                                   "resource://gre/modules/AddonManager.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "AddonManagerPrivate",
+                                  "resource://gre/modules/AddonManager.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "TelemetryPing",
                                   "resource://gre/modules/TelemetryPing.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "TelemetryLog",
@@ -70,6 +72,9 @@ const PREF_HEALTHREPORT_ENABLED = "datareporting.healthreport.service.enabled";
 const PREF_BRANCH_TELEMETRY     = "toolkit.telemetry.";
 const PREF_TELEMETRY_ENABLED    = "enabled";
 
+const URI_EXTENSION_STRINGS     = "chrome://mozapps/locale/extensions/extensions.properties";
+const STRING_TYPE_NAME          = "type.%ID%.name";
+
 const TELEMETRY_LOG = {
   
   ACTIVATION_KEY: "EXPERIMENT_ACTIVATION",
@@ -103,6 +108,7 @@ const TELEMETRY_LOG = {
 const gPrefs = new Preferences(PREF_BRANCH);
 const gPrefsTelemetry = new Preferences(PREF_BRANCH_TELEMETRY);
 let gExperimentsEnabled = false;
+let gAddonProvider = null;
 let gExperiments = null;
 let gLogAppenderDump = null;
 let gPolicyCounter = 0;
@@ -200,8 +206,9 @@ function addonInstallForURL(url, hash) {
 
 function installedExperimentAddons() {
   let deferred = Promise.defer();
-  AddonManager.getAddonsByTypes(["experiment"],
-                                addons => deferred.resolve(addons));
+  AddonManager.getAddonsByTypes(["experiment"], (addons) => {
+    deferred.resolve([a for (a of addons) if (!a.appDisabled)]);
+  });
   return deferred.promise;
 }
 
@@ -462,9 +469,33 @@ Experiments.Experiments.prototype = {
 
     AddonManager.addAddonListener(this);
     AddonManager.addInstallListener(this);
+
+    if (!gAddonProvider) {
+      
+      
+      this._log.trace("Registering previous experiment add-on provider.");
+      gAddonProvider = new Experiments.PreviousExperimentProvider(this, [
+          new AddonManagerPrivate.AddonType("experiment",
+                                            URI_EXTENSION_STRINGS,
+                                            STRING_TYPE_NAME,
+                                            AddonManager.VIEW_TYPE_LIST,
+                                            11000,
+                                            AddonManager.TYPE_UI_HIDE_EMPTY),
+        ]);
+      AddonManagerPrivate.registerProvider(gAddonProvider);
+    }
+
   },
 
   _unregisterWithAddonManager: function () {
+    this._log.trace("Unregistering instance with Addon Manager.");
+
+    if (gAddonProvider) {
+      this._log.trace("Unregistering previous experiment add-on provider.");
+      AddonManagerPrivate.unregisterProvider(gAddonProvider);
+      gAddonProvider = null;
+    }
+
     AddonManager.removeInstallListener(this);
     AddonManager.removeAddonListener(this);
   },
@@ -708,6 +739,11 @@ Experiments.Experiments.prototype = {
 
   onInstallStarted: function (install) {
     if (install.addon.type != "experiment") {
+      return;
+    }
+
+    if (install.addon.appDisabled) {
+      
       return;
     }
 
@@ -1754,7 +1790,14 @@ Experiments.ExperimentEntry.prototype = {
 
     let deferred = Promise.defer();
 
-    AddonManager.getAddonByID(this._addonId, deferred.resolve);
+    AddonManager.getAddonByID(this._addonId, (addon) => {
+      if (addon && addon.appDisabled) {
+        
+        addon = null;
+      }
+
+      deferred.resolve(addon);
+    });
 
     return deferred.promise;
   },
@@ -1956,4 +1999,160 @@ ExperimentsProvider.prototype = Object.freeze({
       }.bind(this));
     });
   },
+});
+
+
+
+
+
+
+
+
+
+this.Experiments.PreviousExperimentProvider = function (experiments) {
+  this._experiments = experiments;
+}
+
+this.Experiments.PreviousExperimentProvider.prototype = Object.freeze({
+  startup: function () {},
+  shutdown: function () {},
+
+  getAddonByID: function (id, cb) {
+    this._getPreviousExperiments().then((experiments) => {
+      for (let experiment of experiments) {
+        if (experiment.id == id) {
+          cb(new PreviousExperimentAddon(experiment));
+          return;
+        }
+      }
+
+      cb(null);
+    },
+    (error) => {
+      cb(null);
+    });
+  },
+
+  getAddonsByTypes: function (types, cb) {
+    if (types && types.length > 0 && types.indexOf("experiment") == -1) {
+      cb([]);
+      return;
+    }
+
+    this._getPreviousExperiments().then((experiments) => {
+      cb([new PreviousExperimentAddon(e) for (e of experiments)]);
+    },
+    (error) => {
+      cb([]);
+    });
+  },
+
+  _getPreviousExperiments: function () {
+    return this._experiments.getExperiments().then((experiments) => {
+      return Promise.resolve([e for (e of experiments) if (!e.active)]);
+    });
+  },
+});
+
+
+
+
+function PreviousExperimentAddon(experiment) {
+  this._id = experiment.id;
+  this._name = experiment.name;
+  this._endDate = experiment.endDate;
+}
+
+PreviousExperimentAddon.prototype = Object.freeze({
+  
+
+  get appDisabled() {
+    return true;
+  },
+
+  get blocklistState() {
+    Ci.nsIBlocklistService.STATE_NOT_BLOCKED
+  },
+
+  get creator() {
+    return new AddonManagerPrivate.AddonAuthor("");
+  },
+
+  get foreignInstall() {
+    return false;
+  },
+
+  get id() {
+    return this._id;
+  },
+
+  get isActive() {
+    return false;
+  },
+
+  get isCompatible() {
+    return true;
+  },
+
+  get isPlatformCompatible() {
+    return true;
+  },
+
+  get name() {
+    return this._name;
+  },
+
+  get pendingOperations() {
+    return AddonManager.PENDING_NONE;
+  },
+
+  get permissions() {
+    return 0;
+  },
+
+  get providesUpdatesSecurely() {
+    return true;
+  },
+
+  get scope() {
+    return AddonManager.SCOPE_PROFILE;
+  },
+
+  get type() {
+    return "experiment";
+  },
+
+  get userDisabled() {
+    return true;
+  },
+
+  get version() {
+    return null;
+  },
+
+  
+
+  
+
+  
+
+  get updateDate() {
+    return new Date(this._endDate);
+  },
+
+  
+
+  
+
+  isCompatibleWith: function (appVersion, platformVersion) {
+    return true;
+  },
+
+  findUpdates: function (listener, reason, appVersion, platformVersion) {
+    AddonManagerPrivate.callNoUpdateListeners(this, listener, reason,
+                                              appVersion, platformVersion);
+  },
+
+  
+
 });
