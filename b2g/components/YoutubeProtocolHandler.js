@@ -76,12 +76,18 @@ YoutubeProtocolHandler.prototype = {
       let mimeType;
 
       
-      let recognizedTypes = ["video/webm"];
+      
+      
+      let recognizedItags = [
+        "17", 
+        "36", 
+        "43", 
 #ifdef MOZ_WIDGET_GONK
-      recognizedTypes.push("video/mp4");
+        "18", 
 #endif
+      ];
 
-      let bestType = -1;
+      let bestItag = -1;
 
       let extras = { }
 
@@ -89,13 +95,14 @@ YoutubeProtocolHandler.prototype = {
         let params = extractParameters(aStream);
         let url = params["url"];
         let type = params["type"] ? params["type"].split(";")[0] : null;
+        let itag = params["itag"];
 
         let index;
-        if (url && type && ((index = recognizedTypes.indexOf(type)) != -1) &&
-            index > bestType) {
+        if (url && type && ((index = recognizedItags.indexOf(itag)) != -1) &&
+            index > bestItag) {
           uri = url + '&signature=' + (params["sig"] ? params['sig'] : '');
           mimeType = type;
-          bestType = index;
+          bestItag = index;
         }
         for (let param in params) {
           if (["thumbnail_url", "length_seconds", "title"].indexOf(param) != -1) {
