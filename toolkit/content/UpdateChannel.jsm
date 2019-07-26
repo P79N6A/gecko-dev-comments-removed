@@ -1,3 +1,5 @@
+#filter substitution
+
 
 
 
@@ -15,7 +17,7 @@ this.UpdateChannel = {
 
 
   get: function UpdateChannel_get() {
-    let channel = "default";
+    let channel = "@MOZ_UPDATE_CHANNEL@";
     let defaults = Services.prefs.getDefaultBranch(null);
     try {
       channel = defaults.getCharPref("app.update.channel");
