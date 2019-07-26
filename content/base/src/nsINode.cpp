@@ -2303,26 +2303,25 @@ nsINode::Length() const
 
 
 
-
-static nsresult
+static nsCSSSelectorList*
 ParseSelectorList(nsINode* aNode,
                   const nsAString& aSelectorString,
-                  nsCSSSelectorList** aSelectorList)
+                  ErrorResult& aRv)
 {
   MOZ_ASSERT(aNode);
   nsIDocument* doc = aNode->OwnerDoc();
   nsCSSParser parser(doc->CSSLoader());
 
   nsCSSSelectorList* selectorList;
-  nsresult rv = parser.ParseSelectorString(aSelectorString,
-                                           doc->GetDocumentURI(),
-                                           0, 
-                                           &selectorList);
-  if (NS_FAILED(rv)) {
+  aRv = parser.ParseSelectorString(aSelectorString,
+                                   doc->GetDocumentURI(),
+                                   0, 
+                                   &selectorList);
+  if (aRv.Failed()) {
     
     
     
-    return rv;
+    return nullptr;
   }
 
   
@@ -2337,9 +2336,8 @@ ParseSelectorList(nsINode* aNode,
       slot = &cur->mNext;
     }
   } while (*slot);
-  *aSelectorList = selectorList;
 
-  return NS_OK;
+  return selectorList;
 }
 
 static void
@@ -2409,8 +2407,9 @@ FindMatchingElementsWithId(const nsAString& aId, nsINode* aRoot,
 
 
 template<bool onlyFirstMatch, class Collector, class T>
-MOZ_ALWAYS_INLINE static nsresult
-FindMatchingElements(nsINode* aRoot, const nsAString& aSelector, T &aList)
+MOZ_ALWAYS_INLINE static void
+FindMatchingElements(nsINode* aRoot, const nsAString& aSelector, T &aList,
+                     ErrorResult& aRv)
 {
   nsIDocument* doc = aRoot->OwnerDoc();
   nsIDocument::SelectorCache& cache = doc->GetSelectorCache();
@@ -2418,10 +2417,10 @@ FindMatchingElements(nsINode* aRoot, const nsAString& aSelector, T &aList)
   bool haveCachedList = cache.GetList(aSelector, &selectorList);
 
   if (!haveCachedList) {
-    nsresult rv = ParseSelectorList(aRoot, aSelector, &selectorList);
-    if (NS_FAILED(rv)) {
+    selectorList = ParseSelectorList(aRoot, aSelector, aRv);
+    if (aRv.Failed()) {
       MOZ_ASSERT(!selectorList);
-      MOZ_ASSERT(rv == NS_ERROR_DOM_SYNTAX_ERR,
+      MOZ_ASSERT(aRv.ErrorCode() == NS_ERROR_DOM_SYNTAX_ERR,
                  "Unexpected error, so cached version won't return it");
       
       
@@ -2431,7 +2430,7 @@ FindMatchingElements(nsINode* aRoot, const nsAString& aSelector, T &aList)
       
       
       
-      return NS_OK;
+      return;
     }
 
     cache.CacheList(aSelector, selectorList);
@@ -2439,7 +2438,8 @@ FindMatchingElements(nsINode* aRoot, const nsAString& aSelector, T &aList)
 
   if (!selectorList) {
     
-    return NS_ERROR_DOM_SYNTAX_ERR;
+    aRv.Throw(NS_ERROR_DOM_SYNTAX_ERR);
+    return;
   }
 
   NS_ASSERTION(selectorList->mSelectors,
@@ -2468,7 +2468,7 @@ FindMatchingElements(nsINode* aRoot, const nsAString& aSelector, T &aList)
     SelectorMatchInfo info = { selectorList, matchingContext };
     FindMatchingElementsWithId<onlyFirstMatch, T>(nsDependentAtomString(id),
                                                   aRoot, &info, aList);
-    return NS_OK;
+    return;
   }
 
   Collector results;
@@ -2481,7 +2481,7 @@ FindMatchingElements(nsINode* aRoot, const nsAString& aSelector, T &aList)
                                                 selectorList)) {
       if (onlyFirstMatch) {
         aList.AppendElement(cur->AsElement());
-        return NS_OK;
+        return;
       }
       results.AppendElement(cur->AsElement());
     }
@@ -2494,8 +2494,6 @@ FindMatchingElements(nsINode* aRoot, const nsAString& aSelector, T &aList)
       aList.AppendElement(results.ElementAt(i));
     }
   }
-
-  return NS_OK;
 }
 
 struct ElementHolder {
@@ -2515,8 +2513,7 @@ Element*
 nsINode::QuerySelector(const nsAString& aSelector, ErrorResult& aResult)
 {
   ElementHolder holder;
-  aResult = FindMatchingElements<true, ElementHolder>(this, aSelector, holder);
-
+  FindMatchingElements<true, ElementHolder>(this, aSelector, holder, aResult);
   return holder.mElement;
 }
 
@@ -2525,10 +2522,10 @@ nsINode::QuerySelectorAll(const nsAString& aSelector, ErrorResult& aResult)
 {
   nsRefPtr<nsSimpleContentList> contentList = new nsSimpleContentList(this);
 
-  aResult =
-    FindMatchingElements<false, nsAutoTArray<Element*, 128>>(this,
-                                                             aSelector,
-                                                             *contentList);
+  FindMatchingElements<false, nsAutoTArray<Element*, 128>>(this,
+                                                           aSelector,
+                                                           *contentList,
+                                                           aResult);
 
   return contentList.forget();
 }
