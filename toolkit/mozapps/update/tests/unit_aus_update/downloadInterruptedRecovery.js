@@ -33,7 +33,7 @@ function run_test() {
 
 
 function finish_test() {
-  stop_httpserver(do_test_finished);
+  stop_httpserver(doTestFinish);
 }
 
 function end_test() {

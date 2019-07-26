@@ -164,6 +164,6 @@ function run_test_pt16() {
 
 
 function run_test_pt17() {
-  run_test_helper(do_test_finished, AUS_Cr.NS_ERROR_CONNECTION_REFUSED,
+  run_test_helper(doTestFinish, AUS_Cr.NS_ERROR_CONNECTION_REFUSED,
                   "testing connection refused");
 }

@@ -238,13 +238,10 @@ function run_test() {
   }
 
   
-  runUpdate((USE_EXECV ? 0 : 1));
+  runUpdate((USE_EXECV ? 0 : 1), STATE_FAILED_UNEXPECTED_FILE_OPERATION_ERROR);
 }
 
 function checkUpdateApplied() {
-  logTestInfo("testing update.status should be " + STATE_FAILED);
-  do_check_eq(readStatusState(), STATE_FAILED);
-
   if (IS_MACOSX) {
     logTestInfo("testing last modified time on the apply to directory has " +
                 "changed after a successful update (bug 600098)");

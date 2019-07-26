@@ -120,7 +120,7 @@ const TEST_HELPER_TIMEOUT = 100;
 const TEST_CHECK_TIMEOUT = 100;
 
 
-const MAX_TIMEOUT_RUNS = 1000;
+const MAX_TIMEOUT_RUNS = 2000;
 
 
 
@@ -138,6 +138,8 @@ var gURLData = URL_HOST + "/";
 var gTestID;
 
 var gTestserver;
+
+var gRegisteredServiceCleanup;
 
 var gXHR;
 var gXHRCallback;
@@ -347,6 +349,16 @@ var ADDITIONAL_TEST_DIRS = [];
 
 var DEBUG_AUS_TEST = true;
 
+
+
+
+var DEBUG_TEST_LOG = false;
+
+var gDeleteLogFile = true;
+var gRealDump;
+var gTestLogText = "";
+var gPassed;
+
 #include ../shared.js
 
 #ifdef MOZ_MAINTENANCE_SERVICE
@@ -374,11 +386,30 @@ function setupTestCommon() {
   do_test_pending();
 
   if (gTestID) {
-    do_throw("should only be called once!");
+    do_throw("setupTestCommon should only be called once!");
   }
 
   let caller = Components.stack.caller;
   gTestID = caller.filename.toString().split("/").pop().split(".")[0];
+
+  if (DEBUG_TEST_LOG) {
+    let logFile = do_get_file(gTestID + ".log", true);
+    if (logFile.exists()) {
+      gPassed = false;
+      logTestInfo("start - dumping previous test run log");
+      logTestInfo("\n" + readFile(logFile) + "\n");
+      logTestInfo("finish - dumping previous test run log");
+      if (gDeleteLogFile) {
+        logFile.remove(false);
+      }
+      do_throw("The parallel run of this test failed. Failing non-parallel " +
+               "test so the log from the parallel run can be displayed in " +
+               "non-parallel log.")
+    } else {
+      gRealDump = dump;
+      dump = dumpOverride;
+    }
+  }
 
   
   Services.prefs.setBoolPref(PREF_APP_UPDATE_SILENT, true);
@@ -532,6 +563,54 @@ function cleanupTestCommon() {
   resetEnvironment();
 
   logTestInfo("finish - general test cleanup");
+
+  if (gRealDump) {
+    dump = gRealDump;
+    gRealDump = null;
+  }
+
+  if (DEBUG_TEST_LOG && !gPassed) {
+    let fos = AUS_Cc["@mozilla.org/network/file-output-stream;1"].
+              createInstance(AUS_Ci.nsIFileOutputStream);
+    let logFile = do_get_file(gTestID + ".log", true);
+    if (!logFile.exists()) {
+      logFile.create(AUS_Ci.nsILocalFile.NORMAL_FILE_TYPE, PERMS_FILE);
+    }
+    fos.init(logFile, MODE_WRONLY | MODE_CREATE | MODE_APPEND, PERMS_FILE, 0);
+    fos.write(gTestLogText, gTestLogText.length);
+    fos.close();
+  }
+
+  if (DEBUG_TEST_LOG) {
+    gTestLogText = null;
+  } else {
+    let logFile = do_get_file(gTestID + ".log", true);
+    if (logFile.exists()) {
+      logFile.remove(false);
+    }
+  }
+}
+
+
+
+
+
+
+function dumpOverride(aText) {
+  gTestLogText += aText;
+  gRealDump(aText);
+}
+
+
+
+
+
+
+function doTestFinish() {
+  if (gPassed === undefined) {
+    gPassed = true;
+  }
+  do_test_finished();
 }
 
 
@@ -928,7 +1007,9 @@ if (IS_WIN) {
 
 
 
-function runUpdate(aExpectedExitValue, aCallback) {
+
+
+function runUpdate(aExpectedExitValue, aExpectedStatus, aCallback) {
   
   let binDir = gGREDirOrig.clone();
   let updater = binDir.clone();
@@ -967,12 +1048,6 @@ function runUpdate(aExpectedExitValue, aCallback) {
   let callbackApp = getApplyDirFile("a/b/" + gCallbackBinFile);
   callbackApp.permissions = PERMS_DIRECTORY;
 
-  
-  let updateSettingsIni = getApplyDirFile(null, true);
-  updateSettingsIni.append(FILE_UPDATE_SETTINGS_INI);
-  if (updateSettingsIni.exists()) {
-    updateSettingsIni.moveTo(updateSettingsIni.parent, FILE_UPDATE_SETTINGS_INI_BAK);
-  }
   updateSettingsIni = getApplyDirFile(null, true);
   updateSettingsIni.append(FILE_UPDATE_SETTINGS_INI);
   writeFile(updateSettingsIni, UPDATE_SETTINGS_CONTENTS);
@@ -1004,16 +1079,26 @@ function runUpdate(aExpectedExitValue, aCallback) {
     env.set("MOZ_NO_REPLACE_FALLBACK", "");
   }
 
-  
-  let updateSettingsIni = getApplyDirFile(null, true);
-  updateSettingsIni.append(FILE_UPDATE_SETTINGS_INI_BAK);
-  if (updateSettingsIni.exists()) {
-    updateSettingsIni.moveTo(updateSettingsIni.parent, FILE_UPDATE_SETTINGS_INI);
+  let status = readStatusFile();
+  if (process.exitValue != aExpectedExitValue || status != aExpectedStatus) {
+    if (process.exitValue != aExpectedExitValue) {
+      logTestInfo("updater exited with unexpected value! Got: " +
+                  process.exitValue + ", Expected: " +  aExpectedExitValue);
+    }
+    if (status != aExpectedStatus) {
+      logTestInfo("update status is not the expected status! Got: " + status +
+                  ", Expected: " +  aExpectedStatus);
+    }
+    let updateLog = getUpdatesPatchDir();
+    updateLog.append(FILE_UPDATE_LOG);
+    logTestInfo("contents of " + updateLog.path + ":\n" +
+                readFileBytes(updateLog).replace(/\r\n/g, "\n"));
   }
-
   logTestInfo("testing updater binary process exitValue against expected " +
               "exit value");
   do_check_eq(process.exitValue, aExpectedExitValue);
+  logTestInfo("testing update status against expected status");
+  do_check_eq(status, aExpectedStatus);
 
   if (aCallback !== null) {
     if (typeof(aCallback) == typeof(Function)) {
@@ -1338,6 +1423,8 @@ function attemptServiceInstall() {
 
 
 
+
+
 function runUpdateUsingService(aInitialStatus, aExpectedStatus, aCheckSvcLog) {
   
   function checkServiceLogs(aOriginalContents) {
@@ -1416,7 +1503,7 @@ function runUpdateUsingService(aInitialStatus, aExpectedStatus, aCheckSvcLog) {
   waitForServiceStop(true);
 
   
-  if (typeof(gRegisteredServiceCleanup) === "undefined") {
+  if (gRegisteredServiceCleanup === undefined) {
     gRegisteredServiceCleanup = true;
 
     do_register_cleanup(function RUUS_cleanup() {
@@ -1512,17 +1599,20 @@ function runUpdateUsingService(aInitialStatus, aExpectedStatus, aCheckSvcLog) {
     
     waitForServiceStop(false);
 
-    
-    let updateSettingsIni = getApplyDirFile(null, true);
-    updateSettingsIni.append(FILE_UPDATE_SETTINGS_INI_BAK);
-    if (updateSettingsIni.exists()) {
-      updateSettingsIni.moveTo(updateSettingsIni.parent, FILE_UPDATE_SETTINGS_INI);
-    }
-
-    do_check_eq(status, aExpectedStatus);
-
     aTimer.cancel();
     aTimer = null;
+
+    if (status != aExpectedStatus) {
+      logTestInfo("update status is not the expected status! Got: " + status +
+                  ", Expected: " +  aExpectedStatus);
+      logTestInfo("update.status contents: " + readStatusFile());
+      let updateLog = getUpdatesPatchDir();
+      updateLog.append(FILE_UPDATE_LOG);
+      logTestInfo("contents of " + updateLog.path + ":\n" +
+                  readFileBytes(updateLog).replace(/\r\n/g, "\n"));
+    }
+    logTestInfo("testing update status against expected status");
+    do_check_eq(status, aExpectedStatus);
 
     if (aCheckSvcLog) {
       checkServiceLogs(svcOriginalLog);
@@ -1567,14 +1657,30 @@ function getLaunchBin() {
 
 
 function waitForHelperSleep() {
+  gTimeoutRuns++;
   
   
   let output = getApplyDirFile("a/b/output", true);
   if (readFile(output) != "sleeping\n") {
+    if (gTimeoutRuns > MAX_TIMEOUT_RUNS) {
+      do_throw("Exceeded MAX_TIMEOUT_RUNS while waiting for the helper to " +
+               "finish its operation. Path: " + output.path);
+    }
     do_timeout(TEST_HELPER_TIMEOUT, waitForHelperSleep);
     return;
   }
-  output.remove(false);
+  try {
+    output.remove(false);
+  }
+  catch (e) {
+    if (gTimeoutRuns > MAX_TIMEOUT_RUNS) {
+      do_throw("Exceeded MAX_TIMEOUT_RUNS while waiting for the helper " +
+               "message file to no longer be in use. Path: " + output.path);
+    }
+    logTestInfo("failed to remove file. Path: " + output.path);
+    do_timeout(TEST_HELPER_TIMEOUT, waitForHelperSleep);
+    return;
+  }
   doUpdate();
 }
 
@@ -2104,8 +2210,8 @@ function waitForFilesInUse() {
     }
   }
 
-  logTestInfo("calling do_test_finished");
-  do_test_finished();
+  logTestInfo("calling doTestFinish");
+  doTestFinish();
 }
 
 

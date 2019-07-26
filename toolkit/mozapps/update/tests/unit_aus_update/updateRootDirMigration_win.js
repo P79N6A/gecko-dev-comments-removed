@@ -136,7 +136,7 @@ function run_test() {
   });
   
   initUpdateServiceStub();
-  do_test_finished();
+  doTestFinish();
   return;
   
   filesToMigrate.forEach(relPath => {
@@ -159,7 +159,7 @@ function run_test() {
     do_check_false(oldFile.exists());
   });
 
-  do_test_finished();
+  doTestFinish();
 }
 
 function end_test() {

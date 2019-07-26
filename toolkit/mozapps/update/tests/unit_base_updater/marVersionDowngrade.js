@@ -8,7 +8,6 @@
 
 
 const TEST_FILES = [];
-const VERSION_DOWNGRADE_ERROR = "23";
 
 function run_test() {
   if (!IS_MAR_CHECKS_ENABLED) {
@@ -22,10 +21,9 @@ function run_test() {
   
   
   
-  runUpdate((USE_EXECV ? 0 : 1));
+  runUpdate((USE_EXECV ? 0 : 1), STATE_FAILED_VERSION_DOWNGRADE_ERROR);
 }
 
 function checkUpdateApplied() {
-  do_check_eq(readStatusFailedCode(), VERSION_DOWNGRADE_ERROR);
-  do_test_finished();
+  doTestFinish();
 }
