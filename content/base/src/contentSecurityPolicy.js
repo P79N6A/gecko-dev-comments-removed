@@ -208,9 +208,6 @@ ContentSecurityPolicy.prototype = {
   },
 
   getAllowsNonce: function(aNonce, aContentType, shouldReportViolation) {
-    if (!CSPPrefObserver.experimentalEnabled)
-      return false;
-
     if (!(aContentType == Ci.nsIContentPolicy.TYPE_SCRIPT ||
           aContentType == Ci.nsIContentPolicy.TYPE_STYLESHEET)) {
       CSPdebug("Nonce check requested for an invalid content type (not script or style): " + aContentType);
@@ -223,7 +220,9 @@ ContentSecurityPolicy.prototype = {
 
     shouldReportViolation.value = this._policies.some(function(policy, i) {
       
-      return policy._directives[directive]._hasNonceSource && !policyAllowsNonce[i];
+      return policy._directives.hasOwnProperty(directive) &&
+             policy._directives[directive]._hasNonceSource &&
+             !policyAllowsNonce[i];
     });
 
     
@@ -233,9 +232,6 @@ ContentSecurityPolicy.prototype = {
   },
 
   getAllowsHash: function(aContent, aContentType, shouldReportViolation) {
-    if (!CSPPrefObserver.experimentalEnabled)
-      return false;
-
     if (!(aContentType == Ci.nsIContentPolicy.TYPE_SCRIPT ||
           aContentType == Ci.nsIContentPolicy.TYPE_STYLESHEET)) {
       CSPdebug("Hash check requested for an invalid content type (not script or style): " + aContentType);
@@ -248,7 +244,9 @@ ContentSecurityPolicy.prototype = {
 
     shouldReportViolation.value = this._policies.some(function(policy, i) {
       
-      return policy._directives[directive]._hasHashSource && !policyAllowsHash[i];
+      return policy._directives.hasOwnProperty(directive) &&
+             policy._directives[directive]._hasHashSource &&
+             !policyAllowsHash[i];
     });
 
     
