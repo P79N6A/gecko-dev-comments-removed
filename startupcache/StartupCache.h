@@ -63,6 +63,12 @@
 
 
 
+
+
+
+
+
+
 class nsIMemoryReporter;
 
 namespace mozilla {
@@ -113,6 +119,9 @@ public:
 
   
   void InvalidateCache();
+
+  
+  static void IgnoreDiskCache();
 
   
   
@@ -167,6 +176,7 @@ private:
 
   static StartupCache *gStartupCache;
   static bool gShutdownInitiated;
+  static bool gIgnoreDiskCache;
   PRThread *mWriteThread;
 #ifdef DEBUG
   nsTHashtable<nsISupportsHashKey> mWriteObjectMap;
