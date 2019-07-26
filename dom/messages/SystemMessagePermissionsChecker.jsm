@@ -257,10 +257,10 @@ this.SystemMessagePermissionsChecker = {
 
 
   isSystemMessagePermittedToSend:
-    function isSystemMessagePermittedToSend(aSysMsgName, aPageURI, aManifestURL) {
+    function isSystemMessagePermittedToSend(aSysMsgName, aPageURL, aManifestURL) {
     debug("isSystemMessagePermittedToSend(): " +
           "aSysMsgName: " + aSysMsgName + ", " +
-          "aPageURI: " + aPageURI + ", " +
+          "aPageURL: " + aPageURL + ", " +
           "aManifestURL: " + aManifestURL);
 
     let permNames = this.getSystemMessagePermissions(aSysMsgName);
@@ -268,7 +268,7 @@ this.SystemMessagePermissionsChecker = {
       return false;
     }
 
-    let pageURI = Services.io.newURI(aPageURI, null, null);
+    let pageURI = Services.io.newURI(aPageURL, null, null);
     for (let permName in permNames) {
       let permNamesWithAccess = permNames[permName];
 
