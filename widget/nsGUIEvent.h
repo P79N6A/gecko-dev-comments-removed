@@ -692,6 +692,20 @@ public:
   nsCOMPtr<mozilla::dom::EventTarget> target;
   nsCOMPtr<mozilla::dom::EventTarget> currentTarget;
   nsCOMPtr<mozilla::dom::EventTarget> originalTarget;
+
+  void AssignEventData(const nsEvent& aEvent, bool aCopyTargets)
+  {
+    
+    refPoint = aEvent.refPoint;
+    
+    time = aEvent.time;
+    
+    userType = aEvent.userType;
+    
+    target = aCopyTargets ? aEvent.target : nullptr;
+    currentTarget = aCopyTargets ? aEvent.currentTarget : nullptr;
+    originalTarget = aCopyTargets ? aEvent.originalTarget : nullptr;
+  }
 };
 
 
@@ -725,6 +739,17 @@ public:
 
   
   void* pluginEvent;
+
+  void AssignGUIEventData(const nsGUIEvent& aEvent, bool aCopyTargets)
+  {
+    AssignEventData(aEvent, aCopyTargets);
+
+    
+
+    
+    
+    pluginEvent = nullptr;
+  }
 };
 
 
@@ -894,6 +919,13 @@ public:
   }
 
   mozilla::widget::Modifiers modifiers;
+
+  void AssignInputEventData(const nsInputEvent& aEvent, bool aCopyTargets)
+  {
+    AssignGUIEventData(aEvent, aCopyTargets);
+
+    modifiers = aEvent.modifiers;
+  }
 };
 
 
@@ -929,6 +961,18 @@ public:
 
   
   uint16_t              inputSource;
+
+  void AssignMouseEventBaseData(const nsMouseEvent_base& aEvent,
+                                bool aCopyTargets)
+  {
+    AssignInputEventData(aEvent, aCopyTargets);
+
+    relatedTarget = aCopyTargets ? aEvent.relatedTarget : nullptr;
+    button = aEvent.button;
+    buttons = aEvent.buttons;
+    pressure = aEvent.pressure;
+    inputSource = aEvent.inputSource;
+  }
 };
 
 class nsMouseEvent : public nsMouseEvent_base
@@ -1024,6 +1068,15 @@ public:
 
   
   uint32_t     clickCount;
+
+  void AssignMouseEventData(const nsMouseEvent& aEvent, bool aCopyTargets)
+  {
+    AssignMouseEventBaseData(aEvent, aCopyTargets);
+
+    acceptActivation = aEvent.acceptActivation;
+    ignoreRootScrollFrame = aEvent.ignoreRootScrollFrame;
+    clickCount = aEvent.clickCount;
+  }
 };
 
 
@@ -1115,6 +1168,21 @@ public:
         return;
     }
 #undef NS_DEFINE_KEYNAME
+  }
+
+  void AssignKeyEventData(const nsKeyEvent& aEvent, bool aCopyTargets)
+  {
+    AssignInputEventData(aEvent, aCopyTargets);
+
+    keyCode = aEvent.keyCode;
+    charCode = aEvent.charCode;
+    location = aEvent.location;
+    alternativeCharCodes = aEvent.alternativeCharCodes;
+    isChar = aEvent.isChar;
+    mKeyNameIndex = aEvent.mKeyNameIndex;
+    
+    
+    mNativeKeyEvent = nullptr;
   }
 };
 
