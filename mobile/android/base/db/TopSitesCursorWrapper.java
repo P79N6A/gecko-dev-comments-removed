@@ -11,32 +11,43 @@ import org.mozilla.gecko.db.BrowserDB.URLColumns;
 
 
 
+
+
 public class TopSitesCursorWrapper extends CursorWrapper {
-    public static class PinnedSite {
+
+    private static class PinnedSite {
         public final String title;
         public final String url;
 
-        public PinnedSite(String aTitle, String aUrl) {
-            title = (aTitle == null ? "" : aTitle);
-            url = (aUrl == null ? "" : aUrl);
+        public PinnedSite(String title, String url) {
+            this.title = (title == null ? "" : title);
+            this.url = (url == null ? "" : url);
         }
     }
 
-    int mIndex = -1; 
-    Cursor mCursor = null;
-    int mSize = 0;
-    private SparseArray<PinnedSite> mPinnedSites = null;
+    
+    private final Cursor topCursor;
 
-    public TopSitesCursorWrapper(Cursor pinnedCursor, Cursor normalCursor, int minSize) {
-        super(normalCursor);
+    
+    private SparseArray<PinnedSite> pinnedSites;
+
+    
+    private int currentPosition = -1;
+
+    
+    private final int count;
+
+    public TopSitesCursorWrapper(Cursor pinnedCursor, Cursor topCursor, int minSize) {
+        super(topCursor);
 
         setPinnedSites(pinnedCursor);
-        mCursor = normalCursor;
-        mSize = Math.max(minSize, mPinnedSites.size() + mCursor.getCount());
+        this.topCursor = topCursor;
+
+        count = Math.max(minSize, pinnedSites.size() + topCursor.getCount());
     }
 
     public void setPinnedSites(Cursor c) {
-        mPinnedSites = new SparseArray<PinnedSite>();
+        pinnedSites = new SparseArray<PinnedSite>();
 
         if (c == null) {
             return;
@@ -46,12 +57,13 @@ public class TopSitesCursorWrapper extends CursorWrapper {
             if (c.getCount() <= 0) {
                 return;
             }
+
             c.moveToPosition(0);
             do {
-                int pos = c.getInt(c.getColumnIndex(Bookmarks.POSITION));
-                String url = c.getString(c.getColumnIndex(URLColumns.URL));
-                String title = c.getString(c.getColumnIndex(URLColumns.TITLE));
-                mPinnedSites.put(pos, new PinnedSite(title, url));
+                final int pos = c.getInt(c.getColumnIndex(Bookmarks.POSITION));
+                final String url = c.getString(c.getColumnIndex(URLColumns.URL));
+                final String title = c.getString(c.getColumnIndex(URLColumns.TITLE));
+                pinnedSites.put(pos, new PinnedSite(title, url));
             } while (c.moveToNext());
         } finally {
             c.close();
@@ -59,18 +71,19 @@ public class TopSitesCursorWrapper extends CursorWrapper {
     }
 
     public boolean hasPinnedSites() {
-        return mPinnedSites != null && mPinnedSites.size() > 0;
+        return (pinnedSites != null && pinnedSites.size() > 0);
     }
 
     public PinnedSite getPinnedSite(int position) {
         if (!hasPinnedSites()) {
             return null;
         }
-        return mPinnedSites.get(position);
+
+        return pinnedSites.get(position);
     }
 
     public boolean isPinned() {
-        return mPinnedSites.get(mIndex) != null;
+        return (pinnedSites.get(currentPosition) != null);
     }
 
     private int getPinnedBefore(int position) {
@@ -80,7 +93,7 @@ public class TopSitesCursorWrapper extends CursorWrapper {
         }
 
         for (int i = 0; i < position; i++) {
-            if (mPinnedSites.get(i) != null) {
+            if (pinnedSites.get(i) != null) {
                 numFound++;
             }
         }
@@ -89,90 +102,43 @@ public class TopSitesCursorWrapper extends CursorWrapper {
     }
 
     @Override
-    public int getPosition() { return mIndex; }
-    @Override
-    public int getCount() { return mSize; }
-    @Override
-    public boolean isAfterLast() { return mIndex >= mSize; }
-    @Override
-    public boolean isBeforeFirst() { return mIndex < 0; }
-    @Override
-    public boolean isLast() { return mIndex == mSize - 1; }
-    @Override
-    public boolean moveToNext() { return moveToPosition(mIndex + 1); }
-    @Override
-    public boolean moveToPrevious() { return moveToPosition(mIndex - 1); }
-
-    @Override
-    public boolean moveToPosition(int position) {
-        mIndex = position;
-
-        
-        
-        
-        int before = getPinnedBefore(position);
-        int p2 = position - before;
-        if (p2 <= -1) {
-            super.moveToPosition(-1);
-        } else if (p2 >= mCursor.getCount()) {
-            super.moveToPosition(mCursor.getCount());
-        } else {
-            super.moveToPosition(p2);
-        }
-
-        return !(isBeforeFirst() || isAfterLast());
+    public int getPosition() {
+        return currentPosition;
     }
 
     @Override
-    public long getLong(int columnIndex) {
-        if (hasPinnedSites()) {
-            PinnedSite site = getPinnedSite(mIndex);
-            if (site != null) {
-                return 0;
-            }
-        }
-
-        if (!super.isBeforeFirst() && !super.isAfterLast())
-            return super.getLong(columnIndex);
-        return 0;
+    public int getCount() {
+        return count;
     }
 
     @Override
-    public int getInt(int columnIndex) {
-        if (hasPinnedSites()) {
-            PinnedSite site = getPinnedSite(mIndex);
-            if (site != null) {
-                return 0;
-            }
-        }
-
-        if (!super.isBeforeFirst() && !super.isAfterLast())
-            return super.getInt(columnIndex);
-        return 0;
+    public boolean isAfterLast() {
+        return (currentPosition >= count);
     }
 
     @Override
-    public String getString(int columnIndex) {
-        if (hasPinnedSites()) {
-            PinnedSite site = getPinnedSite(mIndex);
-            if (site != null) {
-                if (columnIndex == mCursor.getColumnIndex(URLColumns.URL)) {
-                    return site.url;
-                } else if (columnIndex == mCursor.getColumnIndex(URLColumns.TITLE)) {
-                    return site.title;
-                }
-                return "";
-            }
-        }
+    public boolean isBeforeFirst() {
+        return (currentPosition < 0);
+    }
 
-        if (!super.isBeforeFirst() && !super.isAfterLast())
-            return super.getString(columnIndex);
-        return "";
+    @Override
+    public boolean isLast() {
+        return (currentPosition == count - 1);
+    }
+
+    @Override
+    public boolean moveToNext() {
+        return moveToPosition(currentPosition + 1);
+    }
+
+    @Override
+    public boolean moveToPrevious() {
+        return moveToPosition(currentPosition - 1);
     }
 
     @Override
     public boolean move(int offset) {
-        return moveToPosition(mIndex + offset);
+        return moveToPosition(currentPosition + offset);
     }
 
     @Override
@@ -182,6 +148,84 @@ public class TopSitesCursorWrapper extends CursorWrapper {
 
     @Override
     public boolean moveToLast() {
-        return moveToPosition(mSize-1);
+        return moveToPosition(count - 1);
+    }
+
+    @Override
+    public boolean moveToPosition(int position) {
+        currentPosition = position;
+
+        
+        
+        
+        final int before = getPinnedBefore(position);
+        final int p2 = position - before;
+
+        if (p2 <= -1) {
+            super.moveToPosition(-1);
+        } else if (p2 >= topCursor.getCount()) {
+            super.moveToPosition(topCursor.getCount());
+        } else {
+            super.moveToPosition(p2);
+        }
+
+        return (!isBeforeFirst() && !isAfterLast());
+    }
+
+    @Override
+    public long getLong(int columnIndex) {
+        if (hasPinnedSites()) {
+            final PinnedSite site = getPinnedSite(currentPosition);
+
+            if (site != null) {
+                return 0;
+            }
+        }
+
+        if (!super.isBeforeFirst() && !super.isAfterLast()) {
+            return super.getLong(columnIndex);
+        }
+
+        return 0;
+    }
+
+    @Override
+    public int getInt(int columnIndex) {
+        if (hasPinnedSites()) {
+            final PinnedSite site = getPinnedSite(currentPosition);
+
+            if (site != null) {
+                return 0;
+            }
+        }
+
+        if (!super.isBeforeFirst() && !super.isAfterLast()) {
+            return super.getInt(columnIndex);
+        }
+
+        return 0;
+    }
+
+    @Override
+    public String getString(int columnIndex) {
+        if (hasPinnedSites()) {
+            final PinnedSite site = getPinnedSite(currentPosition);
+
+            if (site != null) {
+                if (columnIndex == topCursor.getColumnIndex(URLColumns.URL)) {
+                    return site.url;
+                } else if (columnIndex == topCursor.getColumnIndex(URLColumns.TITLE)) {
+                    return site.title;
+                }
+
+                return "";
+            }
+        }
+
+        if (!super.isBeforeFirst() && !super.isAfterLast()) {
+            return super.getString(columnIndex);
+        }
+
+        return "";
     }
 }
