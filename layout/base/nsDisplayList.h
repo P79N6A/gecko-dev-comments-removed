@@ -1784,19 +1784,15 @@ private:
 
 
 
-
-class nsDisplayBackgroundImage : public nsDisplayItem {
+class nsDisplayBackground : public nsDisplayItem {
 public:
   
-
-
-
-
-
-  nsDisplayBackgroundImage(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
-                           uint32_t aLayer, bool aIsThemed,
-                           const nsStyleBackground* aBackgroundStyle);
-  virtual ~nsDisplayBackgroundImage();
+  
+  
+  
+  nsDisplayBackground(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
+                      uint32_t aLayer, bool aSkipFixedItemBoundsCheck = false);
+  virtual ~nsDisplayBackground();
 
   
   
@@ -1804,7 +1800,7 @@ public:
   static nsresult AppendBackgroundItemsToTop(nsDisplayListBuilder* aBuilder,
                                              nsIFrame* aFrame,
                                              nsDisplayList* aList,
-                                             nsDisplayBackgroundImage** aBackground = nullptr);
+                                             nsDisplayBackground** aBackground = nullptr);
 
   virtual LayerState GetLayerState(nsDisplayListBuilder* aBuilder,
                                    LayerManager* aManager,
@@ -1824,9 +1820,7 @@ public:
   virtual bool IsVaryingRelativeToMovingFrame(nsDisplayListBuilder* aBuilder,
                                                 nsIFrame* aFrame) MOZ_OVERRIDE;
   virtual bool IsUniform(nsDisplayListBuilder* aBuilder, nscolor* aColor) MOZ_OVERRIDE;
-  
-
-
+  virtual bool ShouldFixToViewport(nsDisplayListBuilder* aBuilder) MOZ_OVERRIDE;
   virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap) MOZ_OVERRIDE;
   virtual void Paint(nsDisplayListBuilder* aBuilder, nsRenderingContext* aCtx) MOZ_OVERRIDE;
   virtual uint32_t GetPerFrameKey() MOZ_OVERRIDE;
@@ -1839,17 +1833,8 @@ public:
 
 
 
-  nsRect GetPositioningArea();
-
+  bool RenderingMightDependOnFrameSize();
   
-
-
-
-
-
-
-  bool RenderingMightDependOnPositioningAreaSizeChange();
-
   virtual nsDisplayItemGeometry* AllocateGeometry(nsDisplayListBuilder* aBuilder)
   {
     return new nsDisplayBackgroundGeometry(this, aBuilder);
@@ -1865,35 +1850,31 @@ protected:
   typedef class mozilla::layers::ImageContainer ImageContainer;
   typedef class mozilla::layers::ImageLayer ImageLayer;
 
+
   bool TryOptimizeToImageLayer(nsDisplayListBuilder* aBuilder);
-  bool IsSingleFixedPositionImage(nsDisplayListBuilder* aBuilder,
-                                  const nsRect& aClipRect,
-                                  gfxRect* aDestRect);
+  bool IsSingleFixedPositionImage(nsDisplayListBuilder* aBuilder, const nsRect& aClipRect);
   void ConfigureLayer(ImageLayer* aLayer);
 
   
+  bool mIsThemed;
   
-  const nsStyleBackground* mBackgroundStyle;
+
+  bool mIsFixed;
+  
+  bool mIsBottommostLayer;
+  nsITheme::Transparency mThemeTransparency;
+
   
   nsRefPtr<ImageContainer> mImageContainer;
   gfxRect mDestRect;
   uint32_t mLayer;
-
-  nsITheme::Transparency mThemeTransparency;
-  
-  bool mIsThemed;
-  
-  bool mIsBottommostLayer;
 };
 
 class nsDisplayBackgroundColor : public nsDisplayItem
 {
 public:
-  nsDisplayBackgroundColor(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
-                           const nsStyleBackground* aBackgroundStyle,
-                           nscolor aColor)
+  nsDisplayBackgroundColor(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame, nscolor aColor)
     : nsDisplayItem(aBuilder, aFrame)
-    , mBackgroundStyle(aBackgroundStyle)
     , mColor(aColor)
   { }
 
@@ -1913,8 +1894,6 @@ public:
 
   NS_DISPLAY_DECL_NAME("BackgroundColor", TYPE_BACKGROUND_COLOR)
 
-protected:
-  const nsStyleBackground* mBackgroundStyle;
   nscolor mColor;
 };
 

@@ -206,25 +206,18 @@ nsDisplayCanvasBackground::Paint(nsDisplayListBuilder* aBuilder,
   nsRefPtr<gfxContext> dest = aCtx->ThebesContext();
   nsRefPtr<gfxASurface> surf;
   nsRefPtr<gfxContext> ctx;
-  gfxRect destRect;
 #ifndef MOZ_GFX_OPTIMIZE_MOBILE
-  if (IsSingleFixedPositionImage(aBuilder, bgClipRect, &destRect) &&
-      aBuilder->IsPaintingToWindow() && !aBuilder->IsCompositingCheap() &&
-      !dest->CurrentMatrix().HasNonIntegerTranslation()) {
-    
-    
-    destRect.Round();
+  if (IsSingleFixedPositionImage(aBuilder, bgClipRect) && aBuilder->IsPaintingToWindow() && !aBuilder->IsCompositingCheap()) {
     surf = static_cast<gfxASurface*>(GetUnderlyingFrame()->Properties().Get(nsIFrame::CachedBackgroundImage()));
     nsRefPtr<gfxASurface> destSurf = dest->CurrentSurface();
     if (surf && surf->GetType() == destSurf->GetType()) {
-      BlitSurface(dest, destRect, surf);
+      BlitSurface(dest, mDestRect, surf);
       return;
     }
-    surf = destSurf->CreateSimilarSurface(gfxASurface::CONTENT_COLOR_ALPHA,
-        gfxIntSize(destRect.width, destRect.height));
+    surf = destSurf->CreateSimilarSurface(gfxASurface::CONTENT_COLOR_ALPHA, gfxIntSize(ceil(mDestRect.width), ceil(mDestRect.height)));
     if (surf) {
       ctx = new gfxContext(surf);
-      ctx->Translate(-gfxPoint(destRect.x, destRect.y));
+      ctx->Translate(-gfxPoint(mDestRect.x, mDestRect.y));
       context.Init(aCtx->DeviceContext(), ctx);
     }
   }
@@ -236,7 +229,7 @@ nsDisplayCanvasBackground::Paint(nsDisplayListBuilder* aBuilder,
                                   aBuilder->GetBackgroundPaintFlags(),
                                   &bgClipRect, mLayer);
   if (surf) {
-    BlitSurface(dest, destRect, surf);
+    BlitSurface(dest, mDestRect, surf);
 
     GetUnderlyingFrame()->Properties().Set(nsIFrame::CachedBackgroundImage(), surf.forget().get());
     GetUnderlyingFrame()->AddStateBits(NS_FRAME_HAS_CACHED_BACKGROUND);
@@ -298,16 +291,14 @@ nsCanvasFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   if (IsVisibleForPainting(aBuilder)) {
     nsStyleContext* bgSC;
     const nsStyleBackground* bg = nullptr;
-    bool isThemed = IsThemed();
-    if (!isThemed &&
+    if (!IsThemed() &&
         nsCSSRendering::FindBackground(PresContext(), this, &bgSC)) {
       bg = bgSC->GetStyleBackground();
     }
     
     NS_FOR_VISIBLE_BACKGROUND_LAYERS_BACK_TO_FRONT(i, bg) {
       rv = aLists.BorderBackground()->AppendNewToTop(
-          new (aBuilder) nsDisplayCanvasBackground(aBuilder, this, i,
-                                                   isThemed, bg));
+          new (aBuilder) nsDisplayCanvasBackground(aBuilder, this, i));
       NS_ENSURE_SUCCESS(rv, rv);
     }
   }
@@ -525,6 +516,39 @@ nsCanvasFrame::Reflow(nsPresContext*           aPresContext,
     aDesiredSize.SetOverflowAreasToDesiredBounds();
     aDesiredSize.mOverflowAreas.UnionWith(
       kidDesiredSize.mOverflowAreas + kidPt);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (nsSize(aDesiredSize.width, aDesiredSize.height) != GetSize()) {
+      nsIFrame* rootElementFrame =
+        aPresContext->PresShell()->FrameConstructor()->GetRootElementStyleFrame();
+      nsStyleContext* bgSC =
+        nsCSSRendering::FindCanvasBackground(this, rootElementFrame);
+      const nsStyleBackground* bg = bgSC->GetStyleBackground();
+      if (!bg->IsTransparent()) {
+        NS_FOR_VISIBLE_BACKGROUND_LAYERS_BACK_TO_FRONT(i, bg) {
+          const nsStyleBackground::Layer& layer = bg->mLayers[i];
+          if (layer.mAttachment == NS_STYLE_BG_ATTACHMENT_FIXED &&
+              layer.RenderingMightDependOnFrameSize()) {
+            InvalidateFrame();
+            break;
+          }
+        }
+      }
+    }
   }
 
   if (prevCanvasFrame) {
