@@ -1061,7 +1061,7 @@ static void
 MarkJitActivation(JSTracer *trc, const JitActivationIterator &activations)
 {
 #ifdef CHECK_OSIPOINT_REGISTERS
-    if (js_JitOptions.checkOsiPointRegisters) {
+    if (js_IonOptions.checkOsiPointRegisters) {
         
         
         

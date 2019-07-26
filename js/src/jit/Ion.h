@@ -16,12 +16,247 @@
 
 #include "jit/CompileInfo.h"
 #include "jit/CompileWrappers.h"
-#include "jit/JitOptions.h"
 
 namespace js {
 namespace jit {
 
 class TempAllocator;
+
+
+enum IonRegisterAllocator {
+    RegisterAllocator_LSRA,
+    RegisterAllocator_Backtracking,
+    RegisterAllocator_Stupid
+};
+
+struct IonOptions
+{
+    
+    
+    
+    bool gvn;
+
+    
+    
+    
+    
+    bool gvnIsOptimistic;
+
+    
+    
+    
+    bool licm;
+
+    
+    
+    
+    bool osr;
+
+    
+    
+    
+    bool limitScriptSize;
+
+    
+    
+    
+    IonRegisterAllocator registerAllocator;
+
+    
+    
+    
+    bool inlining;
+
+    
+    
+    
+    bool edgeCaseAnalysis;
+
+    
+    
+    
+    bool rangeAnalysis;
+
+    
+    
+    
+    
+    bool checkRangeAnalysis;
+
+    
+    
+    
+    
+    bool checkThreadSafety;
+
+    
+    
+    
+    
+    
+    bool checkGraphConsistency;
+
+    
+    
+    
+    bool uce;
+
+    
+    
+    
+    bool eaa;
+
+#ifdef CHECK_OSIPOINT_REGISTERS
+    
+    
+    
+    
+    bool checkOsiPointRegisters;
+#endif
+
+    
+    
+    
+    
+    uint32_t baselineUsesBeforeCompile;
+
+    
+    
+    
+    
+    uint32_t usesBeforeCompile;
+
+    
+    
+    
+    
+    double usesBeforeInliningFactor;
+
+    
+    
+    
+    
+    uint32_t osrPcMismatchesBeforeRecompile;
+
+    
+    
+    
+    
+    uint32_t frequentBailoutThreshold;
+
+    
+    
+    
+    
+    uint32_t exceptionBailoutThreshold;
+
+    
+    
+    
+    bool compileTryCatch;
+
+    
+    
+    
+    uint32_t maxStackArgs;
+
+    
+    
+    
+    uint32_t maxInlineDepth;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    uint32_t smallFunctionMaxInlineDepth;
+
+    
+    
+    
+    
+    
+    
+    
+    uint32_t smallFunctionMaxBytecodeLength;
+
+    
+    
+    
+    uint32_t polyInlineMax;
+
+    
+    
+    
+    uint32_t inlineMaxTotalBytecodeLength;
+
+    
+    
+    
+    bool eagerCompilation;
+
+    
+    
+    
+    uint32_t usesBeforeCompilePar;
+
+    
+    
+    
+    
+    uint32_t inliningMaxCallerBytecodeLength;
+
+    void setEagerCompilation() {
+        eagerCompilation = true;
+        usesBeforeCompile = 0;
+        baselineUsesBeforeCompile = 0;
+    }
+
+    MOZ_CONSTEXPR IonOptions()
+      : gvn(true),
+        gvnIsOptimistic(true),
+        licm(true),
+        osr(true),
+        limitScriptSize(true),
+        registerAllocator(RegisterAllocator_LSRA),
+        inlining(true),
+        edgeCaseAnalysis(true),
+        rangeAnalysis(true),
+        checkRangeAnalysis(false),
+        checkThreadSafety(false),
+        checkGraphConsistency(true),
+        uce(true),
+        eaa(true),
+#ifdef CHECK_OSIPOINT_REGISTERS
+        checkOsiPointRegisters(false),
+#endif
+        baselineUsesBeforeCompile(10),
+        usesBeforeCompile(1000),
+        usesBeforeInliningFactor(.125),
+        osrPcMismatchesBeforeRecompile(6000),
+        frequentBailoutThreshold(10),
+        exceptionBailoutThreshold(10),
+        compileTryCatch(true),
+        maxStackArgs(4096),
+        maxInlineDepth(3),
+        smallFunctionMaxInlineDepth(10),
+        smallFunctionMaxBytecodeLength(100),
+        polyInlineMax(4),
+        inlineMaxTotalBytecodeLength(1000),
+        eagerCompilation(false),
+        usesBeforeCompilePar(1),
+        inliningMaxCallerBytecodeLength(10000)
+    {
+    }
+
+    uint32_t usesBeforeInlining() {
+        return usesBeforeCompile * usesBeforeInliningFactor;
+    }
+};
 
 enum MethodStatus
 {
@@ -72,6 +307,8 @@ class IonContext
     IonContext *prev_;
     int assemblerCount_;
 };
+
+extern IonOptions js_IonOptions;
 
 
 bool InitializeIon();
@@ -174,11 +411,12 @@ IsIonInlinablePC(jsbytecode *pc) {
 inline bool
 TooManyArguments(unsigned nargs)
 {
-    return (nargs >= SNAPSHOT_MAX_NARGS || nargs > js_JitOptions.maxStackArgs);
+    return (nargs >= SNAPSHOT_MAX_NARGS || nargs > js_IonOptions.maxStackArgs);
 }
 
 void ForbidCompilation(JSContext *cx, JSScript *script);
 void ForbidCompilation(JSContext *cx, JSScript *script, ExecutionMode mode);
+uint32_t UsesBeforeIonRecompile(JSScript *script, jsbytecode *pc);
 
 void PurgeCaches(JSScript *script, JS::Zone *zone);
 size_t SizeOfIonData(JSScript *script, mozilla::MallocSizeOf mallocSizeOf);

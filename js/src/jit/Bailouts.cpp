@@ -196,7 +196,7 @@ jit::CheckFrequentBailouts(JSContext *cx, JSScript *script)
         
         IonScript *ionScript = script->ionScript();
 
-        if (ionScript->numBailouts() >= js_JitOptions.frequentBailoutThreshold &&
+        if (ionScript->numBailouts() >= js_IonOptions.frequentBailoutThreshold &&
             !script->hadFrequentBailouts())
         {
             script->setHadFrequentBailouts();
