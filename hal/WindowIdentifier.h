@@ -66,7 +66,7 @@ public:
 
 
 
-  WindowIdentifier(const nsTArray<uint64_t>& id, nsIDOMWindow* window);
+  WindowIdentifier(const InfallibleTArray<uint64_t>& id, nsIDOMWindow* window);
 
   
 
