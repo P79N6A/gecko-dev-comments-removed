@@ -289,6 +289,13 @@ JSCompartment::wrap(JSContext *cx, MutableHandleObject obj, HandleObject existin
         return WrapForSameCompartment(cx, obj);
 
     
+    unsigned flags = 0;
+    obj.set(UncheckedUnwrap(obj,  true, &flags));
+
+    if (obj->compartment() == this)
+        return WrapForSameCompartment(cx, obj);
+
+    
     if (obj->is<StopIterationObject>()) {
         RootedValue v(cx);
         if (!js_FindClassObject(cx, JSProto_StopIteration, &v))
@@ -296,13 +303,6 @@ JSCompartment::wrap(JSContext *cx, MutableHandleObject obj, HandleObject existin
         obj.set(&v.toObject());
         return true;
     }
-
-    
-    unsigned flags = 0;
-    obj.set(UncheckedUnwrap(obj,  true, &flags));
-
-    if (obj->compartment() == this)
-        return WrapForSameCompartment(cx, obj);
 
     
 
