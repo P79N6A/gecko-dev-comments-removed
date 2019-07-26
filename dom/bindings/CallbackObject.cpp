@@ -18,6 +18,7 @@
 #include "nsIScriptSecurityManager.h"
 #include "xpcprivate.h"
 #include "WorkerPrivate.h"
+#include "nsGlobalWindow.h"
 
 namespace mozilla {
 namespace dom {
@@ -67,36 +68,24 @@ CallbackObject::CallSetup::CallSetup(JS::Handle<JSObject*> aCallback,
 
   if (mIsMainThread) {
     
-    nsIScriptContext* ctx = nullptr;
-    nsIScriptGlobalObject* sgo = nsJSUtils::GetStaticScriptGlobal(realCallback);
-    if (sgo) {
+    nsGlobalWindow* win = xpc::WindowGlobalOrNull(realCallback);
+    if (win) {
       
       
       
       
       
-      nsCOMPtr<nsPIDOMWindow> win = do_QueryInterface(sgo);
-      if (win) {
-        MOZ_ASSERT(win->IsInnerWindow());
-        nsPIDOMWindow* outer = win->GetOuterWindow();
-        if (!outer || win != outer->GetCurrentInnerWindow()) {
-          
-          return;
-        }
+      MOZ_ASSERT(win->IsInnerWindow());
+      nsPIDOMWindow* outer = win->GetOuterWindow();
+      if (!outer || win != outer->GetCurrentInnerWindow()) {
+        
+        return;
       }
-      
-
-      ctx = sgo->GetContext();
-      if (ctx) {
-        
-        
-        
-        cx = ctx->GetNativeContext();
-      }
-    }
-
-    if (!cx) {
-      
+      cx = win->GetContext() ? win->GetContext()->GetNativeContext()
+                             
+                             
+                             : nsContentUtils::GetSafeJSContext();
+    } else {
       
       cx = nsContentUtils::GetSafeJSContext();
     }
