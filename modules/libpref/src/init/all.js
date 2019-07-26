@@ -4214,6 +4214,18 @@ pref("social.enabled", false);
 
 
 
+pref("social.whitelist", "https://mozsocial.cliqz.com,https://now.msn.com,https://mixi.jp");
+
+
+pref("social.directories", "https://addons.mozilla.org");
+
+
+
+pref("social.remote-install.enabled", true);
+pref("social.toast-notifications.enabled", true);
+
+
+
 pref("dom.idle-observers-api.fuzz_time.disabled", true);
 
 
