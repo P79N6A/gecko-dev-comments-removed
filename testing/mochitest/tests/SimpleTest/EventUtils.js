@@ -20,7 +20,11 @@
 
 
 window.__defineGetter__('_EU_Ci', function() {
-  return 'Components' in window ? Components.interfaces : SpecialPowers.Ci;
+  
+  
+  
+  var c = Object.getOwnPropertyDescriptor(window, 'Components');
+  return c.value && !c.writable ? Components.interfaces : SpecialPowers.Ci;
 });
 
 

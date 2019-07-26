@@ -10,7 +10,12 @@ var archiveReaderEnabled = false;
 
 
 
-if (typeof Components === 'undefined' && typeof SpecialPowers === 'object')
+
+
+
+
+var c = Object.getOwnPropertyDescriptor(this, 'Components');
+if ((!c.value || c.writable) && typeof SpecialPowers === 'object')
   Components = SpecialPowers.Components;
 
 function executeSoon(aFun)
