@@ -9710,27 +9710,3 @@ nsIPresShell::SetMaxLineBoxWidth(nscoord aMaxLineBoxWidth)
     FrameNeedsReflow(GetRootFrame(), eResize, NS_FRAME_HAS_DIRTY_CHILDREN);
   }
 }
-
-void
-PresShell::FreezePainting()
-{
-  
-  nsCOMPtr<nsIPresShell> parent = GetParentPresShell();
-  if (parent) {
-    parent->FreezePainting();
-  }
-
-  GetPresContext()->RefreshDriver()->Freeze();
-}
-
-void
-PresShell::ThawPainting()
-{
-  
-  nsCOMPtr<nsIPresShell> parent = GetParentPresShell();
-  if (parent) {
-    parent->ThawPainting();
-  }
-
-  GetPresContext()->RefreshDriver()->Thaw();
-}
