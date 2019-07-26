@@ -780,9 +780,6 @@ pref("dom.min_timeout_value", 4);
 pref("dom.min_background_timeout_value", 1000);
 
 
-pref("dom.omit_components_in_content", true);
-
-
 pref("dom.experimental_forms", false);
 
 
