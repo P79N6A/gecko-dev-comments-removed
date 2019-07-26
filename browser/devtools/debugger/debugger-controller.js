@@ -785,13 +785,9 @@ StackFrames.prototype = {
     if (!isClientEval && !isPopupShown) {
       
       DebuggerView.setEditorLocation(where.url, where.line);
-    } else {
       
-      DebuggerView.setEditorLocation(where.url, where.line, { noCaret: true });
+      DebuggerView.Sources.highlightBreakpoint(where, { noEditorUpdate: true });
     }
-
-    
-    DebuggerView.Sources.highlightBreakpointAtCursor();
 
     
     DebuggerView.WatchExpressions.toggleContents(false);

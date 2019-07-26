@@ -417,17 +417,6 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
   
 
 
-
-  highlightBreakpointAtCursor: function() {
-    let url = DebuggerView.Sources.selectedValue;
-    let line = DebuggerView.editor.getCursor().line + 1;
-    let location = { url: url, line: line };
-    this.highlightBreakpoint(location, { noEditorUpdate: true });
-  },
-
-  
-
-
   unhighlightBreakpoint: function() {
     this._unselectBreakpoint();
     this._hideConditionalPopup();
@@ -2014,21 +2003,21 @@ VariableBubbleView.prototype = {
   
 
 
-  _onMouseMove: function(e) {
+  _onMouseMove: function({ clientX: x, clientY: y, buttons: btns }) {
     
     
     
-    let isResumed = gThreadClient && gThreadClient.state != "paused";
-    let isSelecting = DebuggerView.editor.somethingSelected() && e.buttons > 0;
-    let isPopupVisible = !this._tooltip.isHidden();
-    if (isResumed || isSelecting || isPopupVisible) {
+    if (gThreadClient && gThreadClient.state != "paused"
+        || !this._tooltip.isHidden()
+        || (DebuggerView.editor.somethingSelected()
+         && btns > 0)) {
       clearNamedTimeout("editor-mouse-move");
       return;
     }
     
     
     setNamedTimeout("editor-mouse-move",
-      EDITOR_VARIABLE_HOVER_DELAY, () => this._findIdentifier(e.clientX, e.clientY));
+      EDITOR_VARIABLE_HOVER_DELAY, () => this._findIdentifier(x, y));
   },
 
   
