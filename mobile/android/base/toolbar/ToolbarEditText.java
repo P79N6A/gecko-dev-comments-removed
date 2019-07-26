@@ -260,6 +260,11 @@ public class ToolbarEditText extends CustomEditText
             
             text.replace(autoCompleteStart, textLength, result, autoCompleteStart, resultLength);
 
+            
+            if (autoCompleteStart == resultLength) {
+                setCursorVisible(true);
+            }
+
             endSettingAutocomplete();
 
         } else {
