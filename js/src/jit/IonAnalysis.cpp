@@ -211,25 +211,16 @@ IsPhiObservable(MPhi *phi, Observability observe)
         break;
     }
 
+    
     uint32_t slot = phi->slot();
     CompileInfo &info = phi->block()->info();
-    JSFunction *fun = info.fun();
-
-    
-    if (fun && slot == info.thisSlot())
+    if (info.fun() && slot == info.thisSlot())
         return true;
 
     
     
     
-    
-    if (fun && fun->isHeavyweight() && info.hasArguments() && slot == info.scopeChainSlot())
-        return true;
-
-    
-    
-    
-    if (fun && info.hasArguments()) {
+    if (info.fun() && info.hasArguments()) {
         uint32_t first = info.firstArgSlot();
         if (first <= slot && slot - first < info.nargs()) {
             
