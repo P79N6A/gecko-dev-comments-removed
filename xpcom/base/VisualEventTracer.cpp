@@ -351,7 +351,7 @@ EventFilter::Build(const char * filterVar)
 
   
   char eventName[64];
-  int evlen = strlen(filterVar), pos = 0, count, delta = 0;
+  int pos = 0, count, delta = 0;
 
   
   count = sscanf(filterVar, "%63[^,]%n", eventName, &delta);
