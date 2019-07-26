@@ -85,6 +85,13 @@ function isString(aValue) {
 
 
 
+const kProgressUpdateIntervalMs = 400;
+
+
+
+
+
+
 
 
 
@@ -182,6 +189,13 @@ Download.prototype = {
 
 
   currentBytes: 0,
+
+  
+
+
+
+
+  speed: 0,
 
   
 
@@ -303,6 +317,9 @@ Download.prototype = {
     this._currentAttempt = currentAttempt;
 
     
+    this._lastProgressTimeMs = 0;
+
+    
     
     function DS_setProgressBytes(aCurrentBytes, aTotalBytes, aHasPartialData)
     {
@@ -387,6 +404,7 @@ Download.prototype = {
         if (this._currentAttempt == currentAttempt || !this._currentAttempt) {
           this._currentAttempt = null;
           this.stopped = true;
+          this.speed = 0;
           this._notifyChange();
           if (this.succeeded) {
             this._deferSucceeded.resolve();
@@ -651,6 +669,17 @@ Download.prototype = {
 
 
 
+  _lastProgressTimeMs: 0,
+
+  
+
+
+
+
+
+
+
+
 
 
 
@@ -658,16 +687,57 @@ Download.prototype = {
 
 
   _setBytes: function D_setBytes(aCurrentBytes, aTotalBytes, aHasPartialData) {
-    this.currentBytes = aCurrentBytes;
+    let changeMade = (this.hasPartialData != aHasPartialData);
     this.hasPartialData = aHasPartialData;
-    if (aTotalBytes != -1) {
+
+    
+    
+    if (aTotalBytes != -1 && (!this.hasProgress ||
+                              this.totalBytes != aTotalBytes)) {
       this.hasProgress = true;
       this.totalBytes = aTotalBytes;
-      if (aTotalBytes > 0) {
-        this.progress = Math.floor(aCurrentBytes / aTotalBytes * 100);
+      changeMade = true;
+    }
+
+    
+    
+    let currentTimeMs = Date.now();
+    let intervalMs = currentTimeMs - this._lastProgressTimeMs;
+    if (intervalMs >= kProgressUpdateIntervalMs) {
+      
+      if (this._lastProgressTimeMs != 0) {
+        
+        let rawSpeed = (aCurrentBytes - this.currentBytes) / intervalMs * 1000;
+        if (this.speed == 0) {
+          
+          
+          this.speed = rawSpeed;
+        } else {
+          
+          this.speed = rawSpeed * 0.1 + this.speed * 0.9;
+        }
+      }
+
+      
+      
+      
+      
+      
+      if (aCurrentBytes > 0) {
+        this._lastProgressTimeMs = currentTimeMs;
+
+        
+        this.currentBytes = aCurrentBytes;
+        if (this.totalBytes > 0) {
+          this.progress = Math.floor(this.currentBytes / this.totalBytes * 100);
+        }
+        changeMade = true;
       }
     }
-    this._notifyChange();
+
+    if (changeMade) {
+      this._notifyChange();
+    }
   },
 
   
