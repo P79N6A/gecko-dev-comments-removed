@@ -269,33 +269,36 @@ Sanitizer.prototype = {
         var dlMgr = Components.classes["@mozilla.org/download-manager;1"]
                               .getService(Components.interfaces.nsIDownloadManager);
 
-        var dlIDsToRemove = [];
+        var dlsToRemove = [];
         if (this.range) {
           
           dlMgr.removeDownloadsByTimeframe(this.range[0], this.range[1]);
+
           
-          
-          var dlsEnum = dlMgr.activeDownloads;
-          while(dlsEnum.hasMoreElements()) {
-            var dl = dlsEnum.next();
-            if(dl.startTime >= this.range[0])
-              dlIDsToRemove.push(dl.id);
+          for (let dlsEnum of [dlMgr.activeDownloads, dlMgr.activePrivateDownloads]) {
+            while (dlsEnum.hasMoreElements()) {
+              var dl = dlsEnum.next();
+              if (dl.startTime >= this.range[0])
+                dlsToRemove.push(dl);
+            }
           }
         }
         else {
           
           dlMgr.cleanUp();
+          dlMgr.cleanUpPrivate();
           
           
-          var dlsEnum = dlMgr.activeDownloads;
-          while(dlsEnum.hasMoreElements()) {
-            dlIDsToRemove.push(dlsEnum.next().id);
+          for (let dlsEnum of [dlMgr.activeDownloads, dlMgr.activePrivateDownloads]) {
+            while (dlsEnum.hasMoreElements()) {
+              dlsToRemove.push(dlsEnum.next());
+            }
           }
         }
+
         
-        
-        dlIDsToRemove.forEach(function(id) {
-          dlMgr.removeDownload(id);
+        dlsToRemove.forEach(function (dl) {
+          dl.remove();
         });
       },
 
@@ -303,7 +306,7 @@ Sanitizer.prototype = {
       {
         var dlMgr = Components.classes["@mozilla.org/download-manager;1"]
                               .getService(Components.interfaces.nsIDownloadManager);
-        return dlMgr.canCleanUp;
+        return dlMgr.canCleanUp || dlMgr.canCleanUpPrivate;
       }
     },
     

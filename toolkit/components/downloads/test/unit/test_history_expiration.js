@@ -89,15 +89,15 @@ function run_test()
   
   let obs = Cc["@mozilla.org/observer-service;1"].
             getService(Ci.nsIObserverService);
-  const kRemoveTopic = "download-manager-remove-download";
+  const kRemoveTopic = "download-manager-remove-download-guid";
   let testObs = {
     observe: function(aSubject, aTopic, aData) {
       if (aTopic != kRemoveTopic)
         return;
 
       
-      let id = aSubject.QueryInterface(Ci.nsISupportsPRUint32);
-      do_check_eq(id.data, theId);
+      let id = aSubject.QueryInterface(Ci.nsISupportsCString);
+      do_check_eq(id.data, theGUID);
 
       
       histobs.onEndUpdateBatch();

@@ -208,6 +208,9 @@ function run_test() {
             do_check_false(pb.privateBrowsingEnabled);
 
             
+            Services.obs.notifyObservers(null, "last-pb-context-exited", null);
+
+            
             do_check_eq(dlF.state, dm.DOWNLOAD_PAUSED);
 
             finishTest();
