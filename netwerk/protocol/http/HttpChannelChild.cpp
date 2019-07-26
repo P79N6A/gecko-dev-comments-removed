@@ -806,6 +806,9 @@ HttpChannelChild::ConnectParent(uint32_t id)
   if (iTabChild) {
     tabChild = static_cast<mozilla::dom::TabChild*>(iTabChild.get());
   }
+  if (MissingRequiredTabChild(tabChild, "http")) {
+    return NS_ERROR_ILLEGAL_VALUE;
+  }
 
   
   
@@ -1043,6 +1046,9 @@ HttpChannelChild::AsyncOpen(nsIStreamListener *listener, nsISupports *aContext)
   GetCallback(iTabChild);
   if (iTabChild) {
     tabChild = static_cast<mozilla::dom::TabChild*>(iTabChild.get());
+  }
+  if (MissingRequiredTabChild(tabChild, "http")) {
+    return NS_ERROR_ILLEGAL_VALUE;
   }
 
   

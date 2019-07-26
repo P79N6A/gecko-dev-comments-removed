@@ -13,6 +13,10 @@
 #include "nsPrintfCString.h"
 #include "mozilla/Preferences.h"
 
+namespace mozilla { namespace dom {
+class TabChild;
+}}
+
 #if defined(DEBUG) || defined(ENABLE_TESTS)
 # define NECKO_ERRORS_ARE_FATAL_DEFAULT true
 #else
@@ -111,6 +115,25 @@ UsingNeckoIPCSecurity()
   return !securityDisabled;
 }
 
+inline bool
+MissingRequiredTabChild(mozilla::dom::TabChild* tabChild,
+                        const char* context)
+{
+  if (UsingNeckoIPCSecurity()) {
+    
+    
+    
+    
+    MOZ_ASSERT(tabChild);
+
+    if (!tabChild) {
+      printf_stderr("WARNING: child tried to open %s IPDL channel w/o "
+                    "security info\n", context);
+      return true;
+    }
+  }
+  return false;
+}
 
 
 } 
