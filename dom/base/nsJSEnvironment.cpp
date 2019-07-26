@@ -1258,57 +1258,6 @@ nsJSContext::EvaluateString(const nsAString& aScript,
   return rv;
 }
 
-nsresult
-nsJSContext::ExecuteScript(JSScript* aScriptObject_,
-                           JSObject* aScopeObject_)
-{
-  JSAutoRequest ar(mContext);
-  JS::Rooted<JSObject*> aScopeObject(mContext, aScopeObject_);
-  JS::Rooted<JSScript*> aScriptObject(mContext, aScriptObject_);
-  NS_ENSURE_TRUE(mIsInitialized, NS_ERROR_NOT_INITIALIZED);
-
-  if (!mScriptsEnabled) {
-    return NS_OK;
-  }
-
-  nsAutoMicroTask mt;
-
-  if (!aScopeObject) {
-    aScopeObject = GetNativeGlobal();
-  }
-
-  xpc_UnmarkGrayScript(aScriptObject);
-  xpc_UnmarkGrayObject(aScopeObject);
-
-  
-  
-  nsCxPusher pusher;
-  pusher.Push(mContext);
-
-  
-  
-  {
-    JSAutoCompartment ac(mContext, aScopeObject);
-
-    
-    
-    
-    JS::Rooted<JS::Value> val(mContext);
-    if (!JS_ExecuteScript(mContext, aScopeObject, aScriptObject, val.address())) {
-      ReportPendingException();
-    }
-  }
-
-  
-  pusher.Pop();
-
-  
-  ScriptEvaluated(true);
-
-  return NS_OK;
-}
-
-
 #ifdef DEBUG
 bool
 AtomIsEventHandlerName(nsIAtom *aName)

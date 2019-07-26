@@ -78,23 +78,6 @@ public:
 
 
 
-  virtual nsresult ExecuteScript(JSScript* aScriptObject,
-                                 JSObject* aScopeObject) = 0;
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
