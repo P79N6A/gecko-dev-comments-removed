@@ -2788,7 +2788,16 @@ js_Array(JSContext *cx, unsigned argc, Value *vp)
         }
     }
 
-    RootedObject obj(cx, NewDenseUnallocatedArray(cx, length));
+    
+
+
+
+    static const uint32_t ArrayEagerAllocationMaxLength = 2048;
+
+    RootedObject obj(cx);
+    obj = (length <= ArrayEagerAllocationMaxLength)
+          ? NewDenseAllocatedArray(cx, length)
+          : NewDenseUnallocatedArray(cx, length);
     if (!obj)
         return false;
     Rooted<ArrayObject*> arr(cx, &obj->as<ArrayObject>());
