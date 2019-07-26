@@ -5126,7 +5126,8 @@ void
 gc::MergeCompartments(JSCompartment *source, JSCompartment *target)
 {
     
-    JS_ASSERT(source->options_.invisibleToDebugger());
+    
+    JS_ASSERT(source->options_.mergeable());
 
     JSRuntime *rt = source->runtimeFromMainThread();
 
