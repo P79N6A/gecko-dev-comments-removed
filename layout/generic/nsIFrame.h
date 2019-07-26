@@ -2230,12 +2230,6 @@ public:
   
 
 
-  bool IsFlexItem() const
-  { return mParent && mParent->GetType() == nsGkAtoms::flexContainerFrame; }
-
-  
-
-
 
 
 
@@ -2971,6 +2965,11 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::ParagraphDepthProperty()))
 
   virtual void FindCloserFrameForSelection(nsPoint aPoint,
                                            FrameWithDistance* aCurrentBestFrame);
+
+  
+
+
+  inline bool IsFlexItem() const;
 
   inline bool IsBlockInside() const;
   inline bool IsBlockOutside() const;
