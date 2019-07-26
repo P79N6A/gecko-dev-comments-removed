@@ -853,21 +853,19 @@ nsPlaintextEditor::UpdateIMEComposition(nsIDOMEvent* aDOMTextEvent)
     do_QueryInterface(aDOMTextEvent);
   NS_ENSURE_TRUE(privateTextEvent, NS_ERROR_INVALID_ARG);
 
-  
-  mComposition->EditorWillHandleTextEvent(widgetTextEvent);
-
-  
-  
-  mIMETextRangeList = privateTextEvent->GetInputRange();
-  NS_ABORT_IF_FALSE(mIMETextRangeList, "mIMETextRangeList must not be nullptr");
-
   {
+    TextComposition::TextEventHandlingMarker
+      textEventHandlingMarker(mComposition, widgetTextEvent);
+
+    
+    
+    mIMETextRangeList = privateTextEvent->GetInputRange();
+    NS_ABORT_IF_FALSE(mIMETextRangeList,
+                      "mIMETextRangeList must not be nullptr");
+
     nsAutoPlaceHolderBatch batch(this, nsGkAtoms::IMETxnName);
 
     rv = InsertText(widgetTextEvent->theText);
-
-    
-    mComposition->EditorDidHandleTextEvent();
 
     if (caretP) {
       caretP->SetCaretDOMSelection(selection);

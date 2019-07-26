@@ -91,20 +91,34 @@ public:
 
 
 
-  void EditorWillHandleTextEvent(const WidgetTextEvent* aTextEvent);
-
-  
-
-
-
-  void EditorDidHandleTextEvent();
-
-  
-
-
-
   void StartHandlingComposition(nsIEditor* aEditor);
   void EndHandlingComposition(nsIEditor* aEditor);
+
+  
+
+
+
+
+  class MOZ_STACK_CLASS TextEventHandlingMarker
+  {
+  public:
+    TextEventHandlingMarker(TextComposition* aComposition,
+                            const WidgetTextEvent* aTextEvent)
+      : mComposition(aComposition)
+    {
+      mComposition->EditorWillHandleTextEvent(aTextEvent);
+    }
+
+    ~TextEventHandlingMarker()
+    {
+      mComposition->EditorDidHandleTextEvent();
+    }
+
+  private:
+    nsRefPtr<TextComposition> mComposition;
+    TextEventHandlingMarker();
+    TextEventHandlingMarker(const TextEventHandlingMarker& aOther);
+  };
 
 private:
   
@@ -155,6 +169,18 @@ private:
 
 
   bool HasEditor() const;
+
+  
+
+
+
+  void EditorWillHandleTextEvent(const WidgetTextEvent* aTextEvent);
+
+  
+
+
+
+  void EditorDidHandleTextEvent();
 
   
 
