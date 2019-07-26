@@ -247,6 +247,8 @@ TopSitesView.prototype = {
         
         let event = document.createEvent("Events");
         event.actions = [...nextContextActions];
+        event.noun = tileGroup.contextNoun;
+        event.qty = selectedTiles.length;
         event.initEvent("MozContextActionsChange", true, false);
         tileGroup.dispatchEvent(event);
       },0);
