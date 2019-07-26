@@ -101,7 +101,7 @@ class TransportLayerPrsock : public TransportLayer {
   
   void OnSocketReady(PRFileDesc *fd, int16_t outflags);
   void OnSocketDetached(PRFileDesc *fd) {
-    SetState(TS_CLOSED);
+    TL_SET_STATE(TS_CLOSED);
   }
   void IsLocal(bool *aIsLocal) {
     

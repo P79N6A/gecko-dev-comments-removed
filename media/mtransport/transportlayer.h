@@ -90,7 +90,7 @@ class TransportLayer : public sigslot::has_slots<> {
 
  protected:
   virtual void WasInserted() {}
-  virtual void SetState(State state);
+  virtual void SetState(State state, const char *file, unsigned line);
   
   void CheckThread() {
     NS_ABORT_IF_FALSE(CheckThreadInt(), "Wrong thread");
@@ -119,6 +119,7 @@ class TransportLayer : public sigslot::has_slots<> {
 };
 
 #define LAYER_INFO "Flow[" << flow_id() << "(none)" << "]; Layer[" << id() << "]: "
+#define TL_SET_STATE(x) SetState((x), __FILE__, __LINE__)
 
 }  
 #endif
