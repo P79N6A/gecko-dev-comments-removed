@@ -5,55 +5,67 @@
 
 
 
+function test() {
+  Task.spawn(runner).then(finishTest);
 
+  function* runner() {
+    let {tab} = yield loadTab("data:text/html;charset=utf-8,Web Console test for bug 601352");
+    let hud = yield openConsole(tab);
+    hud.jsterm.clearOutput();
 
+    let longMessage = "";
+    for (let i = 0; i < 50; i++) {
+      longMessage += "LongNonwrappingMessage";
+    }
 
-function consoleOpened(HUD) {
-  HUD.jsterm.clearOutput();
+    for (let i = 0; i < 50; i++) {
+      content.console.log("test1 message " + i);
+    }
 
-  let longMessage = "";
-  for (let i = 0; i < 50; i++) {
-    longMessage += "LongNonwrappingMessage";
-  }
+    content.console.log(longMessage);
 
-  for (let i = 0; i < 50; i++) {
-    content.console.log("test message " + i);
-  }
+    for (let i = 0; i < 50; i++) {
+      content.console.log("test2 message " + i);
+    }
 
-  content.console.log(longMessage);
+    yield waitForMessages({
+      webconsole: hud,
+      messages: [{
+        text: "test1 message 0",
+      }, {
+        text: "test1 message 49",
+      }, {
+        text: "LongNonwrappingMessage",
+      }, {
+        text: "test2 message 0",
+      }, {
+        text: "test2 message 49",
+      }],
+    });
 
-  for (let i = 0; i < 50; i++) {
-    content.console.log("test message " + i);
-  }
+    let nodeDeferred = promise.defer();
+    hud.jsterm.execute("1+1", (node) => { nodeDeferred.resolve(node); });
+    let node = yield nodeDeferred.promise;
 
-  HUD.jsterm.execute("1+1", performTest);
-
-  function performTest(node) {
-    let scrollNode = HUD.outputNode.parentNode;
+    let scrollNode = hud.outputNode.parentNode;
     let rectNode = node.getBoundingClientRect();
     let rectOutput = scrollNode.getBoundingClientRect();
+    console.debug("rectNode", rectNode, "rectOutput", rectOutput);
+    console.log("scrollNode scrollHeight", scrollNode.scrollHeight, "scrollTop", scrollNode.scrollTop, "clientHeight", scrollNode.clientHeight);
 
     isnot(scrollNode.scrollTop, 0, "scroll location is not at the top");
 
     
-    let height = scrollNode.scrollHeight - scrollNode.scrollTop;
+    
 
     
-    let top = rectNode.top + scrollNode.scrollTop;
-    let bottom = top + node.clientHeight;
-    info("output height " + height + " node top " + top + " node bottom " + bottom + " node height " + node.clientHeight);
+    let height = rectOutput.height;
+
+    
+    let top = rectNode.top - rectOutput.top;
+    let bottom = top + rectNode.height;
+    info("node top " + top + " node bottom " + bottom + " node clientHeight " + node.clientHeight);
 
     ok(top >= 0 && bottom <= height, "last message is visible");
-
-    finishTest();
-  };
+  }
 }
-
-function test() {
-  addTab("data:text/html;charset=utf-8,Web Console test for bug 601352");
-  browser.addEventListener("load", function tabLoad(aEvent) {
-    browser.removeEventListener(aEvent.type, tabLoad, true);
-    openConsole(null, consoleOpened);
-  }, true);
-}
-
