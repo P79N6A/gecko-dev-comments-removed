@@ -194,6 +194,11 @@ RootActor.prototype = {
   
 
 
+  get url() { return this.window ? this.window.document.location.href : null; },
+
+  
+
+
   get webProgress() {
     return this.window
       .QueryInterface(Ci.nsIInterfaceRequestor)
@@ -274,6 +279,11 @@ RootActor.prototype = {
         "selected": selected || 0,
         "tabs": [actor.form() for (actor of tabActorList)],
       };
+
+      
+      if (this.url) {
+        reply.url = this.url;
+      }
 
       
       this._appendExtraActors(reply);

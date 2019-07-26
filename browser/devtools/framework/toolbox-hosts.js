@@ -26,7 +26,7 @@ exports.Hosts = {
   "side": SidebarHost,
   "window": WindowHost,
   "custom": CustomHost
-}
+};
 
 
 
@@ -272,7 +272,7 @@ WindowHost.prototype = {
 
     return promise.resolve(null);
   }
-}
+};
 
 
 
@@ -286,11 +286,14 @@ function CustomHost(hostTab, options) {
 CustomHost.prototype = {
   type: "custom",
 
-  _sendMessageToTopWindow: function CH__sendMessageToTopWindow(msg) {
+  _sendMessageToTopWindow: function CH__sendMessageToTopWindow(msg, data) {
     
     
     let topWindow = this.frame.ownerDocument.defaultView;
-    let json = {name:"toolbox-" + msg, uid: this.uid}
+    let json = {name:"toolbox-" + msg, uid: this.uid};
+    if (data) {
+      json.data = data;
+    }
     topWindow.postMessage(JSON.stringify(json), "*");
   },
 
@@ -312,7 +315,7 @@ CustomHost.prototype = {
 
 
   setTitle: function CH_setTitle(title) {
-    
+    this._sendMessageToTopWindow("title", { value: title });
   },
 
   

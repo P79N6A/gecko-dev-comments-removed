@@ -339,9 +339,25 @@ WebConsole.prototype = {
 
 
 
+
+
+
+
+  get chromeUtilsWindow()
+  {
+    if (this.browserWindow) {
+      return this.browserWindow;
+    }
+    return this.chromeWindow.top;
+  },
+
+  
+
+
+
   get mainPopupSet()
   {
-    return this.browserWindow.document.getElementById("mainPopupSet");
+    return this.chromeUtilsWindow.document.getElementById("mainPopupSet");
   },
 
   
@@ -353,7 +369,10 @@ WebConsole.prototype = {
     return this.ui ? this.ui.outputNode : null;
   },
 
-  get gViewSourceUtils() this.browserWindow.gViewSourceUtils,
+  get gViewSourceUtils()
+  {
+    return this.chromeUtilsWindow.gViewSourceUtils;
+  },
 
   
 
@@ -416,7 +435,7 @@ WebConsole.prototype = {
 
   openLink: function WC_openLink(aLink)
   {
-    this.browserWindow.openUILinkIn(aLink, "tab");
+    this.chromeUtilsWindow.openUILinkIn(aLink, "tab");
   },
 
   
