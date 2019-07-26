@@ -4,7 +4,7 @@
 
 
 
-#include "vm/GlobalObject.h"
+#include "vm/GlobalObject-inl.h"
 
 #include "jscntxt.h"
 #include "jsdate.h"
@@ -24,8 +24,6 @@
 #include "jscompartmentinlines.h"
 #include "jsfuninlines.h"
 #include "jsobjinlines.h"
-
-#include "vm/GlobalObject-inl.h"
 
 using namespace js;
 

@@ -4,13 +4,13 @@
 
 
 
-#include "vm/Runtime.h"
-
-#include <locale.h>
-#include <string.h>
+#include "vm/Runtime-inl.h"
 
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Util.h"
+
+#include <locale.h>
+#include <string.h>
 
 #include "jsatom.h"
 #include "jsgc.h"

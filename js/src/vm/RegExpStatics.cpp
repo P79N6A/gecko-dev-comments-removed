@@ -4,7 +4,7 @@
 
 
 
-#include "vm/RegExpStatics.h"
+#include "vm/RegExpStatics-inl.h"
 
 #include "vm/RegExpStaticsObject.h"
 

@@ -4,15 +4,15 @@
 
 
 
+#include "vm/SPSProfiler.h"
+
 #include "mozilla/DebugOnly.h"
 
 #include "jsnum.h"
 #include "jsscript.h"
 
-#include "vm/SPSProfiler.h"
-#include "vm/StringBuffer.h"
-
 #include "ion/BaselineJIT.h"
+#include "vm/StringBuffer.h"
 
 using namespace js;
 
