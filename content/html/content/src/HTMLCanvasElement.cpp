@@ -804,6 +804,7 @@ HTMLCanvasElement::GetContext(JSContext* aCx,
 
     rv = UpdateContext(aCx, aContextOptions);
     if (rv.Failed()) {
+      rv = NS_OK; 
       return nullptr;
     }
     mCurrentContextId.Assign(aContextId);
