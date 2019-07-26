@@ -210,8 +210,10 @@ struct IonScript
 
     
     
+    uint32 frameSlots_;
+
     
-    uint32 frameLocals_;
+    
     uint32 frameSize_;
 
     
@@ -358,8 +360,8 @@ struct IonScript
     size_t numConstants() const {
         return constantEntries_;
     }
-    uint32 frameLocals() const {
-        return frameLocals_;
+    uint32 frameSlots() const {
+        return frameSlots_;
     }
     uint32 frameSize() const {
         return frameSize_;

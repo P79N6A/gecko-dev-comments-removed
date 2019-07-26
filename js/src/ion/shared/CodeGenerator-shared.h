@@ -95,6 +95,9 @@ class CodeGeneratorShared : public LInstructionVisitor
     
     js::Vector<CodeOffsetLabel, 0, SystemAllocPolicy> barrierOffsets_;
 
+    
+    js::Vector<uint32, 0, SystemAllocPolicy> pushedArgumentSlots_;
+
   protected:
     
     
@@ -109,6 +112,9 @@ class CodeGeneratorShared : public LInstructionVisitor
     }
 
     typedef js::Vector<SafepointIndex, 8, SystemAllocPolicy> SafepointIndices;
+
+    bool markArgumentSlots(LSafepoint *safepoint);
+    void dropArguments(unsigned argc);
 
   protected:
     
@@ -134,6 +140,16 @@ class CodeGeneratorShared : public LInstructionVisitor
         int32 offset = masm.framePushed() - (slot * STACK_SLOT_SIZE);
         JS_ASSERT(offset >= 0);
         return offset;
+    }
+    inline int32 StackOffsetToSlot(int32 offset) const {
+        
+        
+        
+        
+        
+        
+        
+        return (masm.framePushed() - offset) / STACK_SLOT_SIZE;
     }
 
     
