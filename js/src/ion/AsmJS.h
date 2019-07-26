@@ -13,10 +13,7 @@
 # include <mach/mach.h>
 #endif
 
-
-
-#if defined(JS_ION) && \
-    (defined(JS_CPU_X86) || defined(JS_CPU_X64))
+#if defined(JS_ION)
 # define JS_ASMJS
 #endif
 

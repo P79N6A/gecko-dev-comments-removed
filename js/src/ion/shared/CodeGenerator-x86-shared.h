@@ -65,11 +65,6 @@ class CodeGeneratorX86Shared : public CodeGeneratorShared
     void emitCompare(MCompare::CompareType type, const LAllocation *left, const LAllocation *right);
 
     
-    void emitSet(Assembler::Condition cond, const Register &dest,
-                 Assembler::NaNCond ifNaN = Assembler::NaN_Unexpected);
-    void emitSet(Assembler::DoubleCondition cond, const Register &dest);
-
-    
     
     void emitBranch(Assembler::Condition cond, MBasicBlock *ifTrue, MBasicBlock *ifFalse,
                     Assembler::NaNCond ifNaN = Assembler::NaN_Unexpected);
@@ -78,10 +73,11 @@ class CodeGeneratorX86Shared : public CodeGeneratorShared
     bool emitTableSwitchDispatch(MTableSwitch *mir, const Register &index, const Register &base);
 
   public:
-    CodeGeneratorX86Shared(MIRGenerator *gen, LIRGraph *graph);
+    CodeGeneratorX86Shared(MIRGenerator *gen, LIRGraph *graph, MacroAssembler *masm);
 
   public:
     
+    virtual bool visitDouble(LDouble *ins);
     virtual bool visitMinMaxD(LMinMaxD *ins);
     virtual bool visitAbsD(LAbsD *ins);
     virtual bool visitSqrtD(LSqrtD *ins);
@@ -111,6 +107,12 @@ class CodeGeneratorX86Shared : public CodeGeneratorShared
     virtual bool visitGuardShape(LGuardShape *guard);
     virtual bool visitGuardClass(LGuardClass *guard);
     virtual bool visitTruncateDToInt32(LTruncateDToInt32 *ins);
+    virtual bool visitEffectiveAddress(LEffectiveAddress *ins);
+    virtual bool visitAsmJSDivOrMod(LAsmJSDivOrMod *ins);
+    virtual bool visitAsmJSPassStackArg(LAsmJSPassStackArg *ins);
+
+    bool visitNegI(LNegI *lir);
+    bool visitNegD(LNegD *lir);
 
     
     bool visitOutOfLineBailout(OutOfLineBailout *ool);

@@ -86,7 +86,11 @@ MoveEmitterARM::tempReg()
 
     
     
-    spilledReg_ = r12;
+    
+    
+    
+    
+    spilledReg_ = r14;
     if (pushedAtSpill_ == -1) {
         masm.Push(spilledReg_);
         pushedAtSpill_ = masm.framePushed();

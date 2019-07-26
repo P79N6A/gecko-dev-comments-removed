@@ -283,8 +283,13 @@ LookupHeapAccess(const AsmJSModule &module, uint8_t *pc)
 
 
 
-# if defined(__ANDROID__) && !defined(__BIONIC_HAVE_UCONTEXT_T)
+# if (defined(ANDROID)) && !defined(__BIONIC_HAVE_UCONTEXT_T)
 #  if defined(__arm__)
+
+
+#if !defined(__BIONIC_HAVE_STRUCT_SIGCONTEXT)
+#include <asm/sigcontext.h>
+#endif
 
 typedef struct sigcontext mcontext_t;
 

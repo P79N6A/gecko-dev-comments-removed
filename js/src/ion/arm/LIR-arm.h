@@ -71,13 +71,16 @@ class LUnboxDouble : public LInstructionHelper<1, 2, 0>
 };
 
 
-class LDouble : public LInstructionHelper<1, 1, 0>
+class LDouble : public LInstructionHelper<1, 0, 0>
 {
+    double d_;
   public:
     LIR_HEADER(Double);
 
-    LDouble(const LConstantIndex &cindex) {
-        setOperand(0, cindex);
+    LDouble(double d) : d_(d)
+    { }
+    double getDouble() const {
+        return d_;
     }
 };
 
@@ -291,6 +294,43 @@ class LMulI : public LBinaryMath<0>
 
     MMul *mir() {
         return mir_->toMul();
+    }
+};
+
+
+
+class LAsmJSDivOrMod : public LBinaryMath<2>
+{
+  public:
+    LIR_HEADER(AsmJSDivOrMod);
+
+    LAsmJSDivOrMod(const LAllocation &lhs, const LAllocation &rhs, const LDefinition &temp1, const LDefinition &temp2) {
+        setOperand(0, lhs);
+        setOperand(1, rhs);
+        setTemp(0, temp1);
+        setTemp(1, temp2);
+    }
+    
+    const LDefinition *remainder() {
+        return getTemp(0);
+    }
+};
+class LAsmJSLoadFuncPtr : public LInstructionHelper<1, 1, 1>
+{
+  public:
+    LIR_HEADER(AsmJSLoadFuncPtr);
+    LAsmJSLoadFuncPtr(const LAllocation &index, const LDefinition &temp) {
+        setOperand(0, index);
+        setTemp(0, temp);
+    }
+    const MAsmJSLoadFuncPtr *mir() const {
+        return mir_->toAsmJSLoadFuncPtr();
+    }
+    const LAllocation *index() {
+        return getOperand(0);
+    }
+    const LDefinition *temp() {
+        return getTemp(0);
     }
 };
 

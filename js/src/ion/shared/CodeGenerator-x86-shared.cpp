@@ -15,6 +15,7 @@
 #include "ion/IonFrames.h"
 #include "ion/MoveEmitter.h"
 #include "ion/IonCompartment.h"
+#include "ion/ParallelFunctions.h"
 
 using namespace js;
 using namespace js::ion;
@@ -22,8 +23,8 @@ using namespace js::ion;
 namespace js {
 namespace ion {
 
-CodeGeneratorX86Shared::CodeGeneratorX86Shared(MIRGenerator *gen, LIRGraph *graph)
-  : CodeGeneratorShared(gen, graph),
+CodeGeneratorX86Shared::CodeGeneratorX86Shared(MIRGenerator *gen, LIRGraph *graph, MacroAssembler *masm)
+  : CodeGeneratorShared(gen, graph, masm),
     deoptLabel_(NULL)
 {
 }
@@ -88,6 +89,14 @@ CodeGeneratorX86Shared::emitBranch(Assembler::Condition cond, MBasicBlock *mirTr
 }
 
 bool
+CodeGeneratorX86Shared::visitDouble(LDouble *ins)
+{
+    const LDefinition *out = ins->getDef(0);
+    masm.loadConstantDouble(ins->getDouble(), ToFloatRegister(out));
+    return true;
+}
+
+bool
 CodeGeneratorX86Shared::visitTestIAndBranch(LTestIAndBranch *test)
 {
     const LAllocation *opd = test->input();
@@ -120,42 +129,6 @@ CodeGeneratorX86Shared::visitTestDAndBranch(LTestDAndBranch *test)
 }
 
 void
-CodeGeneratorX86Shared::emitSet(Assembler::Condition cond, const Register &dest,
-                                Assembler::NaNCond ifNaN)
-{
-    if (GeneralRegisterSet(Registers::SingleByteRegs).has(dest)) {
-        
-        
-        masm.setCC(cond, dest);
-        masm.movzxbl(dest, dest);
-
-        if (ifNaN != Assembler::NaN_Unexpected) {
-            Label noNaN;
-            masm.j(Assembler::NoParity, &noNaN);
-            if (ifNaN == Assembler::NaN_IsTrue)
-                masm.movl(Imm32(1), dest);
-            else
-                masm.xorl(dest, dest);
-            masm.bind(&noNaN);
-        }
-    } else {
-        Label end;
-        Label ifFalse;
-
-        if (ifNaN == Assembler::NaN_IsFalse)
-            masm.j(Assembler::Parity, &ifFalse);
-        masm.movl(Imm32(1), dest);
-        masm.j(cond, &end);
-        if (ifNaN == Assembler::NaN_IsTrue)
-            masm.j(Assembler::Parity, &end);
-        masm.bind(&ifFalse);
-        masm.xorl(dest, dest);
-
-        masm.bind(&end);
-    }
-}
-
-void
 CodeGeneratorX86Shared::emitCompare(MCompare::CompareType type, const LAllocation *left, const LAllocation *right)
 {
 #ifdef JS_CPU_X64
@@ -174,16 +147,18 @@ CodeGeneratorX86Shared::emitCompare(MCompare::CompareType type, const LAllocatio
 bool
 CodeGeneratorX86Shared::visitCompare(LCompare *comp)
 {
-    emitCompare(comp->mir()->compareType(), comp->left(), comp->right());
-    emitSet(JSOpToCondition(comp->jsop()), ToRegister(comp->output()));
+    MCompare *mir = comp->mir();
+    emitCompare(mir->compareType(), comp->left(), comp->right());
+    masm.emitSet(JSOpToCondition(mir->compareType(), comp->jsop()), ToRegister(comp->output()));
     return true;
 }
 
 bool
 CodeGeneratorX86Shared::visitCompareAndBranch(LCompareAndBranch *comp)
 {
-    emitCompare(comp->mir()->compareType(), comp->left(), comp->right());
-    Assembler::Condition cond = JSOpToCondition(comp->jsop());
+    MCompare *mir = comp->mir();
+    emitCompare(mir->compareType(), comp->left(), comp->right());
+    Assembler::Condition cond = JSOpToCondition(mir->compareType(), comp->jsop());
     emitBranch(cond, comp->ifTrue(), comp->ifFalse());
     return true;
 }
@@ -196,7 +171,7 @@ CodeGeneratorX86Shared::visitCompareD(LCompareD *comp)
 
     Assembler::DoubleCondition cond = JSOpToDoubleCondition(comp->mir()->jsop());
     masm.compareDouble(cond, lhs, rhs);
-    emitSet(Assembler::ConditionFromDoubleCondition(cond), ToRegister(comp->output()),
+    masm.emitSet(Assembler::ConditionFromDoubleCondition(cond), ToRegister(comp->output()),
             Assembler::NaNCondFromDoubleCondition(cond));
     return true;
 }
@@ -205,7 +180,7 @@ bool
 CodeGeneratorX86Shared::visitNotI(LNotI *ins)
 {
     masm.cmpl(ToRegister(ins->input()), Imm32(0));
-    emitSet(Assembler::Equal, ToRegister(ins->output()));
+    masm.emitSet(Assembler::Equal, ToRegister(ins->output()));
     return true;
 }
 
@@ -216,7 +191,7 @@ CodeGeneratorX86Shared::visitNotD(LNotD *ins)
 
     masm.xorpd(ScratchFloatReg, ScratchFloatReg);
     masm.compareDouble(Assembler::DoubleEqualOrUnordered, opd, ScratchFloatReg);
-    emitSet(Assembler::Equal, ToRegister(ins->output()), Assembler::NaN_IsTrue);
+    masm.emitSet(Assembler::Equal, ToRegister(ins->output()), Assembler::NaN_IsTrue);
     return true;
 }
 
@@ -230,6 +205,22 @@ CodeGeneratorX86Shared::visitCompareDAndBranch(LCompareDAndBranch *comp)
     masm.compareDouble(cond, lhs, rhs);
     emitBranch(Assembler::ConditionFromDoubleCondition(cond), comp->ifTrue(), comp->ifFalse(),
                Assembler::NaNCondFromDoubleCondition(cond));
+    return true;
+}
+
+bool
+CodeGeneratorX86Shared::visitAsmJSPassStackArg(LAsmJSPassStackArg *ins)
+{
+    const MAsmJSPassStackArg *mir = ins->mir();
+    Operand dst(StackPointer, mir->spOffset());
+    if (ins->arg()->isConstant()) {
+        masm.mov(Imm32(ToInt32(ins->arg())), dst);
+    } else {
+        if (ins->arg()->isGeneralReg())
+            masm.mov(ToRegister(ins->arg()), dst);
+        else
+            masm.movsd(ToFloatRegister(ins->arg()), dst);
+    }
     return true;
 }
 
@@ -290,6 +281,22 @@ class BailoutLabel {
 template <typename T> bool
 CodeGeneratorX86Shared::bailout(const T &binder, LSnapshot *snapshot)
 {
+    CompileInfo &info = snapshot->mir()->block()->info();
+    switch (info.executionMode()) {
+      case ParallelExecution: {
+        
+        Label *ool;
+        if (!ensureOutOfLineParallelAbort(&ool))
+            return false;
+        binder(masm, ool);
+        return true;
+      }
+      case SequentialExecution:
+        break;
+      default:
+        JS_NOT_REACHED("No such execution mode");
+    }
+
     if (!encode(snapshot))
         return false;
 
@@ -623,6 +630,31 @@ CodeGeneratorX86Shared::visitMulI(LMulI *ins)
             masm.bind(ool->rejoin());
         }
     }
+
+    return true;
+}
+
+bool
+CodeGeneratorX86Shared::visitAsmJSDivOrMod(LAsmJSDivOrMod *ins)
+{
+    JS_ASSERT(ToRegister(ins->remainder()) == edx);
+    JS_ASSERT(ToRegister(ins->lhs()) == eax);
+    Register rhs = ToRegister(ins->rhs());
+    Register output = ToRegister(ins->output());
+
+    Label afterDiv;
+
+    masm.testl(rhs, rhs);
+    Label notzero;
+    masm.j(Assembler::NonZero, &notzero);
+    masm.movl(Imm32(0), output);
+    masm.jmp(&afterDiv);
+    masm.bind(&notzero);
+
+    masm.xorl(edx, edx);
+    masm.udiv(rhs);
+
+    masm.bind(&afterDiv);
 
     return true;
 }
@@ -1326,6 +1358,17 @@ CodeGeneratorX86Shared::visitTruncateDToInt32(LTruncateDToInt32 *ins)
 }
 
 bool
+CodeGeneratorX86Shared::visitEffectiveAddress(LEffectiveAddress *ins)
+{
+    const MEffectiveAddress *mir = ins->mir();
+    Register base = ToRegister(ins->base());
+    Register index = ToRegister(ins->index());
+    Register output = ToRegister(ins->output());
+    masm.leal(Operand(base, index, mir->scale(), mir->displacement()), output);
+    return true;
+}
+
+bool
 CodeGeneratorX86Shared::visitOutOfLineTruncate(OutOfLineTruncate *ool)
 {
     LTruncateDToInt32 *ins = ool->ins();
@@ -1411,6 +1454,27 @@ CodeGeneratorX86Shared::generateInvalidateEpilogue()
     masm.breakpoint();
     return true;
 }
+
+bool
+CodeGeneratorX86Shared::visitNegI(LNegI *ins)
+{
+    Register input = ToRegister(ins->input());
+    JS_ASSERT(input == ToRegister(ins->output()));
+
+    masm.neg32(input);
+    return true;
+}
+
+bool
+CodeGeneratorX86Shared::visitNegD(LNegD *ins)
+{
+    FloatRegister input = ToFloatRegister(ins->input());
+    JS_ASSERT(input == ToFloatRegister(ins->output()));
+
+    masm.negateDouble(input);
+    return true;
+}
+
 
 } 
 } 
