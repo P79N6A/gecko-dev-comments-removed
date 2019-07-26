@@ -61,8 +61,8 @@ mjit::Compiler::Compiler(JSContext *cx, JSScript *outerScript,
     ssa(cx, outerScript),
     globalObj(cx, outerScript->hasGlobal() ? &outerScript->global() : NULL),
     globalSlots(globalObj ? globalObj->getRawSlots() : NULL),
-    sps(&cx->runtime->spsProfiler, &script, &PC),
-    masm(&sps),
+    sps(&cx->runtime->spsProfiler),
+    masm(&sps, &PC),
     frame(cx, *thisFromCtor(), masm, stubcc),
     a(NULL), outer(NULL), script(NULL), PC(NULL), loop(NULL),
     inlineFrames(CompilerAllocPolicy(cx, *thisFromCtor())),
@@ -450,7 +450,7 @@ mjit::Compiler::pushActiveFrame(JSScript *script, uint32_t argc)
             return status;
     }
 
-    if (!sps.enterInlineFrame())
+    if (script != outerScript && !sps.enterInlineFrame())
         return Compile_Error;
 
     this->script = script;
@@ -532,7 +532,7 @@ mjit::Compiler::performCompilation()
         if (chunkIndex == 0)
             CHECK_STATUS(generatePrologue());
         else
-            sps.setPushed();
+            sps.setPushed(script);
         CHECK_STATUS(generateMethod());
         if (outerJIT() && chunkIndex == outerJIT()->nchunks - 1)
             CHECK_STATUS(generateEpilogue());
@@ -893,9 +893,9 @@ MakeJITScript(JSContext *cx, JSScript *script)
 
     
     jsbytecode *pc;
-    SPSInstrumentation sps(&cx->runtime->spsProfiler, &script, &pc);
-    Assembler masm(&sps);
-    sps.setPushed();
+    MJITInstrumentation sps(&cx->runtime->spsProfiler);
+    Assembler masm(&sps, &pc);
+    sps.setPushed(script);
     for (unsigned i = 0; i < jit->nedges; i++) {
         pc = script->code + jitEdges[i].target;
         jitEdges[i].shimLabel = (void *) masm.distanceOf(masm.label());
@@ -973,8 +973,18 @@ mjit::CanMethodJIT(JSContext *cx, JSScript *script, jsbytecode *pc,
 
 
 
-    if (frame->hasPushedSPSFrame() && !cx->runtime->spsProfiler.enabled())
-        return Compile_Skipped;
+
+
+
+
+
+
+
+
+    if (frame->script() == script && pc != script->code) {
+        if (frame->hasPushedSPSFrame() != cx->runtime->spsProfiler.enabled())
+            return Compile_Skipped;
+    }
 		
     if (IonGetsFirstChance(cx, script, request))
         return Compile_Skipped;
@@ -4029,7 +4039,7 @@ mjit::Compiler::methodEntryHelper()
     
     if (sps.enabled()) {
         RegisterID reg = frame.allocReg();
-        sps.pushManual(masm, reg);
+        sps.pushManual(script, masm, reg);
         frame.freeReg(reg);
     }
     return Compile_Okay;
@@ -4041,7 +4051,7 @@ mjit::Compiler::profilingPushHelper()
     if (!sps.enabled())
         return Compile_Okay;
     RegisterID reg = frame.allocReg();
-    if (!sps.push(cx, masm, reg))
+    if (!sps.push(cx, script, masm, reg))
         return Compile_Error;
 
     
@@ -4060,8 +4070,10 @@ mjit::Compiler::profilingPopHelper()
         sps.skipNextReenter();
         prepareStubCall(Uses(0));
         INLINE_STUBCALL(stubs::ScriptProbeOnlyEpilogue, REJOIN_RESUME);
-    } else {
-        sps.pop(masm);
+    } else if (cx->runtime->spsProfiler.enabled()) {
+        RegisterID reg = frame.allocReg();
+        sps.pop(masm, reg);
+        frame.freeReg(reg);
     }
 }
 
@@ -4190,7 +4202,7 @@ mjit::Compiler::inlineCallHelper(uint32_t argc, bool callingNew, FrameSize &call
     interruptCheckHelper();
     if (sps.enabled()) {
         RegisterID reg = frame.allocReg();
-        sps.leave(masm, reg);
+        sps.leave(PC, masm, reg);
         frame.freeReg(reg);
     }
 
@@ -4553,7 +4565,7 @@ mjit::Compiler::inlineScriptedFunction(uint32_t argc, bool callingNew)
 
     if (sps.enabled()) {
         RegisterID reg = frame.allocReg();
-        sps.leave(masm, reg);
+        sps.leave(PC, masm, reg);
         frame.freeReg(reg);
     }
 

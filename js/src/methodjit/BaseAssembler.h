@@ -78,131 +78,8 @@ struct StackMarker {
     { }
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-class SPSInstrumentation {
-    typedef JSC::MacroAssembler::RegisterID RegisterID;
-
-    
-    struct FrameState {
-        bool pushed;    
-        bool skipNext;  
-        int  left;      
-    };
-
-    SPSProfiler *profiler_;   
-    JSScript **script_;       
-    jsbytecode **pc_;         
-    VMFrame *vmframe;         
-
-    Vector<FrameState, 1, SystemAllocPolicy> frames;
-    FrameState *frame;
-
-    
-
-
-
-
-
-
-    JSScript *script() { return script_ ? *script_ : vmframe->script(); }
-    jsbytecode *pc() { return pc_ ? *pc_ : vmframe->pc(); }
-
-  public:
-    
-    SPSInstrumentation(SPSProfiler *profiler, JSScript **script, jsbytecode **pc)
-      : profiler_(profiler),
-        script_(script),
-        pc_(pc),
-        vmframe(NULL),
-        frame(NULL)
-    {
-        enterInlineFrame();
-    }
-
-    
-    SPSInstrumentation(VMFrame *f)
-      : profiler_(&f->cx->runtime->spsProfiler),
-        script_(NULL),
-        pc_(NULL),
-        vmframe(f),
-        frame(NULL)
-    {
-        enterInlineFrame();
-        setPushed();
-    }
-
-    
-    bool enabled() { return profiler_ && profiler_->enabled(); }
-    SPSProfiler *profiler() { JS_ASSERT(enabled()); return profiler_; }
-    bool slowAssertions() { return enabled() && profiler_->slowAssertionsEnabled(); }
-
-    
-    void leaveInlineFrame() {
-        if (!enabled())
-            return;
-        frames.shrinkBy(1);
-        JS_ASSERT(frames.length() > 0);
-        frame = &frames[frames.length() - 1];
-    }
-
-    
-    bool enterInlineFrame() {
-        if (!enabled())
-            return true;
-        if (!frames.growBy(1))
-            return false;
-        frame = &frames[frames.length() - 1];
-        frame->pushed = frame->skipNext = false;
-        frame->left = 0;
-        return true;
-    }
-
-    
-
-
-
-
-
-
-
-    void skipNextReenter() {
-        if (!enabled())
-            return;
-        JS_ASSERT(!frame->skipNext && frame->left == 0);
-        frame->skipNext = true;
-    }
-
-    
-
-
-
-
-    void setPushed() {
-        if (!enabled())
-            return;
-        JS_ASSERT(!frame->pushed);
-        frame->pushed = true;
-    }
-
-    
-    bool push(JSContext *cx, Assembler &masm, RegisterID scratch);
-    void pushManual(Assembler &masm, RegisterID scratch);
-    void leave(Assembler &masm, RegisterID scratch);
-    void reenter(Assembler &masm, RegisterID scratch);
-    void pop(Assembler &masm);
-};
+typedef SPSInstrumentation<Assembler, JSC::MacroAssembler::RegisterID>
+        MJITInstrumentation;
 
 class Assembler : public ValueAssembler
 {
@@ -246,10 +123,15 @@ class Assembler : public ValueAssembler
 
     
     
-    SPSInstrumentation *sps;
+    
+    
+    
+    MJITInstrumentation *sps;
+    VMFrame *vmframe; 
+    jsbytecode **pc;  
 
   public:
-    Assembler(SPSInstrumentation *sps = NULL)
+    Assembler(MJITInstrumentation *sps = NULL, VMFrame *vmframe = NULL)
       : callPatches(SystemAllocPolicy()),
         availInCall(0),
         extraStackSpace(0),
@@ -257,7 +139,26 @@ class Assembler : public ValueAssembler
 #ifdef DEBUG
         callIsAligned(false),
 #endif
-        sps(sps)
+        sps(sps),
+        vmframe(vmframe),
+        pc(NULL)
+    {
+        startLabel = label();
+        if (vmframe)
+            sps->setPushed(vmframe->script());
+    }
+
+    Assembler(MJITInstrumentation *sps, jsbytecode **pc)
+      : callPatches(SystemAllocPolicy()),
+        availInCall(0),
+        extraStackSpace(0),
+        stackAdjust(0),
+#ifdef DEBUG
+        callIsAligned(false),
+#endif
+        sps(sps),
+        vmframe(NULL),
+        pc(pc)
     {
         startLabel = label();
     }
@@ -687,13 +588,14 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::MIPSRegiste
     
     
     void leaveBeforeCall() {
+        jsbytecode *pc = vmframe == NULL ? *this->pc : vmframe->pc();
         if (availInCall.empty()) {
             RegisterID reg = Registers(Registers::TempRegs).peekReg().reg();
             saveReg(reg);
-            sps->leave(*pc_, *this, reg);
+            sps->leave(pc, *this, reg);
             restoreReg(reg);
         } else {
-            sps->leave(*this, availInCall.peekReg().reg());
+            sps->leave(pc, *this, availInCall.peekReg().reg());
         }
     }
 
@@ -1582,8 +1484,9 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::MIPSRegiste
         add32(Imm32(1), AbsoluteAddress(p->sizePointer()));
     }
 
-    void spsPopFrame(SPSProfiler *p) {
-        sub32(Imm32(1), AbsoluteAddress(p->sizePointer()));
+    void spsPopFrame(SPSProfiler *p, RegisterID reg) {
+        move(ImmPtr(p->sizePointer()), reg);
+        sub32(Imm32(1), Address(reg, 0));
     }
 
     static const double oneDouble;
@@ -1632,86 +1535,6 @@ class PreserveRegisters {
             masm.restoreReg(regs[--count]);
     }
 };
-
-
-
-
-
-inline bool
-SPSInstrumentation::push(JSContext *cx, Assembler &masm, RegisterID scratch)
-{
-    JS_ASSERT(!frame->pushed);
-    JS_ASSERT(frame->left == 0);
-    if (!enabled())
-        return true;
-    JSScript *s = script();
-    const char *string = profiler_->profileString(cx, s, s->function());
-    if (string == NULL)
-        return false;
-    masm.spsPushFrame(profiler_, string, script(), scratch);
-    frame->pushed = true;
-    return true;
-}
-
-
-
-
-
-
-inline void
-SPSInstrumentation::pushManual(Assembler &masm, RegisterID scratch)
-{
-    JS_ASSERT(!frame->pushed);
-    JS_ASSERT(frame->left == 0);
-    if (!enabled())
-        return;
-    masm.spsUpdatePCIdx(profiler_, ProfileEntry::NullPCIndex, scratch);
-    frame->pushed = true;
-}
-
-
-
-
-
-
-
-
-inline void
-SPSInstrumentation::leave(Assembler &masm, RegisterID scratch)
-{
-    if (enabled() && frame->pushed && frame->left++ == 0)
-        masm.spsUpdatePCIdx(profiler_, pc() - script()->code, scratch);
-}
-
-
-
-
-
-inline void
-SPSInstrumentation::reenter(Assembler &masm, RegisterID scratch)
-{
-    if (!enabled() || !frame->pushed || frame->left-- != 1)
-        return;
-    if (frame->skipNext)
-        frame->skipNext = false;
-    else
-        masm.spsUpdatePCIdx(profiler_, ProfileEntry::NullPCIndex, scratch);
-}
-
-
-
-
-
-
-inline void
-SPSInstrumentation::pop(Assembler &masm)
-{
-    if (enabled()) {
-        JS_ASSERT(frame->left == 0);
-        JS_ASSERT(frame->pushed);
-        masm.spsPopFrame(profiler_);
-    }
-}
 
 } 
 } 

@@ -12,6 +12,7 @@
 
 #include "mozilla/HashFunctions.h"
 #include "js/Utility.h"
+#include "jsscript.h"
 
 
 
@@ -101,7 +102,6 @@
 
 
 struct JSFunction;
-struct JSScript;
 
 namespace js {
 
@@ -167,6 +167,7 @@ class SPSProfiler
     void updatePC(JSScript *script, jsbytecode *pc) {
         if (enabled() && *size_ - 1 < max_) {
             JS_ASSERT(*size_ > 0);
+            JS_ASSERT(stack_[*size_ - 1].script() == script);
             stack_[*size_ - 1].setPC(pc);
         }
     }
@@ -260,10 +261,218 @@ class SPSProfiler
 class SPSEntryMarker
 {
     SPSProfiler *profiler;
+    DebugOnly<uint32_t> size_before;
     JS_DECL_USE_GUARD_OBJECT_NOTIFIER
   public:
     SPSEntryMarker(JSRuntime *rt JS_GUARD_OBJECT_NOTIFIER_PARAM);
     ~SPSEntryMarker();
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template<class Assembler, class Register>
+class SPSInstrumentation
+{
+    
+    struct FrameState {
+        JSScript *script; 
+        bool skipNext;    
+        int  left;        
+    };
+
+    SPSProfiler *profiler_; 
+
+    Vector<FrameState, 1, SystemAllocPolicy> frames;
+    FrameState *frame;
+
+  public:
+    
+
+
+
+
+
+    class CallScope
+    {
+        SPSInstrumentation *sps;
+        jsbytecode *pc;
+        Assembler &masm;
+        Register reg;
+        JS_DECL_USE_GUARD_OBJECT_NOTIFIER
+      public:
+
+        
+
+
+
+
+        CallScope(SPSInstrumentation *sps, jsbytecode *pc, Assembler &masm,
+                  Register reg JS_GUARD_OBJECT_NOTIFIER_PARAM)
+          : sps(sps), pc(pc), masm(masm), reg(reg)
+        {
+            JS_GUARD_OBJECT_NOTIFIER_INIT;
+            if (sps)
+                sps->leave(pc, masm, reg);
+        }
+
+        ~CallScope() {
+            if (sps)
+                sps->reenter(masm, reg);
+        }
+    };
+
+    
+
+
+
+    SPSInstrumentation(SPSProfiler *profiler)
+      : profiler_(profiler), frame(NULL)
+    {
+        enterInlineFrame();
+    }
+
+    
+    bool enabled() { return profiler_ && profiler_->enabled(); }
+    SPSProfiler *profiler() { JS_ASSERT(enabled()); return profiler_; }
+    bool slowAssertions() { return enabled() && profiler_->slowAssertionsEnabled(); }
+
+    
+    void leaveInlineFrame() {
+        if (!enabled())
+            return;
+        JS_ASSERT(frame->left == 0);
+        JS_ASSERT(frame->script != NULL);
+        frames.shrinkBy(1);
+        JS_ASSERT(frames.length() > 0);
+        frame = &frames[frames.length() - 1];
+    }
+
+    
+    bool enterInlineFrame() {
+        if (!enabled())
+            return true;
+        JS_ASSERT_IF(frame != NULL, frame->script != NULL);
+        JS_ASSERT_IF(frame != NULL, frame->left == 1);
+        if (!frames.growBy(1))
+            return false;
+        frame = &frames[frames.length() - 1];
+        frame->script = NULL;
+        frame->skipNext = false;
+        frame->left = 0;
+        return true;
+    }
+
+    
+    unsigned inliningDepth() {
+        return frames.length() - 1;
+    }
+
+    
+
+
+
+
+
+
+
+    void skipNextReenter() {
+        
+        if (!enabled() || frame->left != 0)
+            return;
+        JS_ASSERT(frame->script);
+        JS_ASSERT(!frame->skipNext);
+        frame->skipNext = true;
+    }
+
+    
+
+
+
+
+    void setPushed(JSScript *script) {
+        if (!enabled())
+            return;
+        JS_ASSERT(frame->script == NULL);
+        JS_ASSERT(frame->left == 0);
+        frame->script = script;
+    }
+
+    
+
+
+
+    bool push(JSContext *cx, JSScript *script, Assembler &masm, Register scratch) {
+        if (!enabled())
+            return true;
+        const char *string = profiler_->profileString(cx, script,
+                                                      script->function());
+        if (string == NULL)
+            return false;
+        masm.spsPushFrame(profiler_, string, script, scratch);
+        setPushed(script);
+        return true;
+    }
+
+    
+
+
+
+
+    void pushManual(JSScript *script, Assembler &masm, Register scratch) {
+        if (!enabled())
+            return;
+        masm.spsUpdatePCIdx(profiler_, ProfileEntry::NullPCIndex, scratch);
+        setPushed(script);
+    }
+
+    
+
+
+
+
+
+
+    void leave(jsbytecode *pc, Assembler &masm, Register scratch) {
+        if (enabled() && frame->script && frame->left++ == 0)
+            masm.spsUpdatePCIdx(profiler_, pc - frame->script->code, scratch);
+    }
+
+    
+
+
+
+    void reenter(Assembler &masm, Register scratch) {
+        if (!enabled() || !frame->script || frame->left-- != 1)
+            return;
+        if (frame->skipNext)
+            frame->skipNext = false;
+        else
+            masm.spsUpdatePCIdx(profiler_, ProfileEntry::NullPCIndex, scratch);
+    }
+
+    
+
+
+
+
+    void pop(Assembler &masm, Register scratch) {
+        if (enabled()) {
+            JS_ASSERT(frame->left == 0);
+            JS_ASSERT(frame->script);
+            masm.spsPopFrame(profiler_, scratch);
+        }
+    }
 };
 
 } 
