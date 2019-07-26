@@ -4,6 +4,7 @@
 
 
 #include "mozilla/HangMonitor.h"
+#include "mozilla/BackgroundHangMonitor.h"
 #include "mozilla/Monitor.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Telemetry.h"
@@ -344,6 +345,10 @@ NotifyActivity(ActivityType activityType)
     }
     cumulativeUILagMS = 0;
   }
+
+  if (gThread && !gShutdown) {
+    mozilla::BackgroundHangMonitor().NotifyActivity();
+  }
 }
 
 void
@@ -354,6 +359,10 @@ Suspend()
 
   
   gTimestamp = PR_INTERVAL_NO_WAIT;
+
+  if (gThread && !gShutdown) {
+    mozilla::BackgroundHangMonitor().NotifyWait();
+  }
 }
 
 } } 
