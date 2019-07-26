@@ -7436,15 +7436,20 @@ JSObject* nsGlobalWindow::CallerGlobal()
   
   
   
-  JS::Rooted<JSObject*> scriptedGlobal(cx, JS_GetScriptedGlobal(cx));
-  JS::Rooted<JSObject*> cxGlobal(cx, JS::CurrentGlobalOrNull(cx));
-  nsIPrincipal* scriptedPrin = nsContentUtils::GetObjectPrincipal(scriptedGlobal);
-  nsIPrincipal* cxPrin = nsContentUtils::GetObjectPrincipal(cxGlobal);
-  if (!cxPrin->SubsumesConsideringDomain(scriptedPrin)) {
-    NS_WARNING("Something nasty is happening! Applying countermeasures...");
-    return cxGlobal;
-  }
-  return scriptedGlobal;
+  
+  
+  
+  
+  
+  
+  
+  
+  JS::Rooted<JSObject*> incumbentGlobal(cx, &IncumbentJSGlobal());
+  JS::Rooted<JSObject*> compartmentGlobal(cx, JS::CurrentGlobalOrNull(cx));
+  nsIPrincipal* incumbentPrin = nsContentUtils::GetObjectPrincipal(incumbentGlobal);
+  nsIPrincipal* compartmentPrin = nsContentUtils::GetObjectPrincipal(compartmentGlobal);
+  return incumbentPrin->EqualsConsideringDomain(compartmentPrin) ? incumbentGlobal
+                                                                 : compartmentGlobal;
 }
 
 

@@ -1818,18 +1818,6 @@ CurrentGlobalOrNull(JSContext *cx);
 
 
 
-
-
-
-
-
-
-extern JS_PUBLIC_API(JSObject *)
-JS_GetScriptedGlobal(JSContext *cx);
-
-
-
-
 extern JS_PUBLIC_API(JSObject *)
 JS_InitReflect(JSContext *cx, JS::HandleObject global);
 

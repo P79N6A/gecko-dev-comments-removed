@@ -57,6 +57,14 @@ nsIGlobalObject* GetIncumbentGlobal();
 
 nsIPrincipal* GetWebIDLCallerPrincipal();
 
+
+
+
+inline JSObject& IncumbentJSGlobal()
+{
+  return *GetIncumbentGlobal()->GetGlobalJSObject();
+}
+
 class ScriptSettingsStack;
 struct ScriptSettingsStackEntry {
   nsCOMPtr<nsIGlobalObject> mGlobalObject;
