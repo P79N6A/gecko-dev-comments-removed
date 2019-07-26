@@ -82,6 +82,8 @@ MobileConnection::MobileConnection()
   
   if (!mProvider) {
     NS_WARNING("Could not acquire nsIMobileConnectionProvider!");
+  } else {
+    mProvider->RegisterMobileConnectionMsg();
   }
 }
 
