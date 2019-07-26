@@ -249,6 +249,5 @@ public:
 
 
 typedef mozilla::InternalScriptErrorEvent nsScriptErrorEvent;
-typedef mozilla::InternalScrollPortEvent  nsScrollPortEvent;
 
 #endif
