@@ -7,43 +7,31 @@
 #ifndef mozilla_ipc_Ril_h
 #define mozilla_ipc_Ril_h 1
 
-#include "mozilla/RefPtr.h"
-
-namespace base {
-class MessageLoop;
-}
+#include <mozilla/dom/workers/Workers.h>
+#include <mozilla/ipc/UnixSocket.h>
 
 namespace mozilla {
 namespace ipc {
 
-
-
-
-
-
-
-
-struct RilRawData
-{
-    static const size_t MAX_DATA_SIZE = 1024;
-    uint8_t mData[MAX_DATA_SIZE];
-
-    
-    size_t mSize;
-};
-
-class RilConsumer : public RefCounted<RilConsumer>
+class RilConsumer : public mozilla::ipc::UnixSocketConsumer
 {
 public:
-    virtual ~RilConsumer() { }
-    virtual void MessageReceived(RilRawData* aMessage) { }
+  RilConsumer(mozilla::dom::workers::WorkerCrossThreadDispatcher* aDispatcher);
+  virtual ~RilConsumer() { }
+
+  void Shutdown();
+
+private:
+  virtual void ReceiveSocketData(nsAutoPtr<UnixSocketRawData>& aMessage);
+
+  virtual void OnConnectSuccess();
+  virtual void OnConnectError();
+  virtual void OnDisconnect();
+
+private:
+  nsRefPtr<mozilla::dom::workers::WorkerCrossThreadDispatcher> mDispatcher;
+  bool mShutdown;
 };
-
-bool StartRil(RilConsumer* aConsumer);
-
-bool SendRilRawData(RilRawData** aMessage);
-
-void StopRil();
 
 } 
 } 
