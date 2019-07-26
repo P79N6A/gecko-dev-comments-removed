@@ -3058,7 +3058,6 @@ xpc::SandboxCallableProxyHandler::call(JSContext *cx, JS::Handle<JSObject*> prox
                                        unsigned argc, Value *vp)
 {
     
-    
 
     
     JSObject *sandboxProxy = JS_GetParent(proxy);
@@ -3106,7 +3105,7 @@ xpc::SandboxCallableProxyHandler::call(JSContext *cx, JS::Handle<JSObject*> prox
         thisVal = ObjectValue(*js::GetProxyTargetObject(sandboxProxy));
     }
 
-    return JS::Call(cx, thisVal, js::GetProxyCall(proxy), argc,
+    return JS::Call(cx, thisVal, js::GetProxyPrivate(proxy), argc,
                     JS_ARGV(cx, vp), vp);
 }
 
@@ -3125,11 +3124,9 @@ WrapCallable(JSContext *cx, JSObject *callable, JSObject *sandboxProtoProxy)
                js::GetProxyHandler(sandboxProtoProxy) ==
                  &xpc::sandboxProxyHandler);
 
-    
-    
     return js::NewProxyObject(cx, &xpc::sandboxCallableProxyHandler,
                               ObjectValue(*callable), nullptr,
-                              sandboxProtoProxy, callable, callable);
+                              sandboxProtoProxy, js::ProxyIsCallable);
 }
 
 template<typename Op>
