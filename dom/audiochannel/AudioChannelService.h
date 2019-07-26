@@ -11,7 +11,8 @@
 #include "nsISupports.h"
 
 #include "AudioChannelCommon.h"
-#include "nsHTMLMediaElement.h"
+#include "AudioChannelAgent.h"
+#include "nsDataHashtable.h"
 
 namespace mozilla {
 namespace dom {
@@ -37,14 +38,14 @@ public:
 
 
 
-  virtual void RegisterMediaElement(nsHTMLMediaElement* aMediaElement,
-                                    AudioChannelType aType);
+  virtual void RegisterAudioChannelAgent(AudioChannelAgent* aAgent,
+                                         AudioChannelType aType);
 
   
 
 
 
-  virtual void UnregisterMediaElement(nsHTMLMediaElement* aMediaElement);
+  virtual void UnregisterAudioChannelAgent(AudioChannelAgent* aAgent);
 
   
 
@@ -72,7 +73,7 @@ protected:
 
   const char* ChannelName(AudioChannelType aType);
 
-  nsDataHashtable< nsPtrHashKey<nsHTMLMediaElement>, AudioChannelType > mMediaElements;
+  nsDataHashtable< nsPtrHashKey<AudioChannelAgent>, AudioChannelType > mAgents;
 
   int32_t* mChannelCounters;
 

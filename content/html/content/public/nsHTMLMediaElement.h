@@ -26,6 +26,7 @@
 #include "AudioChannelCommon.h"
 #include "DecoderTraits.h"
 #include "MediaMetadataManager.h"
+#include "AudioChannelAgent.h"
 
 
 
@@ -40,7 +41,8 @@ class MediaDecoder;
 
 class nsHTMLMediaElement : public nsGenericHTMLElement,
                            public nsIObserver,
-                           public mozilla::MediaDecoderOwner
+                           public mozilla::MediaDecoderOwner,
+                           public nsIAudioChannelAgentCallback
 {
 public:
   typedef mozilla::TimeStamp TimeStamp;
@@ -74,6 +76,8 @@ public:
   NS_DECL_NSIDOMHTMLMEDIAELEMENT
 
   NS_DECL_NSIOBSERVER
+
+  NS_DECL_NSIAUDIOCHANNELAGENTCALLBACK
 
   
   NS_DECL_ISUPPORTS_INHERITED
@@ -318,9 +322,6 @@ public:
     NS_ASSERTION(mSrcStream, "Don't call this when not playing a stream");
     return mSrcStream->GetStream();
   }
-
-  
-   nsresult NotifyAudioChannelStateChanged();
 
 protected:
   class MediaLoadListener;
@@ -605,7 +606,7 @@ protected:
   bool CheckAudioChannelPermissions(const nsAString& aType);
 
   
-  nsresult UpdateChannelMuteState();
+  nsresult UpdateChannelMuteState(bool aCanPlay);
 
   
   void UpdateAudioChannelPlayingState();
@@ -890,6 +891,9 @@ protected:
 
   
   bool mPlayingThroughTheAudioChannel;
+
+  
+  nsCOMPtr<nsIAudioChannelAgent> mAudioChannelAgent;
 };
 
 #endif

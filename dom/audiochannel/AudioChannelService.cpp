@@ -78,7 +78,7 @@ AudioChannelService::AudioChannelService()
   }
 
   
-  mMediaElements.Init();
+  mAgents.Init();
 }
 
 AudioChannelService::~AudioChannelService()
@@ -87,10 +87,10 @@ AudioChannelService::~AudioChannelService()
 }
 
 void
-AudioChannelService::RegisterMediaElement(nsHTMLMediaElement* aMediaElement,
+AudioChannelService::RegisterAudioChannelAgent(AudioChannelAgent* aAgent,
                                           AudioChannelType aType)
 {
-  mMediaElements.Put(aMediaElement, aType);
+  mAgents.Put(aAgent, aType);
   RegisterType(aType);
 }
 
@@ -105,14 +105,14 @@ AudioChannelService::RegisterType(AudioChannelType aType)
 }
 
 void
-AudioChannelService::UnregisterMediaElement(nsHTMLMediaElement* aMediaElement)
+AudioChannelService::UnregisterAudioChannelAgent(AudioChannelAgent* aAgent)
 {
   AudioChannelType type;
-  if (!mMediaElements.Get(aMediaElement, &type)) {
+  if (!mAgents.Get(aAgent, &type)) {
     return;
   }
 
-  mMediaElements.Remove(aMediaElement);
+  mAgents.Remove(aAgent);
   UnregisterType(type);
 }
 
@@ -167,12 +167,14 @@ AudioChannelService::GetMuted(AudioChannelType aType, bool aElementHidden)
               !!mChannelCounters[AUDIO_CHANNEL_TELEPHONY] ||
               !!mChannelCounters[AUDIO_CHANNEL_RINGER] ||
               !!mChannelCounters[AUDIO_CHANNEL_PUBLICNOTIFICATION];
+      break;
 
     case AUDIO_CHANNEL_NOTIFICATION:
     case AUDIO_CHANNEL_ALARM:
     case AUDIO_CHANNEL_TELEPHONY:
     case AUDIO_CHANNEL_RINGER:
       muted = ChannelsActiveWithHigherPriorityThan(aType);
+      break;
 
     case AUDIO_CHANNEL_PUBLICNOTIFICATION:
       break;
@@ -211,11 +213,11 @@ AudioChannelService::GetMuted(AudioChannelType aType, bool aElementHidden)
 
 
 static PLDHashOperator
-NotifyEnumerator(nsHTMLMediaElement* aElement,
+NotifyEnumerator(AudioChannelAgent* aAgent,
                  AudioChannelType aType, void* aData)
 {
-  if (aElement) {
-    aElement->NotifyAudioChannelStateChanged();
+  if (aAgent) {
+    aAgent->NotifyAudioChannelStateChanged();
   }
   return PL_DHASH_NEXT;
 }
@@ -226,7 +228,7 @@ AudioChannelService::Notify()
   MOZ_ASSERT(NS_IsMainThread());
 
   
-  mMediaElements.EnumerateRead(NotifyEnumerator, nullptr);
+  mAgents.EnumerateRead(NotifyEnumerator, nullptr);
 
   
   nsTArray<ContentParent*> children;
