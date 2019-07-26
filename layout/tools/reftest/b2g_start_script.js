@@ -2,6 +2,9 @@
 
 
 
+let serverAddr = __marionetteParams[0];
+let serverPort = __marionetteParams[1];
+
 function setDefaultPrefs() {
     
     
@@ -41,12 +44,6 @@ function setDefaultPrefs() {
 }
 
 function setPermissions() {
-  if (__marionetteParams.length < 2) {
-    return;
-  }
-
-  let serverAddr = __marionetteParams[0];
-  let serverPort = __marionetteParams[1];
   let perms = Cc["@mozilla.org/permissionmanager;1"]
               .getService(Ci.nsIPermissionManager);
   let ioService = Cc["@mozilla.org/network/io-service;1"]
