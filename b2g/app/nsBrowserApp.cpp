@@ -37,6 +37,10 @@
 
 #include "nsXPCOMPrivate.h" 
 
+#ifdef MOZ_WIDGET_GONK
+# include <binder/ProcessState.h>
+#endif
+
 #include "mozilla/Telemetry.h"
 
 static void Output(const char *fmt, ... )
@@ -167,6 +171,14 @@ static int do_main(int argc, char* argv[])
 int main(int argc, char* argv[])
 {
   char exePath[MAXPATHLEN];
+
+#ifdef MOZ_WIDGET_GONK
+  
+  
+  
+  
+  android::ProcessState::self()->startThreadPool();
+#endif
 
   nsresult rv = mozilla::BinaryPath::Get(argv[0], exePath);
   if (NS_FAILED(rv)) {

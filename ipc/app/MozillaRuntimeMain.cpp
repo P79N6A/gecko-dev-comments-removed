@@ -22,9 +22,21 @@
 #include "nsSetDllDirectory.h"
 #endif
 
+#ifdef MOZ_WIDGET_GONK
+# include <binder/ProcessState.h>
+#endif
+
 int
 main(int argc, char* argv[])
 {
+#ifdef MOZ_WIDGET_GONK
+    
+    
+    
+    
+    android::ProcessState::self()->startThreadPool();
+#endif
+
 #if defined(XP_WIN) && defined(DEBUG_bent)
     MessageBox(NULL, L"Hi", L"Hi", MB_OK);
 #endif
