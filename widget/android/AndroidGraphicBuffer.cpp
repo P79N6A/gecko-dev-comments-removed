@@ -6,6 +6,7 @@
 #include <dlfcn.h>
 #include <android/log.h>
 #include <GLES2/gl2.h>
+#include <nsTArray.h>
 #include "AndroidGraphicBuffer.h"
 #include "AndroidBridge.h"
 #include "mozilla/Preferences.h"
@@ -432,21 +433,35 @@ AndroidGraphicBuffer::Bind()
   return ensureNoGLError("glEGLImageTargetTexture2DOES");
 }
 
-static const char* const sAllowedBoards[] = {
-  "venus2",     
-  "tuna",       
-  "omap4sdp",   
-  "droid2",     
-  "targa",      
-  "spyder",     
-  "shadow",     
-  "SGH-I897",   
-  "GT-I9100",   
-  "sgh-i997",   
-  "herring",    
-  "sgh-t839",   
-  nullptr
-};
+
+static void InitWhiteList(nsTArray<nsString>& list)
+{
+  nsString ele;
+  ele.AssignASCII("droid2"); 
+  list.AppendElement(ele);
+  ele.AssignASCII("GT-I9100"); 
+  list.AppendElement(ele);
+  ele.AssignASCII("herring"); 
+  list.AppendElement(ele);
+  ele.AssignASCII("omap4sdp"); 
+  list.AppendElement(ele);
+  ele.AssignASCII("SGH-I897"); 
+  list.AppendElement(ele);
+  ele.AssignASCII("sgh-i997"); 
+  list.AppendElement(ele);
+  ele.AssignASCII("sgh-t839"); 
+  list.AppendElement(ele);
+  ele.AssignASCII("shadow"); 
+  list.AppendElement(ele);
+  ele.AssignASCII("spyder"); 
+  list.AppendElement(ele);
+  ele.AssignASCII("targa"); 
+  list.AppendElement(ele);
+  ele.AssignASCII("tuna"); 
+  list.AppendElement(ele);
+  ele.AssignASCII("venus2"); 
+  list.AppendElement(ele);
+}
 
 bool
 AndroidGraphicBuffer::IsBlacklisted()
@@ -467,12 +482,16 @@ AndroidGraphicBuffer::IsBlacklisted()
     return true;
   }
 
+  static nsTArray<nsString> sListAllowed;
+  if (sListAllowed.Length() == 0) {
+    InitWhiteList(sListAllowed);
+  }
   
-  for (int i = 0; sAllowedBoards[i]; i++) {
-    if (board.Find(sAllowedBoards[i]) >= 0) {
-      LOG("allowing board '%s' based on '%s'\n", boardUtf8.get(), sAllowedBoards[i]);
-      return false;
-    }
+  int i = -1;
+  if ((i = sListAllowed.BinaryIndexOf(board)) >= 0) {
+    nsString name = sListAllowed.ElementAt(i);
+    LOG("allowing board '%s' based on '%s'\n", boardUtf8.get(), NS_ConvertUTF16toUTF8(name).get());
+    return false;
   }
 
   LOG("disallowing board: %s\n", boardUtf8.get());
