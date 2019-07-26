@@ -649,41 +649,41 @@ function MediaTestManager() {
     
     
     
-    SpecialPowers.forceGC();
+    SpecialPowers.exactGC(window, function(){
+      while (this.testNum < this.tests.length && this.tokens.length < PARALLEL_TESTS) {
+        var test = this.tests[this.testNum];
+        var token = (test.name ? (test.name + "-"): "") + this.testNum;
+        this.testNum++;
 
-    while (this.testNum < this.tests.length && this.tokens.length < PARALLEL_TESTS) {
-      var test = this.tests[this.testNum];
-      var token = (test.name ? (test.name + "-"): "") + this.testNum;
-      this.testNum++;
+        if (DEBUG_TEST_LOOP_FOREVER && this.testNum == this.tests.length) {
+          this.testNum = 0;
+        }
 
-      if (DEBUG_TEST_LOOP_FOREVER && this.testNum == this.tests.length) {
-        this.testNum = 0;
+        
+        if (test.type && !document.createElement('video').canPlayType(test.type))
+          continue;
+
+        
+        this.startTest(test, token);
       }
 
-      
-      if (test.type && !document.createElement('video').canPlayType(test.type))
-        continue;
-
-      
-      this.startTest(test, token);
-    }
-
-    if (this.testNum == this.tests.length &&
-        !DEBUG_TEST_LOOP_FOREVER &&
-        this.tokens.length == 0 &&
-        !this.isShutdown)
-    {
-      this.isShutdown = true;
-      if (this.onFinished) {
-        this.onFinished();
+      if (this.testNum == this.tests.length &&
+          !DEBUG_TEST_LOOP_FOREVER &&
+          this.tokens.length == 0 &&
+          !this.isShutdown)
+      {
+        this.isShutdown = true;
+        if (this.onFinished) {
+          this.onFinished();
+        }
+        mediaTestCleanup();
+        var end = new Date();
+        SimpleTest.info("Finished at " + end + " (" + (end.getTime() / 1000) + "s)");
+        SimpleTest.info("Running time: " + (end.getTime() - this.startTime.getTime())/1000 + "s");
+        SimpleTest.finish();
+        return;
       }
-      mediaTestCleanup();
-      var end = new Date();
-      SimpleTest.info("Finished at " + end + " (" + (end.getTime() / 1000) + "s)");
-      SimpleTest.info("Running time: " + (end.getTime() - this.startTime.getTime())/1000 + "s");
-      SimpleTest.finish();
-      return;
-    }
+    }.bind(this));
   }
 }
 
