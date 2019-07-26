@@ -785,6 +785,11 @@ pref("javascript.options.ion.parallel_compilation", true);
 
 
 
+pref("javascript.options.discardSystemSource", false);
+
+
+
+
 pref("javascript.options.mem.high_water_mark", 128);
 pref("javascript.options.mem.max", -1);
 pref("javascript.options.mem.gc_per_compartment", true);
