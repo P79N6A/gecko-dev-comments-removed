@@ -79,7 +79,7 @@ nsScreenManagerGtk :: ~nsScreenManagerGtk()
 
 
 
-NS_IMPL_ISUPPORTS1(nsScreenManagerGtk, nsIScreenManager)
+NS_IMPL_ISUPPORTS(nsScreenManagerGtk, nsIScreenManager)
 
 
 

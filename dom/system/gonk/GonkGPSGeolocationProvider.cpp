@@ -54,10 +54,10 @@ static const char* kNetworkConnStateChangedTopic = "network-connection-state-cha
 
 
 
-NS_IMPL_ISUPPORTS3(GonkGPSGeolocationProvider,
-                   nsIGeolocationProvider,
-                   nsIObserver,
-                   nsISettingsServiceCallback)
+NS_IMPL_ISUPPORTS(GonkGPSGeolocationProvider,
+                  nsIGeolocationProvider,
+                  nsIObserver,
+                  nsISettingsServiceCallback)
 
  GonkGPSGeolocationProvider* GonkGPSGeolocationProvider::sSingleton = nullptr;
 GpsCallbacks GonkGPSGeolocationProvider::mCallbacks = {
@@ -655,8 +655,8 @@ GonkGPSGeolocationProvider::SetupAGPS()
 #endif 
 
 
-NS_IMPL_ISUPPORTS1(GonkGPSGeolocationProvider::NetworkLocationUpdate,
-                   nsIGeolocationUpdate)
+NS_IMPL_ISUPPORTS(GonkGPSGeolocationProvider::NetworkLocationUpdate,
+                  nsIGeolocationUpdate)
 
 NS_IMETHODIMP
 GonkGPSGeolocationProvider::NetworkLocationUpdate::Update(nsIDOMGeoPosition *position)

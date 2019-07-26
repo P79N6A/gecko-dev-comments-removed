@@ -427,13 +427,13 @@ nsSocketTransportService::Poll(bool wait, uint32_t *interval)
 
 
 
-NS_IMPL_ISUPPORTS6(nsSocketTransportService,
-                   nsISocketTransportService,
-                   nsIEventTarget,
-                   nsIThreadObserver,
-                   nsIRunnable,
-                   nsPISocketTransportService,
-                   nsIObserver)
+NS_IMPL_ISUPPORTS(nsSocketTransportService,
+                  nsISocketTransportService,
+                  nsIEventTarget,
+                  nsIThreadObserver,
+                  nsIRunnable,
+                  nsPISocketTransportService,
+                  nsIObserver)
 
 
 NS_IMETHODIMP

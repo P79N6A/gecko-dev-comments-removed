@@ -17,7 +17,7 @@
 #include "nsTArray.h"                   
 #include "nscore.h"                     
 
-NS_IMPL_ISUPPORTS1(nsThebesFontEnumerator, nsIFontEnumerator)
+NS_IMPL_ISUPPORTS(nsThebesFontEnumerator, nsIFontEnumerator)
 
 nsThebesFontEnumerator::nsThebesFontEnumerator()
 {

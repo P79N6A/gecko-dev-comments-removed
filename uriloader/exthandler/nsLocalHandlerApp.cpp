@@ -10,7 +10,7 @@
 
 
 
-NS_IMPL_ISUPPORTS2(nsLocalHandlerApp, nsILocalHandlerApp, nsIHandlerApp)
+NS_IMPL_ISUPPORTS(nsLocalHandlerApp, nsILocalHandlerApp, nsIHandlerApp)
 
 
 

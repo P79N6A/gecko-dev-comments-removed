@@ -127,7 +127,7 @@ nsContentAreaDragDrop::GetDragData(nsPIDOMWindow* aWindow,
 }
 
 
-NS_IMPL_ISUPPORTS1(nsContentAreaDragDropDataProvider, nsIFlavorDataProvider)
+NS_IMPL_ISUPPORTS(nsContentAreaDragDropDataProvider, nsIFlavorDataProvider)
 
 
 

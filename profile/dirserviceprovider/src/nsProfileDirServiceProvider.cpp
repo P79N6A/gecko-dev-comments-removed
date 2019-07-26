@@ -138,8 +138,8 @@ nsProfileDirServiceProvider::Shutdown()
 
 
 
-NS_IMPL_ISUPPORTS1(nsProfileDirServiceProvider,
-                   nsIDirectoryServiceProvider)
+NS_IMPL_ISUPPORTS(nsProfileDirServiceProvider,
+                  nsIDirectoryServiceProvider)
 
 
 

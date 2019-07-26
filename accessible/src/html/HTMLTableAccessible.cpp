@@ -54,9 +54,9 @@ HTMLTableCellAccessible::
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED1(HTMLTableCellAccessible,
-                             HyperTextAccessible,
-                             nsIAccessibleTableCell)
+NS_IMPL_ISUPPORTS_INHERITED(HTMLTableCellAccessible,
+                            HyperTextAccessible,
+                            nsIAccessibleTableCell)
 
 
 
@@ -360,8 +360,8 @@ HTMLTableRowAccessible::NativeRole()
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED1(HTMLTableAccessible, Accessible,
-                             nsIAccessibleTable)
+NS_IMPL_ISUPPORTS_INHERITED(HTMLTableAccessible, Accessible,
+                            nsIAccessibleTable)
 
 
 

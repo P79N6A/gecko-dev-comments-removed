@@ -11,7 +11,7 @@
 
 
 
-NS_IMPL_ISUPPORTS1(nsRandomGenerator, nsIRandomGenerator)
+NS_IMPL_ISUPPORTS(nsRandomGenerator, nsIRandomGenerator)
 
 
 

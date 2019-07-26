@@ -41,7 +41,7 @@ namespace {
 
 
 
-NS_IMPL_ISUPPORTS1(nsIEHistoryEnumerator, nsISimpleEnumerator)
+NS_IMPL_ISUPPORTS(nsIEHistoryEnumerator, nsISimpleEnumerator)
 
 nsIEHistoryEnumerator::nsIEHistoryEnumerator()
 {

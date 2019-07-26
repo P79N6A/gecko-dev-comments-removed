@@ -1,7 +1,7 @@
-/* vim:set ts=4 sw=4 et cindent: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include "nsAuth.h"
 #include "nsAuthSambaNTLM.h"
@@ -20,8 +20,8 @@ nsAuthSambaNTLM::nsAuthSambaNTLM()
 
 nsAuthSambaNTLM::~nsAuthSambaNTLM()
 {
-    // ntlm_auth reads from stdin regularly so closing our file handles
-    // should cause it to exit.
+    
+    
     Shutdown();
     free(mInitialMessage);
 }
@@ -44,7 +44,7 @@ nsAuthSambaNTLM::Shutdown()
     }
 }
 
-NS_IMPL_ISUPPORTS1(nsAuthSambaNTLM, nsIAuthModule)
+NS_IMPL_ISUPPORTS(nsAuthSambaNTLM, nsIAuthModule)
 
 static bool
 SpawnIOChild(char* const* aArgs, PRProcess** aPID,
@@ -114,9 +114,9 @@ static bool WriteString(PRFileDesc* aFD, const nsACString& aString)
 
 static bool ReadLine(PRFileDesc* aFD, nsACString& aString)
 {
-    // ntlm_auth is defined to only send one line in response to each of our
-    // input lines. So this simple unbuffered strategy works as long as we
-    // read the response immediately after sending one request.
+    
+    
+    
     aString.Truncate();
     for (;;) {
         char buf[1024];
@@ -131,32 +131,32 @@ static bool ReadLine(PRFileDesc* aFD, nsACString& aString)
     }
 }
 
-/**
- * Returns a heap-allocated array of PRUint8s, and stores the length in aLen.
- * Returns nullptr if there's an error of any kind.
- */
+
+
+
+
 static uint8_t* ExtractMessage(const nsACString& aLine, uint32_t* aLen)
 {
-    // ntlm_auth sends blobs to us as base64-encoded strings after the "xx "
-    // preamble on the response line.
+    
+    
     int32_t length = aLine.Length();
-    // The caller should verify there is a valid "xx " prefix and the line
-    // is terminated with a \n
+    
+    
     NS_ASSERTION(length >= 4, "Line too short...");
     const char* line = aLine.BeginReading();
     const char* s = line + 3;
-    length -= 4; // lose first 3 chars plus trailing \n
+    length -= 4; 
     NS_ASSERTION(s[length] == '\n', "aLine not newline-terminated");
     
     if (length & 3) {
-        // The base64 encoded block must be multiple of 4. If not, something
-        // screwed up.
+        
+        
         NS_WARNING("Base64 encoded block should be a multiple of 4 chars");
         return nullptr;
     } 
 
-    // Calculate the exact length. I wonder why there isn't a function for this
-    // in plbase64.
+    
+    
     int32_t numEquals;
     for (numEquals = 0; numEquals < length; ++numEquals) {
         if (s[length - 1 - numEquals] != '=')
@@ -191,12 +191,12 @@ nsAuthSambaNTLM::SpawnNTLMAuthHelper()
     if (!ReadLine(mFromChildFD, line))
         return NS_ERROR_FAILURE;
     if (!StringBeginsWith(line, NS_LITERAL_CSTRING("YR "))) {
-        // Something went wrong. Perhaps no credentials are accessible.
+        
         return NS_ERROR_FAILURE;
     }
 
-    // It gave us an initial client-to-server request packet. Save that
-    // because we'll need it later.
+    
+    
     mInitialMessage = ExtractMessage(line, &mInitialMessageLen);
     if (!mInitialMessage)
         return NS_ERROR_FAILURE;
@@ -232,7 +232,7 @@ nsAuthSambaNTLM::GetNextToken(const void *inToken,
                               uint32_t   *outTokenLen)
 {
     if (!inToken) {
-        /* someone wants our initial message */
+        
         *outToken = nsMemory::Clone(mInitialMessage, mInitialMessageLen);
         if (!*outToken)
             return NS_ERROR_OUT_OF_MEMORY;
@@ -240,7 +240,7 @@ nsAuthSambaNTLM::GetNextToken(const void *inToken,
         return NS_OK;
     }
 
-    /* inToken must be a type 2 message. Get ntlm_auth to generate our response */
+    
     char* encoded = PL_Base64Encode(static_cast<const char*>(inToken), inTokenLen, nullptr);
     if (!encoded)
         return NS_ERROR_OUT_OF_MEMORY;
@@ -257,21 +257,21 @@ nsAuthSambaNTLM::GetNextToken(const void *inToken,
     if (!ReadLine(mFromChildFD, line))
         return NS_ERROR_FAILURE;
     if (!StringBeginsWith(line, NS_LITERAL_CSTRING("KK "))) {
-        // Something went wrong. Perhaps no credentials are accessible.
+        
         return NS_ERROR_FAILURE;
     }
     uint8_t* buf = ExtractMessage(line, outTokenLen);
     if (!buf)
         return NS_ERROR_FAILURE;
-    // *outToken has to be freed by nsMemory::Free, which may not be free() 
+    
     *outToken = nsMemory::Clone(buf, *outTokenLen);
     if (!*outToken) {
         free(buf);
         return NS_ERROR_OUT_OF_MEMORY;
     }
     
-    // We're done. Close our file descriptors now and reap the helper
-    // process.
+    
+    
     Shutdown();
     return NS_SUCCESS_AUTH_FINISHED;
 }

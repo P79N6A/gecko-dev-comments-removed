@@ -111,7 +111,7 @@ DumpReport(nsIFileOutputStream* aOStream, const nsCString& aProcess,
 
 
 
-NS_IMPL_ISUPPORTS1(nsStatusReporterManager, nsIStatusReporterManager)
+NS_IMPL_ISUPPORTS(nsStatusReporterManager, nsIStatusReporterManager)
 
 nsStatusReporterManager::nsStatusReporterManager()
 {

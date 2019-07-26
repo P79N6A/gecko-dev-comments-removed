@@ -76,7 +76,7 @@ nsSHEntry::~nsSHEntry()
 
 
 
-NS_IMPL_ISUPPORTS3(nsSHEntry, nsISHContainer, nsISHEntry, nsISHEntryInternal)
+NS_IMPL_ISUPPORTS(nsSHEntry, nsISHContainer, nsISHEntry, nsISHEntryInternal)
 
 
 

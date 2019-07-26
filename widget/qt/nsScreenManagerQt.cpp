@@ -21,7 +21,7 @@ nsScreenManagerQt::~nsScreenManagerQt()
 }
 
 
-NS_IMPL_ISUPPORTS1(nsScreenManagerQt, nsIScreenManager)
+NS_IMPL_ISUPPORTS(nsScreenManagerQt, nsIScreenManager)
 
 void nsScreenManagerQt::init()
 {

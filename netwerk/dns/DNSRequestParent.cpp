@@ -60,8 +60,8 @@ DNSRequestParent::ActorDestroy(ActorDestroyReason why)
 
 
 
-NS_IMPL_ISUPPORTS1(DNSRequestParent,
-                   nsIDNSListener)
+NS_IMPL_ISUPPORTS(DNSRequestParent,
+                  nsIDNSListener)
 
 
 

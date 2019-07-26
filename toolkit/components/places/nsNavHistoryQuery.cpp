@@ -886,7 +886,7 @@ ParseQueryBooleanString(const nsCString& aString, bool* aValue)
 
 
 
-NS_IMPL_ISUPPORTS2(nsNavHistoryQuery, nsNavHistoryQuery, nsINavHistoryQuery)
+NS_IMPL_ISUPPORTS(nsNavHistoryQuery, nsNavHistoryQuery, nsINavHistoryQuery)
 
 
 
@@ -1350,7 +1350,7 @@ NS_IMETHODIMP nsNavHistoryQuery::Clone(nsINavHistoryQuery** _retval)
 
 
 
-NS_IMPL_ISUPPORTS2(nsNavHistoryQueryOptions, nsNavHistoryQueryOptions, nsINavHistoryQueryOptions)
+NS_IMPL_ISUPPORTS(nsNavHistoryQueryOptions, nsNavHistoryQueryOptions, nsINavHistoryQueryOptions)
 
 
 NS_IMETHODIMP

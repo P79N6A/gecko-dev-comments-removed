@@ -233,7 +233,7 @@ private:
   nsCOMPtr<nsITimer> mTimer;
 };
 
-NS_IMPL_ISUPPORTS1(nsAnonTempFileRemover, nsIObserver)
+NS_IMPL_ISUPPORTS(nsAnonTempFileRemover, nsIObserver)
 
 nsresult CreateAnonTempFileRemover() {
   

@@ -28,8 +28,8 @@ HTMLLinkAccessible::
 }
 
 
-NS_IMPL_ISUPPORTS_INHERITED1(HTMLLinkAccessible, HyperTextAccessibleWrap,
-                             nsIAccessibleHyperLink)
+NS_IMPL_ISUPPORTS_INHERITED(HTMLLinkAccessible, HyperTextAccessibleWrap,
+                            nsIAccessibleHyperLink)
 
 
 

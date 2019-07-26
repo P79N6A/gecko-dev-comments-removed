@@ -26,7 +26,7 @@ nsFindService::~nsFindService()
 {
 }
 
-NS_IMPL_ISUPPORTS1(nsFindService, nsIFindService)
+NS_IMPL_ISUPPORTS(nsFindService, nsIFindService)
 
 
 NS_IMETHODIMP nsFindService::GetSearchString(nsAString & aSearchString)

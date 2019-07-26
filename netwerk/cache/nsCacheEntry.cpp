@@ -271,7 +271,7 @@ nsCacheEntry::GetDescriptors(
 
 
 
-NS_IMPL_ISUPPORTS1(nsCacheEntryInfo, nsICacheEntryInfo)
+NS_IMPL_ISUPPORTS(nsCacheEntryInfo, nsICacheEntryInfo)
 
 
 NS_IMETHODIMP

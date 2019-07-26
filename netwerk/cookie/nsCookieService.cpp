@@ -415,7 +415,7 @@ public:
   }
 };
 
-NS_IMPL_ISUPPORTS1(InsertCookieDBListener, mozIStorageStatementCallback)
+NS_IMPL_ISUPPORTS(InsertCookieDBListener, mozIStorageStatementCallback)
 
 
 
@@ -441,7 +441,7 @@ public:
   }
 };
 
-NS_IMPL_ISUPPORTS1(UpdateCookieDBListener, mozIStorageStatementCallback)
+NS_IMPL_ISUPPORTS(UpdateCookieDBListener, mozIStorageStatementCallback)
 
 
 
@@ -467,7 +467,7 @@ public:
   }
 };
 
-NS_IMPL_ISUPPORTS1(RemoveCookieDBListener, mozIStorageStatementCallback)
+NS_IMPL_ISUPPORTS(RemoveCookieDBListener, mozIStorageStatementCallback)
 
 
 
@@ -546,7 +546,7 @@ public:
   }
 };
 
-NS_IMPL_ISUPPORTS1(ReadCookieDBListener, mozIStorageStatementCallback)
+NS_IMPL_ISUPPORTS(ReadCookieDBListener, mozIStorageStatementCallback)
 
 
 
@@ -567,7 +567,7 @@ public:
   }
 };
 
-NS_IMPL_ISUPPORTS1(CloseCookieDBListener, mozIStorageCompletionCallback)
+NS_IMPL_ISUPPORTS(CloseCookieDBListener, mozIStorageCompletionCallback)
 
 namespace {
 
@@ -594,7 +594,7 @@ public:
   }
 };
 
-NS_IMPL_ISUPPORTS1(AppClearDataObserver, nsIObserver)
+NS_IMPL_ISUPPORTS(AppClearDataObserver, nsIObserver)
 
 } 
 
@@ -717,13 +717,13 @@ nsCookieService::AppClearDataObserverInit()
 
 
 
-NS_IMPL_ISUPPORTS6(nsCookieService,
-                   nsICookieService,
-                   nsICookieManager,
-                   nsICookieManager2,
-                   nsIObserver,
-                   nsISupportsWeakReference,
-                   nsIMemoryReporter)
+NS_IMPL_ISUPPORTS(nsCookieService,
+                  nsICookieService,
+                  nsICookieManager,
+                  nsICookieManager2,
+                  nsIObserver,
+                  nsISupportsWeakReference,
+                  nsIMemoryReporter)
 
 nsCookieService::nsCookieService()
  : mDBState(nullptr)

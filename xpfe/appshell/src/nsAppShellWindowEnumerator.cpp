@@ -148,7 +148,7 @@ void nsWindowInfo::ReferenceSelf(bool inAge, bool inZ)
 
 
 
-NS_IMPL_ISUPPORTS1(nsAppShellWindowEnumerator, nsISimpleEnumerator)
+NS_IMPL_ISUPPORTS(nsAppShellWindowEnumerator, nsISimpleEnumerator)
 
 nsAppShellWindowEnumerator::nsAppShellWindowEnumerator(
     const char16_t* aTypeString,

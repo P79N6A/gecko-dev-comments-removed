@@ -152,12 +152,12 @@ nsAccessibilityService::~nsAccessibilityService()
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED4(nsAccessibilityService,
-                             DocManager,
-                             nsIAccessibilityService,
-                             nsIAccessibleRetrieval,
-                             nsIObserver,
-                             nsISelectionListener) 
+NS_IMPL_ISUPPORTS_INHERITED(nsAccessibilityService,
+                            DocManager,
+                            nsIAccessibilityService,
+                            nsIAccessibleRetrieval,
+                            nsIObserver,
+                            nsISelectionListener) 
 
 
 
@@ -256,7 +256,7 @@ private:
   nsCOMPtr<nsIContent> mContent;
 };
 
-NS_IMPL_ISUPPORTS1(PluginTimerCallBack, nsITimerCallback)
+NS_IMPL_ISUPPORTS(PluginTimerCallBack, nsITimerCallback)
 #endif
 
 already_AddRefed<Accessible>

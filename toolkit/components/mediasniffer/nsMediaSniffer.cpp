@@ -27,7 +27,7 @@ static const uint32_t MAX_BYTES_SNIFFED = 512;
 
 static const uint32_t MAX_BYTES_SNIFFED_MP3 = 320 * 144 / 32 + 1 + 4;
 
-NS_IMPL_ISUPPORTS1(nsMediaSniffer, nsIContentSniffer)
+NS_IMPL_ISUPPORTS(nsMediaSniffer, nsIContentSniffer)
 
 nsMediaSniffer::nsMediaSnifferEntry nsMediaSniffer::sSnifferEntries[] = {
   

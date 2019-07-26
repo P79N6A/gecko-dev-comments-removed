@@ -41,11 +41,11 @@ nsBrowserStatusFilter::~nsBrowserStatusFilter()
 
 
 
-NS_IMPL_ISUPPORTS4(nsBrowserStatusFilter,
-                   nsIWebProgress,
-                   nsIWebProgressListener,
-                   nsIWebProgressListener2,
-                   nsISupportsWeakReference)
+NS_IMPL_ISUPPORTS(nsBrowserStatusFilter,
+                  nsIWebProgress,
+                  nsIWebProgressListener,
+                  nsIWebProgressListener2,
+                  nsISupportsWeakReference)
 
 
 

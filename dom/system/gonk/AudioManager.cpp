@@ -159,7 +159,7 @@ public:
   }
 };
 
-NS_IMPL_ISUPPORTS1(AudioChannelVolInitCallback, nsISettingsServiceCallback)
+NS_IMPL_ISUPPORTS(AudioChannelVolInitCallback, nsISettingsServiceCallback)
 } 
 } 
 } 
@@ -192,7 +192,7 @@ static void ProcessDelayedAudioRoute(SwitchState aState)
   sSwitchDone = true;
 }
 
-NS_IMPL_ISUPPORTS2(AudioManager, nsIAudioManager, nsIObserver)
+NS_IMPL_ISUPPORTS(AudioManager, nsIAudioManager, nsIObserver)
 
 static void
 InternalSetAudioRoutesICS(SwitchState aState)

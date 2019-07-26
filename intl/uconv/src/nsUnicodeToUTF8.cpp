@@ -7,7 +7,7 @@
 
 #include "nsUnicodeToUTF8.h"
 
-NS_IMPL_ISUPPORTS1(nsUnicodeToUTF8, nsIUnicodeEncoder)
+NS_IMPL_ISUPPORTS(nsUnicodeToUTF8, nsIUnicodeEncoder)
 
 
 

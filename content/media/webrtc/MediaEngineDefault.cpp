@@ -31,7 +31,7 @@ namespace mozilla {
 
 using namespace mozilla::gfx;
 
-NS_IMPL_ISUPPORTS1(MediaEngineDefaultVideoSource, nsITimerCallback)
+NS_IMPL_ISUPPORTS(MediaEngineDefaultVideoSource, nsITimerCallback)
 
 
 
@@ -344,7 +344,7 @@ private:
 
 
 
-NS_IMPL_ISUPPORTS1(MediaEngineDefaultAudioSource, nsITimerCallback)
+NS_IMPL_ISUPPORTS(MediaEngineDefaultAudioSource, nsITimerCallback)
 
 MediaEngineDefaultAudioSource::MediaEngineDefaultAudioSource()
   : mTimer(nullptr)

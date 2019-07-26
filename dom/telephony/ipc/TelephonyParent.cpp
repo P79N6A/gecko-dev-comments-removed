@@ -12,7 +12,7 @@ USING_TELEPHONY_NAMESPACE
 
 
 
-NS_IMPL_ISUPPORTS1(TelephonyParent, nsITelephonyListener)
+NS_IMPL_ISUPPORTS(TelephonyParent, nsITelephonyListener)
 
 TelephonyParent::TelephonyParent()
   : mActorDestroyed(false)
@@ -374,9 +374,9 @@ TelephonyParent::SupplementaryServiceNotification(uint32_t aClientId,
 
 
 
-NS_IMPL_ISUPPORTS2(TelephonyRequestParent,
-                   nsITelephonyListener,
-                   nsITelephonyCallback)
+NS_IMPL_ISUPPORTS(TelephonyRequestParent,
+                  nsITelephonyListener,
+                  nsITelephonyCallback)
 
 TelephonyRequestParent::TelephonyRequestParent()
   : mActorDestroyed(false)

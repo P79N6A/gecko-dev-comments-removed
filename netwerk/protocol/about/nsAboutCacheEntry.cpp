@@ -72,9 +72,9 @@ HexDump(uint32_t *state, const char *buf, int32_t n, nsCString &result)
 
 
 
-NS_IMPL_ISUPPORTS2(nsAboutCacheEntry,
-                   nsIAboutModule,
-                   nsICacheMetaDataVisitor)
+NS_IMPL_ISUPPORTS(nsAboutCacheEntry,
+                  nsIAboutModule,
+                  nsICacheMetaDataVisitor)
 
 
 

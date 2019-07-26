@@ -596,7 +596,7 @@ protected:
                                       
 };
 
-NS_IMPL_ISUPPORTS1(UndoMutationObserver, nsIMutationObserver)
+NS_IMPL_ISUPPORTS(UndoMutationObserver, nsIMutationObserver)
 
 bool
 UndoMutationObserver::IsManagerForMutation(nsIContent* aContent)

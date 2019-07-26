@@ -35,9 +35,9 @@ ARIAGridAccessible::
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED1(ARIAGridAccessible,
-                             Accessible,
-                             nsIAccessibleTable)
+NS_IMPL_ISUPPORTS_INHERITED(ARIAGridAccessible,
+                            Accessible,
+                            nsIAccessibleTable)
 
 
 
@@ -540,9 +540,9 @@ ARIAGridCellAccessible::
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED1(ARIAGridCellAccessible,
-                             HyperTextAccessible,
-                             nsIAccessibleTableCell)
+NS_IMPL_ISUPPORTS_INHERITED(ARIAGridCellAccessible,
+                            HyperTextAccessible,
+                            nsIAccessibleTableCell)
 
 
 

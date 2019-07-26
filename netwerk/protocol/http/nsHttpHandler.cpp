@@ -1583,13 +1583,13 @@ nsHttpHandler::SetAcceptEncodings(const char *aAcceptEncodings)
 
 
 
-NS_IMPL_ISUPPORTS6(nsHttpHandler,
-                   nsIHttpProtocolHandler,
-                   nsIProxiedProtocolHandler,
-                   nsIProtocolHandler,
-                   nsIObserver,
-                   nsISupportsWeakReference,
-                   nsISpeculativeConnect)
+NS_IMPL_ISUPPORTS(nsHttpHandler,
+                  nsIHttpProtocolHandler,
+                  nsIProxiedProtocolHandler,
+                  nsIProtocolHandler,
+                  nsIObserver,
+                  nsISupportsWeakReference,
+                  nsISpeculativeConnect)
 
 
 
@@ -1970,12 +1970,12 @@ nsHttpHandler::TickleWifi(nsIInterfaceRequestor *cb)
 
 
 
-NS_IMPL_ISUPPORTS5(nsHttpsHandler,
-                   nsIHttpProtocolHandler,
-                   nsIProxiedProtocolHandler,
-                   nsIProtocolHandler,
-                   nsISupportsWeakReference,
-                   nsISpeculativeConnect)
+NS_IMPL_ISUPPORTS(nsHttpsHandler,
+                  nsIHttpProtocolHandler,
+                  nsIProxiedProtocolHandler,
+                  nsIProtocolHandler,
+                  nsISupportsWeakReference,
+                  nsISpeculativeConnect)
 
 nsresult
 nsHttpsHandler::Init()

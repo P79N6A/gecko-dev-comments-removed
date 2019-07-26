@@ -66,7 +66,7 @@ struct BFSTableData {
 
 
 
-NS_IMPL_ISUPPORTS1(nsStreamConverterService, nsIStreamConverterService)
+NS_IMPL_ISUPPORTS(nsStreamConverterService, nsIStreamConverterService)
 
 
 

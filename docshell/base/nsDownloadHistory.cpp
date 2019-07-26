@@ -14,7 +14,7 @@
 
 
 
-NS_IMPL_ISUPPORTS1(nsDownloadHistory, nsIDownloadHistory)
+NS_IMPL_ISUPPORTS(nsDownloadHistory, nsIDownloadHistory)
 
 
 

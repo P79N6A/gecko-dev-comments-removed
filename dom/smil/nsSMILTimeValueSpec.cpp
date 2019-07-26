@@ -23,7 +23,7 @@ using namespace mozilla::dom;
 
 
 
-NS_IMPL_ISUPPORTS1(nsSMILTimeValueSpec::EventListener, nsIDOMEventListener)
+NS_IMPL_ISUPPORTS(nsSMILTimeValueSpec::EventListener, nsIDOMEventListener)
 
 NS_IMETHODIMP
 nsSMILTimeValueSpec::EventListener::HandleEvent(nsIDOMEvent* aEvent)

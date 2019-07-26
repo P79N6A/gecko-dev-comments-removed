@@ -14,7 +14,7 @@
 
 using namespace mozilla;
 
-NS_IMPL_ISUPPORTS3(nsJPEGEncoder, imgIEncoder, nsIInputStream, nsIAsyncInputStream)
+NS_IMPL_ISUPPORTS(nsJPEGEncoder, imgIEncoder, nsIInputStream, nsIAsyncInputStream)
 
 
 struct encoder_error_mgr {

@@ -232,10 +232,10 @@ NS_IMPL_RELEASE(nsPkcs11)
 #ifndef MOZ_DISABLE_CRYPTOLEGACY
 
 
-NS_IMPL_ISUPPORTS1(nsCryptoRunnable, nsIRunnable)
+NS_IMPL_ISUPPORTS(nsCryptoRunnable, nsIRunnable)
 
 
-NS_IMPL_ISUPPORTS1(nsP12Runnable, nsIRunnable)
+NS_IMPL_ISUPPORTS(nsP12Runnable, nsIRunnable)
 
 
 NS_IMPL_ISUPPORTS0(nsCryptoRunArgs)

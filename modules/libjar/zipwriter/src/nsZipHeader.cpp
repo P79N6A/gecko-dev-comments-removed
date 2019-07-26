@@ -21,7 +21,7 @@
 
 
 
-NS_IMPL_ISUPPORTS1(nsZipHeader, nsIZipEntry)
+NS_IMPL_ISUPPORTS(nsZipHeader, nsIZipEntry)
 
 
 NS_IMETHODIMP nsZipHeader::GetCompression(uint16_t *aCompression)

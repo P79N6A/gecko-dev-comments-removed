@@ -18,7 +18,7 @@
 
 
 
-NS_IMPL_ISUPPORTS1(nsCookiePromptService, nsICookiePromptService)
+NS_IMPL_ISUPPORTS(nsCookiePromptService, nsICookiePromptService)
 
 nsCookiePromptService::nsCookiePromptService() {
 }

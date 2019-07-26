@@ -8,7 +8,7 @@
 #include "nsCOMPtr.h"
 
 
-NS_IMPL_ISUPPORTS2(nsProxyInfo, nsProxyInfo, nsIProxyInfo) 
+NS_IMPL_ISUPPORTS(nsProxyInfo, nsProxyInfo, nsIProxyInfo) 
 
 using namespace mozilla;
 

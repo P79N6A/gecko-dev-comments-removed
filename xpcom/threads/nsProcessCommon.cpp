@@ -58,8 +58,8 @@ cpu_type_t pref_cpu_types[2] = {
 
 
 
-NS_IMPL_ISUPPORTS2(nsProcess, nsIProcess,
-                   nsIObserver)
+NS_IMPL_ISUPPORTS(nsProcess, nsIProcess,
+                  nsIObserver)
 
 
 nsProcess::nsProcess()

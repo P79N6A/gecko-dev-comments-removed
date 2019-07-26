@@ -53,11 +53,11 @@ FTPChannelParent::ActorDestroy(ActorDestroyReason why)
 
 
 
-NS_IMPL_ISUPPORTS4(FTPChannelParent,
-                   nsIStreamListener,
-                   nsIParentChannel,
-                   nsIInterfaceRequestor,
-                   nsIRequestObserver)
+NS_IMPL_ISUPPORTS(FTPChannelParent,
+                  nsIStreamListener,
+                  nsIParentChannel,
+                  nsIInterfaceRequestor,
+                  nsIRequestObserver)
 
 
 

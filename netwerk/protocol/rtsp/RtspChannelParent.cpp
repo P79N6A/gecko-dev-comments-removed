@@ -33,9 +33,9 @@ RtspChannelParent::ActorDestroy(ActorDestroyReason why)
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED1(RtspChannelParent,
-                             nsBaseChannel,
-                             nsIParentChannel)
+NS_IMPL_ISUPPORTS_INHERITED(RtspChannelParent,
+                            nsBaseChannel,
+                            nsIParentChannel)
 
 
 

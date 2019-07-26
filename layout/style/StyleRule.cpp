@@ -933,7 +933,7 @@ ImportantRule::~ImportantRule()
 {
 }
 
-NS_IMPL_ISUPPORTS1(ImportantRule, nsIStyleRule)
+NS_IMPL_ISUPPORTS(ImportantRule, nsIStyleRule)
 
  void
 ImportantRule::MapRuleInfoInto(nsRuleData* aRuleData)

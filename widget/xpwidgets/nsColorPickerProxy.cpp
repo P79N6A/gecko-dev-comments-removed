@@ -10,7 +10,7 @@
 
 using namespace mozilla::dom;
 
-NS_IMPL_ISUPPORTS1(nsColorPickerProxy, nsIColorPicker)
+NS_IMPL_ISUPPORTS(nsColorPickerProxy, nsIColorPicker)
 
 
 NS_IMETHODIMP

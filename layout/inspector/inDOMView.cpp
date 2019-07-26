@@ -94,10 +94,10 @@ inDOMView::~inDOMView()
 
 
 
-NS_IMPL_ISUPPORTS3(inDOMView,
-                   inIDOMView,
-                   nsITreeView,
-                   nsIMutationObserver)
+NS_IMPL_ISUPPORTS(inDOMView,
+                  inIDOMView,
+                  nsITreeView,
+                  nsIMutationObserver)
 
 
 

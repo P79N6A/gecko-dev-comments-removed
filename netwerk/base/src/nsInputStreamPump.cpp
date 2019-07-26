@@ -159,11 +159,11 @@ nsInputStreamPump::EnsureWaiting()
 
 
 
-NS_IMPL_ISUPPORTS4(nsInputStreamPump,
-                   nsIRequest,
-                   nsIThreadRetargetableRequest,
-                   nsIInputStreamCallback,
-                   nsIInputStreamPump)
+NS_IMPL_ISUPPORTS(nsInputStreamPump,
+                  nsIRequest,
+                  nsIThreadRetargetableRequest,
+                  nsIInputStreamCallback,
+                  nsIInputStreamPump)
 
 
 

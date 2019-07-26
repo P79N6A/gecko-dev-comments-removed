@@ -13,11 +13,11 @@
 #define TOKEN_DELIMITERS MOZ_UTF16("\t\r\n ")
 
 
-NS_IMPL_ISUPPORTS4(nsTXTToHTMLConv,
-                   nsIStreamConverter,
-                   nsITXTToHTMLConv,
-                   nsIRequestObserver,
-                   nsIStreamListener)
+NS_IMPL_ISUPPORTS(nsTXTToHTMLConv,
+                  nsIStreamConverter,
+                  nsITXTToHTMLConv,
+                  nsIRequestObserver,
+                  nsIStreamListener)
 
 
 

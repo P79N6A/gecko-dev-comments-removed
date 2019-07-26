@@ -230,9 +230,9 @@ nsSVGElement::Init()
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED3(nsSVGElement, nsSVGElementBase,
-                             nsIDOMNode, nsIDOMElement,
-                             nsIDOMSVGElement)
+NS_IMPL_ISUPPORTS_INHERITED(nsSVGElement, nsSVGElementBase,
+                            nsIDOMNode, nsIDOMElement,
+                            nsIDOMSVGElement)
 
 
 

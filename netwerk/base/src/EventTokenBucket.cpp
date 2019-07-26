@@ -43,7 +43,7 @@ private:
   ATokenBucketEvent *mEvent;
 };
 
-NS_IMPL_ISUPPORTS1(TokenBucketCancelable, nsICancelable)
+NS_IMPL_ISUPPORTS(TokenBucketCancelable, nsICancelable)
 
 TokenBucketCancelable::TokenBucketCancelable(ATokenBucketEvent *event)
   : mEvent(event)
@@ -73,7 +73,7 @@ TokenBucketCancelable::Fire()
 
 
 
-NS_IMPL_ISUPPORTS1(EventTokenBucket, nsITimerCallback)
+NS_IMPL_ISUPPORTS(EventTokenBucket, nsITimerCallback)
 
 
 EventTokenBucket::EventTokenBucket(uint32_t eventsPerSecond,

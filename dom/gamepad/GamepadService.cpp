@@ -46,7 +46,7 @@ StaticRefPtr<GamepadService> gGamepadServiceSingleton;
 
 bool GamepadService::sShutdown = false;
 
-NS_IMPL_ISUPPORTS1(GamepadService, nsIObserver)
+NS_IMPL_ISUPPORTS(GamepadService, nsIObserver)
 
 GamepadService::GamepadService()
   : mStarted(false),
@@ -507,7 +507,7 @@ GamepadService::StartCleanupTimer()
 
 
 
-NS_IMPL_ISUPPORTS1(GamepadServiceTest, nsIGamepadServiceTest)
+NS_IMPL_ISUPPORTS(GamepadServiceTest, nsIGamepadServiceTest)
 
 GamepadServiceTest* GamepadServiceTest::sSingleton = nullptr;
 

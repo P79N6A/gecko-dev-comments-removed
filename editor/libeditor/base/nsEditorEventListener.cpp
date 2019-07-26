@@ -301,7 +301,7 @@ nsEditorEventListener::GetPresShell()
 
 
 
-NS_IMPL_ISUPPORTS1(nsEditorEventListener, nsIDOMEventListener)
+NS_IMPL_ISUPPORTS(nsEditorEventListener, nsIDOMEventListener)
 
 
 

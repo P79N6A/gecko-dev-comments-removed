@@ -358,7 +358,7 @@ nsAuthGSSAPI::Shutdown()
 }
 
 
-NS_IMPL_ISUPPORTS1(nsAuthGSSAPI, nsIAuthModule)
+NS_IMPL_ISUPPORTS(nsAuthGSSAPI, nsIAuthModule)
 
 NS_IMETHODIMP
 nsAuthGSSAPI::Init(const char *serviceName,

@@ -36,7 +36,7 @@ nsHttpDigestAuth::~nsHttpDigestAuth()
 
 
 
-NS_IMPL_ISUPPORTS1(nsHttpDigestAuth, nsIHttpAuthenticator)
+NS_IMPL_ISUPPORTS(nsHttpDigestAuth, nsIHttpAuthenticator)
 
 
 

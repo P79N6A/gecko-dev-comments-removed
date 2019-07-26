@@ -25,7 +25,7 @@
 
 
 
-NS_IMPL_ISUPPORTS1(nsHTMLTokenizer, nsITokenizer)
+NS_IMPL_ISUPPORTS(nsHTMLTokenizer, nsITokenizer)
 
 
 

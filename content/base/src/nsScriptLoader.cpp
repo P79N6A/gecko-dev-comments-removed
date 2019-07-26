@@ -177,7 +177,7 @@ nsScriptLoader::~nsScriptLoader()
   }  
 }
 
-NS_IMPL_ISUPPORTS1(nsScriptLoader, nsIStreamLoaderObserver)
+NS_IMPL_ISUPPORTS(nsScriptLoader, nsIStreamLoaderObserver)
 
 
 

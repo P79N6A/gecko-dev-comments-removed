@@ -22,8 +22,8 @@
 
 
 
-NS_IMPL_ISUPPORTS2(nsZipDataStream, nsIStreamListener,
-                                               nsIRequestObserver)
+NS_IMPL_ISUPPORTS(nsZipDataStream, nsIStreamListener,
+                  nsIRequestObserver)
 
 nsresult nsZipDataStream::Init(nsZipWriter *aWriter,
                                nsIOutputStream *aStream,

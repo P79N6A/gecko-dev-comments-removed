@@ -156,7 +156,7 @@ nsPrefetchQueueEnumerator::Increment()
 
 
 
-NS_IMPL_ISUPPORTS1(nsPrefetchQueueEnumerator, nsISimpleEnumerator)
+NS_IMPL_ISUPPORTS(nsPrefetchQueueEnumerator, nsISimpleEnumerator)
 
 
 
@@ -223,12 +223,12 @@ nsPrefetchNode::CancelChannel(nsresult error)
 
 
 
-NS_IMPL_ISUPPORTS5(nsPrefetchNode,
-                   nsIRequestObserver,
-                   nsIStreamListener,
-                   nsIInterfaceRequestor,
-                   nsIChannelEventSink,
-                   nsIRedirectResultListener)
+NS_IMPL_ISUPPORTS(nsPrefetchNode,
+                  nsIRequestObserver,
+                  nsIStreamListener,
+                  nsIInterfaceRequestor,
+                  nsIChannelEventSink,
+                  nsIRedirectResultListener)
 
 
 
@@ -618,11 +618,11 @@ nsPrefetchService::StopPrefetching()
 
 
 
-NS_IMPL_ISUPPORTS4(nsPrefetchService,
-                   nsIPrefetchService,
-                   nsIWebProgressListener,
-                   nsIObserver,
-                   nsISupportsWeakReference)
+NS_IMPL_ISUPPORTS(nsPrefetchService,
+                  nsIPrefetchService,
+                  nsIWebProgressListener,
+                  nsIObserver,
+                  nsISupportsWeakReference)
 
 
 

@@ -1467,7 +1467,7 @@ nsIScrollableFrame* nsMenuFrame::GetScrollTargetFrame()
 }
 
 
-NS_IMPL_ISUPPORTS1(nsMenuTimerMediator, nsITimerCallback)
+NS_IMPL_ISUPPORTS(nsMenuTimerMediator, nsITimerCallback)
 
 
 

@@ -49,7 +49,7 @@ nsHTMLCSSStyleSheet::~nsHTMLCSSStyleSheet()
   mCachedStyleAttrs.Enumerate(ClearAttrCache, nullptr);
 }
 
-NS_IMPL_ISUPPORTS1(nsHTMLCSSStyleSheet, nsIStyleRuleProcessor)
+NS_IMPL_ISUPPORTS(nsHTMLCSSStyleSheet, nsIStyleRuleProcessor)
 
  void
 nsHTMLCSSStyleSheet::RulesMatching(ElementRuleProcessorData* aData)

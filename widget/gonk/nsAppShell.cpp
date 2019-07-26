@@ -100,7 +100,7 @@ static int32_t sMicrophoneState;
 
 static const uint64_t kInputExpirationThresholdMs = 1000;
 
-NS_IMPL_ISUPPORTS_INHERITED1(nsAppShell, nsBaseAppShell, nsIObserver)
+NS_IMPL_ISUPPORTS_INHERITED(nsAppShell, nsBaseAppShell, nsIObserver)
 
 static uint64_t
 nanosecsToMillisecs(nsecs_t nsecs)

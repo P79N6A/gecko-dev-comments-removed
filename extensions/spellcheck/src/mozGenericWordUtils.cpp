@@ -4,7 +4,7 @@
 
 #include "mozGenericWordUtils.h"
 
-NS_IMPL_ISUPPORTS1(mozGenericWordUtils, mozISpellI18NUtil)
+NS_IMPL_ISUPPORTS(mozGenericWordUtils, mozISpellI18NUtil)
 
   
 

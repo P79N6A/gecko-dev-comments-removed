@@ -8,7 +8,7 @@
 
 using namespace mozilla;
 
-NS_IMPL_ISUPPORTS1(nsScriptableBase64Encoder, nsIScriptableBase64Encoder)
+NS_IMPL_ISUPPORTS(nsScriptableBase64Encoder, nsIScriptableBase64Encoder)
 
 
 NS_IMETHODIMP

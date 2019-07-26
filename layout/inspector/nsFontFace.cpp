@@ -27,7 +27,7 @@ nsFontFace::~nsFontFace()
 
 
 
-NS_IMPL_ISUPPORTS1(nsFontFace, nsIDOMFontFace)
+NS_IMPL_ISUPPORTS(nsFontFace, nsIDOMFontFace)
 
 
 

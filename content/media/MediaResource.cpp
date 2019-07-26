@@ -106,9 +106,9 @@ ChannelMediaResource::~ChannelMediaResource()
 
 
 
-NS_IMPL_ISUPPORTS4(ChannelMediaResource::Listener,
-                   nsIRequestObserver, nsIStreamListener, nsIChannelEventSink,
-                   nsIInterfaceRequestor)
+NS_IMPL_ISUPPORTS(ChannelMediaResource::Listener,
+                  nsIRequestObserver, nsIStreamListener, nsIChannelEventSink,
+                  nsIInterfaceRequestor)
 
 nsresult
 ChannelMediaResource::Listener::OnStartRequest(nsIRequest* aRequest,

@@ -12,7 +12,7 @@ namespace mozilla {
 namespace dom {
 namespace mobilemessage {
 
-NS_IMPL_ISUPPORTS1(MobileMessageService, nsIMobileMessageService)
+NS_IMPL_ISUPPORTS(MobileMessageService, nsIMobileMessageService)
 
  StaticRefPtr<MobileMessageService> MobileMessageService::sSingleton;
 

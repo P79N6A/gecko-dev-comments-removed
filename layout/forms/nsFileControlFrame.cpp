@@ -324,5 +324,5 @@ nsFileControlFrame::AccessibleType()
 
 
 
-NS_IMPL_ISUPPORTS1(nsFileControlFrame::MouseListener,
-                   nsIDOMEventListener)
+NS_IMPL_ISUPPORTS(nsFileControlFrame::MouseListener,
+                  nsIDOMEventListener)

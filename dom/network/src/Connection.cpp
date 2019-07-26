@@ -20,8 +20,8 @@ namespace mozilla {
 namespace dom {
 namespace network {
 
-NS_IMPL_QUERY_INTERFACE_INHERITED1(Connection, DOMEventTargetHelper,
-                                   nsINetworkProperties)
+NS_IMPL_QUERY_INTERFACE_INHERITED(Connection, DOMEventTargetHelper,
+                                  nsINetworkProperties)
 
 
 

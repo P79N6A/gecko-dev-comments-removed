@@ -34,7 +34,7 @@ using namespace mozilla;
 
 
 
-NS_IMPL_ISUPPORTS2(nsSecretDecoderRing, nsISecretDecoderRing, nsISecretDecoderRingConfig)
+NS_IMPL_ISUPPORTS(nsSecretDecoderRing, nsISecretDecoderRing, nsISecretDecoderRingConfig)
 
 
 nsSecretDecoderRing::nsSecretDecoderRing()

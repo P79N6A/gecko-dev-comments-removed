@@ -15,7 +15,7 @@
 
 
 
-NS_IMPL_ISUPPORTS1(nsSaveAsCharset, nsISaveAsCharset)
+NS_IMPL_ISUPPORTS(nsSaveAsCharset, nsISaveAsCharset)
 
 
 

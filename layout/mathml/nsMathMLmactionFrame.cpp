@@ -236,8 +236,8 @@ nsMathMLmactionFrame::AttributeChanged(int32_t  aNameSpaceID,
 
 
 
-NS_IMPL_ISUPPORTS1(nsMathMLmactionFrame::MouseListener,
-                   nsIDOMEventListener)
+NS_IMPL_ISUPPORTS(nsMathMLmactionFrame::MouseListener,
+                  nsIDOMEventListener)
 
 
 

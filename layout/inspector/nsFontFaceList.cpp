@@ -20,7 +20,7 @@ nsFontFaceList::~nsFontFaceList()
 
 
 
-NS_IMPL_ISUPPORTS1(nsFontFaceList, nsIDOMFontFaceList)
+NS_IMPL_ISUPPORTS(nsFontFaceList, nsIDOMFontFaceList)
 
 
 

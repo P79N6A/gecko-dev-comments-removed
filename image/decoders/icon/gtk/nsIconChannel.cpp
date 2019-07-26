@@ -38,9 +38,9 @@ extern "C" {
 
 #include "nsIconChannel.h"
 
-NS_IMPL_ISUPPORTS2(nsIconChannel,
-                   nsIRequest,
-                   nsIChannel)
+NS_IMPL_ISUPPORTS(nsIconChannel,
+                  nsIRequest,
+                  nsIChannel)
 
 #ifdef MOZ_ENABLE_GNOMEUI
 

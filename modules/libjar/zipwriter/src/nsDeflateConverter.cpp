@@ -20,9 +20,9 @@
 
 
 
-NS_IMPL_ISUPPORTS3(nsDeflateConverter, nsIStreamConverter,
-                                       nsIStreamListener,
-                                       nsIRequestObserver)
+NS_IMPL_ISUPPORTS(nsDeflateConverter, nsIStreamConverter,
+                  nsIStreamListener,
+                  nsIRequestObserver)
 
 nsresult nsDeflateConverter::Init()
 {

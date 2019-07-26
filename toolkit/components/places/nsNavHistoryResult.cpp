@@ -1761,9 +1761,9 @@ nsNavHistoryContainerResultNode::GetChildrenReadOnly(bool *aChildrenReadOnly)
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED1(nsNavHistoryQueryResultNode,
-                             nsNavHistoryContainerResultNode,
-                             nsINavHistoryQueryResultNode)
+NS_IMPL_ISUPPORTS_INHERITED(nsNavHistoryQueryResultNode,
+                            nsNavHistoryContainerResultNode,
+                            nsINavHistoryQueryResultNode)
 
 nsNavHistoryQueryResultNode::nsNavHistoryQueryResultNode(
     const nsACString& aTitle, const nsACString& aIconURI,
@@ -2998,9 +2998,9 @@ nsNavHistoryQueryResultNode::OnItemMoved(int64_t aFolder,
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED1(nsNavHistoryFolderResultNode,
-                             nsNavHistoryContainerResultNode,
-                             nsINavHistoryQueryResultNode)
+NS_IMPL_ISUPPORTS_INHERITED(nsNavHistoryFolderResultNode,
+                            nsNavHistoryContainerResultNode,
+                            nsINavHistoryQueryResultNode)
 
 nsNavHistoryFolderResultNode::nsNavHistoryFolderResultNode(
     const nsACString& aTitle, nsNavHistoryQueryOptions* aOptions,

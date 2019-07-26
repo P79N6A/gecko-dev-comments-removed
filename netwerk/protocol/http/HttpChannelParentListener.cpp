@@ -33,12 +33,12 @@ HttpChannelParentListener::~HttpChannelParentListener()
 
 
 
-NS_IMPL_ISUPPORTS5(HttpChannelParentListener,
-                   nsIInterfaceRequestor,
-                   nsIStreamListener,
-                   nsIRequestObserver,
-                   nsIChannelEventSink,
-                   nsIRedirectResultListener)
+NS_IMPL_ISUPPORTS(HttpChannelParentListener,
+                  nsIInterfaceRequestor,
+                  nsIStreamListener,
+                  nsIRequestObserver,
+                  nsIChannelEventSink,
+                  nsIRedirectResultListener)
 
 
 

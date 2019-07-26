@@ -74,7 +74,7 @@ nsAppFileLocationProvider::nsAppFileLocationProvider()
 
 
 
-NS_IMPL_ISUPPORTS2(nsAppFileLocationProvider, nsIDirectoryServiceProvider, nsIDirectoryServiceProvider2)
+NS_IMPL_ISUPPORTS(nsAppFileLocationProvider, nsIDirectoryServiceProvider, nsIDirectoryServiceProvider2)
 
 
 
@@ -440,7 +440,7 @@ class nsAppDirectoryEnumerator : public nsISimpleEnumerator
     nsCOMPtr<nsIFile> mNext;
 };
 
-NS_IMPL_ISUPPORTS1(nsAppDirectoryEnumerator, nsISimpleEnumerator)
+NS_IMPL_ISUPPORTS(nsAppDirectoryEnumerator, nsISimpleEnumerator)
 
 
 
