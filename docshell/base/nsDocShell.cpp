@@ -94,7 +94,7 @@
 
 
 #include "nsIHttpChannelInternal.h"  
-
+#include "nsPILoadGroupInternal.h"
 
 
 #include "nsDocShellLoadInfo.h"
@@ -6548,10 +6548,15 @@ nsDocShell::EndPageLoad(nsIWebProgress * aProgress,
     if (timingChannel) {
         TimeStamp channelCreationTime;
         rv = timingChannel->GetChannelCreation(&channelCreationTime);
-        if (NS_SUCCEEDED(rv) && !channelCreationTime.IsNull())
+        if (NS_SUCCEEDED(rv) && !channelCreationTime.IsNull()) {
             Telemetry::AccumulateTimeDelta(
                 Telemetry::TOTAL_CONTENT_PAGE_LOAD_TIME,
                 channelCreationTime);
+            nsCOMPtr<nsPILoadGroupInternal> internalLoadGroup =
+                do_QueryInterface(mLoadGroup);
+            if (internalLoadGroup)
+                internalLoadGroup->OnEndPageLoad(aChannel);
+        }
     }
 
     

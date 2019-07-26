@@ -1399,6 +1399,17 @@ HttpBaseChannel::SetLoadUnblocked(bool aLoadUnblocked)
   return NS_OK;
 }
 
+NS_IMETHODIMP
+HttpBaseChannel::GetPacingTelemetryID(uint32_t *aID)
+{
+  *aID = 0;
+  
+  
+  if (!mResponseHead || !mResponseHead->PeekHeader(nsHttp::X_Firefox_Spdy))
+    *aID = gHttpHandler->PacingTelemetryID();
+  return NS_OK;
+}
+
 
 
 
