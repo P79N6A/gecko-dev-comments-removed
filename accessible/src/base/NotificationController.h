@@ -3,10 +3,11 @@
 
 
 
-#ifndef NotificationController_h_
-#define NotificationController_h_
+#ifndef mozilla_a11y_NotificationController_h_
+#define mozilla_a11y_NotificationController_h_
 
-#include "AccEvent.h"
+#include "EventQueue.h"
+
 #include "nsCycleCollectionParticipant.h"
 #include "nsRefreshDriver.h"
 
@@ -84,7 +85,8 @@ private:
 
 
 
-class NotificationController : public nsARefreshObserver
+class NotificationController : public EventQueue,
+                               public nsARefreshObserver
 {
 public:
   NotificationController(DocAccessible* aDocument, nsIPresShell* aPresShell);
@@ -103,7 +105,11 @@ public:
   
 
 
-  void QueueEvent(AccEvent* aEvent);
+  void QueueEvent(AccEvent* aEvent)
+  {
+    if (PushEvent(aEvent))
+      ScheduleProcessing();
+  }
 
   
 
@@ -198,46 +204,6 @@ private:
   
   virtual void WillRefresh(mozilla::TimeStamp aTime);
 
-  
-  
-
-
-  void CoalesceEvents();
-
-  
-
-
-  void CoalesceReorderEvents(AccEvent* aTailEvent);
-
-  
-
-
-  void CoalesceSelChangeEvents(AccSelChangeEvent* aTailEvent,
-                               AccSelChangeEvent* aThisEvent,
-                               uint32_t aThisIndex);
-
-  
-
-
-  void CoalesceTextChangeEventsFor(AccHideEvent* aTailEvent,
-                                   AccHideEvent* aThisEvent);
-  void CoalesceTextChangeEventsFor(AccShowEvent* aTailEvent,
-                                   AccShowEvent* aThisEvent);
-
-  
-
-
-
-
-   void CreateTextChangeEventFor(AccMutationEvent* aEvent);
-
-  
-
-  
-
-
-  void ProcessEventQueue();
-
 private:
   
 
@@ -249,11 +215,6 @@ private:
     eRefreshProcessingForUpdate
   };
   eObservingState mObservingState;
-
-  
-
-
-  nsRefPtr<DocAccessible> mDocument;
 
   
 
@@ -343,12 +304,6 @@ private:
 
 
   nsTArray<nsRefPtr<Notification> > mNotifications;
-
-  
-
-
-
-  nsTArray<nsRefPtr<AccEvent> > mEvents;
 };
 
 } 
