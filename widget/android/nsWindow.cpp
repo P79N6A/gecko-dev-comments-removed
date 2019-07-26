@@ -341,15 +341,21 @@ nsWindow::GetDPI()
 double
 nsWindow::GetDefaultScaleInternal()
 {
-    float dpi = GetDPI();
-    if (dpi < 200) { 
-        return 1.0;
+    static double density = 0.0;
+
+    if (density != 0.0) {
+        return density;
     }
-    if (dpi < 300) { 
-        return 1.5;
+
+    if (AndroidBridge::Bridge()) {
+        density = AndroidBridge::Bridge()->GetDensity();
     }
-    
-    return floor(dpi / 150);
+
+    if (!density) {
+        density = 1.0;
+    }
+
+    return density;
 }
 
 NS_IMETHODIMP
