@@ -1140,17 +1140,6 @@ TryConvertFreeName(BytecodeEmitter *bce, ParseNode *pn)
 
 
     if (bce->emitterMode == BytecodeEmitter::LazyFunction) {
-        
-        
-        for (StmtInfoBCE *stmt = bce->topStmt; stmt; stmt = stmt->down) {
-            switch (stmt->type) {
-              case STMT_TRY:
-              case STMT_FINALLY:
-                return true;
-              default:;
-            }
-        }
-
         size_t hops = 0;
         FunctionBox *funbox = bce->sc->asFunctionBox();
         if (funbox->hasExtensibleScope())
