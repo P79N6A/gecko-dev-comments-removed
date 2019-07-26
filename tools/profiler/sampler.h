@@ -59,7 +59,7 @@
 
 
 #define SAMPLER_INIT()
-#define SAMPLER_DEINIT()
+#define SAMPLER_SHUTDOWN()
 #define SAMPLER_START(entries, interval, features, featureCount)
 #define SAMPLER_STOP()
 #define SAMPLER_IS_ACTIVE() false
