@@ -685,14 +685,15 @@ nsLayoutUtils::GetDisplayPort(nsIContent* aContent, nsRect *aResult)
       }
 
       nsIFrame* frame = aContent->GetPrimaryFrame();
-      bool isRoot = false;
-      if (aContent->OwnerDoc()->GetRootElement() == aContent) {
-        
-        
-        frame = frame->PresContext()->PresShell()->GetRootScrollFrame();
-        isRoot = true;
-      }
       if (frame) {
+        bool isRoot = false;
+        if (aContent->OwnerDoc()->GetRootElement() == aContent) {
+          
+          
+          frame = frame->PresContext()->PresShell()->GetRootScrollFrame();
+          isRoot = true;
+        }
+
         
         nsPresContext* presContext = frame->PresContext();
         int32_t auPerDevPixel = presContext->AppUnitsPerDevPixel();
