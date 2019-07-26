@@ -21,12 +21,6 @@ using namespace Microsoft::WRL;
 using namespace Microsoft::WRL::Wrappers;
 
 
-#pragma comment(lib, "dwrite.lib")
-#pragma comment(lib, "d2d1.lib")
-#pragma comment(lib, "d3d11.lib")
-#pragma comment(lib, "runtimeobject.lib")
-
-
 
 extern nsresult XRE_metroStartup();
 extern void XRE_metroShutdown();
