@@ -915,7 +915,12 @@ let actorProto = function(actorProto) {
           response.from = this.actorID;
           
           if (spec.release) {
-            this.destroy();
+            try {
+              this.destroy();
+            } catch(e) {
+              this.writeError(e);
+              return;
+            }
           }
 
           conn.send(response);
@@ -988,6 +993,12 @@ let Front = Class({
   },
 
   destroy: function() {
+    
+    
+    while (this._requests && this._requests.length > 0) {
+      let deferred = this._requests.shift();
+      deferred.reject(new Error("Connection closed"));
+    }
     Pool.prototype.destroy.call(this);
     this.actorID = null;
   },

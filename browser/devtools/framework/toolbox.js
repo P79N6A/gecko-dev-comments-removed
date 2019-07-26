@@ -908,6 +908,7 @@ Toolbox.prototype = {
       
       
       this._host = null;
-    });
+      this._toolPanels.clear();
+    }).then(null, console.error);
   }
 };
