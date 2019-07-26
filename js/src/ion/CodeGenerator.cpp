@@ -1963,9 +1963,10 @@ bool
 CodeGenerator::visitBoundsCheck(LBoundsCheck *lir)
 {
     if (lir->index()->isConstant()) {
-        int32_t index = ToInt32(lir->index());
+        
+        uint32_t index = ToInt32(lir->index());
         if (lir->length()->isConstant()) {
-            int32_t length = ToInt32(lir->length());
+            uint32_t length = ToInt32(lir->length());
             if (index < length)
                 return true;
             return bailout(lir->snapshot());
