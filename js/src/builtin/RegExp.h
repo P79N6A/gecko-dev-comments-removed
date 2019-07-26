@@ -19,15 +19,13 @@ js_InitRegExpClass(JSContext *cx, js::HandleObject obj);
 
 namespace js {
 
-class MatchConduit;
-
 
 
 enum RegExpStaticsUpdate { UpdateRegExpStatics, DontUpdateRegExpStatics };
 
 RegExpRunStatus
 ExecuteRegExp(JSContext *cx, HandleObject regexp, HandleString string,
-              MatchConduit &matches, RegExpStaticsUpdate staticsUpdate);
+              MatchPairs &matches, RegExpStaticsUpdate staticsUpdate);
 
 
 

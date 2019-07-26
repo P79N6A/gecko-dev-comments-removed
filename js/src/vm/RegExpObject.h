@@ -17,13 +17,6 @@
 #include "gc/Zone.h"
 #include "vm/Shape.h"
 
-#ifdef JS_YARR
-#ifdef JS_ION
-#include "yarr/YarrJIT.h"
-#endif
-#include "yarr/YarrInterpreter.h"
-#endif 
-
 
 
 
@@ -111,17 +104,6 @@ class RegExpShared
 
     typedef frontend::TokenStream TokenStream;
 
-#ifdef JS_YARR
-    typedef JSC::Yarr::BytecodePattern BytecodePattern;
-    typedef JSC::Yarr::ErrorCode ErrorCode;
-    typedef JSC::Yarr::YarrPattern YarrPattern;
-#ifdef JS_ION
-    typedef JSC::Yarr::JSGlobalData JSGlobalData;
-    typedef JSC::Yarr::YarrCodeBlock YarrCodeBlock;
-    typedef JSC::Yarr::YarrJITCompileMode YarrJITCompileMode;
-#endif
-#endif
-
     
     HeapPtrAtom        source;
 
@@ -130,68 +112,27 @@ class RegExpShared
     bool               canStringMatch;
     bool               marked_;
 
-#ifdef JS_YARR
-
-#ifdef JS_ION
-    
-    YarrCodeBlock   codeBlock;
-#endif
-    BytecodePattern *bytecode;
-
-#else 
-
 #ifdef JS_ION
     HeapPtrJitCode     jitCode;
 #endif
     uint8_t            *byteCode;
 
-#endif 
-
     
     Vector<uint8_t *, 0, SystemAllocPolicy> tables;
 
     
-    bool compile(JSContext *cx, bool matchOnly, const jschar *sampleChars, size_t sampleLength);
-    bool compile(JSContext *cx, HandleAtom pattern, bool matchOnly, const jschar *sampleChars, size_t sampleLength);
+    bool compile(JSContext *cx, const jschar *sampleChars, size_t sampleLength);
+    bool compile(JSContext *cx, HandleAtom pattern, const jschar *sampleChars, size_t sampleLength);
 
     bool compileIfNecessary(JSContext *cx, const jschar *sampleChars, size_t sampleLength);
-
-#ifdef JS_YARR
-    bool compileMatchOnlyIfNecessary(JSContext *cx);
-#endif
 
   public:
     RegExpShared(JSAtom *source, RegExpFlag flags);
     ~RegExpShared();
 
-#ifdef JS_YARR
-    
-
-    
-    static bool isJITRuntimeEnabled(JSContext *cx) {
-        #ifdef JS_ION
-        # if defined(ANDROID)
-            return !cx->jitIsBroken;
-        # else
-            return true;
-        # endif
-        #else
-            return false;
-        #endif
-    }
-    static void reportYarrError(ExclusiveContext *cx, TokenStream *ts, ErrorCode error);
-    static bool checkSyntax(ExclusiveContext *cx, TokenStream *tokenStream, JSLinearString *source);
-#endif 
-
     
     RegExpRunStatus execute(JSContext *cx, const jschar *chars, size_t length,
                             size_t *lastIndex, MatchPairs &matches);
-
-#ifdef JS_YARR
-    
-    RegExpRunStatus executeMatchOnly(JSContext *cx, const jschar *chars, size_t length,
-                                     size_t *lastIndex, MatchPair &match);
-#endif
 
     
     bool addTable(uint8_t *table) {
@@ -201,7 +142,7 @@ class RegExpShared
     
 
     size_t getParenCount() const {
-        JS_ASSERT(isCompiled(true) || isCompiled(false) || canStringMatch);
+        JS_ASSERT(isCompiled() || canStringMatch);
         return parenCount;
     }
 
@@ -215,24 +156,6 @@ class RegExpShared
     bool multiline() const              { return flags & MultilineFlag; }
     bool sticky() const                 { return flags & StickyFlag; }
 
-#ifdef JS_YARR
-
-    bool hasCode(bool matchOnly) const {
-#ifdef JS_ION
-        return matchOnly ? codeBlock.has16BitCodeMatchOnly() : codeBlock.has16BitCode();
-#else
-        return false;
-#endif
-    }
-    bool hasBytecode() const {
-        return bytecode != nullptr;
-    }
-    bool isCompiled(bool matchOnly) const {
-        return hasBytecode() || hasCode(matchOnly);
-    }
-
-#else 
-
     bool hasJitCode() const {
 #ifdef JS_ION
         return jitCode != nullptr;
@@ -244,11 +167,9 @@ class RegExpShared
         return byteCode != nullptr;
     }
 
-    bool isCompiled(bool matchOnly) const {
+    bool isCompiled() const {
         return hasJitCode() || hasByteCode();
     }
-
-#endif 
 
     void trace(JSTracer *trc);
 
