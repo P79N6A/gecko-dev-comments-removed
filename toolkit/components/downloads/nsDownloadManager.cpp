@@ -2460,7 +2460,7 @@ nsDownload::OnProgressChange64(nsIWebProgress *aWebProgress,
 
     
     
-    if (!mMIMEInfo) {
+    if (!mMIMEInfo && !mPrivate) {
       nsCOMPtr<nsIDownloadHistory> dh =
         do_GetService(NS_DOWNLOADHISTORY_CONTRACTID);
       if (dh)

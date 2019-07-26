@@ -673,8 +673,7 @@ BookmarkImporter.prototype = {
     
     
     PlacesUtils.favicons.replaceFaviconDataFromDataURL(faviconURI, aData);
-    PlacesUtils.favicons.setAndFetchFaviconForPage(aPageURI, faviconURI, false,
-      PlacesUtils.favicons.FAVICON_LOAD_NON_PRIVATE);
+    PlacesUtils.favicons.setAndFetchFaviconForPage(aPageURI, faviconURI, false, PlacesUtils.favicons.FAVICON_LOAD_NON_PRIVATE);
   },
 
   

@@ -263,7 +263,6 @@ nsNavHistory::nsNavHistory()
 , mHistoryEnabled(true)
 , mNumVisitsForFrecency(10)
 , mTagsFolder(-1)
-, mInPrivateBrowsing(PRIVATEBROWSING_NOTINITED)
 , mHasHistoryEntries(-1)
 , mCanNotify(true)
 , mCacheObservers("history-observers")
@@ -316,7 +315,6 @@ nsNavHistory::Init()
   if (obsSvc) {
     (void)obsSvc->AddObserver(this, TOPIC_PLACES_CONNECTION_CLOSED, true);
     (void)obsSvc->AddObserver(this, TOPIC_IDLE_DAILY, true);
-    (void)obsSvc->AddObserver(this, NS_PRIVATE_BROWSING_SWITCH_TOPIC, true);
 #ifdef MOZ_XUL
     (void)obsSvc->AddObserver(this, TOPIC_AUTOCOMPLETE_FEEDBACK_INCOMING, true);
 #endif
@@ -3440,7 +3438,6 @@ nsNavHistory::IsVisited(nsIURI *aURI, bool *_retval)
 
 
 
-
 NS_IMETHODIMP
 nsNavHistory::SetPageTitle(nsIURI* aURI,
                            const nsAString& aTitle)
@@ -3448,9 +3445,7 @@ nsNavHistory::SetPageTitle(nsIURI* aURI,
   NS_ASSERTION(NS_IsMainThread(), "This can only be called on the main thread");
   NS_ENSURE_ARG(aURI);
 
-  
-  if (InPrivateBrowsingMode())
-    return NS_OK;
+  ENSURE_NOT_PRIVATE_BROWSING;
 
   
   
@@ -3672,6 +3667,15 @@ nsNavHistory::Observe(nsISupports *aSubject, const char *aTopic,
     if (!input)
       return NS_OK;
 
+    
+    bool isPrivate;
+    nsresult rv = input->GetInPrivateContext(&isPrivate);
+    NS_ENSURE_SUCCESS(rv, rv);
+    if (isPrivate)
+      return NS_OK;
+
+    ENSURE_NOT_PRIVATE_BROWSING;
+
     nsCOMPtr<nsIAutoCompletePopup> popup;
     input->GetPopup(getter_AddRefs(popup));
     if (!popup)
@@ -3684,7 +3688,7 @@ nsNavHistory::Observe(nsISupports *aSubject, const char *aTopic,
 
     
     bool open;
-    nsresult rv = popup->GetPopupOpen(&open);
+    rv = popup->GetPopupOpen(&open);
     NS_ENSURE_SUCCESS(rv, rv);
     if (!open)
       return NS_OK;
@@ -3707,15 +3711,6 @@ nsNavHistory::Observe(nsISupports *aSubject, const char *aTopic,
 
   else if (strcmp(aTopic, TOPIC_IDLE_DAILY) == 0) {
     (void)DecayFrecency();
-  }
-
-  else if (strcmp(aTopic, NS_PRIVATE_BROWSING_SWITCH_TOPIC) == 0) {
-    if (NS_LITERAL_STRING(NS_PRIVATE_BROWSING_ENTER).Equals(aData)) {
-      mInPrivateBrowsing = true;
-    }
-    else if (NS_LITERAL_STRING(NS_PRIVATE_BROWSING_LEAVE).Equals(aData)) {
-      mInPrivateBrowsing = false;
-    }
   }
 
   return NS_OK;
@@ -5088,9 +5083,7 @@ nsresult
 nsNavHistory::AutoCompleteFeedback(int32_t aIndex,
                                    nsIAutoCompleteController *aController)
 {
-  
-  if (InPrivateBrowsingMode())
-    return NS_OK;
+  ENSURE_NOT_PRIVATE_BROWSING;
 
   nsCOMPtr<mozIStorageAsyncStatement> stmt = mDB->GetAsyncStatement(
     "INSERT OR REPLACE INTO moz_inputhistory "

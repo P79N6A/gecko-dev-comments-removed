@@ -5334,7 +5334,8 @@ nsDocShell::SetTitle(const PRUnichar * aTitle)
             treeOwnerAsWin->SetTitle(aTitle);
     }
 
-    if (mCurrentURI && mLoadType != LOAD_ERROR_PAGE && mUseGlobalHistory) {
+    if (mCurrentURI && mLoadType != LOAD_ERROR_PAGE && mUseGlobalHistory &&
+        !mInPrivateBrowsing) {
         nsCOMPtr<IHistory> history = services::GetHistoryService();
         if (history) {
             history->SetURITitle(mCurrentURI, mTitle);
@@ -8918,7 +8919,7 @@ nsDocShell::InternalLoad(nsIURI * aURI,
 
             
 
-            if (mUseGlobalHistory) {
+            if (mUseGlobalHistory && !mInPrivateBrowsing) {
                 nsCOMPtr<IHistory> history = services::GetHistoryService();
                 if (history) {
                     history->SetURITitle(aURI, mTitle);
@@ -10263,7 +10264,7 @@ nsDocShell::AddState(nsIVariant *aData, const nsAString& aTitle,
 
         
         
-        if (mUseGlobalHistory) {
+        if (mUseGlobalHistory && !mInPrivateBrowsing) {
             nsCOMPtr<IHistory> history = services::GetHistoryService();
             if (history) {
                 history->SetURITitle(newURI, mTitle);
@@ -11082,7 +11083,7 @@ nsDocShell::AddURIVisit(nsIURI* aURI,
 
     
     
-    if (mItemType != typeContent || !mUseGlobalHistory) {
+    if (mItemType != typeContent || !mUseGlobalHistory || mInPrivateBrowsing) {
         return;
     }
 
