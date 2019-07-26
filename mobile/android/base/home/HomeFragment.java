@@ -9,7 +9,6 @@ import org.mozilla.gecko.EditBookmarkDialog;
 import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.GeckoEvent;
 import org.mozilla.gecko.R;
-import org.mozilla.gecko.Tab;
 import org.mozilla.gecko.Tabs;
 import org.mozilla.gecko.db.BrowserDB;
 import org.mozilla.gecko.gfx.BitmapUtils;
@@ -65,15 +64,6 @@ class HomeFragment extends Fragment {
 
         MenuInflater inflater = new MenuInflater(view.getContext());
         inflater.inflate(R.menu.home_contextmenu, menu);
-
-        
-        boolean isPrivate = false;
-        Tab tab = Tabs.getInstance().getSelectedTab();
-        if (tab != null) {
-            isPrivate = tab.isPrivate();
-        }
-        menu.findItem(R.id.home_open_new_tab).setVisible(!isPrivate);
-        menu.findItem(R.id.home_open_private_tab).setVisible(isPrivate);
 
         
         if (info.rowId < 0) {
