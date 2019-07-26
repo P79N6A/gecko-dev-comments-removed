@@ -83,6 +83,10 @@ protected:
     return mozilla::CORS_NONE;
   }
 
+  
+  void Unlink();
+  void Traverse(nsCycleCollectionTraversalCallback &cb);
+
 private:
   
 
