@@ -897,6 +897,10 @@ CodeGenerator::visitOsrEntry(LOsrEntry *lir)
     masm.flushBuffer();
     setOsrEntryOffset(masm.size());
 
+#if JS_TRACE_LOGGING
+    masm.tracelogLog(TraceLogging::INFO_ENGINE_IONMONKEY);
+#endif
+
     
     uint32_t size = frameSize();
     if (size != 0)
@@ -5421,6 +5425,11 @@ CodeGenerator::generate()
     if (!safepoints_.init(graph.totalSlotCount()))
         return false;
 
+#if JS_TRACE_LOGGING
+    masm.tracelogStart(gen->info().script());
+    masm.tracelogLog(TraceLogging::INFO_ENGINE_IONMONKEY);
+#endif
+
     
     
     
@@ -5433,9 +5442,20 @@ CodeGenerator::generate()
             return false;
     }
 
+#if JS_TRACE_LOGGING
+    Label skip;
+    masm.jump(&skip);
+#endif
+
     
     masm.flushBuffer();
     setSkipArgCheckEntryOffset(masm.size());
+
+#if JS_TRACE_LOGGING
+    masm.tracelogStart(gen->info().script());
+    masm.tracelogLog(TraceLogging::INFO_ENGINE_IONMONKEY);
+    masm.bind(&skip);
+#endif
 
     if (!generatePrologue())
         return false;

@@ -55,6 +55,9 @@ bool
 CodeGeneratorARM::generateEpilogue()
 {
     masm.bind(&returnLabel_); 
+#if JS_TRACE_LOGGING
+    masm.tracelogStop();
+#endif
     if (gen->compilingAsmJS()) {
         
         masm.freeStack(frameDepth_);
