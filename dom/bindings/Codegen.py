@@ -7983,11 +7983,11 @@ class CGNativeMember(ClassMethod):
             elif type.nullable():
                 
                 returnCode = ("NS_IF_ADDREF(${declName});\n"
-                              "return ${declName};")
+                              "return dont_AddRef(${declName});")
             else:
                 
                 returnCode = ("NS_ADDREF(${declName});\n"
-                              "return ${declName};")
+                              "return dont_AddRef(${declName});")
             return result.define(), "nullptr", returnCode
         if type.isCallback():
             return ("already_AddRefed<%s>" % type.unroll().identifier.name,
