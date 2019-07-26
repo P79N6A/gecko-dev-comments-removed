@@ -15,10 +15,11 @@ var AutofillMenuUI = {
   get _commands() { return this._popup.childNodes[0]; },
 
   get _menuPopup() {
-    if (!this.__menuPopup)
+    if (!this.__menuPopup) {
       this.__menuPopup = new MenuPopup(this._panel, this._popup);
       this.__menuPopup._wantTypeBehind = true;
-
+      this.__menuPopup.controller = this;
+    }
     return this.__menuPopup;
   },
 
@@ -87,9 +88,10 @@ var ContextMenuUI = {
   get _commands() { return this._popup.childNodes[0]; },
 
   get _menuPopup() {
-    if (!this.__menuPopup)
+    if (!this.__menuPopup) {
       this.__menuPopup = new MenuPopup(this._panel, this._popup);
-
+      this.__menuPopup.controller = this;
+    }
     return this.__menuPopup;
   },
 
@@ -222,9 +224,10 @@ var MenuControlUI = {
   get _commands() { return this._popup.childNodes[0]; },
 
   get _menuPopup() {
-    if (!this.__menuPopup)
+    if (!this.__menuPopup) {
       this.__menuPopup = new MenuPopup(this._panel, this._popup);
-
+      this.__menuPopup.controller = this;
+    }
     return this.__menuPopup;
   },
 
@@ -335,8 +338,9 @@ function MenuPopup(aPanel, aPopup) {
   this._panel = aPanel;
   this._popup = aPopup;
   this._wantTypeBehind = false;
-}
 
+  window.addEventListener('MozAppbarShowing', this, false);
+}
 MenuPopup.prototype = {
   get _visible() { return !this._panel.hidden; },
   get _commands() { return this._popup.childNodes[0]; },
@@ -473,6 +477,13 @@ MenuPopup.prototype = {
         break;
       case "PopupChanged":
         if (aEvent.detail) {
+          this.hide();
+        }
+        break;
+      case "MozAppbarShowing":
+        if (this.controller && this.controller.hide) {
+          this.controller.hide()
+        } else {
           this.hide();
         }
         break;
