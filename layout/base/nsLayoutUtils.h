@@ -1650,6 +1650,11 @@ public:
   
 
 
+  static bool UnsetValueEnabled();
+
+  
+
+
 
   static void UnionChildOverflow(nsIFrame* aFrame,
                                  nsOverflowAreas& aOverflowAreas);
