@@ -586,7 +586,7 @@ public class Prompt implements OnClickListener, OnCancelListener, OnItemClickLis
                 
                 
                 Bitmap bitmap = ((BitmapDrawable) item.icon).getBitmap();
-                d = new BitmapDrawable(Bitmap.createScaledBitmap(bitmap, mIconSize, mIconSize, true));
+                d = new BitmapDrawable(res, Bitmap.createScaledBitmap(bitmap, mIconSize, mIconSize, true));
             } else if (item.inGroup) {
                 
                 d = getBlankDrawable(res);
