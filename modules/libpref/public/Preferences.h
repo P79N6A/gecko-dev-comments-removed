@@ -156,8 +156,10 @@ public:
 
 
 
+
   static nsresult GetBool(const char* aPref, bool* aResult);
   static nsresult GetInt(const char* aPref, int32_t* aResult);
+  static nsresult GetFloat(const char* aPref, float* aResult);
   static nsresult GetUint(const char* aPref, uint32_t* aResult)
   {
     int32_t result;
