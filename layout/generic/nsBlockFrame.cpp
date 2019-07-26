@@ -1385,7 +1385,7 @@ nsBlockFrame::ComputeFinalSize(const nsHTMLReflowState& aReflowState,
     
     
     nscoord floatHeight =
-      aState.ClearFloats(bottomEdgeOfChildren, NS_STYLE_CLEAR_LEFT_AND_RIGHT,
+      aState.ClearFloats(bottomEdgeOfChildren, NS_STYLE_CLEAR_BOTH,
                          nullptr, nsFloatManager::DONT_CLEAR_PUSHED_FLOATS);
     bottomEdgeOfChildren = std::max(bottomEdgeOfChildren, floatHeight);
   }
@@ -5978,7 +5978,7 @@ nsBlockFrame::ReflowPushedFloats(nsBlockReflowState& aState,
   }
 
   
-  if (0 != aState.ClearFloats(0, NS_STYLE_CLEAR_LEFT_AND_RIGHT)) {
+  if (0 != aState.ClearFloats(0, NS_STYLE_CLEAR_BOTH)) {
     aState.mFloatBreakType = static_cast<nsBlockFrame*>(GetPrevInFlow())
                                ->FindTrailingClear();
   }
