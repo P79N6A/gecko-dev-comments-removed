@@ -14,6 +14,8 @@ let test_prefBranch = "browser.gesture.";
 
 function test()
 {
+  waitForExplicitFinish();
+
   
   gGestureSupport.init(false);
 
@@ -33,9 +35,8 @@ function test()
   test_commandset = document.getElementById("mainCommandSet");
   test_swipeGestures();
   test_latchedGesture("pinch", "out", "in", "MozMagnifyGesture");
-  
   test_thresholdGesture("pinch", "out", "in", "MozMagnifyGesture");
-  test_thresholdGesture("twist", "right", "left", "MozRotateGesture");
+  test_rotateGestures();
 }
 
 let test_eventCount = 0;
@@ -44,6 +45,7 @@ let test_expectedDirection;
 let test_expectedDelta;
 let test_expectedModifiers;
 let test_expectedClickCount;
+let test_imageTab;
 
 function test_gestureListener(evt)
 {
@@ -506,4 +508,154 @@ function test_swipeGestures()
   test_removeCommand(cmdDown);
   test_removeCommand(cmdLeft);
   test_removeCommand(cmdRight);
+}
+
+
+function test_rotateHelperGetImageRotation(aImageElement)
+{
+  
+  
+  let transformValue = content.window.getComputedStyle(aImageElement, null)
+                                     .transform;
+  if (transformValue == "none")
+    return 0;
+
+  transformValue = transformValue.split("(")[1]
+                                 .split(")")[0]
+                                 .split(",");
+  var rotation = Math.round(Math.atan2(transformValue[1], transformValue[0]) *
+                            (180 / Math.PI));
+  return (rotation < 0 ? rotation + 360 : rotation);
+}
+
+function test_rotateHelperOneGesture(aImageElement, aCurrentRotation,
+                                     aDirection, aAmount, aStop)
+{
+  if (aAmount <= 0 || aAmount > 90) 
+    return;
+
+  
+  let clockwise = SimpleGestureEvent.ROTATION_CLOCKWISE;
+  let cclockwise = SimpleGestureEvent.ROTATION_COUNTERCLOCKWISE;
+
+  let delta = aAmount * (aDirection == clockwise ? 1 : -1);
+
+  
+  aImageElement.style.transitionDuration = "0s";
+
+  
+  test_utils.sendSimpleGestureEvent("MozRotateGestureStart", 0, 0, aDirection, .001, 0);
+  test_utils.sendSimpleGestureEvent("MozRotateGestureUpdate", 0, 0, aDirection, delta, 0);
+  aImageElement.clientTop;
+
+  
+  if (aStop) {
+    
+    test_utils.sendSimpleGestureEvent("MozRotateGestureUpdate", 0, 0, aDirection, .001, 0);
+    aImageElement.clientTop;
+
+    let stopExpectedRotation = (aCurrentRotation + delta) % 360;
+    if (stopExpectedRotation < 0)
+      stopExpectedRotation += 360;
+
+    is(stopExpectedRotation, test_rotateHelperGetImageRotation(aImageElement),
+       "Image rotation at gesture stop/hold: expected=" + stopExpectedRotation +
+       ", observed=" + test_rotateHelperGetImageRotation(aImageElement) +
+       ", init=" + aCurrentRotation +
+       ", amt=" + aAmount +
+       ", dir=" + (aDirection == clockwise ? "cl" : "ccl"));
+  }
+  
+  test_utils.sendSimpleGestureEvent("MozRotateGesture", 0, 0, aDirection, 0, 0);
+  aImageElement.clientTop;
+
+  let finalExpectedRotation;
+
+  if (aAmount < 45 && aStop) {
+    
+    finalExpectedRotation = aCurrentRotation;
+  }
+  else {
+    
+    
+    finalExpectedRotation = (aCurrentRotation +
+                             (aDirection == clockwise ? 1 : -1) * 90) % 360;
+    if (finalExpectedRotation < 0)
+      finalExpectedRotation += 360;
+  }
+
+  is(finalExpectedRotation, test_rotateHelperGetImageRotation(aImageElement),
+     "Image rotation gesture end: expected=" + finalExpectedRotation +
+     ", observed=" + test_rotateHelperGetImageRotation(aImageElement) +
+     ", init=" + aCurrentRotation +
+     ", amt=" + aAmount +
+     ", dir=" + (aDirection == clockwise ? "cl" : "ccl"));
+}
+
+function test_rotateGesturesOnTab()
+{
+  gBrowser.selectedBrowser.removeEventListener("load", test_rotateGesturesOnTab, true);
+
+  if (!(content.document instanceof ImageDocument)) {
+    ok(false, "Image document failed to open for rotation testing");
+    gBrowser.removeTab(test_imageTab);
+    finish();
+    return;
+  }
+
+  
+  let cl = SimpleGestureEvent.ROTATION_CLOCKWISE;
+  let ccl = SimpleGestureEvent.ROTATION_COUNTERCLOCKWISE;
+
+  let imgElem = content.document.body &&
+                content.document.body.firstElementChild;
+
+  if (!imgElem) {
+    ok(false, "Could not get image element on ImageDocument for rotation!");
+    gBrowser.removeTab(test_imageTab);
+    finish();
+    return;
+  }
+
+  
+  var normRot = function(rotation) {
+    rotation = rotation % 360;
+    if (rotation < 0)
+      rotation += 360;
+    return rotation;
+  }
+
+  for (var initRot = 0; initRot < 360; initRot += 90) {
+    
+    
+    
+    test_rotateHelperOneGesture(imgElem, normRot(initRot +   0), cl,  35, true );
+    test_rotateHelperOneGesture(imgElem, normRot(initRot +   0), cl,  35, false);
+    test_rotateHelperOneGesture(imgElem, normRot(initRot +  90), cl,  55, true );
+    test_rotateHelperOneGesture(imgElem, normRot(initRot + 180), cl,  55, false);
+    test_rotateHelperOneGesture(imgElem, normRot(initRot + 270), ccl, 35, true );
+    test_rotateHelperOneGesture(imgElem, normRot(initRot + 270), ccl, 35, false);
+    test_rotateHelperOneGesture(imgElem, normRot(initRot + 180), ccl, 55, true );
+    test_rotateHelperOneGesture(imgElem, normRot(initRot +  90), ccl, 55, false);
+
+    
+    
+    test_utils.sendSimpleGestureEvent("MozRotateGestureStart", 0, 0, cl, .001, 0);
+    test_utils.sendSimpleGestureEvent("MozRotateGestureUpdate", 0, 0, cl, 90, 0);
+    test_utils.sendSimpleGestureEvent("MozRotateGestureUpdate", 0, 0, cl, .001, 0);
+    test_utils.sendSimpleGestureEvent("MozRotateGesture", 0, 0, cl, 0, 0);
+    imgElem.clientTop;
+  }
+
+  gBrowser.removeTab(test_imageTab);
+  test_imageTab = null;
+  finish();
+}
+
+function test_rotateGestures()
+{
+  test_imageTab = gBrowser.addTab("chrome://branding/content/about-logo.png");
+  gBrowser.selectedTab = test_imageTab;
+
+  gBrowser.selectedBrowser.addEventListener("load", test_rotateGesturesOnTab, true);
 }
