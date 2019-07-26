@@ -184,6 +184,12 @@ nsTextControlFrame::CalcIntrinsicSize(nsRenderingContext* aRenderingContext,
     }
     
     aIntrinsicSize.width += internalPadding;
+  } else {
+    
+    
+    if (PresContext()->CompatibilityMode() == eCompatibility_FullStandards) {
+      aIntrinsicSize.width += 1;
+    }
   }
 
   
