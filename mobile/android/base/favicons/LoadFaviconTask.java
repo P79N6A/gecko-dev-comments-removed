@@ -30,6 +30,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -61,7 +62,7 @@ public class LoadFaviconTask extends UiAsyncTask<Void, Void, Bitmap> {
 
     
     protected int mTargetWidth;
-    private final AtomicReference<LoadFaviconTask> mChainee = new AtomicReference<LoadFaviconTask>(null);
+    private LinkedList<LoadFaviconTask> mChainees;
     private boolean mIsChaining;
 
     static AndroidHttpClient sHttpClient = AndroidHttpClient.newInstance(GeckoAppShell.getGeckoInterface().getDefaultUAString());
@@ -256,17 +257,15 @@ public class LoadFaviconTask extends UiAsyncTask<Void, Void, Bitmap> {
             if (existingTask != null && !existingTask.isCancelled()) {
                 existingTask.chainTasks(this);
                 mIsChaining = true;
+
+                
+                
+                return null;
             }
 
             
             
-            
             loadsInFlight.put(mFaviconUrl, this);
-        }
-
-        if (mIsChaining) {
-            
-            return null;
         }
 
         if (isCancelled()) {
@@ -318,6 +317,27 @@ public class LoadFaviconTask extends UiAsyncTask<Void, Void, Bitmap> {
 
         
         processResult(image);
+
+        synchronized (loadsInFlight) {
+            
+            loadsInFlight.remove(mFaviconUrl);
+        }
+
+        
+        
+        
+        
+
+        
+        
+        
+
+        
+        if (mChainees != null) {
+            for (LoadFaviconTask t : mChainees) {
+                t.processResult(image);
+            }
+        }
     }
 
     private void processResult(Bitmap image) {
@@ -331,31 +351,6 @@ public class LoadFaviconTask extends UiAsyncTask<Void, Void, Bitmap> {
         }
 
         Favicons.dispatchResult(mPageUrl, mFaviconUrl, scaled, mListener);
-
-        
-        final LoadFaviconTask chainee = mChainee.get();
-
-        if (chainee != null) {
-            
-            
-            
-            chainee.processResult(image);
-            mChainee.set(null);
-            return;
-        }
-
-        
-        
-        
-        synchronized(loadsInFlight) {
-            if (mChainee.get() == null) {
-                loadsInFlight.remove(mFaviconUrl);
-                return;
-            }
-        }
-
-        
-        mChainee.get().processResult(image);
     }
 
     @Override
@@ -363,9 +358,14 @@ public class LoadFaviconTask extends UiAsyncTask<Void, Void, Bitmap> {
         Favicons.removeLoadTask(mId);
 
         synchronized(loadsInFlight) {
-            if (mChainee.get() == null) {
+            
+            
+            final LoadFaviconTask primary = loadsInFlight.get(mFaviconUrl);
+            if (primary == this) {
                 loadsInFlight.remove(mFaviconUrl);
+                return;
             }
+            primary.mChainees.remove(this);
         }
 
         
@@ -379,15 +379,13 @@ public class LoadFaviconTask extends UiAsyncTask<Void, Void, Bitmap> {
 
 
 
+
     private void chainTasks(LoadFaviconTask aChainee) {
-        
-        if (mChainee.compareAndSet(null, aChainee)) {
-            return;
+        if (mChainees == null) {
+            mChainees = new LinkedList<LoadFaviconTask>();
         }
 
-        
-        
-        mChainee.get().chainTasks(aChainee);
+        mChainees.add(aChainee);
     }
 
     int getId() {
