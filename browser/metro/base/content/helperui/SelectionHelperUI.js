@@ -13,13 +13,15 @@
 
 
 
-XPCOMUtils.defineLazyModuleGetter(this, "Promise", "resource://gre/modules/commonjs/sdk/core/promise.js");
-
 
 const kDisableOnScrollDistance = 25;
 
 
 const kDragHysteresisDistance = 10;
+
+
+const kChromeLayer = 1;
+const kContentLayer = 2;
 
 
 
@@ -91,7 +93,7 @@ function Marker(aParent, aTag, aElementId, xPos, yPos) {
   this._xPos = xPos;
   this._yPos = yPos;
   this._selectionHelperUI = aParent;
-  this._element = document.getElementById(aElementId);
+  this._element = aParent.overlay.getMarker(aElementId);
   this._elementId = aElementId;
   
   this._element.customDragger = new MarkerDragger(this);
@@ -282,7 +284,12 @@ var SelectionHelperUI = {
   },
 
   get overlay() {
-    return document.getElementById("selection-overlay");
+    return document.getElementById(this.layerMode == kChromeLayer ?
+      "chrome-selection-overlay" : "content-selection-overlay");
+  },
+
+  get layerMode() {
+    return kContentLayer;
   },
 
   
@@ -507,8 +514,6 @@ var SelectionHelperUI = {
     window.addEventListener("touchstart", this, true);
     window.addEventListener("touchend", this, true);
     window.addEventListener("touchmove", this, true);
-    window.addEventListener("MozContextUIShow", this, true);
-    window.addEventListener("MozContextUIDismiss", this, true);
     window.addEventListener("MozPrecisePointer", this, true);
     window.addEventListener("MozDeckOffsetChanging", this, true);
     window.addEventListener("MozDeckOffsetChanged", this, true);
@@ -533,8 +538,6 @@ var SelectionHelperUI = {
     window.removeEventListener("touchstart", this, true);
     window.removeEventListener("touchend", this, true);
     window.removeEventListener("touchmove", this, true);
-    window.removeEventListener("MozContextUIShow", this, true);
-    window.removeEventListener("MozContextUIDismiss", this, true);
     window.removeEventListener("MozPrecisePointer", this, true);
     window.removeEventListener("MozDeckOffsetChanging", this, true);
     window.removeEventListener("MozDeckOffsetChanged", this, true);
@@ -846,13 +849,6 @@ var SelectionHelperUI = {
     this._sendAsyncMessage("Browser:SelectionUpdate", {});
   },
 
-  _onContextUIVisibilityEvent: function _onContextUIVisibilityEvent(aType) {
-    
-    if (!this.isActive)
-      return;
-    this.overlay.hidden = (aType == "MozContextUIShow");
-  },
-
   
 
 
@@ -1006,11 +1002,6 @@ var SelectionHelperUI = {
       case "ZoomChanged":
       case "MozPrecisePointer":
         this.closeEditSession(true);
-        break;
-
-      case "MozContextUIShow":
-      case "MozContextUIDismiss":
-        this._onContextUIVisibilityEvent(aEvent.type);
         break;
 
       case "MozDeckOffsetChanging":
