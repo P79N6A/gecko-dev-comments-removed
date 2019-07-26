@@ -682,6 +682,12 @@ TextOverflow::CanHaveTextOverflow(nsDisplayListBuilder* aBuilder,
   }
 
   
+  
+  if (aBlockFrame->GetType() == nsGkAtoms::comboboxControlFrame) {
+    return false;
+  }
+
+  
   nsRefPtr<nsCaret> caret = aBlockFrame->PresContext()->PresShell()->GetCaret();
   bool visible = false;
   if (caret && NS_SUCCEEDED(caret->GetCaretVisible(&visible)) && visible) {
