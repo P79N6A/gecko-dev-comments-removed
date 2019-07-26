@@ -63,8 +63,9 @@ ShouldExposeChildWindow(nsString& aNameBeingResolved, nsIDOMWindow *aChild)
   
   nsCOMPtr<nsPIDOMWindow> piWin = do_QueryInterface(aChild);
   NS_ENSURE_TRUE(piWin, false);
-  return piWin->GetFrameElementInternal()->AttrValueIs(kNameSpaceID_None, nsGkAtoms::name,
-                                                       aNameBeingResolved, eCaseMatters);
+  Element* e = piWin->GetFrameElementInternal();
+  return e && e->AttrValueIs(kNameSpaceID_None, nsGkAtoms::name,
+                             aNameBeingResolved, eCaseMatters);
 }
 
 bool
