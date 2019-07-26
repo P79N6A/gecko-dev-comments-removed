@@ -371,7 +371,7 @@ ContentClientDoubleBuffered::Updated(const nsIntRegion& aRegionToDraw,
   ContentClientRemoteBuffer::Updated(aRegionToDraw, aVisibleRegion, aDidSelfCopy);
 
 #if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
-  if (mFrontClient && CompositorChild::ChildProcessHasCompositor()) {
+  if (mFrontClient) {
     
     RefPtr<AsyncTransactionTracker> tracker = new RemoveTextureFromCompositableTracker();
     
@@ -381,7 +381,7 @@ ContentClientDoubleBuffered::Updated(const nsIntRegion& aRegionToDraw,
     GetForwarder()->RemoveTextureFromCompositableAsync(tracker, this, mFrontClient);
   }
 
-  if (mFrontClientOnWhite && CompositorChild::ChildProcessHasCompositor()) {
+  if (mFrontClientOnWhite) {
     
     RefPtr<AsyncTransactionTracker> tracker = new RemoveTextureFromCompositableTracker();
     

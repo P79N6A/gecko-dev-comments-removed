@@ -187,7 +187,7 @@ CanvasClientSurfaceStream::Update(gfx::IntSize aSize, ClientCanvasLayer* aLayer)
       UseTexture(grallocTextureClient);
     }
 
-    if (mBuffer && CompositorChild::ChildProcessHasCompositor()) {
+    if (mBuffer) {
       
       RefPtr<AsyncTransactionTracker> tracker = new RemoveTextureFromCompositableTracker();
       
