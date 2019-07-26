@@ -1228,14 +1228,6 @@ pref("devtools.editor.tabsize", 4);
 pref("devtools.editor.expandtab", true);
 
 
-
-
-
-
-
-pref("devtools.editor.component", "orion");
-
-
 pref("devtools.fontinspector.enabled", true);
 
 
