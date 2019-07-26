@@ -561,23 +561,6 @@ function waitForObserver(aObsEvent, aTimeoutMs) {
 
 
 
-
-
-const usEnglish = 0x409;
-const arSpanish = 0x2C0A;
-
-
-const leftShift = 0x100;
-const rightShift = 0x200;
-const leftControl = 0x400;
-const rightControl = 0x800;
-const leftAlt = 0x1000;
-const rightAlt = 0x2000;
-
-function synthesizeNativeKey(aKbLayout, aVKey, aModifiers) {
-  Browser.windowUtils.sendNativeKeyEvent(aKbLayout, aVKey, aModifiers, '', '');
-}
-
 function synthesizeNativeMouse(aElement, aOffsetX, aOffsetY, aMsg) {
   let x = aOffsetX;
   let y = aOffsetY;
