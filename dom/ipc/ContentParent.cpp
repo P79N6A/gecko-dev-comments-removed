@@ -827,38 +827,44 @@ ContentParent::TransformPreallocatedIntoApp(const nsAString& aAppManifestURL,
 void
 ContentParent::ShutDownProcess(bool aCloseWithError)
 {
-  if (!mIsDestroyed) {
-    mIsDestroyed = true;
-
     const InfallibleTArray<PIndexedDBParent*>& idbParents =
-      ManagedPIndexedDBParent();
+        ManagedPIndexedDBParent();
     for (uint32_t i = 0; i < idbParents.Length(); ++i) {
-      static_cast<IndexedDBParent*>(idbParents[i])->Disconnect();
+        static_cast<IndexedDBParent*>(idbParents[i])->Disconnect();
     }
 
-    if (aCloseWithError) {
-      AsyncChannel* channel = GetIPCChannel();
-      if (channel) {
-        channel->CloseWithError();
-      }
-    } else {
-      
-      Close();
-    }
-  }
-  
-  
-  MarkAsDead();
+    
+    
+    
 
-  
-  
-  
-  
-  mMemoryReporters.Clear();
-  if (mMessageManager) {
-    mMessageManager->Disconnect();
-    mMessageManager = nullptr;
-  }
+    if (!aCloseWithError && !mCalledClose) {
+        
+        
+        mCalledClose = true;
+        Close();
+    }
+
+    if (aCloseWithError && !mCalledCloseWithError) {
+        AsyncChannel* channel = GetIPCChannel();
+        if (channel) {
+            mCalledCloseWithError = true;
+            channel->CloseWithError();
+        }
+    }
+
+    
+    
+    MarkAsDead();
+
+    
+    
+    
+    
+    mMemoryReporters.Clear();
+    if (mMessageManager) {
+      mMessageManager->Disconnect();
+      mMessageManager = nullptr;
+    }
 }
 
 void
@@ -1167,9 +1173,10 @@ ContentParent::ContentParent(mozIApplication* aApp,
     , mForceKillTask(nullptr)
     , mNumDestroyingTabs(0)
     , mIsAlive(true)
-    , mIsDestroyed(false)
     , mSendPermissionUpdates(false)
     , mIsForBrowser(aIsForBrowser)
+    , mCalledClose(false)
+    , mCalledCloseWithError(false)
 {
     
     

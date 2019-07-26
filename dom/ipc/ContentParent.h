@@ -471,12 +471,14 @@ private:
     
     
     bool mIsAlive;
-    
-    
-    
-    bool mIsDestroyed;
+
     bool mSendPermissionUpdates;
     bool mIsForBrowser;
+
+    
+    
+    bool mCalledClose;
+    bool mCalledCloseWithError;
 
     friend class CrashReporterParent;
 
