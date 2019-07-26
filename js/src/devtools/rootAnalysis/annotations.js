@@ -235,3 +235,17 @@ function isSuppressConstructor(name)
         || /::AutoEnterAnalysis/.test(name)
         || /::AutoAssertNoGC/.test(name);
 }
+
+
+
+
+function isOverridableField(csu, field)
+{
+    if (csu != 'nsISupports')
+        return false;
+    if (field == 'GetCurrentJSContext')
+        return false;
+    if (field == 'IsOnCurrentThread')
+        return false;
+    return true;
+}
