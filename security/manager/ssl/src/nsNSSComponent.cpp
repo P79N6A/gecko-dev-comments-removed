@@ -1001,11 +1001,15 @@ void nsNSSComponent::setValidationOptions(bool isInitialSetting)
 
   bool crlDownloading = Preferences::GetBool("security.CRL_download.enabled",
                                              false);
+
+  
+  
   
   int32_t ocspEnabled = Preferences::GetInt("security.OCSP.enabled",
                                             OCSP_ENABLED_DEFAULT);
 
-  bool ocspRequired = Preferences::GetBool("security.OCSP.require", false);
+  bool ocspRequired = ocspEnabled &&
+    Preferences::GetBool("security.OCSP.require", false);
 
   
   
@@ -1019,9 +1023,6 @@ void nsNSSComponent::setValidationOptions(bool isInitialSetting)
 
   bool ocspStaplingEnabled = Preferences::GetBool("security.ssl.enable_ocsp_stapling",
                                                   true);
-  if (!ocspEnabled) {
-    ocspStaplingEnabled = false;
-  }
   PublicSSLState()->SetOCSPOptions(ocspEnabled, ocspStaplingEnabled);
   PrivateSSLState()->SetOCSPOptions(ocspEnabled, ocspStaplingEnabled);
 
