@@ -24,15 +24,22 @@ function gen_test()
     { endTime: 1180493839859229, state: nsIDM.DOWNLOAD_BLOCKED_POLICY },
   ];
 
+  
+  var originalCountLimit = DownloadsView.kItemCountLimit;
+  DownloadsView.kItemCountLimit = DownloadData.length;
+  registerCleanupFunction(function () {
+    DownloadsView.kItemCountLimit = originalCountLimit;
+  });
+
   try {
     
-    for (let yy in gen_resetState()) yield;
+    for (let yy in gen_resetState(DownloadsCommon.getData(window))) yield;
 
     
     for (let yy in gen_addDownloadRows(DownloadData)) yield;
 
     
-    for (let yy in gen_openPanel()) yield;
+    for (let yy in gen_openPanel(DownloadsCommon.getData(window))) yield;
 
     
     let richlistbox = document.getElementById("downloadsListBox");
@@ -50,6 +57,6 @@ function gen_test()
     }
   } finally {
     
-    for (let yy in gen_resetState()) yield;
+    for (let yy in gen_resetState(DownloadsCommon.getData(window))) yield;
   }
 }
