@@ -17,7 +17,7 @@
 #include "nsIContent.h"                 
 #include "nsIContentIterator.h"         
 #include "nsID.h"                       
-#include "nsIDocument.h"                
+#include "nsIDOMDocument.h"             
 #include "nsIDOMElement.h"              
 #include "nsIDOMHTMLDocument.h"         
 #include "nsIDOMHTMLElement.h"          
@@ -37,7 +37,6 @@
 #include "nsString.h"                   
 #include "nsTextServicesDocument.h"
 #include "nscore.h"                     
-#include "mozilla/dom/Element.h"
 
 #define LOCK_DOC(doc)
 #define UNLOCK_DOC(doc)
@@ -137,7 +136,7 @@ nsTextServicesDocument::InitWithEditor(nsIEditor *aEditor)
 {
   nsresult result = NS_OK;
   nsCOMPtr<nsISelectionController> selCon;
-  nsCOMPtr<nsIDOMDocument> domDoc;
+  nsCOMPtr<nsIDOMDocument> doc;
 
   NS_ENSURE_TRUE(aEditor, NS_ERROR_NULL_POINTER);
 
@@ -166,8 +165,7 @@ nsTextServicesDocument::InitWithEditor(nsIEditor *aEditor)
   
   
 
-  result = aEditor->GetDocument(getter_AddRefs(domDoc));
-  nsCOMPtr<nsIDocument> doc = do_QueryInterface(domDoc);
+  result = aEditor->GetDocument(getter_AddRefs(doc));
 
   if (NS_FAILED(result))
   {
@@ -221,7 +219,8 @@ nsTextServicesDocument::GetDocument(nsIDOMDocument **aDoc)
   *aDoc = nullptr; 
   NS_ENSURE_TRUE(mDOMDocument, NS_ERROR_NOT_INITIALIZED);
 
-  CallQueryInterface(mDOMDocument, aDoc);
+  *aDoc = mDOMDocument;
+  NS_ADDREF(*aDoc);
 
   return NS_OK;
 }
@@ -2047,10 +2046,15 @@ nsTextServicesDocument::GetDocumentContentRootNode(nsIDOMNode **aNode)
   {
     
 
-    dom::Element* docElement = mDOMDocument->GetDocumentElement();
+    nsCOMPtr<nsIDOMElement> docElement;
+
+    result = mDOMDocument->GetDocumentElement(getter_AddRefs(docElement));
+
+    NS_ENSURE_SUCCESS(result, result);
+
     NS_ENSURE_TRUE(docElement, NS_ERROR_FAILURE);
-    nsCOMPtr<nsIDOMNode> node = docElement->AsDOMNode();
-    node.forget(aNode);
+
+    result = docElement->QueryInterface(NS_GET_IID(nsIDOMNode), (void **)aNode);
   }
 
   return result;

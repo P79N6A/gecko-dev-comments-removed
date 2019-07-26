@@ -226,7 +226,7 @@ nsresult
 nsWSRunObject::InsertText(const nsAString& aStringToInsert, 
                           nsCOMPtr<nsIDOMNode> *aInOutParent, 
                           int32_t *aInOutOffset,
-                          nsIDocument *aDoc)
+                          nsIDOMDocument *aDoc)
 {
   
   

@@ -52,9 +52,9 @@
 #include "nsIAbsorbingTransaction.h"    
 #include "nsIAtom.h"                    
 #include "nsIContent.h"                 
-#include "nsIDocument.h"                
 #include "nsIDOMAttr.h"                 
 #include "nsIDOMCharacterData.h"        
+#include "nsIDOMDocument.h"             
 #include "nsIDOMElement.h"              
 #include "nsIDOMEvent.h"                
 #include "nsIDOMEventListener.h"        
@@ -104,7 +104,6 @@
 #include "nsStyleStruct.h"              
 #include "nsStyleStructFwd.h"           
 #include "nsTextEditUtils.h"            
-#include "nsTextNode.h"
 #include "nsThreadUtils.h"              
 #include "nsTransactionManager.h"       
 #include "prtime.h"                     
@@ -533,7 +532,7 @@ NS_IMETHODIMP
 nsEditor::GetIsDocumentEditable(bool *aIsDocumentEditable)
 {
   NS_ENSURE_ARG_POINTER(aIsDocumentEditable);
-  nsCOMPtr<nsIDocument> doc = GetDocument();
+  nsCOMPtr<nsIDOMDocument> doc = GetDOMDocument();
   *aIsDocumentEditable = !!doc;
 
   return NS_OK;
@@ -547,12 +546,19 @@ nsEditor::GetDocument()
   return doc.forget();
 }
 
-NS_IMETHODIMP
-nsEditor::GetDocument(nsIDOMDocument **aDoc)
+already_AddRefed<nsIDOMDocument>
+nsEditor::GetDOMDocument()
 {
   NS_PRECONDITION(mDocWeak, "bad state, mDocWeak weak pointer not initialized");
-  nsCOMPtr<nsIDOMDocument> domDoc = do_QueryReferent(mDocWeak);
-  domDoc.forget(aDoc);
+  nsCOMPtr<nsIDOMDocument> doc = do_QueryReferent(mDocWeak);
+  return doc.forget();
+}
+
+NS_IMETHODIMP 
+nsEditor::GetDocument(nsIDOMDocument **aDoc)
+{
+  nsCOMPtr<nsIDOMDocument> doc = GetDOMDocument();
+  doc.forget(aDoc);
   return *aDoc ? NS_OK : NS_ERROR_NOT_INITIALIZED;
 }
 
@@ -2318,7 +2324,7 @@ NS_IMETHODIMP nsEditor::ScrollSelectionIntoView(bool aScrollToAnchor)
 NS_IMETHODIMP nsEditor::InsertTextImpl(const nsAString& aStringToInsert, 
                                           nsCOMPtr<nsIDOMNode> *aInOutNode, 
                                           int32_t *aInOutOffset,
-                                          nsIDocument *aDoc)
+                                          nsIDOMDocument *aDoc)
 {
   
   
@@ -2413,9 +2419,8 @@ NS_IMETHODIMP nsEditor::InsertTextImpl(const nsAString& aStringToInsert,
     if (!nodeAsText)
     {
       
-      ErrorResult rv;
-      nodeAsText = aDoc->CreateTextNode(EmptyString(), rv);
-      NS_ENSURE_SUCCESS(rv.ErrorCode(), rv.ErrorCode());
+      res = aDoc->CreateTextNode(EmptyString(), getter_AddRefs(nodeAsText));
+      NS_ENSURE_SUCCESS(res, res);
       NS_ENSURE_TRUE(nodeAsText, NS_ERROR_NULL_POINTER);
       nsCOMPtr<nsIDOMNode> newNode = do_QueryInterface(nodeAsText);
       
@@ -2439,9 +2444,8 @@ NS_IMETHODIMP nsEditor::InsertTextImpl(const nsAString& aStringToInsert,
     {
       
       
-      ErrorResult rv;
-      nodeAsText = aDoc->CreateTextNode(aStringToInsert, rv);
-      NS_ENSURE_SUCCESS(rv.ErrorCode(), rv.ErrorCode());
+      res = aDoc->CreateTextNode(aStringToInsert, getter_AddRefs(nodeAsText));
+      NS_ENSURE_SUCCESS(res, res);
       NS_ENSURE_TRUE(nodeAsText, NS_ERROR_NULL_POINTER);
       nsCOMPtr<nsIDOMNode> newNode = do_QueryInterface(nodeAsText);
       

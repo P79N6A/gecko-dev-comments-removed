@@ -755,20 +755,20 @@ nsEditorEventListener::CanDrop(nsIDOMDragEvent* aEvent)
   
   
   
-  nsCOMPtr<nsIDOMNode> domSourceNode;
-  dataTransfer->GetMozSourceNode(getter_AddRefs(domSourceNode));
-  nsCOMPtr<nsINode> sourceNode = do_QueryInterface(domSourceNode);
+  nsCOMPtr<nsIDOMNode> sourceNode;
+  dataTransfer->GetMozSourceNode(getter_AddRefs(sourceNode));
   if (!sourceNode)
     return true;
 
   
   
 
-  nsCOMPtr<nsIDocument> domdoc = mEditor->GetDocument();
+  nsCOMPtr<nsIDOMDocument> domdoc = mEditor->GetDOMDocument();
   NS_ENSURE_TRUE(domdoc, false);
 
-  nsresult rv;
-  nsIDocument* sourceDoc = sourceNode->GetOwnerDocument();
+  nsCOMPtr<nsIDOMDocument> sourceDoc;
+  nsresult rv = sourceNode->GetOwnerDocument(getter_AddRefs(sourceDoc));
+  NS_ENSURE_SUCCESS(rv, false);
   if (domdoc == sourceDoc)      
   {
     nsCOMPtr<nsISelection> selection;
