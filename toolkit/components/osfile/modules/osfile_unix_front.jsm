@@ -94,6 +94,13 @@
 
 
      File.prototype._read = function _read(buffer, nbytes, options) {
+      
+      
+       if (typeof(UnixFile.posix_fadvise) === 'function' &&
+           (options.sequential || !("sequential" in options))) {
+         UnixFile.posix_fadvise(this.fd, 0, nbytes,
+          OS.Constants.libc.POSIX_FADV_SEQUENTIAL);
+       }
        return throw_on_negative("read",
          UnixFile.read(this.fd, buffer, nbytes)
        );
