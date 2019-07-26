@@ -242,7 +242,7 @@ void NotifyNetworkChange(const hal::NetworkInformation& aNetworkInfo);
 
 
 
-void AdjustSystemClock(int32_t aDeltaMilliseconds);
+void AdjustSystemClock(int64_t aDeltaMilliseconds);
 
 
 
