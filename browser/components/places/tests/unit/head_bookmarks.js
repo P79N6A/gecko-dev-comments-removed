@@ -63,10 +63,9 @@ let (XULAppInfo = {
 }
 
 
-let isMetroSupported = Services.metro && Services.metro.supported;
-const SMART_BOOKMARKS_VERSION = 6
+const SMART_BOOKMARKS_VERSION = 7;
 const SMART_BOOKMARKS_ON_TOOLBAR = 1;
-const SMART_BOOKMARKS_ON_MENU = isMetroSupported ? 4 : 3; 
+const SMART_BOOKMARKS_ON_MENU =  3; 
 
 
 const DEFAULT_BOOKMARKS_ON_TOOLBAR = 1;
