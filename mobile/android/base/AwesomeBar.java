@@ -126,7 +126,9 @@ public class AwesomeBar extends GeckoActivity {
 
         mTarget = intent.getStringExtra(TARGET_KEY);
         if (mTarget.equals(Target.CURRENT_TAB.name())) {
-            if (Tabs.getInstance().getSelectedTab().isPrivate()) {
+            
+            Tab tab = Tabs.getInstance().getSelectedTab();
+            if (tab != null && tab.isPrivate()) {
                 BrowserToolbarBackground mAddressBarBg = (BrowserToolbarBackground) findViewById(R.id.address_bar_bg);
                 mAddressBarBg.setPrivateMode(true);
 
