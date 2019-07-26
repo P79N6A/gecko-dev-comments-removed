@@ -1,0 +1,315 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifdef __FreeBSD__
+#include <sys/cdefs.h>
+__FBSDID("$FreeBSD: head/sys/netinet/sctp_peeloff.c 235828 2012-05-23 11:26:28Z tuexen $");
+#endif
+
+#include <netinet/sctp_os.h>
+#include <netinet/sctp_pcb.h>
+#include <netinet/sctputil.h>
+#include <netinet/sctp_var.h>
+#include <netinet/sctp_var.h>
+#include <netinet/sctp_sysctl.h>
+#include <netinet/sctp.h>
+#include <netinet/sctp_uio.h>
+#include <netinet/sctp_peeloff.h>
+#include <netinet/sctputil.h>
+#include <netinet/sctp_auth.h>
+
+#if defined(__APPLE__)
+#define APPLE_FILE_NO 5
+#endif
+
+int
+sctp_can_peel_off(struct socket *head, sctp_assoc_t assoc_id)
+{
+	struct sctp_inpcb *inp;
+	struct sctp_tcb *stcb;
+	uint32_t state;
+
+	if (head == NULL) {
+		SCTP_LTRACE_ERR_RET(NULL, NULL, NULL, SCTP_FROM_SCTP_PEELOFF, EBADF);
+		return (EBADF);
+	}
+	inp = (struct sctp_inpcb *)head->so_pcb;
+	if (inp == NULL) {
+		SCTP_LTRACE_ERR_RET(NULL, NULL, NULL, SCTP_FROM_SCTP_PEELOFF, EFAULT);
+		return (EFAULT);
+	}
+	if ((inp->sctp_flags & SCTP_PCB_FLAGS_TCPTYPE) ||
+	    (inp->sctp_flags & SCTP_PCB_FLAGS_IN_TCPPOOL)) {
+		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PEELOFF, EOPNOTSUPP);
+		return (EOPNOTSUPP);
+	}
+	stcb = sctp_findassociation_ep_asocid(inp, assoc_id, 1);
+	if (stcb == NULL) {
+		SCTP_LTRACE_ERR_RET(inp, stcb, NULL, SCTP_FROM_SCTP_PEELOFF, ENOENT);
+		return (ENOENT);
+	}
+	state = SCTP_GET_STATE((&stcb->asoc));
+	if ((state == SCTP_STATE_EMPTY) ||
+	    (state == SCTP_STATE_INUSE) ||
+	    (state == SCTP_STATE_COOKIE_WAIT) ||
+	    (state == SCTP_STATE_COOKIE_ECHOED)) {
+		SCTP_TCB_UNLOCK(stcb);
+		SCTP_LTRACE_ERR_RET(inp, stcb, NULL, SCTP_FROM_SCTP_PEELOFF, ENOTCONN);
+		return (ENOTCONN);
+	}
+	SCTP_TCB_UNLOCK(stcb);
+	
+	return (0);
+}
+
+int
+sctp_do_peeloff(struct socket *head, struct socket *so, sctp_assoc_t assoc_id)
+{
+	struct sctp_inpcb *inp, *n_inp;
+	struct sctp_tcb *stcb;
+	uint32_t state;
+
+	inp = (struct sctp_inpcb *)head->so_pcb;
+	if (inp == NULL) {
+		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PEELOFF, EFAULT);
+		return (EFAULT);
+	}
+	stcb = sctp_findassociation_ep_asocid(inp, assoc_id, 1);
+	if (stcb == NULL) {
+		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PEELOFF, ENOTCONN);
+		return (ENOTCONN);
+	}
+
+	state = SCTP_GET_STATE((&stcb->asoc));
+	if ((state == SCTP_STATE_EMPTY) ||
+	    (state == SCTP_STATE_INUSE) ||
+	    (state == SCTP_STATE_COOKIE_WAIT) ||
+	    (state == SCTP_STATE_COOKIE_ECHOED)) {
+		SCTP_TCB_UNLOCK(stcb);
+		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PEELOFF, ENOTCONN);
+		return (ENOTCONN);
+	}
+
+	n_inp = (struct sctp_inpcb *)so->so_pcb;
+	n_inp->sctp_flags = (SCTP_PCB_FLAGS_UDPTYPE |
+	    SCTP_PCB_FLAGS_CONNECTED |
+	    SCTP_PCB_FLAGS_IN_TCPPOOL |	
+	    (SCTP_PCB_COPY_FLAGS & inp->sctp_flags));
+	n_inp->sctp_socket = so;
+	n_inp->sctp_features = inp->sctp_features;
+	n_inp->sctp_mobility_features = inp->sctp_mobility_features;
+	n_inp->sctp_frag_point = inp->sctp_frag_point;
+	n_inp->sctp_cmt_on_off = inp->sctp_cmt_on_off;
+	n_inp->sctp_ecn_enable = inp->sctp_ecn_enable;
+	n_inp->partial_delivery_point = inp->partial_delivery_point;
+	n_inp->sctp_context = inp->sctp_context;
+	n_inp->local_strreset_support = inp->local_strreset_support;
+	n_inp->inp_starting_point_for_iterator = NULL;
+	
+	if (n_inp->sctp_ep.local_hmacs)
+		sctp_free_hmaclist(n_inp->sctp_ep.local_hmacs);
+	n_inp->sctp_ep.local_hmacs =
+	    sctp_copy_hmaclist(inp->sctp_ep.local_hmacs);
+	if (n_inp->sctp_ep.local_auth_chunks)
+		sctp_free_chunklist(n_inp->sctp_ep.local_auth_chunks);
+	n_inp->sctp_ep.local_auth_chunks =
+	    sctp_copy_chunklist(inp->sctp_ep.local_auth_chunks);
+	(void)sctp_copy_skeylist(&inp->sctp_ep.shared_keys,
+	    &n_inp->sctp_ep.shared_keys);
+#if defined(__Userspace__)
+	n_inp->ulp_info = inp->ulp_info;
+	n_inp->recv_callback = inp->recv_callback;
+	n_inp->send_callback = inp->send_callback;
+	n_inp->send_sb_threshold = inp->send_sb_threshold;
+#endif
+	
+
+
+
+	sctp_move_pcb_and_assoc(inp, n_inp, stcb);
+	atomic_add_int(&stcb->asoc.refcnt, 1);
+	SCTP_TCB_UNLOCK(stcb);
+
+#if defined(__FreeBSD__)
+	sctp_pull_off_control_to_new_inp(inp, n_inp, stcb, SBL_WAIT);
+#else
+	sctp_pull_off_control_to_new_inp(inp, n_inp, stcb, M_WAITOK);
+#endif
+	atomic_subtract_int(&stcb->asoc.refcnt, 1);
+
+	return (0);
+}
+
+
+struct socket *
+sctp_get_peeloff(struct socket *head, sctp_assoc_t assoc_id, int *error)
+{
+#if defined(__Userspace__)
+    
+#endif
+#if defined(__Panda__)
+	SCTP_LTRACE_ERR_RET(NULL, NULL, NULL, SCTP_FROM_SCTP_PEELOFF, EINVAL);
+	*error = EINVAL;
+	return (NULL);
+#else
+	struct socket *newso;
+	struct sctp_inpcb *inp, *n_inp;
+	struct sctp_tcb *stcb;
+
+	SCTPDBG(SCTP_DEBUG_PEEL1, "SCTP peel-off called\n");
+	inp = (struct sctp_inpcb *)head->so_pcb;
+	if (inp == NULL) {
+		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PEELOFF, EFAULT);
+		*error = EFAULT;
+		return (NULL);
+	}
+	stcb = sctp_findassociation_ep_asocid(inp, assoc_id, 1);
+	if (stcb == NULL) {
+		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PEELOFF, ENOTCONN);
+		*error = ENOTCONN;
+		return (NULL);
+	}
+	atomic_add_int(&stcb->asoc.refcnt, 1);
+	SCTP_TCB_UNLOCK(stcb);
+#if defined(__FreeBSD__) && __FreeBSD_version >= 801000
+	CURVNET_SET(head->so_vnet);
+#endif
+	newso = sonewconn(head, SS_ISCONNECTED
+#if defined(__APPLE__)
+	    , NULL
+#elif defined(__Panda__)
+	    
+	    , NULL, stcb->asoc.vrf_id
+#endif
+		);
+#if defined(__FreeBSD__) && __FreeBSD_version >= 801000
+	CURVNET_RESTORE();
+#endif
+	if (newso == NULL) {
+		SCTPDBG(SCTP_DEBUG_PEEL1, "sctp_peeloff:sonewconn failed\n");
+		SCTP_LTRACE_ERR_RET(NULL, stcb, NULL, SCTP_FROM_SCTP_PEELOFF, ENOMEM);
+		*error = ENOMEM;
+		atomic_subtract_int(&stcb->asoc.refcnt, 1);
+		return (NULL);
+
+	}
+#if defined(__APPLE__)
+	  else {
+		SCTP_SOCKET_LOCK(newso, 1);
+	}
+#endif
+	SCTP_TCB_LOCK(stcb);
+	atomic_subtract_int(&stcb->asoc.refcnt, 1);
+	n_inp = (struct sctp_inpcb *)newso->so_pcb;
+	SOCK_LOCK(head);
+	n_inp->sctp_flags = (SCTP_PCB_FLAGS_UDPTYPE |
+	    SCTP_PCB_FLAGS_CONNECTED |
+	    SCTP_PCB_FLAGS_IN_TCPPOOL |	
+	    (SCTP_PCB_COPY_FLAGS & inp->sctp_flags));
+	n_inp->sctp_features = inp->sctp_features;
+	n_inp->sctp_frag_point = inp->sctp_frag_point;
+	n_inp->sctp_cmt_on_off = inp->sctp_cmt_on_off;
+	n_inp->sctp_ecn_enable = inp->sctp_ecn_enable;
+	n_inp->partial_delivery_point = inp->partial_delivery_point;
+	n_inp->sctp_context = inp->sctp_context;
+	n_inp->local_strreset_support = inp->local_strreset_support;
+	n_inp->inp_starting_point_for_iterator = NULL;
+#if defined(__Userspace__)
+	n_inp->ulp_info = inp->ulp_info;
+	n_inp->recv_callback = inp->recv_callback;
+	n_inp->send_callback = inp->send_callback;
+	n_inp->send_sb_threshold = inp->send_sb_threshold;
+#endif
+
+	
+	if (n_inp->sctp_ep.local_hmacs)
+		sctp_free_hmaclist(n_inp->sctp_ep.local_hmacs);
+	n_inp->sctp_ep.local_hmacs =
+	    sctp_copy_hmaclist(inp->sctp_ep.local_hmacs);
+	if (n_inp->sctp_ep.local_auth_chunks)
+		sctp_free_chunklist(n_inp->sctp_ep.local_auth_chunks);
+	n_inp->sctp_ep.local_auth_chunks =
+	    sctp_copy_chunklist(inp->sctp_ep.local_auth_chunks);
+	(void)sctp_copy_skeylist(&inp->sctp_ep.shared_keys,
+	    &n_inp->sctp_ep.shared_keys);
+
+	n_inp->sctp_socket = newso;
+	if (sctp_is_feature_on(inp, SCTP_PCB_FLAGS_AUTOCLOSE)) {
+		sctp_feature_off(n_inp, SCTP_PCB_FLAGS_AUTOCLOSE);
+		n_inp->sctp_ep.auto_close_time = 0;
+		sctp_timer_stop(SCTP_TIMER_TYPE_AUTOCLOSE, n_inp, stcb, NULL,
+				SCTP_FROM_SCTP_PEELOFF+SCTP_LOC_1);
+	}
+	
+	SCTP_CLEAR_SO_NBIO(newso);
+        newso->so_state |= SS_ISCONNECTED;
+	
+
+#if defined(__FreeBSD__) || defined(__APPLE__) || defined(__Windows__) || defined(__Userspace__)
+#ifdef SCTP_LOCK_LOGGING
+	if (SCTP_BASE_SYSCTL(sctp_logging_level) & SCTP_LOCK_LOGGING_ENABLE) {
+		sctp_log_lock(inp, (struct sctp_tcb *)NULL, SCTP_LOG_LOCK_SOCK);
+	}
+#endif
+	TAILQ_REMOVE(&head->so_comp, newso, so_list);
+	head->so_qlen--;
+	SOCK_UNLOCK(head);
+#else
+        newso = TAILQ_FIRST(&head->so_q);
+	if (soqremque(newso, 1) == 0) {
+		SCTP_PRINTF("soremque failed, peeloff-fails (invarients would panic)\n");
+		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PEELOFF, ENOTCONN);
+		*error = ENOTCONN;
+		return (NULL);
+
+	}
+#endif
+	
+
+
+
+        sctp_move_pcb_and_assoc(inp, n_inp, stcb);
+	atomic_add_int(&stcb->asoc.refcnt, 1);
+	SCTP_TCB_UNLOCK(stcb);
+	
+
+
+
+#if defined(__FreeBSD__)
+	sctp_pull_off_control_to_new_inp(inp, n_inp, stcb, SBL_WAIT);
+#else
+	sctp_pull_off_control_to_new_inp(inp, n_inp, stcb, M_WAITOK);
+#endif
+	atomic_subtract_int(&stcb->asoc.refcnt, 1);
+	return (newso);
+#endif
+}
