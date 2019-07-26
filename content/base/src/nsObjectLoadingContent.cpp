@@ -1673,7 +1673,7 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
     fallbackType = clickToPlayReason;
   }
 
-  if (!mActivated && mType != eType_Null) {
+  if (!mActivated && mType == eType_Plugin) {
     
     
     LOG(("OBJLC [%p]: Object implicitly activated", this));
