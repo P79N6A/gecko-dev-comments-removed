@@ -12,6 +12,7 @@
 #include "nsIDOMSimpleGestureEvent.h" 
 #include "InputData.h"
 #include "UIABridgePrivate.h"
+#include "MetroAppShell.h"
 
 
 #include <windows.ui.core.h> 
@@ -635,6 +636,11 @@ MetroInput::OnPointerReleased(UI::Core::ICoreWindow* aSender,
     mGestureRecognizer->ProcessUpEvent(currentPoint.Get());
   }
 
+  
+  
+  
+  MetroAppShell::MarkEventQueueForPurge();
+
   return S_OK;
 }
 
@@ -1089,17 +1095,6 @@ MetroInput::DeliverNextQueuedEventIgnoreStatus()
   MOZ_ASSERT(event);
   DispatchEventIgnoreStatus(event);
   delete event;
-}
-
-nsEventStatus
-MetroInput::DeliverNextQueuedEvent()
-{
-  nsGUIEvent* event = static_cast<nsGUIEvent*>(mInputEventQueue.PopFront());
-  MOZ_ASSERT(event);
-  nsEventStatus status;
-  mWidget->DispatchEvent(event, status);
-  delete event;
-  return status;
 }
 
 void

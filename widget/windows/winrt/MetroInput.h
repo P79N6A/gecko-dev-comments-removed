@@ -264,7 +264,6 @@ private:
 
   
   void DeliverNextQueuedEventIgnoreStatus();
-  nsEventStatus DeliverNextQueuedEvent();
   nsEventStatus DeliverNextQueuedTouchEvent();
 
   
