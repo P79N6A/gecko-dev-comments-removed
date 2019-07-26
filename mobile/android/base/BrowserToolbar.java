@@ -946,7 +946,8 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
 
         
         
-        if (tab != null && "about:home".equals(tab.getURL()))
+        if (tab != null && ("about:home".equals(tab.getURL()) ||
+                            "about:privatebrowsing".equals(tab.getURL())))
             title = null;
 
         mTitle.setText(title);
