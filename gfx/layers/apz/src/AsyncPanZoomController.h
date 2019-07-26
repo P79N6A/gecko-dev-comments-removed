@@ -390,6 +390,17 @@ protected:
   
 
 
+  nsEventStatus OnPanMayBegin(const PanGestureInput& aEvent);
+  nsEventStatus OnPanCancelled(const PanGestureInput& aEvent);
+  nsEventStatus OnPanBegin(const PanGestureInput& aEvent);
+  nsEventStatus OnPan(const PanGestureInput& aEvent, bool aFingersOnTouchpad);
+  nsEventStatus OnPanEnd(const PanGestureInput& aEvent);
+  nsEventStatus OnPanMomentumStart(const PanGestureInput& aEvent);
+  nsEventStatus OnPanMomentumEnd(const PanGestureInput& aEvent);
+
+  
+
+
   nsEventStatus OnLongPress(const TapGestureInput& aEvent);
   nsEventStatus OnLongPressUp(const TapGestureInput& aEvent);
 
@@ -470,6 +481,11 @@ protected:
 
 
   void HandlePanning(double angle);
+
+  
+
+
+  void HandlePanningUpdate(float aDX, float aDY);
 
   
 

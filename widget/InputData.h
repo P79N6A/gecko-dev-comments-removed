@@ -19,11 +19,13 @@ namespace mozilla {
 enum InputType
 {
   MULTITOUCH_INPUT,
+  PANGESTURE_INPUT,
   PINCHGESTURE_INPUT,
   TAPGESTURE_INPUT
 };
 
 class MultiTouchInput;
+class PanGestureInput;
 class PinchGestureInput;
 class TapGestureInput;
 
@@ -56,6 +58,7 @@ public:
   Modifiers modifiers;
 
   INPUTDATA_AS_CHILD_TYPE(MultiTouchInput, MULTITOUCH_INPUT)
+  INPUTDATA_AS_CHILD_TYPE(PanGestureInput, PANGESTURE_INPUT)
   INPUTDATA_AS_CHILD_TYPE(PinchGestureInput, PINCHGESTURE_INPUT)
   INPUTDATA_AS_CHILD_TYPE(TapGestureInput, TAPGESTURE_INPUT)
 
@@ -182,6 +185,79 @@ public:
 
   MultiTouchType mType;
   nsTArray<SingleTouchData> mTouches;
+};
+
+
+
+
+
+class PanGestureInput : public InputData
+{
+public:
+  enum PanGestureType
+  {
+    
+    
+    
+    
+    
+    PANGESTURE_MAYSTART,
+
+    
+    
+    
+    PANGESTURE_CANCELLED,
+
+    
+    
+    
+    PANGESTURE_START,
+
+    
+    PANGESTURE_PAN,
+
+    
+    
+    
+    PANGESTURE_END,
+
+    
+    
+    
+    
+
+    
+    
+    
+    PANGESTURE_MOMENTUMSTART,
+
+    
+    PANGESTURE_MOMENTUMPAN,
+
+    
+    
+    
+    PANGESTURE_MOMENTUMEND
+  };
+
+  PanGestureInput(PanGestureType aType,
+                  uint32_t aTime,
+                  TimeStamp aTimeStamp,
+                  const ScreenPoint& aPanStartPoint,
+                  const ScreenPoint& aPanDisplacement,
+                  Modifiers aModifiers)
+    : InputData(PANGESTURE_INPUT, aTime, aTimeStamp, aModifiers),
+      mType(aType),
+      mPanStartPoint(aPanStartPoint),
+      mPanDisplacement(aPanDisplacement)
+  {
+  }
+
+  PanGestureType mType;
+  ScreenPoint mPanStartPoint;
+
+  
+  ScreenPoint mPanDisplacement;
 };
 
 
