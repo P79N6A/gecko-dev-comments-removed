@@ -161,9 +161,6 @@ CrossSlideHandler.prototype = {
     if (!isSelectable(target))
         return;
 
-    
-    aEvent.stopPropagation();
-
     let scrollAxis = getScrollAxisFromElement(target);
 
     this.drag = {
@@ -178,7 +175,7 @@ CrossSlideHandler.prototype = {
     if (!this.drag) {
       return;
     }
-    
+
     aEvent.stopPropagation();
 
     if (aEvent.touches.length!==1) {
@@ -206,6 +203,7 @@ CrossSlideHandler.prototype = {
     }
 
     let isWithinCone = withinCone(crossAxisDistance, scrollAxisDistance);
+
     if (currState < CrossSlidingState.SELECTING && !isWithinCone) {
       
       return;
@@ -227,9 +225,6 @@ CrossSlideHandler.prototype = {
   _onTouchEnd: function(aEvent){
     if (!this.drag)
       return;
-
-    
-    aEvent.stopPropagation();
 
     if (this.drag.state < CrossSlidingState.SELECTING) {
       return this.cancel(aEvent);
