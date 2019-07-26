@@ -221,7 +221,7 @@ float Axis::GetExcess() {
   }
 }
 
-Axis::Overscroll Axis::DisplacementWillOverscroll(int32_t aDisplacement) {
+Axis::Overscroll Axis::DisplacementWillOverscroll(float aDisplacement) {
   
   
   bool minus = GetOrigin() + aDisplacement < GetPageStart();
@@ -240,7 +240,7 @@ Axis::Overscroll Axis::DisplacementWillOverscroll(int32_t aDisplacement) {
   return OVERSCROLL_NONE;
 }
 
-float Axis::DisplacementWillOverscrollAmount(int32_t aDisplacement) {
+float Axis::DisplacementWillOverscrollAmount(float aDisplacement) {
   switch (DisplacementWillOverscroll(aDisplacement)) {
   case OVERSCROLL_MINUS: return (GetOrigin() + aDisplacement) - GetPageStart();
   case OVERSCROLL_PLUS: return (GetCompositionEnd() + aDisplacement) - GetPageEnd();

@@ -125,13 +125,13 @@ public:
 
 
 
-  Overscroll DisplacementWillOverscroll(int32_t aDisplacement);
+  Overscroll DisplacementWillOverscroll(float aDisplacement);
 
   
 
 
 
-  float DisplacementWillOverscrollAmount(int32_t aDisplacement);
+  float DisplacementWillOverscrollAmount(float aDisplacement);
 
   
 
