@@ -1373,7 +1373,7 @@ let RIL = {
 
 
   setRadioPower: function setRadioPower(options) {
-    Buf.newParcel(REQUEST_RADIO_POWER, options);
+    Buf.newParcel(REQUEST_RADIO_POWER);
     Buf.writeUint32(1);
     Buf.writeUint32(options.on ? 1 : 0);
     Buf.sendParcel();
@@ -1608,73 +1608,35 @@ let RIL = {
 
 
 
-  cachedDialRequest : null,
-
-  
-
-
-
-
-
 
 
 
 
   dial: function dial(options) {
-    let onerror = (function onerror(errorMsg) {
-      options.callIndex = -1;
-      options.rilMessageType = "callError";
-      options.errorMsg = errorMsg;
-      this.sendDOMMessage(options);
-    }).bind(this);
-
-    if (this._isEmergencyNumber(options.number)) {
-      this.dialEmergencyNumber(options, onerror);
-    } else {
-      this.dialNonEmergencyNumber(options, onerror);
-    }
-  },
-
-  dialNonEmergencyNumber: function dialNonEmergencyNumber(options, onerror) {
-    if (this.radioState == GECKO_RADIOSTATE_OFF) {
-      
-      onerror(GECKO_ERROR_RADIO_NOT_AVAILABLE);
-      return;
-    }
-
+    let dial_request_type = REQUEST_DIAL;
     if (this.voiceRegistrationState.emergencyCallsOnly ||
         options.isDialEmergency) {
-      onerror(RIL_CALL_FAILCAUSE_TO_GECKO_CALL_ERROR[CALL_FAIL_UNOBTAINABLE_NUMBER]);
-      return;
-    }
-
-    options.request = REQUEST_DIAL;
-    this.sendDialRequest(options);
-  },
-
-  dialEmergencyNumber: function dialEmergencyNumber(options, onerror) {
-    options.request = RILQUIRKS_REQUEST_USE_DIAL_EMERGENCY_CALL ?
-                      REQUEST_DIAL_EMERGENCY_CALL : REQUEST_DIAL;
-
-    if (this.radioState == GECKO_RADIOSTATE_OFF) {
-      if (DEBUG) debug("Automatically enable radio for an emergency call.");
-
-      if (!this.cachedDialRequest) {
-        this.cachedDialRequest = {};
+      if (!this._isEmergencyNumber(options.number)) {
+        
+        options.callIndex = -1;
+        options.rilMessageType = "callError";
+        options.errorMsg =
+          RIL_CALL_FAILCAUSE_TO_GECKO_CALL_ERROR[CALL_FAIL_UNOBTAINABLE_NUMBER];
+        this.sendDOMMessage(options);
+        return;
       }
-      this.cachedDialRequest.onerror = onerror;
-      this.cachedDialRequest.callback = this.sendDialRequest.bind(this, options);
 
-      
-      this.sendDOMMessage({rilMessageType: "setRadioEnabled", on: true});
-      return;
+      if (RILQUIRKS_REQUEST_USE_DIAL_EMERGENCY_CALL) {
+        dial_request_type = REQUEST_DIAL_EMERGENCY_CALL;
+      }
+    } else {
+      if (this._isEmergencyNumber(options.number) &&
+          RILQUIRKS_REQUEST_USE_DIAL_EMERGENCY_CALL) {
+        dial_request_type = REQUEST_DIAL_EMERGENCY_CALL;
+      }
     }
 
-    this.sendDialRequest(options);
-  },
-
-  sendDialRequest: function sendDialRequest(options) {
-    let token = Buf.newParcel(options.request);
+    let token = Buf.newParcel(dial_request_type);
     Buf.writeString(options.number);
     Buf.writeUint32(options.clirMode || 0);
     Buf.writeUint32(options.uusInfo || 0);
@@ -4551,12 +4513,6 @@ RIL[REQUEST_SIGNAL_STRENGTH] = function REQUEST_SIGNAL_STRENGTH(length, options)
   if (DEBUG) debug("Signal strength " + JSON.stringify(obj));
   obj.rilMessageType = "signalstrengthchange";
   this.sendDOMMessage(obj);
-
-  if (this.cachedDialRequest && obj.gsmDBM && obj.gsmRelative) {
-    
-    this.cachedDialRequest.callback();
-    this.cachedDialRequest = null;
-  }
 };
 RIL[REQUEST_VOICE_REGISTRATION_STATE] = function REQUEST_VOICE_REGISTRATION_STATE(length, options) {
   this._receivedNetworkInfo(NETWORK_INFO_VOICE_REGISTRATION_STATE);
@@ -4593,11 +4549,6 @@ RIL[REQUEST_OPERATOR] = function REQUEST_OPERATOR(length, options) {
 };
 RIL[REQUEST_RADIO_POWER] = function REQUEST_RADIO_POWER(length, options) {
   if (options.rilRequestError) {
-    if (this.cachedDialRequest && options.on) {
-      
-      this.cachedDialRequest.onerror(GECKO_ERROR_RADIO_NOT_AVAILABLE);
-      this.cachedDialRequest = null;
-    }
     return;
   }
 
