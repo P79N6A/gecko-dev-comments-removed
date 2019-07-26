@@ -515,6 +515,9 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
                         PropertyAnimator.Property.TRANSLATION_X,
                         width);
 
+        
+        adjustTabsAnimation(false);
+
         mTabsPaneWidth = width;
 
         
@@ -522,6 +525,22 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
         
         if (mTabsPaneWidth > 0)
             setPageActionVisibility(mStop.getVisibility() == View.VISIBLE);
+    }
+
+    public void adjustTabsAnimation(boolean reset) {
+        int width = reset ? 0 : mTabsPaneWidth;
+        mAwesomeBarRightEdge.setTranslationX(-width);
+        mAwesomeBar.setTranslationX(width);
+        mAddressBarBg.setTranslationX(width);
+        mTabs.setTranslationX(width);
+        mTabsCount.setTranslationX(width);
+        mBack.setTranslationX(width);
+        mForward.setTranslationX(width);
+        mTitle.setTranslationX(width);
+        mFavicon.setTranslationX(width);
+        mSiteSecurity.setTranslationX(width);
+
+        ((ViewGroup.MarginLayoutParams) mLayout.getLayoutParams()).leftMargin = reset ? mTabsPaneWidth : 0;
     }
 
     public void finishTabsAnimation() {
@@ -550,6 +569,10 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
                 mMenu.getBackground().setLevel(TABS_CONTRACTED);
             }
         }
+
+        
+        
+        mTabs.requestLayout();
     }
 
     public void setProgressVisibility(boolean visible) {
@@ -582,7 +605,7 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
         
         
         
-        mTitle.setPadding(0, 0, (!mShowReader && !isLoading ? mTitlePadding : 0) + mTabsPaneWidth, 0);
+        mTitle.setPadding(0, 0, (!mShowReader && !isLoading ? mTitlePadding : 0), 0);
 
         updateFocusOrder();
     }
