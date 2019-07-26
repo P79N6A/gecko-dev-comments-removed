@@ -76,7 +76,9 @@ this.ThirdPartyCookieProbe.prototype = {
         return;
       }
       
-      let firstParty = normalizeHost(referrer);
+      
+      
+      let firstParty = (referrer === "?") ? referrer : normalizeHost(referrer);
       let thirdParty = normalizeHost(docURI.QueryInterface(Ci.nsIURI).host);
       let data = this._thirdPartyCookies.get(thirdParty);
       if (!data) {
