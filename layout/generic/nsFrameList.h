@@ -8,6 +8,7 @@
 
 #include <stdio.h> 
 #include "nsDebug.h"
+#include "nsTArrayForwardDeclare.h"
 
 #if defined(DEBUG) || defined(MOZ_DUMP_PAINTING)
 
@@ -18,7 +19,6 @@
 class nsIFrame;
 class nsIPresShell;
 class nsPresContext;
-template <class T> class nsTArray;
 
 namespace mozilla {
 namespace layout {

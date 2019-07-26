@@ -18,11 +18,10 @@
 #include "nsCOMPtr.h"                   
 #include "nsISupportsImpl.h"            
 #include "mozilla/Vector.h"             
-#include "nsTArray.h"                   
+#include "nsTArrayForwardDeclare.h"     
 #include "mozilla/gfx/Logging.h"        
 
 class gfx3DMatrix;
-template <class E> class nsTArray;
 
 namespace mozilla {
 class InputData;
