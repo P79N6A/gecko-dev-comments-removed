@@ -527,33 +527,33 @@ GetCacheSessionNameForStoragePolicy(
     switch (storagePolicy) {
     case nsICache::STORE_IN_MEMORY:
       if (isPrivate)
-        sessionName.Assign(NS_LITERAL_CSTRING("HTTP-memory-only-PB"));
+        sessionName.AssignLiteral("HTTP-memory-only-PB");
       else
-        sessionName.Assign(NS_LITERAL_CSTRING("HTTP-memory-only"));
+        sessionName.AssignLiteral("HTTP-memory-only");
       break;
     case nsICache::STORE_OFFLINE:
       
       
-      sessionName.Assign(NS_LITERAL_CSTRING("HTTP-offline"));
+      sessionName.AssignLiteral("HTTP-offline");
       break;
     default:
-      sessionName.Assign(NS_LITERAL_CSTRING("HTTP"));
+      sessionName.AssignLiteral("HTTP");
       break;
     }
   }
   
   else if (scheme.EqualsLiteral("wyciwyg")) {
     if (isPrivate)
-      sessionName.Assign(NS_LITERAL_CSTRING("wyciwyg-private"));
+      sessionName.AssignLiteral("wyciwyg-private");
     else
-      sessionName.Assign(NS_LITERAL_CSTRING("wyciwyg"));
+      sessionName.AssignLiteral("wyciwyg");
   }
   
   else if (scheme.EqualsLiteral("ftp")) {
     if (isPrivate)
-      sessionName.Assign(NS_LITERAL_CSTRING("FTP-private"));
+      sessionName.AssignLiteral("FTP-private");
     else
-      sessionName.Assign(NS_LITERAL_CSTRING("FTP"));
+      sessionName.AssignLiteral("FTP");
   }
   
   else {
@@ -564,7 +564,7 @@ GetCacheSessionNameForStoragePolicy(
     
     
     
-    sessionName.Assign(NS_LITERAL_CSTRING("other"));
+    sessionName.AssignLiteral("other");
     if (isPrivate)
       sessionName.AppendLiteral("-private");
   }

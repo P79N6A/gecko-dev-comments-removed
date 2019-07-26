@@ -155,7 +155,8 @@ nsDefaultURIFixup::CreateFixupURI(const nsACString& aStringURI, uint32_t aFixupF
             return NS_ERROR_FAILURE;
         nsAutoCString spec;
         uri->GetSpec(spec);
-        uriString.Assign(NS_LITERAL_CSTRING("view-source:") + spec);
+        uriString.AssignLiteral("view-source:");
+        uriString.Append(spec);
     }
     else {
         
@@ -320,9 +321,9 @@ nsDefaultURIFixup::CreateFixupURI(const nsACString& aStringURI, uint32_t aFixupF
 
         
         if (IsLikelyFTP(hostSpec))
-            uriString.Assign(NS_LITERAL_CSTRING("ftp://") + uriString);
+            uriString.InsertLiteral("ftp://", 0);
         else 
-            uriString.Assign(NS_LITERAL_CSTRING("http://") + uriString);
+            uriString.InsertLiteral("http://", 0);
     } 
 
     rv = NS_NewURI(aURI, uriString, nullptr);

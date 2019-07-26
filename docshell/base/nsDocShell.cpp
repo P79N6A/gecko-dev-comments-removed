@@ -4612,7 +4612,7 @@ nsDocShell::DisplayLoadError(nsresult aError, nsIURI *aURI,
       
       
       if (messageStr.IsEmpty()) {
-        messageStr.Assign(NS_LITERAL_STRING(" "));
+        messageStr.Assign(' ');
       }
     }
     else {
