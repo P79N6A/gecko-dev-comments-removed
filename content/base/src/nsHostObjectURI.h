@@ -5,6 +5,7 @@
 #ifndef nsHostObjectURI_h
 #define nsHostObjectURI_h
 
+#include "mozilla/Attributes.h"
 #include "nsCOMPtr.h"
 #include "nsIClassInfo.h"
 #include "nsIPrincipal.h"
@@ -35,13 +36,13 @@ public:
 
   
   virtual nsresult CloneInternal(RefHandlingEnum aRefHandlingMode,
-                                 nsIURI** aClone);
+                                 nsIURI** aClone) MOZ_OVERRIDE;
   virtual nsresult EqualsInternal(nsIURI* aOther,
                                   RefHandlingEnum aRefHandlingMode,
-                                  bool* aResult);
+                                  bool* aResult) MOZ_OVERRIDE;
 
   
-  virtual nsSimpleURI* StartClone(RefHandlingEnum )
+  virtual nsSimpleURI* StartClone(RefHandlingEnum ) MOZ_OVERRIDE
   { return new nsHostObjectURI(); }
 
   nsCOMPtr<nsIPrincipal> mPrincipal;

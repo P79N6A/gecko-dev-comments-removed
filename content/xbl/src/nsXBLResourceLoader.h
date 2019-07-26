@@ -3,6 +3,7 @@
 
 
 
+#include "mozilla/Attributes.h"
 #include "nsCOMPtr.h"
 #include "nsICSSLoaderObserver.h"
 #include "nsCOMArray.h"
@@ -27,7 +28,7 @@ public:
 
   
   NS_IMETHOD StyleSheetLoaded(nsCSSStyleSheet* aSheet, bool aWasAlternate,
-                              nsresult aStatus);
+                              nsresult aStatus) MOZ_OVERRIDE;
 
   void LoadResources(bool* aResult);
   void AddResource(nsIAtom* aResourceType, const nsAString& aSrc);

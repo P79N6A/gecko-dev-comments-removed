@@ -6,6 +6,7 @@
 #ifndef mozilla_dom_SVGAnimateTransformElement_h
 #define mozilla_dom_SVGAnimateTransformElement_h
 
+#include "mozilla/Attributes.h"
 #include "mozilla/dom/SVGAnimationElement.h"
 #include "nsSMILAnimationFunction.h"
 
@@ -30,13 +31,13 @@ protected:
 
 public:
   
-  virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
+  virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const MOZ_OVERRIDE;
 
   
   bool ParseAttribute(int32_t aNamespaceID,
                         nsIAtom* aAttribute,
                         const nsAString& aValue,
-                        nsAttrValue& aResult);
+                        nsAttrValue& aResult) MOZ_OVERRIDE;
 
   
   virtual nsSMILAnimationFunction& AnimationFunction();
