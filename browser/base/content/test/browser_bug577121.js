@@ -3,6 +3,11 @@
 
 
 function test() {
+  Services.prefs.setBoolPref("browser.tabs.animate", false);
+  registerCleanupFunction(function() {
+    Services.prefs.clearUserPref("browser.tabs.animate");
+  });
+
   
   
   let testTab1 = gBrowser.addTab();
