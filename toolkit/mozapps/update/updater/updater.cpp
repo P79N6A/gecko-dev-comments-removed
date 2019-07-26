@@ -82,6 +82,11 @@ void LaunchMacPostProcess(const char* aAppExe);
 
 #if defined(MOZ_WIDGET_GONK)
 # include "automounter_gonk.h"
+# include <unistd.h>
+# define MAYBE_USE_HARD_LINKS 1
+static bool sUseHardLinks = true;
+#else
+# define MAYBE_USE_HARD_LINKS 0
 #endif
 
 #ifdef XP_WIN
@@ -603,6 +608,25 @@ static int ensure_copy_symlink(const NS_tchar *path, const NS_tchar *dest)
 }
 #endif
 
+#if MAYBE_USE_HARD_LINKS
+
+
+
+
+
+
+
+static int
+create_hard_link(const NS_tchar *srcFilename, const NS_tchar *destFilename)
+{
+  if (link(srcFilename, destFilename) < 0) {
+    LOG(("link(%s, %s) failed errno = %d", srcFilename, destFilename, errno));
+    return WRITE_ERROR;
+  }
+  return OK;
+}
+#endif
+
 
 static int ensure_copy(const NS_tchar *path, const NS_tchar *dest)
 {
@@ -627,6 +651,16 @@ static int ensure_copy(const NS_tchar *path, const NS_tchar *dest)
 #ifdef XP_UNIX
   if (S_ISLNK(ss.st_mode)) {
     return ensure_copy_symlink(path, dest);
+  }
+#endif
+
+#if MAYBE_USE_HARD_LINKS
+  if (sUseHardLinks) {
+    if (!create_hard_link(path, dest)) {
+      return OK;
+    }
+    
+    sUseHardLinks = false;
   }
 #endif
 
