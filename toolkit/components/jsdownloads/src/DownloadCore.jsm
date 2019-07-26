@@ -133,6 +133,13 @@ Download.prototype = {
 
 
 
+  startTime: null,
+
+  
+
+
+
+
   hasProgress: false,
 
   
@@ -237,6 +244,7 @@ Download.prototype = {
     this.progress = 0;
     this.totalBytes = 0;
     this.currentBytes = 0;
+    this.startTime = new Date();
 
     
     

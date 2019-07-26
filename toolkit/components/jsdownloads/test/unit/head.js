@@ -134,6 +134,20 @@ function promiseExecuteSoon()
 
 
 
+function promiseTimeout(aTime)
+{
+  let deferred = Promise.defer();
+  do_timeout(aTime, deferred.resolve);
+  return deferred.promise;
+}
+
+
+
+
+
+
+
+
 
 
 
@@ -294,6 +308,16 @@ function registerInterruptibleHandler(aPath, aFirstPartFn, aSecondPartFn)
       do_print("Interruptible request aborted.");
     });
   });
+}
+
+
+
+
+
+
+
+function isValidDate(aDate) {
+  return aDate && aDate.getTime && !isNaN(aDate.getTime());
 }
 
 
