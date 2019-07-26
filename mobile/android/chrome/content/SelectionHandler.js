@@ -155,6 +155,17 @@ var SelectionHandler = {
              aElement.style.MozUserSelect != 'none';
   },
 
+  _getScrollPos: function sh_getScrollPos() {
+    
+    let scrollX = {}, scrollY = {};
+    this._contentWindow.top.QueryInterface(Ci.nsIInterfaceRequestor).
+                            getInterface(Ci.nsIDOMWindowUtils).getScrollXY(false, scrollX, scrollY);
+    return {
+      X: scrollX.value,
+      Y: scrollY.value
+    };
+  },
+
   
 
 
@@ -167,6 +178,7 @@ var SelectionHandler = {
     this._closeSelection();
 
     this._initTargetInfo(aElement);
+    this._activeType = this.TYPE_SELECTION;
 
     
     this._contentWindow.getSelection().removeAllRanges();
@@ -187,8 +199,35 @@ var SelectionHandler = {
     this._cache = { start: {}, end: {}};
     this._updateCacheForSelection();
 
-    this._activeType = this.TYPE_SELECTION;
-    this._positionHandles();
+    let scroll = this._getScrollPos();
+    
+    let positions = this._getHandlePositions(scroll);
+    let clickX = scroll.X + aX;
+    let clickY = scroll.Y + aY;
+    let distance = 0;
+
+    
+    if (positions[0].left < clickX && clickX < positions[1].left
+        && positions[0].top < clickY && clickY < positions[1].top) {
+      distance = 0;
+    } else {
+      
+      let selectposX = (positions[0].left + positions[1].left) / 2;
+      let selectposY = (positions[0].top + positions[1].top) / 2;
+
+      let dx = Math.abs(selectposX - clickX);
+      let dy = Math.abs(selectposY - clickY);
+      distance = dx + dy;
+    }
+
+    let maxSelectionDistance = Services.prefs.getIntPref("browser.ui.selection.distance");
+    
+    if (distance > maxSelectionDistance) {
+      this._closeSelection();
+      return;
+    }
+
+    this._positionHandles(positions);
 
     sendMessageToJava({
       type: "TextSelection:ShowHandles",
@@ -491,11 +530,7 @@ var SelectionHandler = {
     return selectionReversed;
   },
 
-  _positionHandles: function sh_positionHandles() {
-    let scrollX = {}, scrollY = {};
-    this._contentWindow.top.QueryInterface(Ci.nsIInterfaceRequestor).
-                            getInterface(Ci.nsIDOMWindowUtils).getScrollXY(false, scrollX, scrollY);
-
+  _getHandlePositions: function sh_getHandlePositions(scroll) {
     
     
     
@@ -507,7 +542,7 @@ var SelectionHandler = {
       let bounds = this._contentWindow.frameElement.getBoundingClientRect();
       checkHidden = function(x, y) {
         return x < 0 || y < 0 || x > bounds.width || y > bounds.height;
-      }
+      };
     }
 
     let positions = null;
@@ -519,10 +554,10 @@ var SelectionHandler = {
       
       let x = cursor.left / window.devicePixelRatio;
       let y = (cursor.top + cursor.height) / window.devicePixelRatio;
-      positions = [{ handle: this.HANDLE_TYPE_MIDDLE,
-                     left: x + scrollX.value,
-                     top: y + scrollY.value,
-                     hidden: checkHidden(x, y) }];
+      return [{ handle: this.HANDLE_TYPE_MIDDLE,
+                left: x + scroll.X,
+                top: y + scroll.Y,
+                hidden: checkHidden(x, y) }];
     } else {
       let sx = this._cache.start.x;
       let sy = this._cache.start.y;
@@ -533,16 +568,23 @@ var SelectionHandler = {
       
       let offset = this._getViewOffset();
 
-      positions = [{ handle: this.HANDLE_TYPE_START,
-                     left: sx + offset.x + scrollX.value,
-                     top: sy + offset.y + scrollY.value,
-                     hidden: checkHidden(sx, sy) },
-                   { handle: this.HANDLE_TYPE_END,
-                     left: ex + offset.x + scrollX.value,
-                     top: ey + offset.y + scrollY.value,
-                     hidden: checkHidden(ex, ey) }];
+      return  [{ handle: this.HANDLE_TYPE_START,
+                 left: sx + offset.x + scroll.X,
+                 top: sy + offset.y + scroll.Y,
+                 hidden: checkHidden(sx, sy) },
+               { handle: this.HANDLE_TYPE_END,
+                 left: ex + offset.x + scroll.X,
+                 top: ey + offset.y + scroll.Y,
+                 hidden: checkHidden(ex, ey) }];
     }
+  },
 
+  
+  
+  _positionHandles: function sh_positionHandles(positions) {
+    if (!positions) {
+      positions = this._getHandlePositions(this._getScrollPos());
+    }
     sendMessageToJava({
       type: "TextSelection:PositionHandles",
       positions: positions,

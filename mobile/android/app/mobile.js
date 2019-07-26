@@ -439,6 +439,10 @@ pref("browser.ui.touch.weight.visited", 120);
 pref("browser.ui.show-margins-threshold", 20);
 
 
+
+pref("browser.ui.selection.distance", 250);
+
+
 pref("plugin.disable", false);
 pref("dom.ipc.plugins.enabled", false);
 
