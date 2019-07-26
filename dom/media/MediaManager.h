@@ -65,6 +65,120 @@ class GetUserMediaNotificationEvent: public nsRunnable
     GetUserMediaStatus mStatus;
 };
 
+typedef enum {
+  MEDIA_START,
+  MEDIA_STOP,
+  MEDIA_RELEASE
+} MediaOperation;
+
+
+
+
+
+
+
+class MediaOperationRunnable : public nsRunnable
+{
+public:
+  MediaOperationRunnable(MediaOperation aType,
+    nsDOMMediaStream* aStream,
+    MediaEngineSource* aAudioSource,
+    MediaEngineSource* aVideoSource)
+    : mType(aType)
+    , mAudioSource(aAudioSource)
+    , mVideoSource(aVideoSource)
+    , mStream(aStream)
+    {}
+
+  MediaOperationRunnable(MediaOperation aType,
+    SourceMediaStream* aStream,
+    MediaEngineSource* aAudioSource,
+    MediaEngineSource* aVideoSource)
+    : mType(aType)
+    , mAudioSource(aAudioSource)
+    , mVideoSource(aVideoSource)
+    , mStream(nullptr)
+    , mSourceStream(aStream)
+    {}
+
+  NS_IMETHOD
+  Run()
+  {
+    
+    
+    
+    if (mStream) {
+      mSourceStream = mStream->GetStream()->AsSourceStream();
+    }
+    switch (mType) {
+      case MEDIA_START:
+        {
+          NS_ASSERTION(!NS_IsMainThread(), "Never call on main thread");
+          nsresult rv;
+
+          mSourceStream->SetPullEnabled(true);
+
+          if (mAudioSource) {
+            rv = mAudioSource->Start(mSourceStream, kAudioTrack);
+            if (NS_FAILED(rv)) {
+              MM_LOG(("Starting audio failed, rv=%d",rv));
+            }
+          }
+          if (mVideoSource) {
+            rv = mVideoSource->Start(mSourceStream, kVideoTrack);
+            if (NS_FAILED(rv)) {
+              MM_LOG(("Starting video failed, rv=%d",rv));
+            }
+          }
+
+          MM_LOG(("started all sources"));
+          nsCOMPtr<GetUserMediaNotificationEvent> event =
+            new GetUserMediaNotificationEvent(GetUserMediaNotificationEvent::STARTING);
+
+          NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
+        }
+        break;
+
+      case MEDIA_STOP:
+        {
+          NS_ASSERTION(!NS_IsMainThread(), "Never call on main thread");
+          if (mAudioSource) {
+            mAudioSource->Stop();
+            mAudioSource->Deallocate();
+          }
+          if (mVideoSource) {
+            mVideoSource->Stop();
+            mVideoSource->Deallocate();
+          }
+          
+          mSourceStream->Finish();
+
+          nsCOMPtr<GetUserMediaNotificationEvent> event =
+            new GetUserMediaNotificationEvent(GetUserMediaNotificationEvent::STOPPING);
+
+          NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
+        }
+        break;
+      case MEDIA_RELEASE:
+        
+        break;
+    }
+    if (mType != MEDIA_RELEASE) {
+      
+      mType = MEDIA_RELEASE;
+      NS_DispatchToMainThread(this);
+    }
+    return NS_OK;
+  }
+
+private:
+  MediaOperation mType;
+  nsRefPtr<MediaEngineSource> mAudioSource;
+  nsRefPtr<MediaEngineSource> mVideoSource;
+  nsCOMPtr<nsDOMMediaStream> mStream;
+  SourceMediaStream *mSourceStream;
+};
+
 
 
 
@@ -73,10 +187,12 @@ class GetUserMediaNotificationEvent: public nsRunnable
 class GetUserMediaCallbackMediaStreamListener : public MediaStreamListener
 {
 public:
-  GetUserMediaCallbackMediaStreamListener(nsDOMMediaStream* aStream,
+  GetUserMediaCallbackMediaStreamListener(nsIThread *aThread,
+    nsDOMMediaStream* aStream,
     MediaEngineSource* aAudioSource,
     MediaEngineSource* aVideoSource)
-    : mAudioSource(aAudioSource)
+    : mMediaThread(aThread)
+    , mAudioSource(aAudioSource)
     , mVideoSource(aVideoSource)
     , mStream(aStream)
     , mValid(true) {}
@@ -84,60 +200,17 @@ public:
   void
   Invalidate()
   {
-    if (!mValid) {
-      return;
-    }
-
-    mValid = false;
-    if (mAudioSource) {
-      mAudioSource->Stop();
-      mAudioSource->Deallocate();
-    }
-    if (mVideoSource) {
-      mVideoSource->Stop();
-      mVideoSource->Deallocate();
-    }
-    
-    mStream->GetStream()->AsSourceStream()->Finish();
-
-    nsCOMPtr<GetUserMediaNotificationEvent> event =
-      new GetUserMediaNotificationEvent(GetUserMediaNotificationEvent::STOPPING);
-
-    NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
-  }
-
-  void
-  NotifyConsumptionChanged(MediaStreamGraph* aGraph, Consumption aConsuming)
-  {
-    if (aConsuming == CONSUMED) {
-      nsresult rv;
-
-      SourceMediaStream* stream = mStream->GetStream()->AsSourceStream();
-      stream->SetPullEnabled(true);
-
-      if (mAudioSource) {
-        rv = mAudioSource->Start(stream, kAudioTrack);
-        if (NS_FAILED(rv)) {
-          MM_LOG(("Starting audio failed, rv=%d",rv));
-        }
-      }
-      if (mVideoSource) {
-        rv = mVideoSource->Start(stream, kVideoTrack);
-        if (NS_FAILED(rv)) {
-          MM_LOG(("Starting video failed, rv=%d",rv));
-        }
-      }
-
-      MM_LOG(("started all sources"));
-      nsCOMPtr<GetUserMediaNotificationEvent> event =
-        new GetUserMediaNotificationEvent(GetUserMediaNotificationEvent::STARTING);
-
-      NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
-      return;
-    }
+    nsRefPtr<MediaOperationRunnable> runnable;
 
     
-    Invalidate();
+    
+    
+    
+    runnable = new MediaOperationRunnable(MEDIA_STOP, 
+                                          mStream->GetStream()->AsSourceStream(),
+                                          mAudioSource, mVideoSource);
+    mMediaThread->Dispatch(runnable, NS_DISPATCH_NORMAL);
+
     return;
   }
 
@@ -156,6 +229,7 @@ public:
   }
 
 private:
+  nsCOMPtr<nsIThread> mMediaThread;
   nsRefPtr<MediaEngineSource> mAudioSource;
   nsRefPtr<MediaEngineSource> mVideoSource;
   nsCOMPtr<nsDOMMediaStream> mStream;
@@ -204,6 +278,17 @@ public:
     }
     return sSingleton;
   }
+  static Mutex& GetMutex() {
+    return Get()->mMutex;
+  }
+  static nsIThread* GetThread() {
+    MutexAutoLock lock(Get()->mMutex); 
+    if (!sSingleton->mMediaThread) {
+      NS_NewThread(getter_AddRefs(sSingleton->mMediaThread));
+      MM_LOG(("New Media thread for gum"));
+    }
+    return sSingleton->mMediaThread;
+  }
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIOBSERVER
@@ -223,17 +308,19 @@ public:
 private:
   
   MediaManager()
-  : mBackend(nullptr)
+  : mMutex("mozilla::MediaManager")
+  , mBackend(nullptr)
   , mMediaThread(nullptr) {
     mActiveWindows.Init();
     mActiveCallbacks.Init();
   };
-  MediaManager(MediaManager const&) {};
 
   ~MediaManager() {
     delete mBackend;
   };
 
+  Mutex mMutex;
+  
   MediaEngine* mBackend;
   nsCOMPtr<nsIThread> mMediaThread;
   WindowTable mActiveWindows;
