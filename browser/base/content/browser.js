@@ -9,6 +9,7 @@ let Cu = Components.utils;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/NotificationDB.jsm");
 Cu.import("resource:///modules/RecentWindow.jsm");
+Cu.import("resource://gre/modules/WindowsPrefSync.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
                                   "resource://gre/modules/Task.jsm");
@@ -1151,14 +1152,10 @@ var gBrowserInit = {
       Cu.reportError("Could not end startup crash tracking: " + ex);
     }
 
-#ifdef XP_WIN
-#ifdef MOZ_METRO
-    gMetroPrefs.prefDomain.forEach(function(prefName) {
-      gMetroPrefs.pushDesktopControlledPrefToMetro(prefName);
-      Services.prefs.addObserver(prefName, gMetroPrefs, false);
-    }, this);
-#endif
-#endif
+    if (typeof WindowsPrefSync !== 'undefined') {
+      
+      WindowsPrefSync.init();
+    }
 
     if (gMultiProcessBrowser) {
       
@@ -1280,13 +1277,9 @@ var gBrowserInit = {
         Cu.reportError(ex);
       }
 
-#ifdef XP_WIN
-#ifdef MOZ_METRO
-      gMetroPrefs.prefDomain.forEach(function(prefName) {
-        Services.prefs.removeObserver(prefName, gMetroPrefs);
-      });
-#endif
-#endif
+      if (typeof WindowsPrefSync !== 'undefined') {
+        WindowsPrefSync.uninit();
+      }
 
       BrowserOffline.uninit();
       OfflineApps.uninit();
@@ -4683,61 +4676,6 @@ function fireSidebarFocusedEvent() {
   sidebar.contentWindow.dispatchEvent(event);
 }
 
-#ifdef XP_WIN
-#ifdef MOZ_METRO
-
-
-
-
-
-var gMetroPrefs = {
-  prefDomain: ["app.update.auto", "app.update.enabled",
-               "app.update.service.enabled",
-               "app.update.metro.enabled",
-               "browser.sessionstore.resume_session_once"],
-  observe: function (aSubject, aTopic, aPrefName)
-  {
-    if (aTopic != "nsPref:changed")
-      return;
-
-    this.pushDesktopControlledPrefToMetro(aPrefName);
-  },
-
-  
-
-
-
-  pushDesktopControlledPrefToMetro: function(aPrefName) {
-    let registry = Cc["@mozilla.org/windows-registry-key;1"].
-                    createInstance(Ci.nsIWindowsRegKey);
-    try {
-      var prefType = Services.prefs.getPrefType(aPrefName);
-      let prefFunc;
-      if (prefType == Components.interfaces.nsIPrefBranch.PREF_INT)
-        prefFunc = "getIntPref";
-      else if (prefType == Components.interfaces.nsIPrefBranch.PREF_BOOL)
-        prefFunc = "getBoolPref";
-      else if (prefType == Components.interfaces.nsIPrefBranch.PREF_STRING)
-        prefFunc = "getCharPref";
-      else
-        throw "Unsupported pref type";
-
-      let prefValue = Services.prefs[prefFunc](aPrefName);
-      registry.create(Ci.nsIWindowsRegKey.ROOT_KEY_CURRENT_USER,
-                    "Software\\Mozilla\\Firefox\\Metro\\Prefs\\" + prefType,
-                    Ci.nsIWindowsRegKey.ACCESS_WRITE);
-      
-      
-      registry.writeStringValue(aPrefName, prefValue);
-    } catch (ex) {
-      Components.utils.reportError("Couldn't push pref " + aPrefName + ": " + ex);
-    } finally {
-      registry.close();
-    }
-  }
-};
-#endif
-#endif
 
 var gHomeButton = {
   prefDomain: "browser.startup.homepage",
