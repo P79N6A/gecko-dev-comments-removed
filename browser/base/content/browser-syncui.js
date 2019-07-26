@@ -94,16 +94,10 @@ let gSyncUI = {
     
     
     
-
-    
-    
-    let service = Cc["@mozilla.org/weave/service;1"]
-                  .getService(Components.interfaces.nsISupports)
-                  .wrappedJSObject;
-    if (service.ready && Weave.Service.identity._signedInUser) {
+    if (Weave.Status._authManager._signedInUser) {
       
       
-      if (!Weave.Service.identity._signedInUser.verified) {
+      if (!Weave.Status._authManager._signedInUser.verified) {
         return true;
       }
     }
@@ -118,15 +112,6 @@ let gSyncUI = {
   },
 
   _loginFailed: function () {
-    
-    
-    let service = Cc["@mozilla.org/weave/service;1"]
-                  .getService(Components.interfaces.nsISupports)
-                  .wrappedJSObject;
-    if (!service.ready) {
-      return false;
-    }
-
     return Weave.Status.login == Weave.LOGIN_FAILED_LOGIN_REJECTED;
   },
 
