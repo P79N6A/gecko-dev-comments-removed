@@ -573,7 +573,7 @@ WebappsActor.prototype = {
   },
 
   watchApps: function () {
-    this._framesByOrigin = {};
+    this._openedApps = new Set();
     let chromeWindow = Services.wm.getMostRecentWindow('navigator:browser');
     let systemAppFrame = chromeWindow.getContentWindow();
     systemAppFrame.addEventListener("appwillopen", this);
@@ -583,7 +583,7 @@ WebappsActor.prototype = {
   },
 
   unwatchApps: function () {
-    this._framesByOrigin = null;
+    this._openedApps = null;
     let chromeWindow = Services.wm.getMostRecentWindow('navigator:browser');
     let systemAppFrame = chromeWindow.getContentWindow();
     systemAppFrame.removeEventListener("appwillopen", this);
@@ -593,46 +593,33 @@ WebappsActor.prototype = {
   },
 
   handleEvent: function (event) {
-    let frame;
-    let origin = event.detail.origin;
+    let manifestURL;
     switch(event.type) {
       case "appwillopen":
-        frame = event.target;
-        
-        
-        
-        let mm = frame.QueryInterface(Ci.nsIFrameLoaderOwner)
-                         .frameLoader
-                         .messageManager;
-        if (this._appActorsMap.has(mm)) {
-          return;
-        }
+        let frame = event.target;
+        manifestURL = frame.getAttribute("mozapp")
 
         
         
         
-        
-        this._framesByOrigin[origin] = frame;
+        if (this._openedApps.has(manifestURL)) {
+          return;
+        }
+        this._openedApps.add(manifestURL);
 
         this.conn.send({ from: this.actorID,
                          type: "appOpen",
-                         manifestURL: frame.getAttribute("mozapp")
+                         manifestURL: manifestURL
                        });
         break;
 
       case "appterminated":
-        
-        
-        
-        frame = this._framesByOrigin[origin];
-        delete this._framesByOrigin[origin];
-        if (frame) {
-          let manifestURL = frame.getAttribute("mozapp");
-          this.conn.send({ from: this.actorID,
-                           type: "appClose",
-                           manifestURL: manifestURL
-                         });
-        }
+        manifestURL = event.detail.manifestURL;
+        this._openedApps.delete(manifestURL);
+        this.conn.send({ from: this.actorID,
+                         type: "appClose",
+                         manifestURL: manifestURL
+                       });
         break;
     }
   }
