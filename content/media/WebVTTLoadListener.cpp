@@ -57,6 +57,10 @@ WebVTTLoadListener::LoadResource()
   }
 
   LOG("Loading text track resource.");
+  webvtt_parser_t* parser = nullptr;
+  
+  mParser.own(parser);
+  NS_ENSURE_TRUE(mParser != nullptr, NS_ERROR_FAILURE);
 
   mElement->mReadyState = HTMLTrackElement::LOADING;
   return NS_OK;
@@ -127,6 +131,7 @@ WebVTTLoadListener::ParseChunk(nsIInputStream* aInStream, void* aClosure,
                                uint32_t aCount, uint32_t* aWriteCount)
 {
   
+  
   if (1) {
     LOG("WebVTT parser disabled.");
     LOG("Unable to parse chunk of WEBVTT text. Aborting.");
@@ -135,6 +140,33 @@ WebVTTLoadListener::ParseChunk(nsIInputStream* aInStream, void* aClosure,
   }
   *aWriteCount = aCount;
   return NS_OK;
+}
+
+void
+WebVTTLoadListener::OnParsedCue(webvtt_cue* aCue)
+{
+  nsRefPtr<TextTrackCue> textTrackCue;
+  
+  
+  mElement->mTrack->AddCue(*textTrackCue);
+}
+
+int
+WebVTTLoadListener::OnReportError(uint32_t aLine, uint32_t aCol,
+                                  webvtt_error aError)
+{
+#ifdef PR_LOGGING
+  
+  DOMString wideFile;
+  mElement->GetSrc(wideFile);
+
+  NS_ConvertUTF16toUTF8 file(wideFile);
+
+  const char* error = "parser error";
+
+  LOG("error: %s(%d:%d) - %s\n", file.get(), aLine, aCol, error);
+#endif
+  return 0;
 }
 
 } 

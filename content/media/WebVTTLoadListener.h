@@ -13,10 +13,24 @@
 #include "nsAutoRef.h"
 #include "nsCycleCollectionParticipant.h"
 
+struct webvtt_parser_t;
+struct webvtt_cue;
+typedef int webvtt_error;
+
+template <>
+class nsAutoRefTraits<webvtt_parser_t> : public nsPointerRefTraits<webvtt_parser_t>
+{
+public:
+  static void Release(webvtt_parser_t* aParser) {
+    
+  }
+};
+
 namespace mozilla {
 namespace dom {
 
 class HTMLTrackElement;
+
 
 
 
@@ -62,6 +76,10 @@ private:
                               uint32_t aCount, uint32_t* aWriteCount);
 
   nsRefPtr<HTMLTrackElement> mElement;
+  nsAutoRef<webvtt_parser_t> mParser;
+
+  void OnParsedCue(webvtt_cue* aCue);
+  int OnReportError(uint32_t aLine, uint32_t aCol, webvtt_error aError);
 };
 
 
