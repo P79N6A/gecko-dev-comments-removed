@@ -3478,6 +3478,11 @@ nsDocument::doCreateShell(nsPresContext* aContext,
   
   mPresShell = shell;
 
+  
+  nsCOMPtr<nsIDocShell> docShell = do_QueryReferent(mDocumentContainer);
+  if (docShell && docShell->IsInvisible())
+    shell->SetNeverPainting(true);
+
   mExternalResourceMap.ShowViewers();
 
   MaybeRescheduleAnimationFrameNotifications();

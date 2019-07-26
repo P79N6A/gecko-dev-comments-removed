@@ -128,8 +128,8 @@ typedef struct CapturingContentInfo {
 
 
 #define NS_IPRESSHELL_IID \
-{ 0xd39cd4ce, 0x6b38, 0x4793, \
-  { 0x8c, 0x1a, 0x00, 0x98, 0x5c, 0x56, 0xd9, 0x31 } }
+{ 0xf5b542a9, 0xeaf0, 0x4560, \
+  { 0x37, 0xa9, 0xd3, 0x79, 0x86, 0x4c } }
 
 
 #define VERIFY_REFLOW_ON                    0x01
@@ -1467,6 +1467,17 @@ public:
     mReflowOnZoomPending = false;
   }
 
+  
+
+
+  bool IsNeverPainting() {
+    return mIsNeverPainting;
+  }
+
+  void SetNeverPainting(bool aNeverPainting) {
+    mIsNeverPainting = aNeverPainting;
+  }
+
 protected:
   friend class nsRefreshDriver;
 
@@ -1588,6 +1599,11 @@ protected:
   
   
   nscoord mMaxLineBoxWidth;
+  
+  
+  
+  
+  bool mIsNeverPainting;
 };
 
 #endif
