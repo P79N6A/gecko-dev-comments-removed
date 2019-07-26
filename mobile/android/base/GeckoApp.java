@@ -146,6 +146,7 @@ abstract public class GeckoApp
     public static final String PREFS_NAME          = "GeckoApp";
     public static final String PREFS_OOM_EXCEPTION = "OOMException";
     public static final String PREFS_WAS_STOPPED   = "wasStopped";
+    public static final String PREFS_CRASHED       = "crashed";
 
     static public final int RESTORE_NONE = 0;
     static public final int RESTORE_OOM = 1;
@@ -1790,7 +1791,19 @@ abstract public class GeckoApp
     }
 
     protected boolean shouldRestoreSession() {
-        return getProfile().shouldRestoreSession();
+        SharedPreferences prefs = GeckoApp.mAppContext.getSharedPreferences(PREFS_NAME, 0);
+
+        
+        
+        
+        
+        if (prefs.getBoolean(PREFS_CRASHED, false)) {
+            prefs.edit().putBoolean(GeckoApp.PREFS_CRASHED, false).commit();
+            if (getProfile().shouldRestoreSession()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     
