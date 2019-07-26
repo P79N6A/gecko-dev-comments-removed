@@ -705,6 +705,14 @@ CompositorOGL::SetRenderTarget(CompositingRenderTarget *aSurface)
   CompositingRenderTargetOGL* surface
     = static_cast<CompositingRenderTargetOGL*>(aSurface);
   if (mCurrentRenderTarget != surface) {
+    
+    
+    mGLContext->PopScissorRect();
+
+    
+    
+    mGLContext->PushScissorRect();
+
     surface->BindRenderTarget();
     mCurrentRenderTarget = surface;
   }
@@ -827,6 +835,9 @@ CompositorOGL::BeginFrame(const Rect *aClipRectIn, const gfxMatrix& aTransform,
   } else {
     mGLContext->fScissor(aClipRectIn->x, aClipRectIn->y, aClipRectIn->width, aClipRectIn->height);
   }
+
+  
+  mGLContext->PushScissorRect();
 
   
   
@@ -1280,6 +1291,9 @@ CompositorOGL::EndFrame()
     mCurrentRenderTarget = nullptr;
     return;
   }
+
+  
+  mGLContext->PopScissorRect();
 
   mCurrentRenderTarget = nullptr;
 
