@@ -286,6 +286,7 @@ IsAboutToBeFinalized(T **thingp)
 {
     JS_ASSERT(thingp);
     JS_ASSERT(*thingp);
+
 #ifdef JSGC_GENERATIONAL
     Nursery &nursery = (*thingp)->runtime()->gcNursery;
     if (nursery.isInside(*thingp))
@@ -293,6 +294,16 @@ IsAboutToBeFinalized(T **thingp)
 #endif
     if (!(*thingp)->tenuredZone()->isGCSweeping())
         return false;
+
+    
+
+
+
+
+
+
+    JS_ASSERT(!(*thingp)->arenaHeader()->allocatedDuringIncremental);
+
     return !(*thingp)->isMarked();
 }
 
