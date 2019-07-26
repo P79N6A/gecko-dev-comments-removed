@@ -171,6 +171,12 @@ public:
 
 
 
+
+
+
+
+
+
   void ResetPriority();
 
   
@@ -202,11 +208,19 @@ private:
 
   bool ComputeIsInForeground();
 
+
   
 
 
 
+
   void SetIsForeground();
+
+  
+
+
+
+  void SetIsForegroundNow();
 
   
 
@@ -231,6 +245,10 @@ private:
   
   ProcessPriority mProcessPriority;
 
+  
+  
+  bool mObservedTabChildCreated;
+
   nsTArray<nsWeakPtr> mWindows;
 
   
@@ -246,6 +264,7 @@ ProcessPriorityManager::ProcessPriorityManager()
   : mHoldsCPUWakeLock(false)
   , mHoldsHighPriorityWakeLock(false)
   , mProcessPriority(ProcessPriority(-1))
+  , mObservedTabChildCreated(false)
 {
   
   
@@ -269,6 +288,7 @@ ProcessPriorityManager::Init()
   
   
   nsCOMPtr<nsIObserverService> os = services::GetObserverService();
+  os->AddObserver(this, "tab-child-created",  false);
   os->AddObserver(this, "content-document-global-created",  false);
   os->AddObserver(this, "inner-window-destroyed",  false);
   os->AddObserver(this, "audio-channel-agent-changed",  false);
@@ -295,7 +315,10 @@ ProcessPriorityManager::Observe(
   const char* aTopic,
   const PRUnichar* aData)
 {
-  if (!strcmp(aTopic, "content-document-global-created")) {
+  if (!strcmp(aTopic, "tab-child-created")) {
+    mObservedTabChildCreated = true;
+    ResetPriority();
+  } else if (!strcmp(aTopic, "content-document-global-created")) {
     OnContentDocumentGlobalCreated(aSubject);
   } else if (!strcmp(aTopic, "inner-window-destroyed") ||
              !strcmp(aTopic, "audio-channel-agent-changed")) {
@@ -450,6 +473,12 @@ ProcessPriorityManager::GetBackgroundPriority()
 void
 ProcessPriorityManager::ResetPriority()
 {
+  if (!mObservedTabChildCreated) {
+    LOG("ResetPriority bailing because we haven't observed "
+        "a tab-child-created event.");
+    return;
+  }
+
   if (ComputeIsInForeground()) {
     SetIsForeground();
   } else if (IsBackgroundPriority(mProcessPriority)) {
@@ -464,8 +493,14 @@ ProcessPriorityManager::ResetPriority()
 void
 ProcessPriorityManager::ResetPriorityNow()
 {
+  if (!mObservedTabChildCreated) {
+    LOG("ResetPriorityNow bailing because we haven't observed "
+        "a tab-child-created event.");
+    return;
+  }
+
   if (ComputeIsInForeground()) {
-    SetIsForeground();
+    SetIsForegroundNow();
   } else {
     SetIsBackgroundNow();
   }
@@ -526,6 +561,22 @@ ProcessPriorityManager::ComputeIsInForeground()
 
 void
 ProcessPriorityManager::SetIsForeground()
+{
+  ProcessPriority foregroundPriority = GetForegroundPriority();
+
+  if (mProcessPriority == PROCESS_PRIORITY_UNKNOWN ||
+      foregroundPriority < mProcessPriority) {
+    LOG("Giving grace period to %s -> %s transition.",
+        ProcessPriorityToString(mProcessPriority),
+        ProcessPriorityToString(foregroundPriority));
+    ScheduleResetPriority("backgroundGracePeriodMS");
+  } else {
+    SetIsForegroundNow();
+  }
+}
+
+void
+ProcessPriorityManager::SetIsForegroundNow()
 {
   ProcessPriority foregroundPriority = GetForegroundPriority();
   if (foregroundPriority == mProcessPriority) {
