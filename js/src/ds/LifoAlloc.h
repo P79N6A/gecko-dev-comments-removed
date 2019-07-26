@@ -434,7 +434,7 @@ class LifoAlloc
         
         void popFront(size_t size) {
             ensureSpaceAndAlignment(size);
-            position_ = detail::AlignPtr(position_ + size);
+            position_ = position_ + size;
         }
 
         
