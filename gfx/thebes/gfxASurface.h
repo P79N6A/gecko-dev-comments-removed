@@ -192,11 +192,6 @@ public:
     
 
 
-    void PrintAsDataURL();
-
-    
-
-
     void CopyAsDataURL();
 
     void WriteAsPNG_internal(FILE* aFile, bool aBinary);
