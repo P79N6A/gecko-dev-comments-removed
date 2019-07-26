@@ -441,6 +441,9 @@ def GenerateOutput(target_list, target_dicts, data, params):
                 swapslashes(src),
                 swapslashes(relative_srcdir))
   scriptname = topsrcdir_path(__file__)
+  if scriptname[-4:] in ('.pyc', '.pyo'):
+    scriptname = scriptname[:-1]
+
   
   commandline = [topsrcdir_path(sys.argv[0]),
                  "--format=mozmake",
