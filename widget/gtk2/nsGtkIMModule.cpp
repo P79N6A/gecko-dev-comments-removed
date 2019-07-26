@@ -4,7 +4,6 @@
 
 
 
-
 #ifdef MOZ_PLATFORM_MAEMO
 #define MAEMO_CHANGES
 #endif
@@ -295,13 +294,13 @@ nsGtkIMModule::PrepareToDestroyContext(GtkIMContext *aContext)
         static gpointer gtk_xim_context_class =
             g_type_class_ref(slaveType);
         
-        gtk_xim_context_class = gtk_xim_context_class;
+        (void)gtk_xim_context_class;
     } else if (strcmp(im_type_name, "GtkIMContextIIIM") == 0) {
         
         static gpointer gtk_iiim_context_class =
             g_type_class_ref(slaveType);
         
-        gtk_iiim_context_class = gtk_iiim_context_class;
+        (void)gtk_iiim_context_class;
     }
 }
 
