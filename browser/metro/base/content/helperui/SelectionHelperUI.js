@@ -348,9 +348,10 @@ var SelectionHelperUI = {
 
 
   attachToCaret: function attachToCaret(aBrowser, aX, aY) {
-    if (!this.isActive)
+    if (!this.isActive) {
       this._init(aBrowser);
-    this._setupDebugOptions();
+      this._setupDebugOptions();
+    }
 
     this._lastPoint = { xPos: aX, yPos: aY };
 
@@ -412,7 +413,6 @@ var SelectionHelperUI = {
 
     window.addEventListener("keypress", this, true);
     window.addEventListener("click", this, false);
-    window.addEventListener("dblclick", this, false);
     window.addEventListener("touchstart", this, true);
     window.addEventListener("touchend", this, true);
     window.addEventListener("touchmove", this, true);
@@ -437,7 +437,6 @@ var SelectionHelperUI = {
 
     window.removeEventListener("keypress", this, true);
     window.removeEventListener("click", this, false);
-    window.removeEventListener("dblclick", this, false);
     window.removeEventListener("touchstart", this, true);
     window.removeEventListener("touchend", this, true);
     window.removeEventListener("touchmove", this, true);
@@ -686,9 +685,12 @@ var SelectionHelperUI = {
 
 
   _onTap: function _onTap(aEvent) {
+    let clientCoords =
+      this._msgTarget.ptBrowserToClient(aEvent.clientX, aEvent.clientY, true);
+
     
-    if (this.startMark.hitTest(aEvent.clientX, aEvent.clientY) ||
-        this.endMark.hitTest(aEvent.clientX, aEvent.clientY)) {
+    if (this.startMark.hitTest(clientCoords.x, clientCoords.y) ||
+        this.endMark.hitTest(clientCoords.x, clientCoords.y)) {
       aEvent.stopPropagation();
       aEvent.preventDefault();
       return;
@@ -698,18 +700,14 @@ var SelectionHelperUI = {
     
     
     let pointInTargetElement =
-      Util.pointWithinRect(aEvent.clientX, aEvent.clientY,
+      Util.pointWithinRect(clientCoords.x, clientCoords.y,
                            this._targetElementRect);
 
     
     
     if (this.caretMark.visible && pointInTargetElement) {
       
-      let coords =
-        this._msgTarget.ptClientToBrowser(aEvent.clientX, aEvent.clientY,
-                                          true);
-      
-      this._setCaretPositionAtPoint(coords.x, coords.y);
+      this._setCaretPositionAtPoint(aEvent.clientX, aEvent.clientY);
       return;
     }
 
@@ -740,36 +738,11 @@ var SelectionHelperUI = {
     
     if (this.startMark.visible && pointInTargetElement &&
         this._targetIsEditable) {
-      this._transitionFromSelectionToCaret(aEvent.clientX, aEvent.clientY);
+      this._transitionFromSelectionToCaret(clientCoords.x, clientCoords.y);
     }
 
     
     
-    aEvent.stopPropagation();
-    aEvent.preventDefault();
-  },
-
-  
-
-
-
-  _onDblTap: function _onDblTap(aEvent) {
-    if (!this._hitTestSelection(aEvent)) {
-      
-      this.closeEditSession(true);
-      return;
-    }
-
-    let coords =
-      this._msgTarget.ptClientToBrowser(aEvent.clientX, aEvent.clientY,
-                                        true);
-
-    
-    this._sendAsyncMessage("Browser:SelectionCopy", {
-      xPos: coords.x,
-      yPos: coords.y,
-    });
-
     aEvent.stopPropagation();
     aEvent.preventDefault();
   },
@@ -872,10 +845,6 @@ var SelectionHelperUI = {
     switch (aEvent.type) {
       case "click":
         this._onTap(aEvent);
-        break;
-
-      case "dblclick":
-        this._onDblTap(aEvent);
         break;
 
       case "touchstart": {
