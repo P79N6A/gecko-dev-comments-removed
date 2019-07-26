@@ -14,6 +14,10 @@ function runTests() {
   };
 
   
-  yield EventUtils.synthesizeMouseAtCenter(cell.node, {button: 1}, getContentWindow());
+  let block = getContentDocument().querySelector(".newtab-control-block");
+  yield EventUtils.synthesizeMouseAtCenter(block, {button: 1}, getContentWindow());
   ok(clicked, "middle click triggered click listener");
+
+  
+  checkGrid("0");
 }

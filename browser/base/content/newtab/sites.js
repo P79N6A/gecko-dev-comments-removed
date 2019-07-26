@@ -171,10 +171,6 @@ Site.prototype = {
     this._node.addEventListener("mouseover", this, false);
 
     
-    
-    addEventListener("click", this, false);
-
-    
     let sponsored = this._querySelector(".newtab-control-sponsored");
     sponsored.addEventListener("mouseover", () => {
       this.cell.node.setAttribute("ignorehover", "true");
@@ -218,11 +214,19 @@ Site.prototype = {
   
 
 
-  _onClick: function Site_onClick(aEvent) {
-    let target = aEvent.target;
+  onClick: function Site_onClick(aEvent) {
+    let {button, target} = aEvent;
     if (target.classList.contains("newtab-link") ||
         target.parentElement.classList.contains("newtab-link")) {
-      this._recordSiteClicked(this.cell.index);
+      
+      if (button == 0 || button == 1) {
+        this._recordSiteClicked(this.cell.index);
+      }
+      return;
+    }
+
+    
+    if (button != 0) {
       return;
     }
 
@@ -242,13 +246,6 @@ Site.prototype = {
 
   handleEvent: function Site_handleEvent(aEvent) {
     switch (aEvent.type) {
-      case "click":
-        
-        if (this._node.compareDocumentPosition(aEvent.target) &
-            this._node.DOCUMENT_POSITION_CONTAINED_BY) {
-          this._onClick(aEvent);
-        }
-        break;
       case "mouseover":
         this._node.removeEventListener("mouseover", this, false);
         this._speculativeConnect();

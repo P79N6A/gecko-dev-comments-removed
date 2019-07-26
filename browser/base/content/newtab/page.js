@@ -20,8 +20,9 @@ let gPage = {
     addEventListener("unload", this, false);
 
     
-    let button = document.getElementById("newtab-toggle");
-    button.addEventListener("click", this, false);
+    
+    
+    addEventListener("click", this, false);
 
     
     this._sponsoredPanel = document.getElementById("sponsored-panel");
@@ -196,7 +197,22 @@ let gPage = {
         gAllPages.unregister(this);
         break;
       case "click":
-        gAllPages.enabled = !gAllPages.enabled;
+        let {button, target} = aEvent;
+        if (target.id == "newtab-toggle") {
+          if (button == 0) {
+            gAllPages.enabled = !gAllPages.enabled;
+          }
+          break;
+        }
+
+        
+        while (target) {
+          if (target.hasOwnProperty("_newtabSite")) {
+            target._newtabSite.onClick(aEvent);
+            break;
+          }
+          target = target.parentNode;
+        }
         break;
       case "dragover":
         if (gDrag.isValid(aEvent) && gDrag.draggedSite)
