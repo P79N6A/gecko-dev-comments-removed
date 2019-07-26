@@ -1096,6 +1096,19 @@ ArrayJoin(JSContext *cx, CallArgs &args)
 
     
 
+    
+    
+    
+    if (length == 1 && !Locale && obj->is<ArrayObject>() &&
+        obj->getDenseInitializedLength() == 1)
+    {
+        const Value &elem0 = obj->getDenseElement(0);
+        if (elem0.isString()) {
+            args.rval().setString(elem0.toString());
+            return true;
+        }
+    }
+
     StringBuffer sb(cx);
 
     
