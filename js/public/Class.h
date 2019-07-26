@@ -541,6 +541,8 @@ struct JSClass {
 #define JSCLASS_INTERNAL_FLAG2          (1<<(JSCLASS_HIGH_FLAGS_SHIFT+2))
 #define JSCLASS_INTERNAL_FLAG3          (1<<(JSCLASS_HIGH_FLAGS_SHIFT+3))
 
+#define JSCLASS_IS_PROXY                (1<<(JSCLASS_HIGH_FLAGS_SHIFT+4))
+
 
 
 
@@ -612,6 +614,10 @@ struct Class
 
     bool isCallable() const {
         return this == js::FunctionClassPtr || call;
+    }
+
+    bool isProxy() const {
+        return flags & JSCLASS_IS_PROXY;
     }
 
     static size_t offsetOfFlags() { return offsetof(Class, flags); }
