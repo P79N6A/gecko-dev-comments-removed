@@ -176,8 +176,6 @@ CrossSlideHandler.prototype = {
       return;
     }
 
-    aEvent.stopPropagation();
-
     if (aEvent.touches.length!==1) {
       
       return this.cancel(aEvent);
@@ -193,34 +191,38 @@ CrossSlideHandler.prototype = {
     let crossAxisDistance = Math.abs(endPt[crossAxis] - startPt[crossAxis]);
     
     let scrollAxisDistance = Math.abs(endPt[scrollAxis] - startPt[scrollAxis]);
-
     let currState = this.drag.state;
     let newState = this.getCrossSlideState(crossAxisDistance, scrollAxisDistance);
 
-    if (-1 == newState) {
-      
-      return this.cancel(aEvent);
+    switch (newState) {
+      case -1 :
+        
+        return this.cancel(aEvent);
+      case CrossSlidingState.STARTED :
+        break;
+      case CrossSlidingState.DRAGGING :
+        if (scrollAxisDistance > this.thresholds.SELECTIONSTART) {
+          
+          return this.cancel(aEvent);
+        }
+        
+      case CrossSlidingState.SELECTING :
+      case CrossSlidingState.SELECT_SPEED_BUMPING :
+      case CrossSlidingState.SPEED_BUMPING :
+        
+        
+        if (!withinCone(crossAxisDistance, scrollAxisDistance)) {
+          return this.cancel(aEvent);
+        }
+        
+        aEvent.stopPropagation();
+        break;
     }
 
-    let isWithinCone = withinCone(crossAxisDistance, scrollAxisDistance);
-
-    if (currState < CrossSlidingState.SELECTING && !isWithinCone) {
-      
-      return;
+    if (currState !== newState) {
+      this.drag.state = newState;
+      this._fireProgressEvent( CrossSlidingStateNames[newState], aEvent );
     }
-    if (currState >= CrossSlidingState.SELECTING && !isWithinCone) {
-      
-      
-      return this.cancel(aEvent);
-    }
-
-    if (currState > newState) {
-      
-      return;
-    }
-
-    this.drag.state = newState;
-    this._fireProgressEvent( CrossSlidingStateNames[newState], aEvent );
   },
   _onTouchEnd: function(aEvent){
     if (!this.drag)
