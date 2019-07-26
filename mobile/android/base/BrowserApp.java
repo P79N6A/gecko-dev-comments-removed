@@ -1472,6 +1472,10 @@ abstract public class BrowserApp extends GeckoApp
         }
 
         mBrowserToolbar.cancelEdit();
+
+        
+        
+        mHomePager.setVisibility(View.VISIBLE);
         animateHideHomePager();
         hideBrowserSearch();
 
