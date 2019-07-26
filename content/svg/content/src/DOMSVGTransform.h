@@ -34,7 +34,9 @@ struct gfxMatrix;
 
 namespace mozilla {
 
-class DOMSVGMatrix;
+namespace dom {
+class SVGMatrix;
+}
 
 
 
@@ -131,9 +133,9 @@ public:
   DOMSVGTransformList* GetParentObject() const { return mList; }
   virtual JSObject* WrapObject(JSContext* aCx, JSObject* aScope, bool* aTriedToWrap);
   uint16_t Type() const;
-  already_AddRefed<DOMSVGMatrix> Matrix();
+  already_AddRefed<dom::SVGMatrix> Matrix();
   float Angle() const;
-  void SetMatrix(DOMSVGMatrix& matrix, ErrorResult& rv);
+  void SetMatrix(dom::SVGMatrix& matrix, ErrorResult& rv);
   void SetTranslate(float tx, float ty, ErrorResult& rv);
   void SetScale(float sx, float sy, ErrorResult& rv);
   void SetRotate(float angle, float cx, float cy, ErrorResult& rv);
@@ -142,7 +144,7 @@ public:
 
 protected:
   
-  friend class DOMSVGMatrix;
+  friend class dom::SVGMatrix;
   const bool IsAnimVal() const {
     return mIsAnimValItem;
   }

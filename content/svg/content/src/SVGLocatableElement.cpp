@@ -2,13 +2,13 @@
 
 
 
-#include "SVGLocatableElement.h"
-#include "DOMSVGMatrix.h"
+#include "mozilla/dom/SVGLocatableElement.h"
 #include "nsIFrame.h"
 #include "nsISVGChildFrame.h"
 #include "nsSVGRect.h"
 #include "nsSVGUtils.h"
 #include "SVGContentUtils.h"
+#include "mozilla/dom/SVGMatrix.h"
 #include "mozilla/dom/SVGSVGElement.h"
 
 namespace mozilla {
@@ -95,11 +95,11 @@ SVGLocatableElement::GetCTM(nsISupports * *aCTM)
   return NS_OK;
 }
 
-already_AddRefed<DOMSVGMatrix>
+already_AddRefed<SVGMatrix>
 SVGLocatableElement::GetCTM()
 {
   gfxMatrix m = SVGContentUtils::GetCTM(this, false);
-  nsCOMPtr<DOMSVGMatrix> mat = m.IsSingular() ? nullptr : new DOMSVGMatrix(m);
+  nsCOMPtr<SVGMatrix> mat = m.IsSingular() ? nullptr : new SVGMatrix(m);
   return mat.forget();
 }
 
@@ -111,11 +111,11 @@ SVGLocatableElement::GetScreenCTM(nsISupports * *aCTM)
   return NS_OK;
 }
 
-already_AddRefed<DOMSVGMatrix>
+already_AddRefed<SVGMatrix>
 SVGLocatableElement::GetScreenCTM()
 {
   gfxMatrix m = SVGContentUtils::GetCTM(this, true);
-  nsCOMPtr<DOMSVGMatrix> mat = m.IsSingular() ? nullptr : new DOMSVGMatrix(m);
+  nsCOMPtr<SVGMatrix> mat = m.IsSingular() ? nullptr : new SVGMatrix(m);
   return mat.forget();
 }
 
@@ -132,7 +132,7 @@ SVGLocatableElement::GetTransformToElement(nsIDOMSVGElement *element,
   return rv.ErrorCode();
 }
 
-already_AddRefed<DOMSVGMatrix>
+already_AddRefed<SVGMatrix>
 SVGLocatableElement::GetTransformToElement(nsSVGElement& aElement,
                                            ErrorResult& rv)
 {
@@ -143,17 +143,17 @@ SVGLocatableElement::GetTransformToElement(nsSVGElement& aElement,
   }
 
   
-  nsCOMPtr<DOMSVGMatrix> ourScreenCTM = GetScreenCTM();
-  nsCOMPtr<DOMSVGMatrix> targetScreenCTM;
+  nsCOMPtr<SVGMatrix> ourScreenCTM = GetScreenCTM();
+  nsCOMPtr<SVGMatrix> targetScreenCTM;
   target->GetScreenCTM(getter_AddRefs(targetScreenCTM));
   if (!ourScreenCTM || !targetScreenCTM) {
     rv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return nullptr;
   }
-  nsCOMPtr<DOMSVGMatrix> tmp = targetScreenCTM->Inverse(rv);
+  nsCOMPtr<SVGMatrix> tmp = targetScreenCTM->Inverse(rv);
   if (rv.Failed()) return nullptr;
 
-  nsCOMPtr<DOMSVGMatrix> mat = tmp->Multiply(*ourScreenCTM).get();
+  nsCOMPtr<SVGMatrix> mat = tmp->Multiply(*ourScreenCTM).get();
   return mat.forget();
 }
 
