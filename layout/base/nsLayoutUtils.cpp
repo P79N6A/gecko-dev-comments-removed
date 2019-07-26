@@ -106,7 +106,8 @@ typedef FrameMetrics::ViewID ViewID;
  uint32_t nsLayoutUtils::sFontSizeInflationEmPerLine;
  uint32_t nsLayoutUtils::sFontSizeInflationMinTwips;
  uint32_t nsLayoutUtils::sFontSizeInflationLineThreshold;
- int32_t nsLayoutUtils::sFontSizeInflationMappingIntercept;
+ int32_t  nsLayoutUtils::sFontSizeInflationMappingIntercept;
+ uint32_t nsLayoutUtils::sFontSizeInflationMaxRatio;
 
 static ViewID sScrollIdCounter = FrameMetrics::START_SCROLL_ID;
 
@@ -4739,6 +4740,8 @@ nsLayoutUtils::SizeOfTextRunsForFrames(nsIFrame* aFrame,
 void
 nsLayoutUtils::Initialize()
 {
+  Preferences::AddUintVarCache(&sFontSizeInflationMaxRatio,
+                               "font.size.inflation.maxRatio");
   Preferences::AddUintVarCache(&sFontSizeInflationEmPerLine,
                                "font.size.inflation.emPerLine");
   Preferences::AddUintVarCache(&sFontSizeInflationMinTwips,
@@ -5017,8 +5020,10 @@ nsLayoutUtils::FontSizeInflationInner(const nsIFrame *aFrame,
   }
 
   int32_t interceptParam = nsLayoutUtils::FontSizeInflationMappingIntercept();
+  float maxRatio = (float)nsLayoutUtils::FontSizeInflationMaxRatio() / 100.0f;
 
   float ratio = float(styleFontSize) / float(aMinFontSize);
+  float inflationRatio;
 
   
   
@@ -5041,12 +5046,18 @@ nsLayoutUtils::FontSizeInflationInner(const nsIFrame *aFrame,
     
     
     
-    return (1.0f + (ratio * (intercept - 1) / intercept)) / ratio;
+    inflationRatio = (1.0f + (ratio * (intercept - 1) / intercept)) / ratio;
   } else {
     
     
     
-    return 1 + 1.0f / ratio;
+    inflationRatio = 1 + 1.0f / ratio;
+  }
+
+  if (maxRatio > 1.0 && inflationRatio > maxRatio) {
+    return maxRatio;
+  } else {
+    return inflationRatio;
   }
 }
 
