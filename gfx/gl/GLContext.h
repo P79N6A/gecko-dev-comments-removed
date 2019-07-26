@@ -71,7 +71,6 @@ namespace mozilla {
         class GLBlitTextureImageHelper;
         class GLReadTexImageHelper;
         class SharedSurface_GL;
-        class GLDrawRectHelper;
     }
 
     namespace layers {
@@ -2726,13 +2725,11 @@ protected:
     ScopedDeletePtr<GLBlitHelper> mBlitHelper;
     ScopedDeletePtr<GLBlitTextureImageHelper> mBlitTextureImageHelper;
     ScopedDeletePtr<GLReadTexImageHelper> mReadTexImageHelper;
-    ScopedDeletePtr<GLDrawRectHelper> mDrawRectHelper;
 
 public:
     GLBlitHelper* BlitHelper();
     GLBlitTextureImageHelper* BlitTextureImageHelper();
     GLReadTexImageHelper* ReadTexImageHelper();
-    GLDrawRectHelper* DrawRectHelper();
 
     
     bool SharesWith(const GLContext* other) const {

@@ -47,6 +47,10 @@ public:
     InfallibleTArray<coord>& texCoords() {
         return mTexCoords;
     }
+
+    unsigned int elements() {
+        return mVertexCoords.Length();
+    }
 private:
     
     nsAutoTArray<coord, 6> mVertexCoords;
