@@ -227,8 +227,6 @@ HTMLSelectElement::InsertOptionsIntoList(nsIContent* aOptions,
     bool didGetFrame = false;
 
     
-    nsCOMPtr<nsIDOMNode> optionNode;
-    nsCOMPtr<nsIDOMHTMLOptionElement> option;
     for (int32_t i = aListIndex; i < insertIndex; i++) {
       
       if (!didGetFrame || (selectFrame && !weakSelectFrame.IsAlive())) {
@@ -241,22 +239,17 @@ HTMLSelectElement::InsertOptionsIntoList(nsIContent* aOptions,
         selectFrame->AddOption(i);
       }
 
-      Item(i, getter_AddRefs(optionNode));
-      option = do_QueryInterface(optionNode);
-      if (option) {
-        bool selected;
-        option->GetSelected(&selected);
-        if (selected) {
-          
-          if (!HasAttr(kNameSpaceID_None, nsGkAtoms::multiple)) {
-            SetOptionsSelectedByIndex(i, i, true, true, true, true, nullptr);
-          }
-
-          
-          
-          
-          OnOptionSelected(selectFrame, i, true, false, false);
+      nsRefPtr<HTMLOptionElement> option = Item(i);
+      if (option && option->Selected()) {
+        
+        if (!HasAttr(kNameSpaceID_None, nsGkAtoms::multiple)) {
+          SetOptionsSelectedByIndex(i, i, true, true, true, true, nullptr);
         }
+
+        
+        
+        
+        OnOptionSelected(selectFrame, i, true, false, false);
       }
     }
 
