@@ -86,9 +86,6 @@ class Channel::ChannelImpl : public MessageLoopForIO::IOHandler {
   
   bool processing_incoming_;
 
-  
-  bool closed_;
-
   ScopedRunnableMethodFactory<ChannelImpl> factory_;
 
   scoped_ptr<NonThreadSafe> thread_check_;
