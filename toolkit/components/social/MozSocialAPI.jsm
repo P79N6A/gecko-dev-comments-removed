@@ -174,6 +174,30 @@ function attachToWindow(provider, targetWindow) {
     
     schedule(function () { port.close(); });
   });
+  targetWindow.addEventListener("DOMWindowClose", function _mozSocialDOMWindowClose(evt) {
+    let elt = targetWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                .getInterface(Ci.nsIWebNavigation)
+                .QueryInterface(Ci.nsIDocShell)
+                .chromeEventHandler;
+    while (elt) {
+      if (elt.nodeName == "panel") {
+        elt.hidePopup();
+        break;
+      } else if (elt.nodeName == "chatbox") {
+        elt.close();
+        break;
+      }
+      elt = elt.parentNode;
+    }
+    
+    
+    
+    
+    
+    
+    
+    evt.preventDefault();
+  }, true);
 }
 
 function schedule(callback) {
