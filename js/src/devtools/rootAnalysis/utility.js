@@ -103,21 +103,30 @@ function getSuccessors(body)
     return body.successors;
 }
 
-function otherDestructorName(name)
-{
-    
-    
-    
-    
-    
-    if (!/::~/.test(name))
-        return null;
 
-    if (/\(int32\)/.test(name))
-        return name.replace("(int32)","()");
-    if (/\(\)/.test(name))
-        return name.replace("()","(int32)");
-    return null;
+
+function splitFunction(func)
+{
+    var split = func.indexOf("|");
+    if (split == -1)
+        return [ func, func ];
+    return [ func.substr(0, split), func.substr(split+1) ];
+}
+
+function mangled(fullname)
+{
+    var split = fullname.indexOf("|");
+    if (split == -1)
+        return fullname;
+    return fullname.substr(0, split);
+}
+
+function readable(fullname)
+{
+    var split = fullname.indexOf("|");
+    if (split == -1)
+        return fullname;
+    return fullname.substr(split+1);
 }
 
 function xdbLibrary()

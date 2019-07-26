@@ -2,11 +2,38 @@
 
 "use strict";
 
-var calleeGraph = {};
-var callerGraph = {};
-var gcFunctions = {};
+loadRelativeToScript('utility.js');
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var readableNames = {}; 
+var mangledName = {}; 
+var calleeGraph = {}; 
+var callerGraph = {}; 
+var gcFunctions = {}; 
+var suppressedFunctions = {}; 
 var gcEdges = {};
-var suppressedFunctions = {};
 
 function addGCFunction(caller, reason)
 {
@@ -35,7 +62,12 @@ function addCallEdge(caller, callee, suppressed)
     callerGraph[callee].push({caller:caller, suppressed:suppressed});
 }
 
+
+
 var functionNames = [""];
+
+
+var idToMangled = [""];
 
 function loadCallgraph(file)
 {
@@ -45,37 +77,45 @@ function loadCallgraph(file)
     var textLines = snarf(file).split('\n');
     for (var line of textLines) {
         var match;
-        if (match = /^\#(\d+) (.*)/.exec(line)) {
+        if (match = line.charAt(0) == "#" && /^\#(\d+) (.*)/.exec(line)) {
             assert(functionNames.length == match[1]);
             functionNames.push(match[2]);
+            var [ mangled, readable ] = splitFunction(match[2]);
+            if (mangled in readableNames)
+                readableNames[mangled].push(readable);
+            else
+                readableNames[mangled] = [ readable ];
+            mangledName[readable] = mangled;
+            idToMangled.push(mangled);
             continue;
         }
         var suppressed = false;
-        if (/SUPPRESS_GC/.test(line)) {
+        if (line.indexOf("SUPPRESS_GC") != -1) {
             match = /^(..)SUPPRESS_GC (.*)/.exec(line);
             line = match[1] + match[2];
             suppressed = true;
         }
-        if (match = /^I (\d+) VARIABLE ([^\,]*)/.exec(line)) {
-            var caller = functionNames[match[1]];
+        var tag = line.charAt(0);
+        if (match = tag == 'I' && /^I (\d+) VARIABLE ([^\,]*)/.exec(line)) {
+            var mangledCaller = idToMangled[match[1]];
             var name = match[2];
-            if (!indirectCallCannotGC(caller, name) && !suppressed)
-                addGCFunction(caller, "IndirectCall: " + name);
-        } else if (match = /^F (\d+) CLASS (.*?) FIELD (.*)/.exec(line)) {
-            var caller = functionNames[match[1]];
+            if (!indirectCallCannotGC(functionNames[match[1]], name) && !suppressed)
+                addGCFunction(mangledCaller, "IndirectCall: " + name);
+        } else if (match = tag == 'F' && /^F (\d+) CLASS (.*?) FIELD (.*)/.exec(line)) {
+            var caller = idToMangled[match[1]];
             var csu = match[2];
             var fullfield = csu + "." + match[3];
             if (suppressed)
                 suppressedFieldCalls[fullfield] = true;
             else if (!fieldCallCannotGC(csu, fullfield))
                 addGCFunction(caller, "FieldCall: " + fullfield);
-        } else if (match = /^D (\d+) (\d+)/.exec(line)) {
-            var caller = functionNames[match[1]];
-            var callee = functionNames[match[2]];
+        } else if (match = tag == 'D' && /^D (\d+) (\d+)/.exec(line)) {
+            var caller = idToMangled[match[1]];
+            var callee = idToMangled[match[2]];
             addCallEdge(caller, callee, suppressed);
-        } else if (match = /^R (\d+) (\d+)/.exec(line)) {
-            var callerField = functionNames[match[1]];
-            var callee = functionNames[match[2]];
+        } else if (match = tag == 'R' && /^R (\d+) (\d+)/.exec(line)) {
+            var callerField = idToMangled[match[1]];
+            var callee = idToMangled[match[2]];
             addCallEdge(callerField, callee, false);
             resolvedFunctions[callerField] = true;
         }
@@ -99,8 +139,6 @@ function loadCallgraph(file)
     var top = worklist.length;
     while (top > 0) {
         name = worklist[--top];
-        if (shouldSuppressGC(name))
-            continue;
         if (!(name in suppressedFunctions))
             continue;
         delete suppressedFunctions[name];
@@ -125,8 +163,8 @@ function loadCallgraph(file)
     for (var gcName of [ 'jsgc.cpp:void Collect(JSRuntime*, uint8, int64, uint32, uint32)',
                          'void js::MinorGC(JSRuntime*, uint32)' ])
     {
-        assert(gcName in callerGraph);
-        addGCFunction(gcName, "GC");
+        assert(gcName in mangledName);
+        addGCFunction(mangledName[gcName], "GC");
     }
 
     
