@@ -28,7 +28,7 @@ LoginManagerPrompter.prototype = {
     QueryInterface : XPCOMUtils.generateQI([Ci.nsILoginManagerPrompter]),
 
     _factory       : null,
-    _browser       : null,
+    _window        : null,
     _debug         : false, 
 
     __pwmgr : null, 
@@ -113,8 +113,8 @@ LoginManagerPrompter.prototype = {
 
 
 
-    init : function (aBrowser, aFactory) {
-        this._browser = aBrowser;
+    init : function (aWindow, aFactory) {
+        this._window = aWindow;
         this._factory = aFactory || null;
 
         var prefBranch = Services.prefs.getBranch("signon.");
@@ -470,27 +470,81 @@ LoginManagerPrompter.prototype = {
     
 
 
+    _getNotifyWindow: function () {
+        try {
+            
+            var notifyWin = this._window.top;
+
+            
+            
+            
+            if (notifyWin.opener) {
+                var chromeDoc = this._getChromeWindow(notifyWin).
+                                     document.documentElement;
+                var webnav = notifyWin.
+                             QueryInterface(Ci.nsIInterfaceRequestor).
+                             getInterface(Ci.nsIWebNavigation);
+
+                
+                
+                
+                
+                if (chromeDoc.getAttribute("chromehidden") &&
+                    webnav.sessionHistory.count == 1) {
+                    this.log("Using opener window for notification bar.");
+                    notifyWin = notifyWin.opener;
+                }
+            }
+
+            return notifyWin;
+
+        } catch (e) {
+            
+            this.log("Unable to get notify window");
+            return null;
+        }
+    },
+
+    
+
+
+
+
+    _getChromeWindow: function (aWindow) {
+        var chromeWin = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                               .getInterface(Ci.nsIWebNavigation)
+                               .QueryInterface(Ci.nsIDocShell)
+                               .chromeEventHandler.ownerDocument.defaultView;
+        return chromeWin;
+    },
+
+    
+
+
 
 
 
     _getNotifyBox : function () {
         let notifyBox = null;
-        try {
-            let chromeWin = this._browser.ownerDocument.defaultView;
-            if (chromeWin.getNotificationBox) {
-                notifyBox = chromeWin.getNotificationBox(this._browser);
-            } else {
-                this.log("getNotificationBox() not available on window");
-            }
 
-        } catch (e) {
+        try {
+            let notifyWin = this._getNotifyWindow();
+            let windowID = notifyWin.QueryInterface(Ci.nsIInterfaceRequestor)
+                                    .getInterface(Ci.nsIDOMWindowUtils).currentInnerWindowID;
+
             
-            this.log("No notification box available: " + e)
+            
+            let chromeWin = this._getChromeWindow(notifyWin).wrappedJSObject;
+            let browser = chromeWin.Browser.getBrowserForWindowId(windowID);
+
+            notifyBox = chromeWin.getNotificationBox(browser);
+        } catch (e) {
+            this.log("Notification bars not available on window");
         }
+
         return notifyBox;
     },
 
-    
     
 
 
