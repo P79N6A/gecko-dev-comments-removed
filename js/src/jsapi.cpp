@@ -2044,10 +2044,8 @@ JS_SetGCParametersBasedOnAvailableMemory(JSRuntime *rt, uint32_t availMem)
             {JSGC_MAX_MALLOC_BYTES, 6 * 1024 * 1024},
             {JSGC_SLICE_TIME_BUDGET, 30},
             {JSGC_HIGH_FREQUENCY_TIME_LIMIT, 1000},
-            
-            
-            {JSGC_HIGH_FREQUENCY_HIGH_LIMIT, 100},
-            {JSGC_HIGH_FREQUENCY_LOW_LIMIT, 500},
+            {JSGC_HIGH_FREQUENCY_HIGH_LIMIT, 500},
+            {JSGC_HIGH_FREQUENCY_LOW_LIMIT, 100},
             {JSGC_HIGH_FREQUENCY_HEAP_GROWTH_MAX, 300},
             {JSGC_HIGH_FREQUENCY_HEAP_GROWTH_MIN, 150},
             {JSGC_LOW_FREQUENCY_HEAP_GROWTH, 150},
