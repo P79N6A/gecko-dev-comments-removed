@@ -1249,6 +1249,9 @@ pref("network.proxy.autoconfig_url", "");
 pref("network.proxy.autoconfig_retry_interval_min", 5);    
 pref("network.proxy.autoconfig_retry_interval_max", 300);  
 
+
+pref("network.stricttransportsecurity.preloadlist", true);
+
 pref("converter.html2txt.structs",          true); 
 pref("converter.html2txt.header_strategy",  1); 
 

@@ -35,9 +35,9 @@ var gObserver = new Observer();
 
 
 
-var hosts = ["http://keyerror.com", "http://subdomain.kyps.net",
-             "http://subdomain.cert.se", "http://crypto.cat",
-             "http://www.logentries.com"];
+var hosts = ["http://keyerror.com", "http://subdomain.intercom.io",
+             "http://subdomain.pixi.me", "http://crypto.cat",
+             "http://logentries.com"];
 
 function cleanup() {
   Services.obs.removeObserver(gObserver, "private-browsing-transition-complete");
@@ -74,25 +74,31 @@ function test_part1() {
   
   
   
-  do_check_true(gSTSService.isStsHost("health.google.com"));
+  Services.prefs.setBoolPref("network.stricttransportsecurity.preloadlist", false);
+  do_check_false(gSTSService.isStsHost("factor.cc"));
+  Services.prefs.setBoolPref("network.stricttransportsecurity.preloadlist", true);
+  do_check_true(gSTSService.isStsHost("factor.cc"));
 
   
-  do_check_true(gSTSService.isStsHost("subdomain.health.google.com"));
+  do_check_true(gSTSService.isStsHost("arivo.com.br"));
 
   
-  do_check_true(gSTSService.isStsHost("a.b.c.subdomain.health.google.com"));
+  do_check_true(gSTSService.isStsHost("subdomain.arivo.com.br"));
 
   
-  do_check_true(gSTSService.isStsHost("epoxate.com"));
+  do_check_true(gSTSService.isStsHost("a.b.c.subdomain.arivo.com.br"));
 
   
-  do_check_false(gSTSService.isStsHost("subdomain.epoxate.com"));
+  do_check_true(gSTSService.isStsHost("neg9.org"));
 
   
-  do_check_true(gSTSService.isStsHost("www.googlemail.com"));
+  do_check_false(gSTSService.isStsHost("subdomain.neg9.org"));
 
   
-  do_check_false(gSTSService.isStsHost("a.subdomain.www.googlemail.com"));
+  do_check_true(gSTSService.isStsHost("www.noisebridge.net"));
+
+  
+  do_check_false(gSTSService.isStsHost("a.subdomain.www.noisebridge.net"));
 
   
   do_check_false(gSTSService.isStsHost("notsts.nonexistent.mozilla.com."));
@@ -112,12 +118,12 @@ function test_part1() {
 
   
   
-  var uri = Services.io.newURI("http://subdomain.kyps.net", null, null);
+  var uri = Services.io.newURI("http://subdomain.intercom.io", null, null);
   gSTSService.processStsHeader(uri, "max-age=0");
-  do_check_true(gSTSService.isStsHost("kyps.net"));
-  do_check_false(gSTSService.isStsHost("subdomain.kyps.net"));
+  do_check_true(gSTSService.isStsHost("intercom.io"));
+  do_check_false(gSTSService.isStsHost("subdomain.intercom.io"));
 
-  var uri = Services.io.newURI("http://subdomain.cert.se", null, null);
+  var uri = Services.io.newURI("http://subdomain.pixi.me", null, null);
   gSTSService.processStsHeader(uri, "max-age=0");
   
   
@@ -128,9 +134,9 @@ function test_part1() {
   
   
   
-  do_check_true(gSTSService.isStsHost("subdomain.cert.se"));
-  do_check_true(gSTSService.isStsHost("sibling.cert.se"));
-  do_check_true(gSTSService.isStsHost("another.subdomain.cert.se"));
+  do_check_true(gSTSService.isStsHost("subdomain.pixi.me"));
+  do_check_true(gSTSService.isStsHost("sibling.pixi.me"));
+  do_check_true(gSTSService.isStsHost("another.subdomain.pixi.me"));
 
   gSTSService.processStsHeader(uri, "max-age=1000");
   
@@ -138,9 +144,9 @@ function test_part1() {
   
   
   
-  do_check_true(gSTSService.isStsHost("subdomain.cert.se"));
-  do_check_true(gSTSService.isStsHost("sibling.cert.se"));
-  do_check_false(gSTSService.isStsHost("another.subdomain.cert.se"));
+  do_check_true(gSTSService.isStsHost("subdomain.pixi.me"));
+  do_check_true(gSTSService.isStsHost("sibling.pixi.me"));
+  do_check_false(gSTSService.isStsHost("another.subdomain.pixi.me"));
 
   
   
@@ -183,12 +189,12 @@ function test_private_browsing1() {
   
   
   
-  do_check_true(gSTSService.isStsHost("www.logentries.com"));
-  var uri = Services.io.newURI("http://www.logentries.com", null, null);
+  do_check_true(gSTSService.isStsHost("logentries.com"));
+  var uri = Services.io.newURI("http://logentries.com", null, null);
   
   
   gSTSService.processStsHeader(uri, "max-age=-1000");
-  do_check_false(gSTSService.isStsHost("www.logentries.com"));
+  do_check_false(gSTSService.isStsHost("logentries.com"));
 
   
   getPBSvc().privateBrowsingEnabled = false;
@@ -202,7 +208,7 @@ function test_private_browsing2() {
 
   
   
-  do_check_true(gSTSService.isStsHost("www.logentries.com"));
+  do_check_true(gSTSService.isStsHost("logentries.com"));
 
   run_next_test();
 }
