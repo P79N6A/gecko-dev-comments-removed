@@ -30,7 +30,6 @@ nsMathMLmoFrame::~nsMathMLmoFrame()
 {
 }
 
-static const char16_t kInvisibleComma = char16_t(0x200B); 
 static const char16_t kApplyFunction  = char16_t(0x2061);
 static const char16_t kInvisibleTimes = char16_t(0x2062);
 static const char16_t kInvisibleSeparator = char16_t(0x2063);
@@ -74,8 +73,7 @@ nsMathMLmoFrame::UseMathMLChar()
 {
   return (NS_MATHML_OPERATOR_GET_FORM(mFlags) &&
           NS_MATHML_OPERATOR_IS_MUTABLE(mFlags)) ||
-    NS_MATHML_OPERATOR_IS_CENTERED(mFlags) ||
-    NS_MATHML_OPERATOR_IS_INVISIBLE(mFlags);
+    NS_MATHML_OPERATOR_IS_CENTERED(mFlags);
 }
 
 void
@@ -123,8 +121,7 @@ nsMathMLmoFrame::ProcessTextData()
   char16_t ch = (length == 0) ? char16_t('\0') : data[0];
 
   if ((length == 1) && 
-      (ch == kInvisibleComma || 
-       ch == kApplyFunction  || 
+      (ch == kApplyFunction  ||
        ch == kInvisibleSeparator ||
        ch == kInvisiblePlus ||
        ch == kInvisibleTimes)) {
@@ -132,9 +129,8 @@ nsMathMLmoFrame::ProcessTextData()
   }
 
   
-  
   nsPresContext* presContext = PresContext();
-  if (NS_MATHML_OPERATOR_IS_INVISIBLE(mFlags) || mFrames.GetLength() != 1) {
+  if (mFrames.GetLength() != 1) {
     data.Truncate(); 
     mMathMLChar.SetData(presContext, data);
     ResolveMathMLCharStyle(presContext, mContent, mStyleContext, &mMathMLChar, false);
@@ -341,17 +337,10 @@ nsMathMLmoFrame::ProcessOperatorData()
     
     float lspace = 5.0f/18.0f;
     float rspace = 5.0f/18.0f;
-    if (NS_MATHML_OPERATOR_IS_INVISIBLE(mFlags)) {
-      
-      
-      
-      lspace = rspace = 0;
-    } else {
-      
-      nsAutoString data;
-      mMathMLChar.GetData(data);
-      nsMathMLOperators::LookupOperator(data, form, &mFlags, &lspace, &rspace);
-    }
+    
+    nsAutoString data;
+    mMathMLChar.GetData(data);
+    nsMathMLOperators::LookupOperator(data, form, &mFlags, &lspace, &rspace);
     if (lspace || rspace) {
       
       
@@ -750,14 +739,11 @@ nsMathMLmoFrame::Stretch(nsRenderingContext& aRenderingContext,
   }
 
   
-  if (!NS_MATHML_OPERATOR_IS_INVISIBLE(mFlags)) {
+  
+  nsresult rv = Place(aRenderingContext, true, aDesiredStretchSize);
+  if (NS_MATHML_HAS_ERROR(mPresentationData.flags) || NS_FAILED(rv)) {
     
-    
-    nsresult rv = Place(aRenderingContext, true, aDesiredStretchSize);
-    if (NS_MATHML_HAS_ERROR(mPresentationData.flags) || NS_FAILED(rv)) {
-      
-      DidReflowChildren(mFrames.FirstChild());
-    }
+    DidReflowChildren(mFrames.FirstChild());
   }
 
   if (useMathMLChar) {
@@ -946,22 +932,6 @@ nsMathMLmoFrame::Reflow(nsPresContext*          aPresContext,
   
   
   ProcessOperatorData();
-
-  
-  
-  if (NS_MATHML_OPERATOR_IS_INVISIBLE(mFlags)) {
-    
-    
-    
-    aDesiredSize.Width() = 0;
-    aDesiredSize.Height() = 0;
-    aDesiredSize.SetTopAscent(0);
-    aDesiredSize.mBoundingMetrics = nsBoundingMetrics();
-    aStatus = NS_FRAME_COMPLETE;
-
-    NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
-    return NS_OK;
-  }
 
   return nsMathMLTokenFrame::Reflow(aPresContext, aDesiredSize,
                                     aReflowState, aStatus);
