@@ -141,18 +141,11 @@ ThreadPoolWorker::start()
     
     state_ = ACTIVE;
 
-    if (!PR_CreateThread(PR_USER_THREAD,
-                         HelperThreadMain, this,
-                         PR_PRIORITY_NORMAL, PR_GLOBAL_THREAD,
-                         PR_UNJOINABLE_THREAD,
-                         WORKER_THREAD_STACK_SIZE))
-    {
-        
-        state_ = TERMINATED;
-        return false;
-    }
-
-    return true;
+    return PR_CreateThread(PR_USER_THREAD,
+                           HelperThreadMain, this,
+                           PR_PRIORITY_NORMAL, PR_GLOBAL_THREAD,
+                           PR_UNJOINABLE_THREAD,
+                           WORKER_THREAD_STACK_SIZE);
 #endif
 }
 
